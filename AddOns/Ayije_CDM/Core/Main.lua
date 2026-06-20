@@ -2,12 +2,12 @@ local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 local CDM_C = CDM.CONST
 local RefreshStyleCache = CDM.RefreshStyleCache
-local GetBaseSpellID = CDM.GetBaseSpellID
 
 local InCombatLockdown = InCombatLockdown
 
 local VIEWERS = CDM_C.VIEWERS
 local ALL_VIEWER_NAMES = CDM_C.ALL_VIEWER_NAMES
+local MANAGED_VIEWER_NAMES = CDM_C.MANAGED_VIEWER_NAMES
 local UPDATE_CONSTANTS_METHODS = {
     "UpdateRacials",
     "UpdateDefensives",
@@ -32,14 +32,13 @@ local function UpdateConstants()
     end
 
     for _, methodName in ipairs(UPDATE_CONSTANTS_METHODS) do
-        local method = CDM[methodName]
-        if method then method(CDM) end
+        CDM[methodName](CDM)
     end
 end
 
 CDM.anchorContainers = {}
+CDM.loginFinished = false
 CDM.loadingScreenActive = false
-CDM.viewersReady = false
 CDM.pendingSpecChange = false
 CDM.pendingTalentChange = false
 CDM.isEditModeActive = false
@@ -71,40 +70,27 @@ local function RegisterLSMFontRefreshCallback()
     callbacks.RegisterCallback(CDM, LSM_MEDIA_EVENT, OnLSMMediaRegistered)
 end
 
-local function RegisterPostLoginFontRefresh()
-    CDM:RegisterEvent("PLAYER_LOGIN", function()
-        CDM.Glow:Initialize()
-        C_Timer.After(0, function()
-            CDM:Refresh()
-        end)
-    end)
-end
-
 local function RegisterCooldownViewerSettingsVisualRefresh()
     local panel = _G.CooldownViewerSettings
     if not panel then return end
 
-    panel:HookScript("OnShow", function()
-        CDM:ForceReanchorAll()
-    end)
-    panel:HookScript("OnHide", function()
-        CDM:ForceReanchorAll()
-    end)
+    local function ReanchorBuffViewers()
+        local buffViewer = _G[VIEWERS.BUFF]
+        if buffViewer then CDM:ForceReanchor(buffViewer) end
+        local buffBarViewer = _G[VIEWERS.BUFF_BAR]
+        if buffBarViewer then CDM:ForceReanchor(buffBarViewer) end
+    end
+
+    panel:HookScript("OnShow", ReanchorBuffViewers)
+    panel:HookScript("OnHide", ReanchorBuffViewers)
 end
 
-local function RegisterCooldownViewerOverrideRefresh()
-    local version = 0
-    CDM:RegisterEvent("COOLDOWN_VIEWER_SPELL_OVERRIDE_UPDATED", function()
-        version = version + 1
-        local myVersion = version
-        C_Timer.After(0, function()
-            if version ~= myVersion then return end
-            if CDM.WipeEffectiveIDCache then CDM.WipeEffectiveIDCache() end
-            CDM:RefreshBuffGroupData()
-            CDM:RefreshCooldownGroupData()
-            CDM:RebuildAuraOverlayEnabledMap()
-            CDM:ForceReanchorAll()
-        end)
+local function RegisterCooldownViewerTableHotfix()
+    CDM:RegisterEvent("COOLDOWN_VIEWER_TABLE_HOTFIXED", function()
+        CDM:MarkSpecDataDirty()
+        CDM:RefreshSpecData()
+        CDM:ForceReanchorAll()
+        CDM:Refresh()
     end)
 end
 
@@ -116,9 +102,8 @@ function CDM:ForceReanchorAll()
 end
 
 local function InstallScaleLockHook(frame)
-    local fd = CDM.GetFrameData(frame)
-    if fd.cdmSetScaleHooked then return end
-    fd.cdmSetScaleHooked = true
+    if frame.cdmSetScaleHooked then return end
+    frame.cdmSetScaleHooked = true
     hooksecurefunc(frame, "SetScale", function(self, scale)
         if scale ~= 1 then
             self:SetScale(1)
@@ -126,244 +111,210 @@ local function InstallScaleLockHook(frame)
     end)
 end
 
+local function InstallAnchorSnapBackHook(itemFrame, anchorKey)
+    if itemFrame.cdmSetPointHooked then return end
+    itemFrame.cdmSetPointHooked = true
+    hooksecurefunc(itemFrame, "SetPoint", function(frame, point, relativeTo)
+        local a = frame[anchorKey]
+        if not a then return end
+        if relativeTo == a[2] then return end
+        RawClearAllPoints(frame)
+        RawSetPoint(frame, a[1], a[2], a[3], a[4], a[5])
+    end)
+end
+
+local function InstallActiveStateRepositionHook(itemFrame, vName)
+    if itemFrame.cdmActiveStateHooked then return end
+    itemFrame.cdmActiveStateHooked = true
+    local viewer = _G[vName]
+    if vName == VIEWERS.BUFF then
+        hooksecurefunc(itemFrame, "OnActiveStateChanged", function()
+            CDM:RepositionBuffViewer(viewer)
+        end)
+    else
+        hooksecurefunc(itemFrame, "OnActiveStateChanged", function()
+            CDM:RepositionBuffBarViewer(viewer)
+        end)
+    end
+end
+
+local function InstallResourcesHiddenReHideHook(itemFrame)
+    if itemFrame.cdmShowHooked then return end
+    itemFrame.cdmShowHooked = true
+    local function reHideIfResourceHidden(self)
+        local hiddenSet = CDM.resourcesHiddenBuffSet
+        if not hiddenSet or not next(hiddenSet) then return end
+        local id = CDM.GetBaseSpellID(self)
+        if id and hiddenSet[id] then
+            self:Hide()
+        end
+    end
+    hooksecurefunc(itemFrame, "Show", reHideIfResourceHidden)
+    hooksecurefunc(itemFrame, "SetShown", function(self, shown)
+        if shown then reHideIfResourceHidden(self) end
+    end)
+end
+
+local function InstallBuffSpellIDNotifyHook(itemFrame)
+    if itemFrame.cdmSpellIDNotifyHooked then return end
+    itemFrame.cdmSpellIDNotifyHooked = true
+    hooksecurefunc(itemFrame, "SetCooldownID", function(self)
+        local baseID = CDM.GetBaseSpellID(self)
+        if baseID then
+            CDM:NotifyBuffFrameSpellID(self, baseID)
+        end
+    end)
+end
+
+local function InstallEditModeOverlayRefresh(v, vName)
+    CDM:UpdateEditModeSelectionOverlay(vName)
+    v:HookScript("OnShow", function()
+        CDM:UpdateEditModeSelectionOverlay(vName)
+    end)
+end
+
+local function InstallRefreshLayoutReanchor(v)
+    hooksecurefunc(v, "RefreshLayout", function()
+        CDM:ForceReanchor(v)
+    end)
+end
+
+local function InstallContainerSyncHook(v, vName)
+    hooksecurefunc(v, "SetPoint", function(_, point, relativeTo)
+        if InCombatLockdown() then return end
+        local container = CDM.anchorContainers and CDM.anchorContainers[vName]
+        if not container or relativeTo == container then return end
+        v:ClearAllPoints()
+        v:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
+        v:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT", 0, 0)
+    end)
+end
+
 function CDM:SetupViewer(vName)
     local v = _G[vName]
     if not v then return end
 
-    if v.OnAcquireItemFrame then
-        hooksecurefunc(v, "OnAcquireItemFrame", function(_, itemFrame)
-            InstallScaleLockHook(itemFrame)
-            local fd = CDM.GetFrameData(itemFrame)
-            fd.cdmAnchor = nil
-            fd.buffCategorySpellID = nil
-            fd.cdGroupSpellID = nil
-            fd.cdmCooldownInitDone = nil
-            fd.cdmLastCooldownStyleVer = nil
-            fd.cdmPandemicActive = nil
-            fd.cdmPandemicAppliedColor = nil
-            fd.cdmLastBuffBorderSpellID = nil
-            fd.cdmLastBuffBorderCatID = nil
-            fd.cdmLastBuffBorderColorVer = nil
-            fd.cdmLastBuffBorderStyleVer = nil
-            fd.cdmInternalWrite = nil
-            fd.isProcessingOverride = nil
-            fd.isProcessingBuffOverride = nil
-            CDM:HideCooldownTextIfFlagged(itemFrame)
+    local isEssOrUtil = (vName == VIEWERS.ESSENTIAL or vName == VIEWERS.UTILITY)
+    local isBuff = (vName == VIEWERS.BUFF)
+    local isBuffBar = (vName == VIEWERS.BUFF_BAR)
+    local hasAnchorSnapBack = not isBuffBar
+    local hasActiveStateHook = isBuff or isBuffBar
 
-            if vName ~= VIEWERS.BUFF_BAR and not fd.cdmSetPointHooked then
-                fd.cdmSetPointHooked = true
-                hooksecurefunc(itemFrame, "SetPoint", function(frame, point, relativeTo)
-                    local fd2 = CDM.GetFrameData(frame)
-                    if not fd2 or not fd2.cdmAnchor then return end
-                    local a = fd2.cdmAnchor
-                    if relativeTo == a[2] then return end
-                    RawClearAllPoints(frame)
-                    RawSetPoint(frame, a[1], a[2], a[3], a[4], a[5])
-                end)
-            end
+    hooksecurefunc(v, "OnAcquireItemFrame", function(_, itemFrame)
+        InstallScaleLockHook(itemFrame)
+        CDM:RestoreCooldownTextIfHidden(itemFrame)
+        CDM:RestoreVisualsIfHidden(itemFrame)
 
-            if (vName == VIEWERS.BUFF or vName == VIEWERS.BUFF_BAR) and not fd.cdmActiveStateHooked then
-                fd.cdmActiveStateHooked = true
-                local hookVName = vName
-                hooksecurefunc(itemFrame, "OnActiveStateChanged", function(frame)
-                    if hookVName == VIEWERS.BUFF then
-                        CDM:RepositionBuffViewer(_G[hookVName])
-                    else
-                        CDM:ForceReanchor(_G[hookVName])
-                    end
-                end)
-            end
-
-            if vName == VIEWERS.BUFF and not fd.cdmShowHooked then
-                fd.cdmShowHooked = true
-                local function reHideIfResourceHidden(self)
-                    local hiddenSet = CDM.resourcesHiddenBuffSet
-                    if not hiddenSet or not next(hiddenSet) then return end
-                    local id = CDM.GetBaseSpellID(self)
-                    if id and hiddenSet[id] then
-                        self:Hide()
-                    end
-                end
-                hooksecurefunc(itemFrame, "Show", reHideIfResourceHidden)
-                hooksecurefunc(itemFrame, "SetShown", function(self, shown)
-                    if shown then reHideIfResourceHidden(self) end
-                end)
-            end
-
-        end)
-    end
-
-    if self.UpdateEditModeSelectionOverlay then
-        self:UpdateEditModeSelectionOverlay(vName)
-    end
-
-    v:HookScript("OnShow", function()
-        if self.UpdateEditModeSelectionOverlay then
-            self:UpdateEditModeSelectionOverlay(vName)
+        if hasAnchorSnapBack then
+            InstallAnchorSnapBackHook(itemFrame, "cdmAnchor")
+        elseif isBuffBar then
+            InstallAnchorSnapBackHook(itemFrame, "cdmBarAnchor")
+        end
+        if hasActiveStateHook then
+            InstallActiveStateRepositionHook(itemFrame, vName)
+        end
+        if isBuff then
+            InstallResourcesHiddenReHideHook(itemFrame)
+            InstallBuffSpellIDNotifyHook(itemFrame)
         end
     end)
 
-    hooksecurefunc(v, "RefreshLayout", function()
-        self:ForceReanchor(v)
-    end)
-
-    if vName == VIEWERS.ESSENTIAL or vName == VIEWERS.UTILITY then
-        local function SyncViewerToContainer()
-            if InCombatLockdown() then
-                CDM.combatDirtyViewers[vName] = true
-                return
-            end
-            local container = CDM.anchorContainers and CDM.anchorContainers[vName]
-            if container then
-                v:ClearAllPoints()
-                v:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
-                v:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT", 0, 0)
-            end
-        end
-
-        hooksecurefunc(v, "Layout", SyncViewerToContainer)
-
-        hooksecurefunc(v, "SetPoint", function(_, point, relativeTo)
-            if InCombatLockdown() then return end
-            local container = CDM.anchorContainers and CDM.anchorContainers[vName]
-            if relativeTo == container then return end
-            SyncViewerToContainer()
-        end)
+    CDM.BORDER:InstallAcquireResetHook(v)
+    CDM:InstallLayoutAcquireResetHook(v)
+    CDM:InstallStyleAcquireResetHook(v)
+    CDM:InstallSpellCacheAcquireResetHook(v)
+    if isBuff then
+        CDM:InstallBuffGroupsAcquireResetHook(v)
+    end
+    CDM.Glow:InstallAcquireResetHook(v)
+    if isEssOrUtil then
+        CDM.GlowDirector:InstallAcquireResetHook(v)
     end
 
-    self:ForceReanchor(v)
+    InstallEditModeOverlayRefresh(v, vName)
+    InstallRefreshLayoutReanchor(v)
+    if isEssOrUtil then
+        InstallContainerSyncHook(v, vName)
+    end
 end
 
-CDM.loginFinished = false
 CDM.loginDeferredFullChange = nil
 
-local function CreateBuffContainers()
-    local mainBuffs = _G[VIEWERS.BUFF]
-    if mainBuffs then
-        CDM:GetOrCreateAnchorContainer(mainBuffs)
-    end
-
-    local buffBar = _G[VIEWERS.BUFF_BAR]
-    if buffBar then
-        CDM:GetOrCreateAnchorContainer(buffBar)
-        CDM:UpdateBuffBarContainerPosition()
-    end
-end
-
-local function SetupMixinHooks()
-    if CooldownViewerBuffIconItemMixin and CooldownViewerBuffIconItemMixin.OnCooldownIDSet then
-        hooksecurefunc(CooldownViewerBuffIconItemMixin, "OnCooldownIDSet", function(frame)
-            local baseID = CDM.GetBaseSpellID(frame)
-            if baseID then
-                CDM:NotifyBuffFrameSpellID(frame, baseID)
+local function InitializeAnchorContainers()
+    for _, vName in ipairs(ALL_VIEWER_NAMES) do
+        if _G[vName] then
+            if vName == VIEWERS.ESSENTIAL then
+                CDM:CreateEssentialAnchorContainer()
+            elseif vName == VIEWERS.BUFF then
+                CDM:CreateBuffAnchorContainer()
+            elseif vName == VIEWERS.BUFF_BAR then
+                CDM:CreateBuffBarAnchorContainer()
+            elseif vName == VIEWERS.UTILITY then
+                CDM:CreateUtilityAnchorContainer()
             end
-        end)
+        end
     end
 end
 
 local function ActivateEditMode()
     CDM.isEditModeActive = true
-    if CDM.LockCooldownViewerEditModeFrames then
-        CDM:LockCooldownViewerEditModeFrames()
-    end
-    if CDM.UpdateEditModeSelectionOverlays then
-        CDM:UpdateEditModeSelectionOverlays()
-    end
-    if CDM.UpdateContainerDragOverlays then
-        CDM:UpdateContainerDragOverlays()
-    end
-    if CDM.Fading then
-        CDM.Fading:ShowImmediate()
-    end
+    CDM:LockCooldownViewerEditModeFrames()
+    CDM:UpdateEditModeSelectionOverlays()
+    CDM.Fading:ShowImmediate()
 end
 
 local function SetupEditModeIntegration()
+    EventRegistry:RegisterCallback("EditMode.Enter", ActivateEditMode, CDM)
+    EventRegistry:RegisterCallback("EditMode.Exit", function()
+        CDM.isEditModeActive = false
+        CDM:ForceReanchorAll()
+        CDM.Fading:Evaluate()
+    end, CDM)
+
     local EditModeManagerFrame = _G.EditModeManagerFrame
-    if EditModeManagerFrame then
-        hooksecurefunc(EditModeManagerFrame, "Show", ActivateEditMode)
-
-        hooksecurefunc(EditModeManagerFrame, "Hide", function()
-            CDM.isEditModeActive = false
-            if CDM.UpdateContainerDragOverlays then
-                CDM:UpdateContainerDragOverlays()
-            end
-            CDM:ForceReanchorAll()
-            if CDM.Fading then
-                CDM.Fading:Evaluate()
-            end
-        end)
-
-        if EditModeManagerFrame:IsShown() then
-            ActivateEditMode()
-        end
+    if EditModeManagerFrame and EditModeManagerFrame:IsEditModeActive() then
+        ActivateEditMode()
     end
 
-    if CDM.SetupEditModeCooldownViewerLock then
-        CDM:SetupEditModeCooldownViewerLock()
-    end
-
+    CDM:SetupEditModeCooldownViewerLock()
 end
 
-local function SetupZoneTransitionEvents()
+local function SetupLoadingAndSpecCoordination()
     local pendingPostSpecSetup = false
+    local initialSetupDone = false
 
     local function RunVisualSetup()
+        CDM.Pixel.Update()
         CDM:RefreshSpecData()
         CDM:ForceReanchorAll()
-
-        if not CDM.loginFinished then
-            CDM.loginFinished = true
-            if CDM.TryOpenQueuedConfig then
-                CDM:TryOpenQueuedConfig("login_ready")
-            end
-            if CDM.ProcessDeferredLogin then CDM:ProcessDeferredLogin() end
-        end
-
-        CDM.viewersReady = true
+        CDM:Refresh()
     end
+
+    EventUtil.ContinueAfterAllEvents(function()
+        CDM.loginFinished = true
+        if CDM.pendingSpecChange then
+            pendingPostSpecSetup = true
+        else
+            RunVisualSetup()
+        end
+        initialSetupDone = true
+        CDM:TryOpenQueuedConfig("login_ready")
+        CDM:ProcessDeferredLogin()
+    end, "VARIABLES_LOADED", "PLAYER_ENTERING_WORLD",
+       "COOLDOWN_VIEWER_DATA_LOADED", "LOADING_SCREEN_DISABLED")
 
     CDM:RegisterEvent("LOADING_SCREEN_ENABLED", function()
         CDM.loadingScreenActive = true
     end)
 
     CDM:RegisterEvent("LOADING_SCREEN_DISABLED", function()
-        CDM.Pixel.Update()
         CDM.loadingScreenActive = false
+        if not initialSetupDone then return end
 
         if CDM.pendingSpecChange then
             pendingPostSpecSetup = true
         else
             RunVisualSetup()
-        end
-
-        C_Timer.After(0.5, function() CDM:Refresh() end)
-    end)
-
-    CDM:RegisterEvent("UI_SCALE_CHANGED", function()
-        CDM.Pixel.Update()
-        if CDM.UpdateEssentialContainerPosition then
-            CDM:UpdateEssentialContainerPosition()
-        end
-        if CDM.UpdateBuffContainerPosition then
-            CDM:UpdateBuffContainerPosition()
-        end
-        if CDM.UpdateBuffBarContainerPosition then
-            CDM:UpdateBuffBarContainerPosition()
-        end
-        CDM:Refresh()
-    end)
-
-    CDM:RegisterEvent("PLAYER_ENTERING_WORLD", function(event, isInitialLogin, isReloadingUi)
-        CDM.viewersReady = false
-
-        if isInitialLogin or isReloadingUi then
-            CDM.anchorContainers = {}
-            if _G[VIEWERS.BUFF] then
-                CDM:GetOrCreateAnchorContainer(_G[VIEWERS.BUFF])
-            end
-            if _G[VIEWERS.BUFF_BAR] then
-                CDM:GetOrCreateAnchorContainer(_G[VIEWERS.BUFF_BAR])
-            end
         end
     end)
 
@@ -373,6 +324,16 @@ local function SetupZoneTransitionEvents()
             RunVisualSetup()
         end
     end
+end
+
+local function RegisterUIScaleEvent()
+    CDM:RegisterEvent("UI_SCALE_CHANGED", function()
+        CDM.Pixel.Update()
+        CDM:UpdateEssentialContainerPosition()
+        CDM:UpdateBuffContainerPosition()
+        CDM:UpdateBuffBarContainerPosition()
+        CDM:Refresh()
+    end)
 end
 
 local function RunProfileAppliedHooks()
@@ -392,14 +353,15 @@ local function InitializeModules()
     CDM.ReconcileResources()
     CDM.ReconcileExternals()
 
-    if CDM.InitializeCustomBuffs then
-        CDM:InitializeCustomBuffs()
-    end
+    CDM:InitializeCustomBuffs()
 
-    if CDM.CreatePlayerCastBar and CDM.db.castBarEnabled ~= false then
+    if CDM.db.castBarEnabled ~= false then
         CDM:CreatePlayerCastBar()
     end
 
+    CDM.BuffGroups:Initialize()
+    CDM.BuffGroupPlaceholders:Initialize()
+    CDM.Glow:Initialize()
     CDM.Keybinds:Initialize()
     CDM.Fading:Initialize()
     CDM.RotationAssist:Initialize()
@@ -416,74 +378,71 @@ local function FlushCombatDirtyViewers()
     wipe(dirty)
 end
 
+local function LiftManagedViewerStrata()
+    if InCombatLockdown() then
+        CDM.combatDirtyStrata = true
+        return
+    end
+    for _, vName in ipairs(MANAGED_VIEWER_NAMES) do
+        local v = _G[vName]
+        if v then
+            v:SetFrameStrata("MEDIUM")
+            if v.SetFixedFrameStrata then
+                v:SetFixedFrameStrata(true)
+            end
+        end
+    end
+    CDM.combatDirtyStrata = nil
+end
+
 local function ForceRestyleAll()
-    if RefreshStyleCache then RefreshStyleCache() end
-    for _, vName in ipairs(ALL_VIEWER_NAMES) do
-        if vName ~= VIEWERS.BUFF_BAR then
-            local viewer = _G[vName]
-            if viewer and viewer.itemFramePool then
-                for frame in viewer.itemFramePool:EnumerateActive() do
-                    CDM:ApplyStyle(frame, vName, true)
-                    if vName == VIEWERS.BUFF then
-                        CDM:RestoreCooldownTextIfHidden(frame)
-                        CDM:RestoreVisualsIfHidden(frame)
-                        CDM:ApplyUngroupedBuffOverrides(frame)
-                    end
-                end
-            end
+    RefreshStyleCache()
+    CDM:ForEachActiveFrame({ VIEWERS.ESSENTIAL, VIEWERS.UTILITY, VIEWERS.BUFF }, function(frame, vName)
+        CDM:ApplyStyle(frame, vName, true)
+        if vName == VIEWERS.BUFF then
+            CDM:RestoreCooldownTextIfHidden(frame)
+            CDM:RestoreVisualsIfHidden(frame)
+            CDM:ApplyUngroupedBuffOverrides(frame)
+        end
+    end)
+    for _, buffData in pairs(CDM.CustomBuffs.activeBuffs) do
+        local frame = buffData.frame
+        if frame then
+            CDM:ApplyStyle(frame, VIEWERS.BUFF, true)
+            CDM:ApplyUngroupedBuffOverrides(frame)
         end
     end
-    local CB = CDM.CustomBuffs
-    if CB and CB.activeBuffs then
-        for _, buffData in pairs(CB.activeBuffs) do
-            local frame = buffData.frame
-            if frame then
-                CDM:ApplyStyle(frame, VIEWERS.BUFF, true)
-                CDM:ApplyUngroupedBuffOverrides(frame)
-            end
-        end
-    end
-    if CDM.ApplyGroupStyleOverrides then
-        CDM:ApplyGroupStyleOverrides()
-    end
+    CDM:ApplyGroupStyleOverrides()
     local bbViewer = _G[VIEWERS.BUFF_BAR]
     if bbViewer then CDM:ForceReanchor(bbViewer) end
-    if CDM.RefreshAllSwipeColors then
-        CDM.RefreshAllSwipeColors()
-    end
-    if CDM.Fading then CDM.Fading:ReapplyCurrent() end
+    CDM.RefreshAllSwipeColors()
+    CDM.Fading:ReapplyCurrent()
 end
 
 local function RegisterRefreshCallbacks()
     CDM:RegisterRefreshCallback("styleCache", function()
         CDM.styleCacheVersion = (CDM.styleCacheVersion or 0) + 1
-        if RefreshStyleCache then
-            RefreshStyleCache()
-        end
-        if CDM.InvalidateEssentialRow1WidthCache then
-            CDM:InvalidateEssentialRow1WidthCache()
-        end
+        RefreshStyleCache()
     end, 10)
 
     CDM:RegisterRefreshCallback("constants", function()
-        if CDM.InvalidateEssentialRow1WidthCache then
-            CDM:InvalidateEssentialRow1WidthCache()
-        end
-        if CDM.InvalidateUtilityVisibleCountCache then
-            CDM:InvalidateUtilityVisibleCountCache()
-        end
+        CDM:InvalidateUtilityVisibleCountCache()
         UpdateConstants()
     end, 20)
 
     CDM:RegisterRefreshCallback("specData", function()
         CDM:RefreshSpecData()
-    end, 30, { "BUFF_DATA", "CD_DATA" })
+    end, 30, { "BUFF_DATA", "BAR_DATA", "CD_DATA" })
+
+    CDM:RegisterRefreshCallback("essentialPosition", function()
+        CDM:UpdateEssentialContainerPosition()
+    end, 35, { "LAYOUT" })
 
     CDM:RegisterRefreshCallback("viewers_layout", function()
         CDM:ForceReanchorAll()
-    end, 40, { "LAYOUT", "BUFF_DATA", "CD_DATA" })
+    end, 40, { "LAYOUT", "BUFF_DATA", "BAR_DATA", "CD_DATA" })
 
-    CDM:RegisterRefreshCallback("viewers_style", ForceRestyleAll, 45, { "STYLE", "BUFF_DATA", "CD_DATA" })
+    CDM:RegisterRefreshCallback("viewers_style", ForceRestyleAll, 45, { "STYLE", "BUFF_DATA", "BAR_DATA", "CD_DATA" })
 
     CDM:RegisterRefreshCallback("trackerModules", function()
         CDM.ReconcileDefensives()
@@ -496,10 +455,6 @@ local function RegisterRefreshCallbacks()
         CDM.ReconcileResources()
     end, 50, { "RESOURCES" })
 
-    CDM:RegisterRefreshCallback("essentialPosition", function()
-        CDM:UpdateEssentialContainerPosition()
-    end, 35, { "LAYOUT" })
-
     CDM:RegisterRefreshCallback("buffPosition", function()
         CDM:UpdateBuffContainerPosition()
     end, 60, { "LAYOUT" })
@@ -507,10 +462,6 @@ local function RegisterRefreshCallbacks()
     CDM:RegisterRefreshCallback("buffBars", function()
         CDM:UpdateBuffBarContainerPosition()
     end, 65, { "LAYOUT", "TRACKERS" })
-
-    CDM:RegisterRefreshCallback("containerLocks", function()
-        CDM:UpdateContainerDragOverlays()
-    end, 70, { "LAYOUT" })
 end
 
 function CDM:OnEnable()
@@ -520,28 +471,30 @@ function CDM:OnEnable()
         CDM:RequestConfigOpen("slash", nil)
     end
 
-    CreateBuffContainers()
-    SetupMixinHooks()
+    InitializeAnchorContainers()
     for _, vName in ipairs(ALL_VIEWER_NAMES) do
         self:SetupViewer(vName)
     end
+    LiftManagedViewerStrata()
     SetupEditModeIntegration()
-    SetupZoneTransitionEvents()
+    self:InitializeConfigEvents()
+    SetupLoadingAndSpecCoordination()
+    RegisterUIScaleEvent()
     self:InitializeSpecChangeSystem()
-    InitializeModules()
     RefreshStyleCache()
+    InitializeModules()
     RegisterRefreshCallbacks()
     RegisterLSMFontRefreshCallback()
-    RegisterPostLoginFontRefresh()
     RegisterCooldownViewerSettingsVisualRefresh()
-    RegisterCooldownViewerOverrideRefresh()
-    if self.DisableBlizzardPlayerCastBar then
-        self:DisableBlizzardPlayerCastBar()
-    end
+    RegisterCooldownViewerTableHotfix()
+    self:DisableBlizzardPlayerCastBar()
 
     self:RegisterCombatStateHandler(function(isInCombat)
         if isInCombat then
             return
+        end
+        if CDM.combatDirtyStrata then
+            LiftManagedViewerStrata()
         end
         FlushCombatDirtyViewers()
     end)

@@ -60,6 +60,7 @@ local function CreateBuffGroupsTab(page)
     local renameActiveGroupIndex = nil
     local renameActiveEditBox = nil
     local pickerActiveGroupIndex = nil
+    local customBuffAddGroupIndex = nil
 
     local _helpers = Shared.CreateGroupEditorHelpers({
         dbKey = "buffGroups",
@@ -102,9 +103,6 @@ local function CreateBuffGroupsTab(page)
     end
 
     local function GetUngroupedBuffSpells()
-        local buffViewer = _G["BuffIconCooldownViewer"]
-        if not buffViewer or not buffViewer.itemFramePool then return {} end
-
         local icons = {}
         local seen = {}
         local groupedSet = {}
@@ -119,43 +117,40 @@ local function CreateBuffGroupsTab(page)
             end
         end
 
-        local GetFrameData = API.GetFrameData or CDM.GetFrameData
-        for frame in buffViewer.itemFramePool:EnumerateActive() do
+        API:ForEachActiveFrame({ "BuffIconCooldownViewer" }, function(frame)
             local matchType = API.GetBuffRegistryMatch and API:GetBuffRegistryMatch(frame) or nil
-            if not matchType then
-                local displayID
-                local fd = GetFrameData and GetFrameData(frame)
-                local catID = fd and fd.buffCategorySpellID
-                if catID and catID ~= false and Shared.HasEquivalentSpellID(groupedSet, catID) then
-                    displayID = nil
-                else
-                    local info = frame.GetCooldownInfo and frame:GetCooldownInfo() or frame.cooldownInfo
-                    if info then
-                        displayID = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID
-                    end
-                    if not IsSafeNumber(displayID) then
-                        displayID = frame.GetBaseSpellID and frame:GetBaseSpellID()
-                    end
-                    if not IsSafeNumber(displayID) then
-                        displayID = API.GetPreferredBuffGroupSpellID and API:GetPreferredBuffGroupSpellID(frame)
-                    end
-                    if not IsSafeNumber(displayID) and API.GetBaseSpellID then
-                        displayID = API:GetBaseSpellID(frame)
-                    end
+            if matchType then return end
+            local displayID
+            local catID = frame.cdmBuffCategorySpellID
+            if catID and catID ~= false and Shared.HasEquivalentSpellID(groupedSet, catID) then
+                displayID = nil
+            else
+                local info = frame.GetCooldownInfo and frame:GetCooldownInfo() or frame.cooldownInfo
+                if info then
+                    displayID = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID
                 end
-                local hiddenBuffSet = CDM.resourcesHiddenBuffSet
-                if IsSafeNumber(displayID)
-                    and not Shared.HasEquivalentSpellID(groupedSet, displayID)
-                    and not seen[displayID]
-                    and not Shared.HasEquivalentSpellID(hiddenBuffSet, displayID)
-                then
-                    seen[displayID] = true
-                    local li = frame.layoutIndex
-                    local safeLayoutIndex = IsSafeNumber(li) and li or 0
-                    icons[#icons + 1] = { spellID = displayID, layoutIndex = safeLayoutIndex }
+                if not IsSafeNumber(displayID) then
+                    displayID = frame.GetBaseSpellID and frame:GetBaseSpellID()
+                end
+                if not IsSafeNumber(displayID) then
+                    displayID = API.GetPreferredBuffGroupSpellID and API:GetPreferredBuffGroupSpellID(frame)
+                end
+                if not IsSafeNumber(displayID) and API.GetBaseSpellID then
+                    displayID = API:GetBaseSpellID(frame)
                 end
             end
-        end
+            local hiddenBuffSet = CDM.resourcesHiddenBuffSet
+            if IsSafeNumber(displayID)
+                and not Shared.HasEquivalentSpellID(groupedSet, displayID)
+                and not seen[displayID]
+                and not Shared.HasEquivalentSpellID(hiddenBuffSet, displayID)
+            then
+                seen[displayID] = true
+                local li = frame.layoutIndex
+                local safeLayoutIndex = IsSafeNumber(li) and li or 0
+                icons[#icons + 1] = { spellID = displayID, layoutIndex = safeLayoutIndex }
+            end
+        end)
         table.sort(icons, function(a, b)
             if a.layoutIndex ~= b.layoutIndex then return a.layoutIndex < b.layoutIndex end
             return a.spellID < b.spellID
@@ -210,7 +205,6 @@ local function CreateBuffGroupsTab(page)
                     end
                 end
 
-                CDM:RefreshBuffGroupData()
                 SaveAndRefresh()
                 if spellID == selectedSpellID then
                     selectedSpellGroupIndex = targetGroupIndex
@@ -249,6 +243,7 @@ local function CreateBuffGroupsTab(page)
     local CreateRightScrollContent = rightPanelManager.CreateScrollContent
     local ClearRightPanel = function()
         pickerActiveGroupIndex = nil
+        customBuffAddGroupIndex = nil
         rightPanelManager.Clear()
     end
 
@@ -289,27 +284,21 @@ local function CreateBuffGroupsTab(page)
 
     local function GetUntrackedViewerSpellListForCurrentSpec()
         local activeSet = {}
-        local GetFrameData = API.GetFrameData or CDM.GetFrameData
-        local viewer = _G[CDM_C.VIEWERS.BUFF]
-        if viewer and viewer.itemFramePool then
-            for frame in viewer.itemFramePool:EnumerateActive() do
-                local activeID
-                local fd = GetFrameData and GetFrameData(frame)
-                activeID = fd and fd.buffCategorySpellID
-                if not IsSafeNumber(activeID) then
-                    local info = frame.GetCooldownInfo and frame:GetCooldownInfo() or frame.cooldownInfo
-                    if info then
-                        activeID = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID
-                    end
-                end
-                if not IsSafeNumber(activeID) then
-                    activeID = frame.GetBaseSpellID and frame:GetBaseSpellID()
-                end
-                if IsSafeNumber(activeID) then
-                    activeSet[activeID] = true
+        API:ForEachActiveFrame({ CDM_C.VIEWERS.BUFF }, function(frame)
+            local activeID = frame.cdmBuffCategorySpellID
+            if not IsSafeNumber(activeID) then
+                local info = frame.GetCooldownInfo and frame:GetCooldownInfo() or frame.cooldownInfo
+                if info then
+                    activeID = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID
                 end
             end
-        end
+            if not IsSafeNumber(activeID) then
+                activeID = frame.GetBaseSpellID and frame:GetBaseSpellID()
+            end
+            if IsSafeNumber(activeID) then
+                activeSet[activeID] = true
+            end
+        end)
         local seen, list = {}, {}
         local ids = C_CooldownViewer.GetCooldownViewerCategorySet(Enum.CooldownViewerCategory.TrackedBuff, true)
         if ids then
@@ -402,6 +391,7 @@ local function CreateBuffGroupsTab(page)
 
     local function ShowGroupSettings(groupIndex)
         pickerActiveGroupIndex = nil
+        customBuffAddGroupIndex = nil
         local groups = GetSpecGroups()
         if not groups or not groups[groupIndex] then ClearRightPanel(); return end
         local _, rc = CreateRightScrollContent(700)
@@ -783,6 +773,7 @@ local function CreateBuffGroupsTab(page)
 
     ShowSpellSettings = function(spellID, groupIndex)
         pickerActiveGroupIndex = nil
+        customBuffAddGroupIndex = nil
         if not spellID or not currentSpecID then
             ClearRightPanel()
             return
@@ -806,15 +797,15 @@ local function CreateBuffGroupsTab(page)
         CDM_C.ApplyIconTexCoord(iconTex, CDM_C.GetEffectiveZoomAmount())
 
         if CDM.BORDER and CDM.BORDER.CreateBorder then
-            CDM.BORDER:CreateBorder(iconContainer)
+            iconContainer.cdmBorder = CDM.BORDER:CreateBorder(iconContainer)
             if CDM.BORDER.activeBorders then
                 CDM.BORDER.activeBorders[iconContainer] = nil
             end
         end
 
         local existingColor = CDM.GetSpellBorderColor and CDM:GetSpellBorderColor(currentSpecID, spellID)
-        if existingColor and iconContainer.border then
-            iconContainer.border:SetBackdropBorderColor(existingColor.r, existingColor.g, existingColor.b, 1)
+        if existingColor and iconContainer.cdmBorder then
+            iconContainer.cdmBorder:SetBackdropBorderColor(existingColor.r, existingColor.g, existingColor.b, 1)
         end
 
         local spellName = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font18")
@@ -834,8 +825,8 @@ local function CreateBuffGroupsTab(page)
         local borderColorPicker = UI.CreateSimpleColorPicker(rc, colorInit, function(r, g, b)
             API:SaveSpell(currentSpecID, spellID, { r = r, g = g, b = b, a = 1 })
             API:Refresh("BUFF_DATA")
-            if iconContainer.border then
-                iconContainer.border:SetBackdropBorderColor(r, g, b, 1)
+            if iconContainer.cdmBorder then
+                iconContainer.cdmBorder:SetBackdropBorderColor(r, g, b, 1)
             end
             local leftBorder = spellIconBorders[spellID]
             if leftBorder then
@@ -856,7 +847,7 @@ local function CreateBuffGroupsTab(page)
             if button == "RightButton" then
                 API:ClearSpellBorderColor(currentSpecID, spellID)
                 API:Refresh("BUFF_DATA")
-                ApplyConfiguredBorderColor(iconContainer.border)
+                ApplyConfiguredBorderColor(iconContainer.cdmBorder)
                 local leftBorder = spellIconBorders[spellID]
                 if leftBorder then
                     ApplyConfiguredBorderColor(leftBorder)
@@ -964,7 +955,6 @@ local function CreateBuffGroupsTab(page)
                         if cbEntry then cbEntry.duration = newDur end
                     end
 
-                    CDM:RefreshBuffGroupData()
                     SaveAndRefresh()
                     RefreshLeftPanelIfNeeded()
                     ShowSpellSettings(newSID, groupIndex)
@@ -1048,6 +1038,7 @@ local function CreateBuffGroupsTab(page)
 
     ShowSpellPickerPanel = function(groupIndex)
         pickerActiveGroupIndex = groupIndex
+        customBuffAddGroupIndex = nil
         local groups = GetSpecGroups()
         if not groups or not groups[groupIndex] then return end
         local gd = groups[groupIndex]
@@ -1081,7 +1072,6 @@ local function CreateBuffGroupsTab(page)
                         StoreMergedOverrideEntry(currentGroups[groupIndex].spellOverrides, sid, ovData)
                     end
                 end
-                CDM:RefreshBuffGroupData()
                 SaveAndRefresh()
                 RefreshLeftPanelIfNeeded()
                 ShowSpellPickerPanel(groupIndex)
@@ -1102,6 +1092,7 @@ local function CreateBuffGroupsTab(page)
 
     ShowCustomBuffAddPanel = function(targetGroupIndex)
         pickerActiveGroupIndex = nil
+        customBuffAddGroupIndex = targetGroupIndex
         local _, rc = CreateRightScrollContent(500)
         local yOff = 0
 
@@ -1166,7 +1157,6 @@ local function CreateBuffGroupsTab(page)
                             Shared.AddSpellToGroupList(currentGroups[targetGroupIndex].spells, sid)
                         end
                     end
-                    CDM:RefreshBuffGroupData()
                     SaveAndRefresh()
                     RefreshLeftPanelIfNeeded()
                     ShowCustomBuffAddPanel(targetGroupIndex)
@@ -1258,7 +1248,6 @@ local function CreateBuffGroupsTab(page)
                     Shared.AddSpellToGroupList(currentGroups[targetGroupIndex].spells, sid)
                 end
             end
-            CDM:RefreshBuffGroupData()
             statusText:SetText("|cff00ff00" .. (L["Added!"]) .. "|r")
             sidInput:SetText("")
             SaveAndRefresh()
@@ -1313,30 +1302,30 @@ local function CreateBuffGroupsTab(page)
         end
         CDM_C.ApplyIconTexCoord(iconTex, CDM_C.GetEffectiveZoomAmount())
 
-        if iconContainer.border then
-            ApplyConfiguredBorderColor(iconContainer.border)
-            spellIconBorders[spellID] = iconContainer.border
+        if iconContainer.cdmBorder then
+            ApplyConfiguredBorderColor(iconContainer.cdmBorder)
+            spellIconBorders[spellID] = iconContainer.cdmBorder
         end
 
         if currentSpecID and CDM.GetSpellBorderColor then
             local color = CDM:GetSpellBorderColor(currentSpecID, spellID)
-            if color and iconContainer.border then
-                iconContainer.border:SetBackdropBorderColor(color.r, color.g, color.b, 1)
+            if color and iconContainer.cdmBorder then
+                iconContainer.cdmBorder:SetBackdropBorderColor(color.r, color.g, color.b, 1)
             end
         end
 
         if isActive == false then
             iconTex:SetDesaturated(true)
             iconTex:SetAlpha(0.5)
-            if iconContainer.border then
-                iconContainer.border:SetAlpha(0.5)
-                iconContainer.border:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+            if iconContainer.cdmBorder then
+                iconContainer.cdmBorder:SetAlpha(0.5)
+                iconContainer.cdmBorder:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
             end
         else
             iconTex:SetDesaturated(false)
             iconTex:SetAlpha(1)
-            if iconContainer.border then
-                iconContainer.border:SetAlpha(1)
+            if iconContainer.cdmBorder then
+                iconContainer.cdmBorder:SetAlpha(1)
             end
         end
 
@@ -1368,7 +1357,6 @@ local function CreateBuffGroupsTab(page)
                     selectedSpellGroupIndex = nil
                     ClearRightPanel()
                 end
-                CDM:RefreshBuffGroupData()
                 SaveAndRefresh()
                 RefreshLeftPanelIfNeeded()
                 if pickerActiveGroupIndex then
@@ -1433,8 +1421,8 @@ local function CreateBuffGroupsTab(page)
                     API:ClearSpellBorderColor(currentSpecID, spellID)
                     API:Refresh("BUFF_DATA")
                 end
-                if iconContainer.border then
-                    ApplyConfiguredBorderColor(iconContainer.border)
+                if iconContainer.cdmBorder then
+                    ApplyConfiguredBorderColor(iconContainer.cdmBorder)
                 end
                 if selectedSpellID == spellID then
                     ShowSpellSettings(spellID, sourceGroup)
@@ -1615,7 +1603,6 @@ local function CreateBuffGroupsTab(page)
                     widget.removeBtn:Show()
                     widget.removeBtn:SetScript("OnClick", function()
                         API:RemoveCustomBuffSpell(item.spellID)
-                        CDM:RefreshBuffGroupData()
                         SaveAndRefresh()
                         RefreshLeftPanelIfNeeded()
                     end)
@@ -1820,6 +1807,7 @@ local function CreateBuffGroupsTab(page)
 
                 h.deleteBtn:SetScript("OnClick", function()
                     local function DoDelete()
+                        local needReshow = false
                         local specGroups = EnsureBuffGroups()
                         if specGroups then
                             local gd = specGroups[groupIndex]
@@ -1842,13 +1830,34 @@ local function CreateBuffGroupsTab(page)
                             ClearRightPanel()
                         elseif selectedGroupIndex and selectedGroupIndex > groupIndex then
                             selectedGroupIndex = selectedGroupIndex - 1
+                            needReshow = true
                         end
                         if selectedSpellGroupIndex then
                             if selectedSpellGroupIndex == groupIndex then
                                 selectedSpellGroupIndex = nil
                                 selectedSpellID = nil
+                                ClearRightPanel()
                             elseif selectedSpellGroupIndex > groupIndex then
                                 selectedSpellGroupIndex = selectedSpellGroupIndex - 1
+                                needReshow = true
+                            end
+                        end
+                        if pickerActiveGroupIndex then
+                            if pickerActiveGroupIndex == groupIndex then
+                                pickerActiveGroupIndex = nil
+                                ClearRightPanel()
+                            elseif pickerActiveGroupIndex > groupIndex then
+                                pickerActiveGroupIndex = pickerActiveGroupIndex - 1
+                                needReshow = true
+                            end
+                        end
+                        if customBuffAddGroupIndex then
+                            if customBuffAddGroupIndex == groupIndex then
+                                customBuffAddGroupIndex = nil
+                                ClearRightPanel()
+                            elseif customBuffAddGroupIndex > groupIndex then
+                                customBuffAddGroupIndex = customBuffAddGroupIndex - 1
+                                needReshow = true
                             end
                         end
                         local newExpanded = {}
@@ -1862,6 +1871,17 @@ local function CreateBuffGroupsTab(page)
                         expandedGroups = newExpanded
                         SaveAndRefresh()
                         RefreshLeftPanelIfNeeded()
+                        if needReshow then
+                            if pickerActiveGroupIndex then
+                                ShowSpellPickerPanel(pickerActiveGroupIndex)
+                            elseif customBuffAddGroupIndex then
+                                ShowCustomBuffAddPanel(customBuffAddGroupIndex)
+                            elseif selectedSpellID then
+                                ShowSpellSettings(selectedSpellID, selectedSpellGroupIndex)
+                            elseif selectedGroupIndex then
+                                ShowGroupSettings(selectedGroupIndex)
+                            end
+                        end
                     end
 
                     local spellCount = groupData.spells and #groupData.spells or 0

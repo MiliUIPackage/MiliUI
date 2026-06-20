@@ -2,7 +2,6 @@ local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 local L = CDM.L
 local pairs, ipairs = pairs, ipairs
-local math_huge = math.huge
 local CreateFrame = CreateFrame
 local NineSliceUtil = NineSliceUtil
 local SetRegionBlendMode = CDM.SetRegionBlendMode
@@ -79,36 +78,39 @@ local function GetGroupName(groupIdx)
     return "Group " .. groupIdx
 end
 
-local function ComputeRectForFrames(frames)
-    local left, right, top, bottom = math_huge, -math_huge, -math_huge, math_huge
-    local count = 0
-    for _, frame in ipairs(frames) do
-        if frame:IsShown() then
-            local fl = frame:GetLeft()
-            local fr = frame:GetRight()
-            local ft = frame:GetTop()
-            local fb = frame:GetBottom()
-            if fl and fr and ft and fb then
-                if fl < left then left = fl end
-                if fr > right then right = fr end
-                if ft > top then top = ft end
-                if fb < bottom then bottom = fb end
-                count = count + 1
-            end
+local function FindShownExtremes(frames)
+    local first, last
+    for _, f in ipairs(frames) do
+        if f:IsShown() then
+            if not first then first = f end
+            last = f
         end
     end
-    if count == 0 then return nil end
-    return left, right, top, bottom
+    return first, last
 end
 
-local function ApplyRect(overlay, left, right, top, bottom, groupIdx, label)
+local function ResolveExtremeCorners(grow, firstShown, lastShown)
+    if grow == "LEFT" or grow == "UP" then
+        return lastShown, firstShown
+    end
+    return firstShown, lastShown
+end
+
+local function ApplyFrameAnchoredOverlay(overlay, firstShown, lastShown, grow, groupIdx, label)
+    local tlFrame, brFrame = ResolveExtremeCorners(grow, firstShown, lastShown)
     overlay:ClearAllPoints()
-    local pad = OVERLAY_PADDING
-    overlay:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", left - pad,  bottom - pad)
-    overlay:SetPoint("TOPRIGHT",   UIParent, "BOTTOMLEFT", right + pad, top + pad)
+    overlay:SetPoint("TOPLEFT",     tlFrame, "TOPLEFT",     -OVERLAY_PADDING,  OVERLAY_PADDING)
+    overlay:SetPoint("BOTTOMRIGHT", brFrame, "BOTTOMRIGHT",  OVERLAY_PADDING, -OVERLAY_PADDING)
     overlay.groupIdx = groupIdx
     overlay.label:SetText(label)
     overlay:SetShown(ShouldShowOverlays())
+end
+
+local function GetGroupGrow(groupIdx)
+    local sets = CDM.BuffGroupSets
+    local groups = sets and sets.groups
+    local gd = groups and groups[groupIdx]
+    return gd and gd.grow or "RIGHT"
 end
 
 function CDM:UpdateBuffGroupOverlays(tempBuffGroups, tempBuff)
@@ -122,22 +124,22 @@ function CDM:UpdateBuffGroupOverlays(tempBuffGroups, tempBuff)
     if tempBuffGroups then
         for groupIdx, groupFrames in pairs(tempBuffGroups) do
             if groupFrames and #groupFrames > 0 then
-                local l, r, t, b = ComputeRectForFrames(groupFrames)
-                if l then
+                local first, last = FindShownExtremes(groupFrames)
+                if first then
                     local overlay = AcquireOverlay()
                     activeOverlays[groupIdx] = overlay
-                    ApplyRect(overlay, l, r, t, b, groupIdx, GetGroupName(groupIdx))
+                    ApplyFrameAnchoredOverlay(overlay, first, last, GetGroupGrow(groupIdx), groupIdx, GetGroupName(groupIdx))
                 end
             end
         end
     end
 
     if tempBuff and #tempBuff > 0 then
-        local l, r, t, b = ComputeRectForFrames(tempBuff)
-        if l then
+        local first, last = FindShownExtremes(tempBuff)
+        if first then
             local overlay = AcquireOverlay()
             activeOverlays["__ungrouped"] = overlay
-            ApplyRect(overlay, l, r, t, b, nil, UNGROUPED_LABEL)
+            ApplyFrameAnchoredOverlay(overlay, first, last, "RIGHT", nil, UNGROUPED_LABEL)
         end
     end
 end
@@ -161,7 +163,12 @@ function CDM:SetBuffGroupsTabActive(active)
     active = active and true or false
     if buffGroupsTabActive == active then return end
     buffGroupsTabActive = active
-    self:RefreshBuffGroupOverlayVisibility()
+    if active then
+        local v = _G[CDM.CONST.VIEWERS.BUFF]
+        if v then self:RepositionBuffViewer(v) end
+    else
+        self:RefreshBuffGroupOverlayVisibility()
+    end
 end
 
 local function RegisterBlizzardPanelCallbacks()

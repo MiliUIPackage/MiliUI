@@ -14,7 +14,6 @@ end
 
 BORDER.activeBorders = setmetatable({}, { __mode = "k" })
 local DEFAULT_BORDER_COLOR = { r = 1, g = 1, b = 1, a = 1 }
-local GetFrameData = CDM.GetFrameData
 
 local math_floor = math.floor
 local math_max = math.max
@@ -26,9 +25,7 @@ local function SetBorderColor(border, color)
 end
 
 local function DisableBorderSharpening(border)
-    if NineSliceUtil and NineSliceUtil.DisableSharpening then
-        NineSliceUtil.DisableSharpening(border)
-    end
+    NineSliceUtil.DisableSharpening(border)
 end
 
 local cachedBorderDef = nil
@@ -80,134 +77,96 @@ local function GetBorderDef()
     return cachedBorderDef, offsetX, offsetY
 end
 
-local function ApplyBorderPoints(frame, border, meta, offsetX, offsetY)
+local function ApplyBorderPoints(host, border, offsetX, offsetY)
     border:ClearAllPoints()
 
-    local anchor = meta.anchor1 or (meta.backdrop and frame.backdrop or frame)
-    local p1 = meta.p1 or offsetX
-    local p2 = meta.p2 or offsetY
-    local p3 = meta.p3 or -offsetX
-    local p4 = meta.p4 or -offsetY
-
-    local anchor2 = meta.anchor2 or anchor
     local Pixel = CDM.Pixel
-    local w = anchor:GetWidth()
-    local h = anchor:GetHeight()
+    local w = host:GetWidth()
+    local h = host:GetHeight()
 
     if w and w > 0 and h and h > 0 then
-        local borderW = w + p3 - p1
-        local borderH = h + p2 - p4
+        local borderW = w - 2 * offsetX
+        local borderH = h + 2 * offsetY
         if borderW > 0 and borderH > 0 then
-            Pixel.SetPoint(border, "TOPLEFT", anchor, "TOPLEFT", p1, p2)
-            Pixel.SetPoint(border, "BOTTOMRIGHT", anchor2, "BOTTOMRIGHT", p3, p4)
+            Pixel.SetPoint(border, "TOPLEFT", host, "TOPLEFT", offsetX, offsetY)
+            Pixel.SetPoint(border, "BOTTOMRIGHT", host, "BOTTOMRIGHT", -offsetX, -offsetY)
             return
         end
     end
 
-    border:SetPoint("TOPLEFT", anchor, "TOPLEFT", p1, p2)
-    border:SetPoint("BOTTOMRIGHT", anchor2, "BOTTOMRIGHT", p3, p4)
+    border:SetPoint("TOPLEFT", host, "TOPLEFT", offsetX, offsetY)
+    border:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", -offsetX, -offsetY)
 end
 
-function BORDER:CreateBorder(frame, opts)
-    if not frame then return end
-    if frame:GetObjectType() == "Texture" then frame = frame:GetParent() end
-
-    opts = opts or {}
-    local frameLevel = opts.frameLevel
-    local offsets = opts.offsets
-    local p1 = offsets and offsets[1]
-    local p2 = offsets and offsets[2]
-    local p3 = offsets and offsets[3]
-    local p4 = offsets and offsets[4]
-    local backdrop = opts.backdrop
-    local event = opts.event
-    local anchors = opts.anchors
-    local anchor1 = anchors and anchors[1]
-    local anchor2 = anchors and anchors[2]
-    local forceUpdate = opts.forceUpdate
-
-    local meta = BORDER.activeBorders[frame]
-    if not meta then
-        meta = {}
-        BORDER.activeBorders[frame] = meta
-    end
-    meta.frameLevel = frameLevel
-    meta.p1 = p1
-    meta.p2 = p2
-    meta.p3 = p3
-    meta.p4 = p4
-    meta.backdrop = backdrop
-    meta.anchor1 = anchor1
-    meta.anchor2 = anchor2
-
-    if not forceUpdate and frame.border then return end
-
-    local borderDef, offsetX, offsetY = GetBorderDef()
-
-    local border = frame.border
-    if not border then
-        border = CreateFrame("Frame", nil, (backdrop and frame.backdrop or frame), "BackdropTemplate")
-        frame.border = border
-    end
-
-    border:SetFrameLevel((frameLevel and frame:GetFrameLevel() + frameLevel) or frame:GetFrameLevel() + 2)
-
+local function ApplyBorderToEntry(host, border, borderDef, offsetX, offsetY, defChanged)
     if not borderDef then
-        border:SetBackdrop(nil)
+        if defChanged then
+            border:SetBackdrop(nil)
+        end
         border:Hide()
         return
     end
-
-    border:SetBackdrop(borderDef)
-    DisableBorderSharpening(border)
-    border:Show()
-    ApplyBorderPoints(frame, border, meta, offsetX, offsetY)
-
-    local frameData = GetFrameData(frame)
-    local color = BORDER:ResolveCurrentBorderColor(frameData)
-    SetBorderColor(border, color)
-
-    if event then
-        if not frameData.cdmBorderHooked then
-            frameData.cdmBorderHooked = true
-            frame:HookScript("OnEnter", function()
-                border:SetBackdropBorderColor(1, 0.78, 0.03, 1)
-            end)
-            frame:HookScript("OnLeave", function()
-                local fd = GetFrameData(frame)
-                SetBorderColor(border, BORDER:ResolveCurrentBorderColor(fd))
-            end)
-        end
+    if defChanged then
+        border:SetBackdrop(borderDef)
+        DisableBorderSharpening(border)
     end
+    border:Show()
+    local entry = BORDER.activeBorders[host]
+    SetBorderColor(border, BORDER:ResolveCurrentBorderColor((entry and entry.colorFrame) or host))
+    ApplyBorderPoints(host, border, offsetX, offsetY)
 end
 
-function BORDER:ResolveCurrentBorderColor(frameData)
-    if frameData.cdmPandemicActive and frameData.cdmPandemicAppliedColor then
-        return frameData.cdmPandemicAppliedColor
+function BORDER:CreateBorder(host, forceUpdate)
+    if not host then return end
+    if host:GetObjectType() == "Texture" then host = host:GetParent() end
+
+    local entry = BORDER.activeBorders[host]
+    if not entry then
+        entry = {}
+        BORDER.activeBorders[host] = entry
     end
-    return frameData.cdmBorderColorOverride
-        or frameData.cdmResolvedBorderColor
+
+    if not forceUpdate and entry.border then return entry.border end
+
+    local border = entry.border or host.cdmBorder
+    if not border then
+        border = CreateFrame("Frame", nil, host, "BackdropTemplate")
+    end
+    entry.border = border
+    border:SetFrameLevel(host:GetFrameLevel() + 2)
+
+    local borderDef, offsetX, offsetY = GetBorderDef()
+    ApplyBorderToEntry(host, border, borderDef, offsetX, offsetY, true)
+    return border
+end
+
+function BORDER:ResolveCurrentBorderColor(frame)
+    if frame.cdmPandemicActive and frame.cdmPandemicAppliedColor then
+        return frame.cdmPandemicAppliedColor
+    end
+    return frame.cdmBorderColorOverride
+        or frame.cdmResolvedBorderColor
         or CDM_C.GetConfigValue("borderColor", DEFAULT_BORDER_COLOR)
 end
 
-function BORDER:UpdateBorder(frame)
-    if not frame then return end
-    local meta = BORDER.activeBorders[frame]
-    if not meta then return end
-    if not frame.border then return end
+function BORDER:SetBorderSuppressed(host, suppressed)
+    local entry = host and BORDER.activeBorders[host]
+    if not entry then return end
+    if suppressed then
+        entry.suppressed = true
+        if entry.border then entry.border:Hide() end
+    else
+        entry.suppressed = nil
+    end
+end
+
+function BORDER:UpdateBorder(host)
+    if not host then return end
+    local entry = BORDER.activeBorders[host]
+    if not entry or not entry.border or entry.suppressed then return end
 
     local borderDef, offsetX, offsetY = GetBorderDef()
-    if not borderDef then
-        frame.border:SetBackdrop(nil)
-        frame.border:Hide()
-    else
-        frame.border:SetBackdrop(borderDef)
-        DisableBorderSharpening(frame.border)
-        frame.border:Show()
-        local frameData = GetFrameData(frame)
-        SetBorderColor(frame.border, BORDER:ResolveCurrentBorderColor(frameData))
-        ApplyBorderPoints(frame, frame.border, meta, offsetX, offsetY)
-    end
+    ApplyBorderToEntry(host, entry.border, borderDef, offsetX, offsetY, true)
 end
 
 function BORDER:UpdateAllBorders()
@@ -217,90 +176,84 @@ function BORDER:UpdateAllBorders()
     local defChanged = borderDef ~= lastAppliedBorderDef
     lastAppliedBorderDef = borderDef
 
-    for frame, meta in pairs(BORDER.activeBorders) do
-        if frame.border then
-            if not borderDef then
-                if defChanged then
-                    frame.border:SetBackdrop(nil)
-                end
-                frame.border:Hide()
-            else
-                if defChanged then
-                    frame.border:SetBackdrop(borderDef)
-                    DisableBorderSharpening(frame.border)
-                end
-                frame.border:Show()
-                local frameData = GetFrameData(frame)
-                SetBorderColor(frame.border, BORDER:ResolveCurrentBorderColor(frameData))
-                ApplyBorderPoints(frame, frame.border, meta, offsetX, offsetY)
-            end
+    for host, entry in pairs(BORDER.activeBorders) do
+        if entry.border and not entry.suppressed then
+            ApplyBorderToEntry(host, entry.border, borderDef, offsetX, offsetY, defChanged)
         end
     end
 end
 
-local function UpdateAllBorderColorSurfaces(frame, frameData, color)
-    if frame.border then
-        SetBorderColor(frame.border, color)
-    end
-    local wrapperBorder = frameData.borderFrame and frameData.borderFrame.border
-    if wrapperBorder then
-        SetBorderColor(wrapperBorder, color)
+local function UpdateAllBorderColorSurfaces(frame, color)
+    if frame and frame.cdmBorder then
+        SetBorderColor(frame.cdmBorder, color)
     end
 end
 
 function BORDER:ApplyBorderColorOverride(frame, color)
     if not frame then return end
-    local frameData = GetFrameData(frame)
-    frameData.cdmBorderColorOverride = color
-    if frameData.cdmPandemicActive then return end
-    UpdateAllBorderColorSurfaces(frame, frameData, color)
+    frame.cdmBorderColorOverride = color
+    if frame.cdmPandemicActive then return end
+    UpdateAllBorderColorSurfaces(frame, color)
 end
 
 function BORDER:RestoreToCurrentBorderColor(frame)
     if not frame then return end
-    local frameData = GetFrameData(frame)
-    frameData.cdmBorderColorOverride = nil
-    if frameData.cdmPandemicActive then return end
-    UpdateAllBorderColorSurfaces(frame, frameData, BORDER:ResolveCurrentBorderColor(frameData))
+    frame.cdmBorderColorOverride = nil
+    if frame.cdmPandemicActive then return end
+    UpdateAllBorderColorSurfaces(frame, BORDER:ResolveCurrentBorderColor(frame))
 end
 
-function BORDER:ApplyPandemicBorderColor(frame, color)
+function BORDER:ApplyPandemicBorderColor(frame, color, includeBuffBar)
     if not frame then return end
-    local fd = GetFrameData(frame)
-    fd.cdmPandemicAppliedColor = color
-    UpdateAllBorderColorSurfaces(frame, fd, color)
+    frame.cdmPandemicAppliedColor = color
+    UpdateAllBorderColorSurfaces(frame, color)
+    if includeBuffBar and frame.cdmBarBorder then
+        SetBorderColor(frame.cdmBarBorder, color)
+        frame.cdmPandemicBarBorderColored = true
+    end
 end
 
 function BORDER:ClearPandemicBorderColor(frame)
     if not frame then return end
-    local fd = GetFrameData(frame)
-    fd.cdmPandemicAppliedColor = nil
-    UpdateAllBorderColorSurfaces(frame, fd, BORDER:ResolveCurrentBorderColor(fd))
+    frame.cdmPandemicAppliedColor = nil
+    UpdateAllBorderColorSurfaces(frame, BORDER:ResolveCurrentBorderColor(frame))
+    if frame.cdmPandemicBarBorderColored and frame.cdmBarBorder then
+        SetBorderColor(frame.cdmBarBorder, BORDER:ResolveCurrentBorderColor(frame))
+        frame.cdmPandemicBarBorderColored = nil
+    end
 end
 
-function BORDER:CommitResolvedBorderColor(frame, frameData, r, g, b)
-    local resolved = frameData.cdmResolvedBorderColor
+function BORDER:CommitResolvedBorderColor(frame, r, g, b)
+    local resolved = frame.cdmResolvedBorderColor
     if not resolved then
         resolved = {}
-        frameData.cdmResolvedBorderColor = resolved
+        frame.cdmResolvedBorderColor = resolved
     end
     resolved.r = r
     resolved.g = g
     resolved.b = b
     resolved.a = 1
 
-    if frameData.borderFrame then
-        GetFrameData(frameData.borderFrame).cdmResolvedBorderColor = resolved
-    end
-
-    if frameData.cdmPandemicActive or frameData.cdmBorderColorOverride then
+    if frame.cdmPandemicActive or frame.cdmBorderColorOverride then
         return resolved
     end
 
-    UpdateAllBorderColorSurfaces(frame, frameData, resolved)
+    UpdateAllBorderColorSurfaces(frame, resolved)
     return resolved
 end
 
 CDM:RegisterRefreshCallback("borders", function()
     CDM.BORDER:UpdateAllBorders()
 end, 25, { "STYLE" })
+
+function BORDER:InstallAcquireResetHook(v)
+    hooksecurefunc(v, "OnAcquireItemFrame", function(_, itemFrame)
+        if itemFrame.cdmPandemicActive then
+            itemFrame.cdmPandemicActive = false
+            BORDER:ClearPandemicBorderColor(itemFrame)
+        end
+        itemFrame.cdmBorderVersion = nil
+        itemFrame.cdmIconBorderVersion = nil
+        itemFrame.cdmBarBorderVersion = nil
+    end)
+end

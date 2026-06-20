@@ -31,7 +31,6 @@ local RACE_RACIALS = {
     Haranir           = { 1287685 },
 }
 
--- combatLockout: cooldown starts after leaving combat
 local ITEMS = {
     { itemID = 241304, spellID = 1234768, alternateItemID = 241305 }, -- Silvermoon Health Potion
     { itemID = 241308, spellID = 1236616, alternateItemID = 241309 }, -- Light's Potential
@@ -87,8 +86,6 @@ local lastVisibilityHash = 0
 local DesaturationCurve = CDM_C.DesaturationCurve
 
 local PACT_OF_GLUTTONY_TALENT_ID = 386689
-local RACIALS_UPDATE_SPELL_COOLDOWNS = "spellCooldowns"
-local RACIALS_UPDATE_SPELL_CHARGES = "spellCharges"
 local RACIALS_UPDATE_ITEMS = "items"
 local RACIALS_UPDATE_ITEM_COOLDOWNS = "itemCooldowns"
 local RACIALS_UPDATE_LAYOUT = "layout"
@@ -118,24 +115,18 @@ local function HasVisibleItemCooldown(startTime, duration)
     return startTime and duration and duration > CDM_C.ITEM_COOLDOWN_GCD_MIN
 end
 
-local function AnchorRacialsToPartyFrame(partyFrame, side, offsetX, offsetY)
+local function AnchorRacialsToPartyFrame(partyFrame, point, relativePoint, offsetX, offsetY)
     if not (racialsContainer and partyFrame) then
         return false
     end
 
     racialsContainer:ClearAllPoints()
-    if side == "LEFT" then
-        CDM.Pixel.SetPoint(racialsContainer, "RIGHT", partyFrame, "LEFT", offsetX, offsetY)
-    else
-        CDM.Pixel.SetPoint(racialsContainer, "LEFT", partyFrame, "RIGHT", offsetX, offsetY)
-    end
+    CDM.Pixel.SetPoint(racialsContainer, point, partyFrame, relativePoint, offsetX, offsetY)
     if not racialsContainer:IsShown() then
         racialsContainer:Show()
     end
     return true
 end
-
--- Party anchor resolution (moved from TrackerUtils — only consumer is Racials)
 
 local PARTY_BUTTON_COUNT = 5
 
@@ -202,7 +193,7 @@ local RAID_CONTAINER_SOURCES = {
 local function ResolvePartyAnchorFrame()
     local dandersFrame = GetDandersFrameForUnit("player")
     if IsVisibleFrame(dandersFrame) then
-        return dandersFrame
+        return dandersFrame, "party"
     end
 
     if IsInRaid() then
@@ -210,7 +201,7 @@ local function ResolvePartyAnchorFrame()
             if not c.addon or C_AddOns.IsAddOnLoaded(c.addon) then
                 local f = _G[c.name]
                 if IsVisibleFrame(f) then
-                    return f
+                    return f, "raid"
                 end
             end
         end
@@ -223,7 +214,7 @@ local function ResolvePartyAnchorFrame()
                 else
                     frame = FindPlayerPartyButton(src.prefix, PARTY_BUTTON_COUNT)
                 end
-                if frame then return frame end
+                if frame then return frame, "party" end
             end
         end
     end
@@ -383,7 +374,7 @@ local function SyncEntryToFrame(entry, frame)
     frame.combatLockout = entry.combatLockout or false
     frame.requiresWarlockAccess = entry.requiresWarlockAccess or false
     frame.inCombatLockout = entry.inCombatLockout
-    frame._spellbookCached = entry._spellbookCached
+    frame.cdmSpellbookCached = entry.cdmSpellbookCached
     frame.cdmRacialEntry = entry
 end
 
@@ -416,10 +407,10 @@ local function ResetRacialTrackerFrame(f)
     f.requiresWarlockAccess = nil
     f.inCombatLockout = nil
     f.isCustomSpell = nil
-    f._spellbookCached = nil
+    f.cdmSpellbookCached = nil
     f.cdmRacialEntry = nil
-    f._cdmRacialChargeValue = nil
-    f._cdmRacialsChargeStyleVersion = nil
+    f.cdmRacialChargeValue = nil
+    f.cdmRacialsChargeStyleVersion = nil
 end
 
 local function ReleaseEntryFrame(entry)
@@ -480,16 +471,15 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
             local itemCdStart, itemCdDuration = GetContainerItemCooldown(entry and entry._activeItemID or itemID)
             local hasItemCooldown = HasVisibleItemCooldown(itemCdStart, itemCdDuration)
 
-            desatDurationObject = realDur
+            desatDurationObject = GetSpellCooldownDuration(itemSpellID, true)
             desatSpellID = itemSpellID
 
             if hasItemCooldown then
-                local fd = CDM.GetFrameData(frame)
-                if not fd.cdmDurationObj then
-                    fd.cdmDurationObj = C_DurationUtil.CreateDuration()
+                if not frame.cdmDurationObj then
+                    frame.cdmDurationObj = C_DurationUtil.CreateDuration()
                 end
-                fd.cdmDurationObj:SetTimeFromStart(itemCdStart, itemCdDuration)
-                frame.Cooldown:SetCooldownFromDurationObject(fd.cdmDurationObj)
+                frame.cdmDurationObj:SetTimeFromStart(itemCdStart, itemCdDuration)
+                frame.Cooldown:SetCooldownFromDurationObject(frame.cdmDurationObj)
                 itemCooldownActive = true
             elseif realDur then
                 frame.Cooldown:SetCooldownFromDurationObject(realDur)
@@ -497,15 +487,14 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
                 frame.Cooldown:Clear()
             end
         elseif updateCooldowns then
-            local startTime, durationSeconds, enableCooldownTimer = GetContainerItemCooldown(entry and entry._activeItemID or itemID)
+            local startTime, durationSeconds = GetContainerItemCooldown(entry and entry._activeItemID or itemID)
 
             if HasVisibleItemCooldown(startTime, durationSeconds) then
-                local fd = CDM.GetFrameData(frame)
-                if not fd.cdmDurationObj then
-                    fd.cdmDurationObj = C_DurationUtil.CreateDuration()
+                if not frame.cdmDurationObj then
+                    frame.cdmDurationObj = C_DurationUtil.CreateDuration()
                 end
-                fd.cdmDurationObj:SetTimeFromStart(startTime, durationSeconds)
-                frame.Cooldown:SetCooldownFromDurationObject(fd.cdmDurationObj)
+                frame.cdmDurationObj:SetTimeFromStart(startTime, durationSeconds)
+                frame.Cooldown:SetCooldownFromDurationObject(frame.cdmDurationObj)
                 itemCooldownActive = true
             else
                 frame.Cooldown:Clear()
@@ -516,9 +505,9 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
             if itemCount ~= nil and not showEmptyItem then
                 local chargeText = CDM.EnsureTrackerChargeWidgets(frame)
                 if chargeText then
-                    if frame._cdmRacialChargeValue ~= itemCount then
+                    if frame.cdmRacialChargeValue ~= itemCount then
                         chargeText:SetText(itemCount)
-                        frame._cdmRacialChargeValue = itemCount
+                        frame.cdmRacialChargeValue = itemCount
                     end
                 end
                 hasCharges = true
@@ -530,21 +519,25 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
 
         local effectiveID = CDM.GetEffectiveSpellID(spellID)
 
-        if updateCooldowns then
+        if updateCooldowns or updateCharges then
             local chargeDur = GetSpellChargeDuration(effectiveID)
             local scd = GetSpellCooldownDuration(effectiveID)
 
             local racialsChargeInfo = GetSpellCharges(effectiveID)
             local isChargeSpell = racialsChargeInfo and racialsChargeInfo.maxCharges and racialsChargeInfo.maxCharges > 1
 
-            desatDurationObject = scd
-            desatSpellID = effectiveID
-            desatIsChargeSpell = isChargeSpell == true
+            if updateCooldowns then
+                desatDurationObject = GetSpellCooldownDuration(effectiveID, true)
+                desatSpellID = effectiveID
+                desatIsChargeSpell = isChargeSpell == true
+            end
 
             local durObj = (isChargeSpell and chargeDur) or scd
+            local effectiveCdInfo = C_Spell.GetSpellCooldown(effectiveID)
+            local cdActive = effectiveCdInfo and effectiveCdInfo.isActive
             if durObj then
-                frame.Cooldown:SetCooldownFromDurationObject(durObj)
-            else
+                frame.Cooldown:SetCooldownFromDurationObject(durObj, not cdActive)
+            elseif not cdActive then
                 frame.Cooldown:Clear()
             end
         end
@@ -566,11 +559,11 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
             frame.Icon:SetDesaturation(1)
             frame.Cooldown:Clear()
         elseif itemCooldownActive then
-            frame.Icon:SetDesaturation(1)
+            frame.Icon:SetDesaturation(CDM.styleCache.disableCooldownDesat and 0 or 1)
         elseif showEmptyItem then
             frame.Icon:SetDesaturation(1)
-        elseif desatDurationObject and desatDurationObject.EvaluateRemainingDuration then
-            if CDM.IsOnRealCooldown(desatSpellID, desatIsChargeSpell) then
+        elseif desatDurationObject then
+            if not CDM.styleCache.disableCooldownDesat and CDM.IsOnRealCooldown(desatSpellID, desatIsChargeSpell) then
                 frame.Icon:SetDesaturation(desatDurationObject:EvaluateRemainingDuration(DesaturationCurve, Enum.DurationTimeModifier.RealTime) or 0)
             else
                 frame.Icon:SetDesaturation(0)
@@ -585,12 +578,12 @@ local function UpdateIcon(frame, updateCooldowns, updateCharges)
 
         if hasCharges then
             local styles = cachedRacialsStyles
-            if frame._cdmRacialsChargeStyleVersion ~= racialsChargeStyleVersion or not chargeText:IsShown() then
+            if frame.cdmRacialsChargeStyleVersion ~= racialsChargeStyleVersion or not chargeText:IsShown() then
                 CDM.StyleChargeText(chargeText, frame, styles)
-                frame._cdmRacialsChargeStyleVersion = racialsChargeStyleVersion
+                frame.cdmRacialsChargeStyleVersion = racialsChargeStyleVersion
             end
         else
-            frame._cdmRacialChargeValue = nil
+            frame.cdmRacialChargeValue = nil
             chargeText:Hide()
         end
     end
@@ -602,12 +595,14 @@ end
 
 local function InvalidateSpellbookCache()
     for _, entry in ipairs(iconEntries) do
-        entry._spellbookCached = nil
+        entry.cdmSpellbookCached = nil
         if entry.frame then
-            entry.frame._spellbookCached = nil
+            entry.frame.cdmSpellbookCached = nil
         end
     end
 end
+
+CDM.InvalidateRacialsSpellbookCache = InvalidateSpellbookCache
 
 local function PlayerHasWarlockAccess()
     if playerClass == "WARLOCK" then
@@ -676,8 +671,8 @@ PlayerHasAbility = function(entry)
         return false
     end
 
-    if entry._spellbookCached ~= nil then
-        return entry._spellbookCached
+    if entry.cdmSpellbookCached ~= nil then
+        return entry.cdmSpellbookCached
     end
 
     local known
@@ -688,9 +683,9 @@ PlayerHasAbility = function(entry)
         known = IsSpellInSpellBook(entry.id)
     end
 
-    entry._spellbookCached = known
+    entry.cdmSpellbookCached = known
     if entry.frame then
-        entry.frame._spellbookCached = known
+        entry.frame.cdmSpellbookCached = known
     end
     return known
 end
@@ -703,14 +698,27 @@ local function UpdateContainerPosition()
     local usePartyFrame = CDM.db and CDM.db.racialsUsePartyFrame or false
 
     if usePartyFrame then
-        local partyFrame = ResolvePartyAnchorFrame()
+        local partyFrame, mode = ResolvePartyAnchorFrame()
 
         if partyFrame then
-            local side = CDM.db and CDM.db.racialsPartyFrameSide or "LEFT"
-            local offsetX = CDM.db and CDM.db.racialsPartyFrameOffsetX or -6
-            local offsetY = CDM.db and CDM.db.racialsPartyFrameOffsetY or 19
+            local point, relativePoint, offsetX, offsetY
+            if mode == "raid" then
+                point = CDM.db and CDM.db.racialsRaidFrameAnchorPoint or "BOTTOMLEFT"
+                relativePoint = CDM.db and CDM.db.racialsRaidFrameRelativePoint or "TOPLEFT"
+                offsetX = CDM.db and CDM.db.racialsRaidFrameOffsetX or 0
+                offsetY = CDM.db and CDM.db.racialsRaidFrameOffsetY or 0
+            else
+                local side = CDM.db and CDM.db.racialsPartyFrameSide or "LEFT"
+                if side == "LEFT" then
+                    point, relativePoint = "RIGHT", "LEFT"
+                else
+                    point, relativePoint = "LEFT", "RIGHT"
+                end
+                offsetX = CDM.db and CDM.db.racialsPartyFrameOffsetX or -1
+                offsetY = CDM.db and CDM.db.racialsPartyFrameOffsetY or 20
+            end
 
-            if AnchorRacialsToPartyFrame(partyFrame, side, offsetX, offsetY) then
+            if AnchorRacialsToPartyFrame(partyFrame, point, relativePoint, offsetX, offsetY) then
                 racialsLastUsedPartyAnchor = true
                 return
             end
@@ -733,8 +741,6 @@ local racialsUpdatePending = false
 local racialsDispatchFrame = CreateFrame("Frame")
 racialsDispatchFrame:Hide()
 local racialsQueuedFullUpdate = false
-local racialsQueuedSpellCooldownUpdate = false
-local racialsQueuedSpellChargeUpdate = false
 local racialsQueuedItemUpdate = false
 local racialsQueuedItemCooldownUpdate = false
 local racialsQueuedLayoutUpdate = false
@@ -866,15 +872,11 @@ local function DoRacialsUpdate()
         return
     end
     local doFull = racialsQueuedFullUpdate
-    local doSpellCooldowns = racialsQueuedSpellCooldownUpdate
-    local doSpellCharges = racialsQueuedSpellChargeUpdate
     local doItems = racialsQueuedItemUpdate
     local doItemCooldowns = racialsQueuedItemCooldownUpdate
     local doLayout = racialsQueuedLayoutUpdate
 
     racialsQueuedFullUpdate = false
-    racialsQueuedSpellCooldownUpdate = false
-    racialsQueuedSpellChargeUpdate = false
     racialsQueuedItemUpdate = false
     racialsQueuedItemCooldownUpdate = false
     racialsQueuedLayoutUpdate = false
@@ -887,7 +889,7 @@ local function DoRacialsUpdate()
         return
     end
 
-    if (doItems or doItemCooldowns or doSpellCooldowns or doSpellCharges) and RacialsNeedFullUpdate() then
+    if (doItems or doItemCooldowns) and RacialsNeedFullUpdate() then
         if doLayout then
             UpdateContainerPosition()
         end
@@ -905,12 +907,6 @@ local function DoRacialsUpdate()
     if doItemCooldowns and not doItems then
         UpdateRacialItemCooldownsOnly()
     end
-    if doSpellCooldowns then
-        UpdateRacialSpellCooldownsOnly()
-    end
-    if doSpellCharges then
-        UpdateRacialSpellChargesOnly()
-    end
 end
 
 racialsDispatchFrame:SetScript("OnUpdate", function(self)
@@ -921,10 +917,6 @@ end)
 QueueRacialsUpdate = function(reason)
     if reason == RACIALS_UPDATE_FULL then
         racialsQueuedFullUpdate = true
-    elseif reason == RACIALS_UPDATE_SPELL_COOLDOWNS then
-        racialsQueuedSpellCooldownUpdate = true
-    elseif reason == RACIALS_UPDATE_SPELL_CHARGES then
-        racialsQueuedSpellChargeUpdate = true
     elseif reason == RACIALS_UPDATE_ITEMS then
         racialsQueuedItemUpdate = true
     elseif reason == RACIALS_UPDATE_ITEM_COOLDOWNS then
@@ -932,7 +924,7 @@ QueueRacialsUpdate = function(reason)
     elseif reason == RACIALS_UPDATE_LAYOUT then
         racialsQueuedLayoutUpdate = true
     else
-        racialsQueuedSpellCooldownUpdate = true
+        return
     end
     if racialsUpdatePending then return end
     racialsUpdatePending = true
@@ -945,16 +937,27 @@ local function OnRacialItemCooldownWatchChanged()
     QueueRacialsUpdate(RACIALS_UPDATE_ITEM_COOLDOWNS)
 end
 
-local function OnRacialSpellWatchChanged(cooldownsChanged, chargesChanged)
-    if not isEnabled then return end
-    if not racialsStartupCooldownGate:IsSettled() then return end
-    if cooldownsChanged then
-        QueueRacialsUpdate(RACIALS_UPDATE_SPELL_COOLDOWNS)
-    end
-    if chargesChanged then
-        QueueRacialsUpdate(RACIALS_UPDATE_SPELL_CHARGES)
-    end
-end
+local racialsSpellDispatcher = CDM.CreateSpellEntryDispatcher({
+    watchOwnerKey   = RACIALS_SPELL_WATCH_OWNER,
+    getEntrySpellID = function(entry)
+        if entry.isItem then return entry.itemSpellID end
+        return entry.id
+    end,
+    getEntryFrame   = function(entry) return entry.frame end,
+    updateIcon      = function(frame, ...)
+        BeginRacialsItemCountPass()
+        UpdateIcon(frame, ...)
+    end,
+    shouldDispatch  = function()
+        return isEnabled and racialsContainer ~= nil and racialsStartupCooldownGate:IsSettled()
+    end,
+    onNeedFullUpdate = function()
+        if RacialsNeedFullUpdate() then
+            QueueRacialsUpdate(RACIALS_UPDATE_FULL)
+            return true
+        end
+    end,
+})
 
 local function RegisterRacialItemCooldownWatches()
     if not (CDM.WatchItemCooldown and CDM.UnwatchAllCooldowns) then
@@ -976,26 +979,11 @@ local function UnregisterRacialItemCooldownWatches()
 end
 
 local function RegisterRacialSpellWatches()
-    if not (CDM.WatchSpellState and CDM.UnwatchAllSpellStates) then
-        return
-    end
-
-    CDM.UnwatchAllSpellStates(RACIALS_SPELL_WATCH_OWNER)
-    for _, entry in ipairs(iconEntries) do
-        if entry.isItem then
-            if entry.itemSpellID then
-                CDM.WatchSpellState(RACIALS_SPELL_WATCH_OWNER, entry.itemSpellID, OnRacialSpellWatchChanged)
-            end
-        else
-            CDM.WatchSpellState(RACIALS_SPELL_WATCH_OWNER, entry.id, OnRacialSpellWatchChanged)
-        end
-    end
+    racialsSpellDispatcher.SetEntries(iconEntries)
 end
 
 local function UnregisterRacialSpellWatches()
-    if CDM.UnwatchAllSpellStates then
-        CDM.UnwatchAllSpellStates(RACIALS_SPELL_WATCH_OWNER)
-    end
+    racialsSpellDispatcher.Clear()
 end
 
 local function ClearRacialItemCombatLockouts()
@@ -1058,11 +1046,9 @@ function CDM:InitializeRacials()
     CDM.RegisterTrackerPositionCallback("CDM_Racials", UpdateContainerPosition)
 
     local updater = CDM.CreateTrackerUpdater({
-        "BAG_UPDATE_COOLDOWN",
         "BAG_UPDATE_DELAYED",
         "GROUP_ROSTER_UPDATE",
         "PLAYER_ROLES_ASSIGNED",
-        "SPELLS_CHANGED",
     }, function(_, event, arg1, arg2, arg3)
         if event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ROLES_ASSIGNED" then
             QueueRacialsUpdate(RACIALS_UPDATE_ITEMS)
@@ -1083,10 +1069,7 @@ function CDM:InitializeRacials()
                     end
                 end
             end
-        elseif event == "SPELLS_CHANGED" then
-            InvalidateSpellbookCache()
-            QueueRacialsUpdate(RACIALS_UPDATE_FULL)
-        elseif event == "BAG_UPDATE_COOLDOWN" or event == "BAG_UPDATE_DELAYED" then
+        elseif event == "BAG_UPDATE_DELAYED" then
             QueueRacialsUpdate(RACIALS_UPDATE_ITEMS)
         else
             QueueRacialsUpdate(RACIALS_UPDATE_FULL)
@@ -1110,12 +1093,10 @@ local function EnableRacials()
     if not isInitialized or isEnabled then return end
     local updater = CDM.racialsUpdater
     if updater then
-        updater:RegisterEvent("BAG_UPDATE_COOLDOWN")
         updater:RegisterEvent("BAG_UPDATE_DELAYED")
         updater:RegisterEvent("GROUP_ROSTER_UPDATE")
         updater:RegisterEvent("PLAYER_ROLES_ASSIGNED")
         updater:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-        updater:RegisterEvent("SPELLS_CHANGED")
         RegisterRacialsCombatStateListener()
     end
     racialsStartupCooldownGate:Begin()
@@ -1147,11 +1128,10 @@ local function DisableRacials()
     racialsStartupCooldownGate:Cancel()
     racialsUpdatePending = false
     racialsQueuedFullUpdate = false
-    racialsQueuedSpellCooldownUpdate = false
-    racialsQueuedSpellChargeUpdate = false
     racialsQueuedItemUpdate = false
     racialsQueuedItemCooldownUpdate = false
     racialsQueuedLayoutUpdate = false
+    racialsDispatchFrame:Hide()
     ReleaseRacialFramesForLowMemory()
     isEnabled = false
 end
@@ -1209,10 +1189,6 @@ function CDM:UpdateRacials()
                 if frame.Cooldown then
                     frame.Cooldown:SetAllPoints(frame)
                 end
-                local fd = CDM.GetFrameData(frame)
-                if fd.borderFrame then
-                    fd.borderFrame:SetAllPoints(frame)
-                end
                 if frame.ChargeCount then
                     frame.ChargeCount:SetAllPoints(frame)
                 end
@@ -1247,7 +1223,6 @@ end
 function CDM:ReinitRacialIcons()
     if not isInitialized then return end
     racialsStartupCooldownGate:Cancel()
-    CDM.WipeEffectiveIDCache()
     for _, entry in ipairs(iconEntries) do
         ReleaseEntryFrame(entry)
     end

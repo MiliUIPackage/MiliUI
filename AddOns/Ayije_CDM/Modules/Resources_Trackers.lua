@@ -71,10 +71,6 @@ local StartIronfurTicker, StopIronfurTicker
 local ignorePainFrame = nil
 local ignorePainScanRetries = 0
 
-local staggerUpdateTicker = nil
-local StartStaggerTicker, StopStaggerTicker
-local brewmasterCombatCallbackRegistered = false
-
 local runeUpdateTicker = nil
 local runePowerUpdatePending = false
 local runePowerDispatchFrame = CreateFrame("Frame")
@@ -238,7 +234,11 @@ local function RefreshStaggerSettingsCache()
     cachedStaggerLightColor = CDM:GetBarSetting("Stagger", "lightColor")
     staggerSettingsVer = CDM.styleCacheVersion or 0
     local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Stagger]
-    if bar then bar._lastColorTier = nil end
+    if bar then
+        bar._lastColorTier = nil
+        bar._lastStagger = nil
+        bar._lastMaxHealth = nil
+    end
 end
 
 local function EnsureStaggerSettingsCache()
@@ -266,11 +266,19 @@ local function UpdateStaggerBar()
     local stagger = UnitStagger("player")
     local maxHealth = UnitHealthMax("player")
 
-    if not stagger or not maxHealth or maxHealth == 0 then
+    if not stagger or not IsSafeNumber(maxHealth) or maxHealth == 0 then
         return
     end
 
     EnsureStaggerSettingsCache()
+
+    if IsSafeNumber(stagger) and IsSafeNumber(maxHealth)
+       and bar._lastStagger == stagger and bar._lastMaxHealth == maxHealth then
+        return
+    end
+    bar._lastStagger = stagger
+    bar._lastMaxHealth = maxHealth
+
     local barMax = maxHealth * (cachedStaggerCeilingPercent / 100)
 
     bar:SetMinMaxValues(0, barMax)
@@ -292,23 +300,14 @@ local function UpdateStaggerBar()
     bar.staggerPercent = pct
 
     UpdateTagTextForPowerType(CUSTOM_POWER_TYPES.Stagger)
-
-    if not isStaggerSecret and type(stagger) == "number" and stagger == 0 and not InCombatLockdown() and staggerUpdateTicker then
-        StopStaggerTicker()
-    end
 end
 
-StartStaggerTicker = function()
-    if staggerUpdateTicker then
-        return
-    end
-    staggerUpdateTicker = C_Timer.NewTicker(0.05, UpdateStaggerBar)
-end
-
-StopStaggerTicker = function()
-    if staggerUpdateTicker then
-        staggerUpdateTicker:Cancel()
-        staggerUpdateTicker = nil
+local function StaggerOnUpdate(self)
+    UpdateStaggerBar()
+    local stagger = UnitStagger("player")
+    if IsSafeNumber(stagger) and stagger == 0 then
+        self:SetScript("OnUpdate", nil)
+        self._staggerOnUpdate = nil
     end
 end
 
@@ -320,9 +319,11 @@ end
 
 local function PruneExpiredIronfurStacks()
     local now = GetTime()
-    while #ironfurExpiries > 0 and ironfurExpiries[1] <= now do
-        table_remove(ironfurExpiries, 1)
-        table_remove(ironfurDurations, 1)
+    for i = #ironfurExpiries, 1, -1 do
+        if ironfurExpiries[i] <= now then
+            table_remove(ironfurExpiries, i)
+            table_remove(ironfurDurations, i)
+        end
     end
 end
 
@@ -382,15 +383,15 @@ local function UpdateIronfurBar()
         local snappedXOffset = Snap(xOffset)
         local tickWidth = 2 * onePixel
         local tickHeight = bar:GetHeight()
-        if tick._cdmLastIronfurTickX ~= snappedXOffset then
+        if tick.cdmLastIronfurTickX ~= snappedXOffset then
             tick:ClearAllPoints()
             tick:SetPoint("RIGHT", bar, "LEFT", snappedXOffset, 0)
-            tick._cdmLastIronfurTickX = snappedXOffset
+            tick.cdmLastIronfurTickX = snappedXOffset
         end
-        if tick._cdmLastIronfurTickWidth ~= tickWidth or tick._cdmLastIronfurTickHeight ~= tickHeight then
+        if tick.cdmLastIronfurTickWidth ~= tickWidth or tick.cdmLastIronfurTickHeight ~= tickHeight then
             tick:SetSize(tickWidth, tickHeight)
-            tick._cdmLastIronfurTickWidth = tickWidth
-            tick._cdmLastIronfurTickHeight = tickHeight
+            tick.cdmLastIronfurTickWidth = tickWidth
+            tick.cdmLastIronfurTickHeight = tickHeight
         end
         tick:Show()
     end
@@ -461,9 +462,8 @@ function CDM:NotifyBuffFrameSpellID(frame, spellID)
 
     if spellID == IGNORE_PAIN_SPELL_ID then
         ignorePainFrame = frame
-        local frameData = CDM.GetFrameData(frame)
-        if not frameData.cdmIgnorePainHooked then
-            frameData.cdmIgnorePainHooked = true
+        if not frame.cdmIgnorePainHooked then
+            frame.cdmIgnorePainHooked = true
             local appFS = frame.Applications and frame.Applications.Applications
             if appFS then
                 hooksecurefunc(appFS, "SetText", function(self, val)
@@ -755,37 +755,12 @@ end
 
 local function OnStaggerUnitEvent()
     UpdateStaggerBar()
-end
-
-local function OnBrewmasterCombatStateChanged(isInCombat)
-    if res.GetCurrentSpecID() ~= 268 then
-        return
-    end
-    if isInCombat then
-        StartStaggerTicker()
-        return
-    end
-    local currentStagger = UnitStagger("player") or 0
-    if IsSafeNumber(currentStagger) and currentStagger > 0 then
-        StartStaggerTicker()
-        return
-    end
-    StopStaggerTicker()
-end
-
-local function RegisterBrewmasterCombatStateListener()
-    if brewmasterCombatCallbackRegistered then
-        return
-    end
-    if CDM:RegisterCombatStateHandler(OnBrewmasterCombatStateChanged) then
-        brewmasterCombatCallbackRegistered = true
-    end
-end
-
-local function UnregisterBrewmasterCombatStateListener()
-    if brewmasterCombatCallbackRegistered then
-        CDM:UnregisterCombatStateHandler(OnBrewmasterCombatStateChanged)
-        brewmasterCombatCallbackRegistered = false
+    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Stagger]
+    if not bar then return end
+    local stagger = UnitStagger("player")
+    if IsSafeNumber(stagger) and stagger > 0 and not bar._staggerOnUpdate then
+        bar._staggerOnUpdate = true
+        bar:SetScript("OnUpdate", StaggerOnUpdate)
     end
 end
 
@@ -1011,22 +986,28 @@ local function DisableVengeanceSoulTracking()
 end
 
 local function EnableBrewmasterTracking()
-    RegisterBrewmasterCombatStateListener()
-    res.RegisterResUnitEvent("UNIT_MAXHEALTH", "player", OnStaggerUnitEvent)
-    res.RegisterResUnitEvent("UNIT_HEALTH", "player", OnStaggerUnitEvent)
-    UpdateStaggerBar()
-
-    local currentStagger = UnitStagger("player") or 0
-    if InCombatLockdown() or (IsSafeNumber(currentStagger) and currentStagger > 0) then
-        StartStaggerTicker()
+    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Stagger]
+    if bar then
+        bar._lastStagger = nil
+        bar._lastMaxHealth = nil
     end
+    res.RegisterResUnitEvent("UNIT_MAXHEALTH", "player", OnStaggerUnitEvent)
+    res.RegisterResUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", "player", OnStaggerUnitEvent)
+    OnStaggerUnitEvent()
 end
 
 local function DisableBrewmasterTracking()
-    UnregisterBrewmasterCombatStateListener()
     res.UnregisterResUnitEvent("UNIT_MAXHEALTH")
-    res.UnregisterResUnitEvent("UNIT_HEALTH")
-    StopStaggerTicker()
+    res.UnregisterResUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED")
+    local bar = CDM.resourceBars[CUSTOM_POWER_TYPES.Stagger]
+    if bar then
+        if bar._staggerOnUpdate then
+            bar:SetScript("OnUpdate", nil)
+            bar._staggerOnUpdate = nil
+        end
+        bar._lastStagger = nil
+        bar._lastMaxHealth = nil
+    end
 end
 
 local function EnableMaelstromTracking()

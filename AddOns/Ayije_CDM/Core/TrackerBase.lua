@@ -6,7 +6,6 @@ local GetTrackerSpacing = CDM.GetTrackerSpacing
 local AcquireFromTrackerPool = CDM.AcquireFromTrackerPool
 local ReleaseToTrackerPool = CDM.ReleaseToTrackerPool
 local GetEffectiveSpellID = CDM.GetEffectiveSpellID
-local GetFrameData = CDM.GetFrameData
 
 local ipairs = ipairs
 local pairs = pairs
@@ -75,10 +74,6 @@ function CDM.CreateTracker(config)
 
     local tracker = {}
 
-    local function GetCurrentSpecID()
-        return CDM:GetCurrentSpecID()
-    end
-
     local function RefreshCachedStyles()
         CDM.RefreshChargeStyleCache(cachedStyles, moduleKey)
         chargeStyleVersion = chargeStyleVersion + 1
@@ -97,8 +92,6 @@ function CDM.CreateTracker(config)
         CDM.AnchorToPlayerFrame(container, anchorPoint, offsetX, offsetY, containerName)
     end
 
-    -- Entry pool
-
     local function AcquireEntry(proto)
         local entry = table_remove(iconEntryPool)
         if entry then
@@ -109,7 +102,7 @@ function CDM.CreateTracker(config)
         for k, v in pairs(proto) do
             entry[k] = v
         end
-        entry._spellbookCached = nil
+        entry.cdmSpellbookCached = nil
         entry._lastTextureEffectiveID = nil
         entry.frame = nil
         return entry
@@ -121,14 +114,12 @@ function CDM.CreateTracker(config)
         iconEntryPool[#iconEntryPool + 1] = entry
     end
 
-    -- Frame pool
-
     local function CreateIconFrame(id)
         acquireOpts.size = GetTrackerIconSize(iconWidthKey, iconHeightKey)
         local frame = AcquireFromTrackerPool(iconFramePool, container, containerName:gsub("Container", "_"), id, acquireOpts)
 
         frame.spellID = id
-        frame._spellbookCached = nil
+        frame.cdmSpellbookCached = nil
 
         local effectiveID = GetEffectiveSpellID(id)
         local texture = GetSpellTexture(effectiveID)
@@ -148,7 +139,7 @@ function CDM.CreateTracker(config)
 
         local id = entry.spellID or entry.id
         frame = CreateIconFrame(id)
-        frame._spellbookCached = entry._spellbookCached
+        frame.cdmSpellbookCached = entry.cdmSpellbookCached
         frame.cdmTrackerEntry = entry
         entry.frame = frame
         return frame, true
@@ -179,10 +170,9 @@ function CDM.CreateTracker(config)
 
     local function InvalidateSpellbookCache()
         for _, entry in ipairs(iconEntries) do
-            entry._spellbookCached = nil
-            entry._lastTextureEffectiveID = nil
+            entry.cdmSpellbookCached = nil
             if entry.frame then
-                entry.frame._spellbookCached = nil
+                entry.frame.cdmSpellbookCached = nil
             end
         end
     end
@@ -190,8 +180,6 @@ function CDM.CreateTracker(config)
     local function PositionIcons()
         CDM.PositionTrackerIconsFromDB(container, iconFrames, iconWidthKey, iconHeightKey, "spacing", anchorPointKey)
     end
-
-    -- Dispatch frame (optional)
 
     if useDispatch then
         dispatchFrame = CreateFrame("Frame")
@@ -201,13 +189,12 @@ function CDM.CreateTracker(config)
         queuedCooldownUpdate = false
     end
 
-    -- Update passes
-
     function tracker.Update()
         if not container then return end
 
+        local currentSpec
         if useEntryPool then
-            local currentSpec = GetCurrentSpecID()
+            currentSpec = CDM:GetCurrentSpecID()
             if currentSpec and currentSpec ~= lastSpecID then
                 lastSpecID = currentSpec
                 tracker.Reinit()
@@ -258,8 +245,6 @@ function CDM.CreateTracker(config)
                         frame:SetSize(size.w, size.h)
                         if frame.Icon then frame.Icon:SetAllPoints(frame) end
                         if frame.Cooldown then frame.Cooldown:SetAllPoints(frame) end
-                        local fd = GetFrameData(frame)
-                        if fd.borderFrame then fd.borderFrame:SetAllPoints(frame) end
                         if frame.ChargeCount then frame.ChargeCount:SetAllPoints(frame) end
                     end
 
@@ -298,7 +283,7 @@ function CDM.CreateTracker(config)
         end
 
         if useEntryPool then
-            local currentSpec = GetCurrentSpecID()
+            local currentSpec = CDM:GetCurrentSpecID()
             if currentSpec and currentSpec ~= lastSpecID then
                 lastSpecID = currentSpec
                 tracker.Reinit()
@@ -312,8 +297,6 @@ function CDM.CreateTracker(config)
             end
         end
     end
-
-    -- Dispatch
 
     function tracker.Queue(fullUpdate)
         if not useDispatch then return end
@@ -347,8 +330,6 @@ function CDM.CreateTracker(config)
         end)
     end
 
-    -- Lifecycle
-
     function tracker.Reinit()
         if not isInitialized then return end
 
@@ -362,7 +343,7 @@ function CDM.CreateTracker(config)
         end
         lastVisibilityHash = -1
 
-        local specID = GetCurrentSpecID()
+        local specID = CDM:GetCurrentSpecID()
         lastSpecID = specID
 
         if useEntryPool and cfgGetEntries then
@@ -394,7 +375,7 @@ function CDM.CreateTracker(config)
         container = CDM.CreateTrackerContainer(containerName)
         UpdateContainerPosition()
 
-        lastSpecID = GetCurrentSpecID()
+        lastSpecID = CDM:GetCurrentSpecID()
 
         if useEntryPool and cfgGetEntries then
             local protos = cfgGetEntries(lastSpecID)
@@ -462,8 +443,8 @@ function CDM.CreateTracker(config)
             queuedFullUpdate = false
             queuedCooldownUpdate = false
         end
-        if watchOwnerKey and CDM.UnwatchAllSpellStates then
-            CDM.UnwatchAllSpellStates(watchOwnerKey)
+        if watchOwnerKey and CDM.UnwatchAllSpells then
+            CDM.UnwatchAllSpells(watchOwnerKey)
         end
         CDM.UnregisterTrackerPositionCallback(positionCallbackKey)
         if container then

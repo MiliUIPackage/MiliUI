@@ -318,7 +318,7 @@ local function GetBarTextures(barKey)
 end
 
 local function SetStatusBarTextureIfChanged(statusBar, texturePath)
-    if not statusBar or statusBar._cdmStatusBarTexturePath == texturePath then
+    if not statusBar or statusBar.cdmStatusBarTexturePath == texturePath then
         return
     end
 
@@ -328,16 +328,16 @@ local function SetStatusBarTextureIfChanged(statusBar, texturePath)
         statusTexture:SetHorizTile(false)
         statusTexture:SetVertTile(false)
     end
-    statusBar._cdmStatusBarTexturePath = texturePath
+    statusBar.cdmStatusBarTexturePath = texturePath
 end
 
 local function SetTextureIfChanged(region, texturePath)
-    if not region or region._cdmTexturePath == texturePath then
+    if not region or region.cdmTexturePath == texturePath then
         return
     end
 
     region:SetTexture(texturePath)
-    region._cdmTexturePath = texturePath
+    region.cdmTexturePath = texturePath
 end
 
 local function SetVertexColorIfChanged(region, color)
@@ -345,7 +345,7 @@ local function SetVertexColorIfChanged(region, color)
         return
     end
 
-    local cached = region._cdmVertexColor
+    local cached = region.cdmVertexColor
     if cached and
         cached.r == color.r and
         cached.g == color.g and
@@ -356,7 +356,7 @@ local function SetVertexColorIfChanged(region, color)
 
     if not cached then
         cached = {}
-        region._cdmVertexColor = cached
+        region.cdmVertexColor = cached
     end
     cached.r = color.r
     cached.g = color.g
@@ -370,7 +370,7 @@ local function SetStatusBarColorIfChanged(statusBar, color)
         return
     end
 
-    local cached = statusBar._cdmStatusBarColor
+    local cached = statusBar.cdmStatusBarColor
     if cached and
         cached.r == color.r and
         cached.g == color.g and
@@ -381,7 +381,7 @@ local function SetStatusBarColorIfChanged(statusBar, color)
 
     if not cached then
         cached = {}
-        statusBar._cdmStatusBarColor = cached
+        statusBar.cdmStatusBarColor = cached
     end
     cached.r = color.r
     cached.g = color.g
@@ -549,7 +549,8 @@ CDM.resourceUnifiedHosts = {}
 local DRUID_TRAVEL_FORM_IDS = {[3] = true, [4] = true, [27] = true, [29] = true}
 local DRUID_CAT_FORM_ID = 1
 local DRUID_BEAR_FORM_ID = 5
-local DRUID_FERAL_FORM_IDS = {[DRUID_CAT_FORM_ID] = true, [DRUID_BEAR_FORM_ID] = true}
+local DRUID_MOONKIN_FORM_ID = 31
+local DRUID_FERAL_FORM_IDS = {[DRUID_CAT_FORM_ID] = true, [DRUID_BEAR_FORM_ID] = true, [DRUID_MOONKIN_FORM_ID] = true}
 local function IsEffectivelyMounted()
     return IsMounted()
         or UnitInVehicle("player")
@@ -750,7 +751,6 @@ local function CreatePipBar(powerType)
     end
 
     local bar = CreateFrame("StatusBar", nil, UIParent)
-    bar:SetFrameStrata(CDM_C.STRATA_MAIN)
     bar.powerType = powerType
     bar.isPipBar = true
     bar.pips = {}
@@ -966,7 +966,6 @@ local function CreateBar(powerType)
     end
 
     local bar = CreateFrame("StatusBar", nil, UIParent)
-    bar:SetFrameStrata(CDM_C.STRATA_MAIN)
 
     local barTexturePath, bgTexturePath = GetBarTextures(GetBarKey(powerType))
     bar:SetStatusBarTexture(barTexturePath)
@@ -1006,13 +1005,8 @@ local function CreateBar(powerType)
     bar.bg = bg
     bar.barKey = barKey
 
-    if not bar.borderFrame then
-        bar.borderFrame = CreateFrame("Frame", nil, bar)
-        bar.borderFrame:SetAllPoints()
-    end
-
     if CDM.BORDER and CDM.BORDER.CreateBorder then
-        CDM.BORDER:CreateBorder(bar.borderFrame)
+        bar.cdmBorder = CDM.BORDER:CreateBorder(bar)
     end
 
     bar:Hide()
@@ -1027,16 +1021,12 @@ local function CreateBar(powerType)
 end
 
 local function EnsurePerBarBorder(bar, borderColor)
-    if not bar.borderFrame then
-        bar.borderFrame = CreateFrame("Frame", nil, bar)
-        bar.borderFrame:SetAllPoints()
-    end
-    bar.borderFrame:Show()
-
     if CDM.BORDER and CDM.BORDER.CreateBorder then
-        CDM.BORDER:CreateBorder(bar.borderFrame)
-        if bar.borderFrame.border then
-            bar.borderFrame.border:SetBackdropBorderColor(
+        bar.cdmBorder = CDM.BORDER:CreateBorder(bar)
+        if bar.cdmBorder then
+            CDM.BORDER:SetBorderSuppressed(bar, false)
+            bar.cdmBorder:Show()
+            bar.cdmBorder:SetBackdropBorderColor(
                 borderColor.r, borderColor.g, borderColor.b, borderColor.a or 1)
         end
     end
@@ -1062,7 +1052,6 @@ local function EnsureChainHost(hostIndex)
     local entry = CDM.resourceUnifiedHosts[hostIndex]
     if entry then return entry end
     local host = CreateFrame("Frame", nil, UIParent)
-    host:SetFrameStrata(CDM_C.STRATA_MAIN)
     entry = { host = host, hSeparators = {} }
     CDM.resourceUnifiedHosts[hostIndex] = entry
     return entry
@@ -1114,7 +1103,6 @@ local function ApplyUnifiedVerticalSeparators(bar, borderColor)
         local sep = bar.unifiedVerticalSeparators[i]
         if not sep then
             sep = CreateFrame("Frame", nil, bar)
-            sep:SetFrameStrata(CDM_C.STRATA_MAIN)
             local tex = sep:CreateTexture(nil, "OVERLAY", nil, 7)
             tex:SetTexture(UNIFIED_VSEPARATOR_TEXTURE)
             tex:SetAllPoints()
@@ -1239,9 +1227,9 @@ local function ApplyUnifiedChain(hostIndex, chain, borderColor)
     host:Show()
 
     if CDM.BORDER and CDM.BORDER.CreateBorder then
-        CDM.BORDER:CreateBorder(host)
-        if host.border then
-            host.border:SetBackdropBorderColor(
+        host.cdmBorder = CDM.BORDER:CreateBorder(host)
+        if host.cdmBorder then
+            host.cdmBorder:SetBackdropBorderColor(
                 borderColor.r, borderColor.g, borderColor.b, borderColor.a or 1)
         end
     end
@@ -1254,7 +1242,7 @@ local function ApplyUnifiedChain(hostIndex, chain, borderColor)
     end
 
     for _, bar in ipairs(chain) do
-        if bar.borderFrame then bar.borderFrame:Hide() end
+        CDM.BORDER:SetBorderSuppressed(bar, true)
         HidePipBarDecorations(bar)
         ApplyUnifiedVerticalSeparators(bar, borderColor)
     end
@@ -1609,9 +1597,6 @@ local function HideInactiveResourceBars(powerTypes)
     for powerType, bar in pairs(CDM.resourceBars) do
         if not visiblePowerTypes[powerType] then
             bar:Hide()
-            if bar.borderFrame then
-                bar.borderFrame:Hide()
-            end
             HideBarUnifiedVerticalSeparators(bar)
         end
     end
@@ -1622,9 +1607,6 @@ end
 local function HideAllResourceBars()
     for _, bar in pairs(CDM.resourceBars) do
         bar:Hide()
-        if bar.borderFrame then
-            bar.borderFrame:Hide()
-        end
         HideBarUnifiedVerticalSeparators(bar)
     end
     HideAllChainHosts()
@@ -1828,6 +1810,9 @@ local function UpdateAncillaryLayouts()
     if CDM.UpdatePlayerCastBar then
         CDM:UpdatePlayerCastBar()
     end
+    if CDM.UpdateViewerAnchoredBarGroupContainers then
+        CDM:UpdateViewerAnchoredBarGroupContainers()
+    end
 end
 
 local SPEC_TRACKER_TOGGLES = {
@@ -1910,8 +1895,6 @@ local function OnUnitPowerFrequent(event, unitTarget, powerToken)
             UpdateBarValue(powerTypeFromToken)
         end
     end
-
-    EventRegistry:TriggerEvent("CDM.PlayerPowerChanged")
 end
 
 local function OnUnitPowerPointCharge(event, unitTarget)

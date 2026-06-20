@@ -28,42 +28,8 @@ local function CreateLayoutTab(page, tabId)
     local content, scrollFrame = UI.CreateScrollableTab(generalPage, "AyijeCDM_LayoutGeneralScrollFrame", 520)
     local scrollChild = scrollFrame:GetScrollChild()
 
-    local swipeHeader = UI.CreateHeader(content, L["Cooldown Swipe"])
-    swipeHeader:SetPoint("TOPLEFT", 0, 0)
-
-    generalPage.hideGCDSwipeCheckbox = UI.CreateModernCheckbox(
-        content,
-        L["Hide GCD Swipe"],
-        CDM.db.hideGCDSwipe,
-        function(checked)
-            CDM.db.hideGCDSwipe = checked
-            API:Refresh("STYLE")
-        end
-    )
-    generalPage.hideGCDSwipeCheckbox:SetPoint("TOPLEFT", swipeHeader, "BOTTOMLEFT", 0, -15)
-
-    local swipeColorLabel = content:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-    swipeColorLabel:SetText(L["Swipe Color"])
-    swipeColorLabel:SetPoint("TOPLEFT", generalPage.hideGCDSwipeCheckbox, "BOTTOMLEFT", 0, -14)
-
-    local swipeInit = CDM.db.swipeColor or { r = 0, g = 0, b = 0, a = 0.6 }
-    local swipeColorPicker = UI.CreateSimpleColorPicker(content, swipeInit, function(r, g, b)
-        CDM.db.swipeColor = { r = r, g = g, b = b, a = CDM.db.swipeColor and CDM.db.swipeColor.a or 0.6 }
-        API:Refresh("STYLE")
-    end)
-    swipeColorPicker:SetPoint("LEFT", swipeColorLabel, "RIGHT", 6, 0)
-
-    local swipeAlphaSlider = UI.CreateModernSlider(content, L["Swipe Opacity"], 0, 100,
-        math.floor((swipeInit.a or 0.6) * 100),
-        function(v)
-            local sc = CDM.db.swipeColor or { r = 0, g = 0, b = 0, a = 0.6 }
-            CDM.db.swipeColor = { r = sc.r, g = sc.g, b = sc.b, a = v / 100 }
-            API:Refresh("STYLE")
-        end)
-    swipeAlphaSlider:SetPoint("TOPLEFT", swipeColorLabel, "BOTTOMLEFT", 0, -10)
-
     local layoutHeader = UI.CreateHeader(content, L["Layout Settings"])
-    layoutHeader:SetPoint("TOPLEFT", swipeAlphaSlider, "BOTTOMLEFT", 0, -20)
+    layoutHeader:SetPoint("TOPLEFT", 0, 0)
 
     generalPage.controls.l1 = UI.CreateModernSlider(content, L["Icon Spacing"], -1, 30, CDM.db.spacing, function(v) CDM.db.spacing = v; API:Refresh("LAYOUT") end)
     generalPage.controls.l1:SetPoint("TOPLEFT", layoutHeader, "BOTTOMLEFT", 0, -15)
@@ -83,7 +49,7 @@ local function CreateLayoutTab(page, tabId)
 
     local function UpdateScrollHeight()
         C_Timer.After(0, function()
-            local top = swipeHeader:GetTop()
+            local top = layoutHeader:GetTop()
             local lastWidget = wrapCheckbox
             if CDM.db.utilityWrap then
                 lastWidget = unlockCheckbox

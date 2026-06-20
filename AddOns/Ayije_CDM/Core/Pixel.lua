@@ -97,17 +97,13 @@ function Pixel.CreateSolidTexture(parent, layer, sublevel)
 end
 
 function Pixel.IsOneBorderMode()
-    local borderFile = CDM_C.GetConfigValue("borderFile", "Ayije_Thin")
+    local borderFile = CDM_C.GetConfigValue("borderFile", "1 Pixel")
     if borderFile == "None" then
         return false
     end
     if borderFile == "1 Pixel" then
         return true
     end
-    local borderSize = CDM_C.GetConfigValue("borderSize", 16)
+    local borderSize = CDM_C.GetConfigValue("borderSize", 1)
     return math.max(0, math_floor(borderSize / cachedPixelSize + 0.5)) <= 1
-end
-
-if UIParent then
-    Pixel.Update()
 end

@@ -21,12 +21,6 @@ L["Edit Mode locked - use /acdm"] = "Bearbeitungsmodus gesperrt – benutze /acd
 L["Cooldown Viewer settings are managed by /acdm."] = "Abklingzeitenanzeige-Einstellungen werden durch /acdm verwaltet."
 
 -----------------------------------------------------------------------
--- Core/Layout/Layout.lua
------------------------------------------------------------------------
-
-L["Click and drag to move - /acdm > Positions to lock"] = "Klicken und ziehen zum Bewegen – /acdm > Positionen zum Sperren"
-
------------------------------------------------------------------------
 -- Modules/BuffGroupOverlays.lua
 -----------------------------------------------------------------------
 
@@ -107,8 +101,6 @@ L["Layout"] = "Layout"
 -- Ayije_CDM_Options/Positions.lua
 -----------------------------------------------------------------------
 
-L["Lock Container"] = "Container sperren"
-L["Unlock to drag the container freely.\nUse sliders below for precise positioning."] = "Entsperren, um den Container frei zu verschieben.\nRegler unten für genaue Positionierung verwenden."
 L["Current: %s (%d, %d)"] = "Aktuell: %s (%d, %d)"
 L["X Position"] = "X-Position"
 L["Y Position"] = "Y-Position"
@@ -117,6 +109,8 @@ L["Utility Y Offset"] = "Unterstützung Y-Versatz"
 L["Main Buff Container Position"] = "Haupt-Buff-Container-Position"
 L["Buff Bar Container Position"] = "Buff-Leisten-Container-Position"
 L["Positions"] = "Positionen"
+--L["Buffs are currently anchored to resources"] = "Buffs are currently anchored to resources"
+--L["Resources tab > Global"] = "Resources tab > Global"
 
 -----------------------------------------------------------------------
 -- Ayije_CDM_Options/Border.lua
@@ -149,6 +143,10 @@ L["Color"] = "Farbe"
 L["Borders"] = "Rahmen"
 --L["Look"] = "Look"
 --L["Borders & Look"] = "Borders & Look"
+--L["Hide Buff Swipe"] = "Hide Buff Swipe"
+--L["Don't desaturate on cooldown"] = "Don't desaturate on cooldown"
+--L["Hide recharge timer"] = "Hide recharge timer"
+--L["Color Buff Bars Borders"] = "Color Buff Bars Borders"
 
 -----------------------------------------------------------------------
 -- Ayije_CDM_Options/Text.lua
@@ -347,9 +345,6 @@ L["Missing profile metadata"] = "Fehlende Profil-Metadaten"
 --L["Profile is for a different addon"] = "Profile is for a different addon"
 L["No import string provided"] = "Keine Import-Zeichenkette angegeben"
 L["Failed to import profile"] = "Profil konnte nicht importiert werden"
-L["Serialization failed: %s"] = "Serialisierung fehlgeschlagen: %s"
-L["Compression failed: %s"] = "Komprimierung fehlgeschlagen: %s"
-L["Base64 encoding failed: %s"] = "Base64-Kodierung fehlgeschlagen: %s"
 --L["Select at least one category to export."] = "Select at least one category to export."
 L["Profile is for a different addon: %s"] = "Profil gehört zu einem anderen Addon: %s"
 L["Imported %d settings as '%s'"] = "%d Einstellungen als '%s' importiert"
@@ -529,7 +524,7 @@ L["Background"] = "Hintergrund"
 --L["Load Mode"] = "Load Mode"
 --L["Combat"] = "Combat"
 --L["Hide when mounted"] = "Hide when mounted"
---L["Hide in Cat or Bear Form"] = "Hide in Cat or Bear Form"
+--L["Hide out of human form"] = "Hide out of human form"
 
 -----------------------------------------------------------------------
 -- Ayije_CDM_Options/Resources.lua

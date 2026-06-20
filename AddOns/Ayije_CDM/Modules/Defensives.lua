@@ -14,7 +14,13 @@ local GetSpellTexture = C_Spell.GetSpellTexture
 local TruncateWhenZero = C_StringUtil.TruncateWhenZero
 local IsSpellInSpellBook = C_SpellBook.IsSpellInSpellBook
 
-local _, playerClass = UnitClass("player")
+local playerClass
+local function GetPlayerClass()
+    if not playerClass then
+        _, playerClass = UnitClass("player")
+    end
+    return playerClass
+end
 
 local talentTreeCache = {}
 local talentTreeCacheConfigID = nil
@@ -106,7 +112,7 @@ local function GetCurrentSpecID()
 end
 
 function CDM.GetBuiltinDefensiveSpells(specID)
-    return CDM.GetBuiltinDefensiveSpellsForClass(playerClass, specID)
+    return CDM.GetBuiltinDefensiveSpellsForClass(GetPlayerClass(), specID)
 end
 
 function CDM.GetBuiltinDefensiveSpellsForClass(classTag, specID)
@@ -222,8 +228,8 @@ local function PlayerHasAbility(entry, specID)
         return false
     end
 
-    if entry._spellbookCached ~= nil then
-        return entry._spellbookCached
+    if entry.cdmSpellbookCached ~= nil then
+        return entry.cdmSpellbookCached
     end
 
     local known
@@ -241,9 +247,9 @@ local function PlayerHasAbility(entry, specID)
         end
     end
 
-    entry._spellbookCached = known
+    entry.cdmSpellbookCached = known
     if entry.frame then
-        entry.frame._spellbookCached = known
+        entry.frame.cdmSpellbookCached = known
     end
     return known
 end
@@ -255,10 +261,10 @@ function CDM.GetDefensiveIconFrames()
     return defensivesTracker.GetIconFrames()
 end
 
-local function UpdateIcon(frame)
+local function UpdateIcon(frame, updateCooldowns, updateCharges)
     if not frame or not frame:IsShown() then return end
-
-    local hasCharges = false
+    if updateCooldowns == nil then updateCooldowns = true end
+    if updateCharges == nil then updateCharges = true end
 
     local spellID = frame.spellID
     if not spellID then return end
@@ -272,64 +278,82 @@ local function UpdateIcon(frame)
 
     local effectiveID = GetEffectiveSpellID(spellID)
 
-    local chargeDur = GetSpellChargeDuration(effectiveID)
-    local scd = GetSpellCooldownDuration(effectiveID)
-    local chargeInfo = GetSpellCharges(effectiveID)
-    local isChargeSpell = chargeInfo and chargeInfo.maxCharges and chargeInfo.maxCharges > 1
+    if updateCooldowns or updateCharges then
+        local chargeDur = GetSpellChargeDuration(effectiveID)
+        local scd = GetSpellCooldownDuration(effectiveID)
+        local chargeInfo = GetSpellCharges(effectiveID)
+        local isChargeSpell = chargeInfo and chargeInfo.maxCharges and chargeInfo.maxCharges > 1
 
-    local desatValue = 0
-    if scd and CDM.IsOnRealCooldown(effectiveID, isChargeSpell) then
-        desatValue = scd:EvaluateRemainingDuration(DesaturationCurve, Enum.DurationTimeModifier.RealTime) or 0
-    end
+        local swipeDur = (isChargeSpell and chargeDur) or scd
 
-    local swipeDur = (isChargeSpell and chargeDur) or scd
+        local effectiveCdInfo = C_Spell.GetSpellCooldown(effectiveID)
+        local cdActive = effectiveCdInfo and effectiveCdInfo.isActive
 
-    if swipeDur then
-        frame.Cooldown:SetCooldownFromDurationObject(swipeDur)
-        frame.Cooldown:SetDrawSwipe(true)
-    else
-        frame.Cooldown:Clear()
-    end
-
-    if isChargeSpell and chargeInfo.currentCharges then
-        local chargeText = CDM.EnsureTrackerChargeWidgets(frame)
-        if chargeText then
-            chargeText:SetText(TruncateWhenZero(chargeInfo.currentCharges))
+        if swipeDur then
+            frame.Cooldown:SetCooldownFromDurationObject(swipeDur, not cdActive)
+            frame.Cooldown:SetDrawSwipe(true)
+        elseif not cdActive then
+            frame.Cooldown:Clear()
         end
-        hasCharges = true
-    end
 
-    if frame.Icon then
-        frame.Icon:SetDesaturation(desatValue)
-    end
-
-    if frame.ChargeCount and frame.ChargeCount.Current then
-        local chargeText = frame.ChargeCount.Current
-        local chargeStyleVersion = defensivesTracker.GetChargeStyleVersion()
-
-        if hasCharges then
-            if frame._cdmDefensivesChargeStyleVersion ~= chargeStyleVersion or not chargeText:IsShown() then
-                local styles = defensivesTracker.GetCachedStyles()
-                CDM.StyleChargeText(chargeText, frame, styles)
-                frame._cdmDefensivesChargeStyleVersion = chargeStyleVersion
+        if updateCooldowns then
+            local desatValue = 0
+            if not CDM.styleCache.disableCooldownDesat and CDM.IsOnRealCooldown(effectiveID, isChargeSpell) then
+                local realDur = GetSpellCooldownDuration(effectiveID, true)
+                if realDur then
+                    desatValue = realDur:EvaluateRemainingDuration(DesaturationCurve, Enum.DurationTimeModifier.RealTime) or 0
+                end
             end
-        else
-            chargeText:Hide()
+
+            if frame.Icon then
+                frame.Icon:SetDesaturation(desatValue)
+            end
+        end
+    end
+
+    if updateCharges then
+        local chargeInfo = GetSpellCharges(effectiveID)
+        local isChargeSpell = chargeInfo and chargeInfo.maxCharges and chargeInfo.maxCharges > 1
+        local hasCharges = false
+
+        if isChargeSpell and chargeInfo.currentCharges then
+            local chargeText = CDM.EnsureTrackerChargeWidgets(frame)
+            if chargeText then
+                chargeText:SetText(TruncateWhenZero(chargeInfo.currentCharges))
+            end
+            hasCharges = true
+        end
+
+        if frame.ChargeCount and frame.ChargeCount.Current then
+            local chargeText = frame.ChargeCount.Current
+            local chargeStyleVersion = defensivesTracker.GetChargeStyleVersion()
+
+            if hasCharges then
+                if frame.cdmDefensivesChargeStyleVersion ~= chargeStyleVersion or not chargeText:IsShown() then
+                    local styles = defensivesTracker.GetCachedStyles()
+                    CDM.StyleChargeText(chargeText, frame, styles)
+                    frame.cdmDefensivesChargeStyleVersion = chargeStyleVersion
+                end
+            else
+                chargeText:Hide()
+            end
         end
     end
 end
 
 local function ResetDefensiveTrackerFrame(f)
     f.spellID = nil
-    f._spellbookCached = nil
-    f._cdmDefensivesChargeStyleVersion = nil
+    f.cdmSpellbookCached = nil
+    f.cdmDefensivesChargeStyleVersion = nil
 end
 
-local function OnDefensivesSpellWatchChanged(cooldownsChanged, chargesChanged)
-    if not defensivesTracker.IsEnabled() then return end
-    if not (cooldownsChanged or chargesChanged) then return end
-    defensivesTracker.Queue(false)
-end
+local defensivesSpellDispatcher = CDM.CreateSpellEntryDispatcher({
+    watchOwnerKey   = DEFENSIVES_SPELL_WATCH_OWNER,
+    getEntrySpellID = function(entry) return entry.spellID end,
+    getEntryFrame   = function(entry) return entry.frame end,
+    updateIcon      = UpdateIcon,
+    shouldDispatch  = function() return defensivesTracker.IsEnabled() end,
+})
 
 CDM.RegisterViewerDesc("CDM_Defensives", {
     widthKey     = "defensivesIconWidth",
@@ -370,13 +394,7 @@ defensivesTracker = CDM.CreateTracker({
     UpdateIcon          = UpdateIcon,
     resetFrame          = ResetDefensiveTrackerFrame,
     onEntriesChanged    = function(entries)
-        if not (CDM.WatchSpellState and CDM.UnwatchAllSpellStates) then return end
-        CDM.UnwatchAllSpellStates(DEFENSIVES_SPELL_WATCH_OWNER)
-        for _, entry in ipairs(entries) do
-            if entry and entry.spellID then
-                CDM.WatchSpellState(DEFENSIVES_SPELL_WATCH_OWNER, entry.spellID, OnDefensivesSpellWatchChanged)
-            end
-        end
+        defensivesSpellDispatcher.SetEntries(entries)
     end,
     onStyleRefresh      = function()
         if defensivesTracker then defensivesTracker.Queue(true) end
@@ -401,7 +419,6 @@ function CDM:ReinitDefensiveIcons()
     if not defensivesTracker.IsInitialized() then return end
     InvalidateTalentTreeCache()
     InvalidateOrderedSpellsCache()
-    CDM.WipeEffectiveIDCache()
     RebuildCustomSpellSet(GetCurrentSpecID())
     defensivesTracker.Reinit()
 end

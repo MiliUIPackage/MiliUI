@@ -1,17 +1,13 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
-local CDM_C = CDM.CONST
 local Pixel = CDM.Pixel
-local Snap = Pixel.Snap
 
-local GetFrameData = CDM.GetFrameData
 local IsSafeNumber = CDM.IsSafeNumber
 CDM.GroupContainerUtils = {}
 
-function CDM.GroupContainerUtils.AssignGroupSortKeys(frames, spellOrder, frameDataKey)
+function CDM.GroupContainerUtils.AssignGroupSortKeys(frames, spellOrder, frameKey)
     for _, frame in ipairs(frames) do
-        local fd = GetFrameData(frame)
-        local fID = fd[frameDataKey]
+        local fID = frame[frameKey]
         local ord = fID and spellOrder[fID] or nil
         if not ord then
             local fInfo = frame.GetCooldownInfo and frame:GetCooldownInfo() or frame.cooldownInfo
@@ -24,7 +20,7 @@ function CDM.GroupContainerUtils.AssignGroupSortKeys(frames, spellOrder, frameDa
                 end
             end
         end
-        fd.cdmSortKey = ord or 999
+        frame.cdmSortKey = ord or 999
     end
 end
 
@@ -50,6 +46,8 @@ function CDM.GroupContainerUtils.CreateDescriptor(opts)
     local namePrefix = opts.namePrefix
     local callbackPrefix = opts.callbackPrefix
     local getSets = opts.getSets
+    local getInitialSize = opts.getInitialSize
+    local containerFrameLevel = opts.containerFrameLevel
 
     function desc:GetOrCreateContainer(groupIndex)
         if self.containers[groupIndex] then
@@ -59,6 +57,9 @@ function CDM.GroupContainerUtils.CreateDescriptor(opts)
         local container = CreateFrame("Frame", namePrefix .. groupIndex, UIParent)
         container:SetSize(1, 1)
         container:SetClampedToScreen(false)
+        if containerFrameLevel then
+            container:SetFrameLevel(containerFrameLevel)
+        end
         container:Show()
 
         self.containers[groupIndex] = container
@@ -75,9 +76,16 @@ function CDM.GroupContainerUtils.CreateDescriptor(opts)
         local offsetX = groupData.offsetX or 0
         local offsetY = groupData.offsetY or 0
 
-        local iconW = groupData.iconWidth or 30
-        local iconH = groupData.iconHeight or 30
-        Pixel.SetSize(container, iconW, iconH)
+        if getInitialSize then
+            local w, h = getInitialSize(groupData)
+            if w and h and w > 0 and h > 0 then
+                Pixel.SetSize(container, w, h)
+            end
+        else
+            local iconW = groupData.iconWidth or 30
+            local iconH = groupData.iconHeight or 30
+            Pixel.SetSize(container, iconW, iconH)
+        end
 
         if anchorTarget == "playerFrame" then
             CDM.AnchorToPlayerFrame(
@@ -90,8 +98,14 @@ function CDM.GroupContainerUtils.CreateDescriptor(opts)
             )
         else
             CDM.InvalidateTrackerAnchorCache(container)
-            local targetContainer = getAnchorTarget(anchorTarget)
-            if targetContainer then
+            local targetContainer, useCenterFallback = getAnchorTarget(anchorTarget)
+            if targetContainer and useCenterFallback then
+                container:ClearAllPoints()
+                Pixel.SetPoint(container, "CENTER", targetContainer, "CENTER", offsetX, offsetY)
+                if not container:IsShown() then
+                    container:Show()
+                end
+            elseif targetContainer then
                 CDM.GroupContainerUtils.AnchorToTarget(container, targetContainer, anchorPoint, relativePoint, offsetX, offsetY)
             elseif anchorTarget == "screen" then
                 container:ClearAllPoints()

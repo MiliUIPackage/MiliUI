@@ -18,13 +18,6 @@ function CDM:DeepCopy(original)
     return copy
 end
 
-local function CopyConfigValue(value)
-    if type(value) == "table" then
-        return CDM:DeepCopy(value)
-    end
-    return value
-end
-
 local IsEmptyTable = CDM.CONST.IsEmptyTable
 
 local PROFILE_MT = {
@@ -86,7 +79,7 @@ local function CompactSpellOverrideMap(overrideMap)
         local merged
         for _, item in ipairs(entries) do
             if not merged then
-                merged = (CDM.CopyBuffOverrideEntry and CDM:CopyBuffOverrideEntry(item.entry)) or CopyConfigValue(item.entry)
+                merged = (CDM.CopyBuffOverrideEntry and CDM:CopyBuffOverrideEntry(item.entry)) or CDM:DeepCopy(item.entry)
             else
                 if CDM.MergeMissingBuffOverrideFields then
                     CDM:MergeMissingBuffOverrideFields(merged, item.entry)
@@ -133,6 +126,8 @@ local function CompactBuffOverrideTables(profile)
     CompactUngroupedOverrides(profile.ungroupedBuffOverrides)
     CompactGroupedOverrides(profile.cooldownGroups)
     CompactUngroupedOverrides(profile.ungroupedCooldownOverrides)
+    CompactGroupedOverrides(profile.barGroups)
+    CompactUngroupedOverrides(profile.ungroupedBarOverrides)
 end
 
 local function NormalizeBuffGroupSpellList(spellList)
@@ -172,6 +167,7 @@ local function CompactBuffGroupSpellLists(profile)
     if type(profile) ~= "table" then return end
     CompactGroupSpellListsForKey(profile, "buffGroups")
     CompactGroupSpellListsForKey(profile, "cooldownGroups")
+    CompactGroupSpellListsForKey(profile, "barGroups")
 end
 
 NormalizeNumericKeys = function(t)
@@ -193,7 +189,6 @@ NormalizeNumericKeys = function(t)
     end
 end
 
--- Used for import normalization (string→int key fixup) and compaction (nil when empty).
 local SPARSE_TABLE_KEYS = {}
 for key, default in pairs(CDM.defaults) do
     if type(default) == "table" and next(default) == nil then
@@ -396,7 +391,6 @@ local function StripDefaultMatchingValues(profile)
     for key, default in pairs(CDM.defaults) do
         local raw = rawget(profile, key)
         if raw == nil then
-            -- already absent
         elseif type(default) ~= "table" then
             if raw == default then
                 rawset(profile, key, nil)
@@ -439,9 +433,6 @@ local LEGACY_RESOURCE_KEYS = {
     "resourcesTagSettings", "resourcesSmoothBars", "resourcesMoveBuffsDown",
 }
 
--- A bar-name key (as opposed to a class-name key) at the top level of
--- resourceBarSettings indicates a corrupt flat structure from an older
--- alpha shape or a metatable auto-populate. Used by v13 to force a rebuild.
 local RESOURCE_BAR_NAME_LOOKUP = {
     Mana=true, Rage=true, Energy=true, Focus=true, ComboPoints=true, Runes=true,
     RunicPower=true, SoulShards=true, LunarPower=true, HolyPower=true,
@@ -674,7 +665,7 @@ local function MigrateGroupOverrides(profile, groupsKey, ungroupedKey)
                         end
                     end
                     local ov = group.spellOverrides
-                    if type(ov) == "table" and next(ov) and CDM.EnsureBuffOverrideEntry then
+                    if type(ov) == "table" and next(ov) then
                         for _, sid in ipairs(group.spells) do
                             local entry = CDM:EnsureBuffOverrideEntry(ov, sid)
                             if entry and not next(entry) then
@@ -1166,7 +1157,7 @@ local function InitializeDB()
         if not InCombatLockdown() then
             if GetCVar("cooldownViewerEnabled") ~= "1" then
                 SetCVar("cooldownViewerEnabled", 1)
-                print("|cff00ccff[ACDM]|r " .. L["Enabled Blizzard Cooldown Manager."])
+                CDM.Print(L["Enabled Blizzard Cooldown Manager."])
             end
         end
     end
@@ -1236,7 +1227,7 @@ local function PrepareProfileDataForApply(profileData, fromSchemaVersion)
     for key, value in pairs(prepared) do
         local defaultValue = CDM.defaults[key]
         if defaultValue ~= nil and type(defaultValue) ~= type(value) then
-            prepared[key] = CopyConfigValue(defaultValue)
+            prepared[key] = CDM:DeepCopy(defaultValue)
         elseif type(value) == "table" and type(defaultValue) == "table" then
             for dk, dv in pairs(defaultValue) do
                 if value[dk] == nil and type(dv) ~= "table" then
@@ -1340,7 +1331,7 @@ function CDM:CopyProfile(sourceName)
     local source = Ayije_CDMDB.profiles[sourceName]
     local targetProfileData = {}
     for key, value in pairs(source) do
-        targetProfileData[key] = CopyConfigValue(value)
+        targetProfileData[key] = CDM:DeepCopy(value)
     end
     return self:ApplyProfile(self.activeProfileName, targetProfileData, {
         rebuildOptions = true,
@@ -1690,12 +1681,16 @@ local function StoreStableBase(id, value)
     stableBaseCache[id] = value
 end
 
-if CDM.RegisterEvent then
-    CDM:RegisterEvent("COOLDOWN_VIEWER_DATA_LOADED", function()
+function CDM:InitializeConfigEvents()
+    self:RegisterEvent("COOLDOWN_VIEWER_DATA_LOADED", function()
         cooldownViewerDataReady = true
         table.wipe(stableBaseCache)
         stableBaseCacheSize = 0
     end)
+end
+
+function CDM:IsCooldownViewerDataReady()
+    return cooldownViewerDataReady
 end
 
 local ALL_VIEWER_CATEGORIES = {}
@@ -1706,6 +1701,7 @@ if Enum and Enum.CooldownViewerCategory then
     if evc.TrackedBuff then ALL_VIEWER_CATEGORIES[#ALL_VIEWER_CATEGORIES + 1] = evc.TrackedBuff end
     if evc.TrackedBar then ALL_VIEWER_CATEGORIES[#ALL_VIEWER_CATEGORIES + 1] = evc.TrackedBar end
 end
+CDM.ALL_VIEWER_CATEGORIES = ALL_VIEWER_CATEGORIES
 
 local function ResolveStableBase(spellID)
     if not IsUsableSpellID(spellID) then return nil end
@@ -1854,38 +1850,33 @@ CDM.BuffGroupSets = {
     groups = nil,
 }
 
+CDM.BarGroupSets = {
+    grouped = {},
+    cooldownIDGrouped = {},
+    groups = nil,
+}
+
 CDM.CooldownGroupSets = {
     grouped = {},
     cooldownIDGrouped = {},
     groups = nil,
 }
 
-local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateCache)
-    local previousMatches
-    if dbKey == "cooldownGroups" then
-        previousMatches = {}
-        for cdID, entry in pairs(sets.cooldownIDGrouped) do
-            previousMatches[cdID] = entry
-        end
-    end
-
+local function BuildGroupSpellMap(self, sets, dbKey)
     table.wipe(sets.grouped)
     table.wipe(sets.cooldownIDGrouped)
     sets.groups = nil
 
     local specID = self:GetCurrentSpecID()
-    if not specID then return end
+    if not specID then return {} end
 
     local groupDB = self.db and self.db[dbKey]
-    if not groupDB then return end
-
-    local specGroups = groupDB[specID]
-    if not specGroups then return end
+    local specGroups = groupDB and groupDB[specID]
+    if not specGroups then return {} end
 
     sets.groups = specGroups
 
     local spellToGroup = {}
-
     for groupIndex, group in ipairs(specGroups) do
         if group.spells then
             for _, spellID in ipairs(group.spells) do
@@ -1895,62 +1886,19 @@ local function RefreshGroupData(self, sets, dbKey, categories, shouldInvalidateC
         end
     end
 
-    if C_CooldownViewer and C_CooldownViewer.GetCooldownViewerCategorySet
-        and C_CooldownViewer.GetCooldownViewerCooldownInfo
-        and Enum and Enum.CooldownViewerCategory then
-        for _, cat in ipairs(categories) do
-            local cooldownIDs = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
-            if cooldownIDs then
-                for _, cdID in ipairs(cooldownIDs) do
-                    local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
-                    if info then
-                        local match
-                        if info.overrideTooltipSpellID then
-                            match = spellToGroup[info.overrideTooltipSpellID]
-                        end
-                        if not match and IsUsableSpellID(info.overrideSpellID) and info.overrideSpellID ~= info.spellID then
-                            match = spellToGroup[info.overrideSpellID]
-                        end
-                        if not match then
-                            match = spellToGroup[info.spellID]
-                        end
-                        if not match and info.linkedSpellIDs then
-                            for _, lid in ipairs(info.linkedSpellIDs) do
-                                if IsUsableSpellID(lid) then
-                                    match = spellToGroup[lid]
-                                    if match then break end
-                                end
-                            end
-                        end
-                        if match then
-                            sets.cooldownIDGrouped[cdID] = match
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    if previousMatches then
-        for cdID, entry in pairs(previousMatches) do
-            local current = spellToGroup[entry.storedID]
-            if not sets.cooldownIDGrouped[cdID] and current then
-                sets.cooldownIDGrouped[cdID] = current
-            end
-        end
-    end
-
-    if shouldInvalidateCache and self.InvalidateFrameCategoryCache then
-        self:InvalidateFrameCategoryCache()
-    end
+    return spellToGroup
 end
 
-function CDM:RefreshBuffGroupData()
-    RefreshGroupData(self, self.BuffGroupSets, "buffGroups", ALL_VIEWER_CATEGORIES, true)
+function CDM:_BuildBuffGroupSpellMap()
+    return BuildGroupSpellMap(self, self.BuffGroupSets, "buffGroups")
 end
 
-function CDM:RefreshCooldownGroupData()
-    RefreshGroupData(self, self.CooldownGroupSets, "cooldownGroups", ALL_VIEWER_CATEGORIES, false)
+function CDM:_BuildBarGroupSpellMap()
+    return BuildGroupSpellMap(self, self.BarGroupSets, "barGroups")
+end
+
+function CDM:_BuildCdGroupSpellMap()
+    return BuildGroupSpellMap(self, self.CooldownGroupSets, "cooldownGroups")
 end
 
 local configOpenQueueEventsRegistered = false
@@ -1977,7 +1925,7 @@ local function PrintConfigOpenQueuedNotice(status)
         message = L["Config open queued until login setup finishes."]
     end
 
-    print("|cff00ccff[ACDM]|r " .. tostring(message))
+    CDM.Print(message)
     CDM._configOpenQueueNoticeShown = true
 end
 
@@ -1985,7 +1933,7 @@ local function OpenConfigNow(targetTab)
     if not C_AddOns.IsAddOnLoaded("Ayije_CDM_Options") then
         local loaded, reason = C_AddOns.LoadAddOn("Ayije_CDM_Options")
         if not loaded then
-            print("|cffff0000[ACDM]|r " .. string.format(L["Could not load options: %s"], reason or "unknown"))
+            CDM.PrintError(string.format(L["Could not load options: %s"], reason or "unknown"))
             return "load_failed"
         end
     end
@@ -2004,7 +1952,8 @@ local function EnsureConfigOpenQueueEventsRegistered()
     end
     configOpenQueueEventsRegistered = true
 
-    CDM:RegisterEvent("PLAYER_REGEN_ENABLED", function()
+    CDM:RegisterCombatStateHandler(function(isInCombat)
+        if isInCombat then return end
         if CDM.TryOpenQueuedConfig then
             CDM:TryOpenQueuedConfig("combat_end")
         end
@@ -2033,7 +1982,6 @@ function CDM:RequestConfigOpen(origin, targetTab)
 
     local blockedStatus = GetConfigOpenBlockedStatus()
     if blockedStatus then
-        -- Last request wins while blocked.
         local hadPending = self._pendingConfigOpen ~= nil
         self._pendingConfigOpen = {
             origin = origin,

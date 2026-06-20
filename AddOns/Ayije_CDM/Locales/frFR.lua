@@ -21,12 +21,6 @@ L["Edit Mode locked - use /acdm"] = "Mode édition verrouillé – utilisez /acd
 L["Cooldown Viewer settings are managed by /acdm."] = "Les paramètres de la vue de temps de recharge sont gérés par /acdm."
 
 -----------------------------------------------------------------------
--- Core/Layout/Layout.lua
------------------------------------------------------------------------
-
-L["Click and drag to move - /acdm > Positions to lock"] = "Cliquer-glisser pour déplacer – /acdm > Positions à verrouiller"
-
------------------------------------------------------------------------
 -- Modules/BuffGroupOverlays.lua
 -----------------------------------------------------------------------
 
@@ -107,8 +101,6 @@ L["Layout"] = "Disposition"
 -- Ayije_CDM_Options/Positions.lua
 -----------------------------------------------------------------------
 
-L["Lock Container"] = "Verrouiller le conteneur"
-L["Unlock to drag the container freely.\nUse sliders below for precise positioning."] = "Déverrouiller pour déplacer le conteneur librement.\nUtilisez les curseurs en dessous pour un positionnement précis."
 L["Current: %s (%d, %d)"] = "Actuel : %s (%d, %d)"
 L["X Position"] = "Position X"
 L["Y Position"] = "Position Y"
@@ -117,6 +109,8 @@ L["Utility Y Offset"] = "Décalage Y utilitaire"
 L["Main Buff Container Position"] = "Position du conteneur d'améliorations principal"
 L["Buff Bar Container Position"] = "Position du conteneur de barres d'améliorations"
 L["Positions"] = "Positions"
+--L["Buffs are currently anchored to resources"] = "Buffs are currently anchored to resources"
+--L["Resources tab > Global"] = "Resources tab > Global"
 
 -----------------------------------------------------------------------
 -- Ayije_CDM_Options/Border.lua
@@ -149,6 +143,10 @@ L["Color"] = "Couleur"
 L["Borders"] = "Bordures"
 --L["Look"] = "Look"
 --L["Borders & Look"] = "Borders & Look"
+--L["Hide Buff Swipe"] = "Hide Buff Swipe"
+--L["Don't desaturate on cooldown"] = "Don't desaturate on cooldown"
+--L["Hide recharge timer"] = "Hide recharge timer"
+--L["Color Buff Bars Borders"] = "Color Buff Bars Borders"
 
 -----------------------------------------------------------------------
 -- Ayije_CDM_Options/Text.lua
@@ -347,9 +345,6 @@ L["Missing profile metadata"] = "Métadonnées de profil manquantes"
 --L["Profile is for a different addon"] = "Profile is for a different addon"
 L["No import string provided"] = "Aucune chaîne d'importation fournie"
 L["Failed to import profile"] = "Échec de l'importation du profil"
-L["Serialization failed: %s"] = "Échec de la sérialisation : %s"
-L["Compression failed: %s"] = "Échec de la compression : %s"
-L["Base64 encoding failed: %s"] = "Échec de l'encodage Base64 : %s"
 --L["Select at least one category to export."] = "Select at least one category to export."
 L["Profile is for a different addon: %s"] = "Le profil est destiné à un autre addon : %s"
 L["Imported %d settings as '%s'"] = "%d paramètres importés en tant que '%s'"
@@ -529,7 +524,7 @@ L["Background"] = "Arrière-plan"
 --L["Load Mode"] = "Load Mode"
 --L["Combat"] = "Combat"
 --L["Hide when mounted"] = "Hide when mounted"
---L["Hide in Cat or Bear Form"] = "Hide in Cat or Bear Form"
+--L["Hide out of human form"] = "Hide out of human form"
 
 -----------------------------------------------------------------------
 -- Ayije_CDM_Options/Resources.lua

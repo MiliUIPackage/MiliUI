@@ -185,7 +185,6 @@ function CDM:UpdateEditModeSelectionOverlay(vName)
 
     selection:ClearAllPoints()
     selection:SetAllPoints(container)
-    selection:SetFrameStrata("MEDIUM")
     selection:SetFrameLevel(container:GetFrameLevel() + 2)
 
     self:SetupCooldownViewerLockTextHandlers(viewer)
@@ -280,21 +279,21 @@ end
 
 local function GetActiveLayout(layoutInfo)
     if type(layoutInfo) ~= "table" then
-        return nil, nil
+        return nil
     end
 
     local layouts = layoutInfo.layouts
     local activeIndex = layoutInfo.activeLayout
     if type(layouts) ~= "table" or type(activeIndex) ~= "number" then
-        return nil, nil
+        return nil
     end
 
     local activeLayout = layouts[activeIndex]
     if type(activeLayout) ~= "table" or type(activeLayout.systems) ~= "table" then
-        return nil, nil
+        return nil
     end
 
-    return activeLayout, activeIndex
+    return activeLayout
 end
 
 local function NormalizeLayoutInfo(layoutInfo)

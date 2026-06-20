@@ -83,6 +83,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
     local selectedGroupIndex = nil
     local selectedSpellID = nil
     local selectedSpellGroupIndex = nil
+    local pickerActiveGroupIndex = nil
     local expandedGroups = {}
     local RefreshAll
     local ShowSpellSettings
@@ -146,15 +147,10 @@ local function CreateCooldownGroupsPanel(subPage, page)
 
     local function BuildCooldownActiveSet()
         local active = {}
-        for _, vName in ipairs({ CDM_C.VIEWERS.ESSENTIAL, CDM_C.VIEWERS.UTILITY }) do
-            local viewer = _G[vName]
-            if viewer and viewer.itemFramePool then
-                for frame in viewer.itemFramePool:EnumerateActive() do
-                    local id = frame.GetSpellID and frame:GetSpellID()
-                    if IsSafeNumber(id) then active[id] = true end
-                end
-            end
-        end
+        API:ForEachActiveFrame({ CDM_C.VIEWERS.ESSENTIAL, CDM_C.VIEWERS.UTILITY }, function(frame)
+            local id = frame.GetSpellID and frame:GetSpellID()
+            if IsSafeNumber(id) then active[id] = true end
+        end)
         return active
     end
 
@@ -317,10 +313,11 @@ local function CreateCooldownGroupsPanel(subPage, page)
         local rpm = Shared.CreateRightPanelManager(rightPanel, rightPlaceholder, DestroyFrame)
         RegisterRightPanelDropdown = rpm.RegisterDropdown
         CreateRightScrollContent = rpm.CreateScrollContent
-        ClearRightPanel = rpm.Clear
+        ClearRightPanel = function() pickerActiveGroupIndex = nil; rpm.Clear() end
     end
 
     local function ShowGroupSettings(groupIndex)
+        pickerActiveGroupIndex = nil
         local groups = GetSpecGroups()
         if not groups or not groups[groupIndex] then ClearRightPanel(); return end
         local _, rc = CreateRightScrollContent(700)
@@ -356,6 +353,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
     end
 
     ShowSpellSettings = function(spellID, groupIndex)
+        pickerActiveGroupIndex = nil
         if not spellID then ClearRightPanel(); return end
         local _, rc = CreateRightScrollContent(400)
         local yOff = 0
@@ -377,7 +375,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
         if tex then iconTex:SetTexture(tex) end
         CDM_C.ApplyIconTexCoord(iconTex, CDM_C.GetEffectiveZoomAmount())
         if CDM.BORDER and CDM.BORDER.CreateBorder then
-            CDM.BORDER:CreateBorder(iconContainer)
+            iconContainer.cdmBorder = CDM.BORDER:CreateBorder(iconContainer)
             if CDM.BORDER.activeBorders then CDM.BORDER.activeBorders[iconContainer] = nil end
         end
         yOff = yOff - 54
@@ -739,31 +737,24 @@ local function CreateCooldownGroupsPanel(subPage, page)
         end
         local seen = {}
         local icons = {}
-        local viewerOffset = 0
-        for _, vName in ipairs({ CDM_C.VIEWERS.ESSENTIAL, CDM_C.VIEWERS.UTILITY }) do
-            local viewer = _G[vName]
-            if viewer and viewer.itemFramePool then
-                for frame in viewer.itemFramePool:EnumerateActive() do
-                    if frame:IsShown() or frame.cooldownInfo then
-                        local displayID = API.GetPreferredBuffGroupSpellID and API:GetPreferredBuffGroupSpellID(frame)
-                        if not IsSafeNumber(displayID) and API.GetBaseSpellID then
-                            displayID = API:GetBaseSpellID(frame)
-                        end
-                        local slotKey = frame.cooldownID or displayID
-                        if IsSafeNumber(displayID)
-                            and not Shared.HasEquivalentSpellID(groupedSet, displayID)
-                            and not seen[slotKey]
-                        then
-                            seen[slotKey] = true
-                            local li = frame.layoutIndex
-                            local safeLayoutIndex = IsSafeNumber(li) and li or 0
-                            icons[#icons + 1] = { spellID = displayID, layoutIndex = safeLayoutIndex, viewerOrder = viewerOffset }
-                        end
-                    end
-                end
+        local viewerOffsets = { [CDM_C.VIEWERS.ESSENTIAL] = 0, [CDM_C.VIEWERS.UTILITY] = 10000 }
+        API:ForEachActiveFrame({ CDM_C.VIEWERS.ESSENTIAL, CDM_C.VIEWERS.UTILITY }, function(frame, vName)
+            if not (frame:IsShown() or frame.cooldownInfo) then return end
+            local displayID = API.GetPreferredBuffGroupSpellID and API:GetPreferredBuffGroupSpellID(frame)
+            if not IsSafeNumber(displayID) and API.GetBaseSpellID then
+                displayID = API:GetBaseSpellID(frame)
             end
-            viewerOffset = viewerOffset + 10000
-        end
+            local slotKey = frame.cooldownID or displayID
+            if IsSafeNumber(displayID)
+                and not Shared.HasEquivalentSpellID(groupedSet, displayID)
+                and not seen[slotKey]
+            then
+                seen[slotKey] = true
+                local li = frame.layoutIndex
+                local safeLayoutIndex = IsSafeNumber(li) and li or 0
+                icons[#icons + 1] = { spellID = displayID, layoutIndex = safeLayoutIndex, viewerOrder = viewerOffsets[vName] }
+            end
+        end)
         table.sort(icons, function(a, b)
             if a.viewerOrder ~= b.viewerOrder then return a.viewerOrder < b.viewerOrder end
             if a.layoutIndex ~= b.layoutIndex then return a.layoutIndex < b.layoutIndex end
@@ -777,6 +768,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
     ShowSpellPickerPanel = function(groupIndex)
         local groups = GetSpecGroups()
         if not groups or not groups[groupIndex] then return end
+        pickerActiveGroupIndex = groupIndex
         local gd = groups[groupIndex]
         local spells = GetAvailableSpellsForPicker(currentSpecID)
         Shared.RenderSpellPicker({
@@ -837,21 +829,21 @@ local function CreateCooldownGroupsPanel(subPage, page)
         CDM_C.ApplyIconTexCoord(widget.iconTex, CDM_C.GetEffectiveZoomAmount())
 
         local cfgColor = CDM_C.GetConfigValue("borderColor", { r = 0, g = 0, b = 0, a = 1 })
-        if widget.iconContainer.border then
-            widget.iconContainer.border:SetBackdropBorderColor(cfgColor.r, cfgColor.g, cfgColor.b, cfgColor.a or 1)
+        if widget.iconContainer.cdmBorder then
+            widget.iconContainer.cdmBorder:SetBackdropBorderColor(cfgColor.r, cfgColor.g, cfgColor.b, cfgColor.a or 1)
         end
 
         if isActive == false then
             widget.iconTex:SetDesaturated(true)
             widget.iconTex:SetAlpha(0.5)
-            if widget.iconContainer.border then
-                widget.iconContainer.border:SetAlpha(0.5)
-                widget.iconContainer.border:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+            if widget.iconContainer.cdmBorder then
+                widget.iconContainer.cdmBorder:SetAlpha(0.5)
+                widget.iconContainer.cdmBorder:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
             end
         else
             widget.iconTex:SetDesaturated(false)
             widget.iconTex:SetAlpha(1)
-            if widget.iconContainer.border then widget.iconContainer.border:SetAlpha(1) end
+            if widget.iconContainer.cdmBorder then widget.iconContainer.cdmBorder:SetAlpha(1) end
         end
 
         widget.removeBtn:Hide()
@@ -958,7 +950,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
             local frame = AcquireGridIcon()
 
             if CDM.BORDER and CDM.BORDER.CreateBorder then
-                CDM.BORDER:CreateBorder(frame, { forceUpdate = true })
+                frame.cdmBorder = CDM.BORDER:CreateBorder(frame, true)
                 if CDM.BORDER.activeBorders then CDM.BORDER.activeBorders[frame] = nil end
             end
 
@@ -973,8 +965,8 @@ local function CreateCooldownGroupsPanel(subPage, page)
             frame.icon:SetDesaturated(false)
             frame.icon:SetAlpha(1)
 
-            if frame.border then
-                frame.border:SetBackdropBorderColor(cfgColor.r, cfgColor.g, cfgColor.b, cfgColor.a or 1)
+            if frame.cdmBorder then
+                frame.cdmBorder:SetBackdropBorderColor(cfgColor.r, cfgColor.g, cfgColor.b, cfgColor.a or 1)
             end
 
             frame.overlay:SetScript("OnEnter", function(self)
@@ -1049,6 +1041,7 @@ local function CreateCooldownGroupsPanel(subPage, page)
 
                 h.deleteBtn:SetScript("OnClick", function()
                     local function DoDelete()
+                        local needReshow = false
                         local specGroups = EnsureGroups()
                         if specGroups then
                             local gd = specGroups[groupIndex]
@@ -1069,13 +1062,25 @@ local function CreateCooldownGroupsPanel(subPage, page)
                             ClearRightPanel()
                         elseif selectedGroupIndex and selectedGroupIndex > groupIndex then
                             selectedGroupIndex = selectedGroupIndex - 1
+                            needReshow = true
                         end
                         if selectedSpellGroupIndex then
                             if selectedSpellGroupIndex == groupIndex then
                                 selectedSpellGroupIndex = nil
                                 selectedSpellID = nil
+                                ClearRightPanel()
                             elseif selectedSpellGroupIndex > groupIndex then
                                 selectedSpellGroupIndex = selectedSpellGroupIndex - 1
+                                needReshow = true
+                            end
+                        end
+                        if pickerActiveGroupIndex then
+                            if pickerActiveGroupIndex == groupIndex then
+                                pickerActiveGroupIndex = nil
+                                ClearRightPanel()
+                            elseif pickerActiveGroupIndex > groupIndex then
+                                pickerActiveGroupIndex = pickerActiveGroupIndex - 1
+                                needReshow = true
                             end
                         end
                         local newExpanded = {}
@@ -1088,6 +1093,15 @@ local function CreateCooldownGroupsPanel(subPage, page)
                         end
                         expandedGroups = newExpanded
                         SaveAndRefresh(); RefreshLeftPanelIfNeeded()
+                        if needReshow then
+                            if pickerActiveGroupIndex then
+                                ShowSpellPickerPanel(pickerActiveGroupIndex)
+                            elseif selectedSpellID then
+                                ShowSpellSettings(selectedSpellID, selectedSpellGroupIndex)
+                            elseif selectedGroupIndex then
+                                ShowGroupSettings(selectedGroupIndex)
+                            end
+                        end
                     end
 
                     local spellCount = groupData.spells and #groupData.spells or 0

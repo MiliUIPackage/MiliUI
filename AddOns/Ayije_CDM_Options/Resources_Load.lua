@@ -70,8 +70,6 @@ local function GetSpecsForBar(classKey, barKey)
     local _, CLASS_SPECS = Shared.GetClassCatalog()
     local allSpecs = CLASS_SPECS and CLASS_SPECS[classKey] or {}
 
-    -- Druid form-swapping: any spec can bear into Rage or cat into Energy/ComboPoints.
-    -- Ironfur (Guardian-only) and LunarPower (Balance-only) remain single-spec via SPEC_POWER_MAP.
     local isDruidShared = classKey == "DRUID"
         and (barKey == "Rage" or barKey == "Energy" or barKey == "ComboPoints")
 
@@ -175,7 +173,7 @@ local function ShowBarLoad(loadPage, loadManager, classKey, barKey)
 
     local _, playerClass = UnitClass("player")
     if barKey == "Mana" and playerClass == "DRUID" then
-        local feralCB = UI.CreateModernCheckbox(condContainer, L["Hide in Cat or Bear Form"],
+        local feralCB = UI.CreateModernCheckbox(condContainer, L["Hide out of human form"],
             load.hideInFeralForm == true,
             function(val)
                 load.hideInFeralForm = val or nil

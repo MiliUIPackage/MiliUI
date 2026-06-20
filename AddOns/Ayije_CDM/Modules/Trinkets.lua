@@ -63,8 +63,7 @@ local function ResetTrinketTrackerFrame(frame)
         frame.Icon:SetTexture(nil)
         frame.Icon:SetDesaturation(0)
     end
-    local fd = CDM.GetFrameData(frame)
-    fd.cdmCooldownStyled = nil
+    frame.cdmCooldownStyled = nil
 end
 
 local function CreateIconFrame(slotID)
@@ -146,7 +145,7 @@ local function RefreshTrinketData(frame)
 
     local dataChanged = (prevItemID ~= frame.itemID) or (prevSpellID ~= frame.spellID) or (prevIsOnUse ~= frame.isOnUse)
     if dataChanged then
-        CDM.GetFrameData(frame).cdmCooldownStyled = false
+        frame.cdmCooldownStyled = false
     end
 
     return dataChanged
@@ -156,11 +155,14 @@ local function OnTrinketCooldownWatchChanged()
     trinketsTracker.Queue(false)
 end
 
-local function OnTrinketSpellWatchChanged(cooldownsChanged, chargesChanged)
-    if cooldownsChanged or chargesChanged then
-        trinketsTracker.Queue(false)
-    end
-end
+local UpdateIcon
+
+local trinketsSpellDispatcher = CDM.CreateSpellEntryDispatcher({
+    watchOwnerKey   = TRINKETS_SPELL_WATCH_OWNER,
+    getEntrySpellID = function(frame) return frame.spellID end,
+    getEntryFrame   = function(frame) return frame end,
+    updateIcon      = function(frame) UpdateIcon(frame) end,
+})
 
 local function RegisterTrinketCooldownWatches()
     if not (CDM.WatchInventorySlotCooldown and CDM.UnwatchAllCooldowns) then return end
@@ -176,23 +178,14 @@ local function UnregisterTrinketCooldownWatches()
 end
 
 local function RegisterTrinketSpellWatches()
-    if not (CDM.WatchSpellState and CDM.UnwatchAllSpellStates) then return end
-    CDM.UnwatchAllSpellStates(TRINKETS_SPELL_WATCH_OWNER)
-    local iconFrames = trinketsTracker.GetIconFrames()
-    for _, frame in ipairs(iconFrames) do
-        if frame.spellID then
-            CDM.WatchSpellState(TRINKETS_SPELL_WATCH_OWNER, frame.spellID, OnTrinketSpellWatchChanged)
-        end
-    end
+    trinketsSpellDispatcher.SetEntries(trinketsTracker.GetIconFrames())
 end
 
 local function UnregisterTrinketSpellWatches()
-    if CDM.UnwatchAllSpellStates then
-        CDM.UnwatchAllSpellStates(TRINKETS_SPELL_WATCH_OWNER)
-    end
+    trinketsSpellDispatcher.Clear()
 end
 
-local function UpdateIcon(frame)
+function UpdateIcon(frame)
     if not frame or not frame:IsShown() then return end
 
     local isOnCooldown = false
@@ -200,12 +193,11 @@ local function UpdateIcon(frame)
     if frame.slotID then
         local start, duration, enable = GetInventoryItemCooldown("player", frame.slotID)
         if start and duration and duration > CDM_C.ITEM_COOLDOWN_GCD_MIN and enable == 1 then
-            local fd = CDM.GetFrameData(frame)
-            if not fd.cdmDurationObj then
-                fd.cdmDurationObj = C_DurationUtil.CreateDuration()
+            if not frame.cdmDurationObj then
+                frame.cdmDurationObj = C_DurationUtil.CreateDuration()
             end
-            fd.cdmDurationObj:SetTimeFromStart(start, duration)
-            frame.Cooldown:SetCooldownFromDurationObject(fd.cdmDurationObj)
+            frame.cdmDurationObj:SetTimeFromStart(start, duration)
+            frame.Cooldown:SetCooldownFromDurationObject(frame.cdmDurationObj)
             isOnCooldown = true
         else
             frame.Cooldown:Clear()
@@ -215,12 +207,11 @@ local function UpdateIcon(frame)
     end
 
     if frame.Icon then
-        frame.Icon:SetDesaturation(isOnCooldown and 1 or 0)
+        frame.Icon:SetDesaturation((isOnCooldown and not CDM.styleCache.disableCooldownDesat) and 1 or 0)
     end
 
     if isOnCooldown then
-        local fd = CDM.GetFrameData(frame)
-        if not fd.cdmCooldownStyled then
+        if not frame.cdmCooldownStyled then
             if currentMode == "essential" and CDM_C.VIEWERS and CDM_C.VIEWERS.ESSENTIAL then
                 if CDM.ApplyStyle then
                     CDM:ApplyStyle(frame, CDM_C.VIEWERS.ESSENTIAL)
@@ -228,7 +219,7 @@ local function UpdateIcon(frame)
             elseif CDM.ApplyStyle then
                 CDM:ApplyStyle(frame, "CDM_Trinkets")
             end
-            fd.cdmCooldownStyled = true
+            frame.cdmCooldownStyled = true
         end
     end
 end
@@ -465,8 +456,6 @@ function CDM:UpdateTrinkets()
             if essViewer then CDM:ForceReanchor(essViewer) end
         end
         currentMode = mode
-        lastTrinketsWidth = nil
-        lastTrinketsHeight = nil
         InvalidateTrinketsLayoutCache()
         CDM.InvalidateTrackerAnchorCache(container)
 
@@ -517,8 +506,7 @@ function CDM:UpdateTrinkets()
     local vBit = 1
     for _, frame in ipairs(iconFrames) do
         if sizeChanged then
-            local fd = CDM.GetFrameData(frame)
-            fd.cdmCooldownStyled = false
+            frame.cdmCooldownStyled = false
             frame:SetSize(size.w, size.h)
 
             if frame.Icon then
@@ -526,9 +514,6 @@ function CDM:UpdateTrinkets()
             end
             if frame.Cooldown then
                 frame.Cooldown:SetAllPoints(frame)
-            end
-            if fd.borderFrame then
-                fd.borderFrame:SetAllPoints(frame)
             end
         end
 

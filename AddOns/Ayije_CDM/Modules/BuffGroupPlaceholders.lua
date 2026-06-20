@@ -6,8 +6,6 @@ local Snap = Pixel.Snap
 
 CDM.BuffGroupPlaceholders = CDM.BuffGroupPlaceholders or {}
 
-local GetFrameData = CDM.GetFrameData
-
 local math_max = math.max
 local math_floor = math.floor
 local ipairs = ipairs
@@ -76,17 +74,17 @@ end
 local function ApplyPlaceholderVisuals(frame, spellID, iconW, iconH)
     local bsv = CDM.borderStyleVersion or 0
     local zoom = CDM_C.GetEffectiveZoomAmount()
-    if frame._cdmPHSpellID == spellID and frame._cdmPHW == iconW
-        and frame._cdmPHH == iconH and frame._cdmPHBSV == bsv
-        and frame._cdmPHZoom == zoom then
+    if frame.cdmPHSpellID == spellID and frame.cdmPHW == iconW
+        and frame.cdmPHH == iconH and frame.cdmPHBSV == bsv
+        and frame.cdmPHZoom == zoom then
         return
     end
 
-    frame._cdmPHSpellID = spellID
-    frame._cdmPHW = iconW
-    frame._cdmPHH = iconH
-    frame._cdmPHBSV = bsv
-    frame._cdmPHZoom = zoom
+    frame.cdmPHSpellID = spellID
+    frame.cdmPHW = iconW
+    frame.cdmPHH = iconH
+    frame.cdmPHBSV = bsv
+    frame.cdmPHZoom = zoom
 
     local phWSnapped = Snap(iconW)
     local phHSnapped = Snap(iconH)
@@ -97,7 +95,7 @@ local function ApplyPlaceholderVisuals(frame, spellID, iconW, iconH)
         frame.Icon:SetTexture(tex)
     else
         frame.Icon:SetColorTexture(0.15, 0.15, 0.15)
-        frame._cdmPHSpellID = nil
+        frame.cdmPHSpellID = nil
     end
 
     CDM_C.ApplyIconTexCoord(frame.Icon, zoom, phWSnapped, phHSnapped)
@@ -105,13 +103,13 @@ local function ApplyPlaceholderVisuals(frame, spellID, iconW, iconH)
     frame.Icon:SetAlpha(1)
 
     if CDM.BORDER and CDM.BORDER.CreateBorder then
-        CDM.BORDER:CreateBorder(frame)
+        frame.cdmBorder = CDM.BORDER:CreateBorder(frame, true)
         if CDM.BORDER.activeBorders then
             CDM.BORDER.activeBorders[frame] = nil
         end
-        if frame.border then
+        if frame.cdmBorder then
             local r, g, b, a = GetConfiguredBorderColor()
-            frame.border:SetBackdropBorderColor(r, g, b, a)
+            frame.cdmBorder:SetBackdropBorderColor(r, g, b, a)
         end
     end
 
@@ -141,6 +139,7 @@ end
 local function ReleasePlaceholder(frame)
     frame:Hide()
     frame:ClearAllPoints()
+    frame.cdmAnchor = nil
     if frame:GetParent() ~= UIParent then
         frame:SetParent(UIParent)
     end
@@ -157,10 +156,9 @@ local function ReleaseGroupPlaceholders(groupIndex)
 end
 
 local function OnGroupedBuffFrameHide(frame)
-    local frameData = GetFrameData(frame)
-    if not frameData.cdmStaticPlaceholderEligible then return end
-    local groupIdx = frameData.cdmStaticGroupIdx
-    local spellID = frameData.cdmStaticGroupSpellID
+    if not frame.cdmStaticPlaceholderEligible then return end
+    local groupIdx = frame.cdmStaticGroupIdx
+    local spellID = frame.cdmStaticGroupSpellID
     if not groupIdx or not spellID then return end
     local group = activePlaceholders[groupIdx]
     if not group then return end
@@ -177,13 +175,12 @@ local function SyncGroupedFrameState(frame, groupIndex, rawSpellID, placeholderE
         return
     end
 
-    local frameData = GetFrameData(frame)
-    frameData.cdmStaticGroupIdx = groupIndex
-    frameData.cdmStaticGroupSpellID = rawSpellID
-    frameData.cdmStaticPlaceholderEligible = placeholderEligible and true or nil
+    frame.cdmStaticGroupIdx = groupIndex
+    frame.cdmStaticGroupSpellID = rawSpellID
+    frame.cdmStaticPlaceholderEligible = placeholderEligible and true or nil
 
-    if groupIndex and rawSpellID and not frameData.cdmBuffGroupOnHideHooked then
-        frameData.cdmBuffGroupOnHideHooked = true
+    if groupIndex and rawSpellID and not frame.cdmBuffGroupOnHideHooked then
+        frame.cdmBuffGroupOnHideHooked = true
         frame:HookScript("OnHide", OnGroupedBuffFrameHide)
     end
 end
@@ -232,7 +229,6 @@ local function ReconcileGroupPlaceholders(groupIndex, opts)
             else
                 ApplyPlaceholderVisuals(pFrame, sid, opts.iconW, opts.iconH)
             end
-            pFrame:ClearAllPoints()
             positionFrameAtSlot(
                 pFrame,
                 opts.container,
@@ -272,10 +268,6 @@ local function ReleaseAllPlaceholders()
     end
 end
 
-local function QueuePlaceholderReadinessRefresh()
-    QueuePlaceholderRefresh()
-end
-
 local function OnPlaceholderSpecStateChanged(unit)
     if unit and unit ~= "player" then
         return
@@ -283,9 +275,10 @@ local function OnPlaceholderSpecStateChanged(unit)
     QueuePlaceholderRefresh()
 end
 
-CDM:RegisterEvent("PLAYER_ENTERING_WORLD", QueuePlaceholderReadinessRefresh)
-CDM:RegisterTalentDataHandler(QueuePlaceholderReadinessRefresh)
-CDM:RegisterSpecStateHandler(OnPlaceholderSpecStateChanged)
+function CDM.BuffGroupPlaceholders:Initialize()
+    CDM:RegisterEvent("PLAYER_ENTERING_WORLD", QueuePlaceholderRefresh)
+    CDM:RegisterSpecStateHandler(OnPlaceholderSpecStateChanged)
+end
 
 CDM.BuffGroupPlaceholders.SyncGroupedFrameState = SyncGroupedFrameState
 CDM.BuffGroupPlaceholders.ReconcileGroup = ReconcileGroupPlaceholders

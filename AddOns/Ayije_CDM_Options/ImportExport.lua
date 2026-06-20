@@ -162,7 +162,7 @@ function API:ExportProfile(categories)
         return nil
     end
 
-    local exportString, errCode, errValue = ProfileIO:ExportSegmentedProfile(
+    local exportString, errCode = ProfileIO:ExportSegmentedProfile(
         CDM.db,
         categories,
         exportCategories,
@@ -173,13 +173,7 @@ function API:ExportProfile(categories)
         return exportString
     end
 
-    if errCode == "serialization_failed" then
-        print("|cffff0000[CDM Export]|r " .. string.format(L["Serialization failed: %s"], tostring(errValue)))
-    elseif errCode == "compression_failed" then
-        print("|cffff0000[CDM Export]|r " .. string.format(L["Compression failed: %s"], tostring(errValue)))
-    elseif errCode == "base64_failed" then
-        print("|cffff0000[CDM Export]|r " .. string.format(L["Base64 encoding failed: %s"], tostring(errValue)))
-    elseif errCode == "no_categories_selected" then
+    if errCode == "no_categories_selected" then
         print("|cffff0000[CDM Export]|r " .. L["Select at least one category to export."])
     end
     return nil
@@ -305,10 +299,10 @@ local function CreateImportExportTab(page, tabId)
             exportEditBox:SetText(exportString)
             exportEditBox:HighlightText()
             exportEditBox:SetFocus()
-            print("|cff00ff00[ACDM]|r " .. L["Profile exported! Copy the string above."])
+            CDM.PrintSuccess(L["Profile exported! Copy the string above."])
         else
             exportEditBox:SetText("")
-            print("|cffff0000[ACDM]|r " .. L["Export failed."])
+            CDM.PrintError(L["Export failed."])
         end
     end)
 

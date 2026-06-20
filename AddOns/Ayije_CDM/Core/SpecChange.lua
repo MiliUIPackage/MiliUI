@@ -7,7 +7,6 @@ function CDM:InitializeSpecChangeSystem()
 
     local ProcessSpecChange
 
-    local lastProcessedSpecID = nil
     local processingInProgress = false
     local specChangeVersion = 0
 
@@ -27,9 +26,10 @@ function CDM:InitializeSpecChangeSystem()
 
         local wasFullSpecChange = isFullSpecChange
         local specIndex = GetSpecialization()
-        if not specIndex then return end
-
-        local currentSpecID = GetSpecializationInfo(specIndex)
+        if not specIndex then
+            ScheduleBackstop()
+            return
+        end
 
         processingInProgress = true
 
@@ -38,6 +38,7 @@ function CDM:InitializeSpecChangeSystem()
                 self:InvalidateSpecIDCache()
                 self:CheckSpecProfileSwitch(specIndex)
             end
+            self:MarkSpecDataDirty()
             self:RefreshSpecData()
         end)
 
@@ -48,8 +49,6 @@ function CDM:InitializeSpecChangeSystem()
         backstopToken = backstopToken + 1
 
         if ok then
-            lastProcessedSpecID = currentSpecID
-            self:RebuildAuraOverlayEnabledMap()
             self:Refresh()
         else
             local handler = geterrorhandler and geterrorhandler()
@@ -70,6 +69,8 @@ function CDM:InitializeSpecChangeSystem()
 
         C_Timer.After(0.1, function()
             if specChangeVersion ~= myVersion then return end
+            if self.InvalidateRacialsSpellbookCache then self:InvalidateRacialsSpellbookCache() end
+            if self.RebuildGlowFilters then self:RebuildGlowFilters() end
             if self.UpdateDefensives then self:UpdateDefensives() end
             if self.UpdateRacials then self:UpdateRacials() end
             if self.UpdateResources then self:UpdateResources() end
@@ -117,9 +118,6 @@ function CDM:InitializeSpecChangeSystem()
     end
 
     local function HandleSpecStateChanged(unit, event)
-        if unit and unit ~= "player" then return end
-        if event and event ~= "PLAYER_SPECIALIZATION_CHANGED" then return end
-
         if not self.loginFinished then
             self.loginDeferredFullChange = true
             return

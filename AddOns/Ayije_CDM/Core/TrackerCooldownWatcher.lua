@@ -1,7 +1,7 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 
-local getItemCooldown = C_Container and C_Container.GetItemCooldown
+local getItemCooldown = C_Container.GetItemCooldown
 local getInventoryItemCooldown = GetInventoryItemCooldown
 
 local pairs = pairs
@@ -145,9 +145,9 @@ local function CreateWatchAndPrime(kind, id)
         readyTime = nil,
     }
 
-    if kind == "item" and getItemCooldown then
+    if kind == "item" then
         PopulateCooldownState(watch, getItemCooldown(id))
-    elseif kind == "slot" and getInventoryItemCooldown then
+    elseif kind == "slot" then
         PopulateCooldownState(watch, getInventoryItemCooldown("player", id))
     end
 
@@ -203,9 +203,6 @@ local function UnwatchTarget(watches, kind, ownerKey, id)
     if not next(watch.callbacks) then
         watches[id] = nil
         activeTargetCount = activeTargetCount - 1
-        if activeTargetCount < 0 then
-            activeTargetCount = 0
-        end
         RefreshWatcherEventRegistration()
     end
 

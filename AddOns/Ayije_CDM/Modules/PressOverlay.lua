@@ -4,7 +4,6 @@ local CDM_C = CDM.CONST
 local VIEWERS = CDM_C.VIEWERS
 local GetBaseSpellID = CDM.GetBaseSpellID
 local Keybinds = CDM.Keybinds
-local GetFrameData = CDM.GetFrameData
 
 local ipairs = ipairs
 local pairs = pairs
@@ -77,35 +76,28 @@ local function RebuildBindingMapIfStale()
     wipe(itemBindingMap)
     bindingMapHasNoModifierCombo = false
 
-    for _, vName in ipairs(VIEWER_NAMES) do
-        local viewer = _G[vName]
-        if viewer and viewer.itemFramePool then
-            for frame in viewer.itemFramePool:EnumerateActive() do
-                local baseID = GetBaseSpellID(frame)
-                if baseID then
-                    if not bindingMap[baseID] then
-                        local rawKeys = Keybinds:GetRawKeysForSpell(baseID)
-                        if rawKeys then
-                            local combos
-                            for _, rk in ipairs(rawKeys) do
-                                local combo = ParseRawKey(rk)
-                                if combo then
-                                    if not combos then combos = {} end
-                                    combos[#combos + 1] = combo
-                                    if not (combo.shift or combo.ctrl or combo.alt) then
-                                        bindingMapHasNoModifierCombo = true
-                                    end
-                                end
-                            end
-                            if combos then
-                                bindingMap[baseID] = combos
-                            end
+    CDM:ForEachActiveFrame(VIEWER_NAMES, function(frame)
+        local baseID = GetBaseSpellID(frame)
+        if baseID and not bindingMap[baseID] then
+            local rawKeys = Keybinds:GetRawKeysForSpell(baseID)
+            if rawKeys then
+                local combos
+                for _, rk in ipairs(rawKeys) do
+                    local combo = ParseRawKey(rk)
+                    if combo then
+                        if not combos then combos = {} end
+                        combos[#combos + 1] = combo
+                        if not (combo.shift or combo.ctrl or combo.alt) then
+                            bindingMapHasNoModifierCombo = true
                         end
                     end
                 end
+                if combos then
+                    bindingMap[baseID] = combos
+                end
             end
         end
-    end
+    end)
 
     local trinketFrames = CDM.GetTrinketIconFrames and CDM.GetTrinketIconFrames()
     if trinketFrames then
@@ -164,10 +156,7 @@ local function GetOrCreateHighlight(frame)
 end
 
 local function OverrideBorderColor(frame)
-    local frameData = GetFrameData(frame)
-    if not frameData then return end
-
-    local border = frameData.borderFrame and frameData.borderFrame.border
+    local border = frame.cdmBorder
     if border and border.SetBackdropBorderColor then
         if useTextureSwap then
             local ov = GetOrCreateOverlay(frame)
@@ -187,10 +176,7 @@ local function OverrideBorderColor(frame)
 end
 
 local function RestoreBorderColor(frame)
-    local frameData = GetFrameData(frame)
-    if not frameData then return end
-
-    local border = frameData.borderFrame and frameData.borderFrame.border
+    local border = frame.cdmBorder
     if border and border.SetBackdropBorderColor then
         local ov = overlayFrames[frame]
         if ov and ov.textureSwapped then
@@ -313,15 +299,6 @@ pollFrame:SetScript("OnUpdate", function(_, dt)
             local combos = itemID and itemBindingMap[itemID]
             if combos then
                 pressed = IsAnyComboDown(combos)
-            end
-            if not pressed then
-                local baseID = GetBaseSpellID(frame)
-                if baseID then
-                    combos = bindingMap[baseID]
-                    if combos then
-                        pressed = IsAnyComboDown(combos)
-                    end
-                end
             end
             if pressed then
                 ShowOverlays(frame)

@@ -62,28 +62,6 @@ local function ClearAllHighlights()
         hf.Flipbook.Anim:Stop()
         hf:Hide()
     end
-    wipe(highlightFrames)
-end
-
-local function RefreshHighlights()
-    if not currentHighlightSpellID then
-        ClearAllHighlights()
-        return
-    end
-
-    for _, vName in ipairs(VIEWER_NAMES) do
-        local viewer = _G[vName]
-        if viewer and viewer.itemFramePool then
-            for frame in viewer.itemFramePool:EnumerateActive() do
-                local baseID = GetBaseSpellID(frame)
-                if baseID and baseID == currentHighlightSpellID then
-                    ShowHighlight(frame)
-                else
-                    HideHighlight(frame)
-                end
-            end
-        end
-    end
 end
 
 local function SafeNormalize(spellID)
@@ -93,6 +71,22 @@ local function SafeNormalize(spellID)
     local stable = CDM.ResolveStableBase and CDM:ResolveStableBase(spellID)
     if stable then return stable end
     return NormalizeToBase(spellID)
+end
+
+local function RefreshHighlights()
+    if not currentHighlightSpellID then
+        ClearAllHighlights()
+        return
+    end
+
+    CDM:ForEachActiveFrame(VIEWER_NAMES, function(frame)
+        local baseID = SafeNormalize(GetBaseSpellID(frame))
+        if baseID and baseID == currentHighlightSpellID then
+            ShowHighlight(frame)
+        else
+            HideHighlight(frame)
+        end
+    end)
 end
 
 local function IsHighlightCVarEnabled()

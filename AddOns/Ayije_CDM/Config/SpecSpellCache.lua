@@ -11,11 +11,12 @@ end
 local CAT_ESSENTIAL = Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.Essential
 local CAT_UTILITY   = Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.Utility
 local CAT_BUFF      = Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.TrackedBuff
+local CAT_BAR       = Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.TrackedBar
 
-local specCacheScheduled = false
 local specEssentialCache = {}
 local specUtilityCache = {}
 local specBuffSpellCache = {}
+local specBarSpellCache = {}
 
 local function EnsureStorage()
     local db = Ayije_CDMDB
@@ -26,55 +27,45 @@ local function EnsureStorage()
     if not s.specEssentialCache then s.specEssentialCache = {} end
     if not s.specUtilityCache then s.specUtilityCache = {} end
     if not s.specBuffSpellCache then s.specBuffSpellCache = {} end
+    if not s.specBarSpellCache then s.specBarSpellCache = {} end
     return s
 end
 
-local function CollectCategory(cat)
-    if not cat or not C_CooldownViewer or not C_CooldownViewer.GetCooldownViewerCategorySet then
-        return nil
-    end
-
-    local ids = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
-    if not ids or #ids == 0 then return nil end
-
-    local result = {}
-    for _, cooldownID in ipairs(ids) do
-        local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cooldownID)
-        if info then
-            local spellID = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID
-            result[#result + 1] = {
-                cooldownID = cooldownID,
-                spellID = spellID,
-                baseSpellID = info.spellID,
-                hidden = IsHiddenByDefault(info),
-                charges = info.charges or false,
-            }
-        end
-    end
-
-    return #result > 0 and result or nil
+function CDM:_BuildSnapshotEntry(info, cooldownID)
+    if not info then return nil end
+    return {
+        cooldownID = cooldownID,
+        spellID = info.overrideTooltipSpellID or info.overrideSpellID or info.spellID,
+        baseSpellID = info.spellID,
+        hidden = IsHiddenByDefault(info),
+        charges = info.charges or false,
+    }
 end
 
-local function RefreshSpecSpellCache()
-    specCacheScheduled = false
-    local specID = PlayerUtil and PlayerUtil.GetCurrentSpecID and PlayerUtil.GetCurrentSpecID()
+function CDM:_PersistSpecSnapshots(specID, snapshotLists)
     if not specID then return end
-    specEssentialCache[specID] = CollectCategory(CAT_ESSENTIAL)
-    specUtilityCache[specID]   = CollectCategory(CAT_UTILITY)
-    specBuffSpellCache[specID] = CollectCategory(CAT_BUFF)
+    local essential = snapshotLists and snapshotLists[CAT_ESSENTIAL]
+    local utility   = snapshotLists and snapshotLists[CAT_UTILITY]
+    local buff      = snapshotLists and snapshotLists[CAT_BUFF]
+    local bar       = snapshotLists and snapshotLists[CAT_BAR]
+
+    if essential and #essential == 0 then essential = nil end
+    if utility and #utility == 0 then utility = nil end
+    if buff and #buff == 0 then buff = nil end
+    if bar and #bar == 0 then bar = nil end
+
+    specEssentialCache[specID] = essential
+    specUtilityCache[specID]   = utility
+    specBuffSpellCache[specID] = buff
+    specBarSpellCache[specID]  = bar
 
     local storage = EnsureStorage()
     if storage then
-        storage.specEssentialCache[specID] = specEssentialCache[specID]
-        storage.specUtilityCache[specID]   = specUtilityCache[specID]
-        storage.specBuffSpellCache[specID] = specBuffSpellCache[specID]
+        storage.specEssentialCache[specID] = essential
+        storage.specUtilityCache[specID]   = utility
+        storage.specBuffSpellCache[specID] = buff
+        storage.specBarSpellCache[specID]  = bar
     end
-end
-
-local function ScheduleRefresh()
-    if specCacheScheduled then return end
-    specCacheScheduled = true
-    C_Timer.After(0, RefreshSpecSpellCache)
 end
 
 function API:GetSpecEssentialCache(specID)
@@ -98,7 +89,9 @@ function API:GetSpecBuffSpellCache(specID)
     return storage and storage.specBuffSpellCache[specID]
 end
 
-CDM:RegisterEvent("PLAYER_ENTERING_WORLD", ScheduleRefresh)
-CDM:RegisterEvent("COOLDOWN_VIEWER_TABLE_HOTFIXED", ScheduleRefresh)
-CDM:RegisterSpecStateHandler(ScheduleRefresh)
-CDM:RegisterTalentDataHandler(ScheduleRefresh)
+function API:GetSpecBarSpellCache(specID)
+    local cached = specBarSpellCache[specID]
+    if cached then return cached end
+    local storage = EnsureStorage()
+    return storage and storage.specBarSpellCache[specID]
+end

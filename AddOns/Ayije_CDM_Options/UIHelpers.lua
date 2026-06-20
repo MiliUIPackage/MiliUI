@@ -9,8 +9,8 @@ local LSM = LibStub("LibSharedMedia-3.0")
 ns.ConfigUI = ns.ConfigUI or {}
 local UI = ns.ConfigUI
 
-local GOLD = CDM_C.GOLD or { r = 1, g = 0.82, b = 0, a = 1 }
-local WHITE = CDM_C.WHITE or { r = 1, g = 1, b = 1, a = 1 }
+local GOLD = CDM_C.GOLD
+local WHITE = CDM_C.WHITE
 
 local colorSwatchesByKey = {}
 
@@ -445,10 +445,8 @@ end
 UI.TextColors = UI.TextColors or {
     white = { r = WHITE.r, g = WHITE.g, b = WHITE.b, a = WHITE.a or 1 },
     muted = { r = 0.7, g = 0.7, b = 0.7, a = 1 },
-    dim = { r = 0.6, g = 0.6, b = 0.6, a = 1 },
     subtle = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
     faint = { r = 0.5, g = 0.5, b = 0.5, a = 1 },
-    placeholder = { r = 0.55, g = 0.55, b = 0.55, a = 1 },
     inactive = { r = 0.82, g = 0.82, b = 0.82, a = 1 },
     success = { r = 0.5, g = 1, b = 0.5, a = 1 },
     error = { r = 1, g = 0.3, b = 0.3, a = 1 },
@@ -494,11 +492,11 @@ function UI.CloseAllDropdownMenus()
 end
 
 function UI.AttachCloseMenusOnScroll(scrollFrame)
-    if not scrollFrame or scrollFrame._cdmCloseMenusOnScrollHooked then
+    if not scrollFrame or scrollFrame.cdmCloseMenusOnScrollHooked then
         return
     end
 
-    scrollFrame._cdmCloseMenusOnScrollHooked = true
+    scrollFrame.cdmCloseMenusOnScrollHooked = true
     scrollFrame:HookScript("OnVerticalScroll", function()
         UI.CloseAllDropdownMenus()
     end)

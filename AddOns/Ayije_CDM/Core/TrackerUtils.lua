@@ -17,7 +17,7 @@ local TRACKER_ANCHOR_INVALIDATION_EVENTS = {
     "PLAYER_ROLES_ASSIGNED",
 }
 
-CDM._cdmCooldowns = CDM._cdmCooldowns or setmetatable({}, { __mode = "k" })
+CDM.cdmCooldowns = CDM.cdmCooldowns or setmetatable({}, { __mode = "k" })
 
 local trackerAnchorCache = setmetatable({}, { __mode = "k" })
 local trackerAnchorCacheVersion = 0
@@ -178,8 +178,6 @@ local function ResolvePlayerAnchorFrame()
     if blizzFrame and blizzFrame.IsShown and blizzFrame:IsShown() then
         cachedPlayerFrame = blizzFrame
         cachedPlayerFrameVersion = trackerAnchorCacheVersion
-        -- Settle only if no addon frame candidate exists in the global namespace.
-        -- If one exists but isn't shown yet, don't settle so we re-check next call.
         local addonFramePending = false
         for _, name in ipairs(PLAYER_FRAME_CANDIDATES) do
             if _G[name] then
@@ -220,7 +218,7 @@ function CDM.CreateTrackerIcon(parent, namePrefix, id, opts)
         local sc = CDM.db and CDM.db.swipeColor or CDM_C.SWIPE_COLOR
         cooldown:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
     end
-    CDM._cdmCooldowns[cooldown] = true
+    CDM.cdmCooldowns[cooldown] = true
     frame.Cooldown = cooldown
 
     if cooldown.CooldownFlash then
@@ -255,7 +253,7 @@ end
 
 function CDM.RefreshAllSwipeColors()
     local sc = CDM.db and CDM.db.swipeColor or CDM_C.SWIPE_COLOR
-    for cd in pairs(CDM._cdmCooldowns) do
+    for cd in pairs(CDM.cdmCooldowns) do
         if cd.SetSwipeColor then
             cd:SetSwipeColor(sc.r, sc.g, sc.b, sc.a)
         end
@@ -430,7 +428,6 @@ end
 function CDM.CreateTrackerContainer(name)
     local c = CreateFrame("Frame", name, UIParent)
     c:SetSize(400, 40)
-    c:SetFrameStrata(CDM_C.STRATA_MAIN)
     c:SetFrameLevel(10)
     return c
 end
@@ -490,6 +487,9 @@ function CDM.ReleaseToTrackerPool(pool, frame, extraCleanup)
     frame.cdmTrackerStyledW = nil
     frame.cdmTrackerStyledH = nil
     frame.cdmTrackerLastStyledVName = nil
+    frame.cdmBorderVersion = nil
+    frame.cdmIconBorderVersion = nil
+    frame.cdmBarBorderVersion = nil
     if extraCleanup then
         extraCleanup(frame)
     end

@@ -165,9 +165,12 @@ end
 local function GetKeybindForSlot(slot)
     local command = GetBindingCommandForSlot(slot)
     if not command then return nil end
-    local key = GetBindingKey(command)
-    if not key then return nil end
-    return FormatRawKey(key)
+    local shortest
+    for _, key in ipairs({ GetBindingKey(command) }) do
+        local text = FormatRawKey(key)
+        if not shortest or #text < #shortest then shortest = text end
+    end
+    return shortest
 end
 
 local function GetRawKeyForSlot(slot)
@@ -183,10 +186,14 @@ local function GetAllRawKeysForSpell(baseSpellID)
     if not slots or #slots == 0 then return nil end
     local result
     for _, slot in ipairs(slots) do
-        local raw = GetRawKeyForSlot(slot)
-        if raw then
-            if not result then result = {} end
-            result[#result + 1] = raw
+        local command = GetBindingCommandForSlot(slot)
+        if command then
+            for _, key in ipairs({ GetBindingKey(command) }) do
+                if not key:find("MOUSEWHEEL", 1, true) then
+                    if not result then result = {} end
+                    result[#result + 1] = key
+                end
+            end
         end
     end
     return result
@@ -334,27 +341,18 @@ local function OnEvent(_, event)
 end
 
 local function HideAllKeybindContainers()
-    local GetFrameData = CDM.GetFrameData
-    local viewers = { VIEWERS.ESSENTIAL, VIEWERS.UTILITY }
-    for _, vName in ipairs(viewers) do
-        local viewer = _G[vName]
-        if viewer and viewer.itemFramePool then
-            for frame in viewer.itemFramePool:EnumerateActive() do
-                local frameData = GetFrameData(frame)
-                if frameData and frameData.cdmKeybindContainer then
-                    frameData.cdmKeybindContainer:Hide()
-                end
-            end
+    CDM:ForEachActiveFrame({ VIEWERS.ESSENTIAL, VIEWERS.UTILITY }, function(frame)
+        if frame.cdmKeybindContainer then
+            frame.cdmKeybindContainer:Hide()
         end
-    end
+    end)
     for _, name in ipairs(CDM.CONST.TRACKER_FRAME_ACCESSORS) do
         local accessor = CDM[name]
         local frames = accessor and accessor()
         if frames then
             for _, frame in ipairs(frames) do
-                local frameData = GetFrameData(frame)
-                if frameData and frameData.cdmKeybindContainer then
-                    frameData.cdmKeybindContainer:Hide()
+                if frame.cdmKeybindContainer then
+                    frame.cdmKeybindContainer:Hide()
                 end
             end
         end

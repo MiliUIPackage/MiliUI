@@ -388,13 +388,80 @@ local function CreateRacialsTab(page, tabId)
 
     page.racialsPartyFrameOffsetYSlider = UI.CreateModernSlider(
         scrollChild, L["Party Frame Y Offset"], -100, 100,
-        CDM.db.racialsPartyFrameOffsetY or 19,
+        CDM.db.racialsPartyFrameOffsetY or 20,
         function(v)
             CDM.db.racialsPartyFrameOffsetY = UI.RoundToInt(v)
             API:Refresh("TRACKERS")
         end
     )
     page.racialsPartyFrameOffsetYSlider:SetPoint("TOPLEFT", page.racialsPartyFrameOffsetXSlider, "BOTTOMLEFT", 0, -10)
+
+    local raidSubHeader = UI.CreateSubHeader(scrollChild, L["Raid Frame"], page.racialsPartyFrameOffsetYSlider, -15)
+    page.racialsRaidFrameSubHeader = raidSubHeader
+
+    local lblRaidFrameAnchorPoint = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+    lblRaidFrameAnchorPoint:SetText(L["Anchor Point"])
+    lblRaidFrameAnchorPoint:SetPoint("TOPLEFT", raidSubHeader, "BOTTOMLEFT", 0, -10)
+    page.racialsRaidFrameAnchorPointLabel = lblRaidFrameAnchorPoint
+
+    local ddRaidFrameAnchorPoint = CreateFrame("DropdownButton", nil, scrollChild, "WowStyle1DropdownTemplate")
+    ddRaidFrameAnchorPoint:SetPoint("TOPLEFT", lblRaidFrameAnchorPoint, "BOTTOMLEFT", 0, -10)
+    ddRaidFrameAnchorPoint:SetWidth(180)
+    ddRaidFrameAnchorPoint:SetDefaultText(CDM.db.racialsRaidFrameAnchorPoint or "BOTTOMLEFT")
+    page.racialsRaidFrameAnchorPointDropdown = ddRaidFrameAnchorPoint
+
+    UI.SetupPositionDropdown(
+        ddRaidFrameAnchorPoint,
+        function() return CDM.db.racialsRaidFrameAnchorPoint or "BOTTOMLEFT" end,
+        function(pos)
+            CDM.db.racialsRaidFrameAnchorPoint = pos
+            ddRaidFrameAnchorPoint:SetDefaultText(pos)
+            API:Refresh("TRACKERS")
+        end,
+        {"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT"}
+    )
+
+    local lblRaidFrameRelativePoint = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+    lblRaidFrameRelativePoint:SetText(L["Relative To"])
+    lblRaidFrameRelativePoint:SetPoint("TOPLEFT", ddRaidFrameAnchorPoint, "BOTTOMLEFT", 0, -10)
+    page.racialsRaidFrameRelativePointLabel = lblRaidFrameRelativePoint
+
+    local ddRaidFrameRelativePoint = CreateFrame("DropdownButton", nil, scrollChild, "WowStyle1DropdownTemplate")
+    ddRaidFrameRelativePoint:SetPoint("TOPLEFT", lblRaidFrameRelativePoint, "BOTTOMLEFT", 0, -10)
+    ddRaidFrameRelativePoint:SetWidth(180)
+    ddRaidFrameRelativePoint:SetDefaultText(CDM.db.racialsRaidFrameRelativePoint or "TOPLEFT")
+    page.racialsRaidFrameRelativePointDropdown = ddRaidFrameRelativePoint
+
+    UI.SetupPositionDropdown(
+        ddRaidFrameRelativePoint,
+        function() return CDM.db.racialsRaidFrameRelativePoint or "TOPLEFT" end,
+        function(pos)
+            CDM.db.racialsRaidFrameRelativePoint = pos
+            ddRaidFrameRelativePoint:SetDefaultText(pos)
+            API:Refresh("TRACKERS")
+        end,
+        {"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT"}
+    )
+
+    page.racialsRaidFrameOffsetXSlider = UI.CreateModernSlider(
+        scrollChild, L["Raid Frame X Offset"], -100, 100,
+        CDM.db.racialsRaidFrameOffsetX or 0,
+        function(v)
+            CDM.db.racialsRaidFrameOffsetX = UI.RoundToInt(v)
+            API:Refresh("TRACKERS")
+        end
+    )
+    page.racialsRaidFrameOffsetXSlider:SetPoint("TOPLEFT", ddRaidFrameRelativePoint, "BOTTOMLEFT", 0, -15)
+
+    page.racialsRaidFrameOffsetYSlider = UI.CreateModernSlider(
+        scrollChild, L["Raid Frame Y Offset"], -100, 100,
+        CDM.db.racialsRaidFrameOffsetY or 0,
+        function(v)
+            CDM.db.racialsRaidFrameOffsetY = UI.RoundToInt(v)
+            API:Refresh("TRACKERS")
+        end
+    )
+    page.racialsRaidFrameOffsetYSlider:SetPoint("TOPLEFT", page.racialsRaidFrameOffsetXSlider, "BOTTOMLEFT", 0, -10)
 
     local positionHeader = UI.CreateHeader(scrollChild, L["Position"], page.racialsUsePartyFrameCheckbox, -15)
 
@@ -514,6 +581,14 @@ local function CreateRacialsTab(page, tabId)
         page.racialsPartyFrameOffsetXSlider:SetShown(usePartyFrame)
         page.racialsPartyFrameOffsetYSlider:SetShown(usePartyFrame)
 
+        raidSubHeader:SetShown(usePartyFrame)
+        lblRaidFrameAnchorPoint:SetShown(usePartyFrame)
+        ddRaidFrameAnchorPoint:SetShown(usePartyFrame)
+        lblRaidFrameRelativePoint:SetShown(usePartyFrame)
+        ddRaidFrameRelativePoint:SetShown(usePartyFrame)
+        page.racialsRaidFrameOffsetXSlider:SetShown(usePartyFrame)
+        page.racialsRaidFrameOffsetYSlider:SetShown(usePartyFrame)
+
         positionHeader:SetShown(not usePartyFrame)
         lblAnchor:SetShown(not usePartyFrame)
         ddAnchor:SetShown(not usePartyFrame)
@@ -522,7 +597,7 @@ local function CreateRacialsTab(page, tabId)
 
         cooldownHeader:ClearAllPoints()
         if usePartyFrame then
-            cooldownHeader:SetPoint("TOPLEFT", page.racialsPartyFrameOffsetYSlider, "BOTTOMLEFT", 0, -15)
+            cooldownHeader:SetPoint("TOPLEFT", page.racialsRaidFrameOffsetYSlider, "BOTTOMLEFT", 0, -15)
         else
             cooldownHeader:SetPoint("TOPLEFT", page.racialsOffsetYSlider, "BOTTOMLEFT", 0, -15)
         end

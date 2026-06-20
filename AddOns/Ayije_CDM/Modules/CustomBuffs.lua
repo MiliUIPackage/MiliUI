@@ -62,7 +62,7 @@ local BLOODLUST_DEBUFFS = {
     [390435] = 390386,  -- Exhaustion → Fury of the Aspects
 }
 
-local function RebuildGlowFilters()
+function CDM:RebuildGlowFilters()
     table.wipe(glowSuppressSpells)
     for _, entry in ipairs(TIME_SPIRAL_GLOW_FILTERS) do
         if IsPlayerSpell(entry.talentID) then
@@ -93,28 +93,18 @@ end
 
 CDM.RefreshCachedCustomBuffStyles = RefreshCachedCustomBuffStyles
 
-local function ForEachCooldownFontString(cd, fn)
-    fn(cd.Text or cd.text)
-    for _, region in ipairs({ cd:GetRegions() }) do
-        if region and region.IsObjectType and region:IsObjectType("FontString") then
-            fn(region)
-        end
-    end
-end
-
 local function SetupCustomBuffCooldownTextLayout(frame)
     if not frame or not frame.Cooldown then return end
 
-    ForEachCooldownFontString(frame.Cooldown, function(text)
-        if not text or not text.SetFont then return end
-        text:SetIgnoreParentScale(true)
-        text:ClearAllPoints()
-        text:SetPoint("CENTER", 0, 0)
-        text:SetJustifyH("CENTER")
-        text:SetJustifyV("MIDDLE")
-        text:SetShadowOffset(0, 0)
-        text:SetDrawLayer("OVERLAY", 7)
-    end)
+    local text = frame.Cooldown.Text or frame.Cooldown.text
+    if not text or not text.SetFont then return end
+    text:SetIgnoreParentScale(true)
+    text:ClearAllPoints()
+    text:SetPoint("CENTER", 0, 0)
+    text:SetJustifyH("CENTER")
+    text:SetJustifyV("MIDDLE")
+    text:SetShadowOffset(0, 0)
+    text:SetDrawLayer("OVERLAY", 7)
 end
 
 local function IsGroupedCustomBuff(spellID)
@@ -129,16 +119,15 @@ local function ApplyCustomBuffCooldownTextStyle(frame)
         RefreshCachedCustomBuffStyles()
     end
 
-    ForEachCooldownFontString(frame.Cooldown, function(text)
-        if not text or not text.SetFont then return end
-        local fontColor = cachedCustomBuffStyles.fontColor or CDM_C.WHITE
-        text:SetFont(
-            cachedCustomBuffStyles.fontPath,
-            CDM.Pixel.FontSize(cachedCustomBuffStyles.fontSize),
-            cachedCustomBuffStyles.fontOutline
-        )
-        text:SetTextColor(fontColor.r, fontColor.g, fontColor.b, fontColor.a or 1)
-    end)
+    local text = frame.Cooldown.Text or frame.Cooldown.text
+    if not text or not text.SetFont then return end
+    local fontColor = cachedCustomBuffStyles.fontColor or CDM_C.WHITE
+    text:SetFont(
+        cachedCustomBuffStyles.fontPath,
+        CDM.Pixel.FontSize(cachedCustomBuffStyles.fontSize),
+        cachedCustomBuffStyles.fontOutline
+    )
+    text:SetTextColor(fontColor.r, fontColor.g, fontColor.b, fontColor.a or 1)
 end
 
 local function ReanchorBuffViewer()
@@ -170,7 +159,6 @@ local function CreateCustomBuffIcon(spellID, config)
     local frame = table.remove(CB.framePool)
     if not frame then
         frame = CreateFrame("Frame", nil, UIParent)
-        frame:SetFrameStrata("MEDIUM")
 
         local icon = frame:CreateTexture(nil, "ARTWORK")
         icon:SetAllPoints()
@@ -180,18 +168,15 @@ local function CreateCustomBuffIcon(spellID, config)
         local cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
         cooldown:SetAllPoints()
         cooldown:SetDrawEdge(false)
-        cooldown:SetDrawSwipe(true)
+        cooldown:SetDrawSwipe(not (CDM.db and CDM.db.hideBuffSwipe))
         cooldown:SetSwipeColor(CDM_C.SWIPE_COLOR.r, CDM_C.SWIPE_COLOR.g, CDM_C.SWIPE_COLOR.b, CDM_C.SWIPE_COLOR.a)
         cooldown:SetReverse(true)  -- Fill up as time passes (like a buff)
         frame.Cooldown = cooldown
         SetupCustomBuffCooldownTextLayout(frame)
 
-        local borderFrame = CreateFrame("Frame", nil, frame)
-        borderFrame:SetAllPoints()
         if CDM.BORDER and CDM.BORDER.CreateBorder then
-            CDM.BORDER:CreateBorder(borderFrame)
+            frame.cdmBorder = CDM.BORDER:CreateBorder(frame)
         end
-        CDM.GetFrameData(frame).borderFrame = borderFrame
     end
 
     frame:SetSize(w, h)
@@ -212,10 +197,6 @@ local function CreateCustomBuffIcon(spellID, config)
         frame.Cooldown:SetScript("OnCooldownDone", nil)
     end
 
-    local fd = CDM.GetFrameData(frame)
-    if fd.borderFrame then
-        fd.borderFrame:SetAllPoints()
-    end
     frame:Hide()
 
     CB.iconFrames[spellID] = frame
@@ -231,12 +212,11 @@ local function ActivateCustomBuff(spellID, config, overrideStartTime)
     local startTime = overrideStartTime or GetTime()
     local duration = config.duration
 
-    local fd = CDM.GetFrameData(frame)
-    if not fd.cdmDurationObj then
-        fd.cdmDurationObj = C_DurationUtil.CreateDuration()
+    if not frame.cdmDurationObj then
+        frame.cdmDurationObj = C_DurationUtil.CreateDuration()
     end
-    fd.cdmDurationObj:SetTimeFromStart(startTime, duration)
-    frame.Cooldown:SetCooldownFromDurationObject(fd.cdmDurationObj)
+    frame.cdmDurationObj:SetTimeFromStart(startTime, duration)
+    frame.Cooldown:SetCooldownFromDurationObject(frame.cdmDurationObj)
     frame.Cooldown:SetScript("OnCooldownDone", function()
         DeactivateCustomBuff(spellID)
     end)
@@ -411,6 +391,7 @@ function CDM:RemoveCustomBuffSpell(spellID)
         end
         frame:Hide()
         frame:ClearAllPoints()
+        frame.cdmAnchor = nil
         if frame:GetParent() ~= UIParent then
             frame:SetParent(UIParent)
         end
@@ -596,8 +577,7 @@ function CDM:InitializeCustomBuffs()
     eventFrame:RegisterEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE")
     eventFrame:RegisterEvent("PLAYER_DEAD")
 
-    RebuildGlowFilters()
-    self:RegisterTalentDataHandler(RebuildGlowFilters)
+    self:RebuildGlowFilters()
 end
 
 CDM:RegisterRefreshCallback("customBuffs", function()

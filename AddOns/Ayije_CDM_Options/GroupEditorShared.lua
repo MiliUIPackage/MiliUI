@@ -9,7 +9,6 @@ local L = Runtime.L
 ns.GroupEditorShared = ns.GroupEditorShared or {}
 local Shared = ns.GroupEditorShared
 
-local EMPTY_KEYS = {}
 local CLASS_LIST = {}
 local CLASS_SPECS = {}
 
@@ -117,13 +116,6 @@ function Shared.GetUniqueGroupName(groups, baseName)
     return baseName .. " (" .. time() .. ")"
 end
 
-local function AreEquivalentSpellIDs(leftSpellID, rightSpellID)
-    if not Shared.IsUsableSpellID(leftSpellID) or not Shared.IsUsableSpellID(rightSpellID) then
-        return false
-    end
-    return leftSpellID == rightSpellID
-end
-
 function Shared.MarkEquivalentSpellIDs(targetSet, spellID)
     if type(targetSet) ~= "table" or not Shared.IsUsableSpellID(spellID) then return end
     targetSet[spellID] = true
@@ -141,7 +133,7 @@ function Shared.RemoveSpellFromGroupList(spellList, spellID)
         return nil
     end
     for i = #spellList, 1, -1 do
-        if AreEquivalentSpellIDs(spellList[i], spellID) then
+        if Shared.IsUsableSpellID(spellList[i]) and spellList[i] == spellID then
             return table.remove(spellList, i)
         end
     end
@@ -161,11 +153,6 @@ local function GetOverrideStorageKey(spellID, normalizeToBase)
     if API.GetBuffOverrideStorageKey then
         return API:GetBuffOverrideStorageKey(spellID)
     end
-    if not Shared.IsUsableSpellID(spellID) then
-        return nil
-    end
-    local baseID = normalizeToBase and normalizeToBase(spellID)
-    return Shared.IsUsableSpellID(baseID) and baseID or spellID
 end
 
 function Shared.EnsureResolvedOverrideEntry(overrideMap, spellID, normalizeToBase)
@@ -574,10 +561,10 @@ function Shared.GetConfiguredBorderColor()
     return 0, 0, 0, 1
 end
 
-function Shared.ApplyConfiguredBorderColor(borderFrame)
-    if not (borderFrame and borderFrame.SetBackdropBorderColor) then return end
+function Shared.ApplyConfiguredBorderColor(border)
+    if not (border and border.SetBackdropBorderColor) then return end
     local r, g, b, a = Shared.GetConfiguredBorderColor()
-    borderFrame:SetBackdropBorderColor(r, g, b, a)
+    border:SetBackdropBorderColor(r, g, b, a)
 end
 
 function Shared.RenderSpellPicker(config)
@@ -593,7 +580,7 @@ function Shared.RenderSpellPicker(config)
         msg:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -20)
         msg:SetText(config.cacheMissingText)
         UI.SetTextMuted(msg)
-    elseif #(config.spells or EMPTY_KEYS) == 0 then
+    elseif not config.spells or #config.spells == 0 then
         local msg = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
         msg:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -20)
         msg:SetText(config.emptyText)
@@ -660,6 +647,7 @@ function Shared.CreateSlider(parent, label, minVal, maxVal, currentVal, onChange
 end
 
 function Shared.SaveVisualRefresh(scope)
+    API:MarkSpecDataDirty()
     API:Refresh(scope)
 end
 
@@ -975,7 +963,7 @@ function Shared.CreateGroupEditorPools(parent, config)
         CDM_C.ApplyIconTexCoord(iconTex, CDM_C.GetEffectiveZoomAmount())
 
         if CDM.BORDER and CDM.BORDER.CreateBorder then
-            CDM.BORDER:CreateBorder(iconContainer)
+            iconContainer.cdmBorder = CDM.BORDER:CreateBorder(iconContainer)
             if CDM.BORDER.activeBorders then
                 CDM.BORDER.activeBorders[iconContainer] = nil
             end
@@ -1020,15 +1008,114 @@ function Shared.CreateGroupEditorPools(parent, config)
         widget.iconTex:SetTexture(nil)
         widget.iconTex:SetDesaturated(false)
         widget.iconTex:SetAlpha(1)
-        if widget.iconContainer.border then
-            widget.iconContainer.border:SetAlpha(1)
+        if widget.iconContainer.cdmBorder then
+            widget.iconContainer.cdmBorder:SetAlpha(1)
             if resetBorder then
-                resetBorder(widget.iconContainer.border)
+                resetBorder(widget.iconContainer.cdmBorder)
             end
         end
     end)
 
     return headerPool, groupContainerPool, emptyRowPool, spellRowPool
+end
+
+function Shared.CreateBarRowPool(_, config)
+    local CDM = Runtime
+    local leftWidth = Shared.LEFT_WIDTH
+    local rowHeight = config and config.rowHeight or 36
+    local barHeight = config and config.barHeight or 30
+    local iconSize = config and config.iconSize or 30
+    local arrowSize = config and config.arrowSize or 29
+
+    return Shared.CreateWidgetPool(function(p)
+        local row = CreateFrame("Frame", nil, p)
+        row:SetSize(leftWidth - 20, rowHeight)
+
+        local btnUp = Shared.CreateArrowButton(row, "up", arrowSize)
+        btnUp:SetPoint("RIGHT", row, "LEFT", -2 - arrowSize + 2, 0)
+
+        local btnDown = Shared.CreateArrowButton(row, "down", arrowSize)
+        btnDown:SetPoint("RIGHT", row, "LEFT", -2, 0)
+
+        local iconContainer = CreateFrame("Frame", nil, row)
+        iconContainer:SetSize(iconSize, iconSize)
+        iconContainer:SetPoint("LEFT", 0, 0)
+        local iconTex = iconContainer:CreateTexture(nil, "ARTWORK")
+        iconTex:SetAllPoints()
+        CDM_C.ApplyIconTexCoord(iconTex, CDM_C.GetEffectiveZoomAmount())
+
+        if CDM.BORDER and CDM.BORDER.CreateBorder then
+            iconContainer.cdmBorder = CDM.BORDER:CreateBorder(iconContainer)
+            if CDM.BORDER.activeBorders then
+                CDM.BORDER.activeBorders[iconContainer] = nil
+            end
+        end
+
+        local bar = CreateFrame("StatusBar", nil, row)
+        bar:SetHeight(barHeight)
+        bar:SetMinMaxValues(0, 1)
+        bar:SetValue(1)
+
+        local barBg = bar:CreateTexture(nil, "BACKGROUND")
+        barBg:SetAllPoints()
+
+        local nameText = bar:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
+        nameText:SetPoint("LEFT", bar, "LEFT", 6, 0)
+        nameText:SetPoint("RIGHT", bar, "RIGHT", -6, 0)
+        nameText:SetJustifyH("LEFT")
+
+        if CDM.BORDER and CDM.BORDER.CreateBorder then
+            bar.cdmBorder = CDM.BORDER:CreateBorder(bar)
+            if CDM.BORDER.activeBorders then
+                CDM.BORDER.activeBorders[bar] = nil
+            end
+        end
+
+        local clickBtn = CreateFrame("Button", nil, row)
+        clickBtn:SetAllPoints()
+        clickBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        clickBtn:RegisterForDrag("LeftButton")
+        clickBtn:SetFrameLevel(bar:GetFrameLevel() + 3)
+
+        local removeBtn = CreateFrame("Button", nil, row)
+        removeBtn:SetSize(16, 16)
+        removeBtn:SetPoint("RIGHT", -6, 0)
+        removeBtn:SetFrameLevel(clickBtn:GetFrameLevel() + 1)
+        local removeBtnText = Shared.ApplyRemoveButtonText(removeBtn)
+
+        bar:SetPoint("LEFT", iconContainer, "RIGHT", 4, 0)
+        bar:SetPoint("RIGHT", removeBtn, "LEFT", -4, 0)
+
+        return {
+            root = row,
+            btnUp = btnUp,
+            btnDown = btnDown,
+            iconContainer = iconContainer,
+            iconTex = iconTex,
+            bar = bar,
+            barBg = barBg,
+            nameText = nameText,
+            removeBtn = removeBtn,
+            removeBtnText = removeBtnText,
+            clickBtn = clickBtn,
+        }
+    end, function(widget)
+        widget.btnUp:Hide()
+        widget.btnUp:SetScript("OnClick", nil)
+        widget.btnDown:Hide()
+        widget.btnDown:SetScript("OnClick", nil)
+        widget.removeBtn:Hide()
+        widget.removeBtn:SetScript("OnClick", nil)
+        widget.clickBtn:SetScript("OnClick", nil)
+        widget.clickBtn:SetScript("OnDragStart", nil)
+        widget.clickBtn:SetScript("OnDragStop", nil)
+        widget.nameText:SetText("")
+        widget.iconTex:SetTexture(nil)
+        widget.iconTex:SetDesaturated(false)
+        widget.iconTex:SetAlpha(1)
+        widget.bar:SetAlpha(1)
+        widget.barBg:SetAlpha(1)
+    end)
 end
 
 function Shared.AcquireEmptyRow(pool, parent, text)

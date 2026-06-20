@@ -10,6 +10,7 @@
     <Script file="CustomBuffs.lua"/>
     <Script file="BuffGroupPlaceholders.lua"/>
     <Script file="BuffGroups.lua"/>
+    <Script file="BarGroups.lua"/>
     <Script file="BuffGroupOverlays.lua"/>
     <Script file="CooldownGroups.lua"/>
     <Script file="PlayerCastBar.lua"/>

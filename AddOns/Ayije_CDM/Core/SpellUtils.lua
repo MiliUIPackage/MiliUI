@@ -1,8 +1,6 @@
 local AddonName = "Ayije_CDM"
 local CDM = _G[AddonName]
 
-local GetFrameData = CDM.GetFrameData
-
 local COLOR_REGISTRY = {}
 
 local lastRefreshSpecID = nil
@@ -14,6 +12,14 @@ local ipairs = ipairs
 local function IsUsableID(id)
     return IsSafeNumber(id) and id > 0
 end
+
+local CAT_ESSENTIAL = Enum and Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.Essential
+local CAT_UTILITY   = Enum and Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.Utility
+local CAT_BUFF      = Enum and Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.TrackedBuff
+local CAT_BAR       = Enum and Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.TrackedBar
+
+local SNAPSHOT_CATEGORIES = { [CAT_ESSENTIAL] = true, [CAT_UTILITY] = true, [CAT_BUFF] = true, [CAT_BAR] = true }
+local GROUP_MATCH_OPTS = { validator = IsUsableID }
 
 local function AddCandidate(list, seen, id)
     if not IsUsableID(id) then return end
@@ -63,6 +69,17 @@ function CDM:GetSpellIDCandidates(frame)
     return spellCandidateList
 end
 
+function CDM:ForEachActiveFrame(viewers, fn)
+    for _, vName in ipairs(viewers) do
+        local v = _G[vName]
+        if v and v.itemFramePool then
+            for frame in v.itemFramePool:EnumerateActive() do
+                fn(frame, vName)
+            end
+        end
+    end
+end
+
 local buffGlowCandidateList = {}
 local buffGlowCandidateSeen = {}
 
@@ -81,12 +98,10 @@ function CDM:ResolveBuffGlowState(frame, specID, preferCategory)
         return false, nil, nil
     end
 
-    local frameData = GetFrameData(frame)
-
     table_wipe(buffGlowCandidateList)
     table_wipe(buffGlowCandidateSeen)
 
-    local groupedID = frameData.buffCategorySpellID
+    local groupedID = frame.cdmBuffCategorySpellID
     if preferCategory then
         AddBuffGlowCandidate(groupedID)
     end
@@ -110,12 +125,12 @@ function CDM:ResolveBuffGlowState(frame, specID, preferCategory)
     for _, id in ipairs(buffGlowCandidateList) do
         if self:GetSpellGlowEnabled(specID, id) then
             local glowColor = self:GetSpellGlowColor(specID, id)
-            frameData.cdmBuffGlowSourceID = id
+            frame.cdmBuffGlowSourceID = id
             return true, glowColor, id
         end
     end
 
-    frameData.cdmBuffGlowSourceID = nil
+    frame.cdmBuffGlowSourceID = nil
     return false, nil, nil
 end
 
@@ -124,25 +139,13 @@ CDM.SpellSets = {
     hasBuffGlows = false,
 }
 
-local overrideCache = {}
-
 local function GetOverrideIfDifferent(spellID)
     if not IsUsableID(spellID) or not C_Spell.GetOverrideSpell then return nil end
-    local cached = overrideCache[spellID]
-    if cached ~= nil then
-        return cached ~= false and cached or nil
-    end
     local id = C_Spell.GetOverrideSpell(spellID)
     if IsUsableID(id) and id ~= spellID then
-        overrideCache[spellID] = id
         return id
     end
-    overrideCache[spellID] = false
     return nil
-end
-
-local function ClearOverrideCache()
-    table_wipe(overrideCache)
 end
 
 local function GetEffectiveSpellID(spellID)
@@ -152,7 +155,6 @@ end
 
 CDM.GetOverrideIfDifferent = GetOverrideIfDifferent
 CDM.GetEffectiveSpellID = GetEffectiveSpellID
-CDM.WipeEffectiveIDCache = ClearOverrideCache
 
 local normalizeBaseCache = {}
 local normalizeBaseCacheSize = 0
@@ -172,7 +174,6 @@ end
 function CDM:ClearNormalizationCache()
     table_wipe(normalizeBaseCache)
     normalizeBaseCacheSize = 0
-    ClearOverrideCache()
     self.spellCacheGeneration = (self.spellCacheGeneration or 0) + 1
 end
 
@@ -238,6 +239,51 @@ function CDM:ForEachSpellMatchCandidate(spellID, fn)
     for _, key in ipairs(list) do
         if fn(key) then return end
     end
+end
+
+local function MatchCooldownInfo(info, spellToTarget, opts)
+    if not info or not spellToTarget or not opts or not opts.validator then return nil end
+    local validator = opts.validator
+    local match
+
+    if validator(info.overrideTooltipSpellID) then
+        match = spellToTarget[info.overrideTooltipSpellID]
+    end
+
+    local hasDistinctOverride = false
+    if not match then
+        hasDistinctOverride = validator(info.overrideSpellID) and info.overrideSpellID ~= info.spellID
+        if hasDistinctOverride then
+            match = spellToTarget[info.overrideSpellID]
+        end
+        if not match then
+            local baseEntry = spellToTarget[info.spellID]
+            if baseEntry then
+                local suppress = false
+                if hasDistinctOverride and baseEntry.dotDefaultOnly and opts.isOverrideDot and not opts.isOverrideDot(info) then
+                    suppress = true
+                end
+                if not suppress then
+                    match = baseEntry
+                end
+            end
+        end
+    end
+
+    if not match and info.linkedSpellIDs then
+        for _, lid in ipairs(info.linkedSpellIDs) do
+            if validator(lid) then
+                match = spellToTarget[lid]
+                if match then break end
+            end
+        end
+    end
+
+    if not match and opts.fallback then
+        match = opts.fallback(info, spellToTarget)
+    end
+
+    return match
 end
 
 function CDM:GetPreferredBuffGroupSpellID(frame)
@@ -329,6 +375,8 @@ function CDM:ResolveBuffOverrideEntry(overrideMap, spellID)
     return nil
 end
 
+CDM.ResolveBarOverrideEntry = CDM.ResolveBuffOverrideEntry
+
 function CDM:GetMergedBuffOverrideEntry(overrideMap, spellID)
     return (CollectMergedBuffOverrideEntry(overrideMap, spellID, false))
 end
@@ -390,10 +438,14 @@ local function CheckIDAgainstGroupSet(id, groupSet)
 end
 
 local function CheckIDAgainstRegistry(id)
-    local sets = CDM.BuffGroupSets
-    local groupSet = sets and sets.grouped or EMPTY_SET
-    local matchID, groupIdx = CheckIDAgainstGroupSet(id, groupSet)
+    local buffSets = CDM.BuffGroupSets
+    local matchID, groupIdx = CheckIDAgainstGroupSet(id, buffSets and buffSets.grouped or EMPTY_SET)
     if matchID then return "buffgroup", matchID, groupIdx end
+
+    local barSets = CDM.BarGroupSets
+    matchID, groupIdx = CheckIDAgainstGroupSet(id, barSets and barSets.grouped or EMPTY_SET)
+    if matchID then return "bargroup", matchID, groupIdx end
+
     return nil, nil
 end
 
@@ -430,16 +482,6 @@ end
 
 CDM.GetBaseSpellID = GetBaseSpellID
 
-function CDM:ResetFrameSpellCache(frame)
-    if not frame then return end
-    local frameData = GetFrameData(frame)
-    frameData.buffCategorySpellID = nil
-    frameData.cdGroupSpellID = nil
-    frameData.cdmReadyGlowActive = nil
-    frameData.cdmBuffGlowSourceID = nil
-end
-
-
 local frameCategoryCacheGeneration = 0
 
 function CDM:InvalidateFrameCategoryCache()
@@ -449,16 +491,15 @@ end
 local function CheckCooldownGroupMatch(frame, cdidGroupSet, spellGroupSet, cacheKey)
     if not frame then return nil, nil end
 
-    local frameData = GetFrameData(frame)
-
-    local gen = frameData.cdmCategoryCacheGen
+    local gen = frame.cdmCategoryCacheGen
     if gen ~= frameCategoryCacheGeneration then
-        frameData.buffCategorySpellID = nil
-        frameData.cdGroupSpellID = nil
-        frameData.cdmCategoryCacheGen = frameCategoryCacheGeneration
+        frame.cdmBuffCategorySpellID = nil
+        frame.cdmBarGroupSpellID = nil
+        frame.cdmCdGroupSpellID = nil
+        frame.cdmCategoryCacheGen = frameCategoryCacheGeneration
     end
 
-    local cached = frameData[cacheKey]
+    local cached = frame[cacheKey]
     if cached and spellGroupSet[cached] then
         return cached, spellGroupSet[cached]
     end
@@ -467,12 +508,12 @@ local function CheckCooldownGroupMatch(frame, cdidGroupSet, spellGroupSet, cache
     if cooldownID then
         local entry = cdidGroupSet[cooldownID]
         if entry then
-            frameData[cacheKey] = entry.storedID
+            frame[cacheKey] = entry.storedID
             return entry.storedID, entry.groupIdx
         end
     end
 
-    frameData[cacheKey] = nil
+    frame[cacheKey] = nil
     return nil, nil
 end
 
@@ -480,15 +521,30 @@ function CDM.CheckCdGroupMatch(frame)
     local sets = CDM.CooldownGroupSets
     local cdidSet = sets and sets.cooldownIDGrouped or EMPTY_SET
     local spellSet = sets and sets.grouped or EMPTY_SET
-    local _, groupIdx = CheckCooldownGroupMatch(frame, cdidSet, spellSet, "cdGroupSpellID")
+    local _, groupIdx = CheckCooldownGroupMatch(frame, cdidSet, spellSet, "cdmCdGroupSpellID")
     return groupIdx
+end
+
+local function CheckBarRegistryMatch(frame)
+    local sets = CDM.BarGroupSets
+    local cdidSet = sets and sets.cooldownIDGrouped or EMPTY_SET
+    local spellSet = sets and sets.grouped or EMPTY_SET
+    local matchID, groupIdx = CheckCooldownGroupMatch(frame, cdidSet, spellSet, "cdmBarGroupSpellID")
+    if matchID then return "bargroup", matchID, groupIdx end
+    return nil, nil
+end
+
+CDM.CheckBarRegistryMatch = CheckBarRegistryMatch
+
+function CDM:GetBarRegistryMatch(frame)
+    return CheckBarRegistryMatch(frame)
 end
 
 local function CheckBuffRegistryMatch(frame)
     local sets = CDM.BuffGroupSets
     local cdidSet = sets and sets.cooldownIDGrouped or EMPTY_SET
     local spellSet = sets and sets.grouped or EMPTY_SET
-    local matchID, groupIdx = CheckCooldownGroupMatch(frame, cdidSet, spellSet, "buffCategorySpellID")
+    local matchID, groupIdx = CheckCooldownGroupMatch(frame, cdidSet, spellSet, "cdmBuffCategorySpellID")
     if matchID then return "buffgroup", matchID, groupIdx end
     return nil, nil
 end
@@ -518,6 +574,10 @@ function CDM:RefreshSpecData()
 
     if specID == lastRefreshSpecID then return end
 
+    if not self:IsCooldownViewerDataReady() then
+        return
+    end
+
     table_wipe(COLOR_REGISTRY)
     self.SpellSets.hasBuffGlows = false
 
@@ -525,30 +585,121 @@ function CDM:RefreshSpecData()
     if self.ClearStableBaseCache then self:ClearStableBaseCache() end
     self:InvalidateFrameCategoryCache()
 
-    local rawColors = self.db and self.db.spellRegistry
-        and self.db.spellRegistry[specID]
-        and self.db.spellRegistry[specID].colors
+    local rawSpellRegistry = self.db and self.db.spellRegistry
+    local rawSpecRegistry = rawSpellRegistry and rawSpellRegistry[specID]
+
+    local rawColors = rawSpecRegistry and rawSpecRegistry.colors
     if rawColors then
         for id, color in pairs(rawColors) do
             COLOR_REGISTRY[id] = color
         end
     end
 
-    local rawSpellRegistry = self.db and self.db.spellRegistry
-    local rawSpecRegistry = rawSpellRegistry and rawSpellRegistry[specID]
     self.SpellSets.hasBuffGlows = type(rawSpecRegistry and rawSpecRegistry.glowEnabled) == "table"
         and next(rawSpecRegistry.glowEnabled) ~= nil or false
 
-    if self.RefreshBuffGroupData then
-        self:RefreshBuffGroupData()
-    end
-    if self.InvalidateStaticGroupsCache then
-        self:InvalidateStaticGroupsCache()
+    local previousCdMatches
+    if self.CooldownGroupSets and self.CooldownGroupSets.cooldownIDGrouped then
+        previousCdMatches = {}
+        for cdID, entry in pairs(self.CooldownGroupSets.cooldownIDGrouped) do
+            previousCdMatches[cdID] = entry
+        end
     end
 
-    if self.RefreshCooldownGroupData then
-        self:RefreshCooldownGroupData()
+    local buffSpellToGroup = self._BuildBuffGroupSpellMap and self:_BuildBuffGroupSpellMap() or {}
+    local barSpellToGroup  = self._BuildBarGroupSpellMap and self:_BuildBarGroupSpellMap() or {}
+    local cdSpellToGroup   = self._BuildCdGroupSpellMap and self:_BuildCdGroupSpellMap() or {}
+
+    if self._auraOverlayEnabled then table_wipe(self._auraOverlayEnabled) end
+    if self._readyGlowCooldownIDs then table_wipe(self._readyGlowCooldownIDs) end
+    local auraSpellToEntry = self._BuildAuraOverlaySpellMap and self:_BuildAuraOverlaySpellMap(specID) or {}
+
+    local groupOpts = GROUP_MATCH_OPTS
+    local auraOpts = self.AURA_OVERLAY_MATCH_OPTS
+    local snapshotCats = SNAPSHOT_CATEGORIES
+    local buffSets = self.BuffGroupSets
+    local barSets = self.BarGroupSets
+    local cdSets = self.CooldownGroupSets
+    local auraMap = self._auraOverlayEnabled
+    local readyGlowSet = self._readyGlowCooldownIDs
+
+    local categories = self.ALL_VIEWER_CATEGORIES
+    local evc = Enum and Enum.CooldownViewerCategory
+    local catEss = evc and evc.Essential
+    local catUti = evc and evc.Utility
+
+    local snapshotLists = {}
+
+    if groupOpts and categories and C_CooldownViewer and C_CooldownViewer.GetCooldownViewerCategorySet
+        and C_CooldownViewer.GetCooldownViewerCooldownInfo then
+        for _, cat in ipairs(categories) do
+            local ids = C_CooldownViewer.GetCooldownViewerCategorySet(cat, true)
+            if ids then
+                local needsSnapshot = snapshotCats[cat]
+                local snapList
+                if needsSnapshot then
+                    snapList = {}
+                    snapshotLists[cat] = snapList
+                end
+                local isAuraCat = auraOpts and (cat == catEss or cat == catUti)
+                for _, cdID in ipairs(ids) do
+                    local info = C_CooldownViewer.GetCooldownViewerCooldownInfo(cdID)
+                    if info then
+                        if buffSets then
+                            local buffMatch = MatchCooldownInfo(info, buffSpellToGroup, groupOpts)
+                            if buffMatch then buffSets.cooldownIDGrouped[cdID] = buffMatch end
+                        end
+
+                        if barSets then
+                            local barMatch = MatchCooldownInfo(info, barSpellToGroup, groupOpts)
+                            if barMatch then barSets.cooldownIDGrouped[cdID] = barMatch end
+                        end
+
+                        if cdSets then
+                            local cdMatch = MatchCooldownInfo(info, cdSpellToGroup, groupOpts)
+                            if cdMatch then cdSets.cooldownIDGrouped[cdID] = cdMatch end
+                        end
+
+                        if isAuraCat and auraMap then
+                            local auraMatch = MatchCooldownInfo(info, auraSpellToEntry, auraOpts)
+                            if auraMatch then
+                                auraMap[cdID] = auraMatch
+                                if auraMatch.readyGlowEnabled and readyGlowSet then
+                                    readyGlowSet[cdID] = true
+                                end
+                            end
+                        end
+
+                        if snapList and self._BuildSnapshotEntry then
+                            snapList[#snapList + 1] = self:_BuildSnapshotEntry(info, cdID)
+                        end
+                    end
+                end
+            end
+        end
     end
+
+    if previousCdMatches and cdSets then
+        for cdID, entry in pairs(previousCdMatches) do
+            local current = cdSpellToGroup[entry.storedID]
+            if not cdSets.cooldownIDGrouped[cdID] and current then
+                cdSets.cooldownIDGrouped[cdID] = current
+            end
+        end
+    end
+
+    if self.InvalidateStaticGroupsCache then self:InvalidateStaticGroupsCache() end
+    if self._PostAuraOverlayBuild then self:_PostAuraOverlayBuild() end
+    if self._PersistSpecSnapshots then self:_PersistSpecSnapshots(specID, snapshotLists) end
 
     lastRefreshSpecID = specID
+end
+
+function CDM:InstallSpellCacheAcquireResetHook(v)
+    hooksecurefunc(v, "OnAcquireItemFrame", function(_, itemFrame)
+        itemFrame.cdmBuffCategorySpellID = nil
+        itemFrame.cdmBarGroupSpellID = nil
+        itemFrame.cdmCdGroupSpellID = nil
+        itemFrame.cdmCategoryCacheGen = nil
+    end)
 end

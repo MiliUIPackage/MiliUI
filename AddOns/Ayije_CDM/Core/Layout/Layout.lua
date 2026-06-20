@@ -3,11 +3,7 @@ local CDM = _G[AddonName]
 local L = CDM.L
 local CDM_C = CDM.CONST
 
-local GetFrameData = CDM.GetFrameData
-local IsSafeNumber = CDM.IsSafeNumber
-local GetBaseSpellID = CDM.GetBaseSpellID
-local CheckBuffRegistryMatch = CDM.CheckBuffRegistryMatch
-local ResolveBaseSpellID = GetBaseSpellID
+local ResolveBaseSpellID = CDM.GetBaseSpellID
 
 local GetConfigValue = CDM_C.GetConfigValue
 
@@ -42,8 +38,7 @@ local function RowWidth(count, itemW, gap)
 end
 
 local function CenteredRowLeft(containerWidth, rowWidth)
-    local result = Pixel.HalfFloor(containerWidth or rowWidth or 0) - Pixel.HalfFloor(rowWidth or 0)
-    return result >= 0 and result or 0
+    return Pixel.HalfFloor(containerWidth or rowWidth or 0) - Pixel.HalfFloor(rowWidth or 0)
 end
 
 local function CenteredRowXForCol(col, itemW, gap, containerWidth, rowWidth)
@@ -62,19 +57,18 @@ local function GetLayoutConfig()
     local df = CDM.defaults or {}
     local utilityWrap = GetConfigValue("utilityWrap", df.utilityWrap)
     local utilityUnlock = utilityWrap and GetConfigValue("utilityUnlock", df.utilityUnlock)
-    local maxRowUtil = utilityWrap and GetConfigValue("maxRowUtil", df.maxRowUtil) or 0
-    local utilVertical = utilityUnlock and GetConfigValue("utilityVertical", df.utilityVertical) or false
-    local utilityXOffset = utilityUnlock and GetConfigValue("utilityXOffset", df.utilityXOffset) or 0
-    return GetConfigValue("sizeEssRow1", df.sizeEssRow1) or DEFAULT_SIZE_ESS,
-        GetConfigValue("sizeEssRow2", df.sizeEssRow2) or DEFAULT_SIZE_ESS,
-        GetConfigValue("sizeUtility", df.sizeUtility) or DEFAULT_SIZE_ESS,
-        GetConfigValue("sizeBuff", df.sizeBuff) or DEFAULT_SIZE_BUFF,
-        GetConfigValue("spacing", df.spacing) or 1,
-        GetConfigValue("maxRowEss", df.maxRowEss) or 9,
-        GetConfigValue("utilityYOffset", df.utilityYOffset) or 0,
-        maxRowUtil,
-        utilVertical,
-        utilityXOffset
+    return {
+        sizeEssRow1     = GetConfigValue("sizeEssRow1", df.sizeEssRow1) or DEFAULT_SIZE_ESS,
+        sizeEssRow2     = GetConfigValue("sizeEssRow2", df.sizeEssRow2) or DEFAULT_SIZE_ESS,
+        sizeUtility     = GetConfigValue("sizeUtility", df.sizeUtility) or DEFAULT_SIZE_ESS,
+        sizeBuff        = GetConfigValue("sizeBuff", df.sizeBuff) or DEFAULT_SIZE_BUFF,
+        spacing         = GetConfigValue("spacing", df.spacing) or 1,
+        maxRowEss       = GetConfigValue("maxRowEss", df.maxRowEss) or 9,
+        utilityYOffset  = GetConfigValue("utilityYOffset", df.utilityYOffset) or 0,
+        maxRowUtil      = utilityWrap and GetConfigValue("maxRowUtil", df.maxRowUtil) or 0,
+        utilityVertical = utilityUnlock and GetConfigValue("utilityVertical", df.utilityVertical) or false,
+        utilityXOffset  = utilityUnlock and GetConfigValue("utilityXOffset", df.utilityXOffset) or 0,
+    }
 end
 
 local function ComputeGridPosition(index, total, maxPerRow, size, spacing)
@@ -212,28 +206,12 @@ local function ComputeUtilityContainerSize(total, sizeUtility, spacing, maxRowUt
 end
 
 local function ToSortNumber(value, fallback)
-    return IsSafeNumber(value) and value or fallback
+    return value or fallback
 end
 
 local function CompareByLayoutIndex(a, b)
     return ToSortNumber(a.layoutIndex, 0) < ToSortNumber(b.layoutIndex, 0)
 end
-
-local function CountPopulatedFrames(viewer)
-    if not viewer or not viewer.itemFramePool then return 0, 0 end
-    local total, populated = 0, 0
-    for frame in viewer.itemFramePool:EnumerateActive() do
-        if frame:IsShown() then
-            total = total + 1
-            if frame.cooldownID then
-                populated = populated + 1
-            end
-        end
-    end
-    return populated, total
-end
-
-CDM.CountPopulatedFrames = CountPopulatedFrames
 
 local SELF_POINT_CACHE = {}
 do
@@ -284,17 +262,21 @@ local function DeriveSelfPoint(anchorPoint, grow)
     return (byAnchor and byAnchor[grow]) or anchorPoint or "CENTER"
 end
 
-local function SetCdmAnchor(fd, point, relativeTo, relativePoint, x, y)
-    local a = fd.cdmAnchor
+local function SetCdmAnchor(frame, point, relativeTo, relativePoint, x, y)
+    local sx = Snap(x or 0)
+    local sy = Snap(y or 0)
+    local a = frame.cdmAnchor
+    if a and a[1] == point and a[2] == relativeTo and a[3] == relativePoint
+       and a[4] == sx and a[5] == sy then
+        return false
+    end
     if not a then
         a = {}
-        fd.cdmAnchor = a
+        frame.cdmAnchor = a
     end
-    a[1] = point
-    a[2] = relativeTo
-    a[3] = relativePoint
-    a[4] = Snap(x or 0)
-    a[5] = Snap(y or 0)
+    a[1], a[2], a[3] = point, relativeTo, relativePoint
+    a[4], a[5] = sx, sy
+    return true
 end
 
 local function PositionFrameAtSlot(frame, container, idx, iconW, iconH, spacingW, grow, layoutCount, anchorPoint, selfPoint)
@@ -318,19 +300,19 @@ local function PositionFrameAtSlot(frame, container, idx, iconW, iconH, spacingW
     end
     local sp = selfPoint or "CENTER"
     local ap = anchorPoint or "CENTER"
-    local fd = GetFrameData(frame)
-    SetCdmAnchor(fd, sp, container, ap, x, y)
+    if not SetCdmAnchor(frame, sp, container, ap, x, y) then return end
+    frame:ClearAllPoints()
     Pixel.SetPoint(frame, sp, container, ap, x or 0, y or 0)
 end
 
 local function PlaceFrame(frame, container, selfPoint, anchorPoint, x, y)
-    local fd = GetFrameData(frame)
-    SetCdmAnchor(fd, selfPoint, container, anchorPoint, x, y)
+    if not SetCdmAnchor(frame, selfPoint, container, anchorPoint, x, y) then return end
+    frame:ClearAllPoints()
     Pixel.SetPoint(frame, selfPoint, container, anchorPoint, x, y)
 end
 
 local function OverrideCooldownText(t, pixelSize, color)
-    if not t or not t.SetFont then return end
+    if not t then return end
     if pixelSize then
         local fp, _, ff = t:GetFont()
         if fp then t:SetFont(fp, pixelSize, ff) end
@@ -340,41 +322,16 @@ local function OverrideCooldownText(t, pixelSize, color)
     end
 end
 
-local scratchCdFontRegions = {}
-
-local function CollectFontRegions(target, ...)
-    for i = 1, select("#", ...) do
-        local region = select(i, ...)
-        if region and region.IsObjectType and region:IsObjectType("FontString") then
-            target[#target + 1] = region
-        end
-    end
-    return target
-end
-
-local function GetCooldownFontRegions(cd)
-    table_wipe(scratchCdFontRegions)
-    return CollectFontRegions(scratchCdFontRegions, cd:GetRegions())
-end
-
-local function OverrideCooldownRegions(cd, pixelSize, color)
-    local regions = GetCooldownFontRegions(cd)
-    for _, region in ipairs(regions) do
-        OverrideCooldownText(region, pixelSize, color)
-    end
-end
-
 local nextStableSortID = 0
 
 local function GetStableFrameSortID(frame)
-    local frameData = GetFrameData(frame)
-    local sortID = frameData.cdmStableSortID
+    local sortID = frame.cdmStableSortID
     if sortID then
         return sortID
     end
 
     nextStableSortID = nextStableSortID + 1
-    frameData.cdmStableSortID = nextStableSortID
+    frame.cdmStableSortID = nextStableSortID
     return nextStableSortID
 end
 
@@ -423,18 +380,13 @@ local function SetUtilityAnchor(utilContainer, essContainer, utilHalfW, utilityX
     Pixel.SetPoint(utilContainer, "TOPLEFT", essContainer, "BOTTOMLEFT", essHalfW - utilHalfW + utilityXOffset, -spacing + utilityYOffset)
 end
 
-local function AnchorMainLayoutContainer(frame, isBuffContainer, relativePoint, x, y, yOffset)
-    if not frame then
-        return
-    end
-
-    if isBuffContainer then
-        Pixel.SetPoint(frame, "BOTTOM", UIParent, relativePoint, x, (y or 0) + (yOffset or 0))
-        return
-    end
-
+local function AnchorEssentialContainer(frame, relativePoint, x, y)
     local halfW = HalfFloor(frame:GetWidth() or 0)
     Pixel.SetPoint(frame, "TOPLEFT", UIParent, relativePoint, x - halfW, y)
+end
+
+local function AnchorBuffContainer(frame, relativePoint, x, y)
+    Pixel.SetPoint(frame, "BOTTOM", UIParent, relativePoint, x, y or 0)
 end
 
 local function EnsureDBSubTable(parent, key)
@@ -450,7 +402,7 @@ local function SetRegionBlendMode(blendMode, ...)
     local n = select("#", ...)
     for i = 1, n do
         local region = select(i, ...)
-        if region and region.IsObjectType and region:IsObjectType("Texture") then
+        if region and region:IsObjectType("Texture") then
             region:SetBlendMode(blendMode)
         end
     end
@@ -465,20 +417,16 @@ function CDM:UpdateUtilityContainerPosition()
 
     local essContainer = self.anchorContainers[VIEWERS.ESSENTIAL]
     local utilContainer = self.anchorContainers[VIEWERS.UTILITY]
-    local _, _, sizeUtility, _, spacing, _, utilityYOffset, maxRowUtil, utilityVertical, utilityXOffset = GetLayoutConfig()
-
     if not essContainer or not utilContainer then return end
 
+    local cfg = GetLayoutConfig()
     local utilityCount = GetUtilityVisibleCount()
-
     local containerWidth, containerHeight = ComputeUtilityContainerSize(
-        utilityCount > 0 and utilityCount or 0, sizeUtility, spacing, maxRowUtil, utilityVertical
+        utilityCount, cfg.sizeUtility, cfg.spacing, cfg.maxRowUtil, cfg.utilityVertical
     )
     utilContainer:SetSize(Snap(containerWidth), Snap(containerHeight))
 
-    local utilHalfW = HalfFloor(Snap(containerWidth))
-    utilContainer:ClearAllPoints()
-    SetUtilityAnchor(utilContainer, essContainer, utilHalfW, utilityXOffset, utilityYOffset, spacing)
+    self:ReanchorContainer(VIEWERS.UTILITY)
 end
 
 local FALLBACK_POSITION = {
@@ -493,22 +441,30 @@ local FALLBACK_BUFF_POSITION = {
     y = -149,
 }
 
+local FALLBACK_BUFF_BAR_POSITION = {
+    point = "CENTER",
+    x = 0,
+    y = -324,
+}
+
 local function GetPositionSettings(viewerName, layoutName)
+    local defaultY = -201
+    local fallbackPosition = FALLBACK_POSITION
+    if viewerName == VIEWERS.BUFF then
+        defaultY = -149
+        fallbackPosition = FALLBACK_BUFF_POSITION
+    elseif viewerName == VIEWERS.BUFF_BAR then
+        defaultY = -324
+        fallbackPosition = FALLBACK_BUFF_BAR_POSITION
+    end
+
     local db = CDM.db
     if not db then
-        local fallbackPosition = FALLBACK_POSITION
-        if viewerName == VIEWERS.BUFF then
-            fallbackPosition = FALLBACK_BUFF_POSITION
-        end
         return fallbackPosition
     end
 
     local editModePositions = EnsureDBSubTable(db, "editModePositions")
     local viewerTable = EnsureDBSubTable(editModePositions, viewerName)
-    local defaultY = -201
-    if viewerName == VIEWERS.BUFF then
-        defaultY = -149
-    end
 
     if not viewerTable[layoutName] then
         viewerTable[layoutName] = {
@@ -521,30 +477,6 @@ local function GetPositionSettings(viewerName, layoutName)
     return viewerTable[layoutName]
 end
 
-local FALLBACK_BUFF_BAR_POSITION = {
-    point = "CENTER",
-    x = 0,
-    y = -324
-}
-
-local function GetBuffBarPositionSettings()
-    local db = CDM.db
-    if not db then
-        return FALLBACK_BUFF_BAR_POSITION
-    end
-
-    local editModePositions = EnsureDBSubTable(db, "editModePositions")
-    local viewerTable = EnsureDBSubTable(editModePositions, VIEWERS.BUFF_BAR)
-    if not viewerTable.Default then
-        viewerTable.Default = {
-            point = "CENTER",
-            x = 0,
-            y = -324
-        }
-    end
-    return viewerTable.Default
-end
-
 function CDM:UpdateBuffContainerPosition()
     local buffContainer = self.anchorContainers[VIEWERS.BUFF]
     if not buffContainer then return end
@@ -553,7 +485,7 @@ function CDM:UpdateBuffContainerPosition()
     if db and db.moveBuffsDown and db.resourcesEnabled ~= false then
         local fallback = db.moveBuffsDownFallback or "lastResource"
         local allowHidden = fallback == "lastResource"
-        local topBar = CDM.ResolveResourcesAnchor and CDM.ResolveResourcesAnchor(allowHidden)
+        local topBar = CDM.ResolveResourcesAnchor(allowHidden)
         local offsetY = tonumber(db.moveBuffsDownOffset) or 0
         if topBar then
             buffContainer:ClearAllPoints()
@@ -573,7 +505,7 @@ function CDM:UpdateBuffContainerPosition()
     local savedPos = GetPositionSettings(VIEWERS.BUFF, "Default")
 
     buffContainer:ClearAllPoints()
-    AnchorMainLayoutContainer(buffContainer, true, savedPos.point, savedPos.x, savedPos.y, 0)
+    AnchorBuffContainer(buffContainer, savedPos.point, savedPos.x, savedPos.y)
 end
 
 function CDM:ReanchorContainer(vName)
@@ -584,14 +516,14 @@ function CDM:ReanchorContainer(vName)
     if vName == VIEWERS.ESSENTIAL then
         local savedPos = GetPositionSettings(VIEWERS.ESSENTIAL, "Default")
         container:ClearAllPoints()
-        AnchorMainLayoutContainer(container, false, savedPos.point, savedPos.x, savedPos.y)
+        AnchorEssentialContainer(container, savedPos.point, savedPos.x, savedPos.y)
     elseif vName == VIEWERS.UTILITY then
         local essContainer = self.anchorContainers[VIEWERS.ESSENTIAL]
         if not essContainer then return end
-        local _, _, _, _, spacing, _, utilityYOffset, _, _, utilityXOffset = GetLayoutConfig()
+        local cfg = GetLayoutConfig()
         local utilHalfW = HalfFloor(container:GetWidth())
         container:ClearAllPoints()
-        SetUtilityAnchor(container, essContainer, utilHalfW, utilityXOffset, utilityYOffset, spacing)
+        SetUtilityAnchor(container, essContainer, utilHalfW, cfg.utilityXOffset, cfg.utilityYOffset, cfg.spacing)
     end
 end
 
@@ -605,228 +537,96 @@ function CDM:UpdateEssentialContainerPosition()
     self:UpdateUtilityContainerPosition()
 end
 
-local function GetFramePointCoords(frame, point)
-    if not frame or not point or not frame.GetLeft then return nil, nil end
-    local left, right, top, bottom = frame:GetLeft(), frame:GetRight(), frame:GetTop(), frame:GetBottom()
-    local centerX, centerY = frame:GetCenter()
-    if not (left and right and top and bottom and centerX and centerY) then return nil, nil end
-
-    if point == "CENTER" then return centerX, centerY
-    elseif point == "TOP" then return centerX, top
-    elseif point == "BOTTOM" then return centerX, bottom
-    elseif point == "LEFT" then return left, centerY
-    elseif point == "RIGHT" then return right, centerY
-    elseif point == "TOPLEFT" then return left, top
-    elseif point == "TOPRIGHT" then return right, top
-    elseif point == "BOTTOMLEFT" then return left, bottom
-    elseif point == "BOTTOMRIGHT" then return right, bottom
-    end
-    return centerX, centerY
-end
-
-local function ResolveDraggedCoords(frame, anchorPoint, relativePoint, x, y)
-    local anchorX, anchorY = GetFramePointCoords(frame, anchorPoint)
-    local relX, relY = GetFramePointCoords(UIParent, relativePoint)
-    if anchorX and relX then
-        return anchorX - relX, anchorY - relY
-    end
-    return x, y
-end
-
-local function SetupDraggableContainer(container, lockKey, overlayOpts)
-    overlayOpts = overlayOpts or {}
-
-    local function IsLocked()
-        return CDM_C.GetConfigValue(lockKey, true) ~= false
-    end
-
-    local function IsEditModeActive()
-        local editModeFrame = _G.EditModeManagerFrame
-        return CDM.isEditModeActive or (editModeFrame and editModeFrame:IsShown())
-    end
-
-    local isLocked = IsLocked()
-    if not InCombatLockdown() then
-        container:SetMovable(not isLocked)
-        container:EnableMouse(not isLocked)
-    end
-    container:SetClampedToScreen(true)
-    container:RegisterForDrag("LeftButton")
-
-    container:SetScript("OnDragStart", function(self)
-        if not InCombatLockdown() and not IsLocked() then
-            self:StartMoving()
-        end
-    end)
-
-    if not container.helperText then
-        local helperText = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        helperText:SetPoint("BOTTOM", container, "TOP", 0, 8)
-        helperText:SetText(L["Click and drag to move - /acdm > Positions to lock"])
-        helperText:SetTextColor(CDM_C.GOLD.r, CDM_C.GOLD.g, CDM_C.GOLD.b, 1)
-        CDM_C.ApplyShadow(helperText)
-        container.helperText = helperText
-    end
-
-    if not container.dragOverlay then
-        local overlayParent = overlayOpts.parent or container
-        local overlay = CreateFrame("Frame", nil, overlayParent, "NineSliceCodeTemplate")
-        overlay:SetAllPoints(container)
-        if overlayOpts.strata then
-            overlay:SetFrameStrata(overlayOpts.strata)
-        end
-        if overlayOpts.level then
-            overlay:SetFrameLevel(overlayOpts.level)
-        else
-            overlay:SetFrameLevel(container:GetFrameLevel() + 1)
-        end
-        overlay:EnableMouse(false)
-
-        if NineSliceUtil and NineSliceUtil.ApplyLayout then
-            local overlayLayout = {
-                ["TopRightCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = 8, y = 8 },
-                ["TopLeftCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = -8, y = 8 },
-                ["BottomLeftCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = -8, y = -8 },
-                ["BottomRightCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = 8, y = -8 },
-                ["TopEdge"] = { atlas = "_%s-NineSlice-EdgeTop" },
-                ["BottomEdge"] = { atlas = "_%s-NineSlice-EdgeBottom" },
-                ["LeftEdge"] = { atlas = "!%s-NineSlice-EdgeLeft" },
-                ["RightEdge"] = { atlas = "!%s-NineSlice-EdgeRight" },
-                ["Center"] = { atlas = "%s-NineSlice-Center", x = -8, y = 8, x1 = 8, y1 = -8 },
-            }
-            NineSliceUtil.ApplyLayout(overlay, overlayLayout, "editmode-actionbar-highlight")
-            SetRegionBlendMode("ADD", overlay:GetRegions())
-            overlay:SetAlpha(0.4)
-        end
-
-        overlay:Hide()
-        container.dragOverlay = overlay
-    end
-
-    local function UpdateHelperText()
-        local unlocked = not IsLocked()
-        if not InCombatLockdown() then
-            container:SetMovable(unlocked)
-            container:EnableMouse(unlocked)
-        end
-        if container.helperText then
-            container.helperText:SetShown(unlocked)
-        end
-        if container.dragOverlay then
-            container.dragOverlay:SetShown(unlocked and not IsEditModeActive())
-        end
-    end
-    UpdateHelperText()
-    container.UpdateHelperText = UpdateHelperText
-    container.lockKey = lockKey
-end
-
 local function CreateBaseContainer(name)
-    local container = _G[name] or CreateFrame("Frame", name, UIParent)
-    container:SetFrameStrata(CDM_C.STRATA_MAIN)
+    local container = CreateFrame("Frame", name, UIParent)
     container:SetFrameLevel(10)
-    if container.SetPreventSecretValues then
-        container:SetPreventSecretValues(true)
-    end
     return container
 end
 
-function CDM:GetOrCreateAnchorContainer(viewer)
-    local sizeEssRow1, _, _, sizeBuff = GetLayoutConfig()
-    local vName = viewer:GetName()
+function CDM:CreateEssentialAnchorContainer()
+    local cfg = GetLayoutConfig()
+    local container = CreateBaseContainer(VIEWERS.ESSENTIAL .. "_CDM_Container")
+    container:SetSize(Snap(400), Snap(cfg.sizeEssRow1.h))
 
-    if self.anchorContainers[vName] then
-        return self.anchorContainers[vName]
-    end
+    self.anchorContainers[VIEWERS.ESSENTIAL] = container
+    self:UpdateEditModeSelectionOverlay(VIEWERS.ESSENTIAL)
 
-    if vName == VIEWERS.ESSENTIAL or vName == VIEWERS.BUFF then
-        local container = CreateBaseContainer(vName .. "_CDM_Container")
-        local initH = (vName == VIEWERS.ESSENTIAL) and sizeEssRow1.h or sizeBuff.h
-        if vName == VIEWERS.ESSENTIAL then
-            container:SetSize(Snap(400), Snap(initH))
-        else
-            container:SetSize(Pixel.SnapEven(400), Snap(initH))
-        end
+    local savedPos = GetPositionSettings(VIEWERS.ESSENTIAL, "Default")
+    container:ClearAllPoints()
+    AnchorEssentialContainer(container, savedPos.point, savedPos.x, savedPos.y)
 
-        self.anchorContainers[vName] = container
-        self:UpdateEditModeSelectionOverlay(vName)
-
-        local savedPos = GetPositionSettings(vName, "Default")
-        container:ClearAllPoints()
-        AnchorMainLayoutContainer(container, vName == VIEWERS.BUFF, savedPos.point, savedPos.x, savedPos.y)
-
-        container:Show()
-
-        return container
-    elseif vName == VIEWERS.BUFF_BAR then
-        local container = CreateBaseContainer(vName .. "_CDM_Container")
-        container:SetSize(300, 200)
-
-        SetupDraggableContainer(container, "buffBarContainerLocked", {
-            parent = UIParent, strata = "DIALOG", level = 100
-        })
-
-        container:SetScript("OnDragStop", function(self)
-            self:StopMovingOrSizing()
-
-            local _, _, relativePoint, x, y = self:GetPoint()
-            if relativePoint and x and y then
-                local growDirection = CDM_C.GetConfigValue("buffBarGrowDirection", "DOWN")
-                local anchorPoint = growDirection == "DOWN" and "TOP" or "BOTTOM"
-                x, y = ResolveDraggedCoords(self, anchorPoint, relativePoint, x, y)
-
-                local settings = GetBuffBarPositionSettings()
-                settings.point = relativePoint
-                settings.x = Snap(x)
-                settings.y = Snap(y)
-
-                CDM:UpdateBuffBarContainerPosition()
-
-                CDM:NotifyPositionSliderUpdate("buffBar", settings.x, settings.y, true)
-            end
-        end)
-
-        self.anchorContainers[vName] = container
-        self:UpdateEditModeSelectionOverlay(vName)
-
-        self:UpdateBuffBarContainerPosition()
-
-        container:Show()
-
-        return container
-    else
-        local container = CreateBaseContainer(vName .. "_AnchorContainer")
-
-        self.anchorContainers[vName] = container
-        self:UpdateEditModeSelectionOverlay(vName)
-
-        if vName == VIEWERS.UTILITY then
-            self:UpdateUtilityContainerPosition()
-        end
-
-        container:Show()
-
-        return container
-    end
+    container:Show()
+    return container
 end
 
-function CDM:UpdateContainerDragOverlays()
-    if not self.anchorContainers then return end
-    for _, container in pairs(self.anchorContainers) do
-        if container and container.UpdateHelperText then
-            container.UpdateHelperText()
-        end
-    end
+function CDM:CreateBuffAnchorContainer()
+    local cfg = GetLayoutConfig()
+    local container = CreateBaseContainer(VIEWERS.BUFF .. "_CDM_Container")
+    container:SetSize(Pixel.SnapEven(400), Snap(cfg.sizeBuff.h))
+
+    self.anchorContainers[VIEWERS.BUFF] = container
+    self:UpdateEditModeSelectionOverlay(VIEWERS.BUFF)
+
+    local savedPos = GetPositionSettings(VIEWERS.BUFF, "Default")
+    container:ClearAllPoints()
+    AnchorBuffContainer(container, savedPos.point, savedPos.x, savedPos.y)
+
+    container:Show()
+    return container
 end
 
-local tempIconPositionRecords = {}
-local tempIconPositionRecordPool = {}
-local tempIconPositionRecordCount = 0
+function CDM:CreateBuffBarAnchorContainer()
+    local container = CreateBaseContainer(VIEWERS.BUFF_BAR .. "_CDM_Container")
+    container:SetSize(300, 200)
+
+    self.anchorContainers[VIEWERS.BUFF_BAR] = container
+    self:UpdateEditModeSelectionOverlay(VIEWERS.BUFF_BAR)
+    self:UpdateBuffBarContainerPosition()
+
+    container:Show()
+    return container
+end
+
+function CDM:CreateUtilityAnchorContainer()
+    local container = CreateBaseContainer(VIEWERS.UTILITY .. "_CDM_Container")
+
+    self.anchorContainers[VIEWERS.UTILITY] = container
+    self:UpdateEditModeSelectionOverlay(VIEWERS.UTILITY)
+    self:UpdateUtilityContainerPosition()
+
+    container:Show()
+    return container
+end
+
+function CDM:GetAnchorContainer(viewer)
+    return self.anchorContainers[viewer:GetName()]
+end
+
+local function makeSequentialPool()
+    return { items = {}, slots = {}, count = 0 }
+end
+
+local function ResetPool(pool)
+    for i = 1, pool.count do pool.items[i] = nil end
+    pool.count = 0
+end
+
+local function AcquireFromPool(pool)
+    local n = pool.count + 1
+    pool.count = n
+    local p = pool.slots[n]
+    if not p then
+        p = {}
+        pool.slots[n] = p
+    end
+    pool.items[n] = p
+    return p
+end
+
+local recordPool = makeSequentialPool()
+local placementPool = makeSequentialPool()
 local tempTrinketReorder = {}
 
-local scratchPlacements = {}
-local scratchPlacementsCount = 0
-local scratchPlacementPool = {}
 local scratchRowBuckets = {}
 local scratchRowBucketPool = {}
 local scratchRowBucketPoolCount = 0
@@ -836,24 +636,6 @@ local scratchRowMetrics = {}
 local scratchRowMetricPool = {}
 local scratchRowMetricPoolCount = 0
 
-local function ResetScratchPlacements()
-    for i = 1, scratchPlacementsCount do
-        scratchPlacements[i] = nil
-    end
-    scratchPlacementsCount = 0
-end
-
-local function AcquireScratchPlacement()
-    scratchPlacementsCount = scratchPlacementsCount + 1
-    local p = scratchPlacementPool[scratchPlacementsCount]
-    if not p then
-        p = {}
-        scratchPlacementPool[scratchPlacementsCount] = p
-    end
-    scratchPlacements[scratchPlacementsCount] = p
-    return p
-end
-
 local function ResizeLayoutContainerIfAllowed(container, inCombat, width, height)
     if inCombat or not container or not width or not height then
         return
@@ -862,40 +644,19 @@ local function ResizeLayoutContainerIfAllowed(container, inCombat, width, height
 end
 
 local function PlaceIconTopLeft(frame, container, x, y, viewer)
-    if not frame then
-        return
-    end
-
     if viewer and frame:GetParent() ~= viewer then
         frame:SetParent(UIParent)
+        frame.cdmAnchor = nil
     end
-    local fd = GetFrameData(frame)
-    SetCdmAnchor(fd, "TOPLEFT", container, "TOPLEFT", x, y)
-    frame:ClearAllPoints()
-    Pixel.SetPoint(frame, "TOPLEFT", container, "TOPLEFT", x or 0, y or 0)
+    if SetCdmAnchor(frame, "TOPLEFT", container, "TOPLEFT", x, y) then
+        frame:ClearAllPoints()
+        Pixel.SetPoint(frame, "TOPLEFT", container, "TOPLEFT", x or 0, y or 0)
+    end
     frame:Show()
 end
 
-local function ResetTempIconPositionRecords()
-    for i = 1, tempIconPositionRecordCount do
-        tempIconPositionRecords[i] = nil
-    end
-    tempIconPositionRecordCount = 0
-end
-
-local function AcquireTempIconPositionRecord()
-    tempIconPositionRecordCount = tempIconPositionRecordCount + 1
-    local record = tempIconPositionRecordPool[tempIconPositionRecordCount]
-    if not record then
-        record = {}
-        tempIconPositionRecordPool[tempIconPositionRecordCount] = record
-    end
-    tempIconPositionRecords[tempIconPositionRecordCount] = record
-    return record
-end
-
-local function PushTempIconPositionRecord(frame, layoutIndex, sortID)
-    local record = AcquireTempIconPositionRecord()
+local function PushIconPositionRecord(frame, layoutIndex, sortID)
+    local record = AcquireFromPool(recordPool)
     record.frame = frame
     record.layoutIndex = layoutIndex
     record.sortID = sortID
@@ -910,36 +671,25 @@ local function CompareIconPositionRecords(a, b)
     return a.sortID < b.sortID
 end
 
-function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
-    local sizeEssRow1, sizeEssRow2, sizeUtility, _, spacing, maxRowEss, _, maxRowUtil, utilityVertical = GetLayoutConfig()
-    ResetTempIconPositionRecords()
-
-    local isEssential = (vName == VIEWERS.ESSENTIAL)
-
-    local injectedTrinketCount = 0
-    local injFrames = isEssential and CDM.GetTrinketInjectionFrames and CDM.GetTrinketInjectionFrames() or nil
-
-    if #icons == 0 and not injFrames then
-        return
-    end
-
-    local container = self:GetOrCreateAnchorContainer(viewer)
-    if not container then return end
+local function CollectAndOrderRecords(icons, isEssential, maxRowEss, injFrames)
+    ResetPool(recordPool)
+    local records = recordPool.items
 
     for _, frame in ipairs(icons) do
         local spellID = ResolveBaseSpellID(frame)
         if spellID or frame.cooldownInfo then
-            PushTempIconPositionRecord(frame, ToSortNumber(frame.layoutIndex, 0), GetStableFrameSortID(frame))
+            PushIconPositionRecord(frame, ToSortNumber(frame.layoutIndex, 0), GetStableFrameSortID(frame))
         end
     end
 
     local db = CDM.db or {}
     local injRow = db.trinketsEssentialRow or 1
     local injPos = db.trinketsEssentialPosition or "end"
+    local injectedTrinketCount = 0
 
     if injFrames then
         for i, tFrame in ipairs(injFrames) do
-            local record = AcquireTempIconPositionRecord()
+            local record = AcquireFromPool(recordPool)
             record.frame = tFrame
             if injPos == "start" then
                 record.layoutIndex = -1000 + i
@@ -951,45 +701,145 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
         injectedTrinketCount = #injFrames
 
         if injRow == 2 then
-            local essOnlyCount = tempIconPositionRecordCount - injectedTrinketCount
+            local essOnlyCount = recordPool.count - injectedTrinketCount
             maxRowEss = math_min(maxRowEss, essOnlyCount)
         end
     end
 
-    local totalIcons = tempIconPositionRecordCount
+    local totalIcons = recordPool.count
     if totalIcons > 1 then
-        table_sort(tempIconPositionRecords, CompareIconPositionRecords)
+        table_sort(records, CompareIconPositionRecords)
     end
 
     if injectedTrinketCount > 0 then
         if injRow == 2 and injPos == "start" then
             table_wipe(tempTrinketReorder)
             for i = 1, injectedTrinketCount do
-                tempTrinketReorder[i] = tempIconPositionRecords[i]
+                tempTrinketReorder[i] = records[i]
             end
             for i = 1, maxRowEss do
-                tempIconPositionRecords[i] = tempIconPositionRecords[injectedTrinketCount + i]
+                records[i] = records[injectedTrinketCount + i]
             end
             for i = 1, injectedTrinketCount do
-                tempIconPositionRecords[maxRowEss + i] = tempTrinketReorder[i]
+                records[maxRowEss + i] = tempTrinketReorder[i]
             end
 
         elseif injRow == 1 and injPos == "end" and totalIcons > maxRowEss then
             local insertPos = math_max(1, maxRowEss - injectedTrinketCount + 1)
             table_wipe(tempTrinketReorder)
             for i = 1, injectedTrinketCount do
-                tempTrinketReorder[i] = tempIconPositionRecords[totalIcons - injectedTrinketCount + i]
+                tempTrinketReorder[i] = records[totalIcons - injectedTrinketCount + i]
             end
             for i = totalIcons - injectedTrinketCount, insertPos, -1 do
-                tempIconPositionRecords[i + injectedTrinketCount] = tempIconPositionRecords[i]
+                records[i + injectedTrinketCount] = records[i]
             end
             for i = 1, injectedTrinketCount do
-                tempIconPositionRecords[insertPos + i - 1] = tempTrinketReorder[i]
+                records[insertPos + i - 1] = tempTrinketReorder[i]
             end
         end
     end
 
-    ResetScratchPlacements()
+    return totalIcons, maxRowEss
+end
+
+local function LayoutMeasuredRows(self, container, viewer, vName, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, gap, inCombat)
+    table_sort(scratchRowOrderSeen)
+
+    local pixelSize = Pixel.GetSize()
+    local measuredContainerWidth = 0
+    local measuredContainerHeight = 0
+
+    for orderIndex, row in ipairs(scratchRowOrderSeen) do
+        local bucket = scratchRowBuckets[row]
+        local rowWidth = 0
+        local rowHeight = 0
+
+        for i, placement in ipairs(bucket) do
+            local f = placement.frame
+            local rawW = f:GetWidth() or 0
+            local rawH = f:GetHeight() or 0
+            local fallbackSize = sizeUtility
+            if isEssential then
+                fallbackSize = (placement.row == 2) and sizeEssRow2 or sizeEssRow1
+            end
+            local fallbackW = math_max(pixelSize, Snap(fallbackSize and fallbackSize.w or 1))
+            local fallbackH = math_max(pixelSize, Snap(fallbackSize and fallbackSize.h or 1))
+            local w = rawW > 1 and Snap(rawW) or fallbackW
+            local h = rawH > 1 and Snap(rawH) or fallbackH
+            placement._w = w
+            placement._h = h
+            rowWidth = rowWidth + w
+            if i > 1 then
+                rowWidth = rowWidth + gap
+            end
+            if h > rowHeight then
+                rowHeight = h
+            end
+        end
+
+        measuredContainerWidth = math_max(measuredContainerWidth, rowWidth)
+        if orderIndex > 1 then
+            measuredContainerHeight = measuredContainerHeight + gap
+        end
+        local rm = scratchRowMetrics[row]
+        if not rm then
+            if scratchRowMetricPoolCount > 0 then
+                rm = scratchRowMetricPool[scratchRowMetricPoolCount]
+                scratchRowMetricPool[scratchRowMetricPoolCount] = nil
+                scratchRowMetricPoolCount = scratchRowMetricPoolCount - 1
+            else
+                rm = {}
+            end
+            scratchRowMetrics[row] = rm
+        end
+        rm.width = rowWidth
+        rm.height = rowHeight
+        rm.top = measuredContainerHeight
+        measuredContainerHeight = measuredContainerHeight + rowHeight
+    end
+
+    local containerWidth = Snap(measuredContainerWidth)
+    local containerHeight = Snap(measuredContainerHeight)
+
+    ResizeLayoutContainerIfAllowed(container, inCombat, containerWidth, containerHeight)
+    if not inCombat then
+        self:ReanchorContainer(vName)
+    end
+
+    for _, row in ipairs(scratchRowOrderSeen) do
+        local bucket = scratchRowBuckets[row]
+        local metrics = scratchRowMetrics[row]
+        local leftPad = Pixel.HalfFloor(containerWidth) - Pixel.HalfFloor(metrics.width)
+        if leftPad < 0 then leftPad = 0 end
+        local cursor = leftPad
+        local yOff = Snap(-(metrics.top or 0))
+
+        for _, placement in ipairs(bucket) do
+            local frame = placement.frame
+            PlaceIconTopLeft(frame, container, Snap(cursor), yOff, viewer)
+            cursor = cursor + (placement._w or 0) + gap
+        end
+    end
+end
+
+function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
+    local cfg = GetLayoutConfig()
+    local maxRowEss = cfg.maxRowEss
+    local isEssential = (vName == VIEWERS.ESSENTIAL)
+
+    local injFrames = isEssential and CDM.GetTrinketInjectionFrames and CDM.GetTrinketInjectionFrames() or nil
+
+    if #icons == 0 and not injFrames then
+        return
+    end
+
+    local container = self:GetAnchorContainer(viewer)
+    if not container then return end
+
+    local totalIcons
+    totalIcons, maxRowEss = CollectAndOrderRecords(icons, isEssential, maxRowEss, injFrames)
+
+    ResetPool(placementPool)
     for k, bucket in pairs(scratchRowBuckets) do
         for i = 1, #bucket do bucket[i] = nil end
         scratchRowBuckets[k] = nil
@@ -1006,29 +856,25 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
         scratchRowMetricPool[scratchRowMetricPoolCount] = rm
     end
 
-    local placements = scratchPlacements
-    local rowBuckets = scratchRowBuckets
-    local rowOrderSeen = scratchRowOrderSeen
-    local useMeasuredHorizontalLayout = isEssential or (not utilityVertical)
+    local useMeasuredHorizontalLayout = isEssential or (not cfg.utilityVertical)
 
     local preUtilW, preUtilH, preUtilGap
     if not useMeasuredHorizontalLayout then
-        preUtilW, preUtilH, preUtilGap = GetSnappedMetrics(sizeUtility, spacing)
+        preUtilW, preUtilH, preUtilGap = GetSnappedMetrics(cfg.sizeUtility, cfg.spacing)
     end
 
-    for index, record in ipairs(tempIconPositionRecords) do
+    local records = recordPool.items
+    for index, record in ipairs(records) do
         local frame = record.frame
 
         if useMeasuredHorizontalLayout then
-            local row = GetRowForIndex(index, totalIcons, isEssential, maxRowEss, maxRowUtil, utilityVertical)
-            GetFrameData(frame).cdmRow = row
+            local row = GetRowForIndex(index, totalIcons, isEssential, maxRowEss, cfg.maxRowUtil, cfg.utilityVertical)
+            frame.cdmRow = row
             self:ApplyStyle(frame, vName)
-            local placement = AcquireScratchPlacement()
+            local placement = AcquireFromPool(placementPool)
             placement.frame = frame
             placement.row = row
-            placement.x = nil
-            placement.y = nil
-            local bucket = rowBuckets[row]
+            local bucket = scratchRowBuckets[row]
             if not bucket then
                 if scratchRowBucketPoolCount > 0 then
                     bucket = scratchRowBucketPool[scratchRowBucketPoolCount]
@@ -1037,18 +883,18 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
                 else
                     bucket = {}
                 end
-                rowBuckets[row] = bucket
+                scratchRowBuckets[row] = bucket
                 scratchRowOrderSeenCount = scratchRowOrderSeenCount + 1
-                rowOrderSeen[scratchRowOrderSeenCount] = row
+                scratchRowOrderSeen[scratchRowOrderSeenCount] = row
             end
             bucket[#bucket + 1] = placement
         else
             local row, _, _, _, x, y = ComputeEssentialOrUtilityPosition(
-                index, totalIcons, isEssential, sizeEssRow1, sizeEssRow2, sizeUtility, spacing, maxRowEss, maxRowUtil, utilityVertical, preUtilW, preUtilH, preUtilGap
+                index, totalIcons, isEssential, cfg.sizeEssRow1, cfg.sizeEssRow2, cfg.sizeUtility, cfg.spacing, maxRowEss, cfg.maxRowUtil, cfg.utilityVertical, preUtilW, preUtilH, preUtilGap
             )
-            GetFrameData(frame).cdmRow = row
+            frame.cdmRow = row
             self:ApplyStyle(frame, vName)
-            local placement = AcquireScratchPlacement()
+            local placement = AcquireFromPool(placementPool)
             placement.frame = frame
             placement.row = row
             placement.x = x
@@ -1056,108 +902,31 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
         end
     end
 
-    local containerWidth, containerHeight
-    if isEssential then
-        containerWidth, containerHeight = ComputeEssentialContainerSize(
-            totalIcons, sizeEssRow1, sizeEssRow2, spacing, maxRowEss
-        )
-    else
-        containerWidth, containerHeight = ComputeUtilityContainerSize(
-            totalIcons, sizeUtility, spacing, maxRowUtil, utilityVertical
-        )
-    end
-
     local inCombat = InCombatLockdown()
-    local gap = Snap(spacing or 0)
+    local gap = Snap(cfg.spacing or 0)
 
-    if useMeasuredHorizontalLayout and scratchPlacementsCount > 0 then
-        table_sort(rowOrderSeen)
-
-        local pixelSize = Pixel.GetSize()
-        local measuredContainerWidth = 0
-        local measuredContainerHeight = 0
-        local rowMetrics = scratchRowMetrics
-
-        for orderIndex, row in ipairs(rowOrderSeen) do
-            local bucket = rowBuckets[row]
-            local rowWidth = 0
-            local rowHeight = 0
-
-            for i, placement in ipairs(bucket) do
-                local f = placement.frame
-                local rawW = f:GetWidth() or 0
-                local rawH = f:GetHeight() or 0
-                local fallbackSize = sizeUtility
-                if isEssential then
-                    fallbackSize = (placement.row == 2) and sizeEssRow2 or sizeEssRow1
-                end
-                local fallbackW = math_max(pixelSize, Snap(fallbackSize and fallbackSize.w or 1))
-                local fallbackH = math_max(pixelSize, Snap(fallbackSize and fallbackSize.h or 1))
-                local w = rawW > 1 and Snap(rawW) or fallbackW
-                local h = rawH > 1 and Snap(rawH) or fallbackH
-                placement._w = w
-                placement._h = h
-                rowWidth = rowWidth + w
-                if i > 1 then
-                    rowWidth = rowWidth + gap
-                end
-                if h > rowHeight then
-                    rowHeight = h
-                end
-            end
-
-            measuredContainerWidth = math_max(measuredContainerWidth, rowWidth)
-            if orderIndex > 1 then
-                measuredContainerHeight = measuredContainerHeight + gap
-            end
-            local rm = rowMetrics[row]
-            if not rm then
-                if scratchRowMetricPoolCount > 0 then
-                    rm = scratchRowMetricPool[scratchRowMetricPoolCount]
-                    scratchRowMetricPool[scratchRowMetricPoolCount] = nil
-                    scratchRowMetricPoolCount = scratchRowMetricPoolCount - 1
-                else
-                    rm = {}
-                end
-                rowMetrics[row] = rm
-            end
-            rm.width = rowWidth
-            rm.height = rowHeight
-            rm.top = measuredContainerHeight
-            measuredContainerHeight = measuredContainerHeight + rowHeight
-        end
-
-        containerWidth = Snap(measuredContainerWidth)
-        containerHeight = Snap(measuredContainerHeight)
-
-        ResizeLayoutContainerIfAllowed(container, inCombat, containerWidth, containerHeight)
-        if not inCombat then
-            self:ReanchorContainer(vName)
-        end
-
-        for _, row in ipairs(rowOrderSeen) do
-            local bucket = rowBuckets[row]
-            local metrics = rowMetrics[row]
-            local leftPad = Pixel.HalfFloor(containerWidth) - Pixel.HalfFloor(metrics.width)
-            if leftPad < 0 then leftPad = 0 end
-            local cursor = leftPad
-            local yOff = Snap(-(metrics.top or 0))
-
-            for _, placement in ipairs(bucket) do
-                local frame = placement.frame
-                PlaceIconTopLeft(frame, container, Snap(cursor), yOff, viewer)
-                cursor = cursor + (placement._w or 0) + gap
-            end
-        end
+    if useMeasuredHorizontalLayout and placementPool.count > 0 then
+        LayoutMeasuredRows(self, container, viewer, vName, isEssential, cfg.sizeEssRow1, cfg.sizeEssRow2, cfg.sizeUtility, gap, inCombat)
     else
+        local containerWidth, containerHeight
+        if isEssential then
+            containerWidth, containerHeight = ComputeEssentialContainerSize(
+                totalIcons, cfg.sizeEssRow1, cfg.sizeEssRow2, cfg.spacing, maxRowEss
+            )
+        else
+            containerWidth, containerHeight = ComputeUtilityContainerSize(
+                totalIcons, cfg.sizeUtility, cfg.spacing, cfg.maxRowUtil, cfg.utilityVertical
+            )
+        end
+
         ResizeLayoutContainerIfAllowed(container, inCombat, containerWidth, containerHeight)
         if not inCombat then
             self:ReanchorContainer(vName)
         end
 
-        for _, placement in ipairs(placements) do
+        for _, placement in ipairs(placementPool.items) do
             local frame = placement.frame
-            PlaceIconTopLeft(frame, container, placement.x or 0, placement.y or 0, viewer)
+            PlaceIconTopLeft(frame, container, placement.x, placement.y, viewer)
         end
     end
 
@@ -1168,56 +937,27 @@ function CDM:PositionEssentialOrUtilityIcons(icons, viewer, vName)
             viewerFrame:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
             viewerFrame:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT", 0, 0)
         end
-
     else
         CDM.combatDirtyViewers[vName] = true
     end
-
 end
 
 function CDM:GetEssentialContentWidth()
-    local c = self.anchorContainers and self.anchorContainers[VIEWERS.ESSENTIAL]
+    local c = self.anchorContainers[VIEWERS.ESSENTIAL]
     return c and c:GetWidth() or 0
 end
 
 function CDM:GetUtilityContentWidth()
-    local c = self.anchorContainers and self.anchorContainers[VIEWERS.UTILITY]
+    local c = self.anchorContainers[VIEWERS.UTILITY]
     return c and c:GetWidth() or 0
 end
 
-local essentialRow1WidthCache = {
-    valid = false,
-    value = 0,
-}
-function CDM:InvalidateEssentialRow1WidthCache()
-    essentialRow1WidthCache.valid = false
-end
-
-local function CacheEssentialRow1Width(width)
-    essentialRow1WidthCache.value = width
-    essentialRow1WidthCache.valid = true
-    return width
-end
-
-
 local function CalculateEssentialRow1Width()
-    local sizeEssRow1, _, _, _, spacing, maxRowEss = GetLayoutConfig()
+    local cfg = GetLayoutConfig()
 
     local contentWidth = CDM:GetEssentialContentWidth()
     if contentWidth > 0 then
-        return CacheEssentialRow1Width(contentWidth)
-    end
-
-    local essContainer = CDM.anchorContainers and CDM.anchorContainers[VIEWERS.ESSENTIAL]
-    if essContainer then
-        local width = essContainer:GetWidth()
-        if width and width > 0 then
-            return CacheEssentialRow1Width(width)
-        end
-    end
-
-    if essentialRow1WidthCache.valid then
-        return essentialRow1WidthCache.value
+        return contentWidth
     end
 
     local viewer = _G[VIEWERS.ESSENTIAL]
@@ -1233,13 +973,13 @@ local function CalculateEssentialRow1Width()
         end
 
         if activeCount > 0 then
-            local row1Count = math_min(activeCount, maxRowEss)
-            return CacheEssentialRow1Width((row1Count * sizeEssRow1.w) + ((row1Count - 1) * spacing))
+            local row1Count = math_min(activeCount, cfg.maxRowEss)
+            return (row1Count * cfg.sizeEssRow1.w) + ((row1Count - 1) * cfg.spacing)
         end
     end
 
-    local fallbackCount = math_max(maxRowEss, 1)
-    return (fallbackCount * sizeEssRow1.w) + ((fallbackCount - 1) * spacing)
+    local fallbackCount = math_max(cfg.maxRowEss, 1)
+    return (fallbackCount * cfg.sizeEssRow1.w) + ((fallbackCount - 1) * cfg.spacing)
 end
 
 CDM.CalculateEssentialRow1Width = CalculateEssentialRow1Width
@@ -1250,7 +990,7 @@ function CDM:UpdateBuffBarContainerPosition()
     if not container then return end
 
     local db = CDM.db or {}
-    local savedPos = GetBuffBarPositionSettings()
+    local savedPos = GetPositionSettings(VIEWERS.BUFF_BAR, "Default")
     local growDirection = db.buffBarGrowDirection or "DOWN"
     local edgeAnchor = growDirection == "DOWN" and "TOPLEFT" or "BOTTOMLEFT"
     local screenPoint = savedPos.point or "CENTER"
@@ -1264,21 +1004,43 @@ function CDM:UpdateBuffBarContainerPosition()
 end
 
 local function SetupBarFrame(frame, containerLevel, frameWidth, barHeight)
-    frame:ClearAllPoints()
-    frame:SetFrameStrata(CDM_C.STRATA_MAIN)
     local barLevel = containerLevel + 1
-    frame:SetFrameLevel(barLevel)
-    if frame.Bar then frame.Bar:SetFrameLevel(barLevel + 1) end
-    if frame.Icon then frame.Icon:SetFrameLevel(barLevel + 2) end
-    frame:SetSize(frameWidth, barHeight)
+    if frame.cdmBarLevel ~= barLevel then
+        frame:SetFrameLevel(barLevel)
+        if frame.Bar then frame.Bar:SetFrameLevel(barLevel + 1) end
+        if frame.Icon then frame.Icon:SetFrameLevel(barLevel + 2) end
+        frame.cdmBarLevel = barLevel
+    end
+    Pixel.SetSize(frame, frameWidth, barHeight)
+end
+
+local function ApplyBarAnchor(frame, point, relativeTo, relativePoint, x, y)
+    local sx = Snap(x or 0)
+    local sy = Snap(y or 0)
+    local a = frame.cdmBarAnchor
+    if a and a[1] == point and a[2] == relativeTo and a[3] == relativePoint
+       and a[4] == sx and a[5] == sy then
+        return
+    end
+    if not a then
+        a = {}
+        frame.cdmBarAnchor = a
+    end
+    a[1] = point
+    a[2] = relativeTo
+    a[3] = relativePoint
+    a[4] = sx
+    a[5] = sy
+    frame:ClearAllPoints()
+    frame:SetPoint(point, relativeTo, relativePoint, sx, sy)
 end
 
 local tempBars = {}
 
-function CDM:PositionBuffBarFrames(viewer, vName)
+function CDM:PositionBuffBarFrames(viewer, vName, frames)
     if not viewer or not viewer.itemFramePool then return end
 
-    local container = self:GetOrCreateAnchorContainer(viewer)
+    local container = self:GetAnchorContainer(viewer)
     if not container then return end
 
     local db = CDM.db or {}
@@ -1286,8 +1048,6 @@ function CDM:PositionBuffBarFrames(viewer, vName)
     local barHeight = Snap(db.buffBarHeight or 20)
     local spacing = Snap(db.buffBarSpacing ~= nil and db.buffBarSpacing or 2)
     local growDirection = db.buffBarGrowDirection or "DOWN"
-    local iconPosition = db.buffBarIconPosition or "LEFT"
-    local dualMode = db.buffBarDualMode or false
 
     local effectiveWidth = barWidth
     if barWidth == 0 then
@@ -1297,11 +1057,23 @@ function CDM:PositionBuffBarFrames(viewer, vName)
 
     table_wipe(tempBars)
     local bars = tempBars
-    for frame in viewer.itemFramePool:EnumerateActive() do
-        if frame:IsShown() then
-            bars[#bars + 1] = frame
-        elseif frame.cooldownInfo then
-            self:ApplyBarStyle(frame, vName)
+    if frames then
+        for _, frame in ipairs(frames) do
+            if frame:IsShown() then
+                bars[#bars + 1] = frame
+            elseif frame.cooldownInfo then
+                local spellOv = CDM.ResolveBarSpellOverride(frame, nil)
+                self:ApplyBarStyle(frame, vName, nil, nil, nil, nil, spellOv)
+            end
+        end
+    else
+        for frame in viewer.itemFramePool:EnumerateActive() do
+            if frame:IsShown() then
+                bars[#bars + 1] = frame
+            elseif frame.cooldownInfo then
+                local spellOv = CDM.ResolveBarSpellOverride(frame, nil)
+                self:ApplyBarStyle(frame, vName, nil, nil, nil, nil, spellOv)
+            end
         end
     end
 
@@ -1310,93 +1082,38 @@ function CDM:PositionBuffBarFrames(viewer, vName)
     end
 
     if #bars == 0 then
-        container:SetSize(effectiveWidth, barHeight)
+        Pixel.SetSize(container, effectiveWidth, barHeight)
         self:UpdateBuffBarContainerPosition()
         return
     end
 
-    local containerHeight = 0
-    local containerWidth = effectiveWidth
-
     local containerLevel = container:GetFrameLevel()
 
-    if dualMode and #bars >= 2 then
-        local leftWidth = math_max(Pixel.GetSize(), HalfFloor(effectiveWidth - spacing))
-        local rightX = leftWidth + spacing
-        local rightWidth = math_max(1, effectiveWidth - rightX)
-        containerWidth = effectiveWidth
-        local totalBars = #bars
-        local hasOddBar = (totalBars % 2) == 1
-
-        for i, frame in ipairs(bars) do
-            local isLastOdd = hasOddBar and (i == totalBars)
-            local isLeft, rowOffset, frameWidth
-
-            if isLastOdd then
-                rowOffset = math_floor((i - 1) / 2) * (barHeight + spacing)
-                frameWidth = effectiveWidth
-
-                local overridePos = (iconPosition == "HIDDEN") and "HIDDEN" or nil
-                if frame:GetParent() ~= container then
-                    frame:SetParent(container)
-                end
-                SetupBarFrame(frame, containerLevel, frameWidth, barHeight)
-
-                if growDirection == "DOWN" then
-                    frame:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -rowOffset)
-                else
-                    frame:SetPoint("BOTTOMLEFT", container, "BOTTOMLEFT", 0, rowOffset)
-                end
-                self:ApplyBarStyle(frame, vName, overridePos, frameWidth, barHeight)
-            else
-                isLeft = ((i - 1) % 2) == 0
-                rowOffset = math_floor((i - 1) / 2) * (barHeight + spacing)
-                frameWidth = isLeft and leftWidth or rightWidth
-
-                local dualIconPosition
-                if iconPosition == "HIDDEN" then
-                    dualIconPosition = "HIDDEN"
-                else
-                    dualIconPosition = isLeft and "RIGHT" or "LEFT"
-                end
-                if frame:GetParent() ~= container then
-                    frame:SetParent(container)
-                end
-                SetupBarFrame(frame, containerLevel, frameWidth, barHeight)
-
-                local xOff = isLeft and 0 or rightX
-                if growDirection == "DOWN" then
-                    frame:SetPoint("TOPLEFT", container, "TOPLEFT", xOff, -rowOffset)
-                else
-                    frame:SetPoint("BOTTOMLEFT", container, "BOTTOMLEFT", xOff, rowOffset)
-                end
-                self:ApplyBarStyle(frame, vName, dualIconPosition, frameWidth, barHeight)
-            end
+    local offset = 0
+    local containerHeight = 0
+    for i, frame in ipairs(bars) do
+        local spellOv = CDM.ResolveBarSpellOverride(frame, nil)
+        local fh
+        if spellOv and type(spellOv.barHeight) == "number" and spellOv.barHeight > 0 then
+            fh = Snap(spellOv.barHeight)
+        else
+            fh = barHeight
         end
 
-        local rowCount = math_ceil(totalBars / 2)
-        containerHeight = (rowCount * barHeight) + ((rowCount - 1) * spacing)
-    else
-        for i, frame in ipairs(bars) do
-            local offset = (i - 1) * (barHeight + spacing)
+        SetupBarFrame(frame, containerLevel, effectiveWidth, fh)
 
-            if frame:GetParent() ~= container then
-                frame:SetParent(container)
-            end
-            SetupBarFrame(frame, containerLevel, effectiveWidth, barHeight)
-
-            if growDirection == "DOWN" then
-                frame:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -offset)
-            else
-                frame:SetPoint("BOTTOMLEFT", container, "BOTTOMLEFT", 0, offset)
-            end
-            self:ApplyBarStyle(frame, vName, nil, effectiveWidth, barHeight)
+        if growDirection == "DOWN" then
+            ApplyBarAnchor(frame, "TOPLEFT", container, "TOPLEFT", 0, -offset)
+        else
+            ApplyBarAnchor(frame, "BOTTOMLEFT", container, "BOTTOMLEFT", 0, offset)
         end
+        self:ApplyBarStyle(frame, vName, nil, effectiveWidth, fh, nil, spellOv)
 
-        containerHeight = (#bars * barHeight) + ((#bars - 1) * spacing)
+        offset = offset + fh + spacing
+        containerHeight = containerHeight + fh + (i > 1 and spacing or 0)
     end
 
-    container:SetSize(containerWidth, math_max(barHeight, containerHeight))
+    Pixel.SetSize(container, effectiveWidth, math_max(barHeight, containerHeight))
     self:UpdateBuffBarContainerPosition()
 end
 
@@ -1406,10 +1123,18 @@ CDM._LayoutCtx = {
     PositionFrameAtSlot    = PositionFrameAtSlot,
     PlaceFrame             = PlaceFrame,
     OverrideCooldownText   = OverrideCooldownText,
-    GetCooldownFontRegions = GetCooldownFontRegions,
-    OverrideCooldownRegions = OverrideCooldownRegions,
-    GetLayoutConfig        = GetLayoutConfig,
     ToSortNumber           = ToSortNumber,
     RowWidth               = RowWidth,
-    SetCdmAnchor           = SetCdmAnchor,
+    GetSnappedMetrics      = GetSnappedMetrics,
+    CenteredRowLeft        = CenteredRowLeft,
+    SetupBarFrame          = SetupBarFrame,
+    ApplyBarAnchor         = ApplyBarAnchor,
 }
+
+function CDM:InstallLayoutAcquireResetHook(v)
+    hooksecurefunc(v, "OnAcquireItemFrame", function(_, itemFrame)
+        itemFrame.cdmAnchor = nil
+        itemFrame.cdmBarLevel = nil
+        itemFrame.cdmBarAnchor = nil
+    end)
+end

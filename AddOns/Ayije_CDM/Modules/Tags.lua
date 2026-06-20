@@ -205,7 +205,7 @@ function TAGS:UpdateTagText(textFrame)
 
     local barKey = GetTagBarKey(textFrame)
 
-    local enabled = barKey and CDM:GetBarSetting(barKey, "tagEnabled")
+    local enabled = barKey and CDM:GetBarSetting(barKey, "tagEnabled") ~= false
     if not enabled then
         textFrame:Hide()
         return
@@ -346,15 +346,6 @@ function TAGS:CreateTag(bar, powerType)
     end
 
     return textFrame
-end
-
-function TAGS:RemoveTag(powerType)
-    local textFrame = self.textFrames[powerType]
-    if textFrame then
-        textFrame:Hide()
-        textFrame:SetParent(nil)
-        self.textFrames[powerType] = nil
-    end
 end
 
 CDM:RegisterRefreshCallback("tags", function()

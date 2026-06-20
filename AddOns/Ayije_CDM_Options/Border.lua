@@ -140,6 +140,115 @@ local function BuildLook(subPage, page)
     local rc, sc = UI.MakeSubPageScroll(subPage, "AyijeCDM_Border_LookScrollFrame")
     local yOff = 0
 
+    local swipeHeader = UI.CreateHeader(rc, L["Cooldown Swipe"])
+    swipeHeader:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 30
+
+    local hideGCDSwipeCheckbox = UI.CreateModernCheckbox(
+        rc,
+        L["Hide GCD Swipe"],
+        CDM.db.hideGCDSwipe,
+        function(checked)
+            CDM.db.hideGCDSwipe = checked
+            API:Refresh("STYLE")
+        end
+    )
+    hideGCDSwipeCheckbox:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 30
+
+    local hideBuffSwipeCheckbox = UI.CreateModernCheckbox(
+        rc,
+        L["Hide Buff Swipe"],
+        CDM.db.hideBuffSwipe,
+        function(checked)
+            CDM.db.hideBuffSwipe = checked
+            if CDM.CustomBuffs and CDM.CustomBuffs.iconFrames then
+                for _, frame in pairs(CDM.CustomBuffs.iconFrames) do
+                    if frame.Cooldown then
+                        frame.Cooldown:SetDrawSwipe(not checked)
+                    end
+                end
+            end
+            API:Refresh("STYLE")
+        end
+    )
+    hideBuffSwipeCheckbox:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 30
+
+    local swipeColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+    swipeColorLabel:SetText(L["Swipe Color"])
+    swipeColorLabel:SetPoint("TOPLEFT", 0, yOff)
+
+    local swipeInit = CDM.db.swipeColor or { r = 0, g = 0, b = 0, a = 0.6 }
+    local swipeColorPicker = UI.CreateSimpleColorPicker(rc, swipeInit, function(r, g, b)
+        CDM.db.swipeColor = { r = r, g = g, b = b, a = CDM.db.swipeColor and CDM.db.swipeColor.a or 0.6 }
+        API:Refresh("STYLE")
+    end)
+    swipeColorPicker:SetPoint("LEFT", swipeColorLabel, "RIGHT", 6, 0)
+    yOff = yOff - 25
+
+    local swipeAlphaSlider = UI.CreateModernSlider(rc, L["Swipe Opacity"], 0, 100,
+        math.floor((swipeInit.a or 0.6) * 100),
+        function(v)
+            local sc2 = CDM.db.swipeColor or { r = 0, g = 0, b = 0, a = 0.6 }
+            CDM.db.swipeColor = { r = sc2.r, g = sc2.g, b = sc2.b, a = v / 100 }
+            API:Refresh("STYLE")
+        end)
+    swipeAlphaSlider:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 45
+
+    local disableDesatCheckbox = UI.CreateModernCheckbox(
+        rc,
+        L["Don't desaturate on cooldown"],
+        CDM.db.disableCooldownDesat or false,
+        function(checked)
+            CDM.db.disableCooldownDesat = checked
+            API:Refresh("STYLE")
+        end
+    )
+    disableDesatCheckbox:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 40
+
+    local chargeHeader = UI.CreateHeader(rc, L["Charge Cooldowns"])
+    chargeHeader:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 30
+
+    local showEdgeCheckbox = UI.CreateModernCheckbox(
+        rc,
+        L["Show Edge"],
+        CDM.db.chargeShowEdge or false,
+        function(checked)
+            CDM.db.chargeShowEdge = checked
+            API:Refresh("STYLE")
+        end
+    )
+    showEdgeCheckbox:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 30
+
+    local hideSwipeCheckbox = UI.CreateModernCheckbox(
+        rc,
+        L["Hide Swipe"],
+        CDM.db.chargeHideSwipe or false,
+        function(checked)
+            CDM.db.chargeHideSwipe = checked
+            API:Refresh("STYLE")
+        end
+    )
+    hideSwipeCheckbox:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 30
+
+    local hideRechargeTimerCheckbox = UI.CreateModernCheckbox(
+        rc,
+        L["Hide recharge timer"],
+        CDM.db.chargeHideRechargeTimer or false,
+        function(checked)
+            CDM.db.chargeHideRechargeTimer = checked
+            API:Refresh("STYLE")
+        end
+    )
+    hideRechargeTimerCheckbox:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 40
+
     local pandemicHeader = UI.CreateHeader(rc, L["Pandemic Display"])
     pandemicHeader:SetPoint("TOPLEFT", 0, yOff)
     yOff = yOff - 30
@@ -147,6 +256,7 @@ local function BuildLook(subPage, page)
     local hidePandemicCheckbox
     local enableCustomizationCheckbox
     local pandemicBorderCheckbox
+    local pandemicBorderColorBuffBarsCheckbox
     local pandemicBorderColor
 
     local function UpdatePandemicEnableState()
@@ -157,6 +267,7 @@ local function BuildLook(subPage, page)
         pandemicBorderCheckbox:SetEnabled(customizationEnabled)
 
         local borderColorEnabled = customizationEnabled and (CDM.db.pandemicBorderEnabled == true)
+        pandemicBorderColorBuffBarsCheckbox:SetEnabled(borderColorEnabled)
         pandemicBorderColor:SetEnabled(borderColorEnabled)
     end
 
@@ -199,39 +310,23 @@ local function BuildLook(subPage, page)
     pandemicBorderCheckbox:SetPoint("TOPLEFT", 0, yOff)
     yOff = yOff - 30
 
+    pandemicBorderColorBuffBarsCheckbox = UI.CreateModernCheckbox(
+        rc,
+        L["Color Buff Bars Borders"],
+        CDM.db.pandemicBorderColorBuffBars or false,
+        function(checked)
+            CDM.db.pandemicBorderColorBuffBars = checked
+            API:Refresh("STYLE")
+        end
+    )
+    pandemicBorderColorBuffBarsCheckbox:SetPoint("TOPLEFT", 0, yOff)
+    yOff = yOff - 30
+
     pandemicBorderColor = UI.CreateColorSwatch(rc, L["Color"], "pandemicBorderColor", "STYLE")
     pandemicBorderColor:SetPoint("TOPLEFT", 0, yOff)
     yOff = yOff - 50
 
     UpdatePandemicEnableState()
-
-    local chargeHeader = UI.CreateHeader(rc, L["Charge Cooldowns"])
-    chargeHeader:SetPoint("TOPLEFT", 0, yOff)
-    yOff = yOff - 30
-
-    local showEdgeCheckbox = UI.CreateModernCheckbox(
-        rc,
-        L["Show Edge"],
-        CDM.db.chargeShowEdge or false,
-        function(checked)
-            CDM.db.chargeShowEdge = checked
-            API:Refresh("STYLE")
-        end
-    )
-    showEdgeCheckbox:SetPoint("TOPLEFT", 0, yOff)
-    yOff = yOff - 30
-
-    local hideSwipeCheckbox = UI.CreateModernCheckbox(
-        rc,
-        L["Hide Swipe"],
-        CDM.db.chargeHideSwipe or false,
-        function(checked)
-            CDM.db.chargeHideSwipe = checked
-            API:Refresh("STYLE")
-        end
-    )
-    hideSwipeCheckbox:SetPoint("TOPLEFT", 0, yOff)
-    yOff = yOff - 30
 
     UI.FinalizeScroll(sc, rc, yOff)
 end

@@ -45,7 +45,7 @@ local function MapProfileActionError(errCode, fallback)
 end
 
 local function PrintActionError(errCode)
-    print("|cffff0000[ACDM]|r " .. MapProfileActionError(errCode))
+    CDM.PrintError(MapProfileActionError(errCode))
 end
 
 local function SetupSwitchDropdown(dropdown)

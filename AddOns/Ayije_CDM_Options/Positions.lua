@@ -32,34 +32,6 @@ local function EnsurePosition(viewerName, defaults)
     return CDM.db.editModePositions[viewerName]["Default"]
 end
 
-local function CreateLockSection(parent, anchor, page, fieldName, lockKey, viewerName)
-    page[fieldName] = UI.CreateModernCheckbox(
-        parent,
-        L["Lock Container"],
-        CDM.db[lockKey] ~= false,
-        function(checked)
-            CDM.db[lockKey] = checked
-            local container = CDM.anchorContainers and CDM.anchorContainers[viewerName]
-            if container then
-                container:SetMovable(not checked)
-                container:EnableMouse(not checked)
-                if container.UpdateHelperText then
-                    container.UpdateHelperText()
-                end
-            end
-        end
-    )
-    page[fieldName]:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -15)
-
-    local helpText = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    helpText:SetPoint("TOPLEFT", page[fieldName], "BOTTOMLEFT", 0, -5)
-    helpText:SetText(L["Unlock to drag the container freely.\nUse sliders below for precise positioning."])
-    UI.SetTextMuted(helpText)
-    helpText:SetJustifyH("LEFT")
-
-    return helpText
-end
-
 local function CreatePositionControls(parent, anchor, page, cfg)
     local pos = EnsurePosition(cfg.viewerName, cfg.defaults)
 
@@ -67,9 +39,6 @@ local function CreatePositionControls(parent, anchor, page, cfg)
     display:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -15)
     display:SetText(string.format(L["Current: %s (%d, %d)"],pos.point, pos.x, pos.y))
     UI.SetTextSuccess(display)
-    if cfg.displayField then
-        page[cfg.displayField] = display
-    end
 
     local function UpdateDisplay()
         local p = EnsurePosition(cfg.viewerName, cfg.defaults)
@@ -106,19 +75,18 @@ local function CreatePositionControls(parent, anchor, page, cfg)
     )
     page.controls[cfg.yKey]:SetPoint("TOPLEFT", page.controls[cfg.xKey], "BOTTOMLEFT", 0, -10)
 
-    return page.controls[cfg.yKey], display, UpdateDisplay
+    return page.controls[cfg.yKey]
 end
 
 local function CreatePositionsTab(page, tabId)
-    local scrollChild = UI.CreateScrollableTab(page, "AyijeCDM_PosScrollFrame", 720, 700)
+    local content = page
 
-    local essHeader = UI.CreateHeader(scrollChild, L["Essential Container Position"])
-    essHeader:SetPoint("TOPLEFT", 0, 0)
+    local essHeader = UI.CreateHeader(content, L["Essential Container Position"])
+    essHeader:SetPoint("TOPLEFT", 35, -40)
 
-    local essYSlider, essDisplay, essUpdateDisplay = CreatePositionControls(scrollChild, essHeader, page, {
+    local essYSlider = CreatePositionControls(content, essHeader, page, {
         viewerName = C.VIEWERS.ESSENTIAL,
         defaults = { point = "CENTER", x = 0, y = -201 },
-        displayField = "posDisplay",
         anchorPoint = "TOP",
         reanchor = function() CDM:ReanchorContainer(C.VIEWERS.ESSENTIAL) end,
         xKey = "xPos",
@@ -131,33 +99,36 @@ local function CreatePositionsTab(page, tabId)
         end,
     })
 
-    local utilYOffsetSlider = UI.CreateModernSlider(scrollChild, L["Utility Y Offset"], -600, 600, CDM.db.utilityYOffset, function(v)
+    local utilYOffsetSlider = UI.CreateModernSlider(content, L["Utility Y Offset"], -600, 600, CDM.db.utilityYOffset, function(v)
         CDM.db.utilityYOffset = v; API:Refresh("LAYOUT")
     end)
     utilYOffsetSlider:SetPoint("TOPLEFT", essYSlider, "BOTTOMLEFT", 0, -10)
 
-    local buffHeader = UI.CreateHeader(scrollChild, L["Main Buff Container Position"])
+    local buffHeader = UI.CreateHeader(content, L["Main Buff Container Position"])
     buffHeader:SetPoint("TOPLEFT", utilYOffsetSlider, "BOTTOMLEFT", 0, -15)
 
-    local buffYSlider, buffDisplay, buffUpdateDisplay = CreatePositionControls(scrollChild, buffHeader, page, {
+    local buffAnchorInfo = content:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+    buffAnchorInfo:SetText(L["Buffs are currently anchored to resources"] .. "\n" .. L["Resources tab > Global"])
+    buffAnchorInfo:SetJustifyH("LEFT")
+    buffAnchorInfo:SetPoint("LEFT", buffHeader, "RIGHT", 30, 0)
+    UI.SetTextError(buffAnchorInfo)
+    buffAnchorInfo:SetShown(CDM.db.moveBuffsDown == true)
+
+    local buffYSlider = CreatePositionControls(content, buffHeader, page, {
         viewerName = C.VIEWERS.BUFF,
         defaults = { point = "CENTER", x = 0, y = -149 },
-        displayField = "buffPosDisplay",
         anchorPoint = "BOTTOM",
         xKey = "buffXPos",
         yKey = "buffYPos",
+        reanchor = function() CDM:UpdateBuffContainerPosition() end,
     })
 
-    local buffBarHeader = UI.CreateHeader(scrollChild, L["Buff Bar Container Position"])
+    local buffBarHeader = UI.CreateHeader(content, L["Buff Bar Container Position"])
     buffBarHeader:SetPoint("TOPLEFT", buffYSlider, "BOTTOMLEFT", 0, -15)
 
-    local buffBarHelpText = CreateLockSection(scrollChild, buffBarHeader, page,
-        "buffBarLockCheckbox", "buffBarContainerLocked", C.VIEWERS.BUFF_BAR)
-
-    local _, buffBarDisplay, buffBarUpdateDisplay = CreatePositionControls(scrollChild, buffBarHelpText, page, {
+    CreatePositionControls(content, buffBarHeader, page, {
         viewerName = C.VIEWERS.BUFF_BAR,
         defaults = { point = "CENTER", x = 0, y = -324 },
-        displayField = "buffBarPosDisplay",
         xKey = "buffBarXPos",
         yKey = "buffBarYPos",
         reanchor = function() CDM:UpdateBuffBarContainerPosition() end,
@@ -167,51 +138,9 @@ local function CreatePositionsTab(page, tabId)
         end,
     })
 
-    local sliderGroups = {
-        essential = {
-            x = page.controls.xPos,
-            y = page.controls.yPos,
-            display = essDisplay,
-            updateDisplay = essUpdateDisplay,
-        },
-        buff = {
-            x = page.controls.buffXPos,
-            y = page.controls.buffYPos,
-            display = buffDisplay,
-            updateDisplay = buffUpdateDisplay,
-        },
-        buffBar = {
-            x = page.controls.buffBarXPos,
-            y = page.controls.buffBarYPos,
-            display = buffBarDisplay,
-            updateDisplay = buffBarUpdateDisplay,
-        },
-    }
-
-    local function UpdateSliderControl(control, value)
-        if not control then return end
-        if control.UpdateUIValue then
-            control:UpdateUIValue(value)
-        elseif control.Slider then
-            control.Slider:SetValue(value)
-        end
-    end
-
-    local function RegisterSliderUpdater(name)
-        API:RegisterPositionSliderUpdater(name, function(x, y)
-            local sliderGroup = sliderGroups[name]
-            if not sliderGroup then return end
-            UpdateSliderControl(sliderGroup.x, x)
-            UpdateSliderControl(sliderGroup.y, y)
-            if sliderGroup.updateDisplay then
-                sliderGroup.updateDisplay()
-            end
-        end)
-    end
-
-    RegisterSliderUpdater("essential")
-    RegisterSliderUpdater("buff")
-    RegisterSliderUpdater("buffBar")
+    page:HookScript("OnShow", function()
+        buffAnchorInfo:SetShown(CDM.db.moveBuffsDown == true)
+    end)
 end
 
 API:RegisterConfigTab("positions", L["Positions"], CreatePositionsTab, 3)

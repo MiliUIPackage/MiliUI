@@ -6,7 +6,6 @@ local CDM_C = CDM.CONST
 local UnitPowerMax = UnitPowerMax
 local UnitPowerPercent = UnitPowerPercent
 local IsSafeNumber = CDM.IsSafeNumber
-local GetFrameData = CDM.GetFrameData
 
 local POWER_TYPES = res.POWER_TYPES
 
@@ -234,17 +233,16 @@ local function ClearCondState(bar, powerType, condState, base, baseBg)
 end
 
 local function ApplyBarConditions(bar, powerType, current, max)
-    local frameData = GetFrameData(bar)
     local versionNow = CDM._conditionsVersion or 0
 
-    local cache = frameData.condCache
+    local cache = bar.cdmCondCache
     if cache and cache.version == versionNow and cache.noConditions then return end
 
     local conditions = GetConditions(bar.barKey)
-    local condState = frameData.condState
+    local condState = bar.cdmCondState
 
     if not conditions then
-        if not cache then cache = { rules = {} }; frameData.condCache = cache end
+        if not cache then cache = { rules = {} }; bar.cdmCondCache = cache end
         cache.version = versionNow
         cache.noConditions = true
         cache.curvesValid = false
@@ -267,7 +265,7 @@ local function ApplyBarConditions(bar, powerType, current, max)
 
     if not cache then
         cache = { rules = {} }
-        frameData.condCache = cache
+        bar.cdmCondCache = cache
     end
 
     local nValid
@@ -298,7 +296,7 @@ local function ApplyBarConditions(bar, powerType, current, max)
 
     if not condState then
         condState = {}
-        frameData.condState = condState
+        bar.cdmCondState = condState
     end
 
     if nValid == 0 then
@@ -470,18 +468,17 @@ local SetStatusBarColorIfChanged = res.SetStatusBarColorIfChanged
 local SetVertexColorIfChanged = res.SetVertexColorIfChanged
 
 local function ApplyPipConditions(bar, powerType, current, max)
-    local frameData = GetFrameData(bar)
     local versionNow = CDM._conditionsVersion or 0
 
-    local cache = frameData.condCache
+    local cache = bar.cdmCondCache
     if cache and cache.version == versionNow and cache.noConditions then return end
 
     local conditions = GetConditions(bar.barKey)
     if not conditions then
-        if not cache then cache = {}; frameData.condCache = cache end
+        if not cache then cache = {}; bar.cdmCondCache = cache end
         cache.version = versionNow
         cache.noConditions = true
-        local condState = frameData.condState
+        local condState = bar.cdmCondState
         if condState then
             if condState.pipColorApplied and bar.pips then
                 local baseColors = bar._pipBaseColors
@@ -508,10 +505,10 @@ local function ApplyPipConditions(bar, powerType, current, max)
         return
     end
 
-    local condState = frameData.condState
+    local condState = bar.cdmCondState
     if not condState then
         condState = {}
-        frameData.condState = condState
+        bar.cdmCondState = condState
     end
 
     local state = BuildBarState(powerType, current, max)

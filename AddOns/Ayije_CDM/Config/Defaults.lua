@@ -135,11 +135,8 @@ CDM.defaults = {
     utilityUnlock = false,
     utilityXOffset = 0,
     utilityVertical = false,
-    containerLocked = true,
-    buffContainerLocked = true,
 
     -- BuffBar viewer settings
-    buffBarContainerLocked = true,
     buffBarWidth = 0,               -- 0 = auto (match Essential row 1 width)
     buffBarHeight = 20,
     buffBarSpacing = 1,
@@ -152,7 +149,7 @@ CDM.defaults = {
     buffBarTexture = "Solid",
     buffBarColor = { r = 0.4, g = 0.6, b = 0.9, a = 1 },
     buffBarBackgroundColor = { r = 0.1, g = 0.1, b = 0.1, a = 0.8 },
-    buffBarDualMode = false,        -- 2 bars per row: [bar-icon] [icon-bar]
+    buffBarFillDirection = "RIGHT_TO_LEFT",
     buffBarNameFontSize = 15,
     buffBarNameColor = { r = 1, g = 1, b = 1, a = 1 },
     buffBarNameOffsetX = 2,
@@ -256,6 +253,10 @@ CDM.defaults = {
     racialsPartyFrameSide = "LEFT",
     racialsPartyFrameOffsetX = -1,
     racialsPartyFrameOffsetY = 20,
+    racialsRaidFrameAnchorPoint = "BOTTOMLEFT",
+    racialsRaidFrameRelativePoint = "TOPLEFT",
+    racialsRaidFrameOffsetX = 0,
+    racialsRaidFrameOffsetY = 0,
 
     -- Per-bar resource settings (schema v9)
     resourceBarSettings = {},
@@ -284,7 +285,6 @@ CDM.defaults = {
     castBarAnchor = "resources",
     castBarAnchorPoint = "BOTTOM",
     castBarTargetPoint = "TOP",
-    castBarPreviewEnabled = false,
     castBarShowIcon = false,
     castBarIconPosition = "LEFT",   -- "LEFT" or "RIGHT"
     castBarIconGap = 1,
@@ -301,6 +301,8 @@ CDM.defaults = {
     castBarEmpowerStage2Color = { r = 0.26, g = 0.90, b = 0.55, a = 1 },
     castBarEmpowerStage3Color = { r = 1.0, g = 0.80, b = 0.0, a = 1 },
     castBarEmpowerStage4Color = { r = 1.0, g = 0.35, b = 0.0, a = 1 },
+    castBarOverridesEnabled = false,
+    castBarOverrides = {},
 
     borderFile = "1 Pixel",
     borderSize = 1,
@@ -313,6 +315,8 @@ CDM.defaults = {
     ungroupedCustomBuffOrder = {},
     buffGroups = {},
     ungroupedBuffOverrides = {},
+    barGroups = {},
+    ungroupedBarOverrides = {},
     cooldownGroups = {},
     ungroupedCooldownOverrides = {},
 
@@ -365,6 +369,8 @@ CDM.defaults = {
     hideIconOverlayTexture = true,
     swipeColor = { r = 0, g = 0, b = 0, a = 0.6 },
     hideGCDSwipe = false,
+    hideBuffSwipe = false,
+    disableCooldownDesat = false,
 
     -- Glow Settings
     glowType = "pixel", -- "pixel", "autocast", "button", "proc"
@@ -402,10 +408,12 @@ CDM.defaults = {
 
     pandemicCustomizationEnabled = false,
     pandemicBorderEnabled = false,
+    pandemicBorderColorBuffBars = false,
     pandemicBorderColor   = { r = 1.00, g = 0.70, b = 0.10, a = 1 },
 
     chargeShowEdge  = false,
     chargeHideSwipe = false,
+    chargeHideRechargeTimer = false,
 
     -- Fading
     fadingEnabled = false,

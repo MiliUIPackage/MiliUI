@@ -43,7 +43,6 @@ CDM:SetScript("OnEvent", function(self, event, ...)
 end)
 
 CDM.RefreshCallbacks = {}
-CDM._positionSliderUpdaters = {}
 
 local refreshCallbackList = {}
 local refreshCallbackSeq = 0
@@ -90,28 +89,6 @@ function CDM:UnregisterRefreshCallback(id)
             table.remove(refreshCallbackList, i)
             break
         end
-    end
-end
-
-function CDM:RegisterPositionSliderUpdater(name, callback)
-    if type(name) ~= "string" or name == "" then return end
-    if type(callback) ~= "function" then return end
-    self._positionSliderUpdaters[name] = callback
-end
-
-function CDM:UnregisterPositionSliderUpdater(name)
-    if name == nil then
-        wipe(self._positionSliderUpdaters)
-        return
-    end
-    self._positionSliderUpdaters[name] = nil
-end
-
-function CDM:NotifyPositionSliderUpdate(name, x, y, useRawSlider)
-    if type(name) ~= "string" or name == "" then return end
-    local callback = self._positionSliderUpdaters[name]
-    if callback then
-        callback(x, y, useRawSlider)
     end
 end
 
@@ -188,6 +165,18 @@ function CDM.IsSafeNumber(value)
     return value ~= nil
        and type(value) == "number"
        and canaccessvalue(value)
+end
+
+function CDM.Print(msg)
+    print("|cff00ccff[ACDM]|r " .. tostring(msg))
+end
+
+function CDM.PrintError(msg)
+    print("|cffff0000[ACDM]|r " .. tostring(msg))
+end
+
+function CDM.PrintSuccess(msg)
+    print("|cff00ff00[ACDM]|r " .. tostring(msg))
 end
 
 function CDM.IsOnRealCooldown(spellID, isChargeSpell)

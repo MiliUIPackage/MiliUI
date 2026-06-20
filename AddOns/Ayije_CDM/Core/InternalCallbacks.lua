@@ -45,7 +45,9 @@ local function UnregisterHandler(list, fn)
 end
 
 local function FlushHandlers(list, ...)
-    for _, fn in ipairs(list) do
+    local snapshot = {}
+    for i = 1, #list do snapshot[i] = list[i] end
+    for _, fn in ipairs(snapshot) do
         fn(...)
     end
 end

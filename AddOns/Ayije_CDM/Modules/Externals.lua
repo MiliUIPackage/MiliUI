@@ -3,7 +3,6 @@ local CDM = _G[AddonName]
 
 local CDM_C = CDM and CDM.CONST or {}
 local BORDER = CDM.BORDER
-local GetFrameData = CDM.GetFrameData
 local Pixel = CDM.Pixel
 local Snap = Pixel.Snap
 local GetConfigValue = CDM_C.GetConfigValue
@@ -42,16 +41,13 @@ local function StyleCDText(text, fontPath, fontSize, fontOutline, color)
 end
 
 local function StyleButton(button)
-    local fd = GetFrameData(button)
-    if not fd then return end
-
     local styleVersion = CDM.styleCacheVersion or 0
-    if not needsStyleUpdate and fd.cdmExternalStyleVersion == styleVersion then
+    if not needsStyleUpdate and button.cdmExternalStyleVersion == styleVersion then
         return
     end
 
     local w, h = GetSize()
-    local cd = fd.cdmExternalCooldown
+    local cd = button.cdmExternalCooldown
 
     local zoomAmount = CDM_C.GetEffectiveZoomAmount()
     CDM_C.ApplyIconTexCoord(button.Icon, zoomAmount, w, h)
@@ -87,23 +83,21 @@ local function StyleButton(button)
 
     local borderActive = CDM.db and CDM.db.borderFile ~= "None"
     if borderActive and BORDER and BORDER.CreateBorder then
-        if not fd.cdmExternalBorderFrame then
-            fd.cdmExternalBorderFrame = CreateFrame("Frame", nil, button)
-            fd.cdmExternalBorderFrame:SetAllPoints(button)
-        end
         local currentBorderVersion = CDM.borderStyleVersion or 0
-        local borderForce = fd.cdmExternalBorderVersion ~= currentBorderVersion
-        if not fd.cdmExternalBorderInit or borderForce then
-            BORDER:CreateBorder(fd.cdmExternalBorderFrame, borderForce and { forceUpdate = true } or nil)
-            fd.cdmExternalBorderInit = true
-            fd.cdmExternalBorderVersion = currentBorderVersion
+        local borderForce = button.cdmExternalBorderVersion ~= currentBorderVersion
+        if not button.cdmExternalBorder or borderForce then
+            button.cdmExternalBorder = BORDER:CreateBorder(button, borderForce)
+            button.cdmExternalBorderVersion = currentBorderVersion
         end
-        fd.cdmExternalBorderFrame:Show()
-    elseif fd.cdmExternalBorderFrame then
-        fd.cdmExternalBorderFrame:Hide()
+        if button.cdmExternalBorder then
+            BORDER:SetBorderSuppressed(button, false)
+            button.cdmExternalBorder:Show()
+        end
+    elseif button.cdmExternalBorder then
+        button.cdmExternalBorder:Hide()
     end
 
-    fd.cdmExternalStyleVersion = styleVersion
+    button.cdmExternalStyleVersion = styleVersion
 end
 
 local function ApplySizesToButton(button)
@@ -122,16 +116,12 @@ local function ApplySizesAndRelayout()
 
     local w, h = GetSize()
     local spacing = GetConfigValue("spacing", CDM.defaults.spacing) or 1
-    local enabledCount = 0
 
     for _, button in ipairs(auraButtons) do
         button:SetScale(1)
         button:SetSize(w, h)
         button.Icon:ClearAllPoints()
         button.Icon:SetAllPoints(button)
-        if button.hasValidInfo or button.isExample or button.isAuraAnchor then
-            enabledCount = enabledCount + 1
-        end
     end
 
     if GridLayoutUtil and GridLayoutUtil.ApplyGridLayout and layoutInfo.anchor then
@@ -147,8 +137,8 @@ local function ApplySizesAndRelayout()
     end
 end
 
-local function SetCooldownFromButtonInfo(fd, buttonInfo)
-    local cd = fd.cdmExternalCooldown
+local function SetCooldownFromButtonInfo(button, buttonInfo)
+    local cd = button.cdmExternalCooldown
     if not cd then return end
 
     if buttonInfo and buttonInfo.auraInstanceID then
@@ -165,10 +155,7 @@ end
 local function OnButtonUpdate(button, buttonInfo)
     if not isEnabled then return end
 
-    local fd = GetFrameData(button)
-    if not fd then return end
-
-    SetCooldownFromButtonInfo(fd, buttonInfo)
+    SetCooldownFromButtonInfo(button, buttonInfo)
 
     button.Duration:Hide()
 
@@ -198,21 +185,19 @@ local function InitializeExternals()
 
     for _, button in ipairs(ExternalDefensivesFrame.auraFrames) do
         if not button.isAuraAnchor then
-            local fd = GetFrameData(button)
-
             local cd = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
             cd:SetAllPoints(button)
             cd:SetDrawEdge(false)
             cd:SetDrawBling(false)
             cd:SetReverse(true)
-            CDM._cdmCooldowns[cd] = true
-            fd.cdmExternalCooldown = cd
+            CDM.cdmCooldowns[cd] = true
+            button.cdmExternalCooldown = cd
 
             hooksecurefunc(button, "Update", function(self, buttonInfo)
                 OnButtonUpdate(self, buttonInfo)
             end)
 
-            hooksecurefunc(button, "OnUpdate", function(self)
+            button:HookScript("OnUpdate", function(self)
                 OnButtonOnUpdate(self)
             end)
 
@@ -244,9 +229,8 @@ local function EnableExternals()
         if button.hasValidInfo then
             button.Duration:Hide()
             StyleButton(button)
-            local fd = GetFrameData(button)
-            if fd and button.buttonInfo then
-                SetCooldownFromButtonInfo(fd, button.buttonInfo)
+            if button.buttonInfo then
+                SetCooldownFromButtonInfo(button, button.buttonInfo)
             end
         end
     end
@@ -260,27 +244,23 @@ local function DisableExternals()
     isEnabled = false
 
     for _, button in ipairs(auraButtons) do
-        local fd = GetFrameData(button)
-
-        if fd and fd.cdmExternalCooldown then
-            fd.cdmExternalCooldown:Clear()
+        if button.cdmExternalCooldown then
+            button.cdmExternalCooldown:Clear()
         end
 
         if button.Icon then
             button.Icon:SetTexCoord(0, 1, 0, 1)
         end
 
-        if fd and fd.cdmExternalBorderFrame then
-            fd.cdmExternalBorderFrame:Hide()
+        if button.cdmExternalBorder then
+            BORDER:SetBorderSuppressed(button, true)
         end
 
         if button.Duration then
             button.Duration:Show()
         end
 
-        if fd then
-            fd.cdmExternalStyleVersion = nil
-        end
+        button.cdmExternalStyleVersion = nil
     end
 
     if ExternalDefensivesFrame and ExternalDefensivesFrame.UpdateGridLayout then

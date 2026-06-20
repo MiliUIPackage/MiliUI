@@ -18,8 +18,8 @@ local animStartTime = 0
 local animStartAlpha = 1.0
 local animating = false
 local isEnabled = false
-local inCombat = InCombatLockdown() and true or false
-local isMounted = IsMounted() and true or false
+local inCombat = false
+local isMounted = false
 
 local DRUID_TRAVEL_FORM_IDS = {[3] = true, [4] = true, [27] = true, [29] = true}
 
@@ -109,9 +109,9 @@ local function ApplyAlphaToAll(alpha)
 
     for _, entry in ipairs(viewerTargets) do
         local a = (db[entry.dbKey] ~= false) and alpha or 1.0
-        local viewer = _G[entry.viewer]
-        if viewer and viewer.itemFramePool then
-            for frame in viewer.itemFramePool:EnumerateActive() do
+        local v = _G[entry.viewer]
+        if v and v.itemFramePool then
+            for frame in v.itemFramePool:EnumerateActive() do
                 frame:SetAlpha(a)
             end
         end
@@ -201,14 +201,6 @@ function Fading:ReapplyCurrent()
     ApplyAlphaToAll(currentAlpha)
 end
 
-function Fading:GetAlpha(targetKey)
-    if not isEnabled then return 1.0 end
-    if CDM.db[targetKey] ~= false then
-        return currentAlpha
-    end
-    return 1.0
-end
-
 local function OnTargetChanged()
     Fading:Evaluate()
 end
@@ -259,6 +251,9 @@ local function Disable()
 end
 
 function Fading:Initialize()
+    inCombat = InCombatLockdown() and true or false
+    isMounted = IsMounted() and true or false
+
     CDM:RegisterRefreshCallback("fading", function()
         local db = CDM.db
         if db and db.fadingEnabled then

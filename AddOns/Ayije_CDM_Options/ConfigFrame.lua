@@ -20,7 +20,6 @@ local footerRefreshRegistered = false
 local lastFooterFont = nil
 local combatCloseRegistered = false
 local SCROLL_FRAME_NAMES = {
-    positions = "AyijeCDM_PosScrollFrame",
     racials = "AyijeCDM_RacialsScrollFrame",
     defensives = "AyijeCDM_DefensivesScrollFrame",
     trinkets = "AyijeCDM_TrinketsScrollFrame",
@@ -81,6 +80,7 @@ local function HideConfigPopups()
     StaticPopup_Hide("AYIJE_CDM_CONFIRM_DELETE_PROFILE")
     StaticPopup_Hide("AYIJE_CDM_CONFIRM_DELETE_GROUP")
     StaticPopup_Hide("AYIJE_CDM_CONFIRM_DELETE_CD_GROUP")
+    StaticPopup_Hide("AYIJE_CDM_CONFIRM_DELETE_BAR_GROUP")
 end
 
 local function HideConfigUiForCombat()
@@ -98,8 +98,10 @@ local function RegisterCombatConfigAutoClose()
     if combatCloseRegistered then return end
     combatCloseRegistered = true
 
-    CDM:RegisterEvent("PLAYER_REGEN_DISABLED", function()
-        HideConfigUiForCombat()
+    CDM:RegisterCombatStateHandler(function(isInCombat)
+        if isInCombat then
+            HideConfigUiForCombat()
+        end
     end)
 end
 
@@ -180,6 +182,10 @@ local function CreateConfigFrame()
         if CDM.SetBuffGroupsTabActive then
             CDM:SetBuffGroupsTabActive(false)
         end
+        if CDM.castBarPreviewActive then
+            CDM.castBarPreviewActive = false
+            API:Refresh("STYLE")
+        end
     end)
 
     if ConfigFrame.TitleText then
@@ -197,7 +203,7 @@ local function CreateConfigFrame()
     local title = titleContainer:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font18")
     title:SetPoint("TOP", ConfigFrame, "TOP", 0, -30)
     title:SetText("Ayije CDM")
-    UI.SetTextColor(title, CDM_C.GOLD or { r = 1, g = 0.82, b = 0, a = 1 })
+    UI.SetTextColor(title, CDM_C.GOLD)
 
     local subtitle = titleContainer:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     subtitle:SetPoint("TOP", title, "BOTTOM", 0, -2)
@@ -237,7 +243,6 @@ local function CreateConfigFrame()
     ConfigFrame:SetScript("OnDragStart", ConfigFrame.StartMoving)
     ConfigFrame:SetScript("OnDragStop", ConfigFrame.StopMovingOrSizing)
 
-    -- Host the inner-frame atlas on a child so it renders above the template background.
     local panelBgHolder = CreateFrame("Frame", nil, ConfigFrame)
     panelBgHolder:SetAllPoints()
     local panelBg = panelBgHolder:CreateTexture(nil, "BACKGROUND")
@@ -290,11 +295,7 @@ local function CreateConfigFrame()
     versionText:SetPoint("BOTTOMRIGHT", ConfigFrame, "BOTTOMRIGHT", -22, 10)
     ApplyFooterTextStyle(versionText)
     versionText:SetText(GetAddonVersionText() or "")
-    if UI and UI.SetTextFaint then
-        UI.SetTextFaint(versionText)
-    else
-        versionText:SetTextColor(0.5, 0.5, 0.5, 1)
-    end
+    UI.SetTextFaint(versionText)
 
     local Sidebar = CreateFrame("Frame", nil, ConfigFrame)
     Sidebar:SetPoint("TOPLEFT", panelBg, "TOPLEFT", 1, 0)
@@ -338,7 +339,7 @@ local function CreateConfigFrame()
     local function AddNav(id, label, y, indent)
         indent = indent or 0
         local btn = CreateFrame("Button", nil, Sidebar)
-        btn:SetSize(175 - indent, 22)  -- Match header width
+        btn:SetSize(175 - indent, 22)
         btn:SetPoint("TOPLEFT", indent, y)
 
         btn.Texture = btn:CreateTexture(nil, "BACKGROUND")
@@ -347,7 +348,7 @@ local function CreateConfigFrame()
         btn.Texture:Hide()
 
         btn.Text = btn:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-        btn.Text:SetPoint("LEFT", indent, 0)  -- Include indent for child hierarchy
+        btn.Text:SetPoint("LEFT", indent, 0)
         btn.Text:SetText(label)
 
         btn:SetScript("OnEnter", function(self)
@@ -413,27 +414,6 @@ function API:RebuildConfigFrame(targetTab)
     end
 
     if ConfigFrame then
-        if ns.eventRegistryTokens and EventRegistry then
-            for eventKey, tokenEntry in pairs(ns.eventRegistryTokens) do
-                local eventName = eventKey
-                local token = tokenEntry
-
-                if type(tokenEntry) == "table" then
-                    eventName = tokenEntry.eventName or tokenEntry[1] or eventKey
-                    token = tokenEntry.token or tokenEntry[2]
-                end
-
-                if eventName and token then
-                    EventRegistry:UnregisterCallback(eventName, token)
-                end
-            end
-            ns.eventRegistryTokens = {}
-        end
-
-        API:UnregisterPositionSliderUpdater("essential")
-        API:UnregisterPositionSliderUpdater("buff")
-        API:UnregisterPositionSliderUpdater("buffBar")
-
         API:UnregisterRefreshCallback("configFooterTextStyle")
         footerRefreshRegistered = false
         if ns.CancelImportStatusTimer then
@@ -441,7 +421,7 @@ function API:RebuildConfigFrame(targetTab)
         end
 
         ConfigFrame:Hide()
-        ConfigFrame:SetParent(nil)  -- orphan for GC
+        ConfigFrame:SetParent(nil)
         ConfigFrame = nil
         categories = {}
         buttons = {}

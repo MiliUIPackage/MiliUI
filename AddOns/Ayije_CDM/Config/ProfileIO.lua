@@ -29,20 +29,14 @@ local function NormalizeWireString(profileString)
 end
 
 function ProfileIO:EncodePayload(payload)
-    local ok, cbor = pcall(C_EncodingUtil.SerializeCBOR, payload)
-    if not ok or not cbor then
-        return nil, "serialization_failed", cbor
-    end
+    local cbor = C_EncodingUtil.SerializeCBOR(payload)
+    if not cbor then return nil end
 
-    local okCompressed, compressed = pcall(C_EncodingUtil.CompressString, cbor)
-    if not okCompressed or not compressed then
-        return nil, "compression_failed", compressed
-    end
+    local compressed = C_EncodingUtil.CompressString(cbor)
+    if not compressed then return nil end
 
-    local okBase64, base64 = pcall(C_EncodingUtil.EncodeBase64, compressed)
-    if not okBase64 or not base64 then
-        return nil, "base64_failed", base64
-    end
+    local base64 = C_EncodingUtil.EncodeBase64(compressed)
+    if not base64 then return nil end
 
     return WIRE_PREFIX .. base64
 end
@@ -53,18 +47,18 @@ function ProfileIO:DecodePayload(profileString)
         return nil, "empty"
     end
 
-    local okDecode, compressed = pcall(C_EncodingUtil.DecodeBase64, normalized)
-    if not okDecode or not compressed then
+    local compressed = C_EncodingUtil.DecodeBase64(normalized)
+    if not compressed then
         return nil, "invalid_base64"
     end
 
-    local okDecompress, decompressed = pcall(C_EncodingUtil.DecompressString, compressed)
-    if not okDecompress or not decompressed then
+    local decompressed = C_EncodingUtil.DecompressString(compressed)
+    if not decompressed then
         return nil, "decompression_failed"
     end
 
-    local okDeserialize, payload = pcall(C_EncodingUtil.DeserializeCBOR, decompressed)
-    if not okDeserialize or type(payload) ~= "table" then
+    local payload = C_EncodingUtil.DeserializeCBOR(decompressed)
+    if type(payload) ~= "table" then
         return nil, "invalid_profile_data"
     end
 
@@ -251,6 +245,7 @@ function ProfileIO:BuildImportProfile(payload, addonName, defaults, categoryDefs
     for _, key in ipairs(legacyMigrationKeys) do
         if profileData[key] ~= nil and newProfile[key] == nil then
             newProfile[key] = CopyValue(profileData[key])
+            importedCount = importedCount + 1
         end
     end
 
