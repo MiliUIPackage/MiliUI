@@ -273,6 +273,31 @@ addonTable.EventSoundData = {
     [426] = { {"ZhunBeiAOE.ogg", 1}, {"WuMiaoHouAOE.ogg", 2, {HEALER = true}} }, -- 脓包爆裂 (1221787)
     [427] = { {"WuMiaoHouTanKeJianCi.ogg", 2, {TANK = true}}, {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 腐烂之拳 (1221781)
     [428] = { {"ZhunBeiDianMing.ogg", 1, {DAMAGER = true, HEALER = true}} }, -- 溃烂藤蔓 (1222088)
-    -- [808] = { {".ogg", 1} }, -- 未知 (0)
-    -- [809] = { {".ogg", 1} }, -- 未知 (0)
+    -- [808] = { {"HongSeLianXian.ogg", 0} },
+    -- [809] = { {"LvSeLianXian.ogg", 0} },
+    -- 光明众花
+    [177] = { {"ZhunBeiCaiQuan.ogg", 1} }, -- 光明之花射线 (1235564)
+    [173] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 基岩猛击 (1234753)
+    [174] = { {"DuoKaiChongFeng.ogg", 1} }, -- 播光急奔 (1234850)
+    -- [175] = { {"ZhunBeiLiuXue.ogg", 1} }, -- 荆棘之刃 (1235640)
+    -- [176] = { {"ZhunBeiLiuXue.ogg", 1} }, -- 荆棘之刃 (1261276)
+
+    -- 圣光猎手伊库兹
+    [179] = { {"ZhunBeiAOE.ogg", 1} }, -- 唤棘者咆哮 (1236709)
+    [180] = { {"MuBiaoShiNi.ogg", 0} }, -- 嗜血注视 (1237090)
+    [178] = { {"XiaoXinJiTui.ogg", 1} }, -- 青翠践踏 (1236746)
+
+    -- 护光者鲁伊亚
+    [181] = { {"ZhuYiDianMing.ogg", 1}, {"TieBianFangShui.ogg", 0}}, -- 光明之火 (1239824)
+    [182] = { {"ZhuYiDuoQuan.ogg", 1} }, -- 光明坠落 (1240098)
+    [184] = { {"ZhunBeiLiuXue.ogg", 1}, {"WuMiaoHouAOE.ogg", 2, {HEALER = true}} }, -- 凶残痛击 (1241058)
+    [188] = { {"JieDuanZhuanHuan.ogg", 1} }, -- 峡谷之灵 (1241067)
+    [115] = { {"TanKeChengShang.ogg", 1} }, -- 撕裂之爪 (1258136)
+    [183] = { {"ZhuYiDianMing.ogg", 1} }, -- 粉碎打击 (1240210)
+
+    -- 兹欧凯特
+    [192] = { {"ZhunBeiChiQiu.ogg", 1} }, -- 光绽精华 (1246858)
+    [191] = { {"MuBiaoShiNi.ogg", 0} }, -- 凝聚光线 (1246607)
+    [189] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 唤醒光绽 (1246372)
+    [190] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 棘刺 (1247685)
 }
