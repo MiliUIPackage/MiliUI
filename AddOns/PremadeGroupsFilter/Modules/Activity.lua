@@ -681,7 +681,21 @@ C.ACTIVITY = {
     [1793] = { difficulty = 4, category =   2, mapID = 1651, cmID = 234 }, -- Upper Karazhan (Mythic Keystone)
     [1794] = { difficulty = 4, category =   2, mapID = 1651, cmID = 234 }, -- Lower Karazhan (Mythic Keystone)
     [1795] = { difficulty = 4, category =   2, mapID = 1493, cmID = 207 }, -- Vault of the Wardens (Mythic Keystone)
+    [1930] = { difficulty = 1, category =   2, mapID = 2993, cmID =   0 }, -- Altar of Fangs (Normal)
+    [1931] = { difficulty = 2, category =   2, mapID = 2993, cmID =   0 }, -- Altar of Fangs (Heroic)
+    [1932] = { difficulty = 3, category =   2, mapID = 2993, cmID =   0 }, -- Altar of Fangs (Mythic)
+    [1933] = { difficulty = 4, category =   2, mapID = 2993, cmID = 588 }, -- Altar of Fangs (Mythic Keystone)
     [1945] = { difficulty = 4, category =   2, mapID = 1677, cmID = 233 }, -- Cathedral of Eternal Night (Mythic Keystone)
+    [1946] = { difficulty = 1, category =   3, mapID = 1592, cmID =   0 }, -- Sporefall (Normal)
+    [1947] = { difficulty = 3, category =   3, mapID = 1592, cmID =   0 }, -- Sporefall (Mythic)
+    [1948] = { difficulty = 2, category =   3, mapID = 1592, cmID =   0 }, -- Sporefall (Heroic)
+    [1949] = { difficulty = 4, category =   2, mapID = 2859, cmID = 584 }, -- The Blinding Vale (Mythic Keystone)
+    [1950] = { difficulty = 4, category =   2, mapID = 2813, cmID = 587 }, -- Murder Row (Mythic Keystone)
+    [1951] = { difficulty = 4, category =   2, mapID = 2923, cmID = 585 }, -- Voidscar Arena (Mythic Keystone)
+    [1952] = { difficulty = 4, category =   2, mapID = 2825, cmID = 586 }, -- Den of Nalorakk (Mythic Keystone)
+    [1955] = { difficulty = 1, category =   3, mapID = 3004, cmID =   0 }, -- The Venomous Abyss (Normal)
+    [1956] = { difficulty = 1, category =   3, mapID = 3004, cmID =   0 }, -- The Venomous Abyss (Heroic)
+    [1957] = { difficulty = 1, category =   3, mapID = 3004, cmID =   0 }, -- The Venomous Abyss (Mythic)
 }
 
 -- Return a default set if activity not found

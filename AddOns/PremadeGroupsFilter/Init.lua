@@ -199,6 +199,7 @@ C.SETTINGS_DEFAULT = {
     coloredGroupTexts = true,
     compactListEntries = false,
     ratingInfo = true,
+    groupAge = false,
     specIcon = false,
     classCircle = false,
     classBar = false,
@@ -359,6 +360,7 @@ function PGF.OnAddonLoaded(name)
 end
 
 function PGF.OnPlayerLogin()
+    PGF.InitPersistSignUpNote()
     if PGF.IsRetail() then
         PGF.InitCompactListEntries()
     end

@@ -36,6 +36,7 @@ local DELVE_ZONE_MAPS = {
     2437, -- Zul'Aman
     2443, -- Silvermoon City
     2424, -- Isle of Quel'Danas
+    2512, -- The Coiled Isle
 }
 local DELVE_ACTIVITY_MAP = {
     -- Source: https://wago.tools/db2/GroupFinderActivity?filter%5BGroupFinderCategoryID%5D=121&filter%5BFullName_lang%5D=%28Tier%201%29&page=1&sort%5BGroupFinderActivityGrpID%5D=asc
@@ -52,6 +53,9 @@ local DELVE_ACTIVITY_MAP = {
     { activityGroupID = 413, tier1ActivityID = 1892 }, -- The Shadow Enclave
     { activityGroupID = 414, tier1ActivityID = 1903 }, -- Twilight Crypts
     { activityGroupID = 415, tier1ActivityID = 1914 }, -- The Darkway
+    --{ activityGroupID =   0, tier1ActivityID =    0 }, -- The Ring of Glory
+    --{ activityGroupID =   0, tier1ActivityID =    0 }, -- Gnarldor Isle
+    --{ activityGroupID = 999, tier1ActivityID = 9999 }, -- Venomfall Deeps
 }
 setmetatable(DELVE_ACTIVITY_MAP, { __index = function() return { activityGroupID = 0, tier1ActivityID = 0 } end })
 
@@ -64,11 +68,13 @@ function DelvePanel:GetBountifulDelves()
     local bountifulDelves = {}
     for _, mapID in ipairs(DELVE_ZONE_MAPS) do
         local delves = C_AreaPoiInfo.GetDelvesForMap(mapID)
-        for _, poiID in ipairs(delves) do
-            local poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(mapID, poiID)
-            local isBountiful = poiInfo.atlasName == "delves-bountiful"
-            if isBountiful then
-               table.insert(bountifulDelves, poiInfo.name)
+        if delves then -- map not yet in the game files (patch not yet released) or other problem
+            for _, poiID in ipairs(delves) do
+                local poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(mapID, poiID)
+                local isBountiful = poiInfo.atlasName == "delves-bountiful"
+                if isBountiful then
+                   table.insert(bountifulDelves, poiInfo.name)
+                end
             end
         end
     end
@@ -128,26 +134,31 @@ function DelvePanel:OnLoad()
         local activityGroupID = DELVE_ACTIVITY_MAP[i].activityGroupID
         local tier1ActivityID = DELVE_ACTIVITY_MAP[i].tier1ActivityID
         local activityInfo = PGF.GetActivityInfoTable(tier1ActivityID)
-        local name = PGF.String_RemoveBrackets(activityInfo.fullName)
+        if activityInfo then
+            local name = PGF.String_RemoveBrackets(activityInfo.fullName)
 
-        delve.activityGroupID = activityGroupID
-        delve.tier1ActivityID = tier1ActivityID
-        delve.name = name
-        delve:SetWidth(145)
-        delve.Title:SetText(name)
-        delve.Title:SetWidth(105)
-        delve.Act:SetScript("OnClick", function(element)
-            self.state["delve" .. i] = element:GetChecked()
-            self:TriggerFilterExpressionChange()
-        end)
-        delve:SetScript("OnEnter", function (self)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(self.name, nil, nil, nil, nil, true)
-            GameTooltip:Show()
-        end)
-        delve:SetScript("OnLeave", function(self)
-            GameTooltip:Hide()
-        end)
+            delve.activityGroupID = activityGroupID
+            delve.tier1ActivityID = tier1ActivityID
+            delve.name = name
+            delve:SetWidth(145)
+            delve.Title:SetText(name)
+            delve.Title:SetWidth(105)
+            delve.Act:SetScript("OnClick", function(element)
+                self.state["delve" .. i] = element:GetChecked()
+                self:TriggerFilterExpressionChange()
+            end)
+            delve:SetScript("OnEnter", function (self)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(self.name, nil, nil, nil, nil, true)
+                GameTooltip:Show()
+            end)
+            delve:SetScript("OnLeave", function(self)
+                GameTooltip:Hide()
+            end)
+        else
+            -- delve not yet in the game files (patch not yet released)
+            delve:Hide()
+        end
     end
 
     -- Hide unused checkboxes
@@ -197,10 +208,12 @@ function DelvePanel:UpdateDelves()
         local color = WHITE_FONT_COLOR
         local isBountiful = false
         local delve = self.Delves["Delve"..i]
-        for _, bountifulDelveName in ipairs(bountifulDelves) do
-            if PGF.IsMostLikelySameInstance(delve.name, bountifulDelveName) then
-                color = NORMAL_FONT_COLOR
-                isBountiful = true
+        if delve.name then
+            for _, bountifulDelveName in ipairs(bountifulDelves) do
+                if PGF.IsMostLikelySameInstance(delve.name, bountifulDelveName) then
+                    color = NORMAL_FONT_COLOR
+                    isBountiful = true
+                end
             end
         end
         delve.Title:SetTextColor(color:GetRGB())

@@ -30,16 +30,6 @@ local DIFFICULTY_TEXT = {
 }
 
 local CMID_MAP = {
-    -- The War Within Season 3
-    [542] = { order = 1, activityGroupID = 381, keyword = "eda"  }, -- Eco-Dome Al'dani
-    [503] = { order = 2, activityGroupID = 323, keyword = "arak" }, -- Ara-Kara, City of Echoes
-    [499] = { order = 3, activityGroupID = 324, keyword = "psf"  }, -- Priory of the Sacred Flame
-    [505] = { order = 4, activityGroupID = 326, keyword = "dawn" }, -- The Dawnbreaker
-    [525] = { order = 5, activityGroupID = 371, keyword = "fg"   }, -- Operation: Floodgate
-    [378] = { order = 6, activityGroupID = 261, keyword = "hoa"  }, -- Halls of Atonement
-    [391] = { order = 7, activityGroupID = 280, keyword = "strt" }, -- Tazavesh Streets
-    [392] = { order = 8, activityGroupID = 281, keyword = "gmbt" }, -- Tazavesh Gambit
-
     -- Midnight Season 1
     [560] = { order = 1, activityGroupID = 400, keyword = "mai"  }, -- Maisara Caverns
     [559] = { order = 2, activityGroupID = 401, keyword = "npx"  }, -- Nexus-Point Xenas
@@ -49,6 +39,16 @@ local CMID_MAP = {
     [239] = { order = 6, activityGroupID = 133, keyword = "seat" }, -- Seat of the Triumvirate (Legion)
     [161] = { order = 7, activityGroupID =   9, keyword = "sr"   }, -- Skyreach (Warlords of Draenor)
     [556] = { order = 8, activityGroupID =  52, keyword = "pos"  }, -- Pit of Saron (Wrath of the Lich King)
+
+    -- Midnight Season 2
+    [588] = { order = 1, activityGroupID = 420, keyword = "aof" }, -- Altar of Fangs
+    [584] = { order = 2, activityGroupID = 382, keyword = "bv"  }, -- The Blinding Vale
+    [586] = { order = 3, activityGroupID = 392, keyword = "den" }, -- Den of Nalorakk
+    [587] = { order = 4, activityGroupID = 396, keyword = "mr"  }, -- Murder Row
+    [585] = { order = 5, activityGroupID = 398, keyword = "vsa" }, -- Voidscar Arena
+    [399] = { order = 6, activityGroupID = 306, keyword = "rlp" }, -- Ruby Life Pools (Dragonflight)
+    [250] = { order = 7, activityGroupID = 139, keyword = "tos" }, -- Temple of Sethraliss (Battle for Azeroth)
+    [249] = { order = 8, activityGroupID = 141, keyword = "kr"  }, -- Kings' Rest (Battle for Azeroth)
 
     -- cmID can be found here as column ID: https://wago.tools/db2/MapChallengeMode?page=1&sort[ID]=desc
 }

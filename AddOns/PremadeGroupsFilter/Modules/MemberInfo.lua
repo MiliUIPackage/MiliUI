@@ -28,6 +28,7 @@ function PGF.PutSearchResultMemberInfos(resultID, searchResultInfo, env)
     env.ranged = 0
     env.melees = 0
     env.hasmyclass = false
+    env.hasmyclassrole = false
     env.hasmyspec = false
     env.hasmyarmor = false
     env.hasleaver = false
@@ -64,6 +65,9 @@ function PGF.PutSearchResultMemberInfos(resultID, searchResultInfo, env)
                 end
                 if mySpecInfo.classKeyword == specInfo.classKeyword then
                     env.hasmyclass = true
+                    if mySpecInfo.role == specInfo.role then
+                        env.hasmyclassrole = true
+                    end
                     if mySpecInfo.specKeyword == specInfo.specKeyword then
                         env.hasmyspec = true
                     end
@@ -80,7 +84,11 @@ function PGF.PutSearchResultMemberInfos(resultID, searchResultInfo, env)
 end
 
 local function GetRoleClassOrder(resultID)
-    local displayData = PGF.GetSearchResultMemberCounts(resultID)
+    -- Use Blizzard's original table here so pairs(classesByRole) follows the
+    -- same table iteration order as LFGListGroupDataDisplayEnumerate_Update.
+    -- Using our own copy PGF.GetSearchResultMemberCounts does not work in this case,
+    -- because PGF.Table_Copy_Rec messes up the internal table structure.
+    local displayData = C_LFGList.GetSearchResultMemberCounts(resultID)
     local result = {}
     local roleOrder = LFG_LIST_GROUP_DATA_ROLE_ORDER -- { "TANK", "HEALER", "DAMAGER" }
     for i = 1, #roleOrder do
@@ -130,7 +138,7 @@ function PGF.GetSearchResultMemberInfoTable(resultID, numMembers)
     table.sort(members, function(a, b)
         -- the following works because the first letters of TANK, HEAL, DAMAGER are in reverse alphabtical order
         if a.role ~= b.role then return b.role < a.role end
-        -- now we are sorting by the class order as given by Blizz
+        -- now we are sorting by the same class order Blizzard used for the visible role icons
         local classOrder = roleClassOrder[a.role] -- a and b have the same role here
         return classOrder[a.class] < classOrder[b.class]
     end)

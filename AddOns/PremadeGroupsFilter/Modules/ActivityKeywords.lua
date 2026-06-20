@@ -115,6 +115,12 @@ C.MAP_ID_TO_KEYWORDS = {
     [2657] = { "tww", "np" }, -- Nerub-ar Palace
     [2769] = { "tww", "lou" }, -- Liberation of Undermine
     [2810] = { "tww", "mfo" }, -- Manaforge Omega
+    [1592] = { "mn", "sf" }, -- Sporefall
+    [2912] = { "mn", "vs" }, -- The Voidspire
+    [2913] = { "mn", "moq" }, -- March on Quel'Danas
+    [2939] = { "mn", "dr" }, -- The Dreamrift
+    [3004] = { "mn", "va" }, -- The Venomous Abyss
+
     -- Dungeons
     [ 658] = { "wotlk", "pos", "mns1" }, -- Pit of Saron
     [  33] = { "cata", "sfk" }, -- Shadowfang Keep
@@ -161,14 +167,14 @@ C.MAP_ID_TO_KEYWORDS = {
     [1753] = { "legion", "seat", "mns1" }, -- Seat of the Triumvirate
     [1594] = { "bfa", "tml", "ml", "twws2" }, -- The MOTHERLODE
     [1754] = { "bfa", "fh", "dfs2" }, -- Freehold
-    [1762] = { "bfa", "kr" }, -- Kings' Rest
+    [1762] = { "bfa", "kr", "mns2" }, -- Kings' Rest
     [1763] = { "bfa", "ad", "dfs3" }, -- Atal'Dazar
     [1771] = { "bfa", "td" }, -- Tol Dagor
     [1822] = { "bfa", "sob", "siege", "twws1" }, -- Siege of Boralus
     [1841] = { "bfa", "tur", "undr", "dfs2" }, -- The Underrot
     [1862] = { "bfa", "wm", "dfs3" }, -- Waycrest Manor
     [1864] = { "bfa", "sots" }, -- Shrine of the Storm
-    [1877] = { "bfa", "tos", "tosl" }, -- Temple of Sethraliss
+    [1877] = { "bfa", "tos", "tosl", "mns2" }, -- Temple of Sethraliss
     [2097] = { "bfa", "opm" }, -- Operation: Mechagon
     [2284] = { "sl", "sd" }, -- Sanguine Depths
     [2285] = { "sl", "soa" }, -- Spires of Ascension
@@ -184,7 +190,7 @@ C.MAP_ID_TO_KEYWORDS = {
     [2516] = { "df", "no", "dfs1", "dfs4" }, -- The Nokhud Offensive
     [2519] = { "df", "nt", "nelt", "dfs2", "dfs4" }, -- Neltharus
     [2520] = { "df", "bh", "dfs2", "dfs4" }, -- Brackenhide Hollow
-    [2521] = { "df", "rlp", "dfs1", "dfs4" }, -- Ruby Life Pools
+    [2521] = { "df", "rlp", "dfs1", "dfs4", "mns2" }, -- Ruby Life Pools
     [2526] = { "df", "aa", "dfs1", "dfs4", "mns1" }, -- Algeth'ar Academy
     [2527] = { "df", "hoi", "dfs2", "dfs4" }, -- Halls of Infusion
     [2579] = { "df", "doti" }, -- Dawn of the Infinite
@@ -199,20 +205,18 @@ C.MAP_ID_TO_KEYWORDS = {
     [2773] = { "tww", "fg", "flood", "twws2", "twws3" }, -- Operation: Floodgate
     [2830] = { "tww", "eda", "twws3" }, -- Eco-Dome Al'dani
     [2805] = { "mn", "ws", "mns1" }, -- Windrunner Spire
-    [2859] = { "mn", "bv" }, -- The Blinding Vale
-    [2825] = { "mn", "den" }, -- Den of Nalorakk
-    [2813] = { "mn", "mr" }, -- Murder Row
-    [2923] = { "mn", "va" }, -- Voidscar Arena
+    [2859] = { "mn", "bv", "mns2" }, -- The Blinding Vale
+    [2825] = { "mn", "den", "mns2" }, -- Den of Nalorakk
+    [2813] = { "mn", "mr", "mns2" }, -- Murder Row
+    [2923] = { "mn", "vsa", "mns2" }, -- Voidscar Arena
     [2811] = { "mn", "mt", "mns1" }, -- Magisters' Terrace
     [2874] = { "mn", "mai", "mns1" }, -- Maisara Caverns
     [2915] = { "mn", "npx", "mns1" }, -- Nexus-Point Xenas
-    [2912] = { "mn", "vs" }, -- The Voidspire
-    [2913] = { "mn", "moq" }, -- March on Quel'Danas
-    [2939] = { "mn", "dr" }, -- The Dreamrift
+    [2993] = { "mn", "aof", "mns2" }, -- Altar of Fangs
 }
 
 -- Raider.io keywords can be found here:
--- https://raider.io/api/v1/mythic-plus/static-data?expansion_id=10
+-- https://raider.io/api/v1/mythic-plus/static-data?expansion_id=11
 
 local function PutActivityKeywordsDefaults(env)
     for activityID, keywords in pairs(C.ACTIVITY_ID_TO_KEYWORDS) do
