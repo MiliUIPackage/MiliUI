@@ -1863,18 +1863,46 @@ local function ApplyNativeBackdrop(tip)
     if (not tip) then return false end
     EnsureNativeStyleData(tip)
     SyncGlobalBackgroundFile(tip)
+    -- perf fix from MiliUI: 滑過裝備時，暴雪每秒清空重建同一件 tooltip ~20-25 次，每次都重跑整條樣式管線。
+    -- 關鍵：邊框色每個週期會在「預設色(清空時)↔品質色(物品時)」之間擺盪，使含顏色的 key 永遠不命中，
+    -- 導致最貴的 SetBackdrop(重建 NineSlice 邊框材質) 每週期跑 2 次 → ~1100ms/s。
+    -- 因此把「結構」(背景/邊框檔、尺寸、insets、邊角、遮罩) 與「顏色」拆開：
+    --   * 昂貴的 SetBackdrop 只在「結構」改變時做；
+    --   * 顏色變化只走便宜的 SetBackdropBorderColor / tint。
+    -- structKey+colors 全同 → 整個早退。兩個 key 都會在外部可能竄改底框處
+    -- (Reapply / *_SetBackdropStyle / OnShow) 被清空，確保不會把該更新的樣式誤跳過。
+    local styleKey, structKey
+    if (not tip._tinyApplyingNativeBackdrop) then
+        local _bd = tip._tinyBackdrop or {}
+        local _ins = _bd.insets or {}
+        local _r, _g, _b, _a = GetStyleBackdropColor(tip)
+        local _br, _bg, _bb, _ba = GetStyleBackdropBorderColor(tip)
+        structKey = table.concat({
+            tostring(_bd.bgFile), tostring(_bd.edgeFile), tostring(_bd.edgeSize),
+            tostring(_ins.top), tostring(_ins.left), tostring(_ins.right), tostring(_ins.bottom),
+            tostring(tip._tinyBorderCorner), tostring(tip._tinyMaskEnabled),
+        }, ":")
+        styleKey = table.concat({
+            structKey,
+            tostring(_r), tostring(_g), tostring(_b), tostring(_a),
+            tostring(_br), tostring(_bg), tostring(_bb), tostring(_ba),
+        }, ":")
+        if (tip._tinyLastBackdropKey == styleKey) then return true end
+    end
     local hasBackdropSupport = EnsureBackdropSupport(tip)
     local hasNineSliceBackdrop = tip.NineSlice and tip.NineSlice.SetBackdrop
     local shouldHideNativeNineSliceBorder = ShouldHideNativeNineSliceBorder(tip._tinyBorderCorner)
     if (tip._tinyApplyingNativeBackdrop) then return false end
     tip._tinyApplyingNativeBackdrop = true
 
-    local backdropInfo = tip._tinyBackdrop and CopyBackdropInfo(tip._tinyBackdrop)
-    if (hasBackdropSupport and tip.SetBackdrop and backdropInfo and not hasNineSliceBackdrop) then
-        pcall(tip.SetBackdrop, tip, backdropInfo)
-    end
-    if (tip.NineSlice) then
-        if (tip.NineSlice.SetBackdrop and backdropInfo) then
+    -- perf fix from MiliUI: 只有「結構」改變才做昂貴的 SetBackdrop 材質重建（顏色擺盪不需要）
+    local doStructure = (structKey == nil) or (tip._tinyLastStructKey ~= structKey)
+    if (doStructure) then
+        local backdropInfo = tip._tinyBackdrop and CopyBackdropInfo(tip._tinyBackdrop)
+        if (hasBackdropSupport and tip.SetBackdrop and backdropInfo and not hasNineSliceBackdrop) then
+            pcall(tip.SetBackdrop, tip, backdropInfo)
+        end
+        if (tip.NineSlice and tip.NineSlice.SetBackdrop and backdropInfo) then
             pcall(tip.NineSlice.SetBackdrop, tip.NineSlice, CopyBackdropInfo(backdropInfo))
         end
     end
@@ -1892,12 +1920,17 @@ local function ApplyNativeBackdrop(tip)
         if (tip.NineSlice.SetBackdropBorderColor) then
             pcall(tip.NineSlice.SetBackdropBorderColor, tip.NineSlice, rr, gg, bb, aa)
         end
-        SetNineSliceBorderShown(tip, not shouldHideNativeNineSliceBorder)
+        if (doStructure) then
+            SetNineSliceBorderShown(tip, not shouldHideNativeNineSliceBorder)
+        end
     end
     TintNineSliceBackground(tip)
     TintNineSliceBorder(tip, rr, gg, bb, aa)
     UpdateStyleMaskVisibility(tip)
     tip._tinyApplyingNativeBackdrop = nil
+    -- perf fix from MiliUI: 記住結構與完整樣式 key（後續相同可分別略過重建/整個早退）
+    if (styleKey) then tip._tinyLastBackdropKey = styleKey end
+    if (structKey) then tip._tinyLastStructKey = structKey end
     return true
 end
 
@@ -1908,6 +1941,9 @@ local function InstallNativeBackdropLocks(tip)
         if (not frame or not frame._tinyNativeStyle) then return end
         if (frame._tinyApplyingNativeBackdrop) then return end
         if (frame.IsForbidden and frame:IsForbidden()) then return end
+        -- perf fix from MiliUI: 走到這裡代表外部改動了底框，清快取（含結構）強制重套用
+        frame._tinyLastBackdropKey = nil
+        frame._tinyLastStructKey = nil
         ApplyNativeBackdrop(frame)
     end
 
@@ -2150,6 +2186,9 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     tip.TinyHookScript = addon.TinyHookScript
     -- fix from MiliUI: defer OnShow processing during combat to break taint chain
     tip:HookScript("OnShow", function(self)
+        -- perf fix from MiliUI: 重新顯示時底框可能被暴雪重設，清快取（含結構）強制重套用
+        self._tinyLastBackdropKey = nil
+        self._tinyLastStructKey = nil
         if InCombatLockdown() then
             C_Timer.After(0, function()
                 if self:IsShown() then
@@ -2168,6 +2207,11 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     if (tip.ProcessInfo) then
         hooksecurefunc(tip, "ProcessInfo", function(self, info)
             if (not info or not info.tooltipData) then return end
+            -- perf fix from MiliUI: 暴雪重建 tooltip 期間，抑制處理鏈裡 (Item.lua / LinkID) 的自我 Show()，
+            -- 否則 Show() 會再觸發一次 ProcessInfo → 連鎖放大成每秒數百次（裝備比較窗 ShoppingTooltip 最嚴重）。
+            -- 顯示交給暴雪流程結尾自己做；只有「修飾鍵單獨加行」等非重建情境才需要自我 Show()。
+            local prevSuppress = self._tinySuppressShow
+            self._tinySuppressShow = true
             local flag = info.tooltipData.type
             local guid = info.tooltipData.guid
             local getterName = info.getterName or info.tooltipData.getterName
@@ -2206,7 +2250,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
                 didTypedBackdropUpdate = true
             --2 角色
             elseif (SafeEquals(flag, 2)) then
-                if (not self.GetUnit) then return end
+                if (not self.GetUnit) then self._tinySuppressShow = prevSuppress; return end  -- perf fix from MiliUI: 早退也要還原旗標
                 local okUnit, _, unit = pcall(self.GetUnit, self)
                 if (not okUnit) then
                     unit = nil
@@ -2246,6 +2290,12 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
             if (not didTypedBackdropUpdate) then
                 ReapplyGlobalBackgroundFile(self)
             end
+            self._tinySuppressShow = prevSuppress  -- perf fix from MiliUI: 還原旗標
+            -- perf fix from MiliUI: 我們的行是在暴雪 Show() 之後才加的，整批加完後統一 Show 一次撐開 tooltip
+            if (self._tinyNeedsShow) then
+                self._tinyNeedsShow = nil
+                self:Show()
+            end
         end)
     end
 
@@ -2267,7 +2317,16 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     tip:TinyHookScript("OnTooltipSetItem",
         function(self)
             local link = select(2, self:GetItem())
+            -- perf fix from MiliUI: 同 ProcessInfo，重建期間抑制自我 Show() 以斷開 ProcessInfo 迴圈
+            local prevSuppress = self._tinySuppressShow
+            self._tinySuppressShow = true
             LibEvent:trigger("tooltip:item", self, link)
+            self._tinySuppressShow = prevSuppress
+            -- perf fix from MiliUI: 整批行加完後統一 Show 一次
+            if (self._tinyNeedsShow) then
+                self._tinyNeedsShow = nil
+                self:Show()
+            end
         end
     )
     tip:TinyHookScript("OnTooltipSetSpell",
@@ -2317,6 +2376,9 @@ if (SharedTooltip_SetBackdropStyle) then
     -- fix from MiliUI: defer during combat to break taint chain
     hooksecurefunc("SharedTooltip_SetBackdropStyle", function(self, style, embedded)
         if (self and self._tinyNativeStyle) then
+            -- perf fix from MiliUI: 暴雪重設了底框樣式，清快取（含結構）強制重套用
+            self._tinyLastBackdropKey = nil
+            self._tinyLastStructKey = nil
             if InCombatLockdown() then
                 C_Timer.After(0, function() if self:IsShown() then ApplyNativeBackdrop(self) end end)
             else
@@ -2330,6 +2392,9 @@ if (GameTooltip_SetBackdropStyle) then
     -- fix from MiliUI: defer during combat to break taint chain
     hooksecurefunc("GameTooltip_SetBackdropStyle", function(self, style)
         if (self and self._tinyNativeStyle) then
+            -- perf fix from MiliUI: 暴雪重設了底框樣式，清快取（含結構）強制重套用
+            self._tinyLastBackdropKey = nil
+            self._tinyLastStructKey = nil
             if InCombatLockdown() then
                 C_Timer.After(0, function() if self:IsShown() then ApplyNativeBackdrop(self) end end)
             else

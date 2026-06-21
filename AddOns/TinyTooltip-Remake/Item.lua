@@ -104,7 +104,8 @@ LibEvent:attachTrigger("tooltip:item", function(self, tip, link)
                 end
                 local versionNum = (type(expacId) == "number") and format(" (%d.0)", expacId + 1) or ""
                 tip:AddLine(format("%s: |cffffffff%s%s|r", expansionLabel, expansionName, versionNum), 1, 0.82, 0)
-                tip:Show()
+                -- perf fix from MiliUI: 重建期間先不 Show()，標記後由處理結尾統一 Show 一次，避免 ProcessInfo 迴圈
+                if (tip._tinySuppressShow) then tip._tinyNeedsShow = true else tip:Show() end
             end
         end
     end

@@ -18,7 +18,8 @@ local function ShowId(tooltip, name, value, noBlankLine, forceShow)
         if (not line) then
             if (not noBlankLine) then tooltip:AddLine(" ") end
             tooltip:AddLine(format("%s: |cffffffff%s|r", name, value), 1, 0.82, 0)
-            tooltip:Show()
+            -- perf fix from MiliUI: 重建期間先不 Show()，標記後由處理結尾統一 Show 一次，避免 ProcessInfo 迴圈
+            if (tooltip._tinySuppressShow) then tooltip._tinyNeedsShow = true else tooltip:Show() end
         end
         LibEvent:trigger("tooltip.linkid", tooltip, name, value, noBlankLine)
     end
@@ -67,30 +68,16 @@ local function ShowSpellInfo(tooltip, spellId)
     end
 end
 
-local function ShowItemInfo(tooltip, linkOrId)
-    if (not linkOrId) then return end
-    local isModifierDown = IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown()
-    local itemSettings = addon.db.item
-    local showAllByModifier = itemSettings.modifierShowAll
-    local showItemId = itemSettings.showItemId ~= false
-    local showItemBonusId = itemSettings.showItemBonusId ~= false
-    local showItemEnhancementId = itemSettings.showItemEnhancementId ~= false
-    local showItemGemId = itemSettings.showItemGemId ~= false
-    local showItemMaxStack = itemSettings.showItemMaxStack ~= false
-    local showItemIconId = itemSettings.showItemIconId ~= false
-    if (isModifierDown and showAllByModifier) then
-        showItemId = true
-        showItemBonusId = true
-        showItemEnhancementId = true
-        showItemGemId = true
-        showItemMaxStack = true
-        showItemIconId = true
-    end
+-- perf fix from MiliUI: 純由 itemLink 解析出來的資料（與 tooltip、設定、修飾鍵無關），可安全快取。
+-- 暴雪每秒對同一件裝備清空重建 tooltip ~20 次，每次都重跑這段 gmatch 解析很浪費。
+local function ComputeItemIdData(linkOrId)
+    local data = {}
     local _, itemId = ParseHyperLink(linkOrId)
-    local isEquippable = IsEquippableItem and IsEquippableItem(linkOrId)
-    local itemEnhancementId = L["id.na"]
-    local itemBonusId = L["id.na"]
-    local itemGemId = L["id.na"]
+    data.itemId = itemId
+    data.isEquippable = (IsEquippableItem and IsEquippableItem(linkOrId)) and true or false
+    data.enhancementId = L["id.na"]
+    data.bonusId = L["id.na"]
+    data.gemId = L["id.na"]
     if (type(linkOrId) == "string") then
         local itemString = linkOrId:match("|?Hitem:([^|]+)") or linkOrId:match("^item:([^|]+)")
         if (itemString and itemString ~= "") then
@@ -100,7 +87,7 @@ local function ShowItemInfo(tooltip, linkOrId)
             end
             local enhancementId = segments[2]
             if (enhancementId and enhancementId ~= "" and enhancementId ~= "0") then
-                itemEnhancementId = enhancementId
+                data.enhancementId = enhancementId
             end
             local gemIds = {}
             for i = 3, 6 do
@@ -110,7 +97,7 @@ local function ShowItemInfo(tooltip, linkOrId)
                 end
             end
             if (#gemIds > 0) then
-                itemGemId = table.concat(gemIds, ", ")
+                data.gemId = table.concat(gemIds, ", ")
             end
             local bonusCount = tonumber(segments[14] or "")
             if (bonusCount and bonusCount > 0) then
@@ -135,23 +122,52 @@ local function ShowItemInfo(tooltip, linkOrId)
                             end
                         end
                     end
-                    itemBonusId = table.concat(formattedBonus)
+                    data.bonusId = table.concat(formattedBonus)
                 end
             end
         end
     end
+    return data
+end
+
+local function ShowItemInfo(tooltip, linkOrId)
+    if (not linkOrId) then return end
+    -- perf fix from MiliUI: link 沒變就重用上次解析好的資料，跳過 gmatch 解析（同一件不再重複 request）
+    local data = tooltip._tinyIdData
+    if (not data or data.link ~= linkOrId) then
+        data = ComputeItemIdData(linkOrId)
+        data.link = linkOrId
+        tooltip._tinyIdData = data
+    end
+    local isModifierDown = IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown()
+    local itemSettings = addon.db.item
+    local showAllByModifier = itemSettings.modifierShowAll
+    local showItemId = itemSettings.showItemId ~= false
+    local showItemBonusId = itemSettings.showItemBonusId ~= false
+    local showItemEnhancementId = itemSettings.showItemEnhancementId ~= false
+    local showItemGemId = itemSettings.showItemGemId ~= false
+    local showItemMaxStack = itemSettings.showItemMaxStack ~= false
+    local showItemIconId = itemSettings.showItemIconId ~= false
+    if (isModifierDown and showAllByModifier) then
+        showItemId = true
+        showItemBonusId = true
+        showItemEnhancementId = true
+        showItemGemId = true
+        showItemMaxStack = true
+        showItemIconId = true
+    end
     if (showItemId) then
         local hasExpansionLine = addon:FindLine(tooltip, L["id.expansion"])
-        ShowId(tooltip, L["id.item"], itemId, hasExpansionLine and true or false, true)
+        ShowId(tooltip, L["id.item"], data.itemId, hasExpansionLine and true or false, true)
     end
-    if (showItemBonusId and isEquippable) then
-        ShowId(tooltip, L["id.bonus"], itemBonusId, true, true)
+    if (showItemBonusId and data.isEquippable) then
+        ShowId(tooltip, L["id.bonus"], data.bonusId, true, true)
     end
-    if (showItemEnhancementId and isEquippable) then
-        ShowId(tooltip, L["id.enhancement"], itemEnhancementId, true, true)
+    if (showItemEnhancementId and data.isEquippable) then
+        ShowId(tooltip, L["id.enhancement"], data.enhancementId, true, true)
     end
-    if (showItemGemId and isEquippable) then
-        ShowId(tooltip, L["id.gem"], itemGemId, true, true)
+    if (showItemGemId and data.isEquippable) then
+        ShowId(tooltip, L["id.gem"], data.gemId, true, true)
     end
     local iconId = GetItemIconId(linkOrId)
     if (iconId and showItemIconId) then
