@@ -121,12 +121,25 @@ local function DoFullScan(classID)
     wipe(ns.itemSpecMap)
     wipe(ns.itemInfoCache)
 
+    -- IsEquipment 只看 itemID（玩具/造型/equipLoc 都與天賦無關），同一個 itemID 會在多個
+    -- 天賦的 loot 清單重複出現。快取結果，省去跨天賦的重複 toy/cosmetic 查詢。
+    local equipCache = {}
+    local function isEquip(info)
+        local id = info.itemID
+        local v = equipCache[id]
+        if v == nil then
+            v = IsEquipment(info)
+            equipCache[id] = v
+        end
+        return v
+    end
+
     for _, spec in ipairs(ns.specList) do
         EJ_SetLootFilter(classID, spec.id)
         local numLoot = EJ_GetNumLoot() or 0
         for i = 1, numLoot do
             local info = C_EncounterJournal.GetLootInfoByIndex(i)
-            if info and info.itemID and IsEquipment(info) then
+            if info and info.itemID and isEquip(info) then
                 local itemID = info.itemID
                 local m = ns.itemSpecMap[itemID]
                 if not m then
@@ -215,10 +228,38 @@ local function ScanIfNeeded()
 end
 ns.ScanIfNeeded = ScanIfNeeded
 
--- 對外保留舊名（給除錯指令用）
+-- ============================================================
+-- 掃描排程（debounce）—— 避免事件風暴造成卡頓
+-- ============================================================
+-- 背景：開大型副本 / 登入時，伺服器會「逐件」串流裝備資料，每一件都觸發一次
+-- EJ_LOOT_DATA_RECIEVED；一個團本動輒上百件 → 上百個事件。若每個事件都立刻全職業
+-- 重掃（O(事件 × 天賦 × 件數)）並重建面板，總運算量可達數十萬次，造成明顯卡頓。
+-- 解法：所有掃描請求都丟進這個 debounce，短時間內的爆發只在「安靜下來」後跑一次。
+local scanTimer
+local pendingForce = false
+
+local function RunScheduledScan()
+    scanTimer = nil
+    if pendingForce then
+        pendingForce = false
+        -- 清掉 context 觸發完整重掃（資料串流完畢時用，補齊先前可能不完整的掃描）
+        ns.classID, ns.instanceID, ns.encounterID, ns.difficultyID = 0, nil, nil, nil
+    end
+    ScanIfNeeded()
+end
+
+-- force：true=強制完整重掃；delay：合併視窗秒數（0=合併到下一幀）。
+-- 同一視窗內的多次請求只會跑一次；任一次帶 force 則該次為完整重掃。
+local function RequestScan(force, delay)
+    if force then pendingForce = true end
+    if scanTimer then scanTimer:Cancel() end
+    scanTimer = C_Timer.NewTimer(delay or 0, RunScheduledScan)
+end
+ns.RequestScan = RequestScan
+
+-- 對外保留舊名（給除錯指令用）：立即、強制重掃（不經 debounce）
 ns.ScanAllSpecs = function()
-    -- 強制重掃：清掉 context 再 scan
-    ns.classID, ns.encounterID, ns.difficultyID = 0, nil, nil
+    ns.classID, ns.instanceID, ns.encounterID, ns.difficultyID = 0, nil, nil, nil
     ScanIfNeeded()
 end
 
@@ -227,7 +268,8 @@ end
 -- ============================================================
 local function OnLootUpdate()
     if ns.SCANNING then return end
-    ScanIfNeeded()
+    -- 切換職業/副本/首領時 Blizzard 會呼叫此函式；同一幀的多次呼叫合併成一次掃描。
+    RequestScan(false, 0)
 end
 
 local function InitEJ()
@@ -238,10 +280,18 @@ local function InitEJ()
         hooksecurefunc("EncounterJournal_LootUpdate", OnLootUpdate)
     end
 
-    -- async loot data 抵達時強制補掃（可能是同一個 encounter 但資料變多了）
+    -- async loot data 逐件抵達時補掃（同一 encounter 但資料變多）。
+    -- 關鍵：開副本/登入會「逐件」狂噴此事件，所以不能每次都重掃——丟進 debounce，
+    -- 等串流安靜 0.3 秒後「只」強制補掃一次。
     local evt = CreateFrame("Frame")
     evt:RegisterEvent("EJ_LOOT_DATA_RECIEVED")
-    evt:SetScript("OnEvent", function() ns.ScanAllSpecs() end)
+    evt:SetScript("OnEvent", function(_, _, itemID)
+        if ns.SCANNING then return end
+        -- 已記錄過的 itemID（首掃後資料只是重複抵達）不必再重掃；只有「沒看過的」才補掃。
+        -- 避免副本載入完成後零星的 EJ_LOOT_DATA_RECIEVED 一直觸發昂貴的完整重掃。
+        if itemID and ns.itemSpecMap[itemID] then return end
+        RequestScan(true, 0.3)
+    end)
 
     fireList(ns.onEJLoaded, "init")
 end
