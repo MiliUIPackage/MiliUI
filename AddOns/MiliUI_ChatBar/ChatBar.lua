@@ -401,21 +401,35 @@ roll:SetAttribute("type", "macro")
 roll:SetAttribute("macrotext", "/roll")
 roll:RegisterForClicks("AnyUp", "AnyDown")
 
--- DBM (Left: Pull, Right: Ready Check)
+-- Native pull countdown — no DBM/BigWigs dependency.
+-- C_PartyInfo.DoCountdown (added 9.0.1) triggers Blizzard's built-in group
+-- countdown. It is insecure-callable and needs no hardware event, but a secure
+-- macro can only run slash commands, so we expose it via a custom slash command
+-- that the button's macrotext invokes the same way it used to call /dbm pull.
+SLASH_MILIUICHATBARPULL1 = "/miliuichatbarpull"
+SlashCmdList["MILIUICHATBARPULL"] = function(msg)
+    local seconds = tonumber(msg) or 10
+    if C_PartyInfo and C_PartyInfo.DoCountdown then
+        C_PartyInfo.DoCountdown(seconds)
+    end
+end
+
+-- Pull button (Left: Ready Check, Right: Pull Ns, Middle: Pull 5s)
+-- Uses the native countdown above; configKey stays "DBM" for SavedVariables compat.
 local dbm = AddRGBButton("DBM", 0.8, 0.568, 0.937, L["TIP_DBM"], L["SHORT_DBM"], nil, 51)
 dbm:SetAttribute("type", "macro")
 dbm:SetAttribute("macrotext", "/readycheck")
 dbm:SetAttribute("type2", "macro")
-dbm:SetAttribute("macrotext2", "/dbm pull 10")
+dbm:SetAttribute("macrotext2", "/miliuichatbarpull 10")
 dbm:SetAttribute("type3", "macro")
-dbm:SetAttribute("macrotext3", "/dbm pull 5")
+dbm:SetAttribute("macrotext3", "/miliuichatbarpull 5")
 dbm:RegisterForClicks("AnyUp", "AnyDown")
 
--- Function to update DBM button macro and tooltip based on saved seconds
+-- Function to update pull button macro and tooltip based on saved seconds
 local function UpdateDBMButton()
     local seconds = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds) or 10
     if not InCombatLockdown() then
-        dbm:SetAttribute("macrotext2", "/dbm pull " .. seconds)
+        dbm:SetAttribute("macrotext2", "/miliuichatbarpull " .. seconds)
     end
     -- Update tooltip text with current seconds value
     dbm.tooltipText = string.format(L["TIP_DBM_FORMAT"], seconds)
