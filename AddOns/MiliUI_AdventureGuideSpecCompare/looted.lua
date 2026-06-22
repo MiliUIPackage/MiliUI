@@ -63,14 +63,15 @@ end
 local function GetCheck(row)
     local c = row.AGSC_lootedCheck
     if not c then
-        c = row:CreateTexture(nil, "OVERLAY")
+        -- sublevel 7：OVERLAY 最上層（上限就是 7，設更大會無效→看不到），壓在圖示/品質框之上
+        c = row:CreateTexture(nil, "OVERLAY", nil, 7)
         c:SetAtlas(CHECK_ATLAS)
         c:SetSize(CHECK_SIZE, CHECK_SIZE)
-        -- 錨在物品圖示右下角（圖示在 row 左側），往右下挪一點露出來，不與右上的天賦徽章衝突
+        -- 錨在物品圖示左下角，往左下挪一點露出來，不與右上的天賦徽章衝突
         if row.icon then
-            c:SetPoint("BOTTOMRIGHT", row.icon, "BOTTOMRIGHT", 6, -6)
+            c:SetPoint("BOTTOMLEFT", row.icon, "BOTTOMLEFT", -2, -2)
         else
-            c:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 30, 2)
+            c:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 4, 2)
         end
         row.AGSC_lootedCheck = c
     end
