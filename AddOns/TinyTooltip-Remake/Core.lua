@@ -1882,12 +1882,18 @@ local function ApplyNativeBackdrop(tip)
             tostring(_ins.top), tostring(_ins.left), tostring(_ins.right), tostring(_ins.bottom),
             tostring(tip._tinyBorderCorner), tostring(tip._tinyMaskEnabled),
         }, ":")
-        styleKey = table.concat({
+        -- 物品品質邊框色在新版可能是「秘密值(secret)」(暴雪防自動化的值污染)，
+        -- 無法被 table.concat 字串化(會丟 invalid value (secret))。此時 styleKey 設為 nil：
+        -- 跳過「整個樣式」早退，但 structKey(不含顏色，永不秘密)仍照常擋下昂貴的 SetBackdrop 重建，
+        -- 顏色每週期只走便宜的 SetBackdropBorderColor，效能優化仍成立。
+        local ok
+        ok, styleKey = pcall(table.concat, {
             structKey,
             tostring(_r), tostring(_g), tostring(_b), tostring(_a),
             tostring(_br), tostring(_bg), tostring(_bb), tostring(_ba),
         }, ":")
-        if (tip._tinyLastBackdropKey == styleKey) then return true end
+        if (not ok) then styleKey = nil end
+        if (styleKey and tip._tinyLastBackdropKey == styleKey) then return true end
     end
     local hasBackdropSupport = EnsureBackdropSupport(tip)
     local hasNineSliceBackdrop = tip.NineSlice and tip.NineSlice.SetBackdrop
