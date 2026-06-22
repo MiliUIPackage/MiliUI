@@ -55,6 +55,10 @@ L["Shows a notification when another player loots an item you have marked as a f
 L["Whisper message..."] = "悄悄话消息...";
 L["Whisper message\n{item} will be replaced with the item link."] = "悄悄话消息\n{item} 将被替换为物品链接。";
 --L["Multiple slot filtering"] = "";
+L["Auto Keystone response"] = "钥石自动回复";
+L["Enable party chat"] = "在小队聊天中启用";
+L["Enable guild chat"] = "在公会聊天中启用";
+L["Automatically responds with your current Mythic+ keystone when someone types \"!keys\" in the selected chat channels. Only works if other group members also have this addon."] = "当有人在所选聊天频道输入 \"!keys\" 时，自动回复你当前的史诗钥石。仅当其他队伍成员也安装了此插件时才有效。";
 
 -- custom_item_icon.lua
 L["Custom Items"] = "自定义物品";

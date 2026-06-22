@@ -27,10 +27,14 @@ local ITEM_LEVEL_BONUS_IDS = {
     [801] = 11541, [802] = 11542, [803] = 11543, [804] = 11544, [805] = 11545, [806] = 11546, [807] = 11547, [808] = 11548, [809] = 11549, [810] = 11550, [811] = 11551, [812] = 11552, [813] = 11553, [814] = 11554, [815] = 11555, [816] = 11556, [817] = 11557, [818] = 11558, [819] = 11559, [820] = 11560, [821] = 11561, [822] = 11562, [823] = 11563, [824] = 11564, [825] = 11565, [826] = 11566, [827] = 11567, [828] = 11568, [829] = 11569, [830] = 11570, [831] = 11571, [832] = 11572, [833] = 11573, [834] = 11574, [835] = 11575, [836] = 11576, [837] = 11577, [838] = 11578, [839] = 11579, [840] = 11580, [841] = 11581, [842] = 11582, [843] = 11583, [844] = 11584, [845] = 11585, [846] = 11586, [847] = 11587, [848] = 11588, [849] = 11589, [850] = 11590, [851] = 11591, [852] = 11592, [853] = 11593, [854] = 11594, [855] = 11595, [856] = 11596, [857] = 11597, [858] = 11598, [859] = 11599, [860] = 11600, [861] = 11601, [862] = 11602, [863] = 11603, [864] = 11604, [865] = 11605, [866] = 11606, [867] = 11607, [868] = 11608, [869] = 11609, [870] = 11610, [871] = 11611, [872] = 11612, [873] = 11613, [874] = 11614, [875] = 11615, [876] = 11616, [877] = 11617, [878] = 11618, [879] = 11619, [880] = 11620, [881] = 11621, [882] = 11622, [883] = 11623, [884] = 11624, [885] = 11625, [886] = 11626, [887] = 11627, [888] = 11628, [889] = 11629, [890] = 11630, [891] = 11631, [892] = 11632, [893] = 11633, [894] = 11634, [895] = 11635, [896] = 11636, [897] = 11637, [898] = 11638, [899] = 11639, [900] = 11640
 };
 
+local BLACKLIST_ITEMS = {
+    [268280] = true
+};
+
 function Upgrade:IsUpgradeable(itemId)
     local _, _, _, _, _, classId = C_Item.GetItemInfoInstant(itemId);
 
-    if (not classId) then
+    if (not classId or BLACKLIST_ITEMS[itemId]) then
         return false;
     end
 
@@ -96,34 +100,49 @@ function Upgrade:BuildItemLink(itemId)
     end
 
     if (Query:GetItemSource(itemId) ~= "custom") then
-        -- 2. Item level adjustment bonus
-        local levelDiff    = upgrade.ilvl - baseItemLevel;
-        local levelBonusId = ITEM_LEVEL_BONUS_IDS[levelDiff];
-        if (levelBonusId) then
-            table.insert(bonusIds, levelBonusId);
-        end
+        -- 2. New Midnight raid has a fixed item level
+        if (Query:IsItemFromRaid(itemId, 1592)) then
+            local difficultyId = Query:GetRaidDifficultyId();
 
-        -- 3. Upgrade track bonus (champion/hero/myth)
-        if (upgrade.bonusId) then
-            table.insert(bonusIds, upgrade.bonusId);
+            if (difficultyId == DifficultyUtil.ID.PrimaryRaidLFR) then
+                table.insert(bonusIds, 13789);
+            elseif (difficultyId == DifficultyUtil.ID.PrimaryRaidNormal) then
+                table.insert(bonusIds, 13788);
+            elseif (difficultyId == DifficultyUtil.ID.PrimaryRaidHeroic) then
+                table.insert(bonusIds, 13787);
+            elseif (difficultyId == DifficultyUtil.ID.PrimaryRaidMythic) then
+                table.insert(bonusIds, 13786);
+            end
+        else
+            -- 3. Item level adjustment bonus
+            local levelDiff    = upgrade.ilvl - baseItemLevel;
+            local levelBonusId = ITEM_LEVEL_BONUS_IDS[levelDiff];
+            if (levelBonusId) then
+                table.insert(bonusIds, levelBonusId);
+            end
+
+            -- 4. Upgrade track bonus (champion/hero/myth)
+            if (upgrade.bonusId) then
+                table.insert(bonusIds, upgrade.bonusId);
+            end
         end
     end
 
-    -- 3. Special item bonus
+    -- 5. Special item bonus
     if (SPECIAL_BONUS_IDS[itemId]) then
         table.insert(bonusIds, SPECIAL_BONUS_IDS[itemId]);
     end
 
-    -- 4. Always add 1674 (epic)
+    -- 6. Always add 1674 (epic)
     table.insert(bonusIds, 1674);
 
-    -- 5. Midnight Season 1 bonus rings and amulets
+    -- 7. Midnight Season 1 bonus rings and amulets
     local _, _, _, itemEquipLoc = C_Item.GetItemInfoInstant(itemId);
     if (itemEquipLoc == "INVTYPE_FINGER" or itemEquipLoc == "INVTYPE_NECK") then
         table.insert(bonusIds, 13534);
     end
 
-    -- 6. Optional enchant and/or gems from favorites
+    -- 8. Optional enchant and/or gems from favorites
     local enchant = Favorites:GetEnchant(itemId, specId) or "";
     local gems    = Favorites:GetGems(itemId, specId);
     local gem1    = gems and gems[1] or "";

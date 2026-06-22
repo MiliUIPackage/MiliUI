@@ -1,12 +1,27 @@
 local AddonName, KeystoneLoot = ...;
 
 -- Generated automatically by KeystoneLoot Updater v2.0.3
--- Timestamp: 2026-06-05 20:31:19
--- WoW Build: 12.0.5 (67823)
+-- Timestamp: 2026-06-17 05:35:29
+-- WoW Build: 12.0.7 (68232)
 -- Season: 16
 -- WARNING: This file is auto-generated - manual changes will be overwritten!
 
 KeystoneLoot.RaidDatabase = {
+    { --[[name = "Sporenfall",]]
+        journalInstanceId = 1305,
+        instanceId = 1592,
+        bossList = {
+            { --[[name = "Rottmoor",]]
+                bossId = 2711,
+                lootTable = {
+                    [14] = { 247235, 264313, 264367, 268280, 268282, 268283, 268284, 268285, 268286, 268287, 268288, 268289, 268290, 268291, 268292 },
+                    [16] = { 247235, 264313, 264367, 268280, 268282, 268283, 268284, 268285, 268286, 268287, 268288, 268289, 268290, 268291, 268292 },
+                    [17] = { 247235, 264313, 264367, 268280, 268282, 268283, 268284, 268285, 268286, 268287, 268288, 268289, 268290, 268291, 268292 },
+                    [15] = { 247235, 264313, 264367, 268280, 268282, 268283, 268284, 268285, 268286, 268287, 268288, 268289, 268290, 268291, 268292 },
+                }
+            },
+        }
+    },
     { --[[name = "Die Leerenspitze",]]
         journalInstanceId = 1307,
         instanceId = 2912,

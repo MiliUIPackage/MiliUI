@@ -256,6 +256,24 @@ function Query:GetRaidItems(bossId)
     return results;
 end
 
+function Query:IsItemFromRaid(itemId, instanceId)
+    local difficultyId = self:GetRaidDifficultyId();
+
+    for _, raid in ipairs(self:GetRaids()) do
+        if (raid.instanceId == instanceId) then
+            for _, boss in ipairs(raid.bossList) do
+                local loot = boss.lootTable[difficultyId] or {};
+
+                for _, id in ipairs(loot) do
+                    if (id == itemId) then
+                        return true;
+                    end
+                end
+            end
+        end
+    end
+end
+
 function Query:HasRaidSlotItems(slotId)
     if (slotId == -2) then
         return true;
