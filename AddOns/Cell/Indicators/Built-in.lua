@@ -1145,7 +1145,9 @@ function I.CreateNameText(parent)
 
         -- update vehicle
         local vp, _, vrp, _, vy = nameText.vehicle:GetPoint(1)
-        if vp and vrp and vy then
+        -- Midnight: GetPoint may return secret values; the flip below does string.find/concat
+        -- on the point name, which errors on secrets. Skip it (cosmetic) when secret.
+        if vp and vrp and vy and F.IsValueNonSecret(vp) and F.IsValueNonSecret(vrp) then
             if string.find(vp, "TOP") then
                 vp, vrp = "TOP", "BOTTOM"
             else -- BOTTOM
