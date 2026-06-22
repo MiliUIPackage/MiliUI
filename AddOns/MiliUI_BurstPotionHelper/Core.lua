@@ -229,27 +229,32 @@ end
 ----------------------------------------------------------------------
 -- Selection
 ----------------------------------------------------------------------
--- Returns the selected itemID only if it is currently available (cached).
+-- The effective potion to use right now. Prefer the saved selection; if it is
+-- not in bags at the moment (cold bag cache at login, or out of stock), fall
+-- back to the first available one as a RUNTIME choice only — we never persist
+-- this fallback, so the saved preference returns automatically when it is back.
 function ns.GetSelected()
     local id = ns.GetDB().selectedItemID
     if id and ns.byID[id] then
         return id
     end
-    return nil
+    local first = ns.available[1]
+    return first and first.id or nil
 end
 
--- Keep a valid selection after a scan (OOC): keep the current item if it is
--- still available, otherwise fall back to the first available one.
+-- The saved selection (db.selectedItemID) is the user's persisted intent and must
+-- NOT be overwritten just because the potion is temporarily missing from a scan
+-- (the login bag cache is often cold). Only set an initial default when there is
+-- no preference at all; otherwise leave it untouched.
 function ns.EnsureValidSelection()
     local db = ns.GetDB()
     if db.disabled then
         return  -- user explicitly chose "no potion"; leave it
     end
-    if db.selectedItemID and ns.byID[db.selectedItemID] then
-        return
+    if db.selectedItemID == nil then
+        local first = ns.available[1]
+        if first then db.selectedItemID = first.id end
     end
-    local first = ns.available[1]
-    db.selectedItemID = first and first.id or nil
 end
 
 function ns.Notify(itemID)
