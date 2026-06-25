@@ -212,6 +212,11 @@
 			"vo_835_meerah_jukebox_f.ogg#3169894",
 		},
 
+		-- Piccolo (Piccolo of the Flaming Fire) (sound/spells/)
+		["MutePiccolo"] = {
+			"sound/spells/seduction_state_head.ogg#568271",
+		},
+
 		----------------------------------------------------------------------
 		-- Combat
 		----------------------------------------------------------------------

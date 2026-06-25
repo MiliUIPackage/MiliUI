@@ -1,4 +1,18 @@
-﻿12.0.20 - 27th May 2026
+﻿12.0.24 - 24th June 2026
+- For 'Enhance minimap' ('Interface'), added support for the OmniumObservator addon's custom minimap button.
+- PTR (12.1.0): Updated for game patch 12.1.0.
+
+12.0.23 - 18th June 2026
+- Updated for game patch 12.0.7.
+- For 'Remove transforms' ('System'), you can now remove the 'Reflecting Prism' transform automatically.
+
+12.0.22 - 11th June 2026
+- For 'Enhance minimap' ('Interface'), fixed an issue which may have caused the square minimap to move slightly.
+
+12.0.21 - 5th June 2026
+- For 'Mute game sounds' ('System'), you can now mute the Piccolo of the Flaming Fire toy.
+
+12.0.20 - 27th May 2026
 - For 'Enhance dressup' ('Interface'), fixed a secrets issue with the link outfit button.
 - Fixed a secrets issue with the mount special keybinding.
 

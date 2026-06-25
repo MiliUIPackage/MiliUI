@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 12.0.20 (27th May 2026)
+-- 	Leatrix Plus 12.0.24 (24th June 2026)
 ----------------------------------------------------------------------
 
 --	01:Functions 02:Locks,  03:Restart 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "12.0.20"
+	LeaPlusLC["AddonVer"] = "12.0.24"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -34,7 +34,7 @@
 			end)
 			return
 		end
-		if gametocversion and gametocversion >= 120007 then -- 12.0.7
+		if gametocversion and gametocversion >= 120100 then -- 12.1.0
 			LeaPlusLC.NewPatch = true
 		end
 	end
@@ -828,12 +828,24 @@
 			local function DeclineReqs()
 				if LeaPlusLC["NoFriendRequests"] == "On" then
 					for i = BNGetNumFriendInvites(), 1, -1 do
-						local id, player = BNGetFriendInviteInfo(i)
-						if id and player then
-							BNDeclineFriendInvite(id)
-							C_Timer.After(0.1, function()
-								LeaPlusLC:Print(L["A friend request from"] .. " " .. player .. " " .. L["was automatically declined."])
-							end)
+
+
+						if LeaPlusLC.NewPatch then
+							local id, player = C_BattleNet.GetFriendInviteInfo(i)
+							if id and player then
+								BNDeclineFriendInvite(id)
+								C_Timer.After(0.1, function()
+									LeaPlusLC:Print(L["A friend request from"] .. " " .. player .. " " .. L["was automatically declined."])
+								end)
+							end
+						else
+							local id, player = BNGetFriendInviteInfo(i)
+							if id and player then
+								BNDeclineFriendInvite(id)
+								C_Timer.After(0.1, function()
+									LeaPlusLC:Print(L["A friend request from"] .. " " .. player .. " " .. L["was automatically declined."])
+								end)
+							end
 						end
 					end
 				end
@@ -990,7 +1002,7 @@
 									local gameAccountInfo = accountInfo.gameAccountInfo
 									local gameAccountID = gameAccountInfo.gameAccountID
 									if gameAccountID then
-										BNInviteFriend(gameAccountID)
+										C_BattleNet.InviteFriend(gameAccountID)
 									end
 								end
 							end
@@ -1484,10 +1496,11 @@
 			LeaPlusLC:MakeCB(SoundPanel, "MuteBalls", "Balls", 284, -112, false, "If checked, the Foot Ball sounds will be muted.")
 			LeaPlusLC:MakeCB(SoundPanel, "MuteHarp", "Harp", 284, -132, false, "If checked, the Fae Harp toy will be muted.")
 			LeaPlusLC:MakeCB(SoundPanel, "MuteMeerah", "Meerah", 284, -152, false, "If checked, Meerah's Jukebox wil be muted.")
+			LeaPlusLC:MakeCB(SoundPanel, "MutePiccolo", "Piccolo", 284, -172, false, "If checked, Piccolo of the Flaming Fire wil be muted.|n|nNote that enabling this will also mute the harp sound of the warlock seduction spell.")
 
-			LeaPlusLC:MakeTx(SoundPanel, "Combat", 284, -192)
-			LeaPlusLC:MakeCB(SoundPanel, "MuteArena", "Arena", 284, -212, false, "If checked, arena announcers will be muted.")
-			LeaPlusLC:MakeCB(SoundPanel, "MuteBattleShouts", "Shouts", 284, -232, false, "If checked, your character will not shout and wail during combat.")
+			LeaPlusLC:MakeTx(SoundPanel, "Combat", 284, -212)
+			LeaPlusLC:MakeCB(SoundPanel, "MuteArena", "Arena", 284, -232, false, "If checked, arena announcers will be muted.")
+			LeaPlusLC:MakeCB(SoundPanel, "MuteBattleShouts", "Shouts", 284, -252, false, "If checked, your character will not shout and wail during combat.")
 
 			LeaPlusLC:MakeTx(SoundPanel, "Misc", 418, -72)
 			LeaPlusLC:MakeCB(SoundPanel, "MuteDucks", "Ducks", 418, -92, false, "If checked, duck greetings will be muted.|n|nUse this if you like to do your Valdrakken banking in peace.")
@@ -1962,10 +1975,17 @@
 					-- Slot button tooltip
 					slotBtn:SetScript("OnClick", function(self, btn)
 						if btn == "LeftButton" then
-							local playerActor = DressUpFrame.ModelScene:GetPlayerActor()
-							local slotID = GetInventorySlotInfo(self.slot)
-							playerActor:UndressSlot(slotID)
-							playerActor:SetSheathed(true)
+							if LeaPlusLC.NewPatch then
+								local playerActor = DressUpFrame.ModelScene:GetPlayerActor()
+								local slotID = C_PaperDollInfo.GetInventorySlotInfo(self.slot)
+								playerActor:UndressSlot(slotID)
+								playerActor:SetSheathed(true)
+							else
+								local playerActor = DressUpFrame.ModelScene:GetPlayerActor()
+								local slotID = GetInventorySlotInfo(self.slot)
+								playerActor:UndressSlot(slotID)
+								playerActor:SetSheathed(true)
+							end
 						end
 					end)
 
@@ -2013,23 +2033,46 @@
 					local playerActor = DressUpFrame.ModelScene:GetPlayerActor()
 					if playerActor then
 						for slot, slotButtons in pairs(buttons) do
-							if slotTable[slot] and GetInventorySlotInfo(slotTable[slot]) then
-								local slotID, slotTexture = GetInventorySlotInfo(slotTable[slot])
-								local itemTransmogInfo = playerActor:GetItemTransmogInfo(slotID)
-								if itemTransmogInfo == nil then
-									buttons[slot].item = nil
-									buttons[slot].text = nil
-									buttons[slot].t:SetTexture(slotTexture)
-								else
-									local appearanceSourceInfo = C_TransmogCollection.GetAppearanceSourceInfo(itemTransmogInfo.appearanceID)
-									buttons[slot].item = appearanceSourceInfo.itemLink
-									buttons[slot].text = UNKNOWN
-									if C_TransmogCollection.IsAppearanceHiddenVisual(itemTransmogInfo.appearanceID) then
-										-- Hidden item
-										buttons[slot].t:SetAtlas("transmog-icon-hidden")
+							if LeaPlusLC.NewPatch then
+								if slotTable[slot] and C_PaperDollInfo.GetInventorySlotInfo(slotTable[slot]) then
+									local slotID, slotTexture = C_PaperDollInfo.GetInventorySlotInfo(slotTable[slot])
+									local itemTransmogInfo = playerActor:GetItemTransmogInfo(slotID)
+									if itemTransmogInfo == nil then
+										buttons[slot].item = nil
+										buttons[slot].text = nil
+										buttons[slot].t:SetTexture(slotTexture)
 									else
-										-- Visible item
-										buttons[slot].t:SetTexture(appearanceSourceInfo.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+										local appearanceSourceInfo = C_TransmogCollection.GetAppearanceSourceInfo(itemTransmogInfo.appearanceID)
+										buttons[slot].item = appearanceSourceInfo.itemLink
+										buttons[slot].text = UNKNOWN
+										if C_TransmogCollection.IsAppearanceHiddenVisual(itemTransmogInfo.appearanceID) then
+											-- Hidden item
+											buttons[slot].t:SetAtlas("transmog-icon-hidden")
+										else
+											-- Visible item
+											buttons[slot].t:SetTexture(appearanceSourceInfo.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+										end
+									end
+								end
+							else
+								if slotTable[slot] and GetInventorySlotInfo(slotTable[slot]) then
+									local slotID, slotTexture = GetInventorySlotInfo(slotTable[slot])
+									local itemTransmogInfo = playerActor:GetItemTransmogInfo(slotID)
+									if itemTransmogInfo == nil then
+										buttons[slot].item = nil
+										buttons[slot].text = nil
+										buttons[slot].t:SetTexture(slotTexture)
+									else
+										local appearanceSourceInfo = C_TransmogCollection.GetAppearanceSourceInfo(itemTransmogInfo.appearanceID)
+										buttons[slot].item = appearanceSourceInfo.itemLink
+										buttons[slot].text = UNKNOWN
+										if C_TransmogCollection.IsAppearanceHiddenVisual(itemTransmogInfo.appearanceID) then
+											-- Hidden item
+											buttons[slot].t:SetAtlas("transmog-icon-hidden")
+										else
+											-- Visible item
+											buttons[slot].t:SetTexture(appearanceSourceInfo.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+										end
 									end
 								end
 							end
@@ -4282,25 +4325,49 @@
 
 				-- Traverse equipment slots
 				for k, slotName in ipairs(Slots) do
-					if GetInventorySlotInfo(slotName) then
-						id = GetInventorySlotInfo(slotName)
-						duraval, duramax = GetInventoryItemDurability(id)
-						if duraval ~= nil then
+					if LeaPlusLC.NewPatch then
+						if C_PaperDollInfo.GetInventorySlotInfo(slotName) then
+							id = C_PaperDollInfo.GetInventorySlotInfo(slotName)
+							duraval, duramax = GetInventoryItemDurability(id)
+							if duraval ~= nil then
 
-							-- At least one item has durability stat
-							validItems = true
+								-- At least one item has durability stat
+								validItems = true
 
-							-- Add to tooltip
-							if where == "tip" then
-								durapercent = tonumber(format("%.0f", duraval / duramax * 100))
-								valcol = (durapercent >= 80 and "|cff00FF00") or (durapercent >= 60 and "|cff99FF00") or (durapercent >= 40 and "|cffFFFF00") or (durapercent >= 20 and "|cffFF9900") or (durapercent >= 0 and "|cffFF2000") or ("|cffFFFFFF")
-								_G["GameTooltipTextLeft1"]:SetText(L["Durability"])
-								_G["GameTooltipTextLeft2"]:SetText(_G["GameTooltipTextLeft2"]:GetText() .. SlotsFriendly[k] .. "|n")
-								_G["GameTooltipTextRight2"]:SetText(_G["GameTooltipTextRight2"]:GetText() ..  valcol .. durapercent .. "%" .. "|r|n")
+								-- Add to tooltip
+								if where == "tip" then
+									durapercent = tonumber(format("%.0f", duraval / duramax * 100))
+									valcol = (durapercent >= 80 and "|cff00FF00") or (durapercent >= 60 and "|cff99FF00") or (durapercent >= 40 and "|cffFFFF00") or (durapercent >= 20 and "|cffFF9900") or (durapercent >= 0 and "|cffFF2000") or ("|cffFFFFFF")
+									_G["GameTooltipTextLeft1"]:SetText(L["Durability"])
+									_G["GameTooltipTextLeft2"]:SetText(_G["GameTooltipTextLeft2"]:GetText() .. SlotsFriendly[k] .. "|n")
+									_G["GameTooltipTextRight2"]:SetText(_G["GameTooltipTextRight2"]:GetText() ..  valcol .. durapercent .. "%" .. "|r|n")
+								end
+
+								duravaltotal = duravaltotal + duraval
+								duramaxtotal = duramaxtotal + duramax
 							end
+						end
+					else
+						if GetInventorySlotInfo(slotName) then
+							id = GetInventorySlotInfo(slotName)
+							duraval, duramax = GetInventoryItemDurability(id)
+							if duraval ~= nil then
 
-							duravaltotal = duravaltotal + duraval
-							duramaxtotal = duramaxtotal + duramax
+								-- At least one item has durability stat
+								validItems = true
+
+								-- Add to tooltip
+								if where == "tip" then
+									durapercent = tonumber(format("%.0f", duraval / duramax * 100))
+									valcol = (durapercent >= 80 and "|cff00FF00") or (durapercent >= 60 and "|cff99FF00") or (durapercent >= 40 and "|cffFFFF00") or (durapercent >= 20 and "|cffFF9900") or (durapercent >= 0 and "|cffFF2000") or ("|cffFFFFFF")
+									_G["GameTooltipTextLeft1"]:SetText(L["Durability"])
+									_G["GameTooltipTextLeft2"]:SetText(_G["GameTooltipTextLeft2"]:GetText() .. SlotsFriendly[k] .. "|n")
+									_G["GameTooltipTextRight2"]:SetText(_G["GameTooltipTextRight2"]:GetText() ..  valcol .. durapercent .. "%" .. "|r|n")
+								end
+
+								duravaltotal = duravaltotal + duraval
+								duramaxtotal = duramaxtotal + duramax
+							end
 						end
 					end
 				end
@@ -5549,9 +5616,7 @@
 			if LeaPlusLC["SquareMinimap"] == "On" then
 
 				-- Set button layout
-				AddonCompartmentFrame:SetFrameStrata("MEDIUM")
-				AddonCompartmentFrame:ClearAllPoints()
-				AddonCompartmentFrame:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", -2, -2)
+				AddonCompartmentFrame:SetFrameLevel(4)
 
 				-- Debug
 				-- AddonCompartmentFrame:SetText("56")
@@ -5575,20 +5640,9 @@
 				LeaPlusCB["MinimapBorderWidth"]:HookScript("OnValueChanged", SetMinimapBorderWidth)
 				SetMinimapBorderWidth()
 
-				-- Nudge calendar button to the left
-				GameTimeFrame:ClearAllPoints()
-				GameTimeFrame:SetPoint("TOPLEFT", TimeManagerClockButton, "TOPRIGHT", 0, 0)
-
-				-- Function to set minimap position
-				local function SetHeaderThing()
-					-- local setting = MinimapCluster:GetSettingValueBool(Enum.EditModeMinimapSetting.HeaderUnderneath)
-					Minimap:ClearAllPoints()
-					Minimap:SetPoint("CENTER", MinimapCluster, "TOP", 14, -124)
-				end
-
-				-- Set minimap position when header position is changed and on startup
-				hooksecurefunc(MinimapCluster, "SetHeaderUnderneath", SetHeaderThing)
-				SetHeaderThing()
+				-- Set minimap position (local setting = MinimapCluster:GetSettingValueBool(Enum.EditModeMinimapSetting.HeaderUnderneath))
+				Minimap:ClearAllPoints()
+				Minimap:SetPoint("CENTER", MinimapCluster, "TOP", 14, -124)
 
 				-- Hide the default compass border
 				MinimapCompassTexture:Hide()
@@ -5642,10 +5696,6 @@
 				ExpansionLandingPageMinimapButton.AlertText:ClearAllPoints()
 				ExpansionLandingPageMinimapButton.AlertText:SetPoint("RIGHT", ExpansionLandingPageMinimapButton, "LEFT", -8, 0)
 				ExpansionLandingPageMinimapButton:SetHitRectInsets(0, 0, 0, 0)
-
-				-- Set instance difficulty layout
-				MinimapCluster.InstanceDifficulty:ClearAllPoints()
-				MinimapCluster.InstanceDifficulty:SetPoint("TOPRIGHT", MinimapCluster, "TOPRIGHT", -10, -22)
 
 				-- Setup hybrid minimap when available
 				EventUtil.ContinueOnAddOnLoaded("Blizzard_HybridMinimap",function()
@@ -5753,6 +5803,15 @@
 						myButton:HookScript("OnEnter", function()
 							_G[name]:GetScript("OnEnter")(_G[name], true)
 							ReanchorTooltip(GameTooltip, myButton)
+						end)
+						myButton:HookScript("OnLeave", function()
+							_G[name]:GetScript("OnLeave")()
+						end)
+					elseif name == "OOMinimapButton" then
+						-- OmniumObservator
+						local myButton = LibStub("LibDBIcon-1.0"):GetMinimapButton("LeaPlusCustomIcon_" .. name)
+						myButton:HookScript("OnEnter", function()
+							_G[name]:GetScript("OnEnter")(_G[name], true)
 						end)
 						myButton:HookScript("OnLeave", function()
 							_G[name]:GetScript("OnLeave")()
@@ -5869,6 +5928,7 @@
 				-- Some buttons have less than 3 regions.  These need to be manually defined below.
 				local LowRegionCountButtons = {
 					"AllTheThings-Minimap", -- AllTheThings
+					"OOMinimapButton", -- OmniumObservator
 				}
 
 				-- Function to loop through minimap children to find non-standard addon buttons
@@ -6235,6 +6295,11 @@
 					--[[You feel smaller]] 16595, 1223629,
 				},
 
+				-- Reflecting Prism
+				["TransReflectingPrism"] = {
+					--[[Prismatic Reflection]] 163267,
+				},
+
 			}
 
 			-- Give table file level scope (its used during logout and for admin command)
@@ -6296,6 +6361,7 @@
 			row = row + 2; LeaPlusLC:MakeTx(transPanel.scrollChild, "Items", 16,  -(row - 1) * 20 - 2)
 			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransCursedPickaxe", "Cursed Pickaxe", 16,  -((row - 1) * 20) - 2, false, "If checked, the Cursed Pickaxe transform will be removed when applied.|n|nYou can mute the associated sounds with the mute game sounds combat shouts option.")
 			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransNoggenfogger", "Noggenfogger Elixir", 16,  -((row - 1) * 20) - 2, false, "If checked, the slow fall and shrink effects of Noggenfogger Elixir will be removed when applied while keeping the skeleton transform intact.")
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransReflectingPrism", "Reflecting Prism", 16,  -((row - 1) * 20) - 2, false, "If checked, the Reflecting Prism transform will be removed when applied.")
 
 			-- Debug
 			-- RemoveCommentToEnableDebug = true
@@ -12400,15 +12466,6 @@
 					LeaPlusLC:Print("GetAllowLowLevelRaid: |cffffffff" .. "False")
 				end
 				return
-			elseif str == "move" then
-				-- Move minimap
-				MinimapZoneTextButton:Hide()
-				MinimapBorderTop:SetTexture("")
-				MiniMapWorldMapButton:Hide()
-				MinimapBackdrop:ClearAllPoints()
-				MinimapBackdrop:SetPoint("CENTER", UIParent, "CENTER", -330, -75)
-				Minimap:SetPoint("CENTER", UIParent, "CENTER", -320, -50)
-				return
 			elseif str == "tipcol" then
 				-- Show default tooltip title color
 				if GameTooltipTextLeft1:IsShown() then
@@ -12923,7 +12980,7 @@
 				-- Show list of connected realms
 				local titleRealm = GetRealmName()
 				local userRealm = GetNormalizedRealmName()
-				local connectedServers = GetAutoCompleteRealms()
+				local connectedServers = C_AutoComplete.GetAutoCompleteRealms()
 				if titleRealm and userRealm and connectedServers then
 					LeaPlusLC:Print(L["Connections for"] .. "|cffffffff " .. titleRealm)
 					if #connectedServers > 0 then
@@ -13298,7 +13355,7 @@
 						if GetNumGroupMembers() > 0 then
 							local name = GetRaidRosterInfo(i)
 							if name and name ~= UnitName("player") then
-								UninviteUnit(name)
+								C_PartyInfo.UninviteUnit(name)
 							end
 						end
 					end
@@ -13317,7 +13374,7 @@
 							if GetNumGroupMembers() > 0 then
 								local name = GetRaidRosterInfo(i)
 								if name and name ~= UnitName("player") then
-									UninviteUnit(name)
+									C_PartyInfo.UninviteUnit(name)
 									tinsert(groupNames, name)
 								end
 							end
