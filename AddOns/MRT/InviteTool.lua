@@ -271,8 +271,8 @@ function module.options:Load()
 
 	self.dropDown = ELib:DropDown(self,205,10):Point(15,-30):Size(220)
 
-	function self.dropDown:SetValue(newValue)
-		VMRT.InviteTool.Ranks[newValue] = self.checkButton:GetChecked()
+	function self.dropDown:SetValue(arg1)
+		VMRT.InviteTool.Ranks[arg1] = self.checkButton:GetChecked()
 		module.options.dropDown:SetText( L.inviterank )
 		for i=1,#module.options.dropDown.List do
 			module.options.dropDown.List[i].checkState = VMRT.InviteTool.Ranks[ module.options.dropDown.List[i].arg1 ]
@@ -293,6 +293,7 @@ function module.options:Load()
 		end
 		self.dropDown.Lines = #self.dropDown.List
 	end
+
 
 	self.butInv = ELib:Button(self,L.inviteinv):Size(200,20):Point(245,-30):OnClick(function() InviteBut() end)
 	self.butInv.txt = ELib:Text(self,"/rt inv",11):Size(100,20):Point("LEFT",self.butInv,"RIGHT",5,0)
@@ -383,34 +384,27 @@ function module.options:Load()
 	end)
 
 	self.dropDownAutoPromote = ELib:DropDown(self,205,10):Point("TOPLEFT",self.chkAutoPromote,"BOTTOMLEFT",0,-5):Size(430)
-	function self.dropDownAutoPromote:SetValue(newValue)
-		VMRT.InviteTool.PromoteRank = newValue
-		module.options.dropDownAutoPromote:SetText( L.inviterank.." " .. (newValue == 0 and L.inviteAutoPromoteDontUseGuild or GuildControlGetRankName(newValue) or ""))
-		ELib:DropDownClose()
+	function self.dropDownAutoPromote:SetValue(arg1)
+		VMRT.InviteTool.PromoteRanks[arg1] = self.checkButton:GetChecked()
+		module.options.dropDownAutoPromote:SetText( L.inviterank )
 		for i=1,#module.options.dropDownAutoPromote.List do
-			module.options.dropDownAutoPromote.List[i].checkState = VMRT.InviteTool.PromoteRank == module.options.dropDownAutoPromote.List[i].arg1
+			module.options.dropDownAutoPromote.List[i].checkState = VMRT.InviteTool.PromoteRanks[ module.options.dropDownAutoPromote.List[i].arg1 ]
 		end
+		module.options.dropDownAutoPromote:UpdateText()
 	end
 	if IsInGuild() then
 		local granks = GuildControlGetNumRanks()
 		for i=granks,1,-1 do
 			self.dropDownAutoPromote.List[#self.dropDownAutoPromote.List + 1] = {
 				text = GuildControlGetRankName(i) or "",
-				checkState = VMRT.InviteTool.PromoteRank == i,
-				radio = true,
+				checkState = VMRT.InviteTool.PromoteRanks[i],
+				checkable = true,
 				func = self.dropDownAutoPromote.SetValue,
 				arg1 = i,
 			}
 		end
+		self.dropDownAutoPromote.Lines = #self.dropDownAutoPromote.List
 	end
-	self.dropDownAutoPromote.List[#self.dropDownAutoPromote.List + 1] = {
-		text = L.inviteAutoPromoteDontUseGuild,
-		checkState = VMRT.InviteTool.PromoteRank == 0,
-		radio = true,
-		func = self.dropDownAutoPromote.SetValue,
-		arg1 = 0,
-	}
-	self.dropDownAutoPromote.Lines = #self.dropDownAutoPromote.List
 
 
 	self.autoPromoteInput = ELib:Edit(self):Size(650,20):Point("TOPLEFT",self.dropDownAutoPromote,"BOTTOMLEFT",0,-5):Tooltip(L.inviteAutoPromoteTooltip):Text(VMRT.InviteTool.PromoteNames):OnChange(function(self)
@@ -590,7 +584,7 @@ function module.options:Load()
 	end
 
 	self.dropDown:SetText( L.inviterank )
-	self.dropDownAutoPromote:SetText( L.inviterank.." " .. (VMRT.InviteTool.PromoteRank == 0 and L.inviteAutoPromoteDontUseGuild or GuildControlGetRankName(VMRT.InviteTool.PromoteRank) or ""))
+	self.dropDownAutoPromote:SetText( L.inviterank )
 
 	function self.dropDown:UpdateText()
 		if IsInGuild() and VMRT.InviteTool.Ranks then
@@ -604,6 +598,19 @@ function module.options:Load()
 		end
 	end
 	self.dropDown:UpdateText()
+
+	function self.dropDownAutoPromote:UpdateText()
+		if IsInGuild() and VMRT.InviteTool.PromoteRanks then
+			local r = ""
+			for rank,v in pairs(VMRT.InviteTool.PromoteRanks) do
+				if v then
+					r = r .. (GuildControlGetRankName(rank) or "") .. ","
+				end
+			end
+			self:SetText( L.inviterank .. r:sub(1,-2) )
+		end
+	end
+	self.dropDownAutoPromote:UpdateText()
 end
 
 
@@ -621,7 +628,7 @@ do
 		for j=1,GetNumGuildMembers() do
 			local guild_name,_,rankIndex = GetGuildRosterInfo(j)
 			if guild_name then
-				guildmembers[ExRT.F.delUnitNameServer(guild_name)] = rankIndex
+				guildmembers[ExRT.F.delUnitNameServer(guild_name)] = rankIndex + 1
 			end
 		end
 	end
@@ -642,7 +649,7 @@ do
 					if not guildmembers then
 						GuildReview()
 					end
-					if (guildmembers[sName] or 99) < VMRT.InviteTool.PromoteRank then
+					if  VMRT.InviteTool.PromoteRanks[ (guildmembers[sName] or 99) ] then
 						promotes[name] = true
 					end
 				end
@@ -690,7 +697,6 @@ end
 function module.main:ADDON_LOADED()
 	VMRT = _G.VMRT
 	VMRT.InviteTool = VMRT.InviteTool or {OnlyGuild=true,InvByChat=true}
-	VMRT.InviteTool.Rank = VMRT.InviteTool.Rank or 1
 
 	if not VMRT.InviteTool.Ranks then
 		VMRT.InviteTool.Ranks = {}
@@ -698,6 +704,7 @@ function module.main:ADDON_LOADED()
 			for i=1,VMRT.InviteTool.Rank do
 				VMRT.InviteTool.Ranks[i] = true
 			end
+			VMRT.InviteTool.Rank = nil
 		end
 	end
 
@@ -705,8 +712,16 @@ function module.main:ADDON_LOADED()
 	createInvWordsArray()
 
 	VMRT.InviteTool.PromoteNames = VMRT.InviteTool.PromoteNames or ""
-	VMRT.InviteTool.PromoteRank = VMRT.InviteTool.PromoteRank or 2
 	createPromoteArray()
+	if not VMRT.InviteTool.PromoteRanks then
+		VMRT.InviteTool.PromoteRanks = {}
+		if type(VMRT.InviteTool.PromoteRank)=='number' then
+			for i=1,VMRT.InviteTool.PromoteRank do
+				VMRT.InviteTool.PromoteRanks[i] = true
+			end
+			VMRT.InviteTool.PromoteRank = nil
+		end
+	end
 
 	VMRT.InviteTool.RaidDiff = VMRT.InviteTool.RaidDiff or 16
 	VMRT.InviteTool.LootMethod = VMRT.InviteTool.LootMethod or "group"

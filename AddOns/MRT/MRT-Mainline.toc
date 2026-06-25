@@ -3,7 +3,7 @@
 ## Author: ykiigor
 ## Notes: Method Raid Tools
 ## SavedVariables: VMRT
-## Version: 5291
+## Version: 5315
 ## AddonCompartmentFunc: MRT_MinimapClickFunction
 ## IconTexture: Interface\AddOns\MRT\media\MiniMap.tga
 ## Title-zhTW: |cffFF7F00[副本]|r Method 團隊工具箱
@@ -11,6 +11,7 @@
 ## DefaultState: Disabled
 ## Category: Raid
 ## Category-zhTW: 副本
+## X-Wago-ID: 5bGoJnK0
 core.lua
 Functions.lua
 embeds.xml

@@ -19,6 +19,9 @@ module.db.mapsToLog_5ppl = {
 	[670] = true,	-- Grim Batol
 	[658] = true,	-- Pit of Saron
 }
+module.db.mapsToLog_raid = {
+	[1592] = true,
+}
 
 module.db.mapsSoD = {	--Season of Discovery, Classic
 	[48] = true,
@@ -37,7 +40,7 @@ function module.options:Load()
 		end
 	end)
 		
-	self.shtml1 = ELib:Text(self," -"..L.S_ZoneT35KD.."\n -"..L.S_ZoneT35D.."\n -"..L.S_ZoneT35A,12):Size(620,0):Point("TOP",0,-65):Top()
+	self.shtml1 = ELib:Text(self," -"..L.S_ZoneT35S.."\n -"..L.S_ZoneT35KD.."\n -"..L.S_ZoneT35D.."\n -"..L.S_ZoneT35A,12):Size(620,0):Point("TOP",0,-65):Top()
 
 	self.shtml2 = ELib:Text(self,L.LoggingHelp1,12):Size(650,0):Point("TOP",self.shtml1,"BOTTOM",0,-15):Top()
 	
@@ -172,7 +175,7 @@ local function GetCurrentMapForLogging()
 			return true 
 		elseif ExRT.isClassic and (zoneType == 'raid' or (C_Engraving and C_Engraving.IsEngravingEnabled() and module.db.mapsSoD[mapID]) or difficulty == 198) then
 			return true 
-		elseif zoneType == 'raid' and (tonumber(mapID) and mapID >= module.db.minRaidMapID) and ((difficulty == 16 and not VMRT.Logging.disableMythic) or (difficulty == 15 and not VMRT.Logging.disableHeroic) or (difficulty == 14 and not VMRT.Logging.disableNormal) or (difficulty ~= 14 and difficulty ~= 15 and difficulty ~= 16)) then
+		elseif zoneType == 'raid' and (tonumber(mapID) and (mapID >= module.db.minRaidMapID or module.db.mapsToLog_raid[mapID])) and (((difficulty == 16 or difficulty == 233) and not VMRT.Logging.disableMythic) or (difficulty == 15 and not VMRT.Logging.disableHeroic) or (difficulty == 14 and not VMRT.Logging.disableNormal) or (difficulty ~= 14 and difficulty ~= 15 and difficulty ~= 16 and difficulty ~= 233)) then
 			return true
 		elseif VMRT.Logging.enable5ppLegion and (difficulty == 8 or difficulty == 23) and (tonumber(mapID) and (mapID >= module.db.minPartyMapID or module.db.mapsToLog_5ppl[mapID])) then
 			return true

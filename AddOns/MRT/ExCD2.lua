@@ -3065,6 +3065,9 @@ do
 	end
 
 	function UpdateAllData()
+		if not module:IsEnabled() then
+			return
+		end
 		reviewID = reviewID + 1
 		--print('UpdateAllData',GetTime())
 		local isTestMode = _db.testMode

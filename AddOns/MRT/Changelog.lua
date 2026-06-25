@@ -1,6 +1,23 @@
 local GlobalAddonName, ExRT = ...
 
 ExRT.Options.Changelog = [=[
+v.5315
+* Fixed Sporefall autologging
+* Minor updates
+
+v.5310
+* 12.0.7 update
+
+v.5300
+* Invite tools: you can set any custom guild rank for autopromote
+
+v.5300-MoP
+* Added SoO
+* Invite tools: you can set any custom guild rank for autopromote
+
+v.5295
+* Fixes
+
 v.5291
 * Fixes
 

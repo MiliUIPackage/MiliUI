@@ -759,7 +759,9 @@ function module.main:PLAYER_SPECIALIZATION_CHANGED(arg)
 		module.db.inspectDB[name] = nil
 
 		--------> ExCD2
-		VMRT.ExCD2.gnGUIDs[name] = nil
+		if VMRT.ExCD2 and VMRT.ExCD2.gnGUIDs then
+			VMRT.ExCD2.gnGUIDs[name] = nil
+		end
 
 		local _,class = UnitClass(name)
 		if cooldownsModule.db.spell_talentsList[class] then
@@ -792,7 +794,9 @@ function module.main:UNIT_SPELLCAST_SUCCEEDED(unitID,castGUID,spellID)
 		--spec change
 		if spellID == 200749 then
 			--------> ExCD2
-			VMRT.ExCD2.gnGUIDs[name] = nil
+			if VMRT.ExCD2 and VMRT.ExCD2.gnGUIDs then
+				VMRT.ExCD2.gnGUIDs[name] = nil
+			end
 	
 			local _,class = UnitClass(name)
 			if cooldownsModule.db.spell_talentsList[class] then
@@ -940,7 +944,7 @@ do
 			local data = module.db.inspectDB[name]
 
 			data.spec = floor( GetInspectSpecialization(inspectedName) + 0.5 )
-			if data.spec < 10000 then
+			if data.spec < 10000 and VMRT.ExCD2 and VMRT.ExCD2.gnGUIDs then
 				VMRT.ExCD2.gnGUIDs[name] = data.spec
 			end
 			data.class = class

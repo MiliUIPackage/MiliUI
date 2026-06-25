@@ -2333,17 +2333,34 @@ function module.frame:UpdateFont()
 	end
 	local font = VMRT.RaidCheck.ReadyCheckFont or ExRT.F.defFont
 	local fontsize = VMRT.RaidCheck.ReadyCheckFontSize or 12
+
+	local isValidFont = pcall(self.title.SetFont,self.title,font,fontsize,"")
+	if isValidFont then
+		self.timeLeftLine.time:SetFont(font,fontsize,"")
+	else
+		self.title:SetFont(ExRT.F.defFont,fontsize,"")
+		self.timeLeftLine.time:SetFont(ExRT.F.defFont,fontsize,"")
+	end
+
 	for i=1,40 do
 		local line = self.lines[i]
-		line.name:SetFont(font,fontsize,"")
-		line.mini.name:SetFont(font,fontsize,"")
+
+		if isValidFont then
+			line.name:SetFont(font,fontsize,"")
+			line.mini.name:SetFont(font,fontsize,"")
+		else
+			line.name:SetFont(ExRT.F.defFont,fontsize,"")
+			line.mini.name:SetFont(ExRT.F.defFont,fontsize,"")
+		end
 
 		for i,key in pairs(RCW_iconsList) do
-			line[key].bigText:SetFont(font,fontsize-2,"")
+			if isValidFont then
+				line[key].bigText:SetFont(font,fontsize-2,"")
+			else
+				line[key].bigText:SetFont(ExRT.F.defFont,fontsize-2,"")
+			end
 		end
 	end
-	self.title:SetFont(font,fontsize,"")
-	self.timeLeftLine.time:SetFont(font,fontsize,"")
 
 end
 --module.frame:Create()

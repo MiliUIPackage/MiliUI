@@ -1,4 +1,5 @@
 local GlobalAddonName, ExRT = ...
+local MRT = ExRT
 
 local module = ExRT:New("Profiles",ExRT.L.Profiles)
 local ELib,L = ExRT.lib,ExRT.L
@@ -51,6 +52,55 @@ function module:ReselectProfileOnLoad()
 	VMRT.Profile = charProfile
 end
 
+local function SaveCurrentProfiletoDB()
+	local profileName = VMRT.Profile or "default"
+	local saveDB = {}
+	VMRT.Profiles[ profileName ] = saveDB
+	
+	for key,val in pairs(VMRT) do
+		if not MAJOR_KEYS[key] then
+			saveDB[key] = val
+		end
+	end
+end
+local function LoadProfileFromDB(profileName,isCopy,ignoreReload)
+	local loadDB = VMRT.Profiles[ profileName ]
+	if not loadDB then
+		print("Error")
+		return
+	end
+	
+	for key,val in pairs(VMRT) do
+		if not MAJOR_KEYS[key] then
+			VMRT[key] = nil
+		end
+	end
+	for key,val in pairs(loadDB) do
+		if not MAJOR_KEYS[key] then
+			VMRT[key] = val
+		end
+	end
+	
+	if not isCopy then
+		VMRT.Profiles[ profileName ] = {}
+	end
+	
+	if not ignoreReload then
+		ReloadUI()
+	end
+end
+function module:SelectProfile(name,ignoreReload,ignoreSavingCurrent)
+	if name == VMRT.Profile and not ignoreSavingCurrent then
+		return
+	end
+	if not ignoreSavingCurrent then
+		SaveCurrentProfiletoDB()
+	end
+	VMRT.Profile = name
+	VMRT.ProfileKeys[ ExRT.SDB.charKey ] = name
+	LoadProfileFromDB(name,false,ignoreReload)
+end
+
 function module.options:Load()
 	local function GetCurrentProfileName()
 		return VMRT.Profile=="default" and L.ProfilesDefault or VMRT.Profile
@@ -67,41 +117,7 @@ function module.options:Load()
 		sort(list,function(a,b) return a._sort < b._sort end)
 		return list
 	end
-	local function SaveCurrentProfiletoDB()
-		local profileName = VMRT.Profile or "default"
-		local saveDB = {}
-		VMRT.Profiles[ profileName ] = saveDB
-		
-		for key,val in pairs(VMRT) do
-			if not MAJOR_KEYS[key] then
-				saveDB[key] = val
-			end
-		end
-	end
-	local function LoadProfileFromDB(profileName,isCopy)
-		local loadDB = VMRT.Profiles[ profileName ]
-		if not loadDB then
-			print("Error")
-			return
-		end
-		
-		for key,val in pairs(VMRT) do
-			if not MAJOR_KEYS[key] then
-				VMRT[key] = nil
-			end
-		end
-		for key,val in pairs(loadDB) do
-			if not MAJOR_KEYS[key] then
-				VMRT[key] = val
-			end
-		end
-		
-		if not isCopy then
-			VMRT.Profiles[ profileName ] = {}
-		end
-		
-		ReloadUI()
-	end
+
 
 	self:CreateTilte()
 
@@ -146,13 +162,7 @@ function module.options:Load()
 	
 	local function SelectProfile(_,name)
 		ELib:DropDownClose()
-		if name == VMRT.Profile then
-			return
-		end
-		SaveCurrentProfiletoDB()
-		VMRT.Profile = name
-		VMRT.ProfileKeys[ ExRT.SDB.charKey ] = name
-		LoadProfileFromDB(name)
+		module:SelectProfile(name,false,false)
 	end
 	function self.choseSelectDropDown:ToggleUpadte()
 		self.List = GetCurrentProfilesList(SelectProfile)
@@ -358,15 +368,25 @@ module.db.EXPORT_FULL_KEYS = {
 	["Reminder2"] = true,
 }
 
-function module:ProfileToText(isFullExport)
+function module:GetProfileText(profileName,isFullExport)
+	local profileData
+	if profileName == VMRT.Profile then
+		profileData = VMRT
+	elseif VMRT.Profiles[profileName] then
+		profileData = VMRT.Profiles[profileName]
+	else
+		print("No profile found")
+		return
+	end
+
 	local new = {}
-	for key,val in pairs(VMRT) do
+	for key,val in pairs(profileData) do
 		if module.db.EXPORT_KEYS[key] or (isFullExport and module.db.EXPORT_FULL_KEYS[key]) then
 			new[key] = val
 		end
 	end
 	local strlist = ExRT.F.TableToText(new)
-	strlist[1] = (VMRT.Profile or "default"):sub(1,200):gsub(",","")..","..(ExRT.isClassic and "1" or "0")..","..strlist[1]
+	strlist[1] = (profileName or "default"):sub(1,200):gsub(",","")..","..(ExRT.isClassic and "1" or "0")..","..strlist[1]
 	local str = table.concat(strlist)
 
 	local compressed
@@ -380,6 +400,13 @@ function module:ProfileToText(isFullExport)
 	if ExRT.isDev then
 		module.db.exportTable = new
 	end
+
+	return encoded
+end
+
+function module:ProfileToText(isFullExport)
+	local encoded = module:GetProfileText(VMRT.Profile,isFullExport)
+
 	if not module.exportWindow then
 		module.options:Load()
 	end
@@ -475,4 +502,89 @@ function module:TextToProfile(str,uncompressed)
 	end
 
 	StaticPopup_Show("EXRT_PROFILES_IMPORT")
+end
+
+
+local function TextToProfileData(str)
+	local headerLen = 5
+	local header = str:sub(1,headerLen)
+	if (header:sub(1,headerLen-1) ~= "EXRTP" and header:sub(1,headerLen-1) ~= "MRTP") or (header:sub(headerLen,headerLen) ~= "0" and header:sub(headerLen,headerLen) ~= "1") then
+		error(L.ProfilesFail3)
+	end
+
+	str = str:sub(headerLen+1)
+	local uncompressed = header:sub(headerLen,headerLen)=="0"
+
+	local decoded = LibDeflate:DecodeForPrint(str)
+	local decompressed
+	if uncompressed then
+		decompressed = decoded
+	else
+		decompressed = LibDeflate:DecompressDeflate(decoded)
+	end
+	decoded = nil
+
+	if not decompressed then
+		error('import string is broken')
+	end
+
+	local profileName,clientVersion,tableData = strsplit(",",decompressed,3)
+
+	local successful, res = pcall(ExRT.F.TextToTable,tableData)
+	if not successful or not res then
+		error(res or "no data")
+	end
+
+	return res, profileName
+end
+
+MRT_API = MRT_API or {}
+
+function MRT_API:ExportProfile(profileKey)
+	return module:GetProfileText(profileKey,false)
+end
+
+function MRT_API:ImportProfile(profileString, profileKey)
+	local data = TextToProfileData(profileString)
+	if not data then
+		return
+	end
+	local isCurrentProfile = profileKey == VMRT.Profile
+	VMRT.Profiles[profileKey] = data
+	module:SelectProfile(profileKey,true,isCurrentProfile)	--skip reload
+	return true
+end
+
+function MRT_API:DecodeProfileString(profileString)
+	local data = TextToProfileData(profileString)
+	return data
+end
+
+function MRT_API:SetProfile(profileKey)
+	module:SelectProfile(profileKey,true,false)
+end
+
+function MRT_API:GetProfileKeys()
+	local profileKeys = {}
+	profileKeys[VMRT.Profile or "default"] = true
+	for key in pairs(VMRT.Profiles) do
+		profileKeys[key] = true
+	end
+	return profileKeys
+end
+
+function MRT_API:GetProfileAssignments()
+	return nil
+end
+
+function MRT_API:GetCurrentProfileKey()
+	return VMRT.Profile or "default"
+end
+
+function MRT_API:OpenConfig()
+	MRT.Options:Open()
+end
+
+function MRT_API:CloseConfig()
+	MRT.Options.Frame:Hide()
 end

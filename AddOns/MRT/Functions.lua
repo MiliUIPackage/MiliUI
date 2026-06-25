@@ -2641,6 +2641,7 @@ ExRT.GDB.EncountersList = {
 	{2529,3176,3177,3179,3178,3180,3181},	--The Voidspire:Raid
 	{2532,3306},	--The Dreamrift:Raid
 	{2533,3182,3183},	--March on Quel'Danas:Raid
+	{2427,3159},	--Sporefall:Raid
 }
 
 function ExRT.F.EJ_AutoScan()

@@ -17283,7 +17283,7 @@ function options:Load()
 			self.voicesList:Update()
 			ELib:DropDownClose()
 
-			if ExRT.isMN then
+			if ExRT.isMN or (Enum and not Enum.VoiceTtsDestination) then
 				C_VoiceChat.SpeakText(
 					arg1 or TextToSpeech_GetSelectedVoice(Enum.TtsVoiceType.Standard).voiceID,
 					TEXT_TO_SPEECH_SAMPLE_TEXT,
@@ -17323,7 +17323,7 @@ function options:Load()
 		self.voicesList.playButton = ELib:Icon(self.voicesList,"Interface\\AddOns\\MRT\\media\\DiesalGUIcons16x256x128",20,true):Point("LEFT",'x',"RIGHT",5,0)
 		self.voicesList.playButton.texture:SetTexCoord(0.375,0.4375,0.5,0.625)
 		self.voicesList.playButton:SetScript("OnClick",function()
-			if ExRT.isMN then
+			if ExRT.isMN or (Enum and not Enum.VoiceTtsDestination) then
 				C_VoiceChat.SpeakText(
 					module:GetTTSVoiceID() or 0,
 					"This is an example of text to speech",
@@ -18513,7 +18513,7 @@ do
 					if isPass then
 						C_Timer.After(0.01,function()	--Try to fix lag
 							--C_VoiceChat.StopSpeakingText()
-							if ExRT.isMN then
+							if ExRT.isMN or (Enum and not Enum.VoiceTtsDestination) then
 								C_VoiceChat.SpeakText(
 									--VMRT.Reminder2.ttsVoice or TextToSpeech_GetSelectedVoice(Enum.TtsVoiceType.Standard).voiceID or 1, 
 									module:GetTTSVoiceID(), 
@@ -18548,7 +18548,7 @@ do
 	function module:PlayTTS(msg)
 		C_Timer.After(0.01,function()	--Try to fix lag
 			--C_VoiceChat.StopSpeakingText()
-			if ExRT.isMN then
+			if ExRT.isMN or (Enum and not Enum.VoiceTtsDestination) then
 				C_VoiceChat.SpeakText(
 					module:GetTTSVoiceID(), 
 					tostring( msg or "" ), 

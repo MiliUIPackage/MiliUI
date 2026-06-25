@@ -615,6 +615,8 @@ function module.options:Load()
 		106898,192077,46968,119381,179057,192058,30283,0,
 		29166,32375,114018,108199,49576,116844,0,
 		0,
+		1222088,1221714,1222495,1221717,1221644,1221781,1221787,1222129,1222684,1221965,1222176,1221622,1221637,0,
+		0,
 		1249251,1280035,1251361,1255702,1267205,1280075,1249262,1280015,1262036,1265540,1255683,1275059,1253918,1255749,1274846,1260712,1258883,1249714,1264164,0,
 		1241844,1243270,1259186,1280101,1272527,1260052,1244419,1256855,1272937,1241692,1273067,0,
 		1247738,1248697,1254081,1275056,1271577,1254088,1250828,1245960,1250686,1253032,1251213,1248709,1246175,1250991,1245592,1260015,0,
@@ -773,6 +775,7 @@ function module.options:Load()
 		tinsert(module.db.encountersList,MRT.F.table_find(module.db.encountersList,909,1) or #module.db.encountersList,{EXPANSION_NAME7..": "..DUNGEONS,-1012,-968,-1041,-1022,-1030,-1023,-1002,-1001,-1036,-1021})
 	else
 		module.db.encountersList = {}
+		tinsert(module.db.encountersList,MRT.F.table_copy2(MRT.F.table_find3(MRT.GDB.EncountersList,556,1)))
 		tinsert(module.db.encountersList,MRT.F.table_copy2(MRT.F.table_find3(MRT.GDB.EncountersList,508,1)))
 		tinsert(module.db.encountersList,MRT.F.table_copy2(MRT.F.table_find3(MRT.GDB.EncountersList,456,1)))
 		tinsert(module.db.encountersList,MRT.F.table_copy2(MRT.F.table_find3(MRT.GDB.EncountersList,474,1)))
@@ -1282,6 +1285,36 @@ function module.options:Load()
 	end
 	self.autoLoadDropdown:UpdateText(VMRT.Note.AutoLoad[0])
 	do
+		local supportedBosses = nil
+		local function hoverFunc(self,bossID)
+			if not VMRT.Note.EnableBossAutoLoad or not bossID then
+				return
+			end
+
+			if not supportedBosses then
+				local SubzoneTextToBossID = MRT.Data.SubzoneTextToBossID
+				local locale = GetLocale()
+				SubzoneTextToBossID = SubzoneTextToBossID[locale or "enUS"] or SubzoneTextToBossID.enUS
+
+				supportedBosses = {}
+				for _,v in pairs(SubzoneTextToBossID) do
+					supportedBosses[v] = true
+				end
+			end
+
+			if not supportedBosses[bossID] then
+				GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+				GameTooltip:AddLine("Autoload for this boss is "..(supportedBosses[bossID] and "|cff00ff00supported|r" or "|cffff0000not supported|r"))
+				GameTooltip:Show()
+			end
+		end
+		local function leaveFunc(self,bossID)
+			if not VMRT.Note.EnableBossAutoLoad then
+				return
+			end
+			GameTooltip_Hide()
+		end
+
 		local List = self.autoLoadDropdown.List
 		List[#List+1] = {
 			text = NO,
@@ -1304,6 +1337,9 @@ function module.options:Load()
 					func = autoLoadDropdown_SetValue,
 					icon = bossImg,
 					iconsize = 32,
+					hoverFunc = hoverFunc,
+					leaveFunc = leaveFunc,
+					hoverArg = bossID,
 				}
 			end
 		end
@@ -3436,6 +3472,7 @@ function module:CreateNoteWindow(windowName,isCustomWindow)
 	frame:SetPoint("CENTER",UIParent, "CENTER", 0, 0)
 	frame:EnableMouse(true)
 	frame:SetMovable(true)
+	frame:SetUserPlaced(false)
 	frame:RegisterForDrag("LeftButton")
 	frame:SetScript("OnDragStart", NoteWindow_OnDragStart)
 	frame:SetScript("OnDragStop", NoteWindow_OnDragStop)

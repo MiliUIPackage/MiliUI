@@ -15,6 +15,7 @@ module.db.allowedDiff = {
 	[16] = true,	--raid mythic
 	[23] = true,
 	[8] = true,
+	[233] = true,
 }
 
 local VMRT = nil
