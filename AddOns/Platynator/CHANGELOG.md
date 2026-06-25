@@ -1,6 +1,7 @@
 # Platynator
 
-## [429](https://github.com/TheMouseNest/Platynator/tree/429) (2026-06-22)
-[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/428...429) 
+## [430](https://github.com/TheMouseNest/Platynator/tree/430) (2026-06-23)
+[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/429...430) 
 
-- Fix stack region scaling being wrong sometimes  
+- Use explicit slider for "Name only" mode nameplate sizes  
+- [Fixes #353] Option to hide cast "Interrupted" text when cast interrupted  
