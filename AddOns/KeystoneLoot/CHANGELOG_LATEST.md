@@ -1,3 +1,5 @@
 ## Other Changes
-- Update interface version to 120007
-- Add new raid and items
+- Update README and localization references for the Catalyst
+
+## Refactor
+- Clean up whitespace and formatting in multiple files

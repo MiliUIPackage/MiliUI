@@ -1,7 +1,6 @@
 local AddonName, KeystoneLoot = ...;
 
 local DB = KeystoneLoot.DB;
-local Query = KeystoneLoot.Query;
 
 KeystoneLootRaidDropdownMixin = {};
 

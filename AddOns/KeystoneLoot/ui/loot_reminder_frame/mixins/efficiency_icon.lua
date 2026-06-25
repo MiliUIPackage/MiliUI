@@ -1,5 +1,3 @@
-local AddonName, KeystoneLoot           = ...;
-
 KeystoneLootReminderEfficiencyIconMixin = {};
 
 function KeystoneLootReminderEfficiencyIconMixin:OnEnter()

@@ -1,5 +1,3 @@
-local AddonName, KeystoneLoot = ...;
-
 SlashCmdList.KEYSTONELOOT = function()
     KeystoneLootFrame:SetShown(not KeystoneLootFrame:IsShown());
 end;

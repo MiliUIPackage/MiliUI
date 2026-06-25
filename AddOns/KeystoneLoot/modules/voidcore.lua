@@ -23,7 +23,7 @@ local MIRROR_ITEMS = {
 
 local EXCLUDED_ITEMS = {
     [151299] = true, -- Not in the bonus roll chest - Blizzard bug?
-    [260235] = true -- Umbralfeder
+    [260235] = true  -- Umbralfeder
 };
 
 local function MatchesSpec(item, classId, specId)
