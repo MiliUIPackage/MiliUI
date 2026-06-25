@@ -1,8 +1,8 @@
-## Interface: 120007
+## Interface: 120007, 120100
 ## Title: BuffReminders
 ## Notes: Track missing buffs at a glance
 ## Author: zerbi
-## Version: v6.0.8
+## Version: v6.0.12
 ## SavedVariables: BuffRemindersDB
 ## X-Curse-Project-ID: 1441094
 ## X-Wago-ID: qGYZZjNg
@@ -62,6 +62,7 @@ Options\Dialogs\PetPassive.lua
 Options\Dialogs\PetSummon.lua
 Options\Dialogs\DelveFood.lua
 Options\Dialogs\Bronze.lua
+Options\Dialogs\DruidForm.lua
 Options\Pages\Defaults.lua
 Options\Pages\DetachedIcons.lua
 Options\Pages\Visibility.lua

@@ -6,7 +6,10 @@ local Components = BR.Components
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 
 BR.Options.Dialogs.DelveFood = BR.Options.Helpers.SingletonDialog(function()
-    local shell = BR.Options.Helpers.CreateDialogShell("BuffRemindersDelveFoodDialog", "Options.DelveFoodSettings")
+    local delveFoodIcon = C_Spell.GetSpellTexture(442522) -- Delve food buff
+    local shell = BR.Options.Helpers.CreateDialogShell("BuffRemindersDelveFoodDialog", "Options.DelveFoodSettings", {
+        icon = delveFoodIcon,
+    })
     local dialog, layout = shell.dialog, shell.layout
 
     local timerHolder = Components.Checkbox(dialog, {

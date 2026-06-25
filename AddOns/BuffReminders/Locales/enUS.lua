@@ -308,6 +308,7 @@ english["Options.Sound.EditTitle"] = "Edit Sound Alert"
 english["Options.Sound.SelectBuff"] = "Select Buff"
 english["Options.Sound.SelectSound"] = "Select Sound"
 english["Options.Sound.Preview"] = "Preview"
+english["Options.Preview"] = "Preview"
 english["Options.Sound.Save"] = "Save"
 english["Options.Sound.NoBuffs"] = "All buffs already have sounds."
 
@@ -592,6 +593,11 @@ english["Options.BronzeSettings.Note"] = "Configure the Blessing of the Bronze r
 english["Options.BronzeHideInCombat"] = "Hide in combat"
 english["Options.BronzeHideInCombat.Desc"] =
     "Hide the Blessing of the Bronze reminder during combat. This buff is less critical and you may not want to rebuff mid-fight."
+english["Options.DruidFormSettings"] = "Druid Form Settings"
+english["Options.DruidFormSettings.Note"] = "Configure the wrong-form reminder."
+english["Options.DruidIgnoreTravelForm"] = "Ignore while traveling"
+english["Options.DruidIgnoreTravelForm.Desc"] =
+    "Hide the wrong-form reminder while in Travel Form (ground, aquatic, flight, or Mount Form) or while mounted, so it doesn't nag you when you're intentionally traveling."
 english["Options.PetPassiveSettings"] = "Pet Passive Settings"
 english["Options.PetPassiveSettings.Note"] = "Configure the passive pet reminder."
 english["Options.PetSummonSettings"] = "Pet Summon Settings"

@@ -6,7 +6,10 @@ local Components = BR.Components
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 
 BR.Options.Dialogs.Bronze = BR.Options.Helpers.SingletonDialog(function()
-    local shell = BR.Options.Helpers.CreateDialogShell("BuffRemindersBronzeDialog", "Options.BronzeSettings")
+    local bronzeIcon = C_Spell.GetSpellTexture(364342) -- Blessing of the Bronze
+    local shell = BR.Options.Helpers.CreateDialogShell("BuffRemindersBronzeDialog", "Options.BronzeSettings", {
+        icon = bronzeIcon,
+    })
     local dialog, layout = shell.dialog, shell.layout
 
     local hideInCombatHolder = Components.Checkbox(dialog, {

@@ -74,25 +74,26 @@ local function BuildSoundOptions()
     return opts
 end
 
-local function Show(refreshCallback, editBuffKey, editSoundName, editBuffName)
-    -- Destroy and recreate: dropdown scroll support depends on option count at creation time
-    if soundAlertDialog then
-        soundAlertDialog:Hide()
-        soundAlertDialog:SetParent(nil)
-    end
+local DIALOG_WIDTH = 360
+local MARGIN = 16
+-- Shared so both dropdown buttons land at the same x; without it each label
+-- auto-grows to its own text width and the buttons misalign.
+local DROPDOWN_LABEL_WIDTH = 90
 
-    local isEditing = editBuffKey ~= nil
-    local DIALOG_WIDTH = 360
-    local MARGIN = 16
+-- Persistent widgets (the dialog is built once and reused).
+local titleFS, buffDropdown, soundDropdown, btnRow, noBuffsText
 
+-- Per-open state, read by the button handlers.
+local selectedBuffKey, selectedSoundName, currentRefreshCallback
+
+local function BuildDialog()
     local dialog = CreatePanel(nil, DIALOG_WIDTH, 1, {
         level = 200,
         dialog = true,
     })
 
-    local title = dialog:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    title:SetPoint("TOP", 0, -12)
-    title:SetText(isEditing and L["Options.Sound.EditTitle"] or L["Options.Sound.Title"])
+    titleFS = dialog:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    titleFS:SetPoint("TOP", 0, -12)
 
     local closeBtn = CreateButton(dialog, "x", function()
         dialog:Hide()
@@ -102,56 +103,32 @@ local function Show(refreshCallback, editBuffKey, editSoundName, editBuffName)
 
     local layout = Components.VerticalLayout(dialog, { x = MARGIN, y = -36 })
 
-    -- State for selections
-    local selectedBuffKey = editBuffKey
-    local selectedSoundName = editSoundName
-
-    local buffOpts
-    if isEditing then
-        -- When editing, show only the current buff (locked)
-        buffOpts = { { label = editBuffName or editBuffKey, value = editBuffKey } }
-    else
-        buffOpts = BuildBuffOptions()
-    end
-
-    -- Shared so both dropdown buttons land at the same x; without it each
-    -- label auto-grows to its own text width and the buttons misalign.
-    local DROPDOWN_LABEL_WIDTH = 90
-
-    local buffDropdown = Components.Dropdown(dialog, {
+    buffDropdown = Components.Dropdown(dialog, {
         label = L["Options.Sound.SelectBuff"],
         width = 200,
         labelWidth = DROPDOWN_LABEL_WIDTH,
         maxItems = 15,
-        options = buffOpts,
+        options = {},
         onChange = function(val)
             selectedBuffKey = val
         end,
     })
     layout:Add(buffDropdown, nil, DROPDOWN_EXTRA)
 
-    if isEditing then
-        buffDropdown:SetEnabled(false)
-    end
-
-    local soundDropdown = Components.Dropdown(dialog, {
+    soundDropdown = Components.Dropdown(dialog, {
         label = L["Options.Sound.SelectSound"],
         width = 200,
         labelWidth = DROPDOWN_LABEL_WIDTH,
         maxItems = 15,
-        options = BuildSoundOptions(),
+        options = {},
         onChange = function(val)
             selectedSoundName = val
         end,
     })
     layout:Add(soundDropdown, nil, DROPDOWN_EXTRA)
 
-    if editSoundName then
-        soundDropdown:SetValue(editSoundName)
-    end
-
     -- Preview + Save row
-    local btnRow = CreateFrame("Frame", nil, dialog)
+    btnRow = CreateFrame("Frame", nil, dialog)
     btnRow:SetSize(DIALOG_WIDTH - MARGIN * 2, 22)
 
     local previewBtn = CreateButton(dialog, L["Options.Sound.Preview"], function()
@@ -169,8 +146,8 @@ local function Show(refreshCallback, editBuffKey, editSoundName, editBuffName)
         if selectedBuffKey and selectedSoundName then
             SetBuffSound(selectedBuffKey, selectedSoundName)
             dialog:Hide()
-            if refreshCallback then
-                refreshCallback()
+            if currentRefreshCallback then
+                currentRefreshCallback()
             end
         end
     end)
@@ -179,22 +156,50 @@ local function Show(refreshCallback, editBuffKey, editSoundName, editBuffName)
 
     layout:Add(btnRow, nil, COMPONENT_GAP)
 
+    -- Status text for when no buffs are available (only relevant for add mode);
+    -- visibility is toggled per open.
+    noBuffsText = dialog:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    noBuffsText:SetPoint("TOP", btnRow, "BOTTOM", 0, -6)
+    noBuffsText:SetText(L["Options.Sound.NoBuffs"])
+    noBuffsText:Hide()
+
+    -- Structure is fixed, so the height is constant across opens.
     dialog:SetHeight(math.max(-layout:GetY() + MARGIN, 80))
 
-    -- Status text for when no buffs are available (only relevant for add mode)
-    if not isEditing and #buffOpts == 0 then
-        local noBuffsText = dialog:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        noBuffsText:SetPoint("TOP", btnRow, "BOTTOM", 0, -6)
-        noBuffsText:SetText(L["Options.Sound.NoBuffs"])
+    soundAlertDialog = dialog
+    return dialog
+end
+
+local function Show(refreshCallback, editBuffKey, editSoundName, editBuffName)
+    local dialog = soundAlertDialog or BuildDialog()
+
+    currentRefreshCallback = refreshCallback
+    local isEditing = editBuffKey ~= nil
+    titleFS:SetText(isEditing and L["Options.Sound.EditTitle"] or L["Options.Sound.Title"])
+
+    -- Buff options: a single locked entry when editing, else every buff without
+    -- a sound yet. SetOptions is scroll-aware, so reusing the dropdown is safe.
+    local buffOpts
+    if isEditing then
+        buffOpts = { { label = editBuffName or editBuffKey, value = editBuffKey } }
+    else
+        buffOpts = BuildBuffOptions()
+    end
+    buffDropdown.dropdown:SetOptions(buffOpts)
+    buffDropdown:SetEnabled(not isEditing)
+
+    soundDropdown.dropdown:SetOptions(BuildSoundOptions())
+    if editSoundName then
+        soundDropdown:SetValue(editSoundName)
     end
 
-    -- Sync local state from auto-selected first options
-    if not isEditing then
-        selectedBuffKey = buffDropdown.dropdown:GetValue()
-    end
+    noBuffsText:SetShown(not isEditing and #buffOpts == 0)
+
+    -- Sync local state from the (programmatically set) dropdown selections;
+    -- SetOptions/SetValue don't fire onChange.
+    selectedBuffKey = isEditing and editBuffKey or buffDropdown.dropdown:GetValue()
     selectedSoundName = soundDropdown.dropdown:GetValue()
 
-    soundAlertDialog = dialog
     dialog:Show()
 end
 

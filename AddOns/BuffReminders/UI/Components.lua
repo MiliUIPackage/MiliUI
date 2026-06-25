@@ -1403,9 +1403,13 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     arrow:SetRotation(rad(-90)) -- points down
 
     -- ==================== MENU ====================
-    -- Parent to dropdown parent so it scrolls with container
-    local useScroll = maxItems and #options > maxItems
-    local visibleCount = useScroll and maxItems or #options
+    -- Parent to dropdown parent so it scrolls with container.
+    -- When maxItems is set we ALWAYS build the scroll infrastructure (even if the
+    -- current option count fits) so the dropdown can be re-populated later via
+    -- :SetOptions with any count - the scroll child just resizes. visibleCount is
+    -- mutable so SetOptions can recompute the capped menu height.
+    local hasScroll = maxItems ~= nil
+    local visibleCount = hasScroll and min(#options, maxItems) or #options
     local menuHeight = visibleCount * ITEM_HEIGHT + MENU_PADDING_V * 2
     local menu = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     menu:SetSize(menuWidth, menuHeight)
@@ -1420,9 +1424,8 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     menu:EnableMouse(true)
     menu:Hide()
 
-    -- Scroll frame (only created when needed)
     local scrollFrame, scrollChild
-    if useScroll then
+    if hasScroll then
         scrollFrame = CreateFrame("ScrollFrame", nil, menu)
         scrollFrame:SetPoint("TOPLEFT", 1, -MENU_PADDING_V)
         scrollFrame:SetPoint("BOTTOMRIGHT", -1, MENU_PADDING_V)
@@ -1434,7 +1437,7 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
         scrollFrame:EnableMouseWheel(true)
         scrollFrame:SetScript("OnMouseWheel", function(_, delta)
             local current = scrollFrame:GetVerticalScroll()
-            local maxScroll = #options * ITEM_HEIGHT - visibleCount * ITEM_HEIGHT
+            local maxScroll = max(0, #options * ITEM_HEIGHT - visibleCount * ITEM_HEIGHT)
             local newScroll = max(0, min(maxScroll, current - delta * ITEM_HEIGHT * 3))
             scrollFrame:SetVerticalScroll(newScroll)
         end)
@@ -1505,87 +1508,117 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     -- ==================== MENU ITEMS ====================
     local itemParent = scrollChild or menu
     local items = {}
-    for i, opt in ipairs(options) do
-        local item = CreateFrame("Button", nil, itemParent)
-        item:SetSize(menuWidth - 2, ITEM_HEIGHT)
-        item:SetPoint("TOPLEFT", 0, -(useScroll and 0 or MENU_PADDING_V) - (i - 1) * ITEM_HEIGHT)
 
-        local itemBg = item:CreateTexture(nil, "BACKGROUND")
-        itemBg:SetAllPoints()
-        itemBg:SetColorTexture(0, 0, 0, 0)
-
-        local check = item:CreateTexture(nil, "ARTWORK")
-        check:SetSize(CHECK_SIZE, CHECK_SIZE)
-        check:SetPoint("LEFT", CHECK_LEFT, 0)
-        check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
-        check:SetVertexColor(unpack(colors.checkmark))
-        check:SetShown(opt.value == currentValue)
-
-        local label = item:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        label:SetPoint("LEFT", LABEL_LEFT, 0)
-        label:SetPoint("RIGHT", -LABEL_RIGHT_PAD, 0)
-        label:SetWordWrap(false)
-        label:SetJustifyH("LEFT")
-        label:SetText(opt.label)
-        label:SetTextColor(unpack(colors.itemText))
-
-        -- Item hover visual
-        local function UpdateItemVisual(hovered)
-            if hovered then
-                itemBg:SetColorTexture(unpack(colors.itemBgHover))
-                label:SetTextColor(unpack(colors.itemTextHover))
-            else
-                itemBg:SetColorTexture(0, 0, 0, 0)
-                label:SetTextColor(unpack(colors.itemText))
+    -- (Re)build menu items from the current `options`. Items are pooled across
+    -- :SetOptions calls (created on demand, surplus hidden), and each item reads
+    -- its option through `item.opt` so reused items pick up the new entry. This is
+    -- the single source of truth for both the initial build and SetOptions.
+    local function renderItems()
+        -- Auto-grow the menu to the widest current label, recomputed here so a
+        -- later :SetOptions with longer labels still fits (the button keeps its
+        -- fixed width; only the dropdown menu widens).
+        local longest = 0
+        for _, opt in ipairs(options) do
+            local w = MeasureTextWidth(opt.label or "", "GameFontHighlightSmall")
+            if w > longest then
+                longest = w
             end
         end
+        menuWidth = max(width, longest + LABEL_LEFT + LABEL_RIGHT_PAD + 2)
 
-        item:SetScript("OnEnter", function()
-            UpdateItemVisual(true)
-            if opt.desc then
-                ShowTooltip(item, opt.label, opt.desc, "ANCHOR_RIGHT")
-            end
-        end)
-        item:SetScript("OnLeave", function()
-            UpdateItemVisual(false)
-            if opt.desc then
-                HideTooltip()
-            end
-        end)
-        item:SetScript("OnClick", function()
-            currentValue = opt.value
-            currentLabel = opt.label
-            buttonText:SetText(currentLabel)
-            -- Update checkmarks
-            for _, it in ipairs(items) do
-                it.check:SetShown(it.value == currentValue)
-            end
-            CloseMenu()
-            onChange(currentValue, currentLabel)
-        end)
-
-        -- Forward mouse wheel to scroll frame when scrollable
-        if scrollFrame then
-            item:EnableMouseWheel(true)
-            item:SetScript("OnMouseWheel", function(_, delta)
-                local current = scrollFrame:GetVerticalScroll()
-                local maxScroll = #options * ITEM_HEIGHT - visibleCount * ITEM_HEIGHT
-                local newScroll = max(0, min(maxScroll, current - delta * ITEM_HEIGHT * 3))
-                scrollFrame:SetVerticalScroll(newScroll)
-            end)
+        visibleCount = hasScroll and min(#options, maxItems) or #options
+        menu:SetSize(menuWidth, visibleCount * ITEM_HEIGHT + MENU_PADDING_V * 2)
+        if scrollChild then
+            scrollChild:SetSize(menuWidth - 2, #options * ITEM_HEIGHT)
         end
 
-        -- Custom per-item setup (e.g., font preview)
-        if itemInit then
-            itemInit(item, label, opt)
+        for i = #options + 1, #items do
+            items[i]:Hide()
         end
 
-        item.value = opt.value
-        item.check = check
-        item._bg = itemBg
-        item._label = label
-        items[i] = item
+        for i, opt in ipairs(options) do
+            local item = items[i]
+            if not item then
+                item = CreateFrame("Button", nil, itemParent)
+                item:SetSize(menuWidth - 2, ITEM_HEIGHT)
+
+                local itemBg = item:CreateTexture(nil, "BACKGROUND")
+                itemBg:SetAllPoints()
+                item._bg = itemBg
+
+                local check = item:CreateTexture(nil, "ARTWORK")
+                check:SetSize(CHECK_SIZE, CHECK_SIZE)
+                check:SetPoint("LEFT", CHECK_LEFT, 0)
+                check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+                check:SetVertexColor(unpack(colors.checkmark))
+                item.check = check
+
+                local label = item:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+                label:SetPoint("LEFT", LABEL_LEFT, 0)
+                label:SetPoint("RIGHT", -LABEL_RIGHT_PAD, 0)
+                label:SetWordWrap(false)
+                label:SetJustifyH("LEFT")
+                item._label = label
+
+                -- Scripts read item.opt (refreshed each render) so a reused item
+                -- always acts on its current option, not a stale captured one.
+                item:SetScript("OnEnter", function()
+                    item._bg:SetColorTexture(unpack(colors.itemBgHover))
+                    item._label:SetTextColor(unpack(colors.itemTextHover))
+                    if item.opt and item.opt.desc then
+                        ShowTooltip(item, item.opt.label, item.opt.desc, "ANCHOR_RIGHT")
+                    end
+                end)
+                item:SetScript("OnLeave", function()
+                    item._bg:SetColorTexture(0, 0, 0, 0)
+                    item._label:SetTextColor(unpack(colors.itemText))
+                    HideTooltip()
+                end)
+                item:SetScript("OnClick", function()
+                    currentValue = item.opt.value
+                    currentLabel = item.opt.label
+                    buttonText:SetText(currentLabel)
+                    for _, it in ipairs(items) do
+                        if it:IsShown() then
+                            it.check:SetShown(it.value == currentValue)
+                        end
+                    end
+                    CloseMenu()
+                    onChange(currentValue, currentLabel)
+                end)
+
+                if scrollFrame then
+                    item:EnableMouseWheel(true)
+                    item:SetScript("OnMouseWheel", function(_, delta)
+                        local current = scrollFrame:GetVerticalScroll()
+                        local maxScroll = max(0, #options * ITEM_HEIGHT - visibleCount * ITEM_HEIGHT)
+                        local newScroll = max(0, min(maxScroll, current - delta * ITEM_HEIGHT * 3))
+                        scrollFrame:SetVerticalScroll(newScroll)
+                    end)
+                end
+
+                items[i] = item
+            end
+
+            item:ClearAllPoints()
+            item:SetWidth(menuWidth - 2)
+            item:SetPoint("TOPLEFT", 0, -(hasScroll and 0 or MENU_PADDING_V) - (i - 1) * ITEM_HEIGHT)
+            item.opt = opt
+            item.value = opt.value
+            item._bg:SetColorTexture(0, 0, 0, 0)
+            item._label:SetText(opt.label)
+            item._label:SetTextColor(unpack(colors.itemText))
+            item.check:SetShown(opt.value == currentValue)
+            -- Custom per-item setup (e.g., font preview); re-run so reused items
+            -- adopt the new option's styling.
+            if itemInit then
+                itemInit(item, item._label, opt)
+            end
+            item:Show()
+        end
     end
+
+    renderItems()
 
     -- ==================== BUTTON EVENTS ====================
     button:SetScript("OnEnter", function()
@@ -1643,76 +1676,13 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
         return isEnabled
     end
 
-    ---Replace the dropdown options and rebuild menu items.
-    ---Only supported for non-scrollable dropdowns.
+    ---Replace the dropdown options and rebuild the menu. Scroll-aware: the menu
+    ---height is capped at maxItems and the scroll child resizes to the new count.
     ---@param newOptions table[] Array of {value, label} entries
     function dropdown:SetOptions(newOptions)
         options = newOptions
-        -- Hide excess old items
-        for i = #options + 1, #items do
-            items[i]:Hide()
-        end
-        -- Create or update items
-        for i, opt in ipairs(options) do
-            local item = items[i]
-            if not item then
-                item = CreateFrame("Button", nil, itemParent)
-                item:SetSize(width - 2, ITEM_HEIGHT)
-
-                local itemBg = item:CreateTexture(nil, "BACKGROUND")
-                itemBg:SetAllPoints()
-                item._bg = itemBg
-
-                local check2 = item:CreateTexture(nil, "ARTWORK")
-                check2:SetSize(14, 14)
-                check2:SetPoint("LEFT", 6, 0)
-                check2:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
-                check2:SetVertexColor(unpack(colors.checkmark))
-                item.check = check2
-
-                local lbl = item:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-                lbl:SetPoint("LEFT", 24, 0)
-                lbl:SetPoint("RIGHT", -8, 0)
-                lbl:SetJustifyH("LEFT")
-                item._label = lbl
-
-                item:SetScript("OnEnter", function()
-                    item._bg:SetColorTexture(unpack(colors.itemBgHover))
-                    item._label:SetTextColor(unpack(colors.itemTextHover))
-                end)
-                item:SetScript("OnLeave", function()
-                    item._bg:SetColorTexture(0, 0, 0, 0)
-                    item._label:SetTextColor(unpack(colors.itemText))
-                end)
-
-                items[i] = item
-            end
-            -- Update position, text, check, click handler
-            item:ClearAllPoints()
-            item:SetPoint("TOPLEFT", 0, -MENU_PADDING_V - (i - 1) * ITEM_HEIGHT)
-            item._bg:SetColorTexture(0, 0, 0, 0)
-            item._label:SetText(opt.label)
-            item._label:SetTextColor(unpack(colors.itemText))
-            item.check:SetShown(opt.value == currentValue)
-            item.value = opt.value
-            item:SetScript("OnClick", function()
-                currentValue = opt.value
-                currentLabel = opt.label
-                buttonText:SetText(currentLabel)
-                for _, it in ipairs(items) do
-                    if it:IsShown() then
-                        it.check:SetShown(it.value == currentValue)
-                    end
-                end
-                CloseMenu()
-                onChange(currentValue, currentLabel)
-            end)
-            item:Show()
-        end
-        -- Resize menu
-        local newMenuHeight = #options * ITEM_HEIGHT + MENU_PADDING_V * 2
-        menu:SetSize(width, newMenuHeight)
-        -- Update button text if current value still valid
+        -- Keep the current selection if it survives; otherwise fall back to the
+        -- first option so the button label and checkmarks stay consistent.
         local found = false
         for _, opt in ipairs(options) do
             if opt.value == currentValue then
@@ -1721,11 +1691,15 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
                 break
             end
         end
-        if not found and #options > 0 then
-            currentValue = options[1].value
-            currentLabel = options[1].label
+        if not found then
+            currentValue = options[1] and options[1].value or nil
+            currentLabel = (options[1] and options[1].label) or ""
         end
         buttonText:SetText(currentLabel)
+        renderItems()
+        if scrollFrame then
+            scrollFrame:SetVerticalScroll(0)
+        end
     end
 
     return dropdown
@@ -2583,41 +2557,45 @@ function Components.Tab(parent, config)
     local textW = MeasureTextWidth(config.label or "", "GameFontNormalSmall")
     local width = max(minWidth, textW + 16)
 
+    -- Minimal underline tab, styled to match the main options panel: no boxes or
+    -- fills - the active tab is marked by gold text + a gold underline accent
+    -- (the panel reserves gold for active/selected cues), inactive tabs are a
+    -- muted gray. Keeps dialogs in the panel's restrained, elegant family.
     local tab = CreateFrame("Button", nil, parent)
     tab:SetSize(width, height)
     tab.tabName = config.name
 
-    -- Background (highlighted when active)
-    local bg = tab:CreateTexture(nil, "BACKGROUND")
-    bg:SetPoint("TOPLEFT", 1, -1)
-    bg:SetPoint("BOTTOMRIGHT", -1, 0)
-    bg:SetColorTexture(0.2, 0.2, 0.2, 0)
-    tab.bg = bg
-
-    -- Bottom line (shows when active)
-    local bottomLine = tab:CreateTexture(nil, "BORDER")
-    bottomLine:SetHeight(2)
-    bottomLine:SetPoint("BOTTOMLEFT", 1, 0)
-    bottomLine:SetPoint("BOTTOMRIGHT", -1, 0)
-    bottomLine:SetColorTexture(0.6, 0.6, 0.6, 0)
-    tab.bottomLine = bottomLine
+    -- Underline accent, gold like the panel's active-nav bar; only shown active.
+    local underline = tab:CreateTexture(nil, "ARTWORK")
+    underline:SetHeight(2)
+    underline:SetPoint("BOTTOMLEFT", 1, 0)
+    underline:SetPoint("BOTTOMRIGHT", -1, 0)
+    underline:SetColorTexture(1, 0.82, 0, 0)
+    tab.underline = underline
 
     -- Text
     local text = tab:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    text:SetPoint("CENTER", 0, 0)
+    text:SetPoint("CENTER", 0, 1)
     text:SetWordWrap(false)
     text:SetText(config.label)
     tab.text = text
 
-    -- Hover effect
+    local ACTIVE_TEXT = { 1, 0.82, 0 }
+    local IDLE_TEXT = { 0.6, 0.6, 0.62 }
+    local HOVER_TEXT = { 0.85, 0.85, 0.85 }
+
+    -- Hover only affects the idle (non-active) state: brighten the label and hint
+    -- the underline so the tab reads as clickable without competing with active.
     tab:SetScript("OnEnter", function(self)
         if not self.isActive then
-            self.bg:SetColorTexture(0.25, 0.25, 0.25, 0.5)
+            self.text:SetTextColor(unpack(HOVER_TEXT))
+            self.underline:SetColorTexture(1, 0.82, 0, 0.25)
         end
     end)
     tab:SetScript("OnLeave", function(self)
         if not self.isActive then
-            self.bg:SetColorTexture(0.2, 0.2, 0.2, 0)
+            self.text:SetTextColor(unpack(IDLE_TEXT))
+            self.underline:SetColorTexture(1, 0.82, 0, 0)
         end
     end)
 
@@ -2625,15 +2603,17 @@ function Components.Tab(parent, config)
     function tab:SetActive(active)
         self.isActive = active
         if active then
-            self.bg:SetColorTexture(0.2, 0.2, 0.2, 0.8)
-            self.bottomLine:SetColorTexture(0.8, 0.6, 0, 1)
             self.text:SetFontObject("GameFontHighlightSmall")
+            self.text:SetTextColor(unpack(ACTIVE_TEXT))
+            self.underline:SetColorTexture(1, 0.82, 0, 1)
         else
-            self.bg:SetColorTexture(0.2, 0.2, 0.2, 0)
-            self.bottomLine:SetColorTexture(0.6, 0.6, 0.6, 0)
             self.text:SetFontObject("GameFontNormalSmall")
+            self.text:SetTextColor(unpack(IDLE_TEXT))
+            self.underline:SetColorTexture(1, 0.82, 0, 0)
         end
     end
+
+    tab:SetActive(false)
 
     return tab
 end
@@ -3777,6 +3757,9 @@ function Components.VerticalLayout(parent, config)
     local currentY = y
 
     local layout = {}
+    -- Tracks every anchored frame as { frame, x, y } so the whole stack can be
+    -- nudged after layout (see :ShiftAllBy, used to vertically center dialogs).
+    local items = {}
 
     ---Add a component at the current Y position and advance
     ---@param component table Component frame to position
@@ -3784,6 +3767,7 @@ function Components.VerticalLayout(parent, config)
     ---@param spacing? number Extra spacing after component (default 0)
     function layout:Add(component, height, spacing)
         component:SetPoint("TOPLEFT", parent, "TOPLEFT", x, currentY)
+        tinsert(items, { frame = component, x = x, y = currentY })
         -- Components with dynamic height (e.g. Banner) need to recompute now
         -- that they're anchored, before we read their height.
         if not height and component.FitHeight then
@@ -3799,6 +3783,7 @@ function Components.VerticalLayout(parent, config)
     ---@param spacing? number Extra spacing after text (default 0)
     function layout:AddText(fontString, height, spacing)
         fontString:SetPoint("TOPLEFT", parent, "TOPLEFT", x, currentY)
+        tinsert(items, { frame = fontString, x = x, y = currentY })
         currentY = currentY - height - (spacing or 0)
     end
 
@@ -3827,19 +3812,35 @@ function Components.VerticalLayout(parent, config)
     end
 
     ---Add multiple components on the same row, advancing Y by the tallest
-    ---@param items table[] Array of {component, xOffset} pairs
+    ---@param rowItems table[] Array of {component, xOffset} pairs
     ---@param spacing? number Extra spacing after row (default 0)
-    function layout:AddRow(items, spacing)
+    function layout:AddRow(rowItems, spacing)
         local maxH = 0
-        for _, item in ipairs(items) do
+        for _, item in ipairs(rowItems) do
             local comp, xOff = item[1], item[2]
             comp:SetPoint("TOPLEFT", parent, "TOPLEFT", xOff, currentY)
+            tinsert(items, { frame = comp, x = xOff, y = currentY })
             local h = (comp.GetHeight and comp:GetHeight()) or 20
             if h > maxH then
                 maxH = h
             end
         end
         currentY = currentY - maxH - (spacing or 0)
+    end
+
+    ---Re-anchor every frame added so far by `dy` (negative = down). Used to
+    ---vertically center a finished dialog body. Only re-anchors frames anchored
+    ---directly via :Add/:AddText/:AddRow - frames the caller later re-pointed to
+    ---a sibling ride along with their anchor automatically.
+    ---@param dy number Pixels to shift (added to each frame's stored Y offset)
+    function layout:ShiftAllBy(dy)
+        if dy == 0 then
+            return
+        end
+        for _, item in ipairs(items) do
+            item.frame:ClearAllPoints()
+            item.frame:SetPoint("TOPLEFT", parent, "TOPLEFT", item.x, item.y + dy)
+        end
     end
 
     return layout

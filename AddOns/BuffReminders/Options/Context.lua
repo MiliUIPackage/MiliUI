@@ -39,8 +39,10 @@ BR.Options.Constants = {
     DIALOG_MARGIN = 16, -- inner padding for dialog content
     DIALOG_TITLE_TOP = -12, -- y offset of the dialog title FontString from TOP
     DIALOG_LAYOUT_TOP = -36, -- y offset where the content layout cursor starts
+    DIALOG_ACCENT_OFFSET = 32, -- distance from top to the title separator (CreatePanel); body starts below it
     DIALOG_CLOSE_SIZE = 22, -- close-button square size
     DIALOG_CLOSE_INSET = -5, -- close-button TOPRIGHT inset (x and y)
+    DIALOG_ICON_SIZE = 18, -- optional header icon square (CreateDialogShell opts.icon)
     DIALOG_MIN_HEIGHT = 80, -- floor for dialogs with very few controls
     DIALOG_LEVEL = 200, -- frame level used by all dialogs
 }
@@ -371,7 +373,9 @@ end
 -- opts.titleText overrides the localized title (used by Glow which appends
 -- the targeted category). opts.titleColor wraps the title in a color escape.
 -- opts.width defaults to DIALOG_WIDTH_NARROW; pass a Constants.DIALOG_WIDTH_*
--- to opt into a wider bucket.
+-- to opt into a wider bucket. opts.icon (a texture path / fileID) shows a small
+-- icon at the left of the header and left-aligns the title next to it, so the
+-- dialog reads as a titled card; without it the title stays centered.
 ---@class DialogShell
 ---@field dialog table panel frame (also returned as the first table value)
 ---@field layout table VerticalLayout anchored under the title
@@ -391,12 +395,27 @@ function Helpers.CreateDialogShell(name, titleKey, opts)
     })
 
     local title = dialog:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    title:SetPoint("TOP", 0, C.DIALOG_TITLE_TOP)
     local titleText = opts.titleText or BR.L[titleKey]
     if opts.titleColor then
         titleText = "|cff" .. opts.titleColor .. titleText .. "|r"
     end
     title:SetText(titleText)
+
+    if opts.icon then
+        -- Header icon + left-aligned title: the icon sits in the header strip and
+        -- the title hangs off its right edge, so the dialog reads as a titled card.
+        local icon = dialog:CreateTexture(nil, "OVERLAY")
+        icon:SetSize(C.DIALOG_ICON_SIZE, C.DIALOG_ICON_SIZE)
+        -- LEFT anchor = vertical center; pin it to the 30px header strip's midpoint
+        -- (top inset 2 + 15) so both the icon and the title that hangs off it sit
+        -- centered in the header band.
+        icon:SetPoint("LEFT", dialog, "TOPLEFT", C.DIALOG_MARGIN, -17)
+        icon:SetTexture(opts.icon)
+        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- trim the default icon border
+        title:SetPoint("LEFT", icon, "RIGHT", 8, 0)
+    else
+        title:SetPoint("TOP", 0, C.DIALOG_TITLE_TOP)
+    end
 
     local closeBtn = CreateButton(dialog, "x", function()
         dialog:Hide()
@@ -404,9 +423,10 @@ function Helpers.CreateDialogShell(name, titleKey, opts)
     closeBtn:SetSize(C.DIALOG_CLOSE_SIZE, C.DIALOG_CLOSE_SIZE)
     closeBtn:SetPoint("TOPRIGHT", C.DIALOG_CLOSE_INSET, C.DIALOG_CLOSE_INSET)
 
+    local layoutTop = opts.layoutY or C.DIALOG_LAYOUT_TOP
     local layout = BR.Components.VerticalLayout(dialog, {
         x = opts.layoutX or C.DIALOG_MARGIN,
-        y = opts.layoutY or C.DIALOG_LAYOUT_TOP,
+        y = layoutTop,
     })
 
     local shell = {
@@ -417,7 +437,17 @@ function Helpers.CreateDialogShell(name, titleKey, opts)
     }
     function shell:Finalize(extraPadding)
         local pad = extraPadding or C.DIALOG_MARGIN
-        dialog:SetHeight(math.max(-layout:GetY() + pad, C.DIALOG_MIN_HEIGHT))
+        local contentBottom = layout:GetY()
+        local height = math.max(-contentBottom + pad, C.DIALOG_MIN_HEIGHT)
+        dialog:SetHeight(height)
+
+        -- Vertically center the content within the body region (below the title
+        -- separator down to the bottom edge). For a single short control this
+        -- centers it in the min-height body instead of pinning it to the top;
+        -- for taller content it just balances the top/bottom gaps.
+        local bodyCenter = (-C.DIALOG_ACCENT_OFFSET - height) / 2
+        local contentCenter = (layoutTop + contentBottom) / 2
+        layout:ShiftAllBy(bodyCenter - contentCenter)
     end
     return shell
 end

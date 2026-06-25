@@ -6,7 +6,10 @@ local Components = BR.Components
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 
 BR.Options.Dialogs.Healthstone = BR.Options.Helpers.SingletonDialog(function()
-    local shell = BR.Options.Helpers.CreateDialogShell("BuffRemindersHealthstoneDialog", "Options.HealthstoneSettings")
+    local shell =
+        BR.Options.Helpers.CreateDialogShell("BuffRemindersHealthstoneDialog", "Options.HealthstoneSettings", {
+            icon = 538745, -- Healthstone icon (matches the buff's icons.textures in Buffs.lua)
+        })
     local dialog, layout = shell.dialog, shell.layout
 
     -- Shared label width so the dropdown and slider line up vertically.

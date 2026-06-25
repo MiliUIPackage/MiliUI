@@ -6,7 +6,10 @@ local Components = BR.Components
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 
 BR.Options.Dialogs.PetSummon = BR.Options.Helpers.SingletonDialog(function()
-    local shell = BR.Options.Helpers.CreateDialogShell("BuffRemindersPetSummonDialog", "Options.PetSummonSettings")
+    local petSummonIcon = C_Spell.GetSpellTexture(18708) -- Fel Domination
+    local shell = BR.Options.Helpers.CreateDialogShell("BuffRemindersPetSummonDialog", "Options.PetSummonSettings", {
+        icon = petSummonIcon,
+    })
     local dialog, layout = shell.dialog, shell.layout
 
     local felDomHolder = Components.Checkbox(dialog, {

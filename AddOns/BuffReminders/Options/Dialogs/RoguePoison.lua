@@ -11,6 +11,10 @@ local tinsert = table.insert
 local tsort = table.sort
 
 local roguePoisonDialog = nil
+-- The prefs table the rows were last built from. Rows bind to entry tables by
+-- closure, so they only need rebuilding when the underlying table identity
+-- changes (i.e. a profile switch swapped BR.profile) - not on every reopen.
+local lastBuiltPrefs = nil
 
 local function EnsureRoguePoisonPrefs()
     local db = BR.profile
@@ -31,8 +35,10 @@ end
 
 local function Show()
     if roguePoisonDialog then
-        EnsureRoguePoisonPrefs()
-        if roguePoisonDialog.Rebuild then
+        local prefs = EnsureRoguePoisonPrefs()
+        -- Only rebuild rows when the prefs table changed (e.g. profile switch);
+        -- otherwise the existing rows are still valid - just resync their values.
+        if prefs ~= lastBuiltPrefs and roguePoisonDialog.Rebuild then
             roguePoisonDialog:Rebuild()
         end
         Components.RefreshAll()
@@ -232,6 +238,7 @@ local function Show()
             end
             Reposition(category)
         end
+        lastBuiltPrefs = prefs
     end
 
     -- Reset: reorder prefs in place and re-enable all, then sync rows to match.

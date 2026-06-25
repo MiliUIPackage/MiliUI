@@ -6,7 +6,10 @@ local Components = BR.Components
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 
 BR.Options.Dialogs.Soulstone = BR.Options.Helpers.SingletonDialog(function()
-    local shell = BR.Options.Helpers.CreateDialogShell("BuffRemindersSoulstoneDialog", "Options.SoulstoneSettings")
+    local soulstoneIcon = C_Spell.GetSpellTexture(20707) -- Soulstone
+    local shell = BR.Options.Helpers.CreateDialogShell("BuffRemindersSoulstoneDialog", "Options.SoulstoneSettings", {
+        icon = soulstoneIcon,
+    })
     local dialog, layout = shell.dialog, shell.layout
 
     local visHolder = Components.Dropdown(dialog, {

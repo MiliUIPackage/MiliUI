@@ -90,6 +90,13 @@ local function GetSettingsActions()
                 BR.Options.Dialogs.Bronze.Show()
             end,
         },
+        druidWrongForm = {
+            tooltip = L["Options.DruidFormSettings"],
+            note = L["Options.DruidFormSettings.Note"],
+            onClick = function()
+                BR.Options.Dialogs.DruidForm.Show()
+            end,
+        },
     }
 end
 

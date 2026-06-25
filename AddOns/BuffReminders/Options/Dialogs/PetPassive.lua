@@ -6,7 +6,9 @@ local Components = BR.Components
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 
 BR.Options.Dialogs.PetPassive = BR.Options.Helpers.SingletonDialog(function()
-    local shell = BR.Options.Helpers.CreateDialogShell("BuffRemindersPetPassiveDialog", "Options.PetPassiveSettings")
+    local shell = BR.Options.Helpers.CreateDialogShell("BuffRemindersPetPassiveDialog", "Options.PetPassiveSettings", {
+        icon = 132311, -- Pet passive-stance icon (matches the buff's icons.textures in Buffs.lua)
+    })
     local dialog, layout = shell.dialog, shell.layout
 
     local passiveCombatHolder = Components.Checkbox(dialog, {

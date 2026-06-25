@@ -378,6 +378,7 @@ local defaults = {
     showMissingCountOnly = false,
     petPassiveOnlyInCombat = false,
     bronzeHideInCombat = false,
+    druidIgnoreTravelForm = true, -- hide the wrong-form reminder while traveling/mounted
     optionsPanelScale = 1.2, -- base scale (displayed as 100%)
     showLoginMessages = true,
     requestBuffInChat = true,
