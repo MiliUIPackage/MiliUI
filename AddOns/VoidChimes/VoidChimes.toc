@@ -1,0 +1,19 @@
+## Interface: 120007
+## Title: Void Chimes
+## Notes: Ascending notes on successful Collapsing Star casts during Void Metamorphosis
+
+## Title-zhTW: |cFF00FFFF[惡魔獵人]|r 虛無鐘聲
+## Notes-zhTW: Void Chimes|n|n惡魔獵人-噬滅天賦專屬的插件，可計算變身時間與崩陷之星數量，指令: /vc settings 可進入設定畫面。
+## Category-zhTW: 戰鬥
+
+## Author: jfstn
+## Version: 0.11.0
+## SavedVariables: VoidChimesDB
+## IconTexture: Interface\Icons\inv_12_dh_void_ability_collapsingstar
+## X-Curse-Project-ID: 1524322
+## AddonCompartmentFunc: VoidChimes_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: VoidChimes_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: VoidChimes_OnAddonCompartmentLeave
+
+Libs\embeds.xml
+VoidChimes.lua
