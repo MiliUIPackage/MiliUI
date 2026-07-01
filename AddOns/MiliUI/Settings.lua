@@ -5,6 +5,13 @@
 local addonName = "MiliUI"
 
 ------------------------------------------------------------
+-- 版面常數
+-- SUB_INDENT：勾選框底下說明文字的水平縮排；區塊標題/分隔線接續時用
+--   -SUB_INDENT 抵銷回左基準線。（注意：垂直間距的 0, -26 與此無關，勿混用）
+------------------------------------------------------------
+local SUB_INDENT = 26
+
+------------------------------------------------------------
 -- IMPORT REGISTRY (可擴展：新增插件只需在這裡加一條)
 ------------------------------------------------------------
 local importRegistry = {
@@ -396,29 +403,29 @@ local function InitSettings()
     tickCB.text:SetFontObject("GameFontHighlight")
 
     local tickDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    tickDesc:SetPoint("TOPLEFT", tickCB, "BOTTOMLEFT", 26, -2)
+    tickDesc:SetPoint("TOPLEFT", tickCB, "BOTTOMLEFT", SUB_INDENT, -2)
     tickDesc:SetText("在引導法術施法條上顯示每一跳的刻度線")
     tickDesc:SetTextColor(0.5, 0.5, 0.5)
 
     -- 延遲顯示 checkbox
     local latCB = CreateFrame("CheckButton", "MiliUI_LatencyBarCB", enhanceFrame, "UICheckButtonTemplate")
-    latCB:SetPoint("TOPLEFT", tickDesc, "BOTTOMLEFT", -26, -12)
+    latCB:SetPoint("TOPLEFT", tickDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
     latCB.text:SetText("延遲顯示")
     latCB.text:SetFontObject("GameFontHighlight")
 
     local latDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    latDesc:SetPoint("TOPLEFT", latCB, "BOTTOMLEFT", 26, -2)
+    latDesc:SetPoint("TOPLEFT", latCB, "BOTTOMLEFT", SUB_INDENT, -2)
     latDesc:SetText("在施法條尾端顯示紅色延遲區塊")
     latDesc:SetTextColor(0.5, 0.5, 0.5)
 
     -- 等比例字型 checkbox
     local fontCB = CreateFrame("CheckButton", "MiliUI_ProportionalFontCB", enhanceFrame, "UICheckButtonTemplate")
-    fontCB:SetPoint("TOPLEFT", latDesc, "BOTTOMLEFT", -26, -12)
+    fontCB:SetPoint("TOPLEFT", latDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
     fontCB.text:SetText("等比例字型")
     fontCB.text:SetFontObject("GameFontHighlight")
 
     local fontDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    fontDesc:SetPoint("TOPLEFT", fontCB, "BOTTOMLEFT", 26, -2)
+    fontDesc:SetPoint("TOPLEFT", fontCB, "BOTTOMLEFT", SUB_INDENT, -2)
     fontDesc:SetWidth(520)
     fontDesc:SetJustifyH("LEFT")
     fontDesc:SetText("將 CDM 的字型大小從「像素完美」改為「等比例縮放」。\n啟用後，不同解析度 / 視窗大小下字型佔螢幕的比例會一致，\n但不再保證相同的物理像素數。需重載介面生效。")
@@ -426,12 +433,12 @@ local function InitSettings()
 
     -- 細邊框修復 checkbox
     local borderCB = CreateFrame("CheckButton", "MiliUI_CDMBorderFixCB", enhanceFrame, "UICheckButtonTemplate")
-    borderCB:SetPoint("TOPLEFT", fontDesc, "BOTTOMLEFT", -26, -12)
+    borderCB:SetPoint("TOPLEFT", fontDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
     borderCB.text:SetText("細邊框修復")
     borderCB.text:SetFontObject("GameFontHighlight")
 
     local borderDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    borderDesc:SetPoint("TOPLEFT", borderCB, "BOTTOMLEFT", 26, -2)
+    borderDesc:SetPoint("TOPLEFT", borderCB, "BOTTOMLEFT", SUB_INDENT, -2)
     borderDesc:SetWidth(520)
     borderDesc:SetJustifyH("LEFT")
     borderDesc:SetText("自動隱藏導致圖示邊框變粗的異常黑底材質。需重載介面生效。")
@@ -439,12 +446,12 @@ local function InitSettings()
 
     -- 法力數字在地化縮寫 checkbox
     local cdmManaAbbrevCB = CreateFrame("CheckButton", "MiliUI_LocaleNumAbbrevCB", enhanceFrame, "UICheckButtonTemplate")
-    cdmManaAbbrevCB:SetPoint("TOPLEFT", borderDesc, "BOTTOMLEFT", -26, -12)
+    cdmManaAbbrevCB:SetPoint("TOPLEFT", borderDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
     cdmManaAbbrevCB.text:SetText("法力數字使用在地化縮寫（萬 / 億）")
     cdmManaAbbrevCB.text:SetFontObject("GameFontHighlight")
 
     local cdmManaAbbrevDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    cdmManaAbbrevDesc:SetPoint("TOPLEFT", cdmManaAbbrevCB, "BOTTOMLEFT", 26, -2)
+    cdmManaAbbrevDesc:SetPoint("TOPLEFT", cdmManaAbbrevCB, "BOTTOMLEFT", SUB_INDENT, -2)
     cdmManaAbbrevDesc:SetWidth(520)
     cdmManaAbbrevDesc:SetJustifyH("LEFT")
     cdmManaAbbrevDesc:SetText("CDM 法力預設使用 K 後綴（例如「420K」），\n啟用後會改用語系預設格式（中文為「42萬」）。")
@@ -513,7 +520,7 @@ local function InitSettings()
     local ahDivider = enhanceFrame:CreateTexture(nil, "ARTWORK")
     ahDivider:SetColorTexture(0.3, 0.3, 0.3, 0.5)
     ahDivider:SetSize(520, 1)
-    ahDivider:SetPoint("TOPLEFT", cdmManaAbbrevDesc, "BOTTOMLEFT", -26, -20)
+    ahDivider:SetPoint("TOPLEFT", cdmManaAbbrevDesc, "BOTTOMLEFT", -SUB_INDENT, -20)
 
     local ahLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     ahLabel:SetPoint("TOPLEFT", ahDivider, "BOTTOMLEFT", 0, -12)
@@ -525,7 +532,7 @@ local function InitSettings()
     ahCB.text:SetFontObject("GameFontHighlight")
 
     local ahCBDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    ahCBDesc:SetPoint("TOPLEFT", ahCB, "BOTTOMLEFT", 26, -2)
+    ahCBDesc:SetPoint("TOPLEFT", ahCB, "BOTTOMLEFT", SUB_INDENT, -2)
     ahCBDesc:SetWidth(520)
     ahCBDesc:SetJustifyH("LEFT")
     ahCBDesc:SetText("開啟後會在拍賣行介面右上角顯示篩選選項，\n瀏覽查詢時自動套用「僅限當前資料片」篩選。")
@@ -557,7 +564,7 @@ local function InitSettings()
     local bagDivider = enhanceFrame:CreateTexture(nil, "ARTWORK")
     bagDivider:SetColorTexture(0.3, 0.3, 0.3, 0.5)
     bagDivider:SetSize(520, 1)
-    bagDivider:SetPoint("TOPLEFT", ahCBDesc, "BOTTOMLEFT", -26, -20)
+    bagDivider:SetPoint("TOPLEFT", ahCBDesc, "BOTTOMLEFT", -SUB_INDENT, -20)
 
     local bagLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     bagLabel:SetPoint("TOPLEFT", bagDivider, "BOTTOMLEFT", 0, -12)
@@ -575,7 +582,7 @@ local function InitSettings()
     keystoneCB.text:SetFontObject("GameFontHighlight")
 
     local keystoneDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    keystoneDesc:SetPoint("TOPLEFT", keystoneCB, "BOTTOMLEFT", 26, -2)
+    keystoneDesc:SetPoint("TOPLEFT", keystoneCB, "BOTTOMLEFT", SUB_INDENT, -2)
     keystoneDesc:SetWidth(520)
     keystoneDesc:SetJustifyH("LEFT")
     keystoneDesc:SetText("在 Baganator 背包中為鑰石加上彩色邊框、\n脈動光暈與「鑰石」文字標籤，方便快速辨識。")
@@ -685,7 +692,7 @@ local function InitSettings()
     local gameDivider = enhanceFrame:CreateTexture(nil, "ARTWORK")
     gameDivider:SetColorTexture(0.3, 0.3, 0.3, 0.5)
     gameDivider:SetSize(520, 1)
-    gameDivider:SetPoint("TOPLEFT", keystoneDesc, "BOTTOMLEFT", -26, -50)
+    gameDivider:SetPoint("TOPLEFT", keystoneDesc, "BOTTOMLEFT", -SUB_INDENT, -50)
 
     local gameLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     gameLabel:SetPoint("TOPLEFT", gameDivider, "BOTTOMLEFT", 0, -12)
@@ -788,7 +795,7 @@ local function InitSettings()
     auraCB.text:SetFontObject("GameFontHighlight")
 
     local auraCBDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    auraCBDesc:SetPoint("TOPLEFT", auraCB, "BOTTOMLEFT", 26, -2)
+    auraCBDesc:SetPoint("TOPLEFT", auraCB, "BOTTOMLEFT", SUB_INDENT, -2)
     auraCBDesc:SetWidth(520)
     auraCBDesc:SetJustifyH("LEFT")
     auraCBDesc:SetText("自訂增益 / 減益圖示下方的時間文字樣式與位置。\n不修改文字內容，純粹調整外觀。")
@@ -796,18 +803,18 @@ local function InitSettings()
 
     -- 描邊 checkbox
     local outlineCB = CreateFrame("CheckButton", "MiliUI_BuffDurOutlineCB", auraFrame, "UICheckButtonTemplate")
-    outlineCB:SetPoint("TOPLEFT", auraCBDesc, "BOTTOMLEFT", -26, -12)
+    outlineCB:SetPoint("TOPLEFT", auraCBDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
     outlineCB.text:SetText("文字邊框")
     outlineCB.text:SetFontObject("GameFontHighlight")
 
     local outlineDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    outlineDesc:SetPoint("TOPLEFT", outlineCB, "BOTTOMLEFT", 26, -2)
+    outlineDesc:SetPoint("TOPLEFT", outlineCB, "BOTTOMLEFT", SUB_INDENT, -2)
     outlineDesc:SetText("為時間文字加上 1px 黑色描邊以提升可讀性")
     outlineDesc:SetTextColor(0.5, 0.5, 0.5)
 
     -- 文字大小 slider
     local fontSizeSlider = CreateFrame("Slider", "MiliUI_BuffDurFontSizeSlider", auraFrame, "OptionsSliderTemplate")
-    fontSizeSlider:SetPoint("TOPLEFT", outlineDesc, "BOTTOMLEFT", -26, -18)
+    fontSizeSlider:SetPoint("TOPLEFT", outlineDesc, "BOTTOMLEFT", -SUB_INDENT, -18)
     fontSizeSlider:SetSize(200, 16)
     fontSizeSlider:SetMinMaxValues(7, 16)
     fontSizeSlider:SetValueStep(1)
@@ -847,7 +854,7 @@ local function InitSettings()
     countCB.text:SetFontObject("GameFontHighlight")
 
     local countCBDesc = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    countCBDesc:SetPoint("TOPLEFT", countCB, "BOTTOMLEFT", 26, -2)
+    countCBDesc:SetPoint("TOPLEFT", countCB, "BOTTOMLEFT", SUB_INDENT, -2)
     countCBDesc:SetWidth(520)
     countCBDesc:SetJustifyH("LEFT")
     countCBDesc:SetText("自訂堆疊層數文字的錨點與位置。")
@@ -866,7 +873,7 @@ local function InitSettings()
     }
 
     local anchorLabel = auraFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    anchorLabel:SetPoint("TOPLEFT", countCBDesc, "BOTTOMLEFT", -26, -14)
+    anchorLabel:SetPoint("TOPLEFT", countCBDesc, "BOTTOMLEFT", -SUB_INDENT, -14)
     anchorLabel:SetText("位置：")
 
     local anchorDropdown = CreateFrame("Frame", "MiliUI_CountAnchorDropdown", auraFrame, "UIDropDownMenuTemplate")
@@ -1049,8 +1056,17 @@ local function InitSettings()
     -- ============================================================
     -- 子分類: 焦點目標
     -- ============================================================
-    local focusFrame = CreateFrame("Frame")
-    focusFrame:SetSize(600, 400)
+    local focusCanvas = CreateFrame("Frame")
+    focusCanvas:SetSize(600, 400)
+
+    -- 捲動容器：內容太長時可上下捲動
+    local focusScroll = CreateFrame("ScrollFrame", nil, focusCanvas, "UIPanelScrollFrameTemplate")
+    focusScroll:SetPoint("TOPLEFT", 0, 0)
+    focusScroll:SetPoint("BOTTOMRIGHT", -28, 0)
+
+    local focusFrame = CreateFrame("Frame", nil, focusScroll)
+    focusFrame:SetSize(572, 1500)
+    focusScroll:SetScrollChild(focusFrame)
 
     local focusTitle = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     focusTitle:SetPoint("TOPLEFT", 16, -16)
@@ -1068,7 +1084,7 @@ local function InitSettings()
     focusCB.text:SetFontObject("GameFontHighlight")
 
     local focusCBDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    focusCBDesc:SetPoint("TOPLEFT", focusCB, "BOTTOMLEFT", 26, -2)
+    focusCBDesc:SetPoint("TOPLEFT", focusCB, "BOTTOMLEFT", SUB_INDENT, -2)
     focusCBDesc:SetWidth(520)
     focusCBDesc:SetJustifyH("LEFT")
     focusCBDesc:SetText("在任何單位框架上按 Shift + 左鍵即可將該目標設為焦點目標。")
@@ -1076,12 +1092,12 @@ local function InitSettings()
 
     -- 自動標記 checkbox
     local focusMarkCB = CreateFrame("CheckButton", "MiliUI_FocuserAutoMarkCB", focusFrame, "UICheckButtonTemplate")
-    focusMarkCB:SetPoint("TOPLEFT", focusCBDesc, "BOTTOMLEFT", -26, -12)
+    focusMarkCB:SetPoint("TOPLEFT", focusCBDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
     focusMarkCB.text:SetText("設定焦點目標時自動上團隊標記")
     focusMarkCB.text:SetFontObject("GameFontHighlight")
 
     local focusMarkDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    focusMarkDesc:SetPoint("TOPLEFT", focusMarkCB, "BOTTOMLEFT", 26, -2)
+    focusMarkDesc:SetPoint("TOPLEFT", focusMarkCB, "BOTTOMLEFT", SUB_INDENT, -2)
     focusMarkDesc:SetWidth(520)
     focusMarkDesc:SetJustifyH("LEFT")
     focusMarkDesc:SetText("焦點目標改變時，自動為目標加上指定的團隊標記。\n需要隊長或助理權限（野外對怪不需要）。")
@@ -1100,7 +1116,7 @@ local function InitSettings()
     }
 
     local focusMarkLabel = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    focusMarkLabel:SetPoint("TOPLEFT", focusMarkDesc, "BOTTOMLEFT", -26, -12)
+    focusMarkLabel:SetPoint("TOPLEFT", focusMarkDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
     focusMarkLabel:SetText("標記圖示：")
 
     local focusMarkDropdown = CreateFrame("Frame", "MiliUI_FocuserMarkDropdown", focusFrame, "UIDropDownMenuTemplate")
@@ -1133,7 +1149,7 @@ local function InitSettings()
     focusClearMarkCB.text:SetFontObject("GameFontHighlight")
 
     local focusClearMarkDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    focusClearMarkDesc:SetPoint("TOPLEFT", focusClearMarkCB, "BOTTOMLEFT", 26, -2)
+    focusClearMarkDesc:SetPoint("TOPLEFT", focusClearMarkCB, "BOTTOMLEFT", SUB_INDENT, -2)
     focusClearMarkDesc:SetWidth(520)
     focusClearMarkDesc:SetJustifyH("LEFT")
     focusClearMarkDesc:SetText("清除焦點目標（或切換焦點）時，自動移除舊焦點身上的團隊標記。")
@@ -1226,7 +1242,326 @@ local function InitSettings()
         print("|cff00ff00[MiliUI]|r 取消焦點時清除標記:", enabled and "開" or "關")
     end)
 
-    local focusCategory = Settings.RegisterCanvasLayoutSubcategory(category, focusFrame, "焦點目標")
+    -- ============================================================
+    -- 以下：焦點目標施法監控相關（斷法巨集 / 施法條 / 唱法音效）
+    -- ============================================================
+    local FOCUS_SOUND_BUILTINS = {
+        { name = "內建音效 1 (團隊警告)", val = 8959 },
+        { name = "內建音效 2 (準備確認)", val = 8960 },
+        { name = "內建音效 3 (PvP警告)",  val = 8332 },
+        { name = "內建音效 4 (升級)",     val = 8454 },
+        { name = "內建音效 5 (鬧鐘)",     val = 7279 },
+        { name = "內建音效 6 (地城獎勵)", val = 8574 },
+        { name = "內建音效 7",            val = 8457 },
+        { name = "內建音效 8",            val = 8458 },
+        { name = "內建音效 9",            val = 48149 },
+        { name = "內建音效 10",           val = 48150 },
+    }
+    local function BuildFocusSoundList()
+        local list = {}
+        for _, s in ipairs(FOCUS_SOUND_BUILTINS) do table.insert(list, s) end
+        local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+        if LSM then
+            for _, n in ipairs(LSM:List("sound")) do
+                table.insert(list, { name = "[LSM] " .. n, val = n })
+            end
+        end
+        return list
+    end
+    local function FocusSoundText(val)
+        if val == nil then return "選擇音效" end
+        for _, s in ipairs(FOCUS_SOUND_BUILTINS) do if s.val == val then return s.name end end
+        if type(val) == "string" then return "[LSM] " .. val end
+        return tostring(val)
+    end
+
+    -- 顏色列輔助
+    local focusColorSwatches = {}
+    local function MakeFocusColorRow(anchorFrame, yGap, labelText, which)
+        local label = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        label:SetPoint("TOPLEFT", anchorFrame, "BOTTOMLEFT", 0, yGap)
+        label:SetWidth(160); label:SetJustifyH("LEFT")
+        label:SetText(labelText)
+
+        local swatch = CreateFrame("Button", nil, focusFrame, "BackdropTemplate")
+        swatch:SetSize(24, 24)
+        swatch:SetPoint("LEFT", label, "RIGHT", 8, 0)
+        swatch:SetBackdrop({
+            bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            edgeSize = 10,
+            insets = { left = 2, right = 2, top = 2, bottom = 2 },
+        })
+        swatch:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+
+        local resetBtn = CreateFrame("Button", nil, focusFrame, "UIPanelButtonTemplate")
+        resetBtn:SetSize(60, 22)
+        resetBtn:SetPoint("LEFT", swatch, "RIGHT", 10, 0)
+        resetBtn:SetText("重設")
+
+        function swatch.UpdateSwatch()
+            if not MiliUI_FocusCast then return end
+            local r, g, b = MiliUI_FocusCast.GetColor(which)
+            swatch:SetBackdropColor(r, g, b, 1)
+        end
+
+        swatch:SetScript("OnClick", function()
+            if not MiliUI_FocusCast then return end
+            local r, g, b = MiliUI_FocusCast.GetColor(which)
+            local function OnChanged()
+                local nr, ng, nb = ColorPickerFrame:GetColorRGB()
+                MiliUI_FocusCast.SetColor(which, nr, ng, nb)
+                swatch.UpdateSwatch()
+            end
+            local function OnCancel(prev)
+                if prev then
+                    MiliUI_FocusCast.SetColor(which, prev.r, prev.g, prev.b)
+                    swatch.UpdateSwatch()
+                end
+            end
+            local info = {
+                swatchFunc = OnChanged, cancelFunc = OnCancel,
+                r = r, g = g, b = b, hasOpacity = false,
+                previousValues = { r = r, g = g, b = b },
+            }
+            if ColorPickerFrame.SetupColorPickerAndShow then
+                ColorPickerFrame:SetupColorPickerAndShow(info)
+            else
+                ColorPickerFrame.func = info.swatchFunc
+                ColorPickerFrame.cancelFunc = info.cancelFunc
+                ColorPickerFrame.previousValues = info.previousValues
+                ColorPickerFrame.hasOpacity = false
+                ColorPickerFrame:SetColorRGB(r, g, b)
+                ColorPickerFrame:Hide(); ColorPickerFrame:Show()
+            end
+        end)
+        resetBtn:SetScript("OnClick", function()
+            if not MiliUI_FocusCast then return end
+            local r, g, b = MiliUI_FocusCast.GetDefaultColor(which)
+            MiliUI_FocusCast.SetColor(which, r, g, b)
+            swatch.UpdateSwatch()
+        end)
+        table.insert(focusColorSwatches, swatch)
+        return label
+    end
+
+    -- 音效列輔助（啟用勾選 + 下拉 + 試聽）
+    local function MakeFocusSoundRow(anchorFrame, yGap, labelText, which)
+        local cb = CreateFrame("CheckButton", nil, focusFrame, "UICheckButtonTemplate")
+        cb:SetPoint("TOPLEFT", anchorFrame, "BOTTOMLEFT", 0, yGap)
+        cb.text:SetText(labelText)
+        cb.text:SetFontObject("GameFontHighlight")
+
+        local dd = CreateFrame("Frame", "MiliUI_FocusSoundDD_" .. which, focusFrame, "UIDropDownMenuTemplate")
+        dd:SetPoint("LEFT", cb.text, "RIGHT", 6, -2)
+        UIDropDownMenu_SetWidth(dd, 170)
+
+        local preview = CreateFrame("Button", nil, focusFrame, "UIPanelButtonTemplate")
+        preview:SetSize(50, 22)
+        preview:SetPoint("LEFT", dd, "RIGHT", -8, 2)
+        preview:SetText("試聽")
+
+        UIDropDownMenu_Initialize(dd, function(self, level)
+            for _, s in ipairs(BuildFocusSoundList()) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = s.name
+                info.value = s.val
+                info.func = function()
+                    UIDropDownMenu_SetSelectedValue(dd, s.val)
+                    UIDropDownMenu_SetText(dd, s.name)
+                    if MiliUI_FocusCast then
+                        MiliUI_FocusCast.SetSound(which, s.val)
+                        MiliUI_FocusCast.PreviewSound(which)
+                    end
+                end
+                UIDropDownMenu_AddButton(info, level)
+            end
+        end)
+
+        local function UpdateEnabled(enabled)
+            if enabled then dd:SetAlpha(1); preview:Enable()
+            else dd:SetAlpha(0.4); preview:Disable() end
+        end
+
+        function cb.Sync()
+            if not MiliUI_FocusCast then return end
+            local en = MiliUI_FocusCast.GetSoundEnabled(which)
+            cb:SetChecked(en)
+            local val = MiliUI_FocusCast.GetSound(which)
+            UIDropDownMenu_SetSelectedValue(dd, val)
+            UIDropDownMenu_SetText(dd, FocusSoundText(val))
+            UpdateEnabled(en)
+        end
+
+        cb:HookScript("OnClick", function(self)
+            if not MiliUI_FocusCast then return end
+            local en = self:GetChecked() and true or false
+            MiliUI_FocusCast.SetSoundEnabled(which, en)
+            if en and MiliUI_FocusCast.GetSound(which) == nil then
+                MiliUI_FocusCast.SetSound(which, FOCUS_SOUND_BUILTINS[1].val)
+                UIDropDownMenu_SetSelectedValue(dd, FOCUS_SOUND_BUILTINS[1].val)
+                UIDropDownMenu_SetText(dd, FOCUS_SOUND_BUILTINS[1].name)
+            end
+            UpdateEnabled(en)
+        end)
+        preview:SetScript("OnClick", function()
+            if MiliUI_FocusCast then MiliUI_FocusCast.PreviewSound(which) end
+        end)
+        return cb
+    end
+
+    -- -------- 斷法巨集（複製用） --------
+    local macroDivider = focusFrame:CreateTexture(nil, "ARTWORK")
+    macroDivider:SetColorTexture(1, 1, 1, 0.12)
+    macroDivider:SetSize(540, 1)
+    -- focusClearMarkDesc 相對 checkbox 縮排 +SUB_INDENT，用 -SUB_INDENT 抵銷回到標題基準（x=16）
+    macroDivider:SetPoint("TOPLEFT", focusClearMarkDesc, "BOTTOMLEFT", -SUB_INDENT, -20)
+
+    local macroLabel = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    macroLabel:SetPoint("TOPLEFT", macroDivider, "BOTTOMLEFT", 0, -12)
+    macroLabel:SetText("|cffffe00a斷法巨集|r")
+
+    local macroDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    macroDesc:SetPoint("TOPLEFT", macroLabel, "BOTTOMLEFT", 0, -6)
+    macroDesc:SetWidth(520); macroDesc:SetJustifyH("LEFT")
+    macroDesc:SetText("對焦點目標施放斷法（無焦點則對當前目標）。點「全選」後按 Ctrl+C 複製，貼到新巨集即可。\n若偵測不到你的斷法技能，請把「法術名稱」自行替換。")
+    macroDesc:SetTextColor(0.6, 0.6, 0.6)
+
+    local macroBoxBorder = CreateFrame("Frame", nil, focusFrame, "BackdropTemplate")
+    macroBoxBorder:SetPoint("TOPLEFT", macroDesc, "BOTTOMLEFT", 0, -10)
+    macroBoxBorder:SetSize(360, 52)
+    macroBoxBorder:SetBackdrop({
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
+    macroBoxBorder:SetBackdropColor(0, 0, 0, 0.6)
+    macroBoxBorder:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+
+    local macroEdit = CreateFrame("EditBox", nil, macroBoxBorder)
+    macroEdit:SetMultiLine(true)
+    macroEdit:SetPoint("TOPLEFT", 8, -6)
+    macroEdit:SetPoint("BOTTOMRIGHT", -8, 6)
+    macroEdit:SetFontObject("ChatFontNormal")
+    macroEdit:SetAutoFocus(false)
+    macroEdit:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+
+    local function BuildMacroText()
+        local spell = "法術名稱"
+        if MiliUI_FocusCast and MiliUI_FocusCast.GetInterruptSpellName then
+            spell = MiliUI_FocusCast.GetInterruptSpellName() or "法術名稱"
+        end
+        return "#showtooltip\n/cast [@focus,exists][@target] " .. spell
+    end
+    local function ResetMacroText() macroEdit:SetText(BuildMacroText()) end
+    ResetMacroText()
+    -- 保持唯讀：使用者輸入後還原文字
+    macroEdit:SetScript("OnTextChanged", function(self, userInput)
+        if userInput then ResetMacroText() end
+    end)
+
+    local macroCopyBtn = CreateFrame("Button", nil, focusFrame, "UIPanelButtonTemplate")
+    macroCopyBtn:SetSize(80, 22)
+    macroCopyBtn:SetPoint("TOPLEFT", macroBoxBorder, "BOTTOMLEFT", 0, -8)
+    macroCopyBtn:SetText("全選")
+    macroCopyBtn:SetScript("OnClick", function()
+        ResetMacroText()
+        macroEdit:SetFocus()
+        macroEdit:HighlightText()
+    end)
+
+    -- -------- 焦點目標施法監控 --------
+    local monDivider = focusFrame:CreateTexture(nil, "ARTWORK")
+    monDivider:SetColorTexture(1, 1, 1, 0.12)
+    monDivider:SetSize(540, 1)
+    monDivider:SetPoint("TOPLEFT", macroCopyBtn, "BOTTOMLEFT", 0, -20)
+
+    local monLabel = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    monLabel:SetPoint("TOPLEFT", monDivider, "BOTTOMLEFT", 0, -12)
+    monLabel:SetText("|cffffe00a焦點目標施法監控|r")
+
+    local monCB = CreateFrame("CheckButton", "MiliUI_FocusCastMonitorCB", focusFrame, "UICheckButtonTemplate")
+    monCB:SetPoint("TOPLEFT", monLabel, "BOTTOMLEFT", 0, -8)
+    monCB.text:SetText("啟用焦點目標施法監控")
+    monCB.text:SetFontObject("GameFontHighlight")
+
+    local monDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    monDesc:SetPoint("TOPLEFT", monCB, "BOTTOMLEFT", SUB_INDENT, -2)
+    monDesc:SetWidth(500); monDesc:SetJustifyH("LEFT")
+    monDesc:SetText("顯示焦點目標的施法條，並依斷法狀態變色。開啟後可在編輯模式拖曳（名稱：焦點目標施法）；關閉則編輯模式不顯示。")
+    monDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    local colorHint = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    colorHint:SetPoint("TOPLEFT", monDesc, "BOTTOMLEFT", -SUB_INDENT, -14)
+    colorHint:SetText("施法條顏色（點色塊自訂）：")
+
+    local readyColorLabel  = MakeFocusColorRow(colorHint,        -10, "可斷法（斷法可用）",   "ready")
+    local cdColorLabel     = MakeFocusColorRow(readyColorLabel,  -12, "可斷法（斷法冷卻中）", "cd")
+    local immuneColorLabel = MakeFocusColorRow(cdColorLabel,     -12, "不可中斷",             "immune")
+
+    -- -------- 焦點目標唱法音效 --------
+    local sndDivider = focusFrame:CreateTexture(nil, "ARTWORK")
+    sndDivider:SetColorTexture(1, 1, 1, 0.12)
+    sndDivider:SetSize(540, 1)
+    sndDivider:SetPoint("TOPLEFT", immuneColorLabel, "BOTTOMLEFT", 0, -20)
+
+    local sndLabel = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    sndLabel:SetPoint("TOPLEFT", sndDivider, "BOTTOMLEFT", 0, -12)
+    sndLabel:SetText("|cffffe00a焦點目標唱法音效|r")
+
+    local sndDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    sndDesc:SetPoint("TOPLEFT", sndLabel, "BOTTOMLEFT", 0, -6)
+    sndDesc:SetWidth(520); sndDesc:SetJustifyH("LEFT")
+    sndDesc:SetText("焦點目標開始唱法時，依斷法狀態播放對應音效。此功能獨立於施法監控，三種狀態可各別啟用。")
+    sndDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    local readySndCB  = MakeFocusSoundRow(sndDesc,     -12, "可斷法（斷法可用）",   "ready")
+    local cdSndCB     = MakeFocusSoundRow(readySndCB,  -34, "可斷法（斷法冷卻中）", "cd")
+    local immuneSndCB = MakeFocusSoundRow(cdSndCB,     -34, "不可中斷",             "immune")
+
+    -- -------- 同步 / 事件 --------
+    local function SyncFocusCast()
+        if not MiliUI_FocusCast then
+            monCB:Disable(); monCB.text:SetFontObject("GameFontDisable")
+            return
+        end
+        monCB:SetChecked(MiliUI_FocusCast.IsMonitorEnabled())
+        for _, sw in ipairs(focusColorSwatches) do sw.UpdateSwatch() end
+        readySndCB.Sync(); cdSndCB.Sync(); immuneSndCB.Sync()
+        ResetMacroText()
+    end
+    SyncFocusCast()
+    focusFrame:HookScript("OnShow", SyncFocusCast)
+
+    monCB:HookScript("OnClick", function(self)
+        if not MiliUI_FocusCast then return end
+        local en = self:GetChecked() and true or false
+        MiliUI_FocusCast.SetMonitorEnabled(en)
+        print("|cff00ff00[MiliUI]|r 焦點目標施法監控:", en and "開" or "關")
+    end)
+
+    -- 內容建立完後自動調整捲動區高度
+    local function ResizeFocusScrollChild()
+        local maxBottom = 0
+        local top = focusFrame:GetTop() or 0
+        for _, child in ipairs({ focusFrame:GetChildren() }) do
+            if child and child.GetBottom then
+                local dist = top - (child:GetBottom() or top)
+                if dist > maxBottom then maxBottom = dist end
+            end
+        end
+        for _, region in ipairs({ focusFrame:GetRegions() }) do
+            if region and region.GetBottom then
+                local dist = top - (region:GetBottom() or top)
+                if dist > maxBottom then maxBottom = dist end
+            end
+        end
+        if maxBottom > 0 then focusFrame:SetHeight(maxBottom + 40) end
+    end
+    focusCanvas:HookScript("OnShow", function() C_Timer.After(0, ResizeFocusScrollChild) end)
+
+    local focusCategory = Settings.RegisterCanvasLayoutSubcategory(category, focusCanvas, "焦點目標")
     focusCategory.ID = "MiliUI_Focus"
 
     return category
