@@ -22,6 +22,7 @@ Settings.lua
 Core.lua
 
 Enhance\Focuser.lua
+Enhance\FocuserBar.lua
 Enhance\FocuserCastBar.lua
 Enhance\SlashRL.lua
 # Enhance\SpellAnnouncer.lua

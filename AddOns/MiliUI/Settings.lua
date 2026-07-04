@@ -1155,6 +1155,66 @@ local function InitSettings()
     focusClearMarkDesc:SetText("清除焦點目標（或切換焦點）時，自動移除舊焦點身上的團隊標記。")
     focusClearMarkDesc:SetTextColor(0.5, 0.5, 0.5)
 
+    -- 標記切換列 checkbox
+    local focusBarCB = CreateFrame("CheckButton", "MiliUI_FocuserBarCB", focusFrame, "UICheckButtonTemplate")
+    focusBarCB:SetPoint("TOPLEFT", focusClearMarkDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
+    focusBarCB.text:SetText("顯示焦點標記切換列")
+    focusBarCB.text:SetFontObject("GameFontHighlight")
+
+    local focusBarDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    focusBarDesc:SetPoint("TOPLEFT", focusBarCB, "BOTTOMLEFT", SUB_INDENT, -2)
+    focusBarDesc:SetWidth(520)
+    focusBarDesc:SetJustifyH("LEFT")
+    focusBarDesc:SetText("顯示一條可拖曳的小工具列（樣式同爆發藥水切換列）：\n點標記圖示會彈出選單，點選要用的焦點標記（戰鬥中可用），\n喇叭按鈕可將宣告內容送到隊伍 / 團隊 / 副本頻道。")
+    focusBarDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    -- 宣告內容
+    local announceLabel = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    announceLabel:SetPoint("TOPLEFT", focusBarDesc, "BOTTOMLEFT", 0, -10)
+    announceLabel:SetText("宣告內容（{icon} 會替換成焦點的標記圖示）：")
+
+    local announceBoxBorder = CreateFrame("Frame", nil, focusFrame, "BackdropTemplate")
+    announceBoxBorder:SetPoint("TOPLEFT", announceLabel, "BOTTOMLEFT", 0, -6)
+    announceBoxBorder:SetSize(300, 26)
+    announceBoxBorder:SetBackdrop({
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
+    announceBoxBorder:SetBackdropColor(0, 0, 0, 0.6)
+    announceBoxBorder:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+
+    local announceEdit = CreateFrame("EditBox", nil, announceBoxBorder)
+    announceEdit:SetPoint("TOPLEFT", 8, 0)
+    announceEdit:SetPoint("BOTTOMRIGHT", -8, 0)
+    announceEdit:SetFontObject("ChatFontNormal")
+    announceEdit:SetAutoFocus(false)
+    announceEdit:SetMaxLetters(120)
+
+    local announceResetBtn = CreateFrame("Button", nil, focusFrame, "UIPanelButtonTemplate")
+    announceResetBtn:SetSize(60, 22)
+    announceResetBtn:SetPoint("LEFT", announceBoxBorder, "RIGHT", 8, 0)
+    announceResetBtn:SetText("重設")
+
+    local function SaveAnnounceText()
+        if not MiliUI_FocuserBar then return end
+        MiliUI_FocuserBar.SetAnnounceText(announceEdit:GetText())
+        -- SetAnnounceText 對空字串會還原預設值，把實際存的值寫回輸入框
+        announceEdit:SetText(MiliUI_FocuserBar.GetAnnounceText())
+    end
+    announceEdit:SetScript("OnEnterPressed", function(self)
+        SaveAnnounceText()
+        self:ClearFocus()
+    end)
+    announceEdit:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    announceEdit:SetScript("OnEditFocusLost", SaveAnnounceText)
+    announceResetBtn:SetScript("OnClick", function()
+        if not MiliUI_FocuserBar then return end
+        announceEdit:SetText(MiliUI_FocuserBar.GetDefaultAnnounceText())
+        SaveAnnounceText()
+    end)
+
     local function UpdateFocusMarkSubControls(enabled)
         if enabled then
             focusMarkCB:Enable()
@@ -1162,6 +1222,8 @@ local function InitSettings()
             focusMarkDropdown:SetAlpha(1)
             focusClearMarkCB:Enable()
             focusClearMarkCB.text:SetFontObject("GameFontHighlight")
+            focusBarCB:Enable()
+            focusBarCB.text:SetFontObject("GameFontHighlight")
         else
             focusMarkCB:Disable()
             focusMarkCB.text:SetFontObject("GameFontDisable")
@@ -1170,6 +1232,9 @@ local function InitSettings()
             focusClearMarkCB:Disable()
             focusClearMarkCB.text:SetFontObject("GameFontDisable")
             focusClearMarkCB:SetChecked(false)
+            -- 標記切換列只鎖操作、不清設定值（Focuser 關閉時列會自動隱藏）
+            focusBarCB:Disable()
+            focusBarCB.text:SetFontObject("GameFontDisable")
         end
     end
 
@@ -1187,6 +1252,11 @@ local function InitSettings()
         focusCB:SetChecked(enabled)
         focusMarkCB:SetChecked(MiliUI_Focuser.IsAutoMarkEnabled())
         focusClearMarkCB:SetChecked(MiliUI_Focuser.IsClearMarkEnabled())
+        if MiliUI_FocuserBar then
+            focusBarCB:SetChecked(MiliUI_FocuserBar.IsShown())
+            announceEdit:SetText(MiliUI_FocuserBar.GetAnnounceText())
+            announceEdit:SetCursorPosition(0)
+        end
         local idx = MiliUI_Focuser.GetMarkIndex()
         if idx and idx > 0 then
             UIDropDownMenu_SetSelectedValue(focusMarkDropdown, idx)
@@ -1240,6 +1310,13 @@ local function InitSettings()
         local enabled = self:GetChecked() and true or false
         MiliUI_Focuser.SetClearMark(enabled)
         print("|cff00ff00[MiliUI]|r 取消焦點時清除標記:", enabled and "開" or "關")
+    end)
+
+    focusBarCB:HookScript("OnClick", function(self)
+        if not MiliUI_FocuserBar then return end
+        local enabled = self:GetChecked() and true or false
+        MiliUI_FocuserBar.SetShown(enabled)
+        print("|cff00ff00[MiliUI]|r 焦點標記切換列:", enabled and "開" or "關")
     end)
 
     -- ============================================================
@@ -1414,8 +1491,8 @@ local function InitSettings()
     local macroDivider = focusFrame:CreateTexture(nil, "ARTWORK")
     macroDivider:SetColorTexture(1, 1, 1, 0.12)
     macroDivider:SetSize(540, 1)
-    -- focusClearMarkDesc 相對 checkbox 縮排 +SUB_INDENT，用 -SUB_INDENT 抵銷回到標題基準（x=16）
-    macroDivider:SetPoint("TOPLEFT", focusClearMarkDesc, "BOTTOMLEFT", -SUB_INDENT, -20)
+    -- announceBoxBorder 相對 checkbox 縮排 +SUB_INDENT，用 -SUB_INDENT 抵銷回到標題基準（x=16）
+    macroDivider:SetPoint("TOPLEFT", announceBoxBorder, "BOTTOMLEFT", -SUB_INDENT, -20)
 
     local macroLabel = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     macroLabel:SetPoint("TOPLEFT", macroDivider, "BOTTOMLEFT", 0, -12)
@@ -1563,6 +1640,8 @@ local function InitSettings()
 
     local focusCategory = Settings.RegisterCanvasLayoutSubcategory(category, focusCanvas, "焦點目標")
     focusCategory.ID = "MiliUI_Focus"
+    -- 暴露給 FocuserBar 的握把右鍵開啟設定用
+    MiliUI.FocusSettingsCategory = focusCategory
 
     return category
 end

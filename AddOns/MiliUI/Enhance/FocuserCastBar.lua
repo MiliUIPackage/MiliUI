@@ -97,7 +97,13 @@ local barFrame, barStatusBar, barIcon, barSpark, nameText, timeText
 local isInEditMode = false
 local HideBar   -- forward declaration（供 ticker / OnUpdate 引用）
 
+-- 打斷顯示：凍結條的顏色（抄 Luxthos_Platynator autoColors cast.interrupted 紅）
+-- 與斷法者名字停留秒數（Platynator 名條預設 0.3s，但它有常駐名字；獨立條要讀得到名字，拉長）
+local INTERRUPTED_COLOR = { 1, 0.2039215862751007, 0.1450980454683304 }
+local INTERRUPT_HOLD    = 1.0
+
 local active               = false   -- 目前是否有焦點施法在跑
+local displayToken         = 0       -- 顯示世代：讓過期的「打斷停留」計時器失效
 local castSecret           = false   -- 本次施法是否走秘密模式
 local castStart, castEnd   = 0, 0    -- 一般模式：GetTime 起訖（秒）
 local castLocalStart       = 0       -- 秘密模式：本地近似起始（僅供時間文字）
@@ -441,11 +447,60 @@ end
 -- HideBar 已於檔案上方 forward-declare
 function HideBar()
     active = false
+    displayToken = displayToken + 1           -- 讓待決的打斷停留計時器失效
     StopDisplayTicker()
     if barFrame then
         barFrame:SetScript("OnUpdate", nil)   -- 卸掉一般模式的每幀回呼
         if not isInEditMode then barFrame:Hide() end
     end
+end
+
+----------------------------------------------------------------------
+-- 施法被打斷：凍結滿條變紅 + 顯示斷法者名字（職業色），停留後消失
+-- 抄 Platynator：CastBarMixin:ApplyInterrupt（SetMinMax+SetValue 可蓋掉
+-- SetTimerDuration）與 CastInterrupterTextMixin:UpdateFromGUID（GUID→名字/職業色）
+----------------------------------------------------------------------
+local function ShowInterrupted(interrupterGUID)
+    if not active then return end             -- 沒在顯示這條施法就不處理
+    active = false                            -- 停止進度更新，但條保留顯示
+    StopDisplayTicker()
+    barFrame:SetScript("OnUpdate", nil)
+
+    barStatusBar:SetMinMaxValues(0, 1)
+    barStatusBar:SetValue(1)
+    barStatusBar:SetStatusBarColor(INTERRUPTED_COLOR[1], INTERRUPTED_COLOR[2], INTERRUPTED_COLOR[3])
+    nameText:SetText("已打斷")
+    timeText:SetText("")
+
+    -- 斷法者名字 + 職業色（interrupterGUID 只做 ~= nil 檢查，秘密安全）
+    if interrupterGUID ~= nil then
+        local name, class
+        if UnitNameFromGUID then
+            name = UnitNameFromGUID(interrupterGUID)
+            local _, c = GetPlayerInfoByGUID(interrupterGUID)
+            class = c
+        elseif UnitTokenFromGUID then
+            local u = UnitTokenFromGUID(interrupterGUID)
+            if u then name, class = UnitName(u), UnitClassBase(u) end
+        end
+        if name ~= nil then
+            local r, g, b = 1, 1, 1
+            if class ~= nil then
+                local color = C_ClassColor and C_ClassColor.GetClassColor(class)
+                    or RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+                if color then r, g, b = color:GetRGB() end
+            end
+            timeText:SetTextColor(r, g, b)
+            timeText:SetText(name)
+        end
+    end
+
+    -- 停留 INTERRUPT_HOLD 秒後收條；期間若開始新施法（token 改變）則放棄
+    displayToken = displayToken + 1
+    local tok = displayToken
+    C_Timer.After(INTERRUPT_HOLD, function()
+        if tok == displayToken then HideBar() end
+    end)
 end
 
 -- 選 duration 方向（明文旗標，安全）
@@ -481,11 +536,13 @@ local function StartDisplay(castTbl, chanTbl)
     end
 
     CreateBarFrame()
+    displayToken         = displayToken + 1   -- 新施法：讓打斷停留計時器失效
     castChannel          = isChannel
     castNotInterruptible = notInt
     colorAccum           = 1        -- 強制首幀更新文字
     barIcon:SetTexture(texture)     -- 施法中必有圖示；勿用 texture or X（會對秘密值做真值判斷 → taint）
     nameText:SetText(name)
+    timeText:SetTextColor(1, 1, 1)  -- 打斷顯示會把右側文字染職業色，這裡還原
     -- 位置/大小只在建立與設定變更時套用，不在每次施法重算（見 UpdateBarPosition/Size 呼叫點）
 
     if SecretsActive() then
@@ -631,7 +688,9 @@ end
 ----------------------------------------------------------------------
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("PLAYER_LOGIN")
-ev:SetScript("OnEvent", function(self, event, unit)
+-- 施法事件 payload：(unit, castGUID, spellID[, interrupterGUID])；EMPOWER_STOP 多一個
+-- complete 參數，interrupterGUID 在第 5 位（參數位置抄 Platynator/Display/Cache.lua）
+ev:SetScript("OnEvent", function(self, event, unit, arg2, arg3, arg4, arg5)
     if event == "PLAYER_LOGIN" then
         db = GetDB()
         RefreshInterruptSpells()
@@ -678,7 +737,24 @@ ev:SetScript("OnEvent", function(self, event, unit)
         or event == "UNIT_SPELLCAST_EMPOWER_UPDATE" then
         ResyncTiming()                          -- 延遲/推條：只重設計時，不重讀圖示/名稱/位置
 
-    else  -- STOP / CHANNEL_STOP / EMPOWER_STOP / INTERRUPTED / FAILED
+    elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
+        ShowInterrupted(arg4)                   -- 讀條被打斷：顯示斷法者後收條
+
+    elseif event == "UNIT_SPELLCAST_CHANNEL_STOP" then
+        if arg4 ~= nil then                     -- 通道被打斷才帶 interrupterGUID
+            ShowInterrupted(arg4)
+        else
+            HideBar()
+        end
+
+    elseif event == "UNIT_SPELLCAST_EMPOWER_STOP" then
+        if arg5 ~= nil then                     -- 蓄力被打斷：GUID 在第 5 位
+            ShowInterrupted(arg5)
+        else
+            HideBar()
+        end
+
+    else  -- STOP / FAILED
         HideBar()
     end
 end)
