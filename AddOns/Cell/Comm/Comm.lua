@@ -111,7 +111,8 @@ Comm:RegisterComm("CELL_VERSION", function(prefix, message, channel, sender)
     local myVersion = tonumber(string.match(Cell.version, "%d+"))
     if (not CellDB["lastVersionCheck"] or time()-CellDB["lastVersionCheck"]>=25200) and version and myVersion and myVersion < version then
         CellDB["lastVersionCheck"] = time()
-        F.Print(L["New version found (%s). Please visit %s to get the latest version."]:format(message, "|cFF00CCFFhttps://www.curseforge.com/wow/addons/cell|r"))
+        -- MiliUI: 停用新版本聊天通知，版本比對照常進行
+        -- F.Print(L["New version found (%s). Please visit %s to get the latest version."]:format(message, "|cFF00CCFFhttps://www.curseforge.com/wow/addons/cell|r"))
     end
 end)
 

@@ -59,6 +59,11 @@ local function CreateChangelogsFrame()
 end
 
 function F.CheckWhatsNew(show)
+    -- MiliUI: 停用更新後自動彈出的更新日誌，只保留 About 頁手動開啟
+    if not show then
+        CellDB["changelogsViewed"] = Cell.version
+        return
+    end
     if show or CellDB["changelogsViewed"] ~= Cell.version then
         if not init then
             init = true
