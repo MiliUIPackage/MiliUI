@@ -27,6 +27,7 @@ local _, BR = ...
 ---@field petActions PetActionList?           -- Expanded pet summon actions
 ---@field dynamicIcon number|string|nil      -- Dynamic icon texture override (e.g. next poison to cast)
 ---@field glowKindOverride "expiring"|"missing"|nil -- Override glow kind (e.g. healthstone low stock uses expiring glow)
+---@field subLabel string?                    -- Wrapping label rendered below the icon (loadout reminders: the set/talent name)
 
 -- Lua stdlib locals (avoid repeated global lookups in hot paths)
 local ceil = math.ceil
@@ -46,6 +47,13 @@ local function AsSpellList(val)
 end
 
 -- Localization (resolved once at load time)
+-- Short "what's wrong" tags shown ON a loadout reminder icon (newline so they
+-- wrap to two lines like "NO\nFLASK"); the specific name renders below the icon.
+local LOADOUT_TAGS = {
+    gear = BR.L["Loadout.Tag.Gear"],
+    talent = BR.L["Loadout.Tag.Talent"],
+    loadout = BR.L["Loadout.Tag.Loadout"],
+}
 local FMT_MINUTES = BR.L["Overlay.MinutesFormat"]
 local FMT_LESS_THAN_ONE = BR.L["Overlay.LessThanOneMinute"]
 local FMT_SECONDS = BR.L["Overlay.SecondsFormat"]
@@ -95,6 +103,7 @@ local SelfBuffs = BUFF_TABLES.self
 local PetBuffs = BUFF_TABLES.pet
 local Consumables = BUFF_TABLES.consumable
 local CustomBuffs = BUFF_TABLES.custom
+local LoadoutRules = BUFF_TABLES.loadout
 
 -- ============================================================================
 -- MODULE STATE
@@ -215,6 +224,15 @@ local cachedOffHandType = nil -- nil = not yet checked, "weapon" | "shield" | "n
 -- Item ownership cache (invalidated on BAG_UPDATE_DELAYED, PLAYER_EQUIPMENT_CHANGED)
 ---@type table<number, boolean>
 local cachedItemOwnership = {}
+
+-- Loadout state cache: rule.key -> { satisfied, icon }. The detection calls
+-- (IsSatisfied / GetRuleIcon) are read-only WoW lookups whose answers only change
+-- on spec / talent / equipment / equipment-set events, so they're cached here and
+-- reused on the 3s fallback ticker instead of re-queried every full refresh.
+-- Invalidated on PLAYER_SPECIALIZATION_CHANGED, TRAIT_CONFIG_UPDATED,
+-- SPELLS_CHANGED, PLAYER_EQUIPMENT_CHANGED, EQUIPMENT_SETS_CHANGED.
+---@type table<string, { satisfied: boolean, icon: number|string }>
+local cachedLoadoutState = {}
 
 -- Wrong-demon-pet cache. UnitCreatureFamily can return secret-value familyIDs
 -- under 12.0.5 taint rules, so the compare is pcall-guarded - a secret value
@@ -932,6 +950,62 @@ local function IsCustomBuffVisibleForContent(buff)
     return true
 end
 
+-- Loadout rule "scope" -> the content type its content must equal. Gear/talents
+-- lock once a key or match starts, so scope is just the content bucket (no
+-- per-difficulty granularity). "dungeon" covers every dungeon difficulty incl.
+-- Mythic+; arena/battleground both live under "pvp" and split on instance type.
+local LOADOUT_SCOPE_CONTENT = {
+    raid = "raid",
+    dungeon = "dungeon",
+    arena = "pvp",
+    battleground = "pvp",
+}
+
+---Check if a loadout rule should be visible for the current content. Rules store a
+---player-facing `scope` (raid / dungeon / arena / battleground) plus an optional
+---instance allow-list and a `readyCheckOnly` gate. Scope captures intent directly,
+---so there is no deny-list to infer.
+---@param rule LoadoutRule
+---@return boolean
+local function IsLoadoutRuleVisibleForContent(rule)
+    if inVehicle then
+        return false
+    end
+    local when = rule.when
+    if not when then
+        return true
+    end
+
+    local scope = when.scope
+    if scope then
+        local needContent = LOADOUT_SCOPE_CONTENT[scope]
+        if not needContent then
+            -- Unknown / retired scope (e.g. a pre-simplification test rule): hide
+            -- rather than show in the wrong content.
+            return false
+        end
+        if GetCurrentContentType() ~= needContent then
+            return false
+        end
+        -- Arena and battleground share the "pvp" content type; split on diff key.
+        if scope == "arena" then
+            if GetCurrentDifficultyKey() ~= "arena" then
+                return false
+            end
+        elseif scope == "battleground" then
+            if GetCurrentDifficultyKey() ~= "bg" then
+                return false
+            end
+        end
+    end
+
+    if when.readyCheckOnly and not inReadyCheck then
+        return false
+    end
+
+    return true
+end
+
 -- Pre-allocated scope objects for GetTrackingScope (callers only read, never mutate)
 local SCOPE_HIDDEN = { show = false, playerOnly = false }
 local SCOPE_PLAYER_ONLY = { show = true, playerOnly = true }
@@ -1398,7 +1472,7 @@ local function ShouldShowSelfBuff(
 end
 
 -- Icon ID for the eating channel aura (consistent across all food types)
--- Shared via BR namespace: also used by BuffReminders.lua for the display icon
+-- Shared via BR namespace: also used by Display.lua for the display icon
 BR.EATING_AURA_ICON = 133950
 local EATING_AURA_ICON = BR.EATING_AURA_ICON
 
@@ -1815,6 +1889,7 @@ function BuffState.Refresh(refreshMode)
             entry.petActions = nil
             entry.dynamicIcon = nil
             entry.glowKindOverride = nil
+            entry.subLabel = nil
         end
     end
 
@@ -2322,6 +2397,41 @@ function BuffState.Refresh(refreshMode)
         end
     end
 
+    -- Process loadout reminders (talent / loadout / equipment-set mismatch).
+    -- Detection is aura-agnostic, but gear/talent swaps are blocked in every
+    -- restricted context (combat, the whole M+ keystone, PvP instances), so a
+    -- reminder there is unactionable noise -- suppress it until the player can
+    -- actually fix the loadout. (isAuraRestricted == BuffState.IsRestricted().)
+    if not groupOnly and not isAuraRestricted then
+        local _, loadoutMissGlow = GetCategoryGlowSettings("loadout")
+        local Loadouts = BR.Loadouts
+        for i, rule in ipairs(LoadoutRules) do
+            local entry = GetOrCreateEntry(rule.key, "loadout", i)
+            -- Gating predicates (enabled / binding / content / instance) stay live:
+            -- they're cheap DB/flag reads, and their spec/content/character inputs
+            -- already resolve through caches (GetCurrentSpecID -> StateHelpers cache,
+            -- GetCurrentContentType -> content cache, character key memoized once).
+            -- Only the read-only API detection (satisfied + icon) is memoized per rule.
+            if
+                IsBuffEnabled(rule.key)
+                and Loadouts.AppliesToCurrentCharacter(rule)
+                and IsLoadoutRuleVisibleForContent(rule)
+                and Loadouts.CurrentInstanceMatches(rule.when and rule.when.instances)
+            then
+                local state = cachedLoadoutState[rule.key]
+                if not state then
+                    state = { satisfied = Loadouts.IsSatisfied(rule), icon = Loadouts.GetRuleIcon(rule) }
+                    cachedLoadoutState[rule.key] = state
+                end
+                if not state.satisfied then
+                    entry.dynamicIcon = state.icon
+                    entry.subLabel = rule.name
+                    SetEntryText(entry, LOADOUT_TAGS[rule.require] or rule.overlayText, loadoutMissGlow)
+                end
+            end
+        end
+    end
+
     -- Build visibleByCategory in one pass from entries (reuse sub-tables)
     for _, list in pairs(BuffState.visibleByCategory) do
         wipe(list)
@@ -2520,7 +2630,16 @@ local function ResolveOffHandType()
     end
     local offhandItemID = GetInventoryItemID("player", 17) -- INVSLOT_OFFHAND
     if not offhandItemID then
-        cachedOffHandType = "none"
+        -- Only trust an empty off-hand if inventory data is actually loaded. Right
+        -- after a loading screen / equipment swap, slot 17 can transiently read nil
+        -- for a real dual-wielder; caching "none" then would poison the rest of the
+        -- session (dual-wielder read as two-handed -> wrong rune bucket). The main
+        -- hand is always equipped, so a readable MH means inventory is loaded and a
+        -- nil off-hand is genuinely empty. If MH is also nil, leave the cache unset
+        -- so the next refresh retries (mirrors the itemClassID branch below).
+        if GetInventoryItemID("player", 16) then -- INVSLOT_MAINHAND
+            cachedOffHandType = "none"
+        end
         return
     end
     local _, _, _, _, _, itemClassID, itemSubClassID = GetItemInfoInstant(offhandItemID)
@@ -2578,6 +2697,12 @@ end
 ---Invalidate item ownership cache (call on BAG_UPDATE_DELAYED, PLAYER_EQUIPMENT_CHANGED)
 function BuffState.InvalidateItemCache()
     cachedItemOwnership = {}
+end
+
+---Invalidate loadout state cache (call on PLAYER_SPECIALIZATION_CHANGED,
+---TRAIT_CONFIG_UPDATED, SPELLS_CHANGED, PLAYER_EQUIPMENT_CHANGED, EQUIPMENT_SETS_CHANGED)
+function BuffState.InvalidateLoadoutCache()
+    cachedLoadoutState = {}
 end
 
 ---Check whether the player's current pet is not a Felguard (cached).

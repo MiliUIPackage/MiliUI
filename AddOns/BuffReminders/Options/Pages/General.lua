@@ -12,11 +12,12 @@ local Components = BR.Components
 
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local COL_PADDING = BR.Options.Constants.COL_PADDING
+local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 
 local abs = math.abs
 
 local function Build(content)
-    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = -10 })
+    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
 
     local loginMsgHolder = Components.Checkbox(content, {
         label = L["Options.ShowLoginMessages"],

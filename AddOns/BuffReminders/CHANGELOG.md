@@ -1,6 +1,8 @@
 # BuffReminders
 
-## [v6.0.12](https://github.com/zerbiniandrea/BuffReminders/tree/v6.0.12) (2026-06-20)
-[Full Changelog](https://github.com/zerbiniandrea/BuffReminders/compare/v6.0.11...v6.0.12) [Previous Releases](https://github.com/zerbiniandrea/BuffReminders/releases)
+## [v6.1.2](https://github.com/zerbiniandrea/BuffReminders/tree/v6.1.2) (2026-07-03)
+[Full Changelog](https://github.com/zerbiniandrea/BuffReminders/compare/v6.1.1...v6.1.2) [Previous Releases](https://github.com/zerbiniandrea/BuffReminders/releases)
 
-- fix(dk): 🐛 retry off-hand detection when item data is unavailable  
+- fix(runes): 🐛 prevent false DK wrong-rune from stale off-hand cache  
+- 18n(koKR): 🌐 update localization  
+- refactor: ♻️ centralize UI palette and page padding into shared tokens  

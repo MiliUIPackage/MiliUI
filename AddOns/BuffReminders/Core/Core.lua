@@ -10,7 +10,7 @@ local _, BR = ...
 -- TYPE DEFINITIONS
 -- ============================================================================
 
----@alias CategoryName "raid"|"presence"|"targeted"|"self"|"pet"|"consumable"|"custom"
+---@alias CategoryName "raid"|"presence"|"targeted"|"self"|"pet"|"consumable"|"custom"|"loadout"
 
 ---@class CategoryPosition
 ---@field point string
@@ -72,6 +72,24 @@ BR.TEXCOORD_INSET = 0.08
 BR.DEFAULT_BORDER_SIZE = 2
 BR.DEFAULT_ICON_ZOOM = 0 -- percentage; base crop (TEXCOORD_INSET) is always applied separately
 BR.OPTIONS_BASE_SCALE = 1.2
+
+-- Shared UI palette. Defined here (before Components/Options load) so every layer
+-- references the same tokens instead of copy-pasting raw literals. Callers that
+-- need a non-opaque variant index into [1..3] and pass their own alpha.
+-- Border: the cool-biased neutral hairline used for panel chrome, dialog
+-- separators, and widget borders. The slight blue tint over a flat grey reads as
+-- a chosen ground against the warm gold accent (see CreatePanel).
+-- Accent: the bright brand gold for active/hover/focus cues (active tabs, focused
+-- borders, scale steppers). AccentMuted: the softer gold for "on"/checked fills
+-- (checkmarks, linked toggles) that shouldn't shout as loud as the bright accent.
+-- NOTE: these are chrome tokens only - never point a value persisted into
+-- SavedVariables (e.g. glow color defaults) at them, or a palette tweak would
+-- silently rewrite users' saved data.
+BR.Colors = {
+    Border = { 0.27, 0.27, 0.32, 1 },
+    Accent = { 1, 0.82, 0, 1 },
+    AccentMuted = { 0.9, 0.75, 0.2, 1 },
+}
 
 -- ============================================================================
 -- CALLBACK REGISTRY (Event System)
@@ -285,17 +303,25 @@ local DefaultSettingKeys = {
     position = false, -- No auto-refresh, saved directly by movers
 }
 
--- Valid category names
-local ValidCategories = {
-    main = true,
-    raid = true,
-    presence = true,
-    targeted = true,
-    self = true,
-    pet = true,
-    consumable = true,
-    custom = true,
-}
+-- Canonical buff category list (single source of truth).
+--
+-- Order here is the canonical category order used everywhere it matters:
+-- display stacking, the Defaults "Display Order" UI, the movers, and config
+-- validation. Adding a category here automatically wires it into config-path
+-- validation (ValidCategories below), the display loop (BR.CATEGORIES), the
+-- reorder UI (ALL_CATEGORIES), and the sidebar page map (CategoryPages) -- all
+-- of which derive from this list instead of repeating it. Forgetting to extend
+-- one of those parallel lists is what silently breaks live config updates, so
+-- there is exactly one list to maintain.
+BR.CATEGORY_ORDER = { "raid", "presence", "targeted", "self", "pet", "consumable", "custom", "loadout" }
+
+-- Valid category names for config paths (categorySettings.<category>.<key>).
+-- Derived from BR.CATEGORY_ORDER plus "main", the shared/global frame whose
+-- settings live under categorySettings.main but which is not a buff category.
+local ValidCategories = { main = true }
+for _, cat in ipairs(BR.CATEGORY_ORDER) do
+    ValidCategories[cat] = true
+end
 
 -- Dynamic tables (path = {root}.{anyKey})
 -- These allow any second-level key (buff names, visibility contexts, etc.)
@@ -305,6 +331,7 @@ local DynamicRoots = {
     splitCategories = "FramesReparent",
     readyCheckOnlyOverrides = "DisplayRefresh",
     detachedIcons = "FramesReparent",
+    loadoutReminders = "DisplayRefresh",
 }
 
 ---Check if a config path is valid
@@ -681,8 +708,10 @@ function BR.CreatePanel(name, width, height, options)
     -- hairline border - and rely on the soft drop shadow (below) rather than a
     -- loud gold frame to read as elevated above the content underneath. Gold is
     -- reserved for accents (active tabs), mirroring the panel's active-nav cue.
-    local bgColor = options.bgColor or (isDialog and { 0.11, 0.11, 0.12, 1 } or { 0.1, 0.1, 0.1, 0.95 })
-    local borderColor = options.borderColor or { 0.3, 0.3, 0.3, 1 }
+    -- Cool-biased neutrals: a slight blue tint over flat grey reads as a chosen
+    -- ground against the warm gold accent (a pure mid-grey reads as unconsidered).
+    local bgColor = options.bgColor or (isDialog and { 0.098, 0.098, 0.118, 1 } or { 0.09, 0.09, 0.107, 0.97 })
+    local borderColor = options.borderColor or BR.Colors.Border
 
     local panel = CreateFrame("Frame", name, UIParent, "BackdropTemplate")
     panel:SetSize(width, height)
@@ -727,7 +756,7 @@ function BR.CreatePanel(name, width, height, options)
         body:SetPoint("TOPLEFT", 2, -2)
         body:SetPoint("BOTTOMRIGHT", -2, 2)
         body:SetColorTexture(1, 1, 1, 1)
-        body:SetGradient("VERTICAL", CreateColor(0.100, 0.100, 0.110, 1), CreateColor(0.140, 0.140, 0.150, 1))
+        body:SetGradient("VERTICAL", CreateColor(0.094, 0.094, 0.112, 1), CreateColor(0.130, 0.130, 0.152, 1))
 
         -- A thin gray separator under the title mirrors the main panel's header
         -- divider, so the dialog reads as a titled card in the same family. The
@@ -738,7 +767,7 @@ function BR.CreatePanel(name, width, height, options)
         titleSep:SetPoint("TOPLEFT", 2, -32)
         titleSep:SetPoint("TOPRIGHT", -2, -32)
         titleSep:SetHeight(1)
-        titleSep:SetColorTexture(0.3, 0.3, 0.3, 1)
+        titleSep:SetColorTexture(unpack(BR.Colors.Border))
 
         -- Dialogs are modeless: ESC handled via keyboard input so closing this
         -- dialog doesn't also close the parent options panel (unlike

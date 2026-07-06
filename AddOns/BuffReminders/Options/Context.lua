@@ -13,7 +13,7 @@ BR.Options.Helpers = BR.Options.Helpers or {}
 
 BR.Options.Constants = {
     PANEL_WIDTH = 920,
-    PANEL_HEIGHT = 650,
+    PANEL_HEIGHT = 690,
     SIDEBAR_WIDTH = 188,
     SIDEBAR_X = 14,
     CONTENT_TOP_OFFSET = 64, -- Y offset from panel top to content top (below header bar)
@@ -25,9 +25,10 @@ BR.Options.Constants = {
     SECTION_SPACING = 12,
     ITEM_HEIGHT = 22,
     SCROLLBAR_WIDTH = 24,
-    COMPONENT_GAP = 4, -- standard gap between components
+    COMPONENT_GAP = 6, -- standard gap between components
     SECTION_GAP = 8, -- gap before/after section boundaries
     DROPDOWN_EXTRA = 8, -- extra clearance after dropdowns (menu overlay space)
+    PAGE_TOP_PADDING = -16, -- y offset where each page's top VerticalLayout cursor starts
 
     -- Dialog shell metrics (see Helpers.CreateDialogShell). Widths bucketed by
     -- content density: NARROW for 1-3 simple controls, MEDIUM for dropdown +
@@ -77,6 +78,14 @@ BR.Options.Groups = {
         pages = { "defaults", "raid", "presence", "targeted", "self", "pet", "consumable", "custom" },
     },
     {
+        -- Loadout reminders are their own feature pillar (gear sets / talents /
+        -- talent loadouts - not auras), so they get a dedicated section rather
+        -- than hiding at the bottom of the buff-centric Display & Behavior group.
+        id = "loadouts",
+        titleKey = "Sidebar.Loadouts",
+        pages = { "loadout" },
+    },
+    {
         -- General pinned on top; remaining pages alphabetical by display name.
         id = "general",
         titleKey = "Sidebar.General",
@@ -89,16 +98,13 @@ BR.Options.Groups = {
     },
 }
 
--- Categories that map 1:1 to sidebar pages under the "buffs" group.
-BR.Options.CategoryPages = {
-    raid = "raid",
-    presence = "presence",
-    targeted = "targeted",
-    self = "self",
-    pet = "pet",
-    consumable = "consumable",
-    custom = "custom",
-}
+-- Categories that map 1:1 to sidebar pages under the "buffs" group. Every buff
+-- category has a same-named page, so this is just an identity map derived from
+-- the canonical BR.CATEGORY_ORDER (Core.lua) rather than a hand-kept duplicate.
+BR.Options.CategoryPages = {}
+for _, cat in ipairs(BR.CATEGORY_ORDER) do
+    BR.Options.CategoryPages[cat] = cat
+end
 
 -- Ordered list of the built-in (non-custom) categories that have entries in
 -- BR.BUFF_TABLES. Iterating this is the right way to walk every static buff
@@ -128,10 +134,11 @@ local COL_PADDING = BR.Options.Constants.COL_PADDING
 -- The first call on a layout skips the before-gap; the page's top margin
 -- (the negative y the caller set when constructing VerticalLayout) provides
 -- enough breathing room above the first section.
+local BORDER_R, BORDER_G, BORDER_B = unpack(BR.Colors.Border)
 local SEP_OFFSET = 4
 local SEP_HEIGHT = 1
 local AFTER_HEADER_GAP = 8 -- between the accent line and the first content row
-local BEFORE_HEADER_GAP = 12 -- between the previous section's last item and this header
+local BEFORE_HEADER_GAP = 16 -- between the previous section's last item and this header
 local CONTENT_INDENT = 10 -- how far content nests under each section header
 
 function Helpers.LayoutSectionHeader(layout, parent, text)
@@ -480,7 +487,7 @@ end
 function Helpers.LayoutSeparator(layout, parent)
     local sep = parent:CreateTexture(nil, "ARTWORK")
     sep:SetHeight(1)
-    sep:SetColorTexture(0.3, 0.3, 0.3, 0.6)
+    sep:SetColorTexture(BORDER_R, BORDER_G, BORDER_B, 0.6)
     layout:Add(sep, 1, COMPONENT_GAP)
     sep:SetWidth((parent.GetWidth and parent:GetWidth() or 600) - 40)
 end
@@ -504,6 +511,7 @@ local function GetCategoryLabels()
         pet = L["Category.PetReminders"],
         consumable = L["Category.Consumables"],
         custom = L["Category.CustomBuffs"],
+        loadout = L["Category.LoadoutReminders"],
     }
     return categoryLabelsCache
 end

@@ -40,6 +40,7 @@ local GetCategoryLabels = BR.Options.GetCategoryLabels
 local TEXCOORD_INSET = BR.TEXCOORD_INSET
 
 local COL_PADDING = BR.Options.Constants.COL_PADDING
+local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 
 local tinsert = table.insert
@@ -68,13 +69,6 @@ local LIST_TO_NEXT_GAP = 10 -- between a list and the next subsection / button
 local BUTTON_W = 64
 local BUTTON_H = 20
 local DEFAULT_ICON_TEXTURE = 134400
-
--- Bordered wrapper around each scrollable list. Slightly darker than the
--- panel bg + thin warm-gray border picks the list area out as a contained
--- region (matching the dropdown menu chrome and the per-page accent rail).
-local LIST_BG = { 0.05, 0.05, 0.05, 0.6 }
-local LIST_BORDER = { 0.3, 0.25, 0.1, 0.8 }
-local LIST_INSET = 2 -- inner padding between border and the scroll child
 
 -- ============================================================================
 -- CATALOG
@@ -251,41 +245,6 @@ local function CreateListRenderer(scrollFrame, makeButtons)
     end
 end
 
----Build a bordered wrapper Frame holding a Components.ScrollableContainer.
----Returns the wrapper (anchorable into a layout) and the scrollFrame inside.
----Re-anchors the scrollbar flush to the list bounds since the default offsets
----assume the parent scroll has header padding, which our flat list doesn't.
----@param parent table
----@param width number
----@param height number
----@return table wrapper, table scrollFrame
-local function BuildBorderedList(parent, width, height)
-    local wrapper = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-    wrapper:SetSize(width, height)
-    wrapper:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8x8",
-        edgeFile = "Interface\\Buttons\\WHITE8x8",
-        edgeSize = 1,
-    })
-    wrapper:SetBackdropColor(unpack(LIST_BG))
-    wrapper:SetBackdropBorderColor(unpack(LIST_BORDER))
-
-    local scroll = Components.ScrollableContainer(wrapper, {
-        width = width - LIST_INSET * 2,
-        contentHeight = height - LIST_INSET * 2,
-    })
-    scroll:SetHeight(height - LIST_INSET * 2)
-    scroll:SetPoint("TOPLEFT", LIST_INSET, -LIST_INSET)
-
-    if scroll.ScrollBar then
-        scroll.ScrollBar:ClearAllPoints()
-        scroll.ScrollBar:SetPoint("TOPLEFT", scroll, "TOPRIGHT", -18, 0)
-        scroll.ScrollBar:SetPoint("BOTTOMLEFT", scroll, "BOTTOMRIGHT", -18, 0)
-    end
-
-    return wrapper, scroll
-end
-
 -- ============================================================================
 -- PAGE BUILD
 -- ============================================================================
@@ -294,7 +253,7 @@ local function Build(content, scrollFrame)
     local contentWidth = scrollFrame:GetContentWidth()
     local listWidth = contentWidth - COL_PADDING * 2
 
-    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = -10 })
+    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
 
     LayoutSectionNote(layout, content, L["DetachedIcons.PageNote"])
 
@@ -322,14 +281,20 @@ local function Build(content, scrollFrame)
     local detachedHeader = LayoutSubsectionHeader(layout, content, L["DetachedIcons.CurrentlyDetachedCount"])
     layout:Space(SUBSECTION_GAP)
 
-    local detachedWrapper, detachedScroll = BuildBorderedList(content, listWidth, DETACHED_LIST_HEIGHT)
+    local detachedWrapper, detachedScroll = Components.BorderedList(content, {
+        width = listWidth,
+        height = DETACHED_LIST_HEIGHT,
+    })
     layout:Add(detachedWrapper, DETACHED_LIST_HEIGHT, LIST_TO_NEXT_GAP)
 
     -- "Available" subsection
     LayoutSubsectionHeader(layout, content, L["DetachedIcons.Available"])
     layout:Space(SUBSECTION_GAP)
 
-    local availableWrapper, availableScroll = BuildBorderedList(content, listWidth, AVAILABLE_LIST_HEIGHT)
+    local availableWrapper, availableScroll = Components.BorderedList(content, {
+        width = listWidth,
+        height = AVAILABLE_LIST_HEIGHT,
+    })
     layout:Add(availableWrapper, AVAILABLE_LIST_HEIGHT, LIST_TO_NEXT_GAP)
 
     -- "Reattach all" footer

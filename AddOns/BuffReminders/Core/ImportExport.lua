@@ -99,7 +99,7 @@ end
 -- Export settings to a serialized string (only includes valid settings from defaults + customBuffs)
 -- If sourceProfile is provided, exports from that table instead of the active profile.
 local function ExportSettings(sourceProfile)
-    local defaults = BR.Display.defaults
+    local defaults = BR.defaults
     local prof = sourceProfile or BR.profile
     local export = {}
 
@@ -129,7 +129,7 @@ end
 
 -- Import settings from a prefixed import string (full replacement of exported keys)
 local function ImportSettings(prefixedStr)
-    local defaults = BR.Display.defaults
+    local defaults = BR.defaults
     local data, err = DeserializeTable(prefixedStr)
     if not data then
         return false, err

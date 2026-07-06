@@ -128,7 +128,7 @@ local function Show()
     -- Reuse the chevron texture the dropdown uses - rotate 90° for up, -90° for down.
     -- Vertex color tracks state (idle / hover / disabled) to match Dropdown styling.
     local ARROW_IDLE = { 0.7, 0.7, 0.7 }
-    local ARROW_HOVER = { 1, 0.82, 0 }
+    local ARROW_HOVER = BR.Colors.Accent
     local ARROW_DISABLED = { 0.4, 0.4, 0.4 }
     local function CreateArrowButton(parent, direction, tooltipTitle, onClick)
         local btn = CreateFrame("Button", nil, parent)

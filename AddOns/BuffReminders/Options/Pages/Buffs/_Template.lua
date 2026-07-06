@@ -19,6 +19,7 @@ local _, BR = ...
 local Components = BR.Components
 
 local COL_PADDING = BR.Options.Constants.COL_PADDING
+local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 
 local Template = {}
 
@@ -29,7 +30,7 @@ function Template.Build(content, scrollFrame, category)
         scrollFrame = scrollFrame,
         contentWidth = scrollFrame:GetContentWidth(),
     }
-    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = -10 })
+    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
 
     local Sections = BR.Options.BuffSections
 

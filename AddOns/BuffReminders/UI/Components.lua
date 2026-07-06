@@ -1,5 +1,10 @@
 local _, BR = ...
 
+-- Shared palette tokens (BR.Colors), unpacked once so the per-widget calls below
+-- avoid re-indexing the palette table on every build.
+local BORDER_R, BORDER_G, BORDER_B = unpack(BR.Colors.Border)
+local ACCENT_R, ACCENT_G, ACCENT_B = unpack(BR.Colors.Accent)
+
 -- ============================================================================
 -- UI COMPONENT FACTORY
 -- ============================================================================
@@ -41,6 +46,7 @@ local floor, ceil, max, min = math.floor, math.ceil, math.max, math.min
 local format = string.format
 local rad = math.rad
 local tinsert = table.insert
+local tremove = table.remove
 
 local L = BR.L
 local Components = BR.Components
@@ -168,9 +174,9 @@ local ButtonColors = {
     bg = { 0.15, 0.15, 0.15, 1 },
     bgHover = { 0.22, 0.22, 0.22, 1 },
     bgPressed = { 0.12, 0.12, 0.12, 1 },
-    border = { 0.3, 0.3, 0.3, 1 },
+    border = BR.Colors.Border,
     borderHover = { 0.5, 0.5, 0.5, 1 },
-    borderPressed = { 1, 0.82, 0, 1 },
+    borderPressed = BR.Colors.Accent,
     borderDisabled = { 0.25, 0.25, 0.25, 1 },
     text = { 1, 1, 1, 1 },
     textDisabled = { 0.5, 0.5, 0.5, 1 },
@@ -346,7 +352,7 @@ local SliderColors = {
     trackFill = { 0.6, 0.5, 0.1, 1 }, -- Subtle gold fill
     trackDisabled = { 0.15, 0.15, 0.15, 1 },
     thumb = { 0.4, 0.4, 0.4, 1 },
-    thumbHover = { 1, 0.82, 0, 1 }, -- Golden on hover
+    thumbHover = BR.Colors.Accent, -- Golden on hover
     thumbDisabled = { 0.25, 0.25, 0.25, 1 },
     text = { 1, 1, 1, 1 },
     textDisabled = { 0.5, 0.5, 0.5, 1 },
@@ -356,8 +362,8 @@ local SliderColors = {
 local TextInputColors = {
     bg = { 0.08, 0.08, 0.08, 0.9 },
     bgFocused = { 0.1, 0.1, 0.1, 0.95 },
-    border = { 0.3, 0.3, 0.3, 1 },
-    borderFocused = { 1, 0.82, 0, 1 },
+    border = BR.Colors.Border,
+    borderFocused = BR.Colors.Accent,
 }
 
 ---Style any EditBox with dark flat UI (dark bg, gray border, gold focus highlight).
@@ -737,11 +743,11 @@ local CheckboxColors = {
     bg = { 0.12, 0.12, 0.12, 1 },
     bgHover = { 0.16, 0.16, 0.16, 1 },
     bgChecked = { 0.15, 0.13, 0.08, 1 }, -- Subtle warm tint when checked
-    border = { 0.3, 0.3, 0.3, 1 },
+    border = BR.Colors.Border,
     borderHover = { 0.45, 0.45, 0.45, 1 },
     borderChecked = { 0.6, 0.5, 0.2, 1 }, -- Subtle golden border when checked
     borderDisabled = { 0.2, 0.2, 0.2, 1 },
-    checkmark = { 0.9, 0.75, 0.2, 1 }, -- Softer golden checkmark
+    checkmark = BR.Colors.AccentMuted, -- Softer golden checkmark
     checkmarkDisabled = { 0.5, 0.42, 0.1, 1 },
     text = { 1, 1, 1, 1 },
     textDisabled = { 0.5, 0.5, 0.5, 1 },
@@ -966,6 +972,7 @@ function Components.Checkbox(parent, config)
         infoBtn:SetPoint("CENTER", infoIcon, "CENTER", 0, 0)
 
         SetupTooltip(infoBtn, tooltipData.title, tooltipData.desc)
+        holder.infoIcon = infoIcon -- exposed so callers can anchor trailing widgets past it
     end
 
     -- Right-click callback (wired on all interactive children)
@@ -1021,9 +1028,9 @@ end
 -- ============================================================================
 
 local DimensionLinkColors = {
-    linked = { 0.9, 0.75, 0.2, 1 }, -- gold when linked
+    linked = BR.Colors.AccentMuted, -- gold when linked
     unlinked = { 0.35, 0.35, 0.35, 1 }, -- dim when unlinked
-    hover = { 1, 0.82, 0, 1 }, -- bright gold on hover
+    hover = BR.Colors.Accent, -- bright gold on hover
     disabled = { 0.2, 0.2, 0.2, 1 },
 }
 
@@ -1146,13 +1153,13 @@ end
 local ToggleColors = {
     trackOff = { 0.12, 0.12, 0.12, 1 },
     trackOn = { 0.15, 0.13, 0.08, 1 },
-    borderOff = { 0.3, 0.3, 0.3, 1 },
+    borderOff = BR.Colors.Border,
     borderOn = { 0.6, 0.5, 0.2, 1 },
     borderHover = { 0.45, 0.45, 0.45, 1 },
     borderDisabled = { 0.2, 0.2, 0.2, 1 },
     thumbOff = { 0.4, 0.4, 0.4, 1 },
-    thumbOn = { 0.9, 0.75, 0.2, 1 },
-    thumbHover = { 1, 0.82, 0, 1 },
+    thumbOn = BR.Colors.AccentMuted,
+    thumbHover = BR.Colors.Accent,
     thumbDisabled = { 0.25, 0.25, 0.25, 1 },
     text = { 1, 1, 1, 1 },
     textDisabled = { 0.5, 0.5, 0.5, 1 },
@@ -1318,21 +1325,21 @@ local DropdownColors = {
     bg = { 0.15, 0.15, 0.15, 1 },
     bgHover = { 0.2, 0.2, 0.2, 1 },
     bgDisabled = { 0.1, 0.1, 0.1, 1 },
-    border = { 0.3, 0.3, 0.3, 1 },
+    border = BR.Colors.Border,
     borderHover = { 0.5, 0.5, 0.5, 1 },
     borderDisabled = { 0.2, 0.2, 0.2, 1 },
     arrow = { 0.7, 0.7, 0.7, 1 },
-    arrowHover = { 1, 0.82, 0, 1 },
+    arrowHover = BR.Colors.Accent,
     arrowDisabled = { 0.4, 0.4, 0.4, 1 },
     text = { 1, 1, 1, 1 },
     textDisabled = { 0.5, 0.5, 0.5, 1 },
     -- Menu colors
     menuBg = { 0.12, 0.12, 0.12, 0.98 },
-    menuBorder = { 0.3, 0.3, 0.3, 1 },
+    menuBorder = BR.Colors.Border,
     itemBgHover = { 0.25, 0.22, 0.1, 1 },
     itemText = { 1, 1, 1, 1 },
-    itemTextHover = { 1, 0.82, 0, 1 },
-    checkmark = { 0.9, 0.75, 0.2, 1 },
+    itemTextHover = BR.Colors.Accent,
+    checkmark = BR.Colors.AccentMuted,
 }
 
 ---Create the core dropdown (button + menu) - reusable by Dropdown and DirectionButtons
@@ -2044,7 +2051,7 @@ local function CreateSegmentedBar(parent, barConfig)
         edgeSize = 1,
     })
     container:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
-    container:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    container:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
 
     local barDisabled = false
     local toggleButtons = {}
@@ -2081,7 +2088,7 @@ local function CreateSegmentedBar(parent, barConfig)
                     btnLabel:SetTextColor(c[1], c[2], c[3], 1)
                 else
                     bg:SetColorTexture(0.18, 0.15, 0.08, 1)
-                    btnLabel:SetTextColor(0.9, 0.75, 0.2, 1)
+                    btnLabel:SetTextColor(unpack(BR.Colors.AccentMuted))
                 end
             elseif visualState == "partial" then
                 if c then
@@ -2119,7 +2126,7 @@ local function CreateSegmentedBar(parent, barConfig)
             local divider = container:CreateTexture(nil, "ARTWORK")
             divider:SetSize(DIVIDER_W, SEGMENT_H)
             divider:SetPoint("LEFT", btn, "RIGHT", 0, 0)
-            divider:SetColorTexture(0.3, 0.3, 0.3, 0.8)
+            divider:SetColorTexture(BORDER_R, BORDER_G, BORDER_B, 0.8)
         end
 
         toggleButtons[i] = btn
@@ -2570,7 +2577,7 @@ function Components.Tab(parent, config)
     underline:SetHeight(2)
     underline:SetPoint("BOTTOMLEFT", 1, 0)
     underline:SetPoint("BOTTOMRIGHT", -1, 0)
-    underline:SetColorTexture(1, 0.82, 0, 0)
+    underline:SetColorTexture(ACCENT_R, ACCENT_G, ACCENT_B, 0)
     tab.underline = underline
 
     -- Text
@@ -2580,7 +2587,7 @@ function Components.Tab(parent, config)
     text:SetText(config.label)
     tab.text = text
 
-    local ACTIVE_TEXT = { 1, 0.82, 0 }
+    local ACTIVE_TEXT = BR.Colors.Accent
     local IDLE_TEXT = { 0.6, 0.6, 0.62 }
     local HOVER_TEXT = { 0.85, 0.85, 0.85 }
 
@@ -2589,13 +2596,13 @@ function Components.Tab(parent, config)
     tab:SetScript("OnEnter", function(self)
         if not self.isActive then
             self.text:SetTextColor(unpack(HOVER_TEXT))
-            self.underline:SetColorTexture(1, 0.82, 0, 0.25)
+            self.underline:SetColorTexture(ACCENT_R, ACCENT_G, ACCENT_B, 0.25)
         end
     end)
     tab:SetScript("OnLeave", function(self)
         if not self.isActive then
             self.text:SetTextColor(unpack(IDLE_TEXT))
-            self.underline:SetColorTexture(1, 0.82, 0, 0)
+            self.underline:SetColorTexture(ACCENT_R, ACCENT_G, ACCENT_B, 0)
         end
     end)
 
@@ -2605,11 +2612,11 @@ function Components.Tab(parent, config)
         if active then
             self.text:SetFontObject("GameFontHighlightSmall")
             self.text:SetTextColor(unpack(ACTIVE_TEXT))
-            self.underline:SetColorTexture(1, 0.82, 0, 1)
+            self.underline:SetColorTexture(ACCENT_R, ACCENT_G, ACCENT_B, 1)
         else
             self.text:SetFontObject("GameFontNormalSmall")
             self.text:SetTextColor(unpack(IDLE_TEXT))
-            self.underline:SetColorTexture(1, 0.82, 0, 0)
+            self.underline:SetColorTexture(ACCENT_R, ACCENT_G, ACCENT_B, 0)
         end
     end
 
@@ -2707,7 +2714,7 @@ function Components.TextInput(parent, config)
         local color = enabled and 1 or 0.5
         label:SetTextColor(color, color, color)
         local borderAlpha = enabled and 1 or 0.4
-        inputContainer:SetBackdropBorderColor(0.3, 0.3, 0.3, borderAlpha)
+        inputContainer:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, borderAlpha)
     end
 
     -- Refresh method for OnShow pattern
@@ -2821,7 +2828,7 @@ function Components.NumericStepper(parent, config)
         edgeSize = 1,
     })
     minusBtn:SetBackdropColor(0.2, 0.2, 0.2, 1)
-    minusBtn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    minusBtn:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
 
     local minusLabel = minusBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     minusLabel:SetPoint("CENTER", 0, 0)
@@ -2840,7 +2847,7 @@ function Components.NumericStepper(parent, config)
         edgeSize = 1,
     })
     plusBtn:SetBackdropColor(0.2, 0.2, 0.2, 1)
-    plusBtn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    plusBtn:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
 
     local plusLabel = plusBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     plusLabel:SetPoint("CENTER", 0, 0)
@@ -2859,7 +2866,7 @@ function Components.NumericStepper(parent, config)
             minusLabel:SetTextColor(0.35, 0.35, 0.35)
         else
             minusBtn:SetBackdropColor(0.2, 0.2, 0.2, 1)
-            minusBtn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+            minusBtn:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
             minusLabel:SetTextColor(1, 1, 1)
         end
         if atMax then
@@ -2868,7 +2875,7 @@ function Components.NumericStepper(parent, config)
             plusLabel:SetTextColor(0.35, 0.35, 0.35)
         else
             plusBtn:SetBackdropColor(0.2, 0.2, 0.2, 1)
-            plusBtn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+            plusBtn:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
             plusLabel:SetTextColor(1, 1, 1)
         end
     end
@@ -3065,7 +3072,7 @@ function Components.ColorSwatch(parent, config)
         edgeFile = "Interface\\Buttons\\WHITE8x8",
         edgeSize = 1,
     })
-    swatchBtn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    swatchBtn:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
 
     -- State
     local currentR, currentG, currentB, currentA = 1, 1, 1, 1
@@ -3101,7 +3108,7 @@ function Components.ColorSwatch(parent, config)
     end)
     swatchBtn:SetScript("OnLeave", function()
         if isEnabled then
-            swatchBtn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+            swatchBtn:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
         end
     end)
 
@@ -3159,7 +3166,7 @@ function Components.ColorSwatch(parent, config)
             swatchBtn:SetBackdropBorderColor(0.2, 0.2, 0.2, 1)
             swatchBtn:SetAlpha(0.35)
         else
-            swatchBtn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+            swatchBtn:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
             swatchBtn:SetAlpha(1)
         end
     end
@@ -3190,7 +3197,7 @@ local ScrollbarColors = {
     track = { 0.12, 0.12, 0.12, 1 },
     thumb = { 0.3, 0.3, 0.3, 1 },
     thumbHover = { 0.45, 0.45, 0.45, 1 },
-    thumbPressed = { 1, 0.82, 0, 0.8 },
+    thumbPressed = { ACCENT_R, ACCENT_G, ACCENT_B, 0.8 },
     border = { 0.2, 0.2, 0.2, 1 },
 }
 
@@ -3269,8 +3276,8 @@ end
 local TextAreaColors = {
     bg = { 0.08, 0.08, 0.08, 0.9 },
     bgFocused = { 0.1, 0.1, 0.1, 0.95 },
-    border = { 0.3, 0.3, 0.3, 1 },
-    borderFocused = { 1, 0.82, 0, 1 },
+    border = BR.Colors.Border,
+    borderFocused = BR.Colors.Accent,
     text = { 1, 1, 1, 1 },
 }
 
@@ -3653,9 +3660,21 @@ function Components.SetEditBoxesRef(editBoxes)
 end
 
 ---Refresh all registered components (call on panel OnShow)
+---
+---Auto-prunes orphaned component frames as it goes: any holder that has been
+---SetParent(nil)'d (the teardown signal for a transient widget in a dialog or
+---re-rendered list) is dropped from the registry instead of refreshed. This is
+---a safety net behind explicit Components.Unregister calls -- a call site that
+---forgets to unregister no longer leaks a holder that fires :Refresh() forever
+---and pins its dead dialog alive. Plain refresh hooks (tables without a frame)
+---have no GetParent and are never pruned, so persistent page hooks survive.
+---Iterate in reverse so table.remove during the walk is safe.
 function Components.RefreshAll()
-    for _, component in ipairs(RefreshableComponents) do
-        if component.Refresh then
+    for i = #RefreshableComponents, 1, -1 do
+        local component = RefreshableComponents[i]
+        if component.GetParent and component:GetParent() == nil then
+            tremove(RefreshableComponents, i)
+        elseif component.Refresh then
             component:Refresh()
         end
     end
@@ -3678,7 +3697,7 @@ function Components.Unregister(holder)
     end
     for i = #RefreshableComponents, 1, -1 do
         if RefreshableComponents[i] == holder then
-            table.remove(RefreshableComponents, i)
+            tremove(RefreshableComponents, i)
             return
         end
     end
@@ -3745,6 +3764,54 @@ function Components.ScrollableContainer(parent, config)
     end
 
     return scrollFrame, content
+end
+
+-- Default chrome for BorderedList. Slightly darker than the panel bg + a thin
+-- warm-gray border picks the list area out as a contained region (matching the
+-- dropdown menu chrome and the per-page accent rail).
+local LIST_BG = { 0.05, 0.05, 0.05, 0.6 }
+local LIST_BORDER = { 0.3, 0.25, 0.1, 0.8 }
+local LIST_INSET = 2 -- inner padding between border and the scroll child
+
+---Build a bordered wrapper Frame holding a Components.ScrollableContainer.
+---Returns the wrapper (anchorable into a layout) and the scrollFrame inside.
+---Re-anchors the scrollbar flush to the list bounds since ScrollableContainer's
+---default offsets assume the parent scroll has header padding, which a flat list
+---doesn't.
+---@param parent table
+---@param config table { width, height, inset?, bgColor?, borderColor? }
+---@return table wrapper, table scrollFrame
+function Components.BorderedList(parent, config)
+    local width = config.width
+    local height = config.height
+    local inset = config.inset or LIST_INSET
+    local bgColor = config.bgColor or LIST_BG
+    local borderColor = config.borderColor or LIST_BORDER
+
+    local wrapper = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    wrapper:SetSize(width, height)
+    wrapper:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        edgeSize = 1,
+    })
+    wrapper:SetBackdropColor(unpack(bgColor))
+    wrapper:SetBackdropBorderColor(unpack(borderColor))
+
+    local scroll = Components.ScrollableContainer(wrapper, {
+        width = width - inset * 2,
+        contentHeight = height - inset * 2,
+    })
+    scroll:SetHeight(height - inset * 2)
+    scroll:SetPoint("TOPLEFT", inset, -inset)
+
+    if scroll.ScrollBar then
+        scroll.ScrollBar:ClearAllPoints()
+        scroll.ScrollBar:SetPoint("TOPLEFT", scroll, "TOPRIGHT", -18, 0)
+        scroll.ScrollBar:SetPoint("BOTTOMLEFT", scroll, "BOTTOMRIGHT", -18, 0)
+    end
+
+    return wrapper, scroll
 end
 
 ---Create a vertical layout helper for positioning elements

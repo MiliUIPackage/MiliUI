@@ -456,7 +456,7 @@ local function BuildPanel()
         edgeSize = 1,
     })
     previewBox:SetBackdropColor(0.08, 0.08, 0.1, 1)
-    previewBox:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    previewBox:SetBackdropBorderColor(unpack(BR.Colors.Border))
 
     local previewCaption = previewBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     previewCaption:SetPoint("BOTTOM", previewBox, "TOP", 0, 3)

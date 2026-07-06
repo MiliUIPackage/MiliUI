@@ -1,4 +1,4 @@
-local addonName, BR = ...
+local _, BR = ...
 
 -- ============================================================================
 -- TYPE DEFINITIONS
@@ -282,6 +282,7 @@ local TargetedBuffs = BUFF_TABLES.targeted
 local SelfBuffs = BUFF_TABLES.self
 local PetBuffs = BUFF_TABLES.pet
 local CustomBuffs = BUFF_TABLES.custom
+local LoadoutRules = BUFF_TABLES.loadout
 
 -- Build buff key -> setting key mapping (resolves individual keys to groupId when grouped)
 local buffKeyToSettingKey = {}
@@ -348,6 +349,28 @@ local function BuildCustomBuffArray()
     end
 end
 
+---Rebuild BUFF_TABLES.loadout from db.loadoutReminders (preserves table identity via wipe).
+---Icons are resolved live (entry.dynamicIcon each refresh, GetRuleIcon in the list)
+---rather than cached onto the rule, so nothing derived leaks into SavedVariables.
+local function BuildLoadoutRulesArray()
+    local db = BR.profile
+    -- The rule set itself changed (reload / profile switch / set rename): the cached
+    -- per-rule satisfied/icon verdicts may now be keyed to stale definitions.
+    BR.BuffState.InvalidateLoadoutCache()
+    wipe(LoadoutRules)
+    if not db or not db.loadoutReminders then
+        return
+    end
+    local sortedKeys = {}
+    for k in pairs(db.loadoutReminders) do
+        sortedKeys[#sortedKeys + 1] = k
+    end
+    tsort(sortedKeys)
+    for _, k in ipairs(sortedKeys) do
+        LoadoutRules[#LoadoutRules + 1] = db.loadoutReminders[k]
+    end
+end
+
 -- Get helpers from State.lua
 local GetBuffSettingKey = function(buff)
     return BR.StateHelpers.GetBuffSettingKey(buff)
@@ -356,277 +379,8 @@ local IsBuffEnabled = function(key)
     return BR.StateHelpers.IsBuffEnabled(key)
 end
 
--- Default settings
--- Note: enabledBuffs defaults to all enabled - only set false to disable by default
-local defaults = {
-    locked = true,
-    enabledBuffs = {},
-    showOnlyInGroup = false,
-    hideWhileResting = false,
-    hideInCombat = false,
-    hideExpiringInCombat = true,
-    buffTrackingMode = "all",
-    -- Per-context tracking overrides: each is a tracking mode, or "default" for
-    -- no override. When several apply at once, the most restrictive mode wins.
-    outsideInstancesMode = "self_only",
-    combatMode = "default",
-    levelingMode = "my_buffs",
-    hideAllInVehicle = false,
-    hideWhileMounted = false,
-    hideInLegacyInstances = true,
-    hideWhileLeveling = false,
-    showMissingCountOnly = false,
-    petPassiveOnlyInCombat = false,
-    bronzeHideInCombat = false,
-    druidIgnoreTravelForm = true, -- hide the wrong-form reminder while traveling/mounted
-    optionsPanelScale = 1.2, -- base scale (displayed as 100%)
-    showLoginMessages = true,
-    requestBuffInChat = true,
-    chatRequestCooldown = true,
-    chatRequestMessages = {},
-
-    -- DK runeforge preferences: [specId] = { mainhand, dw_mainhand, dw_offhand }
-    -- No runes selected = no reminder for that spec (implicit disable)
-    dkRunePreferences = {
-        [250] = { mainhand = { [6241] = true } }, -- Blood: Sanguination
-        [251] = {
-            mainhand = { [3368] = true }, -- 2H: Fallen Crusader
-            dw_mainhand = { [3370] = true }, -- DW MH: Razorice
-            dw_offhand = { [3368] = true }, -- DW OH: Fallen Crusader
-        },
-        [252] = { mainhand = { [6245] = true } }, -- Unholy: Apocalypse
-    },
-
-    -- Rogue poison preferences: ordered list per category, array index = priority (1 = highest).
-    -- Shared with Data/Buffs.lua; DeepCopyDefault produces an independent per-profile copy.
-    roguePoisonPreferences = BR.DEFAULT_POISON_PREFERENCES,
-
-    minimap = {
-        hide = true,
-    },
-
-    -- Global defaults (inherited by categories unless overridden)
-    ---@type DefaultSettings
-    defaults = {
-        -- Appearance
-        iconSize = 64,
-        -- iconWidth: nil = same as iconSize (square). Set explicitly for non-square icons.
-        textSize = 20,
-        textOutline = "OUTLINE",
-        iconAlpha = 1,
-        textAlpha = 1,
-        textColor = { 1, 1, 1 },
-        spacing = 0.2, -- multiplier of iconSize
-        iconZoom = 0, -- percentage (additional zoom on top of base TEXCOORD_INSET crop)
-        borderSize = 2,
-        growDirection = "CENTER", -- "LEFT", "CENTER", "RIGHT", "UP", "DOWN"
-        -- Behavior (glow settings)
-        showExpirationGlow = true,
-        showMissingGlow = true,
-        expirationThreshold = 15, -- minutes
-        preKeyThreshold = 0, -- minutes (0 = off); used in M0 before inserting a keystone
-        glowType = 2, -- BR.Glow.Type: Pixel=1, AutoCast=2, Border=3, Proc=4 (expiring default)
-        glowSize = 2,
-        showConsumablesWithoutItems = true,
-        showWithoutItemsOnlyOnReadyCheck = true,
-        delveFoodOnly = true,
-        delveFoodTimer = false,
-        freeConsumableMode = "override",
-        freeConsumableVisibility = {
-            openWorld = false,
-            scenario = true,
-            dungeon = true,
-            raid = true,
-            housing = false,
-            pvp = true,
-        },
-        healthstoneVisibility = "readyCheck",
-        healthstoneThreshold = 1,
-        healthstoneLowStock = false,
-        soulstoneVisibility = "readyCheck",
-        soulstoneHideCooldown = false,
-        consumableDisplayMode = "sub_icons",
-        consumableTextScale = 25,
-        hideConsumableLabels = false,
-        showConsumableTooltips = false,
-        showBuffTooltips = false,
-        hideLegacyConsumables = true,
-        petDisplayMode = "generic", -- "generic" or "expanded"
-        petLabels = true,
-        petLabelScale = 100,
-        petSpecIconOnHover = true,
-        petLabelClasses = {
-            HUNTER = true,
-            WARLOCK = true,
-            DEATHKNIGHT = true,
-            MAGE = true,
-        },
-        useFelDomination = false,
-        -- Per-text-item placement (zone + pixel nudge). See Core/TextPositions.lua
-        -- for zone constants. Defaults preserve the prior hard-coded anchors so
-        -- existing users see no visual change until they edit a value.
-        textPositions = {
-            count = { zone = "INSIDE_C", offsetX = 0, offsetY = 0 },
-            stackCount = { zone = "INSIDE_BR", offsetX = 0, offsetY = 0 },
-            statLabel = { zone = "INSIDE_TL", offsetX = 0, offsetY = 0 },
-            badge = { zone = "INSIDE_L", offsetX = 0, offsetY = 0 },
-            buffReminder = { zone = "BELOW_C", offsetX = 0, offsetY = 0 },
-            -- petLabel: BELOW_C baseline is dy=-4; prior hard-coded anchor was
-            -- dy=-2, so a +2 offsetY keeps the visual identical for users who
-            -- never touch this setting.
-            petLabel = { zone = "BELOW_C", offsetX = 0, offsetY = 2 },
-        },
-    },
-
-    ---@type CategoryVisibility
-    categoryVisibility = { -- Which content types each category shows in
-        raid = {
-            openWorld = true,
-            dungeon = true,
-            scenario = true,
-            raid = true,
-            housing = false,
-            pvp = true,
-            hideInPvPMatch = true,
-            raidDifficulty = {
-                lfr = false,
-            },
-        },
-        presence = {
-            openWorld = true,
-            dungeon = true,
-            scenario = true,
-            raid = true,
-            housing = false,
-            pvp = true,
-            hideInPvPMatch = true,
-            raidDifficulty = {
-                lfr = false,
-            },
-        },
-        targeted = {
-            openWorld = false,
-            dungeon = true,
-            scenario = true,
-            raid = true,
-            housing = false,
-            pvp = true,
-            hideInPvPMatch = true,
-        },
-        self = {
-            openWorld = true,
-            dungeon = true,
-            scenario = true,
-            raid = true,
-            housing = false,
-            pvp = true,
-            hideInPvPMatch = true,
-        },
-        pet = {
-            openWorld = true,
-            dungeon = true,
-            scenario = true,
-            raid = true,
-            housing = false,
-            pvp = true,
-            hideInPvPMatch = false,
-        },
-        consumable = {
-            openWorld = false,
-            dungeon = true,
-            scenario = true,
-            raid = true,
-            housing = false,
-            pvp = true,
-            hideInPvPMatch = true,
-            pvpType = { arena = true, bg = true },
-            scenarioDifficulty = {
-                delves = true,
-                others = false,
-            },
-            dungeonDifficulty = {
-                normal = false,
-                heroic = false,
-                mythic = true,
-                mythicPlus = false,
-                timewalking = false,
-                follower = false,
-            },
-            raidDifficulty = {
-                lfr = false,
-                normal = true,
-                heroic = true,
-                mythic = true,
-            },
-        },
-    },
-
-    ---@type AllCategorySettings
-    categorySettings = { -- Per-category settings
-        main = {
-            position = { point = "CENTER", x = 0, y = 450 },
-            -- main frame always uses defaults for appearance/behavior
-        },
-        raid = {
-            position = { point = "CENTER", x = 0, y = 260 },
-            useCustomAppearance = false,
-            showBuffReminder = true,
-            split = false,
-            clickable = true,
-            clickableHighlight = true,
-            priority = 1,
-        },
-        presence = {
-            position = { point = "CENTER", x = 0, y = 220 },
-            useCustomAppearance = false,
-            split = false,
-            clickable = true,
-            clickableHighlight = true,
-            priority = 2,
-        },
-        targeted = {
-            position = { point = "CENTER", x = 0, y = 180 },
-            useCustomAppearance = false,
-            split = false,
-            clickable = true,
-            clickableHighlight = true,
-            priority = 3,
-        },
-        self = {
-            position = { point = "CENTER", x = 0, y = 140 },
-            useCustomAppearance = false,
-            split = false,
-            clickable = true,
-            clickableHighlight = true,
-            priority = 4,
-        },
-        pet = {
-            position = { point = "CENTER", x = 0, y = 100 },
-            useCustomAppearance = false,
-            split = false,
-            clickable = true,
-            clickableHighlight = true,
-            priority = 5,
-        },
-        consumable = {
-            position = { point = "CENTER", x = 0, y = 60 },
-            useCustomAppearance = false,
-            split = false,
-            clickable = true,
-            clickableHighlight = true,
-            subIconSide = "BOTTOM",
-            priority = 6,
-        },
-        custom = {
-            position = { point = "CENTER", x = 0, y = 20 },
-            useCustomAppearance = false,
-            split = false,
-            clickable = false,
-            clickableHighlight = true,
-            priority = 7,
-        },
-    },
-}
+-- Default settings live in Data/Defaults.lua (BR.defaults).
+local defaults = BR.defaults
 
 -- Constants
 local CODE_DEFAULTS = defaults.defaults
@@ -696,7 +450,7 @@ local wasMounted = IsMounted()
 -- Category frame system
 local categoryFrames = {}
 local detachedFrames = {} -- Per-icon detached container frames (shown when an icon is detached)
-local CATEGORIES = { "raid", "presence", "targeted", "self", "pet", "consumable", "custom" }
+local CATEGORIES = BR.CATEGORY_ORDER -- canonical list from Core.lua
 
 -- Track previously visible frame keys for selective hiding (Phase 3 optimization)
 local previouslyVisibleKeys = {} ---@type table<string, boolean>
@@ -717,16 +471,15 @@ local CATEGORY_LABELS = {
     pet = L["Category.Pet"],
     consumable = L["Category.Consumable"],
     custom = L["Category.Custom"],
+    loadout = L["Category.Loadout"],
 }
 
 -- Export for Options.lua and split modules
-BR.defaults = defaults
 BR.CATEGORIES = CATEGORIES
 BR.CATEGORY_LABELS = CATEGORY_LABELS
 
 -- Early init of BR.Display for split modules (populated further below and in InitializeFrames)
 BR.Display = BR.Display or {}
-BR.Display.defaults = defaults
 BR.Display.GetFontPath = function()
     return fontPath
 end
@@ -914,167 +667,13 @@ end
 local FormatRemainingTime = BR.StateHelpers.FormatRemainingTime
 local FormatEatingTime = BR.StateHelpers.FormatEatingTime
 
-local GetPlayerRole = BR.BuffState.GetPlayerRole
-
--- Spell texture cache (mirrors spellNameCache in Core.lua).
--- Wiped after deferred init to pick up cosmetic overrides (e.g. warlock green fire)
--- that aren't available yet at login time.
-local spellTextureCache = {}
-
--- Reusable single-element buffer to avoid { spellID } allocations in hot loops.
--- SAFETY: callers must consume the result immediately - the buffer is overwritten on next call.
-local singleSpellBuf = {}
-local function AsSpellList(val)
-    if type(val) == "table" then
-        return val
-    end
-    singleSpellBuf[1] = val
-    return singleSpellBuf
-end
-
----Resolve a spell ID to its texture, with caching. Returns nil if the API can't resolve it yet.
----@param id number
----@return number? textureID
-local function GetSpellTextureCached(id)
-    local cached = spellTextureCache[id]
-    if cached ~= nil then
-        return cached or nil
-    end
-    local texture
-    pcall(function()
-        texture = C_Spell.GetSpellTexture(id)
-    end)
-    spellTextureCache[id] = texture or false
-    return texture
-end
-
----Get spell texture from a single spell ID (kept for the few raw-id callers: custom-buff
----icon refresh, Glow preview). For buff defs use GetBuffIcons(buff)[1] instead so authoring
----fields like buff.icon take priority over a raw spellID lookup.
----@param spellID number
----@return number? textureID
-local function GetBuffTexture(spellID)
-    if type(spellID) == "table" then
-        spellID = spellID[1]
-    end
-    if not spellID then
-        return nil
-    end
-    return GetSpellTextureCached(spellID)
-end
-
----Resolve the static portion of an `icons` spec ({textures = ...} or {spells = ...}) into
----a list of texture IDs. Caller owns dedup.
----@param icons IconSpec?
----@param add fun(t: number?)
-local function ResolveStaticIcons(icons, add)
-    if not icons then
-        return
-    end
-    if icons.spells then
-        for _, id in ipairs(icons.spells) do
-            add(GetSpellTextureCached(id))
-        end
-    elseif icons.textures then
-        for _, t in ipairs(icons.textures) do
-            add(t)
-        end
-    end
-end
-
----Resolve the static icon list for a buff. Single source of truth for menus, list rows,
----and the in-game frame's initial texture. Cached lazily on the buff (spell textures
----sometimes return nil during early load before spell data settles, so empty results stay
----uncached and retry on next read).
----
----Resolution: `buff.icons.textures` / `buff.icons.spells` if set; else `buff.spellID`
----resolved to texture(s) as the free fallback for ordinary aura-detected buffs.
----@param buff table Any buff def (RaidBuff, SelfBuff, ConsumableBuff, CustomBuff, ...)
----@return number[] textures (may be empty)
-local function GetBuffIcons(buff)
-    local cached = buff._iconsCache
-    if cached then
-        return cached
-    end
-    local out = {}
-    local seen = {}
-    local function add(t)
-        if t and not seen[t] then
-            seen[t] = true
-            tinsert(out, t)
-        end
-    end
-
-    local icons = buff.icons
-    if icons and (icons.textures or icons.spells) then
-        ResolveStaticIcons(icons, add)
-    elseif buff.spellID then
-        local list = type(buff.spellID) == "table" and buff.spellID or { buff.spellID }
-        for _, id in ipairs(list) do
-            add(GetSpellTextureCached(id))
-        end
-    end
-
-    if #out > 0 then
-        buff._iconsCache = out
-    end
-    return out
-end
-
----Apply a buff's dynamic icon spec to a state entry. Called by State.lua when an entry
----becomes visible. Function variant is computed now; byRole is applied at render time.
----@param entry table
----@param buff table
-local function ApplyDynamicIcon(entry, buff)
-    local icons = buff.icons
-    if not icons then
-        return
-    end
-    if icons.dynamic then
-        entry.dynamicIcon = icons.dynamic()
-    elseif icons.byRole then
-        entry.iconByRole = icons.byRole
-    end
-end
-
----Pre-fill `_iconsCache` for every static buff after spell data has settled. Eliminates
----the first-render resolve latency on the user's first interaction; callers afterwards
----hit the cached path. Buffs whose first resolve still returns empty (cosmetic overrides
----like warlock green fire) stay uncached and retry naturally.
-local function PreFillIconCaches()
-    for _, buffArray in pairs(BR.BUFF_TABLES) do
-        for _, buff in ipairs(buffArray) do
-            GetBuffIcons(buff)
-        end
-    end
-end
-
----Resolve the role-dependent texture for a buff at render time. Caller has already
----verified `def.icons.byRole` is present.
----@param def table buff def
----@return number? textureID
-local function ResolveRoleTexture(def)
-    local role = GetPlayerRole()
-    local id = role and def.icons.byRole[role]
-    if id then
-        return GetSpellTextureCached(id)
-    end
-    return GetBuffIcons(def)[1]
-end
-
----Resolve the display texture for a buff frame from its buffDef.
----@param frame BuffFrame
----@return number? textureID
-local function ResolveFrameTexture(frame)
-    local def = frame.buffDef
-    if not def then
-        return nil
-    end
-    if def.icons and def.icons.byRole then
-        return ResolveRoleTexture(def)
-    end
-    return GetBuffIcons(def)[1]
-end
+-- Icon/texture resolution lives in Display/Icons.lua (BR.Icons); aliased here for hot-path call sites.
+local AsSpellList = BR.Icons.AsSpellList
+local GetBuffTexture = BR.Icons.GetBuffTexture
+local GetBuffIcons = BR.Icons.GetBuffIcons
+local PreFillIconCaches = BR.Icons.PreFillIconCaches
+local ResolveRoleTexture = BR.Icons.ResolveRoleTexture
+local ResolveFrameTexture = BR.Icons.ResolveFrameTexture
 
 ---Invalidate the cached texture for a spell ID and re-resolve every buff
 ---frame whose def uses it. Used after spell data settles to pick up cosmetic
@@ -1084,7 +683,7 @@ end
 ---they're left alone - no flash.
 ---@param spellID number
 local function InvalidateBuffIconBySpellID(spellID)
-    spellTextureCache[spellID] = nil
+    BR.Icons.InvalidateSpell(spellID)
     for _, frame in pairs(buffFrames) do
         local def = frame.buffDef
         if def and frame.icon then
@@ -1299,6 +898,13 @@ local function ShowTextFrame(frame, overlayText, shouldGlow, category, cachedGlo
     SetExpirationGlow(frame, shouldGlow or false, category, cachedGlow)
     return true
 end
+
+-- Loadout reminders render the set/talent name below the icon. It's handled like
+-- the raid "BUFF!" label: created in CreateBuffFrame, positioned via the shared
+-- BELOW-center "buffReminder" text zone, and refreshed in UpdateVisuals. The width
+-- caps near the icon so multi-word names wrap (a too-long single word is truncated).
+local SUBLABEL_WIDTH_FACTOR = 1.1
+local SUBLABEL_FONT_SCALE = 0.8
 
 -- Anchor point for each growth direction (anchor is the fixed point, icons grow away from it)
 local DIRECTION_ANCHORS = {
@@ -1580,6 +1186,21 @@ local function CreateBuffFrame(buff, category)
         if raidCs and raidCs.showBuffReminder == false then
             frame.buffText:Hide()
         end
+    end
+
+    -- Loadout reminders: the set/talent name renders below the icon, handled like
+    -- the raid "BUFF!" label (same BELOW-center text zone + UpdateVisuals refresh).
+    -- Text is set per render (the name is dynamic); position/font set here.
+    if category == "loadout" then
+        frame.subLabel = frame:CreateFontString(nil, "OVERLAY")
+        frame.subLabel:SetWordWrap(true)
+        frame.subLabel:SetJustifyH("CENTER")
+        frame.subLabel:SetWidth(iconWidth * SUBLABEL_WIDTH_FACTOR)
+        local lz, lx, ly = BR.TextPositions.Get("buffReminder")
+        BR.TextPositions.Apply(frame.subLabel, frame, lz, lx, ly)
+        frame.subLabel:SetFont(fontPath, GetFontSize(SUBLABEL_FONT_SCALE, catSettings.textSize), outlineFlag)
+        frame.subLabel:SetTextColor(textColor[1], textColor[2], textColor[3], textAlpha)
+        frame.subLabel:Hide()
     end
 
     -- Always click-through (dragging is handled by anchor handles). For raid
@@ -2006,6 +1627,7 @@ local function GenerateTestEntries()
         entry.petActions = nil
         entry.iconByRole = nil
         entry.dynamicIcon = nil
+        entry.subLabel = nil
     end
 
     local raidIndex = 1
@@ -2063,11 +1685,19 @@ local function GenerateTestEntries()
                         end
                     end
                 else
-                    -- consumable, presence, targeted, self, custom
+                    -- consumable, presence, targeted, self, custom, loadout
                     entry.displayType = "text"
                     entry.overlayText = buff.overlayText
                     entry.iconByRole = buff.icons and buff.icons.byRole
                     entry.shouldGlow = missGlowEnabled
+
+                    -- Loadout rules resolve their icon live (no persisted icons table);
+                    -- the eval loop sets dynamicIcon + subLabel in real display, so mirror
+                    -- that here or the test-mode preview shows a blank icon and no name.
+                    if category == "loadout" then
+                        entry.dynamicIcon = BR.Loadouts.GetRuleIcon(buff)
+                        entry.subLabel = buff.name
+                    end
 
                     -- Show first buff as expiring to preview expiration countdown
                     if threshold > 0 and not buff.noExpirationGlow and not expiringShown then
@@ -2552,6 +2182,18 @@ local function RenderVisibleEntry(frame, entry)
             end
         else
             ShowTextFrame(frame, entry.overlayText, entry.shouldGlow, entry.category, cachedGlow)
+        end
+    end
+
+    -- Loadout reminders: the icon shows the "what's wrong" tag; the specific
+    -- set/talent name renders below the icon via frame.subLabel (positioned/sized
+    -- in CreateBuffFrame + UpdateVisuals, like the raid BUFF! label).
+    if frame.subLabel then
+        if entry.category == "loadout" and entry.subLabel and ShouldShowText(frame.buffCategory) then
+            frame.subLabel:SetText(entry.subLabel)
+            frame.subLabel:Show()
+        else
+            frame.subLabel:Hide()
         end
     end
 
@@ -3272,6 +2914,31 @@ end
 -- Forward declaration for ReparentBuffFrames (defined after InitializeFrames)
 local ReparentBuffFrames
 
+-- Loadout reminders are fixed by a plain (insecure) click: equipping a gear set
+-- or opening the talent UI are not protected actions out of combat, so they don't
+-- need a SecureActionButton overlay like the click-to-cast categories do.
+local function WireLoadoutFrameClick(frame)
+    frame:EnableMouse(true)
+    frame:SetScript("OnMouseUp", function(self, button)
+        if button ~= "LeftButton" then
+            return
+        end
+        local db = BR.profile
+        local rule = db and db.loadoutReminders and db.loadoutReminders[self.key]
+        if rule and rule.clickToFix then
+            BR.Loadouts.ApplyFix(rule)
+        end
+    end)
+    -- Glass mouseover highlight, matching the click-to-cast overlay (no opt-in).
+    if not frame.loadoutHighlight then
+        local highlight = frame:CreateTexture(nil, "HIGHLIGHT")
+        highlight:SetAllPoints(frame.icon)
+        highlight:SetTexCoord(TEXCOORD_INSET, 1 - TEXCOORD_INSET, TEXCOORD_INSET, 1 - TEXCOORD_INSET)
+        highlight:SetColorTexture(1, 1, 1, 0.2)
+        frame.loadoutHighlight = highlight
+    end
+end
+
 -- Initialize main frame
 local function InitializeFrames()
     mainFrame = CreateFrame("Frame", "BuffRemindersFrame", UIParent)
@@ -3319,7 +2986,11 @@ local function InitializeFrames()
     -- Create buff frames for all categories (including custom, populated by BuildCustomBuffArray)
     for category, buffArray in pairs(BUFF_TABLES) do
         for _, buff in ipairs(buffArray) do
-            buffFrames[buff.key] = CreateBuffFrame(buff, category)
+            local frame = CreateBuffFrame(buff, category)
+            buffFrames[buff.key] = frame
+            if category == "loadout" then
+                WireLoadoutFrameClick(frame)
+            end
         end
     end
 
@@ -3587,6 +3258,61 @@ BR.CustomBuffs = {
     end,
 }
 
+---Create a frame for a newly added loadout rule (runtime add from the dialog).
+---@param rule LoadoutRule
+local function CreateLoadoutRuleFrameRuntime(rule)
+    -- Drop any cached verdict for this key: an edited rule reuses its key but may
+    -- now require a different set/talent/loadout (invalidate before the mainFrame guard).
+    BR.BuffState.InvalidateLoadoutCache()
+    if not mainFrame then
+        return
+    end
+    local frame = CreateBuffFrame(rule, "loadout")
+    buffFrames[rule.key] = frame
+    WireLoadoutFrameClick(frame)
+    tinsert(LoadoutRules, rule)
+    -- Keep the runtime array in the same key order BuildLoadoutRulesArray produces
+    -- on reload, so an added/edited rule's display order doesn't drift mid-session
+    -- (State derives sortOrder from this array's index).
+    tsort(LoadoutRules, function(a, b)
+        return a.key < b.key
+    end)
+    ResetLayoutSignatures()
+end
+
+---Tear down a loadout rule's frame and drop it from the runtime array.
+---@param key string
+local function RemoveLoadoutRuleFrame(key)
+    BR.BuffState.InvalidateLoadoutCache()
+    local frame = buffFrames[key]
+    if frame then
+        frame:Hide()
+        frame:SetParent(nil)
+        buffFrames[key] = nil
+    end
+    local db = BR.profile
+    if db.detachedIcons then
+        db.detachedIcons[key] = nil
+    end
+    if detachedFrames[key] then
+        detachedFrames[key]:Hide()
+    end
+    for i = #LoadoutRules, 1, -1 do
+        if LoadoutRules[i].key == key then
+            tremove(LoadoutRules, i)
+            break
+        end
+    end
+    ResetLayoutSignatures()
+end
+
+-- Export loadout-rule management for the options dialog/page.
+BR.LoadoutReminders = {
+    CreateRuntime = CreateLoadoutRuleFrameRuntime,
+    Remove = RemoveLoadoutRuleFrame,
+    RebuildArray = BuildLoadoutRulesArray,
+}
+
 -- Update icon sizes and text (called when settings change)
 local function UpdateVisuals()
     for _, frame in pairs(buffFrames) do
@@ -3655,6 +3381,14 @@ local function UpdateVisuals()
                 showReminder = not raidCs or raidCs.showBuffReminder ~= false
             end
             frame.buffText:SetShown(showReminder)
+        end
+        if frame.subLabel then
+            -- Loadout name label: same treatment as buffText (font / color / zone).
+            frame.subLabel:SetFont(fontPath, GetFrameFontSize(frame, SUBLABEL_FONT_SCALE), outlineFlag)
+            frame.subLabel:SetTextColor(tc[1], tc[2], tc[3], ta)
+            frame.subLabel:SetWidth(width * SUBLABEL_WIDTH_FACTOR)
+            local lz, lx, ly = BR.TextPositions.Get("buffReminder")
+            BR.TextPositions.Apply(frame.subLabel, frame, lz, lx, ly)
         end
         UpdateIconStyling(frame, catSettings)
 
@@ -3771,7 +3505,7 @@ BR.Helpers = {
     GetBuffDisplayName = GetBuffDisplayName,
     GetBuffTexture = GetBuffTexture,
     GetBuffIcons = GetBuffIcons,
-    ApplyDynamicIcon = ApplyDynamicIcon,
+    ApplyDynamicIcon = BR.Icons.ApplyDynamicIcon,
     PreFillIconCaches = PreFillIconCaches,
     DeepCopy = function(...)
         return BR.ImportExport.DeepCopy(...)
@@ -3813,6 +3547,13 @@ end
 -- Export display functions for Options.lua
 BR.Display.Update = UpdateDisplay
 BR.Display.ToggleTestMode = ToggleTestMode
+-- Builders + registration helpers used by the bootstrap (Core/Bootstrap.lua)
+BR.Display.BuildCustomBuffArray = BuildCustomBuffArray
+BR.Display.BuildLoadoutRulesArray = BuildLoadoutRulesArray
+BR.Display.RegisterGlowBuff = RegisterGlowBuff
+BR.Display.SetPlayerClass = function(class)
+    playerClass = class
+end
 BR.Display.ToggleLock = ToggleLock
 BR.Display.UpdateVisuals = UpdateVisuals
 BR.Display.UpdateActionButtons = function(category)
@@ -3846,6 +3587,95 @@ BR.Masque = {
 }
 
 -- Slash command handler
+-- Temporary diagnostic for the DK "Wrong Rune" false-positive reports. Dumps every
+-- value that feeds the dkRuneMH / dkRuneOH checks so a user can paste it into an
+-- issue. Intentionally not localized (throwaway developer command).
+local function PrintRuneDebug()
+    local PREFIX = "|cff00ccffBuffReminders rune debug:|r "
+    local function line(...)
+        print(PREFIX .. table.concat({ ... }, " "))
+    end
+
+    local _, class = UnitClass("player")
+    line("class =", tostring(class))
+
+    local specId = BR.StateHelpers.GetPlayerSpecId()
+    local specName
+    if specId then
+        specName = select(2, GetSpecializationInfoByID(specId))
+    end
+    line("specId =", tostring(specId), "(" .. tostring(specName) .. ")")
+
+    local hasOH = BR.BuffState.HasOffHandWeapon()
+    line("HasOffHandWeapon =", tostring(hasOH), "| HasShield =", tostring(BR.BuffState.HasShield()))
+    line("IsRestricted =", tostring(BR.BuffState.IsRestricted()), "(checks are suppressed when true)")
+
+    -- Refresh so the permanent-enchant accessors reflect the current item links.
+    BR.BuffState.Refresh("full")
+
+    -- Enchant name lookup by enchantID from the runeforge table.
+    local runeByEnchant = {}
+    for _, rune in ipairs(BR.DK_RUNEFORGES) do
+        runeByEnchant[rune.enchantID] = BR.GetSpellName(rune.spellID) or rune.key
+    end
+    local function enchantLabel(id)
+        if not id then
+            return "none"
+        end
+        return tostring(id) .. " (" .. (runeByEnchant[id] or "UNKNOWN - not in DK_RUNEFORGES") .. ")"
+    end
+
+    -- Raw item links + the value the addon actually parses/uses. Escape the pipe
+    -- codes (| -> ||) so the link prints as copyable literal text instead of
+    -- rendering as a clickable [Item Name] (which would drop the enchant payload
+    -- when the user pastes the output to us).
+    local function escapeLink(link)
+        if not link then
+            return "nil"
+        end
+        return (link:gsub("|", "||"))
+    end
+    local mhLink = GetInventoryItemLink("player", 16)
+    local ohLink = GetInventoryItemLink("player", 17)
+    line("MH link =", escapeLink(mhLink))
+    line("OH link =", escapeLink(ohLink))
+    line("MH permanent enchant =", enchantLabel(BR.BuffState.GetPermanentWeaponEnchantID(16)))
+    line("OH permanent enchant =", enchantLabel(BR.BuffState.GetPermanentWeaponEnchantID(17)))
+
+    -- Temporary weapon enchants (oils/imbues) for completeness - not used by rune check.
+    local hasMain, _, _, mainID, hasOff, _, _, offID = GetWeaponEnchantInfo()
+    line("temp enchant MH =", tostring(hasMain), tostring(mainID), "| OH =", tostring(hasOff), tostring(offID))
+
+    -- Configured preference buckets for this spec.
+    local prefs = BR.profile.dkRunePreferences
+    local specPrefs = prefs and specId and prefs[specId]
+    local function dumpBucket(name, bucket)
+        if not bucket or not next(bucket) then
+            line("prefs." .. name, "= (empty)")
+            return
+        end
+        local parts = {}
+        for id in pairs(bucket) do
+            parts[#parts + 1] = enchantLabel(id)
+        end
+        line("prefs." .. name, "=", table.concat(parts, ", "))
+    end
+    if not specPrefs then
+        line("dkRunePreferences[specId] = nil (nothing configured for this spec)")
+    else
+        dumpBucket("mainhand (2H)", specPrefs.mainhand)
+        dumpBucket("dw_mainhand", specPrefs.dw_mainhand)
+        dumpBucket("dw_offhand", specPrefs.dw_offhand)
+    end
+
+    -- Which bucket the MH check resolves to, and the verdict each check would return.
+    line("MH check uses bucket:", hasOH and "dw_mainhand" or "mainhand (2H)")
+    local mhEntry = BR.BuffState.entries and BR.BuffState.entries.dkRuneMH
+    local ohEntry = BR.BuffState.entries and BR.BuffState.entries.dkRuneOH
+    line("dkRuneMH visible =", tostring(mhEntry and mhEntry.visible))
+    line("dkRuneOH visible =", tostring(ohEntry and ohEntry.visible))
+end
+
 local function SlashHandler(msg)
     local cmd = msg:match("^(%S*)") or ""
     cmd = cmd:lower()
@@ -3881,14 +3711,19 @@ local function SlashHandler(msg)
         else
             print("|cff00ccffBuffReminders:|r " .. L["Display.DebugDisabled"])
         end
+    elseif cmd == "runedebug" then
+        PrintRuneDebug()
     else
         BR.Options.Toggle()
     end
 end
 
--- Event handler
+SLASH_BUFFREMINDERS1 = "/br"
+SLASH_BUFFREMINDERS2 = "/buffreminders"
+SlashCmdList["BUFFREMINDERS"] = SlashHandler
+
+-- Event handler (ADDON_LOADED is owned by Core/Bootstrap.lua)
 eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
@@ -3916,6 +3751,7 @@ eventFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORMS")
 eventFrame:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
 eventFrame:RegisterEvent("PET_STABLE_UPDATE")
 eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+eventFrame:RegisterEvent("EQUIPMENT_SETS_CHANGED")
 eventFrame:RegisterEvent("UNIT_ENTERED_VEHICLE")
 eventFrame:RegisterEvent("UNIT_EXITED_VEHICLE")
 eventFrame:RegisterEvent("PLAYER_DIFFICULTY_CHANGED")
@@ -3943,1414 +3779,398 @@ ClearDelveEntryState = function()
     BR.BuffState.SetDelveEntryState(false)
 end
 
-eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
-    if event == "ADDON_LOADED" and arg1 == addonName then
-        _, playerClass = UnitClass("player")
-        local isFirstInstall = not BuffRemindersDB
-        if not BuffRemindersDB then
-            BuffRemindersDB = {}
-        end
+-- Event handlers keyed by event name. Bodies are unchanged from the former
+-- if/elseif dispatch; each closure keeps the same file-scope upvalue access.
+local eventHandlers = {}
 
-        -- ====================================================================
-        -- Pre-AceDB migration: convert old formats so AceDB picks up the data
-        -- ====================================================================
-        if rawget(BuffRemindersDB, "_profiles") then
-            -- Custom profile format -> AceDB format (rename underscore keys)
-            local p = rawget(BuffRemindersDB, "_profiles")
-            local pk = rawget(BuffRemindersDB, "_profileKeys")
-            local g = rawget(BuffRemindersDB, "_global")
-            rawset(BuffRemindersDB, "profiles", p)
-            rawset(BuffRemindersDB, "profileKeys", pk)
-            rawset(BuffRemindersDB, "global", g)
-            rawset(BuffRemindersDB, "_profiles", nil)
-            rawset(BuffRemindersDB, "_profileKeys", nil)
-            rawset(BuffRemindersDB, "_global", nil)
-        elseif not rawget(BuffRemindersDB, "profiles") then
-            -- Old flat format -> AceDB format
-            local profileData, globalData = {}, {}
-            for k, v in pairs(BuffRemindersDB) do
-                if k == "minimap" then
-                    globalData[k] = v
-                else
-                    profileData[k] = v
-                end
-            end
-            wipe(BuffRemindersDB)
-            rawset(BuffRemindersDB, "profiles", { ["Default"] = profileData })
-            rawset(BuffRemindersDB, "profileKeys", {})
-            rawset(BuffRemindersDB, "global", globalData)
-        end
-
-        -- Build AceDB defaults (minimap is global, everything else is per-profile)
-        local aceDefaults = {
-            profile = {},
-            global = { minimap = defaults.minimap },
-        }
-        for k, v in pairs(defaults) do
-            if k ~= "minimap" then
-                aceDefaults.profile[k] = v
+eventHandlers.PLAYER_ENTERING_WORLD = function()
+    -- Reset consumable dismiss on instance change
+    BR.BuffState.SetConsumablesDismissed(false)
+    -- Invalidate caches on zone change (spec may have auto-switched on entry)
+    BR.BuffState.InvalidateContentTypeCache()
+    BR.BuffState.InvalidateSpellCache()
+    BR.BuffState.InvalidateSpecCache()
+    BR.BuffState.InvalidateOffHandCache()
+    BR.BuffState.InvalidatePetCache()
+    BR.BuffState.InvalidateStanceCache()
+    BR.BuffState.InvalidateLoadoutCache()
+    -- Sync flags with current state (in case of reload)
+    inCombat = InCombatLockdown()
+    isResting = IsResting()
+    BR.BuffState.SetPlayerLevel(UnitLevel("player"))
+    BR.BuffState.SetMaxExpansionLevel(GetMaxLevelForPlayerExpansion())
+    BR.BuffState.SetInCombat(inCombat)
+    -- Detect PvP prep phase: in a PvP instance but match not yet started.
+    -- Used by the `hideInPvPMatch` visibility setting to gate buff display once
+    -- the match starts. Aura API is restricted for the whole BG/arena regardless.
+    local _, instType = IsInInstance()
+    local inPvPZone = instType == "pvp" or instType == "arena"
+    local matchState = C_PvP.GetActiveMatchState()
+    local isPrep = matchState ~= Enum.PvPMatchState.Engaged
+    BR.BuffState.SetPvPPrepPhase(inPvPZone and isPrep)
+    BR.BuffState.SetInVehicle(UnitInVehicle("player") == true)
+    BR.StateHelpers.ScanEatingState()
+    ResolveFontPath()
+    ResolveOutline()
+    if not mainFrame then
+        InitializeFrames()
+        -- Initialize action buttons for categories with clickable enabled
+        for _, cat in ipairs(CATEGORIES) do
+            local cs = BR.profile.categorySettings and BR.profile.categorySettings[cat]
+            if (cs and cs.clickable) or cat == "custom" then
+                BR.SecureButtons.UpdateActionButtons(cat)
             end
         end
-
-        -- Initialize AceDB + profile proxy
-        BR.Profiles.Initialize(aceDefaults)
-
-        -- Deep copy default values for missing keys (skips 'defaults' sub-table, served by metatable)
-        local function DeepCopyDefault(source, target)
-            for k, v in pairs(source) do
-                if k == "minimap" then -- luacheck: ignore 542
-                    -- Skip: lives in AceDB global, not per-profile
-                elseif k == "defaults" then
-                    -- Skip value copy (served by metatable __index), but ensure the table exists
-                    if target[k] == nil then
-                        target[k] = {}
-                    end
-                elseif target[k] == nil then
-                    if type(v) == "table" then
-                        target[k] = {}
-                        DeepCopyDefault(v, target[k])
-                    else
-                        target[k] = v
-                    end
-                elseif type(v) == "table" and type(target[k]) == "table" then
-                    -- Recursively fill in missing nested keys
-                    DeepCopyDefault(v, target[k])
-                end
-            end
-        end
-
-        -- Export functions for profile switch refresh
-        BR.Display.DeepCopyDefault = DeepCopyDefault
-        BR.Display.BuildCustomBuffArray = BuildCustomBuffArray
-
-        local db = BR.profile
-
-        -- ====================================================================
-        -- Versioned migrations - each runs exactly once, tracked by dbVersion
-        -- ====================================================================
-        local DB_VERSION = 44
-
-        local migrations = {
-            -- [1] Consolidate all pre-versioning migrations (v2.8 -> v3.x)
-            [1] = function()
-                -- Ensure db.defaults exists (DeepCopyDefault hasn't run yet)
-                if not db.defaults then
-                    db.defaults = {}
-                end
-
-                -- Migrate from old schema to new schema (v3.0 migration)
-                local isOldSchema = db.iconSize ~= nil
-                    or db.spacing ~= nil
-                    or db.growDirection ~= nil
-                    or db.showExpirationGlow ~= nil
-                if isOldSchema then
-                    -- Migrate global appearance settings to defaults
-                    db.defaults.iconSize = db.iconSize or defaults.defaults.iconSize
-                    db.defaults.spacing = db.spacing or defaults.defaults.spacing
-                    db.defaults.growDirection = db.growDirection or defaults.defaults.growDirection
-                    -- Migrate global behavior settings to defaults
-                    db.defaults.showExpirationGlow = db.showExpirationGlow ~= false
-                    db.defaults.expirationThreshold = db.expirationThreshold or defaults.defaults.expirationThreshold
-                    db.defaults.glowStyle = db.glowStyle or 1
-                    -- Clean up old root-level keys
-                    db.iconSize = nil
-                    db.spacing = nil
-                    db.growDirection = nil
-                end
-
-                -- Migrate splitCategories to categorySettings.{cat}.split
-                if db.splitCategories then
-                    for cat, isSplit in pairs(db.splitCategories) do
-                        if not db.categorySettings then
-                            db.categorySettings = {}
-                        end
-                        if not db.categorySettings[cat] then
-                            db.categorySettings[cat] = {}
-                        end
-                        db.categorySettings[cat].split = isSplit
-                    end
-                    db.splitCategories = nil
-                end
-
-                -- Migrate old categorySettings with appearance values to use useCustomAppearance
-                if isOldSchema and db.categorySettings then
-                    for cat, catSettings in pairs(db.categorySettings) do
-                        if cat ~= "main" and catSettings.iconSize then
-                            catSettings.useCustomAppearance = catSettings.split == true
-                        end
-                    end
-                end
-
-                -- Migrate root-level showBuffReminder to raid category (v2.8.1 users)
-                if db.showBuffReminder ~= nil then
-                    if db.categorySettings and db.categorySettings.raid then
-                        db.categorySettings.raid.showBuffReminder = db.showBuffReminder
-                    end
-                end
-
-                -- Migrate: remove useCustomBehavior, per-category glow, consolidate showBuffReminder
-                if db.categorySettings then
-                    for cat, catSettings in pairs(db.categorySettings) do
-                        if cat ~= "main" then
-                            if cat == "raid" then
-                                if catSettings.useCustomBehavior == false and catSettings.showBuffReminder == nil then
-                                    catSettings.showBuffReminder = db.defaults and db.defaults.showBuffReminder ~= false
-                                end
-                            else
-                                catSettings.showBuffReminder = nil
-                            end
-                            catSettings.useCustomBehavior = nil
-                            catSettings.showExpirationGlow = nil
-                            catSettings.expirationThreshold = nil
-                            catSettings.glowStyle = nil
-                        end
-                    end
-                end
-
-                -- Migrate legacy root-level glow settings to defaults
-                if db.showExpirationGlow ~= nil then
-                    db.defaults.showExpirationGlow = db.showExpirationGlow
-                    db.showExpirationGlow = nil
-                end
-                if db.expirationThreshold ~= nil then
-                    db.defaults.expirationThreshold = db.expirationThreshold
-                    db.expirationThreshold = nil
-                end
-                if db.glowStyle ~= nil then
-                    db.defaults.glowStyle = db.glowStyle
-                    db.glowStyle = nil
-                end
-
-                -- Remove showBuffReminder from defaults (now per-category raid-only)
-                if db.defaults then
-                    db.defaults.showBuffReminder = nil
-                end
-                db.showBuffReminder = nil
-
-                -- Remove showOnlyInInstance (replaced by per-category W/S/D/R visibility toggles)
-                db.showOnlyInInstance = nil
-
-                -- Ensure categorySettings.main exists
-                if not db.categorySettings then
-                    db.categorySettings = {}
-                end
-                if not db.categorySettings.main then
-                    db.categorySettings.main = {}
-                end
-
-                -- Migrate old position to categorySettings.main.position
-                if db.position and not db.categorySettings.main.position then
-                    db.categorySettings.main.position = {
-                        point = db.position.point,
-                        x = db.position.x,
-                        y = db.position.y,
-                    }
-                end
-            end,
-
-            -- [2] Strip db.defaults keys matching code defaults (enable metatable inheritance)
-            [2] = function()
-                if db.defaults then
-                    for key, value in pairs(db.defaults) do
-                        if defaults.defaults[key] ~= nil and value == defaults.defaults[key] then
-                            db.defaults[key] = nil
-                        end
-                    end
-                end
-            end,
-
-            -- [3] Add pet category (new first-class category for pet summon reminders)
-            [3] = function()
-                -- Ensure categorySettings.pet exists with defaults
-                if not db.categorySettings then
-                    db.categorySettings = {}
-                end
-                if not db.categorySettings.pet then
-                    db.categorySettings.pet = {}
-                end
-                -- Ensure categoryVisibility.pet exists
-                if not db.categoryVisibility then
-                    db.categoryVisibility = {}
-                end
-                if not db.categoryVisibility.pet then
-                    db.categoryVisibility.pet = {
-                        openWorld = true,
-                        dungeon = true,
-                        scenario = true,
-                        raid = true,
-                    }
-                end
-            end,
-
-            -- [4] Remove useGlowFallback (glow fallback is now always enabled)
-            [4] = function()
-                db.useGlowFallback = nil
-            end,
-
-            -- [5] Remove vestigial db.position (now fully in categorySettings.main.position)
-            [5] = function()
-                if db.position then
-                    if not db.categorySettings then
-                        db.categorySettings = {}
-                    end
-                    if not db.categorySettings.main then
-                        db.categorySettings.main = {}
-                    end
-                    if not db.categorySettings.main.position then
-                        db.categorySettings.main.position = {
-                            x = db.position.x or 0,
-                            y = db.position.y or 0,
-                        }
-                    end
-                    db.position = nil
-                end
-            end,
-
-            -- [6] Add sensible difficulty defaults for consumables (mythic only, no LFR)
-            [6] = function()
-                if not db.categoryVisibility then
+        -- Re-resolve icons for spells with cosmetic overrides that aren't
+        -- applied yet at login (e.g. warlock green fire on Burning Rush).
+        -- Covers built-in self buff and custom buffs at the same spellID.
+        C_Timer.After(2, function()
+            for _, def in ipairs(SelfBuffs) do
+                if def.key == "burningRush" then
+                    InvalidateBuffIconBySpellID(def.spellID)
                     return
                 end
-                local vis = db.categoryVisibility.consumable
-                if not vis then
-                    return
-                end
-                -- Add dungeon difficulty defaults (mythic only) if not already set
-                if not vis.dungeonDifficulty then
-                    vis.dungeonDifficulty = {
-                        normal = false,
-                        heroic = false,
-                        mythic = true,
-                        mythicPlus = false,
-                        timewalking = false,
-                        follower = false,
-                    }
-                end
-                -- Add raid difficulty defaults (no LFR) if not already set
-                if not vis.raidDifficulty then
-                    vis.raidDifficulty = {
-                        lfr = false,
-                        normal = true,
-                        heroic = true,
-                        mythic = true,
-                    }
-                end
-            end,
-
-            -- [7] Rename custom buff specId -> requireSpecId (unify with built-in buff field names)
-            [7] = function()
-                if db.customBuffs then
-                    for _, customBuff in pairs(db.customBuffs) do
-                        if customBuff.specId ~= nil then
-                            customBuff.requireSpecId = customBuff.specId
-                            customBuff.specId = nil
-                        end
-                    end
-                end
-            end,
-
-            -- [8] Seed pre-configured Burning Rush custom buff (disabled by default)
-            [8] = function()
-                if not db.customBuffs then
-                    db.customBuffs = {}
-                end
-                local key = "burningRush"
-                if not db.customBuffs[key] then
-                    db.customBuffs[key] = {
-                        spellID = 111400,
-                        key = key,
-                        name = "Burning Rush",
-                        overlayText = "",
-                        class = "WARLOCK",
-                        showWhenPresent = true,
-                    }
-                end
-                if not db.enabledBuffs then
-                    db.enabledBuffs = {}
-                end
-                if db.enabledBuffs[key] == nil then
-                    db.enabledBuffs[key] = false
-                end
-            end,
-
-            -- [9] Fix consumable dungeon difficulty default: mythic not M+
-            [9] = function()
-                local vis = db.categoryVisibility and db.categoryVisibility.consumable
-                if not vis or not vis.dungeonDifficulty then
-                    return
-                end
-                local dd = vis.dungeonDifficulty
-                -- Only fix if the user still has the old wrong defaults (M+ on, mythic off)
-                if dd.mythicPlus == true and dd.mythic == false then
-                    dd.mythic = true
-                    dd.mythicPlus = false
-                end
-            end,
-
-            -- [10] Clean up consumableItems (no longer user-configured; bag scanning replaces manual config)
-            [10] = function()
-                db.consumableItems = nil
-            end,
-
-            -- [11] Migrate showOnlyPlayerClassBuff/showOnlyPlayerMissing to buffTrackingMode
-            [11] = function()
-                local classBuff = db.showOnlyPlayerClassBuff
-                local playerMissing = db.showOnlyPlayerMissing
-                if classBuff then
-                    db.buffTrackingMode = "my_buffs"
-                elseif playerMissing then
-                    db.buffTrackingMode = "personal"
-                else
-                    db.buffTrackingMode = "all"
-                end
-                -- Clean up old keys
-                db.showOnlyPlayerClassBuff = nil
-                db.showOnlyPlayerMissing = nil
-            end,
-            -- [12] Migrate glowStyle (1-5 color variants) to glowType + glowColor (LibCustomGlow)
-            [12] = function()
-                if not db.defaults then
-                    return
-                end
-                local oldStyle = db.defaults.glowStyle
-                if oldStyle ~= nil then
-                    -- All old styles were atlas-based pulsing -> map to Pixel glow with the color
-                    local colorMap = {
-                        [1] = { 0.95, 0.57, 0.07, 1 }, -- Orange
-                        [2] = { 1, 0.82, 0, 1 }, -- Gold
-                        [3] = { 1, 0.8, 0, 1 }, -- Yellow
-                        [4] = { 0.9, 0.9, 0.9, 1 }, -- White
-                        [5] = { 1, 0.2, 0.2, 1 }, -- Red
-                    }
-                    db.defaults.glowType = 1 -- Pixel (closest to old atlas pulsing)
-                    db.defaults.glowColor = colorMap[oldStyle] or { 0.95, 0.57, 0.07, 1 }
-                    db.defaults.glowStyle = nil
-                end
-            end,
-            -- [13] Unify consumable rebuff warning into per-category expiration glow
-            [13] = function()
-                if not db.defaults then
-                    return
-                end
-                local defs = db.defaults
-                local globalThreshold = defs.expirationThreshold or 15
-
-                -- Migrate consumableRebuffWarning = false -> per-category override
-                if defs.consumableRebuffWarning == false then
-                    if not db.categorySettings then
-                        db.categorySettings = {}
-                    end
-                    if not db.categorySettings.consumable then
-                        db.categorySettings.consumable = {}
-                    end
-                    db.categorySettings.consumable.useCustomAppearance = true
-                    db.categorySettings.consumable.showExpirationGlow = false
-                end
-
-                -- Migrate consumableRebuffThreshold if different from global
-                if defs.consumableRebuffThreshold ~= nil and defs.consumableRebuffThreshold ~= globalThreshold then
-                    if not db.categorySettings then
-                        db.categorySettings = {}
-                    end
-                    if not db.categorySettings.consumable then
-                        db.categorySettings.consumable = {}
-                    end
-                    db.categorySettings.consumable.useCustomAppearance = true
-                    db.categorySettings.consumable.expirationThreshold = defs.consumableRebuffThreshold
-                end
-
-                -- Clean up old keys
-                defs.consumableRebuffWarning = nil
-                defs.consumableRebuffThreshold = nil
-                defs.consumableRebuffColor = nil
-            end,
-            -- [14] Tie growDirection to useCustomAppearance (was previously tied to split)
-            [14] = function()
-                if not db.categorySettings then
-                    return
-                end
-                local gd = db.defaults or {}
-                for _, catSettings in pairs(db.categorySettings) do
-                    -- Users who had split + custom direction but no custom appearance
-                    -- would lose their direction setting without this migration
-                    if
-                        catSettings.split
-                        and catSettings.growDirection ~= nil
-                        and not catSettings.useCustomAppearance
-                    then
-                        catSettings.useCustomAppearance = true
-                        -- Snapshot current global defaults so the category is fully independent
-                        if catSettings.iconSize == nil then
-                            catSettings.iconSize = gd.iconSize or 64
-                        end
-                        if catSettings.spacing == nil then
-                            catSettings.spacing = gd.spacing or 0.2
-                        end
-                        if catSettings.iconZoom == nil then
-                            catSettings.iconZoom = gd.iconZoom or 8
-                        end
-                        if catSettings.borderSize == nil then
-                            catSettings.borderSize = gd.borderSize or 2
-                        end
-                        if catSettings.iconAlpha == nil then
-                            catSettings.iconAlpha = gd.iconAlpha or 1
-                        end
-                        if catSettings.textAlpha == nil then
-                            catSettings.textAlpha = gd.textAlpha or 1
-                        end
-                        if catSettings.textColor == nil and gd.textColor then
-                            local tc = gd.textColor
-                            catSettings.textColor = { tc[1], tc[2], tc[3] }
-                        end
-                    end
-                end
-            end,
-            -- [15] Migrate invertGlow boolean to glowMode enum
-            [15] = function()
-                if not db.customBuffs then
-                    return
-                end
-                for _, buff in pairs(db.customBuffs) do
-                    if buff.invertGlow then
-                        buff.glowMode = "whenNotGlowing"
-                    end
-                    buff.invertGlow = nil
-                end
-            end,
-            -- [16] Migrate glow color: old orange default -> new yellow default,
-            -- and auto-enable useCustomGlowColor for users who had a custom color
-            [16] = function()
-                local oldOrange = { 0.95, 0.57, 0.07, 1 }
-                local newDefault = BR.Glow.DEFAULT_COLOR
-                local function isOldOrange(c)
-                    return c and c[1] == oldOrange[1] and c[2] == oldOrange[2] and c[3] == oldOrange[3]
-                end
-                if db.defaults and db.defaults.glowColor then
-                    if isOldOrange(db.defaults.glowColor) then
-                        db.defaults.glowColor = { newDefault[1], newDefault[2], newDefault[3], newDefault[4] }
-                    else
-                        db.defaults.useCustomGlowColor = true
-                    end
-                end
-                if db.categorySettings then
-                    for _, catSettings in pairs(db.categorySettings) do
-                        if catSettings.glowColor then
-                            if isOldOrange(catSettings.glowColor) then
-                                catSettings.glowColor = { newDefault[1], newDefault[2], newDefault[3], newDefault[4] }
-                            else
-                                catSettings.useCustomGlowColor = true
-                            end
-                        end
-                    end
-                end
-            end,
-
-            -- [17] Migrate showOnlyOnReadyCheck from global to per-category
-            [17] = function()
-                if db.showOnlyOnReadyCheck then
-                    if not db.categorySettings then
-                        db.categorySettings = {}
-                    end
-                    for _, cat in ipairs({ "raid", "presence", "targeted", "self", "pet", "consumable", "custom" }) do
-                        if not db.categorySettings[cat] then
-                            db.categorySettings[cat] = {}
-                        end
-                        db.categorySettings[cat].showOnlyOnReadyCheck = true
-                    end
-                end
-                db.showOnlyOnReadyCheck = nil
-                db.readyCheckDuration = nil
-            end,
-
-            -- [18] Add housing = false to existing categoryVisibility entries
-            [18] = function()
-                if db.categoryVisibility then
-                    for _, cat in ipairs({ "raid", "presence", "targeted", "self", "pet", "consumable", "custom" }) do
-                        local vis = db.categoryVisibility[cat]
-                        if vis and vis.housing == nil then
-                            vis.housing = false
-                        end
-                    end
-                end
-            end,
-
-            -- [19] Custom buffs now use per-buff loadConditions; migrate category-level custom visibility
-            [19] = function()
-                -- Carry over old category-level settings to each existing custom buff
-                local oldVis = db.categoryVisibility and db.categoryVisibility.custom
-                local oldReadyCheck = db.categorySettings
-                    and db.categorySettings.custom
-                    and db.categorySettings.custom.showOnlyOnReadyCheck
-                if db.customBuffs then
-                    for _, buff in pairs(db.customBuffs) do
-                        if not buff.loadConditions then
-                            -- Migrate from category visibility or use old defaults
-                            local lc = {}
-                            if oldVis then
-                                -- Preserve user's per-content-type choices
-                                for _, key in ipairs({ "openWorld", "scenario", "dungeon", "raid", "housing" }) do
-                                    if oldVis[key] == false then
-                                        lc[key] = false
-                                    end
-                                end
-                                if oldVis.dungeonDifficulty then
-                                    lc.dungeonDifficulty = {}
-                                    for dk, dv in pairs(oldVis.dungeonDifficulty) do
-                                        lc.dungeonDifficulty[dk] = dv
-                                    end
-                                end
-                                if oldVis.raidDifficulty then
-                                    lc.raidDifficulty = {}
-                                    for dk, dv in pairs(oldVis.raidDifficulty) do
-                                        lc.raidDifficulty[dk] = dv
-                                    end
-                                end
-                            else
-                                -- No custom visibility was set; apply old default (housing off)
-                                lc.housing = false
-                            end
-                            if oldReadyCheck then
-                                lc.readyCheckOnly = true
-                            end
-                            -- Only store if any value is non-default
-                            if next(lc) then
-                                buff.loadConditions = lc
-                            end
-                        end
-                    end
-                end
-                -- Clean up category-level keys
-                if db.categoryVisibility then
-                    db.categoryVisibility.custom = nil
-                end
-                if db.categorySettings and db.categorySettings.custom then
-                    db.categorySettings.custom.showOnlyOnReadyCheck = nil
-                end
-            end,
-
-            -- [20] (no-op, minimap cleanup now handled by DeepCopyDefault skip)
-            [20] = function() end,
-
-            -- [21] Enable delve food by default (was opt-in, now opt-out)
-            [21] = function()
-                if db.enabledBuffs and db.enabledBuffs.delveFood == false then
-                    db.enabledBuffs.delveFood = nil
-                end
-            end,
-
-            -- [22] Default delveFoodOnly to true (show only delve food in delves)
-            [22] = function()
-                if db.defaults and db.defaults.delveFoodOnly == false then
-                    db.defaults.delveFoodOnly = true
-                end
-            end,
-
-            -- [23] Decouple zoom from base texcoord inset: subtract old base (8) from stored values
-            [23] = function()
-                if db.defaults and db.defaults.iconZoom then
-                    db.defaults.iconZoom = max(0, db.defaults.iconZoom - 8)
-                end
-                if db.categorySettings then
-                    for _, catSettings in pairs(db.categorySettings) do
-                        if catSettings.iconZoom then
-                            catSettings.iconZoom = max(0, catSettings.iconZoom - 8)
-                        end
-                    end
-                end
-            end,
-
-            -- [24] Remove glowWhenMissing (glow is now all-or-nothing) and stale showExpirationReminder
-            [24] = function()
-                if db.defaults then
-                    db.defaults.glowWhenMissing = nil
-                    db.defaults.showExpirationReminder = nil
-                end
-                for _, cat in ipairs(CATEGORIES) do
-                    local catSettings = db.categorySettings and db.categorySettings[cat]
-                    if catSettings then
-                        catSettings.glowWhenMissing = nil
-                        catSettings.showExpirationReminder = nil
-                    end
-                end
-            end,
-            [25] = function()
-                db.instanceEntryReminder = nil
-            end,
-            -- [26] Rename missingText -> overlayText on saved custom buffs
-            [26] = function()
-                if db.customBuffs then
-                    for _, buff in pairs(db.customBuffs) do
-                        if buff.missingText ~= nil and buff.overlayText == nil then
-                            buff.overlayText = buff.missingText
-                            buff.missingText = nil
-                        end
-                    end
-                end
-            end,
-            -- [27] Per-category glow is now opt-in via useCustomGlow.
-            -- Remove useCustomGlowColor (color swatch is now always active).
-            -- Migrate old per-category glow keys: if a category had any glow overrides,
-            -- enable useCustomGlow and keep the values; otherwise clean up.
-            [27] = function()
-                if db.defaults then
-                    if not db.defaults.useCustomGlowColor then
-                        db.defaults.glowColor = nil
-                    end
-                    db.defaults.useCustomGlowColor = nil
-                end
-                local globalDefaults = db.defaults or {}
-                for _, catSettings in pairs(db.categorySettings or {}) do
-                    catSettings.useCustomGlowColor = nil
-                    -- Check if category had any glow overrides that differ from defaults
-                    local hasOverride = false
-                    if catSettings.glowType ~= nil and catSettings.glowType ~= globalDefaults.glowType then
-                        hasOverride = true
-                    end
-                    if catSettings.glowSize ~= nil and catSettings.glowSize ~= globalDefaults.glowSize then
-                        hasOverride = true
-                    end
-                    if catSettings.glowColor ~= nil then
-                        hasOverride = true
-                    end
-                    if hasOverride then
-                        -- Port old overrides into useCustomGlow system
-                        catSettings.useCustomGlow = true
-                    else
-                        -- No meaningful overrides - clean up stale keys
-                        catSettings.glowType = nil
-                        catSettings.glowSize = nil
-                        catSettings.glowColor = nil
-                    end
-                end
-            end,
-            -- [28] Add arena and bg visibility keys for existing users.
-            -- Derive from their current dungeon setting; arena forced off for consumable.
-            [28] = function()
-                if db.categoryVisibility then
-                    for cat, vis in pairs(db.categoryVisibility) do
-                        if type(vis) == "table" then
-                            -- Add pvp toggle, derive from dungeon setting
-                            if vis.pvp == nil then
-                                vis.pvp = vis.dungeon ~= false
-                            end
-                            -- Add pvpType sub-table for consumable (arena off)
-                            if cat == "consumable" and not vis.pvpType then
-                                vis.pvpType = { arena = false, bg = true }
-                            end
-                            -- Default hideInPvPMatch on for all categories except pet
-                            if vis.hideInPvPMatch == nil then
-                                vis.hideInPvPMatch = cat ~= "pet"
-                            end
-                        end
-                    end
-                end
-            end,
-            -- [29] Default free consumables (healthstones, permanent runes) to ready-check-only
-            -- so they don't show the entire instance.
-            [29] = function()
-                if db.defaults and db.defaults.freeConsumableReadyCheckOnly == false then
-                    db.defaults.freeConsumableReadyCheckOnly = true
-                end
-            end,
-            -- [30] Rename freeConsumableReadyCheckOnly -> healthstoneVisibility (string mode),
-            -- and clean up hideInPvPMatch from free consumable visibility.
-            [30] = function()
-                if db.defaults then
-                    local old = db.defaults.freeConsumableReadyCheckOnly
-                    if old == true then
-                        db.defaults.healthstoneVisibility = "readyCheck"
-                    elseif old == false then
-                        db.defaults.healthstoneVisibility = "always"
-                    end
-                    db.defaults.freeConsumableReadyCheckOnly = nil
-                    if db.defaults.freeConsumableVisibility then
-                        db.defaults.freeConsumableVisibility.hideInPvPMatch = nil
-                    end
-                end
-            end,
-            -- [31] Arena consumable restriction now handled at data layer (disabledInCompetitivePvP);
-            -- re-enable the arena toggle so healthstones can show via category visibility.
-            [31] = function()
-                local vis = db.categoryVisibility and db.categoryVisibility.consumable
-                if vis and vis.pvpType and vis.pvpType.arena == false then
-                    vis.pvpType.arena = true
-                end
-            end,
-
-            -- [32] Remove sanguithorn tea (reverted by Blizzard)
-            [32] = function()
-                if db.enabledBuffs then
-                    db.enabledBuffs.sanguithorn = nil
-                end
-                if db.rememberedConsumables then
-                    for _, specMem in pairs(db.rememberedConsumables) do
-                        if type(specMem) == "table" then
-                            specMem.sanguithorn = nil
-                        end
-                    end
-                end
-            end,
-
-            -- [33] Clean up stale keys that were previously removed after DeepCopyDefault
-            [33] = function()
-                db.hidePetWhileMounted = nil
-                if db.defaults and db.defaults.textSize == 12 then
-                    db.defaults.textSize = nil
-                end
-            end,
-            [34] = function()
-                -- Split glow: existing showExpirationGlow controlled both missing + expiring glows.
-                -- Copy its value to the new showMissingGlow so users keep their current behavior.
-                if db.defaults and db.defaults.showExpirationGlow ~= nil then
-                    db.defaults.showMissingGlow = db.defaults.showExpirationGlow
-                end
-                if db.categorySettings then
-                    for _, catSettings in pairs(db.categorySettings) do
-                        if catSettings.showExpirationGlow ~= nil then
-                            catSettings.showMissingGlow = catSettings.showExpirationGlow
-                        end
-                    end
-                end
-            end,
-            [35] = function()
-                -- Change expiring glow default from Pixel (1) to AutoCast (2).
-                -- Migrate users who had the old default so they get the new one.
-                if db.defaults then
-                    if db.defaults.glowType == nil or db.defaults.glowType == 1 then
-                        db.defaults.glowType = 2
-                    end
-                end
-            end,
-            [36] = function()
-                -- textSize is now an explicit default (20) instead of auto-derived from iconSize.
-                -- Materialize the computed value for users who had a non-default iconSize,
-                -- so their text size doesn't jump to 20.
-                if db.defaults and db.defaults.textSize == nil then
-                    local iconSize = db.defaults.iconSize or 64
-                    if iconSize ~= 64 then
-                        db.defaults.textSize = floor(iconSize * 0.32)
-                    end
-                end
-                if db.categorySettings then
-                    for _, cs in pairs(db.categorySettings) do
-                        if cs.useCustomAppearance and cs.textSize == nil then
-                            local iconSize = cs.iconSize or 64
-                            if iconSize ~= 64 then
-                                cs.textSize = floor(iconSize * 0.32)
-                            end
-                        end
-                    end
-                end
-            end,
-            [37] = function()
-                -- Move Burning Rush from seeded custom buff to proper self-buff
-                if db.customBuffs and db.customBuffs.burningRush then
-                    db.customBuffs.burningRush = nil
-                end
-                -- enabledBuffs.burningRush is preserved as-is (same key)
-
-                -- Migrate soulstone readyCheckOnlyOverrides to soulstoneVisibility
-                local overrides = db.readyCheckOnlyOverrides
-                if overrides and overrides.soulstone == false then
-                    if not db.defaults then
-                        db.defaults = {}
-                    end
-                    db.defaults.soulstoneVisibility = "always"
-                    overrides.soulstone = nil
-                end
-            end,
-            [38] = function()
-                -- Enable "show consumables without items" + "only on ready check" for all users
-                if not db.defaults then
-                    db.defaults = {}
-                end
-                db.defaults.showConsumablesWithoutItems = true
-                db.defaults.showWithoutItemsOnlyOnReadyCheck = true
-            end,
-
-            [39] = function()
-                -- Migrate custom buff expiration from category-level to per-buff
-                -- Resolve effective threshold: category override > global default > code default (15)
-                local catThreshold = 15
-                if db.defaults and db.defaults.expirationThreshold then
-                    catThreshold = db.defaults.expirationThreshold
-                end
-                if db.categorySettings and db.categorySettings.custom then
-                    local catCustom = db.categorySettings.custom
-                    if catCustom.expirationThreshold ~= nil then
-                        catThreshold = catCustom.expirationThreshold
-                    end
-                    -- Clean up category-level expiration keys (no longer used for custom)
-                    catCustom.expirationThreshold = nil
-                    catCustom.showExpirationGlow = nil
-                end
-                -- Copy threshold to each existing custom buff that doesn't have one
-                if db.customBuffs then
-                    for _, buff in pairs(db.customBuffs) do
-                        if buff.expirationThreshold == nil then
-                            buff.expirationThreshold = catThreshold
-                        end
-                    end
-                end
-            end,
-
-            -- [40] Disable druidWrongForm by default (off-by-default new buff;
-            -- nested defaults don't reliably merge once a profile has its own
-            -- enabledBuffs table, so write the value directly). Also drops the
-            -- now-unused legacyConsumablesNoticeShown global flag (replaced by
-            -- selfOnlyOutsideNoticeShown).
-            [40] = function()
-                if not db.enabledBuffs then
-                    db.enabledBuffs = {}
-                end
-                if db.enabledBuffs.druidWrongForm == nil then
-                    db.enabledBuffs.druidWrongForm = false
-                    db.enabledBuffs.warriorWrongStance = false
-                end
-                if BR.aceDB and BR.aceDB.global then
-                    BR.aceDB.global.legacyConsumablesNoticeShown = nil
-                end
-            end,
-
-            -- [41] Fold legacy textOffsetX/Y (count) and buffTextOffsetX/Y
-            -- (BUFF! reminder) into defaults.textPositions. Text positions are
-            -- global only: each repositionable item has one realistic consumer
-            -- (buffReminder = raid; statLabel/badge/stackCount = consumable;
-            -- count is visually identical across categories), so per-category
-            -- granularity was theatre.
-            -- BUFF! reminder Y nudge: previously the display added a -6 base
-            -- offset on top of buffTextOffsetY. The new BELOW_C zone bakes in
-            -- -4, so we preserve total Y by shifting any stored buffTextOffsetY
-            -- by -2 during migration.
-            [41] = function()
-                local function ensurePos(item, zoneFallback)
-                    if not db.defaults then
-                        db.defaults = {}
-                    end
-                    if not db.defaults.textPositions then
-                        db.defaults.textPositions = {}
-                    end
-                    if not db.defaults.textPositions[item] then
-                        db.defaults.textPositions[item] = { zone = zoneFallback, offsetX = 0, offsetY = 0 }
-                    end
-                    return db.defaults.textPositions[item]
-                end
-
-                -- defaults.textOffsetX/Y -> defaults.textPositions.count
-                if db.defaults and (db.defaults.textOffsetX ~= nil or db.defaults.textOffsetY ~= nil) then
-                    local pos = ensurePos("count", "INSIDE_C")
-                    if db.defaults.textOffsetX ~= nil then
-                        pos.offsetX = db.defaults.textOffsetX
-                        db.defaults.textOffsetX = nil
-                    end
-                    if db.defaults.textOffsetY ~= nil then
-                        pos.offsetY = db.defaults.textOffsetY
-                        db.defaults.textOffsetY = nil
-                    end
-                end
-
-                -- categorySettings.raid.buffTextOffsetX/Y -> defaults.textPositions.buffReminder
-                if db.categorySettings and db.categorySettings.raid then
-                    local raidCs = db.categorySettings.raid
-                    if raidCs.buffTextOffsetX ~= nil or raidCs.buffTextOffsetY ~= nil then
-                        local pos = ensurePos("buffReminder", "BELOW_C")
-                        if raidCs.buffTextOffsetX ~= nil then
-                            pos.offsetX = raidCs.buffTextOffsetX
-                            raidCs.buffTextOffsetX = nil
-                        end
-                        if raidCs.buffTextOffsetY ~= nil then
-                            pos.offsetY = raidCs.buffTextOffsetY - 2
-                            raidCs.buffTextOffsetY = nil
-                        end
-                    end
-                end
-
-                -- Drop any per-category text-offset / textPositions data: the
-                -- resolver no longer reads from there. Users with custom
-                -- appearance overrides lose their per-category nudge (rare).
-                if db.categorySettings then
-                    for _, cs in pairs(db.categorySettings) do
-                        if type(cs) == "table" then
-                            cs.textOffsetX = nil
-                            cs.textOffsetY = nil
-                            cs.textPositions = nil
-                        end
-                    end
-                end
-            end,
-
-            -- [42] Enable click-to-cast for targeted buffs by default.
-            -- Previous default was false, so existing users inherited "off" without
-            -- ever choosing it. Flip to true once; users who turn it back off after
-            -- this migration are respected (migrations run once per dbVersion).
-            [42] = function()
-                if db.categorySettings and db.categorySettings.targeted then
-                    db.categorySettings.targeted.clickable = true
-                end
-            end,
-
-            -- [43] Materialize defaults.textPositions.petLabel for users who
-            -- already have a saved textPositions table. The new BELOW_C zone
-            -- baseline is dy=-4, but the prior hard-coded anchor was dy=-2, so
-            -- we bake +2 into offsetY to preserve the exact visual. Skip if
-            -- the user has no saved textPositions yet - AceDB will serve the
-            -- code-default directly on first access.
-            [43] = function()
-                if db.defaults and type(db.defaults.textPositions) == "table" then
-                    if db.defaults.textPositions.petLabel == nil then
-                        db.defaults.textPositions.petLabel = { zone = "BELOW_C", offsetX = 0, offsetY = 2 }
-                    end
-                end
-            end,
-
-            -- [44] Tracking overrides: convert the three boolean overrides into
-            -- per-context mode enums (value = a tracking mode, or "default" for no
-            -- override). Map each old boolean to the mode it used to force so every
-            -- user keeps their current effective behavior, then clear the old keys.
-            -- Guard on the OLD key's presence, not the new one: the new root keys
-            -- live in the AceDB profile defaults, so copyDefaults has already
-            -- rawset them before migrations run (`db.outsideInstancesMode == nil`
-            -- is never true here). A missing old key means the user kept its
-            -- historical default (which AceDB stripped on logout), so we leave the
-            -- eagerly-copied new default in place - it matches the old behavior.
-            [44] = function()
-                if db.selfOnlyOutsideInstances ~= nil then
-                    db.outsideInstancesMode = db.selfOnlyOutsideInstances and "self_only" or "default"
-                end
-                if db.hideOthersInCombat ~= nil then
-                    db.combatMode = db.hideOthersInCombat and "my_buffs" or "default"
-                end
-                if db.myBuffsOnlyWhileLeveling ~= nil then
-                    db.levelingMode = db.myBuffsOnlyWhileLeveling and "my_buffs" or "default"
-                end
-                db.selfOnlyOutsideInstances = nil
-                db.hideOthersInCombat = nil
-                db.myBuffsOnlyWhileLeveling = nil
-            end,
-        }
-
-        -- Run pending migrations
-        local currentVersion = db.dbVersion or 0
-        for version = currentVersion + 1, DB_VERSION do
-            if migrations[version] then
-                migrations[version]()
-            end
-        end
-        db.dbVersion = DB_VERSION
-
-        -- Deep copy defaults for non-defaults tables
-        DeepCopyDefault(defaults, db)
-
-        -- Initialize custom buffs storage and populate BUFF_TABLES.custom
-        if not db.customBuffs then
-            db.customBuffs = {}
-        end
-        BuildCustomBuffArray()
-
-        -- Register custom buffs in glow fallback lookup (so they work in M+/combat)
-        for _, customBuff in ipairs(CustomBuffs) do
-            if customBuff.glowMode ~= "disabled" then
-                RegisterGlowBuff(customBuff, "custom")
-            end
-        end
-
-        -- Set up metatable so db.defaults inherits from code defaults
-        if not db.defaults then
-            db.defaults = {}
-        end
-        setmetatable(db.defaults, { __index = defaults.defaults })
-
-        -- Initialize categoryVisibility with defaults for each category
-        if not db.categoryVisibility then
-            db.categoryVisibility = {}
-        end
-        for _, category in ipairs(CATEGORIES) do
-            if not db.categoryVisibility[category] then
-                local defaultVis = defaults.categoryVisibility[category]
-                db.categoryVisibility[category] = {
-                    openWorld = defaultVis and defaultVis.openWorld ~= false,
-                    housing = defaultVis and defaultVis.housing == true,
-                    dungeon = defaultVis and defaultVis.dungeon ~= false,
-                    scenario = defaultVis and defaultVis.scenario ~= false,
-                    raid = defaultVis and defaultVis.raid ~= false,
-                    pvp = defaultVis and defaultVis.pvp ~= false,
-                    hideInPvPMatch = defaultVis and defaultVis.hideInPvPMatch == true,
-                }
-            end
-        end
-
-        SLASH_BUFFREMINDERS1 = "/br"
-        SLASH_BUFFREMINDERS2 = "/buffreminders"
-        SlashCmdList["BUFFREMINDERS"] = SlashHandler
-
-        -- Register with WoW's Interface Options
-        local settingsPanel = CreateFrame("Frame")
-        settingsPanel.name = "BuffReminders"
-
-        local title = settingsPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-        title:SetPoint("TOPLEFT", 16, -16)
-        title:SetText("BuffReminders")
-
-        local desc = settingsPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-        desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-        desc:SetText(L["Display.Description"])
-
-        local openBtn = CreateFrame("Button", nil, settingsPanel, "UIPanelButtonTemplate")
-        openBtn:SetSize(150, 24)
-        openBtn:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -16)
-        openBtn:SetText(L["Display.OpenOptions"])
-        openBtn:SetScript("OnClick", function()
-            BR.Options.Toggle()
-            -- Close the WoW settings panel properly (HideUIPanel handles keyboard focus cleanup)
-            if SettingsPanel then
-                HideUIPanel(SettingsPanel)
             end
         end)
-
-        local slashInfo = settingsPanel:CreateFontString(nil, "ARTWORK", "GameFontDisable")
-        slashInfo:SetPoint("TOPLEFT", openBtn, "BOTTOMLEFT", 0, -12)
-        slashInfo:SetText(L["Display.SlashCommands"])
-
-        local category = Settings.RegisterCanvasLayoutCategory(settingsPanel, settingsPanel.name)
-        Settings.RegisterAddOnCategory(category)
-
-        -- Minimap button (LibDBIcon)
-        local LDB = LibStub("LibDataBroker-1.1", true)
-        local LDBIcon = LDB and LibStub("LibDBIcon-1.0", true)
-        if LDB and LDBIcon then
-            local dataObj = LDB:NewDataObject("BuffReminders", {
-                type = "launcher",
-                label = "BuffReminders",
-                icon = "Interface\\AddOns\\BuffReminders\\icon",
-                OnClick = function(_, button)
-                    if button == "LeftButton" then
-                        BR.Options.Toggle()
-                    elseif button == "RightButton" then
-                        ToggleTestMode()
-                    end
-                end,
-                OnTooltipShow = function(tooltip)
-                    tooltip:AddLine("BuffReminders")
-                    tooltip:AddLine(L["Display.MinimapLeftClick"])
-                    tooltip:AddLine(L["Display.MinimapRightClick"])
-                    local owner = tooltip:GetOwner()
-                    if owner and owner:GetParent() == Minimap then
-                        tooltip:AddLine("|cFF808080/br minimap|r |cFF808080to toggle this icon|r")
-                    end
-                end,
-            })
-            LDBIcon:Register("BuffReminders", dataObj, BR.aceDB.global.minimap)
-            LDBIcon:AddButtonToCompartment("BuffReminders")
-            BR.MinimapButton = { Icon = LDBIcon, DataObj = dataObj }
-        end
-
-        -- Login messages
-        C_Timer.After(5, function()
-            if isFirstInstall then
-                print("|cff00ccffBuffReminders:|r " .. L["Display.LoginFirstInstall"])
-            elseif BR.profile.showLoginMessages ~= false and not BR.aceDB.global.selfOnlyOutsideNoticeShown then
-                print("|cff00ccffBuffReminders:|r " .. L["Display.LoginSelfOnlyOutside"])
-                BR.aceDB.global.selfOnlyOutsideNoticeShown = true
+    end
+    BR.SecureButtons.InvalidateConsumableCache()
+    -- Instance entry can flip IsInGroup(2) without firing GROUP_ROSTER_UPDATE
+    -- (e.g. solo dungeon entry); refresh chat-request prefix here too.
+    BR.SecureButtons.RefreshChatRequestMacros()
+    SeedGlowingSpells() -- Catch glows that were active before event registration
+    if not inCombat then
+        StartUpdates()
+    end
+    -- Delayed update to catch glow events that fire after reload
+    C_Timer.After(0.5, SetDirty)
+    -- Show showOnInstanceEntry self buffs briefly when entering a dungeon (not M+)
+    C_Timer.After(1, function()
+        if BR.BuffState.ShouldTriggerDungeonEntry() then
+            if instanceEntryTimer then
+                instanceEntryTimer:Cancel()
             end
-        end)
-    elseif event == "PLAYER_ENTERING_WORLD" then
-        -- Reset consumable dismiss on instance change
-        BR.BuffState.SetConsumablesDismissed(false)
-        -- Invalidate caches on zone change (spec may have auto-switched on entry)
-        BR.BuffState.InvalidateContentTypeCache()
-        BR.BuffState.InvalidateSpellCache()
-        BR.BuffState.InvalidateSpecCache()
-        BR.BuffState.InvalidateOffHandCache()
-        BR.BuffState.InvalidatePetCache()
-        BR.BuffState.InvalidateStanceCache()
-        -- Sync flags with current state (in case of reload)
-        inCombat = InCombatLockdown()
-        isResting = IsResting()
-        BR.BuffState.SetPlayerLevel(UnitLevel("player"))
-        BR.BuffState.SetMaxExpansionLevel(GetMaxLevelForPlayerExpansion())
-        BR.BuffState.SetInCombat(inCombat)
-        -- Detect PvP prep phase: in a PvP instance but match not yet started.
-        -- Used by the `hideInPvPMatch` visibility setting to gate buff display once
-        -- the match starts. Aura API is restricted for the whole BG/arena regardless.
-        local _, instType = IsInInstance()
-        local inPvPZone = instType == "pvp" or instType == "arena"
-        local matchState = C_PvP.GetActiveMatchState()
-        local isPrep = matchState ~= Enum.PvPMatchState.Engaged
-        BR.BuffState.SetPvPPrepPhase(inPvPZone and isPrep)
-        BR.BuffState.SetInVehicle(UnitInVehicle("player") == true)
-        BR.StateHelpers.ScanEatingState()
-        ResolveFontPath()
-        ResolveOutline()
-        if not mainFrame then
-            InitializeFrames()
-            -- Initialize action buttons for categories with clickable enabled
-            for _, cat in ipairs(CATEGORIES) do
-                local cs = BR.profile.categorySettings and BR.profile.categorySettings[cat]
-                if (cs and cs.clickable) or cat == "custom" then
-                    BR.SecureButtons.UpdateActionButtons(cat)
-                end
-            end
-            -- Re-resolve icons for spells with cosmetic overrides that aren't
-            -- applied yet at login (e.g. warlock green fire on Burning Rush).
-            -- Covers built-in self buff and custom buffs at the same spellID.
-            C_Timer.After(2, function()
-                for _, def in ipairs(SelfBuffs) do
-                    if def.key == "burningRush" then
-                        InvalidateBuffIconBySpellID(def.spellID)
-                        return
-                    end
-                end
-            end)
-        end
-        BR.SecureButtons.InvalidateConsumableCache()
-        -- Instance entry can flip IsInGroup(2) without firing GROUP_ROSTER_UPDATE
-        -- (e.g. solo dungeon entry); refresh chat-request prefix here too.
-        BR.SecureButtons.RefreshChatRequestMacros()
-        SeedGlowingSpells() -- Catch glows that were active before event registration
-        if not inCombat then
-            StartUpdates()
-        end
-        -- Delayed update to catch glow events that fire after reload
-        C_Timer.After(0.5, SetDirty)
-        -- Show showOnInstanceEntry self buffs briefly when entering a dungeon (not M+)
-        C_Timer.After(1, function()
-            if BR.BuffState.ShouldTriggerDungeonEntry() then
-                if instanceEntryTimer then
-                    instanceEntryTimer:Cancel()
-                end
-                BR.BuffState.SetInstanceEntryState(true)
-                eventFrame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-                eventFrame:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
-                UpdateDisplay()
-                instanceEntryTimer = C_Timer.NewTimer(30, function()
-                    ClearInstanceEntryState()
-                    UpdateDisplay()
-                end)
-            else
+            BR.BuffState.SetInstanceEntryState(true)
+            eventFrame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+            eventFrame:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
+            UpdateDisplay()
+            instanceEntryTimer = C_Timer.NewTimer(30, function()
                 ClearInstanceEntryState()
+                UpdateDisplay()
+            end)
+        else
+            ClearInstanceEntryState()
+        end
+        -- Show showOnInstanceEntry consumables briefly when entering a delve
+        if BR.BuffState.ShouldTriggerDelveEntry() then
+            if delveEntryTimer then
+                delveEntryTimer:Cancel()
             end
-            -- Show showOnInstanceEntry consumables briefly when entering a delve
-            if BR.BuffState.ShouldTriggerDelveEntry() then
-                if delveEntryTimer then
-                    delveEntryTimer:Cancel()
+            BR.BuffState.SetDelveEntryState(true)
+            UpdateDisplay()
+            delveEntryTimer = C_Timer.NewTimer(30, function()
+                ClearDelveEntryState()
+                UpdateDisplay()
+            end)
+        else
+            ClearDelveEntryState()
+        end
+    end)
+    -- Refresh custom buff icons after spell data is fully loaded (talent-modified icons)
+    -- and warm up the static icon cache for every buff in one pass so the next menu
+    -- open / detached-icons render hits the cached path.
+    C_Timer.After(1.5, function()
+        PreFillIconCaches()
+        for key, def in pairs(BR.profile.customBuffs or {}) do
+            local frame = buffFrames[key]
+            if frame and def.spellID then
+                local texture = GetBuffTexture(def.spellID)
+                if texture then
+                    frame.icon:SetTexture(texture)
                 end
+            end
+        end
+    end)
+end
+
+eventHandlers.ZONE_CHANGED_NEW_AREA = function()
+    -- Delves have no loading screen, so PLAYER_ENTERING_WORLD doesn't fire.
+    -- GetInstanceInfo() still returns stale data when this event fires,
+    -- so defer the cache invalidation + refresh.
+    C_Timer.After(0.5, function()
+        BR.BuffState.InvalidateContentTypeCache()
+        SetDirty()
+        -- Trigger delve entry for showOnInstanceEntry consumables (no loading screen on re-entry)
+        -- Skip if PLAYER_ENTERING_WORLD already started a timer for this entry
+        if BR.BuffState.ShouldTriggerDelveEntry() then
+            if not delveEntryTimer then
                 BR.BuffState.SetDelveEntryState(true)
                 UpdateDisplay()
                 delveEntryTimer = C_Timer.NewTimer(30, function()
                     ClearDelveEntryState()
                     UpdateDisplay()
                 end)
-            else
-                ClearDelveEntryState()
             end
-        end)
-        -- Refresh custom buff icons after spell data is fully loaded (talent-modified icons)
-        -- and warm up the static icon cache for every buff in one pass so the next menu
-        -- open / detached-icons render hits the cached path.
-        C_Timer.After(1.5, function()
-            PreFillIconCaches()
-            for key, def in pairs(BR.profile.customBuffs or {}) do
-                local frame = buffFrames[key]
-                if frame and def.spellID then
-                    local texture = GetBuffTexture(def.spellID)
-                    if texture then
-                        frame.icon:SetTexture(texture)
-                    end
-                end
-            end
-        end)
-    elseif event == "ZONE_CHANGED_NEW_AREA" then
-        -- Delves have no loading screen, so PLAYER_ENTERING_WORLD doesn't fire.
-        -- GetInstanceInfo() still returns stale data when this event fires,
-        -- so defer the cache invalidation + refresh.
-        C_Timer.After(0.5, function()
-            BR.BuffState.InvalidateContentTypeCache()
-            SetDirty()
-            -- Trigger delve entry for showOnInstanceEntry consumables (no loading screen on re-entry)
-            -- Skip if PLAYER_ENTERING_WORLD already started a timer for this entry
-            if BR.BuffState.ShouldTriggerDelveEntry() then
-                if not delveEntryTimer then
-                    BR.BuffState.SetDelveEntryState(true)
-                    UpdateDisplay()
-                    delveEntryTimer = C_Timer.NewTimer(30, function()
-                        ClearDelveEntryState()
-                        UpdateDisplay()
-                    end)
-                end
-            else
-                ClearDelveEntryState()
-            end
-        end)
-    elseif event == "GROUP_ROSTER_UPDATE" or event == "GROUP_FORMED" then
-        SetDirty("group")
-        -- Refresh chat-request macrotext so prefix tracks party↔raid↔instance
-        -- transitions. PreClick used to rebuild the macro on each click, but the
-        -- secure dispatcher could read a stale value before PreClick's write
-        -- propagated, sending to the wrong channel.
-        BR.SecureButtons.RefreshChatRequestMacros()
-    elseif event == "PLAYER_REGEN_ENABLED" then
-        inCombat = inEncounter
-        BR.BuffState.SetInCombat(inCombat)
-        BR.StateHelpers.ScanEatingState()
-        BR.SecureButtons.RefreshOverlaySpells()
-        StartUpdates()
-    elseif event == "PLAYER_REGEN_DISABLED" then
-        inCombat = true
-        BR.BuffState.SetInCombat(true)
-        ClearDelveEntryState()
-        SetDirty()
-    elseif event == "ENCOUNTER_START" then
-        inEncounter = true
-        inCombat = true
-        BR.BuffState.SetInCombat(true)
-        ClearDelveEntryState()
-        SetDirty()
-    elseif event == "ENCOUNTER_END" then
-        inEncounter = false
-        inCombat = inCombat and InCombatLockdown()
-        BR.BuffState.SetInCombat(inCombat)
-        SetDirty()
-    elseif event == "PLAYER_DEAD" then
-        HideAllDisplayFrames()
-    elseif event == "PLAYER_UNGHOST" then
-        SetDirty("full")
-    elseif event == "UNIT_AURA" then
-        if not IsTrackedDisplayUnit(arg1) then
-            return
+        else
+            ClearDelveEntryState()
         end
-        if arg1 == "player" then
-            BR.StateHelpers.UpdateEatingState(arg2)
-            SetDirty("full")
-        elseif arg1 == "pet" then
+    end)
+end
+
+eventHandlers.GROUP_ROSTER_UPDATE = function()
+    SetDirty("group")
+    -- Refresh chat-request macrotext so prefix tracks party↔raid↔instance
+    -- transitions. PreClick used to rebuild the macro on each click, but the
+    -- secure dispatcher could read a stale value before PreClick's write
+    -- propagated, sending to the wrong channel.
+    BR.SecureButtons.RefreshChatRequestMacros()
+end
+eventHandlers.GROUP_FORMED = eventHandlers.GROUP_ROSTER_UPDATE
+
+eventHandlers.PLAYER_REGEN_ENABLED = function()
+    inCombat = inEncounter
+    BR.BuffState.SetInCombat(inCombat)
+    BR.StateHelpers.ScanEatingState()
+    BR.SecureButtons.RefreshOverlaySpells()
+    StartUpdates()
+end
+
+eventHandlers.PLAYER_REGEN_DISABLED = function()
+    inCombat = true
+    BR.BuffState.SetInCombat(true)
+    ClearDelveEntryState()
+    SetDirty()
+end
+
+eventHandlers.ENCOUNTER_START = function()
+    inEncounter = true
+    inCombat = true
+    BR.BuffState.SetInCombat(true)
+    ClearDelveEntryState()
+    SetDirty()
+end
+
+eventHandlers.ENCOUNTER_END = function()
+    inEncounter = false
+    inCombat = inCombat and InCombatLockdown()
+    BR.BuffState.SetInCombat(inCombat)
+    SetDirty()
+end
+
+eventHandlers.PLAYER_DEAD = function()
+    HideAllDisplayFrames()
+end
+
+eventHandlers.PLAYER_UNGHOST = function()
+    SetDirty("full")
+end
+
+eventHandlers.UNIT_AURA = function(arg1, arg2)
+    if not IsTrackedDisplayUnit(arg1) then
+        return
+    end
+    if arg1 == "player" then
+        BR.StateHelpers.UpdateEatingState(arg2)
+        SetDirty("full")
+    elseif arg1 == "pet" then
+        SetDirty("full")
+    else
+        SetDirty("group")
+    end
+end
+
+eventHandlers.UNIT_FLAGS = function(arg1)
+    if IsTrackedDisplayUnit(arg1) then
+        if arg1 == "player" or arg1 == "pet" then
             SetDirty("full")
         else
             SetDirty("group")
         end
-    elseif event == "UNIT_FLAGS" or event == "UNIT_CONNECTION" or event == "UNIT_PHASE" then
-        if IsTrackedDisplayUnit(arg1) then
-            if arg1 == "player" or arg1 == "pet" then
-                SetDirty("full")
-            else
-                SetDirty("group")
-            end
-        end
-    elseif event == "UNIT_PET" then
-        if arg1 == "player" then
-            BR.BuffState.InvalidatePetCache()
-            SetDirty("full")
-        end
-    elseif event == "PET_BAR_UPDATE" then
-        SetDirty()
-    elseif event == "UPDATE_SHAPESHIFT_FORM" or event == "UPDATE_SHAPESHIFT_FORMS" then
-        BR.BuffState.InvalidateStanceCache()
-        SetDirty()
-    elseif event == "PET_STABLE_UPDATE" then
-        BR.PetHelpers.InvalidatePetActions()
-        SetDirty()
-    elseif event == "PLAYER_MOUNT_DISPLAY_CHANGED" then
-        local mounted = IsMounted()
-        if wasMounted and not mounted then
-            petDismountSuppressed = true
-            C_Timer.After(1.5, function()
-                petDismountSuppressed = false
-                SetDirty()
-            end)
-        end
-        wasMounted = mounted
-        SetDirty()
-    elseif event == "PLAYER_DIFFICULTY_CHANGED" then
-        BR.BuffState.InvalidateContentTypeCache()
-        SetDirty()
-    elseif event == "PVP_MATCH_STATE_CHANGED" then
-        local state = C_PvP.GetActiveMatchState()
-        -- Prep phase: anything that isn't Engaged means match isn't active.
-        local isPrep = state ~= Enum.PvPMatchState.Engaged
-        BR.BuffState.SetPvPPrepPhase(isPrep)
-        SetDirty()
-    elseif event == "PLAYER_UPDATE_RESTING" then
-        isResting = IsResting()
-        SetDirty()
-    elseif event == "PLAYER_LEVEL_UP" then
-        BR.BuffState.SetPlayerLevel(arg1)
-        SetDirty()
-    elseif event == "UPDATE_EXPANSION_LEVEL" then
-        BR.BuffState.SetMaxExpansionLevel(GetMaxLevelForPlayerExpansion())
-        SetDirty()
-    elseif event == "READY_CHECK" then
-        -- Cancel any existing timer
-        if readyCheckTimer then
-            readyCheckTimer:Cancel()
-        end
-        BR.BuffState.SetReadyCheckState(true)
-        UpdateDisplay() -- user-facing, must be instant
-        -- Start timer to reset ready check state
-        readyCheckTimer = C_Timer.NewTimer(15, function()
-            BR.BuffState.SetReadyCheckState(false)
-            readyCheckTimer = nil
-            UpdateDisplay() -- must be instant
-        end)
-    elseif event == "SPELL_ACTIVATION_OVERLAY_GLOW_SHOW" then
-        local spellID = arg1
-        glowingSpells[spellID] = true
-        SetDirty()
-    elseif event == "SPELL_ACTIVATION_OVERLAY_GLOW_HIDE" then
-        local spellID = arg1
-        glowingSpells[spellID] = nil
-        SetDirty()
-    elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
-        if arg1 ~= "player" then
-            return
-        end
-        -- Invalidate caches when player changes spec
-        BR.BuffState.InvalidateSpellCache()
-        BR.BuffState.InvalidateOffHandCache()
-        BR.BuffState.InvalidatePetCache()
-        BR.BuffState.InvalidateStanceCache()
+    end
+end
+eventHandlers.UNIT_CONNECTION = eventHandlers.UNIT_FLAGS
+eventHandlers.UNIT_PHASE = eventHandlers.UNIT_FLAGS
 
-        BR.PetHelpers.InvalidatePetActions()
-        BR.SecureButtons.InvalidateConsumableCache()
-        BR.SecureButtons.RefreshOverlaySpells()
-        UpdateDisplay() -- cache invalidation + immediate feedback
-        -- Spells can become available shortly after spec swap; refresh once more
-        C_Timer.After(0.5, function()
-            if not InCombatLockdown() then
-                BR.SecureButtons.RefreshOverlaySpells()
-            end
+eventHandlers.UNIT_PET = function(arg1)
+    if arg1 == "player" then
+        BR.BuffState.InvalidatePetCache()
+        SetDirty("full")
+    end
+end
+
+eventHandlers.PET_BAR_UPDATE = function()
+    SetDirty()
+end
+
+eventHandlers.UPDATE_SHAPESHIFT_FORM = function()
+    BR.BuffState.InvalidateStanceCache()
+    SetDirty()
+end
+eventHandlers.UPDATE_SHAPESHIFT_FORMS = eventHandlers.UPDATE_SHAPESHIFT_FORM
+
+eventHandlers.PET_STABLE_UPDATE = function()
+    BR.PetHelpers.InvalidatePetActions()
+    SetDirty()
+end
+
+eventHandlers.PLAYER_MOUNT_DISPLAY_CHANGED = function()
+    local mounted = IsMounted()
+    if wasMounted and not mounted then
+        petDismountSuppressed = true
+        C_Timer.After(1.5, function()
+            petDismountSuppressed = false
             SetDirty()
         end)
-    elseif event == "TRAIT_CONFIG_UPDATED" then
-        -- Invalidate spell cache when talents change (within same spec)
-        BR.BuffState.InvalidateSpellCache()
-        BR.BuffState.InvalidatePetCache()
-        BR.BuffState.InvalidateStanceCache()
-        BR.PetHelpers.InvalidatePetActions()
-        BR.SecureButtons.RefreshOverlaySpells()
-        SetDirty()
-    elseif event == "SPELLS_CHANGED" then
-        -- Catch delayed spell availability after spec/talent changes (noisy event, keep cheap)
-        BR.BuffState.InvalidateSpellCache()
-        BR.BuffState.InvalidatePetCache()
-        BR.BuffState.InvalidateStanceCache()
-        BR.PetHelpers.InvalidatePetActions()
-    elseif event == "PLAYER_EQUIPMENT_CHANGED" then
-        BR.BuffState.InvalidateItemCache()
-        BR.BuffState.InvalidateOffHandCache()
+    end
+    wasMounted = mounted
+    SetDirty()
+end
 
-        SetDirty()
-    elseif event == "BAG_UPDATE_DELAYED" then
-        BR.BuffState.InvalidateItemCache()
-        BR.SecureButtons.InvalidateConsumableCache()
-        SetDirty()
-        BR.SecureButtons.UpdateActionButtons("consumable")
-    elseif event == "UNIT_ENTERED_VEHICLE" or event == "UNIT_EXITED_VEHICLE" then
-        if arg1 == "player" then
-            BR.BuffState.SetInVehicle(event == "UNIT_ENTERED_VEHICLE")
-            UpdateDisplay()
+eventHandlers.PLAYER_DIFFICULTY_CHANGED = function()
+    BR.BuffState.InvalidateContentTypeCache()
+    SetDirty()
+end
+
+eventHandlers.PVP_MATCH_STATE_CHANGED = function()
+    local state = C_PvP.GetActiveMatchState()
+    -- Prep phase: anything that isn't Engaged means match isn't active.
+    local isPrep = state ~= Enum.PvPMatchState.Engaged
+    BR.BuffState.SetPvPPrepPhase(isPrep)
+    SetDirty()
+end
+
+eventHandlers.PLAYER_UPDATE_RESTING = function()
+    isResting = IsResting()
+    SetDirty()
+end
+
+eventHandlers.PLAYER_LEVEL_UP = function(arg1)
+    BR.BuffState.SetPlayerLevel(arg1)
+    SetDirty()
+end
+
+eventHandlers.UPDATE_EXPANSION_LEVEL = function()
+    BR.BuffState.SetMaxExpansionLevel(GetMaxLevelForPlayerExpansion())
+    SetDirty()
+end
+
+eventHandlers.READY_CHECK = function()
+    -- Cancel any existing timer
+    if readyCheckTimer then
+        readyCheckTimer:Cancel()
+    end
+    BR.BuffState.SetReadyCheckState(true)
+    UpdateDisplay() -- user-facing, must be instant
+    -- Start timer to reset ready check state
+    readyCheckTimer = C_Timer.NewTimer(15, function()
+        BR.BuffState.SetReadyCheckState(false)
+        readyCheckTimer = nil
+        UpdateDisplay() -- must be instant
+    end)
+end
+
+eventHandlers.SPELL_ACTIVATION_OVERLAY_GLOW_SHOW = function(arg1)
+    local spellID = arg1
+    glowingSpells[spellID] = true
+    SetDirty()
+end
+
+eventHandlers.SPELL_ACTIVATION_OVERLAY_GLOW_HIDE = function(arg1)
+    local spellID = arg1
+    glowingSpells[spellID] = nil
+    SetDirty()
+end
+
+eventHandlers.PLAYER_SPECIALIZATION_CHANGED = function(arg1)
+    if arg1 ~= "player" then
+        return
+    end
+    -- Invalidate caches when player changes spec
+    BR.BuffState.InvalidateSpellCache()
+    BR.BuffState.InvalidateOffHandCache()
+    BR.BuffState.InvalidatePetCache()
+    BR.BuffState.InvalidateStanceCache()
+    BR.BuffState.InvalidateLoadoutCache()
+
+    BR.PetHelpers.InvalidatePetActions()
+    BR.SecureButtons.InvalidateConsumableCache()
+    BR.SecureButtons.RefreshOverlaySpells()
+    UpdateDisplay() -- cache invalidation + immediate feedback
+    -- Spells can become available shortly after spec swap; refresh once more
+    C_Timer.After(0.5, function()
+        if not InCombatLockdown() then
+            BR.SecureButtons.RefreshOverlaySpells()
         end
-    elseif event == "UNIT_SPELLCAST_SUCCEEDED" or event == "UNIT_SPELLCAST_START" then
-        if SOULWELL_SPELL_IDS[arg3] then
-            ClearInstanceEntryState()
-            UpdateDisplay()
-        end
+        SetDirty()
+    end)
+end
+
+eventHandlers.TRAIT_CONFIG_UPDATED = function()
+    -- Invalidate spell cache when talents change (within same spec)
+    BR.BuffState.InvalidateSpellCache()
+    BR.BuffState.InvalidatePetCache()
+    BR.BuffState.InvalidateStanceCache()
+    BR.BuffState.InvalidateLoadoutCache()
+    BR.PetHelpers.InvalidatePetActions()
+    BR.SecureButtons.RefreshOverlaySpells()
+    SetDirty()
+end
+
+eventHandlers.SPELLS_CHANGED = function()
+    -- Catch delayed spell availability after spec/talent changes (noisy event, keep cheap)
+    BR.BuffState.InvalidateSpellCache()
+    BR.BuffState.InvalidatePetCache()
+    BR.BuffState.InvalidateStanceCache()
+    BR.BuffState.InvalidateLoadoutCache()
+    BR.PetHelpers.InvalidatePetActions()
+end
+
+eventHandlers.PLAYER_EQUIPMENT_CHANGED = function()
+    BR.BuffState.InvalidateItemCache()
+    BR.BuffState.InvalidateOffHandCache()
+    BR.BuffState.InvalidateLoadoutCache()
+
+    SetDirty()
+end
+
+eventHandlers.EQUIPMENT_SETS_CHANGED = function()
+    -- A saved equipment set changed (created / equipped / renamed): re-evaluate
+    -- loadout reminders. Icons may have changed too, so rebuild the rule array
+    -- (BuildLoadoutRulesArray invalidates the loadout cache).
+    BuildLoadoutRulesArray()
+    SetDirty()
+end
+
+eventHandlers.BAG_UPDATE_DELAYED = function()
+    BR.BuffState.InvalidateItemCache()
+    BR.SecureButtons.InvalidateConsumableCache()
+    SetDirty()
+    BR.SecureButtons.UpdateActionButtons("consumable")
+end
+
+eventHandlers.UNIT_ENTERED_VEHICLE = function(arg1)
+    if arg1 == "player" then
+        BR.BuffState.SetInVehicle(true)
+        UpdateDisplay()
+    end
+end
+eventHandlers.UNIT_EXITED_VEHICLE = function(arg1)
+    if arg1 == "player" then
+        BR.BuffState.SetInVehicle(false)
+        UpdateDisplay()
+    end
+end
+
+eventHandlers.UNIT_SPELLCAST_SUCCEEDED = function(_, _, arg3)
+    if SOULWELL_SPELL_IDS[arg3] then
+        ClearInstanceEntryState()
+        UpdateDisplay()
+    end
+end
+eventHandlers.UNIT_SPELLCAST_START = eventHandlers.UNIT_SPELLCAST_SUCCEEDED
+
+eventFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
+    local handler = eventHandlers[event]
+    if handler then
+        handler(arg1, arg2, arg3)
     end
 end)

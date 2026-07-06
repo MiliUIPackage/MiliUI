@@ -36,6 +36,9 @@ local BOTTOM_BAR_HEIGHT = C.BOTTOM_BAR_HEIGHT
 local SCROLLBAR_WIDTH = C.SCROLLBAR_WIDTH
 local COL_PADDING = C.COL_PADDING
 
+local BORDER_R, BORDER_G, BORDER_B = unpack(BR.Colors.Border)
+local ACCENT_R, ACCENT_G, ACCENT_B = unpack(BR.Colors.Accent)
+
 local optionsPanel = nil
 
 -- ============================================================================
@@ -125,6 +128,25 @@ StaticPopupDialogs["BUFFREMINDERS_DISCORD_URL"] = {
     preferredIndex = 3,
 }
 
+StaticPopupDialogs["BUFFREMINDERS_KOFI_URL"] = {
+    text = L["Dialog.KofiPrompt"],
+    button1 = L["Dialog.Close"],
+    hasEditBox = true,
+    editBoxWidth = 250,
+    OnShow = function(self)
+        self.EditBox:SetText("https://ko-fi.com/zerbyy")
+        self.EditBox:HighlightText()
+        self.EditBox:SetFocus()
+    end,
+    EditBoxOnEscapePressed = function(self)
+        self:GetParent():Hide()
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
 -- ============================================================================
 -- SIDEBAR BUTTON FACTORY
 -- ============================================================================
@@ -159,7 +181,7 @@ local function CreateSidebarButton(parent, text)
     local accent = btn:CreateTexture(nil, "ARTWORK")
     accent:SetSize(2, 18)
     accent:SetPoint("LEFT", 0, 0)
-    accent:SetColorTexture(1, 0.82, 0, 1)
+    accent:SetColorTexture(ACCENT_R, ACCENT_G, ACCENT_B, 1)
     accent:Hide()
     btn.accent = accent
 
@@ -183,7 +205,7 @@ local function CreateSidebarButton(parent, text)
     function btn:SetActive(active)
         self.isActive = active
         if active then
-            self.bg:SetColorTexture(1, 0.82, 0, 0.12)
+            self.bg:SetColorTexture(ACCENT_R, ACCENT_G, ACCENT_B, 0.12)
             self.accent:Show()
             self.label:SetTextColor(1, 1, 1)
         else
@@ -215,7 +237,7 @@ local function CreateOptionsPanel()
     end)
 
     -- ====================================================================
-    -- TOP BAR: title + version + Discord
+    -- TOP BAR: title + version + Discord + Ko-fi
     -- ====================================================================
     local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", COL_PADDING, -14)
@@ -245,6 +267,28 @@ local function CreateOptionsPanel()
     end)
     discordHit:SetScript("OnLeave", function()
         discordLink:SetText("|cff7289da" .. L["Options.JoinDiscord"] .. "|r")
+        BR.HideTooltip()
+    end)
+
+    local kofiSep = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    kofiSep:SetPoint("LEFT", discordLink, "RIGHT", 6, 0)
+    kofiSep:SetText("|cff555555·|r")
+
+    local kofiLink = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    kofiLink:SetPoint("LEFT", kofiSep, "RIGHT", 6, 0)
+    kofiLink:SetText("|cffff5e5b" .. L["Options.SupportKofi"] .. "|r")
+
+    local kofiHit = CreateFrame("Button", nil, panel)
+    kofiHit:SetAllPoints(kofiLink)
+    kofiHit:SetScript("OnClick", function()
+        StaticPopup_Show("BUFFREMINDERS_KOFI_URL")
+    end)
+    kofiHit:SetScript("OnEnter", function()
+        kofiLink:SetText("|cffff8a88" .. L["Options.SupportKofi"] .. "|r")
+        BR.ShowTooltip(kofiHit, L["Options.SupportKofi.Title"], L["Options.SupportKofi.Desc"], "ANCHOR_BOTTOM")
+    end)
+    kofiHit:SetScript("OnLeave", function()
+        kofiLink:SetText("|cffff5e5b" .. L["Options.SupportKofi"] .. "|r")
         BR.HideTooltip()
     end)
 
@@ -302,7 +346,7 @@ local function CreateOptionsPanel()
     end)
     downBtn:SetScript("OnEnter", function()
         if GetScalePct() > MIN_PCT then
-            scaleDown:SetTextColor(1, 0.82, 0)
+            scaleDown:SetTextColor(ACCENT_R, ACCENT_G, ACCENT_B)
         end
     end)
     downBtn:SetScript("OnLeave", function()
@@ -316,7 +360,7 @@ local function CreateOptionsPanel()
     end)
     upBtn:SetScript("OnEnter", function()
         if GetScalePct() < MAX_PCT then
-            scaleUp:SetTextColor(1, 0.82, 0)
+            scaleUp:SetTextColor(ACCENT_R, ACCENT_G, ACCENT_B)
         end
     end)
     upBtn:SetScript("OnLeave", function()
@@ -336,13 +380,13 @@ local function CreateOptionsPanel()
     headerSep:SetHeight(1)
     headerSep:SetPoint("TOPLEFT", SIDEBAR_X, -CONTENT_TOP_OFFSET + 4)
     headerSep:SetPoint("TOPRIGHT", -COL_PADDING, -CONTENT_TOP_OFFSET + 4)
-    headerSep:SetColorTexture(0.3, 0.3, 0.3, 1)
+    headerSep:SetColorTexture(BORDER_R, BORDER_G, BORDER_B, 1)
 
     local bottomSep = panel:CreateTexture(nil, "ARTWORK")
     bottomSep:SetHeight(1)
     bottomSep:SetPoint("BOTTOMLEFT", SIDEBAR_X, BOTTOM_BAR_HEIGHT - 5)
     bottomSep:SetPoint("BOTTOMRIGHT", -COL_PADDING, BOTTOM_BAR_HEIGHT - 5)
-    bottomSep:SetColorTexture(0.3, 0.3, 0.3, 1)
+    bottomSep:SetColorTexture(BORDER_R, BORDER_G, BORDER_B, 1)
 
     -- ====================================================================
     -- SIDEBAR
@@ -354,13 +398,13 @@ local function CreateOptionsPanel()
 
     local sidebarBg = sidebar:CreateTexture(nil, "BACKGROUND")
     sidebarBg:SetAllPoints()
-    sidebarBg:SetColorTexture(0, 0, 0, 0.25)
+    sidebarBg:SetColorTexture(0, 0, 0.04, 0.35)
 
     local sidebarBorder = sidebar:CreateTexture(nil, "BORDER")
     sidebarBorder:SetWidth(1)
     sidebarBorder:SetPoint("TOPRIGHT", 0, 0)
     sidebarBorder:SetPoint("BOTTOMRIGHT", 0, 0)
-    sidebarBorder:SetColorTexture(0.3, 0.3, 0.3, 1)
+    sidebarBorder:SetColorTexture(BORDER_R, BORDER_G, BORDER_B, 1)
 
     -- ====================================================================
     -- CONTENT AREA
@@ -535,8 +579,8 @@ local function CreateOptionsPanel()
         Components.RefreshAll()
     end, { title = L["Options.LockUnlock"], desc = L["Options.LockUnlock.Desc"] }, {
         border = { 0.7, 0.58, 0, 1 },
-        borderHover = { 1, 0.82, 0, 1 },
-        text = { 1, 0.82, 0, 1 },
+        borderHover = BR.Colors.Accent,
+        text = BR.Colors.Accent,
     })
     lockBtn:SetSize(BTN_WIDTH, 22)
     lockBtn:SetPoint("RIGHT", btnHolder, "CENTER", -4, 0)

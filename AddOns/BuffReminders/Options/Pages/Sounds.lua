@@ -30,6 +30,7 @@ local LSM = BR.LSM
 local PlaySoundFile = PlaySoundFile
 
 local COL_PADDING = BR.Options.Constants.COL_PADDING
+local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 
 local tinsert = table.insert
@@ -156,7 +157,7 @@ end
 
 local function Build(content, scrollFrame)
     local contentWidth = scrollFrame:GetContentWidth()
-    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = -10 })
+    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
 
     LayoutSectionNote(layout, content, L["Page.Sounds.Desc"])
 

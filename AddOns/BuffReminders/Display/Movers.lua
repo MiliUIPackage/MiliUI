@@ -20,6 +20,9 @@ local GetCategorySettings = BR.Helpers.GetCategorySettings
 local IsCategorySplit = BR.Helpers.IsCategorySplit
 local IsIconDetached = BR.Helpers.IsIconDetached
 
+-- Shared hairline border (BR.Colors.Border), unpacked once for the popup/menu chrome below.
+local BORDER_R, BORDER_G, BORDER_B = unpack(BR.Colors.Border)
+
 local ANCHOR_COORD_FN = {
     LEFT = function(m, px, py)
         return m:GetLeft() - px, select(2, m:GetCenter()) - py
@@ -93,7 +96,7 @@ local function GetSavedPosition(catKey)
         end
         return { x = 0, y = 0 }
     end
-    local defaults = BR.Display.defaults
+    local defaults = BR.defaults
     if catKey == "main" then
         return (db.categorySettings and db.categorySettings.main and db.categorySettings.main.position)
             or db.position
@@ -325,7 +328,7 @@ local function CreateCoordinatePopup()
         edgeSize = 1,
     })
     popup:SetBackdropColor(0.1, 0.1, 0.1, 0.95)
-    popup:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    popup:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
 
     -- Draggable title bar
     local titleBar = CreateFrame("Frame", nil, popup)
@@ -346,7 +349,7 @@ local function CreateCoordinatePopup()
     title:SetFont(fontPath, 11, outlineFlag)
     title:SetPoint("TOP", 0, -8)
     title:SetText(L["Mover.SetPosition"])
-    title:SetTextColor(1, 0.82, 0, 1)
+    title:SetTextColor(unpack(BR.Colors.Accent))
 
     local LABEL_X = 12
     local EDIT_WIDTH = 155
@@ -386,7 +389,7 @@ local function CreateCoordinatePopup()
     local sep = popup:CreateTexture(nil, "ARTWORK")
     sep:SetSize(216, 1)
     sep:SetPoint("TOPLEFT", LABEL_X, -82)
-    sep:SetColorTexture(0.3, 0.3, 0.3, 1)
+    sep:SetColorTexture(BORDER_R, BORDER_G, BORDER_B, 1)
 
     -- Anchor Frame label + dropdown button
     local anchorLabel = popup:CreateFontString(nil, "OVERLAY")
@@ -450,7 +453,7 @@ local function CreateCoordinatePopup()
         edgeSize = 1,
     })
     anchorMenu:SetBackdropColor(0.12, 0.12, 0.12, 0.98)
-    anchorMenu:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    anchorMenu:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
     anchorMenu:SetPoint("TOP", anchorBtn, "BOTTOM", 0, -2)
     anchorMenu:SetClampedToScreen(true)
     anchorMenu:EnableMouse(true)
@@ -518,7 +521,7 @@ local function CreateCoordinatePopup()
             popup.pointArrow:SetVertexColor(0.6, 0.6, 0.6, 1)
         else
             popup.pointText:SetTextColor(0.4, 0.4, 0.4, 1)
-            popup.pointArrow:SetVertexColor(0.3, 0.3, 0.3, 1)
+            popup.pointArrow:SetVertexColor(BORDER_R, BORDER_G, BORDER_B, 1)
         end
     end
 
@@ -632,7 +635,7 @@ local function CreateCoordinatePopup()
         edgeSize = 1,
     })
     pointMenu:SetBackdropColor(0.12, 0.12, 0.12, 0.98)
-    pointMenu:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    pointMenu:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
     pointMenu:SetPoint("TOP", pointBtn, "BOTTOM", 0, -2)
     pointMenu:EnableMouse(true)
     pointMenu:Hide()
@@ -773,7 +776,7 @@ local function ShowCoordinatePopup(catKey, mover)
         coordPopup.pointArrow:SetVertexColor(0.6, 0.6, 0.6, 1)
     else
         coordPopup.pointText:SetTextColor(0.4, 0.4, 0.4, 1)
-        coordPopup.pointArrow:SetVertexColor(0.3, 0.3, 0.3, 1)
+        coordPopup.pointArrow:SetVertexColor(BORDER_R, BORDER_G, BORDER_B, 1)
     end
 
     coordPopup:Show()
@@ -899,7 +902,7 @@ local function CreateMoverFrame(catKey, displayName)
                 coordPopup.anchorText:SetText(L["Mover.NoneScreenCenter"])
                 coordPopup.pointBtn:SetEnabled(false)
                 coordPopup.pointText:SetTextColor(0.4, 0.4, 0.4, 1)
-                coordPopup.pointArrow:SetVertexColor(0.3, 0.3, 0.3, 1)
+                coordPopup.pointArrow:SetVertexColor(BORDER_R, BORDER_G, BORDER_B, 1)
             end
             -- Update mover label
             self.anchorText:SetText(format(L["Mover.AnchorGrowth"], dir))

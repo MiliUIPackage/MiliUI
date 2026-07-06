@@ -27,6 +27,7 @@ english["Category.Self"] = "Self"
 english["Category.Pet"] = "Pet"
 english["Category.Consumable"] = "Consumable"
 english["Category.Custom"] = "Custom"
+english["Category.Loadout"] = "Loadout"
 
 -- Long form (used in Options section headers)
 english["Category.RaidBuffs"] = "Raid Buffs"
@@ -36,6 +37,7 @@ english["Category.PresenceBuffs"] = "Presence Buffs"
 english["Category.SelfBuffs"] = "Self Buffs"
 english["Category.PetReminders"] = "Pet Reminders"
 english["Category.CustomBuffs"] = "Custom Buffs"
+english["Category.LoadoutReminders"] = "Loadout Reminders"
 
 -- Category notes
 english["Category.RaidNote"] = "(for the whole group)"
@@ -45,6 +47,44 @@ english["Category.PresenceNote"] = "(at least 1 person needs)"
 english["Category.SelfNote"] = "(buffs strictly on yourself)"
 english["Category.PetNote"] = "(pet summon reminders)"
 english["Category.CustomNote"] = "(track any buff/glow by spell ID)"
+english["Category.LoadoutNote"] = "(remind me when my gear or talents don't match the content)"
+
+-- Loadout reminders
+english["Loadout.Add"] = "Add Loadout Reminder"
+english["Loadout.Edit"] = "Edit Loadout Reminder"
+english["Loadout.AddButton"] = "+ Add Loadout Reminder"
+english["Loadout.Empty"] = "No loadout reminders yet. Add one below."
+english["Loadout.Name"] = "Name"
+english["Loadout.Expect"] = "EXPECT"
+english["Loadout.Applies"] = "APPLIES TO"
+english["Loadout.Content"] = "Content"
+english["Loadout.Requirement"] = "Require"
+english["Loadout.EquipmentSet"] = "Equipment set"
+english["Loadout.TalentSpell"] = "Talent spell ID"
+english["Loadout.NoSets"] = "No equipment sets found. Create one from the character sheet (Equipment Manager) first."
+english["Loadout.NoSetSelected"] = "Select an equipment set first."
+english["Loadout.NoLoadouts"] = "No saved talent loadouts for this spec."
+english["Loadout.NoLoadoutSelected"] = "Select a talent loadout first."
+english["Loadout.InvalidSpell"] = "That spell ID doesn't exist. Use a talent's spell ID."
+english["Loadout.CombatBlocked"] = "Can't change gear or talents in combat."
+english["Loadout.Instances"] = "%d instances"
+english["Loadout.LimitRaids"] = "Only specific raids"
+english["Loadout.LimitDungeons"] = "Only specific dungeons"
+-- Content scope (you can't swap gear/talents once a key or match starts, so the
+-- rule only needs the content you're in - no per-difficulty granularity).
+english["Loadout.Scope.Raid"] = "Raid"
+english["Loadout.Scope.Dungeon"] = "Dungeon"
+english["Loadout.Scope.Arena"] = "Arena"
+english["Loadout.Scope.Battleground"] = "Battleground"
+-- Binding label: spec + class, e.g. "Protection Warrior" (reorder for your locale).
+english["Loadout.SpecClass"] = "%s %s"
+english["Loadout.Require.Gear"] = "Equipment set"
+english["Loadout.Require.Talent"] = "Talent"
+english["Loadout.Require.Loadout"] = "Talent loadout"
+-- On-icon "what's wrong" tags (newline wraps them to two lines on the icon)
+english["Loadout.Tag.Gear"] = "WRONG\nGEAR"
+english["Loadout.Tag.Talent"] = "MISSING\nTALENT"
+english["Loadout.Tag.Loadout"] = "WRONG\nBUILD"
 
 -- ============================================================================
 -- BUFF OVERLAY TEXT
@@ -265,8 +305,9 @@ english["Display.DismissConsumables"] = "Hide consumable reminders until next lo
 english["Display.DismissConsumablesChat"] = "Consumable reminders hidden until next loading screen."
 english["Display.LoginFirstInstall"] =
     "Thanks for installing! Type |cFFFFD100/br unlock|r to move the buff display, or use the button at the bottom of the |cFFFFD100/br|r options panel."
-english["Display.LoginSelfOnlyOutside"] =
-    "New default: in the open world, only your own class buffs on yourself are tracked. Toggle |cFFFFD100Force self-only outside dungeons and raids|r in the Settings tab to change this."
+english["Display.LoginLoadout"] = "New: loadout reminders! Set them up on the Gear & Talents page in |cFFFFD100/br|r."
+english["Display.LoginGlowDefaultChanged"] =
+    "Buff glow is now off by default to reduce CPU usage. Re-enable it any time on the Defaults page in |cFFFFD100/br|r."
 
 -- ============================================================================
 -- OPTIONS: NAVIGATION LABELS
@@ -277,6 +318,7 @@ english["Tab.DisplayBehavior"] = "Display/Behavior"
 english["Sidebar.General"] = "General"
 english["Sidebar.Buffs"] = "Buffs"
 english["Sidebar.DisplayBehavior"] = "Display & Behavior"
+english["Sidebar.Loadouts"] = "Gear & Talents"
 english["Sidebar.Profiles"] = "Profiles"
 
 -- Page titles
@@ -334,6 +376,8 @@ english["Options.GlowReminderIcons"] = "Glow reminder icons"
 english["Options.GlowReminderIcons.Title"] = "Glow Reminder Icons"
 english["Options.GlowReminderIcons.Desc"] =
     "Add a glow effect to reminder icons. Customize to configure expiring and missing glows independently."
+english["Options.GlowReminderIcons.CpuWarning"] =
+    "Glow animates every frame for each icon on screen, so it uses more CPU. If an icon stays up for a long time (e.g. a buff you don't rebuff mid-fight), that cost is continuous. Disabled by default for this reason."
 english["Options.GlowKind.Expiring"] = "Expiring"
 english["Options.GlowKind.Missing"] = "Missing"
 english["Options.GlowSettings.Expiring"] = "Glow Settings - Expiring"
@@ -748,6 +792,7 @@ english["Options.UnknownError"] = "Unknown error"
 -- ============================================================================
 english["Dialog.Cancel"] = "Cancel"
 english["Dialog.DeleteCustomBuff"] = 'Delete custom buff "%s"?'
+english["Dialog.DeleteLoadout"] = 'Delete loadout reminder "%s"?'
 english["Dialog.ResetProfile"] =
     "Reset the active profile to defaults?\n\nThis will erase all customizations\nin the current profile and reload the UI."
 english["Dialog.Reset"] = "Reset"
@@ -756,6 +801,7 @@ english["Dialog.Reload"] = "Reload"
 english["Dialog.NewProfilePrompt"] = "Enter a name for the new profile:"
 english["Dialog.Create"] = "Create"
 english["Dialog.DiscordPrompt"] = "Join the BuffReminders Discord!\nCopy the URL below (Ctrl+C):"
+english["Dialog.KofiPrompt"] = "Thank you for supporting BuffReminders!\nCopy the URL below (Ctrl+C):"
 english["Dialog.Close"] = "Close"
 
 -- ============================================================================
@@ -868,6 +914,13 @@ english["CustomBuff.Error"] = "Error:"
 english["Options.JoinDiscord"] = "Join Discord"
 english["Options.JoinDiscord.Title"] = "Click for invite link"
 english["Options.JoinDiscord.Desc"] = "Got feedback, feature requests, or bug reports?\nJoin the Discord!"
+
+-- ============================================================================
+-- OPTIONS: KO-FI
+-- ============================================================================
+english["Options.SupportKofi"] = "Support on Ko-fi"
+english["Options.SupportKofi.Title"] = "Click for the link"
+english["Options.SupportKofi.Desc"] = "Enjoying BuffReminders?\nConsider supporting development on Ko-fi!"
 
 -- ============================================================================
 -- OPTIONS: CUSTOM ANCHOR FRAMES

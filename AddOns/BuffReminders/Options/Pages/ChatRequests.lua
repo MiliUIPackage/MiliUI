@@ -19,6 +19,7 @@ local LayoutSectionNote = BR.Options.Helpers.LayoutSectionNote
 
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local COL_PADDING = BR.Options.Constants.COL_PADDING
+local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 
 local strtrim = strtrim
 local abs = math.abs
@@ -42,7 +43,7 @@ local function RefreshChatActions()
 end
 
 local function Build(content, scrollFrame)
-    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = -10 })
+    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
     local contentWidth = scrollFrame:GetContentWidth()
 
     -- Description
@@ -155,7 +156,7 @@ local function Build(content, scrollFrame)
     -- current x-indent so it sits aligned under the checkbox, not at the
     -- page edge.
     local fixAttemptNote = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    fixAttemptNote:SetTextColor(1, 0.82, 0)
+    fixAttemptNote:SetTextColor(unpack(BR.Colors.Accent))
     fixAttemptNote:SetJustifyH("LEFT")
     local noteWidth = contentWidth - layout:GetX() - COL_PADDING
     if noteWidth < 1 then

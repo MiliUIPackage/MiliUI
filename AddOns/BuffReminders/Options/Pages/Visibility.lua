@@ -23,6 +23,7 @@ local MakeProfileSetter = Helpers.MakeProfileSetter
 
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local COL_PADDING = BR.Options.Constants.COL_PADDING
+local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 
 local abs = math.abs
 
@@ -262,7 +263,7 @@ local function BuildTrackingOverridesSection(content, layout)
 end
 
 local function Build(content)
-    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = -10 })
+    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
 
     BuildHideWhenSection(content, layout)
     BuildTrackingSection(content, layout)
