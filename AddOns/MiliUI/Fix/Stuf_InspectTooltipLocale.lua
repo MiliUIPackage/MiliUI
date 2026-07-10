@@ -1,6 +1,6 @@
 
 ---------------------------------------------------------------
--- MiliUI Enhance: Stuf Inspect Button Tooltip Localization
+-- MiliUI Fix: Stuf Inspect Button Tooltip Localization
 -- Stuf/icons.lua 763-766 的 inspect button tooltip 硬寫英文，
 -- 沒走 L[...]；StufLocale.lua 裡 zhTW/zhCN 翻譯未被讀取。
 -- 這裡在 tooltip 顯示時以 owner backdrop 辨識 Stuf inspect button

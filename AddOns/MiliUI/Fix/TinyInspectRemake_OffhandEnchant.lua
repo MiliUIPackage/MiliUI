@@ -1,6 +1,6 @@
 
 ---------------------------------------------------------------
--- MiliUI Enhance: TinyInspect-Remake Offhand Enchant Fix
+-- MiliUI Fix: TinyInspect-Remake Offhand Enchant Fix
 -- 盾牌與副手物品（法器等）無法附魔，跳過缺附魔警告
 -- Author: Mili
 ---------------------------------------------------------------
