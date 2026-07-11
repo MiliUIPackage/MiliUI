@@ -69,6 +69,9 @@ local function SecretsActive()
     return C_Secrets and C_Secrets.HasSecretRestrictions() and true or false
 end
 
+-- 12.0.1：pcall 接不到秘密值錯誤，數值存入明文變數前一律先檢查
+local issecretvalue = issecretvalue or function() return false end
+
 local function GetDB()
     if not MiliUI_DB then MiliUI_DB = {} end
     local db = MiliUI_DB.focusCast
@@ -204,8 +207,8 @@ end
 local function SecretTick()
     if not (active and castSecret) then StopDisplayTicker(); return end
     if isInEditMode then return end
+    local elapsed = GetTime() - castLocalStart
     if castTotal > 0 then
-        local elapsed = GetTime() - castLocalStart
         if elapsed > castTotal + 0.3 then   -- 保險：STOP 事件若漏掉也會收條
             HideBar()
             return
@@ -214,6 +217,11 @@ local function SecretTick()
         if shown < 0 then shown = 0 elseif shown > castTotal then shown = castTotal end
         timeText:SetText(string.format("%.1f/%.1f", shown, castTotal))
     else
+        -- 拿不到總長：改輪詢施法狀態收條（nil 判斷秘密安全），不猜固定秒數
+        if UnitCastingInfo("focus") == nil and UnitChannelInfo("focus") == nil then
+            HideBar()
+            return
+        end
         timeText:SetText("")
     end
     ApplySecretColor()
@@ -561,7 +569,14 @@ local function StartDisplay(castTbl, chanTbl)
             dur = UnitCastingDuration("focus")
         end
         if dur and barStatusBar.SetTimerDuration then
-            castTotal = (dur.GetTotalDuration and dur:GetTotalDuration()) or 0
+            -- GetTotalDuration 可能回秘密數字（不能比較/運算），擋掉改走無數字路徑
+            castTotal = 0
+            if dur.GetTotalDuration then
+                local total = dur:GetTotalDuration()
+                if total ~= nil and not issecretvalue(total) then
+                    castTotal = total
+                end
+            end
             barStatusBar:SetMinMaxValues(0, 1)
             barStatusBar:SetTimerDuration(dur, nil, TimerDir(isChannel, isEmpowered))
         else
