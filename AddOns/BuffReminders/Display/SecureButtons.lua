@@ -197,6 +197,19 @@ end
 -- CLICK-TO-CAST OVERLAY
 -- ============================================================================
 
+-- Right-click on a clickable consumable snoozes reminders instead of using the item. We neutralise
+-- the right button's secure action (empty type2 so it resolves to no handler) and flag the button;
+-- its PostClick then performs the snooze. Left-click still uses the item. `on == false` restores the
+-- default (right-click uses the item), for overlays that switch to a non-item action (e.g. chat
+-- request). Must run out of combat - callers already are. See BR.SnoozeConsumables.
+local function SetRightClickSnooze(button, on)
+    if not button then
+        return
+    end
+    button._br_snoozeRightClick = on == true
+    button:SetAttribute("type2", on == true and "" or nil)
+end
+
 -- Create a SecureActionButton overlay for click-to-cast on a buff frame.
 -- Parented to UIParent with NO anchors to the buff frame hierarchy, avoiding any
 -- layout dependency that would make the frame hierarchy protected/secure.
@@ -231,7 +244,13 @@ local function CreateClickOverlay(frame)
             self:SetAttribute("macrotext", self._br_clickMacroFn(self._br_clickMacroSpellID))
         end
     end)
-    overlay:SetScript("PostClick", function(self)
+    overlay:SetScript("PostClick", function(self, button, down)
+        -- Consumable right-click snoozes reminders (the cast is neutralised via type2).
+        -- Fire once, on the up event, and skip the item-consumed refresh below.
+        if button == "RightButton" and not down and self._br_snoozeRightClick then
+            BR.SnoozeConsumables()
+            return
+        end
         if self._br_chatRequestKey then
             -- Anti-spam: disable mouse + show cooldown swirl for 5s. Gated by
             -- BR.profile.chatRequestCooldown (default true). A small fraction
@@ -428,7 +447,12 @@ local function CreateActionButton()
         end
     end)
     -- Refresh display shortly after click so the consumed buff disappears quickly
-    btn:SetScript("PostClick", function(self)
+    btn:SetScript("PostClick", function(self, button, down)
+        -- Consumable right-click snoozes reminders (the cast is neutralised via type2).
+        if button == "RightButton" and not down and self._br_snoozeRightClick then
+            BR.SnoozeConsumables()
+            return
+        end
         BR.ConsumableMemory.RememberChoice(self.itemID, self._br_buff_frame)
         C_Timer.After(0.3, function()
             if not InCombatLockdown() then
@@ -675,6 +699,8 @@ local function UpdateConsumableButtons(frame, actionItems, clickable, startIndex
                 btn:SetAttribute("type", "item")
                 btn:SetAttribute("item", "item:" .. tostring(item.itemID))
             end
+            -- Right-click snoozes reminders instead of using this consumable.
+            SetRightClickSnooze(btn, true)
             btn._br_action_item = item.itemID
         end
 
@@ -1133,6 +1159,8 @@ local function SetItemAttributes(overlay, itemID, weaponSlot)
         overlay:SetAttribute("type", "item")
         overlay:SetAttribute("item", "item:" .. itemID)
     end
+    -- Right-click snoozes reminders instead of using the consumable (left-click still uses it).
+    SetRightClickSnooze(overlay, true)
 end
 
 -- ============================================================================
@@ -1319,6 +1347,7 @@ local function UpdateActionButtons(category)
                         ClearChatRequestState(overlay)
                         overlay:SetAttribute("type", "macro")
                         overlay:SetAttribute("macrotext", def.clickMacro(castableID))
+                        SetRightClickSnooze(overlay, true)
                         overlay:EnableMouse(true)
                         if overlay.highlight then
                             overlay.highlight:SetShown(showHighlight)
@@ -1336,6 +1365,7 @@ local function UpdateActionButtons(category)
                         ClearChatRequestState(overlay)
                         overlay:SetAttribute("type", "spell")
                         overlay:SetAttribute("spell", def.castSpellID)
+                        SetRightClickSnooze(overlay, true)
                         overlay:EnableMouse(true)
                         if overlay.highlight then
                             overlay.highlight:SetShown(showHighlight)
@@ -1344,7 +1374,10 @@ local function UpdateActionButtons(category)
                         -- Player can neither create the consumable nor has one in
                         -- bags - ask the provider class in chat (e.g. non-warlock
                         -- requesting a healthstone), just like raid/presence buffs.
+                        -- Right-click stays the chat request here (not snooze); clear any
+                        -- leftover suppression from a previous item state on this overlay.
                         SetupChatRequestOverlay(frame, frameHighlight)
+                        SetRightClickSnooze(frame.clickOverlay, false)
                     elseif frame.clickOverlay then
                         -- No action resolved; clear fields but don't Hide() - let
                         -- SyncSecureButtons handle visibility via _br_has_action check.
@@ -1353,6 +1386,7 @@ local function UpdateActionButtons(category)
                         frame.clickOverlay._br_clickMacroSpellID = nil
                         frame.clickOverlay.itemID = nil
                         ClearChatRequestState(frame.clickOverlay)
+                        SetRightClickSnooze(frame.clickOverlay, false)
                         frame.clickOverlay:EnableMouse(false)
                     end
                     UpdateConsumableSubElements(frame, actionItems, showHighlight, frameHighlight, db)

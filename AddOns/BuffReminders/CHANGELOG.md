@@ -1,8 +1,9 @@
 # BuffReminders
 
-## [v6.1.2](https://github.com/zerbiniandrea/BuffReminders/tree/v6.1.2) (2026-07-03)
-[Full Changelog](https://github.com/zerbiniandrea/BuffReminders/compare/v6.1.1...v6.1.2) [Previous Releases](https://github.com/zerbiniandrea/BuffReminders/releases)
+## [v6.2.1](https://github.com/zerbiniandrea/BuffReminders/tree/v6.2.1) (2026-07-10)
+[Full Changelog](https://github.com/zerbiniandrea/BuffReminders/compare/v6.2.0...v6.2.1) [Previous Releases](https://github.com/zerbiniandrea/BuffReminders/releases)
 
-- fix(runes): 🐛 prevent false DK wrong-rune from stale off-hand cache  
-- 18n(koKR): 🌐 update localization  
-- refactor: ♻️ centralize UI palette and page padding into shared tokens  
+- i8n(zhTW): 🌐 update localization  
+- i8n(koKR): 🌐 update localization  
+- feat(loadouts): ✨ switch talent loadout on reminder click  
+- feat(loadouts): ✨ add Open World and Delve scopes to loadout reminders  

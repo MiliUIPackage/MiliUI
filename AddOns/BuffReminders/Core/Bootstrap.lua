@@ -65,6 +65,9 @@ bootstrapFrame:SetScript("OnEvent", function(_, event, arg1)
 
     local db = BR.profile
 
+    -- Retired one-time notice flags: clear stale globals from earlier versions.
+    BR.aceDB.global.glowDefaultNoticeCount = nil
+
     -- ====================================================================
     -- Versioned migrations - each runs exactly once, tracked by dbVersion.
     -- Migration functions live in Core/Migrations.lua (append-only; never
@@ -181,25 +184,19 @@ bootstrapFrame:SetScript("OnEvent", function(_, event, arg1)
     end
 
     -- Login messages
-    local GLOW_NOTICE_MAX = 5 -- show the glow-default change notice for this many logins
     C_Timer.After(5, function()
         local glob = BR.aceDB.global
         if isFirstInstall then
-            -- Fresh installs already default to no glow; suppress the change notice.
-            glob.glowDefaultNoticeCount = GLOW_NOTICE_MAX
+            -- Fresh installs never knew the old dismiss button; skip the transition notice.
+            glob.snoozeNoticeShown = true
             print("|cff00ccffBuffReminders:|r " .. L["Display.LoginFirstInstall"])
             return
         end
-        -- Glow default flipped to off for existing users who never explicitly
-        -- enabled it. Shown for the first few logins (one-time messages are
-        -- easily missed), regardless of showLoginMessages, then stops. Does not
-        -- replace the regular login message - both can print the same login.
-        if (glob.glowDefaultNoticeCount or 0) < GLOW_NOTICE_MAX then
-            glob.glowDefaultNoticeCount = (glob.glowDefaultNoticeCount or 0) + 1
-            print("|cff00ccffBuffReminders:|r " .. L["Display.LoginGlowDefaultChanged"])
-        end
-        if BR.profile.showLoginMessages ~= false then
-            print("|cff00ccffBuffReminders:|r " .. L["Display.LoginLoadout"])
+        -- The consumable dismiss button was replaced by right-click / /br snooze. Tell existing
+        -- users once (a normal login message, so it respects showLoginMessages), then never again.
+        if BR.profile.showLoginMessages ~= false and not glob.snoozeNoticeShown then
+            glob.snoozeNoticeShown = true
+            print("|cff00ccffBuffReminders:|r " .. L["Display.LoginSnooze"])
         end
     end)
 end)

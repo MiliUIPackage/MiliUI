@@ -32,6 +32,7 @@ local ACCENT_R, ACCENT_G, ACCENT_B = unpack(BR.Colors.Accent)
 ---@field onToggle? fun(expanded: boolean) Optional callback when toggled
 
 ---@class ToggleConfig
+---@field disabledReason? string|fun(): string Shown on hover while the control is disabled
 ---@field label string
 ---@field checked? boolean
 ---@field get? fun(): boolean
@@ -165,6 +166,40 @@ BR.HideTooltip = HideTooltip
 BR.SetupTooltip = SetupTooltip
 BR.HookTooltip = HookTooltip
 
+---Resolve a disabled-reason value: reasons can be static strings or getters
+---(for messages that depend on current state).
+---@param reason string|fun(): string
+---@return string
+local function ResolveDisabledReason(reason)
+    if type(reason) == "function" then
+        return reason()
+    end
+    return reason
+end
+
+---Attach an explanatory hover tooltip that appears only while a control is
+---disabled, telling the user WHY it is disabled and where to change that.
+---Disabled controls must never be mute: a greyed-out widget with no reason
+---reads as broken. Pass the same predicate that drives the control's
+---`enabled` state.
+---@param holder table Component holder frame (hover target)
+---@param isEnabledFn fun(): boolean Predicate driving the control's enabled state
+---@param reason string|fun(): string Why the control is disabled and how to enable it
+function Components.AttachDisabledReason(holder, isEnabledFn, reason)
+    holder:EnableMouse(true)
+    holder:HookScript("OnEnter", function()
+        if isEnabledFn() then
+            return
+        end
+        ShowTooltip(holder, L["Component.DisabledReason.Title"], ResolveDisabledReason(reason), "ANCHOR_TOP")
+    end)
+    holder:HookScript("OnLeave", function()
+        if not isEnabledFn() then
+            HideTooltip()
+        end
+    end)
+end
+
 -- ============================================================================
 -- BUTTON
 -- ============================================================================
@@ -244,7 +279,14 @@ function BR.CreateButton(parent, text, onClick, tooltip, colorOverrides)
     btn:SetScript("OnEnter", function()
         isHovered = true
         UpdateVisual()
-        if tooltip then
+        if not isEnabled and btn._disabledReason then
+            ShowTooltip(
+                btn,
+                L["Component.DisabledReason.Title"],
+                ResolveDisabledReason(btn._disabledReason),
+                "ANCHOR_TOP"
+            )
+        elseif tooltip then
             ShowTooltip(btn, tooltip.title, tooltip.desc, "ANCHOR_TOP")
         end
     end)
@@ -253,7 +295,7 @@ function BR.CreateButton(parent, text, onClick, tooltip, colorOverrides)
         isHovered = false
         isPressed = false
         UpdateVisual()
-        if tooltip then
+        if tooltip or btn._disabledReason then
             HideTooltip()
         end
     end)
@@ -297,6 +339,14 @@ function BR.CreateButton(parent, text, onClick, tooltip, colorOverrides)
         UpdateVisual()
     end
 
+    -- Disabled buttons explain themselves on hover. Requires motion scripts
+    -- while disabled: Button:Disable() otherwise stops OnEnter from firing.
+    ---@param reason string|fun(): string Why the button is disabled and how to enable it
+    function btn:SetDisabledReason(reason)
+        btn._disabledReason = reason
+        btn:SetMotionScriptsWhileDisabled(true)
+    end
+
     -- Opt this button into the OnShow refresh pattern: enabledFn is re-evaluated
     -- by Components.RefreshAll() and applied via :SetEnabled. Use this instead
     -- of imperative :SetEnabled cascades hooked to other widgets' OnClick.
@@ -319,6 +369,7 @@ function BR.CreateButton(parent, text, onClick, tooltip, colorOverrides)
 end
 
 ---@class ComponentConfig
+---@field disabledReason? string|fun(): string Shown on hover while the control is disabled: why, and where to change it
 ---@class SliderConfig : ComponentConfig
 ---@field label string Display label for the slider
 ---@field min number Minimum value
@@ -735,6 +786,11 @@ function Components.Slider(parent, config)
         tinsert(RefreshableComponents, holder)
     end
 
+    -- Disabled controls explain themselves on hover
+    if config.disabledReason and config.enabled then
+        Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
+    end
+
     return holder
 end
 
@@ -923,12 +979,17 @@ function Components.Checkbox(parent, config)
     local label = holder:CreateFontString(nil, "OVERLAY", labelFont)
     label:SetPoint("LEFT", lastAnchor, "RIGHT", LABEL_LEAD, 0) -- Slightly more space before text
     label:SetWordWrap(false)
+    local labelLeftX = CHECKBOX_W + iconCount * (ICON_SPACING + ICON_SIZE) + LABEL_LEAD
+    holder.labelOffset = labelLeftX -- exposed so callers can clamp against widgets anchored at holder.right
+    -- x of the first icon's left edge (fixed regardless of icon count), so a
+    -- caller can align a sub-row under the icon rather than under the label,
+    -- which drifts right with 3-4 icon buffs.
+    holder.iconOffset = CHECKBOX_W + ICON_SPACING
     if config.labelWidth ~= nil then
         -- Clamp so the label can't extend past holder.right and overlap
         -- whatever the caller is anchoring there (gear/detach icons, etc.).
         local hasInfoIcon = config.infoTooltip or config.warningTooltip
         local trailing = hasInfoIcon and (INFO_ICON_GAP + INFO_ICON_W) or 0
-        local labelLeftX = CHECKBOX_W + iconCount * (ICON_SPACING + ICON_SIZE) + LABEL_LEAD
         local maxLabelW = holderWidth - labelLeftX - trailing
         local labelWidth = max(0, min(config.labelWidth, maxLabelW))
         label:SetWidth(labelWidth)
@@ -1018,6 +1079,11 @@ function Components.Checkbox(parent, config)
     -- Auto-register if refreshable
     if config.get or config.enabled then
         tinsert(RefreshableComponents, holder)
+    end
+
+    -- Disabled controls explain themselves on hover
+    if config.disabledReason and config.enabled then
+        Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
     end
 
     return holder
@@ -1315,6 +1381,11 @@ function Components.Toggle(parent, config)
         tinsert(RefreshableComponents, holder)
     end
 
+    -- Disabled controls explain themselves on hover
+    if config.disabledReason and config.enabled then
+        Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
+    end
+
     UpdateVisual()
 
     return holder
@@ -1489,6 +1560,13 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     local function OpenMenu()
         isOpen = true
         PositionMenu()
+        -- The menu sits on FULLSCREEN_DIALOG so it floats over the main options
+        -- panel (DIALOG strata). But dialogs also live on FULLSCREEN_DIALOG, so
+        -- inside a dialog the strata ties and draw order falls back to frame
+        -- level - the dialog's own widgets would then paint over the open menu.
+        -- Raise the menu well above the button's level (recomputed each open so
+        -- it tracks a reparented/relevelled dropdown) so it always reads on top.
+        menu:SetFrameLevel((button:GetFrameLevel() or 0) + 50)
         menu:Show()
         if scrollFrame then
             scrollFrame:SetVerticalScroll(0)
@@ -1789,6 +1867,11 @@ function Components.DirectionButtons(parent, config)
     -- Auto-register if refreshable
     if config.get or config.enabled then
         tinsert(RefreshableComponents, holder)
+    end
+
+    -- Disabled controls explain themselves on hover
+    if config.disabledReason and config.enabled then
+        Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
     end
 
     -- Backwards compatibility: empty buttons table (no longer used)
@@ -2537,6 +2620,11 @@ function Components.Dropdown(parent, config, _)
         tinsert(RefreshableComponents, holder)
     end
 
+    -- Disabled controls explain themselves on hover
+    if config.disabledReason and config.enabled then
+        Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
+    end
+
     return holder
 end
 
@@ -2623,6 +2711,25 @@ function Components.Tab(parent, config)
     tab:SetActive(false)
 
     return tab
+end
+
+---Grounding hairline for a tab strip: a faint full-width line sitting on the
+---tabs' bottom edge. Each tab's gold underline (ARTWORK) rides on top of it, so
+---the active tab reads as a bold segment of a continuous line - a modern,
+---grounded tab bar rather than a lone floating accent. Drawn on the BORDER layer
+---so the active tab's underline always covers it. Anchor to the strip's left-most
+---tab and pass the strip's total width.
+---@param parent table Frame owning the strip
+---@param anchorTab table The left-most tab in the strip
+---@param width number Total strip width the line should span
+---@return table line The baseline texture
+function Components.TabBaseline(parent, anchorTab, width)
+    local line = parent:CreateTexture(nil, "BORDER")
+    line:SetHeight(1)
+    line:SetPoint("BOTTOMLEFT", anchorTab, "BOTTOMLEFT", 0, 0)
+    line:SetWidth(width)
+    line:SetColorTexture(1, 1, 1, 0.08)
+    return line
 end
 
 ---@class TextInputConfig : ComponentConfig
@@ -2730,6 +2837,11 @@ function Components.TextInput(parent, config)
     -- Auto-register if refreshable
     if config.get or config.enabled then
         tinsert(RefreshableComponents, holder)
+    end
+
+    -- Disabled controls explain themselves on hover
+    if config.disabledReason and config.enabled then
+        Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
     end
 
     return holder
@@ -3012,6 +3124,11 @@ function Components.NumericStepper(parent, config)
         tinsert(RefreshableComponents, holder)
     end
 
+    -- Disabled controls explain themselves on hover
+    if config.disabledReason and config.enabled then
+        Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
+    end
+
     return holder
 end
 
@@ -3189,19 +3306,24 @@ function Components.ColorSwatch(parent, config)
         tinsert(RefreshableComponents, holder)
     end
 
+    -- Disabled controls explain themselves on hover
+    if config.disabledReason and config.enabled then
+        Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
+    end
+
     return holder
 end
 
 -- Modern scrollbar colors (defined early for use by TextArea and ScrollableContainer)
 local ScrollbarColors = {
-    track = { 0.12, 0.12, 0.12, 1 },
+    -- Faint recessed rail instead of an opaque boxed track, so it reads as a
+    -- subtle groove rather than a second bordered frame competing with the panel.
+    track = { 0.1, 0.1, 0.11, 0.5 },
     thumb = { 0.3, 0.3, 0.3, 1 },
     thumbHover = { 0.45, 0.45, 0.45, 1 },
-    thumbPressed = { ACCENT_R, ACCENT_G, ACCENT_B, 0.8 },
-    border = { 0.2, 0.2, 0.2, 1 },
 }
 
--- Helper to apply modern styling to scrollbar (used by TextArea and ScrollableContainer)
+-- Helper to apply modern styling to a scrollbar (used by ScrollableContainer)
 local function ApplyModernScrollbarStyle(scrollBar)
     if not scrollBar then
         return
@@ -3224,24 +3346,17 @@ local function ApplyModernScrollbarStyle(scrollBar)
         end
     end
 
-    -- Create modern track background
-    local track = CreateFrame("Frame", nil, scrollBar, "BackdropTemplate")
-    track:SetPoint("TOPLEFT", 4, 0)
-    track:SetPoint("BOTTOMRIGHT", -4, 0)
-    track:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8x8",
-        edgeFile = "Interface\\Buttons\\WHITE8x8",
-        edgeSize = 1,
-    })
-    track:SetBackdropColor(unpack(colors.track))
-    track:SetBackdropBorderColor(unpack(colors.border))
-    track:SetFrameLevel(scrollBar:GetFrameLevel())
+    -- Faint recessed rail (no hard border) - a thin groove, not a boxed frame.
+    local track = scrollBar:CreateTexture(nil, "BACKGROUND")
+    track:SetColorTexture(unpack(colors.track))
+    track:SetPoint("TOPLEFT", 5, 0)
+    track:SetPoint("BOTTOMRIGHT", -5, 0)
 
-    -- Style the thumb
+    -- Style the thumb (height is managed proportionally by SetupProportionalScrollbar)
     local thumb = scrollBar.ThumbTexture or scrollBar.thumbTexture
     if thumb then
         thumb:SetColorTexture(unpack(colors.thumb))
-        thumb:SetSize(8, 40)
+        thumb:SetSize(6, 40)
 
         -- Try to set up hover/press effects
         local thumbParent = thumb:GetParent()
@@ -3270,6 +3385,36 @@ local function ApplyModernScrollbarStyle(scrollBar)
         scrollDown:SetSize(1, 1)
         scrollDown:EnableMouse(false)
     end
+end
+
+-- Size a legacy scrollbar's thumb to reflect how much content there is (thumb
+-- length = viewport / content), and hide the whole bar when the page fits. Hooked
+-- to the scroll frame's range/size events so it stays correct as pages rebuild.
+local SCROLLBAR_MIN_THUMB = 24
+local SCROLLBAR_MAX_THUMB_RATIO = 0.28 -- keep the handle compact, never near-full-track
+local function SetupProportionalScrollbar(scrollFrame, scrollBar)
+    local thumb = scrollBar.ThumbTexture or scrollBar.thumbTexture
+    local function Update()
+        local viewH = scrollFrame:GetHeight() or 0
+        local range = scrollFrame:GetVerticalScrollRange() or 0
+        if range <= 1 or viewH <= 0 then
+            -- Nothing to scroll: retire the bar entirely.
+            scrollBar:Hide()
+            return
+        end
+        scrollBar:Show()
+        if thumb then
+            local trackH = scrollBar:GetHeight() or viewH
+            local contentH = viewH + range
+            local cap = floor(trackH * SCROLLBAR_MAX_THUMB_RATIO)
+            local thumbH = min(floor(trackH * viewH / contentH), cap)
+            thumb:SetHeight(max(thumbH, min(SCROLLBAR_MIN_THUMB, trackH)))
+        end
+    end
+    scrollFrame:HookScript("OnScrollRangeChanged", Update)
+    scrollFrame:HookScript("OnSizeChanged", Update)
+    scrollFrame:HookScript("OnShow", Update)
+    Update() -- sync initial state before any event fires
 end
 
 -- TextArea color constants
@@ -3725,16 +3870,27 @@ function Components.ScrollableContainer(parent, config)
         scrollFrame:SetWidth(explicitWidth)
     end
 
-    -- Position scrollbar
+    -- Scrollbar: hand-styled legacy slider (faint rail + neutral thumb, matching
+    -- the panel's square thin-edge chrome), with a proportional thumb that reflects
+    -- page length and auto-hides when the page fits.
     local scrollBar = scrollFrame.ScrollBar
     if scrollBar then
         scrollBar:ClearAllPoints()
-        scrollBar:SetPoint("TOPLEFT", scrollFrame, "TOPRIGHT", -18, -22)
-        scrollBar:SetPoint("BOTTOMLEFT", scrollFrame, "BOTTOMRIGHT", -18, 6)
-
-        -- Apply modern styling
+        scrollBar:SetPoint("TOPLEFT", scrollFrame, "TOPRIGHT", -18, -4)
+        scrollBar:SetPoint("BOTTOMLEFT", scrollFrame, "BOTTOMRIGHT", -18, 4)
         ApplyModernScrollbarStyle(scrollBar)
+        SetupProportionalScrollbar(scrollFrame, scrollBar)
     end
+
+    -- Fixed wheel step. The template's default steps by half the scrollbar height,
+    -- which jumps ~half a page per tick on a tall bar; a fixed step (~1.5 rows)
+    -- feels consistent regardless of page length.
+    scrollFrame:EnableMouseWheel(true)
+    scrollFrame:SetScript("OnMouseWheel", function(self, delta)
+        local maxScroll = self:GetVerticalScrollRange() or 0
+        local newScroll = max(0, min(maxScroll, self:GetVerticalScroll() - delta * 45))
+        self:SetVerticalScroll(newScroll)
+    end)
 
     -- Content frame. Width tracks the scroll frame's visible area minus the
     -- scrollbar so anchored-RIGHT children clear the scrollbar instead of
@@ -3764,54 +3920,6 @@ function Components.ScrollableContainer(parent, config)
     end
 
     return scrollFrame, content
-end
-
--- Default chrome for BorderedList. Slightly darker than the panel bg + a thin
--- warm-gray border picks the list area out as a contained region (matching the
--- dropdown menu chrome and the per-page accent rail).
-local LIST_BG = { 0.05, 0.05, 0.05, 0.6 }
-local LIST_BORDER = { 0.3, 0.25, 0.1, 0.8 }
-local LIST_INSET = 2 -- inner padding between border and the scroll child
-
----Build a bordered wrapper Frame holding a Components.ScrollableContainer.
----Returns the wrapper (anchorable into a layout) and the scrollFrame inside.
----Re-anchors the scrollbar flush to the list bounds since ScrollableContainer's
----default offsets assume the parent scroll has header padding, which a flat list
----doesn't.
----@param parent table
----@param config table { width, height, inset?, bgColor?, borderColor? }
----@return table wrapper, table scrollFrame
-function Components.BorderedList(parent, config)
-    local width = config.width
-    local height = config.height
-    local inset = config.inset or LIST_INSET
-    local bgColor = config.bgColor or LIST_BG
-    local borderColor = config.borderColor or LIST_BORDER
-
-    local wrapper = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-    wrapper:SetSize(width, height)
-    wrapper:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8x8",
-        edgeFile = "Interface\\Buttons\\WHITE8x8",
-        edgeSize = 1,
-    })
-    wrapper:SetBackdropColor(unpack(bgColor))
-    wrapper:SetBackdropBorderColor(unpack(borderColor))
-
-    local scroll = Components.ScrollableContainer(wrapper, {
-        width = width - inset * 2,
-        contentHeight = height - inset * 2,
-    })
-    scroll:SetHeight(height - inset * 2)
-    scroll:SetPoint("TOPLEFT", inset, -inset)
-
-    if scroll.ScrollBar then
-        scroll.ScrollBar:ClearAllPoints()
-        scroll.ScrollBar:SetPoint("TOPLEFT", scroll, "TOPRIGHT", -18, 0)
-        scroll.ScrollBar:SetPoint("BOTTOMLEFT", scroll, "BOTTOMRIGHT", -18, 0)
-    end
-
-    return wrapper, scroll
 end
 
 ---Create a vertical layout helper for positioning elements

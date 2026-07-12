@@ -94,6 +94,8 @@ local function Build(ctx, layout)
             end,
         })
         layout:Add(showTooltipsHolder, nil, COMPONENT_GAP)
+
+        Helpers.LayoutSubsectionNote(layout, parent, L["Options.ClickToCast.SnoozeNote"])
     end
 
     if category == "raid" or category == "presence" then
@@ -112,6 +114,8 @@ local function Build(ctx, layout)
                 BR.Config.Set("defaults.showBuffTooltips", checked)
             end,
         })
+        -- One key shared by the raid AND presence pages: flag the blast radius.
+        BR.Options.Helpers.AttachGlobalTag(showBuffTooltipsHolder)
         layout:Add(showBuffTooltipsHolder, nil, COMPONENT_GAP)
     end
 

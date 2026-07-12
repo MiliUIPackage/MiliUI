@@ -182,13 +182,13 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field specID? number                                     -- spec binding: require == "talent" or "loadout"
 ---@field character? string                                  -- character binding ("Name - Realm"): require == "gear" or "loadout"
 ---@field class? string                                      -- class token ("PALADIN") of the creating character; drives binding-label color
----@field loadout? { name: string, configID?: number }       -- require == "loadout"
+---@field loadout? { name: string, configID?: number, source?: "tlex" }  -- require == "loadout"; source == "tlex" for Talent Loadout Ex entries
 ---@field when? LoadoutWhen                    -- content scope + instances; nil = everywhere
----@field clickToFix? boolean                 -- click the icon to equip the set / open the talent UI
+---@field clickToFix? boolean                 -- click the icon to equip the set / load the loadout / open the talent UI
 
 ---Content scope for a loadout rule. `scope` is a player-facing content tier
----(raid/dungeon/arena/battleground/delve); `instances` narrows to specific
----dungeons/raids by name (nil/empty = any).
+---(openWorld/dungeon/delve/raid/arena/battleground); `instances` narrows to
+---specific dungeons/raids by name (nil/empty = any).
 ---@class LoadoutWhen
 ---@field scope? string
 ---@field readyCheckOnly? boolean
