@@ -1,7 +1,6 @@
 ---@type string, Addon
 local _, addon = ...
 local mini = addon.Core.Framework
-local inspector = addon.Core.Inspector
 local inspectorFacade = addon.Core.InspectorFacade
 
 addon.Modules.Cooldowns = addon.Modules.Cooldowns or {}
@@ -333,6 +332,9 @@ local SpecDurationModifiers = {
 local ClassDefaultTalentRanks = {
 	DEATHKNIGHT = {
 		[205727] = 1, -- Anti-Magic Barrier: AMS -20s cd, +40% duration (nearly universal)
+	},
+	EVOKER = {
+		[375406] = 1, -- Obsidian Bulwark: Obsidian Scales +1 charge (nearly universal)
 	},
 	HUNTER = {
 		[1258485] = 1, -- Improved Aspect of the Turtle: Turtle -30s (nearly universal)

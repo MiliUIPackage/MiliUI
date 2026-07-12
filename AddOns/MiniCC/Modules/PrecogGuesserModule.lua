@@ -40,9 +40,9 @@ local function ScanAndDisplay()
 		return
 	end
 
-	local importantState = watcher:GetImportantState()
+	local buffState = watcher:GetBuffState()
 
-	if #importantState == 0 then
+	if #buffState == 0 then
 		container:ResetAllSlots()
 		anchor:Hide()
 		return
@@ -58,15 +58,28 @@ local function ScanAndDisplay()
 
 	container:ResetAllSlots()
 
-	for i, entry in ipairs(importantState) do
-		if entry.SpellIcon and entry.DurationObject then
-			local durationInfo = C_UnitAuras.GetAuraDuration("player", entry.AuraInstanceID)
-			local alpha = durationInfo and durationInfo:EvaluateTotalDuration(precogCurve)
+	-- Stack every self-buff onto the single slot and let the icons fight over visibility via
+	-- their alpha; only precog (and Preservation Evoker's Nullifying Shroud) ends up visible.
+	--
+	-- Precog is "any ~4 second IMPORTANT self buff", so the alpha is the logical AND of two
+	-- secret values that can't be read or compared in Lua:
+	--   * the 4-second duration check - EvaluateTotalDuration maps the aura's total duration
+	--     through precogCurve to 1 only at ~4s (or 3s for Evoker), else 0.
+	--   * C_Spell.IsSpellImportant - whether the game flags the spell as important.
+	-- C_CurveUtil.EvaluateColorValueFromBoolean merges them securely (the duration value is
+	-- gated by the important boolean), and the result feeds straight into SetAlphaFromBoolean.
+	for i, entry in ipairs(buffState) do
+		if entry.SpellIcon and entry.SpellId and entry.DurationObject then
+			local durationValue = entry.DurationObject:EvaluateTotalDuration(precogCurve)
+			local isImportant = C_Spell.IsSpellImportant(entry.SpellId)
+			-- AND the two secret values: use the 4-second duration result when the spell is
+			-- important, otherwise force alpha 0. Signature is (boolean, valueIfTrue, valueIfFalse).
+			local alpha = C_CurveUtil.EvaluateColorValueFromBoolean(isImportant, durationValue, 0)
 
 			container:SetSlot(1, {
 				Texture = entry.SpellIcon,
 				DurationObject = entry.DurationObject,
-				Alpha = alpha or false,
+				Alpha = alpha,
 				ReverseCooldown = iconsReverse,
 				Glow = iconsGlow,
 				FontScale = db.FontScale,
@@ -170,7 +183,8 @@ function M:Refresh()
 	local iconSize = tonumber(options.Icons.Size) or 40
 	container:SetIconSize(iconSize)
 	container:SetCount(1)
-	container:SetSpacing(db.IconSpacing or 2)
+	-- Single icon, so spacing never applies; kept at the default.
+	container:SetSpacing(2)
 
 	UpdateAnchorSize()
 
@@ -219,10 +233,13 @@ function M:Init()
 	end)
 
 	local iconSize = tonumber(options.Icons.Size) or 40
-	container = iconSlotContainer:New(anchor, 1, iconSize, db.IconSpacing or 2, "Precognition", nil, "Precognition")
+	-- Single icon, so spacing never applies; kept at the default.
+	container = iconSlotContainer:New(anchor, 1, iconSize, 2, "Precognition", nil, "Precognition")
 	container.Frame:SetPoint("CENTER", anchor, "CENTER", 0, 0)
 	container.Frame:Show()
 
+	-- Step curve mapping an aura's total duration to an alpha: 1 only at the precog window
+	-- (~4s, plus ~3s for Preservation Evoker's Nullifying Shroud), 0 everywhere else.
 	precogCurve = C_CurveUtil.CreateCurve()
 	precogCurve:SetType(Enum.LuaCurveType.Step)
 	precogCurve:AddPoint(0, 0)
@@ -237,9 +254,11 @@ function M:Init()
 	precogCurve:AddPoint(4, 1)
 	precogCurve:AddPoint(4.1, 0)
 
+	-- Watch every helpful self-buff (ungated); ScanAndDisplay narrows them down to the precog
+	-- buff per aura via the duration curve + C_Spell.IsSpellImportant, so there's no need to
+	-- filter by spell id or duration here (and duration is a secret value that can't be anyway).
 	watcher = unitWatcher:New("player", nil, {
-		Important = true,
-		ImportantFilter = "HELPFUL|IMPORTANT|PLAYER",
+		Buffs = true,
 	})
 
 	watcher:RegisterCallback(function()

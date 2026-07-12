@@ -57,6 +57,6 @@ function M:Build(panel)
 	newsText:SetTextColor(1, 1, 1, 1)
 	newsText:SetWidth(contentWidth - 40)
 	newsText:SetJustifyH("LEFT")
-	newsText:SetText(L["With the new Blizzard restrictions in 12.0.5, this is what has changed in MiniCC.\n\nThe good news:\n* Cooldown tracking still works mostly fine in arena and dungeons.\n* Added support for multiple spell charges (e.g. 2x Pain Suppression, 2x Blur) for both friendly and enemy CDs.\n\nThe bad news:\n* Friendly externals no longer track in Raids and Battlegrounds.\n* Predictive glows are less reliable.\n* PvP kick tracking can no longer identify the kicker. Now just displays a generic icon using the shortest known enemy kick cooldown.\n\nWe've put a lot of work into this update, but there may still be issues. \nPlease report any bugs you find in our Discord so we can address them."])
+	newsText:SetText(L["Some good news:\n- A workaround has been implemented to show important auras again for nameplates/portraits/alerts."])
 	newsText:SetPoint("TOPLEFT", newsDivider, "BOTTOMLEFT", 0, -verticalSpacing)
 end

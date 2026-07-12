@@ -35,7 +35,7 @@ local function BuildSettingsTab(parent, options)
 
 	local includeDefensivesChk = mini:Checkbox({
 		Parent = parent,
-		LabelText = L["Include defensives"],
+		LabelText = L["Show Defensives"],
 		Tooltip = L["Includes defensives in the alerts."],
 		GetValue = function()
 			return options.IncludeDefensives
@@ -112,6 +112,21 @@ local function BuildSettingsTab(parent, options)
 	showTooltipsChk:SetPoint("LEFT", parent, "LEFT", columnWidth * 3, 0)
 	showTooltipsChk:SetPoint("TOP", glowChk, "TOP", 0, 0)
 
+	local splitBarsChk = mini:Checkbox({
+		Parent = parent,
+		LabelText = L["Split bars"],
+		Tooltip = L["Show important spells on a separate, movable bar instead of combined with the defensive alerts."],
+		GetValue = function()
+			return options.SplitBars
+		end,
+		SetValue = function(value)
+			options.SplitBars = value
+			config:Apply()
+		end,
+	})
+
+	splitBarsChk:SetPoint("TOPLEFT", glowChk, "BOTTOMLEFT", 0, -verticalSpacing)
+
 	local iconSize = mini:Slider({
 		Parent = parent,
 		Min = 10,
@@ -131,7 +146,7 @@ local function BuildSettingsTab(parent, options)
 		end,
 	})
 
-	iconSize.Slider:SetPoint("TOPLEFT", glowChk, "BOTTOMLEFT", 4, -verticalSpacing * 3)
+	iconSize.Slider:SetPoint("TOPLEFT", splitBarsChk, "BOTTOMLEFT", 4, -verticalSpacing * 3)
 
 	local maxIcons = mini:Slider({
 		Parent = parent,
@@ -154,37 +169,43 @@ local function BuildSettingsTab(parent, options)
 
 	maxIcons.Slider:SetPoint("LEFT", iconSize.Slider, "RIGHT", horizontalSpacing, 0)
 
-	local targetFocusOnlyChk = mini:Checkbox({
+	local iconSpacing = mini:Slider({
 		Parent = parent,
-		LabelText = L["Target/Focus Only"],
-		Tooltip = L["Only show alerts for your target and focus in battlegrounds and the open world."],
+		Min = 0,
+		Max = 20,
+		Width = columnWidth * 2 - horizontalSpacing,
+		Step = 1,
+		LabelText = L["Icon Padding"],
 		GetValue = function()
-			return options.TargetFocusOnly
+			return options.IconSpacing or 2
+		end,
+		SetValue = function(v)
+			local newValue = mini:ClampInt(v, 0, 20, 2)
+			if options.IconSpacing ~= newValue then
+				options.IconSpacing = newValue
+				config:Apply()
+			end
+		end,
+	})
+
+	iconSpacing.Slider:SetPoint("TOPLEFT", iconSize.Slider, "BOTTOMLEFT", 0, -verticalSpacing * 3)
+
+	local importantBarChk = mini:Checkbox({
+		Parent = parent,
+		LabelText = L["Show Important"],
+		Tooltip = L["Show important enemy spells (e.g. offensive cooldowns, precognition) read from nameplates."],
+		GetValue = function()
+			return options.Important and options.Important.Enabled
 		end,
 		SetValue = function(value)
-			options.TargetFocusOnly = value
+			options.Important = options.Important or {}
+			options.Important.Enabled = value
 			config:Apply()
 		end,
 	})
 
-	targetFocusOnlyChk:SetPoint("TOP", iconsEnabledChk, "TOP", 0, 0)
-	targetFocusOnlyChk:SetPoint("LEFT", parent, "LEFT", columnWidth * 2, 0)
-
-	local splitBarsChk = mini:Checkbox({
-		Parent = parent,
-		LabelText = L["Split bars"],
-		Tooltip = L["Show defensive alerts on a separate, movable bar."],
-		GetValue = function()
-			return options.SplitBars
-		end,
-		SetValue = function(value)
-			options.SplitBars = value
-			config:Apply()
-		end,
-	})
-
-	splitBarsChk:SetPoint("TOP", iconsEnabledChk, "TOP", 0, 0)
-	splitBarsChk:SetPoint("LEFT", parent, "LEFT", columnWidth * 3, 0)
+	importantBarChk:SetPoint("TOP", iconsEnabledChk, "TOP", 0, 0)
+	importantBarChk:SetPoint("LEFT", parent, "LEFT", columnWidth * 2, 0)
 end
 
 ---@param parent table
@@ -209,7 +230,7 @@ local function BuildSoundsTab(parent, options)
 		SetValue = function(value)
 			options.Sound.Important.Enabled = value
 			if value then
-				local soundFileName = options.Sound.Important.File or "Sonar.ogg"
+				local soundFileName = options.Sound.Important.File or "AirHorn.ogg"
 				local soundFile = config.MediaLocation .. soundFileName
 				PlaySoundFile(soundFile, options.Sound.Important.Channel or "Master")
 			end
@@ -222,7 +243,6 @@ local function BuildSoundsTab(parent, options)
 	local soundImportantDropdown = mini:Dropdown({
 		Parent = parent,
 		Items = config.SoundFiles,
-		Width = 200,
 		GetValue = function()
 			return options.Sound.Important.File
 		end,
@@ -297,6 +317,14 @@ local function BuildTtsTab(parent, options)
 
 	ttsIntro:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
 
+	local importantTtsNote = mini:TextBlock({
+		Parent = parent,
+		Lines = {
+			L["Due to Blizzard API limitations, important spell TTS does not work for Mages, Evokers, Demon Hunters, Hunters, and Shadow Priests."],
+		},
+	})
+	importantTtsNote:SetPoint("TOPLEFT", ttsIntro, "BOTTOMLEFT", 0, -verticalSpacing)
+
 	local function EnsureTtsOptions()
 		if not options.TTS then
 			options.TTS = { Volume = 100, SpeechRate = 0 }
@@ -350,7 +378,7 @@ local function BuildTtsTab(parent, options)
 			return voiceNameById[value] or tostring(value)
 		end,
 	})
-	voiceDropdown:SetPoint("TOPLEFT", ttsIntro, "BOTTOMLEFT", 0, -verticalSpacing)
+	voiceDropdown:SetPoint("TOPLEFT", importantTtsNote, "BOTTOMLEFT", 0, -verticalSpacing)
 	voiceDropdown:SetWidth(400)
 
 	local announceImportantSpellsChk = mini:Checkbox({
@@ -466,7 +494,7 @@ function M:Build(panel, options)
 	local lines = mini:TextBlock({
 		Parent = panel,
 		Lines = {
-			L["A separate region for showing important enemy spells."],
+			L["A separate region for showing enemy defensive spells."],
 		},
 	})
 

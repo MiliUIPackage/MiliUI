@@ -116,28 +116,6 @@ function M:Build(panel)
 
 	fontScaleSlider.Slider:SetPoint("TOPLEFT", glowNote, "BOTTOMLEFT", 4, -verticalSpacing * 3)
 
-	local iconSpacingSlider = mini:Slider({
-		Parent = panel,
-		LabelText = L["Icon Padding"],
-		Min = 0,
-		Max = 20,
-		Step = 1,
-		GetValue = function()
-			return db.IconSpacing or 2
-		end,
-		SetValue = function(value)
-			local newValue = mini:ClampInt(value, 0, 20, 2)
-			if db.IconSpacing ~= newValue then
-				db.IconSpacing = newValue
-				addon:Refresh()
-			end
-		end,
-		Width = columnWidth - horizontalSpacing,
-	})
-
-	iconSpacingSlider.Slider:SetPoint("LEFT", fontScaleSlider.Slider, "RIGHT", horizontalSpacing, 0)
-	iconSpacingSlider.Slider:SetPoint("TOP", fontScaleSlider.Slider, "TOP", 0, 0)
-
 	local configureBlizzardNameplatesChk = mini:Checkbox({
 		Parent = panel,
 		LabelText = L["Configure Blizzard Nameplates"],
@@ -186,6 +164,24 @@ function M:Build(panel)
 
 	disableSwipeChk:SetPoint("TOPLEFT", ccNativeOrderChk, "BOTTOMLEFT", 0, -verticalSpacing)
 
+	local fadeWithParentChk = mini:Checkbox({
+		Parent = panel,
+		LabelText = L["Fade With Parent Frame"],
+		Tooltip = L["Fades the icons along with the unit frame they're attached to, e.g. dimming when the unit is out of range."],
+		GetValue = function()
+			if db.FadeWithParent == nil then
+				return true
+			end
+			return db.FadeWithParent
+		end,
+		SetValue = function(value)
+			db.FadeWithParent = value
+			addon:Refresh()
+		end,
+	})
+
+	fadeWithParentChk:SetPoint("TOPLEFT", disableSwipeChk, "BOTTOMLEFT", 0, -verticalSpacing)
+
 	local millisThresholdSlider = mini:Slider({
 		Parent = panel,
 		LabelText = L["Milliseconds Threshold"],
@@ -205,5 +201,5 @@ function M:Build(panel)
 		Width = columnWidth - horizontalSpacing,
 	})
 
-	millisThresholdSlider.Slider:SetPoint("TOPLEFT", disableSwipeChk, "BOTTOMLEFT", 4, -verticalSpacing * 3)
+	millisThresholdSlider.Slider:SetPoint("TOPLEFT", fadeWithParentChk, "BOTTOMLEFT", 4, -verticalSpacing * 3)
 end

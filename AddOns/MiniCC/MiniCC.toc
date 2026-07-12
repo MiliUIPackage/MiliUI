@@ -4,7 +4,7 @@
 ## Notes: Shows CC and important spells on frames/nameplates/alerts in PvP.
 ## Category-zhTW: 戰鬥
 ## Author: Verz
-## Version: 3.23.0
+## Version: 4.6.1
 ## SavedVariables: MiniCCDB
 ## OptionalDeps: ElvUI, Grid2, DandersFrames, FrameSort, Masque, TPerl, TidyPlates_ThreatPlates, VuhDo, BuzzardFrames, NDui, EllesmereUIUnitFrames
 ## IconTexture: Interface\AddOns\MiniCC\Icon.blp
@@ -32,6 +32,7 @@ Locales\zhTW.lua
 
 Utils\Scheduler.lua
 Utils\Units.lua
+Utils\Auras.lua
 Utils\Array.lua
 Utils\FontUtil.lua
 Utils\ModuleUtil.lua

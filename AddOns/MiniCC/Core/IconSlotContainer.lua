@@ -257,18 +257,39 @@ local function HideStaticGlowsExcept(parent, exceptType)
 	end
 end
 
+-- LibCustomGlow keeps its glow frames in pools stored on the shared lib table. If another addon
+-- embeds a higher-version copy of LibCustomGlow that loads after ours, it replaces those pools on
+-- the shared table. Frames we created then belong to the previous pool, so the lib's *_Stop
+-- functions try to release them into the new pool and raise
+-- "Attempted to release object that doesn't belong to this pool".
+-- Guard each stop: only call the lib function while the frame is still active in the current pool;
+-- otherwise hide the orphaned frame and drop our stale reference so it can't be released again.
+local function SafeStopGlow(parent, field, pool, stopFn)
+	local f = parent[field]
+	if not f then
+		return
+	end
+	-- When the pool can't be inspected (missing field / no IsActive), fall back to the lib stop.
+	if not pool or not pool.IsActive or pool:IsActive(f) then
+		stopFn(parent)
+	else
+		f:Hide()
+		parent[field] = nil
+	end
+end
+
 local function StopLCGGlowsExcept(parent, exceptType)
 	if not LCG then
 		return
 	end
 	if exceptType ~= "Proc Glow" and parent._ProcGlow and LCG.ProcGlow_Stop then
-		LCG.ProcGlow_Stop(parent)
+		SafeStopGlow(parent, "_ProcGlow", LCG.ProcGlowPool, LCG.ProcGlow_Stop)
 	end
 	if exceptType ~= "Pixel Glow" and parent._PixelGlow and LCG.PixelGlow_Stop then
-		LCG.PixelGlow_Stop(parent)
+		SafeStopGlow(parent, "_PixelGlow", LCG.GlowFramePool, LCG.PixelGlow_Stop)
 	end
 	if exceptType ~= "Autocast Shine" and parent._AutoCastGlow and LCG.AutoCastGlow_Stop then
-		LCG.AutoCastGlow_Stop(parent)
+		SafeStopGlow(parent, "_AutoCastGlow", LCG.GlowFramePool, LCG.AutoCastGlow_Stop)
 	end
 end
 
@@ -278,6 +299,11 @@ local function ClearLayerData(layer, glowFrame)
 	end
 	layer.Icon:SetTexture(nil)
 	layer.Cooldown:Clear()
+	if layer.Border then
+		-- Hide the coloured border too; otherwise a cleared layer that had a border (e.g. a stacked
+		-- important layer with Color set) leaves the border visible around an empty icon.
+		layer.Border:Hide()
+	end
 	if layer.ChargeText then
 		layer.ChargeText:Hide()
 	end
@@ -366,7 +392,7 @@ local function UpdateGlow(layerFrame, options)
 			local hasPixelGlow = layerFrame._PixelGlow ~= nil
 			if not hasPixelGlow or colorChanged then
 				if hasPixelGlow and colorChanged and LCG.PixelGlow_Stop then
-					LCG.PixelGlow_Stop(layerFrame)
+					SafeStopGlow(layerFrame, "_PixelGlow", LCG.GlowFramePool, LCG.PixelGlow_Stop)
 				end
 				FillColorScratch(options)
 				LCG.PixelGlow_Start(layerFrame, glowOptionsScratch.color)
@@ -380,7 +406,7 @@ local function UpdateGlow(layerFrame, options)
 			local hasAutoCastGlow = layerFrame._AutoCastGlow ~= nil
 			if not hasAutoCastGlow or colorChanged then
 				if hasAutoCastGlow and colorChanged and LCG.AutoCastGlow_Stop then
-					LCG.AutoCastGlow_Stop(layerFrame)
+					SafeStopGlow(layerFrame, "_AutoCastGlow", LCG.GlowFramePool, LCG.AutoCastGlow_Stop)
 				end
 				FillColorScratch(options)
 				LCG.AutoCastGlow_Start(layerFrame, glowOptionsScratch.color)
@@ -393,7 +419,7 @@ local function UpdateGlow(layerFrame, options)
 		-- Default: Proc Glow. Always call Start so the glow resizes when icon size changes.
 		if LCG and LCG.ProcGlow_Start then
 			if colorChanged and layerFrame._ProcGlow and LCG.ProcGlow_Stop then
-				LCG.ProcGlow_Stop(layerFrame)
+				SafeStopGlow(layerFrame, "_ProcGlow", LCG.ProcGlowPool, LCG.ProcGlow_Stop)
 			end
 			FillColorScratch(options)
 			LCG.ProcGlow_Start(layerFrame, glowOptionsScratch)
@@ -422,7 +448,9 @@ function M:New(parent, count, size, spacing, groupName, noBorder, moduleName)
 
 	instance.Frame = CreateFrame("Frame", NextFrameName("Container"), parent)
 	instance.Frame:SetIgnoreParentScale(true)
-	instance.Frame:SetIgnoreParentAlpha(true)
+	-- Inherit the parent's alpha so icons fade with the unit frame they're anchored under
+	-- (e.g. dimming when the unit is out of range). Modules that track a unit frame parent the
+	-- container to it; standalone bars parent to UIParent (alpha 1) and are unaffected.
 	instance.Slots = {}
 	instance.Count = 0
 	instance.Size = size
@@ -859,6 +887,16 @@ function M:SetSlot(slotIndex, options)
 
 	if layerIndex <= 1 then
 		layer = EnsureContainer(slot, self.Size, self.MasqueGroup, self.NoBorder)
+		-- Setting the base layer means this slot is now a single icon. Clear any stacked extra
+		-- layers left from a prior stacked render (e.g. the important slot relocating to a new
+		-- index), otherwise those old layers linger visible underneath the new icon.
+		if slot.ExtraLayers then
+			for _, el in ipairs(slot.ExtraLayers) do
+				if el then
+					ClearLayerData(el, el.Frame)
+				end
+			end
+		end
 	else
 		layer = EnsureExtraLayer(slot, layerIndex, self.Size)
 	end
@@ -941,6 +979,11 @@ function M:ClearSlot(slotIndex)
 			end
 		end
 	end
+
+	-- Stop any slot-level glow on slot.Frame. Cheap when none exists (just nil-field checks) and
+	-- ensures a glow never lingers when the slot is freed/reused.
+	StopLCGGlowsExcept(slot.Frame, nil)
+	HideStaticGlowsExcept(slot.Frame, nil)
 end
 
 ---Marks a slot as unused and triggers layout update

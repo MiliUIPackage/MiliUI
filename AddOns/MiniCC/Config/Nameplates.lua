@@ -22,23 +22,19 @@ config.Nameplates = M
 
 ---@param parent table Tab content frame
 ---@param options NameplateSpellTypeOptions
----@param sectionType string Type of section: "CC", "Important", or "Combined"
+---@param sectionType string Bar key: "Bar1" or "Bar2"
 local function BuildSpellTypeSettings(parent, options, sectionType)
 	local container = CreateFrame("Frame", nil, parent)
 
 	container:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
 	container:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
 
-	-- Build tooltip based on section type
-	local colorTooltip
-	if sectionType == "Combined" then
-		colorTooltip = L["Change the colour of the glow/border. CC spells use dispel type colours (e.g., blue for magic), Defensive spells are green, and Important spells are red."]
-	elseif sectionType == "CC" then
-		colorTooltip = L["Change the colour of the glow/border based on dispel type (e.g., blue for magic, red for physical)."]
-	else
-		colorTooltip = L["Change the colour of the glow/border. Defensive spells are green and Important spells are red."]
-	end
+	local topColWidth = mini:ColumnWidth(5, 0, 0)
 
+	-- Each bar can show CC and/or defensives, so the colour tooltip covers both.
+	local colorTooltip = L["Change the colour of the glow/border. CC spells use dispel type colours (e.g., blue for magic) and Defensive spells are green."]
+
+	-- Row 1: Enabled, Show CC, Show Defensives, Show tooltips
 	local enabledChk = mini:Checkbox({
 		Parent = container,
 		LabelText = L["Enabled"],
@@ -53,6 +49,55 @@ local function BuildSpellTypeSettings(parent, options, sectionType)
 
 	enabledChk:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
 
+	local showCcChk = mini:Checkbox({
+		Parent = container,
+		LabelText = L["Show CC"],
+		Tooltip = L["Show crowd control spells in this bar."],
+		GetValue = function()
+			return options.ShowCC
+		end,
+		SetValue = function(value)
+			options.ShowCC = value
+			config:Apply()
+		end,
+	})
+
+	showCcChk:SetPoint("LEFT", parent, "LEFT", topColWidth, 0)
+	showCcChk:SetPoint("TOP", enabledChk, "TOP", 0, 0)
+
+	local showDefChk = mini:Checkbox({
+		Parent = container,
+		LabelText = L["Show Defensives"],
+		Tooltip = L["Show defensive spells in this bar."],
+		GetValue = function()
+			return options.ShowDefensives
+		end,
+		SetValue = function(value)
+			options.ShowDefensives = value
+			config:Apply()
+		end,
+	})
+
+	showDefChk:SetPoint("LEFT", parent, "LEFT", topColWidth * 2, 0)
+	showDefChk:SetPoint("TOP", enabledChk, "TOP", 0, 0)
+
+	local showImportantChk = mini:Checkbox({
+		Parent = container,
+		LabelText = L["Show Important"],
+		Tooltip = L["Show the important buffs Blizzard permits on nameplates (e.g. enemy offensive cooldowns)."],
+		GetValue = function()
+			return options.ShowImportant
+		end,
+		SetValue = function(value)
+			options.ShowImportant = value
+			config:Apply()
+		end,
+	})
+
+	showImportantChk:SetPoint("LEFT", parent, "LEFT", topColWidth * 3, 0)
+	showImportantChk:SetPoint("TOP", enabledChk, "TOP", 0, 0)
+
+	-- Row 2: Glow, Reverse, Spell colours, Milliseconds
 	local glowChk = mini:Checkbox({
 		Parent = container,
 		LabelText = L["Glow icons"],
@@ -66,8 +111,7 @@ local function BuildSpellTypeSettings(parent, options, sectionType)
 		end,
 	})
 
-	glowChk:SetPoint("LEFT", parent, "LEFT", columnWidth, 0)
-	glowChk:SetPoint("TOP", enabledChk, "TOP", 0, 0)
+	glowChk:SetPoint("TOPLEFT", enabledChk, "BOTTOMLEFT", 0, -verticalSpacing)
 
 	local reverseChk = mini:Checkbox({
 		Parent = container,
@@ -82,8 +126,8 @@ local function BuildSpellTypeSettings(parent, options, sectionType)
 		end,
 	})
 
-	reverseChk:SetPoint("LEFT", parent, "LEFT", columnWidth * 2, 0)
-	reverseChk:SetPoint("TOP", enabledChk, "TOP", 0, 0)
+	reverseChk:SetPoint("LEFT", parent, "LEFT", topColWidth, 0)
+	reverseChk:SetPoint("TOP", glowChk, "TOP", 0, 0)
 
 	local dispelColoursChk = mini:Checkbox({
 		Parent = container,
@@ -98,8 +142,8 @@ local function BuildSpellTypeSettings(parent, options, sectionType)
 		end,
 	})
 
-	dispelColoursChk:SetPoint("LEFT", parent, "LEFT", columnWidth * 3, 0)
-	dispelColoursChk:SetPoint("TOP", enabledChk, "TOP", 0, 0)
+	dispelColoursChk:SetPoint("LEFT", parent, "LEFT", topColWidth * 2, 0)
+	dispelColoursChk:SetPoint("TOP", glowChk, "TOP", 0, 0)
 
 	local showTooltipsChk = mini:Checkbox({
 		Parent = container,
@@ -114,25 +158,25 @@ local function BuildSpellTypeSettings(parent, options, sectionType)
 		end,
 	})
 
-	showTooltipsChk:SetPoint("TOPLEFT", enabledChk, "BOTTOMLEFT", 0, -verticalSpacing)
+	showTooltipsChk:SetPoint("LEFT", parent, "LEFT", topColWidth * 4, 0)
+	showTooltipsChk:SetPoint("TOP", enabledChk, "TOP", 0, 0)
 
-	if sectionType == "CC" then
-		local showMillisChk = mini:Checkbox({
-			Parent = container,
-			LabelText = L["Milliseconds"],
-			Tooltip = L["Show decimal milliseconds on the cooldown timer when below the configured threshold."],
-			GetValue = function()
-				return options.Icons.ShowMilliseconds == true
-			end,
-			SetValue = function(value)
-				options.Icons.ShowMilliseconds = value
-				config:Apply()
-			end,
-		})
+	-- Milliseconds (applies to CC icons shown in this bar)
+	local showMillisChk = mini:Checkbox({
+		Parent = container,
+		LabelText = L["Milliseconds"],
+		Tooltip = L["Show decimal milliseconds on the cooldown timer when below the configured threshold."],
+		GetValue = function()
+			return options.Icons.ShowMilliseconds == true
+		end,
+		SetValue = function(value)
+			options.Icons.ShowMilliseconds = value
+			config:Apply()
+		end,
+	})
 
-		showMillisChk:SetPoint("LEFT", parent, "LEFT", columnWidth, 0)
-		showMillisChk:SetPoint("TOP", showTooltipsChk, "TOP", 0, 0)
-	end
+	showMillisChk:SetPoint("LEFT", parent, "LEFT", topColWidth * 3, 0)
+	showMillisChk:SetPoint("TOP", glowChk, "TOP", 0, 0)
 
 	local iconSize = mini:Slider({
 		Parent = container,
@@ -154,11 +198,9 @@ local function BuildSpellTypeSettings(parent, options, sectionType)
 		end,
 	})
 
-	iconSize.Slider:SetPoint("TOPLEFT", showTooltipsChk, "BOTTOMLEFT", 4, -verticalSpacing * 2)
-
-	-- Add Max Icons slider for all section types
-	local maxIconsMax = sectionType == "Combined" and 8 or 5
-	local maxIconsDefault = sectionType == "Combined" and 6 or 5
+	-- Each bar can hold up to 8 icons.
+	local maxIconsMax = 8
+	local maxIconsDefault = 6
 
 	local maxIcons = mini:Slider({
 		Parent = container,
@@ -201,8 +243,32 @@ local function BuildSpellTypeSettings(parent, options, sectionType)
 	})
 
 	growDdl:SetWidth(dropdownWidth)
-	growDdlLbl:SetPoint("TOPLEFT", iconSize.Slider, "BOTTOMLEFT", 0, -verticalSpacing)
+	growDdlLbl:SetPoint("TOPLEFT", glowChk, "BOTTOMLEFT", 4, -verticalSpacing)
 	growDdl:SetPoint("TOPLEFT", growDdlLbl, "BOTTOMLEFT", modernDdl and 0 or -16, -8)
+
+	iconSize.Slider:SetPoint("TOPLEFT", growDdl, "BOTTOMLEFT", 0, -verticalSpacing * 3)
+
+	local iconSpacing = mini:Slider({
+		Parent = container,
+		Min = 0,
+		Max = 20,
+		Step = 1,
+		Width = columnWidth * 2 - horizontalSpacing,
+		LabelText = L["Icon Padding"],
+		GetValue = function()
+			return options.Icons.Spacing or 2
+		end,
+		SetValue = function(v)
+			local new = mini:ClampInt(v, 0, 20, 2)
+
+			if new ~= options.Icons.Spacing then
+				options.Icons.Spacing = new
+				config:Apply()
+			end
+		end,
+	})
+
+	iconSpacing.Slider:SetPoint("TOPLEFT", iconSize.Slider, "BOTTOMLEFT", 0, -verticalSpacing * 2)
 
 	local containerX = mini:Slider({
 		Parent = container,
@@ -224,7 +290,7 @@ local function BuildSpellTypeSettings(parent, options, sectionType)
 		end,
 	})
 
-	containerX.Slider:SetPoint("TOPLEFT", growDdl, "BOTTOMLEFT", 0, -verticalSpacing * 3)
+	containerX.Slider:SetPoint("TOPLEFT", iconSpacing.Slider, "BOTTOMLEFT", 0, -verticalSpacing * 2)
 
 	local containerY = mini:Slider({
 		Parent = container,
@@ -259,7 +325,7 @@ function M:Build(parent, options)
 	local lines = mini:TextBlock({
 		Parent = parent,
 		Lines = {
-			L["Shows CC and important spells on nameplates (works with nameplate addons e.g. BBP, Platynator, and Plater)."],
+			L["Shows CC, defensive, and important spells on nameplates (works with nameplate addons e.g. BBP, Platynator, and Plater)."],
 		},
 	})
 
@@ -407,7 +473,7 @@ function M:Build(parent, options)
 	scaleWithNameplateChk:SetPoint("TOP", enemyIgnorePetsChk, "TOP", 0, 0)
 	scaleWithNameplateChk:SetPoint("LEFT", parent, "LEFT", threeColWidth * 2, 0)
 
-	local subPanelHeight = 251
+	local subPanelHeight = 285
 
 	local tabContainer = CreateFrame("Frame", nil, parent)
 	tabContainer:SetPoint("TOPLEFT",  enemyIgnorePetsChk, "BOTTOMLEFT", 0, -verticalSpacing)
@@ -421,20 +487,16 @@ function M:Build(parent, options)
 		TabFitToParent = true,
 		ContentInsets = { Top = verticalSpacing },
 		Tabs = {
-			{ Key = "enemyCC",           Title = L["Enemy - CC"] },
-			{ Key = "enemyImportant",    Title = L["Enemy - Important"] },
-			{ Key = "enemyCombined",     Title = L["Enemy - Combined"] },
-			{ Key = "friendlyCC",        Title = L["Friendly - CC"] },
-			{ Key = "friendlyImportant", Title = L["Friendly - Important"] },
-			{ Key = "friendlyCombined",  Title = L["Friendly - Combined"] },
+			{ Key = "enemyBar1",     Title = L["Enemy - Bar 1"] },
+			{ Key = "enemyBar2",     Title = L["Enemy - Bar 2"] },
+			{ Key = "friendlyBar1",  Title = L["Friendly - Bar 1"] },
+			{ Key = "friendlyBar2",  Title = L["Friendly - Bar 2"] },
 		},
 	})
 
-	BuildSpellTypeSettings(tabCtrl:GetContent("enemyCC"),           options.Enemy.CC,        "CC")
-	BuildSpellTypeSettings(tabCtrl:GetContent("enemyImportant"),    options.Enemy.Important, "Important")
-	BuildSpellTypeSettings(tabCtrl:GetContent("enemyCombined"),     options.Enemy.Combined,  "Combined")
-	BuildSpellTypeSettings(tabCtrl:GetContent("friendlyCC"),        options.Friendly.CC,        "CC")
-	BuildSpellTypeSettings(tabCtrl:GetContent("friendlyImportant"), options.Friendly.Important, "Important")
-	BuildSpellTypeSettings(tabCtrl:GetContent("friendlyCombined"),  options.Friendly.Combined,  "Combined")
+	BuildSpellTypeSettings(tabCtrl:GetContent("enemyBar1"),     options.Enemy.Bar1,     "Bar1")
+	BuildSpellTypeSettings(tabCtrl:GetContent("enemyBar2"),     options.Enemy.Bar2,     "Bar2")
+	BuildSpellTypeSettings(tabCtrl:GetContent("friendlyBar1"),  options.Friendly.Bar1,  "Bar1")
+	BuildSpellTypeSettings(tabCtrl:GetContent("friendlyBar2"),  options.Friendly.Bar2,  "Bar2")
 
 end
