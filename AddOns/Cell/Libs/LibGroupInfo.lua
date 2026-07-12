@@ -61,10 +61,12 @@ local cache = {
 lib.cache = cache
 
 function lib:GetCachedInfo(guid)
-    return guid and cache[guid]
+    if not guid or IsValueSecret(guid) then return end
+    return cache[guid]
 end
 
 function lib:GuidToUnit(guid)
+    if not guid or IsValueSecret(guid) then return end
     if cache[guid] then
         return cache[guid].unit
     end
@@ -582,6 +584,8 @@ function frame:PLAYER_SPECIALIZATION_CHANGED(unit)
         Query(unit)
     else
         local guid = UnitGUID(unit)
+        -- Midnight 12.0.0+: arena/enemy GUIDs may be secret; cannot use as table key
+        if not guid or IsValueSecret(guid) then return end
         if cache[guid] then
             cache[guid].inspected = nil
         end
