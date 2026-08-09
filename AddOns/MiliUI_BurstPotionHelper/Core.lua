@@ -41,6 +41,12 @@ local DEFAULTS = {
     collapsed      = false,   -- bar shrunk to only the selected cell
     disabled       = false,   -- true = "don't use a potion" selected
     selectedItemID = nil,
+    -- Per-environment memory: when on, the selection (selectedItemID/disabled)
+    -- is stored per context (world/party/raid/pvp/arena) in `profiles`; the
+    -- top-level fields then act as the shared fallback (kept mirrored to the
+    -- latest pick, so turning this off keeps the most recent choice).
+    splitByContext = true,
+    profiles       = {},      -- [context] = { selectedItemID = id, disabled = bool }
     -- Editable potion list (built-ins come live from ns.DEFAULT_ITEMS):
     itemEnabled    = {},      -- [itemID] = false to disable (absent = enabled)
     removedDefaults = {},     -- [itemID] = true → a built-in default the user deleted
@@ -69,6 +75,7 @@ function ns.InitDB()
     db.itemEnabled = db.itemEnabled or {}
     db.removedDefaults = db.removedDefaults or {}
     db.customItems = db.customItems or {}
+    db.profiles = db.profiles or {}
     -- selection is validated against the live list at scan time (EnsureValidSelection)
     ns.db = db
     return db
@@ -227,6 +234,95 @@ function ns.ScanAvailable()
 end
 
 ----------------------------------------------------------------------
+-- Environment context (per-environment potion memory)
+----------------------------------------------------------------------
+-- Contexts: world / party (M+ & 5-man dungeons) / raid / pvp (battlegrounds)
+-- / arena / scenario (delves & ritual sites).
+-- instanceType from GetInstanceInfo is the backbone, but "party" alone is NOT
+-- trustworthy: garrisons, follower dungeons (205) and quest instances (216)
+-- also report "party". Real dungeons are confirmed against a difficultyID
+-- whitelist. "scenario" covers delves (208) and Midnight ritual sites (no
+-- dedicated difficultyID documented, but they are scenario instances), so it
+-- keeps working without chasing new IDs each patch. Everything unrecognized
+-- falls back to "world".
+local DIFF = (DifficultyUtil and DifficultyUtil.ID) or {}
+local DUNGEON_DIFFICULTIES = {
+    [DIFF.DungeonNormal     or 1]  = true,
+    [DIFF.DungeonHeroic     or 2]  = true,
+    [DIFF.DungeonChallenge  or 8]  = true,   -- Mythic Keystone (M+)
+    [DIFF.DungeonMythic     or 23] = true,   -- Mythic 0
+    [DIFF.DungeonTimewalker or 24] = true,
+}
+
+function ns.ComputeContext()
+    local _, instanceType, difficultyID = GetInstanceInfo()
+    if instanceType == "raid" then
+        return "raid"
+    elseif instanceType == "arena" then      -- rated / skirmish / solo shuffle
+        return "arena"
+    elseif instanceType == "pvp" then        -- battlegrounds incl. epic BGs / brawls
+        return "pvp"
+    elseif instanceType == "scenario" then   -- delves / ritual sites / scenarios
+        return "scenario"
+    elseif instanceType == "party" and DUNGEON_DIFFICULTIES[difficultyID] then
+        return "party"                       -- real 5-man dungeon (incl. M+)
+    end
+    return "world"
+end
+
+function ns.ContextLabel(ctx)
+    ctx = ctx or ns.currentContext or ns.ComputeContext()
+    return L["CONTEXT_" .. ctx:upper()] or ctx
+end
+
+-- Recompute the cached context. Returns true when it actually changed (a
+-- fresh session's first computation is not a "change").
+function ns.UpdateContext()
+    local old = ns.currentContext
+    ns.currentContext = ns.ComputeContext()
+    return old ~= nil and old ~= ns.currentContext
+end
+
+-- The table holding the active selection: the current context's profile when
+-- the split option is on, otherwise the shared top-level DB fields. Profiles
+-- are created lazily, seeded from the shared fields so enabling the option
+-- (or the first visit to a context) starts from the current choice.
+function ns.SelStore()
+    local db = ns.GetDB()
+    if not db.splitByContext then return db end
+    local ctx = ns.currentContext or ns.ComputeContext()
+    local p = db.profiles[ctx]
+    if not p then
+        p = { selectedItemID = db.selectedItemID, disabled = db.disabled }
+        db.profiles[ctx] = p
+    end
+    return p
+end
+
+function ns.SetSplitByContext(enabled)
+    local db = ns.GetDB()
+    db.splitByContext = enabled and true or false
+    ns.RebuildState()  -- re-apply the now-active memory (deferred in combat)
+end
+
+-- Chat line for a context switch: which memory just became active.
+function ns.NotifyContext()
+    local db = ns.GetDB()
+    if not (db.splitByContext and db.printOnSwitch) then return end
+    local store = ns.SelStore()
+    local what
+    if store.disabled then
+        what = L.CONTEXT_NO_POTION
+    else
+        local id = ns.GetSelected()
+        what = id and (C_Item.GetItemNameByID(id) or ("item:" .. id))
+    end
+    if what then
+        ns.Print(L.MSG_CONTEXT_APPLIED:format(ns.ContextLabel(), what))
+    end
+end
+
+----------------------------------------------------------------------
 -- Selection
 ----------------------------------------------------------------------
 -- The effective potion to use right now. Prefer the saved selection; if it is
@@ -234,7 +330,7 @@ end
 -- back to the first available one as a RUNTIME choice only — we never persist
 -- this fallback, so the saved preference returns automatically when it is back.
 function ns.GetSelected()
-    local id = ns.GetDB().selectedItemID
+    local id = ns.SelStore().selectedItemID
     if id and ns.byID[id] then
         return id
     end
@@ -247,13 +343,13 @@ end
 -- (the login bag cache is often cold). Only set an initial default when there is
 -- no preference at all; otherwise leave it untouched.
 function ns.EnsureValidSelection()
-    local db = ns.GetDB()
-    if db.disabled then
+    local store = ns.SelStore()
+    if store.disabled then
         return  -- user explicitly chose "no potion"; leave it
     end
-    if db.selectedItemID == nil then
+    if store.selectedItemID == nil then
         local first = ns.available[1]
-        if first then db.selectedItemID = first.id end
+        if first then store.selectedItemID = first.id end
     end
 end
 
@@ -277,6 +373,11 @@ function ns.OnSelect(itemID)
     if not itemID then return end
 
     local db = ns.GetDB()
+    local store = ns.SelStore()
+    store.disabled = false
+    store.selectedItemID = itemID
+    -- Mirror to the shared fields ("last pick anywhere"), so turning the
+    -- split option off keeps the most recent choice.
     db.disabled = false
     db.selectedItemID = itemID
 
@@ -287,7 +388,8 @@ end
 -- Insecure half of clicking the "no potion" selector.
 function ns.OnSelectNone()
     local db = ns.GetDB()
-    db.disabled = true
+    ns.SelStore().disabled = true
+    db.disabled = true  -- shared-field mirror, see ns.OnSelect
 
     ns.Bar_UpdateSelection()
     if db.printOnSwitch then
@@ -418,6 +520,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
             ns.PreloadItems()
         end
     elseif event == "PLAYER_LOGIN" then
+        ns.UpdateContext()
         ns.RebuildState()
         if ns.Bar_Position then ns.Bar_Position() end  -- auto-center at full width
         -- Pre-build the settings list rows now that the DB is loaded, so the row
@@ -427,7 +530,11 @@ f:SetScript("OnEvent", function(_, event, arg1)
         if ns.RefreshSettingsList then ns.RefreshSettingsList() end
         ns.Print(L.MSG_LOADED:format(ns.MACRO_LINE))
     elseif event == "PLAYER_ENTERING_WORLD" then
+        -- Fires after every loading screen, when GetInstanceInfo is reliable —
+        -- the one place the environment context can change.
+        local changed = ns.UpdateContext()
         ns.RebuildState()
+        if changed then ns.NotifyContext() end
     elseif event == "BAG_UPDATE_DELAYED" then
         if InCombatLockdown() then
             ns.pendingRebuild = true

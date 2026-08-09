@@ -322,6 +322,9 @@ function ns.CreateBar()
     grip:SetScript("OnEnter", function()
         GameTooltip:SetOwner(grip, "ANCHOR_RIGHT")
         GameTooltip:SetText(L.SETTINGS_TITLE)
+        if ns.GetDB().splitByContext then
+            GameTooltip:AddLine(L.TIP_CONTEXT:format(ns.ContextLabel()), 0.8, 0.8, 0.8)
+        end
         GameTooltip:AddLine(L.TIP_COLLAPSE, 0.8, 0.8, 0.8)
         if ns.GetDB().lockBar then
             GameTooltip:AddLine(L.TIP_LOCKED, 1, 0.5, 0.5)
@@ -363,14 +366,14 @@ end
 -- deferred during combat doesn't desync the border from what's on screen.
 function ns.Bar_UpdateSelection()
     if not ns.bar then return end
-    local db = ns.GetDB()
+    local store = ns.SelStore()
     local showBorder = not ns.appliedCollapsed
-    local selected = (not db.disabled) and ns.GetSelected() or nil
+    local selected = (not store.disabled) and ns.GetSelected() or nil
     for _, btn in ipairs(ns.buttons) do
         btn.border:SetShown(showBorder and selected ~= nil and btn.itemID == selected)
     end
     if ns.noneButton then
-        ns.noneButton.border:SetShown(showBorder and db.disabled == true)
+        ns.noneButton.border:SetShown(showBorder and store.disabled == true)
     end
 end
 
@@ -419,8 +422,9 @@ function ns.Bar_Refresh()
     ns.buttons = ns.buttons or {}
 
     -- When collapsed, only the currently-selected cell stays visible.
+    local store = ns.SelStore()
     local collapsed = db.collapsed
-    local selected = (not db.disabled) and ns.GetSelected() or nil
+    local selected = (not store.disabled) and ns.GetSelected() or nil
 
     -- Configure + show/hide each variant button; collect the ones to display.
     local cells = {}
@@ -475,7 +479,7 @@ function ns.Bar_Refresh()
     -- "No potion" selector: always shown when expanded; when collapsed only if
     -- it is the current selection (disabled). Fallback: if collapse somehow left
     -- nothing visible, show it so the bar isn't an empty stub.
-    if (not collapsed) or db.disabled or #cells == 0 then
+    if (not collapsed) or store.disabled or #cells == 0 then
         cells[#cells + 1] = ns.noneButton
         ns.noneButton:Show()
     else

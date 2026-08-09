@@ -120,9 +120,25 @@ local function BuildPanel()
     desc:SetJustifyH("LEFT")
     desc:SetText(L.SETTINGS_DESC)
 
+    -- Which memory is active right now (e.g. M+, world). Refreshed on show so
+    -- the player can tell which environment their current record belongs to.
+    local ctxLine = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    ctxLine:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -8)
+    ctxLine:SetJustifyH("LEFT")
+    local function UpdateCtxLine()
+        if ns.GetDB().splitByContext then
+            ctxLine:SetText(L.SETTINGS_CURRENT_CONTEXT:format("|cff33ff33" .. ns.ContextLabel() .. "|r"))
+        else
+            ctxLine:SetText(L.SETTINGS_CURRENT_CONTEXT:format(L.CONTEXT_SHARED))
+        end
+    end
+    -- Only refreshed on show: BuildPanel runs at file load, before SavedVariables
+    -- exist, so no DB read may happen here.
+    panel:HookScript("OnShow", UpdateCtxLine)
+
     -- Section: Options
     local sec1 = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    sec1:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -18)
+    sec1:SetPoint("TOPLEFT", ctxLine, "BOTTOMLEFT", 0, -18)
     sec1:SetText("|cffffd100" .. L.SECTION_GENERAL .. "|r")
 
     local cbPrint = CreateCheckbox(panel, L.OPT_PRINT, sec1, 0, -8,
@@ -149,9 +165,13 @@ local function BuildPanel()
         function() return ns.GetDB().showItemTooltip end,
         function(v) ns.GetDB().showItemTooltip = v end)
 
+    local cbSplit = CreateCheckbox(panel, L.OPT_SPLIT_CONTEXT, cbTip, 0, -2,
+        function() return ns.GetDB().splitByContext end,
+        function(v) ns.SetSplitByContext(v); UpdateCtxLine() end)
+
     -- Section: Macro
     local sec2 = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    sec2:SetPoint("TOPLEFT", cbTip, "BOTTOMLEFT", 0, -16)
+    sec2:SetPoint("TOPLEFT", cbSplit, "BOTTOMLEFT", 0, -16)
     sec2:SetText("|cffffd100" .. L.SECTION_MACRO .. "|r")
 
     local macroHelp = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")

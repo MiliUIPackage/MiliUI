@@ -64,7 +64,7 @@ function ns.ApplySecure()
         return
     end
     local b = ns.button or ns.CreateSecureButton()
-    if ns.GetDB().disabled then
+    if ns.SelStore().disabled then
         ns.ClearSecure()
         return
     end
