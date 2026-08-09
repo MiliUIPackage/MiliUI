@@ -8,6 +8,9 @@ local DB_DEFAULTS       = ns.DB_DEFAULTS
 local LUST_DEBUFFS      = ns.LUST_DEBUFFS
 local LUST_CLASS_SPELLS = ns.LUST_CLASS_SPELLS
 local REMINDER_FONT     = ns.LOCALE_FONT
+local Readable          = ns.Readable
+local SafeBool          = ns.SafeBool
+local SafeValue         = ns.SafeValue
 
 ----------------------------------------------------------------------
 -- Built-in reminder sound default
@@ -77,11 +80,13 @@ local function GetPlayerLustSpell()
 end
 
 -- Returns (hasDebuff, auraInstanceID) so callers can snapshot the ID
--- for payload-filtered UNIT_AURA dismissal.
+-- for payload-filtered UNIT_AURA dismissal. The instance ID is secret
+-- while auras are restricted; nil it out there rather than storing a
+-- value we can never compare against.
 local function PlayerHasLustDebuff()
     for _, spellID in ipairs(LUST_DEBUFFS) do
         local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
-        if aura then return true, aura.auraInstanceID end
+        if aura then return true, SafeValue(aura.auraInstanceID, nil) end
     end
     return false
 end
@@ -336,24 +341,33 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         local unit, updateInfo = ...
         if unit ~= "player" then return end
 
-        -- Payload-filter fast path. In 12.0 the `spellId` on `addedAuras`
-        -- entries may be "secret" (can't index a table with it), so we can
-        -- only answer "was anything added?" cheaply. That still skips the
-        -- bulk of combat events, which are pure stack/refresh updates.
+        -- Payload-filter fast path. `spellId` on `addedAuras` entries is
+        -- secret, so we can only answer "was anything added?" cheaply.
+        -- That still skips the bulk of combat events, which are pure
+        -- stack/refresh updates.
+        --
+        -- 12.1: `isFullUpdate` is a secret *boolean* while auras are
+        -- restricted and testing one is a hard error, and the ID lists
+        -- become secret tables that can't be measured or iterated. Any
+        -- unreadable field means we simply scan — always correct, just
+        -- not free.
         local shouldScan = true
-        if updateInfo and not updateInfo.isFullUpdate then
-            shouldScan = false
-            if watchedDebuffInstanceID and updateInfo.removedAuraInstanceIDs then
-                for _, id in ipairs(updateInfo.removedAuraInstanceIDs) do
-                    if id == watchedDebuffInstanceID then
-                        shouldScan = true
-                        break
+        if updateInfo and not SafeBool(updateInfo.isFullUpdate, false) then
+            local removed = updateInfo.removedAuraInstanceIDs
+            local added   = updateInfo.addedAuras
+            if Readable(removed) and Readable(added) then
+                shouldScan = false
+                if watchedDebuffInstanceID and removed then
+                    for _, id in ipairs(removed) do
+                        if not Readable(id) or id == watchedDebuffInstanceID then
+                            shouldScan = true
+                            break
+                        end
                     end
                 end
-            end
-            if not shouldScan and reminderShowing
-               and updateInfo.addedAuras and #updateInfo.addedAuras > 0 then
-                shouldScan = true
+                if not shouldScan and reminderShowing and added and #added > 0 then
+                    shouldScan = true
+                end
             end
         end
         if not shouldScan then return end

@@ -6,6 +6,58 @@ local addonName, ns = ...
 ns.L = LibStub("AceLocale-3.0"):GetLocale("MiliUI_BloodlustMusic")
 
 ----------------------------------------------------------------------
+-- Secret value helpers (12.1)
+--
+-- Since 12.1 nearly everything in an aura payload is a "secret value"
+-- while auras are restricted (combat, encounters, M+, rated PvP).
+-- Tainted (addon) code may store and pass secrets around, but any of the
+-- following is an immediate Lua error:
+--     arithmetic  •  comparison (==, <)  •  #length  •  table indexing
+--     •  boolean test on a secret *boolean*
+-- Every value we read out of an aura goes through these helpers first.
+----------------------------------------------------------------------
+local issecretvalue  = _G.issecretvalue
+local canaccessvalue = _G.canaccessvalue
+local issecrettable  = _G.issecrettable
+local canaccesstable = _G.canaccesstable
+
+-- True when `v` can be compared / measured / iterated safely.
+local function Readable(v)
+    if issecretvalue and issecretvalue(v) then return false end
+    if canaccessvalue and not canaccessvalue(v) then return false end
+    if type(v) == "table" then
+        if issecrettable and issecrettable(v) then return false end
+        if canaccesstable and not canaccesstable(v) then return false end
+    end
+    return true
+end
+
+-- Boolean test on a possibly-secret boolean is fatal, so route it here.
+local function SafeBool(v, fallback)
+    if not Readable(v) then return fallback end
+    return not not v
+end
+
+-- Numbers we intend to do arithmetic / comparisons with.
+local function SafeNumber(v, fallback)
+    if not Readable(v) then return fallback end
+    if type(v) ~= "number" then return fallback end
+    return v
+end
+
+-- Anything else (names, icons, instance IDs). Secret or nil → fallback.
+local function SafeValue(v, fallback)
+    if not Readable(v) then return fallback end
+    if v == nil then return fallback end
+    return v
+end
+
+ns.Readable   = Readable
+ns.SafeBool   = SafeBool
+ns.SafeNumber = SafeNumber
+ns.SafeValue  = SafeValue
+
+----------------------------------------------------------------------
 -- Lust spell ID lists
 ----------------------------------------------------------------------
 

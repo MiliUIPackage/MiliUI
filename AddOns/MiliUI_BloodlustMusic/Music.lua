@@ -16,6 +16,10 @@ local BOOST_CACHE_SIZE          = ns.BOOST_CACHE_SIZE
 local DB_DEFAULTS               = ns.DB_DEFAULTS
 local DEFAULT_LUST_NAME         = ns.DEFAULT_LUST_NAME
 local DEFAULT_LUST_ICON         = ns.DEFAULT_LUST_ICON
+local Readable                  = ns.Readable
+local SafeBool                  = ns.SafeBool
+local SafeNumber                = ns.SafeNumber
+local SafeValue                 = ns.SafeValue
 
 ----------------------------------------------------------------------
 -- Debug
@@ -518,13 +522,18 @@ local function ShowBar(spellID, spellName, spellIcon, duration, expirationTime)
     if not db.barEnabled then return end
     CreateBarFrame()
 
-    activeLustSpellID    = spellID
-    activeLustDuration   = duration or 40
-    activeLustExpiration = expirationTime or (GetTime() + activeLustDuration)
+    -- The OnUpdate handler does arithmetic on these every frame, so they
+    -- must never be secret — a lust window is 40s, which is a perfectly
+    -- good stand-in when the real numbers are unreadable. Sanitising the
+    -- texture/name here too keeps a secret "aspect" off the widgets,
+    -- which would otherwise stick until SetToDefaults().
+    activeLustSpellID    = SafeValue(spellID, nil)
+    activeLustDuration   = SafeNumber(duration, 40)
+    activeLustExpiration = SafeNumber(expirationTime, GetTime() + activeLustDuration)
     barUpdateAccum       = 0.1  -- force immediate text/color update on first frame
 
-    barIcon:SetTexture(spellIcon or DEFAULT_LUST_ICON)
-    barText:SetText(spellName or DEFAULT_LUST_NAME)
+    barIcon:SetTexture(SafeValue(spellIcon, DEFAULT_LUST_ICON))
+    barText:SetText(SafeValue(spellName, DEFAULT_LUST_NAME))
     barStatusBar:SetValue(1)
     barTimeText:SetText(string.format("%.0f", activeLustDuration))
 
@@ -570,11 +579,17 @@ end
 ----------------------------------------------------------------------
 -- Lust detection helpers
 ----------------------------------------------------------------------
+-- The spell ID we return is our own loop variable, never `aura.spellId`,
+-- so it is always readable. Everything read off the aura itself is secret
+-- while auras are restricted and gets sanitised here, once, at the source.
 local function ScanForLustDebuff()
     for _, spellID in ipairs(LUST_DEBUFFS) do
         local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
         if aura then
-            return spellID, aura.name, aura.expirationTime, aura.auraInstanceID
+            return spellID,
+                   SafeValue(aura.name, DEFAULT_LUST_NAME),
+                   SafeNumber(aura.expirationTime, nil),
+                   SafeValue(aura.auraInstanceID, nil)
         end
     end
     return nil
@@ -584,33 +599,59 @@ local function GetLustBuffInfo()
     for _, spellID in ipairs(LUST_BUFFS) do
         local aura = C_UnitAuras.GetPlayerAuraBySpellID(spellID)
         if aura then
-            return spellID, aura.name, aura.icon, aura.duration, aura.expirationTime
+            return spellID,
+                   SafeValue(aura.name, DEFAULT_LUST_NAME),
+                   SafeValue(aura.icon, DEFAULT_LUST_ICON),
+                   SafeNumber(aura.duration, nil),
+                   SafeNumber(aura.expirationTime, nil)
         end
     end
     return nil
 end
 
-local function IsDebuffFresh(expirationTime)
-    -- Unreadable expiration (common right after login/loading screens):
-    -- treat as STALE. Better to miss one playback than false-trigger on
-    -- every zone change while the exhaustion debuff is up.
-    if not expirationTime or expirationTime <= 0 then return false end
+-- `whenUnreadable` is the answer to use when the expiration timestamp was
+-- secret, because the right guess differs per caller:
+--   • UNIT_AURA  → assume FRESH; the full-update / grace-period guard is
+--                  what actually blocks loading-screen replays, and
+--                  guessing "stale" would mute every in-combat lust.
+--   • login scan → assume STALE; anything already up at login is by
+--                  definition not a cast we should announce.
+local function IsDebuffFresh(expirationTime, whenUnreadable)
+    if expirationTime == nil then return whenUnreadable end
+    if expirationTime <= 0 then return false end
     return (expirationTime - GetTime()) > LUST_DEBUFF_FRESH_THRESHOLD
 end
 
--- UNIT_AURA payload filtering helpers.
--- NOTE: 12.0 may mark `aura.spellId` on `addedAuras` entries as "secret"
--- (unusable as a table index). Only `auraInstanceID` is reliably readable.
--- So we can only answer "was SOMETHING added?" — if so, fall through to a
--- full scan. Removals compare against our own tracked instance ID, which
--- is always safe. Pure updates (stack/refresh) still get skipped — that's
--- where the bulk of savings come from during combat.
-local function RemovedContainsTracked(removedIDs, target)
-    if not removedIDs or not target then return false end
-    for _, id in ipairs(removedIDs) do
-        if id == target then return true end
+-- UNIT_AURA payload filtering.
+--
+-- We only ever ask one question of the payload: "is this event definitely
+-- none of our business?" — if so we return early and skip the scan.
+--
+-- The payload is only usable when it is plainly readable. In 12.1 the
+-- lists themselves become secret tables while auras are restricted, so
+-- `#addedAuras` and `id == trackedID` are both fatal there. Any unreadable
+-- field therefore answers "can't skip" and we fall through to a full scan
+-- — correctness first, the saving is just an out-of-combat optimisation.
+--
+-- Even when readable we can't tell *which* aura was added (`spellId` on
+-- addedAuras entries is secret), so any addition means scan. Removals are
+-- matched against our own tracked instance ID. Pure updates (stack /
+-- refresh) are what actually get skipped, and they are the bulk of them.
+local function CanSkipUpdate(updateInfo)
+    local added = updateInfo.addedAuras
+    if not Readable(added) then return false end
+    if added and #added > 0 then return false end
+
+    local removed = updateInfo.removedAuraInstanceIDs
+    if not Readable(removed) then return false end
+    if removed and trackedDebuffInstanceID then
+        for _, id in ipairs(removed) do
+            if not Readable(id) then return false end
+            if id == trackedDebuffInstanceID then return false end
+        end
     end
-    return false
+
+    return true
 end
 
 ----------------------------------------------------------------------
@@ -628,18 +669,18 @@ local function OnUnitAura(unit, updateInfo)
     -- Full updates fire at login/zone-in; a genuine new lust cast always
     -- arrives as an incremental addedAuras payload. Treat full updates
     -- (and a missing payload) as state-sync only — never playback.
-    local isFullUpdate = not updateInfo or updateInfo.isFullUpdate
+    --
+    -- 12.1: `isFullUpdate` is a secret boolean whenever auras are
+    -- restricted, and boolean-testing a secret boolean is a hard error —
+    -- this line is what used to crash. When it's unreadable we assume
+    -- incremental: full updates only really happen around loading
+    -- screens, and the PLAYER_ENTERING_WORLD grace window below already
+    -- covers those. Guessing "full" instead would mute every lust cast
+    -- in combat, i.e. all of them.
+    local isFullUpdate = (updateInfo == nil) or SafeBool(updateInfo.isFullUpdate, false)
 
-    -- Fast path: skip pure-update events using the 12.0 payload.
-    -- Full updates (login/zone) always scan; otherwise we care about:
-    --   • any aura being added (can't cheaply tell which → scan), or
-    --   • our tracked debuff instance being removed.
-    if not isFullUpdate then
-        local relevant =
-            (updateInfo.addedAuras and #updateInfo.addedAuras > 0) or
-            RemovedContainsTracked(updateInfo.removedAuraInstanceIDs, trackedDebuffInstanceID)
-        if not relevant then return end
-    end
+    -- Fast path: bail out on pure stack/refresh updates.
+    if not isFullUpdate and CanSkipUpdate(updateInfo) then return end
 
     if debugMode then
         DebugPrint("UNIT_AURA relevant, lustDetected=", lustDetected, "inCombat=", InCombatLockdown())
@@ -655,7 +696,7 @@ local function OnUnitAura(unit, updateInfo)
         lustDetected              = true
         trackedDebuffInstanceID   = debuffInstanceID
 
-        if not IsDebuffFresh(debuffExpiration) then
+        if not IsDebuffFresh(debuffExpiration, true) then
             DebugPrint("Stale lust debuff, suppressing playback")
             return
         end
@@ -773,7 +814,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
                         duration or 40, expirationTime or (GetTime() + 40))
             else
                 local dbID, _, dbExpiration, dbInstID = ScanForLustDebuff()
-                if dbID and not IsDebuffFresh(dbExpiration) then
+                if dbID and not IsDebuffFresh(dbExpiration, false) then
                     lustDetected            = true
                     trackedDebuffInstanceID = dbInstID
                     DebugPrint("Login: stale lust debuff, suppressing replay")
