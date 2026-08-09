@@ -530,6 +530,13 @@ local function ForEachKnownWindow(func)
     end
 end
 
+-- ✅ 以前這裡會用 EnumerateFrames() 走訪整個 UI 的 frame 清單，只為了撈出
+--    ^DamageMeterSessionWindow%d+$ —— 但那批視窗 GetNamedWindows() 已經用 _G
+--    直接抓到了，掃描純屬多餘。ScheduleApplyPasses 一次排三個 pass，而
+--    PLAYER_LOGIN / PLAYER_ENTERING_WORLD / ZONE_CHANGED_NEW_AREA 在登入瞬間
+--    會連續打到，等於在最忙的那一秒把幾萬個 frame 全掃好幾遍，是登入卡頓的主因。
+--    改成只走 named windows ＋ 經由 SetupSessionWindow hook 記錄下來的 knownWindows
+--    （後者原本 ApplyAllFull 反而漏掉了，所以覆蓋率是變好而不是變差）。
 local function FullEnumerateWindows(func)
     local seen = setmetatable({}, { __mode = "k" })
 
@@ -544,15 +551,8 @@ local function FullEnumerateWindows(func)
         SafeRun(window)
     end
 
-    local f = EnumerateFrames()
-    while f do
-        if not f:IsForbidden() then
-            local name = f.GetName and f:GetName()
-            if type(name) == "string" and name:match("^DamageMeterSessionWindow%d+$") then
-                SafeRun(f)
-            end
-        end
-        f = EnumerateFrames(f)
+    for window in pairs(knownWindows) do
+        SafeRun(window)
     end
 end
 

@@ -230,6 +230,7 @@ local function TranslateLuaError(msg)
         end
     end
 
+    local func, detail
     t, func, detail = core:match("bad argument #(%d+) to '([^']+)' %((.+)%)")
     if t then
         core = (L("函式 '%s' 的第 %d 個參數錯誤（%s）") or core):format(func, tonumber(t), detail)
@@ -389,26 +390,48 @@ function DamageMeterTools:InstallErrorHandler()
     self._origErrorHandler = geterrorhandler()
 
     -- ✅ 我們自己的 handler
+    --    這是「全域」錯誤處理器，全 UI 每一支插件的錯誤都會經過這裡，
+    --    所以務必：(1) 自己的紀錄失敗不能把錯誤吃掉，(2) 一定要往下傳給原本的
+    --    handler（BugSack / !BugGrabber / 暴雪內建錯誤框），否則別人的錯誤會憑空消失。
+    local inHandler = false
+
     self._DMT_ErrorHandler = function(err)
+        -- ✅ 防遞迴：萬一下游的 handler 又把錯誤丟回我們身上（有些插件會包住
+        --    前一個 handler 再呼叫），沒有這道閘會直接 stack overflow。
+        if inHandler then return end
+        inHandler = true
+
+        local ok = false
+
         if DamageMeterTools and DamageMeterTools.ReportError then
-            DamageMeterTools:ReportError(err)
-        else
+            ok = pcall(DamageMeterTools.ReportError, DamageMeterTools, err)
+        end
+
+        if not ok then
             print("|cffff0000[DMT Error]|r " .. tostring(err))
         end
 
-        local db = DamageMeterTools.db or DamageMeterToolsDB or {}
-        db.errors = db.errors or {}
+        -- ✅ 鏈式呼叫：把錯誤還給原本的 handler
+        local orig = DamageMeterTools._origErrorHandler
+        if type(orig) == "function" and orig ~= DamageMeterTools._DMT_ErrorHandler then
+            pcall(orig, err)
+        end
 
+        inHandler = false
     end
 
     seterrorhandler(self._DMT_ErrorHandler)
 end
 
--- ✅ 如果被其他插件改掉，強制再裝回來
+-- ✅ 如果被其他插件改掉，強制再裝回來（但把對方接到鏈的下游，不是丟掉）
 function DamageMeterTools:EnsureErrorHandler()
     if not self._DMT_ErrorHandler then return end
-    if geterrorhandler() ~= self._DMT_ErrorHandler then
-        self._origErrorHandler = geterrorhandler()
+
+    local current = geterrorhandler()
+    if current ~= self._DMT_ErrorHandler then
+        if type(current) == "function" then
+            self._origErrorHandler = current
+        end
         seterrorhandler(self._DMT_ErrorHandler)
     end
 end
