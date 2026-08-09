@@ -19,15 +19,19 @@ function addonTable.Display.AnimatedBorderHighlightMixin:Strip()
   self.Right:SetVertexColor(1, 1, 1, 1)
   self:UnregisterAllEvents()
   addonTable.Display.UnregisterForColorEvents(self)
+  self.Animation:Stop()
 end
 
 function addonTable.Display.AnimatedBorderHighlightMixin:SetColor(...)
   self:SetShown(... ~= nil)
   if ... then
+    self.Animation:Play()
     self.Top:SetVertexColor(...)
     self.Bottom:SetVertexColor(...)
     self.Left:SetVertexColor(...)
     self.Right:SetVertexColor(...)
+  else
+    self.Animation:Stop()
   end
 end
 

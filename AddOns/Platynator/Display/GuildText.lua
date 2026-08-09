@@ -68,6 +68,11 @@ function addonTable.Display.GuildTextMixin:SetUnit(unit)
       self:SetShown(UnitIsUnit(self.unit, "target") or UnitShouldDisplayName(self.unit))
       self:RegisterUnitEvent("UNIT_HEALTH", self.unit)
     end
+    if self.details.showWhenWowDoes then
+      addonTable.Cache:RegisterCallback(unit, "target", function()
+        self:SetShown(UnitIsUnit(self.unit, "target") or UnitShouldDisplayName(self.unit))
+      end)
+    end
 
     addonTable.Display.RegisterForColorEvents(self, self.details.autoColors, self.details.color)
   else
@@ -78,7 +83,6 @@ function addonTable.Display.GuildTextMixin:SetUnit(unit)
 end
 
 function addonTable.Display.GuildTextMixin:Strip()
-  self.ApplyTarget = nil
   self.ApplyTextOverride = nil
 
   self.defaultText = nil
@@ -96,18 +100,12 @@ end
 
 function addonTable.Display.GuildTextMixin:OnEvent(eventName, ...)
   if eventName == "UNIT_HEALTH" then
-    self:ApplyTarget()
+    self:SetShown(UnitIsUnit(self.unit, "target") or UnitShouldDisplayName(self.unit))
   elseif eventName == "UNIT_NAME_UPDATE" then
     self:UpdateText()
   end
 
   self:ColorEventHandler(eventName)
-end
-
-function addonTable.Display.GuildTextMixin:ApplyTarget()
-  if self.details.showWhenWowDoes then
-    self:SetShown(UnitIsUnit(self.unit, "target") or UnitShouldDisplayName(self.unit))
-  end
 end
 
 function addonTable.Display.GuildTextMixin:ApplyTextOverride()

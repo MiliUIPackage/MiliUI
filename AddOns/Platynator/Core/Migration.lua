@@ -543,6 +543,14 @@ local function UpgradeDesignv1(design)
   end
 end
 
+local function UpgradeDesignv2(design)
+  local click, stack = addonTable.Utilities.GenerateRects(design)
+  design.regions = {
+    click = addonTable.Utilities.ConvertRectToWidget(click),
+    stack = addonTable.Utilities.ConvertRectToWidget(stack)
+  }
+end
+
 local function UpgradeDesignv6(design)
   for _, text in ipairs(design.texts) do
     if text.kind == "level" and text.showModifiers == nil then
@@ -625,49 +633,49 @@ local function UpgradeDesignv13(design)
   end
 end
 
+local function UpgradeDesignv14(design)
+  for _, bar in ipairs(design.specialBars) do
+    if bar.kind == "power" then
+      bar.useSpecColors = true
+      bar.fixedColor = GetColor("f0c900")
+    end
+  end
+end
+
+local function UpgradeDesignv15(design)
+  for _, auras in ipairs(design.auras) do
+    if auras.kind == "buffs" then
+      auras.filters.enrage = false
+    end
+  end
+end
+
+local designUpgrades = {
+  UpgradeDesignv1,
+  UpgradeDesignv2,
+  UpgradeDesignv2,
+  UpgradeDesignv2,
+  UpgradeDesignv2,
+  UpgradeDesignv6,
+  UpgradeDesignv2,
+  UpgradeDesignv2,
+  UpgradeDesignv9,
+  UpgradeDesignv10,
+  UpgradeDesignv11,
+  UpgradeDesignv12,
+  UpgradeDesignv13,
+  UpgradeDesignv14,
+  UpgradeDesignv15,
+}
+
 function addonTable.Core.UpgradeDesign(design)
-  if design.version == 1 or design.version == nil then
-    UpgradeDesignv1(design)
-    design.version = 2
-  end
-  if design.version == 2 or design.version == 3 or design.version == 4 or design.version == 5 then
-    local click, stack = addonTable.Utilities.GenerateRects(design)
-    design.regions = {
-      click = addonTable.Utilities.ConvertRectToWidget(click),
-      stack = addonTable.Utilities.ConvertRectToWidget(stack)
-    }
-    design.version = 6
-  end
-  if design.version == 6 then
-    UpgradeDesignv6(design)
-  end
-  if design.version == 6 or design.version == 7 or design.version == 8 then
-    local click, stack = addonTable.Utilities.GenerateRects(design)
-    design.regions = {
-      click = addonTable.Utilities.ConvertRectToWidget(click),
-      stack = addonTable.Utilities.ConvertRectToWidget(stack)
-    }
-    design.version = 9
-  end
-  if design.version == 9 then
-    UpgradeDesignv9(design)
-    design.version = 10
-  end
-  if design.version == 10 then
-    UpgradeDesignv10(design)
-    design.version = 11
-  end
-  if design.version == 11 then
-    UpgradeDesignv11(design)
-    design.version = 12
-  end
-  if design.version == 12 then
-    UpgradeDesignv12(design)
-    design.version = 13
-  end
-  if design.version == 13 then
-    UpgradeDesignv13(design)
-    design.version = 14
+  if #designUpgrades + 1 ~= design.version then
+
+    for i = design.version, #designUpgrades do
+      designUpgrades[i](design)
+    end
+
+    design.version = #designUpgrades + 1
   end
 end
 

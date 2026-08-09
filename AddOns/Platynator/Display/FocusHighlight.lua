@@ -5,7 +5,12 @@ addonTable.Display.FocusHighlightMixin = {}
 
 function addonTable.Display.FocusHighlightMixin:SetUnit(unit)
   self.unit = unit
-  self:Hide()
+  if unit then
+    self:ApplyFocus()
+    addonTable.Cache:RegisterCallback(unit, "focus", function()
+      self:ApplyFocus()
+    end)
+  end
 end
 
 function addonTable.Display.FocusHighlightMixin:Strip()

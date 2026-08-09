@@ -672,6 +672,7 @@ legacy.crowdControlSpells = {
 [122] = true,
 [865] = true,
 [6131] = true,
+[27088] = true,
 [10230] = true,
 [42917] = true,
 -- Dragon's Breath

@@ -212,6 +212,74 @@ addonTable.CustomiseDialog.ColorsConfig = {
       },
     },
   },
+  ["threatIgnoreRole"] = {
+    label = addonTable.Locales.THREAT_IGNORE_ROLE,
+    default = {
+      kind = "threatIgnoreRole",
+      colors = {
+        noThreat = GetColor("0F96E6"),
+        transition = GetColor("FFA000"),
+        hasThreat = GetColor("CC0000"),
+      },
+      instancesOnly = false,
+      combatOnly = true,
+      useNoThreatColor = true,
+    },
+    entries = {
+      {
+        label = addonTable.Locales.NO_THREAT,
+        kind = "colorPickerWithCheckbox",
+        setter = function(details, value)
+          details.colors.noThreat = value.color
+          details.useNoThreatColor = value.enabled
+        end,
+        getter = function(details)
+          return {color = details.colors.noThreat, enabled = details.useNoThreatColor}
+        end,
+      },
+      {
+        label = addonTable.Locales.TRANSITION,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.transition = value
+        end,
+        getter = function(details)
+          return details.colors.transition
+        end,
+      },
+      {
+        label = addonTable.Locales.HAS_THREAT,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.hasThreat = value
+        end,
+        getter = function(details)
+          return details.colors.hasThreat
+        end,
+      },
+      { kind = "spacer" },
+      {
+        label = addonTable.Locales.ONLY_APPLY_IN_COMBAT,
+        kind = "checkbox",
+        setter = function(details, value)
+          details.combatOnly = value
+        end,
+        getter = function(details)
+          return details.combatOnly
+        end,
+      },
+      {
+        label = addonTable.Locales.ONLY_APPLY_IN_INSTANCES,
+        kind = "checkbox",
+        setter = function(details, value)
+          details.instancesOnly = value
+        end,
+        getter = function(details)
+          return details.instancesOnly
+        end,
+      },
+    },
+  },
   ["rarity"] = {
     label = addonTable.Locales.RARITY,
     default = {
@@ -1144,6 +1212,7 @@ addonTable.CustomiseDialog.ColorsConfigOrder = {
   "mouseover",
   "notMouseover",
   "threat",
+  "threatIgnoreRole",
   "inCombat",
   "inRange",
   "outOfRange",

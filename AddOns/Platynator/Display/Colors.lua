@@ -51,6 +51,7 @@ local kindToCallback = {
 }
 local kindToCache = {
   threat = {"combat", "threat"},
+  threatIgnoreRole = {"combat", "threat"},
   inCombat = {"combat"},
   interruptReady = {"cast"},
   interruptNotReady = {"cast"},
@@ -70,14 +71,19 @@ local kindToCache = {
   focus = {"focus"},
 }
 
+local forcedUpdates = table.create(0, 40)
+C_Timer.NewTicker(0.1, function()
+  for frame in pairs(forcedUpdates) do
+    frame:ColorEventHandler("FORCED")
+  end
+end)
+
 function addonTable.Display.UnregisterForColorEvents(frame)
   if frame.colorState then
     for _, e in ipairs(frame.colorState.callbacks) do
       addonTable.CallbackRegistry:UnregisterCallback(e, frame.colorState)
     end
-    if frame.colorState.timer then
-      frame.colorState.timer:Cancel()
-    end
+    forcedUpdates[frame] = nil
   end
 
   frame.ColorEventHandler = nil
@@ -136,14 +142,9 @@ function addonTable.Display.RegisterForColorEvents(frame, settings, defaultColor
     if events[eventName] then
       self:SetColor(addonTable.Display.GetColor(settings, self.colorState, self.unit))
       if next(self.colorState.frequentUpdater) then
-        if not self.colorState.timer then
-          self.colorState.timer = C_Timer.NewTicker(0.1, function()
-            self:ColorEventHandler("FORCED")
-          end)
-        end
-      elseif self.colorState.timer then
-        self.colorState.timer:Cancel()
-        self.colorState.timer = nil
+        forcedUpdates[self] = true
+      else
+        forcedUpdates[self] = nil
       end
     end
   end
@@ -218,6 +219,22 @@ function addonTable.Display.GetColor(settings, state, unit)
           break
         end
       end
+    elseif s.kind == "threatIgnoreRole" then
+      local threatDetails = addonTable.Cache:Get(unit, "threat")
+      local threat = threatDetails.situation
+      local hostile = state.hostile
+      if not state.isPlayer and (inRelevantThreatInstance or not s.instancesOnly) and (threat or (hostile and not s.combatOnly) or IsInCombatWith(unit)) and (not s.tanksOnly or isTank) then
+        if threat == 3 then
+          table.insert(colorQueue, {color = s.colors.hasThreat})
+          break
+        elseif threat == 1 or threat == 2 then
+          table.insert(colorQueue, {color = s.colors.transition})
+          break
+        elseif s.useNoThreatColor then
+          table.insert(colorQueue, {color = s.colors.noThreat})
+          break
+        end
+      end
     elseif s.kind == "rarity" then
       local classification = UnitClassification(unit)
 
@@ -267,7 +284,15 @@ function addonTable.Display.GetColor(settings, state, unit)
     elseif s.kind == "classColors" then
       if state.isPlayer then
         local _, class = UnitClass(unit)
-        table.insert(colorQueue, {color = s.colors[class] or RAID_CLASS_COLORS[class]})
+        if issecretvalue(class) then
+          local color = C_ClassColor.GetClassColor(class)
+          if s.colors.class then
+            color.a = s.colors.class.a
+          end
+          table.insert(colorQueue, {color = color})
+        else
+          table.insert(colorQueue, {color = s.colors[class] or RAID_CLASS_COLORS[class]})
+        end
         break
       end
     elseif s.kind == "reaction" then
@@ -512,7 +537,6 @@ function addonTable.Display.GetColor(settings, state, unit)
 
   local defaultColor = state.defaultColor
   if C_CurveUtil then
-    local start = debugprofilestop()
     local r, g, b, a = defaultColor.r, defaultColor.g, defaultColor.b, defaultColor.a or 1
     for index = #colorQueue, 1, -1 do
       local details = colorQueue[index]

@@ -1386,6 +1386,16 @@ addonTable.CustomiseDialog.WidgetsConfig = {
               return details.filters.dispelable
             end,
           },
+          {
+            label = addonTable.Locales.ENRAGE,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.filters.enrage = value
+            end,
+            getter = function(details)
+              return details.filters.enrage
+            end,
+          },
         }
       },
       {
@@ -1636,6 +1646,27 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             getter = function(details)
               return details.asset
             end
+          },
+          { kind = "spacer" },
+          {
+            label = addonTable.Locales.USE_FIXED_COLOR,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.useSpecColors = not value
+            end,
+            getter = function(details)
+              return not details.useSpecColors
+            end
+          },
+          {
+            label = addonTable.Locales.FIXED_COLOR,
+            kind = "colorPicker",
+            setter = function(details, value)
+              details.fixedColor = value
+            end,
+            getter = function(details)
+              return details.fixedColor
+            end,
           },
         }
       }

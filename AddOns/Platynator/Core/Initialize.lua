@@ -20,7 +20,7 @@ local function SetStyle(isInit)
     designs[addonTable.Constants.CustomName] = CopyTable(addonTable.Core.GetDesignByName(styleName))
   end
 
-  if isInit then
+  if isInit or addonTable.Utilities.IsChangesRestricted() then
     return
   end
 

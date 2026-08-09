@@ -36,7 +36,7 @@ function Platynator.API.ImportString(importText, resultName)
   if importText:sub(1, 1) == "{" then
     local status
     status, data = pcall(C_EncodingUtil.DeserializeJSON, importText)
-    if not status or type(import) ~= "table" or import.addon ~= "Platynator" then
+    if not status or type(data) ~= "table" or data.addon ~= "Platynator" then
       error("Invalid Platynator import")
       return
     end

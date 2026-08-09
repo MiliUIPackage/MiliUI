@@ -1,6 +1,6 @@
-## Interface: 120007, 120005, 50504, 38001, 20505, 11508
+## Interface: 120100, 120007, 50504, 38001, 20506, 11508, 11509
 ## Title: Platynator
-## Version: 430
+## Version: 453
 ## Author: plusmouse
 ## SavedVariables: PLATYNATOR_CONFIG
 ## SavedVariablesPerCharacter: PLATYNATOR_CURRENT_PROFILE, PLATYNATOR_LAST_INSTANCE
@@ -51,14 +51,15 @@ Display/DesignForContext.lua
 Display/CVars.lua
 Display/Colors.lua
 Display/Nameplate.lua
-Display/Auras.lua
+Display/Auras/ManagerPrev.lua
+Display/Auras/AurasPrev.lua
+Display/Auras/AurasNext.lua
 Display/HealthBar.lua
 Display/HealthFillTextBar.lua
 Display/CastBar.lua
 Display/EnergyBar.lua
 Display/PowerBar.lua
 Display/CreatureText.lua
-Display/CreatureTextMSP.lua
 Display/GuildText.lua
 Display/HealthText.lua
 Display/AbsorbText.lua
@@ -102,5 +103,7 @@ CustomiseDialog/Designer.lua
 CustomiseDialog/ImportDialog.lua
 CustomiseDialog/ImportExport.lua
 CustomiseDialog/StyleSelection.lua
+CustomiseDialog/Behaviour.lua
+CustomiseDialog/AuraFilters.lua
 CustomiseDialog/Main.lua
 CustomiseDialog/Initialize.lua

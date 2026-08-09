@@ -5,7 +5,12 @@ addonTable.Display.SoftTargetHighlightMixin = {}
 
 function addonTable.Display.SoftTargetHighlightMixin:SetUnit(unit)
   self.unit = unit
-  self:Hide()
+  if unit then
+    self:ApplyTarget()
+    addonTable.Cache:RegisterCallback(unit, "softTarget", function()
+      self:ApplyTarget()
+    end)
+  end
 end
 
 function addonTable.Display.SoftTargetHighlightMixin:Strip()

@@ -571,7 +571,7 @@ GenerateOptions = function(parent, yOffset, xOffset, entries)
       local oldValue = e.getter(parent.details)
       e.setter(parent.details, value)
       if type(oldValue) == "table" then
-        if not tCompare(oldValue, e.getter(parent.details)) then
+        if not tCompare(oldValue, e.getter(parent.details), 5) then
           Announce()
         end
       elseif oldValue ~= e.getter(parent.details) then
@@ -1119,11 +1119,19 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
         NotifyMouseDown()
       end)
       w:SetScript("OnDragStart", function()
-        ForceSelection(fociOnDown)
-        StartMovingSelection()
+        if addonTable.Utilities.IsChangesRestricted() then
+          addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.CANNOT_ALTER_AURAS_IN_COMBAT)
+        else
+          ForceSelection(fociOnDown)
+          StartMovingSelection()
+        end
       end)
       w:SetScript("OnMouseUp", function(_, button)
-        ToggleSelection(GetMouseFoci(), button)
+        if addonTable.Utilities.IsChangesRestricted() then
+          addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.CANNOT_ALTER_AURAS_IN_COMBAT)
+        else
+          ToggleSelection(GetMouseFoci(), button)
+        end
       end)
     end
   end
@@ -1186,6 +1194,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
     end
     local design = addonTable.CustomiseDialog.GetCurrentDesign()
     widgets = addonTable.Display.GetWidgets(design, preview, true)
+    addonTable.Display.LayerWidgets(widgets)
     for _, w in ipairs(widgets) do
       w:SetClampedToScreen(true)
       if w.kind == "bars" then
@@ -1361,6 +1370,9 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
         end
       elseif w.kind == "highlights" then
         w:Show()
+        if w.details.kind == "animatedBorder" then
+          w.Animation:Play()
+        end
       end
 
       w:SetScript("OnEnter", function()
@@ -1480,8 +1492,6 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
 
     UpdateHiding()
   end
-
-  GenerateWidgets()
 
   local previousDesign = addonTable.Config.Get(addonTable.Config.Options.STYLE)
 
@@ -1698,7 +1708,25 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
     end
   end
 
-  Generate()
+  if C_Secrets and C_Secrets.HasSecretRestrictions() then
+    local noAurasInCombat = CreateFrame("Frame")
+    noAurasInCombat:RegisterEvent("ADDON_RESTRICTION_STATE_CHANGED")
+    noAurasInCombat:SetScript("OnEvent", function(_, event)
+      C_Timer.After(0, function()
+        if addonTable.Utilities.IsChangesRestricted() then
+          for _, index in ipairs(selectionIndexes) do
+            if widgets[index].kind == "auras" then
+              selectionIndexes = {}
+              break
+            end
+          end
+          if container:IsVisible() then
+            UpdateSelection()
+          end
+        end
+      end)
+    end)
+  end
 
   UpdateSelection = function()
     selectionIndexes = tFilter(selectionIndexes, function(i) return i <= #widgets end, true)
@@ -1783,6 +1811,11 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
 
     selectionIndexes = {}
     SetPreviewMaximised(false)
+
+    GenerateWidgets()
+    if not next(settingsFrames) then
+      Generate()
+    end
   end)
   container:SetScript("OnHide", function()
     shouldShowRegions = false

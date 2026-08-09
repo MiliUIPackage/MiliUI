@@ -5,7 +5,12 @@ addonTable.Display.TargetHighlightMixin = {}
 
 function addonTable.Display.TargetHighlightMixin:SetUnit(unit)
   self.unit = unit
-  self:Hide()
+  if unit then
+    self:ApplyTarget()
+    addonTable.Cache:RegisterCallback(unit, "target", function()
+      self:ApplyTarget()
+    end)
+  end
 end
 
 function addonTable.Display.TargetHighlightMixin:Strip()

@@ -25,6 +25,8 @@ local settings = {
   }, refresh = {addonTable.Constants.RefreshReason.DesignSelection, addonTable.Constants.RefreshReason.Design}},
   SIMPLIFIED_ASSIGNED_FALLBACK = {key = "simplified_assigned_fallback", default = "_hare_simplified"},
 
+  AURA_FILTERS = {key = "aura_filters", default = {}},
+
   TARGET_SCALE = {key = "target_scale", default = 1.2, refresh = {addonTable.Constants.RefreshReason.TargetBehaviour}},
   CAST_SCALE = {key = "cast_scale", default = 1, refresh = {addonTable.Constants.RefreshReason.TargetBehaviour}},
   CAST_ALPHA = {key = "cast_alpha", default = 1, refresh = {addonTable.Constants.RefreshReason.TargetBehaviour}},

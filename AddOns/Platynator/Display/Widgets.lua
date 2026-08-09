@@ -156,10 +156,6 @@ function addonTable.Display.GetHealthBar(frame, parent)
     assert(borderSliceDetails)
 
     frame.statusBarCutaway:SetShown(details.animate)
-    frame.statusBarCutaway:SetFrameLevel(frame:GetFrameLevel() + 1)
-    frame.statusBarAbsorb:SetFrameLevel(frame:GetFrameLevel() + 2)
-    frame.statusBar:SetFrameLevel(frame:GetFrameLevel() + 3)
-    borderHolder:SetFrameLevel(frame:GetFrameLevel() + 5)
 
     frame.statusBarAbsorb:SetStatusBarTexture(LSM:Fetch("statusbar", details.absorb.asset, true) or LSM:Fetch("statusbar", "Platy: Absorb Wide"))
     frame.statusBarAbsorb:GetStatusBarTexture():SetVertexColor(details.absorb.color.r, details.absorb.color.g, details.absorb.color.b, details.absorb.color.a)
@@ -189,6 +185,13 @@ function addonTable.Display.GetHealthBar(frame, parent)
     if frame.PostInit then
       frame:PostInit()
     end
+  end
+
+  function frame:ApplyFrameLevels()
+    frame.statusBarCutaway:SetFrameLevel(frame:GetFrameLevel() + 1)
+    frame.statusBarAbsorb:SetFrameLevel(frame:GetFrameLevel() + 2)
+    frame.statusBar:SetFrameLevel(frame:GetFrameLevel() + 3)
+    borderHolder:SetFrameLevel(frame:GetFrameLevel() + 5)
   end
 
   function frame:ApplyAnchor()
@@ -250,6 +253,7 @@ function addonTable.Display.GetCastBar(frame, parent)
       self.interruptMarkerPoint:SetPoint("RIGHT", frame.interruptMarker:GetStatusBarTexture(), "LEFT")
     else
       self.interruptMarker:SetFillStyle(Enum.StatusBarFillStyle.Standard)
+      self.interruptPositioner:SetFillStyle(Enum.StatusBarFillStyle.Standard)
       self.interruptMarker:ClearAllPoints()
       self.interruptMarkerPoint:ClearAllPoints()
       self.interruptMarker:SetPoint("LEFT", frame.interruptPositioner:GetStatusBarTexture(), "RIGHT")
@@ -264,10 +268,6 @@ function addonTable.Display.GetCastBar(frame, parent)
     assert(borderDetails)
     local borderSliceDetails = LSM:Fetch("nineslice", borderDetails.nineslice)
     assert(borderSliceDetails)
-
-    frame.statusBar:SetFrameLevel(frame:GetFrameLevel() + 2)
-    frame.interruptMarker:SetFrameLevel(frame:GetFrameLevel() + 5)
-    borderHolder:SetFrameLevel(frame:GetFrameLevel() + 6)
 
     frame.interruptMarker:SetScale(borderSliceDetails.scaleModifier * details.scale)
     frame.interruptPositioner:SetScale(borderSliceDetails.scaleModifier * details.scale)
@@ -296,6 +296,12 @@ function addonTable.Display.GetCastBar(frame, parent)
     end
   end
 
+  function frame:ApplyFrameLevels()
+    frame.statusBar:SetFrameLevel(frame:GetFrameLevel() + 2)
+    frame.interruptMarker:SetFrameLevel(frame:GetFrameLevel() + 5)
+    borderHolder:SetFrameLevel(frame:GetFrameLevel() + 6)
+  end
+
   function frame:ApplyAnchor()
     AnchorBar(frame, frame.details)
   end
@@ -304,12 +310,7 @@ function addonTable.Display.GetCastBar(frame, parent)
     local details = frame.details
     SizeBar(frame, details)
 
-    local borderDetails = LSM:Fetch("ninesliceborder", details.border.asset, true) or LSM:Fetch("ninesliceborder", "Platy: 4px")
-    assert(borderDetails)
-    local borderSliceDetails = LSM:Fetch("nineslice", borderDetails.nineslice)
-    assert(borderSliceDetails)
-
-    local lowerScale = 1 / borderSliceDetails.scaleModifier
+    local lowerScale = frame.lowerScale
     frame.interruptMarkerPoint:SetHeight(frame.rawHeight * lowerScale)
     frame.interruptMarker:SetSize(frame.rawWidth * lowerScale, frame.rawHeight * lowerScale)
     frame.interruptPositioner:SetSize(frame.rawWidth * lowerScale, frame.rawHeight * lowerScale)
@@ -349,15 +350,6 @@ function addonTable.Display.GetEnergyBar(frame, parent)
   function frame:Init(details)
     InitBar(frame, details)
 
-    if Enum.StatusBarFillStyle then
-      frame.statusBar:SetFillStyle(Enum.StatusBarFillStyle.StandardNoRangeFill)
-    else
-      frame.statusBar:SetFillStyle("STANDARD_NO_RANGE_FILL")
-    end
-
-    frame.statusBar:SetFrameLevel(frame:GetFrameLevel() + 3)
-    borderHolder:SetFrameLevel(frame:GetFrameLevel() + 5)
-
     if details.kind == "energy" then
       Mixin(frame, addonTable.Display.EnergyBarMixin)
     else
@@ -369,6 +361,11 @@ function addonTable.Display.GetEnergyBar(frame, parent)
     if frame.PostInit then
       frame:PostInit()
     end
+  end
+
+  function frame:ApplyFrameLevels()
+    frame.statusBar:SetFrameLevel(frame:GetFrameLevel() + 3)
+    borderHolder:SetFrameLevel(frame:GetFrameLevel() + 5)
   end
 
   function frame:ApplyAnchor()
@@ -402,6 +399,10 @@ function addonTable.Display.GetPower(frame, parent)
 
     for _, t in ipairs(self.powerTextures) do
       t:SetTexture(self.asset.file)
+    end
+
+    if frame.PostInit then
+      frame:PostInit()
     end
   end
 
@@ -572,7 +573,6 @@ function addonTable.Display.GetAnimatedBorderHighlight(frame, parent)
     frame.RightFlipBook = frame.Animation:CreateAnimation("Flipbook")
     frame.RightFlipBook:SetTarget(frame.Right)
     frame.Animation:SetLooping("REPEAT")
-    frame.Animation:Play()
   end
 
   function frame:Init(details)
@@ -741,7 +741,7 @@ function addonTable.Display.GetText(frame, parent)
     elseif details.kind == "damageAbsorb" then
       Mixin(frame, addonTable.Display.AbsorbTextMixin)
     elseif details.kind == "creatureName" then
-      Mixin(frame, addonTable.Display.CreatureTextMSPMixin or addonTable.Display.CreatureTextMixin)
+      Mixin(frame, addonTable.Display.CreatureTextMixin)
     elseif details.kind == "guild" then
       Mixin(frame, addonTable.Display.GuildTextMixin)
     elseif details.kind == "castSpellName" then
@@ -905,6 +905,15 @@ local editorPools = {
 local poolType = {}
 local layerStep = addonTable.Constants.LayerFrameLevelStep
 
+function addonTable.Display.LayerWidgets(widgets)
+  for _, w in ipairs(widgets) do
+    w:SetFrameLevel(w.frameLevel)
+    if w.ApplyFrameLevels then
+      w:ApplyFrameLevels()
+    end
+  end
+end
+
 function addonTable.Display.GetWidgets(design, parent, isEditor)
   local widgets = {}
 
@@ -916,7 +925,7 @@ function addonTable.Display.GetWidgets(design, parent, isEditor)
     w:SetParent(parent)
     w:Show()
     w:SetFrameStrata("MEDIUM")
-    w:SetFrameLevel(layerStep * barDetails.layer + index * 10)
+    w.frameLevel = layerStep * barDetails.layer + index * 10
     w:Init(barDetails)
     w.kind = "bars"
     w.kindIndex = index
@@ -929,7 +938,7 @@ function addonTable.Display.GetWidgets(design, parent, isEditor)
     w:SetParent(parent)
     w:Show()
     w:SetFrameStrata("MEDIUM")
-    w:SetFrameLevel(layerStep * textDetails.layer + index * 10)
+    w.frameLevel = layerStep * textDetails.layer + index * 10
     w:Init(textDetails)
     w.kind = "texts"
     w.kindIndex = index
@@ -948,7 +957,7 @@ function addonTable.Display.GetWidgets(design, parent, isEditor)
     w:SetParent(parent)
     w:Show()
     w:SetFrameStrata("MEDIUM")
-    w:SetFrameLevel(layerStep * highlightDetails.layer + index * 10)
+    w.frameLevel = layerStep * highlightDetails.layer + index * 10
     w:Init(highlightDetails)
     w.kind = "highlights"
     w.kindIndex = index
@@ -961,7 +970,7 @@ function addonTable.Display.GetWidgets(design, parent, isEditor)
     w:SetParent(parent)
     w:Show()
     w:SetFrameStrata("MEDIUM")
-    w:SetFrameLevel(layerStep * specialDetails.layer + index * 10)
+    w.frameLevel = layerStep * specialDetails.layer + index * 10
     w:Init(specialDetails)
     w.kind = "specialBars"
     w.kindIndex = index
@@ -974,7 +983,7 @@ function addonTable.Display.GetWidgets(design, parent, isEditor)
     w:SetParent(parent)
     w:Show()
     w:SetFrameStrata("MEDIUM")
-    w:SetFrameLevel(layerStep * markerDetails.layer + index * 10)
+    w.frameLevel = layerStep * markerDetails.layer + index * 10
     w:Init(markerDetails)
     w.kind = "markers"
     w.kindIndex = index

@@ -5,18 +5,21 @@ addonTable.Display.MouseoverHighlightMixin = {}
 
 function addonTable.Display.MouseoverHighlightMixin:SetUnit(unit)
   self.unit = unit
-  self:Hide()
+  if unit then
+    self:ApplyMouseover()
+    if not self.details.includeTarget then
+      addonTable.Cache:RegisterCallback(unit, "target", function()
+        self:ApplyMouseover()
+      end)
+    end
+    addonTable.Cache:RegisterCallback(unit, "mouseover", function()
+      self:ApplyMouseover()
+    end)
+  end
 end
 
 function addonTable.Display.MouseoverHighlightMixin:Strip()
-  self.ApplyTarget = nil
   self.ApplyMouseover = nil
-end
-
-function addonTable.Display.MouseoverHighlightMixin:ApplyTarget()
-  if not self.details.includeTarget then
-    self:ApplyMouseover()
-  end
 end
 
 function addonTable.Display.MouseoverHighlightMixin:ApplyMouseover()

@@ -12,7 +12,7 @@ function addonTable.Display.MythicPlusForcesTextMixin:PostInit()
   end
 end
 
-if C_ScenarioInfo.GetUnitCriteriaProgressValues then
+if addonTable.Constants.IsRetail then
   function addonTable.Display.MythicPlusForcesTextMixin:SetUnit(unit)
     self.unit = unit
     if C_PartyInfo.IsChallengeModeActive() and self.unit and not (UnitIsPlayer(unit) or UnitTreatAsPlayerForDisplay and UnitTreatAsPlayerForDisplay(unit)) and UnitCanAttack("player", unit) then

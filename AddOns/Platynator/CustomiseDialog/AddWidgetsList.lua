@@ -340,6 +340,7 @@ addonTable.CustomiseDialog.DesignWidgets = {
       filters = {
         dispelable = false,
         important = true,
+        enrage = false,
       },
       showType = true,
       showSwipe = true,

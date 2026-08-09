@@ -13,6 +13,9 @@ function addonTable.Display.CreatureTextMixin:SetUnit(unit)
     if self.details.showWhenWowDoes then
       self:RegisterUnitEvent("UNIT_HEALTH", self.unit)
       self:SetShown(UnitShouldDisplayName(self.unit))
+      addonTable.Cache:RegisterCallback(unit, "target", function()
+        self:SetShown(UnitIsUnit(self.unit, "target") or UnitShouldDisplayName(self.unit))
+      end)
     end
 
     addonTable.Display.RegisterForColorEvents(self, self.details.autoColors, self.details.color)
@@ -26,7 +29,6 @@ end
 function addonTable.Display.CreatureTextMixin:Strip()
   local c = self.details.color
   self.text:SetTextColor(c.r, c.g, c.b)
-  self.ApplyTarget = nil
   self.ApplyTextOverride = nil
   self.defaultText = nil
 
@@ -53,12 +55,6 @@ function addonTable.Display.CreatureTextMixin:OnEvent(eventName, ...)
   end
 
   self:ColorEventHandler(eventName)
-end
-
-function addonTable.Display.CreatureTextMixin:ApplyTarget()
-  if self.details.showWhenWowDoes then
-    self:SetShown(UnitIsUnit(self.unit, "target") or UnitShouldDisplayName(self.unit))
-  end
 end
 
 function addonTable.Display.CreatureTextMixin:ApplyTextOverride()

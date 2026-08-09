@@ -265,7 +265,6 @@ local function GetCustomOptions(container)
   ScrollUtil.InitScrollBoxWithScrollBar(ScrollBox, ScrollBar, CreateScrollBoxLinearView())
   ScrollUtil.AddManagedScrollBarVisibilityBehavior(ScrollBox, ScrollBar)
   ScrollBox:SetPanExtent(100)
-  local allFrames = {}
   local Refresh
 
   local holderPool = CreateFramePool("Frame", ScrollChild, nil, nil, false, function(frame)
@@ -417,6 +416,8 @@ local function GetCustomOptions(container)
       frame.shiftUp:SetShown(index > 1)
       frame.shiftDown:SetShown(index < #assignments)
 
+      frame.removeEntryButton:SetShown(#assignments > 1)
+
       frame.simplifiedCheckbox:SetValue(frame.entry.simplified)
       frame.scaleSlider:SetValue(frame.entry.scale * 100)
       frame:Show()
@@ -453,7 +454,6 @@ local function GetCustomOptions(container)
 
   Refresh = function()
     holderPool:ReleaseAll()
-    allFrames = {}
 
     local assignments = addonTable.Config.Get(addonTable.Config.Options.DESIGN_ASSIGNMENTS)
 
@@ -461,7 +461,6 @@ local function GetCustomOptions(container)
     for _, entry in ipairs(assignments) do
       if addonTable.Constants.IsSimplifiedAvailable or not entry.simplified then
         local holder = holderPool:Acquire()
-        table.insert(allFrames, holder)
         holder:SetEntry(entry)
         holder:SetPoint("TOP", 0, offsetY)
         holder:SetPoint("LEFT", 30, 0)

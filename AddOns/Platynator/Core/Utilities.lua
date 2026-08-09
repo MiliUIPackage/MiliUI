@@ -49,3 +49,13 @@ do
     end
   end
 end
+
+if C_Secrets and C_Secrets.HasSecretRestrictions() then
+  function addonTable.Utilities.IsChangesRestricted()
+    return InCombatLockdown() or C_Secrets.ShouldAurasBeSecret()
+  end
+else
+  function addonTable.Utilities.IsChangesRestricted()
+    return false
+  end
+end

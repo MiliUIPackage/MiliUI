@@ -8,14 +8,14 @@ local GetRangeChecker = addonTable.Display.Utilities.GetRangeSpell
 local function IsInCombatWith(unit)
   return UnitAffectingCombat(unit) and
     (
-      UnitIsFriend("player", unit) and (UnitInParty(unit) == true or UnitInRaid(unit)== true) or
+      UnitIsFriend("player", unit) and UnitInParty(unit) == true or
       addonTable.Cache:Get(unit, "threat").situation ~= nil or
-      UnitInParty(unit .. "target") == true or UnitInRaid(unit .. "target") == true
+      UnitInParty(unit .. "target") == true
     )
 end
 
 -- For clients other than Midnight
-if not C_Secrets then
+if not C_Secrets or not C_Secrets.HasSecretRestrictions() then
   local frame = CreateFrame("Frame")
   frame:SetScript("OnEvent", function()
     local _, subevent, _, playerGUID, _, _, _, destGUID = CombatLogGetCurrentEventInfo()
