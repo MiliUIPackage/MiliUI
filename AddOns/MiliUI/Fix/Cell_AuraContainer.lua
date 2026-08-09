@@ -12,6 +12,13 @@
 -- 排版 AuraButton，插件完全碰不到底層光環資料 —— 這正是它在舊
 -- API 全掛的情況下還能運作的原因。
 --
+--
+-- ⚠ 這支「不」使用 Fix/AuraContainerCore.lua，而是自己保留一份 AuraButton 建構、
+--   字型套用與 flow layout 邏輯（刻意的：這支已在 PTR 驗證過，不想為了收斂而
+--   冒回歸風險）。因此**任何視覺上的共通修改都要在兩個地方各改一次**：
+--     Fix/Cell_AuraContainer.lua（本檔）
+--     Fix/AuraContainerCore.lua（Stuf 那支用的）
+--   已經漏過一次（驅散色與掃描對調只改了 Core，Cell 沒吃到）。
 -- /cab            診斷與 API 能力報告
 -- /cab list       列出 Cell 版面裡所有自訂指示器（型別、追蹤法術、是否鏡射）
 -- /cab where      倒出某顆按鈕上所有容器的位置與大小，用來指認畫面上的東西
@@ -73,7 +80,10 @@ if C_StringUtil and C_StringUtil.CreateNumericRuleFormatter then
 end
 local DEFAULT_BORDER_COLOR = { 1, 1, 1, 1 }
 -- 增益用綠色：左右兩側（自身減傷／隊友減傷）都是 buff
-local BUFF_BORDER_COLOR = { 0, 0.9, 0.2, 1 }
+-- 增益外框：偏深的綠，太亮會在小圖示上蓋過圖示本身
+local BUFF_BORDER_COLOR = { 0, 0.55, 0.15, 1 }
+-- 驅散色外框的「消耗色」：掃描用這個顏色蓋過彩色底框
+local SPENT_COLOR = { 0.35, 0.35, 0.35, 1 }
 
 ------------------------------------------------------------
 -- 顯示定義
@@ -374,8 +384,12 @@ local function InitAuraButton(auraButton, display, sizeW, sizeH)
     auraButton.Border = border
 
     if display.dispelBorder and auraButton.SetAuraBorder then
-        -- 依驅散類型上色。PreserveAsset 會走 AuraUtil.SetAuraBorderColor，
-        -- 沒有驅散類型時退回預設紅色 —— 這對減益是對的（跟 Cell 一樣）。
+        -- 驅散色留給「底框」，讓掃描用灰色由上蓋過去 —— 灰色越蓋越多、
+        -- 彩色越來越少，視覺上就是彩色外框在倒數。
+        --
+        -- 為什麼不直接讓掃描是彩色的（那才是 Cell 自己的做法）：SetSwipeColor
+        -- 要逐光環給 RGB，而 AuraButton 不告訴我們驅散類型；SetAuraBorder 只能
+        -- 替「貼圖」上色，管不到 Cooldown 的掃描。把兩層對調就繞過了這個限制。
         border:SetColorTexture(1, 1, 1, 1)
         auraButton:SetAuraBorder(border, {
             style = Enum.CustomAuraButtonDispelTypeTextureStyle
@@ -417,8 +431,17 @@ local function InitAuraButton(auraButton, display, sizeW, sizeH)
         cooldown = CreateFrame("Cooldown", nil, auraButton, "CooldownFrameTemplate")
         cooldown:SetAllPoints(auraButton)
         cooldown:SetSwipeTexture(WHITE_TEXTURE)
-        local c = display.borderColor or { 1, 1, 1, 1 }
-        cooldown:SetSwipeColor(c[1], c[2], c[3])
+
+        if display.dispelBorder then
+            -- 底框是驅散色，掃描用灰色「吃掉」它。SetReverse 讓掃描覆蓋的是
+            -- 已經過去的那段，所以灰色會越來越多。
+            cooldown:SetSwipeColor(SPENT_COLOR[1], SPENT_COLOR[2], SPENT_COLOR[3])
+            cooldown:SetReverse(true)
+        else
+            local c = display.borderColor or { 1, 1, 1, 1 }
+            cooldown:SetSwipeColor(c[1], c[2], c[3])
+        end
+
         cooldown:SetHideCountdownNumbers(true)
         cooldown:SetDrawSwipe(true)
         cooldown:SetDrawEdge(false)

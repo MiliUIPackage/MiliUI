@@ -5,7 +5,7 @@
 ## IconTexture: Interface\AddOns\MiliUI\icon
 ## Category: Pack
 ## Category-zhTW: [整合]
-## OptionalDeps: TeleportMenu, Cell
+## OptionalDeps: TeleportMenu, Cell, Stuf
 ## SavedVariables: MiliUI_DB, MiliUI_CastBarEnhanceDB
 ## SavedVariablesPerCharacter: MiliUI_CharDB
 
@@ -55,7 +55,9 @@ Enhance\ItemUpgrade_PreviewIcon.lua
 
 Fix\TooltipTaintFix.lua
 Fix\InspectTaintFix.lua
+Fix\AuraContainerCore.lua
 Fix\Cell_AuraContainer.lua
+Fix\Stuf_AuraContainer.lua
 Fix\Stuf_Fix.lua
 Fix\Stuf_InspectTooltipLocale.lua
 Fix\AyijeCDM_StufAnchor.lua
