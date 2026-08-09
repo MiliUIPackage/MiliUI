@@ -60,8 +60,12 @@ local FMT_SECONDS = BR.L["Overlay.SecondsFormat"]
 
 -- Buff tables from Buffs.lua (via BR namespace)
 local BUFF_TABLES = BR.BUFF_TABLES
+local REPAIR_SOURCES = BR.REPAIR_SOURCES
 local BuffBeneficiaries = BR.BuffBeneficiaries
 local SpecBeneficiaries = BR.SpecBeneficiaries
+
+-- Sticky target memory for cast-on-others buffs (Core/TargetMemory.lua)
+local TargetMemory = BR.TargetMemory
 
 -- Buffs with class-specific aura variants can resolve to a single spell ID per unit.
 -- This avoids scanning every possible variant for every raid member on each refresh.
@@ -102,6 +106,7 @@ local TargetedBuffs = BUFF_TABLES.targeted
 local SelfBuffs = BUFF_TABLES.self
 local PetBuffs = BUFF_TABLES.pet
 local Consumables = BUFF_TABLES.consumable
+local UtilityBuffs = BUFF_TABLES.utility
 local CustomBuffs = BUFF_TABLES.custom
 local LoadoutRules = BUFF_TABLES.loadout
 
@@ -161,22 +166,31 @@ local inCombat = false
 -- CACHED VALUES (invalidated by specific events)
 -- ============================================================================
 
--- Content type cache (invalidated on PLAYER_ENTERING_WORLD)
-local cachedContentType = nil
-local cachedInstanceType = nil -- raw WoW instanceType, stashed alongside content type
+-- Instance/content context cache: everything derived from the current zone
+-- (GetInstanceInfo identity, content type, difficulty, PvP/legacy flags) lives
+-- in ONE table because it all shares one lifecycle. Fields populate lazily and
+-- InvalidateContentTypeCache clears the whole table with a single wipe, so a
+-- newly added derived field can never be forgotten in the invalidator.
+---@class InstanceCache
+---@field contentType string?    -- "openWorld"|"dungeon"|"scenario"|"raid"|"housing"|"pvp"
+---@field instanceType string?   -- raw WoW instanceType
+---@field difficultyID number?   -- raw GetInstanceInfo difficultyID
+---@field instanceName string?   -- GetInstanceInfo name
+---@field instanceID number?     -- GetInstanceInfo instanceID
+---@field activeChallenge number? -- active challenge map ID (keystone)
+---@field difficultyKey string?  -- mapped difficulty key (only valid keys are cached)
+---@field competitivePvP boolean? -- arena or rated BG
+---@field legacyInstance boolean? -- legacy loot mode (populated with contentType)
+local instanceCache = {}
+local GetDifficultyIDCached -- forward declaration (defined next to GetCurrentContentType)
 
 -- Whether we are in the PvP prep phase (before gates open). Used by the
 -- `hideInPvPMatch` visibility setting to gate buff display once the match starts.
+-- Deliberately NOT part of instanceCache: it's managed explicitly by
+-- SetPvPPrepPhase and must survive the cache invalidation (see that function).
 -- Note: aura API is restricted for the entire BG/arena (prep included), so this
 -- does NOT affect IsRestricted() - see that function for details.
 local inPvPPrepPhase = false
-
--- Difficulty cache (invalidated alongside content type)
-local cachedDifficultyKey = nil
-local cachedCompetitivePvP = nil -- arena or rated BG
-
--- Legacy loot cache (populated alongside content type, invalidated together)
-local cachedIsLegacyInstance = nil
 
 local DUNGEON_DIFFICULTY_KEYS = {
     [1] = "normal", -- Normal
@@ -225,6 +239,20 @@ local cachedOffHandType = nil -- nil = not yet checked, "weapon" | "shield" | "n
 ---@type table<number, boolean>
 local cachedItemOwnership = {}
 
+-- Lowest equipped-item durability ratio (0-1). The 18-slot scan is a read-only
+-- lookup whose answer only changes on durability / equipment events, so it's
+-- memoized and reused on the fallback ticker instead of re-scanned every refresh.
+-- Invalidated on UPDATE_INVENTORY_DURABILITY, PLAYER_EQUIPMENT_CHANGED.
+---@type number|nil
+local cachedLowestDurability = nil
+
+-- Resolved repair click sources (mount to summon / item to use). Mount collection
+-- and bag contents only change on their own events, so the pair is resolved once.
+-- Only ever holds a positive answer (see GetRepairSources).
+-- Invalidated on BAG_UPDATE_DELAYED, NEW_MOUNT_ADDED, PLAYER_ENTERING_WORLD.
+---@type { mountSpellID: number?, itemID: number? }|nil
+local cachedRepairSources = nil
+
 -- Loadout state cache: rule.key -> { satisfied, icon }. The detection calls
 -- (IsSatisfied / GetRuleIcon) are read-only WoW lookups whose answers only change
 -- on spec / talent / equipment / equipment-set events, so they're cached here and
@@ -234,9 +262,7 @@ local cachedItemOwnership = {}
 ---@type table<string, { satisfied: boolean, icon: number|string }>
 local cachedLoadoutState = {}
 
--- Wrong-demon-pet cache. UnitCreatureFamily can return secret-value familyIDs
--- under 12.0.5 taint rules, so the compare is pcall-guarded - a secret value
--- becomes "unknown" (not cached, retried) instead of crashing Refresh.
+-- Wrong-demon-pet cache (nil = unknown/unresolved, recomputed next Refresh).
 ---@type boolean|nil
 local cachedWrongPetStatus = nil
 
@@ -285,21 +311,23 @@ local DRUID_TRAVEL_FORM_IDS = {
     [27] = true, -- Flight Form
 }
 
--- Wrong-warrior-stance cache + derived values (all invalidated together on
--- UPDATE_SHAPESHIFT_FORM(S), PLAYER_SPECIALIZATION_CHANGED, TRAIT_CONFIG_UPDATED,
--- SPELLS_CHANGED, PLAYER_ENTERING_WORLD).
----@type boolean|nil
-local cachedWrongStanceStatus = nil
----@type number|false|nil  -- false = computed and absent (non-warrior)
-local cachedExpectedStanceID = nil
----@type number|string|false|nil  -- false = computed and absent (unstanced)
-local cachedCurrentStanceIcon = nil
----@type boolean|nil
-local cachedShadowFormActive = nil
----@type boolean|nil
-local cachedWrongDruidFormStatus = nil
----@type number|false|nil  -- false = computed and absent (non-druid or non-feral/balance)
-local cachedExpectedDruidFormID = nil
+-- Shapeshift/stance cache: warrior wrong-stance + priest shadowform + druid
+-- wrong-form derived values, all read off the same active-stance source and all
+-- invalidated together (InvalidateStanceCache) on UPDATE_SHAPESHIFT_FORM(S),
+-- PLAYER_SPECIALIZATION_CHANGED, TRAIT_CONFIG_UPDATED, SPELLS_CHANGED,
+-- PLAYER_ENTERING_WORLD. `false` on a field = computed and absent; nil = not yet
+-- computed. `activeSpellID` memoizes GetActiveStanceSpellID so a warrior/druid
+-- refresh resolves the active stance once, not per derived value.
+---@class StanceCache
+---@field wrongStance boolean|nil
+---@field expectedStanceID number|false|nil     -- false = non-warrior
+---@field currentStanceIcon number|string|false|nil  -- false = unstanced
+---@field shadowFormActive boolean|nil
+---@field wrongDruidForm boolean|nil
+---@field expectedDruidFormID number|false|nil  -- false = non-druid or non-feral/balance
+---@field activeSpellID number|false|nil        -- false = unstanced; nil = not computed / transient
+---@type StanceCache
+local stanceCache = {}
 
 -- Weapon enchant info for current refresh cycle (set once per BuffState.Refresh())
 local currentWeaponEnchants = {
@@ -326,6 +354,9 @@ local currentValidUnits = {}
 -- scenario solo such as rituals (reports 1 with only the player as the lone member).
 -- Real groups (>= 2 members) set this to false.
 local cachedIsAlone = true
+-- Whether any group member is assigned HEALER (nil = not computed this session yet).
+-- Invalidated on GROUP_ROSTER_UPDATE / PLAYER_ROLES_ASSIGNED (see Display.lua).
+local cachedHealerInGroup = nil
 
 -- Spec cache: playerName -> specId (populated by LibSpecialization callbacks for allies,
 -- and by BuildValidUnitCache for the local player via GetPlayerSpecId())
@@ -346,7 +377,7 @@ local AURA_WHITELIST = BR.AURA_WHITELIST
 ---Aura-based detection requires all queried spell IDs to be in the Blizzard whitelist.
 ---@param buff table Any buff table entry (RaidBuff, SelfBuff, ConsumableBuff, etc.)
 ---@return boolean
-local function IsAuraTrackable(buff)
+local function ComputeAuraTrackable(buff)
     -- Non-aura detection is always safe in restricted contexts
     if buff.checkWeaponEnchant or buff.checkWeaponEnchantOH then
         return true
@@ -385,27 +416,96 @@ local function IsAuraTrackable(buff)
     return true
 end
 
--- Last target cache: runtime-only map of buffKey -> {name, class} for targeted buffs.
--- When a targeted buff is found on someone, we remember their name so the click macro
--- can re-target them automatically. Not persisted to SavedVariables.
----@type table<string, {name: string, class: string}>
-local lastTargets = {}
+-- Memoized ComputeAuraTrackable: pure function of the (static) buff def and the
+-- static whitelist, but called 1-3x per buff on every refresh. Weak-keyed side
+-- table rather than a field on the def - custom buff / loadout defs are the live
+-- SavedVariables tables, so a cache field would leak into the user's DB. Edited
+-- custom buffs are new table objects, so they miss the cache and recompute.
+---@type table<table, boolean>
+local auraTrackableCache = setmetatable({}, { __mode = "k" })
 
--- Reusable set for last-target pruning (avoids per-refresh allocation)
+---@param buff table Any buff table entry (RaidBuff, SelfBuff, ConsumableBuff, etc.)
+---@return boolean
+local function IsAuraTrackable(buff)
+    local cached = auraTrackableCache[buff]
+    if cached ~= nil then
+        return cached
+    end
+    local result = ComputeAuraTrackable(buff)
+    auraTrackableCache[buff] = result
+    return result
+end
+
+-- Secret-safe read helpers (see Core.lua / docs/SecretValues.md). Aliased to
+-- file-scope locals so hot loops pay only a local call, not a table lookup.
+local Plain = BR.Secret.Plain
+local AuraList = BR.Secret.AuraList
+local AuraField = BR.Secret.AuraField
+local AuraByIndex = BR.Secret.AuraByIndex
+local AuraByInstanceID = BR.Secret.AuraByInstanceID
+
+-- Set of spell IDs the addon queries on GROUP MEMBERS (raid coverage counts,
+-- presence scans, targeted-buff target scans), including per-class variants.
+-- Used to filter group-unit UNIT_AURA payloads: an aura change outside this set
+-- cannot affect what the addon displays. Player/pet-only detection (self,
+-- consumable, custom, pet) is irrelevant here - player/pet UNIT_AURA always
+-- refreshes. Static: built once from the built-in buff tables (custom buffs are
+-- only ever scanned on the player).
+local groupTrackedSpells = {}
+do
+    local function addSpells(val)
+        if type(val) == "table" then
+            for _, id in ipairs(val) do
+                groupTrackedSpells[id] = true
+            end
+        elseif val then
+            groupTrackedSpells[val] = true
+        end
+    end
+    for _, buff in ipairs(RaidBuffs) do
+        addSpells(buff.spellID)
+    end
+    for _, buff in ipairs(PresenceBuffs) do
+        addSpells(buff.spellID)
+    end
+    for _, buff in ipairs(TargetedBuffs) do
+        addSpells(buff.spellID)
+    end
+    for _, perClass in pairs(UNIT_CLASS_BUFF_SPELLS) do
+        for _, id in pairs(perClass) do
+            groupTrackedSpells[id] = true
+        end
+    end
+end
+
+-- auraInstanceIDs of tracked auras found on group units during the most recent
+-- scan (unit token -> instanceID set). Wiped at the start of every refresh and
+-- repopulated by the scans, so removal/update payloads arriving between
+-- refreshes can be matched against what the display actually reflects.
+---@type table<string, table<number, true>>
+local trackedAuraInstances = {}
+
+---Record a found tracked aura's instance ID. A secret auraInstanceID (restricted
+---context) reads as nil and is skipped - that aura's removal then falls back to
+---the 3s ticker instead of the event fast path.
+---@param unit string
+---@param auraData table
+local function RecordAuraInstance(unit, auraData)
+    local inst = AuraField(auraData, "auraInstanceID")
+    if inst == nil then
+        return
+    end
+    local set = trackedAuraInstances[unit]
+    if not set then
+        set = {}
+        trackedAuraInstances[unit] = set
+    end
+    set[inst] = true
+end
+
+-- Reusable set for target-memory pruning (avoids per-refresh allocation)
 ---@type table<string, true>
 local activeNames = {}
-
----Get the last known target for a targeted buff
----@param buffKey string
----@return string? name Character name (with realm) of the last known target
----@return string? class English class token (e.g. "PALADIN")
-local function GetLastTarget(buffKey)
-    local entry = lastTargets[buffKey]
-    if entry then
-        return entry.name, entry.class
-    end
-    return nil, nil
-end
 
 -- Pool of reusable unit entry tables (avoids creating new tables each refresh)
 ---@type {unit: string, class: string, isPlayer: boolean, name: string?, isPhased: boolean}[]
@@ -535,19 +635,44 @@ local function HasItemByMode(itemID, mode)
     return result
 end
 
+-- Item count cache (charges included), invalidated together with cachedItemOwnership
+-- on BAG_UPDATE_DELAYED / PLAYER_EQUIPMENT_CHANGED. Counts only change on bag
+-- updates, so re-querying C_Item.GetItemCount every refresh is wasted work.
+---@type table<number, number>
+local cachedItemCounts = {}
+
+---Get the player's item count including charges (cached)
+---@param itemID number
+---@return number
+local function GetItemCountCached(itemID)
+    local count = cachedItemCounts[itemID]
+    if count ~= nil then
+        return count
+    end
+    local ok, c = pcall(C_Item.GetItemCount, itemID, false, true)
+    if ok and c then
+        cachedItemCounts[itemID] = c
+        return c
+    end
+    -- Failed/nil read: don't cache, so the next refresh retries instead of
+    -- freezing a false 0 until the next bag event.
+    return 0
+end
+
 -- ============================================================================
 -- UTILITY FUNCTIONS
 -- ============================================================================
 
----Check if a unit is a valid group member for buff tracking.
----Excludes: non-existent, dead/ghost, disconnected, hostile (cross-faction in open world).
+---Check if an existing unit is a valid buff target for tracking.
+---Caller must verify UnitExists first. Excludes: dead/ghost, disconnected,
+---hostile (cross-faction in open world).
 ---Phased / out-of-broadcast-range allies still pass; their phase status is exposed via
 ---the `isPhased` flag on the cached entry so counting paths can apply the
 ---"phased + missing -> skip" rule without losing existing-buff coverage.
 ---@param unit string
 ---@return boolean
-local function IsValidGroupMember(unit)
-    return UnitExists(unit) and not UnitIsDeadOrGhost(unit) and UnitIsConnected(unit) and UnitCanAssist("player", unit)
+local function IsValidBuffTarget(unit)
+    return not UnitIsDeadOrGhost(unit) and UnitIsConnected(unit) and UnitCanAssist("player", unit)
 end
 
 ---Determine whether a unit is in a different phase from the player or out of
@@ -580,6 +705,12 @@ end
 local function BuildValidUnitCache()
     RecycleUnitEntries()
     wipe(classMaxLevels)
+    wipe(activeNames)
+    -- Reset per-unit tracked-aura instance sets; the scans this refresh performs
+    -- repopulate them (sets are reused to avoid churn; stale unit keys stay empty)
+    for _, set in pairs(trackedAuraInstances) do
+        wipe(set)
+    end
 
     -- Keep player spec in allySpecCache so CountMissingBuff can use a single
     -- lookup path (allySpecCache[name]) for both the player and allies.
@@ -591,7 +722,7 @@ local function BuildValidUnitCache()
     do
         -- Default: exclude NPCs from buff counting.
         -- Only whitelist specific content where NPC companions can receive player buffs.
-        local difficultyID = select(3, GetInstanceInfo())
+        local difficultyID = GetDifficultyIDCached()
         includeNPCsInCounting = difficultyID == 205 or difficultyID == 208 -- Follower dungeon / Delves
     end
 
@@ -601,7 +732,7 @@ local function BuildValidUnitCache()
 
     -- Open-world solo (groupSize 0) has no roster but still needs the player in
     -- the unit cache. Treat it as a 1-unit "group of player" so dead/phased/etc.
-    -- filtering via IsValidGroupMember runs uniformly for solo and grouped paths.
+    -- filtering via IsValidBuffTarget runs uniformly for solo and grouped paths.
     local memberCount = groupSize == 0 and 1 or groupSize
 
     for i = 1, memberCount do
@@ -614,37 +745,36 @@ local function BuildValidUnitCache()
             unit = "party" .. (i - 1)
         end
 
-        if IsValidGroupMember(unit) then
-            local _, class = UnitClass(unit)
-            local isPlayer = UnitIsPlayer(unit)
+        if UnitExists(unit) then
+            -- Roster names feed target-memory pruning: collected for EVERY existing
+            -- member, dead/disconnected included - they haven't left the group, so
+            -- target memory must survive wipes and reconnects.
             local name = GetUnitName(unit, true)
-            local isPhased = IsUnitPhased(unit)
-            currentValidUnits[#currentValidUnits + 1] = AcquireUnitEntry(unit, class, isPlayer, name, isPhased)
-            -- Track max level per class (players only, for buff caster checks).
-            -- Skip phased / out-of-broadcast-range allies: they can't reliably
-            -- cast on the group right now, so they shouldn't make us track buffs
-            -- no one reachable can provide (e.g. priest outside the dungeon).
-            if isPlayer and class and not isPhased then
-                local level = UnitLevel(unit)
-                if not classMaxLevels[class] or level > classMaxLevels[class] then
-                    classMaxLevels[class] = level
+            if name then
+                activeNames[name] = true
+            end
+            if IsValidBuffTarget(unit) then
+                local _, class = UnitClass(unit)
+                local isPlayer = UnitIsPlayer(unit)
+                local isPhased = IsUnitPhased(unit)
+                currentValidUnits[#currentValidUnits + 1] = AcquireUnitEntry(unit, class, isPlayer, name, isPhased)
+                -- Track max level per class (players only, for buff caster checks).
+                -- Skip phased / out-of-broadcast-range allies: they can't reliably
+                -- cast on the group right now, so they shouldn't make us track buffs
+                -- no one reachable can provide (e.g. priest outside the dungeon).
+                if isPlayer and class and not isPhased then
+                    local level = UnitLevel(unit)
+                    if not classMaxLevels[class] or level > classMaxLevels[class] then
+                        classMaxLevels[class] = level
+                    end
                 end
             end
         end
     end
 
-    -- Prune last targets: remove entries for players no longer in the group
-    wipe(activeNames)
-    for _, data in ipairs(currentValidUnits) do
-        if data.name then
-            activeNames[data.name] = true
-        end
-    end
-    for buffKey, entry in pairs(lastTargets) do
-        if not activeNames[entry.name] then
-            lastTargets[buffKey] = nil
-        end
-    end
+    -- Prune target memory: forget targets who left the group (roster membership,
+    -- NOT buff-target validity - a dead or offline member hasn't left)
+    TargetMemory.PruneToRoster(activeNames)
 end
 
 ---Check if any group member of the given class meets the level requirement
@@ -671,11 +801,15 @@ local function UnitHasBuff(unit, spellIDs)
     if type(spellIDs) == "number" then
         local auraData = C_UnitAuras.GetUnitAuraBySpellID(unit, spellIDs)
         if auraData then
-            local remaining
-            if auraData.expirationTime and auraData.expirationTime > 0 then
-                remaining = auraData.expirationTime - GetTime()
+            if unit ~= "player" then
+                RecordAuraInstance(unit, auraData)
             end
-            return true, remaining, auraData.sourceUnit
+            local remaining
+            local exp = AuraField(auraData, "expirationTime")
+            if exp and exp > 0 then
+                remaining = exp - GetTime()
+            end
+            return true, remaining, AuraField(auraData, "sourceUnit")
         end
         return false, nil, nil
     end
@@ -684,11 +818,15 @@ local function UnitHasBuff(unit, spellIDs)
     for _, id in ipairs(spellIDs) do
         local auraData = C_UnitAuras.GetUnitAuraBySpellID(unit, id)
         if auraData then
-            local remaining
-            if auraData.expirationTime and auraData.expirationTime > 0 then
-                remaining = auraData.expirationTime - GetTime()
+            if unit ~= "player" then
+                RecordAuraInstance(unit, auraData)
             end
-            return true, remaining, auraData.sourceUnit
+            local remaining
+            local exp = AuraField(auraData, "expirationTime")
+            if exp and exp > 0 then
+                remaining = exp - GetTime()
+            end
+            return true, remaining, AuraField(auraData, "sourceUnit")
         end
     end
 
@@ -708,6 +846,38 @@ local function GetUnitSpellIDs(buffKey, spellIDs, class)
     return spellIDs
 end
 
+-- Per-aura match tests. Aura fields (spellId, icon) are secret values for
+-- non-whitelisted auras in restricted contexts (combat, encounters, M+);
+-- AuraField reads a secret as nil, so a secret aura simply never matches -
+-- no pcall needed at the call site.
+---@param auraData table
+---@param singleId number?
+---@param spellIDs SpellID
+---@return boolean
+local function AuraMatchesSpellIDs(auraData, singleId, spellIDs)
+    local sid = AuraField(auraData, "spellId")
+    if sid == nil then
+        return false
+    end
+    if singleId then
+        return sid == singleId
+    end
+    local idList = spellIDs --[[@as number[] ]]
+    for _, id in ipairs(idList) do
+        if sid == id then
+            return true
+        end
+    end
+    return false
+end
+
+---@param auraData table
+---@param iconID number
+---@return boolean
+local function AuraMatchesIcon(auraData, iconID)
+    return AuraField(auraData, "icon") == iconID
+end
+
 ---Scan player-cast buffs on a unit looking for a spellID (or any of a list).
 ---Used as a fallback when GetUnitAuraBySpellID returns another player's instance
 ---(e.g., two Aug Evokers both casting Blistering Scales on the same tank).
@@ -719,32 +889,21 @@ end
 local function UnitHasBuffFromPlayer(unit, spellIDs)
     local singleId = type(spellIDs) == "number" and spellIDs or nil ---@type number?
     local i = 1
-    local auraData = C_UnitAuras.GetAuraDataByIndex(unit, i, "HELPFUL|PLAYER")
+    local auraData = AuraByIndex(unit, i, "HELPFUL|PLAYER")
     while auraData do
-        -- spellId is a tainted secret value for non-whitelisted auras in restricted contexts
-        -- (combat, encounters, M+). pcall avoids the error; tainted auras simply don't match.
-        local ok, match = pcall(function()
-            local sid = auraData.spellId
-            if singleId then
-                return sid == singleId
+        if AuraMatchesSpellIDs(auraData, singleId, spellIDs) then
+            if unit ~= "player" then
+                RecordAuraInstance(unit, auraData)
             end
-            local idList = spellIDs --[[@as number[] ]]
-            for _, id in ipairs(idList) do
-                if sid == id then
-                    return true
-                end
-            end
-            return false
-        end)
-        if ok and match then
             local remaining
-            if auraData.expirationTime and auraData.expirationTime > 0 then
-                remaining = auraData.expirationTime - GetTime()
+            local exp = AuraField(auraData, "expirationTime")
+            if exp and exp > 0 then
+                remaining = exp - GetTime()
             end
             return true, remaining
         end
         i = i + 1
-        auraData = C_UnitAuras.GetAuraDataByIndex(unit, i, "HELPFUL|PLAYER")
+        auraData = AuraByIndex(unit, i, "HELPFUL|PLAYER")
     end
     return false, nil
 end
@@ -780,20 +939,60 @@ local function GetBuffSettingKey(buff)
     return buff.groupId or buff.key
 end
 
----Check if a buff is enabled (defaults to true if not explicitly set to false)
----@param key string
+-- Ship defaults for opt-in buffs. Built lazily from the buff definitions'
+-- `defaultEnabled = false` field, keyed by setting key (groupId or key). A buff
+-- absent here ships enabled. Resolving the default at read time (rather than
+-- seeding `false` into every profile) keeps the buff def the single source of
+-- truth and covers profiles created after install, which never run migrations.
+---@type table<string, boolean>|nil
+local defaultEnabledByKey = nil
+local function GetDefaultEnabledLookup()
+    local lookup = defaultEnabledByKey
+    if not lookup then
+        lookup = {}
+        for _, category in pairs(BUFF_TABLES) do
+            for _, buff in ipairs(category) do
+                if buff.defaultEnabled == false then
+                    lookup[buff.groupId or buff.key] = false
+                end
+            end
+        end
+        defaultEnabledByKey = lookup
+    end
+    return lookup
+end
+
+---Check if a buff is enabled. An explicit user choice wins; otherwise the buff's
+---declared ship default applies (enabled unless the def sets defaultEnabled=false).
+---@param key string setting key (groupId or individual key)
 ---@return boolean
 local function IsBuffEnabled(key)
-    local db = BR.profile
-    return db.enabledBuffs[key] ~= false
+    local stored = BR.profile.enabledBuffs[key]
+    if stored ~= nil then
+        return stored
+    end
+    return GetDefaultEnabledLookup()[key] ~= false
 end
 
 ---Get the current content type based on instance/zone (cached)
 ---@return string contentType One of "openWorld", "dungeon", "scenario", "raid", "housing", "pvp"
 local function GetCurrentContentType()
-    if cachedContentType then
-        return cachedContentType
+    if instanceCache.contentType then
+        return instanceCache.contentType
     end
+
+    -- Stash the raw GetInstanceInfo identity for cheap reuse (delve check below,
+    -- difficulty key, NPC-counting gate, Decor Duel check in Display, loadout
+    -- instance filters) - same lifecycle, cleared together in
+    -- InvalidateContentTypeCache. The identity fields freeze with the content
+    -- type: a transient nil name at populate time relies on the post-load
+    -- invalidation events (PLAYER_ENTERING_WORLD / deferred ZONE_CHANGED_NEW_AREA
+    -- / PLAYER_DIFFICULTY_CHANGED / CHALLENGE_MODE_*) to repopulate.
+    local instName, _, difficultyID, _, _, _, _, instanceID = GetInstanceInfo()
+    instanceCache.instanceName = instName
+    instanceCache.instanceID = instanceID
+    instanceCache.difficultyID = difficultyID
+    instanceCache.activeChallenge = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID() or nil
 
     -- Check housing before instance type (housing zones may report as instanced)
     if
@@ -803,36 +1002,77 @@ local function GetCurrentContentType()
             or (C_Housing.IsOnNeighborhoodMap and C_Housing.IsOnNeighborhoodMap())
         )
     then
-        cachedContentType = "housing"
-        return cachedContentType
+        instanceCache.contentType = "housing"
+        return "housing"
     end
 
     -- Delves report inInstance=false but instanceType="scenario" and difficultyID=208;
     -- check difficultyID first so they are correctly classified as scenarios.
-    local difficultyID = select(3, GetInstanceInfo())
     if difficultyID == 208 then
-        cachedContentType = "scenario"
-        return cachedContentType
+        instanceCache.contentType = "scenario"
+        return "scenario"
     end
 
     local inInstance, instanceType = IsInInstance()
-    cachedInstanceType = instanceType
+    instanceCache.instanceType = instanceType
+    -- A difficultyID of 0 inside an instance is a transient loading-screen read
+    -- (GetCurrentDifficultyKey relies on retrying until it resolves); leave it
+    -- uncached so GetDifficultyIDCached re-reads live until real data arrives.
+    -- Open world legitimately reports 0 and keeps the cached value.
+    if inInstance and difficultyID == 0 then
+        instanceCache.difficultyID = nil
+    end
+    local contentType
     if not inInstance then
-        cachedContentType = "openWorld"
+        contentType = "openWorld"
     elseif instanceType == "raid" then
-        cachedContentType = "raid"
+        contentType = "raid"
     elseif instanceType == "scenario" then
-        cachedContentType = "scenario"
+        contentType = "scenario"
     else
         if instanceType == "arena" or instanceType == "pvp" then
-            cachedContentType = "pvp"
+            contentType = "pvp"
         else
-            cachedContentType = "dungeon"
+            contentType = "dungeon"
         end
     end
+    instanceCache.contentType = contentType
 
-    cachedIsLegacyInstance = C_Loot.IsLegacyLootModeEnabled()
-    return cachedContentType
+    instanceCache.legacyInstance = C_Loot.IsLegacyLootModeEnabled()
+    return contentType
+end
+
+---Raw difficultyID from GetInstanceInfo, cached alongside the content type
+---(nil cache = not yet computed, or a transient in-instance 0 left unresolved;
+---GetInstanceInfo itself never returns nil here).
+---@return number
+function GetDifficultyIDCached()
+    local id = instanceCache.difficultyID
+    if id == nil then
+        GetCurrentContentType() -- populates instanceCache.difficultyID (unless transient)
+        id = instanceCache.difficultyID
+        if id == nil then
+            -- Content type already cached while the difficulty read was still
+            -- transient: retry live until it resolves, then cache.
+            id = select(3, GetInstanceInfo())
+            if id ~= 0 then
+                instanceCache.difficultyID = id
+            end
+        end
+    end
+    return id or 0
+end
+
+---Instance identity from GetInstanceInfo plus the active challenge map ID,
+---cached alongside the content type (used by loadout instance filters).
+---@return string? name
+---@return number? instanceID
+---@return number? activeChallengeMapID
+function BuffState.GetInstanceContext()
+    if instanceCache.contentType == nil then
+        GetCurrentContentType() -- populates the instance identity fields
+    end
+    return instanceCache.instanceName, instanceCache.instanceID, instanceCache.activeChallenge
 end
 
 ---Get the current difficulty key (cached)
@@ -840,25 +1080,25 @@ end
 ---an unmapped difficultyID (e.g. 0 during a loading transition).
 ---@return string? difficultyKey or nil if not in a dungeon/raid or unknown difficulty
 local function GetCurrentDifficultyKey()
-    if cachedDifficultyKey ~= nil then
-        return cachedDifficultyKey
+    if instanceCache.difficultyKey ~= nil then
+        return instanceCache.difficultyKey
     end
-    local difficultyID = select(3, GetInstanceInfo())
+    local difficultyID = GetDifficultyIDCached()
     local contentType = GetCurrentContentType()
     local diffTable = CONTENT_DIFFICULTY_TABLES[contentType]
     if diffTable then
         local key = diffTable[difficultyID]
         if key then
-            cachedDifficultyKey = key
+            instanceCache.difficultyKey = key
         end
         return key
     elseif contentType == "scenario" then
         local key = difficultyID == 208 and "delves" or "others"
-        cachedDifficultyKey = key
+        instanceCache.difficultyKey = key
         return key
     elseif contentType == "pvp" then
-        local key = cachedInstanceType == "arena" and "arena" or "bg"
-        cachedDifficultyKey = key
+        local key = instanceCache.instanceType == "arena" and "arena" or "bg"
+        instanceCache.difficultyKey = key
         return key
     end
     return nil
@@ -1238,12 +1478,12 @@ local function HasPresenceBuff(spellIDs, playerOnly, playerCastOnly)
             local hasBuff, remaining, sourceUnit = UnitHasBuff(data.unit, spellIDs)
             -- When restricted to player-cast auras, another player's cast may mask ours via
             -- GetUnitAuraBySpellID. Fall back to a HELPFUL|PLAYER scan to find our own.
-            if playerCastOnly and hasBuff and not (sourceUnit and UnitIsUnit(sourceUnit, "player")) then
+            if playerCastOnly and hasBuff and not (sourceUnit and Plain(UnitIsUnit(sourceUnit, "player"))) then
                 hasBuff, remaining = UnitHasBuffFromPlayer(data.unit, spellIDs)
             end
             if hasBuff then
                 found = true
-                if not targetEntry and not UnitIsUnit(data.unit, "player") then
+                if not targetEntry and not Plain(UnitIsUnit(data.unit, "player")) then
                     targetEntry = data
                 end
                 if remaining then
@@ -1278,7 +1518,7 @@ local function IsPlayerBuffActive(spellID, role)
                 hasBeneficiary = true
                 local hasBuff, remaining, sourceUnit = UnitHasBuff(data.unit, spellID)
                 if hasBuff then
-                    local isFromPlayer = sourceUnit and UnitIsUnit(sourceUnit, "player")
+                    local isFromPlayer = sourceUnit and Plain(UnitIsUnit(sourceUnit, "player"))
                     if not isFromPlayer then
                         -- GetUnitAuraBySpellID returns one instance; if another player cast the
                         -- same spell (e.g. two Aug Evokers), our instance may be hidden behind
@@ -1287,7 +1527,7 @@ local function IsPlayerBuffActive(spellID, role)
                     end
                     if isFromPlayer then
                         -- Track first non-player target for last target cache
-                        if not targetEntry and not UnitIsUnit(data.unit, "player") then
+                        if not targetEntry and not Plain(UnitIsUnit(data.unit, "player")) then
                             targetEntry = data
                         end
                         if not remaining then
@@ -1338,54 +1578,31 @@ local function ShouldShowTargetedBuff(spellIDs, requiredClass, beneficiaryRole, 
     if casterBuffId then
         -- Shortcut: check if the caster has this buff on themselves (combat-safe spell ID)
         local hasBuff, remaining = UnitHasBuff("player", casterBuffId)
-        -- Update last target cache by scanning group for the original buff.
-        -- Only out of combat/encounter: the target-side spell may not be on the aura whitelist,
-        -- so UnitHasBuff would return nil and incorrectly clear the cache.
-        if buffKey and not inCombat then
-            if hasBuff then
-                local foundTarget = false
-                for _, data in ipairs(currentValidUnits) do
-                    if not UnitIsUnit(data.unit, "player") then
-                        local targetHas = UnitHasBuff(data.unit, spellIDs)
-                        if targetHas and data.name then
-                            local existing = lastTargets[buffKey]
-                            if existing then
-                                existing.name = data.name
-                                existing.class = data.class
-                            else
-                                lastTargets[buffKey] = { name = data.name, class = data.class }
-                            end
-                            foundTarget = true
-                            break
-                        end
+        -- Update target memory by scanning group for the original buff, record-only-on-found:
+        -- the target-side spell may not be queryable (not on the aura whitelist in restricted
+        -- contexts like M+, or the target is phased/out of range), so a miss is ambiguous and
+        -- must NOT forget the memory. Departures are handled by roster pruning, and a retarget
+        -- overwrites on the next successful scan.
+        if buffKey and not inCombat and hasBuff then
+            for _, data in ipairs(currentValidUnits) do
+                if not Plain(UnitIsUnit(data.unit, "player")) then
+                    local targetHas = UnitHasBuff(data.unit, spellIDs)
+                    if targetHas and data.name then
+                        TargetMemory.Observe(buffKey, true, data.name, data.class)
+                        break
                     end
                 end
-                if not foundTarget then
-                    lastTargets[buffKey] = nil
-                end
             end
-            -- If not active, keep old last target so macro still targets them after it falls off
         end
         return not hasBuff, remaining
     end
 
     local isActive, remaining, targetEntry = IsPlayerBuffActive(spellID, beneficiaryRole)
 
-    -- Update last target cache
+    -- Update target memory (records even in combat: this path only runs for
+    -- whitelist-safe queries, gated by IsAuraTrackable at the call site)
     if buffKey then
-        if targetEntry and targetEntry.name then
-            local existing = lastTargets[buffKey]
-            if existing then
-                existing.name = targetEntry.name
-                existing.class = targetEntry.class
-            else
-                lastTargets[buffKey] = { name = targetEntry.name, class = targetEntry.class }
-            end
-        elseif isActive then
-            -- Buff found but only on player - clear last target
-            lastTargets[buffKey] = nil
-        end
-        -- If not active at all, keep old last target so macro still targets them after it falls off
+        TargetMemory.Observe(buffKey, isActive, targetEntry and targetEntry.name, targetEntry and targetEntry.class)
     end
 
     return not isActive, remaining
@@ -1497,17 +1714,14 @@ end
 local function ScanEatingState()
     eatingAuraInstanceID = nil
     local i = 1
-    local auraData = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+    local auraData = AuraByIndex("player", i, "HELPFUL")
     while auraData do
-        local ok, match = pcall(function()
-            return auraData.icon == EATING_AURA_ICON
-        end)
-        if ok and match then
-            eatingAuraInstanceID = auraData.auraInstanceID
+        if AuraMatchesIcon(auraData, EATING_AURA_ICON) then
+            eatingAuraInstanceID = AuraField(auraData, "auraInstanceID")
             return
         end
         i = i + 1
-        auraData = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+        auraData = AuraByIndex("player", i, "HELPFUL")
     end
 end
 
@@ -1517,20 +1731,19 @@ local function UpdateEatingState(updateInfo)
     if not updateInfo then
         return
     end
-    if updateInfo.addedAuras then
-        for _, aura in ipairs(updateInfo.addedAuras) do
-            local ok, match = pcall(function()
-                return aura.icon == EATING_AURA_ICON
-            end)
-            if ok and match then
-                eatingAuraInstanceID = aura.auraInstanceID
-                break
-            end
+    -- A UNIT_AURA list container can itself be a secret value in restricted
+    -- contexts; AuraList yields an empty list then, so a secret payload is simply
+    -- skipped. ScanEatingState re-syncs on combat end (see Display.lua) and eating
+    -- can't start in combat, so nothing is lost by skipping here.
+    for _, aura in ipairs(AuraList(updateInfo.addedAuras)) do
+        if AuraField(aura, "icon") == EATING_AURA_ICON then
+            eatingAuraInstanceID = AuraField(aura, "auraInstanceID")
+            break
         end
     end
-    if updateInfo.removedAuraInstanceIDs and eatingAuraInstanceID then
-        for _, id in ipairs(updateInfo.removedAuraInstanceIDs) do
-            if id == eatingAuraInstanceID then
+    if eatingAuraInstanceID then
+        for _, id in ipairs(AuraList(updateInfo.removedAuraInstanceIDs)) do
+            if Plain(id) == eatingAuraInstanceID then
                 eatingAuraInstanceID = nil
                 break
             end
@@ -1538,17 +1751,21 @@ local function UpdateEatingState(updateInfo)
     end
 end
 
----Get expiration time of the eating aura (O(1) lookup via cached instance ID)
+---Get expiration time of the eating aura (O(1) lookup via cached instance ID).
+---eatingAuraInstanceID is always a plain value (only ever assigned via AuraField).
+---AuraByInstanceID guards the lookup (the call throws in restricted contexts); the
+---returned struct's field can still be secret, hence AuraField.
 ---@return number? expirationTime GetTime()-based expiration, nil if not eating or no duration
 local function GetEatingExpirationTime()
     if not eatingAuraInstanceID then
         return nil
     end
-    local ok, auraData = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, "player", eatingAuraInstanceID)
-    if not ok or not auraData or not auraData.expirationTime or auraData.expirationTime == 0 then
+    local auraData = AuraByInstanceID("player", eatingAuraInstanceID)
+    local exp = AuraField(auraData, "expirationTime")
+    if not exp or exp == 0 then
         return nil
     end
-    return auraData.expirationTime
+    return exp
 end
 
 ---Check if a consumable buff is free/reusable (freeConsumable flag or permanent rune in bags)
@@ -1606,16 +1823,16 @@ end
 ---Consumables flagged disabledInCompetitivePvP are hidden here.
 ---@return boolean
 local function IsInCompetitivePvP()
-    if cachedCompetitivePvP ~= nil then
-        return cachedCompetitivePvP
+    if instanceCache.competitivePvP ~= nil then
+        return instanceCache.competitivePvP
     end
     local contentType = GetCurrentContentType()
     if contentType ~= "pvp" then
-        cachedCompetitivePvP = false
+        instanceCache.competitivePvP = false
         return false
     end
-    local result = cachedInstanceType == "arena" or C_PvP.IsRatedMap() == true
-    cachedCompetitivePvP = result
+    local result = instanceCache.instanceType == "arena" or C_PvP.IsRatedMap() == true
+    instanceCache.competitivePvP = result
     return result
 end
 
@@ -1644,20 +1861,18 @@ local function ShouldShowConsumableBuff(buff)
     -- Check buff auras by icon ID (e.g., food buffs all use icon 136000)
     if buff.buffIconID then
         local i = 1
-        local auraData = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+        local auraData = AuraByIndex("player", i, "HELPFUL")
         while auraData do
-            local success, iconMatches = pcall(function()
-                return auraData.icon == buff.buffIconID
-            end)
-            if success and iconMatches then
+            if AuraMatchesIcon(auraData, buff.buffIconID) then
                 local remaining = nil
-                if auraData.expirationTime and auraData.expirationTime > 0 then
-                    remaining = auraData.expirationTime - GetTime()
+                local exp = AuraField(auraData, "expirationTime")
+                if exp and exp > 0 then
+                    remaining = exp - GetTime()
                 end
                 return false, remaining -- Has a buff with this icon
             end
             i = i + 1
-            auraData = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+            auraData = AuraByIndex("player", i, "HELPFUL")
         end
     end
 
@@ -1681,15 +1896,17 @@ local function ShouldShowConsumableBuff(buff)
         end
     end
 
-    -- Check inventory for item
+    -- Check inventory for item (counts cached, invalidated on bag/equipment events)
     if buff.itemID then
-        local itemList = type(buff.itemID) == "table" and buff.itemID or { buff.itemID }
-        local totalCount = 0
-        for _, id in ipairs(itemList) do
-            local ok, count = pcall(C_Item.GetItemCount, id, false, true)
-            if ok and count then
-                totalCount = totalCount + count
+        local itemID = buff.itemID
+        local totalCount
+        if type(itemID) == "table" then
+            totalCount = 0
+            for _, id in ipairs(itemID) do
+                totalCount = totalCount + GetItemCountCached(id)
             end
+        else
+            totalCount = GetItemCountCached(itemID)
         end
         if totalCount > 0 then
             return false, nil, nil, totalCount -- Has the item in inventory
@@ -1714,8 +1931,9 @@ end
 ---@param buff table Any buff type with optional pre-check fields
 ---@param presentClasses? table<ClassName, boolean>
 ---@param db table Database settings
+---@param trackingMode string Effective tracking mode (already resolved once per refresh)
 ---@return boolean passes
-local function PassesPreChecks(buff, presentClasses, db)
+local function PassesPreChecks(buff, presentClasses, db, trackingMode)
     -- Custom visibility condition
     if buff.visibilityCondition and not buff.visibilityCondition() then
         return false
@@ -1732,7 +1950,6 @@ local function PassesPreChecks(buff, presentClasses, db)
 
     -- Class filtering
     if buff.class then
-        local trackingMode = GetEffectiveTrackingMode(db)
         if ModeHidesOtherClasses(trackingMode) and buff.class ~= playerClass then
             return false
         end
@@ -1972,7 +2189,7 @@ function BuffState.Refresh(refreshMode)
             local settingKey = buff.groupId or buff.key
 
             if buff.showOnInstanceEntry then
-                -- Instance entry only buff (e.g., soulwell reminder) - no normal buff checks
+                -- Self buff shown only briefly on zone-in - no normal buff checks.
                 -- Gate on cheap checks first; customCheck (API call) only when everything else passes
                 if
                     inInstanceEntry
@@ -2039,6 +2256,33 @@ function BuffState.Refresh(refreshMode)
         end
     end
 
+    -- Process utility reminders (chores like drop-a-table / repair, not auras):
+    -- class-gated + customCheck-driven (cooldown / durability). showOnInstanceEntry
+    -- ones surface only briefly on zone-in; others show whenever customCheck says so.
+    -- Not group-dependent, so full-refresh only.
+    if not groupOnly then
+        local utilityVisible = IsCategoryVisibleForContent("utility")
+        local _, utilityMissGlow = GetCategoryGlowSettings("utility")
+        local repairHiddenInCombat = inCombat and db.defaults and db.defaults.repairHideInCombat ~= false
+        for i, buff in ipairs(UtilityBuffs) do
+            local entry = GetOrCreateEntry(buff.key, "utility", i)
+            local settingKey = buff.groupId or buff.key
+            local entryOk = not buff.showOnInstanceEntry or inInstanceEntry
+            if
+                entryOk
+                and not (repairHiddenInCombat and buff.key == "repairGear")
+                and utilityVisible
+                and (not buff.class or buff.class == playerClass)
+                and IsBuffEnabled(settingKey)
+                and PassesPreChecks(buff, nil, db, trackingMode)
+                and (not buff.customCheck or buff.customCheck(isAuraRestricted))
+            then
+                SetEntryText(entry, buff.overlayTextFn and buff.overlayTextFn() or buff.overlayText, utilityMissGlow)
+                BR.Helpers.ApplyDynamicIcon(entry, buff)
+            end
+        end
+    end
+
     -- Process presence buffs (need at least 1 person to have them)
     local presenceVisible = IsCategoryVisibleForContent("presence")
     local presExGlow, presMissGlow, presThreshold = GetCategoryGlowSettings("presence")
@@ -2080,6 +2324,32 @@ function BuffState.Refresh(refreshMode)
                 and (readyCheckOk or instanceEntryOk)
                 and scope.show
                 and (not buff.groupOnly or #currentValidUnits > 1) -- solo = 1 entry (player only)
+            -- castOnOthers target memory (e.g. Soulstone): maintained on every refresh
+            -- the aura API allows, independent of reminder visibility - Soulstone's
+            -- display is ready-check-gated, but the click macro needs the memory kept
+            -- current all the time. The scan result is shared with the display branch
+            -- below so the buff is never scanned twice in one refresh.
+            local isOwnCaster = buff.castOnOthers and buff.class == playerClass
+            local hasBuff, minRemaining, targetEntry
+            local scanned = false
+            if
+                isOwnCaster
+                and not inCombat
+                and #currentValidUnits > 1
+                and IsBuffEnabled(buff.key)
+                and (not isAuraRestricted or IsAuraTrackable(buff))
+            then
+                -- Full-group sweep (playerOnly=false): the buff lives on the target,
+                -- so a player-only scan could never find them.
+                hasBuff, minRemaining, targetEntry = HasPresenceBuff(buff.spellID, false, true)
+                scanned = true
+                TargetMemory.Observe(
+                    buff.key,
+                    hasBuff,
+                    targetEntry and targetEntry.name,
+                    targetEntry and targetEntry.class
+                )
+            end
             if showBuff and IsBuffEnabled(buff.key) then
                 local trackable = IsAuraTrackable(buff)
                 local useGlowDet = isAuraRestricted and not trackable and buff.glowDetectable
@@ -2091,9 +2361,9 @@ function BuffState.Refresh(refreshMode)
                     else
                         -- castOnOthers: only count our own cast for the caster class so we get
                         -- the right target (and don't hide the icon because another caster covered it).
-                        local isOwnCaster = buff.castOnOthers and buff.class == playerClass
-                        local hasBuff, minRemaining, targetEntry =
-                            HasPresenceBuff(buff.spellID, scope.playerOnly, isOwnCaster)
+                        if not scanned then
+                            hasBuff, minRemaining = HasPresenceBuff(buff.spellID, scope.playerOnly, isOwnCaster)
+                        end
                         -- customCheck gates display (e.g., soulstone CD tracking for warlocks)
                         local customOk = true
                         if not hasBuff and buff.customCheck then
@@ -2106,21 +2376,6 @@ function BuffState.Refresh(refreshMode)
                             SetEntryText(entry, buff.overlayText, presMissGlow)
                         elseif not buff.noExpirationGlow and not hideExpiring then
                             TrySetEntryExpiring(entry, minRemaining, presThreshold, presExGlow)
-                        end
-                        -- Track who has castOnOthers buffs for sticky click-to-cast targeting
-                        if isOwnCaster and hasBuff and not inCombat then
-                            if targetEntry and targetEntry.name then
-                                local existing = lastTargets[buff.key]
-                                if existing then
-                                    existing.name = targetEntry.name
-                                    existing.class = targetEntry.class
-                                else
-                                    lastTargets[buff.key] = { name = targetEntry.name, class = targetEntry.class }
-                                end
-                            else
-                                lastTargets[buff.key] = nil
-                            end
-                            -- If not active, keep old last target so macro still targets them
                         end
                     end
                 end
@@ -2139,7 +2394,7 @@ function BuffState.Refresh(refreshMode)
         if targetedVisible and IsBuffEnabled(settingKey) then
             local trackable = IsAuraTrackable(buff)
             local useGlowDet = isAuraRestricted and not trackable and buff.glowDetectable
-            if (not isAuraRestricted or trackable or useGlowDet) and PassesPreChecks(buff, nil, db) then
+            if (not isAuraRestricted or trackable or useGlowDet) and PassesPreChecks(buff, nil, db, trackingMode) then
                 if useGlowDet then
                     if IsAnySpellGlowing(buff) then
                         SetEntryText(entry, buff.overlayText, targMissGlow)
@@ -2212,6 +2467,8 @@ function BuffState.Refresh(refreshMode)
     -- Process consumable buffs
     if not groupOnly then
         local consumableVisible = IsCategoryVisibleForContent("consumable")
+        -- Delve food ignores the consumable ready-check-only filter (still respects content gates)
+        local consumableVisibleNoReadyCheck = IsCategoryVisibleForContent("consumable", true)
         local consExGlow, consMissGlow, consThreshold = GetCategoryGlowSettings("consumable")
         local delveFoodOnly = db.defaults and db.defaults.delveFoodOnly and BR.IsInDelve()
         local freeMode = db.defaults and db.defaults.freeConsumableMode or "override"
@@ -2222,6 +2479,7 @@ function BuffState.Refresh(refreshMode)
         -- Dismiss overrides all consumable visibility (transient, resets on instance change)
         if consumablesDismissed then
             consumableVisible = false
+            consumableVisibleNoReadyCheck = false
             freeVisible = false
             consumableContentVisible = false
         end
@@ -2230,15 +2488,16 @@ function BuffState.Refresh(refreshMode)
         for i, buff in ipairs(Consumables) do
             local entry = GetOrCreateEntry(buff.key, "consumable", i)
             local settingKey = buff.groupId or buff.key
+            local catVisible = buff.ignoresReadyCheckFilter and consumableVisibleNoReadyCheck or consumableVisible
 
             if buff.showOnInstanceEntry and (db.defaults and db.defaults.delveFoodTimer) then
                 -- Instance entry only consumable (e.g., delve food) - show for 30s on entry then auto-hide
                 -- Combat safety handled by Display layer clearing entry state on PLAYER_REGEN_DISABLED
                 if
                     inDelveEntry
-                    and consumableVisible
+                    and catVisible
                     and IsBuffEnabled(settingKey)
-                    and PassesPreChecks(buff, nil, db)
+                    and PassesPreChecks(buff, nil, db, trackingMode)
                 then
                     local shouldShow = ShouldShowConsumableBuff(buff)
                     if shouldShow then
@@ -2261,7 +2520,7 @@ function BuffState.Refresh(refreshMode)
                 -- Gate on cheap boolean checks first; defer IsAuraTrackable and PassesPreChecks
                 if
                     IsBuffEnabled(settingKey)
-                    and (consumableVisible or isFreeConsumable or (buff.freeConsumable and consumableContentVisible))
+                    and (catVisible or isFreeConsumable or (buff.freeConsumable and consumableContentVisible))
                     and not (competitivePvP and buff.disabledInCompetitivePvP)
                     and freeReadyCheckOk
                     and hasCaster
@@ -2270,7 +2529,7 @@ function BuffState.Refresh(refreshMode)
                     local useGlowDet = isAuraRestricted and not trackable and buff.glowDetectable
                     if
                         (not isAuraRestricted or trackable or useGlowDet)
-                        and PassesPreChecks(buff, nil, db)
+                        and PassesPreChecks(buff, nil, db, trackingMode)
                         and not (buff.key ~= "delveFood" and delveFoodOnly)
                     then
                         if useGlowDet then
@@ -2550,10 +2809,10 @@ end
 ---Check if the current instance is legacy content (cached alongside content type)
 ---@return boolean
 function BuffState.IsLegacyInstance()
-    if cachedIsLegacyInstance == nil then
-        GetCurrentContentType() -- populates cachedIsLegacyInstance
+    if instanceCache.legacyInstance == nil then
+        GetCurrentContentType() -- populates instanceCache.legacyInstance
     end
-    return cachedIsLegacyInstance or false
+    return instanceCache.legacyInstance or false
 end
 
 ---Set whether consumable reminders are dismissed (transient, resets on instance change)
@@ -2581,6 +2840,9 @@ function BuffState.SetPvPPrepPhase(state)
     inPvPPrepPhase = state
 end
 
+---Raw difficultyID from GetInstanceInfo (cached; invalidated with content type)
+BuffState.GetDifficultyID = GetDifficultyIDCached
+
 ---Whether the player is in a restricted context (combat, M+ keystone, or any PvP instance).
 ---PvP instances are treated as restricted for their entire duration (prep included), since
 ---Blizzard now gates the aura API the whole time the player is inside the BG/arena.
@@ -2598,17 +2860,108 @@ function BuffState.IsAlone()
     return GetNumGroupMembers() <= 1
 end
 
+---Whether any group member is assigned the HEALER role (cached; invalidated on
+---roster / role-assignment events). The sole caller is the refreshment-table
+---reminder's customCheck, which returns on its isRestricted guard before reaching
+---here, so the UnitGroupRolesAssigned scan only ever runs out of restricted
+---contexts where roles are plain - caching adds no secret-value exposure.
+---@return boolean
+function BuffState.HasHealerInGroup()
+    if cachedHealerInGroup ~= nil then
+        return cachedHealerInGroup
+    end
+    local result = false
+    local num = GetNumGroupMembers()
+    if num > 1 then
+        local inRaid = IsInRaid()
+        for i = 1, num do
+            local unit = inRaid and ("raid" .. i) or (i == 1 and "player" or "party" .. (i - 1))
+            if UnitExists(unit) and UnitGroupRolesAssigned(unit) == "HEALER" then
+                result = true
+                break
+            end
+        end
+    end
+    cachedHealerInGroup = result
+    return result
+end
+
+---Whether an added aura is one the addon tracks on group members. A secret
+---spellId (non-whitelisted aura in a restricted context) reads as nil and is
+---treated as not-tracked - fail-closed (a secret spellId cannot be a whitelisted
+---spell, and only whitelisted spells are queried on group members there).
+---@param aura table
+---@return boolean
+local function IsTrackedAddedAura(aura)
+    local sid = AuraField(aura, "spellId")
+    return sid ~= nil and groupTrackedSpells[sid] == true
+end
+
+---Whether a removal/update instance ID matches one recorded in the last scan. A
+---secret ID reads as nil and never matches - fail-closed; recorded IDs are
+---readable values from our own successful scans, so a secret ID can't equal one.
+---@param set table<number, true>
+---@param id number
+---@return boolean
+local function IsRecordedInstance(set, id)
+    id = Plain(id)
+    return id ~= nil and set[id] == true
+end
+
+---Decide whether a group unit's UNIT_AURA payload can affect tracked buff state,
+---so irrelevant aura churn (HoTs, procs, debuffs) skips the group rescan.
+---Fail-open on genuinely ambiguous payloads (nil updateInfo, isFullUpdate) where we
+---have no incremental info to filter on. Everything else fails CLOSED via AuraList:
+---a secret list container (verified 12.1 PTR: ~every group payload's container is
+---secret in combat) reads as empty, contributes no match, and the payload is skipped;
+---individual secret entries read as absent (IsTrackedAddedAura / IsRecordedInstance).
+---Anything skipped is bounded by the 3s ticker. This deliberately reverts group
+---refresh to ticker-driven in restricted contexts - the alternative (fail open on a
+---secret container) would rescan on every combat payload and undo the CPU win from
+---"perf(events): cut aura update CPU usage in groups and combat". See docs/SecretValues.md.
+---@param unit string
+---@param updateInfo table?
+---@return boolean
+function BuffState.GroupAuraUpdateMatters(unit, updateInfo)
+    if not updateInfo then
+        return true
+    end
+    -- isFullUpdate can be a SECRET BOOLEAN in restricted contexts, and a boolean test
+    -- on a secret boolean THROWS (unlike a secret number/table, whose truthiness is
+    -- constant and safe to branch on). Plain() reads a secret as nil, so a secret
+    -- isFullUpdate is treated as "not a full update" and we fall through to the
+    -- fail-closed container checks below.
+    if Plain(updateInfo.isFullUpdate) then
+        return true
+    end
+    for _, aura in ipairs(AuraList(updateInfo.addedAuras)) do
+        if IsTrackedAddedAura(aura) then
+            return true
+        end
+    end
+    local set = trackedAuraInstances[unit]
+    if set and next(set) then
+        for _, id in ipairs(AuraList(updateInfo.removedAuraInstanceIDs)) do
+            if IsRecordedInstance(set, id) then
+                return true
+            end
+        end
+        for _, id in ipairs(AuraList(updateInfo.updatedAuraInstanceIDs)) do
+            if IsRecordedInstance(set, id) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 -- ============================================================================
 -- CACHE INVALIDATION
 -- ============================================================================
 
 ---Invalidate content type cache (call on PLAYER_ENTERING_WORLD)
 function BuffState.InvalidateContentTypeCache()
-    cachedContentType = nil
-    cachedInstanceType = nil
-    cachedDifficultyKey = nil
-    cachedCompetitivePvP = nil
-    cachedIsLegacyInstance = nil
+    wipe(instanceCache)
     -- Note: inPvPPrepPhase is NOT reset here - it's managed explicitly by
     -- SetPvPPrepPhase() calls from PLAYER_ENTERING_WORLD and PVP_MATCH_STATE_CHANGED.
     -- Resetting it here would clobber the prep state when ZONE_CHANGED_NEW_AREA's
@@ -2619,6 +2972,11 @@ end
 function BuffState.InvalidateSpecCache()
     cachedSpecId = nil
     cachedPlayerRole = nil
+end
+
+---Invalidate group-healer cache (call on GROUP_ROSTER_UPDATE, PLAYER_ROLES_ASSIGNED)
+function BuffState.InvalidateHealerCache()
+    cachedHealerInGroup = nil
 end
 
 ---Get the player's current role (cached, invalidated on spec change)
@@ -2702,9 +3060,82 @@ function BuffState.InvalidateOffHandCache()
     cachedOffHandType = nil
 end
 
----Invalidate item ownership cache (call on BAG_UPDATE_DELAYED, PLAYER_EQUIPMENT_CHANGED)
+---Invalidate item ownership + count caches (call on BAG_UPDATE_DELAYED, PLAYER_EQUIPMENT_CHANGED)
 function BuffState.InvalidateItemCache()
     cachedItemOwnership = {}
+    cachedItemCounts = {}
+end
+
+---Lowest equipped-item durability ratio (0-1; 1 when nothing is damaged), cached.
+---Slots without durability (neck/rings/trinkets/shirt/tabard) return nil and are skipped.
+---@return number
+function BuffState.GetLowestDurability()
+    if cachedLowestDurability ~= nil then
+        return cachedLowestDurability
+    end
+    local lowest = 1
+    for slot = 1, 18 do
+        local cur, max = GetInventoryItemDurability(slot)
+        if cur and max and max > 0 then
+            local pct = cur / max
+            if pct < lowest then
+                lowest = pct
+            end
+        end
+    end
+    cachedLowestDurability = lowest
+    return lowest
+end
+
+---Invalidate the durability cache (call on UPDATE_INVENTORY_DURABILITY, PLAYER_EQUIPMENT_CHANGED)
+function BuffState.InvalidateDurabilityCache()
+    cachedLowestDurability = nil
+end
+
+---Best repair sources for the repair reminder's click action: a collected repair
+---mount and/or a usable repair item. Both answers only change on collection and
+---bag events, so the resolved pair is memoized like every other lookup here.
+---@return { mountSpellID: number?, itemID: number? }
+function BuffState.GetRepairSources()
+    if cachedRepairSources then
+        return cachedRepairSources
+    end
+    local sources = {}
+    for _, spellID in ipairs(REPAIR_SOURCES.mounts) do
+        local mountID = C_MountJournal.GetMountFromSpell(spellID)
+        if mountID then
+            local _, _, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(mountID)
+            if isCollected then
+                sources.mountSpellID = spellID
+                break
+            end
+        end
+    end
+    for _, itemID in ipairs(REPAIR_SOURCES.items) do
+        if HasItemInBags(itemID) then
+            -- A retired use effect must not arm a dead click, so ownership isn't
+            -- enough. An unreadable verdict means the item info isn't cached yet -
+            -- ownership decides then.
+            local ok, usable = pcall(C_Item.IsUsableItem, itemID)
+            if not ok or usable ~= false then
+                sources.itemID = itemID
+                break
+            end
+        end
+    end
+    -- Only a positive resolution is cached: the mount journal isn't always populated
+    -- at login, and freezing a false "owns nothing" would leave the icon inert for
+    -- the whole session. An empty answer is re-resolved on the next arming pass.
+    if sources.mountSpellID or sources.itemID then
+        cachedRepairSources = sources
+    end
+    return sources
+end
+
+---Invalidate the repair source cache (call on BAG_UPDATE_DELAYED, NEW_MOUNT_ADDED,
+---PLAYER_ENTERING_WORLD)
+function BuffState.InvalidateRepairSourceCache()
+    cachedRepairSources = nil
 end
 
 ---Invalidate loadout state cache (call on PLAYER_SPECIALIZATION_CHANGED,
@@ -2727,17 +3158,19 @@ function BuffState.IsWrongDemonPet()
         return false
     end
     local name, familyID = UnitCreatureFamily("pet")
+    familyID = Plain(familyID)
     if type(familyID) ~= "number" then
-        -- Pet data not resolved yet; don't cache so next Refresh retries.
+        -- Pet data not resolved yet, or a secret value; don't cache so next
+        -- Refresh retries.
         return false
     end
-    local ok, isWrong = pcall(function()
-        return familyID ~= 29 and name ~= "Felguard"
-    end)
-    if not ok then
+    name = Plain(name)
+    if name == nil then
+        -- Name resolved to a secret; leave uncached and treat as "not wrong"
+        -- this pass (fail-closed), matching the old pcall behavior.
         return false
     end
-    cachedWrongPetStatus = isWrong == true
+    cachedWrongPetStatus = familyID ~= 29 and name ~= "Felguard"
     return cachedWrongPetStatus
 end
 
@@ -2747,15 +3180,25 @@ function BuffState.InvalidatePetCache()
     cachedWrongPetStatus = nil
 end
 
----Resolve the active stance's spell ID, or nil if unstanced/unresolved.
+---Resolve the active stance's spell ID, or nil if unstanced/unresolved (cached).
+---Unstanced (form 0) is a stable result and cached as `false`; a form set but
+---with unresolved spell data is a transient load state left uncached to retry.
 ---@return number?
 local function GetActiveStanceSpellID()
+    if stanceCache.activeSpellID ~= nil then
+        return stanceCache.activeSpellID or nil
+    end
     local active = GetShapeshiftForm()
     if not active or active == 0 then
+        stanceCache.activeSpellID = false
         return nil
     end
     local _, _, _, spellID = GetShapeshiftFormInfo(active)
-    return type(spellID) == "number" and spellID or nil
+    if type(spellID) == "number" then
+        stanceCache.activeSpellID = spellID
+        return spellID
+    end
+    return nil
 end
 
 ---Check whether a warrior's active stance does not match their spec's
@@ -2763,29 +3206,29 @@ end
 ---or in a stance that doesn't fit the current spec.
 ---@return boolean
 function BuffState.IsWrongWarriorStance()
-    if cachedWrongStanceStatus ~= nil then
-        return cachedWrongStanceStatus
+    if stanceCache.wrongStance ~= nil then
+        return stanceCache.wrongStance
     end
     if playerClass ~= "WARRIOR" then
-        cachedWrongStanceStatus = false
+        stanceCache.wrongStance = false
         return false
     end
     local expected = WARRIOR_EXPECTED_STANCES[GetPlayerSpecId()]
     if not expected then
-        cachedWrongStanceStatus = false
+        stanceCache.wrongStance = false
         return false
     end
     local activeSpellID = GetActiveStanceSpellID()
     if not activeSpellID then
         -- Unstanced (form 0) is wrong; unresolved form data leaves cache nil to retry.
         if GetShapeshiftForm() == 0 then
-            cachedWrongStanceStatus = true
+            stanceCache.wrongStance = true
             return true
         end
         return false
     end
-    cachedWrongStanceStatus = not expected[activeSpellID]
-    return cachedWrongStanceStatus
+    stanceCache.wrongStance = not expected[activeSpellID]
+    return stanceCache.wrongStance
 end
 
 ---Preferred stance spell ID for the current warrior spec (Defensive for Protection,
@@ -2793,37 +3236,37 @@ end
 ---fallback icon when unstanced. Returns nil for non-warriors. Cached.
 ---@return number?
 function BuffState.GetExpectedWarriorStanceID()
-    if cachedExpectedStanceID ~= nil then
-        return cachedExpectedStanceID or nil
+    if stanceCache.expectedStanceID ~= nil then
+        return stanceCache.expectedStanceID or nil
     end
     if playerClass ~= "WARRIOR" then
-        cachedExpectedStanceID = false
+        stanceCache.expectedStanceID = false
         return nil
     end
     local specId = GetPlayerSpecId()
     if specId == 73 then
-        cachedExpectedStanceID = STANCE_DEFENSIVE
+        stanceCache.expectedStanceID = STANCE_DEFENSIVE
     elseif specId == 72 and IsPlayerSpell(STANCE_BERSERKER) then
-        cachedExpectedStanceID = STANCE_BERSERKER
+        stanceCache.expectedStanceID = STANCE_BERSERKER
     else
-        cachedExpectedStanceID = STANCE_BATTLE
+        stanceCache.expectedStanceID = STANCE_BATTLE
     end
-    return cachedExpectedStanceID
+    return stanceCache.expectedStanceID or nil
 end
 
 ---Texture for the warrior's currently active stance, or nil if unstanced. Cached.
 ---@return number|string|nil
 function BuffState.GetCurrentWarriorStanceIcon()
-    if cachedCurrentStanceIcon ~= nil then
-        return cachedCurrentStanceIcon or nil
+    if stanceCache.currentStanceIcon ~= nil then
+        return stanceCache.currentStanceIcon or nil
     end
     local activeSpellID = GetActiveStanceSpellID()
     if not activeSpellID then
-        cachedCurrentStanceIcon = false
+        stanceCache.currentStanceIcon = false
         return nil
     end
-    cachedCurrentStanceIcon = C_Spell.GetSpellTexture(activeSpellID) or false
-    return cachedCurrentStanceIcon or nil
+    stanceCache.currentStanceIcon = C_Spell.GetSpellTexture(activeSpellID) or false
+    return stanceCache.currentStanceIcon or nil
 end
 
 ---Whether the priest is currently in Shadowform (or Voidform, which lives in
@@ -2831,11 +3274,11 @@ end
 ---the stance API is unaffected by combat/encounter/M+ aura restrictions.
 ---@return boolean
 function BuffState.IsShadowFormActive()
-    if cachedShadowFormActive ~= nil then
-        return cachedShadowFormActive
+    if stanceCache.shadowFormActive ~= nil then
+        return stanceCache.shadowFormActive
     end
     if playerClass ~= "PRIEST" then
-        cachedShadowFormActive = false
+        stanceCache.shadowFormActive = false
         return false
     end
     local activeSpellID = GetActiveStanceSpellID()
@@ -2843,13 +3286,13 @@ function BuffState.IsShadowFormActive()
         -- Form 0 = no shadowform (cache); non-zero with unresolved spell data
         -- happens transiently on load - return safe default and retry next call.
         if GetShapeshiftForm() == 0 then
-            cachedShadowFormActive = false
+            stanceCache.shadowFormActive = false
             return false
         end
         return true
     end
-    cachedShadowFormActive = activeSpellID == SHADOWFORM or activeSpellID == VOIDFORM
-    return cachedShadowFormActive
+    stanceCache.shadowFormActive = activeSpellID == SHADOWFORM or activeSpellID == VOIDFORM
+    return stanceCache.shadowFormActive
 end
 
 ---Whether a Feral or Balance druid is in any form other than their spec's
@@ -2860,7 +3303,7 @@ end
 ---@return boolean
 function BuffState.IsWrongDruidForm()
     if playerClass ~= "DRUID" then
-        cachedWrongDruidFormStatus = false
+        stanceCache.wrongDruidForm = false
         return false
     end
     -- Suppress while intentionally traveling: any travel-family form
@@ -2870,12 +3313,12 @@ function BuffState.IsWrongDruidForm()
     if BR.profile.druidIgnoreTravelForm ~= false and (DRUID_TRAVEL_FORM_IDS[GetShapeshiftFormID()] or IsMounted()) then
         return false
     end
-    if cachedWrongDruidFormStatus ~= nil then
-        return cachedWrongDruidFormStatus
+    if stanceCache.wrongDruidForm ~= nil then
+        return stanceCache.wrongDruidForm
     end
     local expected = DRUID_EXPECTED_FORMS[GetPlayerSpecId()]
     if not expected then
-        cachedWrongDruidFormStatus = false
+        stanceCache.wrongDruidForm = false
         return false
     end
     local activeSpellID = GetActiveStanceSpellID()
@@ -2883,28 +3326,28 @@ function BuffState.IsWrongDruidForm()
         -- Unshifted (form 0) is wrong; non-zero with unresolved spell data is
         -- a transient load state - return safe default and retry next call.
         if GetShapeshiftForm() == 0 then
-            cachedWrongDruidFormStatus = true
+            stanceCache.wrongDruidForm = true
             return true
         end
         return false
     end
-    cachedWrongDruidFormStatus = activeSpellID ~= expected
-    return cachedWrongDruidFormStatus
+    stanceCache.wrongDruidForm = activeSpellID ~= expected
+    return stanceCache.wrongDruidForm
 end
 
 ---Expected form spell ID for the current druid spec (Cat Form for Feral,
 ---Moonkin Form for Balance). Returns nil for non-druids and other specs. Cached.
 ---@return number?
 function BuffState.GetExpectedDruidFormID()
-    if cachedExpectedDruidFormID ~= nil then
-        return cachedExpectedDruidFormID or nil
+    if stanceCache.expectedDruidFormID ~= nil then
+        return stanceCache.expectedDruidFormID or nil
     end
     if playerClass ~= "DRUID" then
-        cachedExpectedDruidFormID = false
+        stanceCache.expectedDruidFormID = false
         return nil
     end
-    cachedExpectedDruidFormID = DRUID_EXPECTED_FORMS[GetPlayerSpecId()] or false
-    return cachedExpectedDruidFormID or nil
+    stanceCache.expectedDruidFormID = DRUID_EXPECTED_FORMS[GetPlayerSpecId()] or false
+    return stanceCache.expectedDruidFormID or nil
 end
 
 ---Invalidate all stance caches (warrior wrong-stance + priest shadowform +
@@ -2912,12 +3355,7 @@ end
 ---PLAYER_SPECIALIZATION_CHANGED, TRAIT_CONFIG_UPDATED, SPELLS_CHANGED,
 ---PLAYER_ENTERING_WORLD.
 function BuffState.InvalidateStanceCache()
-    cachedWrongStanceStatus = nil
-    cachedExpectedStanceID = nil
-    cachedCurrentStanceIcon = nil
-    cachedShadowFormActive = nil
-    cachedWrongDruidFormStatus = nil
-    cachedExpectedDruidFormID = nil
+    wipe(stanceCache)
 end
 
 -- ============================================================================
@@ -2993,7 +3431,6 @@ BR.StateHelpers = {
     IsCategoryVisibleForContent = IsCategoryVisibleForContent,
     GetBuffSettingKey = GetBuffSettingKey,
     IsBuffEnabled = IsBuffEnabled,
-    GetLastTarget = GetLastTarget,
 }
 
 -- Export the module

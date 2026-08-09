@@ -10,7 +10,7 @@ local _, BR = ...
 -- TYPE DEFINITIONS
 -- ============================================================================
 
----@alias CategoryName "raid"|"presence"|"targeted"|"self"|"pet"|"consumable"|"custom"|"loadout"
+---@alias CategoryName "raid"|"presence"|"targeted"|"self"|"pet"|"consumable"|"utility"|"custom"|"loadout"
 
 ---@class CategoryPosition
 ---@field point string
@@ -92,6 +92,104 @@ BR.Colors = {
 }
 
 -- ============================================================================
+-- SECRET-SAFE READS
+-- ============================================================================
+-- WoW tags combat data (auras, unit identity, stats) as "secret" values: a
+-- secret is truthy but throws on compare / arithmetic / ipairs / # / indexing a
+-- table with it. These read helpers use issecretvalue to turn "would throw" into
+-- "reads as nil / empty", so callers stay plain Lua instead of hand-rolling a
+-- pcall around every operation. Fail-closed by design: a secret reads as absent.
+-- Callers that must fail OPEN (e.g. GroupAuraUpdateMatters, which rescans when it
+-- can't prove a payload irrelevant) check issecretvalue explicitly instead.
+-- Defined here in Core so every layer shares one implementation. See
+-- docs/SecretValues.md.
+
+local issecretvalue = issecretvalue
+local EMPTY_LIST = {}
+
+---Return v when it is a plain (non-secret) value, else nil. Use before any
+---compare / arithmetic / table-index-by-key on combat data (aura fields, unit
+---identity returns like UnitIsUnit / UnitCreatureFamily, stat APIs, ...).
+---@param v any
+---@return any
+local function Plain(v)
+    if issecretvalue(v) then
+        return nil
+    end
+    return v
+end
+
+---Return a UNIT_AURA list field (addedAuras, removedAuraInstanceIDs, ...) as a
+---real iterable, or a shared empty list when the container itself is a secret
+---value - truthy, but ipairs/# would throw on it. Never mutate the result.
+---@param container any
+---@return table
+local function AuraList(container)
+    if container == nil or issecretvalue(container) then
+        return EMPTY_LIST
+    end
+    return container
+end
+
+---Read a field off an aura entry, returning nil if the entry OR the field is a
+---secret value (the two-level guard: the entry can be secret, or the entry can
+---be a plain table holding a secret field).
+---@param aura any
+---@param key string
+---@return any
+local function AuraField(aura, key)
+    if aura == nil or issecretvalue(aura) then
+        return nil
+    end
+    return Plain(aura[key])
+end
+
+-- Aura ENUMERATION APIs (GetAuraDataByIndex / GetAuraDataByAuraInstanceID) THROW -
+-- they do not merely return a secret - in restricted contexts on 12.1 (verified on
+-- the PTR: combat, and M+ even out of combat). The call raises before returning, so
+-- there is no value for issecretvalue to inspect; pcall is the correct (and only)
+-- guard - a genuine call-error, not a secret-value operation. A throw means "can't
+-- enumerate here", so callers treat nil as end-of-scan and fall back to targeted
+-- GetUnitAuraBySpellID queries (which stay whitelist-readable) plus the 3s ticker.
+-- GetUnitAuraBySpellID itself does NOT throw, so it needs no wrapper - its return is
+-- read through AuraField.
+
+---Enumerate an aura by index; nil if the call throws (restricted context) or past
+---the last aura.
+---@param unit string
+---@param index integer
+---@param filter string
+---@return any
+local function AuraByIndex(unit, index, filter)
+    local ok, data = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
+    if not ok then
+        return nil
+    end
+    return data
+end
+
+---Look up an aura by instance ID; nil if the call throws (restricted context) or
+---the instance is gone.
+---@param unit string
+---@param instanceID number
+---@return any
+local function AuraByInstanceID(unit, instanceID)
+    local ok, data = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, instanceID)
+    if not ok then
+        return nil
+    end
+    return data
+end
+
+BR.Secret = {
+    Plain = Plain,
+    AuraList = AuraList,
+    AuraField = AuraField,
+    AuraByIndex = AuraByIndex,
+    AuraByInstanceID = AuraByInstanceID,
+}
+
+-- ============================================================================
 -- CALLBACK REGISTRY (Event System)
 -- ============================================================================
 -- Pub/sub system for decoupled communication between modules.
@@ -133,7 +231,6 @@ BR.Config.DebugMode = false
 -- Root-level settings (path = key directly)
 local RootSettings = {
     splitCategories = "FramesReparent",
-    frameLocked = false, -- No refresh needed
     position = false, -- Table with x, y
     buffTrackingMode = false, -- No auto-refresh, manually calls UpdateDisplay
     outsideInstancesMode = "DisplayRefresh",
@@ -277,15 +374,21 @@ local DefaultSettingKeys = {
     showWithoutItemsOnlyOnReadyCheck = "DisplayRefresh",
     delveFoodOnly = "DisplayRefresh",
     delveFoodTimer = "DisplayRefresh",
+    mageFoodContent = "DisplayRefresh",
     freeConsumableMode = "DisplayRefresh",
     freeConsumableVisibility = "DisplayRefresh",
     healthstoneVisibility = "DisplayRefresh",
     healthstoneLowStock = "DisplayRefresh",
     healthstoneThreshold = "DisplayRefresh",
+    repairThreshold = "DisplayRefresh",
+    repairHideInCombat = "VisibilityRefresh",
     soulstoneVisibility = "DisplayRefresh",
     soulstoneHideCooldown = "DisplayRefresh",
+    soulstonePinnedTarget = false, -- nil when unset (no Defaults entry); macro rebuilds on PreClick
+
     -- Consumable display mode
     consumableDisplayMode = "DisplayRefresh",
+    consumableBadgeOnSubIcons = "DisplayRefresh",
     consumableTextScale = "VisualsRefresh",
     hideConsumableLabels = "VisualsRefresh",
     showConsumableTooltips = false, -- No refresh needed, read at tooltip time
@@ -313,7 +416,7 @@ local DefaultSettingKeys = {
 -- of which derive from this list instead of repeating it. Forgetting to extend
 -- one of those parallel lists is what silently breaks live config updates, so
 -- there is exactly one list to maintain.
-BR.CATEGORY_ORDER = { "raid", "presence", "targeted", "self", "pet", "consumable", "custom", "loadout" }
+BR.CATEGORY_ORDER = { "raid", "presence", "targeted", "self", "pet", "consumable", "utility", "custom", "loadout" }
 
 -- Virtual categories: user-defined entries that live in db.customBuffs /
 -- db.loadoutReminders rather than BR.BUFF_TABLES. Consumers that walk only the

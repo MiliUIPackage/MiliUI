@@ -33,6 +33,15 @@ local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 local tinsert = table.insert
 local abs = math.abs
 
+-- Every control in the Text section ends on the same right edge. Font/Outline
+-- are single dropdowns of TEXT_DD_W; the zone pair has to fit the same span
+-- minus what its internal offsets eat: each nested dropdown holder insets its
+-- box by 5 (Components.Dropdown), plus 8 between the two.
+local TEXT_DD_W = 200
+local ZONE_INTERNAL_W = 5 + 8 + 5
+local ZONE_VERTICAL_W = 102
+local ZONE_ALIGN_W = TEXT_DD_W - ZONE_INTERNAL_W - ZONE_VERTICAL_W
+
 local function BuildFontOptions()
     local fontList = LSM:List("font")
     local opts = { { label = L["Options.Default"], value = nil } }
@@ -56,7 +65,8 @@ local function Build(content)
         return not db or db.iconWidth == nil
     end
 
-    local defGrid = Components.AppearanceGrid(content, {
+    -- Shared by the geometry grid and the Text section's size/color row.
+    local defAccess = {
         get = function(key, default)
             local d = BR.profile.defaults
             return d and d[key] or default
@@ -71,6 +81,12 @@ local function Build(content)
             end
             BR.Config.SetMulti(prefixed)
         end,
+    }
+
+    local defGrid = Components.AppearanceGrid(content, {
+        get = defAccess.get,
+        set = defAccess.set,
+        setMulti = defAccess.setMulti,
         isLinked = isDefDimensionsLinked,
         onLink = function()
             BR.Config.Set("defaults.iconWidth", nil)
@@ -84,42 +100,6 @@ local function Build(content)
         masqueCheck = IsMasqueActive,
     })
     layout:Add(defGrid.frame, defGrid.height, COMPONENT_GAP)
-
-    local defFontHolder = Components.Dropdown(content, {
-        label = L["Options.Font"],
-        labelWidth = 50,
-        options = BuildFontOptions(),
-        width = 200,
-        maxItems = 15,
-        itemInit = function(_, itemLabel, opt)
-            if opt.value then
-                local path = LSM:Fetch("font", opt.value)
-                if path then
-                    itemLabel:SetFont(path, 12, "")
-                end
-            end
-        end,
-        get = MakeDefaultsGetter("fontFace", nil),
-        onChange = MakeDefaultsSetter("fontFace"),
-    })
-    layout:Add(defFontHolder, nil, COMPONENT_GAP)
-
-    local defOutlineHolder = Components.Dropdown(content, {
-        label = L["Options.TextOutline"],
-        labelWidth = 50,
-        options = {
-            { label = L["Options.TextOutline.None"], value = "NONE" },
-            { label = L["Options.TextOutline.Outline"], value = "OUTLINE" },
-            { label = L["Options.TextOutline.Thick"], value = "THICKOUTLINE" },
-            { label = L["Options.TextOutline.Monochrome"], value = "MONOCHROME" },
-            { label = L["Options.TextOutline.OutlineMono"], value = "OUTLINE, MONOCHROME" },
-            { label = L["Options.TextOutline.ThickMono"], value = "THICKOUTLINE, MONOCHROME" },
-        },
-        width = 200,
-        get = MakeDefaultsGetter("textOutline", "OUTLINE"),
-        onChange = MakeDefaultsSetter("textOutline"),
-    })
-    layout:Add(defOutlineHolder, nil, COMPONENT_GAP)
 
     local defDirHolder = Components.DirectionButtons(content, {
         labelWidth = 50,
@@ -209,6 +189,113 @@ local function Build(content)
         layout:Add(rowGlowHolder, nil, COMPONENT_GAP)
     end
 
+    -- Text: everything about the text drawn on icons, in one place. Users look
+    -- for these under "Text", not inside a grid of icon dimensions - so size and
+    -- color live here even though (unlike font/outline/position) they can also
+    -- be overridden per category.
+    LayoutSectionHeader(layout, content, L["Options.Text"])
+    LayoutSectionNote(layout, content, L["Options.Text.Note"])
+
+    local textLabelWidth = Components.MeasureSharedLabelWidth({
+        L["Appearance.Text"],
+        L["Options.Font"],
+        L["Options.TextOutline"],
+        L["Options.TextPositions.MainText"],
+    })
+
+    local defTextStyleHolder = Components.TextStyleRow(content, defAccess, textLabelWidth)
+    layout:Add(defTextStyleHolder, nil, COMPONENT_GAP)
+
+    local defFontHolder = Components.Dropdown(content, {
+        label = L["Options.Font"],
+        labelWidth = textLabelWidth,
+        options = BuildFontOptions(),
+        width = TEXT_DD_W,
+        maxItems = 15,
+        itemInit = function(_, itemLabel, opt)
+            if opt.value then
+                local path = LSM:Fetch("font", opt.value)
+                if path then
+                    itemLabel:SetFont(path, 12, "")
+                end
+            end
+        end,
+        get = MakeDefaultsGetter("fontFace", nil),
+        onChange = MakeDefaultsSetter("fontFace"),
+    })
+    layout:Add(defFontHolder, nil, COMPONENT_GAP)
+
+    local defOutlineHolder = Components.Dropdown(content, {
+        label = L["Options.TextOutline"],
+        labelWidth = textLabelWidth,
+        options = {
+            { label = L["Options.TextOutline.None"], value = "NONE" },
+            { label = L["Options.TextOutline.Outline"], value = "OUTLINE" },
+            { label = L["Options.TextOutline.Thick"], value = "THICKOUTLINE" },
+            { label = L["Options.TextOutline.Monochrome"], value = "MONOCHROME" },
+            { label = L["Options.TextOutline.OutlineMono"], value = "OUTLINE, MONOCHROME" },
+            { label = L["Options.TextOutline.ThickMono"], value = "THICKOUTLINE, MONOCHROME" },
+        },
+        width = TEXT_DD_W,
+        get = MakeDefaultsGetter("textOutline", "OUTLINE"),
+        onChange = MakeDefaultsSetter("textOutline"),
+    })
+    layout:Add(defOutlineHolder, nil, COMPONENT_GAP)
+
+    -- ZonePicker + compact X/Y nudges on one 26px row, matching the position
+    -- rows on the raid and consumable tabs.
+    local mainTextPosRow = CreateFrame("Frame", nil, content)
+    mainTextPosRow:SetSize(content:GetWidth(), 26)
+
+    local mainTextZone = Components.ZonePicker(mainTextPosRow, {
+        label = L["Options.TextPositions.MainText"],
+        labelWidth = textLabelWidth,
+        verticalWidth = ZONE_VERTICAL_W,
+        alignWidth = ZONE_ALIGN_W,
+        get = function()
+            return select(1, BR.TextPositions.Get("count"))
+        end,
+        onChange = function(zone)
+            BR.Config.Set("defaults.textPositions.count.zone", zone)
+        end,
+    })
+    mainTextZone:SetPoint("TOPLEFT", mainTextPosRow, "TOPLEFT", 0, 0)
+
+    local mainTextOffsetX = Components.Slider(mainTextPosRow, {
+        label = L["Options.TextPositions.OffsetX.Short"],
+        labelWidth = 12,
+        sliderWidth = 60,
+        min = -40,
+        max = 40,
+        get = function()
+            local _, x = BR.TextPositions.Get("count")
+            return x
+        end,
+        onChange = function(val)
+            BR.Config.Set("defaults.textPositions.count.offsetX", val)
+        end,
+    })
+    mainTextOffsetX:SetPoint("LEFT", mainTextZone, "RIGHT", 12, 0)
+
+    local mainTextOffsetY = Components.Slider(mainTextPosRow, {
+        label = L["Options.TextPositions.OffsetY.Short"],
+        labelWidth = 12,
+        sliderWidth = 60,
+        min = -40,
+        max = 40,
+        get = function()
+            local _, _, y = BR.TextPositions.Get("count")
+            return y
+        end,
+        onChange = function(val)
+            BR.Config.Set("defaults.textPositions.count.offsetY", val)
+        end,
+    })
+    mainTextOffsetY:SetPoint("LEFT", mainTextOffsetX, "RIGHT", 8, 0)
+
+    layout:Add(mainTextPosRow, 26, COMPONENT_GAP)
+    LayoutSectionNote(layout, content, L["Options.TextPositions.MainText.Note"])
+
     -- Expiration Reminder
     LayoutSectionHeader(layout, content, L["Options.ExpirationReminder"])
 
@@ -245,11 +332,6 @@ local function Build(content)
         onChange = MakeDefaultsSetter("preKeyThreshold"),
     })
     layout:Add(preKeyThresholdHolder, nil, COMPONENT_GAP)
-
-    -- Transition breadcrumb: the stacking-order editor lived here for a long
-    -- time before moving to the Layout page with everything else spatial.
-    layout:Space(12)
-    LayoutSectionNote(layout, content, L["Options.DisplayOrder.Moved"])
 
     content:SetHeight(abs(layout:GetY()) + 20)
 end

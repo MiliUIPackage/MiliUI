@@ -198,7 +198,9 @@ local function Build(ctx, layout)
     local appFrame = CreateFrame("Frame", nil, parent)
     layout:Add(appFrame, 0)
 
-    local catGrid = Components.AppearanceGrid(appFrame, {
+    -- Shared by the geometry grid and the text size/color row below it: both are
+    -- covered by this category's single appearance override.
+    local catAccess = {
         get = getEffectiveValue,
         set = function(key, value)
             BR.Config.Set("categorySettings." .. category .. "." .. key, value)
@@ -210,6 +212,13 @@ local function Build(ctx, layout)
             end
             BR.Config.SetMulti(prefixed)
         end,
+        enabled = isOverridingAppearance,
+    }
+
+    local catGrid = Components.AppearanceGrid(appFrame, {
+        get = catAccess.get,
+        set = catAccess.set,
+        setMulti = catAccess.setMulti,
         isLinked = isDimensionsLinked,
         onLink = function()
             BR.Config.Set("categorySettings." .. category .. ".iconWidth", nil)
@@ -225,6 +234,9 @@ local function Build(ctx, layout)
     })
     appFrame:SetSize(480, catGrid.height)
     layout:Space(catGrid.height)
+
+    local catTextStyleHolder = Components.TextStyleRow(parent, catAccess)
+    layout:Add(catTextStyleHolder, nil, COMPONENT_GAP)
 
     -- ========================================================================
     -- GLOW

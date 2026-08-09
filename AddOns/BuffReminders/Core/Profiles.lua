@@ -63,7 +63,8 @@ function BR.Profiles.OnProfileEvent()
 end
 
 ---Suppress refresh callbacks for the duration of fn(), then fire one refresh.
----Used to batch SetProfile + CopyProfile into a single refresh cycle.
+---Used to batch several profile mutations (e.g. SetProfile + import writes)
+---into a single refresh cycle.
 ---@param fn function
 function BR.Profiles.BatchOperation(fn)
     suppressRefresh = true
@@ -251,6 +252,14 @@ function BR.Profiles.RefreshAfterProfileChange()
     -- Rebuild loadout reminders if present
     if BR.Display and BR.Display.BuildLoadoutRulesArray then
         BR.Display.BuildLoadoutRulesArray()
+    end
+
+    -- The category-settings memo may still hold the PREVIOUS profile's values
+    -- (nothing has fired a refresh event yet); wipe it before SyncDirectionCache
+    -- reads grow directions through it, or the LayoutRefresh below would see a
+    -- spurious direction change and convert (corrupt) the new profile's positions.
+    if BR.Display and BR.Display.InvalidateCategorySettingsCache then
+        BR.Display.InvalidateCategorySettingsCache()
     end
 
     -- Sync direction cache before firing LayoutRefresh to prevent spurious position conversions

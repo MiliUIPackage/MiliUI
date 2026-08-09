@@ -23,7 +23,7 @@ local max = math.max
 
 BR.Migrations = {}
 
-BR.Migrations.DB_VERSION = 47
+BR.Migrations.DB_VERSION = 49
 
 -- Run pending migrations against the profile `db`, using code `defaults` for
 -- fallbacks. `ctx` carries the few Display.lua file-scope deps the
@@ -1021,6 +1021,22 @@ function BR.Migrations.Run(db, defaults, ctx)
                         end
                     end
                 end
+            end
+        end,
+
+        -- [48] (no-op, retired: repairGear/mageFood now ship off-by-default via the
+        -- buff def's `defaultEnabled = false`, resolved at read time by
+        -- StateHelpers.IsBuffEnabled - no per-profile seeding needed)
+        [48] = function() end,
+
+        -- [49] Frame lock is now session-only (starts locked every login), so the
+        -- persisted `locked` field is dead - drop it. Also clears the retired
+        -- glowDefaultNoticeCount global flag (per-profile migration runs once each,
+        -- and one pass is enough for the shared global).
+        [49] = function()
+            db.locked = nil
+            if BR.aceDB and BR.aceDB.global then
+                BR.aceDB.global.glowDefaultNoticeCount = nil
             end
         end,
     }

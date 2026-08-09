@@ -38,11 +38,11 @@ local ZONES = {
 }
 BR.TextPositions.Zones = ZONES
 
--- Repositionable text items the UI exposes, in display order. `count` is
--- intentionally absent: its position is fixed at INSIDE_C with no offset by
--- default, and the rare nudge case is served by the data model directly (see
--- defaults.textPositions.count) rather than by panel UI.
+-- Repositionable text items the UI exposes, in display order. `count` is a
+-- historical key name: the region carries group counts, countdowns AND the
+-- "NO FLASK"-style labels, so the UI calls it "Main text".
 BR.TextPositions.Items = {
+    "count", -- defaults page (Pages/Defaults)
     "buffReminder", -- raid page (Sections/RaidIcons)
     "statLabel", -- consumable page (Sections/ItemDisplay)
     "badge",

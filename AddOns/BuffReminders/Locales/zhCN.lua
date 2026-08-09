@@ -789,7 +789,6 @@ L["Appearance.Zoom"] = "缩放"
 L["Appearance.Border"] = "边框"
 L["Appearance.Spacing"] = "间距"
 L["Appearance.Alpha"] = "透明度"
-L["Appearance.Text"] = "文本"
 
 -- Slider tooltip
 L["Component.AdjustValue"] = "调整数值"

@@ -139,6 +139,7 @@ local _, BR = ...
 ---@field self CategorySetting
 ---@field pet CategorySetting
 ---@field consumable CategorySetting
+---@field utility CategorySetting
 ---@field custom CategorySetting
 
 ---@class CategoryFrame: Frame
@@ -179,6 +180,7 @@ local _, BR = ...
 ---@field _br_pet_spell? string             -- Localized spell name for pet click-to-cast
 ---@field _br_pet_spec_icon? number        -- Pet spec ability icon texture for hover swap
 ---@field _br_pet_label_key? string        -- Cache key for pet label updates
+---@field _br_count_scale? number          -- Font scale the count text was last written with
 ---@field _br_pet_name_text? FontString    -- Pet name label below icon
 ---@field _br_pet_family_text? FontString  -- Pet spec label below name
 ---@field _br_pet_extra_text? FontString   -- Spirit Beast label below spec
@@ -200,7 +202,6 @@ local TEXCOORD_INSET = BR.TEXCOORD_INSET
 
 -- WoW API locals
 local PlaySoundFile = PlaySoundFile
-local GetInstanceInfo = GetInstanceInfo
 
 -- LibSharedMedia for font resolution
 local LSM = LibStub("LibSharedMedia-3.0")
@@ -224,7 +225,8 @@ local fontProbe = UIParent:CreateFontString(nil, "BACKGROUND")
 fontProbe:Hide()
 local fontPathValidCache = {}
 
----Check whether a font file path is loadable by the WoW client
+---Check whether a font file path is loadable by the WoW client (BR.Helpers
+---export; the options font picker filters the LSM list through this)
 ---@param path string? LSM-resolved font file path
 ---@return boolean valid true if path is non-nil and SetFont succeeds
 local function IsFontPathValid(path)
@@ -385,10 +387,15 @@ local defaults = BR.defaults
 -- Constants
 local CODE_DEFAULTS = defaults.defaults
 local OVERLAY_TEXT_SCALE = 0.6 -- scale for "NO X" warning text
+local COUNT_TEXT_SCALE = 1 -- scale for group counts and countdowns
 
 -- Locals
 local mainFrame
 local buffFrames = {}
+-- Per-category index over buffFrames (category -> key -> frame), so per-category
+-- consumers (SecureButtons.UpdateActionButtons runs every display cycle) don't
+-- rescan the full frame table. Maintained by Register/UnregisterBuffFrame.
+local buffFramesByCategory = {}
 local updateTicker
 local readyCheckTimer = nil
 local instanceEntryTimer = nil
@@ -418,6 +425,30 @@ local dirty = false
 local dirtyMode = "full"
 local lastUpdateTime = 0
 local MIN_UPDATE_INTERVAL = 0.5 -- seconds between actual updates
+
+---Track a buff frame in both the flat table and the per-category index
+---@param key string
+---@param frame table
+---@param category string
+local function RegisterBuffFrame(key, frame, category)
+    buffFrames[key] = frame
+    local bucket = buffFramesByCategory[category]
+    if not bucket then
+        bucket = {}
+        buffFramesByCategory[category] = bucket
+    end
+    bucket[key] = frame
+end
+
+---Remove a buff frame from both the flat table and the per-category index
+---@param key string
+local function UnregisterBuffFrame(key)
+    local frame = buffFrames[key]
+    if frame and frame.buffCategory and buffFramesByCategory[frame.buffCategory] then
+        buffFramesByCategory[frame.buffCategory][key] = nil
+    end
+    buffFrames[key] = nil
+end
 
 ---@param mode? "full"|"group"
 local function SetDirty(mode)
@@ -469,6 +500,7 @@ local CATEGORY_LABELS = {
     self = L["Category.Self"],
     pet = L["Category.Pet"],
     consumable = L["Category.Consumable"],
+    utility = L["Category.Utility"],
     custom = L["Category.Custom"],
     loadout = L["Category.Loadout"],
 }
@@ -522,11 +554,10 @@ local function GetDetachedPosition(key)
     return DETACHED_DEFAULT_POS
 end
 
----Get settings for a category with inheritance from defaults
----Uses BR.Config.GetCategorySetting for inherited values when applicable
+---Build the effective settings table for a category with inheritance from defaults
 ---@param category string
 ---@return table A table with all effective settings for this category
-local function GetCategorySettings(category)
+local function BuildCategorySettings(category)
     local db = BR.profile
     local catSettings = db.categorySettings and db.categorySettings[category]
     local globalDefaults = db.defaults or defaults.defaults
@@ -603,6 +634,35 @@ local function GetCategorySettings(category)
     return result
 end
 
+-- Memo for BuildCategorySettings: it builds a fresh ~15-field table per call but
+-- is invoked per frame in render paths (font sizing, secure sync, positioning).
+-- Wiped at the start of every UpdateDisplay / UpdateVisuals; config changes reach
+-- one of those through the refresh events. Readers that run BEFORE the refresh
+-- events after an out-of-band settings swap (profile switch / import) must wipe
+-- explicitly via BR.Display.InvalidateCategorySettingsCache - see
+-- Profiles.RefreshAfterProfileChange, whose SyncDirectionCache would otherwise
+-- seed direction guards from the previous profile's memoized values.
+-- Callers treat the returned table as read-only.
+local categorySettingsCache = {} ---@type table<string, table>
+
+---Get settings for a category with inheritance from defaults (memoized)
+---@param category string
+---@return table A table with all effective settings for this category
+local function GetCategorySettings(category)
+    local settings = categorySettingsCache[category]
+    if not settings then
+        settings = BuildCategorySettings(category)
+        categorySettingsCache[category] = settings
+    end
+    return settings
+end
+
+---Drop all memoized category settings (for out-of-band settings swaps that read
+---settings before the refresh events fire, e.g. profile switch / import)
+BR.Display.InvalidateCategorySettingsCache = function()
+    wipe(categorySettingsCache)
+end
+
 ---Get the effective category for a frame (its own category if split, otherwise "main")
 ---@param frame table
 ---@return string
@@ -644,6 +704,29 @@ local function GetFontSize(scale, textSize)
     return max(6, floor(textSize * (scale or 1)))
 end
 
+---@class BRFontString: FontString
+---@field _br_font_size number?   -- last font size applied via SetFontCached
+---@field _br_font_path string?   -- last font path applied via SetFontCached
+---@field _br_font_outline string? -- last outline flag applied via SetFontCached
+
+---Apply the shared font (fontPath/outlineFlag) to a fontstring only when
+---something actually changed. SetFont forces a full fontstring re-layout, and
+---render paths re-apply fonts up to twice per second with unchanged values.
+---@param fs BRFontString|FontString|EditBox any FontInstance (edit boxes included)
+---@param size number
+---@param outline? string overrides the shared outlineFlag (e.g. "" for edit boxes)
+local function SetFontCached(fs, size, outline)
+    outline = outline or outlineFlag
+    if fs._br_font_size == size and fs._br_font_path == fontPath and fs._br_font_outline == outline then
+        return
+    end
+    fs._br_font_size = size
+    fs._br_font_path = fontPath
+    fs._br_font_outline = outline
+    fs:SetFont(fontPath, size, outline)
+end
+BR.Display.SetFontCached = SetFontCached
+
 ---Get effective icon width (falls back to iconSize for square icons)
 ---@param iconWidth? number Explicit width setting
 ---@param iconSize number Icon height (used as fallback)
@@ -660,6 +743,20 @@ local function GetFrameFontSize(frame, scale)
     local effectiveCat = GetEffectiveCategory(frame)
     local catSettings = GetCategorySettings(effectiveCat)
     return GetFontSize(scale, catSettings.textSize)
+end
+
+---Write the count overlay's text and the font size that text calls for in one
+---step. The scale belongs to the content - labels render smaller than counts -
+---so setting them together is what stops the two from drifting apart, and
+---recording it on the frame lets UpdateVisuals re-apply the right scale without
+---having to know what is currently on screen.
+---@param frame BuffFrame
+---@param text string
+---@param scale number OVERLAY_TEXT_SCALE for labels, COUNT_TEXT_SCALE for numbers
+local function SetCountText(frame, text, scale)
+    frame._br_count_scale = scale
+    SetFontCached(frame.count, GetFrameFontSize(frame, scale))
+    frame.count:SetText(text)
 end
 
 -- Use functions from State.lua
@@ -887,8 +984,7 @@ local function ShowTextFrame(frame, overlayText, shouldGlow, category, cachedGlo
         frame.qualityIcon:Hide()
     end
     if overlayText then
-        frame.count:SetFont(fontPath, GetFrameFontSize(frame, OVERLAY_TEXT_SCALE), outlineFlag)
-        frame.count:SetText(overlayText)
+        SetCountText(frame, overlayText, OVERLAY_TEXT_SCALE)
         frame.count:Show()
     else
         frame.count:Hide()
@@ -1178,7 +1274,7 @@ local function CreateBuffFrame(buff, category)
         BR.TextPositions.Apply(frame.count, frame, cz, cx, cy)
     end
     frame.count:SetTextColor(textColor[1], textColor[2], textColor[3], textAlpha)
-    frame.count:SetFont(fontPath, GetFontSize(1, catSettings.textSize), outlineFlag)
+    SetFontCached(frame.count, GetFontSize(1, catSettings.textSize))
 
     -- Stack count (bottom-right by default; user-positionable via textPositions)
     frame.stackCount = frame:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
@@ -1198,11 +1294,7 @@ local function CreateBuffFrame(buff, category)
         local raidCs = db.categorySettings and db.categorySettings.raid
         local bz, bx, by = BR.TextPositions.Get("buffReminder")
         BR.TextPositions.Apply(frame.buffText, frame, bz, bx, by)
-        frame.buffText:SetFont(
-            fontPath,
-            (raidCs and raidCs.buffTextSize) or GetFontSize(0.8, catSettings.textSize),
-            outlineFlag
-        )
+        SetFontCached(frame.buffText, (raidCs and raidCs.buffTextSize) or GetFontSize(0.8, catSettings.textSize))
         frame.buffText:SetTextColor(textColor[1], textColor[2], textColor[3], textAlpha)
         frame.buffText:SetText(L["Overlay.Buff"])
         if raidCs and raidCs.showBuffReminder == false then
@@ -1220,7 +1312,7 @@ local function CreateBuffFrame(buff, category)
         frame.subLabel:SetWidth(iconWidth * SUBLABEL_WIDTH_FACTOR)
         local lz, lx, ly = BR.TextPositions.Get("buffReminder")
         BR.TextPositions.Apply(frame.subLabel, frame, lz, lx, ly)
-        frame.subLabel:SetFont(fontPath, GetFontSize(SUBLABEL_FONT_SCALE, catSettings.textSize), outlineFlag)
+        SetFontCached(frame.subLabel, GetFontSize(SUBLABEL_FONT_SCALE, catSettings.textSize))
         frame.subLabel:SetTextColor(textColor[1], textColor[2], textColor[3], textAlpha)
         frame.subLabel:Hide()
     end
@@ -1286,7 +1378,7 @@ local function GetOrCreateExtraFrame(frame, index)
         BR.TextPositions.Apply(extra.count, extra, cz, cx, cy)
     end
     extra.count:SetTextColor(textColor[1], textColor[2], textColor[3], textAlpha)
-    extra.count:SetFont(fontPath, GetFontSize(1, catSettings.textSize), outlineFlag)
+    SetFontCached(extra.count, GetFontSize(1, catSettings.textSize))
     extra.count:Hide()
 
     extra:SetAlpha(catSettings.iconAlpha or 1)
@@ -1425,14 +1517,9 @@ local function PositionMainContainer(mainFrameBuffs)
         local spacings = {} -- absolute pixel spacing per frame
         local maxWidth = 0
         local maxHeight = 0
-        local settingsCache = {} -- avoid redundant GetCategorySettings calls for same category
         for i, frame in ipairs(mainFrameBuffs) do
             local effectiveCat = GetEffectiveCategory(frame)
-            local settings = settingsCache[effectiveCat]
-            if not settings then
-                settings = GetCategorySettings(effectiveCat)
-                settingsCache[effectiveCat] = settings
-            end
+            local settings = GetCategorySettings(effectiveCat)
             local iconSize = settings.iconSize or 64
             local iconWidth = GetEffectiveWidth(settings.iconWidth, iconSize)
             widths[i] = iconWidth
@@ -1690,9 +1777,9 @@ local function GenerateTestEntries()
                         end
                     end
                 else
-                    -- consumable, presence, targeted, self, custom, loadout
+                    -- consumable, presence, targeted, self, custom, loadout, utility
                     entry.displayType = "text"
-                    entry.overlayText = buff.overlayText
+                    entry.overlayText = buff.overlayTextFn and buff.overlayTextFn() or buff.overlayText
                     entry.iconByRole = buff.icons and buff.icons.byRole
                     entry.shouldGlow = missGlowEnabled
 
@@ -1946,7 +2033,7 @@ local function ApplyConsumableOverlays(frame, item, fontSize)
             local sz, sx, sy = BR.TextPositions.Get("statLabel")
             BR.TextPositions.Apply(frame.statLabel, frame, sz, sx, sy)
         end
-        frame.statLabel:SetFont(fontPath, fontSize, outlineFlag)
+        SetFontCached(frame.statLabel, fontSize)
         frame.statLabel:SetTextColor(1, 1, 1, 1)
         frame.statLabel:SetText(item.statLabel)
         frame.statLabel:Show()
@@ -1983,7 +2070,7 @@ local function ApplyConsumableOverlays(frame, item, fontSize)
                 local bz, bx, by = BR.TextPositions.Get("badge")
                 BR.TextPositions.Apply(frame.badgeLabel, frame, bz, bx, by)
             end
-            frame.badgeLabel:SetFont(fontPath, fontSize, outlineFlag)
+            SetFontCached(frame.badgeLabel, fontSize)
             frame.badgeLabel:SetTextColor(bc.r, bc.g, bc.b, 1)
             frame.badgeLabel:SetText(item.badge)
             frame.badgeLabel:Show()
@@ -2052,7 +2139,7 @@ local function ResolveConsumableFrame(frame)
         local mainSize = frame:GetWidth()
         local cFontSize = BR.SecureButtons.ComputeConsumableFontSize(mainSize)
         frame.count:Hide()
-        frame.stackCount:SetFont(fontPath, cFontSize, outlineFlag)
+        SetFontCached(frame.stackCount, cFontSize)
         frame.stackCount:SetText(items[1].count)
         frame.stackCount:Show()
         ApplyConsumableOverlays(frame, items[1], cFontSize)
@@ -2091,8 +2178,7 @@ local function RenderVisibleEntry(frame, entry)
             -- Seed initial text, then hand off to per-frame OnUpdate for smooth countdown
             local remaining = entry.eatingExpirationTime - GetTime()
             if remaining > 0 then
-                frame.count:SetFont(fontPath, GetFrameFontSize(frame), outlineFlag)
-                frame.count:SetText(FormatEatingTime(remaining))
+                SetCountText(frame, FormatEatingTime(remaining), COUNT_TEXT_SCALE)
                 frame.count:Show()
             else
                 frame.count:Hide()
@@ -2146,8 +2232,7 @@ local function RenderVisibleEntry(frame, entry)
         if frame.buffCategory == "consumable" then
             SetIconDesaturated(frame.icon, false)
         end
-        frame.count:SetFont(fontPath, GetFrameFontSize(frame), outlineFlag)
-        frame.count:SetText(entry.countText or "")
+        SetCountText(frame, entry.countText or "", COUNT_TEXT_SCALE)
         frame.count:Show()
         frame:Show()
         SetExpirationGlow(frame, entry.shouldGlow, entry.category, cachedGlow)
@@ -2258,7 +2343,7 @@ local function ApplyConsumableDisplayMode(frame, entry, frameList, parentFrame)
                 extra:SetParent(frame)
                 extra:SetSize(size, size)
                 extra.icon:SetTexture(items[i].icon)
-                extra.stackCount:SetFont(fontPath, cFontSize, outlineFlag)
+                SetFontCached(extra.stackCount, cFontSize)
                 extra.stackCount:SetText(items[i].count > 1 and tostring(items[i].count) or "")
                 extra.stackCount:Show()
                 extra.count:Hide()
@@ -2319,7 +2404,7 @@ local function ApplyConsumableDisplayMode(frame, entry, frameList, parentFrame)
                 extra:SetParent(parentFrame)
                 extra:SetSize(expandedSize, frame:GetHeight())
                 extra.icon:SetTexture(items[i].icon)
-                extra.stackCount:SetFont(fontPath, cFontSize, outlineFlag)
+                SetFontCached(extra.stackCount, cFontSize)
                 extra.stackCount:SetText(items[i].count)
                 extra.count:Hide()
                 local showText = ShouldShowText(frame.buffCategory)
@@ -2366,19 +2451,24 @@ local function UpdatePetLabels(frame, petAction)
         return
     end
 
-    -- Early out if nothing changed since last call. Zone + offsets are part
-    -- of the key so live position edits re-anchor on the next display update.
+    -- Early out if nothing changed since last call. Every input the labels
+    -- derive from is part of the key: zone + offsets so live position edits
+    -- re-anchor, frame width because the sizes scale off it, and the shared
+    -- font/outline because SetFontCached reads those.
     local scale = defs.petLabelScale or 100
     local zone, offX, offY = BR.TextPositions.Get("petLabel")
     local cacheKey = format(
-        "%s:%s:%s:%d:%s:%s:%s",
+        "%s:%s:%s:%d:%s:%s:%s:%d:%s:%s",
         petAction.key,
         petAction.label or "",
         petAction.petFamily or "",
         scale,
         zone,
         tostring(offX),
-        tostring(offY)
+        tostring(offY),
+        frame:GetWidth(),
+        fontPath,
+        outlineFlag
     )
     if frame._br_pet_label_key == cacheKey then
         return
@@ -2394,7 +2484,7 @@ local function UpdatePetLabels(frame, petAction)
     local ratio = scale / 100
     local nameSize = max(7, floor(frame:GetWidth() * 0.18 * ratio))
     local familySize = max(7, floor(nameSize * 0.85))
-    frame._br_pet_name_text:SetFont(fontPath, nameSize, outlineFlag)
+    SetFontCached(frame._br_pet_name_text, nameSize)
     BR.TextPositions.Apply(frame._br_pet_name_text, frame, zone, offX, offY)
     frame._br_pet_name_text:SetText(petAction.label or "")
     frame._br_pet_name_text:SetTextColor(1, 1, 1)
@@ -2402,7 +2492,7 @@ local function UpdatePetLabels(frame, petAction)
 
     local family = petAction.petFamily
     if family and family ~= "" then
-        frame._br_pet_family_text:SetFont(fontPath, familySize, outlineFlag)
+        SetFontCached(frame._br_pet_family_text, familySize)
         frame._br_pet_family_text:ClearAllPoints()
         frame._br_pet_family_text:SetPoint("TOP", frame._br_pet_name_text, "BOTTOM", 0, -1)
         frame._br_pet_family_text:SetText(family)
@@ -2414,7 +2504,7 @@ local function UpdatePetLabels(frame, petAction)
 
     if petAction.petSpiritBeast then
         local anchor = (family and family ~= "") and frame._br_pet_family_text or frame._br_pet_name_text
-        frame._br_pet_extra_text:SetFont(fontPath, familySize, outlineFlag)
+        SetFontCached(frame._br_pet_extra_text, familySize)
         frame._br_pet_extra_text:ClearAllPoints()
         frame._br_pet_extra_text:SetPoint("TOP", anchor, "BOTTOM", 0, -1)
         frame._br_pet_extra_text:SetText(L["Pet.SpiritBeast"])
@@ -2562,6 +2652,7 @@ UpdateDisplay = function(refreshMode)
     local groupOnly = refreshMode == "group"
 
     -- Clear per-cycle caches (before early exits - fallback paths also use these)
+    wipe(categorySettingsCache)
     if not groupOnly then
         wipe(expiringGlowCache)
         wipe(missingGlowCache)
@@ -2585,7 +2676,7 @@ UpdateDisplay = function(refreshMode)
 
         local db = BR.profile
 
-        if select(3, GetInstanceInfo()) == DECOR_DUEL_DIFFICULTY_ID then
+        if BR.BuffState.GetDifficultyID() == DECOR_DUEL_DIFFICULTY_ID then
             HideAllDisplayFrames()
             return
         end
@@ -2888,6 +2979,7 @@ local function InitializeFrames()
     BR.Display.categoryFrames = categoryFrames
     BR.Display.detachedFrames = detachedFrames
     BR.Display.frames = buffFrames
+    BR.Display.framesByCategory = buffFramesByCategory
 
     -- Create mover frames (shown when unlocked for drag positioning)
     BR.Movers.Initialize()
@@ -2896,7 +2988,7 @@ local function InitializeFrames()
     for category, buffArray in pairs(BUFF_TABLES) do
         for _, buff in ipairs(buffArray) do
             local frame = CreateBuffFrame(buff, category)
-            buffFrames[buff.key] = frame
+            RegisterBuffFrame(buff.key, frame, category)
             if category == "loadout" then
                 WireLoadoutFrameClick(frame)
             end
@@ -2916,7 +3008,7 @@ local function CreateCustomBuffFrameRuntime(customBuff)
         return
     end
     local frame = CreateBuffFrame(customBuff, "custom")
-    buffFrames[customBuff.key] = frame
+    RegisterBuffFrame(customBuff.key, frame, "custom")
     tinsert(CustomBuffs, customBuff)
     -- Only register for glow tracking if glowMode is not disabled
     if customBuff.glowMode ~= "disabled" then
@@ -3113,7 +3205,13 @@ local function RemoveCustomBuffFrame(key)
         end
         frame:Hide()
         frame:SetParent(nil)
-        buffFrames[key] = nil
+        UnregisterBuffFrame(key)
+        -- Drop from the secure-host set, but ONLY when the secure children were
+        -- actually torn down above: an in-combat deletion leaves a live orphaned
+        -- overlay that the next SyncSecureButtons must still find and hide.
+        if not InCombatLockdown() then
+            BR.SecureButtons.UnregisterSecureHost(frame)
+        end
     end
     -- Clean up detached state
     local db = BR.profile
@@ -3177,7 +3275,7 @@ local function CreateLoadoutRuleFrameRuntime(rule)
         return
     end
     local frame = CreateBuffFrame(rule, "loadout")
-    buffFrames[rule.key] = frame
+    RegisterBuffFrame(rule.key, frame, "loadout")
     WireLoadoutFrameClick(frame)
     tinsert(LoadoutRules, rule)
     -- Keep the runtime array in the same key order BuildLoadoutRulesArray produces
@@ -3197,7 +3295,7 @@ local function RemoveLoadoutRuleFrame(key)
     if frame then
         frame:Hide()
         frame:SetParent(nil)
-        buffFrames[key] = nil
+        UnregisterBuffFrame(key)
     end
     local db = BR.profile
     if db.detachedIcons then
@@ -3224,6 +3322,7 @@ BR.LoadoutReminders = {
 
 -- Update icon sizes and text (called when settings change)
 local function UpdateVisuals()
+    wipe(categorySettingsCache)
     for _, frame in pairs(buffFrames) do
         -- Use effective category settings (split category or "main")
         local effectiveCat = GetEffectiveCategory(frame)
@@ -3231,7 +3330,9 @@ local function UpdateVisuals()
         local size = catSettings.iconSize or 64
         local width = GetEffectiveWidth(catSettings.iconWidth, size)
         frame:SetSize(width, size)
-        frame.count:SetFont(fontPath, GetFrameFontSize(frame, 1), outlineFlag)
+        -- Re-apply at the scale the current text was written with, not a guess:
+        -- a frame showing a "NO X" label must not be resized to count scale.
+        SetFontCached(frame.count, GetFrameFontSize(frame, frame._br_count_scale or COUNT_TEXT_SCALE))
 
         -- Re-anchor text overlays on every VisualsRefresh so config changes
         -- take effect immediately.
@@ -3256,12 +3357,12 @@ local function UpdateVisuals()
         if frame.statLabel or frame.badgeLabel or frame.qualityIcon then
             local flSize = BR.SecureButtons.ComputeConsumableFontSize(size)
             if frame.statLabel then
-                frame.statLabel:SetFont(fontPath, flSize, outlineFlag)
+                SetFontCached(frame.statLabel, flSize)
                 local sz, sx, sy = BR.TextPositions.Get("statLabel")
                 BR.TextPositions.Apply(frame.statLabel, frame, sz, sx, sy)
             end
             if frame.badgeLabel then
-                frame.badgeLabel:SetFont(fontPath, flSize, outlineFlag)
+                SetFontCached(frame.badgeLabel, flSize)
                 local bz, bx, by = BR.TextPositions.Get("badge")
                 BR.TextPositions.Apply(frame.badgeLabel, frame, bz, bx, by)
             end
@@ -3276,11 +3377,7 @@ local function UpdateVisuals()
         if frame.buffText then
             -- Raid BUFF! text
             local raidCs = BR.profile.categorySettings and BR.profile.categorySettings.raid
-            frame.buffText:SetFont(
-                fontPath,
-                (raidCs and raidCs.buffTextSize) or GetFrameFontSize(frame, 0.8),
-                outlineFlag
-            )
+            SetFontCached(frame.buffText, (raidCs and raidCs.buffTextSize) or GetFrameFontSize(frame, 0.8))
             frame.buffText:SetTextColor(tc[1], tc[2], tc[3], ta)
             local bz, bx, by = BR.TextPositions.Get("buffReminder")
             BR.TextPositions.Apply(frame.buffText, frame, bz, bx, by)
@@ -3293,7 +3390,7 @@ local function UpdateVisuals()
         end
         if frame.subLabel then
             -- Loadout name label: same treatment as buffText (font / color / zone).
-            frame.subLabel:SetFont(fontPath, GetFrameFontSize(frame, SUBLABEL_FONT_SCALE), outlineFlag)
+            SetFontCached(frame.subLabel, GetFrameFontSize(frame, SUBLABEL_FONT_SCALE))
             frame.subLabel:SetTextColor(tc[1], tc[2], tc[3], ta)
             frame.subLabel:SetWidth(width * SUBLABEL_WIDTH_FACTOR)
             local lz, lx, ly = BR.TextPositions.Get("buffReminder")
@@ -3445,16 +3542,26 @@ BR.Helpers = {
     end,
 }
 
--- Toggle lock state: when unlocked, show mover frames for dragging
-local function ToggleLock()
-    local db = BR.profile
-    db.locked = not db.locked
-    if db.locked then
+-- Lock state is session-only: frames start locked on every login/reload and the
+-- unlocked state is never persisted, so a user can't accidentally leave anchor
+-- handles showing across sessions.
+local frameLocked = true
+local function IsFrameLocked()
+    return frameLocked
+end
+local function SetFrameLocked(locked)
+    frameLocked = locked
+    if locked then
         BR.Movers.HideAll()
     else
         BR.Movers.UpdateAnchor()
     end
-    return db.locked
+end
+
+-- Toggle lock state: when unlocked, show mover frames for dragging
+local function ToggleLock()
+    SetFrameLocked(not frameLocked)
+    return frameLocked
 end
 
 -- Export display functions for Options.lua
@@ -3468,6 +3575,8 @@ BR.Display.SetPlayerClass = function(class)
     playerClass = class
 end
 BR.Display.ToggleLock = ToggleLock
+BR.Display.IsFrameLocked = IsFrameLocked
+BR.Display.SetFrameLocked = SetFrameLocked
 BR.Display.UpdateVisuals = UpdateVisuals
 BR.Display.UpdateActionButtons = function(category)
     return BR.SecureButtons.UpdateActionButtons(category)
@@ -3598,13 +3707,11 @@ local function SlashHandler(msg)
     elseif cmd == "snooze" then
         BR.SnoozeConsumables()
     elseif cmd == "lock" then
-        BR.profile.locked = true
-        BR.Movers.HideAll()
+        SetFrameLocked(true)
         BR.Components.RefreshAll()
         print("|cff00ccffBuffReminders:|r " .. L["Display.FramesLocked"])
     elseif cmd == "unlock" then
-        BR.profile.locked = false
-        BR.Movers.UpdateAnchor()
+        SetFrameLocked(false)
         BR.Components.RefreshAll()
         print("|cff00ccffBuffReminders:|r " .. L["Display.FramesUnlocked"])
     elseif cmd == "minimap" then
@@ -3628,6 +3735,35 @@ local function SlashHandler(msg)
         end
     elseif cmd == "runedebug" then
         PrintRuneDebug()
+    elseif cmd == "shownew" then
+        local WhatsNew = BR.Options.WhatsNew
+        local arg = msg:match("^%S+%s+(%S+)")
+        local counts = WhatsNew.GetCohorts()
+        local seen = BR.aceDB.global.seenVersions or {}
+        local PREFIX = "|cff00ccffBuffReminders what's-new:|r "
+        if arg == "all" then
+            BR.aceDB.global.seenVersions = {}
+            WhatsNew.Refresh()
+            print(PREFIX .. "cleared every cohort - all tagged features will show as new (open options).")
+        elseif arg then
+            if counts[arg] then
+                WhatsNew.Unsee(arg)
+                print(PREFIX .. "un-acknowledged " .. arg .. " (" .. counts[arg] .. " item(s)) - open options to view.")
+            else
+                local known = {}
+                for cohort in pairs(counts) do
+                    known[#known + 1] = cohort
+                end
+                print(PREFIX .. "unknown cohort '" .. arg .. "'. Known: " .. table.concat(known, ", "))
+            end
+        else
+            local any = false
+            for cohort, n in pairs(counts) do
+                any = true
+                print(PREFIX .. cohort .. " - " .. n .. " item(s) - " .. (seen[cohort] and "seen" or "UNSEEN"))
+            end
+            print(PREFIX .. (any and "usage: /br shownew <cohort>|all" or "no cohorts registered."))
+        end
     else
         BR.Options.Toggle()
     end
@@ -3643,6 +3779,7 @@ eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 eventFrame:RegisterEvent("GROUP_FORMED")
+eventFrame:RegisterEvent("PLAYER_ROLES_ASSIGNED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("ENCOUNTER_START")
@@ -3670,10 +3807,15 @@ eventFrame:RegisterEvent("EQUIPMENT_SETS_CHANGED")
 eventFrame:RegisterEvent("UNIT_ENTERED_VEHICLE")
 eventFrame:RegisterEvent("UNIT_EXITED_VEHICLE")
 eventFrame:RegisterEvent("PLAYER_DIFFICULTY_CHANGED")
+eventFrame:RegisterEvent("CHALLENGE_MODE_START")
+eventFrame:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+eventFrame:RegisterEvent("CHALLENGE_MODE_RESET")
 eventFrame:RegisterEvent("PLAYER_UPDATE_RESTING")
 eventFrame:RegisterEvent("PLAYER_LEVEL_UP")
 eventFrame:RegisterEvent("UPDATE_EXPANSION_LEVEL")
 eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
+eventFrame:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
+eventFrame:RegisterEvent("NEW_MOUNT_ADDED")
 eventFrame:RegisterEvent("PVP_MATCH_STATE_CHANGED")
 
 ClearInstanceEntryState = function()
@@ -3709,6 +3851,7 @@ eventHandlers.PLAYER_ENTERING_WORLD = function()
     BR.BuffState.InvalidatePetCache()
     BR.BuffState.InvalidateStanceCache()
     BR.BuffState.InvalidateLoadoutCache()
+    BR.BuffState.InvalidateRepairSourceCache()
     -- Sync flags with current state (in case of reload)
     inCombat = InCombatLockdown()
     isResting = IsResting()
@@ -3832,6 +3975,7 @@ eventHandlers.ZONE_CHANGED_NEW_AREA = function()
 end
 
 eventHandlers.GROUP_ROSTER_UPDATE = function()
+    BR.BuffState.InvalidateHealerCache()
     SetDirty("group")
     -- Refresh chat-request macrotext so prefix tracks party↔raid↔instance
     -- transitions. PreClick used to rebuild the macro on each click, but the
@@ -3840,6 +3984,13 @@ eventHandlers.GROUP_ROSTER_UPDATE = function()
     BR.SecureButtons.RefreshChatRequestMacros()
 end
 eventHandlers.GROUP_FORMED = eventHandlers.GROUP_ROSTER_UPDATE
+
+-- Roles can change without the roster changing (someone re-assigns their role),
+-- which flips whether the refreshment-table reminder should show.
+eventHandlers.PLAYER_ROLES_ASSIGNED = function()
+    BR.BuffState.InvalidateHealerCache()
+    SetDirty("group")
+end
 
 eventHandlers.PLAYER_REGEN_ENABLED = function()
     inCombat = inEncounter
@@ -3888,7 +4039,11 @@ eventHandlers.UNIT_AURA = function(arg1, arg2)
         SetDirty("full")
     elseif arg1 == "pet" then
         SetDirty("full")
-    else
+    elseif BR.BuffState.GroupAuraUpdateMatters(arg1, arg2) then
+        -- Group aura churn is filtered against the tracked spell set: most
+        -- payloads (HoTs, procs, debuffs) can't affect the display and skip the
+        -- rescan entirely. The 3s fallback ticker bounds anything the filter
+        -- can't see (secret values, unrecordable instance IDs).
         SetDirty("group")
     end
 end
@@ -3944,6 +4099,17 @@ eventHandlers.PLAYER_DIFFICULTY_CHANGED = function()
     BR.BuffState.InvalidateContentTypeCache()
     SetDirty()
 end
+
+-- Keystone lifecycle changes the active challenge map ID (and difficulty) without
+-- a loading screen; the cached instance context (loadout instance filters,
+-- difficulty key) must repopulate. Belt-and-suspenders alongside
+-- PLAYER_DIFFICULTY_CHANGED, which is not guaranteed to fire for every member.
+eventHandlers.CHALLENGE_MODE_START = function()
+    BR.BuffState.InvalidateContentTypeCache()
+    SetDirty()
+end
+eventHandlers.CHALLENGE_MODE_COMPLETED = eventHandlers.CHALLENGE_MODE_START
+eventHandlers.CHALLENGE_MODE_RESET = eventHandlers.CHALLENGE_MODE_START
 
 eventHandlers.PVP_MATCH_STATE_CHANGED = function()
     local state = C_PvP.GetActiveMatchState()
@@ -4043,7 +4209,13 @@ eventHandlers.PLAYER_EQUIPMENT_CHANGED = function()
     BR.BuffState.InvalidateItemCache()
     BR.BuffState.InvalidateOffHandCache()
     BR.BuffState.InvalidateLoadoutCache()
+    BR.BuffState.InvalidateDurabilityCache()
 
+    SetDirty()
+end
+
+eventHandlers.UPDATE_INVENTORY_DURABILITY = function()
+    BR.BuffState.InvalidateDurabilityCache()
     SetDirty()
 end
 
@@ -4057,9 +4229,17 @@ end
 
 eventHandlers.BAG_UPDATE_DELAYED = function()
     BR.BuffState.InvalidateItemCache()
+    BR.BuffState.InvalidateRepairSourceCache()
     BR.SecureButtons.InvalidateConsumableCache()
     SetDirty()
     BR.SecureButtons.UpdateActionButtons("consumable")
+    BR.SecureButtons.UpdateActionButtons("utility")
+end
+
+-- A newly collected repair mount changes the repair reminder's click action.
+eventHandlers.NEW_MOUNT_ADDED = function()
+    BR.BuffState.InvalidateRepairSourceCache()
+    BR.SecureButtons.UpdateActionButtons("utility")
 end
 
 eventHandlers.UNIT_ENTERED_VEHICLE = function(arg1)

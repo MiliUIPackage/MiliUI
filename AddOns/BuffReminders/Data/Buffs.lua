@@ -4,10 +4,18 @@ local L = BR.L
 
 -- Lua stdlib locals
 local min = math.min
+local floor = math.floor
+
+-- Only the word is translated; the number and "%" are appended in code so a locale
+-- can't break the icon text with a malformed format specifier.
+local REPAIR_LABEL = L["Overlay.RepairLabel"]
 
 -- WoW API locals
 local GetSpellTexture = C_Spell.GetSpellTexture
 local _, playerClass = UnitClass("player")
+
+-- Secret-safe read helper (see Core.lua / docs/SecretValues.md)
+local AuraField = BR.Secret.AuraField
 
 -- ============================================================================
 -- BUFF DATA TABLES
@@ -75,6 +83,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field readyCheckOnly? boolean Only show during ready checks
 ---@field showOnInstanceEntry? boolean Also show when entering an instance (not M+)
 ---@field castOnOthers? boolean Buff exists on the target, not the caster (e.g., Soulstone)
+---@field pinnedTarget? fun(): string? User-assigned hard target name, nil when unset (e.g., Soulstone pin)
 ---@field glowDetectable? boolean Use action bar glow as fallback detection when aura API is restricted
 ---@field groupOnly? boolean Only show when in a group (hide when solo)
 ---@field suppressedByEntry? string Hide when this entry key is already visible (e.g., self buff covers it)
@@ -92,6 +101,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field icons? IconSpec See "Icon fields" comment at end of self[]
 ---@field requireSpecId? number
 ---@field infoTooltip? TooltipText
+---@field defaultEnabled? boolean Ships disabled when false (opt-in); enabled otherwise. Resolved at read time by IsBuffEnabled.
 ---@field clickMacro? fun(spellID: number?): string
 ---@field casterBuffId? number Check this buff on the caster instead of scanning group
 ---@field glowDetectable? boolean Use action bar glow as fallback detection when aura API is restricted
@@ -103,6 +113,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field class? ClassName
 ---@field overlayText string
 ---@field groupId? string
+---@field defaultEnabled? boolean Ships disabled when false (opt-in); enabled otherwise. Resolved at read time by IsBuffEnabled.
 ---@field enchantID? number
 ---@field requiresBuffWithEnchant? boolean -- When true, require both enchant AND buff to be present (for Paladin Rites)
 ---@field castSpellID? number           -- Spell ID used for click-to-cast when different from spellID
@@ -144,6 +155,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field permanentRuneItemIDs? number[] Item IDs that, if in bags, make this a free consumable (bypass content gates)
 ---@field showOnInstanceEntry? boolean Only show briefly when entering an instance
 ---@field disabledInCompetitivePvP? boolean Unusable in arenas and rated BGs
+---@field ignoresReadyCheckFilter? boolean Ignore the consumable category ready-check-only filter (still respects content gates)
 ---@field chatRequestable? boolean Offer "request this buff in chat" on click for players who can't provide it (e.g. non-warlock requesting a Healthstone)
 
 ---@class BuffGroup
@@ -234,7 +246,7 @@ end
 local function TargetedClickMacro(buffKey)
     return function(spellID)
         local name = BR.GetSpellName(spellID) or ""
-        local lastTarget = BR.StateHelpers and BR.StateHelpers.GetLastTarget(buffKey)
+        local lastTarget = BR.TargetMemory and BR.TargetMemory.Get(buffKey)
         if lastTarget then
             return "/cast [@" .. lastTarget .. ",help,nodead][@mouseover,help,nodead][@target,help,nodead][] " .. name
         end
@@ -317,14 +329,15 @@ local function ScanPoisonCategory(poisons, now)
         if isKnown then
             known = known + 1
         end
-        local auraData
-        pcall(function()
-            auraData = C_UnitAuras.GetUnitAuraBySpellID("player", id)
-        end)
+        local auraData = C_UnitAuras.GetUnitAuraBySpellID("player", id)
         if auraData then
+            -- Truthy means the poison is applied (count it) even if the struct is
+            -- a secret value in a restricted context; AuraField yields the timer
+            -- only when the struct and its field are plain.
             active = active + 1
-            if auraData.expirationTime and auraData.expirationTime > 0 then
-                local rem = auraData.expirationTime - now
+            local exp = AuraField(auraData, "expirationTime")
+            if exp and exp > 0 then
+                local rem = exp - now
                 if not minRem or rem < minRem then
                     minRem = rem
                     expID = id
@@ -416,7 +429,43 @@ function BR.InvalidatePoisonCache()
     poisonCache.time = -1
 end
 
----@type table<string, RaidBuff[]|PresenceBuff[]|TargetedBuff[]|SelfBuff[]|ConsumableBuff[]|CustomBuff[]|LoadoutRule[]>
+-- Repair sources for the repair reminder's click action, in preference order.
+-- Mounts summon a vendor who repairs - the Tundra Mammoth's vendors only buy and
+-- sell, so it's deliberately absent. Items repair on the spot and are the path
+-- where mounting is blocked. Legacy engineering items can lose their use effect
+-- across expansions, so State.lua gates them on usability, not just ownership.
+BR.REPAIR_SOURCES = {
+    mounts = {
+        122708, -- Grand Expedition Yak (Cousin Slowhands)
+        264058, -- Mighty Caravan Brutosaur (Merchant Maku)
+    },
+    items = {
+        132514, -- Auto-Hammer
+        49040, -- Jeeves
+    },
+}
+
+-- Utility reminders are chores (drop a table/well, repair), not auras: the utility
+-- loop in State.lua gates them on class + customCheck + showOnInstanceEntry +
+-- visibilityCondition only, and never aura-tracks or expiration-glows them. Fields
+-- are limited to what that loop, the icon resolver, and click-to-cast actually read.
+---@class UtilityBuff
+---@field key string
+---@field name string
+---@field spellID? SpellID              -- Icon resolution (and click-to-cast fallback)
+---@field groupId? string               -- Shared enable/setting key (falls back to key)
+---@field class? ClassName              -- Only show to this class
+---@field overlayText? string
+---@field overlayTextFn? fun(): string  -- Live overlay text, wins over overlayText
+---@field icons? IconSpec
+---@field infoTooltip? TooltipText
+---@field castSpellID? number           -- Spell ID used for click-to-cast (else spellID)
+---@field noClickToCast? boolean        -- Suppress the click-to-cast overlay
+---@field showOnInstanceEntry? boolean  -- Only show briefly on dungeon entry (grouped, non-M+)
+---@field visibilityCondition? fun(): boolean?
+---@field customCheck? fun(isRestricted?: boolean): boolean?
+
+---@type table<string, RaidBuff[]|PresenceBuff[]|TargetedBuff[]|SelfBuff[]|ConsumableBuff[]|UtilityBuff[]|CustomBuff[]|LoadoutRule[]>
 BR.BUFF_TABLES = {
     ---@type RaidBuff[]
     raid = {
@@ -539,10 +588,29 @@ BR.BUFF_TABLES = {
                 end)
                 return not ok or result
             end,
+            pinnedTarget = function()
+                local db = BR.profile
+                local pinned = db.defaults and db.defaults.soulstonePinnedTarget
+                if pinned and pinned ~= "" then
+                    return pinned
+                end
+                return nil
+            end,
             clickMacro = function(spellID)
                 local name = BR.GetSpellName(spellID) or ""
+                -- Hard-assigned target: cast ONLY on them - alive (pre-emptive stone)
+                -- or dead (offers them a res). Deliberately no fallback: if the pin
+                -- is absent or out of group the click is a safe no-op, so the stone
+                -- can never silently land on the wrong person.
+                local db = BR.profile
+                local pinned = db.defaults and db.defaults.soulstonePinnedTarget
+                if pinned and pinned ~= "" then
+                    -- Re-sanitize at use: imported profiles bypass the options input,
+                    -- and this string must never break out of the macro conditional
+                    return "/cast [@" .. pinned:gsub("[%[%]\r\n]", "") .. ",help] " .. name
+                end
                 -- Priority: sticky last target > first living healer > mouseover > target > self
-                local lastTarget = BR.StateHelpers and BR.StateHelpers.GetLastTarget("soulstone")
+                local lastTarget = BR.TargetMemory and BR.TargetMemory.Get("soulstone")
                 if lastTarget then
                     return "/cast [@"
                         .. lastTarget
@@ -688,6 +756,7 @@ BR.BUFF_TABLES = {
         {
             spellID = 111400,
             key = "burningRush",
+            defaultEnabled = false, -- opt-in: ships disabled
             name = L["Buff.BurningRush"],
             class = "WARLOCK",
             overlayText = L["Overlay.BurningRush"],
@@ -695,35 +764,11 @@ BR.BUFF_TABLES = {
             noClickToCast = true,
             glowDetectable = true, -- Action bar glow fallback when aura API is restricted
         },
-        -- Soulwell reminder (warlock only, instance entry only)
-        {
-            spellID = 29893, -- Create Soulwell (used for icon resolution)
-            castSpellID = 29893, -- Click-to-cast: Create Soulwell
-            key = "soulwell",
-            name = L["Buff.CreateSoulwell"],
-            class = "WARLOCK",
-            overlayText = L["Overlay.DropWell"],
-            showOnInstanceEntry = true, -- Only shows on instance entry
-            infoTooltip = {
-                title = L["Tooltip.InstanceEntryReminder"],
-                desc = L["Tooltip.InstanceEntryReminder.Desc"],
-            },
-            customCheck = function(isRestricted)
-                -- Cooldown API returns tainted values during combat/encounters/M+
-                if isRestricted then
-                    return false
-                end
-                local ok, result = pcall(function()
-                    local info = C_Spell.GetSpellCooldown(29893)
-                    return not info or info.duration == 0
-                end)
-                return not ok or result
-            end,
-        },
         -- Detected via the stance bar so it works in M+/encounters/combat where
         -- aura queries are restricted.
         {
             key = "druidWrongForm",
+            defaultEnabled = false, -- opt-in: ships disabled
             name = L["Buff.DruidForm"],
             class = "DRUID",
             overlayText = L["Overlay.WrongForm"],
@@ -1040,6 +1085,7 @@ BR.BUFF_TABLES = {
         -- clickMacro dispatches the spec-correct cast at click time.
         {
             key = "warriorWrongStance",
+            defaultEnabled = false, -- opt-in: ships disabled
             name = L["Buff.WarriorStance"],
             class = "WARRIOR",
             overlayText = L["Overlay.WrongStance"],
@@ -1224,6 +1270,7 @@ BR.BUFF_TABLES = {
             noExpirationGlow = true, -- 10-min duration makes standard thresholds meaningless
             visibilityCondition = BR.IsInDelve,
             disabledInCompetitivePvP = true,
+            ignoresReadyCheckFilter = true, -- always shows in a delve, even with consumable ready-check-only on
         },
         -- Food (all expansions - any aura whose icon is 136000 counts as food)
         {
@@ -1254,6 +1301,43 @@ BR.BUFF_TABLES = {
                 local spellID = (GetNumGroupMembers() > 0 and IsInInstance()) and 29893 or 6201
                 local name = BR.GetSpellName(spellID)
                 return "/cast " .. (name or "")
+            end,
+        },
+        -- Mage food (healers only): remind to grab conjured food when a mage is in
+        -- the group and you're inside an instance without any in your bags. Click
+        -- asks the mage in chat (healers can't conjure their own). Its own per-buff
+        -- ready-check gate (readyCheckOnly, on by default; the drawer's Show toggle
+        -- switches it to Always) - so it opts out of the shared consumable category
+        -- ready-check filter (ignoresReadyCheckFilter) to keep that toggle the sole
+        -- control. `mageFoodContent` narrows it to dungeons or raids only.
+        {
+            itemID = { 113509 }, -- Conjured Mana Bun
+            key = "mageFood",
+            defaultEnabled = false, -- opt-in: ships disabled
+            addedIn = "6.3.0",
+            name = L["Buff.MageFood"],
+            casterClass = "MAGE",
+            overlayText = L["Overlay.NoMageFood"],
+            icons = { spells = { 190336 } }, -- Conjure Refreshment icon (the bun)
+            infoTooltip = {
+                title = L["Tooltip.MageFood"],
+                desc = L["Tooltip.MageFood.Desc"],
+            },
+            chatRequestable = true,
+            readyCheckOnly = true,
+            ignoresReadyCheckFilter = true,
+            visibilityCondition = function()
+                local ct = BR.StateHelpers.GetCurrentContentType()
+                if ct == "openWorld" or ct == "housing" then
+                    return false
+                end
+                local filter = BR.Config.Get("defaults.mageFoodContent", "all")
+                if filter == "dungeon" and ct ~= "dungeon" then
+                    return false
+                elseif filter == "raid" and ct ~= "raid" then
+                    return false
+                end
+                return BR.BuffState.GetPlayerRole() == "HEALER"
             end,
         },
         -- Weapon Buffs (oils, stones - but not for classes with imbues)
@@ -1301,6 +1385,91 @@ BR.BUFF_TABLES = {
                 return not BR.BuffState.IsRestricted() and BR.BuffState.HasOffHandWeapon()
             end,
             disabledInCompetitivePvP = true,
+        },
+    },
+    ---@type UtilityBuff[]
+    utility = {
+        -- Soulwell reminder (warlock only, instance entry only)
+        {
+            spellID = 29893, -- Create Soulwell (used for icon resolution)
+            castSpellID = 29893, -- Click-to-cast: Create Soulwell
+            key = "soulwell",
+            name = L["Buff.CreateSoulwell"],
+            class = "WARLOCK",
+            overlayText = L["Overlay.DropWell"],
+            showOnInstanceEntry = true, -- Only shows on instance entry
+            infoTooltip = {
+                title = L["Tooltip.InstanceEntryReminder"],
+                desc = L["Tooltip.InstanceEntryReminder.Desc"],
+                atlas = "auctionhouse-icon-clock", -- clock reads "timed reminder", not the generic "!" info icon
+            },
+            customCheck = function(isRestricted)
+                -- Cooldown API returns tainted values during combat/encounters/M+
+                if isRestricted then
+                    return false
+                end
+                local ok, result = pcall(function()
+                    local info = C_Spell.GetSpellCooldown(29893)
+                    return not info or info.duration == 0
+                end)
+                return not ok or result
+            end,
+        },
+        -- Refreshment table reminder (mage only, instance entry only). Spell 190336
+        -- is smart-cast: it drops a group table in a party/instance and conjures a
+        -- personal stack when solo, so it doubles as both the icon and the click.
+        {
+            spellID = 190336, -- Conjure Refreshment (used for icon resolution)
+            castSpellID = 190336, -- Click-to-cast: smart-drops the refreshment table
+            key = "refreshmentTable",
+            addedIn = "6.3.0",
+            name = L["Buff.RefreshmentTable"],
+            class = "MAGE",
+            overlayText = L["Overlay.DropTable"],
+            showOnInstanceEntry = true, -- Only shows on instance entry
+            infoTooltip = {
+                title = L["Tooltip.InstanceEntryReminder"],
+                desc = L["Tooltip.InstanceEntryReminder.Desc"],
+                atlas = "auctionhouse-icon-clock", -- clock reads "timed reminder", not the generic "!" info icon
+            },
+            customCheck = function(isRestricted)
+                -- Cooldown API returns tainted values during combat/encounters/M+
+                if isRestricted then
+                    return false
+                end
+                -- Only nag the mage when someone actually drinks: a healer in the
+                -- party. Mirrors the mage-food reminder that only nags healers when
+                -- a mage is present. Scanned here (post-isRestricted) so the role
+                -- read is always plain. Soulwell has no such gate - everyone wants a
+                -- healthstone, but only mana users want a table.
+                if not BR.BuffState.HasHealerInGroup() then
+                    return false
+                end
+                local ok, result = pcall(function()
+                    local info = C_Spell.GetSpellCooldown(190336)
+                    return not info or info.duration == 0
+                end)
+                return not ok or result
+            end,
+        },
+        -- Repair reminder: shows when any equipped item drops below the configured
+        -- durability threshold. Durability is not a tainted read, so no restricted
+        -- gate; the 18-slot scan is memoized in State.lua (cachedLowestDurability).
+        {
+            key = "repairGear",
+            defaultEnabled = false, -- opt-in: ships disabled
+            addedIn = "6.3.0",
+            name = L["Buff.RepairGear"],
+            icons = { textures = { 1405803 } },
+            overlayText = L["Overlay.Repair"], -- fallback only: overlayTextFn always wins
+            -- Live durability so the icon says how bad it is, not just that it's bad.
+            -- floor, not round: 84.9% must never read as the 85% threshold it crossed.
+            overlayTextFn = function()
+                return REPAIR_LABEL .. "\n" .. floor(BR.BuffState.GetLowestDurability() * 100) .. "%"
+            end,
+            customCheck = function()
+                return BR.BuffState.GetLowestDurability() < (BR.Config.Get("defaults.repairThreshold", 20) / 100)
+            end,
         },
     },
 }

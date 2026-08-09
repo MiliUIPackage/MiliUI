@@ -66,6 +66,8 @@ local function Build(ctx, layout)
             if updateSubIconSideVisibility then
                 updateSubIconSideVisibility(val)
             end
+            -- Badge-on-sub-icons toggle is only relevant in sub_icons mode.
+            Components.RefreshAll()
         end,
     })
     layout:Add(displayModeHolder, nil, COMPONENT_GAP)
@@ -259,6 +261,25 @@ local function Build(ctx, layout)
         end,
     })
     layout:Add(hideConsumableLabelsHolder, nil, COMPONENT_GAP)
+
+    local badgeOnSubIconsHolder = Components.Checkbox(parent, {
+        label = L["Options.ConsumableBadgeOnSubIcons"],
+        get = function()
+            return BR.Config.Get("defaults.consumableBadgeOnSubIcons") == true
+        end,
+        enabled = function()
+            return BR.Config.Get("defaults.consumableDisplayMode") == "sub_icons"
+        end,
+        disabledReason = L["Options.ConsumableBadgeOnSubIcons.Disabled"],
+        tooltip = {
+            title = L["Options.ConsumableBadgeOnSubIcons.Title"],
+            desc = L["Options.ConsumableBadgeOnSubIcons.Desc"],
+        },
+        onChange = function(checked)
+            BR.Config.Set("defaults.consumableBadgeOnSubIcons", checked)
+        end,
+    })
+    layout:Add(badgeOnSubIconsHolder, nil, COMPONENT_GAP)
 
     local function buildPositionRow(item, label, enabled)
         local row = CreateFrame("Frame", nil, parent)

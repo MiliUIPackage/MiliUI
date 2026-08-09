@@ -16,6 +16,7 @@ L["Category.Targeted"] = "指向性增益"
 L["Category.Self"] = "自身增益"
 L["Category.Pet"] = "寵物"
 L["Category.Consumable"] = "消耗品"
+L["Category.Utility"] = "功能"
 L["Category.Custom"] = "自定義"
 L["Category.Loadout"] = "天賦構建"
 
@@ -23,6 +24,7 @@ L["Category.Loadout"] = "天賦構建"
 L["Category.RaidBuffs"] = "團隊增益"
 L["Category.TargetedBuffs"] = "指向性增益"
 L["Category.Consumables"] = "消耗品"
+L["Category.UtilityReminders"] = "功能提醒"
 L["Category.PresenceBuffs"] = "職業增益"
 L["Category.SelfBuffs"] = "自身增益"
 L["Category.PetReminders"] = "寵物提示"
@@ -33,6 +35,7 @@ L["Category.LoadoutReminders"] = "天賦構建提醒"
 L["Category.RaidNote"] = "（全小隊或團隊生效）"
 L["Category.TargetedNote"] = "（施放於其他目標的增益）"
 L["Category.ConsumableNote"] = "（藥水、食物、符文、刀油）"
+L["Category.UtilityNote"] = "(雜務以及非增益的提醒)"
 L["Category.PresenceNote"] = "（至少需要一人）"
 L["Category.SelfNote"] = "（僅對自己施放的增益）"
 L["Category.PetNote"] = "（寵物召喚提示）"
@@ -99,6 +102,9 @@ L["Overlay.NoTimeless"] = "沒有\n永恆"
 L["Overlay.NoAttune"] = "沒有\n同調"
 L["Overlay.NoFamiliar"] = "沒有\n魔寵"
 L["Overlay.DropWell"] = "置放\n靈魂井"
+L["Overlay.DropTable"] = "置放\n餐桌"
+L["Overlay.Repair"] = "修理\n裝備"
+L["Overlay.RepairLabel"] = "修理"
 L["Overlay.NoGrim"] = "沒有\n魔典"
 L["Overlay.BurningRush"] = "燃燒狂奔"
 L["Overlay.NoRite"] = "沒有\n儀式"
@@ -120,6 +126,7 @@ L["Overlay.DKWrongRune"] = "符文\n錯誤"
 L["Overlay.DKWrongRuneOH"] = "副手\n符文\n錯誤"
 L["Overlay.NoFlask"] = "沒有\n精鍊"
 L["Overlay.NoFood"] = "沒有\n食物"
+L["Overlay.NoMageFood"] = "法師\n餐點桌"
 L["Overlay.NoWeaponBuff"] = "沒有\n武器增益"
 L["Overlay.Buff"] = "補BUFF"
 L["Overlay.MinutesFormat"] = "%d分"
@@ -158,8 +165,8 @@ L["Label.LowPrimary"] = "低主屬"
 L["Label.LowSecondary"] = "低次屬"
 L["Label.RevivePet"] = "復活寵物"
 L["Label.Felguard"] = "惡魔守衛"
-L["Badge.Hearty"] = "H"
-L["Badge.Fleeting"] = "F"
+L["Badge.Hearty"] = "澎"
+L["Badge.Fleeting"] = "普"
 
 -- ============================================================================
 -- BUFF NAMES (used in Options panel checkboxes and sound notification list)
@@ -188,6 +195,8 @@ L["Buff.Weyrnstone"] = "龍隊石"
 L["Buff.ArcaneFamiliar"] = "秘法魔寵"
 L["Buff.Attunement"] = "黑曜同調"
 L["Buff.CreateSoulwell"] = "製造靈魂之井"
+L["Buff.RefreshmentTable"] = "餐點桌"
+L["Buff.RepairGear"] = "修理裝備"
 L["Buff.DruidForm"] = "德魯伊形態"
 L["Buff.GrimoireOfSacrifice"] = "犧牲魔典"
 L["Buff.BurningRush"] = "燃燒狂奔"
@@ -217,6 +226,7 @@ L["Buff.AugmentRune"] = "增強符文"
 L["Buff.Flask"] = "精鍊"
 L["Buff.DelveFood"] = "探究食物"
 L["Buff.Food"] = "食物增益"
+L["Buff.MageFood"] = "法師餐點桌"
 L["Buff.Healthstone"] = "治療石"
 L["Buff.Weapon"] = "武器增益"
 L["Buff.WeaponOH"] = "副手武器增益"
@@ -246,6 +256,8 @@ L["Tooltip.MayShowExtraIcon.Desc"] =
 L["Tooltip.InstanceEntryReminder"] = "副本進本提示"
 L["Tooltip.InstanceEntryReminder.Desc"] =
     "進入地下城時會短暫顯示放置靈魂井的提示。施放法術或30秒後將消失。"
+L["Tooltip.MageFood"] = "僅限治療者"
+L["Tooltip.MageFood.Desc"] = "只有當你玩捕時才顯示"
 L["BuffTooltip.ProvidedBy"] = "由 %s 提供"
 
 -- ============================================================================
@@ -345,6 +357,9 @@ L["Options.Preview"] = "預覽"
 L["Options.GlobalDefaults"] = "全局預設值"
 L["Options.GlobalDefaults.Note"] = "（套用於所有類別，除非被自定義外觀覆蓋）"
 L["Options.Default"] = "預設"
+L["Options.Text"] = "文字"
+L["Options.Text.Note"] =
+    "(每個類別都可以覆蓋大小和顏色；字體、外框樣式和位置始終適用於任何地方)"
 L["Options.Font"] = "字體"
 L["Options.TextOutline"] = "外框樣式"
 L["Options.TextOutline.None"] = "無"
@@ -419,12 +434,20 @@ L["Options.Healthstone.Threshold"] = "當有時警告"
 L["Options.Healthstone.Threshold.Desc"] =
     "當治療石等於或低於此數量時顯示不足警告。\n\n|cffffcc001:|r 僅在剛好有1個時警告。\n|cffffcc002:|r 有1個或2個時警告。"
 
+L["Options.Repair.Threshold"] = "低於多少警告"
+L["Options.Repair.Threshold.Desc"] = "當裝備的物品耐久度低於多少百分比時顯示修理提醒。"
+L["Options.RepairHideInCombat"] = "戰鬥中隱藏"
+L["Options.RepairHideInCombat.Desc"] =
+    "在戰鬥中時隱藏修理提醒。你無法在戰鬥中拜訪商店來修理，所以它只能在非戰鬥狀態下進行。"
+
 -- ============================================================================
 -- OPTIONS: SOULSTONE
 -- ============================================================================
 L["Options.Soulstone.HideCooldown"] = "冷卻時隱藏（術士）"
 L["Options.Soulstone.HideCooldown.Desc"] =
     "啟用後，當靈魂石法術處於冷卻中時，不會向術士顯示提示。僅適用於術士。"
+L["Options.Soulstone.PinnedTarget"] = "始終施放"
+L["Tooltip.PinNotInGroup"] = "(不在隊伍中)"
 
 -- ============================================================================
 -- OPTIONS: FREE CONSUMABLES
@@ -455,6 +478,9 @@ L["Options.TextPositions"] = "文字"
 L["Options.TextPositions.Zone"] = "位置"
 L["Options.TextPositions.OffsetX.Short"] = "X"
 L["Options.TextPositions.OffsetY.Short"] = "Y"
+L["Options.TextPositions.MainText"] = "主文字"
+L["Options.TextPositions.MainText.Note"] =
+    "圖示上大文字的位置 - 群組計數，例如 17/20、倒數計時和標籤，例如無精煉。"
 L["Options.TextPositions.StackCount"] = "堆疊計數"
 L["Options.TextPositions.StatLabel"] = "屬性標籤"
 L["Options.TextPositions.Badge"] = "標誌 (H / F)"
@@ -499,6 +525,7 @@ L["ChatRequest.atrophicNumbingPoison"] = "請補上萎縮/麻痺毒藥"
 L["ChatRequest.devotionAura"] = "請補上虔誠光環"
 L["ChatRequest.soulstone"] = "請補上靈魂石"
 L["ChatRequest.healthstone"] = "請補上治療石"
+L["ChatRequest.mageFood"] = "法師請放餐點桌"
 
 -- ============================================================================
 -- OPTIONS: PET
@@ -540,6 +567,11 @@ L["Options.PetLabels.SizePct"] = "尺寸占比 %"
 L["Options.ConsumableTextScale"] = "文字縮放"
 L["Options.ConsumableTextScale.Title"] = "消耗品文字大小"
 L["Options.ConsumableTextScale.Desc"] = "物品數量和品質標簽相對於圖示大小的字體縮放比例。"
+L["Options.ConsumableBadgeOnSubIcons"] = "在子圖示上顯示品質標記"
+L["Options.ConsumableBadgeOnSubIcons.Title"] = "品質標記在子圖示上"
+L["Options.ConsumableBadgeOnSubIcons.Desc"] =
+    '在每個子圖示顯示食物品質字母 (例如 "澎"為澎湃，"普"為普通的)，而非只在主圖示。'
+L["Options.ConsumableBadgeOnSubIcons.Disabled"] = "只適用於子圖示顯示模式。"
 L["Options.HideConsumableLabels"] = "隱藏屬性標籤"
 L["Options.HideConsumableLabels.Title"] = "隱藏消耗品屬性標籤"
 L["Options.HideConsumableLabels.Desc"] =
@@ -614,11 +646,9 @@ L["Options.Layout"] = "佈局"
 L["Options.SplitFrame"] = "分離為獨立框架"
 L["Options.SplitFrame.Desc"] = "將此類別中的增益顯示在可獨立移動的單獨框架中。"
 
--- Display Order section (Defaults page) - drives the same priority field the
--- old per-category slider wrote, but as a single ordered list across all
--- non-split categories.
-L["Options.DisplayOrder"] = "顯示順序"
-L["Options.DisplayOrder.Moved"] = "正在尋找顯示順序？它移至佈局頁面。"
+-- Stacking Order section (Layout page): one ordered list across all non-split
+-- categories, driving each category's priority field.
+L["Options.DisplayOrder"] = "堆疊順序"
 
 -- Layout page
 L["Layout.PositionFrames"] = "定位框架"
@@ -649,9 +679,11 @@ L["BuffRow.Caption.PoisonsUnset"] = "選擇您使用的毒藥"
 L["BuffRow.Caption.Runeforge"] = "符文鎔鑄: %s"
 L["BuffRow.Caption.RuneforgeUnset"] = "設定您每個專精的符文鎔鑄"
 L["BuffRow.Caption.Healthstone"] = "庫存不足警報: 低於 %d"
+L["BuffRow.Caption.Repair"] = "當低於 %d%% 耐久度時提醒"
 L["BuffRow.Caption.HealthstoneOff"] = "庫存不足警報: 關閉"
 L["BuffRow.Caption.SoulstoneHidden"] = "冷卻時隱藏"
 L["BuffRow.Caption.SoulstoneShown"] = "冷卻時顯示"
+L["BuffRow.Caption.SoulstonePinned"] = "始終對 %s 施放"
 L["BuffRow.Caption.BronzeHidden"] = "戰鬥中隱藏"
 L["BuffRow.Caption.BronzeShown"] = "戰鬥中顯示"
 L["BuffRow.Caption.TravelIgnored"] = "旅行型態已忽略"
@@ -662,6 +694,9 @@ L["BuffRow.Caption.FelOn"] = "使用惡魔支配"
 L["BuffRow.Caption.FelOff"] = "惡魔支配關閉"
 L["BuffRow.Caption.FoodTimerOn"] = "顯示到期計時器"
 L["BuffRow.Caption.FoodTimerOff"] = "沒有到期定時器"
+L["BuffRow.Caption.MageFoodAll"] = "在所有副本顯示"
+L["BuffRow.Caption.MageFoodDungeon"] = "僅限地下城"
+L["BuffRow.Caption.MageFoodRaid"] = "僅限團隊副本"
 -- Trailing link on the All Buffs row: a gold "Extras" for any buff with its own
 -- options (vs the gray "Settings" for the rest); the specific option is named
 -- inside the drawer. The two rich editors keep their name for the drawer's
@@ -674,9 +709,15 @@ L["BuffRow.Glyph.Sound"] = "聲音警報"
 L["BuffRow.Glyph.Detached"] = "獨立的圖示"
 L["BuffRow.Glyph.Detached.Desc"] =
     "該圖示可以自由放置在螢幕上。在增益的設定或佈局頁面上進行管理。"
+L["BuffRow.Glyph.New"] = "新增益"
+L["BuffRow.Glyph.New.Desc"] = "在最後更新加入。"
 -- Drawer door to a buff's focused editor (poison/runeforge). %s = option name.
 L["BuffPanel.EditOption"] = "編輯 %s"
 L["BuffPanel.Show"] = "顯示"
+L["BuffPanel.MageFoodContent"] = "何處"
+L["BuffPanel.MageFoodContent.All"] = "所有副本"
+L["BuffPanel.MageFoodContent.Dungeon"] = "僅限地下城"
+L["BuffPanel.MageFoodContent.Raid"] = "僅限團隊副本"
 L["BuffPanel.Sound"] = "聲音"
 L["BuffPanel.Sound.None"] = "無"
 L["BuffPanel.Detached"] = "自己的框架 (獨立的)"
@@ -840,6 +881,8 @@ L["CustomBuff.EditShort"] = "編輯"
 L["CustomBuff.Add"] = "添加自定義增益"
 L["CustomBuff.AddButton"] = "+ 添加自定義增益"
 L["CustomBuff.Empty"] = "尚未有自定義增益。下面新增一個。"
+L["CustomBuff.RestrictedNote"] =
+    "當與首領以及傳奇+戰鬥時隱藏 - WoW阻止在那裡讀取光環。條形發光檢測在戰鬥中有效。"
 L["CustomBuff.SpellIDs"] = "法術ID:"
 L["CustomBuff.Lookup"] = "查找"
 L["CustomBuff.AddSpellID"] = "+ 添加法術ID"

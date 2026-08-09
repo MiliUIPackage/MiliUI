@@ -26,6 +26,7 @@ english["Category.Targeted"] = "Targeted"
 english["Category.Self"] = "Self"
 english["Category.Pet"] = "Pet"
 english["Category.Consumable"] = "Consumable"
+english["Category.Utility"] = "Utility"
 english["Category.Custom"] = "Custom"
 english["Category.Loadout"] = "Loadout"
 
@@ -33,6 +34,7 @@ english["Category.Loadout"] = "Loadout"
 english["Category.RaidBuffs"] = "Raid Buffs"
 english["Category.TargetedBuffs"] = "Targeted Buffs"
 english["Category.Consumables"] = "Consumables"
+english["Category.UtilityReminders"] = "Utility Reminders"
 english["Category.PresenceBuffs"] = "Presence Buffs"
 english["Category.SelfBuffs"] = "Self Buffs"
 english["Category.PetReminders"] = "Pet Reminders"
@@ -43,6 +45,7 @@ english["Category.LoadoutReminders"] = "Loadout Reminders"
 english["Category.RaidNote"] = "(for the whole group)"
 english["Category.TargetedNote"] = "(buffs on someone else)"
 english["Category.ConsumableNote"] = "(flasks, food, runes, oils)"
+english["Category.UtilityNote"] = "(chores and non-buff reminders)"
 english["Category.PresenceNote"] = "(at least 1 person needs)"
 english["Category.SelfNote"] = "(buffs strictly on yourself)"
 english["Category.PetNote"] = "(pet summon reminders)"
@@ -109,6 +112,9 @@ english["Overlay.NoTimeless"] = "NO\nTIMELESS"
 english["Overlay.NoAttune"] = "NO\nATTUNE"
 english["Overlay.NoFamiliar"] = "NO\nFAMILIAR"
 english["Overlay.DropWell"] = "DROP\nWELL"
+english["Overlay.DropTable"] = "DROP\nTABLE"
+english["Overlay.Repair"] = "REPAIR\nGEAR"
+english["Overlay.RepairLabel"] = "REPAIR"
 english["Overlay.NoGrim"] = "NO\nGRIM"
 english["Overlay.BurningRush"] = "RUSH"
 english["Overlay.NoRite"] = "NO\nRITE"
@@ -130,6 +136,7 @@ english["Overlay.DKWrongRune"] = "WRONG\nRUNE"
 english["Overlay.DKWrongRuneOH"] = "WRONG\nOH\nRUNE"
 english["Overlay.NoFlask"] = "NO\nFLASK"
 english["Overlay.NoFood"] = "NO\nFOOD"
+english["Overlay.NoMageFood"] = "MAGE\nFOOD"
 english["Overlay.NoWeaponBuff"] = "NO\nWEAPON\nBUFF"
 english["Overlay.Buff"] = "BUFF!"
 english["Overlay.MinutesFormat"] = "%dm"
@@ -198,6 +205,8 @@ english["Buff.Weyrnstone"] = "Weyrnstone"
 english["Buff.ArcaneFamiliar"] = "Arcane Familiar"
 english["Buff.Attunement"] = "Attunement"
 english["Buff.CreateSoulwell"] = "Create Soulwell"
+english["Buff.RefreshmentTable"] = "Refreshment Table"
+english["Buff.RepairGear"] = "Repair Equipment"
 english["Buff.DruidForm"] = "Druid Form"
 english["Buff.GrimoireOfSacrifice"] = "Grimoire of Sacrifice"
 english["Buff.BurningRush"] = "Burning Rush"
@@ -227,6 +236,7 @@ english["Buff.AugmentRune"] = "Augment Rune"
 english["Buff.Flask"] = "Flask"
 english["Buff.DelveFood"] = "Delve Food"
 english["Buff.Food"] = "Food"
+english["Buff.MageFood"] = "Mage Food"
 english["Buff.Healthstone"] = "Healthstone"
 english["Buff.Weapon"] = "Weapon"
 english["Buff.WeaponOH"] = "Weapon (OH)"
@@ -256,6 +266,8 @@ english["Tooltip.MayShowExtraIcon.Desc"] =
 english["Tooltip.InstanceEntryReminder"] = "Instance Entry Reminder"
 english["Tooltip.InstanceEntryReminder.Desc"] =
     "Briefly shown when entering a dungeon as a reminder to drop a Soulwell. Dismissed after casting or after 30 seconds."
+english["Tooltip.MageFood"] = "Healers Only"
+english["Tooltip.MageFood.Desc"] = "Only shown while you're playing a healer"
 english["BuffTooltip.ProvidedBy"] = "Provided by %s"
 
 -- ============================================================================
@@ -355,6 +367,9 @@ english["Options.Preview"] = "Preview"
 english["Options.GlobalDefaults"] = "Global Defaults"
 english["Options.GlobalDefaults.Note"] = "(All categories inherit these unless overridden with a custom appearance)"
 english["Options.Default"] = "Default"
+english["Options.Text"] = "Text"
+english["Options.Text.Note"] =
+    "(Size and color can be overridden per category; font, outline and position always apply everywhere)"
 english["Options.Font"] = "Font"
 english["Options.TextOutline"] = "Outline"
 english["Options.TextOutline.None"] = "None"
@@ -428,6 +443,12 @@ english["Options.Healthstone.LowStock.Desc"] =
 english["Options.Healthstone.Threshold"] = "Warn when having"
 english["Options.Healthstone.Threshold.Desc"] =
     "Show a low-stock warning when you have this many healthstones or fewer.\n\n|cffffcc001:|r Warn when you have exactly 1.\n|cffffcc002:|r Warn when you have 1 or 2."
+english["Options.Repair.Threshold"] = "Warn below"
+english["Options.Repair.Threshold.Desc"] =
+    "Show the repair reminder when any equipped item's durability drops below this percentage."
+english["Options.RepairHideInCombat"] = "Hide in combat"
+english["Options.RepairHideInCombat.Desc"] =
+    "Hide the repair reminder while in combat. You can't visit a merchant to repair mid-fight, so it's only actionable out of combat."
 
 -- ============================================================================
 -- OPTIONS: SOULSTONE
@@ -435,6 +456,8 @@ english["Options.Healthstone.Threshold.Desc"] =
 english["Options.Soulstone.HideCooldown"] = "Hide when on cooldown (warlock)"
 english["Options.Soulstone.HideCooldown.Desc"] =
     "When enabled, warlocks won't see the soulstone reminder while the spell is on cooldown. Only applies to warlocks."
+english["Options.Soulstone.PinnedTarget"] = "Always cast on"
+english["Tooltip.PinNotInGroup"] = "(not in group)"
 
 -- ============================================================================
 -- OPTIONS: FREE CONSUMABLES
@@ -465,6 +488,9 @@ english["Options.TextPositions"] = "Text"
 english["Options.TextPositions.Zone"] = "Position"
 english["Options.TextPositions.OffsetX.Short"] = "X"
 english["Options.TextPositions.OffsetY.Short"] = "Y"
+english["Options.TextPositions.MainText"] = "Main text"
+english["Options.TextPositions.MainText.Note"] =
+    "Position of the big text on the icon - group counts like 17/20, countdowns, and labels like NO FLASK."
 english["Options.TextPositions.StackCount"] = "Stack count"
 english["Options.TextPositions.StatLabel"] = "Stat label"
 english["Options.TextPositions.Badge"] = "Badge (H / F)"
@@ -509,6 +535,7 @@ english["ChatRequest.atrophicNumbingPoison"] = "Atrophic/Numbing Poison pls"
 english["ChatRequest.devotionAura"] = "Devotion Aura pls"
 english["ChatRequest.soulstone"] = "Soulstone pls"
 english["ChatRequest.healthstone"] = "Healthstones pls"
+english["ChatRequest.mageFood"] = "Mage food pls"
 
 -- ============================================================================
 -- OPTIONS: PET
@@ -552,6 +579,11 @@ english["Options.ConsumableTextScale"] = "Text scale"
 english["Options.ConsumableTextScale.Title"] = "Consumable text scale"
 english["Options.ConsumableTextScale.Desc"] =
     "Font size for item counts and quality (R1/R2/R3) labels as a percentage of icon size."
+english["Options.ConsumableBadgeOnSubIcons"] = "Show quality badge on sub-icons"
+english["Options.ConsumableBadgeOnSubIcons.Title"] = "Quality badge on sub-icons"
+english["Options.ConsumableBadgeOnSubIcons.Desc"] =
+    'Show the food quality letter (e.g. "H" for Hearty, "F" for Fleeting) on each sub-icon, not just the main icon.'
+english["Options.ConsumableBadgeOnSubIcons.Disabled"] = "Only available in the Sub-icons display mode."
 english["Options.HideConsumableLabels"] = "Hide stat labels"
 english["Options.HideConsumableLabels.Title"] = "Hide consumable stat labels"
 english["Options.HideConsumableLabels.Desc"] =
@@ -625,11 +657,9 @@ english["Options.Layout"] = "Layout"
 english["Options.SplitFrame"] = "Split into separate frame"
 english["Options.SplitFrame.Desc"] = "Display this category's buffs in a separate, independently movable frame"
 
--- Display Order section (Defaults page) - drives the same priority field the
--- old per-category slider wrote, but as a single ordered list across all
--- non-split categories.
+-- Stacking Order section (Layout page): one ordered list across all non-split
+-- categories, driving each category's priority field.
 english["Options.DisplayOrder"] = "Stacking Order"
-english["Options.DisplayOrder.Moved"] = "Looking for Display Order? It moved to the Layout page."
 
 -- Layout page
 english["Layout.PositionFrames"] = "Position Frames"
@@ -662,9 +692,11 @@ english["BuffRow.Caption.PoisonsUnset"] = "Choose which poisons you use"
 english["BuffRow.Caption.Runeforge"] = "Runeforge: %s"
 english["BuffRow.Caption.RuneforgeUnset"] = "Set your runeforge per spec"
 english["BuffRow.Caption.Healthstone"] = "Low-stock alert: below %d"
+english["BuffRow.Caption.Repair"] = "Reminds below %d%% durability"
 english["BuffRow.Caption.HealthstoneOff"] = "Low-stock alert: off"
 english["BuffRow.Caption.SoulstoneHidden"] = "Hidden while on cooldown"
 english["BuffRow.Caption.SoulstoneShown"] = "Shown while on cooldown"
+english["BuffRow.Caption.SoulstonePinned"] = "Always cast on %s"
 english["BuffRow.Caption.BronzeHidden"] = "Hidden in combat"
 english["BuffRow.Caption.BronzeShown"] = "Shown in combat"
 english["BuffRow.Caption.TravelIgnored"] = "Travel Form ignored"
@@ -675,6 +707,9 @@ english["BuffRow.Caption.FelOn"] = "Uses Fel Domination"
 english["BuffRow.Caption.FelOff"] = "Fel Domination off"
 english["BuffRow.Caption.FoodTimerOn"] = "Shows expiry timer"
 english["BuffRow.Caption.FoodTimerOff"] = "No expiry timer"
+english["BuffRow.Caption.MageFoodAll"] = "Shows in all instances"
+english["BuffRow.Caption.MageFoodDungeon"] = "Dungeons only"
+english["BuffRow.Caption.MageFoodRaid"] = "Raids only"
 -- Trailing link on the All Buffs row: a gold "Extras" for any buff with its own
 -- options (vs the gray "Settings" for the rest); the specific option is named
 -- inside the drawer. The two rich editors keep their name for the drawer's
@@ -687,9 +722,15 @@ english["BuffRow.Glyph.Sound"] = "Sound alert"
 english["BuffRow.Glyph.Detached"] = "Detached icon"
 english["BuffRow.Glyph.Detached.Desc"] =
     "This icon is placed freely on screen. Manage it in the buff's Settings or on the Layout page."
+english["BuffRow.Glyph.New"] = "New buff"
+english["BuffRow.Glyph.New.Desc"] = "Added in the latest update."
 -- Drawer door to a buff's focused editor (poison/runeforge). %s = option name.
 english["BuffPanel.EditOption"] = "Edit %s"
 english["BuffPanel.Show"] = "Show"
+english["BuffPanel.MageFoodContent"] = "Where"
+english["BuffPanel.MageFoodContent.All"] = "All instances"
+english["BuffPanel.MageFoodContent.Dungeon"] = "Dungeons only"
+english["BuffPanel.MageFoodContent.Raid"] = "Raids only"
 english["BuffPanel.Sound"] = "Sound"
 english["BuffPanel.Sound.None"] = "None"
 english["BuffPanel.Detached"] = "Own frame (detached)"
@@ -857,6 +898,8 @@ english["CustomBuff.EditShort"] = "Edit"
 english["CustomBuff.Add"] = "Add Custom Buff"
 english["CustomBuff.AddButton"] = "+ Add Custom Buff"
 english["CustomBuff.Empty"] = "No custom buffs yet. Add one below."
+english["CustomBuff.RestrictedNote"] =
+    "Hidden in combat, boss encounters and Mythic+ - WoW blocks aura reads there. Bar glow detection works in combat."
 english["CustomBuff.SpellIDs"] = "Spell IDs:"
 english["CustomBuff.Lookup"] = "Lookup"
 english["CustomBuff.AddSpellID"] = "+ Add Spell ID"
@@ -991,7 +1034,7 @@ english["Appearance.Zoom"] = "Zoom"
 english["Appearance.Border"] = "Border"
 english["Appearance.Spacing"] = "Spacing"
 english["Appearance.Alpha"] = "Alpha"
-english["Appearance.Text"] = "Text"
+english["Appearance.Text"] = "Text size"
 
 -- Slider tooltip
 english["Component.AdjustValue"] = "Adjust value"

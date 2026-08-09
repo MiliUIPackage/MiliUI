@@ -69,7 +69,7 @@ local function FillRowBody(body, key, buff, onEdit, onDelete)
         label = "",
         holderWidth = 18,
         get = function()
-            return BR.profile.enabledBuffs[key] ~= false
+            return BR.StateHelpers.IsBuffEnabled(key)
         end,
         onChange = function(checked)
             BR.profile.enabledBuffs[key] = checked
@@ -140,6 +140,7 @@ local function Build(content, scrollFrame)
     ListEditor(content, scrollFrame, {
         header = L["Category.CustomBuffs"],
         note = L["Category.CustomNote"],
+        warning = L["CustomBuff.RestrictedNote"],
         addLabel = L["CustomBuff.AddButton"],
         addWidth = 160,
         onAdd = function(render)

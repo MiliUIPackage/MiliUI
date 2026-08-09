@@ -357,10 +357,36 @@ local function ScanAnchorFrames()
     return results
 end
 
+-- Movers and the coordinate popup are built once and never rebuilt, so a font
+-- setting change has to be pushed to their fontstrings explicitly. TrackFont
+-- remembers each styled object plus the outline it was created with (nil =
+-- follow the shared outline setting); RefreshFonts re-applies with the current
+-- shared font, and SetFontCached no-ops the ones that didn't change.
+---@param list table Accumulator of styled objects
+---@param obj table FontString or EditBox
+---@param size number
+---@param outline? string explicit outline override
+local function TrackFont(list, obj, size, outline)
+    BR.Display.SetFontCached(obj, size, outline)
+    obj._br_font_explicit_outline = outline
+    list[#list + 1] = obj
+end
+
+---@param list table Accumulator filled by TrackFont
+local function RefreshFonts(list)
+    local SetFontCached = BR.Display.SetFontCached
+    for i = 1, #list do
+        local obj = list[i]
+        SetFontCached(obj, obj._br_font_size, obj._br_font_explicit_outline)
+    end
+end
+
 -- Coordinate popup: shared singleton for typing exact X/Y positions and anchor settings
 local function CreateCoordinatePopup()
-    local fontPath = BR.Display.GetFontPath()
-    local outlineFlag = BR.Display.GetOutline()
+    local popupFonts = {}
+    local function SetFontCached(obj, size, outline)
+        TrackFont(popupFonts, obj, size, outline)
+    end
     local popup = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     popup:SetSize(240, 210)
     popup:SetFrameStrata("DIALOG")
@@ -391,7 +417,7 @@ local function CreateCoordinatePopup()
 
     -- Title
     local title = popup:CreateFontString(nil, "OVERLAY")
-    title:SetFont(fontPath, 11, outlineFlag)
+    SetFontCached(title, 11)
     title:SetPoint("TOP", 0, -8)
     title:SetText(L["Mover.SetPosition"])
     title:SetTextColor(unpack(BR.Colors.Accent))
@@ -402,14 +428,14 @@ local function CreateCoordinatePopup()
 
     -- X row
     local xLabel = popup:CreateFontString(nil, "OVERLAY")
-    xLabel:SetFont(fontPath, 11, outlineFlag)
+    SetFontCached(xLabel, 11)
     xLabel:SetPoint("TOPLEFT", LABEL_X, -30)
     xLabel:SetText("X")
     xLabel:SetTextColor(1, 1, 1, 1)
 
     local xEdit = CreateFrame("EditBox", nil, popup)
     xEdit:SetSize(EDIT_WIDTH, 20)
-    xEdit:SetFont(fontPath, 11, "")
+    SetFontCached(xEdit, 11, "")
     xEdit:SetAutoFocus(false)
     local xContainer = BR.StyleEditBox(xEdit)
     xContainer:SetSize(EDIT_WIDTH, 20)
@@ -417,14 +443,14 @@ local function CreateCoordinatePopup()
 
     -- Y row
     local yLabel = popup:CreateFontString(nil, "OVERLAY")
-    yLabel:SetFont(fontPath, 11, outlineFlag)
+    SetFontCached(yLabel, 11)
     yLabel:SetPoint("TOPLEFT", LABEL_X, -56)
     yLabel:SetText("Y")
     yLabel:SetTextColor(1, 1, 1, 1)
 
     local yEdit = CreateFrame("EditBox", nil, popup)
     yEdit:SetSize(EDIT_WIDTH, 20)
-    yEdit:SetFont(fontPath, 11, "")
+    SetFontCached(yEdit, 11, "")
     yEdit:SetAutoFocus(false)
     local yContainer = BR.StyleEditBox(yEdit)
     yContainer:SetSize(EDIT_WIDTH, 20)
@@ -438,7 +464,7 @@ local function CreateCoordinatePopup()
 
     -- Anchor Frame label + dropdown button
     local anchorLabel = popup:CreateFontString(nil, "OVERLAY")
-    anchorLabel:SetFont(fontPath, 10, outlineFlag)
+    SetFontCached(anchorLabel, 10)
     anchorLabel:SetPoint("TOPLEFT", LABEL_X, -90)
     anchorLabel:SetText(L["Mover.AnchorFrame"])
     anchorLabel:SetTextColor(0.7, 0.7, 0.7, 1)
@@ -455,7 +481,7 @@ local function CreateCoordinatePopup()
     anchorBtn:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
 
     local anchorText = anchorBtn:CreateFontString(nil, "OVERLAY")
-    anchorText:SetFont(fontPath, 11, "")
+    SetFontCached(anchorText, 11, "")
     anchorText:SetPoint("LEFT", 6, 0)
     anchorText:SetPoint("RIGHT", -20, 0)
     anchorText:SetJustifyH("LEFT")
@@ -579,7 +605,7 @@ local function CreateCoordinatePopup()
         item:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8" })
         item:SetBackdropColor(0, 0, 0, 0)
         item.text = item:CreateFontString(nil, "OVERLAY")
-        item.text:SetFont(fontPath, 11, "")
+        SetFontCached(item.text, 11, "")
         item.text:SetPoint("LEFT", 6, 0)
         item.text:SetPoint("RIGHT", -6, 0)
         item.text:SetJustifyH("LEFT")
@@ -643,7 +669,7 @@ local function CreateCoordinatePopup()
 
     -- Anchor Point label + dropdown button
     local pointLabel = popup:CreateFontString(nil, "OVERLAY")
-    pointLabel:SetFont(fontPath, 10, outlineFlag)
+    SetFontCached(pointLabel, 10)
     pointLabel:SetPoint("TOPLEFT", LABEL_X, -130)
     pointLabel:SetText(L["Mover.AnchorPoint"])
     pointLabel:SetTextColor(0.7, 0.7, 0.7, 1)
@@ -660,7 +686,7 @@ local function CreateCoordinatePopup()
     pointBtn:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
 
     local pointText = pointBtn:CreateFontString(nil, "OVERLAY")
-    pointText:SetFont(fontPath, 11, "")
+    SetFontCached(pointText, 11, "")
     pointText:SetPoint("LEFT", 6, 0)
     pointText:SetTextColor(1, 1, 1, 1)
 
@@ -699,7 +725,7 @@ local function CreateCoordinatePopup()
         })
         item:SetBackdropColor(0, 0, 0, 0)
         local itemText = item:CreateFontString(nil, "OVERLAY")
-        itemText:SetFont(fontPath, 11, "")
+        SetFontCached(itemText, 11, "")
         itemText:SetPoint("LEFT", 6, 0)
         itemText:SetText(pt)
         itemText:SetTextColor(1, 1, 1, 1)
@@ -780,6 +806,9 @@ local function CreateCoordinatePopup()
     popup.pointBtn = pointBtn
     popup.pointArrow = pointArrow
     popup.pointMenu = pointMenu
+    function popup:RefreshFonts()
+        RefreshFonts(popupFonts)
+    end
     popup:SetScript("OnHide", HideAllMenus)
     popup:Hide()
     return popup
@@ -790,6 +819,8 @@ local function ShowCoordinatePopup(catKey, mover)
     if not coordPopup then
         coordPopup = CreateCoordinatePopup()
     end
+    -- Built once, so pick up any font change made since the last open
+    coordPopup:RefreshFonts()
     coordPopup.catKey = catKey
     coordPopup:ClearAllPoints()
     coordPopup:SetPoint("LEFT", mover, "RIGHT", 10, 0)
@@ -858,8 +889,7 @@ end
 -- Create a mover frame for positioning a category.
 -- The mover matches the category's iconSize for accurate positioning. Shown when unlocked.
 local function CreateMoverFrame(catKey, displayName)
-    local fontPath = BR.Display.GetFontPath()
-    local outlineFlag = BR.Display.GetOutline()
+    local SetFontCached = BR.Display.SetFontCached
     local catSettings = GetCategorySettings(catKey)
     local iconSize = catSettings.iconSize or 64
     local iconWidth = catSettings.iconWidth or iconSize
@@ -880,22 +910,26 @@ local function CreateMoverFrame(catKey, displayName)
     -- Label above the mover
     mover.label = mover:CreateFontString(nil, "OVERLAY")
     mover.label:SetPoint("BOTTOM", mover, "TOP", 0, 4)
-    mover.label:SetFont(fontPath, 11, outlineFlag)
+    SetFontCached(mover.label, 11)
     mover.label:SetTextColor(0.4, 1, 0.4, 1)
     mover.label:SetText(displayName or catKey)
 
     -- "Anchor" text below the green box (updated with growth direction in UpdateAnchor)
     mover.anchorText = mover:CreateFontString(nil, "OVERLAY")
     mover.anchorText:SetPoint("TOP", mover, "BOTTOM", 0, -4)
-    mover.anchorText:SetFont(fontPath, 11, outlineFlag)
+    SetFontCached(mover.anchorText, 11)
     mover.anchorText:SetTextColor(0.4, 1, 0.4, 1)
 
     mover.catKey = catKey
 
+    -- VisualsRefresh hook: also re-applies the labels' font, since the mover is
+    -- built once and would otherwise keep the font it was created with.
     function mover:UpdateSize()
         local settings = GetCategorySettings(catKey)
         local size = settings.iconSize or 64
         self:SetSize(settings.iconWidth or size, size)
+        SetFontCached(self.label, 11)
+        SetFontCached(self.anchorText, 11)
     end
 
     -- Position at saved location using direction-based anchor (or external anchor)
@@ -1077,8 +1111,7 @@ local function CreateDetachedMover(key, displayName)
         return nil
     end
 
-    local fontPath = BR.Display.GetFontPath()
-    local outlineFlag = BR.Display.GetOutline()
+    local SetFontCached = BR.Display.SetFontCached
     local buffFrame = BR.Display.frames[key]
     local effectiveCat = "main"
     if buffFrame and buffFrame.buffCategory then
@@ -1107,19 +1140,21 @@ local function CreateDetachedMover(key, displayName)
     -- Label above the mover
     mover.label = mover:CreateFontString(nil, "OVERLAY")
     mover.label:SetPoint("BOTTOM", mover, "TOP", 0, 4)
-    mover.label:SetFont(fontPath, 11, outlineFlag)
+    SetFontCached(mover.label, 11)
     mover.label:SetTextColor(1, 0.85, 0.3, 1)
     mover.label:SetText(displayName or key)
 
     -- Anchor text below
     mover.anchorText = mover:CreateFontString(nil, "OVERLAY")
     mover.anchorText:SetPoint("TOP", mover, "BOTTOM", 0, -4)
-    mover.anchorText:SetFont(fontPath, 11, outlineFlag)
+    SetFontCached(mover.anchorText, 11)
     mover.anchorText:SetTextColor(1, 0.85, 0.3, 1)
     mover.anchorText:SetText(L["Mover.Detached"])
 
     mover.catKey = key
 
+    -- VisualsRefresh hook: also re-applies the labels' font, since the mover is
+    -- built once and would otherwise keep the font it was created with.
     function mover:UpdateSize()
         local bf = BR.Display.frames[key]
         local eCat = "main"
@@ -1132,6 +1167,8 @@ local function CreateDetachedMover(key, displayName)
         local s = GetCategorySettings(eCat)
         local sz = s.iconSize or 64
         self:SetSize(s.iconWidth or sz, sz)
+        SetFontCached(self.label, 11)
+        SetFontCached(self.anchorText, 11)
     end
 
     -- Position at saved location
@@ -1216,7 +1253,7 @@ local function UpdateAnchor()
     end
 
     local db = BR.profile
-    local unlocked = not db.locked
+    local unlocked = not BR.Display.IsFrameLocked()
 
     -- Main mover: show when unlocked AND not all categories split
     local allSplit = AreAllCategoriesSplit()

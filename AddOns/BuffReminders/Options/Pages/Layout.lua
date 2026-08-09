@@ -321,7 +321,7 @@ local function Build(content, scrollFrame)
         Components.RefreshAll()
     end, { title = L["Options.LockUnlock"], desc = L["Options.LockUnlock.Desc"] })
     function lockBtn:Refresh()
-        self.text:SetText(BR.profile.locked and L["Options.Unlock"] or L["Options.Lock"])
+        self.text:SetText(BR.Display.IsFrameLocked() and L["Options.Unlock"] or L["Options.Lock"])
     end
     lockBtn:Refresh()
     tinsert(BR.RefreshableComponents, lockBtn)

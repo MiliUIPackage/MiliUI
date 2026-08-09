@@ -3,10 +3,12 @@ local _, BR = ...
 -- The addon's entire default config. Pure data, consumed by the bootstrap (AceDB
 -- seeding + migrations), the display layer, and the options panel. Exported as
 -- BR.defaults - the single source; read it directly, no module-namespaced alias.
--- Note: enabledBuffs defaults to all enabled - only set false to disable by default.
+-- Note: enabledBuffs holds only explicit user choices; it ships empty. A buff's
+-- ship default is declared on the buff definition itself (`defaultEnabled = false`
+-- for opt-in buffs) and resolved at read time by StateHelpers.IsBuffEnabled - no
+-- migration and no per-profile seeding needed for new off-by-default buffs.
 
 BR.defaults = {
-    locked = true,
     enabledBuffs = {},
     -- User-defined loadout reminders (talent / loadout / equipment-set mismatch).
     -- Keyed by generated rule key; empty by default. See Options/Dialogs/LoadoutReminder.lua.
@@ -81,6 +83,7 @@ BR.defaults = {
         showWithoutItemsOnlyOnReadyCheck = true,
         delveFoodOnly = true,
         delveFoodTimer = false,
+        mageFoodContent = "all", -- "all" | "dungeon" | "raid"
         freeConsumableMode = "override",
         freeConsumableVisibility = {
             openWorld = false,
@@ -93,10 +96,14 @@ BR.defaults = {
         healthstoneVisibility = "readyCheck",
         healthstoneThreshold = 1,
         healthstoneLowStock = false,
+        repairThreshold = 20, -- percent; repair reminder shows below this durability
+        repairHideInCombat = true,
         soulstoneVisibility = "readyCheck",
         soulstoneHideCooldown = false,
+        -- soulstonePinnedTarget: deliberately absent - nil means "no pin" (set via BuffPanel drawer)
         consumableDisplayMode = "sub_icons",
         consumableTextScale = 25,
+        consumableBadgeOnSubIcons = false,
         hideConsumableLabels = false,
         showConsumableTooltips = false,
         showBuffTooltips = false,
@@ -164,6 +171,15 @@ BR.defaults = {
             hideInPvPMatch = true,
         },
         self = {
+            openWorld = true,
+            dungeon = true,
+            scenario = true,
+            raid = true,
+            housing = false,
+            pvp = true,
+            hideInPvPMatch = true,
+        },
+        utility = {
             openWorld = true,
             dungeon = true,
             scenario = true,
@@ -275,6 +291,14 @@ BR.defaults = {
             clickableHighlight = true,
             subIconSide = "BOTTOM",
             priority = 6,
+        },
+        utility = {
+            position = { point = "CENTER", x = 0, y = -60 },
+            useCustomAppearance = false,
+            split = false,
+            clickable = true,
+            clickableHighlight = true,
+            priority = 9,
         },
         custom = {
             position = { point = "CENTER", x = 0, y = 20 },
