@@ -505,6 +505,15 @@ end
 
 local function SeedMaelstrom()
     local a = GetPlayerAuraBySpellID(CDM_C.MAELSTROM_WEAPON_SPELL_ID)
+    -- Both fields are sanitised on purpose. Passing a secret straight to StatusBar:SetValue()
+    -- (Coolinator's approach) would display the true stack count, but SetValue() applies no
+    -- secret ASPECT -- it marks the whole StatusBar as "has secret values", which makes
+    -- bar:GetWidth()/GetHeight() return secrets from then on, and that state only clears via
+    -- FrameScriptObject:SetToDefaults(). RefreshBarTicks() reads bar:GetWidth() right after
+    -- SetValue in UpdateBarValue, so the secret would land in tick layout arithmetic.
+    -- The stack COUNT is still shown correctly: Tags.lua reads it live via
+    -- GetPlayerAuraBySpellID and renders it with C_StringUtil.TruncateWhenZero(), both of
+    -- which are secret-safe. Only the bar fill degrades.
     maelstromInstanceID = a and CDM.SafeNumber(a.auraInstanceID, nil) or nil
     maelstromStacks = a and CDM.SafeNumber(a.applications, 0) or 0
 end
@@ -525,6 +534,8 @@ end
 
 local function SeedTipOfTheSpear()
     local a = GetPlayerAuraBySpellID(CDM_C.TIP_OF_THE_SPEAR_SPELL_ID)
+    -- Sanitised for the same reason as SeedMaelstrom (see there). expirationTime additionally
+    -- feeds `exp - GetTime()` arithmetic in Tags.lua RenderToSTimeText, so it can never be secret.
     tipOfTheSpearInstanceID = a and CDM.SafeNumber(a.auraInstanceID, nil) or nil
     tipOfTheSpearStacks = a and CDM.SafeNumber(a.applications, 0) or 0
     tipOfTheSpearExpirationTime = a and CDM.SafeNumber(a.expirationTime, nil) or nil
