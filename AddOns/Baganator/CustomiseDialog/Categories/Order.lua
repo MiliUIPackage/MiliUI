@@ -450,8 +450,38 @@ function addonTable.CustomiseDialog.GetCategoriesOrganiser(parent)
   importButton:SetText(addonTable.Locales.IMPORT)
   DynamicResizeButton_Resize(importButton)
   importButton:SetScript("OnClick", function()
-    addonTable.CustomiseDialog.ShowCategoriesImportDialog(function(text)
-      addonTable.CustomiseDialog.CategoriesImport(text)
+    addonTable.CustomiseDialog.ShowImportDialog(function(text)
+      local import
+      if text:sub(1, 1) == "{" then
+        local status
+        status, import = pcall(C_EncodingUtil.DeserializeJSON, text)
+        if not status or type(import) ~= "table" then
+          addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+          return
+        end
+      else
+        local prefix = text:match("^BGR!1!")
+        if not prefix then
+          addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+          return
+        end
+        local status, decoded = pcall(C_EncodingUtil.DecodeBase64, text:sub(7))
+        if not status then
+          addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+          return
+        end
+        local status, decompressed = pcall(C_EncodingUtil.DecompressString, decoded)
+        if not status then
+          addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+          return
+        end
+        status, import = pcall(C_EncodingUtil.DeserializeCBOR, decompressed)
+        if not status or type(import) ~= "table" or import.addon ~= "Baganator" then
+          addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+          return
+        end
+      end
+      addonTable.CustomiseDialog.CategoriesImport(import)
     end)
   end)
   addonTable.Skins.AddFrame("Button", importButton)

@@ -221,7 +221,7 @@ function addonTable.Utilities.AddGeneralDropSlot(parent, getData, bagIndexes)
             end
           end
           if not usageChecks.checks[bagID] then
-            backupBagID = usageChecks.checks[bagID]
+            backupBagID = bagID
           end
         end
       end

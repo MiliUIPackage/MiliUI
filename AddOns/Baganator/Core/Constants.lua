@@ -62,6 +62,7 @@ addonTable.Constants.Events = {
   "BackpackFrameChanged",
 
   "ShowCustomise",
+  "HideCustomise",
   "ResetFramePositions",
   "EditCategory",
   "EditCategorySection",

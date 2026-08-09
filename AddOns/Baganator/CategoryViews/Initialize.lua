@@ -115,8 +115,7 @@ function addonTable.CategoryViews.FixAnyBrokenSections()
 end
 
 local function CompareCurrent()
-  local current = addonTable.CustomiseDialog.CategoriesExport()
-  local toMod = C_EncodingUtil.DeserializeJSON(current)
+  local toMod = addonTable.CustomiseDialog.CategoriesExportTable()
   local defaultImport = C_EncodingUtil.DeserializeJSON(
   -- math.max(1 in case the user has an old category layout from before the
   -- defaults import was added
@@ -150,7 +149,7 @@ local function SetupCategories()
     -- If the layout hasn't been changed, or has only had "Recent (Auto)" added
     if tCompare(displayOrderForCmp, addonTable.CategoryViews.Constants.OldDefaults) or #displayOrder == 0 or CompareCurrent() then
 
-      addonTable.CustomiseDialog.CategoriesImport(addonTable.CategoryViews.Constants.DefaultImport[addonTable.CategoryViews.Constants.DefaultImportVersion])
+      addonTable.CustomiseDialog.CategoriesImport(C_EncodingUtil.DeserializeJSON(addonTable.CategoryViews.Constants.DefaultImport[addonTable.CategoryViews.Constants.DefaultImportVersion]))
       Mixin(addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTIONS, oldSections))
       addonTable.Config.Set(addonTable.Config.Options.CATEGORY_MODIFICATIONS, oldCategoryMods)
       local newAdded = {}

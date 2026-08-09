@@ -27,6 +27,8 @@ function BaganatorItemViewCommonBankViewWarbandViewMixin:OnLoad()
   self.currentTab = addonTable.Config.Get(addonTable.Config.Options.WARBAND_CURRENT_TAB)
   self.updateTabs = true
 
+  self.bankType = Enum.BankType.Account
+
   addonTable.Utilities.AddBagSortManager(self) -- self.sortManager
   addonTable.Utilities.AddBagTransferManager(self) -- self.transferManager
 
@@ -150,7 +152,7 @@ function BaganatorItemViewCommonBankViewWarbandViewMixin:ApplySearch(text)
 end
 
 function BaganatorItemViewCommonBankViewWarbandViewMixin:ApplyTabButtonSearch(text)
-  if not self:IsShown() then
+  if not self:IsShown() or not self.Tabs then
     return
   end
 
@@ -305,15 +307,6 @@ function BaganatorItemViewCommonBankViewWarbandViewMixin:SetupBlizzardFramesForT
   if self.isLive then
     local tabInfo = Syndicator.API.GetWarband(1).bank[self.currentTab]
     local bagID = Syndicator.Constants.AllWarbandIndexes[self.currentTab];
-
-    -- Ensure right-clicking a bag item puts the item into this bank
-    (AccountBankPanel or BankPanel).selectedTabID = bagID;
-    if Syndicator.Constants.CharacterBankTabsActive then
-      BankFrame.BankPanel:SetBankType(Enum.BankType.Account)
-    else
-      BankFrame.activeTabIndex = addonTable.Constants.BlizzardBankTabConstants.Warband
-      BankFrame.selectedTab = 1
-    end
 
     -- Workaround so that the tab edit UI shows the details for the current tab
     self.TabSettingsMenu.GetBankFrame = function()
@@ -532,10 +525,8 @@ function BaganatorItemViewCommonBankViewWarbandViewMixin:ShowTab(tabIndex, isLiv
     end
   end
 
-  local searchText = self:GetParent().SearchWidget.SearchBox:GetText()
-
-  self.IncludeReagentsCheckbox:SetShown(self.isLive and not self.isLocked)
-  self.DepositItemsButton:SetShown(self.isLive and not self.isLocked)
+  self.IncludeReagentsCheckbox:SetShown(self.isLive and not self.isLocked and isWarbandData)
+  self.DepositItemsButton:SetShown(self.isLive and not self.isLocked and isWarbandData)
 
   self.DepositMoneyButton:SetShown(self.isLive and not self.isLocked)
   self.WithdrawMoneyButton:SetShown(self.isLive and not self.isLocked)

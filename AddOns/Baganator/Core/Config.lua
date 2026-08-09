@@ -130,6 +130,10 @@ addonTable.Config.IsCharacterSpecific = {
   [addonTable.Config.Options.CURRENCIES_TRACKED_IMPORTED] = true,
 }
 
+addonTable.Config.MapKeysForExport = {
+  [addonTable.Config.Options.HIDE_SPECIAL_CONTAINER] = true
+}
+
 function addonTable.Config.IsValidOption(name)
   for _, option in pairs(addonTable.Config.Options) do
     if option == name then
@@ -323,14 +327,23 @@ function addonTable.Config.DeleteProfile(profileName)
   BAGANATOR_CONFIG.Profiles[profileName] = nil
 end
 
-function addonTable.Config.ChangeProfile(newProfileName)
+function addonTable.Config.DumpCurrentProfile()
+  local tmp = CopyTable(BAGANATOR_CONFIG.Profiles[BAGANATOR_CURRENT_PROFILE])
+  for key in pairs(addonTable.Config.IsCharacterSpecific) do
+    tmp[key] = nil
+  end
+  return tmp
+end
+
+function addonTable.Config.ChangeProfile(newProfileName, comparisonData)
   assert(tIndexOf(addonTable.Config.GetProfileNames(), newProfileName) ~= nil, "Invalid Profile")
 
   local changedOptions = {}
   local refreshState = {}
   local newProfile = BAGANATOR_CONFIG.Profiles[newProfileName]
+  local oldProfile = comparisonData or addonTable.Config.CurrentProfile
 
-  for name, value in pairs(addonTable.Config.CurrentProfile) do
+  for name, value in pairs(oldProfile) do
     if value ~= newProfile[name] then
       table.insert(changedOptions, name)
       Mixin(refreshState, addonTable.Config.RefreshType[name] or {})

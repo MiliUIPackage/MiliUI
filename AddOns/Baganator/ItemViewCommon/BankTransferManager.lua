@@ -45,7 +45,7 @@ local function GetMatching(depositFlags, item)
 end
 
 function addonTable.BankTransferManagerMixin:Queue(bagID, slotID)
-  if not C_Bank or not BankPanel:IsShown() then
+  if not addonTable.ViewManagement.GetBankFrame():IsShown() then
     return
   end
   ClearCursor()

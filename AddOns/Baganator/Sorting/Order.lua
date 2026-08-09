@@ -100,7 +100,7 @@ local allSortKeys = {
 -- content to sort among
 if addonTable.Constants.IsClassic then
   table.remove(allSortKeys["quality"], tIndexOf(allSortKeys["quality"], "invertedExpansion"))
-  table.remove(allSortKeys["name"], tIndexOf(allSortKeys["type"], "invertedExpansion"))
+  table.remove(allSortKeys["name"], tIndexOf(allSortKeys["name"], "invertedExpansion"))
   table.remove(allSortKeys["type"], tIndexOf(allSortKeys["type"], "invertedExpansion"))
   table.remove(allSortKeys["item-level"], tIndexOf(allSortKeys["item-level"], "invertedExpansion"))
 end

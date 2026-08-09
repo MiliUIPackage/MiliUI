@@ -42,12 +42,7 @@ function addonTable.Skins.Initialize()
     currentSkinner = currentSkin.skinner
     addonTable.ViewManagement.GenerateFrameGroup(currentSkinKey)
   end
-  local frame = CreateFrame("Frame")
-  frame:RegisterEvent("PLAYER_LOGIN")
-  frame:SetScript("OnEvent", function()
-    frame:UnregisterEvent("PLAYER_LOGIN")
-    Generate()
-  end)
+  currentSkin.loadingTrigger(Generate)
 
   addonTable.CallbackRegistry:RegisterCallback("SettingChanged", function(_, settingName)
     if settingName == addonTable.Config.Options.CURRENT_SKIN then
@@ -58,6 +53,10 @@ function addonTable.Skins.Initialize()
         end
       end
       local bagsShown = addonTable.ViewManagement.GetBackpackFrame():IsShown()
+      local customiseShown = addonTable.CustomiseDialog.IsDialogOpen()
+      if customiseShown then
+        addonTable.CallbackRegistry:TriggerEvent("HideCustomise")
+      end
       local lastCharacter = addonTable.ViewManagement.GetBackpackFrame().lastCharacter
       currentSkin = addonTable.Skins.availableSkins[addonTable.Config.Get(addonTable.Config.Options.CURRENT_SKIN)]
       currentSkinner = currentSkin.skinner
@@ -70,7 +69,9 @@ function addonTable.Skins.Initialize()
       if bagsShown then
         addonTable.CallbackRegistry:TriggerEvent("BagShow", lastCharacter)
       end
-      addonTable.CallbackRegistry:TriggerEvent("ShowCustomise")
+      if customiseShown then
+        addonTable.CallbackRegistry:TriggerEvent("ShowCustomise", 3)
+      end
     end
   end)
 end
@@ -89,7 +90,7 @@ function addonTable.Skins.AddFrame(regionType, region, tags)
   end
 end
 
-function addonTable.Skins.RegisterSkin(label, key, initializer, skinner, constants, options, autoEnable, isBaseline)
+function addonTable.Skins.RegisterSkin(label, key, initializer, skinner, constants, options, autoEnable, loadingTrigger)
   addonTable.Skins.availableSkins[key] = {
     label = label,
     key = key,
@@ -98,7 +99,7 @@ function addonTable.Skins.RegisterSkin(label, key, initializer, skinner, constan
     constants = constants,
     options = options or {},
     autoEnable = autoEnable,
-    isBaseline = isBaseline,
+    loadingTrigger = loadingTrigger,
   }
 end
 

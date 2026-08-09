@@ -3,8 +3,9 @@ local addonTable = select(2, ...)
 
 function addonTable.CustomiseDialog.SingleCategoryExport(name)
   local export = {
-    version = 2,
+    version = 3,
     addon = "Baganator",
+    kind = "categories",
     categories = {},
     modifications = {},
   }
@@ -47,13 +48,14 @@ function addonTable.CustomiseDialog.SingleCategoryExport(name)
     hideIn = #hideIn > 0 and hideIn or nil,
   })
 
-  return C_EncodingUtil.SerializeJSON(export)
+  return "BGR!1!" .. C_EncodingUtil.EncodeBase64(C_EncodingUtil.CompressString(C_EncodingUtil.SerializeCBOR(export)))
 end
 
-function addonTable.CustomiseDialog.CategoriesExport()
+function addonTable.CustomiseDialog.CategoriesExportTable()
   local export = {
-    version = 2,
+    version = 3,
     addon = "Baganator",
+    kind = "categories",
     categories = {},
     sections = CopyTable(addonTable.Config.Get("category_sections")),
     modifications = {},
@@ -106,7 +108,13 @@ function addonTable.CustomiseDialog.CategoriesExport()
     end
   end
 
-  return C_EncodingUtil.SerializeJSON(export)
+  return export
+end
+
+function addonTable.CustomiseDialog.CategoriesExport()
+  local export = addonTable.CustomiseDialog.CategoriesExportTable()
+
+  return "BGR!1!" .. C_EncodingUtil.EncodeBase64(C_EncodingUtil.CompressString(C_EncodingUtil.SerializeCBOR(export)))
 end
 
 local function ImportCategories(import)
@@ -240,9 +248,8 @@ local function ImportCategories(import)
   return customCategories, categoryMods, seenItems
 end
 
-function addonTable.CustomiseDialog.CategoriesImport(input)
-  local success, import = pcall(C_EncodingUtil.DeserializeJSON, input)
-  if not success then
+function addonTable.CustomiseDialog.CategoriesImport(import)
+  if import.version > 2 and import.kind ~= "categories" then
     addonTable.Utilities.Message(addonTable.Locales.INVALID_CATEGORY_IMPORT_FORMAT)
     return
   end

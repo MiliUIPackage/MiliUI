@@ -20,7 +20,7 @@ local function RegisterHighlightSimilarItems(self)
 
   addonTable.CallbackRegistry:RegisterCallback("HighlightIdenticalItems", function(_, itemLink)
     for _, button in ipairs(self.buttons) do
-      if button.BGR.itemLink == itemLink then
+      if button.BGR and button.BGR.itemLink == itemLink then
         button:BGRStartFlashing()
       end
     end

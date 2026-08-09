@@ -339,17 +339,17 @@ local skinners = {
     tex:SetColorTexture(1, 0.93, 0.73, 0.45)
   end,
   CategoryLabel = function(btn)
-    btn:GetFontString():SetFont(UNIT_NAME_FONT, 11, "")
+    btn:GetFontString():SetFont(UNIT_NAME_FONT, 11)
     btn:GetFontString():SetTextColor(1, 1, 1)
   end,
   CategorySectionHeader = function(btn)
-    btn:GetFontString():SetFont(UNIT_NAME_FONT, 14, "")
+    btn:GetFontString():SetFont(UNIT_NAME_FONT, 14)
     btn:GetFontString():SetTextColor(1, 1, 1)
     btn.arrow:SetDesaturated(true)
   end,
   CornerWidget = function(frame)
     if frame:IsObjectType("FontString") then
-      frame:SetFont(UNIT_NAME_FONT, 12, "THINOUTLINE")
+      frame:SetFont(UNIT_NAME_FONT, 12, "THINOUTLINED")
     end
   end,
   Dropdown = function(button)
@@ -428,5 +428,5 @@ local function LoadSkin()
 end
 
 if addonTable.Skins.IsAddOnLoading("GW2_UI") then
-  addonTable.Skins.RegisterSkin(addonTable.Locales.GW2_UI, "gw2_ui", LoadSkin, SkinFrame, SetConstants, {}, true)
+  addonTable.Skins.RegisterSkin(addonTable.Locales.GW2_UI, "gw2_ui", LoadSkin, SkinFrame, SetConstants, {}, true, addonTable.Skins.PlayerLoginLoadingTrigger)
 end

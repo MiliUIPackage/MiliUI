@@ -353,7 +353,7 @@ local function GenerateFrames(options, parent)
     if not option.check or option.check() then
       local frame
       if option.type == "checkbox" then
-        frame = addonTable.CustomiseDialog.Components.GetCheckbox(parent, option.text, -28, function(checked)
+        frame = addonTable.CustomiseDialog.Components.GetCheckbox(parent, option.text, 20, function(checked)
           addonTable.Config.Set(option.option, checked)
         end)
         frame:SetPoint("TOP", lastFrame, "BOTTOM", 0, offsetY)
@@ -407,7 +407,7 @@ local function GetTab(parent, text)
   if #parent.Tabs > 1 then
     tab:SetPoint("TOPLEFT", parent.Tabs[#parent.Tabs - 1], "TOPRIGHT", 5, 0)
   else
-    tab:SetPoint("TOPLEFT", 10, -20)
+    tab:SetPoint("TOPLEFT", 4 + addonTable.Constants.ButtonFrameOffset, -20)
   end
 
   local tabIndex = #parent.Tabs
@@ -693,6 +693,7 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
         addonTable.Config.MakeProfile(profileName, clone)
         profileDropdown.DropDown:GenerateMenu()
         if not clone then
+          self:Hide()
           addonTable.ShowWelcome()
         end
       end
@@ -738,8 +739,90 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
   table.insert(allFrames, profileDropdown)
 
   do
+    local exportButton = CreateFrame("Button", nil, frame, "UIPanelDynamicResizeButtonTemplate")
+    exportButton:SetPoint("TOPLEFT", allFrames[#allFrames], "BOTTOM", -33, -10)
+    exportButton:SetText(addonTable.Locales.EXPORT)
+    DynamicResizeButton_Resize(exportButton)
+    exportButton:SetScript("OnClick", function()
+      local tmp = addonTable.Config.DumpCurrentProfile()
+      tmp.addon = "Baganator"
+      tmp.version = 3
+      tmp.kind = "profile"
+      for key in pairs(addonTable.Config.MapKeysForExport) do
+        local new = {}
+        for k, v in pairs(tmp[key]) do
+          new[tostring(k)] = v
+        end
+        tmp[key] = new
+      end
+      addonTable.Dialogs.ShowCopy("BGR!1!" .. C_EncodingUtil.EncodeBase64(C_EncodingUtil.CompressString(C_EncodingUtil.SerializeCBOR(tmp))))
+    end)
+    addonTable.Skins.AddFrame("Button", exportButton)
+
+    local importButton = CreateFrame("Button", nil, frame, "UIPanelDynamicResizeButtonTemplate")
+    importButton:SetPoint("TOPRIGHT", allFrames[#allFrames], "BOTTOM", -45, -10)
+    importButton:SetText(addonTable.Locales.IMPORT)
+    DynamicResizeButton_Resize(importButton)
+    importButton:SetScript("OnClick", function()
+      addonTable.CustomiseDialog.ShowImportDialog(function(text)
+        local import
+        if text:sub(1, 1) == "{" then
+          local status
+          status, import = pcall(C_EncodingUtil.DeserializeJSON, text)
+          if not status or type(import) ~= "table" or import.addon ~= "Baganator" then
+            addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+            return
+          end
+        else
+          local prefix = text:match("^BGR!1!")
+          if not prefix then
+            addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+            return
+          end
+          local status, decoded = pcall(C_EncodingUtil.DecodeBase64, text:sub(7))
+          if not status then
+            addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+            return
+          end
+          local status, decompressed = pcall(C_EncodingUtil.DecompressString, decoded)
+          if not status then
+            addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+            return
+          end
+          status, import = pcall(C_EncodingUtil.DeserializeCBOR, decompressed)
+          if not status or type(import) ~= "table" or import.addon ~= "Baganator" then
+            addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+            return
+          end
+        end
+        if import.version <= 2 or import.kind == "categories" then
+          addonTable.CustomiseDialog.ImportData(import)
+        elseif import.kind == "profile" then
+          addonTable.Dialogs.ShowDualChoice(addonTable.Locales.OVERWRITE_CURRENT_PROFILE, addonTable.Locales.OVERWRITE, addonTable.Locales.MAKE_NEW,
+            function()
+              addonTable.CustomiseDialog.ImportData(import, BAGANATOR_CURRENT_PROFILE, true)
+              profileDropdown.DropDown:GenerateMenu()
+            end,
+            function()
+              addonTable.Dialogs.ShowEditBox(addonTable.Locales.ENTER_THE_NEW_PROFILE_NAME, OKAY, CANCEL, function(value)
+                if BAGANATOR_CONFIG.Profiles[value] == nil then
+                  addonTable.CustomiseDialog.ImportData(import, value, false)
+                  profileDropdown.DropDown:GenerateMenu()
+                else
+                  addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.THAT_PROFILE_NAME_ALREADY_EXISTS)
+                end
+              end)
+            end
+          )
+        end
+      end)
+    end)
+    addonTable.Skins.AddFrame("Button", importButton)
+  end
+
+  do
     local optionFrames = GenerateFrames(options, frame)
-    optionFrames[1]:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+    optionFrames[1]:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -70)
 
     tAppendAll(allFrames, optionFrames)
   end

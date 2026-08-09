@@ -6,6 +6,12 @@ function addonTable.CustomiseDialog.Initialize()
   local customiseDialog = {} -- Stored by skin applied
 
   addonTable.CallbackRegistry:RegisterCallback("ShowCustomise", function()
+    for _, dialog in pairs(customiseDialog) do
+      dialog:Hide()
+    end
+  end)
+
+  addonTable.CallbackRegistry:RegisterCallback("ShowCustomise", function(_, index)
     local currentSkinKey = addonTable.Config.Get(addonTable.Config.Options.CURRENT_SKIN)
     if not customiseDialog[currentSkinKey] then
       customiseDialog[currentSkinKey] = CreateFrame("Frame", "BaganatorCustomiseDialogFrame" .. currentSkinKey, UIParent, "BaganatorCustomiseDialogTemplate")
@@ -30,7 +36,19 @@ function addonTable.CustomiseDialog.Initialize()
     customiseDialog[currentSkinKey]:RefreshOptions()
     customiseDialog[currentSkinKey]:SetShown(not customiseDialog[currentSkinKey]:IsShown())
     customiseDialog[currentSkinKey]:Raise()
+    if index then
+      customiseDialog[currentSkinKey]:SetIndex(3)
+    end
   end)
+
+  function addonTable.CustomiseDialog.IsDialogOpen()
+    for _, dialog in pairs(customiseDialog) do
+      if dialog:IsShown() then
+        return true
+      end
+    end
+    return false
+  end
 
   -- Create shortcut to open Baganator options from the Bliizzard addon options
   -- panel
@@ -57,6 +75,7 @@ function addonTable.CustomiseDialog.Initialize()
     end
     local button = CreateFrame("Button", nil, optionsFrame, template)
     button:SetText(addonTable.Locales.OPEN_OPTIONS)
+    button.padding = 60
     DynamicResizeButton_Resize(button)
     button:SetPoint("CENTER", optionsFrame, 0, -30)
     button:SetScale(2)

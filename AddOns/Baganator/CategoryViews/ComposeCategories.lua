@@ -79,7 +79,7 @@ local function GetAuto(category, everything)
         newItems[item.key] = addonTable.NewItems:IsNewItemTimeout(item.bagID, item.slotID) == true
         if newItems[item.key] == false and newByKey[item.key] ~= nil then
           for _, prevItem in ipairs(newByKey[item.key]) do
-            addonTable.NewItems:ClearNewItem(item.bagID, item.slotID)
+            addonTable.NewItems:ClearNewItem(prevItem.bagID, prevItem.slotID)
             addonTable.NewItems:ClearNewItemTimeout(prevItem.bagID, prevItem.slotID)
           end
         else

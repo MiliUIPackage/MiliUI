@@ -220,5 +220,5 @@ if addonTable.Skins.IsAddOnLoading("ElvUI") then
       rightText = addonTable.Locales.RELOAD_REQUIRED,
       default = false,
     },
-  }, true)
+  }, true, addonTable.Skins.PlayerLoginLoadingTrigger)
 end

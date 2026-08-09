@@ -356,3 +356,45 @@ function Baganator.API.RequestLayoutUpdate()
     end)
   end
 end
+
+function Baganator.API.ImportString(importText, resultName)
+  assert(type(importText) == "string")
+  local data
+  if importText:sub(1, 1) == "{" then
+    local status
+    status, data = pcall(C_EncodingUtil.DeserializeJSON, importText)
+    if not status or type(data) ~= "table" or (data.addon ~= "Baganator" and not data.categories) then
+      error("Invalid Baganator import")
+      return
+    end
+  else
+    local prefix = importText:match("^BGR!1!")
+    if not prefix then
+      error("Invalid Baganator import")
+      return
+    end
+    local status, decoded = pcall(C_EncodingUtil.DecodeBase64, importText:sub(7))
+    if not status then
+      error("Invalid Baganator import")
+      return
+    end
+    local status, decompressed = pcall(C_EncodingUtil.DecompressString, decoded)
+    if not status then
+      error("Invalid Baganator import")
+      return
+    end
+    status, data = pcall(C_EncodingUtil.DeserializeCBOR, decompressed)
+    if not status or type(data) ~= "table" or (data.addon ~= "Baganator" and not data.categories) then
+      error("Invalid Baganator import")
+      return
+    end
+  end
+
+  local result, reason = addonTable.CustomiseDialog.ImportData(data, resultName, true)
+
+  if result then
+    addonTable.Utilities.Message(addonTable.Locales.THANKS_FOR_USING_BAGANATOR_DONATE .. " https://linktr.ee/plusmouse")
+  else
+    error("Invalid Baganator import")
+  end
+end

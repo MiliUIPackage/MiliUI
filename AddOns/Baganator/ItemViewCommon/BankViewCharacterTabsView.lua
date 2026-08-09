@@ -27,6 +27,8 @@ function BaganatorItemViewCommonBankViewCharacterTabsViewMixin:OnLoad()
   self.currentTab = addonTable.Config.Get(addonTable.Config.Options.CHARACTER_BANK_CURRENT_TAB)
   self.updateTabs = true
 
+  self.bankType = Enum.BankType.Character
+
   addonTable.Utilities.AddBagSortManager(self) -- self.sortManager
   addonTable.Utilities.AddBagTransferManager(self) -- self.transferManager
 
@@ -160,7 +162,7 @@ function BaganatorItemViewCommonBankViewCharacterTabsViewMixin:ApplySearch(text)
 end
 
 function BaganatorItemViewCommonBankViewCharacterTabsViewMixin:ApplyTabButtonSearch(text)
-  if not self:IsShown() then
+  if not self:IsShown() or not self.Tabs then
     return
   end
 
@@ -300,9 +302,6 @@ function BaganatorItemViewCommonBankViewCharacterTabsViewMixin:SetupBlizzardFram
 
     local tabInfo = Syndicator.API.GetCharacter(self.lastCharacter).bankTabs[self.currentTab]
     local bagID = Syndicator.Constants.AllBankIndexes[self.currentTab]
-
-    -- Ensure right-clicking a bag item puts the item into this bank
-    BankFrame.BankPanel:SetBankType(Enum.BankType.Character)
 
     -- Workaround so that the tab edit UI shows the details for the current tab
     self.TabSettingsMenu.GetBankPanel = function()

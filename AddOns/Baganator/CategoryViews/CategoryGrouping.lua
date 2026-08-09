@@ -367,7 +367,9 @@ do
   end
 
   if addonTable.Constants.IsRetail then
-    groupingsToLabels["track"] = {}
+    groupingsToLabels["track"] = {
+      crafted = addonTable.Locales.CRAFTED,
+    }
     local items = {
       explorer = "|cnIQ2:|Hitem:237894::::::::80:253::25:5:12265:6652:10394:10392:3171:1:28:2462:::::|h[Pendant of Arcane Havoc]|h|r",
       adventurer = "|cnIQ3:|Hitem:249627::::::::90:104::126:3:12769:6652:13668:1:28:6020:::::|h[Arboreal Vine Collar]|h|r",
@@ -376,8 +378,28 @@ do
       hero =  "|cnIQ4:|Hitem:193707::::::::90:1473::16:4:12795:13440:6652:12701:1:28:1279:::::|h[Final Grade]|h|r",
       myth = "|cnIQ4:|Hitem:250247::::::::90:268::6:1:3524:1:28:3610:::::|h[Amulet of the Abyssal Hymn]|h|r",
     }
+    local bonusIDToTrack = {
+      [13653] = "hero",
+      [13654] = "myth",
+      [13655] = "crafted",
+      [12066] = "crafted",
+    }
+    local function CheckBonusIDs(itemLink)
+      local _, main = LinkUtil.ExtractLink(itemLink)
+      local entries = {strsplit(":", main)}
+      local bonusIDCount = tonumber(entries[14])
+      if bonusIDCount and bonusIDCount > 0 then
+        for i = 15, 14 + bonusIDCount do
+          local track = bonusIDToTrack[tonumber(entries[i])]
+          if track then
+            return track
+          end
+        end
+      end
+      return nil
+    end
     local order = {
-      "myth", "hero", "champion", "veteran", "adventurer", "explorer",
+      "crafted", "myth", "hero", "champion", "veteran", "adventurer", "explorer",
     }
     local labelToKey = {}
     local pending = 0
@@ -429,6 +451,9 @@ do
       local label = info and info.trackString
       if label then
         item.track = labelToKey[label]
+      end
+      if not item.track then
+        item.track = CheckBonusIDs(item.itemLink)
       end
       return true
     end

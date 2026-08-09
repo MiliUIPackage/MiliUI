@@ -176,13 +176,6 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:ResetToLive()
   self.lastCharacter = self.liveCharacter
 end
 
-function BaganatorItemViewCommonBankViewCharacterViewMixin:SetupBlizzardFramesForTab()
-  if self.isLive and Syndicator.Constants.WarbandBankActive then
-    BankFrame.activeTabIndex = addonTable.Constants.BlizzardBankTabConstants.Character
-    BankFrame.selectedTab = 1
-  end
-end
-
 function BaganatorItemViewCommonBankViewCharacterViewMixin:UpdateView()
   self:UpdateForCharacter(self.lastCharacter, self:GetParent().liveBankActive and self.lastCharacter == self.liveCharacter and (not Syndicator.Constants.WarbandBankActive or not C_PlayerInteractionManager.IsInteractingWithNpcOfType(Enum.PlayerInteractionType.AccountBanker)))
 end
@@ -239,8 +232,6 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:UpdateForCharacter(ch
   end
 
   self.BagSlots:SetPoint("BOTTOMLEFT", self, "TOPLEFT", addonTable.Constants.ButtonFrameOffset, 0)
-
-  self:SetupBlizzardFramesForTab()
 
   if self.BankMissingHint:IsShown() then
     local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()

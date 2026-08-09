@@ -13,3 +13,16 @@ function addonTable.Skins.IsAddOnLoading(name)
   end
   return true
 end
+
+function addonTable.Skins.ImmediateLoadingTrigger(callback)
+  callback()
+end
+
+function addonTable.Skins.PlayerLoginLoadingTrigger(callback)
+  local frame = CreateFrame("Frame")
+  frame:RegisterEvent("PLAYER_LOGIN")
+  frame:SetScript("OnEvent", function()
+    frame:UnregisterEvent("PLAYER_LOGIN")
+    callback()
+  end)
+end
