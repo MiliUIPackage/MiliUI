@@ -196,18 +196,22 @@ local function GetSpellIdFromTooltip(tip)
 end
 
 local function GetAuraSpellId(unit, index, filter)
+    -- 12.1: index-based aura reads hard-error while tainted once auras are secret.
+    if (addon.AurasAreSecret()) then return end
     if (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then
-        local aura = C_UnitAuras.GetAuraDataByIndex(unit, index, filter)
-        if (aura and aura.spellId) then
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
+        if (ok and aura and aura.spellId) then
             return aura.spellId
         end
     end
 end
 
 local function GetAuraSpellIdByInstance(unit, auraInstanceID)
+    -- 12.1: auraInstanceID-based aura reads hard-error while tainted once auras are secret.
+    if (addon.AurasAreSecret()) then return end
     if (C_UnitAuras and C_UnitAuras.GetAuraDataByAuraInstanceID) then
-        local aura = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)
-        if (aura and aura.spellId) then
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, auraInstanceID)
+        if (ok and aura and aura.spellId) then
             return aura.spellId
         end
     end

@@ -64,10 +64,15 @@ local function FindMountAura(unit)
             return auraName, auraSpellID, mountID
         end
     end
+    -- 12.1: index-based aura enumeration hard-errors while tainted once auras are secret.
+    if (addon.AurasAreSecret()) then return end
     if (UnitAura) then
         for i = 1, 40 do
-            local name, _, _, _, _, _, _, _, _, spellID = UnitAura(unit, i, "HELPFUL")
-            if (not name) then break end
+            local ok, name, spellID = pcall(function()
+                local n, _, _, _, _, _, _, _, _, sid = UnitAura(unit, i, "HELPFUL")
+                return n, sid
+            end)
+            if (not ok or not name) then break end
             local mountID = C_MountJournal.GetMountFromSpell(spellID)
             if (mountID) then
                 return name, spellID, mountID
@@ -77,8 +82,8 @@ local function FindMountAura(unit)
     end
     if (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then
         for i = 1, 40 do
-            local aura = C_UnitAuras.GetAuraDataByIndex(unit, i, "HELPFUL")
-            if (not aura) then break end
+            local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, i, "HELPFUL")
+            if (not ok or not aura) then break end
             local mountID = C_MountJournal.GetMountFromSpell(aura.spellId)
             if (mountID) then
                 return aura.name, aura.spellId, mountID

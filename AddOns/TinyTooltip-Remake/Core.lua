@@ -59,6 +59,17 @@ function addon.SafeValue(v, default)
     return v
 end
 
+-- 12.1: reading auras by index/slot/auraInstanceID hard-errors (not "returns secret") while
+-- tainted once auras are secret (combat, encounters, M+, PvP). Query-by-spellID still works.
+-- Gate every index/instance C_UnitAuras read with this; also pcall the call itself as backstop.
+function addon.AurasAreSecret()
+    if (C_Secrets and C_Secrets.ShouldAurasBeSecret) then
+        local ok, res = pcall(C_Secrets.ShouldAurasBeSecret)
+        if (ok and res) then return true end
+    end
+    return false
+end
+
 -- Guarded stand-in for GameTooltip_UnitColor (Blizzard_GameTooltip/Mainline/GameTooltip.lua).
 -- Mirrors its logic exactly, falling back to white whenever an input cannot be read.
 function addon.UnitColor(unit)
