@@ -5,9 +5,8 @@ addonTable.CallbackRegistry = CreateFromMixins(CallbackRegistryMixin)
 addonTable.CallbackRegistry:OnLoad()
 addonTable.CallbackRegistry:GenerateCallbackEvents(addonTable.Constants.Events)
 
-function addonTable.Core.MigrateSettings()
+function addonTable.Core.RemoveTemporaryWindows(allWindows)
   local windowsToRemove = {}
-  local allWindows = addonTable.Config.Get(addonTable.Config.Options.WINDOWS)
   for index, window in ipairs(allWindows) do
     window.tabs = tFilter(window.tabs, function(t) return not t.isTemporary end, true)
     for _, tab in ipairs(window.tabs) do
@@ -24,6 +23,11 @@ function addonTable.Core.MigrateSettings()
       table.remove(allWindows, windowsToRemove[i])
     end
   end
+end
+
+function addonTable.Core.MigrateSettings()
+  local allWindows = addonTable.Config.Get(addonTable.Config.Options.WINDOWS)
+  addonTable.Core.RemoveTemporaryWindows(allWindows)
   local buttonPositionMap = {
     left_always = "outside_left",
     left_hover = "inside_left",

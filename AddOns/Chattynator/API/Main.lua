@@ -168,3 +168,35 @@ function addonTable.API.Initialize()
     addonTable.Messages:AddLiveModifier(func)
   end
 end
+
+
+function Chattynator.API.ImportString(importText, resultName)
+  local prefix = importText:match("^CHATTY!1!")
+  if not prefix then
+    addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+    return
+  end
+  local status, decoded = pcall(C_EncodingUtil.DecodeBase64, importText:sub(10))
+  if not status then
+    addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+    return
+  end
+  local status, decompressed = pcall(C_EncodingUtil.DecompressString, decoded)
+  if not status then
+    addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+    return
+  end
+  local status, import = pcall(C_EncodingUtil.DeserializeCBOR, decompressed)
+  if not status or type(import) ~= "table" or import.addon ~= "Chattynator" then
+    addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.INVALID_IMPORT)
+    return
+  end
+
+  local result, reason = addonTable.CustomiseDialog.ImportData(import, resultName, true)
+
+  if result then
+    addonTable.Utilities.Message(addonTable.Locales.THANKS_FOR_USING_CHATTYNATOR_DONATE .. " https://linktr.ee/plusmouse")
+  else
+    error("Invalid Coolinator import")
+  end
+end

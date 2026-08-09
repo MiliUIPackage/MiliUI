@@ -96,6 +96,7 @@ local settings = {
   MESSAGE_SPACING = {key = "message_spacing", default = 5},
   TIMESTAMP_FORMAT = {key = "timestamp_format", default = "%X"},
   SHOW_TIMESTAMP_SEPARATOR = {key = "show_timestamp_separator", default = true, refresh = {addonTable.Constants.RefreshReason.MessageWidget}},
+  TIMESTAMP_SPACING = {key = "timestamp_spacing", default = 1},
 
   MESSAGE_FONT = {key = "message_font", default = "default", refresh = {addonTable.Constants.RefreshReason.MessageFont}},
   MESSAGE_FONT_SIZE = {key = "message_font_size", default = 14, refresh = {addonTable.Constants.RefreshReason.MessageFont}},
@@ -111,7 +112,7 @@ local settings = {
   LINK_URLS = {key = "link_urls", default = true, refresh = {addonTable.Constants.RefreshReason.MessageModifier}},
   REDUCE_REDUNDANT_TEXT = {key = "reduce_redundant_text", default = false, refresh = {addonTable.Constants.RefreshReason.MessageModifier}},
 
-  NEW_WHISPER_NEW_TAB = {key = "new_whisper_new_tab", default = 1},
+  NEW_WHISPER_NEW_TAB = {key = "new_whisper_new_tab", default = 0},
   BUTTON_POSITION = {key = "button_position", default = "outside_left"},
   SHOW_BUTTONS = {key = "show_buttons", default = "unset"},
   SHOW_TABS = {key = "show_tabs_1", default = "always", refresh = {addonTable.Constants.RefreshReason.Tabs}},
@@ -338,14 +339,19 @@ function addonTable.Config.DeleteProfile(profileName)
   CHATTYNATOR_CONFIG.Profiles[profileName] = nil
 end
 
-function addonTable.Config.ChangeProfile(newProfileName)
+function addonTable.Config.DumpCurrentProfile()
+  return CopyTable(CHATTYNATOR_CONFIG.Profiles[CHATTYNATOR_CURRENT_PROFILE])
+end
+
+function addonTable.Config.ChangeProfile(newProfileName, comparisonData)
   assert(tIndexOf(addonTable.Config.GetProfileNames(), newProfileName) ~= nil, "Invalid Profile")
 
   local changedOptions = {}
   local refreshState = {}
   local newProfile = CHATTYNATOR_CONFIG.Profiles[newProfileName]
+  local oldProfile = comparisonData or addonTable.Config.CurrentProfile
 
-  for name, value in pairs(addonTable.Config.CurrentProfile) do
+  for name, value in pairs(oldProfile) do
     if value ~= newProfile[name] then
       table.insert(changedOptions, name)
       Mixin(refreshState, addonTable.Config.RefreshType[name] or {})

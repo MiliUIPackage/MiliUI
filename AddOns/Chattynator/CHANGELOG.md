@@ -1,7 +1,8 @@
 # Chattynator
 
-## [209](https://github.com/TheMouseNest/Chattynator/tree/209) (2026-05-23)
-[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/208...209) 
+## [217-3-g6138f33](https://github.com/TheMouseNest/Chattynator/tree/6138f33d3405eea51bfa9e35b919fe7460bbbeab) (2026-08-08)
+[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/217...6138f33d3405eea51bfa9e35b919fe7460bbbeab) 
 
-- [Fixes #205] Resolve community channel name issues  
-- Customise: Rearrange options to better associate them with the tab names  
+- Update for Discord B.net integration  
+- Remove leftover print  
+- Fix "Move to whisper window" not working  

@@ -1,4 +1,4 @@
----@class addonTableBaganator
+---@class addonTableChattynator
 local addonTable = select(2, ...)
 
 local counter = 0
@@ -129,9 +129,6 @@ function addonTable.Dialogs.ShowConfirm(text, yesText, noText, confirmCallback)
       dialog:Hide()
     end)
 
-    addonTable.Skins.AddFrame("Button", dialog.acceptButton)
-    addonTable.Skins.AddFrame("Button", dialog.cancelButton)
-
     confirmDialogsBySkin[currentSkinKey] = dialog
   end
 
@@ -163,13 +160,138 @@ function addonTable.Dialogs.ShowAcknowledge(text)
       dialog:Hide()
     end)
 
-    addonTable.Skins.AddFrame("Button", dialog.okButton)
-
     acknowledgeDialogsBySkin[currentSkinKey] = dialog
   end
 
   local dialog = acknowledgeDialogsBySkin[currentSkinKey]
   dialog:Hide()
   dialog.text:SetText(text)
+  dialog:Show()
+end
+
+local moneyBoxDialogsBySkin = {}
+function addonTable.Dialogs.ShowMoneyBox(text, acceptText, cancelText, confirmCallback)
+  local currentSkinKey = addonTable.Config.Get(addonTable.Config.Options.CURRENT_SKIN)
+  if not moneyBoxDialogsBySkin[currentSkinKey] then
+    local dialog = GenerateDialog()
+    dialog:SetWidth(350)
+    dialog.moneyBox = CreateFrame("Frame", dialog:GetName() .. "MoneyBox", dialog, "MoneyInputFrameTemplate")
+    dialog.moneyBox:SetPoint("CENTER")
+
+    dialog.acceptButton = CreateFrame("Button", nil, dialog, "UIPanelDynamicResizeButtonTemplate")
+    dialog.cancelButton = CreateFrame("Button", nil, dialog, "UIPanelDynamicResizeButtonTemplate")
+
+    dialog.acceptButton:SetPoint("TOPRIGHT", dialog, "CENTER", -5, -18)
+    dialog.cancelButton:SetPoint("TOPLEFT", dialog, "CENTER", 5, -18)
+    dialog.cancelButton:SetScript("OnClick", function()
+      dialog:Hide()
+    end)
+
+    addonTable.Skins.AddFrame("EditBox", dialog.moneyBox.copper)
+    addonTable.Skins.AddFrame("EditBox", dialog.moneyBox.silver)
+    addonTable.Skins.AddFrame("EditBox", dialog.moneyBox.gold)
+    addonTable.Skins.AddFrame("Button", dialog.acceptButton)
+    addonTable.Skins.AddFrame("Button", dialog.cancelButton)
+
+    moneyBoxDialogsBySkin[currentSkinKey] = dialog
+  end
+
+  local dialog = moneyBoxDialogsBySkin[currentSkinKey]
+  dialog:Hide()
+  MoneyInputFrame_ResetMoney(dialog.moneyBox)
+
+  dialog.text:SetText(text)
+  dialog.acceptButton:SetText(acceptText)
+  DynamicResizeButton_Resize(dialog.acceptButton)
+  dialog.cancelButton:SetText(cancelText)
+  DynamicResizeButton_Resize(dialog.cancelButton)
+
+  local callback = function() confirmCallback(MoneyInputFrame_GetCopper(dialog.moneyBox)); dialog:Hide() end
+  dialog.acceptButton:SetScript("OnClick", callback)
+  dialog.moneyBox.copper:SetScript("OnEnterPressed", callback)
+  dialog.moneyBox.silver:SetScript("OnEnterPressed", callback)
+  dialog.moneyBox.gold:SetScript("OnEnterPressed", callback)
+
+  dialog:Show()
+  dialog.moneyBox.gold:SetFocus()
+end
+
+local moneyShowDialogsBySkin = {}
+function addonTable.Dialogs.ShowMoney(text, value, acceptText, cancelText, confirmCallback)
+  local currentSkinKey = addonTable.Config.Get(addonTable.Config.Options.CURRENT_SKIN)
+  if not moneyShowDialogsBySkin[currentSkinKey] then
+    local dialog = GenerateDialog()
+    dialog:SetWidth(400)
+
+    dialog.acceptButton = CreateFrame("Button", nil, dialog, "UIPanelDynamicResizeButtonTemplate")
+    dialog.cancelButton = CreateFrame("Button", nil, dialog, "UIPanelDynamicResizeButtonTemplate")
+
+    dialog.acceptButton:SetPoint("TOPRIGHT", dialog, "CENTER", -5, -18)
+    dialog.cancelButton:SetPoint("TOPLEFT", dialog, "CENTER", 5, -18)
+    dialog.cancelButton:SetScript("OnClick", function()
+      dialog:Hide()
+    end)
+
+    addonTable.Skins.AddFrame("Button", dialog.acceptButton)
+    addonTable.Skins.AddFrame("Button", dialog.cancelButton)
+
+    moneyShowDialogsBySkin[currentSkinKey] = dialog
+  end
+
+  local dialog = moneyShowDialogsBySkin[currentSkinKey]
+  dialog:Hide()
+
+  dialog.text:SetText(text .. "\n\n" .. GetMoneyString(value, true))
+  dialog.acceptButton:SetText(acceptText)
+  DynamicResizeButton_Resize(dialog.acceptButton)
+  dialog.cancelButton:SetText(cancelText)
+  DynamicResizeButton_Resize(dialog.cancelButton)
+
+  local callback = function() confirmCallback(); dialog:Hide() end
+  dialog.acceptButton:SetScript("OnClick", callback)
+
+  dialog:Show()
+end
+
+local dualChoiceDialogsBySkin = {}
+function addonTable.Dialogs.ShowDualChoice(text, option1Text, option2Text, option1Callback, option2Callback)
+  local currentSkinKey = addonTable.Config.Get(addonTable.Config.Options.CURRENT_SKIN)
+  if not dualChoiceDialogsBySkin[currentSkinKey] then
+    local dialog = GenerateDialog()
+    dialog:SetSize(450, 100)
+    dialog.text:SetPoint("TOP", 0, -30)
+
+    dialog.option1Button = CreateFrame("Button", nil, dialog, "UIPanelDynamicResizeButtonTemplate")
+    addonTable.Skins.AddFrame("Button", dialog.option1Button)
+    dialog.option2Button = CreateFrame("Button", nil, dialog, "UIPanelDynamicResizeButtonTemplate")
+    dialog.cancelButton = CreateFrame("Button", nil, dialog, "UIPanelDynamicResizeButtonTemplate")
+
+    dialog.option1Button:SetPoint("RIGHT", dialog.option2Button, "LEFT", -10, 0)
+    dialog.option2Button:SetPoint("TOP", dialog, "CENTER", 0, -10)
+    dialog.cancelButton:SetPoint("LEFT", dialog.option2Button, "RIGHT", 10, 0)
+    dialog.cancelButton:SetScript("OnClick", function()
+      dialog:Hide()
+    end)
+
+    addonTable.Skins.AddFrame("Button", dialog.option1Button)
+    addonTable.Skins.AddFrame("Button", dialog.option2Button)
+    addonTable.Skins.AddFrame("Button", dialog.cancelButton)
+
+    dualChoiceDialogsBySkin[currentSkinKey] = dialog
+  end
+
+  local dialog = dualChoiceDialogsBySkin[currentSkinKey]
+  dialog:Hide()
+
+  dialog.text:SetText(text)
+  dialog.option1Button:SetText(option1Text)
+  DynamicResizeButton_Resize(dialog.option1Button)
+  dialog.option2Button:SetText(option2Text)
+  DynamicResizeButton_Resize(dialog.option2Button)
+  dialog.cancelButton:SetText(CANCEL)
+  DynamicResizeButton_Resize(dialog.cancelButton)
+  dialog.option1Button:SetScript("OnClick", function() option1Callback(); dialog:Hide() end)
+  dialog.option2Button:SetScript("OnClick", function() option2Callback(); dialog:Hide() end)
+
   dialog:Show()
 end

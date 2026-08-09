@@ -1,6 +1,6 @@
-## Interface: 120007, 50503, 38001, 20505, 11508
+## Interface: 120007, 50504, 38001, 20506, 11509
 ## Title: Chattynator
-## Version: 209
+## Version: 217-3-g6138f33
 ## Author: plusmouse
 ## IconTexture: Interface\AddOns\Chattynator\Assets\Logo.png
 ## SavedVariables: CHATTYNATOR_CONFIG, CHATTYNATOR_MESSAGE_LOG
@@ -63,6 +63,8 @@ Skins/ElvUI.lua
 Skins/GW2.lua
 
 CustomiseDialog/Initialize.lua
+CustomiseDialog/ImportDialog.lua
+CustomiseDialog/ImportExport.lua
 CustomiseDialog/Main.lua
 CustomiseDialog/Filtering.lua
 CustomiseDialog/Components.lua

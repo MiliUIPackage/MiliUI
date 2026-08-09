@@ -197,6 +197,7 @@ local skinners = {
       fsWidth = math.max(tab:GetFontString():GetUnboundedStringWidth(), not tab:GetText():find("|K") and addonTable.Constants.MinTabWidth or 70) + addonTable.Constants.TabPadding
     end
     tab:GetFontString():SetWidth(fsWidth)
+    tab:GetFontString():SetJustifyH("CENTER")
     tab:SetWidth(fsWidth)
     local SetText = tab.SetText
     local text = tab:GetText()

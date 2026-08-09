@@ -51,13 +51,14 @@ function addonTable.Core.ApplyOverrides()
         return
       end
       local config = addonTable.Config.Get(addonTable.Config.Options.WINDOWS)[actualChatFrame:GetID()]
-      local tabConfig = addonTable.Config.GetEmptyTabConfig(Ambiguate(chatTarget, "all"))
-      tabConfig.whispersTemp[chatTarget] = true
+      local tabConfig = addonTable.Config.GetEmptyTabConfig(Ambiguate(chatTarget, "short"))
+      local player = Ambiguate(chatTarget, "none")
+      tabConfig.whispersTemp[player] = true
       tabConfig.isTemporary = true
       local c = ChatTypeInfo[chatType]
       tabConfig.tabColor = CreateColor(c.r, c.g, c.b):GenerateHexColorNoAlpha()
       table.insert(config.tabs, tabConfig)
-      config.tabs[actualChatFrame.tabIndex].whispersTemp[chatTarget] = false
+      config.tabs[actualChatFrame.tabIndex].whispersTemp[player] = false
       actualChatFrame.TabsBar:RefreshTabs()
       actualChatFrame.TabsBar.Tabs[#config.tabs]:Click()
       actualChatFrame = nil
