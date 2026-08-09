@@ -58,13 +58,17 @@ local function ColorStatusBar(self, value)
     if (addon.db.general.statusbarColor == "auto") then
         local unit = GetStatusbarUnit()
         local r, g, b
-        if (UnitIsPlayer(unit)) then
-            r, g, b = GetClassColor(select(2,UnitClass(unit)))
+        -- 12.1: a secret class token cannot index RAID_CLASS_COLORS, and GameTooltip_UnitColor
+        -- errors on our tainted call path -- fall back to addon.UnitColor in both cases
+        local class = addon.SafeValue(select(2, UnitClass(unit)))
+        if (UnitIsPlayer(unit) and class) then
+            r, g, b = GetClassColor(class)
         else
-            r, g, b = GameTooltip_UnitColor(unit)
+            r, g, b = addon.UnitColor(unit)
             if (g == 0.6) then g = 0.9 end
             if (r==1 and g==1 and b==1) then r, g, b = 0, 0.9, 0.1 end
         end
+        if (not r) then r, g, b = 1, 1, 1 end
         self:SetStatusBarColor(r, g, b)
     elseif (value and addon.db.general.statusbarColor == "smooth") then
         HealthBar_OnValueChanged(self, value, true)

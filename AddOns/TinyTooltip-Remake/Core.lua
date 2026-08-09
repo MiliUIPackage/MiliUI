@@ -38,6 +38,62 @@ local C_BattleNet_GetAccountInfoByGUID = C_BattleNet and C_BattleNet.GetAccountI
 
 local addon = TinyTooltip
 
+-------------------------------------
+-- 12.1 secret value helpers
+-- UnitClass / UnitIsPVP / UnitCanAttack / UnitReaction return secrets for identity-restricted
+-- units. Two consequences for tooltips:
+--   * GetClassColor(class) indexes RAID_CLASS_COLORS with the class token -- a secret key is a
+--     hard Lua error.
+--   * GameTooltip_UnitColor() is Blizzard code, but it runs on OUR tainted call path, so its
+--     own boolean tests on secret values error and blame this addon. It has to be replaced
+--     rather than guarded.
+-------------------------------------
+local _issecretvalue = _G.issecretvalue
+function addon.IsSecret(v)
+    return _issecretvalue and _issecretvalue(v) and true or false
+end
+
+-- Secret / nil -> default. Use before comparing a value or using it as a table key.
+function addon.SafeValue(v, default)
+    if v == nil or addon.IsSecret(v) then return default end
+    return v
+end
+
+-- Guarded stand-in for GameTooltip_UnitColor (Blizzard_GameTooltip/Mainline/GameTooltip.lua).
+-- Mirrors its logic exactly, falling back to white whenever an input cannot be read.
+function addon.UnitColor(unit)
+    local WHITE_R, WHITE_G, WHITE_B = 1.0, 1.0, 1.0
+    local controlled = UnitPlayerControlled(unit)
+    if addon.IsSecret(controlled) then return WHITE_R, WHITE_G, WHITE_B end
+
+    if (controlled) then
+        local theyCanAttackMe = UnitCanAttack(unit, "player")
+        local iCanAttackThem = UnitCanAttack("player", unit)
+        if (addon.IsSecret(theyCanAttackMe) or addon.IsSecret(iCanAttackThem)) then
+            return WHITE_R, WHITE_G, WHITE_B
+        end
+        local c
+        if (theyCanAttackMe) then
+            if (not iCanAttackThem) then return WHITE_R, WHITE_G, WHITE_B end
+            c = FACTION_BAR_COLORS[2] -- hostile players are red
+        elseif (iCanAttackThem) then
+            c = FACTION_BAR_COLORS[4] -- attackable but not hostile: yellow
+        else
+            local pvp = UnitIsPVP(unit)
+            if (not addon.IsSecret(pvp) and pvp) then
+                c = FACTION_BAR_COLORS[6] -- assistable but PvP flagged: green
+            end
+        end
+        if (c) then return c.r, c.g, c.b end
+        return WHITE_R, WHITE_G, WHITE_B
+    end
+
+    local reaction = addon.SafeValue(UnitReaction(unit, "player"))
+    local c = reaction and FACTION_BAR_COLORS[reaction]
+    if (c) then return c.r, c.g, c.b end
+    return WHITE_R, WHITE_G, WHITE_B
+end
+
 local function ResolveSpellIdFromSpellToken(spellToken)
     if (type(spellToken) == "number") then
         return spellToken
@@ -1354,14 +1410,17 @@ end
 addon.filterfunc, addon.colorfunc = {}, {}
 
 addon.colorfunc.class = function(raw)
+    local class = addon.SafeValue(raw.class) -- 12.1: a secret class token cannot be a table key
+    if (not class) then return 1, 1, 1, "ffffff" end
     if (CUSTOM_CLASS_COLORS) then
-        local color = CUSTOM_CLASS_COLORS[raw.class]
+        local color = CUSTOM_CLASS_COLORS[class]
         if color then
             return color.r, color.g, color.b, addon:GetHexColor(color.r, color.g, color.b)
         end
         return 1, 1, 1, "ffffff"
     end
-    local r, g, b = GetClassColor(raw.class)
+    local r, g, b = GetClassColor(class)
+    if (not r) then return 1, 1, 1, "ffffff" end
     return r, g, b, addon:GetHexColor(r, g, b)
 end
 

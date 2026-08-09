@@ -60,13 +60,13 @@ local function GetTargetString(unit)
         local okName, name = pcall(UnitName, unit)
         if (not okName or type(name) ~= "string") then return end
         local icon = addon:GetRaidIcon(unit) or ""
-        local r, g, b = GameTooltip_UnitColor(unit)
+        local r, g, b = addon.UnitColor(unit) -- 12.1: Blizzard's version errors on a tainted path
         if SafeIsUnit(unit, "player") then
             return format("|cffff3333>>%s<<|r", strupper(YOU))
         end
         if SafeIsPlayer(unit) then
-            local class = select(2, UnitClass(unit))
-            local colorCode = select(4, GetClassColor(class))
+            local class = addon.SafeValue(select(2, UnitClass(unit))) -- 12.1: may be secret
+            local colorCode = class and select(4, GetClassColor(class))
             return format("%s|c%s%s|r", icon, colorCode or "ffffffff", name)
         end
         if (r and g and b) then
@@ -81,13 +81,13 @@ local function GetTargetString(unit)
     if SafeIsUnit(unit, "player") then
         return format("|cffff3333>>%s<<|r", strupper(YOU))
     elseif SafeIsPlayer(unit) then
-        local class = select(2, UnitClass(unit))
-        local colorCode = select(4, GetClassColor(class))
+        local class = addon.SafeValue(select(2, UnitClass(unit))) -- 12.1: may be secret
+        local colorCode = (class and select(4, GetClassColor(class))) or "ffffffff"
         return format("%s|c%s%s|r", icon, colorCode, name)
     elseif SafeBool(UnitIsOtherPlayersPet, unit) then
-        return format("%s|cff%s<%s>|r", icon, addon:GetHexColor(GameTooltip_UnitColor(unit)), name)
+        return format("%s|cff%s<%s>|r", icon, addon:GetHexColor(addon.UnitColor(unit)), name)
     else
-        return format("%s|cff%s[%s]|r", icon, addon:GetHexColor(GameTooltip_UnitColor(unit)), name)
+        return format("%s|cff%s[%s]|r", icon, addon:GetHexColor(addon.UnitColor(unit)), name)
     end
 end
 
@@ -309,7 +309,8 @@ local function GetTargetByString(mouseover, num, tip)
                     first = false
                 end
                 roleIcon  = addon:GetRoleIcon(prefix..i) or ""
-                colorCode = select(4,GetClassColor(select(2,UnitClass(prefix..i))))
+                local tclass = addon.SafeValue(select(2, UnitClass(prefix..i))) -- 12.1: may be secret
+                colorCode = (tclass and select(4, GetClassColor(tclass))) or "ffffffff"
                 name      = UnitName(prefix..i)
                 tip:AddLine("   " .. roleIcon .. " |c" .. colorCode .. name .. "|r")
             end
