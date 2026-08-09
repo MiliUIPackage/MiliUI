@@ -128,7 +128,6 @@ local DISPLAYS = {
         requireEnabled = "defensiveCooldowns",
         showDuration = false,
         borderColor = BUFF_BORDER_COLOR,   -- 綠色 swipe，底層是黑色軌道
-        durationAnchor = "CENTER",         -- 長條上的倒數置中，不跟 Cell 的 BOTTOMRIGHT
         buildFilters = function()
             local map = BuildCellCuratedList("GetDefensives", "defensives")
             return map and { includeSpellIDs = map } or nil
@@ -141,7 +140,6 @@ local DISPLAYS = {
         requireEnabled = "externalCooldowns",
         showDuration = false,
         borderColor = BUFF_BORDER_COLOR,   -- 綠色 swipe，底層是黑色軌道
-        durationAnchor = "CENTER",         -- 長條上的倒數置中，不跟 Cell 的 BOTTOMRIGHT
         buildFilters = function()
             local map = BuildCellCuratedList("GetExternals", "externals")
             return map and { includeSpellIDs = map } or nil
@@ -154,7 +152,6 @@ local DISPLAYS = {
         requireEnabled = "allCooldowns",
         showDuration = false,
         borderColor = BUFF_BORDER_COLOR,   -- 綠色 swipe，底層是黑色軌道
-        durationAnchor = "CENTER",         -- 長條上的倒數置中，不跟 Cell 的 BOTTOMRIGHT
         buildFilters = function()
             local map = MergeSpellIDMaps(
                 BuildCellCuratedList("GetDefensives", "defensives"),
@@ -272,9 +269,15 @@ local function ApplyCellFont(fontString, cellFont, auraButton, iconHeight, fallb
     file = file or (GameFontNormal and GameFontNormal:GetFont()) or STANDARD_TEXT_FONT
 
     -- display 指定了錨點就蓋掉 Cell 的（長條上的倒數要水平垂直都置中，
-    -- Cell 的字型設定是 BOTTOMRIGHT）
-    if forcePoint then
-        point, offsetX, offsetY = forcePoint, 0, 0
+    -- Cell 的字型設定是 BOTTOMRIGHT）。
+    -- forcePoint 可以是字串，也可以是 { point, relativePoint, x, y } ——
+    -- 後者才表達得出「文字的 CENTER 對齊按鈕的 TOP」這種一半露在外面的效果。
+    local relativePoint = point
+    if type(forcePoint) == "table" then
+        point, relativePoint = forcePoint[1], forcePoint[2] or forcePoint[1]
+        offsetX, offsetY = forcePoint[3] or 0, forcePoint[4] or 0
+    elseif type(forcePoint) == "string" then
+        point, relativePoint, offsetX, offsetY = forcePoint, forcePoint, 0, 0
     end
 
     if file then
@@ -282,21 +285,75 @@ local function ApplyCellFont(fontString, cellFont, auraButton, iconHeight, fallb
     end
     fontString:SetTextColor(r, g, b)
     fontString:ClearAllPoints()
-    fontString:SetPoint(point, auraButton, point, offsetX, offsetY)
+    fontString:SetPoint(point, auraButton, relativePoint, offsetX, offsetY)
 end
 
 -- Cell 的 showDuration 有四種值：
 --   false        永不顯示
 --   true         永遠顯示
---   0.75 / 0.5   剩餘「比例」低於門檻才顯示
 --   >= 1         剩餘「秒數」低於門檻才顯示
--- 後兩種要讀剩餘時間才能判斷，而那正是 12.1 讀不到的。理論上可以用
--- SetDurationText 的 textColor ColorCurve 做成「門檻以上 alpha 0」來達成同樣
--- 效果（曲線由暴雪自己套用，插件不需要知道數值），但那個 property 列舉在 C 端
--- 處理器裡，Lua 原始碼查不到，還沒實作。目前門檻模式一律當成「永遠顯示」。
+--   0.75 / 0.5   剩餘「比例」低於門檻才顯示
+--
+-- 大前提不變：Cell 沒勾「顯示時間」就完全不顯示，這裡只決定「有勾的時候」
+-- 要不要再加門檻。
+--
+-- 門檻本身在 Lua 做不到（讀不到剩餘時間），但可以交給暴雪算：SetDurationText
+-- 的 textColor 收一條 ColorCurve，暴雪拿 RemainingDuration 去取樣它決定文字顏色，
+-- 而 ColorCurve 的點含 alpha。做一條「門檻以上 alpha 0」的曲線就等於門檻顯示。
+--
+-- 對應方式：
+--   >= 1  → 直接用 Cell 設的秒數當門檻（尊重使用者在 Cell 裡的設定）
+--   true  → 用 DEFAULT_DURATION_THRESHOLD。像大地之盾那種一小時的 buff，
+--           整場掛著 3599 沒有意義。設成 nil 就是真的「永遠顯示」。
+--   < 1   → 比例門檻要用 RemainingPercent 取樣，而它的值域（0-1 還是 0-100）
+--           沒有文件，先當成「永遠顯示」，不亂猜。
+-- 層數貼在圖示正上方、水平置中，文字中線壓在上緣所以一半露在圖示外 ——
+-- 不會蓋到圖示內容，一眼就看得到。
+local STACK_ANCHOR = { "CENTER", "TOP", 0, 0 }
+
+-- 倒數數字一律置中。Cell 的字型設定預設是 BOTTOMRIGHT（那是給層數用的角落
+-- 位置），套到倒數上會變成靠右下角，讀起來不直覺。
+local DURATION_ANCHOR = "CENTER"
+
+local DEFAULT_DURATION_THRESHOLD = 60
+
+-- 「門檻以上 alpha 0、以下 alpha 1」的顏色曲線。
+-- ColorCurve 沒有 SetType（不像 Curve 有 Step），只能線性內插，所以用兩個極
+-- 接近的點做出等效的階梯。
+local function BuildDurationAlphaCurve(threshold, r, g, b)
+    if not (C_CurveUtil and C_CurveUtil.CreateColorCurve and CreateColor) then return nil end
+
+    local ok, curve = pcall(C_CurveUtil.CreateColorCurve)
+    if not ok or not curve then return nil end
+
+    r, g, b = r or 1, g or 1, b or 1
+    local visible, hidden = CreateColor(r, g, b, 1), CreateColor(r, g, b, 0)
+
+    -- x 是剩餘秒數
+    local added = pcall(function()
+        curve:AddPoint(0, visible)
+        curve:AddPoint(threshold, visible)
+        curve:AddPoint(threshold + 0.01, hidden)
+        curve:AddPoint(threshold + 86400, hidden)
+    end)
+    if not added then return nil end
+    return curve
+end
+
 local function ShouldShowDuration(showDuration)
     if showDuration == nil or showDuration == false then return false end
     return true
+end
+
+-- 回傳秒數門檻，或 nil 表示不設門檻
+local function ResolveDurationThreshold(showDuration)
+    if type(showDuration) == "number" and showDuration >= 1 then
+        return showDuration
+    end
+    if showDuration == true then
+        return DEFAULT_DURATION_THRESHOLD
+    end
+    return nil
 end
 
 local function InitAuraButton(auraButton, display, sizeW, sizeH)
@@ -387,6 +444,19 @@ local function InitAuraButton(auraButton, display, sizeW, sizeH)
         auraButton.DurationBar:SetFrameLevel(iconFrame:GetFrameLevel() + 1)
     end
 
+    -- 文字再獨立一層疊在最上面。層級順序是：
+    --   外框 → 掃描 → 圖示 → 遮罩 → 文字
+    -- 遮罩必須在圖示之上（不然遮不到），文字又必須在遮罩之上（不然被蓋住），
+    -- 所以文字不能跟圖示同一層。
+    local topLevel = iconFrame:GetFrameLevel()
+    if auraButton.DurationBar then
+        topLevel = math.max(topLevel, auraButton.DurationBar:GetFrameLevel())
+    end
+    local textFrame = CreateFrame("Frame", nil, auraButton)
+    textFrame:SetAllPoints(auraButton)
+    textFrame:SetFrameLevel(topLevel + 1)
+    auraButton.TextFrame = textFrame
+
     local icon = iconFrame:CreateTexture(nil, "ARTWORK")
     icon:SetAllPoints(iconFrame)
     icon:SetTexCoord(0.12, 0.88, 0.12, 0.88)
@@ -399,20 +469,37 @@ local function InitAuraButton(auraButton, display, sizeW, sizeH)
     -- 文字掛在 iconFrame 上，跟 Cell 一樣 —— 掛在 auraButton 上會被 Cooldown
     -- 的掃描蓋住。
     if ShouldShowDuration(display.showDuration) then
-        local duration = iconFrame:CreateFontString(nil, "OVERLAY")
+        local duration = textFrame:CreateFontString(nil, "OVERLAY")
         ApplyCellFont(duration, display.fontConfig and display.fontConfig[2], iconFrame, sizeH,
-            nil, nil, nil, display.durationAnchor)
+            nil, nil, nil, display.durationAnchor or DURATION_ANCHOR)
         auraButton.Duration = duration
         if auraButton.SetDurationText then
-            auraButton:SetDurationText(duration,
-                DurationFormatter and { textFormatter = DurationFormatter } or nil)
+            local options = DurationFormatter and { textFormatter = DurationFormatter } or {}
+
+            local threshold = ResolveDurationThreshold(display.showDuration)
+            if threshold and Enum and Enum.DurationTextBindingProperty then
+                local font = display.fontConfig and display.fontConfig[2]
+                local color = type(font) == "table" and font[8] or nil
+                local curve = BuildDurationAlphaCurve(threshold,
+                    color and color[1], color and color[2], color and color[3])
+                if curve then
+                    options.textColor = {
+                        curve = curve,
+                        property = Enum.DurationTextBindingProperty.RemainingDuration,
+                    }
+                end
+            end
+
+            auraButton:SetDurationText(duration, next(options) and options or nil)
         end
     end
 
     if display.showStack ~= false then
-        local stack = iconFrame:CreateFontString(nil, "OVERLAY")
-        ApplyCellFont(stack, display.fontConfig and display.fontConfig[1], iconFrame, sizeH,
-            "BOTTOMRIGHT", 2, -1)
+        local stack = textFrame:CreateFontString(nil, "OVERLAY")
+        -- 錨到 auraButton 而不是 iconFrame：iconFrame 內縮了 BORDER_SIZE，
+        -- 要貼齊圖示外緣得用按鈕本身。
+        ApplyCellFont(stack, display.fontConfig and display.fontConfig[1], auraButton, sizeH,
+            nil, nil, nil, STACK_ANCHOR)
         auraButton.Count = stack
         if auraButton.SetApplicationCount then
             auraButton:SetApplicationCount(stack)
