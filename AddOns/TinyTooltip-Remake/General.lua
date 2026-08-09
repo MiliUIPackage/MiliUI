@@ -60,7 +60,7 @@ local function ColorStatusBar(self, value)
         local r, g, b
         -- 12.1: a secret class token cannot index RAID_CLASS_COLORS, and GameTooltip_UnitColor
         -- errors on our tainted call path -- fall back to addon.UnitColor in both cases
-        local class = addon.SafeValue(select(2, UnitClass(unit)))
+        local class = addon.SafeValue((select(2, UnitClass(unit)))) -- 12.1: extra parens drop classID so a secret can't leak via SafeValue's default arg
         if (UnitIsPlayer(unit) and class) then
             r, g, b = GetClassColor(class)
         else

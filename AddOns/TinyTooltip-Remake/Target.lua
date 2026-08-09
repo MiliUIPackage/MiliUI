@@ -65,7 +65,7 @@ local function GetTargetString(unit)
             return format("|cffff3333>>%s<<|r", strupper(YOU))
         end
         if SafeIsPlayer(unit) then
-            local class = addon.SafeValue(select(2, UnitClass(unit))) -- 12.1: may be secret
+            local class = addon.SafeValue((select(2, UnitClass(unit)))) -- 12.1: may be secret; extra parens drop classID
             local colorCode = class and select(4, GetClassColor(class))
             return format("%s|c%s%s|r", icon, colorCode or "ffffffff", name)
         end
@@ -81,7 +81,7 @@ local function GetTargetString(unit)
     if SafeIsUnit(unit, "player") then
         return format("|cffff3333>>%s<<|r", strupper(YOU))
     elseif SafeIsPlayer(unit) then
-        local class = addon.SafeValue(select(2, UnitClass(unit))) -- 12.1: may be secret
+        local class = addon.SafeValue((select(2, UnitClass(unit)))) -- 12.1: may be secret; extra parens drop classID
         local colorCode = (class and select(4, GetClassColor(class))) or "ffffffff"
         return format("%s|c%s%s|r", icon, colorCode, name)
     elseif SafeBool(UnitIsOtherPlayersPet, unit) then
@@ -309,7 +309,7 @@ local function GetTargetByString(mouseover, num, tip)
                     first = false
                 end
                 roleIcon  = addon:GetRoleIcon(prefix..i) or ""
-                local tclass = addon.SafeValue(select(2, UnitClass(prefix..i))) -- 12.1: may be secret
+                local tclass = addon.SafeValue((select(2, UnitClass(prefix..i)))) -- 12.1: may be secret; extra parens drop classID
                 colorCode = (tclass and select(4, GetClassColor(tclass))) or "ffffffff"
                 name      = UnitName(prefix..i)
                 tip:AddLine("   " .. roleIcon .. " |c" .. colorCode .. name .. "|r")
