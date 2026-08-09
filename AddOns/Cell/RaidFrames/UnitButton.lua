@@ -1816,6 +1816,13 @@ UnitButton_UpdateAuras = function(self, updateInfo)
     local unit = self.states.displayedUnit
     if not unit then return end
 
+    -- 12.1: when auras are secret the payload cannot be diffed (isFullUpdate is a secret boolean,
+    -- addedAuras a secret table) AND the slot-based full rescan below errors as well, because
+    -- GetAuraSlots/GetAuraDataBySlot Lua-error while auras are secret. Nothing can be updated, so
+    -- keep the last known state instead of erroring every UNIT_AURA. Cell needs to move to
+    -- AuraContainers for a real fix.
+    if updateInfo ~= nil and not F.CanDiffAuraPayload(updateInfo) then return end
+
     local isFullUpdate = not updateInfo or updateInfo.isFullUpdate
 
     if isFullUpdate then

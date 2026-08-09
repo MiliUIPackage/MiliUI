@@ -2643,3 +2643,27 @@ function F.ToBool(val)
     if val then return true end
     return nil
 end
+
+-- True if the table is secret, or if indexing it would produce secrets / error.
+function F.IsSecretTable(t)
+    if type(t) ~= "table" then return false end
+    if not Cell.isMidnight then return false end
+    if issecrettable and issecrettable(t) then return true end
+    if canaccesstable and not canaccesstable(t) then return true end
+    return false
+end
+
+-- 12.1: while auras are secret (combat / encounter / M+ / PvP match) the UNIT_AURA payload is
+-- fully secret. The payload table itself is still indexable, but `isFullUpdate` is a secret
+-- BOOLEAN -- a boolean test on it is an immediate Lua error -- and addedAuras /
+-- updatedAuraInstanceIDs / removedAuraInstanceIDs are secret TABLES, so iterating them errors.
+-- Returns false when the payload cannot be diffed.
+function F.CanDiffAuraPayload(info)
+    if info == nil then return false end
+    if not Cell.isMidnight then return true end
+    if F.IsSecretValue(info.isFullUpdate) then return false end
+    if F.IsSecretTable(info.addedAuras) then return false end
+    if F.IsSecretTable(info.updatedAuraInstanceIDs) then return false end
+    if F.IsSecretTable(info.removedAuraInstanceIDs) then return false end
+    return true
+end

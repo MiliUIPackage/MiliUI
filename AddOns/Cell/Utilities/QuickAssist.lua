@@ -232,6 +232,9 @@ local function QuickAssist_UpdateAuras(self, updateInfo)
 
     local buffsChanged
 
+    -- 12.1: secret UNIT_AURA payload can neither be diffed nor rescanned via GetAuraSlots
+    if updateInfo ~= nil and not F.CanDiffAuraPayload(updateInfo) then return end
+
     if not updateInfo or updateInfo.isFullUpdate then
         wipe(self._buffs_cache)
         wipe(self._buffs_count_cache)
