@@ -2222,7 +2222,8 @@ UnitButton_UpdateRole = function(self)
     local unit = self.states.unit
     if not unit then return end
 
-    local role = UnitGroupRolesAssigned(unit)
+    -- 12.1: secret for identity-restricted units (boss frames); roleIcon:SetRole compares it
+    local role = F.Desecret(UnitGroupRolesAssigned(unit))
     self.states.role = role
 
     local roleIcon = self.indicators.roleIcon
@@ -2252,9 +2253,10 @@ UnitButton_UpdateLeader = function(self, event)
             return
         end
 
-        local isLeader = UnitIsGroupLeader(unit)
+        -- 12.1: both return secret booleans for identity-restricted units
+        local isLeader = F.ToBool(UnitIsGroupLeader(unit))
         self.states.isLeader = isLeader
-        local isAssistant = UnitIsGroupAssistant(unit) and IsInRaid()
+        local isAssistant = F.ToBool(UnitIsGroupAssistant(unit)) and IsInRaid()
         self.states.isAssistant = isAssistant
 
         leaderIcon:SetIcon(isLeader, isAssistant)
@@ -2907,7 +2909,9 @@ local function UnitButton_UpdateName(self)
     -- However, any NAME COMPARISONS (name == something) will error if name is secret
     self.states.name = UnitName(unit)
     self.states.fullName = F.UnitFullName(unit)
-    self.states.class = UnitClassBase(unit)
+    -- 12.1: UnitClass/UnitClassBase are secret when the unit's identity is restricted, and
+    -- states.class is used as a RAID_CLASS_COLORS key downstream -- sanitise at the source
+    self.states.class = F.Desecret(UnitClassBase(unit))
     self.states.guid = UnitGUID(unit)
     self.states.isPlayer = UnitIsPlayer(unit)
 
@@ -2919,8 +2923,10 @@ UnitButton_UpdateNameTextColor = function(self)
     if not unit then return end
 
     if enabledIndicators["nameText"] then
+        -- 12.1: UnitIsCharmed returns a secret boolean whenever auras are secret (ie. in combat)
+        -- for anything other than the player/pet/vehicle tokens
         if indicatorColors["nameText"][1] == "class_color" or not UnitIsConnected(unit)
-        or ((UnitIsPlayer(unit) or UnitInPartyIsAI(unit)) and UnitIsCharmed(unit)) or self.states.inVehicle then
+        or ((UnitIsPlayer(unit) or UnitInPartyIsAI(unit)) and F.ToBool(UnitIsCharmed(unit))) or self.states.inVehicle then
             self.indicators.nameText:SetColor(F.GetUnitClassColor(unit))
         else
             self.indicators.nameText:SetColor(unpack(indicatorColors["nameText"][2]))
@@ -2946,7 +2952,7 @@ UnitButton_UpdateHealthColor = function(self)
     -- TODO: implement proper ColorCurve coloring for threshold/gradient modes once
     -- SetStatusBarColor secret color API is verified on PTR.
 
-    self.states.class = UnitClassBase(unit) --! update class
+    self.states.class = F.Desecret(UnitClassBase(unit)) --! update class
 
     local barR, barG, barB
     local lossR, lossG, lossB
@@ -2961,7 +2967,7 @@ UnitButton_UpdateHealthColor = function(self)
         if not UnitIsConnected(unit) then
             barR, barG, barB = 0.4, 0.4, 0.4
             lossR, lossG, lossB = 0.4, 0.4, 0.4
-        elseif UnitIsCharmed(unit) then
+        elseif F.ToBool(UnitIsCharmed(unit)) then
             barR, barG, barB, barA = 0.5, 0, 1, 1
             lossR, lossG, lossB, lossA = barR*0.2, barG*0.2, barB*0.2, 1
         elseif self.states.inVehicle then

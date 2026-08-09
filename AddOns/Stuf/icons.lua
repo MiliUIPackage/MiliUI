@@ -235,7 +235,8 @@ do  -- General Icons -----------------------------------------------------------
 			updateuniticon(su.player, "looticon", "Hide")
 			updateuniticon(su.player, "leadericon", "Hide")
 			updateuniticon(tar, "looticon", "Hide")
-			updateuniticon(tar, "leadericon", UnitIsGroupLeader("target") and "Show" or "Hide")
+			-- 12.1: UnitIsGroupLeader 回傳 secret boolean 時不能做布林測試，ToBool 轉成 plain true/nil
+			updateuniticon(tar, "leadericon", Stuf.ToBool(UnitIsGroupLeader("target")) and "Show" or "Hide")
 			return
 		end
 		partyiconhidden = nil
@@ -256,7 +257,7 @@ do  -- General Icons -----------------------------------------------------------
 		for u, uf in pairs(su) do  -- now update each applicable frame
 			if uf.looticon or uf.leadericon then
 				updateuniticon(uf, "looticon", looter and UnitIsUnit(looter, u) and "Show" or "Hide")
-				updateuniticon(uf, "leadericon", UnitIsGroupLeader(u) and "Show" or "Hide")
+				updateuniticon(uf, "leadericon", Stuf.ToBool(UnitIsGroupLeader(u)) and "Show" or "Hide")
 			end
 		end
 	end
@@ -425,7 +426,9 @@ do  -- General Icons -----------------------------------------------------------
 					if f and not f.db.hide then
 						local role
 						if Stuf.ingroup then
-							role = UnitGroupRolesAssigned(u)
+							-- 12.1: UnitGroupRolesAssigned 在 identity 為 secret 時回傳 secret，
+							-- 既不能比較也不能當 roleCoords 的 key
+							role = Stuf.Desecret(UnitGroupRolesAssigned(u))
 						end
 						if not config and (not role or role == "NONE") then
 							f:Hide()

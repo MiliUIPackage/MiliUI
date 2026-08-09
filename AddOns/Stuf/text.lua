@@ -41,8 +41,9 @@ local conditions = {
 	pc = function(ca, unit) return ca.pc end,
 	npc = function(ca, unit) return not ca.pc end,
 	pvp = function(ca, unit) return ca.pvp end,
-	male = function(ca, unit) return UnitSex(unit) == 2 end,
-	female = function(ca, unit) return UnitSex(unit) == 3 end,
+	-- 12.1: UnitSex 在 unit identity 為 secret 時回傳 secret，直接比較會 Lua error
+	male = function(ca, unit) local s = UnitSex(unit) return not Stuf.IsSecret(s) and s == 2 end,
+	female = function(ca, unit) local s = UnitSex(unit) return not Stuf.IsSecret(s) and s == 3 end,
 	helpful = function(ca, unit) return ca.assist end,
 	hostile = function(ca, unit) return ca.hostile end,
 	attackable = function(ca, unit) return ca.attackable end,

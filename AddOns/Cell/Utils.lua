@@ -1161,6 +1161,7 @@ local UnitInPartyIsAI = UnitInPartyIsAI or function() end
 -------------------------------------------------
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 function F.GetClassColor(class)
+    class = F.Desecret(class) -- 12.1: a secret class can be neither compared nor used as a key
     if class and class ~= "" and RAID_CLASS_COLORS[class] then
         if CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[class] then
             return CUSTOM_CLASS_COLORS[class].r, CUSTOM_CLASS_COLORS[class].g, CUSTOM_CLASS_COLORS[class].b
@@ -1173,6 +1174,7 @@ function F.GetClassColor(class)
 end
 
 function F.GetClassColorStr(class)
+    class = F.Desecret(class)
     if class and class ~= "" and RAID_CLASS_COLORS[class] then
         if CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[class] then
             return "|c"..CUSTOM_CLASS_COLORS[class].colorStr
@@ -1454,7 +1456,9 @@ end
 
 function F.UnitInGroup(unit, ignorePets)
     if ignorePets then
-        return UnitIsUnit(unit, "player") or UnitInParty(unit) or UnitInRaid(unit) or UnitInPartyIsAI(unit)
+        -- 12.1: UnitInRaid returns a secret boolean for identity-restricted units, and every
+        -- caller of UnitInGroup boolean-tests the result -- normalise it here.
+        return UnitIsUnit(unit, "player") or UnitInParty(unit) or F.ToBool(UnitInRaid(unit)) or UnitInPartyIsAI(unit)
     else
         return UnitIsUnit(unit, "player") or UnitIsUnit(unit, "pet") or UnitPlayerOrPetInParty(unit) or UnitPlayerOrPetInRaid(unit) or UnitInPartyIsAI(unit)
     end
@@ -2214,7 +2218,8 @@ end
 local UnitInSamePhase
 if Cell.isRetail then
     UnitInSamePhase = function(unit)
-        return not UnitPhaseReason(unit)
+        -- 12.1: UnitPhaseReason is secret for identity-restricted units; assume same phase
+        return not F.Desecret(UnitPhaseReason(unit))
     end
 else
     UnitInSamePhase = UnitInPhase
@@ -2613,4 +2618,28 @@ function F.IsSecretValue(val)
     if not Cell.isMidnight then return false end
     if not issecretvalue then return false end
     return issecretvalue(val) == true
+end
+
+-- Patch 12.1.0: UnitClass/UnitClassBase/UnitRace/UnitGroupRolesAssigned/UnitInRaid/
+-- UnitIsGroupLeader/UnitIsGroupAssistant/UnitPhaseReason return secrets when the unit's
+-- identity is restricted (not player-controlled and not in the party/raid -- ie. boss/npc/
+-- enemy units). UnitIsCharmed/UnitIsPossessed return secrets whenever auras are secret.
+--
+-- Note that `secret or "DEFAULT"` does NOT work as a fallback: boolean tests on non-boolean
+-- secrets are legal, so the secret is truthy and the fallback never fires. Guard explicitly.
+
+-- Secret (or nil) -> default. Use before comparing a value or using it as a table key.
+function F.Desecret(val, default)
+    if val == nil then return default end
+    if not Cell.isMidnight then return val end
+    if issecretvalue and issecretvalue(val) then return default end
+    return val
+end
+
+-- Secret boolean -> nil, otherwise plain true/nil. Boolean tests on secret BOOLEANS are a
+-- hard Lua error, so any API returning a secret boolean must go through this.
+function F.ToBool(val)
+    if Cell.isMidnight and issecretvalue and issecretvalue(val) then return nil end
+    if val then return true end
+    return nil
 end

@@ -50,6 +50,26 @@ Stuf.nofunc = function() end
 Stuf.vunit = "player"
 Stuf.numraid = 0
 
+-- 12.1 secret value helpers
+-- UnitClass / UnitClassBase / UnitRace / UnitSex / UnitInRaid / UnitIsPVP / UnitGroupRolesAssigned 等
+-- 在 unit identity 為 secret 時（非 player-controlled 且不在隊伍/團隊）一律回傳 secret。
+-- 對非 boolean 的 secret 做布林測試是合法的，所以 `x or "DEFAULT"` 擋不住 secret，必須明確判斷。
+local _issecretvalue = _G.issecretvalue
+local function IsSecret(v)
+	return _issecretvalue and _issecretvalue(v) and true or false
+end
+local function desecret(v, default)  -- secret / nil -> default（secret 不能拿來當 table key）
+	if v == nil or IsSecret(v) then return default end
+	return v
+end
+local function toBool(v)  -- secret boolean -> nil，否則轉成 plain true/nil
+	if IsSecret(v) then return nil end
+	if v then return true end
+	return nil
+end
+Stuf.IsSecret = IsSecret
+Stuf.Desecret = desecret
+Stuf.ToBool = toBool
 
 -- fast access local variables
 local su, pla, tar, vunit, vf, partyvisible, doaggro = Stuf.units, nil, nil, "player", nil, nil, nil
@@ -858,16 +878,20 @@ do  -- general data updating
 		local level = UnitLevel(unit)
 		cache.level = (level == -1 and dbg.classification.unknown) or level
 		cache.name = (config and uf.unit) or GetUnitName(unit)
-		cache.class, cache.CLASS = UnitClass(unit)
-		
+		-- 12.1: CLASS 會被拿去索引 classcolor / CLASS_ICON_TCOORDS / CLASS_BUTTONS，
+		-- 是 secret 時直接 Lua error（cannot be indexed with secret keys），所以在來源就洗成 nil
+		local uclass, uCLASS = UnitClass(unit)
+		cache.class = uclass
+		cache.CLASS = desecret(uCLASS)
+
 		if UnitIsPlayer(unit) then
 			cache.pc = true
-			cache.race = UnitRace(unit) or UnitCreatureType(unit) or L["Humanoid"] or ""
+			cache.race = desecret(UnitRace(unit)) or desecret(UnitCreatureType(unit)) or L["Humanoid"] or ""
 			cache.titlename = UnitPVPName(unit) or cache.name
-			cache.ingroup = uf.skipgroup or (UnitInParty(unit) or UnitInRaid(unit))
+			cache.ingroup = uf.skipgroup or toBool(UnitInParty(unit)) or toBool(UnitInRaid(unit))
 		else
 			cache.pc = nil
-			cache.race = UnitCreatureType(unit) or _G.UNKNOWN or ""
+			cache.race = desecret(UnitCreatureType(unit)) or _G.UNKNOWN or ""
 			cache.titlename = cache.name
 			cache.ingroup = uf.skipgroup
 		end
@@ -926,16 +950,8 @@ do  -- general data updating
 			cache.creaturetype = (ct == "Not specified" and _G.UNKNOWN) or ct
 		end)
 		
-		-- Convert secret boolean to plain true/nil.
-		-- CANNOT use pcall for boolean tests in 12.0.1 -- taint errors escape pcall.
-		-- Use issecretvalue to detect and return nil for secret booleans.
-		local _issecretB = _G.issecretvalue
-		local function toBool(v)
-			if _issecretB and _issecretB(v) then return nil end
-			if v then return true end
-			return nil
-		end
-		
+		-- Convert secret boolean to plain true/nil (shared toBool, defined at file scope).
+		-- CANNOT use pcall for boolean tests -- taint errors escape pcall.
 		cache.pvp = toBool(UnitIsPVP(unit))
 		cache.faction = (cache.pvp and UnitFactionGroup(unit)) or ""
 		cache.incombat = toBool(UnitAffectingCombat(unit))

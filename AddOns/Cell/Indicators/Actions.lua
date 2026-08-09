@@ -33,7 +33,9 @@ end
 local eventFrame = CreateFrame("Frame")
 eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellID)
     -- filter out players not in your group
-    if not (UnitInRaid(unit) or UnitInParty(unit) or unit == "player" or unit == "pet") then return end
+    -- 12.1: UnitInRaid returns a secret boolean for identity-restricted units, and `not (...)`
+    -- on a secret boolean is a hard Lua error
+    if not (F.ToBool(UnitInRaid(unit)) or UnitInParty(unit) or unit == "player" or unit == "pet") then return end
 
     -- Midnight 12.0.0+: spellID from UNIT_SPELLCAST_SUCCEEDED may be secret
     -- during restricted contexts; skip if so since we can't use it as a table key

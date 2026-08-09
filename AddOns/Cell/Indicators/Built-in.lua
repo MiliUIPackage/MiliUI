@@ -306,7 +306,7 @@ function I.CreateTankActiveMitigation(parent)
 
     function bar:SetCooldown(start, duration)
         if bar.cType == "class_color" then
-            if not parent.states.class then parent.states.class = UnitClassBase(parent.states.unit) end --? why sometimes parent.states.class == nil ???
+            if not parent.states.class then parent.states.class = F.Desecret(UnitClassBase(parent.states.unit)) end --? why sometimes parent.states.class == nil ???
             tex:SetColorTexture(F.GetClassColor(parent.states.class))
         else
             tex:SetColorTexture(bar.cTable[1], bar.cTable[2], bar.cTable[3])
