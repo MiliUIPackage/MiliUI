@@ -505,8 +505,8 @@ end
 
 local function SeedMaelstrom()
     local a = GetPlayerAuraBySpellID(CDM_C.MAELSTROM_WEAPON_SPELL_ID)
-    maelstromInstanceID = a and a.auraInstanceID or nil
-    maelstromStacks = a and a.applications or 0
+    maelstromInstanceID = a and CDM.SafeNumber(a.auraInstanceID, nil) or nil
+    maelstromStacks = a and CDM.SafeNumber(a.applications, 0) or 0
 end
 
 local function UpdateMaelstromBar()
@@ -515,8 +515,8 @@ end
 
 local function SeedFeralOverflowing()
     local a = GetPlayerAuraBySpellID(CDM_C.FERAL_OVERFLOWING_POWER_SPELL_ID)
-    feralOverflowingInstanceID = a and a.auraInstanceID or nil
-    feralOverflowingStacks = a and a.applications or 0
+    feralOverflowingInstanceID = a and CDM.SafeNumber(a.auraInstanceID, nil) or nil
+    feralOverflowingStacks = a and CDM.SafeNumber(a.applications, 0) or 0
 end
 
 local function GetFeralOverflowingStacks()
@@ -525,9 +525,9 @@ end
 
 local function SeedTipOfTheSpear()
     local a = GetPlayerAuraBySpellID(CDM_C.TIP_OF_THE_SPEAR_SPELL_ID)
-    tipOfTheSpearInstanceID = a and a.auraInstanceID or nil
-    tipOfTheSpearStacks = a and a.applications or 0
-    tipOfTheSpearExpirationTime = a and a.expirationTime or nil
+    tipOfTheSpearInstanceID = a and CDM.SafeNumber(a.auraInstanceID, nil) or nil
+    tipOfTheSpearStacks = a and CDM.SafeNumber(a.applications, 0) or 0
+    tipOfTheSpearExpirationTime = a and CDM.SafeNumber(a.expirationTime, nil) or nil
 end
 
 local function UpdateTipOfTheSpearBar()
@@ -766,7 +766,8 @@ end
 
 local function OnMaelstromUnitAura(event, unit, info)
     if unit ~= "player" then return end
-    if not info or info.isFullUpdate then
+    -- 12.1: bail to a spell-ID re-seed when the payload is secret and cannot be diffed
+    if not CDM.CanDiffAuraPayload(info) or info.isFullUpdate then
         SeedMaelstrom()
     else
         if info.addedAuras then
@@ -799,7 +800,8 @@ end
 
 local function OnFeralOverflowingUnitAura(event, unit, info)
     if unit ~= "player" then return end
-    if not info or info.isFullUpdate then
+    -- 12.1: bail to a spell-ID re-seed when the payload is secret and cannot be diffed
+    if not CDM.CanDiffAuraPayload(info) or info.isFullUpdate then
         SeedFeralOverflowing()
     else
         if info.addedAuras then
@@ -832,7 +834,8 @@ end
 
 local function OnTipOfTheSpearUnitAura(event, unit, info)
     if unit ~= "player" then return end
-    if not info or info.isFullUpdate then
+    -- 12.1: bail to a spell-ID re-seed when the payload is secret and cannot be diffed
+    if not CDM.CanDiffAuraPayload(info) or info.isFullUpdate then
         SeedTipOfTheSpear()
     else
         if info.addedAuras then
@@ -868,24 +871,25 @@ end
 
 local function SeedDevourer()
     local resourceAura = GetPlayerAuraBySpellID(CDM_C.DEVOURER_RESOURCE_AURA_SPELL_ID)
-    devourerResourceInstanceID = resourceAura and resourceAura.auraInstanceID or nil
-    devourerResourceStacks = resourceAura and resourceAura.applications or 0
+    devourerResourceInstanceID = resourceAura and CDM.SafeNumber(resourceAura.auraInstanceID, nil) or nil
+    devourerResourceStacks = resourceAura and CDM.SafeNumber(resourceAura.applications, 0) or 0
 
     local collapsingStarAura = CDM_C.DEVOURER_COLLAPSING_STAR_SPELL_ID
         and GetPlayerAuraBySpellID(CDM_C.DEVOURER_COLLAPSING_STAR_SPELL_ID) or nil
-    devourerCollapsingStarInstanceID = collapsingStarAura and collapsingStarAura.auraInstanceID or nil
-    devourerCollapsingStarStacks = collapsingStarAura and collapsingStarAura.applications or 0
+    devourerCollapsingStarInstanceID = collapsingStarAura and CDM.SafeNumber(collapsingStarAura.auraInstanceID, nil) or nil
+    devourerCollapsingStarStacks = collapsingStarAura and CDM.SafeNumber(collapsingStarAura.applications, 0) or 0
 
     local voidMetaAura = CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID
         and GetPlayerAuraBySpellID(CDM_C.DEVOURER_VOID_METAMORPHOSIS_SPELL_ID) or nil
-    devourerVoidMetaInstanceID = voidMetaAura and voidMetaAura.auraInstanceID or nil
+    devourerVoidMetaInstanceID = voidMetaAura and CDM.SafeNumber(voidMetaAura.auraInstanceID, nil) or nil
 end
 
 local function OnDevourerUnitAura(event, unit, info)
     if unit ~= "player" then return end
     local wasInVoidMeta = devourerVoidMetaInstanceID ~= nil
 
-    if not info or info.isFullUpdate then
+    -- 12.1: bail to a spell-ID re-seed when the payload is secret and cannot be diffed
+    if not CDM.CanDiffAuraPayload(info) or info.isFullUpdate then
         SeedDevourer()
     else
         if info.addedAuras then

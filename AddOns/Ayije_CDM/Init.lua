@@ -167,6 +167,41 @@ function CDM.IsSafeNumber(value)
        and canaccessvalue(value)
 end
 
+-- Patch 12.1.0: while auras are secret (combat / encounter / M+ / PvP match) the UNIT_AURA
+-- payload is fully secret. The payload table itself is still indexable, but `isFullUpdate` is
+-- a secret BOOLEAN -- a boolean test on it is an immediate Lua error -- and `addedAuras` /
+-- `updatedAuraInstanceIDs` / `removedAuraInstanceIDs` are secret TABLES, so `#`, ipairs and
+-- key comparisons error too.
+--
+-- Spell-ID lookups (GetPlayerAuraBySpellID) still work in 12.1, so when the payload cannot be
+-- diffed the correct fallback is to re-seed from scratch rather than to skip the update.
+function CDM.IsReadable(value)
+    if value == nil then return true end
+    if issecretvalue and issecretvalue(value) then return false end
+    if type(value) == "table" then
+        if issecrettable and issecrettable(value) then return false end
+        if canaccesstable and not canaccesstable(value) then return false end
+    end
+    return true
+end
+
+-- Secret / non-numeric -> default. AuraData structs are always fully secret in 12.1 unless the
+-- spell is flagged non-secret, so every field read off an aura must go through this.
+function CDM.SafeNumber(value, default)
+    if CDM.IsSafeNumber(value) then return value end
+    return default
+end
+
+-- Returns true only when every field of a UNIT_AURA payload can be read and diffed.
+function CDM.CanDiffAuraPayload(info)
+    if info == nil then return false end
+    if not CDM.IsReadable(info) then return false end
+    return CDM.IsReadable(info.isFullUpdate)
+       and CDM.IsReadable(info.addedAuras)
+       and CDM.IsReadable(info.updatedAuraInstanceIDs)
+       and CDM.IsReadable(info.removedAuraInstanceIDs)
+end
+
 function CDM.Print(msg)
     print("|cff00ccff[ACDM]|r " .. tostring(msg))
 end

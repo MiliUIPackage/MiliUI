@@ -325,7 +325,8 @@ local function SeedBloodlust()
 end
 
 local function OnBloodlustAura(event, unit, info)
-    if not info or info.isFullUpdate then
+    -- 12.1: bail to a spell-ID re-seed when the payload is secret and cannot be diffed
+    if not CDM.CanDiffAuraPayload(info) or info.isFullUpdate then
         SeedBloodlust()
         return
     end
