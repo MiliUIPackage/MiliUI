@@ -53,11 +53,13 @@ Enhance\CharacterNotes.lua
 Enhance\DBM_PrivateAura.lua
 Enhance\ItemUpgrade_PreviewIcon.lua
 
+Fix\DeprecatedGlobals.lua
 Fix\TooltipTaintFix.lua
 Fix\InspectTaintFix.lua
 Fix\AuraContainerCore.lua
 Fix\Cell_AuraContainer.lua
 Fix\Stuf_AuraContainer.lua
+Fix\Stuf_OptionsCategory.lua
 Fix\Stuf_Fix.lua
 Fix\Stuf_InspectTooltipLocale.lua
 Fix\AyijeCDM_StufAnchor.lua

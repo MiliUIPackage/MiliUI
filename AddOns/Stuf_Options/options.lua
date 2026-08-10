@@ -2832,6 +2832,13 @@ function Stuf:GetOptionsTable()
 end
 
 AceConfig:RegisterOptionsTable("Stuf", options)
+
+-- [MiliUI 12.1] 載入時就把面板註冊進設定選單。
+-- 原本只有 /stuf（OpenOptions）或 LoadDefaults 才會呼叫 CreateOptionFrame，
+-- 而本插件是 LoadOnDemand —— 沒打過 /stuf 就完全沒有註冊，設定選單裡自然
+-- 找不到 Stuf。搭配 MiliUI 的 Fix\Stuf_OptionsCategory.lua 在登入時載入本
+-- 插件，選單項目才會一直存在。
+CreateOptionFrame()
 --------------------------------
 function Stuf:OpenOptions(frame)
 --------------------------------
