@@ -202,6 +202,26 @@ end
 -- Container-backed indicators are driven from UnitButton_UpdateAuras (SetContainerUnit).
 -- Registering them per button keeps that hot path from walking every indicator.
 -------------------------------------------------
+-- The built-in indicators no longer build a legacy icon pool at all. Custom indicators
+-- still do -- I.CreateAura_Icons is shared with the effect types (colour/glow/bar/...)
+-- that genuinely need the manual path -- so for the icon types an AuraContainer takes over,
+-- throw the pool away here instead. Those frames live on widgets.indicatorFrame, BELOW the
+-- container, so anything that showed one painted a second layer under the real icons.
+-- maxNum = 0 makes every Icons_* loop a no-op afterwards.
+function I.DiscardFallbackIcons(indicator)
+    if not indicator then return end
+    for i = 1, (indicator.maxNum or #indicator) do
+        local f = indicator[i]
+        if type(f) == "table" and f.Hide and f.SetParent then
+            f:Hide()
+            f:ClearAllPoints()
+            f:SetParent(nil)
+        end
+        indicator[i] = nil
+    end
+    indicator.maxNum = 0
+end
+
 function I.RegisterContainerIndicator(parent, indicator)
     parent._containerIndicators = parent._containerIndicators or {}
     tinsert(parent._containerIndicators, indicator)
@@ -232,7 +252,17 @@ end
 -- in combat -- the manual aura scan cannot, because auras are secret there.
 -- getSpellIDs(t) returns the numeric-keyed set for the indicator's current config.
 -------------------------------------------------
+-- Preview buttons (CellIndicatorsPreviewButton and friends) are mock frames that never get
+-- a unit, so an AuraContainer on one renders nothing at all -- the preview would be blank.
+-- They keep the legacy icon pool instead: on a preview button that pool IS the preview.
+-- Real unit buttons get the container and never build a pool.
+local function IsPreviewButton(frame)
+    local name = frame and frame.GetName and frame:GetName()
+    return name ~= nil and name:find("PreviewButton", 1, true) ~= nil
+end
+
 local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum)
+    if IsPreviewButton(parent) then return end
     if not (Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported()) then return end
 
     local container = Cell.RaidDebuffContainer.Create(parent, {
@@ -287,6 +317,7 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum)
         if indicator.container then indicator.container:ReassertEnable() end
     end)
 
+    I.DiscardFallbackIcons(indicator) -- no legacy pool under the container
     I.RegisterContainerIndicator(parent, indicator)
 end
 I.AttachBuffContainer = AttachBuffContainer -- also used by custom buff indicators
@@ -307,12 +338,12 @@ function I.CreateDefensiveCooldowns(parent)
     defensiveCooldowns.SetupGlow = I.Glow_SetupForChildren
     defensiveCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
-    for i = 1, 5 do
-        local name = parent:GetName().."DefensiveCooldown"..i
-        local frame = Cell.isMidnight
-            and I.CreateAura_BorderIcon(name, defensiveCooldowns, 1.5)
-            or I.CreateAura_BarIcon(name, defensiveCooldowns)
-        tinsert(defensiveCooldowns, frame)
+    if IsPreviewButton(parent) then
+        for i = 1, 5 do
+            local n = parent:GetName().."DefensiveCooldown"..i
+            tinsert(defensiveCooldowns, Cell.isMidnight and I.CreateAura_BorderIcon(n, defensiveCooldowns, 1.5)
+                or I.CreateAura_BarIcon(n, defensiveCooldowns))
+        end
     end
 
     AttachBuffContainer(parent, defensiveCooldowns, I.GetDefensiveSpellIDs, 2)
@@ -336,12 +367,12 @@ function I.CreateExternalCooldowns(parent)
     externalCooldowns.SetupGlow = I.Glow_SetupForChildren
     externalCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
-    for i = 1, 5 do
-        local name = parent:GetName().."ExternalCooldown"..i
-        local frame = Cell.isMidnight
-            and I.CreateAura_BorderIcon(name, externalCooldowns, 1.5)
-            or I.CreateAura_BarIcon(name, externalCooldowns)
-        tinsert(externalCooldowns, frame)
+    if IsPreviewButton(parent) then
+        for i = 1, 5 do
+            local n = parent:GetName().."ExternalCooldown"..i
+            tinsert(externalCooldowns, Cell.isMidnight and I.CreateAura_BorderIcon(n, externalCooldowns, 1.5)
+                or I.CreateAura_BarIcon(n, externalCooldowns))
+        end
     end
 
     AttachBuffContainer(parent, externalCooldowns, I.GetExternalSpellIDs, 2)
@@ -365,12 +396,12 @@ function I.CreateAllCooldowns(parent)
     allCooldowns.SetupGlow = I.Glow_SetupForChildren
     allCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
-    for i = 1, 5 do
-        local name = parent:GetName().."AllCooldown"..i
-        local frame = Cell.isMidnight
-            and I.CreateAura_BorderIcon(name, allCooldowns, 1.5)
-            or I.CreateAura_BarIcon(name, allCooldowns)
-        tinsert(allCooldowns, frame)
+    if IsPreviewButton(parent) then
+        for i = 1, 5 do
+            local n = parent:GetName().."AllCooldown"..i
+            tinsert(allCooldowns, Cell.isMidnight and I.CreateAura_BorderIcon(n, allCooldowns, 1.5)
+                or I.CreateAura_BarIcon(n, allCooldowns))
+        end
     end
 
     AttachBuffContainer(parent, allCooldowns, I.GetAllCooldownSpellIDs, 2)
@@ -425,7 +456,7 @@ end
 -- CreateDebuffs
 -------------------------------------------------
 local function Debuffs_SetSize(self, normalSize, bigSize)
-    for i = 1, 10 do
+    for i = 1, #self do
         P.Size(self[i], normalSize[1], normalSize[2])
     end
     -- store sizes for SetCooldown
@@ -442,13 +473,13 @@ local function Debuffs_UpdateSize(self, iconsShown)
     if not (self.normalSize and self.bigSize and self.orientation) then return end -- not init
 
     if iconsShown then
-        for i = iconsShown + 1, 10 do
+        for i = iconsShown + 1, #self do
             self[i]:Hide()
         end
     end
 
     local size = 0
-    for i = 1, 10 do
+    for i = 1, #self do
         if self[i]:IsShown() then
             size = size + self[i].width
         end
@@ -461,7 +492,7 @@ local function Debuffs_UpdateSize(self, iconsShown)
 end
 
 local function Debuffs_SetFont(self, ...)
-    for i = 1, 10 do
+    for i = 1, #self do
         self[i]:SetFont(...)
     end
 end
@@ -515,7 +546,7 @@ local function Debuffs_SetOrientation(self, orientation)
         point2 = "TOP"..h
     end
 
-    for i = 1, 10 do
+    for i = 1, #self do
         P.ClearPoints(self[i])
         if i == 1 then
             P.Point(self[i], point1)
@@ -530,7 +561,7 @@ end
 local function Debuffs_ShowTooltip(debuffs, show)
     debuffs.showTooltip = show
 
-    for i = 1, 10 do
+    for i = 1, #debuffs do
         if show then
             debuffs[i]:SetScript("OnEnter", function(self)
                 if self.index then
@@ -563,7 +594,7 @@ end
 local function Debuffs_EnableBlacklistShortcut(debuffs, enabled)
     debuffs.enableBlacklistShortcut = enabled
 
-    for i = 1, 10 do
+    for i = 1, #debuffs do
         if enabled then
             debuffs[i]:SetScript("OnMouseUp", function(self, button, isInside)
                 if button == "RightButton" and isInside and IsLeftAltKeyDown() and IsLeftControlKeyDown()
@@ -616,31 +647,74 @@ function I.CreateDebuffs(parent)
     debuffs.ShowTooltip = Debuffs_ShowTooltip
     debuffs.EnableBlacklistShortcut = Debuffs_EnableBlacklistShortcut
 
-    for i = 1, 10 do
-        local name = parent:GetName().."Debuff"..i
-        local frame = Cell.isMidnight
-            and I.CreateAura_BorderIcon(name, debuffs, 1.5)
-            or I.CreateAura_BarIcon(name, debuffs)
-        tinsert(debuffs, frame)
-
-        frame._SetCooldown = frame.SetCooldown
-        function frame:SetCooldown(start, duration, debuffType, texture, count, refreshing, isBigDebuff)
-            frame:_SetCooldown(start, duration, debuffType, texture, count, refreshing)
-            if isBigDebuff then
-                P.Size(frame, debuffs.bigSize[1], debuffs.bigSize[2])
-            else
-                P.Size(frame, debuffs.normalSize[1], debuffs.normalSize[2])
-            end
+    -- 12.1 "Route A": back the debuff row with a Blizzard AuraContainer. The manual scan
+    -- (GetAuraSlots) throws once auras are secret, so the fallback icons above freeze at
+    -- whatever was up when combat started -- the container keeps updating throughout.
+    if IsPreviewButton(parent) then
+        for i = 1, 10 do
+            local n = parent:GetName().."Debuff"..i
+            tinsert(debuffs, Cell.isMidnight and I.CreateAura_BorderIcon(n, debuffs, 1.5)
+                or I.CreateAura_BarIcon(n, debuffs))
         end
+    end
 
-        frame._SetCooldownFromAura = frame.SetCooldownFromAura
-        function frame:SetCooldownFromAura(unit, auraInstanceID, texture, refreshing, isBigDebuff)
-            frame:_SetCooldownFromAura(unit, auraInstanceID, texture, refreshing)
-            if isBigDebuff then
-                P.Size(frame, debuffs.bigSize[1], debuffs.bigSize[2])
-            else
-                P.Size(frame, debuffs.normalSize[1], debuffs.normalSize[2])
+    if not IsPreviewButton(parent) and Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported() then
+        local container = Cell.RaidDebuffContainer.Create(debuffs, { mode = "debuff", num = 3 })
+        if container then
+            -- anchor to the BUTTON, never to `debuffs`: Debuffs_SetSize only records
+            -- width/height, so that frame stays rect-less while its fallback icons are
+            -- hidden, and children of a rect-less frame never render.
+            container:GetFrame():SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", 1, 4)
+            debuffs.container = container
+            debuffs:Show() -- static host; the container owns which icons are visible
+
+            function debuffs:ConfigureContainer(t)
+                if not self.container then return end
+                local cfr = self.container:GetFrame()
+                cfr:ClearAllPoints()
+                local pos = t.position
+                local rel = (pos and pos[2] == "healthBar") and parent.widgets.healthBar or parent
+                if pos then
+                    cfr:SetPoint(pos[1], rel, pos[3], pos[4], pos[5])
+                else
+                    cfr:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", 1, 4)
+                end
+
+                -- Cell stores debuff size as {normal, big}; the container has one element
+                -- size per group, so the NORMAL size is what it uses.
+                local size = t.size and t.size[1]
+                if type(size) == "table" then size = size[1] end
+
+                local opts = {
+                    dispelByMe = t.dispellableByMe and true or false,
+                    showDuration = t.showDuration,
+                    -- Cell.vars.debuffBlacklist is already a [spellID] = true map, which is
+                    -- exactly excludeSpellIDs' shape. Only NeverSecret spells are actually
+                    -- honoured (see BuildRecords) -- the rest are silently ignored.
+                    excludeSpellIDs = Cell.vars.debuffBlacklist,
+                }
+                if t.font then
+                    opts.stackFont = t.font[1]
+                    opts.durationFont = t.font[2]
+                end
+                if size then opts.size = size end
+                if t.num then opts.num = t.num end
+                if size then cfr:SetSize(size, size) end
+                self.container:SetOptions(opts)
+                self.container:SetEnabled(t.enabled and true or false)
             end
+
+            function debuffs:SetContainerUnit(unit)
+                if not self.container then return end
+                self.container:SetUnit(unit)
+                self.container:ReassertEnable()
+            end
+
+            parent:HookScript("OnShow", function()
+                if debuffs.container then debuffs.container:ReassertEnable() end
+            end)
+
+            I.RegisterContainerIndicator(parent, debuffs)
         end
     end
 end
@@ -653,7 +727,7 @@ local function Dispels_SetSize(self, width, height)
     self.height = height
 
     self:_SetSize(width, height)
-    for i = 1, 5 do
+    for i = 1, #self do
         self[i]:SetSize(width, height)
     end
 
@@ -677,7 +751,7 @@ local function Dispels_UpdateSize(self, iconsShown)
             height = self.height + (iconsShown - 1) * floor(self.height / 2)
         end
     else
-        for i = 1, 5 do
+        for i = 1, #self do
             if self[i]:IsShown() then
                 if self.orientation == "horizontal"  then
                     width = self.width + (i - 1) * floor(self.width / 2)
@@ -722,8 +796,8 @@ local function Dispels_SetDispels(self, dispelTypes)
                 end
                 self.highlight:Show()
             end
-            -- icons
-            if self.showIcons then
+            -- icons (the pool is empty once an AuraContainer owns this indicator)
+            if self.showIcons and self[i + 1] then
                 i = i + 1
                 self[i]:SetDispel(dispelType)
             end
@@ -733,7 +807,7 @@ local function Dispels_SetDispels(self, dispelTypes)
     self:UpdateSize(i)
 
     -- hide unused
-    for j = i+1, 5 do
+    for j = i+1, #self do
         self[j]:Hide()
     end
 end
@@ -751,7 +825,7 @@ end
 
 local function Dispels_SetIconStyle(self, style)
     self.showIcons = style ~= "none"
-    for i = 1, 5 do
+    for i = 1, #self do
         if style == "rhombus" then
             self[i].SetDispel = Dispels_SetDispel_Rhombus
         else -- blizzard
@@ -787,7 +861,7 @@ local function Dispels_SetOrientation(self, orientation)
         self.orientation = "vertical"
     end
 
-    for i = 1, 5 do
+    for i = 1, #self do
         self[i]:ClearAllPoints()
         if i == 1 then
             self[i]:SetPoint(point)
@@ -861,19 +935,20 @@ function I.CreateDispels(parent)
     dispels.SetIconStyle = Dispels_SetIconStyle
     dispels.SetOrientation = Dispels_SetOrientation
 
-    for i = 1, 5 do
-        local icon = dispels:CreateTexture(parent:GetName().."Dispel"..i, "ARTWORK")
-        tinsert(dispels, icon)
-        icon:Hide()
-
-        icon:SetDrawLayer("ARTWORK", 6-i)
-        icon.SetDispel = Dispels_SetDispel_Blizzard
-    end
-
     -- 12.1 "Route A": back the dispel display with a Blizzard AuraContainer. The dispel
     -- SCHOOL is secret, so the type symbol/colour can only be rendered blind by an
     -- AuraButton -- the old manual path can't classify at all in restricted content.
-    if Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported() then
+    if IsPreviewButton(parent) then
+        for i = 1, 5 do
+            local icon = dispels:CreateTexture(parent:GetName().."Dispel"..i, "ARTWORK")
+            tinsert(dispels, icon)
+            icon:Hide()
+            icon:SetDrawLayer("ARTWORK", 6-i)
+            icon.SetDispel = Dispels_SetDispel_Blizzard
+        end
+    end
+
+    if not IsPreviewButton(parent) and Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported() then
         -- (1) dispel-type ICONS at the indicator's own anchor (bottom-right)
         local iconC = Cell.RaidDebuffContainer.Create(dispels, {
             mode = "dispel",
@@ -1082,7 +1157,7 @@ local function RaidDebuffs_HideGlow(self, glowType)
 end
 
 local function RaidDebuffs_ShowTooltip(raidDebuffs, show)
-    for i = 1, 3 do
+    for i = 1, #raidDebuffs do
         if show then
             raidDebuffs[i]:SetScript("OnEnter", function(self)
                 if self.index then
@@ -1124,19 +1199,18 @@ function I.CreateRaidDebuffs(parent)
 
     raidDebuffs.ShowTooltip = RaidDebuffs_ShowTooltip
 
-    for i = 1, 3 do
-        local frame = I.CreateAura_BorderIcon(parent:GetName().."RaidDebuff"..i, raidDebuffs, 2)
-        tinsert(raidDebuffs, frame)
-        -- frame:SetScript("OnShow", raidDebuffs.UpdateSize)
-        -- frame:SetScript("OnHide", raidDebuffs.UpdateSize)
-    end
-
     -- 12.1 "Route A": back the central raid-debuff display with a Blizzard
     -- AuraContainer so classification is done secret-safe / Blizzard-side
     -- (boss/role/priority/cc/raid/dispel via candidateFilters) instead of
     -- matching a curated spell-ID list. nil on Classic / unsupported -> the
     -- 3-icon fallback above stays in charge.
-    if Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported() then
+    if IsPreviewButton(parent) then
+        for i = 1, 3 do
+            tinsert(raidDebuffs, I.CreateAura_BorderIcon(parent:GetName().."RaidDebuff"..i, raidDebuffs, 2))
+        end
+    end
+
+    if not IsPreviewButton(parent) and Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported() then
         local container = Cell.RaidDebuffContainer.Create(raidDebuffs, {})
         if container then
             -- ⚠ Do NOT SetAllPoints(raidDebuffs): Cooldowns_SetSize only stores

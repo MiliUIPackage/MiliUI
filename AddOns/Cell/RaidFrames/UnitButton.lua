@@ -1082,7 +1082,20 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 UnitButton_UpdateAuras(b)
             end, true)
         elseif setting == "debuffBlacklist" or setting == "dispelBlacklist" or setting == "defensives" or setting == "externals" or setting == "crowdControls" or setting == "bigDebuffs" or setting == "debuffTypeColor" or setting == "castBy" then
+            -- The blacklist rides on the debuff container's excludeSpellIDs, but this event
+            -- carries no indicatorName, so the generic ConfigureContainer pass above never
+            -- sees it. Push the layout entry through explicitly.
+            local debuffsTable
+            if setting == "debuffBlacklist" then
+                local lt = Cell.vars.currentLayoutTable
+                for _, it in next, (lt and lt["indicators"] or {}) do
+                    if it["indicatorName"] == "debuffs" then debuffsTable = it; break end
+                end
+            end
             F.IterateAllUnitButtons(function(b)
+                if debuffsTable and b.indicators.debuffs and b.indicators.debuffs.ConfigureContainer then
+                    b.indicators.debuffs:ConfigureContainer(debuffsTable)
+                end
                 UnitButton_UpdateAuras(b)
             end, true)
         elseif setting == "speed" then
@@ -1366,87 +1379,11 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
         self.states.hasRezDebuff = nil
     end
 
-    local startIndex = 1
-
-    -- update raid debuffs
-    -- 12.1 Route A: a Blizzard AuraContainer drives the central display from SetUnit
-    -- (secret-safe boss/role/priority/cc/raid/dispel groups). The manual curated-ID
-    -- path below is KEPT as a fallback -- but _debuffs_raid now only holds NON-secret
-    -- matches when the container is active (secret HARMFUL|RAID fallback is disabled
-    -- above), so it stays dormant in live secret content and only lights up in old /
-    -- not-cleanly-sealed content where the container's Blizzard filters miss things.
-    -- if self._debuffs.raidDebuffsFound or cleuUnits[unit] then
+    -- 12.1: the central raid-debuff icons are AuraContainer-backed (see I.CreateRaidDebuffs).
+    -- The manual curated-ID renderer that used to fill a 3-icon pool is gone along with the
+    -- pool itself. The glow is kept: it paints the indicator frame, not an icon.
     if self._debuffs_raid[1] then
-        self.indicators.raidDebuffs:Show()
-
-        -- cleuAuras
-        -- local offset = 0
-        -- if cleuUnits[unit] then
-        --     offset = 1
-        --     startIndex = startIndex + 1
-        -- end
-
-        -- sort indices
-        sort(self._debuffs_raid, function(a, b)
-            return self._debuffs_cache[a]["raidDebuffOrder"] < self._debuffs_cache[b]["raidDebuffOrder"]
-        end)
-
-        -- show
-        local topAuraInstanceID
-        -- for i = 1+offset, indicatorNums["raidDebuffs"] do
-        for i = 1, indicatorNums["raidDebuffs"] do
-            local auraInstanceID = self._debuffs_raid[i]
-            if auraInstanceID then
-                local auraInfo = self._debuffs_cache[auraInstanceID]
-                if auraInfo then
-                    local rdSecret = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
-                    if rdSecret and self.indicators.raidDebuffs[i].SetCooldownFromAura then
-                        self.indicators.raidDebuffs[i]:SetCooldownFromAura(
-                            unit, auraInstanceID, auraInfo.icon, auraInfo.refreshing
-                        )
-                    else
-                        local rdStart, rdDur
-                        if F.IsValueNonSecret(auraInfo.expirationTime) and F.IsValueNonSecret(auraInfo.duration) then
-                            rdStart = (auraInfo.expirationTime or 0) - auraInfo.duration
-                            rdDur = auraInfo.duration
-                        else
-                            rdStart = 0
-                            rdDur = 0
-                        end
-                        self.indicators.raidDebuffs[i]:SetCooldown(
-                            rdStart,
-                            rdDur,
-                            (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or "",
-                            auraInfo.icon,
-                            auraInfo.applications,
-                            auraInfo.refreshing,
-                            I.IsDebuffUseElapsedTime(auraInfo.name, auraInfo.spellId)
-                        )
-                    end
-                    self.indicators.raidDebuffs[i].auraInstanceID = auraInstanceID -- NOTE: for tooltip
-                    startIndex = startIndex + 1
-                    -- remove from debuffs
-                    self._debuffs_big[auraInstanceID] = nil
-                    self._debuffs_normal[auraInstanceID] = nil
-
-                    if i == 1 then -- top
-                        topAuraInstanceID = auraInstanceID
-                    end
-                end
-            end
-        end
-
-        -- if cleuUnits[unit] then
-        --     self.indicators.raidDebuffs[1]:SetCooldown(cleuUnits[unit][1], cleuUnits[unit][2], "cleu", cleuUnits[unit][3], 1)
-        --     topGlowType, topGlowOptions = unpack(CellDB["cleuGlow"])
-        -- end
-
-        -- update raidDebuffs
-        self.indicators.raidDebuffs:UpdateSize(startIndex - 1)
-        for i = startIndex, 3 do
-            self.indicators.raidDebuffs[i].auraInstanceID = nil
-        end
-
+        local topAuraInstanceID = self._debuffs_raid[1]
         -- update glow
         if not indicatorBooleans["raidDebuffs"] then
             -- to make sure top glow has highest priority
@@ -1472,77 +1409,11 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
                 )
             )
         end
-    elseif self.indicators.raidDebuffs.container then
-        -- container-backed: the anchor hosts the AuraContainer, so keep it shown and
-        -- just clear the fallback icons instead of hiding the whole frame.
-        self.indicators.raidDebuffs:UpdateSize(0)
-    else
-        self.indicators.raidDebuffs:Hide()
     end
 
-    -- update debuffs
-    startIndex = 1
-    if enabledIndicators["debuffs"] then
-        -- bigDebuffs first
-        for auraInstanceID in next, self._debuffs_big do
-            local auraInfo = self._debuffs_cache[auraInstanceID]
-            if auraInfo and startIndex <= indicatorNums["debuffs"] then
-                local indFrame = self.indicators.debuffs[startIndex]
-                local secretAura = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
-                if secretAura and indFrame.SetCooldownFromAura then
-                    indFrame:SetCooldownFromAura(unit, auraInstanceID, auraInfo.icon, auraInfo.refreshing, true)
-                else
-                    local bStart, bDur
-                    if F.IsValueNonSecret(auraInfo.expirationTime) and F.IsValueNonSecret(auraInfo.duration) then
-                        bStart = (auraInfo.expirationTime or 0) - auraInfo.duration
-                        bDur = auraInfo.duration
-                    else
-                        bStart = 0
-                        bDur = 0
-                    end
-                    indFrame:SetCooldown(bStart, bDur, (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or "", auraInfo.icon, auraInfo.applications, auraInfo.refreshing, true)
-                end
-                indFrame.auraInstanceID = auraInstanceID -- NOTE: for tooltip
-                indFrame.spellId = auraInfo.spellId -- NOTE: for blacklist
-                startIndex = startIndex + 1
-            elseif startIndex > indicatorNums["debuffs"] then
-                break
-            end
-        end
-        -- then normal debuffs
-        for auraInstanceID in next, self._debuffs_normal do
-            local auraInfo = self._debuffs_cache[auraInstanceID]
-            if auraInfo and startIndex <= indicatorNums["debuffs"] then
-                local indFrame = self.indicators.debuffs[startIndex]
-                local secretAura = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
-                if secretAura and indFrame.SetCooldownFromAura then
-                    indFrame:SetCooldownFromAura(unit, auraInstanceID, auraInfo.icon, auraInfo.refreshing, false)
-                else
-                    local nStart, nDur
-                    if F.IsValueNonSecret(auraInfo.expirationTime) and F.IsValueNonSecret(auraInfo.duration) then
-                        nStart = (auraInfo.expirationTime or 0) - auraInfo.duration
-                        nDur = auraInfo.duration
-                    else
-                        nStart = 0
-                        nDur = 0
-                    end
-                    indFrame:SetCooldown(nStart, nDur, (auraInfo.dispelName and (not issecretvalue or not issecretvalue(auraInfo.dispelName))) and auraInfo.dispelName or "", auraInfo.icon, auraInfo.applications, auraInfo.refreshing)
-                end
-                indFrame.auraInstanceID = auraInstanceID -- NOTE: for tooltip
-                indFrame.spellId = auraInfo.spellId -- NOTE: for blacklist
-                startIndex = startIndex + 1
-            elseif startIndex > indicatorNums["debuffs"] then
-                break
-            end
-        end
-    end
-
-    -- update debuffs
-    self.indicators.debuffs:UpdateSize(startIndex - 1)
-    for i = startIndex, 10 do
-        self.indicators.debuffs[i].auraInstanceID = nil
-        self.indicators.debuffs[i].spellId = nil
-    end
+    -- 12.1: the debuff row is AuraContainer-backed (see I.CreateDebuffs). The manual
+    -- scan that used to fill it is gone -- GetAuraSlots throws once auras are secret, so
+    -- it froze in exactly the content it mattered for.
 
     -- update dispels -- skipped when a Blizzard AuraContainer backs the indicator (it
     -- drives itself from SetUnit and renders the secret dispel school blind). The manual
@@ -1567,9 +1438,6 @@ end
 -- buffs
 -------------------------------------------------
 local function ResetBuffVars(self)
-    self._buffs.defensiveFound = 0
-    self._buffs.externalFound = 0
-    self._buffs.allFound = 0
     self._buffs.tankActiveMitigationFound = false
     self._buffs.drinkingFound = false
 
@@ -1577,15 +1445,8 @@ local function ResetBuffVars(self)
 end
 
 local function HandleBuff(self, auraInfo)
-    local unit = self.states.displayedUnit
-
     local auraInstanceID = auraInfo.auraInstanceID
     local name = auraInfo.name
-    -- auraInfo.icon may be a secret fileID on Midnight 12.0.0+
-    -- SetTexture() accepts secret numbers, so this works as-is
-    local icon = auraInfo.icon
-    local count = auraInfo.applications
-    -- local debuffType = auraInfo.isHarmful and auraInfo.dispelName
     local expirationTime = auraInfo.expirationTime or 0
     local duration = auraInfo.duration
     -- Midnight 12.0.0+: expirationTime and duration may be secret even when spellId is not.
@@ -1597,69 +1458,22 @@ local function HandleBuff(self, auraInfo)
         start = 0
         duration = 0
     end
-    local source = auraInfo.sourceUnit
     local spellId = auraInfo.spellId
-    -- local attribute = auraInfo.points[1] -- UnitAura:arg16
 
     auraInfo.refreshing = false
 
-    -- Secret-aware fallback: when spellId/name are secret, the curated tables
-    -- (builtInDefensives / builtInExternals) cannot match. Fall back to Blizzard's
-    -- secret-safe filter classifier to detect defensive / external cooldowns.
-    --
-    -- Filter taxonomy (Midnight 12.0+):
-    --   BIG_DEFENSIVE      : self-applied major defensives (e.g. Obsidian Scales)
-    --   EXTERNAL_DEFENSIVE : defensives applied by others (e.g. Pain Suppression)
-    --   RAID / RAID_IN_COMBAT : raid utility cooldowns (e.g. Zephyr, Power Word: Barrier)
-    --     These are not strictly "defensive" but are battle-critical raid CDs that
-    --     players need to track on the externalCooldowns indicator.
     local isSecret = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
-    local secretIsBigDef, secretIsExtDef = false, false
-    if isSecret and IsAuraFilteredOutByInstanceID and auraInstanceID then
-        secretIsBigDef = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL|BIG_DEFENSIVE")
-        local passesExt = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL|EXTERNAL_DEFENSIVE")
-        local passesRaid = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL|RAID")
-        local passesRaidIC = not IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL|RAID_IN_COMBAT")
-        -- Treat any of these as "external CD" — covers true externals plus raid utility CDs
-        secretIsExtDef = passesExt or ((passesRaid or passesRaidIC) and not secretIsBigDef)
-    end
-    -- For secret auras, always use SetCooldownFromAura so animation style stays
-    -- consistent in and out of combat (Blizzard DurationObject swipe).
-    local function ShowAuraOnIndicator(ind)
-        if isSecret and ind.SetCooldownFromAura then
-            ind:SetCooldownFromAura(unit, auraInstanceID, icon, auraInfo.refreshing)
-        else
-            ind:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)
-        end
-    end
 
     if duration or isSecret then
         UpdateAuraRefreshState(auraInfo)
         self._buffs_cache[auraInstanceID] = auraInfo
 
-        -- defensiveCooldowns / externalCooldowns / allCooldowns
-        -- Skipped when an AuraContainer backs the indicator: it drives itself from
-        -- SetUnit (HELPFUL + includeSpellIDs) and keeps working while auras are secret,
-        -- which this manual path cannot.
-        local isDef = I.IsDefensiveCooldown(name, spellId) or secretIsBigDef
-        if enabledIndicators["defensiveCooldowns"] and isDef and not self.indicators.defensiveCooldowns.container
-            and self._buffs.defensiveFound < indicatorNums["defensiveCooldowns"] then
-            self._buffs.defensiveFound = self._buffs.defensiveFound + 1
-            ShowAuraOnIndicator(self.indicators.defensiveCooldowns[self._buffs.defensiveFound])
-        end
-
-        local isExt = I.IsExternalCooldown(name, spellId, source, unit) or secretIsExtDef
-        if enabledIndicators["externalCooldowns"] and isExt and not self.indicators.externalCooldowns.container
-            and self._buffs.externalFound < indicatorNums["externalCooldowns"] then
-            self._buffs.externalFound = self._buffs.externalFound + 1
-            ShowAuraOnIndicator(self.indicators.externalCooldowns[self._buffs.externalFound])
-        end
-
-        if enabledIndicators["allCooldowns"] and (isExt or isDef) and not self.indicators.allCooldowns.container
-            and self._buffs.allFound < indicatorNums["allCooldowns"] then
-            self._buffs.allFound = self._buffs.allFound + 1
-            ShowAuraOnIndicator(self.indicators.allCooldowns[self._buffs.allFound])
-        end
+        -- NOTE: defensiveCooldowns / externalCooldowns / allCooldowns used to be driven from
+        -- here by scanning each aura against curated spell tables (plus a BIG_DEFENSIVE /
+        -- EXTERNAL_DEFENSIVE / RAID filter probe for secret auras). On 12.1 all three are
+        -- AuraContainer-backed (see AttachBuffContainer) and drive themselves from SetUnit,
+        -- so that path was dead code AND a second thing drawing icons on the same anchors.
+        -- Removed: retail only, no fallback.
 
         -- tankActiveMitigation
         if enabledIndicators["tankActiveMitigation"] and I.IsTankActiveMitigation(spellId) then
@@ -1704,38 +1518,16 @@ local function UnitButton_UpdateBuffs(self, isFullUpdate)
         ForEachAuraCache(self, "HELPFUL", HandleBuff)
     end
 
-    -- check Mirror Image
-    if self._mirror_image and I.IsDefensiveCooldown(55342) then -- exists and enabled
-        if self._buffs.defensiveFound < indicatorNums["defensiveCooldowns"] then
-            self._buffs.defensiveFound = self._buffs.defensiveFound + 1
-            self.indicators.defensiveCooldowns[self._buffs.defensiveFound]:SetCooldown(self._mirror_image, 40, nil, 135994, 0)
-        end
-        if self._buffs.allFound < indicatorNums["allCooldowns"] then
-            self._buffs.allFound = self._buffs.allFound + 1
-            self.indicators.allCooldowns[self._buffs.allFound]:SetCooldown(self._mirror_image, 40, nil, 135994, 0)
-        end
-    end
+    -- Mirror Image / Mass Barrier used to be injected here from CLEU (they leave no aura),
+    -- straight onto the fallback icon pools and WITHOUT the .container gate the aura path
+    -- had -- so they kept drawing on top of the AuraContainer. Removed with the rest of the
+    -- legacy buff path; the containers own these anchors now.
 
-    -- check Mass Barrier (self)
-    if self._mass_barrier and I.IsExternalCooldown(414660) then -- exists and enabled
-        if self._buffs.externalFound < indicatorNums["externalCooldowns"] then
-            self._buffs.externalFound = self._buffs.externalFound + 1
-            self.indicators.externalCooldowns[self._buffs.externalFound]:SetCooldown(self._mass_barrier, 60, nil, self._mass_barrier_icon, 0)
-        end
-        if self._buffs.allFound < indicatorNums["allCooldowns"] then
-            self._buffs.allFound = self._buffs.allFound + 1
-            self.indicators.allCooldowns[self._buffs.allFound]:SetCooldown(self._mass_barrier, 60, nil, self._mass_barrier_icon, 0)
-        end
-    end
-
-    -- update defensiveCooldowns
-    self.indicators.defensiveCooldowns:UpdateSize(self._buffs.defensiveFound)
-
-    -- update externalCooldowns
-    self.indicators.externalCooldowns:UpdateSize(self._buffs.externalFound)
-
-    -- update allCooldowns
-    self.indicators.allCooldowns:UpdateSize(self._buffs.allFound)
+    -- The fallback icon pools stay collapsed to zero. They are no longer fed by anything,
+    -- and leaving a stale count is what left icons stuck on screen.
+    self.indicators.defensiveCooldowns:UpdateSize(0)
+    self.indicators.externalCooldowns:UpdateSize(0)
+    self.indicators.allCooldowns:UpdateSize(0)
 
     -- hide tankActiveMitigation
     if not self._buffs.tankActiveMitigationFound then

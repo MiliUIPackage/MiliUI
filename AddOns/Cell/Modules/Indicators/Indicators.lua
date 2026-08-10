@@ -388,7 +388,8 @@ local function InitIndicator(indicatorName)
     elseif indicatorName == "debuffs" then
         local types = {"", "Curse", "Disease", "Magic", "Poison", "", "Curse", "Disease", "Magic", "Poison"}
         local icons = {132155, 136139, 136128, 240443, 136182, 132155, 136139, 136128, 240443, 136182}
-        for i = 1, 10 do
+        -- AuraContainer-backed: the legacy pool is empty, so this preview is a no-op
+        for i = 1, #indicator do
             SetOnUpdate(indicator[i], types[i], icons[i], i)
         end
 
@@ -424,8 +425,8 @@ local function InitIndicator(indicatorName)
                     end
                     if indicator.isVisible then self.highlight:Show() end
                 end
-                -- icons
-                if self.showIcons then
+                -- icons (AuraContainer-backed: the legacy pool is empty)
+                if self.showIcons and self[1] then
                     self[1]:SetDispel(dispelType)
                 end
             end
@@ -433,7 +434,7 @@ local function InitIndicator(indicatorName)
             self:UpdateSize(1)
 
             -- hide unused
-            for j = 2, 5 do
+            for j = 2, #self do
                 self[j]:Hide()
             end
         end
@@ -464,7 +465,8 @@ local function InitIndicator(indicatorName)
         local types = {"", "Curse", "Magic"}
         local isMidnightBorderIcon = Cell.isMidnight and indicator[1] and indicator[1].cooldown
             and indicator[1].cooldown._SetCooldown and not indicator[1].cooldown.SetMinMaxValues
-        for i = 1, 3 do
+        -- AuraContainer-backed: the legacy pool is empty, so this preview is a no-op
+        for i = 1, #indicator do
             indicator[i]:HookScript("OnShow", function()
                 indicator[i]:SetCooldown(GetTime(), 13, types[i], "Interface\\Icons\\INV_Misc_QuestionMark", 7)
                 if isMidnightBorderIcon then
@@ -566,19 +568,19 @@ local function InitIndicator(indicatorName)
 
     elseif indicatorName == "externalCooldowns" then
         local icons = {135936, 135964, 135966, 237510, 237542}
-        for i = 1, 5 do
+        for i = 1, #indicator do
             indicator[i]._isPreviewPlayerCast = (i == 1) -- first icon = "your cast" (green)
             SetOnUpdate(indicator[i], nil, icons[i], 0)
         end
     elseif indicatorName == "defensiveCooldowns" then
         local icons = {135919, 136120, 135841, 132362, 132199}
-        for i = 1, 5 do
+        for i = 1, #indicator do
             indicator[i]._isPreviewPlayerCast = (i == 1)
             SetOnUpdate(indicator[i], nil, icons[i], 0)
         end
     elseif indicatorName == "allCooldowns" then
         local icons = {135936, 136120, 135966, 132362, 237542}
-        for i = 1, 5 do
+        for i = 1, #indicator do
             indicator[i]._isPreviewPlayerCast = (i == 1)
             SetOnUpdate(indicator[i], nil, icons[i], 0)
         end
@@ -589,12 +591,14 @@ local function InitIndicator(indicatorName)
         end
     elseif string.find(indicatorName, "indicator") then
         if indicator.indicatorType == "icons" then
-            for i = 1, 10 do
+            -- pool-driven: buff icon indicators are AuraContainer-backed and their legacy
+            -- pool is discarded on attach, so this loop no-ops for them
+            for i = 1, #indicator do
                 SetOnUpdate(indicator[i], nil, 134400, i)
             end
         elseif indicator.indicatorType == "bars" or indicator.indicatorType == "blocks" then
             local colors = {1, 0.26667, 0.4}
-            for i = 1, 10 do
+            for i = 1, #indicator do
                 SetOnUpdate(indicator[i], nil, 134400, i, colors)
             end
         elseif indicator.indicatorType == "text" then
@@ -893,11 +897,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
         elseif setting == "frameLevel" then
             indicator:SetFrameLevel(indicator:GetParent():GetFrameLevel()+value)
         elseif setting == "size" then
-            if indicatorName == "debuffs" then
-                indicator:SetSize(value[1], value[2])
-            else
-                P.Size(indicator, value[1], value[2])
-            end
+            P.Size(indicator, value[1], value[2])
             ListHighlightFn(selected) -- NOTE: update glow
         elseif setting == "size-border" then
             P.Size(indicator, value[1], value[2])
@@ -1640,7 +1640,12 @@ if Cell.isRetail or Cell.isMists then
         ["allCooldowns"] = {"enabled", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
         ["tankActiveMitigation"] = {"|cffb7b7b7"..I.GetTankActiveMitigationString(), "enabled", "color-class", "size", "position", "frameLevel"},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "iconStyle", "orientation", "size-square", "position", "frameLevel"},
-        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", midnightDurationVisibility, "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        -- 12.1: AuraContainer-backed. Options the container cannot honour are gone --
+        -- bigDebuffs and the right-click blacklist shortcut both need to know WHICH spell
+        -- an icon is (secret), and AuraButtons accept no script handlers; the swipe and
+        -- tooltip are Blizzard's to drive. The blacklist stays but only bites on spells
+        -- flagged NeverSecret (Exhaustion/Sated and the like).
+        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", midnightDurationVisibility, "size", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
         ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, midnightDurationVisibility, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
         ["privateAuras"] = {"|cffb7b7b7"..L["Due to restrictions of the private aura system, this indicator can only use Blizzard style."], "enabled", "size-square", "position", "frameLevel"},
         ["targetedSpells"] = Cell.isMidnight

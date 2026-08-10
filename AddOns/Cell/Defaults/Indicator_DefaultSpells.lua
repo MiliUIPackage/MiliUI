@@ -914,7 +914,7 @@ function F.FirstRun()
                 {"Cell ".._G.DEFAULT, 10, "Outline", false, "CENTER", 0, 0, {1, 1, 1}},
             },
             ["showStack"] = true,
-            ["showDuration"] = true, -- always (a number would mean "only under N seconds")
+            ["showDuration"] = 60, -- only under 60s (true = always, false = never)
             ["showAnimation"] = true,
             ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}},
             ["auraType"] = "buff",

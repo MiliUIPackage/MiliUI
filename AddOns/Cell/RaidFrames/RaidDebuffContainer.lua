@@ -112,6 +112,32 @@ local function BuildRecords(opts)
         return {}
     end
 
+    -- Plain debuff indicator mode (Cell's "Debuffs"): every harmful aura, optionally only
+    -- the ones this character can dispel.
+    --
+    -- ⚠ The blacklist rides on excludeSpellIDs, which the client only honours for spells
+    -- flagged NeverSecret (CanApplyIdentityCandidateFilters bans ID filtering for harmful
+    -- auras on assistable units -- anti-automation). That still covers what the blacklist
+    -- is actually for: the noisy always-on debuffs (Exhaustion/Sated and friends), which is
+    -- the exact case Blizzard carved the exemption for. Encounter debuffs cannot be
+    -- excluded by ID at all -- use maxDuration / excludeDispelTypes for those.
+    if opts.mode == "debuff" then
+        local f = opts.dispelByMe and ("HARMFUL|" .. TOKEN_DISP) or "HARMFUL"
+        if not AuraUtil.IsValidFilterString(f) then return {} end
+        local cf
+        local function need() cf = cf or {}; return cf end
+        if type(opts.excludeSpellIDs) == "table" and next(opts.excludeSpellIDs) then
+            need().excludeSpellIDs = opts.excludeSpellIDs
+        end
+        if type(opts.excludeDispelTypes) == "table" and next(opts.excludeDispelTypes) then
+            need().excludeDispelTypes = opts.excludeDispelTypes
+        end
+        if type(opts.maxDuration) == "number" and opts.maxDuration > 0 then
+            need().maxDuration = opts.maxDuration
+        end
+        return { { key = "debuff", filter = f, candidateFilters = cf } }
+    end
+
     -- Buff indicator mode (defensives / externals / custom buff indicators). Friendly-unit
     -- BUFFS may be filtered by spell ID -- the 12.1 ban applies only to debuffs on friendly
     -- units -- so Cell's curated + custom spell lists carry straight over.
@@ -461,27 +487,31 @@ local function StyleButton(handle, button)
     -- Direct calls, NOT pcall'd: StyleButton's caller captures errors into
     -- handle._errors so RDC.Debug()/RDC_Test() can surface the real failure
     -- instead of silently swallowing it.
+    -- ⚠ Each flag is set only AFTER its call returns. StyleButton runs under pcall from
+    -- Restyle, and an AuraButton that has gone forbidden throws on the first restricted
+    -- call -- flagging first would permanently skip that bind, leaving a half-styled button
+    -- (fontstrings created, icon never bound) that no later pass can repair.
     if button.dfIcon and button.SetIcon and not button._boundIcon then
-        button._boundIcon = true
         button:SetIcon(button.dfIcon)
+        button._boundIcon = true
     end
     if button.dfCD and button.SetDurationCooldown and not button._boundCD then
-        button._boundCD = true
         button:SetDurationCooldown(button.dfCD)
+        button._boundCD = true
     end
     if button.dfStack and button.SetApplicationCount and not button._boundStack then
-        button._boundStack = true
         -- ⚠ EMPTY opts, NEVER a formatter: Blizzard runs formatter:FormatNumber in
         -- Lua on the SECRET stack count -> throws inside ProcessDirtyFlags and
         -- bricks the container for the session.
         button:SetApplicationCount(button.dfStack, {})
+        button._boundStack = true
     end
     if button.dfDur and button.SetDurationText and not button._boundDur then
-        button._boundDur = true
         local fmt = GetDurationFormatter(handle)
         if fmt then -- false = duration text disabled (showDuration off) -> never bound
             button:SetDurationText(button.dfDur, { textFormatter = fmt })
         end
+        button._boundDur = true
     end
 
     -- dispel-type COLOR border (config-driven). Blizzard vertex-tints our white texture
@@ -708,6 +738,11 @@ do
             RDC._pending[h] = nil
             if h._pendingBuild then Build(h) end
         end
+        -- a Restyle refused while auras were secret has to be replayed, or the buttons keep
+        -- whatever half-applied state they were left in
+        for h in pairs(RDC._instances or {}) do
+            if h._restylePending then h:Restyle() end
+        end
     end)
     function RDC._defer(h) RDC._pending[h] = true end
 end
@@ -763,6 +798,14 @@ local LAYOUT_KEYS = { size = true, sizeH = true, border = true, spacing = true }
 
 function Handle:Restyle()
     if InCombatLockdown() then return end
+    -- Styling an AuraButton is only legal from initializeFrame; once auras are secret the
+    -- button is forbidden and every restricted call throws. Restyling anyway half-applies
+    -- the pass (fonts land, binds don't) -- exactly the "text with no icon" state.
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then
+        self._restylePending = true
+        return
+    end
+    self._restylePending = nil
     for _, b in ipairs(self.buttons) do
         pcall(StyleButton, self, b)
     end
@@ -1081,33 +1124,97 @@ end
 -- AuraButton IsShown/geometry are SECRET, so this is the only readable way to detect it.
 -- ============================================================
 
+-- The handle's frame is parented to the INDICATOR frame (raidDebuffs/dispels) or to the
+-- HEALTH BAR (overlay mode) -- never directly to the unit button, which is where
+-- _containerIndicators lives. Walk up to find it.
+local function FindOwnerButton(frame)
+    local f = frame
+    for _ = 1, 8 do
+        if not f then return nil end
+        if rawget(f, "_containerIndicators") ~= nil or f._containerIndicators then return f end
+        f = f:GetParent()
+    end
+    return nil
+end
+
 function RDC.Ghosts()
-    local total, orphans, disposeFails = 0, 0, 0
+    local total, orphans, disposeFails, unowned = 0, 0, 0, 0
     for h in pairs(RDC._instances or {}) do
         total = total + 1
+        local mode = tostring(h.config and h.config.mode or "important")
+
         if h._disposeFailed then
             disposeFails = disposeFails + 1
             p(("DISPOSE-FAILED x%d unit=%s mode=%s -- host survived Hide()/SetParent(nil)")
-                :format(h._disposeFailed, tostring(h.unit), tostring(h.config and h.config.mode or "important")))
+                :format(h._disposeFailed, tostring(h.unit), mode))
         end
         if h._pendingBuild then
             p(("PENDING-BUILD unit=%s mode=%s -- config change is queued until combat ends")
-                :format(tostring(h.unit), tostring(h.config and h.config.mode or "important")))
+                :format(tostring(h.unit), mode))
         end
-        local btn = h.frame:GetParent()
-        local owned = false
-        for _, ind in ipairs((btn and btn._containerIndicators) or {}) do
-            if ind.container == h then owned = true break end
-        end
-        if not owned then
-            orphans = orphans + 1
-            p(("ORPHAN unit=%s mode=%s shown=%s built=%s button=%s")
-                :format(tostring(h.unit), tostring(h.config and h.config.mode or "important"),
-                    tostring(h.frame:IsShown()), tostring(h.container ~= nil),
-                    tostring(btn and btn:GetName() or "?")))
+
+        local btn = FindOwnerButton(h.frame)
+        if not btn then
+            -- can't attribute it: report only if it is actually rendering something
+            if h.container and h.frame:IsShown() then
+                unowned = unowned + 1
+                p(("UNATTRIBUTED unit=%s mode=%s parent=%s -- no owning button found")
+                    :format(tostring(h.unit), mode, tostring(h.frame:GetParent() and h.frame:GetParent():GetName() or "?")))
+            end
+        else
+            local owned = false
+            for _, ind in ipairs(btn._containerIndicators or {}) do
+                -- dispels registers TWO handles: the icon container and the highlight one
+                if ind.container == h or ind.highlightContainer == h then owned = true break end
+            end
+            -- a torn-down handle keeps no container; only a LIVE one can draw a ghost
+            if not owned and h.container then
+                orphans = orphans + 1
+                p(("ORPHAN unit=%s mode=%s shown=%s button=%s")
+                    :format(tostring(h.unit), mode, tostring(h.frame:IsShown()), tostring(btn:GetName() or "?")))
+            end
         end
     end
-    p(("|cff33ff99[RDC]|r ghost check: %d/%d orphaned, %d dispose-failed"):format(orphans, total, disposeFails))
+    p(("ghost check: %d live orphans, %d unattributed, %d dispose-failed, %d handles total")
+        :format(orphans, unowned, disposeFails, total))
+end
+
+-- ============================================================
+-- INSPECT  ->  /run Cell.RaidDebuffContainer.Inspect("player")
+--
+-- Dumps every container on one unit's button: what filter/candidateFilters it actually
+-- built with, how many spell IDs its include map holds, and its duration-text state.
+-- A buff container with no include map (or one that fell back to a bare HELPFUL record)
+-- shows EVERY buff -- that is the difference between "filtered" and "everything".
+-- ============================================================
+
+function RDC.Inspect(unitToken)
+    unitToken = unitToken or "player"
+    local n = 0
+    for h in pairs(RDC._instances or {}) do
+        if h.unit == unitToken then
+            n = n + 1
+            local cfg = h.config or {}
+            local ids = cfg.spellIDs
+            local idCount = 0
+            if type(ids) == "table" then for _ in pairs(ids) do idCount = idCount + 1 end end
+
+            p(("--- handle #%d mode=%s shown=%s built=%s buttons=%d")
+                :format(n, tostring(cfg.mode or "important"), tostring(h.frame:IsShown()),
+                    tostring(h.container ~= nil), #h.buttons))
+            p(("    parent=%s size=%s num=%s onlyMine=%s")
+                :format(tostring(h.frame:GetParent() and h.frame:GetParent():GetName() or "?"),
+                    tostring(cfg.size), tostring(cfg.num), tostring(cfg.onlyMine)))
+            p(("    spellIDs=%d  showDuration=%s  durFmt=%s")
+                :format(idCount, tostring(cfg.showDuration), tostring(h._durFmt ~= false and h._durFmt ~= nil)))
+            -- escape the pipes: the chat frame eats "|R" (colour reset) and prints
+            -- "HARMFUL|RAID" as "HARMFULAID", which reads like a broken filter string
+            for _, ri in ipairs(h._recordInfo or {}) do p("    record:", (ri:gsub("|", "||"))) end
+            if h._recordInfo and #h._recordInfo == 0 then p("    record: (none -- container shows nothing)") end
+            for _, e in ipairs(h._errors or {}) do p("    ERR:", e) end
+        end
+    end
+    if n == 0 then p("no container handles bound to unit " .. tostring(unitToken)) end
 end
 
 return RDC

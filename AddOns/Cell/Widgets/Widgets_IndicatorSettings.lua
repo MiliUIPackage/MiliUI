@@ -1448,32 +1448,14 @@ local function CreateSetting_DurationVisibility(parent)
                     widget.func(true)
                 end,
             },
+            -- Percentage thresholds are gone: they need the aura's TOTAL duration to compare
+            -- against, and that is secret. Second thresholds only need the remaining time,
+            -- which the container's own formatter can band.
             {
-                ["text"] = "< 75%",
-                ["value"] = 0.75,
+                ["text"] = "< 60 "..L["sec"],
+                ["value"] = 60,
                 ["onClick"] = function()
-                    widget.func(0.75)
-                end,
-            },
-            {
-                ["text"] = "< 50%",
-                ["value"] = 0.5,
-                ["onClick"] = function()
-                    widget.func(0.5)
-                end,
-            },
-            {
-                ["text"] = "< 30%",
-                ["value"] = 0.3,
-                ["onClick"] = function()
-                    widget.func(0.3)
-                end,
-            },
-            {
-                ["text"] = "< 25%",
-                ["value"] = 0.25,
-                ["onClick"] = function()
-                    widget.func(0.25)
+                    widget.func(60)
                 end,
             },
             {
@@ -1520,8 +1502,11 @@ local function CreateSetting_DurationVisibility(parent)
     return widget
 end
 
--- Midnight: simplified duration visibility with only Always/Never options
--- (Blizzard's countdown text doesn't support percentage/time thresholds)
+-- Midnight: duration visibility without the PERCENTAGE thresholds. Percentages need the
+-- aura's total duration, which is secret; second thresholds do not -- RDC's own
+-- NumericRuleFormatter adds a `format = ""` breakpoint above the cutoff, so "< N sec"
+-- works fine on the AuraContainer path (it was only Blizzard's own countdown text that
+-- couldn't do thresholds).
 local function CreateSetting_DurationVisibilitySimple(parent)
     local widget
 
@@ -1546,6 +1531,34 @@ local function CreateSetting_DurationVisibilitySimple(parent)
                     widget.func(true)
                 end,
             },
+            {
+                ["text"] = "< 60 "..L["sec"],
+                ["value"] = 60,
+                ["onClick"] = function()
+                    widget.func(60)
+                end,
+            },
+            {
+                ["text"] = "< 15 "..L["sec"],
+                ["value"] = 15,
+                ["onClick"] = function()
+                    widget.func(15)
+                end,
+            },
+            {
+                ["text"] = "< 10 "..L["sec"],
+                ["value"] = 10,
+                ["onClick"] = function()
+                    widget.func(10)
+                end,
+            },
+            {
+                ["text"] = "< 5 "..L["sec"],
+                ["value"] = 5,
+                ["onClick"] = function()
+                    widget.func(5)
+                end,
+            },
         })
 
         widget.durationVisibilityText = widget:CreateFontString(nil, "OVERLAY", font_name)
@@ -1557,10 +1570,10 @@ local function CreateSetting_DurationVisibilitySimple(parent)
         end
 
         function widget:SetDBValue(durationVisibility)
-            -- Coerce pre-Midnight threshold values (0.75, 10, etc.) to "Always"
-            -- since Blizzard's countdown text only supports on/off, not thresholds.
-            -- The saved value isn't modified — only the dropdown display is coerced.
-            if durationVisibility and durationVisibility ~= false then
+            -- Only PERCENTAGE thresholds (0 < v < 1) are impossible now: they need the
+            -- aura's total duration, which is secret. Coerce those to "Always" for display;
+            -- second thresholds map to themselves. The saved value isn't modified.
+            if type(durationVisibility) == "number" and durationVisibility > 0 and durationVisibility < 1 then
                 durationVisibility = true
             end
             widget.durationVisibility:SetSelectedValue(durationVisibility)
