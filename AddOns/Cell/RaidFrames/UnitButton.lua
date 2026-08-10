@@ -410,9 +410,10 @@ local function HandleIndicators(b)
         end
 
         -- update AuraContainer-backed indicators (12.1 Route A: Blizzard-side
-        -- classification). raidDebuffs = important debuffs; dispels = dispel display.
-        if (t["indicatorName"] == "raidDebuffs" or t["indicatorName"] == "dispels")
-            and indicator.ConfigureContainer then
+        -- classification). Every container-backed indicator reads the WHOLE layout entry,
+        -- so the dispatch is on the method, not on a hardcoded name list -- the debuff row,
+        -- the three cooldown rows and custom buff-icon indicators all arrive here too.
+        if indicator.ConfigureContainer then
             indicator:ConfigureContainer(t)
         end
 
@@ -1083,19 +1084,41 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 UnitButton_UpdateAuras(b)
             end, true)
         elseif setting == "debuffBlacklist" or setting == "dispelBlacklist" or setting == "defensives" or setting == "externals" or setting == "crowdControls" or setting == "bigDebuffs" or setting == "debuffTypeColor" or setting == "castBy" then
-            -- The blacklist rides on the debuff container's excludeSpellIDs, but this event
-            -- carries no indicatorName, so the generic ConfigureContainer pass above never
-            -- sees it. Push the layout entry through explicitly.
-            local debuffsTable
-            if setting == "debuffBlacklist" then
+            -- These settings live in CellDB, not in the layout entry, so the event carries
+            -- no indicatorName and the generic ConfigureContainer pass above never sees it.
+            -- But the containers read CellDB when they build their filters (the blacklist
+            -- rides on excludeSpellIDs, the curated lists on includeSpellIDs), so the
+            -- affected indicators have to be pushed through explicitly or they keep the
+            -- old spell set until a /reload.
+            local AFFECTED = {
+                debuffBlacklist = { "debuffs" },
+                defensives      = { "defensiveCooldowns", "allCooldowns" },
+                externals       = { "externalCooldowns", "allCooldowns" },
+                castBy          = { "defensiveCooldowns", "externalCooldowns", "allCooldowns" },
+            }
+            -- the palette is baked into each AuraButton at bind time; only a rebuild moves it
+            if setting == "debuffTypeColor" and Cell.AuraDisplay then
+                Cell.AuraDisplay.RefreshDispelPalette()
+            end
+            local names = AFFECTED[setting]
+            local tables
+            if names then
                 local lt = Cell.vars.currentLayoutTable
                 for _, it in next, (lt and lt["indicators"] or {}) do
-                    if it["indicatorName"] == "debuffs" then debuffsTable = it; break end
+                    for _, n in next, names do
+                        if it["indicatorName"] == n then
+                            tables = tables or {}
+                            tables[n] = it
+                        end
+                    end
                 end
             end
             F.IterateAllUnitButtons(function(b)
-                if debuffsTable and b.indicators.debuffs and b.indicators.debuffs.ConfigureContainer then
-                    b.indicators.debuffs:ConfigureContainer(debuffsTable)
+                if tables then
+                    for n, t in next, tables do
+                        local ind = b.indicators[n]
+                        if ind and ind.ConfigureContainer then ind:ConfigureContainer(t) end
+                    end
                 end
                 UnitButton_UpdateAuras(b)
             end, true)
@@ -1239,25 +1262,18 @@ local function HandleDebuff(self, auraInfo)
     -- On Midnight in restricted context, spellId may be secret; I.CheckDebuffType guards internally
     debuffType = I.CheckDebuffType(debuffType, spellId)
 
-    -- Secret-aware fallback for debuffs: when spellId/name are secret, the curated
-    -- raidDebuff list and dispels can't match by ID. Use Blizzard's secret-safe
-    -- HARMFUL filters to classify.
-    --   HARMFUL|RAID                      : curated list of important raid debuffs
-    --   HARMFUL|RAID_PLAYER_DISPELLABLE   : debuffs the player can dispel
     local isSecret = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
-    -- DandersFrames-style central debuff detection: on Midnight, classify "important"
-    -- debuffs via Blizzard's secret-safe HARMFUL|RAID filter for ALL auras (not only
-    -- secret ones), so the central Raid Debuffs indicator no longer depends on the
-    -- curated spell-ID list. Curated entries still win priority/glow via GetDebuffOrder.
-    -- secretIsDispellable stays secret-only (non-secret debuffs use readable debuffType).
+
+    -- Secret-aware fallback for the CENTRAL raid-debuff display: when spellId/name are
+    -- secret the curated list can't match by ID, so classify via Blizzard's secret-safe
+    -- HARMFUL|RAID filter instead. Only reachable when no AuraContainer backs the
+    -- indicator (Classic, or the widget missing) -- when one does, it owns classification
+    -- and this per-aura C call was pure waste on every single debuff.
     local secretIsRaidDebuff = false
-    local secretIsDispellable = false
     local debuffUnit = self.states.displayedUnit
-    if Cell.isMidnight and IsAuraFilteredOutByInstanceID and auraInstanceID and debuffUnit then
+    if Cell.isMidnight and IsAuraFilteredOutByInstanceID and auraInstanceID and debuffUnit
+        and not self.indicators.raidDebuffs.container then
         secretIsRaidDebuff = not IsAuraFilteredOutByInstanceID(debuffUnit, auraInstanceID, "HARMFUL|RAID")
-        if isSecret then
-            secretIsDispellable = not IsAuraFilteredOutByInstanceID(debuffUnit, auraInstanceID, "HARMFUL|RAID_PLAYER_DISPELLABLE")
-        end
     end
 
     if duration or isSecret then
@@ -1281,10 +1297,9 @@ local function HandleDebuff(self, auraInfo)
         -- content). This is the intentional fallback for the central indicator.
         local order = I.GetDebuffOrder(name, spellId, count)
         -- Secret fallback: classify secret debuffs as raid debuffs via HARMFUL|RAID.
-        -- Skipped when the AuraContainer backs this indicator -- the container owns
-        -- secret classification, so letting this also fire would double-show every
-        -- secret raid debuff (once as a container button, once as a fallback icon).
-        if not order and secretIsRaidDebuff and not self.indicators.raidDebuffs.container then
+        -- Never set when the AuraContainer backs this indicator (see above) -- letting
+        -- this fire too would double-show every secret raid debuff.
+        if not order and secretIsRaidDebuff then
             order = 10000
         end
         if enabledIndicators["raidDebuffs"] and order then

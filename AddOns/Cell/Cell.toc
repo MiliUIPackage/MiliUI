@@ -39,8 +39,8 @@ Indicators\Custom.lua
 Indicators\Supporter.lua
 
 RaidFrames\MainFrame.lua
-RaidFrames\RaidDebuffContainer.lua
-RaidFrames\AuraContainerBridge.lua
+RaidFrames\AuraContainerCore.lua
+RaidFrames\AuraDisplay.lua
 
 Modules\LoadModules.xml
 Utilities\LoadUtilities.xml

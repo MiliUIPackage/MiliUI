@@ -132,7 +132,8 @@ function I.CreateIndicator(parent, indicatorTable)
                 if type(id) == "number" then ids[id] = true end
             end
             return ids
-        end, isMulti and (indicatorTable["num"] or 3) or 1)
+        end, isMulti and (indicatorTable["num"] or 3) or 1,
+        true) -- ring colour comes from the indicator's own 顏色 setting
     end
 
     return indicator

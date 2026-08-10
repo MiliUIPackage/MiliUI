@@ -261,23 +261,27 @@ local function IsPreviewButton(frame)
     return name ~= nil and name:find("PreviewButton", 1, true) ~= nil
 end
 
-local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum)
-    -- 2026-08-11: no-op. RaidFrames/AuraContainerBridge.lua (adopted from MiliUI) owns the
-    -- cooldown and custom buff-icon displays -- it attaches its own always-on containers,
-    -- anchored to these indicators, and fades the indicator frames so the manual preview
-    -- pools never double-draw. Two owners here was exactly the "slider redraws a second
-    -- layer" mess. RDC keeps only raidDebuffs / dispels / the health-bar overlay.
-    do return end
-    if not (Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported()) then return end
+-- useConfigColor: take the ring colour from the indicator's own 顏色 setting instead of
+-- the default green. Only custom indicators have such a setting; the three built-in
+-- cooldown rows keep the default.
+local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, useConfigColor)
+    if IsPreviewButton(parent) then return end
+    if not (Cell.AuraDisplay and Cell.AuraDisplay.IsSupported()) then return end
 
-    local container = Cell.RaidDebuffContainer.Create(parent, {
+    local container = Cell.AuraDisplay.Create(parent, {
         mode = "buff",
         num = defaultNum or 2,
+        -- 1.5 matches I.CreateAura_BorderIcon, which is what the preview button draws
+        border = 1.5,
     })
     if not container then return end
 
     indicator.container = container
-    indicator:Show() -- static host; the container owns which icons are visible
+    -- The container's frame is parented to the BUTTON, not to this indicator, so the
+    -- indicator frame is no longer part of the display at all. Keep it hidden: the
+    -- single-icon custom types (CreateAura_BarIcon) carry their own artwork, and showing
+    -- an empty one paints a blank icon next to the real container icon.
+    indicator:Hide()
 
     function indicator:ConfigureContainer(t)
         if not self.container then return end
@@ -300,6 +304,7 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum)
         local opts = {
             spellIDs = getSpellIDs(t),
             showDuration = t.showDuration,
+            showStack = t.showStack,
             onlyMine = (t.castBy == "me") or nil,
             orientation = t.orientation,
         }
@@ -309,6 +314,11 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum)
         end
         if t.size then opts.size = t.size[1]; opts.sizeH = t.size[2] end
         if t.num then opts.num = t.num end
+        -- Typed check, not just "is it there": the colour-per-aura indicator types store
+        -- their colours inside t.auras, and t.color is then something else entirely.
+        if useConfigColor and type(t.color) == "table" and type(t.color[1]) == "number" then
+            opts.borderColor = { t.color[1], t.color[2] or 0, t.color[3] or 0, 1 }
+        end
         self.container:SetOptions(opts)
         self.container:SetEnabled(t.enabled and true or false)
     end
@@ -657,20 +667,78 @@ function I.CreateDebuffs(parent)
     debuffs.EnableBlacklistShortcut = Debuffs_EnableBlacklistShortcut
 
     -- 12.1 "Route A": back the debuff row with a Blizzard AuraContainer. The manual scan
-    -- (GetAuraSlots) throws once auras are secret, so the fallback icons above freeze at
+    -- (GetAuraSlots) throws once auras are secret, so a fallback icon pool would freeze at
     -- whatever was up when combat started -- the container keeps updating throughout.
+    -- Only preview buttons keep a pool; on a preview button that pool IS the preview.
     if IsPreviewButton(parent) then
         for i = 1, 10 do
             local n = parent:GetName().."Debuff"..i
             tinsert(debuffs, Cell.isMidnight and I.CreateAura_BorderIcon(n, debuffs, 1.5)
                 or I.CreateAura_BarIcon(n, debuffs))
         end
+        return
     end
 
-    -- 2026-08-11: the debuff-row container moved to AuraContainerBridge.lua -- it was
-    -- attached here before, which made TWO renderers own the same row (the bridge in
-    -- combat + this one after any config rebuild).
+    if not (Cell.AuraDisplay and Cell.AuraDisplay.IsSupported()) then return end
 
+    local container = Cell.AuraDisplay.Create(parent, {
+        mode = "debuff",
+        num = 4,
+        border = 1.5, -- matches I.CreateAura_BorderIcon, which is what the preview draws
+    })
+    if not container then return end
+
+    debuffs.container = container
+    debuffs:Show() -- static host; the container owns which icons are visible
+
+    function debuffs:ConfigureContainer(t)
+        if not self.container then return end
+        -- ⚠ Anchor to the BUTTON, never to the debuffs frame: Debuffs_SetSize only records
+        -- width/height, so with no icon pool the frame stays rect-less forever and children
+        -- anchored to it never resolve (IsVisible() still reports true).
+        local cfr = self.container:GetFrame()
+        local pos = t.position
+        local rel = (pos and pos[2] == "healthBar" and parent.widgets and parent.widgets.healthBar)
+            or parent
+        cfr:ClearAllPoints()
+        if pos then
+            cfr:SetPoint(pos[1], rel, pos[3], pos[4], pos[5])
+        else
+            cfr:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", 1, 4)
+        end
+        cfr:SetSize((t.size and t.size[1]) or 20, (t.size and t.size[2]) or 20)
+
+        local opts = {
+            dispelByMe = t.dispellableByMe and true or false,
+            showDuration = t.showDuration,
+            showStack = t.showStack,
+            orientation = t.orientation,
+            -- ⚠ The blacklist only bites on spells flagged NeverSecret: ID filtering is
+            -- banned for harmful auras on assistable units. That still covers what it is
+            -- actually for -- the noisy always-on debuffs (Exhaustion/Sated and friends).
+            excludeSpellIDs = Cell.vars.debuffBlacklist,
+        }
+        if t.font then
+            opts.stackFont = t.font[1]
+            opts.durationFont = t.font[2]
+        end
+        if t.size then opts.size = t.size[1]; opts.sizeH = t.size[2] end
+        if t.num then opts.num = t.num end
+        self.container:SetOptions(opts)
+        self.container:SetEnabled(t.enabled and true or false)
+    end
+
+    function debuffs:SetContainerUnit(unit)
+        if not self.container then return end
+        self.container:SetUnit(unit)
+        self.container:ReassertEnable()
+    end
+
+    parent:HookScript("OnShow", function()
+        if debuffs.container then debuffs.container:ReassertEnable() end
+    end)
+
+    I.RegisterContainerIndicator(parent, debuffs)
 end
 
 -------------------------------------------------
@@ -902,16 +970,16 @@ function I.CreateDispels(parent)
         end
     end
 
-    if not IsPreviewButton(parent) and Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported() then
+    if not IsPreviewButton(parent) and Cell.AuraDisplay and Cell.AuraDisplay.IsSupported() then
         -- (1) dispel-type ICONS at the indicator's own anchor (bottom-right)
-        local iconC = Cell.RaidDebuffContainer.Create(dispels, {
+        local iconC = Cell.AuraDisplay.Create(dispels, {
             mode = "dispel",
             num = 3,
             dispelIcon = true,   -- Blizzard renders the dispel-type icon art (Magic/Curse/...)
         })
         -- (2) dispel HIGHLIGHT: a tint overlay covering the health bar, vertex-tinted by
         --     dispel type blind. Anchored to the health bar, not the indicator anchor.
-        local hlC = Cell.RaidDebuffContainer.Create(parent.widgets.healthBar, {
+        local hlC = Cell.AuraDisplay.Create(parent.widgets.healthBar, {
             mode = "overlay",
             tintAlpha = 0.5,
         })
@@ -1165,8 +1233,8 @@ function I.CreateRaidDebuffs(parent)
         end
     end
 
-    if not IsPreviewButton(parent) and Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported() then
-        local container = Cell.RaidDebuffContainer.Create(raidDebuffs, {})
+    if not IsPreviewButton(parent) and Cell.AuraDisplay and Cell.AuraDisplay.IsSupported() then
+        local container = Cell.AuraDisplay.Create(raidDebuffs, {})
         if container then
             -- ⚠ Do NOT SetAllPoints(raidDebuffs): Cooldowns_SetSize only stores
             -- width/height -- the raidDebuffs frame itself is sized in UpdateSize and

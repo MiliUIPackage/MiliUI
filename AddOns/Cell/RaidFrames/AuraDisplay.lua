@@ -1,25 +1,37 @@
 local _, Cell = ...
 
 -- ============================================================
--- RAID DEBUFF CONTAINER  (Cell, 12.1 "Route A")
+-- AURA DISPLAY  (Cell, 12.1 "Route A")
 --
--- Blizzard-driven AuraContainer / AuraButton backing for Cell's central
--- "Raid Debuffs" indicator. Replaces the old spell-ID / curated-list matching:
--- in 12.1 an aura's spellId/name/duration on a teammate DEBUFF are secret, so
--- classification MUST be done Blizzard-side. We register one AuraGroup per
--- category (boss/role, priority, crowd-control, raid, dispellable) with a
--- filter string + candidateFilters; Blizzard fills + drives the buttons and
--- calls our initializeFrame to style each one. We never read spellId /
--- expirationTime / dispelName / presence -- membership IS the predicate.
+-- The Blizzard-driven AuraContainer / AuraButton backing for every aura-icon
+-- display on a Cell unit button: the central Raid Debuffs indicator, the debuff
+-- row, the dispel icons and health-bar highlight, the three cooldown rows, and
+-- custom buff-icon indicators.
+--
+-- In 12.1 an aura's spellId / name / duration / dispel school on a teammate are
+-- secret, so classification MUST happen Blizzard-side. We register one AuraGroup
+-- per category with a filter string + candidateFilters; Blizzard fills and drives
+-- the buttons and calls our initializeFrame to style each one. We never read
+-- spellId / expirationTime / dispelName / presence -- membership IS the predicate,
+-- and the widgets we hand over are driven by the engine, not by us.
 --
 -- Mirrors the mechanism validated in-game by Coolinator and DandersFrames v5.
--- Everything here is gated behind IsSupported(); when unsupported (Classic, or
--- the widget missing) the caller keeps Cell's existing 3-icon path. Every
--- state change is pcall-wrapped and OOC-only so a raid frame is never broken.
+-- Everything is gated behind IsSupported(); when unsupported (Classic, or the
+-- widget missing) each caller keeps its legacy path. Every state change is
+-- pcall-wrapped and OOC-only so a raid frame is never broken.
+--
+-- Was RaidDebuffContainer.lua / Cell.RaidDebuffContainer -- renamed once it stopped
+-- being about raid debuffs. The Blizzard-API adapters it sits on (capability probe,
+-- duration formatter, flow layout, dispel binding, fonts) live in
+-- AuraContainerCore.lua; this file is the Cell policy and the lifecycle.
 -- ============================================================
 
-local RDC = {}
-Cell.RaidDebuffContainer = RDC
+local AD = {}
+Cell.AuraDisplay = AD
+
+local ACC = Cell.AuraContainerCore
+---@type CellFuncs
+local F = Cell.funcs
 
 local pcall, ipairs, pairs, next, tinsert = pcall, ipairs, pairs, next, tinsert
 local CreateFrame = CreateFrame
@@ -31,46 +43,11 @@ local TOKEN_CC   = "CROWD_CONTROL"
 local TOKEN_DISP = "RAID_PLAYER_DISPELLABLE"
 
 -- ============================================================
--- SUPPORT GATE
--- IsSupported() == "does an AuraContainer expose AddAuraGroup". Never probe in
--- combat -- creating a live AuraContainer hard-errors uncatchably in lockdown,
--- so a cold-cache combat call returns false WITHOUT caching (re-check later).
+-- SUPPORT GATE  (see AuraContainerCore.lua for the probe itself)
 -- ============================================================
 
-local _supported
-local function ProbeSupported()
-    if not Cell.isMidnight then return false end
-    local toc = select(4, GetBuildInfo())
-    if type(toc) ~= "number" or toc < 120100 then return false end
-    if not (AuraUtil and AuraUtil.IsValidFilterString) then return false end
-    local ok, frame = pcall(CreateFrame, "AuraContainer", nil, UIParent, "CustomAuraContainerTemplate")
-    if not ok or not frame then return false end
-    local hasGroups = type(frame.AddAuraGroup) == "function"
-    pcall(function() frame:Hide() end)
-    return hasGroups
-end
-
-function RDC.IsSupported()
-    if _supported == nil then
-        if InCombatLockdown() then return false end -- never cache a combat false
-        local ok, res = pcall(ProbeSupported)
-        _supported = (ok and res) and true or false
-    end
-    return _supported
-end
-
--- Warm the cache once, out of combat, at login.
-do
-    local warm = CreateFrame("Frame")
-    warm:RegisterEvent("PLAYER_LOGIN")
-    warm:SetScript("OnEvent", function(self)
-        if InCombatLockdown() then
-            self:RegisterEvent("PLAYER_REGEN_ENABLED")
-            return
-        end
-        self:UnregisterAllEvents()
-        RDC.IsSupported()
-    end)
+function AD.IsSupported()
+    return ACC.IsSupported()
 end
 
 -- ============================================================
@@ -91,7 +68,7 @@ end
 -- (DandersFrames Features/Dispel.lua: "All Dispellable must NOT depend on what the
 -- player can dispel" -- processedAuraType is secretly player-relative, includeDispelTypes
 -- is not).
-local ALL_DISPEL_TYPES = { Magic = true, Curse = true, Disease = true, Poison = true, Bleed = true }
+local ALL_DISPEL_TYPES = ACC.ALL_DISPEL_TYPES
 
 local function BuildRecords(opts)
     opts = opts or {}
@@ -217,7 +194,7 @@ local function BuildRecords(opts)
     end
     return out
 end
-RDC.BuildRecords = BuildRecords
+AD.BuildRecords = BuildRecords
 
 -- ============================================================
 -- BUTTON STYLING  (initializeFrame)
@@ -226,118 +203,37 @@ RDC.BuildRecords = BuildRecords
 -- region to Blizzard's inbound setters. Never read spellId/duration/count.
 -- ============================================================
 
--- One shared duration formatter per container: bare number countdown "45" -> "2m" -> "1h".
--- Copied verbatim from DandersFrames' proven NUMBER formatter (Features/Auras.lua
--- BuildDurationFormatter): a NumericRuleFormatter with rounding, because
--- AbbreviatedNumberFormatter renders the RAW fractional seconds (27.4, 27.3...) and
--- jitters, and SecondsFormatter has no suffix-less mode (always prints a unit; in
--- zh locales all three abbreviations print "秒").
--- Thresholds are Blizzard's promote points 91 / 5401 (NOT 60 / 3600): 61-90s still
--- prints whole seconds, matching the game's own frames. Quotient rounds UP (2m32s ->
--- "3m") because Blizzard's formatter sets SetCanRoundUpLastUnit(true).
--- Honors Cell's showDuration setting (config.showDuration):
---   true      -> always show ("45" -> "2m" -> "1h")
---   false/nil-> no duration text (fontstring never bound)
---   number N  -> only show when remaining < N seconds -- implemented secret-safe as a
---                BLANK band at threshold N (the engine evaluates the secret remaining
---                time against the breakpoints; we never read it). Bands at/above the
---                blank threshold are omitted (they would shadow it).
-local function GetDurationFormatter(handle)
-    if handle._durFmt ~= nil then return handle._durFmt end
-    handle._durFmt = false
-    local show = handle.config.showDuration
-    if show == false or show == nil then return false end
-    local hideAbove = type(show) == "number" and show or nil
-    if C_StringUtil and C_StringUtil.CreateNumericRuleFormatter
-        and Enum and Enum.NumericRuleFormatRounding then
-        local ok, f = pcall(function()
-            local down = Enum.NumericRuleFormatRounding.Down
-            local up = Enum.NumericRuleFormatRounding.Up
-            local fmt = C_StringUtil.CreateNumericRuleFormatter()
-            -- seconds band truncates: 45.6s remaining renders "45"
-            fmt:AddBreakpoint({ threshold = 0, step = 1, rounding = down, min = 1, format = "%d" })
-            if not hideAbove or hideAbove > 91 then
-                fmt:AddBreakpoint({ threshold = 91, step = 1, rounding = down, min = 1, format = "%dm",
-                                    components = { { div = 60, rounding = up } } })
-            end
-            if not hideAbove or hideAbove > 5401 then
-                fmt:AddBreakpoint({ threshold = 5401, step = 1, rounding = down, min = 1, format = "%dh",
-                                    components = { { div = 3600, rounding = up } } })
-            end
-            if hideAbove then
-                fmt:AddBreakpoint({ threshold = hideAbove, step = 1, rounding = down, format = "" })
-            end
-            return fmt
-        end)
-        if ok and f then handle._durFmt = f end
-    end
-    return handle._durFmt
-end
+-- The duration formatter, the dispel-texture binding and the font applier all live in
+-- AuraContainerCore.lua now -- they used to exist twice, once here and once in the
+-- bridge, and the two copies had already drifted (different countdown format, and the
+-- bridge never read CellDB.debuffTypeColor at all).
+local ApplyFont = ACC.ApplyFont
+local BindDispelTexture = ACC.BindDispelTexture
 
 -- ============================================================
--- SHARED: dispel-type rendering
--- The dispel school is SECRET, so we never pick the colour/art ourselves -- we hand
--- Blizzard one of OUR textures plus (for colour mode) a name->colour map, and it tints
--- and shows it blind. Cell's own configurable palette (CellDB.debuffTypeColor, the
--- 減益類型顏色 panel) is what feeds customDispelColorMap, so the container matches the
--- rest of Cell. Used by: central raid-debuff border, bottom-right dispel icons.
---   style "Color" -> vertex-tint OUR texture by school (PreserveAsset)
---   style "Icon"  -> Blizzard's own dispel-type icon art (Icon)
+-- ICON RENDERING -- one look, everywhere
+--
+-- Cell's I.CreateAura_BorderIcon shape: the Cooldown covers the WHOLE button and the
+-- icon sits in an inset child frame ABOVE it, so only the outer ring shows and the
+-- countdown reads as a border draining clockwise. Every icon display uses it -- the
+-- central raid debuffs, the debuff row, the cooldown rows and custom buff icons.
+--
+-- ⚠ The colour is on the STATIC ring and the swipe is what EATS it, not the other way
+-- round. That inversion is forced, not stylistic: SetSwipeColor takes a literal RGB and
+-- an AuraButton never tells us the dispel school, so a coloured swipe could not be
+-- school-coloured. A static texture can -- Blizzard vertex-tints it for us, blind.
+--
+-- So the ring colour is:
+--   dispel school present -> the user's own palette colour (CellDB.debuffTypeColor)
+--   otherwise             -> cfg.borderColor, defaulting to BUFF_GREEN
+-- and the swipe grows over it in SPENT_COLOR as the aura runs out.
 -- ============================================================
 
-local DISPEL_NAMES = { "Magic", "Curse", "Disease", "Poison", "Bleed" }
-
-local function GetCellDispelColorMap()
-    if not CreateColor then return nil end
-    local src = CellDB and CellDB["debuffTypeColor"]
-    if not src then return nil end
-    local map
-    for _, name in ipairs(DISPEL_NAMES) do
-        local c = src[name]
-        if type(c) == "table" and c.r then
-            map = map or {}
-            map[name] = CreateColor(c.r, c.g or 0, c.b or 0, 1)
-        end
-    end
-    return map
-end
-
-local function BindDispelTexture(button, texture, styleName)
-    if not (button.AddDispelTypeTexture or button.SetAuraBorder) then return end
-    local E = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
-    local opts = { showWhenHarmful = true, showWhenHelpful = false }
-    if styleName == "Icon" then
-        opts.style = (E and E.Icon) or 2
-    else
-        opts.style = (E and E.PreserveAsset) or 3
-        opts.showIcon = false
-        opts.customDispelColorMap = GetCellDispelColorMap()
-    end
-    if button.AddDispelTypeTexture then
-        -- APPENDS -- clear once per button so a re-bind replaces rather than stacks
-        if not button._dispelCleared then
-            button._dispelCleared = true
-            if button.ClearDispelTypeTextures then button:ClearDispelTypeTextures() end
-        end
-        button:AddDispelTypeTexture(texture, opts)
-    else
-        button:SetAuraBorder(texture, opts) -- deprecated single-region alias
-    end
-end
-
--- font tables are Cell's {face, size, outline, shadow, anchor, xOffset, yOffset, color}
-local function ApplyFont(fs, anchorTo, f, forceCenter)
-    if not (fs and f) then return end
-    local SetFont = Cell.iFuncs and Cell.iFuncs.SetFont
-    if not SetFont then return end
-    if forceCenter then
-        -- Midnight centers countdown text on the icon (see Base.lua ApplyCountdownFont);
-        -- that is why the duration font option has no offset controls.
-        SetFont(fs, anchorTo, f[1], f[2], f[3], f[4], "CENTER", 0, 0, f[8])
-    else
-        SetFont(fs, anchorTo, f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8])
-    end
-end
+-- Deliberately dark. This started at {0, 0.9, 0.2} and was dialled down because a bright
+-- green ring visually swamps the icon inside it at 12-20px.
+local BUFF_GREEN  = { 0, 0.55, 0.15, 1 }
+-- what the ring turns into as it drains -- black, i.e. Cell's ordinary icon border
+local SPENT_COLOR = { 0, 0, 0, 1 }
 
 local function StyleButton(handle, button)
     local cfg = handle.config
@@ -353,14 +249,17 @@ local function StyleButton(handle, button)
 
     -- BISECT: minimal styling (icon bind only, Coolinator-proven). Isolates "does the
     -- container render at this anchor at all" from the full styling/bind path.
+    -- ⚠ its OWN texture field, never button.dfIcon: sharing it would leave the real icon
+    -- anchored to the whole button afterwards, covering the ring -- a rendering artefact
+    -- introduced by the tool that exists to diagnose rendering artefacts.
     if handle._testMinimal then
-        if not button.dfIcon then
-            button.dfIcon = button:CreateTexture(nil, "ARTWORK")
-            button.dfIcon:SetAllPoints(button)
+        if not button.dfTestIcon then
+            button.dfTestIcon = button:CreateTexture(nil, "OVERLAY")
+            button.dfTestIcon:SetAllPoints(button)
         end
-        if button.SetIcon and not button._boundIcon then
-            button._boundIcon = true
-            button:SetIcon(button.dfIcon)
+        if button.SetIcon and not button._boundTestIcon then
+            button._boundTestIcon = true
+            button:SetIcon(button.dfTestIcon)
         end
         tinsert(handle.buttons, button)
         return
@@ -415,81 +314,98 @@ local function StyleButton(handle, button)
         return
     end
 
-    -- icon (inset by border) -- match Cell's texcoord crop
-    if not button.dfIcon then
-        button.dfIcon = button:CreateTexture(nil, "ARTWORK")
-        button.dfIcon:SetTexCoord(0.12, 0.88, 0.12, 0.88)
-    end
-    button.dfIcon:ClearAllPoints()
-    button.dfIcon:SetPoint("TOPLEFT", border, -border)
-    button.dfIcon:SetPoint("BOTTOMRIGHT", -border, border)
+    -- Levels are RE-APPLIED every pass, never set once at creation: SetFrameLevel stores an
+    -- ABSOLUTE level, and the container re-levels its AuraButtons as groups grow, so a region
+    -- left on the old number sinks below the button and disappears. That was the
+    -- "文字被擋在後面" ghost.
+    local base = button:GetFrameLevel()
 
-    -- 1px black border underneath the icon (BACKGROUND, drawn behind inset icon)
+    -- ring colour when the aura has no dispel school (all buffs, and undispellable debuffs)
+    local ring = cfg.borderColor
+    if type(ring) ~= "table" or type(ring[1]) ~= "number" then ring = BUFF_GREEN end
+
+    -- ---- the ring ------------------------------------------------------------
+    -- Two layers with strictly separate jobs. ⚠ They must NOT both carry the fallback
+    -- colour: Blizzard's school tint arrives as a vertex colour, and a red tint over a
+    -- dark-green base multiplies down to near-black.
+    --   dfBG            BACKGROUND, OUR colour, always drawn -> the no-school ring
+    --   dfDispelBorder  BORDER, plain WHITE, handed to Blizzard -> shown and tinted only
+    --                   when the aura has a school, covering dfBG when it is
     if not button.dfBG then
         button.dfBG = button:CreateTexture(nil, "BACKGROUND")
-        button.dfBG:SetColorTexture(0, 0, 0, 1)
-        button.dfBG:SetAllPoints(button)
+    end
+    button.dfBG:SetAllPoints(button)
+    button.dfBG:SetColorTexture(ring[1], ring[2] or 0, ring[3] or 0, ring[4] or 1)
+
+    -- Skipped for buff containers: the binding is showWhenHarmful-only, so on a HELPFUL
+    -- container it is a texture and a bind per button that can never draw anything.
+    if cfg.mode ~= "buff" then
+        if not button.dfDispelBorder then
+            button.dfDispelBorder = button:CreateTexture(nil, "BORDER")
+            button.dfDispelBorder:SetColorTexture(1, 1, 1, 1) -- white: the tint IS the colour
+        end
+        button.dfDispelBorder:SetAllPoints(button)
+        if not button._boundDispelBorder then
+            button._boundDispelBorder = true
+            BindDispelTexture(button, button.dfDispelBorder, "Color")
+        end
     end
 
-    -- dispel-type coloured border: a WHITE texture over the whole button on the BORDER
-    -- layer (above dfBG, below the inset icon), so only the border edge shows. Blizzard
-    -- tints AND shows/hides it by school, blind, using Cell's 減益類型顏色 palette --
-    -- non-dispellable debuffs leave it hidden and the black dfBG edge remains.
-    if not button.dfDispelBorder then
-        button.dfDispelBorder = button:CreateTexture(nil, "BORDER")
-        button.dfDispelBorder:SetColorTexture(1, 1, 1, 1)
+    -- ---- the icon, inset, ABOVE the swipe so only the ring shows --------------
+    if not button.dfIconFrame then
+        button.dfIconFrame = CreateFrame("Frame", nil, button)
+        button.dfIcon = button.dfIconFrame:CreateTexture(nil, "ARTWORK")
+        button.dfIcon:SetAllPoints(button.dfIconFrame)
+        button.dfIcon:SetTexCoord(0.12, 0.88, 0.12, 0.88) -- match Cell's crop
     end
-    button.dfDispelBorder:SetAllPoints(button)
-    if not button._boundDispelBorder then
-        button._boundDispelBorder = true
-        BindDispelTexture(button, button.dfDispelBorder, "Color")
-    end
+    button.dfIconFrame:ClearAllPoints()
+    button.dfIconFrame:SetPoint("TOPLEFT", button, "TOPLEFT", border, -border)
+    button.dfIconFrame:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -border, border)
+    button.dfIconFrame:SetFrameLevel(base + 2)
 
-    -- cooldown swipe over the icon
+    -- ---- the drain -----------------------------------------------------------
+    -- Covers the WHOLE button, under the icon frame. SetReverse(true) makes the swipe
+    -- cover the ELAPSED arc, so black grows and the coloured arc shrinks clockwise.
     if not button.dfCD then
         button.dfCD = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
-        button.dfCD:SetSwipeColor(0, 0, 0, 0.8)
+        button.dfCD:SetSwipeTexture(ACC.WHITE)
+        button.dfCD:SetSwipeColor(SPENT_COLOR[1], SPENT_COLOR[2], SPENT_COLOR[3])
+        button.dfCD:SetReverse(true)
+        button.dfCD:SetDrawSwipe(true)
         button.dfCD:SetHideCountdownNumbers(true)
         button.dfCD:SetDrawEdge(false)
         button.dfCD:SetDrawBling(false)
+        button.dfCD.noCooldownCount = true -- keep OmniCC off our numbers
     end
     button.dfCD:ClearAllPoints()
-    button.dfCD:SetAllPoints(button.dfIcon)
+    button.dfCD:SetAllPoints(button)
+    button.dfCD:SetFrameLevel(base + 1)
 
-    -- duration text (holder above the swipe). ⚠ The holder MUST be anchored: a frame
-    -- with no points/size is rect-less, and a fontstring anchored to a rect-less frame
-    -- never renders (same failure class as the rect-less raidDebuffs anchor bug).
+    -- ---- text -----------------------------------------------------------------
+    -- ⚠ The holders MUST be anchored: a frame with no points/size is rect-less, and a
+    -- fontstring anchored to a rect-less frame never renders.
     if not button.dfDur then
         button.dfDurHolder = CreateFrame("Frame", nil, button)
         button.dfDurHolder:SetAllPoints(button)
         button.dfDur = button.dfDurHolder:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
         button.dfDur:SetPoint("CENTER")
     end
-    -- ⚠ RE-APPLY every pass, never once at creation. SetFrameLevel stores an ABSOLUTE
-    -- level; the container re-levels its AuraButtons as groups grow/relayout, and a holder
-    -- left on the old number ends up BELOW the button -- so the button's own icon texture
-    -- draws over the text. That is the "文字被擋在後面" ghost.
-    button.dfDurHolder:SetFrameLevel(button:GetFrameLevel() + 6)
+    button.dfDurHolder:SetFrameLevel(base + 6)
     -- re-applied every pass (not create-once) so font sliders are live
     ApplyFont(button.dfDur, button.dfDurHolder, cfg.durationFont, true)
 
-    -- stack/count text
     if not button.dfStack then
         button.dfStackHolder = CreateFrame("Frame", nil, button)
         button.dfStackHolder:SetAllPoints(button)
         button.dfStack = button.dfStackHolder:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
         button.dfStack:SetPoint("BOTTOMRIGHT", 2, -1)
     end
-    button.dfStackHolder:SetFrameLevel(button:GetFrameLevel() + 7)
+    button.dfStackHolder:SetFrameLevel(base + 7)
     ApplyFont(button.dfStack, button.dfStackHolder, cfg.stackFont)
-
-    -- NOTE: dispel-type colored border deferred to in-game iteration -- SetAuraBorder /
-    -- AddDispelTypeTexture only RECOLORS a texture you supply (it doesn't carve a ring),
-    -- so a naive full-cover texture blocks the icon. Needs the border-behind-icon trick.
 
     -- ---- native binds (bind-once via flags) ----
     -- Direct calls, NOT pcall'd: StyleButton's caller captures errors into
-    -- handle._errors so RDC.Debug()/RDC_Test() can surface the real failure
+    -- handle._errors so /cab and /cab test can surface the real failure
     -- instead of silently swallowing it.
     -- ⚠ Each flag is set only AFTER its call returns. StyleButton runs under pcall from
     -- Restyle, and an AuraButton that has gone forbidden throws on the first restricted
@@ -503,7 +419,8 @@ local function StyleButton(handle, button)
         button:SetDurationCooldown(button.dfCD)
         button._boundCD = true
     end
-    if button.dfStack and button.SetApplicationCount and not button._boundStack then
+    if button.dfStack and button.SetApplicationCount and not button._boundStack
+        and cfg.showStack ~= false then
         -- ⚠ EMPTY opts, NEVER a formatter: Blizzard runs formatter:FormatNumber in
         -- Lua on the SECRET stack count -> throws inside ProcessDirtyFlags and
         -- bricks the container for the session.
@@ -511,54 +428,27 @@ local function StyleButton(handle, button)
         button._boundStack = true
     end
     if button.dfDur and button.SetDurationText and not button._boundDur then
-        local fmt = GetDurationFormatter(handle)
-        if fmt then -- false = duration text disabled (showDuration off) -> never bound
+        local fmt = ACC.GetDurationFormatter(cfg.showDuration)
+        -- ⚠ only flag it when a bind actually happened. Flagging on the disabled path too
+        -- meant an indicator created with showDuration off could never get its text back.
+        if fmt then
             button:SetDurationText(button.dfDur, { textFormatter = fmt })
-        end
-        button._boundDur = true
-    end
-
-    -- dispel-type COLOR border (config-driven). Blizzard vertex-tints our white texture
-    -- by dispel school ("Color"/PreserveAsset style) -- blind, we never read the type.
-    -- With the icon inset on top, only the edge shows = a coloured border; non-dispellable
-    -- debuffs leave it unshown so the black dfBG edge remains.
-    if cfg.showDispelColor and (button.AddDispelTypeTexture or button.SetAuraBorder)
-        and not button._boundDispelColor then
-        button._boundDispelColor = true
-        if not button.dfDispelColor then
-            button.dfDispelColor = button:CreateTexture(nil, "BORDER")
-            button.dfDispelColor:SetColorTexture(1, 1, 1, 1)
-            button.dfDispelColor:SetAllPoints(button)
-        end
-        local styleEnum = (Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
-            and Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset) or 3
-        local dopts = { style = styleEnum, showWhenHarmful = true, showWhenHelpful = false, showIcon = false }
-        if button.AddDispelTypeTexture then
-            if button.ClearDispelTypeTextures then pcall(button.ClearDispelTypeTextures, button) end
-            pcall(button.AddDispelTypeTexture, button, button.dfDispelColor, dopts)
-        else
-            pcall(button.SetAuraBorder, button, button.dfDispelColor, dopts)
+            button._boundDur = true
         end
     end
 
     -- dispel-type SYMBOL letter (config-driven). Blizzard writes the school glyph into
     -- our fontstring, blind.
-    if cfg.showDispelSymbol and (button.SetDispelTypeText or button.SetAuraSymbol)
-        and not button._boundDispelSym then
+    if cfg.showDispelSymbol and not button._boundDispelSym then
         button._boundDispelSym = true
         if not button.dfSymbol then
             button.dfSymbolHolder = CreateFrame("Frame", nil, button)
-            button.dfSymbolHolder:SetAllPoints(button) -- rect-less holder = invisible text
-            button.dfSymbolHolder:SetFrameLevel(button:GetFrameLevel() + 8)
+            button.dfSymbolHolder:SetAllPoints(button)
             button.dfSymbol = button.dfSymbolHolder:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
             button.dfSymbol:SetPoint("CENTER")
         end
-        local sopts = { showWhenHarmful = true, showWhenHelpful = false }
-        if button.SetDispelTypeText then
-            pcall(button.SetDispelTypeText, button, button.dfSymbol, sopts)
-        else
-            pcall(button.SetAuraSymbol, button, button.dfSymbol, sopts)
-        end
+        button.dfSymbolHolder:SetFrameLevel(base + 8)
+        ACC.BindDispelText(button, button.dfSymbol)
     end
 
     tinsert(handle.buttons, button)
@@ -568,42 +458,24 @@ end
 -- FLOW LAYOUT
 -- ============================================================
 
+-- Honour the indicator's orientation. The anchor frame is one icon big and sits at the
+-- configured position; the row must flow OUT of that point in the configured direction,
+-- or a TOPRIGHT/right-to-left indicator (Healers) spills icons rightward off the frame.
 local function ApplyLayout(handle)
     local c = handle.container
     if not c then return end
     local cfg = handle.config
-    local size = cfg.size or 22
-    local spacing = cfg.spacing or 2
-    local num = cfg.num or 3
 
-    -- Honour the indicator's orientation. The anchor frame is one icon big and sits at the
-    -- configured position; the row must flow OUT of that point in the configured direction,
-    -- or a TOPRIGHT/right-to-left indicator (Healers) spills icons rightward off the frame.
-    -- maximumLineSize is a PIXEL budget along the main axis, not an icon count.
-    local orient = cfg.orientation or "left-to-right"
-    local budget = num * size + (num - 1) * spacing + size * 0.5
-    local FD = AnchorUtil and AnchorUtil.FlowDirection
-    local AX = AnchorUtil and AnchorUtil.FlowLayoutAxis
+    local point = ACC.ApplyFlowLayout(c, {
+        orientation = cfg.orientation,
+        num = cfg.num or 3,
+        width = cfg.size or 22,
+        height = cfg.sizeH or cfg.size or 22,
+        spacing = cfg.spacing or 2,
+    })
+
+    -- pin the container to the SAME side of the anchor frame the row flows from
     pcall(function()
-        local point
-        if orient == "right-to-left" then
-            point = "RIGHT"
-            if FD and c.SetFlowLayoutGrowthDirection then c:SetFlowLayoutGrowthDirection(FD.Left, FD.Down) end
-        elseif orient == "top-to-bottom" then
-            point = "TOP"
-            if AX and c.SetFlowLayoutAxis then c:SetFlowLayoutAxis(AX.Vertical) end
-            if FD and c.SetFlowLayoutGrowthDirection then c:SetFlowLayoutGrowthDirection(FD.Right, FD.Down) end
-        elseif orient == "bottom-to-top" then
-            point = "BOTTOM"
-            if AX and c.SetFlowLayoutAxis then c:SetFlowLayoutAxis(AX.Vertical) end
-            if FD and c.SetFlowLayoutGrowthDirection then c:SetFlowLayoutGrowthDirection(FD.Right, FD.Up) end
-        else -- left-to-right
-            point = "LEFT"
-            if FD and c.SetFlowLayoutGrowthDirection then c:SetFlowLayoutGrowthDirection(FD.Right, FD.Down) end
-        end
-        if c.SetFlowLayoutAnchorPoint then c:SetFlowLayoutAnchorPoint(point) end
-        if c.SetFlowLayoutMaximumLineSize then c:SetFlowLayoutMaximumLineSize(budget) end
-        -- pin the container to the SAME side of the anchor frame the row flows from
         c:ClearAllPoints()
         c:SetPoint(point, handle.frame, point, 0, 0)
     end)
@@ -627,7 +499,7 @@ local function Build(handle)
     if handle._destroyed then return end
     if InCombatLockdown() then
         handle._pendingBuild = true
-        if RDC._defer then RDC._defer(handle) end
+        if AD._defer then AD._defer(handle) end
         return
     end
     handle._pendingBuild = nil
@@ -648,7 +520,7 @@ local function Build(handle)
         old:Hide()
         old:SetParent(nil)
         -- verify the disposal actually took. If this ever trips, the ghost icons are NOT a
-        -- teardown-order problem and RDC.Ghosts() will say so instead of us guessing.
+        -- teardown-order problem and AD.Ghosts() will say so instead of us guessing.
         if old:IsShown() or old:GetParent() then
             handle._disposeFailed = (handle._disposeFailed or 0) + 1
         end
@@ -678,11 +550,10 @@ local function Build(handle)
     handle.host = host
     handle.container = c
     handle._groupKeys = {}
-    handle._errors = {}          -- diagnostics: per-step failures (see RDC.Debug)
+    handle._errors = {}          -- diagnostics: per-step failures (see AD.Debug)
     handle._initCount = 0        -- how many buttons Blizzard asked us to style
     handle._groupsAdded = 0
     handle._enabledWhileVisible = false
-    handle._durFmt = nil         -- rebuild reflects current showDuration setting
 
     local overlay = handle.config.mode == "overlay"
     if overlay then
@@ -766,19 +637,19 @@ end
 do
     local regen = CreateFrame("Frame")
     regen:RegisterEvent("PLAYER_REGEN_ENABLED")
-    RDC._pending = {}
+    AD._pending = {}
     regen:SetScript("OnEvent", function()
-        for h in pairs(RDC._pending) do
-            RDC._pending[h] = nil
+        for h in pairs(AD._pending) do
+            AD._pending[h] = nil
             if h._pendingBuild then Build(h) end
         end
         -- a Restyle refused while auras were secret has to be replayed, or the buttons keep
         -- whatever half-applied state they were left in
-        for h in pairs(RDC._instances or {}) do
+        for h in pairs(AD._instances or {}) do
             if h._restylePending then h:Restyle() end
         end
     end)
-    function RDC._defer(h) RDC._pending[h] = true end
+    function AD._defer(h) AD._pending[h] = true end
 end
 
 -- ============================================================
@@ -828,7 +699,7 @@ end
 -- keys that only affect per-button cosmetics: restyle the cached buttons instead of
 -- recreating the container (a rebuild re-creates ~10 buttons per group -- far too heavy
 -- for a font slider drag)
-local COSMETIC_KEYS = { stackFont = true, durationFont = true }
+local COSMETIC_KEYS = { stackFont = true, durationFont = true, borderColor = true }
 
 -- geometry keys: 12.1 has SetAuraGroupLayout as a LIVE setter and StyleButton already
 -- re-applies per-button size/border, so these never need a rebuild either. Keeping them
@@ -888,10 +759,14 @@ function Handle:SetOptions(opts)
         if k ~= "num" then
             local old = self.config[k]
             local changed
-            if type(v) == "table" or type(old) == "table" then
+            if v == old then
+                -- identity fast path: options that are the same table every call
+                -- (Cell.vars.debuffBlacklist and friends) never need a content compare
+                changed = false
+            elseif type(v) == "table" or type(old) == "table" then
                 changed = TableSig(v) ~= TableSig(old)
             else
-                changed = old ~= v
+                changed = true
             end
             if changed then
                 if COSMETIC_KEYS[k] then
@@ -950,7 +825,7 @@ end
 function Handle:Rebuild()
     if InCombatLockdown() then
         self._pendingBuild = true
-        RDC._defer(self)
+        AD._defer(self)
         return
     end
     Build(self)
@@ -973,8 +848,8 @@ end
 function Handle:Destroy()
     self._destroyed = true -- Build/Rebuild must not resurrect it
     self._pendingBuild = nil
-    RDC._pending[self] = nil
-    if RDC._instances then RDC._instances[self] = nil end
+    AD._pending[self] = nil
+    if AD._instances then AD._instances[self] = nil end
     if self.container then
         pcall(function() self.container:SetEnabled(false) end)
         pcall(function() self.container:Hide() end)
@@ -996,8 +871,25 @@ end
 -- returns a handle, or nil when unsupported (caller keeps its fallback path).
 -- ============================================================
 
-function RDC.Create(parent, config)
-    if not RDC.IsSupported() then return nil end
+-- The dispel palette is COPIED into each AuraButton when AddDispelTypeTexture binds it, so
+-- a colour change cannot be pushed onto live buttons -- they have to be rebuilt. Debounced,
+-- because a colour picker fires continuously while the user drags it and a rebuild touches
+-- every container on every unit button.
+local paletteTimer
+function AD.RefreshDispelPalette()
+    if paletteTimer then return end
+    paletteTimer = true
+    C_Timer.After(0.3, function()
+        paletteTimer = nil
+        if InCombatLockdown() then return end -- Rebuild would just defer each one anyway
+        for h in pairs(AD._instances or {}) do
+            h:Rebuild()
+        end
+    end)
+end
+
+function AD.Create(parent, config)
+    if not AD.IsSupported() then return nil end
     config = config or {}
     config.num = config.num or 3
     config.size = config.size or 22
@@ -1015,14 +907,14 @@ function RDC.Create(parent, config)
         shown = true,
     }, Handle)
 
-    RDC._instances = RDC._instances or {}
-    RDC._instances[handle] = true
+    AD._instances = AD._instances or {}
+    AD._instances[handle] = true
 
     return handle
 end
 
 -- ============================================================
--- FILTER BISECT TOOL  ->  /run Cell.RaidDebuffContainer.Test("HARMFUL")
+-- FILTER BISECT TOOL  ->  /cab test  (or Cell.AuraDisplay.Test("HARMFUL") by hand)
 --
 -- Whether an aura MATCHES a group is secret -- only eyes can judge -- so this
 -- swaps every CENTRAL (important-mode) container onto ONE test record live,
@@ -1034,13 +926,13 @@ end
 --   Test(nil)                                -> restore the normal 5 records
 -- ============================================================
 
-function RDC.Test(filter, cf, minimal)
+function AD.Test(filter, cf, minimal)
     if filter and AuraUtil and AuraUtil.IsValidFilterString and not AuraUtil.IsValidFilterString(filter) then
-        print("|cff33ff99[RDC]|r invalid filter string:", filter)
+        print("|cff33ff99[Cell 光環]|r invalid filter string:", filter)
         return
     end
     local n = 0
-    for h in pairs(RDC._instances or {}) do
+    for h in pairs(AD._instances or {}) do
         if not h.config.mode then -- central/important containers only
             h._testMinimal = (filter and minimal) or nil
             if filter then
@@ -1058,10 +950,10 @@ function RDC.Test(filter, cf, minimal)
         for k, v in pairs(cf) do keys[#keys + 1] = k .. "=" .. tostring(v) end
         cfDesc = " cf{" .. table.concat(keys, ",") .. "}"
     end
-    print("|cff33ff99[RDC]|r central containers -> " .. (filter and (filter .. cfDesc) or "(restored to normal records)") .. " (" .. n .. " rebuilt; OOC only)")
+    print("|cff33ff99[Cell 光環]|r central containers -> " .. (filter and (filter .. cfDesc) or "(restored to normal records)") .. " (" .. n .. " rebuilt; OOC only)")
 end
 
--- One-button macro stepper: /run RDC_Test()
+-- One-button stepper: /cab test
 -- Each press advances to the next bisect case and prints what to look for.
 local TEST_STEPS = {
     { f = "HARMFUL", minimal = true,                desc = "第1步 最小渲染(只綁icon):任何減益都該亮" },
@@ -1073,17 +965,17 @@ local TEST_STEPS = {
     { f = nil,                                      desc = "已恢復正常5組filter(再按一次回到第1步)" },
 }
 local testStep = 0
-function RDC_Test()
+local function StepTest()
     testStep = testStep % #TEST_STEPS + 1
     local s = TEST_STEPS[testStep]
-    RDC.Test(s.f, s.cf, s.minimal)
-    print("|cffffcc00[RDC 測試 " .. testStep .. "/" .. #TEST_STEPS .. "]|r " .. s.desc)
+    AD.Test(s.f, s.cf, s.minimal)
+    print("|cffffcc00[Cell 光環 測試 " .. testStep .. "/" .. #TEST_STEPS .. "]|r " .. s.desc)
     -- auto-surface any styling/bind errors captured during the rebuild
     if C_Timer and C_Timer.After then
         C_Timer.After(1.5, function()
-            for h in pairs(RDC._instances or {}) do
+            for h in pairs(AD._instances or {}) do
                 if not h.config.mode and h._errors and #h._errors > 0 then
-                    for _, e in ipairs(h._errors) do print("|cffff5555[RDC ERR]|r " .. e) end
+                    for _, e in ipairs(h._errors) do print("|cffff5555[Cell 光環 錯誤]|r " .. e) end
                     return -- one instance's errors are representative
                 end
             end
@@ -1092,14 +984,14 @@ function RDC_Test()
 end
 
 -- ============================================================
--- DIAGNOSTICS  ->  /run Cell.RaidDebuffContainer.Debug()
+-- DIAGNOSTICS  ->  /cab
 -- ============================================================
 
-local function p(...) print("|cff33ff99[RDC]|r", ...) end
+local function p(...) print("|cff33ff99[Cell 光環]|r", ...) end
 
-function RDC.Debug()
+function AD.Debug()
     p("Cell.isMidnight =", tostring(Cell.isMidnight))
-    p("IsSupported() =", tostring(RDC.IsSupported()))
+    p("IsSupported() =", tostring(AD.IsSupported()))
 
     -- raw probe detail
     local toc = select(4, GetBuildInfo())
@@ -1120,7 +1012,7 @@ function RDC.Debug()
     -- those are the units actually on screen with debuffs.
     local total, built, visible, shown = 0, 0, 0, 0
     local samples = 0
-    for h in pairs(RDC._instances or {}) do
+    for h in pairs(AD._instances or {}) do
         total = total + 1
         if h.container then built = built + 1 end
         local vis = h.frame:IsVisible()
@@ -1154,7 +1046,7 @@ function RDC.Debug()
 end
 
 -- ============================================================
--- GHOST CHECK  ->  /run Cell.RaidDebuffContainer.Ghosts()
+-- GHOST CHECK  ->  /cab ghosts
 --
 -- Answers "is this icon rendered twice?". Every live handle should still be owned by an
 -- indicator registered on its button. One that isn't is an orphan: its frame is parented
@@ -1176,9 +1068,9 @@ local function FindOwnerButton(frame)
     return nil
 end
 
-function RDC.Ghosts()
+function AD.Ghosts()
     local total, orphans, disposeFails, unowned = 0, 0, 0, 0
-    for h in pairs(RDC._instances or {}) do
+    for h in pairs(AD._instances or {}) do
         total = total + 1
         local mode = tostring(h.config and h.config.mode or "important")
 
@@ -1219,7 +1111,7 @@ function RDC.Ghosts()
 end
 
 -- ============================================================
--- INSPECT  ->  /run Cell.RaidDebuffContainer.Inspect("player")
+-- INSPECT  ->  /cab inspect [unit]
 --
 -- Dumps every container on one unit's button: what filter/candidateFilters it actually
 -- built with, how many spell IDs its include map holds, and its duration-text state.
@@ -1227,10 +1119,10 @@ end
 -- shows EVERY buff -- that is the difference between "filtered" and "everything".
 -- ============================================================
 
-function RDC.Inspect(unitToken)
+function AD.Inspect(unitToken)
     unitToken = unitToken or "player"
     local n = 0
-    for h in pairs(RDC._instances or {}) do
+    for h in pairs(AD._instances or {}) do
         if h.unit == unitToken then
             n = n + 1
             local cfg = h.config or {}
@@ -1245,7 +1137,8 @@ function RDC.Inspect(unitToken)
                 :format(tostring(h.frame:GetParent() and h.frame:GetParent():GetName() or "?"),
                     tostring(cfg.size), tostring(cfg.num), tostring(cfg.onlyMine)))
             p(("    spellIDs=%d  showDuration=%s  durFmt=%s")
-                :format(idCount, tostring(cfg.showDuration), tostring(h._durFmt ~= false and h._durFmt ~= nil)))
+                :format(idCount, tostring(cfg.showDuration),
+                    tostring(ACC.GetDurationFormatter(cfg.showDuration) and true or false)))
             -- escape the pipes: the chat frame eats "|R" (colour reset) and prints
             -- "HARMFUL|RAID" as "HARMFULAID", which reads like a broken filter string
             for _, ri in ipairs(h._recordInfo or {}) do p("    record:", (ri:gsub("|", "||"))) end
@@ -1257,7 +1150,7 @@ function RDC.Inspect(unitToken)
 end
 
 -- ============================================================
--- OVERDRAW REPORT  ->  /run Cell.RaidDebuffContainer.Overdraw("player")
+-- OVERDRAW REPORT  ->  /cab overdraw [unit]
 --
 -- Answers "what is drawing twice, and what is wasted". AuraButton visibility is secret,
 -- but a container's own RECT is not -- two containers sharing a rect ARE overlapping,
@@ -1272,12 +1165,12 @@ local function RectKey(f)
     return ("%d,%d %dx%d"):format(l + 0.5, b + 0.5, w + 0.5, h + 0.5)
 end
 
-function RDC.Overdraw(unitToken)
+function AD.Overdraw(unitToken)
     unitToken = unitToken or "player"
     local byRect, rows = {}, {}
     local buttons, empties, live = 0, 0, 0
 
-    for h in pairs(RDC._instances or {}) do
+    for h in pairs(AD._instances or {}) do
         if h.unit == unitToken then
             local cfg = h.config or {}
             local mode = tostring(cfg.mode or "important")
@@ -1312,7 +1205,7 @@ function RDC.Overdraw(unitToken)
 
     -- global waste tally: recordless containers exist on every button in every header
     local gLive, gEmpty, gButtons = 0, 0, 0
-    for h in pairs(RDC._instances or {}) do
+    for h in pairs(AD._instances or {}) do
         if h.container then
             gLive = gLive + 1
             gButtons = gButtons + #h.buttons
@@ -1322,4 +1215,65 @@ function RDC.Overdraw(unitToken)
     p(("ACCOUNT-WIDE: %d live containers, %d recordless, %d AuraButtons"):format(gLive, gEmpty, gButtons))
 end
 
-return RDC
+-- ============================================================
+-- /cab -- one entry point for all of the above
+-- (inherited from the old bridge; the sub-commands that only made sense for its
+-- scrape-and-poll model -- test / reset / where -- are gone with it.)
+-- ============================================================
+
+SLASH_CELLAURACONTAINER1 = "/cab"
+SlashCmdList["CELLAURACONTAINER"] = function(msg)
+    local cmd, arg = strsplit(" ", strtrim(msg or ""), 2)
+    cmd = (cmd or ""):lower()
+
+    if cmd == "test" then
+        StepTest()
+    elseif cmd == "ghosts" then
+        AD.Ghosts()
+    elseif cmd == "inspect" then
+        AD.Inspect(arg and strtrim(arg) ~= "" and strtrim(arg) or "player")
+    elseif cmd == "overdraw" then
+        AD.Overdraw(arg and strtrim(arg) ~= "" and strtrim(arg) or "player")
+    elseif cmd == "spell" then
+        -- "will this spell go secret in combat?" ShouldSpellAuraBeSecret answers for the
+        -- SPELL, not for anyone currently carrying it, so it is safe to ask mid-combat.
+        local spellID = tonumber(arg)
+        if not spellID then
+            p("用法：/cab spell <spellID>")
+            return
+        end
+        local name = C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(spellID)
+        p(("法術 %d %s"):format(spellID, name and ("（" .. name .. "）") or ""))
+        if C_Secrets and C_Secrets.ShouldSpellAuraBeSecret then
+            local isSecret = C_Secrets.ShouldSpellAuraBeSecret(spellID)
+            p(("戰鬥中是否 secret：%s%s"):format(tostring(isSecret),
+                isSecret and " —— 讀不到它，只有容器的 includeSpellIDs 看得見（且僅限增益）" or ""))
+        else
+            p("C_Secrets.ShouldSpellAuraBeSecret 不存在")
+        end
+    elseif cmd == "list" then
+        -- which indicators are container-backed on a real unit button
+        local shown = false
+        F.IterateAllUnitButtons(function(b)
+            if shown or not b.indicators then return end
+            shown = true
+            p("=== " .. tostring(b:GetName() or "?") .. " ===")
+            for name, ind in pairs(b.indicators) do
+                if type(ind) == "table" and (ind.container or ind.highlightContainer) then
+                    local c = ind.container
+                    p(("  %-22s mode=%s num=%s built=%s"):format(name,
+                        tostring(c and c.config and c.config.mode or "important"),
+                        tostring(c and c.config and c.config.num or "?"),
+                        tostring(c ~= nil and c.container ~= nil)))
+                end
+            end
+        end, true)
+        if not shown then p("找不到任何 unit button") end
+    else
+        p("supported =", tostring(AD.IsSupported()), "|", tostring(ACC.Failure() or "OK"))
+        AD.Debug()
+        p("其他：/cab list | ghosts | inspect [unit] | overdraw [unit] | spell <id> | test")
+    end
+end
+
+return AD
