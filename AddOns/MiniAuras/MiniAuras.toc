@@ -7,7 +7,7 @@
 ## Category-zhTW: 戰鬥
 ## Version: 5.2.1
 ## SavedVariables: MiniAurasDB
-## OptionalDeps: MiniCC, ElvUI, Grid2, DandersFrames, FrameSort, Masque, TPerl, TidyPlates_ThreatPlates, VuhDo, BuzzardFrames, NDui, EllesmereUIUnitFrames
+## OptionalDeps: MiniCC, ElvUI, Grid2, DandersFrames, FrameSort, Masque, TPerl, TidyPlates_ThreatPlates, VuhDo, BuzzardFrames, NDui, EllesmereUIUnitFrames, MiliUI
 ## IconTexture: Interface\AddOns\MiniAuras\Icon.blp
 ## X-Curse-Project-ID: 1439482
 
