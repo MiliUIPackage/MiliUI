@@ -8,11 +8,11 @@
 -- 所以在舊 API 全掛的情況下仍能運作。
 --
 -- 這個檔案放「跟目標插件無關」的部分：能力偵測、AuraButton 外觀、flow layout
--- 對應、倒數格式。各插件的轉接層（Cell_AuraContainer / Stuf_AuraContainer）
--- 只負責讀自己的設定，然後呼叫這裡。
+-- 對應、倒數格式。各插件的轉接層（Stuf_AuraContainer）只負責讀自己的設定，然後呼叫這裡。
 --
--- ⚠ Cell_AuraContainer.lua 刻意「不」用這個 core，它自己留了一份同樣的邏輯。
---   所以改這裡的 AuraButton 外觀／字型／flow layout 時，記得同步改那一支。
+-- Cell 的橋接（Fix/Cell_AuraContainer.lua）已於 2026-08-11 移除：Cell 12.1 改寫後
+-- 自帶 AuraContainer（RaidFrames/RaidDebuffContainer.lua），橋接與它在戰鬥中雙重
+-- 繪製同一批光環（樣式還不同），故整支退場。
 ------------------------------------------------------------
 local AddonName, _ = ...
 if AddonName ~= "MiliUI" then return end

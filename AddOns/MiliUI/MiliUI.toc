@@ -57,7 +57,6 @@ Fix\DeprecatedGlobals.lua
 Fix\TooltipTaintFix.lua
 Fix\InspectTaintFix.lua
 Fix\AuraContainerCore.lua
-Fix\Cell_AuraContainer.lua
 Fix\Stuf_AuraContainer.lua
 Fix\Stuf_OptionsCategory.lua
 Fix\Stuf_Fix.lua
