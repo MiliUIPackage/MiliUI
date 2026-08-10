@@ -59,9 +59,9 @@ end
 -- the token records (cc, raid, dispel) subtract them via candidateFilter false
 -- flags. This matches DandersFrames v5's IMPORTANT-FIRST precedence.
 --
--- opts (from Cell layout table) -- all boolean, default true:
---   filterBoss, filterRole, filterPriority, filterCrowdControl,
---   filterRaid, filterDispellable
+-- opts (from the indicator's ["filters"] table) -- all boolean, default true:
+--   filterBossRole, filterPriority, filterCrowdControl, filterRaid, filterDispellable
+-- Boss and Role are ONE toggle: isBossOrRoleAura covers both, and no UI ever split them.
 -- ============================================================
 
 -- all dispel schools, named explicitly so Blizzard never consults the player's spec
@@ -69,6 +69,16 @@ end
 -- player can dispel" -- processedAuraType is secretly player-relative, includeDispelTypes
 -- is not).
 local ALL_DISPEL_TYPES = ACC.ALL_DISPEL_TYPES
+
+-- ⚠ A rejected filter string used to just make the record vanish. A display whose records
+-- all vanish builds no container and renders NOTHING -- silently, with no error, looking
+-- exactly like "the addon is broken". Record every rejection so /cab can name it.
+AD.rejectedFilters = {}
+local function ValidFilter(f)
+    if AuraUtil.IsValidFilterString(f) then return true end
+    AD.rejectedFilters[f] = (AD.rejectedFilters[f] or 0) + 1
+    return false
+end
 
 local function BuildRecords(opts)
     opts = opts or {}
@@ -85,7 +95,7 @@ local function BuildRecords(opts)
             rec = { key = "dispel", filter = "HARMFUL",
                     candidateFilters = { includeDispelTypes = opts.dispelTypes or ALL_DISPEL_TYPES } }
         end
-        if AuraUtil.IsValidFilterString(rec.filter) then return { rec } end
+        if ValidFilter(rec.filter) then return { rec } end
         return {}
     end
 
@@ -99,10 +109,47 @@ local function BuildRecords(opts)
     -- the exact case Blizzard carved the exemption for. Encounter debuffs cannot be
     -- excluded by ID at all -- use maxDuration / excludeDispelTypes for those.
     if opts.mode == "debuff" then
-        local f = opts.dispelByMe and ("HARMFUL|" .. TOKEN_DISP) or "HARMFUL"
-        if not AuraUtil.IsValidFilterString(f) then return {} end
+        local base = "HARMFUL"
+        if opts.dispelByMe then base = base .. "|" .. TOKEN_DISP end
+
+        -- excludeImportant: subtract whatever the Important Debuffs display is CURRENTLY
+        -- claiming, so the same aura is never drawn in both places. It arrives as the five
+        -- category booleans read off that indicator (nil/false = nothing to subtract).
+        --
+        -- Every subtraction here is the exact inverse of the record that display builds, and
+        -- all five forms are already load-bearing inside the important mode below: the token
+        -- negations in its raid/dispel records, the boolean falses in its notImportant().
+        local neg = ""
+        local ex = opts.excludeImportant
+        if type(ex) == "table" then
+            if ex.crowdControl then neg = neg .. "|!" .. TOKEN_CC end
+            if ex.raid then neg = neg .. "|!RAID" end
+            -- ⚠ Skipped when dispelByMe is on. "Only what I can dispel" plus "none of what I
+            -- can dispel" composes to a filter that matches NOTHING, with no error and no
+            -- visible reason -- so the explicit "only" wins and the subtraction is dropped.
+            if ex.dispellable and not opts.dispelByMe then neg = neg .. "|!" .. TOKEN_DISP end
+        end
+
+        -- Fall back toward LESS subtraction, never toward an empty row: an over-full row is
+        -- visible and fixable, an empty one reads as "the addon is broken".
+        local f
+        if ValidFilter(base .. neg) then
+            f = base .. neg
+        elseif ValidFilter(base) then
+            f = base
+        elseif ValidFilter("HARMFUL") then
+            f = "HARMFUL"
+        else
+            return {}
+        end
+
         local cf
         local function need() cf = cf or {}; return cf end
+        if type(ex) == "table" then
+            -- these two have no filter-string token; they are candidateFilter booleans
+            if ex.bossRole then need().isBossOrRoleAura = false end
+            if ex.priority then need().isPriorityAura = false end
+        end
         if type(opts.excludeSpellIDs) == "table" and next(opts.excludeSpellIDs) then
             need().excludeSpellIDs = opts.excludeSpellIDs
         end
@@ -123,15 +170,22 @@ local function BuildRecords(opts)
         local ids = opts.spellIDs
         -- empty list = match nothing. A bare HELPFUL record would show EVERY buff.
         if type(ids) ~= "table" or next(ids) == nil then return {} end
+        -- ⚠ NEVER return nothing when only the refinement is rejected. "Only auras I cast"
+        -- (castBy = "me") is the ONLY thing in Cell that asks for HELPFUL|PLAYER, so if this
+        -- build does not accept that token, the one display using it -- the Healers row --
+        -- goes completely blank while every other buff row keeps working. Showing unfiltered
+        -- buffs from the curated spell list is wrong; showing nothing is worse AND invisible.
         local f = opts.onlyMine and "HELPFUL|PLAYER" or "HELPFUL"
-        if not AuraUtil.IsValidFilterString(f) then return {} end
+        if not ValidFilter(f) then
+            f = "HELPFUL"
+            if not ValidFilter(f) then return {} end
+        end
         return { { key = "buff", filter = f, candidateFilters = { includeSpellIDs = ids } } }
     end
 
     local function on(k) local v = opts[k]; return v == nil or v end -- default true
 
-    local boss = on("filterBoss")
-    local role = on("filterRole")
+    local bossRole = on("filterBossRole")
     local priority = on("filterPriority")
     local cc   = on("filterCrowdControl")
     local raid = on("filterRaid")
@@ -139,15 +193,13 @@ local function BuildRecords(opts)
 
     local records = {}
 
-    -- which important flag the boss/role record was declared with, so the
-    -- lower records can subtract exactly that flag.
+    -- set when the boss/role record was declared, so the lower records can subtract it
     local importantFlag
-    if boss or role then
-        importantFlag = (boss and role) and "isBossOrRoleAura"
-            or (boss and "isBossAura" or "isRoleAura")
+    if bossRole then
+        importantFlag = "isBossOrRoleAura"
         records[#records + 1] = {
             key = "bossrole", filter = "HARMFUL",
-            candidateFilters = { [importantFlag] = true },
+            candidateFilters = { isBossOrRoleAura = true },
         }
     end
 
@@ -188,7 +240,7 @@ local function BuildRecords(opts)
     -- prune records whose filter string the client rejects (unknown token)
     local out = {}
     for _, rec in ipairs(records) do
-        if AuraUtil.IsValidFilterString(rec.filter) then
+        if ValidFilter(rec.filter) then
             out[#out + 1] = rec
         end
     end
@@ -225,8 +277,10 @@ local BindDispelTexture = ACC.BindDispelTexture
 --
 -- So the ring colour is:
 --   dispel school present -> the user's own palette colour (CellDB.debuffTypeColor)
---   otherwise             -> cfg.borderColor, defaulting to BUFF_GREEN
--- and the swipe grows over it in SPENT_COLOR as the aura runs out.
+--   no school, HARMFUL    -> plain debuff red, also from the palette ("none")
+--   no school, HELPFUL    -> green
+-- cfg.borderColor overrides the last two (custom indicators with their own 顏色 setting),
+-- and the swipe grows over whatever it is in SPENT_COLOR as the aura runs out.
 -- ============================================================
 
 -- Deliberately dark. This started at {0, 0.9, 0.2} and was dialled down because a bright
@@ -261,7 +315,6 @@ local function StyleButton(handle, button)
             button._boundTestIcon = true
             button:SetIcon(button.dfTestIcon)
         end
-        tinsert(handle.buttons, button)
         return
     end
 
@@ -294,7 +347,6 @@ local function StyleButton(handle, button)
             button._boundTint = true
             BindDispelTexture(button, button.dfTint, "Color")
         end
-        tinsert(handle.buttons, button)
         return
     end
 
@@ -310,7 +362,6 @@ local function StyleButton(handle, button)
             button._boundDispelIcon = true
             BindDispelTexture(button, button.dfDispelIcon, "Icon")
         end
-        tinsert(handle.buttons, button)
         return
     end
 
@@ -320,9 +371,11 @@ local function StyleButton(handle, button)
     -- "文字被擋在後面" ghost.
     local base = button:GetFrameLevel()
 
-    -- ring colour when the aura has no dispel school (all buffs, and undispellable debuffs)
+    -- ring colour when the aura has no dispel school: green for buffs, debuff red otherwise
     local ring = cfg.borderColor
-    if type(ring) ~= "table" or type(ring[1]) ~= "number" then ring = BUFF_GREEN end
+    if type(ring) ~= "table" or type(ring[1]) ~= "number" then
+        ring = (cfg.mode == "buff") and BUFF_GREEN or ACC.GetNoDispelColor()
+    end
 
     -- ---- the ring ------------------------------------------------------------
     -- Two layers with strictly separate jobs. ⚠ They must NOT both carry the fallback
@@ -451,7 +504,6 @@ local function StyleButton(handle, button)
         ACC.BindDispelText(button, button.dfSymbol)
     end
 
-    tinsert(handle.buttons, button)
 end
 
 -- ============================================================
@@ -595,6 +647,12 @@ local function Build(handle)
         local initFn = function(button)
             handle._initCount = (handle._initCount or 0) + 1
             if overlay then pcall(function() button:SetAllPoints(c) end) end
+            -- ⚠ Tracked HERE and nowhere else. This is the only place a genuinely new
+            -- button arrives; StyleButton must never append, because Restyle iterates this
+            -- very list and calls StyleButton on each entry -- appending from there grew
+            -- the list exactly as fast as the iterator advanced, so the loop never ended
+            -- and the client froze on every option change that triggers a restyle.
+            tinsert(handle.buttons, button)
             local okS, errS = pcall(StyleButton, handle, button)
             if not okS and #handle._errors < 6 then -- cap: 50 identical lines helps nobody
                 handle._errors[#handle._errors + 1] = "style: " .. tostring(errS)
@@ -643,8 +701,8 @@ do
             AD._pending[h] = nil
             if h._pendingBuild then Build(h) end
         end
-        -- a Restyle refused while auras were secret has to be replayed, or the buttons keep
-        -- whatever half-applied state they were left in
+        -- a Restyle refused during combat has to be replayed, or the buttons keep whatever
+        -- state they had when the option was changed
         for h in pairs(AD._instances or {}) do
             if h._restylePending then h:Restyle() end
         end
@@ -707,24 +765,52 @@ local COSMETIC_KEYS = { stackFont = true, durationFont = true, borderColor = tru
 local LAYOUT_KEYS = { size = true, sizeH = true, border = true, spacing = true, orientation = true }
 
 function Handle:Restyle()
-    if InCombatLockdown() then return end
-    -- Styling an AuraButton is only legal from initializeFrame; once auras are secret the
-    -- button is forbidden and every restricted call throws. Restyling anyway half-applies
-    -- the pass (fonts land, binds don't) -- exactly the "text with no icon" state.
-    if C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then
+    -- ⚠ Combat used to `return` outright, with no flag -- the restyle was simply lost, and
+    -- the option looked like it had never been applied. Flag it; the regen handler replays.
+    if InCombatLockdown() then
         self._restylePending = true
         return
     end
+
+    -- Styling an EXISTING AuraButton is only legal from initializeFrame; once auras are
+    -- secret the button is forbidden and every restricted call throws, half-applying the
+    -- pass (fonts land, binds don't) -- the "text with no icon" state.
+    --
+    -- ⚠ But this used to defer to PLAYER_REGEN_ENABLED, and that is not the same condition:
+    -- auras stay secret for a whole dungeon/encounter, not just while you are in combat. So
+    -- an option changed while standing still in an instance waited for a combat-end that
+    -- might never come. Rebuilding IS legal here -- it makes fresh buttons and styles them
+    -- from initializeFrame -- and out of combat it costs one rebuild and applies NOW.
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then
+        self._restylePending = nil
+        self:Rebuild()
+        return
+    end
+
     self._restylePending = nil
-    for _, b in ipairs(self.buttons) do
-        pcall(StyleButton, self, b)
+    -- snapshot the length: a numeric loop over a fixed bound cannot be walked off the end
+    -- by anything that touches self.buttons mid-pass
+    local n = #self.buttons
+    for i = 1, n do
+        local b = self.buttons[i]
+        if b then pcall(StyleButton, self, b) end
     end
 end
 
--- Table-valued options (dispelTypes, font tables) arrive as a FRESH table every call, so a
--- reference compare would rebuild on every option touch. Compare contents instead --
--- keys AND values: font tables are arrays whose keys never change, so a keys-only
--- signature reports "identical" no matter what the user drags.
+-- Table-valued options need a CONTENT signature, and the config must remember the
+-- signature rather than the table. Both halves matter, and each one was a bug:
+--
+--   * Some tables arrive fresh every call (spellIDs is rebuilt per push), so comparing by
+--     reference reports "changed" every time and rebuilds the container on every touch.
+--   * Others are mutated IN PLACE by the options panel -- Cell's font widget edits
+--     indicatorTable["font"][2] directly and then fires with the same table. There the
+--     reference is stable AND self.config[k] points at that very table, so the stored
+--     "old" value moves with the new one: identity says unchanged, and so does any content
+--     compare against it. That is why dragging the Healers duration font size did nothing.
+--
+-- Snapshotting the signature at the moment we accept a value is the only comparison that
+-- survives both. Keys AND values: font tables are arrays whose keys never change, so a
+-- keys-only signature reports "identical" no matter what the user drags.
 local function TableSig(t)
     if type(t) ~= "table" then return nil end
     local parts = {}
@@ -755,18 +841,20 @@ function Handle:SetOptions(opts)
     -- `num` is handled by SetNum, which drives maxFrameCount live instead of rebuilding
     local newNum = opts.num
     local structural, cosmetic, layout = false, false, false
+    self._sigs = self._sigs or {}
     for k, v in pairs(opts) do
         if k ~= "num" then
-            local old = self.config[k]
             local changed
-            if v == old then
-                -- identity fast path: options that are the same table every call
-                -- (Cell.vars.debuffBlacklist and friends) never need a content compare
-                changed = false
-            elseif type(v) == "table" or type(old) == "table" then
-                changed = TableSig(v) ~= TableSig(old)
-            else
+            if type(v) == "table" then
+                -- compare against the SNAPSHOT, never against self.config[k] -- see TableSig
+                local sig = TableSig(v)
+                changed = sig ~= self._sigs[k]
+                self._sigs[k] = sig
+            elseif self._sigs[k] ~= nil then
+                self._sigs[k] = nil -- was a table, now is not
                 changed = true
+            else
+                changed = self.config[k] ~= v
             end
             if changed then
                 if COSMETIC_KEYS[k] then
@@ -866,8 +954,10 @@ end
 
 -- ============================================================
 -- FACTORY
--- config: { size, border, spacing, num, filterBoss, filterRole, filterPriority,
---           filterCrowdControl, filterRaid, filterDispellable }
+-- config: { size, sizeH, border, spacing, num, orientation, showDuration, showStack,
+--           stackFont, durationFont, borderColor, mode, and the five category toggles
+--           filterBossRole / filterPriority / filterCrowdControl / filterRaid /
+--           filterDispellable }
 -- returns a handle, or nil when unsupported (caller keeps its fallback path).
 -- ============================================================
 
@@ -1004,9 +1094,24 @@ function AD.Debug()
     -- filter string validity for each category record
     if AuraUtil and AuraUtil.IsValidFilterString then
         for _, rec in ipairs(BuildRecords({})) do
-            p("filter valid?", rec.key, rec.filter, "->", tostring(AuraUtil.IsValidFilterString(rec.filter)))
+            -- ⚠ escape the pipes: the chat frame eats "|R" as a colour reset, so
+            -- "HARMFUL|RAID" prints as "HARMFULAID" and reads like a broken filter
+            p("filter valid?", rec.key, (rec.filter:gsub("|", "||")), "->",
+                tostring(AuraUtil.IsValidFilterString(rec.filter)))
         end
+        -- the buff row's optional refinement, which is what castBy = "me" asks for
+        p("filter valid?", "HELPFUL||PLAYER", "->", tostring(AuraUtil.IsValidFilterString("HELPFUL|PLAYER")))
     end
+
+    -- anything the client refused. A display whose records all got refused renders nothing
+    -- at all, so this is the first place to look when one row is blank and the rest are fine.
+    local anyRejected = false
+    for f, n in pairs(AD.rejectedFilters) do
+        anyRejected = true
+        p(("|cffff5555REJECTED FILTER|r %s (x%d) -- any display relying on it fell back or went empty")
+            :format((f:gsub("|", "||")), n))
+    end
+    if not anyRejected then p("rejected filters: none") end
 
     -- live instances (the actual per-button containers) -- prioritise VISIBLE ones,
     -- those are the units actually on screen with debuffs.
@@ -1018,8 +1123,11 @@ function AD.Debug()
         local vis = h.frame:IsVisible()
         if vis then visible = visible + 1 end
         if h.container and h.container:IsVisible() then shown = shown + 1 end
-        -- detail the first few VISIBLE, container-backed instances
-        if vis and h.container and samples < 5 then
+        -- ⚠ EVERY visible container-backed instance gets a line. The old cap of 5 was a
+        -- silent coverage hole: whichever display is actually broken has no reason to be in
+        -- the first five, and a capture that omits it looks like a clean bill of health.
+        -- A visible unit button carries under a dozen of these, so printing them all is free.
+        if vis and h.container then
             samples = samples + 1
             -- NOTE: AuraButton IsShown/geometry are SECRET (branching on them errors), so we
             -- CANNOT read whether a button is rendering -- only the user's eyes can confirm that.
@@ -1034,7 +1142,7 @@ function AD.Debug()
                 :format(tonumber(fw) or -1, tonumber(fh) or -1,
                     fx and string.format("%.0f", fx) or "nil", fy and string.format("%.0f", fy) or "nil"))
             if h._recordInfo then
-                for _, ri in ipairs(h._recordInfo) do p("   filter:", ri) end
+                for _, ri in ipairs(h._recordInfo) do p("   filter:", (ri:gsub("|", "||"))) end
             end
             if h._errors and #h._errors > 0 then
                 for _, e in ipairs(h._errors) do p("   ERR:", e) end

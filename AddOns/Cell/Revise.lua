@@ -3515,6 +3515,67 @@ function F.Revise()
         end
     end
 
+    --! 12.1: "Raid Debuffs" became "Important Debuffs". It no longer matches a curated
+    --! spell-ID list -- it asks Blizzard for five categories (boss/role, priority, crowd
+    --! control, raid-wide, dispellable), each its own AuraGroup -- so the old name described
+    --! the wrong thing. Seed the toggles too: absent already means ON everywhere that reads
+    --! them, this just makes them visible in the options panel.
+    --!
+    --! ⚠ Revision-gated, unlike the block above. It rewrites sizes and font sizes, and an
+    --! ungated version would stomp them back on every single login -- the user could never
+    --! change them again.
+    if not(CellDB["revise"]) or dbRevision < 281 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            for _, t in pairs(layout["indicators"] or {}) do
+                local name = t["indicatorName"]
+                if name == "raidDebuffs" then
+                    t["name"] = "Important Debuffs"
+                    t["filters"] = t["filters"] or {
+                        ["bossRole"] = true,
+                        ["priority"] = true,
+                        ["crowdControl"] = true,
+                        ["raid"] = true,
+                        ["dispellable"] = true,
+                    }
+                    t["size"] = {18, 18}
+                    if t["font"] and t["font"][1] then t["font"][1][2] = 9 end
+
+                elseif name == "debuffs" then
+                    t["size"] = {15, 15}
+                    if t["font"] and t["font"][1] then t["font"][1][2] = 8 end
+
+                elseif name == "dispels" then
+                    t["filters"] = t["filters"] or {}
+                    t["filters"]["dispellableByMe"] = true
+
+                elseif t["name"] == "Healers" and t["auraType"] == "buff"
+                    and (t["type"] == "icons" or t["type"] == "icon") then
+                    t["size"] = {17, 17}
+                    if t["font"] then
+                        if t["font"][1] then t["font"][1][2] = 8 end
+                        if t["font"][2] then t["font"][2][2] = 11 end
+                    end
+                end
+            end
+        end
+    end
+
+    --! 12.1: the debuff row can now subtract whatever the Important Debuffs display claims,
+    --! so the same aura is never drawn twice. Default ON -- but for a layout saved before the
+    --! option existed, "key absent" meant the OLD behaviour (show everything), so leaving it
+    --! to the absent-means-default rule would silently reinterpret their display. Turn it on
+    --! once, explicitly, and let them turn it back off if they disagree.
+    if not(CellDB["revise"]) or dbRevision < 282 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            for _, t in pairs(layout["indicators"] or {}) do
+                if t["indicatorName"] == "debuffs" then
+                    t["excludeImportant"] = true
+                    t["excludeDispellable"] = nil -- superseded before it ever shipped
+                end
+            end
+        end
+    end
+
     CellDB["revise"] = Cell.version
     if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version

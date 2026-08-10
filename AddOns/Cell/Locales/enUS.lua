@@ -24,6 +24,7 @@ select(2, ...).L = setmetatable({
     ["showTimer"] = "Show timer",
     ["showBackground"] = "Show background",
     ["dispellableByMe"] = "Only show debuffs dispellable by me",
+    ["excludeImportant"] = "Hide debuffs already shown as important",
     ["showDispelTypeIcons"] = "Show dispel type icons",
     ["castByMe"] = "Only show buffs cast by me",
     ["buffByMe"] = "Only show buffs I can apply",

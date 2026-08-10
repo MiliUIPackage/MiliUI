@@ -527,6 +527,42 @@ local activeLayouts = {
     raid = nil,
 }
 
+-- Container-backed indicators whose config is derived from ANOTHER indicator's settings, so
+-- changing the source has to reconfigure the dependant too. Right now: the debuff row
+-- subtracts whatever the Important Debuffs display claims, so touching that display's
+-- category toggles (or its enabled state) must re-push the debuff row as well.
+local CONTAINER_DEPENDENTS = {
+    ["raidDebuffs"] = { "debuffs" },
+}
+
+-- Re-run ConfigureContainer for an indicator and anything derived from it. Reads the layout
+-- ENTRY, which already holds the new value by the time UpdateIndicators fires.
+local function PushContainerConfig(indicatorName)
+    if not indicatorName or indicatorName == "" then return end
+    -- ⚠ `layout` in the caller is the layout NAME (a string), not the table -- index the
+    -- current layout TABLE. The caller has already returned unless this is the active layout.
+    local entries = Cell.vars.currentLayoutTable and Cell.vars.currentLayoutTable["indicators"]
+    if not entries then return end
+
+    local names = { indicatorName }
+    for _, dep in next, (CONTAINER_DEPENDENTS[indicatorName] or {}) do
+        names[#names + 1] = dep
+    end
+
+    for _, name in next, names do
+        local t
+        for _, it in next, entries do
+            if it["indicatorName"] == name then t = it break end
+        end
+        if t then
+            F.IterateAllUnitButtons(function(b)
+                local ind = b.indicators[name]
+                if ind and ind.ConfigureContainer then ind:ConfigureContainer(t) end
+            end, true)
+        end
+    end
+end
+
 local function UpdateIndicators(layout, indicatorName, setting, value, value2)
     F.Debug("|cffff7777UpdateIndicators:|r ", layout, indicatorName, setting, value, value2)
 
@@ -581,28 +617,6 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
         updater:Show()
 
     else
-        -- 12.1 Route A: AuraContainer-backed indicators (raidDebuffs/dispels) read the WHOLE
-        -- layout entry, not a single value -- so a live option change in the panel (filters,
-        -- highlightType, dispellableByMe, size, num, category toggles...) must re-run
-        -- ConfigureContainer, else the container stays stale until a /reload. The layout
-        -- entry `t` already holds the new value by the time this fires.
-        do
-            -- ⚠ `layout` here is the layout NAME (a string), not the table -- index the
-            -- current layout TABLE instead. We already returned above unless this is the
-            -- active layout, so currentLayoutTable is the right one.
-            local lt = Cell.vars.currentLayoutTable
-            local t
-            for _, it in next, (lt and lt["indicators"] or {}) do
-                if it["indicatorName"] == indicatorName then t = it; break end
-            end
-            if t then
-                F.IterateAllUnitButtons(function(b)
-                    local ind = b.indicators[indicatorName]
-                    if ind and ind.ConfigureContainer then ind:ConfigureContainer(t) end
-                end, true)
-            end
-        end
-
         -- changed in IndicatorsTab
         if setting == "enabled" then
             enabledIndicators[indicatorName] = value
@@ -981,6 +995,12 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 end, true)
             elseif value == "showAllSpells" then
                 I.ShowAllTargetedSpells(value2)
+            elseif value == "excludeImportant" then
+                -- ⚠ Deliberately a no-op here: PushContainerConfig at the end of this
+                -- function is what applies it. It must NOT reach the generic write below --
+                -- indicatorBooleans is keyed by INDICATOR, not by setting, so a second
+                -- checkbox on the same indicator overwrites the first. This one shares an
+                -- indicator with dispellableByMe.
             else
                 indicatorBooleans[indicatorName] = value2
             end
@@ -1128,6 +1148,19 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 b.indicators[indicatorName]:SetSpeed(value)
             end, true)
         end
+
+        -- 12.1 Route A: container-backed indicators read the WHOLE layout entry, not a single
+        -- value, so any option change has to re-run ConfigureContainer or the container stays
+        -- stale until a /reload. The layout entry already holds the new value by now.
+        --
+        -- ⚠ This runs AFTER the dispatch above, not before, and that ordering is the whole
+        -- point: `setting == "create"` builds the indicator INSIDE the dispatch. Running
+        -- first meant b.indicators[indicatorName] did not exist yet, so a freshly created
+        -- indicator was skipped -- its container kept the Create() defaults, spellIDs stayed
+        -- empty, BuildRecords returned no records and it rendered NOTHING. That is exactly
+        -- what the first-run "create a Healers indicator?" prompt hit: blank until a /reload
+        -- happened to run the HandleIndicators path, which configures containers properly.
+        PushContainerConfig(indicatorName)
     end
 end
 Cell.RegisterCallback("UpdateIndicators", "UnitButton_UpdateIndicators", UpdateIndicators)

@@ -249,6 +249,19 @@ ACC.DISPEL_NAMES = DISPEL_NAMES
 -- (processedAuraType is secretly player-relative; includeDispelTypes is not)
 ACC.ALL_DISPEL_TYPES = { Magic = true, Curse = true, Disease = true, Poison = true, Bleed = true }
 
+-- The colour for a HARMFUL aura with no dispel school -- the plain red people read as
+-- "debuff". Comes from Cell's own palette ("none" in the 減益類型顏色 panel, default
+-- 0.8/0/0) so it tracks the user's setting like every other school does.
+-- ⚠ Returns a REUSED table; read it, do not retain it.
+local noDispel = { 0.8, 0, 0, 1 }
+function ACC.GetNoDispelColor()
+    local c = CellDB and CellDB["debuffTypeColor"] and CellDB["debuffTypeColor"]["none"]
+    if type(c) == "table" and type(c.r) == "number" then
+        noDispel[1], noDispel[2], noDispel[3] = c.r, c.g or 0, c.b or 0
+    end
+    return noDispel
+end
+
 function ACC.GetDispelColorMap()
     if not CreateColor then return nil end
     local src = CellDB and CellDB["debuffTypeColor"]

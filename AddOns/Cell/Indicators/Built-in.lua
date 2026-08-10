@@ -225,6 +225,25 @@ end
 function I.RegisterContainerIndicator(parent, indicator)
     parent._containerIndicators = parent._containerIndicators or {}
     tinsert(parent._containerIndicators, indicator)
+
+    -- SetEnabled only registers aura events while the container is VISIBLE, so every
+    -- container has to re-assert when its button shows.
+    --
+    -- ⚠ ONE hook per button, ever, and it walks the registry instead of capturing an
+    -- indicator. Hooking from each attach site looked equivalent but was not: CUSTOM
+    -- indicators are destroyed and rebuilt on every layout apply, and HookScript cannot
+    -- unhook -- so that path added a fresh closure holding a now-dead indicator on every
+    -- single apply, forever. The built-ins happened to be safe only because they are
+    -- created once.
+    if not parent._containerOnShowHooked then
+        parent._containerOnShowHooked = true
+        parent:HookScript("OnShow", function(self)
+            for _, ind in next, (self._containerIndicators or {}) do
+                if ind.container then ind.container:ReassertEnable() end
+                if ind.highlightContainer then ind.highlightContainer:ReassertEnable() end
+            end
+        end)
+    end
 end
 
 -- Custom indicators are created/removed on the fly (layout switch, user edit). Their
@@ -328,10 +347,6 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         self.container:SetUnit(unit)
         self.container:ReassertEnable()
     end
-
-    parent:HookScript("OnShow", function()
-        if indicator.container then indicator.container:ReassertEnable() end
-    end)
 
     I.DiscardFallbackIcons(indicator) -- no legacy pool under the container
     I.RegisterContainerIndicator(parent, indicator)
@@ -708,8 +723,39 @@ function I.CreateDebuffs(parent)
         end
         cfr:SetSize((t.size and t.size[1]) or 20, (t.size and t.size[2]) or 20)
 
+        -- ⚠ Reads ANOTHER indicator's settings, on purpose. The Important Debuffs display
+        -- owns the definition of "important"; this row just subtracts whatever that one is
+        -- currently claiming, so no aura is ever drawn in both places. Reading its five
+        -- toggles directly is what keeps them from drifting apart.
+        --
+        -- Gated on that indicator being ENABLED: if it is off it claims nothing, and
+        -- subtracting anyway would make those debuffs vanish from the frame entirely.
+        -- `false`, never nil, when there is nothing to subtract -- an absent key would
+        -- leave the container's previous value in place and the row could never go back.
+        local excludeImportant = false
+        if t.excludeImportant then
+            local lt = Cell.vars.currentLayoutTable
+            for _, it in next, (lt and lt["indicators"] or {}) do
+                if it["indicatorName"] == "raidDebuffs" then
+                    if it["enabled"] then
+                        local rf = it["filters"] or {}
+                        local function claimed(k) return rf[k] == nil or rf[k] and true or false end
+                        excludeImportant = {
+                            bossRole     = claimed("bossRole"),
+                            priority     = claimed("priority"),
+                            crowdControl = claimed("crowdControl"),
+                            raid         = claimed("raid"),
+                            dispellable  = claimed("dispellable"),
+                        }
+                    end
+                    break
+                end
+            end
+        end
+
         local opts = {
             dispelByMe = t.dispellableByMe and true or false,
+            excludeImportant = excludeImportant,
             showDuration = t.showDuration,
             showStack = t.showStack,
             orientation = t.orientation,
@@ -733,10 +779,6 @@ function I.CreateDebuffs(parent)
         self.container:SetUnit(unit)
         self.container:ReassertEnable()
     end
-
-    parent:HookScript("OnShow", function()
-        if debuffs.container then debuffs.container:ReassertEnable() end
-    end)
 
     I.RegisterContainerIndicator(parent, debuffs)
 end
@@ -1023,11 +1065,6 @@ function I.CreateDispels(parent)
                 if self.highlightContainer then self.highlightContainer:SetUnit(unit); self.highlightContainer:ReassertEnable() end
             end
 
-            parent:HookScript("OnShow", function()
-                if dispels.container then dispels.container:ReassertEnable() end
-                if dispels.highlightContainer then dispels.highlightContainer:ReassertEnable() end
-            end)
-
             I.RegisterContainerIndicator(parent, dispels)
         end
     end
@@ -1264,15 +1301,20 @@ function I.CreateRaidDebuffs(parent)
                 else
                     cfr:SetPoint("CENTER", parent, "CENTER", 0, 3)
                 end
-                cfr:SetSize((t.size and t.size[1]) or 22, (t.size and t.size[2]) or 22)
+                cfr:SetSize((t.size and t.size[1]) or 18, (t.size and t.size[2]) or 18)
+
+                -- the five category toggles, from the indicator's ["filters"] table.
+                -- Absent means ON: a layout saved before the toggles existed must keep
+                -- showing everything, not suddenly show nothing.
+                local f = t.filters or {}
+                local function on(k) return f[k] == nil or f[k] and true or false end
 
                 local opts = {
-                    filterBoss          = t.filterBoss,
-                    filterRole          = t.filterRole,
-                    filterPriority      = t.filterPriority,
-                    filterCrowdControl  = t.filterCrowdControl,
-                    filterRaid          = t.filterRaid,
-                    filterDispellable   = t.filterDispellable,
+                    filterBossRole      = on("bossRole"),
+                    filterPriority      = on("priority"),
+                    filterCrowdControl  = on("crowdControl"),
+                    filterRaid          = on("raid"),
+                    filterDispellable   = on("dispellable"),
                     -- true = always; number N = only when remaining < N s; false = never
                     showDuration        = t.showDuration,
                     orientation         = t.orientation,
@@ -1299,10 +1341,6 @@ function I.CreateRaidDebuffs(parent)
             -- SetEnabled only registers aura events while the container is VISIBLE. The
             -- button may be hidden when the container is first built, so re-assert when the
             -- button becomes shown.
-            parent:HookScript("OnShow", function()
-                if raidDebuffs.container then raidDebuffs.container:ReassertEnable() end
-            end)
-
             I.RegisterContainerIndicator(parent, raidDebuffs)
         end
     end

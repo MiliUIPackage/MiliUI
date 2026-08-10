@@ -413,7 +413,7 @@ Cell.defaults.layout = {
             ["frameLevel"] = 15,
             ["size"] = {12, 12},
             ["filters"] = {
-                ["dispellableByMe"] = false,
+                ["dispellableByMe"] = true,
                 ["Curse"] = true,
                 ["Disease"] = true,
                 ["Magic"] = true,
@@ -431,35 +431,49 @@ Cell.defaults.layout = {
             ["enabled"] = true,
             ["position"] = {"BOTTOMLEFT", "button", "BOTTOMLEFT", 1, 4},
             ["frameLevel"] = 5,
-            ["size"] = {20, 20},
+            ["size"] = {15, 15},
             ["showDuration"] = 60, -- only under 60s
             ["showAnimation"] = true,
             ["showTooltip"] = false,
             ["enableBlacklistShortcut"] = false,
             ["num"] = 4,
             ["font"] = {
-                -- stack: size 9, anchored TOP (+0, +4)
-                {"Cell ".._G.DEFAULT, 9, "Outline", false, "TOP", 0, 4, {1, 1, 1}},
+                -- stack: size 8, anchored TOP (+0, +4)
+                {"Cell ".._G.DEFAULT, 8, "Outline", false, "TOP", 0, 4, {1, 1, 1}},
                 -- duration: size 11
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
             },
             ["dispellableByMe"] = false,
+            -- subtract whatever the Important Debuffs display is claiming, so the same
+            -- aura is never drawn in both places. Reads that indicator's five category
+            -- toggles live; does nothing while it is disabled.
+            ["excludeImportant"] = true,
             ["orientation"] = "left-to-right",
         }, -- 23
         {
-            ["name"] = "Raid Debuffs",
+            ["name"] = "Important Debuffs",
             ["indicatorName"] = "raidDebuffs",
             ["type"] = "built-in",
             ["enabled"] = true,
             ["position"] = {"CENTER", "button", "CENTER", 0, 3},
             ["frameLevel"] = 20,
-            ["size"] = {22, 22},
+            ["size"] = {18, 18},
             ["border"] = 2,
             ["num"] = 3,
             ["showDuration"] = 60, -- only under 60s
+            -- 12.1: each toggle adds or drops one Blizzard-side AuraGroup. All five on by
+            -- default -- the point of the indicator is "one debuff that matters, whichever
+            -- kind it is". See BuildRecords in RaidFrames/AuraDisplay.lua.
+            ["filters"] = {
+                ["bossRole"] = true,     -- candidateFilters.isBossOrRoleAura
+                ["priority"] = true,     -- candidateFilters.isPriorityAura
+                ["crowdControl"] = true, -- HARMFUL|CROWD_CONTROL
+                ["raid"] = true,         -- HARMFUL|RAID
+                ["dispellable"] = true,  -- HARMFUL|RAID_PLAYER_DISPELLABLE
+            },
             ["font"] = {
-                -- stack: size 10, anchored TOP (+0, +5)
-                {"Cell ".._G.DEFAULT, 10, "Outline", false, "TOP", 0, 5, {1, 1, 1}},
+                -- stack: size 9, anchored TOP (+0, +5)
+                {"Cell ".._G.DEFAULT, 9, "Outline", false, "TOP", 0, 5, {1, 1, 1}},
                 -- duration: size 12 (Midnight renders the countdown centered on the icon)
                 {"Cell ".._G.DEFAULT, 12, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
             },

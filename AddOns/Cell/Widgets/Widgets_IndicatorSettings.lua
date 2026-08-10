@@ -6217,6 +6217,77 @@ local function CreateSetting_TargetCounterFilters(parent)
     return widget
 end
 
+-- 12.1: the five categories the central "Important Debuffs" container asks Blizzard for.
+-- Every one of them is a Blizzard-side predicate we cannot evaluate ourselves -- the aura's
+-- spell, duration and school are all secret -- so these toggles add or drop a whole
+-- AuraGroup rather than filtering anything in Lua. See BuildRecords in AuraDisplay.lua.
+local function CreateSetting_RaidDebuffFilters(parent)
+    local widget
+
+    if not settingWidgets["raidDebuffFilters"] then
+        widget = Cell.CreateFrame("CellIndicatorSettings_RaidDebuffFilters", parent, 240, 74)
+        settingWidgets["raidDebuffFilters"] = widget
+
+        widget.bossRole = Cell.CreateCheckButton(widget, L["Boss/Role Debuffs"])
+        widget.bossRole:SetPoint("TOPLEFT", 5, -8)
+
+        widget.priority = Cell.CreateCheckButton(widget, L["Priority Debuffs"])
+        widget.priority:SetPoint("TOPLEFT", widget.bossRole, 135, 0)
+
+        widget.crowdControl = Cell.CreateCheckButton(widget, L["Crowd Controls"])
+        widget.crowdControl:SetPoint("TOPLEFT", widget.bossRole, "BOTTOMLEFT", 0, -8)
+
+        widget.raid = Cell.CreateCheckButton(widget, L["Raid-wide Debuffs"])
+        widget.raid:SetPoint("TOPLEFT", widget.crowdControl, 135, 0)
+
+        widget.dispellable = Cell.CreateCheckButton(widget, L["Dispellable"])
+        widget.dispellable:SetPoint("TOPLEFT", widget.crowdControl, "BOTTOMLEFT", 0, -8)
+
+        -- callback
+        function widget:SetFunc(func)
+            widget.bossRole.onClick = function(checked)
+                widget.filters.bossRole = checked
+                func()
+            end
+            widget.priority.onClick = function(checked)
+                widget.filters.priority = checked
+                func()
+            end
+            widget.crowdControl.onClick = function(checked)
+                widget.filters.crowdControl = checked
+                func()
+            end
+            widget.raid.onClick = function(checked)
+                widget.filters.raid = checked
+                func()
+            end
+            widget.dispellable.onClick = function(checked)
+                widget.filters.dispellable = checked
+                func()
+            end
+        end
+
+        -- show db value
+        function widget:SetDBValue(filters)
+            widget.filters = filters
+            -- absent == on, matching ConfigureContainer: a layout saved before these toggles
+            -- existed showed every category, and opening the panel must not silently
+            -- represent that as "all off" and then write it back on the first click.
+            local function on(k) return filters[k] == nil or filters[k] and true or false end
+            widget.bossRole:SetChecked(on("bossRole"))
+            widget.priority:SetChecked(on("priority"))
+            widget.crowdControl:SetChecked(on("crowdControl"))
+            widget.raid:SetChecked(on("raid"))
+            widget.dispellable:SetChecked(on("dispellable"))
+        end
+    else
+        widget = settingWidgets["raidDebuffFilters"]
+    end
+
+    widget:Show()
+    return widget
+end
+
 local function CreateSetting_DispelFilters(parent)
     local widget
 
@@ -6899,6 +6970,7 @@ local builders = {
     ["shape"] = CreateSetting_Shape,
     ["targetCounterFilters"] = CreateSetting_TargetCounterFilters,
     ["dispelFilters"] = CreateSetting_DispelFilters,
+    ["raidDebuffFilters"] = CreateSetting_RaidDebuffFilters,
     ["castBy"] = CreateSetting_CastBy,
     -- ["showOn"] = CreateSetting_ShowOn,
     ["maxValue"] = CreateSetting_MaxValue,

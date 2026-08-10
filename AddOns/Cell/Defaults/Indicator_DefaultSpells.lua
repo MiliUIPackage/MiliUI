@@ -902,16 +902,16 @@ function F.FirstRun()
             ["enabled"] = true,
             ["position"] = {"TOPRIGHT", "button", "TOPRIGHT", 0, 3},
             ["frameLevel"] = 5,
-            ["size"] = {16, 16},
+            ["size"] = {17, 17},
             ["num"] = 5,
             ["numPerLine"] = 5,
             ["orientation"] = "right-to-left",
             ["spacing"] = {0, 0},
             ["font"] = {
-                -- stack: size 9, anchored TOP (+0, +5)
-                {"Cell ".._G.DEFAULT, 9, "Outline", false, "TOP", 0, 5, {1, 1, 1}},
-                -- duration: size 10, anchored CENTER (+0, 0)
-                {"Cell ".._G.DEFAULT, 10, "Outline", false, "CENTER", 0, 0, {1, 1, 1}},
+                -- stack: size 8, anchored TOP (+0, +5)
+                {"Cell ".._G.DEFAULT, 8, "Outline", false, "TOP", 0, 5, {1, 1, 1}},
+                -- duration: size 11, anchored CENTER (+0, 0)
+                {"Cell ".._G.DEFAULT, 11, "Outline", false, "CENTER", 0, 0, {1, 1, 1}},
             },
             ["showStack"] = true,
             ["showDuration"] = 60, -- only under 60s (true = always, false = never)
