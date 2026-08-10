@@ -770,6 +770,68 @@ function I.CreateDispels(parent)
         icon:SetDrawLayer("ARTWORK", 6-i)
         icon.SetDispel = Dispels_SetDispel_Blizzard
     end
+
+    -- 12.1 "Route A": back the dispel display with a Blizzard AuraContainer. The dispel
+    -- SCHOOL is secret, so the type symbol/colour can only be rendered blind by an
+    -- AuraButton -- the old manual path can't classify at all in restricted content.
+    if Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported() then
+        -- (1) dispel-type ICONS at the indicator's own anchor (bottom-right)
+        local iconC = Cell.RaidDebuffContainer.Create(dispels, {
+            mode = "dispel",
+            num = 3,
+            dispelIcon = true,   -- Blizzard renders the dispel-type icon art (Magic/Curse/...)
+        })
+        -- (2) dispel HIGHLIGHT: a tint overlay covering the health bar, vertex-tinted by
+        --     dispel type blind. Anchored to the health bar, not the indicator anchor.
+        local hlC = Cell.RaidDebuffContainer.Create(parent.widgets.healthBar, {
+            mode = "overlay",
+            tintAlpha = 0.5,
+        })
+
+        if iconC or hlC then
+            dispels.container = iconC -- kept for the "is container-backed?" checks
+            dispels.highlightContainer = hlC
+            if iconC then iconC:GetFrame():SetAllPoints(dispels) end
+            if hlC then hlC:GetFrame():SetAllPoints(parent.widgets.healthBar) end
+            dispels:Show()
+
+            function dispels:ConfigureContainer(t)
+                local f = t.filters or {}
+                -- checked per-type toggles -> includeDispelTypes for "all" mode
+                local types
+                for _, k in ipairs({"Magic", "Curse", "Disease", "Poison", "Bleed"}) do
+                    if f[k] then types = types or {}; types[k] = true end
+                end
+                local base = { dispelByMe = f.dispellableByMe and true or false, dispelTypes = types }
+                local on = t.enabled and true or false
+                if self.container then
+                    local o = { dispelByMe = base.dispelByMe, dispelTypes = base.dispelTypes }
+                    if t.size then o.size = t.size[1] end
+                    self.container:SetOptions(o)
+                    self.container:SetEnabled(on)
+                end
+                if self.highlightContainer then
+                    self.highlightContainer:SetOptions({
+                        dispelByMe = base.dispelByMe,
+                        dispelTypes = base.dispelTypes,
+                        highlightStyle = t.highlightType,   -- gradient / gradient-half / entire / current
+                    })
+                    -- highlight follows the indicator AND highlightType ("none" = off)
+                    self.highlightContainer:SetEnabled(on and t.highlightType ~= "none")
+                end
+            end
+
+            function dispels:SetContainerUnit(unit)
+                if self.container then self.container:SetUnit(unit); self.container:ReassertEnable() end
+                if self.highlightContainer then self.highlightContainer:SetUnit(unit); self.highlightContainer:ReassertEnable() end
+            end
+
+            parent:HookScript("OnShow", function()
+                if dispels.container then dispels.container:ReassertEnable() end
+                if dispels.highlightContainer then dispels.highlightContainer:ReassertEnable() end
+            end)
+        end
+    end
 end
 
 -------------------------------------------------
@@ -999,13 +1061,22 @@ function I.CreateRaidDebuffs(parent)
                 if t.border then opts.border = t.border end
                 if t.num then opts.num = t.num end
                 self.container:SetOptions(opts)
+                self.container:SetEnabled(t.enabled and true or false)
             end
 
             -- driven by UnitButton on displayedUnit change
             function raidDebuffs:SetContainerUnit(unit)
                 if not self.container then return end
                 self.container:SetUnit(unit)
+                self.container:ReassertEnable()
             end
+
+            -- SetEnabled only registers aura events while the container is VISIBLE. The
+            -- button may be hidden when the container is first built, so re-assert when the
+            -- button becomes shown.
+            parent:HookScript("OnShow", function()
+                if raidDebuffs.container then raidDebuffs.container:ReassertEnable() end
+            end)
         end
     end
 end

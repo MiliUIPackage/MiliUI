@@ -232,7 +232,12 @@ local function QuickAssist_UpdateAuras(self, updateInfo)
 
     local buffsChanged
 
-    -- 12.1: secret UNIT_AURA payload can neither be diffed nor rescanned via GetAuraSlots
+    -- 12.1: secret UNIT_AURA payload can neither be diffed nor rescanned via GetAuraSlots.
+    -- The CanDiffAuraPayload guard only covers INCREMENTAL updates; a FULL update
+    -- (updateInfo == nil) reaches ForEachAura -> GetAuraSlots below, which Lua-errors while
+    -- auras are secret. Bail on the secret state so both paths keep the last known state.
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then return end
+
     if updateInfo ~= nil and not F.CanDiffAuraPayload(updateInfo) then return end
 
     if not updateInfo or updateInfo.isFullUpdate then

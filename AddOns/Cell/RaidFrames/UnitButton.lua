@@ -408,10 +408,11 @@ local function HandleIndicators(b)
             indicator:SetHideIfEmptyOrFull(t["hideIfEmptyOrFull"])
         end
 
-        -- update raidDebuffs AuraContainer (12.1 Route A: Blizzard-side classification)
-        if t["indicatorName"] == "raidDebuffs" and indicator.ConfigureContainer then
+        -- update AuraContainer-backed indicators (12.1 Route A: Blizzard-side
+        -- classification). raidDebuffs = important debuffs; dispels = dispel display.
+        if (t["indicatorName"] == "raidDebuffs" or t["indicatorName"] == "dispels")
+            and indicator.ConfigureContainer then
             indicator:ConfigureContainer(t)
-            indicator.container:SetEnabled(t["enabled"] and true or false)
         end
 
         -- init
@@ -578,6 +579,24 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
         updater:Show()
 
     else
+        -- 12.1 Route A: AuraContainer-backed indicators (raidDebuffs/dispels) read the WHOLE
+        -- layout entry, not a single value -- so a live option change in the panel (filters,
+        -- highlightType, dispellableByMe, size, num, category toggles...) must re-run
+        -- ConfigureContainer, else the container stays stale until a /reload. The layout
+        -- entry `t` already holds the new value by the time this fires.
+        if indicatorName == "raidDebuffs" or indicatorName == "dispels" then
+            local t
+            for _, it in next, (layout and layout["indicators"]) do
+                if it["indicatorName"] == indicatorName then t = it; break end
+            end
+            if t then
+                F.IterateAllUnitButtons(function(b)
+                    local ind = b.indicators[indicatorName]
+                    if ind and ind.ConfigureContainer then ind:ConfigureContainer(t) end
+                end, true)
+            end
+        end
+
         -- changed in IndicatorsTab
         if setting == "enabled" then
             enabledIndicators[indicatorName] = value
@@ -1253,10 +1272,15 @@ local function HandleDebuff(self, auraInfo)
         I.UpdateCustomIndicators(self, auraInfo)
 
         -- prepare raidDebuffs
+        -- GetDebuffOrder is secret-safe: returns nil for secret spellId/name, so the
+        -- curated list only ever matches NON-secret auras (old / not-cleanly-sealed
+        -- content). This is the intentional fallback for the central indicator.
         local order = I.GetDebuffOrder(name, spellId, count)
-        -- Secret fallback: if HARMFUL|RAID filter classifies it as a raid debuff,
-        -- give it a default high order so curated entries still take priority.
-        if not order and secretIsRaidDebuff then
+        -- Secret fallback: classify secret debuffs as raid debuffs via HARMFUL|RAID.
+        -- Skipped when the AuraContainer backs this indicator -- the container owns
+        -- secret classification, so letting this also fire would double-show every
+        -- secret raid debuff (once as a container button, once as a fallback icon).
+        if not order and secretIsRaidDebuff and not self.indicators.raidDebuffs.container then
             order = 10000
         end
         if enabledIndicators["raidDebuffs"] and order then
@@ -1341,13 +1365,14 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
     local startIndex = 1
 
     -- update raid debuffs
-    -- 12.1 Route A: when a Blizzard AuraContainer backs this indicator it drives
-    -- itself from SetUnit (secret-safe boss/role/priority/cc/raid/dispel groups),
-    -- so skip the manual spell-ID-matched display entirely.
+    -- 12.1 Route A: a Blizzard AuraContainer drives the central display from SetUnit
+    -- (secret-safe boss/role/priority/cc/raid/dispel groups). The manual curated-ID
+    -- path below is KEPT as a fallback -- but _debuffs_raid now only holds NON-secret
+    -- matches when the container is active (secret HARMFUL|RAID fallback is disabled
+    -- above), so it stays dormant in live secret content and only lights up in old /
+    -- not-cleanly-sealed content where the container's Blizzard filters miss things.
     -- if self._debuffs.raidDebuffsFound or cleuUnits[unit] then
-    if self.indicators.raidDebuffs.container then
-        -- container-driven; nothing to do here
-    elseif self._debuffs_raid[1] then
+    if self._debuffs_raid[1] then
         self.indicators.raidDebuffs:Show()
 
         -- cleuAuras
@@ -1443,6 +1468,10 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
                 )
             )
         end
+    elseif self.indicators.raidDebuffs.container then
+        -- container-backed: the anchor hosts the AuraContainer, so keep it shown and
+        -- just clear the fallback icons instead of hiding the whole frame.
+        self.indicators.raidDebuffs:UpdateSize(0)
     else
         self.indicators.raidDebuffs:Hide()
     end
@@ -1511,8 +1540,10 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
         self.indicators.debuffs[i].spellId = nil
     end
 
-    -- update dispels
-    if F.UnitInGroup(unit) or UnitIsFriend("player", unit) then
+    -- update dispels -- skipped when a Blizzard AuraContainer backs the indicator (it
+    -- drives itself from SetUnit and renders the secret dispel school blind). The manual
+    -- path can't classify the school in restricted content anyway.
+    if not self.indicators.dispels.container and (F.UnitInGroup(unit) or UnitIsFriend("player", unit)) then
         self.indicators.dispels:SetDispels(self._debuffs_dispel)
     end
 
@@ -1841,12 +1872,24 @@ UnitButton_UpdateAuras = function(self, updateInfo)
     if self.indicators.raidDebuffs.SetContainerUnit then
         self.indicators.raidDebuffs:SetContainerUnit(unit)
     end
+    if self.indicators.dispels.SetContainerUnit then
+        self.indicators.dispels:SetContainerUnit(unit)
+    end
 
     -- 12.1: when auras are secret the payload cannot be diffed (isFullUpdate is a secret boolean,
     -- addedAuras a secret table) AND the slot-based full rescan below errors as well, because
     -- GetAuraSlots/GetAuraDataBySlot Lua-error while auras are secret. Nothing can be updated, so
     -- keep the last known state instead of erroring every UNIT_AURA. Cell needs to move to
     -- AuraContainers for a real fix.
+    --
+    -- The CanDiffAuraPayload guard below only covers INCREMENTAL updates (updateInfo ~= nil). A
+    -- FULL update (updateInfo == nil, e.g. from UnitButton_UpdateAll) slips past it and reaches
+    -- ForEachAura -> GetAuraSlots, which Lua-errors ("Auras cannot be accessed when secret while
+    -- tainted") on every UpdateAll in restricted content. Bail here on the secret state itself so
+    -- BOTH paths keep the last known state. The raid-debuff AuraContainer (SetContainerUnit above)
+    -- is what actually drives teammate debuffs while this is secret.
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then return end
+
     if updateInfo ~= nil and not F.CanDiffAuraPayload(updateInfo) then return end
 
     local isFullUpdate = not updateInfo or updateInfo.isFullUpdate
@@ -2873,6 +2916,18 @@ local function UnitButton_UpdateVehicleStatus(self)
     end
 end
 
+-- 12.1: UnitIsAFK can return a SECRET boolean (or error) -- a direct boolean test on it
+-- is a hard Lua error, which is why AFK was blanket-skipped on Midnight. Read it safely
+-- instead (pcall + F.ToBool): true only when AFK is readable AND set, nil otherwise.
+-- Matches how DandersFrames reads it (pcall + canaccessvalue) -- it IS readable for
+-- party/raid members, so the old skip lost AFK unnecessarily.
+local function SafeIsAFK(unit)
+    if not UnitIsAFK then return nil end
+    local ok, v = pcall(UnitIsAFK, unit)
+    if not ok then return nil end
+    return F.ToBool(v)
+end
+
 UnitButton_UpdateStatusText = function(self)
     local statusText = self.indicators.statusText
     if not enabledIndicators["statusText"] then
@@ -2891,8 +2946,9 @@ UnitButton_UpdateStatusText = function(self)
         statusText:Show()
         statusText:SetStatus("OFFLINE")
         statusText:ShowTimer()
-    -- Midnight 12.0.0+: UnitIsAFK may return a secret boolean â€” skip on Midnight
-    elseif not Cell.isMidnight and UnitIsAFK(unit) then
+    -- 12.1: UnitIsAFK may be secret; SafeIsAFK reads it without erroring (was skipped
+    -- entirely on Midnight before, which lost AFK even when it's perfectly readable).
+    elseif SafeIsAFK(unit) then
         statusText:Show()
         statusText:SetStatus("AFK")
         statusText:ShowTimer()

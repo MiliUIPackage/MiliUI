@@ -17,7 +17,7 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["enabled"] = true,
             ["position"] = {"TOPRIGHT", "button", "TOPRIGHT", 0, 3},
             ["frameLevel"] = 5,
-            ["size"] = {13, 13},
+            ["size"] = {16, 16},
             ["font"] = {
                 {"Cell " .. _G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell " .. _G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},

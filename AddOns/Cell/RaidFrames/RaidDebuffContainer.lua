@@ -87,8 +87,31 @@ end
 --   filterRaid, filterDispellable
 -- ============================================================
 
+-- all dispel schools, named explicitly so Blizzard never consults the player's spec
+-- (DandersFrames Features/Dispel.lua: "All Dispellable must NOT depend on what the
+-- player can dispel" -- processedAuraType is secretly player-relative, includeDispelTypes
+-- is not).
+local ALL_DISPEL_TYPES = { Magic = true, Curse = true, Disease = true, Poison = true, Bleed = true }
+
 local function BuildRecords(opts)
     opts = opts or {}
+
+    -- Dispel indicator mode: a single slot/record. dispelByMe (Cell's dispellableByMe):
+    --   true  -> only debuffs THIS character can dispel  -> HARMFUL|RAID_PLAYER_DISPELLABLE
+    --   false -> ALL dispellable debuffs                 -> HARMFUL + includeDispelTypes
+    -- "overlay" = the health-bar highlight, same filter, rendered as a tint (see StyleButton).
+    if opts.mode == "dispel" or opts.mode == "overlay" then
+        local rec
+        if opts.dispelByMe then
+            rec = { key = "dispel", filter = "HARMFUL|" .. TOKEN_DISP }
+        else
+            rec = { key = "dispel", filter = "HARMFUL",
+                    candidateFilters = { includeDispelTypes = opts.dispelTypes or ALL_DISPEL_TYPES } }
+        end
+        if AuraUtil.IsValidFilterString(rec.filter) then return { rec } end
+        return {}
+    end
+
     local function on(k) local v = opts[k]; return v == nil or v end -- default true
 
     local boss = on("filterBoss")
@@ -196,6 +219,71 @@ local function StyleButton(handle, button)
     if button.SetCollapsesLayout then button:SetCollapsesLayout(true) end
     button:SetSize(size, size)
 
+    -- OVERLAY MODE: a tint texture covering the button (positioned over the health bar),
+    -- vertex-tinted by dispel type BLIND ("Color"/PreserveAsset style). This is Cell's
+    -- dispel HIGHLIGHT, done the DandersFrames way -- our art, Blizzard's colour. The
+    -- gradient shape comes from the texture's own alpha (SetGradient would fight the
+    -- vertex tint), so a gradient look needs a gradient texture file; v1 uses a flat tint.
+    if cfg.mode == "overlay" then
+        local style = cfg.highlightStyle or "gradient"
+        -- Cell/Media/gradient.tga = white RGB + vertical alpha ramp (opaque bottom -> fade
+        -- up). Blizzard vertex-tints the RGB by school; the file's alpha is the gradient,
+        -- so we never SetGradient (which would fight the tint). Solid styles use WHITE8x8.
+        local isSolid = (style == "entire" or style == "current" or style == "current+")
+        local tex = isSolid and "Interface\\Buttons\\WHITE8x8" or "Interface\\AddOns\\Cell\\Media\\gradient"
+        if not button.dfTint then
+            button.dfTint = button:CreateTexture(nil, "ARTWORK")
+        end
+        button.dfTint:SetTexture(tex)
+        button.dfTint:SetAlpha(cfg.tintAlpha or 0.5)
+        button.dfTint:ClearAllPoints()
+        if style == "gradient-half" then
+            -- bottom half of the bar, matching Cell's original gradient-half geometry
+            button.dfTint:SetPoint("BOTTOMLEFT", button, "BOTTOMLEFT")
+            button.dfTint:SetPoint("TOPRIGHT", button, "RIGHT")
+        else
+            button.dfTint:SetAllPoints(button)
+        end
+        if (button.AddDispelTypeTexture or button.SetAuraBorder) and not button._boundTint then
+            button._boundTint = true
+            local styleEnum = (Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
+                and Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset) or 3
+            local dopts = { style = styleEnum, showWhenHarmful = true, showWhenHelpful = false, showIcon = false }
+            if button.AddDispelTypeTexture then
+                if button.ClearDispelTypeTextures then pcall(button.ClearDispelTypeTextures, button) end
+                pcall(button.AddDispelTypeTexture, button, button.dfTint, dopts)
+            else
+                pcall(button.SetAuraBorder, button, button.dfTint, dopts)
+            end
+        end
+        tinsert(handle.buttons, button)
+        return
+    end
+
+    -- DISPEL-ICON MODE: show ONLY the Blizzard dispel-type icon (Magic/Curse/Disease/
+    -- Poison/Bleed art -- the same RaidFrame-Icon-Debuff* set Cell's "blizzard" style uses),
+    -- rendered BLIND via the "Icon" texture style. No debuff spell icon / cooldown / stack.
+    if cfg.dispelIcon then
+        if not button.dfDispelIcon then
+            button.dfDispelIcon = button:CreateTexture(nil, "ARTWORK")
+            button.dfDispelIcon:SetAllPoints(button)
+        end
+        if (button.AddDispelTypeTexture or button.SetAuraBorder) and not button._boundDispelIcon then
+            button._boundDispelIcon = true
+            local iconStyle = (Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
+                and Enum.CustomAuraButtonDispelTypeTextureStyle.Icon) or 2
+            local dopts = { style = iconStyle, showWhenHarmful = true, showWhenHelpful = false }
+            if button.AddDispelTypeTexture then
+                if button.ClearDispelTypeTextures then pcall(button.ClearDispelTypeTextures, button) end
+                pcall(button.AddDispelTypeTexture, button, button.dfDispelIcon, dopts)
+            else
+                pcall(button.SetAuraBorder, button, button.dfDispelIcon, dopts)
+            end
+        end
+        tinsert(handle.buttons, button)
+        return
+    end
+
     -- icon (inset by border) -- match Cell's texcoord crop
     if not button.dfIcon then
         button.dfIcon = button:CreateTexture(nil, "ARTWORK")
@@ -266,6 +354,48 @@ local function StyleButton(handle, button)
         pcall(button.SetDurationText, button, button.dfDur, opts)
     end
 
+    -- dispel-type COLOR border (config-driven). Blizzard vertex-tints our white texture
+    -- by dispel school ("Color"/PreserveAsset style) -- blind, we never read the type.
+    -- With the icon inset on top, only the edge shows = a coloured border; non-dispellable
+    -- debuffs leave it unshown so the black dfBG edge remains.
+    if cfg.showDispelColor and (button.AddDispelTypeTexture or button.SetAuraBorder)
+        and not button._boundDispelColor then
+        button._boundDispelColor = true
+        if not button.dfDispelColor then
+            button.dfDispelColor = button:CreateTexture(nil, "BORDER")
+            button.dfDispelColor:SetColorTexture(1, 1, 1, 1)
+            button.dfDispelColor:SetAllPoints(button)
+        end
+        local styleEnum = (Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
+            and Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset) or 3
+        local dopts = { style = styleEnum, showWhenHarmful = true, showWhenHelpful = false, showIcon = false }
+        if button.AddDispelTypeTexture then
+            if button.ClearDispelTypeTextures then pcall(button.ClearDispelTypeTextures, button) end
+            pcall(button.AddDispelTypeTexture, button, button.dfDispelColor, dopts)
+        else
+            pcall(button.SetAuraBorder, button, button.dfDispelColor, dopts)
+        end
+    end
+
+    -- dispel-type SYMBOL letter (config-driven). Blizzard writes the school glyph into
+    -- our fontstring, blind.
+    if cfg.showDispelSymbol and (button.SetDispelTypeText or button.SetAuraSymbol)
+        and not button._boundDispelSym then
+        button._boundDispelSym = true
+        if not button.dfSymbol then
+            button.dfSymbolHolder = CreateFrame("Frame", nil, button)
+            button.dfSymbolHolder:SetFrameLevel(button:GetFrameLevel() + 8)
+            button.dfSymbol = button.dfSymbolHolder:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
+            button.dfSymbol:SetPoint("CENTER")
+        end
+        local sopts = { showWhenHarmful = true, showWhenHelpful = false }
+        if button.SetDispelTypeText then
+            pcall(button.SetDispelTypeText, button, button.dfSymbol, sopts)
+        else
+            pcall(button.SetAuraSymbol, button, button.dfSymbol, sopts)
+        end
+    end
+
     tinsert(handle.buttons, button)
 end
 
@@ -334,30 +464,75 @@ local function Build(handle)
     local ok, c = pcall(CreateFrame, "AuraContainer", nil, handle.frame, "CustomAuraContainerTemplate")
     if not ok or not c then return end
     handle.container = c
+    handle._errors = {}          -- diagnostics: per-step failures (see RDC.Debug)
+    handle._initCount = 0        -- how many buttons Blizzard asked us to style
+    handle._groupsAdded = 0
+    handle._enabledWhileVisible = false
 
-    ApplyLayout(handle)
+    local overlay = handle.config.mode == "overlay"
+    if overlay then
+        -- overlay covers its anchor frame (the health bar); no flow layout
+        pcall(function() c:SetAllPoints(handle.frame) end)
+    else
+        ApplyLayout(handle)
+    end
 
-    -- SetUnit BEFORE groups
-    pcall(function() c:SetUnit(handle.unit) end)
+    -- SetUnit BEFORE groups/slots
+    local okU, errU = pcall(function() c:SetUnit(handle.unit) end)
+    if not okU then handle._errors[#handle._errors + 1] = "SetUnit: " .. tostring(errU) end
 
     local records = handle.records or BuildRecords(handle.config)
     local groupLayout = GroupLayout(handle.config)
     local maxCount = handle.config.num or 3
 
+    -- diagnostics: what filters/cf this container actually built with
+    handle._recordInfo = {}
     for _, rec in ipairs(records) do
-        pcall(c.AddAuraGroup, c, rec.key, rec.filter, {
-            maxFrameCount = maxCount,
-            initializeFrame = function(button)
-                pcall(StyleButton, handle, button)
-            end,
-            layout = groupLayout,
-            candidateFilters = rec.candidateFilters,
-        })
+        local cfDesc = ""
+        if rec.candidateFilters then
+            local keys = {}
+            for k in pairs(rec.candidateFilters) do keys[#keys + 1] = k end
+            cfDesc = " +cf{" .. table.concat(keys, ",") .. "}"
+        end
+        handle._recordInfo[#handle._recordInfo + 1] = rec.key .. "=" .. rec.filter .. cfDesc
+    end
+    handle._modeDbg = handle.config.mode or "important"
+
+    for _, rec in ipairs(records) do
+        local initFn = function(button)
+            handle._initCount = (handle._initCount or 0) + 1
+            if overlay then pcall(function() button:SetAllPoints(c) end) end
+            pcall(StyleButton, handle, button)
+        end
+        local okG, errG
+        if overlay then
+            -- single slot covering the frame (AddAuraGroup eagerly batches; AddAuraSlot
+            -- is the genuine single-icon/overlay primitive)
+            okG, errG = pcall(c.AddAuraSlot, c, rec.key, rec.filter, {
+                initializeFrame = initFn,
+                candidateFilters = rec.candidateFilters,
+            })
+        else
+            okG, errG = pcall(c.AddAuraGroup, c, rec.key, rec.filter, {
+                maxFrameCount = maxCount,
+                initializeFrame = initFn,
+                layout = groupLayout,
+                candidateFilters = rec.candidateFilters,
+            })
+        end
+        if okG then
+            handle._groupsAdded = handle._groupsAdded + 1
+        else
+            handle._errors[#handle._errors + 1] = "Add[" .. rec.key .. "] (" .. rec.filter .. "): " .. tostring(errG)
+        end
     end
 
-    -- SetEnabled LAST (gates aura-event registration)
-    pcall(function() c:SetEnabled(true) end)
+    -- SetEnabled LAST (gates aura-event registration). Only "counts" if the frame is
+    -- visible right now; otherwise ReassertEnable() re-runs it when the button shows.
+    local okE, errE = pcall(function() c:SetEnabled(true) end)
+    if not okE then handle._errors[#handle._errors + 1] = "SetEnabled: " .. tostring(errE) end
     pcall(function() c:SetShown(handle.shown ~= false) end)
+    if handle.frame:IsVisible() then handle._enabledWhileVisible = true end
 end
 
 -- regen flush
@@ -430,6 +605,20 @@ function Handle:Rebuild()
     Build(self)
 end
 
+-- Re-assert enable while the frame is actually VISIBLE. SetEnabled gates aura-event
+-- registration on IsVisible(); if Build ran while the button was hidden, the container
+-- enabled-but-never-registered and stays empty. Call this when the button becomes shown.
+function Handle:ReassertEnable()
+    if InCombatLockdown() then return end
+    local c = self.container
+    if not c then return end
+    if not self.frame:IsVisible() then return end
+    if self._enabledWhileVisible then return end
+    self._enabledWhileVisible = true
+    pcall(function() c:SetEnabled(true) end)
+    pcall(function() c:Hide(); c:Show() end) -- partition kick -> force a fresh scan
+end
+
 function Handle:Destroy()
     self._pendingBuild = nil
     RDC._pending[self] = nil
@@ -466,7 +655,65 @@ function RDC.Create(parent, config)
         shown = true,
     }, Handle)
 
+    RDC._instances = RDC._instances or {}
+    RDC._instances[handle] = true
+
     return handle
+end
+
+-- ============================================================
+-- DIAGNOSTICS  ->  /run Cell.RaidDebuffContainer.Debug()
+-- ============================================================
+
+local function p(...) print("|cff33ff99[RDC]|r", ...) end
+
+function RDC.Debug()
+    p("Cell.isMidnight =", tostring(Cell.isMidnight))
+    p("IsSupported() =", tostring(RDC.IsSupported()))
+
+    -- raw probe detail
+    local toc = select(4, GetBuildInfo())
+    p("TOC build =", tostring(toc))
+    p("AuraUtil.IsValidFilterString =", tostring(AuraUtil and AuraUtil.IsValidFilterString ~= nil))
+    local okF, frame = pcall(CreateFrame, "AuraContainer", nil, UIParent, "CustomAuraContainerTemplate")
+    p("CreateFrame(AuraContainer, CustomAuraContainerTemplate) ok =", tostring(okF),
+        "AddAuraGroup fn =", tostring(okF and frame and type(frame.AddAuraGroup) == "function"))
+
+    -- filter string validity for each category record
+    if AuraUtil and AuraUtil.IsValidFilterString then
+        for _, rec in ipairs(BuildRecords({})) do
+            p("filter valid?", rec.key, rec.filter, "->", tostring(AuraUtil.IsValidFilterString(rec.filter)))
+        end
+    end
+
+    -- live instances (the actual per-button containers) -- prioritise VISIBLE ones,
+    -- those are the units actually on screen with debuffs.
+    local total, built, visible, shown = 0, 0, 0, 0
+    local samples = 0
+    for h in pairs(RDC._instances or {}) do
+        total = total + 1
+        if h.container then built = built + 1 end
+        local vis = h.frame:IsVisible()
+        if vis then visible = visible + 1 end
+        if h.container and h.container:IsVisible() then shown = shown + 1 end
+        -- detail the first few VISIBLE, container-backed instances
+        if vis and h.container and samples < 5 then
+            samples = samples + 1
+            -- NOTE: AuraButton IsShown/geometry are SECRET (branching on them errors), so we
+            -- CANNOT read whether a button is rendering -- only the user's eyes can confirm that.
+            p(("VISIBLE unit=%s mode=%s enabled=%s groupsAdded=%s initCount=%s ewv=%s buttons=%d")
+                :format(tostring(h.unit), tostring(h._modeDbg), tostring(h.enabled), tostring(h._groupsAdded),
+                    tostring(h._initCount), tostring(h._enabledWhileVisible), #h.buttons))
+            if h._recordInfo then
+                for _, ri in ipairs(h._recordInfo) do p("   filter:", ri) end
+            end
+            if h._errors and #h._errors > 0 then
+                for _, e in ipairs(h._errors) do p("   ERR:", e) end
+            end
+        end
+    end
+    p(("totals: instances=%d built=%d frameVisible=%d containerVisible=%d"):format(total, built, visible, shown))
+    if samples == 0 then p("!! no VISIBLE container-backed instance found -- stand in a group with debuffs and retry") end
 end
 
 return RDC
