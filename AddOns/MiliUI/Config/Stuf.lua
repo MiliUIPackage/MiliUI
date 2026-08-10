@@ -350,7 +350,7 @@ function MiliUI_BuildStufDefaults()
             },
             inspectbutton={ x=186, y=5, w=25, h=25, framelevel=8, },
             threatbar={ x=157, y=-2, w=32, h=12, framelevel=5, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
-            rangetext={ x=4, y=10, w=200, h=10, fontsize=12, justifyH="LEFT", framelevel=5, fontflags="OUTLINE", },
+            rangetext={ x=4, y=10, w=200, h=10, fontsize=12, justifyH="LEFT", framelevel=11, fontflags="OUTLINE", },
         },
         targettarget={
             frame={ x=targetx+210, y=targety, w=120, h=28, },
