@@ -13,13 +13,20 @@ Cell.vars.playerFaction = UnitFactionGroup("player")
 -------------------------------------------------
 Cell.isAsian = LOCALE_zhCN or LOCALE_zhTW or LOCALE_koKR
 
-Cell.isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
-Cell.isMidnight = Cell.isRetail and (select(4, GetBuildInfo()) >= 120000)
-Cell.isVanilla = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
-Cell.isTBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
-Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
-Cell.isCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
-Cell.isMists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC
+-- 2026-08-11: this fork is RETAIL ONLY. Every Classic support file (TOCs, Core_*,
+-- UnitButton_*, per-flavour defaults and loaders) has been deleted; the flavour flags are
+-- pinned so the ~156 remaining `if Cell.isVanilla ...` branches are unreachable dead code
+-- rather than a live code path nobody tests. Fold them out opportunistically when touching
+-- the surrounding code -- do NOT reintroduce a Classic branch.
+Cell.isRetail = true
+Cell.isVanilla = false
+Cell.isTBC = false
+Cell.isWrath = false
+Cell.isCata = false
+Cell.isMists = false
+
+-- still real version checks WITHIN retail, keep them honest
+Cell.isMidnight = select(4, GetBuildInfo()) >= 120000
 Cell.isTWW = LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WAR_WITHIN
 
 -------------------------------------------------

@@ -462,10 +462,14 @@ local function StyleButton(handle, button)
     if not button.dfDur then
         button.dfDurHolder = CreateFrame("Frame", nil, button)
         button.dfDurHolder:SetAllPoints(button)
-        button.dfDurHolder:SetFrameLevel(button:GetFrameLevel() + 6)
         button.dfDur = button.dfDurHolder:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
         button.dfDur:SetPoint("CENTER")
     end
+    -- ⚠ RE-APPLY every pass, never once at creation. SetFrameLevel stores an ABSOLUTE
+    -- level; the container re-levels its AuraButtons as groups grow/relayout, and a holder
+    -- left on the old number ends up BELOW the button -- so the button's own icon texture
+    -- draws over the text. That is the "文字被擋在後面" ghost.
+    button.dfDurHolder:SetFrameLevel(button:GetFrameLevel() + 6)
     -- re-applied every pass (not create-once) so font sliders are live
     ApplyFont(button.dfDur, button.dfDurHolder, cfg.durationFont, true)
 
@@ -473,10 +477,10 @@ local function StyleButton(handle, button)
     if not button.dfStack then
         button.dfStackHolder = CreateFrame("Frame", nil, button)
         button.dfStackHolder:SetAllPoints(button)
-        button.dfStackHolder:SetFrameLevel(button:GetFrameLevel() + 7)
         button.dfStack = button.dfStackHolder:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
         button.dfStack:SetPoint("BOTTOMRIGHT", 2, -1)
     end
+    button.dfStackHolder:SetFrameLevel(button:GetFrameLevel() + 7)
     ApplyFont(button.dfStack, button.dfStackHolder, cfg.stackFont)
 
     -- NOTE: dispel-type colored border deferred to in-game iteration -- SetAuraBorder /
@@ -572,20 +576,36 @@ local function ApplyLayout(handle)
     local spacing = cfg.spacing or 2
     local num = cfg.num or 3
 
-    -- centered row growing right; maximum line = num icons (pixel budget, not count)
+    -- Honour the indicator's orientation. The anchor frame is one icon big and sits at the
+    -- configured position; the row must flow OUT of that point in the configured direction,
+    -- or a TOPRIGHT/right-to-left indicator (Healers) spills icons rightward off the frame.
+    -- maximumLineSize is a PIXEL budget along the main axis, not an icon count.
+    local orient = cfg.orientation or "left-to-right"
+    local budget = num * size + (num - 1) * spacing + size * 0.5
+    local FD = AnchorUtil and AnchorUtil.FlowDirection
+    local AX = AnchorUtil and AnchorUtil.FlowLayoutAxis
     pcall(function()
-        if c.SetFlowLayoutAnchorPoint then c:SetFlowLayoutAnchorPoint("LEFT") end
-        if c.SetFlowLayoutMaximumLineSize then
-            c:SetFlowLayoutMaximumLineSize(num * size + (num - 1) * spacing + size * 0.5)
+        local point
+        if orient == "right-to-left" then
+            point = "RIGHT"
+            if FD and c.SetFlowLayoutGrowthDirection then c:SetFlowLayoutGrowthDirection(FD.Left, FD.Down) end
+        elseif orient == "top-to-bottom" then
+            point = "TOP"
+            if AX and c.SetFlowLayoutAxis then c:SetFlowLayoutAxis(AX.Vertical) end
+            if FD and c.SetFlowLayoutGrowthDirection then c:SetFlowLayoutGrowthDirection(FD.Right, FD.Down) end
+        elseif orient == "bottom-to-top" then
+            point = "BOTTOM"
+            if AX and c.SetFlowLayoutAxis then c:SetFlowLayoutAxis(AX.Vertical) end
+            if FD and c.SetFlowLayoutGrowthDirection then c:SetFlowLayoutGrowthDirection(FD.Right, FD.Up) end
+        else -- left-to-right
+            point = "LEFT"
+            if FD and c.SetFlowLayoutGrowthDirection then c:SetFlowLayoutGrowthDirection(FD.Right, FD.Down) end
         end
-        if c.SetFlowLayoutGrowthDirection and AnchorUtil and AnchorUtil.FlowDirection then
-            c:SetFlowLayoutGrowthDirection(AnchorUtil.FlowDirection.Right, AnchorUtil.FlowDirection.Down)
-        end
-    end)
-    -- pin container center to our anchor frame
-    pcall(function()
+        if c.SetFlowLayoutAnchorPoint then c:SetFlowLayoutAnchorPoint(point) end
+        if c.SetFlowLayoutMaximumLineSize then c:SetFlowLayoutMaximumLineSize(budget) end
+        -- pin the container to the SAME side of the anchor frame the row flows from
         c:ClearAllPoints()
-        c:SetPoint("CENTER", handle.frame, "CENTER", 0, 0)
+        c:SetPoint(point, handle.frame, point, 0, 0)
     end)
 end
 
@@ -639,6 +659,13 @@ local function Build(handle)
 
     if not handle.enabled or not handle.unit then return end
 
+    -- Compute the records FIRST. A container with no groups renders nothing, yet still costs
+    -- a Frame + an AuraContainer + a batch of AuraButtons on every unit button -- that is
+    -- exactly what the three cooldown indicators were doing with empty curated lists.
+    -- Nothing to show => build nothing.
+    local records = handle.records or BuildRecords(handle.config)
+    if #records == 0 then return end
+
     local host = CreateFrame("Frame", nil, handle.frame)
     host:SetAllPoints(handle.frame)
 
@@ -669,9 +696,16 @@ local function Build(handle)
     local okU, errU = pcall(function() c:SetUnit(handle.unit) end)
     if not okU then handle._errors[#handle._errors + 1] = "SetUnit: " .. tostring(errU) end
 
-    local records = handle.records or BuildRecords(handle.config)
     local groupLayout = GroupLayout(handle.config)
-    local maxCount = handle.config.num or 3
+    -- ⚠ maxFrameCount is PER GROUP, not per container. The important display declares five
+    -- category groups, so num=3 meant "up to 15 icons" and made Blizzard pre-allocate a
+    -- batch of 10 buttons PER GROUP (50 for three visible icons). Split the budget instead:
+    -- the row then holds at most `num` rounded up to the group count.
+    local wanted = handle.config.num or 3
+    local maxCount = wanted
+    if #records > 1 then
+        maxCount = math.max(1, math.ceil(wanted / #records))
+    end
 
     -- diagnostics: what filters/cf this container actually built with
     handle._recordInfo = {}
@@ -772,9 +806,14 @@ function Handle:SetNum(n)
     -- on num too (the flow line budget is a pixel budget derived from it).
     local c = self.container
     if c and c.SetAuraGroupMaxFrameCount and self._groupKeys and #self._groupKeys > 0 then
+        -- same per-group split Build uses: maxFrameCount is per GROUP, not per container
+        local per = n
+        if #self._groupKeys > 1 then
+            per = math.max(1, math.ceil(n / #self._groupKeys))
+        end
         local allOK = true
         for _, key in ipairs(self._groupKeys) do
-            if not pcall(c.SetAuraGroupMaxFrameCount, c, key, n) then allOK = false end
+            if not pcall(c.SetAuraGroupMaxFrameCount, c, key, per) then allOK = false end
         end
         if allOK then
             ApplyLayout(self)
@@ -794,7 +833,7 @@ local COSMETIC_KEYS = { stackFont = true, durationFont = true }
 -- geometry keys: 12.1 has SetAuraGroupLayout as a LIVE setter and StyleButton already
 -- re-applies per-button size/border, so these never need a rebuild either. Keeping them
 -- off the rebuild path is what stops a size/border tweak from leaving a stale container.
-local LAYOUT_KEYS = { size = true, sizeH = true, border = true, spacing = true }
+local LAYOUT_KEYS = { size = true, sizeH = true, border = true, spacing = true, orientation = true }
 
 function Handle:Restyle()
     if InCombatLockdown() then return end
@@ -1215,6 +1254,72 @@ function RDC.Inspect(unitToken)
         end
     end
     if n == 0 then p("no container handles bound to unit " .. tostring(unitToken)) end
+end
+
+-- ============================================================
+-- OVERDRAW REPORT  ->  /run Cell.RaidDebuffContainer.Overdraw("player")
+--
+-- Answers "what is drawing twice, and what is wasted". AuraButton visibility is secret,
+-- but a container's own RECT is not -- two containers sharing a rect ARE overlapping,
+-- and that is what a doubled icon looks like. Also totals the buttons Blizzard allocated
+-- (it batches 10 at a time, per GROUP) so the real cost is visible.
+-- ============================================================
+
+local function RectKey(f)
+    local l, b = f:GetLeft(), f:GetBottom()
+    local w, h = f:GetWidth(), f:GetHeight()
+    if not (l and b and w and h) then return nil end
+    return ("%d,%d %dx%d"):format(l + 0.5, b + 0.5, w + 0.5, h + 0.5)
+end
+
+function RDC.Overdraw(unitToken)
+    unitToken = unitToken or "player"
+    local byRect, rows = {}, {}
+    local buttons, empties, live = 0, 0, 0
+
+    for h in pairs(RDC._instances or {}) do
+        if h.unit == unitToken then
+            local cfg = h.config or {}
+            local mode = tostring(cfg.mode or "important")
+            local recs = h._recordInfo and #h._recordInfo or 0
+            buttons = buttons + #h.buttons
+            if h.container then live = live + 1 end
+            if h.container and recs == 0 then empties = empties + 1 end
+
+            local key = h.frame and RectKey(h.frame) or nil
+            if key then
+                byRect[key] = byRect[key] or {}
+                tinsert(byRect[key], mode)
+            end
+            tinsert(rows, ("  %-10s rect=%-18s groups=%d buttons=%d init=%s num=%s")
+                :format(mode, tostring(key), recs, #h.buttons, tostring(h._initCount), tostring(cfg.num)))
+        end
+    end
+
+    p("=== containers on " .. tostring(unitToken) .. " ===")
+    for _, r in ipairs(rows) do p(r) end
+
+    local collisions = 0
+    for key, modes in pairs(byRect) do
+        if #modes > 1 then
+            collisions = collisions + 1
+            p(("|cffff5555OVERLAP|r rect=%s <- %s"):format(key, table.concat(modes, " + ")))
+        end
+    end
+
+    p(("totals: %d live containers, %d with NO groups (pure waste), %d AuraButtons allocated, %d overlapping rects")
+        :format(live, empties, buttons, collisions))
+
+    -- global waste tally: recordless containers exist on every button in every header
+    local gLive, gEmpty, gButtons = 0, 0, 0
+    for h in pairs(RDC._instances or {}) do
+        if h.container then
+            gLive = gLive + 1
+            gButtons = gButtons + #h.buttons
+            if not h._recordInfo or #h._recordInfo == 0 then gEmpty = gEmpty + 1 end
+        end
+    end
+    p(("ACCOUNT-WIDE: %d live containers, %d recordless, %d AuraButtons"):format(gLive, gEmpty, gButtons))
 end
 
 return RDC

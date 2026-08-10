@@ -257,7 +257,8 @@ local function HandleIndicators(b)
         end
         -- update size
         if t["size"] then
-            -- NOTE: debuffs: ["size"] = {{normalSize}, {bigSize}}
+            -- debuffs keeps its own SetSize (it must size the preview pool too); the value
+            -- is a plain {w, h} now -- Revise rewrites the old {{w,h},{w,h}} shape.
             if t["indicatorName"] == "debuffs" then
                 indicator:SetSize(t["size"][1], t["size"][2])
             else
@@ -1263,26 +1264,12 @@ local function HandleDebuff(self, auraInfo)
         UpdateAuraRefreshState(auraInfo)
         self._debuffs_cache[auraInstanceID] = auraInfo
 
-        local isBig = false
-        local isBlacklisted = false
+        -- The debuff row is AuraContainer-backed: Blizzard filters it (blacklist rides on
+        -- excludeSpellIDs, dispellable-only on the filter string), so classifying every aura
+        -- here was pure per-aura waste. bigDebuffs is gone with the spell-ID ban.
         local isDispelBlacklisted = false
         if F.IsAuraNonSecret(auraInfo) then
-            isBig = spellId and Cell.vars.bigDebuffs[spellId] or false
-            isBlacklisted = spellId and Cell.vars.debuffBlacklist[spellId] or false
             isDispelBlacklisted = spellId and Cell.vars.dispelBlacklist[spellId] or false
-        end
-
-        if enabledIndicators["debuffs"] and not isBlacklisted then
-            -- all debuffs / only dispellableByMe
-            -- Secret-aware fallback: when debuffType is secret, I.CanDispel returns nil;
-            -- use Blizzard's HARMFUL|RAID_PLAYER_DISPELLABLE classification instead.
-            if not indicatorBooleans["debuffs"] or I.CanDispel(debuffType) or secretIsDispellable then
-                if isBig then
-                    self._debuffs_big[auraInstanceID] = true
-                else
-                    self._debuffs_normal[auraInstanceID] = true
-                end
-            end
         end
 
         -- user created indicators
@@ -1332,9 +1319,6 @@ local function HandleDebuff(self, auraInfo)
         if enabledIndicators["crowdControls"] and I.IsCrowdControls(name, spellId) and self._debuffs.crowdControlsFound < indicatorNums["crowdControls"] then
             self._debuffs.crowdControlsFound = self._debuffs.crowdControlsFound + 1
             self.indicators.crowdControls[self._debuffs.crowdControlsFound]:SetCooldown(start, duration, debuffType, icon, count, auraInfo.refreshing)
-            -- remove from debuffs
-            self._debuffs_big[auraInstanceID] = nil
-            self._debuffs_normal[auraInstanceID] = nil
         end
 
         -- Per-aura check: only compare spellId if non-secret
@@ -1428,8 +1412,6 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
     -- user created indicators
     I.ShowCustomIndicators(self, "debuff")
 
-    wipe(self._debuffs_normal)
-    wipe(self._debuffs_big)
     wipe(self._debuffs_dispel)
     wipe(self._debuffs_raid)
 end
@@ -1558,8 +1540,6 @@ local function InitAuraTables(self)
     self._missing_auras = {}
 
     -- debuffs
-    self._debuffs_normal = {} -- [auraInstanceID] = refreshing
-    self._debuffs_big = {} -- [auraInstanceID] = refreshing
     self._debuffs_dispel = {} -- [debuffType] = true/false
     self._debuffs_raid = {} -- {id1, id2, ...}
     self._debuffs_glow_current = {}
@@ -1571,8 +1551,6 @@ local function ResetAuraTables(self)
     wipe(self._missing_auras)
 
     -- debuffs
-    wipe(self._debuffs_normal)
-    wipe(self._debuffs_big)
     wipe(self._debuffs_dispel)
     wipe(self._debuffs_raid)
 

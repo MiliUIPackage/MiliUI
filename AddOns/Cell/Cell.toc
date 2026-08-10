@@ -40,6 +40,7 @@ Indicators\Supporter.lua
 
 RaidFrames\MainFrame.lua
 RaidFrames\RaidDebuffContainer.lua
+RaidFrames\AuraContainerBridge.lua
 
 Modules\LoadModules.xml
 Utilities\LoadUtilities.xml

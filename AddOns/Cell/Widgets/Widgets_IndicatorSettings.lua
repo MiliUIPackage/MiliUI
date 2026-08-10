@@ -493,6 +493,10 @@ local function CreateSetting_Size(parent)
 
         -- show db value
         function widget:SetDBValue(sizeTable)
+            -- Layouts saved before the debuff row moved to an AuraContainer store the
+            -- "size-normal-big" shape {{w,h},{w,h}}. The container has ONE element size, so
+            -- take the normal size and let Revise rewrite the saved value.
+            if type(sizeTable[1]) == "table" then sizeTable = sizeTable[1] end
             widget.width:SetValue(sizeTable[1])
             widget.height:SetValue(sizeTable[2])
         end

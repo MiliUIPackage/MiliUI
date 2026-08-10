@@ -3492,6 +3492,29 @@ function F.Revise()
         end
     end
 
+    --! 12.1: the debuff row is AuraContainer-backed. Its "size-normal-big" setting became a
+    --! plain size (a container group has one element size), and the duration threshold now
+    --! works again on the container path -- so "always" becomes "under 60s" where it was
+    --! only ever "always" because thresholds were unavailable.
+    for _, layout in pairs(CellDB["layouts"]) do
+        for _, t in pairs(layout["indicators"] or {}) do
+            local name = t["indicatorName"]
+            if name == "debuffs" and type(t["size"]) == "table" and type(t["size"][1]) == "table" then
+                t["size"] = {t["size"][1][1], t["size"][1][2]}
+                t["bigDebuffs"] = nil
+                t["enableBlacklistShortcut"] = nil
+            end
+            -- ...and the same for CUSTOM buff icon indicators (Healers and friends): their
+            -- lists carry permanent/very long healer buffs, so "always" prints "28m" forever.
+            local isCustomIcon = t["type"] == "icons" or t["type"] == "icon"
+            if t["showDuration"] == true and (name == "debuffs" or name == "raidDebuffs"
+                or name == "externalCooldowns" or name == "defensiveCooldowns"
+                or (isCustomIcon and t["auraType"] == "buff")) then
+                t["showDuration"] = 60
+            end
+        end
+    end
+
     CellDB["revise"] = Cell.version
     if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version

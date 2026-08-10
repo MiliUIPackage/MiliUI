@@ -262,7 +262,12 @@ local function IsPreviewButton(frame)
 end
 
 local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum)
-    if IsPreviewButton(parent) then return end
+    -- 2026-08-11: no-op. RaidFrames/AuraContainerBridge.lua (adopted from MiliUI) owns the
+    -- cooldown and custom buff-icon displays -- it attaches its own always-on containers,
+    -- anchored to these indicators, and fades the indicator frames so the manual preview
+    -- pools never double-draw. Two owners here was exactly the "slider redraws a second
+    -- layer" mess. RDC keeps only raidDebuffs / dispels / the health-bar overlay.
+    do return end
     if not (Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported()) then return end
 
     local container = Cell.RaidDebuffContainer.Create(parent, {
@@ -296,6 +301,7 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum)
             spellIDs = getSpellIDs(t),
             showDuration = t.showDuration,
             onlyMine = (t.castBy == "me") or nil,
+            orientation = t.orientation,
         }
         if t.font then
             opts.stackFont = t.font[1]
@@ -455,22 +461,23 @@ end
 -------------------------------------------------
 -- CreateDebuffs
 -------------------------------------------------
-local function Debuffs_SetSize(self, normalSize, bigSize)
-    for i = 1, #self do
-        P.Size(self[i], normalSize[1], normalSize[2])
-    end
-    -- store sizes for SetCooldown
-    self.normalSize = normalSize
-    self.bigSize = bigSize
-    -- remove wrong data from PixelPerfect
-    self.width = nil
-    self.height = nil
+-- 12.1: the debuff row is AuraContainer-backed and its setting is a plain size now (a
+-- container group has ONE element size, and bigDebuffs is gone with the spell-ID ban).
+-- Only preview buttons still own an icon pool, so the loops below are pool-driven.
+local function Debuffs_SetSize(self, width, height)
+    self.width = width
+    self.height = height
 
+    for i = 1, #self do
+        P.Size(self[i], width, height)
+    end
+
+    self:_SetSize(P.Scale(width), P.Scale(height))
     self:UpdateSize()
 end
 
 local function Debuffs_UpdateSize(self, iconsShown)
-    if not (self.normalSize and self.bigSize and self.orientation) then return end -- not init
+    if not (self.width and self.height and self.orientation) then return end -- not init
 
     if iconsShown then
         for i = iconsShown + 1, #self do
@@ -481,13 +488,15 @@ local function Debuffs_UpdateSize(self, iconsShown)
     local size = 0
     for i = 1, #self do
         if self[i]:IsShown() then
-            size = size + self[i].width
+            size = size + (self[i].width or self.width)
         end
     end
-    if self.orientation == "left-to-right" or self.orientation == "right-to-left"  then
-        self:_SetSize(P.Scale(size), P.Scale(self.normalSize[2]))
+    if size == 0 then return end -- container-backed: nothing in the pool to size around
+
+    if self.orientation == "left-to-right" or self.orientation == "right-to-left" then
+        self:_SetSize(P.Scale(size), P.Scale(self.height))
     else
-        self:_SetSize(P.Scale(self.normalSize[1]), P.Scale(size))
+        self:_SetSize(P.Scale(self.width), P.Scale(size))
     end
 end
 
@@ -658,65 +667,10 @@ function I.CreateDebuffs(parent)
         end
     end
 
-    if not IsPreviewButton(parent) and Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported() then
-        local container = Cell.RaidDebuffContainer.Create(debuffs, { mode = "debuff", num = 3 })
-        if container then
-            -- anchor to the BUTTON, never to `debuffs`: Debuffs_SetSize only records
-            -- width/height, so that frame stays rect-less while its fallback icons are
-            -- hidden, and children of a rect-less frame never render.
-            container:GetFrame():SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", 1, 4)
-            debuffs.container = container
-            debuffs:Show() -- static host; the container owns which icons are visible
+    -- 2026-08-11: the debuff-row container moved to AuraContainerBridge.lua -- it was
+    -- attached here before, which made TWO renderers own the same row (the bridge in
+    -- combat + this one after any config rebuild).
 
-            function debuffs:ConfigureContainer(t)
-                if not self.container then return end
-                local cfr = self.container:GetFrame()
-                cfr:ClearAllPoints()
-                local pos = t.position
-                local rel = (pos and pos[2] == "healthBar") and parent.widgets.healthBar or parent
-                if pos then
-                    cfr:SetPoint(pos[1], rel, pos[3], pos[4], pos[5])
-                else
-                    cfr:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", 1, 4)
-                end
-
-                -- Cell stores debuff size as {normal, big}; the container has one element
-                -- size per group, so the NORMAL size is what it uses.
-                local size = t.size and t.size[1]
-                if type(size) == "table" then size = size[1] end
-
-                local opts = {
-                    dispelByMe = t.dispellableByMe and true or false,
-                    showDuration = t.showDuration,
-                    -- Cell.vars.debuffBlacklist is already a [spellID] = true map, which is
-                    -- exactly excludeSpellIDs' shape. Only NeverSecret spells are actually
-                    -- honoured (see BuildRecords) -- the rest are silently ignored.
-                    excludeSpellIDs = Cell.vars.debuffBlacklist,
-                }
-                if t.font then
-                    opts.stackFont = t.font[1]
-                    opts.durationFont = t.font[2]
-                end
-                if size then opts.size = size end
-                if t.num then opts.num = t.num end
-                if size then cfr:SetSize(size, size) end
-                self.container:SetOptions(opts)
-                self.container:SetEnabled(t.enabled and true or false)
-            end
-
-            function debuffs:SetContainerUnit(unit)
-                if not self.container then return end
-                self.container:SetUnit(unit)
-                self.container:ReassertEnable()
-            end
-
-            parent:HookScript("OnShow", function()
-                if debuffs.container then debuffs.container:ReassertEnable() end
-            end)
-
-            I.RegisterContainerIndicator(parent, debuffs)
-        end
-    end
 end
 
 -------------------------------------------------
@@ -979,7 +933,8 @@ function I.CreateDispels(parent)
                 local base = { dispelByMe = f.dispellableByMe and true or false, dispelTypes = types }
                 local on = t.enabled and true or false
                 if self.container then
-                    local o = { dispelByMe = base.dispelByMe, dispelTypes = base.dispelTypes }
+                    local o = { dispelByMe = base.dispelByMe, dispelTypes = base.dispelTypes,
+                                orientation = t.orientation }
                     if t.size then o.size = t.size[1] end
                     self.container:SetOptions(o)
                     self.container:SetEnabled(on)
@@ -1252,6 +1207,7 @@ function I.CreateRaidDebuffs(parent)
                     filterDispellable   = t.filterDispellable,
                     -- true = always; number N = only when remaining < N s; false = never
                     showDuration        = t.showDuration,
+                    orientation         = t.orientation,
                 }
                 -- Cell font tables: [1] = stack, [2] = duration
                 if t.font then
