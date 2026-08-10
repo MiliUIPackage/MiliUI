@@ -190,6 +190,39 @@ end
 ----------------------------------------------------------------------
 hooksecurefunc("CreateFrame", CreateFrame_Hook)
 
+----------------------------------------------------------------------
+-- ClickCastFrames：單位框架的標準註冊表
+----------------------------------------------------------------------
+-- 這才是接單位框架的正確位置。ClickCastFrames 是點擊施法（Clique）的慣例，
+-- 每個支援它的單位框架插件都會在框架就緒時寫入 —— Stuf 在 core.lua:1494、
+-- DandersFrames 等等也都有。監看這張表就能在「框架剛好可以用」的那一刻接到。
+--
+-- 為什麼不靠原本的兩條路：
+--   * defaultFrameNames + PLAYER_LOGIN 掃描：只掃那一瞬間。Stuf 的 target /
+--     focus 是在 C_Timer.After(0) 裡才建的，掃過去時還不存在。
+--   * hooksecurefunc("CreateFrame")：只保護「hook 安裝之後」建立的框架，
+--     載入順序一變（例如 TOC 的 OptionalDeps 改了）就接不到。
+-- 兩條都是時機相依，才會出現「有時好有時壞」。註冊表沒有這個問題。
+local function WatchClickCastFrames()
+    ClickCastFrames = ClickCastFrames or {}
+
+    -- 先補上在我們接手之前就註冊好的
+    for frame, enabled in pairs(ClickCastFrames) do
+        if enabled and type(frame) == "table" then SetFocusHotkey(frame) end
+    end
+
+    -- 之後每有新框架註冊就立刻套用。用 rawset 保存原本的寫入語意，
+    -- 我們只是搭順風車。
+    setmetatable(ClickCastFrames, {
+        __newindex = function(t, frame, enabled)
+            rawset(t, frame, enabled)
+            if enabled and type(frame) == "table" and GetDB().focuserEnabled then
+                SetFocusHotkey(frame)
+            end
+        end,
+    })
+end
+
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -199,8 +232,9 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         local db = GetDB()
         if db.focuserEnabled then
             SetupFocuserButton()
-            ApplyAllHotkeys()
+            ApplyAllHotkeys()   -- 暴雪原生框架不走 ClickCastFrames，仍需這份清單
         end
+        WatchClickCastFrames()
     elseif event == "PLAYER_REGEN_ENABLED" then
         if GetDB().focuserEnabled then
             ApplyAllHotkeys()
@@ -215,6 +249,31 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         end
     end
 end)
+
+----------------------------------------------------------------------
+-- /focuscheck：逐框架回報 shift 屬性有沒有設上
+----------------------------------------------------------------------
+-- 「shift+click 沒反應」有兩種完全不同的成因：屬性沒設上（時機問題），
+-- 或設上了但點擊被別的框架吃掉。這裡只回答第一個，第二個要用
+-- GetMouseFoci() 看焦點鏈。
+SLASH_MILIUIFOCUSCHECK1 = "/focuscheck"
+SlashCmdList["MILIUIFOCUSCHECK"] = function()
+    print("|cffffe00a[MiliUI]|r Focuser：啟用=" .. tostring(GetDB().focuserEnabled)
+        .. "　FocuserButton=" .. tostring(focuserButton ~= nil))
+    local missing, ok = {}, 0
+    for _, name in ipairs(defaultFrameNames) do
+        local f = _G[name]
+        if not f then
+            table.insert(missing, name .. "（框架不存在）")
+        elseif f:GetAttribute(modifier .. "-type" .. mouseButton) then
+            ok = ok + 1
+        else
+            table.insert(missing, name .. "（屬性未設）")
+        end
+    end
+    print("|cffffe00a[MiliUI]|r 已設定：" .. ok .. "　未設定：" .. #missing)
+    for _, m in ipairs(missing) do print("   " .. m) end
+end
 
 -- 公開 API
 function MiliUI_Focuser.IsEnabled()
