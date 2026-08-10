@@ -967,6 +967,47 @@ function I.CreateRaidDebuffs(parent)
         -- frame:SetScript("OnShow", raidDebuffs.UpdateSize)
         -- frame:SetScript("OnHide", raidDebuffs.UpdateSize)
     end
+
+    -- 12.1 "Route A": back the central raid-debuff display with a Blizzard
+    -- AuraContainer so classification is done secret-safe / Blizzard-side
+    -- (boss/role/priority/cc/raid/dispel via candidateFilters) instead of
+    -- matching a curated spell-ID list. nil on Classic / unsupported -> the
+    -- 3-icon fallback above stays in charge.
+    if Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported() then
+        local container = Cell.RaidDebuffContainer.Create(raidDebuffs, {})
+        if container then
+            container:GetFrame():SetAllPoints(raidDebuffs)
+            raidDebuffs.container = container
+            -- the anchor frame is now a static host; the container child manages
+            -- which icons are visible. Keep the host shown (the manual Show/Hide
+            -- path is skipped in UnitButton when a container backs the indicator).
+            raidDebuffs:Show()
+
+            -- push Cell layout values into the container (called from UnitButton
+            -- config apply); category toggles default true when absent.
+            function raidDebuffs:ConfigureContainer(t)
+                if not self.container then return end
+                local opts = {
+                    filterBoss          = t.filterBoss,
+                    filterRole          = t.filterRole,
+                    filterPriority      = t.filterPriority,
+                    filterCrowdControl  = t.filterCrowdControl,
+                    filterRaid          = t.filterRaid,
+                    filterDispellable   = t.filterDispellable,
+                }
+                if t.size then opts.size = t.size[1] end
+                if t.border then opts.border = t.border end
+                if t.num then opts.num = t.num end
+                self.container:SetOptions(opts)
+            end
+
+            -- driven by UnitButton on displayedUnit change
+            function raidDebuffs:SetContainerUnit(unit)
+                if not self.container then return end
+                self.container:SetUnit(unit)
+            end
+        end
+    end
 end
 
 -------------------------------------------------

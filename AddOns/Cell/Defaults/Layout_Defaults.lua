@@ -453,7 +453,7 @@ Cell.defaults.layout = {
             ["frameLevel"] = 20,
             ["size"] = {22, 22},
             ["border"] = 2,
-            ["num"] = 1,
+            ["num"] = 3,
             ["showDuration"] = true,
             ["font"] = {
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},

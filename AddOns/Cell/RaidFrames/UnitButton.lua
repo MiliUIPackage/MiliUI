@@ -408,6 +408,12 @@ local function HandleIndicators(b)
             indicator:SetHideIfEmptyOrFull(t["hideIfEmptyOrFull"])
         end
 
+        -- update raidDebuffs AuraContainer (12.1 Route A: Blizzard-side classification)
+        if t["indicatorName"] == "raidDebuffs" and indicator.ConfigureContainer then
+            indicator:ConfigureContainer(t)
+            indicator.container:SetEnabled(t["enabled"] and true or false)
+        end
+
         -- init
         -- update name visibility
         if t["indicatorName"] == "nameText" or t["indicatorName"] == "healthText" then
@@ -1202,12 +1208,19 @@ local function HandleDebuff(self, auraInfo)
     --   HARMFUL|RAID                      : curated list of important raid debuffs
     --   HARMFUL|RAID_PLAYER_DISPELLABLE   : debuffs the player can dispel
     local isSecret = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
+    -- DandersFrames-style central debuff detection: on Midnight, classify "important"
+    -- debuffs via Blizzard's secret-safe HARMFUL|RAID filter for ALL auras (not only
+    -- secret ones), so the central Raid Debuffs indicator no longer depends on the
+    -- curated spell-ID list. Curated entries still win priority/glow via GetDebuffOrder.
+    -- secretIsDispellable stays secret-only (non-secret debuffs use readable debuffType).
     local secretIsRaidDebuff = false
     local secretIsDispellable = false
     local debuffUnit = self.states.displayedUnit
-    if isSecret and IsAuraFilteredOutByInstanceID and auraInstanceID and debuffUnit then
+    if Cell.isMidnight and IsAuraFilteredOutByInstanceID and auraInstanceID and debuffUnit then
         secretIsRaidDebuff = not IsAuraFilteredOutByInstanceID(debuffUnit, auraInstanceID, "HARMFUL|RAID")
-        secretIsDispellable = not IsAuraFilteredOutByInstanceID(debuffUnit, auraInstanceID, "HARMFUL|RAID_PLAYER_DISPELLABLE")
+        if isSecret then
+            secretIsDispellable = not IsAuraFilteredOutByInstanceID(debuffUnit, auraInstanceID, "HARMFUL|RAID_PLAYER_DISPELLABLE")
+        end
     end
 
     if duration or isSecret then
@@ -1328,8 +1341,13 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
     local startIndex = 1
 
     -- update raid debuffs
+    -- 12.1 Route A: when a Blizzard AuraContainer backs this indicator it drives
+    -- itself from SetUnit (secret-safe boss/role/priority/cc/raid/dispel groups),
+    -- so skip the manual spell-ID-matched display entirely.
     -- if self._debuffs.raidDebuffsFound or cleuUnits[unit] then
-    if self._debuffs_raid[1] then
+    if self.indicators.raidDebuffs.container then
+        -- container-driven; nothing to do here
+    elseif self._debuffs_raid[1] then
         self.indicators.raidDebuffs:Show()
 
         -- cleuAuras
@@ -1815,6 +1833,14 @@ UnitButton_UpdateAuras = function(self, updateInfo)
 
     local unit = self.states.displayedUnit
     if not unit then return end
+
+    -- 12.1 Route A: hand the current unit to the raid-debuff AuraContainer BEFORE the
+    -- secret-payload bail below. The container is Blizzard-driven, so it keeps working
+    -- for teammate debuffs precisely when the manual diff path cannot. SetUnit no-ops
+    -- when the unit is unchanged.
+    if self.indicators.raidDebuffs.SetContainerUnit then
+        self.indicators.raidDebuffs:SetContainerUnit(unit)
+    end
 
     -- 12.1: when auras are secret the payload cannot be diffed (isFullUpdate is a secret boolean,
     -- addedAuras a secret table) AND the slot-based full rescan below errors as well, because
