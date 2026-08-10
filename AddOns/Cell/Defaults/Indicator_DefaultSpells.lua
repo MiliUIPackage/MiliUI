@@ -442,6 +442,7 @@ local defensives = { -- true: track by name, false: track by id
         [108271] = true, -- 星界转移 - Astral Shift
         [409293] = true, -- 掘地三尺 - Burrow (PVP)
         [114893] = true, -- 石壁 - Stone Bulwark
+        [381755] = true, -- Primordial Bond
     },
 
     ["WARLOCK"] = {
