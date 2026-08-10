@@ -198,6 +198,99 @@ end
 -------------------------------------------------
 -- CreateDefensiveCooldowns
 -------------------------------------------------
+-------------------------------------------------
+-- Container-backed indicators are driven from UnitButton_UpdateAuras (SetContainerUnit).
+-- Registering them per button keeps that hot path from walking every indicator.
+-------------------------------------------------
+function I.RegisterContainerIndicator(parent, indicator)
+    parent._containerIndicators = parent._containerIndicators or {}
+    tinsert(parent._containerIndicators, indicator)
+end
+
+-- Custom indicators are created/removed on the fly (layout switch, user edit). Their
+-- container is parented to the BUTTON, so dropping the indicator alone would leave a live
+-- container rendering ghost icons -- tear it down explicitly.
+function I.UnregisterContainerIndicator(parent, indicator)
+    if not indicator then return end
+    if indicator.container then
+        indicator.container:Destroy()
+        indicator.container = nil
+    end
+    local list = parent._containerIndicators
+    if list then
+        for i = #list, 1, -1 do
+            if list[i] == indicator then table.remove(list, i) end
+        end
+    end
+end
+
+-------------------------------------------------
+-- AuraContainer backing for BUFF indicators (12.1 "Route A")
+-- Friendly-unit BUFFS may still be filtered by spell ID (the 12.1 ban covers debuffs on
+-- friendly units only), so Cell's curated + custom lists carry over as
+-- candidateFilters.includeSpellIDs. Blizzard drives the buttons, so these keep updating
+-- in combat -- the manual aura scan cannot, because auras are secret there.
+-- getSpellIDs(t) returns the numeric-keyed set for the indicator's current config.
+-------------------------------------------------
+local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum)
+    if not (Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported()) then return end
+
+    local container = Cell.RaidDebuffContainer.Create(parent, {
+        mode = "buff",
+        num = defaultNum or 2,
+    })
+    if not container then return end
+
+    indicator.container = container
+    indicator:Show() -- static host; the container owns which icons are visible
+
+    function indicator:ConfigureContainer(t)
+        if not self.container then return end
+        -- ⚠ Anchor the container's frame to the BUTTON, never to the indicator frame:
+        -- Cooldowns_SetSize only records width/height, so the indicator frame stays
+        -- rect-less while its (now unused) fallback icons are hidden -- and children of a
+        -- rect-less frame never render, even though IsVisible() reports true.
+        local cfr = self.container:GetFrame()
+        local pos = t.position
+        local rel = (pos and pos[2] == "healthBar" and parent.widgets and parent.widgets.healthBar)
+            or parent
+        cfr:ClearAllPoints()
+        if pos then
+            cfr:SetPoint(pos[1], rel, pos[3], pos[4], pos[5])
+        else
+            cfr:SetPoint("CENTER", parent, "CENTER", 0, 0)
+        end
+        cfr:SetSize((t.size and t.size[1]) or 20, (t.size and t.size[2]) or 20)
+
+        local opts = {
+            spellIDs = getSpellIDs(t),
+            showDuration = t.showDuration,
+            onlyMine = (t.castBy == "me") or nil,
+        }
+        if t.font then
+            opts.stackFont = t.font[1]
+            opts.durationFont = t.font[2]
+        end
+        if t.size then opts.size = t.size[1]; opts.sizeH = t.size[2] end
+        if t.num then opts.num = t.num end
+        self.container:SetOptions(opts)
+        self.container:SetEnabled(t.enabled and true or false)
+    end
+
+    function indicator:SetContainerUnit(unit)
+        if not self.container then return end
+        self.container:SetUnit(unit)
+        self.container:ReassertEnable()
+    end
+
+    parent:HookScript("OnShow", function()
+        if indicator.container then indicator.container:ReassertEnable() end
+    end)
+
+    I.RegisterContainerIndicator(parent, indicator)
+end
+I.AttachBuffContainer = AttachBuffContainer -- also used by custom buff indicators
+
 function I.CreateDefensiveCooldowns(parent)
     local defensiveCooldowns = CreateFrame("Frame", parent:GetName().."DefensiveCooldownParent", parent.widgets.indicatorFrame)
     parent.indicators.defensiveCooldowns = defensiveCooldowns
@@ -221,6 +314,8 @@ function I.CreateDefensiveCooldowns(parent)
             or I.CreateAura_BarIcon(name, defensiveCooldowns)
         tinsert(defensiveCooldowns, frame)
     end
+
+    AttachBuffContainer(parent, defensiveCooldowns, I.GetDefensiveSpellIDs, 2)
 end
 
 -------------------------------------------------
@@ -248,6 +343,8 @@ function I.CreateExternalCooldowns(parent)
             or I.CreateAura_BarIcon(name, externalCooldowns)
         tinsert(externalCooldowns, frame)
     end
+
+    AttachBuffContainer(parent, externalCooldowns, I.GetExternalSpellIDs, 2)
 end
 
 -------------------------------------------------
@@ -275,6 +372,8 @@ function I.CreateAllCooldowns(parent)
             or I.CreateAura_BarIcon(name, allCooldowns)
         tinsert(allCooldowns, frame)
     end
+
+    AttachBuffContainer(parent, allCooldowns, I.GetAllCooldownSpellIDs, 2)
 end
 
 -------------------------------------------------
@@ -830,6 +929,8 @@ function I.CreateDispels(parent)
                 if dispels.container then dispels.container:ReassertEnable() end
                 if dispels.highlightContainer then dispels.highlightContainer:ReassertEnable() end
             end)
+
+            I.RegisterContainerIndicator(parent, dispels)
         end
     end
 end
@@ -1038,7 +1139,13 @@ function I.CreateRaidDebuffs(parent)
     if Cell.RaidDebuffContainer and Cell.RaidDebuffContainer.IsSupported() then
         local container = Cell.RaidDebuffContainer.Create(raidDebuffs, {})
         if container then
-            container:GetFrame():SetAllPoints(raidDebuffs)
+            -- ⚠ Do NOT SetAllPoints(raidDebuffs): Cooldowns_SetSize only stores
+            -- width/height -- the raidDebuffs frame itself is sized in UpdateSize and
+            -- ONLY when its (permanently hidden) fallback icons show, so in container
+            -- mode it is rect-less forever and children anchored to it never resolve
+            -- (IsVisible stays true, nothing renders). Anchor the container's frame
+            -- directly to the unit button; ConfigureContainer refines from t.position.
+            container:GetFrame():SetPoint("CENTER", parent, "CENTER", 0, 3)
             raidDebuffs.container = container
             -- the anchor frame is now a static host; the container child manages
             -- which icons are visible. Keep the host shown (the manual Show/Hide
@@ -1049,6 +1156,19 @@ function I.CreateRaidDebuffs(parent)
             -- config apply); category toggles default true when absent.
             function raidDebuffs:ConfigureContainer(t)
                 if not self.container then return end
+                -- re-anchor to the unit button per the configured position (never to
+                -- the rect-less raidDebuffs frame -- see the creation-time note)
+                local cfr = self.container:GetFrame()
+                cfr:ClearAllPoints()
+                local pos = t.position
+                local rel = (pos and pos[2] == "healthBar") and parent.widgets.healthBar or parent
+                if pos then
+                    cfr:SetPoint(pos[1], rel, pos[3], pos[4], pos[5])
+                else
+                    cfr:SetPoint("CENTER", parent, "CENTER", 0, 3)
+                end
+                cfr:SetSize((t.size and t.size[1]) or 22, (t.size and t.size[2]) or 22)
+
                 local opts = {
                     filterBoss          = t.filterBoss,
                     filterRole          = t.filterRole,
@@ -1056,7 +1176,14 @@ function I.CreateRaidDebuffs(parent)
                     filterCrowdControl  = t.filterCrowdControl,
                     filterRaid          = t.filterRaid,
                     filterDispellable   = t.filterDispellable,
+                    -- true = always; number N = only when remaining < N s; false = never
+                    showDuration        = t.showDuration,
                 }
+                -- Cell font tables: [1] = stack, [2] = duration
+                if t.font then
+                    opts.stackFont = t.font[1]
+                    opts.durationFont = t.font[2]
+                end
                 if t.size then opts.size = t.size[1] end
                 if t.border then opts.border = t.border end
                 if t.num then opts.num = t.num end
@@ -1077,6 +1204,8 @@ function I.CreateRaidDebuffs(parent)
             parent:HookScript("OnShow", function()
                 if raidDebuffs.container then raidDebuffs.container:ReassertEnable() end
             end)
+
+            I.RegisterContainerIndicator(parent, raidDebuffs)
         end
     end
 end
@@ -1504,6 +1633,16 @@ local function StatusText_SetPosition(self, point, yOffset, justify)
     self:SetHeight(self.text:GetHeight()+P.Scale(1)*2)
 end
 
+-- status timer format: mm:ss (hh:mm:ss past an hour), matching DandersFrames' AFK timer
+-- instead of Cell's default coarse "4m" / "12s" buckets
+local function FormatStatusTime(s)
+    s = math.floor(s)
+    if s >= 3600 then
+        return string.format("%02d:%02d:%02d", math.floor(s / 3600), math.floor(s % 3600 / 60), s % 60)
+    end
+    return string.format("%02d:%02d", math.floor(s / 60), s % 60)
+end
+
 local startTimeCache = {}
 local function StatusText_ShowTimer(self)
     if not self.showTimer then
@@ -1525,7 +1664,7 @@ local function StatusText_ShowTimer(self)
         end
         local tickGuid = self.parent.states.guid
         if tickGuid and not (issecretvalue and issecretvalue(tickGuid)) and startTimeCache[tickGuid] then
-            self.timer:SetFormattedText(F.FormatTime(GetTime() - startTimeCache[tickGuid]))
+            self.timer:SetText(FormatStatusTime(GetTime() - startTimeCache[tickGuid]))
         else
             self.timer:SetText("")
         end

@@ -503,6 +503,39 @@ function I.IsDefensiveCooldown(name, id)
 end
 
 -------------------------------------------------
+-- spell-ID sets for AuraContainer candidateFilters (12.1)
+-- The match tables above are keyed by BOTH spell name and id (name keys exist for
+-- trackByName spells), but candidateFilters.includeSpellIDs accepts NUMERIC keys only --
+-- so strip the string keys. Filtering friendly-unit BUFFS by spell ID is allowed in 12.1
+-- (the restriction only bans it for debuffs on friendly units), which is what lets the
+-- defensive/external indicators keep Cell's curated + custom lists on the container path.
+-------------------------------------------------
+local function NumericKeysOf(...)
+    local out = {}
+    for i = 1, select("#", ...) do
+        local src = select(i, ...)
+        if type(src) == "table" then
+            for k in pairs(src) do
+                if type(k) == "number" then out[k] = true end
+            end
+        end
+    end
+    return out
+end
+
+function I.GetExternalSpellIDs()
+    return NumericKeysOf(builtInExternals, customExternals)
+end
+
+function I.GetDefensiveSpellIDs()
+    return NumericKeysOf(builtInDefensives, customDefensives)
+end
+
+function I.GetAllCooldownSpellIDs()
+    return NumericKeysOf(builtInExternals, customExternals, builtInDefensives, customDefensives)
+end
+
+-------------------------------------------------
 -- tankActiveMitigation
 -------------------------------------------------
 local tankActiveMitigations = {
@@ -869,17 +902,19 @@ function F.FirstRun()
             ["enabled"] = true,
             ["position"] = {"TOPRIGHT", "button", "TOPRIGHT", 0, 3},
             ["frameLevel"] = 5,
-            ["size"] = {13, 13},
+            ["size"] = {16, 16},
             ["num"] = 5,
             ["numPerLine"] = 5,
             ["orientation"] = "right-to-left",
             ["spacing"] = {0, 0},
             ["font"] = {
-                {"Cell ".._G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
-                {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
+                -- stack: size 9, anchored TOP (+0, +5)
+                {"Cell ".._G.DEFAULT, 9, "Outline", false, "TOP", 0, 5, {1, 1, 1}},
+                -- duration: size 10, anchored CENTER (+0, 0)
+                {"Cell ".._G.DEFAULT, 10, "Outline", false, "CENTER", 0, 0, {1, 1, 1}},
             },
             ["showStack"] = true,
-            ["showDuration"] = false,
+            ["showDuration"] = true, -- always (a number would mean "only under N seconds")
             ["showAnimation"] = true,
             ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}},
             ["auraType"] = "buff",

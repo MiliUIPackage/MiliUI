@@ -584,9 +584,13 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
         -- highlightType, dispellableByMe, size, num, category toggles...) must re-run
         -- ConfigureContainer, else the container stays stale until a /reload. The layout
         -- entry `t` already holds the new value by the time this fires.
-        if indicatorName == "raidDebuffs" or indicatorName == "dispels" then
+        do
+            -- ⚠ `layout` here is the layout NAME (a string), not the table -- index the
+            -- current layout TABLE instead. We already returned above unless this is the
+            -- active layout, so currentLayoutTable is the right one.
+            local lt = Cell.vars.currentLayoutTable
             local t
-            for _, it in next, (layout and layout["indicators"]) do
+            for _, it in next, (lt and lt["indicators"] or {}) do
                 if it["indicatorName"] == indicatorName then t = it; break end
             end
             if t then
@@ -1633,22 +1637,26 @@ local function HandleBuff(self, auraInfo)
         UpdateAuraRefreshState(auraInfo)
         self._buffs_cache[auraInstanceID] = auraInfo
 
-        -- defensiveCooldowns
+        -- defensiveCooldowns / externalCooldowns / allCooldowns
+        -- Skipped when an AuraContainer backs the indicator: it drives itself from
+        -- SetUnit (HELPFUL + includeSpellIDs) and keeps working while auras are secret,
+        -- which this manual path cannot.
         local isDef = I.IsDefensiveCooldown(name, spellId) or secretIsBigDef
-        if enabledIndicators["defensiveCooldowns"] and isDef and self._buffs.defensiveFound < indicatorNums["defensiveCooldowns"] then
+        if enabledIndicators["defensiveCooldowns"] and isDef and not self.indicators.defensiveCooldowns.container
+            and self._buffs.defensiveFound < indicatorNums["defensiveCooldowns"] then
             self._buffs.defensiveFound = self._buffs.defensiveFound + 1
             ShowAuraOnIndicator(self.indicators.defensiveCooldowns[self._buffs.defensiveFound])
         end
 
-        -- externalCooldowns
         local isExt = I.IsExternalCooldown(name, spellId, source, unit) or secretIsExtDef
-        if enabledIndicators["externalCooldowns"] and isExt and self._buffs.externalFound < indicatorNums["externalCooldowns"] then
+        if enabledIndicators["externalCooldowns"] and isExt and not self.indicators.externalCooldowns.container
+            and self._buffs.externalFound < indicatorNums["externalCooldowns"] then
             self._buffs.externalFound = self._buffs.externalFound + 1
             ShowAuraOnIndicator(self.indicators.externalCooldowns[self._buffs.externalFound])
         end
 
-        -- allCooldowns
-        if enabledIndicators["allCooldowns"] and (isExt or isDef) and self._buffs.allFound < indicatorNums["allCooldowns"] then
+        if enabledIndicators["allCooldowns"] and (isExt or isDef) and not self.indicators.allCooldowns.container
+            and self._buffs.allFound < indicatorNums["allCooldowns"] then
             self._buffs.allFound = self._buffs.allFound + 1
             ShowAuraOnIndicator(self.indicators.allCooldowns[self._buffs.allFound])
         end
@@ -1869,11 +1877,10 @@ UnitButton_UpdateAuras = function(self, updateInfo)
     -- secret-payload bail below. The container is Blizzard-driven, so it keeps working
     -- for teammate debuffs precisely when the manual diff path cannot. SetUnit no-ops
     -- when the unit is unchanged.
-    if self.indicators.raidDebuffs.SetContainerUnit then
-        self.indicators.raidDebuffs:SetContainerUnit(unit)
-    end
-    if self.indicators.dispels.SetContainerUnit then
-        self.indicators.dispels:SetContainerUnit(unit)
+    if self._containerIndicators then
+        for _, ind in next, self._containerIndicators do
+            if ind.SetContainerUnit then ind:SetContainerUnit(unit) end
+        end
     end
 
     -- 12.1: when auras are secret the payload cannot be diffed (isFullUpdate is a secret boolean,

@@ -75,6 +75,16 @@ end
 
 function I.CreateIndicator(parent, indicatorTable)
     local indicatorName = indicatorTable["indicatorName"]
+
+    -- This function overwrites parent.indicators[indicatorName] below. If one already
+    -- exists, its AuraContainer is parented to the BUTTON (not to the indicator), so
+    -- dropping the reference alone leaves it live and still bound to the unit -- it keeps
+    -- rendering a stuck icon at the old position forever. Tear it down before orphaning it.
+    local existing = parent.indicators[indicatorName]
+    if existing and I.UnregisterContainerIndicator then
+        I.UnregisterContainerIndicator(parent, existing)
+    end
+
     local indicator
     if indicatorTable["type"] == "icon" then
         indicator = I.CreateAura_BarIcon(nil, parent.widgets.indicatorFrame)
@@ -105,11 +115,32 @@ function I.CreateIndicator(parent, indicatorTable)
     end
     parent.indicators[indicatorName] = indicator
 
+    -- 12.1 "Route A": back icon-type BUFF indicators with a Blizzard AuraContainer so they
+    -- keep updating in combat -- the manual aura scan cannot, because auras are secret
+    -- there. Friendly-unit BUFFS may still be filtered by spell ID, which is what makes
+    -- this possible (the ban covers debuffs on friendly units).
+    -- Effect types (color/glow/border/overlay/text/bar/...) stay on the manual path: they
+    -- render aura PRESENCE rather than icons, and presence is secret.
+    -- NOTE: trackByName matches by name in the manual path; the container matches the
+    -- configured IDs exactly (candidateFilters has no name form).
+    if indicator and indicatorTable["auraType"] == "buff" and I.AttachBuffContainer
+        and (indicatorTable["type"] == "icon" or indicatorTable["type"] == "icons") then
+        local isMulti = indicatorTable["type"] == "icons"
+        I.AttachBuffContainer(parent, indicator, function(t)
+            local ids = {}
+            for _, id in pairs(t["auras"] or {}) do
+                if type(id) == "number" then ids[id] = true end
+            end
+            return ids
+        end, isMulti and (indicatorTable["num"] or 3) or 1)
+    end
+
     return indicator
 end
 
 function I.RemoveIndicator(parent, indicatorName, auraType)
     local indicator = parent.indicators[indicatorName]
+    if I.UnregisterContainerIndicator then I.UnregisterContainerIndicator(parent, indicator) end
     indicator:ClearAllPoints()
     indicator:Hide()
     indicator:SetParent(nil)
@@ -128,6 +159,7 @@ function I.RemoveAllCustomIndicators(parent)
 
     for indicatorName, indicator in pairs(parent.indicators) do
         if string.find(indicatorName, "^indicator") then
+            if I.UnregisterContainerIndicator then I.UnregisterContainerIndicator(parent, indicator) end
             indicator:ClearAllPoints()
             indicator:Hide()
             indicator:SetParent(nil)
@@ -282,7 +314,10 @@ function I.UpdateCustomIndicators(unitButton, auraInfo)
     end
 
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do
-        if indicatorName and enabledIndicators[indicatorName] and unitButton.indicators[indicatorName] then
+        -- Skip indicators an AuraContainer backs: they drive themselves from SetUnit and
+        -- keep working while auras are secret, which this manual path cannot.
+        if indicatorName and enabledIndicators[indicatorName] and unitButton.indicators[indicatorName]
+            and not unitButton.indicators[indicatorName].container then
             local spell  --* trackByName
             if indicatorTable["trackByName"] then
                 spell = auraInfo.name
@@ -323,7 +358,7 @@ function I.ShowCustomIndicators(unitButton, auraType)
     local unit = unitButton.states.displayedUnit
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do
         local indicator = unitButton.indicators[indicatorName]
-        if indicator and enabledIndicators[indicatorName] then
+        if indicator and enabledIndicators[indicatorName] and not indicator.container then
             if indicatorTable["num"] then
                 local t = indicatorTable["found"][unit]
                 if t[1] then
