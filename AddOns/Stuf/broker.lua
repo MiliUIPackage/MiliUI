@@ -47,20 +47,29 @@ f:SetScript("OnEvent", function(self, event)
     StufBrokerDB.minimap = StufBrokerDB.minimap or {}
 
     ----------------------------------------------------------------
-    -- Helper: toggle config mode on every Stuf frame
+    -- Helper: toggle config + drag mode on every Stuf frame
+    --
+    -- Config/drag state lives in Stuf_Options (locals 'config' and 'drag'), not on
+    -- Stuf itself -- there is no Stuf.db and no frame:configmode(). Drive it through
+    -- the option setters, the same path core.lua's CONFIGMODE_CALLBACKS uses.
     local function ToggleConfigMode()
         if not Stuf then return end
-        -- Stuf exposes a config mode flag; flip it and re-init all units
-        local db = Stuf.db
-        if not db then return end
-        db.configmode = not db.configmode
-        for unit, frame in pairs(Stuf.units) do
-            if frame.configmode then
-                frame:configmode()
-            end
+        if InCombatLockdown() then
+            return print(L["|cff00ff00Stuf|r: "]..L["Unable to process while in combat."])
         end
-        -- Print confirmation in chat
-        local state = db.configmode and ("|cff00ff00"..L["On"].."|r") or ("|cffff4444"..L["Off"].."|r")
+        if not Stuf.GetOptionsTable then
+            C_AddOns.LoadAddOn("Stuf_Options")  -- LoadOnDemand
+        end
+        if not Stuf.GetOptionsTable then
+            return print(L["|cff00ff00Stuf|r: "]..L["Stuf_Options not found."])
+        end
+
+        local args = Stuf:GetOptionsTable().args
+        local on = not args.configmode.get()
+        args.configmode.set(nil, on or nil)  -- nil, not false: matches the option's own convention
+        args.movable.set(nil, on or nil)
+
+        local state = on and ("|cff00ff00"..L["On"].."|r") or ("|cffff4444"..L["Off"].."|r")
         print(L["|cff00ff00Stuf|r: "]..format(L["Config mode: %s"], state))
     end
 
