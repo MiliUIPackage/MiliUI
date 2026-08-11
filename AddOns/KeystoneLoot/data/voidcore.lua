@@ -21,4 +21,5 @@ KeystoneLoot.VoidcoreDatabase = {
     [268464] = { bossId = 2795 }, -- Chimaerus, der ungetraeumte Gott
     [267488] = { bossId = 2738 }, -- Krone des Kosmos
     [262658] = { bossId = 2740 }, -- Anbruch der Mitternacht
+    [275228] = { bossId = 2711 }, -- Rottmoor
 };

@@ -54,7 +54,7 @@ L["Reminds you on dungeon entry if your loot spec doesn't match your favorites, 
 L["Shows a notification when another player loots an item you have marked as a favorite."] = "当其他玩家拾取你标记为收藏的物品时显示通知。";
 L["Whisper message..."] = "悄悄话消息...";
 L["Whisper message\n{item} will be replaced with the item link."] = "悄悄话消息\n{item} 将被替换为物品链接。";
---L["Multiple slot filtering"] = "";
+L["Multiple slot filtering"] = "多栏位筛选";
 L["Auto Keystone response"] = "钥石自动回复";
 L["Enable party chat"] = "在小队聊天中启用";
 L["Enable guild chat"] = "在公会聊天中启用";

@@ -4,7 +4,7 @@
 ## Notes-ruRU: Компактный аддон, который показывает уровни предметов из подземелий М+
 ## Author: Selina Ruesch
 ## X-Email: selina.ruesch@gmail.com
-## Version: 2.10.2
+## Version: 2.11.0
 ## IconTexture: Interface\Icons\INV_Relics_Hourglass_02
 ## Category-enUS: Dungeons & Raids
 ## Category-zhCN: 地下城和团队副本
@@ -16,6 +16,20 @@
 ## Category-zhTW: 資訊
 ## Title-zhTW: |cFF2DA267[裝備]|r 戰利品查詢
 ## Notes-zhTW: KeystoneLoot |n|n 顯示所有地城的掉落，並可以標記最愛。|n|n|cffffd200使用方法：|r點小地圖旁按鈕。
+# Libs
+libs/menu/MenuConstants.lua
+libs/menu/Mainline/MenuConstants.lua
+libs/menu/MenuVariants.lua
+libs/menu/Mainline/MenuVariants.lua
+libs/menu/Compositor.lua
+libs/menu/Menu.lua
+libs/menu/Menu.xml
+libs/menu/DropdownButton.lua
+libs/menu/MenuTemplates.lua
+libs/menu/MenuTemplates.xml
+libs/menu/Mainline/MenuTemplates.lua
+libs/menu/Mainline/MenuTemplates.xml
+libs/menu/MenuUtil.lua
 
 # Initialization
 config.lua
@@ -44,6 +58,7 @@ modules/favorites.lua
 modules/upgrade.lua
 modules/keystone.lua
 modules/voidcore.lua
+modules/api.lua
 
 # UI
 ui/keystone_tooltip.lua
@@ -53,9 +68,6 @@ ui/templates/mixins/icon_button.lua
 ui/templates/mixins/entry_frame.lua
 ui/templates/mixins/teleport_button.lua
 ui/templates/templates.xml
-
-ui/context_menu/mixins/context_menu.lua
-ui/context_menu/context_menu.xml
 
 ui/dungeons_frame/mixins/dungeons_frame.lua
 ui/dungeons_frame/dungeons_frame.xml
