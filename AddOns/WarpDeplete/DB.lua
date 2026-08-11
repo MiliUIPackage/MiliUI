@@ -79,6 +79,7 @@ local defaults = {
     completedObjectivesColor = "FF00FF24",
 
     -- Bar textures
+    backdropTexture = "TukTex",
     bar1Texture = "TukTex",
     bar2Texture = "TukTex",
     bar3Texture = "TukTex",
@@ -86,6 +87,7 @@ local defaults = {
     forcesOverlayTexture = "TukTex",
 
     -- Bar colors
+    backdropTextureColor = "80000000",
     bar1TextureColor = "FF979797",
     bar2TextureColor = "FF979797",
     bar3TextureColor = "FF979797",
@@ -132,9 +134,11 @@ local defaults = {
 
     -- Splits
     splitsEnabled = true,
-    showPbsDuringCountdown = true,
+    showSplitRecords = "countdown",
+    fallbackSplitBehavior = "none",
     splitFasterTimeColor = "FF64FF64",
-    splitSlowerTimeColor = "FFFF5656"
+    splitSlowerTimeColor = "FFFF5656",
+    splitRecordsColor = "FFAAAAAA"
   },
 }
 

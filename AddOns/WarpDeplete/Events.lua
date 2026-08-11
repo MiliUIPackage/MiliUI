@@ -36,9 +36,7 @@ function WarpDeplete:RegisterGlobalEvents()
 	self:RegisterGlobalEvent("CHALLENGE_MODE_KEYSTONE_RECEPTABLE_OPEN")
 
 	-- Register tooltip count display
-	if not self.Midnight then
-		TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, WarpDeplete.DisplayCountInTooltip)
-	end
+	TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, WarpDeplete.DisplayCountInTooltip)
 
 	-- Tooltip events
 	self.frames.deathsTooltip:SetScript("OnEnter", WarpDeplete.TooltipOnEnter)
@@ -166,8 +164,7 @@ function WarpDeplete:COMBAT_LOG_EVENT_UNFILTERED()
 		return
 	end
 
-	-- NOTE: We have to check health since we'd count feign death otherwise
-	if UnitInParty(name) and UnitHealth(name) <= 1 then
+	if UnitInParty(name) and UnitIsDead(name) then
 		local unitName = UnitName(name)
 		local class = select(2, UnitClass(name))
 		self:AddDeathDetails(self.state.timer, unitName, class)
@@ -281,8 +278,8 @@ function WarpDeplete.TooltipOnLeave()
 	GameTooltip_Hide()
 end
 
-function WarpDeplete.DisplayCountInTooltip(tt, data)
-	if not tt or tt ~= GameTooltip or not data or not data.guid then
+function WarpDeplete.DisplayCountInTooltip(tt)
+	if not tt or tt ~= GameTooltip then
 		return
 	end
 
@@ -294,19 +291,10 @@ function WarpDeplete.DisplayCountInTooltip(tt, data)
 		return
 	end
 
-	local npcID = select(6, strsplit("-", data.guid))
-	local count, max = MDT:GetEnemyForces(tonumber(npcID))
+	local count, _, percent = C_ScenarioInfo.GetUnitCriteriaProgressValues("mouseover")
 
-	if count and max and count ~= 0 and max ~= 0 then
-		local percentText = ("%.2f"):format(count / max * 100)
-		local countText = ("%d"):format(count)
-		local result = WarpDeplete.db.profile.tooltipCountFormat ~= ":custom:"
-				and WarpDeplete.db.profile.tooltipCountFormat
-			or WarpDeplete.db.profile.customTooltipCountFormat
-
-		result = gsub(result, ":percent:", percentText .. "%%")
-		result = gsub(result, ":count:", countText)
-		GameTooltip:AddLine("Count: |cFFFFFFFF" .. result .. "|r")
+	if count and percent then
+		GameTooltip:AddLine("Count: |cFFFFFFFF" .. "+" .. count .. " " .. "|" .. " " .. percent .. "%" .. "|r")
 		GameTooltip:Show()
 	end
 end

@@ -1,6 +1,9 @@
 local Util = WarpDeplete.Util
 local L = WarpDeplete.L
 
+local selectedClearMapId = "ALL"
+local selectedClearLevel = "ALL"
+
 local function font(name, profileVar, updateFn, extraOptions)
 	local result = {
 		type = "select",
@@ -79,9 +82,10 @@ local function fontFlags(name, profileVar, updateFn, extraOptions)
 		desc = L["Default:"] .. " " .. L["OUTLINE"],
 		values = {
 			["OUTLINE"] = L["OUTLINE"],
+			["OUTLINE, SLUG"] = L["OUTLINESLUG"],
 			["THICKOUTLINE"] = L["THICKOUTLINE"],
 			["MONOCHROME"] = L["MONOCHROME"],
-			["NONE"] = L["NONE"],
+			[""] = L["NONE"],
 		},
 		get = function(_)
 			return WarpDeplete.db.profile[profileVar]
@@ -374,7 +378,7 @@ function WarpDeplete:InitOptions()
 						return not WarpDeplete.db.profile.showTooltipCount
 					end, 3),
 
-					{
+					--[[{
 						type = "select",
 						name = L["Tooltip forces text format"],
 						desc = L["Choose how count will be displayed in the tooltip"],
@@ -424,7 +428,7 @@ function WarpDeplete:InitOptions()
 							WarpDeplete.db.profile.customTooltipCountFormat = value
 							WarpDeplete:RenderLayout()
 						end,
-					},
+					},]] -- Disabled for now until we figured out a way to make custom formats possible with secret values
 				}),
 
 				group(L["Forces Glow"], true, {
@@ -565,21 +569,216 @@ function WarpDeplete:InitOptions()
 						end,
 						width = 3 / 2,
 					},
+					group(L["Show Split Records"], true, {
+						{
+							type = "toggle",
+							name = L["Always"],
+							get = function(_) return WarpDeplete.db.profile.showSplitRecords == "always" end,
+							set = function(_, _)
+								WarpDeplete.db.profile.showSplitRecords = "always"
+								WarpDeplete:RenderLayout()
+							end,
+							width = 0.6,
+						},
+						{
+							type = "toggle",
+							name = L["During Countdown"],
+							get = function(_) return WarpDeplete.db.profile.showSplitRecords == "countdown" end,
+							set = function(_, _)
+								WarpDeplete.db.profile.showSplitRecords = "countdown"
+								WarpDeplete:RenderLayout()
+							end,
+							width = 1.1,
+						},
+						{
+							type = "toggle",
+							name = L["Never"],
+							get = function(_) return WarpDeplete.db.profile.showSplitRecords == "never" end,
+							set = function(_, _)
+								WarpDeplete.db.profile.showSplitRecords = "never"
+								WarpDeplete:RenderLayout()
+							end,
+							width = 0.6,
+						},
+					}, {
+						hidden = function()
+							return not WarpDeplete.db.profile.splitsEnabled
+						end,
+					}),
+					lineBreak(),
+					color(L["Split Records Color"], "splitRecordsColor", "RenderLayout", {
+						desc = L["The color to use for personal best splits shown during the run"],
+					}),
+					lineBreak(),
 					{
-						type = "toggle",
-						name = L["Show split records during countdown"],
-						desc = L["Show your personal best times for splits during the countdown at the start of runs"],
+						type = "select",
+						name = L["Fallback Split Level"],
+						desc = L["If there is no record for the current key level, fallback to the highest or lowest recorded level for this dungeon."],
+						sorting = { "none", "highest", "closest_higher", "closest_lower", "lowest" },
+						values = {
+							["none"] = L["None"],
+							["highest"] = L["Highest Level"],
+							["closest_higher"] = L["Closest Higher Level"],
+							["closest_lower"] = L["Closest Lower Level"],
+							["lowest"] = L["Lowest Level"],
+						},
 						hidden = function()
 							return not WarpDeplete.db.profile.splitsEnabled
 						end,
 						get = function(_)
-							return WarpDeplete.db.profile.showPbsDuringCountdown
+							return WarpDeplete.db.profile.fallbackSplitBehavior or "none"
 						end,
 						set = function(_, value)
-							WarpDeplete.db.profile.showPbsDuringCountdown = value
+							WarpDeplete.db.profile.fallbackSplitBehavior = value
+							WarpDeplete:RenderLayout()
 						end,
 						width = 3 / 2,
 					},
+					lineBreak(),
+					group(L["Clear Splits"], true, {
+						{
+							type = "select",
+							name = L["Dungeon to clear"],
+							-- Dynamically generate the list of dungeons based on saved splits
+							values = function()
+								local values = { ["ALL"] = L["All Dungeons"] }
+								for mapId, _ in pairs(WarpDeplete.db.global.splits) do
+									local name = C_ChallengeMode.GetMapUIInfo(mapId)
+									if name then
+										values[tostring(mapId)] = name
+									end
+								end
+								return values
+							end,
+							get = function() return selectedClearMapId end,
+							-- When selecting a dungeon, reset the level dropdown to "ALL"
+							set = function(_, value) 
+								selectedClearMapId = value
+								selectedClearLevel = "ALL"
+							end,
+							width = 1.1,
+						},
+						{
+							type = "select",
+							name = L["Level to clear"],
+							-- Populate the level dropdown with the levels actually recorded for the selected dungeon
+							values = function()
+								local values = { ["ALL"] = L["All Levels"] }
+								local levelsToInclude = {}
+								if selectedClearMapId ~= "ALL" then
+									local mapSplits = WarpDeplete.db.global.splits[tonumber(selectedClearMapId)]
+									if mapSplits then
+										for level, _ in pairs(mapSplits) do
+											levelsToInclude[level] = true
+										end
+									end
+								else
+									-- Aggregate levels from all dungeons
+									for _, mapSplits in pairs(WarpDeplete.db.global.splits) do
+										for level, _ in pairs(mapSplits) do
+											levelsToInclude[level] = true
+										end
+									end
+								end
+								
+								for level, _ in pairs(levelsToInclude) do
+									values[tostring(level)] = "+" .. tostring(level)
+								end
+								
+								return values
+							end,
+							get = function() return selectedClearLevel end,
+							set = function(_, value) selectedClearLevel = value end,
+							width = 0.8,
+						},
+						{
+							type = "execute",
+							name = L["Clear Splits"],
+							desc = L["Deletes recorded splits for the selected dungeon."],
+							-- Ask for user confirmation before executing
+							confirm = function()
+								local count = 0
+								if selectedClearMapId == "ALL" then
+									if selectedClearLevel == "ALL" then
+										-- Counting all levels across all dungeons
+										for _, mapSplits in pairs(WarpDeplete.db.global.splits) do
+											for _ in pairs(mapSplits) do
+												count = count + 1
+											end
+										end
+									else
+										-- Counting a specific level across all dungeons
+										local level = tonumber(selectedClearLevel)
+										for _, mapSplits in pairs(WarpDeplete.db.global.splits) do
+											if mapSplits[level] then
+												count = count + 1
+											end
+										end
+									end
+								else
+									local mapId = tonumber(selectedClearMapId)
+									if selectedClearLevel == "ALL" then
+										-- Counting all levels for a specific dungeon
+										if WarpDeplete.db.global.splits[mapId] then
+											for _ in pairs(WarpDeplete.db.global.splits[mapId]) do
+												count = count + 1
+											end
+										end
+									else
+										-- Deleting exactly one level for one dungeon
+										count = 1
+									end
+								end
+
+								if count > 1 then
+									return string.format(L["%d recorded runs will be deleted. Are you sure?"], count)
+								else
+									return true
+								end
+							end,
+							confirmText = L["Are you sure you want to delete these splits?"],
+							func = function()
+								if selectedClearMapId == "ALL" then
+									if selectedClearLevel == "ALL" then
+										-- Wipe the entire splits database
+										WarpDeplete.db.global.splits = {}
+									else
+										local level = tonumber(selectedClearLevel)
+										-- Wipe this specific level from ALL dungeons
+										for mapId, mapSplits in pairs(WarpDeplete.db.global.splits) do
+											if mapSplits[level] then
+												mapSplits[level] = nil
+												if next(mapSplits) == nil then
+													WarpDeplete.db.global.splits[mapId] = nil
+												end
+											end
+										end
+									end
+								else
+									local mapId = tonumber(selectedClearMapId)
+									if selectedClearLevel == "ALL" then
+										-- Wipe all splits for this specific dungeon
+										WarpDeplete.db.global.splits[mapId] = nil
+									else
+										local level = tonumber(selectedClearLevel)
+										if WarpDeplete.db.global.splits[mapId] then
+											-- Delete the split for this specific level
+											WarpDeplete.db.global.splits[mapId][level] = nil
+											
+											-- If the dungeon has no more levels recorded, delete the dungeon table entirely to keep the DB clean
+											if next(WarpDeplete.db.global.splits[mapId]) == nil then
+												WarpDeplete.db.global.splits[mapId] = nil
+											end
+										end
+									end
+								end
+								-- Reset the dropdowns
+								selectedClearMapId = "ALL"
+								selectedClearLevel = "ALL"
+								WarpDeplete:Print(L["Splits cleared!"])
+							end,
+						},
+					}),
 				}),
 			}, { order = 3 }),
 
@@ -686,6 +885,8 @@ function WarpDeplete:InitOptions()
 				group(L["Bars"], true, {
 					range(L["Bar width"], "barWidth", "RenderLayout", { width = "full", min = 10, max = 600 }),
 					range(L["Bar height"], "barHeight", "RenderLayout", { width = "full", min = 4, max = 50 }),
+					color(L["Bar background color"], "backdropTextureColor", "RenderLayout", { hasAlpha = true }),
+					barTexture(L["Bar background texture"], "backdropTexture", "RenderLayout", { width = "full" }),
 				}),
 
 				group(L["+1 Timer"], true, {
