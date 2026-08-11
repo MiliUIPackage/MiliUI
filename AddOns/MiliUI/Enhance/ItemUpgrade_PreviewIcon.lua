@@ -7,38 +7,61 @@
 -- 左側 icon：當前物品（GameTooltip:SetUpgradeItem）。
 -- 右側 icon：依下拉選單選擇的目標升級等級顯示「升級後」的物品：
 --   1) 優先把物品連結中的升級軌道 bonusID 換成目標階級的
---      （tooltip 會正確顯示「提升等級：英雄 6/6」與升級後 ilvl/屬性）
---   2) 連結中認不得軌道時，改附加「物品等級 +N」差值 bonusID
+--      （tooltip 會正確顯示「提升等級：神話 6/6」與升級後 ilvl/屬性）
+--   2) 認不出軌道時，改附加「物品等級 +N」差值 bonusID
 --      （ilvl 與屬性正確，提升等級行維持原文）
+--
+-- 軌道 bonusID 刻意「不」寫死。每季的軌道會換一整組新號碼，寫死的表每季都得
+-- 更新，而且過期時是靜默降級——tooltip 看起來只是「怪怪的」，不會報錯。
+-- 改用的性質是：同一條軌道內 6 個階級的 bonusID 連號，所以
+--   目標階級的 ID = 當前階級的 ID + (目標階級 - 當前階級)
+-- 這個關係跨季不變。難點只剩「連結裡哪一個 bonusID 才是軌道的」，用
+-- GetDetailedItemLevelInfo 對每個候選試算 ilvl 來驗證即可。
 --------------------------------------------------------------------------------
 
 EventUtil.ContinueOnAddOnLoaded("Blizzard_ItemUpgradeUI", function()
     if not ItemUpgradeFrame then return end
 
-    ----------------------------------------------------------------------------
-    -- 升級軌道 bonusID（每季需更新，資料來源：KeystoneLoot data/upgrade_tracks.lua）
-    -- 陣列索引 = 軌道內的升級階級（upgradeLevel 1..N）
-    ----------------------------------------------------------------------------
-    local TRACK_BONUS_IDS = {
-        veteran  = { 12777, 12778, 12779, 12780, 12781, 12782 },
-        champion = { 12785, 12786, 12787, 12788, 12789, 12790 },
-        hero     = { 12793, 12794, 12795, 12796, 12797, 12798 },
-        myth     = { 12801, 12802, 12803, 12804, 12805, 12806 },
-    }
-
-    -- 反查表：bonusID -> { track, rank }
-    local TRACK_BONUS_LOOKUP = {}
-    for track, ids in pairs(TRACK_BONUS_IDS) do
-        for rank, id in ipairs(ids) do
-            TRACK_BONUS_LOOKUP[id] = { track = track, rank = rank }
-        end
-    end
+    local GetDetailedIlvl = (C_Item and C_Item.GetDetailedItemLevelInfo)
+        or GetDetailedItemLevelInfo
 
     -- 「物品等級 +N」差值 bonusID：N 1..100 對應 1473..1572（通用，跨季不變）
     local function GetIlvlDeltaBonusID(delta)
         if delta >= 1 and delta <= 100 then
             return 1472 + delta
         end
+    end
+
+    local function GetItemString(link)
+        if not link then return nil end
+        return link:match("|H(item:[^|]*)|h") or (link:find("^item:") and link)
+    end
+
+    -- 目標階級相對現在的 ilvl 增量。12.0 是放在 targetUpgradeLevelInfo，
+    -- 但這個欄位不保證存在（12.1 實測拿不到），所以多找幾個地方，
+    -- 全都沒有時回傳 nil —— 方法一有不需要它的備援路徑。
+    local function GetTargetIlvlIncrement()
+        local info = ItemUpgradeFrame.targetUpgradeLevelInfo
+        if info and info.itemLevelIncrement then return info.itemLevelIncrement end
+
+        local up = ItemUpgradeFrame.upgradeInfo
+        local target = ItemUpgradeFrame.targetUpgradeLevel
+        local levels = up and (up.upgradeLevelInfos or up.upgradeLevels)
+        if levels and target then
+            for _, li in ipairs(levels) do
+                if li.upgradeLevel == target and li.itemLevelIncrement then
+                    return li.itemLevelIncrement
+                end
+            end
+        end
+        return nil
+    end
+
+    local function WithBonusReplaced(parts, index, newID)
+        local copy = {}
+        for i, v in ipairs(parts) do copy[i] = v end
+        copy[index] = tostring(newID)
+        return table.concat(copy, ":")
     end
 
     ----------------------------------------------------------------------------
@@ -48,41 +71,93 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_ItemUpgradeUI", function()
         local upgradeInfo = ItemUpgradeFrame.upgradeInfo
         local target = ItemUpgradeFrame.targetUpgradeLevel
         if not upgradeInfo or not target then return nil end
-        if target <= (upgradeInfo.currUpgrade or 0) then return nil end
+        local curr = upgradeInfo.currUpgrade or 0
+        if target <= curr then return nil end
 
         local link = C_ItemUpgrade.GetItemHyperlink()
-        if not link then return nil end
-        local itemString = link:match("|H(item:[^|]*)|h")
-            or (link:find("^item:") and link)
+        local itemString = GetItemString(link)
         if not itemString then return nil end
 
         -- 物品連結欄位：parts[14] = numBonusIDs，bonusID 從 parts[15] 起
         local parts = { strsplit(":", itemString) }
         local numBonus = tonumber(parts[14]) or 0
 
-        -- 方法一：把當前軌道階級的 bonusID 換成目標階級
-        for i = 15, 14 + numBonus do
-            local rev = TRACK_BONUS_LOOKUP[tonumber(parts[i])]
-            if rev then
-                local trackIDs = TRACK_BONUS_IDS[rev.track]
-                -- 雙重驗證：此 bonus 的階級需與 API 回報的當前階級一致，
-                -- 且目標階級存在；不符就放棄換軌道（改走差值法）
-                if rev.rank == upgradeInfo.currUpgrade and trackIDs[target] then
-                    parts[i] = tostring(trackIDs[target])
-                    return table.concat(parts, ":")
+        local baseIlvl = GetDetailedIlvl and GetDetailedIlvl(link)
+        local inc = GetTargetIlvlIncrement()
+        local wantIlvl = (baseIlvl and inc) and (baseIlvl + inc) or nil
+
+        -- 方法一：把每個 bonusID 都當成「軌道階級」候選，加上階級差之後
+        -- 試算 ilvl。真正的軌道 bonus 才會讓 ilvl 往上跳到預期值；
+        -- 其他 bonus（插槽、工藝、ilvl 差值…）加減後不會湊巧命中。
+        if baseIlvl and GetDetailedIlvl then
+            local step = target - curr
+            for i = 15, 14 + numBonus do
+                local id = tonumber(parts[i])
+                if id then
+                    local candidate = WithBonusReplaced(parts, i, id + step)
+                    local ilvl = GetDetailedIlvl(candidate)
+                    if ilvl then
+                        if wantIlvl then
+                            -- 知道確切增量時要求完全吻合，最嚴格
+                            if ilvl == wantIlvl then return candidate end
+                        else
+                            -- 拿不到增量時看漲幅是否像「跳了 step 個升級階級」。
+                            -- 階級之間固定差 3~4 ilvl，所以下限抓 2*step：
+                            -- 這正好擋掉物品本身帶的「物品等級 +N」差值 bonus——
+                            -- 它 +step 後 ilvl 剛好也只漲 step，會被誤認成軌道。
+                            local gain = ilvl - baseIlvl
+                            if gain >= 2 * step and gain <= 6 * step and gain <= 60 then
+                                return candidate
+                            end
+                        end
+                    end
                 end
-                break
             end
         end
 
-        -- 方法二：附加 ilvl 差值 bonusID
-        local levelInfo = ItemUpgradeFrame.targetUpgradeLevelInfo
-        local delta = levelInfo and levelInfo.itemLevelIncrement
-        local deltaID = delta and GetIlvlDeltaBonusID(delta)
+        -- 方法二：附加 ilvl 差值 bonusID（需要知道增量才做得到）
+        local deltaID = inc and GetIlvlDeltaBonusID(inc)
         if not deltaID then return nil end
         table.insert(parts, 15 + numBonus, tostring(deltaID))
         parts[14] = tostring(numBonus + 1)
         return table.concat(parts, ":")
+    end
+
+    ----------------------------------------------------------------------------
+    -- /miliuiupgrade：把上面每一步實際拿到什麼印出來。
+    -- 升級介面開著、下拉選好目標階級時執行。
+    ----------------------------------------------------------------------------
+    SLASH_MILIUIUPGRADEDEBUG1 = "/miliuiupgrade"
+    SlashCmdList["MILIUIUPGRADEDEBUG"] = function()
+        local function out(fmt, ...) print("|cff00ff00[MiliUI]|r " .. fmt:format(...)) end
+        local up = ItemUpgradeFrame.upgradeInfo
+        if not up then return out("upgradeInfo = nil（升級槽是空的？）") end
+
+        local target = ItemUpgradeFrame.targetUpgradeLevel
+        out("currUpgrade=%s maxUpgrade=%s target=%s",
+            tostring(up.currUpgrade), tostring(up.maxUpgrade), tostring(target))
+        out("targetUpgradeLevelInfo=%s itemLevelIncrement=%s",
+            tostring(ItemUpgradeFrame.targetUpgradeLevelInfo),
+            tostring(GetTargetIlvlIncrement()))
+
+        local link = C_ItemUpgrade.GetItemHyperlink()
+        local itemString = GetItemString(link)
+        out("link=%s", tostring(itemString))
+        if not itemString then return end
+
+        local parts = { strsplit(":", itemString) }
+        local numBonus = tonumber(parts[14]) or 0
+        local baseIlvl = GetDetailedIlvl and GetDetailedIlvl(link)
+        out("baseIlvl=%s numBonus=%d", tostring(baseIlvl), numBonus)
+
+        local step = (target or 0) - (up.currUpgrade or 0)
+        for i = 15, 14 + numBonus do
+            local id = tonumber(parts[i])
+            local ilvl = id and GetDetailedIlvl
+                and GetDetailedIlvl(WithBonusReplaced(parts, i, id + step))
+            out("  bonus[%d]=%s  +%d -> ilvl %s", i - 14, tostring(id), step, tostring(ilvl))
+        end
+        out("結果連結=%s", tostring(GetUpgradedItemLink()))
     end
 
     ----------------------------------------------------------------------------
