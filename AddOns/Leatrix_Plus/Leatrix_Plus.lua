@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 12.0.24 (24th June 2026)
+-- 	Leatrix Plus 12.0.30 (5th August 2026)
 ----------------------------------------------------------------------
 
 --	01:Functions 02:Locks,  03:Restart 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "12.0.24"
+	LeaPlusLC["AddonVer"] = "12.0.30"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -186,7 +186,7 @@
 			eFrame.t:SetBackdropColor(1.0, 1.0, 1.0, 0.3)
 			-- Handler
 			eFrame.b:SetScript("OnKeyDown", function(void, key)
-				if key == "C" and IsControlKeyDown() then
+				if key == "C" and (IsControlKeyDown() or IsMetaKeyDown()) then
 					C_Timer.After(0.1, function()
 						eFrame:Hide()
 						LeaPlusLC:DisplayMessage(L["Copied to clipboard."], true)
@@ -828,14 +828,12 @@
 			local function DeclineReqs()
 				if LeaPlusLC["NoFriendRequests"] == "On" then
 					for i = BNGetNumFriendInvites(), 1, -1 do
-
-
 						if LeaPlusLC.NewPatch then
-							local id, player = C_BattleNet.GetFriendInviteInfo(i)
-							if id and player then
-								BNDeclineFriendInvite(id)
+							local inviteInfo = C_BattleNet.GetFriendInviteInfo(i)
+							if inviteInfo.inviteID and inviteInfo.accountName then
+								BNDeclineFriendInvite(inviteInfo.inviteID)
 								C_Timer.After(0.1, function()
-									LeaPlusLC:Print(L["A friend request from"] .. " " .. player .. " " .. L["was automatically declined."])
+									LeaPlusLC:Print(L["A friend request from"] .. " " .. inviteInfo.accountName .. " " .. L["was automatically declined."])
 								end)
 							end
 						else
@@ -3671,8 +3669,14 @@
 				if eb.Text.tiptext == L["Exclusions"] .. "|n" then eb.Text.tiptext = "-" end
 
 				if GameTooltip:IsShown() then
-					if MouseIsOver(eb) or MouseIsOver(eb.Text) then
-						GameTooltip:SetText(eb.tiptext, nil, nil, nil, nil, false)
+					if LeaPlusLC.NewPatch then
+						if eb:IsMouseOver() or eb.Text:IsMouseOver() then
+							GameTooltip:SetText(eb.tiptext, nil, nil, nil, nil, false)
+						end
+					else
+						if MouseIsOver(eb) or MouseIsOver(eb.Text) then
+							GameTooltip:SetText(eb.tiptext, nil, nil, nil, nil, false)
+						end
 					end
 				end
 
@@ -6017,7 +6021,7 @@
 			SideMinimap.r.tiptext = SideMinimap.r.tiptext .. "|n|n" .. L["Note that this will not reset settings that require a UI reload."]
 			SideMinimap.r:HookScript("OnClick", function()
 				LeaPlusLC["HideMiniAddonButtons"] = "On"; if LeaPlusLC.SetHideButtons then LeaPlusLC:SetHideButtons() end
-				LeaPlusLC["MiniClusterScale"] = 1; LeaPlusLC["MinimapNoScale"] = "Off"; SetClusterScale()
+				LeaPlusLC["MiniClusterScale"] = 1; SetClusterScale()
 				LeaPlusLC["MinimapBorderWidth"] = 3
 				-- Refresh panel
 				SideMinimap:Hide(); SideMinimap:Show()
@@ -6032,7 +6036,7 @@
 						-- Preset profile
 						LeaPlusLC["HideMiniAddonButtons"] = "On"; if LeaPlusLC.SetHideButtons then LeaPlusLC:SetHideButtons() end
 						LeaPlusLC["HideMiniAddonMenu"] = "On"
-						LeaPlusLC["MiniClusterScale"] = 1; LeaPlusLC["MinimapNoScale"] = "Off"; SetClusterScale()
+						LeaPlusLC["MiniClusterScale"] = 1; SetClusterScale()
 						LeaPlusLC["UnclampMinimap"] = "On"
 						LeaPlusLC["MinimapBorderWidth"] = 3
 						LeaPlusLC:ReloadCheck() -- Special reload check
@@ -6439,9 +6443,9 @@
 			spellFrame:SetScript("OnEvent", function(self, event, unit, updatedAuras)
 				if event == "UNIT_AURA" then
 					if updatedAuras then
-						if updatedAuras.isFullUpdate then
+						if canaccessvalue(updatedAuras.isFullUpdate) and updatedAuras.isFullUpdate then
 							eventFunc()
-						elseif updatedAuras.addedAuras then
+						elseif canaccessvalue(updatedAuras.addedAuras) and updatedAuras.addedAuras then
 							for void, aura in ipairs(updatedAuras.addedAuras) do
 								if aura.spellId and canaccessvalue(aura.spellId) and cTable[aura.spellId] then
 									eventFunc()
@@ -8231,8 +8235,14 @@
 
 			-- Manage focus
 			editBox:HookScript("OnEditFocusLost", function()
-				if MouseIsOver(titleFrame) and IsMouseButtonDown("LeftButton") then
-					editBox:SetFocus()
+				if LeaPlusLC.NewPatch then
+					if titleFrame:IsMouseOver() and IsMouseButtonDown("LeftButton") then
+						editBox:SetFocus()
+					end
+				else
+					if MouseIsOver(titleFrame) and IsMouseButtonDown("LeftButton") then
+						editBox:SetFocus()
+					end
 				end
 			end)
 
@@ -8372,7 +8382,7 @@
 		-- Show cooldowns
 		----------------------------------------------------------------------
 
-		if LeaPlusLC["ShowCooldowns"] == "On" then
+		if LeaPlusLC["ShowCooldowns"] == "On" and not LeaLockList["ShowCooldowns"] then
 
 			-- Create main table structure in saved variables if it doesn't exist
 			if LeaPlusDB["Cooldowns"] == nil then
@@ -8941,7 +8951,6 @@
 				LeaPlusLC["TipShowRank"] = "On"
 				LeaPlusLC["TipShowOtherRank"] = "Off"
 				LeaPlusLC["TipShowTarget"] = "On"
-				--LeaPlusLC["TipShowMythic"] = "Off"
 				LeaPlusLC["TipBackSimple"] = "Off"
 				LeaPlusLC["TipHideInCombat"] = "Off"; SetTipHideShiftOverrideFunc()
 				LeaPlusLC["TipHideShiftOverride"] = "On"
@@ -8961,7 +8970,6 @@
 					LeaPlusLC["TipShowRank"] = "On"
 					LeaPlusLC["TipShowOtherRank"] = "Off"
 					LeaPlusLC["TipShowTarget"] = "On"
-					--LeaPlusLC["TipShowMythic"] = "On"
 					LeaPlusLC["TipBackSimple"] = "On"
 					LeaPlusLC["TipHideInCombat"] = "Off"; SetTipHideShiftOverrideFunc()
 					LeaPlusLC["TipHideShiftOverride"] = "On"
@@ -9330,7 +9338,8 @@
 						end
 					end
 					-- Lower information and specialisation lines if unit is charmed
-					if UnitIsCharmed(LT["Unit"]) then
+					LT["CharmCheck"] = UnitIsCharmed(LT["Unit"])
+					if canaccessvalue(LT["CharmCheck"]) and LT["CharmCheck"] then
 						LT["InfoLine"] = LT["InfoLine"] + 1
 						LT["SpecLine"] = LT["SpecLine"] + 1
 					end
@@ -10162,8 +10171,13 @@
 					willPlay, musicHandle = PlaySoundFile(soundID, "Master", false, true)
 				else
 					-- Sound kit without track time
-					file, soundID = playlist[tracknumber]:match("([^,]+)%#([^,]+)")
-					willPlay, musicHandle = PlaySound(soundID, "Master", false, true)
+					if LeaPlusLC.NewPatch then
+						file, soundID = playlist[tracknumber]:match("([^,]+)%#([^,]+)")
+						willPlay, musicHandle = C_Sound.PlaySound(soundID, "Master", false, true)
+					else
+						file, soundID = playlist[tracknumber]:match("([^,]+)%#([^,]+)")
+						willPlay, musicHandle = PlaySound(soundID, "Master", false, true)
+					end
 				end
 				-- Cancel existing music timer for a sound file
 				if LeaPlusLC.TrackTimer then LeaPlusLC.TrackTimer:Cancel() end
@@ -10882,16 +10896,10 @@
 				LeaPlusLC:LoadVarChk("HideMiniAddonButtons", "On")			-- Hide addon buttons
 				LeaPlusLC:LoadVarNum("MinimapBorderWidth", 3, 1, 10)		-- Minimap border width
 				LeaPlusLC:LoadVarNum("MiniClusterScale", 1, 0.5, 2)			-- Minimap cluster scale
-				LeaPlusLC:LoadVarChk("MinimapNoScale", "Off")				-- Minimap not minimap
-				LeaPlusLC:LoadVarAnc("MinimapA", "TOPRIGHT")				-- Minimap anchor
-				LeaPlusLC:LoadVarAnc("MinimapR", "TOPRIGHT")				-- Minimap relative
-				LeaPlusLC:LoadVarNum("MinimapX", -17, -5000, 5000)			-- Minimap X
-				LeaPlusLC:LoadVarNum("MinimapY", -22, -5000, 5000)			-- Minimap Y
 				LeaPlusLC:LoadVarChk("TipModEnable", "Off")					-- Enhance tooltip
 				LeaPlusLC:LoadVarChk("TipShowRank", "On")					-- Show rank for your guild
 				LeaPlusLC:LoadVarChk("TipShowOtherRank", "Off")				-- Show rank for other guilds
 				LeaPlusLC:LoadVarChk("TipShowTarget", "On")					-- Show target
-				--LeaPlusLC:LoadVarChk("TipShowMythic", "Off")				-- Show mythic score
 				LeaPlusLC:LoadVarChk("TipBackSimple", "Off")				-- Color backdrops
 				LeaPlusLC:LoadVarChk("TipHideInCombat", "Off")				-- Hide tooltips during combat
 				LeaPlusLC:LoadVarChk("TipHideShiftOverride", "On")			-- Hide tooltips shift override
@@ -11127,7 +11135,8 @@
 
 				if LeaPlusLC.NewPatch then
 					-- Disable bag automation (enter Stockade, go vendor with transmog items Lisbeth Schneider 58.2 67.0 Stormwind, auto sell, close and shift reopen)
-					-- LockDF("NoBagAutomation", "This option is not currently available.")
+					LockDF("ManageControl", "You can manage this with Edit Mode now.")
+					LockDF("ShowCooldowns", "Not available.")
 				end
 
 				-- Run other startup items
@@ -11243,17 +11252,11 @@
 			LeaPlusDB["HideMiniAddonButtons"]	= LeaPlusLC["HideMiniAddonButtons"]
 			LeaPlusDB["MinimapBorderWidth"]		= LeaPlusLC["MinimapBorderWidth"]
 			LeaPlusDB["MiniClusterScale"]		= LeaPlusLC["MiniClusterScale"]
-			LeaPlusDB["MinimapNoScale"]			= LeaPlusLC["MinimapNoScale"]
-			LeaPlusDB["MinimapA"]				= LeaPlusLC["MinimapA"]
-			LeaPlusDB["MinimapR"]				= LeaPlusLC["MinimapR"]
-			LeaPlusDB["MinimapX"]				= LeaPlusLC["MinimapX"]
-			LeaPlusDB["MinimapY"]				= LeaPlusLC["MinimapY"]
 
 			LeaPlusDB["TipModEnable"]			= LeaPlusLC["TipModEnable"]
 			LeaPlusDB["TipShowRank"]			= LeaPlusLC["TipShowRank"]
 			LeaPlusDB["TipShowOtherRank"]		= LeaPlusLC["TipShowOtherRank"]
 			LeaPlusDB["TipShowTarget"]			= LeaPlusLC["TipShowTarget"]
-			--LeaPlusDB["TipShowMythic"]		= LeaPlusLC["TipShowMythic"]
 			LeaPlusDB["TipBackSimple"]			= LeaPlusLC["TipBackSimple"]
 			LeaPlusDB["TipHideInCombat"]		= LeaPlusLC["TipHideInCombat"]
 			LeaPlusDB["TipHideShiftOverride"]	= LeaPlusLC["TipHideShiftOverride"]
@@ -12390,7 +12393,11 @@
 					GameTooltip:HookScript("OnUpdate", function()
 						local a = _G["GameTooltipTextLeft1"]:GetText() or ""
 						if a == "Dark Soil" or a == "Jelly Deposit" or a == "Gersahl Shrub" then
-							PlaySound(8959, "Master")
+							if LeaPlusLC.NewPatch then
+								C_Sound.PlaySound(8959, "Master")
+							else
+								PlaySound(8959, "Master")
+							end
 						end
 					end)
 					-- Add Friendly Alpaca spawn locations to Uldum map
@@ -12482,8 +12489,18 @@
 				-- Enumerate frames
 				local frame = EnumerateFrames()
 				while frame do
-					if (frame:IsVisible() and MouseIsOver(frame)) then
-						LeaPlusLC:Print(frame:GetName() or string.format("[Unnamed Frame: %s]", tostring(frame)))
+					if LeaPlusLC.NewPatch then
+						if not frame:IsAnchoringSecret() then
+							if (frame:IsVisible() and frame:IsMouseOver()) then
+								LeaPlusLC:Print(frame:GetName() or string.format("[Unnamed Frame: %s]", tostring(frame)))
+							end
+						else
+							LeaPlusLC:Print(L["[Secret frame: SECRET FRAME]"])
+						end
+					else
+						if (frame:IsVisible() and MouseIsOver(frame)) then
+							LeaPlusLC:Print(frame:GetName() or string.format("[Unnamed Frame: %s]", tostring(frame)))
+						end
 					end
 					frame = EnumerateFrames(frame)
 				end
@@ -12547,7 +12564,11 @@
 							StopSound(LeaPlusLC.SNDcanitHandle)
 						end
 						-- Play sound ID
-						LeaPlusLC.SNDcanitPlay, LeaPlusLC.SNDcanitHandle = PlaySound(arg1, "Master", false, false)
+						if LeaPlusLC.NewPatch then
+							LeaPlusLC.SNDcanitPlay, LeaPlusLC.SNDcanitHandle = C_Sound.PlaySound(arg1, "Master", false, false)
+						else
+							LeaPlusLC.SNDcanitPlay, LeaPlusLC.SNDcanitHandle = PlaySound(arg1, "Master", false, false)
+						end
 						if not LeaPlusLC.SNDcanitPlay then LeaPlusLC:Print(L["Invalid sound ID"] .. ": |cffffffff" .. arg1) end
 					else
 						LeaPlusLC:Print(L["Invalid sound ID"] .. ": |cffffffff" .. arg1)
@@ -12676,7 +12697,11 @@
 				return
 			elseif str == "skit" then
 				-- Play a test sound kit
-				PlaySound("1020", "Master", false, true)
+				if LeaPlusLC.NewPatch then
+					C_Sound.PlaySound("1020", "Master", false, true)
+				else
+					PlaySound("1020", "Master", false, true)
+				end
 				return
 			elseif str == "dup" then
 				-- Print music track duplicates
@@ -12692,14 +12717,26 @@
 										if not v:match("([^,]+)%#([^,]+)%#([^,]+)") then
 											local temFile, temSoundID = v:match("([^,]+)%#([^,]+)")
 											if temSoundID then
-												local temPlay, temHandle = PlaySound(temSoundID, "Master", false, true)
-												if temHandle then StopSound(temHandle) end
-												temPlay, temHandle = PlaySound(temSoundID, "Master", false, true)
-												if not temPlay and not temHandle then
-													print("|cffff5400" .. L["Bad ID"] .. ": |r" .. e, v)
-													badidfound = true
-												else
+												if LeaPlusLC.NewPatch then
+													local temPlay, temHandle = C_Sound.PlaySound(temSoundID, "Master", false, true)
 													if temHandle then StopSound(temHandle) end
+													temPlay, temHandle = C_Sound.PlaySound(temSoundID, "Master", false, true)
+													if not temPlay and not temHandle then
+														print("|cffff5400" .. L["Bad ID"] .. ": |r" .. e, v)
+														badidfound = true
+													else
+														if temHandle then StopSound(temHandle) end
+													end
+												else
+													local temPlay, temHandle = PlaySound(temSoundID, "Master", false, true)
+													if temHandle then StopSound(temHandle) end
+													temPlay, temHandle = PlaySound(temSoundID, "Master", false, true)
+													if not temPlay and not temHandle then
+														print("|cffff5400" .. L["Bad ID"] .. ": |r" .. e, v)
+														badidfound = true
+													else
+														if temHandle then StopSound(temHandle) end
+													end
 												end
 											end
 										end
@@ -12837,7 +12874,11 @@
 								-- Select current button
 								bt[eBtn].line:Show()
 								selectedBtn = b
-								PlaySound(115, "Master", false, true)
+								if LeaPlusLC.NewPatch then
+									C_Sound.PlaySound(115, "Master", false, true)
+								else
+									PlaySound(115, "Master", false, true)
+								end
 								-- Print button data
 								eFrame.f:SetText(L["Enigma"] .. " " .. eBtn .. ": |cffffffff" .. eData[eBtn][#eData[eBtn]])
 							end
@@ -13167,7 +13208,11 @@
 				end
 				LeaPlusLC.BlanchyFrame:SetScript("OnEvent", function(self, event, void, pname)
 					if pname == L["Dead Blanchy"] then
-						C_Timer.NewTicker(1, function()	PlaySound(8959, "Master") end, 20)
+						if LeaPlusLC.NewPatch then
+							C_Timer.NewTicker(1, function()	C_Sound.PlaySound(8959, "Master") end, 20)
+						else
+							C_Timer.NewTicker(1, function()	PlaySound(8959, "Master") end, 20)
+						end
 					end
 				end)
 				return
@@ -13936,11 +13981,6 @@
 				LeaPlusDB["MiniExcludeList"] = "BugSack, Leatrix_Plus" -- Excluded addon list
 				LeaPlusDB["MinimapBorderWidth"] = 3				-- Minimap border width
 				LeaPlusDB["MiniClusterScale"] = 1				-- Minimap cluster scale
-				LeaPlusDB["MinimapNoScale"] = "Off"				-- Minimap not minimap
-				LeaPlusDB["MinimapA"] = "TOPRIGHT"				-- Minimap anchor
-				LeaPlusDB["MinimapR"] = "TOPRIGHT"				-- Minimap relative
-				LeaPlusDB["MinimapX"] = 0						-- Minimap X
-				LeaPlusDB["MinimapY"] = 0						-- Minimap Y
 
 				LeaPlusDB["TipModEnable"] = "On"				-- Enhance tooltip
 				LeaPlusDB["TipBackSimple"] = "On"				-- Color backdrops

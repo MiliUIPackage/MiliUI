@@ -1147,6 +1147,22 @@
 			"rocketmountwalk.ogg#595148",
 			"rocketmountwalkup.ogg#559351",
 
+			-- Blackwater X-TREME Firework Rocket
+			"sound/doodad/go_11go_goblin_drill01_loop_6380366.ogg#6380366",
+			"sound/doodad/go_11go_goblin_drill01_loop_6380368.ogg#6380368",
+			"sound/doodad/go_11go_goblin_drill01_loop_6380370.ogg#6380370",
+			"sound/doodad/go_11go_goblin_drill01_loop_6380372.ogg#6380372",
+			"sound/doodad/go_11go_goblin_gamemachine01_oneshot_6310286.ogg#6310286",
+			"sound/doodad/go_11go_goblin_gamemachine01_oneshot_6310288.ogg#6310288",
+			"sound/doodad/go_11go_goblin_gamemachine01_oneshot_6310290.ogg#6310290",
+			"sound/doodad/go_11go_goblin_gamemachine01_oneshot_6310292.ogg#6310292",
+			"sound/doodad/go_11go_goblin_gamemachine01_oneshot_6310294.ogg#6310294",
+			"sound/doodad/fx_firework_whistle_01.ogg#622172",
+			"sound/doodad/fx_firework_whistle_02.ogg#622174",
+			"sound/doodad/fx_firework_whistle_03.ogg#622176",
+			"sound/doodad/fx_firework_whistle_04.ogg#622178",
+			"sound/doodad/fx_firework_whistle_05.ogg#622180",
+
 		},
 
 		-- Soul Eaters

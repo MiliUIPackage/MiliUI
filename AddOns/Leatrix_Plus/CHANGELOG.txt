@@ -1,5 +1,21 @@
-﻿12.0.24 - 24th June 2026
-- For 'Enhance minimap' ('Interface'), added support for the OmniumObservator addon's custom minimap button.
+﻿12.0.30 - 5th August 2026
+- PTR (12.1.0): More PTR updates.
+
+12.0.29 - 29th July 2026
+- Updated deprecated functions.
+
+12.0.28 - 23rd July 2026
+- PTR (12.1.0): Updated deprecated functions.
+- You may need to restart your game client completely after installing this update.
+
+12.0.27 - 15th July 2026
+- For 'Mute mount sounds', the 'Rockets' setting now includes the 'Blackwater X-TREME Firework Rocket'.
+- For web link (keybindings) on a Mac, you can now use command and C to copy and close the web link window.
+- PTR (12.1.0): The 'Manage control' option ('Frames') has been removed as it's now included with Edit Mode.
+- PTR (12.1.0): Updated deprecated functions.
+
+12.0.24 - 24th June 2026
+- For 'Enhance minimap' ('Interface'), added support for the OmniumObservator addon's non-standard minimap button.
 - PTR (12.1.0): Updated for game patch 12.1.0.
 
 12.0.23 - 18th June 2026
