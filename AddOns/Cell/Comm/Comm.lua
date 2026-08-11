@@ -79,29 +79,28 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     self[event](self, ...)
 end)
 
+-- MiliUI: this build does NOT broadcast CELL_VERSION.
+--
+-- The version handshake exists to tell other Cell users "a newer release is out, go get it
+-- from CurseForge". A fork cannot make that claim honestly: `Cell.version` here is
+-- "rNNN-MiliUI", and the number in it is bumped locally just to gate Revise migrations --
+-- it is not a point on upstream's release line at all. Stock Cell receivers only parse the
+-- digits, so every guildmate and party member running the real addon would be told to
+-- update to a version that does not exist, and be pointed at a download page for it.
+--
+-- Receiving stays ON (below), so nothing about stock Cell's own comm changes -- their
+-- version checks among themselves are untouched. This build simply stops injecting a
+-- number into that conversation. Everything else Cell talks about (raid marks, mark
+-- priority, layout/raid-debuff import and export) is functional cooperation rather than
+-- version noise, and is left fully interoperable.
+--
+-- ⚠ Keep the GROUP_ROSTER_UPDATE handler even with the send gone: it is what initialises
+-- `sendChannel`, which CELL_MARKS and CELL_CPRIO/CELL_PRIO send on.
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 function eventFrame:GROUP_ROSTER_UPDATE()
     if IsInGroup() then
         eventFrame:UnregisterEvent("GROUP_ROSTER_UPDATE")
         UpdateSendChannel()
-        -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
-        if IsCommRestricted() then
-            F.Debug("Cell: Comm suppressed - restricted context (CELL_VERSION group)")
-            return
-        end
-        Comm:SendCommMessage("CELL_VERSION", Cell.version, sendChannel, nil, "NORMAL")
-    end
-end
-
-eventFrame:RegisterEvent("PLAYER_LOGIN")
-function eventFrame:PLAYER_LOGIN()
-    if IsInGuild() then
-        -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
-        if IsCommRestricted() then
-            F.Debug("Cell: Comm suppressed - restricted context (CELL_VERSION guild)")
-            return
-        end
-        Comm:SendCommMessage("CELL_VERSION", Cell.version, "GUILD", nil, "NORMAL")
     end
 end
 
