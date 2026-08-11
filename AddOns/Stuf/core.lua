@@ -138,7 +138,7 @@ function events.ADDON_LOADED(a1)
 	events.ADDON_LOADED = Stuf.nofunc
 	Stuf:RegisterEvent("PLAYER_LOGIN")
 	events.PLAYER_LOGIN = function()
-		if InCombatLockdown() then return print("|cff00ff00Stuf|r: "..L["Cannot load Stuf while in combat."]) end
+		if InCombatLockdown() then return print(L["|cff00ff00Stuf|r: "]..L["Cannot load Stuf while in combat."]) end
 		
 		-- Saved Variables
 		if StufDB == "perchar" then
@@ -148,7 +148,7 @@ function events.ADDON_LOADED(a1)
 			StufCharDB = StufDB.temp
 			db = StufCharDB
 			StufDB = "perchar"
-			print("|cff00ff00Stuf|r: "..L["Settings copied to this character."])
+			print(L["|cff00ff00Stuf|r: "]..L["Settings copied to this character."])
 		else
 			StufCharDB = nil
 			StufDB = type(StufDB) == "table" and StufDB or { }
@@ -160,7 +160,7 @@ function events.ADDON_LOADED(a1)
 			Stuf:LoadDefaults(db)
 			db.global.init = 9
 			else
-			return print("|cff00ff00Stuf|r: "..L["Stuf_Options is required to initialize variables."])
+			return print(L["|cff00ff00Stuf|r: "]..L["Stuf_Options is required to initialize variables."])
 			end
 		end
 
@@ -309,7 +309,7 @@ function events.ADDON_LOADED(a1)
 			if Stuf.OpenOptions then
 				Stuf:OpenOptions(Stuf.panel)
 			else
-				print("|cff00ff00Stuf|r: "..L["Stuf_Options not found."])
+				print(L["|cff00ff00Stuf|r: "]..L["Stuf_Options not found."])
 			end
 		end
 		if not Stuf.OpenOptions then -- AceConfig hack to be LOD friendly

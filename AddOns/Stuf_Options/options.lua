@@ -176,7 +176,7 @@ end
 local optionframe
 local function CreateOptionFrame()
 	if optionframe then return end
-	optionframe = AceConfigDialog:AddToBlizOptions("Stuf", "Stuf")
+	optionframe = AceConfigDialog:AddToBlizOptions("Stuf", L["Stuf"])
 	optionframe.fshow = CreateFrame("Frame", nil, optionframe, BackdropTemplateMixin and 'BackdropTemplate')
 	-- InterfaceOptionsFrame was removed in WoW 10.0; OnShow/OnHide hooks skipped
 	optionframe.fshow:SetScript("OnShow", function(this) end)
@@ -1135,11 +1135,11 @@ local copy={
 }
 local copyvalues={ 
 	player=_G.PLAYER, target=_G.TARGET,
-	targettarget=_G.TARGET.." ".._G.TARGET, focus=L["Focus"],
-	pet=_G.PET, pettarget=_G.PET.." ".._G.TARGET, 
-	targettargettarget=_G.TARGET.." ".._G.TARGET.." ".._G.TARGET, focustarget=L["Focus"].." ".._G.TARGET,
-	party1=_G.PARTY.." 1", partypet1=_G.PARTY.." 1 ".._G.PET,
-	arena1=_G.ARENA.." 1", arena1target=_G.ARENA.." 1 ".._G.TARGET,
+	targettarget=format(L["%s of %s"], _G.TARGET, _G.TARGET), focus=L["Focus"],
+	pet=_G.PET, pettarget=format(L["%s of %s"], _G.PET, _G.TARGET),
+	targettargettarget=format(L["%s of %s of %s"], _G.TARGET, _G.TARGET, _G.TARGET), focustarget=format(L["%s of %s"], L["Focus"], _G.TARGET),
+	party1=_G.PARTY.." 1", partypet1=format(L["%s of %s"], _G.PARTY.." 1", _G.PET),
+	arena1=_G.ARENA.." 1", arena1target=format(L["%s of %s"], _G.ARENA.." 1", _G.TARGET),
 }
 local copyelement={
 	name=L["Copy Unit's"], desc=L["Copy this element's settings from another unit's"], type="select", order=2,
@@ -1148,7 +1148,7 @@ local copyelement={
 		local unit, object, setting = infobreakdown(info)
 		if unit == v or not db[v] then return end
 		if not db[v][object or "blah"] then
-			return print("|cff00ff00Stuf|r: "..L["This unit does not have the element from which to copy."])
+			return print(L["|cff00ff00Stuf|r: "]..L["This unit does not have the element from which to copy."])
 		end
 		local et = db[unit][object]
 		wipe(et)
@@ -1888,10 +1888,10 @@ options={
 	type="group",
 	args={ 
 		configmode={
-			name="Config", desc=L["Preview everything."], type="toggle", order=1, width="half", 
+			name=L["Config Mode"], desc=L["Preview everything."], type="toggle", order=1, width="half",
 			set=function(info, v)
 				if InCombatLockdown() then
-					return ChatFrame1:AddMessage("|cff00ff00Stuf|r: "..L["Unable to process while in combat."])
+					return ChatFrame1:AddMessage(L["|cff00ff00Stuf|r: "]..L["Unable to process while in combat."])
 				end
 				config=v 
 				Stuf:SetConfigMode(v) 
@@ -1899,7 +1899,7 @@ options={
 			get=function() return config end,
 		},
 		highlight={ 
-			name="Highlight", desc=L["Highlights currently selected element."], type="toggle", order=2, width="half", 
+			name=L["Toggle Highlighter"], desc=L["Highlights currently selected element."], type="toggle", order=2, width="half",
 			set=function(info, v)
 				if not highlight then
 					highlight=CreateFrame("Frame", nil, Stuf, BackdropTemplateMixin and 'BackdropTemplate')
@@ -1918,7 +1918,7 @@ options={
 			get=function() return highlight and highlight:IsShown() end,
 		},
 		tagreference={
-			name="Tag Ref", desc="Show a full reference of all valid pattern tags, colour tags and conditions.", type="toggle", order=3, width="half",
+			name=L["Tag Ref"], desc=L["Show a full reference of all valid pattern tags, colour tags and conditions."], type="toggle", order=3, width="half",
 			set=function(info, v)
 				if not Stuf.tagrefframe then
 					local f = CreateFrame("Frame", nil, UIParent, BackdropTemplateMixin and 'BackdropTemplate')
@@ -1942,7 +1942,7 @@ options={
 					local title = f:CreateFontString(nil, "OVERLAY")
 					title:SetFontObject(GameFontNormalLarge)
 					title:SetPoint("TOPLEFT", 10, -10)
-					title:SetText("|cff00ff00Stuf|r Pattern Tag Reference")
+					title:SetText("|cff00ff00Stuf|r "..L["Pattern Tag Reference"])
 
 					-- close button
 					local close = CreateFrame("Button", nil, f, "UIPanelCloseButton,BackdropTemplate")
@@ -2084,7 +2084,10 @@ options={
 						"|cffaaaaaa[reaction_if_npc:creaturetype]|r\n"..
 						"|cffaaaaaa[name][nl][guild]|r"
 
-					txt:SetText(reftext)
+					-- Locales that ship a "tagreferencetext" entry override the whole block;
+					-- everyone else keeps the English reftext above (rawget so the
+					-- key-returning __index fallback can't leak the raw key name).
+					txt:SetText(rawget(L, "tagreferencetext") or reftext)
 					content:SetHeight(txt:GetHeight() + 12)
 					Stuf.tagrefframe = f
 				end
@@ -2093,10 +2096,10 @@ options={
 			get=function() return Stuf.tagrefframe and Stuf.tagrefframe:IsShown() end,
 		},
 		movable={
-			name="Drag", desc=L["draghelp"], type="toggle", order=4, width="half",
+			name=L["Toggle Drag"], desc=L["draghelp"], type="toggle", order=4, width="half",
 			set=function(info, v)
 				if InCombatLockdown() then
-					return ChatFrame1:AddMessage("|cff00ff00Stuf|r: "..L["Unable to process while in combat."])
+					return ChatFrame1:AddMessage(L["|cff00ff00Stuf|r: "]..L["Unable to process while in combat."])
 				end
 				drag=v
 				for unit, uf in pairs(su) do
@@ -2133,7 +2136,7 @@ options={
 				strata={ name=L["Frame Strata/Overlay"], type="select", values=strata, set=set, get=getstrata, order=1.7, },
 				petbattlehide={ name=L["Hide Stuf During Pet Battles"], type="toggle", width="double", set=set, get=get, order=1.71,  },
 				blank=blank,
-				bglist={ name=L["Background List"], type="select", values={ statusbar="Statusbars", background="Backgrounds", }, set=set, get=get, order=4, },
+				bglist={ name=L["Background List"], type="select", values={ statusbar=L["Statusbars"], background=L["Backgrounds"], }, set=set, get=get, order=4, },
 				bg={
 					name=L["Background Texture"], type="select", dialogControl="LSM30_Border", set=set, get=get, order=5, 
 					values=function()
@@ -2165,7 +2168,7 @@ options={
 						v = tonumber(v)
 						db.global.shortk = v or 100000
 						if not v then
-							print("|cff00ff00Stuf|r: "..L["Value must be a number."])
+							print(L["|cff00ff00Stuf|r: "]..L["Value must be a number."])
 						end
 						Stuf:UpdateElementLook("global")
 					end,
@@ -2304,7 +2307,7 @@ options={
 			},
 		},
 		targettarget={
-			name=_G.TARGET.." ".._G.TARGET, type="group", order=7,
+			name=format(L["%s of %s"], _G.TARGET, _G.TARGET), type="group", order=7,
 			args={
 				frame=frame,
 				portrait=portrait,
@@ -2321,7 +2324,7 @@ options={
 			},
 		},
 		targettargettarget={
-			name=(_G.TARGET or "Target").." of "..(_G.TARGET or "Target").." of "..(_G.TARGET or "Target"), type="group", order=7.1,
+			name=format(L["%s of %s of %s"], _G.TARGET, _G.TARGET, _G.TARGET), type="group", order=7.1,
 			args={ 
 				frame=frame,
 				portrait=portrait,
@@ -2724,12 +2727,12 @@ do
 
 	-- Safe deserializer via loadstring sandbox
 	local function Deserialize(str)
-		if not str or str == "" then return nil, "Empty string" end
+		if not str or str == "" then return nil, L["Empty string"] end
 		local fn, err = loadstring("return "..str)
-		if not fn then return nil, "Parse error: "..(err or "unknown") end
+		if not fn then return nil, L["Parse error: "]..(err or L["unknown error"]) end
 		local ok, result = pcall(fn)
-		if not ok then return nil, "Eval error: "..(result or "unknown") end
-		if type(result) ~= "table" then return nil, "Result is not a table" end
+		if not ok then return nil, L["Eval error: "]..(result or L["unknown error"]) end
+		if type(result) ~= "table" then return nil, L["Result is not a table"] end
 		return result
 	end
 
@@ -2745,33 +2748,33 @@ do
 	end
 
 	options.args.importexport = {
-		name = "Export / Import",
+		name = L["Export / Import"],
 		type = "group",
 		order = 999,
 		args = {
 			desc = {
-				name = "Export your current settings to a string you can share or back up. Paste a previously exported string into the import box to restore settings.\n\n|cffff9900Note:|r Importing will overwrite your current settings and reload the UI.",
+				name = L["Export your current settings to a string you can share or back up. Paste a previously exported string into the import box to restore settings.\n\n|cffff9900Note:|r Importing will overwrite your current settings and reload the UI."],
 				type = "description",
 				order = 1,
 				width = "full",
 			},
 			exportbtn = {
-				name = "Generate Export String",
+				name = L["Generate Export String"],
 				type = "execute",
 				order = 2,
 				func = function()
 					-- Use the live 'db' proxy so default values are included,
 					-- not just keys that were explicitly changed by the user.
 					if type(db) ~= "table" then
-						exportString = "-- No settings found"
+						exportString = "-- "..L["No settings found"]
 						return
 					end
 					local flat = FlattenDB(db)
-					exportString = Serialize(flat) or "-- Serialization failed"
+					exportString = Serialize(flat) or ("-- "..L["Serialization failed"])
 				end,
 			},
 			exportbox = {
-				name = "Export String (select all and copy)",
+				name = L["Export String (select all and copy)"],
 				type = "input",
 				order = 3,
 				width = "full",
@@ -2785,7 +2788,7 @@ do
 				order = 4,
 			},
 			importbox = {
-				name = "Import String (paste here)",
+				name = L["Import String (paste here)"],
 				type = "input",
 				order = 5,
 				width = "full",
@@ -2794,16 +2797,16 @@ do
 				set = function(_, v) importString = v end,
 			},
 			importbtn = {
-				name = "Import and Reload",
+				name = L["Import and Reload"],
 				type = "execute",
 				order = 6,
 				confirm = true,
-				confirmText = "This will overwrite your current settings and reload the UI. Are you sure?",
+				confirmText = L["This will overwrite your current settings and reload the UI. Are you sure?"],
 				func = function()
 					local result, err = Deserialize(importString)
 					if not result then
-						importStatus = "|cffff0000Import failed:|r "..( err or "unknown error")
-						print("|cff00ff00Stuf|r: "..importStatus)
+						importStatus = L["|cffff0000Import failed:|r "]..( err or L["unknown error"])
+						print(L["|cff00ff00Stuf|r: "]..importStatus)
 						return
 					end
 					if StufDB == "perchar" then
@@ -2851,7 +2854,7 @@ function Stuf:OpenOptions(frame)
 		if catID then
 			Settings.OpenToCategory(catID)
 		else
-			print("|cff00ff00Stuf|r: Could not find settings category ID. Open Settings manually.")
+			print(L["|cff00ff00Stuf|r: "]..L["Could not find settings category ID. Open Settings manually."])
 		end
 	elseif InterfaceOptionsFrame_OpenToCategory then
 		InterfaceOptionsFrame_OpenToCategory(optionframe)

@@ -78,7 +78,9 @@ SetUnitDefault("focus", nil, 0, 10, 10, "CENTER")
 SetUnitDefault = nil
 local function OnOptions()
 	local o, textoptions = Stuf:GetOptionsTable()
-	local rco = { name="Range Text", type="group", args=textoptions, order=50, }
+	-- Borrow Stuf_Options' localization table; falls back to English when absent.
+	local OL = StufOptionsLocalization
+	local rco = { name=(OL and OL["Range Text"]) or "Range Text", type="group", args=textoptions, order=50, }
 	o.args.target.args.rangetext = rco
 	o.args.focus.args.rangetext = rco
 	a:UnregisterEvent("ADDON_LOADED")

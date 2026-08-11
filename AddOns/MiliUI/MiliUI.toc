@@ -60,7 +60,6 @@ Fix\AuraContainerCore.lua
 Fix\Stuf_AuraContainer.lua
 Fix\Stuf_OptionsCategory.lua
 Fix\Stuf_Fix.lua
-Fix\Stuf_InspectTooltipLocale.lua
 Fix\AyijeCDM_StufAnchor.lua
 Fix\AyijeCDM_StyleFix.lua
 Fix\TinyInspectRemake_FlyoutItemLocation.lua

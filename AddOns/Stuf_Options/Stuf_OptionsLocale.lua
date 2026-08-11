@@ -1366,9 +1366,9 @@ StufOptionsLocalization = {
 }
 
 -- ============================================================
--- Spanish - Spain (esES)
+-- Spanish (esES / esMX — same translations)
 -- ============================================================
-elseif ( GetLocale() == "esES" ) then
+elseif ( GetLocale() == "esES" or GetLocale() == "esMX" ) then
 StufOptionsLocalization = {
 	[" Boss"] = " Jefe",
 	["+ Rare"] = "+ Raro",
@@ -1702,38 +1702,6 @@ StufOptionsLocalization = {
 }
 
 -- ============================================================
--- Spanish - Latin America (esMX) — shares with esES
--- ============================================================
-elseif ( GetLocale() == "esMX" ) then
-StufOptionsLocalization = {
-	-- esMX uses the same translations as esES for this addon
-	-- Copy all esES entries here if regional differences are needed
-	[" Boss"] = " Jefe",
-	["Class"] = "Clase", ["Reaction"] = "Reacción", ["Custom"] = "Personalizado",
-	["Width"] = "Ancho", ["Height"] = "Alto", ["Scale"] = "Escala",
-	["Font"] = "Fuente", ["Font Size"] = "Tamaño de fuente", ["Font Color"] = "Color de fuente",
-	["Left"] = "Izquierda", ["Center"] = "Centro", ["Right"] = "Derecha",
-	["Top"] = "Arriba", ["Bottom"] = "Abajo",
-	["Health Bar"] = "Barra de salud", ["Power Bar"] = "Barra de recursos",
-	["Cast Bar"] = "Barra de lanzamiento",
-	["Buff Icons"] = "Iconos de ventajas", ["Debuff Icons"] = "Iconos de desventajas",
-	["Color"] = "Color", ["None"] = "Ninguno", ["Global"] = "Global",
-	["Restore Defaults"] = "Restaurar predeterminados",
-	["Save Per Character"] = "Guardar por personaje",
-	["Show Incoming Heals"] = "Mostrar curaciones entrantes",
-	["Show Absorb Shield"] = "Mostrar escudo de absorción",
-	["Export / Import"] = "Exportar / Importar",
-	["Import and Reload"] = "Importar y recargar",
-
-	pettarget = _G.PET.." ".._G.TARGET,
-	party1 = _G.PARTY.." 1",
-	partypet1 = _G.PARTY.." 1 ".._G.PET,
-	arena1 = _G.ARENA.." 1",
-	arenapet1 = _G.ARENA.." 1 ".._G.PET,
-	arena1target = _G.ARENA.." 1 ".._G.TARGET,
-}
-
--- ============================================================
 -- Traditional Chinese (zhTW) — original by 彩虹ui
 -- ============================================================
 elseif ( GetLocale() == "zhTW" ) then
@@ -1890,12 +1858,12 @@ StufOptionsLocalization = {
 	["This will overwrite your current settings and reload the UI. Are you sure?"] = "這將覆蓋你目前的設定並重新載入介面。確定要繼續嗎?",
 	["|cffff0000Import failed:|r "] = "|cffff0000匯入失敗:|r ",
 
-	pettarget = _G.PET.." ".._G.TARGET,
-	party1 = _G.PARTY.." 1",
-	partypet1 = _G.PARTY.." 1 ".._G.PET,
-	arena1 = _G.ARENA.." 1",
+	pettarget = _G.PET.."的".._G.TARGET,
+	party1 = _G.PARTY.."1",
+	partypet1 = _G.PARTY.."1的".._G.PET,
+	arena1 = _G.ARENA.."1",
 	arenapet1 = _G.ARENA.." 1 ".._G.PET,
-	arena1target = _G.ARENA.." 1 ".._G.TARGET,
+	arena1target = _G.ARENA.."1的".._G.TARGET,
 	taghelptext =
 		"文字標籤語法說明:\n"..
 		"[|cff00ff00infotag|r] 或 [|cffff9900colortag|r:|cff00ff00infotag|r] 或\n"..
@@ -1928,6 +1896,132 @@ StufOptionsLocalization = {
 	generalhelp = "* 啟用 '顯著標示' 可以幫忙辨識出正在設定的介面元素。\n"..
 		"* '整體' 裡面的選項是全部共用的設定。\n"..
 		"* 所有拉桿都有三種方式可以調整值。",
+
+	-- --- MiliUI 12.1: keys that options.lua looks up but had no entry ---
+	["|cff00ff00Stuf|r: "] = "|cff00ff00Stuf頭像|r：",
+	["Tag Ref"] = "標籤參考",
+	["Show a full reference of all valid pattern tags, colour tags and conditions."] = "顯示所有可用的資訊標籤、顏色標籤與條件判斷標籤的完整說明。",
+	["Pattern Tag Reference"] = "文字標籤參考表",
+	["Range Text"] = "距離文字",
+	["Statusbars"] = "狀態條", ["Backgrounds"] = "背景",
+	["Could not find settings category ID. Open Settings manually."] = "找不到設定分類 ID，請手動開啟遊戲設定。",
+	["%s of %s"] = "%s的%s",
+	["%s of %s of %s"] = "%s的%s的%s",
+	["Empty string"] = "字串是空的",
+	["Parse error: "] = "解析錯誤：",
+	["Eval error: "] = "執行錯誤：",
+	["Result is not a table"] = "結果不是一個表格 (table)",
+	["unknown error"] = "未知的錯誤",
+	["No settings found"] = "找不到設定",
+	["Serialization failed"] = "序列化失敗",
+	tagreferencetext =
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffFFD700  語法|r\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffaaaaaa[infotag]|r\n"..
+		"|cffaaaaaa[colortag:infotag]|r\n"..
+		"|cffaaaaaa[colortag_if_condition:infotag]|r\n"..
+		"|cffaaaaaa[colortag_ifnot_condition:infotag]|r\n"..
+		"中括號以外的文字會原樣顯示。\n\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffFFD700  資訊標籤 (INFO TAGS)|r\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cff00ff00name|r          單位名稱\n"..
+		"|cff00ff00titlename|r     名稱前加上 PvP 頭銜\n"..
+		"|cff00ff00level|r         等級數字\n"..
+		"|cff00ff00classification|r  精英 / 首領 / 稀有 等\n"..
+		"|cff00ff00class|r         職業名稱\n"..
+		"|cff00ff00race|r          種族或生物類型\n"..
+		"|cff00ff00creaturetype|r  生物類型字串\n"..
+		"|cff00ff00guild|r         公會名稱，含 < >\n\n"..
+		"|cffaaaaaa-- 血量 --|r\n"..
+		"|cff00ff00curhp|r         目前血量\n"..
+		"|cff00ff00maxhp|r         最大血量\n"..
+		"|cff00ff00perchp|r        血量百分比 (0-100)\n"..
+		"|cff00ff00deficithp|r     缺少的血量\n\n"..
+		"|cffaaaaaa-- 能量 --|r\n"..
+		"|cff00ff00curmp|r         目前能量\n"..
+		"|cff00ff00maxmp|r         最大能量\n"..
+		"|cff00ff00percmp|r        能量百分比 (0-100)\n"..
+		"|cff00ff00deficitmp|r     缺少的能量\n"..
+		"|cff00ff00shards|r        靈魂碎片 (僅術士)\n\n"..
+		"|cffaaaaaa-- 特殊 --|r\n"..
+		"|cff00ff00nl|r            換行\n"..
+		"|cff00ff00%|r             百分比符號 %\n"..
+		"|cff00ff00lp|r            左括號 (\n"..
+		"|cff00ff00rp|r            右括號 )\n\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffFFD700  顏色標籤 (COLOUR TAGS)|r\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffff9900class|r            職業顏色\n"..
+		"|cffff9900classdark|r        職業顏色 (較暗)\n"..
+		"|cffff9900reaction|r         友善/敵對/中立\n"..
+		"|cffff9900reactiondark|r     態度顏色 (較暗)\n"..
+		"|cffff9900classreaction|r    NPC/PvP 用態度，玩家用職業\n"..
+		"|cffff9900classreactiondark|r  同上 (較暗)\n"..
+		"|cffff9900reactionnpc|r      NPC 用態度，玩家用職業\n"..
+		"|cffff9900reactionnpcdark|r  同上 (較暗)\n"..
+		"|cffff9900difficulty|r       暴雪任務難度顏色\n"..
+		"|cffff9900difficultydark|r   難度顏色 (較暗)\n"..
+		"|cffff9900hpgreen|r          設定的綠色血量顏色\n"..
+		"|cffff9900hpgreendark|r      綠色血量 (較暗)\n"..
+		"|cffff9900hpred|r            設定的紅色血量顏色\n"..
+		"|cffff9900hpreddark|r        紅色血量 (較暗)\n"..
+		"|cffff9900hpthreshold|r      依血量%% 由紅漸變到綠\n"..
+		"|cffff9900hpthresholddark|r  同上 (較暗)\n"..
+		"|cffff9900power|r            能量類型顏色\n"..
+		"|cffff9900powerdark|r        能量顏色 (較暗)\n"..
+		"|cffff9900gray|r             設定的灰色\n"..
+		"|cffff9900solid|r            使用文字元素的字型顏色\n"..
+		"|cffff9900custom|r           同 solid\n\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffFFD700  條件判斷  (_if_ / _ifnot_)|r\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffffff00pc|r              單位由玩家操控\n"..
+		"|cffffff00npc|r             單位非玩家操控\n"..
+		"|cffffff00pvp|r             單位已標記 PvP\n"..
+		"|cffffff00male|r            單位是男性\n"..
+		"|cffffff00female|r          單位是女性\n"..
+		"|cffffff00helpful|r         你可以協助這個單位\n"..
+		"|cffffff00hostile|r         單位可以攻擊你\n"..
+		"|cffffff00attackable|r      你可以攻擊這個單位\n"..
+		"|cffffff00enemy|r           單位是你的敵人\n"..
+		"|cffffff00tapped|r          單位已被他人標記\n"..
+		"|cffffff00alive|r           單位存活\n"..
+		"|cffffff00dead|r            單位死亡\n"..
+		"|cffffff00ghost|r           單位是靈魂狀態\n"..
+		"|cffffff00offline|r         單位離線\n"..
+		"|cffffff00afk|r             單位暫離\n"..
+		"|cffffff00dnd|r             單位忙碌\n"..
+		"|cffffff00ingroup|r         單位在你的隊伍中\n"..
+		"|cffffff00oor|r             單位超出距離\n"..
+		"|cffffff00combat|r          單位在戰鬥中\n"..
+		"|cffffff00selfcombat|r      |cffffffff你|r在戰鬥中\n"..
+		"|cffffff00aggro|r           單位以你為仇恨目標\n"..
+		"|cffffff00boss|r            單位是世界首領\n"..
+		"|cffffff00hp10|r            血量低於 10%%\n"..
+		"|cffffff00hp20|r            血量低於 20%%\n"..
+		"|cffffff00hp35|r            血量低於 35%%\n"..
+		"|cffffff00hp99|r            血量低於 99%% (未滿)\n"..
+		"|cffffff00mp15|r            能量低於 15%%\n"..
+		"|cffffff00mp99|r            能量低於 99%%\n"..
+		"|cffffff00manapower|r       能量類型是法力\n\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffFFD700  範例|r\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffaaaaaa[name]|r\n"..
+		"|cffaaaaaa[class:name]|r\n"..
+		"|cffaaaaaa[reaction:name]|r\n"..
+		"|cffaaaaaa[hpthreshold:curhp] / [maxhp]|r\n"..
+		"|cffaaaaaa[perchp][%][nl][curhp]/[maxhp]|r\n"..
+		"|cffaaaaaa[curmp]/[maxmp]|r\n"..
+		"|cffaaaaaa[difficulty:level][difficulty:classification]|r\n"..
+		"|cffaaaaaa[class_if_pc:class]|r\n"..
+		"|cffaaaaaa[solid_ifnot_alive:死亡]|r\n"..
+		"|cffaaaaaa[gray_if_offline:離線]|r\n"..
+		"|cffaaaaaa[hpred_if_hp20:血量偏低]|r\n"..
+		"|cffaaaaaa[reaction_if_npc:creaturetype]|r\n"..
+		"|cffaaaaaa[name][nl][guild]|r",
 }
 
 -- ============================================================
@@ -2087,12 +2181,12 @@ StufOptionsLocalization = {
 	["This will overwrite your current settings and reload the UI. Are you sure?"] = "这将覆盖你当前的设置并重新加载界面。确定要继续吗?",
 	["|cffff0000Import failed:|r "] = "|cffff0000导入失败:|r ",
 
-	pettarget = _G.PET.." ".._G.TARGET,
-	party1 = _G.PARTY.." 1",
-	partypet1 = _G.PARTY.." 1 ".._G.PET,
-	arena1 = _G.ARENA.." 1",
+	pettarget = _G.PET.."的".._G.TARGET,
+	party1 = _G.PARTY.."1",
+	partypet1 = _G.PARTY.."1的".._G.PET,
+	arena1 = _G.ARENA.."1",
 	arenapet1 = _G.ARENA.." 1 ".._G.PET,
-	arena1target = _G.ARENA.." 1 ".._G.TARGET,
+	arena1target = _G.ARENA.."1的".._G.TARGET,
 	taghelptext =
 		"文字标签语法说明:\n"..
 		"[|cff00ff00infotag|r] 或 [|cffff9900colortag|r:|cff00ff00infotag|r] 或\n"..
@@ -2117,5 +2211,131 @@ StufOptionsLocalization = {
 	generalhelp = "* 启用 '显示标识' 可以帮忙识别出正在设置的界面元素。\n"..
 		"* '整体' 里面的选项是全部共用的设置。\n"..
 		"* 所有滑动条都有三种方式可以调整值。",
+
+	-- --- MiliUI 12.1: keys that options.lua looks up but had no entry ---
+	["|cff00ff00Stuf|r: "] = "|cff00ff00Stuf头像|r：",
+	["Tag Ref"] = "标签参考",
+	["Show a full reference of all valid pattern tags, colour tags and conditions."] = "显示所有可用的信息标签、颜色标签与条件判断标签的完整说明。",
+	["Pattern Tag Reference"] = "文字标签参考表",
+	["Range Text"] = "距离文字",
+	["Statusbars"] = "状态条", ["Backgrounds"] = "背景",
+	["Could not find settings category ID. Open Settings manually."] = "找不到设置分类 ID，请手动打开游戏设置。",
+	["%s of %s"] = "%s的%s",
+	["%s of %s of %s"] = "%s的%s的%s",
+	["Empty string"] = "字符串是空的",
+	["Parse error: "] = "解析错误：",
+	["Eval error: "] = "运行错误：",
+	["Result is not a table"] = "结果不是一个表格 (table)",
+	["unknown error"] = "未知的错误",
+	["No settings found"] = "找不到设置",
+	["Serialization failed"] = "序列化失败",
+	tagreferencetext =
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffFFD700  语法|r\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffaaaaaa[infotag]|r\n"..
+		"|cffaaaaaa[colortag:infotag]|r\n"..
+		"|cffaaaaaa[colortag_if_condition:infotag]|r\n"..
+		"|cffaaaaaa[colortag_ifnot_condition:infotag]|r\n"..
+		"中括号以外的文字会原样显示。\n\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffFFD700  信息标签 (INFO TAGS)|r\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cff00ff00name|r          单位名称\n"..
+		"|cff00ff00titlename|r     名称前加上 PvP 头衔\n"..
+		"|cff00ff00level|r         等级数字\n"..
+		"|cff00ff00classification|r  精英 / 首领 / 稀有 等\n"..
+		"|cff00ff00class|r         职业名称\n"..
+		"|cff00ff00race|r          种族或生物类型\n"..
+		"|cff00ff00creaturetype|r  生物类型字符串\n"..
+		"|cff00ff00guild|r         公会名称，含 < >\n\n"..
+		"|cffaaaaaa-- 血量 --|r\n"..
+		"|cff00ff00curhp|r         当前血量\n"..
+		"|cff00ff00maxhp|r         最大血量\n"..
+		"|cff00ff00perchp|r        血量百分比 (0-100)\n"..
+		"|cff00ff00deficithp|r     缺少的血量\n\n"..
+		"|cffaaaaaa-- 能量 --|r\n"..
+		"|cff00ff00curmp|r         当前能量\n"..
+		"|cff00ff00maxmp|r         最大能量\n"..
+		"|cff00ff00percmp|r        能量百分比 (0-100)\n"..
+		"|cff00ff00deficitmp|r     缺少的能量\n"..
+		"|cff00ff00shards|r        灵魂碎片 (仅术士)\n\n"..
+		"|cffaaaaaa-- 特殊 --|r\n"..
+		"|cff00ff00nl|r            换行\n"..
+		"|cff00ff00%|r             百分比符号 %\n"..
+		"|cff00ff00lp|r            左括号 (\n"..
+		"|cff00ff00rp|r            右括号 )\n\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffFFD700  颜色标签 (COLOUR TAGS)|r\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffff9900class|r            职业颜色\n"..
+		"|cffff9900classdark|r        职业颜色 (较暗)\n"..
+		"|cffff9900reaction|r         友善/敌对/中立\n"..
+		"|cffff9900reactiondark|r     态度颜色 (较暗)\n"..
+		"|cffff9900classreaction|r    NPC/PvP 用态度，玩家用职业\n"..
+		"|cffff9900classreactiondark|r  同上 (较暗)\n"..
+		"|cffff9900reactionnpc|r      NPC 用态度，玩家用职业\n"..
+		"|cffff9900reactionnpcdark|r  同上 (较暗)\n"..
+		"|cffff9900difficulty|r       暴雪任务难度颜色\n"..
+		"|cffff9900difficultydark|r   难度颜色 (较暗)\n"..
+		"|cffff9900hpgreen|r          设置的绿色血量颜色\n"..
+		"|cffff9900hpgreendark|r      绿色血量 (较暗)\n"..
+		"|cffff9900hpred|r            设置的红色血量颜色\n"..
+		"|cffff9900hpreddark|r        红色血量 (较暗)\n"..
+		"|cffff9900hpthreshold|r      依血量%% 由红渐变到绿\n"..
+		"|cffff9900hpthresholddark|r  同上 (较暗)\n"..
+		"|cffff9900power|r            能量类型颜色\n"..
+		"|cffff9900powerdark|r        能量颜色 (较暗)\n"..
+		"|cffff9900gray|r             设置的灰色\n"..
+		"|cffff9900solid|r            使用文字元素的字体颜色\n"..
+		"|cffff9900custom|r           同 solid\n\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffFFD700  条件判断  (_if_ / _ifnot_)|r\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffffff00pc|r              单位由玩家操控\n"..
+		"|cffffff00npc|r             单位非玩家操控\n"..
+		"|cffffff00pvp|r             单位已标记 PvP\n"..
+		"|cffffff00male|r            单位是男性\n"..
+		"|cffffff00female|r          单位是女性\n"..
+		"|cffffff00helpful|r         你可以协助这个单位\n"..
+		"|cffffff00hostile|r         单位可以攻击你\n"..
+		"|cffffff00attackable|r      你可以攻击这个单位\n"..
+		"|cffffff00enemy|r           单位是你的敌人\n"..
+		"|cffffff00tapped|r          单位已被他人标记\n"..
+		"|cffffff00alive|r           单位存活\n"..
+		"|cffffff00dead|r            单位死亡\n"..
+		"|cffffff00ghost|r           单位是灵魂状态\n"..
+		"|cffffff00offline|r         单位离线\n"..
+		"|cffffff00afk|r             单位暂离\n"..
+		"|cffffff00dnd|r             单位忙碌\n"..
+		"|cffffff00ingroup|r         单位在你的队伍中\n"..
+		"|cffffff00oor|r             单位超出距离\n"..
+		"|cffffff00combat|r          单位在战斗中\n"..
+		"|cffffff00selfcombat|r      |cffffffff你|r在战斗中\n"..
+		"|cffffff00aggro|r           单位以你为仇恨目标\n"..
+		"|cffffff00boss|r            单位是世界首领\n"..
+		"|cffffff00hp10|r            血量低于 10%%\n"..
+		"|cffffff00hp20|r            血量低于 20%%\n"..
+		"|cffffff00hp35|r            血量低于 35%%\n"..
+		"|cffffff00hp99|r            血量低于 99%% (未满)\n"..
+		"|cffffff00mp15|r            能量低于 15%%\n"..
+		"|cffffff00mp99|r            能量低于 99%%\n"..
+		"|cffffff00manapower|r       能量类型是法力\n\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffFFD700  范例|r\n"..
+		"|cff555555»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»|r\n"..
+		"|cffaaaaaa[name]|r\n"..
+		"|cffaaaaaa[class:name]|r\n"..
+		"|cffaaaaaa[reaction:name]|r\n"..
+		"|cffaaaaaa[hpthreshold:curhp] / [maxhp]|r\n"..
+		"|cffaaaaaa[perchp][%][nl][curhp]/[maxhp]|r\n"..
+		"|cffaaaaaa[curmp]/[maxmp]|r\n"..
+		"|cffaaaaaa[difficulty:level][difficulty:classification]|r\n"..
+		"|cffaaaaaa[class_if_pc:class]|r\n"..
+		"|cffaaaaaa[solid_ifnot_alive:死亡]|r\n"..
+		"|cffaaaaaa[gray_if_offline:离线]|r\n"..
+		"|cffaaaaaa[hpred_if_hp20:血量偏低]|r\n"..
+		"|cffaaaaaa[reaction_if_npc:creaturetype]|r\n"..
+		"|cffaaaaaa[name][nl][guild]|r",
 }
 end

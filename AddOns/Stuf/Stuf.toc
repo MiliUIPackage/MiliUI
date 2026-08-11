@@ -19,6 +19,7 @@
 
 embeds.xml
 cancelaura.xml
+StufLocale.lua
 core.lua
 infoCalc.lua
 bars.lua

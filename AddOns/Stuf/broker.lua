@@ -9,6 +9,13 @@
 
 local ICON_PATH = "Interface\\AddOns\\Stuf\\media\\logo.tga"
 
+-- Share StufLocale.lua's table (see core.lua); untranslated keys fall back to English.
+local L = setmetatable(StufLocalization or { }, {
+    __index = function(self, key)
+        return rawget(self, key) or key
+    end
+})
+
 ------------------------------------------------------------------------
 -- Wait for PLAYER_LOGIN so LibStub libs are all loaded
 
@@ -53,8 +60,8 @@ f:SetScript("OnEvent", function(self, event)
             end
         end
         -- Print confirmation in chat
-        local state = db.configmode and "|cff00ff00ON|r" or "|cffff4444OFF|r"
-        print("|cfffed100[Stuf]|r Config mode " .. state)
+        local state = db.configmode and ("|cff00ff00"..L["On"].."|r") or ("|cffff4444"..L["Off"].."|r")
+        print(L["|cff00ff00Stuf|r: "]..format(L["Config mode: %s"], state))
     end
 
     ----------------------------------------------------------------
@@ -66,7 +73,7 @@ f:SetScript("OnEvent", function(self, event)
         if Stuf.OpenOptions then
             Stuf:OpenOptions(Stuf.panel)
         else
-            print("|cfffed100[Stuf]|r |cffffffaaStuf_Options|r not found.")
+            print(L["|cff00ff00Stuf|r: "]..L["Stuf_Options not found."])
         end
     end
 
@@ -74,7 +81,7 @@ f:SetScript("OnEvent", function(self, event)
     -- Create the LDB data object
     local dataobj = LDB:NewDataObject("Stuf Unit Frames", {
         type  = "launcher",
-        label = "Stuf Unit Frames",
+        label = L["Stuf Unit Frames"],
         icon  = ICON_PATH,
 
         OnClick = function(self, button)
@@ -88,7 +95,7 @@ f:SetScript("OnEvent", function(self, event)
                             RunSlashCmd("/stufraid")
                         end
                     else
-                        print("|cfffed100[Stuf]|r |cffff4444StufRaid|r is not loaded.")
+                        print(L["|cff00ff00Stuf|r: "]..L["StufRaid is not loaded."])
                     end
                 else
                     OpenOptions()
@@ -99,12 +106,12 @@ f:SetScript("OnEvent", function(self, event)
         end,
 
         OnTooltipShow = function(tooltip)
-            tooltip:AddLine("|cfffed100Stuf|cffffffff Unit Frames")
+            tooltip:AddLine("|cfffed100"..L["Stuf Unit Frames"])
             tooltip:AddLine(" ")
-            tooltip:AddLine("|cffffffffLeft-click|r       Toggle config/drag mode")
-            tooltip:AddLine("|cffffffffRight-click|r      Open Stuf options")
+            tooltip:AddLine("|cffffffff"..L["Left-click"].."|r  "..L["Toggle config/drag mode"])
+            tooltip:AddLine("|cffffffff"..L["Right-click"].."|r  "..L["Open Stuf options"])
             if C_AddOns.IsAddOnLoaded("StufRaid") then
-                tooltip:AddLine("|cffffffffAlt+Right-click|r Open StufRaid config")
+                tooltip:AddLine("|cffffffff"..L["Alt+Right-click"].."|r  "..L["Open StufRaid config"])
             end
         end,
     })

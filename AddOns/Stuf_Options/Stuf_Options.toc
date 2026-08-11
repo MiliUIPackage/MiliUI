@@ -15,4 +15,5 @@
 ## IconTexture: Interface\Icons\inv_pet_riverotter_red
 
 embeds.xml
+Stuf_OptionsLocale.lua
 options.lua

@@ -83,28 +83,9 @@ StufLocalization = {
 }
 
 -- ============================================================
--- Spanish - Spain (esES)
+-- Spanish (esES / esMX — same translations)
 -- ============================================================
-elseif ( GetLocale() == "esES" ) then
-StufLocalization = {
-	["|cff00ff00Stuf|r: "] = "|cff00ff00Stuf|r: ",
-	["Cannot load Stuf while in combat."] = "No se puede cargar Stuf durante el combate.",
-	["Settings copied to this character."] = "Configuración copiada a este personaje.",
-	["Stuf_Options is required to initialize variables."] = "Se necesita Stuf_Options para inicializar las variables.",
-	["Stuf_Options not found."] = "Stuf_Options no encontrado.",
-	["%s is using version %s."] = "%s usa la versión %s.",
-	["Humanoid"] = "Humanoide",
-	["Stuf"] = "Stuf",
-	["Inspect"] = "Inspeccionar",
-	[" <Left-click> to inspect.\n"] = " <Clic izquierdo> para inspeccionar.\n",
-	[" <Middle-click> to note target.\n"] = " <Clic central> para anotar objetivo.\n",
-	[" <Right-click> to dressup."] = " <Clic derecho> para probarse.",
-}
-
--- ============================================================
--- Spanish - Latin America (esMX)
--- ============================================================
-elseif ( GetLocale() == "esMX" ) then
+elseif ( GetLocale() == "esES" or GetLocale() == "esMX" ) then
 StufLocalization = {
 	["|cff00ff00Stuf|r: "] = "|cff00ff00Stuf|r: ",
 	["Cannot load Stuf while in combat."] = "No se puede cargar Stuf durante el combate.",
@@ -173,8 +154,17 @@ StufLocalization = {
 	["Stuf"] = "Stuf頭像",
 	["Inspect"] = "快速互動",
 	[" <Left-click> to inspect.\n"] = " <左鍵> 觀察\n",
-	[" <Middle-click> to note target.\n"] = " <中鍵> 密語\n",
-	[" <Right-click> to dressup."] = " <右鍵> 交易\n <按鍵4> 跟隨",
+	[" <Middle-click> to note target.\n"] = " <中鍵> 記錄目標\n",
+	[" <Right-click> to dressup."] = " <右鍵> 試衣間",
+	-- --- MiliUI 12.1: broker.lua (LDB / 小地圖按鈕) ---
+	["Stuf Unit Frames"] = "Stuf頭像",
+	["Config mode: %s"] = "設定模式：%s",
+	["On"] = "開啟", ["Off"] = "關閉",
+	["StufRaid is not loaded."] = "StufRaid 尚未載入。",
+	["Left-click"] = "左鍵", ["Right-click"] = "右鍵", ["Alt+Right-click"] = "Alt+右鍵",
+	["Toggle config/drag mode"] = "切換設定/拖曳模式",
+	["Open Stuf options"] = "開啟 Stuf頭像 設定",
+	["Open StufRaid config"] = "開啟 StufRaid 設定",
 }
 
 -- ============================================================
@@ -192,7 +182,16 @@ StufLocalization = {
 	["Stuf"] = "Stuf头像",
 	["Inspect"] = "快速互动",
 	[" <Left-click> to inspect.\n"] = " <左键> 观察\n",
-	[" <Middle-click> to note target.\n"] = " <中键> 密语\n",
-	[" <Right-click> to dressup."] = " <右键> 交易\n <按键4> 跟随",
+	[" <Middle-click> to note target.\n"] = " <中键> 记录目标\n",
+	[" <Right-click> to dressup."] = " <右键> 试衣间",
+	-- --- MiliUI 12.1: broker.lua (LDB / 小地图按钮) ---
+	["Stuf Unit Frames"] = "Stuf头像",
+	["Config mode: %s"] = "设置模式：%s",
+	["On"] = "开启", ["Off"] = "关闭",
+	["StufRaid is not loaded."] = "StufRaid 尚未载入。",
+	["Left-click"] = "左键", ["Right-click"] = "右键", ["Alt+Right-click"] = "Alt+右键",
+	["Toggle config/drag mode"] = "切换设置/拖曳模式",
+	["Open Stuf options"] = "开启 Stuf头像 设置",
+	["Open StufRaid config"] = "开启 StufRaid 设置",
 }
 end
