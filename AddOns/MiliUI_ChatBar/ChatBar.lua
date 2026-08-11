@@ -21,7 +21,6 @@ local function InitDB()
     if cb.Locked            == nil then cb.Locked            = true         end
     if cb.Orientation       == nil then cb.Orientation       = "HORIZONTAL" end
     if cb.DBMPullSeconds    == nil then cb.DBMPullSeconds    = 10           end
-    if cb.SkipReloadConfirm == nil then cb.SkipReloadConfirm = false        end
     if cb.ButtonWidth       == nil then cb.ButtonWidth       = width        end
     if cb.ButtonHeight      == nil then cb.ButtonHeight      = height       end
     if cb.FontSize          == nil then cb.FontSize          = 9            end
@@ -39,17 +38,6 @@ local function CreateSD(parent)
     parent:SetBackdropColor(0, 0, 0, 0.5)
     parent:SetBackdropBorderColor(0, 0, 0, 1)
 end
-
-StaticPopupDialogs["MILIUI_CHATBAR_RELOAD"] = {
-    text = L["CONFIRM_RELOAD"],
-    button1 = YES,
-    button2 = NO,
-    OnAccept = function() ReloadUI() end,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3,
-}
 
 StaticPopupDialogs["MILIUI_CHATBAR_RESET_ALL"] = {
     text = L["CONFIRM_RESET_ALL"],
@@ -165,7 +153,29 @@ local AddColorKeyButton
 local AddRGBButton
 local UpdateFontSize
 local UpdateButtonSize
+local UpdateButtonVisibility
 local RefreshChannelList
+
+--------
+-- Availability
+--------
+-- 一顆按鈕「現在有沒有意義」由它自己的 isAvailable() 決定：沒隊伍就沒 /p、
+-- 沒公會就沒 /g、離開的頻道也算不可用。沒有 isAvailable 的按鈕永遠可用。
+-- 這個判斷同時餵給按鈕顯示與 Tab 循環，兩邊不會有落差。
+local function IsButtonAvailable(bu)
+    if bu.isAvailable then return bu.isAvailable() and true or false end
+    return true
+end
+
+-- 使用者在設定裡關掉的按鈕永遠不顯示；剩下的再看可用性。
+local function IsButtonVisible(bu)
+    local hidden = MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.Hidden
+    if hidden and hidden[bu.configKey] then return false end
+    return IsButtonAvailable(bu)
+end
+
+-- 動態頻道是否還在頻道列表裡（UpdateChannelButtons 每次重建）
+local channelActive = {}
 
 local function GetButtonWidth()
     return (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.ButtonWidth) or width
@@ -189,6 +199,20 @@ UpdateButtonSize = function()
     local bh = GetButtonHeight()
     for _, btn in ipairs(buttonList) do
         btn:SetSize(bw, bh)
+    end
+    UpdateLayout()
+end
+
+-- 單一入口：按鈕該不該出現，全部走 IsButtonVisible。
+-- 按鈕是 SecureActionButtonTemplate，戰鬥中不能動，PLAYER_REGEN_ENABLED 會補跑一次。
+UpdateButtonVisibility = function()
+    if InCombatLockdown() then return end
+    for _, bu in ipairs(buttonList) do
+        if IsButtonVisible(bu) then
+            bu:Show()
+        else
+            bu:Hide()
+        end
     end
     UpdateLayout()
 end
@@ -292,15 +316,17 @@ end
 --------
 
 -- SAY / YELL
-AddColorKeyButton("SAY", "SAY", SAY.."/"..YELL, L["SHORT_SAY"], function(_, btn)
+local sayBtn = AddColorKeyButton("SAY", "SAY", SAY.."/"..YELL, L["SHORT_SAY"], function(_, btn)
     if btn == "RightButton" then
         OpenChat("/y ")
     else
         OpenChat("/s ")
     end
 end, 10)
+sayBtn.tabChat = function() return "SAY" end
 
 -- WHISPER
+-- 刻意不給 tabChat：密語需要對象，Tab 循環時直接跳過。
 AddColorKeyButton("WHISPER", "WHISPER", WHISPER, L["SHORT_WHISPER"], function(_, btn)
     local chatFrame = SELECTED_DOCK_FRAME or DEFAULT_CHAT_FRAME
     if btn == "RightButton" then
@@ -316,25 +342,38 @@ AddColorKeyButton("WHISPER", "WHISPER", WHISPER, L["SHORT_WHISPER"], function(_,
 end, 11)
 
 -- PARTY
-AddColorKeyButton("PARTY", "PARTY", PARTY, L["SHORT_PARTY"], function() OpenChat("/p ") end, 12)
+local partyBtn = AddColorKeyButton("PARTY", "PARTY", PARTY, L["SHORT_PARTY"], function() OpenChat("/p ") end, 12)
+partyBtn.isAvailable = function() return IsInGroup() end
+partyBtn.tabChat = function() return "PARTY" end
 
 -- INSTANCE / RAID
-AddColorKeyButton("INSTANCE", "INSTANCE_CHAT", INSTANCE.."/"..RAID, L["SHORT_RAID"], function()
+local instanceBtn = AddColorKeyButton("INSTANCE", "INSTANCE_CHAT", INSTANCE.."/"..RAID, L["SHORT_RAID"], function()
     if IsPartyLFG() or IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
         OpenChat("/i ")
     else
         OpenChat("/raid ")
     end
 end, 13)
+local function InInstanceChat()
+    return IsPartyLFG() or IsInGroup(LE_PARTY_CATEGORY_INSTANCE)
+end
+-- /raid 只在團隊裡有意義，小隊狀態下這顆沒用
+instanceBtn.isAvailable = function() return InInstanceChat() or IsInRaid() end
+instanceBtn.tabChat = function()
+    if InInstanceChat() then return "INSTANCE_CHAT" end
+    return "RAID"
+end
 
 -- GUILD / OFFICER
-AddColorKeyButton("GUILD", "GUILD", GUILD.."/"..OFFICER, L["SHORT_GUILD"], function(_, btn)
+local guildBtn = AddColorKeyButton("GUILD", "GUILD", GUILD.."/"..OFFICER, L["SHORT_GUILD"], function(_, btn)
     if btn == "RightButton" and C_GuildInfo.CanEditOfficerNote() then -- Approximate check for officer
         OpenChat("/o ")
     else
         OpenChat("/g ")
     end
 end, 14)
+guildBtn.isAvailable = function() return IsInGuild() end
+guildBtn.tabChat = function() return "GUILD" end
 
 -- WORLD CHANNEL
 -- DYNAMIC CHANNELS
@@ -354,9 +393,9 @@ end
 
 -- DYNAMIC CHANNELS UPDATE
 local function UpdateChannelButtons()
-    -- Track channels present in this refresh; anything not in this set
-    -- gets hidden (we don't remove the frame, just keep it pooled).
-    local activeChannels = {}
+    -- Rebuild the "still joined" set; buttons for channels the user left stay
+    -- pooled but report themselves unavailable.
+    wipe(channelActive)
 
     -- Use Display Info (UI List) instead of raw Channel List
     local num = GetNumDisplayChannels()
@@ -366,33 +405,19 @@ local function UpdateChannelButtons()
         if not header and name and channelNumber then
             local label = GetFirstChar(name)
             local key = "CHANNEL"..channelNumber
-            activeChannels[key] = true
+            channelActive[key] = true
 
             -- UI index 'i' determines sort order (20+)
             local order = 20 + i
             local btn = AddColorKeyButton(key, key, name, label, function(_, btn)
                 OpenChat("/"..channelNumber.." ")
             end, order)
-
-            -- Ensure visibility if not hidden by DB
-            if MiliUI_ChatBar_DB.Chatbar.Hidden[key] then
-                if not InCombatLockdown() then btn:Hide() end
-            else
-                if not InCombatLockdown() then btn:Show() end
-            end
+            btn.tabChat = function() return "CHANNEL", channelNumber end
+            btn.isAvailable = function() return channelActive[key] == true end
         end
     end
 
-    -- Hide stale channel buttons (user left/channel removed)
-    for _, bu in ipairs(buttonList) do
-        if string.find(bu.configKey, "^CHANNEL") then
-            if not activeChannels[bu.configKey] then
-                if not InCombatLockdown() then bu:Hide() end
-            end
-        end
-    end
-
-    UpdateLayout()
+    UpdateButtonVisibility()
 end
 
 -- ROLL
@@ -442,12 +467,6 @@ ns.UpdateDBMButton = UpdateDBMButton
 -- Reset Instance
 local reset = AddColorKeyButton("RESET", "PARTY", L["TIP_RESET"], L["SHORT_RESET"], function(_, btn)
     if btn == "RightButton" then
-        if MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm then
-            ReloadUI()
-        else
-            StaticPopup_Show("MILIUI_CHATBAR_RELOAD")
-        end
-    elseif btn == "MiddleButton" then
         if SlashCmdList["COMBATLOG"] then
             SlashCmdList["COMBATLOG"]("")
         end
@@ -457,7 +476,92 @@ local reset = AddColorKeyButton("RESET", "PARTY", L["TIP_RESET"], L["SHORT_RESET
 end, 52)
 reset:RegisterForClicks("AnyUp")
 
+--------
+-- Tab 循環聊天頻道
+--------
+-- 聊天輸入框開啟時按 Tab，依照 ChatBar 上按鈕的排列順序輪流切換頻道標頭。
+-- 只吃「骰」之前的按鈕（order < 50），所以骰/開怪/重置那三顆功能鍵不參與；
+-- 密語沒有 tabChat（需要對象），同樣跳過。
+-- 隱藏起來的按鈕也不會出現在循環裡 —— 循環的就是看得到的那幾顆。
+local TAB_CYCLE_MAX_ORDER = 50  -- ROLL 的 order
 
+-- 循環清單就是「現在看得到的那幾顆」——同樣走 IsButtonVisible，
+-- 所以按鈕上沒有的頻道，Tab 也絕對切不到。
+local function BuildTabCycle()
+    local list = {}
+    for _, bu in ipairs(buttonList) do
+        if bu.tabChat and (bu.order or 99) < TAB_CYCLE_MAX_ORDER and IsButtonVisible(bu) then
+            local chatType, target = bu.tabChat()
+            if chatType then
+                table.insert(list, { order = bu.order or 99, chatType = chatType, target = target })
+            end
+        end
+    end
+    table.sort(list, function(a, b) return a.order < b.order end)
+    return list
+end
+
+local function ApplyChatType(editBox, entry)
+    editBox:SetAttribute("chatType", entry.chatType)
+    if entry.chatType == "CHANNEL" then
+        editBox:SetAttribute("channelTarget", entry.target)
+    end
+    ChatEdit_UpdateHeader(editBox)
+end
+
+local function CycleChatType(editBox, backwards)
+    local list = BuildTabCycle()
+    if #list == 0 then return false end
+
+    local curType   = editBox:GetAttribute("chatType")
+    local curTarget = editBox:GetAttribute("channelTarget")
+
+    local idx
+    for i, e in ipairs(list) do
+        if e.chatType == curType
+           and (e.chatType ~= "CHANNEL" or tostring(e.target) == tostring(curTarget)) then
+            idx = i
+            break
+        end
+    end
+
+    local nextIdx
+    if not idx then
+        -- 目前頻道不在循環內（密語、大喊…），直接跳到第一個
+        nextIdx = 1
+    elseif backwards then
+        nextIdx = (idx - 2) % #list + 1
+    else
+        nextIdx = idx % #list + 1
+    end
+
+    ApplyChatType(editBox, list[nextIdx])
+    return true
+end
+
+-- ChatEdit_CustomTabPressed 是 Blizzard 留給插件的覆寫點：
+-- 回傳 true 表示這次 Tab 已被處理，FrameXML 就不會再跑預設的循環／補完。
+-- 保留原本的實作往下串，才不會踩到其他也掛在這裡的插件（例如 AceTab）。
+local origCustomTabPressed = ChatEdit_CustomTabPressed
+function ChatEdit_CustomTabPressed(...)
+    local editBox = ...
+    if type(editBox) ~= "table" or not editBox.GetAttribute then
+        editBox = ChatEdit_GetActiveWindow()
+    end
+
+    if editBox then
+        -- 斜線指令留給暴雪的指令補完，不搶
+        local text = editBox:GetText() or ""
+        if string.sub(text, 1, 1) ~= "/" then
+            if CycleChatType(editBox, IsShiftKeyDown()) then
+                return true
+            end
+        end
+    end
+
+    if origCustomTabPressed then return origCustomTabPressed(...) end
+    return false
+end
 
 -- Background styling
 local bgFrame = CreateFrame("Frame", nil, Chatbar)
@@ -651,6 +755,9 @@ loader:RegisterEvent("PLAYER_ENTERING_WORLD") -- For zone changes
 loader:RegisterEvent("UPDATE_CHAT_WINDOWS")
 loader:RegisterEvent("CHANNEL_FLAGS_UPDATED")
 loader:RegisterEvent("PLAYER_REGEN_ENABLED")
+-- 隊伍 / 公會狀態改變 → 隊、團/副、公 這幾顆的可用性跟著變
+loader:RegisterEvent("GROUP_ROSTER_UPDATE")
+loader:RegisterEvent("PLAYER_GUILD_UPDATE")
 
 
 -- Throttled Update to prevent massive spam on login/zone change
@@ -687,8 +794,14 @@ loader:SetScript("OnEvent", function(self, event)
         return
     end
 
+    -- 離開戰鬥後補跑：戰鬥中被擋掉的顯示變更在這裡補上
     if event == "PLAYER_REGEN_ENABLED" then
-        UpdateLayout()
+        UpdateButtonVisibility()
+        return
+    end
+
+    if event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_GUILD_UPDATE" then
+        UpdateButtonVisibility()
         return
     end
 
@@ -696,16 +809,9 @@ loader:SetScript("OnEvent", function(self, event)
 
     -- Apply lock state (respects Edit Mode)
     UpdateMoverState()
-    
-    -- Update colors and visibility
+
+    -- Update colors
     for _, bu in ipairs(buttonList) do
-        -- Visibility
-        if MiliUI_ChatBar_DB.Chatbar.Hidden[bu.configKey] then
-            bu:Hide()
-        else
-            bu:Show()
-        end
-        
         -- Colors
         if bu.colorKey then
             local c = ChatTypeInfo[bu.colorKey]
@@ -722,9 +828,9 @@ loader:SetScript("OnEvent", function(self, event)
             if bu.fs then bu.fs:SetTextColor(cc.r, cc.g, cc.b) end
         end
     end
-    
-    UpdateLayout()
-    
+
+    UpdateButtonVisibility()
+
     -- Request update on login as well
     RequestChannelUpdate(true)
     
@@ -1068,26 +1174,6 @@ end)
 channelContainer.dbmSlider = dbmSlider
 channelContainer.dbmSliderDesc = dbmSliderDesc
 
--- Skip Reload Confirmation Checkbox (positioned below RESET in RefreshChannelList)
-local skipReloadCheck = CreateFrame("CheckButton", nil, channelContainer, "UICheckButtonTemplate")
-skipReloadCheck.Text = skipReloadCheck:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-skipReloadCheck.Text:SetPoint("LEFT", skipReloadCheck, "RIGHT", 5, 0)
-skipReloadCheck.Text:SetText(L["SKIP_RELOAD_CONFIRM"])
-skipReloadCheck:Hide()
-
-skipReloadCheck:SetScript("OnShow", function(self)
-    local val = MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm
-    self:SetChecked(val)
-end)
-
-skipReloadCheck:SetScript("OnClick", function(self)
-    InitDB()
-    MiliUI_ChatBar_DB.Chatbar.SkipReloadConfirm = self:GetChecked() and true or false
-end)
-
-channelContainer.skipReloadCheck = skipReloadCheck
-
-
 -- Helper for Color Picker
 local function ShowColorPicker(r, g, b, callback)
     if ColorPickerFrame.SetupColorPickerAndShow then 
@@ -1142,9 +1228,6 @@ RefreshChannelList = function()
             if prevButton and prevButton.configKey == "DBM" and channelContainer.dbmSlider then
                 -- Position below the slider instead of the checkbox
                 ck:SetPoint("TOPLEFT", channelContainer.dbmSlider, "BOTTOMLEFT", -20, -12)
-            elseif prevButton and prevButton.configKey == "RESET" and channelContainer.skipReloadCheck then
-                -- Position below the skip reload checkbox
-                ck:SetPoint("TOPLEFT", channelContainer.skipReloadCheck, "BOTTOMLEFT", -20, -2)
             else
                 ck:SetPoint("TOPLEFT", channelContainer.checks[i-1], "BOTTOMLEFT", 0, -2)
             end
@@ -1161,16 +1244,15 @@ RefreshChannelList = function()
         local isHidden = MiliUI_ChatBar_DB.Chatbar.Hidden[bu.configKey]
         ck:SetChecked(not isHidden)
         
+        -- 勾選框代表「使用者要不要這顆」，實際顯示還要過可用性那關，
+        -- 所以打勾但沒隊伍時，隊按鈕仍然不會出現。
         ck:SetScript("OnClick", function(self)
-            local isShown = self:GetChecked()
-            if isShown then
+            if self:GetChecked() then
                 MiliUI_ChatBar_DB.Chatbar.Hidden[bu.configKey] = nil
-                if not InCombatLockdown() then bu:Show() end
             else
                 MiliUI_ChatBar_DB.Chatbar.Hidden[bu.configKey] = true
-                if not InCombatLockdown() then bu:Hide() end
             end
-            UpdateLayout()
+            UpdateButtonVisibility()
         end)
         
         ck:Show()
@@ -1220,16 +1302,6 @@ RefreshChannelList = function()
             -- Trigger OnShow to refresh value
             if channelContainer.dbmSlider:GetScript("OnShow") then
                 channelContainer.dbmSlider:GetScript("OnShow")(channelContainer.dbmSlider)
-            end
-        end
-
-        -- Skip Reload Confirmation checkbox positioning (below RESET checkbox)
-        if bu.configKey == "RESET" then
-            channelContainer.skipReloadCheck:ClearAllPoints()
-            channelContainer.skipReloadCheck:SetPoint("TOPLEFT", ck, "BOTTOMLEFT", 20, -2)
-            channelContainer.skipReloadCheck:Show()
-            if channelContainer.skipReloadCheck:GetScript("OnShow") then
-                channelContainer.skipReloadCheck:GetScript("OnShow")(channelContainer.skipReloadCheck)
             end
         end
     end

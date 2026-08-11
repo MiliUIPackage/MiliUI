@@ -82,17 +82,11 @@ L["SHORT_RESET"] = "Rs"
 -- Tooltips
 L["TIP_DBM"] = "Left: Confirm | Middle: Pull 5s | Right: Pull 10s"
 L["TIP_DBM_FORMAT"] = "Left: Confirm | Middle: Pull 5s | Right: Pull %ds"
-L["TIP_RESET"] = "Left: Reset Instance | Middle: Combat Log | Right: Reload UI"
+L["TIP_RESET"] = "Left: Reset Instance | Right: Combat Log"
 
 -- Pull Timer (native countdown)
 L["DBM_PULL_SECONDS"] = "Pull Countdown Seconds"
 L["DBM_PULL_SECONDS_DESC"] = "Set the countdown seconds for the pull timer (right-click)"
-
--- Dialogs
-L["CONFIRM_RELOAD"] = "Are you sure you want to reload the UI?"
-
--- Skip Reload Confirm
-L["SKIP_RELOAD_CONFIRM"] = "Skip reload confirmation"
 
 
 
