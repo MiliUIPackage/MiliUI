@@ -29,6 +29,7 @@
     <Script file="About\About.lua"/>
     <Script file="About\ImportExport.lua"/>
     <Script file="About\Backup.lua"/>
+    <Script file="About\Notice.lua"/>
     <Script file="About\Changelogs.lua"/>
     <Script file="About\CodeSnippets.lua"/>
 </Ui>
