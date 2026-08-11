@@ -9,7 +9,7 @@ local _, BR = ...
 -- set once and never removed), and `BR.aceDB.global.seenVersions` is the set of
 -- cohorts the user has acknowledged. Something is "new" purely by set
 -- membership - no version comparison, so it is robust against the
--- v6.3.2 package token and prerelease suffixes.
+-- v6.4.0-alpha1 package token and prerelease suffixes.
 --
 -- Sources declare what's new by registering entries:
 --   { cohort = "6.4.0", pageId = "visibility", key? = "someControl" }

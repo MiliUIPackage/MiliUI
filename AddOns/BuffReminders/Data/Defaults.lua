@@ -57,6 +57,22 @@ BR.defaults = {
         hide = true,
     },
 
+    -- Externals: a present-based display, the inverse of the reminder pipeline.
+    -- Rendered by Blizzard via an AuraContainer, so it works for auras the addon is
+    -- not allowed to read (docs/SecretValues.md #3.9). Purely additive schema -
+    -- DeepCopyDefault seeds it, so no migration is needed.
+    externals = {
+        enabled = false,
+        position = { point = "CENTER", x = 0, y = -180 },
+        iconSize = 40,
+        iconZoom = 0,
+        borderSize = 2,
+        iconAlpha = 1,
+        spacing = 4, -- absolute px (Blizzard's elementSpacing), not an iconSize multiplier
+        durationSize = 16, -- countdown text, centered on the icon
+        entries = {}, -- [Data/Externals.lua key] = true
+    },
+
     -- Global defaults (inherited by categories unless overridden)
     ---@type DefaultSettings
     defaults = {

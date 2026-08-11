@@ -124,7 +124,7 @@ local function Build(content, scrollFrame)
 end
 
 BR.Options.Pages.allBuffs = {
-    title = L["Page.AllBuffs"],
+    title = L["Page.Reminders"],
     Build = Build,
 }
 

@@ -1,16 +1,23 @@
-## Interface: 120007, 120100
+## Interface: 120100
+# WOW_INTERFACE_TARGETS: mainline
 ## Title: BuffReminders
 ## Notes: Track missing buffs at a glance
 ## Author: zerbi
-## Version: v6.3.2
+## Version: v6.4.0-alpha1
 ## SavedVariables: BuffRemindersDB
 ## X-Curse-Project-ID: 1441094
 ## X-Wago-ID: qGYZZjNg
 ## OptionalDeps: Masque, LibCustomGlow-1.0
 ## IconTexture: Interface\AddOns\BuffReminders\icon.tga
 ## Category: Buffs & Debuffs
-## Title-zhTW: |cffFF2D2D[戰鬥]|r 增益提醒
-## Notes-zhTW: nBuffReminders |n|讓玩家快速掌握自己或隊伍缺少的增益效果，並提供直覺的提醒方式，延續了團隊增益追蹤的便利性。|n|cffffd200使用方法：|r從Esc>選項>插件>增益提醒，進行設定。
+## Category-deDE: Buffs & Debuffs
+## Category-esES: Beneficios y Perjuicios
+## Category-esMX: Beneficios y Perjuicios
+## Category-frFR: Améliorations et Affaiblissements
+## Category-itIT: Benefici e penalità
+## Category-koKR: 버프 및 디버프
+## Category-ptBR: Bônus e Penalidades
+## Category-ruRU: Баффы и дебаффы
 ## Category-zhCN: 增益和减益
 ## Category-zhTW: 增益與減益
 
@@ -30,6 +37,14 @@ Libs\LibDualSpec-1.0\LibDualSpec-1.0.lua
 Libs\LibSpecialization\LibSpecialization.lua
 
 Locales\enUS.lua
+Locales\deDE.lua
+Locales\esES.lua
+Locales\esMX.lua
+Locales\frFR.lua
+Locales\itIT.lua
+Locales\koKR.lua
+Locales\ptBR.lua
+Locales\ruRU.lua
 Locales\zhCN.lua
 Locales\zhTW.lua
 
@@ -43,6 +58,7 @@ Data\Beneficiaries.lua
 Data\AuraWhitelist.lua
 Data\ConsumableItems.lua
 Data\Pets.lua
+Data\Externals.lua
 Core\ChatRequest.lua
 Core\ConsumableMemory.lua
 Core\TargetMemory.lua
@@ -55,6 +71,7 @@ Display\Display.lua
 Core\ImportExport.lua
 Display\Movers.lua
 Display\SecureButtons.lua
+Display\AuraTracker.lua
 Core\Bootstrap.lua
 Options\Context.lua
 Options\WhatsNew.lua
@@ -80,10 +97,12 @@ Options\Pages\Buffs\Sections\ItemDisplay.lua
 Options\Pages\Buffs\Sections\Timing.lua
 Options\Pages\Buffs\Sections\Layout.lua
 Options\Pages\Buffs\Sections\CustomAppearance.lua
+Options\Pages\Buffs\Sections\ExternalsAppearance.lua
 Options\Pages\Buffs\_BuffRow.lua
 Options\Pages\Buffs\_Template.lua
 Options\Pages\Buffs\AllBuffs.lua
 Options\Pages\Buffs\Categories.lua
 Options\Pages\Buffs\Custom.lua
 Options\Pages\Buffs\Loadout.lua
+Options\Pages\Externals.lua
 Options\Frame.lua

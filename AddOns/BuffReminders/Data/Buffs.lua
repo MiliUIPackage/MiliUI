@@ -14,8 +14,9 @@ local REPAIR_LABEL = L["Overlay.RepairLabel"]
 local GetSpellTexture = C_Spell.GetSpellTexture
 local _, playerClass = UnitClass("player")
 
--- Secret-safe read helper (see Core.lua / docs/SecretValues.md)
+-- Secret-safe read helpers (see Core.lua / docs/SecretValues.md)
 local AuraField = BR.Secret.AuraField
+local Plain = BR.Secret.Plain
 
 -- ============================================================================
 -- BUFF DATA TABLES
@@ -623,7 +624,9 @@ BR.BUFF_TABLES = {
                     for i = 1, numMembers do
                         local unitId = prefix .. i
                         if UnitExists(unitId) and not UnitIsDeadOrGhost(unitId) then
-                            if UnitGroupRolesAssigned(unitId) == "HEALER" then
+                            -- Runs inside the secure button's PreClick, i.e. in combat,
+                            -- where a secret role would throw on compare
+                            if Plain(UnitGroupRolesAssigned(unitId)) == "HEALER" then
                                 local healerName = GetUnitName(unitId, true)
                                 if healerName then
                                     return "/cast [@"

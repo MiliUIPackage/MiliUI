@@ -346,7 +346,7 @@ local currentWeaponEnchants = {
 -- already-active buff on an unreachable ally still registers as covered.
 -- Counting paths apply a "phased + missing -> skip" rule to keep unfixable gaps
 -- out of the missing math; presence/targeted scans just iterate everyone.
----@type {unit: string, class: string, isPlayer: boolean, name: string?, isPhased: boolean}[]
+---@type {unit: string, class: string?, isPlayer: boolean, name: string?, isPhased: boolean}[]
 local currentValidUnits = {}
 
 -- "Are we effectively alone?" snapshot from the most recent BuildValidUnitCache().
@@ -361,6 +361,18 @@ local cachedHealerInGroup = nil
 -- Spec cache: playerName -> specId (populated by LibSpecialization callbacks for allies,
 -- and by BuildValidUnitCache for the local player via GetPlayerSpecId())
 local allySpecCache = {}
+
+-- Last class / role seen as a plain value, per group member name. UnitClass and
+-- UnitGroupRolesAssigned return secrets once a unit's identity is secret, so these
+-- carry the value across restricted contexts. Pruned with allySpecCache.
+---@type table<string, string>
+local allyClassCache = {}
+---@type table<string, string>
+local allyRoleCache = {}
+
+-- Every name-keyed ally cache, so roster pruning walks one list. Holds references:
+-- clear any of them with wipe(), never by reassigning.
+local nameKeyedAllyCaches = { allySpecCache, allyClassCache, allyRoleCache }
 
 -- Whether NPCs should be included in buff counting for the current refresh cycle.
 -- True in follower dungeons and delves where NPC companions can receive buffs.
@@ -508,17 +520,17 @@ end
 local activeNames = {}
 
 -- Pool of reusable unit entry tables (avoids creating new tables each refresh)
----@type {unit: string, class: string, isPlayer: boolean, name: string?, isPhased: boolean}[]
+---@type {unit: string, class: string?, isPlayer: boolean, name: string?, isPhased: boolean}[]
 local unitEntryPool = {}
 local unitEntryPoolSize = 0
 
 ---Get a unit entry from the pool or create a new one
 ---@param unit string
----@param class string
+---@param class string? nil when the class read came back secret with nothing cached
 ---@param isPlayer boolean
 ---@param name string?
 ---@param isPhased boolean True when the unit is in another phase or out of broadcast range
----@return {unit: string, class: string, isPlayer: boolean, name: string?, isPhased: boolean}
+---@return {unit: string, class: string?, isPlayer: boolean, name: string?, isPhased: boolean}
 local function AcquireUnitEntry(unit, class, isPlayer, name, isPhased)
     local entry
     if unitEntryPoolSize > 0 then
@@ -681,7 +693,9 @@ end
 ---@param unit string
 ---@return boolean
 local function IsUnitPhased(unit)
-    return not UnitIsVisible(unit) or UnitPhaseReason(unit) ~= nil
+    -- A secret phase reason reads as "not phased": it is non-nil, so an unguarded
+    -- compare would mark every member phased and drop them from the missing math
+    return not UnitIsVisible(unit) or Plain(UnitPhaseReason(unit)) ~= nil
 end
 
 ---Check if a unit benefits from a buff using spec (preferred) or class (fallback)
@@ -754,7 +768,17 @@ local function BuildValidUnitCache()
                 activeNames[name] = true
             end
             if IsValidBuffTarget(unit) then
+                -- class is used as a table key downstream (beneficiaries, per-class
+                -- spell variants, classMaxLevels) and a secret key throws
                 local _, class = UnitClass(unit)
+                class = Plain(class)
+                if name then
+                    if class then
+                        allyClassCache[name] = class
+                    else
+                        class = allyClassCache[name]
+                    end
+                end
                 local isPlayer = UnitIsPlayer(unit)
                 local isPhased = IsUnitPhased(unit)
                 currentValidUnits[#currentValidUnits + 1] = AcquireUnitEntry(unit, class, isPlayer, name, isPhased)
@@ -1500,6 +1524,24 @@ local function HasPresenceBuff(spellIDs, playerOnly, playerCastOnly)
     return found, minRemaining, targetEntry
 end
 
+---Assigned role of a group member, or nil when it can't be resolved. A secret role
+---(secret unit identity) would throw on compare, so it reads through Plain and falls
+---back to the last plain value seen for this name.
+---@param data {unit: string, name: string?}
+---@return string?
+local function GetUnitRole(data)
+    local role = Plain(UnitGroupRolesAssigned(data.unit))
+    if not data.name then
+        return role
+    end
+    if role then
+        allyRoleCache[data.name] = role
+    else
+        role = allyRoleCache[data.name]
+    end
+    return role
+end
+
 ---Check if player's buff is active on anyone in the group
 ---Uses currentValidUnits cache built at start of refresh cycle
 ---@param spellID number
@@ -1514,7 +1556,7 @@ local function IsPlayerBuffActive(spellID, role)
     for _, data in ipairs(currentValidUnits) do
         -- Skip NPCs in content where they can't receive player buffs
         if data.isPlayer or includeNPCsInCounting then
-            if not role or UnitGroupRolesAssigned(data.unit) == role then
+            if not role or GetUnitRole(data) == role then
                 hasBeneficiary = true
                 local hasBuff, remaining, sourceUnit = UnitHasBuff(data.unit, spellID)
                 if hasBuff then
@@ -2863,8 +2905,8 @@ end
 ---Whether any group member is assigned the HEALER role (cached; invalidated on
 ---roster / role-assignment events). The sole caller is the refreshment-table
 ---reminder's customCheck, which returns on its isRestricted guard before reaching
----here, so the UnitGroupRolesAssigned scan only ever runs out of restricted
----contexts where roles are plain - caching adds no secret-value exposure.
+---here, so the scan only ever runs out of restricted contexts where roles are
+---plain - the Plain guard is belt-and-suspenders for a future caller.
 ---@return boolean
 function BuffState.HasHealerInGroup()
     if cachedHealerInGroup ~= nil then
@@ -2876,7 +2918,7 @@ function BuffState.HasHealerInGroup()
         local inRaid = IsInRaid()
         for i = 1, num do
             local unit = inRaid and ("raid" .. i) or (i == 1 and "player" or "party" .. (i - 1))
-            if UnitExists(unit) and UnitGroupRolesAssigned(unit) == "HEALER" then
+            if UnitExists(unit) and Plain(UnitGroupRolesAssigned(unit)) == "HEALER" then
                 result = true
                 break
             end
@@ -3359,21 +3401,20 @@ function BuffState.InvalidateStanceCache()
 end
 
 -- ============================================================================
--- LIBSPECIALIZATION INTEGRATION
+-- ALLY CACHE PRUNING
 -- ============================================================================
--- Caches ally spec IDs received via LibSpecialization addon comms.
--- When data is unavailable (lib missing, ally not broadcasting), CountMissingBuff
--- falls back to class-based BuffBeneficiaries automatically.
+-- Drops spec / class / role for players who left the group. Pruning on the roster
+-- event rather than per refresh keeps it out of combat, where a transiently
+-- unresolved name would evict a member the class/role fallback still needs.
 
-if LibSpec then
+do
     local GetUnitName = GetUnitName
     local IsInRaid = IsInRaid
     local GetNumGroupMembers = GetNumGroupMembers
 
-    -- Prune stale entries when group roster changes
-    local specFrame = CreateFrame("Frame")
-    specFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
-    specFrame:SetScript("OnEvent", function()
+    local rosterFrame = CreateFrame("Frame")
+    rosterFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+    rosterFrame:SetScript("OnEvent", function()
         -- Build set of current group member names
         local currentNames = {}
         currentNames[playerName] = true
@@ -3392,14 +3433,24 @@ if LibSpec then
                 end
             end
         end
-        -- Remove specs for players no longer in group
-        for name in pairs(allySpecCache) do
-            if not currentNames[name] then
-                allySpecCache[name] = nil
+        for _, cache in ipairs(nameKeyedAllyCaches) do
+            for name in pairs(cache) do
+                if not currentNames[name] then
+                    cache[name] = nil
+                end
             end
         end
     end)
+end
 
+-- ============================================================================
+-- LIBSPECIALIZATION INTEGRATION
+-- ============================================================================
+-- Caches ally spec IDs received via LibSpecialization addon comms.
+-- When data is unavailable (lib missing, ally not broadcasting), CountMissingBuff
+-- falls back to class-based BuffBeneficiaries automatically.
+
+if LibSpec then
     -- Register for group spec broadcasts
     local callbackTable = {}
     LibSpec.RegisterGroup(callbackTable, function(specId, _role, _position, sender, _talentString)

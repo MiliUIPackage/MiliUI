@@ -273,6 +273,10 @@ function BR.Profiles.RefreshAfterProfileChange()
     registry:TriggerEvent("VisualsRefresh")
     registry:TriggerEvent("LayoutRefresh")
     registry:TriggerEvent("DisplayRefresh")
+    -- Explicit rather than relying on the externals display's VisualsRefresh
+    -- subscription (which exists only to propagate font changes): its enabled flag,
+    -- entry set, position and sizing are all per-profile.
+    registry:TriggerEvent("ExternalsRefresh")
 
     -- Re-sort consumable cache (remembered items and legacy filter may differ between profiles)
     if BR.SecureButtons and BR.SecureButtons.InvalidateConsumableCache then

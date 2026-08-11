@@ -65,8 +65,11 @@ BR.Options.Constants = {
 BR.Options.Groups = {
     {
         id = "buffs",
-        titleKey = "Sidebar.BuffsReminders",
-        pages = { "allBuffs", "custom", "loadout" },
+        titleKey = "Sidebar.Buffs",
+        -- Externals last: the three pages before it configure reminders (what's
+        -- MISSING), and it is the inverse (what you RECEIVE). Keeping the reminder
+        -- pages contiguous is what makes the two functionalities read as distinct.
+        pages = { "allBuffs", "custom", "loadout", "externals" },
     },
     {
         id = "appearance",

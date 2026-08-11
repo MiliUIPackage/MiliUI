@@ -3556,6 +3556,10 @@ local function SetFrameLocked(locked)
     else
         BR.Movers.UpdateAnchor()
     end
+    -- External buffs sit outside the category/mover system but share the same lock.
+    if BR.AuraTracker then
+        BR.AuraTracker.SetUnlocked(not locked)
+    end
 end
 
 -- Toggle lock state: when unlocked, show mover frames for dragging

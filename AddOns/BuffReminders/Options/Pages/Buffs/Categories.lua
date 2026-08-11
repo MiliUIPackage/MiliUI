@@ -19,8 +19,21 @@ local COL_PADDING = BR.Options.Constants.COL_PADDING
 local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 local SCROLLBAR_WIDTH = BR.Options.Constants.SCROLLBAR_WIDTH
 
-local TAB_CATEGORIES = BR.CATEGORY_ORDER
+-- Externals is not in CATEGORY_ORDER - that list drives frame creation, default
+-- seeding and the visibility matrix, none of which apply to a Blizzard-rendered
+-- container. It is appended here so its appearance still lives where every other
+-- category's does, and its tab body comes from a standalone section rather than
+-- the shared template.
+local EXTERNALS_TAB = "externals"
+local TAB_CATEGORIES = {}
+for _, cat in ipairs(BR.CATEGORY_ORDER) do
+    TAB_CATEGORIES[#TAB_CATEGORIES + 1] = cat
+end
+TAB_CATEGORIES[#TAB_CATEGORIES + 1] = EXTERNALS_TAB
+
 local TAB_STRIP_H = 26
+-- Bottom padding the terminal appearance section leaves under the tab body.
+local APPEARANCE_PADDING = 16
 -- How far below the content top the tab strip sits (positive magnitude, matching
 -- every other page's top padding). PAGE_TOP_PADDING is negative, so negate it.
 local STRIP_TOP = -PAGE_TOP_PADDING
@@ -38,6 +51,7 @@ local function Build(content, scrollFrame)
         utility = L["Category.Utility"],
         custom = L["Category.Custom"],
         loadout = L["Category.Loadout"],
+        externals = L["Externals.Title"],
     }
 
     local tabs = {}
@@ -55,11 +69,27 @@ local function Build(content, scrollFrame)
         local frame = CreateFrame("Frame", nil, content)
         frame:SetPoint("TOPLEFT", 0, -(STRIP_TOP + TAB_STRIP_H))
         frame:SetSize(contentWidth, 400)
-        -- Every tab is built by the same template - it decides which sections
-        -- the category gets (custom/loadout collapse to styling only). The
+
+        -- Externals are not a category, so the shared template has nothing to
+        -- compose for them: this section IS the tab body, and it honours the same
+        -- terminal-section contract (sizes the tab frame, then notifies the page).
+        if cat == EXTERNALS_TAB then
+            local layout = Components.VerticalLayout(frame, { x = COL_PADDING, y = PAGE_TOP_PADDING })
+            BR.Options.BuffSections.ExternalsAppearance({
+                content = frame,
+                scrollFrame = scrollFrame,
+                contentWidth = contentWidth,
+                appearancePadding = APPEARANCE_PADDING,
+                onAppearanceResize = UpdatePageHeight,
+            }, layout)
+            return frame
+        end
+
+        -- Every category tab is built by the same template - it decides which
+        -- sections the category gets (custom/loadout collapse to styling only). The
         -- resize hooks let CustomAppearance size the tab frame and grow the page.
         BR.Options.Pages.BuffTemplate.Build(frame, scrollFrame, cat, {
-            appearancePadding = 16,
+            appearancePadding = APPEARANCE_PADDING,
             onAppearanceResize = UpdatePageHeight,
         })
         return frame

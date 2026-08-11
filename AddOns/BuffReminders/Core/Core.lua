@@ -205,6 +205,7 @@ CallbackRegistry:GenerateCallbackEvents({
     "FramesReparent", -- Fired when frames need reparenting (split category change)
     "VisibilityRefresh", -- Fired when visibility toggles change (hide-when, show-only-in-group)
     "BuffStateChanged", -- Fired when buff state entries are recomputed
+    "ExternalsRefresh", -- Fired when the externals display needs reconfiguring
 })
 BR.CallbackRegistry = CallbackRegistry
 
@@ -450,6 +451,10 @@ local DynamicRoots = {
     readyCheckOnlyOverrides = "DisplayRefresh",
     detachedIcons = "FramesReparent",
     loadoutReminders = "DisplayRefresh",
+    -- One event for the whole subtree: AuraButton styling is creation-window-only,
+    -- so every externals change (appearance or entry set) takes the same
+    -- reconfigure-or-defer path anyway. No point in finer-grained refresh types.
+    externals = "ExternalsRefresh",
 }
 
 ---Check if a config path is valid

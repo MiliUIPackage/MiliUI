@@ -322,6 +322,8 @@ english["Display.LoginFirstInstall"] =
     "Thanks for installing! Type |cFFFFD100/br unlock|r to move the buff display, or use the button at the bottom of the |cFFFFD100/br|r options panel."
 english["Display.LoginSnooze"] =
     "The consumable dismiss button is now a right-click: right-click a consumable to snooze its reminders, or type |cFFFFD100/br snooze|r."
+english["Display.LoginExternals"] =
+    "New: |cFFFFD100External Buffs|r shows Power Infusion, Bloodlust, externals and Augmentation buffs while they are on you - and keeps working in combat. Turn it on under |cFFFFD100/br|r > Buffs > External Buffs."
 
 -- ============================================================================
 -- OPTIONS: NAVIGATION LABELS
@@ -330,10 +332,29 @@ english["Tab.DisplayBehavior"] = "Display/Behavior"
 
 -- Sidebar groups
 english["Sidebar.AddonSettings"] = "Addon Settings"
-english["Sidebar.BuffsReminders"] = "Buffs & Reminders"
+english["Sidebar.Buffs"] = "Buffs"
 english["Sidebar.Appearance"] = "Appearance"
 english["Sidebar.Display"] = "Display"
 english["Sidebar.Alerts"] = "Alerts"
+-- Externals (present-based display)
+english["Externals.Title"] = "External Buffs"
+english["Externals.PageNote"] =
+    "The game marks these buffs secret and draws the icons itself, so the addon never sees their data. That is why they stay visible in combat - and why only buffs on you can be shown, with nothing to customize beyond size and spacing."
+english["Externals.Enable"] = "Enable external buffs"
+english["Externals.EnableTooltip"] = "Show a row of icons for the buffs selected below while they are active on you."
+english["Externals.DisabledReason"] = "Enable external buffs first."
+english["Externals.EnableElsewhere"] = "Enable external buffs on the Buffs > External Buffs page first."
+english["Externals.Defensives"] = "External Defensives"
+english["Externals.GroupBuffs"] = "Group Buffs"
+english["Externals.Augmentation"] = "Augmentation"
+-- Groups Bloodlust/Heroism/Time Warp/Fury of the Aspects/Primal Rage/Ancient Hysteria
+english["Externals.Bloodlust"] = "Bloodlust"
+english["Externals.MoverTooltip"] = "Drag to reposition"
+english["Externals.DurationSize"] = "Countdown size"
+english["Externals.Appearance"] = "Appearance"
+english["Externals.AppearanceNote"] =
+    "While these buffs are secret the game forbids restyling their icons, so changes made in combat apply as soon as you leave it. Unlock the frames to drag the row."
+english["Externals.MasqueNote"] = "Masque cannot skin these icons: their size reads back as a secret value."
 
 -- Page titles
 english["Page.General"] = "General"
@@ -343,7 +364,7 @@ english["Page.ChatRequests"] = "Chat Requests"
 english["Page.Layout"] = "Layout"
 english["Page.Categories"] = "Categories"
 english["Page.Profiles"] = "Profiles"
-english["Page.AllBuffs"] = "All Buffs"
+english["Page.Reminders"] = "Reminders"
 
 -- Per-category page section headers
 english["Section.Tracking"] = "Tracking"
@@ -671,7 +692,7 @@ english["Layout.SplitFrames.Note"] =
 english["Layout.NoSplitFrames"] = "No categories are split into their own frame."
 english["Layout.DetachedIcons"] = "Detached Icons"
 english["Layout.NoDetached"] =
-    'No detached icons. Detach a buff from its settings panel on the All Buffs page ("Own frame").'
+    'No detached icons. Detach a buff from its settings panel on the Reminders page ("Own frame").'
 english["Layout.AnchorTargets"] = "Anchor Targets"
 english["Layout.AnchorFrame.Desc"] = "Attach this frame to another frame instead of a fixed screen position."
 english["Layout.AnchorPoint.Desc"] = "Which corner or edge of the anchor frame to attach to."
