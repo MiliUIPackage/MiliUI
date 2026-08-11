@@ -1,4 +1,4 @@
-## Interface: 120007
+## Interface: 120007, 120100
 ## Title: Postal
 ## Version: v4.2.0
 ## X-Build: 634

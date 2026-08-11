@@ -1,4 +1,4 @@
-## Interface: 11508, 40402, 120007, 50503, 50504, 20505, 38001
+## Interface: 11508, 40402, 120007, 120100, 50503, 50504, 20505, 38001
 ## Title: Method Raid Tools
 ## Author: ykiigor
 ## Notes: Method Raid Tools

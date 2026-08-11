@@ -1,4 +1,4 @@
-## Interface: 120007
+## Interface: 120007, 120100
 ## Title: TinyInspect-Remake
 ## Version: v1.4.0
 ## LastUpdated: 2025-05-04

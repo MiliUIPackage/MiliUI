@@ -1,4 +1,4 @@
-## Interface: 120007
+## Interface: 120007, 120100
 ## Title: HandyNotes: Midnight
 ## Version: 144
 ## Notes: Midnight Notes

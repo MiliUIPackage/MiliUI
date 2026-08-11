@@ -1,4 +1,4 @@
-## Interface: 120007
+## Interface: 120007, 120100
 ## Title: MiliUI Burst Potion Helper
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 爆發藥水助手
 ## Title-zhCN: |cff4488FF[MiliUI]|r 爆发药水助手

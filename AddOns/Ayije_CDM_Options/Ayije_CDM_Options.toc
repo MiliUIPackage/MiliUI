@@ -1,4 +1,4 @@
-## Interface: 120005, 120007
+## Interface: 120005, 120007, 120100
 ## Title: |cFF3bb273Ayije_CDM|r Options
 ## Notes: Cooldown Manager Options UI
 ## Author: Ayije
