@@ -29,14 +29,24 @@ local GetRealmName = GetRealmName
 -- 讀 TOC 版本號
 local function ReadVersion()
     local meta = C_AddOns and C_AddOns.GetAddOnMetadata
-    if not meta then return 0 end
+    if not meta then return 0, nil end
     local v = meta(AddonName, "Version")
-    return tonumber(v) or 0
+    return tonumber(v) or 0, v
 end
 
-local MY_VERSION = ReadVersion()
+local MY_VERSION, MY_VERSION_STR = ReadVersion()
 local hasNotified = false  -- 整場 session 只提示一次
 local sendThrottle = {}    -- [channel] = lastSendTime
+
+-- 對外公開版本資訊，供 ESC 選單版本標籤等 UI 讀取。
+-- NewestVersion 只有在收到比自己新的版本時才會被填。
+MiliUI = MiliUI or {}
+MiliUI.Version = {
+    my       = MY_VERSION,
+    myText   = MY_VERSION_STR or tostring(MY_VERSION),
+    newest   = nil,  -- number
+    newestText = nil,
+}
 
 -- Midnight 12.1：戰鬥事件／M+／PvP 進行中會封鎖插件通訊。
 -- 這是照 Cell `Comm/Comm.lua` 的 IsCommRestricted() 補的——本檔當初參照的是還沒有這個
@@ -116,6 +126,12 @@ f:SetScript("OnEvent", function(_, event, ...)
         if IsSelf(sender) then return end
         local theirVersion = tonumber(msg)
         if theirVersion and MY_VERSION > 0 and theirVersion > MY_VERSION then
+            -- 提示只跳一次，但這裡每次都更新，讓版本標籤永遠顯示看過的最高版本
+            local V = MiliUI.Version
+            if not V.newest or theirVersion > V.newest then
+                V.newest = theirVersion
+                V.newestText = msg
+            end
             ScheduleNotice()
         end
     end
