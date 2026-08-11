@@ -38,9 +38,23 @@ local MY_VERSION = ReadVersion()
 local hasNotified = false  -- 整場 session 只提示一次
 local sendThrottle = {}    -- [channel] = lastSendTime
 
+-- Midnight 12.1：戰鬥事件／M+／PvP 進行中會封鎖插件通訊。
+-- 這是照 Cell `Comm/Comm.lua` 的 IsCommRestricted() 補的——本檔當初參照的是還沒有這個
+-- 判斷的舊版 Cell。版本廣播在這些場合本來就沒有意義（大家正在打），與其去賭
+-- SendAddonMessage 在受限時是回傳失敗碼還是直接報錯，不如照著上游的做法擋掉。
+local function IsCommRestricted()
+    if IsEncounterInProgress and IsEncounterInProgress() then return true end
+    if C_MythicPlus and C_MythicPlus.IsRunActive and C_MythicPlus.IsRunActive() then return true end
+    if C_PvP and C_PvP.IsActiveBattlefield and C_PvP.IsActiveBattlefield() then return true end
+    return false
+end
+
 local function SendVersion(channel)
     if MY_VERSION == 0 then return end
     if not (C_ChatInfo and C_ChatInfo.SendAddonMessage) then return end
+    -- 擋在節流「之前」：被封鎖的嘗試不該吃掉那 30 秒的窗口，
+    -- 否則解除封鎖後還要再等一輪才會補送。
+    if IsCommRestricted() then return end
     local now = GetTime()
     if sendThrottle[channel] and (now - sendThrottle[channel]) < THROTTLE_SEC then
         return
