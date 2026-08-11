@@ -45,11 +45,13 @@ do
 		self.Text:SetText("0/0");
 	end
 
+	local WORLD_MAX_LEVEL = addon.WeeklyRewardsConstant.GreatVaultWorldActivityMaxLevel;
+
 	local ActivityMaxLevels = {
 		-- [TEMPFIX] Hardcode Delves level because GetNextActivitiesIncrease return false
-		[196] = 8,
-		[197] = 8,
-		[198] = 8,
+		[196] = WORLD_MAX_LEVEL,
+		[197] = WORLD_MAX_LEVEL,
+		[198] = WORLD_MAX_LEVEL,
 	};
 
 	function GreatVaultButtonMixin:IsRewardAtHighestTier()
@@ -167,9 +169,11 @@ do
 					if activityInfo then
 						itemLevel, upgradeItemLevel, itemLink = nil, nil, nil;
 
+						--[[ -- Disable this because of S2, let's see if WoW API breaks again :)
 						if row == 3 then
 							itemLevel = API.GetDelvesGreatVaultItemLevel(activityInfo.level);
 						end
+						--]]
 
 						if not itemLevel then
 							itemLink, upgradeItemLink = C_WeeklyRewards.GetExampleRewardItemHyperlinks(activityInfo.id);
@@ -305,6 +309,7 @@ function LandingPageUtil.CreateGreatVaultFrame(parent)
 		"HandlePreviewRaidRewardTooltip",
 		"HandlePreviewMythicRewardTooltip",
 		"HandlePreviewPvPRewardTooltip",
+		"HasMultipleRaidInstances",
 	};
 
 	local function ShowTooltip(self)

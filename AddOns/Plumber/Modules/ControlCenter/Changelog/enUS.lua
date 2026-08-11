@@ -7,6 +7,375 @@ local _, addon = ...
 local L = addon.L;
 local changelogs = addon.ControlCenter.changelogs;
 
+changelogs[10904] = {
+	{
+		type = "date",
+		versionText = "1.9.4",
+		timestamp = 1786300000,
+	},
+
+	{
+		type = "h1",
+		text = L["ModuleName NewExpansionLandingPage"],
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "The Omnium Folio has been moved to a separate tab named Powers.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "New content will appear once patch 12.1 goes live.",
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = MISCELLANEOUS,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Plumber Macros: Fixed an error that occurred if the macro contained an invalid pet.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Hunt Table: Show a quest mark next to the pin if the Prey target is a quest objective.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "The module that alleviated the graphics crash by reducing the number of models shown on the Appearance tab has been removed, since a recent NVIDIA driver seems to have fixed it.",
+	},
+};
+
+changelogs[10903] = {
+	{
+		type = "date",
+		versionText = "1.9.3 c",
+		timestamp = 1783000000,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Teleport Home Macro: Fix an issue where the macro stopped working if your house data wasn't fully received during the initial login. Special thanks to foxlit for pointing out the issue.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary UI: When the Plumber minimap button is enabled, WoW's minimap button for Omnium Folio should no longer appear after completing a related quest.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.3 b",
+		timestamp = 1782700000,
+	},
+
+	{
+		type = "h1",
+		text = L["ModuleName Housing_HouseList"],
+		dbKey = "Housing_HouseList",
+	},
+
+	{
+		type = "Checkbox",
+		dbKey = "Housing_HouseList",
+	},
+
+	{
+		type = "p",
+		text = "Improve the House List UI.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Indicate the house's faction with an image on the right.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Show both Visit House buttons if the player has two houses.",
+	},
+
+	{
+		type = "img",
+		fileName = "Changelog_Housing_HouseList",
+		canvasWidth = 512,
+		canvasHeight = 256,
+		imageRight = 394,
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = MISCELLANEOUS,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Plumber House List: Fixed an issue that prohibited you from clicking Copy Character Name if the View Houses button was also shown on the same context menu.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Drawer Macro: Fixed an issue where the Summon Pet buttons didn't work if the text language was set to Spanish.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary UI: If you have enabled the minimap button, it will display a notification when you have unclaimed Paragon reward chests.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary UI: Added Field Accolade to the Resources List and Sporefall to the Raids Tab.",
+	},
+};
+
+
+changelogs[10902] = {
+	{
+		type = "date",
+		versionText = "1.9.2 f",
+		timestamp = 1781900000,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "The Omnium Folio section in Plumber's Expansion Summary UI now stands out more when you have unselected traits.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Reverted a recent change to the text outline rendering method due to compatibility issues.",
+	},
+	{
+		type = "p",
+		bullet = 2,
+		text = "Note: While the switch to Slug rendering provided sharper outlines, it caused rendering problems with certain fonts.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.2 d-e",
+		timestamp = 1780400000,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Loot Window: Junk items are now combined and displayed as a single entry.",
+	},
+	{
+		type = "p",
+		bullet = 2,
+		text = "Note: This option is not new, but we changed its default state to Enabled.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary, Great Vault: Fixed several issues.",
+	},
+	{
+		type = "p",
+		bullet = 2,
+		text = "Hovering the cursor over a Raid progress will no longer cause error.",
+	},
+	{
+		type = "p",
+		bullet = 2,
+		text = "World Activities should correctly show the increased item level after completing Tier 4 or Tier 5 Ritual Sites.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.2 c",
+		timestamp = 1779500000,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Loot Window: Added a highlight effect to looted pets and equipment with bonus tertiary stats.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary: Fixed a text display issue for \"Prey\" while on the quest \"Preferential Killing.\"",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Tooltips: Vendor location instructions now only display when hovering over items in your bags, rather than on all tooltip sources.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.2 b",
+		timestamp = 1778800000,
+	},
+
+	{
+		type = "h1",
+		text = "Bug Fixes",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "House Macros: Fixed an error that occurred during the initial login.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Loot Window: The \"Take All\" hotkey indicator (Default: E) now automatically hides when entering combat, meaning the hotkey is disabled due to combat restrictions.",
+	},
+	{
+		type = "p",
+		bullet = 2,
+		text = "Note: Hotkeys bound to a single modifier key (SHIFT, CTRL, or ALT) remain functional regardless of combat status.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Tooltip Reagents: Corrected the required quantity display for Ascendant Voidcore (updated from 4 to 5).",
+	},
+	{
+		type = "p",
+		bullet = 2,
+		text = "Note: We are aware that some reagent counts may still be off by 1; these are being patched manually as they are identified.",
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = "Added",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary UI: Added Nebulous Voidcore (bonus rolls) to the resource list.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.2",
+		timestamp = 1778200000,
+	},
+
+	{
+		type = "h1",
+		text = L["ModuleName TooltipVendorLocation"],
+		dbKey = "TooltipVendorLocation",
+	},
+
+	{
+		type = "Checkbox",
+		dbKey = "TooltipVendorLocation",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = L["ModuleDescription TooltipVendorLocation"],
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Special thanks to gjfLeo for the idea and the info.",
+	},
+
+	{
+		type = "img",
+		dbKey = "TooltipVendorLocation",
+	},
+
+	{
+		type = "h1",
+		text = "Bug Fixes",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Teleport Home Macro: Fixed an issue where the macro stopped working if you only owned one house.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Drawer Macro: Fixed an issue that prevented players from casting the Midnight Skinning spell \"Sharpen Your Knife\" due to a name conflict with the The War Within version of the spell.",
+	},
+};
 
 changelogs[10901] = {
 	{
@@ -1492,31 +1861,31 @@ changelogs[10804] = {
 		type = "br",
 	},
 
-	{
-		type = "h1",
-		text = "Decor Catalog: Extend Search Results",
-		dbKey = "Housing_CatalogSearch",
-	},
+	--{
+	--	type = "h1",
+	--	text = "Decor Catalog: Extend Search Results",
+	--	dbKey = "Housing_CatalogSearch",
+	--},
 
-	{
-		type = "Checkbox",
-		dbKey = "Housing_CatalogSearch",
-	},
+	--{
+	--	type = "Checkbox",
+	--	dbKey = "Housing_CatalogSearch",
+	--},
 
-	{
-		type = "p",
-		bullet = true,
-		text = "Enhances the search box on the decor catalog and storage Tab, allowing you to find items by achievement, vendor, zone, or currency.",
-	},
+	--{
+	--	type = "p",
+	--	bullet = true,
+	--	text = "Enhances the search box on the decor catalog and storage Tab, allowing you to find items by achievement, vendor, zone, or currency.",
+	--},
 
-	{
-		type = "img",
-		dbKey = "Housing_CatalogSearch",
-	},
+	--{
+	--	type = "img",
+	--	dbKey = "Housing_CatalogSearch",
+	--},
 
-	{
-		type = "br",
-	},
+	--{
+	--	type = "br",
+	--},
 
 	{
 		type = "h1",
@@ -1959,144 +2328,5 @@ changelogs[10800] = {
 		type = "p",
 		bullet = true,
 		text = "Loot Window, Link Item: You can link an item in chat by Shift + clicking an item in Manual Loot mode.",
-	},
-};
-
-
-changelogs[10709] = {
-	{
-		type = "date",
-		versionText = "1.7.9",
-		timestamp = 1761400000,
-	},
-
-	{
-		type = "h1",
-		text = L["ModuleName QueueStatus"],
-		dbKey = "QueueStatus",
-	},
-
-	{
-		type = "Checkbox",
-		dbKey = "QueueStatus",
-	},
-
-	{
-		type = "p",
-		bullet = true,
-		text = "Add a progress bar to the Group Finder Eye that shows the percentage of teammates found. Tanks and Healers weigh more.",
-	},
-
-	{
-		type = "p",
-		bullet = true,
-		text = "(Optional) Show the delta between Average Wait Time and your Time In Queue.",
-	},
-
-	{
-		type = "img",
-		dbKey = "QueueStatus",
-	},
-
-	{
-		type = "br",
-	},
-
-	{
-		type = "h1",
-		text = L["ModuleName PlayerPing"],
-		dbKey = "WorldMapPin_PlayerPing",
-	},
-
-	{
-		type = "Checkbox",
-		dbKey = "WorldMapPin_PlayerPing",
-	},
-
-	{
-		type = "p",
-		text = "By default, WoW only shows the player ping when you change maps or the first time you open the World Map. Whereas this module highlights the player's location with a ping effect when you:",
-	},
-
-	{
-		type = "p",
-		bullet = true,
-		text = "Open World Map.",
-	},
-
-	{
-		type = "p",
-		bullet = true,
-		text = "Press the ALT key.",
-	},
-
-	{
-		type = "p",
-		bullet = true,
-		text = "Click the Maximize button.",
-	},
-
-	{
-		type = "p",
-		text = "Updated the ping texture",
-	},
-
-	{
-		type = "img",
-		dbKey = "WorldMapPin_PlayerPing",
-	},
-
-	{
-		type = "br",
-	},
-
-	{
-		type = "h1",
-		text = L["ModuleName HolidayDungeon"],
-		dbKey = "HolidayDungeon",
-	},
-
-	{
-		type = "Checkbox",
-		dbKey = "HolidayDungeon",
-	},
-
-	{
-		type = "p",
-		bullet = true,
-		text = "Automatically select holiday and timewalking dungeons when you open Dungeon Finder for the first time.",
-	},
-
-	{
-		type = "br",
-	},
-
-	{
-		type = "h1",
-		text = L["New Features"],
-	},
-
-	{
-		type = "p",
-		bullet = true,
-		text = "Tooltip: Quest Starting Items: If an item in your bag starts a quest, show the quest details. You can Ctrl Left Click the item to view it in the quest log if you are already on the quest.",
-	},
-
-	{
-		type = "p",
-		bullet = true,
-		text = "Non-refundable Purchase Alert: Adjust the confirmation dialog that appears when buying a non-refundable item, adding a brief lockdown to the 'Yes' button and highlighting the keywords in red. This module also reduces the class set conversion delay by half.",
-	},
-
-	{
-		type = "p",
-		bullet = true,
-		text = "Legion Remix: Auto-set Adventure Guide expansion to Legion.",
-	},
-
-	{
-		type = "p",
-		bullet = true,
-		text = "This module should now support addons that modify the max number of items per page. It also shows thousands separator on alt currencies like Bronze.",
 	},
 };

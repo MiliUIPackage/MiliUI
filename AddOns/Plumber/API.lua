@@ -708,11 +708,18 @@ do  -- Tooltip Parser
 		end
 	end
 
-	local function GetCreatureName(creatureID)
+	local function GetCreatureName(creatureID, allowSecret)
 		if not creatureID then return end;
 		local tooltipData = GetInfoByHyperlink("unit:Creature-0-0-0-0-"..creatureID);
 		if tooltipData then
-			return GetLineText(tooltipData.lines, 1);
+			local text = GetLineText(tooltipData.lines, 1);
+			if allowSecret then
+				return text, not canaccessvalue(text);
+			else
+				if canaccessvalue(text) then
+					return text, false;
+				end
+			end
 		end
 	end
 	API.GetCreatureName = GetCreatureName;
@@ -1495,6 +1502,24 @@ do  -- Map
 			end
 			return continentMapID
 		end
+	end
+
+	function API.SetUserWaypoint(uiMapID, x, y)
+		local point = {
+			uiMapID = uiMapID,
+			position = CreateVector2D(x, y);
+		};
+		C_Map.SetUserWaypoint(point);
+	end
+
+	function API.OpenWorldMap(uiMapID)
+		if not InCombatLockdown() then
+			if (not uiMapID) or (uiMapID and GetMapInfo(uiMapID)) then
+				C_Map.OpenWorldMap(uiMapID);
+				return true;
+			end
+		end
+		return false;
 	end
 end
 
@@ -2499,7 +2524,7 @@ do  -- System
 	end
 
 
-	function API.TriggerExpansionMinimapButtonAlert(text)
+	function API.TriggerExpansionMinimapButtonAlert(text) -- unused
 		if ExpansionLandingPageMinimapButton then
 			ExpansionLandingPageMinimapButton:TriggerAlert(text);
 		end
@@ -2903,6 +2928,9 @@ do  -- Quest
 				end
 			end
 		end
+
+		function API.SuperTrackQuestMapPin(questID)
+		end
 	else
 		--Retail
 		function API.GetQuestProgressPercent(questID, asText)
@@ -3059,6 +3087,14 @@ do  -- Quest
 
 			return tbl
 		end
+
+		function API.SuperTrackQuestMapPin(questID)
+			if C_QuestLog.IsOnQuest(questID) then
+				C_SuperTrack.SetSuperTrackedQuestID(questID);
+			else
+				C_SuperTrack.SetSuperTrackedMapPin(Enum.SuperTrackingMapPinType.QuestOffer, questID);
+			end
+		end
 	end
 
 
@@ -3154,6 +3190,7 @@ do  -- Quest
 			for index, spellID in ipairs(spellRewards) do
 				info = C_QuestInfoSystem.GetQuestRewardSpellInfo(questID, spellID);
 				info.id = spellID;
+				info.isSpellReward = true;
 				tinsert(spells, info);
 			end
 
@@ -3765,12 +3802,12 @@ do  -- AsyncCallback
 	end
 
 
-	function API.GetAndCacheCreatureName(creatureID)
+	function API.GetAndCacheCreatureName(creatureID, allowSecret)
 		if CreatureNameCache[creatureID] then
 			return CreatureNameCache[creatureID]
 		end
-		local name = API.GetCreatureName(creatureID);
-		if name and name ~= "" then
+		local name, isSecret = API.GetCreatureName(creatureID, allowSecret);
+		if (not isSecret) and name and name ~= "" then
 			CreatureNameCache[creatureID] = name;
 		else
 			name = nil;
@@ -4012,6 +4049,11 @@ do  -- Custom Hyperlink ItemRef
 			local args = {...};
 			local link = "|Haddon:plumber:"..typeName;
 
+			if #args == 0 then
+				-- There must be at least 1 arg
+				args = {0};
+			end
+
 			for i, v in ipairs(args) do
 				link = link..":"..v;
 			end
@@ -4021,6 +4063,8 @@ do  -- Custom Hyperlink ItemRef
 			return link
 		end
 	end
+
+	API.AddCustomLinkType("ReloadUI", C_UI.Reload);
 end
 
 do  -- 11.0 Menu Formatter
@@ -4257,12 +4301,16 @@ do  -- Macro Util
 	end
 
 	function API.GetPetNameAndUsability(speciesID, checkUsability)
-		local name = WoWAPI.GetPetInfoBySpeciesID(speciesID);
-		if checkUsability then
-			local _, petGUID = WoWAPI.FindPetIDByName(name);
-			return name, petGUID ~= nil
-		else
-			return name
+		local name = speciesID and WoWAPI.GetPetInfoBySpeciesID(speciesID);
+		if type(name) == "string" then
+			-- C_PetJournal.GetPetInfoBySpeciesID returns the function itself and the argument when no pet was found. WTF?
+			-- /dump C_PetJournal.GetPetInfoBySpeciesID(1) == C_PetJournal.GetPetInfoBySpeciesID
+			if checkUsability then
+				local _, petGUID = WoWAPI.FindPetIDByName(name);
+				return name, petGUID ~= nil
+			else
+				return name
+			end
 		end
 	end
 end

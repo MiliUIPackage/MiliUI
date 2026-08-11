@@ -47,6 +47,9 @@ L["Return To Module List"] = "返回模块列表";
 L["LootUI Addon Conflict"] = "此模块可能与以下功能类似的插件不兼容：";
 L["Work In Progress Tag"] = "[施工中]";
 L["Colon With Space"] = "：";
+L["Disabled Module Requires Reload Format"] = "你必须%s才能使改变生效。";	--We'll replace %s with a clickable "reload the UI"
+L["Reload The UI"] = "重载界面";
+L["Click To Reload UI"] = "左键单击以重载界面。";
 
 
 --Settings Category
@@ -287,6 +290,16 @@ L["ModuleName TooltipRichSoil"] = "快捷按钮：坚韧之种";
 L["ModuleDescription TooltipRichSoil"] = "对采药专业生效：鼠标左键双击肥沃的土壤可显示坚韧之种快捷按钮。"..L["Quick Slot Generic Description"];
 L["Instruction Show Resilient Seeds"] = "<双击左键来显示坚韧之种>";
 L["No Resilient Seed"] = "你身上没有携带坚韧之种";
+
+
+--Tooltip VendorLocation
+L["ModuleName VendorLocation"] = "商人位置";
+L["ModuleDescription VendorLocation"] = "在某些可兑换物品的鼠标提示上显示商人位置，并允许你Ctrl点击此物品来创建地图标记。";
+L["Instruction Set Waypoint"] = "<按住Ctrl点击创建地图标记>";
+L["NPC Name Location Format"] = "%s，%s";
+L["Intruction Swtich Destinations"] = "按Alt键切换终点：";
+L["Location Note Inside Cave"] = "在洞穴内";
+L["Location Note Second Floor"] = "在楼上";
 
 
 --Plunderstore
@@ -645,6 +658,7 @@ L["Drawer Option Update Frequently Tooltip"] = "在你背包或法术书发生�
 L["ModuleName DrawerMacro"] = "技能收纳宏";
 L["ModuleDescription DrawerMacro"] = "创建自定义弹出菜单来整理你的物品、法术、宠物、坐骑、玩具。\n\n要创建技能收纳宏, 请先创建一个新宏，然后在宏编辑框中输入 |cffd7c0a3#plumber:drawer|r";
 L["No Slot For New Character Macro Alert"] = "需要一个空的角色专用宏栏位来完成此操作。";
+L["Unknown Pet"] = "未知小宠物";
 
 
 --New Expansion Landing Page
@@ -661,6 +675,7 @@ L["Not On Quest"] = "你没有接到该任务";
 L["Factions"] = "声望总览";
 L["Activities"] = "每周活动";
 L["Raids"] = "团队副本";
+L["Player Power"] = "战力系统";
 L["Instruction Track Achievement"] = "<按住Shift点击追踪此成就>";
 L["Instruction Untrack Achievement"] = "<按住Shift点击取消追踪>";
 L["No Data"] = "没有数据";
@@ -697,6 +712,9 @@ L["Delves Completion Reward Cap"] = "通关奖励";
 L["Delves Completion Reward Cap Tooltip"] = "当你达到此战团上限后，完成丰裕地下堡将不再奖励旅程进度和伙伴经验。\n\n丰裕宝匣和宿敌宝箱不受此上限影响。\n\n每周上限为28次，可以累计。";
 L["Near Completion Tooltip"] = "你可以看见此条目是因为你即将达到上限。";
 L["Inactive Currencies Tooltip"] = "以下货币因为被你设为“未使用”而隐藏：";
+L["New Quest"] = "新任务";
+L["Trait Points Available"] = "可分配点数";
+L["Unspent Points"] = "你有待分配的点数";
 
 
 --ExpansionSummaryMinimapButton
@@ -862,6 +880,7 @@ L["ModuleDescription CatalystUI"] = "允许你按住Ctrl点击转化后的装备
 L["ModuleName HuntTable"] = "狩猎：狩猎地图";
 L["ModuleDescription HuntTable"] = "- 将狩猎地图上的蓝色任务图标替换为难度图标。\n\n- 若狩猎目标与某个未完成的成就相关，在其右上方显示特别标记。";
 L["Prey Target Has Achievement"] = "某个未完成的成就要求你击败此目标。";
+L["Quest Objective Entry Format"] = "属于此任务的目标：%s";
 
 
 --PreyQuestSuperTrack
@@ -872,6 +891,12 @@ L["ModuleDescription PreyQuestSuperTrack"] = "当你知晓狩猎目标的最终�
 --BlizzFixActionBarArt
 L["ModuleName BlizzFixActionBarArt"] = "动作条装饰修复";
 L["ModuleDescription BlizzFixActionBarArt"] = "修复被你隐藏的动作条装饰在隐藏/显示游戏界面或退出住宅编辑器后重现的问题。";
+
+
+--HouseList
+L["ModuleName Housing_HouseList"] = "房屋列表";
+L["ModuleDescription Housing_HouseList"] = "改进房屋列表界面：\n\n- 用图片展示房屋所属的阵营。\n\n- 如果玩家有两栋房子，直接显示两个“访问住宅”按钮。";
+L["View Houses In Combat Warning"] = "你无法在战斗中查看住宅。";
 
 
 --Generic

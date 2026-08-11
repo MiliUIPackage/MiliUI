@@ -1,7 +1,7 @@
 local _, addon = ...
 local API = addon.API;
 local L = addon.L;
-local LandingPageUtil = addon.LandingPageUtil;
+local LandingPageUtil = addon.LandingPageUtil; ---@class LandingPageUtil
 
 local FactionUtil = {};
 addon.FactionUtil = FactionUtil;
@@ -16,49 +16,45 @@ local OverrideFactionInfo = {
 	---- MID ----
 	[2710] = {  --Silvermoon Court
 		barColor = {206/255, 164/255, 56/255},
-		rewardQuestID = 0,
+		rewardQuestID = 93811,
 	},
 
 	[2711] = {  --Magisters
 		barColor = {155/255, 173/255, 204/255},
-		rewardQuestID = 0,
 	},
 
 	[2712] = {  --Blood Knights
 		barColor = {206/255, 159/255, 159/255},
-		rewardQuestID = 0,
 	},
 
 	[2713] = {  --Farstriders
 		barColor = {145/255, 181/255, 128/255},
-		rewardQuestID = 0,
 	},
 
 	[2714] = {  --Shades of the Row
 		barColor = {206/255, 164/255, 56/255},
-		rewardQuestID = 0,
 	},
 
 	[2696] = {  --Amani
 		barColor = {206/255, 162/255, 123/255},
-		rewardQuestID = 0,
+		rewardQuestID = 93566,
 	},
 
 	[2704] = {  --Hara'ti
 		barColor = {254/255, 132/255, 97/255},
-		rewardQuestID = 0,
+		rewardQuestID = 89035,
 	},
 
 	[2699] = {  --Singularity
 		barColor = {159/255, 169/255, 222/255},
-		rewardQuestID = 0,
+		rewardQuestID = 89032,
 	},
 
-	[2764] = {  --Prey S1
+	["Prey"] = {  --Prey S1
 		barColor = {246/255, 138/255, 162/255},
 	},
 
-	[2742] = {  --Delves S1
+	["Delves"] = {  --Delves S1
 		barColor = {215/255, 160/255, 65/255},
 	},
 
@@ -68,10 +64,17 @@ local OverrideFactionInfo = {
 
 	[2770] = {  --Slayer's Duellum
 		barColor = {56/255, 184/255, 255/255},
+		rewardQuestID = 94492,
 	},
 
 	[2792] = {  --Ritual Sites
 		barColor = {197/255, 142/255, 255/255},
+		rewardQuestID = 95391,
+	},
+
+	[2772] = {  --Zul'jarra's Forces
+		barColor = {108/255, 181/255, 139/255},
+		rewardQuestID = 93798,
 	},
 
 	---- TWW ----
@@ -153,19 +156,39 @@ local OverrideFactionInfo = {
 	},
 };
 
+local Seasonal = {
+	Delves = 2742,
+	Prey = 2764,
+};
+
+if addon.IS_12_1_0 then
+	-- MID Season 2
+	Seasonal.Delves = 2796;
+	Seasonal.Prey = 2808;
+end
+
+for k, factionID in pairs(Seasonal) do
+	if not OverrideFactionInfo[factionID] then
+		OverrideFactionInfo[factionID] = OverrideFactionInfo[k];
+	end
+end
+
 
 do  --Layout MID
-	local MajorFactionLayout = {
-		[1] = {
-			--{factionID = 2792},		--Ritual Sites
-			{factionID = 2764},     --Prey S1
-			{factionID = 2742,      --Delves S1
-				subFactions = {
-					{factionID = 2744, creatureDisplayID = 26365, playerCompanionID = 2},     --Valeera Sanguinar. Get playerCompanionID from C_MajorFactions.GetMajorFactionData(C_DelvesUI.GetDelvesFactionForSeason())
-				},
+	local MajorFactionEntry = {
+		Prey = {factionID = Seasonal.Prey},		--Prey
+		Delves = {factionID = Seasonal.Delves,	--Delves
+			subFactions = {
+				{factionID = 2744, creatureDisplayID = 26365, playerCompanionID = 2},     --Valeera Sanguinar. Get playerCompanionID from C_MajorFactions.GetMajorFactionData(C_DelvesUI.GetDelvesFactionForSeason())
 			},
-			{factionID = 2770, shownAsSubfaction = true, iconFileID = 7448209},     --Slayer's Duellum
 		},
+		RitualSites = {factionID = 2792},		--Ritual Sites
+		OpenWorldPVP = {factionID = 2770, shownAsSubfaction = true, iconFileID = 7448209},     --Slayer's Duellum
+		Zuljarra = {factionID = 2772},	--Zul'jarra's Forces
+	};
+
+	local MajorFactionLayout = {
+		[1] = {},
 
 		[2] = {
 			{factionID = 2696},     --Amani Tribe
@@ -173,7 +196,7 @@ do  --Layout MID
 			{factionID = 2704},     --Hara'ti
 			{factionID = 2710,      --Silvermoon Court
 				subFactions = { --See weekly quest https://www.wowhead.com/beta/quest=91629/high-esteem
-					{factionID = 2711, creatureDisplayID = 69626},     --Magisters Esara Verrinde
+					{factionID = 2711, creatureDisplayID = 69626},      --Magisters Esara Verrinde
 					{factionID = 2712, creatureDisplayID = 113966},     --Blood Knights Knight-Lord Dranarus
 					{factionID = 2713, creatureDisplayID = 140633},     --Farstriders Captain Helios
 					{factionID = 2714, creatureDisplayID = 140691},     --Shades of the Row Darkdealer Thelis
@@ -184,9 +207,24 @@ do  --Layout MID
 
 	LandingPageUtil.AddExpansionData(12, "factionLayout", MajorFactionLayout);
 
-	if addon.IS_12_0_5 then  --For PTR
-		table.insert(MajorFactionLayout[1], 1, {factionID = 2792});
+	if addon.IS_12_1_0 then  --For PTR
+		MajorFactionLayout[1] = {
+			MajorFactionEntry.Zuljarra,
+			MajorFactionEntry.Prey,
+			MajorFactionEntry.Delves,
+			MajorFactionEntry.RitualSites,
+			MajorFactionEntry.OpenWorldPVP,
+		};
+	else
+		MajorFactionLayout[1] = {
+			MajorFactionEntry.RitualSites,
+			MajorFactionEntry.Prey,
+			MajorFactionEntry.Delves,
+			MajorFactionEntry.OpenWorldPVP,
+		};
 	end
+
+	FactionUtil.ActiveFactionLayout = MajorFactionLayout;
 end
 
 
@@ -226,7 +264,6 @@ do  --Layout TWW
 		},
 	};
 
-	FactionUtil.ActiveFactionLayout = MajorFactionLayout;
 	LandingPageUtil.AddExpansionData(11, "factionLayout", MajorFactionLayout);
 end
 
@@ -295,8 +332,44 @@ function FactionUtil:GetFactionsWithRewardPending(viewedExpansionOnly)
 	return tbl
 end
 
+function FactionUtil:GetBestExpansionIDWithRewardPending()
+	local IsOnQuest = C_QuestLog.IsOnQuest;
+	local expansionIDs = {12, 11}; -- newer expansion first
+
+	for _, expansionID in ipairs(expansionIDs) do
+		local factionLayout = LandingPageUtil.GetExpansionData(expansionID, "factionLayout");
+		if factionLayout then
+			local questID;
+			for row, rowInfo in ipairs(factionLayout) do
+				for _, factionInfo in ipairs(rowInfo) do
+					if OverrideFactionInfo[factionInfo.factionID] then
+						questID = OverrideFactionInfo[factionInfo.factionID].rewardQuestID;
+						if questID and IsOnQuest(questID) then
+							return expansionID;
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
 function FactionUtil:IsAnyParagonRewardPending(viewedExpansionOnly)
 	return self:GetFactionsWithRewardPending(viewedExpansionOnly) ~= nil
+end
+
+function FactionUtil:GetRewardPendingFactioName(viewedExpansionOnly)
+	local factions = self:GetFactionsWithRewardPending(viewedExpansionOnly);
+	if factions then
+		local firstFactionName = self:GetFactionName(factions[1]);
+		if firstFactionName then
+			if #factions == 1 then
+				return firstFactionName;
+			else
+				return firstFactionName.." ...";
+			end
+		end
+	end
 end
 
 function FactionUtil:GetParagonRewardQuestFaction(questID)

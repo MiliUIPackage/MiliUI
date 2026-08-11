@@ -93,7 +93,8 @@ do
 		end
 
 		local fontObject = PlumberLootUIFont;
-		fontObject:SetFont(fontFile, Round(fontSize), "OUTLINE");
+		local fontFlag = "OUTLINE";
+		fontObject:SetFont(fontFile, Round(fontSize), fontFlag);
 		fontObject:SetShadowOffset(0, 0);
 
 		local locale = GetLocale();
@@ -570,12 +571,20 @@ do  --UI ItemButton
 
 	function ItemFrameMixin:SetItem(data)
 		self.singleItemID = data.id;
-		self:SetNameByQuality(data.name, data.quality);
+
+		local showGlow, subtitle = IsRareItem(data);
+
+		if subtitle then
+			self:SetNameByQuality(string.format("%s\n|cff19ff19%s|r", data.name, subtitle), data.quality);
+		else
+			self:SetNameByQuality(data.name, data.quality);
+		end
+
 		self:SetIcon(data.icon, data);
 		self:SetCount(data);
 		self:Layout();
 
-		if IsRareItem(data) then
+		if showGlow then
 			self:ShowGlow(true);
 		else
 			self:ShowGlow(false);
@@ -1215,7 +1224,7 @@ local CreateUIButton
 do  --UI Generic Button (Hotkey Button)
 	local UIButtonMixin = {};
 
-	function UIButtonMixin:SetHotkey(key)
+	function UIButtonMixin:SetHotkeyVisual(key)
 		if key then
 			self.hotkeyName = key;
 			if API.GetModifierKeyName(key) ~= nil then
@@ -1331,11 +1340,9 @@ do  --TakeAllButton
 	function TakeAllButtonMixin:OnEvent(event, ...)
 		if event == "PLAYER_REGEN_DISABLED" then
 			self:SetPropagateKeyboardInput(true);
+			self:UpdateHotKey();
 		elseif event == "PLAYER_REGEN_ENABLED" then
-			if self.hotkeyName and not self.hasOnKeyDownScript then
-				self:SetScript("OnKeyDown", self.OnKeyDown);
-				self.hasOnKeyDownScript = true;
-			end
+			self:UpdateHotKey();
 		elseif event == "MODIFIER_STATE_CHANGED" then
 			local key, down = ...
 			if down == 1 and key == TAKE_ALL_MODIFIER_KEY then
@@ -1345,22 +1352,20 @@ do  --TakeAllButton
 	end
 
 	function TakeAllButtonMixin:OnShow()
-		if MainFrame.inEditMode then return end;
-
-		if self.hotkeyName and (not InCombatLockdown()) or self:GetPropagateKeyboardInput() then
-			self:SetScript("OnKeyDown", self.OnKeyDown);
-			self.hasOnKeyDownScript = true;
+		if MainFrame.inEditMode then
+			self:SetScript("OnKeyDown", nil);
+			self:UnregisterEvent("MODIFIER_STATE_CHANGED");
+			self:SetHotkeyVisual(TAKE_ALL_KEY);
+			return;
 		end
+
 		self:RegisterEvent("PLAYER_REGEN_DISABLED");
 		self:RegisterEvent("PLAYER_REGEN_ENABLED");
-		if TAKE_ALL_MODIFIER_KEY then
-			self:RegisterEvent("MODIFIER_STATE_CHANGED");
-		end
+		self:UpdateHotKey();
 	end
 
 	function TakeAllButtonMixin:OnHide()
 		self:SetScript("OnKeyDown", nil);
-		self.hasOnKeyDownScript = nil;
 		self:UnregisterEvent("PLAYER_REGEN_DISABLED");
 		self:UnregisterEvent("PLAYER_REGEN_ENABLED");
 		self:UnregisterEvent("MODIFIER_STATE_CHANGED");
@@ -1368,11 +1373,19 @@ do  --TakeAllButton
 		self.Highlight:Hide();
 	end
 
-	function TakeAllButtonMixin:UpdateHotKey()
-		if USE_HOTKEY then
-			self:SetHotkey(TAKE_ALL_KEY);
+	function TakeAllButtonMixin:UpdateHotKey(inCombat)
+		self:SetScript("OnKeyDown", nil);
+		self:UnregisterEvent("MODIFIER_STATE_CHANGED");
+
+		if USE_HOTKEY and TAKE_ALL_KEY and (TAKE_ALL_MODIFIER_KEY or (not (InCombatLockdown() or inCombat))) then
+			self:SetHotkeyVisual(TAKE_ALL_KEY);
+			if TAKE_ALL_MODIFIER_KEY then
+				self:RegisterEvent("MODIFIER_STATE_CHANGED");
+			else
+				self:SetScript("OnKeyDown", self.OnKeyDown);
+			end
 		else
-			self:SetHotkey(nil);
+			self:SetHotkeyVisual(nil);
 		end
 	end
 
@@ -1990,12 +2003,41 @@ do  --Rare Items
 		[224025] = true,    --Crackling Shard
 	};
 
+	local TertiaryStats = {
+		"ITEM_MOD_CR_LIFESTEAL_SHORT",
+		"ITEM_MOD_CR_AVOIDANCE_SHORT",
+		"ITEM_MOD_CR_SPEED_SHORT",
+		"ITEM_MOD_CR_STURDINESS_SHORT",
+		--"ITEM_MOD_STAMINA_SHORT", -- debug
+	};
+
+	local ItemStatExclusion = {
+		-- Items that come with tertiaries
+		[251783] = "ITEM_MOD_CR_SPEED_SHORT",	-- Lost Idol of the Hash'ey
+		[262754] = "ITEM_MOD_CR_SPEED_SHORT",	-- Void Pearl of Haste
+	};
+
 	function IsRareItem(data)
 		if RareItems[data.id] then
-			return true
-		elseif data.classID == 15 and data.subclassID == 5 then
-			--Mount
-			return true
+			return true;
+		elseif data.classID == 15 and (data.subclassID == 2 or data.subclassID == 5) then
+			-- CompanionPet/Mount
+			return true;
+		elseif data.classID == 17 then
+			-- Battlepet
+			return true;
+		elseif (data.classID == 2 or data.classID == 4) and data.link and C_Item.GetItemStats then
+			-- Equipment with tertiary stats. Retail only.
+			local stats = C_Item.GetItemStats(data.link);
+			if stats then
+				local excludeStat = ItemStatExclusion[data.id];
+				for _, k in ipairs(TertiaryStats) do
+					if stats[k] and k ~= excludeStat then
+						local subtitle = _G[k];
+						return true, subtitle;
+					end
+				end
+			end
 		end
 	end
 end
@@ -2062,7 +2104,7 @@ do  --Callback Registery
 	local function SettingChanged_CombineItems(state, userInput)
 		MERGE_JUNKS = state;
 	end
-	addon.CallbackRegistry:RegisterSettingCallback("LootUI_CombineItems", SettingChanged_CombineItems);
+	addon.CallbackRegistry:RegisterSettingCallback("LootUI_CombineItem", SettingChanged_CombineItems);
 end
 
 

@@ -2,7 +2,7 @@ local _, addon = ...
 local API = addon.API;
 local L = addon.L;
 local CallbackRegistry = addon.CallbackRegistry;
-local LandingPageUtil = addon.LandingPageUtil;
+local LandingPageUtil = addon.LandingPageUtil; ---@class LandingPageUtil
 local IS_MIDNIGHT = addon.IS_MIDNIGHT;
 
 
@@ -260,10 +260,9 @@ end
 
 local CurrencyListMixin = {};
 do
-	function CurrencyListMixin:Refresh()
+	function CurrencyListMixin:OnLoad()
 		--Called once when frame is created
 		self:OnSizeChanged();
-		self:FullUpdate();
 	end
 
 	function CurrencyListMixin:OnShow()

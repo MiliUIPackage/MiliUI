@@ -1,8 +1,8 @@
 local _, addon = ...
 local API = addon.API;
 local L = addon.L;
+local LandingPageUtil = addon.LandingPageUtil; ---@class LandingPageUtil
 local CallbackRegistry = addon.CallbackRegistry;
-local LandingPageUtil = addon.LandingPageUtil;
 local IS_MOP = addon.IS_MOP;
 
 
@@ -277,46 +277,26 @@ do
 		if not self:IsUserPlaced() then
 			self:ResetPosition();
 		end
+
+		if LandingPageUtil.HasAnyPurchasableTrait() then
+			self:ShowPlayerPowerTab();
+		end
+
+		LandingPageUtil.HideMinimapButtonAlert();
 	end
 
 	function PlumberExpansionLandingPageMixin:OnHide()
 		LandingPageUtil.PlayUISound("LandingPageClose");
 		LandingPageUtil.MainContextMenu:HideMenu();
+		LandingPageUtil.HandleTraitTreeCurrencyChanged();
 	end
 
 	function PlumberExpansionLandingPageMixin:InitTabButtons()
 		self.InitTabButtons = nil;
 
-		if not self.TabButtons then
-			self.TabButtons = {};
-		end
-
-		for _, button in ipairs(self.TabButtons) do
-			button:Hide();
-		end
-
-		local button;
-		local buttonWidth;
-		local offsetY = -12;
-		local totalWidth = 46;
 		local buttonContainer = self.RightSection.Header;
 
-		for i, tabInfo in LandingPageUtil.EnumerateTabInfo() do
-			button = self.TabButtons[i];
-			if not button then
-				button = CreateTabButton(buttonContainer);
-				self.TabButtons[i] = button;
-			end
-			button.tabKey = tabInfo.key;
-			button.notificationGetter = tabInfo.notificationGetter;
-			buttonWidth = API.Round(button:SetName(tabInfo.name));
-			button:ClearAllPoints();
-			button:SetPoint("LEFT", buttonContainer, "LEFT", totalWidth, offsetY);
-			totalWidth = totalWidth + buttonWidth + 0;
-		end
-
 		self:UpdateTabButtons();
-
 
 		local function Header_OnMouseWheel(_, delta)
 			--Scroll up will go the left tab
@@ -327,20 +307,50 @@ do
 
 
 		local ExpansionSelectButton = CreateExpansionSelectButton(buttonContainer);
-		ExpansionSelectButton:SetPoint("RIGHT", buttonContainer, "RIGHT", -48, offsetY);
+		ExpansionSelectButton:SetPoint("RIGHT", buttonContainer, "RIGHT", -48, -12);
 		ExpansionSelectButton:Refresh();
 	end
 
 	function PlumberExpansionLandingPageMixin:UpdateTabButtons()
+		if not self.TabButtons then
+			self.TabButtons = {};
+		end
+
+		for _, button in ipairs(self.TabButtons) do
+			button:Hide();
+		end
+
+		local buttonWidth;
+		local offsetY = -12;
+		local totalWidth = 46;
+		local buttonContainer = self.RightSection.Header;
+
+		for i, tabInfo in LandingPageUtil.EnumerateValidTabInfo() do
+			local button = self.TabButtons[i];
+			if not button then
+				button = CreateTabButton(buttonContainer);
+				self.TabButtons[i] = button;
+			end
+			button.tabKey = tabInfo.key;
+			button.notificationGetter = tabInfo.notificationGetter;
+			buttonWidth = API.Round(button:SetName(tabInfo.name));
+			button:ClearAllPoints();
+			button:SetPoint("LEFT", buttonContainer, "LEFT", totalWidth, offsetY);
+			button:Show();
+			totalWidth = totalWidth + buttonWidth + 0;
+		end
+
 		local selectedTabKey = LandingPageUtil.GetSelectedTabKey();
 		for _, button in ipairs(self.TabButtons) do
-			button:SetSelected(button.tabKey == selectedTabKey);
-			button:UpdateNotification();
+			if button:IsShown() then
+				button:SetSelected(button.tabKey == selectedTabKey);
+				button:UpdateNotification();
+			end
 		end
 	end
 
 	function PlumberExpansionLandingPageMixin:RequestUpdateTabButtons()
-		if self.TabButtons and self:IsVisible() then
+		if self:IsVisible() then
 			self:UpdateTabButtons();
 		end
 	end
@@ -363,7 +373,7 @@ do
 		local selectedTabKey = LandingPageUtil.GetSelectedTabKey();
 		local tabContainer = self.RightSection.TabContainer;
 
-		for i, tabInfo in LandingPageUtil.EnumerateTabInfo() do
+		for i, tabInfo in LandingPageUtil.EnumerateValidTabInfo() do
 			if tabInfo.key == selectedTabKey then
 				if not tabInfo.frame then
 					local f = LandingPageUtil.AcquireTabFrame(tabContainer, i);
@@ -402,12 +412,15 @@ do
 				if v.frameGetter then
 					offsetY = offsetY + lineGap;
 					local frame, height, categoryOnEnterFunc = v.frameGetter(container);
+					frame.listCategoryButton = categoryButton;
 					frame:SetPoint("TOP", relativeTo, "TOP", 0, -offsetY);
 					offsetY = offsetY + height;
 					if k == numCategories then
 						frame:SetPoint("BOTTOM", relativeTo, "BOTTOM", 0, 16);
 					end
-					frame:Refresh();
+					if frame.OnLoad then
+						frame:OnLoad();
+					end
 					if frame.OnShow and frame:IsVisible() then
 						frame:OnShow();
 					end
@@ -420,9 +433,6 @@ do
 
 	function PlumberExpansionLandingPageMixin:ShowLeftFrame(state)
 		self.LeftSection.DefaultFrame:SetShown(state);
-	end
-	function LandingPageUtil.ShowLeftFrame(state)
-		MainFrame:ShowLeftFrame(state);
 	end
 
 	function PlumberExpansionLandingPageMixin:DimBackground(state)
@@ -437,18 +447,9 @@ do
 		--local a = state and 0.5 or 1.0;
 		self.RightSection.NineSlice.Background:SetVertexColor(a, a, a);
 	end
-	function LandingPageUtil.DimBackground(state)
-		MainFrame:DimBackground(state);
-	end
 
 	function PlumberExpansionLandingPageMixin:ToggleUI()
 		self:SetShown(not self:IsShown());
-	end
-
-	function LandingPageUtil.ToggleUI()
-		if MainFrame then
-			MainFrame:ToggleUI();
-		end
 	end
 
 	function PlumberExpansionLandingPageMixin:ResetPosition()
@@ -515,5 +516,106 @@ do
 		end
 
 		self:EnableMouse(false);
+	end
+end
+
+
+do	--Open to Tab
+	function PlumberExpansionLandingPageMixin:ShowPlayerPowerTab()
+		-- 12.0.7 Only?
+		if not self:IsShown() then
+			self:Show();
+		end
+		LandingPageUtil.SelectExpansion(12);
+		LandingPageUtil.SelectTab("playerpower");
+		MainFrame:UpdateTabs();
+	end
+
+	function PlumberExpansionLandingPageMixin:ShowFactionTabWithPendingReward()
+		if not self:IsShown() then
+			self:Show();
+		end
+		local selectedTab = LandingPageUtil.GetSelectedTabKey();
+		if selectedTab ~= "faction" then
+			LandingPageUtil.SelectTab("faction");
+			MainFrame:UpdateTabs();
+		end
+		local expansionID = addon.FactionUtil:GetBestExpansionIDWithRewardPending();
+		if expansionID then
+			LandingPageUtil.SelectExpansion(expansionID);
+		end
+	end
+end
+
+
+do	--Shared
+	function LandingPageUtil.ShowLeftFrame(state)
+		MainFrame:ShowLeftFrame(state);
+	end
+
+	function LandingPageUtil.DimBackground(state)
+		MainFrame:DimBackground(state);
+	end
+
+	function LandingPageUtil.ToggleUI()
+		if MainFrame then
+			MainFrame:ToggleUI();
+		end
+	end
+
+	function LandingPageUtil.GetUIFrameLevel()
+		return MainFrame.LeftSection.DefaultFrame:GetFrameLevel();
+	end
+
+	local WidgetLevel = {};
+	local BlackOverlay;
+
+	--- Raise the widget frameLevel and darken the rest of the UI
+	--- @param widget any? If nil, hide the blackscreen.
+	--- @param highlighted boolean?
+	function LandingPageUtil.HighlightWidget(widget, highlighted)
+		for w, oldLevel in pairs(WidgetLevel) do
+			w:SetFrameLevel(oldLevel);
+		end
+
+		if not widget then
+			if BlackOverlay then
+				BlackOverlay:Hide();
+			end
+			return;
+		end
+
+		if highlighted then
+			if not BlackOverlay then
+				local offset = 8;
+				local alpha = 0.8;
+
+				BlackOverlay = CreateFrame("Frame", nil, MainFrame);
+
+				local function CreateOverlay(container)
+					local overlay = BlackOverlay:CreateTexture(nil, "BACKGROUND");
+					overlay:SetColorTexture(0, 0, 0, alpha);
+					overlay:SetPoint("TOPLEFT", container, "TOPLEFT", offset, -offset);
+					overlay:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT", -offset, offset);
+					return overlay;
+				end
+
+				local overlay1 = CreateOverlay(MainFrame.LeftSection);
+				local overlay2 = CreateOverlay(MainFrame.RightSection);
+			end
+
+			WidgetLevel = {
+				[widget] = widget:GetFrameLevel(),
+			};
+
+			local baseFrameLevel = 1208;
+			widget:SetFrameLevel(baseFrameLevel + 10);
+			BlackOverlay:SetFrameLevel(baseFrameLevel);
+			BlackOverlay:Show();
+		else
+			if BlackOverlay and WidgetLevel[widget] then
+				BlackOverlay:Hide();
+			end
+		end
 	end
 end

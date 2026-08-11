@@ -2,7 +2,7 @@ local _, addon = ...
 local API = addon.API;
 local L = addon.L;
 local CallbackRegistry = addon.CallbackRegistry;
-local LandingPageUtil = addon.LandingPageUtil;
+local LandingPageUtil = addon.LandingPageUtil; ---@class LandingPageUtil
 local GetDBBool = addon.GetDBBool;
 
 
@@ -740,10 +740,15 @@ do  --Order Hall, RightClickMenu
 			API.RegisterFrameForEvents(button, GarrisonLandingPageEvents);
 			local forceUpdateIcon = true;
 			button:RefreshButton(forceUpdateIcon);
+			EventRegistry:RegisterCallback("ExpansionLandingPage.OverlayChanged", button.OnOverlayChanged, button);
 		elseif (not state) and not OrderHallUtil.blizzardButtonHidden then
 			OrderHallUtil.blizzardButtonHidden = true;
 			button:UnregisterAllEvents();
 			button:Hide();
+			C_Timer.After(0, function()
+				button:Hide();
+			end);
+			EventRegistry:UnregisterCallback("ExpansionLandingPage.OverlayChanged", button);
 		end
 	end
 
@@ -772,6 +777,154 @@ do  --Order Hall, RightClickMenu
 		local menu = addon.API.ShowBlizzardMenu(widget, MenuSchematc, contextData);
 		menu:ClearAllPoints();
 		menu:SetPoint("TOPLEFT", widget, "BOTTOMRIGHT", 2, -2);
+	end
+end
+
+
+do	--Notification / Alert / Banner
+	local MinimapAlertType = {
+		Generic = {autoHide = true},
+
+		ParagonReward = {autoHide = true, onClickFunc = function()
+			PlumberExpansionLandingPage:ShowFactionTabWithPendingReward();
+		end},
+
+		TraitSystem = {autoHide = false, onClickFunc = function()
+			PlumberExpansionLandingPage:ShowPlayerPowerTab();
+		end},
+	};
+
+	function ButtonMixin:AlertFrame_Init()
+		local f = self.AlertFrame;
+
+		--API.DisableSharpening(f.BorderTop);
+		f.BorderTop:SetTexture(Def.TextureFile);
+		f.BorderTop:SetTexCoord(256/512, 512/512, 264/512, 312/512);
+		--API.DisableSharpening(f.BorderBottom);
+		f.BorderBottom:SetTexture(Def.TextureFile);
+		f.BorderBottom:SetTexCoord(256/512, 512/512, 264/512, 312/512);
+
+		local v = 0.02;
+		local a = 0.8;
+		local color1 = CreateColor(1, 1, 1, 0);
+		local color2 = CreateColor(1, 1, 1, 1);
+		f.GradientCenter:SetColorTexture(v, v, v, a);
+		f.GradientLeft:SetColorTexture(v, v, v, a);
+		f.GradientRight:SetColorTexture(v, v, v, a);
+		f.GradientLeft:SetGradient("HORIZONTAL", color1, color2);
+		f.GradientRight:SetGradient("HORIZONTAL", color2, color1);
+
+		local gradientLength = 24;
+		f.GradientLeft:SetWidth(gradientLength);
+		f.GradientRight:SetWidth(gradientLength);
+	end
+
+	function ButtonMixin:AlertFrame_ShowText(text)
+		local f = self.AlertFrame;
+		f.Text:SetText(text);
+		local textWidth = math.ceil(f.Text:GetWrappedWidth());
+		local textHeight = math.ceil(f.Text:GetHeight());
+		f.alertFrameWidth = math.max(192, textWidth + 48);
+		f.alertFrameHeight = textHeight + 24;
+
+		local easingFunc = addon.EasingFunctions.outSine;
+		local duration = 0.5;
+		local alertFrameFromWidth = 32;
+		local shouldAutoHide = self.alertInfo and self.alertInfo.autoHide;
+
+		f:SetHeight(f.alertFrameHeight);
+		f:SetAlpha(0);
+		f.Text:SetAlpha(0);
+
+		local function AlertFrame_AnimOut_OnUpdate(_self, elapsed)
+			_self.t = _self.t + elapsed;
+			if _self.t >= 5 then -- auto hide after 5 second
+				_self.alpha = _self.alpha - 4 * elapsed;
+				if _self.alpha <= 0 then
+					_self.alpha = 0;
+					_self:SetScript("OnUpdate", nil);
+					_self:Hide();
+				end
+				_self:SetAlpha(_self.alpha);
+			end
+		end
+
+		local function AlertFrame_Text_OnUpdate(_self, elapsed)
+			_self.t = _self.t + elapsed;
+			local alpha = 4 * _self.t - 1;
+			if alpha > 1 then
+				_self:SetScript("OnUpdate", nil);
+				alpha = 1;
+				if shouldAutoHide then
+					_self.alpha = self:GetAlpha();
+					_self:SetScript("OnUpdate", AlertFrame_AnimOut_OnUpdate);
+				end
+			elseif alpha < 0 then
+				alpha = 0;
+			end
+			f.Text:SetAlpha(alpha);
+		end
+
+		local function AlertFrame_AnimIn_OnUpdate(_self, elapsed)
+			_self.t = _self.t + elapsed;
+			local width = easingFunc(_self.t, alertFrameFromWidth, f.alertFrameWidth, duration);
+			local alpha = 4 * _self.t;
+			if _self.t > duration then
+				_self:SetScript("OnUpdate", AlertFrame_Text_OnUpdate);
+				_self.t = 0;
+				width = f.alertFrameWidth;
+			end
+			f:SetWidth(width);
+			if alpha > 1 then
+				alpha = 1;
+			end
+			f:SetAlpha(alpha);
+		end
+
+		f.t = 0;
+		f:SetScript("OnUpdate", AlertFrame_AnimIn_OnUpdate);
+		f:Show();
+
+		f:SetScript("OnMouseDown", function(_, button)
+			if button == "LeftButton" then
+				if self.alertInfo and self.alertInfo.onClickFunc then
+					self.alertInfo.onClickFunc(button);
+				end
+			end
+		end);
+	end
+
+
+	function LandingPageUtil.HideMinimapButtonAlert(alertType)
+		if MiniButton then
+			if (not alertType) or (alertType == MiniButton.alertType) then
+				MiniButton.AlertFrame:Hide();
+			end
+		end
+	end
+
+	function LandingPageUtil.ShowMinimapButtonAlert(text, alertType, prioritized)
+		if text and text ~= "" then
+			if not (alertType and MinimapAlertType[alertType]) then
+				alertType = "Generic";
+			end
+
+			if prioritized then
+				if alertType == MiniButton.alertType then
+					prioritized = false;
+				end
+			end
+
+			if MiniButton and MiniButton:IsVisible() and (prioritized or (not MiniButton.AlertFrame:IsShown())) then
+				MiniButton.alertType = alertType;
+				MiniButton.alertInfo = MinimapAlertType[alertType];
+
+				MiniButton:AlertFrame_Init();
+				MiniButton:AlertFrame_ShowText(text);
+			end
+		else
+			LandingPageUtil.HideMinimapButtonAlert();
+		end
 	end
 end
 
@@ -980,6 +1133,7 @@ do  --Button Settings/Customize
 		end
 	end
 
+	---@diagnostic disable-next-line: duplicate-set-field
 	LandingPageUtil.UpdateMinimapButtonVisibility = function()
 		ButtonManager:UpdateVisibility();
 	end

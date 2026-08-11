@@ -173,7 +173,7 @@ do  --House Level / Info / Teleport
 	end
 
 	function DataProvider:LoadHouses()
-		self:RegisterEventCallback("PLAYER_HOUSE_LIST_UPDATED", self.OnHouseListUpdated, true);
+		self:RegisterEventCallback("PLAYER_HOUSE_LIST_UPDATED", self.OnHouseListUpdated);
 		C_Housing.GetPlayerOwnedHouses();   --Tigger PLAYER_HOUSE_LIST_UPDATED
 	end
 
@@ -268,14 +268,20 @@ do  --House Level / Info / Teleport
 	end
 
 	function Housing.ShouldShowTeleportToPlot(factionIndex)
-		if C_HousingNeighborhood.CanReturnAfterVisitingHouse() then
+		if DataProvider.neighborhoodGUIDs and C_HousingNeighborhood.CanReturnAfterVisitingHouse() then
+			local currentNeighborhoodGUID = C_Housing.GetCurrentNeighborhoodGUID();
 			if factionIndex then
 				-- When specifying which house to teleport
-				local currentNeighborhoodGUID = C_Housing.GetCurrentNeighborhoodGUID();
 				if currentNeighborhoodGUID and (
 					(factionIndex == 1 and currentNeighborhoodGUID == DataProvider.neighborhoodGUIDs.Alliance) or
 					(factionIndex == 2 and currentNeighborhoodGUID == DataProvider.neighborhoodGUIDs.Horde)
 					) then
+					return false;
+				end
+			else
+				if currentNeighborhoodGUID and (
+					currentNeighborhoodGUID == DataProvider.neighborhoodGUIDs.Alliance or
+					currentNeighborhoodGUID == DataProvider.neighborhoodGUIDs.Horde) then
 					return false;
 				end
 			end
