@@ -1,11 +1,27 @@
 ------------------------------------------------------------
 -- MiliUI: Stuf 光環邊框統一
--- 將頭像上所有 Buff/Debuff 圖示的邊框改為統一 1px 細框
+-- 把頭像上的光環圖示邊框改為統一 1px 細框（icon texture 內縮 + 背景換純色）
 --
--- hook icon texture inset + 替換背景為純色
+-- 範圍只剩 tempenchant（武器附魔）和 dispellicon 兩個元素。
+--
+-- buffgroup / debuffgroup 已經不需要了：Fix\Stuf_AuraContainer.lua 用
+-- AuraContainer 接管了那兩組的顯示（ALWAYS_ON = true，所以 Stuf 原本的群組
+-- 是永久 SetAlpha(0)），改在看不見的圖示上是白費工。而真正在顯示的
+-- AuraButton 是 AuraContainerCore 建的，本來就照 Core.BORDER_SIZE = 1 內縮
+-- 並鋪一張純色底框，外觀跟這裡一致。
+--
+-- 這兩個元素沒被接管的原因：
+--   tempenchant  武器附魔沒有對應的 aura filter，要走 AddItemEnchantment
+--   dispellicon  不在 Stuf_AuraContainer 的 DISPLAYS 裡
+--
+-- 若哪天把 Stuf_AuraContainer 的 ALWAYS_ON 改回只在戰鬥中接管，非戰鬥時
+-- Stuf 原生的 buffgroup/debuffgroup 圖示會重新現身，那時要把它們加回 GROUPS。
 ------------------------------------------------------------
 local AddonName, _ = ...
 if AddonName ~= "MiliUI" then return end
+
+-- Stuf 的光環群組元素名稱（見 Stuf/aura.lua 的 AddBuilder）
+local GROUPS = { "tempenchant" }
 
 local BORDER_SIZE = 1
 local SOLID_BG = "Interface\\BUTTONS\\WHITE8X8"
@@ -69,13 +85,16 @@ end
 
 ------------------------------------------------------------
 -- 掃描並 hook 所有尚未處理的 aura icon
+--
+-- 圖示是 Stuf 的 builder 建的，改設定會整組重建，所以不能只掃一次；
+-- processedIcons 擋掉重複 hook，重掃只有新圖示要付代價。
 ------------------------------------------------------------
 local function ScanAndHookNew()
     local Stuf = _G["Stuf"]
     if not Stuf or not Stuf.units then return end
 
     for _, uf in pairs(Stuf.units) do
-        for _, groupName in ipairs({ "buffgroup", "debuffgroup", "tempenchant" }) do
+        for _, groupName in ipairs(GROUPS) do
             local group = uf[groupName]
             if group then
                 for i = 1, 80 do
