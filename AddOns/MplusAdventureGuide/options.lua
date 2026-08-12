@@ -12,9 +12,7 @@ function addon:setupOptions()
             keystoneMovable = true,
             acronyms = false,
             wardrobeClassColours = true,
-            delvesProgressTooltip = true,
             inspectilvl = true,
-            premadeFinderRedX = true,
             houseDropdownFactionIcon = true,
         },
     }
@@ -93,27 +91,12 @@ function addon:setupOptions()
                 get = function() return addon.db.profile.wardrobeClassColours end,
                 width = "full",
             },
-            delvesProgressTooltip = {
-                type = "toggle",
-                name = "Enable Delves Progress Tooltip Module",
-                set = function(_, v) addon.db.profile.delvesProgressTooltip = v end,
-                get = function() return addon.db.profile.delvesProgressTooltip end,
-                width = "full",
-            },
             inspectilvl = {
                 type = "toggle",
                 name = "Enable Inspect Item Level Module",
                 desc = "Adds the target's item level to the Inspect UI",
                 set = function(_, v) addon.db.profile.inspectilvl = v end,
                 get = function() return addon.db.profile.inspectilvl end,
-                width = "full",
-            },
-            premadeFinderRedX = {
-                type = "toggle",
-                name = "Enable Premade Finder Red X Module",
-                desc = "Hides that annoying Red X that appears over the Filter button but also clips over the Refresh button",
-                set = function(_, v) addon.db.profile.premadeFinderRedX = v end,
-                get = function() return addon.db.profile.premadeFinderRedX end,
                 width = "full",
             },
             houseDropdownFactionIcon = {

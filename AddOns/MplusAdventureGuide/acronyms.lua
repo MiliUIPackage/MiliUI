@@ -35,6 +35,15 @@ local mapToAcronym = {
     [392] = "GAMBIT",
     [378] = "HoA",
     [542] = "EDA",
+    
+    -- Midday season 1
+    [557] = "WS",
+    [559] = "NEXUS",
+    [239] = "SEAT",
+    [560] = "MC",
+    [161] = "SKY",
+    [556] = "POS",
+    [558] = "MT",
 }
 
 function addon:initAcronyms()

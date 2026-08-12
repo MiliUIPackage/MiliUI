@@ -1,7 +1,7 @@
-## Interface: 120007, 120100
+## Interface: 120100
 ## Title: Mythic+ Miscellaneous
-## Author: Teelo - Jubei'thos (US)
-## Version: 12.0-006
+## Author: Teelo
+## Version: 12.1-001
 ## Notes: Provides a number of Quality of Life improvements, such as portal buttons to your M+ Dungeon. See the list of Modules under Interface Options.
 ## X-Curse-Project-ID: 655714
 ## SavedVariables: MPlusAdventureGuideADB
@@ -36,10 +36,6 @@ libs\AceConsole-3.0\AceConsole-3.0.xml
 libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\AceConfig-3.0\AceConfig-3.0.xml
 
-Locales\enUS.lua
-Locales\zhTW.lua
-Locales\zhCN.lua
-
 options.lua
 item-upgrade.lua
 watermark.lua
@@ -49,9 +45,6 @@ achievement-tracker-fix.lua
 keystone-movable.lua
 acronyms.lua
 wardrobe-class-colours.lua
-delves-progress-tooltip.lua
 inspect-ilvl.lua
-premade-finder-red-x.lua
 house-dropdown-faction-icon.lua
-april-fools.lua
 init.lua
