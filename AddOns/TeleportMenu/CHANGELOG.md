@@ -1,6 +1,10 @@
 # Teleport Menu
 
-## [v12.6](https://github.com/Justw8/TeleportMenu/tree/v12.6) (2026-06-17)
-[Full Changelog](https://github.com/Justw8/TeleportMenu/compare/v12.5...v12.6) [Previous Releases](https://github.com/Justw8/TeleportMenu/releases)
+## [v12.7](https://github.com/Justw8/TeleportMenu/tree/v12.7) (2026-08-11)
+[Full Changelog](https://github.com/Justw8/TeleportMenu/compare/v12.6...v12.7) [Previous Releases](https://github.com/Justw8/TeleportMenu/releases)
 
-- Add Lightveil Recall Beacon (#215)  
+- Add French (frFR) locale translation (#207)  
+- Update for Midnight season 2 (#220)  
+- Update toc for 12.1  
+- Move Lightveil Recall Beacon to items (#218)  
+- Add Mycomancer's Hearthspore (#216)  
