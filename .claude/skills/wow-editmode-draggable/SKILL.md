@@ -1,4 +1,5 @@
 ---
+name: wow-editmode-draggable
 description: Make a custom WoW addon frame draggable inside Blizzard's Edit Mode (拖曳/編輯模式移動自訂框架), saving its position to SavedVariables as a CENTER offset. Use whenever a MiliUI/WoW addon needs a frame the user can reposition by entering Edit Mode and dragging — cast bars, reminders, timer/countdown bars, custom HUD elements. Trigger on "編輯模式拖曳", "Edit Mode drag", "EditModeSystemSelectionTemplate", "讓框架可以在編輯模式移動".
 ---
 

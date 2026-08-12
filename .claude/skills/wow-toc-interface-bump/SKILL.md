@@ -1,4 +1,5 @@
 ---
+name: wow-toc-interface-bump
 description: Bump the "## Interface:" version in every WoW addon .toc across an AddOns folder so the whole pack supports a new patch (整包插件 toc 支援新版本號 / 更新 Interface 版本 / 插件顯示過期). Use this whenever the user wants addons to stop showing as out of date, mentions a patch number like 12.1 / 120100 / 12.1.5, says "整包 toc 都改成 X", "支援 120100", "bump the toc versions", or asks how a patch number maps to an interface number. Always run the bundled script rather than hand-editing TOCs or writing a new one-off script — the retail/classic digit rule below is easy to get wrong and silently breaks multi-flavor addons.
 ---
 

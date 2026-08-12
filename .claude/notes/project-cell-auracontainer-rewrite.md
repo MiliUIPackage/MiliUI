@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 47adb948-8bd2-4804-9bff-d58a154ecf7c
-  modified: 2026-08-10T19:13:10.635Z
+  modified: 2026-08-12T13:31:45.160Z
 ---
 
 Cell 的中央「Raid Debuffs」指示器要從舊的 spell-ID 比對(路線 B)改成 Blizzard AuraContainer(路線 A,見 [[wow-121-aura-containers]]),讓副本減益分類全走 Blizzard-side candidateFilters(boss/role/priority/cc/raid/dispel),照 DandersFrames v5 作法「一個都不少」。使用者 2026-08 選定路線 A。
@@ -119,5 +119,12 @@ Cell 的中央「Raid Debuffs」指示器要從舊的 spell-ID 比對(路線 B)�
 4. `crowdControls` 指示器還在手動路。
 5. 診斷:`/cab` 會列所有容器實例(mode/filter/groupsAdded/initCount/errors)。
 6. **未在遊戲內驗證**:合併後的 debuff 排 / 三個 cooldown / 自訂圖示指示器,以及統一後的外環顏色與 `SetReverse(true)` 消退方向。
+
+**後續踩到的陷阱:改用容器的指示器會把版面除以零(2026-08-12 修,`Indicators/Base.lua`)**。
+`I.DiscardFallbackIcons` 把舊圖示池丟掉時設 `maxNum = 0`,而 `Icons_SetNumPerLine` 用
+`min(numPerLine, maxNum)` 夾,於是 `numPerLine` 也變 0,底下算「行數」的除法就炸。修法是在
+那個除法前面 `if not icons.numPerLine or icons.numPerLine <= 0 then return end` —— 之後每個迴圈
+都是 `for i = 1, maxNum`,本來就不會做事。**通則:凡是「改走容器後把舊池歸零」的地方,都要回頭
+檢查有沒有人拿那些數字做除法或當迴圈上界。**
 
 相關:[[wow-121-aura-containers]]、[[project-121-addon-migration]]、[[wow-121-coolinator-reference]]

@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-10T13:30:21.271Z
+  modified: 2026-08-12T13:31:30.974Z
 ---
 
 12.1.0 最大的改動：光環（buff/debuff）。官方 blue post: https://us.forums.blizzard.com/en/wow/t/addons-and-auras-in-curse-of-ula%E2%80%99tek/2317456
@@ -31,6 +31,8 @@ metadata:
 另外：治療職業的 HoT/護盾（回春、癒合、真言術：盾、光明信標…）已從 "never secret" 名單移除，因為現在可以用 AuraContainer 正常顯示。
 
 **已驗證的 AuraButton API**（抄自 Coolinator `Display/AuraIconNext.lua`，正式出貨的 12.1 程式碼，不是猜的）：`SetIcon(texture)`、`SetApplicationCount(fontString)`、`SetDurationCooldown(cooldownFrame)`、`SetDurationText(fontString)`、`SetAuraBorder(texture, {style = Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset, showIcon = false})`、`SetMouseMotionEnabled`、`SetCollapsesLayout`、`SetIgnoringChildrenForBounds`。options table 長這樣：`{initializeFrame = function(auraButton) ... end, candidateFilters = {includeSpellIDs = {[id]=true}}}`。
+
+**倒數的三種呈現方式，都是「交出 widget 讓暴雪畫」**：`SetDurationText(fontString)` 數字、`SetDurationCooldown(cooldownFrame)` 掃描（Cooldown 一定要帶 `CooldownFrameTemplate`，少了 template 它不會動）、`SetDurationBar(statusBar)` 長條。三者共通的性質要先講清楚，免得又去想怎麼「讀秒數」：**插件端永遠拿不回剩餘時間**，交出去的 widget 會被蓋上 SecretAspect。所以「剩 5 秒變紅 / 播音效 / 到期 glow」這類條件式行為在路線 A 底下做不到，只能改用別的訊號（例如 `SPELL_AURA_APPLIED` 自己起算，但對延長與提前結束會失準）。三種都必須在 `initializeFrame` 視窗內掛好，bar 要建成 AuraButton 的子物件。本機用法見 `MiliUI/Fix/AuraContainerCore.lua`（`durationStyle` 在 bar/swipe 之間切換）。
 
 **所有樣式都必須寫在 `initializeFrame` 裡**：PTR 5 起 auras 一變 secret 整個 AuraButton 就 forbidden，而這個 forbidden 狀態正是在 `initializeFrame` 回傳**之後**才套上去的，在別處設定會 error。
 

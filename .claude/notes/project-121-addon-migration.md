@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-09T18:11:51.823Z
+  modified: 2026-08-12T13:31:16.136Z
 ---
 
 2026-08-10 起，Mili 在 `ptr-12.1` 分支把 `/Applications/World of Warcraft/_ptr_/Interface` 底下的插件搬到 12.1（TOC `120100`）。主線是 secret values 擴大造成的崩潰修復。
@@ -49,7 +49,12 @@ metadata:
 
 **`MiliUI/Fix/Cell_AuraContainer.lua`（新寫，2026-08-10）**——一開始寫成獨立插件 `MiliUI_CellAuraBridge`，Mili 指出該併進 MiliUI，正確：MiliUI 本來就有 `Fix/Stuf_Fix.lua`、`Fix/AyijeCDM_StufAnchor.lua` 這套每插件修補的慣例，而「獨立才不怕被目標插件更新洗掉」這個理由根本不成立（MiliUI 也是自己的插件）。已改用 `EventUtil.ContinueOnAddOnLoaded("Cell", ...)` 包起來、TOC 的 OptionalDeps 加上 Cell、註解改中文對齊周圍程式碼，獨立插件資料夾已刪。內容如下：Cell 全面改 AuraContainer 等於重寫它的 indicator 子系統（Cell 的指示器全是資料驅動：spellID 清單、dispel 類型、每法術過濾，而 AuraContainer 刻意不給資料），不是這裡做得完的。折衷是寫一支**獨立**插件：在每顆 Cell unit button 上掛一個 AuraContainer + 一個 `HARMFUL` aura group，auras 為 secret 時顯示它並把 Cell 自己的圖示 `SetAlpha(0)`，恢復時反向。獨立的好處是 Cell 更新不會洗掉、可單獨停用、不動 Cell 既有（正常運作的）非戰鬥路徑。版面不讀 Cell 的 SavedVariables，改成從 `button.indicators.debuffs` 的 `GetPoint()` / `[1]:GetWidth()` 反推，等於自動跟著 Cell 設定走。所有未驗證的 API 都做 capability check，失敗只印一行不噴錯；`/cab` 看診斷、`/cab reset` 把 Cell 圖示的 alpha 救回來。
 
-待辦：上 PTR 實測（`/cab` 先確認 `AddAuraGroup` 存不存在、版面對不對）；**其他插件的 aura 軸還沒掃**——Stuf `aura.lua`、Cell `UnitButton.lua` 的 `GetAuraDataBySlot`/`GetAuraDataByAuraInstanceID`/`ForEachAura`、Ayije_CDM `Modules/Resources_Trackers.lua` 直接迭代 `UNIT_AURA` payload（`info.addedAuras`、`info.updatedAuraInstanceIDs`），在 12.1 全部是 hard Lua error，加 guard 沒用，要照 [[wow-121-aura-containers]] 重寫。
+**光環軸的現況（2026-08-12 重新核對）**——上面那支 `Fix/Cell_AuraContainer.lua` 已經不存在了，架構長成兩層：`MiliUI/Fix/AuraContainerCore.lua` 是共用核心，`MiliUI/Fix/Stuf_AuraContainer.lua` 是掛在 Stuf 上的鏡射；Cell 則是**在自己的程式碼裡**走完路線 A（`RaidFrames/UnitButton.lua` 有 12 處 AuraContainer，另有自己的 `RaidFrames/AuraContainerCore.lua`），詳見 [[project-cell-auracontainer-rewrite]]。
+
+還沒處理的：`Stuf/aura.lua` 本體一個 secret 防護都沒有（0 處 `issecretvalue`），目前完全靠 MiliUI 的鏡射蓋過去；Ayije_CDM `Modules/Resources_Trackers.lua` 直接迭代 `UNIT_AURA` payload。這些在 12.1 是 hard Lua error，加 guard 沒用，要照 [[wow-121-aura-containers]] 重寫。
+
+**MplusAdventureGuide 有一個已診斷但未修的崩潰（2026-08-12）**：`delves-progress-tooltip.lua:31` 假設 `WeeklyRewardsFrame.Activities` 裡每個元素都是 `WeeklyRewardsActivityMixin`，只排除了 `ConcessionFrame`。12.1 在大寶庫多塞了 2 個 XML 定義的框架（`Blizzard_WeeklyRewards.xml:712`/`:718`，`type=5`，看起來是虛無之核加成擲骰那塊），它們沒有 `ShowIncompleteTooltip`，`hooksecurefunc` 直接報錯。錯誤發生在迴圈第一圈就往上拋，**後面 9 個真正的格子一個都沒掛上 → 整個深淵進度提示功能靜默失效**。修法是把「排除已知特例」的黑名單換成能力判斷（`type(activity.ShowIncompleteTooltip) == "function"`），兩個 hook 各自判斷。附帶要查：`addTopDelveRunsToTooltip` 抓的 `Enum.WeeklyRewardChestThresholdType.World` 在 12.1 是否還對應深淵，否則修好 hook 也只會顯示 0。
 
 參考解法與 API 筆記見 [[wow-secret-key-table-lookup]]、[[wow-121-unit-api-secrets]]、[[wow-121-aura-containers]]、[[wow-121-other-api-changes]]。
-本機已安裝、可直接翻原始碼當範本的 12.1-ready 插件：Cell、MiniCC、Plumber、TinyTooltip-Remake、WarpDeplete（都已用 `issecretvalue`）。
+
+**本機可直接翻原始碼當範本的 12.1-ready 插件**（2026-08-12 核對過確實還在）：Cell、Plumber、TinyTooltip-Remake、WarpDeplete、Coolinator（都已用 `issecretvalue`）。~~MiniCC~~ 和試裝過的 ~~MiniAuras~~ 都已從套組移除（2026-08-10），**原始碼不在本機了，別再叫人去翻**。另外 `BuffReminders/Display/AuraTracker.lua` 是 repo 內最小、最好讀的路線 A 實作（單一 AuraGroup + `includeSpellIDs`），要看整套流程但不想啃 Cell 的時候從它開始。
