@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: d9b96204-83cb-454f-942a-8fbc815e61e2
-  modified: 2026-08-12T13:20:55.162Z
+  modified: 2026-08-12T18:30:52.564Z
 ---
 
 這個 repo 的 agent 資料**全部放在根目錄 `.claude/`**，單一入口（2026-08-12 整併，
@@ -15,9 +15,8 @@ metadata:
 - `.claude/notes/` —— 規則與現況，索引在 `notes/README.md`
 - 根目錄 `CLAUDE.md` 指向上述兩處
 
-目前的技能：`wow-121-migration`（12.1 secret values，動插件程式碼前必讀，指路到 notes）、
-`wow-toc-interface-bump`、`wow-editmode-draggable`、`miliui-addon-defaults`、
-`miliui-import-addon`。
+技能清單直接看 `.claude/skills/` 目錄（每個技能的觸發時機寫在自己的 description），
+這裡不逐一列 —— 列了就會過時。
 
 **Why 用 `.claude/` 而不是 `.agent/`：** `.claude/skills/` 會被 Claude Code 自動載入並依
 description 觸發，`.agent/` 不會 —— 要靠人記得去翻。`.gitignore` 已收窄成只擋

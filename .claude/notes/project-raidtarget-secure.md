@@ -1,5 +1,5 @@
 ---
-name: raidtarget-secure-action
+name: project-raidtarget-secure
 description: Midnight(12.0) 起 SetRaidTarget 是戰鬥保護函式，插件標記要走 SECURE_ACTIONS.raidtarget 安全按鈕
 metadata: 
   node_type: memory

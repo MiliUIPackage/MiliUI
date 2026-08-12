@@ -26,7 +26,7 @@ mapping before running — `120150` is a common mistake for 12.1.5 (that would r
 ## Usage
 
 ```bash
-python3 scripts/bump_toc.py --target 120100 --dir "/Applications/World of Warcraft/_ptr_/Interface/AddOns"
+python3 scripts/bump_toc.py --target 120100 --dir "/Applications/World of Warcraft/_retail_/Interface/AddOns"
 ```
 
 Read the dry-run output with the user, then re-run the identical command with `--apply`.
@@ -81,6 +81,14 @@ git diff --shortstat -- '*.toc'
 You should see `N files changed, N insertions(+), N deletions(-)` — the same N three times. Any
 mismatch means something other than the Interface line moved, and is worth looking at before
 committing.
+
+## Environment trap: RaiderIO desktop app rewrites TOCs
+
+If the RaiderIO desktop app is running, it rewrites the `RaiderIO` and six `RaiderIO_DB_*` TOCs
+back to its own interface version — editing them by hand (or by this script) does not stick, and
+doesn't need to: the app keeps them current on its own. Those files are usually untracked too, so
+the git diff after applying will show a few files fewer than the script reported. That mismatch is
+the app, not a script bug.
 
 ## After bumping
 

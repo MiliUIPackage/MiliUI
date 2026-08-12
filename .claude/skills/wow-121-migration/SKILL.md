@@ -39,6 +39,7 @@ secret，對它做算術、拿它當 table 的 key、或把它印出來，都會
 
 | 檔案 | 內容 |
 |---|---|
-| [project-121-addon-migration.md](../../notes/project-121-addon-migration.md) | ptr-12.1 分支要修哪些插件、已知崩潰點 |
-| [project-cell-auracontainer-rewrite.md](../../notes/project-cell-auracontainer-rewrite.md) | Cell 中央 debuff 改 AuraContainer 的整合點與待驗證清單 |
+| [project-local-addon-forks.md](../../notes/project-local-addon-forks.md) | **動任何第三方插件之前先看這張表** —— 哪幾支帶著會被上游更新洗掉的本地修改 |
+| [project-121-addon-migration.md](../../notes/project-121-addon-migration.md) | 各插件修了什麼、已知崩潰點、放棄了什麼 |
+| [project-cell-auracontainer-rewrite.md](../../notes/project-cell-auracontainer-rewrite.md) | Cell 光環指示器改 AuraContainer：現況架構、通則教訓、待辦 |
 | [wow-cell-fork-comm.md](../../notes/wow-cell-fork-comm.md) | Cell 改版的 comm 處理，哪些前綴要跟原版互通 |

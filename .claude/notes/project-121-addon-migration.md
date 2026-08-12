@@ -1,14 +1,14 @@
 ---
 name: project-121-addon-migration
-description: Mili is migrating the MiliUI addon set to WoW 12.1 on the ptr-12.1 branch (started Aug 2026)
+description: MiliUI 套組的 12.1 遷移記錄 — 各插件修了什麼、為什麼、放棄了什麼（2026-08，已併回 master）
 metadata: 
   node_type: memory
   type: project
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-12T15:29:08.967Z
+  modified: 2026-08-12T18:28:11.601Z
 ---
 
-2026-08-10 起，Mili 在 `ptr-12.1` 分支把 `/Applications/World of Warcraft/_ptr_/Interface` 底下的插件搬到 12.1（TOC `120100`）。主線是 secret values 擴大造成的崩潰修復。
+2026-08-10 起，Mili 在 `ptr-12.1` 分支把套組搬到 12.1（TOC `120100`），主線是 secret values 擴大造成的崩潰修復。**2026-08-12 已併回 `master`，工作目錄從 `_ptr_` 換成 `_retail_`**（`/Applications/World of Warcraft/_retail_/Interface`）。以下「已修」條目均已實戰上線，「未上 PTR 實測」的時間戳記是當時寫下的，之後沒再逐條回頭驗證。
 
 **Stuf 已修（2026-08-10，未上 PTR 實測）**：在 `core.lua` 檔案層加了共用 helper `IsSecret` / `desecret` / `toBool`，並匯出成 `Stuf.IsSecret` / `Stuf.Desecret` / `Stuf.ToBool` 給其他檔案用。策略是**在資料來源就把 secret 洗掉**（`RefreshUnit` 寫 cache 時），這樣所有下游查表點都不用動：
 - `core.lua` `cache.CLASS = desecret(UnitClass(unit))` → 一次解決 `classcolor` / `CLASS_ICON_TCOORDS` / `CLASS_BUTTONS` 三處查表崩潰。
@@ -35,7 +35,7 @@ metadata:
 **關鍵分水嶺**：如果該 addon 有 spellID 版的重掃函式（`GetPlayerAuraBySpellID`），不可讀時就**改走重掃**，這是 12.1 正解、功能不損；如果只有 slot/index 版（`GetAuraSlots` / `GetAuraDataBySlot`），那條路在 12.1 也會 error，只能整包 return 保留上次狀態。
 
 - **Ayije_CDM 已修**：`Init.lua` 加 `CDM.IsReadable` / `CDM.SafeNumber` / `CDM.CanDiffAuraPayload`。`Resources_Trackers.lua` 四個 handler + `CustomBuffs.lua` 的 `OnBloodlustAura` 不可讀時改呼叫既有的 `Seed*()`（走 `GetPlayerAuraBySpellID`）→ **功能完整保留**。另外把 `Seed*` 裡 `a.applications` / `a.auraInstanceID` / `a.expirationTime` 全包 `CDM.SafeNumber`，因為 12.1 的 AuraData struct 預設全 secret。
-- **Cell 已修但功能有損**：`Utils.lua` 加 `F.IsSecretTable` / `F.CanDiffAuraPayload`，`UnitButton.lua:1819` 與 `Utilities/QuickAssist.lua` 不可讀時直接 return。Cell 的全量重掃走 `GetAuraSlots`/`GetAuraDataBySlot`，在 12.1 一樣 error，所以**戰鬥中光環指示器會凍結在進戰前的狀態**，只能等 Cell 改用 AuraContainer。
+- **Cell 已修但功能有損（後來治本了）**：`Utils.lua` 加 `F.IsSecretTable` / `F.CanDiffAuraPayload`，`UnitButton.lua` 與 `Utilities/QuickAssist.lua` 不可讀時直接 return。Cell 的全量重掃走 `GetAuraSlots`/`GetAuraDataBySlot`，在 12.1 一樣 error，所以當時**戰鬥中光環指示器會凍結在進戰前的狀態**。→ **這個限制已被 AuraContainer 重寫解除**（debuff 排、重要減益、驅散、三個 cooldown 指示器都搬容器了，見 [[project-cell-auracontainer-rewrite]]）；仍走手動路的只剩效果型自訂指示器與 crowdControls。
 - **TinyTooltip-Remake 已修**：`GameTooltip_UnitColor()` 雖然是暴雪的函式，但跑在**我們的 tainted 呼叫路徑**上，它內部對 `UnitIsPVP` / `UnitCanAttack` 的布林測試會 error 並歸咎於本插件——這種只能**整個換掉**不能包 guard。在 `Core.lua`（`local addon = TinyTooltip` 之後，順序很重要）加了 `addon.IsSecret` / `addon.SafeValue` / `addon.UnitColor`，`UnitColor` 完整複刻暴雪邏輯但每個輸入都擋 secret，讀不到就回白色。`General.lua` / `Target.lua` / `Core.lua` 的 `GetClassColor(secret class)` 也一併擋掉。注意 `General.lua:83` 有個**既有**的壞跳脫 `"Interface\\\Buttons\\..."`，luac 5.4 會拒絕但 WoW 的 Lua 5.1 吃得下，不是這次改壞的。
 
 **DamageMeterTools 已修（2026-08-10，未上 PTR 實測）——這支不是 secret 問題**：整包沒呼叫過任何 `Unit*` API，純粹是套在暴雪內建 DamageMeter 上的外觀插件；它自存的 `DamageMeterToolsDB.errors.log` 也是空的，可排除錯誤風暴。Mili 回報的「登入嚴重卡頓」是設計問題，修了三處：
@@ -51,10 +51,10 @@ metadata:
 
 **光環軸的現況（2026-08-12 重新核對）**——上面那支 `Fix/Cell_AuraContainer.lua` 已經不存在了，架構長成兩層：`MiliUI/Fix/AuraContainerCore.lua` 是共用核心，`MiliUI/Fix/Stuf_AuraContainer.lua` 是掛在 Stuf 上的鏡射；Cell 則是**在自己的程式碼裡**走完路線 A（`RaidFrames/UnitButton.lua` 有 12 處 AuraContainer，另有自己的 `RaidFrames/AuraContainerCore.lua`），詳見 [[project-cell-auracontainer-rewrite]]。
 
-還沒處理的：`Stuf/aura.lua` 本體一個 secret 防護都沒有（0 處 `issecretvalue`），目前完全靠 MiliUI 的鏡射蓋過去；Ayije_CDM `Modules/Resources_Trackers.lua` 直接迭代 `UNIT_AURA` payload。這些在 12.1 是 hard Lua error，加 guard 沒用，要照 [[wow-121-aura-containers]] 重寫。
+還沒處理的：`Stuf/aura.lua` 本體一個 secret 防護都沒有（0 處 `issecretvalue`，2026-08-13 再次確認），目前完全靠 MiliUI 的鏡射（`Fix/Stuf_AuraContainer.lua`，ALWAYS_ON）蓋過去 —— 若哪天把鏡射改回「只在戰鬥中接管」，`aura.lua` 要照 [[wow-121-aura-containers]] 重寫。（Ayije_CDM `Resources_Trackers.lua` 之前也列在這裡，**已不成立**：四個 handler 都有 `CDM.CanDiffAuraPayload` 守衛，不可讀時走 `Seed*()` 重掃，見上文 Ayije_CDM 條目。）
 
 ~~**MplusAdventureGuide 有一個已診斷但未修的崩潰（2026-08-12）**~~ **已不需要處理（2026-08-12 晚間）**：上游 `12.1-001` 直接把 `delves-progress-tooltip.lua` 從 TOC 和 repo 移除了（同時移除的還有 `premade-finder-red-x.lua`、`april-fools.lua` 和整個 `Locales/`）。原本的診斷留著當**通則**：`delves-progress-tooltip.lua:31` 用「排除已知特例」的黑名單去掛 `WeeklyRewardsFrame.Activities`（只排 `ConcessionFrame`），12.1 在大寶庫多塞了 2 個 XML 定義的框架（`Blizzard_WeeklyRewards.xml:712`/`:718`，`type=5`）沒有 `ShowIncompleteTooltip`，`hooksecurefunc` 在迴圈第一圈就往上拋，**後面 9 個真正的格子一個都沒掛上 → 功能靜默失效**。**掛暴雪容器裡的子元素時一律用能力判斷（`type(x.Method) == "function"`）而不是黑名單**，改版加東西進容器是常態。
 
 參考解法與 API 筆記見 [[wow-secret-key-table-lookup]]、[[wow-121-unit-api-secrets]]、[[wow-121-aura-containers]]、[[wow-121-other-api-changes]]。
 
-**本機可直接翻原始碼當範本的 12.1-ready 插件**（2026-08-12 核對過確實還在）：Cell、Plumber、TinyTooltip-Remake、WarpDeplete、Coolinator（都已用 `issecretvalue`）。~~MiniCC~~ 和試裝過的 ~~MiniAuras~~ 都已從套組移除（2026-08-10），**原始碼不在本機了，別再叫人去翻**。另外 `BuffReminders/Display/AuraTracker.lua` 是 repo 內最小、最好讀的路線 A 實作（單一 AuraGroup + `includeSpellIDs`），要看整套流程但不想啃 Cell 的時候從它開始。
+**本機可直接翻原始碼當範本的 12.1-ready 插件**（2026-08-13 核對）：Cell、Plumber、TinyTooltip-Remake、WarpDeplete（都已用 `issecretvalue`）。~~MiniCC~~、~~MiniAuras~~、~~Coolinator~~ 的原始碼**都不在本機了**（前兩者 2026-08-10 從套組移除；Coolinator 2026-08-13 發現只剩空目錄樹，要看去 GitHub，見 [[wow-121-coolinator-reference]]），**別再叫人去翻本機的**。另外 `BuffReminders/Display/AuraTracker.lua` 是 repo 內最小、最好讀的路線 A 實作（單一 AuraGroup + `includeSpellIDs`），要看整套流程但不想啃 Cell 的時候從它開始。

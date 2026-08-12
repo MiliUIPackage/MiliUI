@@ -1,5 +1,5 @@
 ---
-name: project_speccompare_equipment_filter
+name: project-speccompare-equipment-filter
 description: AdventureGuideSpecCompare 的 IsEquipment 篩選：玩具/純造型會混進裝備清單，要排除
 metadata: 
   node_type: memory
@@ -15,4 +15,4 @@ MiliUI_AdventureGuideSpecCompare 用 `IsEquipment(info)`（core.lua）決定哪�
 
 **IsEquipment 現行守門順序（前兩道是這次加的）：** 1) 玩具排除 → 2) 純造型排除 → 3) 有真實 equipLoc（非空、非 INVTYPE_NON_EQUIP_IGNORE）視為裝備 → 4) class15 套裝令牌（排除坐騎 sub5/寵物 sub2）視為裝備。
 
-**How to apply：** 換季掃到怪東西先跑 `/agsc loot`，它會印每筆 loot 的 `id/class/sub/ft(filterType)/equip`，對照上面就能判斷該補哪種排除規則。API 偵測（ToyBox / IsCosmeticItem）比硬寫 class/sub 數字穩。改完要 `/reload` 才會重掃。相關 [[project_loot_history_tracking]]。
+**How to apply：** 換季掃到怪東西先跑 `/agsc loot`，它會印每筆 loot 的 `id/class/sub/ft(filterType)/equip`，對照上面就能判斷該補哪種排除規則。API 偵測（ToyBox / IsCosmeticItem）比硬寫 class/sub 數字穩。改完要 `/reload` 才會重掃。相關 [[project-loot-history-tracking]]。

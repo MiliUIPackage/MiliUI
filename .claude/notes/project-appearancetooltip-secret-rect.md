@@ -1,5 +1,5 @@
 ---
-name: appearancetooltip-secret-rect
+name: project-appearancetooltip-secret-rect
 description: "AppearanceTooltip GetCenter 觸發秘密值錯誤的修補(IsRectValid guard),上游更新後要重套"
 metadata: 
   node_type: memory

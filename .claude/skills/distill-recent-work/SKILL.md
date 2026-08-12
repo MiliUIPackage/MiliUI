@@ -71,9 +71,13 @@ git log --since="<起始日>" --name-only --pretty=format: | awk -F/ '/^AddOns\/
 memory，再匯出：
 
 ```bash
-cp ~/.claude/projects/-Applications-World-of-Warcraft--ptr--Interface/memory/*.md .claude/notes/
-rm .claude/notes/MEMORY.md
+cp ~/.claude/projects/-Applications-World-of-Warcraft--retail--Interface/memory/*.md .claude/notes/
+rm .claude/notes/MEMORY.md .claude/notes/feedback-language.md
 ```
+
+（`MEMORY.md` 是 memory 的索引檔，notes 的索引是 README.md；`feedback-language.md`
+是個人偏好不屬於專案筆記。舊的 `-ptr--Interface` memory 目錄已於 2026-08-13 整併刪除，
+別再從那裡匯。）
 
 ### 6. 回報
 

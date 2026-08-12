@@ -21,4 +21,4 @@ metadata:
 - `ItemUpgradeFrame.targetUpgradeLevelInfo.itemLevelIncrement`（12.0 拿得到目標階級的 ilvl 增量）在 **12.1 實測拿不到**。所以要有「不知道確切增量」的備援路徑：改看漲幅像不像跳了 N 個階級，下限抓 `2 * step`——階級之間固定差 3~4 ilvl，這個下限正好擋掉物品自帶的「物品等級 +N」差值 bonus（它 +step 之後 ilvl 也剛好只漲 step，不擋就會被誤認成軌道）。
 - 「物品等級 +N」差值 bonusID 的通用公式 `1472+N` 仍然跨季不變，還是留著當最後的備援。
 
-其他季度維護項目見 [[platynator-preset]]、[[project-miliui-voidcore-currency]]。
+其他季度維護項目見 [[project-platynator-preset]]、[[project-miliui-voidcore-currency]]。

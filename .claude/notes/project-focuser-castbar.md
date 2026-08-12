@@ -1,5 +1,5 @@
 ---
-name: project_focuser_castbar
+name: project-focuser-castbar
 description: MiliUI 焦點目標施法監控（施法條/斷法巨集/唱法音效）的結構與維護要點
 metadata: 
   node_type: memory

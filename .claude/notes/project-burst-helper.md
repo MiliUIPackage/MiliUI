@@ -1,14 +1,14 @@
 ---
-name: project_burst_helper
+name: project-burst-helper
 description: 自製 MiliUI_BurstPotionHelper 爆發藥水切換插件的設計與維護
 metadata: 
   node_type: memory
   type: project
   originSessionId: e7321db7-8df6-4ae1-a0e8-59ea5426ae4d
-  modified: 2026-07-28T20:07:16.319Z
+  modified: 2026-08-12T18:31:03.068Z
 ---
 
-`AddOns/MiliUI_BurstPotionHelper/` 是參考 `BurstPotionSwitcher` 重寫的爆發藥水切換插件（自製、未追蹤）。SavedVariables=`MiliUI_BurstPotionHelperDB`。
+`AddOns/MiliUI_BurstPotionHelper/` 是參考 `BurstPotionSwitcher` 重寫的爆發藥水切換插件（自製，已進 git 追蹤）。SavedVariables=`MiliUI_BurstPotionHelperDB`。
 
 **核心設計（避免污染/秘密值）**：tainted Lua 在戰鬥中「零保護呼叫、零背包讀取」——`C_Item.GetItemCount`/`GetContainerItemInfo`/插件自己的 `SetAttribute` 只在非戰鬥執行（戰鬥中設 `pendingRebuild`/`pendingApply`，`PLAYER_REGEN_ENABLED` 補做）。秘密值只由 unit/aura 類 API 產生，此插件完全不碰。**插件完全不碰巨集**（不再有 `EditMacro`/`#showtooltip`/圖示同步——使用者要求移除，2026-06）。
 
@@ -42,4 +42,4 @@ metadata:
 
 **分環境記憶（`db.splitByContext`，預設開，2026-07）**：選擇（`selectedItemID`/`disabled`）依環境分開存 `db.profiles[ctx]`，六個 ctx：world／party（M+/五人地城）／raid／pvp（戰場）／arena／scenario（探究/儀式）。**環境判斷**（`ns.ComputeContext`，掛 `PLAYER_ENTERING_WORLD`）：`GetInstanceInfo` 的 instanceType 為主，但 **"party" 不可直接信**——要塞/跟隨者地城(205)/任務副本(216)也回 "party"，須再過 difficultyID 白名單 {1,2,8(M+),23,24}（用 `DifficultyUtil.ID` 常數+數字 fallback）；`scenario` 概括探究(208)與 Midnight 儀式地點（無專屬 ID 記載，用 instanceType 免追新 ID）；其餘歸 world。**存取一律走 `ns.SelStore()`**（split 關閉時回傳 db 本體；profile 懶建立、以共用欄位為種子），`OnSelect/OnSelectNone` 同時鏡寫共用欄位（關閉選項時保留最後選擇）。UI：設定面板頂部 `SETTINGS_CURRENT_CONTEXT` 顯示目前記憶（OnShow 才更新——BuildPanel 在檔案載入期執行，**不可在 build 時讀 DB**，SavedVariables 未載入）；grip tooltip 加 `TIP_CONTEXT`；換環境時聊天印 `MSG_CONTEXT_APPLIED`。
 
-**每季維護**：`Data.lua` 的藥水 itemID 是當季資料：圣光潜力(241308/241309, 大鍋245898/245897)、鲁莽(241288/241289, 大鍋245903/245902)、惡念狂飲 Draught of Rampant Abandon(241292/241293, 大鍋245911/245910)。改版換新藥水要更新（類似 [[project_itemupgrade_preview_icon]] 的季更新模式）。toc 版本號跟 [[project_toc_interface_bump]] 一起 bump。
+**每季維護**：`Data.lua` 的藥水 itemID 是當季資料：圣光潜力(241308/241309, 大鍋245898/245897)、鲁莽(241288/241289, 大鍋245903/245902)、惡念狂飲 Draught of Rampant Abandon(241292/241293, 大鍋245911/245910)。改版換新藥水要更新（類似 [[project-itemupgrade-preview-icon]] 的季更新模式）。toc 版本號跟 [[project-toc-interface-bump]] 一起 bump。

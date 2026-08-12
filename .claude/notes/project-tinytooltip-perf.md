@@ -1,5 +1,5 @@
 ---
-name: project_tinytooltip_perf
+name: project-tinytooltip-perf
 description: TinyTooltip-Remake 滑過裝備掉 FPS 的根因與 MiliUI 就地效能修補
 metadata: 
   node_type: memory
@@ -20,4 +20,4 @@ TinyTooltip-Remake 是 MiliUI 維護的**就地修補**插件（Core.lua/Item.lu
 
 **2026-06-22 補：秘密值(secret)防呆**（同屬上述效能修補、重套時要一起帶上）。物品品質邊框色在新版可能是「秘密值」(暴雪防自動化的值污染)，`Core.lua:1885` 用 `table.concat` 把顏色字串化做 styleKey 時會丟 `invalid value (secret) at index 6 in table for 'concat'`（577x 洗版）。修法：styleKey 的 concat 包 `pcall`，失敗就 `styleKey=nil` → 跳過「整個樣式」早退，但 structKey(不含顏色、永不秘密)仍照常擋下昂貴 SetBackdrop，顏色每週期只走便宜的 SetBackdropBorderColor，效能優化不受影響。注意 structKey(line 1880)別放顏色，否則它也會變秘密而失去擋重建能力。
 
-診斷方法：用自製 `MiliUI_FPSDebug`（watch=各插件 ms/s、count=tooltip 函式次/秒、trace=呼叫堆疊、prof=逐 LibEvent 事件計時、t1/t2=A/B 開關）；關鍵教訓：**prof 顯示 LibEvent 只 ~40ms 但 GetAddOnCPUUsage 報 1100ms → 成本在 Lua 之外的 C 端呼叫(SetBackdrop)**，別只看 Lua。相關：[[project_charframe_taint]]。
+診斷方法：用自製 `MiliUI_FPSDebug`（watch=各插件 ms/s、count=tooltip 函式次/秒、trace=呼叫堆疊、prof=逐 LibEvent 事件計時、t1/t2=A/B 開關）；關鍵教訓：**prof 顯示 LibEvent 只 ~40ms 但 GetAddOnCPUUsage 報 1100ms → 成本在 Lua 之外的 C 端呼叫(SetBackdrop)**，別只看 Lua。相關：[[project-charframe-taint]]。

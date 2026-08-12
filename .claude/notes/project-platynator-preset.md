@@ -1,10 +1,11 @@
 ---
-name: project_platynator_preset
+name: project-platynator-preset
 description: 如何更新 MiliUI 內建的 Platynator 預設值 (Luxthos_Platynator.lua) 與版本機制
 metadata: 
   node_type: memory
   type: project
   originSessionId: e51350ec-bf4a-4468-82ee-341ab39d7af2
+  modified: 2026-08-12T18:30:56.371Z
 ---
 
 MiliUI 內建 Platynator 預設值放在 `AddOns/MiliUI/Config/Luxthos_Platynator.lua`，定義全域 `MiliUI_PlatynatorProfile` 與 `MiliUI_PlatynatorVersion`（格式 YYYYMMDD）。
@@ -15,4 +16,6 @@ MiliUI 內建 Platynator 預設值放在 `AddOns/MiliUI/Config/Luxthos_Platynato
 
 **How to apply:** 更新預設值時，最可靠來源是遊戲已 migrate 過的 SavedVariables — `WTF/Account/LAXGENIUS/SavedVariables/Platynator.lua` 內的 `["MiliUI"]` profile（含 `migration=6`、新版 `design_assignments`、design `version=10`）。把該 profile 內容包成 `MiliUI_PlatynatorProfile = {...}`，保留 `kind="profile"`/`addon="Platynator"`，並把 `MiliUI_PlatynatorVersion` 改成當天日期 YYYYMMDD。⚠️ 此檔是「重新產生」的，重產後務必補回結尾的開關 `MiliUI_PlatynatorForceUpdate`（預設 false）。
 
-**強制更新開關：** `MiliUI_PlatynatorForceUpdate`（定義在 Luxthos_Platynator.lua 結尾，預設 false）。Initialize.lua 只有在此開關為 true 且 `MiliUI_PlatynatorVersion > 存檔 MiliUI_Version` 時才強制覆蓋重匯入；新角色/尚無 MiliUI profile 仍會正常匯入。要推送預設值更新給所有舊用戶時，把它設為 true 並 bump 版本號。詳見 [[feedback_language]]。
+**強制更新開關：** `MiliUI_PlatynatorForceUpdate`（定義在 Luxthos_Platynator.lua 結尾，預設 false）。Initialize.lua 只有在此開關為 true 且 `MiliUI_PlatynatorVersion > 存檔 MiliUI_Version` 時才強制覆蓋重匯入；新角色/尚無 MiliUI profile 仍會正常匯入。要推送預設值更新給所有舊用戶時，把它設為 true 並 bump 版本號。
+
+提取步驟與腳本見 `miliui-addon-defaults` 技能（SavedVariables 讀 `_retail_` 的 `WTF/Account/LAXGENIUS/SavedVariables/Platynator.lua`，記得先登出讓設定落地）。

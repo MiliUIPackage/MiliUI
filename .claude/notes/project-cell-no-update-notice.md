@@ -1,5 +1,5 @@
 ---
-name: cell-no-update-notice
+name: project-cell-no-update-notice
 description: Cell 停用新版本聊天通知的就地修補，Cell 更新後要重套
 metadata: 
   node_type: memory
@@ -14,4 +14,4 @@ MiliUI 停用 Cell 的兩種更新通知（都加 `-- MiliUI:` 標記）：
 
 **Why:** 使用者不想看到任何更新提示，但版本比對邏輯要照常運作。
 
-**How to apply:** Cell 從上游更新後兩處修補都會被覆蓋，需重套。相關修補參見 [[cell-vehicle-secret]]。
+**How to apply:** Cell 從上游更新後兩處修補都會被覆蓋，需重套。相關修補參見 [[project-cell-vehicle-secret]]。

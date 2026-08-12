@@ -1,5 +1,5 @@
 ---
-name: project_cell_libgroupinfo_secret_guid
+name: project-cell-libgroupinfo-secret-guid
 description: Cell LibGroupInfo 秘密 GUID 當 table key 報錯的就地修補，Cell 更新後要重套
 metadata: 
   node_type: memory
@@ -17,4 +17,4 @@ Cell `Libs/LibGroupInfo.lua` 在 Midnight 12.0+ 會遇到**秘密 GUID**：競�
 
 其他 `UnitGUID` 呼叫點（`IterateAllUnits`、`BuildAndNotify`）只跑 party/raid 友方單位，GUID 不會是秘密值，不用擋。
 
-**Why**：上游還沒把秘密值適配補到這個 lib。**How to apply**：Cell 更新覆蓋後若上游沒修要重套，helper + 各 guard 都要。同類修補見 [[project_cell_vehicle_secret]]。
+**Why**：上游還沒把秘密值適配補到這個 lib。**How to apply**：Cell 更新覆蓋後若上游沒修要重套，helper + 各 guard 都要。同類修補見 [[project-cell-vehicle-secret]]。
