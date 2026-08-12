@@ -163,6 +163,8 @@ local function InitializeButton(button)
     local regions = {}
     buttonRegions[button] = regions
 
+    button:EnableMouse(false)
+
     regions.border = button:CreateTexture(nil, "BACKGROUND")
     regions.border:SetColorTexture(0, 0, 0, 1)
 
@@ -266,8 +268,6 @@ local function CreateMover()
 
     local label = mover:CreateFontString(nil, "OVERLAY")
     label:SetPoint("BOTTOM", mover, "TOP", 0, 4)
-    label:SetTextColor(0.4, 1, 0.4, 1)
-    label:SetText(L["Externals.Title"])
     mover.label = label
 
     -- The mover is built once, so it would otherwise keep the font it was created
@@ -276,7 +276,12 @@ local function CreateMover()
     function mover:UpdateFont()
         BR.Display.SetFontCached(self.label, MOVER_LABEL_SIZE)
     end
+    -- Must run before SetText: the FontString inherits no font, and setting text on
+    -- a font-less FontString raises an error (hence the same order in Movers.lua).
     mover:UpdateFont()
+
+    label:SetTextColor(0.4, 1, 0.4, 1)
+    label:SetText(L["Externals.Title"])
 
     BR.SetupTooltip(mover, L["Externals.Title"], L["Externals.MoverTooltip"])
 
@@ -301,7 +306,7 @@ local function EnsureFrames()
     -- Guarded separately from the container: if the container ever fails to build,
     -- this is retried from the lift watcher and from VisualsRefresh, and re-creating
     -- the anchor would orphan the previous one under the same global name (WoW frames
-    -- are never collected) along with its mover, textures and fontstring.
+    -- are never collected) along with its textures and fontstring.
     if not anchorFrame then
         -- The container's parent is a plain frame we own: the mover and any future
         -- animated chrome must live OUTSIDE the button subtree, and a frame anchored
@@ -311,7 +316,12 @@ local function EnsureFrames()
         anchorFrame:SetMovable(true)
         anchorFrame:SetClampedToScreen(true)
         ApplyPosition()
+    end
 
+    -- Its own step, so a mover that failed to build is retried on the next refresh
+    -- instead of leaving the anchor permanently moverless (every later refresh would
+    -- then fault on it, and the display would be undraggable for the session).
+    if not anchorFrame.mover then
         anchorFrame.mover = CreateMover()
     end
 
@@ -338,10 +348,13 @@ end
 ---Show the mover with the global frame lock. Hidden, it takes no mouse input, so
 ---the display never eats clicks while locked.
 local function SetUnlocked(unlocked)
-    if not anchorFrame then
+    -- Called from the global frame lock, so it must not fault when the display has
+    -- not been built (or its mover failed to build) - the lock owns every category.
+    local mover = anchorFrame and anchorFrame.mover
+    if not mover then
         return
     end
-    anchorFrame.mover:SetShown(unlocked and Settings().enabled)
+    mover:SetShown(unlocked and Settings().enabled)
 end
 
 local function Refresh()
