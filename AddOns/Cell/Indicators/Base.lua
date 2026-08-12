@@ -888,6 +888,13 @@ end
 local function Icons_UpdateSize(icons, numAuras)
     if not (icons.width and icons.orientation) then return end -- not init
 
+    -- ⚠ An AuraContainer-backed indicator has had its legacy icon pool thrown away by
+    -- I.DiscardFallbackIcons, which sets maxNum = 0 -- and Icons_SetNumPerLine clamps with
+    -- min(numPerLine, maxNum), so numPerLine lands on 0 too. There is no grid left to
+    -- measure, and the "lines" division below divides by it. Bail: every loop past this
+    -- point is `for i = 1, maxNum` and would do nothing anyway.
+    if not icons.numPerLine or icons.numPerLine <= 0 then return end
+
     if numAuras then -- call from I.CheckCustomIndicators or preview
         for i = numAuras + 1, icons.maxNum do
             icons[i]:Hide()
