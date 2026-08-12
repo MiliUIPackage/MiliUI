@@ -51,5 +51,8 @@ AddOns/.vscode/settings.json
 .vscode/settings.json
 AddOns/RaiderIO*
 AddOns/Plater/.vscode/settings.json
-.claude/
+# 只擋個人／機器專屬的部分，讓 .claude/settings.json 和 .claude/skills/ 可以共用。
+# agent 的工作流與筆記放 AddOns/.agent/，見 CLAUDE.md。
+.claude/settings.local.json
+.claude/*.local.json
 AddOns/MiliUI/.vscode/settings.json
