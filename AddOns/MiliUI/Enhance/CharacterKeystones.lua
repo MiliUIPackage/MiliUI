@@ -394,8 +394,16 @@ local DATE_COL_INDEX   = 4   -- 有 Syndicator 載入時會被調為 5
 local SPARK_COL_INDEX  = nil -- 有 Syndicator 載入時會被設為 4
 local PANEL_WIDTH      = 410 -- 有 Syndicator 載入時會加上虛無之核欄寬度
 
--- 星雲虛無之核（Midnight Season 1 賽季鍛造材料 currency）
-local SPARK_CURRENCY_ID = 3418
+-- 星雲虛無之核（Midnight 賽季鍛造材料 currency）
+--
+-- 每個賽季一個代碼，名字都叫「星雲虛無之核」，所以只靠 GetCurrencyInfo 查得到數量
+-- 分不出誰是當季的 —— 兩個都查得到，過季那個還會留著舊餘額。判準是「有沒有出現在
+-- 角色貨幣面板」：當季的會列出來，過季的不會。所以下面拿候選清單去比對面板實際
+-- 列出的項目。之後 S3 只要在這裡補一個代碼。
+local SPARK_CURRENCY_IDS = {
+    3418, -- Season 1
+    3513, -- Season 2
+}
 local SPARK_COL_WIDTH   = 64  -- 「虛無之核」4 字寬度
 
 -- 把 GetRealmName() 的結果規格化成 Syndicator 用的格式（移除空白、連字號、單引號）
@@ -409,10 +417,55 @@ local function HasSyndicator()
     return Syndicator and Syndicator.API and Syndicator.API.GetCurrencyInfo and true or false
 end
 
+-- 候選代碼的查表版本，給面板掃描比對用
+local SPARK_CURRENCY_SET = {}
+for _, id in ipairs(SPARK_CURRENCY_IDS) do SPARK_CURRENCY_SET[id] = true end
+
+local resolvedSparkID  -- 掃到面板結果後快取；一場遊戲內當季代碼不會變
+
+-- 掃角色貨幣面板，回傳第一個落在候選清單裡的代碼。
+-- 收合的分類標題底下的項目不會被列舉，所以掃不到不代表沒有 —— 那種情況回 nil 交給
+-- 備援處理，而且不快取，下次刷新（玩家可能已經把分類展開）再試一次。
+local function ScanCurrencyListForSpark()
+    local size = C_CurrencyInfo.GetCurrencyListSize()
+    if not size or size == 0 then return nil end
+
+    for i = 1, size do
+        local info = C_CurrencyInfo.GetCurrencyListInfo(i)
+        if info and not info.isHeader then
+            local link = C_CurrencyInfo.GetCurrencyListLink(i)
+            local id = link and C_CurrencyInfo.GetCurrencyIDFromLink(link)
+            if id and SPARK_CURRENCY_SET[id] then
+                return id
+            end
+        end
+    end
+
+    return nil
+end
+
+-- 面板掃不到時的備援：取候選裡最新、而且這個角色見過的那個。
+-- 不完美 —— 賽季剛開、當季貨幣還沒入手時會退回上一季那個 —— 但只有在分類收合或
+-- 面板資料還沒載入時才會走到這裡，下次刷新掃到面板就會修正。
+local function FallbackSparkID()
+    local best
+    for _, id in ipairs(SPARK_CURRENCY_IDS) do
+        local info = C_CurrencyInfo.GetCurrencyInfo(id)
+        if info and info.discovered then best = id end
+    end
+    return best or SPARK_CURRENCY_IDS[#SPARK_CURRENCY_IDS]
+end
+
+local function GetSparkCurrencyID()
+    if resolvedSparkID then return resolvedSparkID end
+    resolvedSparkID = ScanCurrencyListForSpark()
+    return resolvedSparkID or FallbackSparkID()
+end
+
 -- 一次抓所有分身的虛無之核持有量；回傳 lookup table keyed by "Name-NormalizedRealm"
 local function BuildSparkLookup()
     if not HasSyndicator() then return nil end
-    local list = Syndicator.API.GetCurrencyInfo(SPARK_CURRENCY_ID, false, false)
+    local list = Syndicator.API.GetCurrencyInfo(GetSparkCurrencyID(), false, false)
     if not list then return nil end
     local map = {}
     for _, entry in ipairs(list) do
