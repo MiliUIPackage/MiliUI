@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-09T16:36:37.502Z
+  modified: 2026-08-12T15:29:20.182Z
 ---
 
 Warcraft Wiki: https://warcraft.wiki.gg/wiki/Patch_12.1.0/API_changes （TOC `120100`，正式版 build 69189, 2026-08-06）
@@ -26,6 +26,20 @@ Warcraft Wiki: https://warcraft.wiki.gg/wiki/Patch_12.1.0/API_changes （TOC `12
 - `CanAccessObject()` → `FrameScriptObject:CanBeAccessedInContext()`；另有 `HasAccessConstraints()`。
 - `GetInventorySlotInfo` → `C_PaperDollInfo.GetInventorySlotInfo`；`GetWeaponEnchantInfo` → `C_PaperDollInfo.GetTemporaryEnchantmentInfo`；`GetInspectSpecialization` → `C_SpecializationInfo.GetInspectSpecialization`；`CancelItemTempEnchantment` → `C_PaperDollInfo.CancelTemporaryEnchantment`。
 - `SetTableSecurityOption` 移除，改用 `settablesecurity`（見 [[wow-121-secret-values]]）。
+
+**插件通訊被封鎖的情境（12.1 新增，實測自 Cell）**
+遊戲會在**首領戰進行中／M+ 計時中／PvP 戰場中**封鎖 addon message。任何 `SendAddonMessage` 都要先擋一次，不要去賭受限時是回傳失敗碼還是直接報錯：
+
+```lua
+local function IsCommRestricted()
+    if IsEncounterInProgress and IsEncounterInProgress() then return true end
+    if C_MythicPlus and C_MythicPlus.IsRunActive and C_MythicPlus.IsRunActive() then return true end
+    if C_PvP and C_PvP.IsActiveBattlefield and C_PvP.IsActiveBattlefield() then return true end
+    return false
+end
+```
+
+Cell 自己的版本在 `Comm/Comm.lua`（多一道 `Cell.isMidnight` 前置判斷，因為它要相容舊版本），並匯出成 `F.IsCommRestricted()`。MiliUI 的 `Enhance/VersionCheck.lua` 抄了同一份。
 
 **其他**
 - 新 interface 貼圖檔名不再進 ManifestInterfaceData DB，`exportinterfacefiles art` 抓不到新檔名（防劇透）；舊檔名保留。

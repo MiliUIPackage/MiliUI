@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-12T13:31:16.136Z
+  modified: 2026-08-12T15:29:08.967Z
 ---
 
 2026-08-10 起，Mili 在 `ptr-12.1` 分支把 `/Applications/World of Warcraft/_ptr_/Interface` 底下的插件搬到 12.1（TOC `120100`）。主線是 secret values 擴大造成的崩潰修復。
@@ -53,7 +53,7 @@ metadata:
 
 還沒處理的：`Stuf/aura.lua` 本體一個 secret 防護都沒有（0 處 `issecretvalue`），目前完全靠 MiliUI 的鏡射蓋過去；Ayije_CDM `Modules/Resources_Trackers.lua` 直接迭代 `UNIT_AURA` payload。這些在 12.1 是 hard Lua error，加 guard 沒用，要照 [[wow-121-aura-containers]] 重寫。
 
-**MplusAdventureGuide 有一個已診斷但未修的崩潰（2026-08-12）**：`delves-progress-tooltip.lua:31` 假設 `WeeklyRewardsFrame.Activities` 裡每個元素都是 `WeeklyRewardsActivityMixin`，只排除了 `ConcessionFrame`。12.1 在大寶庫多塞了 2 個 XML 定義的框架（`Blizzard_WeeklyRewards.xml:712`/`:718`，`type=5`，看起來是虛無之核加成擲骰那塊），它們沒有 `ShowIncompleteTooltip`，`hooksecurefunc` 直接報錯。錯誤發生在迴圈第一圈就往上拋，**後面 9 個真正的格子一個都沒掛上 → 整個深淵進度提示功能靜默失效**。修法是把「排除已知特例」的黑名單換成能力判斷（`type(activity.ShowIncompleteTooltip) == "function"`），兩個 hook 各自判斷。附帶要查：`addTopDelveRunsToTooltip` 抓的 `Enum.WeeklyRewardChestThresholdType.World` 在 12.1 是否還對應深淵，否則修好 hook 也只會顯示 0。
+~~**MplusAdventureGuide 有一個已診斷但未修的崩潰（2026-08-12）**~~ **已不需要處理（2026-08-12 晚間）**：上游 `12.1-001` 直接把 `delves-progress-tooltip.lua` 從 TOC 和 repo 移除了（同時移除的還有 `premade-finder-red-x.lua`、`april-fools.lua` 和整個 `Locales/`）。原本的診斷留著當**通則**：`delves-progress-tooltip.lua:31` 用「排除已知特例」的黑名單去掛 `WeeklyRewardsFrame.Activities`（只排 `ConcessionFrame`），12.1 在大寶庫多塞了 2 個 XML 定義的框架（`Blizzard_WeeklyRewards.xml:712`/`:718`，`type=5`）沒有 `ShowIncompleteTooltip`，`hooksecurefunc` 在迴圈第一圈就往上拋，**後面 9 個真正的格子一個都沒掛上 → 功能靜默失效**。**掛暴雪容器裡的子元素時一律用能力判斷（`type(x.Method) == "function"`）而不是黑名單**，改版加東西進容器是常態。
 
 參考解法與 API 筆記見 [[wow-secret-key-table-lookup]]、[[wow-121-unit-api-secrets]]、[[wow-121-aura-containers]]、[[wow-121-other-api-changes]]。
 

@@ -13,18 +13,23 @@ description: 12.1 改版期間累積的 API 規則與各插件現況；換機器
 ## 同步
 
 這些檔案是 Claude Code agent memory
-（`~/.claude/projects/-Applications-World-of-Warcraft--ptr--Interface/memory/`）的匯出副本。
+（`~/.claude/projects/-Applications-World-of-Warcraft--retail--Interface/memory/`）的匯出副本。
 memory 存在家目錄、不會跟著 git 走，換一台電腦就沒了，所以在這裡留一份會跟著 repo 走的。
 
 在 repo 根目錄（`Interface/`）執行：
 
 ```
-cp ~/.claude/projects/-Applications-World-of-Warcraft--ptr--Interface/memory/*.md .claude/notes/
-rm .claude/notes/MEMORY.md
+cp ~/.claude/projects/-Applications-World-of-Warcraft--retail--Interface/memory/*.md .claude/notes/
+rm .claude/notes/MEMORY.md .claude/notes/feedback_language.md
 ```
 
 memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結果，不要兩邊手改。
-（`MEMORY.md` 是 memory 自己的索引檔，不匯出，這份 README 就是索引。）
+（`MEMORY.md` 是 memory 自己的索引檔，不匯出，這份 README 就是索引；
+`feedback_language.md` 是個人偏好，不屬於專案筆記。）
+
+> 2026-08-12：ptr-12.1 併回 master 後，工作目錄從 `_ptr_` 換成 `_retail_`，
+> memory 目錄也跟著換。舊的 `-ptr--Interface` memory 已經整批併進上面這個路徑，
+> 不要再從那裡匯出。
 
 ## 索引
 
@@ -35,20 +40,44 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-unit-api-secrets.md](wow-121-unit-api-secrets.md) | 變 secret 的 Unit API 完整清單 |
 | [wow-secret-key-table-lookup.md](wow-secret-key-table-lookup.md) | 「cannot be indexed with secret keys」的成因與寫法 |
 | [wow-121-aura-containers.md](wow-121-aura-containers.md) | 光環系統重寫：AuraContainer／AuraButton |
-| [wow-121-other-api-changes.md](wow-121-other-api-changes.md) | SVG、徑向遮罩、Roleset、OnUpdateMode、改名與移除 |
+| [wow-121-other-api-changes.md](wow-121-other-api-changes.md) | SVG、徑向遮罩、Roleset、**首領戰／M+／PvP 封鎖插件通訊**、改名與移除 |
 | [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | 移除 SetDesaturation 害 AceConfig 面板全空白 |
 | [wow-121-coolinator-reference.md](wow-121-coolinator-reference.md) | 本機唯一原生 12.1 插件，當範本用 |
 
 ### 工作現況
 | 檔案 | 內容 |
 |---|---|
-| [project-121-addon-migration.md](project-121-addon-migration.md) | ptr-12.1 分支要修哪些插件 |
+| [project_local_addon_forks.md](project_local_addon_forks.md) | **動任何第三方插件前先看這張表** —— 哪幾支帶本地修改，上游更新會被洗掉 |
+| [project-121-addon-migration.md](project-121-addon-migration.md) | 12.1 各插件修了什麼、放棄了什麼 |
 | [project-cell-auracontainer-rewrite.md](project-cell-auracontainer-rewrite.md) | Cell 中央 debuff 改 AuraContainer |
 | [wow-cell-fork-comm.md](wow-cell-fork-comm.md) | Cell 改版的 comm 處理 |
-| [project-miliui-voidcore-currency.md](project-miliui-voidcore-currency.md) | MiliUI 分身列表的虛無之核欄位 |
+| [project_miliui_release_version.md](project_miliui_release_version.md) | MiliUI 發佈版本號（TOC `## Version` 是 YYYYMMDD，版本廣播靠它） |
 | [project-agent-dir-convention.md](project-agent-dir-convention.md) | agent 資料的擺放慣例（就是這個結構） |
 
-### 手法
+### 自製功能
 | 檔案 | 內容 |
 |---|---|
+| [project_burst_helper.md](project_burst_helper.md) | MiliUI_BurstPotionHelper 爆發藥水 |
+| [project_focuser_castbar.md](project_focuser_castbar.md) | Focuser 焦點施法條／斷法巨集 |
+| [project_loot_history_tracking.md](project_loot_history_tracking.md) | 戰利品取得記錄（沒有歷史 API） |
+| [project_speccompare_equipment_filter.md](project_speccompare_equipment_filter.md) | 裝備篩選排除玩具／純造型 |
+| [project_charframe_taint.md](project_charframe_taint.md) | 角色面板 taint 注意事項 |
+| [project_raidtarget_secure.md](project_raidtarget_secure.md) | SetRaidTarget 要走 secure action |
+
+### 每季／每次改版要維護
+| 檔案 | 內容 |
+|---|---|
+| [project-miliui-voidcore-currency.md](project-miliui-voidcore-currency.md) | 虛無之核貨幣代碼（每季補一個 ID） |
 | [wow-find-season-currency-id.md](wow-find-season-currency-id.md) | 查新賽季貨幣代碼的兩行巨集 |
+| [project_platynator_preset.md](project_platynator_preset.md) | Platynator 內建預設值怎麼更新 |
+| [project_toc_interface_bump.md](project_toc_interface_bump.md) | 一鍵更新所有插件的 `## Interface:` |
+| [project_itemupgrade_preview_icon.md](project_itemupgrade_preview_icon.md) | 物品升級預覽 icon —— **已改成自動推導，不再需要每季更新** |
+
+### 個別插件修補（上游更新後要重套）
+| 檔案 | 內容 |
+|---|---|
+| [project_tinytooltip_perf.md](project_tinytooltip_perf.md) | TinyTooltip 滑過裝備掉 FPS |
+| [project_cell_vehicle_secret.md](project_cell_vehicle_secret.md) | Cell 載具名稱秘密值 |
+| [project_cell_no_update_notice.md](project_cell_no_update_notice.md) | Cell 停用更新通知 |
+| [project_cell_libgroupinfo_secret_guid.md](project_cell_libgroupinfo_secret_guid.md) | Cell LibGroupInfo 秘密 GUID |
+| [project_appearancetooltip_secret_rect.md](project_appearancetooltip_secret_rect.md) | AppearanceTooltip IsRectValid guard |
