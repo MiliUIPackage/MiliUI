@@ -39,6 +39,16 @@
 		end
 	end
 
+	-- fix from MiliUI: 12.1 光環為秘密值時（戰鬥、首領戰、M+、PvP 場次），index / slot 版的
+	-- 光環 API 對 tainted 程式碼是「拋錯」不是回 nil（GetBuffDataByIndex(): Auras cannot be
+	-- accessed when secret while tainted by 'Leatrix_Plus'），所以呼叫前一律先問過。
+	function LeaPlusLC:AurasAreSecret()
+		if C_Secrets and C_Secrets.ShouldAurasBeSecret then
+			return C_Secrets.ShouldAurasBeSecret() and true or false
+		end
+		return false
+	end
+
 	-- Check for ElvUI
 	if C_AddOns.IsAddOnLoaded("ElvUI") then LeaPlusLC.ElvUI = unpack(ElvUI) end
 
@@ -6404,7 +6414,7 @@
 			local fishEvent = CreateFrame("FRAME")
 			fishEvent:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
 			fishEvent:SetScript("OnEvent", function(self, event, unit, void, spellID)
-				if LeaPlusLC["NoTransforms"] == "On" and LeaPlusLC["TransFishing"] == "On" and canaccessvalue(spellID) and spellID == 131476 then -- Fishing
+				if LeaPlusLC["NoTransforms"] == "On" and LeaPlusLC["TransFishing"] == "On" and canaccessvalue(spellID) and spellID == 131476 and not LeaPlusLC:AurasAreSecret() then -- Fishing
 					for i = 1, 40 do
 						local BuffData = C_UnitAuras.GetBuffDataByIndex("player", i)
 						if BuffData then
@@ -6426,6 +6436,7 @@
 
 			-- Function to cancel buffs
 			local function eventFunc()
+				if LeaPlusLC:AurasAreSecret() then return end -- fix from MiliUI
 				for i = 1, 40 do
 					local BuffData = C_UnitAuras.GetBuffDataByIndex("player", i)
 					if BuffData then
@@ -6456,6 +6467,7 @@
 				elseif event == "PLAYER_REGEN_ENABLED" then
 
 					-- Traverse buffs (will only run spell was found in cTable previously)
+					if LeaPlusLC:AurasAreSecret() then return end -- fix from MiliUI: 離開戰鬥時若仍在首領戰/M+，光環還是秘密值
 					for i = 1, 40 do
 						local BuffData = C_UnitAuras.GetBuffDataByIndex("player", i)
 						if BuffData then
@@ -8502,12 +8514,15 @@
 							icon[i]:Hide()
 
 							-- If buff matches cooldown we want, start the cooldown
-							AuraUtil.ForEachAura(owner, "HELPFUL", nil, function(aura)
-								if aura.spellId and canaccessvalue(aura.spellId) and aura.spellId == id and aura.expirationTime and aura.duration then
-									icon[i]:Show()
-									CooldownFrame_Set(icon[i].c, aura.expirationTime - aura.duration, aura.duration, 1)
-								end
-							end, true)
+							-- fix from MiliUI: 光環為秘密值時 AuraUtil.ForEachAura 會拋錯（它走 slot 版 API）
+							if not LeaPlusLC:AurasAreSecret() then
+								AuraUtil.ForEachAura(owner, "HELPFUL", nil, function(aura)
+									if aura.spellId and canaccessvalue(aura.spellId) and aura.spellId == id and aura.expirationTime and aura.duration then
+										icon[i]:Show()
+										CooldownFrame_Set(icon[i].c, aura.expirationTime - aura.duration, aura.duration, 1)
+									end
+								end, true)
+							end
 
 						end
 					end)
@@ -8634,12 +8649,15 @@
 						icon[i]:Hide()
 
 						-- If buff matches spell we want, show cooldown icon
-						AuraUtil.ForEachAura(newowner, "HELPFUL", nil, function(aura)
-							if aura.spellId and canaccessvalue(aura.spellId) and aura.spellId == newspell and aura.expirationTime and aura.duration then
-								icon[i]:Show()
-								CooldownFrame_Set(icon[i].c, aura.expirationTime - aura.duration, aura.duration, 1)
-							end
-						end, true)
+						-- fix from MiliUI: 光環為秘密值時 AuraUtil.ForEachAura 會拋錯（它走 slot 版 API）
+						if not LeaPlusLC:AurasAreSecret() then
+							AuraUtil.ForEachAura(newowner, "HELPFUL", nil, function(aura)
+								if aura.spellId and canaccessvalue(aura.spellId) and aura.spellId == newspell and aura.expirationTime and aura.duration then
+									icon[i]:Show()
+									CooldownFrame_Set(icon[i].c, aura.expirationTime - aura.duration, aura.duration, 1)
+								end
+							end, true)
+						end
 
 					end
 
@@ -8738,7 +8756,8 @@
 
 			-- Function to show spell ID in tooltips
 			local function CooldownIDFunc(unit, target, index, auratype)
-				if LeaPlusLC["ShowCooldownID"] == "On" and auratype ~= "HARMFUL" then
+				-- fix from MiliUI: 光環為秘密值時 index 版 API 會拋錯，滑過光環就噴一次
+				if LeaPlusLC["ShowCooldownID"] == "On" and auratype ~= "HARMFUL" and not LeaPlusLC:AurasAreSecret() then
 					local AuraData = C_UnitAuras.GetAuraDataByIndex(target, index)
 					if AuraData then
 						local spellid = AuraData.spellId
@@ -13659,6 +13678,7 @@
 				-- Myza's Oasis
 				local target
 				for i = 1, 40 do
+					if LeaPlusLC:AurasAreSecret() then break end -- fix from MiliUI
 					local DebuffData = C_UnitAuras.GetDebuffDataByIndex("player", i)
 					if DebuffData then
 						local spellID = DebuffData.spellId
