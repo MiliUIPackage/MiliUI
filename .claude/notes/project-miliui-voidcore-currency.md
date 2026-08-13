@@ -10,12 +10,14 @@ metadata:
 
 `MiliUI/Enhance/CharacterKeystones.lua` 的「虛無之核」欄位（分身列表，資料來自 Syndicator）不再寫死貨幣代碼。
 
-- 候選清單 `SPARK_CURRENCY_IDS = { 3418 (Midnight S1), 3513 (S2) }`
+- 候選清單 `SPARK_CURRENCY_IDS = { 3418 }`
 - `ScanCurrencyListForSpark()` 走一遍角色貨幣面板，取第一個落在候選裡的 ID，快取在 `resolvedSparkID`
 - 掃不到（分類收合／資料未載入）走 `FallbackSparkID()`，且不快取，下次刷新重掃
 - 新賽季只要在候選清單補一個 ID 就好，不用改邏輯
 
-2026-08 當下的實測：3418 出現在貨幣面板（數量 0），3513 沒出現但查得到數量 4；Wowhead PTR 把 3513 當正式貨幣。S2 正式開打後要回頭確認一次到底切到哪個。
+**2026-08-13 S2 開賽週實測結案：貨幣面板列出的是 3418 —— S2 沿用 S1 的代碼，沒有換新的。** 3513 是 PTR 期間從 Wowhead 抄來的（Wowhead 把 PTR 的追蹤用代碼當成正式貨幣），正式服不存在，已從候選清單移除：留著會讓 `FallbackSparkID()` 在它被標成 discovered 時挑錯，顯示錯誤的餘額。
+
+教訓：**PTR 抄來的貨幣代碼一律當成「待確認」，賽季一開就要用兩行巨集回頭驗一次**，不要因為「Wowhead 有寫」就當定案。「每季一個新代碼」也不是鐵律 —— Midnight S2 就直接沿用了。
 
 **Why:** 每季換代碼、名字都一樣，寫死就每季要改一次而且容易挑錯那個。
 
