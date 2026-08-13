@@ -44,11 +44,15 @@ local function UnregisterHandler(list, fn)
     return false
 end
 
+-- fix from MiliUI: 戰鬥/專精/天賦狀態的 handler 也要逐一隔離。負責「離開戰鬥後把延後的
+-- 版面補做完」的 handler 註冊在最後（Core/Main.lua OnEnable），前面任何一個拋錯
+-- （12.1 離開戰鬥時光環可能仍是秘密值）就會讓圖示卡在戰鬥中的暫時狀態，只有 /reload 才會好。
 local function FlushHandlers(list, ...)
     local snapshot = {}
     for i = 1, #list do snapshot[i] = list[i] end
+    local errorhandler = geterrorhandler()
     for _, fn in ipairs(snapshot) do
-        fn(...)
+        xpcall(fn, errorhandler, ...)
     end
 end
 

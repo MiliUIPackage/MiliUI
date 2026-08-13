@@ -61,6 +61,23 @@ metadata:
 
 **Leatrix_Plus 已修（2026-08-13）**：`GetBuffDataByIndex(): Auras cannot be accessed when secret while tainted by 'Leatrix_Plus'`，觸發點是「取消變形」功能掛在 `PLAYER_REGEN_ENABLED` 的掃描——**離開戰鬥不等於光環解密**，還在首領戰／M+／PvP 場次時 `ShouldAurasBeSecret()` 仍是 true。上游作者已經在用 `canaccessvalue` 洗欄位，但漏了「**index / slot 版光環 API 本身就會拋錯**」這層（`canaccessvalue` 只能檢查已經拿到手的值，救不了拿不到的呼叫）。在檔案頂端加 `LeaPlusLC:AurasAreSecret()`（包 `C_Secrets.ShouldAurasBeSecret`），7 個呼叫點全閘掉：3 個變形取消迴圈（`Leatrix_Plus.lua` 6417/6439/6470）、2 個 `AuraUtil.ForEachAura`（8518/8653，它走 slot 版一樣炸）、法術 ID 提示的 `GetAuraDataByIndex`（8760，滑過光環就噴一次）、Myza's Oasis 指令的 `GetDebuffDataByIndex`（13681）。**不用補重試機制**：光環解密後任何一次 `UNIT_AURA` 全量更新都會讓變形取消自己跑起來，秘密期間功能就是靜靜停擺。
 
+### Ayije_CDM：裸迴圈 dispatch 是 12.1 的放大器（2026-08-13）
+
+Mili 回報「主技能圖示有時候會變小、只有 /reload 會好」。查下去發現真正該修的不是某一行，而是**這支插件有三條裸迴圈 dispatch，任何一個 handler 拋錯就靜默中斷後面全部**——12.1 之前這頂多掉一個功能，12.1 之後秘密值拋錯變成常態（同一場就抓到 `GetAuraDuration` x69），於是變成「插件只做了一半」而且完全沒有線索：
+
+| 位置 | 中斷什麼 |
+|---|---|
+| `Init.lua` `CDM:SetScript("OnEvent")` | 同一事件後面所有 handler |
+| `Init.lua` `DispatchRefreshCallbacks` | 依 priority 排序的整條刷新鏈（版面 35/40、樣式 45、trackers 50、resources…） |
+| `Core/InternalCallbacks.lua` `FlushHandlers` | 戰鬥/專精/天賦狀態鏈 |
+| `Core/Main.lua` `InitializeModules` / `RunProfileAppliedHooks` | 後面所有模組的初始化 |
+
+最毒的是第三條：**負責「離開戰鬥後把延後的版面補做完」的 handler 註冊在最後**（`OnEnable` 尾端的 `FlushCombatDirtyViewers`），前面任一支拋錯（12.1 離開戰鬥時光環可能仍是秘密值，見 Leatrix_Plus 條目）圖示就卡在戰鬥中的暫時狀態。全部改成 `xpcall(fn, geterrorhandler(), ...)`——錯誤照常進 BugSack，鏈路繼續跑，零資訊損失。**這是通則：只要 dispatch 迴圈跑的是「別人註冊的 callback」，12.1 就一定要逐一隔離。**
+
+還沒動、但已知的兩處技術債：① `Core/Layout/Layout.lua` `LayoutMeasuredRows` 用 `f:GetWidth()` 回讀暴雪 item frame 的尺寸來排版，`Core/Style.lua:766` 的「實際尺寸是否偏離設定」檢查也是回讀——12.1 的幾何資料可能是秘密值，回讀就炸，而且炸在 `needsVisualUpdate` 為 false 的穩態路徑上（`forceUpdate` 會跳過這段，所以「改個設定就好了」符合這個模型）。尺寸其實在 `ApplyStyle` 就算好並記在 `frame.cdmLastStyledW/H`，該改成用記下來的值。② `Modules/Resources_Trackers.lua` 有 5 處 `GetAuraDataByAuraInstanceID`，目前靠 `CanDiffAuraPayload` 擋住，能成立但同一類 API 一律是「拋錯不是回 nil」，值得統一包起來。
+
+**不需要改 AuraContainer**：這支插件不自己畫光環，它是替暴雪的冷卻管理器（CooldownViewer）上皮膚，光環資料與渲染本來就在暴雪手上＝天生就在路線 A 這邊。直接碰光環資料的只有 Resources_Trackers / CustomBuffs / Tags / Externals，而且都走 spellID 版或已有守衛。
+
 參考解法與 API 筆記見 [[wow-secret-key-table-lookup]]、[[wow-121-unit-api-secrets]]、[[wow-121-aura-containers]]、[[wow-121-other-api-changes]]。
 
 **本機可直接翻原始碼當範本的 12.1-ready 插件**（2026-08-13 核對）：Cell、Plumber、TinyTooltip-Remake、WarpDeplete（都已用 `issecretvalue`）。~~MiniCC~~、~~MiniAuras~~、~~Coolinator~~ 的原始碼**都不在本機了**（前兩者 2026-08-10 從套組移除；Coolinator 2026-08-13 發現只剩空目錄樹，要看去 GitHub，見 [[wow-121-coolinator-reference]]），**別再叫人去翻本機的**。另外 `BuffReminders/Display/AuraTracker.lua` 是 repo 內最小、最好讀的路線 A 實作（單一 AuraGroup + `includeSpellIDs`），要看整套流程但不想啃 Cell 的時候從它開始。

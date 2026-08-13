@@ -33,11 +33,15 @@ function CDM:RegisterEvent(event, handler)
     end
 end
 
+-- fix from MiliUI: 事件處理器逐一隔離。12.1 之後秘密值拋錯是常態，裸迴圈會讓一個 handler
+-- 拋錯就靜默吃掉同一事件後面所有 handler（例如離開戰鬥時的版面還原），而且完全看不出原因。
+-- xpcall + geterrorhandler() 讓錯誤照常進 BugSack，鏈路繼續往下跑。
 CDM:SetScript("OnEvent", function(self, event, ...)
     local handlers = self.eventHandlers[event]
     if handlers then
+        local errorhandler = geterrorhandler()
         for i = 1, #handlers do
-            handlers[i](event, ...)
+            xpcall(handlers[i], errorhandler, event, ...)
         end
     end
 end)
@@ -106,16 +110,13 @@ local function ShouldRunEntry(entry, scopeSet)
     return false
 end
 
+-- fix from MiliUI: 同上，刷新鏈也要逐一隔離。這條鏈是照 priority 排序的，
+-- 中間任何一個 callback 拋錯，後面所有模組（版面、樣式、資源條…）就整組不會跑。
 local function DispatchRefreshCallbacks(scopeSet)
-    if scopeSet then
-        for _, entry in ipairs(refreshCallbackList) do
-            if ShouldRunEntry(entry, scopeSet) then
-                entry.callback()
-            end
-        end
-    else
-        for _, entry in ipairs(refreshCallbackList) do
-            entry.callback()
+    local errorhandler = geterrorhandler()
+    for _, entry in ipairs(refreshCallbackList) do
+        if not scopeSet or ShouldRunEntry(entry, scopeSet) then
+            xpcall(entry.callback, errorhandler)
         end
     end
 end

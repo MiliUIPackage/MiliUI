@@ -336,36 +336,44 @@ local function RegisterUIScaleEvent()
     end)
 end
 
+-- fix from MiliUI: 模組初始化/套用設定檔也要逐一隔離。這兩串是裸的循序呼叫，
+-- 在 12.1 只要前面一支拋錯（例如在首領戰中 /reload，光環是秘密值），
+-- 後面的模組就整組不會初始化，畫面看起來像「插件只做了一半」。
+local function SafeCall(fn, ...)
+    if type(fn) ~= "function" then return end
+    return xpcall(fn, geterrorhandler(), ...)
+end
+
 local function RunProfileAppliedHooks()
-    CDM.OnRacialsProfileApplied()
-    CDM.OnDefensivesProfileApplied()
-    CDM.OnTrinketsProfileApplied()
-    CDM.OnResourcesProfileApplied()
-    CDM.OnExternalsProfileApplied()
+    SafeCall(CDM.OnRacialsProfileApplied)
+    SafeCall(CDM.OnDefensivesProfileApplied)
+    SafeCall(CDM.OnTrinketsProfileApplied)
+    SafeCall(CDM.OnResourcesProfileApplied)
+    SafeCall(CDM.OnExternalsProfileApplied)
 end
 
 CDM.RunProfileAppliedHooks = RunProfileAppliedHooks
 
 local function InitializeModules()
-    CDM.ReconcileRacials()
-    CDM.ReconcileDefensives()
-    CDM.ReconcileTrinkets()
-    CDM.ReconcileResources()
-    CDM.ReconcileExternals()
+    SafeCall(CDM.ReconcileRacials)
+    SafeCall(CDM.ReconcileDefensives)
+    SafeCall(CDM.ReconcileTrinkets)
+    SafeCall(CDM.ReconcileResources)
+    SafeCall(CDM.ReconcileExternals)
 
-    CDM:InitializeCustomBuffs()
+    SafeCall(CDM.InitializeCustomBuffs, CDM)
 
     if CDM.db.castBarEnabled ~= false then
-        CDM:CreatePlayerCastBar()
+        SafeCall(CDM.CreatePlayerCastBar, CDM)
     end
 
-    CDM.BuffGroups:Initialize()
-    CDM.BuffGroupPlaceholders:Initialize()
-    CDM.Glow:Initialize()
-    CDM.Keybinds:Initialize()
-    CDM.Fading:Initialize()
-    CDM.RotationAssist:Initialize()
-    CDM.PressOverlay:Initialize()
+    SafeCall(CDM.BuffGroups and CDM.BuffGroups.Initialize, CDM.BuffGroups)
+    SafeCall(CDM.BuffGroupPlaceholders and CDM.BuffGroupPlaceholders.Initialize, CDM.BuffGroupPlaceholders)
+    SafeCall(CDM.Glow and CDM.Glow.Initialize, CDM.Glow)
+    SafeCall(CDM.Keybinds and CDM.Keybinds.Initialize, CDM.Keybinds)
+    SafeCall(CDM.Fading and CDM.Fading.Initialize, CDM.Fading)
+    SafeCall(CDM.RotationAssist and CDM.RotationAssist.Initialize, CDM.RotationAssist)
+    SafeCall(CDM.PressOverlay and CDM.PressOverlay.Initialize, CDM.PressOverlay)
 end
 
 local function FlushCombatDirtyViewers()
