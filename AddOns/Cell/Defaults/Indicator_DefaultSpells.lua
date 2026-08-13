@@ -408,6 +408,7 @@ local defensives = { -- true: track by name, false: track by id
     ["MONK"] = {
         [115176] = false, -- 禅悟冥想 - Zen Meditation
         [115203] = true, -- 壮胆酒 - Fortifying Brew
+        [120954] = false, -- 壮胆酒（酒仙实际增益，与 115203 同名，只配 ID） - Fortifying Brew
         [122278] = true, -- 躯不坏 - Dampen Harm
         [122783] = true, -- 散魔功 - Diffuse Magic
         [125174] = true, -- 业报之触 - Touch of Karma
