@@ -6,11 +6,20 @@ addonTable.Countdown = Countdown -- 挂载到插件表，方便别的文件调�
 local ticker = nil
 
 local function GetMediaPath()
-    if C_AddOns.IsAddOnLoaded("DiGua-WYJJ") then
-        return "Interface\\AddOns\\DiGua-WYJJ\\Media\\"
-    else
-        return "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Media\\"
+    -- 按优先级从上往下检索，匹配到第一个已加载的就直接返回对应路径
+    local addons = {
+        "DiGua-WYJJ",
+        "DiGua-Ranran",
+        "DiGuaTimelineAudioHelper"
+    }
+
+    for _, addonName in ipairs(addons) do
+        if C_AddOns.IsAddOnLoaded(addonName) then
+            return string.format("Interface\\AddOns\\%s\\Media\\", addonName)
+        end
     end
+
+    return "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Media\\"
 end
 
 function Countdown:Stop()
