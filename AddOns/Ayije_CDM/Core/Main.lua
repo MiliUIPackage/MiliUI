@@ -101,12 +101,40 @@ function CDM:ForceReanchorAll()
     end
 end
 
+-- fix from MiliUI: 暴雪編輯模式的「大小」設定是套在 item frame 的 scale 上（實測抓到 0.7：
+-- 圖示寬仍是設定的 46、viewer scale 是 1、UIParent 也正常，只有 item frame 自己 0.7）。
+-- 原本這道鎖有兩個破口，結果就是「只有那一排縮小、資源條正常、只有 /reload 會好」：
+--   1) 只在 OnAcquireItemFrame 掛鎖，插件掛勾之前就已經取出的框架永遠沒被鎖到
+--   2) 受保護框架在戰鬥中改不了 scale，而離開戰鬥的還原只處理錨點與尺寸，不管 scale
+local scaleDirtyFrames = {}
+
+local function EnsureItemFrameScale(frame)
+    if not frame or frame:GetScale() == 1 then return end
+    if InCombatLockdown() and frame:IsProtected() then
+        scaleDirtyFrames[frame] = true
+        return
+    end
+    scaleDirtyFrames[frame] = nil
+    frame:SetScale(1)
+end
+
+local function FlushDirtyItemFrameScales()
+    if not next(scaleDirtyFrames) then return end
+    for frame in pairs(scaleDirtyFrames) do
+        scaleDirtyFrames[frame] = nil
+        if frame:GetScale() ~= 1 then
+            frame:SetScale(1)
+        end
+    end
+end
+
 local function InstallScaleLockHook(frame)
+    EnsureItemFrameScale(frame)
     if frame.cdmSetScaleHooked then return end
     frame.cdmSetScaleHooked = true
     hooksecurefunc(frame, "SetScale", function(self, scale)
         if scale ~= 1 then
-            self:SetScale(1)
+            EnsureItemFrameScale(self)
         end
     end)
 end
@@ -218,6 +246,15 @@ function CDM:SetupViewer(vName)
             InstallBuffSpellIDNotifyHook(itemFrame)
         end
     end)
+
+    -- fix from MiliUI: OnAcquireItemFrame 只對「掛勾之後」取出的框架生效。登入時暴雪的
+    -- 冷卻管理器往往比這裡更早取出一批框架，那批永遠不會經過上面的 hook，
+    -- 於是編輯模式套下來的 scale 就一直留著（實測 0.7），要進一次編輯模式才會好。
+    if v.itemFramePool then
+        for itemFrame in v.itemFramePool:EnumerateActive() do
+            InstallScaleLockHook(itemFrame)
+        end
+    end
 
     CDM.BORDER:InstallAcquireResetHook(v)
     CDM:InstallLayoutAcquireResetHook(v)
@@ -505,5 +542,6 @@ function CDM:OnEnable()
             LiftManagedViewerStrata()
         end
         FlushCombatDirtyViewers()
+        FlushDirtyItemFrameScales()  -- fix from MiliUI: 戰鬥中改不了的 scale 這時補回 1
     end)
 end

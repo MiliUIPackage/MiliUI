@@ -74,6 +74,12 @@ Mili 回報「主技能圖示有時候會變小、只有 /reload 會好」。查
 
 最毒的是第三條：**負責「離開戰鬥後把延後的版面補做完」的 handler 註冊在最後**（`OnEnable` 尾端的 `FlushCombatDirtyViewers`），前面任一支拋錯（12.1 離開戰鬥時光環可能仍是秘密值，見 Leatrix_Plus 條目）圖示就卡在戰鬥中的暫時狀態。全部改成 `xpcall(fn, geterrorhandler(), ...)`——錯誤照常進 BugSack，鏈路繼續跑，零資訊損失。**這是通則：只要 dispatch 迴圈跑的是「別人註冊的 callback」，12.1 就一定要逐一隔離。**
 
+**「主技能那排變小」結案（2026-08-13）——跟 12.1／秘密值無關，是 scale 破口。** 現場數據（`EssentialCooldownViewer` item frame）：圖示寬 `46.02`＝設定值沒變、`viewer:GetScale()`＝1、`UIParent` 有效縮放 `0.64`，但 **item frame 自己 `GetScale()`＝0.7**（有效縮放 0.448 = 0.64×0.7）。所以尺寸從頭到尾都是對的，是暴雪編輯模式的「大小」設定套在 item frame 的 scale 上。
+
+Ayije 本來就有 `InstallScaleLockHook` 把 item frame 的 scale 壓回 1，但它只掛在 `OnAcquireItemFrame` 上——**登入時暴雪的冷卻管理器比插件更早取出那批框架，那批永遠不會經過 hook**，於是 0.7 一直留著。決定性旁證：玩家一進編輯模式就恢復正常（框架被釋放重取 → hook 這時才觸發 → 壓回 1）。修法：① `SetupViewer` 補一輪 `itemFramePool:EnumerateActive()` 把已存在的框架補掛；② scale 修正改走 `EnsureItemFrameScale()`，受保護框架在戰鬥中先記帳，`PLAYER_REGEN_ENABLED` 由 `FlushDirtyItemFrameScales()` 補回（原本的無條件 `SetScale` 在戰鬥中會被擋，而離開戰鬥的還原只管錨點與尺寸、不管 scale）。
+
+**通則：`OnAcquireItemFrame` 這類 acquire hook 只對「之後」取出的框架生效，掛勾當下一定要補跑一次 `EnumerateActive()`。** 這條對任何用 frame pool 的暴雪 UI 都成立。
+
 還沒動、但已知的兩處技術債：① `Core/Layout/Layout.lua` `LayoutMeasuredRows` 用 `f:GetWidth()` 回讀暴雪 item frame 的尺寸來排版，`Core/Style.lua:766` 的「實際尺寸是否偏離設定」檢查也是回讀——12.1 的幾何資料可能是秘密值，回讀就炸，而且炸在 `needsVisualUpdate` 為 false 的穩態路徑上（`forceUpdate` 會跳過這段，所以「改個設定就好了」符合這個模型）。尺寸其實在 `ApplyStyle` 就算好並記在 `frame.cdmLastStyledW/H`，該改成用記下來的值。② `Modules/Resources_Trackers.lua` 有 5 處 `GetAuraDataByAuraInstanceID`，目前靠 `CanDiffAuraPayload` 擋住，能成立但同一類 API 一律是「拋錯不是回 nil」，值得統一包起來。
 
 **不需要改 AuraContainer**：這支插件不自己畫光環，它是替暴雪的冷卻管理器（CooldownViewer）上皮膚，光環資料與渲染本來就在暴雪手上＝天生就在路線 A 這邊。直接碰光環資料的只有 Resources_Trackers / CustomBuffs / Tags / Externals，而且都走 spellID 版或已有守衛。
