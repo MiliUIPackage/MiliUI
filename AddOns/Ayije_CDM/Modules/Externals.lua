@@ -8,6 +8,8 @@ local Snap = Pixel.Snap
 local GetConfigValue = CDM_C.GetConfigValue
 
 local GetAuraDuration = C_UnitAuras.GetAuraDuration
+local ShouldAurasBeSecret = C_Secrets and C_Secrets.ShouldAurasBeSecret
+local ShouldSpellAuraBeSecret = C_Secrets and C_Secrets.ShouldSpellAuraBeSecret
 
 local isInitialized = false
 local isEnabled = false
@@ -137,27 +139,55 @@ local function ApplySizesAndRelayout()
     end
 end
 
+-- fix from MiliUI: 12.1 光環變成秘密值之後，tainted 程式碼拿 auraInstanceID 查光環會被擋下
+-- （GetAuraDuration(): Auras cannot be accessed when secret while tainted by 'Ayije_CDM'）。
+-- 它是「拋錯」不是回 nil，所以要先閘一次，再包 pcall 當保險。
+local function CanQueryAura(buttonInfo)
+    if not ShouldAurasBeSecret or not ShouldAurasBeSecret() then return true end
+    -- 光環為秘密時，只有被標成 never-secret 的法術還查得到
+    local spellID = buttonInfo.spellID
+    if spellID and ShouldSpellAuraBeSecret and not ShouldSpellAuraBeSecret(spellID) then
+        return true
+    end
+    return false
+end
+
+-- 回傳「有沒有成功驅動我們自己的冷卻轉盤」
 local function SetCooldownFromButtonInfo(button, buttonInfo)
     local cd = button.cdmExternalCooldown
-    if not cd then return end
+    if not cd then return false end
 
-    if buttonInfo and buttonInfo.auraInstanceID then
-        local dur = GetAuraDuration("player", buttonInfo.auraInstanceID)
-        if dur then
+    if buttonInfo and buttonInfo.auraInstanceID and CanQueryAura(buttonInfo) then
+        local ok, dur = pcall(GetAuraDuration, "player", buttonInfo.auraInstanceID)
+        if ok and dur then
             cd:SetCooldownFromDurationObject(dur)
-            return
+            return true
         end
     end
 
     cd:Clear()
+    return false
+end
+
+-- fix from MiliUI: 自己的轉盤畫不出來時（光環為秘密值），把暴雪原本的倒數文字放回來，
+-- 否則戰鬥中的外部減傷會完全沒有時間資訊
+local function UpdateDurationVisibility(button, hasCooldown, buttonInfo)
+    -- auraInstanceID 可能本身就是秘密值，只能做布林測試，不能拿去比較
+    local hasAura = (buttonInfo and buttonInfo.auraInstanceID) and true or false
+    button.cdmExternalDurationFallback = (not hasCooldown) and hasAura
+    if button.cdmExternalDurationFallback then
+        button.Duration:Show()
+    else
+        button.Duration:Hide()
+    end
 end
 
 local function OnButtonUpdate(button, buttonInfo)
     if not isEnabled then return end
 
-    SetCooldownFromButtonInfo(button, buttonInfo)
+    local hasCooldown = SetCooldownFromButtonInfo(button, buttonInfo)
 
-    button.Duration:Hide()
+    UpdateDurationVisibility(button, hasCooldown, buttonInfo)
 
     StyleButton(button)
 end
@@ -202,7 +232,8 @@ local function InitializeExternals()
             end)
 
             hooksecurefunc(button.Duration, "SetShown", function(self, show)
-                if isEnabled and show then
+                -- fix from MiliUI: 秘密光環的退路是讓暴雪的倒數文字留著，這時別再把它藏起來
+                if isEnabled and show and not button.cdmExternalDurationFallback then
                     self:Hide()
                 end
             end)
@@ -227,11 +258,9 @@ local function EnableExternals()
     for _, button in ipairs(auraButtons) do
         ApplySizesToButton(button)
         if button.hasValidInfo then
-            button.Duration:Hide()
             StyleButton(button)
-            if button.buttonInfo then
-                SetCooldownFromButtonInfo(button, button.buttonInfo)
-            end
+            local hasCooldown = SetCooldownFromButtonInfo(button, button.buttonInfo)
+            UpdateDurationVisibility(button, hasCooldown, button.buttonInfo)
         end
     end
 
@@ -256,6 +285,7 @@ local function DisableExternals()
             BORDER:SetBorderSuppressed(button, true)
         end
 
+        button.cdmExternalDurationFallback = nil
         if button.Duration then
             button.Duration:Show()
         end

@@ -64,3 +64,4 @@ Fix\AyijeCDM_StufAnchor.lua
 Fix\AyijeCDM_StyleFix.lua
 Fix\TinyInspectRemake_FlyoutItemLocation.lua
 Fix\TinyInspectRemake_OffhandEnchant.lua
+Fix\BugSack_SecretGuard.lua

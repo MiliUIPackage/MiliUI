@@ -30,4 +30,6 @@ Secret aspects：把 secret 丟給 widget API 會在該物件上留下 aspect（
 
 所以「把 secret 直接餵給 widget」這招只有在**該 frame 的版面完全不回讀幾何**時才成立。Coolinator 能這樣做是因為它的尺寸全部來自自己的設定（`PixelUtil.SetSize(bar, sizing.statusWidth * scale, ...)`）；Ayije_CDM 的資源條在 `SetValue` 之後緊接著 `RefreshBarTicks()` → `bar:GetWidth()` 做刻度算術，套用同一招會換來一個更難查、而且會沾黏的崩潰。評估任何 pass-through 之前先 grep 那個 frame 有沒有 `GetWidth`/`GetHeight`/`GetPoint`。
 
+**`debugstack()` / `debuglocals()` 也會回 secret string**：只要呼叫堆疊上有秘密值參與就是（`debuglocals` 的輸出裡個別的值反而是被塗成 `<secret string>` 的明碼）。所以任何錯誤處理／回報插件對 stack、locals 做 `:gsub()`、`:find()`、`:sub()` 之前都要 `issecretvalue` 檢查——BugSack 就是這樣整個視窗打不開的，見 [[project-121-addon-migration]]。
+
 相關：[[wow-121-unit-api-secrets]]、[[wow-secret-key-table-lookup]]、[[wow-121-aura-containers]]
