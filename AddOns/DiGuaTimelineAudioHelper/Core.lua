@@ -61,9 +61,9 @@ frame:SetScript("OnEvent", function(self, event, ...)
         SetCVar("Sound_NumChannels", 128)
 
         -- 打印欢迎信息
-        C_Timer.After(2, function()
-            print("感谢使用|cFF00FF00[神秘地瓜副本语音插件]|r如果觉得好用，请在|cFFFFA6D5“爱发电”|r平台搜索|cFFFFFF00“神秘地瓜”|r支持我的插件，您的支持就是我最大的动力。")
-        end)
+        -- C_Timer.After(2, function()
+        --     print("感谢使用|cFF00FF00[神秘地瓜副本语音插件]|r如果觉得好用，请在|cFFFFA6D5“爱发电”|r平台搜索|cFFFFFF00“神秘地瓜”|r支持我的插件，您的支持就是我最大的动力。")
+        -- end)
 
         -- 同步 UI 控件勾选状态
         if DiGuaTimelineMainFrame then
