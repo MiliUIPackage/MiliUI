@@ -523,6 +523,27 @@ local function VaultSlotQualityColor(level)
     return 0.4, 0.4, 0.4
 end
 
+-- 寶庫格是否解鎖：**只看 progress >= threshold**，這是 Blizzard 自己的判準。
+-- ⚠ 千萬不要再加「level > 0」的條件：M0 場次照樣計入寶庫，但 keystone 等級是 0，
+-- 加了就會變成「打了 8 場 M0、三格 progress 都是 8、面板卻整排暗著」。
+local function IsVaultSlotUnlocked(slot)
+    if not slot then return false end
+    local threshold = slot.threshold or 0
+    if threshold <= 0 then return false end
+    return (slot.progress or 0) >= threshold
+end
+
+-- M+ 軌道的格子內容：level 0 = M0（沒有鑰石等級），獎勵走勇士軌道
+local function VaultMythicCell(level)
+    level = level or 0
+    if level > 0 then
+        local r, g, b = VaultSlotQualityColor(level)
+        return "+" .. level, r, g, b
+    end
+    local c = ITEM_QUALITY_COLORS[3] -- Rare：M0 給勇士軌道
+    return "M0", c.r, c.g, c.b
+end
+
 -- 團本難度 ID → 顯示「難度名稱」+ 寶庫獎勵軌道對應的物品稀有度
 -- DifficultyID: 14=普通, 15=英雄, 16=傳奇, 17=團搜
 -- name 是難度名稱；quality 對應該難度給的寶庫軌道顏色（精兵/勇士/英雄/神話）
@@ -552,8 +573,7 @@ end
 local function VaultCellDisplay(trackKey, slot)
     local level = slot.level
     if trackKey == "mplus" then
-        local r, g, b = VaultSlotQualityColor(level)
-        return "+" .. level, r, g, b
+        return VaultMythicCell(level)
     end
     if trackKey == "raid" then
         local info = RAID_DIFFICULTY_INFO[level]
@@ -708,9 +728,7 @@ local function FillTooltipRow(row, trackKey, slots)
     for j = 1, 3 do
         local slot = slots and slots[j]
         local cell = row.cells[j]
-        local unlocked = slot and (slot.level or 0) > 0
-            and (slot.progress or 0) >= (slot.threshold or 0)
-        if unlocked then
+        if IsVaultSlotUnlocked(slot) then
             local text, r, g, b = VaultCellDisplay(trackKey, slot)
             cell:SetText(text)
             cell:SetTextColor(r, g, b)
@@ -773,13 +791,23 @@ local function ShowVaultTooltip(owner, data)
     local nRuns = runs and #runs or 0
     local count = math.min(VaultMythicProgress(vault), MPLUS_MAX_RUNS)
     if count == 0 then count = nRuns end  -- 舊資料無寶庫進度時退回清單長度
-    if nRuns > 0 then
+    -- 條件是 count > 0 而不是 nRuns > 0：M0 場次計入寶庫進度，但 GetRunHistory 只回傳
+    -- 有鑰石的場次，所以「進度 8/8、清單 0 行」是正常狀態，那時仍要把標題顯示出來。
+    if count > 0 then
         y = y + TT.SPACE
         tt.runsHeader:ClearAllPoints()
         tt.runsHeader:SetPoint("TOPLEFT", TT.PAD, -y)
         tt.runsHeader:SetText(string.format("本週 M+ 紀錄 (%d/%d)", count, MPLUS_MAX_RUNS))
         tt.runsHeader:Show()
         y = y + TT.RUNS_HEADER_H
+        if nRuns == 0 then
+            local line = tt.runLines[1]
+            line:ClearAllPoints()
+            line:SetPoint("TOPLEFT", TT.PAD, -y)
+            line:SetText("|cff808080M0 場次不列入鑰石紀錄|r")
+            line:Show()
+            y = y + TT.RUN_LINE_H
+        end
         for i = 1, nRuns do
             local line = tt.runLines[i]
             line:ClearAllPoints()
@@ -1102,10 +1130,10 @@ local function SetupCharacterKeystones()
             for i = 1, 3 do
                 local slot = mplus and mplus[i]
                 local cell = row.vaultCells[i]
-                if slot and (slot.level or 0) > 0
-                    and (slot.progress or 0) >= (slot.threshold or 0) then
-                    cell:SetText("+" .. slot.level)
-                    cell:SetTextColor(VaultSlotQualityColor(slot.level))
+                if IsVaultSlotUnlocked(slot) then
+                    local text, r, g, b = VaultMythicCell(slot.level)
+                    cell:SetText(text)
+                    cell:SetTextColor(r, g, b)
                 else
                     cell:SetText("·")
                     cell:SetTextColor(LOCKED_CELL_R, LOCKED_CELL_G, LOCKED_CELL_B)
