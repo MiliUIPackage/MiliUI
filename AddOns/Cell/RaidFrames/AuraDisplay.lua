@@ -249,6 +249,57 @@ end
 AD.BuildRecords = BuildRecords
 
 -- ============================================================
+-- IDENTITY GATE  (12.1 -- why a whitelist row silently shows EVERY buff)
+--
+-- include/excludeSpellIDs are only consulted inside Blizzard's
+-- CanApplyIdentityCandidateFilters, and for a HELPFUL pool that check requires
+-- UnitCanAssist("player", unit). A FAILED check does not reject the aura -- it skips the
+-- ID filters WHOLESALE, so the pool fails OPEN and every buff renders. Nothing errors,
+-- the filter string is still right, and /cab inspect still prints +cf{includeSpellIDs}:
+-- the row just fills with food buffs.
+--
+-- Assist flips false for a cross-faction group member outside instanced content, for a
+-- duel partner, and -- the one everybody hits -- for the duration of a CINEMATIC, which
+-- fires UNIT_FACTION. 12.1 forces a cinematic on first login, which is why "it was fine
+-- on the PTR, it's broken on live" and why the three curated rows all broke at once.
+-- (Mechanism found and documented by DandersFrames v5; same finding, same fix.)
+--
+-- ⚠ THE ENGINE DOES NOT RE-PARSE WHEN ASSIST COMES BACK. It re-parses when an aura
+-- CHANGES, so the unfiltered pool simply stays -- which is why /reload is the only thing
+-- that ever "fixed" it. Recovery needs an explicit bounce (Handle:GateRefresh), not just
+-- a visibility flip.
+--
+-- "Only mine" pools (HELPFUL|PLAYER, our castBy = "me") have a SECOND fail-open
+-- condition: for a unit outside your visible world (a different instance/phase) the
+-- engine cannot attribute a caster, so "mine" passes every caster's auras while
+-- UnitCanAssist stays true. Signal for that one is UnitIsVisible.
+--
+-- HARMFUL pools are out of scope: their gate is UnitCanAttack, and ID filtering on a
+-- friendly unit's debuffs is banned outright anyway (see the debuff mode above).
+-- ============================================================
+
+local function RecordVulnerableToIdentityGate(rec)
+    local f = rec.filter
+    if type(f) ~= "string" or not f:find("HELPFUL", 1, true) then return false end
+    local cf = rec.candidateFilters
+    -- ⚠ "HELPFUL|PLAYER" is NOT immune. The PLAYER token narrows the query, but the
+    -- spell-ID whitelist is still skipped -- a "my buffs" row degrades to "anything I
+    -- cast", which is exactly what the Healers row did.
+    return (cf and (cf.includeSpellIDs or cf.excludeSpellIDs)) and true or false
+end
+
+local function RecordSourceRelative(rec)
+    local f = rec.filter
+    if type(f) == "string" then
+        for token in f:gmatch("[^|%s]+") do
+            if (token:gsub("^!", "")) == "PLAYER" then return true end
+        end
+    end
+    local cf = rec.candidateFilters
+    return (cf and cf.isFromPlayerOrPlayerPet ~= nil) and true or false
+end
+
+-- ============================================================
 -- BUTTON STYLING  (initializeFrame)
 -- Build FRESH regions as children of the button (never reparent an existing
 -- scripted widget -- forbidden-aspect inheritance blocks it). Then hand each
@@ -580,6 +631,12 @@ local function Build(handle)
     end
     wipe(handle.buttons)
     handle._groupKeys = nil
+    -- Identity-gate state is re-derived from THIS build's records below. Clearing it here
+    -- is what lets a handle rebuilt onto non-vulnerable filters drop a stale hidden flag
+    -- instead of staying hidden forever; the assist verdict resets too, because a fresh
+    -- parse has no fail-open history to recover from.
+    handle._gateVulnerable, handle._gateSourceRelative = nil, nil
+    handle._gateAssist, handle._gateVisible = nil, nil
 
     if not handle.enabled or not handle.unit then return end
 
@@ -589,6 +646,11 @@ local function Build(handle)
     -- Nothing to show => build nothing.
     local records = handle.records or BuildRecords(handle.config)
     if #records == 0 then return end
+
+    for _, rec in ipairs(records) do
+        if RecordVulnerableToIdentityGate(rec) then handle._gateVulnerable = true end
+        if RecordSourceRelative(rec) then handle._gateSourceRelative = true end
+    end
 
     local host = CreateFrame("Frame", nil, handle.frame)
     host:SetAllPoints(handle.frame)
@@ -687,7 +749,10 @@ local function Build(handle)
     -- visible right now; otherwise ReassertEnable() re-runs it when the button shows.
     local okE, errE = pcall(function() c:SetEnabled(true) end)
     if not okE then handle._errors[#handle._errors + 1] = "SetEnabled: " .. tostring(errE) end
-    pcall(function() c:SetShown(handle.shown ~= false) end)
+    handle:_ApplyVisibility()
+    -- Whatever the gate says right now is this parse's baseline (_gateAssist was cleared
+    -- above, so this probe records rather than recovers).
+    handle:ApplyIdentityGate()
     if handle.frame:IsVisible() then handle._enabledWhileVisible = true end
 end
 
@@ -699,7 +764,14 @@ do
     regen:SetScript("OnEvent", function()
         for h in pairs(AD._pending) do
             AD._pending[h] = nil
-            if h._pendingBuild then Build(h) end
+            if h._pendingBuild then
+                Build(h)
+            elseif h._pendingGateKick then
+                -- an identity-gate recovery that landed mid-combat only got to mark the
+                -- container dirty; the bounce that actually re-parses is OOC-only
+                h._pendingGateKick = nil
+                h:GateRefresh()
+            end
         end
         -- a Restyle refused during combat has to be replayed, or the buttons keep whatever
         -- state they had when the option was changed
@@ -895,8 +967,16 @@ end
 
 function Handle:SetShown(shown)
     self.shown = shown and true or false
-    self.frame:SetShown(self.shown)
-    if self.container then pcall(function() self.container:SetShown(self.shown) end) end
+    self:_ApplyVisibility()
+end
+
+-- Consumer intent (SetShown) composed with the two render-side latches: the identity gate
+-- and the cinematic latch. Plain-frame ops only -- the secure enabled state is never
+-- touched here -- so it stays combat-safe.
+function Handle:_ApplyVisibility()
+    local want = (self.shown ~= false) and not self._gateHidden and not self._cineLatched
+    self.frame:SetShown(want)
+    if self.container then pcall(function() self.container:SetShown(want) end) end
 end
 
 function Handle:SetEnabled(enabled)
@@ -931,6 +1011,100 @@ function Handle:ReassertEnable()
     self._enabledWhileVisible = true
     pcall(function() c:SetEnabled(true) end)
     pcall(function() c:Hide(); c:Show() end) -- partition kick -> force a fresh scan
+end
+
+-- ============================================================
+-- IDENTITY GATE, handle half  (see the big header above BuildRecords)
+-- ============================================================
+
+-- Force a re-parse of the whole container. UpdateAllAuras() from ADDON context only sets
+-- the dirty flags -- it cannot arm the private-side processor -- so out of combat the
+-- Hide/Show bounce is what actually crosses the partition (the intrinsic OnShow runs
+-- secure-side and re-parses from in there). In combat: mark, and replay the real bounce
+-- on regen.
+function Handle:GateRefresh()
+    local c = self.container
+    if not c then return end
+    if InCombatLockdown() then
+        self._pendingGateKick = true
+        AD._defer(self)
+        if type(c.UpdateAllAuras) == "function" then pcall(function() c:UpdateAllAuras() end) end
+        return
+    end
+    pcall(function() c:Hide(); c:Show() end)
+end
+
+-- assist false -> true is the moment the pool stops being fail-open, and the only moment a
+-- bounce is needed. nil (the first probe after a build) is not an edge -- that parse was
+-- born with whatever verdict it recorded.
+function Handle:_NoteGateRecovery(can)
+    local was = self._gateAssist
+    self._gateAssist = can and true or false
+    return was == false and self._gateAssist
+end
+
+-- Fail-SAFE direction is SHOW: any doubt (no unit, pcall failure, secret value) leaves the
+-- row visible, because a wrongly hidden row is worse than one garbage icon. We probe our
+-- OWN frame as well -- it is the one that always falls open on the login cinematic -- but
+-- never hide it: hiding the player's own row is a worse failure than a moment of
+-- unfiltered icons.
+function Handle:ApplyIdentityGate()
+    local hide, recovered = false, false
+
+    if self._gateVulnerable or self._gateSourceRelative then
+        local unit = self.unit
+        if type(unit) == "string" and UnitExists(unit) then
+            local isOwn = unit == "player"
+            if not isOwn then
+                local okU, same = pcall(UnitIsUnit, unit, "player") -- "raid5" can be you
+                isOwn = okU and same == true
+            end
+
+            -- (1) non-assistable (cross-faction, duel, cinematic): includeSpellIDs is
+            --     skipped and every helpful aura passes. Signal: UnitCanAssist.
+            if self._gateVulnerable then
+                local ok, can = pcall(UnitCanAssist, "player", unit)
+                if ok then
+                    if issecretvalue(can) then can = true end
+                    recovered = self:_NoteGateRecovery(can)
+                    if not can and not isOwn then hide = true end
+                end
+            end
+
+            -- (2) not in your visible world (different instance/phase): the engine cannot
+            --     attribute a caster, so "mine" passes everyone's auras. Signal:
+            --     UnitIsVisible. Same fail-safe -- only a definite, non-secret false hides.
+            --     Probed even when (1) already hid us, so the recovery edge is recorded:
+            --     this pool goes stale-open exactly like the assist one, and coming back
+            --     into view is not an aura change either.
+            if self._gateSourceRelative then
+                local okV, vis = pcall(UnitIsVisible, unit)
+                if okV and not issecretvalue(vis) then
+                    local was = self._gateVisible
+                    self._gateVisible = vis and true or false
+                    if was == false and self._gateVisible then recovered = true end
+                    if not vis and not isOwn then hide = true end
+                end
+            end
+        end
+    end
+
+    local newHidden = hide or nil
+    if self._gateHidden ~= newHidden then
+        self._gateHidden = newHidden
+        self:_ApplyVisibility()
+    end
+
+    if recovered then
+        -- ⚠ Un-latch BEFORE the bounce. Show() on a frame whose parent chain is hidden
+        -- never fires OnShow, and OnShow is the entire mechanism of the bounce -- bouncing
+        -- while still hidden would silently do nothing, which is the bug we are fixing.
+        if self._cineLatched then
+            self._cineLatched = nil
+            self:_ApplyVisibility()
+        end
+        self:GateRefresh()
+    end
 end
 
 function Handle:Destroy()
@@ -1001,6 +1175,91 @@ function AD.Create(parent, config)
     AD._instances[handle] = true
 
     return handle
+end
+
+-- ============================================================
+-- IDENTITY-GATE WATCHER
+--
+-- Re-probe every vulnerable handle whenever assistability can flip: faction changes
+-- (cross-faction membership, duels -- and cinematics, which fire UNIT_FACTION), phasing,
+-- roster and member-data settling, zoning, target/focus swaps. Event bursts coalesce onto
+-- one 50ms timer and the per-handle probe is two API calls, so a raid-wide sweep is cheap.
+--
+-- PLAYER_ENTERING_WORLD parks two delayed sweeps as well: straight after a loading screen
+-- UnitCanAssist can still answer with the pre-load value, and once it settles no watched
+-- event necessarily fires again.
+--
+-- The cinematic pair latches vulnerable rows hidden for the duration, so the fail-open
+-- parse a cinematic leaves behind is never SEEN -- the rows come back only once the
+-- recovery bounce has re-parsed them (ApplyIdentityGate clears each latch as it bounces).
+-- The 3s fallback then shows whatever is still latched: fail-safe is SHOW, so the worst
+-- case degrades to exactly the old behaviour and never below it.
+-- ============================================================
+do
+    local watcher = CreateFrame("Frame")
+    for _, e in ipairs({
+        "UNIT_FACTION", "UNIT_PHASE", "UNIT_NAME_UPDATE",
+        "PARTY_MEMBER_ENABLE", "PARTY_MEMBER_DISABLE", "GROUP_ROSTER_UPDATE",
+        "PLAYER_ENTERING_WORLD", "PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED",
+        "CINEMATIC_START", "CINEMATIC_STOP", "PLAY_MOVIE", "STOP_MOVIE",
+    }) do
+        watcher:RegisterEvent(e)
+    end
+
+    local queued
+    local function Sweep()
+        queued = nil
+        for h in pairs(AD._instances or {}) do
+            if not h._destroyed and (h._gateVulnerable or h._gateSourceRelative) then
+                pcall(function() h:ApplyIdentityGate() end)
+            end
+        end
+    end
+    AD.GateSweep = Sweep
+
+    local function SetLatch(h, on)
+        on = on or nil
+        if h._cineLatched == on then return end
+        h._cineLatched = on
+        pcall(function() h:_ApplyVisibility() end)
+    end
+
+    local function LatchAll()
+        for h in pairs(AD._instances or {}) do
+            if not h._destroyed and h._gateVulnerable then SetLatch(h, true) end
+        end
+    end
+
+    -- clear = every latch still standing; assistOnly = only the handles whose assist never
+    -- dropped (they were never fail-open, so there is nothing to wait for)
+    local function UnlatchAll(assistOnly)
+        for h in pairs(AD._instances or {}) do
+            if h._cineLatched and (not assistOnly or h._gateAssist ~= false) then
+                SetLatch(h, nil)
+            end
+        end
+    end
+
+    watcher:SetScript("OnEvent", function(_, event)
+        if event == "CINEMATIC_START" or event == "PLAY_MOVIE" then
+            LatchAll()
+            return
+        end
+
+        if not queued then
+            queued = true
+            C_Timer.After(0.05, Sweep)
+        end
+
+        if event == "CINEMATIC_STOP" or event == "STOP_MOVIE" then
+            Sweep()             -- assist may already be back; bounce now, not in 50ms
+            UnlatchAll(true)
+            C_Timer.After(3, function() UnlatchAll(false) end)
+        elseif event == "PLAYER_ENTERING_WORLD" then
+            C_Timer.After(2, Sweep)
+            C_Timer.After(6, Sweep)
+        end
+    end)
 end
 
 -- ============================================================
@@ -1251,6 +1510,13 @@ function AD.Inspect(unitToken)
             -- "HARMFUL|RAID" as "HARMFULAID", which reads like a broken filter string
             for _, ri in ipairs(h._recordInfo or {}) do p("    record:", (ri:gsub("|", "||"))) end
             if h._recordInfo and #h._recordInfo == 0 then p("    record: (none -- container shows nothing)") end
+            -- the fail-open state: "assist=false" IS the "why is my whitelist showing
+            -- every buff" answer, and it is invisible from anywhere else
+            if h._gateVulnerable or h._gateSourceRelative then
+                p(("    身分閘：白名單依賴=%s 來源依賴=%s assist=%s visible=%s 隱藏=%s")
+                    :format(tostring(h._gateVulnerable or false), tostring(h._gateSourceRelative or false),
+                        tostring(h._gateAssist), tostring(h._gateVisible), tostring(h._gateHidden or false)))
+            end
             for _, e in ipairs(h._errors or {}) do p("    ERR:", e) end
         end
     end
@@ -1342,6 +1608,19 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         AD.Inspect(arg and strtrim(arg) ~= "" and strtrim(arg) or "player")
     elseif cmd == "overdraw" then
         AD.Overdraw(arg and strtrim(arg) ~= "" and strtrim(arg) or "player")
+    elseif cmd == "gate" then
+        -- manual unstick: re-probe every vulnerable handle and force the re-parse the
+        -- engine will not do on its own. This is the /reload workaround, without /reload.
+        local n = 0
+        if AD.GateSweep then AD.GateSweep() end
+        for h in pairs(AD._instances or {}) do
+            if not h._destroyed and h.container and (h._gateVulnerable or h._gateSourceRelative) then
+                n = n + 1
+                h:GateRefresh()
+            end
+        end
+        p(("身分閘：已重新掃描並強制重讀 %d 個容器%s"):format(n,
+            InCombatLockdown() and "（戰鬥中只能標記，離開戰鬥後補跑）" or ""))
     elseif cmd == "spell" then
         -- "will this spell go secret in combat?" ShouldSpellAuraBeSecret answers for the
         -- SPELL, not for anyone currently carrying it, so it is safe to ask mid-combat.
@@ -1380,7 +1659,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
     else
         p("supported =", tostring(AD.IsSupported()), "|", tostring(ACC.Failure() or "OK"))
         AD.Debug()
-        p("其他：/cab list | ghosts | inspect [unit] | overdraw [unit] | spell <id> | test")
+        p("其他：/cab list | ghosts | inspect [unit] | overdraw [unit] | spell <id> | gate | test")
     end
 end
 

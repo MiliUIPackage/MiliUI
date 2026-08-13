@@ -56,6 +56,32 @@ AuraContainer 掛了 aura group 之後就**不再收 `OnSizeChanged`**（連錨�
 
 `candidateFilters` 的完整欄位：`includeSpellIDs`、`excludeSpellIDs`、`includeDispelTypes`、`excludeDispelTypes`、`maxDuration`、`processedAuraType`，加上一組布林 `isFromPlayerOrPlayerPet`、`isRoleAura`、`isPriorityAura`、`isStealable`、`nameplateShowAll`、`nameplateShowPersonal`、`canApplyAura`、`isBossAura`、`isBossOrRoleAura`。
 
+### ⚠⚠ 身分閘 fail-open：白名單會整組被跳過，顯示全部增益
+
+`include/excludeSpellIDs` 只在 `CanApplyIdentityCandidateFilters` 內部被採用，而 HELPFUL 的
+那條要求 `UnitCanAssist("player", unit)`。**檢查沒過不是把光環擋掉，而是整組跳過 ID 過濾**
+——pool **fail-open**，每個增益都畫出來。不報錯、filter 字串照樣正確、診斷照樣印
+`+cf{includeSpellIDs}`，畫面就是塞滿食物 buff。
+
+assist 會變 false 的情境：跨陣營隊友（副本外）、決鬥對手、**以及過場動畫期間**（動畫會觸發
+`UNIT_FACTION`，12.1 首次登入強制播一段）。`HELPFUL|PLAYER` **沒有豁免**——PLAYER token 只
+縮小查詢範圍，ID 白名單一樣被跳過，「只顯示我上的」退化成「我上的任何東西」。
+
+**⚠ assist 恢復後引擎不會自己重讀**：只有「光環變動」才重新解析，所以 fail-open 的結果會一直
+留著——這就是為什麼只有 `/reload` 有效。要恢復必須自己踢一次
+（OOC：`container:Hide(); container:Show()`；戰鬥中只能 `UpdateAllAuras()` 標記，離開戰鬥補踢）。
+
+第二條 fail-open：來源相關的 pool（`HELPFUL|PLAYER`、`isFromPlayerOrPlayerPet`）對「不在你可
+見世界的單位」（不同副本/分流）無法歸屬施法者，於是「我的」放行所有人；此時 assist 仍是 true，
+訊號要看 `UnitIsVisible`。
+
+HARMFUL 不在這個閘的範圍（它看 `UnitCanAttack`，而且友方減益本來就禁止 ID 過濾）。
+
+Cell 的實作在 `RaidFrames/AuraDisplay.lua`（`RecordVulnerableToIdentityGate` / `ApplyIdentityGate`
+/ `GateRefresh` + 事件監看：`UNIT_FACTION`/`UNIT_PHASE`/`UNIT_NAME_UPDATE`/roster/`PLAYER_ENTERING_WORLD`
+＋過場動畫 latch），手動解卡指令 `/cab gate`。機制由 DandersFrames v5 找出並記錄
+（`Frames/AuraContainer.lua` 的 `filterVulnerableToIdentityGate`）。
+
 **AuraButton 倒數文字要「純數字不帶單位」**（踩了很多輪）：預設走 `SecondsFormatter`，而它的 `Enum.SecondsFormatterAbbreviation` 只有 `None=0 / Truncate=1 / OneLetter=2`，三種在中文全都輸出「秒」——**設計上沒有無單位的出口**。正解是**換掉 formatter 本身**：
 
 ```lua
