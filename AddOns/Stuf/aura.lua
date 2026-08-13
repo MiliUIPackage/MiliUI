@@ -412,6 +412,11 @@ do 	-- Aura handlers -----------------------------------------------------------
 	--       Returns a tainted number in 12.0.1 too, so we pcall the >= 2
 	--       comparison inside GetAuraCount and return nil or a plain int.
 	--
+	-- 12.1 追加：auraInstanceID 本身也會是 secret（光環受限時，見下方
+	-- PlainAuraID）。上面這幾個 API 的 SecretArguments 都是
+	-- "AllowedWhenUntainted" —— 插件是 tainted，把 secret id 傳進去會直接
+	-- 報 bad argument #1，所以呼叫前一律先確認 id 不是 secret。
+	--
 	--   GetAuraDispelTypeColor(unit, aid, colorCurve)
 	--       Returns a ColorMixin directly — bypasses the tainted dispelName
 	--       field entirely.  We build a color curve from stUF's dbgaura colors
@@ -435,6 +440,19 @@ do 	-- Aura handlers -----------------------------------------------------------
 		_apisReady = true
 	end
 
+	-- fix from MiliUI (12.1): 光環受限時 GetBuffDataByIndex / GetDebuffDataByIndex
+	-- 回來的 auraInstanceID 是 secret number。IsAuraFilteredOutByInstanceID /
+	-- GetAuraApplicationDisplayCount / GetAuraDispelTypeColor 三個都是
+	-- SecretArguments = "AllowedWhenUntainted"，tainted 的插件程式碼傳 secret 進去
+	-- 會炸在參數檢查（Usage: ...GetAuraApplicationDisplayCount(auraInstance ...)）。
+	-- secret id 一律當成「沒有 id」，讓下面三個 helper 各自走 fallback：
+	-- 層數不顯示、驅散顏色用預設色、ismine 視為 false。圖示本身照樣畫得出來。
+	local IsSecret = Stuf.IsSecret
+	local function PlainAuraID(aid)
+		if aid == nil or (IsSecret and IsSecret(aid)) then return nil end
+		return aid
+	end
+
 	-- IsPlayerAura: returns plain bool — true if this aura was cast by the
 	-- player or their pet.  Replaces the tainted isFromPlayerOrPlayerPet field.
 	local function IsPlayerAura(unit, aid, isHelpful)
@@ -444,17 +462,19 @@ do 	-- Aura handlers -----------------------------------------------------------
 		return (_isFiltered(unit, aid, filter) == false)
 	end
 
-	-- GetAuraCount: returns a plain integer stack count (>= 2), or NIL when
-	-- there are fewer than 2 stacks (nothing to display).  Returning nil lets
-	-- all callsites use `count or ""` with NO Lua comparison on count — zero
-	-- risk of a taint crash at the callsite.
+	-- GetAuraCount: returns something safe to hand straight to SetText — 已格式化
+	-- 的字串（層數 < 2 時是 ""）、plain integer >= 2，或 nil。所有 callsite 都是
+	-- `count or ""`，不對它做任何比較，所以三種都不會在 callsite 出事。
 	--
-	-- GetAuraApplicationDisplayCount also returns a tainted secret number in
-	-- 12.0.1 (just like d.applications), so we still need pcall on the >= 2
-	-- comparison inside this function.
+	-- GetAuraApplicationDisplayCount 文件上回傳的是 **string**（min/max 的格式化
+	-- 都在 C 端做完），舊寫法只認 number 等於永遠回 nil、層數字從來沒顯示過，
+	-- 所以兩種型別都接。呼叫本身也要 pcall：aid 不是 secret 不代表它還有效
+	-- （RequiresValidUnitAuraInstance），過期的 instance 一樣會報參數錯誤。
 	local function GetAuraCount(unit, aid)
 		if not _getStackCount or not aid then return nil end
-		local n = _getStackCount(unit, aid, 2, 99)
+		local ok, n = pcall(_getStackCount, unit, aid, 2, 99)
+		if not ok or n == nil then return nil end
+		if type(n) == "string" then return n end
 		if type(n) ~= "number" then return nil end
 		local val = nil
 		pcall(function() if n >= 2 then val = n end end)
@@ -480,14 +500,17 @@ do 	-- Aura handlers -----------------------------------------------------------
 	end
 
 	-- GetDispelColor: returns a ColorMixin for the aura's dispel type via the
-	-- C API directly — no pcall, no tainted dispelName field access at all.
+	-- C API directly — no tainted dispelName field access at all.
 	-- Returns nil for non-dispellable auras or when the API is unavailable.
 	-- ColorMixin exposes .r .g .b, compatible with SetBackdropColor.
+	-- 同樣要 pcall：這支也是 RequiresValidUnitAuraInstance，instance 失效就報錯。
 	local function GetDispelColor(unit, aid)
 		if not _getDispelColor or not aid then return nil end
 		if not _dispelCurve then _dispelCurve = BuildDispelCurve() end
 		if not _dispelCurve then return nil end
-		return _getDispelColor(unit, aid, _dispelCurve)
+		local ok, color = pcall(_getDispelColor, unit, aid, _dispelCurve)
+		if not ok then return nil end
+		return color
 	end
 
 	-- IsMagicType: plain bool — true if dispel type is Magic (index 1).
@@ -510,16 +533,16 @@ do 	-- Aura handlers -----------------------------------------------------------
 	-- but every value is either plain (safe to compare) or tainted-but-only-
 	-- used-in-C-calls (safe to pass through).
 	--
-	-- auraInstanceID from the data table is ALWAYS a plain number per Blizzard
-	-- 12.0 documentation — it is the stable ID used by all the new APIs.
+	-- auraInstanceID 在 12.0 是 plain number，12.1 起光環受限時會是 secret，
+	-- 所以一律過 PlainAuraID（secret -> nil）再往下傳。
 	local function UnitBuff(unit, index, filter)
 		if not _apisReady then BindAuraAPIs() end
 		local ok, d = pcall(C_UnitAuras.GetBuffDataByIndex, unit, index, filter)
 		if not ok or not d then return nil end
-		local aid = d.auraInstanceID  -- plain number
+		local aid = PlainAuraID(d.auraInstanceID)
 		return d.name, d.icon,
 		       GetAuraCount(unit, aid),        -- nil or plain int >= 2
-		       GetDispelColor(unit, aid),      -- ColorMixin or nil (no pcall)
+		       GetDispelColor(unit, aid),      -- ColorMixin or nil
 		       IsMagicType(d),                 -- plain bool
 		       d.duration, d.expirationTime,   -- tainted, C-only
 		       IsPlayerAura(unit, aid, true),  -- plain bool
@@ -529,7 +552,7 @@ do 	-- Aura handlers -----------------------------------------------------------
 		if not _apisReady then BindAuraAPIs() end
 		local ok, d = pcall(C_UnitAuras.GetDebuffDataByIndex, unit, index, filter)
 		if not ok or not d then return nil end
-		local aid = d.auraInstanceID
+		local aid = PlainAuraID(d.auraInstanceID)
 		return d.name, d.icon,
 		       GetAuraCount(unit, aid),
 		       GetDispelColor(unit, aid),
@@ -851,7 +874,9 @@ do  -- Aura Icons --------------------------------------------------------------
 			--
 			-- THE ONE THING THAT WOULD UNLOCK THIS:
 			--   auraInstanceID IS a plain (non-tainted) number per Blizzard's 12.0
-			--   documentation.  If Blizzard ever adds a function like:
+			--   documentation.  ——12.1 更正：光環受限時它也是 secret，所以連這條
+			--   退路都沒了（見上面的 PlainAuraID）。
+			--   If Blizzard ever adds a function like:
 			--     C_UnitAuras.RemoveAura(auraInstanceID)
 			--   ...we could store icon.aid = d.auraInstanceID (plain), then in a
 			--   secure OnClick handler call that API without any taint chain.
