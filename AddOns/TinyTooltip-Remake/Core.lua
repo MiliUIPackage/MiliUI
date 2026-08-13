@@ -1811,8 +1811,19 @@ local function SetStyleBackdropBorderColor(tip, r, g, b, a)
     TintNineSliceBorder(tip, tip._tinyBackdropBorderColor[1], tip._tinyBackdropBorderColor[2], tip._tinyBackdropBorderColor[3], tip._tinyBackdropBorderColor[4])
 end
 
+-- fix from MiliUI: 12.1 之後，EmbeddedItemTooltip 被 UIWidget 系統拿去顯示安全內容時
+-- （Blizzard_UIWidgetTemplateBase.lua 的 OnEnter → SetShown）會變成 forbidden object，
+-- 插件對它、或對它底下我們自己建的材質呼叫任何方法，都會拋
+--   "Attempt to access forbidden object from code tainted by an AddOn"
+-- 這是動態狀態（同一個框架載入時還能正常套樣式，之後才被鎖），所以不能只在初始化判斷一次，
+-- 每個會碰到框架的入口都要重問。IsForbidden 本身在 forbidden object 上永遠可以呼叫。
+local function IsForbiddenObject(obj)
+    return (obj and obj.IsForbidden and obj:IsForbidden()) and true or false
+end
+
 local function EnsureStyleMask(tip)
     if (not tip) then return end
+    if (IsForbiddenObject(tip)) then return end
     if (tip._tinyMask) then return tip._tinyMask end
     local mask = tip:CreateTexture(nil, "OVERLAY")
     mask:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
@@ -1830,6 +1841,8 @@ end
 UpdateStyleMaskVisibility = function(tip)
     local mask = EnsureStyleMask(tip)
     if (not mask) then return end
+    -- fix from MiliUI: tip 被鎖時，先前建好的遮罩材質同樣不能碰（mask:Hide() 會拋 forbidden）
+    if (IsForbiddenObject(mask)) then return end
     local show = (tip and tip._tinyMaskEnabled) and true or false
     if (show) then
         local _, _, _, a = GetStyleBackdropColor(tip)
@@ -1931,6 +1944,8 @@ end
 
 local function ApplyNativeBackdrop(tip)
     if (not tip) then return false end
+    -- fix from MiliUI: forbidden object 一律不碰，整條樣式管線都會拋錯
+    if (IsForbiddenObject(tip)) then return false end
     EnsureNativeStyleData(tip)
     SyncGlobalBackgroundFile(tip)
     -- perf fix from MiliUI: 滑過裝備時，暴雪每秒清空重建同一件 tooltip ~20-25 次，每次都重跑整條樣式管線。
@@ -2262,11 +2277,15 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     tip.TinyHookScript = addon.TinyHookScript
     -- fix from MiliUI: defer OnShow processing during combat to break taint chain
     tip:HookScript("OnShow", function(self)
+        -- fix from MiliUI: forbidden 期間整段跳過，否則 tooltip:show 的下游全部會拋錯
+        if (IsForbiddenObject(self)) then return end
         -- perf fix from MiliUI: 重新顯示時底框可能被暴雪重設，清快取（含結構）強制重套用
         self._tinyLastBackdropKey = nil
         self._tinyLastStructKey = nil
         if InCombatLockdown() then
             C_Timer.After(0, function()
+                -- 延後一幀後狀態可能已經變了，IsShown() 之前要再問一次
+                if (IsForbiddenObject(self)) then return end
                 if self:IsShown() then
                     ApplyNativeBackdrop(self)
                     LibEvent:trigger("tooltip:show", self)
@@ -2277,7 +2296,10 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
             LibEvent:trigger("tooltip:show", self)
         end
     end)
-    tip:HookScript("OnHide", function(self) LibEvent:trigger("tooltip:hide", self) end)
+    tip:HookScript("OnHide", function(self)
+        if (IsForbiddenObject(self)) then return end
+        LibEvent:trigger("tooltip:hide", self)
+    end)
 
     -- for 10.0
     if (tip.ProcessInfo) then
@@ -2451,12 +2473,13 @@ end)
 if (SharedTooltip_SetBackdropStyle) then
     -- fix from MiliUI: defer during combat to break taint chain
     hooksecurefunc("SharedTooltip_SetBackdropStyle", function(self, style, embedded)
+        if (IsForbiddenObject(self)) then return end
         if (self and self._tinyNativeStyle) then
             -- perf fix from MiliUI: 暴雪重設了底框樣式，清快取（含結構）強制重套用
             self._tinyLastBackdropKey = nil
             self._tinyLastStructKey = nil
             if InCombatLockdown() then
-                C_Timer.After(0, function() if self:IsShown() then ApplyNativeBackdrop(self) end end)
+                C_Timer.After(0, function() if (not IsForbiddenObject(self)) and self:IsShown() then ApplyNativeBackdrop(self) end end)
             else
                 ApplyNativeBackdrop(self)
             end
@@ -2467,12 +2490,13 @@ end
 if (GameTooltip_SetBackdropStyle) then
     -- fix from MiliUI: defer during combat to break taint chain
     hooksecurefunc("GameTooltip_SetBackdropStyle", function(self, style)
+        if (IsForbiddenObject(self)) then return end
         if (self and self._tinyNativeStyle) then
             -- perf fix from MiliUI: 暴雪重設了底框樣式，清快取（含結構）強制重套用
             self._tinyLastBackdropKey = nil
             self._tinyLastStructKey = nil
             if InCombatLockdown() then
-                C_Timer.After(0, function() if self:IsShown() then ApplyNativeBackdrop(self) end end)
+                C_Timer.After(0, function() if (not IsForbiddenObject(self)) and self:IsShown() then ApplyNativeBackdrop(self) end end)
             else
                 ApplyNativeBackdrop(self)
             end
