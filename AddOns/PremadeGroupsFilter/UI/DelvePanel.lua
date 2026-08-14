@@ -42,10 +42,10 @@ local DELVE_ACTIVITY_MAP = {
     -- Source: https://wago.tools/db2/GroupFinderActivity?filter%5BGroupFinderCategoryID%5D=121&filter%5BFullName_lang%5D=%28Tier%201%29&page=1&sort%5BGroupFinderActivityGrpID%5D=asc
 
     -- Midnight
-    -- Not listed: Torment's Rise (seasonal Nemesis) and Den of Echoes (announced, but missing in tables)
     { activityGroupID = 405, tier1ActivityID = 1823 }, -- Collegiate Calamity
     { activityGroupID = 406, tier1ActivityID = 1826 }, -- Parhelion Plaza
     { activityGroupID = 407, tier1ActivityID = 1837 }, -- Sunkiller Sanctum
+    --{ activityGroupID = 408, tier1ActivityID = 1824 }, -- Torment's Rise (seasonal nemesis)
     { activityGroupID = 409, tier1ActivityID = 1848 }, -- Shadowguard Point
     { activityGroupID = 410, tier1ActivityID = 1859 }, -- The Grudge Pit
     { activityGroupID = 411, tier1ActivityID = 1870 }, -- Atal'Aman
@@ -53,9 +53,9 @@ local DELVE_ACTIVITY_MAP = {
     { activityGroupID = 413, tier1ActivityID = 1892 }, -- The Shadow Enclave
     { activityGroupID = 414, tier1ActivityID = 1903 }, -- Twilight Crypts
     { activityGroupID = 415, tier1ActivityID = 1914 }, -- The Darkway
-    --{ activityGroupID =   0, tier1ActivityID =    0 }, -- The Ring of Glory
-    --{ activityGroupID =   0, tier1ActivityID =    0 }, -- Gnarldor Isle
-    --{ activityGroupID = 999, tier1ActivityID = 9999 }, -- Venomfall Deeps
+    --{ activityGroupID = 430, tier1ActivityID = 2006 }, -- Venomfall Deeps (seasonal nemesis)
+    { activityGroupID = 431, tier1ActivityID = 2008 }, -- Gnarldor Isle
+    { activityGroupID = 432, tier1ActivityID = 2019 }, -- The Ring of Glory
 }
 setmetatable(DELVE_ACTIVITY_MAP, { __index = function() return { activityGroupID = 0, tier1ActivityID = 0 } end })
 
@@ -68,12 +68,11 @@ function DelvePanel:GetBountifulDelves()
     local bountifulDelves = {}
     for _, mapID in ipairs(DELVE_ZONE_MAPS) do
         local delves = C_AreaPoiInfo.GetDelvesForMap(mapID)
-        if delves then -- map not yet in the game files (patch not yet released) or other problem
+        if delves then -- make sure map is already in the game files
             for _, poiID in ipairs(delves) do
                 local poiInfo = C_AreaPoiInfo.GetAreaPOIInfo(mapID, poiID)
-                local isBountiful = poiInfo.atlasName == "delves-bountiful"
-                if isBountiful then
-                   table.insert(bountifulDelves, poiInfo.name)
+                if poiInfo and poiInfo.atlasName == "delves-bountiful" and poiInfo.name then
+                    table.insert(bountifulDelves, poiInfo.name)
                 end
             end
         end
@@ -105,8 +104,9 @@ function DelvePanel:OnLoad()
     self.Delves.Title:SetText(L["dialog.filters.delves"])
     self.Delves.SelectNone:Init(L["dialog.button.selectnone.title"], L["dialog.button.selectnone.tooltip"])
     self.Delves.SelectNone:SetScript("OnClick", function (btn)
-        for i = 1, NUM_DELVE_CHECKBOXES do
-            self.Delves["Delve"..i].Act:SetChecked(false)
+        for i = 1, MAX_DELVE_CHECKBOXES do
+            local delve = self.Delves["Delve"..i]
+            delve.Act:SetChecked(false)
             self.state["delve"..i] = false
         end
         self:TriggerFilterExpressionChange()
@@ -114,29 +114,39 @@ function DelvePanel:OnLoad()
     self.Delves.SelectAll:Init(L["dialog.button.selectall.title"], L["dialog.button.selectall.tooltip"])
     self.Delves.SelectAll:SetScript("OnClick", function (btn)
         for i = 1, NUM_DELVE_CHECKBOXES do
-            self.Delves["Delve"..i].Act:SetChecked(true)
-            self.state["delve"..i] = true
+            local delve = self.Delves["Delve"..i]
+            local checked = delve.isAvailable
+            delve.Act:SetChecked(checked)
+            self.state["delve"..i] = checked
         end
         self:TriggerFilterExpressionChange()
     end)
     self.Delves.SelectBountiful:Init(L["dialog.button.selectbountiful.title"], L["dialog.button.selectbountiful.tooltip"])
     self.Delves.SelectBountiful:SetScript("OnClick", function (btn)
         for i = 1, NUM_DELVE_CHECKBOXES do
-            local isBountiful = self.Delves["Delve"..i].isBountiful or false
-            self.Delves["Delve"..i].Act:SetChecked(isBountiful)
-            self.state["delve"..i] = isBountiful
+            local delve = self.Delves["Delve"..i]
+            local checked = delve.isAvailable and delve.isBountiful or false
+            delve.Act:SetChecked(checked)
+            self.state["delve"..i] = checked
         end
         self:TriggerFilterExpressionChange()
     end)
+
+    for i = 1, MAX_DELVE_CHECKBOXES do
+        local delve = self.Delves["Delve"..i]
+        delve.isAvailable = false
+        delve.isBountiful = false
+    end
 
     for i = 1, NUM_DELVE_CHECKBOXES do
         local delve = self.Delves["Delve"..i]
         local activityGroupID = DELVE_ACTIVITY_MAP[i].activityGroupID
         local tier1ActivityID = DELVE_ACTIVITY_MAP[i].tier1ActivityID
-        local activityInfo = PGF.GetActivityInfoTable(tier1ActivityID)
-        if activityInfo then
+        local activityInfo = tier1ActivityID > 0 and PGF.GetActivityInfoTable(tier1ActivityID) or nil
+        if activityGroupID > 0 and activityInfo and activityInfo.fullName then
             local name = PGF.String_RemoveBrackets(activityInfo.fullName)
 
+            delve.isAvailable = true
             delve.activityGroupID = activityGroupID
             delve.tier1ActivityID = tier1ActivityID
             delve.name = name
@@ -157,12 +167,14 @@ function DelvePanel:OnLoad()
             end)
         else
             -- delve not yet in the game files (patch not yet released)
+            delve.Act:SetChecked(false)
             delve:Hide()
         end
     end
 
     -- Hide unused checkboxes
     for i = NUM_DELVE_CHECKBOXES + 1, MAX_DELVE_CHECKBOXES do
+        self.Delves["Delve"..i].Act:SetChecked(false)
         self.Delves["Delve"..i]:Hide()
     end
 end
@@ -196,8 +208,11 @@ function DelvePanel:Init(state)
     self.Group.Partyfit.Act:SetChecked(self.state.partyfit or false)
     self.Group.NotDeclined.Act:SetChecked(self.state.notdeclined or false)
 
-    for i = 1, NUM_DELVE_CHECKBOXES do
-        self.Delves["Delve"..i].Act:SetChecked(self.state["delve"..i] or false)
+    for i = 1, MAX_DELVE_CHECKBOXES do
+        local delve = self.Delves["Delve"..i]
+        local checked = delve.isAvailable and self.state["delve"..i] or false
+        delve.Act:SetChecked(checked)
+        self.state["delve"..i] = checked
     end
     self.Advanced.Expression.EditBox:SetText(self.state.expression or "")
 end
@@ -208,15 +223,15 @@ function DelvePanel:UpdateDelves()
         local color = WHITE_FONT_COLOR
         local isBountiful = false
         local delve = self.Delves["Delve"..i]
-        if delve.name then
+        if delve.isAvailable then
             for _, bountifulDelveName in ipairs(bountifulDelves) do
                 if PGF.IsMostLikelySameInstance(delve.name, bountifulDelveName) then
                     color = NORMAL_FONT_COLOR
                     isBountiful = true
                 end
             end
+            delve.Title:SetTextColor(color:GetRGB())
         end
-        delve.Title:SetTextColor(color:GetRGB())
         delve.isBountiful = isBountiful
     end
 end
@@ -256,7 +271,7 @@ function DelvePanel:OnReset()
     self.state.dps.max = ""
     self.state.partyfit = false
     self.state.notdeclined = false
-    for i = 1, NUM_DELVE_CHECKBOXES do
+    for i = 1, MAX_DELVE_CHECKBOXES do
         self.state["delve"..i] = false
     end
     self.state.expression = ""
@@ -317,8 +332,9 @@ function DelvePanel:GetFilterExpression()
     if self:GetNumDelvesSelected() > 0 then
         expression = expression .. " and ( false" -- start with neutral element of logical or
         for i = 1, NUM_DELVE_CHECKBOXES do
-            if self.state["delve"..i] then
-                expression = expression .. " or groupid == " .. DELVE_ACTIVITY_MAP[i].activityGroupID
+            local delve = self.Delves["Delve"..i]
+            if delve.isAvailable and self.state["delve"..i] then
+                expression = expression .. " or groupid == " .. delve.activityGroupID
             end
         end
         expression = expression .. " )"
@@ -343,7 +359,8 @@ end
 function DelvePanel:GetNumDelvesSelected()
     local numDelvesSelected = 0
     for i = 1, NUM_DELVE_CHECKBOXES do
-        if self.state["delve"..i] then
+        local delve = self.Delves["Delve"..i]
+        if delve.isAvailable and self.state["delve"..i] then
             numDelvesSelected = numDelvesSelected + 1
         end
     end

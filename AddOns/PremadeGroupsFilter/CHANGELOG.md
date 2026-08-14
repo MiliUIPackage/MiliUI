@@ -1,6 +1,7 @@
 # Premade Groups Filter
 
-## [7.4.3](https://github.com/0xbs/premade-groups-filter/tree/7.4.3) (2026-06-19)
-[Full Changelog](https://github.com/0xbs/premade-groups-filter/compare/7.4.2...7.4.3) [Previous Releases](https://github.com/0xbs/premade-groups-filter/releases)
+## [7.5.2](https://github.com/0xbs/premade-groups-filter/tree/7.5.2) (2026-08-13)
+[Full Changelog](https://github.com/0xbs/premade-groups-filter/compare/7.5.1...7.5.2) [Previous Releases](https://github.com/0xbs/premade-groups-filter/releases)
 
-- Fix #394 lua error  
+- Fix PGF checkbox location  
+- Bump TOC  
