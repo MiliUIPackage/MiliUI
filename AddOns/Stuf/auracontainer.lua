@@ -1,24 +1,24 @@
 ------------------------------------------------------------
--- MiliUI: AuraContainer 共用核心
+-- Stuf: buffgroup / debuffgroup 的 AuraContainer 實作
 --
 -- 12.1 起，以 index / slot / auraInstanceID 取光環的 API 在 auras 為 secret 時
--- 一律 Lua error，所以任何自己讀光環來畫圖示的插件都會在戰鬥中凍結。
--- 補救方式一律相同：在插件原本的光環群組上掛一個 AuraContainer 接管顯示，
--- 由暴雪自行過濾、排序、建立與排版 AuraButton —— 插件完全碰不到底層資料，
--- 所以在舊 API 全掛的情況下仍能運作。
+-- 一律 Lua error，所以 aura.lua 那套「自己掃光環再畫圖示」在戰鬥中會凍結。
+-- 這裡改用 AuraContainer：由暴雪自行過濾、排序、建立與排版 AuraButton，插件
+-- 完全碰不到底層資料，所以在舊 API 全掛的情況下仍能運作。
 --
--- 這個檔案放「跟目標插件無關」的部分：能力偵測、AuraButton 外觀、flow layout
--- 對應、倒數格式。各插件的轉接層（Stuf_AuraContainer）只負責讀自己的設定，然後呼叫這裡。
+-- 前半是跟版面無關的部分（能力偵測、AuraButton 外觀、flow layout、倒數格式），
+-- 後半把 Stuf 的群組設定翻成它要的形狀。
 --
--- Cell 的橋接（Fix/Cell_AuraContainer.lua）已於 2026-08-11 移除：Cell 12.1 改寫後
--- 自帶 AuraContainer（RaidFrames/RaidDebuffContainer.lua），橋接與它在戰鬥中雙重
--- 繪製同一批光環（樣式還不同），故整支退場。
+-- 容器是在 aura.lua 的 CreateAuraGroup 裡建的 —— 那正是「群組建好／設定改過」
+-- 的時刻，不用從外面猜。原本這是 MiliUI 的兩支掛勾，只能靠輪詢 Stuf.units、
+-- 延遲重掃、hook UpdateElementLook 來推測時機，那些全部不需要了。
+--
+-- /scab           診斷
+-- /scab reset     還原 Stuf 原生圖示並停用至下次 /reload
 ------------------------------------------------------------
-local AddonName, _ = ...
-if AddonName ~= "MiliUI" then return end
 
-MiliUI_AuraContainerCore = {}
-local Core = MiliUI_AuraContainerCore
+local Core = {}
+Stuf.AuraCore = Core
 
 local MIN_BUILD = 120100
 
@@ -49,8 +49,6 @@ local caps = {
     flowLayout = false,
     flowAxis = false,
     flowGrowth = false,
-    shouldAurasBeSecret = type(C_Secrets) == "table"
-        and type(C_Secrets.ShouldAurasBeSecret) == "function",
 }
 Core.caps = caps
 
@@ -87,14 +85,6 @@ function Core.Failure()
         return "AuraContainer:AddAuraGroup 不存在 —— group API 已改名或移除"
     end
     return nil
-end
-
-function Core.AurasAreSecret()
-    if caps.shouldAurasBeSecret then
-        return C_Secrets.ShouldAurasBeSecret() and true or false
-    end
-    -- 退路刻意保守：戰鬥中不一定代表 auras 受限，會過度觸發但不會漏觸發。
-    return InCombatLockdown() and true or false
 end
 
 ------------------------------------------------------------
@@ -485,4 +475,282 @@ function Core.CreateContainer(spec)
     container.__unit = spec.unit
     container:Hide()
     return container
+end
+
+------------------------------------------------------------
+-- Stuf 轉接層
+------------------------------------------------------------
+-- 增益外框：偏深的綠，太亮會在小圖示上蓋過圖示本身
+local BUFF_BORDER_COLOR = { 0, 0.55, 0.15, 1 }
+
+-- tempenchant（武器附魔）沒有對應的 aura filter，要走 AddItemEnchantment 另外
+-- 處理，所以不在這裡；dispellicon 只畫一顆，留給 aura.lua 自己的路徑。
+local DISPLAYS = {
+    buffgroup = {
+        filter = "HELPFUL",
+        style = {
+            borderColor = BUFF_BORDER_COLOR,
+            showDuration = true,
+            showStack = true,
+            -- 頭像上的光環動輒數十分鐘，純秒數讀不了
+            durationFormat = "abbrev",
+        },
+    },
+    debuffgroup = {
+        filter = "HARMFUL",
+        style = {
+            dispelBorder = true,      -- 依驅散類型上色
+            showDuration = true,
+            showStack = true,
+            durationFormat = "abbrev",
+        },
+    },
+}
+
+local attached = setmetatable({}, { __mode = "k" })  -- [uf] = { [element] = container }
+local diag = { skips = {} }
+local enabled = false
+
+local function Skip(reason)
+    diag.skips[reason] = (diag.skips[reason] or 0) + 1
+end
+
+-- Stuf 的字型設定散在 db 的多個鍵上，攤平成 Core.ApplyFont 要的 fontSpec
+local function ReadStackFont(db, iconWidth)
+    return {
+        media = db.counttfont,
+        size = db.counttfontsize or db.fontsize
+            or (iconWidth and iconWidth > 2 and math.floor(iconWidth * 0.6 + 0.5)) or nil,
+        outline = db.counttfontflags ~= "None" and db.counttfontflags or nil,
+        r = db.counttfontcolor and db.counttfontcolor.r,
+        g = db.counttfontcolor and db.counttfontcolor.g,
+        b = db.counttfontcolor and db.counttfontcolor.b,
+    }
+end
+
+-- 把 Stuf 的 growth 字串翻成 flow layout 的方向。
+-- GrowthBreakdown 回傳 d1..d4 與 hdir/vdir：d1 是主軸第一個方向。
+local function ReadGrowth(db)
+    local breakdown = Stuf.GrowthBreakdown
+    if not breakdown then return false, false, false end
+
+    local d1, _, d3 = breakdown(db.growth)
+    local horizontalFirst = (d1 == "LEFT" or d1 == "RIGHT")
+
+    local vertical = not horizontalFirst
+    local growLeft = (horizontalFirst and d1 == "RIGHT") or (not horizontalFirst and d3 == "RIGHT")
+    local growUp = (horizontalFirst and d3 == "BOTTOM") or (not horizontalFirst and d1 == "BOTTOM")
+
+    return vertical, growLeft, growUp
+end
+
+local function ReadLayout(db)
+    local w, h = db.w, db.h
+    if type(w) ~= "number" or type(h) ~= "number" or w <= 0 or h <= 0 then
+        return nil, ("尺寸不合用 w=%s h=%s"):format(tostring(w), tostring(h))
+    end
+
+    local vertical, growLeft, growUp = ReadGrowth(db)
+    return {
+        x = db.x or 0,
+        y = db.y or 0,
+        sizeW = w,
+        sizeH = h,
+        max = (db.cols or 1) * (db.rows or 1),
+        perLine = vertical and (db.rows or 1) or (db.cols or 1),
+        spacing = db.spacing or 0,
+        lineSpacing = db.vspacing or 0,
+        vertical = vertical,
+        growLeft = growLeft,
+        growUp = growUp,
+        -- Stuf 的「只顯示可驅散」對應 RAID filter，跟它自己 f.filter 的用法一致
+        curable = db.curable and true or false,
+    }
+end
+
+-- 容器建好之後外觀就烘死了（AuraButton 在 initializeFrame 之外是 forbidden），
+-- 設定改了只能重建。但 frame 無法銷毀，所以只有簽章變了才重建。
+local function BuildSignature(element, layout, db)
+    return table.concat({
+        element,
+        tostring(layout.x), tostring(layout.y),
+        tostring(layout.sizeW), tostring(layout.sizeH),
+        tostring(layout.max), tostring(layout.perLine),
+        tostring(layout.spacing), tostring(layout.lineSpacing),
+        tostring(db.growth), tostring(layout.curable),
+        tostring(db.counttfont), tostring(db.counttfontsize), tostring(db.counttfontflags),
+    }, "|")
+end
+
+------------------------------------------------------------
+-- 建立／還原
+------------------------------------------------------------
+-- 由 aura.lua 的 CreateAuraGroup 呼叫。回傳 true 表示接管成功，呼叫端就把
+-- Stuf 自己的群組關掉（Stuf:SuppressElement）。
+function Core.Attach(unit, uf, element, db)
+    local display = DISPLAYS[element]
+    if not display or not enabled then return false end
+
+    local layout, why = ReadLayout(db)
+    if not layout then
+        Skip(element .. "：" .. why)
+        return false
+    end
+
+    local signature = BuildSignature(element, layout, db)
+    local perFrame = attached[uf]
+    local existing = perFrame and perFrame[element]
+    if existing then
+        if existing.__signature == signature then
+            -- 外觀沒變，只要確認指向的單位還對
+            if unit and unit ~= existing.__unit then
+                existing:SetUnit(unit)
+                existing.__unit = unit
+            end
+            existing:Show()
+            return true
+        end
+        existing:Hide()
+        perFrame[element] = nil
+    end
+
+    local style = {}
+    for k, v in pairs(display.style) do style[k] = v end
+    style.stackFont = ReadStackFont(db, layout.sizeW)
+    style.durationFont = style.stackFont
+
+    -- 容器不能 parent 到 Stuf 的群組：那個群組等一下要整個 Hide，而隱藏會往下
+    -- 傳給所有子物件，容器會跟著一起不見。改掛在自己的中介 frame 上。
+    local holder = uf.__auraHost
+    if not holder then
+        holder = CreateFrame("Frame", nil, uf)
+        holder:SetAllPoints(uf)
+        uf.__auraHost = holder
+    end
+    local group = uf[element]
+    if group then
+        -- 蓋過 Stuf 的光環群組，免得圖示被壓在底下
+        holder:SetFrameLevel(math.max(holder:GetFrameLevel(), group:GetFrameLevel() + 1))
+    end
+
+    -- 容器會自動長大以容納圖示，所以「用哪個角釘住」決定它往哪邊長。
+    -- Stuf 的群組是 2x2 的點，圖示靠位移擺出去；往上生長時內容在原點「之上」，
+    -- 所以容器要用 BOTTOM 邊釘在同一個原點，才會往上長。
+    local anchorPoint = (layout.growUp and "BOTTOM" or "TOP")
+        .. (layout.growLeft and "RIGHT" or "LEFT")
+
+    local ok, container = pcall(Core.CreateContainer, {
+        host = holder,
+        point = anchorPoint,
+        -- 原點永遠是 Stuf 的 TOPLEFT + (x, y)，跟 Stuf 自己的 SetPoint 一致
+        relativeTo = uf,
+        relativePoint = "TOPLEFT",
+        x = layout.x,
+        y = layout.y,
+        unit = unit,
+        filter = layout.curable and (display.filter .. "|RAID") or display.filter,
+        groupKey = "Stuf" .. element,
+        sizeW = layout.sizeW,
+        sizeH = layout.sizeH,
+        max = layout.max,
+        perLine = layout.perLine,
+        spacing = layout.spacing,
+        lineSpacing = layout.lineSpacing,
+        vertical = layout.vertical,
+        growLeft = layout.growLeft,
+        growUp = layout.growUp,
+        style = style,
+    })
+    if not ok then
+        Skip(element .. "：建立失敗")
+        diag.err = container
+        return false
+    end
+
+    container.__signature = signature
+    if not perFrame then
+        perFrame = {}
+        attached[uf] = perFrame
+    end
+    perFrame[element] = container
+    container:Show()
+    return true
+end
+
+-- 群組被關掉（db.hide）或整組停用時把容器收起來
+function Core.Detach(uf, element)
+    local perFrame = attached[uf]
+    local container = perFrame and perFrame[element]
+    if not container then return end
+    container:Hide()
+    perFrame[element] = nil
+end
+
+------------------------------------------------------------
+-- 換目標／焦點
+------------------------------------------------------------
+-- unit token 沒變但指向的對象換了時，容器不會自己重掃 —— Coolinator 也是靠
+-- 這個 API 處理換目標的。
+local function RepointAll()
+    if not enabled then return end
+    for uf, containers in pairs(attached) do
+        local unit = uf.unit
+        for _, container in pairs(containers) do
+            if unit and unit ~= container.__unit then
+                container:SetUnit(unit)
+                container.__unit = unit
+            end
+            if container.UpdateAllAuras then
+                pcall(container.UpdateAllAuras, container)
+            end
+        end
+    end
+end
+
+-- 能力偵測在載入時就做完：CreateAuraGroup 最早會在登入建立框架時呼叫 Attach，
+-- 那時 enabled 必須已經定案。AddOnInit 只負責把偵測失敗的原因印出來（載入期
+-- 太早，print 還進不了聊天視窗）。
+Core.Detect()
+Stuf:AddOnInit(function()
+    local failure = Core.Failure()
+    if failure then
+        print("|cff00ff00Stuf|r: 光環容器停用：" .. failure .. "（改用原生圖示，戰鬥中會凍結）")
+    end
+end)
+enabled = (Core.Failure() == nil)
+
+Stuf:AddEvent("PLAYER_TARGET_CHANGED", RepointAll)
+Stuf:AddEvent("PLAYER_FOCUS_CHANGED", RepointAll)
+Stuf:AddEvent("GROUP_ROSTER_UPDATE", RepointAll)
+
+------------------------------------------------------------
+-- 診斷
+------------------------------------------------------------
+SLASH_STUFAURACONTAINER1 = "/scab"
+SlashCmdList.STUFAURACONTAINER = function(msg)
+    local function line(k, v) print("|cff00ff00Stuf|r: " .. k .. "：" .. tostring(v)) end
+
+    if strtrim(msg or ""):lower() == "reset" then
+        enabled = false
+        for uf, containers in pairs(attached) do
+            for element, container in pairs(containers) do
+                container:Hide()
+                Stuf:SuppressElement(uf[element], false)
+            end
+        end
+        return line("光環容器", "已還原原生圖示，停用至下次 /reload")
+    end
+
+    line("啟用中", enabled)
+    line("build", caps.build)
+    local failure = Core.Failure()
+    if failure then line("能力偵測", failure) end
+
+    local n = 0
+    for _, containers in pairs(attached) do
+        for element in pairs(containers) do n = n + 1 end
+    end
+    line("已接管的群組數", n)
+    if diag.err then line("最後一次建立錯誤", diag.err) end
+    for reason, count in pairs(diag.skips) do line("略過", reason .. " x" .. count) end
 end

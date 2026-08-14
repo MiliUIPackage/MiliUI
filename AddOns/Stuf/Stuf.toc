@@ -25,6 +25,7 @@ infoCalc.lua
 bars.lua
 text.lua
 icons.lua
+auracontainer.lua
 aura.lua
 broker.lua
 secretfix.lua

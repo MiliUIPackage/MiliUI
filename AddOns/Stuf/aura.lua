@@ -840,6 +840,8 @@ do  -- Aura Icons --------------------------------------------------------------
 		if db.hide then
 			if f then
 				f.hidden = true
+				f.suppressed = nil  -- 使用者關掉的，不是被接管
+				if Stuf.AuraCore then Stuf.AuraCore.Detach(uf, name) end
 				f:Hide()
 				if isplayer then
 					if istemp then
@@ -1101,6 +1103,23 @@ do  -- Aura Icons --------------------------------------------------------------
 			f[i]:SetAlpha(0)
 			f[i].SetAlpha = Stuf.nofunc
 		end
+		-- 12.1：index 取光環的 API 在 auras 為 secret 時會 error，所以 buffgroup /
+		-- debuffgroup 交給 AuraContainer 畫（見 auracontainer.lua）。接管成功就把
+		-- 這個群組整個關掉 —— 只淡出的話下面的掃描和每顆圖示的倒數 OnUpdate 照跑。
+		-- 這裡是「群組剛建好或設定剛改過」的時刻，容器要不要重建由簽章決定。
+		--
+		-- 設定模式例外：那時要看的是排版用的假圖示，容器只會顯示真實光環，反而
+		-- 擋住要調的東西。SetConfigMode 進出都會重跑 builder，所以兩邊都會歸位。
+		local takeover = false
+		if Stuf.AuraCore then
+			if config then
+				Stuf.AuraCore.Detach(uf, name)
+			else
+				takeover = Stuf.AuraCore.Attach(unit, uf, name, db)
+			end
+		end
+		Stuf:SuppressElement(f, takeover)
+
 		if Stuf.inworld then
 			UpdateAura(unit, uf, nil, nil, nil, config)
 		end
