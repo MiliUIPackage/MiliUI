@@ -170,6 +170,10 @@ function BaganatorItemViewCommonBankViewMixin:OnHide()
     CloseBankFrame()
   end
 
+  if BankFrame.BankPanel then
+    BankFrame.BankPanel:Hide()
+  end
+
   addonTable.CallbackRegistry:TriggerEvent("SearchTextChanged", "")
   addonTable.CallbackRegistry:TriggerEvent("ItemContextChanged")
 end
@@ -210,6 +214,10 @@ function BaganatorItemViewCommonBankViewMixin:UpdateView()
   self.SearchWidget:SetSpacing(sideSpacing)
 
   self.currentTab:UpdateView()
+
+  if BankFrame.BankPanel then
+    BankFrame.BankPanel:SetShown(self.currentTab.isLive)
+  end
 
   addonTable.CallbackRegistry:TriggerEvent("ItemContextChanged")
 end

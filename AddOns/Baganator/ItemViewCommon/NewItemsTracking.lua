@@ -5,8 +5,11 @@ BaganatorItemViewCommonNewItemsTrackingMixin = {}
 function BaganatorItemViewCommonNewItemsTrackingMixin:OnLoad()
   self:RegisterEvent("BANKFRAME_OPENED")
   self:RegisterEvent("BANKFRAME_CLOSED")
+  self:RegisterUnitEvent("UNIT_INVENTORY_CHANGED", "player")
+  self:RegisterEvent("PLAYER_ENTERING_WORLD")
 
   self.firstStart = true
+  self.seenInventoryChanged = false
   self.startupCooldown = false
   self.timeout = addonTable.Config.Get(addonTable.Config.Options.RECENT_TIMEOUT)
   self.includeOwned = addonTable.Config.Get(addonTable.Config.Options.RECENT_INCLUDE_OWNED)
@@ -72,7 +75,7 @@ function BaganatorItemViewCommonNewItemsTrackingMixin:OnLoad()
       ScanBagData(bagID, characterData.bags[bagIndex])
     end
     if self.firstStart then
-      if not self.startupCooldown then
+      if not self.startupCooldown and self.seenInventoryChanged then
         self.startupCooldown = true
         -- Cooldown for further "first start" events to fire on login
         C_Timer.After(5, function()
@@ -106,9 +109,20 @@ function BaganatorItemViewCommonNewItemsTrackingMixin:OnLoad()
   end)
 end
 
-function BaganatorItemViewCommonNewItemsTrackingMixin:OnEvent(eventName)
+function BaganatorItemViewCommonNewItemsTrackingMixin:OnEvent(eventName, ...)
   if eventName == "BANKFRAME_OPENED" or eventName == "BANKFRAME_CLOSED" then
     self.bankOpen = eventName == "BANKFRAME_OPENED"
+  elseif eventName == "UNIT_INVENTORY_CHANGED" then
+    self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+    self:UnregisterEvent("UNIT_INVENTORY_CHANGED")
+    self.seenInventoryChanged = true
+  elseif eventName == "PLAYER_ENTERING_WORLD" then
+    self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+    local _, isReload = ...
+    self.seenInventoryChanged = self.seenInventoryChanged or isReload
+    if self.seenInventoryChanged then
+      self:UnregisterEvent("UNIT_INVENTORY_CHANGED")
+    end
   end
 end
 

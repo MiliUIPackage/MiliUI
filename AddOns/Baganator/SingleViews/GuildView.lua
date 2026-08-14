@@ -104,16 +104,17 @@ function BaganatorSingleViewGuildViewMixin:OnLoad()
   addonTable.Skins.AddFrame("IconButton", self.ToggleGoldLogsButton, {"guildGoldLogs"})
 end
 
+local hiddenFrame = CreateFrame("Frame")
+hiddenFrame:Hide()
+
 function BaganatorSingleViewGuildViewMixin:OnEvent(eventName, ...)
   if eventName == "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" then
     local interactType = ...
     if interactType == Enum.PlayerInteractionType.GuildBanker then
       if GuildBankFrame:GetScript("OnHide") ~= nil then
         GuildBankFrame:SetScript("OnHide", nil)
-        local hiddenFrame = CreateFrame("Frame")
-        hiddenFrame:Hide()
-        GuildBankFrame:SetParent(hiddenFrame)
       end
+      GuildBankFrame:SetParent(hiddenFrame)
       self.lastGuild = Syndicator.API.GetCurrentGuild()
       -- Special case, classic, where Blizzard still opens the Guild Bank UI
       -- even if there's no guild
@@ -130,6 +131,7 @@ function BaganatorSingleViewGuildViewMixin:OnEvent(eventName, ...)
     local interactType = ...
     if interactType == Enum.PlayerInteractionType.GuildBanker then
       self.isLive = false
+      GuildBankFrame:SetParent(UIParent)
       self:Hide()
     end
   elseif eventName == "GUILDBANKLOG_UPDATE" and self.LogsFrame:IsVisible() then
