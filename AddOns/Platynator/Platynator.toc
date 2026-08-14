@@ -1,6 +1,6 @@
 ## Interface: 120100, 120007, 50504, 38001, 20506, 11508, 11509
 ## Title: Platynator
-## Version: 453
+## Version: 463
 ## Author: plusmouse
 ## SavedVariables: PLATYNATOR_CONFIG
 ## SavedVariablesPerCharacter: PLATYNATOR_CURRENT_PROFILE, PLATYNATOR_LAST_INSTANCE

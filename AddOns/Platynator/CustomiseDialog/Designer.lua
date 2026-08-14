@@ -1420,7 +1420,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       else
         container:SetFrameLevel(addonTable.Constants.LayerFrameLevelStep * details.layer + 450 + 20)
       end
-      local cdText = container.auras[1].Cooldown:GetRegions()
+      local cdText = container.auras[1].Cooldown:GetCountdownFontString()
       cdText:SetFontObject(addonTable.CurrentFont)
       if addonTable.CurrentFontUsesSmoothing then
         cdText:SetTextScale(1)

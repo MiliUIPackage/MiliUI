@@ -24,7 +24,7 @@ function addonTable.Display.UnitTargetTextMixin:UpdateText()
   if type(target) ~= "nil" then
     self.text:SetText(target)
     if self.details.applyClassColors and UnitIsPlayer(targetUnit) then
-      local c = RAID_CLASS_COLORS[UnitClassBase(targetUnit)]
+      local c = C_ClassColor.GetClassColor((UnitClassBase(targetUnit)))
       self.text:SetTextColor(c.r, c.g, c.b)
     end
   else

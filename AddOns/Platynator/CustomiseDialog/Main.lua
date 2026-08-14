@@ -508,7 +508,7 @@ local TabSetups = {
   {callback = addonTable.CustomiseDialog.GetMainDesigner, name = addonTable.Locales.DESIGNER, include = true},
   {callback = addonTable.CustomiseDialog.GetStyleSelection, name = addonTable.Locales.STYLE_SELECT, restricted = true, include = true},
   {callback = addonTable.CustomiseDialog.GetBehaviour, name = addonTable.Locales.BEHAVIOUR, include = true},
-  {callback = addonTable.CustomiseDialog.GetAuraFilters, name = addonTable.Locales.AURAS, include = addonTable.Constants.IsMidnightNext},
+  {callback = addonTable.CustomiseDialog.GetAuraFilters, name = addonTable.Locales.AURAS, include = true},
   {callback = SetupFont, name = addonTable.Locales.FONT, include = true},
 }
 

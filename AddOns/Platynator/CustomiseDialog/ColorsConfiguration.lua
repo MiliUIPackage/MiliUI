@@ -220,10 +220,12 @@ addonTable.CustomiseDialog.ColorsConfig = {
         noThreat = GetColor("0F96E6"),
         transition = GetColor("FFA000"),
         hasThreat = GetColor("CC0000"),
+        offtank = GetColor("0FAAC8"),
       },
       instancesOnly = false,
       combatOnly = true,
       useNoThreatColor = true,
+      useOffTankColor = false,
     },
     entries = {
       {
@@ -235,6 +237,17 @@ addonTable.CustomiseDialog.ColorsConfig = {
         end,
         getter = function(details)
           return {color = details.colors.noThreat, enabled = details.useNoThreatColor}
+        end,
+      },
+      {
+        label = addonTable.Locales.OFFTANK,
+        kind = "colorPickerWithCheckbox",
+        setter = function(details, value)
+          details.colors.offtank = value.color
+          details.useOffTankColor = value.enabled
+        end,
+        getter = function(details)
+          return {color = details.colors.offtank, enabled = details.useOffTankColor}
         end,
       },
       {

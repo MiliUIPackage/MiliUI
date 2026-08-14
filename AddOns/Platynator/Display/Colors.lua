@@ -222,9 +222,13 @@ function addonTable.Display.GetColor(settings, state, unit)
     elseif s.kind == "threatIgnoreRole" then
       local threatDetails = addonTable.Cache:Get(unit, "threat")
       local threat = threatDetails.situation
+      local doesOtherTankHaveAggro = threatDetails.otherTankAggro
       local hostile = state.hostile
       if not state.isPlayer and (inRelevantThreatInstance or not s.instancesOnly) and (threat or (hostile and not s.combatOnly) or IsInCombatWith(unit)) and (not s.tanksOnly or isTank) then
-        if threat == 3 then
+        if s.useOffTankColor and doesOtherTankHaveAggro then
+          table.insert(colorQueue, {color = s.colors.offtank})
+          break
+        elseif threat == 3 then
           table.insert(colorQueue, {color = s.colors.hasThreat})
           break
         elseif threat == 1 or threat == 2 then

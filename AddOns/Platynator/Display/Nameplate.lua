@@ -30,7 +30,7 @@ function addonTable.Display.NameplateMixin:OnLoad()
 
   self.sizeChangeCount = -1
 
-  if not addonTable.Constants.IsMidnightNext then
+  if not addonTable.Constants.IsRetail then
     addonTable.Display.SetupLegacyAuras(self)
   else
     self.AurasManager = addonTable.Utilities.InitFrameWithMixin(self, addonTable.Display.AurasManagerNextMixin)
@@ -101,7 +101,7 @@ function addonTable.Display.NameplateMixin:InitializeWidgets(design, scaleOffset
     designInfo[a.kind] = a
   end
   self:AnchorAuras(designInfo)
-  if not addonTable.Constants.IsMidnightNext then
+  if not addonTable.Constants.IsRetail then
     addonTable.Display.InitializeWidgetsLegacyAuras(self, designInfo)
   else
     self.AurasManager:InitializeWidgets(self, designInfo)
@@ -183,7 +183,7 @@ function addonTable.Display.NameplateMixin:SetUnit(unit)
       self:UpdateVisual()
     end)
 
-    if not addonTable.Constants.IsMidnightNext then
+    if not addonTable.Constants.IsRetail then
       addonTable.Display.SetUnitUpdateLegacyAuras(self, self.unit)
     end
     self.AurasManager:SetUnit(self.unit)
@@ -215,7 +215,7 @@ function addonTable.Display.NameplateMixin:SetUnit(unit)
       w:Hide()
     end
 
-    if not addonTable.Constants.IsMidnightNext then
+    if not addonTable.Constants.IsRetail then
       addonTable.Display.SetUnitUpdateLegacyAuras(self, nil)
     end
     self.AurasManager:SetUnit(nil)
@@ -243,7 +243,7 @@ function addonTable.Display.NameplateMixin:AnchorAuras(designInfo)
     self.DebuffDisplay:SetFrameStrata("MEDIUM")
     self.DebuffDisplay:SetFrameLevel(addonTable.Constants.LayerFrameLevelStep * designInfo.debuffs.layer + 450)
     self.DebuffDisplay.details = designInfo.debuffs
-    PixelUtil.SetSize(self.DebuffDisplay, defaultSize * designInfo.debuffs.scale, defaultSize * designInfo.debuffs.scale)
+    PixelUtil.SetSize(self.DebuffDisplay, defaultSize * designInfo.debuffs.scale, defaultSize * designInfo.debuffs.scale * designInfo.debuffs.height)
     addonTable.Display.ApplyAnchor(self.DebuffDisplay, designInfo.debuffs.anchor)
   end
   if designInfo.buffs then
@@ -252,7 +252,7 @@ function addonTable.Display.NameplateMixin:AnchorAuras(designInfo)
     self.BuffDisplay:SetFrameStrata("MEDIUM")
     self.BuffDisplay:SetFrameLevel(addonTable.Constants.LayerFrameLevelStep * designInfo.buffs.layer + 450 + 10)
     self.BuffDisplay.details = designInfo.buffs
-    PixelUtil.SetSize(self.BuffDisplay, defaultSize * designInfo.buffs.scale, defaultSize * designInfo.buffs.scale)
+    PixelUtil.SetSize(self.BuffDisplay, defaultSize * designInfo.buffs.scale, defaultSize * designInfo.buffs.scale * designInfo.buffs.height)
     addonTable.Display.ApplyAnchor(self.BuffDisplay, designInfo.buffs.anchor)
   end
   if designInfo.crowdControl then
@@ -261,7 +261,7 @@ function addonTable.Display.NameplateMixin:AnchorAuras(designInfo)
     self.CrowdControlDisplay:SetFrameStrata("MEDIUM")
     self.CrowdControlDisplay:SetFrameLevel(addonTable.Constants.LayerFrameLevelStep * designInfo.crowdControl.layer + 450 + 20)
     self.CrowdControlDisplay.details = designInfo.crowdControl
-    PixelUtil.SetSize(self.CrowdControlDisplay, defaultSize * designInfo.crowdControl.scale, defaultSize * designInfo.crowdControl.scale)
+    PixelUtil.SetSize(self.CrowdControlDisplay, defaultSize * designInfo.crowdControl.scale, defaultSize * designInfo.crowdControl.scale * designInfo.crowdControl.height)
     addonTable.Display.ApplyAnchor(self.CrowdControlDisplay, designInfo.crowdControl.anchor)
   end
 end

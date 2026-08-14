@@ -23,8 +23,8 @@ function addonTable.Display.Utilities.IsTappedUnit(unit)
   return not UnitPlayerControlled(unit) and UnitIsTapDenied(unit)
 end
 
-function addonTable.Display.Utilities.GetUnitDifficulty(unit)
-  if addonTable.Constants.IsRetail then
+if addonTable.Constants.IsRetail then
+  function addonTable.Display.Utilities.GetUnitDifficulty(unit)
     local rawDifficulty = C_PlayerInfo.GetContentDifficultyCreatureForPlayer(unit)
     if rawDifficulty == Enum.RelativeContentDifficulty.Trivial then
       return  "trivial"
@@ -39,9 +39,12 @@ function addonTable.Display.Utilities.GetUnitDifficulty(unit)
     else
       return "difficult"
     end
-  else
-    local levelDiff = UnitLevel(unit) - UnitEffectiveLevel("player");
-    if levelDiff >= 5 then
+  end
+else
+  function addonTable.Display.Utilities.GetUnitDifficulty(unit)
+    local level = UnitLevel(unit)
+    local levelDiff = level - UnitEffectiveLevel("player");
+    if levelDiff >= 5 or level == -1 then
       return "impossible"
     elseif levelDiff >= 3 then
       return "verydifficult"
@@ -496,6 +499,12 @@ do
     end
   end
 
+  function addonTable.Display.Utilities.MigrateAuraFilters()
+    if specializationID then
+      UpdateAuraFilters()
+    end
+  end
+
   do
     local specializationMonitor = CreateFrame("Frame")
 
@@ -680,7 +689,8 @@ do
         local playerUnit = "raid" .. i
         if not UnitIsUnit(playerUnit, "player") then
           local role = UnitGroupRolesAssigned(playerUnit)
-          knownTanksAndPetsMap[playerUnit] = role == "TANK" or nil
+          local isAssigned = GetPartyAssignment("MAINTANK", playerUnit) or GetPartyAssignment("MAINASSIST", playerUnit)
+          knownTanksAndPetsMap[playerUnit] = isAssigned or role == "TANK" or nil
           local petUnit = "raidpet" .. i
           knownTanksAndPetsMap[petUnit] = UnitExists(petUnit) or nil
         end
@@ -690,7 +700,8 @@ do
       for i = 1, 4 do
         local playerUnit = "party" .. i
         local role = UnitGroupRolesAssigned(playerUnit)
-        knownTanksAndPetsMap[playerUnit] = role == "TANK" or nil
+        local isAssigned = GetPartyAssignment("MAINTANK", playerUnit) or GetPartyAssignment("MAINASSIST", playerUnit)
+        knownTanksAndPetsMap[playerUnit] = isAssigned or role == "TANK" or nil
         local petUnit = "partypet" .. i
         knownTanksAndPetsMap[petUnit] = UnitExists(petUnit) or nil
       end

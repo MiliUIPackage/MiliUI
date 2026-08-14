@@ -122,17 +122,19 @@ local function GetAuraOptions(parent, kind)
       end)
     end)
 
-    frame.prioritySlider = addonTable.CustomiseDialog.Components.GetSlider(frame, addonTable.Locales.PRIORITY, 1, 3, function(val)
-      return val
-    end, function(val)
-      if IsIncludedSpell(kind, frame.spellID) and GetSettings(kind).include[frame.spellID] ~= val then
-        GetSettings(kind).include[frame.spellID] = val
-        Announce()
-      end
-    end)
-    frame.prioritySlider:ClearAllPoints()
-    frame.prioritySlider:SetPoint("LEFT", frame.Dropdown, "RIGHT", -20, 0)
-    frame.prioritySlider:SetPoint("RIGHT", -45, 0)
+    if addonTable.Constants.IsRetail then
+      frame.prioritySlider = addonTable.CustomiseDialog.Components.GetSlider(frame, addonTable.Locales.PRIORITY, 1, 3, function(val)
+        return val
+      end, function(val)
+        if IsIncludedSpell(kind, frame.spellID) and GetSettings(kind).include[frame.spellID] ~= val then
+          GetSettings(kind).include[frame.spellID] = val
+          Announce()
+        end
+      end)
+      frame.prioritySlider:ClearAllPoints()
+      frame.prioritySlider:SetPoint("LEFT", frame.Dropdown, "RIGHT", -20, 0)
+      frame.prioritySlider:SetPoint("RIGHT", -45, 0)
+    end
 
     frame.removeEntryButton = CreateFrame("Button", nil, frame)
     frame.removeEntryButton:SetSize(30, 30)
@@ -151,9 +153,11 @@ local function GetAuraOptions(parent, kind)
       frame.spellID = spellID
 
       local settings = GetSettings(kind)
-      frame.prioritySlider:SetShown(settings.include[spellID] ~= nil)
-      if settings.include[spellID] then
-        frame.prioritySlider:SetValue(settings.include[spellID])
+      if frame.prioritySlider then
+        frame.prioritySlider:SetShown(settings.include[spellID] ~= nil)
+        if settings.include[spellID] then
+          frame.prioritySlider:SetValue(settings.include[spellID])
+        end
       end
       frame.Icon:SetTexture(C_Spell.GetSpellTexture(spellID))
       if C_Spell.IsSpellDataCached(spellID) then
