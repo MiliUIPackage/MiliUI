@@ -110,7 +110,7 @@ L['abandoned_ritual_skull'] = '被遺棄的儀式顱骨'
 
 L['options_icons_put_a_pin_in_it'] = '{achievement:62199}'
 L['options_icons_put_a_pin_in_it_desc'] = '顯示 {achievement:62199} 成就中的位置。'
-L['kalika_note'] = '與 {npc:258884} 交談，然後與附近的 {object:翡翠雕像} 後面的 {object:被遺忘的紐扣} 互動。'
+L['kalika_note'] = '與 {npc:258884} 交談，然後與附近 {object:翡翠雕像} 後方的 {object:被遺忘的鈕扣} 互動。'
 L['songseeker_ikaja_note'] = '位於神廟頂層。'
 
 -------------------------------------------------------------------------------

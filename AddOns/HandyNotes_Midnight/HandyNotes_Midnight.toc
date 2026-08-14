@@ -1,6 +1,6 @@
 ## Interface: 120100
 ## Title: HandyNotes: Midnight
-## Version: 149
+## Version: 150
 ## Notes: Midnight Notes
 ## OptionalDeps: Ace3
 ## RequiredDeps: HandyNotes
