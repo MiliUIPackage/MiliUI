@@ -1,6 +1,6 @@
-## Interface: 120007, 120100, 50504, 38001, 20506, 11509
+## Interface: 120100, 120007, 50504, 38001, 20506, 11509
 ## Title: Chattynator
-## Version: 217-3-g6138f33
+## Version: 220
 ## Author: plusmouse
 ## IconTexture: Interface\AddOns\Chattynator\Assets\Logo.png
 ## SavedVariables: CHATTYNATOR_CONFIG, CHATTYNATOR_MESSAGE_LOG

@@ -210,6 +210,11 @@ function addonTable.MessagesMonitorMixin:OnLoad()
 
   hooksecurefunc(DEFAULT_CHAT_FRAME, "AddMessage", function(_, ...)
     local fullTrace = debugstack()
+    if issecretvalue(fullTrace) then
+      self:SetIncomingType({type = "SYSTEM", event = "NONE", source = nil})
+      self:AddMessage(...)
+      return
+    end
     if fullTrace:find("ChatFrame_OnEvent") or fullTrace:find("Blizzard_Channels") or fullTrace:find("MessageEventHandler") then
       return
     end
@@ -887,7 +892,7 @@ local function GetDecoratedSenderName(event, ...)
     decoratedPlayerName = Ambiguate(decoratedPlayerName, "none");
   end
 
-  if (discordInfo and not issecretvalue(discordInfo) and discordInfo.userID ~= 0) then
+  if (discordInfo and not issecretvalue(discordInfo.userID) and discordInfo.userID ~= 0) then
     local shouldShowGlobalName = discordInfo.type == Enum.DiscordDisplayNameType.GlobalName;
     if(discordInfo.globalName and shouldShowGlobalName) then
     -- Names of user from Discord have a fixed color
@@ -1398,7 +1403,7 @@ function addonTable.MessagesMonitorMixin:MessageEventHandler(event, ...)
         message = GetMobileEmbeddedTexture(info.r, info.g, info.b)..message;
       end
 
-      if isFromDiscord and not issecretvalue(discordInfo.fromDiscord) then
+      if isFromDiscord then
         message = ChatFrameUtil.FormatDiscordMessage(discordInfo, message);
       end
 
@@ -1430,7 +1435,7 @@ function addonTable.MessagesMonitorMixin:MessageEventHandler(event, ...)
             end
           elseif (type == "GUILD_ITEM_LOOTED") then
             outMsg = string.gsub(message, "$s", GetPlayerLink(arg2, playerLinkDisplayText));
-          elseif (type == "GUILD_DISCORD" and isFromDiscord) then
+          elseif (type == "GUILD_DISCORD") then
             outMsg = format(GetOutMessageFormatKey(type)..message, pflag.." "..playerLink);
           else
             outMsg = string.format(GetOutMessageFormatKey(type, isSecret)..message, pflag..playerLink)

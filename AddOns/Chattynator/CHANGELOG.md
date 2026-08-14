@@ -1,8 +1,8 @@
 # Chattynator
 
-## [217-3-g6138f33](https://github.com/TheMouseNest/Chattynator/tree/6138f33d3405eea51bfa9e35b919fe7460bbbeab) (2026-08-08)
-[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/217...6138f33d3405eea51bfa9e35b919fe7460bbbeab) 
+## [220](https://github.com/TheMouseNest/Chattynator/tree/220) (2026-08-13)
+[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/219...220) 
 
-- Update for Discord B.net integration  
-- Remove leftover print  
-- Fix "Move to whisper window" not working  
+- Fix secret check  
+- Tweaks to hopefully get guild discord chats working again  
+- ElvUI Skin: Fix fonts  

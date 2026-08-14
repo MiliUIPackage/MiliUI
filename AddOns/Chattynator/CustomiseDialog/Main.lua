@@ -386,9 +386,7 @@ local function SetupLayout(parent)
   container:SetScript("OnShow", function()
     for _, f in ipairs(allFrames) do
       if f.SetValue then
-        if f.option == addonTable.Config.Options.NEW_WHISPER_NEW_TAB then
-          f:SetValue(addonTable.Config.Get(f.option) ~= 0)
-        elseif f.option then
+        if f.option then
           f:SetValue(addonTable.Config.Get(f.option))
         else
           f:SetValue()
@@ -808,7 +806,9 @@ local function SetupNotifications(parent)
   container:SetScript("OnShow", function()
     for _, f in ipairs(allFrames) do
       if f.SetValue then
-        if f.option then
+        if f.option == addonTable.Config.Options.NEW_WHISPER_NEW_TAB then
+          f:SetValue(addonTable.Config.Get(f.option) ~= 0)
+        elseif f.option then
           f:SetValue(addonTable.Config.Get(f.option))
         else
           f:SetValue()
