@@ -1297,6 +1297,11 @@ local function HandleDebuff(self, auraInfo)
 
     local isSecret = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
 
+    -- 12.1: same as HandleBuff -- a secret auraInstanceID can never key the cache. It also
+    -- must not enter _debuffs_raid, because UnitButton_UpdateDebuffs feeds that back into
+    -- _debuffs_cache[topAuraInstanceID] for the glow.
+    local cacheable = F.IsValueNonSecret(auraInstanceID)
+
     -- Secret-aware fallback for the CENTRAL raid-debuff display: when spellId/name are
     -- secret the curated list can't match by ID, so classify via Blizzard's secret-safe
     -- HARMFUL|RAID filter instead. Only reachable when no AuraContainer backs the
@@ -1311,7 +1316,9 @@ local function HandleDebuff(self, auraInfo)
 
     if duration or isSecret then
         UpdateAuraRefreshState(auraInfo)
-        self._debuffs_cache[auraInstanceID] = auraInfo
+        if cacheable then
+            self._debuffs_cache[auraInstanceID] = auraInfo
+        end
 
         -- The debuff row is AuraContainer-backed: Blizzard filters it (blacklist rides on
         -- excludeSpellIDs, dispellable-only on the filter string), so classifying every aura
@@ -1335,7 +1342,7 @@ local function HandleDebuff(self, auraInfo)
         if not order and secretIsRaidDebuff then
             order = 10000
         end
-        if enabledIndicators["raidDebuffs"] and order then
+        if enabledIndicators["raidDebuffs"] and order and cacheable then
             auraInfo.raidDebuffOrder = order
             tinsert(self._debuffs_raid, auraInstanceID)
 
@@ -1415,11 +1422,16 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
     -- The manual curated-ID renderer that used to fill a 3-icon pool is gone along with the
     -- pool itself. The glow is kept: it paints the indicator frame, not an icon.
     if self._debuffs_raid[1] then
-        local topAuraInstanceID = self._debuffs_raid[1]
+        -- The ID is non-secret by construction (HandleDebuff only inserts cacheable ones), but
+        -- the cache entry can still be gone -- indexing that nil is a hard error, so read once.
+        local topAura = self._debuffs_cache[self._debuffs_raid[1]]
         -- update glow
         if not indicatorBooleans["raidDebuffs"] then
             -- to make sure top glow has highest priority
-            local topGlowType, topGlowOptions = self._debuffs_cache[topAuraInstanceID]["raidDebuffGlowType"], self._debuffs_cache[topAuraInstanceID]["raidDebuffGlowOptions"]
+            local topGlowType, topGlowOptions
+            if topAura then
+                topGlowType, topGlowOptions = topAura["raidDebuffGlowType"], topAura["raidDebuffGlowOptions"]
+            end
             if topGlowType and topGlowType ~= "None" then
                 self._debuffs_glow_current[topGlowType] = topGlowOptions
             end
@@ -1432,12 +1444,12 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
                 end
             end
             wipe(self._debuffs_glow_current)
-        else
+        elseif topAura then
             self.indicators.raidDebuffs:ShowGlow(
                 I.GetDebuffGlow(
-                    self._debuffs_cache[topAuraInstanceID]["name"],
-                    self._debuffs_cache[topAuraInstanceID]["spellId"],
-                    self._debuffs_cache[topAuraInstanceID]["applications"]
+                    topAura["name"],
+                    topAura["spellId"],
+                    topAura["applications"]
                 )
             )
         end
@@ -1494,9 +1506,17 @@ local function HandleBuff(self, auraInfo)
 
     local isSecret = Cell.isMidnight and not F.IsAuraNonSecret(auraInfo)
 
+    -- 12.1: auraInstanceID itself can be secret, and a secret can NEVER be a table key --
+    -- reading or writing with one is an immediate Lua error. Note the global bail in
+    -- UnitButton_UpdateAuras (ShouldAurasBeSecret) does NOT cover this: outside restricted
+    -- content the global state is clear, yet individual auras still come back secret.
+    local cacheable = F.IsValueNonSecret(auraInstanceID)
+
     if duration or isSecret then
         UpdateAuraRefreshState(auraInfo)
-        self._buffs_cache[auraInstanceID] = auraInfo
+        if cacheable then
+            self._buffs_cache[auraInstanceID] = auraInfo
+        end
 
         -- NOTE: defensiveCooldowns / externalCooldowns / allCooldowns used to be driven from
         -- here by scanning each aura against curated spell tables (plus a BIG_DEFENSIVE /
@@ -1730,22 +1750,30 @@ UnitButton_UpdateAuras = function(self, updateInfo)
 
         if updateInfo.addedAuras then
             for _, aura in next, updateInfo.addedAuras do
-                if aura.isHelpful then
-                    buffsChanged = true
-                    self._buffs_cache[aura.auraInstanceID] = aura
-                end
-                if aura.isHarmful then
-                    debuffsChanged = true
-                    self._debuffs_cache[aura.auraInstanceID] = aura
+                -- CanDiffAuraPayload only proves the PAYLOAD is diffable; individual auras
+                -- inside it can still carry a secret auraInstanceID, which cannot key a table.
+                if F.IsValueNonSecret(aura.auraInstanceID) then
+                    if aura.isHelpful then
+                        buffsChanged = true
+                        self._buffs_cache[aura.auraInstanceID] = aura
+                    end
+                    if aura.isHarmful then
+                        debuffsChanged = true
+                        self._debuffs_cache[aura.auraInstanceID] = aura
+                    end
                 end
             end
         end
 
         if updateInfo.updatedAuraInstanceIDs then
             local aura
-            -- auraInstanceID is NOT secret and is safe to use as table key
             for _, auraInstanceID in next, updateInfo.updatedAuraInstanceIDs do
-                if self._buffs_cache[auraInstanceID] then
+                -- 12.1: the ID itself can be secret -- the old "auraInstanceID is NOT secret"
+                -- assumption no longer holds. A secret cannot index a table at all, not even to
+                -- test membership, so there is nothing to do but skip it.
+                if not F.IsValueNonSecret(auraInstanceID) then
+                    -- skip
+                elseif self._buffs_cache[auraInstanceID] then
                     buffsChanged = true
                     aura = GetAuraDataByAuraInstanceID(unit, auraInstanceID)
                     if aura then
@@ -1782,7 +1810,10 @@ UnitButton_UpdateAuras = function(self, updateInfo)
 
         if updateInfo.removedAuraInstanceIDs then
             for _, auraInstanceID in next, updateInfo.removedAuraInstanceIDs do
-                if self._buffs_cache[auraInstanceID] then
+                -- same as above: a secret ID can never have entered any of these tables
+                if not F.IsValueNonSecret(auraInstanceID) then
+                    -- skip
+                elseif self._buffs_cache[auraInstanceID] then
                     self._buffs_cache[auraInstanceID] = nil
                     buffsChanged = true
                 elseif self._debuffs_cache[auraInstanceID] then
@@ -1796,7 +1827,7 @@ UnitButton_UpdateAuras = function(self, updateInfo)
 
         if next(self._missing_auras) then
             for _, aura in next, self._missing_auras do
-                if F.IsAuraNonSecret(aura) then
+                if F.IsAuraNonSecret(aura) and F.IsValueNonSecret(aura.auraInstanceID) then
                     if aura.isHelpful then
                         buffsChanged = true
                         self._buffs_cache[aura.auraInstanceID] = aura
