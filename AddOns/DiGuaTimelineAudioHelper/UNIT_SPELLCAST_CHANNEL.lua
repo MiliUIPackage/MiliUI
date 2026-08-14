@@ -675,10 +675,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_Map.GetBestMapForUnit("player") or 0) == 1038 -- 地图ID
             and UnitLevel(unitTarget) == UnitLevel("player")
             and UnitPowerType(unitTarget) == 1
-            and UnitSex(unitTarget) == 2 -- 男性
             and UnitClassification(unitTarget) == "elite" -- 精英怪
             and UnitAffectingCombat(unitTarget) == true -- 在战斗中
-            and select(2, UnitClass(unitTarget)) == "WARRIOR"
             and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             then
