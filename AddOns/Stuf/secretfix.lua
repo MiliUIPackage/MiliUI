@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- MiliUI: Stuf 框架 secret value 修正
+-- Stuf 框架 secret value 修正（12.1）
 --   Boss / BossTarget : 名字、團隊標記、施法條、血條
 --   Target / TargetTarget : 名字、頭像、團隊標記
 --   Focus : 名字、團隊標記
@@ -11,9 +11,14 @@
 --      → pcall 包裝或傳給 C API 處理
 --   3. 不能對 secret string 做串接
 --      → pcall 包裝 SetText
+--
+-- 原本是 MiliUI/Fix/Stuf_Fix.lua，從外面掛勾進來。Stuf 早就是本地 fork，
+-- 「掛在外面才不會被上游更新洗掉」的理由不成立，而掛在外面的代價是實的：
+-- 停用 MiliUI 就會連 Stuf 的 12.1 修正一起停用，框架直接壞在戰鬥中。
+--
+-- 這個檔案刻意維持獨立、不打散進 bars.lua/core.lua：12.1 的 secret value
+-- 規則還在變，下次 API 再動時，改一支獨立檔案比在本體裡考古容易得多。
 ------------------------------------------------------------
-local AddonName, _ = ...
-if AddonName ~= "MiliUI" then return end
 
 ------------------------------------------------------------
 -- 快取全域 API（減少 _G 查找）
@@ -665,7 +670,7 @@ local function HandleCastTaintEvent(event, unit, a1, a2, a3, a4, su)
     if (not uf) then return end
     local f = uf.castbar
     if (not f) then return end
-    -- 已由 Stuf_Fix FixCastbar 接管的 castbar，不做額外處理
+    -- 已由 FixCastbar 接管的 castbar，不做額外處理
     if (f._miliCasting) then return end
 
     if (event == "UNIT_SPELLCAST_DELAYED") then
@@ -798,7 +803,12 @@ loader:SetScript("OnEvent", function(self)
     local function TryPatch()
         attempts = attempts + 1
         local Stuf = _G.Stuf
-        if not Stuf or not Stuf.units then
+        -- Stuf.units 在 core.lua 檔案作用域就建成空表，所以不能只看它存不存在 ——
+        -- 單位框架是 PLAYER_LOGIN 裡用 C_Timer.After(0) 延後建的。原本的
+        -- `not Stuf.units` 永遠是 false，等於第一次就拿著空表跑完，底下這些
+        -- 需要框架的初始化（預建施法條 overlay、補 focus 團隊標記圖示）從來
+        -- 沒真的執行過。改看 next() 才是「框架好了沒」。
+        if not Stuf or not next(Stuf.units) then
             if attempts < 50 then C_Timer_After(0.2, TryPatch) end
             return
         end

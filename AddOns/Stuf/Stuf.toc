@@ -27,3 +27,4 @@ text.lua
 icons.lua
 aura.lua
 broker.lua
+secretfix.lua

@@ -10,7 +10,7 @@
 --     後續呼叫 UnitGUID()、NotifyInspect() 取回的字串變成 secret，
 --     TinyInspect 與 Blizzard_InspectUI 皆未處理 secret 字串。
 --
---   原則（與 Stuf_Fix / TooltipTaintFix 一致）：
+--   原則（與 Stuf/secretfix.lua、TooltipTaintFix 一致）：
 --     • 不替換任何「全域 Blizzard 函式」避免把 MiliUI 當作 taint 來源
 --     • 對第三方插件的全域 API：以 pcall 包裝原函式（不改動原實作）
 --     • 對 Blizzard InspectFrame / InspectGuildFrame 的 OnEvent：
