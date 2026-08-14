@@ -26,6 +26,14 @@ local stamin, stahr = 1/60, 1/3600
 
 local backdrop = { bgFile="Interface\\AddOns\\Stuf\\media\\aura1.tga", }
 
+-- 光環圖示統一 1px 細框：圖示材質內縮 1px、底框換純色。
+-- 以前是 MiliUI/Enhance/Stuf_AuraBorder.lua 在圖示建好之後 hook SetPoint /
+-- SetBackdrop 把樣式改回來，還得掛在 UNIT_AURA 上定期重掃有沒有新圖示 ——
+-- 建立時就決定樣式的話，那些全部不需要。
+-- dbg.thinauraborder = false 可退回原本的 aura1/aura2 材質樣式。
+local THIN_BORDER = 1
+local THIN_BG = "Interface\\BUTTONS\\WHITE8X8"
+
 local key = { L = "LEFT", R = "RIGHT", T = "TOP", B = "BOTTOM", }
 local function GrowthBreakdown(var)
 	local d1, d2, d3, d4 = strmatch(var or "LRTB", "(%u?)(%u?)(%u?)(%u?)")
@@ -926,7 +934,10 @@ do  -- Aura Icons --------------------------------------------------------------
 		if f.suppressed then f:Hide() else f:Show() end
 
 		local offset1, offset2, uselbf
-		if dbg.aurastyle == 2 then
+		if dbg.thinauraborder ~= false and dbg.aurastyle ~= 3 then
+			offset1, offset2 = THIN_BORDER, THIN_BORDER
+			backdrop.bgFile = THIN_BG
+		elseif dbg.aurastyle == 2 then
 			offset1 = w * 0.05 + 0.5
 			offset1 = (offset1 > 3 and 3) or (offset1 < 1 and 1) or floor(offset1)
 			offset2 = offset1
@@ -1175,7 +1186,10 @@ do  -- Dispell Icon ------------------------------------------------------------
 		f:SetBackdrop(backdrop)
 		
 		local offset1, offset2 = 0, floor(db.h * 0.05 + 0.5)
-		if dbg.aurastyle == 2 then
+		if dbg.thinauraborder ~= false then
+			backdrop.bgFile = THIN_BG
+			offset1, offset2 = THIN_BORDER, THIN_BORDER
+		elseif dbg.aurastyle == 2 then
 			backdrop.bgFile = "Interface\\AddOns\\Stuf\\media\\aura2.tga"
 			offset1 = offset2
 		else

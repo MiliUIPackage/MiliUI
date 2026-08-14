@@ -312,12 +312,56 @@ function events.ADDON_LOADED(a1)
 				print(L["|cff00ff00Stuf|r: "]..L["Stuf_Options not found."])
 			end
 		end
-		if not Stuf.OpenOptions then -- AceConfig hack to be LOD friendly
-		Stuf.panel = CreateFrame("Frame", nil, nil, BackdropTemplateMixin and 'BackdropTemplate')
-		Stuf.panel.name = "Stuf"
-		Stuf.panel:SetScript("OnShow", SlashCmdList.STUF)
-				-- InterfaceOptions_AddCategory removed in WoW 10.0
-			-- InterfaceOptions_AddCategory removed in WoW 10.0 - slash command /stuf still works
+		-- Stuf_Options 是 LoadOnDemand，沒載入就沒有東西去註冊設定分類，遊戲選單
+		-- 裡永遠找不到 Stuf。原本的設計是先掛一個佔位面板、點它才載入真正的選項，
+		-- 但那行註冊用的 InterfaceOptions_AddCategory 在 10.0 被移除後就只剩註解。
+		--
+		-- 改成登入後直接載入 Stuf_Options 讓它自己註冊：不會出現兩個同名分類。
+		-- 代價是 Stuf_Options 常駐記憶體，換來選單項目一直在。
+		--
+		-- 用 C_Timer.After(0) 推到這一輪 PLAYER_LOGIN 跑完之後，免得 Stuf_Options
+		-- 的初始化插隊到下面建立單位框架之前。
+		C_Timer.After(0, function()
+			if C_AddOns.IsAddOnLoaded("Stuf_Options") then return end
+			local loaded, reason = C_AddOns.LoadAddOn("Stuf_Options")
+			if not loaded then
+				print(L["|cff00ff00Stuf|r: "]..L["Stuf_Options not found."].." ("..tostring(reason)..")")
+			end
+		end)
+
+		-- /stufopt：診斷「分類出得來但面板空白」。面板內容是 AceConfigDialog 在
+		-- OnShow 時餵進去的，那條路上的錯誤很容易被吞掉（看起來就只是一片空白），
+		-- 所以每一步各自 pcall，錯在哪一步就印哪一步。
+		SLASH_STUFOPT1 = "/stufopt"
+		SlashCmdList.STUFOPT = function()
+			local function line(k, v) print("|cff00ff00Stuf|r: "..k.."："..tostring(v)) end
+
+			line("Stuf_Options 已載入", C_AddOns.IsAddOnLoaded("Stuf_Options"))
+
+			if type(Stuf.GetOptionsTable) ~= "function" then
+				return line("選項表", "Stuf:GetOptionsTable 不存在")
+			end
+			local ok, options = pcall(Stuf.GetOptionsTable, Stuf)
+			if not ok then
+				return line("選項表", "取得時出錯："..tostring(options))
+			end
+			local argCount = 0
+			if type(options) == "table" and type(options.args) == "table" then
+				for _ in pairs(options.args) do argCount = argCount + 1 end
+			end
+			line("選項表 args 數量", argCount)
+
+			-- AceConfigRegistry 22 比舊版嚴格，不合格會讓面板整個空白
+			local registry = LibStub and LibStub("AceConfigRegistry-3.0", true)
+			if registry and registry.ValidateOptionsTable then
+				local vok, verr = pcall(registry.ValidateOptionsTable, registry, options, "Stuf")
+				line("選項表驗證", vok and "通過" or ("失敗："..tostring(verr)))
+			end
+
+			local dialog = LibStub and LibStub("AceConfigDialog-3.0", true)
+			if not dialog then return line("AceConfigDialog", "取不到") end
+			local dok, derr = pcall(dialog.Open, dialog, "Stuf")
+			line("AceConfigDialog:Open", dok and "成功（獨立視窗）" or ("失敗："..tostring(derr)))
 		end
 
 --		for k, v in pairs(events) do
@@ -365,6 +409,12 @@ end)
 		Stuf:DefaultCastBar("pet")
 		Stuf.IsLoggedIn = true
 		local elapsed, cprocess = 0, 0
+		-- 12.1: cache.name 可能是 secret string，比對會 error，所以要包 pcall。
+		-- 但這是 metro 迴圈（每秒跑好幾輪、每輪掃過所有單位），寫成匿名閉包等於
+		-- 每個單位每輪配置一個新 function 給 GC，所以拉出來當具名函式用參數傳。
+		local function NameMatches(uf, unit)
+			return uf.cache.name == GetUnitName(unit)
+		end
 		Stuf:SetScript("OnUpdate", function(this, a1)
 			elapsed = elapsed + a1
 			if elapsed < 0.07 then return end
@@ -384,10 +434,8 @@ end)
 				cprocess = 2
 				for unit, uf in pairs(metrounits) do
 					if uf:IsShown() then
-						-- 12.0.1: cache.name may be a secret string; pcall-guard the comparison
-						local nameMatch = false
-						pcall(function() nameMatch = (uf.cache.name == GetUnitName(unit)) end)
-						if not nameMatch then
+						local ok, nameMatch = pcall(NameMatches, uf, unit)
+						if not ok or not nameMatch then
 							RefreshUnit(config and "player" or unit, uf)
 						else
 							UpdateReaction(unit, uf)
