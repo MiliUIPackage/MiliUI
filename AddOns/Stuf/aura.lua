@@ -24,15 +24,16 @@ local CreateFrame = CreateFrame
 local GameTooltip = GameTooltip
 local stamin, stahr = 1/60, 1/3600
 
-local backdrop = { bgFile="Interface\\AddOns\\Stuf\\media\\aura1.tga", }
-
--- 光環圖示統一 1px 細框：圖示材質內縮 1px、底框換純色。
+-- 光環圖示統一 1px 細框：圖示材質內縮 1px、底框鋪純色。
 -- 以前是 MiliUI/Enhance/Stuf_AuraBorder.lua 在圖示建好之後 hook SetPoint /
 -- SetBackdrop 把樣式改回來，還得掛在 UNIT_AURA 上定期重掃有沒有新圖示 ——
 -- 建立時就決定樣式的話，那些全部不需要。
--- dbg.thinauraborder = false 可退回原本的 aura1/aura2 材質樣式。
-local THIN_BORDER = 1
-local THIN_BG = "Interface\\BUTTONS\\WHITE8X8"
+--
+-- 舊的 aurastyle（Default / Square，材質 media/aura1.tga、aura2.tga）已移除：
+-- buffgroup / debuffgroup 現在由 AuraContainer 畫，剩下會用到這裡的只有
+-- tempenchant 和 dispellicon，兩者都固定走細框，選項等於永遠沒有作用。
+local BORDER = 1
+local backdrop = { bgFile="Interface\\BUTTONS\\WHITE8X8", }
 
 local key = { L = "LEFT", R = "RIGHT", T = "TOP", B = "BOTTOM", }
 local function GrowthBreakdown(var)
@@ -776,7 +777,6 @@ end
 
 
 do  -- Aura Icons -----------------------------------------------------------------------------------------------------
-	local lbf = nil
 	local GetWeaponEnchantInfo = GetWeaponEnchantInfo
 	local function BuffOnEnter(this) -- buff tooltip
 		GameTooltip:SetOwner(this, "ANCHOR_BOTTOMRIGHT", 8, -16)
@@ -867,40 +867,12 @@ do  -- Aura Icons --------------------------------------------------------------
 			if istemp then
 				uf.refreshfuncs.tempenchant = TempEnchantOnUpdate
 				uf.metroelements.tempenchant = TempEnchantOnUpdate
-			-- ================================================
-			-- >>> START: RIGHT-CLICK CANCEL AURA TODO <<<
-			-- ================================================
-			-- TODO: Right-click-to-cancel own buffs — BLOCKED in 12.0.1 (Midnight)
-			-- -----------------------------------------------------------------------
-			-- The original stUF approach used SecureAuraHeaderTemplate which created
-			-- secure child buttons that called RegisterForClicks() in OnLoad.  This
-			-- is now ADDON_ACTION_BLOCKED because stUF's code is tainted (we touch
-			-- secret values from C_UnitAuras), and RegisterForClicks is also
-			-- unavailable inside initialConfigFunction's restricted sandbox.
-			--
-			-- WHY WE CAN'T JUST WIRE IT UP MANUALLY:
-			--   Wall 1 — RegisterForClicks is a protected call.  It can only be
-			--            invoked from untainted code, and our aura code is tainted
-			--            the moment it touches any C_UnitAuras data field.
-			--   Wall 2 — The buff name (d.name) is a tainted secret value in 12.0.1.
-			--            To cancel via macro we'd need:
-			--              button:SetAttribute("macrotext2", "/cancelaura " .. name)
-			--            But concatenating a tainted string taints the whole button,
-			--            which blocks it from executing the protected CancelUnitBuff.
-			--
-			-- THE ONE THING THAT WOULD UNLOCK THIS:
-			--   auraInstanceID IS a plain (non-tainted) number per Blizzard's 12.0
-			--   documentation.  ——12.1 更正：光環受限時它也是 secret，所以連這條
-			--   退路都沒了（見上面的 PlainAuraID）。
-			--   If Blizzard ever adds a function like:
-			--     C_UnitAuras.RemoveAura(auraInstanceID)
-			--   ...we could store icon.aid = d.auraInstanceID (plain), then in a
-			--   secure OnClick handler call that API without any taint chain.
-			--   Watch Blizzard patch notes for this.  Until then, no right-click
-			--   cancel is possible without a complete redesign using XML templates.
-			-- ================================================
-			-- >>> END: RIGHT-CLICK CANCEL AURA TODO <<<
-			-- ================================================
+			-- 右鍵取消自己的增益：12.1 做不到，別再試。原本走 SecureAuraHeaderTemplate
+			-- 的安全子按鈕，但 aura.lua 一碰 C_UnitAuras 就 tainted，RegisterForClicks
+			-- 會被 ADDON_ACTION_BLOCKED；改用 "/cancelaura <name>" 巨集也不行，光環名稱
+			-- 本身是 secret string，串進 macrotext 會把整顆按鈕污染掉。auraInstanceID
+			-- 在 12.1 受限時也是 secret，最後一條退路同樣沒了。
+			-- 要解只能等暴雪開一個吃 auraInstanceID 的 C_UnitAuras.RemoveAura。
 			end
 		else
 			f.hidden = nil
@@ -935,31 +907,6 @@ do  -- Aura Icons --------------------------------------------------------------
 		-- 被接管時不要在改設定後又把群組叫回來（見 Stuf:SuppressElement）
 		if f.suppressed then f:Hide() else f:Show() end
 
-		local offset1, offset2, uselbf
-		if dbg.thinauraborder ~= false and dbg.aurastyle ~= 3 then
-			offset1, offset2 = THIN_BORDER, THIN_BORDER
-			backdrop.bgFile = THIN_BG
-		elseif dbg.aurastyle == 2 then
-			offset1 = w * 0.05 + 0.5
-			offset1 = (offset1 > 3 and 3) or (offset1 < 1 and 1) or floor(offset1)
-			offset2 = offset1
-			backdrop.bgFile = "Interface\\AddOns\\Stuf\\media\\aura2.tga"
-		elseif dbg.aurastyle == 3 and lbf then
-			uselbf = true
-			offset1, offset2 = 0, 0
-			backdrop.bgFile = ""
-			if not Stuf.lbfgroup then
-				Stuf.lbfgroup = lbf:Group("Stuf")
-				lbf:RegisterSkinCallback("Stuf", function(_, SkinID, Gloss, Backdrop, Group, Button, Colors)
-					dbg.lbfskin, dbg.lbfgloss, dbg.lbfbackdrop = SkinID, Gloss, Backdrop
-				end)
-			end
-			Stuf.lbfgroup:Skin(dbg.lbfskin, dbg.lbfgloss or true, dbg.lbfbackdrop or true)
-		else
-			offset1 = (w < 6 and 1) or floor(w * 0.1 + 0.5)
-			offset2 = floor(w * 0.05)
-			backdrop.bgFile = "Interface\\AddOns\\Stuf\\media\\aura1.tga"
-		end
 
 		wipe(f.firstcol)
 		wipe(f.firstrow)
@@ -974,7 +921,7 @@ do  -- Aura Icons --------------------------------------------------------------
 		for i = 1, db.count or 2, 1 do
 			local icon = f[i]
 			if not icon then
-				icon = CreateFrame("Button", lbf and format("Stuf.units.%s.%s.a%d", unit, name, i) or nil, f, BackdropTemplateMixin and 'BackdropTemplate')
+				icon = CreateFrame("Button", nil, f, BackdropTemplateMixin and 'BackdropTemplate')
 				icon:Hide()
 				icon.overlay = CreateFrame("Frame", nil, icon, BackdropTemplateMixin and 'BackdropTemplate')
 				icon.overlay:SetFrameLevel(4)
@@ -1007,27 +954,13 @@ do  -- Aura Icons --------------------------------------------------------------
 			icon.SetAlpha = Stuf.SetAlpha
 			icon:SetAlpha(1)
 			icon:SetBackdrop(backdrop)
-			if uselbf then
-				icon.Icon = icon.texture
-				icon.Cooldown = icon.pie
-				icon.Border = icon.Border or icon:CreateTexture(icon:GetName().."Border", "OVERLAY")
-				Stuf.lbfgroup:AddButton(icon, icon)
-				Stuf.lbfsetcolor = Stuf.lbfsetcolor or function(icon, r, g, b, a)
-					icon.Border:SetVertexColor(r, g, b, a)
-				end
-				icon.SetBackdropColor = Stuf.lbfsetcolor
-			else
-				if icon.Icon then
-					icon.SetBackdropColor = Stuf.SetBackdropColor
-				end
-				icon.texture:SetPoint("TOPRIGHT", icon, "TOPRIGHT", -offset1, -offset1)
-				icon.texture:SetPoint("BOTTOMLEFT", icon, "BOTTOMLEFT", offset2, offset2)
-			end
+			icon.texture:SetPoint("TOPRIGHT", icon, "TOPRIGHT", -BORDER, -BORDER)
+			icon.texture:SetPoint("BOTTOMLEFT", icon, "BOTTOMLEFT", BORDER, BORDER)
 			if istemp then
 				icon:SetBackdropColor(0.5, 0, 1)
 			end
 			
-			icon.ctext:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", db.counttx or (-offset2 + 1), db.countty or offset2)
+			icon.ctext:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", db.counttx or (1 - BORDER), db.countty or BORDER)
 			Stuf:UpdateTextLook( icon.ctext, nil, cfont, cfontsize, cfontflags,
 			                     db.counttjustifyH or "RIGHT", db.counttjustifyV or "BOTTOM", cc, db.counttshadowx or -1, db.counttshadowy or 1 )
 			if tfc then
@@ -1204,20 +1137,8 @@ do  -- Dispell Icon ------------------------------------------------------------
 		f:SetAlpha(db.alpha or 1)
 		f:SetBackdrop(backdrop)
 		
-		local offset1, offset2 = 0, floor(db.h * 0.05 + 0.5)
-		if dbg.thinauraborder ~= false then
-			backdrop.bgFile = THIN_BG
-			offset1, offset2 = THIN_BORDER, THIN_BORDER
-		elseif dbg.aurastyle == 2 then
-			backdrop.bgFile = "Interface\\AddOns\\Stuf\\media\\aura2.tga"
-			offset1 = offset2
-		else
-			backdrop.bgFile = "Interface\\AddOns\\Stuf\\media\\aura1.tga"
-			offset1 = floor(db.h * 0.1 + 0.5)
-		end
-		f:SetBackdrop(backdrop)
-		f.texture:SetPoint("TOPRIGHT", f, "TOPRIGHT", -offset1, -offset1)
-		f.texture:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", offset2, offset2)
+		f.texture:SetPoint("TOPRIGHT", f, "TOPRIGHT", -BORDER, -BORDER)
+		f.texture:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", BORDER, BORDER)
 		f.ctext:SetPoint("TOPLEFT", f, "TOPLEFT", db.counttx or 0, db.countty or 0)
 		f.ctext:SetWidth(db.counttw or db.w)
 		f.ctext:SetHeight(db.countth or db.h)

@@ -2161,7 +2161,6 @@ options={
 				font={ 
 					name=L["Default Font"], desc=L["Changing this will override all current font settings"], type="select", order=11,
 					dialogControl="LSM30_Font", values=AceGUIWidgetLSMlists.font, confirm=true, set=set, get=get, },
-				aurastyle={ name=L["Aura Icon Style"], type="select", values={ L["Default"], L["Square"], }, set=set, get=getorone, order=12, },
 				shortk={ 
 					name=L["Number Shorten Start"], type="input", order=12.2,
 					set=function(info, v)
@@ -2578,16 +2577,6 @@ do  -- setup options for grouped colors
 	end
 
 	local oargs = options.args.global.args
-	
-	local lbf = LibStub("LibButtonFacade", true)
-	if lbf then
-		oargs.lbfskin={
-			name=L["ButtonFacade Skin"], type="select", values=lbf:ListSkins(), set=set, get=get, order=12.1,
-			hidden=function(info) return db.global.aurastyle ~= 3 end,
-		}
-		oargs.aurastyle.values[3] = L["ButtonFacade"]
-		oargs.aurastyle.desc = L["Switching from ButtonFacade requires a reload."]
-	end
 	
 	local cargs = oargs.classcolor.args
 	local classcolorshide
