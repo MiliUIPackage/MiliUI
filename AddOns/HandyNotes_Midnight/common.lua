@@ -18,7 +18,7 @@ local Pet = ns.reward.Pet
 ns.expansion = 12
 
 -------------------------------------------------------------------------------
------------------------------------ GROUPS ------------------------------------
+------------------------------------ GROUPS -----------------------------------
 -------------------------------------------------------------------------------
 
 ns.groups.DELVE_REWARDS = Group('delve_rewards', 4203076, {
@@ -67,7 +67,28 @@ ns.groups.SAFARI = Group('safari', 2205238, {
     achievement = 61091
 })
 
------------------------------- EVERSONG WOODS ---------------------------------
+ns.groups.COILED_ISLE_SAFARI = Group('coiled_isle_safari', 2205238, {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.COLLECTIBLE,
+    achievement = 62492
+})
+
+ns.groups.RENOWNED_BEAST = Group('renowned_beast', 5931379, {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.EXPANSION,
+    IsEnabled = function(self)
+        -- Only display group for skinning players
+        if not ns.professions.SKINNING:HasProfession() then return false end
+        return ns.Group.IsEnabled(self)
+    end
+})
+
+ns.groups.RITUAL_SITE = Group('ritual_site', 132299, {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.EXPANSION
+})
+
+-------------------------------- EVERSONG WOODS -------------------------------
 
 ns.groups.RUNESTONE_RUSH = Group('runestone_rush', 134423, {
     defaults = ns.GROUP_HIDDEN,
@@ -81,7 +102,7 @@ ns.groups.EVER_PAINTING = Group('ever_painting', 7549082, {
     achievement = 62185
 })
 
---------------------------------- HARANDAR ------------------------------------
+----------------------------------- HARANDAR ----------------------------------
 ---
 ns.groups.GLOWING_MOTH = Group('glowing_moth', 1003597, {
     defaults = ns.GROUP_HIDDEN,
@@ -96,7 +117,7 @@ ns.groups.MORE_THAN_JUST_THIER_ROOTS = Group('more_than_just_thier_roots',
         achievement = 62188
     })
 
---------------------------------- ZUL'AMAN ------------------------------------
+----------------------------------- ZUL'AMAN ----------------------------------
 
 ns.groups.FROG_PRINCESS = Group('frog_princess', 2399262, {
     defaults = ns.GROUP_HIDDEN,
@@ -127,6 +148,27 @@ ns.groups.PUT_A_PIN_IN_IT = Group('put_a_pin_in_it', 5206188, {
     type = ns.group_types.ACHIEVEMENT,
     achievement = 62199
 })
+
+----------------------------- THE COILED ISLES --------------------------------
+
+ns.groups.STUDENT_OF_HISSSTORY = Group('student_of_hissstory', 8032876, {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.ACHIEVEMENT,
+    achievement = 63662
+})
+
+ns.groups.SOFT_UNDERBELLY = Group('soft_underbelly', 134306, {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.ACHIEVEMENT,
+    achievement = 62601
+})
+
+ns.groups.THE_HONORED_DEAD = Group('the_honored_dead', 133740, {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.ACHIEVEMENT,
+    achievement = 63610
+})
+
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
@@ -176,14 +218,34 @@ local LoreObject = Class('LoreObject', Collectible, {
 ns.node.LoreObject = LoreObject
 
 -------------------------------------------------------------------------------
-------------------------------- RUNESTONE RUSH --------------------------------
+---------------------------- STUDENT OF HISSSTORY ----------------------------
+-------------------------------------------------------------------------------
+
+local StudentOfHissstory = Class('StudentOfHissstory', Collectible, {
+    icon = 8032876,
+    group = ns.groups.STUDENT_OF_HISSSTORY
+})
+
+ns.node.StudentOfHissstory = StudentOfHissstory
+
+-------------------------------------------------------------------------------
+------------------------------- SOFT UNDERBELLY -------------------------------
+-------------------------------------------------------------------------------
+
+local SoftUnderbelly = Class('SoftUnderbelly', Collectible,
+    {icon = 134306, group = ns.groups.SOFT_UNDERBELLY})
+
+ns.node.SoftUnderbelly = SoftUnderbelly
+
+-------------------------------------------------------------------------------
+-------------------------------- RUNESTONE RUSH -------------------------------
 -------------------------------------------------------------------------------
 
 local RuneStone = Class('RuneStone', Collectible,
     {icon = 134423, group = ns.groups.RUNESTONE_RUSH})
 
 function RuneStone:Initialize(criteria)
-    ns.node.Collectible.Initialize(self)
+    Collectible.Initialize(self)
     self.rewards = {Achievement({id = 61961, criteria = criteria})}
 end
 
@@ -197,7 +259,7 @@ local Painting = Class('Painting', Collectible,
     {icon = 7549082, group = ns.groups.EVER_PAINTING})
 
 function Painting:Initialize(criteria, location)
-    ns.node.Collectible.Initialize(self)
+    Collectible.Initialize(self)
     self.location = location or nil
     self.rewards = {Achievement({id = 62185, criteria = criteria})}
 end
@@ -205,7 +267,7 @@ end
 ns.node.EverPainting = Painting
 
 -------------------------------------------------------------------------------
-------------------------- MORE THAN JUST THIER ROOTS --------------------------
+-------------------------- MORE THAN JUST THIER ROOTS -------------------------
 -------------------------------------------------------------------------------
 
 local MoreThanJustThierRoots = Class('MoreThanJustThierRoots', Collectible, {
@@ -225,7 +287,7 @@ local FrogPrincess = Class('frog_princess', Collectible,
 ns.node.FrogPrincess = FrogPrincess
 
 -------------------------------------------------------------------------------
--------------------------------- SONG SEEKER ----------------------------------
+--------------------------------- SONG SEEKER ---------------------------------
 -------------------------------------------------------------------------------
 
 local Songseeker = Class('Songseeker', Collectible,
@@ -234,10 +296,10 @@ local Songseeker = Class('Songseeker', Collectible,
 ns.node.Songseeker = Songseeker
 
 -------------------------------------------------------------------------------
----------------------------- SPIRITPAW MARATHON -------------------------------
+------------------------------ SPIRITPAW MARATHON -----------------------------
 -------------------------------------------------------------------------------
 
-local SpiritpawMarathon = Class('SpiritpawMarathon', ns.node.Collectible, {
+local SpiritpawMarathon = Class('SpiritpawMarathon', Collectible, {
     icon = 4891426,
     group = ns.groups.SPIRITPAW_MARATHON
 })
@@ -245,28 +307,37 @@ local SpiritpawMarathon = Class('SpiritpawMarathon', ns.node.Collectible, {
 ns.node.SpiritpawMarathon = SpiritpawMarathon
 
 -------------------------------------------------------------------------------
--------------------------------- GNOME ALONE ----------------------------------
+--------------------------------- GNOME ALONE ---------------------------------
 -------------------------------------------------------------------------------
 
-local GnomeAlone = Class('GnomeAlone', ns.node.Collectible,
+local GnomeAlone = Class('GnomeAlone', Collectible,
     {icon = 133740, group = ns.groups.GNOME_ALONE})
 
 ns.node.GnomeAlone = GnomeAlone
 
 -------------------------------------------------------------------------------
------------------------------- PUT A PIN IN IT --------------------------------
+--------------------------------- HONORED DEAD --------------------------------
 -------------------------------------------------------------------------------
 
-local PutAPinInIt = Class('PutAPinInIt', ns.node.Collectible,
+local HonoredDead = Class('HonoredDead', ns.node.Collectible,
+    {icon = 133740, group = ns.groups.THE_HONORED_DEAD})
+
+ns.node.HonoredDead = HonoredDead
+
+-------------------------------------------------------------------------------
+------------------------------- PUT A PIN IN IT -------------------------------
+-------------------------------------------------------------------------------
+
+local PutAPinInIt = Class('PutAPinInIt', Collectible,
     {icon = 5206188, group = ns.groups.PUT_A_PIN_IN_IT})
 
 ns.node.PutAPinInIt = PutAPinInIt
 
 -------------------------------------------------------------------------------
-------------------------------- DUST 'EM OFF ----------------------------------
+--------------------------------- DUST 'EM OFF --------------------------------
 -------------------------------------------------------------------------------
 
-local Moth = Class('Moth', ns.node.Collectible, {
+local Moth = Class('Moth', Collectible, {
     label = L['glowing_moth'],
     icon = 1003597,
     group = ns.groups.GLOWING_MOTH,
@@ -459,3 +530,96 @@ ns.node.Safari = {
         }
     }) -- Wrathful Wyrm
 }
+
+-- The Coiled Isle Safari (achievement 62492)
+local CoiledIsleSafari = Class('CoiledIsleSafari', Collectible, {
+    icon = 'paw_g',
+    group = ns.groups.COILED_ISLE_SAFARI
+})
+
+ns.node.CoiledIsleSafari = {
+
+    AutumnSnapling = Class('AutumnSnapling', CoiledIsleSafari, {
+        id = 262248,
+        rewards = {
+            Achievement({id = 62492, criteria = 113420, oneline = true}),
+            Pet({id = 5035})
+        }
+    }), -- Autumn Snapling
+
+    CausticWrithling = Class('CausticWrithling', CoiledIsleSafari, {
+        id = 262247,
+        rewards = {
+            Achievement({id = 62492, criteria = 113421, oneline = true}),
+            Pet({id = 5031})
+        }
+    }), -- Caustic Writhling
+
+    CursedSpawn = Class('CursedSpawn', CoiledIsleSafari, {
+        id = 262226,
+        rewards = {
+            Achievement({id = 62492, criteria = 113426, oneline = true}),
+            Pet({id = 5029})
+        }
+    }), -- Cursed Spawn
+
+    JaundicedSlitherer = Class('JaundicedSlitherer', CoiledIsleSafari, {
+        id = 262246,
+        rewards = {
+            Achievement({id = 62492, criteria = 113422, oneline = true}),
+            Pet({id = 5030})
+        }
+    }), -- Jaundiced Slitherer
+
+    NightfurKapara = Class('NightfurKapara', CoiledIsleSafari, {
+        id = 262245,
+        rewards = {
+            Achievement({id = 62492, criteria = 113423, oneline = true}),
+            Pet({id = 5032})
+        }
+    }), -- Nightfur Kapara
+
+    PoisonedParasite = Class('PoisonedParasite', CoiledIsleSafari, {
+        id = 262222,
+        rewards = {
+            Achievement({id = 62492, criteria = 113418, oneline = true}),
+            Pet({id = 5028})
+        }
+    }), -- Poisoned Parasite
+
+    SleekSnakebiter = Class('SleekSnakebiter', CoiledIsleSafari, {
+        id = 262244,
+        rewards = {
+            Achievement({id = 62492, criteria = 113424, oneline = true}),
+            Pet({id = 5033})
+        }
+    }), -- Sleek Snakebiter
+
+    SteadyCroakfrog = Class('SteadyCroakfrog', CoiledIsleSafari, {
+        id = 262243,
+        rewards = {
+            Achievement({id = 62492, criteria = 113425, oneline = true}),
+            Pet({id = 5034})
+        }
+    }) -- Steady Croakfrog
+}
+-------------------------------------------------------------------------------
+------------------------------- RENOWNED BEASTS -------------------------------
+-------------------------------------------------------------------------------
+
+local RenownedBeast = Class('RenownedBeast', ns.node.Node,
+    {icon = 5931379, group = ns.groups.RENOWNED_BEAST})
+
+ns.node.RenownedBeast = RenownedBeast
+
+-------------------------------------------------------------------------------
+--------------------------------- RITUAL SITES --------------------------------
+-------------------------------------------------------------------------------
+
+local RitualCollectible = Class('RitualCollectible', Collectible, {
+    icon = 132299,
+    label = L['options_icons_ritual_site'],
+    group = ns.groups.RITUAL_SITE
+})
+
+ns.node.RitualCollectible = RitualCollectible

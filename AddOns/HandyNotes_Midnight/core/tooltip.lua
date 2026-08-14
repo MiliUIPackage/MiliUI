@@ -4,7 +4,7 @@
 local _, ns = ...
 
 -------------------------------------------------------------------------------
---------------------------- TOOLTIP TEXT SHORTCUTS ----------------------------
+---------------------------- TOOLTIP TEXT SHORTCUTS ---------------------------
 -------------------------------------------------------------------------------
 
 local function ItemStatus(itemID, numNeed, note, spacer)
@@ -68,6 +68,12 @@ local function RenderPinTooltip(pin)
     C_Timer.After(0, function()
         -- label
         GameTooltip:SetText(ns.RenderLinks(pin.label, true))
+
+        -- location
+        if pin.location then
+            GameTooltip:AddLine(ns.RenderLinks(pin.location, true), 1, 1, 1,
+                true)
+        end
 
         -- note
         if pin.note and ns:GetOpt('show_notes') then

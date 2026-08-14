@@ -216,7 +216,7 @@ HNEditFrame.cancelbutton:SetScript("OnClick", HNEditFrame.CloseButton:GetScript(
 
 -- Additional Behavior functions
 HNEditFrame:SetScript("OnMouseDown", function(self, button)
-	if MouseIsOver(HNEditFrame.descframe) and button == "LeftButton" then
+	if HNEditFrame.descframe:IsMouseOver() and button == "LeftButton" then
 		HNEditFrame.descinputbox:SetFocus()
 	end
 end)
