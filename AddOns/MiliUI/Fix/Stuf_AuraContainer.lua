@@ -56,6 +56,17 @@ local DISPLAYS = {
 local Core = MiliUI_AuraContainerCore
 if not Core then return end
 
+-- 關掉／還原 Stuf 自己的光環群組。Stuf:SuppressElement 會真的 Hide()，並讓
+-- UpdateAura 與設定變更都跳過它；舊版 Stuf 沒有這個 API 時退回淡出，外觀一樣。
+local function SuppressStufGroup(group, on)
+    if not group then return end
+    if type(Stuf.SuppressElement) == "function" then
+        Stuf:SuppressElement(group, on)
+    else
+        group:SetAlpha(on and 0 or 1)
+    end
+end
+
 ------------------------------------------------------------
 -- 讀 Stuf 的設定
 ------------------------------------------------------------
@@ -171,7 +182,7 @@ local function AttachOne(stufFrame, unit, display)
         -- 使用者關掉了這個元素，或 Stuf 還沒建好它
         if existing then
             existing:Hide()
-            if existing.__stufGroup then existing.__stufGroup:SetAlpha(1) end
+            SuppressStufGroup(existing.__stufGroup, false)
             perFrame[display.element] = nil
         end
         -- 「沒有這個元素」是預期情況：使用者本來就只在部分框架開光環。
@@ -194,9 +205,9 @@ local function AttachOne(stufFrame, unit, display)
     style.stackFont = ReadStackFont(layout.db, layout.sizeW)
     style.durationFont = style.stackFont
 
-    -- 容器不能 parent 到 layout.group：等一下要對那個群組 SetAlpha(0) 把 Stuf
-    -- 自己的圖示藏起來，而 alpha 會往下傳給所有子物件 —— 容器會跟著一起隱形。
-    -- 改成掛在一個我們自己的中介 frame 上，跟被淡出的群組脫鉤。
+    -- 容器不能 parent 到 layout.group：等一下要把那個群組整個關掉（Hide），而
+    -- 隱藏會往下傳給所有子物件 —— 容器會跟著一起不見。
+    -- 改成掛在一個我們自己的中介 frame 上，跟被關掉的群組脫鉤。
     local holder = stufFrame.__miliuiAuraHost
     if not holder then
         holder = CreateFrame("Frame", nil, stufFrame)
@@ -256,7 +267,11 @@ end
 ------------------------------------------------------------
 -- 顯示切換
 ------------------------------------------------------------
--- Stuf 自己的群組用淡出而不是隱藏：Show/Hide 是 Stuf 在管的，去搶會閃爍。
+-- Stuf 自己的群組交給 Stuf:SuppressElement 關掉。以前是 SetAlpha(0)，因為直接
+-- Hide() 會跟 Stuf 自己的 Show/Hide 打架而閃爍；但淡出只是看不見，Stuf 照樣每次
+-- UNIT_AURA 掃 32 buff + 40 debuff，畫好的圖示還各自掛著倒數用的 OnUpdate 在跑。
+-- Stuf 本體現在認得 f.suppressed：UpdateAura 會跳過、改設定後也不會再把它叫回來，
+-- 所以可以真的 Hide()（隱藏的 frame 子區域不跑 OnUpdate，那些倒數才停得下來）。
 
 local function ApplyState(stufFrame, unit, containers, secret, forceUpdate)
     for _, container in pairs(containers) do
@@ -276,9 +291,7 @@ local function ApplyState(stufFrame, unit, containers, secret, forceUpdate)
             container:Hide()
         end
 
-        if container.__stufGroup then
-            container.__stufGroup:SetAlpha(secret and 0 or 1)
-        end
+        SuppressStufGroup(container.__stufGroup, secret)
     end
 end
 
@@ -385,7 +398,7 @@ EventUtil.ContinueOnAddOnLoaded("Stuf", function()
         for _, containers in pairs(attached) do
             for _, container in pairs(containers) do
                 container:Hide()
-                if container.__stufGroup then container.__stufGroup:SetAlpha(1) end
+                SuppressStufGroup(container.__stufGroup, false)
             end
         end
         print("|cffffe00a[MiliUI]|r 已還原 Stuf 光環圖示，本模組停用至下次 /reload")

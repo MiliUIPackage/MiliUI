@@ -600,6 +600,24 @@ function Stuf:RegisterElementRefresh(uf, ename, category, add)
 	end
 end
 
+-----------------------------------------------
+function Stuf:SuppressElement(f, on)  -- 讓外部接管某個元素的顯示
+-----------------------------------------------
+	-- 給「有別的東西接手畫這個元素」的情況用（例如 MiliUI 的 AuraContainer 接管
+	-- buffgroup/debuffgroup）。跟 db.hide 的 f.hidden 分開，才不會污染玩家設定。
+	--
+	-- 一定要真的 Hide()，不能只 SetAlpha(0)：隱藏的 frame 連子區域的 OnUpdate
+	-- 都不會跑，光環倒數那些 per-frame handler 才停得下來。element 自己的更新
+	-- 函式也要看 f.suppressed 提早跳過，否則照樣在算沒人看的東西。
+	if not f then return end
+	f.suppressed = on or nil
+	if on then
+		f:Hide()
+	elseif not f.hidden then
+		f:Show()
+	end
+end
+
 ----------------------------------
 function Stuf:DefaultCastBar(unit)  -- hide or show blizzard's cast bars depending if Stuf's are shown
 ----------------------------------

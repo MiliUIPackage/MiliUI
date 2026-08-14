@@ -577,23 +577,25 @@ do 	-- Aura handlers -----------------------------------------------------------
 		local cache = uf.cache
 		
 		local dispellicon, buffgroup, debuffgroup, auratimers = uf.dispellicon, uf.buffgroup, uf.debuffgroup, uf.auratimers
-		if not dispellicon or dispellicon.hidden then
+		-- suppressed = 有別的東西接手畫這個元素（見 Stuf:SuppressElement）。
+		-- 跟 hidden 一樣要在這裡就洗成 nil，下面的掃描迴圈才不會白跑。
+		if not dispellicon or dispellicon.hidden or dispellicon.suppressed then
 			dispellicon = nil
 		end
-		if not buffgroup or buffgroup.hidden then
+		if not buffgroup or buffgroup.hidden or buffgroup.suppressed then
 			buffgroup = nil
 		elseif cache.assist then
 			bfilter = buffgroup.filter
 			onlymineb = buffgroup.db.onlymine
 		end
-		if not debuffgroup or debuffgroup.hidden then
+		if not debuffgroup or debuffgroup.hidden or debuffgroup.suppressed then
 			debuffgroup = nil
 		elseif cache.assist then
 			dfilter = debuffgroup.filter
 		else
 			onlymined = debuffgroup.db.onlymine
 		end
-		if not auratimers or auratimers.hidden then
+		if not auratimers or auratimers.hidden or auratimers.suppressed then
 			auratimers = nil
 		else
 			for k, v in ipairs(auratimers.timers) do
@@ -689,7 +691,10 @@ do 	-- Aura handlers -----------------------------------------------------------
 			end
 		end
 
-		for i = 1, 32, 1 do  -- update buffgroup
+		-- 兩組消費者都不在（群組隱藏/被接管、且沒有 auratimers）就整個迴圈免跑。
+		-- 原本即使 buffgroup 是 nil，UnitBuff 還是會一路呼叫到抓不到光環為止。
+		local nbuff = (buffgroup or auratimers) and 32 or 0
+		for i = 1, nbuff, 1 do  -- update buffgroup
 			if allow then  -- prevents calling UnitBuff when it's useless
 				name, icon, count, acolor, ismagic, duration, endtime, ismine, isstealable = UnitBuff(unit, i, bfilter)
 				allow = name and (not onlymineb or ismine)
@@ -723,7 +728,8 @@ do 	-- Aura handlers -----------------------------------------------------------
 		end
 		
 		allow = true
-		for i = 1, 40, 1 do  -- update debuffgroup
+		local ndebuff = (debuffgroup or auratimers) and 40 or 0
+		for i = 1, ndebuff, 1 do  -- update debuffgroup
 			if allow then  -- prevents calling UnitDebuff when it's useless
 				name, icon, count, acolor, ismagic, duration, endtime, ismine, isstealable = UnitDebuff(unit, i, dfilter)
 				clr = acolor or dbgaura.Buff  -- acolor is ColorMixin-or-nil from GetDispelColor
@@ -888,9 +894,9 @@ do  -- Aura Icons --------------------------------------------------------------
 			end
 		else
 			f.hidden = nil
-			f:Show()
+			if not f.suppressed then f:Show() end
 		end
-		
+
 		local x, y, w, h = db.x, db.y, db.w, db.h
 		local cfontsize = db.counttfontsize or db.fontsize or (w < 2 and 1) or floor(w * 0.6 + 0.5)
 		local cfont = Stuf:GetMedia("font", db.counttfont)
@@ -916,7 +922,8 @@ do  -- Aura Icons --------------------------------------------------------------
 			BuffFrame:Hide()
 			BuffFrame:UnregisterEvent("UNIT_AURA")
 		end
-		f:Show()
+		-- 被接管時不要在改設定後又把群組叫回來（見 Stuf:SuppressElement）
+		if f.suppressed then f:Hide() else f:Show() end
 
 		local offset1, offset2, uselbf
 		if dbg.aurastyle == 2 then
