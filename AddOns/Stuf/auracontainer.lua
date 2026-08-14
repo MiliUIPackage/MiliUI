@@ -571,6 +571,7 @@ end
 -- 容器建好之後外觀就烘死了（AuraButton 在 initializeFrame 之外是 forbidden），
 -- 設定改了只能重建。但 frame 無法銷毀，所以只有簽章變了才重建。
 local function BuildSignature(element, layout, db)
+    local cc = db.counttfontcolor
     return table.concat({
         element,
         tostring(layout.x), tostring(layout.y),
@@ -579,6 +580,8 @@ local function BuildSignature(element, layout, db)
         tostring(layout.spacing), tostring(layout.lineSpacing),
         tostring(db.growth), tostring(layout.curable),
         tostring(db.counttfont), tostring(db.counttfontsize), tostring(db.counttfontflags),
+        -- 顏色也要進簽章：字型設定烘在 AuraButton 裡，只改顏色不重建就不會生效
+        tostring(cc and cc.r), tostring(cc and cc.g), tostring(cc and cc.b),
     }, "|")
 end
 
@@ -677,13 +680,13 @@ function Core.Attach(unit, uf, element, db)
     return true
 end
 
--- 群組被關掉（db.hide）或整組停用時把容器收起來
+-- 群組被關掉（db.hide）或進設定模式時把容器收起來。
+-- 只 Hide 不丟掉參照 —— frame 無法銷毀，丟掉的話下次 Attach 只能再建一個新的，
+-- 反覆開關就一直漏。留著的話簽章沒變就直接 Show 回來。
 function Core.Detach(uf, element)
     local perFrame = attached[uf]
     local container = perFrame and perFrame[element]
-    if not container then return end
-    container:Hide()
-    perFrame[element] = nil
+    if container then container:Hide() end
 end
 
 ------------------------------------------------------------
