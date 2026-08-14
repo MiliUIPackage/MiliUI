@@ -2,6 +2,7 @@
 ## Title: Shooter
 ## Notes: Takes a screenshot when you earn an achievement.
 ## Title-zhTW: |r|cffFFFFFF[成就]|r 自動擷圖
+## IconTexture: 1109100
 ## Notes-zhTW: Shooter |n|n獲得成就時會自動擷取螢幕畫面，為你的魔獸生活捕捉難忘的回憶。
 ## Author: Akcent
 ## Version: 1.0.8

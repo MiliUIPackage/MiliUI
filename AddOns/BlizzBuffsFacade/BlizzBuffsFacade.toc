@@ -4,6 +4,7 @@
 ## Author: Cybeloras of Aerie Peak
 ## Notes: Skins the Blizzard buff and debuff frames with Masque
 ## Title-zhTW: |cff33A3FF[光環]|r 暴雪光環框架
+## IconTexture: Interface\Icons\Spell_Holy_WordFortitude
 ## Notes-zhTW: Masque Skinner: Blizz Buffs|n|n使內建的暴雪光環框架可以支援 Masque 的樣式。
 ## X-Category-zhTW: 介面
 ## RequiredDeps: Masque

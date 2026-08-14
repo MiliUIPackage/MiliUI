@@ -9,6 +9,7 @@
 ## Category-zhTW: 任務
 
 ## Title-zhTW: |cff33FFE0[經驗]|r 簡易經驗條
+## IconTexture: Interface\Icons\XPBonus_Icon
 ## Notes-zhTW: EasyExperienceBar |n|n顯示一個條用以指示完成任務可獲得多少經驗值。|n|n|cffffd200使用方法: |r從Esc>選項>插件>經驗條，進行設定。
 ## Category-zhTW: 介面
 

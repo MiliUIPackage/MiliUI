@@ -4,6 +4,7 @@
 ## Notes-frFR: Simples modifications de la carte.
 ## Title: Mapster
 ## Title-zhTW: |cff33E0FF[地圖]|r 地圖增強
+## IconTexture: Interface\Icons\INV_Misc_Map_01
 ## Notes-zhTW: Mapster |n|n在世界地圖上顯示座標、顯示未探索區域、自訂地圖大小、透明度和其他功能。|n|n|cffffd200使用方法：|r從Esc>介面>插件>世界地圖，進行設定。
 ## Author: Nevcairiel
 ## SavedVariables: MapsterDB

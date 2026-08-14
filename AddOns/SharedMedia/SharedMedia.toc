@@ -2,6 +2,7 @@
 ## Title: SharedMedia
 ## Notes: Inserts some media into LibSharedMedia's storage.
 ## Title-zhTW: |r|cffFFFFFF[資源]|r 材質資源庫
+## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## Notes-zhTW: SharedMedia|n|n註冊各種材質與背景樣式供其他插件使用。
 ## Version: 3.1.0-191
 ## Author: Elkano

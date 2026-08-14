@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: bff239dc-d36e-4cb0-87ba-ff30f45330ab
-  modified: 2026-08-14T18:10:29.191Z
+  modified: 2026-08-14T18:33:27.383Z
 ---
 
 # TOC 標題標籤與漸層色規則
@@ -67,6 +67,24 @@ for i, tag in enumerate(sorted(tags)):           # sorted = 遊戲顯示順序
 - 已知取捨：介面內的 [地圖] `33E0FF`、[裝備] `33FFB8` 跟 HandyNotes 的 [地圖]
   `4DFF4D`、資訊的 [裝備] `2DA267` 同名不同色 —— 漸層位置由排序決定，無法兩全，
   使用者已接受。
+
+## 插件列表圖示（IconTexture）
+
+- 目標：插件列表不出現紅色問號。缺 `## IconTexture:` 的第三方插件由套組直接補進 toc
+  （插在帶色碼的 Title-zhTW 行後面，上游更新會洗掉、要重套）。
+- 選擇順序：**插件自帶材質**（如 `MBB\icon.tga`）→ **母插件圖示**（Masque 皮膚一律用
+  `Interface\AddOns\Masque\Textures\Icon`）→ **內建 `Interface\Icons\` 圖示**。
+- 內建圖示名稱動手前先驗證存在：**用 Wowhead CDN 探測**
+  `curl -sI https://wow.zamimg.com/images/wow/icons/large/<小寫名>.jpg`（200=存在）。
+  warcraft.wiki.gg 的 File: 頁不可靠——wiki 會收自訂命名的上傳（selfiecamera 就中招）。
+  查某道具的真實圖示名：`https://nether.wowhead.com/tooltip/item/<itemID>` 的 `icon` 欄。
+- 檔名怪異（空格、連字號）的圖示**直接用 FileDataID 數字**：`## IconTexture: 1109100`。
+  查 FDID：`https://wago.tools/api/files?search=<關鍵字>`（會很慢，背景跑）。
+  實例：S.E.L.F.I.E. 相機真實檔名是 `inv_misc_ selfiecamera_01.blp`（`misc_` 後有
+  **空格**，Wowhead 顯示成連字號），路徑寫法怎麼寫都載不到，只能用 FDID 1109100。
+- 2026-08-15 補的 16 個對照直接看 git（`## IconTexture` 的 diff），重點：Ayije_CDM
+  主體/選項用懷錶 01/02、光環=Spell_Holy_WordFortitude、經驗條=XPBonus_Icon、
+  擷圖=FDID 1109100、除錯=Spell_Nature_InsectSwarm。
 
 ## Notes-zhTW 換行慣例
 

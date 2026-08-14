@@ -4,6 +4,7 @@
 ## Author: ccfreak
 ## Notes: FlatSquares skin for Masque.
 ## Title-zhTW: |cff0099FF[樣式]|r 快捷樣式 - FlatSquares
+## IconTexture: Interface\AddOns\Masque\Textures\Icon
 ## Notes-zhTW: Masque |cffff8000FlatSquares|r|n|nMasque 的 FlatSquares 樣式。
 ## Dependencies: Masque
 
