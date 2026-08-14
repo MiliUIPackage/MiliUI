@@ -803,14 +803,6 @@ local function ShowVaultTooltip(owner, data)
         tt.runsHeader:SetText(string.format("本週 M+ 紀錄 (%d/%d)", count, MPLUS_MAX_RUNS))
         tt.runsHeader:Show()
         y = y + TT.RUNS_HEADER_H
-        if nRuns == 0 then
-            local line = tt.runLines[1]
-            line:ClearAllPoints()
-            line:SetPoint("TOPLEFT", TT.PAD, -y)
-            line:SetText("|cff808080M0 場次不列入鑰石紀錄|r")
-            line:Show()
-            y = y + TT.RUN_LINE_H
-        end
         for i = 1, nRuns do
             local line = tt.runLines[i]
             line:ClearAllPoints()
