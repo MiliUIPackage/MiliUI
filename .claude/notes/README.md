@@ -42,6 +42,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-unit-api-secrets.md](wow-121-unit-api-secrets.md) | 變 secret 的 Unit API 完整清單 |
 | [wow-secret-key-table-lookup.md](wow-secret-key-table-lookup.md) | 「cannot be indexed with secret keys」的成因與寫法 |
 | [wow-121-aura-containers.md](wow-121-aura-containers.md) | 光環系統重寫：AuraContainer／AuraButton |
+| [wow-121-identity-gate-failopen.md](wow-121-identity-gate-failopen.md) | 身分閘 fail-open：白名單 buff 變成顯示全部、且只有 `/reload` 有效 |
 | [wow-121-other-api-changes.md](wow-121-other-api-changes.md) | SVG、徑向遮罩、Roleset、**首領戰／M+／PvP 封鎖插件通訊**、改名與移除 |
 | [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | 移除 SetDesaturation 害 AceConfig 面板全空白 |
 | [wow-121-coolinator-reference.md](wow-121-coolinator-reference.md) | 12.1 正解範本 —— **原始碼已不在本機**，要看去 GitHub |
@@ -63,6 +64,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-focuser-castbar.md](project-focuser-castbar.md) | Focuser 焦點施法條／斷法巨集 |
 | [project-loot-history-tracking.md](project-loot-history-tracking.md) | 戰利品取得記錄（沒有歷史 API） |
 | [project-speccompare-equipment-filter.md](project-speccompare-equipment-filter.md) | 裝備篩選排除玩具／純造型 |
+| [project-tinyinspect-track-colors.md](project-tinyinspect-track-colors.md) | TinyInspect 裝等軌道色 —— **通則：掛在 setter 上不能讀宿主快取欄位**；Journal 軌道取得方式 |
 | [project-charframe-taint.md](project-charframe-taint.md) | 角色面板 taint 注意事項 |
 | [project-raidtarget-secure.md](project-raidtarget-secure.md) | SetRaidTarget 要走 secure action |
 

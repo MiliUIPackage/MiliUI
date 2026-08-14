@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 47adb948-8bd2-4804-9bff-d58a154ecf7c
-  modified: 2026-08-12T18:30:38.820Z
+  modified: 2026-08-13T05:39:16.228Z
 ---
 
 Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard AuraContainer（路線 A，見 [[wow-121-aura-containers]]），讓分類全走 Blizzard-side candidateFilters，照 DandersFrames v5 作法「一個都不少」。使用者 2026-08 選定路線 A。**已上線使用**（master，Cell r283-MiliUI）。
@@ -60,7 +60,8 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
 11. `UpdateIndicators(layout, ...)` 的 `layout` 是**佈局名稱字串**不是表，要用 `Cell.vars.currentLayoutTable`。
 12. ⚠ `indicatorBooleans` 以指示器為鍵不是以設定為鍵 —— 同一指示器的第二個 checkbox 會蓋掉第一個的值，新增 checkbox 要加明確分支擋 fallthrough。
 13. **會覆寫使用者調好值的 Revise 遷移必須有版本閘**（`dbRevision < N`，TOC `## Version` 一起 bump），否則每次登入都蓋回去；冪等判斷才可以無閘。已用的閘：r281（重要減益 filters/尺寸）、r282（excludeImportant）。
-14. AuraButton 在 secret 時**整顆 forbidden、什麼都讀不到**（IsShown/幾何一 branch 就炸），「有沒有真的畫出光環」只能靠肉眼 —— 診斷工具能證明機制全綠，不能證明畫面正確。
+14. **⚠⚠ 身分閘 fail-open**（2026-08-13 修，見 [[wow-121-identity-gate-failopen]]）：`includeSpellIDs` 在 `UnitCanAssist` 失敗時被整組跳過 → 白名單列顯示全部增益，且 assist 回來後引擎不會重讀（只有 `/reload` 有效）。Cell 的解法在 `AuraDisplay.lua`：`RecordVulnerableToIdentityGate`/`RecordSourceRelative` 推導旗標 → `ApplyIdentityGate`（assist false→true 邊緣才踢）→ `GateRefresh`（OOC `Hide();Show()`、戰鬥中標記 + regen 補踢），事件監看含過場動畫 latch，手動解卡 `/cab gate`。
+15. AuraButton 在 secret 時**整顆 forbidden、什麼都讀不到**（IsShown/幾何一 branch 就炸），「有沒有真的畫出光環」只能靠肉眼 —— 診斷工具能證明機制全綠，不能證明畫面正確。
 
 ## 診斷
 

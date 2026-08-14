@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-12T13:31:30.974Z
+  modified: 2026-08-13T08:51:21.754Z
 ---
 
 12.1.0 最大的改動：光環（buff/debuff）。官方 blue post: https://us.forums.blizzard.com/en/wow/t/addons-and-auras-in-curse-of-ula%E2%80%99tek/2317456
@@ -56,32 +56,6 @@ AuraContainer 掛了 aura group 之後就**不再收 `OnSizeChanged`**（連錨�
 
 `candidateFilters` 的完整欄位：`includeSpellIDs`、`excludeSpellIDs`、`includeDispelTypes`、`excludeDispelTypes`、`maxDuration`、`processedAuraType`，加上一組布林 `isFromPlayerOrPlayerPet`、`isRoleAura`、`isPriorityAura`、`isStealable`、`nameplateShowAll`、`nameplateShowPersonal`、`canApplyAura`、`isBossAura`、`isBossOrRoleAura`。
 
-### ⚠⚠ 身分閘 fail-open：白名單會整組被跳過，顯示全部增益
-
-`include/excludeSpellIDs` 只在 `CanApplyIdentityCandidateFilters` 內部被採用，而 HELPFUL 的
-那條要求 `UnitCanAssist("player", unit)`。**檢查沒過不是把光環擋掉，而是整組跳過 ID 過濾**
-——pool **fail-open**，每個增益都畫出來。不報錯、filter 字串照樣正確、診斷照樣印
-`+cf{includeSpellIDs}`，畫面就是塞滿食物 buff。
-
-assist 會變 false 的情境：跨陣營隊友（副本外）、決鬥對手、**以及過場動畫期間**（動畫會觸發
-`UNIT_FACTION`，12.1 首次登入強制播一段）。`HELPFUL|PLAYER` **沒有豁免**——PLAYER token 只
-縮小查詢範圍，ID 白名單一樣被跳過，「只顯示我上的」退化成「我上的任何東西」。
-
-**⚠ assist 恢復後引擎不會自己重讀**：只有「光環變動」才重新解析，所以 fail-open 的結果會一直
-留著——這就是為什麼只有 `/reload` 有效。要恢復必須自己踢一次
-（OOC：`container:Hide(); container:Show()`；戰鬥中只能 `UpdateAllAuras()` 標記，離開戰鬥補踢）。
-
-第二條 fail-open：來源相關的 pool（`HELPFUL|PLAYER`、`isFromPlayerOrPlayerPet`）對「不在你可
-見世界的單位」（不同副本/分流）無法歸屬施法者，於是「我的」放行所有人；此時 assist 仍是 true，
-訊號要看 `UnitIsVisible`。
-
-HARMFUL 不在這個閘的範圍（它看 `UnitCanAttack`，而且友方減益本來就禁止 ID 過濾）。
-
-Cell 的實作在 `RaidFrames/AuraDisplay.lua`（`RecordVulnerableToIdentityGate` / `ApplyIdentityGate`
-/ `GateRefresh` + 事件監看：`UNIT_FACTION`/`UNIT_PHASE`/`UNIT_NAME_UPDATE`/roster/`PLAYER_ENTERING_WORLD`
-＋過場動畫 latch），手動解卡指令 `/cab gate`。機制由 DandersFrames v5 找出並記錄
-（`Frames/AuraContainer.lua` 的 `filterVulnerableToIdentityGate`）。
-
 **AuraButton 倒數文字要「純數字不帶單位」**（踩了很多輪）：預設走 `SecondsFormatter`，而它的 `Enum.SecondsFormatterAbbreviation` 只有 `None=0 / Truncate=1 / OneLetter=2`，三種在中文全都輸出「秒」——**設計上沒有無單位的出口**。正解是**換掉 formatter 本身**：
 
 ```lua
@@ -115,12 +89,14 @@ fmt:AddBreakpoint({ threshold = 5401, step = 1, rounding = down, min = 1, format
 - **路線 A（AuraContainer intrinsic,官方推薦）**:`CreateFrame("AuraContainer",..,"CustomAuraContainerTemplate")` → `AddAuraGroup(key, filterStr, {candidateFilters=...})` → 容器自建 AuraButton、自己驅動,`initializeFrame` 內上樣式。**Coolinator 用這條;DandersFrames v5.0（2026-08 起）也翻成這條。**
 - **路線 B（手動掃描 + secret-safe 分類）**:繼續用 `GetUnitAuras`/`GetAuraSlots` 列舉、`C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, auraInstanceID, filterStr)`（回非 secret 布林）分類、`C_UnitAuras.GetAuraDuration` 顯示、自己的 frame。**DandersFrames 舊版、Cell 現況、以及本機 Cell 的 raidDebuff 舊 fallback 都是這條。**
 
+**路線 B 在 12.1 幾乎被封死：`auraInstanceID` 本身變 secret。**`GetBuffDataByIndex` / `GetDebuffDataByIndex` 在光環受限時回來的 `d.auraInstanceID` 是 secret number，而吃 `(unit, auraInstanceID)` 的那批 API 全是 `SecretArguments = "AllowedWhenUntainted"` —— 插件是 tainted，傳 secret 進去直接報 **bad argument #1**，錯誤訊息長得像簽章換了（`Usage: ...GetAuraApplicationDisplayCount(auraInstance [, minDisplayCount, maxDisplayCount])`），但**簽章沒變**，是參數被拒。屬於這批的有：`IsAuraFilteredOutByInstanceID`、`GetAuraApplicationDisplayCount`、`GetAuraDispelTypeColor`、`GetAuraDuration`、`DoesAuraHaveExpirationTime`、`CancelAuraByInstanceID`、`GetAuraDataByAuraInstanceID`、`GetUnitAuras`、`GetUnitAuraInstanceIDs`、`GetAuraSlots`。tainted 程式**能**傳 secret 的只剩 `AllowedWhenTainted` 那幾支，而且都是 spellID 路線：`GetUnitAuraBySpellID`、`GetPlayerAuraBySpellID`、`GetCooldownAuraBySpellID`、`GetAuraBaseDuration`、`GetRefreshExtendedDuration`、`AuraIsPrivate`、`AuraIsBigDefensive`。所以「用 index 掃到 id 再逐項問細節」這條路在 12.1 只有非受限狀態下成立，受限時只能整段跳過（`issecretvalue(aid)` 就 fallback）或改走路線 A。
+
+查這些旗標的地方：`Blizzard_APIDocumentationGenerated/UnitAuraDocumentation.lua`（**單數 UnitAura**，不是 UnitAuras），每個 function 上的 `SecretArguments` / `SecretWhenUnitAuraRestricted` / `RequiresValidUnitAuraInstance`。wiki 只有 12.0 的簽章，看不到這層。另外 `GetAuraApplicationDisplayCount` 回傳的是**字串**（`< min` 回 `""`、`> max` 回 `"*"`），寫成只認 number 會永遠拿到 nil。
+
 **關鍵硬牆(決定能不能抄 DandersFrames 的重要 debuff 分類)**:`isBossOrRoleAura`/`isBossAura`/`isRoleAura`/`isPriorityAura` 是 **candidateFilters 布林旗標,只能透過 AuraContainer 的 AddAuraGroup 用**。`IsAuraFilteredOutByInstanceID` **只吃 filter 字串**(如 `HARMFUL|RAID`),無法評估這些布林。而 DandersFrames v5 的重要 debuff 分類除了 `HARMFUL|RAID` 一個字串,boss/role/priority 全走布林旗標——所以「照 DandersFrames 一個都不少」= 必須走路線 A,路線 B 抄不到 boss/role/priority。
 
 **DandersFrames v5.0 的重要 debuff 分類法**(`Features/Auras.lua` `BuildDirectDebuffFilters`):一類別=一個 AuraGroup,宣告順序=顯示優先權,群組間**不去重**,所以各 record 必須互斥。**Important-first 優先權**:boss/role 與 priority record **先認領、不做負向排除**,底下的 token record(cc/raid/dispel)再用 `candidateFilters` 的 `false` 旗標把它們減掉(避免同一顆顯示兩次)。修掉了「帶 RAID token 的 boss/priority 掉進沒樣式 raid 格」的 bug。SecretAuras.lua(filter 指紋辨識)在 v5 已刪除——有了 candidateFilters 就不用在 Lua 裡辨識光環身分。
 
 **AuraContainer 建立順序(在地驗證,不可調換)**:`CreateFrame(...)` → `SetUnit(unit)`(在 group 之前) → 逐一 `AddAuraGroup(key, filter, {maxFrameCount, initializeFrame, layout, candidateFilters, sortMethod, sortDirection})` → `SetEnabled(true)` **最後**(它 gate 光環事件註冊)。改 filter 字串的 record 集合(key set)是結構性的,要重建容器;`maxFrameCount`/`candidateFilters`/`sort` 是 live setter。`maxFrameCount` 是**每個 group** 的上限,不是整條 row 的總數——多類別時總數會超過單一 num,要留意。`initializeFrame` 內:`SetMouseClickEnabled(false)`、建**全新** child region(絕不 reparent 既有 scripted widget)、`SetIcon`/`SetDurationCooldown`/`SetDurationText(fs,{binding=...})`/`SetApplicationCount(fs, {})`。**`SetApplicationCount` 千萬別傳 formatter**——Blizzard 會在 Lua 對 secret 層數跑 `formatter:FormatNumber`,炸在 `ProcessDirtyFlags` 裡讓整個容器當掉一整場。版本閘:`AddAuraGroup` 存在 = 支援,且**不可在戰鬥中 probe**(建 live 容器會不可攔截地報錯)。
-
-**路線 B 的 `GetAuraDuration` 有個前提**：拿**暴雪給的明碼 `auraInstanceID`**（例如 CooldownViewer 的 `AuraButton:Update(buttonInfo)` 傳進來的那顆）在光環為秘密時反查會**拋錯**（`Auras cannot be accessed when secret while tainted by '<插件>'`），不是回 nil；Cell 沒事是因為它手上的 instanceID 本身就是 secret。要嘛 `C_Secrets.ShouldAurasBeSecret()` 先閘（`ShouldSpellAuraBeSecret(spellID)` 為 false 的法術可放行）＋`pcall`，要嘛就別自己疊冷卻轉盤、把暴雪原本的倒數留著。實例見 [[project-121-addon-migration]] 的 Ayije_CDM Externals 條目。
 
 相關：[[wow-121-secret-values]]、[[wow-121-coolinator-reference]]、[[project-121-addon-migration]]
