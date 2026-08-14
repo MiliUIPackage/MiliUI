@@ -16,5 +16,5 @@
 ## LoadManagers: AddonLoader
 ## X-LoadOn-Always: delayed
 
-embeds.xml
+libs\LibRangeCheck-3.0.lua
 core.lua
