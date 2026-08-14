@@ -6,8 +6,8 @@
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
 ## SavedVariablesPerCharacter: BAGANATOR_CURRENT_PROFILE
 ## IconTexture: Interface\AddOns\Baganator\Assets\logo.tga
-## Title-zhTW: |cFF2DA267[物品]|r 背包整合
-## Notes-zhTW: Baganator|n功能強大的整合背包。
+## Title-zhTW: |cff2DA267[背包]|r 背包整合
+## Notes-zhTW: Baganator|n|n功能強大的整合背包。
 
 ## Category-enUS: Inventory
 ## Category-deDE: Inventar

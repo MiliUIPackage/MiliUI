@@ -1,7 +1,7 @@
 ## Interface: 120007, 120100
 ## Title: MiliUI BloodlustMusic
 ## Notes: Bloodlust / Heroism music playback and countdown bar.|n|n|cffffd200Usage: |rEsc>Options>AddOns>Bloodlust Music or type /blm to configure.
-## Title-zhTW: |cFF00FFFF[戰鬥]|r 嗜血音樂
+## Title-zhTW: |cff00FFFF[音效]|r 嗜血音樂
 ## Notes-zhTW: MiliUI BloodlustMusic |n|n嗜血/英勇音樂播放與倒數條。|n|n|cffffd200使用方法: |rEsc>選項>插件>嗜血音樂或輸入指令 /blm 設定。
 ## Title-zhCN: |cff4488FF[MiliUI]|r 嗜血音乐
 ## Notes-zhCN: 嗜血/英勇音乐播放与倒计时条。|n|n|cffffd200使用方法: |rEsc>选项>插件>嗜血音乐或输入指令 /blm 设置。

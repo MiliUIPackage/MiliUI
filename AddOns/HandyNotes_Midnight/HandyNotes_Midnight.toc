@@ -8,7 +8,7 @@
 ## SavedVariables: HandyNotes_MidnightDB
 ## IconTexture: 236762
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記 - 至暗之夜
-## Notes-zhTW: HandyNotes: Midnight |n至暗之夜的各種地圖標記
+## Notes-zhTW: HandyNotes: Midnight |n|n至暗之夜的各種地圖標記
 ## Category-zhTW: 地圖
 
 embeds.xml

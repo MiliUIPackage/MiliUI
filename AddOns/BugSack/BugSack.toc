@@ -1,10 +1,10 @@
 ## Interface: 11508, 11507, 20505, 30405, 38000, 40402, 50503, 50502, 120007, 120100
 ## Version: v12.0.4
 ## Title: BugSack
-## Title-zhTW: |r|cFFFFFFFF[其他]|r 錯誤訊息收集袋
+## Title-zhTW: |r|cffFFFFFF[除錯]|r 錯誤訊息收集袋
 ## Notes: Toss those bugs inna sack.
 ## Notes-zhCN: 错误信息收集器。
-## Notes-zhTW: BugSack|n集中顯示錯誤訊息，避免中斷遊戲。
+## Notes-zhTW: BugSack|n|n集中顯示錯誤訊息，避免中斷遊戲。
 ## Author: Funkeh
 ## SavedVariables: BugSackDB, BugSackLDBIconDB
 ## OptionalDeps: Ace3, LibSharedMedia-3.0, LibDBIcon-1.0, !BugGrabber

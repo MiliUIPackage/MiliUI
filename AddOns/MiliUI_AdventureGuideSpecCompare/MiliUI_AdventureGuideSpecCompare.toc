@@ -1,6 +1,6 @@
 ## Interface: 120007, 120100
 ## Title: MiliUI Adventure Guide Spec Compare
-## Title-zhTW: |cFF2DA267[裝備]|r 冒險指南天賦比較
+## Title-zhTW: |cff2DA267[裝備]|r 冒險指南天賦比較
 ## Notes: Compare loot across specs of the same class in the Encounter Journal, and mark loot you've already obtained.
 ## Notes-zhTW: 在冒險指南顯示同職業不同天賦的裝備差異（每件裝備加上天賦徽章 + 右側差異面板），並標示你已取得過的裝備
 ## Author: Custom

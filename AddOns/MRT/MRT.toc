@@ -3,7 +3,7 @@
 ## Author: ykiigor
 ## Notes: Method Raid Tools
 ## Title-zhTW: |cffFF7F00[副本]|r Method 團隊工具箱
-## Notes-zhTW: Method Raid Tools |n一個團隊會用到應有盡有的工具箱插件，包含團隊技能CD，團隊準備檢查等等。
+## Notes-zhTW: Method Raid Tools |n|n一個團隊會用到應有盡有的工具箱插件，包含團隊技能CD，團隊準備檢查等等。
 ## DefaultState: Disabled
 ## SavedVariables: VMRT
 ## Version: 5315

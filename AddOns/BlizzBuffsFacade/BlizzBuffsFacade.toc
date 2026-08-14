@@ -3,8 +3,8 @@
 ## Version: 10.0.0 fix
 ## Author: Cybeloras of Aerie Peak
 ## Notes: Skins the Blizzard buff and debuff frames with Masque
-## Title-zhTW: |cFF0099FF[介面]|r 暴雪增/減益效果框架
-## Notes-zhTW: Masque Skinner: Blizz Buffs|n使內建的暴雪增/減益效果框架可以支援 Masque 的樣式。
+## Title-zhTW: |cff33A3FF[光環]|r 暴雪光環框架
+## Notes-zhTW: Masque Skinner: Blizz Buffs|n|n使內建的暴雪光環框架可以支援 Masque 的樣式。
 ## X-Category-zhTW: 介面
 ## RequiredDeps: Masque
 ## Category: Interface

@@ -25,7 +25,7 @@
 ## SavedVariables: HandyNotes_MidnightCapitalDB
 ## Category-zhTW: 地圖
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記 - 至暗之夜主城
-## Notes-zhTW: HandyNotes: Midnight - Capital|n在重建後的銀月城（至暗之夜的主城）顯示重要地點與服務。
+## Notes-zhTW: HandyNotes: Midnight - Capital|n|n在重建後的銀月城（至暗之夜的主城）顯示重要地點與服務。
 Icons.lua
 Localization.lua
 locales\enUS.lua

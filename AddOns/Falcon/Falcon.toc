@@ -18,7 +18,7 @@
 ## Category-zhCN: 用户界面
 ## Category-zhTW: 介面
 
-## Title-zhTW: |cFF0099FF[介面]|r 天空騎術
+## Title-zhTW: |cff33FF8F[騎術]|r 天空騎術
 ## Notes-zhTW: Falcon |n|n簡潔又容易理解的天空騎術介面。|n|n|cffffd200使用方法: |r從Esc>編輯模式，進行設定。
 ## IconTexture: 4640486
 

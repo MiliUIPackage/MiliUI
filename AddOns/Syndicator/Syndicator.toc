@@ -4,8 +4,8 @@
 ## Author: plusmouse
 ## SavedVariables: SYNDICATOR_CONFIG, SYNDICATOR_DATA, SYNDICATOR_SUMMARIES
 ## IconTexture: Interface\AddOns\Syndicator\Assets\logo.tga
-## Title-zhTW: |cFF2DA267[物品]|r 物品資訊
-## Notes-zhTW: Syndicator|n儲存角色背包和銀行的物品資訊。
+## Title-zhTW: |cff2DA267[背包]|r 物品資訊
+## Notes-zhTW: Syndicator|n|n儲存角色背包和銀行的物品資訊。
 
 ## Category-enUS: Inventory
 ## Category-deDE: Inventar

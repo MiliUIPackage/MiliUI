@@ -14,7 +14,7 @@
 ## SavedVariablesPerCharacter: KeystoneLootCharDB
 
 ## Category-zhTW: 資訊
-## Title-zhTW: |cFF2DA267[裝備]|r 戰利品查詢
+## Title-zhTW: |cff2DA267[裝備]|r 戰利品查詢
 ## Notes-zhTW: KeystoneLoot |n|n 顯示所有地城的掉落，並可以標記最愛。|n|n|cffffd200使用方法：|r點小地圖旁按鈕。
 # Libs
 libs/menu/MenuConstants.lua

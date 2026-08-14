@@ -2,7 +2,7 @@
 ## Title: Void Chimes
 ## Notes: Ascending notes on successful Collapsing Star casts during Void Metamorphosis
 
-## Title-zhTW: |cFF00FFFF[惡魔獵人]|r 虛無鐘聲
+## Title-zhTW: |cff00FFFF[職業]|r|cffA330C9[惡魔獵人]|r 虛無鐘聲
 ## Notes-zhTW: Void Chimes|n|n惡魔獵人-噬滅天賦專屬的插件，可計算變身時間與崩陷之星數量，指令: /vc settings 可進入設定畫面。
 ## Category-zhTW: 戰鬥
 

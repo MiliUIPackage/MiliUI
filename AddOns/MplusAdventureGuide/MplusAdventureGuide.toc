@@ -19,7 +19,7 @@
 ## Category-zhCN: 地下城和团队副本
 ## Category-zhTW: 介面
 
-## Title-zhTW: |cFF0099FF[介面]|r 冒險指南強化
+## Title-zhTW: |cff33F5FF[指南]|r 冒險指南強化
 ## Notes-zhTW: MplusAdventureGuide|n|n顯示賽季裝備裝備等級區間、M+介面顯示傳送門以及其他一些內容。
 
 libs\LibStub\LibStub.lua

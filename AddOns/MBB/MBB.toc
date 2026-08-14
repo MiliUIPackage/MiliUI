@@ -6,8 +6,8 @@
 ## X-Category: Map
 ## X-Curse-Project-ID: 436829
 ## Notes: Cleans up minimap buttons and makes them accessible through a pop out menu!
-## Title-zhTW: |cFF0099FF[介面]|r 小地圖按鈕整合
-## Notes-zhTW: MinimapButtonBag|n小地圖按鈕整合。
+## Title-zhTW: |cff33E0FF[地圖]|r 小地圖按鈕整合
+## Notes-zhTW: MinimapButtonBag|n|n小地圖按鈕整合。
 ## Notes-frFR: Liberez votre minimap de ses boutons et rendez les accessibles avec un menu deroulant!
 ## Notes-deDE: Reduziert die Minimap Knöpfe und erlaubt den Zugriff auf diese über ein Menü!
 ## Notes-zhCN: 清除迷你地图周围按钮，整合它们至一个弹出菜单中！

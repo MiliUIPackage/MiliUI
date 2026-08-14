@@ -9,7 +9,7 @@
 ## SavedVariables: ParagonReputationDB
 ## Category-zhTW: 介面
 
-## Title-zhTW: |cff0099FF[介面]|r 巔峰聲望
+## Title-zhTW: |cff33FFCC[聲望]|r 巔峰聲望
 ## Notes-zhTW: |cff0088eeParagon|r Reputation |n|n顯示巔峰聲望進度、聲望獎勵的收集進度，以及領取巔峰箱的通知。|n|n|cffffd200使用方法: |r從Esc>選項>插件>聲望，進行設定。
 
 data.lua

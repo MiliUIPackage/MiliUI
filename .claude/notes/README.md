@@ -76,6 +76,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-find-season-currency-id.md](wow-find-season-currency-id.md) | 查新賽季貨幣代碼的兩行巨集 |
 | [project-platynator-preset.md](project-platynator-preset.md) | Platynator 內建預設值怎麼更新 |
 | [project-toc-interface-bump.md](project-toc-interface-bump.md) | 一鍵更新 `## Interface:`（工具在 wow-toc-interface-bump 技能） |
+| [project-toc-title-tag-style.md](project-toc-title-tag-style.md) | Title-zhTW 兩字標籤與漸層上色法、排序剝色碼、Notes `\|n\|n` 換行慣例 |
 | [project-itemupgrade-preview-icon.md](project-itemupgrade-preview-icon.md) | 物品升級預覽 icon —— **已改成自動推導，不再需要每季更新** |
 
 ### 個別插件修補（上游更新後要重套）

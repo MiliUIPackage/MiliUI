@@ -4,10 +4,10 @@
 ## Version: 1.9.4
 
 ## Title: Plumber
-## Title-zhTW: |cffffffff[其他]|r 實用工具包
+## Title-zhTW: |r|cffFFFFFF[工具]|r 實用工具包
 ## Notes: Provides a variety of quality-of-life features.|nMore details in the AddOn Settings.
 ## Notes-zhCN: 提供多种便捷功能。|n请前往插件设置来查看更多信息。
-## Notes-zhTW: Plumber|n|n提供多種便捷功能。|n請前往插件設置來查看更多訊息。
+## Notes-zhTW: Plumber|n|n提供多種便捷功能。|n|n請前往插件設置來查看更多訊息。
 
 ## Author: Peterodox
 ## SavedVariables: PlumberDB, PlumberDevData, PlumberStorage
