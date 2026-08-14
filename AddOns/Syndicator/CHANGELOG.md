@@ -1,6 +1,6 @@
 # Syndicator
 
-## [267](https://github.com/TheMouseNest/Syndicator/tree/267) (2026-04-21)
-[Full Changelog](https://github.com/TheMouseNest/Syndicator/compare/266...267) 
+## [276](https://github.com/TheMouseNest/Syndicator/tree/276) (2026-08-12)
+[Full Changelog](https://github.com/TheMouseNest/Syndicator/compare/275...276) 
 
-- Update toc and freeze CheckItem to prevent overrides  
+- Fallback for when catalog info doesn't exist for a decor item  

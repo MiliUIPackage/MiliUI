@@ -338,11 +338,21 @@ local function IsMountCollected(itemID)
   end
 end
 
+local function IsDecorCollected(itemID)
+  local catalogInfo = C_HousingCatalog.GetCatalogEntryInfoByItem(itemID)
+  if catalogInfo == nil then
+    return nil
+  end
+  local possessed = catalogInfo.totalNumPlaced + catalogInfo.remainingRedeemable + catalogInfo.totalNumStored
+  return possessed ~= 0
+end
+
 local function CollectedCheck(details)
   if not C_Item.IsItemDataCachedByID(details.itemID) then
     C_Item.RequestLoadItemDataByID(details.itemID)
     return nil
   end
+  GetClassSubClass(details)
 
   local result = nil
 
@@ -361,6 +371,9 @@ local function CollectedCheck(details)
   end
   if C_MountJournal and C_MountJournal.GetMountFromItem(details.itemID) then
     result = IsMountCollected(details.itemID)
+  end
+  if C_HousingCatalog and details.classID == Enum.ItemClass.Housing and details.subClassID == Enum.ItemHousingSubclass.Decor then
+    result = IsDecorCollected(details.itemID)
   end
 
   return result or false, result == false
@@ -371,6 +384,7 @@ local function UncollectedCheck(details)
     C_Item.RequestLoadItemDataByID(details.itemID)
     return nil
   end
+  GetClassSubClass(details)
 
   local result = nil
 
@@ -389,6 +403,9 @@ local function UncollectedCheck(details)
   end
   if C_MountJournal and C_MountJournal.GetMountFromItem(details.itemID) then
     result = IsMountCollected(details.itemID)
+  end
+  if C_HousingCatalog and details.classID == Enum.ItemClass.Housing and details.subClassID == Enum.ItemHousingSubclass.Decor then
+    result = IsDecorCollected(details.itemID)
   end
 
   if result ~= nil then
@@ -678,6 +695,27 @@ local function UsableCheck(details)
 end
 
 local UPGRADE_PATH_PATTERN = ITEM_UPGRADE_TOOLTIP_FORMAT_STRING and "^" .. ITEM_UPGRADE_TOOLTIP_FORMAT_STRING:gsub("%%s", ".*"):gsub("%%d", ".*")
+local currentSeasonBonusIDs = {
+  [13653] = true, -- Voidforged
+  [13654] = true, -- Voidforged
+  [13655] = true, -- Voidforged
+  [12066] = true, -- Radiance Crafted
+  [13786] = true, -- Sporefused: Myth
+}
+
+local function CheckBonusIDs(itemLink)
+  local _, main = LinkUtil.ExtractLink(itemLink)
+  local entries = {strsplit(":", main)}
+  local bonusIDCount = tonumber(entries[14])
+  if bonusIDCount and bonusIDCount > 0 then
+    for i = 15, 14 + bonusIDCount do
+      if currentSeasonBonusIDs[tonumber(entries[i])] then
+        return true
+      end
+    end
+  end
+  return false
+end
 
 local function ActiveSeasonCheck(details)
   if not C_Item.IsItemDataCachedByID(details.itemID) then
@@ -686,6 +724,9 @@ local function ActiveSeasonCheck(details)
   end
   if not addonTable.Utilities.IsEquipment(details.itemLink) then
     return false
+  end
+  if CheckBonusIDs(details.itemLink) then
+    return true
   end
   local upgradeInfo = C_Item.GetItemUpgradeInfo(details.itemLink)
   if not upgradeInfo or not upgradeInfo.trackString then
@@ -2383,6 +2424,34 @@ function addonTable.Search.InitializeSearchEngine()
           GetClassSubClass(details)
           return details.classID == 20 and details.subClassID == subClass
         end, addonTable.Locales.GROUP_HOUSING)
+      end
+    end
+  end
+
+  if addonTable.Constants.IsRetail then
+    local professionToolsToCheck = {
+      [0] = "blacksmithing",
+      "leatherworking",
+      "alchemy",
+      "herbalism",
+      "cooking",
+      "mining",
+      "tailoring",
+      "engineering",
+      "enchanting",
+      "fishing",
+      "skinning",
+      "jewelcrafting",
+      "inscription",
+      "archaeology",
+    }
+    for subClass, english in pairs(professionToolsToCheck) do
+      local keyword = C_Item.GetItemSubClassInfo(Enum.ItemClass.Profession, subClass)
+      if keyword ~= nil then
+        AddKeywordManual(keyword:lower(), english, function(details)
+          GetClassSubClass(details)
+          return details.classID == Enum.ItemClass.Profession and details.subClassID == subClass
+        end, addonTable.Locales.GROUP_PROFESSION_TOOL)
       end
     end
   end

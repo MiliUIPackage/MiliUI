@@ -190,6 +190,8 @@ addonTable.Search.Constants.KeywordGroupOrder = {
   addonTable.Locales.GROUP_GLYPH,
   addonTable.Locales.GROUP_CONSUMABLE,
 
+  addonTable.Locales.GROUP_PROFESSION_TOOL,
+
   addonTable.Locales.GROUP_EXPANSION,
   addonTable.Locales.GROUP_BATTLE_PET,
   addonTable.Locales.GROUP_HOUSING,

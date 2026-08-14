@@ -157,7 +157,7 @@ do
   }
   priceSources["tradeskillmaster-dbregionsaleavg"] = {
     func = function(itemLink)
-      return TSM_API.GetCustomPriceValue("dbregionmarketavg", TSM_API.ToItemString(itemLink))
+      return TSM_API.GetCustomPriceValue("dbregionsaleavg", TSM_API.ToItemString(itemLink))
     end,
     validation = function() return TSM_API ~= nil end
   }

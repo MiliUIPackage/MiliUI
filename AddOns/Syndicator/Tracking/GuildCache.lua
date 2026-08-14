@@ -230,9 +230,7 @@ function SyndicatorGuildCacheMixin:ExamineAllBankTabs()
     self.isUpdatePending = false
     return
   end
-  local finished = false
   local changed = {}
-  local anythingChanged = false
   for tabIndex = 1, GetNumGuildBankTabs() do
     self:ExamineBankTab(tabIndex, function(tabIndex, anyChanges)
       changed[tabIndex] = anyChanges or nil

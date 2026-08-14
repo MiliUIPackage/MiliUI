@@ -603,10 +603,10 @@ function TermButtonMixin:OnLoad()
   self.AuctionValueGoldInput:SetScript("OnTextChanged", function()
     local text = self.AuctionValueGoldInput:GetText()
     if not text:match("^%d+$") then
-      self.component.value[1] = self.component.value[1] - math.floor(self.component.value[1] / 10000) + self.component.value[1]%10000
-      self.AuctionValueGoldInput:SetText("0")
+      self.component.value[1] = self.component.value[1]%10000
+      self.AuctionValueGoldInput:SetText("")
     else
-      self.component.value[1] = self.component.value[1] - math.floor(self.component.value[1]) + self.component.value[1]%10000 + tonumber(text) * 10000
+      self.component.value[1] = self.component.value[1]%10000 + tonumber(text) * 10000
       self.AuctionValueGoldInput:SetText(math.floor(self.component.value[1]/10000))
     end
     if self.AuctionValueGoldInput:GetText() == "" or self.AuctionValueGoldInput:GetText() == "0" then

@@ -6,6 +6,7 @@ SyndicatorEquippedCacheMixin = {}
 -- Assumed to run after PLAYER_LOGIN
 function SyndicatorEquippedCacheMixin:OnLoad()
   self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+  self:RegisterUnitEvent("UNIT_INVENTORY_CHANGED", "player")
 
   self.currentCharacter = addonTable.Utilities.GetCharacterFullName()
 
@@ -54,6 +55,9 @@ function SyndicatorEquippedCacheMixin:OnEvent(eventName, ...)
     end
 
     addonTable.CallbackRegistry:TriggerEvent("EquippedCacheUpdate", self.currentCharacter)
+  elseif eventName == "UNIT_INVENTORY_CHANGED" then
+    self:UnregisterEvent("UNIT_INVENTORY_CHANGED")
+    self:ScanEquipped()
   end
 end
 

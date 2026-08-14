@@ -55,19 +55,6 @@ if addonTable.Constants.IsRetail then
       Enum.BagIndex.CharacterBankTab_6,
     }
     addonTable.Constants.BankBagSlotsCount = 0
-  else
-    addonTable.Constants.AllBankIndexes = {
-      Enum.BagIndex.Bank,
-      Enum.BagIndex.BankBag_1,
-      Enum.BagIndex.BankBag_2,
-      Enum.BagIndex.BankBag_3,
-      Enum.BagIndex.BankBag_4,
-      Enum.BagIndex.BankBag_5,
-      Enum.BagIndex.BankBag_6,
-      Enum.BagIndex.BankBag_7,
-      Enum.BagIndex.Reagentbank,
-    }
-    addonTable.Constants.BankBagSlotsCount = 7
   end
   addonTable.Constants.AllWarbandIndexes = {
     Enum.BagIndex.AccountBankTab_1,
@@ -78,7 +65,7 @@ if addonTable.Constants.IsRetail then
   }
 end
 
-if addonTable.Constants.IsEra or KeyRingButtonIDToInvSlotID then
+if addonTable.Constants.IsEra or (KeyRingButtonIDToInvSlotID and not addonTable.Constants.IsMists) then
   table.insert(addonTable.Constants.AllBagIndexes, Enum.BagIndex.Keyring)
 end
 if addonTable.Constants.IsEra then
