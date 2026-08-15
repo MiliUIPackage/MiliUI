@@ -1,0 +1,48 @@
+## Interface: 120100, 120105
+## Title: MiliUI Unit Frame
+## Title-zhTW: |cff4DD2FF[頭像]|r 米利頭像框架
+## Notes: MiliUI unit frames, built natively for 12.1 secret values.
+## Notes-zhTW: MiliUI Unit Frame|n|n米利頭像框架，取代 Stuf，原生支援 12.1 秘密值。|n|n|cffffd200使用方法: |r/muf 或小地圖按鈕開啟設定。
+## Category: UnitFrame
+## Category-zhTW: 頭像
+## Author: Mili
+## Version: 1.0.0
+## IconTexture: Interface\AddOns\MiliUI_Unit_Frame\Media\icon
+## SavedVariables: MiliUI_UnitFrame_DB
+## OptionalDeps: MiliUI, Clique, Cell
+## AddonCompartmentFunc: MiliUIUF_OnAddonCompartmentClick
+
+Libs\PixelPerfect.lua
+Libs\Callbacks.lua
+Core\Init.lua
+Core\Secret.lua
+Core\Media.lua
+Core\DB.lua
+Core\Colors.lua
+Core\Cache.lua
+Core\Events.lua
+Core\Tags.lua
+Core\Registry.lua
+Core\UnitFrame.lua
+Core\HideBlizzard.lua
+Elements\Health.lua
+Elements\Power.lua
+Elements\ClassPower.lua
+Elements\Portrait.lua
+Elements\Texts.lua
+Elements\Castbar.lua
+Elements\Auras.lua
+Elements\Icons.lua
+Elements\Totems.lua
+Units.lua
+Options\Widgets.lua
+Options\Controls.lua
+Options\Preview.lua
+Options\Panel.lua
+Options\Tab_General.lua
+Options\Tab_Unit.lua
+Options\Tab_Totem.lua
+Options\Tab_Share.lua
+Options\Minimap.lua
+EditMode.lua
+Api.lua

@@ -261,6 +261,20 @@ local function InitSettings()
     tip:SetPoint("TOPLEFT", url, "BOTTOMLEFT", 0, -6)
     tip:SetText("若有任何問題歡迎在米利UI套組頁面下方留言討論")
 
+    -- 開啟米利頭像框架（MiliUI_Unit_Frame）獨立設定面板
+    if C_AddOns.IsAddOnLoaded("MiliUI_Unit_Frame") then
+        local ufBtn = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
+        ufBtn:SetSize(160, 24)
+        ufBtn:SetPoint("TOPRIGHT", divider2, "BOTTOMRIGHT", 0, -8)
+        ufBtn:SetText("開啟頭像框架設定")
+        ufBtn:SetScript("OnClick", function()
+            if MiliUI_OpenUnitFrameSettings then
+                MiliUI_OpenUnitFrameSettings()
+                HideUIPanel(SettingsPanel)
+            end
+        end)
+    end
+
     local category = Settings.RegisterCanvasLayoutCategory(mainFrame, "0米利UI設定")
     -- 不覆寫 category.ID：Blizzard 12.0+ OpenSettingsPanel 內部需要 numeric ID
     Settings.RegisterAddOnCategory(category)

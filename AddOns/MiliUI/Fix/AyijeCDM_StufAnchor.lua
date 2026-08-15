@@ -17,6 +17,11 @@ local INVERTED_ANCHORS = {
 }
 
 local function GetStufPlayerFrame()
+    -- 優先用新頭像框架（MiliUI_Unit_Frame），沒有或隱藏時退回 Stuf
+    local newFrame = _G["MiliUIUF_Player"]
+    if newFrame and newFrame.IsShown and newFrame:IsShown() then
+        return newFrame
+    end
     local frame = _G[STUF_PLAYER_FRAME_NAME]
     if frame and frame.IsShown and frame:IsShown() then
         return frame
