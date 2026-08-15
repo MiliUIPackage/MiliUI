@@ -276,6 +276,19 @@ AD.BuildRecords = BuildRecords
 --
 -- HARMFUL pools are out of scope: their gate is UnitCanAttack, and ID filtering on a
 -- friendly unit's debuffs is banned outright anyway (see the debuff mode above).
+--
+-- FAIL DIRECTION when a vulnerable row is caught in the gate (cinematic / loading /
+-- cross-faction / phase):
+--   SHOW  (false) -- keep the row up and eat a moment of unfiltered icons. The original
+--                    12.1 default: a wrongly-hidden row was judged worse than garbage.
+--   HIDE  (true)  -- render nothing until the whitelist is trustworthy again. User
+--                    preference: an empty row beats a food-buff-filled one.
+-- Recovery is the same GateRefresh bounce either way, so HIDE self-corrects the instant
+-- assist/visibility comes back; the only cost is a legit row can blink out for the length
+-- of one confirmed-false probe. Only CONFIRMED fail-open is flipped (definite non-secret
+-- false, plus the cinematic latch) -- genuine doubt (secret value, pcall failure, no unit)
+-- still falls to SHOW, so normal secret-aura combat never blanks a row.
+local GATE_FAIL_CLOSED = true
 -- ============================================================
 
 local function RecordVulnerableToIdentityGate(rec)
@@ -1043,11 +1056,11 @@ function Handle:_NoteGateRecovery(can)
     return was == false and self._gateAssist
 end
 
--- Fail-SAFE direction is SHOW: any doubt (no unit, pcall failure, secret value) leaves the
--- row visible, because a wrongly hidden row is worse than one garbage icon. We probe our
--- OWN frame as well -- it is the one that always falls open on the login cinematic -- but
--- never hide it: hiding the player's own row is a worse failure than a moment of
--- unfiltered icons.
+-- Genuine doubt (no unit, pcall failure, secret value) always leaves the row visible --
+-- that is uncertainty, not a confirmed fail-open, and blanking a row mid-combat is worse.
+-- A CONFIRMED non-secret false is the fail-open signal; whether that hides the player's
+-- OWN row too is GATE_FAIL_CLOSED (SHOW kept own visible -- a wrongly-hidden own row was
+-- judged worse than unfiltered icons; HIDE blanks it like everyone else, per user pref).
 function Handle:ApplyIdentityGate()
     local hide, recovered = false, false
 
@@ -1067,7 +1080,7 @@ function Handle:ApplyIdentityGate()
                 if ok then
                     if issecretvalue(can) then can = true end
                     recovered = self:_NoteGateRecovery(can)
-                    if not can and not isOwn then hide = true end
+                    if not can and (not isOwn or GATE_FAIL_CLOSED) then hide = true end
                 end
             end
 
@@ -1083,7 +1096,7 @@ function Handle:ApplyIdentityGate()
                     local was = self._gateVisible
                     self._gateVisible = vis and true or false
                     if was == false and self._gateVisible then recovered = true end
-                    if not vis and not isOwn then hide = true end
+                    if not vis and (not isOwn or GATE_FAIL_CLOSED) then hide = true end
                 end
             end
         end
@@ -1192,8 +1205,9 @@ end
 -- The cinematic pair latches vulnerable rows hidden for the duration, so the fail-open
 -- parse a cinematic leaves behind is never SEEN -- the rows come back only once the
 -- recovery bounce has re-parsed them (ApplyIdentityGate clears each latch as it bounces).
--- The 3s fallback then shows whatever is still latched: fail-safe is SHOW, so the worst
--- case degrades to exactly the old behaviour and never below it.
+-- The 3s fallback then resolves whatever is still latched -- force-shown in SHOW mode
+-- (never below the old behaviour), or re-probed in HIDE mode (stays hidden until assist
+-- actually recovers). See GATE_FAIL_CLOSED.
 -- ============================================================
 do
     local watcher = CreateFrame("Frame")
@@ -1254,7 +1268,14 @@ do
         if event == "CINEMATIC_STOP" or event == "STOP_MOVIE" then
             Sweep()             -- assist may already be back; bounce now, not in 50ms
             UnlatchAll(true)
-            C_Timer.After(3, function() UnlatchAll(false) end)
+            -- SHOW mode force-shows whatever is still latched after 3s (never below old
+            -- behaviour). HIDE mode instead re-probes: recovered rows un-latch via their
+            -- bounce, rows whose assist is still down stay hidden (fail-closed).
+            if GATE_FAIL_CLOSED then
+                C_Timer.After(3, Sweep)
+            else
+                C_Timer.After(3, function() UnlatchAll(false) end)
+            end
         elseif event == "PLAYER_ENTERING_WORLD" then
             C_Timer.After(2, Sweep)
             C_Timer.After(6, Sweep)
@@ -1513,9 +1534,10 @@ function AD.Inspect(unitToken)
             -- the fail-open state: "assist=false" IS the "why is my whitelist showing
             -- every buff" answer, and it is invisible from anywhere else
             if h._gateVulnerable or h._gateSourceRelative then
-                p(("    身分閘：白名單依賴=%s 來源依賴=%s assist=%s visible=%s 隱藏=%s")
+                p(("    身分閘：白名單依賴=%s 來源依賴=%s assist=%s visible=%s 隱藏=%s 失效方向=%s")
                     :format(tostring(h._gateVulnerable or false), tostring(h._gateSourceRelative or false),
-                        tostring(h._gateAssist), tostring(h._gateVisible), tostring(h._gateHidden or false)))
+                        tostring(h._gateAssist), tostring(h._gateVisible), tostring(h._gateHidden or false),
+                        GATE_FAIL_CLOSED and "隱藏(fail-closed)" or "顯示(fail-open)"))
             end
             for _, e in ipairs(h._errors or {}) do p("    ERR:", e) end
         end
