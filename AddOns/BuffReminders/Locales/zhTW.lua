@@ -320,10 +320,35 @@ L["Tab.DisplayBehavior"] = "顯示/行為"
 
 -- Sidebar groups
 L["Sidebar.AddonSettings"] = "插件設定"
-L["Sidebar.BuffsReminders"] = "增益 & 提醒"
+L["Sidebar.Buffs"] = "增益"
 L["Sidebar.Appearance"] = "外觀"
 L["Sidebar.Display"] = "顯示"
 L["Sidebar.Alerts"] = "警告"
+-- Externals (present-based display)
+L["Externals.Title"] = "外來增益"
+L["Externals.PageNote"] =
+    "遊戲將這些增益標記為秘密並自行繪製圖示，因此插件永遠不會看到他們的數據。這就是為什麼它們在戰鬥中保持可見的原因 - 以及為什麼只能顯示對你的增益，除了大小和間距之外沒有任何可自訂的內容。"
+L["Externals.Enable"] = "啟用外來增益"
+L["Externals.EnableTooltip"] = "當下方選擇的增益效果在您身上啟用時，顯示一行圖示。"
+L["Externals.DisabledReason"] = "首先啟用外來增益。"
+L["Externals.EnableElsewhere"] = "首先在增益 > 外來增益頁面上啟用外來增益。"
+L["Externals.Defensives"] = "外來減傷"
+L["Externals.GroupBuffs"] = "群體增益"
+L["Externals.Movement"] = "移動"
+L["Externals.Aggro"] = "威脅重定向"
+L["Externals.Augmentation"] = "強化"
+-- Groups Bloodlust/Heroism/Time Warp/Fury of the Aspects/Primal Rage/Ancient Hysteria
+L["Externals.Bloodlust"] = "嗜血術"
+-- Groups the three barriers Mass Barrier casts on allies (Ice/Blazing/Prismatic)
+L["Externals.MassBarrier"] = "群體屏障"
+-- Groups Blessing of Summer/Autumn/Winter/Spring
+L["Externals.BlessingOfSeasons"] = "四季祝福"
+L["Externals.MoverTooltip"] = "拖曳以重新定位"
+L["Externals.DurationSize"] = "倒數尺寸"
+L["Externals.Appearance"] = "外觀"
+L["Externals.AppearanceNote"] =
+    "雖然這些增益是秘密的，但遊戲禁止重新設計它們的圖示，因此戰鬥中所做的更改一旦離開就會立即生效。解鎖框架以拖曳行。"
+L["Externals.MasqueNote"] = "Masque 無法對這些圖示進行皮膚處理：它們的大小會作為秘密值讀回。"
 
 -- Page titles
 L["Page.General"] = "通用"
@@ -333,7 +358,8 @@ L["Page.ChatRequests"] = "聊天請求"
 L["Page.Layout"] = "佈局"
 L["Page.Categories"] = "類別"
 L["Page.Profiles"] = "設定檔"
-L["Page.AllBuffs"] = "所有增益"
+L["Page.Reminders"] = "提醒"
+L["Page.CustomAnchors"] = "自訂義定位"
 
 -- Per-category page section headers
 L["Section.Tracking"] = "追蹤"
@@ -651,21 +677,11 @@ L["Options.SplitFrame.Desc"] = "將此類別中的增益顯示在可獨立移動
 L["Options.DisplayOrder"] = "堆疊順序"
 
 -- Layout page
-L["Layout.PositionFrames"] = "定位框架"
-L["Layout.PositionFrames.Note"] =
-    "解鎖即可在遊戲中獲得拖曳手把。按一下手把可輸入精確座標；拖曳以重新定位。在拖曳時保持框架的定位。"
-L["Layout.SplitFrames"] = "分離框架"
-L["Layout.SplitFrames.Note"] = "類別分離為自己獨立定位的框架。從頁面的佈局部分拆分類別。"
-L["Layout.NoSplitFrames"] = "沒有類別被分離成自己的框架。"
 L["Layout.DetachedIcons"] = "分離的圖示"
 L["Layout.NoDetached"] =
     '沒有獨立的圖示。從所有增益頁面上的設定面板中分離增益 ("自己的框架")。'
-L["Layout.AnchorTargets"] = "定位目標"
-L["Layout.AnchorFrame.Desc"] = "將此框架附加到另一個框架，而不是固定的螢幕位置。"
-L["Layout.AnchorPoint.Desc"] = "要連接到定位框架的哪個角落或邊緣。"
 L["Layout.FrameNotFound"] =
     "該框架目前在遊戲中不存在。 \n一旦其插件創建它，它將出現在定位點下拉列表中。"
-L["DisabledReason.AnchorPoint"] = "請先挑選一個定位框架 - 定位點僅在定位到框架時適用。"
 
 -- Buff panel (uniform per-buff settings dialog)
 L["BuffPanel.SettingsLink"] = "設定"
@@ -745,6 +761,8 @@ L["Options.Override.Appearance.Desc"] =
     "覆寫此類別的全域外觀預設值。 \n關閉時，下方的控制項顯示從「預設值」頁面繼承的值。"
 L["Options.Override.Glow.Desc"] =
     "覆寫此類別的全域發光設定。 \n關閉時，下方的控制項顯示從「預設值」頁面繼承的值。"
+L["Options.Override.Externals.Desc"] =
+    "覆蓋這些圖示的全域外觀預設值。\n關閉時，大小、縮放、邊框和間距控制顯示從「預設值」頁面繼承的值。倒數計時的大小和方向總是分開的。"
 L["Options.Customize"] = "自定義"
 L["Options.ResetPosition"] = "重置位置"
 L["Options.MasqueNote"] = "縮放和邊框設置由Masque管理。"

@@ -1,8 +1,9 @@
-## Interface: 120007, 120100
+## Interface: 120100
+# WOW_INTERFACE_TARGETS: mainline
 ## Title: BuffReminders
 ## Notes: Track missing buffs at a glance
 ## Author: zerbi
-## Version: v6.4.2
+## Version: v6.5.1
 ## SavedVariables: BuffRemindersDB
 ## X-Curse-Project-ID: 1441094
 ## X-Wago-ID: qGYZZjNg
@@ -50,6 +51,7 @@ Core\State.lua
 UI\Components.lua
 UI\Glow.lua
 Display\Icons.lua
+Display\Fonts.lua
 Display\Display.lua
 Core\ImportExport.lua
 Display\Movers.lua
@@ -68,6 +70,7 @@ Options\Pages\Defaults.lua
 Options\Pages\Visibility.lua
 Options\Pages\ChatRequests.lua
 Options\Pages\Layout.lua
+Options\Pages\CustomAnchors.lua
 Options\Pages\General.lua
 Options\Pages\Profiles.lua
 Options\Pages\Buffs\Sections\Visibility.lua

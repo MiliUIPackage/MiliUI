@@ -199,12 +199,20 @@ local L = BR.L
 local DEFAULT_BORDER_SIZE = BR.DEFAULT_BORDER_SIZE
 local DEFAULT_ICON_ZOOM = BR.DEFAULT_ICON_ZOOM
 local TEXCOORD_INSET = BR.TEXCOORD_INSET
+local GetAspectCropInsets = BR.GetAspectCropInsets
 
 -- WoW API locals
 local PlaySoundFile = PlaySoundFile
+local IsInGroup = IsInGroup
 
--- LibSharedMedia for font resolution
+-- LibSharedMedia for sound resolution (fonts live in Display/Fonts.lua)
 local LSM = LibStub("LibSharedMedia-3.0")
+
+-- Shared display font (Display/Fonts.lua), aliased for hot render paths
+local DisplayFonts = BR.DisplayFonts
+local ApplyFont = DisplayFonts.Apply
+local GetFontPath = DisplayFonts.GetFontPath
+local GetOutline = DisplayFonts.GetOutline
 
 -- Masque integration (optional)
 local Masque = LibStub("Masque", true)
@@ -212,63 +220,6 @@ local masqueGroup = Masque and Masque:Group("BuffReminders")
 
 local function IsMasqueActive()
     return masqueGroup ~= nil and not masqueGroup.db.Disabled
-end
-
--- Cached font path - resolved once on load and updated when the setting changes (via VisualsRefresh).
--- All SetFont calls read this local directly instead of calling LSM:Fetch() every time.
-local fontPath = STANDARD_TEXT_FONT
-
--- LSM can register fonts whose file assets can't be loaded (e.g. another addon points to
--- a missing TTF). We probe each path with a hidden FontString + pcall so we never hand a
--- broken path to SetFont, which would hard-error and break the display / options panel.
-local fontProbe = UIParent:CreateFontString(nil, "BACKGROUND")
-fontProbe:Hide()
-local fontPathValidCache = {}
-
----Check whether a font file path is loadable by the WoW client (BR.Helpers
----export; the options font picker filters the LSM list through this)
----@param path string? LSM-resolved font file path
----@return boolean valid true if path is non-nil and SetFont succeeds
-local function IsFontPathValid(path)
-    if not path then
-        return false
-    end
-    local cached = fontPathValidCache[path]
-    if cached ~= nil then
-        return cached
-    end
-    local ok = pcall(fontProbe.SetFont, fontProbe, path, 12, "")
-    fontPathValidCache[path] = ok
-    return ok
-end
-
----Resolve the font path from saved settings and update the cache
-local function ResolveFontPath()
-    local fontName = BR.profile and BR.profile.defaults and BR.profile.defaults.fontFace
-    if fontName then
-        local path = LSM:Fetch("font", fontName)
-        if IsFontPathValid(path) then
-            fontPath = path
-            return
-        end
-    end
-    fontPath = STANDARD_TEXT_FONT
-end
-
--- Cached outline flag - resolved on load and updated when the setting changes (via VisualsRefresh).
--- "NONE" in saved settings is translated to "" at the WoW API level.
-local outlineFlag = "OUTLINE"
-
----Resolve the text outline flag from saved settings and update the cache
-local function ResolveOutline()
-    local value = BR.profile and BR.profile.defaults and BR.profile.defaults.textOutline
-    if value == "NONE" then
-        outlineFlag = ""
-    elseif value == nil then
-        outlineFlag = "OUTLINE"
-    else
-        outlineFlag = value
-    end
 end
 
 -- Global API table for external addon integration
@@ -473,6 +424,27 @@ end
 -- inCombat reflects both player regen AND boss encounter state for early detection
 local inCombat = false
 local inEncounter = false
+
+-- Narrow UNIT_AURA to player+pet whenever group payloads can't matter: in
+-- combat/encounters they are secret and fail closed in GroupAuraUpdateMatters
+-- (the 3s ticker owns group refresh there), and solo there are no group units.
+-- Narrow registration filters on the game's side, so group and nameplate aura
+-- churn never reaches Lua. Grouped out of combat listens broadly, filtered by
+-- GroupAuraUpdateMatters.
+local auraEventsNarrow -- nil forces the first call to register
+local function UpdateAuraEventRegistration()
+    local narrow = inCombat or not IsInGroup()
+    if narrow == auraEventsNarrow then
+        return
+    end
+    auraEventsNarrow = narrow
+    if narrow then
+        eventFrame:RegisterUnitEvent("UNIT_AURA", "player", "pet")
+    else
+        eventFrame:RegisterEvent("UNIT_AURA")
+        SetDirty("group") -- catch group changes missed while narrowed
+    end
+end
 local isResting = false
 local petDismountSuppressed = false -- Suppress pet eval briefly after dismount (pet respawn delay)
 local wasMounted = IsMounted()
@@ -511,12 +483,6 @@ BR.CATEGORY_LABELS = CATEGORY_LABELS
 
 -- Early init of BR.Display for split modules (populated further below and in InitializeFrames)
 BR.Display = BR.Display or {}
-BR.Display.GetFontPath = function()
-    return fontPath
-end
-BR.Display.GetOutline = function()
-    return outlineFlag
-end
 
 ---Check if a category is split into its own frame
 ---@param category string
@@ -704,29 +670,6 @@ local function GetFontSize(scale, textSize)
     return max(6, floor(textSize * (scale or 1)))
 end
 
----@class BRFontString: FontString
----@field _br_font_size number?   -- last font size applied via SetFontCached
----@field _br_font_path string?   -- last font path applied via SetFontCached
----@field _br_font_outline string? -- last outline flag applied via SetFontCached
-
----Apply the shared font (fontPath/outlineFlag) to a fontstring only when
----something actually changed. SetFont forces a full fontstring re-layout, and
----render paths re-apply fonts up to twice per second with unchanged values.
----@param fs BRFontString|FontString|EditBox any FontInstance (edit boxes included)
----@param size number
----@param outline? string overrides the shared outlineFlag (e.g. "" for edit boxes)
-local function SetFontCached(fs, size, outline)
-    outline = outline or outlineFlag
-    if fs._br_font_size == size and fs._br_font_path == fontPath and fs._br_font_outline == outline then
-        return
-    end
-    fs._br_font_size = size
-    fs._br_font_path = fontPath
-    fs._br_font_outline = outline
-    fs:SetFont(fontPath, size, outline)
-end
-BR.Display.SetFontCached = SetFontCached
-
 ---Get effective icon width (falls back to iconSize for square icons)
 ---@param iconWidth? number Explicit width setting
 ---@param iconSize number Icon height (used as fallback)
@@ -755,7 +698,7 @@ end
 ---@param scale number OVERLAY_TEXT_SCALE for labels, COUNT_TEXT_SCALE for numbers
 local function SetCountText(frame, text, scale)
     frame._br_count_scale = scale
-    SetFontCached(frame.count, GetFrameFontSize(frame, scale))
+    ApplyFont(frame.count, GetFrameFontSize(frame, scale))
     frame.count:SetText(text)
 end
 
@@ -1135,20 +1078,9 @@ local function UpdateIconStyling(frame, catSettings)
     -- Always apply base inset to crop texture edge artifacts; zoom adds on top
     local additionalZoom = (catSettings.iconZoom or DEFAULT_ICON_ZOOM) / 100
     local inset = TEXCOORD_INSET + additionalZoom
-    -- Aspect-ratio-aware crop: when width ≠ height, crop the longer texture axis
-    -- more so the icon isn't stretched/distorted (shows a centered slice instead)
     local iconHeight = catSettings.iconSize or 64
     local iconWidth = GetEffectiveWidth(catSettings.iconWidth, iconHeight)
-    local aspectRatio = iconWidth / iconHeight
-    local xInset = inset
-    local yInset = inset
-    if aspectRatio > 1 then
-        -- Wider than tall: crop top/bottom more
-        yInset = inset + (1 - 1 / aspectRatio) * (0.5 - inset)
-    elseif aspectRatio < 1 then
-        -- Taller than wide: crop left/right more
-        xInset = inset + (1 - aspectRatio) * (0.5 - inset)
-    end
+    local xInset, yInset = GetAspectCropInsets(inset, iconWidth, iconHeight)
     frame.icon:SetTexCoord(xInset, 1 - xInset, yInset, 1 - yInset)
     local borderSize = catSettings.borderSize or DEFAULT_BORDER_SIZE
     if borderSize > 0 then
@@ -1274,7 +1206,7 @@ local function CreateBuffFrame(buff, category)
         BR.TextPositions.Apply(frame.count, frame, cz, cx, cy)
     end
     frame.count:SetTextColor(textColor[1], textColor[2], textColor[3], textAlpha)
-    SetFontCached(frame.count, GetFontSize(1, catSettings.textSize))
+    ApplyFont(frame.count, GetFontSize(1, catSettings.textSize))
 
     -- Stack count (bottom-right by default; user-positionable via textPositions)
     frame.stackCount = frame:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
@@ -1294,7 +1226,7 @@ local function CreateBuffFrame(buff, category)
         local raidCs = db.categorySettings and db.categorySettings.raid
         local bz, bx, by = BR.TextPositions.Get("buffReminder")
         BR.TextPositions.Apply(frame.buffText, frame, bz, bx, by)
-        SetFontCached(frame.buffText, (raidCs and raidCs.buffTextSize) or GetFontSize(0.8, catSettings.textSize))
+        ApplyFont(frame.buffText, (raidCs and raidCs.buffTextSize) or GetFontSize(0.8, catSettings.textSize))
         frame.buffText:SetTextColor(textColor[1], textColor[2], textColor[3], textAlpha)
         frame.buffText:SetText(L["Overlay.Buff"])
         if raidCs and raidCs.showBuffReminder == false then
@@ -1312,7 +1244,7 @@ local function CreateBuffFrame(buff, category)
         frame.subLabel:SetWidth(iconWidth * SUBLABEL_WIDTH_FACTOR)
         local lz, lx, ly = BR.TextPositions.Get("buffReminder")
         BR.TextPositions.Apply(frame.subLabel, frame, lz, lx, ly)
-        SetFontCached(frame.subLabel, GetFontSize(SUBLABEL_FONT_SCALE, catSettings.textSize))
+        ApplyFont(frame.subLabel, GetFontSize(SUBLABEL_FONT_SCALE, catSettings.textSize))
         frame.subLabel:SetTextColor(textColor[1], textColor[2], textColor[3], textAlpha)
         frame.subLabel:Hide()
     end
@@ -1378,7 +1310,7 @@ local function GetOrCreateExtraFrame(frame, index)
         BR.TextPositions.Apply(extra.count, extra, cz, cx, cy)
     end
     extra.count:SetTextColor(textColor[1], textColor[2], textColor[3], textAlpha)
-    SetFontCached(extra.count, GetFontSize(1, catSettings.textSize))
+    ApplyFont(extra.count, GetFontSize(1, catSettings.textSize))
     extra.count:Hide()
 
     extra:SetAlpha(catSettings.iconAlpha or 1)
@@ -1852,6 +1784,9 @@ ToggleTestMode = function()
         -- Reset layout signatures so positioning runs fresh
         lastMainSignature = ""
         wipe(lastSplitSignatures)
+        if BR.AuraTracker then
+            BR.AuraTracker.SetTestMode(false)
+        end
         UpdateDisplay()
         return false
     else
@@ -1873,6 +1808,9 @@ ToggleTestMode = function()
         BR.SecureButtons.HideAllSecureFrames()
         lastMainSignature = ""
         wipe(lastSplitSignatures)
+        if BR.AuraTracker then
+            BR.AuraTracker.SetTestMode(true)
+        end
         UpdateDisplay()
         return true
     end
@@ -2033,7 +1971,7 @@ local function ApplyConsumableOverlays(frame, item, fontSize)
             local sz, sx, sy = BR.TextPositions.Get("statLabel")
             BR.TextPositions.Apply(frame.statLabel, frame, sz, sx, sy)
         end
-        SetFontCached(frame.statLabel, fontSize)
+        ApplyFont(frame.statLabel, fontSize)
         frame.statLabel:SetTextColor(1, 1, 1, 1)
         frame.statLabel:SetText(item.statLabel)
         frame.statLabel:Show()
@@ -2070,7 +2008,7 @@ local function ApplyConsumableOverlays(frame, item, fontSize)
                 local bz, bx, by = BR.TextPositions.Get("badge")
                 BR.TextPositions.Apply(frame.badgeLabel, frame, bz, bx, by)
             end
-            SetFontCached(frame.badgeLabel, fontSize)
+            ApplyFont(frame.badgeLabel, fontSize)
             frame.badgeLabel:SetTextColor(bc.r, bc.g, bc.b, 1)
             frame.badgeLabel:SetText(item.badge)
             frame.badgeLabel:Show()
@@ -2139,7 +2077,7 @@ local function ResolveConsumableFrame(frame)
         local mainSize = frame:GetWidth()
         local cFontSize = BR.SecureButtons.ComputeConsumableFontSize(mainSize)
         frame.count:Hide()
-        SetFontCached(frame.stackCount, cFontSize)
+        ApplyFont(frame.stackCount, cFontSize)
         frame.stackCount:SetText(items[1].count)
         frame.stackCount:Show()
         ApplyConsumableOverlays(frame, items[1], cFontSize)
@@ -2343,7 +2281,7 @@ local function ApplyConsumableDisplayMode(frame, entry, frameList, parentFrame)
                 extra:SetParent(frame)
                 extra:SetSize(size, size)
                 extra.icon:SetTexture(items[i].icon)
-                SetFontCached(extra.stackCount, cFontSize)
+                ApplyFont(extra.stackCount, cFontSize)
                 extra.stackCount:SetText(items[i].count > 1 and tostring(items[i].count) or "")
                 extra.stackCount:Show()
                 extra.count:Hide()
@@ -2404,7 +2342,7 @@ local function ApplyConsumableDisplayMode(frame, entry, frameList, parentFrame)
                 extra:SetParent(parentFrame)
                 extra:SetSize(expandedSize, frame:GetHeight())
                 extra.icon:SetTexture(items[i].icon)
-                SetFontCached(extra.stackCount, cFontSize)
+                ApplyFont(extra.stackCount, cFontSize)
                 extra.stackCount:SetText(items[i].count)
                 extra.count:Hide()
                 local showText = ShouldShowText(frame.buffCategory)
@@ -2451,10 +2389,10 @@ local function UpdatePetLabels(frame, petAction)
         return
     end
 
-    -- Early out if nothing changed since last call. Every input the labels
-    -- derive from is part of the key: zone + offsets so live position edits
-    -- re-anchor, frame width because the sizes scale off it, and the shared
-    -- font/outline because SetFontCached reads those.
+    -- Every input the labels derive from is part of the cache key: zone and
+    -- offsets so live position edits re-anchor, frame width because the
+    -- sizes scale off it, and the shared font and outline because ApplyFont
+    -- reads those.
     local scale = defs.petLabelScale or 100
     local zone, offX, offY = BR.TextPositions.Get("petLabel")
     local cacheKey = format(
@@ -2467,8 +2405,8 @@ local function UpdatePetLabels(frame, petAction)
         tostring(offX),
         tostring(offY),
         frame:GetWidth(),
-        fontPath,
-        outlineFlag
+        GetFontPath(),
+        GetOutline()
     )
     if frame._br_pet_label_key == cacheKey then
         return
@@ -2484,7 +2422,7 @@ local function UpdatePetLabels(frame, petAction)
     local ratio = scale / 100
     local nameSize = max(7, floor(frame:GetWidth() * 0.18 * ratio))
     local familySize = max(7, floor(nameSize * 0.85))
-    SetFontCached(frame._br_pet_name_text, nameSize)
+    ApplyFont(frame._br_pet_name_text, nameSize)
     BR.TextPositions.Apply(frame._br_pet_name_text, frame, zone, offX, offY)
     frame._br_pet_name_text:SetText(petAction.label or "")
     frame._br_pet_name_text:SetTextColor(1, 1, 1)
@@ -2492,7 +2430,7 @@ local function UpdatePetLabels(frame, petAction)
 
     local family = petAction.petFamily
     if family and family ~= "" then
-        SetFontCached(frame._br_pet_family_text, familySize)
+        ApplyFont(frame._br_pet_family_text, familySize)
         frame._br_pet_family_text:ClearAllPoints()
         frame._br_pet_family_text:SetPoint("TOP", frame._br_pet_name_text, "BOTTOM", 0, -1)
         frame._br_pet_family_text:SetText(family)
@@ -2504,7 +2442,7 @@ local function UpdatePetLabels(frame, petAction)
 
     if petAction.petSpiritBeast then
         local anchor = (family and family ~= "") and frame._br_pet_family_text or frame._br_pet_name_text
-        SetFontCached(frame._br_pet_extra_text, familySize)
+        ApplyFont(frame._br_pet_extra_text, familySize)
         frame._br_pet_extra_text:ClearAllPoints()
         frame._br_pet_extra_text:SetPoint("TOP", anchor, "BOTTOM", 0, -1)
         frame._br_pet_extra_text:SetText(L["Pet.SpiritBeast"])
@@ -2640,6 +2578,40 @@ local function TryPlayBuffSound(key, buffSounds)
         end
         soundPlayedThisCycle[settingKey] = true
     end
+end
+
+-- One armed timer for the next time-driven display change computed by
+-- State.Refresh (text minute tick, threshold crossing, weapon enchant
+-- expiry). Out of restricted contexts this replaces fast polling; the slow
+-- safety tick in StartUpdates bounds anything the refresh did not see.
+local nextChangeTimer, nextChangeAt
+local function ArmNextChangeTimer(refreshMode)
+    local delay = BR.BuffState.GetNextTimedChange()
+    local now = GetTime()
+    -- Group refreshes recompute only group categories, so their candidate set
+    -- is incomplete: keep an earlier alarm from the last full refresh and only
+    -- tighten. An early alarm is harmless (one extra refresh); a late one is
+    -- stale text.
+    if refreshMode == "group" and nextChangeAt and (not delay or now + delay >= nextChangeAt) then
+        return
+    end
+    if nextChangeTimer then
+        nextChangeTimer:Cancel()
+        nextChangeTimer = nil
+        nextChangeAt = nil
+    end
+    if not delay then
+        return
+    end
+    if delay < 0.5 then
+        delay = 0.5
+    end
+    nextChangeAt = now + delay
+    nextChangeTimer = C_Timer.NewTimer(delay, function()
+        nextChangeTimer = nil
+        nextChangeAt = nil
+        SetDirty("full")
+    end)
 end
 
 -- Update the display
@@ -2858,6 +2830,7 @@ UpdateDisplay = function(refreshMode)
 
     -- Skip secure frame sync in test mode (secure frames are hidden)
     if not testMode then
+        ArmNextChangeTimer(refreshMode)
         BR.SecureButtons.ScheduleSecureSync()
 
         -- Sync click overlays on expanded extra frames (they are created above but
@@ -2878,8 +2851,19 @@ local function StartUpdates()
     if updateTicker then
         updateTicker:Cancel()
     end
-    -- Slow fallback ticker for expiration text staleness (e.g. "14m" -> "13m")
-    updateTicker = C_Timer.NewTicker(3, SetDirty)
+    -- Fallback ticker. In restricted contexts secret group payloads make aura
+    -- events unreadable, so poll at full 3s cadence there. Everywhere else the
+    -- armed next-change timer owns time-driven updates and this only fires a
+    -- slow safety refresh. (NewTicker passes the ticker object to its callback,
+    -- so wrap SetDirty - a table arg would corrupt dirtyMode.)
+    local safetyTicks = 0
+    updateTicker = C_Timer.NewTicker(3, function()
+        safetyTicks = safetyTicks + 1
+        if safetyTicks >= 10 or BR.BuffState.IsRestricted() then
+            safetyTicks = 0
+            SetDirty("full")
+        end
+    end)
     -- OnUpdate checks dirty flag with throttle
     eventFrame:SetScript("OnUpdate", function()
         if not dirty then
@@ -3332,7 +3316,7 @@ local function UpdateVisuals()
         frame:SetSize(width, size)
         -- Re-apply at the scale the current text was written with, not a guess:
         -- a frame showing a "NO X" label must not be resized to count scale.
-        SetFontCached(frame.count, GetFrameFontSize(frame, frame._br_count_scale or COUNT_TEXT_SCALE))
+        ApplyFont(frame.count, GetFrameFontSize(frame, frame._br_count_scale or COUNT_TEXT_SCALE))
 
         -- Re-anchor text overlays on every VisualsRefresh so config changes
         -- take effect immediately.
@@ -3357,12 +3341,12 @@ local function UpdateVisuals()
         if frame.statLabel or frame.badgeLabel or frame.qualityIcon then
             local flSize = BR.SecureButtons.ComputeConsumableFontSize(size)
             if frame.statLabel then
-                SetFontCached(frame.statLabel, flSize)
+                ApplyFont(frame.statLabel, flSize)
                 local sz, sx, sy = BR.TextPositions.Get("statLabel")
                 BR.TextPositions.Apply(frame.statLabel, frame, sz, sx, sy)
             end
             if frame.badgeLabel then
-                SetFontCached(frame.badgeLabel, flSize)
+                ApplyFont(frame.badgeLabel, flSize)
                 local bz, bx, by = BR.TextPositions.Get("badge")
                 BR.TextPositions.Apply(frame.badgeLabel, frame, bz, bx, by)
             end
@@ -3377,7 +3361,7 @@ local function UpdateVisuals()
         if frame.buffText then
             -- Raid BUFF! text
             local raidCs = BR.profile.categorySettings and BR.profile.categorySettings.raid
-            SetFontCached(frame.buffText, (raidCs and raidCs.buffTextSize) or GetFrameFontSize(frame, 0.8))
+            ApplyFont(frame.buffText, (raidCs and raidCs.buffTextSize) or GetFrameFontSize(frame, 0.8))
             frame.buffText:SetTextColor(tc[1], tc[2], tc[3], ta)
             local bz, bx, by = BR.TextPositions.Get("buffReminder")
             BR.TextPositions.Apply(frame.buffText, frame, bz, bx, by)
@@ -3390,7 +3374,7 @@ local function UpdateVisuals()
         end
         if frame.subLabel then
             -- Loadout name label: same treatment as buffText (font / color / zone).
-            SetFontCached(frame.subLabel, GetFrameFontSize(frame, SUBLABEL_FONT_SCALE))
+            ApplyFont(frame.subLabel, GetFrameFontSize(frame, SUBLABEL_FONT_SCALE))
             frame.subLabel:SetTextColor(tc[1], tc[2], tc[3], ta)
             frame.subLabel:SetWidth(width * SUBLABEL_WIDTH_FACTOR)
             local lz, lx, ly = BR.TextPositions.Get("buffReminder")
@@ -3439,8 +3423,7 @@ end
 
 -- Visual changes (icon size, zoom, border, text visibility, font)
 CallbackRegistry:RegisterCallback("VisualsRefresh", function()
-    ResolveFontPath()
-    ResolveOutline()
+    DisplayFonts.Resolve()
     ResetLayoutSignatures()
     wipe(expiringGlowCache)
     wipe(missingGlowCache)
@@ -3525,7 +3508,6 @@ BR.Helpers = {
     ValidateSpellID = ValidateSpellID,
     ValidateItemID = ValidateItemID,
     GenerateCustomBuffKey = GenerateCustomBuffKey,
-    IsFontPathValid = IsFontPathValid,
     SetBuffSound = function(key, soundName)
         local db = BR.profile
         if soundName then
@@ -3790,7 +3772,7 @@ eventFrame:RegisterEvent("ENCOUNTER_START")
 eventFrame:RegisterEvent("ENCOUNTER_END")
 eventFrame:RegisterEvent("PLAYER_DEAD")
 eventFrame:RegisterEvent("PLAYER_UNGHOST")
-eventFrame:RegisterEvent("UNIT_AURA")
+UpdateAuraEventRegistration() -- UNIT_AURA: narrow or broad by combat/group state
 eventFrame:RegisterEvent("UNIT_FLAGS")
 eventFrame:RegisterEvent("UNIT_CONNECTION")
 eventFrame:RegisterEvent("UNIT_PHASE")
@@ -3862,6 +3844,7 @@ eventHandlers.PLAYER_ENTERING_WORLD = function()
     BR.BuffState.SetPlayerLevel(UnitLevel("player"))
     BR.BuffState.SetMaxExpansionLevel(GetMaxLevelForPlayerExpansion())
     BR.BuffState.SetInCombat(inCombat)
+    UpdateAuraEventRegistration()
     -- Detect PvP prep phase: in a PvP instance but match not yet started.
     -- Used by the `hideInPvPMatch` visibility setting to gate buff display once
     -- the match starts. Aura API is restricted for the whole BG/arena regardless.
@@ -3872,8 +3855,7 @@ eventHandlers.PLAYER_ENTERING_WORLD = function()
     BR.BuffState.SetPvPPrepPhase(inPvPZone and isPrep)
     BR.BuffState.SetInVehicle(UnitInVehicle("player") == true)
     BR.StateHelpers.ScanEatingState()
-    ResolveFontPath()
-    ResolveOutline()
+    DisplayFonts.Resolve()
     if not mainFrame then
         InitializeFrames()
         -- Initialize action buttons for categories with clickable enabled
@@ -3960,6 +3942,9 @@ eventHandlers.ZONE_CHANGED_NEW_AREA = function()
     -- so defer the cache invalidation + refresh.
     C_Timer.After(0.5, function()
         BR.BuffState.InvalidateContentTypeCache()
+        -- Instance-group state can flip here without GROUP_ROSTER_UPDATE
+        -- (delves and follower dungeons have no loading screen)
+        UpdateAuraEventRegistration()
         SetDirty()
         -- Trigger delve entry for showOnInstanceEntry consumables (no loading screen on re-entry)
         -- Skip if PLAYER_ENTERING_WORLD already started a timer for this entry
@@ -3980,6 +3965,7 @@ end
 
 eventHandlers.GROUP_ROSTER_UPDATE = function()
     BR.BuffState.InvalidateHealerCache()
+    UpdateAuraEventRegistration()
     SetDirty("group")
     -- Refresh chat-request macrotext so prefix tracks party↔raid↔instance
     -- transitions. PreClick used to rebuild the macro on each click, but the
@@ -3999,6 +3985,7 @@ end
 eventHandlers.PLAYER_REGEN_ENABLED = function()
     inCombat = inEncounter
     BR.BuffState.SetInCombat(inCombat)
+    UpdateAuraEventRegistration()
     BR.StateHelpers.ScanEatingState()
     BR.SecureButtons.RefreshOverlaySpells()
     StartUpdates()
@@ -4007,6 +3994,7 @@ end
 eventHandlers.PLAYER_REGEN_DISABLED = function()
     inCombat = true
     BR.BuffState.SetInCombat(true)
+    UpdateAuraEventRegistration()
     ClearDelveEntryState()
     SetDirty()
 end
@@ -4015,6 +4003,7 @@ eventHandlers.ENCOUNTER_START = function()
     inEncounter = true
     inCombat = true
     BR.BuffState.SetInCombat(true)
+    UpdateAuraEventRegistration()
     ClearDelveEntryState()
     SetDirty()
 end
@@ -4023,6 +4012,7 @@ eventHandlers.ENCOUNTER_END = function()
     inEncounter = false
     inCombat = inCombat and InCombatLockdown()
     BR.BuffState.SetInCombat(inCombat)
+    UpdateAuraEventRegistration()
     SetDirty()
 end
 

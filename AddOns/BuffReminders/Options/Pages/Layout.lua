@@ -3,17 +3,14 @@ local _, BR = ...
 -- ============================================================================
 -- LAYOUT PAGE
 -- ============================================================================
--- The single home for everything spatial: the frame lock, the cross-category
--- stacking order (moved here from the Defaults page), one row per split
--- category (anchor frame/point + reset), one row per detached icon, and the
--- custom anchor-target list (absorbed from the old Anchor Frames page).
+-- One surface for everything spatial, behind a tab strip: the cross-category
+-- stacking order, one row per detached icon, and the custom anchor-target
+-- list (its editor lives in CustomAnchors.lua). The frame lock lives in the
+-- sidebar footer; anchor assignment lives in the mover coordinate popup.
 --
--- Structure: two static sections built once (Position frames, Stacking
--- order), then a single dynamic container that is fully rebuilt whenever
--- RefreshAll runs, so split toggles, detach changes, and anchor edits made
--- anywhere immediately reshape this page. Component holders created inside
--- the dynamic container are unregistered on teardown to keep the refresh
--- registry from accumulating dead entries.
+-- Tab content is built lazily on first activation and cached; the detached
+-- tab's body is fully rebuilt whenever RefreshAll runs while it is visible,
+-- so detach changes made anywhere immediately reshape it.
 
 local L = BR.L
 local Components = BR.Components
@@ -26,22 +23,19 @@ local ResetDetachedPosition = BR.Helpers.ResetDetachedPosition
 
 local GetCategoryLabels = BR.Options.GetCategoryLabels
 
-local LayoutSectionHeader = Helpers.LayoutSectionHeader
 local LayoutSectionNote = Helpers.LayoutSectionNote
 local GetCategorySetting = Helpers.GetCategorySetting
 
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local COL_PADDING = BR.Options.Constants.COL_PADDING
 local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
+local SCROLLBAR_WIDTH = BR.Options.Constants.SCROLLBAR_WIDTH
 
 local tinsert = table.insert
-local tremove = table.remove
 local tsort = table.sort
 local abs = math.abs
 local rad = math.rad
 local format = string.format
-local strtrim = strtrim
-local wipe = wipe
 
 local ALL_CATEGORIES = BR.CATEGORY_ORDER
 
@@ -91,17 +85,6 @@ local function GetCombinedOrder()
         end
         return pa < pb
     end)
-    return list
-end
-
----Categories split off into their own frames, in declaration order.
-local function GetSplitList()
-    local list = {}
-    for _, cat in ipairs(ALL_CATEGORIES) do
-        if IsCategorySplit(cat) then
-            tinsert(list, cat)
-        end
-    end
     return list
 end
 
@@ -215,10 +198,8 @@ local function CreateOrderRow(parent, category)
     return row
 end
 
----The combined-frame ordering list. Split categories don't appear here at
----all: they get their own rows in the Split Frames section below, so the
----relationship between "split" and "not in the stacking order" is spatial
----instead of a badge.
+---The combined-frame ordering list. Split categories don't appear here:
+---they don't participate in the combined frame's ordering.
 local function BuildDisplayOrderList(parent, contentWidth)
     -- Budget height for all categories so the sections below stay anchored
     -- when splits change.
@@ -291,191 +272,39 @@ end
 -- PAGE
 -- ============================================================================
 
-local ANCHOR_POINT_OPTIONS = {
-    "TOPLEFT",
-    "TOP",
-    "TOPRIGHT",
-    "LEFT",
-    "CENTER",
-    "RIGHT",
-    "BOTTOMLEFT",
-    "BOTTOM",
-    "BOTTOMRIGHT",
-}
-
 local ROW_H = 26
+local TAB_STRIP_H = 26
+-- How far below the content top the tab strip sits (positive magnitude,
+-- matching every other page's top padding). PAGE_TOP_PADDING is negative.
+local STRIP_TOP = -PAGE_TOP_PADDING
+-- Bottom padding each tab body leaves under its last row.
+local TAB_BOTTOM_PADDING = 16
 
-local function Build(content, scrollFrame)
-    local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
-    local contentWidth = scrollFrame:GetContentWidth()
-    local db = BR.profile
+local TAB_IDS = { "order", "detached", "anchors" }
 
-    -- ------------------------------------------------------------------
-    -- Position frames (lock/unlock)
-    -- ------------------------------------------------------------------
-    LayoutSectionHeader(layout, content, L["Layout.PositionFrames"])
-    LayoutSectionNote(layout, content, L["Layout.PositionFrames.Note"])
+local function BuildOrderTab(frame, contentWidth)
+    local layout = Components.VerticalLayout(frame, { x = COL_PADDING, y = PAGE_TOP_PADDING })
+    LayoutSectionNote(layout, frame, L["Options.DisplayOrder.Note"])
 
-    local lockBtn = CreateButton(content, L["Options.Unlock"], function()
-        BR.Display.ToggleLock()
-        Components.RefreshAll()
-    end, { title = L["Options.LockUnlock"], desc = L["Options.LockUnlock.Desc"] })
-    function lockBtn:Refresh()
-        self.text:SetText(BR.Display.IsFrameLocked() and L["Options.Unlock"] or L["Options.Lock"])
-    end
-    lockBtn:Refresh()
-    tinsert(BR.RefreshableComponents, lockBtn)
-    layout:Add(lockBtn, nil, COMPONENT_GAP)
-
-    -- ------------------------------------------------------------------
-    -- Stacking order (combined frame)
-    -- ------------------------------------------------------------------
-    LayoutSectionHeader(layout, content, L["Options.DisplayOrder"])
-    LayoutSectionNote(layout, content, L["Options.DisplayOrder.Note"])
-
-    local listX = layout:GetX()
-    local listWidth = contentWidth - listX - COL_PADDING
-    local orderList, orderHeight = BuildDisplayOrderList(content, listWidth)
+    local listWidth = contentWidth - COL_PADDING * 2
+    local orderList, orderHeight = BuildDisplayOrderList(frame, listWidth)
     layout:Add(orderList, orderHeight, COMPONENT_GAP)
-    layout:SetX(COL_PADDING)
+    frame:SetHeight(abs(layout:GetY()) + TAB_BOTTOM_PADDING)
+end
 
-    -- ------------------------------------------------------------------
-    -- Dynamic tail: Split frames / Detached icons / Anchor targets.
-    -- One container, fully rebuilt on every RefreshAll.
-    -- ------------------------------------------------------------------
-    local staticBottomY = layout:GetY()
-
-    local dynHost = CreateFrame("Frame", nil, content)
-    dynHost:SetPoint("TOPLEFT", content, "TOPLEFT", 0, staticBottomY)
-    dynHost:SetWidth(contentWidth)
-
+local function BuildDetachedTab(frame, contentWidth, onResize)
+    local db = BR.profile
     local dynContent -- current generation, replaced wholesale on rebuild
-    local dynHolders = {} -- component holders to unregister on teardown
 
-    local function TearDownDynamic()
-        for _, holder in ipairs(dynHolders) do
-            Components.Unregister(holder)
-        end
-        wipe(dynHolders)
+    local function Render()
         if dynContent then
             dynContent:Hide()
             dynContent:SetParent(nil)
-            dynContent = nil
         end
-    end
-
-    local function Render()
-        TearDownDynamic()
-        dynContent = CreateFrame("Frame", nil, dynHost)
-        dynContent:SetPoint("TOPLEFT")
+        dynContent = CreateFrame("Frame", nil, frame)
+        dynContent:SetPoint("TOPLEFT", 0, PAGE_TOP_PADDING)
         dynContent:SetWidth(contentWidth)
         local dyn = Components.VerticalLayout(dynContent, { x = COL_PADDING, y = 0 })
-
-        local labels = GetCategoryLabels()
-
-        -- ---- Split frames ----
-        LayoutSectionHeader(dyn, dynContent, L["Layout.SplitFrames"])
-        LayoutSectionNote(dyn, dynContent, L["Layout.SplitFrames.Note"])
-
-        local splitList = GetSplitList()
-        if #splitList == 0 then
-            local note = dynContent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-            note:SetText(L["Layout.NoSplitFrames"])
-            dyn:AddText(note, 14, COMPONENT_GAP)
-        else
-            local anchorOptions = { { label = L["Mover.NoneScreenCenter"], value = "__none" } }
-            for _, name in ipairs(BR.Movers.ScanAnchorFrames()) do
-                tinsert(anchorOptions, { label = name, value = name })
-            end
-            local pointOptions = {}
-            for _, pt in ipairs(ANCHOR_POINT_OPTIONS) do
-                tinsert(pointOptions, { label = pt, value = pt })
-            end
-
-            for _, cat in ipairs(splitList) do
-                local row = CreateFrame("Frame", nil, dynContent)
-                row:SetSize(listWidth, ROW_H)
-
-                local nameFS = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-                nameFS:SetPoint("LEFT", 4, 0)
-                nameFS:SetWidth(110)
-                nameFS:SetJustifyH("LEFT")
-                nameFS:SetText(labels[cat] or cat)
-
-                local function getAnchorName()
-                    local cs = db.categorySettings and db.categorySettings[cat]
-                    return cs and cs.anchorFrame
-                end
-
-                local anchorDrop = Components.Dropdown(row, {
-                    label = "",
-                    labelWidth = 0,
-                    width = 170,
-                    options = anchorOptions,
-                    get = function()
-                        return getAnchorName() or "__none"
-                    end,
-                    tooltip = { title = L["Mover.AnchorFrame"], desc = L["Layout.AnchorFrame.Desc"] },
-                    onChange = function(val)
-                        local frameName = val ~= "__none" and val or nil
-                        -- Mirrors the coordinate popup: write the anchor,
-                        -- reset the offset to (0,0), reposition everything.
-                        if not db.categorySettings then
-                            db.categorySettings = {}
-                        end
-                        if not db.categorySettings[cat] then
-                            db.categorySettings[cat] = {}
-                        end
-                        db.categorySettings[cat].anchorFrame = frameName
-                        BR.Movers.SavePosition(cat, 0, 0)
-                        BR.CallbackRegistry:TriggerEvent("LayoutRefresh")
-                        Components.RefreshAll()
-                    end,
-                })
-                anchorDrop:SetPoint("LEFT", nameFS, "RIGHT", 6, 0)
-                tinsert(dynHolders, anchorDrop)
-
-                local pointDrop = Components.Dropdown(row, {
-                    label = "",
-                    labelWidth = 0,
-                    width = 110,
-                    options = pointOptions,
-                    get = function()
-                        local cs = db.categorySettings and db.categorySettings[cat]
-                        return (cs and cs.anchorPoint) or "CENTER"
-                    end,
-                    enabled = function()
-                        return getAnchorName() ~= nil
-                    end,
-                    disabledReason = L["DisabledReason.AnchorPoint"],
-                    tooltip = { title = L["Mover.AnchorPoint"], desc = L["Layout.AnchorPoint.Desc"] },
-                    onChange = function(pt)
-                        BR.Config.Set("categorySettings." .. cat .. ".anchorPoint", pt)
-                    end,
-                })
-                pointDrop:SetPoint("LEFT", anchorDrop, "RIGHT", 6, 0)
-                tinsert(dynHolders, pointDrop)
-
-                local posFS = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-                posFS:SetPoint("LEFT", pointDrop, "RIGHT", 8, 0)
-                local pos = db.categorySettings and db.categorySettings[cat] and db.categorySettings[cat].position
-                posFS:SetText(pos and format("%d · %d", pos.x or 0, pos.y or 0) or "")
-
-                local resetBtn = CreateButton(row, L["Options.ResetPosition"], function()
-                    local catDefaults = BR.defaults.categorySettings[cat]
-                    if catDefaults and catDefaults.position then
-                        BR.Display.ResetCategoryFramePosition(cat, catDefaults.position.x, catDefaults.position.y)
-                    end
-                    Components.RefreshAll()
-                end)
-                resetBtn:SetPoint("RIGHT", -4, 0)
-
-                dyn:Add(row, ROW_H, 4)
-            end
-        end
-
-        -- ---- Detached icons ----
-        LayoutSectionHeader(dyn, dynContent, L["Layout.DetachedIcons"])
 
         local detached = db.detachedIcons or {}
         local keys = {}
@@ -491,6 +320,7 @@ local function Build(content, scrollFrame)
             note:SetText(L["Layout.NoDetached"])
             dyn:AddText(note, 14, COMPONENT_GAP)
         else
+            local listWidth = contentWidth - COL_PADDING * 2
             for _, key in ipairs(keys) do
                 local row = CreateFrame("Frame", nil, dynContent)
                 row:SetSize(listWidth, ROW_H)
@@ -523,108 +353,118 @@ local function Build(content, scrollFrame)
             end
         end
 
-        -- ---- Anchor targets ----
-        LayoutSectionHeader(dyn, dynContent, L["Layout.AnchorTargets"])
-        LayoutSectionNote(dyn, dynContent, L["Options.CustomAnchorFrames.Desc"])
-
-        local addRow = CreateFrame("Frame", nil, dynContent)
-        addRow:SetSize(listWidth, 22)
-        local addInput = Components.TextInput(addRow, {
-            label = "",
-            value = "",
-            width = 220,
-            labelWidth = 0,
-        })
-        addInput:SetPoint("LEFT", 0, 0)
-        tinsert(dynHolders, addInput)
-        local addBox = addInput.editBox
-
-        local addBtn = CreateButton(addRow, L["Options.Add"], function()
-            local name = strtrim(addBox:GetText())
-            if name == "" then
-                return
-            end
-            if not db.customAnchorFrames then
-                db.customAnchorFrames = {}
-            end
-            for _, existing in ipairs(db.customAnchorFrames) do
-                if existing == name then
-                    addBox:SetText("")
-                    return
-                end
-            end
-            tinsert(db.customAnchorFrames, name)
-            addBox:SetText("")
-            Components.RefreshAll()
-        end)
-        addBtn:SetSize(50, 22)
-        addBtn:SetPoint("LEFT", addInput, "RIGHT", 6, 0)
-        addBox:SetScript("OnEnterPressed", function(self)
-            self:ClearFocus()
-            addBtn:Click()
-        end)
-        dyn:Add(addRow, 22, COMPONENT_GAP)
-
-        local names = db.customAnchorFrames or {}
-        for i, name in ipairs(names) do
-            local row = CreateFrame("Frame", nil, dynContent)
-            row:SetSize(listWidth, 20)
-
-            local bullet = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-            bullet:SetPoint("LEFT", 4, 0)
-            bullet:SetText("-")
-
-            local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            text:SetPoint("LEFT", bullet, "RIGHT", 4, 0)
-            local target = _G[name]
-            local exists = type(target) == "table" and target.GetCenter ~= nil
-            if exists then
-                text:SetText(name)
-            else
-                -- Flag unresolvable names instead of letting them silently
-                -- never show up in the anchor dropdowns.
-                text:SetText(name .. " |cffe0b34d!|r")
-                row:EnableMouse(true)
-                row:SetScript("OnEnter", function()
-                    BR.ShowTooltip(row, name, L["Layout.FrameNotFound"], "ANCHOR_TOP")
-                end)
-                row:SetScript("OnLeave", BR.HideTooltip)
-            end
-
-            local removeBtn = CreateFrame("Button", nil, row)
-            removeBtn:SetSize(16, 16)
-            removeBtn:SetPoint("LEFT", text, "RIGHT", 6, 0)
-            removeBtn:SetNormalFontObject("GameFontRedSmall")
-            removeBtn:SetText("x")
-            removeBtn:SetScript("OnClick", function()
-                tremove(names, i)
-                if #names == 0 then
-                    db.customAnchorFrames = nil
-                end
-                Components.RefreshAll()
-            end)
-
-            dyn:Add(row, 20, 2)
-        end
-
         local dynHeight = abs(dyn:GetY())
-        dynHost:SetHeight(dynHeight)
-        content:SetHeight(abs(staticBottomY) + dynHeight + 30)
+        -- A frame with one anchor point and no height has an unresolved rect,
+        -- and WoW does not render the subtree of an unresolved frame.
+        dynContent:SetHeight(dynHeight)
+        frame:SetHeight(STRIP_TOP + dynHeight + TAB_BOTTOM_PADDING)
+        onResize()
     end
 
-    -- Rebuild all dynamic rows on RefreshAll (split toggles, detach changes,
-    -- anchor edits made elsewhere) - but only while the page is visible.
-    -- RefreshAll fires from every page's onChange, WoW frames can't be
-    -- reclaimed, and ActivatePage always runs RefreshAll after showing this
-    -- page again, so skipping hidden rebuilds loses nothing.
+    -- Rebuild on RefreshAll (detach changes made elsewhere) - but only while
+    -- the tab is visible. WoW frames can't be reclaimed, and activating this
+    -- tab always runs RefreshAll after showing it, so skipping hidden
+    -- rebuilds loses nothing.
     tinsert(BR.RefreshableComponents, {
         Refresh = function()
-            if content:IsVisible() then
+            if frame:IsVisible() then
                 Render()
             end
         end,
     })
     Render()
+end
+
+local function Build(content, scrollFrame)
+    local contentWidth = scrollFrame:GetContentWidth()
+
+    local tabLabels = {
+        order = L["Options.DisplayOrder"],
+        detached = L["Layout.DetachedIcons"],
+        anchors = L["Page.CustomAnchors"],
+    }
+
+    local tabs = {}
+    local tabFrames = {}
+    local activeId
+
+    local function UpdatePageHeight()
+        local frame = activeId and tabFrames[activeId]
+        if frame then
+            content:SetHeight(STRIP_TOP + TAB_STRIP_H + frame:GetHeight())
+        end
+    end
+
+    local function BuildTabContent(id)
+        local frame = CreateFrame("Frame", nil, content)
+        frame:SetPoint("TOPLEFT", 0, -(STRIP_TOP + TAB_STRIP_H))
+        frame:SetSize(contentWidth, 400)
+
+        if id == "order" then
+            BuildOrderTab(frame, contentWidth)
+        elseif id == "detached" then
+            BuildDetachedTab(frame, contentWidth, UpdatePageHeight)
+        else
+            BR.Options.CustomAnchors.BuildTab(frame, contentWidth, UpdatePageHeight)
+        end
+        return frame
+    end
+
+    local function Activate(id)
+        if activeId == id then
+            return
+        end
+        activeId = id
+        for tabId, tab in pairs(tabs) do
+            tab:SetActive(tabId == id)
+        end
+        for _, frame in pairs(tabFrames) do
+            frame:Hide()
+        end
+        if not tabFrames[id] then
+            tabFrames[id] = BuildTabContent(id)
+        end
+        tabFrames[id]:Show()
+        Components.RefreshAll()
+        UpdatePageHeight()
+    end
+
+    -- Sticky tab strip, same construction as the Categories page: parented to
+    -- the scroll viewport so it stays pinned while the tab body scrolls
+    -- underneath, with an opaque mask hiding content sliding behind it.
+    local strip = CreateFrame("Frame", nil, scrollFrame)
+    strip:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, 0)
+    strip:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", -SCROLLBAR_WIDTH, 0)
+    strip:SetHeight(STRIP_TOP + TAB_STRIP_H)
+    strip:SetFrameLevel(content:GetFrameLevel() + 10)
+
+    local mask = strip:CreateTexture(nil, "BACKGROUND")
+    mask:SetAllPoints(strip)
+    mask:SetColorTexture(0.09, 0.09, 0.107, 1)
+
+    local prev, firstTab
+    for _, id in ipairs(TAB_IDS) do
+        local tab = Components.Tab(strip, {
+            name = id,
+            label = tabLabels[id],
+            width = 40,
+        })
+        tab:SetScript("OnClick", function()
+            Activate(id)
+        end)
+        if prev then
+            tab:SetPoint("LEFT", prev, "RIGHT", 4, 0)
+        else
+            tab:SetPoint("TOPLEFT", strip, "TOPLEFT", COL_PADDING, -STRIP_TOP)
+            firstTab = tab
+        end
+        tabs[id] = tab
+        prev = tab
+    end
+
+    Components.TabBaseline(strip, firstTab, contentWidth - COL_PADDING * 2)
+
+    Activate("order")
 end
 
 BR.Options.Pages.layout = {

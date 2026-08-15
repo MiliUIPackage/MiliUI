@@ -204,12 +204,5 @@ bootstrapFrame:SetScript("OnEvent", function(_, event, arg1)
             glob.snoozeNoticeShown = true
             print("|cff00ccffBuffReminders:|r " .. L["Display.LoginSnooze"])
         end
-        -- External buffs ship disabled, so this repeats every login instead of firing
-        -- once - turning the feature on is what stops it. No one-time flag; the other
-        -- way out is showLoginMessages, which silences every message here.
-        -- Muted locally: the nag every login is not worth the one-time notice.
-        -- if BR.profile.showLoginMessages ~= false and not BR.AreExternalsEnabled() then
-        --     print("|cff00ccffBuffReminders:|r " .. L["Display.LoginExternals"])
-        -- end
     end)
 end)

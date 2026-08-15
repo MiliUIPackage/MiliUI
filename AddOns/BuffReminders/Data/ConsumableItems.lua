@@ -164,6 +164,14 @@ BR.CONSUMABLE_ITEMS = {
         [267000] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Flora Frenzy
         [268679] = { label = L["Label.HighPrimary"], badge = L["Badge.Hearty"] }, -- Hearty Impossibly Royal Roast
         [268680] = { label = L["Label.HighSecondary"], badge = L["Badge.Hearty"] }, -- Hearty Flora Frenzy
+
+        -- Midnight 12.1.0
+        [275258] = { label = L["Label.HighSecondary"] }, -- Venom-Spiced Cutlets
+        [275260] = { label = L["Label.HighSecondary"] }, -- Puffer Plate
+        [275261] = { label = L["Label.HighSecondary"] }, -- Sweet-And-Sour Skewers
+        [275264] = { label = L["Label.Feast"] }, -- Amani Cornucopia
+        [275265] = { label = L["Label.Feast"] }, -- Loa's Gathering
+        [275266] = { label = L["Label.Feast"] }, -- Feast of Knowledge
         -- Recovery-only (no Well Fed buff, just health/mana restore). Not tracked, listed here for reference.
         -- [260264] = true, -- Quel'Danas Rations
         -- [260275] = true, -- Mukleech Curry
@@ -237,16 +245,18 @@ BR.CONSUMABLE_ITEMS = {
     },
     -- Rune priority: lower number = use first (Midnight > TWW > Dragonflight > Shadowlands)
     rune = {
-        [259085] = { priority = 1 }, -- Void-Touched Augment Rune (Midnight)
+        -- Tidesworn is conjured and free, so it spends before Void-Touched
+        [274797] = { priority = 1 }, -- Tidesworn Augment Rune (Midnight, CN-only)
+        [259085] = { priority = 2 }, -- Void-Touched Augment Rune (Midnight)
         -- Ethereal is TWW but permanent/infinite (see permanentRuneItemIDs in Buffs.lua), so not flagged legacy
-        [243191] = { priority = 2 }, -- Ethereal Augment Rune (TWW permanent)
+        [243191] = { priority = 3 }, -- Ethereal Augment Rune (TWW permanent)
         -- TWW (legacy)
-        [246492] = { priority = 3, legacy = true }, -- Soulgorged Augment Rune (TWW, persists through death)
-        [224572] = { priority = 4, legacy = true }, -- Crystallized Augment Rune (TWW single use)
+        [246492] = { priority = 4, legacy = true }, -- Soulgorged Augment Rune (TWW, persists through death)
+        [224572] = { priority = 5, legacy = true }, -- Crystallized Augment Rune (TWW single use)
         -- Dragonflight / Shadowlands (legacy)
-        [211495] = { priority = 5, legacy = true }, -- Dreambound Augment Rune (Dragonflight)
-        [201325] = { priority = 6, legacy = true }, -- Draconic Augment Rune (Dragonflight)
-        [181468] = { priority = 7, legacy = true }, -- Veiled Augment Rune (Shadowlands)
+        [211495] = { priority = 6, legacy = true }, -- Dreambound Augment Rune (Dragonflight)
+        [201325] = { priority = 7, legacy = true }, -- Draconic Augment Rune (Dragonflight)
+        [181468] = { priority = 8, legacy = true }, -- Veiled Augment Rune (Shadowlands)
     },
     weapon = {
         -- Midnight 12.0.0

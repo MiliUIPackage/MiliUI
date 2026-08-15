@@ -1217,6 +1217,7 @@ BR.BUFF_TABLES = {
                 453250, -- Crystallized Augment Rune (TWW) - single use
                 393438, -- Draconic Augment Rune (Dragonflight) - legacy
                 1264426, -- Void-Touched Augment Rune (Midnight)
+                1295329, -- Tidesworn Augment Rune (Midnight, CN-only mount vendor reward)
                 347901, -- Veiled Augment Rune (Shadowlands) - legacy
             },
             icons = { spells = { 1264426, 1234969 } }, -- Void-Touched (Midnight), Ethereal (TWW permanent)

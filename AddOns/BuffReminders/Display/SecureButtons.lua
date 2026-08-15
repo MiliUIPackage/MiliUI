@@ -175,7 +175,7 @@ local function ShowLastTargetTooltip(anchor, name, class, hint)
         lastTargetTooltip = tip
     end
     local tip = lastTargetTooltip
-    BR.Display.SetFontCached(tip.name, 13)
+    BR.DisplayFonts.Apply(tip.name, 13)
     -- Set class-colored name
     local r, g, b = 1, 1, 1
     if class then
@@ -187,9 +187,7 @@ local function ShowLastTargetTooltip(anchor, name, class, hint)
     -- Color escapes in the hint override SetTextColor for just that portion
     tip.name:SetText(hint and (name .. " |cff888888" .. hint .. "|r") or name)
     tip.name:SetTextColor(r, g, b)
-    -- Size to fit text
-    local textWidth = tip.name:GetStringWidth()
-    local textHeight = tip.name:GetStringHeight()
+    local textWidth, textHeight = BR.DisplayFonts.GetStringSize(tip.name)
     tip:SetSize(textWidth + 24, textHeight + 16)
     -- Anchor below the frame
     tip:ClearAllPoints()
@@ -909,9 +907,8 @@ local function SyncSecureButtons()
         HideAllSecureFrames()
         return
     end
-    local fontPath = BR.Display.GetFontPath()
-    local outlineFlag = BR.Display.GetOutline()
-    local SetFontCached = BR.Display.SetFontCached
+    local outlineFlag = BR.DisplayFonts.GetOutline()
+    local ApplyFont = BR.DisplayFonts.Apply
     for frame in pairs(secureHostFrames) do
         -- Sync click overlay
         local overlay = frame.clickOverlay
@@ -1024,15 +1021,15 @@ local function SyncSecureButtons()
                                         btnY = bottom + ACTION_ICON_OFFSET - size - row * (size + btnSpacing)
                                     end
                                 end
-                                -- Font stamps are part of the dirty check so a font
-                                -- setting change re-applies on the next sync.
+                                -- Size and outline stamps let the dirty check catch
+                                -- font setting changes. Face changes need no stamp:
+                                -- linked fontstrings follow the shared object.
                                 local needsUpdate = btn._br_needs_sync
                                     or btn._br_x ~= btnX
                                     or btn._br_y ~= btnY
                                     or btn._br_size ~= size
-                                    or btn.count._br_font_size ~= cFontSize
-                                    or btn.count._br_font_path ~= fontPath
-                                    or btn.count._br_font_outline ~= outlineFlag
+                                    or btn._br_font_size ~= cFontSize
+                                    or btn._br_font_outline ~= outlineFlag
                                 if needsUpdate then
                                     -- Reposition
                                     btn:ClearAllPoints()
@@ -1047,7 +1044,7 @@ local function SyncSecureButtons()
                                     btn.count:SetText(
                                         btn._br_count and btn._br_count > 1 and tostring(btn._br_count) or ""
                                     )
-                                    SetFontCached(btn.count, cFontSize)
+                                    ApplyFont(btn.count, cFontSize)
                                     -- Quality atlas icon (holder frame at +10 to draw above borders/glows)
                                     if btn._br_qualityAtlas then
                                         if not btn._br_qualityIcon then
@@ -1074,13 +1071,15 @@ local function SyncSecureButtons()
                                         end
                                         btn._br_badgeLabel:ClearAllPoints()
                                         btn._br_badgeLabel:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
-                                        SetFontCached(btn._br_badgeLabel, cFontSize)
+                                        ApplyFont(btn._br_badgeLabel, cFontSize)
                                         btn._br_badgeLabel:SetTextColor(bc.r, bc.g, bc.b, 1)
                                         btn._br_badgeLabel:SetText(btn._br_badge)
                                         btn._br_badgeLabel:Show()
                                     elseif btn._br_badgeLabel then
                                         btn._br_badgeLabel:Hide()
                                     end
+                                    btn._br_font_size = cFontSize
+                                    btn._br_font_outline = outlineFlag
                                     btn._br_needs_sync = false
                                 end
                                 -- Activate combat state driver on first show (buttons start with "hide" driver)

@@ -30,13 +30,20 @@ local pcall = pcall
 
 local L = BR.L
 local TEXCOORD_INSET = BR.TEXCOORD_INSET
+local GetAspectCropInsets = BR.GetAspectCropInsets
 
 local Settings = BR.GetExternalSettings
+-- Appearance reads go through the resolver, which inherits from the global
+-- defaults unless externals.useCustomAppearance is set.
+local Setting = BR.GetExternalSetting
 
 local GROUP_KEY = "externals"
 -- Blizzard allocates aura frames in batches of 10; this caps how many can be
 -- visible at once, not how many can be enabled.
 local MAX_FRAMES = 20
+-- Test mode cap: enough frames to judge spacing and growth direction, few enough
+-- that a player carrying dozens of buffs doesn't preview a wall of icons.
+local TEST_MODE_CAP = 3
 -- Matches the category movers' label size in Movers.lua.
 local MOVER_LABEL_SIZE = 11
 
@@ -45,6 +52,11 @@ local anchorFrame, container
 local buttonRegions = setmetatable({}, { __mode = "k" })
 -- Set when a reconfigure or restyle was denied, so the lift watcher retries.
 local applyPending = false
+-- Test mode previews through the REAL container: the spell-ID filter is dropped so
+-- the player's current buffs render, capped low. Fake icons would have to emulate
+-- Blizzard's packing, and button geometry is secret, so an emulation could never be
+-- verified against the real layout.
+local testMode = false
 
 ---Union of every enabled entry's spell IDs.
 ---
@@ -70,6 +82,14 @@ local function BuildSpellIDMap()
     end
 
     return map, entryCount
+end
+
+---Icon dimensions from config. iconWidth nil = square (same as iconSize).
+---@return number width
+---@return number height
+local function GetIconDimensions()
+    local height = Setting("iconSize") or 40
+    return Setting("iconWidth") or height, height
 end
 
 ---A suffix-free countdown formatter, built once and handed to SetDurationText.
@@ -113,37 +133,26 @@ local function StyleButton(button)
         return
     end
 
-    local settings = Settings()
-    local size = settings.iconSize or 40
-    local borderSize = settings.borderSize or 0
+    local width, height = GetIconDimensions()
+    local borderSize = Setting("borderSize") or 0
 
     -- Size comes from config, never from button:GetWidth() - that returns a secret.
-    button:SetSize(size, size)
+    button:SetSize(width, height)
 
-    -- Base crop hides texture edge artifacts; iconZoom adds on top. Blizzard's
-    -- per-aura update only calls SetTexture, so this survives every icon swap.
-    local inset = TEXCOORD_INSET + (settings.iconZoom or 0) / 100
-    regions.icon:SetTexCoord(inset, 1 - inset, inset, 1 - inset)
-    regions.icon:SetAlpha(settings.iconAlpha or 1)
+    -- Base crop hides texture edge artifacts; iconZoom adds on top, and the insets
+    -- are aspect-aware so non-square icons show a centered slice instead of
+    -- stretching. Blizzard's per-aura update only calls SetTexture, so this
+    -- survives every icon swap.
+    local inset = TEXCOORD_INSET + (Setting("iconZoom") or 0) / 100
+    local xInset, yInset = GetAspectCropInsets(inset, width, height)
+    regions.icon:SetTexCoord(xInset, 1 - xInset, yInset, 1 - yInset)
+    regions.icon:SetAlpha(Setting("iconAlpha") or 1)
 
-    -- Duration text: ours to place and font, Blizzard's to write. Uses the addon's
-    -- configured font face and outline, so it matches every other icon's text.
-    --
-    -- Memoized like SetFontCached (SetFont forces a full fontstring re-layout, and
-    -- VisualsRefresh lands here on every step of any appearance slider drag) but with
-    -- the signature kept in OUR side table and written only AFTER the call returns.
-    -- SetFontCached does neither: it stores _br_font_* on the fontstring, which is
-    -- per-button state on a subtree that goes forbidden, and it records the cache
-    -- before calling SetFont - so a denial in combat would leave the cache claiming a
-    -- font that never landed and the post-combat retry would skip it.
-    local fontPath = BR.Display.GetFontPath()
-    local outline = BR.Display.GetOutline()
-    local durationSize = settings.durationSize or 16
-    local fontSig = fontPath .. "|" .. durationSize .. "|" .. outline
-    if regions.fontSig ~= fontSig then
-        regions.duration:SetFont(fontPath, durationSize, outline)
-        regions.fontSig = fontSig
-    end
+    -- Duration text: the addon places and fonts it, Blizzard writes it. The
+    -- call stores nothing on the region - per-button state on this subtree
+    -- goes forbidden. A denial throws, and the caller's pcall queues the
+    -- retry.
+    BR.DisplayFonts.Apply(regions.duration, Setting("durationSize") or 16)
 
     -- Border protrudes past the button's bounds, same as the reminder icons.
     -- Regions may extend outside a button; only their parentage is constrained.
@@ -223,6 +232,31 @@ local function ApplyPosition()
     )
 end
 
+---Growth is container-level flow-layout state, public on the container (unlike
+---per-button styling): SetFlowLayout* since 68914, SetAuraLayout* before - resolve
+---per call so either API generation works. Direction values are
+---AnchorUtil.FlowDirection members, and there is no centered growth. The flow
+---layout places buttons from its INTERNAL anchor point (default TOPLEFT),
+---independent of the container's own anchor - the same corner must feed both, or
+---the first icon lands on the wrong side of the mover.
+local function ApplyGrowth(settings)
+    local corner = settings.growDirection == "LEFT" and "TOPRIGHT" or "TOPLEFT"
+    container:ClearAllPoints()
+    container:SetPoint(corner, anchorFrame, corner)
+
+    local setAnchor = container.SetFlowLayoutAnchorPoint or container.SetAuraLayoutAnchorPoint
+    if setAnchor then
+        setAnchor(container, corner)
+    end
+
+    local directions = AnchorUtil and AnchorUtil.FlowDirection
+    local setGrowth = container.SetFlowLayoutGrowthDirection or container.SetAuraLayoutGrowthDirection
+    if directions and setGrowth then
+        local growthH = settings.growDirection == "LEFT" and directions.Left or directions.Right
+        setGrowth(container, growthH, directions.Down)
+    end
+end
+
 ---Push the current config into the container. Every button-touching call here can
 ---be denied while auras are secret; on denial we flag and retry on the next lift.
 local function ApplyConfig()
@@ -232,15 +266,26 @@ local function ApplyConfig()
 
     local settings = Settings()
     local map, entryCount = BuildSpellIDMap()
+    local width, height = GetIconDimensions()
 
     local ok = pcall(function()
-        container:SetAuraGroupCandidateFilters(GROUP_KEY, { includeSpellIDs = map })
-        container:SetAuraGroupMaxFrameCount(GROUP_KEY, min(entryCount > 0 and entryCount or 1, MAX_FRAMES))
+        if testMode then
+            -- No candidate filters at all: any HELPFUL aura on the player qualifies,
+            -- so the preview has something to show regardless of what is enabled.
+            container:SetAuraGroupCandidateFilters(GROUP_KEY, {})
+            container:SetAuraGroupMaxFrameCount(GROUP_KEY, TEST_MODE_CAP)
+        else
+            container:SetAuraGroupCandidateFilters(GROUP_KEY, { includeSpellIDs = map })
+            container:SetAuraGroupMaxFrameCount(GROUP_KEY, min(entryCount, MAX_FRAMES))
+        end
+        -- elementWidth/Height feed the flow math only (packing, spacing); the
+        -- visible size is StyleButton's SetSize. The two must agree.
         container:SetAuraGroupLayout(GROUP_KEY, {
-            elementSpacing = settings.spacing or 0,
-            elementWidth = settings.iconSize or 40,
-            elementHeight = settings.iconSize or 40,
+            elementSpacing = Setting("spacing") or 0,
+            elementWidth = width,
+            elementHeight = height,
         })
+        ApplyGrowth(settings)
     end)
 
     for button in pairs(buttonRegions) do
@@ -270,14 +315,13 @@ local function CreateMover()
     label:SetPoint("BOTTOM", mover, "TOP", 0, 4)
     mover.label = label
 
-    -- The mover is built once, so it would otherwise keep the font it was created
-    -- with - same reason Movers.lua re-applies this from UpdateSize(). SetFontCached
-    -- is safe here: this is our own frame, not a forbidden button subtree.
+    -- The mover is built once, so font setting changes must be pushed to its
+    -- label explicitly. The frame belongs to the addon, not to a forbidden
+    -- button subtree, so the apply is safe.
     function mover:UpdateFont()
-        BR.Display.SetFontCached(self.label, MOVER_LABEL_SIZE)
+        BR.DisplayFonts.Apply(self.label, MOVER_LABEL_SIZE)
     end
-    -- Must run before SetText: the FontString inherits no font, and setting text on
-    -- a font-less FontString raises an error (hence the same order in Movers.lua).
+    -- Must run before SetText: SetText on a font-less FontString raises an error.
     mover:UpdateFont()
 
     label:SetTextColor(0.4, 1, 0.4, 1)
@@ -312,7 +356,7 @@ local function EnsureFrames()
         -- animated chrome must live OUTSIDE the button subtree, and a frame anchored
         -- *to* a container inherits its layout restrictions.
         anchorFrame = CreateFrame("Frame", "BuffRemindersExternals", UIParent)
-        anchorFrame:SetSize(Settings().iconSize or 40, Settings().iconSize or 40)
+        anchorFrame:SetSize(GetIconDimensions())
         anchorFrame:SetMovable(true)
         anchorFrame:SetClampedToScreen(true)
         ApplyPosition()
@@ -328,14 +372,15 @@ local function EnsureFrames()
     local ok = pcall(function()
         container = CreateFrame("AuraContainer", nil, anchorFrame, "CustomAuraContainerTemplate")
         container:SetSize(1, 1)
-        container:SetPoint("TOPLEFT", anchorFrame, "TOPLEFT")
-        container:SetUnit("player")
+        ApplyGrowth(Settings())
         container:AddAuraGroup(GROUP_KEY, "HELPFUL", {
             maxFrameCount = MAX_FRAMES,
             candidateFilters = { includeSpellIDs = BuildSpellIDMap() },
             initializeFrame = InitializeButton,
-            layout = { elementSpacing = Settings().spacing or 0 },
+            layout = { elementSpacing = Setting("spacing") or 0 },
         })
+        container:SetUnit("player")
+        container:UpdateAllAuras()
     end)
 
     if not ok then
@@ -372,13 +417,20 @@ local function Refresh()
     end
 
     ApplyPosition()
-    anchorFrame:SetSize(settings.iconSize or 40, settings.iconSize or 40)
+    anchorFrame:SetSize(GetIconDimensions())
     anchorFrame.mover:UpdateFont()
     ApplyConfig()
     anchorFrame:Show()
     -- Re-sync the handle: the display can be created or enabled while the frames
     -- are already unlocked, in which case SetFrameLocked has long since fired.
     SetUnlocked(not BR.Display.IsFrameLocked())
+end
+
+---Driven by Display.lua's ToggleTestMode alongside the reminder categories. A
+---denied reconfigure (toggled during combat) is retried by the lift watcher.
+local function SetTestMode(enabled)
+    testMode = enabled == true
+    Refresh()
 end
 
 -- Retry anything the restricted context denied. These are the events that end a
@@ -388,7 +440,25 @@ liftWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
 liftWatcher:RegisterEvent("ENCOUNTER_END")
 liftWatcher:RegisterEvent("PLAYER_ENTERING_WORLD")
 liftWatcher:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+-- Blizzard bug: an AuraContainer can show stale or unrelated auras after a
+-- cinematic or a vehicle transition. A forced full update resyncs it. STOP_MOVIE
+-- covers pre-rendered movies, which end without CINEMATIC_STOP.
+liftWatcher:RegisterEvent("CINEMATIC_STOP")
+liftWatcher:RegisterEvent("STOP_MOVIE")
+liftWatcher:RegisterUnitEvent("UNIT_ENTERED_VEHICLE", "player")
+liftWatcher:RegisterUnitEvent("UNIT_EXITED_VEHICLE", "player")
 liftWatcher:SetScript("OnEvent", function(_, event)
+    if
+        event == "CINEMATIC_STOP"
+        or event == "STOP_MOVIE"
+        or event == "UNIT_ENTERED_VEHICLE"
+        or event == "UNIT_EXITED_VEHICLE"
+    then
+        if container and Settings().enabled and not pcall(container.UpdateAllAuras, container) then
+            applyPending = true
+        end
+        return
+    end
     -- PLAYER_ENTERING_WORLD doubles as first-run creation: the profile is seeded by
     -- then, and creating out of combat keeps the initial styling out of the deferred path.
     if event == "PLAYER_ENTERING_WORLD" or (applyPending and Settings().enabled) then
@@ -405,6 +475,7 @@ BR.CallbackRegistry:RegisterCallback("VisualsRefresh", Refresh)
 BR.AuraTracker = {
     Refresh = Refresh,
     SetUnlocked = SetUnlocked,
+    SetTestMode = SetTestMode,
     BuildSpellIDMap = BuildSpellIDMap,
     ---True when a reconfigure was denied and is waiting on a restriction lift.
     IsApplyPending = function()

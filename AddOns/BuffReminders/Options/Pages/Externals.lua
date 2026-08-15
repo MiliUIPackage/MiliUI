@@ -40,9 +40,9 @@ local ICON_SIZE = 16
 local FALLBACK_ICON = 134400
 
 -- Left column takes the longest section on its own; the right column stacks the
--- two shorter ones, which balances the page at 7 rows a side.
+-- four shorter ones, which roughly balances the page at 16-18 rows a side.
 local LEFT_SECTIONS = { "defensives" }
-local RIGHT_SECTIONS = { "groupBuffs", "augmentation" }
+local RIGHT_SECTIONS = { "groupBuffs", "movement", "aggro", "augmentation" }
 
 local Settings = BR.GetExternalSettings
 local IsEnabled = BR.AreExternalsEnabled

@@ -1014,3 +1014,22 @@ function BR.CreateBuffIcon(parent, size, textureID)
     end
     return icon
 end
+
+---Aspect-ratio-aware texcoord insets: when width ~= height, crop the longer
+---texture axis more so the icon shows a centered slice instead of stretching.
+---@param inset number Base symmetric inset (edge crop + zoom)
+---@param width number
+---@param height number
+---@return number xInset
+---@return number yInset
+function BR.GetAspectCropInsets(inset, width, height)
+    local aspectRatio = width / height
+    if aspectRatio > 1 then
+        -- Wider than tall: crop top/bottom more
+        return inset, inset + (1 - 1 / aspectRatio) * (0.5 - inset)
+    elseif aspectRatio < 1 then
+        -- Taller than wide: crop left/right more
+        return inset + (1 - aspectRatio) * (0.5 - inset), inset
+    end
+    return inset, inset
+end
