@@ -615,8 +615,21 @@ LibEvent:attachTrigger("ANCHOR_POINT_CHANGED", function(self, anchorkey)
     end
 end)
 
+-- fix from MiliUI: 12.1 對身分受限的單位，UnitGUID 回傳 secret string，
+-- 直接拿去跟 data.guid 比較會炸（attempt to compare a secret string value）。
+-- 讀不到 GUID 時退回比對 unit token，觀察視窗的裝等才不會整個不出來。
+local issecretvalue = issecretvalue or function() return false end
+local function IsInspectFrameData(data)
+    if (not data or not InspectFrame or not InspectFrame.unit) then return false end
+    local guid = UnitGUID(InspectFrame.unit)
+    if (issecretvalue(guid) or issecretvalue(data.guid)) then
+        return InspectFrame.unit == data.unit
+    end
+    return guid ~= nil and guid == data.guid
+end
+
 LibEvent:attachTrigger("UNIT_INSPECT_READY", function(self, data)
-    if (InspectFrame and InspectFrame.unit and UnitGUID(InspectFrame.unit) == data.guid) then
+    if (IsInspectFrameData(data)) then
         for _, button in ipairs({
              InspectHeadSlot,InspectNeckSlot,InspectShoulderSlot,InspectBackSlot,InspectChestSlot,InspectWristSlot,
              InspectHandsSlot,InspectWaistSlot,InspectLegsSlot,InspectFeetSlot,InspectFinger0Slot,InspectFinger1Slot,

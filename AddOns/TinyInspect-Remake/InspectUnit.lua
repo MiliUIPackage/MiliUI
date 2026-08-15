@@ -403,10 +403,21 @@ LibEvent:attachEvent("UNIT_INVENTORY_CHANGED", function(self, unit)
     end
 end)
 
---@see InspectCore.lua 
+-- fix from MiliUI: 同 ItemLevel.lua，12.1 的 UnitGUID 可能是 secret string，不能直接比較
+local issecretvalue = issecretvalue or function() return false end
+local function IsInspectFrameData(data)
+    if (not data or not InspectFrame or not InspectFrame.unit) then return false end
+    local guid = UnitGUID(InspectFrame.unit)
+    if (issecretvalue(guid) or issecretvalue(data.guid)) then
+        return InspectFrame.unit == data.unit
+    end
+    return guid ~= nil and guid == data.guid
+end
+
+--@see InspectCore.lua
 LibEvent:attachTrigger("UNIT_INSPECT_READY, UNIT_REINSPECT_READY", function(self, data)
     if (TinyInspectRemakeDB and not TinyInspectRemakeDB.ShowInspectItemSheet) then return end
-    if (InspectFrame and InspectFrame.unit and UnitGUID(InspectFrame.unit) == data.guid) then
+    if (IsInspectFrameData(data)) then
         local frame = ShowInspectItemListFrame(InspectFrame.unit, InspectFrame, data.ilevel, data.maxLevel)
         LibEvent:trigger("INSPECT_FRAME_COMPARE", frame)
     end
