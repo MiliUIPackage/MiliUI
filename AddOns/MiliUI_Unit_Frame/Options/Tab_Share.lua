@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 「分享」分頁：設定匯入匯出
+-- 「設定檔」分頁：設定匯入匯出 ＋ 全部重置
 -- 原生 C_EncodingUtil：SerializeCBOR → CompressString → EncodeBase64
 -- 前綴帶版本 MILIUF!1!，每步 pcall（參考 Ayije_CDM/Config/ProfileIO.lua）
 -- UX 抄 Cell：匯入框即時解析、成功才亮按鈕、錯誤顯示在標題
@@ -144,6 +144,31 @@ local function Init()
     note:SetFontObject(W.fontSmall)
     note:SetPoint("BOTTOMLEFT", 12, 14)
     note:SetText("匯出字串包含全部設定（含位置）。貼上有效字串後「匯入並重載」才會亮起。")
+
+    ---------------------------------------------------------
+    -- 重置（原本在「一般」分頁，移過來跟匯入匯出放一起）
+    ---------------------------------------------------------
+    local resetTitle = W.CreateSectionTitle(tab, "重置", 664)
+    resetTitle:SetPoint("TOPLEFT", 12, -414)
+
+    local resetBtn = W.CreateButton(tab, "全部恢復預設並重載", "red", 150, 22)
+    resetBtn:SetPoint("TOPLEFT", 12, -446)
+
+    local resetConfirm
+    resetBtn:SetScript("OnClick", function()
+        if not resetConfirm then
+            resetConfirm = W.CreateConfirmPopup(ns.Options.panel, 300,
+                "把所有設定（全域＋每個單位＋召喚物＋位置）恢復成預設值並重新載入介面？",
+                function() ns.DB.ResetAll() end)
+        end
+        resetConfirm:Show()
+    end)
+
+    local resetNote = tab:CreateFontString(nil, "OVERLAY")
+    resetNote:SetFontObject(W.fontSmall)
+    resetNote:SetPoint("LEFT", resetBtn, "RIGHT", 10, 0)
+    resetNote:SetJustifyH("LEFT")
+    resetNote:SetText("單一單位的重置在「單位」分頁 → 框架 的最下方。指令 /muf reset 等同這顆按鈕。")
 end
 
 ns.RegisterCallback("ShowOptionsTab", "shareTab", function(id)

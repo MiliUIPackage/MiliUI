@@ -77,10 +77,7 @@ local CONTROLS = {
               end
           end
       end },
-    { type = "button", label = "全部設定", text = "全部恢復預設並重載", color = "red",
-      confirm = "把所有設定（全域＋每個單位＋召喚物＋位置）恢復成預設值並重新載入介面？",
-      onClick = function() ns.DB.ResetAll() end },
-    { type = "text", label = "單一單位的重置在「單位」分頁 → 框架 的最下方。指令 /muf reset 等同「全部恢復預設」。" },
+    { type = "text", label = "單一單位的重置在「單位」分頁 → 框架 的最下方；全部恢復預設在「設定檔」分頁。" },
 }
 
 local function Init()

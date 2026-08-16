@@ -21,7 +21,7 @@ local TABS = {
     { id = "units",    label = "單位" },
     { id = "resource", label = "資源" },
     { id = "totem",    label = "召喚物" },
-    { id = "share",    label = "分享" },
+    { id = "share",    label = "設定檔" },
     { id = "about",    label = "關於" },
 }
 
