@@ -283,10 +283,12 @@ local function MakeRow(parent)
     row.bar = CreateFrame("StatusBar", nil, row)
     row.bar:SetAllPoints(row)
     row.bar:SetFrameLevel(row:GetFrameLevel() + 1)
-    -- 數值掛在獨立的高層 frame 上：直接建在 bar 上會被填充貼圖和黑邊壓過去
-    row.textFrame = CreateFrame("Frame", nil, row.bar)
-    row.textFrame:SetAllPoints(row.bar)
-    row.textFrame:SetFrameLevel(row.bar:GetFrameLevel() + 10)
+    -- 數值掛在獨立的高層 frame 上：直接建在 bar 上會被填充貼圖和黑邊壓過去。
+    -- ⚠ 父層要是 row 不是 row.bar —— 點數型的列會把 bar 整個藏起來，
+    -- 掛在 bar 底下的話點數型永遠看不到數字
+    row.textFrame = CreateFrame("Frame", nil, row)
+    row.textFrame:SetAllPoints(row)
+    row.textFrame:SetFrameLevel(row:GetFrameLevel() + 20)
     row.text = row.textFrame:CreateFontString(nil, "OVERLAY")
     row.text:SetDrawLayer("OVERLAY", 7)
     row.text:SetJustifyH("CENTER")
@@ -318,13 +320,17 @@ local function LayoutRow(row, key, edb, numSeg)
     for _, e in ipairs(row.barEdges) do e:SetShown(not isPip) end
     row.barBG:SetShown(not isPip)
     row.bar:SetShown(not isPip)
-    row.text:SetShown(not isPip and (edb.showText and true or false))
+    -- 數值兩種模式都給：點數型（聖能、氣漩武器那種）一樣要看得到數字
+    local showText = edb.showText and true or false
+    row.text:SetShown(showText)
+    if showText then
+        Media.SetPixelFont(row.text, edb.textSize or 10, "OUTLINE", ns.db.global.font)
+        row.text:SetTextColor(1, 1, 1, 1)
+    end
 
     if not isPip then
         for i = 1, MAX_SEGMENTS do row.segs[i]:Hide() end
         row.bar:SetStatusBarTexture(Media.BarTexture(ns.db.global.barTexture))
-        Media.SetPixelFont(row.text, edb.textSize or 10, "OUTLINE", ns.db.global.font)
-        row.text:SetTextColor(1, 1, 1, 1)
         return
     end
 
@@ -427,6 +433,17 @@ local function PaintPip(row, def, edb, numSeg, filled)
     end
 end
 
+-- 點數型的數字。光環／技能次數型（氣漩武器、長矛之尖、靈魂碎片）沒累積時就不畫，
+-- 空著比一顆「0」乾淨；標準職業點數（聖能、連擊點那種）照常顯示 0。
+local function SetPipText(row, def, edb, n)
+    if not edb.showText then return end
+    if (def.aura or def.cast) and n <= 0 then
+        row.text:SetText("")
+        return
+    end
+    row.text:SetFormattedText("%d", n)
+end
+
 local function UpdateRow(row, edb, isPreview)
     local key = row.key
     local def = RESOURCES[key]
@@ -435,14 +452,19 @@ local function UpdateRow(row, edb, isPreview)
 
     if def.mode == "pip" then
         local numSeg = SegmentsFor(key, isPreview)
-        if numSeg <= 0 then return end
+        if numSeg <= 0 then
+            row.text:SetText("")
+            return
+        end
         if def.fill == "rune" and not isPreview then
             -- 符文：每格看自己的冷卻，不是「有幾點」
             local dc = edb.dimColor or DIM
+            local readyCount = 0
             for i = 1, numSeg do
                 local seg = row.segs[i]
-                local ok, _, _, ready = pcall(GetRuneCooldown, i)
-                if ok and ready then
+                local ok, _, _, isReady = pcall(GetRuneCooldown, i)
+                if ok and isReady then
+                    readyCount = readyCount + 1
                     seg.fg:SetVertexColor(cc.r, cc.g, cc.b, edb.barAlpha or 1)
                     seg.bg:SetVertexColor(cc.r * 0.3, cc.g * 0.3, cc.b * 0.3, 0.8)
                 else
@@ -450,10 +472,12 @@ local function UpdateRow(row, edb, isPreview)
                     seg.bg:SetVertexColor(0, 0, 0, 0.4)
                 end
             end
+            SetPipText(row, def, edb, readyCount)
             return
         end
         local filled = isPreview and math.min(3, numSeg) or (GetValue(key) or 0)
         PaintPip(row, def, edb, numSeg, filled)
+        SetPipText(row, def, edb, filled)
         return
     end
 

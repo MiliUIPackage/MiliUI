@@ -12,7 +12,9 @@ local isInEditMode = false
 ------------------------------------------------------------
 -- 選取框 + 游標差值拖曳
 ------------------------------------------------------------
-local function AttachSelection(frame, label, fdb, onMoved)
+-- applyPoint：這個系統自己的定位方式（不給就是 CENTER 對 UIParent CENTER）。
+-- 召喚物錨在玩家框左下角，用預設那套會把 CENTER 偏移寫進 TOPLEFT 語意的欄位。
+local function AttachSelection(frame, label, fdb, onMoved, applyPoint)
     if frame.editSelection then return frame.editSelection end
 
     local sel = CreateFrame("Frame", nil, frame, "EditModeSystemSelectionTemplate")
@@ -25,16 +27,22 @@ local function AttachSelection(frame, label, fdb, onMoved)
 
     local baseX, baseY, startCX, startCY
 
+    local function Place(nx, ny)
+        if applyPoint then
+            applyPoint(nx, ny)
+            return
+        end
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER", UIParent, "CENTER", nx, ny)
+    end
+
     sel:SetScript("OnDragStart", function(self)
         baseX, baseY = fdb.x or 0, fdb.y or 0
         startCX, startCY = GetCursorPosition()
         self:SetScript("OnUpdate", function()
             local cx, cy = GetCursorPosition()
             local scale = UIParent:GetEffectiveScale()
-            local nx = baseX + (cx - startCX) / scale
-            local ny = baseY + (cy - startCY) / scale
-            frame:ClearAllPoints()
-            frame:SetPoint("CENTER", UIParent, "CENTER", nx, ny)
+            Place(baseX + (cx - startCX) / scale, baseY + (cy - startCY) / scale)
         end)
     end)
     sel:SetScript("OnDragStop", function(self)
@@ -74,7 +82,7 @@ local function UpdateEditModeState()
         if totem and ns.db.units.totem.enabled then
             local sel = AttachSelection(totem, "米利頭像：召喚物", ns.db.units.totem.frame, function()
                 if ns.TotemsApplySettings then ns.TotemsApplySettings() end
-            end)
+            end, ns.TotemsAnchorTo)
             totem:Show()      -- 框本身固定四格寬，選取框直接蓋得準
             sel:ShowHighlighted()
         end

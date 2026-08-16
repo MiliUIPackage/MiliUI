@@ -176,8 +176,8 @@ function DB.BuildDefaults()
                     -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
                     portrait = { enabled = true, x = 0, y = 0, w = 200, h = 50, mode = "3d",
                                  bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3,
-                                 zoom = 1, rotation = -35,     -- 側身（度）
-                                 modelOffsetX = 0.1, modelOffsetY = 0,    -- 側身後模型會偏左，往右推回來
+                                 zoom = 1, rotation = 0,       -- 正面朝鏡頭（度）
+                                 modelOffsetX = 0, modelOffsetY = 0,      -- 設定面板顯示 ×100
                                  fallback2D = false },   -- 副本小怪 3D 取不到時是否退 2D
                     hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.55,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
@@ -424,11 +424,10 @@ function DB.BuildDefaults()
             totem = {   -- 樣式 A 圖示膠囊列（使用者定案）
                 enabled = true,
                 style = "capsule",
-                -- 玩家框下方、與框左緣對齊：
-                -- 玩家框 200×50 中心 (-300,-225)：左緣 -400、下緣 -250；mp 條錯位 8px 到 -258、
-                -- 職業資源條在下緣 -14 再 6 高到 -270 → 圖示頂 -272、28 高 → 中心 y=-286
-                -- 四格寬 28*4+4*3=124 → 中心 x=-338
-                frame = { x = -338, y = -286, iconSize = 28, spacing = 4, growth = "RIGHT" },
+                -- 座標語意與資源條同一組：TOPLEFT 對玩家框 BOTTOMLEFT（往下是負的），
+                -- 玩家框搬家就自己跟著走。
+                -- 版面：框底 →6→ 魔力條(y=-6, 6 高) →2→ 資源條(y=-14, 6 高) →5→ 召喚物(y=-25)
+                frame = { x = 8, y = -25, iconSize = 28, spacing = 4, growth = "RIGHT" },
                 colors = "accent",       -- "accent" | "element"
                 swapEarthFire = true,
                 showTimeText = true,     -- 圖示上的剩餘秒數

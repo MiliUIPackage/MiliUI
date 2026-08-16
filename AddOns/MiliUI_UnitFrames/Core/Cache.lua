@@ -80,7 +80,9 @@ local function UpdateIdentityFields(uf)
     cache.class     = Desecret((UnitClass(unit)), "")
     cache.race      = Desecret((UnitRace(unit)), "")
     cache.creaturetype = Desecret(UnitCreatureType(unit), "")
-    cache.pc        = ToBool(UnitIsPlayer(unit)) or ToBool(UnitPlayerControlled(unit)) or false
+    -- isPlayer = 真玩家（種族／職業才有意義）；pc = 玩家陣營控制（含寵物，染色用）
+    cache.isPlayer  = ToBool(UnitIsPlayer(unit)) or false
+    cache.pc        = cache.isPlayer or ToBool(UnitPlayerControlled(unit)) or false
     cache.reaction  = PlainReaction(unit)
     cache.afk       = SafeFlag(UnitIsAFK, unit) or false
     cache.dnd       = SafeFlag(UnitIsDND, unit) or false

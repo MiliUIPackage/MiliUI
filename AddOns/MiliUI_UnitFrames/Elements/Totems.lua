@@ -251,10 +251,24 @@ local function Poll()
     end
 end
 
+-- 錨點語意與資源條同一組：TOPLEFT 對玩家框 BOTTOMLEFT（往下是負的）。
+-- 這樣玩家框一搬家召喚物就自己跟著走，不必再把玩家框座標算進預設值裡。
+local function AnchorTo(x, y)
+    if not frame then return end
+    local anchor = ns.frames and ns.frames.player
+    frame:ClearAllPoints()
+    if anchor then
+        frame:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", ns.P.Scale(x or 0), ns.P.Scale(y or 0))
+    else
+        -- 玩家框還沒生出來時沒有基準點，先掛畫面中心，之後 ApplyPosition 會再校正
+        frame:SetPoint("CENTER", UIParent, "CENTER", ns.P.Scale(x or 0), ns.P.Scale(y or 0))
+    end
+end
+ns.TotemsAnchorTo = AnchorTo     -- 編輯模式拖曳中即時定位用
+
 local function ApplyPosition()
     local db = GetDB()
-    frame:ClearAllPoints()
-    frame:SetPoint("CENTER", UIParent, "CENTER", db.frame.x or 0, db.frame.y or 0)
+    AnchorTo(db.frame.x, db.frame.y)
 end
 
 local function Init()

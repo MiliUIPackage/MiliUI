@@ -550,6 +550,35 @@ function W.CreateGroupLabel(parent, text)
 end
 
 ------------------------------------------------------------
+-- 戰鬥遮罩
+------------------------------------------------------------
+-- 戰鬥中蓋住整個設定區。EnableMouse + EnableMouseWheel 兩個都要開——
+-- 只調 alpha 或只擋 mouse 的話，點擊／滾輪照樣穿透到底下的控制項。
+-- strata 要壓過確認彈窗（FULLSCREEN_DIALOG 400/410），不然彈窗會浮在遮罩上面還能按。
+function W.CreateCombatMask(parent, text)
+    local mask = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    mask:SetAllPoints(parent)
+    mask:SetFrameStrata("FULLSCREEN_DIALOG")
+    mask:SetFrameLevel(500)
+    mask:EnableMouse(true)
+    mask:EnableMouseWheel(true)
+    mask:SetBackdrop({ bgFile = WHITE })
+    mask:SetBackdropColor(0.17, 0.15, 0.15, 0.8)
+
+    mask.text = mask:CreateFontString(nil, "OVERLAY")
+    mask.text:SetFontObject(fontTitle)
+    mask.text:SetTextColor(1, 0.2, 0.2)
+    mask.text:SetPoint("LEFT", 5, 0)
+    mask.text:SetPoint("RIGHT", -5, 0)
+    mask.text:SetJustifyH("CENTER")
+    mask.text:SetText(text or "無法在戰鬥中更改設定")
+
+    mask:Hide()
+    parent.combatMask = mask
+    return mask
+end
+
+------------------------------------------------------------
 -- 確認彈窗
 ------------------------------------------------------------
 -- 確認彈窗：蓋在整個 parent 上方（獨立 strata，不受分頁/卷軸子層級影響），

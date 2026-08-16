@@ -14,6 +14,7 @@ local PANEL_W, PANEL_H = 700, 520
 local panel
 local tabButtons = {}
 local highlightTab
+local closeBtn
 
 -- class = 只有這些職業看得到這個分頁（單一職業字串，或 { CLASS = true } 集合）
 local TABS = {
@@ -65,6 +66,27 @@ local function ShowTab(id)
     ns.Fire("ShowOptionsTab", id)
 end
 
+------------------------------------------------------------
+-- 戰鬥保護
+--
+-- 後端本來就安全（ns.ApplySettings 戰鬥中排隊、出戰鬥再套），但玩家看到的是
+-- 「調了沒反應」——所以直接把設定區蓋起來把原因講明白。
+------------------------------------------------------------
+local function SetCombatLocked(locked)
+    if not panel or not panel.combatMask then return end
+    if locked then
+        W.CloseDropdowns()      -- 下拉選單在 TOOLTIP strata，遮罩蓋不到，直接收掉
+        panel.combatMask:Show()
+        -- 關閉鈕要留在遮罩之上，否則視窗只剩 ESC 能關
+        closeBtn:SetFrameStrata("FULLSCREEN_DIALOG")
+        closeBtn:SetFrameLevel(510)
+    else
+        panel.combatMask:Hide()
+        closeBtn:SetFrameStrata("DIALOG")
+        closeBtn:SetFrameLevel(panel:GetFrameLevel() + 10)
+    end
+end
+
 local function CreatePanel()
     if panel then return end
 
@@ -92,7 +114,7 @@ local function CreatePanel()
 
     -- 關閉鈕（右上角）
     -- 關閉鈕用貼圖不用「×」字元（中文字型可能沒這個字形）
-    local closeBtn = W.CreateButton(panel, "", "red", 20, 20)
+    closeBtn = W.CreateButton(panel, "", "red", 20, 20)
     closeBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -3, -3)
     closeBtn:SetFrameLevel(panel:GetFrameLevel() + 10)
     local closeX = closeBtn:CreateTexture(nil, "OVERLAY")
@@ -133,6 +155,17 @@ local function CreatePanel()
     panel:SetScript("OnShow", function()
         ns.LogClick("panel OnShow")
         ns.Preview.Open()
+        SetCombatLocked(InCombatLockdown())   -- 戰鬥中開窗也要鎖
+    end)
+
+    ------------------------------------------------------------
+    -- 戰鬥遮罩：事件掛在 panel 自己身上（隱藏的框照樣收得到事件）
+    ------------------------------------------------------------
+    W.CreateCombatMask(panel)
+    panel:RegisterEvent("PLAYER_REGEN_DISABLED")
+    panel:RegisterEvent("PLAYER_REGEN_ENABLED")
+    panel:SetScript("OnEvent", function(_, event)
+        SetCombatLocked(event == "PLAYER_REGEN_DISABLED")
     end)
 
     ------------------------------------------------------------

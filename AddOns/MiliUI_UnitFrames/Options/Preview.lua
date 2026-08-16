@@ -39,6 +39,7 @@ local function BuildFakeCache(unitKey)
         race = base.pc and (UnitRace("player")) or "",
         creaturetype = base.creaturetype or "",
         pc = base.pc,
+        isPlayer = base.pc,
         reaction = base.reaction,
         level = base.level,
         classification = base.classificationKey and cls[base.classificationKey] or "",

@@ -77,15 +77,27 @@ local SECRET_TAGS = {
         return UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs(u) or 0
     end },
     name  = { kind = "string", fn = function(u) return UnitName(u) end },
-    race  = { kind = "string", fn = function(u) return (UnitRace(u)) end },
-    class = { kind = "string", fn = function(u) return (UnitClass(u)) end },
+    -- ⚠ 種族／職業只對「真玩家」有意義。對寵物、載具、被控生物這類
+    --   player-controlled 但非玩家的單位：UnitRace 回 nil，UnitClass 回的是
+    --   「該單位的名字」——照抄會在種族欄印出寵物名。一律先閘掉。
+    race  = { kind = "string", fn = function(u)
+        if not ns.ToBool(UnitIsPlayer(u)) then return nil end
+        return (UnitRace(u))
+    end },
+    class = { kind = "string", fn = function(u)
+        if not ns.ToBool(UnitIsPlayer(u)) then return nil end
+        return (UnitClass(u))
+    end },
     creaturetype = { kind = "string", fn = function(u) return UnitCreatureType(u) end },
 }
 
 -- 條件（讀 cache 明文）
+-- pc / npc 看的是「真玩家」（cache.isPlayer），不是 cache.pc（player-controlled）。
+-- 寵物走 npc 分支才會顯示生物類型，不然種族／職業欄會空一片。
+-- cache.pc 仍供染色用（寵物要吃主人的職業色）。
 local conditions = {
-    pc = function(uf) return uf.cache.pc end,
-    npc = function(uf) return not uf.cache.pc end,
+    pc = function(uf) return uf.cache.isPlayer end,
+    npc = function(uf) return not uf.cache.isPlayer end,
     dead = function(uf) return uf.cache.dead and not uf.cache.ghost end,
     ghost = function(uf) return uf.cache.ghost end,
     alive = function(uf) return not uf.cache.dead end,
@@ -309,6 +321,11 @@ function Tags.Render(uf, fs, pattern, edb)
                     end
                 end
                 result = result .. ab
+                pos = ms + 2
+            elseif idx and idx <= argCount then
+                -- 佔位符登記過但取值是 nil（例：對非玩家單位查 UnitRace）：
+                -- 整組 \001N 一起吃掉輸出空字串。只吐 \001 會讓控制字元原樣進
+                -- FontString，畫面上顯示成「□1」這種內部編號
                 pos = ms + 2
             else
                 result = result .. "\001"

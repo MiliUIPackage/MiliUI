@@ -13,7 +13,7 @@ local CONTROLS = {
     { type = "text",   label = "|cff4DD2FF停在這一頁時框裡會放四個示範召喚物|r（含會跑的時間條與倒數），方便對位置和大小——切到別頁或關掉面板就回真實狀態。" },
     { type = "text",   label = "圖騰、玉蛟／玄牛雕像、生命綻放這類「放出去會自己待一段時間」的東西——暴雪把它們收在同一組欄位裡，最多四個，所以這裡一起管。樣式：圖示膠囊列（圖示＋底部時間條）。" },
     { type = "header", label = "位置與大小" },
-    { type = "text",   label = "座標是框架中心相對畫面中心的偏移；也可以在編輯模式直接拖曳。框固定四格寬、從左往右排。" },
+    { type = "text",   label = "相對玩家框「左下角」的偏移（往下是負的），跟資源條同一組座標——玩家框搬家會自己跟著走；也可以在編輯模式直接拖曳。框固定四格寬、從左往右排。" },
     { type = "numbers", sub = "frame", label = "位置", fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
     { type = "slider", sub = "frame", key = "iconSize", label = "圖示大小", min = 16, max = 64 },
     { type = "slider", sub = "frame", key = "spacing", label = "間距", min = 0, max = 16 },
