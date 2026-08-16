@@ -2520,6 +2520,20 @@ local function UnitButton_UpdateHealPrediction(self, skipStateUpdates)
     self.widgets.incomingHeal:SetValue(value / self.states.healthMax, self.states.healthPercent)
 end
 
+-- Toggle an overshield glow from a SECRET clamped-bool without reading it. SetAlphaFromBoolean
+-- (the Midnight-safe primitive DandersFrames uses) sets alpha = 1 when isClamped is true, 0 when
+-- false, so the texture stays Shown and alpha does the hiding. If the option is off, isClamped is
+-- unavailable, or the API is missing on this client, just hide the glow outright.
+function B.SetOvershieldGlow(glow, enabled, isClamped)
+    if not glow then return end
+    if enabled and isClamped ~= nil and glow.SetAlphaFromBoolean then
+        glow:Show()
+        glow:SetAlphaFromBoolean(isClamped, 1, 0)
+    else
+        glow:Hide()
+    end
+end
+
 UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
     if Cell.isMidnight and self.widgets.healthCalculator then
         -- MIDNIGHT PATH: use calculator secret values
@@ -2535,24 +2549,29 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
         if not unit then return end
         -- Refresh calculator so we have current data (critical for standalone UNIT_ABSORB_AMOUNT_CHANGED events)
         UnitButton_UpdateCalculator(self)
-        local absorbs = self.widgets.healthCalculator:GetDamageAbsorbs()
-        -- Exactly ONE shield bar shows. Reverse fill draws from the RIGHT (the front of the
-        -- health bar, so the shield reads as extra HP and stays visible at full health);
-        -- forward fill draws from the left, overlaid on the health. ⚠ The forward bar used to
-        -- be shown UNCONDITIONALLY above, so reverse-fill mode left BOTH bars up -- the "two
-        -- shield bars at once" bug. Overshield glow stays hidden (12.1 secret absorbs can't
-        -- detect overshield).
+        -- ⚠ GetDamageAbsorbs()'s FIRST return is the absorb CLAMPED to missing health, so at full
+        -- health it's 0 and the shield vanishes -- that was the "满血不显示护盾" bug. Its SECOND
+        -- return, isClamped, is a secret bool that's true when the absorb overflows past max health
+        -- (an overshield). Feed the bar the UNCLAMPED total instead (UnitGetTotalAbsorbs is secret
+        -- but StatusBar:SetValue accepts secrets) so the shield stays visible at full health, and
+        -- drive the overshield glow off isClamped -- never reading it -- exactly like DandersFrames.
+        local _, isClamped = self.widgets.healthCalculator:GetDamageAbsorbs()
+        local totalAbsorbs = UnitGetTotalAbsorbs(unit)
+        -- Exactly ONE shield bar shows. Reverse fill draws from the RIGHT (the front of the health
+        -- bar, so the shield reads as extra HP); forward fill draws from the left over the health.
         if overshieldReverseFillEnabled then
             self.widgets.shieldBar:Hide()
-            self.widgets.shieldBarR:SetValue(absorbs)
+            self.widgets.shieldBarR:SetValue(totalAbsorbs)
             self.widgets.shieldBarR:Show()
+            self.widgets.overShieldGlow:Hide()
+            B.SetOvershieldGlow(self.widgets.overShieldGlowR, overshieldEnabled, isClamped)
         else
-            self.widgets.shieldBar:SetValue(absorbs)
+            self.widgets.shieldBar:SetValue(totalAbsorbs)
             self.widgets.shieldBar:Show()
             self.widgets.shieldBarR:Hide()
+            self.widgets.overShieldGlowR:Hide()
+            B.SetOvershieldGlow(self.widgets.overShieldGlow, overshieldEnabled, isClamped)
         end
-        self.widgets.overShieldGlow:Hide()
-        self.widgets.overShieldGlowR:Hide()
 
         -- Update shield indicator (user-configurable indicator on top of health bar)
         if enabledIndicators["shieldBar"] then
@@ -2561,7 +2580,7 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
             -- NOTE: indicatorBooleans["shieldBar"] (onlyShowOvershields) can't be honored with
             -- secrets since we can't compute overshieldPercent. Show full absorbs instead.
             self.indicators.shieldBar:Show()
-            self.indicators.shieldBar:SetValue(absorbs)
+            self.indicators.shieldBar:SetValue(totalAbsorbs)
         else
             self.indicators.shieldBar:Hide()
         end
@@ -3484,12 +3503,12 @@ end
 function B.UpdateShields(button)
     predictionEnabled = CellDB["appearance"]["healPrediction"][1]
     shieldEnabled = CellDB["appearance"]["shield"][1]
-    -- OVERSHIELD GLOW disabled (12.1): overshield = (absorbs + health) > maxHealth, all three
-    -- SECRET on Midnight, so it can't be detected -- the glow showed a false white edge with no
-    -- shield. Only the glow/detection is gone. The shield "Reverse Fill" DIRECTION stays: it is
-    -- a NORMAL shield option (fills from the front, reads as extra HP, visible at full health).
-    -- overshieldEnabled = CellDB["appearance"]["overshield"][1]
-    overshieldEnabled = false
+    -- OVERSHIELD (12.1): overshield = the absorb clamped past max health. We can't COMPUTE it
+    -- (absorbs/health/max are all secret), but healthCalculator:GetDamageAbsorbs() returns an
+    -- `isClamped` secret bool as its 2nd value -- true exactly when there's an overshield. The
+    -- glow's visibility is driven off that bool via SetAlphaFromBoolean, never reading it. This
+    -- is how DandersFrames shows overshields at full health. Detection restored.
+    overshieldEnabled = shieldEnabled and CellDB["appearance"]["overshield"][1]
     overshieldReverseFillEnabled = shieldEnabled and CellDB["appearance"]["overshieldReverseFill"]
     absorbEnabled = CellDB["appearance"]["healAbsorb"][1]
     absorbInvertColor = CellDB["appearance"]["healAbsorbInvertColor"]

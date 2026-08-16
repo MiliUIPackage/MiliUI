@@ -35,7 +35,7 @@ Cell.defaults.appearance = {
     ["healAbsorbInvertColor"] = false,
     ["shield"] = {not (Cell.isTBC or Cell.isVanilla), {1, 1, 1, 0.4}},
     ["overshield"] = {not (Cell.isTBC or Cell.isVanilla), {1, 1, 1, 1}},
-    ["overshieldReverseFill"] = false,
+    ["overshieldReverseFill"] = true,
 }
 
 local buttonStyleIndices = {
