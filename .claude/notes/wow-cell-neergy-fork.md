@@ -60,7 +60,13 @@ r277，用 `r277.9.x` 自己往下編號。我們從 r282 走自己的路，**�
 
 - `Enum.StatusBarInterpolation` 平滑條 → 寫進 [[wow-121-other-api-changes]]
 - `UnitThreatSituation` / `UnitDetailedThreatSituation` 兩個獨立秘密閘
-- 拿掉 `UIParent:UnregisterEvent("GROUP_ROSTER_UPDATE")`（疑似害場景/地穴目標追蹤不更新，**待進遊戲驗**）
+- ~~拿掉 `UIParent:UnregisterEvent("GROUP_ROSTER_UPDATE")`~~ **已還原（r288 後）**。
+  把事件還給 UIParent 會讓 `UIParent_ManageFramePositions` 重跑，而那次版面計算是在
+  「Cell 已經把 `CompactRaidFrameContainer` 掛到隱藏框」的狀態下進行的，managed frame
+  容器重算之後**內建的 `Blizzard_DamageMeter` 就不見了**。
+  他們宣稱這條修好場景/地穴目標追蹤——可能是真的，但不值得用官方傷害統計換。
+  ⚠ **教訓**：`HideBlizzard` 這種動暴雪全域 UI 的改動，不能只驗「它宣稱修好的東西」，
+  要清點它可能連帶影響的其他 managed frame。無法驗證因果的改動不要跟其他改動綁在同一次出貨。
 - 新增 Offensive Cooldowns 指示器（技能名單取自他們，同一個 Cell 血統）
 - Actions 指示器藥水 ID 換成 Midnight 的 1234768 / 1236616
 - 治療 HoT 清單補 13 個（r288）。⚠ **`F.FirstRun()` 只跑一次**（`CellDB["firstRun"]`），
