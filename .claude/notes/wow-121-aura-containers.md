@@ -50,7 +50,22 @@ Cell 舊版有這個效果（`refreshing` → `frame.ag:Play()`）。路線 A �
 
 ⚠ 只能在 `initializeFrame` 視窗內掛。確認過 `initializeFrame` 收到的是 `auraFrame:GetObjectTable()`，也就是 Shared mixin 的公開物件，所以 `AddPandemicRegion` 在那裡可以呼叫。
 
-順帶：Cell 的 `Indicators/Base.lua` 裡 `BorderIcon_SetCooldownFromAura` / `BarIcon_SetCooldownFromAura`（含 `if refreshing then frame.ag:Play()`）**全樹零呼叫點**，是死碼；BorderIcon 的 `frame.ShowAnimation` 也被設成空函式，所以設定面板那個「顯示動畫」勾選框在 Midnight 下沒有作用。
+順帶：Cell 的 `Indicators/Base.lua` 裡 `BorderIcon_SetCooldownFromAura` / `BarIcon_SetCooldownFromAura`（含 `if refreshing then frame.ag:Play()`）**全樹零呼叫點**，是死碼；BorderIcon 的 `frame.ShowAnimation` 也被設成空函式。
+
+### 「顯示動畫」選項的死活判定（已於 r288 後移除死的那些）
+
+不能一刀切，同一個勾選框在不同組態下死活不同：
+
+| 指示器 | Midnight 下 | 理由 |
+|---|---|---|
+| 內建 CD 列（external / defensive / offensive / allCooldowns）、debuffs | **死** | 容器接管，`AttachBuffContainer` → `DiscardFallbackIcons` 清掉 BarIcon 池；BorderIcon 的 `ShowAnimation` 是空函式 |
+| 自訂 icon/icons + `auraType == "buff"` | **死** | 同上，走容器（`Indicators/Custom.lua` 的 `isIconish or isEffectish` 閘） |
+| 自訂 icon/icons + `auraType == "debuff"` | **活** | 友方減益禁止用 spellID 過濾，所以留在舊掃描路徑，`BarIcon_ShowAnimation` 照常運作 |
+| QuickAssist 的 buff/offensive 圖示 | **活** | 整支 `Utilities/QuickAssist.lua` 零個 AuraContainer，全部是舊路徑 |
+
+⚠ 移除選項時**不要動 `frame.ShowAnimation = function() end` 那個空函式**——舊版面存下來的 `showAnimation` 鍵還在，`HandleIndicators` 仍會呼叫它，拿掉空函式會直接報錯。
+
+⚠ 設定清單是照順序走的，中間插一個 nil 會把清單截斷。要條件性加項目就用 `tinsert(t, index, ...)`，不要寫成表格字面值裡的 `cond and x or nil`。
 
 **所有樣式都必須寫在 `initializeFrame` 裡**：PTR 5 起 auras 一變 secret 整個 AuraButton 就 forbidden，而這個 forbidden 狀態正是在 `initializeFrame` 回傳**之後**才套上去的，在別處設定會 error。
 

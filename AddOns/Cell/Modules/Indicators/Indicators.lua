@@ -1652,7 +1652,12 @@ if Cell.isRetail or Cell.isMists then
         ["offensiveCooldowns"] = Cell.isMidnight
             and {"|cffb7b7b7"..L["Show major damage cooldowns, so you can see who is bursting."], "enabled", "builtInOffensives", "customOffensives", midnightDurationVisibility, "durationColor", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont}
             or {"|cffb7b7b7"..L["Show major damage cooldowns, so you can see who is bursting."], "enabled", "builtInOffensives", "customOffensives", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["allCooldowns"] = {"enabled", midnightDurationVisibility, "durationColor", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        -- showAnimation is dropped on Midnight for the same reason as its siblings above: the
+        -- indicator is AuraContainer-backed, AttachBuffContainer discards its legacy BarIcon
+        -- pool, and BorderIcon's ShowAnimation is a no-op -- the checkbox drove nothing.
+        ["allCooldowns"] = Cell.isMidnight
+            and {"enabled", midnightDurationVisibility, "durationColor", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont}
+            or {"enabled", midnightDurationVisibility, "durationColor", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
         ["tankActiveMitigation"] = {"|cffb7b7b7"..I.GetTankActiveMitigationString(), "enabled", "color-class", "size", "position", "frameLevel"},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "iconStyle", "orientation", "size-square", "position", "frameLevel"},
         -- 12.1: AuraContainer-backed. Options the container cannot honour are gone --
@@ -1752,6 +1757,26 @@ elseif Cell.isVanilla or Cell.isTBC then
     }
 end
 
+-- "Show animation" (the refresh pulse) for custom icon indicators.
+--
+-- On 12.1 a BUFF icon indicator is AuraContainer-backed (Indicators/Custom.lua), which
+-- discards its legacy BarIcon pool -- Blizzard's engine buttons draw instead, and nothing
+-- reaches BarIcon_ShowAnimation. The pulse itself is unrecoverable: it needs to know the aura
+-- was refreshed, and every signal for that is secret to tainted code (expirationTime,
+-- C_UnitAuras.GetRefreshExtendedDuration, and the container's own Assignment/Update mode,
+-- which lives on a private mixin). So the checkbox is hidden rather than left lying.
+--
+-- ⚠ DEBUFF icon indicators are NOT container-backed -- filtering a friendly unit's debuffs by
+-- spell ID is banned, so they stay on the manual path and the animation still works there.
+-- Do not strip the option from both.
+--
+-- Inserted rather than written inline because a nil hole in the settings list would truncate
+-- it: the consumer walks the table in order.
+local function AddIconAnimationSetting(settingsTable, indicatorTable)
+    if Cell.isMidnight and indicatorTable and indicatorTable["auraType"] == "buff" then return end
+    tinsert(settingsTable, 6, "checkbutton4:showAnimation") -- after durationColor
+end
+
 local function ShowIndicatorSettings(id)
     -- if selected == id then return end
 
@@ -1778,9 +1803,11 @@ local function ShowIndicatorSettings(id)
         -- end
     else
         if indicatorType == "icon" then
-            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "durationColor", "checkbutton4:showAnimation", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "durationColor", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            AddIconAnimationSetting(settingsTable, indicatorTable)
         elseif indicatorType == "icons" then
-            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "durationColor", "checkbutton4:showAnimation", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "durationColor", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            AddIconAnimationSetting(settingsTable, indicatorTable)
         elseif indicatorType == "text" then
             settingsTable = {"enabled", "auras", "duration", "stack", "durationColor", "position", "frameLevel", "font-noOffset"}
         elseif indicatorType == "bar" then
