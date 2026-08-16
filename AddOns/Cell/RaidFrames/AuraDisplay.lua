@@ -389,13 +389,8 @@ end
 local function BuildDurColorOpt(cfg, baseOverride)
     if not (Enum and Enum.DurationTextBindingProperty) then return nil end
     local dc = cfg.durationColors
-    if type(dc) ~= "table" then return nil end
-    local thresholds = {}
-    local sec = dc.sec
-    if type(sec) == "table" and sec[1] and type(sec[2]) == "number" and type(sec[3]) == "table" then
-        thresholds[#thresholds + 1] = { sec = sec[2], color = sec[3] }
-    end
-    local curve = BuildCountdownColorCurve(baseOverride or dc.base, thresholds)
+    if type(dc) ~= "table" or type(dc.thresholds) ~= "table" or #dc.thresholds == 0 then return nil end
+    local curve = BuildCountdownColorCurve(baseOverride or dc.base, dc.thresholds)
     if not curve then return nil end
     return { curve = curve, property = Enum.DurationTextBindingProperty.RemainingDuration }
 end
@@ -705,7 +700,13 @@ local function StyleButton(handle, button)
         -- ⚠ only flag it when a bind actually happened. Flagging on the disabled path too
         -- meant an indicator created with showDuration off could never get its text back.
         if fmt then
-            button:SetDurationText(button.dfDur, { textFormatter = fmt })
+            -- unified countdown colour-by-time (icon/defensive types): base + seconds thresholds
+            local durColorOpt = BuildDurColorOpt(cfg)
+            local opts = { textFormatter = fmt }
+            if durColorOpt then opts.textColor = durColorOpt end
+            if not pcall(button.SetDurationText, button, button.dfDur, opts) then
+                pcall(button.SetDurationText, button, button.dfDur, { textFormatter = fmt })
+            end
             button._boundDur = true
         end
     end

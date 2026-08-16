@@ -27,7 +27,9 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["showAnimation"] = true,
             ["auraType"] = auraType,
             ["auras"] = {},
-            ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}}
+            ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}},
+            -- countdown colour-by-time: {enabled, base, {en,sec,col}, {en,sec,col}}
+            ["durationColor"] = {false, {1, 1, 1, 1}, {false, 10, {1, 1, 0, 1}}, {false, 3, {1, 0, 0, 1}}},
         }
     elseif type == "text" then
         t = {
@@ -139,7 +141,9 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["showAnimation"] = true,
             ["auraType"] = auraType,
             ["auras"] = {},
-            ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}}
+            ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}},
+            -- countdown colour-by-time: {enabled, base, {en,sec,col}, {en,sec,col}}
+            ["durationColor"] = {false, {1, 1, 1, 1}, {false, 10, {1, 1, 0, 1}}, {false, 3, {1, 0, 0, 1}}},
         }
     elseif type == "color" then
         t = {

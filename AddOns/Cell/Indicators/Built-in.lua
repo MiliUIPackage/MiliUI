@@ -379,11 +379,28 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
                 base, sec = t.colors[2], t.colors[4]
             end
             if base or sec then
-                opts.durationColors = { base = base, sec = sec }
+                local thresholds = {}
+                if type(sec) == "table" and sec[1] and type(sec[2]) == "number" and type(sec[3]) == "table" then
+                    thresholds[1] = { sec = sec[2], color = sec[3] }
+                end
+                opts.durationColors = { base = base, thresholds = thresholds }
                 if type(base) == "table" and type(base[1]) == "number" then
                     opts.borderColor = base
                 end
             end
+        end
+        -- unified durationColor { en, base, {en,sec,col}, {en,sec,col} }: takes precedence and is
+        -- the countdown-colour source for icon / defensive types (no per-type colours table).
+        if type(t.durationColor) == "table" and t.durationColor[1] then
+            local d = t.durationColor
+            local thresholds = {}
+            for i = 3, 4 do
+                local th = d[i]
+                if type(th) == "table" and th[1] and type(th[2]) == "number" and type(th[3]) == "table" then
+                    thresholds[#thresholds + 1] = { sec = th[2], color = th[3] }
+                end
+            end
+            opts.durationColors = { base = d[2], thresholds = thresholds }
         end
         if t.size then opts.size = t.size[1]; opts.sizeH = t.size[2] end
         if t.num then opts.num = t.num end

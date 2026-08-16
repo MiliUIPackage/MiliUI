@@ -1763,9 +1763,9 @@ local function ShowIndicatorSettings(id)
         -- end
     else
         if indicatorType == "icon" then
-            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "checkbutton4:showAnimation", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "durationColor", "checkbutton4:showAnimation", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
         elseif indicatorType == "icons" then
-            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "checkbutton4:showAnimation", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "durationColor", "checkbutton4:showAnimation", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
         elseif indicatorType == "text" then
             settingsTable = {"enabled", "auras", "duration", "stack", "colors", "position", "frameLevel", "font-noOffset"}
         elseif indicatorType == "bar" then
@@ -2061,6 +2061,17 @@ local function ShowIndicatorSettings(id)
             w:SetFunc(function(value)
                 -- NOTE: already changed in widget
                 Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "colors", value)
+            end)
+
+        -- durationColor (unified countdown colour-by-time: {en, base, {en,sec,col}, {en,sec,col}})
+        elseif currentSetting == "durationColor" then
+            -- default for indicators created before this option existed
+            if type(indicatorTable["durationColor"]) ~= "table" then
+                indicatorTable["durationColor"] = {false, {1, 1, 1, 1}, {false, 10, {1, 1, 0, 1}}, {false, 3, {1, 0, 0, 1}}}
+            end
+            w:SetDBValue(indicatorTable["durationColor"])
+            w:SetFunc(function(value)
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "durationColor", value)
             end)
 
         -- statusColors
