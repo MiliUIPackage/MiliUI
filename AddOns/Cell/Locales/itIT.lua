@@ -190,6 +190,7 @@ L["Close"] = "Chiudi"
 --[[ L["Code Snippets"] = "Code Snippets"--]]
 L["Color"] = "Colore"
 L["Color By"] = "Colora per"
+L["Color by Remaining Time"] = "Colora in base al tempo rimanente"
 L["Color Duration Text"] = "Colora testo della durata"
 L["Color Thresholds"] = "Soglie per il colore"
 L["Columns"] = "Colonne"

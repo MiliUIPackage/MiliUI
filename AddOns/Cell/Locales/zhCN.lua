@@ -572,6 +572,7 @@ L["Anyone"] = "任何人"
 L["Others"] = "其他人"
 L["smooth"] = "平滑"
 L["Color By"] = "着色"
+L["Color by Remaining Time"] = "按照持续时间上色"
 L["Set Bar Max Value"] = "设置进度条最大值"
 L["Allow smaller value"] = "允许更小的值"
 
