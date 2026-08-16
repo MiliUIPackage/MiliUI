@@ -74,7 +74,7 @@ local UnitClassBase = function(unit)
 end
 
 local barAnimationType, highlightEnabled, predictionEnabled
-local shieldEnabled, overshieldEnabled, overshieldReverseFillEnabled
+local shieldEnabled, overshieldEnabled, overshieldReverseFillEnabled, overshieldGlowReverseEnabled
 local absorbEnabled, absorbInvertColor
 
 -- Midnight: Curve for CELL_FADE_OUT_HEALTH_PERCENT feature
@@ -2563,12 +2563,17 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
             self.widgets.shieldBar:Hide()
             self.widgets.shieldBarR:SetValue(totalAbsorbs)
             self.widgets.shieldBarR:Show()
-            self.widgets.overShieldGlow:Hide()
-            B.SetOvershieldGlow(self.widgets.overShieldGlowR, overshieldEnabled, isClamped)
         else
             self.widgets.shieldBar:SetValue(totalAbsorbs)
             self.widgets.shieldBar:Show()
             self.widgets.shieldBarR:Hide()
+        end
+        -- Overshield glow: independent direction toggle (overShieldGlowR = left edge, overShieldGlow
+        -- = right edge). Only the chosen one is driven by isClamped; the other is hidden.
+        if overshieldGlowReverseEnabled then
+            self.widgets.overShieldGlow:Hide()
+            B.SetOvershieldGlow(self.widgets.overShieldGlowR, overshieldEnabled, isClamped)
+        else
             self.widgets.overShieldGlowR:Hide()
             B.SetOvershieldGlow(self.widgets.overShieldGlow, overshieldEnabled, isClamped)
         end
@@ -3510,6 +3515,9 @@ function B.UpdateShields(button)
     -- is how DandersFrames shows overshields at full health. Detection restored.
     overshieldEnabled = shieldEnabled and CellDB["appearance"]["overshield"][1]
     overshieldReverseFillEnabled = shieldEnabled and CellDB["appearance"]["overshieldReverseFill"]
+    -- Overshield-glow direction is its OWN toggle (default off), independent of the shield bar's
+    -- fill direction: the bar can fill from the front while the overshield glow sits on either edge.
+    overshieldGlowReverseEnabled = shieldEnabled and CellDB["appearance"]["overshieldGlowReverse"]
     absorbEnabled = CellDB["appearance"]["healAbsorb"][1]
     absorbInvertColor = CellDB["appearance"]["healAbsorbInvertColor"]
 

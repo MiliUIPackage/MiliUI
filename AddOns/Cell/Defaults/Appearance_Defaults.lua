@@ -36,6 +36,7 @@ Cell.defaults.appearance = {
     ["shield"] = {not (Cell.isTBC or Cell.isVanilla), {1, 1, 1, 0.4}},
     ["overshield"] = {not (Cell.isTBC or Cell.isVanilla), {1, 1, 1, 1}},
     ["overshieldReverseFill"] = true,
+    ["overshieldGlowReverse"] = false,
 }
 
 local buttonStyleIndices = {
@@ -60,7 +61,8 @@ local buttonStyleIndices = {
     "healAbsorbInvertColor",
     "shield",
     "overshield",
-    "overshieldReverseFill"
+    "overshieldReverseFill",
+    "overshieldGlowReverse"
 }
 
 function F.ResetButtonStyle()

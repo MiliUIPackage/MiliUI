@@ -496,8 +496,10 @@ local function UpdatePreviewShields(r, g, b)
             previewButton2.widgets.shieldBarR:Hide()
         end
 
-        -- Overshield glow
-        if CellDB["appearance"]["overshield"][1] and not reverseFilling then
+        -- Overshield glow: its own reverse toggle, independent of the shield bar's fill direction.
+        local overshieldOn = CellDB["appearance"]["overshield"][1]
+        local glowReverse = CellDB["appearance"]["overshieldGlowReverse"]
+        if overshieldOn and not glowReverse then
             previewButton2.widgets.overShieldGlow:SetVertexColor(unpack(CellDB["appearance"]["overshield"][2]))
             previewButton2.widgets.overShieldGlow:SetAlpha(1)
             previewButton2.widgets.overShieldGlow:Show()
@@ -505,14 +507,10 @@ local function UpdatePreviewShields(r, g, b)
             previewButton2.widgets.overShieldGlow:Hide()
         end
 
-        if reverseFilling then
-            if CellDB["appearance"]["overshield"][1] then
-                previewButton2.widgets.overShieldGlowR:SetVertexColor(unpack(CellDB["appearance"]["overshield"][2]))
-                previewButton2.widgets.overShieldGlowR:SetAlpha(1)
-                previewButton2.widgets.overShieldGlowR:Show()
-            else
-                previewButton2.widgets.overShieldGlowR:Hide()
-            end
+        if overshieldOn and glowReverse then
+            previewButton2.widgets.overShieldGlowR:SetVertexColor(unpack(CellDB["appearance"]["overshield"][2]))
+            previewButton2.widgets.overShieldGlowR:SetAlpha(1)
+            previewButton2.widgets.overShieldGlowR:Show()
         else
             previewButton2.widgets.overShieldGlowR:Hide()
         end
@@ -593,7 +591,7 @@ end
 local textureDropdown, barColorDropdown, barColorPicker, fullColorCB, fullColorPicker, lossColorDropdown, lossColorPicker, deathColorCB, deathColorPicker, powerColorDropdown, powerColorPicker, barAnimationDropdown, targetColorPicker, mouseoverColorPicker, highlightSize
 local gradientCB, thresholdCP1, thresholdCP2, thresholdCP3, thresholdDropdown, colorThresholdDropdown2
 local gradientLossCB, thresholdLossCP1, thresholdLossCP2, thresholdLossCP3, thresholdLossDropdown1, thresholdLossDropdown2
-local barAlpha, lossAlpha, bgAlpha, oorAlpha, predCB, absorbCB, invertColorCB, shieldCB, oversCB, reverseCB
+local barAlpha, lossAlpha, bgAlpha, oorAlpha, predCB, absorbCB, invertColorCB, shieldCB, oversCB, reverseCB, oversReverseCB
 local predCustomCB, predColorPicker, absorbColorPicker, shieldColorPicker, oversColorPicker
 local iconOptionsBtn, iconOptionsFrame, iconAnimationDropdown, durationRoundUpCB, durationDecimalText1, durationDecimalText2, durationDecimalDropdown, durationColorCB, durationNormalCP, durationPercentCP, durationSecondCP, durationPercentDD, durationSecondEB, durationSecondText
 
@@ -865,6 +863,7 @@ local function UpdateCheckButtons()
     absorbColorPicker:SetEnabled(CellDB["appearance"]["healAbsorb"][1])
     invertColorCB:SetEnabled(CellDB["appearance"]["healAbsorb"][1])
     oversColorPicker:SetEnabled(CellDB["appearance"]["overshield"][1])
+    oversReverseCB:SetEnabled(CellDB["appearance"]["overshield"][1])
 
     if CellDB["appearance"]["healAbsorbInvertColor"] then
         absorbCB:SetText(L["Heal Absorb"])
@@ -1556,6 +1555,14 @@ local function CreateUnitButtonStylePane()
     end)
     oversColorPicker:SetPoint("TOPLEFT", oversCB, "TOPRIGHT", 5, 0)
 
+    -- overshield reverse fill: its OWN toggle (default off), separate from the shield's reverse
+    -- fill -- flips which edge the overshield glow sits on without touching the shield bar.
+    oversReverseCB = Cell.CreateCheckButton(unitButtonPane, L["Reverse Fill"], function(checked, self)
+        CellDB["appearance"]["overshieldGlowReverse"] = checked
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    oversReverseCB:SetPoint("TOPLEFT", oversCB, "BOTTOMRIGHT", 0, -7)
+
     -- reset
     local resetBtn = Cell.CreateButton(unitButtonPane, L["Reset All"], "accent", {77, 17}, nil, nil, nil, nil, nil, L["Reset All"], L["[Ctrl+Left-Click] to reset these settings"])
     resetBtn:SetPoint("TOPRIGHT")
@@ -1690,6 +1697,7 @@ LoadButtonStyle = function()
     shieldCB:SetChecked(CellDB["appearance"]["shield"][1])
     oversCB:SetChecked(CellDB["appearance"]["overshield"][1])
     reverseCB:SetChecked(CellDB["appearance"]["overshieldReverseFill"])
+    oversReverseCB:SetChecked(CellDB["appearance"]["overshieldGlowReverse"])
 
     predCustomCB:SetChecked(CellDB["appearance"]["healPrediction"][2])
     predColorPicker:SetColor(unpack(CellDB["appearance"]["healPrediction"][3]))
