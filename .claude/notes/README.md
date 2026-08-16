@@ -55,6 +55,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-cell-auracontainer-rewrite.md](project-cell-auracontainer-rewrite.md) | Cell 光環指示器改 AuraContainer：現況架構、通則教訓、待辦 |
 | [wow-cell-fork-comm.md](wow-cell-fork-comm.md) | Cell 改版的 comm 處理 |
 | [project-miliui-release-version.md](project-miliui-release-version.md) | MiliUI 發佈版本號（TOC `## Version` 是 YYYYMMDD，版本廣播靠它） |
+| [project-miliui-unit-frame.md](project-miliui-unit-frame.md) | MiliUI_Unit_Frame：取代 Stuf 的自製頭像框架，架構／決策／待驗證 |
 | [project-agent-dir-convention.md](project-agent-dir-convention.md) | agent 資料的擺放慣例（就是這個結構） |
 
 ### 自製功能
@@ -74,6 +75,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-voidcore-currency.md](project-miliui-voidcore-currency.md) | 虛無之核貨幣代碼（每季補一個 ID） |
 | [project-miliui-vault-tracking.md](project-miliui-vault-tracking.md) | 分身寶庫記錄：解鎖判準、M0 的 level 是 0 |
 | [wow-find-season-currency-id.md](wow-find-season-currency-id.md) | 查新賽季貨幣代碼的兩行巨集 |
+| [wow-find-creature-displayid.md](wow-find-creature-displayid.md) | 查生物 displayID（wago.tools CSV 端點） |
 | [project-platynator-preset.md](project-platynator-preset.md) | Platynator 內建預設值怎麼更新 |
 | [project-toc-interface-bump.md](project-toc-interface-bump.md) | 一鍵更新 `## Interface:`（工具在 wow-toc-interface-bump 技能） |
 | [project-toc-title-tag-style.md](project-toc-title-tag-style.md) | Title-zhTW 兩字標籤與漸層上色法、排序剝色碼、Notes `\|n\|n` 換行慣例 |
@@ -87,3 +89,4 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-cell-no-update-notice.md](project-cell-no-update-notice.md) | Cell 停用更新通知 |
 | [project-cell-libgroupinfo-secret-guid.md](project-cell-libgroupinfo-secret-guid.md) | Cell LibGroupInfo 秘密 GUID |
 | [project-appearancetooltip-secret-rect.md](project-appearancetooltip-secret-rect.md) | AppearanceTooltip IsRectValid guard |
+| [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |

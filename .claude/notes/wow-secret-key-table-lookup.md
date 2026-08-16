@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-14T15:25:46.244Z
+  modified: 2026-08-15T12:26:17.645Z
 ---
 
 錯誤訊息 `attempted to index a table that cannot be indexed with secret keys` = 拿一個 secret 字串（通常是 `UnitClass()` 的 class token、`UnitName()` 的名字）去索引一個沒有開放 secret key 的 table。
@@ -24,6 +24,12 @@ local c = classcolor[class] or classcolor.PRIEST
 `settablesecurity(t, Enum.TableSecurityOption.SecretWrapContents)` 標記，讓 `t[secretKey]` 回傳 secret 值，再把 secret 直接餵給接受 secret 的 widget API。因為 r/g/b 要分開取，得拆成三張表
 （`classR` / `classG` / `classB`）才能 `fs:SetTextColor(classR[c], classG[c], classB[c])`。
 Enum 語意 wiki 沒寫，用之前先在 PTR 測。
+
+**職業色的官方顯示管道（Platynator `Display/Colors.lua:290`）**：`class` 是秘密時不查表，改
+`C_ClassColor.GetClassColor(secretClass)` 拿 ColorMixin，直接餵 `texture:SetVertexColor(...)`（吃秘密色值；
+注意 FocuserCastBar 註記 `SetStatusBarColor` 不吃、要用 `GetStatusBarTexture():SetVertexColor`）。
+限制：拿到的分量是秘密 → 不能再做 `*0.3` 變暗、不能塞進 `|cff` 色碼字串。所以只適用「條的純色」，
+暗色變體與文字上色仍要退明文。
 
 Cell 的封裝值得抄（`Cell/Utils.lua` 約 2546 行起）：把 `issecretvalue` / `hasanysecretvalues` 統一包成 `F.IsValueNonSecret()`、`F.IsSecretValue()`、`F.HasAnySecretValues()`、`F.IsAuraNonSecret()`，並用 `C_Secrets.ShouldSpellAuraBeSecret()` 事先判斷某法術的 aura 會不會是 secret。原則是「全 addon 只有 Utils.lua 直接碰原生 secret API」。
 
