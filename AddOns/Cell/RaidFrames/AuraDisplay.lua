@@ -575,9 +575,13 @@ local function StyleButton(handle, button)
             if cfg.customStyle == "block" then
                 button.dfDur:SetTextColor(1, 1, 1, 1)
             else
-                local nb = (cfg.durationColors and cfg.durationColors.base) or col
+                -- text: the option's base colour when it's on; plain WHITE when off (no more
+                -- falling back to the old green/red colours the option is meant to replace).
+                local nb = cfg.durationColors and cfg.durationColors.base
                 if type(nb) == "table" and type(nb[1]) == "number" then
                     button.dfDur:SetTextColor(nb[1], nb[2] or 1, nb[3] or 1, nb[4] or 1)
+                else
+                    button.dfDur:SetTextColor(1, 1, 1, 1)
                 end
             end
         end

@@ -2067,7 +2067,11 @@ local function ShowIndicatorSettings(id)
         elseif currentSetting == "durationColor" then
             -- default for indicators created before this option existed
             if type(indicatorTable["durationColor"]) ~= "table" then
-                indicatorTable["durationColor"] = {false, {1, 1, 1, 1}, {false, 10, {1, 1, 0, 1}}, {false, 3, {1, 0, 0, 1}}}
+                -- master off (plain white text) but both thresholds pre-checked, so enabling the
+                -- toggle immediately gives the two colour bands. Text's Normal defaults to green
+                -- (its old base colour); icon/defensive types stay white.
+                local base = indicatorTable["type"] == "text" and {0, 1, 0, 1} or {1, 1, 1, 1}
+                indicatorTable["durationColor"] = {false, base, {true, 10, {1, 1, 0, 1}}, {true, 3, {1, 0, 0, 1}}}
             end
             w:SetDBValue(indicatorTable["durationColor"])
             w:SetFunc(function(value)

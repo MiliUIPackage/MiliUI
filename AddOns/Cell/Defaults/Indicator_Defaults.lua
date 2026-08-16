@@ -29,7 +29,7 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["auras"] = {},
             ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}},
             -- countdown colour-by-time: {enabled, base, {en,sec,col}, {en,sec,col}}
-            ["durationColor"] = {false, {1, 1, 1, 1}, {false, 10, {1, 1, 0, 1}}, {false, 3, {1, 0, 0, 1}}},
+            ["durationColor"] = {false, {1, 1, 1, 1}, {true, 10, {1, 1, 0, 1}}, {true, 3, {1, 0, 0, 1}}},
         }
     elseif type == "text" then
         t = {
@@ -42,7 +42,7 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["font"] = {"Cell " .. _G.DEFAULT, 12, "Outline", false},
             -- countdown colour-by-time: {enabled, base, {en,sec,col}, {en,sec,col}} (replaces
             -- the old percent/seconds "colors" widget -- text now uses the unified seconds one)
-            ["durationColor"] = {false, {0, 1, 0, 1}, {false, 10, {1, 1, 0, 1}}, {false, 3, {1, 0, 0, 1}}},
+            ["durationColor"] = {false, {0, 1, 0, 1}, {true, 10, {1, 1, 0, 1}}, {true, 3, {1, 0, 0, 1}}},
             ["auraType"] = auraType,
             ["auras"] = {},
             ["duration"] = {
@@ -145,7 +145,7 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["auras"] = {},
             ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}},
             -- countdown colour-by-time: {enabled, base, {en,sec,col}, {en,sec,col}}
-            ["durationColor"] = {false, {1, 1, 1, 1}, {false, 10, {1, 1, 0, 1}}, {false, 3, {1, 0, 0, 1}}},
+            ["durationColor"] = {false, {1, 1, 1, 1}, {true, 10, {1, 1, 0, 1}}, {true, 3, {1, 0, 0, 1}}},
         }
     elseif type == "color" then
         t = {
