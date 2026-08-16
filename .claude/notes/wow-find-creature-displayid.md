@@ -18,6 +18,6 @@ metadata:
 - 已查到：**薩拉塔斯 Xal'atath** — 12.x 形態 displayID **131474**（creature 230602/256725），
   TWW 先驅者形態 **117121**（220558 等），另有 121284 / 122404。
 
-用途：MiliUI_Unit_Frame 預覽敵對單位的示範模型（`global.previewBossDisplayID`）。
+用途：MiliUI_UnitFrames 預覽敵對單位的示範模型（`global.previewBossDisplayID`）。
 
 相關：[[project-miliui-unit-frame]]

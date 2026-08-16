@@ -15,22 +15,29 @@ local panel
 local tabButtons = {}
 local highlightTab
 
--- class = 只有該職業看得到這個分頁
+-- class = 只有這些職業看得到這個分頁（單一職業字串，或 { CLASS = true } 集合）
 local TABS = {
     { id = "general",  label = "一般" },
     { id = "units",    label = "單位" },
     { id = "resource", label = "資源" },
-    { id = "totem",    label = "召喚物" },
+    -- 沒有東西會進圖騰欄位的職業，這頁調什麼都不會有反應 → 直接不顯示
+    { id = "totem",    label = "召喚物", class = ns.TOTEM_CLASSES },
     { id = "share",    label = "設定檔" },
     { id = "about",    label = "關於" },
 }
 
 local PLAYER_CLASS = ns.playerClass
 
+local function ClassAllowed(class)
+    if not class then return true end
+    if type(class) == "table" then return class[PLAYER_CLASS] == true end
+    return class == PLAYER_CLASS
+end
+
 local function VisibleTabs()
     local list = {}
     for _, t in ipairs(TABS) do
-        if not t.class or t.class == PLAYER_CLASS then list[#list + 1] = t end
+        if ClassAllowed(t.class) then list[#list + 1] = t end
     end
     return list
 end

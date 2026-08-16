@@ -5,7 +5,7 @@
 --
 -- 暴雪的單位框都是 protected frame，我們碰過的框就帶著我們的 taint。之後暴雪自己的
 -- 程式碼再對同一個框做受保護動作，帳會算到我們頭上，跳
--- 「MiliUI_Unit_Frame 嘗試進行 Blizzard UI 專屬動作」。實測抓到的就是
+-- 「MiliUI_UnitFrames 嘗試進行 Blizzard UI 專屬動作」。實測抓到的就是
 -- `Frame:RegisterEvent()`——我們自己所有 RegisterEvent 都打在自建的普通 frame 上，
 -- 那一次是**暴雪自己**在被我們染過的框上註冊事件。
 --

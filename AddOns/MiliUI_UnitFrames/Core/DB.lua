@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- SavedVariables：MiliUI_UnitFrame_DB
+-- SavedVariables：MiliUI_UnitFrames_DB
 -- 單一帳號設定檔。預設值轉譯自 MiliUI/Config/Stuf.lua（使用者調好的 Stuf 樣式），
 -- 邊框改為全域 1px 細框。
 --
@@ -108,8 +108,8 @@ function DB.BuildDefaults()
                     -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
                     portrait = { enabled = true, x = 0, y = 0, w = 200, h = 50, mode = "3d",
                                  bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3,
-                                 zoom = 1, rotation = -35,     -- 側身（度）
-                                 modelOffsetX = 0.1, modelOffsetY = 0,    -- 設定面板顯示 ×100
+                                 zoom = 1, rotation = 0,       -- 正面朝鏡頭（度）
+                                 modelOffsetX = 0, modelOffsetY = 0,      -- 設定面板顯示 ×100
                                  fallback2D = false },
                     hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.55,
                               colorMethod = "class", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
@@ -177,7 +177,7 @@ function DB.BuildDefaults()
                     -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
                     portrait = { enabled = true, x = 0, y = 0, w = 200, h = 50, mode = "3d",
                                  bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3,
-                                 zoom = 1, rotation = -25,     -- 側身（度）
+                                 zoom = 1, rotation = -35,     -- 側身（度）
                                  modelOffsetX = 0.1, modelOffsetY = 0,    -- 側身後模型會偏左，往右推回來
                                  fallback2D = false },   -- 副本小怪 3D 取不到時是否退 2D
                     hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.55,
@@ -472,8 +472,8 @@ function DB.Migrate(db)
 end
 
 function DB.Init()
-    MiliUI_UnitFrame_DB = type(MiliUI_UnitFrame_DB) == "table" and MiliUI_UnitFrame_DB or {}
-    local db = MiliUI_UnitFrame_DB
+    MiliUI_UnitFrames_DB = type(MiliUI_UnitFrames_DB) == "table" and MiliUI_UnitFrames_DB or {}
+    local db = MiliUI_UnitFrames_DB
     db.schemaVersion = db.schemaVersion or ns.DB_VERSION
     if db.schemaVersion > ns.DB_VERSION then
         -- SV 來自較新版（或開發期版本號被重置）：對齊到目前版本，之後的遷移才跑得到
@@ -515,6 +515,6 @@ end
 
 -- 全部：清 SV 後重載（最乾淨，避免殘留參照）
 function DB.ResetAll()
-    MiliUI_UnitFrame_DB = nil
+    MiliUI_UnitFrames_DB = nil
     ReloadUI()
 end

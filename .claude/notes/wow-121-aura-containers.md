@@ -112,7 +112,7 @@ fmt:AddBreakpoint({ threshold = 5401, step = 1, rounding = down, min = 1, format
 > EUI 的 AuraKit 反過來(`FinishContainer` = group 全宣告完才 SetUnit + UpdateAllAuras),理由是
 > 「指定單位會重算事件註冊,而重算以容器已有 group 為前提」。**那是配合它自己的分階段建構器**
 > (CreateContainerShell → AddGroup → Finish),照搬到一次建完的寫法會壞——2026-08-16 在
-> MiliUI_Unit_Frame 試過,目標光環直接亂掉。BuffReminders 用 EUI 那個順序沒事,但它的單位是
+> MiliUI_UnitFrames 試過,目標光環直接亂掉。BuffReminders 用 EUI 那個順序沒事,但它的單位是
 > 固定的 `player`,踩不到換人那條路。**結論:順序照 Cell/Stuf,別動。**
 
 **⚠⚠ AuraContainer 不能掛任何 script handler。** `container:HookScript("OnShow", ...)` 會丟

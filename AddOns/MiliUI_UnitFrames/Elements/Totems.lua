@@ -10,7 +10,14 @@ local _, ns = ...
 local Media = ns.Media
 local CLASS = ns.playerClass
 
-if not (CLASS == "SHAMAN" or CLASS == "DRUID" or CLASS == "DEATHKNIGHT" or CLASS == "PALADIN") then
+-- 會放東西進圖騰欄位的職業：薩滿（圖騰）、德魯伊（生命綻放）、武僧（玉蛟／玄牛雕像）。
+-- 暴雪的 TotemFrame 自己不看職業（欄位有東西就畫），死騎／聖騎留著當保險。
+-- 設定面板的「召喚物」分頁也吃這張表（Options/Panel.lua）→ 這裡是唯一來源
+ns.TOTEM_CLASSES = {
+    SHAMAN = true, DRUID = true, MONK = true, DEATHKNIGHT = true, PALADIN = true,
+}
+
+if not ns.TOTEM_CLASSES[CLASS] then
     return
 end
 

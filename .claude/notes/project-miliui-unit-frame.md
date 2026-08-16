@@ -1,6 +1,6 @@
 ---
 name: project-miliui-unit-frame
-description: MiliUI_Unit_Frame 新頭像框架插件 — 架構、關鍵決策、與 Stuf 的關係、待驗證清單
+description: MiliUI_UnitFrames 新頭像框架插件 — 架構、關鍵決策、與 Stuf 的關係、待驗證清單
 metadata: 
   node_type: memory
   type: project
@@ -8,8 +8,8 @@ metadata:
   modified: 2026-08-15T16:49:03.659Z
 ---
 
-**MiliUI_Unit_Frame**（2026-08-15 一次寫完五階段，約 5400 行，尚未遊戲內驗證）：取代 Stuf 的
-全新單位框架，只支援 12.1+，秘密值防護內建。`AddOns/MiliUI_Unit_Frame/`，SV `MiliUI_UnitFrame_DB`，
+**MiliUI_UnitFrames**（2026-08-15 一次寫完五階段，約 5400 行，尚未遊戲內驗證）：取代 Stuf 的
+全新單位框架，只支援 12.1+，秘密值防護內建。`AddOns/MiliUI_UnitFrames/`，SV `MiliUI_UnitFrames_DB`，
 全域框架名 `MiliUIUF_Player/Target/TargetTarget/Focus/FocusTarget/Pet/Boss1-5/Totem`，
 namespace `_G.MiliUIUF`。
 

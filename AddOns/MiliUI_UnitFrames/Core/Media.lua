@@ -3,7 +3,7 @@
 ------------------------------------------------------------
 local _, ns = ...
 
-local MEDIA_PATH = "Interface\\AddOns\\MiliUI_Unit_Frame\\Media\\"
+local MEDIA_PATH = "Interface\\AddOns\\MiliUI_UnitFrames\\Media\\"
 
 -- 在地化字型（FontString 寫死 FRIZQT__ 在 zhTW 會變方框，抄 BloodlustMusic）
 local LOCALE_FONTS = {

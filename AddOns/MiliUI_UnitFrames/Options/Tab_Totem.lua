@@ -11,7 +11,7 @@ local refreshers
 local CONTROLS = {
     { type = "toggle", key = "enabled", label = "顯示召喚物框" },
     { type = "text",   label = "|cff4DD2FF停在這一頁時框裡會放四個示範召喚物|r（含會跑的時間條與倒數），方便對位置和大小——切到別頁或關掉面板就回真實狀態。" },
-    { type = "text",   label = "圖騰、玉像、繁盛蘑菇這類「放出去會自己待一段時間」的東西——暴雪把它們收在同一組欄位裡，最多四個，所以這裡一起管。樣式：圖示膠囊列（圖示＋底部時間條）。" },
+    { type = "text",   label = "圖騰、玉蛟／玄牛雕像、生命綻放這類「放出去會自己待一段時間」的東西——暴雪把它們收在同一組欄位裡，最多四個，所以這裡一起管。樣式：圖示膠囊列（圖示＋底部時間條）。" },
     { type = "header", label = "位置與大小" },
     { type = "text",   label = "座標是框架中心相對畫面中心的偏移；也可以在編輯模式直接拖曳。框固定四格寬、從左往右排。" },
     { type = "numbers", sub = "frame", label = "位置", fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },

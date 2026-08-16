@@ -1,14 +1,14 @@
 ## Interface: 120100, 120105
-## Title: MiliUI Unit Frame
+## Title: MiliUI Unit Frames
 ## Title-zhTW: |cff4DD2FF[頭像]|r 米利頭像框架
 ## Notes: MiliUI unit frames, built natively for 12.1 secret values.
-## Notes-zhTW: MiliUI Unit Frame|n|n米利頭像框架，取代 Stuf，原生支援 12.1 秘密值。|n|n|cffffd200使用方法: |r/muf 或小地圖按鈕開啟設定。
+## Notes-zhTW: MiliUI Unit Frames|n|n米利頭像框架。|n|n|cffffd200使用方法: |r/muf 或小地圖按鈕開啟設定。
 ## Category: UnitFrame
 ## Category-zhTW: 頭像
 ## Author: Mili
 ## Version: 1.0.0
-## IconTexture: Interface\AddOns\MiliUI_Unit_Frame\Media\icon
-## SavedVariables: MiliUI_UnitFrame_DB
+## IconTexture: Interface\Icons\inv_pet_riverotter_red
+## SavedVariables: MiliUI_UnitFrames_DB
 ## OptionalDeps: MiliUI, Clique, Cell
 ## AddonCompartmentFunc: MiliUIUF_OnAddonCompartmentClick
 

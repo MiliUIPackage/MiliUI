@@ -6,6 +6,20 @@ local _, ns = ...
 
 local btn
 
+-- 圓形裁切用的遮罩（暴雪頭像框自己用的那張）
+local PORTRAIT_MASK = "Interface\\CharacterFrame\\TempPortraitAlphaMask"
+
+-- SetPortraitTexture 由 C 端解單位，對 player 不受 12.1 受限身分影響；
+-- 登入當下頭像資源可能還沒串流完 → 拿不到就先用套組圖示，等 PORTRAITS_UPDATED 再補
+local function RefreshIcon()
+    if not btn then return end
+    btn.portrait:SetTexture(nil)
+    local ok = pcall(SetPortraitTexture, btn.portrait, "player")
+    local has = ok and btn.portrait:GetTexture() ~= nil
+    btn.portrait:SetShown(has)
+    btn.icon:SetShown(not has)
+end
+
 local function UpdatePosition()
     local angle = math.rad((ns.db.minimap and ns.db.minimap.angle) or 200)
     local radius = (Minimap:GetWidth() / 2) + 5
@@ -26,11 +40,21 @@ local function Init()
     -- 快速點／觸控板常「點了沒反應」。改成自己量距離：移動 > 6px 才算拖，否則放開當點擊
     btn:RegisterForClicks()
 
+    -- 退路圖示：角色頭像還沒串流出來時頂著
     local icon = btn:CreateTexture(nil, "BACKGROUND")
-    icon:SetTexture("Interface\\AddOns\\MiliUI_Unit_Frame\\Media\\icon")
+    icon:SetTexture("Interface\\AddOns\\MiliUI_UnitFrames\\Media\\icon")
     icon:SetSize(20, 20)
     icon:SetPoint("CENTER", 0, 1)
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    btn.icon = icon
+
+    -- 主要圖示：玩家自己的 2D 頭像，圓形裁切填滿圓環
+    local portrait = btn:CreateTexture(nil, "BACKGROUND")
+    portrait:SetSize(21, 21)
+    portrait:SetPoint("CENTER", 0, 1)
+    portrait:SetMask(PORTRAIT_MASK)
+    portrait:Hide()
+    btn.portrait = portrait
 
     local border = btn:CreateTexture(nil, "OVERLAY")
     border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
@@ -91,14 +115,21 @@ local function Init()
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("|cff4DD2FF米利頭像框架|r")
         GameTooltip:AddDoubleLine("左鍵", "開啟／關閉設定", 1, 1, 1, 0.8, 0.8, 0.8)
-        GameTooltip:AddDoubleLine("拖曳", "移動按鈕", 1, 1, 1, 0.8, 0.8, 0.8)
         GameTooltip:Show()
     end)
 
     UpdatePosition()
+    RefreshIcon()
 end
 
 ns.RegisterCallback("Loaded", "minimap", Init)
+
+-- 頭像資源串流完成／換裝變形／換角色進場都重抓一次
+ns.Events.Register("PORTRAITS_UPDATED", "minimapIcon", RefreshIcon)
+ns.Events.Register("PLAYER_ENTERING_WORLD", "minimapIcon", RefreshIcon)
+ns.Events.Register("UNIT_PORTRAIT_UPDATE", "minimapIcon", function(unit)
+    if unit == "player" then RefreshIcon() end
+end)
 
 function ns.SetMinimapButtonShown(shown)
     ns.db.minimap.hide = not shown

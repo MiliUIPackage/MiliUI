@@ -52,9 +52,9 @@ end
 
 function Share.Import(data)
     -- 覆寫整份 DB（保底補齊 defaults 交給下次載入的 MergeDefaults）
-    wipe(MiliUI_UnitFrame_DB)
+    wipe(MiliUI_UnitFrames_DB)
     for k, v in pairs(data) do
-        MiliUI_UnitFrame_DB[k] = v
+        MiliUI_UnitFrames_DB[k] = v
     end
     ReloadUI()
 end

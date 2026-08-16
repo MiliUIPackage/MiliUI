@@ -90,7 +90,7 @@ local defaultFrameNames = {
     "Stuf.units.focustarget",
     "Stuf.units.pet",
     "Stuf.units.pettarget",
-    -- MiliUI_Unit_Frame（新頭像框架，與 Stuf 並存期間兩邊都掛）
+    -- MiliUI_UnitFrames（新頭像框架，與 Stuf 並存期間兩邊都掛）
     "MiliUIUF_Player",
     "MiliUIUF_Target",
     "MiliUIUF_TargetTarget",
