@@ -1,9 +1,0 @@
-<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
-..\FrameXML\UI.xsd">
-	<!--
-		StufBuffTemplate（SecureActionButtonTemplate + type="cancelaura"）已移除：
-		右鍵取消增益在 12.1 做不到，沒有任何程式碼引用它。原因見 aura.lua 的
-		CreateAuraGroup。這裡只剩光環圖示的圓餅冷卻用的範本。
-	-->
-	<Cooldown name="StufAuraCooldown" drawEdge="true" inherits="CooldownFrameTemplate" virtual="true"/>
-</Ui>
