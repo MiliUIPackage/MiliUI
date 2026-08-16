@@ -243,6 +243,13 @@ local function IconSpecs(els)
         if els.icons[d.key] then
             tinsert(list, { type = "header", label = d.label })
             tinsert(list, { type = "toggle", sub = "icons", sub2 = d.key, key = "enabled", label = "顯示" })
+            -- 只有玩家框的 status 有這兩個鍵，其他單位不會冒出無效選項
+            if els.icons[d.key].restAnimated ~= nil then
+                tinsert(list, { type = "toggle", sub = "icons", sub2 = d.key, key = "restAnimated",
+                                label = "休息用動畫 zzZ" })
+                tinsert(list, { type = "toggle", sub = "icons", sub2 = d.key, key = "combatBlizzard",
+                                label = "戰鬥用內建圖示（原尺寸 16×16，不吃下面的寬高）" })
+            end
             tinsert(list, PosSize("icons", nil, d.key))
         end
     end

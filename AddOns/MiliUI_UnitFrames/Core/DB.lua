@@ -161,7 +161,11 @@ function DB.BuildDefaults()
                                 durationText = true, durationThreshold = 60 },
                     icons = { enabled = true,
                               raidtarget = { enabled = true,  x = 84,  y = 10, w = 20, h = 20, level = 5 },
-                              status     = { enabled = true,  x = -8,  y = 10, w = 14, h = 14, level = 10 },
+                              -- 只有玩家框吃得到這兩個：
+                              --   restAnimated   休息 zzZ 用暴雪內建的 flipbook 動畫
+                              --   combatBlizzard 戰鬥改用內建 AttackIcon（原尺寸 16×16，不吃寬高設定）
+                              status     = { enabled = true,  x = -8,  y = 10, w = 14, h = 14, level = 10,
+                                             restAnimated = true, combatBlizzard = false },
                               leader     = { enabled = true,  x = 7,   y = 10, w = 12, h = 12, level = 10 },
                               pvp        = { enabled = false, x = -15, y = -12, w = 28, h = 28, level = 10 } },
                 },

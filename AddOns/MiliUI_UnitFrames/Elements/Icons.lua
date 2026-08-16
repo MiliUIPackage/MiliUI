@@ -6,6 +6,95 @@ local _, ns = ...
 
 local ToBool = ns.ToBool
 
+local STATE_ICON = "Interface\\CharacterFrame\\UI-StateIcon"
+
+------------------------------------------------------------
+-- 休息 zzZ 用暴雪 PlayerFrame 的動畫（PlayerRestLoop）：
+--   atlas UI-HUD-UnitFrame-Player-Rest-Flipbook，整張 360×420＝6 行 7 列、
+--   每格 60×60 共 42 格，1.5 秒循環
+-- 逐格動畫一律走 FlipBook 動畫型別。12.1 已經拿掉 AnimateTexCoords 全域，
+-- 用它每幀報錯（見 LibCustomGlow 那次）
+--
+-- 戰鬥圖示兩種可選（設定 combatBlizzard）：
+--   預設 UI-StateIcon 的交叉刀劍，形狀清楚，缺點是留白多 → 放大補回來
+--   內建 UI-HUD-UnitFrame-Player-CombatIcon（PlayerFrame 的 AttackIcon）
+--        只有 16×16，暴雪是 useAtlasSize 原尺寸貼、靠整數像素對齊才看得清楚；
+--        縮到 14×14 這種非整數比例就糊成一塊藍方塊。所以這個模式一律畫原尺寸，
+--        不吃小圖示的寬高設定
+------------------------------------------------------------
+local REST_ATLAS   = "UI-HUD-UnitFrame-Player-Rest-Flipbook"
+local COMBAT_ATLAS = "UI-HUD-UnitFrame-Player-CombatIcon"
+local REST_ROWS, REST_COLS, REST_FRAMES, REST_DURATION = 7, 6, 42, 1.5
+
+-- 各張圖的留白不一樣，放大倍率分開給，目標是「看得到的圖案」一樣大：
+--   zzZ 每格 60×60 但暴雪只畫 30×30，四周都是 z 飄出去的動作留白
+--   UI-StateIcon 的刀劍在自己那格裡約留兩成白
+local OVERSIZE = { restanim = 1.5, combat = 1.35 }
+
+local atlasCache = {}
+local function AtlasInfo(name)
+    local v = atlasCache[name]
+    if v == nil then
+        v = (C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(name)) or false
+        atlasCache[name] = v
+    end
+    return v or nil
+end
+
+local function StopRestAnim(holder)
+    if holder and holder.restAnim then holder.restAnim:Stop() end
+end
+
+local function EnsureRestAnim(holder)
+    if holder.restAnim then return holder.restAnim end
+    local ag = holder:CreateAnimationGroup()
+    ag:SetLooping("REPEAT")
+    local fb = ag:CreateAnimation("FlipBook")
+    fb:SetChildKey("tex")          -- 對應 holder.tex，同暴雪的 childKey="RestTexture"
+    fb:SetOrder(1)
+    fb:SetSmoothing("NONE")
+    fb:SetDuration(REST_DURATION)
+    fb:SetFlipBookRows(REST_ROWS)
+    fb:SetFlipBookColumns(REST_COLS)
+    fb:SetFlipBookFrames(REST_FRAMES)
+    fb:SetFlipBookFrameWidth(0)    -- 0 = 由列/行數自動推算
+    fb:SetFlipBookFrameHeight(0)
+    holder.restAnim = ag
+    return ag
+end
+
+-- 狀態圖示三種畫法，切換時錨點／貼圖／texcoord 全部要重設：
+-- flipbook 停下來會把 texcoord 留在最後一格，不重設就會殘留半個 zzZ
+local function SetStatusMode(holder, idb, mode)
+    if holder.statusMode == mode then return end
+    holder.statusMode = mode
+
+    local info = (mode == "combatblz") and AtlasInfo(COMBAT_ATLAS)
+    local k = OVERSIZE[mode]
+    holder.tex:ClearAllPoints()
+    if info then
+        holder.tex:SetPoint("CENTER")
+        holder.tex:SetSize(info.width, info.height)   -- 原尺寸，不過 P.Scale
+    elseif k then
+        holder.tex:SetPoint("CENTER")
+        holder.tex:SetSize(ns.P.Scale((idb.w or 16) * k), ns.P.Scale((idb.h or 16) * k))
+    else
+        holder.tex:SetAllPoints(holder)
+    end
+
+    if mode == "restanim" then
+        holder.tex:SetAtlas(REST_ATLAS)
+    elseif mode == "combatblz" then
+        holder.tex:SetAtlas(COMBAT_ATLAS)
+    elseif mode == "combat" then
+        holder.tex:SetTexture(STATE_ICON)
+        holder.tex:SetTexCoord(0.5, 1, 0, 0.484)
+    else                                    -- "rest"：沒有 flipbook 時的靜態 zzZ
+        holder.tex:SetTexture(STATE_ICON)
+        holder.tex:SetTexCoord(0, 0.5, 0, 0.421875)
+    end
+end
+
 local function EnsureIcon(uf, key, layer)
     uf.iconTextures = uf.iconTextures or {}
     local holder = uf.iconTextures[key]
@@ -32,9 +121,12 @@ local function SetupIcon(uf, key, idb, texture, extraGate)
         local h = EnsureIcon(uf, key)
         PlaceIcon(uf, h, idb)
         if texture then h.tex:SetTexture(texture) end
+        StopRestAnim(h)
+        h.statusMode = nil   -- 尺寸／設定可能剛改過，強迫 Update 重套一次畫法
         h:Hide()      -- 先藏，Update 依狀態決定顯示
         h.disabled = nil
     elseif uf.iconTextures and uf.iconTextures[key] then
+        StopRestAnim(uf.iconTextures[key])
         uf.iconTextures[key]:Hide()
         uf.iconTextures[key].disabled = true
     end
@@ -49,7 +141,8 @@ local function Build(uf, edb)
     end
     uf.elements.icons:Show()
     SetupIcon(uf, "raidtarget", edb.raidtarget, "Interface\\TargetingFrame\\UI-RaidTargetingIcons")
-    SetupIcon(uf, "status", edb.status, "Interface\\CharacterFrame\\UI-StateIcon", uf.unitKey == "player")
+    -- 貼圖不在這裡設：SetStatusMode 會依戰鬥／休息挑圖，先塞一張只會馬上被換掉
+    SetupIcon(uf, "status", edb.status, nil, uf.unitKey == "player")
     SetupIcon(uf, "leader", edb.leader, "Interface\\GroupFrame\\UI-Group-LeaderIcon")
     SetupIcon(uf, "pvp", edb.pvp, nil)
 end
@@ -72,12 +165,23 @@ local function Update(uf, edb, bucket)
     local st = uf.iconTextures.status
     if st and not st.disabled and edb.status and edb.status.enabled then
         if UnitAffectingCombat("player") then
-            st.tex:SetTexCoord(0.5, 1, 0, 0.484)
+            StopRestAnim(st)
+            local blz = edb.status.combatBlizzard and AtlasInfo(COMBAT_ATLAS)
+            SetStatusMode(st, edb.status, blz and "combatblz" or "combat")
             st:Show()
         elseif IsResting() then
-            st.tex:SetTexCoord(0, 0.5, 0, 0.421875)
+            -- 動畫版：設定關掉、或這版遊戲沒這張 atlas 時退回靜態 zzZ
+            local animate = edb.status.restAnimated ~= false and AtlasInfo(REST_ATLAS)
+            SetStatusMode(st, edb.status, animate and "restanim" or "rest")
             st:Show()
+            if animate then
+                local ag = EnsureRestAnim(st)
+                if not ag:IsPlaying() then ag:Play() end
+            else
+                StopRestAnim(st)
+            end
         else
+            StopRestAnim(st)
             st:Hide()
         end
     end
