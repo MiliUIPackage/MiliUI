@@ -1,7 +1,11 @@
 local addonName, Cell = ...
 
 -- number of built-in indicators
-Cell.defaults.builtIns = 30
+-- ⚠ This is the built-in/custom SPLIT POINT, not just a count: everything at a HIGHER index in
+-- layout["indicators"] is treated as a user-created indicator (I.ResetCustomIndicatorTables,
+-- Copy, Import). Adding a built-in without bumping this makes the new entry get parsed as a
+-- custom one, and it dies on the missing ["auras"] field. Keep it == #Cell.defaults.layout.indicators.
+Cell.defaults.builtIns = 31
 
 Cell.defaults.indicatorIndices = {
     ["nameText"] = 1,
