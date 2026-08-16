@@ -89,6 +89,25 @@ local SBI_IMMEDIATE = SBI and SBI.Immediate
 -- Resolved by B.UpdateAnimation; nil on pre-Midnight so the old SetBarValue path is untouched.
 local barInterp
 
+-- ⚠ B.UpdateAnimation is the only writer, and it only runs from inside an
+-- F.IterateAllUnitButtons callback (Appearance.lua). If that fires before any unit button
+-- exists, the loop body never executes and barInterp stays nil -- SetValue then falls back to
+-- its Immediate default and "Smooth" silently does nothing for the rest of the session. That
+-- was harmless before Midnight (barAnimationType only gated Flash and the SetBarValue path),
+-- but the interpolation argument made load order load-bearing. Resolve from the DB on demand
+-- so the setting cannot be lost to it. SBI_IMMEDIATE is 0, not nil, so this fills in once.
+local function ResolveBarInterp()
+    if not Cell.isMidnight then return nil end
+    if barInterp == nil then
+        if barAnimationType == nil then
+            local a = CellDB and CellDB["appearance"]
+            barAnimationType = a and a["barAnimation"]
+        end
+        barInterp = (barAnimationType == "Smooth") and SBI_SMOOTH or SBI_IMMEDIATE
+    end
+    return barInterp
+end
+
 -- Midnight: Curve for CELL_FADE_OUT_HEALTH_PERCENT feature
 -- Maps health percent â†’ alpha so we can evaluate secret health% without comparisons
 local fadeOutHealthCurve
@@ -2334,7 +2353,7 @@ UnitButton_UpdatePower = function(self)
     -- Midnight stays off the SmoothStatusBar tick (see UpdatePowerMax) but still animates:
     -- barInterp carries the easing into the engine's own SetValue.
     if Cell.isMidnight then
-        self.widgets.powerBar:SetValue(self.states.power, barInterp)
+        self.widgets.powerBar:SetValue(self.states.power, ResolveBarInterp())
     else
         self.widgets.powerBar:SetBarValue(self.states.power)
     end
@@ -2414,7 +2433,7 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
         -- Native SetValue on Midnight — SetSmoothedValue (SetBarValue in Smooth mode) is a Lua
         -- mixin that does Clamp() arithmetic, which fails on secret values. barInterp asks the
         -- engine for the easing instead, so "Smooth" still animates a secret health value.
-        self.widgets.healthBar:SetValue(health, barInterp)
+        self.widgets.healthBar:SetValue(health, ResolveBarInterp())
         if barAnimationType == "Flash" then
             -- Flash: we can't compute exact diff without arithmetic on secrets, so skip precise flash
             B.HideFlash(self)
