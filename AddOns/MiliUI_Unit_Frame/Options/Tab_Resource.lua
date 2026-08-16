@@ -39,7 +39,7 @@ local function BuildControls()
 
     if #cand == 0 then
         list[#list + 1] = { type = "text",
-            label = "目前這個專精沒有可顯示的額外資源（主資源是法力，血條旁的法力條已經在顯示了）。" }
+            label = "目前這個專精沒有額外資源要顯示，整條會自動收起來。法力刻意不列在這裡——單位框自己的能量條已經在顯示了。" }
     else
         for _, key in ipairs(cand) do
             local info = ns.ResourceInfo(key)
@@ -47,7 +47,7 @@ local function BuildControls()
                                 label = info and info.name or key, default = true }
         end
         list[#list + 1] = { type = "text",
-            label = "吸收量型的資源（醉意、鐵鬃、盾牌格擋、免傷）12.1 是秘密值，插件拿不到數字，所以沒有列進來。" }
+            label = "吸收量型的資源（醉仙緩勁、鐵鬃、無視苦痛）12.1 是秘密值，插件拿不到數字，所以沒有列進來。" }
     end
 
     list[#list + 1] = { type = "header", label = "重置" }

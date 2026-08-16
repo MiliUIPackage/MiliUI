@@ -115,9 +115,13 @@ function DB.BuildDefaults()
                               colorMethod = "class", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.7, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
-                              healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.25 },
-                              absorbColor = { r = 0.6, g = 0.85, b = 1, a = 0.7 },
-                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.15, b = 0.15, a = 0.7 } },
+                              -- 疊加層顏色／方向全部照 Cell 的 appearance 預設
+                              healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,          -- 從右端往左長，讀起來像額外的血
+                              showOvershield = true, overshieldGlowReverse = false,
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 8, y = -8, w = 200, h = 50, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barAlpha = 1, bgAlpha = 1, border = true },
@@ -125,8 +129,12 @@ function DB.BuildDefaults()
                                    spacing = 1, rowSpacing = 2, level = 5,
                                    barAlpha = 1, showText = false,
                                    resources = {} },   -- [資源key] = false 表示關掉
-                    manabar = { enabled = true, x = 63, y = -37, w = 127, h = 3, level = 6,
-                                color = { r = 0.3, g = 0.3, b = 1, a = 1 }, bgAlpha = 0.4 },
+                    -- 小魔力條：設定完全獨立，但錨點語意與外觀比照資源條
+                    -- （TOPLEFT 對框架 BOTTOMLEFT、底色＋1px 黑邊）。
+                    -- 版面：框底 →6px→ 魔力條(6) →2px→ 資源條(y=-14, 6) 不重疊
+                    manabar = { enabled = true, x = 8, y = -6, w = 200, h = 6, level = 6,
+                                color = { r = 0.2, g = 0.5, b = 1, a = 1 },   -- 法力藍
+                                barAlpha = 1, bgAlpha = 0.8, border = true },
                     texts = {
                         textDef{ pattern = "[name]",   x = 3,   y = -3,  w = 200, h = 50, size = 15 },
                         textDef{ pattern = "[level]",  x = 3,   y = -21, w = 140, h = 12 },
@@ -176,9 +184,13 @@ function DB.BuildDefaults()
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.7, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
-                              healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.25 },
-                              absorbColor = { r = 0.6, g = 0.85, b = 1, a = 0.7 },
-                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.15, b = 0.15, a = 0.7 } },
+                              -- 疊加層顏色／方向全部照 Cell 的 appearance 預設
+                              healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,          -- 從右端往左長，讀起來像額外的血
+                              showOvershield = true, overshieldGlowReverse = false,
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = -8, y = -8, w = 200, h = 50, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barAlpha = 1, bgAlpha = 1, border = true },
@@ -374,9 +386,12 @@ function DB.BuildDefaults()
                               bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,
                               showHealPrediction = false, healPredictionFollowBar = false,
-                              healPredictionColor = { r = 1, g = 1, b = 1, a = 0.25 },
-                              showAbsorb = true, absorbColor = { r = 0.6, g = 0.85, b = 1, a = 0.7 },
-                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.15, b = 0.15, a = 0.7 } },
+                              healPredictionColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,
+                              showOvershield = true, overshieldGlowReverse = false,
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 36, y = -13, w = 184, h = 10, level = 4,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barAlpha = 1, bgAlpha = 1, border = true },

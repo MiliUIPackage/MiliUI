@@ -135,7 +135,20 @@ local function UpdateBars()
     local db = GetDB()
     for i = 1, NUM_SLOTS do
         local slot = slots[i]
-        if slot and slot.active then
+        if slot and slot.active and previewOn then
+            -- 假倒數：跑完自己繞回去，時間條與數字都看得到在動
+            local total = slot.dur or 60
+            local remain = total - ((GetTime() - (slot.start or 0)) % total)
+            slot.bar:SetMinMaxValues(0, total)
+            slot.bar:SetValue(remain)
+            if db.showTimeText == false then
+                slot.text:SetText("")
+            elseif remain < 60 then
+                slot.text:SetText(string.format("%d", math.ceil(remain)))
+            else
+                slot.text:SetText(string.format("%dm", math.ceil(remain / 60)))
+            end
+        elseif slot and slot.active then
             -- start/dur 可能是秘密值：算術一律 pcall 逃逸
             local okR, remain = pcall(function() return slot.start + slot.dur - GetTime() end)
             local okT, total = pcall(function() return slot.dur + 0 end)
@@ -165,6 +178,20 @@ local function UpdateBars()
     end
 end
 
+------------------------------------------------------------
+-- 設定用的示範內容
+--
+-- 沒放召喚物時這個框是空的，開設定調位置／大小等於在對著空氣調。
+-- 打開「召喚物」分頁時填四格假資料（含會跑的時間條與倒數），關掉就回真實狀態。
+------------------------------------------------------------
+local previewOn = false
+local DEMO = {
+    { icon = "Interface\\Icons\\spell_nature_stoneskintotem",  dur = 60 },
+    { icon = "Interface\\Icons\\spell_fire_searingtotem",      dur = 40 },
+    { icon = "Interface\\Icons\\spell_nature_manaregentotem",  dur = 25 },
+    { icon = "Interface\\Icons\\spell_nature_windfury",        dur = 12 },
+}
+
 local function Poll()
     local db = GetDB()
     if not db.enabled then
@@ -178,7 +205,15 @@ local function Poll()
             slots[i] = CreateSlot(i)
             slot = slots[i]
         end
-        local _, _, startTime, duration, icon = GetTotemInfo(i)
+        local startTime, duration, icon
+        if previewOn then
+            local d = DEMO[i]
+            icon, duration = d.icon, d.dur
+            startTime = GetTime()          -- UpdateBars 會讓它循環跑
+        else
+            local _
+            _, _, startTime, duration, icon = GetTotemInfo(i)
+        end
         -- icon 是明文（字串路徑或數字 fileID），當存在 proxy——haveTotem 是秘密
         -- boolean 不能測。判斷式照 Stuf：truthiness + ~= ""（數字 fileID 也成立）
         if icon and icon ~= "" then
@@ -232,6 +267,15 @@ local function Init()
     ns.Events.Register("PLAYER_TOTEM_UPDATE", "totems", Poll)
     ns.Events.Register("PLAYER_ENTERING_WORLD", "totems_pew", Poll)
     Poll()
+end
+
+-- 設定面板的「召喚物」分頁進出時呼叫
+function ns.TotemsSetPreview(on)
+    on = on and true or false
+    if previewOn == on then return end
+    previewOn = on
+    if not frame then Init() end
+    if frame then Poll() end
 end
 
 ns.RegisterCallback("Loaded", "totems", Init)

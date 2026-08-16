@@ -33,3 +33,23 @@ Secret aspects：把 secret 丟給 widget API 會在該物件上留下 aspect（
 **`debugstack()` / `debuglocals()` 也會回 secret string**：只要呼叫堆疊上有秘密值參與就是（`debuglocals` 的輸出裡個別的值反而是被塗成 `<secret string>` 的明碼）。所以任何錯誤處理／回報插件對 stack、locals 做 `:gsub()`、`:find()`、`:sub()` 之前都要 `issecretvalue` 檢查——BugSack 就是這樣整個視窗打不開的，見 [[project-121-addon-migration]]。
 
 相關：[[wow-121-unit-api-secrets]]、[[wow-secret-key-table-lookup]]、[[wow-121-aura-containers]]
+
+## ⚠ 計算器 getter 的多回傳值：一定要先落地
+
+`UnitHealPredictionCalculator` 的 getter 不少是**回兩個值**的(`GetDamageAbsorbs` →
+量, isClamped;`GetHealAbsorbs` 同樣)。Lua 在「最後一個參數位置」會把多回傳值**全部展開**,
+所以:
+
+```lua
+bar:SetValue(calc:GetHealAbsorbs())     -- ⚠ 實際上是 SetValue(量, isClamped)
+```
+
+而 `StatusBar:SetValue` 的第二個參數在 12.x 是**插值模式**——等於餵了一個秘密布林進去,
+結果是整條被鋪滿。症狀看起來像「API 回垃圾值」,其實是自己寫的展開。
+
+**規則:計算器的值一律先 `local x = calc:GetXxx()` 再用**(Cell 每個取值點都這樣寫)。
+這條在秘密值下特別難抓,因為印出來永遠是 `<secret number>`,對不出大小。
+
+**追秘密值的正確工具**:秘密值**畫得出來、讀不進來**——`SetFormattedText` 是 C 端函式吃得下
+秘密值,把數字寫進 FontString 顯示在畫面上就看得到實際大小(`/muf secret` 就是這樣做的)。
+`tostring`/比較/算術一律不行。

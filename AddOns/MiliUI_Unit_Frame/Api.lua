@@ -31,6 +31,60 @@ local function SafeStr(v)
     return tostring(v)
 end
 
+------------------------------------------------------------
+-- 秘密值讀出板
+--
+-- 秘密數字**印不出來**（tostring 只會得到 <secret number>），但 SetFormattedText
+-- 是 C 端函式、吃得下秘密值 —— 也就是說「畫在螢幕上」是合法的，只有「讀進 Lua」不行。
+-- 疊加層爆條這類問題只能靠這個看實際數字。
+------------------------------------------------------------
+local function ShowSecretReadout()
+    local uf = ns.frames.player
+    local calc = uf and uf.hpCalc
+    if not (calc and UnitGetDetailedHealPrediction) then
+        print("|cff4DD2FF[米利頭像]|r 沒有玩家框或計算器，讀不了")
+        return
+    end
+
+    local f = ns.secretReadout
+    if not f then
+        f = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+        f:SetPoint("CENTER", UIParent, "CENTER", 0, 220)
+        f:SetSize(420, 152)
+        f:SetFrameStrata("DIALOG")
+        f:SetBackdrop({ bgFile = ns.Media.WHITE8X8, edgeFile = ns.Media.WHITE8X8, edgeSize = 1 })
+        f:SetBackdropColor(0, 0, 0, 0.9)
+        f:SetBackdropBorderColor(0.3, 0.8, 1, 1)
+        f.lines = {}
+        for i = 1, 7 do
+            local fs = f:CreateFontString(nil, "OVERLAY")
+            ns.Media.SetFont(fs, 13, "OUTLINE", ns.db.global.font)
+            fs:SetPoint("TOPLEFT", 10, -8 - (i - 1) * 20)
+            fs:SetJustifyH("LEFT")
+            f.lines[i] = fs
+        end
+        ns.secretReadout = f
+    end
+
+    UnitGetDetailedHealPrediction("player", "player", calc)
+    local L = f.lines
+    local function put(i, fmt, v)
+        if not pcall(L[i].SetFormattedText, L[i], fmt, v) then
+            L[i]:SetText(fmt:gsub("%%d", "?"))
+        end
+    end
+    L[1]:SetText("|cff4DD2FF玩家秘密值（畫得出來、讀不進來）|r")
+    put(2, "最大血量        = %d", calc:GetMaximumHealth())
+    put(3, "目前血量        = %d", calc:GetCurrentHealth())
+    put(4, "治療吸收 calc   = %d", calc:GetHealAbsorbs())
+    put(5, "治療吸收 全域   = %d", UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs("player") or 0)
+    put(6, "吸收盾 全域     = %d", UnitGetTotalAbsorbs and UnitGetTotalAbsorbs("player") or 0)
+    put(7, "治療預估 calc   = %d", calc:GetIncomingHeals())
+    f:Show()
+    C_Timer.After(20, function() f:Hide() end)
+end
+ns.ShowSecretReadout = ShowSecretReadout
+
 local function Debug()
     local p = print
     p("|cff4DD2FF[米利頭像 debug]|r v" .. ns.VERSION
@@ -179,6 +233,26 @@ local function Debug()
         p("  目標取值：沒有目標（選一個敵人再打一次）")
     end
 
+    -- 治療吸收三種來源對照（整條紅時就是它們對不起來）
+    do
+        local puf0 = ns.frames.player
+        local c0 = puf0 and puf0.hpCalc
+        if c0 and UnitGetDetailedHealPrediction then
+            local function one(healer)
+                local ok, v = pcall(function()
+                    UnitGetDetailedHealPrediction("player", healer, c0)
+                    return c0:GetHealAbsorbs()
+                end)
+                return ok and SafeStr(v) or "err"
+            end
+            p(("  玩家治療吸收：healer=\"player\" → %s ／ healer=nil → %s ／ 全域 → %s"):format(
+                one("player"), one(nil),
+                SafeStr(UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs("player"))))
+            -- 復原成正常路徑的灌值方式
+            pcall(UnitGetDetailedHealPrediction, "player", "player", c0)
+        end
+    end
+
     -- 玩家的計算器值（明文）＋三條 overlay 的實際 StatusBar 狀態
     local puf = ns.frames.player
     if puf and puf.hpCalc then
@@ -190,7 +264,7 @@ local function Debug()
             SafeStr(c.GetHealAbsorbs and c:GetHealAbsorbs()),
             SafeStr(c.GetIncomingHeals and c:GetIncomingHeals())))
         local hp = puf.elements.hpbar
-        for _, key in ipairs({ "shieldbar", "incbar", "healAbsorbBar" }) do
+        for _, key in ipairs({ "shieldbar", "shieldbarR", "incbar", "healAbsorbBar" }) do
             local b = hp and hp[key]
             if b then
                 local mn, mx = b:GetMinMaxValues()
@@ -274,6 +348,9 @@ SlashCmdList.MILIUIUF = function(msg)
         ns.DB.ResetAll()
     elseif msg == "debug" then
         Debug()
+        ShowSecretReadout()      -- 秘密數字畫在畫面上（印不出來）
+    elseif msg == "secret" then
+        ShowSecretReadout()
     else
         ns.OpenOptions()
     end

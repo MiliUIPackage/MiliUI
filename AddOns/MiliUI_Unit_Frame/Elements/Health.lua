@@ -1,7 +1,9 @@
 ------------------------------------------------------------
 -- 血條：HealPredictionCalculator 驅動，秘密值直通 C API
--- 治療預估/吸收盾：錨在血條材質「移動邊緣」的 StatusBar
--- （錨定在 C 端解析，不回讀 Lua 幾何——MSUF/Stuf 驗證過的手法）
+--
+-- 三條疊加層（治療預估／吸收盾／治療吸收）的結構、材質、演算法、預設顏色
+-- **全部照 Cell/RaidFrames/UnitButton.lua 的 Midnight 路徑**，材質檔複製進本插件 Media。
+-- 各自的坑寫在下面對應位置，動之前先讀。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -10,24 +12,19 @@ local Media, Colors = ns.Media, ns.Colors
 local UnitHealth, UnitHealthMax = UnitHealth, UnitHealthMax
 local UnitGetDetailedHealPrediction = UnitGetDetailedHealPrediction
 
--- 條紋貼圖（暴雪團隊框的吸收盾樣式）：一眼就知道是盾不是血
-local SHIELD_TEXTURE = "Interface\\RaidFrame\\Shield-Fill"
+-- 疊加層貼圖統一走 Media（檔案是從 Cell/Media 複製過來的那四張）
 
 local function EnsureCalc(uf)
     if not uf.hpCalc and CreateUnitHealPredictionCalculator then
-        -- 血量與吸收盾用這顆（設定照 EUIStandaloneUnitFrames，12.1 出貨驗證）。
-        -- ⚠ **治療吸收不要用計算器**：`calc:GetHealAbsorbs()` 在 12.1 回不可信的值
-        --   （實測：沒有任何 debuff 卻填半條～整條，補 HealAbsorbClampMode 也沒用）。
-        --   EUI 全部 8 個呼叫點一律走全域 `UnitGetTotalHealAbsorbs(unit)`，見 Update。
-        local calc = CreateUnitHealPredictionCalculator()
-        if calc.SetMaximumHealthMode and Enum.UnitMaximumHealthMode then
-            calc:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.Default)
-        end
-        if calc.SetDamageAbsorbClampMode then
-            calc:SetDamageAbsorbClampMode((Enum.UnitDamageAbsorbClampMode
-                and Enum.UnitDamageAbsorbClampMode.MaximumHealth) or 2)
-        end
-        uf.hpCalc = calc
+        -- 血量／吸收盾／治療吸收共用這顆（＝Cell 的 healthCalculator）。
+        --
+        -- ⚠⚠ **一個 clamp 都不要設。** 這裡原本照 EUI 設了 SetMaximumHealthMode 與
+        -- SetDamageAbsorbClampMode，結果 `GetHealAbsorbs()` 回垃圾——沒有任何 debuff
+        -- 卻把整條血條鋪滿紅條紋。Cell 的 healthCalculator 是全裸建立的，而且它註解
+        -- 寫得很白：治療預估另開一顆是為了「clamp settings don't corrupt the shared
+        -- healthCalculator used by health, absorb, and heal-absorb reads」——
+        -- 也就是說**clamp 設定會污染同一顆計算器的其他讀取**。要 clamp 就自己開一顆。
+        uf.hpCalc = CreateUnitHealPredictionCalculator()
     end
     return uf.hpCalc
 end
@@ -138,39 +135,76 @@ local function Build(uf, edb)
         f.loss:Hide()
     end
 
+    ------------------------------------------------------------
+    -- 三條疊加層：結構、材質、方向全部照 Cell/RaidFrames/UnitButton.lua
+    --
+    -- 吸收盾有兩條，一次只顯示一條：
+    --   shieldbar   正向填充，從血條左端往右蓋在血量上
+    --   shieldbarR  反向填充，從**右端**往左長 —— 讀起來像「額外的血」，Cell 預設用這條
+    -- 兩條都 SetAllPoints 整條血條（不是錨在血量前緣），值直接餵未裁切的總吸收量。
+    -- 溢盾光暈是獨立貼圖，貼在條的左右邊緣，靠 isClamped 秘密布林驅動。
+    ------------------------------------------------------------
+    local shieldC = edb.absorbColor or { r = 1, g = 1, b = 1, a = 0.4 }
     if edb.showAbsorb then
-        local sb = EnsureOverlayBar(f.clip, "shieldbar", (edb.level or 4) + 1)
-        f.shieldbar = sb
-        AnchorOverlay(sb, hpTex, innerW, innerH)
-        sb:SetStatusBarTexture(SHIELD_TEXTURE)          -- 條紋
-        local c = edb.absorbColor or { r = 0.6, g = 0.85, b = 1, a = 0.7 }
-        sb:GetStatusBarTexture():SetVertexColor(c.r, c.g, c.b, c.a)
-    elseif f.shieldbar then
-        f.shieldbar:Hide()
+        for _, key in ipairs({ "shieldbar", "shieldbarR" }) do
+            local sb = EnsureOverlayBar(f.clip, key, (edb.level or 4) + 1)
+            f[key] = sb          -- ⚠ EnsureOverlayBar 存在 f.clip 上，這裡要掛回 f
+            sb:ClearAllPoints()
+            sb:SetAllPoints(f.clip)
+            sb:SetStatusBarTexture(Media.SHIELD_TEXTURE)
+            sb:SetReverseFill(key == "shieldbarR")
+            sb:SetStatusBarColor(shieldC.r, shieldC.g, shieldC.b, shieldC.a or 0.4)
+            sb:Hide()
+        end
+    else
+        if f.shieldbar then f.shieldbar:Hide() end
+        if f.shieldbarR then f.shieldbarR:Hide() end
     end
 
-    -- 治療吸收（Necrotic 類「吃掉治療」的 debuff）：紅色條紋從血量前緣往左吃
-    -- （暴雪 myHealAbsorb 同款方向：右緣釘在血量前緣、反向填充）
+    -- 溢盾光暈（Cell 的 overshield / overshield_reversed）：4px / 8px 寬的邊緣貼圖
+    if not f.overShieldGlow then
+        f.overShieldGlow = f.clip:CreateTexture(nil, "OVERLAY")
+        f.overShieldGlowR = f.clip:CreateTexture(nil, "OVERLAY")
+    end
+    f.overShieldGlow:SetTexture(Media.OVERSHIELD_TEXTURE)
+    f.overShieldGlow:ClearAllPoints()
+    f.overShieldGlow:SetPoint("TOPRIGHT", f.clip, "TOPRIGHT", 0, 0)
+    f.overShieldGlow:SetPoint("BOTTOMRIGHT", f.clip, "BOTTOMRIGHT", 0, 0)
+    f.overShieldGlow:SetWidth(ns.P.Scale(4))
+    f.overShieldGlowR:SetTexture(Media.OVERSHIELD_R_TEXTURE)
+    f.overShieldGlowR:ClearAllPoints()
+    f.overShieldGlowR:SetPoint("TOPLEFT", f.clip, "TOPLEFT", 0, 0)
+    f.overShieldGlowR:SetPoint("BOTTOMLEFT", f.clip, "BOTTOMLEFT", 0, 0)
+    f.overShieldGlowR:SetWidth(ns.P.Scale(8))
+    local ogc = edb.overshieldColor or { r = 1, g = 1, b = 1, a = 1 }
+    f.overShieldGlow:SetVertexColor(ogc.r, ogc.g, ogc.b, ogc.a or 1)
+    f.overShieldGlowR:SetVertexColor(ogc.r, ogc.g, ogc.b, ogc.a or 1)
+    f.overShieldGlow:Hide()
+    f.overShieldGlowR:Hide()
+
+    -- 治療吸收：反向填充、蓋在最上層（Cell 的 absorbsBar，預設紅 1/0.1/0.1）
     if edb.showHealAbsorb then
         local hab = EnsureOverlayBar(f.clip, "healAbsorbBar", (edb.level or 4) + 3)
         f.healAbsorbBar = hab
         hab:ClearAllPoints()
-        hab:SetPoint("TOPRIGHT", hpTex, "TOPRIGHT", 0, 0)
-        hab:SetSize(innerW, innerH)
+        hab:SetAllPoints(f.clip)
         hab:SetReverseFill(true)
-        hab:SetStatusBarTexture(SHIELD_TEXTURE)
-        local c = edb.healAbsorbColor or { r = 1, g = 0.15, b = 0.15, a = 0.7 }
-        hab:GetStatusBarTexture():SetVertexColor(c.r, c.g, c.b, c.a)
+        hab:SetStatusBarTexture(Media.SHIELD_TEXTURE)
+        local c = edb.healAbsorbColor or { r = 1, g = 0.1, b = 0.1, a = 1 }
+        hab:SetStatusBarColor(c.r, c.g, c.b, c.a or 1)
     elseif f.healAbsorbBar then
         f.healAbsorbBar:Hide()
     end
 
+    -- 治療預估：錨在血量前緣往右長（Cell 的 incomingHeal，用血條材質不用條紋）
     if edb.showHealPrediction then
         local ib = EnsureOverlayBar(f.clip, "incbar", (edb.level or 4) + 2)
         f.incbar = ib
-        AnchorOverlay(ib, hpTex, innerW, innerH)
+        ib:ClearAllPoints()
+        ib:SetPoint("TOPLEFT", hpTex, "TOPRIGHT", 0, 0)
+        ib:SetPoint("BOTTOMLEFT", hpTex, "BOTTOMRIGHT", 0, 0)
+        ib:SetWidth(innerW)
         ib:SetStatusBarTexture(texture)
-        -- 顏色在 Update 決定：預設跟著血條色淡淡延伸（不用突兀的綠）
     elseif f.incbar then
         f.incbar:Hide()
     end
@@ -203,7 +237,11 @@ local function Update(uf, edb, bucket)
         f.bar:SetMinMaxValues(0, 100)
         f.bar:SetValue(uf.cache.previewHP or 75, interp)
         if edb.showAbsorb and f.shieldbar then
-            f.shieldbar:SetMinMaxValues(0, 100); f.shieldbar:SetValue(12); f.shieldbar:Show()
+            local reverse = edb.absorbReverseFill ~= false
+            local shown  = reverse and f.shieldbarR or f.shieldbar
+            local hidden = reverse and f.shieldbar or f.shieldbarR
+            if hidden then hidden:Hide() end
+            shown:SetMinMaxValues(0, 100); shown:SetValue(12); shown:Show()
         end
         if edb.showHealAbsorb and f.healAbsorbBar then
             f.healAbsorbBar:SetMinMaxValues(0, 100); f.healAbsorbBar:SetValue(8); f.healAbsorbBar:Show()
@@ -211,33 +249,71 @@ local function Update(uf, edb, bucket)
     else
         local calc = uf.hpCalc
         if calc and UnitGetDetailedHealPrediction then
-            -- healer 參數傳 nil（Platynator 名條同法，敵我通用）；只用總量 getter
-            UnitGetDetailedHealPrediction(unit, nil, calc)
+            -- ⚠ 第二個參數（healer）**一定要傳 "player"**，不能傳 nil。
+            -- Cell 全部三個呼叫點都是 "player"；我們原本照 Platynator 名條傳 nil，
+            -- 結果 `calc:GetHealAbsorbs()` 回垃圾——沒有任何 debuff 卻把整條血條
+            -- 鋪滿紅條紋。同一台機器上 Cell 的團隊框同時是正常的，差別只有這個參數。
+            UnitGetDetailedHealPrediction(unit, "player", calc)
             -- 原生 StatusBar 方法：C 端吃秘密值。絕不用 SmoothStatusBarMixin。
             local maxHP = calc:GetMaximumHealth()
+            local curHP = calc:GetCurrentHealth()
             f.bar:SetMinMaxValues(0, maxHP)
-            f.bar:SetValue(calc:GetCurrentHealth(), interp)
+            f.bar:SetValue(curHP, interp)
             -- 治療預估／吸收盾 overlay 只對「可協助」的單位畫：計算器對敵對單位回的
             -- 預估與吸收值都是垃圾（副本兩次實測：連 Platynator 同款設定也整條滿，
             -- 把扣血區染成粉紫／灰藍）。敵人的護盾要顯示得另找可靠來源，不是這顆計算器。
             local overlaysOK = uf.cache.assist
+
+            ------------------------------------------------------------
+            -- 吸收盾（照 Cell 的 UnitButton_UpdateShieldAbsorbs）
+            --
+            -- ⚠⚠ **不要用 `calc:GetDamageAbsorbs()` 的第一個回傳**：那是「已裁到剩餘
+            -- 血量」的量，滿血時等於 0，護盾會整個消失（Cell 註解直接點名這是
+            -- 「滿血不顯示護盾」的 bug）。要餵**未裁切**的 `UnitGetTotalAbsorbs(unit)`
+            -- ——它是秘密值，但 StatusBar:SetValue 吃得下。
+            -- 第二個回傳 `isClamped` 是秘密布林，溢出（overshield）時為真 →
+            -- 只拿來驅動光暈的 SetAlphaFromBoolean，永遠不去讀它。
+            ------------------------------------------------------------
             if edb.showAbsorb and f.shieldbar then
-                if overlaysOK then
+                if overlaysOK and UnitGetTotalAbsorbs then
                     pcall(function()
-                        f.shieldbar:SetMinMaxValues(0, maxHP)
-                        f.shieldbar:SetValue(calc:GetDamageAbsorbs())
-                        f.shieldbar:Show()
+                        local _, isClamped = calc:GetDamageAbsorbs()
+                        local total = UnitGetTotalAbsorbs(unit)
+                        local reverse = edb.absorbReverseFill ~= false     -- Cell 預設反向
+                        local shown  = reverse and f.shieldbarR or f.shieldbar
+                        local hidden = reverse and f.shieldbar or f.shieldbarR
+                        hidden:Hide()
+                        shown:SetMinMaxValues(0, maxHP)
+                        shown:SetValue(total)
+                        shown:Show()
+                        -- 溢盾光暈：方向自己一個開關，跟條的填充方向無關
+                        local glowOn = edb.showOvershield ~= false
+                        local gR = edb.overshieldGlowReverse
+                        ns.SetOvershieldGlow(f.overShieldGlow,  glowOn and not gR, isClamped)
+                        ns.SetOvershieldGlow(f.overShieldGlowR, glowOn and gR,     isClamped)
                     end)
                 else
                     f.shieldbar:Hide()
+                    if f.shieldbarR then f.shieldbarR:Hide() end
+                    if f.overShieldGlow then f.overShieldGlow:Hide() end
+                    if f.overShieldGlowR then f.overShieldGlowR:Hide() end
                 end
             end
+
+            -- 治療吸收：照 Cell 走計算器的 GetHealAbsorbs（它每次更新前都重灌計算器，
+            -- 我們上面那行 UnitGetDetailedHealPrediction 已經做了同一件事）
             if edb.showHealAbsorb and f.healAbsorbBar then
-                -- 走全域 UnitGetTotalHealAbsorbs（EUI 同法）；計算器的 GetHealAbsorbs 不可信
-                if overlaysOK and UnitGetTotalHealAbsorbs then
+                if overlaysOK then
                     pcall(function()
+                        -- ⚠⚠ **一定要先落地成單一變數**。getter 跟 GetDamageAbsorbs 一樣
+                        -- 回兩個值（量, isClamped），而 Lua 在「最後一個參數位置」會把
+                        -- 多回傳值全部展開 → `SetValue(calc:GetHealAbsorbs())` 實際上是
+                        -- `SetValue(量, isClamped)`，第二個參數在 12.x 是**插值模式**，
+                        -- 等於餵了一個秘密布林進去 → 整條被鋪滿。
+                        -- Cell 每個取值點都先 `local x = calc:GetXxx()` 就是為了截斷。
+                        local healAbsorbs = calc:GetHealAbsorbs()
                         f.healAbsorbBar:SetMinMaxValues(0, maxHP)
-                        f.healAbsorbBar:SetValue(UnitGetTotalHealAbsorbs(unit) or 0)
+                        f.healAbsorbBar:SetValue(healAbsorbs)
                         f.healAbsorbBar:Show()
                     end)
                 else
@@ -261,8 +337,11 @@ local function Update(uf, edb, bucket)
                             hcalc:SetIncomingHealOverflowPercent(1.0)
                         end
                         UnitGetDetailedHealPrediction(unit, "player", hcalc)
-                        f.incbar:SetMinMaxValues(0, hcalc:GetMaximumHealth())
-                        f.incbar:SetValue(hcalc:GetIncomingHeals())
+                        -- 同上：先落地截斷多回傳值，別直接串進 SetValue
+                        local incMax = hcalc:GetMaximumHealth()
+                        local incoming = hcalc:GetIncomingHeals()
+                        f.incbar:SetMinMaxValues(0, incMax)
+                        f.incbar:SetValue(incoming)
                         f.incbar:Show()
                     end)
                 else

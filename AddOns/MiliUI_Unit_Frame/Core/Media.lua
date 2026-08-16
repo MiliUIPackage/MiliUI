@@ -41,6 +41,13 @@ end
 M.TEXTURES = {
     tuktex = MEDIA_PATH .. "tuktex",
 }
+
+-- 血條疊加層用的貼圖，四個檔案原封不動從 Cell/Media 複製過來
+-- （吸收盾／溢盾光暈／治療吸收全部照 Cell 的樣式，不再用暴雪團隊框那張）
+M.SHIELD_TEXTURE      = MEDIA_PATH .. "shield"
+M.OVERSHIELD_TEXTURE  = MEDIA_PATH .. "overshield"
+M.OVERSHIELD_R_TEXTURE = MEDIA_PATH .. "overshield_reversed"
+M.OVERABSORB_TEXTURE  = MEDIA_PATH .. "overabsorb"
 M.DEFAULT_TEXTURE = M.TEXTURES.tuktex
 
 -- 登記到 LSM 用的顯示名。加前綴是因為 LSM **撞名會被拒絕**——別人若已經註冊過

@@ -121,6 +121,7 @@ local function CreatePanel()
         ns.LogClick("panel OnHide")
         W.CloseDropdowns()
         ns.Preview.Close()
+        if ns.TotemsSetPreview then ns.TotemsSetPreview(false) end
     end)
     panel:SetScript("OnShow", function()
         ns.LogClick("panel OnShow")

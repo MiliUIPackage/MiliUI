@@ -99,11 +99,18 @@ local function BarSpecs(name, isHP)
         tinsert(list, { type = "color", sub = name, key = "healPredictionColor", label = "預估顏色" })
         tinsert(list, { type = "toggle", sub = name, key = "healPredictionFollowBar", label = "預估跟隨血條色" })
         tinsert(list, { type = "slider", sub = name, key = "healPredictionAlpha", label = "跟隨時透明度", min = 0.1, max = 1, step = 0.05 })
+        tinsert(list, { type = "text", label = "從血量前緣往右長。" })
         tinsert(list, { type = "toggle", sub = name, key = "showAbsorb", label = "吸收盾" })
         tinsert(list, { type = "color", sub = name, key = "absorbColor", label = "吸收盾顏色" })
-        tinsert(list, { type = "toggle", sub = name, key = "showHealAbsorb", label = "治療吸收（實驗）" })
+        tinsert(list, { type = "toggle", sub = name, key = "absorbReverseFill", label = "吸收盾反向填充" })
+        tinsert(list, { type = "text", label = "反向＝從條的**右端往左長**，讀起來像「額外的血」（Cell 預設）。關掉就從左端往右蓋在血量上。" })
+        tinsert(list, { type = "toggle", sub = name, key = "showOvershield", label = "溢盾光暈" })
+        tinsert(list, { type = "color", sub = name, key = "overshieldColor", label = "溢盾光暈顏色" })
+        tinsert(list, { type = "toggle", sub = name, key = "overshieldGlowReverse", label = "溢盾光暈改放左邊" })
+        tinsert(list, { type = "text", label = "吸收量超過滿血時，條的邊緣亮一道光。方向是獨立開關，跟上面的填充方向無關。" })
+        tinsert(list, { type = "toggle", sub = name, key = "showHealAbsorb", label = "治療吸收" })
         tinsert(list, { type = "color", sub = name, key = "healAbsorbColor", label = "治療吸收顏色" })
-        tinsert(list, { type = "text", label = "吸收盾（條紋）從血量前緣往後填、只對友方顯示。治療吸收（Necrotic 類 debuff）在 12.1 秘密值下無法確認歸零、預設關閉，除非你確定要才開。" })
+        tinsert(list, { type = "text", label = "Necrotic 那類「吃掉治療」的 debuff，反向填充疊在最上層。" })
     end
     return list
 end
@@ -139,9 +146,17 @@ local function ManaBarSpecs()
         { type = "text", label = "主資源不是法力時（貓／熊／元素／暗牧）才會出現的小魔力條。" },
         { type = "header", label = "位置與大小" },
         PosSize("manabar"),
-        { type = "header", label = "顏色" },
+        { type = "text", label = "跟資源條同一套座標語意：Y 從框架底邊起算、負值往下。" ..
+                                 "預設排在資源條上面一點（框底 →6→ 魔力條 →2→ 資源條），兩條不會疊在一起。" },
+        { type = "header", label = "顏色與外觀" },
         { type = "color", sub = "manabar", key = "color", label = "前景色" },
+        { type = "text", label = "留空時吃全域的法力藍（跟能量條顯示法力時同一個顏色）。" },
+        { type = "slider", sub = "manabar", key = "barAlpha", label = "填充透明度", min = 0.1, max = 1, step = 0.05 },
         { type = "slider", sub = "manabar", key = "bgAlpha", label = "背景透明度", min = 0, max = 1, step = 0.05 },
+        { type = "toggle", sub = "manabar", key = "border", label = "顯示邊框" },
+        { type = "text", label = "外觀跟資源條的列一樣：底色＋四邊 1px 黑邊。邊框上下各吃 1px，高度建議 5 以上。" },
+        { type = "header", label = "圖層" },
+        { type = "slider", sub = "manabar", key = "level", label = "圖層", min = 0, max = 15, step = 1 },
     }
 end
 

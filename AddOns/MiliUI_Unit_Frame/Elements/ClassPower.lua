@@ -3,8 +3,12 @@
 --
 -- 顯示範圍對齊 Ayije_CDM/Modules/Resources.lua：專精 → 該專精要看的資源清單。
 -- 每一列自己決定長相：
---   pip  分段（點數型：聖能／連擊點／真氣／碎片／充能／精華／符文，以及光環堆疊型）
---   bar  連續長條（怒氣／能量／專注／符能／星能／漩渦／瘋狂／怒火／法力）
+--   pip  分段（點數型：聖能／連擊點數／真氣／碎片／充能／精華／符文，以及光環堆疊型）
+--   bar  連續長條（怒氣／能量／集中值／符文能量／星能／元能／狂亂值／復仇之怒）
+--
+-- ⚠ **不做法力**：法力已經有單位框自己的能量條（mpbar）與型態外魔力小條（manabar），
+-- 資源條再列一次是重複。Ayije_CDM 有 MANA_SPECS 那張表是因為它的資源條是獨立 HUD、
+-- 沒有單位框可靠——我們的情境不同，照抄反而多一條。
 --
 -- 12.1 注意：玩家自己的 UnitPower/UnitPowerMax 是明文，但仍一律過 Desecret/pcall
 -- （進載具、被控時來源會變）。光環堆疊走 spellID 查詢（12.1 仍開放），層數可能是
@@ -29,32 +33,32 @@ local PT = Enum.PowerType
 -- cast   GetSpellCastCount 的 spellID
 -- fill   pip 專用的特殊填充：rune（符文冷卻）／essence（精華回充）
 local RESOURCES = {
-    Mana            = { name = "法力",     mode = "bar", power = PT.Mana,          color = { r = 0.2,  g = 0.4,  b = 0.9 } },
     Rage            = { name = "怒氣",     mode = "bar", power = PT.Rage,          color = { r = 0.78, g = 0.25, b = 0.25 } },
     Energy          = { name = "能量",     mode = "bar", power = PT.Energy,        color = { r = 1,    g = 0.96, b = 0.41 } },
-    Focus           = { name = "專注",     mode = "bar", power = PT.Focus,         color = { r = 1,    g = 0.5,  b = 0.25 } },
+    Focus           = { name = "集中值",   mode = "bar", power = PT.Focus,         color = { r = 1,    g = 0.5,  b = 0.25 } },
     RunicPower      = { name = "符文能量", mode = "bar", power = PT.RunicPower,    color = { r = 0,    g = 0.82, b = 1    } },
     LunarPower      = { name = "星能",     mode = "bar", power = PT.LunarPower,    color = { r = 0.3,  g = 0.52, b = 0.9  } },
-    Maelstrom       = { name = "漩渦",     mode = "bar", power = PT.Maelstrom,     color = { r = 0,    g = 0.5,  b = 1    } },
-    Insanity        = { name = "瘋狂",     mode = "bar", power = PT.Insanity,      color = { r = 0.4,  g = 0,    b = 0.8  } },
-    Fury            = { name = "怒火",     mode = "bar", power = PT.Fury,          color = { r = 0.788,g = 0.259,b = 0.992} },
+    Maelstrom       = { name = "元能",     mode = "bar", power = PT.Maelstrom,     color = { r = 0,    g = 0.5,  b = 1    } },
+    Insanity        = { name = "狂亂值",   mode = "bar", power = PT.Insanity,      color = { r = 0.4,  g = 0,    b = 0.8  } },
+    Fury            = { name = "復仇之怒", mode = "bar", power = PT.Fury,          color = { r = 0.788,g = 0.259,b = 0.992} },
     HolyPower       = { name = "聖能",     mode = "pip", power = PT.HolyPower,     color = { r = 0.914,g = 0.678,b = 0.275} },
-    ComboPoints     = { name = "連擊點",   mode = "pip", power = PT.ComboPoints,   color = { r = 1,    g = 0.96, b = 0.41 } },
+    ComboPoints     = { name = "連擊點數", mode = "pip", power = PT.ComboPoints,   color = { r = 1,    g = 0.96, b = 0.41 } },
     Chi             = { name = "真氣",     mode = "pip", power = PT.Chi,           color = { r = 0.71, g = 1,    b = 0.92 } },
     SoulShards      = { name = "靈魂碎片", mode = "pip", power = PT.SoulShards,    color = { r = 0.58, g = 0.51, b = 0.79 } },
     ArcaneCharges   = { name = "秘法充能", mode = "pip", power = PT.ArcaneCharges, color = { r = 0.25, g = 0.35, b = 0.98 } },
     Essence         = { name = "精華",     mode = "pip", power = PT.Essence,       color = { r = 0.28, g = 0.73, b = 0.92 } },
     Runes           = { name = "符文",     mode = "pip", power = PT.Runes,         color = { r = 0.77, g = 0.12, b = 0.23 }, fill = "rune" },
     -- 光環／技能次數型（Ayije_CDM 的 custom power，資料來源都是明文 API）
-    MaelstromWeapon = { name = "漩渦之武", mode = "pip", aura = 344179, max = 10,  passive = 187880, color = { r = 0.2,  g = 0.65, b = 1    } },
-    TipOfTheSpear   = { name = "矛尖",     mode = "pip", aura = 260286, max = 3,   passive = 260285, color = { r = 1,    g = 0.6,  b = 0.2  } },
+    -- 中文名一律取自 Ayije_CDM/Locales/zhTW.lua（使用者已對過官方譯名，別自己翻）
+    MaelstromWeapon = { name = "氣漩武器", mode = "pip", aura = 344179, max = 10,  passive = 187880, color = { r = 0.2,  g = 0.65, b = 1    } },
+    TipOfTheSpear   = { name = "長矛之尖", mode = "pip", aura = 260286, max = 3,   passive = 260285, color = { r = 1,    g = 0.6,  b = 0.2  } },
     SoulFragments   = { name = "靈魂碎片", mode = "pip", cast = 228477, max = 6,   passive = 203981, color = { r = 0.64, g = 0.19, b = 0.79 } },
 }
 
 -- 專精 → 資源清單（照抄 Ayije_CDM/Modules/Resources.lua 的 SPEC_POWER_MAP）
 local SPEC_RESOURCES = {
     [71]  = { "Rage" },                          [72]  = { "Rage" },
-    [73]  = { "Rage" },                          -- 防戰的「盾牌格擋」是吸收量，12.1 秘密值，不做
+    [73]  = { "Rage" },                          -- 防戰的「無視苦痛」是吸收量，12.1 秘密值，不做
     [65]  = { "HolyPower" },                     [66]  = { "HolyPower" },  [70] = { "HolyPower" },
     [253] = { "Focus" },                         [254] = { "Focus" },
     [255] = { "Focus", "TipOfTheSpear" },
@@ -66,7 +70,7 @@ local SPEC_RESOURCES = {
     [262] = { "Maelstrom" },                     [263] = { "MaelstromWeapon" },
     [62]  = { "ArcaneCharges" },
     [265] = { "SoulShards" },                    [266] = { "SoulShards" },  [267] = { "SoulShards" },
-    [268] = { "Energy" },                        -- 醉拳的「醉意」是吸收量，同上不做
+    [268] = { "Energy" },                        -- 釀酒的「醉仙緩勁」是吸收量，同上不做
     [269] = { "Energy", "Chi" },
     [102] = { "LunarPower" },                    [103] = { "Energy", "ComboPoints" },
     [104] = { "Rage" },                          -- 「鐵鬃」同為吸收量
@@ -74,13 +78,6 @@ local SPEC_RESOURCES = {
     [577] = { "Fury" },                          [581] = { "Fury", "SoulFragments" },
     [1480] = { "Fury" },
     [1467] = { "Essence" },                      [1468] = { "Essence" },  [1473] = { "Essence" },
-}
-
--- 額外顯示法力的專精（Ayije_CDM 的 MANA_SPECS；主資源已經是法力的不重複列）
-local MANA_SPECS = {
-    [65] = true, [256] = true, [257] = true, [264] = true,
-    [62] = true, [63] = true, [64] = true,
-    [105] = true, [270] = true, [1468] = true,
 }
 
 local function CurrentSpecID()
@@ -169,6 +166,14 @@ local function Available(key)
     return true, "上限 " .. tostring(max)
 end
 
+-- 現在的主資源（暗牧的狂亂值、戰士的怒氣、盜賊的能量…）。
+-- 這些單位框自己的「能量條」(mpbar) 已經在畫了，資源條再列一次是重複 →
+-- 一律從候選裡剔除。剩下的就是真正的「副資源」：連擊點數、聖能、真氣、
+-- 碎片、充能、精華、符文，以及光環堆疊型那幾個。
+local function PrimaryPowerType()
+    return ns.Desecret(UnitPowerType("player"), nil)
+end
+
 -- 這個專精「可以顯示」哪些資源（不看使用者開關，但已套天賦／型態判斷）
 --
 -- ⚠ 有快取：ActiveRows 每次 Update 都會叫它，而能量類的 UNIT_POWER_FREQUENT
@@ -198,12 +203,17 @@ function ns.ResourceCandidates()
             raw[#raw + 1] = key
         end
     end
-    if MANA_SPECS[specID or 0] then raw[#raw + 1] = "Mana" end
-
     wipe(gateLog)
+    local primary = PrimaryPowerType()
     local list = {}
     for _, key in ipairs(raw) do
-        local ok, why = Available(key)
+        local def = RESOURCES[key]
+        local ok, why
+        if def and def.power and primary and def.power == primary then
+            ok, why = false, "主資源（單位框的能量條已經在顯示）"
+        else
+            ok, why = Available(key)
+        end
         gateLog[key] = (ok and "顯示：" or "隱藏：") .. why
         if ok then list[#list + 1] = key end
     end
@@ -547,14 +557,35 @@ local function Build(uf, edb)
         f.bg:SetTexture(Media.WHITE8X8)
         f.bar = CreateFrame("StatusBar", nil, f)
         f.bar:SetAllPoints(f)
+        -- 外觀跟資源條的列一致：底色 + 疊在上面的四條 1px 黑邊
+        -- （邊建在 bar 上，不然 bar 的填充會蓋掉它，跟資源列同一個坑）
+        f.edges = {
+            MakeEdge(f.bar, "TOPLEFT", "TOPRIGHT", nil, 1),
+            MakeEdge(f.bar, "BOTTOMLEFT", "BOTTOMRIGHT", nil, 1),
+            MakeEdge(f.bar, "TOPLEFT", "BOTTOMLEFT", 1, nil),
+            MakeEdge(f.bar, "TOPRIGHT", "BOTTOMRIGHT", 1, nil),
+        }
         uf.elements.manabar = f
     end
-    ns.ApplyElementBase(uf, f, edb)
+    -- 設定完全獨立（自己的 x/y/w/h/顏色）。跟資源條一致的只有兩件事：
+    --   * 錨點語意：TOPLEFT 對單位框的 BOTTOMLEFT，也就是「掛在框下方、Y 往下為負」
+    --   * 外觀：底色 + 四邊 1px 黑邊
+    -- 預設值排在資源條「上面一點」，兩條不重疊（見 Core/DB.lua）
+    f:SetSize(ns.P.Scale(edb.w or 200), ns.P.Scale(edb.h or 6))
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", ns.P.Scale(edb.x or 0), ns.P.Scale(edb.y or 0))
+    f:SetFrameLevel(edb.level or 6)
+    f:SetAlpha(edb.alpha or 1)
+
     f.bar:SetStatusBarTexture(Media.BarTexture(ns.db.global.barTexture))
     f.bar:SetFrameLevel(edb.level or 6)
-    local c = edb.color or { r = 0.3, g = 0.3, b = 1, a = 1 }
-    f.bar:SetStatusBarColor(c.r, c.g, c.b, c.a or 1)
-    f.bg:SetVertexColor(0, 0, 0, edb.bgAlpha or 0.4)
+    -- 預設吃全域的「法力藍」，跟能量條的法力同一個顏色
+    local c = edb.color or (ns.db.global.colors.power and ns.db.global.colors.power[0])
+              or { r = 0.2, g = 0.5, b = 1, a = 1 }
+    f.bar:SetStatusBarColor(c.r, c.g, c.b, (c.a or 1) * (edb.barAlpha or 1))
+    -- 底色比照資源列：主色的 25%
+    f.bg:SetVertexColor(c.r * 0.25, c.g * 0.25, c.b * 0.25, edb.bgAlpha or 0.8)
+    for _, e in ipairs(f.edges) do e:SetShown(edb.border ~= false) end
     f:Show()
 end
 

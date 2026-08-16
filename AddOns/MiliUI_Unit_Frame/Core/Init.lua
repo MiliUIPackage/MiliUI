@@ -90,4 +90,21 @@ do
     end)
 end
 
+------------------------------------------------------------
+-- 溢盾光暈：用秘密布林開關貼圖，但**不讀它**
+--
+-- `calc:GetDamageAbsorbs()` 的第二個回傳 isClamped 在吸收量溢出滿血時為真，
+-- 它是秘密值不能 if。`SetAlphaFromBoolean(bool, 1, 0)` 由 C 端決定 alpha，
+-- 貼圖保持 Shown、靠透明度隱藏（Cell 的 B.SetOvershieldGlow 同法）。
+------------------------------------------------------------
+function ns.SetOvershieldGlow(glow, enabled, isClamped)
+    if not glow then return end
+    if enabled and isClamped ~= nil and glow.SetAlphaFromBoolean then
+        glow:Show()
+        glow:SetAlphaFromBoolean(isClamped, 1, 0)
+    else
+        glow:Hide()
+    end
+end
+
 _G.MiliUIUF = ns
