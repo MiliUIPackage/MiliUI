@@ -3627,6 +3627,37 @@ function F.Revise()
         end
     end
 
+    --! Healer HoT list top-up. F.FirstRun only fires once, so new entries in the default list
+    --! never reach anyone who already owns a "Healers" indicator -- which is everyone who has
+    --! run Cell before. Append-only and deduped: a spell the user deliberately deleted comes
+    --! back once, but nothing they added is touched and no ordering is disturbed.
+    --!
+    --! Two IDs in that list are unverified (139 Renew re-enabled, 388007/388010/388011/388013
+    --! seasonal blessings kept) -- see the comments there. To settle either in-game:
+    --!     /run print(C_Spell.GetSpellInfo(139) and "live" or "gone")
+    --! A dead ID is inert here, so being wrong costs nothing but a line in the table.
+    if not(CellDB["revise"]) or dbRevision < 288 then
+        local defaults = I.GetDefaultHealerSpells and I.GetDefaultHealerSpells()
+        if type(defaults) == "table" then
+            for _, layout in pairs(CellDB["layouts"]) do
+                for _, t in pairs(layout["indicators"] or {}) do
+                    if t["name"] == "Healers" and t["auraType"] == "buff"
+                        and (t["type"] == "icons" or t["type"] == "icon")
+                        and type(t["auras"]) == "table" then
+                        local have = {}
+                        for _, id in pairs(t["auras"]) do have[id] = true end
+                        for _, id in ipairs(defaults) do
+                            if not have[id] then
+                                have[id] = true
+                                tinsert(t["auras"], id)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
     CellDB["revise"] = Cell.version
     if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version

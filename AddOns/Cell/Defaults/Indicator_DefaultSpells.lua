@@ -979,6 +979,8 @@ local spells =  {
     145205, -- 百花齐放 - Efflorescence
     383193, -- 林地护理 - Grove Tending
     439530, -- 共生绽华 - Symbiotic Blooms
+    474754, -- 共生關係 - Symbiotic Relationship
+    29166, -- 啟動 - Innervate
     -- 429224, -- 次级塞纳里奥结界 - Minor Cenarion Ward (removed in 12.0, Durability of Nature redesigned)
 
     -- evoker
@@ -1000,6 +1002,8 @@ local spells =  {
     406789, -- 空间悖论 - Spatial Paradox
     445740, -- 纵焰 - Enkindle
     409895, -- 精神之花 - Spiritbloom (Reverberations, Chronowarden Hero Talent)
+    409678, -- 時空庇護 - Chrono Ward
+    1291636, -- 時空屏障 - Temporal Barrier
     410263, -- 炼狱祝福 - Inferno's Blessing
     410686, -- 共生绽放 - Symbiotic Bloom
     413984, -- 流沙 - Shifting Sands
@@ -1014,6 +1018,7 @@ local spells =  {
     450805, -- 净化之魂 - Purified Spirit
     467281, -- 金创药 - Healing Elixir
     115175, -- 抚慰之雾 - Soothing Mist
+    1292922, -- 聚合 - Coalescence
 
     -- paladin
     53563, -- 圣光道标 - Beacon of Light
@@ -1024,15 +1029,28 @@ local spells =  {
     287280, -- 圣光闪烁 - Glimmer of Light
     156322, -- 永恒之火 - Eternal Flame
     431381, -- 晨光 - Dawnlight
+    -- ⚠ NeeRgY's fork commented these four out as "removed in 12.0"; I could not confirm it
+    -- either way (wowhead still serves the pages, and LibOpenRaid never tracked them at all).
+    -- Kept, because the cost is asymmetric: this list only feeds includeSpellIDs, so a dead ID
+    -- is inert -- it matches nothing and the icon-preview builder skips a nil texture -- while
+    -- a missing live ID is a HoT that silently never shows. Verify with the macro in the
+    -- r288 Revise note before deleting.
     388013, -- 阳春祝福 - Blessing of Spring
     388007, -- 仲夏祝福 - Blessing of Summer
     388010, -- 暮秋祝福 - Blessing of Autumn
     388011, -- 凛冬祝福 - Blessing of Winter
     200654, -- 提尔的拯救 - Tyr's Deliverance
     1244893, -- 救世主道标 - Beacon of the Savior
+    1245369, -- 救世信標（吸收） - Beacon of the Savior (absorb)
+    1241717, -- 純潔屏障 - Seraphic Barrier
+    432496, -- 神聖堅盾 - Holy Bulwark (Holy Armaments 護盾型態)
+    432502, -- 神聖武器 - Sacred Weapon (Holy Armaments 武器型態)
 
     -- priest
-    -- 139, -- 恢复 - Renew (removed in 12.0)
+    -- ⚠ Same unresolved question as the seasonal blessings above, in the other direction: we
+    -- had Renew commented out as 12.0-removed, NeeRgY's fork has it live. Re-enabled on the
+    -- same asymmetry -- an inert ID costs nothing, a missing Holy Priest HoT is very visible.
+    139, -- 恢復 - Renew
     200829, -- 恳求 - Plea (added in 12.0, Disc)
     41635, -- 愈合祷言 - Prayer of Mending
     17, -- 真言术：盾 - Power Word: Shield
@@ -1041,6 +1059,8 @@ local spells =  {
     372847, -- 光明之泉恢复 - Blessed Bolt
     -- 443526, -- 慰藉预兆 - Premonition of Solace (removed in 12.0)
     1253593, -- 虚空之盾 - Void Shield
+    1300009, -- 虛無之盾-開展視野 - Void Shield (Unfolding Vision)
+    453846, -- 鳴響能量 - Resonant Energy
 
     -- shaman
     974, -- 大地之盾 - Earth Shield
@@ -1048,10 +1068,18 @@ local spells =  {
     61295, -- 激流 - Riptide
     382024, -- 大地生命武器 - Earthliving Weapon
     375986, -- 始源之潮 - Primordial Wave
+    207400, -- 先祖活力 - Ancestral Vigor
     444490, -- 源水气泡 - Hydrobubble
     -- 73920, -- 治疗之雨 - Healing Rain
     -- 456366, -- 治疗之雨 - Healing Rain
 }
+
+-- The default Healers spell list. Revise reads it to top up an EXISTING Healers indicator --
+-- F.FirstRun only ever fires once (CellDB["firstRun"]), so without that pass anyone who already
+-- had the indicator would never see a spell added here.
+function I.GetDefaultHealerSpells()
+    return spells
+end
 
 function F.FirstRun()
     local icons = "\n\n"
@@ -1099,7 +1127,9 @@ function F.FirstRun()
             ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}},
             ["auraType"] = "buff",
             ["castBy"] = "me",
-            ["auras"] = spells,
+            -- Copy, not the shared table: without this the layout entry aliases the module
+            -- local, so editing the indicator's spell list would edit the defaults too.
+            ["auras"] = F.Copy(spells),
         })
         Cell.Fire("UpdateIndicators", Cell.vars.currentLayout, indicatorName, "create", currentLayoutTable["indicators"][last+1])
         CellDB["firstRun"] = false

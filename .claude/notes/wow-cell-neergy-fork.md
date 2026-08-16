@@ -63,6 +63,13 @@ r277，用 `r277.9.x` 自己往下編號。我們從 r282 走自己的路，**�
 - 拿掉 `UIParent:UnregisterEvent("GROUP_ROSTER_UPDATE")`（疑似害場景/地穴目標追蹤不更新，**待進遊戲驗**）
 - 新增 Offensive Cooldowns 指示器（技能名單取自他們，同一個 Cell 血統）
 - Actions 指示器藥水 ID 換成 Midnight 的 1234768 / 1236616
+- 治療 HoT 清單補 13 個（r288）。⚠ **`F.FirstRun()` 只跑一次**（`CellDB["firstRun"]`），
+  所以往 `spells` 加東西對「已經有 Healers 指示器的人」完全沒作用——一定要配一個 Revise
+  遷移去 append 到既有指示器，不然改了等於沒改。
+  兩個未解的矛盾：139 Renew（我們原本註解掉、他們是開的，已重新啟用）與
+  388007/388010/388011/388013 季節祝福（他們註解掉、我們保留）。
+  查不到權威答案，用成本不對稱決定：這份清單只餵 `includeSpellIDs`，
+  **死 ID 完全無害**（配不到任何東西、圖示預覽會跳過 nil），漏掉活的才會少顯示。
 
 **沒抄、因為我們本來就有**：Aura Blacklist 手動輸入 spellID —— 我們的
 `CreateAuraButtons`（`Widgets/Widgets_IndicatorSettings.lua`）一直支援，含「無效的法術 ID」驗證。
