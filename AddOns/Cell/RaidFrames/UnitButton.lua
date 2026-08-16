@@ -3488,8 +3488,15 @@ end
 function B.UpdateShields(button)
     predictionEnabled = CellDB["appearance"]["healPrediction"][1]
     shieldEnabled = CellDB["appearance"]["shield"][1]
-    overshieldEnabled = CellDB["appearance"]["overshield"][1]
-    overshieldReverseFillEnabled = shieldEnabled and CellDB["appearance"]["overshieldReverseFill"]
+    -- OVERSHIELD DISABLED (12.1): overshield = (absorbs + health) > maxHealth, and all three
+    -- are SECRET values on Midnight, so a tainted addon cannot detect it. The old code showed
+    -- the glow UNCONDITIONALLY whenever the option was on -- a false white edge with no shield.
+    -- Forced off here (single point -> every display path takes its Hide branch); the appearance
+    -- option is removed too. Restore by reading the DB again once a secret-safe path exists.
+    -- overshieldEnabled = CellDB["appearance"]["overshield"][1]
+    -- overshieldReverseFillEnabled = shieldEnabled and CellDB["appearance"]["overshieldReverseFill"]
+    overshieldEnabled = false
+    overshieldReverseFillEnabled = false
     absorbEnabled = CellDB["appearance"]["healAbsorb"][1]
     absorbInvertColor = CellDB["appearance"]["healAbsorbInvertColor"]
 
