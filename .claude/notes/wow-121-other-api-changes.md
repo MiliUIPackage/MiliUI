@@ -49,7 +49,13 @@ Cell 自己的版本在 `Comm/Comm.lua`（多一道 `Cell.isMidnight` 前置判�
 bar:SetValue(secretHealth, Enum.StatusBarInterpolation.ExponentialEaseOut)
 ```
 
-不要用 `bar.SetBarValue = bar.SetSmoothedValue` 這種把 mixin 換進去的老寫法。在地用例：`MiliUI_UnitFrames/Core/Secret.lua` 的 `ns.BarInterp()`、`Cell/RaidFrames/UnitButton.lua` 的 `barInterp`（由 `B.UpdateAnimation` 決定）、`Ayije_CDM/Modules/Resources_Trackers.lua`。
+`SetMinMaxValues(min, max, interpolation)` 也吃第三個參數。API 文件（`SimpleStatusBarAPIDocumentation.lua`）寫明 value 是 `SecretArguments = "AllowedWhenTainted"`、interpolation 是 `NeverSecret`、預設 `Immediate`。
+
+不要用 `bar.SetBarValue = bar.SetSmoothedValue` 這種把 mixin 換進去的老寫法。在地用例：`MiliUI_UnitFrames/Core/Secret.lua` 的 `ns.BarInterp()`、`Cell/RaidFrames/UnitButton.lua` 的 `ResolveBarInterp()`、`Ayije_CDM/Modules/Resources_Trackers.lua`。
+
+⚠ **兩個坑**：
+1. **interpolation 值不要存在只由「每個框各跑一次」的 callback 寫入的變數裡。** Cell 踩過：`barInterp` 只在 `B.UpdateAnimation` 裡賦值，而它只從 `IterateAllUnitButtons` 的 callback 呼叫；登入時若該次迭代早於框架建立，迴圈體一次都不會跑，變數停在 `nil`，`SetValue` 就靜靜退回 `Immediate`。要在使用點有能從 DB 補值的後備。
+2. **秘密值到底會不會被內插，尚未證實。** 文件只說 value 允許是秘密值，沒說內插行為。分辨方法：自己的血量不是秘密值——如果自己平滑、隊友不平滑，那就是引擎限制而不是程式問題。
 
 **其他**
 - 新 interface 貼圖檔名不再進 ManifestInterfaceData DB，`exportinterfacefiles art` 抓不到新檔名（防劇透）；舊檔名保留。
