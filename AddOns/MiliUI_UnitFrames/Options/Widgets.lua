@@ -1,6 +1,6 @@
 ------------------------------------------------------------
--- 設定介面元件庫（Cell 視覺風格：白貼圖 backdrop + 1px 硬邊 + 職業 accent 色）
--- 自寫精簡版，不依賴 _G.Cell（避免 scale / 字型互相干擾）
+-- 設定介面元件庫（白貼圖 backdrop + 1px 硬邊 + 職業 accent 色）
+-- 全部自寫，不依賴任何外部 UI 函式庫（避免 scale / 字型互相干擾）
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -11,7 +11,7 @@ local P = ns.P
 local WHITE = "Interface\\BUTTONS\\WHITE8X8"
 
 ------------------------------------------------------------
--- accent 色 = 玩家職業色（Cell 手法；player token 安全）
+-- accent 色 = 玩家職業色（player token 安全）
 ------------------------------------------------------------
 local accent = { r = 0.7, g = 0.7, b = 0.7 }
 do
@@ -160,7 +160,7 @@ function W.CreateCheckButton(parent, label, onChange)
 end
 
 ------------------------------------------------------------
--- 滑桿（Cell 手法：真 Slider + 1px 軌道 + accent 方塊拇指 + 右側可打字數值框）
+-- 滑桿（真 Slider + 1px 軌道 + accent 方塊拇指 + 右側可打字數值框）
 -- 拖曳中 onChange（即時）；放開 / 打字 Enter / 滾輪 才 afterChange（套用）
 ------------------------------------------------------------
 local function Quantize(v, low, high, step)
@@ -515,7 +515,7 @@ function W.CreateScrollFrame(parent)
 end
 
 ------------------------------------------------------------
--- 標題列 / 分隔線（Cell TitledPane：accent 線 + 1px 黑影）
+-- 標題列 / 分隔線（accent 線 + 1px 黑影）
 ------------------------------------------------------------
 function W.CreateSectionTitle(parent, text, width)
     local holder = CreateFrame("Frame", nil, parent)
@@ -553,7 +553,7 @@ end
 -- 確認彈窗
 ------------------------------------------------------------
 -- 確認彈窗：蓋在整個 parent 上方（獨立 strata，不受分頁/卷軸子層級影響），
--- 背後一層半透明遮罩擋掉點擊（Cell CreateMask 手法）
+-- 背後一層半透明遮罩擋掉點擊
 function W.CreateConfirmPopup(parent, width, text, onAccept)
     local mask = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     mask:SetAllPoints(parent)

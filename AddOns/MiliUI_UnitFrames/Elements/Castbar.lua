@@ -92,7 +92,7 @@ end
 
 -- 施法條共五色（全域設定，全部可調）：施法橙／引導綠／完成黃／失敗紅／不可打斷灰。
 -- `edb.showInterruptState` 關閉時（玩家／寵物預設）不套「不可打斷灰」也不畫盾牌——
--- 自己的施法能不能被斷沒有意義，Stuf 也是明確排除 player。
+-- 自己的施法能不能被斷沒有意義。
 local function ApplySecretColor(f)
     local tex = f.bar:GetStatusBarTexture()
     if not tex then return end
@@ -118,7 +118,7 @@ local function ApplyPlainColor(f, notInt)
     f.bar:SetStatusBarColor(col.r, col.g, col.b)
 end
 
--- 結束：上色後**淡出**再收（Stuf 的手法——硬停在滿版色再瞬間消失才會突兀）。
+-- 結束：上色後**淡出**再收（硬停在滿版色再瞬間消失才會突兀）。
 -- castState 3 = 淡出中
 local function FadeOnUpdate(f)
     local dur = f.fadeTime or 0.5
@@ -318,8 +318,7 @@ end
 -- ⚠⚠ **12.x 的插件不能註冊 `COMBAT_LOG_EVENT_UNFILTERED`。** 曾經在這裡掛戰鬥紀錄
 -- 抓 SPELL_INTERRUPT 當備援（Platynator 有這條 legacy 路徑），結果一載入就跳
 -- 「嘗試進行 Blizzard UI 專屬動作」——`Frame:RegisterEvent()` 是禁止動作，而且
--- pcall 攔不掉。Cell 的每個 CLEU 註冊點都包在 `if not Cell.isMidnight` 裡，
--- CHANGELOG 直接寫「CLEU unavailable」。所以斷法者只能吃事件自己帶的 GUID。
+-- pcall 攔不掉。12.x 之後 CLEU 對插件一律不可用，所以斷法者只能吃事件自己帶的 GUID。
 --
 -- 事件參數位置對照 Platynator/Display/Cache.lua（換算回含 unit 的原始位置）：
 --   UNIT_SPELLCAST_INTERRUPTED / CHANNEL_STOP → 第 4 個
@@ -471,7 +470,7 @@ local function Build(uf, edb)
             elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
                 if f.castState == 1 or f.castState == 2 then ShowInterrupted(f, arg4) end
             -- 引導／蓄力結束不換色，直接淡出（引導本來就是「跑完」，突然變黃很突兀；
-            -- Stuf 的自然結束同樣不上完成色）。被打斷才另外處理
+            -- 自然結束同樣不上完成色）。被打斷才另外處理
             elseif event == "UNIT_SPELLCAST_CHANNEL_STOP" then
                 if f.castState ~= 2 then return end
                 if arg4 ~= nil then ShowInterrupted(f, arg4) else EndFade(f, nil) end
@@ -481,7 +480,7 @@ local function Build(uf, edb)
             elseif event == "UNIT_SPELLCAST_FAILED" then
                 -- ⚠ FAILED 會為「不是目前這條」的施法而發（引導中另外放技能失敗最常見，
                 -- 例如武僧柔和之霧拉線時放別的招）→ 只在「正在施法」且 castGUID 相符時才理會。
-                -- Stuf 同法（cstate ~= 1 或 castid 不符就 return）；引導中一律忽略
+                -- （castState ~= 1 或 castGUID 不符就 return）；引導中一律忽略
                 if f.castState ~= 1 then return end
                 local mine = true
                 if arg2 ~= nil and f.castGUID ~= nil

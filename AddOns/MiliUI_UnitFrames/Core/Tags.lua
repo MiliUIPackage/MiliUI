@@ -1,12 +1,12 @@
 ------------------------------------------------------------
 -- Text tag 引擎
--- 語法沿用 Stuf：[infotag]、[colortag:infotag]、[colortag_if_cond:文字]、
+-- 語法：[infotag]、[colortag:infotag]、[colortag_if_cond:文字]、
 -- [colortag_ifnot_cond:文字]
 --
--- 與 Stuf 的差異：更新依賴不再用 strmatch 猜，改由 GetBuckets() 解析
+-- 更新依賴不用 strmatch 猜，改由 GetBuckets() 解析
 -- pattern 中的每個 token 查註冊表得出依賴桶集合。
 --
--- 秘密值處理（移植 Stuf/text.lua 的四階段，12.1 實戰驗證過的寫法）：
+-- 秘密值處理（四階段，12.1 實戰驗證過的寫法）：
 --   Phase 1: 秘密數字 tag（curhp 等）換成 \001N 佔位符，原始值收進 rawArgs
 --   Phase 2: 其餘 tag 走一般 gsub 展開（cache 全明文）
 --   Phase 3: 掃 \001N，用 C 端格式化函式（吃秘密值）產字串後串接
@@ -278,7 +278,7 @@ function Tags.Render(uf, fs, pattern, edb)
     --   wan = AbbreviateNumbers（依語系：zhTW/zhCN 萬/億）
     --   km  = AbbreviateLargeNumbers（K/M）
     --   raw = BreakUpLargeNumbers（千分位、不縮寫）
-    -- 百分比用 string.format 取整（也吃秘密值，Cell 同法）
+    -- 百分比用 string.format 取整（也吃秘密值）
     if argCount then
         local mode = Tags.NumberMode()
         local abbrev = (mode == "wan" and AbbreviateNumbers)

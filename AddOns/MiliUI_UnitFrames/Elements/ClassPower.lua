@@ -283,8 +283,18 @@ local function MakeRow(parent)
     row.bar = CreateFrame("StatusBar", nil, row)
     row.bar:SetAllPoints(row)
     row.bar:SetFrameLevel(row:GetFrameLevel() + 1)
-    row.text = row.bar:CreateFontString(nil, "OVERLAY")
-    row.text:SetPoint("CENTER", row, "CENTER", 0, 0)
+    -- 數值掛在獨立的高層 frame 上：直接建在 bar 上會被填充貼圖和黑邊壓過去
+    row.textFrame = CreateFrame("Frame", nil, row.bar)
+    row.textFrame:SetAllPoints(row.bar)
+    row.textFrame:SetFrameLevel(row.bar:GetFrameLevel() + 10)
+    row.text = row.textFrame:CreateFontString(nil, "OVERLAY")
+    row.text:SetDrawLayer("OVERLAY", 7)
+    row.text:SetJustifyH("CENTER")
+    row.text:SetJustifyV("MIDDLE")
+    row.text:SetTextColor(1, 1, 1, 1)
+    row.text:SetShadowColor(0, 0, 0, 1)
+    row.text:SetShadowOffset(1, -1)
+    row.text:SetPoint("CENTER", row.textFrame, "CENTER", 0, 0)
     -- ⚠ 邊框要建在 row.bar 上，不能建在 row 上：bar 是層級更高的子 frame，
     -- 它的填充貼圖會蓋過 row 自己的 OVERLAY，黑框就看不見了
     row.barEdges = {
@@ -313,7 +323,8 @@ local function LayoutRow(row, key, edb, numSeg)
     if not isPip then
         for i = 1, MAX_SEGMENTS do row.segs[i]:Hide() end
         row.bar:SetStatusBarTexture(Media.BarTexture(ns.db.global.barTexture))
-        Media.SetFont(row.text, edb.textSize or 9, "OUTLINE", ns.db.global.font)
+        Media.SetPixelFont(row.text, edb.textSize or 10, "OUTLINE", ns.db.global.font)
+        row.text:SetTextColor(1, 1, 1, 1)
         return
     end
 

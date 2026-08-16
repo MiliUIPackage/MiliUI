@@ -87,6 +87,15 @@ function M.SetFont(fs, size, flags, fontToken)
     fs:SetFont(M.Font(fontToken), size or 12, flags or "")
 end
 
+-- 疊在長條上的小字用：字級先乘 UIParent 縮放、區域本身忽略父層縮放 →
+-- 字形直接落在實體像素格上。小字級（9-10）不這樣做會糊成一團
+function M.SetPixelFont(fs, size, flags, fontToken)
+    local scale = UIParent:GetEffectiveScale()
+    if not scale or scale <= 0 then scale = 1 end
+    fs:SetFont(M.Font(fontToken), (size or 12) * scale, flags or "")
+    if fs.SetIgnoreParentScale then fs:SetIgnoreParentScale(true) end
+end
+
 -- 不可打斷盾牌貼圖。內建四款高解析 PNG（取自 Platynator 的 DPI144 資產，
 -- 複製進本插件 Media 才不會被上游更新洗掉），外加暴雪內建 atlas。
 M.SHIELD_STYLES = {
@@ -112,7 +121,7 @@ function M.SetShieldTexture(tex, style)
     tex:SetTexture(SHIELD_FILES[style] or SHIELD_FILES.blizzard)
 end
 
--- SetJustifyV 只吃 TOP/MIDDLE/BOTTOM；Stuf 時代的設定值慣用 "CENTER"，統一重映射
+-- SetJustifyV 只吃 TOP/MIDDLE/BOTTOM；舊設定值慣用 "CENTER"，統一重映射
 -- （不映射會直接 Lua error，而且炸在 build 迴圈裡）
 function M.JustifyV(v)
     if v == "CENTER" then return "MIDDLE" end

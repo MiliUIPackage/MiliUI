@@ -33,7 +33,6 @@ local function BuildControls()
         { type = "header", label = "外觀" },
         { type = "slider", key = "barAlpha", label = "填充透明度", min = 0.1, max = 1, step = 0.05 },
         { type = "toggle", key = "showText", label = "長條上顯示數值" },
-        { type = "text",   label = "只有連續型資源（怒氣、能量那種）會有數值；點數型看格數就夠了。" },
         { type = "header", label = "這個專精要顯示哪些" },
     }
 

@@ -6,7 +6,7 @@ local _, ns = ...
 local Media = ns.Media
 
 ------------------------------------------------------------
--- 元件基座（對應 Stuf CreateBase / UpdateBaseLook）
+-- 元件基座（建立容器 / 套用外觀）
 ------------------------------------------------------------
 -- 建立元件容器：掛在 uf 底下、TOPLEFT 相對定位
 function ns.CreateElementBase(uf, name, frameType, template)

@@ -9,7 +9,7 @@
 ## Version: 1.0.0
 ## IconTexture: Interface\Icons\inv_pet_riverotter_red
 ## SavedVariables: MiliUI_UnitFrames_DB
-## OptionalDeps: MiliUI, Clique, Cell
+## OptionalDeps: Clique
 ## AddonCompartmentFunc: MiliUIUF_OnAddonCompartmentClick
 
 Libs\PixelPerfect.lua

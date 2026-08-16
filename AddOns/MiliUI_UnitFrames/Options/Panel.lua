@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 主設定視窗：700×520，分頁鈕掛視窗上緣外側兼拖曳把手（Cell 手法）
+-- 主設定視窗：700×520，分頁鈕掛視窗上緣外側兼拖曳把手
 -- 分頁解耦：ns.Fire("ShowOptionsTab", id)，各分頁檔案自己註冊、懶初始化
 ------------------------------------------------------------
 local _, ns = ...
@@ -150,13 +150,21 @@ local function CreatePanel()
     aboutText:SetText(table.concat({
         "|cff4DD2FF米利頭像框架|r v" .. ns.VERSION,
         "",
-        "為 12.1 原生打造的單位框架，取代 Stuf Unit Frames。",
+        "延續 Stuf 的使用習慣，為 12.1 重新打造的單位框架。",
         "秘密值防護內建於架構：血量走 HealPredictionCalculator、",
         "光環走 AuraContainer、施法條走 Duration 物件。",
         "",
         "指令：|cffffd200/muf|r 開啟設定、|cffffd200/muf reset|r 重置所有設定",
         "",
         "作者：Mili（MiliUI 套組）",
+        "",
+        "|cffffd200致謝|r",
+        "我最喜歡的兩個插件是 |cff33CCFFCell|r 與 |cff4DD2FFStuf Unit Frames|r，",
+        "這個框架的樣貌與設計思路都深受這他們影響。",
+        "感謝 Cell 的作者 |cffffffffenderneko|r，",
+        "以及 Stuf 的作者 |cffffffffKato|r。",
+        "插件架構、設定介面風格與疊加層樣式參考自 Cell，",
+        "文字 tag 語法與顏色方法參考自 Stuf。",
     }, "\n"))
 
     ns.RegisterCallback("ShowOptionsTab", "aboutTab", function(id)

@@ -1,6 +1,6 @@
 ------------------------------------------------------------
 -- 光環（buffs / debuffs）：12.1 路線 A —— AuraContainer intrinsic
--- 骨架移植自 Stuf/auracontainer.lua（本地寫的 12.1 轉接層，實戰驗證）
+-- 骨架沿用自己寫過的 12.1 轉接層，實戰驗證過
 --
 -- 鐵律：
 --   * 樣式只能在 initializeFrame 內做（之後 AuraButton 變 forbidden）
@@ -33,7 +33,7 @@ local function Detect()
 end
 
 ------------------------------------------------------------
--- 倒數格式：NumericRule 三段式（DandersFrames/Cell 出貨驗證過的寫法）
+-- 倒數格式：NumericRule 三段式（出貨插件驗證過的寫法）
 --   <91 秒   純數字（"27"）
 --   ≥91 秒   "Nm"（分數向上取整，2m32s → "3m"，跟暴雪自己的框架一致）
 --   ≥5401 秒 "Nh"
@@ -262,7 +262,7 @@ end
 --
 -- 動態 token（target / focus / bossN）在框架保持顯示的情況下換人，容器不會自己重解析。
 -- ⚠ 從插件端呼叫 `UpdateAllAuras` **只設得到髒旗標，推不動私有端的處理器**
--- （Cell/RaidFrames/AuraDisplay.lua 的實測結論）——真正跨得過分界的是 Hide/Show：
+-- （實測結論）——真正跨得過分界的是 Hide/Show：
 -- intrinsic 的 OnShow 跑在安全端，會從那裡重掃一次。
 -- 戰鬥中不彈（受保護的 intrinsic 擋 Hide），先設髒旗標記下來，脫戰再補彈一次。
 ------------------------------------------------------------
@@ -321,8 +321,7 @@ local function CreateContainer(uf, elementName, edb, filter, style)
     -- 錨點角依生長方向：往上長要用 BOTTOM 邊釘原點
     local anchorPoint = (g.growUp and "BOTTOM" or "TOP") .. (g.growLeft and "RIGHT" or "LEFT")
     container:SetPoint(anchorPoint, uf, "TOPLEFT", edb.x or 0, edb.y or 0)
-    -- 建立順序照 Cell/RaidFrames/AuraDisplay.lua 與 Stuf/auracontainer.lua：
-    -- SetUnit 在 AddAuraGroup 之前、SetEnabled 最後。這兩個都是在這台機器上實跑過的。
+    -- 建立順序：SetUnit 在 AddAuraGroup 之前、SetEnabled 最後。這是在這台機器上實跑過的。
     -- （EUI AuraKit 的「unit last」是配合它自己的分階段建構器，照搬會壞。）
     container:SetUnit(uf.unit)
     ApplyFlowLayout(container, spec)
@@ -350,7 +349,7 @@ local function CreateContainer(uf, elementName, edb, filter, style)
     if not holder.__kickHooked then
         holder.__kickHooked = true
         holder:HookScript("OnShow", function()
-            -- 容器建立時框架若還沒可見，SetEnabled 註冊不到光環事件（Cell 教訓 4），
+            -- 容器建立時框架若還沒可見，SetEnabled 註冊不到光環事件，
             -- 之後就永遠空白 → 真的顯示出來時補踢一次。
             -- ⚠ 一定要走 Bounce 不能直接 Kick：這個 OnShow 是 RegisterUnitWatch 從
             -- **安全端**觸發的，戰鬥中換目標就會在戰鬥中跑到這裡；對 intrinsic 下 Hide()

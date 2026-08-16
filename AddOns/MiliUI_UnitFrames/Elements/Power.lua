@@ -52,7 +52,7 @@ local function Build(uf, edb)
     f.bar:SetStatusBarTexture(texture)
     f.bar:SetFrameLevel(edb.level or 0)
 
-    -- 邊框層級 = 元件層級 +1（Stuf 語意）。預設版面裡 mp 條(0) 壓在頭像(2) 底下、
+    -- 邊框層級 = 元件層級 +1。預設版面裡 mp 條(0) 壓在頭像(2) 底下、
     -- 只露出右下 8px 的錯位邊，邊框層級一高過頭像就會從半透明血條底下透出來
     if edb.border ~= false then
         if not f.borderFrame then

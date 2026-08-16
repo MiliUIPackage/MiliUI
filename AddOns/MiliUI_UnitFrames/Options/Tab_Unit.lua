@@ -3,7 +3,7 @@
 --   左欄：單位清單
 --   右上：元件切換列（框架 / 頭像 / 血條 / …）—— 一次只看一個元件的設定
 --   右下：該元件的表單（Controls 引擎）
--- 這是 Platynator/Cell 的分層方式：先挑對象，再挑部位，才不會一整面牆的拉桿。
+-- 分層方式：先挑對象，再挑部位，才不會一整面牆的拉桿。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -103,7 +103,7 @@ local function BarSpecs(name, isHP)
         tinsert(list, { type = "toggle", sub = name, key = "showAbsorb", label = "吸收盾" })
         tinsert(list, { type = "color", sub = name, key = "absorbColor", label = "吸收盾顏色" })
         tinsert(list, { type = "toggle", sub = name, key = "absorbReverseFill", label = "吸收盾反向填充" })
-        tinsert(list, { type = "text", label = "反向＝從條的**右端往左長**，讀起來像「額外的血」（Cell 預設）。關掉就從左端往右蓋在血量上。" })
+        tinsert(list, { type = "text", label = "反向＝從條的**右端往左長**，讀起來像「額外的血」（預設）。關掉就從左端往右蓋在血量上。" })
         tinsert(list, { type = "toggle", sub = name, key = "showOvershield", label = "溢盾光暈" })
         tinsert(list, { type = "color", sub = name, key = "overshieldColor", label = "溢盾光暈顏色" })
         tinsert(list, { type = "toggle", sub = name, key = "overshieldGlowReverse", label = "溢盾光暈改放左邊" })
@@ -182,7 +182,7 @@ local function CastbarSpecs()
         { type = "toggle", sub = "castbar", key = "border", label = "顯示邊框" },
         { type = "toggle", sub = "castbar", key = "showInterruptState", label = "顯示不可打斷" },
         { type = "dropdown", sub = "castbar", key = "shieldStyle", label = "盾牌樣式", items = ns.Media.SHIELD_STYLES },
-        { type = "text", label = "開啟時：不可打斷的施法上灰色並在圖示上顯示盾牌。自己與寵物預設關閉——自己的施法能不能被斷沒有意義（Stuf 也是排除玩家）。" },
+        { type = "text", label = "開啟時：不可打斷的施法上灰色並在圖示上顯示盾牌。自己與寵物預設關閉——自己的施法能不能被斷沒有意義。" },
         { type = "toggle", sub = "castbar", key = "showCompleteFlash", label = "結束上色" },
         { type = "slider", sub = "castbar", key = "fadeTime", label = "淡出時間（秒）", min = 0.1, max = 1.5, step = 0.05 },
         { type = "slider", sub = "castbar", key = "interruptHold", label = "打斷停留（秒）", min = 0, max = 2, step = 0.1 },

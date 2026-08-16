@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 元件註冊表（宣告式，取代 Stuf 的 AddBuilder + 六張分類表）
+-- 元件註冊表（宣告式：一張表取代舊架構的 AddBuilder + 六張分類表）
 --
 -- ns.RegisterElement{
 --   name    = "hpbar",            -- DB key：units.<key>.elements[name]

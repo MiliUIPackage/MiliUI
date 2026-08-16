@@ -3,7 +3,7 @@
 --
 -- 12.1：GetTotemInfo 回傳全秘密，只有 icon 是明文字串 →
 --   icon 當「有圖騰」的 proxy；剩餘時間用 pcall 抽 start+duration-GetTime()
---   （抽不到就滿條顯示）—— Stuf/bars.lua:1051-1070 的驗證解法
+--   （抽不到就滿條顯示）
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -100,7 +100,7 @@ local function CreateSlot(i)
     return { btn = btn, icon = icon, bar = bar, text = text }
 end
 
--- 顯示順序：土/火對調（沿用使用者的 Stuf 習慣）
+-- 顯示順序：土/火對調（沿用使用者原本的習慣）
 local function DisplayOrder()
     local db = GetDB()
     local order = {}
@@ -222,7 +222,7 @@ local function Poll()
             _, _, startTime, duration, icon = GetTotemInfo(i)
         end
         -- icon 是明文（字串路徑或數字 fileID），當存在 proxy——haveTotem 是秘密
-        -- boolean 不能測。判斷式照 Stuf：truthiness + ~= ""（數字 fileID 也成立）
+        -- boolean 不能測。判斷式用 truthiness + ~= ""（數字 fileID 也成立）
         if icon and icon ~= "" then
             slot.active = true
             slot.start = startTime

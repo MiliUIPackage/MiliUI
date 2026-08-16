@@ -95,7 +95,7 @@ end
 --
 -- `calc:GetDamageAbsorbs()` 的第二個回傳 isClamped 在吸收量溢出滿血時為真，
 -- 它是秘密值不能 if。`SetAlphaFromBoolean(bool, 1, 0)` 由 C 端決定 alpha，
--- 貼圖保持 Shown、靠透明度隱藏（Cell 的 B.SetOvershieldGlow 同法）。
+-- 貼圖保持 Shown、靠透明度隱藏。
 ------------------------------------------------------------
 function ns.SetOvershieldGlow(glow, enabled, isClamped)
     if not glow then return end

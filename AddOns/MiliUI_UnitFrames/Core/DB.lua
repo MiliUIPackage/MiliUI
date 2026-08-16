@@ -1,13 +1,12 @@
 ------------------------------------------------------------
 -- SavedVariables：MiliUI_UnitFrames_DB
--- 單一帳號設定檔。預設值轉譯自 MiliUI/Config/Stuf.lua（使用者調好的 Stuf 樣式），
--- 邊框改為全域 1px 細框。
+-- 單一帳號設定檔。預設值轉譯自使用者原本調好的版面，邊框改為全域 1px 細框。
 --
 -- 座標語意：
 --   units.<key>.frame.x/y = 框架「中心」相對 UIParent 中心的偏移（解析度無關）
---   元件 x/y             = 相對單位框 TOPLEFT 的偏移（沿用 Stuf 語意）
+--   元件 x/y             = 相對單位框 TOPLEFT 的偏移
 --
--- 合併規則（堵死 Stuf 的 boolean 陷阱）：
+-- 合併規則（堵死 boolean 預設值陷阱）：
 --   * defaults 每個 boolean 都明寫 true/false，一律正向 enabled（廢除 hide）
 --   * 使用者值只補 nil、永不覆蓋
 ------------------------------------------------------------
@@ -35,7 +34,7 @@ local function textDef(o)
 end
 
 -- 大框（player/target 200×50）的 castbar 預設
--- own = 自己的施法條：單一顏色、不畫「不可打斷」的灰（Stuf 也是這樣，敵方才標示）
+-- own = 自己的施法條：單一顏色、不畫「不可打斷」的灰（只有敵方才需要標示）
 local function bigCastbar(own)
     return {
         enabled = true, x = 0, y = 0, w = 200, h = 52, level = 6,
@@ -115,7 +114,7 @@ function DB.BuildDefaults()
                               colorMethod = "class", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.7, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
-                              -- 疊加層顏色／方向全部照 Cell 的 appearance 預設
+                              -- 疊加層顏色／方向沿用團隊框慣用的預設
                               healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbReverseFill = true,          -- 從右端往左長，讀起來像額外的血
@@ -184,7 +183,7 @@ function DB.BuildDefaults()
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.7, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
-                              -- 疊加層顏色／方向全部照 Cell 的 appearance 預設
+                              -- 疊加層顏色／方向沿用團隊框慣用的預設
                               healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbReverseFill = true,          -- 從右端往左長，讀起來像額外的血

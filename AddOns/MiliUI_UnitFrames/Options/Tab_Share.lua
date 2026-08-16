@@ -2,7 +2,7 @@
 -- 「設定檔」分頁：設定匯入匯出 ＋ 全部重置
 -- 原生 C_EncodingUtil：SerializeCBOR → CompressString → EncodeBase64
 -- 前綴帶版本 MILIUF!1!，每步 pcall（參考 Ayije_CDM/Config/ProfileIO.lua）
--- UX 抄 Cell：匯入框即時解析、成功才亮按鈕、錯誤顯示在標題
+-- UX：匯入框即時解析、成功才亮按鈕、錯誤顯示在標題
 ------------------------------------------------------------
 local _, ns = ...
 
