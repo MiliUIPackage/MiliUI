@@ -78,7 +78,7 @@ MiliUI_AyijeCDM_Profile = {
     ["castBarChannelColor"] = { ["a"] = 1, ["r"] = 1, ["g"] = 0.31, ["b"] = 0.26 },
     ["castBarEmpowerStage1Color"] = { ["a"] = 1, ["r"] = 0.26, ["g"] = 0.65, ["b"] = 1 },
     ["racialsPartyFrameOffsetY"] = 20,
-    ["resourcesManaColor"] = { ["a"] = 1, ["r"] = 0, ["g"] = 0.56, ["b"] = 1 },
+    ["resourcesManaColor"] = { ["a"] = 1, ["r"] = 0.2, ["g"] = 0.35294118, ["b"] = 0.68627451 },
     ["sizeBuff"] = { ["w"] = 40, ["h"] = 36 },
     ["resourcesLunarPowerColor"] = { ["a"] = 1, ["r"] = 0.3, ["g"] = 0.52, ["b"] = 0.9 },
     ["castBarOffsetY"] = 1,
