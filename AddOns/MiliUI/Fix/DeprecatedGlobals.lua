@@ -26,3 +26,16 @@ if not SetDesaturation then
         end
     end
 end
+
+-- AnimateTexCoords(texture, texW, texH, frameW, frameH, numFrames, elapsed, throttle)
+--
+-- 12.1 把它收進 TextureUtil 表（Blizzard_SharedXMLBase/TextureUtil.lua 現在是
+-- `function TextureUtil.AnimateTexCoords(...)`），全域名稱就沒了。
+--
+-- LibCustomGlow-1.0 的「按鈕發光」（ButtonGlow_Start）在 OnUpdate 裡用它跑爬行
+-- 螞蟻動畫，v24 以前都是直接呼叫全域，因此一開啟這個發光類型就會每幀噴
+-- 「attempt to call a nil value」—— Ayije_CDM / Cell / WarpDeplete / MRT 帶的都是
+-- 舊版副本。v25 起上游已改成先讀 TextureUtil，所以只要補回全域即可兩邊都活。
+if not AnimateTexCoords and TextureUtil and TextureUtil.AnimateTexCoords then
+    AnimateTexCoords = TextureUtil.AnimateTexCoords
+end

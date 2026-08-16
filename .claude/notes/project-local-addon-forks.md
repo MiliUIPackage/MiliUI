@@ -14,10 +14,10 @@ metadata:
 
 | 插件 | 本地改了什麼 | 細節 |
 |---|---|---|
-| **Cell** | 最多的一支：AuraContainer 路線 A 重寫、secret guard、停用版本檢查與更新日誌、載具名稱、LibGroupInfo GUID、預設值調整 | [[project-cell-auracontainer-rewrite]]、[[project-cell-no-update-notice]]、[[project-cell-vehicle-secret]]、[[project-cell-libgroupinfo-secret-guid]]。TOC 版本號帶 `-MiliUI` 尾綴 |
+| **Cell** | 最多的一支：AuraContainer 路線 A 重寫、secret guard、停用版本檢查與更新日誌、載具名稱、LibGroupInfo GUID、預設值調整、內附 LibCustomGlow 手動改成 v25（就地改兩行，別整包蓋，Cell 那份是 LF 且靠 `Libs/LoadLibs.xml` → `LibCustomGlow-1.0.xml` 載入） | [[project-cell-auracontainer-rewrite]]、[[project-cell-no-update-notice]]、[[project-cell-vehicle-secret]]、[[project-cell-libgroupinfo-secret-guid]]。TOC 版本號帶 `-MiliUI` 尾綴 |
 | **Stuf / Stuf_Options / Stuf_Range** | 12.1 secret 洗白（`core.lua` 的 `IsSecret`/`desecret`/`toBool`）、zhTW 語系、broker/小地圖按鈕、**整包 Ace 函式庫換版** | [[wow-121-setdesaturation-acegui]]。改動量僅次於 Cell |
 | **TinyTooltip-Remake** | 效能修補 + secret 版 `UnitColor` 取代暴雪的 `GameTooltip_UnitColor` | [[project-tinytooltip-perf]] |
-| **Ayije_CDM** | 12.1 secret guard、zhTW 翻譯修正、Externals 光環閘、**四條 dispatch 迴圈改 xpcall 隔離** | TOC 有 `## OptionalDeps: MiliUI` |
+| **Ayije_CDM** | 12.1 secret guard、zhTW 翻譯修正、Externals 光環閘、**四條 dispatch 迴圈改 xpcall 隔離**、內附 LibCustomGlow 換成 v25 | TOC 有 `## OptionalDeps: MiliUI`。換函式庫時**別刪 `LibCustomGlow-1.0.xml`** —— 它是靠 `Libs/embeds.xml` Include 這個 xml 才載入的，BuffReminders 那份是 TOC 直接列 .lua 所以沒有 xml，整包蓋過去會讓函式庫完全不載入，見 [[wow-121-setdesaturation-acegui]] |
 | **Platynator** | `Core/Initialize.lua` 讀 MiliUI 內建 profile 並自動切換 | [[project-platynator-preset]] |
 | **AppearanceTooltip** | `addon.lua` 的 `IsRectValid` guard | [[project-appearancetooltip-secret-rect]] |
 | **DamageMeterTools** | 錯誤處理器改成鏈式（原本會吃掉 BugSack 的錯誤）、登入卡頓修補 | 見 [[project-121-addon-migration]] |

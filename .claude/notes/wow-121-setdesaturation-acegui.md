@@ -1,6 +1,6 @@
 ---
 name: wow-121-setdesaturation-acegui
-description: "WoW 12.1 removed the SetDesaturation global, which silently blanks every AceConfig options panel containing a checkbox"
+description: "WoW 12.1 removed FrameXML globals (SetDesaturation, AnimateTexCoords); restore them in MiliUI/Fix/DeprecatedGlobals.lua instead of patching each library copy"
 metadata: 
   node_type: memory
   type: reference
@@ -32,5 +32,31 @@ end
 3. `Stuf_Options` 是 **LoadOnDemand** 且載入時不呼叫 `CreateOptionFrame()`，所以沒打過 `/stuf` 就完全沒有分類。解法：`options.lua` 尾端補一次 `CreateOptionFrame()`，並由 `MiliUI/Fix/Stuf_OptionsCategory.lua` 在登入時載入它。
 
 1～3 直接改在 `Stuf_Options` 底下（含 Ace 整包換成 Mapster 的 ACD 92 / Registry 22 / AceGUI 41），**Stuf 更新時會被覆蓋**。舊檔備份在該次 session 的 scratchpad。
+
+## AnimateTexCoords（同一類，同一個修法）
+
+12.1 把 `AnimateTexCoords` 收進命名空間表：Blizzard 現在寫成
+`function TextureUtil.AnimateTexCoords(...)`（`Blizzard_SharedXMLBase/TextureUtil.lua`），
+**沒有留全域別名**。
+
+中招的是 **LibCustomGlow-1.0 的「按鈕發光」（`ButtonGlow_Start`）**：它在 OnUpdate
+裡用這個函式跑爬行螞蟻動畫，所以只要把發光類型選成按鈕發光，就會**每幀**噴
+`LibCustomGlow-1.0.lua:548: attempt to call a nil value`。本機有五份副本，
+Ayije_CDM／Cell／WarpDeplete 是 v24、MRT 是 v19，都直接呼叫全域；只有
+BuffReminders 的 v25 已經自己改成 `(TextureUtil and TextureUtil.AnimateTexCoords) or _G.AnimateTexCoords`。
+
+一樣補全域就好（同樣在 `Fix/DeprecatedGlobals.lua`）：
+
+```lua
+if not AnimateTexCoords and TextureUtil and TextureUtil.AnimateTexCoords then
+    AnimateTexCoords = TextureUtil.AnimateTexCoords
+end
+```
+
+舊版副本是**呼叫時**才查全域，所以 MiliUI 比它們晚載入也沒關係；v25 是載入時就
+取值，但它先讀 `TextureUtil`，不依賴這個補丁。
+
+**通則**：看到 `attempt to call a nil value` 指向某個函式庫裡一行大寫開頭的舊全域，
+先去 `Blizzard_SharedXMLBase/` 找同名的 `XxxUtil.<Name>`，多半只是被收進表裡。
 
 相關：[[project-121-addon-migration]]
