@@ -570,9 +570,12 @@ Cell.defaults.layout = {
             ["indicatorName"] = "offensiveCooldowns",
             ["type"] = "built-in",
             ["enabled"] = false,
-            ["position"] = {"BOTTOMLEFT", "button", "BOTTOMLEFT", -2, -5},
+            -- Geometry tuned in-game rather than guessed: a wide, short pair of icons
+            -- hanging just under the top edge, centred, so it reads as its own row instead
+            -- of crowding the defensive column down the left side.
+            ["position"] = {"CENTER", "button", "TOP", 0, -7},
             ["frameLevel"] = 10,
-            ["size"] = {12, 20},
+            ["size"] = {22, 12},
             ["showDuration"] = 60, -- only under 60s
             ["showAnimation"] = true,
             ["num"] = 2,
