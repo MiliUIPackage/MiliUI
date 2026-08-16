@@ -34,6 +34,24 @@ metadata:
 
 **倒數的三種呈現方式，都是「交出 widget 讓暴雪畫」**：`SetDurationText(fontString)` 數字、`SetDurationCooldown(cooldownFrame)` 掃描（Cooldown 一定要帶 `CooldownFrameTemplate`，少了 template 它不會動）、`SetDurationBar(statusBar)` 長條。三者共通的性質要先講清楚，免得又去想怎麼「讀秒數」：**插件端永遠拿不回剩餘時間**，交出去的 widget 會被蓋上 SecretAspect。所以「剩 5 秒變紅 / 播音效 / 到期 glow」這類條件式行為在路線 A 底下做不到，只能改用別的訊號（例如 `SPELL_AURA_APPLIED` 自己起算，但對延長與提前結束會失準）。三種都必須在 `initializeFrame` 視窗內掛好，bar 要建成 AuraButton 的子物件。本機用法見 `MiliUI/Fix/AuraContainerCore.lua`（`durationStyle` 在 bar/swipe 之間切換）。
 
+## 「續壓時圖示跳一下」做不到，但 pandemic 區域可以
+
+Cell 舊版有這個效果（`refreshing` → `frame.ag:Play()`）。路線 A 底下**無法還原**，三條可能的訊號全部關閉：
+
+| 訊號 | 為什麼不行 |
+|---|---|
+| 自己比對 `expirationTime` 有沒有往前跳 | 秘密值 |
+| `C_UnitAuras.GetRefreshExtendedDuration(unit, auraInstanceID)` | `SecretWhenUnitAuraRestricted = true` —— 首領戰/M+/PvP 正好是需要它的場合 |
+| 容器內部的 `Enum.CustomAuraButtonUpdateMode.Assignment` / `.Update` | 只存在於 `CustomAuraButtonPrivateMixin`，`GetAuraInstance()` 也在 Private 上，插件拿不到 |
+
+**替代品：`button:AddPandemicRegion(region)`**（`CustomAuraButtonSharedMixin`，公開）。交出一個 Region，暴雪自己用上面那兩個秘密 API 算出續壓窗口，然後幫你 `region:SetShown()`；region 會被蓋上 `Enum.SecretAspect.Shown`，所以我們永遠讀不到它現在顯不顯示——跟 `SetAlphaFromBoolean` 同一個套路。
+
+語意不同：不是「剛被續壓時閃一下」，而是「現在處於值得續壓的窗口內持續顯示」。對治療者來說後者其實更有用（告訴你**該**續了，而不是你已經續了）。
+
+⚠ 只能在 `initializeFrame` 視窗內掛。確認過 `initializeFrame` 收到的是 `auraFrame:GetObjectTable()`，也就是 Shared mixin 的公開物件，所以 `AddPandemicRegion` 在那裡可以呼叫。
+
+順帶：Cell 的 `Indicators/Base.lua` 裡 `BorderIcon_SetCooldownFromAura` / `BarIcon_SetCooldownFromAura`（含 `if refreshing then frame.ag:Play()`）**全樹零呼叫點**，是死碼；BorderIcon 的 `frame.ShowAnimation` 也被設成空函式，所以設定面板那個「顯示動畫」勾選框在 Midnight 下沒有作用。
+
 **所有樣式都必須寫在 `initializeFrame` 裡**：PTR 5 起 auras 一變 secret 整個 AuraButton 就 forbidden，而這個 forbidden 狀態正是在 `initializeFrame` 回傳**之後**才套上去的，在別處設定會 error。
 
 判斷現在是否受限：`C_Secrets.ShouldAurasBeSecret()`（Coolinator 用 `InCombatLockdown() or C_Secrets.ShouldAurasBeSecret()`）。
