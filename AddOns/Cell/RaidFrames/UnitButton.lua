@@ -2552,11 +2552,12 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
         -- ⚠ GetDamageAbsorbs()'s FIRST return is the absorb CLAMPED to missing health, so at full
         -- health it's 0 and the shield vanishes -- that was the "满血不显示护盾" bug. Its SECOND
         -- return, isClamped, is a secret bool that's true when the absorb overflows past max health
-        -- (an overshield). Feed the bar the UNCLAMPED total instead (UnitGetTotalAbsorbs is secret
-        -- but StatusBar:SetValue accepts secrets) so the shield stays visible at full health, and
-        -- drive the overshield glow off isClamped -- never reading it -- exactly like DandersFrames.
+        -- (an overshield). Feed the bar the UNCLAMPED total instead (GetTotalDamageAbsorbs -- the
+        -- same source healthText uses, off the calculator we just refreshed) so the shield stays
+        -- visible at full health, and drive the overshield glow off isClamped -- never reading it
+        -- -- exactly like DandersFrames.
         local _, isClamped = self.widgets.healthCalculator:GetDamageAbsorbs()
-        local totalAbsorbs = UnitGetTotalAbsorbs(unit)
+        local totalAbsorbs = self.widgets.healthCalculator:GetTotalDamageAbsorbs()
         -- Exactly ONE shield bar shows. Reverse fill draws from the RIGHT (the front of the health
         -- bar, so the shield reads as extra HP); forward fill draws from the left over the health.
         if overshieldReverseFillEnabled then
@@ -2580,12 +2581,14 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
 
         -- Update shield indicator (user-configurable indicator on top of health bar)
         if enabledIndicators["shieldBar"] then
-            -- On Midnight, we pass the secret absorb value directly; the indicator's SetValue
-            -- accepts secrets since it's backed by a StatusBar on Midnight.
+            -- On Midnight the indicator is a StatusBar (see I.CreateShieldBar), so it takes the
+            -- raw secret absorb + maxHealth and lets the native fill resolve the fraction --
+            -- the pre-Midnight percent path can't touch secrets at all.
             -- NOTE: indicatorBooleans["shieldBar"] (onlyShowOvershields) can't be honored with
             -- secrets since we can't compute overshieldPercent. Show full absorbs instead.
+            -- The bar stays Shown even at 0 absorbs: a zero-width fill renders nothing.
             self.indicators.shieldBar:Show()
-            self.indicators.shieldBar:SetValue(totalAbsorbs)
+            self.indicators.shieldBar:SetValue(totalAbsorbs, self.widgets.healthCalculator:GetMaximumHealth())
         else
             self.indicators.shieldBar:Hide()
         end

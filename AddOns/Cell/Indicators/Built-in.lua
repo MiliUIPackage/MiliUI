@@ -2682,6 +2682,17 @@ local function ShieldBar_SetVerticalValue(bar, percent)
     bar:SetHeight(max(barHeight, 3))
 end
 
+-- Midnight: absorbs and maxHealth are SECRET, so the width-from-percent math above is
+-- impossible (the comparison, the multiply and Frame:SetWidth all reject secrets). Keep the
+-- frame at full health-bar width and let the native StatusBar fill resolve the fraction --
+-- SetMinMaxValues/SetValue are the only setters that accept secrets.
+-- maxValue is nil for the options preview, which still passes a plain 0-1 percent.
+local function ShieldBar_SetSecretValue(bar, value, maxValue)
+    bar:SetWidth(bar.parentHealthBar:GetWidth())
+    bar:SetMinMaxValues(0, maxValue or 1)
+    bar:_SetValue(value)
+end
+
 local function ShieldBar_SetPoint(bar, point, anchorTo, anchorPoint, x, y)
     -- if point == "HEALTH_BAR_HORIZONTAL" then
     --     bar:_SetPoint("TOPLEFT", b.widgets.healthBar)
@@ -2694,33 +2705,53 @@ local function ShieldBar_SetPoint(bar, point, anchorTo, anchorPoint, x, y)
     if point == "HEALTH_BAR" then
         bar:_SetPoint("TOPLEFT", bar.parentHealthBar, P.Scale(-1), P.Scale(1))
         bar:_SetPoint("BOTTOMLEFT", bar.parentHealthBar, P.Scale(-1), P.Scale(-1))
-        bar.SetValue = ShieldBar_SetHorizontalValue
     else
         bar:_SetPoint(point, anchorTo, anchorPoint, x, y)
+    end
+    -- On Midnight SetValue stays ShieldBar_SetSecretValue -- the percent variants would crash.
+    if not Cell.isMidnight then
         bar.SetValue = ShieldBar_SetHorizontalValue
     end
 end
 
 function I.CreateShieldBar(parent)
-    local shieldBar = CreateFrame("Frame", parent:GetName().."ShieldBar", parent.widgets.indicatorFrame, "BackdropTemplate")
-    parent.indicators.shieldBar = shieldBar
-    -- shieldBar:SetSize(4, 4)
-    shieldBar:Hide()
-    shieldBar:SetBackdrop({edgeFile=Cell.vars.whiteTexture, edgeSize=P.Scale(1)})
-    shieldBar:SetBackdropBorderColor(0, 0, 0, 1)
+    local shieldBar
+    if Cell.isMidnight then
+        -- StatusBar: only the native fill can size itself from a secret absorb value.
+        -- No backdrop border here -- the frame spans the whole health bar, so an outline
+        -- would frame the empty part too instead of hugging the shield.
+        shieldBar = CreateFrame("StatusBar", parent:GetName().."ShieldBar", parent.widgets.indicatorFrame)
+        shieldBar:SetStatusBarTexture(Cell.vars.whiteTexture)
+        shieldBar:GetStatusBarTexture():SetDrawLayer("BORDER", -7)
 
-    local tex = shieldBar:CreateTexture(nil, "BORDER", nil, -7)
-    tex:SetAllPoints()
+        shieldBar._SetValue = shieldBar.SetValue
+        shieldBar.SetValue = ShieldBar_SetSecretValue
+
+        function shieldBar:SetColor(r, g, b, a)
+            shieldBar:SetStatusBarColor(r, g, b, a)
+        end
+    else
+        shieldBar = CreateFrame("Frame", parent:GetName().."ShieldBar", parent.widgets.indicatorFrame, "BackdropTemplate")
+        -- shieldBar:SetSize(4, 4)
+        shieldBar:SetBackdrop({edgeFile=Cell.vars.whiteTexture, edgeSize=P.Scale(1)})
+        shieldBar:SetBackdropBorderColor(0, 0, 0, 1)
+
+        local tex = shieldBar:CreateTexture(nil, "BORDER", nil, -7)
+        tex:SetAllPoints()
+
+        shieldBar.SetValue = ShieldBar_SetHorizontalValue
+
+        function shieldBar:SetColor(r, g, b, a)
+            tex:SetColorTexture(r, g, b, a)
+        end
+    end
+    parent.indicators.shieldBar = shieldBar
+    shieldBar:Hide()
 
     shieldBar._SetPoint = shieldBar.SetPoint
     shieldBar.SetPoint = ShieldBar_SetPoint
-    shieldBar.SetValue = ShieldBar_SetHorizontalValue
 
     shieldBar.parentHealthBar = parent.widgets.healthBar
-
-    function shieldBar:SetColor(r, g, b, a)
-        tex:SetColorTexture(r, g, b, a)
-    end
 
     function shieldBar:UpdatePixelPerfect()
         P.Resize(shieldBar)
