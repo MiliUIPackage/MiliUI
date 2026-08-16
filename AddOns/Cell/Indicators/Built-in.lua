@@ -283,7 +283,7 @@ end
 -- useConfigColor: take the ring colour from the indicator's own 顏色 setting instead of
 -- the default green. Only custom indicators have such a setting; the three built-in
 -- cooldown rows keep the default.
-local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, useConfigColor)
+local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, useConfigColor, customStyle)
     if IsPreviewButton(parent) then return end
     if not (Cell.AuraDisplay and Cell.AuraDisplay.IsSupported()) then return end
 
@@ -292,6 +292,8 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         num = defaultNum or 2,
         -- 1.5 matches I.CreateAura_BorderIcon, which is what the preview button draws
         border = 1.5,
+        -- "block"/"text" for effect-type custom buff indicators; nil = the default icon look
+        customStyle = customStyle,
     })
     if not container then return end
 
@@ -327,6 +329,11 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
             onlyMine = (t.castBy == "me") or nil,
             orientation = t.orientation,
         }
+        -- a text-style indicator with no explicit duration toggle still shows its countdown
+        -- (a text indicator that renders nothing is useless); an explicit false is respected.
+        if customStyle == "text" and opts.showDuration == nil then
+            opts.showDuration = true
+        end
         if t.font then
             opts.stackFont = t.font[1]
             opts.durationFont = t.font[2]

@@ -213,21 +213,23 @@ function ACC.ApplyFlowLayout(container, opts)
     local FD = AnchorUtil and AnchorUtil.FlowDirection
     local AX = AnchorUtil and AnchorUtil.FlowLayoutAxis
 
-    pcall(function()
-        if AX and container.SetFlowLayoutAxis then
-            container:SetFlowLayoutAxis(AX[o.axis])
-        end
-        if FD and container.SetFlowLayoutGrowthDirection then
-            container:SetFlowLayoutGrowthDirection(FD[o.h], FD[o.v])
-        end
-        if container.SetFlowLayoutAnchorPoint then
-            container:SetFlowLayoutAnchorPoint(o.point)
-        end
-        if container.SetFlowLayoutMaximumLineSize then
-            container:SetFlowLayoutMaximumLineSize(budget)
-        end
-    end)
+    -- ⚠ Each setter gets its OWN pcall. SetFlowLayoutAxis/GrowthDirection assert
+    -- EnumUtil.IsValid internally, so one shared pcall would let a single bad call abort
+    -- every setter after it -- e.g. the anchor point would silently never apply. Record
+    -- what actually stuck (or "no-api") so /cab inspect can prove whether direction took.
+    local dbg = { orientation = opts.orientation, point = o.point, budget = budget }
+    local function try(name, present, fn)
+        if not present then dbg[name] = "no-api"; return end
+        local ok, err = pcall(fn)
+        dbg[name] = ok and "ok" or ("ERR:" .. tostring(err))
+    end
 
+    try("axis",   AX and container.SetFlowLayoutAxis,            function() container:SetFlowLayoutAxis(AX[o.axis]) end)
+    try("growth", FD and container.SetFlowLayoutGrowthDirection, function() container:SetFlowLayoutGrowthDirection(FD[o.h], FD[o.v]) end)
+    try("anchor", container.SetFlowLayoutAnchorPoint,            function() container:SetFlowLayoutAnchorPoint(o.point) end)
+    try("maxline",container.SetFlowLayoutMaximumLineSize,        function() container:SetFlowLayoutMaximumLineSize(budget) end)
+
+    container._acFlowDbg = dbg
     return o.point
 end
 

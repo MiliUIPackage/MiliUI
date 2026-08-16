@@ -353,6 +353,79 @@ local BUFF_GREEN  = { 0, 0.55, 0.15, 1 }
 -- what the ring turns into as it drains -- black, i.e. Cell's ordinary icon border
 local SPENT_COLOR = { 0, 0, 0, 1 }
 
+-- text-style only: colour the countdown number by REMAINING time, evaluated BLIND on
+-- Blizzard's side -- it samples this curve against the secret remaining duration, so we
+-- still never read it. Linear ramp base -> red over the last EXPIRY_WARN seconds. Nil when
+-- the curve API is absent (older client), so the caller falls back to a static colour.
+-- (Same structure as MiliUI_Unit_Frame's aura duration curve -- proven on this client.)
+local EXPIRY_WARN = 5
+local function BuildExpiryColorCurve(base)
+    if not (C_CurveUtil and C_CurveUtil.CreateColorCurve and CreateColor
+            and Enum and Enum.DurationTextBindingProperty) then return nil end
+    local ok, curve = pcall(C_CurveUtil.CreateColorCurve)
+    if not ok or not curve then return nil end
+    local baseC = CreateColor(base[1], base[2] or 1, base[3] or 1, base[4] or 1)
+    local warnC = CreateColor(1, 0, 0, 1)
+    -- points are (remainingSeconds, colour); the curve interpolates linearly between them
+    local added = pcall(function()
+        curve:AddPoint(0, warnC)                     -- 0s left -> red
+        curve:AddPoint(EXPIRY_WARN, baseC)           -- WARN s  -> base (ramp between)
+        curve:AddPoint(EXPIRY_WARN + 86400, baseC)   -- far out -> base
+    end)
+    if not added then return nil end
+    return curve
+end
+
+-- Blizzard-rendered countdown number (centre) + stack count (corner), handed off blind.
+-- Shared by the block/text custom styles; the default icon branch keeps its OWN inline copy
+-- because there it interleaves with icon/cooldown frame-level assignment.
+-- textColorBase (text style only): base RGBA -> the countdown reddens over its last seconds.
+local function BindDurStack(button, cfg, base, textColorBase)
+    if not button.dfDur then
+        button.dfDurHolder = CreateFrame("Frame", nil, button)
+        button.dfDurHolder:SetAllPoints(button)
+        button.dfDur = button.dfDurHolder:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
+        button.dfDur:SetPoint("CENTER")
+    end
+    button.dfDurHolder:SetFrameLevel(base + 6)
+    ApplyFont(button.dfDur, button.dfDurHolder, cfg.durationFont, true)
+
+    if not button.dfStack then
+        button.dfStackHolder = CreateFrame("Frame", nil, button)
+        button.dfStackHolder:SetAllPoints(button)
+        button.dfStack = button.dfStackHolder:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
+        button.dfStack:SetPoint("BOTTOMRIGHT", 2, -1)
+    end
+    button.dfStackHolder:SetFrameLevel(base + 7)
+    ApplyFont(button.dfStack, button.dfStackHolder, cfg.stackFont)
+
+    -- ⚠ SetApplicationCount with EMPTY opts, NEVER a formatter: Blizzard runs
+    -- formatter:FormatNumber on the SECRET stack in Lua and bricks the container.
+    if button.dfStack and button.SetApplicationCount and not button._boundStack
+        and cfg.showStack ~= false then
+        button:SetApplicationCount(button.dfStack, {})
+        button._boundStack = true
+    end
+    if button.dfDur and button.SetDurationText and not button._boundDur then
+        local fmt = ACC.GetDurationFormatter(cfg.showDuration)
+        if fmt then
+            local opts = { textFormatter = fmt }
+            if textColorBase then
+                local curve = BuildExpiryColorCurve(textColorBase)
+                if curve then
+                    opts.textColor = { curve = curve,
+                        property = Enum.DurationTextBindingProperty.RemainingDuration }
+                end
+            end
+            -- the textColor curve table is finicky; on refusal fall back to plain text
+            if not pcall(button.SetDurationText, button, button.dfDur, opts) then
+                pcall(button.SetDurationText, button, button.dfDur, { textFormatter = fmt })
+            end
+            button._boundDur = true
+        end
+    end
+end
+
 local function StyleButton(handle, button)
     local cfg = handle.config
     local size = cfg.size or 22
@@ -425,6 +498,65 @@ local function StyleButton(handle, button)
         if not button._boundDispelIcon then
             button._boundDispelIcon = true
             BindDispelTexture(button, button.dfDispelIcon, "Icon")
+        end
+        return
+    end
+
+    -- BLOCK / TEXT custom styles (buff-only). These effect types used to freeze on the manual
+    -- path because they render aura PRESENCE, and presence is secret. Here the container owns
+    -- the button's visibility, so presence needs no read: draw a fixed-colour rect (block) or
+    -- nothing (text), and let Blizzard blind-render the countdown number + stack onto our
+    -- fontstrings. ⚠ No time-based recolour (剩X秒變紅/到期閃光): remaining duration is secret.
+    if cfg.customStyle == "block" or cfg.customStyle == "text" then
+        local base = button:GetFrameLevel()
+        local col = cfg.borderColor
+        local hasCol = type(col) == "table" and type(col[1]) == "number"
+        local durationOn = cfg.showDuration and cfg.showDuration ~= false
+
+        if cfg.customStyle == "block" then
+            -- the colour fill (presence = Blizzard shows/hides the button)
+            if not button.dfBlock then
+                button.dfBlock = button:CreateTexture(nil, "BACKGROUND")
+                button.dfBlock:SetAllPoints(button)
+            end
+            local c = hasCol and col or BUFF_GREEN
+            button.dfBlock:SetColorTexture(c[1], c[2] or 0, c[3] or 0, c[4] or 1)
+
+            -- draining swipe over the fill: a BLIND visual timer (Blizzard drives it from the
+            -- aura's duration; we never read the remaining time). We can't recolour the fill
+            -- by time (that value is secret), but the sweep restores the "how much is left"
+            -- read that the old time-based recolour gave.
+            if durationOn then
+                if not button.dfCD then
+                    button.dfCD = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
+                    button.dfCD:SetSwipeTexture(ACC.WHITE)
+                    button.dfCD:SetSwipeColor(SPENT_COLOR[1], SPENT_COLOR[2], SPENT_COLOR[3])
+                    button.dfCD:SetReverse(true)           -- swipe covers the ELAPSED arc
+                    button.dfCD:SetDrawSwipe(true)
+                    button.dfCD:SetHideCountdownNumbers(true)
+                    button.dfCD:SetDrawEdge(false)
+                    button.dfCD:SetDrawBling(false)
+                    button.dfCD.noCooldownCount = true     -- keep OmniCC off our numbers
+                end
+                button.dfCD:ClearAllPoints()
+                button.dfCD:SetAllPoints(button)
+                button.dfCD:SetFrameLevel(base + 1)
+                if button.SetDurationCooldown and not button._boundCD then
+                    button:SetDurationCooldown(button.dfCD)
+                    button._boundCD = true
+                end
+            end
+        end
+
+        -- text style hands its base colour in, so Blizzard reddens the countdown near expiry
+        -- (block keeps default readable text over its coloured fill).
+        BindDurStack(button, cfg, base, (cfg.customStyle == "text" and hasCol) and col or nil)
+
+        -- static baseline for the text number: if the curve bound it drives the ramp, and at
+        -- >EXPIRY_WARN seconds the curve's colour equals this, so the two never disagree; if
+        -- the curve was refused, this is the whole colour.
+        if cfg.customStyle == "text" and hasCol and button.dfDur then
+            button.dfDur:SetTextColor(col[1], col[2] or 1, col[3] or 1, col[4] or 1)
         end
         return
     end
@@ -1538,6 +1670,23 @@ function AD.Inspect(unitToken)
                     :format(tostring(h._gateVulnerable or false), tostring(h._gateSourceRelative or false),
                         tostring(h._gateAssist), tostring(h._gateVisible), tostring(h._gateHidden or false),
                         GATE_FAIL_CLOSED and "隱藏(fail-closed)" or "顯示(fail-open)"))
+            end
+            -- flow-layout ground truth: what orientation asked for, what the container
+            -- ACTUALLY resolved to, and whether each setter took (see ACC.ApplyFlowLayout).
+            -- If Get* disagrees with the orientation, the setters are not applying; if they
+            -- agree yet growth still looks wrong, it is the container pin / SetSize instead.
+            if h.container and h.container.GetFlowLayoutAnchorPoint and cfg.mode ~= "overlay" then
+                local c = h.container
+                local function g(fn) local ok, a, b = pcall(fn, c); if not ok then return "?" end
+                    return b ~= nil and (tostring(a) .. "," .. tostring(b)) or tostring(a) end
+                local d = c._acFlowDbg or {}
+                p(("    flow：orient=%s → anchor=%s axis=%s growth=%s maxline=%s")
+                    :format(tostring(d.orientation),
+                        g(c.GetFlowLayoutAnchorPoint), g(c.GetFlowLayoutAxis),
+                        g(c.GetFlowLayoutGrowthDirection), g(c.GetFlowLayoutMaximumLineSize)))
+                p(("        set{axis=%s growth=%s anchor=%s maxline=%s} AnchorUtil.FlowDirection=%s")
+                    :format(tostring(d.axis), tostring(d.growth), tostring(d.anchor), tostring(d.maxline),
+                        tostring(AnchorUtil and AnchorUtil.FlowDirection ~= nil)))
             end
             for _, e in ipairs(h._errors or {}) do p("    ERR:", e) end
         end
