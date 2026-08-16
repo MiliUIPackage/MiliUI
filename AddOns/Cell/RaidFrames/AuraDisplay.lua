@@ -569,12 +569,16 @@ local function StyleButton(handle, button)
         BindDurStack(button, cfg, base, durColorOpt)
 
         -- static baseline colour for the number (the curve, if bound, drives the bands and its
-        -- top band equals this, so they agree; if the curve was refused this is the whole colour)
+        -- top band equals this, so they agree; if the curve was refused this is the whole colour).
+        -- text: durationColors.base (the unified widget's Normal), falling back to borderColor.
         if button.dfDur then
             if cfg.customStyle == "block" then
                 button.dfDur:SetTextColor(1, 1, 1, 1)
-            elseif hasCol then
-                button.dfDur:SetTextColor(col[1], col[2] or 1, col[3] or 1, col[4] or 1)
+            else
+                local nb = (cfg.durationColors and cfg.durationColors.base) or col
+                if type(nb) == "table" and type(nb[1]) == "number" then
+                    button.dfDur:SetTextColor(nb[1], nb[2] or 1, nb[3] or 1, nb[4] or 1)
+                end
             end
         end
         return

@@ -40,7 +40,9 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["position"] = {"TOPRIGHT", "button", "TOPRIGHT", 0, 3},
             ["frameLevel"] = 5,
             ["font"] = {"Cell " .. _G.DEFAULT, 12, "Outline", false},
-            ["colors"] = {{0, 1, 0, 1}, {false, 0.5, {1, 1, 0, 1}}, {false, 3, {1, 0, 0, 1}}},
+            -- countdown colour-by-time: {enabled, base, {en,sec,col}, {en,sec,col}} (replaces
+            -- the old percent/seconds "colors" widget -- text now uses the unified seconds one)
+            ["durationColor"] = {false, {0, 1, 0, 1}, {false, 10, {1, 1, 0, 1}}, {false, 3, {1, 0, 0, 1}}},
             ["auraType"] = auraType,
             ["auras"] = {},
             ["duration"] = {
