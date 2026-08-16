@@ -44,18 +44,19 @@ local function HideFrame(frame)
     end
 end
 
--- ⚠ REVERTED 2026-08-17. Removing this line is what made the built-in Blizzard damage meter
--- (Blizzard_DamageMeter) disappear. Restoring the event to UIParent lets its handler run
--- UIParent_ManageFramePositions again, and that layout pass runs against a UI where Cell has
--- already reparented CompactRaidFrameContainer to a hidden frame -- the managed-frame
--- containers end up recomputed with the damage meter dropped out.
+-- Stock Cell called _G.UIParent:UnregisterEvent("GROUP_ROSTER_UPDATE") here (and in
+-- HideBlizzardRaid), inherited from the ElvUI recipe this file is stolen from. Removed: it is
+-- DEAD CODE. UIParent does not register that event -- in current retail the whole
+-- Blizzard_UIParent addon is an 11-line stub with no OnEvent handler at all, and nothing in
+-- Blizzard's UI source calls UIParent:RegisterEvent (verified by grep over wow-ui-source live:
+-- 0 hits across 2551 files, against 2519 :RegisterEvent calls overall). The monolithic
+-- UIParent_OnEvent that used to drive UIParent_ManageFramePositions is long gone.
 --
--- NeeRgY's fork removes this line and credits it with fixing scenario/delve objective updates.
--- That may well be true; it is not worth this. If it gets revisited, the fix has to be narrower
--- than "hand the whole event back" -- and it needs testing with the damage meter open.
+-- So this is a no-op either way; it is deleted for being misleading, not for an effect.
+-- NeeRgY's fork also drops it and credits it with fixing scenario/delve objective tracking --
+-- that cannot be the mechanism, so if their fix is real it came from something else in their
+-- HideBlizzard rewrite. Do not re-add this line expecting it to hide anything.
 function F.HideBlizzardParty()
-    _G.UIParent:UnregisterEvent("GROUP_ROSTER_UPDATE")
-
     -- Midnight 12.0.0+ may have different party frame structure
     if _G.CompactPartyFrame then
         _G.CompactPartyFrame:UnregisterAllEvents()
@@ -83,10 +84,8 @@ function F.HideBlizzardParty()
     end
 end
 
--- Same as HideBlizzardParty: this unregister stays. See the note there.
+-- Same dead UIParent:UnregisterEvent call removed here too. See the note above.
 function F.HideBlizzardRaid()
-    _G.UIParent:UnregisterEvent("GROUP_ROSTER_UPDATE")
-
     if _G.CompactRaidFrameContainer then
         _G.CompactRaidFrameContainer:UnregisterAllEvents()
         _G.CompactRaidFrameContainer:SetParent(hiddenParent)
