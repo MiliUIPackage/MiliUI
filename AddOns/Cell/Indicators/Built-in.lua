@@ -371,19 +371,11 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         -- "Color By" slot so it is [2]=base, [4]={en,secThr,col}. base doubles as the block fill
         -- / the text number's colour. (The percent slot is a RemainingPercent band -- can't ride
         -- a seconds curve -- so it is ignored on the container path.)
-        -- BLOCK keeps its blockColors as the fallback countdown-colour source (fill = colors[2],
-        -- seconds threshold = colors[4]) until it moves to durationColor. TEXT uses durationColor
-        -- ONLY -- so with the option OFF the text stays plain white, not the old green/red.
-        if customStyle == "block" and type(t.colors) == "table" then
-            local base, sec = t.colors[2], t.colors[4]
-            local thresholds = {}
-            if type(sec) == "table" and sec[1] and type(sec[2]) == "number" and type(sec[3]) == "table" then
-                thresholds[1] = { sec = sec[2], color = sec[3] }
-            end
-            opts.durationColors = { base = base, thresholds = thresholds }
-            if type(base) == "table" and type(base[1]) == "number" then
-                opts.borderColor = base
-            end
+        -- BLOCK fill = blockColors Normal (colors[2]); its countdown colour-by-time is the
+        -- unified durationColor now (handled below), not the old colours-table thresholds.
+        -- TEXT uses durationColor only -- with the option OFF the text stays plain white.
+        if customStyle == "block" and type(t.colors) == "table" and type(t.colors[2]) == "table" then
+            opts.borderColor = t.colors[2]
         end
         -- unified durationColor { en, base, {en,sec,col}, {en,sec,col} }: takes precedence and is
         -- the countdown-colour source for icon / defensive types (no per-type colours table).

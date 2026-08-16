@@ -2759,6 +2759,41 @@ local function CreateSetting_BlockColors(parent)
     return widget
 end
 
+-- Simplified block colours widget: JUST the fill colour. The old "Color By" switch + percent/
+-- seconds threshold rows are gone -- countdown colour-by-time now lives in the unified
+-- durationColor widget. Reads/writes colorsTable[2] (the block's Normal/fill colour) of the
+-- existing block colours table, so no DB migration is needed. builders["blockColors"] points
+-- here; the full CreateSetting_BlockColors above is left in place but unused.
+local function CreateSetting_BlockFill(parent)
+    local widget
+
+    if not settingWidgets["blockColors"] then
+        widget = Cell.CreateFrame("CellIndicatorSettings_BlockColors", parent, 240, 30)
+        settingWidgets["blockColors"] = widget
+
+        local normalColor = Cell.CreateColorPicker(widget, L["Normal"], true, function(r, g, b, a)
+            local c = widget.colorsTable[2]
+            c[1] = r; c[2] = g; c[3] = b; c[4] = a
+            widget.func(widget.colorsTable)
+        end)
+        normalColor:SetPoint("TOPLEFT", 5, -8)
+
+        function widget:SetFunc(func)
+            widget.func = func
+        end
+
+        function widget:SetDBValue(colorsTable)
+            widget.colorsTable = colorsTable
+            if type(colorsTable[2]) == "table" then normalColor:SetColor(colorsTable[2]) end
+        end
+    else
+        widget = settingWidgets["blockColors"]
+    end
+
+    widget:Show()
+    return widget
+end
+
 local function CreateSetting_OverlayColors(parent)
     local widget
 
@@ -7053,7 +7088,7 @@ local builders = {
     ["color-alpha"] = CreateSetting_ColorAlpha,
     ["colors"] = CreateSetting_Colors,
     ["durationColor"] = CreateSetting_DurationColor,
-    ["blockColors"] = CreateSetting_BlockColors,
+    ["blockColors"] = CreateSetting_BlockFill,
     ["overlayColors"] = CreateSetting_OverlayColors,
     ["customColors"] = CreateSetting_CustomColors,
     ["color-class"] = CreateSetting_ClassColor,
