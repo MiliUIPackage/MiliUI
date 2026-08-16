@@ -353,34 +353,17 @@ local BUFF_GREEN  = { 0, 0.55, 0.15, 1 }
 -- what the ring turns into as it drains -- black, i.e. Cell's ordinary icon border
 local SPENT_COLOR = { 0, 0, 0, 1 }
 
--- text-style only: colour the countdown number by REMAINING time, evaluated BLIND on
--- Blizzard's side -- it samples this curve against the secret remaining duration, so we
--- still never read it. Linear ramp base -> red over the last EXPIRY_WARN seconds. Nil when
--- the curve API is absent (older client), so the caller falls back to a static colour.
--- (Same structure as MiliUI_Unit_Frame's aura duration curve -- proven on this client.)
-local EXPIRY_WARN = 5
-local function BuildExpiryColorCurve(base)
-    if not (C_CurveUtil and C_CurveUtil.CreateColorCurve and CreateColor
-            and Enum and Enum.DurationTextBindingProperty) then return nil end
-    local ok, curve = pcall(C_CurveUtil.CreateColorCurve)
-    if not ok or not curve then return nil end
-    local baseC = CreateColor(base[1], base[2] or 1, base[3] or 1, base[4] or 1)
-    local warnC = CreateColor(1, 0, 0, 1)
-    -- points are (remainingSeconds, colour); the curve interpolates linearly between them
-    local added = pcall(function()
-        curve:AddPoint(0, warnC)                     -- 0s left -> red
-        curve:AddPoint(EXPIRY_WARN, baseC)           -- WARN s  -> base (ramp between)
-        curve:AddPoint(EXPIRY_WARN + 86400, baseC)   -- far out -> base
-    end)
-    if not added then return nil end
-    return curve
-end
+-- Redden the countdown's last seconds. SetTextColorCurve is addon-UNREACHABLE on 12.1
+-- (SetDurationText drops the binding's `property`; DandersFrames live-tested), so the colour
+-- rides |c escapes baked into the duration formatter instead -- see ACC.GetDurationFormatter.
+local EXPIRY_WARN = 5           -- redden the last N seconds
+local EXPIRY_WARN_HEX = "ff5555"
 
 -- Blizzard-rendered countdown number (centre) + stack count (corner), handed off blind.
 -- Shared by the block/text custom styles; the default icon branch keeps its OWN inline copy
 -- because there it interleaves with icon/cooldown frame-level assignment.
--- textColorBase (text style only): base RGBA -> the countdown reddens over its last seconds.
-local function BindDurStack(button, cfg, base, textColorBase)
+-- expiryHex (text style only): hex colour for the last EXPIRY_WARN seconds (nil = plain).
+local function BindDurStack(button, cfg, base, expiryHex)
     if not button.dfDur then
         button.dfDurHolder = CreateFrame("Frame", nil, button)
         button.dfDurHolder:SetAllPoints(button)
@@ -407,20 +390,9 @@ local function BindDurStack(button, cfg, base, textColorBase)
         button._boundStack = true
     end
     if button.dfDur and button.SetDurationText and not button._boundDur then
-        local fmt = ACC.GetDurationFormatter(cfg.showDuration)
+        local fmt = ACC.GetDurationFormatter(cfg.showDuration, expiryHex and EXPIRY_WARN or nil, expiryHex)
         if fmt then
-            local opts = { textFormatter = fmt }
-            if textColorBase then
-                local curve = BuildExpiryColorCurve(textColorBase)
-                if curve then
-                    opts.textColor = { curve = curve,
-                        property = Enum.DurationTextBindingProperty.RemainingDuration }
-                end
-            end
-            -- the textColor curve table is finicky; on refusal fall back to plain text
-            if not pcall(button.SetDurationText, button, button.dfDur, opts) then
-                pcall(button.SetDurationText, button, button.dfDur, { textFormatter = fmt })
-            end
+            button:SetDurationText(button.dfDur, { textFormatter = fmt })
             button._boundDur = true
         end
     end
@@ -548,13 +520,12 @@ local function StyleButton(handle, button)
             end
         end
 
-        -- text style hands its base colour in, so Blizzard reddens the countdown near expiry
-        -- (block keeps default readable text over its coloured fill).
-        BindDurStack(button, cfg, base, (cfg.customStyle == "text" and hasCol) and col or nil)
+        -- text style reddens the countdown's last seconds via the formatter |c escapes (block
+        -- keeps a plain number over its coloured fill). See BindDurStack / GetDurationFormatter.
+        BindDurStack(button, cfg, base, cfg.customStyle == "text" and EXPIRY_WARN_HEX or nil)
 
-        -- static baseline for the text number: if the curve bound it drives the ramp, and at
-        -- >EXPIRY_WARN seconds the curve's colour equals this, so the two never disagree; if
-        -- the curve was refused, this is the whole colour.
+        -- the indicator's own colour is the number's base (shows for the plain > EXPIRY_WARN
+        -- band; the formatter overrides it with red inside the last seconds).
         if cfg.customStyle == "text" and hasCol and button.dfDur then
             button.dfDur:SetTextColor(col[1], col[2] or 1, col[3] or 1, col[4] or 1)
         end

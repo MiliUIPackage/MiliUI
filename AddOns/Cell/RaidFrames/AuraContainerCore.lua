@@ -144,10 +144,16 @@ end
 
 local formatterCache = {}
 
-function ACC.GetDurationFormatter(showDuration)
+-- warnSec/warnHex (optional): redden the countdown's last `warnSec` seconds. SetTextColorCurve
+-- is addon-UNREACHABLE on 12.1 -- SetDurationText forwards the curve without the required
+-- `property` and DurationTextBinding is private (DandersFrames live-tested @ 68569). So colour-
+-- by-time rides |c escapes baked into the seconds-band format string instead, which Blizzard
+-- renders blind like any other format. Only the seconds band (< 91s) can carry it.
+function ACC.GetDurationFormatter(showDuration, warnSec, warnHex)
     if showDuration == false or showDuration == nil then return false end
 
-    local key = tostring(showDuration)
+    -- coloured and plain formatters must not share a cache slot
+    local key = tostring(showDuration) .. ((warnSec and warnHex) and ("|" .. warnSec .. "|" .. warnHex) or "")
     local cached = formatterCache[key]
     if cached ~= nil then return cached end
 
@@ -157,13 +163,22 @@ function ACC.GetDurationFormatter(showDuration)
     if not (c and c.numericFormatter) then return false end
 
     local hideAbove = type(showDuration) == "number" and showDuration or nil
+    -- valid only inside the seconds band, and never past a hide-above cutoff
+    local warn = (warnSec and warnHex and warnSec > 0 and warnSec < 91
+        and (not hideAbove or warnSec < hideAbove)) and warnSec or nil
 
     local ok, fmt = pcall(function()
         local down = Enum.NumericRuleFormatRounding.Down
         local up = Enum.NumericRuleFormatRounding.Up
         local f = C_StringUtil.CreateNumericRuleFormatter()
         -- seconds band truncates: 45.6s remaining renders "45"
-        f:AddBreakpoint({ threshold = 0, step = 1, rounding = down, min = 1, format = "%d" })
+        if warn then
+            -- [0, warn): coloured number ; [warn, 91): plain (fontString's own colour shows)
+            f:AddBreakpoint({ threshold = 0,    step = 1, rounding = down, min = 1, format = "|cff" .. warnHex .. "%d|r" })
+            f:AddBreakpoint({ threshold = warn, step = 1, rounding = down, min = 1, format = "%d" })
+        else
+            f:AddBreakpoint({ threshold = 0, step = 1, rounding = down, min = 1, format = "%d" })
+        end
         if not hideAbove or hideAbove > 91 then
             f:AddBreakpoint({ threshold = 91, step = 1, rounding = down, min = 1, format = "%dm",
                               components = { { div = 60, rounding = up } } })
