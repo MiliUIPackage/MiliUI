@@ -404,6 +404,12 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         end
         if t.size then opts.size = t.size[1]; opts.sizeH = t.size[2] end
         if t.num then opts.num = t.num end
+        -- keep the AuraContainer at the indicator's frameLevel (self = the indicator frame,
+        -- already moved to indicatorFrame + t.frameLevel), else its icons sit at the default
+        -- level and the name text covers them no matter what the frameLevel option says.
+        if self.container.SetContainerLevel then
+            self.container:SetContainerLevel(self:GetFrameLevel())
+        end
         self.container:SetOptions(opts)
         self.container:SetEnabled(t.enabled and true or false)
     end

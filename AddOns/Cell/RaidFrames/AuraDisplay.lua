@@ -837,6 +837,14 @@ local function Build(handle)
     end
     handle.host = host
     handle.container = c
+    -- honour the indicator's frameLevel: the AuraButtons inherit their level from THIS chain
+    -- (handle.frame -> host -> AuraContainer -> buttons), so set it BEFORE AddAuraGroup or the
+    -- buttons keep the default level and the name text (indicatorFrame + level) covers them no
+    -- matter what the frameLevel option is set to.
+    if handle._hostLevel then
+        pcall(function() host:SetFrameLevel(handle._hostLevel) end)
+        pcall(function() c:SetFrameLevel(handle._hostLevel) end)
+    end
     handle._groupKeys = {}
     handle._errors = {}          -- diagnostics: per-step failures (see AD.Debug)
     handle._initCount = 0        -- how many buttons Blizzard asked us to style
@@ -965,6 +973,21 @@ Handle.__index = Handle
 
 function Handle:GetFrame() return self.frame end
 function Handle:SetPoint(...) self.frame:ClearAllPoints(); self.frame:SetPoint(...) end
+
+-- Match the container chain's frame level to the indicator's frameLevel so its AuraButtons
+-- render above/below siblings as configured. Existing buttons were levelled by Blizzard at
+-- build time, so a rebuild is needed to re-level them (frameLevel is an editbox, changes rarely).
+function Handle:SetContainerLevel(lvl)
+    if type(lvl) ~= "number" or self._hostLevel == lvl then return end
+    self._hostLevel = lvl
+    -- not built yet -> Build() applies _hostLevel itself, no rebuild needed. Already built ->
+    -- set the levels now and rebuild so the existing (Blizzard-levelled) buttons re-inherit.
+    if self.host then
+        pcall(function() self.host:SetFrameLevel(lvl) end)
+        if self.container then pcall(function() self.container:SetFrameLevel(lvl) end) end
+        self:Rebuild()
+    end
+end
 function Handle:ClearAllPoints() self.frame:ClearAllPoints() end
 
 function Handle:SetSize(w, h)

@@ -736,6 +736,11 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             F.IterateAllUnitButtons(function(b)
                 local indicator = b.indicators[indicatorName]
                 indicator:SetFrameLevel(indicator:GetParent():GetFrameLevel()+value)
+                -- container-backed indicators: the empty indicator frame moved, but the
+                -- AuraContainer + its buttons live in a separate chain -- re-level it too.
+                if indicator.container and indicator.container.SetContainerLevel then
+                    indicator.container:SetContainerLevel(indicator:GetFrameLevel())
+                end
             end, true)
         elseif setting == "size" then
             F.IterateAllUnitButtons(function(b)
