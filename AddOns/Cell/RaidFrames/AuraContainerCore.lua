@@ -333,7 +333,10 @@ function ACC.ApplyFont(fs, anchorTo, f, forceCenter)
         -- that is why the duration font option has no offset controls.
         SetFont(fs, anchorTo, f[1], f[2], f[3], f[4], "CENTER", 0, 0, f[8])
     else
-        SetFont(fs, anchorTo, f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8])
+        -- ⚠ f[5..7] = anchor/x/y. A FLAT font (the text indicator's {name,size,outline,shadow})
+        -- has none, and SetFont's internal fs:SetPoint(nil,...) THROWS -- which aborts the whole
+        -- StyleButton pass. Default to a corner so a flat font degrades instead of crashing.
+        SetFont(fs, anchorTo, f[1], f[2], f[3], f[4], f[5] or "BOTTOMRIGHT", f[6] or 0, f[7] or 0, f[8])
     end
 end
 

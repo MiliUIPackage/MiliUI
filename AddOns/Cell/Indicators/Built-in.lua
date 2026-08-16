@@ -334,17 +334,40 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         if customStyle == "text" and opts.showDuration == nil then
             opts.showDuration = true
         end
-        if t.font then
-            opts.stackFont = t.font[1]
-            opts.durationFont = t.font[2]
+        if customStyle == "text" then
+            -- text's settings have DIFFERENT shapes from the icon/block keys: a single FLAT
+            -- font {name,size,outline,shadow} (NOT {stackFont,durationFont} -- reading
+            -- t.font[2] fed ApplyFont a bare size number, the number rendered with a broken
+            -- font = invisible, which is why a text indicator showed nothing); the base colour
+            -- lives in colors[1] (not t.color); stack is {show,circled}. Threshold colours
+            -- can't work (secret remaining time) -- only the base is carried.
+            -- ⚠ ONLY the duration number carries the text's flat font. The duration path is
+            -- forceCenter (reads font[1..4] + a hardcoded CENTER anchor) so a flat
+            -- {name,size,outline,shadow} works. The STACK path is NON-forceCenter and
+            -- re-anchors from font[5..7], which a flat text font lacks -> SetPoint(nil) THREW
+            -- every style pass, aborting BindDurStack BEFORE SetDurationText -> the number
+            -- never bound = the "text invisible" bug. Leave stackFont unset so ApplyFont bails;
+            -- an enabled stack then just uses the default CELL_FONT_STATUS at its corner.
+            if type(t.font) == "table" then
+                opts.durationFont = t.font
+            end
+            if type(t.colors) == "table" and type(t.colors[1]) == "table" then
+                opts.borderColor = t.colors[1]
+            end
+            opts.showStack = (t.stack and t.stack[1]) and true or false
+        else
+            if t.font then
+                opts.stackFont = t.font[1]
+                opts.durationFont = t.font[2]
+            end
+            -- Typed check, not just "is it there": the colour-per-aura indicator types store
+            -- their colours inside t.auras, and t.color is then something else entirely.
+            if useConfigColor and type(t.color) == "table" and type(t.color[1]) == "number" then
+                opts.borderColor = { t.color[1], t.color[2] or 0, t.color[3] or 0, 1 }
+            end
         end
         if t.size then opts.size = t.size[1]; opts.sizeH = t.size[2] end
         if t.num then opts.num = t.num end
-        -- Typed check, not just "is it there": the colour-per-aura indicator types store
-        -- their colours inside t.auras, and t.color is then something else entirely.
-        if useConfigColor and type(t.color) == "table" and type(t.color[1]) == "number" then
-            opts.borderColor = { t.color[1], t.color[2] or 0, t.color[3] or 0, 1 }
-        end
         self.container:SetOptions(opts)
         self.container:SetEnabled(t.enabled and true or false)
     end

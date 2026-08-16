@@ -18,7 +18,7 @@ metadata:
 - `SecureAuraHeaderTemplate` 已從 Mainline 移除（Classic 保留）。
 
 **替代方案**：`AuraContainer` + `AuraButton` intrinsic frames。
-- `CreateFrame("AuraContainer", nil, parent, "CustomAuraContainerTemplate")` → `SetUnit(unit)` → `AddAuraGroup(groupKey, filterString, options)` 或 `AddAuraSlot(slotKey, ...)`（等同 maxFrameCount=1，可自行 anchor）。
+- `CreateFrame("AuraContainer", nil, parent, "CustomAuraContainerTemplate")` → `SetUnit(unit)` → `AddAuraGroup(groupKey, filterString, options)` 或 `AddAuraSlot(slotKey, ...)`（等同 maxFrameCount=1，可自行 anchor）。順序細節與換單位重掃見下面「建立順序」。
 - Container 自己建立/排版/更新 AuraButton；addon 不再自己 CreateFrame AuraButton（`AddAuraFrame` 已移除）。
 - options: `maxFrameCount`、`sortMethod`/`sortDirection`、`initializeFrame` callback、`templateNames`、`candidateFilters`（includeSpellIDs/excludeSpellIDs、dispel type、maxDuration、isStealable 等；布林填 false = 反向過濾）。
 - filter 字串支援 `!` 反向（`!PLAYER`）；新增 `DISPELLABLE`，`IMPORTANT` 回歸。
@@ -77,7 +77,17 @@ fmt:AddBreakpoint({ threshold = 5401, step = 1, rounding = down, min = 1, format
 門檻是暴雪 promote 點 **91/5401 不是 60/3600**（61–90s 仍印整秒，跟遊戲自己的框架一致）；分/時商數**向上取整**（2m32s→"3m"，暴雪 `SetCanRoundUpLastUnit(true)` 的行為）。TIMER 形（"5:32"）用 `components = { { div = 60 }, { mod = 60 } }`。
 
 別走 `textFormat` 那條：`components` 是**結構陣列**（元素要 `property` + `formatter` 兩個必填欄位，見 `DurationTextBindingSharedDocumentation.lua` 的 `DurationTextBindingFormatComponent`），丟裸列舉值會報 `bad argument #4 ... Current Field: [textFormat,components]`；就算照結構填，元素仍會在驗證時被吃掉而變成 0 個，報 `expected 0 format components for 1 placeholders`。`textFormatter` 一行就解決。
-（`Enum.DurationTextBindingProperty` = `RemainingDuration=0 / RemainingPercent=1 / ElapsedDuration=2 / ElapsedPercent=3 / TotalDuration=4 / StartTime=5 / EndTime=6`，`SetTextColorCurve(curve, property)` 用得到。）
+（`Enum.DurationTextBindingProperty` = `RemainingDuration=0 / RemainingPercent=1 / ElapsedDuration=2 / ElapsedPercent=3 / TotalDuration=4 / StartTime=5 / EndTime=6`。）
+
+**⚠ 文字倒數隨時間變色 —— 是 build-dependent（別當通則背，2026-08-16 從 DandersFrames v5 live code 讀出）：**
+
+`SetDurationText(fs, { textFormatter=..., textColor = {curve, property} })` 這條 —— curve 是 `C_CurveUtil.CreateColorCurve()`（`AddPoint(remainingSeconds, CreateColor(r,g,b,a))`），property 用 `Enum.DurationTextBindingProperty.RemainingDuration`（=0）：
+- **build 68569（PTR-4）：死的**——暴雪把 curve 轉發到 binding 時漏掉必填 `property`，靜默失效（DF GOTCHA 第 5 條寫的就是這個 build）。
+- **build 68914+：修好了**——`textColor` 會被轉到 `binding:SetTextColorCurve(curve, property)`，C 端拿 secret 剩餘時間盲評、寫 vertex colour，零 Lua/frame。**DF 現行 live code（`Frames/AuraContainer.lua` bindNative）對 68914+ 就是走這條**，所以 12.1 正式服（≥68914）用 curve 是**對的**。Cell 走這條（`BuildExpiryColorCurve` + `opts.textColor`）。
+
+**舊版 fallback＝把色碼烤進 formatter 格式字串（`|cffXXXXXX%d|r`）**，但這條在 **68914 的 `SetDurationText` 上不上色**（實測 formatter 版沒生效；DF 也把 curve 與 |c formatter 視為「二擇一」，新版用 curve、舊版用 |c）。所以**不要用 formatter 色碼當新版的解**。若真要支援舊版，得像 DF 用 `supportsDurationTextBinding()` 之類的探針分流。
+
+其他限制不變：`textColor` 只有 live SetDurationText 這條路（想自己 `C_DurationUtil.CreateDurationTextBinding()` 建 binding 物件僅限 test/preview，live aura 拿不到那個物件）；百分比門檻做不到（要總時長＝secret）；按鈕子樹內 `OnUpdate`/`AnimationGroup` 裝得上但不 tick（onUpdateMode=disabled 傳染），效果型只能靜態。
 
 **查這類結構的正確位置**：`Interface/AddOns/Blizzard_APIDocumentationGenerated/*Documentation.lua`（`AuraContainerUtilDocumentation`、`DurationTextBindingSharedDocumentation`、`StringUtilDocumentation`…）。`C_*.Process*Options({})` 回空表問不出欄位；wiki 也沒有這層細節。
 
@@ -97,6 +107,29 @@ fmt:AddBreakpoint({ threshold = 5401, step = 1, rounding = down, min = 1, format
 
 **DandersFrames v5.0 的重要 debuff 分類法**(`Features/Auras.lua` `BuildDirectDebuffFilters`):一類別=一個 AuraGroup,宣告順序=顯示優先權,群組間**不去重**,所以各 record 必須互斥。**Important-first 優先權**:boss/role 與 priority record **先認領、不做負向排除**,底下的 token record(cc/raid/dispel)再用 `candidateFilters` 的 `false` 旗標把它們減掉(避免同一顆顯示兩次)。修掉了「帶 RAID token 的 boss/priority 掉進沒樣式 raid 格」的 bug。SecretAuras.lua(filter 指紋辨識)在 v5 已刪除——有了 candidateFilters 就不用在 Lua 裡辨識光環身分。
 
-**AuraContainer 建立順序(在地驗證,不可調換)**:`CreateFrame(...)` → `SetUnit(unit)`(在 group 之前) → 逐一 `AddAuraGroup(key, filter, {maxFrameCount, initializeFrame, layout, candidateFilters, sortMethod, sortDirection})` → `SetEnabled(true)` **最後**(它 gate 光環事件註冊)。改 filter 字串的 record 集合(key set)是結構性的,要重建容器;`maxFrameCount`/`candidateFilters`/`sort` 是 live setter。`maxFrameCount` 是**每個 group** 的上限,不是整條 row 的總數——多類別時總數會超過單一 num,要留意。`initializeFrame` 內:`SetMouseClickEnabled(false)`、建**全新** child region(絕不 reparent 既有 scripted widget)、`SetIcon`/`SetDurationCooldown`/`SetDurationText(fs,{binding=...})`/`SetApplicationCount(fs, {})`。**`SetApplicationCount` 千萬別傳 formatter**——Blizzard 會在 Lua 對 secret 層數跑 `formatter:FormatNumber`,炸在 `ProcessDirtyFlags` 裡讓整個容器當掉一整場。版本閘:`AddAuraGroup` 存在 = 支援,且**不可在戰鬥中 probe**(建 live 容器會不可攔截地報錯)。
+**AuraContainer 建立順序**:`CreateFrame(...)` → `SetUnit(unit)`(在 group 之前) → 逐一 `AddAuraGroup(...)` → `SetEnabled(true)` **最後**(它 gate 光環事件註冊)。在地驗證來源:`Cell/RaidFrames/AuraDisplay.lua`、`Stuf/auracontainer.lua`,兩個都在這台機器上實跑。
+
+> EUI 的 AuraKit 反過來(`FinishContainer` = group 全宣告完才 SetUnit + UpdateAllAuras),理由是
+> 「指定單位會重算事件註冊,而重算以容器已有 group 為前提」。**那是配合它自己的分階段建構器**
+> (CreateContainerShell → AddGroup → Finish),照搬到一次建完的寫法會壞——2026-08-16 在
+> MiliUI_Unit_Frame 試過,目標光環直接亂掉。BuffReminders 用 EUI 那個順序沒事,但它的單位是
+> 固定的 `player`,踩不到換人那條路。**結論:順序照 Cell/Stuf,別動。**
+
+**⚠⚠ AuraContainer 不能掛任何 script handler。** `container:HookScript("OnShow", ...)` 會丟
+「Cannot assign script handler for 'onshow' (cannot replace a forbidden script handler)」——
+forbidden 的不只 AuraButton,容器本身也是,而且**跟光環是不是 secret 無關**(開放世界、
+`ShouldAurasBeSecret=false` 一樣丟)。這條特別陰的地方在於:建容器的程式通常包在 pcall 裡,
+handler 掛失敗會讓**整個容器建立失敗**,對外只表現成「光環沒出來」,不會有錯誤訊息。
+要在重新顯示時補踢 SetEnabled,把 hook 掛在自己建的 holder frame 上,不要碰容器。
+
+**⚠⚠ 換單位重掃:`UpdateAllAuras()` 從插件端沒有用。** 動態 token(target/focus/bossN)在框架
+保持顯示的情況下換人,容器不會自己重解析;而插件端呼叫 `UpdateAllAuras` **只設得到髒旗標,
+推不動私有端的處理器**(`Cell/RaidFrames/AuraDisplay.lua` 的 `GateRefresh` 實測結論)。真正跨得過
+分界的是 **`Hide()` → `Show()`**:intrinsic 的 OnShow 跑在安全端,會從那裡重掃一次。彈完順手
+重下 `SetEnabled(true)`。**戰鬥中不能彈**(受保護的 intrinsic 擋 Hide),先設髒旗標記下來,
+`PLAYER_REGEN_ENABLED` 再補彈。這條同時是「容器建立時框架還沒顯示 → SetEnabled 註冊不上 →
+永遠空白」的解法(Cell 的 `ReassertEnable` 也是同一個 Hide/Show kick)。
+
+其餘不變:`AddAuraGroup(key, filter, {maxFrameCount, initializeFrame, layout, candidateFilters, sortMethod, sortDirection})` → `SetEnabled(true)` **最後**(它 gate 光環事件註冊)。改 filter 字串的 record 集合(key set)是結構性的,要重建容器;`maxFrameCount`/`candidateFilters`/`sort` 是 live setter。`maxFrameCount` 是**每個 group** 的上限,不是整條 row 的總數——多類別時總數會超過單一 num,要留意。`initializeFrame` 內:`SetMouseClickEnabled(false)`、建**全新** child region(絕不 reparent 既有 scripted widget)、`SetIcon`/`SetDurationCooldown`/`SetDurationText(fs,{binding=...})`/`SetApplicationCount(fs, {})`。**`SetApplicationCount` 千萬別傳 formatter**——Blizzard 會在 Lua 對 secret 層數跑 `formatter:FormatNumber`,炸在 `ProcessDirtyFlags` 裡讓整個容器當掉一整場。版本閘:`AddAuraGroup` 存在 = 支援,且**不可在戰鬥中 probe**(建 live 容器會不可攔截地報錯)。
 
 相關：[[wow-121-secret-values]]、[[wow-121-coolinator-reference]]、[[project-121-addon-migration]]
