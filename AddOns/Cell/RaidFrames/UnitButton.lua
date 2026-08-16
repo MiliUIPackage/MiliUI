@@ -77,6 +77,18 @@ local barAnimationType, highlightEnabled, predictionEnabled
 local shieldEnabled, overshieldEnabled, overshieldReverseFillEnabled, overshieldGlowReverseEnabled
 local absorbEnabled, absorbInvertColor
 
+-- SMOOTH BARS ON MIDNIGHT
+-- SmoothStatusBarMixin is dead here: it is Lua, it caches min/max, and its per-frame Clamp()
+-- does arithmetic -- which throws the moment health or powerMax was ever a secret value. The
+-- replacement is the engine's own interpolation: StatusBar:SetValue(value, interpolation) does
+-- the easing in C, so it takes secrets happily. Enum.StatusBarInterpolation is {Immediate = 0,
+-- ExponentialEaseOut = 1}. Same primitive MiliUI_UnitFrames uses (Core/Secret.lua BarInterp).
+local SBI = Enum and Enum.StatusBarInterpolation
+local SBI_SMOOTH = SBI and SBI.ExponentialEaseOut
+local SBI_IMMEDIATE = SBI and SBI.Immediate
+-- Resolved by B.UpdateAnimation; nil on pre-Midnight so the old SetBarValue path is untouched.
+local barInterp
+
 -- Midnight: Curve for CELL_FADE_OUT_HEALTH_PERCENT feature
 -- Maps health percent â†’ alpha so we can evaluate secret health% without comparisons
 local fadeOutHealthCurve
@@ -131,6 +143,7 @@ local function UpdateIndicatorParentVisibility(b, indicatorName, enabled)
             indicatorName == "privateAuras" or
             indicatorName == "defensiveCooldowns" or
             indicatorName == "externalCooldowns" or
+            indicatorName == "offensiveCooldowns" or
             indicatorName == "allCooldowns" or
             indicatorName == "dispels" or
             indicatorName == "crowdControls" or
@@ -226,6 +239,7 @@ local function HandleIndicators(b)
         b._waitingForIndicatorCreation = nil
         I.CreateDefensiveCooldowns(b)
         I.CreateExternalCooldowns(b)
+        I.CreateOffensiveCooldowns(b)
         I.CreateAllCooldowns(b)
         I.CreateDebuffs(b)
     end
@@ -1108,7 +1122,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 b.indicators[indicatorName]:Hide()
                 UnitButton_UpdateAuras(b)
             end, true)
-        elseif setting == "debuffBlacklist" or setting == "dispelBlacklist" or setting == "defensives" or setting == "externals" or setting == "crowdControls" or setting == "bigDebuffs" or setting == "debuffTypeColor" or setting == "castBy" then
+        elseif setting == "debuffBlacklist" or setting == "dispelBlacklist" or setting == "defensives" or setting == "externals" or setting == "offensives" or setting == "crowdControls" or setting == "bigDebuffs" or setting == "debuffTypeColor" or setting == "castBy" then
             -- These settings live in CellDB, not in the layout entry, so the event carries
             -- no indicatorName and the generic ConfigureContainer pass above never sees it.
             -- But the containers read CellDB when they build their filters (the blacklist
@@ -1119,6 +1133,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 debuffBlacklist = { "debuffs" },
                 defensives      = { "defensiveCooldowns", "allCooldowns" },
                 externals       = { "externalCooldowns", "allCooldowns" },
+                offensives      = { "offensiveCooldowns" },
                 castBy          = { "defensiveCooldowns", "externalCooldowns", "allCooldowns" },
             }
             -- the palette is baked into each AuraButton at bind time; only a rebuild moves it
@@ -1582,6 +1597,7 @@ local function UnitButton_UpdateBuffs(self, isFullUpdate)
     -- and leaving a stale count is what left icons stuck on screen.
     self.indicators.defensiveCooldowns:UpdateSize(0)
     self.indicators.externalCooldowns:UpdateSize(0)
+    self.indicators.offensiveCooldowns:UpdateSize(0)
     self.indicators.allCooldowns:UpdateSize(0)
 
     -- hide tankActiveMitigation
@@ -2315,10 +2331,10 @@ end
 UnitButton_UpdatePower = function(self)
     if not (self._shouldShowPowerBar and self.states.power) then return end
 
-    -- Same reason as UpdatePowerMax: always use native SetValue on Midnight to stay
-    -- off the SmoothStatusBar tick, mirroring what the health bar does at line 2395.
+    -- Midnight stays off the SmoothStatusBar tick (see UpdatePowerMax) but still animates:
+    -- barInterp carries the easing into the engine's own SetValue.
     if Cell.isMidnight then
-        self.widgets.powerBar:SetValue(self.states.power)
+        self.widgets.powerBar:SetValue(self.states.power, barInterp)
     else
         self.widgets.powerBar:SetBarValue(self.states.power)
     end
@@ -2395,9 +2411,10 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
         -- MIDNIGHT PATH: pass secret values directly to status bar
         local calc = self.widgets.healthCalculator
         local health = calc:GetCurrentHealth()
-        -- Always use native SetValue on Midnight — SetSmoothedValue (SetBarValue in Smooth mode)
-        -- is a Lua mixin that does Clamp() arithmetic, which fails on secret values.
-        self.widgets.healthBar:SetValue(health)
+        -- Native SetValue on Midnight — SetSmoothedValue (SetBarValue in Smooth mode) is a Lua
+        -- mixin that does Clamp() arithmetic, which fails on secret values. barInterp asks the
+        -- engine for the easing instead, so "Smooth" still animates a secret health value.
+        self.widgets.healthBar:SetValue(health, barInterp)
         if barAnimationType == "Flash" then
             -- Flash: we can't compute exact diff without arithmetic on secrets, so skip precise flash
             B.HideFlash(self)
@@ -2679,8 +2696,11 @@ local function UnitButton_UpdateThreat(self)
     local unit = self.states.displayedUnit
     if not unit or not UnitExists(unit) then return end
 
+    -- 12.1: UnitThreatSituation is SecretWhenUnitThreatStateRestricted. Party/raid allies are
+    -- normally readable, but a boss or a charmed ally is not -- and `status >= 1` on a secret
+    -- number is a hard error, so the comparison has to be gated, not just the nil check.
     local status = UnitThreatSituation(unit)
-    if status and status >= 1 then
+    if F.IsValueNonSecret(status) and status and status >= 1 then
         if enabledIndicators["aggroBlink"] then
             self.indicators.aggroBlink:ShowAggro(GetThreatStatusColor(status))
         end
@@ -2703,8 +2723,11 @@ local function UnitButton_UpdateThreatBar(self)
     if not unit or not UnitExists(unit) then return end
 
     -- isTanking, status, scaledPercentage, rawPercentage, threatValue = UnitDetailedThreatSituation(unit, mobUnit)
+    -- 12.1 splits this into TWO secret gates: `status` is SecretWhenUnitThreatStateRestricted,
+    -- the percentages are SecretWhenUnitThreatValuesRestricted. They do NOT move together, so
+    -- both need their own guard -- status because GetThreatStatusColor indexes a table with it.
     local _, status, scaledPercentage, rawPercentage = UnitDetailedThreatSituation(unit, "target")
-    if status then
+    if F.IsValueNonSecret(status) and status then
         self.indicators.aggroBar:Show()
         -- SetSmoothedValue is a Lua mixin whose Clamp() would throw every tick on a secret percentage.
         -- Fall back to native SetValue when the threat percent is secret.
@@ -4087,6 +4110,14 @@ end
 -- animation
 function B.UpdateAnimation(button)
     barAnimationType = CellDB["appearance"]["barAnimation"]
+
+    -- Midnight drives easing through SetValue's second argument instead of the mixin. Passing
+    -- nil is identical to the one-argument SetValue, so a client without the enum just snaps.
+    if Cell.isMidnight then
+        barInterp = (barAnimationType == "Smooth") and SBI_SMOOTH or SBI_IMMEDIATE
+    else
+        barInterp = nil
+    end
 
     if barAnimationType == "Smooth" then
         button.widgets.healthBar.SetBarValue = button.widgets.healthBar.SetSmoothedValue

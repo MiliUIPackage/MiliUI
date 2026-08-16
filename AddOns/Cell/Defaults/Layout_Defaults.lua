@@ -34,6 +34,9 @@ Cell.defaults.indicatorIndices = {
     ["crowdControls"] = 28,
     ["actions"] = 29,
     ["missingBuffs"] = 30,
+    -- ⚠ These indices ARE the positions in layout["indicators"]. A new built-in only ever goes
+    -- on the END -- inserting in the middle renumbers every saved layout out from under itself.
+    ["offensiveCooldowns"] = 31,
 }
 
 Cell.defaults.layout = {
@@ -556,6 +559,26 @@ Cell.defaults.layout = {
             ["size"] = {13, 13},
             ["orientation"] = "right-to-left",
         }, -- 30
+        {
+            -- Off by default: it is a raid-lead / analysis tool, not something every healer
+            -- wants competing with the defensive row for space on the frame.
+            ["name"] = "Offensive Cooldowns",
+            ["indicatorName"] = "offensiveCooldowns",
+            ["type"] = "built-in",
+            ["enabled"] = false,
+            ["position"] = {"BOTTOMLEFT", "button", "BOTTOMLEFT", -2, -5},
+            ["frameLevel"] = 10,
+            ["size"] = {12, 20},
+            ["showDuration"] = 60, -- only under 60s
+            ["showAnimation"] = true,
+            ["num"] = 2,
+            ["orientation"] = "left-to-right",
+            ["font"] = {
+                {"Cell ".._G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
+                {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
+            },
+            ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}}
+        }, -- 31
     },
 }
 

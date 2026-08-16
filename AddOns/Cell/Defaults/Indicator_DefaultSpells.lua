@@ -504,6 +504,181 @@ function I.IsDefensiveCooldown(name, id)
 end
 
 -------------------------------------------------
+-- offensiveCooldowns
+--
+-- Burst windows, so a healer can see who is about to need throughput and a lead can see
+-- whether the raid actually pressed on the pull. Same shape as externals/defensives: a
+-- nested table means "this is the CAST, and these are the BUFF ids it can land as" (talent
+-- variants and hero-talent renames), and every id ends up in the flat match set either way.
+--
+-- Base list carried over from the NeeRgY fork of Cell (github.com/NeeRgY/Cell), which
+-- curated it for Midnight season 1. Same Cell lineage, so no new licensing question.
+-------------------------------------------------
+local offensives = { -- true: track by name, false: track by id
+    ["DEATHKNIGHT"] = {
+        [42650] = true, -- 亡者大軍 - Army of the Dead
+        [51271] = true, -- 冰霜之柱 - Pillar of Frost
+        [1249658] = { -- 辛達苟薩之息 - Breath of Sindragosa
+            [152279] = true,
+        },
+    },
+
+    ["DEMONHUNTER"] = {
+        [1241937] = true, -- 靈魂獻祭 - Soul Immolation
+        [191427] = { -- 惡魔變形 - Metamorphosis
+            [162264] = true,
+        },
+        [1225789] = { -- 虛空惡魔變形 - Void Metamorphosis
+            [1217607] = true,
+        },
+        [370965] = { -- 狩獵 - The Hunt
+            [1246167] = true,
+            [1259431] = true,
+        },
+    },
+
+    ["DRUID"] = {
+        [194223] = true, -- 天體結盟 - Celestial Alignment
+        [106951] = true, -- 狂暴 - Berserk
+        [102560] = true, -- 化身：伊露恩的選民 - Incarnation: Chosen of Elune
+        [391528] = true, -- 眾靈召集 - Convoke the Spirits
+        [202770] = true, -- 伊露恩之怒 - Fury of Elune
+        [204066] = true, -- 月光束 - Lunar Beam
+    },
+
+    ["EVOKER"] = {
+        [375087] = true, -- 巨龍之怒 - Dragonrage
+        [442204] = { -- 萬古吐息 - Breath of Eons
+            [403631] = true,
+        },
+        [357210] = { -- 深呼吸 - Deep Breath
+            [433874] = true,
+        },
+    },
+
+    ["HUNTER"] = {
+        [288613] = true, -- 百發百中 - Trueshot
+        [1250646] = true, -- 擊倒 - Takedown
+        [1265063] = true, -- 血腥狂亂 - Bloody Frenzy
+        [459808] = true, -- 悲鳴之箭 - Wailing Arrow
+        [1261193] = true, -- 轟天雷 - Boomstick
+        [1258344] = { -- 獸群奔騰 - Stampede
+            [1258345] = true,
+        },
+    },
+
+    ["MAGE"] = {
+        [190319] = true, -- 燃燒 - Combustion
+        [365350] = { -- 秘法湧動 - Arcane Surge
+            [365362] = true,
+        },
+    },
+
+    ["MONK"] = {
+        [1249625] = true, -- 天頂 - Zenith
+        [325153] = true, -- 爆裂酒桶 - Exploding Keg
+    },
+
+    ["PALADIN"] = {
+        [1234189] = true, -- 處決判決 - Execution Sentence
+    },
+
+    ["PRIEST"] = {
+        [194249] = true, -- 虛空形態 - Voidform
+    },
+
+    ["ROGUE"] = {
+        [13750] = true, -- 腎上腺素急升 - Adrenaline Rush
+        [121471] = true, -- 暗影之刃 - Shadow Blades
+        [185422] = true, -- 暗影之舞 - Shadow Dance
+        [51690] = true, -- 影分身 - Killing Spree
+        [13877] = true, -- 剃刀亂舞 - Blade Flurry
+        [394095] = { -- 弒君之刃 - Kingsbane
+            [385627] = true,
+        },
+    },
+
+    ["SHAMAN"] = {
+        [466772] = true, -- 末日之風 - Doom Winds
+        [191634] = true, -- 風暴看守者 - Stormkeeper
+        [114050] = { -- 提升 - Ascendance
+            [114051] = true,
+            [1219480] = true,
+        },
+    },
+
+    ["WARLOCK"] = {
+        [265187] = true, -- 召喚惡魔暴君 - Summon Demonic Tyrant
+        [205180] = true, -- 召喚暗黑凝視者 - Summon Darkglare
+        [111685] = true, -- 召喚地獄火 - Summon Infernal
+        [442726] = true, -- 惡意 - Malevolence
+        [1257052] = true, -- 黑暗收割 - Dark Harvest
+    },
+
+    ["WARRIOR"] = {
+        [107574] = true, -- 神威 - Avatar
+        [1719] = true, -- 魯莽 - Recklessness
+        [446035] = { -- 旋風斬 - Bladestorm
+            [227847] = true,
+        },
+    },
+}
+
+function I.GetOffensives()
+    return offensives
+end
+
+local builtInOffensives = {}
+local customOffensives = {}
+
+local function UpdateOffensives(id, trackByName)
+    if trackByName then
+        local name = F.GetSpellInfo(id)
+        if name then
+            builtInOffensives[name] = true
+        end
+    end
+    -- Also store by ID so I.IsOffensiveCooldown() can match by ID directly.
+    builtInOffensives[id] = true
+end
+
+function I.UpdateOffensives(t)
+    -- Tolerate a missing table: this key is newer than the rest of CellDB, so an old profile
+    -- that reaches an option refresh before Revise has run would otherwise error here.
+    if type(t) ~= "table" then t = {["disabled"] = {}, ["custom"] = {}} end
+    t["disabled"] = t["disabled"] or {}
+    t["custom"] = t["custom"] or {}
+
+    -- user disabled
+    wipe(builtInOffensives)
+    for class, spells in pairs(offensives) do
+        for id, v in pairs(spells) do
+            if not t["disabled"][id] then -- not disabled
+                if type(v) == "table" then
+                    builtInOffensives[id] = true -- the cast itself, for I.IsOffensiveCooldown()
+                    for subId, subTrackByName in pairs(v) do
+                        UpdateOffensives(subId, subTrackByName)
+                    end
+                else
+                    UpdateOffensives(id, v)
+                end
+            end
+        end
+    end
+
+    -- user created
+    wipe(customOffensives)
+    for _, id in pairs(t["custom"]) do
+        customOffensives[id] = true
+    end
+end
+
+function I.IsOffensiveCooldown(name, id)
+    if not F.IsValueNonSecret(name) or not F.IsValueNonSecret(id) then return end
+    return builtInOffensives[name] or builtInOffensives[id] or customOffensives[id]
+end
+
+-------------------------------------------------
 -- spell-ID sets for AuraContainer candidateFilters (12.1)
 -- The match tables above are keyed by BOTH spell name and id (name keys exist for
 -- trackByName spells), but candidateFilters.includeSpellIDs accepts NUMERIC keys only --
@@ -530,6 +705,10 @@ end
 
 function I.GetDefensiveSpellIDs()
     return NumericKeysOf(builtInDefensives, customDefensives)
+end
+
+function I.GetOffensiveSpellIDs()
+    return NumericKeysOf(builtInOffensives, customOffensives)
 end
 
 function I.GetAllCooldownSpellIDs()
@@ -1166,14 +1345,18 @@ local actions = {
         {"A", {0.4, 1, 0}},
     },
     {
-        431416, -- 阿加治疗药水 - Algari Healing Potion
+        1234768, -- 銀月治療藥水 - Silvermoon Health Potion
         {"A", {1, 0.1, 0.1}},
     },
     {
-        431932, -- 淬火药水 - Tempered Potion
+        1236616, -- 潛能聖水 - Light's Potential
         {"C3", {1, 1, 0}},
     },
 }
+-- ⚠ Seasonal. These are the CAST spell IDs, not item IDs -- the indicator watches the cast, so
+-- an item ID here silently tracks nothing. Cross-check against Ayije_CDM/Modules/Racials.lua,
+-- which carries the itemID/spellID pairs for the same consumables.
+-- Midnight replaced TWW's 431416 (Algari Healing Potion) / 431932 (Tempered Potion).
 
 
 function I.GetDefaultActions()

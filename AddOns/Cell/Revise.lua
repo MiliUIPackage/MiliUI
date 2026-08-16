@@ -3576,6 +3576,57 @@ function F.Revise()
         end
     end
 
+    --! Midnight retired TWW's healing/burst potions, so the stock Actions indicator was
+    --! watching two cast IDs that can no longer fire -- silently, since a dead ID looks
+    --! exactly like "nobody drank anything". Remap in place: same slot, same animation, same
+    --! colour, so anyone who recoloured their potion entries keeps that. A user who already
+    --! replaced the ID by hand has no old ID to match and is left alone.
+    if not(CellDB["revise"]) or dbRevision < 287 then
+        if type(CellDB["actions"]) == "table" then
+            local retired = {
+                [431416] = 1234768, -- Algari Healing Potion -> Silvermoon Health Potion
+                [431932] = 1236616, -- Tempered Potion       -> Light's Potential
+            }
+            local seen = {}
+            for _, t in pairs(CellDB["actions"]) do
+                if type(t) == "table" then seen[t[1]] = true end
+            end
+            for _, t in pairs(CellDB["actions"]) do
+                if type(t) == "table" and retired[t[1]] and not seen[retired[t[1]]] then
+                    t[1] = retired[t[1]]
+                end
+            end
+            Cell.vars.actions = I.ConvertActions(CellDB["actions"])
+        end
+    end
+
+    --! New built-in: Offensive Cooldowns. It goes on the END of every layout's indicator list,
+    --! never in the middle -- the indices in Cell.defaults.indicatorIndices ARE array positions,
+    --! so an insert would silently repoint every indicator after it in every saved layout.
+    if not(CellDB["revise"]) or dbRevision < 287 then
+        if type(CellDB["offensives"]) ~= "table" then
+            CellDB["offensives"] = {["disabled"] = {}, ["custom"] = {}}
+        end
+
+        local index = Cell.defaults.indicatorIndices.offensiveCooldowns
+        local default = Cell.defaults.layout["indicators"][index]
+        if default then
+            for _, layout in pairs(CellDB["layouts"]) do
+                local indicators = layout["indicators"]
+                if indicators and (not indicators[index] or indicators[index]["indicatorName"] ~= "offensiveCooldowns") then
+                    -- tinsert errors on a position past #t+1, and a layout that skipped an
+                    -- earlier migration can be short. Append in that case; the index only has
+                    -- to be right for layouts that are actually up to date.
+                    if #indicators + 1 < index then
+                        indicators[#indicators + 1] = F.Copy(default)
+                    else
+                        tinsert(indicators, index, F.Copy(default))
+                    end
+                end
+            end
+        end
+    end
+
     CellDB["revise"] = Cell.version
     if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version

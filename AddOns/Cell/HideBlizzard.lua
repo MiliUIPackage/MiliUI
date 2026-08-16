@@ -44,9 +44,12 @@ local function HideFrame(frame)
     end
 end
 
+-- ⚠ Do NOT unregister GROUP_ROSTER_UPDATE from UIParent here. Stock Cell did (inherited from
+-- the ElvUI recipe this file is stolen from) and it is not needed: every frame we actually want
+-- silenced is unregistered individually below. UIParent's own handler drives unrelated systems
+-- -- the objective tracker's scenario/delve blocks among them -- so killing the event globally
+-- stops those from updating for as long as Cell is loaded, with no error to point at the cause.
 function F.HideBlizzardParty()
-    _G.UIParent:UnregisterEvent("GROUP_ROSTER_UPDATE")
-
     -- Midnight 12.0.0+ may have different party frame structure
     if _G.CompactPartyFrame then
         _G.CompactPartyFrame:UnregisterAllEvents()
@@ -74,9 +77,8 @@ function F.HideBlizzardParty()
     end
 end
 
+-- Same as HideBlizzardParty: no UIParent:UnregisterEvent("GROUP_ROSTER_UPDATE") here either.
 function F.HideBlizzardRaid()
-    _G.UIParent:UnregisterEvent("GROUP_ROSTER_UPDATE")
-
     if _G.CompactRaidFrameContainer then
         _G.CompactRaidFrameContainer:UnregisterAllEvents()
         _G.CompactRaidFrameContainer:SetParent(hiddenParent)

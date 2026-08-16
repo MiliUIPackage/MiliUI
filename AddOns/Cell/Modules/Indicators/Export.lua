@@ -108,6 +108,9 @@ local function CreateIndicatorsExportFrame()
             if name == "externalCooldowns" or name == "allCooldowns" then
                 data["related"]["externals"] = CellDB["externals"]
             end
+            if name == "offensiveCooldowns" then
+                data["related"]["offensives"] = CellDB["offensives"]
+            end
 
             if name == "debuffs" then
                 data["related"]["debuffBlacklist"] = CellDB["debuffBlacklist"]

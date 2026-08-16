@@ -494,6 +494,7 @@ function eventFrame:ADDON_LOADED(arg1)
         -- defensives/externals -------------------------------------------------------------------
         if type(CellDB["defensives"]) ~= "table" then CellDB["defensives"] = {["disabled"]={}, ["custom"]={}} end
         if type(CellDB["externals"]) ~= "table" then CellDB["externals"] = {["disabled"]={}, ["custom"]={}} end
+        if type(CellDB["offensives"]) ~= "table" then CellDB["offensives"] = {["disabled"]={}, ["custom"]={}} end
 
         -- raid debuffs ---------------------------------------------------------------------------
         if type(CellDB["raidDebuffs"]) ~= "table" then CellDB["raidDebuffs"] = {} end
@@ -871,6 +872,7 @@ function eventFrame:PLAYER_LOGIN()
     I.UpdateAoEHealings(CellDB["aoeHealings"])
     I.UpdateDefensives(CellDB["defensives"])
     I.UpdateExternals(CellDB["externals"])
+    I.UpdateOffensives(CellDB["offensives"])
     I.UpdateCrowdControls(CellDB["crowdControls"])
     -- update pixel perfect
     Cell.Fire("UpdatePixelPerfect")

@@ -41,6 +41,16 @@ end
 
 Cell 自己的版本在 `Comm/Comm.lua`（多一道 `Cell.isMidnight` 前置判斷，因為它要相容舊版本），並匯出成 `F.IsCommRestricted()`。MiliUI 的 `Enhance/VersionCheck.lua` 抄了同一份。
 
+**平滑進度條：SmoothStatusBarMixin 在 Midnight 已經不能用**
+`SmoothStatusBarMixin`（`SetSmoothedValue` / `SetMinMaxSmoothedValue`）是 **Lua**，會快取 min/max 並每幀 `Clamp()` 做算術——只要 health / powerMax 曾經是秘密值就直接拋錯。改用引擎自己的內插，第二個參數丟給 `SetValue` 就好，C 端算，吃秘密值：
+
+```lua
+-- Enum.StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 }
+bar:SetValue(secretHealth, Enum.StatusBarInterpolation.ExponentialEaseOut)
+```
+
+不要用 `bar.SetBarValue = bar.SetSmoothedValue` 這種把 mixin 換進去的老寫法。在地用例：`MiliUI_UnitFrames/Core/Secret.lua` 的 `ns.BarInterp()`、`Cell/RaidFrames/UnitButton.lua` 的 `barInterp`（由 `B.UpdateAnimation` 決定）、`Ayije_CDM/Modules/Resources_Trackers.lua`。
+
 **其他**
 - 新 interface 貼圖檔名不再進 ManifestInterfaceData DB，`exportinterfacefiles art` 抓不到新檔名（防劇透）；舊檔名保留。
 - 自動拾取設定（CVar `autoLootDefault`）改為帳號共用。

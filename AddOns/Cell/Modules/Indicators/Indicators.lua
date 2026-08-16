@@ -578,6 +578,15 @@ local function InitIndicator(indicatorName)
             indicator[i]._isPreviewPlayerCast = (i == 1)
             SetOnUpdate(indicator[i], nil, icons[i], 0)
         end
+    elseif indicatorName == "offensiveCooldowns" then
+        -- Resolved from spell IDs rather than hardcoded fileIDs (Recklessness / Combustion /
+        -- Avatar / Dragonrage / Trueshot) so the preview cannot drift from the real art.
+        local previewSpells = {1719, 190319, 107574, 375087, 288613}
+        for i = 1, #indicator do
+            local _, icon = F.GetSpellInfo(previewSpells[i])
+            indicator[i]._isPreviewPlayerCast = (i == 1)
+            SetOnUpdate(indicator[i], nil, icon or 134400, 0)
+        end
     elseif indicatorName == "allCooldowns" then
         local icons = {135936, 136120, 135966, 132362, 237542}
         for i = 1, #indicator do
@@ -655,6 +664,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 previewButton._indicatorsCreated = true
                 I.CreateDefensiveCooldowns(previewButton)
                 I.CreateExternalCooldowns(previewButton)
+                I.CreateOffensiveCooldowns(previewButton)
                 I.CreateAllCooldowns(previewButton)
                 I.CreateDebuffs(previewButton)
             end
@@ -1637,6 +1647,11 @@ if Cell.isRetail or Cell.isMists then
         ["defensiveCooldowns"] = Cell.isMidnight
             and {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", midnightDurationVisibility, "durationColor", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont}
             or {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        -- Unlike externals/defensives this one keeps its custom list on Midnight: the container
+        -- reads it through includeSpellIDs, which cannot tell a custom id from a built-in one.
+        ["offensiveCooldowns"] = Cell.isMidnight
+            and {"|cffb7b7b7"..L["Show major damage cooldowns, so you can see who is bursting."], "enabled", "builtInOffensives", "customOffensives", midnightDurationVisibility, "durationColor", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont}
+            or {"|cffb7b7b7"..L["Show major damage cooldowns, so you can see who is bursting."], "enabled", "builtInOffensives", "customOffensives", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
         ["allCooldowns"] = {"enabled", midnightDurationVisibility, "durationColor", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
         ["tankActiveMitigation"] = {"|cffb7b7b7"..I.GetTankActiveMitigationString(), "enabled", "color-class", "size", "position", "frameLevel"},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "iconStyle", "orientation", "size-square", "position", "frameLevel"},
@@ -1960,6 +1975,23 @@ local function ShowIndicatorSettings(id)
                 CellDB["externals"]["custom"] = value
                 I.UpdateExternals(CellDB["externals"])
                 Cell.Fire("UpdateIndicators", notifiedLayout, "", "externals")
+            end)
+
+        -- builtInOffensives
+        elseif currentSetting == "builtInOffensives" then
+            w:SetDBValue(I.GetOffensives(), CellDB["offensives"]["disabled"])
+            w:SetFunc(function()
+                I.UpdateOffensives(CellDB["offensives"])
+                Cell.Fire("UpdateIndicators", notifiedLayout, "", "offensives")
+            end)
+
+        -- customOffensives
+        elseif currentSetting == "customOffensives" then
+            w:SetDBValue(_G.CUSTOM, CellDB["offensives"]["custom"], true)
+            w:SetFunc(function(value)
+                CellDB["offensives"]["custom"] = value
+                I.UpdateOffensives(CellDB["offensives"])
+                Cell.Fire("UpdateIndicators", notifiedLayout, "", "offensives")
             end)
 
         -- builtInCrowdControls

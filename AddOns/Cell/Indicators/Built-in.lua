@@ -499,6 +499,38 @@ function I.CreateAllCooldowns(parent)
 end
 
 -------------------------------------------------
+-- CreateOffensiveCooldowns
+-------------------------------------------------
+function I.CreateOffensiveCooldowns(parent)
+    local offensiveCooldowns = CreateFrame("Frame", parent:GetName().."OffensiveCooldownParent", parent.widgets.indicatorFrame)
+    parent.indicators.offensiveCooldowns = offensiveCooldowns
+    offensiveCooldowns:Hide()
+
+    offensiveCooldowns._SetSize = offensiveCooldowns.SetSize
+    offensiveCooldowns.SetSize = I.Cooldowns_SetSize
+    offensiveCooldowns.UpdateSize = I.Cooldowns_UpdateSize
+    offensiveCooldowns.SetFont = I.Cooldowns_SetFont
+    offensiveCooldowns.SetOrientation = I.Cooldowns_SetOrientation
+    offensiveCooldowns.ShowDuration = I.Cooldowns_ShowDuration
+    offensiveCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
+    offensiveCooldowns.SetupGlow = I.Glow_SetupForChildren
+    offensiveCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
+
+    if IsPreviewButton(parent) then
+        for i = 1, 5 do
+            local n = parent:GetName().."OffensiveCooldown"..i
+            tinsert(offensiveCooldowns, Cell.isMidnight and I.CreateAura_BorderIcon(n, offensiveCooldowns, 1.5)
+                or I.CreateAura_BarIcon(n, offensiveCooldowns))
+        end
+    end
+
+    -- Offensives are HELPFUL auras on a friendly unit, which is exactly the pool 12.1 still
+    -- lets us filter by spell ID -- so the curated list survives on the container path the
+    -- same way the defensive/external rows do.
+    AttachBuffContainer(parent, offensiveCooldowns, I.GetOffensiveSpellIDs, 2)
+end
+
+-------------------------------------------------
 -- CreateTankActiveMitigation
 -------------------------------------------------
 function I.CreateTankActiveMitigation(parent)

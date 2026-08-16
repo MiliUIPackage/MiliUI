@@ -98,6 +98,8 @@ local function CreateIndicatorsImportFrame()
                     I.UpdateDefensives(CellDB[k])
                 elseif k == "externals" then
                     I.UpdateExternals(CellDB[k])
+                elseif k == "offensives" then
+                    I.UpdateOffensives(CellDB[k])
                 -- elseif k == "cleuAuras" then
                 --     if Cell.isRetail then
                 --         I.UpdateCleuAuras(CellDB[k])

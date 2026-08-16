@@ -7104,6 +7104,7 @@ local builders = {
     ["builtInAoEHealings"] = CreateSetting_BuiltIns,
     ["builtInDefensives"] = CreateSetting_BuiltIns,
     ["builtInExternals"] = CreateSetting_BuiltIns,
+    ["builtInOffensives"] = CreateSetting_BuiltIns,
     ["builtInCrowdControls"] = CreateSetting_BuiltIns,
     ["actionsPreview"] = CreateSetting_ActionsPreview,
     ["actionsList"] = CreateSetting_ActionsList,
@@ -7161,7 +7162,8 @@ function Cell.CreateIndicatorSettings(parent, settingsTable)
         elseif string.find(setting, "^checkbutton") then
             tinsert(widgetsTable, CreateSetting_CheckButton(parent))
         elseif setting == "auras" or setting == "debuffBlacklist" or setting == "dispelBlacklist" or setting == "targetedSpellsList"
-        or setting == "customAoEHealings" or setting == "customDefensives" or setting == "customExternals" or setting == "customCrowdControls" then
+        or setting == "customAoEHealings" or setting == "customDefensives" or setting == "customExternals"
+        or setting == "customOffensives" or setting == "customCrowdControls" then
             tinsert(widgetsTable, CreateSetting_Auras(parent, 1))
         elseif setting == "auras2" or setting == "bigDebuffs" then
             tinsert(widgetsTable, CreateSetting_Auras(parent, 2))
