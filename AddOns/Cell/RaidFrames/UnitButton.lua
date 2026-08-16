@@ -2536,32 +2536,23 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
         -- Refresh calculator so we have current data (critical for standalone UNIT_ABSORB_AMOUNT_CHANGED events)
         UnitButton_UpdateCalculator(self)
         local absorbs = self.widgets.healthCalculator:GetDamageAbsorbs()
-        -- Update the shield widget bars
-        self.widgets.shieldBar:SetValue(absorbs)
-        self.widgets.shieldBar:Show()
-
-        -- Overshield glow and reverse-fill bar
-        -- NOTE: absorbs is a secret value on Midnight â€” we can't compare it to health to detect overshield.
-        -- Show the glow whenever shields are present and overshieldEnabled is on.
-        -- TODO: Use a Curve to map (absorbs + health - maxHealth) to glow visibility for precise overshield detection.
+        -- Exactly ONE shield bar shows. Reverse fill draws from the RIGHT (the front of the
+        -- health bar, so the shield reads as extra HP and stays visible at full health);
+        -- forward fill draws from the left, overlaid on the health. ⚠ The forward bar used to
+        -- be shown UNCONDITIONALLY above, so reverse-fill mode left BOTH bars up -- the "two
+        -- shield bars at once" bug. Overshield glow stays hidden (12.1 secret absorbs can't
+        -- detect overshield).
         if overshieldReverseFillEnabled then
+            self.widgets.shieldBar:Hide()
             self.widgets.shieldBarR:SetValue(absorbs)
             self.widgets.shieldBarR:Show()
-            if overshieldEnabled then
-                self.widgets.overShieldGlowR:Show()
-            else
-                self.widgets.overShieldGlowR:Hide()
-            end
-            self.widgets.overShieldGlow:Hide()
         else
-            if overshieldEnabled then
-                self.widgets.overShieldGlow:Show()
-            else
-                self.widgets.overShieldGlow:Hide()
-            end
+            self.widgets.shieldBar:SetValue(absorbs)
+            self.widgets.shieldBar:Show()
             self.widgets.shieldBarR:Hide()
-            self.widgets.overShieldGlowR:Hide()
         end
+        self.widgets.overShieldGlow:Hide()
+        self.widgets.overShieldGlowR:Hide()
 
         -- Update shield indicator (user-configurable indicator on top of health bar)
         if enabledIndicators["shieldBar"] then
@@ -3493,15 +3484,13 @@ end
 function B.UpdateShields(button)
     predictionEnabled = CellDB["appearance"]["healPrediction"][1]
     shieldEnabled = CellDB["appearance"]["shield"][1]
-    -- OVERSHIELD DISABLED (12.1): overshield = (absorbs + health) > maxHealth, and all three
-    -- are SECRET values on Midnight, so a tainted addon cannot detect it. The old code showed
-    -- the glow UNCONDITIONALLY whenever the option was on -- a false white edge with no shield.
-    -- Forced off here (single point -> every display path takes its Hide branch); the appearance
-    -- option is removed too. Restore by reading the DB again once a secret-safe path exists.
+    -- OVERSHIELD GLOW disabled (12.1): overshield = (absorbs + health) > maxHealth, all three
+    -- SECRET on Midnight, so it can't be detected -- the glow showed a false white edge with no
+    -- shield. Only the glow/detection is gone. The shield "Reverse Fill" DIRECTION stays: it is
+    -- a NORMAL shield option (fills from the front, reads as extra HP, visible at full health).
     -- overshieldEnabled = CellDB["appearance"]["overshield"][1]
-    -- overshieldReverseFillEnabled = shieldEnabled and CellDB["appearance"]["overshieldReverseFill"]
     overshieldEnabled = false
-    overshieldReverseFillEnabled = false
+    overshieldReverseFillEnabled = shieldEnabled and CellDB["appearance"]["overshieldReverseFill"]
     absorbEnabled = CellDB["appearance"]["healAbsorb"][1]
     absorbInvertColor = CellDB["appearance"]["healAbsorbInvertColor"]
 

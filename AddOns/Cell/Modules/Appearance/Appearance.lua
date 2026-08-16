@@ -467,7 +467,7 @@ local function UpdatePreviewShields(r, g, b)
 
     -- Shield texture
     if Cell.isRetail or Cell.isMists or Cell.isWrath or Cell.isCata then
-        local reverseFilling = false -- overshield (incl. reverse fill) removed: undetectable on 12.1
+        local reverseFilling = CellDB["appearance"]["shield"][1] and CellDB["appearance"]["overshieldReverseFill"]
 
         if CellDB["appearance"]["shield"][1] then
             if reverseFilling then
@@ -844,7 +844,7 @@ local function UpdateCheckButtons()
     predCustomCB:SetEnabled(CellDB["appearance"]["healPrediction"][1])
     predColorPicker:SetEnabled(CellDB["appearance"]["healPrediction"][1] and CellDB["appearance"]["healPrediction"][2])
     shieldColorPicker:SetEnabled(CellDB["appearance"]["shield"][1])
-    -- reverseCB:SetEnabled(CellDB["appearance"]["shield"][1])   -- overshield removed
+    reverseCB:SetEnabled(CellDB["appearance"]["shield"][1])
     absorbColorPicker:SetEnabled(CellDB["appearance"]["healAbsorb"][1])
     invertColorCB:SetEnabled(CellDB["appearance"]["healAbsorb"][1])
     -- oversColorPicker:SetEnabled(CellDB["appearance"]["overshield"][1])   -- overshield removed
@@ -1512,11 +1512,18 @@ local function CreateUnitButtonStylePane()
     end)
     shieldColorPicker:SetPoint("TOPLEFT", shieldCB, "TOPRIGHT", 5, 0)
 
-    -- OVERSHIELD OPTION REMOVED: overshield can't be detected on 12.1 (absorbs is a secret
-    -- value -- see B.UpdateShields in UnitButton.lua), so the reverse-fill / overshield / colour
-    -- widgets only ever drove a false always-on glow. Creation removed; the matching
-    -- SetEnabled/SetChecked/SetColor load sites are commented out too so nothing references nil.
-    -- (was: reverseCB, oversCB, oversColorPicker)
+    -- shield reverse fill (a NORMAL shield display option: fills from the front so the shield
+    -- reads as extra HP and stays visible at full health). Kept.
+    reverseCB = Cell.CreateCheckButton(unitButtonPane, L["Reverse Fill"], function(checked, self)
+        CellDB["appearance"]["overshieldReverseFill"] = checked
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    reverseCB:SetPoint("TOPLEFT", shieldCB, "BOTTOMRIGHT", 0, -7)
+
+    -- OVERSHIELD (glow) OPTION REMOVED: overshield can't be detected on 12.1 (absorbs is a
+    -- secret value -- see B.UpdateShields), so the glow only ever showed a false always-on
+    -- white edge. The oversCB / oversColorPicker widgets are gone; their load sites are
+    -- commented out so nothing references nil.
 
     -- reset
     local resetBtn = Cell.CreateButton(unitButtonPane, L["Reset All"], "accent", {77, 17}, nil, nil, nil, nil, nil, L["Reset All"], L["[Ctrl+Left-Click] to reset these settings"])
@@ -1651,7 +1658,7 @@ LoadButtonStyle = function()
     invertColorCB:SetChecked(CellDB["appearance"]["healAbsorbInvertColor"])
     shieldCB:SetChecked(CellDB["appearance"]["shield"][1])
     -- oversCB:SetChecked(CellDB["appearance"]["overshield"][1])            -- overshield removed
-    -- reverseCB:SetChecked(CellDB["appearance"]["overshieldReverseFill"])  -- overshield removed
+    reverseCB:SetChecked(CellDB["appearance"]["overshieldReverseFill"])
 
     predCustomCB:SetChecked(CellDB["appearance"]["healPrediction"][2])
     predColorPicker:SetColor(unpack(CellDB["appearance"]["healPrediction"][3]))
