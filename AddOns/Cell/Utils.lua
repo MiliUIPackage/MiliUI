@@ -1592,6 +1592,10 @@ Cell.vars.whiteTexture = "Interface\\AddOns\\Cell\\Media\\white.tga"
 
 local LSM = LibStub("LibSharedMedia-3.0", true)
 LSM:Register("statusbar", "Cell ".._G.DEFAULT, Cell.vars.texture)
+-- Cell's DEFAULT texture is "TukTex" (Appearance_Defaults). Bundle + self-register it so the
+-- default resolves without depending on SharedMedia/Tukui being installed. LSM:Register no-ops
+-- if another addon already registered "TukTex", so this only fills the gap, never overrides.
+LSM:Register("statusbar", "TukTex", [[Interface\AddOns\Cell\Media\tuktex.tga]])
 LSM:Register("font", "Visitor", [[Interface\Addons\Cell\Media\Fonts\visitor.ttf]], 255)
 
 function F.GetBarTexture()
