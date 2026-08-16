@@ -82,7 +82,13 @@ function ns.InitDB()
 end
 
 function ns.GetDB()
-    return ns.db or ns.InitDB()
+    -- Re-init when the saved table was swapped out from under us: a DB read that
+    -- happens before the SavedVariables file is loaded would otherwise pin a
+    -- stale defaults-only table forever (settings then read as "all default").
+    if ns.db == nil or ns.db ~= MiliUI_BurstPotionHelperDB then
+        return ns.InitDB()
+    end
+    return ns.db
 end
 
 function ns.Print(msg)

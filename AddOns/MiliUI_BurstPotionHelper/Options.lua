@@ -93,6 +93,10 @@ end
 ----------------------------------------------------------------------
 local settingsCategory
 
+-- Every widget that mirrors a DB value registers a refresher here; the panel
+-- re-runs them all whenever the Settings framework displays it (see RefreshPanel).
+local panelRefreshers = {}
+
 local function CreateCheckbox(parent, label, anchor, dx, dy, get, set)
     local cb = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     cb:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", dx, dy)
@@ -100,7 +104,9 @@ local function CreateCheckbox(parent, label, anchor, dx, dy, get, set)
     cb.Text = cb:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     cb.Text:SetPoint("LEFT", cb, "RIGHT", 4, 0)
     cb.Text:SetText(label)
-    cb:SetScript("OnShow", function(self) self:SetChecked(get()) end)
+    local function Refresh() cb:SetChecked(get() and true or false) end
+    panelRefreshers[#panelRefreshers + 1] = Refresh
+    cb:SetScript("OnShow", Refresh)
     cb:SetScript("OnClick", function(self) set(self:GetChecked() and true or false) end)
     return cb
 end
@@ -108,7 +114,8 @@ end
 local function BuildPanel()
     local panel = CreateFrame("Frame", "MiliUI_BurstPotionHelperOptions", UIParent)
     panel.name = L.SETTINGS_TITLE
-    panel.OnCommit, panel.OnDefault, panel.OnRefresh = function() end, function() end, function() end
+    panel.OnCommit, panel.OnDefault = function() end, function() end
+    -- panel.OnRefresh is assigned at the end of BuildPanel (see RefreshPanel).
 
     local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
@@ -132,9 +139,8 @@ local function BuildPanel()
             ctxLine:SetText(L.SETTINGS_CURRENT_CONTEXT:format(L.CONTEXT_SHARED))
         end
     end
-    -- Only refreshed on show: BuildPanel runs at file load, before SavedVariables
-    -- exist, so no DB read may happen here.
-    panel:HookScript("OnShow", UpdateCtxLine)
+    -- Only refreshed on display: BuildPanel runs at file load, before SavedVariables
+    -- exist, so no DB read may happen here (wired up at the end of BuildPanel).
 
     -- Section: Options
     local sec1 = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
@@ -196,10 +202,36 @@ local function BuildPanel()
     resetBtn:SetText(L.BTN_RESET_POS)
     resetBtn:SetScript("OnClick", function() ns.Bar_ResetPosition() end)
 
+    ------------------------------------------------------------------
+    -- Keeping the widgets in sync with the DB
+    --
+    -- Relying on each widget's own OnShow is NOT enough. Blizzard's
+    -- SettingsPanelMixin:DisplayLayout does, for a canvas category:
+    --     frame:SetParent(settingsCanvas); frame:Show()
+    --     securecallfunction(CallRefreshOnFrame, frame)   -- frame.OnRefresh()
+    --     settingsCanvas:Show()
+    -- When you switch in from ANOTHER canvas panel, settingsCanvas is already
+    -- visible and the frame was already shown, so frame:Show() is a no-op and
+    -- no OnShow ever fires — every checkbox then kept its CreateFrame state
+    -- (unchecked), and clicking one wrote that wrong value back to the DB.
+    -- OnRefresh is called on every display regardless, so that is the reliable
+    -- hook; OnShow is kept as a second path (and covers the canvas-was-hidden
+    -- case, where OnRefresh runs before the frame is actually on screen).
+    ------------------------------------------------------------------
+    local function RefreshPanel()
+        for _, Refresh in ipairs(panelRefreshers) do Refresh() end
+        UpdateCtxLine()
+    end
+    panel.OnRefresh = RefreshPanel
+    panel:HookScript("OnShow", RefreshPanel)
+
     return panel
 end
 
 local panel = BuildPanel()
+-- Start hidden: created shown under UIParent, the framework's frame:Show() would
+-- be a no-op and OnShow/OnHide would never pair up (see RefreshPanel above).
+panel:Hide()
 settingsCategory = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
 Settings.RegisterAddOnCategory(settingsCategory)
 
@@ -210,7 +242,8 @@ local LIST_WIDTH, LIST_HEIGHT, ROW_H = 560, 440, 28
 
 local listPanel = CreateFrame("Frame", "MiliUI_BurstPotionHelperListPanel", UIParent)
 listPanel.name = L.SECTION_LIST
-listPanel.OnCommit, listPanel.OnDefault, listPanel.OnRefresh = function() end, function() end, function() end
+listPanel.OnCommit, listPanel.OnDefault = function() end, function() end
+-- listPanel.OnRefresh is assigned below, next to the OnShow handler.
 
 local lTitle = listPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 lTitle:SetPoint("TOPLEFT", 16, -16)
@@ -381,10 +414,14 @@ end
 listPanel:SetScript("OnEvent", function(_, event)
     if event == "ITEM_DATA_LOAD_RESULT" then ns.RefreshSettingsList() end
 end)
-listPanel:SetScript("OnShow", function(self)
-    self:RegisterEvent("ITEM_DATA_LOAD_RESULT")
+-- Same OnShow caveat as the main panel: when the Settings canvas is already
+-- visible, only OnRefresh runs. Both entry points share this.
+local function DisplayListPanel()
+    listPanel:RegisterEvent("ITEM_DATA_LOAD_RESULT")   -- re-registering is a no-op
     ns.RefreshSettingsList()
-end)
+end
+listPanel:SetScript("OnShow", DisplayListPanel)
+listPanel.OnRefresh = DisplayListPanel
 listPanel:SetScript("OnHide", function(self)
     self:UnregisterEvent("ITEM_DATA_LOAD_RESULT")
 end)
@@ -473,6 +510,7 @@ hooksecurefunc("HandleModifiedItemClick", function(link)
     end
 end)
 
+listPanel:Hide()   -- start hidden, same reason as the main panel
 local listSubcategory = Settings.RegisterCanvasLayoutSubcategory(settingsCategory, listPanel, listPanel.name)
 Settings.RegisterAddOnCategory(listSubcategory)
 

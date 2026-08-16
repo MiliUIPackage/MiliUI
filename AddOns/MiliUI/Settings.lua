@@ -261,8 +261,8 @@ local function InitSettings()
     tip:SetPoint("TOPLEFT", url, "BOTTOMLEFT", 0, -6)
     tip:SetText("若有任何問題歡迎在米利UI套組頁面下方留言討論")
 
-    -- 開啟米利頭像框架（MiliUI_Unit_Frame）獨立設定面板
-    if C_AddOns.IsAddOnLoaded("MiliUI_Unit_Frame") then
+    -- 開啟米利頭像框架（MiliUI_UnitFrames）獨立設定面板
+    if C_AddOns.IsAddOnLoaded("MiliUI_UnitFrames") then
         local ufBtn = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
         ufBtn:SetSize(160, 24)
         ufBtn:SetPoint("TOPRIGHT", divider2, "BOTTOMRIGHT", 0, -8)
@@ -275,6 +275,9 @@ local function InitSettings()
         end)
     end
 
+    -- 註冊前先隱藏：面板建立當下就是 shown，暴雪切換 canvas 分頁時的 frame:Show()
+    -- 會變成 no-op，OnShow/OnHide 不會成對觸發（詳見下方 enhanceCanvas.OnRefresh）
+    mainFrame:Hide()
     local category = Settings.RegisterCanvasLayoutCategory(mainFrame, "0米利UI設定")
     -- 不覆寫 category.ID：Blizzard 12.0+ OpenSettingsPanel 內部需要 numeric ID
     Settings.RegisterAddOnCategory(category)
@@ -349,6 +352,7 @@ local function InitSettings()
     ver:SetPoint("TOPLEFT", lastAnchor, "BOTTOMLEFT", 0, -30)
     ver:SetText("米利UI套組 — addons.miliui.com")
 
+    importFrame:Hide()   -- 同 mainFrame
     local importCategory = Settings.RegisterCanvasLayoutSubcategory(category, importFrame, "預設值匯入")
     importCategory.ID = "MiliUI_Import"
 
@@ -778,6 +782,17 @@ local function InitSettings()
     SyncDeselectDropdown()
     enhanceCanvas:HookScript("OnShow", SyncDeselectDropdown)
 
+    -- 只掛 OnShow 不夠：從「另一個 canvas 面板」切進來時，暴雪的 canvas 容器已經是
+    -- 顯示狀態，DisplayLayout 的 frame:Show() 對已 shown 的框是 no-op → OnShow 整個
+    -- 不會觸發，勾選框會停在建立時的狀態。OnRefresh 才是每次顯示都會被呼叫的官方
+    -- 鉤子（securecallfunction(CallRefreshOnFrame, frame)）。
+    -- 詳見 .claude/notes/wow-settings-canvas-onrefresh.md
+    enhanceCanvas.OnRefresh = function()
+        SyncCheckboxes()
+        SyncDeselectDropdown()
+    end
+
+    enhanceCanvas:Hide()
     local enhanceCategory = Settings.RegisterCanvasLayoutSubcategory(category, enhanceCanvas, "插件強化")
     enhanceCategory.ID = "MiliUI_Enhance"
 
@@ -1002,6 +1017,7 @@ local function InitSettings()
     end
     SyncAuraSettings()
     auraFrame:SetScript("OnShow", SyncAuraSettings)
+    auraFrame.OnRefresh = SyncAuraSettings   -- OnShow 不可靠，見 enhanceCanvas.OnRefresh
 
     auraCB:HookScript("OnClick", function(self)
         if not MiliUI_BuffDurationStyle then return end
@@ -1064,6 +1080,7 @@ local function InitSettings()
 
 
 
+    auraFrame:Hide()   -- 同 mainFrame
     local auraCategory = Settings.RegisterCanvasLayoutSubcategory(category, auraFrame, "光環時間")
     auraCategory.ID = "MiliUI_Aura"
 
@@ -1652,6 +1669,14 @@ local function InitSettings()
     end
     focusCanvas:HookScript("OnShow", function() C_Timer.After(0, ResizeFocusScrollChild) end)
 
+    -- OnShow 不可靠，見 enhanceCanvas.OnRefresh。注意鉤子要掛在「註冊給 Settings 的
+    -- 那個框」(focusCanvas)，不是捲動內容的 focusFrame。
+    focusCanvas.OnRefresh = function()
+        SyncFocuserSettings()
+        C_Timer.After(0, ResizeFocusScrollChild)
+    end
+
+    focusCanvas:Hide()
     local focusCategory = Settings.RegisterCanvasLayoutSubcategory(category, focusCanvas, "焦點目標")
     focusCategory.ID = "MiliUI_Focus"
     -- 暴露給 FocuserBar 的握把右鍵開啟設定用

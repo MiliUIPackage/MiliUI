@@ -259,7 +259,9 @@ creditText:SetJustifyH("LEFT")
 creditText:SetWidth(600)
 creditText:SetText("|cff888888" .. (L["CREDIT_DFTL"] or "Bloodlust Music and Reminder inspired by EnhBloodlust and Don't Forget to Lust") .. "|r")
 
--- Register main category
+-- Register main category (hidden first, so the framework's Show() is a real
+-- visibility transition — see the note on musicPanel.OnRefresh below)
+mainPanel:Hide()
 settingsCategory = Settings.RegisterCanvasLayoutCategory(mainPanel, mainPanel.name)
 Settings.RegisterAddOnCategory(settingsCategory)
 
@@ -830,7 +832,7 @@ local function ForceShowTrackList()
     for _, pvBtn in ipairs(trackPreviews) do if pvBtn then pvBtn:Show() end end
 end
 
-musicPanel:SetScript("OnShow", function()
+local function RefreshMusicPanel()
     ns.InitDB(); db = ns.GetDB()
     RefreshTrackList()
     UpdatePlayModeButton()
@@ -838,25 +840,29 @@ musicPanel:SetScript("OnShow", function()
     -- UpdateDBMVoiceButton()  -- soft-removed
     if db then enableMusicCheck:SetChecked(db.musicEnabled) end
     ForceShowTrackList()
+end
 
+-- OnRefresh is the hook the Settings framework calls on EVERY display of a canvas
+-- category. OnShow alone is not enough: switching in from another canvas panel
+-- leaves the container already visible, so frame:Show() is a no-op and OnShow
+-- never fires (every control then keeps its build-time state). See
+-- wow-settings-canvas-onrefresh in .claude/notes.
+musicPanel.OnRefresh = function()
+    RefreshMusicPanel()
+    -- Second pass: the canvas doesn't render everything on the very first display.
     C_Timer.After(0.1, function()
-        if musicPanel:IsShown() then
-            ns.InitDB(); db = ns.GetDB()
-            RefreshTrackList()
-            UpdatePlayModeButton()
-            UpdateChannelButton()
-            -- UpdateDBMVoiceButton()  -- soft-removed
-            if db then enableMusicCheck:SetChecked(db.musicEnabled) end
-            ForceShowTrackList()
-        end
+        if musicPanel:IsShown() then RefreshMusicPanel() end
     end)
-end)
+end
+musicPanel:SetScript("OnShow", RefreshMusicPanel)   -- OnRefresh already queued the retry
 
 musicPanel:SetScript("OnHide", function()
     -- StopPreview() removed intentionally to allow music to play while switching setting tabs
 end)
 
--- Register as subcategory
+-- Register as subcategory. Start hidden: created shown under UIParent, the
+-- framework's frame:Show() would be a no-op and OnShow/OnHide never pair up.
+musicPanel:Hide()
 local musicSubcategory = Settings.RegisterCanvasLayoutSubcategory(settingsCategory, musicPanel, musicPanel.name)
 Settings.RegisterAddOnCategory(musicSubcategory)
 
@@ -995,16 +1001,19 @@ local resetPosDesc = barPanel:CreateFontString(nil, "ARTWORK", "GameFontHighligh
 resetPosDesc:SetPoint("LEFT", resetPosBtn, "RIGHT", 10, 0)
 resetPosDesc:SetText("- " .. L["RESET_POSITION_DESC"])
 
-barPanel:SetScript("OnShow", function()
+-- OnShow is not reliable for canvas panels (see the note on musicPanel.OnRefresh).
+barPanel.OnRefresh = function()
     ns.InitDB(); db = ns.GetDB()
     if db then
         enableBarCheck:SetChecked(db.barEnabled)
         widthSlider:SetValue(db.barWidth)
         heightSlider:SetValue(db.barHeight)
     end
-end)
+end
+barPanel:SetScript("OnShow", barPanel.OnRefresh)
 
--- Register as subcategory
+-- Register as subcategory (hidden first, same reason as musicPanel)
+barPanel:Hide()
 local barSubcategory = Settings.RegisterCanvasLayoutSubcategory(settingsCategory, barPanel, barPanel.name)
 Settings.RegisterAddOnCategory(barSubcategory)
 
@@ -1239,7 +1248,8 @@ reminderPanel.OnRefresh = function()
 end
 reminderPanel:SetScript("OnShow", reminderPanel.OnRefresh)
 
--- Register as subcategory
+-- Register as subcategory (hidden first, same reason as musicPanel)
+reminderPanel:Hide()
 local reminderSubcategory = Settings.RegisterCanvasLayoutSubcategory(settingsCategory, reminderPanel, reminderPanel.name)
 Settings.RegisterAddOnCategory(reminderSubcategory)
 

@@ -47,6 +47,11 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | 移除的 FrameXML 全域：SetDesaturation（AceConfig 面板全空白）、AnimateTexCoords（按鈕發光每幀報錯） |
 | [wow-121-coolinator-reference.md](wow-121-coolinator-reference.md) | 12.1 正解範本 —— **原始碼已不在本機**，要看去 GitHub |
 
+### 暴雪 UI 通則
+| 檔案 | 內容 |
+|---|---|
+| [wow-settings-canvas-onrefresh.md](wow-settings-canvas-onrefresh.md) | Settings canvas 面板的勾選框有時全空白 —— OnShow 不一定觸發，官方鉤子是 `frame.OnRefresh` |
+
 ### 工作現況
 | 檔案 | 內容 |
 |---|---|

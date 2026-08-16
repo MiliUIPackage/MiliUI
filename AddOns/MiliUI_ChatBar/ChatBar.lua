@@ -902,6 +902,7 @@ item2Desc:SetPoint("TOP", item2, "TOP", 0, 0)
 item2Desc:SetText("- " .. L["CHANNELS_DESC"])
 
 -- Register main category
+mainPanel:Hide()   -- hidden first, same reason as channelPanel below
 MiliUI_ChatbarSettingsCategory = Settings.RegisterCanvasLayoutCategory(mainPanel, mainPanel.name)
 Settings.RegisterAddOnCategory(MiliUI_ChatbarSettingsCategory)
 
@@ -1103,7 +1104,8 @@ generalPanel.OnRefresh = function()
     end
 end
 
--- Register as subcategory
+-- Register as subcategory (hidden first, same reason as channelPanel below)
+generalPanel:Hide()
 local generalSubcategory = Settings.RegisterCanvasLayoutSubcategory(MiliUI_ChatbarSettingsCategory, generalPanel, generalPanel.name)
 Settings.RegisterAddOnCategory(generalSubcategory)
 
@@ -1315,43 +1317,45 @@ RefreshChannelList = function()
     end
 end
 
--- Refresh when panel is shown
-channelPanel:SetScript("OnShow", function(self)
+-- Everything this panel mirrors from the DB, in one place.
+channelPanel.Refresh = function()
     InitDB()
 
     -- Force show container
     channelContainer:Show()
-    
+
     RefreshChannelList()
-    
+
     -- Force show all existing checkboxes
     for i, ck in ipairs(channelContainer.checks) do
         if ck then ck:Show() end
     end
-    
-    -- Delayed refresh to handle Settings API timing
-    C_Timer.After(0.1, function()
-        if channelPanel:IsShown() then
-            channelContainer:Show()
-            RefreshChannelList()
-            for i, ck in ipairs(channelContainer.checks) do
-                if ck then ck:Show() end
-            end
-        end
-    end)
-end)
 
--- Register as subcategory
-local channelSubcategory = Settings.RegisterCanvasLayoutSubcategory(MiliUI_ChatbarSettingsCategory, channelPanel, channelPanel.name)
-Settings.RegisterAddOnCategory(channelSubcategory)
-
--- Update OnRefresh for channel panel to ensure DBM slider persists
-channelPanel.OnRefresh = function()
     if channelContainer.dbmSlider then
         local val = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds) or 10
         channelContainer.dbmSlider:SetValue(val)
         channelContainer.dbmSlider.Text:SetText(L["DBM_PULL_SECONDS"] .. ": " .. val)
     end
+end
+channelPanel:SetScript("OnShow", channelPanel.Refresh)
+
+-- Register as subcategory. Hidden first: the panel is created shown under
+-- UIParent, so the Settings framework's frame:Show() would be a no-op and
+-- OnShow would never fire when switching in from another canvas panel.
+channelPanel:Hide()
+local channelSubcategory = Settings.RegisterCanvasLayoutSubcategory(MiliUI_ChatbarSettingsCategory, channelPanel, channelPanel.name)
+Settings.RegisterAddOnCategory(channelSubcategory)
+
+-- OnRefresh is the hook the Settings framework calls on EVERY display of a canvas
+-- category, and unlike OnShow it fires even when the canvas container is already
+-- visible (switching in from another canvas panel). It has to rebuild the whole
+-- panel, not just the DBM slider — see .claude/notes/wow-settings-canvas-onrefresh.md
+channelPanel.OnRefresh = function()
+    channelPanel.Refresh()
+    -- Delayed refresh to handle Settings API timing
+    C_Timer.After(0.1, function()
+        if channelPanel:IsShown() then channelPanel.Refresh() end
+    end)
 end
 
 -- Pre-create checkboxes at load time (not waiting for panel to show)
