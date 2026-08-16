@@ -7,6 +7,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 local isInEditMode = false
 
 ------------------------------------------------------------
@@ -71,7 +73,7 @@ local function UpdateEditModeState()
             if uf.bossIndex and uf.bossIndex > 1 then return end
             if not uf.db.enabled then return end
             local label = ns.UNIT_LABELS[unitKey] or unitKey
-            local sel = AttachSelection(uf, "米利頭像：" .. label, uf.db.frame, function()
+            local sel = AttachSelection(uf, L["MiliUI UF: "] .. label, uf.db.frame, function()
                 ns.ApplySettings(unitKey)     -- 同步 boss2-5 與孿生
             end)
             uf:EnableMouse(true)
@@ -80,7 +82,7 @@ local function UpdateEditModeState()
         -- 圖騰（真實框本身就不是 secure，可直接拖；顯示假內容供瞄準）
         local totem = ns.totemFrame
         if totem and ns.db.units.totem.enabled then
-            local sel = AttachSelection(totem, "米利頭像：召喚物", ns.db.units.totem.frame, function()
+            local sel = AttachSelection(totem, L["MiliUI UF: Summons"], ns.db.units.totem.frame, function()
                 if ns.TotemsApplySettings then ns.TotemsApplySettings() end
             end, ns.TotemsAnchorTo)
             totem:Show()      -- 框本身固定四格寬，選取框直接蓋得準

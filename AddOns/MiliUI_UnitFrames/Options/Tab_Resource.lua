@@ -7,6 +7,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 local W, Controls = ns.W, ns.Controls
 
 local tab, scroll, content, refreshers, specSig
@@ -19,26 +21,26 @@ end
 local function BuildControls()
     local cand, specID = ns.ResourceCandidates()
     local list = {
-        { type = "toggle", key = "enabled", label = "顯示資源條" },
-        { type = "text",   label = "掛在玩家框下方，逐列往下排。要顯示哪些資源跟著專精走，切專精會自動換。" },
-        { type = "header", label = "位置與大小" },
-        { type = "numbers", label = "位置", fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
-        { type = "text",   label = "相對玩家框「左下角」的偏移（往下是負的）。" },
-        { type = "slider", key = "totalw",     label = "總寬",   min = 40, max = 400, step = 2 },
-        { type = "slider", key = "h",          label = "每列高", min = 2,  max = 30,  step = 1 },
-        { type = "slider", key = "rowSpacing", label = "列距",   min = 0,  max = 12,  step = 1 },
-        { type = "slider", key = "spacing",    label = "分段間距", min = 0, max = 8,  step = 1 },
-        { type = "text",   label = "分段間距只影響點數型（聖能、連擊點那種一格一格的）。" },
-        { type = "slider", key = "level",      label = "圖層",   min = 0,  max = 15,  step = 1 },
-        { type = "header", label = "外觀" },
-        { type = "slider", key = "barAlpha", label = "填充透明度", min = 0.1, max = 1, step = 0.05 },
-        { type = "toggle", key = "showText", label = "長條上顯示數值" },
-        { type = "header", label = "這個專精要顯示哪些" },
+        { type = "toggle", key = "enabled", label = L["Show resource bars"] },
+        { type = "text",   label = L["Anchored below the player frame, stacking downward. Which resources appear follows your specialization and switches automatically."] },
+        { type = "header", label = L["Position and size"] },
+        { type = "numbers", label = L["Position"], fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
+        { type = "text",   label = L["Offset from the bottom-left corner of the player frame (negative goes down)."] },
+        { type = "slider", key = "totalw",     label = L["Total width"],   min = 40, max = 400, step = 2 },
+        { type = "slider", key = "h",          label = L["Row height"], min = 2,  max = 30,  step = 1 },
+        { type = "slider", key = "rowSpacing", label = L["Row spacing"],   min = 0,  max = 12,  step = 1 },
+        { type = "slider", key = "spacing",    label = L["Segment spacing"], min = 0, max = 8,  step = 1 },
+        { type = "text",   label = L["Segment spacing only affects point-style resources (Holy Power, combo points and the like)."] },
+        { type = "slider", key = "level",      label = L["Layer"],   min = 0,  max = 15,  step = 1 },
+        { type = "header", label = L["Appearance"] },
+        { type = "slider", key = "barAlpha", label = L["Fill opacity"], min = 0.1, max = 1, step = 0.05 },
+        { type = "toggle", key = "showText", label = L["Show value on the bar"] },
+        { type = "header", label = L["Show for this specialization"] },
     }
 
     if #cand == 0 then
         list[#list + 1] = { type = "text",
-            label = "目前這個專精沒有額外資源要顯示，整條會自動收起來。法力刻意不列在這裡——單位框自己的能量條已經在顯示了。" }
+            label = L["This specialization has no extra resource to show, so the whole row collapses. Mana is deliberately not listed here: the unit frame's own power bar already shows it."] }
     else
         for _, key in ipairs(cand) do
             local info = ns.ResourceInfo(key)
@@ -46,12 +48,12 @@ local function BuildControls()
                                 label = info and info.name or key, default = true }
         end
         list[#list + 1] = { type = "text",
-            label = "吸收量型的資源（醉仙緩勁、鐵鬃、無視苦痛）12.1 是秘密值，插件拿不到數字，所以沒有列進來。" }
+            label = L["Absorb-style resources (Stagger, Ironfur, Ignore Pain) are secret values in 12.1 — addons can't read the numbers, so they aren't listed."] }
     end
 
-    list[#list + 1] = { type = "header", label = "重置" }
-    list[#list + 1] = { type = "button", label = "恢復預設", text = "資源設定恢復預設", color = "red",
-        confirm = "把資源條的設定恢復成預設值？",
+    list[#list + 1] = { type = "header", label = L["Reset"] }
+    list[#list + 1] = { type = "button", label = L["Restore defaults"], text = L["Restore resource defaults"], color = "red",
+        confirm = L["Restore the resource bar settings to their defaults?"],
         onClick = function()
             local edb = EDB()
             if not edb then return end
@@ -110,7 +112,7 @@ local function Init()
     tab:SetAllPoints(ns.Options.panel)
     tab:Hide()
 
-    local title = W.CreateSectionTitle(tab, "資源條", 660)
+    local title = W.CreateSectionTitle(tab, L["Resource bars"], 660)
     title:SetPoint("TOPLEFT", 16, -14)
 
     local holder = CreateFrame("Frame", nil, tab)

@@ -12,6 +12,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 ns.DB = {}
 local DB = ns.DB
 
@@ -92,8 +94,8 @@ function DB.BuildDefaults()
                 notInterruptible = { r = 0.53, g = 0.53, b = 0.53 },
             },
             classification = {
-                worldboss = " 首領", rareelite = " 稀有精英",
-                elite = " 精英", rare = " 稀有", normal = "", unknown = "??",
+                worldboss = L[" Boss"], rareelite = L[" Rare Elite"],
+                elite = L[" Elite"], rare = L[" Rare"], normal = "", unknown = "??",
             },
         },
 
@@ -144,7 +146,7 @@ function DB.BuildDefaults()
                                  justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
                         textDef{ pattern = "[percmp]%", x = 10, y = -48, w = 200, h = 10, size = 10,
                                  justifyH = "RIGHT", justifyV = "BOTTOM", level = 11 },
-                        textDef{ pattern = "[gray_if_dead:死亡][gray_if_ghost:靈魂]",
+                        textDef{ pattern = L["[gray_if_dead:Dead][gray_if_ghost:Ghost]"],
                                  x = 0, y = 3, w = 200, h = 50, size = 14,
                                  justifyH = "CENTER", justifyV = "BOTTOM" },
                         textDef{ pattern = "[perchp]%", x = -2, y = -2, w = 200, h = 50, size = 13,
@@ -208,7 +210,7 @@ function DB.BuildDefaults()
                                  justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
                         textDef{ pattern = "[percmp]%", x = 0, y = -48, w = 200, h = 10, size = 10,
                                  justifyH = "RIGHT", justifyV = "BOTTOM", level = 11 },
-                        textDef{ pattern = "[gray_if_oor:超出距離 ][gray_if_tapped:無獎勵目標 ][gray_if_offline:離線 ][gray_if_dead:死亡 ][gray_if_ghost:鬼魂 ]",
+                        textDef{ pattern = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"],
                                  x = 0, y = 3, w = 200, h = 50, size = 14,
                                  justifyH = "CENTER", justifyV = "BOTTOM", level = 10 },
                         textDef{ pattern = "[perchp]%", x = -2, y = -2, w = 200, h = 50, size = 13,
@@ -349,7 +351,7 @@ function DB.BuildDefaults()
                         textDef{ pattern = "[curhp]/[maxhp]", x = -1, y = 2, w = 120, h = 40, size = 10,
                                  justifyH = "RIGHT", justifyV = "BOTTOM",
                                  color = { r = 0.851, g = 0.851, b = 0.851, a = 1 } },
-                        textDef{ pattern = "[gray_if_dead:死亡]", x = 0, y = -2, w = 120, h = 40, size = 10,
+                        textDef{ pattern = L["[gray_if_dead:Dead]"], x = 0, y = -2, w = 120, h = 40, size = 10,
                                  justifyH = "CENTER", justifyV = "BOTTOM" },
                     },
                     castbar = {

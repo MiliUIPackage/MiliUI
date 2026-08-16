@@ -11,6 +11,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 local Media = ns.Media
 local IsSecret = ns.IsSecret
 
@@ -352,7 +354,7 @@ local function ShowInterrupted(f, interrupterGUID)
     f.bar:SetMinMaxValues(0, 1)
     f.bar:SetValue(1)
     f.bar:SetStatusBarColor(c.r, c.g, c.b)
-    f.spellText:SetText("已打斷")
+    f.spellText:SetText(L["Interrupted"])
     f.timeText:SetText("")
     if f.shield then f.shield:Hide() end
 

@@ -5,6 +5,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 ns.Preview = {}
 local Preview = ns.Preview
 
@@ -17,15 +19,15 @@ local suppressedReal = false
 -- 假資料
 ------------------------------------------------------------
 local FAKE_BASE = {
-    player       = { name = "米利",     pc = true,  reaction = 5, level = 80 },
-    target       = { name = "訓練假人", pc = false, reaction = 2, level = 82,
-                     creaturetype = "機械", classificationKey = "elite" },
-    targettarget = { name = "米利",     pc = true,  reaction = 5, level = 80 },
-    focus        = { name = "訓練假人", pc = false, reaction = 2, level = 81 },
-    focustarget  = { name = "米利",     pc = true,  reaction = 5, level = 80 },
-    pet          = { name = "寵物",     pc = true,  reaction = 5, level = 80,
-                     creaturetype = "野獸" },
-    boss         = { name = "首領",     pc = false, reaction = 2, level = 83,
+    player       = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
+    target       = { name = L["Training Dummy"], pc = false, reaction = 2, level = 82,
+                     creaturetype = L["Mechanical"], classificationKey = "elite" },
+    targettarget = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
+    focus        = { name = L["Training Dummy"], pc = false, reaction = 2, level = 81 },
+    focustarget  = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
+    pet          = { name = L["Pet"],     pc = true,  reaction = 5, level = 80,
+                     creaturetype = L["Beast"] },
+    boss         = { name = L["Boss"],     pc = false, reaction = 2, level = 83,
                      classificationKey = "worldboss" },
 }
 
@@ -224,7 +226,7 @@ local function Tick()
         local cb = uf.elements.castbar
         local edb = uf.db.elements and uf.db.elements.castbar
         if cb and edb and edb.enabled and Preview.selectedElement == "castbar" then
-            cb.spellText:SetText("示範法術")
+            cb.spellText:SetText(L["Demo Spell"])
             cb.icon:SetTexture(136048)
             local c = ns.db.global.colors.cast
             cb.bar:SetStatusBarColor(c.r, c.g, c.b)
@@ -246,7 +248,7 @@ function Preview.SetElement(elementKey)
         if not cb then return end
         local edb = uf.db.elements and uf.db.elements.castbar
         if elementKey == "castbar" and edb and edb.enabled then
-            cb.spellText:SetText("示範法術")
+            cb.spellText:SetText(L["Demo Spell"])
             cb.icon:SetTexture(136048)
             local c = ns.db.global.colors.cast
             cb.bar:SetStatusBarColor(c.r, c.g, c.b)
@@ -268,7 +270,8 @@ function Preview.Open(user)
     users[user or "options"] = true
     if isOpen then return end
     if InCombatLockdown() then
-        print("|cff4DD2FF[米利頭像]|r 戰鬥中無法開啟預覽，真實框架維持顯示。")
+        print("|cff4DD2FF" .. L["[MiliUI UF]"] .. "|r " ..
+              L["Can't open the preview during combat; the real frames stay visible."])
         isOpen = true      -- 面板照開，只是不動真實框
         return
     end

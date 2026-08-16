@@ -4,6 +4,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 local btn
 
 -- 圓形裁切用的遮罩（暴雪頭像框自己用的那張）
@@ -113,8 +115,8 @@ local function Init()
 
     btn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-        GameTooltip:AddLine("|cff4DD2FF米利頭像框架|r")
-        GameTooltip:AddDoubleLine("左鍵", "開啟／關閉設定", 1, 1, 1, 0.8, 0.8, 0.8)
+        GameTooltip:AddLine("|cff4DD2FF" .. L["MiliUI Unit Frames"] .. "|r")
+        GameTooltip:AddDoubleLine(L["Left-click"], L["Toggle options"], 1, 1, 1, 0.8, 0.8, 0.8)
         GameTooltip:Show()
     end)
 

@@ -19,6 +19,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 local W = ns.W
 
 ns.Controls = {}
@@ -177,7 +179,7 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
         elseif spec.type == "button" then
             -- { label(左欄), text(按鈕字), color, confirm(有就先問), onClick }
             MakeLabel(parent, spec.label, x0, y, ROW_H_TALL)
-            local b = W.CreateButton(parent, spec.text or "執行", spec.color or "normal", spec.width or 140, 22)
+            local b = W.CreateButton(parent, spec.text or L["Apply"], spec.color or "normal", spec.width or 140, 22)
             b:SetPoint("LEFT", parent, "TOPLEFT", cx, y - ROW_H_TALL / 2)
             b:SetScript("OnClick", function()
                 if spec.confirm then
@@ -218,53 +220,53 @@ end
 -- 常用選單項
 ------------------------------------------------------------
 Controls.COLOR_METHOD_ITEMS = {
-    { text = "職業色",        value = "class" },
-    { text = "職業色（暗）",  value = "classdark" },
-    { text = "陣營色",        value = "reaction" },
-    { text = "陣營色（暗）",  value = "reactiondark" },
-    { text = "職業／陣營",    value = "classreaction" },
-    { text = "職業／陣營（暗）", value = "classreactiondark" },
-    { text = "能量色",        value = "power" },
-    { text = "能量色（暗）",  value = "powerdark" },
-    { text = "血量漸層",      value = "hpthreshold" },
-    { text = "血量漸層（暗）", value = "hpthresholddark" },
-    { text = "綠色",          value = "hpgreen" },
-    { text = "綠色（暗）",    value = "hpgreendark" },
-    { text = "紅色",          value = "hpred" },
-    { text = "紅色（暗）",    value = "hpreddark" },
-    { text = "灰色",          value = "gray" },
-    { text = "自訂色",        value = "solid" },
-    { text = "隱藏",          value = "hide" },
+    { text = L["Class color"],        value = "class" },
+    { text = L["Class color (dark)"],  value = "classdark" },
+    { text = L["Reaction color"],        value = "reaction" },
+    { text = L["Reaction color (dark)"],  value = "reactiondark" },
+    { text = L["Class / reaction"],    value = "classreaction" },
+    { text = L["Class / reaction (dark)"], value = "classreactiondark" },
+    { text = L["Power color"],        value = "power" },
+    { text = L["Power color (dark)"],  value = "powerdark" },
+    { text = L["Health gradient"],      value = "hpthreshold" },
+    { text = L["Health gradient (dark)"], value = "hpthresholddark" },
+    { text = L["Green"],          value = "hpgreen" },
+    { text = L["Green (dark)"],    value = "hpgreendark" },
+    { text = L["Red"],          value = "hpred" },
+    { text = L["Red (dark)"],    value = "hpreddark" },
+    { text = L["Gray"],          value = "gray" },
+    { text = L["Custom color"],        value = "solid" },
+    { text = L["Hidden"],          value = "hide" },
 }
 
 Controls.GROWTH_ITEMS = {
-    { text = "左→右，往下", value = "LRTB" },
-    { text = "左→右，往上", value = "LRBT" },
-    { text = "右→左，往下", value = "RLTB" },
-    { text = "右→左，往上", value = "RLBT" },
-    { text = "上→下，往右", value = "TBLR" },
-    { text = "上→下，往左", value = "TBRL" },
-    { text = "下→上，往右", value = "BTLR" },
-    { text = "下→上，往左", value = "BTRL" },
+    { text = L["Left to right, downward"], value = "LRTB" },
+    { text = L["Left to right, upward"], value = "LRBT" },
+    { text = L["Right to left, downward"], value = "RLTB" },
+    { text = L["Right to left, upward"], value = "RLBT" },
+    { text = L["Top to bottom, rightward"], value = "TBLR" },
+    { text = L["Top to bottom, leftward"], value = "TBRL" },
+    { text = L["Bottom to top, rightward"], value = "BTLR" },
+    { text = L["Bottom to top, leftward"], value = "BTRL" },
 }
 
 Controls.JUSTIFY_H_ITEMS = {
-    { text = "靠左", value = "LEFT" }, { text = "置中", value = "CENTER" }, { text = "靠右", value = "RIGHT" },
+    { text = L["Left"], value = "LEFT" }, { text = L["Center"], value = "CENTER" }, { text = L["Right"], value = "RIGHT" },
 }
 Controls.JUSTIFY_V_ITEMS = {
-    { text = "靠上", value = "TOP" }, { text = "置中", value = "MIDDLE" }, { text = "靠下", value = "BOTTOM" },
+    { text = L["Top"], value = "TOP" }, { text = L["Center"], value = "MIDDLE" }, { text = L["Bottom"], value = "BOTTOM" },
 }
 Controls.FLAGS_ITEMS = {
-    { text = "無", value = "" }, { text = "描邊", value = "OUTLINE" }, { text = "粗描邊", value = "THICKOUTLINE" },
+    { text = L["None"], value = "" }, { text = L["Outline"], value = "OUTLINE" }, { text = L["Thick outline"], value = "THICKOUTLINE" },
 }
 
 -- 位置尺寸四件組（最常用，抽成工廠）
 function Controls.PosSize(sub, index, sub2)
-    return { type = "numbers", sub = sub, sub2 = sub2, index = index, label = "位置與尺寸",
+    return { type = "numbers", sub = sub, sub2 = sub2, index = index, label = L["Position and size"],
              fields = { { key = "x", label = "X" }, { key = "y", label = "Y" },
-                        { key = "w", label = "寬" }, { key = "h", label = "高" } } }
+                        { key = "w", label = L["Width"] }, { key = "h", label = L["Height"] } } }
 end
 function Controls.Pos(sub, index, sub2)
-    return { type = "numbers", sub = sub, sub2 = sub2, index = index, label = "位置",
+    return { type = "numbers", sub = sub, sub2 = sub2, index = index, label = L["Position"],
              fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }
 end

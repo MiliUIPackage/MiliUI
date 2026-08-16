@@ -16,6 +16,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 local Media = ns.Media
 local CLASS = ns.playerClass
 
@@ -32,27 +34,34 @@ local PT = Enum.PowerType
 -- aura   光環 spellID（層數當點數）
 -- cast   GetSpellCastCount 的 spellID
 -- fill   pip 專用的特殊填充：rune（符文冷卻）／essence（精華回充）
+-- 資源名稱優先用暴雪的全域字串：那是十二個語系的官方譯名，比插件自己翻準。
+-- 全域不存在時退回英文，不要讓 name 變 nil
+local function PowerName(global, fallback)
+    local s = _G[global]
+    return (type(s) == "string" and s ~= "" and s) or fallback
+end
+
 local RESOURCES = {
-    Rage            = { name = "怒氣",     mode = "bar", power = PT.Rage,          color = { r = 0.78, g = 0.25, b = 0.25 } },
-    Energy          = { name = "能量",     mode = "bar", power = PT.Energy,        color = { r = 1,    g = 0.96, b = 0.41 } },
-    Focus           = { name = "集中值",   mode = "bar", power = PT.Focus,         color = { r = 1,    g = 0.5,  b = 0.25 } },
-    RunicPower      = { name = "符文能量", mode = "bar", power = PT.RunicPower,    color = { r = 0,    g = 0.82, b = 1    } },
-    LunarPower      = { name = "星能",     mode = "bar", power = PT.LunarPower,    color = { r = 0.3,  g = 0.52, b = 0.9  } },
-    Maelstrom       = { name = "元能",     mode = "bar", power = PT.Maelstrom,     color = { r = 0,    g = 0.5,  b = 1    } },
-    Insanity        = { name = "狂亂值",   mode = "bar", power = PT.Insanity,      color = { r = 0.4,  g = 0,    b = 0.8  } },
-    Fury            = { name = "復仇之怒", mode = "bar", power = PT.Fury,          color = { r = 0.788,g = 0.259,b = 0.992} },
-    HolyPower       = { name = "聖能",     mode = "pip", power = PT.HolyPower,     color = { r = 0.914,g = 0.678,b = 0.275} },
-    ComboPoints     = { name = "連擊點數", mode = "pip", power = PT.ComboPoints,   color = { r = 1,    g = 0.96, b = 0.41 } },
-    Chi             = { name = "真氣",     mode = "pip", power = PT.Chi,           color = { r = 0.71, g = 1,    b = 0.92 } },
-    SoulShards      = { name = "靈魂碎片", mode = "pip", power = PT.SoulShards,    color = { r = 0.58, g = 0.51, b = 0.79 } },
-    ArcaneCharges   = { name = "秘法充能", mode = "pip", power = PT.ArcaneCharges, color = { r = 0.25, g = 0.35, b = 0.98 } },
-    Essence         = { name = "精華",     mode = "pip", power = PT.Essence,       color = { r = 0.28, g = 0.73, b = 0.92 } },
-    Runes           = { name = "符文",     mode = "pip", power = PT.Runes,         color = { r = 0.77, g = 0.12, b = 0.23 }, fill = "rune" },
+    Rage            = { name = PowerName("RAGE", "Rage"),     mode = "bar", power = PT.Rage,          color = { r = 0.78, g = 0.25, b = 0.25 } },
+    Energy          = { name = PowerName("ENERGY", "Energy"),     mode = "bar", power = PT.Energy,        color = { r = 1,    g = 0.96, b = 0.41 } },
+    Focus           = { name = PowerName("FOCUS", "Focus"),   mode = "bar", power = PT.Focus,         color = { r = 1,    g = 0.5,  b = 0.25 } },
+    RunicPower      = { name = PowerName("RUNIC_POWER", "Runic Power"), mode = "bar", power = PT.RunicPower,    color = { r = 0,    g = 0.82, b = 1    } },
+    LunarPower      = { name = PowerName("LUNAR_POWER", "Astral Power"),     mode = "bar", power = PT.LunarPower,    color = { r = 0.3,  g = 0.52, b = 0.9  } },
+    Maelstrom       = { name = PowerName("MAELSTROM", "Maelstrom"),     mode = "bar", power = PT.Maelstrom,     color = { r = 0,    g = 0.5,  b = 1    } },
+    Insanity        = { name = PowerName("INSANITY", "Insanity"),   mode = "bar", power = PT.Insanity,      color = { r = 0.4,  g = 0,    b = 0.8  } },
+    Fury            = { name = PowerName("FURY", "Fury"), mode = "bar", power = PT.Fury,          color = { r = 0.788,g = 0.259,b = 0.992} },
+    HolyPower       = { name = PowerName("HOLY_POWER", "Holy Power"),     mode = "pip", power = PT.HolyPower,     color = { r = 0.914,g = 0.678,b = 0.275} },
+    ComboPoints     = { name = PowerName("COMBO_POINTS", "Combo Points"), mode = "pip", power = PT.ComboPoints,   color = { r = 1,    g = 0.96, b = 0.41 } },
+    Chi             = { name = PowerName("CHI", "Chi"),     mode = "pip", power = PT.Chi,           color = { r = 0.71, g = 1,    b = 0.92 } },
+    SoulShards      = { name = PowerName("SOUL_SHARDS", "Soul Shards"), mode = "pip", power = PT.SoulShards,    color = { r = 0.58, g = 0.51, b = 0.79 } },
+    ArcaneCharges   = { name = PowerName("ARCANE_CHARGES", "Arcane Charges"), mode = "pip", power = PT.ArcaneCharges, color = { r = 0.25, g = 0.35, b = 0.98 } },
+    Essence         = { name = PowerName("ESSENCE", "Essence"),     mode = "pip", power = PT.Essence,       color = { r = 0.28, g = 0.73, b = 0.92 } },
+    Runes           = { name = PowerName("RUNES", "Runes"),     mode = "pip", power = PT.Runes,         color = { r = 0.77, g = 0.12, b = 0.23 }, fill = "rune" },
     -- 光環／技能次數型（Ayije_CDM 的 custom power，資料來源都是明文 API）
     -- 中文名一律取自 Ayije_CDM/Locales/zhTW.lua（使用者已對過官方譯名，別自己翻）
-    MaelstromWeapon = { name = "氣漩武器", mode = "pip", aura = 344179, max = 10,  passive = 187880, color = { r = 0.2,  g = 0.65, b = 1    } },
-    TipOfTheSpear   = { name = "長矛之尖", mode = "pip", aura = 260286, max = 3,   passive = 260285, color = { r = 1,    g = 0.6,  b = 0.2  } },
-    SoulFragments   = { name = "靈魂碎片", mode = "pip", cast = 228477, max = 6,   passive = 203981, color = { r = 0.64, g = 0.19, b = 0.79 } },
+    MaelstromWeapon = { name = L["Maelstrom Weapon"], mode = "pip", aura = 344179, max = 10,  passive = 187880, color = { r = 0.2,  g = 0.65, b = 1    } },
+    TipOfTheSpear   = { name = L["Tip of the Spear"], mode = "pip", aura = 260286, max = 3,   passive = 260285, color = { r = 1,    g = 0.6,  b = 0.2  } },
+    SoulFragments   = { name = L["Soul Fragments"], mode = "pip", cast = 228477, max = 6,   passive = 203981, color = { r = 0.64, g = 0.19, b = 0.79 } },
 }
 
 -- 專精 → 資源清單（照抄 Ayije_CDM/Modules/Resources.lua 的 SPEC_POWER_MAP）

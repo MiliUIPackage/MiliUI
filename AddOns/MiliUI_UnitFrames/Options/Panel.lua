@@ -4,6 +4,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 local W, P = ns.W, ns.P
 
 ns.Options = {}
@@ -18,13 +20,13 @@ local closeBtn
 
 -- class = 只有這些職業看得到這個分頁（單一職業字串，或 { CLASS = true } 集合）
 local TABS = {
-    { id = "general",  label = "一般" },
-    { id = "units",    label = "單位" },
-    { id = "resource", label = "資源" },
+    { id = "general",  label = L["General"] },
+    { id = "units",    label = L["Units"] },
+    { id = "resource", label = L["Resources"] },
     -- 沒有東西會進圖騰欄位的職業，這頁調什麼都不會有反應 → 直接不顯示
-    { id = "totem",    label = "召喚物", class = ns.TOTEM_CLASSES },
-    { id = "share",    label = "設定檔" },
-    { id = "about",    label = "關於" },
+    { id = "totem",    label = L["Summons"], class = ns.TOTEM_CLASSES },
+    { id = "share",    label = L["Profile"] },
+    { id = "about",    label = L["About"] },
 }
 
 local PLAYER_CLASS = ns.playerClass
@@ -110,7 +112,7 @@ local function CreatePanel()
     local title = panel:CreateFontString(nil, "OVERLAY")
     title:SetFontObject(W.fontTitle)
     title:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 2, 26)
-    title:SetText("|cff4DD2FF米利頭像框架|r  v" .. ns.VERSION)
+    title:SetText("|cff4DD2FF" .. L["MiliUI Unit Frames"] .. "|r  v" .. ns.VERSION)
 
     -- 關閉鈕（右上角）
     -- 關閉鈕用貼圖不用「×」字元（中文字型可能沒這個字形）
@@ -181,23 +183,23 @@ local function CreatePanel()
     aboutText:SetJustifyH("LEFT")
     aboutText:SetSpacing(6)
     aboutText:SetText(table.concat({
-        "|cff4DD2FF米利頭像框架|r v" .. ns.VERSION,
+        "|cff4DD2FF" .. L["MiliUI Unit Frames"] .. "|r v" .. ns.VERSION,
         "",
-        "延續 Stuf 的使用習慣，為 12.1 重新打造的單位框架。",
-        "秘密值防護內建於架構：血量走 HealPredictionCalculator、",
-        "光環走 AuraContainer、施法條走 Duration 物件。",
+        L["Unit frames rebuilt for 12.1, keeping the workflow of Stuf."],
+        L["Secret-value safety is built into the architecture: health via HealPredictionCalculator,"],
+        L["auras via AuraContainer, cast bars via Duration objects."],
         "",
-        "指令：|cffffd200/muf|r 開啟設定、|cffffd200/muf reset|r 重置所有設定",
+        L["Commands: |cffffd200/muf|r opens the options, |cffffd200/muf reset|r resets everything"],
         "",
-        "作者：Mili（MiliUI 套組）",
+        L["Author: Mili (MiliUI package)"],
         "",
-        "|cffffd200致謝|r",
-        "我最喜歡的兩個插件是 |cff33CCFFCell|r 與 |cff4DD2FFStuf Unit Frames|r，",
-        "這個框架的樣貌與設計思路都深受這他們影響。",
-        "感謝 Cell 的作者 |cffffffffenderneko|r，",
-        "以及 Stuf 的作者 |cffffffffKato|r。",
-        "插件架構、設定介面風格與疊加層樣式參考自 Cell，",
-        "文字 tag 語法與顏色方法參考自 Stuf。",
+        L["|cffffd200Credits|r"],
+        L["My two favourite addons are |cff33CCFFCell|r and |cff4DD2FFStuf Unit Frames|r,"],
+        L["and both the look and the design thinking here owe a lot to them."],
+        L["Thanks to |cffffffffenderneko|r, the author of Cell,"],
+        L["and to |cffffffffKato|r, the author of Stuf."],
+        L["Addon structure, options UI style and bar overlays follow Cell;"],
+        L["text tag syntax and color methods follow Stuf."],
     }, "\n"))
 
     ns.RegisterCallback("ShowOptionsTab", "aboutTab", function(id)

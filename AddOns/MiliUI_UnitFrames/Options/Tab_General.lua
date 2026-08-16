@@ -3,6 +3,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 local W, Controls = ns.W, ns.Controls
 
 local tab, scroll
@@ -19,54 +21,54 @@ local function ApplyAll()
 end
 
 local CONTROLS = {
-    { type = "header", label = "邊框" },
-    { type = "slider", key = "borderSize", label = "邊框粗細", min = 0, max = 3, step = 1 },
-    { type = "text",   label = "0 = 不畫邊框。所有單位框、血條、能量條共用。" },
-    { type = "color",  key = "borderColor", label = "邊框顏色" },
+    { type = "header", label = L["Border"] },
+    { type = "slider", key = "borderSize", label = L["Border thickness"], min = 0, max = 3, step = 1 },
+    { type = "text",   label = L["0 = no border. Shared by every unit frame, health bar and power bar."] },
+    { type = "color",  key = "borderColor", label = L["Border color"] },
 
-    { type = "header", label = "數字與動畫" },
-    { type = "dropdown", key = "numberFormat", label = "數字縮寫", items = {
-        { text = "依語系（中文萬／億，其他 K／M）", value = "auto" },
-        { text = "萬／億", value = "wan" },
+    { type = "header", label = L["Numbers and animation"] },
+    { type = "dropdown", key = "numberFormat", label = L["Number abbreviation"], items = {
+        { text = L["By locale (wan/yi for Chinese, K/M otherwise)"], value = "auto" },
+        { text = L["Wan / Yi"], value = "wan" },
         { text = "K／M", value = "km" },
-        { text = "不縮寫（千分位）", value = "raw" },
+        { text = L["No abbreviation (thousands separator)"], value = "raw" },
     } },
-    { type = "text",   label = "血量／能量數字由遊戲端縮寫（12.1 秘密值不能在插件內做算術），只能在這幾種官方格式中選。" },
-    { type = "dropdown", key = "percentDecimals", label = "百分比小數", items = {
-        { text = "整數（85%）", value = 0 }, { text = "一位小數（85.3%）", value = 1 },
+    { type = "text",   label = L["Health and power numbers are abbreviated by the game (12.1 secret values can't be used in addon arithmetic), so only these official formats are available."] },
+    { type = "dropdown", key = "percentDecimals", label = L["Percent decimals"], items = {
+        { text = L["Integer (85%)"], value = 0 }, { text = L["One decimal (85.3%)"], value = 1 },
     } },
-    { type = "toggle", key = "smoothBars", label = "血條／能量條平滑" },
-    { type = "text",   label = "用遊戲引擎的內建插值（12.x 原生，秘密值也能用），數值變化時條會滑過去而不是跳。" },
+    { type = "toggle", key = "smoothBars", label = L["Smooth health and power bars"] },
+    { type = "text",   label = L["Uses the engine's built-in interpolation (native in 12.x, works with secret values), so bars slide instead of jumping."] },
 
-    { type = "header", label = "血量顏色" },
-    { type = "text",   label = "「血量漸層」上色法用這兩色內插；灰色給死亡／離線／超出距離文字。" },
-    { type = "color", sub = "colors", key = "hpGreen", label = "健康" },
-    { type = "color", sub = "colors", key = "hpRed",   label = "危險" },
-    { type = "color", sub = "colors", key = "gray",    label = "灰色" },
+    { type = "header", label = L["Health colors"] },
+    { type = "text",   label = L["The \"health gradient\" method interpolates between these two; gray is used for dead / offline / out-of-range text."] },
+    { type = "color", sub = "colors", key = "hpGreen", label = L["Healthy"] },
+    { type = "color", sub = "colors", key = "hpRed",   label = L["Critical"] },
+    { type = "color", sub = "colors", key = "gray",    label = L["Gray"] },
 
-    { type = "header", label = "施法條顏色" },
-    { type = "text",   label = "所有單位的施法條共用這五色；每個單位可各自決定要不要套用「不可打斷」。" },
-    { type = "color", sub = "colors", key = "cast",    label = "施法", hasAlpha = false },
-    { type = "color", sub = "colors", key = "channel", label = "引導", hasAlpha = false },
-    { type = "color", sub = "colors", key = "complete", label = "完成", hasAlpha = false },
-    { type = "color", sub = "colors", key = "fail",    label = "失敗／被打斷", hasAlpha = false },
-    { type = "color", sub = "colors", key = "notInterruptible", label = "不可打斷", hasAlpha = false },
+    { type = "header", label = L["Cast bar colors"] },
+    { type = "text",   label = L["All cast bars share these five colors; whether \"non-interruptible\" applies is set per unit."] },
+    { type = "color", sub = "colors", key = "cast",    label = L["Casting"], hasAlpha = false },
+    { type = "color", sub = "colors", key = "channel", label = L["Channeling"], hasAlpha = false },
+    { type = "color", sub = "colors", key = "complete", label = L["Completed"], hasAlpha = false },
+    { type = "color", sub = "colors", key = "fail",    label = L["Failed / interrupted"], hasAlpha = false },
+    { type = "color", sub = "colors", key = "notInterruptible", label = L["Non-interruptible"], hasAlpha = false },
 
-    { type = "header", label = "滑鼠提示" },
-    { type = "toggle", key = "showTooltip", label = "顯示單位提示" },
-    { type = "toggle", key = "tooltipHideInCombat", label = "戰鬥中不顯示" },
-    { type = "text",   label = "光環圖示的提示由遊戲端顯示（12.1 插件讀不到光環內容），跟著單位提示一起開關。" },
+    { type = "header", label = L["Tooltips"] },
+    { type = "toggle", key = "showTooltip", label = L["Show unit tooltip"] },
+    { type = "toggle", key = "tooltipHideInCombat", label = L["Hide during combat"] },
+    { type = "text",   label = L["Aura tooltips are drawn by the game (12.1 addons can't read aura contents); they follow this same toggle."] },
 
-    { type = "header", label = "預覽" },
-    { type = "number", key = "previewBossDisplayID", label = "示範模型 ID", step = 1 },
-    { type = "text",   label = "預覽時敵對單位（目標／專注／首領）的 3D 模型 displayID。預設 131474 = 薩拉塔斯（12.x 形態），117121 = 她的 TWW 形態。填 0 就用你自己的角色。" },
+    { type = "header", label = L["Preview"] },
+    { type = "number", key = "previewBossDisplayID", label = L["Demo model ID"], step = 1 },
+    { type = "text",   label = L["The displayID used for the 3D model of hostile preview units (target / focus / boss). 131474 = Xal'atath in her 12.x form (the default), 117121 = her TWW form. Enter 0 to use your own character."] },
 
-    { type = "header", label = "小地圖" },
-    { type = "toggle", root = "minimap", key = "show", label = "顯示小地圖按鈕" },
+    { type = "header", label = L["Minimap"] },
+    { type = "toggle", root = "minimap", key = "show", label = L["Show minimap button"] },
 
-    { type = "header", label = "重置" },
-    { type = "button", label = "全域樣式", text = "恢復全域樣式預設", color = "red",
-      confirm = "把邊框、數字、顏色等全域樣式恢復成預設值？（各單位的設定不受影響）",
+    { type = "header", label = L["Reset"] },
+    { type = "button", label = L["Global style"], text = L["Restore global style defaults"], color = "red",
+      confirm = L["Restore global styling — borders, numbers, colors — to defaults? Per-unit settings are untouched."],
       onClick = function()
           ns.DB.ResetGlobal()
           for unitKey in pairs(ns.db.units) do
@@ -77,7 +79,7 @@ local CONTROLS = {
               end
           end
       end },
-    { type = "text", label = "單一單位的重置在「單位」分頁 → 框架 的最下方；全部恢復預設在「設定檔」分頁。" },
+    { type = "text", label = L["Per-unit reset lives at the bottom of Units > Frame; restore-everything lives on the Profile tab."] },
 }
 
 local function Init()
@@ -86,7 +88,7 @@ local function Init()
     tab:SetAllPoints(ns.Options.panel)
     tab:Hide()
 
-    local title = W.CreateSectionTitle(tab, "全域樣式", 660)
+    local title = W.CreateSectionTitle(tab, L["Global style"], 660)
     title:SetPoint("TOPLEFT", 16, -14)
 
     local scrollHolder = CreateFrame("Frame", nil, tab)

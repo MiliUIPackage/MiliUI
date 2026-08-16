@@ -3,6 +3,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 local MEDIA_PATH = "Interface\\AddOns\\MiliUI_UnitFrames\\Media\\"
 
 -- 在地化字型（FontString 寫死 FRIZQT__ 在 zhTW 會變方框，抄 BloodlustMusic）
@@ -99,11 +101,11 @@ end
 -- 不可打斷盾牌貼圖。內建四款高解析 PNG（取自 Platynator 的 DPI144 資產，
 -- 複製進本插件 Media 才不會被上游更新洗掉），外加暴雪內建 atlas。
 M.SHIELD_STYLES = {
-    { text = "盾牌（暴雪風高解析）", value = "blizzard" },
-    { text = "盾牌（漸層）",         value = "gradient" },
-    { text = "盾牌（柔和）",         value = "soft" },
-    { text = "盾牌（厚實）",         value = "gw2" },
-    { text = "暴雪內建（名條用）",   value = "atlas" },
+    { text = L["Shield (Blizzard HD)"], value = "blizzard" },
+    { text = L["Shield (Gradient)"],         value = "gradient" },
+    { text = L["Shield (Soft)"],         value = "soft" },
+    { text = L["Shield (Bold)"],         value = "gw2" },
+    { text = L["Blizzard Built-in (Nameplate)"],   value = "atlas" },
 }
 local SHIELD_FILES = {
     blizzard = MEDIA_PATH .. "shield-blizzard.png",

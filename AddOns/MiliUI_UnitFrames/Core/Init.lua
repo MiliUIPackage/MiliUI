@@ -32,9 +32,9 @@ ns.GLOBAL_NAMES = {
 
 -- 單位顯示名（設定介面用）
 ns.UNIT_LABELS = {
-    player = "玩家", target = "目標", targettarget = "目標的目標",
-    focus = "專注目標", focustarget = "專注目標的目標", pet = "寵物",
-    boss = "首領", totem = "召喚物",
+    player = L["Player"], target = L["Target"], targettarget = L["Target of Target"],
+    focus = L["Focus"], focustarget = L["Focus Target"], pet = L["Pet"],
+    boss = L["Boss"], totem = L["Summons"],
 }
 
 ns.frames = {}          -- [unitToken] = uf

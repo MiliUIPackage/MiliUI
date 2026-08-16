@@ -4,6 +4,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 ns.W = {}
 local W = ns.W
 local P = ns.P
@@ -571,7 +573,7 @@ function W.CreateCombatMask(parent, text)
     mask.text:SetPoint("LEFT", 5, 0)
     mask.text:SetPoint("RIGHT", -5, 0)
     mask.text:SetJustifyH("CENTER")
-    mask.text:SetText(text or "無法在戰鬥中更改設定")
+    mask.text:SetText(text or L["Can't change settings during combat"])
 
     mask:Hide()
     parent.combatMask = mask
@@ -609,13 +611,13 @@ function W.CreateConfirmPopup(parent, width, text, onAccept)
     fs:SetJustifyH("CENTER")
     fs:SetText(text)
 
-    local yes = W.CreateButton(popup, "確定", "green", 80, 22)
+    local yes = W.CreateButton(popup, L["Okay"], "green", 80, 22)
     yes:SetPoint("BOTTOMLEFT", 26, 12)
     yes:SetScript("OnClick", function()
         popup:Hide()
         if onAccept then onAccept() end
     end)
-    local no = W.CreateButton(popup, "取消", "red", 80, 22)
+    local no = W.CreateButton(popup, L["Cancel"], "red", 80, 22)
     no:SetPoint("BOTTOMRIGHT", -26, 12)
     no:SetScript("OnClick", function() popup:Hide() end)
     return popup

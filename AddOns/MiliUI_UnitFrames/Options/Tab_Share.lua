@@ -6,6 +6,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 local W = ns.W
 
 local WIRE_PREFIX = "MILIUF!1!"
@@ -18,34 +20,34 @@ local Share = ns.Share
 ------------------------------------------------------------
 function Share.Export()
     if not (C_EncodingUtil and C_EncodingUtil.SerializeCBOR) then
-        return nil, "此版本客戶端缺少 C_EncodingUtil"
+        return nil, L["This client build has no C_EncodingUtil"]
     end
     local ok, cbor = pcall(C_EncodingUtil.SerializeCBOR, ns.db)
-    if not ok or not cbor then return nil, "序列化失敗" end
+    if not ok or not cbor then return nil, L["Serialization failed"] end
     local ok2, compressed = pcall(C_EncodingUtil.CompressString, cbor)
-    if not ok2 or not compressed then return nil, "壓縮失敗" end
+    if not ok2 or not compressed then return nil, L["Compression failed"] end
     local ok3, base64 = pcall(C_EncodingUtil.EncodeBase64, compressed)
-    if not ok3 or not base64 then return nil, "編碼失敗" end
+    if not ok3 or not base64 then return nil, L["Encoding failed"] end
     return WIRE_PREFIX .. base64
 end
 
 function Share.Decode(text)
-    if type(text) ~= "string" then return nil, "空字串" end
+    if type(text) ~= "string" then return nil, L["Empty string"] end
     text = text:gsub("%s+", "")
-    if text == "" then return nil, "空字串" end
+    if text == "" then return nil, L["Empty string"] end
     if text:sub(1, #WIRE_PREFIX) ~= WIRE_PREFIX then
-        return nil, "前綴不符（不是米利頭像的匯出字串）"
+        return nil, L["Wrong prefix (not a MiliUI UF export string)"]
     end
     local payload = text:sub(#WIRE_PREFIX + 1)
     local ok, compressed = pcall(C_EncodingUtil.DecodeBase64, payload)
-    if not ok or not compressed then return nil, "Base64 解碼失敗" end
+    if not ok or not compressed then return nil, L["Base64 decode failed"] end
     local ok2, cbor = pcall(C_EncodingUtil.DecompressString, compressed)
-    if not ok2 or not cbor then return nil, "解壓縮失敗" end
+    if not ok2 or not cbor then return nil, L["Decompression failed"] end
     local ok3, data = pcall(C_EncodingUtil.DeserializeCBOR, cbor)
-    if not ok3 or type(data) ~= "table" then return nil, "反序列化失敗" end
-    if type(data.schemaVersion) ~= "number" then return nil, "缺少版本欄位" end
+    if not ok3 or type(data) ~= "table" then return nil, L["Deserialization failed"] end
+    if type(data.schemaVersion) ~= "number" then return nil, L["Missing version field"] end
     if data.schemaVersion > ns.DB_VERSION then
-        return nil, "字串來自較新版本，請先更新插件"
+        return nil, L["String comes from a newer version, please update the addon first"]
     end
     return data
 end
@@ -73,13 +75,13 @@ local function Init()
     ---------------------------------------------------------
     -- 匯出
     ---------------------------------------------------------
-    local exportTitle = W.CreateSectionTitle(tab, "匯出", 320)
+    local exportTitle = W.CreateSectionTitle(tab, L["Export"], 320)
     exportTitle:SetPoint("TOPLEFT", 12, -40)
 
     local exportBox = W.CreateScrollEditBox(tab, 320, 300)
     exportBox:SetPoint("TOPLEFT", 12, -72)
 
-    local exportBtn = W.CreateButton(tab, "產生匯出字串", "accent", 130, 22)
+    local exportBtn = W.CreateButton(tab, L["Generate export string"], "accent", 130, 22)
     exportBtn:SetPoint("TOPLEFT", exportBox, "BOTTOMLEFT", 0, -8)
     exportBtn:SetScript("OnClick", function()
         local str, err = Share.Export()
@@ -87,9 +89,9 @@ local function Init()
             exportBox.editBox:SetText(str)
             exportBox.editBox:HighlightText()
             exportBox.editBox:SetFocus()
-            exportTitle.text:SetText("匯出（Ctrl+C 複製）")
+            exportTitle.text:SetText(L["Export (Ctrl+C to copy)"])
         else
-            exportTitle.text:SetText("|cffff2222匯出失敗：" .. (err or "?") .. "|r")
+            exportTitle.text:SetText("|cffff2222" .. L["Export failed: "] .. (err or "?") .. "|r")
         end
     end)
 
@@ -101,12 +103,12 @@ local function Init()
     ---------------------------------------------------------
     -- 匯入
     ---------------------------------------------------------
-    local importTitle = W.CreateSectionTitle(tab, "匯入", 320)
+    local importTitle = W.CreateSectionTitle(tab, L["Import"], 320)
     importTitle:SetPoint("TOPLEFT", 356, -40)
 
     local pendingData
 
-    local importBtn = W.CreateButton(tab, "匯入並重載", "green", 130, 22)
+    local importBtn = W.CreateButton(tab, L["Import and reload"], "green", 130, 22)
     importBtn:SetEnabled(false)
 
     local importBox = W.CreateScrollEditBox(tab, 320, 300, function(eb, userChanged)
@@ -114,15 +116,15 @@ local function Init()
         local data, err = Share.Decode(eb:GetText())
         if data then
             pendingData = data
-            importTitle.text:SetText("匯入：|cff44ff44字串有效|r")
+            importTitle.text:SetText(L["Import: |cff44ff44string is valid|r"])
             importBtn:SetEnabled(true)
         else
             pendingData = nil
             importBtn:SetEnabled(false)
             if eb:GetText() ~= "" then
-                importTitle.text:SetText("匯入：|cffff2222" .. (err or "無效") .. "|r")
+                importTitle.text:SetText(L["Import: "] .. "|cffff2222" .. (err or L["invalid"]) .. "|r")
             else
-                importTitle.text:SetText("匯入")
+                importTitle.text:SetText(L["Import"])
             end
         end
     end)
@@ -134,7 +136,7 @@ local function Init()
         if not pendingData then return end
         if not confirm then
             confirm = W.CreateConfirmPopup(ns.Options.panel, 300,
-                "匯入會覆寫目前所有設定並重載介面，確定？",
+                L["Importing overwrites every current setting and reloads the UI. Continue?"],
                 function() Share.Import(pendingData) end)
         end
         confirm:Show()
@@ -143,22 +145,22 @@ local function Init()
     local note = tab:CreateFontString(nil, "OVERLAY")
     note:SetFontObject(W.fontSmall)
     note:SetPoint("BOTTOMLEFT", 12, 14)
-    note:SetText("匯出字串包含全部設定（含位置）。貼上有效字串後「匯入並重載」才會亮起。")
+    note:SetText(L["The export string contains every setting, positions included. \"Import and reload\" only lights up once a valid string is pasted."])
 
     ---------------------------------------------------------
     -- 重置（原本在「一般」分頁，移過來跟匯入匯出放一起）
     ---------------------------------------------------------
-    local resetTitle = W.CreateSectionTitle(tab, "重置", 664)
+    local resetTitle = W.CreateSectionTitle(tab, L["Reset"], 664)
     resetTitle:SetPoint("TOPLEFT", 12, -414)
 
-    local resetBtn = W.CreateButton(tab, "全部恢復預設並重載", "red", 150, 22)
+    local resetBtn = W.CreateButton(tab, L["Restore all defaults and reload"], "red", 150, 22)
     resetBtn:SetPoint("TOPLEFT", 12, -446)
 
     local resetConfirm
     resetBtn:SetScript("OnClick", function()
         if not resetConfirm then
             resetConfirm = W.CreateConfirmPopup(ns.Options.panel, 300,
-                "把所有設定（全域＋每個單位＋召喚物＋位置）恢復成預設值並重新載入介面？",
+                L["Restore every setting (global, per unit, summons, positions) to its default and reload the UI?"],
                 function() ns.DB.ResetAll() end)
         end
         resetConfirm:Show()
@@ -168,7 +170,7 @@ local function Init()
     resetNote:SetFontObject(W.fontSmall)
     resetNote:SetPoint("LEFT", resetBtn, "RIGHT", 10, 0)
     resetNote:SetJustifyH("LEFT")
-    resetNote:SetText("單一單位的重置在「單位」分頁 → 框架 的最下方。指令 /muf reset 等同這顆按鈕。")
+    resetNote:SetText(L["Per-unit reset lives at the bottom of Units > Frame. The /muf reset command does the same thing as this button."])
 end
 
 ns.RegisterCallback("ShowOptionsTab", "shareTab", function(id)

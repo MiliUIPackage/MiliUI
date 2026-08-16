@@ -3,12 +3,14 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 -- 設定介面入口（委派給 Options 模組；本檔在 TOC 最後載入，不可直接覆寫）
 function ns.OpenOptions(tabId)
     if ns.Options and ns.Options.Open then
         ns.Options.Open(tabId)
     else
-        print("|cff4DD2FF[米利頭像]|r 設定介面載入失敗。")
+        print("|cff4DD2FF" .. L["[MiliUI UF]"] .. "|r " .. L["Options UI failed to load."])
     end
 end
 

@@ -3,30 +3,32 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 local W, Controls = ns.W, ns.Controls
 
 local tab, scroll
 local refreshers
 
 local CONTROLS = {
-    { type = "toggle", key = "enabled", label = "顯示召喚物框" },
-    { type = "text",   label = "|cff4DD2FF停在這一頁時框裡會放四個示範召喚物|r（含會跑的時間條與倒數），方便對位置和大小——切到別頁或關掉面板就回真實狀態。" },
-    { type = "text",   label = "圖騰、玉蛟／玄牛雕像、生命綻放這類「放出去會自己待一段時間」的東西——暴雪把它們收在同一組欄位裡，最多四個，所以這裡一起管。樣式：圖示膠囊列（圖示＋底部時間條）。" },
-    { type = "header", label = "位置與大小" },
-    { type = "text",   label = "相對玩家框「左下角」的偏移（往下是負的），跟資源條同一組座標——玩家框搬家會自己跟著走；也可以在編輯模式直接拖曳。框固定四格寬、從左往右排。" },
-    { type = "numbers", sub = "frame", label = "位置", fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
-    { type = "slider", sub = "frame", key = "iconSize", label = "圖示大小", min = 16, max = 64 },
-    { type = "slider", sub = "frame", key = "spacing", label = "間距", min = 0, max = 16 },
-    { type = "header", label = "顏色與順序" },
-    { type = "dropdown", key = "colors", label = "時間條顏色",
-      items = { { text = "職業色", value = "accent" }, { text = "元素色（火／土／水／風）", value = "element" } } },
-    { type = "toggle", key = "swapEarthFire", label = "土／火位置對調" },
-    { type = "header", label = "剩餘時間" },
-    { type = "toggle", key = "showTimeText", label = "顯示剩餘秒數" },
-    { type = "text",   label = "關掉就只留底部的時間條。12.1 有時抽不到剩餘時間，那種情況數字會留白、時間條顯示滿格。" },
-    { type = "header", label = "重置" },
-    { type = "button", label = "恢復預設", text = "召喚物設定恢復預設", color = "red",
-      confirm = "把召喚物框的設定恢復成預設值？",
+    { type = "toggle", key = "enabled", label = L["Show summons frame"] },
+    { type = "text",   label = L["|cff4DD2FFWhile this tab is open the frame shows four demo summons|r (with running timer bars and countdowns) so you can line up position and size. Switch tabs or close the panel to go back to the real state."] },
+    { type = "text",   label = L["Totems, Jade Serpent / Black Ox statues, Efflorescence and anything else you drop that sticks around for a while: Blizzard keeps them all in the same set of four slots, so they are managed together here. Style: icon capsules with a timer bar along the bottom."] },
+    { type = "header", label = L["Position and size"] },
+    { type = "text",   label = L["Offset from the bottom-left corner of the player frame (negative goes down), sharing coordinates with the resource bars, so it follows the player frame when you move it. You can also drag it in Edit Mode. The frame is always four slots wide, filling left to right."] },
+    { type = "numbers", sub = "frame", label = L["Position"], fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
+    { type = "slider", sub = "frame", key = "iconSize", label = L["Icon size"], min = 16, max = 64 },
+    { type = "slider", sub = "frame", key = "spacing", label = L["Spacing"], min = 0, max = 16 },
+    { type = "header", label = L["Color and order"] },
+    { type = "dropdown", key = "colors", label = L["Timer bar color"],
+      items = { { text = L["Class color"], value = "accent" }, { text = L["Element colors (fire / earth / water / air)"], value = "element" } } },
+    { type = "toggle", key = "swapEarthFire", label = L["Swap earth and fire positions"] },
+    { type = "header", label = L["Time remaining"] },
+    { type = "toggle", key = "showTimeText", label = L["Show remaining seconds"] },
+    { type = "text",   label = L["Turn this off to keep only the bar at the bottom. 12.1 sometimes won't hand over the remaining time; when that happens the number stays blank and the bar shows full."] },
+    { type = "header", label = L["Reset"] },
+    { type = "button", label = L["Restore defaults"], text = L["Restore summons defaults"], color = "red",
+      confirm = L["Restore the summons frame settings to their defaults?"],
       onClick = function()
           ns.DB.ResetUnit("totem")
           if ns.TotemsApplySettings then ns.TotemsApplySettings() end
@@ -39,7 +41,7 @@ local function Init()
     tab:SetAllPoints(ns.Options.panel)
     tab:Hide()
 
-    local title = W.CreateSectionTitle(tab, "召喚物", 660)
+    local title = W.CreateSectionTitle(tab, L["Summons"], 660)
     title:SetPoint("TOPLEFT", 16, -14)
 
     -- 同資源分頁：內容比面板高就會掉出去，一律走卷軸
