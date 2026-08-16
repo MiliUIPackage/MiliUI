@@ -227,11 +227,8 @@ function W.CreateSlider(parent, low, high, width, step, onChange, afterChange)
     slider:SetScript("OnMouseUp", function()
         if afterChange then afterChange(holder.value) end
     end)
-    slider:EnableMouseWheel(true)
-    slider:SetScript("OnMouseWheel", function(_, delta)
-        holder:SetValue(holder.value + delta * step)
-        if afterChange then afterChange(holder.value) end
-    end)
+    -- 刻意不吃滾輪：捲動設定頁時很容易滑過拉桿而誤改數值。
+    -- 要微調就用右邊的數字框（可打字、可滾輪）
 
     eb:SetScript("OnEnterPressed", function(self)
         self:ClearFocus()
@@ -286,12 +283,19 @@ function W.CreateNumberBox(parent, width, step, onCommit)
         self:ClearFocus()
         Commit(self:GetText())
     end)
+    -- 滾輪微調只在「點進去（有焦點）」時才吃：沒焦點時不攔截滾輪事件，
+    -- 捲動設定頁滑過數字框既不會誤改數值、也不會卡住捲動
     eb:SetScript("OnEditFocusGained", function(self)
         self:SetBackdropBorderColor(W.Accent(1))
         self:HighlightText()
+        self:EnableMouseWheel(true)
     end)
-    eb:EnableMouseWheel(true)
+    eb:SetScript("OnEditFocusLost", function(self)
+        self:SetBackdropBorderColor(0, 0, 0, 1)
+        self:EnableMouseWheel(false)
+    end)
     eb:SetScript("OnMouseWheel", function(self, delta)
+        if not self:HasFocus() then return end
         local mult = IsShiftKeyDown() and 10 or 1
         Commit((self.value or 0) + delta * step * mult)
     end)

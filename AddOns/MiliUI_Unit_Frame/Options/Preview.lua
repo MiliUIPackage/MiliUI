@@ -53,6 +53,7 @@ local function BuildFakeCache(unitKey)
             curhp = 1234500, maxhp = 1650000,
             curmp = 152000, maxmp = 250000,
             perchp = 75, percmp = 60,
+            shields = 186000, healabsorbs = 92000,
         },
     }
     return cache
@@ -152,17 +153,18 @@ function Preview.Rebuild(unitKey)
         ns.Refresh(uf, "identity")
         if uf.db.enabled then uf:Show() else uf:Hide() end
     end
+    -- 重建會沿用舊 alpha，重新套一次高亮才不會全部變回不透明
+    if Preview.selectedKey then Preview.Highlight(Preview.selectedKey) end
 end
 
--- 選中單位高亮
+-- 選中單位高亮：用「其他單位變淡」表示，不畫外框。
+-- （原本畫職業色外框，但框架邊緣多半被血條蓋住、只在頭像凸出的那段露出來，
+--   看起來像莫名其妙的彩色角落——首領框最明顯）
 function Preview.Highlight(unitKey)
+    Preview.selectedKey = unitKey
     EachTwin(function(uf, key)
-        if key == unitKey then
-            uf:SetBackdrop({ edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = ns.P.Scale(2) })
-            uf:SetBackdropBorderColor(ns.W.Accent(1))
-        else
-            uf:SetBackdrop(nil)
-        end
+        uf:SetBackdrop(nil)
+        uf:SetAlpha(key == unitKey and 1 or 0.35)
     end)
 end
 
@@ -173,10 +175,17 @@ local STATES = { -20, -30, -40, 50, -60, 0, 100, 0 }
 local stateIndex = 1
 local CAST_TOTAL = 3
 
--- 假施法：OnUpdate 連續填充（ticker 每 0.8 秒跳一格會很卡）
+-- 假施法：只在「單位分頁選到施法條」時才演示——施法條會蓋住頭像，
+-- 調頭像／文字時它一直閃反而礙事
 local function AttachFakeCast(uf)
     local cb = uf.elements.castbar
     if not cb then return end
+    local edb = uf.db.elements and uf.db.elements.castbar
+    if Preview.selectedElement ~= "castbar" or not (edb and edb.enabled) then
+        cb:SetScript("OnUpdate", nil)
+        cb:Hide()
+        return
+    end
     -- 每次都重掛：元件停用時 HideBar 會把 OnUpdate 拆掉，再啟用要接回來
     cb.previewElapsed = cb.previewElapsed or 0
     cb:SetScript("OnUpdate", function(self, dt)
@@ -213,13 +222,38 @@ local function Tick()
         -- 假施法（有 castbar 的單位）：靜態部分在這裡，填充由 OnUpdate 連續驅動
         local cb = uf.elements.castbar
         local edb = uf.db.elements and uf.db.elements.castbar
-        if cb and edb and edb.enabled then
+        if cb and edb and edb.enabled and Preview.selectedElement == "castbar" then
             cb.spellText:SetText("示範法術")
             cb.icon:SetTexture(136048)
             local c = ns.db.global.colors.cast
             cb.bar:SetStatusBarColor(c.r, c.g, c.b)
             AttachFakeCast(uf)
             cb:Show()
+        elseif cb then
+            cb:SetScript("OnUpdate", nil)
+            cb:Hide()
+        end
+    end)
+end
+
+-- 單位分頁切換元件時呼叫：只有選到施法條才演示假施法
+function Preview.SetElement(elementKey)
+    Preview.selectedElement = elementKey
+    if not isOpen then return end
+    EachTwin(function(uf)
+        local cb = uf.elements and uf.elements.castbar
+        if not cb then return end
+        local edb = uf.db.elements and uf.db.elements.castbar
+        if elementKey == "castbar" and edb and edb.enabled then
+            cb.spellText:SetText("示範法術")
+            cb.icon:SetTexture(136048)
+            local c = ns.db.global.colors.cast
+            cb.bar:SetStatusBarColor(c.r, c.g, c.b)
+            AttachFakeCast(uf)
+            cb:Show()
+        else
+            cb:SetScript("OnUpdate", nil)
+            cb:Hide()
         end
     end)
 end
@@ -273,6 +307,8 @@ function Preview.Close(user)
     if next(users) then return end     -- 還有人在用（例如編輯模式沒退）
     if not isOpen then return end
     isOpen = false
+    Preview.selectedKey = nil
+    EachTwin(function(uf) uf:SetAlpha(1) end)   -- 還原變淡的孿生，下次開窗才不會留著
     if ticker then ticker:Cancel(); ticker = nil end
     EachTwin(function(uf) uf:Hide() end)
 

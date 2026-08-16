@@ -82,13 +82,17 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
     end
 end)
 
+-- 麵包屑：ADDON_ACTION_FORBIDDEN 只會告訴我們「Frame:RegisterEvent()」，
+-- 不會說是哪個事件。註冊前先記下來，攔截器就能指名（見 Core/Init.lua）
+local function Reg(event)
+    ns.trace = "RegisterEvent(" .. tostring(event) .. ")"
+    pcall(eventFrame.RegisterEvent, eventFrame, event)
+    ns.trace = nil
+end
+
 function ns.Events.Start()
-    for event in pairs(UNIT_EVENT_BUCKET) do
-        pcall(eventFrame.RegisterEvent, eventFrame, event)
-    end
-    for event in pairs(SPECIAL) do
-        pcall(eventFrame.RegisterEvent, eventFrame, event)
-    end
+    for event in pairs(UNIT_EVENT_BUCKET) do Reg(event) end
+    for event in pairs(SPECIAL) do Reg(event) end
 end
 
 -- 外掛事件（元件模組用：ClassPower 等）
@@ -97,7 +101,7 @@ function ns.Events.Register(event, key, fn)
     ns.RegisterCallback("EVENT_" .. event, key, fn)
     if not externalEvents[event] then
         externalEvents[event] = true
-        pcall(eventFrame.RegisterEvent, eventFrame, event)
+        Reg(event)
     end
 end
 

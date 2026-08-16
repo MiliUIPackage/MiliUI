@@ -17,9 +17,9 @@ local function BuildOne(uf, entry, index)
         f.fontstring:SetNonSpaceWrap(true)
         uf.textFrames[index] = f
     end
-    f:SetSize(entry.w or 100, entry.h or 12)
+    f:SetSize(ns.P.Scale(entry.w or 100), ns.P.Scale(entry.h or 12))
     f:ClearAllPoints()
-    f:SetPoint("TOPLEFT", uf, "TOPLEFT", entry.x or 0, entry.y or 0)
+    f:SetPoint("TOPLEFT", uf, "TOPLEFT", ns.P.Scale(entry.x or 0), ns.P.Scale(entry.y or 0))
     f:SetFrameLevel(entry.level or 5)
 
     local fs = f.fontstring
@@ -32,6 +32,9 @@ local function BuildOne(uf, entry, index)
     -- 解析依賴桶（build 時做一次）
     f.buckets = Tags.GetBuckets(entry.pattern)
     f:Show()
+    -- 立刻重畫：字型／對齊／顏色改完若沒跟著一次 render，畫面不會更新
+    -- （FontString 換 justify 後要重設文字才會重新排版）
+    Tags.Render(uf, fs, entry.pattern, entry)
     return f
 end
 

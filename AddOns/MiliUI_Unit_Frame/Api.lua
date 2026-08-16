@@ -69,7 +69,7 @@ local function Debug()
         p("  玩家文字：textFrames 不存在")
     end
 
-    p("  圖騰槽（type / 值）：")
+    p("  召喚物槽（type / 值）：")
     for i = 1, 4 do
         local _, _, startTime, duration, icon = GetTotemInfo(i)
         p(("   #%d icon=%s(%s) start=%s dur=%s"):format(
@@ -121,6 +121,50 @@ local function Debug()
             Probe("calc.Absorbs", calc:GetDamageAbsorbs())
             Probe("UnitCanAssist", UnitCanAssist("player", "target"))
         end
+        -- 治療預估專用計算器（有 clamp）vs 全域（無 clamp）——白條亂填時比這兩個
+        local hc = tuf0 and tuf0.healCalc
+        if hc and UnitGetDetailedHealPrediction then
+            pcall(function()
+                if hc.SetIncomingHealClampMode then hc:SetIncomingHealClampMode(0) end
+                if hc.SetIncomingHealOverflowPercent then hc:SetIncomingHealOverflowPercent(1.0) end
+                UnitGetDetailedHealPrediction("target", "player", hc)
+                Probe("healCalc.Inc", hc:GetIncomingHeals())
+                Probe("healCalc.Max", hc:GetMaximumHealth())
+            end)
+        end
+        Probe("g.IncHeals", UnitGetIncomingHeals and UnitGetIncomingHeals("target"))
+        Probe("g.Absorbs", UnitGetTotalAbsorbs and UnitGetTotalAbsorbs("target"))
+        Probe("g.HealAbsorb", UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs("target"))
+        -- 3D 頭像：副本小怪到底是「被擋」還是「我們自己的閘擋掉」
+        local pf = tuf0 and tuf0.elements and tuf0.elements.portrait
+        if pf and pf.model then
+            p(("  目標頭像：connected=%s visible=%s 名字secret=%s → 我方閘=%s"):format(
+                tostring(UnitIsConnected("target")), SafeStr(UnitIsVisible("target")),
+                tostring(ns.IsSecret(UnitName("target"))),
+                ns.IsSecret(UnitName("target")) and "擋下" or "放行"))
+            -- 硬試一次 SetUnit（不管閘），看 C 端到底給不給模型
+            local probe = ns.portraitProbe
+            if not probe then
+                probe = CreateFrame("PlayerModel", nil, UIParent)
+                probe:SetSize(64, 64)
+                probe:SetPoint("TOPLEFT", UIParent, "TOPLEFT", -200, 200)  -- 畫面外但保持 Shown
+                ns.portraitProbe = probe
+            end
+            pcall(probe.ClearModel, probe)
+            local sok, sret = pcall(probe.SetUnit, probe, "target")
+            local fid = probe.GetModelFileID and probe:GetModelFileID()
+            local myFid = select(2, pcall(function()
+                pcall(probe.ClearModel, probe); pcall(probe.SetUnit, probe, "player")
+                return probe.GetModelFileID and probe:GetModelFileID()
+            end))
+            p(("   SetUnit ok=%s ret=%s → modelFileID=%s（玩家自己=%s%s）"):format(
+                tostring(sok), SafeStr(sret), SafeStr(fid), SafeStr(myFid),
+                (fid and myFid and fid == myFid) and " |cffff8800← 退回成玩家模型|r" or ""))
+            -- 2D 呢？暴雪自己的目標框用的是這條
+            local t2ok = pcall(SetPortraitTexture, pf.tex2d, "target")
+            p(("   SetPortraitTexture ok=%s tex=%s"):format(
+                tostring(t2ok), SafeStr(pf.tex2d and pf.tex2d:GetTexture())))
+        end
         p("   受限狀態 HasSecretRestrictions=" .. tostring(C_Secrets and C_Secrets.HasSecretRestrictions())
             .. " ShouldAurasBeSecret=" .. tostring(C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret()))
         local tuf = ns.frames.target
@@ -157,6 +201,49 @@ local function Debug()
         end
     end
 
+    -- 小地圖點擊／開窗流程（抓「點了沒開」）
+    if ns.clickLog and #ns.clickLog > 0 then
+        p("  點擊流程（新→舊）：")
+        for i = #ns.clickLog, math.max(1, #ns.clickLog - 14), -1 do
+            p("   " .. ns.clickLog[i])
+        end
+    else
+        p("  點擊流程：（還沒有記錄）")
+    end
+
+    -- 光環容器現況：容器狀態 + 最後一次換單位怎麼重掃的
+    do
+        local any = false
+        for _, unitKey in ipairs(ns.UNITS or {}) do
+            local uf = ns.frames[unitKey]
+            for _, name in ipairs({ "buffs", "debuffs" }) do
+                local entry = uf and uf.auraContainers and uf.auraContainers[name]
+                if entry then
+                    if not any then p("  光環容器："); any = true end
+                    local c = entry.container
+                    p(("   %-10s %-8s shown=%s visible=%s 重掃=%s"):format(
+                        unitKey, name, tostring(c:IsShown()), tostring(c:IsVisible()),
+                        (ns.auraPokeLog and ns.auraPokeLog[unitKey .. "/" .. name]) or "—"))
+                end
+            end
+        end
+        if ns.aurasLastError then p("   建立失敗：" .. tostring(ns.aurasLastError)) end
+    end
+
+    -- 資源條：這個專精/型態/天賦下，每個資源為什麼在或不在
+    if ns.ResourceCandidates then
+        local list, specID = ns.ResourceCandidates()
+        p(("  資源條（專精 %s）：實際顯示 %s"):format(
+            tostring(specID), #list > 0 and table.concat(list, ", ") or "（無）"))
+        for key, why in pairs(ns.ResourceGateLog and ns.ResourceGateLog() or {}) do
+            local info = ns.ResourceInfo and ns.ResourceInfo(key)
+            p(("   %-16s %s  %s"):format(key, (info and info.name) or "?", why))
+        end
+        if GetShapeshiftFormID then
+            p("   目前型態 formID=" .. tostring(GetShapeshiftFormID()))
+        end
+    end
+
     -- 遭遇戰 EJ 模型表
     if ns.GetEncounterDisplays then
         local active, list, dbg = ns.GetEncounterDisplays()
@@ -175,7 +262,7 @@ local function Debug()
     end
 
     local tf = ns.db and ns.db.units.totem and ns.db.units.totem.frame
-    p("  圖騰框：" .. (ns.totemFrame
+    p("  召喚物框：" .. (ns.totemFrame
         and (ns.totemFrame:IsShown() and "顯示" or "隱藏") or "沒生成")
         .. (tf and ("  設定座標 x=" .. tostring(tf.x) .. " y=" .. tostring(tf.y)) or ""))
 end

@@ -80,7 +80,7 @@ end
 -- AuraButton 外觀（三層：外框 → 掃描 → 內縮圖示 → 文字）
 -- 只能在 initializeFrame 內呼叫
 ------------------------------------------------------------
-local BORDER = 1
+local BORDER = 1                              -- 版面單位；實際用 ns.P.Scale 對齊實體像素
 local TRACK_COLOR = { 0, 0, 0, 1 }            -- swipe 底下的黑色軌道
 local SPENT_COLOR = { 0.18, 0.18, 0.18 }      -- 驅散色外框被灰色吃掉
 local BUFF_BORDER_COLOR = { 0, 0.55, 0.15, 1 }
@@ -90,6 +90,19 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
     auraButton:SetIgnoringChildrenForBounds(true)
     auraButton:SetSize(sizeW, sizeH)
     auraButton:SetMouseClickEnabled(false)
+    -- 滑鼠提示：光環內容是秘密值，插件畫不出提示——開啟 motion 讓 AuraButton
+    -- 自己顯示暴雪的光環提示（12.1 build 68914 的按鈕 API，EUI 同法）
+    if style.tooltips ~= false then
+        pcall(auraButton.SetMouseMotionEnabled, auraButton, true)
+        if auraButton.SetHideTooltipInCombat then
+            pcall(auraButton.SetHideTooltipInCombat, auraButton, false)
+        end
+        if auraButton.SetTooltipAnchorPoint then
+            pcall(auraButton.SetTooltipAnchorPoint, auraButton, "ANCHOR_RIGHT")
+        end
+    else
+        pcall(auraButton.SetMouseMotionEnabled, auraButton, false)
+    end
 
     -- 底層外框
     local borderTex = auraButton:CreateTexture(nil, "BACKGROUND")
@@ -133,10 +146,11 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
         auraButton:SetDurationCooldown(cooldown)
     end
 
-    -- 上層：內縮圖示
+    -- 上層：內縮圖示（露出底下那層當外框；內縮量對齊實體像素，邊寬才會每邊一致）
+    local b = ns.P.Scale(BORDER)
     local iconFrame = CreateFrame("Frame", nil, auraButton)
-    iconFrame:SetPoint("TOPLEFT", auraButton, "TOPLEFT", BORDER, -BORDER)
-    iconFrame:SetPoint("BOTTOMRIGHT", auraButton, "BOTTOMRIGHT", -BORDER, BORDER)
+    iconFrame:SetPoint("TOPLEFT", auraButton, "TOPLEFT", b, -b)
+    iconFrame:SetPoint("BOTTOMRIGHT", auraButton, "BOTTOMRIGHT", -b, b)
     if cooldown then
         iconFrame:SetFrameLevel(cooldown:GetFrameLevel() + 1)
     end
@@ -243,6 +257,46 @@ local function BuildSignature(edb)
     }, "|")
 end
 
+------------------------------------------------------------
+-- 換人重掃
+--
+-- 動態 token（target / focus / bossN）在框架保持顯示的情況下換人，容器不會自己重解析。
+-- ⚠ 從插件端呼叫 `UpdateAllAuras` **只設得到髒旗標，推不動私有端的處理器**
+-- （Cell/RaidFrames/AuraDisplay.lua 的實測結論）——真正跨得過分界的是 Hide/Show：
+-- intrinsic 的 OnShow 跑在安全端，會從那裡重掃一次。
+-- 戰鬥中不彈（受保護的 intrinsic 擋 Hide），先設髒旗標記下來，脫戰再補彈一次。
+------------------------------------------------------------
+local pendingBounce = {}
+
+local function Kick(c)
+    pcall(function() c:Hide(); c:Show() end)
+    if c.SetEnabled then pcall(c.SetEnabled, c, true) end
+end
+
+local function Bounce(c, tag)
+    if not c then return end
+    local how
+    if InCombatLockdown() then
+        pendingBounce[c] = true
+        how = "combat/dirty=" .. tostring(c.UpdateAllAuras and pcall(c.UpdateAllAuras, c) or false)
+    else
+        pendingBounce[c] = nil
+        Kick(c)
+        how = "bounce"
+    end
+    if tag then
+        ns.auraPokeLog = ns.auraPokeLog or {}
+        ns.auraPokeLog[tag] = how
+    end
+end
+
+ns.Events.Register("PLAYER_REGEN_ENABLED", "auras_bounce_replay", function()
+    for c in pairs(pendingBounce) do
+        pendingBounce[c] = nil
+        Kick(c)
+    end
+end)
+
 local function CreateContainer(uf, elementName, edb, filter, style)
     -- 容器掛中介 holder（不直接依附會被 Hide 的東西；也墊高層級蓋過血條）
     local holder = uf.auraHost
@@ -267,6 +321,9 @@ local function CreateContainer(uf, elementName, edb, filter, style)
     -- 錨點角依生長方向：往上長要用 BOTTOM 邊釘原點
     local anchorPoint = (g.growUp and "BOTTOM" or "TOP") .. (g.growLeft and "RIGHT" or "LEFT")
     container:SetPoint(anchorPoint, uf, "TOPLEFT", edb.x or 0, edb.y or 0)
+    -- 建立順序照 Cell/RaidFrames/AuraDisplay.lua 與 Stuf/auracontainer.lua：
+    -- SetUnit 在 AddAuraGroup 之前、SetEnabled 最後。這兩個都是在這台機器上實跑過的。
+    -- （EUI AuraKit 的「unit last」是配合它自己的分階段建構器，照搬會壞。）
     container:SetUnit(uf.unit)
     ApplyFlowLayout(container, spec)
 
@@ -283,19 +340,30 @@ local function CreateContainer(uf, elementName, edb, filter, style)
         end,
     })
 
-    -- SetEnabled gate 光環事件註冊（Cell 教訓 4：不可見時註冊不上，
-    -- OnShow 再 kick 一次）
+    -- ⚠ 絕對不要對 container 掛 script handler：AuraContainer 是 forbidden intrinsic，
+    -- `HookScript` 直接丟「cannot replace a forbidden script handler」，而這裡包在 pcall
+    -- 裡 ⇒ 整個容器建立失敗、外面看起來只是「光環沒出來」。重新可見時要重下 SetEnabled，
+    -- 改掛在 holder（我們自己建的普通 Frame）上。
     if container.SetEnabled then
         pcall(container.SetEnabled, container, true)
-        container:HookScript("OnShow", function(self)
-            if not self.__kicked then
-                self.__kicked = true
-                pcall(self.SetEnabled, self, true)
+    end
+    if not holder.__kickHooked then
+        holder.__kickHooked = true
+        holder:HookScript("OnShow", function()
+            -- 容器建立時框架若還沒可見，SetEnabled 註冊不到光環事件（Cell 教訓 4），
+            -- 之後就永遠空白 → 真的顯示出來時補踢一次。
+            -- ⚠ 一定要走 Bounce 不能直接 Kick：這個 OnShow 是 RegisterUnitWatch 從
+            -- **安全端**觸發的，戰鬥中換目標就會在戰鬥中跑到這裡；對 intrinsic 下 Hide()
+            -- 會被判成「Blizzard UI 專屬動作」跳封鎖視窗（而且 pcall 攔不住，那不是
+            -- Lua error）。Bounce 有戰鬥閘，會改成設髒旗標、脫戰再補彈。
+            for k, e in pairs(uf.auraContainers or {}) do
+                Bounce(e.container, uf.unit .. "/" .. k)
             end
         end)
     end
     return container
 end
+
 
 local function BuildStyle(elementName, edb)
     if elementName == "debuffs" then
@@ -348,14 +416,41 @@ local function MakeElement(elementName, baseFilter)
         container:Show()
     end
 
-    local function Update(uf, edb, bucket)
-        -- identity：換單位（target 換人）→ 容器指到新單位並全量重掃（R5）
+    -- 換單位主動彈一次（見上面 Bounce 的說明）
+    local function Repoke(uf)
         local entry = uf.auraContainers and uf.auraContainers[elementName]
         if not entry then return end
-        local c = entry.container
-        pcall(c.SetUnit, c, uf.unit)
-        if c.UpdateAllAuras then pcall(c.UpdateAllAuras, c) end
+        Bounce(entry.container, uf.unit .. "/" .. elementName)
     end
+
+    local function Update(uf, edb, bucket)
+        Repoke(uf)
+    end
+
+    -- 直接掛事件，不只靠 identity 桶派發（框架剛顯示那一瞬間 IsVisible 可能還是 false，
+    -- 派發會被閘門擋掉，光環就停在上一個單位）
+    ns.Events.Register("PLAYER_TARGET_CHANGED", "auras_" .. elementName .. "_t", function()
+        local uf = ns.frames.target
+        if uf then Repoke(uf) end
+        local tot = ns.frames.targettarget
+        if tot then Repoke(tot) end
+    end)
+    ns.Events.Register("PLAYER_FOCUS_CHANGED", "auras_" .. elementName .. "_f", function()
+        local uf = ns.frames.focus
+        if uf then Repoke(uf) end
+        local ft = ns.frames.focustarget
+        if ft then Repoke(ft) end
+    end)
+    ns.Events.Register("UNIT_TARGET", "auras_" .. elementName .. "_ut", function(unit)
+        if unit == "target" and ns.frames.targettarget then Repoke(ns.frames.targettarget) end
+        if unit == "focus" and ns.frames.focustarget then Repoke(ns.frames.focustarget) end
+    end)
+    ns.Events.Register("INSTANCE_ENCOUNTER_ENGAGE_UNIT", "auras_" .. elementName .. "_b", function()
+        for i = 1, 5 do
+            local uf = ns.frames["boss" .. i]
+            if uf then Repoke(uf) end
+        end
+    end)
 
     local function Disable(uf)
         local entry = uf.auraContainers and uf.auraContainers[elementName]

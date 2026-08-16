@@ -35,10 +35,14 @@ local function textDef(o)
 end
 
 -- 大框（player/target 200×50）的 castbar 預設
-local function bigCastbar()
+-- own = 自己的施法條：單一顏色、不畫「不可打斷」的灰（Stuf 也是這樣，敵方才標示）
+local function bigCastbar(own)
     return {
         enabled = true, x = 0, y = 0, w = 200, h = 52, level = 6,
-        bg = black(0.8), timeFormat = "elapsedTotal", showShield = true, shieldScale = 1, shieldOffsetX = 0, shieldOffsetY = 0,
+        bg = black(0.8), timeFormat = "elapsedTotal",
+        showInterruptState = not own,   -- 自己的施法不套「不可打斷灰」也不畫盾牌
+        showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
+        showShield = not own, shieldStyle = "blizzard", shieldScale = own and 1.2 or 1.4, shieldOffsetX = 0, shieldOffsetY = 0,
         spell = { x = 34, y = -2, w = 166, h = 50, size = 12, flags = "OUTLINE",
                   justifyH = "LEFT", justifyV = "MIDDLE", color = white(1) },
         time  = { x = -2, y = -35, w = 200, h = 12, size = 12, flags = "OUTLINE",
@@ -64,6 +68,8 @@ function DB.BuildDefaults()
             previewBossDisplayID = 131474,   -- 預覽敵對單位的示範模型（薩拉塔斯 12.x 形態；117121 = TWW 形態）
             strata      = "LOW",
             smoothBars  = true,
+            showTooltip = true,          -- 滑鼠移到單位框顯示提示
+            tooltipHideInCombat = false, -- 戰鬥中不顯示提示
             colors = {
                 reaction = {
                     [1] = { r = 1, g = 0, b = 0 },     [2] = { r = 0.8, g = 0, b = 0 },
@@ -101,19 +107,24 @@ function DB.BuildDefaults()
                     -- 層級嚴格遞增：mp 條 0 / mp 框 1 / 血條背景 2 / 3D 頭像 3（去背）/ 血條前景 4
                     -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
                     portrait = { enabled = true, x = 0, y = 0, w = 200, h = 50, mode = "3d",
-                                 bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3 },
+                                 bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3,
+                                 zoom = 1, rotation = -35,     -- 側身（度）
+                                 modelOffsetX = 0.1, modelOffsetY = 0,    -- 設定面板顯示 ×100
+                                 fallback2D = false },
                     hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.55,
                               colorMethod = "class", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.7, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
                               healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.25 },
                               absorbColor = { r = 0.6, g = 0.85, b = 1, a = 0.7 },
-                              showHealAbsorb = false, healAbsorbColor = { r = 1, g = 0.15, b = 0.15, a = 0.7 } },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.15, b = 0.15, a = 0.7 } },
                     mpbar = { enabled = true, x = 8, y = -8, w = 200, h = 50, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barAlpha = 1, bgAlpha = 1, border = true },
                     classpower = { enabled = true, x = 8, y = -14, totalw = 200, h = 6,
-                                   spacing = 1, level = 5 },
+                                   spacing = 1, rowSpacing = 2, level = 5,
+                                   barAlpha = 1, showText = false,
+                                   resources = {} },   -- [資源key] = false 表示關掉
                     manabar = { enabled = true, x = 63, y = -37, w = 127, h = 3, level = 6,
                                 color = { r = 0.3, g = 0.3, b = 1, a = 1 }, bgAlpha = 0.4 },
                     texts = {
@@ -132,7 +143,7 @@ function DB.BuildDefaults()
                         textDef{ pattern = "[perchp]%", x = -2, y = -2, w = 200, h = 50, size = 13,
                                  justifyH = "RIGHT", justifyV = "MIDDLE" },
                     },
-                    castbar = bigCastbar(),
+                    castbar = bigCastbar(true),
                     buffs  = { enabled = false, x = 0, y = -52, w = 17, h = 17,
                                maxCount = 32, perRow = 16, growth = "LRTB", spacing = 1,
                                showStack = true, stackSize = 10,
@@ -157,14 +168,17 @@ function DB.BuildDefaults()
                     -- 層級嚴格遞增：mp 條 0 / mp 框 1 / 血條背景 2 / 3D 頭像 3（去背）/ 血條前景 4
                     -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
                     portrait = { enabled = true, x = 0, y = 0, w = 200, h = 50, mode = "3d",
-                                 bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3 },
+                                 bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3,
+                                 zoom = 1, rotation = -25,     -- 側身（度）
+                                 modelOffsetX = 0.1, modelOffsetY = 0,    -- 側身後模型會偏左，往右推回來
+                                 fallback2D = false },   -- 副本小怪 3D 取不到時是否退 2D
                     hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.55,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.7, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
                               healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.25 },
                               absorbColor = { r = 0.6, g = 0.85, b = 1, a = 0.7 },
-                              showHealAbsorb = false, healAbsorbColor = { r = 1, g = 0.15, b = 0.15, a = 0.7 } },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.15, b = 0.15, a = 0.7 } },
                     mpbar = { enabled = true, x = -8, y = -8, w = 200, h = 50, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barAlpha = 1, bgAlpha = 1, border = true },
@@ -257,7 +271,7 @@ function DB.BuildDefaults()
                                  size = 10, justifyH = "CENTER", justifyV = "MIDDLE", level = 6 },
                     },
                     castbar = {
-                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 7, timeFormat = "elapsedTotal", showShield = true, shieldScale = 1, shieldOffsetX = 0, shieldOffsetY = 0,
+                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 7, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showShield = true, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(1), border = true,
                         spell = { x = 12, y = 7, w = 160, h = 10, size = 10, flags = "OUTLINE",
                                   justifyH = "LEFT", justifyV = "TOP", color = white(1) },
@@ -301,7 +315,8 @@ function DB.BuildDefaults()
                 frame = { x = -470, y = -225, w = 120, h = 50 },
                 elements = {
                     portrait = { enabled = true, x = 0, y = 0, w = 120, h = 40, mode = "3d",
-                                 bg = { r = 0.165, g = 0.165, b = 0.165, a = 1 }, level = 2 },
+                                 bg = { r = 0.165, g = 0.165, b = 0.165, a = 1 }, level = 2,
+                                 fallback2D = false },
                     hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 40, level = 4, lossAlpha = 0.55,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.8, bgAlpha = 1, border = true,
@@ -323,7 +338,8 @@ function DB.BuildDefaults()
                                  justifyH = "CENTER", justifyV = "BOTTOM" },
                     },
                     castbar = {
-                        enabled = true, x = 0, y = 0, w = 120, h = 40, level = 6, timeFormat = "elapsedTotal", showShield = true, shieldScale = 1, shieldOffsetX = 0, shieldOffsetY = 0,
+                        enabled = true, x = 0, y = 0, w = 120, h = 40, level = 6, timeFormat = "elapsedTotal",
+                        showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showShield = false, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(0.5),
                         spell = { x = 34, y = 5, w = 120, h = 50, size = 12, flags = "OUTLINE",
                                   justifyH = "LEFT", justifyV = "MIDDLE",
@@ -345,40 +361,43 @@ function DB.BuildDefaults()
 
             ------------------------------------------------------------
             boss = {   -- boss1-5 共用；boss1 在 frame.x/y，其餘依 growth/spacing 排
-                -- 樣式：去背 3D 頭像在左往上突出、名字浮在血條上緣、血量％置中、能量條含％
+                -- 使用者實地調好的版面（2026-08-16 從 SavedVariables 原樣收進來，含位置）。
+                -- 我們自己畫首領框、暴雪的已隱藏，所以位置與暴雪首領框無關。
                 enabled = true,
-                frame = { x = 560, y = 295, w = 220, h = 32, growth = "DOWN", spacing = 80 },
+                frame = { x = 499, y = 319, w = 220, h = 32, growth = "DOWN", spacing = 80 },
                 elements = {
-                    portrait = { enabled = true, x = -30, y = 16, w = 66, h = 66, mode = "3d",
-                                 bg = { r = 0, g = 0, b = 0, a = 0 },     -- 去背
-                                 zoom = 0.6, rotation = 0.35, level = 9 },
-                    hpbar = { enabled = true, x = 36, y = 0, w = 184, h = 22, level = 4,
-                              colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
-                              barAlpha = 0.4, bgAlpha = 1, border = true,      -- 跟目標框同款
-                              showHealPrediction = false, showAbsorb = true,
-                              healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.25 },
-                              absorbColor = { r = 0.6, g = 0.85, b = 1, a = 0.7 },
-                              showHealAbsorb = false, healAbsorbColor = { r = 1, g = 0.15, b = 0.15, a = 0.7 } },
-                    mpbar = { enabled = true, x = 36, y = -22, w = 184, h = 10, level = 4,
+                    portrait = { enabled = true, x = 37, y = 50, w = 66, h = 66, mode = "3d",
+                                 bg = { r = 0, g = 0, b = 0, a = 0 },
+                                 zoom = 1, rotation = 0, level = 0, fallback2D = false },
+                    hpbar = { enabled = true, x = 36, y = 0, w = 184, h = 14, level = 4,
+                              colorMethod = "classreaction", bgColorMethod = "solid",
+                              bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barAlpha = 0.4, bgAlpha = 1, border = true,
+                              showHealPrediction = false, healPredictionFollowBar = false,
+                              healPredictionColor = { r = 1, g = 1, b = 1, a = 0.25 },
+                              showAbsorb = true, absorbColor = { r = 0.6, g = 0.85, b = 1, a = 0.7 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.15, b = 0.15, a = 0.7 } },
+                    mpbar = { enabled = true, x = 36, y = -13, w = 184, h = 10, level = 4,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barAlpha = 1, bgAlpha = 1, border = true },
                     texts = {
-                        -- 名字浮在血條上緣（往上 13px），左對齊、避開左側頭像
-                        textDef{ pattern = "[name]", x = 40, y = 13, w = 160, h = 14, size = 12,
+                        textDef{ pattern = "[name]", x = 40, y = 13, w = 160, h = 14, size = 18,
                                  justifyH = "LEFT", justifyV = "MIDDLE", level = 10 },
-                        -- 血量％置中在血條上
-                        textDef{ pattern = "[perchp]%", x = 36, y = 0, w = 184, h = 22, size = 14,
-                                 justifyH = "CENTER", justifyV = "MIDDLE" },
-                        -- 能量％置中在能量條上
-                        textDef{ pattern = "[percmp]%", x = 36, y = -22, w = 184, h = 10, size = 9,
-                                 justifyH = "CENTER", justifyV = "MIDDLE" },
+                        textDef{ pattern = "[perchp]%", x = 36, y = 10, w = 184, h = 22, size = 16,
+                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
+                        textDef{ pattern = "[percmp]%", x = 36, y = -14, w = 184, h = 10, size = 10,
+                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
                     },
                     castbar = {
-                        enabled = true, x = 36, y = -34, w = 184, h = 14, level = 6, timeFormat = "elapsedTotal", showShield = true, shieldScale = 1, shieldOffsetX = 0, shieldOffsetY = 0,
+                        enabled = true, x = 36, y = -22, w = 184, h = 14, level = 6,
+                        timeFormat = "elapsedTotal", showInterruptState = true,
+                        showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
+                        showShield = true, shieldStyle = "blizzard", shieldScale = 1.4,
+                        shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(0.7), border = true,
-                        spell = { x = 18, y = 0, w = 130, h = 14, size = 11, flags = "OUTLINE",
+                        spell = { x = 18, y = 0, w = 130, h = 14, size = 14, flags = "OUTLINE",
                                   justifyH = "LEFT", justifyV = "MIDDLE", color = white(1) },
-                        time  = { x = 0, y = 0, w = 180, h = 14, size = 10, flags = "OUTLINE",
+                        time  = { x = 0, y = 0, w = 180, h = 14, size = 12, flags = "OUTLINE",
                                   justifyH = "RIGHT", justifyV = "MIDDLE", color = white(1) },
                         icon  = { x = 0, y = 0, w = 14, h = 14 },
                     },
@@ -398,6 +417,7 @@ function DB.BuildDefaults()
                 frame = { x = -338, y = -286, iconSize = 28, spacing = 4, growth = "RIGHT" },
                 colors = "accent",       -- "accent" | "element"
                 swapEarthFire = true,
+                showTimeText = true,     -- 圖示上的剩餘秒數
             },
         },
 

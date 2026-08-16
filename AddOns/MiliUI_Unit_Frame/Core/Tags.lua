@@ -19,6 +19,8 @@ local Tags = ns.Tags
 
 local IsSecret = ns.IsSecret
 local format, gsub, strmatch = string.format, string.gsub, string.match
+-- ⚠ 要宣告在 SECRET_TAGS 之前：那些 closure 用到它，宣告在後面會抓到 nil 全域而靜默失效
+local _CSU = C_StringUtil
 
 local specialchars = { nl = "\n", ["%"] = "%%", lp = "%(", rp = "%)" }
 
@@ -31,6 +33,8 @@ local INFO_TAGS = {
     creaturetype = "identity", classification = "identity",
     perchp = "health", percmp = "power",   -- 佔位符路徑，仍列出供 GetBuckets 用
     curhp = "health", maxhp = "health", curmp = "power", maxmp = "power",
+    shields = "health", healabsorbs = "health",
+    shields_short = "health", healabsorbs_short = "health",
 }
 
 -- 秘密值 tag：走「佔位符 → 最後串接」管線，值從不進 Lua 字串運算
@@ -54,6 +58,24 @@ local SECRET_TAGS = {
                    local _scale = (CurveConstants and CurveConstants.ScaleTo100) or true
                    return UnitPowerPercent(u, UnitPowerType(u), false, _scale)
                end },
+    -- 吸收盾／治療吸收數量：走全域 API（EUI 同法，不用計算器）。
+    -- 無盾時用 C_StringUtil.TruncateWhenZero 讓它輸出空字串——這是官方的
+    -- 「秘密數字為 0 就不顯示」管道，插件不必讀值（kind=string 直接串接）
+    shields = { kind = "string", fn = function(u)
+        if not (UnitGetTotalAbsorbs and _CSU and _CSU.TruncateWhenZero) then return "" end
+        return format("%s", _CSU.TruncateWhenZero(UnitGetTotalAbsorbs(u) or 0))
+    end },
+    healabsorbs = { kind = "string", fn = function(u)
+        if not (UnitGetTotalHealAbsorbs and _CSU and _CSU.TruncateWhenZero) then return "" end
+        return format("%s", _CSU.TruncateWhenZero(UnitGetTotalHealAbsorbs(u) or 0))
+    end },
+    -- 縮寫版（吃「數字縮寫」設定；無盾時顯示 0）
+    shields_short = { kind = "number", fn = function(u)
+        return UnitGetTotalAbsorbs and UnitGetTotalAbsorbs(u) or 0
+    end },
+    healabsorbs_short = { kind = "number", fn = function(u)
+        return UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs(u) or 0
+    end },
     name  = { kind = "string", fn = function(u) return UnitName(u) end },
     race  = { kind = "string", fn = function(u) return (UnitRace(u)) end },
     class = { kind = "string", fn = function(u) return (UnitClass(u)) end },
@@ -118,8 +140,6 @@ end
 ------------------------------------------------------------
 -- 渲染
 ------------------------------------------------------------
-local _CSU = C_StringUtil
-
 -- 數字縮寫模式：設定優先；沒設就依語系（中文萬/億，其他 K/M）
 local LOCALE = GetLocale()
 function Tags.NumberMode()
@@ -179,7 +199,7 @@ function Tags.Render(uf, fs, pattern, edb)
                 v = cache.previewValues and cache.previewValues[tag] or 0
             end
         else
-            v = info.fn(uf.unit)
+            v = info.fn(uf.unit, uf)
         end
         rawArgs[argCount] = v
         kinds[argCount] = info.kind

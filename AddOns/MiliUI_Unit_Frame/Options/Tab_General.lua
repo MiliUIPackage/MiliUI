@@ -45,10 +45,17 @@ local CONTROLS = {
     { type = "color", sub = "colors", key = "gray",    label = "灰色" },
 
     { type = "header", label = "施法條顏色" },
+    { type = "text",   label = "所有單位的施法條共用這五色；每個單位可各自決定要不要套用「不可打斷」。" },
     { type = "color", sub = "colors", key = "cast",    label = "施法", hasAlpha = false },
     { type = "color", sub = "colors", key = "channel", label = "引導", hasAlpha = false },
-    { type = "color", sub = "colors", key = "fail",    label = "打斷／失敗", hasAlpha = false },
+    { type = "color", sub = "colors", key = "complete", label = "完成", hasAlpha = false },
+    { type = "color", sub = "colors", key = "fail",    label = "失敗／被打斷", hasAlpha = false },
     { type = "color", sub = "colors", key = "notInterruptible", label = "不可打斷", hasAlpha = false },
+
+    { type = "header", label = "滑鼠提示" },
+    { type = "toggle", key = "showTooltip", label = "顯示單位提示" },
+    { type = "toggle", key = "tooltipHideInCombat", label = "戰鬥中不顯示" },
+    { type = "text",   label = "光環圖示的提示由遊戲端顯示（12.1 插件讀不到光環內容），跟著單位提示一起開關。" },
 
     { type = "header", label = "預覽" },
     { type = "number", key = "previewBossDisplayID", label = "示範模型 ID", step = 1 },
@@ -71,7 +78,7 @@ local CONTROLS = {
           end
       end },
     { type = "button", label = "全部設定", text = "全部恢復預設並重載", color = "red",
-      confirm = "把所有設定（全域＋每個單位＋圖騰＋位置）恢復成預設值並重新載入介面？",
+      confirm = "把所有設定（全域＋每個單位＋召喚物＋位置）恢復成預設值並重新載入介面？",
       onClick = function() ns.DB.ResetAll() end },
     { type = "text", label = "單一單位的重置在「單位」分頁 → 框架 的最下方。指令 /muf reset 等同「全部恢復預設」。" },
 }

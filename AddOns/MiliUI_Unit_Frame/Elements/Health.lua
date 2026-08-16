@@ -15,20 +15,30 @@ local SHIELD_TEXTURE = "Interface\\RaidFrame\\Shield-Fill"
 
 local function EnsureCalc(uf)
     if not uf.hpCalc and CreateUnitHealPredictionCalculator then
-        -- 血量／吸收盾／治療吸收共用這顆（Platynator 12.1 設定：只夾 DamageAbsorb 到最大值）
+        -- 血量與吸收盾用這顆（設定照 EUIStandaloneUnitFrames，12.1 出貨驗證）。
+        -- ⚠ **治療吸收不要用計算器**：`calc:GetHealAbsorbs()` 在 12.1 回不可信的值
+        --   （實測：沒有任何 debuff 卻填半條～整條，補 HealAbsorbClampMode 也沒用）。
+        --   EUI 全部 8 個呼叫點一律走全域 `UnitGetTotalHealAbsorbs(unit)`，見 Update。
         local calc = CreateUnitHealPredictionCalculator()
-        if calc.SetDamageAbsorbClampMode and Enum.UnitDamageAbsorbClampMode then
-            calc:SetDamageAbsorbClampMode(Enum.UnitDamageAbsorbClampMode.MaximumHealth)
+        if calc.SetMaximumHealthMode and Enum.UnitMaximumHealthMode then
+            calc:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.Default)
+        end
+        if calc.SetDamageAbsorbClampMode then
+            calc:SetDamageAbsorbClampMode((Enum.UnitDamageAbsorbClampMode
+                and Enum.UnitDamageAbsorbClampMode.MaximumHealth) or 2)
         end
         uf.hpCalc = calc
-        -- 治療預估另開一顆（Cell 做法）：clamp 設定不污染上面那顆。
-        -- IncomingHealClampMode 0 = MissingHealth（不超出條尾）、Overflow 1.0
-        local pcalc = CreateUnitHealPredictionCalculator()
-        if pcalc.SetIncomingHealClampMode then pcall(pcalc.SetIncomingHealClampMode, pcalc, 0) end
-        if pcalc.SetIncomingHealOverflowPercent then pcall(pcalc.SetIncomingHealOverflowPercent, pcalc, 1.0) end
-        uf.healCalc = pcalc
     end
     return uf.hpCalc
+end
+
+-- 治療預估**另開一顆**計算器（Cell 的 Midnight 路徑）：
+-- clamp/overflow 設定不會污染上面那顆共用的（血量／吸收盾／治療吸收都靠它）
+local function EnsureHealCalc(uf)
+    if not uf.healCalc and CreateUnitHealPredictionCalculator then
+        uf.healCalc = CreateUnitHealPredictionCalculator()
+    end
+    return uf.healCalc
 end
 
 -- 疊在血條邊緣的延伸條（治療預估/吸收盾共用）
@@ -52,7 +62,8 @@ local function Build(uf, edb)
     ns.ApplyElementBase(uf, f, edb)
 
     local texture = Media.BarTexture(ns.db.global.barTexture)
-    local inset = (edb.border ~= false) and (ns.db.global.borderSize or 1) or 0
+    -- 內縮量必須等於邊框「實際畫出來」的厚度，見 Media.BorderInset 的說明
+    local inset = (edb.border ~= false) and Media.BorderInset() or 0
 
     -- 內容一律裝在內縮的 clip 框裡：治療預估/吸收盾往右延伸時被 clip 框裁掉，
     -- 永遠蓋不到外圈 1px 邊框（不然血沒滿時右邊框會被 overlay 吃掉）
@@ -103,7 +114,9 @@ local function Build(uf, edb)
 
     EnsureCalc(uf)
 
-    local innerW, innerH = (edb.w or 10) - inset * 2, (edb.h or 10) - inset * 2
+    -- 用「對齊後」的外框尺寸算內容區，才跟 ApplyElementBase 實際設下去的一致
+    local innerW = ns.P.Scale(edb.w or 10) - inset * 2
+    local innerH = ns.P.Scale(edb.h or 10) - inset * 2
     local hpTex = f.bar:GetStatusBarTexture()
 
     -- 扣血暗化層：從填充右緣鋪到條右緣的半透明黑（貼在 clip 框上，位於頭像之上、
@@ -220,23 +233,36 @@ local function Update(uf, edb, bucket)
                 end
             end
             if edb.showHealAbsorb and f.healAbsorbBar then
-                if overlaysOK then
+                -- 走全域 UnitGetTotalHealAbsorbs（EUI 同法）；計算器的 GetHealAbsorbs 不可信
+                if overlaysOK and UnitGetTotalHealAbsorbs then
                     pcall(function()
                         f.healAbsorbBar:SetMinMaxValues(0, maxHP)
-                        f.healAbsorbBar:SetValue(calc:GetHealAbsorbs())
+                        f.healAbsorbBar:SetValue(UnitGetTotalHealAbsorbs(unit) or 0)
                         f.healAbsorbBar:Show()
                     end)
                 else
                     f.healAbsorbBar:Hide()
                 end
             end
+            -- 治療預估：照 Cell 的 Midnight 路徑（UnitButton_UpdateHealPrediction）。
+            -- ⚠ 關鍵在 clamp **每次更新都要重設**——`UnitGetDetailedHealPrediction`
+            -- 會把計算器重新灌值，建立時設一次是沒用的。少了 MissingHealth clamp，
+            -- GetIncomingHeals 會回沒有上限的量，把整條剩餘血量填滿（就是那條
+            -- 「沒人補我卻整片白」的假預估）。
+            -- 全域 UnitGetIncomingHeals 是 Cell 的**前 Midnight** 路徑，12.x 別用。
             if edb.showHealPrediction and f.incbar then
-                if overlaysOK and uf.healCalc then
+                local hcalc = EnsureHealCalc(uf)
+                if overlaysOK and hcalc and UnitGetDetailedHealPrediction then
                     pcall(function()
-                        -- 獨立計算器（Cell 做法）：clamp=MissingHealth 不超出條尾
-                        UnitGetDetailedHealPrediction(unit, "player", uf.healCalc)
-                        f.incbar:SetMinMaxValues(0, uf.healCalc:GetMaximumHealth())
-                        f.incbar:SetValue(uf.healCalc:GetIncomingHeals())
+                        if hcalc.SetIncomingHealClampMode then
+                            hcalc:SetIncomingHealClampMode(0)          -- 0 = MissingHealth
+                        end
+                        if hcalc.SetIncomingHealOverflowPercent then
+                            hcalc:SetIncomingHealOverflowPercent(1.0)
+                        end
+                        UnitGetDetailedHealPrediction(unit, "player", hcalc)
+                        f.incbar:SetMinMaxValues(0, hcalc:GetMaximumHealth())
+                        f.incbar:SetValue(hcalc:GetIncomingHeals())
                         f.incbar:Show()
                     end)
                 else

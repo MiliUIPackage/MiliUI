@@ -48,3 +48,18 @@ Cell 自己的版本在 `Comm/Comm.lua`（多一道 `Cell.isMidnight` 前置判�
 - `Enum.EditModeUnitFrameSetting.IconSize` 拆成 `BuffIconSize` / `DebuffIconSize`。
 - 新增 `C_Discord` 命名空間與一堆 Discord 事件、`CHAT_MSG_*` 多了 `discordInfo` 參數。
 - `SPELL_UPDATE_COOLDOWN` 多了 `itemID` 參數。
+
+## 戰鬥紀錄:插件不能註冊 COMBAT_LOG_EVENT_UNFILTERED
+
+12.x(Midnight)起 `COMBAT_LOG_EVENT_UNFILTERED` **對插件不開放**。`RegisterEvent` 它會觸發
+`ADDON_ACTION_FORBIDDEN`(函式名 `Frame:RegisterEvent()`),跳「嘗試進行 Blizzard UI 專屬動作」
+彈窗——**pcall 攔不掉**(不是 Lua error),而且發生在載入時、非戰鬥,跟改動的時間點對不上,
+很難靠回想抓。
+
+在地佐證:`Cell/Indicators/AoEHealing.lua` 每個註冊點都包 `if Cell.isMidnight then return end`,
+CHANGELOG 寫「AoEHealing: disabled on Midnight (CLEU unavailable)」、
+「UnitButton: removed CombatLogGetCurrentEventInfo dependency」。
+
+**影響**:任何「靠戰鬥紀錄補資料」的設計在 12.x 都要放棄,改用單位事件。
+例:施法條的斷法者只能吃 `UNIT_SPELLCAST_INTERRUPTED` 事件自己帶的 GUID
+(第 4 個參數;EMPOWER_STOP 是第 5 個),拿不到就不顯示。

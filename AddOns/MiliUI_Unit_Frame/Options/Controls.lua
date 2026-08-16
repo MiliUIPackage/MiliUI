@@ -91,17 +91,21 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
             y = y - ROW_H
 
         elseif spec.type == "slider" then
+            -- spec.scale：顯示值 = 實際值 × scale（例如模型偏移實際是 0~1，
+            -- 顯示成 0~100 才好調）。min/max/step 都用「顯示單位」寫
+            local scale = spec.scale or 1
             MakeLabel(parent, spec.label, x0, y, ROW_H_TALL)
             local s = W.CreateSlider(parent, spec.min or 0, spec.max or 100, CONTROL_W,
                 spec.step or 1,
                 nil,
                 function(v)
-                    ctx.set(spec, v)
+                    ctx.set(spec, scale == 1 and v or (v / scale))
                     ctx.apply()
                 end)
             s:SetPoint("LEFT", parent, "TOPLEFT", cx, y - ROW_H_TALL / 2)
             tinsert(refreshers, function()
-                s:SetValue(tonumber(ctx.get(spec)) or spec.min or 0)
+                local raw = tonumber(ctx.get(spec))
+                s:SetValue(raw and (raw * scale) or spec.min or 0)
             end)
             y = y - ROW_H_TALL
 

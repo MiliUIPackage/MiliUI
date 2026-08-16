@@ -19,9 +19,9 @@ local function EnsureIcon(uf, key, layer)
 end
 
 local function PlaceIcon(uf, holder, idb)
-    holder:SetSize(idb.w or 16, idb.h or 16)
+    holder:SetSize(ns.P.Scale(idb.w or 16), ns.P.Scale(idb.h or 16))
     holder:ClearAllPoints()
-    holder:SetPoint("TOPLEFT", uf, "TOPLEFT", idb.x or 0, idb.y or 0)
+    holder:SetPoint("TOPLEFT", uf, "TOPLEFT", ns.P.Scale(idb.x or 0), ns.P.Scale(idb.y or 0))
     holder:SetFrameLevel(idb.level or 10)
 end
 

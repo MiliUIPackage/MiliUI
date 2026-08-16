@@ -14,6 +14,9 @@ loader:SetScript("OnEvent", function()
         xpcall(ns.SpawnUnitFrame, ns.ReportError, unit)
     end
 
+    -- LSM 可能比我們晚載入，這裡補登記一次（自己的材質不靠它，這只是分享出去）
+    if ns.Media.RegisterSharedMedia then ns.Media.RegisterSharedMedia() end
+
     ns.HideBlizzardFrames()
 
     ns.Fire("Loaded")     -- 圖騰等獨立模組在 DB 就緒後初始化
@@ -31,4 +34,23 @@ loader:SetScript("OnEvent", function()
             end
         end
     end)
+end)
+
+------------------------------------------------------------
+-- 解析度／UI 縮放變動：像素對齊的錨點是拿 UIParent 尺寸算出來的，
+-- 尺寸一變就得整組重算，否則所有框會集體偏掉
+------------------------------------------------------------
+local function RepositionAll()
+    if InCombatLockdown() then ns.needReposition = true; return end
+    for _, uf in pairs(ns.frames) do
+        ns.ApplyFramePosition(uf)
+    end
+end
+ns.Events.Register("UI_SCALE_CHANGED", "reposition_scale", RepositionAll)
+ns.Events.Register("DISPLAY_SIZE_CHANGED", "reposition_display", RepositionAll)
+ns.Events.Register("PLAYER_REGEN_ENABLED", "reposition_regen", function()
+    if ns.needReposition then
+        ns.needReposition = nil
+        RepositionAll()
+    end
 end)

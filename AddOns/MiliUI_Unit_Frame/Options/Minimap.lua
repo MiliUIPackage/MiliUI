@@ -37,49 +37,27 @@ local function Init()
     border:SetSize(53, 53)
     border:SetPoint("TOPLEFT")
 
-    -- 左鍵：開/關設定；右鍵：功能選單（12.x MenuUtil，跟暴雪選單同款）
-    local function OnClickLike(self, button)
-        if button == "RightButton" then
-            if not MenuUtil or not MenuUtil.CreateContextMenu then
-                ns.OpenOptions()
-                return
-            end
-            MenuUtil.CreateContextMenu(self, function(_, root)
-                root:CreateTitle("米利頭像框架")
-                root:CreateButton("開啟設定", function() ns.OpenOptions() end)
-                root:CreateButton("編輯模式（拖曳框架）", function()
-                    if InCombatLockdown() then
-                        print("|cff4DD2FF[米利頭像]|r 戰鬥中無法進入編輯模式。")
-                    elseif EditModeManagerFrame then
-                        ShowUIPanel(EditModeManagerFrame)
-                    end
-                end)
-                root:CreateButton("匯入／匯出設定", function() ns.OpenOptions("share") end)
-                root:CreateDivider()
-                root:CreateButton("重新整理所有框架", function() ns.RefreshAll("identity") end)
-                root:CreateButton("隱藏小地圖按鈕", function()
-                    ns.SetMinimapButtonShown(false)
-                    print("|cff4DD2FF[米利頭像]|r 小地圖按鈕已隱藏，可在 /muf → 一般 重新開啟。")
-                end)
-            end)
-            return
-        end
-        ns.OpenOptions()
-    end
+    -- 左鍵：開／關設定（唯一動作）。拖曳沿小地圖邊緣移動。
+    -- 門檻放寬到 12px 並加最短按住時間：原本 6px 太敏感，滑鼠稍微一抖就被判定成拖曳、
+    -- 那一下點擊就被吃掉 —— 這正是「第一下有時候沒反應」的成因
+    local DRAG_THRESHOLD = 12
+    local DRAG_DELAY = 0.12
 
-    local DRAG_THRESHOLD = 6
     btn:SetScript("OnMouseDown", function(self, button)
+        ns.LogClick("minimap DOWN button=%s", tostring(button))
         if button ~= "LeftButton" then return end
         local sx, sy = GetCursorPosition()
+        local downAt = GetTime()
         self.dragging = false
         self:SetScript("OnUpdate", function()
             local px, py = GetCursorPosition()
             if not self.dragging then
-                if math.abs(px - sx) > DRAG_THRESHOLD or math.abs(py - sy) > DRAG_THRESHOLD then
-                    self.dragging = true
-                else
-                    return
-                end
+                local moved = math.abs(px - sx) > DRAG_THRESHOLD
+                    or math.abs(py - sy) > DRAG_THRESHOLD
+                if not (moved and GetTime() - downAt >= DRAG_DELAY) then return end
+                self.dragging = true
+                ns.LogClick("minimap 進入拖曳 dx=%.0f dy=%.0f",
+                    math.abs(px - sx), math.abs(py - sy))
             end
             local mx, my = Minimap:GetCenter()
             local scale = Minimap:GetEffectiveScale()
@@ -89,11 +67,23 @@ local function Init()
     end)
     btn:SetScript("OnMouseUp", function(self, button)
         self:SetScript("OnUpdate", nil)
-        if button == "LeftButton" then
-            if not self.dragging then OnClickLike(self, button) end
+        ns.LogClick("minimap UP button=%s dragging=%s", tostring(button), tostring(self.dragging))
+        if button ~= "LeftButton" then return end
+        local wasDragging = self.dragging
+        self.dragging = false
+        if not wasDragging then
+            ns.LogClick("minimap → OpenOptions()")
+            ns.OpenOptions()
+        else
+            ns.LogClick("minimap 判定為拖曳，不開窗")
+        end
+    end)
+    -- 游標移出按鈕才放開時，OnMouseUp 不會進來 → 清掉拖曳狀態，避免卡住
+    btn:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+        if not IsMouseButtonDown("LeftButton") then
+            self:SetScript("OnUpdate", nil)
             self.dragging = false
-        elseif button == "RightButton" then
-            OnClickLike(self, button)
         end
     end)
 
@@ -101,11 +91,9 @@ local function Init()
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("|cff4DD2FF米利頭像框架|r")
         GameTooltip:AddDoubleLine("左鍵", "開啟／關閉設定", 1, 1, 1, 0.8, 0.8, 0.8)
-        GameTooltip:AddDoubleLine("右鍵", "功能選單（編輯模式、匯入匯出…）", 1, 1, 1, 0.8, 0.8, 0.8)
         GameTooltip:AddDoubleLine("拖曳", "移動按鈕", 1, 1, 1, 0.8, 0.8, 0.8)
         GameTooltip:Show()
     end)
-    btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     UpdatePosition()
 end

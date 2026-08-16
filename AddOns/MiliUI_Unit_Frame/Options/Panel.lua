@@ -15,13 +15,25 @@ local panel
 local tabButtons = {}
 local highlightTab
 
+-- class = 只有該職業看得到這個分頁
 local TABS = {
-    { id = "general", label = "一般" },
-    { id = "units",   label = "單位" },
-    { id = "totem",   label = "圖騰" },
-    { id = "share",   label = "分享" },
-    { id = "about",   label = "關於" },
+    { id = "general",  label = "一般" },
+    { id = "units",    label = "單位" },
+    { id = "resource", label = "資源" },
+    { id = "totem",    label = "召喚物" },
+    { id = "share",    label = "分享" },
+    { id = "about",    label = "關於" },
 }
+
+local PLAYER_CLASS = ns.playerClass
+
+local function VisibleTabs()
+    local list = {}
+    for _, t in ipairs(TABS) do
+        if not t.class or t.class == PLAYER_CLASS then list[#list + 1] = t end
+    end
+    return list
+end
 
 local function SavePosition()
     local cx, cy = UIParent:GetCenter()
@@ -31,9 +43,15 @@ local function SavePosition()
 end
 
 local function ApplyPosition()
+    local w = ns.db.optionsWindow
+    -- 存到畫面外時拉回中央：不然視窗「其實開著但看不到」，
+    -- 下一次點小地圖鈕會變成把它關掉，看起來就像「第一下沒反應」
+    local maxX = (GetScreenWidth() or 1920) / 2
+    local maxY = (GetScreenHeight() or 1080) / 2
+    if type(w.x) ~= "number" or math.abs(w.x) > maxX then w.x = 0 end
+    if type(w.y) ~= "number" or math.abs(w.y) > maxY then w.y = 0 end
     panel:ClearAllPoints()
-    panel:SetPoint("CENTER", UIParent, "CENTER",
-        ns.db.optionsWindow.x or 0, ns.db.optionsWindow.y or 0)
+    panel:SetPoint("CENTER", UIParent, "CENTER", w.x, w.y)
 end
 
 local function ShowTab(id)
@@ -44,6 +62,10 @@ local function CreatePanel()
     if panel then return end
 
     panel = W.CreateFrame("MiliUIUF_Options", UIParent, PANEL_W, PANEL_H)
+    -- ⚠ CreateFrame 出來預設是「顯示」的。不先關掉的話，第一次點小地圖鈕時
+    -- Open() 會看到 IsShown()==true 而判定成「已開著」→ 直接切換成關閉，
+    -- 於是第一下永遠沒反應、第二下才開（實測 log 抓到的根因）
+    panel:Hide()
     panel:SetFrameStrata("DIALOG")
     panel:SetFrameLevel(100)
     panel:SetMovable(true)
@@ -75,7 +97,7 @@ local function CreatePanel()
 
     -- 分頁鈕：上緣外側，一路排開，兼拖曳把手
     local prev
-    for i, tab in ipairs(TABS) do
+    for i, tab in ipairs(VisibleTabs()) do
         local b = W.CreateButton(panel, tab.label, "accent-hover", 74, 22)
         b.id = tab.id
         if prev then
@@ -96,10 +118,12 @@ local function CreatePanel()
     highlightTab = W.CreateButtonGroup(tabButtons, ShowTab)
 
     panel:SetScript("OnHide", function()
+        ns.LogClick("panel OnHide")
         W.CloseDropdowns()
         ns.Preview.Close()
     end)
     panel:SetScript("OnShow", function()
+        ns.LogClick("panel OnShow")
         ns.Preview.Open()
     end)
 
@@ -133,13 +157,23 @@ local function CreatePanel()
 end
 
 function Options.Open(tabId)
+    local first = panel == nil
     CreatePanel()
+    ns.LogClick("Open(tab=%s) 首次建立=%s 目前IsShown=%s IsVisible=%s 戰鬥=%s",
+        tostring(tabId), tostring(first), tostring(panel:IsShown()),
+        tostring(panel:IsVisible()), tostring(InCombatLockdown()))
     if panel:IsShown() and not tabId then
+        ns.LogClick("Open → 切換成關閉")
         panel:Hide()
         return
     end
+    ApplyPosition()      -- 每次開啟都校正位置（存到畫面外會拉回中央）
     panel:Show()
     panel:Raise()        -- 已開但被其他對話框蓋住時拉到最前，免得看起來像沒反應
+    ns.LogClick("Open → 顯示 IsShown=%s IsVisible=%s alpha=%.2f pos=(%s,%s) strata=%s",
+        tostring(panel:IsShown()), tostring(panel:IsVisible()), panel:GetAlpha() or -1,
+        tostring(ns.db.optionsWindow.x), tostring(ns.db.optionsWindow.y),
+        tostring(panel:GetFrameStrata()))
     tabId = tabId or "units"
     for _, b in ipairs(tabButtons) do
         if b.id == tabId then

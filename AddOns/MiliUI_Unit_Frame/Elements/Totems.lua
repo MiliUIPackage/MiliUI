@@ -2,7 +2,7 @@
 -- 圖騰框架（獨立框，樣式 A「圖示膠囊列」；樣式欄位保留切換空間）
 --
 -- 12.1：GetTotemInfo 回傳全秘密，只有 icon 是明文字串 →
---   icon 當「有圖騰」的 proxy；剩時用 pcall 抽 start+duration-GetTime()
+--   icon 當「有圖騰」的 proxy；剩餘時間用 pcall 抽 start+duration-GetTime()
 --   （抽不到就滿條顯示）—— Stuf/bars.lua:1051-1070 的驗證解法
 ------------------------------------------------------------
 local _, ns = ...
@@ -47,27 +47,30 @@ local function CreateSlot(i)
     local btn = CreateFrame("Frame", nil, frame, "BackdropTemplate")
     btn:SetSize(size, size)
     Media.ApplyBorder(btn, nil, 1)
+    -- 內縮要用邊框「實際畫出來」的厚度，直接寫 1 會在 Retina 上露出次像素縫
+    local inset = Media.BorderInset(1)
+    local barH = ns.P.Scale(3)
 
     local icon = btn:CreateTexture(nil, "ARTWORK")
-    icon:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
-    icon:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1 + 3)   -- 底部留 3px 給剩時條
+    icon:SetPoint("TOPLEFT", btn, "TOPLEFT", inset, -inset)
+    icon:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -inset, inset + barH)   -- 底部留給時間條
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     local barBG = btn:CreateTexture(nil, "BACKGROUND")
-    barBG:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 1, 1)
-    barBG:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
-    barBG:SetHeight(3)
+    barBG:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", inset, inset)
+    barBG:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -inset, inset)
+    barBG:SetHeight(barH)
     barBG:SetTexture(Media.WHITE8X8)
     barBG:SetVertexColor(0, 0, 0, 0.6)
 
     local bar = CreateFrame("StatusBar", nil, btn)
-    bar:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 1, 1)
-    bar:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
-    bar:SetHeight(3)
+    bar:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", inset, inset)
+    bar:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -inset, inset)
+    bar:SetHeight(barH)
     bar:SetStatusBarTexture(Media.WHITE8X8)
     bar:SetFrameLevel(btn:GetFrameLevel() + 1)
 
-    -- 倒數數字置中在圖示內（放圖示上方會戳進單位框）；獨立一層蓋在圖示與剩時條之上
+    -- 倒數數字置中在圖示內（放圖示上方會戳進單位框）；獨立一層蓋在圖示與時間條之上
     local textFrame = CreateFrame("Frame", nil, btn)
     textFrame:SetAllPoints(btn)
     textFrame:SetFrameLevel(btn:GetFrameLevel() + 2)
@@ -129,6 +132,7 @@ local function Relayout()
 end
 
 local function UpdateBars()
+    local db = GetDB()
     for i = 1, NUM_SLOTS do
         local slot = slots[i]
         if slot and slot.active then
@@ -143,14 +147,16 @@ local function UpdateBars()
                 else
                     slot.bar:SetMinMaxValues(0, total)
                     slot.bar:SetValue(remain)
-                    if remain < 60 then
+                    if db.showTimeText == false then
+                        slot.text:SetText("")
+                    elseif remain < 60 then
                         slot.text:SetText(string.format("%d", math.ceil(remain)))
                     else
                         slot.text:SetText(string.format("%dm", math.ceil(remain / 60)))
                     end
                 end
             else
-                -- 抽不到剩時：滿條、無數字，靠 PLAYER_TOTEM_UPDATE 收
+                -- 抽不到剩餘時間：滿條、無數字，靠 PLAYER_TOTEM_UPDATE 收
                 slot.bar:SetMinMaxValues(0, 1)
                 slot.bar:SetValue(1)
                 slot.text:SetText("")

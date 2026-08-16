@@ -27,7 +27,6 @@ local function TimerDir(isChannel, isEmpowered)
     return Enum.StatusBarTimerDirection.ElapsedTime
 end
 
-local INTERRUPT_HOLD = 1.0
 
 -- 時間文字格式（edb.timeFormat）：
 --   remainTotal  剩餘/總      0.3/1.5
@@ -59,10 +58,12 @@ ns.CastbarFormatTime = FormatTime      -- 預覽孿生共用同一個 formatter
 ------------------------------------------------------------
 local function HideBar(f)
     f.active = false
+    f.castState = nil
     f.displayToken = f.displayToken + 1
     if f.ticker then f.ticker:Cancel(); f.ticker = nil end
     f:SetScript("OnUpdate", nil)
     if f.shield then f.shield:Hide() end
+    f:SetAlpha(f.baseAlpha or 1)
     f:Hide()
 end
 
@@ -71,7 +72,7 @@ end
 local function ApplyShield(f, notInt)
     local s = f.shield
     if not s then return end
-    if not f.showShield or notInt == nil then
+    if not (f.showShield and f.showInterruptState) or notInt == nil then
         s:Hide()
         return
     end
@@ -89,27 +90,63 @@ local function Colors()
     return ns.db.global.colors
 end
 
--- 秘密模式上色：明文旗標選基底色，秘密 notInterruptible 用曲線覆蓋
+-- 施法條共五色（全域設定，全部可調）：施法橙／引導綠／完成黃／失敗紅／不可打斷灰。
+-- `edb.showInterruptState` 關閉時（玩家／寵物預設）不套「不可打斷灰」也不畫盾牌——
+-- 自己的施法能不能被斷沒有意義，Stuf 也是明確排除 player。
 local function ApplySecretColor(f)
+    local tex = f.bar:GetStatusBarTexture()
+    if not tex then return end
     local c = Colors()
     local base = f.castChannel and c.channel or c.cast
     local r, g, b = base.r, base.g, base.b
-    if Eval then
+    -- notInterruptible 是秘密布林，不能 if；交給曲線選色
+    if Eval and f.showInterruptState then
         local ni = f.castNotInterruptible
         local im = c.notInterruptible
         r = Eval(ni, im.r, r)
         g = Eval(ni, im.g, g)
         b = Eval(ni, im.b, b)
     end
-    local tex = f.bar:GetStatusBarTexture()
-    if tex then tex:SetVertexColor(r, g, b) end
+    tex:SetVertexColor(r, g, b)
 end
 
 -- 一般模式上色（notInterruptible 明文可分支）
 local function ApplyPlainColor(f, notInt)
     local c = Colors()
-    local col = notInt and c.notInterruptible or (f.castChannel and c.channel or c.cast)
+    local col = (f.showInterruptState and notInt and c.notInterruptible)
+        or (f.castChannel and c.channel or c.cast)
     f.bar:SetStatusBarColor(col.r, col.g, col.b)
+end
+
+-- 結束：上色後**淡出**再收（Stuf 的手法——硬停在滿版色再瞬間消失才會突兀）。
+-- castState 3 = 淡出中
+local function FadeOnUpdate(f)
+    local dur = f.fadeTime or 0.5
+    local t = GetTime() - (f.fadeStart or 0)
+    if t >= dur then
+        f:SetScript("OnUpdate", nil)
+        f.castState = nil
+        f:SetAlpha(f.baseAlpha or 1)
+        f:Hide()
+    else
+        f:SetAlpha((1 - t / dur) * (f.baseAlpha or 1))
+    end
+end
+
+local function EndFade(f, color, label)
+    f.active = false
+    f.castState = 3
+    f.fadeStart = GetTime()
+    f.displayToken = f.displayToken + 1
+    if f.ticker then f.ticker:Cancel(); f.ticker = nil end
+    if f.shield then f.shield:Hide() end
+    if color then
+        f.bar:SetStatusBarColor(color.r, color.g, color.b)
+    end
+    if label then f.spellText:SetText(label) end
+    f.timeText:SetText("")
+    f:SetScript("OnUpdate", FadeOnUpdate)
+    f:Show()
 end
 
 local function SecretTick(f)
@@ -176,7 +213,10 @@ local function StartDisplay(f, castTbl, chanTbl)
 
     f.displayToken = f.displayToken + 1
     f.castChannel = isChannel
+    f.castState = isChannel and 2 or 1        -- 1=施法 2=引導（FAILED 只在 1 才理會）
+    f.castGUID = isCast and castTbl[7] or nil -- UnitCastingInfo 第 7 個回傳是 castID
     f.castNotInterruptible = notInt
+    f:SetAlpha(f.baseAlpha or 1)              -- 上一次淡出可能留下低 alpha
     f.icon:SetTexture(texture)
     f.spellText:SetText(name)
     f.timeText:SetText("")
@@ -272,10 +312,40 @@ local function ResyncTiming(f)
     end
 end
 
+------------------------------------------------------------
+-- 斷法者來源
+--
+-- ⚠⚠ **12.x 的插件不能註冊 `COMBAT_LOG_EVENT_UNFILTERED`。** 曾經在這裡掛戰鬥紀錄
+-- 抓 SPELL_INTERRUPT 當備援（Platynator 有這條 legacy 路徑），結果一載入就跳
+-- 「嘗試進行 Blizzard UI 專屬動作」——`Frame:RegisterEvent()` 是禁止動作，而且
+-- pcall 攔不掉。Cell 的每個 CLEU 註冊點都包在 `if not Cell.isMidnight` 裡，
+-- CHANGELOG 直接寫「CLEU unavailable」。所以斷法者只能吃事件自己帶的 GUID。
+--
+-- 事件參數位置對照 Platynator/Display/Cache.lua（換算回含 unit 的原始位置）：
+--   UNIT_SPELLCAST_INTERRUPTED / CHANNEL_STOP → 第 4 個
+--   UNIT_SPELLCAST_EMPOWER_STOP               → 第 5 個
+-- 拿不到就只顯示「已打斷」，不硬湊。
+------------------------------------------------------------
+
+-- 回傳 name, classFile（都可能是 nil）
+local function ResolveInterrupter(f, eventGUID)
+    if eventGUID == nil then return nil end
+    local name
+    if UnitNameFromGUID then
+        local ok, n = pcall(UnitNameFromGUID, eventGUID)
+        if ok then name = n end
+    end
+    local class
+    local ok, _, cls = pcall(GetPlayerInfoByGUID, eventGUID)
+    if ok then class = cls end
+    return name, class
+end
+
 -- 打斷：凍結滿條變紅 + 斷法者名字（職業色），停留後收條
 local function ShowInterrupted(f, interrupterGUID)
     if not f.active then return end
     f.active = false
+    f.castState = nil
     if f.ticker then f.ticker:Cancel(); f.ticker = nil end
     f:SetScript("OnUpdate", nil)
 
@@ -287,13 +357,8 @@ local function ShowInterrupted(f, interrupterGUID)
     f.timeText:SetText("")
     if f.shield then f.shield:Hide() end
 
-    if interrupterGUID ~= nil then
-        local name, class
-        if UnitNameFromGUID then
-            name = UnitNameFromGUID(interrupterGUID)
-            local _, cls = GetPlayerInfoByGUID(interrupterGUID)
-            class = cls
-        end
+    do
+        local name, class = ResolveInterrupter(f, interrupterGUID)
         if name ~= nil then
             local r, g, b = 1, 1, 1
             if class ~= nil then
@@ -306,13 +371,13 @@ local function ShowInterrupted(f, interrupterGUID)
         end
     end
 
+    -- 停留一下讓人看清「誰斷的」，然後淡出（原本是硬停再瞬間消失，很突兀）
     f.displayToken = f.displayToken + 1
     local tok = f.displayToken
-    C_Timer.After(INTERRUPT_HOLD, function()
-        if tok == f.displayToken then
-            HideBar(f)
-        end
+    C_Timer.After(f.interruptHold or 0.4, function()
+        if tok ~= f.displayToken then return end   -- 期間開了新施法就別動
         f.timeText:SetTextColor(1, 1, 1)
+        EndFade(f)                                 -- 不換色、不改字，只淡出
     end)
 end
 
@@ -352,15 +417,15 @@ local function Build(uf, edb)
 
         f.iconFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
         f.icon = f.iconFrame:CreateTexture(nil, "ARTWORK")
-        f.icon:SetPoint("TOPLEFT", f.iconFrame, "TOPLEFT", 1, -1)
-        f.icon:SetPoint("BOTTOMRIGHT", f.iconFrame, "BOTTOMRIGHT", -1, 1)
+        local ib = ns.P.Scale(1)      -- 對齊 iconFrame backdrop 的 edgeSize
+        f.icon:SetPoint("TOPLEFT", f.iconFrame, "TOPLEFT", ib, -ib)
+        f.icon:SetPoint("BOTTOMRIGHT", f.iconFrame, "BOTTOMRIGHT", -ib, ib)
         f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-        -- 不可打斷盾牌：疊在圖示前方（左側外緣），透明度由秘密布林驅動
+        -- 不可打斷盾牌：疊在施法圖示上，透明度由秘密布林驅動
         local shieldFrame = CreateFrame("Frame", nil, f)
         f.shieldFrame = shieldFrame
         f.shield = shieldFrame:CreateTexture(nil, "OVERLAY")
-        f.shield:SetAtlas("nameplates-InterruptShield")
         f.shield:Hide()
 
         local textOverlay = CreateFrame("Frame", nil, f)
@@ -404,13 +469,31 @@ local function Build(uf, edb)
                 or event == "UNIT_SPELLCAST_EMPOWER_UPDATE" then
                 ResyncTiming(f)
             elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
-                ShowInterrupted(f, arg4)
+                if f.castState == 1 or f.castState == 2 then ShowInterrupted(f, arg4) end
+            -- 引導／蓄力結束不換色，直接淡出（引導本來就是「跑完」，突然變黃很突兀；
+            -- Stuf 的自然結束同樣不上完成色）。被打斷才另外處理
             elseif event == "UNIT_SPELLCAST_CHANNEL_STOP" then
-                if arg4 ~= nil then ShowInterrupted(f, arg4) else HideBar(f) end
+                if f.castState ~= 2 then return end
+                if arg4 ~= nil then ShowInterrupted(f, arg4) else EndFade(f, nil) end
             elseif event == "UNIT_SPELLCAST_EMPOWER_STOP" then
-                if arg5 ~= nil then ShowInterrupted(f, arg5) else HideBar(f) end
-            else   -- STOP / FAILED
-                HideBar(f)
+                if f.castState ~= 2 then return end
+                if arg5 ~= nil then ShowInterrupted(f, arg5) else EndFade(f, nil) end
+            elseif event == "UNIT_SPELLCAST_FAILED" then
+                -- ⚠ FAILED 會為「不是目前這條」的施法而發（引導中另外放技能失敗最常見，
+                -- 例如武僧柔和之霧拉線時放別的招）→ 只在「正在施法」且 castGUID 相符時才理會。
+                -- Stuf 同法（cstate ~= 1 或 castid 不符就 return）；引導中一律忽略
+                if f.castState ~= 1 then return end
+                local mine = true
+                if arg2 ~= nil and f.castGUID ~= nil
+                   and not IsSecret(arg2) and not IsSecret(f.castGUID) then
+                    mine = (arg2 == f.castGUID)
+                end
+                if mine then
+                    EndFade(f, f.showCompleteFlash and Colors().fail or nil)
+                end
+            else   -- STOP（施法結束）
+                if f.castState ~= 1 then return end
+                EndFade(f, f.showCompleteFlash and Colors().complete or nil)
             end
         end)
         end   -- if ev（預覽孿生跳過事件註冊）
@@ -426,6 +509,11 @@ local function Build(uf, edb)
     f:SetPoint("TOPLEFT", uf, "TOPLEFT", edb.x or 0, edb.y or 0)
     f:SetFrameLevel(L)
     f.timeFormat = edb.timeFormat or "remainTotal"
+    f.showInterruptState = edb.showInterruptState and true or false
+    f.showCompleteFlash = edb.showCompleteFlash ~= false
+    f.fadeTime = edb.fadeTime or 0.5
+    f.interruptHold = edb.interruptHold or 0.4
+    f.baseAlpha = edb.alpha or 1
 
     local bg = edb.bg or { r = 0, g = 0, b = 0, a = 0.8 }
     f.bgTex:SetVertexColor(bg.r, bg.g, bg.b, bg.a or 0.8)
@@ -438,7 +526,7 @@ local function Build(uf, edb)
     -- 否則 L+1 的填充會把邊框整個蓋掉、純黑背景又讓黑框隱形（同血條的 clip 教訓）
     local inset = 0
     if edb.border then
-        inset = ns.db.global.borderSize or 1
+        inset = Media.BorderInset()
         Media.ApplyBorder(f, edb.borderColor)
     elseif f.SetBackdrop then
         f:SetBackdrop(nil)
@@ -470,6 +558,7 @@ local function Build(uf, edb)
     f.shieldFrame:ClearAllPoints()
     f.shieldFrame:SetPoint("CENTER", f.iconFrame, "CENTER", (edb.shieldOffsetX or 0), (edb.shieldOffsetY or 0))
     f.shield:SetAllPoints(f.shieldFrame)
+    Media.SetShieldTexture(f.shield, edb.shieldStyle)
 
     f.textOverlay:SetFrameLevel(L + 3)
     ApplyTextStyle(f.spellText, edb.spell or {}, f)

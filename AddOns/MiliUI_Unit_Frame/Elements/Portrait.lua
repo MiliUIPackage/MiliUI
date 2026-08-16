@@ -108,6 +108,31 @@ ns.Events.Register("PLAYER_ENTERING_WORLD", "portrait_ej_pew", function()
     wipe(encounterDisplays)
 end)
 
+------------------------------------------------------------
+-- 空白模型自我修復（EUI 追出來的兩個坑）
+--   * 世界轉場（載入畫面）會把 PlayerModel 的狀態清掉，同一個 guid 也不會重畫
+--   * Show 後的重畫可能早於模型串流完成 → SetUnit 落空、之後沒有任何事件跟進
+-- PORTRAITS_UPDATED 是客戶端「頭像資源串流完成」的訊號，用它補畫**還是空的**模型
+------------------------------------------------------------
+local function HealBlankModels()
+    for _, uf in pairs(ns.frames) do
+        local f = uf.elements and uf.elements.portrait
+        local edb = uf.db and uf.db.elements and uf.db.elements.portrait
+        if f and f.model and edb and edb.enabled ~= false and edb.mode == "3d"
+           and uf:IsVisible() then
+            local fid = f.model.GetModelFileID and f.model:GetModelFileID()
+            if fid == nil then    -- 還是空的才重畫，已載入的不動（避免串流時反覆重載）
+                ns.Elements.portrait.update(uf, edb, "identity")
+            end
+        end
+    end
+end
+
+ns.Events.Register("PORTRAITS_UPDATED", "portrait_heal", HealBlankModels)
+ns.Events.Register("PLAYER_ENTERING_WORLD", "portrait_heal_pew", function()
+    C_Timer.After(1, HealBlankModels)
+end)
+
 local function Build(uf, edb)
     local f = uf.elements.portrait or ns.CreateElementBase(uf, "portrait", "Frame", "BackdropTemplate")
     ns.ApplyElementBase(uf, f, edb)
@@ -127,8 +152,15 @@ local function Build(uf, edb)
         f.model:SetAllPoints(f)
     end
     f.model:SetFrameLevel(edb.level or 2)
-    f.zoom = edb.zoom or 1              -- 1 = 特寫臉，0 = 全身；首領用 ~0.6 露到肩膀
-    f.rotation = edb.rotation or 0      -- 弧度，稍微側身比較有戲
+    f.zoom = edb.zoom or 1                    -- 1 = 特寫臉，0 = 全身
+    -- 旋轉存「度」（設定面板直觀），套用時轉弧度。
+    -- 0 = 正面朝鏡頭；±25 左右是側身 3/4 視角；180 會看到背面
+    f.rotation = math.rad(edb.rotation or 0)
+    -- 模型在框內的平移（側身之後常會偏一邊，用這個推回來）。
+    -- 模型空間 x=前後、y=左右、z=上下。實測：**+y 在畫面上就是往右**（不用取負），
+    -- 所以設定值直接對應直覺方向：正 = 往右／往上
+    f.modelX = edb.modelOffsetX or 0
+    f.modelY = edb.modelOffsetY or 0
 
     if not f.tex2d then
         f.tex2d = f:CreateTexture(nil, "ARTWORK")
@@ -146,26 +178,32 @@ local function Update(uf, edb, bucket)
     local unit = uf.isPreview and "player" or uf.unit
 
     if edb.mode == "3d" then
+        -- ⚠ PlayerModel 在**隱藏時會丟掉模型**（EUI 實地追出來的：載入畫面隱藏框架後，
+        -- 對隱藏的 model 呼叫 SetUnit 會落空、之後 Show 出來就是永久空白——這正是
+        -- 「一個目標沒模型之後，所有目標都沒模型」的成因）。
+        -- 對策：model 永遠保持 Show，拿不到就 ClearModel（清空＝看不見，效果等同隱藏）
+        f.model:Show()
+        f.tex2d:Hide()
+
         local ok
         -- 預覽：敵對示範單位（目標／專注／首領）用示範模型（預設薩拉塔斯 131474）
         local demoID = uf.isPreview and not uf.cache.pc and (ns.db.global.previewBossDisplayID or 131474)
         -- 真實遭遇戰：EJ 給的首領 displayID（受限身分下唯一拿得到 3D 的路）
         local ejID = not uf.isPreview and EncounterDisplayFor(uf)
         if demoID and demoID > 0 then
+            pcall(f.model.ClearModel, f.model)
             ok = pcall(f.model.SetDisplayInfo, f.model, demoID)
         elseif ejID then
             pcall(f.model.ClearModel, f.model)
             ok = pcall(f.model.SetDisplayInfo, f.model, ejID)
         else
-            -- PlayerModel:SetUnit 對「模型載不進來」的單位（不可見／屍體淡出／受限身分）
-            -- 不會清空，而是留上一個模型或退回預設 —— 預設就是玩家自己（widget 就叫 PlayerModel）。
-            -- 所以：不可見就不試；試之前先 ClearModel；SetUnit 回 false 也當失敗 → 退 2D
-            local vis = UnitIsVisible(unit)
-            if ns.IsSecret(vis) then vis = true end        -- 秘密 boolean 當可見（試試看）
-            -- 12.1 受限身分單位（副本裡的敵人）：SetUnit 一律拿不到模型、退回玩家自己。
-            -- UnitName 是不是秘密 = 身分是否受限的直接探針 → 受限就直接走 2D
-            if vis and ns.IsSecret(UnitName(unit)) then vis = false end
-            if vis then
+            -- 可用 = 已連線且可見（EUI 的 isAvailable）。SetUnit 對載不進來的單位不會清空，
+            -- 而是留上一個模型或退回預設（widget 就叫 PlayerModel，預設是玩家自己）
+            local avail = UnitIsConnected(unit) and UnitIsVisible(unit)
+            if ns.IsSecret(avail) then avail = true end
+            -- 12.1 受限身分單位（副本裡的敵人）拿不到模型；UnitName 是不是秘密 = 直接探針
+            if avail and ns.IsSecret(UnitName(unit)) then avail = false end
+            if avail then
                 pcall(f.model.ClearModel, f.model)
                 local pok, ret = pcall(f.model.SetUnit, f.model, unit)
                 ok = pok and ret ~= false
@@ -173,18 +211,23 @@ local function Update(uf, edb, bucket)
                 ok = false
             end
         end
+
         if ok then
             pcall(f.model.SetPortraitZoom, f.model, f.zoom or 1)
             pcall(f.model.SetRotation, f.model, f.rotation or 0)
-            f.model:Show()
-            f.tex2d:Hide()
-            return
+            pcall(f.model.SetPosition, f.model, 0, f.modelX or 0, f.modelY or 0)
+        else
+            -- 拿不到就清空（不 Hide！）
+            pcall(f.model.ClearModel, f.model)
+            -- 副本小怪是受限身分，SetUnit 不會報錯也不會退回玩家，就是給不出東西
+            -- （實測 ok=true / modelFileID=nil）。但 2D 是 C 端自己解單位的，
+            -- 同一隻怪 SetPortraitTexture 拿得到（暴雪原生目標框走的就是這條）。
+            -- 預設不開：使用者要的是「寧可空著也不要 2D」，想要時逐單位打開
+            if edb.fallback2D then
+                pcall(SetPortraitTexture, f.tex2d, unit)
+                f.tex2d:SetShown(f.tex2d:GetTexture() ~= nil)
+            end
         end
-        -- 3D 拿不到（受限身分／不可見）就什麼都不畫，不退 2D（使用者定案：
-        -- 副本裡的敵人與首領大多拿不到，寧可空著也不要混一張 2D 破壞風格）
-        pcall(f.model.ClearModel, f.model)
-        f.model:Hide()
-        f.tex2d:Hide()
         return
     end
 

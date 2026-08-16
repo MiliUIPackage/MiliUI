@@ -97,6 +97,11 @@ local defaultFrameNames = {
     "MiliUIUF_Focus",
     "MiliUIUF_FocusTarget",
     "MiliUIUF_Pet",
+    "MiliUIUF_Boss1",
+    "MiliUIUF_Boss2",
+    "MiliUIUF_Boss3",
+    "MiliUIUF_Boss4",
+    "MiliUIUF_Boss5",
 }
 
 local function ApplyAllHotkeys()

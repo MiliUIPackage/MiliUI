@@ -13,7 +13,7 @@ local function Build(uf, edb)
     ns.ApplyElementBase(uf, f, edb)
 
     local texture = Media.BarTexture(ns.db.global.barTexture)
-    local inset = (edb.border ~= false) and (ns.db.global.borderSize or 1) or 0
+    local inset = (edb.border ~= false) and Media.BorderInset() or 0
 
     -- 背景兩種擺法（同血條）：沒設 bgLevel → 貼在 f 自己的 BACKGROUND 層（保證在 bar 之下）；
     -- 有設 bgLevel → 獨立框。不能一律獨立框又同層，繪製順序不保證

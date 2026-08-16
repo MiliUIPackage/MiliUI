@@ -72,7 +72,7 @@ local function UpdateEditModeState()
         -- 圖騰（真實框本身就不是 secure，可直接拖；顯示假內容供瞄準）
         local totem = ns.totemFrame
         if totem and ns.db.units.totem.enabled then
-            local sel = AttachSelection(totem, "米利頭像：圖騰", ns.db.units.totem.frame, function()
+            local sel = AttachSelection(totem, "米利頭像：召喚物", ns.db.units.totem.frame, function()
                 if ns.TotemsApplySettings then ns.TotemsApplySettings() end
             end)
             totem:Show()      -- 框本身固定四格寬，選取框直接蓋得準

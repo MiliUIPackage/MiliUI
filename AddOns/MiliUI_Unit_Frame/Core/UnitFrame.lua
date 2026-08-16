@@ -17,10 +17,15 @@ function ns.CreateElementBase(uf, name, frameType, template)
 end
 
 -- 套用基本版面：尺寸/位置/層級全部來自設定，絕不回讀
+-- 尺寸與位移都對齊實體像素：設定值是「版面單位」，在 Retina／UI 縮放不是 1 的機器上
+-- 會落在半個實體像素上，元件邊緣就會糊掉、1px 細線變成忽粗忽細。四捨五入到最近的
+-- 實體像素邊界（位移量最多動半個實體像素，肉眼看不出來，但邊緣會變乾淨）。
+local Scale = function(v) return ns.P.Scale(v or 0) end
+
 function ns.ApplyElementBase(uf, f, edb)
-    f:SetSize(edb.w or 10, edb.h or 10)
+    f:SetSize(Scale(edb.w or 10), Scale(edb.h or 10))
     f:ClearAllPoints()
-    f:SetPoint("TOPLEFT", uf, "TOPLEFT", edb.x or 0, edb.y or 0)
+    f:SetPoint("TOPLEFT", uf, "TOPLEFT", Scale(edb.x or 0), Scale(edb.y or 0))
     f:SetFrameLevel(edb.level or 3)
     f:SetAlpha(edb.alpha or 1)
 end
@@ -81,9 +86,21 @@ function ns.ApplyFramePosition(uf)
             y = y - (uf.bossIndex - 1) * spacing
         end
     end
-    uf:SetSize(fdb.w or 100, fdb.h or 30)
+    -- 單位框自己也要對齊實體像素：它沒對齊的話，底下所有元件再怎麼對齊都白搭。
+    --
+    -- ⚠ 不能直接 CENTER 對 CENTER 再 P.Scale 偏移量：P.Scale 只會把「長度」湊成整數
+    -- 實體像素，管不到起算點。UIParent 的中心本身就可能落在半個像素上，框寬又是奇數
+    -- 像素時左右邊緣還會各再偏半格 → 邊緣糊掉。
+    -- 改成從 UIParent 的 BOTTOMLEFT 起算：那是螢幕原點 (0,0)，保證在像素邊界上，
+    -- 把左下角座標對齊之後，寬高又都是整數像素 ⇒ 四邊全部落在邊界。
+    -- 設定值語意不變（仍是「框中心相對畫面中心的偏移」），只是換算後再錨定。
+    local w, h = ns.P.Scale(fdb.w or 100), ns.P.Scale(fdb.h or 30)
+    uf:SetSize(w, h)
     uf:ClearAllPoints()
-    uf:SetPoint("CENTER", UIParent, "CENTER", x, y)
+    local pw, ph = UIParent:GetWidth(), UIParent:GetHeight()
+    uf:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT",
+                ns.P.Scale(pw / 2 + x - w / 2),
+                ns.P.Scale(ph / 2 + y - h / 2))
     uf:SetFrameStrata(ns.db.global.strata or "LOW")
 end
 
@@ -142,6 +159,20 @@ function ns.SpawnUnitFrame(unit)
         ns.Refresh(self, "identity")
     end)
 
+    -- 滑鼠提示（暴雪單位提示；EUI/暴雪同法）。OnEnter/OnLeave 不是受保護腳本，
+    -- 掛在 SecureUnitButton 上安全
+    uf:SetScript("OnEnter", function(self)
+        if not ns.db.global.showTooltip then return end
+        if ns.db.global.tooltipHideInCombat and InCombatLockdown() then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        if not GameTooltip:SetUnit(self.unit) then
+            GameTooltip:Hide()
+        end
+    end)
+    uf:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+
     if unit == "player" then
         uf:Show()
         ns.Refresh(uf, "identity")
@@ -196,9 +227,9 @@ function ns.ApplySettings(unitKey)
                             RegisterUnitWatch(uf, false)
                         end
                     end
-                    if uf:IsVisible() then
-                        ns.Refresh(uf, "identity")
-                    end
+                    -- 一律重畫（不再只在可見時）：顏色、文字內容這些是在 update 才套用的，
+                    -- 只 build 不 refresh 會出現「改了下拉選單沒反應、動別的設定才一起生效」
+                    ns.Refresh(uf, "identity")
                 end
             elseif uf then
                 UnregisterUnitWatch(uf)

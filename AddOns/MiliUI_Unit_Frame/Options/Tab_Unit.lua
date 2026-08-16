@@ -26,7 +26,6 @@ local ELEMENT_LIST = {
     { key = "portrait",   label = "頭像" },
     { key = "hpbar",      label = "血條" },
     { key = "mpbar",      label = "能量條" },
-    { key = "classpower", label = "職業資源" },
     { key = "manabar",    label = "魔力條" },
     { key = "castbar",    label = "施法條" },
     { key = "buffs",      label = "增益" },
@@ -49,7 +48,8 @@ local function FrameSpecs(unitKey)
         { type = "toggle", root = "unit", key = "enabled", label = "啟用此單位框",
           hint = "關閉後暴雪原生框不會自動回來，需 /reload" },
         { type = "header", label = "位置與大小" },
-        { type = "text", label = "座標是框架中心相對畫面中心的偏移；也可以在編輯模式直接拖曳。" },
+        { type = "text", label = "座標是框架中心相對畫面中心的偏移；也可以在編輯模式直接拖曳。" ..
+                                 "數字框點進去後可用滾輪微調（Shift ×10）。" },
         { type = "numbers", root = "frame", label = "位置", fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
         { type = "numbers", root = "frame", label = "尺寸", fields = { { key = "w", label = "寬" }, { key = "h", label = "高" } } },
     }
@@ -116,31 +116,22 @@ local function PortraitSpecs()
         { type = "header", label = "樣式" },
         { type = "dropdown", sub = "portrait", key = "mode", label = "模式",
           items = { { text = "3D 模型", value = "3d" }, { text = "2D 圖像", value = "2d" } } },
-        { type = "text", label = "12.1 副本裡的敵人／首領是受限身分，3D 模型拿不到——那時什麼都不畫（不會退回 2D）。玩家、隊友、開放世界的目標正常。" },
+        { type = "toggle", sub = "portrait", key = "fallback2D", label = "拿不到就退 2D" },
+        { type = "text", label = "12.1 副本裡的敵人是受限身分，3D 模型取不到（實測不是報錯，是給不出東西）。預設那時什麼都不畫；打開這個就改畫 2D 頭像——2D 由客戶端自己解單位，小怪也拿得到，就是暴雪原生框在用的那種。" },
         { type = "color", sub = "portrait", key = "bg", label = "底色" },
         { type = "text", label = "底色透明度拉到 0 = 去背，3D 模型直接浮在畫面上（首領框預設就是這樣）。" },
         { type = "slider", sub = "portrait", key = "zoom", label = "3D 鏡頭", min = 0, max = 1, step = 0.05 },
         { type = "text", label = "1 = 臉部特寫，0 = 全身；0.6 左右露到肩膀。" },
-        { type = "slider", sub = "portrait", key = "rotation", label = "3D 側身", min = -1.5, max = 1.5, step = 0.05 },
+        { type = "slider", sub = "portrait", key = "rotation", label = "3D 旋轉（度）", min = -180, max = 180, step = 5 },
+        { type = "text", label = "0 = 正面朝鏡頭；±25 左右是側身 3/4，玩家與目標設成相反值就有面對面的感覺；180 會轉到看背面。" },
+        { type = "slider", sub = "portrait", key = "modelOffsetX", label = "模型左右", min = -100, max = 100, step = 5, scale = 100 },
+        { type = "slider", sub = "portrait", key = "modelOffsetY", label = "模型上下", min = -100, max = 100, step = 5, scale = 100 },
+        { type = "text", label = "側身之後模型常會偏一邊，用這兩個把它推回框中央（正 = 往右／往上）。" },
         { type = "slider", sub = "portrait", key = "level", label = "圖層", min = 0, max = 15, step = 1 },
         { type = "text", label = "圖層高過血條（4）就會浮在血條上方，做出「突出」效果。" },
     }
 end
 
-local function ClassPowerSpecs()
-    return {
-        { type = "toggle", sub = "classpower", key = "enabled", label = "顯示" },
-        { type = "text", label = "聖能／連擊點／真氣／碎片／秘法充能／精華／符文，依職業自動決定格數。" },
-        { type = "header", label = "位置與大小" },
-        { type = "text", label = "Y 從框架底邊起算，負值往下。" },
-        { type = "numbers", sub = "classpower", label = "位置", fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
-        { type = "numbers", sub = "classpower", label = "尺寸", fields = { { key = "totalw", label = "總寬" }, { key = "h", label = "高" } } },
-        { type = "slider", sub = "classpower", key = "spacing", label = "格間距", min = 0, max = 10 },
-        { type = "header", label = "顏色" },
-        { type = "color", sub = "classpower", key = "color", label = "亮格顏色", hasAlpha = false },
-        { type = "text", label = "未設定時用各職業預設色。" },
-    }
-end
 
 local function ManaBarSpecs()
     return {
@@ -174,7 +165,15 @@ local function CastbarSpecs()
         { type = "header", label = "外觀" },
         { type = "color", sub = "castbar", key = "bg", label = "背景色" },
         { type = "toggle", sub = "castbar", key = "border", label = "顯示邊框" },
-        { type = "text", label = "施法／引導／打斷／不可打斷的顏色在「一般」分頁統一設定。" },
+        { type = "toggle", sub = "castbar", key = "showInterruptState", label = "顯示不可打斷" },
+        { type = "dropdown", sub = "castbar", key = "shieldStyle", label = "盾牌樣式", items = ns.Media.SHIELD_STYLES },
+        { type = "text", label = "開啟時：不可打斷的施法上灰色並在圖示上顯示盾牌。自己與寵物預設關閉——自己的施法能不能被斷沒有意義（Stuf 也是排除玩家）。" },
+        { type = "toggle", sub = "castbar", key = "showCompleteFlash", label = "結束上色" },
+        { type = "slider", sub = "castbar", key = "fadeTime", label = "淡出時間（秒）", min = 0.1, max = 1.5, step = 0.05 },
+        { type = "slider", sub = "castbar", key = "interruptHold", label = "打斷停留（秒）", min = 0, max = 2, step = 0.1 },
+        { type = "text", label = "施法完成上「完成黃」、失敗上「失敗紅」，接著淡出消失。" ..
+                                 "引導／蓄力跑完不換色，只淡出（本來就是跑完，變色反而突兀）。" ..
+                                 "關掉「結束上色」則施法完成也不換色。被打斷會紅條顯示打斷者，停留指定秒數後同樣淡出。" },
         { type = "dropdown", sub = "castbar", key = "timeFormat", label = "時間格式", items = {
             { text = "剩餘／總長（0.3/1.5）", value = "remainTotal" },
             { text = "已唱／總長（1.2/1.5）", value = "elapsedTotal" },
@@ -237,8 +236,9 @@ end
 
 local function TextsSpecs(els)
     local list = {
-        { type = "text", label = "語法：[name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [class] [race] [creaturetype] [classification]；" ..
-                                 "條件上色 [gray_if_dead:死亡]、[class:name]、[difficulty:level]。" },
+        { type = "text", label = "語法：[name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] " ..
+                                 "[shields] [healabsorbs]（無盾時空白）、[shields_short] [healabsorbs_short]（縮寫）、" ..
+                                 "[class] [race] [creaturetype] [classification]；條件上色 [gray_if_dead:死亡]、[class:name]、[difficulty:level]。" },
     }
     for i = 1, #els.texts do
         tinsert(list, { type = "header", label = "文字 " .. i })
@@ -262,7 +262,6 @@ local function SpecsFor(unitKey, elementKey)
     if elementKey == "portrait" then return PortraitSpecs() end
     if elementKey == "hpbar" then return BarSpecs("hpbar", true) end
     if elementKey == "mpbar" then return BarSpecs("mpbar", false) end
-    if elementKey == "classpower" then return ClassPowerSpecs() end
     if elementKey == "manabar" then return ManaBarSpecs() end
     if elementKey == "castbar" then return CastbarSpecs() end
     if elementKey == "buffs" then return AuraSpecs("buffs") end
@@ -354,11 +353,14 @@ local function SelectUnit(unitKey)
     RefreshChips(unitKey)
     ShowPanel(unitKey, currentElement)
     ns.Preview.Highlight(unitKey)
+    ns.Preview.SetElement(currentElement)
 end
 
 local function SelectElement(elementKey)
     currentElement = elementKey
     ShowPanel(currentUnit, elementKey)
+    -- 只有選到施法條時預覽才演示假施法（它會蓋住頭像，調別的元件時很礙事）
+    ns.Preview.SetElement(elementKey)
 end
 
 ------------------------------------------------------------
