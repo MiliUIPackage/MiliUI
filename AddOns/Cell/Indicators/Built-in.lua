@@ -351,19 +351,28 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
             if type(t.font) == "table" then
                 opts.durationFont = t.font
             end
-            if type(t.colors) == "table" and type(t.colors[1]) == "table" then
-                opts.borderColor = t.colors[1]
-            end
             opts.showStack = (t.stack and t.stack[1]) and true or false
         else
+            -- icon / block: font is {stackFont, durationFont}
             if t.font then
                 opts.stackFont = t.font[1]
                 opts.durationFont = t.font[2]
             end
-            -- Typed check, not just "is it there": the colour-per-aura indicator types store
-            -- their colours inside t.auras, and t.color is then something else entirely.
-            if useConfigColor and type(t.color) == "table" and type(t.color[1]) == "number" then
+            -- icon only: single per-aura colour (block's colour comes from t.colors below).
+            -- Typed check: the colour-per-aura types store colours inside t.auras, so t.color
+            -- is then something else entirely.
+            if not customStyle and useConfigColor and type(t.color) == "table" and type(t.color[1]) == "number" then
                 opts.borderColor = { t.color[1], t.color[2] or 0, t.color[3] or 0, 1 }
+            end
+        end
+        -- block & text carry Cell's colours table (colors[1]=base, colors[3]={en,secThr,col}
+        -- seconds threshold) -> the countdown colour curve. colors[1] is also the block fill /
+        -- the text number's base colour. (colors[2] is a percent threshold: can't ride a
+        -- seconds curve, so it is ignored on the container path.)
+        if (customStyle == "text" or customStyle == "block") and type(t.colors) == "table" then
+            opts.durationColors = t.colors
+            if type(t.colors[1]) == "table" and type(t.colors[1][1]) == "number" then
+                opts.borderColor = t.colors[1]
             end
         end
         if t.size then opts.size = t.size[1]; opts.sizeH = t.size[2] end

@@ -353,34 +353,57 @@ local BUFF_GREEN  = { 0, 0.55, 0.15, 1 }
 -- what the ring turns into as it drains -- black, i.e. Cell's ordinary icon border
 local SPENT_COLOR = { 0, 0, 0, 1 }
 
--- text-style only: colour the countdown number by REMAINING time, evaluated BLIND on
--- Blizzard's side -- it samples this curve against the secret remaining duration, so we
--- still never read it. Linear ramp base -> red over the last EXPIRY_WARN seconds. Nil when
--- the curve API is absent (older client), so the caller falls back to a static colour.
--- (Same structure as MiliUI_Unit_Frame's aura duration curve -- proven on this client.)
-local EXPIRY_WARN = 5
-local function BuildExpiryColorCurve(base)
-    if not (C_CurveUtil and C_CurveUtil.CreateColorCurve and CreateColor
-            and Enum and Enum.DurationTextBindingProperty) then return nil end
+-- Seconds-based colour curve for a countdown: hard bands built from a base colour + a list of
+-- { sec, color } thresholds. The C side samples it against the SECRET remaining duration, so
+-- we never read the time. Bands are made with close-point pairs (a 0.01s gap) so the colour
+-- SWITCHES at each threshold instead of gradient-ramping (matching Cell's native behaviour).
+local function BuildCountdownColorCurve(base, thresholds)
+    if not (C_CurveUtil and C_CurveUtil.CreateColorCurve and CreateColor) then return nil end
+    if not thresholds or #thresholds == 0 then return nil end
+    table.sort(thresholds, function(a, b) return a.sec < b.sec end)
     local ok, curve = pcall(C_CurveUtil.CreateColorCurve)
     if not ok or not curve then return nil end
-    local baseC = CreateColor(base[1], base[2] or 1, base[3] or 1, base[4] or 1)
-    local warnC = CreateColor(1, 0, 0, 1)
-    -- points are (remainingSeconds, colour); the curve interpolates linearly between them
+    local function col(c) return CreateColor(c[1], c[2] or 1, c[3] or 1, c[4] or 1) end
+    local baseC = (type(base) == "table" and type(base[1]) == "number") and col(base) or CreateColor(1, 1, 1, 1)
     local added = pcall(function()
-        curve:AddPoint(0, warnC)                     -- 0s left -> red
-        curve:AddPoint(EXPIRY_WARN, baseC)           -- WARN s  -> base (ramp between)
-        curve:AddPoint(EXPIRY_WARN + 86400, baseC)   -- far out -> base
+        -- [0,t1]=c1  (t1,t2]=c2  ...  (tN, inf)=base ; smallest threshold is the most urgent
+        local prev = 0
+        for _, th in ipairs(thresholds) do
+            local c = col(th.color)
+            curve:AddPoint(prev, c)
+            curve:AddPoint(th.sec, c)
+            prev = th.sec + 0.01
+        end
+        curve:AddPoint(prev, baseC)
+        curve:AddPoint(prev + 86400, baseC)
     end)
     if not added then return nil end
     return curve
 end
 
+-- Build the SetDurationText textColor { curve, property } from the indicator's colours config.
+-- cfg.durationColors is Cell's native colours table: [1]=base, [2]={en, %thr, col} (percent --
+-- can't ride a seconds curve, ignored), [3]={en, secThr, col}. baseOverride lets the block use
+-- a readable number colour instead of its own fill colour. nil when no seconds band is enabled.
+local function BuildDurColorOpt(cfg, baseOverride)
+    if not (Enum and Enum.DurationTextBindingProperty) then return nil end
+    local dc = cfg.durationColors
+    if type(dc) ~= "table" then return nil end
+    local thresholds = {}
+    local sec = dc[3]
+    if sec and sec[1] and type(sec[2]) == "number" and type(sec[3]) == "table" then
+        thresholds[#thresholds + 1] = { sec = sec[2], color = sec[3] }
+    end
+    local curve = BuildCountdownColorCurve(baseOverride or dc[1], thresholds)
+    if not curve then return nil end
+    return { curve = curve, property = Enum.DurationTextBindingProperty.RemainingDuration }
+end
+
 -- Blizzard-rendered countdown number (centre) + stack count (corner), handed off blind.
 -- Shared by the block/text custom styles; the default icon branch keeps its OWN inline copy
 -- because there it interleaves with icon/cooldown frame-level assignment.
--- textColorBase (text style only): base RGBA -> the countdown reddens over its last seconds.
-local function BindDurStack(button, cfg, base, textColorBase)
+-- durColorOpt (optional): SetDurationText textColor { curve, property } for colour-by-time.
+local function BindDurStack(button, cfg, base, durColorOpt)
     if not button.dfDur then
         button.dfDurHolder = CreateFrame("Frame", nil, button)
         button.dfDurHolder:SetAllPoints(button)
@@ -410,14 +433,9 @@ local function BindDurStack(button, cfg, base, textColorBase)
         local fmt = ACC.GetDurationFormatter(cfg.showDuration)
         if fmt then
             local opts = { textFormatter = fmt }
-            if textColorBase then
-                local curve = BuildExpiryColorCurve(textColorBase)
-                if curve then
-                    opts.textColor = { curve = curve,
-                        property = Enum.DurationTextBindingProperty.RemainingDuration }
-                end
-            end
-            -- the textColor curve table is finicky; on refusal fall back to plain text
+            if durColorOpt then opts.textColor = durColorOpt end
+            -- textColor {curve,property} is only honoured on build 68914+; an older client may
+            -- refuse the option table, so fall back to plain text rather than drop the number.
             if not pcall(button.SetDurationText, button, button.dfDur, opts) then
                 pcall(button.SetDurationText, button, button.dfDur, { textFormatter = fmt })
             end
@@ -548,15 +566,20 @@ local function StyleButton(handle, button)
             end
         end
 
-        -- text style hands its base colour in, so Blizzard reddens the countdown near expiry
-        -- (block keeps default readable text over its coloured fill).
-        BindDurStack(button, cfg, base, (cfg.customStyle == "text" and hasCol) and col or nil)
+        -- countdown colour-by-time from the indicator's own colours (base + seconds thresholds).
+        -- text: the number's base is the indicator colour (col). block: keep the number a
+        -- readable WHITE over the coloured fill -- only the threshold bands recolour it.
+        local durColorOpt = BuildDurColorOpt(cfg, cfg.customStyle == "block" and { 1, 1, 1, 1 } or nil)
+        BindDurStack(button, cfg, base, durColorOpt)
 
-        -- static baseline for the text number: if the curve bound it drives the ramp, and at
-        -- >EXPIRY_WARN seconds the curve's colour equals this, so the two never disagree; if
-        -- the curve was refused, this is the whole colour.
-        if cfg.customStyle == "text" and hasCol and button.dfDur then
-            button.dfDur:SetTextColor(col[1], col[2] or 1, col[3] or 1, col[4] or 1)
+        -- static baseline colour for the number (the curve, if bound, drives the bands and its
+        -- top band equals this, so they agree; if the curve was refused this is the whole colour)
+        if button.dfDur then
+            if cfg.customStyle == "block" then
+                button.dfDur:SetTextColor(1, 1, 1, 1)
+            elseif hasCol then
+                button.dfDur:SetTextColor(col[1], col[2] or 1, col[3] or 1, col[4] or 1)
+            end
         end
         return
     end
