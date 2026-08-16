@@ -642,7 +642,15 @@ local function StyleButton(handle, button)
     -- ---- the drain -----------------------------------------------------------
     -- Covers the WHOLE button, under the icon frame. SetReverse(true) makes the swipe
     -- cover the ELAPSED arc, so black grows and the coloured arc shrinks clockwise.
-    if not button.dfCD then
+    --
+    -- Gated by showAnimation -- the same option that used to toggle BarIcon's cooldown swipe
+    -- on the legacy path. That path is gone for container-backed indicators (the pool is
+    -- discarded), so without this the checkbox had nothing to drive. showAnimation is not in
+    -- COSMETIC_KEYS/LAYOUT_KEYS, so SetOptions treats a change as structural and rebuilds --
+    -- which is what this needs, since the bind only happens while the button is being styled.
+    -- nil counts as ON: layouts predating the option must keep the swipe they already had.
+    local swipeOn = cfg.showAnimation ~= false
+    if swipeOn and not button.dfCD then
         button.dfCD = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
         button.dfCD:SetSwipeTexture(ACC.WHITE)
         button.dfCD:SetSwipeColor(SPENT_COLOR[1], SPENT_COLOR[2], SPENT_COLOR[3])
@@ -653,9 +661,22 @@ local function StyleButton(handle, button)
         button.dfCD:SetDrawBling(false)
         button.dfCD.noCooldownCount = true -- keep OmniCC off our numbers
     end
-    button.dfCD:ClearAllPoints()
-    button.dfCD:SetAllPoints(button)
-    button.dfCD:SetFrameLevel(base + 1)
+    if button.dfCD then
+        if swipeOn then
+            button.dfCD:ClearAllPoints()
+            button.dfCD:SetAllPoints(button)
+            button.dfCD:SetFrameLevel(base + 1)
+            button.dfCD:Show()
+        else
+            -- A recycled button may already carry a bound swipe. Unbind before hiding, or
+            -- Blizzard keeps driving a frame the user asked to be rid of.
+            if button._boundCD and button.ClearDurationCooldown then
+                button:ClearDurationCooldown()
+                button._boundCD = nil
+            end
+            button.dfCD:Hide()
+        end
+    end
 
     -- ---- text -----------------------------------------------------------------
     -- ⚠ The holders MUST be anchored: a frame with no points/size is rect-less, and a
@@ -691,7 +712,7 @@ local function StyleButton(handle, button)
         button:SetIcon(button.dfIcon)
         button._boundIcon = true
     end
-    if button.dfCD and button.SetDurationCooldown and not button._boundCD then
+    if swipeOn and button.dfCD and button.SetDurationCooldown and not button._boundCD then
         button:SetDurationCooldown(button.dfCD)
         button._boundCD = true
     end

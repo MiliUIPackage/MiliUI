@@ -1173,20 +1173,70 @@ local function Text_SetColors(frame, colors)
     frame.colors = colors
 end
 
+-- The unified countdown-colour widget: {masterEnabled, base, {en,sec,col}, {en,sec,col}}.
+-- Text indicators used to carry the legacy per-indicator `colors` table, but their settings
+-- list only offers `durationColor` now -- so SetColors was never called, frame.colors stayed
+-- nil, and Text_OnUpdateColor indexed it 10x a second. Normalise once here rather than at tick
+-- rate; both threshold bands are in SECONDS (the legacy [2] band was a percentage).
+local function Text_SetDurationColors(frame, dc)
+    frame.state = nil
+    if type(dc) ~= "table" then
+        frame.durColors = nil
+        return
+    end
+    local base = type(dc[2]) == "table" and dc[2] or {1, 1, 1, 1}
+    if not dc[1] then -- master off: flat base, no bands
+        frame.durColors = {base = base}
+        return
+    end
+    local bands = {}
+    for i = 3, 4 do
+        local b = dc[i]
+        if type(b) == "table" and b[1] and type(b[3]) == "table" then
+            bands[#bands + 1] = {sec = tonumber(b[2]) or 0, col = b[3]}
+        end
+    end
+    table.sort(bands, function(x, y) return x.sec < y.sec end) -- tightest threshold wins
+    frame.durColors = {base = base, bands = bands}
+end
+
 local function Text_OnUpdateColor(frame)
-    if frame.colors[3][1] and frame._remain <= frame.colors[3][2] then
+    local dc = frame.durColors
+    if dc then
+        local want, state = dc.base, 0
+        if dc.bands then
+            for i = 1, #dc.bands do
+                if frame._remain <= dc.bands[i].sec then
+                    want, state = dc.bands[i].col, i
+                    break
+                end
+            end
+        end
+        if frame.state ~= state then
+            frame.state = state
+            frame.text:SetTextColor(want[1], want[2] or 1, want[3] or 1, want[4] or 1)
+        end
+        return
+    end
+
+    -- Legacy `colors` shape, kept for layouts saved before the unified widget: [1] base,
+    -- [2] {en, PERCENT of duration, col}, [3] {en, seconds, col}. Nothing populates it for
+    -- text any more, so the nil check is what stops the spam if neither is configured.
+    local c = frame.colors
+    if not c then return end
+    if c[3][1] and frame._remain <= c[3][2] then
         if frame.state ~= 3 then
             frame.state = 3
-            frame.text:SetTextColor(frame.colors[3][3][1], frame.colors[3][3][2], frame.colors[3][3][3], frame.colors[3][3][4])
+            frame.text:SetTextColor(c[3][3][1], c[3][3][2], c[3][3][3], c[3][3][4])
         end
-    elseif frame.colors[2][1] and frame._remain <= frame._duration * frame.colors[2][2] then
+    elseif c[2][1] and frame._remain <= frame._duration * c[2][2] then
         if frame.state ~= 2 then
             frame.state = 2
-            frame.text:SetTextColor(frame.colors[2][3][1], frame.colors[2][3][2], frame.colors[2][3][3], frame.colors[2][3][4])
+            frame.text:SetTextColor(c[2][3][1], c[2][3][2], c[2][3][3], c[2][3][4])
         end
     elseif frame.state ~= 1 then
         frame.state = 1
-        frame.text:SetTextColor(frame.colors[1][1], frame.colors[1][2], frame.colors[1][3], frame.colors[1][4])
+        frame.text:SetTextColor(c[1][1], c[1][2], c[1][3], c[1][4])
     end
 end
 
@@ -1312,6 +1362,7 @@ function I.CreateAura_Text(name, parent)
     frame.SetDuration = Text_SetDuration
     frame.SetStack = Text_SetStack
     frame.SetColors = Text_SetColors
+    frame.SetDurationColors = Text_SetDurationColors
 
     return frame
 end

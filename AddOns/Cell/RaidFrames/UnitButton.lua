@@ -351,6 +351,11 @@ local function HandleIndicators(b)
         if t["colors"] then
             indicator:SetColors(t["colors"])
         end
+        -- update durationColor (unified countdown colour widget). Only the text indicator
+        -- consumes it off the container path; the rest read it via ConfigureContainer.
+        if indicator.SetDurationColors then
+            indicator:SetDurationColors(t["durationColor"])
+        end
         -- update texture
         if t["texture"] then
             indicator:SetTexture(t["texture"])
@@ -864,6 +869,14 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 indicator:SetColors(value) -- update color on next SetCooldown
                 UnitButton_UpdateAuras(b) -- call SetCooldown now
             end, true)
+        elseif setting == "durationColor" then
+            F.IterateAllUnitButtons(function(b)
+                local indicator = b.indicators[indicatorName]
+                if indicator and indicator.SetDurationColors then
+                    indicator:SetDurationColors(value)
+                    UnitButton_UpdateAuras(b)
+                end
+            end, true)
         elseif setting == "vehicleNamePosition" then
             F.IterateAllUnitButtons(function(b)
                 local indicator = b.indicators[indicatorName]
@@ -1093,6 +1106,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 -- update colors
                 if value["colors"] then
                     indicator:SetColors(value["colors"])
+                end
+                if indicator.SetDurationColors then
+                    indicator:SetDurationColors(value["durationColor"])
                 end
                 -- update texture
                 if value["texture"] then

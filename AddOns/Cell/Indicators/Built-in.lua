@@ -326,6 +326,9 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
             spellIDs = getSpellIDs(t),
             showDuration = t.showDuration,
             showStack = t.showStack,
+            -- toggles the cooldown swipe (see StyleButton). Carried through as-is so nil
+            -- stays nil: AuraDisplay reads it as "~= false", i.e. absent means ON.
+            showAnimation = t.showAnimation,
             onlyMine = (t.castBy == "me") or nil,
             orientation = t.orientation,
         }

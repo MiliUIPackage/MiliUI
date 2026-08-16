@@ -28,6 +28,16 @@ Cell.snippetVars.customIndicators = customIndicators
 
 --! init enabledIndicators & customIndicators
 function I.UpdateIndicatorTable(indicatorTable)
+    -- ⚠ Only user-created indicators belong here -- the caller walks from
+    -- Cell.defaults.builtIns + 1. If that split point and the actual layout ever disagree (a
+    -- layout that missed a migration, or a new built-in added without bumping builtIns), a
+    -- built-in entry lands here with no ["auras"] and ipairs(nil) throws on EVERY roster
+    -- update. Skipping is strictly better than erroring: the built-in is already driven by its
+    -- own code path, and a genuinely broken custom entry just goes quiet instead of spamming.
+    if indicatorTable["type"] == "built-in" or type(indicatorTable["auras"]) ~= "table" then
+        return
+    end
+
     local indicatorName = indicatorTable["indicatorName"]
     local auraType = indicatorTable["auraType"]
 
