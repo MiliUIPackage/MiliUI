@@ -365,14 +365,24 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
                 opts.borderColor = { t.color[1], t.color[2] or 0, t.color[3] or 0, 1 }
             end
         end
-        -- block & text carry Cell's colours table (colors[1]=base, colors[3]={en,secThr,col}
-        -- seconds threshold) -> the countdown colour curve. colors[1] is also the block fill /
-        -- the text number's base colour. (colors[2] is a percent threshold: can't ride a
-        -- seconds curve, so it is ignored on the container path.)
-        if (customStyle == "text" or customStyle == "block") and type(t.colors) == "table" then
-            opts.durationColors = t.colors
-            if type(t.colors[1]) == "table" and type(t.colors[1][1]) == "number" then
-                opts.borderColor = t.colors[1]
+        -- block & text carry a NORMALISED {base, sec} colours spec for the countdown colour
+        -- curve. ⚠ Their raw colours tables have DIFFERENT layouts: text's CreateSetting_Colors
+        -- is [1]=base, [3]={en,secThr,col}; block's CreateSetting_BlockColors prepends a
+        -- "Color By" slot so it is [2]=base, [4]={en,secThr,col}. base doubles as the block fill
+        -- / the text number's colour. (The percent slot is a RemainingPercent band -- can't ride
+        -- a seconds curve -- so it is ignored on the container path.)
+        if type(t.colors) == "table" then
+            local base, sec
+            if customStyle == "text" then
+                base, sec = t.colors[1], t.colors[3]
+            elseif customStyle == "block" then
+                base, sec = t.colors[2], t.colors[4]
+            end
+            if base or sec then
+                opts.durationColors = { base = base, sec = sec }
+                if type(base) == "table" and type(base[1]) == "number" then
+                    opts.borderColor = base
+                end
             end
         end
         if t.size then opts.size = t.size[1]; opts.sizeH = t.size[2] end

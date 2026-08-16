@@ -382,19 +382,20 @@ local function BuildCountdownColorCurve(base, thresholds)
 end
 
 -- Build the SetDurationText textColor { curve, property } from the indicator's colours config.
--- cfg.durationColors is Cell's native colours table: [1]=base, [2]={en, %thr, col} (percent --
--- can't ride a seconds curve, ignored), [3]={en, secThr, col}. baseOverride lets the block use
--- a readable number colour instead of its own fill colour. nil when no seconds band is enabled.
+-- cfg.durationColors is a NORMALISED { base = {r,g,b,a}, sec = {en, secThr, {r,g,b,a}} } spec
+-- (AttachBuffContainer flattens text's vs block's differing raw layouts into this). baseOverride
+-- lets the block use a readable number colour instead of its fill. nil when the seconds band is
+-- disabled/absent.
 local function BuildDurColorOpt(cfg, baseOverride)
     if not (Enum and Enum.DurationTextBindingProperty) then return nil end
     local dc = cfg.durationColors
     if type(dc) ~= "table" then return nil end
     local thresholds = {}
-    local sec = dc[3]
-    if sec and sec[1] and type(sec[2]) == "number" and type(sec[3]) == "table" then
+    local sec = dc.sec
+    if type(sec) == "table" and sec[1] and type(sec[2]) == "number" and type(sec[3]) == "table" then
         thresholds[#thresholds + 1] = { sec = sec[2], color = sec[3] }
     end
-    local curve = BuildCountdownColorCurve(baseOverride or dc[1], thresholds)
+    local curve = BuildCountdownColorCurve(baseOverride or dc.base, thresholds)
     if not curve then return nil end
     return { curve = curve, property = Enum.DurationTextBindingProperty.RemainingDuration }
 end
