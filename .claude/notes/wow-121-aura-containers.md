@@ -172,4 +172,25 @@ handler 掛失敗會讓**整個容器建立失敗**,對外只表現成「光環�
 
 其餘不變:`AddAuraGroup(key, filter, {maxFrameCount, initializeFrame, layout, candidateFilters, sortMethod, sortDirection})` → `SetEnabled(true)` **最後**(它 gate 光環事件註冊)。改 filter 字串的 record 集合(key set)是結構性的,要重建容器;`maxFrameCount`/`candidateFilters`/`sort` 是 live setter。`maxFrameCount` 是**每個 group** 的上限,不是整條 row 的總數——多類別時總數會超過單一 num,要留意。`initializeFrame` 內:`SetMouseClickEnabled(false)`、建**全新** child region(絕不 reparent 既有 scripted widget)、`SetIcon`/`SetDurationCooldown`/`SetDurationText(fs,{binding=...})`/`SetApplicationCount(fs, {})`。**`SetApplicationCount` 千萬別傳 formatter**——Blizzard 會在 Lua 對 secret 層數跑 `formatter:FormatNumber`,炸在 `ProcessDirtyFlags` 裡讓整個容器當掉一整場。版本閘:`AddAuraGroup` 存在 = 支援,且**不可在戰鬥中 probe**(建 live 容器會不可攔截地報錯)。
 
+**⚠⚠ 整排圖示「置中」做不到,不要再試。**(2026-08-18 實測推翻)
+
+置中 N 顆要往左推 `(N-1)*(寬+間距)/2`,而 N =「現在實際配到幾顆」正是 12.1 藏起來的,
+插件算不出來。引擎知道,所以唯一的希望是讓「它」代勞 —— 兩層都問過了,都不行:
+
+- **容器層**:`SetFlowLayoutAnchorPoint("CENTER")` **會被接受**(`/cab inspect` 顯示
+  `anchor=ok`,不報錯)—— 這就是陷阱。遊戲裡的實際行為是「第一顆圖示對準那個點,
+  之後往右長」,兩顆就已經偏掉了。上面那條「未知的鍵會被靜靜丟掉」在這裡是加強版:
+  連**合法但語意不符**的值也會安靜收下。
+- **group 層**:`ValidateAuraGroupLayoutOptions` 那八個鍵(見上)裡沒有任何對齊概念。
+- **旁證**:DandersFrames v5、Platynator、BuffReminders、EUI AuraKit 四份都在排 aura
+  container,沒有一份做置中;Reddit/開發者討論區也搜不到有人提過。
+
+固定偏移「半排寬度」不是解法:效果等同「從左到右 + 位置滑桿往左調」,沒有多任何能力。
+
+探針做成 `/cab layoutopts`(帶對照組,見上面那條大坑 —— 沒有對照組的 pcall 探測全是假訊號)。
+另外**錯誤訊息會吐出 Blizzard 的檔案路徑**,那是定位原始碼最快的方法。
+
+⚠ 這一整輪本來可以省下:上面「`options.layout` 的合法欄位」與「未知的鍵會被靜靜丟掉」
+兩條在 2026-08-13 就寫在這份筆記裡了。**動手前先把這篇讀完,不要只掃技能的索引表。**
+
 相關：[[wow-121-secret-values]]、[[wow-121-coolinator-reference]]、[[project-121-addon-migration]]
