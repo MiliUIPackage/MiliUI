@@ -48,11 +48,23 @@ Secret values are only allowed during untainted execution for this argument.
 | 引擎給的現成物件（`UnitCastingDuration` / `UnitChannelDuration` / `C_Spell.GetSpellCooldownDuration`） | **可用** |
 | 自己 `CreateDuration` + `SetTimeFromStart` | **不可用**，只在明文（戰鬥外）成立 |
 
-也就是說：**沒有現成 duration 物件 API 的東西，秘密值下就沒有倒數可做。**
-圖騰／召喚物就是這種（`GetTotemInfo` 沒有 duration 物件版本），只能退回
-「滿條、無數字」。飾品冷卻（Ayije_CDM 的用法）在戰鬥外正常，戰鬥中同樣受限。
+## ⚠ 但「拿不到值」≠「不能有倒數」
 
-值得留著自己建的那條路：戰鬥外仍然有好處 —— 不必自己輪詢、過期吃 `OnCooldownDone`。
+這是最容易下錯的結論（2026-08-18 我下錯過一次）。**arm 成功之後倒數是引擎在跑的，
+進戰鬥照樣繼續** —— 值在 arm 的那一刻就交出去了，之後不必再讀來源 API。
+
+所以自己建的那條路仍然可用，只是要顧兩件事：
+
+1. **已經 arm 好的不要重 arm。** 更新函式通常會整批重跑，戰鬥中重 arm 會失敗並把
+   原本跑得好好的計時器清掉 —— 這才是「戰鬥中沒有倒數」的直接原因，不是 API 限制。
+2. **戰鬥中沒 arm 到的，脫戰時補一次。** 那時來源值又變明文，而目標還在跑，
+   補 arm 之後剩下的壽命就有正確倒數。
+
+結果：戰鬥前開始的全程正確，戰鬥中開始的只是晚幾秒才出現倒數。
+
+Stuf 用的是等價的手法（`b.endtime = GetTime() + safeRemain`，把秘密值 pcall 換算成
+明文時間戳存一次，之後自己算）。⚠ 但它捕捉失敗時退回 `i * 20` 的**假倒數** ——
+數字是編的，看起來卻很正常。不要抄那一段。
 
 ## 別忘了 modRate
 
