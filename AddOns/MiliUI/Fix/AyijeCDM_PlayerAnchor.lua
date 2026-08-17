@@ -16,9 +16,14 @@ local INVERTED_ANCHORS = {
     BOTTOMRIGHT = "TOPRIGHT",
 }
 
+-- ⚠ 要用 IsVisible 不是 IsShown。
+-- 米利頭像 2026-08-17 加了「顯示條件」之後，單位框變成一層閘框的子物件：條件不成立時
+-- 藏的是**父層**，單位框自己仍然 IsShown()==true（顯示權在 RegisterUnitWatch 手上）。
+-- 用 IsShown 判斷的話，玩家框明明看不見卻還是被當成有效錨點，飾品圖示就會浮在空白處。
+-- IsVisible 會把整條父層鏈算進去，才是這裡真正要問的「看得見嗎」。
 local function GetPlayerFrame()
     local frame = _G[PLAYER_FRAME_NAME]
-    if frame and frame.IsShown and frame:IsShown() then
+    if frame and frame.IsVisible and frame:IsVisible() then
         return frame
     end
 end
