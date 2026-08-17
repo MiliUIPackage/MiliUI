@@ -145,6 +145,7 @@ local function Debug()
                 tostring(r.set), tostring(r.bar), tostring(r.cd),
                 r.numbersOn == nil and "?" or (r.numbersOn and "開" or "關"),
                 SafeStr(r.barValue)))
+            if r.err then p("      |cffff5555set 失敗：" .. r.err .. "|r") end
         end
     else
         p("  召喚物槽：這個職業沒有召喚物欄位（Totems 模組沒載入）")

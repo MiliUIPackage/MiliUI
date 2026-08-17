@@ -1,9 +1,15 @@
 ------------------------------------------------------------
 -- 圖騰框架（獨立框，樣式 A「圖示膠囊列」；樣式欄位保留切換空間）
 --
--- 12.1：GetTotemInfo 回傳全秘密，只有 icon 是明文字串 →
---   icon 當「有圖騰」的 proxy；剩餘時間用 pcall 抽 start+duration-GetTime()
---   （抽不到就滿條顯示）
+-- 12.1 的 GetTotemInfo：
+--   **戰鬥外** icon 是明文（字串路徑或數字 fileID），start/dur 也是明文
+--   **戰鬥中** 連 icon 都是秘密值（2026-08-18 實測，之前的註解寫錯了）
+--
+-- 「有沒有圖騰」仍然靠 icon 當 proxy，而且戰鬥中照樣成立 —— 但理由跟原本想的不同：
+-- `icon ~= ""` 是拿秘密**數字**跟字串比，型別不同，Lua 不會去碰那個值就直接回 true。
+-- 貼圖本身則是 `SetTexture(icon)`，C 端吃得下秘密值。
+--
+-- 剩餘時間見下面 ArmTimer 的說明（戰鬥中目前無解）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -194,8 +200,22 @@ local function ArmTimer(slot, startTime, duration, modRate)
         if slot.cd then slot.cd:Clear() end
         return
     end
-    -- C 端 setter，吃秘密值。⚠ 寫完不要再問它任何事（IsZero/GetTotalDuration 會炸）
-    slot.dbgSet = pcall(duo.SetTimeFromStart, duo, startTime, duration, modRate)
+    -- ⚠⚠ 實測（2026-08-18 戰鬥中）：**SetTimeFromStart 不吃秘密值**，這裡會失敗。
+    -- duration 物件本身撐得住秘密計時（UnitCastingDuration 回的那種就是），
+    -- 但那是引擎在自己那邊用明文建的；從 Lua 餵秘密值進去建一顆是不行的。
+    -- 所以戰鬥中的召喚物倒數目前**無解**，只能退回舊行為。
+    local ok, err = pcall(duo.SetTimeFromStart, duo, startTime, duration, modRate)
+    slot.dbgSet, slot.dbgErr = ok, (not ok) and tostring(err) or nil
+    if not ok then
+        -- 退回舊行為：滿條、無數字，靠 PLAYER_TOTEM_UPDATE 收。
+        -- ⚠ 一定要明確填滿 —— 不填的話會停在上一次的值（實測是空條），
+        -- 那比「滿條」還糟：看起來像圖騰已經到期了
+        slot.bar:SetMinMaxValues(0, 1)
+        slot.bar:SetValue(1)
+        if slot.cd then pcall(slot.cd.Clear, slot.cd) end
+        slot.numbersOn = false
+        return
+    end
     slot.dbgBar, slot.dbgCd = false, false
     if slot.bar.SetTimerDuration and TIMER_DIR then
         slot.bar:SetMinMaxValues(0, 1)
@@ -230,6 +250,7 @@ function ns.TotemsDebug()
             active  = slot and slot.active or false,
             hasDuo  = slot and slot.duo ~= nil or false,
             set     = slot and slot.dbgSet, bar = slot and slot.dbgBar, cd = slot and slot.dbgCd,
+            err     = slot and slot.dbgErr,
             numbersOn = slot and slot.numbersOn,
             barValue  = slot and slot.bar and slot.bar:GetValue() or nil,
         }
