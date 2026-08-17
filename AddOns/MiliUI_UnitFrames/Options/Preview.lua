@@ -346,6 +346,9 @@ function Preview.RestoreReal()
             end
         end
     end
+    -- 顯示閘與淡出：預覽期間狀態可能已經變了（開著設定面板打完一場架），
+    -- 而閘框跟 unit watch 是兩件獨立的事 —— 放回真實框之後要重算一次
+    ns.Visibility.Refresh()
 end
 
 function Preview.IsOpen()

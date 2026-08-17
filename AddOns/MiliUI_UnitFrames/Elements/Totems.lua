@@ -278,6 +278,8 @@ ns.TotemsAnchorTo = AnchorTo     -- 編輯模式拖曳中即時定位用
 local function ApplyPosition()
     local db = GetDB()
     AnchorTo(db.frame.x, db.frame.y)
+    -- 層級跟著全域設定走（Init 只設一次，改了設定要在這裡重套，不然要 /reload 才生效）
+    if frame then frame:SetFrameStrata(ns.db.global.strata or "LOW") end
 end
 
 local function Init()

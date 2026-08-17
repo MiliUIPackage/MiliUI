@@ -231,36 +231,6 @@ local function Debug()
         Probe("g.IncHeals", UnitGetIncomingHeals and UnitGetIncomingHeals("target"))
         Probe("g.Absorbs", UnitGetTotalAbsorbs and UnitGetTotalAbsorbs("target"))
         Probe("g.HealAbsorb", UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs("target"))
-        -- 模型重載計數：頭像閃爍時看這裡。下兩次 /muf debug 之間如果數字一直跳，
-        -- 就是擋板沒生效，lastBucket 會指出是哪條路在推
-        -- 輪詢項目：超出距離的文字與淡出都靠 Metro。沒掛上去的話狀態就會凍結在
-    -- 最後一次 unitchanged，症狀是「選目標當下對，之後走動都不變」
-    do
-        local entries, alive = ns.Metro.Debug()
-        p(("  輪詢（ticker=%s）：%s"):format(
-            alive and "|cff44ff44轉|r" or "|cffff5555停|r",
-            #entries > 0 and table.concat(entries, " ") or "（空）"))
-        local tuf = ns.frames.target
-        if tuf then
-            p(("   目標框 oor=%s range=%s"):format(
-                tostring(ns.Cache.IsOOR(tuf)),
-                tostring(ns.Range.Check(tuf.unit))))
-        end
-        local h, hp = ns.Range.Probes()
-        p(("   探針技能 harm=%s help=%s"):format(tostring(h), tostring(hp)))
-    end
-
-    p("  頭像模型重載次數（框：次數／key／上次來源）：")
-        for _, u in ipairs({ "player", "target", "focus", "pet" }) do
-            local uf = ns.frames[u]
-            local pfx = uf and uf.elements and uf.elements.portrait
-            if pfx then
-                p(("   %-8s 重載=%-4s key=%s last=%s fid=%s"):format(u,
-                    tostring(pfx.modelReloads or 0),
-                    SafeStr(pfx.modelKey), tostring(pfx.modelLastBucket),
-                    SafeStr(pfx.model and pfx.model.GetModelFileID and pfx.model:GetModelFileID())))
-            end
-        end
         -- 3D 頭像：副本小怪到底是「被擋」還是「我們自己的閘擋掉」
         local pf = tuf0 and tuf0.elements and tuf0.elements.portrait
         if pf and pf.model then
@@ -291,8 +261,6 @@ local function Debug()
             p(("   SetPortraitTexture ok=%s tex=%s"):format(
                 tostring(t2ok), SafeStr(pf.tex2d and pf.tex2d:GetTexture())))
         end
-        p("   受限狀態 HasSecretRestrictions=" .. tostring(C_Secrets and C_Secrets.HasSecretRestrictions())
-            .. " ShouldAurasBeSecret=" .. tostring(C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret()))
         local tuf = ns.frames.target
         if tuf and tuf.textFrames then
             for i, f in ipairs(tuf.textFrames) do
@@ -309,6 +277,55 @@ local function Debug()
     else
         p("  目標取值：沒有目標（選一個敵人再打一次）")
     end
+
+    ------------------------------------------------------------
+    -- ⚠ 以下三段跟「有沒有目標」無關，一定要留在 if 外面。
+    -- 曾經整段縮排錯位掉進 `if UnitExists("target")` 裡面，症狀是沒選目標時
+    -- /muf debug 少印一半——而「淡出沒反應」「頭像閃爍」恰好常常發生在沒目標的時候。
+    ------------------------------------------------------------
+
+    -- 輪詢項目：超出距離的文字與淡出都靠 Metro。沒掛上去的話狀態就會凍結在
+    -- 最後一次 unitchanged，症狀是「選目標當下對，之後走動都不變」
+    do
+        local entries, alive = ns.Metro.Debug()
+        p(("  輪詢（ticker=%s）：%s"):format(
+            alive and "|cff44ff44轉|r" or "|cffff5555停|r",
+            #entries > 0 and table.concat(entries, " ") or "（空）"))
+        local tuf = ns.frames.target
+        if tuf then
+            p(("   目標框 oor=%s range=%s"):format(
+                tostring(ns.Cache.IsOOR(tuf)),
+                tostring(ns.Range.Check(tuf.unit))))
+        end
+        local h, hp = ns.Range.Probes()
+        p(("   探針技能 harm=%s help=%s"):format(tostring(h), tostring(hp)))
+    end
+
+    -- 模型重載計數：頭像閃爍時看這裡。下兩次 /muf debug 之間如果數字一直跳，
+    -- 就是擋板沒生效，lastBucket 會指出是哪條路在推
+    p("  頭像模型重載次數（框：次數／key／上次來源）：")
+    for _, u in ipairs({ "player", "target", "focus", "pet" }) do
+        local uf = ns.frames[u]
+        local pfx = uf and uf.elements and uf.elements.portrait
+        if pfx then
+            p(("   %-8s 重載=%-4s key=%s last=%s fid=%s"):format(u,
+                tostring(pfx.modelReloads or 0),
+                SafeStr(pfx.modelKey), tostring(pfx.modelLastBucket),
+                SafeStr(pfx.model and pfx.model.GetModelFileID and pfx.model:GetModelFileID())))
+        end
+    end
+
+    -- 顯示閘：「框不見了」要分得出是條件擋掉、unit watch 判定不存在，還是元件沒建起來。
+    -- 格式 單位=模式/閘門(附加條件) alpha
+    if ns.Visibility then
+        local rows = ns.Visibility.Debug()
+        p(("  顯示條件（有條件的框=%s，脫戰淡出=%s）：")
+            :format(tostring(ns.Visibility.anyConditions), tostring(ns.Visibility.anyOocFade)))
+        p("   " .. (#rows > 0 and table.concat(rows, "  ") or "（沒有框）"))
+    end
+
+    p("  受限狀態 HasSecretRestrictions=" .. tostring(C_Secrets and C_Secrets.HasSecretRestrictions())
+        .. " ShouldAurasBeSecret=" .. tostring(C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret()))
 
     -- 治療吸收三種來源對照（整條紅時就是它們對不起來）
     do

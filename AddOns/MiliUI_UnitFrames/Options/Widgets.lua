@@ -439,6 +439,9 @@ end
 ------------------------------------------------------------
 -- 下拉選單（共用選單框）
 ------------------------------------------------------------
+local ITEM_H = 18
+local MENU_MAX_ROWS = 14      -- 超過就裁切＋滾輪捲動（字型清單裝了幾個插件就會破百）
+
 local menuFrame
 local function EnsureMenu()
     if menuFrame then return menuFrame end
@@ -447,6 +450,20 @@ local function EnsureMenu()
     W.Stylize(menuFrame, { 0.1, 0.1, 0.1, 0.97 })
     menuFrame:Hide()
     menuFrame.items = {}
+    menuFrame.offset = 0
+    -- 內容比視窗高時靠裁切＋位移捲動（不用 ScrollFrame：項目是共用池，
+    -- 換 scroll child 的父層會把池子搞複雜，位移錨點單純得多）
+    menuFrame:SetClipsChildren(true)
+    menuFrame:EnableMouseWheel(true)
+    menuFrame:SetScript("OnMouseWheel", function(self, delta)
+        local maxOffset = (self.contentH or 0) - (self.viewH or 0)
+        if maxOffset <= 0 then return end
+        local o = self.offset - delta * ITEM_H * 3
+        if o < 0 then o = 0 elseif o > maxOffset then o = maxOffset end
+        if o == self.offset then return end
+        self.offset = o
+        if self.Reflow then self:Reflow() end
+    end)
     menuFrame:SetScript("OnHide", function(self) self:Hide() end)
     return menuFrame
 end
@@ -495,9 +512,11 @@ function W.CreateDropdown(parent, width, items, onSelect)
         local menu = EnsureMenu()
         if menu:IsShown() and menu.owner == self then menu:Hide(); return end
         menu.owner = self
+        menu.offset = 0
         -- 重建項目按鈕
         for _, b in ipairs(menu.items) do b:Hide() end
         local height, widest = 2, 0
+        local count = #self.items
         for i, item in ipairs(self.items) do
             local b = menu.items[i]
             if not b then
@@ -526,17 +545,40 @@ function W.CreateDropdown(parent, width, items, onSelect)
                 if item.onClick then item.onClick(item.value) end
             end)
             b:Show()
-            height = height + 18
+            height = height + ITEM_H
         end
         -- 選單至少跟下拉一樣寬，內容更長就跟著撐開（5 左內縮 ＋ 右邊留白）
         local menuW = math.max(self:GetWidth() or 120, widest + 18)
-        for i = 1, #self.items do
+        for i = 1, count do
             local b = menu.items[i]
-            if b then P.Size(b, menuW - 4, 18) end
+            if b then P.Size(b, menuW - 4, ITEM_H) end
         end
+
+        -- 高度上限：超過就裁切，靠滾輪捲。沒超過的話 Reflow 是 no-op
+        menu.contentH = height + 2
+        menu.viewH = math.min(menu.contentH, MENU_MAX_ROWS * ITEM_H + 4)
+        function menu:Reflow()
+            for i = 1, count do
+                local b = self.items[i]
+                if b then
+                    b:ClearAllPoints()
+                    b:SetPoint("TOPLEFT", self, "TOPLEFT", 2, -(2 + (i - 1) * ITEM_H) + self.offset)
+                end
+            end
+        end
+        menu:Reflow()
+
+        -- 下面塞不下就往上開。有了高度上限才算得出來要不要翻——沒有上限的話
+        -- 長清單無論往哪開都會有一截在畫面外，而裁切之後那一截是**捲不到**的。
+        -- （回讀的是設定面板自己的幾何，跟單位框那條「絕不回讀」的規則無關）
         menu:ClearAllPoints()
-        menu:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -2)
-        P.Size(menu, menuW, height + 2)
+        local roomBelow = self:GetBottom()
+        if roomBelow and roomBelow - menu.viewH - 2 < 0 then
+            menu:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 0, 2)
+        else
+            menu:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -2)
+        end
+        P.Size(menu, menuW, menu.viewH)
         menu:Show()
     end)
     return dd

@@ -23,6 +23,30 @@ local DB = ns.DB
 local function black(a) return { r = 0, g = 0, b = 0, a = a or 1 } end
 local function white(a) return { r = 1, g = 1, b = 1, a = a or 1 } end
 
+------------------------------------------------------------
+-- 每個單位的 frame 區塊共通欄位（顯示條件／淡出／高亮）
+--
+-- 抽成一支的理由：這幾個鍵七個單位都要有，散在七處遲早漂掉。呼叫點已經寫了的值
+-- 不覆蓋（例如 target 的 fadeOutOfRange 是 true），這裡只補「維持現狀」的預設。
+--
+--   visibility        主模式，見 Core/Visibility.lua 的 MODES
+--   vis*              附加條件，任一成立就藏
+--   fadeOutOfRange    超出距離淡出（輪詢）
+--   fadeOutOfCombat   脫戰淡出（吃事件）
+--   highlight         滑鼠移過時畫一圈高亮邊框
+------------------------------------------------------------
+local function frameDef(o)
+    if o.visibility == nil then o.visibility = "always" end
+    if o.visOnlyInstances == nil then o.visOnlyInstances = false end
+    if o.visHideMounted == nil then o.visHideMounted = false end
+    if o.visHideNoTarget == nil then o.visHideNoTarget = false end
+    if o.visHideNoEnemy == nil then o.visHideNoEnemy = false end
+    if o.fadeOutOfRange == nil then o.fadeOutOfRange = false end
+    if o.fadeOutOfCombat == nil then o.fadeOutOfCombat = false end
+    if o.highlight == nil then o.highlight = true end
+    return o
+end
+
 -- 標準文字元件預設
 local function textDef(o)
     o.enabled  = o.enabled ~= false
@@ -43,6 +67,7 @@ local function bigCastbar(own)
         bg = black(0.8), timeFormat = "elapsedTotal",
         showInterruptState = not own,   -- 自己的施法不套「不可打斷灰」也不畫盾牌
         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
+        showSpark = false,              -- 填充前緣的亮點（Stuf／FocuserCastBar 都沒有，預設關）
         showShield = not own, shieldStyle = "blizzard", shieldScale = own and 1.2 or 1.4, shieldOffsetX = 0, shieldOffsetY = 0,
         spell = { x = 34, y = -2, w = 166, h = 50, size = 12, flags = "OUTLINE",
                   justifyH = "LEFT", justifyV = "MIDDLE", color = white(1) },
@@ -68,6 +93,10 @@ function DB.BuildDefaults()
             percentDecimals = 0,
             previewBossDisplayID = 131474,   -- 預覽敵對單位的示範模型（薩拉塔斯 12.x 形態；117121 = TWW 形態）
             oorAlpha    = 0.45,          -- 超出距離時整個框的透明度
+            oocAlpha    = 0.5,           -- 脫戰時整個框的透明度（哪些框要淡出是每單位設的）
+            -- 滑鼠移過的高亮邊框（開關在每單位的 frame.highlight）
+            highlightColor = white(0.7),
+            highlightSize  = 1,
             strata      = "LOW",
             smoothBars  = true,
             showTooltip = true,          -- 滑鼠移到單位框顯示提示
@@ -104,7 +133,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             player = {
                 enabled = true,
-                frame = { x = -300, y = -225, w = 200, h = 50, fadeOutOfRange = false },
+                frame = frameDef{ x = -300, y = -225, w = 200, h = 50, fadeOutOfRange = false },
                 elements = {
                     -- 層級嚴格遞增：mp 條 0 / mp 框 1 / 血條背景 2 / 3D 頭像 3（去背）/ 血條前景 4
                     -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
@@ -177,7 +206,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             target = {
                 enabled = true,
-                frame = { x = 300, y = -225, w = 200, h = 50, fadeOutOfRange = true },
+                frame = frameDef{ x = 300, y = -225, w = 200, h = 50, fadeOutOfRange = true },
                 elements = {
                     -- 層級嚴格遞增：mp 條 0 / mp 框 1 / 血條背景 2 / 3D 頭像 3（去背）/ 血條前景 4
                     -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
@@ -247,7 +276,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             targettarget = {
                 enabled = true,
-                frame = { x = 470, y = -214, w = 120, h = 28, fadeOutOfRange = true },
+                frame = frameDef{ x = 470, y = -214, w = 120, h = 28, fadeOutOfRange = true },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 20, level = 4,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
@@ -278,7 +307,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             focus = {
                 enabled = true,
-                frame = { x = 260, y = -115, w = 120, h = 30, fadeOutOfRange = true },
+                frame = frameDef{ x = 260, y = -115, w = 120, h = 30, fadeOutOfRange = true },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 20, level = 5,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
@@ -296,7 +325,7 @@ function DB.BuildDefaults()
                                  size = 10, justifyH = "CENTER", justifyV = "MIDDLE", level = 6 },
                     },
                     castbar = {
-                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 7, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showShield = true, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
+                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 7, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, showShield = true, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(1), border = true,
                         spell = { x = 12, y = 7, w = 160, h = 10, size = 10, flags = "OUTLINE",
                                   justifyH = "LEFT", justifyV = "TOP", color = white(1) },
@@ -312,7 +341,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             focustarget = {
                 enabled = true,
-                frame = { x = 360, y = -115, w = 70, h = 30, fadeOutOfRange = true },
+                frame = frameDef{ x = 360, y = -115, w = 70, h = 30, fadeOutOfRange = true },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 70, h = 20, level = 4,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
@@ -337,7 +366,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             pet = {
                 enabled = true,
-                frame = { x = -470, y = -225, w = 120, h = 50, fadeOutOfRange = false },
+                frame = frameDef{ x = -470, y = -225, w = 120, h = 50, fadeOutOfRange = false },
                 elements = {
                     portrait = { enabled = true, x = 0, y = 0, w = 120, h = 40, mode = "3d",
                                  bg = { r = 0.165, g = 0.165, b = 0.165, a = 1 }, level = 2,
@@ -364,7 +393,7 @@ function DB.BuildDefaults()
                     },
                     castbar = {
                         enabled = true, x = 0, y = 0, w = 120, h = 40, level = 6, timeFormat = "elapsedTotal",
-                        showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showShield = false, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
+                        showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, showShield = false, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(0.5),
                         spell = { x = 34, y = 5, w = 120, h = 50, size = 12, flags = "OUTLINE",
                                   justifyH = "LEFT", justifyV = "MIDDLE",
@@ -389,8 +418,8 @@ function DB.BuildDefaults()
                 -- 使用者實地調好的版面（2026-08-16 從 SavedVariables 原樣收進來，含位置）。
                 -- 我們自己畫首領框、暴雪的已隱藏，所以位置與暴雪首領框無關。
                 enabled = true,
-                frame = { x = 499, y = 319, w = 220, h = 32, growth = "DOWN", spacing = 80,
-                          fadeOutOfRange = true },
+                frame = frameDef{ x = 499, y = 319, w = 220, h = 32, growth = "DOWN", spacing = 80,
+                                 fadeOutOfRange = true },
                 elements = {
                     portrait = { enabled = true, x = 37, y = 50, w = 66, h = 66, mode = "3d",
                                  bg = { r = 0, g = 0, b = 0, a = 0 },
@@ -421,6 +450,7 @@ function DB.BuildDefaults()
                         enabled = true, x = 36, y = -22, w = 184, h = 14, level = 6,
                         timeFormat = "elapsedTotal", showInterruptState = true,
                         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
+                        showSpark = false,
                         showShield = true, shieldStyle = "blizzard", shieldScale = 1.4,
                         shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(0.7), border = true,
@@ -478,12 +508,66 @@ function DB.EachElement(db, elementName, fn)
     end
 end
 
-function DB.Migrate(db)
-    -- 版本閘遷移鏈：只動「還是舊預設值」的欄位，使用者調過的不碰。
-    -- 寫法：if db.schemaVersion < N then ... end（由小到大排），改完把 ns.DB_VERSION bump 到 N。
+------------------------------------------------------------
+-- 遷移
+--
+-- 分兩層：
+--   帳號層  改的是 SV 的結構本身（例如 v2 的「單一設定 → 具名設定檔」），
+--           只能在 DB.Migrate 裡做一次
+--   設定檔層 改的是「一份設定檔的內容」，寫進 PROFILE_MIGRATIONS
+--
+-- 拆開的理由：**匯入字串**帶著自己的 schemaVersion，可能比目前舊。那一份要補遷移，
+-- 但不能把帳號層的 schemaVersion 降下去——那會讓遷移在**所有**設定檔上重跑一次，
+-- 而 v4 那步會把別人刻意選的「觀察者」圖示改成「放大鏡」。別份設定檔不該被一次匯入影響。
+-- 見 Options/Tab_Share.lua 的 Share.Import。
+--
+-- 通則不變：只動「還是舊預設值」的欄位（值閘），使用者調過的不碰。
+------------------------------------------------------------
+-- [版本號] = 把一份設定檔補到那個版本要做的事。加條目時 ns.DB_VERSION 一起 bump。
+local PROFILE_MIGRATIONS = {
+    -- v3：觀察按鈕的圖示改用自製圖，樣式代號跟著換名。
+    -- 暴雪的 atlas 在 Midnight 被拿掉了（微型選單重畫），留著舊值只會退成備援圖示。
+    [3] = function(profile)
+        local RENAME = { character = "inspector", magnifier = "glass", question = "round" }
+        for _, udb in pairs(profile.units or {}) do
+            local e = type(udb) == "table" and type(udb.elements) == "table" and udb.elements.inspect
+            if type(e) == "table" and RENAME[e.style] then e.style = RENAME[e.style] end
+        end
+    end,
 
-    -- v2：單一帳號設定 → 具名設定檔。舊 SV 的 global/units 直接搬進「預設」。
-    if db.schemaVersion < 2 then
+    -- v4：觀察按鈕預設改成「純放大鏡、不要外框」。值閘——只動仍等於 v3 預設的欄位，
+    -- 自己調過樣式／邊框／底色的人不碰。
+    [4] = function(profile)
+        for _, udb in pairs(profile.units or {}) do
+            local e = type(udb) == "table" and type(udb.elements) == "table" and udb.elements.inspect
+            if type(e) == "table" then
+                if e.style == "inspector" then e.style = "glass" end
+                if e.border == true then e.border = false end
+                if e.iconPadding == 2 then e.iconPadding = 0 end
+                local c = e.bgColor
+                if type(c) == "table" and c.r == 0 and c.g == 0 and c.b == 0 and c.a == 0.6 then
+                    c.a = 0
+                end
+            end
+        end
+    end,
+}
+
+-- 把一份設定檔從 fromVersion 補到目前版本。fromVersion 認不出來就當最舊的跑全套。
+function DB.MigrateProfile(profile, fromVersion)
+    if type(profile) ~= "table" then return end
+    local from = tonumber(fromVersion) or 1
+    for v = from + 1, ns.DB_VERSION do
+        local step = PROFILE_MIGRATIONS[v]
+        if step then pcall(step, profile) end
+    end
+end
+
+function DB.Migrate(db)
+    local from = db.schemaVersion
+
+    -- 帳號層：v2 單一帳號設定 → 具名設定檔。舊 SV 的 global/units 直接搬進「預設」。
+    if from < 2 then
         if db.global or db.units then
             db.profiles = db.profiles or {}
             db.profiles[DB.DEFAULT_PROFILE] = { global = db.global, units = db.units }
@@ -491,35 +575,9 @@ function DB.Migrate(db)
         end
     end
 
-    -- v3：觀察按鈕的圖示改用自製圖，樣式代號跟著換名。
-    -- 暴雪的 atlas 在 Midnight 被拿掉了（微型選單重畫），留著舊值只會退成備援圖示。
-    if db.schemaVersion < 3 then
-        local RENAME = { character = "inspector", magnifier = "glass", question = "round" }
-        for _, profile in pairs(db.profiles or {}) do
-            for _, udb in pairs(type(profile) == "table" and profile.units or {}) do
-                local e = type(udb) == "table" and type(udb.elements) == "table" and udb.elements.inspect
-                if type(e) == "table" and RENAME[e.style] then e.style = RENAME[e.style] end
-            end
-        end
-    end
-
-    -- v4：觀察按鈕預設改成「純放大鏡、不要外框」。值閘——只動仍等於 v3 預設的欄位，
-    -- 自己調過樣式／邊框／底色的人不碰。
-    if db.schemaVersion < 4 then
-        for _, profile in pairs(db.profiles or {}) do
-            for _, udb in pairs(type(profile) == "table" and profile.units or {}) do
-                local e = type(udb) == "table" and type(udb.elements) == "table" and udb.elements.inspect
-                if type(e) == "table" then
-                    if e.style == "inspector" then e.style = "glass" end
-                    if e.border == true then e.border = false end
-                    if e.iconPadding == 2 then e.iconPadding = 0 end
-                    local c = e.bgColor
-                    if type(c) == "table" and c.r == 0 and c.g == 0 and c.b == 0 and c.a == 0.6 then
-                        c.a = 0
-                    end
-                end
-            end
-        end
+    -- 設定檔層：每一份都補到目前版本
+    for _, profile in pairs(db.profiles or {}) do
+        DB.MigrateProfile(profile, from)
     end
 end
 

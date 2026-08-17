@@ -84,6 +84,45 @@ function M.BarTexture(token)
     return M.DEFAULT_TEXTURE
 end
 
+------------------------------------------------------------
+-- 設定面板的下拉選單項
+--
+-- ⚠ 一定要是**函式**、不能是檔案層的常數表：LibSharedMedia 可能比我們晚載入，
+-- 而且別的插件會一路註冊到 PLAYER_LOGIN 之後。表單引擎支援 items 傳函式
+-- （見 Options/Controls.lua），開分頁那一刻才求值才列得全。
+------------------------------------------------------------
+-- 自己的材質永遠排第一（不靠 LSM 也要有東西可選）；LSM 的接在後面。
+-- 跳過 LSM_NAME —— 那是我們自己登記出去的同一個檔，兩個名字指同一張圖只會讓人困惑。
+function M.BarTextureItems()
+    local items = { { text = L["Built-in (TukTex)"], value = "tuktex" } }
+    local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+    if LSM then
+        local ok, list = pcall(LSM.List, LSM, "statusbar")
+        if ok and type(list) == "table" then
+            for _, name in ipairs(list) do
+                if name ~= LSM_NAME and not M.TEXTURES[name] then
+                    items[#items + 1] = { text = name, value = name }
+                end
+            end
+        end
+    end
+    return items
+end
+
+function M.FontItems()
+    local items = { { text = L["Default (follows client language)"], value = "DEFAULT" } }
+    local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+    if LSM then
+        local ok, list = pcall(LSM.List, LSM, "font")
+        if ok and type(list) == "table" then
+            for _, name in ipairs(list) do
+                items[#items + 1] = { text = name, value = name }
+            end
+        end
+    end
+    return items
+end
+
 -- 套字型：fs, size, flags（"OUTLINE" 等）
 function M.SetFont(fs, size, flags, fontToken)
     fs:SetFont(M.Font(fontToken), size or 12, flags or "")

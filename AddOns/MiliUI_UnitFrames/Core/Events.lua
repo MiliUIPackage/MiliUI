@@ -110,9 +110,16 @@ local SPECIAL = {
     INSTANCE_ENCOUNTER_ENGAGE_UNIT = function()
         for i = 1, 5 do RefreshUnit("boss" .. i, "unitchanged") end
     end,
-    -- 隊伍組成變了：影響的是隊長圖示與陣營色，不是「換人」
+    -- 隊伍組成變了：影響的是隊長圖示與陣營色，不是「換人」。
+    -- ⚠ 要刷**所有**框不是只刷玩家：隊長圖示畫在每個框上（目標、目標的目標、寵物都可能
+    -- 是隊友），只刷玩家的話別人的隊長圖示會停在舊狀態，直到那個框因為別的原因重畫。
     GROUP_ROSTER_UPDATE = function()
-        RefreshUnit("player", "reaction")
+        ns.RefreshAll("reaction")
+    end,
+    -- 隊長換人。GROUP_ROSTER_UPDATE **不涵蓋這個**——組成沒變、只是權杖換人時
+    -- 只會發這一個事件。同樣走 reaction 桶（隊長圖示在裡面）
+    PARTY_LEADER_CHANGED = function()
+        ns.RefreshAll("reaction")
     end,
     PLAYER_ENTERING_WORLD = function()
         ns.RefreshAll("unitchanged")

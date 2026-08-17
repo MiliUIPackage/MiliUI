@@ -184,33 +184,55 @@ function ns.ApplyFramePosition(uf)
 end
 
 ------------------------------------------------------------
--- 超出距離淡出
+-- 淡出（超出距離 ＋ 脫戰）
 --
--- 掛在既有的 Metro 上，不另開 ticker——Metro.Bind 會跟著框架的可見度上下，
--- 框藏起來就不輪詢。判定本身在 ns.Range，這裡只負責套 alpha。
+-- 超出距離要輪詢（沒有「距離變了」的事件），掛在既有的 Metro 上不另開 ticker——
+-- Metro.Bind 會跟著框架的可見度上下，框藏起來就不輪詢。脫戰淡出吃事件，不需要輪詢。
 --
--- 用 uf.rangeAlpha 記住「現在是不是淡出狀態」，一樣就不重設：SetAlpha 每次都呼叫
--- 雖然便宜，但沒必要，而且會跟預覽的高亮 alpha 打架。
+-- ⚠ 兩種淡出**不可以各自 SetAlpha**：後設的會蓋掉前設的（先設 0.45 再設 1 ⇒ 永遠不淡）。
+-- 一律交給 ns.Visibility.ApplyAlpha 算完再設一次，它取兩者最低。
 ------------------------------------------------------------
-local function ApplyRangeAlpha(uf)
-    local out = ns.Range.IsOut(uf.unit)
-    if out == uf.rangeFaded then return end
-    uf.rangeFaded = out
-    uf:SetAlpha(out and (ns.db.global.oorAlpha or 0.45) or 1)
-end
-
-function ns.ApplyRangeFade(uf)
+function ns.ApplyFrameFade(uf)
     local key = "range_" .. uf.unit
     if uf.isPreview or not uf.db.frame.fadeOutOfRange then
         ns.Metro.Unbind(uf, key)
-        if uf.rangeFaded then           -- 關掉時要把淡出還原，不然會卡在半透明
-            uf.rangeFaded = nil
-            uf:SetAlpha(1)
-        end
+    else
+        uf.rangeFn = uf.rangeFn or function() ns.Visibility.ApplyAlpha(uf) end
+        ns.Metro.Bind(uf, key, 0.3, uf.rangeFn)
+    end
+    -- 不管有沒有掛輪詢都要套一次：關掉淡出時要把 alpha 還原，不然會卡在半透明
+    uf.appliedAlpha = nil       -- 設定可能剛改過 oorAlpha／oocAlpha，強迫重設
+    ns.Visibility.ApplyAlpha(uf)
+end
+
+------------------------------------------------------------
+-- 滑鼠移過高亮
+--
+-- 一圈細邊框，層級要壓過光環容器的 holder（12），不然滑到有光環的框上時高亮會被
+-- 光環蓋掉一角。EnableMouse(false)：它鋪滿整個框，吃到滑鼠就會把單位框的點擊擋掉。
+------------------------------------------------------------
+local HIGHLIGHT_LEVEL = 20
+
+function ns.ApplyHighlight(uf)
+    local on = uf.db.frame.highlight ~= false
+    uf.highlightOn = on
+    if not on then
+        if uf.highlight then uf.highlight:Hide() end
         return
     end
-    uf.rangeFn = uf.rangeFn or function() ApplyRangeAlpha(uf) end
-    ns.Metro.Bind(uf, key, 0.3, uf.rangeFn)
+    local hl = uf.highlight
+    if not hl then
+        hl = CreateFrame("Frame", nil, uf, "BackdropTemplate")
+        hl:SetAllPoints(uf)
+        hl:SetFrameLevel(HIGHLIGHT_LEVEL)
+        hl:EnableMouse(false)
+        uf.highlight = hl
+    end
+    local g = ns.db.global
+    local c = g.highlightColor or { r = 1, g = 1, b = 1, a = 0.7 }
+    hl:SetBackdrop({ edgeFile = Media.WHITE8X8, edgeSize = Media.BorderInset(g.highlightSize or 1) })
+    hl:SetBackdropBorderColor(c.r, c.g, c.b, c.a or 0.7)
+    hl:Hide()      -- 顯示與否由 OnEnter/OnLeave 決定
 end
 
 ------------------------------------------------------------
@@ -279,9 +301,11 @@ function ns.SpawnUnitFrame(unit)
         ns.Refresh(self, "unitchanged")     -- 單位出現時（RegisterUnitWatch 驅動）全量刷新
     end)
 
-    -- 滑鼠提示（暴雪單位提示；EUI/暴雪同法）。OnEnter/OnLeave 不是受保護腳本，
-    -- 掛在 SecureUnitButton 上安全
+    -- 滑鼠提示與高亮（暴雪單位提示；EUI/暴雪同法）。OnEnter/OnLeave 不是受保護腳本，
+    -- 掛在 SecureUnitButton 上安全。
+    -- ⚠ 高亮要在提示的 early return **之前**：關掉提示的人一樣要看得到高亮。
     uf:SetScript("OnEnter", function(self)
+        if self.highlightOn and self.highlight then self.highlight:Show() end
         if not ns.db.global.showTooltip then return end
         if ns.db.global.tooltipHideInCombat and InCombatLockdown() then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -289,13 +313,21 @@ function ns.SpawnUnitFrame(unit)
             GameTooltip:Hide()
         end
     end)
-    uf:SetScript("OnLeave", function()
+    uf:SetScript("OnLeave", function(self)
+        if self.highlight then self.highlight:Hide() end
         GameTooltip:Hide()
     end)
 
+    -- 顯示閘：單位框改當它的子物件（藏父層 = 藏單位框，戰鬥中合法且不跟 unit watch 搶）。
+    -- ⚠ 一定要在 ApplyFramePosition 之前換好父層，位置才是換完之後才下的
+    -- （SetParent 對錨點的影響不必去賭）。SetParent 對 secure 框在戰鬥中不合法，
+    -- 而 spawn 只會發生在 PLAYER_LOGIN 與設定套用，兩邊都保證不在戰鬥。
+    ns.Visibility.CreateGate(uf)
+
     ns.ApplyFramePosition(uf)
     ns.BuildElements(uf)
-    ns.ApplyRangeFade(uf)
+    ns.ApplyHighlight(uf)
+    ns.ApplyFrameFade(uf)
 
     if unit == "player" then
         uf:Show()
@@ -345,7 +377,8 @@ function ns.ApplySettings(unitKey)
                 elseif uf then
                     ns.ApplyFramePosition(uf)
                     ns.BuildElements(uf)
-                    ns.ApplyRangeFade(uf)
+                    ns.ApplyHighlight(uf)
+                    ns.ApplyFrameFade(uf)
                     -- 預覽開啟時真實框由 Preview 管顯示，這裡不搶（關窗時 RestoreReal 還原）
                     if not previewOpen then
                         if unit == "player" then

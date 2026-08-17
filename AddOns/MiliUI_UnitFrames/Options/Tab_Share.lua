@@ -62,11 +62,18 @@ end
 
 -- 寫進目前這份設定檔，其他設定檔與帳號層不動
 -- （缺的欄位交給下次載入的 MergeDefaults 補齊）
+--
+-- ⚠ 字串可能來自舊版（Decode 只擋比目前**新**的），所以要補遷移。
+-- 只補這一份：帳號層的 schemaVersion 不能降，降了會讓遷移在所有設定檔上重跑，
+-- 而 v4 那步會把別人刻意選的「觀察者」圖示改成「放大鏡」——別份設定檔不該被這次匯入影響。
+-- （拆分細節見 Core/DB.lua 的 PROFILE_MIGRATIONS）
 function Share.Import(data)
     local db = MiliUI_UnitFrames_DB
     local name = db.profileKeys and db.profileKeys[ns.DB.CharKey()]
     if not (name and db.profiles) then return end
-    db.profiles[name] = { global = data.global, units = data.units }
+    local profile = { global = data.global, units = data.units }
+    ns.DB.MigrateProfile(profile, data.schemaVersion)
+    db.profiles[name] = profile
     ReloadUI()
 end
 

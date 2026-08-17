@@ -62,10 +62,48 @@ local function FrameSpecs(unitKey)
                         items = { { text = L["Downward"], value = "DOWN" }, { text = L["Upward"], value = "UP" } } })
         tinsert(list, { type = "slider", root = "frame", key = "spacing", label = L["Spacing"], min = 20, max = 120 })
     end
-    tinsert(list, { type = "header", label = L["Out of range"] })
+    ------------------------------------------------------------
+    -- 顯示條件
+    ------------------------------------------------------------
+    tinsert(list, { type = "header", label = L["When to show"] })
+    tinsert(list, { type = "dropdown", root = "frame", key = "visibility", label = L["Show"], items = {
+        { text = L["Always"],           value = "always" },
+        { text = L["In combat only"],   value = "inCombat" },
+        { text = L["Out of combat only"], value = "outOfCombat" },
+        { text = L["In a group"],       value = "inGroup" },
+        { text = L["In a party only"],  value = "inParty" },
+        { text = L["In a raid only"],   value = "inRaid" },
+        { text = L["Solo only"],        value = "solo" },
+    } })
+    tinsert(list, { type = "text", label = L["Hidden frames stop updating entirely, so conditions cost nothing while they hide the frame."] })
+    tinsert(list, { type = "toggle", root = "frame", key = "visOnlyInstances",
+                    label = L["Only in instances"],
+                    hint = L["Dungeons, raids, scenarios, arenas and battlegrounds."] })
+    tinsert(list, { type = "toggle", root = "frame", key = "visHideMounted",
+                    label = L["Hide while mounted"],
+                    hint = L["Druid travel, aquatic and flight forms count as mounted."] })
+    tinsert(list, { type = "toggle", root = "frame", key = "visHideNoTarget",
+                    label = L["Hide without a target"] })
+    tinsert(list, { type = "toggle", root = "frame", key = "visHideNoEnemy",
+                    label = L["Hide without a hostile target"] })
+    tinsert(list, { type = "text", label = L["These stack on top of the choice above: any one of them hides the frame. Inside restricted content whether a target is hostile can be a secret value; when it can't be determined the frame stays visible."] })
+
+    ------------------------------------------------------------
+    -- 淡出與高亮
+    ------------------------------------------------------------
+    tinsert(list, { type = "header", label = L["Fade"] })
     tinsert(list, { type = "toggle", root = "frame", key = "fadeOutOfRange",
                     label = L["Fade when out of range"],
                     hint = L["Fades the whole frame when the unit is beyond your reach. Transparency is set globally under General."] })
+    tinsert(list, { type = "toggle", root = "frame", key = "fadeOutOfCombat",
+                    label = L["Fade out of combat"],
+                    hint = L["Fades the whole frame while you are not in combat. Transparency is set globally under General."] })
+    tinsert(list, { type = "text", label = L["With both on, whichever is more transparent wins."] })
+
+    tinsert(list, { type = "header", label = L["Mouseover"] })
+    tinsert(list, { type = "toggle", root = "frame", key = "highlight",
+                    label = L["Highlight border"],
+                    hint = L["Draws a border around the frame while the cursor is over it. Color and thickness are set globally under General."] })
 
     tinsert(list, { type = "header", label = L["Reset"] })
     tinsert(list, { type = "button", label = L["Restore defaults"], text = L["Restore everything for this unit"], color = "red",
@@ -192,6 +230,8 @@ local function CastbarSpecs()
         { type = "toggle", sub = "castbar", key = "showInterruptState", label = L["Show non-interruptible"] },
         { type = "dropdown", sub = "castbar", key = "shieldStyle", label = L["Shield style"], items = ns.Media.SHIELD_STYLES },
         { type = "text", label = L["When on, non-interruptible casts turn gray and show a shield on the icon. Off by default for you and your pet, since whether your own cast can be interrupted is meaningless."] },
+        { type = "toggle", sub = "castbar", key = "showSpark", label = L["Spark at the leading edge"] },
+        { type = "text", label = L["A bright dot that rides the front of the fill. Off by default: Stuf's cast bar never had one."] },
         { type = "toggle", sub = "castbar", key = "showCompleteFlash", label = L["Color on finish"] },
         { type = "slider", sub = "castbar", key = "fadeTime", label = L["Fade time (seconds)"], min = 0.1, max = 1.5, step = 0.05 },
         { type = "slider", sub = "castbar", key = "interruptHold", label = L["Interrupt hold (seconds)"], min = 0, max = 2, step = 0.1 },

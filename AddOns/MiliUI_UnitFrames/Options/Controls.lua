@@ -11,7 +11,8 @@
 --   number   { key, label, step }                          單一微調數字框
 --   numbers  { label, fields = { {key,label}, ... } }      一列多個微調框（位置/尺寸）
 --   color    { key, label, hasAlpha }
---   dropdown { key, label, items }
+--   dropdown { key, label, items }                         items 也可以是回傳清單的函式
+--                                                          （見材質／字型：要等 LSM 註冊完）
 --   input    { key, label }
 --   text     { label }                                     說明文字（灰）
 --   space    { h }                                         空行
@@ -166,7 +167,11 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
 
         elseif spec.type == "dropdown" then
             MakeLabel(parent, spec.label, x0, y, ROW_H_TALL)
-            local dd = W.CreateDropdown(parent, CONTROL_W, spec.items, function(value)
+            -- items 可以是函式：清單要到開分頁那一刻才算得準的（材質／字型要等
+            -- LibSharedMedia 與其他插件註冊完）就傳函式，別在檔案層先算好
+            local items = spec.items
+            if type(items) == "function" then items = items() end
+            local dd = W.CreateDropdown(parent, CONTROL_W, items, function(value)
                 ctx.set(spec, value)
                 ctx.apply()
             end)

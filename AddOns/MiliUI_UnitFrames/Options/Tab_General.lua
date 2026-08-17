@@ -21,6 +21,14 @@ local function ApplyAll()
 end
 
 local CONTROLS = {
+    -- items 傳的是函式不是表：材質／字型清單要等 LibSharedMedia 與其他插件註冊完才算得準，
+    -- 檔案層先算好會列不全（見 Core/Media.lua 與 Controls.Build 的 dropdown 分支）
+    { type = "header", label = L["Texture and font"] },
+    { type = "dropdown", key = "barTexture", label = L["Bar texture"], items = ns.Media.BarTextureItems },
+    { type = "text",   label = L["Shared by every health bar, power bar, cast bar and resource bar. Textures from other addons appear here when any installed addon ships LibSharedMedia."] },
+    { type = "dropdown", key = "font", label = L["Font"], items = ns.Media.FontItems },
+    { type = "text",   label = L["\"Default\" follows your client language, so Chinese and Korean render properly. Extra entries appear only when an installed addon ships LibSharedMedia."] },
+
     { type = "header", label = L["Border"] },
     { type = "slider", key = "borderSize", label = L["Border thickness"], min = 0, max = 3, step = 1 },
     { type = "text",   label = L["0 = no border. Shared by every unit frame, health bar and power bar."] },
@@ -40,9 +48,15 @@ local CONTROLS = {
     { type = "toggle", key = "smoothBars", label = L["Smooth health and power bars"] },
     { type = "text",   label = L["Uses the engine's built-in interpolation (native in 12.x, works with secret values), so bars slide instead of jumping."] },
 
-    { type = "header", label = L["Out of range"] },
-    { type = "slider", key = "oorAlpha", label = L["Faded transparency"], min = 0.1, max = 1, step = 0.05 },
-    { type = "text",   label = L["Which frames fade is set per unit, under Units > Frame."] },
+    { type = "header", label = L["Fade"] },
+    { type = "slider", key = "oorAlpha", label = L["Out of range transparency"], min = 0.1, max = 1, step = 0.05 },
+    { type = "slider", key = "oocAlpha", label = L["Out of combat transparency"], min = 0.1, max = 1, step = 0.05 },
+    { type = "text",   label = L["Which frames fade, and on which of the two conditions, is set per unit under Units > Frame. With both on, whichever is more transparent wins."] },
+
+    { type = "header", label = L["Mouseover"] },
+    { type = "color",  key = "highlightColor", label = L["Highlight color"] },
+    { type = "slider", key = "highlightSize", label = L["Highlight thickness"], min = 1, max = 4, step = 1 },
+    { type = "text",   label = L["The border drawn while the cursor is over a frame. Which frames get it is set per unit, under Units > Frame."] },
 
     { type = "header", label = L["Health colors"] },
     { type = "text",   label = L["The \"health gradient\" method interpolates between these two; gray is used for dead / offline / out-of-range text."] },
@@ -66,6 +80,15 @@ local CONTROLS = {
     { type = "header", label = L["Preview"] },
     { type = "number", key = "previewBossDisplayID", label = L["Demo model ID"], step = 1 },
     { type = "text",   label = L["The displayID used for the 3D model of hostile preview units (target / focus / boss). 131474 = Xal'atath in her 12.x form (the default), 117121 = her TWW form. Enter 0 to use your own character."] },
+
+    { type = "header", label = L["Layer"] },
+    { type = "dropdown", key = "strata", label = L["Frame layer"], items = {
+        { text = L["Background"], value = "BACKGROUND" },
+        { text = L["Low"],        value = "LOW" },
+        { text = L["Medium"],     value = "MEDIUM" },
+        { text = L["High"],       value = "HIGH" },
+    } },
+    { type = "text",   label = L["Which layer every unit frame sits on. Raise it if another addon draws over the frames; the default Low keeps them beneath most windows."] },
 
     { type = "header", label = L["Minimap"] },
     { type = "toggle", root = "minimap", key = "show", label = L["Show minimap button"] },

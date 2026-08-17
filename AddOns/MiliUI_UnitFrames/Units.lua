@@ -97,6 +97,10 @@ loader:SetScript("OnEvent", function()
 
     ns.HideBlizzardFrames()
 
+    -- 顯示條件／淡出的初次套用。PLAYER_ENTERING_WORLD 也會做同一件事，但那是
+    -- 「登入時它一定排在 PLAYER_LOGIN 後面」的假設——明寫一次就不用賭載入順序
+    ns.Visibility.Refresh()
+
     ns.Fire("Loaded")     -- 圖騰等獨立模組在 DB 就緒後初始化
 
     -- tot / focustarget 的輪詢保險：掛在兩個框的顯示狀態上

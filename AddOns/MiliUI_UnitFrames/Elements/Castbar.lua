@@ -120,6 +120,21 @@ local function ApplyPlainColor(f, notInt)
     f.bar:SetStatusBarColor(col.r, col.g, col.b)
 end
 
+-- 施法中途「可打斷」狀態改變（首領常見：某段時間不可打斷）。
+--
+-- ⚠ 值從**事件名稱**拿，不要回頭讀 `UnitCastingInfo` 的第 8 個回傳：
+-- 事件名稱是明文（NOT_INTERRUPTIBLE ⇒ true），而那個 API 在受限內容回秘密布林。
+-- 明文能走 ApplyPlainColor 直接分支，比丟給曲線選色乾淨。
+local function ApplyInterruptState(f, notInt)
+    f.castNotInterruptible = notInt
+    ApplyShield(f, notInt)
+    if IsSecret(notInt) then
+        ApplySecretColor(f)
+    else
+        ApplyPlainColor(f, notInt)
+    end
+end
+
 -- 結束：上色後**淡出**再收（硬停在滿版色再瞬間消失才會突兀）。
 -- castState 3 = 淡出中
 local function FadeOnUpdate(f)
@@ -411,10 +426,14 @@ local function Build(uf, edb)
         f.bar = CreateFrame("StatusBar", nil, f)
         f.bar:SetAllPoints(f)
 
+        -- ⚠ 只建立、**不錨定**。錨點要對到 `f.bar:GetStatusBarTexture()`，而那顆貼圖
+        -- 在這裡還不存在（SetStatusBarTexture 在下面的版面段才呼叫）——這時候
+        -- GetStatusBarTexture() 回 nil，而 SetPoint 的 relativeTo 給 nil 會退成父層，
+        -- 火花就被釘在條的右端、不會跟著填充邊緣跑。錨定一律留到材質設好之後。
         f.spark = f.bar:CreateTexture(nil, "OVERLAY")
         f.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
         f.spark:SetBlendMode("ADD")
-        f.spark:SetPoint("CENTER", f.bar:GetStatusBarTexture(), "RIGHT", 0, 0)
+        f.spark:Hide()      -- 新建貼圖預設是顯示的；顯示與否由下面的設定決定
 
         f.iconFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
         f.icon = f.iconFrame:CreateTexture(nil, "ARTWORK")
@@ -470,6 +489,10 @@ local function Build(uf, edb)
         RegUnit("UNIT_SPELLCAST_DELAYED")
         RegUnit("UNIT_SPELLCAST_CHANNEL_UPDATE")
         RegUnit("UNIT_SPELLCAST_EMPOWER_UPDATE")
+        -- 施法中途「可打斷」狀態改變（首領常見）。少了這兩個，條的顏色與盾牌會
+        -- 停在 StartDisplay 那一刻讀到的狀態——而這正是打斷職業最需要看的那一格資訊
+        RegUnit("UNIT_SPELLCAST_INTERRUPTIBLE")
+        RegUnit("UNIT_SPELLCAST_NOT_INTERRUPTIBLE")
         ev:SetScript("OnEvent", function(_, event, evUnit, arg2, arg3, arg4, arg5)
             if evUnit ~= f.unit then return end   -- f.unit 會被 setunit 換成 vehicle
             if not uf:IsVisible() then return end
@@ -479,6 +502,12 @@ local function Build(uf, edb)
             elseif event == "UNIT_SPELLCAST_DELAYED" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE"
                 or event == "UNIT_SPELLCAST_EMPOWER_UPDATE" then
                 ResyncTiming(f)
+            elseif event == "UNIT_SPELLCAST_INTERRUPTIBLE"
+                or event == "UNIT_SPELLCAST_NOT_INTERRUPTIBLE" then
+                -- 只在施法／引導中理會（castState 3 是淡出中，nil 是沒在施法）
+                if f.castState == 1 or f.castState == 2 then
+                    ApplyInterruptState(f, event == "UNIT_SPELLCAST_NOT_INTERRUPTIBLE")
+                end
             elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
                 if f.castState == 1 or f.castState == 2 then ShowInterrupted(f, arg4) end
             -- 引導／蓄力結束不換色，直接淡出（引導本來就是「跑完」，突然變黃很突兀；
@@ -575,8 +604,18 @@ local function Build(uf, edb)
     ApplyTextStyle(f.spellText, edb.spell or {}, f)
     ApplyTextStyle(f.timeText, edb.time or {}, f)
 
-    local h = edb.h or 20
-    f.spark:SetSize(10, h * 2.2)
+    -- 火花：跟著填充前緣跑。錨點一定要在 SetStatusBarTexture 之後才下（見建立處的說明），
+    -- 而且**每次 build 都要重下**——換材質時 statusbar 貼圖物件可能被換掉，
+    -- 錨到舊的那顆就會停在原地。
+    if edb.showSpark then
+        local h = edb.h or 20
+        f.spark:SetSize(10, h * 2.2)
+        f.spark:ClearAllPoints()
+        f.spark:SetPoint("CENTER", f.bar:GetStatusBarTexture(), "RIGHT", 0, 0)
+        f.spark:Show()
+    else
+        f.spark:Hide()
+    end
 end
 
 local function Update(uf, edb, bucket)
