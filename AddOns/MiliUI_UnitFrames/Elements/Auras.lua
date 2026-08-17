@@ -83,7 +83,7 @@ end
 local BORDER = 1                              -- 版面單位；實際用 ns.P.Scale 對齊實體像素
 local TRACK_COLOR = { 0, 0, 0, 1 }            -- swipe 底下的黑色軌道
 local SPENT_COLOR = { 0.18, 0.18, 0.18 }      -- 驅散色外框被灰色吃掉
-local BUFF_BORDER_COLOR = { 0, 0.55, 0.15, 1 }
+local BUFF_BORDER_COLOR = { 0, 0, 0, 1 }      -- 1px 黑框（增益不靠顏色分類，跟減益的驅散色區隔）
 
 local function InitAuraButton(auraButton, style, sizeW, sizeH)
     sizeH = sizeH or sizeW

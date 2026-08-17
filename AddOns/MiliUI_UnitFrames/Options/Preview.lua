@@ -99,7 +99,7 @@ local function BuildFakeAuras(uf, elementName, edb)
             b:SetBackdropColor(0.8, 0.1, 0.1, 1)
         else
             b:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8" })
-            b:SetBackdropColor(0, 0.55, 0.15, 1)
+            b:SetBackdropColor(0, 0, 0, 1)      -- 同真實增益：1px 黑框
         end
         b.icon:SetTexture(FAKE_AURA_ICONS[(i - 1) % #FAKE_AURA_ICONS + 1])
         b:ClearAllPoints()
