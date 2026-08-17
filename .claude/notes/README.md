@@ -92,7 +92,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 |---|---|
 | [project-tinytooltip-perf.md](project-tinytooltip-perf.md) | TinyTooltip 滑過裝備掉 FPS |
 | [project-cell-vehicle-secret.md](project-cell-vehicle-secret.md) | Cell 載具名稱秘密值 |
-| [project-cell-no-update-notice.md](project-cell-no-update-notice.md) | Cell 停用更新通知 |
+| [project-cell-no-update-notice.md](project-cell-no-update-notice.md) | Cell 的更新提示現況：不對原版廣播；MiliUI 版本走私有前綴互相提醒 |
 | [project-cell-libgroupinfo-secret-guid.md](project-cell-libgroupinfo-secret-guid.md) | Cell LibGroupInfo 秘密 GUID |
 | [project-appearancetooltip-secret-rect.md](project-appearancetooltip-secret-rect.md) | AppearanceTooltip IsRectValid guard |
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |

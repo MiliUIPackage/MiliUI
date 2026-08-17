@@ -135,7 +135,9 @@ end)
 -- shipped Cell change, migration or not -- otherwise this stays silent with no error.
 -----------------------------------------
 local MILIUI_VER_PREFIX = "CELL_MILIUI_VER" -- 15 chars; the addon-message prefix cap is 16
-local MILIUI_VER_URL = "|cFF00CCFFhttps://github.com/MiliUIPackage/MiliUI|r"
+-- The addon's own download page, not the pack repo: a player told "there is a newer Cell"
+-- should land somewhere they can grab Cell, not on a git checkout of the whole package.
+local MILIUI_VER_URL = "|cFF00CCFFhttps://addons.miliui.com/wow/cell|r"
 local MILIUI_VER_SEND_THROTTLE = 30
 
 -- ⚠ Read the TOC directly, NOT Cell.version. Cell.version is assigned inside Core.lua's
