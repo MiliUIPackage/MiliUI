@@ -129,26 +129,75 @@ local COLOR_BUCKETS = {
 }
 
 ------------------------------------------------------------
--- 依賴解析：pattern → { health = true, identity = true, ... }
+-- 編譯
+--
+-- pattern 只解析一次，結果快取在 patternCache（key 就是 pattern 字串）。
+-- 以前每次 Render 都要跑最多 20 圈 gsub 找 token、再掃一次佔位符，而目標框有八條
+-- 文字、其中數條訂閱 health 桶——等於每個血量事件都重跑一輪字串解析。
+--
+-- 編譯結果是一個陣列，元素只有兩種：
+--   字串  → 原樣輸出的常數片段
+--   表    → 一個 token：{ color=色彩方法名, cond=條件名, negate=, secret=info表, tag= }
+--
+-- 順帶把 \001N 佔位符那整套機制拿掉了：既然是照順序串接，秘密值可以直接串進去
+-- （串接秘密字串合法），不必先塞佔位符再回填。少一個管線就少一類 bug。
 ------------------------------------------------------------
-function Tags.GetBuckets(pattern)
-    local buckets = {}
-    if not pattern then return buckets end
-    for token in pattern:gmatch("%[(.-)%]") do
-        local pat1, pat2 = strmatch(token, "(.+):(.+)")
-        if pat1 then
-            -- 色碼（可能帶 _if_ / _ifnot_）
-            local clr, cond = strmatch(pat1, "(.+)_ifn?o?t?_(.+)")
-            clr = clr or pat1
-            if COLOR_BUCKETS[clr] then buckets[COLOR_BUCKETS[clr]] = true end
-            if cond and CONDITION_BUCKETS[cond] then buckets[CONDITION_BUCKETS[cond]] = true end
-            if INFO_TAGS[pat2] then buckets[INFO_TAGS[pat2]] = true end
-        elseif INFO_TAGS[token] then
-            buckets[INFO_TAGS[token]] = true
+local patternCache = {}
+
+local function CompileToken(token, buckets)
+    local pat1, pat2 = strmatch(token, "(.+):(.+)")
+    if not (pat1 and pat2) then
+        -- 裸 token
+        if INFO_TAGS[token] then buckets[INFO_TAGS[token]] = true end
+        return { tag = token, secret = SECRET_TAGS[token] }
+    end
+    -- 色彩方法本身就叫這個名字（[class:name]）
+    local clr, cond, negate = pat1, nil, nil
+    if not ns.Colors.methods[pat1] then
+        local c, cd = strmatch(pat1, "(.+)_if_(.+)")
+        if c then
+            clr, cond = c, cd
+        else
+            c, cd = strmatch(pat1, "(.+)_ifnot_(.+)")
+            if c then clr, cond, negate = c, cd, true end
         end
     end
-    -- 換單位時的重畫不靠這裡：unitchanged 桶本來就會跑所有元件（見 ns.Refresh）
-    return buckets
+    if COLOR_BUCKETS[clr] then buckets[COLOR_BUCKETS[clr]] = true end
+    if cond and CONDITION_BUCKETS[cond] then buckets[CONDITION_BUCKETS[cond]] = true end
+    if INFO_TAGS[pat2] then buckets[INFO_TAGS[pat2]] = true end
+    return { color = clr, cond = cond, negate = negate,
+             tag = pat2, secret = SECRET_TAGS[pat2] }
+end
+
+local function Compile(pattern)
+    local parts, buckets = {}, {}
+    local pos, n = 1, #pattern
+    while pos <= n do
+        local s, e, token = pattern:find("%[(.-)%]", pos)
+        if not s then break end
+        if s > pos then parts[#parts + 1] = pattern:sub(pos, s - 1) end
+        local part = CompileToken(token, buckets)
+        parts[#parts + 1] = part
+        if part.secret and part.secret.kind ~= "string" then parts.needsNumber = true end
+        pos = e + 1
+    end
+    if pos <= n then parts[#parts + 1] = pattern:sub(pos) end
+    parts.buckets = buckets
+    return parts
+end
+
+local function GetCompiled(pattern)
+    local c = patternCache[pattern]
+    if not c then
+        c = Compile(pattern)
+        patternCache[pattern] = c
+    end
+    return c
+end
+
+function Tags.GetBuckets(pattern)
+    if not pattern or pattern == "" then return {} end
+    return GetCompiled(pattern).buckets
 end
 
 ------------------------------------------------------------
@@ -175,169 +224,102 @@ local function SafeNumStr(t)
     return tostring(t)
 end
 
-local function TextFormat(t, r, g, b)
-    local ts
-    if type(t) ~= "number" then
-        ts = tostring(t)
+local function TextFormat(t)
+    if type(t) ~= "number" then return tostring(t) end
+    return SafeNumStr(t)
+end
+
+-- 秘密數字不能在 Lua 算術，縮寫一律交給暴雪 C 端函式：
+--   wan = AbbreviateNumbers（依語系：萬/億）／km = AbbreviateLargeNumbers（K/M）
+--   raw = BreakUpLargeNumbers（千分位、不縮寫）
+-- 百分比用 string.format 取整（也吃秘密值）
+local function NumberFormatters()
+    local mode = Tags.NumberMode()
+    local abbrev = (mode == "wan" and AbbreviateNumbers)
+        or (mode == "raw" and BreakUpLargeNumbers)
+        or AbbreviateLargeNumbers or AbbreviateNumbers
+    local pctFmt = (ns.db.global.percentDecimals or 0) > 0 and "%.1f" or "%.0f"
+    return abbrev, pctFmt
+end
+
+-- 一個 token 產出的片段（nil = 什麼都不輸出）
+local function EmitToken(p, uf, edb, cache, abbrev, pctFmt)
+    local r, g, b
+    if p.color then
+        local fn = ns.Colors.methods[p.color]
+        if not fn then return nil end          -- 認不得的色彩方法 → 整個 token 不顯示
+        if p.cond then
+            local condfn = conditions[p.cond]
+            local hit = condfn and condfn(uf)
+            if p.negate then hit = not hit end
+            if not hit then return nil end
+        end
+        r, g, b = fn(uf, edb, nil, nil, nil)
+    end
+
+    local body
+    if p.secret then
+        local v
+        if uf.isPreview then
+            if p.secret.kind == "string" then
+                v = cache[p.tag] or ""
+            else
+                v = cache.previewValues and cache.previewValues[p.tag] or 0
+            end
+        else
+            v = p.secret.fn(uf.unit, uf)
+        end
+        if v == nil then return nil end        -- 例：對非玩家單位查 UnitRace
+        if p.secret.kind == "percent" then
+            body = format(pctFmt, v)
+        elseif p.secret.kind == "string" then
+            body = v                           -- 秘密字串直接串接，不做任何字串運算
+        else
+            body = abbrev and abbrev(v) or v
+            if not IsSecret(body) then
+                body = gsub(tostring(body), " ([KMBTkmbt])", "%1")
+            end
+        end
+    elseif p.color then
+        local itag = cache[p.tag] or specialchars[p.tag] or p.tag
+        if itag == true then itag = p.tag end
+        if itag == nil or itag == "" or IsSecret(itag) then return nil end
+        body = TextFormat(itag)
     else
-        ts = SafeNumStr(t)
+        local val = cache[p.tag] or specialchars[p.tag] or p.tag
+        if IsSecret(val) then return nil end
+        body = TextFormat(val)
     end
-    if r then
-        return format("|cff%02x%02x%02x%s|r", r * 255, g * 255, b * 255, ts)
+
+    -- 色碼要做 *255 算術，秘密職業色（C_ClassColor 管道）做不到 → 不上色
+    if r and not IsSecret(r) then
+        return format("|cff%02x%02x%02x", r * 255, g * 255, b * 255) .. body .. "|r"
     end
-    return ts
+    return body
 end
 
 -- fs 可為 nil（僅想取回字串時）；edb 供 colormethod 取 fontcolor alpha
 function Tags.Render(uf, fs, pattern, edb)
     if not pattern or pattern == "" then
         if fs then fs:SetText("") end
-        return
+        return ""
     end
-
+    local parts = GetCompiled(pattern)
     local cache = uf.cache
-    local text = pattern
-    local colortags = ns.Colors.methods
+    local abbrev, pctFmt
+    if parts.needsNumber then abbrev, pctFmt = NumberFormatters() end
 
-    -- 秘密值 tag 統一登記成 \001N 佔位符（值收進 rawArgs，最後才串接）
-    local rawArgs, argCount, kinds
-    local function Placeholder(tag, info)
-        rawArgs = rawArgs or {}
-        kinds = kinds or {}
-        argCount = (argCount or 0) + 1
-        local v
-        if uf.isPreview then
-            if info.kind == "string" then
-                v = cache[tag] or ""
-            else
-                v = cache.previewValues and cache.previewValues[tag] or 0
-            end
+    local out = ""
+    for i = 1, #parts do
+        local p = parts[i]
+        if type(p) == "string" then
+            out = out .. p
         else
-            v = info.fn(uf.unit, uf)
+            local piece = EmitToken(p, uf, edb, cache, abbrev, pctFmt)
+            if piece ~= nil then out = out .. piece end
         end
-        rawArgs[argCount] = v
-        kinds[argCount] = info.kind
-        return "\001" .. argCount
     end
 
-    -- 顏色前綴（明文）：色碼字串 + 佔位符 + |r，佔位符在 Phase 3 才被秘密值取代。
-    -- 色碼要做 *255 算術，秘密職業色（C_ClassColor 管道）做不到 → 不上色
-    local function ColorWrap(inner, r, g, b)
-        if not r or IsSecret(r) then return inner end
-        return format("|cff%02x%02x%02x", r * 255, g * 255, b * 255) .. inner .. "|r"
-    end
-
-    -- 逐 token 展開（最多 20 個）
-    for _ = 1, 20 do
-        local token = strmatch(text, "%[(.-)%]")
-        if not token then break end
-        local pat1, pat2 = strmatch(token, "(.+):(.+)")
-        local replace
-        if pat1 and pat2 then
-            -- 決定顏色（可能因條件不成立而「不顯示」）
-            local r, g, b
-            local show = true
-            local ct = colortags[pat1]
-            if ct then
-                r, g, b = ct(uf, edb, nil, nil, nil)
-            else
-                local clr, cond = strmatch(pat1, "(.+)_if_(.+)")
-                local negate
-                if not clr then
-                    clr, cond = strmatch(pat1, "(.+)_ifnot_(.+)")
-                    negate = true
-                end
-                if clr and colortags[clr] then
-                    local condfn = conditions[cond]
-                    local hit = condfn and condfn(uf)
-                    if (not negate and hit) or (negate and not hit) then
-                        r, g, b = colortags[clr](uf, edb, nil, nil, nil)
-                    else
-                        show = false
-                    end
-                else
-                    show = false
-                end
-            end
-            if show then
-                local sinfo = SECRET_TAGS[pat2]
-                if sinfo then
-                    replace = ColorWrap(Placeholder(pat2, sinfo), r, g, b)
-                else
-                    local itag = cache[pat2] or specialchars[pat2] or pat2
-                    if itag == true then itag = pat2 end
-                    if itag ~= nil and itag ~= "" and not IsSecret(itag) then
-                        replace = ColorWrap(TextFormat(itag), r, g, b)
-                    end
-                end
-            end
-        else
-            local sinfo = SECRET_TAGS[token]
-            if sinfo then
-                replace = Placeholder(token, sinfo)
-            else
-                local val = cache[token] or specialchars[token] or token
-                if not IsSecret(val) then
-                    replace = TextFormat(val)
-                end
-            end
-        end
-        local rep = replace or ""
-        if IsSecret(rep) then rep = "" end
-        text = gsub(text, "%[(.-)%]", rep, 1)
-    end
-
-    -- Phase 3+4：\001N 佔位符 → C 端格式化 → 串接（秘密字串串接合法）
-    -- 秘密數字不能在 Lua 算術，縮寫一律交給暴雪 C 端函式：
-    --   wan = AbbreviateNumbers（依語系：zhTW/zhCN 萬/億）
-    --   km  = AbbreviateLargeNumbers（K/M）
-    --   raw = BreakUpLargeNumbers（千分位、不縮寫）
-    -- 百分比用 string.format 取整（也吃秘密值）
-    if argCount then
-        local mode = Tags.NumberMode()
-        local abbrev = (mode == "wan" and AbbreviateNumbers)
-            or (mode == "raw" and BreakUpLargeNumbers)
-            or AbbreviateLargeNumbers or AbbreviateNumbers
-        local pctFmt = (ns.db.global.percentDecimals or 0) > 0 and "%.1f" or "%.0f"
-        local result, pos, len = "", 1, #text
-        while pos <= len do
-            local ms = text:find("\001", pos, true)
-            if not ms then
-                result = result .. text:sub(pos)
-                break
-            end
-            result = result .. text:sub(pos, ms - 1)
-            local idx = tonumber(text:sub(ms + 1, ms + 1))
-            if idx and rawArgs[idx] ~= nil then
-                local raw = rawArgs[idx]
-                local kind = kinds[idx]
-                local ab
-                if kind == "percent" then
-                    ab = format(pctFmt, raw)
-                elseif kind == "string" then
-                    ab = raw                      -- 秘密字串直接串接（合法），不做任何字串運算
-                else
-                    ab = abbrev and abbrev(raw) or raw
-                    if not IsSecret(ab) then
-                        ab = gsub(tostring(ab), " ([KMBTkmbt])", "%1")
-                    end
-                end
-                result = result .. ab
-                pos = ms + 2
-            elseif idx and idx <= argCount then
-                -- 佔位符登記過但取值是 nil（例：對非玩家單位查 UnitRace）：
-                -- 整組 \001N 一起吃掉輸出空字串。只吐 \001 會讓控制字元原樣進
-                -- FontString，畫面上顯示成「□1」這種內部編號
-                pos = ms + 2
-            else
-                result = result .. "\001"
-                pos = ms + 1
-            end
-        end
-        if fs then fs:SetText(result) end
-        return result
-    end
-
-    if fs then fs:SetText(text) end
-    return text
+    if fs then fs:SetText(out) end
+    return out
 end

@@ -35,6 +35,10 @@ end
 ------------------------------------------------------------
 -- 12.1 教訓：dispatch 迴圈一律逐一隔離——一個元件拋錯不能拖垮同迴圈的其他元件
 -- （錯誤照常進 BugSack，鏈路繼續跑）
+--
+-- 效能上量過了，不要再拿出來討論：xpcall 相對裸呼叫每次多約 0.035 µs（+26%），
+-- 而單單「重畫一次目標框的八條文字」就要 8.8 µs。這裡的成本是雜訊，
+-- 換到的錯誤隔離值錢得多。
 local function SafeUpdate(def, uf, edb, bucket)
     xpcall(def.update, ns.ReportError, uf, edb, bucket)
 end
