@@ -90,7 +90,8 @@ ns.ShowSecretReadout = ShowSecretReadout
 local function Debug()
     local p = print
     p("|cff4DD2FF[米利頭像 debug]|r v" .. ns.VERSION
-        .. "  DB schema=" .. tostring(ns.db and ns.db.schemaVersion) .. "/" .. ns.DB_VERSION)
+        .. "  DB schema=" .. tostring(MiliUI_UnitFrames_DB and MiliUI_UnitFrames_DB.schemaVersion)
+        .. "/" .. ns.DB_VERSION .. "  設定檔=" .. tostring(ns.profileName))
 
     if #ns.errors == 0 then
         p("  錯誤：無（隔離器沒吃到任何錯）")
@@ -191,6 +192,19 @@ local function Debug()
         Probe("g.IncHeals", UnitGetIncomingHeals and UnitGetIncomingHeals("target"))
         Probe("g.Absorbs", UnitGetTotalAbsorbs and UnitGetTotalAbsorbs("target"))
         Probe("g.HealAbsorb", UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs("target"))
+        -- 模型重載計數：頭像閃爍時看這裡。下兩次 /muf debug 之間如果數字一直跳，
+        -- 就是擋板沒生效，lastBucket 會指出是哪條路在推
+        p("  頭像模型重載次數（框：次數／key／上次來源）：")
+        for _, u in ipairs({ "player", "target", "focus", "pet" }) do
+            local uf = ns.frames[u]
+            local pfx = uf and uf.elements and uf.elements.portrait
+            if pfx then
+                p(("   %-8s 重載=%-4s key=%s last=%s fid=%s"):format(u,
+                    tostring(pfx.modelReloads or 0),
+                    SafeStr(pfx.modelKey), tostring(pfx.modelLastBucket),
+                    SafeStr(pfx.model and pfx.model.GetModelFileID and pfx.model:GetModelFileID())))
+            end
+        end
         -- 3D 頭像：副本小怪到底是「被擋」還是「我們自己的閘擋掉」
         local pf = tuf0 and tuf0.elements and tuf0.elements.portrait
         if pf and pf.model then

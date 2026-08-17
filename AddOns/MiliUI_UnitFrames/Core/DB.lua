@@ -112,9 +112,9 @@ function DB.BuildDefaults()
                                  zoom = 1, rotation = 0,       -- 正面朝鏡頭（度）
                                  modelOffsetX = 0, modelOffsetY = 0,      -- 設定面板顯示 ×100
                                  fallback2D = false },
-                    hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.55,
+                    hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.9,
                               colorMethod = "class", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
-                              barAlpha = 0.7, bgAlpha = 1, border = true,
+                              barAlpha = 0.5, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
                               -- 疊加層顏色／方向沿用團隊框慣用的預設
                               healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.4 },
@@ -185,9 +185,9 @@ function DB.BuildDefaults()
                                  zoom = 1, rotation = 0,       -- 正面朝鏡頭（度）
                                  modelOffsetX = 0, modelOffsetY = 0,      -- 設定面板顯示 ×100
                                  fallback2D = false },   -- 副本小怪 3D 取不到時是否退 2D
-                    hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.55,
+                    hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.9,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
-                              barAlpha = 0.7, bgAlpha = 1, border = true,
+                              barAlpha = 0.5, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
                               -- 疊加層顏色／方向沿用團隊框慣用的預設
                               healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.4 },
@@ -472,8 +472,43 @@ end
 function DB.Migrate(db)
     -- 版本閘遷移鏈：只動「還是舊預設值」的欄位，使用者調過的不碰。
     -- 寫法：if db.schemaVersion < N then ... end（由小到大排），改完把 ns.DB_VERSION bump 到 N。
-    -- 目前無遷移（插件尚未發佈，開發期的歷史遷移已清空）。
+
+    -- v2：單一帳號設定 → 具名設定檔。舊 SV 的 global/units 直接搬進「預設」。
+    if db.schemaVersion < 2 then
+        if db.global or db.units then
+            db.profiles = db.profiles or {}
+            db.profiles[DB.DEFAULT_PROFILE] = { global = db.global, units = db.units }
+            db.global, db.units = nil, nil
+        end
+    end
 end
+
+------------------------------------------------------------
+-- 設定檔
+--
+-- SV 結構：
+--   MiliUI_UnitFrames_DB = {
+--       schemaVersion, minimap, optionsWindow,     -- 帳號層，不跟設定檔走
+--       profiles    = { ["預設"] = { global=, units= } },
+--       profileKeys = { ["米利 - 世界之樹"] = "預設" },   -- 每角色指標
+--   }
+--
+-- ns.db 仍然是一張**扁平的表**（.global/.units/.minimap/.optionsWindow），
+-- 所有既有讀取點都不用改。刻意不用 metatable proxy：ns.db.global 落在熱路徑上，
+-- 不值得為了換設定檔多付一次 __index。
+--
+-- 換設定檔一律 ReloadUI：uf.db、Options 的各種 refresher 全都抓著舊表的參照，
+-- 就地換指標要逐一補正，而換設定檔是罕見的刻意操作——重載最乾淨，也跟既有的
+-- 「匯入並重載」一致。
+------------------------------------------------------------
+-- ⚠ 這是存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上，
+-- 使用者會看到一份空白設定。顯示層自己去查 L["Default"]。
+DB.DEFAULT_PROFILE = "Default"
+
+local function CharKey()
+    return (UnitName("player") or "?") .. " - " .. (GetRealmName() or "?")
+end
+DB.CharKey = CharKey
 
 function DB.Init()
     MiliUI_UnitFrames_DB = type(MiliUI_UnitFrames_DB) == "table" and MiliUI_UnitFrames_DB or {}
@@ -487,9 +522,76 @@ function DB.Init()
         DB.Migrate(db)
         db.schemaVersion = ns.DB_VERSION
     end
-    MergeDefaults(db, DB.BuildDefaults())
-    ns.db = db
-    return db
+
+    db.profiles = db.profiles or {}
+    db.profileKeys = db.profileKeys or {}
+    local key = CharKey()
+    local name = db.profileKeys[key]
+    if type(name) ~= "string" or not db.profiles[name] then
+        name = DB.DEFAULT_PROFILE
+        db.profileKeys[key] = name
+    end
+    db.profiles[name] = db.profiles[name] or {}
+
+    local defaults = DB.BuildDefaults()
+    MergeDefaults(db.profiles[name], { global = defaults.global, units = defaults.units })
+    MergeDefaults(db, { minimap = defaults.minimap, optionsWindow = defaults.optionsWindow })
+
+    local p = db.profiles[name]
+    ns.db = { global = p.global, units = p.units,
+              minimap = db.minimap, optionsWindow = db.optionsWindow }
+    ns.profileName = name
+    return ns.db
+end
+
+function DB.ListProfiles()
+    local out = {}
+    for name in pairs(MiliUI_UnitFrames_DB.profiles or {}) do out[#out + 1] = name end
+    table.sort(out)
+    return out
+end
+
+function DB.SwitchProfile(name)
+    local db = MiliUI_UnitFrames_DB
+    if not (db.profiles and db.profiles[name]) then return false end
+    db.profileKeys[CharKey()] = name
+    ReloadUI()
+    return true
+end
+
+-- copyFrom = nil 代表從預設值建立
+function DB.CreateProfile(name, copyFrom)
+    name = type(name) == "string" and name:gsub("^%s+", ""):gsub("%s+$", "") or ""
+    if name == "" then return false, "empty" end
+    local db = MiliUI_UnitFrames_DB
+    if db.profiles[name] then return false, "exists" end
+    if copyFrom then
+        local src = db.profiles[copyFrom]
+        if not src then return false, "nosource" end
+        -- 深拷貝：兩份設定檔絕不能共用同一張子表
+        local function Copy(t)
+            local o = {}
+            for k, v in pairs(t) do o[k] = type(v) == "table" and Copy(v) or v end
+            return o
+        end
+        db.profiles[name] = Copy(src)
+    else
+        local defaults = DB.BuildDefaults()
+        db.profiles[name] = { global = defaults.global, units = defaults.units }
+    end
+    return true
+end
+
+-- 刪掉目前這份，這個角色改指「預設」。預設本身不給刪。
+function DB.DeleteProfile(name)
+    local db = MiliUI_UnitFrames_DB
+    if name == DB.DEFAULT_PROFILE or not db.profiles[name] then return false end
+    db.profiles[name] = nil
+    -- 指著它的角色全部改回預設，不然下次登入會看到空白設定
+    for k, v in pairs(db.profileKeys) do
+        if v == name then db.profileKeys[k] = DB.DEFAULT_PROFILE end
+    end
+    return true
 end
 
 -- boss1-5 共用 units.boss；其餘直取
@@ -517,8 +619,15 @@ function DB.ResetGlobal()
     MergeDefaults(ns.db.global, defaults)
 end
 
--- 全部：清 SV 後重載（最乾淨，避免殘留參照）
+-- 目前這份設定檔全部恢復預設後重載。
+-- ⚠ 只動這一份，其他設定檔與帳號層（小地圖、視窗位置）不碰——有設定檔系統之後，
+-- 「重置」把整個帳號炸掉太超過了。
 function DB.ResetAll()
-    MiliUI_UnitFrames_DB = nil
+    local db = MiliUI_UnitFrames_DB
+    local name = db and db.profileKeys and db.profileKeys[CharKey()]
+    if db and name and db.profiles then
+        local defaults = DB.BuildDefaults()
+        db.profiles[name] = { global = defaults.global, units = defaults.units }
+    end
     ReloadUI()
 end
