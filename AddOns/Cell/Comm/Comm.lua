@@ -100,7 +100,18 @@ function eventFrame:GROUP_ROSTER_UPDATE()
     -- the whole session if the first time you were in a group happened to be mid-key.
     if IsCommRestricted() then return end
     eventFrame:UnregisterEvent("GROUP_ROSTER_UPDATE")
-    Comm:SendCommMessage(VERSION_PREFIX, Cell.version, sendChannel)
+    Comm:SendCommMessage(VERSION_PREFIX, Cell.version, sendChannel, nil, "NORMAL")
+end
+
+-- The guild broadcast is the one that actually reaches people: the group send above only
+-- fires if you are in a party, while this goes out every login to everyone in the guild.
+-- Stock Cell had both, and this is the half that made "log in, get told there is an update"
+-- work at all -- restoring only the group half would have made the reminder look broken.
+eventFrame:RegisterEvent("PLAYER_LOGIN")
+function eventFrame:PLAYER_LOGIN()
+    if IsInGuild() and not IsCommRestricted() then
+        Comm:SendCommMessage(VERSION_PREFIX, Cell.version, "GUILD", nil, "NORMAL")
+    end
 end
 
 Comm:RegisterComm(VERSION_PREFIX, function(prefix, message, channel, sender)
