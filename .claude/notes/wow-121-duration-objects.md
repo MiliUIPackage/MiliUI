@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: de450f90-cdd7-4e1f-8c62-1e9716828626
-  modified: 2026-08-17T19:56:28.063Z
+  modified: 2026-08-17T20:04:29.510Z
 ---
 
 **任何「起始時間＋持續時間」在 12.1 變成秘密值之後，倒數的通解是 duration 物件。**
@@ -28,12 +28,24 @@ cooldown:SetHideCountdownNumbers(false)              -- 讓引擎畫數字
 標「Unusable in combat」—— 踩到的是 `IsZero()`，**不是** `SetTimeFromStart`。
 分清楚這件事才知道這條路其實可以走。
 
-## 從哪裡拿 duration 物件
+## ⚠⚠ 自己建的那顆**餵不進秘密值**（2026-08-18 實測）
 
-- 有現成的就用現成的：`UnitCastingDuration` / `UnitChannelDuration` /
-  `UnitEmpoweredChannelDuration`（施法條）、`C_Spell.GetSpellCooldownDuration`（法術冷卻）
-- 沒有現成的就自己建：圖騰／召喚物（`GetTotemInfo` 沒有 duration 物件版本）、
-  飾品冷卻（`GetInventoryItemCooldown`）—— 本機 Ayije_CDM 的 Trinkets／CustomBuffs 就是這樣
+`SetTimeFromStart(secretStart, secretDur, secretModRate)` 會**失敗**（pcall 回 false）。
+duration 物件撐得住秘密計時，但那是**引擎在自己那邊用明文建的**；從 Lua 餵秘密值
+進去建一顆不行。
+
+所以這條路分兩種情況，差別很大：
+
+| 來源 | 秘密值下 |
+|---|---|
+| 引擎給的現成物件（`UnitCastingDuration` / `UnitChannelDuration` / `C_Spell.GetSpellCooldownDuration`） | **可用** |
+| 自己 `CreateDuration` + `SetTimeFromStart` | **不可用**，只在明文（戰鬥外）成立 |
+
+也就是說：**沒有現成 duration 物件 API 的東西，秘密值下就沒有倒數可做。**
+圖騰／召喚物就是這種（`GetTotemInfo` 沒有 duration 物件版本），只能退回
+「滿條、無數字」。飾品冷卻（Ayije_CDM 的用法）在戰鬥外正常，戰鬥中同樣受限。
+
+值得留著自己建的那條路：戰鬥外仍然有好處 —— 不必自己輪詢、過期吃 `OnCooldownDone`。
 
 ## 別忘了 modRate
 
