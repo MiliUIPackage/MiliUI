@@ -360,6 +360,60 @@ local function Debug()
         end
     end
 
+    -- 斷法就緒（C8）：「條沒換色」要分得出是這個職業／專精沒有斷法（spellID nil）、
+    -- API 不在，還是 IsReady 拿到了但值是秘密（那就是正常的，色由曲線函式決定）
+    if ns.Interrupt then
+        local id = ns.Interrupt.SpellID()
+        local ok, ready, has = pcall(ns.Interrupt.IsReady)
+        p(("  斷法就緒：spellID=%s 取得=%s 有值=%s 值=%s%s"):format(
+            tostring(id), tostring(ok), tostring(ok and has),
+            ok and SafeStr(ready) or "-",
+            (ok and ns.IsSecret(ready)) and "（秘密，正常）" or ""))
+        local cb = ns.frames.target and ns.frames.target.elements
+                   and ns.frames.target.elements.castbar
+        p(("   目標施法條 showInterruptReady=%s Eval=%s"):format(
+            tostring(cb and cb.showInterruptReady),
+            tostring(C_CurveUtil and C_CurveUtil.EvaluateColorValueFromBoolean ~= nil)))
+    end
+
+    -- 施法目標（C4）：分得出是沒開、單位沒有 target token，還是名字取不到
+    do
+        local rows = {}
+        for _, u in ipairs({ "player", "target", "focus", "pet" }) do
+            local cb = ns.frames[u] and ns.frames[u].elements and ns.frames[u].elements.castbar
+            if cb and cb.targetText then
+                rows[#rows + 1] = ("%s=%s/%s"):format(u, tostring(cb.showCastTarget),
+                    SafeStr(cb.targetText:GetText()))
+            end
+        end
+        p("  施法目標（單位=開關/現值）：" .. (#rows > 0 and table.concat(rows, "  ") or "（沒有施法條）"))
+    end
+
+    -- 吸收盾獨立細條（C6）：位置設了卻看不到 → 看 shown 與 value
+    do
+        local rows = {}
+        for _, u in ipairs({ "player", "target", "focus", "pet" }) do
+            local uf = ns.frames[u]
+            local hp = uf and uf.elements and uf.elements.hpbar
+            local edb = uf and uf.db.elements and uf.db.elements.hpbar
+            if hp then
+                rows[#rows + 1] = ("%s=%s/%s/%s"):format(u,
+                    tostring(edb and edb.absorbBarPosition or "none"),
+                    tostring(hp.absorbStrip and hp.absorbStrip:IsShown()),
+                    hp.absorbStrip and SafeStr(hp.absorbStrip:GetValue()) or "-")
+            end
+        end
+        p("  吸收盾細條（單位=位置/顯示/值）：" .. table.concat(rows, "  "))
+    end
+
+    -- 編輯模式格線（C11）
+    do
+        local g = ns.db.global
+        p(("  編輯模式格線：顯示=%s 吸附=%s 間距=%s 透明=%s"):format(
+            tostring(g.gridShow), tostring(g.gridSnap),
+            tostring(g.gridSize), tostring(g.gridAlpha)))
+    end
+
     p("  受限狀態 HasSecretRestrictions=" .. tostring(C_Secrets and C_Secrets.HasSecretRestrictions())
         .. " ShouldAurasBeSecret=" .. tostring(C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret()))
 

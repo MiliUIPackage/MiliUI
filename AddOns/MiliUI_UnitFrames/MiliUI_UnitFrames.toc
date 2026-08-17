@@ -35,6 +35,7 @@ Core\Cache.lua
 Core\Events.lua
 Core\Range.lua
 Core\Visibility.lua
+Core\Interrupt.lua
 Core\Tags.lua
 Core\Registry.lua
 Core\UnitFrame.lua

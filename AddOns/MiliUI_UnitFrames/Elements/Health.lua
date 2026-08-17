@@ -74,6 +74,21 @@ local function ApplyAbsorb(f, edb, calc, unit, maxHP)
     ns.SetOvershieldGlow(f.overShieldGlowR, glowOn and gR,     isClamped)
 end
 
+-- 吸收盾獨立細條（C6）：跟上面那條疊加層互不相干，貼在血條上／下緣外側。
+--
+-- 疊加層是「蓋在血量上」的讀法，滿血又有大盾時整條白掉、看不出還剩多少血；
+-- 細條把盾拆出來單獨一條，血量本身不受影響。兩個可以同時開。
+--
+-- ⚠ 這條**不吃 `overlaysOK` 那道敵對單位閘**：它只用 `UnitGetTotalAbsorbs`，
+-- 那是直接 API，不是會對敵對單位回垃圾的 HealPrediction 計算器。
+-- 所以敵人身上的盾也顯示得出來（疊加層做不到的事）。
+local function ApplyAbsorbStrip(f, unit, maxHP)
+    local total = UnitGetTotalAbsorbs(unit)
+    f.absorbStrip:SetMinMaxValues(0, maxHP)
+    f.absorbStrip:SetValue(total)
+    f.absorbStrip:Show()
+end
+
 local function ApplyHealAbsorb(f, calc, maxHP)
     -- ⚠⚠ **一定要先落地成單一變數**。getter 跟 GetDamageAbsorbs 一樣回兩個值
     -- （量, isClamped），而 Lua 在「最後一個參數位置」會把多回傳值全部展開 →
@@ -266,6 +281,39 @@ local function Build(uf, edb)
         f.incbar:Hide()
     end
 
+    ------------------------------------------------------------
+    -- 吸收盾獨立細條（C6）
+    --
+    -- ⚠ 掛在 `f` 上而**不是** `f.clip`：clip 框會把伸出去的部分裁掉，
+    --   細條整條都在血條外面，掛進 clip 等於完全看不見。
+    -- 不畫底軌：沒盾的時候 StatusBar 值為 0 就是空的，自然隱形
+    --   （畫了底軌反而變成一條永遠存在的空槽）。
+    ------------------------------------------------------------
+    local stripPos = edb.absorbBarPosition or "none"
+    if stripPos == "above" or stripPos == "below" then
+        if not f.absorbStrip then
+            f.absorbStrip = CreateFrame("StatusBar", nil, f)
+            f.absorbStrip:Hide()
+        end
+        local sb = f.absorbStrip
+        sb:SetFrameLevel((edb.level or 4) + 1)
+        sb:SetStatusBarTexture(texture)
+        sb:SetHeight(ns.P.Scale(edb.absorbBarHeight or 4))
+        local gap = ns.P.Scale(edb.absorbBarGap or 1)
+        sb:ClearAllPoints()
+        if stripPos == "above" then
+            sb:SetPoint("BOTTOMLEFT", f, "TOPLEFT", 0, gap)
+            sb:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", 0, gap)
+        else
+            sb:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 0, -gap)
+            sb:SetPoint("TOPRIGHT", f, "BOTTOMRIGHT", 0, -gap)
+        end
+        local sc = edb.absorbBarColor or { r = 0.6, g = 0.85, b = 1, a = 1 }
+        sb:SetStatusBarColor(sc.r, sc.g, sc.b, sc.a or 1)
+    elseif f.absorbStrip then
+        f.absorbStrip:Hide()
+    end
+
     -- 邊框層級 = 元件層級 +1；邊框 1px 在外緣、bar/overlay 都內縮 1px，
     -- 彼此不重疊，所以不需要墊高到 overlay 之上
     if edb.border ~= false then
@@ -307,6 +355,9 @@ local function Update(uf, edb, bucket)
         -- 看起來像扣血區換了顏色）
         if edb.showHealPrediction and f.incbar then
             f.incbar:SetMinMaxValues(0, 100); f.incbar:SetValue(12); f.incbar:Show()
+        end
+        if f.absorbStrip then
+            f.absorbStrip:SetMinMaxValues(0, 100); f.absorbStrip:SetValue(35); f.absorbStrip:Show()
         end
     else
         local calc = uf.hpCalc
@@ -354,6 +405,12 @@ local function Update(uf, edb, bucket)
                     pcall(ApplyHealAbsorb, f, calc, maxHP)
                 else
                     f.healAbsorbBar:Hide()
+                end
+            end
+            -- 吸收盾獨立細條：故意放在 overlaysOK 之外，理由見 ApplyAbsorbStrip
+            if f.absorbStrip and UnitGetTotalAbsorbs then
+                if not pcall(ApplyAbsorbStrip, f, unit, maxHP) then
+                    f.absorbStrip:Hide()
                 end
             end
             -- 治療預估（12.x Midnight 路徑）。clamp 每次都要重設，理由見

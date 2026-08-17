@@ -74,6 +74,13 @@ local function bigCastbar(own)
         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
         showSpark = true,               -- 填充前緣的亮點：填充變淡之後靠它讀進度
         barAlpha = 0.3,                 -- 只有彩色填充變淡；圖示與文字照樣清楚
+        -- C8：你的斷法好了就換色。自己的施法沒有「能不能被斷」的意義，所以只有敵方開
+        showInterruptReady = not own,
+        -- C4：對誰施法。預設關（開了會多一行字，位置每個人喜好不同）
+        showCastTarget = false,
+        castTarget = { x = 0, y = -2, w = 196, h = 50, size = 10, flags = "OUTLINE",
+                       justifyH = "RIGHT", justifyV = "MIDDLE",
+                       color = { r = 1, g = 0.82, b = 0.4, a = 1 } },
         showShield = not own, shieldStyle = "blizzard", shieldScale = own and 1.2 or 1.4, shieldOffsetX = 0, shieldOffsetY = 0,
         spell = { x = 34, y = -2, w = 166, h = 50, size = 12, flags = "OUTLINE",
                   justifyH = "LEFT", justifyV = "MIDDLE", color = white(1) },
@@ -103,6 +110,11 @@ function DB.BuildDefaults()
             -- 滑鼠移過的高亮邊框（開關在每單位的 frame.highlight）
             highlightColor = white(0.7),
             highlightSize  = 1,
+            -- 編輯模式格線（C11）：只在編輯模式期間出現，拖曳時 Shift 反轉吸附
+            gridShow    = true,
+            gridSnap    = false,
+            gridSize    = 32,
+            gridAlpha   = 0.25,
             strata      = "LOW",
             smoothBars  = true,
             showTooltip = true,          -- 滑鼠移到單位框顯示提示
@@ -128,6 +140,8 @@ function DB.BuildDefaults()
                 complete = { r = 1, g = 1, b = 0 },
                 fail    = { r = 1, g = 0, b = 0 },
                 notInterruptible = { r = 0.53, g = 0.53, b = 0.53 },
+                -- 斷法就緒（C8）：你的打斷技能好了，敵方施法條換這個色
+                interruptReady = { r = 0.20, g = 0.85, b = 1 },
             },
             classification = {
                 worldboss = L[" Boss"], rareelite = L[" Rare Elite"],
@@ -157,6 +171,9 @@ function DB.BuildDefaults()
                               absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbReverseFill = true,          -- 從右端往左長，讀起來像額外的血
                               showOvershield = true, overshieldGlowReverse = false,
+                              -- 吸收盾獨立細條（C6）：預設關，開了就是血條外多一條
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
                               overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 8, y = -8, w = 200, h = 50, level = 0,
@@ -230,6 +247,9 @@ function DB.BuildDefaults()
                               absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbReverseFill = true,          -- 從右端往左長，讀起來像額外的血
                               showOvershield = true, overshieldGlowReverse = false,
+                              -- 吸收盾獨立細條（C6）：預設關，開了就是血條外多一條
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
                               overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = -8, y = -8, w = 200, h = 50, level = 0,
@@ -294,6 +314,9 @@ function DB.BuildDefaults()
                               showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbReverseFill = true,
                               showOvershield = true, overshieldGlowReverse = false,
+                              -- 吸收盾獨立細條（C6）：預設關，開了就是血條外多一條
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
                               overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 120, h = 10, level = 0,
@@ -333,6 +356,9 @@ function DB.BuildDefaults()
                               showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbReverseFill = true,
                               showOvershield = true, overshieldGlowReverse = false,
+                              -- 吸收盾獨立細條（C6）：預設關，開了就是血條外多一條
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
                               overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 120, h = 10, level = 5,
@@ -347,7 +373,12 @@ function DB.BuildDefaults()
                                  size = 10, justifyH = "CENTER", justifyV = "MIDDLE", level = 6 },
                     },
                     castbar = {
-                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 7, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showShield = true, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
+                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 7, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = true,
+                        showCastTarget = false,
+                        castTarget = { x = 0, y = 18, w = 160, h = 10, size = 9, flags = "OUTLINE",
+                                      justifyH = "RIGHT", justifyV = "TOP",
+                                      color = { r = 1, g = 0.82, b = 0.4, a = 1 } },
+                        showShield = true, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(1), border = true,
                         spell = { x = 12, y = 7, w = 160, h = 10, size = 10, flags = "OUTLINE",
                                   justifyH = "LEFT", justifyV = "TOP", color = white(1) },
@@ -375,6 +406,9 @@ function DB.BuildDefaults()
                               showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbReverseFill = true,
                               showOvershield = true, overshieldGlowReverse = false,
+                              -- 吸收盾獨立細條（C6）：預設關，開了就是血條外多一條
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
                               overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 70, h = 10, level = 0,
@@ -416,6 +450,9 @@ function DB.BuildDefaults()
                               showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbReverseFill = true,
                               showOvershield = true, overshieldGlowReverse = false,
+                              -- 吸收盾獨立細條（C6）：預設關，開了就是血條外多一條
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
                               overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -40, w = 120, h = 10, level = 0,
@@ -436,7 +473,12 @@ function DB.BuildDefaults()
                     },
                     castbar = {
                         enabled = true, x = 0, y = 0, w = 120, h = 40, level = 6, timeFormat = "elapsedTotal",
-                        showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showShield = false, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
+                        showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = false,
+                        showCastTarget = false,
+                        castTarget = { x = 0, y = -2, w = 116, h = 40, size = 9, flags = "OUTLINE",
+                                      justifyH = "RIGHT", justifyV = "MIDDLE",
+                                      color = { r = 1, g = 0.82, b = 0.4, a = 1 } },
+                        showShield = false, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(0.5),
                         spell = { x = 34, y = 5, w = 120, h = 50, size = 12, flags = "OUTLINE",
                                   justifyH = "LEFT", justifyV = "MIDDLE",
@@ -476,6 +518,9 @@ function DB.BuildDefaults()
                               showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbReverseFill = true,
                               showOvershield = true, overshieldGlowReverse = false,
+                              -- 吸收盾獨立細條（C6）：預設關，開了就是血條外多一條
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
                               overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 36, y = -13, w = 184, h = 10, level = 4,
@@ -493,7 +538,12 @@ function DB.BuildDefaults()
                         enabled = true, x = 36, y = -22, w = 184, h = 14, level = 6,
                         timeFormat = "elapsedTotal", showInterruptState = true,
                         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
-                        showSpark = false, barAlpha = 1,
+                        showSpark = false, barAlpha = 1, showInterruptReady = true,
+                        -- 首領對誰施法：條只有 14 高，字放在條**下方**才不會跟時間撞
+                        showCastTarget = false,
+                        castTarget = { x = 0, y = -16, w = 184, h = 12, size = 11, flags = "OUTLINE",
+                                       justifyH = "RIGHT", justifyV = "TOP",
+                                       color = { r = 1, g = 0.82, b = 0.4, a = 1 } },
                         showShield = true, shieldStyle = "blizzard", shieldScale = 1.4,
                         shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(0.7), border = true,

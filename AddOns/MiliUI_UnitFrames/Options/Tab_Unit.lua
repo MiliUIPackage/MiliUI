@@ -160,6 +160,17 @@ local function BarSpecs(name, isHP)
         tinsert(list, { type = "color", sub = name, key = "overshieldColor", label = L["Overshield glow color"] })
         tinsert(list, { type = "toggle", sub = name, key = "overshieldGlowReverse", label = L["Put the overshield glow on the left"] })
         tinsert(list, { type = "text", label = L["When the absorb exceeds full health the edge of the bar lights up. This side is an independent toggle, unrelated to the fill direction above."] })
+        tinsert(list, { type = "header", label = L["Standalone absorb bar"] })
+        tinsert(list, { type = "dropdown", sub = name, key = "absorbBarPosition", label = L["Position"], items = {
+            { text = L["Off"], value = "none" },
+            { text = L["Above the health bar"], value = "above" },
+            { text = L["Below the health bar"], value = "below" },
+        } })
+        tinsert(list, { type = "slider", sub = name, key = "absorbBarHeight", label = L["Height"], min = 1, max = 16, step = 1 })
+        tinsert(list, { type = "slider", sub = name, key = "absorbBarGap", label = L["Gap from the health bar"], min = 0, max = 10, step = 1 })
+        tinsert(list, { type = "color", sub = name, key = "absorbBarColor", label = L["Color"] })
+        tinsert(list, { type = "text", label = L["A separate thin bar for the absorb, instead of overlaying the health. With a large shield at full health the overlay whites out the whole bar; this keeps the health readable. Both can be on at once, and unlike the overlay this one also works on enemies."] })
+        tinsert(list, { type = "header", label = L["Heal absorb"] })
         tinsert(list, { type = "toggle", sub = name, key = "showHealAbsorb", label = L["Heal absorb"] })
         tinsert(list, { type = "color", sub = name, key = "healAbsorbColor", label = L["Heal absorb color"] })
         tinsert(list, { type = "text", label = L["Debuffs that eat healing, such as Necrotic. Reverse-filled and drawn on top."] })
@@ -239,6 +250,8 @@ local function CastbarSpecs()
         { type = "text", label = L["When on, non-interruptible casts turn gray and show a shield on the icon. Off by default for you and your pet, since whether your own cast can be interrupted is meaningless."] },
         { type = "toggle", sub = "castbar", key = "showSpark", label = L["Spark at the leading edge"] },
         { type = "text", label = L["A bright dot that rides the front of the fill. Off by default: Stuf's cast bar never had one."] },
+        { type = "toggle", sub = "castbar", key = "showInterruptReady", label = L["Tint while your interrupt is ready"] },
+        { type = "text", label = L["Tints the bar while your own interrupt is off cooldown — one glance tells you whether a cast is worth stopping. The color lives under General > Cast bar colors. A non-interruptible cast still wins and stays gray. Off for you and your pet."] },
         { type = "toggle", sub = "castbar", key = "showCompleteFlash", label = L["Color on finish"] },
         { type = "slider", sub = "castbar", key = "fadeTime", label = L["Fade time (seconds)"], min = 0.1, max = 1.5, step = 0.05 },
         { type = "slider", sub = "castbar", key = "interruptHold", label = L["Interrupt hold (seconds)"], min = 0, max = 2, step = 0.1 },
@@ -261,8 +274,12 @@ local function CastbarSpecs()
         { type = "numbers", sub = "castbar", label = L["Shield offset"],
           fields = { { key = "shieldOffsetX", label = "X" }, { key = "shieldOffsetY", label = "Y" } } },
     }
+    tinsert(list, { type = "header", label = L["Cast target"] })
+    tinsert(list, { type = "toggle", sub = "castbar", key = "showCastTarget", label = L["Show who the cast is aimed at"] })
+    tinsert(list, { type = "text", label = L["The name of the caster's current target. Useful on the focus and boss frames for spotting a tank swap or a fixate. Only available for units the game gives a target token for (player, pet, target, focus, boss), and in restricted content the name may be unavailable."] })
     for _, s in ipairs(TextStyleSpecs("castbar", "spell", L["Spell name"])) do tinsert(list, s) end
     for _, s in ipairs(TextStyleSpecs("castbar", "time", L["Time"])) do tinsert(list, s) end
+    for _, s in ipairs(TextStyleSpecs("castbar", "castTarget", L["Cast target"])) do tinsert(list, s) end
     return list
 end
 

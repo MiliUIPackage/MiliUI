@@ -235,6 +235,10 @@ local function Tick()
         local edb = uf.db.elements and uf.db.elements.castbar
         if cb and edb and edb.enabled and Preview.selectedElement == "castbar" then
             cb.spellText:SetText(L["Demo Spell"])
+            -- 施法目標（C4）：預覽用假名字，不然開了設定看不到位置對不對
+            if cb.targetText then
+                cb.targetText:SetText(cb.showCastTarget and L["Demo Target"] or "")
+            end
             cb.icon:SetTexture(136048)
             local c = ns.db.global.colors.cast
             cb.bar:SetStatusBarColor(c.r, c.g, c.b, cb.barAlpha or 1)
@@ -257,6 +261,10 @@ function Preview.SetElement(elementKey)
         local edb = uf.db.elements and uf.db.elements.castbar
         if elementKey == "castbar" and edb and edb.enabled then
             cb.spellText:SetText(L["Demo Spell"])
+            -- 施法目標（C4）：預覽用假名字，不然開了設定看不到位置對不對
+            if cb.targetText then
+                cb.targetText:SetText(cb.showCastTarget and L["Demo Target"] or "")
+            end
             cb.icon:SetTexture(136048)
             local c = ns.db.global.colors.cast
             cb.bar:SetStatusBarColor(c.r, c.g, c.b, cb.barAlpha or 1)

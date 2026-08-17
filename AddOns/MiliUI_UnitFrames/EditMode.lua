@@ -12,6 +12,115 @@ local L = ns.L
 local isInEditMode = false
 
 ------------------------------------------------------------
+-- 格線與對齊輔助（C11）
+--
+-- 只在編輯模式期間存在，跟真實框完全無關（純貼圖，不碰 secure frame）。
+--
+-- ⚠ 格線是「從螢幕中心往外」畫的，不是從左下角算。理由：拖曳寫回 db 的是
+--   **CENTER 對 UIParent CENTER 的偏移**，格線必須跟那個座標系同原點，
+--   不然「對到線」的位置吸附出來的數字會是 17、49 這種醜東西。
+------------------------------------------------------------
+local grid                    -- 容器（延遲建立）
+local gridLines = {}          -- 貼圖池
+
+local function GridTexture(i)
+    local t = gridLines[i]
+    if not t then
+        t = grid:CreateTexture(nil, "BACKGROUND")
+        t:SetTexture(ns.Media.WHITE8X8)
+        gridLines[i] = t
+    end
+    return t
+end
+
+local function BuildGrid()
+    if not grid then
+        grid = CreateFrame("Frame", nil, UIParent)
+        grid:SetAllPoints(UIParent)
+        grid:SetFrameStrata("BACKGROUND")
+        grid:Hide()
+    end
+
+    local g = ns.db.global
+    local step = g.gridSize or 32
+    if step < 4 then step = 4 end
+
+    local w, h = UIParent:GetWidth(), UIParent:GetHeight()
+    local thick = ns.P.Scale(1)
+    local n = 0
+    local ga = g.gridAlpha or 0.25
+
+    -- 一般格線：中心往左右／上下各鋪到邊界
+    for x = step, w / 2, step do
+        for _, sign in ipairs({ -1, 1 }) do
+            n = n + 1
+            local t = GridTexture(n)
+            t:ClearAllPoints()
+            t:SetPoint("TOP", grid, "TOP", x * sign, 0)
+            t:SetPoint("BOTTOM", grid, "BOTTOM", x * sign, 0)
+            t:SetWidth(thick)
+            t:SetVertexColor(1, 1, 1, ga)
+            t:Show()
+        end
+    end
+    for y = step, h / 2, step do
+        for _, sign in ipairs({ -1, 1 }) do
+            n = n + 1
+            local t = GridTexture(n)
+            t:ClearAllPoints()
+            t:SetPoint("LEFT", grid, "LEFT", 0, y * sign)
+            t:SetPoint("RIGHT", grid, "RIGHT", 0, y * sign)
+            t:SetHeight(thick)
+            t:SetVertexColor(1, 1, 1, ga)
+            t:Show()
+        end
+    end
+
+    -- 中心十字：畫最後（蓋在一般格線上）、換色加粗，用來把框對到畫面正中
+    n = n + 1
+    local vc = GridTexture(n)
+    vc:ClearAllPoints()
+    vc:SetPoint("TOP", grid, "TOP", 0, 0)
+    vc:SetPoint("BOTTOM", grid, "BOTTOM", 0, 0)
+    vc:SetWidth(ns.P.Scale(2))
+    vc:SetVertexColor(1, 0.3, 0.3, math.min(1, ga * 2.5))
+    vc:Show()
+    n = n + 1
+    local hc = GridTexture(n)
+    hc:ClearAllPoints()
+    hc:SetPoint("LEFT", grid, "LEFT", 0, 0)
+    hc:SetPoint("RIGHT", grid, "RIGHT", 0, 0)
+    hc:SetHeight(ns.P.Scale(2))
+    hc:SetVertexColor(1, 0.3, 0.3, math.min(1, ga * 2.5))
+    hc:Show()
+
+    -- 縮小格線間距後多出來的貼圖要收掉，不然改大 gridSize 舊線還留著
+    for i = n + 1, #gridLines do gridLines[i]:Hide() end
+end
+
+local function UpdateGrid()
+    local show = isInEditMode and ns.db and ns.db.global.gridShow ~= false
+    if not show then
+        if grid then grid:Hide() end
+        return
+    end
+    BuildGrid()
+    grid:Show()
+end
+ns.UpdateEditGrid = UpdateGrid          -- 設定面板改格線參數時即時重畫
+
+-- 吸附：Shift 暫時反轉（沒開吸附時按住 Shift 就吸附，反之放行）——
+-- 微調一兩格的時候比跑去設定面板關掉快
+local function Snap(v)
+    local g = ns.db and ns.db.global
+    local step = g and g.gridSize or 32
+    local on = g and g.gridSnap or false
+    if IsShiftKeyDown() then on = not on end
+    if not on or step < 1 then return v end
+    return math.floor(v / step + 0.5) * step
+end
+
+------------------------------------------------------------
 -- 選取框 + 游標差值拖曳
 ------------------------------------------------------------
 -- applyPoint：這個系統自己的定位方式（不給就是 CENTER 對 UIParent CENTER）。
@@ -44,15 +153,17 @@ local function AttachSelection(frame, label, fdb, onMoved, applyPoint)
         self:SetScript("OnUpdate", function()
             local cx, cy = GetCursorPosition()
             local scale = UIParent:GetEffectiveScale()
-            Place(baseX + (cx - startCX) / scale, baseY + (cy - startCY) / scale)
+            -- 拖曳過程就吸附，放手才吸的話手感會「跳一下」
+            Place(Snap(baseX + (cx - startCX) / scale), Snap(baseY + (cy - startCY) / scale))
         end)
     end)
     sel:SetScript("OnDragStop", function(self)
         self:SetScript("OnUpdate", nil)
         local cx, cy = GetCursorPosition()
         local scale = UIParent:GetEffectiveScale()
-        fdb.x = math.floor(baseX + (cx - startCX) / scale + 0.5)
-        fdb.y = math.floor(baseY + (cy - startCY) / scale + 0.5)
+        -- 寫回的值必須跟拖曳時看到的位置一致，所以這裡也要過同一個 Snap
+        fdb.x = math.floor(Snap(baseX + (cx - startCX) / scale) + 0.5)
+        fdb.y = math.floor(Snap(baseY + (cy - startCY) / scale) + 0.5)
         if onMoved then onMoved() end
     end)
 
@@ -65,6 +176,8 @@ end
 ------------------------------------------------------------
 local function UpdateEditModeState()
     if not ns.db then return end
+
+    UpdateGrid()
 
     if isInEditMode then
         ns.Preview.Open("editmode")

@@ -402,3 +402,27 @@ L["Draws a border around the frame while the cursor is over it. Color and thickn
 L["Highlight color"] = "高亮顏色"
 L["Highlight thickness"] = "高亮粗細"
 L["The border drawn while the cursor is over a frame. Which frames get it is set per unit, under Units > Frame."] = "游標移到框上時畫的那圈邊框。哪些框要畫是逐單位設定的，在「單位」分頁 → 框架。"
+
+------------------------------------------------------------
+-- 施法目標／吸收盾細條／斷法就緒／編輯模式格線（C4 C6 C8 C11）
+------------------------------------------------------------
+L["Demo Target"] = "示範目標"
+L["Your interrupt is ready"] = "斷法已就緒"
+L["\"Your interrupt is ready\" tints the bar while your own interrupt is off cooldown, so you can see at a glance whether a cast is worth stopping. Enable it per unit under Units > Cast bar."] = "「斷法已就緒」會在你的打斷技能冷卻好時把條染色，一眼就知道這個施法值不值得打斷。要開在哪些單位上是在「單位」分頁 → 施法條。"
+L["Edit Mode grid"] = "編輯模式格線"
+L["Show grid"] = "顯示格線"
+L["Snap frames to the grid"] = "框架吸附到格線"
+L["Grid spacing"] = "格線間距"
+L["Grid transparency"] = "格線透明度"
+L["The grid appears only while Blizzard's Edit Mode is open. It is drawn outward from the center of the screen, matching how frame positions are stored, and the red cross marks that center. Hold Shift while dragging to invert snapping."] = "格線只在暴雪的編輯模式開著時出現。它是從畫面中心往外畫的，跟框架位置的儲存方式一致，紅色十字就是那個中心。拖曳時按住 Shift 可以反轉吸附。"
+L["Standalone absorb bar"] = "吸收盾獨立細條"
+L["Off"] = "關閉"
+L["Above the health bar"] = "血條上方"
+L["Below the health bar"] = "血條下方"
+L["Gap from the health bar"] = "與血條的間距"
+L["A separate thin bar for the absorb, instead of overlaying the health. With a large shield at full health the overlay whites out the whole bar; this keeps the health readable. Both can be on at once, and unlike the overlay this one also works on enemies."] = "把吸收盾拆成獨立的一條細條，不疊在血量上。滿血又有大盾的時候疊加層會把整條染白，這樣血量還讀得出來。兩種可以同時開，而且跟疊加層不同，這條在敵人身上也有效。"
+L["Tint while your interrupt is ready"] = "斷法就緒時染色"
+L["Tints the bar while your own interrupt is off cooldown — one glance tells you whether a cast is worth stopping. The color lives under General > Cast bar colors. A non-interruptible cast still wins and stays gray. Off for you and your pet."] = "你自己的打斷技能冷卻好的時候把條染色 —— 一眼就知道這個施法值不值得打斷。顏色在「一般」分頁 → 施法條顏色。不可打斷的施法仍然優先，維持灰色。自己與寵物預設關閉。"
+L["Cast target"] = "施法目標"
+L["Show who the cast is aimed at"] = "顯示這次施法對準誰"
+L["The name of the caster's current target. Useful on the focus and boss frames for spotting a tank swap or a fixate. Only available for units the game gives a target token for (player, pet, target, focus, boss), and in restricted content the name may be unavailable."] = "施法者當前目標的名字。焦點與首領框上很有用，可以看出換坦或仇恨轉移。只有遊戲提供目標 token 的單位才有（玩家、寵物、目標、焦點、首領），而且在受限內容中名字可能拿不到。"

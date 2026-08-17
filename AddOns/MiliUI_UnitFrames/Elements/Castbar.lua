@@ -61,6 +61,7 @@ ns.CastbarFormatTime = FormatTime      -- 預覽孿生共用同一個 formatter
 local function HideBar(f)
     f.active = false
     f.castState = nil
+    if f.targetText then f.targetText:SetText("") end
     f.displayToken = f.displayToken + 1
     if f.ticker then f.ticker:Cancel(); f.ticker = nil end
     f:SetScript("OnUpdate", nil)
@@ -95,19 +96,54 @@ end
 -- 施法條共五色（全域設定，全部可調）：施法橙／引導綠／完成黃／失敗紅／不可打斷灰。
 -- `edb.showInterruptState` 關閉時（玩家／寵物預設）不套「不可打斷灰」也不畫盾牌——
 -- 自己的施法能不能被斷沒有意義。
+-- 三個色道各跑一次曲線：cond 為真取 col，否則保留原值
+local function EvalTriple(cond, col, r, g, b)
+    return Eval(cond, col.r, r), Eval(cond, col.g, g), Eval(cond, col.b, b)
+end
+
+-- C8 斷法就緒染色：把底色換成「就緒色」。
+--
+-- ⚠ ns.Interrupt.IsReady() 回的可能是**秘密布林** —— 只能餵曲線，永不 if。
+-- 第二個回傳值才是明文的「有沒有拿到」，判斷只看它（理由見 Core/Interrupt.lua）。
+-- 第四個回傳值告訴呼叫端「這次真的染了」，讓它知道下面那層曲線是不是在串接。
+local function ReadyTint(f, r, g, b)
+    if not (f.showInterruptReady and Eval and ns.Interrupt) then return r, g, b, false end
+    local ready, has = ns.Interrupt.IsReady()
+    if not has then return r, g, b, false end
+    local rc = Colors().interruptReady
+    -- ⚠ 一定要先落地再回傳：`return EvalTriple(...), true` 會把前面截成一個值
+    local nr, ng, nb = EvalTriple(ready, rc, r, g, b)
+    return nr, ng, nb, true
+end
+
+-- ⚠⚠ 兩層曲線**串接**的風險：就緒色算出來的 r/g/b 是秘密數字，再當成外層
+-- 「不可打斷」曲線的 whenFalse 參數餵回去。C 端函式收秘密值一般沒問題，但這種
+-- 串法沒有任何文件或現成插件背書。所以第一次被擋就永久放掉就緒染色 ——
+-- 不可打斷的灰是更重要的資訊，不能因為附加功能而整條壞掉、還每秒噴十次錯誤。
+local chainOK = true
+
 local function ApplySecretColor(f)
     local tex = f.bar:GetStatusBarTexture()
     if not tex then return end
     local c = Colors()
     local base = f.castChannel and c.channel or c.cast
     local r, g, b = base.r, base.g, base.b
+    local tinted = false
+    if chainOK then
+        local ok, rr, gg, bb, did = pcall(ReadyTint, f, r, g, b)
+        if ok then r, g, b, tinted = rr, gg, bb, did end
+    end
     -- notInterruptible 是秘密布林，不能 if；交給曲線選色
     if Eval and f.showInterruptState then
-        local ni = f.castNotInterruptible
-        local im = c.notInterruptible
-        r = Eval(ni, im.r, r)
-        g = Eval(ni, im.g, g)
-        b = Eval(ni, im.b, b)
+        local ni, im = f.castNotInterruptible, c.notInterruptible
+        local ok, rr, gg, bb = pcall(EvalTriple, ni, im, r, g, b)
+        if ok then
+            r, g, b = rr, gg, bb
+        elseif tinted then
+            -- 串接被擋：退回沒有就緒色的原路徑（這條是 C8 之前就在跑的寫法）
+            chainOK = false
+            r, g, b = EvalTriple(ni, im, base.r, base.g, base.b)
+        end
     end
     -- alpha 來自設定（明文）；r/g/b 可能是秘密值，各參數互不影響
     tex:SetVertexColor(r, g, b, f.barAlpha or 1)
@@ -116,9 +152,13 @@ end
 -- 一般模式上色（notInterruptible 明文可分支）
 local function ApplyPlainColor(f, notInt)
     local c = Colors()
-    local col = (f.showInterruptState and notInt and c.notInterruptible)
+    local grey = f.showInterruptState and notInt
+    local col = (grey and c.notInterruptible)
         or (f.castChannel and c.channel or c.cast)
-    f.bar:SetStatusBarColor(col.r, col.g, col.b, f.barAlpha or 1)
+    local r, g, b = col.r, col.g, col.b
+    -- 不可打斷的灰優先，其餘才考慮斷法就緒
+    if not grey then r, g, b = ReadyTint(f, r, g, b) end
+    f.bar:SetStatusBarColor(r, g, b, f.barAlpha or 1)
 end
 
 -- 施法中途「可打斷」狀態改變（首領常見：某段時間不可打斷）。
@@ -206,7 +246,42 @@ local function LegacyOnUpdate(f, dt)
     if f.textAccum >= 0.05 then
         f.textAccum = 0
         f.timeText:SetText(FormatTime(f.timeFormat, now - f.castStart, total))
+        -- 斷法冷卻在跑，顏色要跟著重算（秘密模式由 SecretTick 負責）
+        if f.showInterruptReady then ApplyPlainColor(f, f.castNotInterruptible) end
     end
+end
+
+------------------------------------------------------------
+-- 施法目標：「這個單位正在對誰施法」
+--
+-- `UnitCastingInfo` 沒有目標欄位，只能問「這個施法者的目標是誰」——
+-- 也就是 <unit>target token（targettarget / focustarget / bossNtarget / pettarget）。
+--
+-- ⚠ 受限身分的單位 `UnitName` 回**秘密字串**。照 Tags 的規則：秘密字串可以直接
+-- 餵 SetText，就是不能拿去比較。所以這裡對名字本身什麼都不判斷，拿到就設進去；
+-- 「有沒有目標」改問 UnitExists（明文布林），沒有就清空。
+local TARGET_OF = {
+    player = "target", pet = "pettarget",
+    target = "targettarget", focus = "focustarget",
+    boss1 = "boss1target", boss2 = "boss2target", boss3 = "boss3target",
+    boss4 = "boss4target", boss5 = "boss5target",
+}
+
+local function UpdateCastTarget(f)
+    local fs = f.targetText
+    if not fs then return end
+    if not f.showCastTarget then
+        fs:SetText("")
+        return
+    end
+    local token = TARGET_OF[f.unit]
+    if not token then fs:SetText(""); return end
+    -- 名字本身可能是**秘密字串**（受限內容），但兩件事都合法：
+    --   「對非布林型別的秘密值做布林測試」是允許的 → `UnitName(token) or ""` 沒問題
+    --   SetText 是 C 端函式，吃得下秘密字串（之後 GetText 也會變秘密，我們不讀）
+    -- 唯一不能做的是拿它去比較或串接運算。
+    local name = UnitExists(token) and UnitName(token) or ""
+    fs:SetText(name)
 end
 
 local function StartDisplay(f, castTbl, chanTbl)
@@ -238,6 +313,7 @@ local function StartDisplay(f, castTbl, chanTbl)
     f.icon:SetTexture(texture)
     f.spellText:SetText(name)
     f.timeText:SetText("")
+    UpdateCastTarget(f)
     ApplyShield(f, notInt)
 
     if SecretsActive() then
@@ -464,6 +540,13 @@ local function Build(uf, edb)
         f.timeText:SetAllPoints(timeHolder)
         f.timeText.holder = timeHolder
 
+        -- 施法目標（「首領在對誰施法」）。見下面 UpdateCastTarget 的說明
+        local targetHolder = CreateFrame("Frame", nil, textOverlay)
+        f.targetText = targetHolder:CreateFontString(nil, "OVERLAY")
+        f.targetText:SetAllPoints(targetHolder)
+        f.targetText:SetWordWrap(false)
+        f.targetText.holder = targetHolder
+
         -- 事件：本單位專屬 frame（RegisterUnitEvent 綁 unit）；預覽孿生不接真實事件
         local ev = not uf.isPreview and CreateFrame("Frame")
         if ev then
@@ -494,6 +577,8 @@ local function Build(uf, edb)
         -- 停在 StartDisplay 那一刻讀到的狀態——而這正是打斷職業最需要看的那一格資訊
         RegUnit("UNIT_SPELLCAST_INTERRUPTIBLE")
         RegUnit("UNIT_SPELLCAST_NOT_INTERRUPTIBLE")
+        -- 施法者中途換目標 → 施法目標文字要跟上（C4）
+        RegUnit("UNIT_TARGET")
         ev:SetScript("OnEvent", function(_, event, evUnit, arg2, arg3, arg4, arg5)
             if evUnit ~= f.unit then return end   -- f.unit 會被 setunit 換成 vehicle
             if not uf:IsVisible() then return end
@@ -503,6 +588,9 @@ local function Build(uf, edb)
             elseif event == "UNIT_SPELLCAST_DELAYED" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE"
                 or event == "UNIT_SPELLCAST_EMPOWER_UPDATE" then
                 ResyncTiming(f)
+            elseif event == "UNIT_TARGET" then
+                -- 施法中才有意義；castState 3（淡出）不更新
+                if f.castState == 1 or f.castState == 2 then UpdateCastTarget(f) end
             elseif event == "UNIT_SPELLCAST_INTERRUPTIBLE"
                 or event == "UNIT_SPELLCAST_NOT_INTERRUPTIBLE" then
                 -- 只在施法／引導中理會（castState 3 是淡出中，nil 是沒在施法）
@@ -608,9 +696,13 @@ local function Build(uf, edb)
     f.shield:SetAllPoints(f.shieldFrame)
     Media.SetShieldTexture(f.shield, edb.shieldStyle)
 
+    f.showCastTarget = edb.showCastTarget and true or false
+    f.showInterruptReady = edb.showInterruptReady and true or false
     f.textOverlay:SetFrameLevel(lvl + 3)
     ApplyTextStyle(f.spellText, edb.spell or {}, f)
     ApplyTextStyle(f.timeText, edb.time or {}, f)
+    ApplyTextStyle(f.targetText, edb.castTarget or {}, f)
+    if not f.showCastTarget then f.targetText:SetText("") end
 
     -- 火花：跟著填充前緣跑。錨點一定要在 SetStatusBarTexture 之後才下（見建立處的說明），
     -- 而且**每次 build 都要重下**——換材質時 statusbar 貼圖物件可能被換掉，
