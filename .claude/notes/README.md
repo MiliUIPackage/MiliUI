@@ -52,6 +52,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 |---|---|
 | [wow-settings-canvas-onrefresh.md](wow-settings-canvas-onrefresh.md) | Settings canvas 面板的勾選框有時全空白 —— OnShow 不一定觸發，官方鉤子是 `frame.OnRefresh` |
 | [wow-setpoint-nil-relativeto.md](wow-setpoint-nil-relativeto.md) | `SetPoint` 的 relativeTo 傳 nil 會靜默退成父層；`GetStatusBarTexture()` 在設材質前回 nil |
+| [wow-vehicle-token-timing.md](wow-vehicle-token-timing.md) | `"vehicle"` 在還沒有資料之前就解得出來；`UNIT_PET` 才是重讀點，缺它整趟車顯示「未知目標」 |
 
 ### 工作現況
 | 檔案 | 內容 |

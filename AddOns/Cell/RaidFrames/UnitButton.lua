@@ -2836,15 +2836,31 @@ local function UnitButton_UpdateVehicleStatus(self)
     local unit = self.states.unit
     if not unit then return end
 
+    local displayedUnit
     if UnitHasVehicleUI(unit) then -- or UnitInVehicle(unit) or UnitUsingVehicle(unit) then
-        self.states.inVehicle = true
         if unit == "player" then
-            self.states.displayedUnit = "vehicle"
+            displayedUnit = "vehicle"
         else
             -- local prefix, id, suffix = strmatch(unit, "([^%d]+)([%d]*)(.*)")
             local prefix, id = strmatch(unit, "([^%d]+)([%d]*)")
-            self.states.displayedUnit = prefix .. "pet" .. (id or "")
+            displayedUnit = prefix .. "pet" .. (id or "")
         end
+
+        -- ⚠ Do not adopt a token that does not resolve YET. UNIT_ENTERED_VEHICLE fires at the
+        -- START of the transition: "vehicle" is already a valid token by then, but it carries
+        -- no data, so the name reads UNKNOWNOBJECT ("未知目標") and every health read lands on
+        -- nothing. Adopting it there is sticky, too -- UpdateAll only re-runs when something
+        -- sets _updateRequired, so the frame stayed wrong for the whole ride.
+        --
+        -- Stay on the real unit instead and let the UNIT_PET retry (the vehicle rides in the
+        -- pet slot) pick it up once it exists. Same lesson as MiliUI_UnitFrames' EvalActiveUnit
+        -- -- see the comment on the UNIT_PET branch in UnitButton_OnEvent.
+        if not UnitExists(displayedUnit) then displayedUnit = nil end
+    end
+
+    if displayedUnit then
+        self.states.inVehicle = true
+        self.states.displayedUnit = displayedUnit
         self.indicators.nameText:UpdateVehicleName()
     else
         self.states.inVehicle = nil
@@ -3132,6 +3148,7 @@ local function UnitButton_RegisterEvents(self)
     self:RegisterEvent("UNIT_THREAT_LIST_UPDATE")
     self:RegisterEvent("UNIT_ENTERED_VEHICLE")
     self:RegisterEvent("UNIT_EXITED_VEHICLE")
+    self:RegisterEvent("UNIT_PET") -- the vehicle rides in the pet slot; see UnitButton_OnEvent
 
     self:RegisterEvent("INCOMING_SUMMON_CHANGED")
     self:RegisterEvent("UNIT_FLAGS") -- afk
@@ -3197,8 +3214,30 @@ local function UnitButton_OnEvent(self, event, unit, arg)
             self._updateRequired = 1
             self._powerUpdateRequired = 1
 
+        elseif event == "UNIT_PET" then
+            -- The retry that makes the vehicle actually land. UNIT_ENTERED_VEHICLE fires at the
+            -- start of the transition, when "vehicle" / "<unit>pet" resolves as a token but has
+            -- no data behind it; UNIT_PET is what fires once the vehicle materialises in the pet
+            -- slot. Without it nothing ever re-reads, and the row kept the name and health it
+            -- saw mid-transition -- the "未知目標 + wrong health while in a vehicle" report.
+            -- (MiliUI_UnitFrames watches exactly these three events for the same reason.)
+            --
+            -- Gated on the vehicle state so an ordinary pet summon does not drag every owner's
+            -- button through a full UpdateAll: UnitHasVehicleUI is already true by this point
+            -- when we are entering, and inVehicle covers the leaving side.
+            if self.states.inVehicle or (self.states.unit and UnitHasVehicleUI(self.states.unit)) then
+                self._updateRequired = 1
+                self._powerUpdateRequired = 1
+            end
+
         elseif event == "UNIT_NAME_UPDATE" then
             UnitButton_UpdateName(self)
+            -- The vehicle line is UnitName(displayedUnit), and this event is registered
+            -- precisely for names that arrive as UNKNOWNOBJECT and resolve later. Nothing else
+            -- re-reads it, so without this the vehicle label keeps whatever it first saw.
+            if self.states.inVehicle then
+                self.indicators.nameText:UpdateVehicleName()
+            end
             UnitButton_UpdateNameTextColor(self)
             UnitButton_UpdateHealthColor(self)
             UnitButton_UpdateHealthTextColor(self)
