@@ -287,7 +287,15 @@ function DB.BuildDefaults()
                     hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 20, level = 4,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,
-                              showHealPrediction = false, showAbsorb = false },
+                              -- 治療預估仍然關著（跟護盾是不同的勾選）
+                              showHealPrediction = false,
+                              -- 護盾：全部單位一致（疊加層只對 cache.assist 的單位畫，
+                              -- 敵人身上本來就不會出現，開著不會多花什麼）
+                              showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,
+                              showOvershield = true, overshieldGlowReverse = false,
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 120, h = 10, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barAlpha = 0.4, bgAlpha = 0.6, border = true },
@@ -318,7 +326,15 @@ function DB.BuildDefaults()
                     hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 20, level = 5,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,      -- 跟目標框同款（0.4）
-                              showHealPrediction = false, showAbsorb = false },
+                              -- 治療預估仍然關著（跟護盾是不同的勾選）
+                              showHealPrediction = false,
+                              -- 護盾：全部單位一致（疊加層只對 cache.assist 的單位畫，
+                              -- 敵人身上本來就不會出現，開著不會多花什麼）
+                              showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,
+                              showOvershield = true, overshieldGlowReverse = false,
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 120, h = 10, level = 5,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barAlpha = 1, bgAlpha = 1, border = true },
@@ -352,7 +368,15 @@ function DB.BuildDefaults()
                     hpbar = { enabled = true, x = 0, y = 0, w = 70, h = 20, level = 4,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,
-                              showHealPrediction = false, showAbsorb = false },
+                              -- 治療預估仍然關著（跟護盾是不同的勾選）
+                              showHealPrediction = false,
+                              -- 護盾：全部單位一致（疊加層只對 cache.assist 的單位畫，
+                              -- 敵人身上本來就不會出現，開著不會多花什麼）
+                              showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,
+                              showOvershield = true, overshieldGlowReverse = false,
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 70, h = 10, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barAlpha = 1, bgAlpha = 0.6, border = true },
