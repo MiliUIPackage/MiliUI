@@ -234,10 +234,9 @@ function DB.BuildDefaults()
                               status     = { enabled = true,  x = -8, y = 10, w = 14, h = 14, level = 10 },
                               leader     = { enabled = true,  x = 7,  y = 10, w = 12, h = 12, level = 10 },
                               pvp        = { enabled = false, x = 176, y = -12, w = 28, h = 28, level = 10 } },
-                    -- 觀察按鈕：點下去開觀察視窗。位置沿用舊版面（框右上角外側）。
-                    -- 預設用自己畫的圓底問號：它不吃任何 atlas／圖示檔，改版拿不掉
+                    -- 觀察按鈕：點下去開觀察視窗。位置沿用舊版面（框右上角外側）
                     inspect = { enabled = true, x = 186, y = 5, w = 25, h = 25, level = 8, alpha = 1,
-                                style = "round", border = true, bgColor = black(0.6),
+                                style = "inspector", border = true, bgColor = black(0.6),
                                 iconPadding = 2 },
                 },
             },
@@ -486,6 +485,18 @@ function DB.Migrate(db)
             db.profiles = db.profiles or {}
             db.profiles[DB.DEFAULT_PROFILE] = { global = db.global, units = db.units }
             db.global, db.units = nil, nil
+        end
+    end
+
+    -- v3：觀察按鈕的圖示改用自製圖，樣式代號跟著換名。
+    -- 暴雪的 atlas 在 Midnight 被拿掉了（微型選單重畫），留著舊值只會退成備援圖示。
+    if db.schemaVersion < 3 then
+        local RENAME = { character = "inspector", magnifier = "glass", question = "round" }
+        for _, profile in pairs(db.profiles or {}) do
+            for _, udb in pairs(type(profile) == "table" and profile.units or {}) do
+                local e = type(udb) == "table" and type(udb.elements) == "table" and udb.elements.inspect
+                if type(e) == "table" and RENAME[e.style] then e.style = RENAME[e.style] end
+            end
         end
     end
 end

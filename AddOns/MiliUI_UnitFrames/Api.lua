@@ -158,16 +158,9 @@ local function Debug()
             SafeStr(idb and idb.enabled), SafeStr(idb and idb.style),
             SafeStr(idb and idb.w), SafeStr(idb and idb.h),
             SafeStr(idb and idb.x), SafeStr(idb and idb.y)))
-        -- 每款樣式的 atlas 候選逐一報到：改版把某張拿掉時，一眼看得出是退到哪一層
-        for _, style in ipairs({ "character", "magnifier" }) do
-            local def = ns.INSPECT_STYLE_DEFS and ns.INSPECT_STYLE_DEFS[style]
-            for _, atlas in ipairs(def and def.atlases or {}) do
-                p(("   [%s] atlas %s：%s"):format(style, atlas,
-                    C_Texture.GetAtlasInfo(atlas) and "|cff44ff44有|r" or "沒有"))
-            end
-            local picked = def and ns.INSPECT_PICK_ATLAS and ns.INSPECT_PICK_ATLAS(def)
-            p(("   [%s] 實際用："):format(style) ..
-              (picked and ("atlas " .. picked) or ("|cffff5555圖示檔 " .. SafeStr(def and def.texture) .. "|r")))
+        -- 圖檔樣式各自的來源（圓底問號沒有圖檔，整顆是畫的）
+        for style, def in pairs(ns.INSPECT_STYLE_DEFS or {}) do
+            p(("   [%s] 圖檔 %s"):format(style, SafeStr(def.texture)))
         end
         local function DumpButton(tag, btn)
             if not btn then p("   " .. tag .. "：沒生成"); return end

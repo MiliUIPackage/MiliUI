@@ -17,64 +17,41 @@ local Media = ns.Media
 ------------------------------------------------------------
 -- 圖示樣式
 --
--- atlas 名字會被改版拿掉（實測 Midnight 已經沒有 UI-HUD-MicroMenu-CharacterInfo-Up，
--- 微型選單整組重畫過），所以每款列一串候選、由前往後挑第一張這版客戶端真的有的；
--- 全都落空才退回圖示檔——路徑型 icon 十幾年沒動過，當保底最穩。
+-- 一律用自己的圖，**不碰暴雪的 atlas**：實測 Midnight 已經把
+-- UI-HUD-MicroMenu-CharacterInfo-Up 拿掉（微型選單整組重畫過），而 atlas 消失是
+-- 靜默的——畫面上只會變成一張莫名其妙的備援圖示，沒有任何錯誤。
 --
--- 「圓底問號」不吃這張表：它連底都是自己畫的，沒有任何外部資產可以壞掉。
+-- 兩張圖是 Media/inspect-icons.py 產生的（改造型就改那支再跑一次）：
+-- 扁平白 + 套組主色 #4DD2FF 的鏡片，每個形狀都帶深色描邊，貼在 3D 頭像那種
+-- 亮的、花的背景上才撐得住對比。
+--
+-- 「圓底問號」不吃這張表：它連圖都不用，整顆是畫出來的。
 ------------------------------------------------------------
+local MEDIA = "Interface\\AddOns\\MiliUI_UnitFrames\\Media\\"
+
 local STYLE_DEFS = {
-    character = { atlases = { "UI-HUD-MicroMenu-CharacterInfo-Up",
-                              "UI-HUD-MicroMenu-Character-Up",
-                              "hud-microbutton-Character-Up",
-                              "Microbutton_Character_Up" },
-                  texture = "Interface\\Icons\\INV_Chest_Chain_15" },
-    magnifier = { atlases = { "common-search-magnifyingglass" },
-                  texture = "Interface\\Icons\\INV_Misc_Spyglass_03" },
-    question  = { texture = "Interface\\Icons\\INV_Misc_QuestionMark" },
+    inspector = { texture = MEDIA .. "inspect-inspector.png" },
+    glass     = { texture = MEDIA .. "inspect-glass.png" },
 }
-ns.INSPECT_STYLE_DEFS = STYLE_DEFS      -- /muf debug 的探針要列候選
+ns.INSPECT_STYLE_DEFS = STYLE_DEFS      -- /muf debug 的探針要列
 
 -- 設定面板的下拉選單（唯一來源就是這裡）
--- round 不是圖示、是整顆按鈕換一種畫法（見 ApplyRoundLook）
+-- round 不是圖示、是整顆按鈕換一種畫法（見 EnsureRound）
 ns.INSPECT_STYLE_ITEMS = {
-    { text = L["Character info"],     value = "character" },
-    { text = L["Magnifier"],          value = "magnifier" },
-    { text = L["Question mark"],      value = "question" },
+    { text = L["Inspector"],           value = "inspector" },
+    { text = L["Magnifier"],           value = "glass" },
     { text = L["Round question mark"], value = "round" },
 }
 
 -- 圓形遮罩：暴雪內建，本包好幾支插件都在用，12.x 確定還在
 local CIRCLE_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 
-local atlasCache = {}
-local function HasAtlas(name)
-    local v = atlasCache[name]
-    if v == nil then
-        v = (C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(name)) and true or false
-        atlasCache[name] = v
-    end
-    return v
-end
-
-local function PickAtlas(def)
-    for _, name in ipairs(def.atlases or {}) do
-        if HasAtlas(name) then return name end
-    end
-end
-ns.INSPECT_PICK_ATLAS = PickAtlas
-
--- atlas 分支不要自己設 texcoord（SetAtlas 會連 texcoord 一起換）；
--- 圖示檔分支才裁掉四周那圈留白
+-- 自己的圖四周留白是畫進去的，不要再裁 texcoord（那是給暴雪 icon 檔用的，
+-- 它們四邊各有一圈邊框留白）；明寫 0,1 是為了洗掉舊版本留下的裁切
 local function ApplyIcon(tex, style)
-    local def = STYLE_DEFS[style] or STYLE_DEFS.character
-    local atlas = PickAtlas(def)
-    if atlas then
-        tex:SetAtlas(atlas)
-    else
-        tex:SetTexture(def.texture)
-        tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    end
+    local def = STYLE_DEFS[style] or STYLE_DEFS.inspector
+    tex:SetTexture(def.texture)
+    tex:SetTexCoord(0, 1, 0, 1)
 end
 
 ------------------------------------------------------------
