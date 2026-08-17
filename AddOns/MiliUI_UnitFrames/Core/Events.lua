@@ -38,7 +38,11 @@ local UNIT_EVENT_BUCKET = {
     UNIT_CLASSIFICATION_CHANGED = "info",
     UNIT_FACTION = "reaction",
     UNIT_FLAGS = "reaction",
-    UNIT_MODEL_CHANGED = "portrait",
+    -- ⚠ 這兩個語意不同，不可以合併：
+    --   model    模型真的換了（變身／幻化／變形術）→ 3D 要重載
+    --   portrait 頭像貼圖該更新（主要是 2D 那條路）→ 3D **不可以**重載，
+    --            這個事件在戰鬥中會反覆來，每次重載就是肉眼可見的閃爍
+    UNIT_MODEL_CHANGED = "model",
     UNIT_PORTRAIT_UPDATE = "portrait",
 }
 

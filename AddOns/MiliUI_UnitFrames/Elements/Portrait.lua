@@ -178,9 +178,14 @@ local function Update(uf, edb, bucket)
     local f = uf.elements.portrait
     if not f then return end
     local unit = uf.isPreview and "player" or uf.unit
-    -- portrait 桶＝UNIT_MODEL_CHANGED / UNIT_PORTRAIT_UPDATE，意思就是「同一個單位
-    -- 換了模型」（變身、幻化、變形術）。GUID 沒變，不主動清 key 會被重載擋板擋掉
-    if bucket == "portrait" then f.modelKey = nil end
+    -- ⚠ UNIT_MODEL_CHANGED **不是**「模型換了」的可靠訊號：實測增強薩滿在戰鬥中
+    -- 每幾秒就來一次（武器附魔／光效那類純視覺變化也會推它）。而任何一次
+    -- SetUnit 都會讓模型重新串流、空一兩幀 ⇒ 肉眼可見的閃爍。
+    --   戰鬥外  照樣強制重載：換裝／幻化才吃得到，站著偶爾閃一下沒人在意
+    --   戰鬥中  完全不碰模型，交給下面的 key 比對。玩家的變身有算進 key，
+    --           所以變身照樣會換模型（那一次閃是應該的，模型真的變了）
+    -- UNIT_PORTRAIT_UPDATE（portrait 桶）在 3D 模式下沒事要做，一律不清 key。
+    if bucket == "model" and not InCombatLockdown() then f.modelKey = nil end
 
     if edb.mode == "3d" then
         -- ⚠ PlayerModel 在**隱藏時會丟掉模型**（EUI 實地追出來的：載入畫面隱藏框架後，
@@ -211,10 +216,20 @@ local function Update(uf, edb, bucket)
             key = "e" .. ejID
         else
             local guid = UnitGUID(unit)
-            if guid ~= nil and not ns.IsSecret(guid) then key = guid end
+            if guid ~= nil and not ns.IsSecret(guid) then
+                key = guid
+                -- 變身（德魯伊型態、幽魂之狼…）不換 GUID，但模型整個不一樣。
+                -- 型態進 key，戰鬥中變身照樣重載，而武器光效那種不會。
+                if uf.baseUnit == "player" and GetShapeshiftFormID then
+                    key = key .. ":" .. tostring(GetShapeshiftFormID())
+                end
+            end
         end
         if key and key == f.modelKey then
-            -- 模型已經在上面了，只重套鏡頭參數（設定可能剛改過）
+            -- 模型已經在上面了，只重套鏡頭參數（設定可能剛改過）。
+            -- ⚠ 這裡**絕對不要**再呼叫 SetUnit「順便刷新一下」。試過了：即使不做
+            -- ClearModel，光是 SetUnit 到同一個單位也會讓模型重新串流、空一兩幀
+            -- ⇒ 一樣閃。想避免閃就只有一條路：不要碰模型。
             pcall(f.model.SetPortraitZoom, f.model, f.zoom or 1)
             pcall(f.model.SetRotation, f.model, f.rotation or 0)
             pcall(f.model.SetPosition, f.model, 0, f.modelX or 0, f.modelY or 0)
@@ -243,13 +258,18 @@ local function Update(uf, edb, bucket)
             end
         end
 
+        f.modelReloads = (f.modelReloads or 0) + 1     -- /muf debug 用：閃爍＝這個數字一直跳
+        f.modelLastBucket = bucket
+
         if ok then
-            -- ⚠ 只有模型**真的載進來**才記 key。資源還在串流時 SetUnit 會回成功但模型
-            -- 是空的（登入當下就是這樣）——這時把 key 記下去，後面每次刷新都會被上面
-            -- 那個擋板短路，連 HealBlankModels 都補不回來，頭像就一直空到重開設定。
-            -- 沒載到就留 nil，行為退回「每次刷新都重試」，跟加擋板之前一樣。
-            local fid = f.model.GetModelFileID and f.model:GetModelFileID()
-            f.modelKey = (fid ~= nil) and key or nil
+            -- ⚠ 這裡**無條件**記 key，曾經加過「GetModelFileID 非 nil 才記」的閘，拿掉了。
+            -- 理由不是那個 API 壞掉——實測 SetUnit 的模型回得出 fileID（/muf debug 看得到）
+            -- ——而是：
+            --   1. 多餘。「SetUnit 回成功但模型還在串流」那個情境（登入當下）本來就由
+            --      HealBlankModels 收，它會先清 key 再重畫，PEW 後 1 秒的計時器夠可靠。
+            --   2. 有反效果的風險。首領框走 SetDisplayInfo，那條路回不回得出 fileID
+            --      沒驗證過；若回 nil，加了閘就永遠 latch 不上 → 每次刷新都重載。
+            f.modelKey = key
             pcall(f.model.SetPortraitZoom, f.model, f.zoom or 1)
             pcall(f.model.SetRotation, f.model, f.rotation or 0)
             pcall(f.model.SetPosition, f.model, 0, f.modelX or 0, f.modelY or 0)
@@ -281,7 +301,7 @@ end
 ns.RegisterElement{
     name = "portrait",
     order = 10,
-    buckets = { "portrait" },   -- UNIT_MODEL_CHANGED / UNIT_PORTRAIT_UPDATE；換人另走 unitchanged
+    buckets = { "portrait", "model" },   -- 換人另走 unitchanged
     build = Build,
     update = Update,
 }

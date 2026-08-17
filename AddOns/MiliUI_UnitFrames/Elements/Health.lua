@@ -42,6 +42,10 @@ local function EnsureOverlayBar(f, key, level)
     if f[key] then return f[key] end
     local bar = CreateFrame("StatusBar", nil, f)
     bar:SetFrameLevel(level)
+    -- ⚠ 新建的 StatusBar 預設是「顯示中、min0 max1 value1」＝整條滿格。
+    -- 沒有人主動 Hide 的話，還沒被賦值就會整片蓋在扣血區上（預覽的治療預估就是
+    -- 這樣把扣血區染成另一個顏色的）。建立當下先藏起來，要顯示的人自己 Show。
+    bar:Hide()
     f[key] = bar
     return bar
 end
@@ -298,6 +302,11 @@ local function Update(uf, edb, bucket)
         end
         if edb.showHealAbsorb and f.healAbsorbBar then
             f.healAbsorbBar:SetMinMaxValues(0, 100); f.healAbsorbBar:SetValue(8); f.healAbsorbBar:Show()
+        end
+        -- 治療預估：從血量前緣往右長，示範用短短一截就好（太長會把整個扣血區蓋掉，
+        -- 看起來像扣血區換了顏色）
+        if edb.showHealPrediction and f.incbar then
+            f.incbar:SetMinMaxValues(0, 100); f.incbar:SetValue(12); f.incbar:Show()
         end
     else
         local calc = uf.hpCalc
