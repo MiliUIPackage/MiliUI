@@ -41,26 +41,21 @@ local frame          -- MiliUIUF_Totem
 local slots = {}     -- [i] = { btn, icon, bar, cd, duo, active }
 
 ------------------------------------------------------------
--- 倒數：整條路交給引擎，插件一次都不讀值
+-- 倒數：交給引擎（duration 物件），插件一次都不讀值
 --
--- ⚠⚠ **戰鬥中 GetTotemInfo 的 start/duration 是秘密值**，Lua 算不動
--- （`start + dur - GetTime()` 直接拋錯）—— 這就是「戰鬥中召喚物沒有時間」的成因。
--- 暴雪自己的 TotemFrame 是在 Lua 裡算的（`math.ceil(GetTotemTimeLeft(slot))`），
--- 但那是 untainted 程式，讀得到秘密值；插件走不了那條路。
+-- **戰鬥外**：`C_DurationUtil.CreateDuration()` 建一顆（每格一顆重複使用），
+-- `duo:SetTimeFromStart(start, duration, modRate)` 寫進去，再交給
+-- `StatusBar:SetTimerDuration` 與 `Cooldown:SetCooldownFromDurationObject`。
+-- 進度條與倒數數字全部由引擎跑 —— 所以不必自己輪詢（0.25 秒的 ticker 已經拿掉），
+-- 「時間到了」也改吃 `OnCooldownDone`。本機 Ayije_CDM 的飾品／自訂 buff 同一套。
 --
--- 正解是 **duration 物件**：
---   1. `C_DurationUtil.CreateDuration()` 建一顆（每格一顆，重複使用）
---   2. `duo:SetTimeFromStart(start, duration, modRate)` **寫進去** —— C 端 setter，吃秘密值
---   3. 交給 `StatusBar:SetTimerDuration` 與 `Cooldown:SetCooldownFromDurationObject`，
---      進度條與倒數數字全部由引擎驅動
--- 本機 Ayije_CDM 的飾品／自訂 buff 就是這一套。
+-- **戰鬥中**：start/duration 變成秘密值，而上面那個 setter 會被拒
+-- （見 ArmTimer 裡的實測錯誤訊息）。這條路走不通，也沒有別條 —— 時間軌整條不畫。
 --
--- ⚠ **絕對不要把它讀回來**：`duo:IsZero()`、`GetTotalDuration()` 這類 getter 回的是
--- 秘密值，一做布林測試就炸。Plumber 的 CooldownUtil 把這整段註解掉並標
--- 「Unusable in combat」，踩到的正是 `IsZero()` 那一下，**不是** SetTimeFromStart。
---
--- 因為值不再由我們推算，「時間到了」也改吃引擎的 OnCooldownDone，
--- 不需要自己輪詢（原本 0.25 秒的 ticker 整個拿掉了）。
+-- ⚠ 另外一個獨立的坑：**不要把 duration 物件讀回來**。`duo:IsZero()`、
+-- `GetTotalDuration()` 這類 getter 回的是秘密值，一做布林測試就炸。
+-- Plumber 的 CooldownUtil 把整段註解掉並標「Unusable in combat」，踩的是這個。
+-- （寫入被拒是另一回事，兩個都要避開。）
 ------------------------------------------------------------
 local TIMER_DIR = Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.RemainingTime
 
@@ -135,7 +130,7 @@ local function CreateSlot(i)
 
     btn:Hide()
 
-    local slot = { btn = btn, icon = icon, bar = bar, cd = cd }
+    local slot = { btn = btn, icon = icon, bar = bar, barBG = barBG, cd = cd }
     -- 每格一顆 duration 物件，重複使用（只寫不讀，見檔案上方的說明）
     if C_DurationUtil and C_DurationUtil.CreateDuration then
         local ok, duo = pcall(C_DurationUtil.CreateDuration)
@@ -193,29 +188,45 @@ end
 local function ArmTimer(slot, startTime, duration, modRate)
     local duo = slot.duo
     if not (duo and duo.SetTimeFromStart) then
-        -- 沒有 duration 物件（理論上 12.1 一定有）：退回滿條、無數字，
-        -- 靠 PLAYER_TOTEM_UPDATE 收。這是舊行為，不會更糟。
-        slot.bar:SetMinMaxValues(0, 1)
-        slot.bar:SetValue(1)
-        if slot.cd then slot.cd:Clear() end
-        return
-    end
-    -- ⚠⚠ 實測（2026-08-18 戰鬥中）：**SetTimeFromStart 不吃秘密值**，這裡會失敗。
-    -- duration 物件本身撐得住秘密計時（UnitCastingDuration 回的那種就是），
-    -- 但那是引擎在自己那邊用明文建的；從 Lua 餵秘密值進去建一顆是不行的。
-    -- 所以戰鬥中的召喚物倒數目前**無解**，只能退回舊行為。
-    local ok, err = pcall(duo.SetTimeFromStart, duo, startTime, duration, modRate)
-    slot.dbgSet, slot.dbgErr = ok, (not ok) and tostring(err) or nil
-    if not ok then
-        -- 退回舊行為：滿條、無數字，靠 PLAYER_TOTEM_UPDATE 收。
-        -- ⚠ 一定要明確填滿 —— 不填的話會停在上一次的值（實測是空條），
-        -- 那比「滿條」還糟：看起來像圖騰已經到期了
-        slot.bar:SetMinMaxValues(0, 1)
-        slot.bar:SetValue(1)
+        -- 沒有 duration 物件（理論上 12.1 一定有）：跟下面拿不到時間時一樣，
+        -- 整條時間軌都不畫
+        slot.bar:Hide()
+        slot.barBG:Hide()
         if slot.cd then pcall(slot.cd.Clear, slot.cd) end
         slot.numbersOn = false
         return
     end
+    ------------------------------------------------------------
+    -- ⚠⚠ 戰鬥中這裡**一定會失敗**，而且是暴雪刻意擋的。實測錯誤訊息：
+    --
+    --   Usage: self:SetCooldown(start, duration [, modRate]).
+    --   Secret values are only allowed during untainted execution for this argument.
+    --
+    -- `SetTimeFromStart` 與 `Cooldown:SetCooldown` 兩個 C 端 setter 都一樣。
+    -- duration 物件**撐得住**秘密計時（`UnitCastingDuration` 回的那種就是，施法條靠它），
+    -- 但那是引擎在自己那邊用明文建的 —— 從 Lua 餵秘密值進去建一顆是被禁止的。
+    -- 而 `GetTotemInfo` 沒有 duration 物件版本（沒有 C_Totem、沒有 GetTotemDuration）。
+    --
+    -- ⇒ **戰鬥中的召喚物倒數，以目前的 API 無解。** 暴雪自己的 TotemFrame 做得到
+    --   純粹因為它 untainted（它在 Lua 裡算 `math.ceil(GetTotemTimeLeft(slot))`）。
+    --   詳見筆記 wow-121-duration-objects，不要再花時間找路了。
+    ------------------------------------------------------------
+    local ok, err = pcall(duo.SetTimeFromStart, duo, startTime, duration, modRate)
+    slot.dbgSet, slot.dbgErr = ok, (not ok) and tostring(err) or nil
+    if not ok then
+        -- 拿不到時間就**整條時間軌都不畫**。
+        -- 試過的兩種都比這個糟：
+        --   空條  看起來像圖騰已經到期
+        --   滿條  戰鬥外條走到一半、一進戰鬥跳回滿格，比沒有還誤導
+        -- 沒有軌道 = 沒有資訊，至少是誠實的；圖示還在，你知道圖騰存在。
+        slot.bar:Hide()
+        slot.barBG:Hide()
+        if slot.cd then pcall(slot.cd.Clear, slot.cd) end
+        slot.numbersOn = false
+        return
+    end
+    slot.bar:Show()
+    slot.barBG:Show()
     slot.dbgBar, slot.dbgCd = false, false
     if slot.bar.SetTimerDuration and TIMER_DIR then
         slot.bar:SetMinMaxValues(0, 1)
