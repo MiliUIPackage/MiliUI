@@ -110,10 +110,79 @@ Comm:RegisterComm("CELL_VERSION", function(prefix, message, channel, sender)
     local myVersion = tonumber(string.match(Cell.version, "%d+"))
     if (not CellDB["lastVersionCheck"] or time()-CellDB["lastVersionCheck"]>=25200) and version and myVersion and myVersion < version then
         CellDB["lastVersionCheck"] = time()
-        -- MiliUI: 停用新版本聊天通知，版本比對照常進行
+        -- MiliUI: no notice from stock Cell's numbers. This build stopped tracking upstream's
+        -- release line, so "their r290 > our r288" says nothing about whether a MiliUI update
+        -- exists -- it would fire constantly and point at the wrong download. MiliUI builds
+        -- remind each other on their own prefix instead (below).
         -- F.Print(L["New version found (%s). Please visit %s to get the latest version."]:format(message, "|cFF00CCFFhttps://www.curseforge.com/wow/addons/cell|r"))
     end
 end)
+
+-----------------------------------------
+-- MiliUI build-to-build version reminder
+--
+-- Deliberately NOT on CELL_VERSION: stock Cell pulls the digits out of whatever arrives
+-- there, so broadcasting "r288-MiliUI" would tell every stock user that a version which does
+-- not exist on CurseForge is available, and point them at a download page for it. A private
+-- prefix keeps the conversation to builds that understand it and leaves stock Cell's own
+-- handshake completely untouched.
+--
+-- Self-contained on purpose: reads Cell's own TOC, touches nothing from the MiliUI addon. A
+-- Cell lifted out of the pack on its own still reminds other MiliUI Cell users.
+--
+-- ⚠ The digits come from Cell.version ("rNNN-MiliUI"), which until now was only bumped to
+-- gate Revise migrations. Making it a release signal means it has to be bumped on every
+-- shipped Cell change, migration or not -- otherwise this stays silent with no error.
+-----------------------------------------
+local MILIUI_VER_PREFIX = "CELL_MILIUI_VER" -- 15 chars; the addon-message prefix cap is 16
+local MILIUI_VER_URL = "|cFF00CCFFhttps://github.com/MiliUIPackage/MiliUI|r"
+local MILIUI_VER_SEND_THROTTLE = 30
+
+-- ⚠ Read the TOC directly, NOT Cell.version. Cell.version is assigned inside Core.lua's
+-- ADDON_LOADED handler, which runs long after this file is parsed -- reading it here would
+-- see nil, isMiliUIBuild would be false, and the whole feature would silently never install.
+-- The TOC metadata is available from the moment the addon loads, and going straight to it
+-- also keeps this block independent of Core.lua's init order entirely.
+local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+local tocVersion = GetAddOnMetadata and GetAddOnMetadata("Cell", "Version")
+local isMiliUIBuild = type(tocVersion) == "string" and strfind(tocVersion, "MiliUI", 1, true) ~= nil
+local myMiliUIVersion = isMiliUIBuild and tonumber(string.match(tocVersion, "%d+")) or nil
+
+if myMiliUIVersion then
+    local notified = false -- once per session; a repeated nag is worse than a missed one
+    local lastSend, sendPending = 0, false
+
+    local function SendMiliUIVersion()
+        sendPending = false
+        if not IsInGroup() then return end
+        if IsCommRestricted() then return end
+        local now = GetTime()
+        if now - lastSend < MILIUI_VER_SEND_THROTTLE then return end
+        lastSend = now
+        UpdateSendChannel()
+        Comm:SendCommMessage(MILIUI_VER_PREFIX, tostring(myMiliUIVersion), sendChannel)
+    end
+
+    local verFrame = CreateFrame("Frame")
+    verFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    verFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+    verFrame:SetScript("OnEvent", function()
+        -- Roster churn fires this repeatedly; collapse to one delayed send instead of
+        -- queueing a timer per event. The delay also lets the group settle after a join.
+        if sendPending then return end
+        sendPending = true
+        C_Timer.After(5, SendMiliUIVersion)
+    end)
+
+    Comm:RegisterComm(MILIUI_VER_PREFIX, function(prefix, message, channel, sender)
+        if notified then return end
+        local theirs = tonumber(message)
+        if not theirs or theirs <= myMiliUIVersion then return end
+        notified = true
+        F.Print(L["New version found (%s). Please visit %s to get the latest version."]
+            :format("r" .. theirs .. "-MiliUI", MILIUI_VER_URL))
+    end)
+end
 
 -----------------------------------------
 -- Notify Marks
