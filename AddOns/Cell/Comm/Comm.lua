@@ -83,7 +83,7 @@ end)
 --
 -- The version handshake exists to tell other Cell users "a newer release is out, go get it
 -- from CurseForge". A fork cannot make that claim honestly: `Cell.version` here is
--- "rNNN-MiliUI", and the number in it is bumped locally just to gate Revise migrations --
+-- "rNNN_MiliUI", and the number in it is bumped locally just to gate Revise migrations --
 -- it is not a point on upstream's release line at all. Stock Cell receivers only parse the
 -- digits, so every guildmate and party member running the real addon would be told to
 -- update to a version that does not exist, and be pointed at a download page for it.
@@ -122,7 +122,7 @@ end)
 -- MiliUI build-to-build version reminder
 --
 -- Deliberately NOT on CELL_VERSION: stock Cell pulls the digits out of whatever arrives
--- there, so broadcasting "r288-MiliUI" would tell every stock user that a version which does
+-- there, so broadcasting "r290_MiliUI" would tell every stock user that a version which does
 -- not exist on CurseForge is available, and point them at a download page for it. A private
 -- prefix keeps the conversation to builds that understand it and leaves stock Cell's own
 -- handshake completely untouched.
@@ -130,7 +130,7 @@ end)
 -- Self-contained on purpose: reads Cell's own TOC, touches nothing from the MiliUI addon. A
 -- Cell lifted out of the pack on its own still reminds other MiliUI Cell users.
 --
--- ⚠ The digits come from Cell.version ("rNNN-MiliUI"), which until now was only bumped to
+-- ⚠ The digits come from Cell.version ("rNNN_MiliUI"), which until now was only bumped to
 -- gate Revise migrations. Making it a release signal means it has to be bumped on every
 -- shipped Cell change, migration or not -- otherwise this stays silent with no error.
 -----------------------------------------
@@ -180,7 +180,7 @@ if myMiliUIVersion then
         if not theirs or theirs <= myMiliUIVersion then return end
         notified = true
         F.Print(L["New version found (%s). Please visit %s to get the latest version."]
-            :format("r" .. theirs .. "-MiliUI", MILIUI_VER_URL))
+            :format("r" .. theirs .. "_MiliUI", MILIUI_VER_URL))
     end)
 end
 
