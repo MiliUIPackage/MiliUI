@@ -64,32 +64,6 @@ local importRegistry = {
             return true
         end,
     },
-    {
-        name = "Stuf",
-        desc = "頭像插件",
-        addonName = "Stuf",
-        dataCheck = function()
-            return MiliUI_BuildStufDefaults ~= nil
-        end,
-        import = function()
-            if not MiliUI_BuildStufDefaults then return false, "MiliUI 預設值資料不存在" end
-            local defaults = MiliUI_BuildStufDefaults()
-            if not defaults then return false, "無法產生預設值" end
-
-            -- 直接覆寫 StufDB
-            if not StufDB then StufDB = {} end
-            for unit, data in pairs(defaults) do
-                StufDB[unit] = CopyTable(data)
-            end
-
-            -- 補上 init 標記，避免 Stuf 再次觸發 LoadDefaults
-            if StufDB.global then
-                StufDB.global.init = 9
-            end
-
-            return true
-        end,
-    },
     --[[
     {
         name = "SenseiClassResourceBar",
@@ -782,6 +756,49 @@ local function InitSettings()
     SyncDeselectDropdown()
     enhanceCanvas:HookScript("OnShow", SyncDeselectDropdown)
 
+    -- ===== 舊插件相容區塊 =====
+    local legacyDivider = enhanceFrame:CreateTexture(nil, "ARTWORK")
+    legacyDivider:SetColorTexture(0.3, 0.3, 0.3, 0.5)
+    legacyDivider:SetSize(520, 1)
+    legacyDivider:SetPoint("TOPLEFT", deselectHint, "BOTTOMLEFT", -SUB_INDENT, -20)
+
+    local legacyLabel = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    legacyLabel:SetPoint("TOPLEFT", legacyDivider, "BOTTOMLEFT", 0, -12)
+    legacyLabel:SetText("舊插件相容")
+
+    local legacyCB = CreateFrame("CheckButton", "MiliUI_LegacyAddonsCB", enhanceFrame, "UICheckButtonTemplate")
+    legacyCB:SetPoint("TOPLEFT", legacyLabel, "BOTTOMLEFT", 0, -8)
+    legacyCB.text:SetText("自動停用被套組內建功能取代的舊插件")
+    legacyCB.text:SetFontObject("GameFontHighlight")
+
+    local legacyDesc = enhanceFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    legacyDesc:SetPoint("TOPLEFT", legacyCB, "BOTTOMLEFT", SUB_INDENT, -2)
+    legacyDesc:SetWidth(520)
+    legacyDesc:SetJustifyH("LEFT")
+    legacyDesc:SetText("套組已改用內建的米利頭像框架，不再附帶 Stuf。\n"
+        .. "若 AddOns 資料夾裡還留著舊版的 Stuf / Stuf_Options / Stuf_Range，\n"
+        .. "登入時會自動停用它們，避免兩套頭像重疊。\n"
+        .. "取消勾選則不再自動處理，並把先前停用的插件重新啟用。\n"
+        .. "（其他已從套組移除的插件只會提醒一次，不會被自動停用。）")
+    legacyDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    local function SyncLegacyCheckbox()
+        if not MiliUI_LegacyAddons then
+            legacyCB:Disable()
+            return
+        end
+        legacyCB:SetChecked(MiliUI_LegacyAddons.IsEnabled())
+    end
+    SyncLegacyCheckbox()
+
+    legacyCB:HookScript("OnClick", function(self)
+        local enabled = self:GetChecked() and true or false
+        print("|cff00ff00[MiliUI]|r 自動停用舊插件:", enabled and "開" or "關")
+        if MiliUI_LegacyAddons then
+            MiliUI_LegacyAddons.SetEnabled(enabled)
+        end
+    end)
+
     -- 只掛 OnShow 不夠：從「另一個 canvas 面板」切進來時，暴雪的 canvas 容器已經是
     -- 顯示狀態，DisplayLayout 的 frame:Show() 對已 shown 的框是 no-op → OnShow 整個
     -- 不會觸發，勾選框會停在建立時的狀態。OnRefresh 才是每次顯示都會被呼叫的官方
@@ -790,6 +807,7 @@ local function InitSettings()
     enhanceCanvas.OnRefresh = function()
         SyncCheckboxes()
         SyncDeselectDropdown()
+        SyncLegacyCheckbox()
     end
 
     enhanceCanvas:Hide()

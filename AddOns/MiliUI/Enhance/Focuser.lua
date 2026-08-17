@@ -83,14 +83,7 @@ local defaultFrameNames = {
     "PartyMemberFrame2TargetFrame",
     "PartyMemberFrame3TargetFrame",
     "PartyMemberFrame4TargetFrame",
-    "Stuf.units.player",
-    "Stuf.units.target",
-    "Stuf.units.targettarget",
-    "Stuf.units.focus",
-    "Stuf.units.focustarget",
-    "Stuf.units.pet",
-    "Stuf.units.pettarget",
-    -- MiliUI_UnitFrames（新頭像框架，與 Stuf 並存期間兩邊都掛）
+    -- MiliUI_UnitFrames（米利頭像框架）
     "MiliUIUF_Player",
     "MiliUIUF_Target",
     "MiliUIUF_TargetTarget",

@@ -1,13 +1,13 @@
 ------------------------------------------------------------
--- MiliUI: Ayije_CDM ← Stuf 玩家頭像錨定
--- CDM 內建的 PLAYER_FRAME_CANDIDATES 未包含 Stuf，
--- 導致飾品/防禦/種族技能永遠錨定在 Blizzard 內建頭像。
--- 此腳本 hook CDM.AnchorToPlayerFrame，使其優先使用
--- Stuf 的玩家頭像框架 "Stuf.units.player"。
+-- MiliUI: Ayije_CDM ← 米利頭像框架錨定
+-- CDM 內建的 PLAYER_FRAME_CANDIDATES 只認得幾個常見的頭像插件，
+-- 不包含 MiliUI_UnitFrames，導致飾品/防禦/種族技能永遠錨定在
+-- Blizzard 內建頭像。此腳本 hook CDM.AnchorToPlayerFrame，
+-- 使其優先使用米利頭像框架的玩家框 "MiliUIUF_Player"。
 ------------------------------------------------------------
 
-local STUF_PLAYER_FRAME_NAME = "Stuf.units.player"
-local STUF_EXTRA_GAP = 10  -- 額外間距（像素），避免飾品圖標黏在頭像上
+local PLAYER_FRAME_NAME = "MiliUIUF_Player"
+local EXTRA_GAP = 10  -- 額外間距（像素），避免飾品圖標黏在頭像上
 
 local INVERTED_ANCHORS = {
     TOPLEFT     = "BOTTOMLEFT",
@@ -16,13 +16,8 @@ local INVERTED_ANCHORS = {
     BOTTOMRIGHT = "TOPRIGHT",
 }
 
-local function GetStufPlayerFrame()
-    -- 優先用新頭像框架（MiliUI_UnitFrames），沒有或隱藏時退回 Stuf
-    local newFrame = _G["MiliUIUF_Player"]
-    if newFrame and newFrame.IsShown and newFrame:IsShown() then
-        return newFrame
-    end
-    local frame = _G[STUF_PLAYER_FRAME_NAME]
+local function GetPlayerFrame()
+    local frame = _G[PLAYER_FRAME_NAME]
     if frame and frame.IsShown and frame:IsShown() then
         return frame
     end
@@ -39,13 +34,13 @@ EventUtil.ContinueOnAddOnLoaded("Ayije_CDM", function()
     -- 保存原始函式
     local origAnchorToPlayerFrame = CDM.AnchorToPlayerFrame
 
-    -- 替換 AnchorToPlayerFrame：Stuf 可見時直接錨定到 Stuf
+    -- 替換 AnchorToPlayerFrame：米利頭像可見時直接錨定過去
     CDM.AnchorToPlayerFrame = function(container, anchorPoint, offsetX, offsetY, moduleName, forceRefresh, containerAnchor)
         if not container then return end
 
-        local stufFrame = GetStufPlayerFrame()
-        if not stufFrame then
-            -- Stuf 不可見，走 CDM 原始邏輯（fallback 到 Blizzard 頭像等）
+        local playerFrame = GetPlayerFrame()
+        if not playerFrame then
+            -- 米利頭像不可見，走 CDM 原始邏輯（fallback 到 Blizzard 頭像等）
             return origAnchorToPlayerFrame(container, anchorPoint, offsetX, offsetY, moduleName, forceRefresh, containerAnchor)
         end
 
@@ -53,19 +48,19 @@ EventUtil.ContinueOnAddOnLoaded("Ayije_CDM", function()
         -- 根據錨定方向加上額外間距
         local gapX, gapY = 0, 0
         if anchorPoint == "TOPLEFT" or anchorPoint == "BOTTOMLEFT" then
-            gapX = -STUF_EXTRA_GAP   -- 向左推
+            gapX = -EXTRA_GAP   -- 向左推
         elseif anchorPoint == "TOPRIGHT" or anchorPoint == "BOTTOMRIGHT" then
-            gapX = STUF_EXTRA_GAP    -- 向右推
+            gapX = EXTRA_GAP    -- 向右推
         end
         if anchorPoint == "TOPLEFT" or anchorPoint == "TOPRIGHT" then
-            gapY = STUF_EXTRA_GAP    -- 向上推
+            gapY = EXTRA_GAP    -- 向上推
         elseif anchorPoint == "BOTTOMLEFT" or anchorPoint == "BOTTOMRIGHT" then
-            gapY = -STUF_EXTRA_GAP   -- 向下推
+            gapY = -EXTRA_GAP   -- 向下推
         end
 
         container:ClearAllPoints()
         local cAnchor = containerAnchor or INVERTED_ANCHORS[anchorPoint] or anchorPoint
-        Pixel.SetPoint(container, cAnchor, stufFrame, anchorPoint, offsetX + gapX, offsetY + gapY)
+        Pixel.SetPoint(container, cAnchor, playerFrame, anchorPoint, offsetX + gapX, offsetY + gapY)
 
         if not container:IsShown() then
             container:Show()

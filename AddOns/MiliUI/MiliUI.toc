@@ -5,7 +5,7 @@
 ## IconTexture: Interface\AddOns\MiliUI\icon
 ## Category: Pack
 ## Category-zhTW: [整合]
-## OptionalDeps: TeleportMenu, Cell, Stuf
+## OptionalDeps: TeleportMenu, Cell, MiliUI_UnitFrames
 ## SavedVariables: MiliUI_DB, MiliUI_CastBarEnhanceDB
 ## SavedVariablesPerCharacter: MiliUI_CharDB
 
@@ -16,7 +16,6 @@ Config\Luxthos_Platynator.lua
 # Config\Luxthos_CMC.lua
 Config\Ayije_CDM.lua
 Config\BugSack.lua
-Config\Stuf.lua
 Style.lua
 Settings.lua
 Core.lua
@@ -51,11 +50,12 @@ Enhance\GameplayCVars.lua
 Enhance\CharacterNotes.lua
 Enhance\DBM_PrivateAura.lua
 Enhance\ItemUpgrade_PreviewIcon.lua
+Enhance\LegacyAddons.lua
 
 Fix\DeprecatedGlobals.lua
 Fix\TooltipTaintFix.lua
 Fix\InspectTaintFix.lua
-Fix\AyijeCDM_StufAnchor.lua
+Fix\AyijeCDM_PlayerAnchor.lua
 Fix\AyijeCDM_StyleFix.lua
 Fix\TinyInspectRemake_FlyoutItemLocation.lua
 Fix\TinyInspectRemake_OffhandEnchant.lua
