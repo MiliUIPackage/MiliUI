@@ -32,12 +32,37 @@ local ELEMENT_COLORS = {
 }
 
 local frame          -- MiliUIUF_Totem
-local slots = {}     -- [i] = { btn, icon, bar, text, active, start, dur }
-local ticker
+local slots = {}     -- [i] = { btn, icon, bar, cd, duo, active }
 
--- 秘密值算術的逃逸函式（給 pcall 用的現成函式，不要在呼叫點現寫匿名函式）
-local function RemainingOf(start, dur) return start + dur - GetTime() end
-local function PlainNumber(v) return v + 0 end
+------------------------------------------------------------
+-- 倒數：整條路交給引擎，插件一次都不讀值
+--
+-- ⚠⚠ **戰鬥中 GetTotemInfo 的 start/duration 是秘密值**，Lua 算不動
+-- （`start + dur - GetTime()` 直接拋錯）—— 這就是「戰鬥中召喚物沒有時間」的成因。
+-- 暴雪自己的 TotemFrame 是在 Lua 裡算的（`math.ceil(GetTotemTimeLeft(slot))`），
+-- 但那是 untainted 程式，讀得到秘密值；插件走不了那條路。
+--
+-- 正解是 **duration 物件**：
+--   1. `C_DurationUtil.CreateDuration()` 建一顆（每格一顆，重複使用）
+--   2. `duo:SetTimeFromStart(start, duration, modRate)` **寫進去** —— C 端 setter，吃秘密值
+--   3. 交給 `StatusBar:SetTimerDuration` 與 `Cooldown:SetCooldownFromDurationObject`，
+--      進度條與倒數數字全部由引擎驅動
+-- 本機 Ayije_CDM 的飾品／自訂 buff 就是這一套。
+--
+-- ⚠ **絕對不要把它讀回來**：`duo:IsZero()`、`GetTotalDuration()` 這類 getter 回的是
+-- 秘密值，一做布林測試就炸。Plumber 的 CooldownUtil 把這整段註解掉並標
+-- 「Unusable in combat」，踩到的正是 `IsZero()` 那一下，**不是** SetTimeFromStart。
+--
+-- 因為值不再由我們推算，「時間到了」也改吃引擎的 OnCooldownDone，
+-- 不需要自己輪詢（原本 0.25 秒的 ticker 整個拿掉了）。
+------------------------------------------------------------
+local TIMER_DIR = Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.RemainingTime
+
+-- ⚠ 前置宣告。這兩個在 CreateSlot 的 OnCooldownDone 裡用得到，而它們的實體排在更下面
+-- ——宣告寫在下面的話那個 closure 會抓到同名的**全域 nil**，倒數一結束就靜默什麼都不做。
+-- （這個檔案為了 previewOn 已經踩過一次同樣的坑，見下面預覽區塊的註解。）
+local previewOn = false
+local OnSlotExpired
 
 local function GetDB()
     return ns.db.units.totem
@@ -81,14 +106,16 @@ local function CreateSlot(i)
     bar:SetStatusBarTexture(Media.WHITE8X8)
     bar:SetFrameLevel(btn:GetFrameLevel() + 1)
 
-    -- 倒數數字置中在圖示內（放圖示上方會戳進單位框）；獨立一層蓋在圖示與時間條之上
-    local textFrame = CreateFrame("Frame", nil, btn)
-    textFrame:SetAllPoints(btn)
-    textFrame:SetFrameLevel(btn:GetFrameLevel() + 2)
-    local text = textFrame:CreateFontString(nil, "OVERLAY")
-    Media.SetFont(text, 11, "OUTLINE", ns.db.global.font)
-    text:SetPoint("CENTER", btn, "CENTER", 0, 1)
-    text:SetTextColor(1, 1, 1)
+    -- 倒數數字由 Cooldown widget（引擎）畫在圖示上。只要數字不要扇形 ——
+    -- 進度已經由底下那條時間條表示，再蓋一層扇形會把圖示糊掉。
+    local cd = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
+    cd:SetPoint("TOPLEFT", icon, "TOPLEFT", 0, 0)
+    cd:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 0, 0)
+    cd:SetFrameLevel(btn:GetFrameLevel() + 2)
+    cd:SetDrawSwipe(false)
+    cd:SetDrawEdge(false)
+    cd:SetDrawBling(false)
+    cd.noCooldownCount = true      -- 別讓 OmniCC 那類插件再疊一份數字
 
     -- 滑鼠提示（不做點擊取消：12.1 的 DestroyTotem 受保護限制多，先不碰）
     btn:EnableMouse(true)
@@ -101,7 +128,18 @@ local function CreateSlot(i)
     btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     btn:Hide()
-    return { btn = btn, icon = icon, bar = bar, text = text }
+
+    local slot = { btn = btn, icon = icon, bar = bar, cd = cd }
+    -- 每格一顆 duration 物件，重複使用（只寫不讀，見檔案上方的說明）
+    if C_DurationUtil and C_DurationUtil.CreateDuration then
+        local ok, duo = pcall(C_DurationUtil.CreateDuration)
+        if ok then slot.duo = duo end
+    end
+    -- 時間到：引擎通知，不必自己算（實體在下面，見檔案上方的前置宣告）
+    cd:SetScript("OnCooldownDone", function()
+        if OnSlotExpired then OnSlotExpired(slotIndex) end
+    end)
+    return slot
 end
 
 -- 顯示順序：土/火對調（沿用使用者原本的習慣）
@@ -142,56 +180,29 @@ local function Relayout()
     frame:SetSize(FrameSize())
 end
 
--- ⚠ 前置宣告：UpdateBars 的假倒數分支要讀它，但設定它的預覽區塊在本檔更下面。
--- 宣告寫在下面的話這裡讀到的是全域 nil，假倒數整段變死碼（實際踩過）。
-local previewOn = false
-
-local function UpdateBars()
-    local db = GetDB()
-    for i = 1, NUM_SLOTS do
-        local slot = slots[i]
-        if slot and slot.active and previewOn then
-            -- 假倒數：跑完自己繞回去，時間條與數字都看得到在動
-            local total = slot.dur or 60
-            local remain = total - ((GetTime() - (slot.start or 0)) % total)
-            slot.bar:SetMinMaxValues(0, total)
-            slot.bar:SetValue(remain)
-            if db.showTimeText == false then
-                slot.text:SetText("")
-            elseif remain < 60 then
-                slot.text:SetText(string.format("%d", math.ceil(remain)))
-            else
-                slot.text:SetText(string.format("%dm", math.ceil(remain / 60)))
-            end
-        elseif slot and slot.active then
-            -- start/dur 可能是秘密值：算術一律 pcall 逃逸。
-            -- 函式要現成的——這段跑在倒數的每一次更新上，現寫匿名函式等於每格
-            -- 每次都配兩顆 closure
-            local okR, remain = pcall(RemainingOf, slot.start, slot.dur)
-            local okT, total = pcall(PlainNumber, slot.dur)
-            if okR and okT and type(remain) == "number" and type(total) == "number" and total > 0 then
-                if remain <= 0 then
-                    slot.active = false
-                    slot.btn:Hide()
-                    Relayout()
-                else
-                    slot.bar:SetMinMaxValues(0, total)
-                    slot.bar:SetValue(remain)
-                    if db.showTimeText == false then
-                        slot.text:SetText("")
-                    elseif remain < 60 then
-                        slot.text:SetText(string.format("%d", math.ceil(remain)))
-                    else
-                        slot.text:SetText(string.format("%dm", math.ceil(remain / 60)))
-                    end
-                end
-            else
-                -- 抽不到剩餘時間：滿條、無數字，靠 PLAYER_TOTEM_UPDATE 收
-                slot.bar:SetMinMaxValues(0, 1)
-                slot.bar:SetValue(1)
-                slot.text:SetText("")
-            end
-        end
+-- 把這一格的倒數交給引擎。start/duration 可能是秘密值 —— 全程只寫不讀。
+--
+-- ⚠ modRate 是 GetTotemInfo 的**第 6 個回傳**，以前整支程式都忽略它。
+-- 有些召喚物的計時會被急速之類的東西加速，漏掉的話倒數會跟實際走鐘。
+local function ArmTimer(slot, startTime, duration, modRate)
+    local duo = slot.duo
+    if not (duo and duo.SetTimeFromStart) then
+        -- 沒有 duration 物件（理論上 12.1 一定有）：退回滿條、無數字，
+        -- 靠 PLAYER_TOTEM_UPDATE 收。這是舊行為，不會更糟。
+        slot.bar:SetMinMaxValues(0, 1)
+        slot.bar:SetValue(1)
+        if slot.cd then slot.cd:Clear() end
+        return
+    end
+    -- C 端 setter，吃秘密值。⚠ 寫完不要再問它任何事（IsZero/GetTotalDuration 會炸）
+    pcall(duo.SetTimeFromStart, duo, startTime, duration, modRate)
+    if slot.bar.SetTimerDuration and TIMER_DIR then
+        slot.bar:SetMinMaxValues(0, 1)
+        slot.bar:SetTimerDuration(duo, nil, TIMER_DIR)
+    end
+    if slot.cd then
+        slot.cd:SetCooldownFromDurationObject(duo)
+        slot.cd:SetHideCountdownNumbers(GetDB().showTimeText == false)
     end
 end
 
@@ -221,24 +232,23 @@ local function Poll()
             slots[i] = CreateSlot(i)
             slot = slots[i]
         end
-        local startTime, duration, icon
+        local startTime, duration, icon, modRate
         if previewOn then
             local d = DEMO[i]
             icon, duration = d.icon, d.dur
-            startTime = GetTime()          -- UpdateBars 會讓它循環跑
+            startTime = GetTime()          -- 跑完由 OnCooldownDone 續下一輪
         else
             local _
-            _, _, startTime, duration, icon = GetTotemInfo(i)
+            _, _, startTime, duration, icon, modRate = GetTotemInfo(i)
         end
         -- icon 是明文（字串路徑或數字 fileID），當存在 proxy——haveTotem 是秘密
         -- boolean 不能測。判斷式用 truthiness + ~= ""（數字 fileID 也成立）
         if icon and icon ~= "" then
             slot.active = true
-            slot.start = startTime
-            slot.dur = duration
             slot.icon:SetTexture(icon)
             local c = SlotColor(i)
             slot.bar:SetStatusBarColor(c.r, c.g, c.b, 1)
+            ArmTimer(slot, startTime, duration, modRate)
             slot.btn:Show()
             anyActive = true
         else
@@ -247,16 +257,31 @@ local function Poll()
         end
     end
     Relayout()
-    UpdateBars()
+    -- 沒有 ticker：進度條與數字都是引擎在跑，過期由 OnCooldownDone 通知
+    frame:SetShown(anyActive)
+end
 
-    if anyActive then
-        frame:Show()
-        if not ticker then
-            ticker = C_Timer.NewTicker(0.25, UpdateBars)
+------------------------------------------------------------
+-- 倒數結束（引擎通知）
+------------------------------------------------------------
+function OnSlotExpired(i)
+    local slot = slots[i]
+    if not slot then return end
+    if previewOn then
+        -- 預覽：續下一輪，讓時間條與數字一直看得到在動
+        local d = DEMO[i]
+        if d then ArmTimer(slot, GetTime(), d.dur) end
+        return
+    end
+    if slot.active then
+        slot.active = false
+        slot.btn:Hide()
+        Relayout()
+        -- 全空了就收框（原本靠 Poll 的 anyActive 判斷，現在這裡也要顧到）
+        for _, s2 in pairs(slots) do
+            if s2.active then return end
         end
-    else
-        frame:Hide()
-        if ticker then ticker:Cancel(); ticker = nil end
+        if frame then frame:Hide() end
     end
 end
 
