@@ -91,22 +91,90 @@ local function Init()
     local function ProfileError(msg)
         profTitle.text:SetText("|cffff2222" .. msg .. "|r")
     end
-    local function ProfileItems()
-        local items = {}
-        for _, name in ipairs(ns.DB.ListProfiles()) do
-            -- 預設那份的 key 是語言無關的 "Default"，顯示時才翻
-            items[#items + 1] = { text = (name == ns.DB.DEFAULT_PROFILE) and L["Default"] or name,
-                                  value = name }
+    -- key 是語言無關的（"Default" / "char:角色 - 伺服器"），顯示時才組字
+    local function ProfileLabel(name)
+        if name == ns.DB.DEFAULT_PROFILE then return L["Shared"] end
+        local owner = ns.DB.CharProfileOwner(name)
+        if owner then
+            -- "米利 - 世界之樹" → 職業色的 "米利-世界之樹"。
+            -- 不加「角色專屬」之類的後綴：職業色＋「名字-伺服器」這個形狀本身就跟
+            -- 「共用」和自訂名稱分得開了
+            local who = (owner:gsub(" %- ", "-"))
+            local cls = ns.DB.CharClass(owner)
+            local c = cls and RAID_CLASS_COLORS and RAID_CLASS_COLORS[cls]
+            if c then
+                -- colorStr 是暴雪現成的 "ffRRGGBB"；沒有就自己組（分量是明文，可算術）
+                who = "|c" .. (c.colorStr or ("ff%02x%02x%02x"):format(c.r * 255, c.g * 255, c.b * 255))
+                      .. who .. "|r"
+            end
+            return who
         end
+        return name
+    end
+
+    -- 展開的清單裡替目前這份加註記，一眼看得出在用哪個。
+    -- 收起來的那行不加（見下面 profDD.text 那句）：那行本來就只顯示目前這份，
+    -- 再標一次是廢話
+    local function ItemText(name)
+        local t = ProfileLabel(name)
+        if name == ns.profileName then t = t .. "|cff808080" .. L["(in use)"] .. "|r" end
+        return t
+    end
+
+    -- 順序：共用 → 自己的角色專屬 → 別隻角色的 → 自訂。
+    -- 自己那份還沒建立也要列出來（選了才建，來源由彈窗問）；別隻角色的也列，
+    -- 可以直接切過去用他調好的版面。
+    local function ProfileItems()
+        local charKey = ns.DB.CharProfileKey()
+        local items = {
+            { text = ItemText(ns.DB.DEFAULT_PROFILE), value = ns.DB.DEFAULT_PROFILE },
+            { text = ItemText(charKey), value = charKey },
+        }
+        local others, customs = {}, {}
+        for _, name in ipairs(ns.DB.ListProfiles()) do
+            if name ~= ns.DB.DEFAULT_PROFILE and name ~= charKey then
+                local t = ns.DB.IsCharProfile(name) and others or customs
+                t[#t + 1] = { text = ItemText(name), value = name }
+            end
+        end
+        for _, it in ipairs(others) do items[#items + 1] = it end
+        for _, it in ipairs(customs) do items[#items + 1] = it end
         return items
     end
 
     local nameBox = W.CreateEditBox(tab, 150, 20)
-    nameBox:SetPoint("TOPLEFT", 190, -68)
+    nameBox:SetPoint("TOPLEFT", 250, -68)
 
-    local pendingSwitch, switchConfirm
-    local profDD = W.CreateDropdown(tab, 170, ProfileItems(), function(value)
+    local pendingSwitch, switchConfirm, seedPopup
+    -- 角色專屬**第一次**建立時才問要拿什麼當底。之後就是一份普通設定檔，切過去
+    -- 就切過去、不再複製任何東西——想重新來過就把它刪掉再切一次，比多一個
+    -- 「沿用現有」的選項直覺。
+    local function AskSeedThenSwitch(charKey)
+        if not seedPopup then
+            local function Seed(kind)
+                return function()
+                    ns.DB.SeedCharProfile(kind)
+                    ns.DB.SwitchProfile(charKey)
+                end
+            end
+            seedPopup = W.CreateChoicePopup(ns.Options.panel, 380,
+                L["Start this character's profile from what?"], {
+                    { text = L["Current view"],   onClick = Seed("current") },
+                    { text = L["Shared"],         onClick = Seed("shared") },
+                    { text = L["Fresh defaults"], color = "red", onClick = Seed("fresh") },
+                })
+        end
+        seedPopup:Show()
+    end
+
+    local profDD = W.CreateDropdown(tab, 230, ProfileItems(), function(value)
         if value == ns.profileName then return end
+        -- 只有「自己的角色專屬」而且「還沒建立」才問來源
+        if value == ns.DB.CharProfileKey()
+           and not MiliUI_UnitFrames_DB.profiles[value] then
+            AskSeedThenSwitch(value)
+            return
+        end
         pendingSwitch = value
         if not switchConfirm then
             switchConfirm = W.CreateConfirmPopup(ns.Options.panel, 300,
@@ -117,6 +185,7 @@ local function Init()
     end)
     profDD:SetPoint("TOPLEFT", 12, -68)
     profDD:SetSelectedValue(ns.profileName)
+    profDD.text:SetText(ProfileLabel(ns.profileName))
 
     -- 新建／複製：兩者都是「建立後立刻切過去」，切換本身會重載
     local function Make(copyFrom)
@@ -132,25 +201,25 @@ local function Init()
     end
 
     local newBtn = W.CreateButton(tab, L["New"], "accent", 64, 20)
-    newBtn:SetPoint("TOPLEFT", 348, -68)
+    newBtn:SetPoint("TOPLEFT", 408, -68)
     newBtn:SetScript("OnClick", function() Make(nil) end)
 
     local copyBtn = W.CreateButton(tab, L["Copy"], "accent", 64, 20)
-    copyBtn:SetPoint("TOPLEFT", 416, -68)
+    copyBtn:SetPoint("TOPLEFT", 476, -68)
     copyBtn:SetScript("OnClick", function() Make(ns.profileName) end)
 
     local delConfirm
     local delBtn = W.CreateButton(tab, L["Delete"], "red", 64, 20)
-    delBtn:SetPoint("TOPLEFT", 484, -68)
+    delBtn:SetPoint("TOPLEFT", 544, -68)
     delBtn:SetEnabled(ns.profileName ~= ns.DB.DEFAULT_PROFILE)
     delBtn:SetScript("OnClick", function()
         if ns.profileName == ns.DB.DEFAULT_PROFILE then
-            ProfileError(L["The default profile can't be deleted"])
+            ProfileError(L["The shared profile can't be deleted"])
             return
         end
         if not delConfirm then
             delConfirm = W.CreateConfirmPopup(ns.Options.panel, 320,
-                L["Delete the current profile? Characters using it fall back to the default."],
+                L["Delete the current profile? Characters using it fall back to Shared."],
                 function()
                     ns.DB.DeleteProfile(ns.profileName)
                     ns.DB.SwitchProfile(ns.DB.DEFAULT_PROFILE)
@@ -163,7 +232,7 @@ local function Init()
     profNote:SetFontObject(W.fontSmall)
     profNote:SetPoint("TOPLEFT", 12, -94)
     profNote:SetJustifyH("LEFT")
-    profNote:SetText(L["Each character remembers its own profile. Below, export and import work on the current profile only."])
+    profNote:SetText(L["Every character's own profile is listed here, so you can switch to one another character set up. Export and import below work on the current profile only."])
 
     ---------------------------------------------------------
     -- 匯出

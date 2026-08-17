@@ -67,6 +67,7 @@ function DB.BuildDefaults()
             numberFormat = "auto",       -- auto | wan | km | raw（見 Tags.NumberMode）
             percentDecimals = 0,
             previewBossDisplayID = 131474,   -- 預覽敵對單位的示範模型（薩拉塔斯 12.x 形態；117121 = TWW 形態）
+            oorAlpha    = 0.45,          -- 超出距離時整個框的透明度
             strata      = "LOW",
             smoothBars  = true,
             showTooltip = true,          -- 滑鼠移到單位框顯示提示
@@ -103,7 +104,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             player = {
                 enabled = true,
-                frame = { x = -300, y = -225, w = 200, h = 50 },
+                frame = { x = -300, y = -225, w = 200, h = 50, fadeOutOfRange = false },
                 elements = {
                     -- 層級嚴格遞增：mp 條 0 / mp 框 1 / 血條背景 2 / 3D 頭像 3（去背）/ 血條前景 4
                     -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
@@ -176,7 +177,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             target = {
                 enabled = true,
-                frame = { x = 300, y = -225, w = 200, h = 50 },
+                frame = { x = 300, y = -225, w = 200, h = 50, fadeOutOfRange = true },
                 elements = {
                     -- 層級嚴格遞增：mp 條 0 / mp 框 1 / 血條背景 2 / 3D 頭像 3（去背）/ 血條前景 4
                     -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
@@ -243,7 +244,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             targettarget = {
                 enabled = true,
-                frame = { x = 470, y = -214, w = 120, h = 28 },
+                frame = { x = 470, y = -214, w = 120, h = 28, fadeOutOfRange = true },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 20, level = 4,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
@@ -274,7 +275,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             focus = {
                 enabled = true,
-                frame = { x = 260, y = -115, w = 120, h = 30 },
+                frame = { x = 260, y = -115, w = 120, h = 30, fadeOutOfRange = true },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 20, level = 5,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
@@ -308,7 +309,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             focustarget = {
                 enabled = true,
-                frame = { x = 360, y = -115, w = 70, h = 30 },
+                frame = { x = 360, y = -115, w = 70, h = 30, fadeOutOfRange = true },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 70, h = 20, level = 4,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
@@ -333,7 +334,7 @@ function DB.BuildDefaults()
             ------------------------------------------------------------
             pet = {
                 enabled = true,
-                frame = { x = -470, y = -225, w = 120, h = 50 },
+                frame = { x = -470, y = -225, w = 120, h = 50, fadeOutOfRange = false },
                 elements = {
                     portrait = { enabled = true, x = 0, y = 0, w = 120, h = 40, mode = "3d",
                                  bg = { r = 0.165, g = 0.165, b = 0.165, a = 1 }, level = 2,
@@ -385,7 +386,8 @@ function DB.BuildDefaults()
                 -- 使用者實地調好的版面（2026-08-16 從 SavedVariables 原樣收進來，含位置）。
                 -- 我們自己畫首領框、暴雪的已隱藏，所以位置與暴雪首領框無關。
                 enabled = true,
-                frame = { x = 499, y = 319, w = 220, h = 32, growth = "DOWN", spacing = 80 },
+                frame = { x = 499, y = 319, w = 220, h = 32, growth = "DOWN", spacing = 80,
+                          fadeOutOfRange = true },
                 elements = {
                     portrait = { enabled = true, x = 37, y = 50, w = 66, h = 66, mode = "3d",
                                  bg = { r = 0, g = 0, b = 0, a = 0 },
@@ -506,7 +508,7 @@ end
 -- 「匯入並重載」一致。
 ------------------------------------------------------------
 -- ⚠ 這是存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上，
--- 使用者會看到一份空白設定。顯示層自己去查 L["Default"]。
+-- 使用者會看到一份空白設定。顯示名稱由 Options 那邊翻（共用／角色專屬／自訂）。
 DB.DEFAULT_PROFILE = "Default"
 
 local function CharKey()
@@ -529,6 +531,11 @@ function DB.Init()
 
     db.profiles = db.profiles or {}
     db.profileKeys = db.profileKeys or {}
+    -- 角色 → 職業。設定檔清單要用職業色顯示「角色-伺服器」，而別隻角色的職業
+    -- 沒有 API 可查，只能靠每隻角色登入時自己記一筆。
+    -- ⚠ 存在帳號層而不是設定檔裡：設定檔會被深拷貝／重新灌種子，放進去會被帶錯。
+    db.charClasses = db.charClasses or {}
+    db.charClasses[CharKey()] = ns.playerClass
     local key = CharKey()
     local name = db.profileKeys[key]
     if type(name) ~= "string" or not db.profiles[name] then
@@ -548,6 +555,70 @@ function DB.Init()
     return ns.db
 end
 
+------------------------------------------------------------
+-- 三種設定檔
+--   共用      key = "Default"，所有角色的預設，不給刪
+--   角色專屬  key = "char:<角色> - <伺服器>"，第一次選才建立，內容從共用複製一份
+--   自訂      使用者自己命名的
+-- 「角色專屬」用保留前綴而不是另開一張表：這樣切換／刪除／匯出匯入全部共用同一
+-- 套邏輯，不用到處寫特例。
+------------------------------------------------------------
+local CHAR_PREFIX = "char:"
+
+function DB.CharProfileKey()
+    return CHAR_PREFIX .. CharKey()
+end
+
+function DB.IsCharProfile(name)
+    return type(name) == "string" and name:sub(1, #CHAR_PREFIX) == CHAR_PREFIX
+end
+
+-- 深拷貝：兩份設定檔絕不能共用同一張子表
+local function DeepCopy(t)
+    local o = {}
+    for k, v in pairs(t) do o[k] = type(v) == "table" and DeepCopy(v) or v end
+    return o
+end
+
+-- "char:米利 - 世界之樹" → "米利 - 世界之樹"（顯示層要用）
+function DB.CharProfileOwner(name)
+    if not DB.IsCharProfile(name) then return nil end
+    return name:sub(#CHAR_PREFIX + 1)
+end
+
+-- 那隻角色的職業（沒登入過就查不到，回 nil）
+function DB.CharClass(charKey)
+    local db = MiliUI_UnitFrames_DB
+    return db and db.charClasses and db.charClasses[charKey]
+end
+
+-- 寫入角色專屬那份。seed 只接受這三種，**沒有預設值**——來源一律由使用者在
+-- 切換前的選擇彈窗指定（見 Tab_Share），這裡不替他猜。
+--   "current"  目前正在用的那份（眼前看到的樣子）
+--   "shared"   共用那份
+--   "fresh"    全新預設值
+-- ⚠ 會覆蓋既有內容，呼叫端必須先問過。
+function DB.SeedCharProfile(seed)
+    local db = MiliUI_UnitFrames_DB
+    local key = DB.CharProfileKey()
+    if seed == "fresh" then
+        local d = DB.BuildDefaults()
+        db.profiles[key] = { global = d.global, units = d.units }
+        return key
+    end
+    local src
+    if seed == "shared" then
+        src = db.profiles[DB.DEFAULT_PROFILE]
+    elseif seed == "current" then
+        src = db.profiles[ns.profileName]
+    end
+    if not src then return nil end
+    db.profiles[key] = DeepCopy(src)
+    return key
+end
+
+-- 全部列出來，包含**別隻角色**的角色專屬——刻意的：想直接切去用別人調好的版面，
+-- 或是從別人那份複製一份出來，都靠這個。切過去之後兩邊共用同一張表，改動互相看得到。
 function DB.ListProfiles()
     local out = {}
     for name in pairs(MiliUI_UnitFrames_DB.profiles or {}) do out[#out + 1] = name end
@@ -567,18 +638,13 @@ end
 function DB.CreateProfile(name, copyFrom)
     name = type(name) == "string" and name:gsub("^%s+", ""):gsub("%s+$", "") or ""
     if name == "" then return false, "empty" end
+    if DB.IsCharProfile(name) then return false, "reserved" end   -- char: 是保留前綴
     local db = MiliUI_UnitFrames_DB
     if db.profiles[name] then return false, "exists" end
     if copyFrom then
         local src = db.profiles[copyFrom]
         if not src then return false, "nosource" end
-        -- 深拷貝：兩份設定檔絕不能共用同一張子表
-        local function Copy(t)
-            local o = {}
-            for k, v in pairs(t) do o[k] = type(v) == "table" and Copy(v) or v end
-            return o
-        end
-        db.profiles[name] = Copy(src)
+        db.profiles[name] = DeepCopy(src)
     else
         local defaults = DB.BuildDefaults()
         db.profiles[name] = { global = defaults.global, units = defaults.units }
@@ -586,7 +652,7 @@ function DB.CreateProfile(name, copyFrom)
     return true
 end
 
--- 刪掉目前這份，這個角色改指「預設」。預設本身不給刪。
+-- 刪掉指定那份，指著它的角色改回共用。共用本身不給刪。
 function DB.DeleteProfile(name)
     local db = MiliUI_UnitFrames_DB
     if name == DB.DEFAULT_PROFILE or not db.profiles[name] then return false end

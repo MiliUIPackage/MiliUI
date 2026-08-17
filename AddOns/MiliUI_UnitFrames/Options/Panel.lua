@@ -65,6 +65,9 @@ local function ApplyPosition()
 end
 
 local function ShowTab(id)
+    -- 下拉選單掛在 UIParent 的 TOOLTIP strata，不是分頁的子框——切分頁時分頁自己
+    -- 藏起來，選單還會浮在那裡。切之前先收掉。
+    W.CloseDropdowns()
     ns.Fire("ShowOptionsTab", id)
 end
 

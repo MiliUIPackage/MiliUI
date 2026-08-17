@@ -39,6 +39,9 @@ fontTitle:SetTextColor(1, 1, 1)
 fontTitle:SetShadowColor(0, 0, 0)
 fontTitle:SetShadowOffset(1, -1)
 
+-- ⚠ 目前沒有人用。**不要**把它接回 CreateButton 的 SetDisabledFontObject：
+-- 切換 enable 狀態時換字型物件會讓 FontString 重新配置並吃掉最後一個字（實測）。
+-- 按鈕的停用灰字是自己 SetTextColor 上的。
 local fontDisabled = CreateFont("MiliUIUF_FontDisabled")
 fontDisabled:SetFont(ns.Media.Font(), 13, "")
 fontDisabled:SetTextColor(0.4, 0.4, 0.4)
@@ -93,10 +96,37 @@ function W.CreateButton(parent, text, colorKey, width, height)
     b._colors = colors
     W.Stylize(b, colors[1])
 
+    -- ⚠ label 自己建、自己註冊，而且**兩個狀態用同一個字型物件**。
+    -- 原本 normal/disabled 給不同物件，結果 SetEnabled 切換的瞬間暴雪會換掉
+    -- FontString 的字型物件並重新配置 —— 實測會把最後一個字吃掉（匯入按鈕貼上
+    -- 字串變亮那一刻「匯入並重載」變成「匯入並重」）。字型固定、只換顏色就沒事。
+    local fs = b:CreateFontString(nil, "OVERLAY")
+    -- 只錨 CENTER、不給左右錨點：一來字寬自然（Tab_Unit 的元件切換鈕靠
+    -- GetStringWidth() 自適應寬度，夾住就量不準），二來真的太長也只是溢出按鈕、
+    -- 不會被切掉
+    fs:SetPoint("CENTER", 0, 0)
+    fs:SetJustifyH("CENTER")
+    fs:SetWordWrap(false)
+    fs:SetFontObject(fontNormal)
+    b:SetFontString(fs)
     b:SetNormalFontObject(fontNormal)
-    b:SetDisabledFontObject(fontDisabled)
+    b:SetDisabledFontObject(fontNormal)
     b:SetText(text or "")
     b:SetPushedTextOffset(0, -1)
+
+    -- 停用的灰字自己上：SetEnabled / Enable / Disable 三條路都要接
+    -- （SetEnabled 是 C 端方法，不會呼叫到我們覆寫的 Enable/Disable）
+    local function Recolor(self)
+        if self:IsEnabled() then
+            fs:SetTextColor(1, 1, 1)
+        else
+            fs:SetTextColor(0.4, 0.4, 0.4)
+        end
+    end
+    local rawSetEnabled, rawEnable, rawDisable = b.SetEnabled, b.Enable, b.Disable
+    function b:SetEnabled(on) rawSetEnabled(self, on); Recolor(self) end
+    function b:Enable()       rawEnable(self);         Recolor(self) end
+    function b:Disable()      rawDisable(self);        Recolor(self) end
 
     b:SetScript("OnEnter", function(self)
         if self:IsEnabled() then self:SetBackdropColor(unpack(self._colors[2])) end
@@ -391,6 +421,16 @@ function W.CreateScrollEditBox(parent, width, height, onTextChanged)
         end)
     end
     scroll:SetScrollChild(eb)
+
+    -- ⚠ 多行 EditBox 當 scroll child，高度是**跟著內容長**的：框是空的時候它只有
+    -- 一行高，可點擊範圍就只有最上面那一條。點框中間點到的是 ScrollFrame，
+    -- EditBox 拿不到焦點 ⇒ Ctrl+V 貼不進去（匯入框空的時候必中）。
+    -- 讓整個外框吃滑鼠、把焦點導給 EditBox；順便給個焦點外框，貼之前看得出來有中。
+    holder:EnableMouse(true)
+    holder:SetScript("OnMouseDown", function() eb:SetFocus() end)
+    eb:SetScript("OnEditFocusGained", function() holder:SetBackdropBorderColor(W.Accent(1)) end)
+    eb:SetScript("OnEditFocusLost", function() holder:SetBackdropBorderColor(0, 0, 0, 1) end)
+
     holder.editBox = eb
     holder.scroll = scroll
     return holder
@@ -457,7 +497,7 @@ function W.CreateDropdown(parent, width, items, onSelect)
         menu.owner = self
         -- 重建項目按鈕
         for _, b in ipairs(menu.items) do b:Hide() end
-        local height = 2
+        local height, widest = 2, 0
         for i, item in ipairs(self.items) do
             local b = menu.items[i]
             if not b then
@@ -472,10 +512,13 @@ function W.CreateDropdown(parent, width, items, onSelect)
             end
             b:SetBackdrop({ bgFile = WHITE })
             b:SetBackdropColor(0, 0, 0, 0)
-            P.Size(b, (self:GetWidth() or 120) - 4, 18)
             b:ClearAllPoints()
             b:SetPoint("TOPLEFT", menu, "TOPLEFT", 2, -height)
             b.text:SetText(item.text)
+            -- 量實際字寬：項目可能比下拉本身長（角色名＋伺服器＋註記），
+            -- 不撐開的話字會溢出選單邊界
+            local tw = b.text:GetStringWidth() or 0
+            if tw > widest then widest = tw end
             b:SetScript("OnClick", function()
                 self:SetSelectedValue(item.value)
                 menu:Hide()
@@ -485,9 +528,15 @@ function W.CreateDropdown(parent, width, items, onSelect)
             b:Show()
             height = height + 18
         end
+        -- 選單至少跟下拉一樣寬，內容更長就跟著撐開（5 左內縮 ＋ 右邊留白）
+        local menuW = math.max(self:GetWidth() or 120, widest + 18)
+        for i = 1, #self.items do
+            local b = menu.items[i]
+            if b then P.Size(b, menuW - 4, 18) end
+        end
         menu:ClearAllPoints()
         menu:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -2)
-        P.Size(menu, self:GetWidth(), height + 2)
+        P.Size(menu, menuW, height + 2)
         menu:Show()
     end)
     return dd
@@ -585,6 +634,51 @@ end
 ------------------------------------------------------------
 -- 確認彈窗：蓋在整個 parent 上方（獨立 strata，不受分頁/卷軸子層級影響），
 -- 背後一層半透明遮罩擋掉點擊
+-- 多選項彈窗：choices = { { text=, onClick= }, ... }，按鈕橫排、寬度平分。
+-- 跟 CreateConfirmPopup 同一套遮罩／層級，差別只在按鈕數量。
+-- 用途：問「這份新設定檔要拿什麼當底」這種沒有「是／否」語意的分岔。
+function W.CreateChoicePopup(parent, width, text, choices)
+    width = width or 320
+    local mask = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    mask:SetAllPoints(parent)
+    mask:SetFrameStrata("FULLSCREEN_DIALOG")
+    mask:SetFrameLevel(400)
+    mask:EnableMouse(true)
+    mask:SetBackdrop({ bgFile = WHITE })
+    mask:SetBackdropColor(0.15, 0.15, 0.15, 0.7)
+    mask:Hide()
+
+    local popup = W.CreateFrame(nil, parent, width, 96)
+    popup:SetFrameStrata("FULLSCREEN_DIALOG")
+    popup:SetFrameLevel(410)
+    popup:SetBackdropBorderColor(W.Accent(1))
+    popup:SetPoint("CENTER")
+    popup.mask = mask
+    popup:SetScript("OnShow", function() mask:Show() end)
+    popup:SetScript("OnHide", function() mask:Hide() end)
+
+    local fs = popup:CreateFontString(nil, "OVERLAY")
+    fs:SetFontObject(fontNormal)
+    fs:SetPoint("TOP", 0, -12)
+    fs:SetWidth(width - 24)
+    fs:SetJustifyH("CENTER")
+    fs:SetText(text)
+    popup.text = fs
+
+    local n = #choices
+    local gap, edge = 6, 12
+    local bw = math.floor((width - edge * 2 - gap * (n - 1)) / n)
+    for i, c in ipairs(choices) do
+        local b = W.CreateButton(popup, c.text, c.color or "accent", bw, 22)
+        b:SetPoint("BOTTOMLEFT", edge + (i - 1) * (bw + gap), 12)
+        b:SetScript("OnClick", function()
+            popup:Hide()
+            if c.onClick then c.onClick() end
+        end)
+    end
+    return popup
+end
+
 function W.CreateConfirmPopup(parent, width, text, onAccept)
     local mask = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     mask:SetAllPoints(parent)
