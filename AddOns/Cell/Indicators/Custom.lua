@@ -304,6 +304,24 @@ local function Update(indicator, indicatorTable, unit, spell, start, duration, d
 end
 
 function I.UpdateCustomIndicators(unitButton, auraInfo)
+    -- ⚠ A PER-AURA secrecy gate is required here, not just the content-level one.
+    -- UnitButton_UpdateAuras bails on C_Secrets.ShouldAurasBeSecret(), but that answers for the
+    -- CONTENT, not for one aura -- an individual aura on a raid member can still come back
+    -- wholly secret while it says false, which is how this function was reached at all.
+    -- Three reads below are boolean tests on fields that are secret exactly then (isHelpful on
+    -- the next line, isHarmful twice after it), and a boolean test on a secret boolean is a
+    -- hard error, not a nil -- so it threw before the function could do anything.
+    --
+    -- Bailing loses nothing. A secret aura cannot match an indicator further down either: its
+    -- spell ID and name are unusable as table keys (the lookup is explicitly skipped for
+    -- secrets), and the "track any aura" wildcard branch needs duration ~= 0 while the secret
+    -- path below forces duration to 0. The whole body was already dead work for these auras.
+    --
+    -- Both checks earn their place: IsAuraNonSecret is the sentinel the rest of this function
+    -- and HandleBuff already use (it reads spellId), and the second one guards the exact field
+    -- that crashed rather than assuming a payload is always secret as a whole.
+    if not F.IsAuraNonSecret(auraInfo) or not F.IsValueNonSecret(auraInfo.isHelpful) then return end
+
     local unit = unitButton.states.displayedUnit
 
     local auraType = auraInfo.isHelpful and "buff" or "debuff"
