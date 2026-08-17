@@ -5,11 +5,13 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 7687a40a-9665-4a80-8ab5-d8ddb9ec65ee
-  modified: 2026-08-15T16:49:03.659Z
+  modified: 2026-08-17T08:58:26.484Z
 ---
 
-**MiliUI_UnitFrames**（2026-08-15 一次寫完五階段，約 5400 行，尚未遊戲內驗證）：取代 Stuf 的
-全新單位框架，只支援 12.1+，秘密值防護內建。`AddOns/MiliUI_UnitFrames/`，SV `MiliUI_UnitFrames_DB`，
+**MiliUI_UnitFrames**（2026-08-15 一次寫完五階段，約 5400 行；2026-08-17 從 `MiliUI_Unit_Frame`
+改名成複數＋去底線，跟套組其他插件的 CamelCase 一致）：取代 Stuf 的
+全新單位框架，只支援 12.1+，秘密值防護內建。`AddOns/MiliUI_UnitFrames/`，
+SV `MiliUI_UnitFrames_DB`（同日一併改名，WTF 檔名與檔內變數名都要跟著換），
 全域框架名 `MiliUIUF_Player/Target/TargetTarget/Focus/FocusTarget/Pet/Boss1-5/Totem`，
 namespace `_G.MiliUIUF`。
 
@@ -43,9 +45,13 @@ B 整合條/C 冷卻環待選）。
 `Fix/AyijeCDM_StufAnchor.lua` GetStufPlayerFrame 優先找 MiliUIUF_Player；`Settings.lua` 主頁加
 「開啟頭像框架設定」按鈕（呼叫全域 `MiliUI_OpenUnitFrameSettings()`）。
 
-**DB 遷移狀態（2026-08-16）**：插件尚未發佈，使用者決定把開發期累積的 v2–v14 遷移全部清空、
-`DB_VERSION` 歸 1，機制保留（`DB.Migrate` 版本閘鏈＋`DB.EachElement(db, name, fn)` 工具；
-`DB.Init` 有 downgrade clamp）。**發佈後改預設值才需要寫遷移**；發佈前直接改預設、
+**DB 遷移狀態**：2026-08-16 曾把開發期累積的 v2–v14 遷移全部清空、`DB_VERSION` 歸 1；
+之後又長出新的，**現況是 `DB_VERSION = 4`**（v2 單一設定→具名設定檔、v3 觀察按鈕樣式改名、
+v4 觀察按鈕預設改純放大鏡）。機制不變（`DB.Migrate` 版本閘鏈＋`DB.EachElement(db, name, fn)` 工具；
+`DB.Init` 有 downgrade clamp）。
+⚠ **`Share.Import` 不會觸發遷移**（2026-08-17 體檢發現，未修）：帳號層的 `schemaVersion` 還是新的，
+匯入舊版字串後版本閘不成立 → v3/v4 遷移永遠不跑。修法是匯入時把 `db.schemaVersion` 一起降到
+`data.schemaVersion`（遷移有值閘，對其他設定檔冪等）。**發佈後改預設值才需要寫遷移**；發佈前直接改預設、
 使用者用「恢復預設」或 `/muf reset` 吃新值。遷移原則不變：版本閘＋值閘，只動仍等於舊預設的欄位。
 **陷阱記錄**：Api.lua 在 TOC 最後載入，`ns.OpenOptions` 必須寫成委派（曾直接定義而蓋掉 Panel 的實作）。
 Preview 有引用計數（options/editmode 兩個使用者），最後一個關閉才 RestoreReal。
@@ -105,6 +111,11 @@ Platy 是 `SetMaximumHealthMode(WithAbsorbs)`（條被吸收撐長的名條風�
 （Cell 怕 clamp 污染共用那顆）；吸收盾改用暴雪條紋貼圖 `Interface\RaidFrame\Shield-Fill`；新增**治療吸收條**
 （`calc:GetHealAbsorbs()`，紅條紋、右緣釘血量前緣反向填充往左吃，暴雪 myHealAbsorb 同向）。
 不跟 Cell 的 overshield glow（秘密值算不出超盾，Cell 改「有盾就亮」是妥協）。
+**⚠⚠ 通則：疊加層的「量」一律走全域 API，不要用計算器的 getter。**
+`calc:GetHealAbsorbs()`、`calc:GetIncomingHeals()` 在 12.1 都回垃圾（沒有 debuff／沒有治療進來時
+仍填滿整條）。改用 `UnitGetTotalHealAbsorbs(unit)` / `UnitGetIncomingHeals(unit)` / `UnitGetTotalAbsorbs(unit)`
+（秘密數字直接餵 SetValue）。計算器只留給**血量本體**（`GetMaximumHealth`/`GetCurrentHealth`）
+與吸收盾條（`GetDamageAbsorbs`，EUI 也這樣用）。EUI 沒有實作治療預估，別去那裡找參考。
 **⚠⚠ 治療吸收不要用計算器：`calc:GetHealAbsorbs()` 在 12.1 不可信**（2026-08-16 結案，本機
 `tmp/EUIStandaloneUnitFrames` 為證）：無 debuff 卻填半條～整條；補 `SetHealAbsorbClampMode(Capped)`
 也沒用（那是 Stuf/oUF 的舊說法）。**EUI 全部 8 個呼叫點一律走全域 `UnitGetTotalHealAbsorbs(unit)`**，
