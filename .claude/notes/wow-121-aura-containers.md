@@ -155,6 +155,13 @@ forbidden 的不只 AuraButton,容器本身也是,而且**跟光環是不是 sec
 handler 掛失敗會讓**整個容器建立失敗**,對外只表現成「光環沒出來」,不會有錯誤訊息。
 要在重新顯示時補踢 SetEnabled,把 hook 掛在自己建的 holder frame 上,不要碰容器。
 
+**⚠⚠ 換單位要重新指向,不要重建容器。** group 拓樸跟單位無關(record 只從設定推導),所以
+`container:SetUnit(newUnit)` + bounce 就夠了,拆掉重建是純浪費——**而且暴雪 frame 刪不掉**,
+丟棄的容器只是被 hide + orphan,會一路留到 `/reload`。在會頻繁換單位的地方(團隊框 roster
+洗牌、名牌回收、載具切換)重建 = 持續洩漏 frame,表現成「玩愈久愈卡」。本機三個實跑範例:
+`Cell/RaidFrames/AuraDisplay.lua` 的 `Handle:SetUnit`(2026-08-17 從重建改成重指)、
+`MiliUI_UnitFrames/Elements/Auras.lua`、`Platynator/Display/Auras/AurasNext.lua`。
+
 **⚠⚠ 換單位重掃:`UpdateAllAuras()` 從插件端沒有用。** 動態 token(target/focus/bossN)在框架
 保持顯示的情況下換人,容器不會自己重解析;而插件端呼叫 `UpdateAllAuras` **只設得到髒旗標,
 推不動私有端的處理器**(`Cell/RaidFrames/AuraDisplay.lua` 的 `GateRefresh` 實測結論)。真正跨得過

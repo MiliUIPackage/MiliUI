@@ -62,6 +62,7 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
 13. **會覆寫使用者調好值的 Revise 遷移必須有版本閘**（`dbRevision < N`，TOC `## Version` 一起 bump），否則每次登入都蓋回去；冪等判斷才可以無閘。已用的閘：r281（重要減益 filters/尺寸）、r282（excludeImportant）。
 14. **⚠⚠ 身分閘 fail-open**（2026-08-13 修，見 [[wow-121-identity-gate-failopen]]）：`includeSpellIDs` 在 `UnitCanAssist` 失敗時被整組跳過 → 白名單列顯示全部增益，且 assist 回來後引擎不會重讀（只有 `/reload` 有效）。Cell 的解法在 `AuraDisplay.lua`：`RecordVulnerableToIdentityGate`/`RecordSourceRelative` 推導旗標 → `ApplyIdentityGate`（assist false→true 邊緣才踢）→ `GateRefresh`（OOC `Hide();Show()`、戰鬥中標記 + regen 補踢），事件監看含過場動畫 latch，手動解卡 `/cab gate`。
 15. AuraButton 在 secret 時**整顆 forbidden、什麼都讀不到**（IsShown/幾何一 branch 就炸），「有沒有真的畫出光環」只能靠肉眼 —— 診斷工具能證明機制全綠，不能證明畫面正確。
+16. **⚠⚠ 換單位絕不能重建容器**（2026-08-17 修，r291）。`Handle:SetUnit` 原本直接 `Rebuild()`。團隊框是 SecureGroupHeader，有人進出 → header 重排 → 一大批按鈕換 unit token → 每顆按鈕上**每一個**容器整組拆掉重建（host + AuraContainer + 一批 AuraButton，每顆再帶 Cooldown 與 holder），同一幀、戰鬥外、無節流。**而且暴雪 frame 刪不掉**：`Build` 的拆除只是 `Hide()` + `SetParent(nil)`，所以每次進出隊伍都永久洩漏一批 frame，只有 `/reload` 收得回 —— 這就是玩家回報的「愈打愈卡」。正解是**重新指向活的容器**：group 拓樸與單位無關（`BuildRecords` 只讀 config），所以 `container:SetUnit(newUnit)` + bounce 就夠了。本機兩個實跑範例：`MiliUI_UnitFrames/Elements/Auras.lua`（換載具）、`Platynator/Display/Auras/AurasNext.lua`（名牌回收）。順序：清 `_gateAssist`/`_gateVisible` → `ApplyIdentityGate()`（先定可見性，彈一個被隱藏的框等於沒彈）→ 清 `_enabledWhileVisible` → `ReassertEnable()`，它沒跑才補 `GateRefresh()`（戰鬥中標記、regen 補彈）。計數看 `/cab stats`：**discards 就是洩漏數**，進出隊伍時只有 repoints 該漲。
 
 ## 診斷
 

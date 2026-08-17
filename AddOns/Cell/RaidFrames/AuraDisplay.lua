@@ -80,6 +80,13 @@ local function ValidFilter(f)
     return false
 end
 
+-- Lifecycle counters -> /cab stats. A build is not free and, worse, is not reclaimable:
+-- WoW frames cannot be destroyed, so every container we discard stays resident until
+-- /reload. `discards` is therefore a running leak count, not just a work count -- if it
+-- climbs while nothing but the roster is changing, something is rebuilding that should be
+-- re-pointing (see Handle:SetUnit).
+AD.stats = {builds = 0, discards = 0, repoints = 0}
+
 local function BuildRecords(opts)
     opts = opts or {}
 
@@ -816,6 +823,7 @@ local function Build(handle)
         pcall(function() handle.container:SetEnabled(false) end)
         pcall(function() handle.container:Hide() end)
         handle.container = nil
+        AD.stats.discards = AD.stats.discards + 1 -- orphaned for good; see AD.stats
     end
     if handle.host then
         local old = handle.host
@@ -862,6 +870,7 @@ local function Build(handle)
     end
     handle.host = host
     handle.container = c
+    AD.stats.builds = AD.stats.builds + 1
     -- honour the indicator's frameLevel: the AuraButtons inherit their level from THIS chain
     -- (handle.frame -> host -> AuraContainer -> buttons), so set it BEFORE AddAuraGroup or the
     -- buttons keep the default level and the name text (indicatorFrame + level) covers them no
@@ -1180,11 +1189,57 @@ function Handle:SetOptions(opts)
     if cosmetic or layout then self:Restyle() end
 end
 
+-- ⚠ Re-point the LIVE container; do not rebuild.
+--
+-- This used to call Rebuild(), and it was the single biggest cost Cell paid on
+-- GROUP_ROSTER_UPDATE. The secure group header re-sorts, a large slice of the buttons get a
+-- new unit token, and each of those tore down and recreated EVERY container it owns -- host
+-- Frame + AuraContainer + a batch of AuraButtons, each styled with its own Cooldown and
+-- holder frames. All in one frame, out of combat (which is when people join and leave), with
+-- nothing throttling it. And because WoW frames cannot be destroyed, Build only hides and
+-- orphans the old ones: every roster change leaked a batch of frames that only /reload
+-- reclaimed. That is the "gets laggier the longer the raid runs" report.
+--
+-- Nothing structural depends on the unit -- BuildRecords reads config alone -- so the group
+-- topology is already correct for the new binding. Re-pointing is the same recipe used by
+-- MiliUI_UnitFrames for vehicle swaps (Elements/Auras.lua) and by Platynator for nameplate
+-- recycling: SetUnit, then a bounce, because the container does NOT re-parse on its own when
+-- the token changes underneath it (UpdateAllAuras from addon context only sets dirty flags --
+-- see GateRefresh).
 function Handle:SetUnit(unit)
     if issecretvalue(unit) then return end
     if self.unit == unit then return end
     self.unit = unit
-    self:Rebuild()
+
+    -- Nothing built yet, disabled, or unbinding entirely: those are Build's paths (a nil
+    -- unit is how a container gets torn down, and there is nothing to re-point without one).
+    if not self.container or not unit then
+        self:Rebuild()
+        return
+    end
+
+    -- Refused: fall back to the old behaviour rather than leave the container rendering the
+    -- PREVIOUS unit's auras, which is the one failure mode worse than the cost of a rebuild.
+    if not pcall(function() self.container:SetUnit(unit) end) then
+        self:Rebuild()
+        return
+    end
+    AD.stats.repoints = AD.stats.repoints + 1
+
+    -- Both gate verdicts belong to the old unit. Clear them exactly as Build does, so the
+    -- re-probe below records a fresh baseline instead of firing a bogus recovery edge.
+    self._gateAssist, self._gateVisible = nil, nil
+    -- Runs first: bouncing a row the gate wants hidden does nothing (Show() on a frame whose
+    -- parent chain is hidden never fires OnShow), so visibility has to settle before the kick.
+    self:ApplyIdentityGate()
+
+    -- Re-parse. ReassertEnable is the fuller kick (SetEnabled + Hide/Show) but only fires out
+    -- of combat on a visible frame, and it is one-shot per binding -- this IS a new binding,
+    -- so clear the latch and let it run. When it declines, GateRefresh covers the rest: it is
+    -- the one that marks the container dirty in combat and replays the real bounce on regen.
+    self._enabledWhileVisible = false
+    self:ReassertEnable()
+    if not self._enabledWhileVisible then self:GateRefresh() end
 end
 
 function Handle:SetShown(shown)
@@ -1886,6 +1941,24 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         else
             p("C_Secrets.ShouldSpellAuraBeSecret 不存在")
         end
+    elseif cmd == "stats" then
+        -- The measurement behind the roster-stutter fix. Zero it, make people join/leave the
+        -- group, read it again: `repoints` should climb and `builds`/`discards` should not.
+        -- Every discard is a container orphaned until /reload, so a discard count that tracks
+        -- roster churn means something is still rebuilding when it should be re-pointing.
+        if arg and strtrim(arg):lower() == "reset" then
+            AD.stats.builds, AD.stats.discards, AD.stats.repoints = 0, 0, 0
+            p("計數歸零")
+            return
+        end
+        local live = 0
+        for h in pairs(AD._instances or {}) do
+            if h.container then live = live + 1 end
+        end
+        p(("容器建立 %d ／ 丟棄 %d（= 洩漏，只有 /reload 收得回）／ 換單位重指 %d ／ 目前存活 %d")
+            :format(AD.stats.builds, AD.stats.discards, AD.stats.repoints, live))
+        p("進出隊伍時 repoints 該漲、builds/discards 不該漲。歸零：/cab stats reset")
+
     elseif cmd == "list" then
         -- which indicators are container-backed on a real unit button
         local shown = false
@@ -1907,7 +1980,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
     else
         p("supported =", tostring(AD.IsSupported()), "|", tostring(ACC.Failure() or "OK"))
         AD.Debug()
-        p("其他：/cab list | ghosts | inspect [unit] | overdraw [unit] | spell <id> | gate | test")
+        p("其他：/cab list | stats | ghosts | inspect [unit] | overdraw [unit] | spell <id> | gate | test")
     end
 end
 
