@@ -464,29 +464,13 @@ local function CreateLinksPane()
         github:GetScript("OnEnter")()
     end)
 
-    --! curseforge
-    local curseforge = CreateLink(linksPane, "curseforge", "Interface\\AddOns\\Cell\\Media\\Links\\curseforge.tga", function()
-        current = "https://www.curseforge.com/wow/addons/cell"
-        linksEB:SetText(current)
-        linksEB:ClearFocus()
-    end)
-    curseforge:SetPoint("TOPLEFT", github, "TOPRIGHT", 7, 0)
-
-    --! wago
-    local wago = CreateLink(linksPane, "wago", "Interface\\AddOns\\Cell\\Media\\Links\\wago.tga", function()
-        current = "https://addons.wago.io/addons/cell"
-        linksEB:SetText(current)
-        linksEB:ClearFocus()
-    end)
-    wago:SetPoint("TOPLEFT", curseforge, "TOPRIGHT", 7, 0)
-
     --! discord
     local discord = CreateLink(linksPane, "discord", "Interface\\AddOns\\Cell\\Media\\Links\\discord.tga", function()
         current = "https://discord.gg/9PSe3fKQGJ"
         linksEB:SetText(current)
         linksEB:ClearFocus()
     end)
-    discord:SetPoint("TOPLEFT", wago, "TOPRIGHT", 7, 0)
+    discord:SetPoint("TOPLEFT", github, "TOPRIGHT", 7, 0)
 
     --! kook
     local kook = CreateLink(linksPane, "kook", "Interface\\AddOns\\Cell\\Media\\Links\\kook.tga", function()
