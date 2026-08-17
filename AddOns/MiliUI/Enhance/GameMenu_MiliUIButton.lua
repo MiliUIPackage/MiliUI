@@ -6,14 +6,15 @@
 -- 設定按鈕點擊後：
 --   1. 隱藏 ESC 選單（避免擋住設定面板）
 --   2. 開啟 Blizzard Settings → MiliUI 主分類
--- 重載按鈕點擊後：跳出確認視窗，確認才 ReloadUI()
+-- 重載按鈕：左鍵跳出確認視窗，右鍵直接 ReloadUI()
 ------------------------------------------------------------
 
 local AddonName, _ = ...
 if AddonName ~= "MiliUI" then return end
 
 local BUTTON_TEXT = "米利UI設定"
-local RELOAD_TOOLTIP = "重新載入介面"
+local RELOAD_TIP_LEFT  = "左鍵：重新載入"
+local RELOAD_TIP_RIGHT = "右鍵：立即重新載入"
 local RELOAD_ICON = "Interface\\Buttons\\UI-RefreshButton"
 
 local VERSION_FORMAT     = "米利UI套組：%s"
@@ -52,9 +53,13 @@ local function OpenSettings()
     end
 end
 
-local function DoReload()
+local function DoReload(_, button)
     HideUIPanel(GameMenuFrame)
-    StaticPopup_Show("MILIUI_GAMEMENU_RELOAD")
+    if button == "RightButton" then
+        ReloadUI()  -- 右鍵不問，直接重載
+    else
+        StaticPopup_Show("MILIUI_GAMEMENU_RELOAD")
+    end
 end
 
 local function EnsureButton()
@@ -99,13 +104,14 @@ local function EnsureReloadButton()
 
     reloadBtn:SetFrameStrata(GameMenuFrame:GetFrameStrata())
     reloadBtn:SetFrameLevel(GameMenuFrame:GetFrameLevel() + 10)
-    reloadBtn:RegisterForClicks("LeftButtonUp")
+    reloadBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     reloadBtn:SetScript("OnClick", DoReload)
 
     -- ApplyButton 已用 SetScript 掛上 hover 變色，這裡再 Hook 疊加 tooltip
     reloadBtn:HookScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(RELOAD_TOOLTIP, 1, 0.84, 0)
+        GameTooltip:SetText(RELOAD_TIP_LEFT, 1, 0.84, 0)
+        GameTooltip:AddLine(RELOAD_TIP_RIGHT, 1, 0.84, 0)
         GameTooltip:Show()
     end)
     reloadBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
