@@ -79,112 +79,37 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     self[event](self, ...)
 end)
 
--- MiliUI: this build does NOT broadcast CELL_VERSION.
+-- MiliUI: the handshake runs on our own prefix, not CELL_VERSION. Stock Cell parses the
+-- digits out of whatever arrives there, so broadcasting "r291_MiliUI" would tell every stock
+-- user that a version which does not exist on CurseForge is out, and point them at its
+-- download page. On a private prefix only builds that understand it ever hear us, and stock
+-- Cell's own version conversation is left completely alone.
 --
--- The version handshake exists to tell other Cell users "a newer release is out, go get it
--- from CurseForge". A fork cannot make that claim honestly: `Cell.version` here is
--- "rNNN_MiliUI", and the number in it is bumped locally just to gate Revise migrations --
--- it is not a point on upstream's release line at all. Stock Cell receivers only parse the
--- digits, so every guildmate and party member running the real addon would be told to
--- update to a version that does not exist, and be pointed at a download page for it.
---
--- Receiving stays ON (below), so nothing about stock Cell's own comm changes -- their
--- version checks among themselves are untouched. This build simply stops injecting a
--- number into that conversation. Everything else Cell talks about (raid marks, mark
--- priority, layout/raid-debuff import and export) is functional cooperation rather than
--- version noise, and is left fully interoperable.
---
--- ⚠ Keep the GROUP_ROSTER_UPDATE handler even with the send gone: it is what initialises
--- `sendChannel`, which CELL_MARKS and CELL_CPRIO/CELL_PRIO send on.
+-- ⚠ Cell.toc's "## Version: rNNN_MiliUI" is now a release signal, not just the Revise
+-- migration gate -- bump it on every shipped change or this stays silent with no error.
+local VERSION_PREFIX = "CELL_MILIUI_VER"
+local VERSION_URL = "|cFF00CCFFhttps://addons.miliui.com/wow/cell|r"
+
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 function eventFrame:GROUP_ROSTER_UPDATE()
     if IsInGroup() then
         eventFrame:UnregisterEvent("GROUP_ROSTER_UPDATE")
         UpdateSendChannel()
+        if not IsCommRestricted() then
+            Comm:SendCommMessage(VERSION_PREFIX, Cell.version, sendChannel)
+        end
     end
 end
 
-Comm:RegisterComm("CELL_VERSION", function(prefix, message, channel, sender)
+Comm:RegisterComm(VERSION_PREFIX, function(prefix, message, channel, sender)
     if sender == UnitName("player") then return end
     local version = tonumber(string.match(message, "%d+"))
     local myVersion = tonumber(string.match(Cell.version, "%d+"))
     if (not CellDB["lastVersionCheck"] or time()-CellDB["lastVersionCheck"]>=25200) and version and myVersion and myVersion < version then
         CellDB["lastVersionCheck"] = time()
-        -- MiliUI: no notice from stock Cell's numbers. This build stopped tracking upstream's
-        -- release line, so "their r290 > our r288" says nothing about whether a MiliUI update
-        -- exists -- it would fire constantly and point at the wrong download. MiliUI builds
-        -- remind each other on their own prefix instead (below).
-        -- F.Print(L["New version found (%s). Please visit %s to get the latest version."]:format(message, "|cFF00CCFFhttps://www.curseforge.com/wow/addons/cell|r"))
+        F.Print(L["New version found (%s). Please visit %s to get the latest version."]:format(message, VERSION_URL))
     end
 end)
-
------------------------------------------
--- MiliUI build-to-build version reminder
---
--- Deliberately NOT on CELL_VERSION: stock Cell pulls the digits out of whatever arrives
--- there, so broadcasting "r290_MiliUI" would tell every stock user that a version which does
--- not exist on CurseForge is available, and point them at a download page for it. A private
--- prefix keeps the conversation to builds that understand it and leaves stock Cell's own
--- handshake completely untouched.
---
--- Self-contained on purpose: reads Cell's own TOC, touches nothing from the MiliUI addon. A
--- Cell lifted out of the pack on its own still reminds other MiliUI Cell users.
---
--- ⚠ The digits come from Cell.version ("rNNN_MiliUI"), which until now was only bumped to
--- gate Revise migrations. Making it a release signal means it has to be bumped on every
--- shipped Cell change, migration or not -- otherwise this stays silent with no error.
------------------------------------------
-local MILIUI_VER_PREFIX = "CELL_MILIUI_VER" -- 15 chars; the addon-message prefix cap is 16
--- The addon's own download page, not the pack repo: a player told "there is a newer Cell"
--- should land somewhere they can grab Cell, not on a git checkout of the whole package.
-local MILIUI_VER_URL = "|cFF00CCFFhttps://addons.miliui.com/wow/cell|r"
-local MILIUI_VER_SEND_THROTTLE = 30
-
--- ⚠ Read the TOC directly, NOT Cell.version. Cell.version is assigned inside Core.lua's
--- ADDON_LOADED handler, which runs long after this file is parsed -- reading it here would
--- see nil, isMiliUIBuild would be false, and the whole feature would silently never install.
--- The TOC metadata is available from the moment the addon loads, and going straight to it
--- also keeps this block independent of Core.lua's init order entirely.
-local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
-local tocVersion = GetAddOnMetadata and GetAddOnMetadata("Cell", "Version")
-local isMiliUIBuild = type(tocVersion) == "string" and strfind(tocVersion, "MiliUI", 1, true) ~= nil
-local myMiliUIVersion = isMiliUIBuild and tonumber(string.match(tocVersion, "%d+")) or nil
-
-if myMiliUIVersion then
-    local notified = false -- once per session; a repeated nag is worse than a missed one
-    local lastSend, sendPending = 0, false
-
-    local function SendMiliUIVersion()
-        sendPending = false
-        if not IsInGroup() then return end
-        if IsCommRestricted() then return end
-        local now = GetTime()
-        if now - lastSend < MILIUI_VER_SEND_THROTTLE then return end
-        lastSend = now
-        UpdateSendChannel()
-        Comm:SendCommMessage(MILIUI_VER_PREFIX, tostring(myMiliUIVersion), sendChannel)
-    end
-
-    local verFrame = CreateFrame("Frame")
-    verFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    verFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
-    verFrame:SetScript("OnEvent", function()
-        -- Roster churn fires this repeatedly; collapse to one delayed send instead of
-        -- queueing a timer per event. The delay also lets the group settle after a join.
-        if sendPending then return end
-        sendPending = true
-        C_Timer.After(5, SendMiliUIVersion)
-    end)
-
-    Comm:RegisterComm(MILIUI_VER_PREFIX, function(prefix, message, channel, sender)
-        if notified then return end
-        local theirs = tonumber(message)
-        if not theirs or theirs <= myMiliUIVersion then return end
-        notified = true
-        F.Print(L["New version found (%s). Please visit %s to get the latest version."]
-            :format("r" .. theirs .. "_MiliUI", MILIUI_VER_URL))
-    end)
-end
 
 -----------------------------------------
 -- Notify Marks
