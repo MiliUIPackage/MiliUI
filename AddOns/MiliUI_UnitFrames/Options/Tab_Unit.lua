@@ -33,6 +33,7 @@ local ELEMENT_LIST = {
     { key = "buffs",      label = L["Buffs"] },
     { key = "debuffs",    label = L["Debuffs"] },
     { key = "icons",      label = L["Icons"] },
+    { key = "inspect",    label = L["Inspect"] },
     { key = "texts",      label = L["Text"] },
 }
 
@@ -259,6 +260,24 @@ local function IconSpecs(els)
     return list
 end
 
+local function InspectSpecs()
+    return {
+        { type = "toggle", sub = "inspect", key = "enabled", label = L["Show"] },
+        { type = "text", label = L["A small button on the frame that opens the inspect window. Only players can be inspected, so it only shows up on them."] },
+        { type = "header", label = L["Position and size"] },
+        PosSize("inspect"),
+        { type = "header", label = L["Appearance"] },
+        { type = "dropdown", sub = "inspect", key = "style", label = L["Icon"], items = ns.INSPECT_STYLE_ITEMS },
+        { type = "color", sub = "inspect", key = "bgColor", label = L["Background color"] },
+        { type = "toggle", sub = "inspect", key = "border", label = L["Show border"] },
+        { type = "slider", sub = "inspect", key = "alpha", label = L["Opacity"], min = 0.1, max = 1, step = 0.05 },
+        { type = "slider", sub = "inspect", key = "iconPadding", label = L["Icon padding"], min = 0, max = 6, step = 1 },
+        { type = "header", label = L["Layer"] },
+        { type = "slider", sub = "inspect", key = "level", label = L["Layer"], min = 0, max = 15, step = 1 },
+        { type = "text", label = L["It has to sit above the health bar to stay clickable; 8 is the default."] },
+    }
+end
+
 local function TextsSpecs(els)
     local list = {
         { type = "text", label = L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] "
@@ -292,6 +311,7 @@ local function SpecsFor(unitKey, elementKey)
     if elementKey == "buffs" then return AuraSpecs("buffs") end
     if elementKey == "debuffs" then return AuraSpecs("debuffs") end
     if elementKey == "icons" then return IconSpecs(els) end
+    if elementKey == "inspect" then return InspectSpecs() end
     if elementKey == "texts" then return TextsSpecs(els) end
     return {}
 end

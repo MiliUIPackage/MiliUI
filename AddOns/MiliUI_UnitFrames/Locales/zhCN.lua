@@ -312,6 +312,18 @@ L["Status (combat / resting)"] = "状态（战斗／休息）"
 L["Leader"] = "队长"
 L["Animated zzZ while resting"] = "休息用动画 zzZ"
 L["Blizzard combat icon (native 16x16, ignores the size below)"] = "战斗用内建图标（原尺寸 16×16，不吃下面的宽高）"
+
+-- 观察按钮
+L["Inspect"] = "观察"
+L["Opens the inspect window."] = "打开观察窗口。"
+L["A small button on the frame that opens the inspect window. Only players can be inspected, so it only shows up on them."] = "贴在框上的小按钮，点下去打开观察窗口。只有玩家能观察，所以也只会在玩家身上出现。"
+L["Character info"] = "角色信息"
+L["Magnifier"] = "放大镜"
+L["Question mark"] = "问号"
+L["Icon padding"] = "图标内缩"
+L["Opacity"] = "透明度"
+L["It has to sit above the health bar to stay clickable; 8 is the default."] = "图层要压在血条之上才点得到，默认 8。"
+
 L["Content"] = "内容"
 L["Vertical align"] = "垂直对齐"
 L["Backdrop color"] = "底色"

@@ -233,6 +233,10 @@ function DB.BuildDefaults()
                               status     = { enabled = true,  x = -8, y = 10, w = 14, h = 14, level = 10 },
                               leader     = { enabled = true,  x = 7,  y = 10, w = 12, h = 12, level = 10 },
                               pvp        = { enabled = false, x = 176, y = -12, w = 28, h = 28, level = 10 } },
+                    -- 觀察按鈕：點下去開觀察視窗。位置沿用舊版面（框右上角外側）
+                    inspect = { enabled = true, x = 186, y = 5, w = 25, h = 25, level = 8, alpha = 1,
+                                style = "character", border = true, bgColor = black(0.6),
+                                iconPadding = 2 },
                 },
             },
 

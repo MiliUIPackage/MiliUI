@@ -309,6 +309,18 @@ L["Status (combat / resting)"] = "狀態（戰鬥／休息）"
 L["Leader"] = "隊長"
 L["Animated zzZ while resting"] = "休息用動畫 zzZ"
 L["Blizzard combat icon (native 16x16, ignores the size below)"] = "戰鬥用內建圖示（原尺寸 16×16，不吃下面的寬高）"
+
+-- 觀察按鈕
+L["Inspect"] = "觀察"
+L["Opens the inspect window."] = "開啟觀察視窗。"
+L["A small button on the frame that opens the inspect window. Only players can be inspected, so it only shows up on them."] = "貼在框上的小按鈕，點下去開觀察視窗。只有玩家能觀察，所以也只會在玩家身上出現。"
+L["Character info"] = "角色資訊"
+L["Magnifier"] = "放大鏡"
+L["Question mark"] = "問號"
+L["Icon padding"] = "圖示內縮"
+L["Opacity"] = "透明度"
+L["It has to sit above the health bar to stay clickable; 8 is the default."] = "圖層要壓在血條之上才點得到，預設 8。"
+
 L["Content"] = "內容"
 L["Vertical align"] = "垂直對齊"
 L["Backdrop color"] = "底色"
