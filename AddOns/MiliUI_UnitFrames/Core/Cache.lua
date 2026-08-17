@@ -109,15 +109,16 @@ local function UpdateIdentityFields(uf)
     cache.classification = ns.db.global.classification[cls] or ""
 end
 
--- 超出距離：assist 對象且不可見（UnitIsVisible 秘密時當可見，避免誤灰）
+-- 超出距離。以前只看 UnitIsVisible（那其實是「有沒有載入」，不是距離），
+-- 現在走 ns.Range 的探針技能判定，見那個檔的說明。
+-- ⚠ 不再限定 assist 對象：敵人超出攻擊距離同樣算超出，tag 名字本來就叫 oor。
 function Cache.IsOOR(uf)
     local cache, unit = uf.cache, uf.unit
-    if unit == "player" or not cache.assist or cache.dead or cache.offline then
-        return false
-    end
+    if unit == "player" or cache.dead or cache.offline then return false end
+    -- 不可見（不同分流、遠到沒載入）一定算超出；秘密值時不下結論，往下問距離
     local vis = UnitIsVisible(unit)
-    if IsSecret(vis) then return false end
-    return not vis
+    if not IsSecret(vis) and not vis then return true end
+    return ns.Range.IsOut(unit)
 end
 
 function Cache.Update(uf, bucket)

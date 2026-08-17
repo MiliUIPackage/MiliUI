@@ -62,6 +62,11 @@ local function FrameSpecs(unitKey)
                         items = { { text = L["Downward"], value = "DOWN" }, { text = L["Upward"], value = "UP" } } })
         tinsert(list, { type = "slider", root = "frame", key = "spacing", label = L["Spacing"], min = 20, max = 120 })
     end
+    tinsert(list, { type = "header", label = L["Out of range"] })
+    tinsert(list, { type = "toggle", root = "frame", key = "fadeOutOfRange",
+                    label = L["Fade when out of range"],
+                    hint = L["Fades the whole frame when the unit is beyond your reach. Transparency is set globally under General."] })
+
     tinsert(list, { type = "header", label = L["Reset"] })
     tinsert(list, { type = "button", label = L["Restore defaults"], text = L["Restore everything for this unit"], color = "red",
                     confirm = L["Restore every setting for \"%s\" to its default?"]

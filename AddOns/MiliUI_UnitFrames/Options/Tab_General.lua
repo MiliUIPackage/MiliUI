@@ -40,6 +40,10 @@ local CONTROLS = {
     { type = "toggle", key = "smoothBars", label = L["Smooth health and power bars"] },
     { type = "text",   label = L["Uses the engine's built-in interpolation (native in 12.x, works with secret values), so bars slide instead of jumping."] },
 
+    { type = "header", label = L["Out of range"] },
+    { type = "slider", key = "oorAlpha", label = L["Faded transparency"], min = 0.1, max = 1, step = 0.05 },
+    { type = "text",   label = L["Which frames fade is set per unit, under Units > Frame."] },
+
     { type = "header", label = L["Health colors"] },
     { type = "text",   label = L["The \"health gradient\" method interpolates between these two; gray is used for dead / offline / out-of-range text."] },
     { type = "color", sub = "colors", key = "hpGreen", label = L["Healthy"] },

@@ -184,6 +184,36 @@ function ns.ApplyFramePosition(uf)
 end
 
 ------------------------------------------------------------
+-- 超出距離淡出
+--
+-- 掛在既有的 Metro 上，不另開 ticker——Metro.Bind 會跟著框架的可見度上下，
+-- 框藏起來就不輪詢。判定本身在 ns.Range，這裡只負責套 alpha。
+--
+-- 用 uf.rangeAlpha 記住「現在是不是淡出狀態」，一樣就不重設：SetAlpha 每次都呼叫
+-- 雖然便宜，但沒必要，而且會跟預覽的高亮 alpha 打架。
+------------------------------------------------------------
+local function ApplyRangeAlpha(uf)
+    local out = ns.Range.IsOut(uf.unit)
+    if out == uf.rangeFaded then return end
+    uf.rangeFaded = out
+    uf:SetAlpha(out and (ns.db.global.oorAlpha or 0.45) or 1)
+end
+
+function ns.ApplyRangeFade(uf)
+    local key = "range_" .. uf.unit
+    if uf.isPreview or not uf.db.frame.fadeOutOfRange then
+        ns.Metro.Unbind(uf, key)
+        if uf.rangeFaded then           -- 關掉時要把淡出還原，不然會卡在半透明
+            uf.rangeFaded = nil
+            uf:SetAlpha(1)
+        end
+        return
+    end
+    uf.rangeFn = uf.rangeFn or function() ApplyRangeAlpha(uf) end
+    ns.Metro.Bind(uf, key, 0.3, uf.rangeFn)
+end
+
+------------------------------------------------------------
 -- 建構元件（冪等；設定變更後整組重跑）
 ------------------------------------------------------------
 function ns.BuildElements(uf)
@@ -240,12 +270,13 @@ function ns.SpawnUnitFrame(unit)
     ClickCastFrames = ClickCastFrames or {}
     ClickCastFrames[uf] = true
 
-    ns.ApplyFramePosition(uf)
-    ns.BuildElements(uf)
-
-    -- 單位出現時（RegisterUnitWatch 驅動 Show）做全量刷新
+    -- ⚠⚠ 腳本要在 BuildElements **之前**設好。
+    -- SetScript 是「取代」，HookScript 是「包在現有的外面」。元件建構裡有東西會
+    -- HookScript OnShow（Metro.Bind 靠它在框顯示時把輪詢加回來），先 Hook 再
+    -- SetScript 的話那個 hook 會被整個蓋掉——症狀是輪詢永遠掛不上、超出距離的
+    -- 文字凍結在選目標那一刻，而且完全不報錯。實際踩過。
     uf:SetScript("OnShow", function(self)
-        ns.Refresh(self, "unitchanged")
+        ns.Refresh(self, "unitchanged")     -- 單位出現時（RegisterUnitWatch 驅動）全量刷新
     end)
 
     -- 滑鼠提示（暴雪單位提示；EUI/暴雪同法）。OnEnter/OnLeave 不是受保護腳本，
@@ -261,6 +292,10 @@ function ns.SpawnUnitFrame(unit)
     uf:SetScript("OnLeave", function()
         GameTooltip:Hide()
     end)
+
+    ns.ApplyFramePosition(uf)
+    ns.BuildElements(uf)
+    ns.ApplyRangeFade(uf)
 
     if unit == "player" then
         uf:Show()
@@ -310,6 +345,7 @@ function ns.ApplySettings(unitKey)
                 elseif uf then
                     ns.ApplyFramePosition(uf)
                     ns.BuildElements(uf)
+                    ns.ApplyRangeFade(uf)
                     -- 預覽開啟時真實框由 Preview 管顯示，這裡不搶（關窗時 RestoreReal 還原）
                     if not previewOpen then
                         if unit == "player" then

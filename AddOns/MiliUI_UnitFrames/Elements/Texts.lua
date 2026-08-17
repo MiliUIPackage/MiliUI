@@ -91,6 +91,12 @@ local function Update(uf, edb, bucket)
         if f and entry.enabled ~= false and f:IsShown() then
             if bucket == "unitchanged" or f.buckets[bucket] then
                 Tags.Render(uf, f.fontstring, entry.pattern, entry)
+                -- 追「別人的資料跑進這個框」用：記下這次渲染當下的單位與身分判定。
+                -- 事後 /muf debug 比對「畫面上的字」與「畫它時看的是誰」，
+                -- 就知道是渲染錯了還是根本沒重畫。兩個欄位賦值，成本可忽略。
+                f.lastUnit = uf.unit
+                f.lastIsPlayer = uf.cache.isPlayer
+                f.lastBucket = bucket
             end
         end
     end

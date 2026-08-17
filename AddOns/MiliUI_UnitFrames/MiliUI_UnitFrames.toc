@@ -32,6 +32,7 @@ Core\DB.lua
 Core\Colors.lua
 Core\Cache.lua
 Core\Events.lua
+Core\Range.lua
 Core\Tags.lua
 Core\Registry.lua
 Core\UnitFrame.lua

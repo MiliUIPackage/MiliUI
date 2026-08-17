@@ -106,12 +106,16 @@ local function Debug()
     for _, unit in ipairs(ns.UNITS) do
         local uf = ns.frames[unit]
         if uf then
-            tinsert(units, unit .. (uf:IsShown() and "|cff44ff44●|r" or "|cff888888○|r"))
+            -- uf.unit 會被載具切換改掉（EvalActiveUnit）。它跟 baseUnit 不一樣時
+            -- 標出來——「這個框在讀誰的資料」錯了，症狀就是別人的資料跑進來
+            local tag = ""
+            if uf.unit ~= unit then tag = "|cffff8800→" .. tostring(uf.unit) .. "|r" end
+            tinsert(units, unit .. (uf:IsShown() and "|cff44ff44●|r" or "|cff888888○|r") .. tag)
         else
             tinsert(units, unit .. "|cffff5555✕|r")
         end
     end
-    p("  單位框（●顯示 ○隱藏 ✕沒生成）：" .. table.concat(units, " "))
+    p("  單位框（●顯示 ○隱藏 ✕沒生成；→ 表示實際讀的單位不同）：" .. table.concat(units, " "))
 
     local uf = ns.frames.player
     if uf and uf.textFrames then
@@ -194,7 +198,24 @@ local function Debug()
         Probe("g.HealAbsorb", UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs("target"))
         -- 模型重載計數：頭像閃爍時看這裡。下兩次 /muf debug 之間如果數字一直跳，
         -- 就是擋板沒生效，lastBucket 會指出是哪條路在推
-        p("  頭像模型重載次數（框：次數／key／上次來源）：")
+        -- 輪詢項目：超出距離的文字與淡出都靠 Metro。沒掛上去的話狀態就會凍結在
+    -- 最後一次 unitchanged，症狀是「選目標當下對，之後走動都不變」
+    do
+        local entries, alive = ns.Metro.Debug()
+        p(("  輪詢（ticker=%s）：%s"):format(
+            alive and "|cff44ff44轉|r" or "|cffff5555停|r",
+            #entries > 0 and table.concat(entries, " ") or "（空）"))
+        local tuf = ns.frames.target
+        if tuf then
+            p(("   目標框 oor=%s range=%s"):format(
+                tostring(ns.Cache.IsOOR(tuf)),
+                tostring(ns.Range.Check(tuf.unit))))
+        end
+        local h, hp = ns.Range.Probes()
+        p(("   探針技能 harm=%s help=%s"):format(tostring(h), tostring(hp)))
+    end
+
+    p("  頭像模型重載次數（框：次數／key／上次來源）：")
         for _, u in ipairs({ "player", "target", "focus", "pet" }) do
             local uf = ns.frames[u]
             local pfx = uf and uf.elements and uf.elements.portrait
@@ -241,7 +262,12 @@ local function Debug()
         if tuf and tuf.textFrames then
             for i, f in ipairs(tuf.textFrames) do
                 if f:IsShown() then
-                    Probe("target text#" .. i, f.fontstring:GetText())
+                    -- 後面那三欄是「畫這行字的當下看的是誰」：
+                    -- 畫面上的字跟現在的目標對不起來時，看 u= 與 isPlayer=
+                    -- 就知道是渲染時讀錯單位，還是那次刷新根本沒發生（bucket 停在舊的）
+                    Probe(("target text#%d [u=%s isPlayer=%s bucket=%s]"):format(
+                        i, tostring(f.lastUnit), tostring(f.lastIsPlayer), tostring(f.lastBucket)),
+                        f.fontstring:GetText())
                 end
             end
         end

@@ -2,7 +2,8 @@
 -- 觀察按鈕：貼在單位框上的小按鈕，點下去開暴雪的觀察面板
 -- （左右鍵都一樣，不分工）
 --
--- 圖示全部用暴雪內建的 atlas／圖示檔，本插件不自帶貼圖。
+-- 圖示全部用暴雪內建的 atlas／圖示檔，本插件不自帶貼圖；「圓底問號」那款連底
+-- 都是白方塊套內建圓形遮罩裁出來的。
 --
 -- 12.1：可以觀察的只有玩家單位，而玩家單位的身分本來就不受限
 -- （受限的定義是「非玩家操控、又不在自己隊伍裡」）→ 顯示閘門用 cache.isPlayer
@@ -28,11 +29,16 @@ local STYLE_DEFS = {
 }
 
 -- 設定面板的下拉選單（唯一來源就是這裡）
+-- round 不是圖示、是整顆按鈕換一種畫法（見 ApplyRoundLook）
 ns.INSPECT_STYLE_ITEMS = {
-    { text = L["Character info"], value = "character" },
-    { text = L["Magnifier"],      value = "magnifier" },
-    { text = L["Question mark"],  value = "question" },
+    { text = L["Character info"],     value = "character" },
+    { text = L["Magnifier"],          value = "magnifier" },
+    { text = L["Question mark"],      value = "question" },
+    { text = L["Round question mark"], value = "round" },
 }
+
+-- 圓形遮罩：暴雪內建，本包好幾支插件都在用，12.x 確定還在
+local CIRCLE_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 
 local atlasCache = {}
 local function HasAtlas(name)
@@ -95,6 +101,40 @@ local function OnLeave()
 end
 
 ------------------------------------------------------------
+-- 圓底問號的畫法
+--
+-- 純白方塊套上內建的圓形遮罩，任何尺寸都是乾淨的圓（縮放不糊、不必自帶貼圖）。
+-- 邊框是「外圈一顆、內圈一顆內縮一個邊框厚度」疊出來的：中間露出來那一圈就是邊，
+-- 比找一張圓環貼圖可靠得多，粗細也跟其他元件共用同一個 BorderInset。
+------------------------------------------------------------
+local function NewCircleMask(btn, tex)
+    local mask = btn:CreateMaskTexture()
+    mask:SetTexture(CIRCLE_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    mask:SetAllPoints(tex)
+    return mask
+end
+
+local function MaskCircle(btn, tex)
+    local mask = NewCircleMask(btn, tex)
+    tex:AddMaskTexture(mask)
+    return mask
+end
+
+local function EnsureRound(btn)
+    if btn.disc then return end
+    btn.ring = btn:CreateTexture(nil, "BACKGROUND")
+    btn.ring:SetTexture(Media.WHITE8X8)
+    MaskCircle(btn, btn.ring)
+    btn.disc = btn:CreateTexture(nil, "BORDER")
+    btn.disc:SetTexture(Media.WHITE8X8)
+    MaskCircle(btn, btn.disc)
+    btn.glyph = btn:CreateFontString(nil, "ARTWORK")
+    btn.glyph:SetPoint("CENTER", 0, 0)
+    btn.glyph:SetTextColor(1, 1, 1, 1)
+    btn.glyph:SetText("?")
+end
+
+------------------------------------------------------------
 -- 建構／更新
 ------------------------------------------------------------
 local function Build(uf, edb)
@@ -117,30 +157,77 @@ local function Build(uf, edb)
 
     -- 邊框有畫就要內縮，內縮量一律問 BorderInset（直接寫 1 會在 Retina 露縫）
     local bordered = edb.border ~= false
-    if bordered then
-        Media.ApplyBorder(btn)
-    else
-        btn:SetBackdrop(nil)
-    end
     local inset = bordered and Media.BorderInset() or 0
-
     local c = edb.bgColor or { r = 0, g = 0, b = 0, a = 0.6 }
-    btn.bg:ClearAllPoints()
-    btn.bg:SetPoint("TOPLEFT", inset, -inset)
-    btn.bg:SetPoint("BOTTOMRIGHT", -inset, inset)
-    btn.bg:SetVertexColor(c.r, c.g, c.b, c.a or 1)
-
-    local pad = inset + ns.P.Scale(edb.iconPadding or 2)
-    btn.icon:ClearAllPoints()
-    btn.icon:SetPoint("TOPLEFT", pad, -pad)
-    btn.icon:SetPoint("BOTTOMRIGHT", -pad, pad)
-    ApplyIcon(btn.icon, edb.style)
-
-    -- 高亮也跟著內縮，不然滑過去會把邊框一起蓋掉
+    local bc = (ns.db and ns.db.global.borderColor) or { r = 0, g = 0, b = 0, a = 1 }
     local hl = btn:GetHighlightTexture()
-    hl:ClearAllPoints()
-    hl:SetPoint("TOPLEFT", inset, -inset)
-    hl:SetPoint("BOTTOMRIGHT", -inset, inset)
+    local isRound = edb.style == "round"
+
+    if isRound then
+        EnsureRound(btn)
+        -- 方形那套全部收起來：backdrop 的直角邊畫在圓底上會露出四個角
+        btn:SetBackdrop(nil)
+        btn.bg:Hide()
+        btn.icon:Hide()
+
+        btn.ring:SetAllPoints(btn)
+        btn.ring:SetVertexColor(bc.r, bc.g, bc.b, bc.a or 1)
+        btn.ring:SetShown(bordered)
+        btn.disc:ClearAllPoints()
+        btn.disc:SetPoint("TOPLEFT", inset, -inset)
+        btn.disc:SetPoint("BOTTOMRIGHT", -inset, inset)
+        btn.disc:SetVertexColor(c.r, c.g, c.b, c.a or 1)
+        btn.disc:Show()
+
+        -- 問號跟著按鈕高度縮放，字級寫死的話換尺寸就爆框或縮成一點
+        Media.SetFont(btn.glyph, math.max(8, math.floor((edb.h or 25) * 0.62)), "OUTLINE")
+        btn.glyph:Show()
+
+        hl:ClearAllPoints()
+        hl:SetAllPoints(btn)
+    else
+        if bordered then
+            Media.ApplyBorder(btn)
+        else
+            btn:SetBackdrop(nil)
+        end
+        if btn.disc then                       -- 從圓底切回來：圓的那三件要收掉
+            btn.ring:Hide()
+            btn.disc:Hide()
+            btn.glyph:Hide()
+        end
+
+        btn.bg:ClearAllPoints()
+        btn.bg:SetPoint("TOPLEFT", inset, -inset)
+        btn.bg:SetPoint("BOTTOMRIGHT", -inset, inset)
+        btn.bg:SetVertexColor(c.r, c.g, c.b, c.a or 1)
+        btn.bg:Show()
+
+        local pad = inset + ns.P.Scale(edb.iconPadding or 2)
+        btn.icon:ClearAllPoints()
+        btn.icon:SetPoint("TOPLEFT", pad, -pad)
+        btn.icon:SetPoint("BOTTOMRIGHT", -pad, pad)
+        ApplyIcon(btn.icon, edb.style)
+        btn.icon:Show()
+
+        -- 高亮也跟著內縮，不然滑過去會把邊框一起蓋掉
+        hl:ClearAllPoints()
+        hl:SetPoint("TOPLEFT", inset, -inset)
+        hl:SetPoint("BOTTOMRIGHT", -inset, inset)
+    end
+
+    -- 高亮跟著形狀走：方形白光罩在圓底上，四個角會凸出來。
+    -- ⚠ 遮罩物件建了就拿不掉，切樣式只加／拆掛載，不要每次重建
+    if isRound then
+        btn.hlMask = btn.hlMask or NewCircleMask(btn, hl)
+        if not btn.hlMasked then
+            hl:AddMaskTexture(btn.hlMask)
+            btn.hlMasked = true
+        end
+    elseif btn.hlMasked then
+        hl:RemoveMaskTexture(btn.hlMask)
+        btn.hlMasked = false
+    end
 
     btn:Hide()      -- 顯示與否由 Update 決定
 end

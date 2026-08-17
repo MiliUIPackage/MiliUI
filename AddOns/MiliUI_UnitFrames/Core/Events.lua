@@ -274,6 +274,16 @@ function ns.Metro.Bind(uf, key, interval, fn)
     sync()
 end
 
+-- 給 /muf debug：輪詢項目有沒有真的掛上去
+function ns.Metro.Debug()
+    local out = {}
+    for key, e in pairs(metroEntries) do
+        out[#out + 1] = ("%s(%.1fs)"):format(key, e.interval or 0)
+    end
+    table.sort(out)
+    return out, metroTicker ~= nil
+end
+
 function ns.Metro.Unbind(uf, key)
     if uf.metroBound then uf.metroBound[key] = nil end
     ns.Metro.Remove(key)
