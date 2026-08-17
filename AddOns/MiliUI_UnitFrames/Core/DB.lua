@@ -422,7 +422,7 @@ function DB.BuildDefaults()
                         icon  = { x = 0, y = 0, w = 14, h = 14 },
                     },
                     icons = { enabled = true,
-                              raidtarget = { enabled = true, x = 204, y = 13, w = 14, h = 14, level = 10 } },
+                              raidtarget = { enabled = true, x = 14, y = 10, w = 24, h = 24, level = 10 } },
                 },
             },
 
