@@ -68,6 +68,9 @@ local function bigCastbar(own)
         showInterruptState = not own,   -- 自己的施法不套「不可打斷灰」也不畫盾牌
         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
         showSpark = false,              -- 填充前緣的亮點（Stuf／FocuserCastBar 都沒有，預設關）
+        -- 填充色的透明度（背景另有 bg.a）。預設 1 = 不透明，維持原本的樣子；
+        -- 調低就看得到底下的 3D 頭像（玩家／目標的施法條剛好整片蓋住頭像）
+        barAlpha = 1,
         showShield = not own, shieldStyle = "blizzard", shieldScale = own and 1.2 or 1.4, shieldOffsetX = 0, shieldOffsetY = 0,
         spell = { x = 34, y = -2, w = 166, h = 50, size = 12, flags = "OUTLINE",
                   justifyH = "LEFT", justifyV = "MIDDLE", color = white(1) },
@@ -325,7 +328,7 @@ function DB.BuildDefaults()
                                  size = 10, justifyH = "CENTER", justifyV = "MIDDLE", level = 6 },
                     },
                     castbar = {
-                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 7, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, showShield = true, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
+                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 7, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showShield = true, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(1), border = true,
                         spell = { x = 12, y = 7, w = 160, h = 10, size = 10, flags = "OUTLINE",
                                   justifyH = "LEFT", justifyV = "TOP", color = white(1) },
@@ -393,7 +396,7 @@ function DB.BuildDefaults()
                     },
                     castbar = {
                         enabled = true, x = 0, y = 0, w = 120, h = 40, level = 6, timeFormat = "elapsedTotal",
-                        showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, showShield = false, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
+                        showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showShield = false, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(0.5),
                         spell = { x = 34, y = 5, w = 120, h = 50, size = 12, flags = "OUTLINE",
                                   justifyH = "LEFT", justifyV = "MIDDLE",
@@ -450,7 +453,7 @@ function DB.BuildDefaults()
                         enabled = true, x = 36, y = -22, w = 184, h = 14, level = 6,
                         timeFormat = "elapsedTotal", showInterruptState = true,
                         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
-                        showSpark = false,
+                        showSpark = false, barAlpha = 1,
                         showShield = true, shieldStyle = "blizzard", shieldScale = 1.4,
                         shieldOffsetX = 0, shieldOffsetY = 0,
                         bg = black(0.7), border = true,

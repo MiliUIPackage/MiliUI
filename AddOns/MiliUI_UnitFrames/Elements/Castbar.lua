@@ -109,7 +109,8 @@ local function ApplySecretColor(f)
         g = Eval(ni, im.g, g)
         b = Eval(ni, im.b, b)
     end
-    tex:SetVertexColor(r, g, b)
+    -- alpha 來自設定（明文）；r/g/b 可能是秘密值，各參數互不影響
+    tex:SetVertexColor(r, g, b, f.barAlpha or 1)
 end
 
 -- 一般模式上色（notInterruptible 明文可分支）
@@ -117,7 +118,7 @@ local function ApplyPlainColor(f, notInt)
     local c = Colors()
     local col = (f.showInterruptState and notInt and c.notInterruptible)
         or (f.castChannel and c.channel or c.cast)
-    f.bar:SetStatusBarColor(col.r, col.g, col.b)
+    f.bar:SetStatusBarColor(col.r, col.g, col.b, f.barAlpha or 1)
 end
 
 -- 施法中途「可打斷」狀態改變（首領常見：某段時間不可打斷）。
@@ -158,7 +159,7 @@ local function EndFade(f, color, label)
     if f.ticker then f.ticker:Cancel(); f.ticker = nil end
     if f.shield then f.shield:Hide() end
     if color then
-        f.bar:SetStatusBarColor(color.r, color.g, color.b)
+        f.bar:SetStatusBarColor(color.r, color.g, color.b, f.barAlpha or 1)
     end
     if label then f.spellText:SetText(label) end
     f.timeText:SetText("")
@@ -368,7 +369,7 @@ local function ShowInterrupted(f, interrupterGUID)
     local c = Colors().fail
     f.bar:SetMinMaxValues(0, 1)
     f.bar:SetValue(1)
-    f.bar:SetStatusBarColor(c.r, c.g, c.b)
+    f.bar:SetStatusBarColor(c.r, c.g, c.b, f.barAlpha or 1)
     f.spellText:SetText(L["Interrupted"])
     f.timeText:SetText("")
     if f.shield then f.shield:Hide() end
@@ -557,6 +558,10 @@ local function Build(uf, edb)
     f.fadeTime = edb.fadeTime or 0.5
     f.interruptHold = edb.interruptHold or 0.4
     f.baseAlpha = edb.alpha or 1
+    -- 填充色的透明度。⚠ 跟 f.baseAlpha（整條 frame 的 alpha）是兩件事：
+    -- frame alpha 會連背景／圖示／文字一起變淡，而且淡出動畫在用它；
+    -- barAlpha 只作用在填充，唱法時才看得到底下的 3D 頭像。兩者相乘。
+    f.barAlpha = edb.barAlpha or 1
 
     local bg = edb.bg or { r = 0, g = 0, b = 0, a = 0.8 }
     f.bgTex:SetVertexColor(bg.r, bg.g, bg.b, bg.a or 0.8)

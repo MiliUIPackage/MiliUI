@@ -231,6 +231,8 @@ local function CastbarSpecs()
         PosSize("castbar"),
         { type = "header", label = L["Appearance"] },
         { type = "color", sub = "castbar", key = "bg", label = L["Background color"] },
+        { type = "slider", sub = "castbar", key = "barAlpha", label = L["Fill opacity"], min = 0.1, max = 1, step = 0.05 },
+        { type = "text", label = L["Only the colored fill; the icon and text stay fully readable, and the background has its own opacity in the color above. Turn it down and the 3D portrait shows through while casting — on the player and target the cast bar sits exactly on top of the portrait."] },
         { type = "toggle", sub = "castbar", key = "border", label = L["Show border"] },
         { type = "toggle", sub = "castbar", key = "showInterruptState", label = L["Show non-interruptible"] },
         { type = "dropdown", sub = "castbar", key = "shieldStyle", label = L["Shield style"], items = ns.Media.SHIELD_STYLES },

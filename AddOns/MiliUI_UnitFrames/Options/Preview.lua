@@ -229,7 +229,7 @@ local function Tick()
             cb.spellText:SetText(L["Demo Spell"])
             cb.icon:SetTexture(136048)
             local c = ns.db.global.colors.cast
-            cb.bar:SetStatusBarColor(c.r, c.g, c.b)
+            cb.bar:SetStatusBarColor(c.r, c.g, c.b, cb.barAlpha or 1)
             AttachFakeCast(uf)
             cb:Show()
         elseif cb then
@@ -251,7 +251,7 @@ function Preview.SetElement(elementKey)
             cb.spellText:SetText(L["Demo Spell"])
             cb.icon:SetTexture(136048)
             local c = ns.db.global.colors.cast
-            cb.bar:SetStatusBarColor(c.r, c.g, c.b)
+            cb.bar:SetStatusBarColor(c.r, c.g, c.b, cb.barAlpha or 1)
             AttachFakeCast(uf)
             cb:Show()
         else
