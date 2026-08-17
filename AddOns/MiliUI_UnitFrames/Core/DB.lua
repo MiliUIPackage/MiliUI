@@ -234,10 +234,11 @@ function DB.BuildDefaults()
                               status     = { enabled = true,  x = -8, y = 10, w = 14, h = 14, level = 10 },
                               leader     = { enabled = true,  x = 7,  y = 10, w = 12, h = 12, level = 10 },
                               pvp        = { enabled = false, x = 176, y = -12, w = 28, h = 28, level = 10 } },
-                    -- 觀察按鈕：點下去開觀察視窗。位置沿用舊版面（框右上角外側）。
+                    -- 觀察按鈕：點下去開觀察視窗。座標是使用者在遊戲裡調定的
+                    -- （框右上角外側，往上凸出 5）。
                     -- 預設是「圖示直接浮在框上」——不畫邊框也不畫底色（使用者定案）；
                     -- 圖本身帶描邊與投影，亮背景上也撐得住
-                    inspect = { enabled = true, x = 186, y = 5, w = 25, h = 25, level = 8, alpha = 1,
+                    inspect = { enabled = true, x = 180, y = 5, w = 25, h = 25, level = 8, alpha = 1,
                                 style = "glass", border = false, bgColor = black(0),
                                 iconPadding = 0 },
                 },
