@@ -25,8 +25,11 @@ local FAKE_BASE = {
     targettarget = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
     focus        = { name = L["Training Dummy"], pc = false, reaction = 2, level = 81 },
     focustarget  = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
-    pet          = { name = L["Pet"],     pc = true,  reaction = 5, level = 80,
-                     creaturetype = L["Beast"] },
+    -- ⚠ 寵物是「玩家控制但**不是**玩家」：isPlayer 要明寫 false。
+    -- 這個差別正是上色路徑的分岔點（真玩家吃 classFile、寵物吃 ownerClass），
+    -- 以前 isPlayer 直接等於 pc，預覽顯示職業色、真實框卻是白的 —— bug 就這樣被藏住。
+    pet          = { name = L["Pet"],     pc = true,  isPlayer = false,
+                     reaction = 5, level = 80, creaturetype = L["Beast"] },
     boss         = { name = L["Boss"],     pc = false, reaction = 2, level = 83,
                      classificationKey = "worldboss" },
 }
@@ -34,14 +37,19 @@ local FAKE_BASE = {
 local function BuildFakeCache(unitKey)
     local base = FAKE_BASE[unitKey] or FAKE_BASE.player
     local cls = ns.db.global.classification
+    -- isPlayer 預設跟 pc 一樣，但可以個別覆寫（寵物就是 pc=true / isPlayer=false）
+    local isPlayer = base.isPlayer
+    if isPlayer == nil then isPlayer = base.pc end
     local cache = {
         name = base.name,
-        classFile = base.pc and ns.playerClass or nil,
-        class = base.pc and (UnitClass("player")) or "",
-        race = base.pc and (UnitRace("player")) or "",
+        classFile = isPlayer and ns.playerClass or nil,
+        class = isPlayer and (UnitClass("player")) or "",
+        race = isPlayer and (UnitRace("player")) or "",
         creaturetype = base.creaturetype or "",
         pc = base.pc,
-        isPlayer = base.pc,
+        isPlayer = isPlayer,
+        -- 玩家控制但不是玩家 → 吃主人的職業色，跟真實框同一條路（見 Core/Cache.lua）
+        ownerClass = (not isPlayer) and base.pc and ns.playerClass or nil,
         reaction = base.reaction,
         level = base.level,
         classification = base.classificationKey and cls[base.classificationKey] or "",

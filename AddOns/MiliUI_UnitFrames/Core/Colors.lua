@@ -32,6 +32,13 @@ methods.class = function(uf, edb, value, choice, alphaKey)
     local a = alphaOf(edb, alphaKey, 1)
     local c = uf.cache.classFile and RAID_CLASS_COLORS[uf.cache.classFile]
     if c then return c.r, c.g, c.b, a end
+    -- 寵物／載具沒有自己的職業（UnitClassBase 回 nil），吃主人的 —— 少了這段就會一路
+    -- 掉到最後的 WHITE，寵物框變成灰白的沒有職業色（Cell 也是給主人的職業色）
+    local owner = uf.cache.ownerClass
+    if owner then
+        c = RAID_CLASS_COLORS[owner]
+        if c then return c.r, c.g, c.b, a end
+    end
     if uf.cache.pc and not uf.isPreview and GetClassColor then
         local raw = UnitClassBase(uf.unit)
         if raw ~= nil and ns.IsSecret(raw) then          -- nil-ness 對秘密值可讀
@@ -57,7 +64,13 @@ methods.reactiondark = function(uf, edb, value, choice, alphaKey)
 end
 
 -- 玩家用職業色、NPC/敵對(2)/中立(4)用陣營色
+--
+-- ⚠ 自己的寵物／載具例外，一律走職業色（它們有 ownerClass = 主人的職業）。
+-- 不排除的話，寵物的 UnitReaction 只要回 4（中立）就會被塗成陣營黃，而
+-- 「自己的寵物用中立色」沒有任何意義 —— 而且 classreaction 會在這裡短路，
+-- 根本走不到 methods.class 的 ownerClass 那段。
 local function reactish(cache)
+    if cache.ownerClass then return false end
     return not cache.pc or cache.reaction == 2 or cache.reaction == 4
 end
 methods.classreaction = function(uf, edb, value, choice, alphaKey)

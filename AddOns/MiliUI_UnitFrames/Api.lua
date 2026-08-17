@@ -324,6 +324,27 @@ local function Debug()
         p("   " .. (#rows > 0 and table.concat(rows, "  ") or "（沒有框）"))
     end
 
+    -- 寵物上色：「寵物顏色不對」要分得出是沒有職業（classFile nil）、主人解不出來
+    -- （ownerClass nil）、還是被陣營色短路（reaction 2/4 走 reactish）
+    do
+        local puf = ns.frames.pet
+        local c = puf and puf.cache
+        if c then
+            local hp = puf.db.elements.hpbar
+            local r, g, b = ns.Colors.Get(hp and hp.colorMethod, puf, hp, c.frachp, "barColor", "barAlpha")
+            p(("  寵物上色：classFile=%s ownerClass=%s reaction=%s pc=%s isPlayer=%s"):format(
+                SafeStr(c.classFile), SafeStr(c.ownerClass), SafeStr(c.reaction),
+                tostring(c.pc), tostring(c.isPlayer)))
+            p(("   法=%s → rgb=%s,%s,%s%s"):format(
+                SafeStr(hp and hp.colorMethod),
+                SafeStr(r and math.floor(r * 255)), SafeStr(g and math.floor(g * 255)),
+                SafeStr(b and math.floor(b * 255)),
+                c.ownerClass and ("　（" .. tostring(c.ownerClass) .. " 主人色）") or ""))
+        else
+            p("  寵物上色：沒有寵物")
+        end
+    end
+
     p("  受限狀態 HasSecretRestrictions=" .. tostring(C_Secrets and C_Secrets.HasSecretRestrictions())
         .. " ShouldAurasBeSecret=" .. tostring(C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret()))
 

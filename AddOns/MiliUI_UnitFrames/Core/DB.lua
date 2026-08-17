@@ -380,7 +380,15 @@ function DB.BuildDefaults()
                     hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 40, level = 4, lossAlpha = 0.55,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.8, bgAlpha = 1, border = true,
-                              showHealPrediction = false, showAbsorb = false },
+                              -- 治療預估仍然關著（跟護盾是不同的勾選，要的話在單位→血條打開）
+                              showHealPrediction = false,
+                              -- 護盾：目標框有、Cell 也有，寵物沒理由沒有。
+                              -- 自己的寵物 cache.assist 為真，過得了疊加層的 assist 閘門
+                              showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,
+                              showOvershield = true, overshieldGlowReverse = false,
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -40, w = 120, h = 10, level = 0,
                               colorMethod = "class", bgColorMethod = "classreactiondark",
                               barAlpha = 1, bgAlpha = 1, border = true },

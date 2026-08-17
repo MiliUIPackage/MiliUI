@@ -14,6 +14,7 @@ local Desecret, ToBool, IsSecret = ns.Desecret, ns.ToBool, ns.IsSecret
 local UnitName, UnitLevel = UnitName, UnitLevel
 local UnitClass, UnitClassBase, UnitRace, UnitCreatureType = UnitClass, UnitClassBase, UnitRace, UnitCreatureType
 local UnitIsPlayer, UnitPlayerControlled, UnitReaction = UnitIsPlayer, UnitPlayerControlled, UnitReaction
+local UnitIsUnit = UnitIsUnit
 local UnitPowerType, UnitClassification = UnitPowerType, UnitClassification
 local UnitIsDeadOrGhost, UnitIsGhost, UnitIsConnected = UnitIsDeadOrGhost, UnitIsGhost, UnitIsConnected
 local UnitIsAFK, UnitIsDND, UnitIsTapDenied = UnitIsAFK, UnitIsDND, UnitIsTapDenied
@@ -96,6 +97,25 @@ end
 --   name 組  名字／種族職業／等級／分類／是不是玩家   → info 桶
 --   flag 組  陣營／PvP／AFK／可否協助攻擊／戰鬥中     → reaction 桶
 ------------------------------------------------------------
+------------------------------------------------------------
+-- 寵物／載具的「主人職業」
+--
+-- 寵物沒有自己的職業：`UnitClassBase("pet")` 回 nil，所以 methods.class 一路掉到
+-- 最後的 WHITE —— 症狀是寵物框看起來是灰白的，完全沒有職業色。而玩家的直覺
+-- （以及 Cell 的做法）是「我的寵物要吃我的職業色」。
+--
+-- 只認得「主人一定是玩家自己」這幾種情況。**別人的寵物查不到主人**（沒有 owner API），
+-- 那種就維持原本行為，不要瞎猜。
+local function OwnerClassOf(uf)
+    if uf.baseUnit == "pet" then return ns.playerClass end
+    local unit = uf.unit
+    if unit == "pet" or unit == "vehicle" then return ns.playerClass end
+    -- 把自己的寵物設成目標／專注／目標的目標時也算（明文為真才算，秘密值不下結論）
+    local same = UnitIsUnit(unit, "pet")
+    if not IsSecret(same) and same then return ns.playerClass end
+    return nil
+end
+
 local function UpdateNameFields(uf)
     local cache, unit = uf.cache, uf.unit
     cache.name      = Desecret(UnitName(unit), "")
@@ -107,6 +127,12 @@ local function UpdateNameFields(uf)
     -- 不會中途改變，只有換人才會 —— 而換人時兩組都會跑。
     -- ⚠ UpdateFlagFields 的 cache.pc 讀它，所以 unitchanged 一定要先跑這組。
     cache.isPlayer  = ToBool(UnitIsPlayer(unit)) or false
+    -- 非玩家但受玩家控制（寵物／載具）→ 記下主人的職業給上色用（見 OwnerClassOf）
+    if cache.isPlayer then
+        cache.ownerClass = nil
+    else
+        cache.ownerClass = OwnerClassOf(uf)
+    end
 
     local lvl = Desecret(UnitLevel(unit), nil)
     if lvl == nil or lvl == -1 then
