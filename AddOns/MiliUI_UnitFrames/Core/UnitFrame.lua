@@ -63,6 +63,49 @@ function ns.Refresh(uf, bucket)
     end
 end
 
+------------------------------------------------------------
+-- 換單位 token（進出載具）
+--
+-- 暴雪的 secure 端在 toggleForVehicle 開著時會自己把「點擊要打誰」換掉，
+-- 那是讀取時計算（SecureButton_GetModifiedUnit），不需要寫任何受保護屬性，
+-- 所以戰鬥中也成立。這裡處理的是**顯示面**：把 uf.unit 換掉再全量重畫。
+--
+-- 暴雪的規則是 player ↔ pet 對調：進載具後玩家框的 modified unit 會變成 "pet"
+-- （載具坐在寵物欄），寵物框的變成 "player"。所以玩家框那邊要再翻譯成 "vehicle"。
+------------------------------------------------------------
+local function ResolveUnit(uf)
+    if not (SecureButton_GetUnit and SecureButton_GetModifiedUnit) then return uf.baseUnit end
+    local real = SecureButton_GetUnit(uf)
+    local mod  = SecureButton_GetModifiedUnit(uf)
+    if real == "playerpet" then real = "pet" end
+    if mod == "playerpet" then mod = "pet" end
+    if mod == "playertarget" then mod = "target" end
+    -- real 不是 pet 卻被解成 pet ⇒ 這個框現在站的是載具
+    if mod == "pet" and real ~= "pet" then mod = "vehicle" end
+    return mod or real or uf.baseUnit
+end
+
+function ns.EvalActiveUnit(uf)
+    if not uf then return end
+    local resolved = ResolveUnit(uf)
+    if not resolved or resolved == uf.unit then return end
+    -- ⚠ 不要認一個還不存在的單位。進載具時 "vehicle" 在轉場**開始**就解得出來，
+    -- 但那時還查不到資料，認下去會畫出一片空白，而之後每個載具事件都會因為
+    -- resolved == uf.unit 而 no-op，整趟車就一直空著。留著舊 token 讓它在下一個
+    -- 轉場邊緣再試一次，那次才有真資料。base unit 例外——它必須永遠認得下去。
+    if resolved ~= uf.baseUnit and not UnitExists(resolved) then return end
+
+    uf.unit = resolved
+    uf.cache.unit = resolved
+    -- 有自己存一份 unit 的元件要跟著換（castbar、光環容器）
+    for _, def in ipairs(ns.ElementOrder) do
+        if def.setunit and uf.elements[def.name] then
+            xpcall(def.setunit, ns.ReportError, uf, resolved)
+        end
+    end
+    ns.Refresh(uf, "identity")
+end
+
 function ns.RefreshAll(bucket)
     for _, uf in pairs(ns.frames) do
         if uf:IsVisible() then
@@ -134,6 +177,7 @@ function ns.SpawnUnitFrame(unit)
     local uf = CreateFrame("Button", ns.GLOBAL_NAMES[unit], UIParent,
                            "SecureUnitButtonTemplate,BackdropTemplate")
     uf.unit = unit
+    uf.baseUnit = unit          -- 載具切換會改 uf.unit，這個永遠是原始 token
     uf.unitKey = unitKey
     uf.db = udb
     uf.cache = { unit = unit }
@@ -146,6 +190,15 @@ function ns.SpawnUnitFrame(unit)
     uf:SetAttribute("*type1", "target")
     uf:SetAttribute("type2", "togglemenu")     -- R1：12.1 行為待遊戲內驗證
     uf:SetAttribute("unit", unit)
+    -- 載具：讓 secure 端在點擊時自己把 player ↔ pet 對調（讀取時計算，不寫屬性，
+    -- 所以戰鬥中也有效）。顯示面由 ns.EvalActiveUnit 跟上，見那裡的說明。
+    uf:SetAttribute("toggleForVehicle", true)
+    -- secure 端搬動 unit 屬性時同步顯示面
+    uf:HookScript("OnAttributeChanged", function(self, attr)
+        if attr == "unit" or attr == "toggleForVehicle" then
+            ns.EvalActiveUnit(self)
+        end
+    end)
 
     -- Clique / 點擊施法整合
     ClickCastFrames = ClickCastFrames or {}

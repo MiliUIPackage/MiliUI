@@ -8,6 +8,9 @@
 --   build   = function(uf, edb) end,   -- 冪等：建立＋重套設定
 --   update  = function(uf, edb, bucket) end,
 --   disable = function(uf) end,   -- enabled=false 時（可選）
+--   setunit = function(uf, unit) end,
+--       框架換了單位 token（進出載具）時呼叫。**只有把 unit 另外存起來的元件要實作**
+--       ——大多數元件每次 update 都現讀 uf.unit，不需要這個。
 --   classGate = function() end,   -- 回 false 時整個元件不註冊（職業資源條用，可選）
 -- }
 ------------------------------------------------------------

@@ -464,6 +464,16 @@ local function MakeElement(elementName, baseFilter)
         if entry then entry.container:Hide() end
     end
 
+    -- 容器建立時就綁死了單位（CreateContainer 的 SetUnit），換載具時要重綁。
+    -- tag 也一起重算——它是給 /muf debug 認框用的，換了單位要跟著變。
+    local function SetUnit(uf, unit)
+        local entry = uf.auraContainers and uf.auraContainers[elementName]
+        if not entry then return end
+        pcall(entry.container.SetUnit, entry.container, unit)
+        entry.tag = unit .. "/" .. elementName
+        Bounce(entry.container, entry.tag)
+    end
+
     ns.RegisterElement{
         name = elementName,
         order = elementName == "buffs" and 60 or 61,
@@ -471,6 +481,7 @@ local function MakeElement(elementName, baseFilter)
         build = Build,
         update = Update,
         disable = Disable,
+        setunit = SetUnit,
     }
 end
 

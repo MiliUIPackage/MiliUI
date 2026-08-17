@@ -122,6 +122,7 @@ local function HealBlankModels()
            and uf:IsVisible() then
             local fid = f.model.GetModelFileID and f.model:GetModelFileID()
             if fid == nil then    -- 還是空的才重畫，已載入的不動（避免串流時反覆重載）
+                f.modelKey = nil  -- ⚠ 一定要清：不清的話 update 會被「來源沒變」擋板短路
                 ns.Elements.portrait.update(uf, edb, "identity")
             end
         end
@@ -136,6 +137,7 @@ end)
 local function Build(uf, edb)
     local f = uf.elements.portrait or ns.CreateElementBase(uf, "portrait", "Frame", "BackdropTemplate")
     ns.ApplyElementBase(uf, f, edb)
+    f.modelKey = nil        -- 設定可能改了模式／示範 ID，下次 Update 一律重載
 
     if not f.bg then
         f.bg = f:CreateTexture(nil, "BACKGROUND")
@@ -190,6 +192,32 @@ local function Update(uf, edb, bucket)
         local demoID = uf.isPreview and not uf.cache.pc and (ns.db.global.previewBossDisplayID or 131474)
         -- 真實遭遇戰：EJ 給的首領 displayID（受限身分下唯一拿得到 3D 的路）
         local ejID = not uf.isPreview and EncounterDisplayFor(uf)
+
+        ------------------------------------------------------------
+        -- 同一個來源就不要重載模型。
+        -- ClearModel + SetUnit 會把模型整個重讀，是這個元件最貴的動作；而它掛在
+        -- identity 全量刷新上，identity 又是被 UNIT_FLAGS / UNIT_FACTION /
+        -- GROUP_ROSTER_UPDATE 這些跟「換人」無關的事件推動的（體檢報告 P2）——
+        -- 不擋的話進出一次戰鬥就重載一次模型。
+        -- 比不出來（GUID 是秘密或拿不到）就回 nil = 照舊重載，失敗方向朝正確。
+        ------------------------------------------------------------
+        local key
+        if demoID and demoID > 0 then
+            key = "d" .. demoID
+        elseif ejID then
+            key = "e" .. ejID
+        else
+            local guid = UnitGUID(unit)
+            if guid ~= nil and not ns.IsSecret(guid) then key = guid end
+        end
+        if key and key == f.modelKey then
+            -- 模型已經在上面了，只重套鏡頭參數（設定可能剛改過）
+            pcall(f.model.SetPortraitZoom, f.model, f.zoom or 1)
+            pcall(f.model.SetRotation, f.model, f.rotation or 0)
+            pcall(f.model.SetPosition, f.model, 0, f.modelX or 0, f.modelY or 0)
+            return
+        end
+
         if demoID and demoID > 0 then
             pcall(f.model.ClearModel, f.model)
             ok = pcall(f.model.SetDisplayInfo, f.model, demoID)
@@ -213,10 +241,17 @@ local function Update(uf, edb, bucket)
         end
 
         if ok then
+            -- ⚠ 只有模型**真的載進來**才記 key。資源還在串流時 SetUnit 會回成功但模型
+            -- 是空的（登入當下就是這樣）——這時把 key 記下去，後面每次刷新都會被上面
+            -- 那個擋板短路，連 HealBlankModels 都補不回來，頭像就一直空到重開設定。
+            -- 沒載到就留 nil，行為退回「每次刷新都重試」，跟加擋板之前一樣。
+            local fid = f.model.GetModelFileID and f.model:GetModelFileID()
+            f.modelKey = (fid ~= nil) and key or nil
             pcall(f.model.SetPortraitZoom, f.model, f.zoom or 1)
             pcall(f.model.SetRotation, f.model, f.rotation or 0)
             pcall(f.model.SetPosition, f.model, 0, f.modelX or 0, f.modelY or 0)
         else
+            f.modelKey = nil        -- 沒載成功，下次要再試
             -- 拿不到就清空（不 Hide！）
             pcall(f.model.ClearModel, f.model)
             -- 副本小怪是受限身分，SetUnit 不會報錯也不會退回玩家，就是給不出東西

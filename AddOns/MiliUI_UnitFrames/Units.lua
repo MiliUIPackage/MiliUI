@@ -8,16 +8,42 @@ local _, ns = ...
 local INDIRECT_UNITS = { "targettarget", "focustarget" }
 local INDIRECT_KEY = "watch_indirect"
 
+-- 換人偵測用 GUID，不要用名字：
+--   * 名字會撞（同一批小怪全都同名），GUID 不會
+--   * 名字是秘密值時 Desecret 後兩邊都變成空字串，永遠比不出變化 —— 那是
+--     **fail closed**，框會停在上一個單位。失敗方向要朝「重畫」而不是「不動」。
+--
+-- GUID 自己也可能是秘密（受限身分單位）。那種情況比不出來，只能一律當作換人了；
+-- 但 ns.Refresh(uf,"identity") 目前是全量重畫（會彈光環容器、重載 3D 模型），
+-- 每 0.5 秒來一次太貴 → 秘密時降到每 SECRET_EVERY 次輪詢才重畫一次。
+-- identity 拆桶（體檢報告 P2）之後這個節流就可以拿掉。
+-- 主要路徑仍然是 UNIT_TARGET 事件，這整段只是保險。
+local SECRET_EVERY = 4          -- ×0.5s = 2 秒
+
+local function UnitChanged(uf, unit)
+    local guid
+    if UnitExists(unit) then guid = UnitGUID(unit) end     -- UnitExists 回明文布林
+    local old = uf.lastGuid
+    if ns.IsSecret(guid) or ns.IsSecret(old) then
+        uf.lastGuid = guid
+        uf.secretTicks = (uf.secretTicks or 0) + 1
+        if uf.secretTicks < SECRET_EVERY then return false end
+        uf.secretTicks = 0
+        return true
+    end
+    uf.secretTicks = 0
+    if guid ~= old then
+        uf.lastGuid = guid
+        return true
+    end
+    return false
+end
+
 local function WatchIndirect()
     for _, unit in ipairs(INDIRECT_UNITS) do
         local uf = ns.frames[unit]
-        if uf and uf:IsVisible() then
-            -- 名字是秘密時 Desecret 後兩邊都是空字串，這裡比不出變化——
-            -- 主要路徑是 UNIT_TARGET 事件，這只是保險（見體檢報告 C2）
-            local name = ns.Desecret(UnitName(unit), "")
-            if name ~= uf.cache.name then
-                ns.Refresh(uf, "identity")
-            end
+        if uf and uf:IsVisible() and UnitChanged(uf, unit) then
+            ns.Refresh(uf, "identity")
         end
     end
 end
@@ -41,7 +67,12 @@ local function HookIndirectWatch()
         local uf = ns.frames[unit]
         if uf and not uf.indirectHooked then
             uf.indirectHooked = true
-            uf:HookScript("OnShow", SyncIndirectWatch)
+            uf:HookScript("OnShow", function(self)
+                -- OnShow 本身就會全量重畫，順手把比對基準歸零，
+                -- 免得第一次輪詢拿舊單位的 GUID 比出一次多餘的重畫
+                self.lastGuid, self.secretTicks = nil, 0
+                SyncIndirectWatch()
+            end)
             uf:HookScript("OnHide", SyncIndirectWatch)
         end
     end
@@ -70,6 +101,20 @@ loader:SetScript("OnEvent", function()
 
     -- tot / focustarget 的輪詢保險：掛在兩個框的顯示狀態上
     HookIndirectWatch()
+end)
+
+------------------------------------------------------------
+-- 載具：進出載具時玩家框改顯示 vehicle、寵物框改顯示 player（暴雪原生框的行為）。
+-- 用專屬 frame + RegisterUnitEvent 綁 player，不佔全域事件桶。
+-- UNIT_PET 也要聽：載具是掛在寵物欄位上的。
+------------------------------------------------------------
+local vehicleWatch = CreateFrame("Frame")
+vehicleWatch:RegisterUnitEvent("UNIT_ENTERED_VEHICLE", "player")
+vehicleWatch:RegisterUnitEvent("UNIT_EXITED_VEHICLE", "player")
+vehicleWatch:RegisterUnitEvent("UNIT_PET", "player")
+vehicleWatch:SetScript("OnEvent", function()
+    ns.EvalActiveUnit(ns.frames.player)
+    ns.EvalActiveUnit(ns.frames.pet)
 end)
 
 ------------------------------------------------------------

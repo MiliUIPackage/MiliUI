@@ -584,6 +584,12 @@ local function Disable(uf)
     end
 end
 
+-- 施法條把 unit 另外存了一份（ResyncTiming 要用），換載具時要跟著換
+local function SetUnit(uf, unit)
+    local f = uf.elements.castbar
+    if f then f.unit = unit end
+end
+
 ns.RegisterElement{
     name = "castbar",
     order = 50,
@@ -591,4 +597,5 @@ ns.RegisterElement{
     build = Build,
     update = Update,
     disable = Disable,
+    setunit = SetUnit,
 }
