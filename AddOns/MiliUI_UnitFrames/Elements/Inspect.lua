@@ -17,16 +17,23 @@ local Media = ns.Media
 ------------------------------------------------------------
 -- 圖示樣式
 --
--- atlas 先問客戶端有沒有這張（改版被拿掉就會回 nil，不能寫死），
--- 沒有就退回圖示檔——路徑型 icon 十幾年沒動過，當保底最穩。
+-- atlas 名字會被改版拿掉（實測 Midnight 已經沒有 UI-HUD-MicroMenu-CharacterInfo-Up，
+-- 微型選單整組重畫過），所以每款列一串候選、由前往後挑第一張這版客戶端真的有的；
+-- 全都落空才退回圖示檔——路徑型 icon 十幾年沒動過，當保底最穩。
+--
+-- 「圓底問號」不吃這張表：它連底都是自己畫的，沒有任何外部資產可以壞掉。
 ------------------------------------------------------------
 local STYLE_DEFS = {
-    character = { atlas = "UI-HUD-MicroMenu-CharacterInfo-Up",
+    character = { atlases = { "UI-HUD-MicroMenu-CharacterInfo-Up",
+                              "UI-HUD-MicroMenu-Character-Up",
+                              "hud-microbutton-Character-Up",
+                              "Microbutton_Character_Up" },
                   texture = "Interface\\Icons\\INV_Chest_Chain_15" },
-    magnifier = { atlas = "common-search-magnifyingglass",
+    magnifier = { atlases = { "common-search-magnifyingglass" },
                   texture = "Interface\\Icons\\INV_Misc_Spyglass_03" },
     question  = { texture = "Interface\\Icons\\INV_Misc_QuestionMark" },
 }
+ns.INSPECT_STYLE_DEFS = STYLE_DEFS      -- /muf debug 的探針要列候選
 
 -- 設定面板的下拉選單（唯一來源就是這裡）
 -- round 不是圖示、是整顆按鈕換一種畫法（見 ApplyRoundLook）
@@ -50,12 +57,20 @@ local function HasAtlas(name)
     return v
 end
 
+local function PickAtlas(def)
+    for _, name in ipairs(def.atlases or {}) do
+        if HasAtlas(name) then return name end
+    end
+end
+ns.INSPECT_PICK_ATLAS = PickAtlas
+
 -- atlas 分支不要自己設 texcoord（SetAtlas 會連 texcoord 一起換）；
 -- 圖示檔分支才裁掉四周那圈留白
 local function ApplyIcon(tex, style)
     local def = STYLE_DEFS[style] or STYLE_DEFS.character
-    if def.atlas and HasAtlas(def.atlas) then
-        tex:SetAtlas(def.atlas)
+    local atlas = PickAtlas(def)
+    if atlas then
+        tex:SetAtlas(atlas)
     else
         tex:SetTexture(def.texture)
         tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
