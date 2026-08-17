@@ -150,6 +150,41 @@ local function Debug()
                 SafeStr(w), SafeStr(h), SafeStr(r), SafeStr(g), SafeStr(b)))
         end
     end
+    -- 觀察按鈕：「選了樣式卻沒變」要分得出是設定沒寫進去、按鈕沒生成、
+    -- 還是畫出來了但你看的是另一顆（預覽孿生／戰鬥中排隊）
+    do
+        local idb = ns.db and ns.db.units.target and ns.db.units.target.elements.inspect
+        p(("  觀察按鈕：enabled=%s style=%s %sx%s @%s,%s"):format(
+            SafeStr(idb and idb.enabled), SafeStr(idb and idb.style),
+            SafeStr(idb and idb.w), SafeStr(idb and idb.h),
+            SafeStr(idb and idb.x), SafeStr(idb and idb.y)))
+        for _, atlas in ipairs({ "UI-HUD-MicroMenu-CharacterInfo-Up", "common-search-magnifyingglass" }) do
+            p(("   atlas %s：%s"):format(atlas,
+                C_Texture.GetAtlasInfo(atlas) and "有" or "|cffff5555沒有（退圖示檔）|r"))
+        end
+        local function DumpButton(tag, btn)
+            if not btn then p("   " .. tag .. "：沒生成"); return end
+            local w, h = btn:GetSize()
+            p(("   %s shown=%s %sx%s icon=%s/%s iconShown=%s 圓底=%s 問號=%s"):format(
+                tag, tostring(btn:IsShown()), SafeStr(w), SafeStr(h),
+                SafeStr(btn.icon and btn.icon.GetAtlas and btn.icon:GetAtlas()),
+                SafeStr(btn.icon and btn.icon:GetTexture()),
+                tostring(btn.icon and btn.icon:IsShown()),
+                btn.disc and tostring(btn.disc:IsShown()) or "沒建",
+                btn.glyph and tostring(btn.glyph:IsShown()) or "沒建"))
+        end
+        DumpButton("目標框", ns.frames.target and ns.frames.target.elements.inspect)
+        local previewOpen = ns.Preview and ns.Preview.IsOpen and ns.Preview.IsOpen()
+        if previewOpen then
+            ns.Preview.EachTwin(function(twin, key)
+                if key == "target" then DumpButton("預覽孿生", twin.elements.inspect) end
+            end)
+        end
+        p(("   預覽開著=%s（開著時畫面上那顆是孿生）　戰鬥中=%s（戰鬥中改設定會排到脫戰才套用）"):format(
+            tostring(previewOpen and true or false),
+            tostring(InCombatLockdown() and true or false)))
+    end
+
     -- 取值 log：目標單位各 API 的原始回傳（型別／是否秘密），
     -- 「副本裡看不到名字」這類問題一眼就能看出是哪個值被消毒掉
     if UnitExists("target") then
