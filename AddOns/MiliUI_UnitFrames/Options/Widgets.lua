@@ -58,6 +58,17 @@ W.fontNormal, W.fontTitle, W.fontDisabled, W.fontSmall =
 ------------------------------------------------------------
 -- 基礎樣式
 ------------------------------------------------------------
+
+-- 面板控件的統一填色。原本是同一個 0.115 抄在七個地方，改一次要找七處，所以提成常數。
+-- Stylize 只讀不寫（unpack），共用同一張表是安全的。
+local WIDGET_FILL = { 0.115, 0.115, 0.115, 1 }
+
+-- 勾選框例外，比其他控件亮一階。它是唯一「沒勾就什麼都沒有」的控件 —— 滑桿有拇指、
+-- 輸入框有文字、下拉有箭頭，都還有東西可看；勾選框沒勾的時候，玩家能不能看出「這裡有
+-- 一個可以點的方塊」完全靠底色本身。用 WIDGET_FILL 在深色面板上幾乎糊成一片（玩家回報
+-- 看不清楚），邊框又是純黑幫不上忙。0.22 對齊按鈕 hover 的 0.23，不會跳出既有色階。
+local CHECKBOX_FILL = { 0.28, 0.28, 0.28, 1 }
+
 function W.Stylize(frame, color, borderColor)
     color = color or { 0.1, 0.1, 0.1, 0.9 }
     borderColor = borderColor or { 0, 0, 0, 1 }
@@ -82,9 +93,9 @@ end
 -- 按鈕
 ------------------------------------------------------------
 local BTN_COLORS = {
-    normal      = { { 0.115, 0.115, 0.115, 1 },  { 0.23, 0.23, 0.23, 1 } },
+    normal      = { WIDGET_FILL,  { 0.23, 0.23, 0.23, 1 } },
     accent      = { { accent.r, accent.g, accent.b, 0.3 }, { accent.r, accent.g, accent.b, 0.6 } },
-    ["accent-hover"] = { { 0.115, 0.115, 0.115, 1 }, { accent.r, accent.g, accent.b, 0.6 } },
+    ["accent-hover"] = { WIDGET_FILL, { accent.r, accent.g, accent.b, 0.6 } },
     red         = { { 0.6, 0.1, 0.1, 0.6 }, { 0.6, 0.1, 0.1, 1 } },
     green       = { { 0.1, 0.6, 0.1, 0.6 }, { 0.1, 0.6, 0.1, 1 } },
 }
@@ -165,7 +176,7 @@ end
 function W.CreateCheckButton(parent, label, onChange)
     local cb = CreateFrame("CheckButton", nil, parent, "BackdropTemplate")
     P.Size(cb, 14, 14)
-    W.Stylize(cb, { 0.115, 0.115, 0.115, 1 })
+    W.Stylize(cb, CHECKBOX_FILL)
 
     cb.label = cb:CreateFontString(nil, "OVERLAY")
     cb.label:SetFontObject(fontNormal)
@@ -215,7 +226,7 @@ function W.CreateSlider(parent, low, high, width, step, onChange, afterChange)
     slider:SetMinMaxValues(low, high)
     slider:SetValueStep(step)
     slider:SetObeyStepOnDrag(true)
-    W.Stylize(slider, { 0.115, 0.115, 0.115, 1 })
+    W.Stylize(slider, WIDGET_FILL)
 
     local thumb = slider:CreateTexture(nil, "ARTWORK")
     thumb:SetTexture(WHITE)
@@ -389,7 +400,7 @@ end
 function W.CreateEditBox(parent, width, height)
     local eb = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
     P.Size(eb, width or 120, height or 20)
-    W.Stylize(eb, { 0.115, 0.115, 0.115, 1 })
+    W.Stylize(eb, WIDGET_FILL)
     eb:SetFontObject(fontNormal)
     eb:SetTextInsets(4, 4, 0, 0)
     eb:SetAutoFocus(false)
@@ -403,7 +414,7 @@ end
 function W.CreateScrollEditBox(parent, width, height, onTextChanged)
     local holder = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     P.Size(holder, width or 300, height or 150)
-    W.Stylize(holder, { 0.115, 0.115, 0.115, 1 })
+    W.Stylize(holder, WIDGET_FILL)
 
     local scroll = CreateFrame("ScrollFrame", nil, holder, "ScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 4, -4)
@@ -475,7 +486,7 @@ end
 function W.CreateDropdown(parent, width, items, onSelect)
     local dd = CreateFrame("Button", nil, parent, "BackdropTemplate")
     P.Size(dd, width or 120, 20)
-    W.Stylize(dd, { 0.115, 0.115, 0.115, 1 })
+    W.Stylize(dd, WIDGET_FILL)
 
     dd.text = dd:CreateFontString(nil, "OVERLAY")
     dd.text:SetFontObject(fontNormal)
