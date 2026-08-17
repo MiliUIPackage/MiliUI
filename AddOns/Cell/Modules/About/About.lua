@@ -436,7 +436,7 @@ local function CreateLinksPane()
 
     local linksEB = Cell.CreateEditBox(linksPane, 412, 20)
     linksEB:SetPoint("TOPLEFT", 5, -27)
-    linksEB:SetText("https://github.com/enderneko/Cell")
+    linksEB:SetText("https://addons.miliui.com/wow/cell")
     linksEB:SetScript("OnTextChanged", function(self, userChanged)
         if userChanged then
             linksEB:SetText(current)
@@ -449,8 +449,12 @@ local function CreateLinksPane()
     end)
 
     --! github
+    -- MiliUI: points at this build's download page, not upstream's repo. A player who
+    -- follows the link from inside a MiliUI Cell should get a MiliUI Cell -- sending them
+    -- to stock Cell means they overwrite this build with one that lacks every fix here.
+    -- The community and donation links below are deliberately left pointing at enderneko.
     local github = CreateLink(linksPane, "github", "Interface\\AddOns\\Cell\\Media\\Links\\github.tga", function()
-        current = "https://github.com/enderneko/Cell"
+        current = "https://addons.miliui.com/wow/cell"
         linksEB:SetText(current)
         linksEB:ClearFocus()
     end)
