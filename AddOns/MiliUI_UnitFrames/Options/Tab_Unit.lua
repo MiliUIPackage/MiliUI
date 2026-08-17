@@ -12,6 +12,11 @@ local L = ns.L
 local W, Controls = ns.W, ns.Controls
 local PosSize, Pos = Controls.PosSize, Controls.Pos
 
+-- ⚠ 這是**語系表的 key**，而 key 就是英文原文（Locales/Locale.lua 查不到就回傳 key）。
+-- 原本寫成三段 `.. ` 串接，key 是串接後的結果 —— 任何人改動其中一段的空格，
+-- 九個語系會同時對不上而且不報錯（靜默退成英文）。改成單一字面字串就沒有這個風險。
+local TAG_SYNTAX_HELP = "Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification]; conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."
+
 local UNIT_LIST = {
     { key = "player",       label = L["Player"] },
     { key = "target",       label = L["Target"] },
@@ -325,9 +330,7 @@ end
 
 local function TextsSpecs(els)
     local list = {
-        { type = "text", label = L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] "
-            .. "[shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), "
-            .. "[class] [race] [creaturetype] [classification]; conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] },
+        { type = "text", label = L[TAG_SYNTAX_HELP] },
     }
     for i = 1, #els.texts do
         tinsert(list, { type = "header", label = L["Text %d"]:format(i) })
@@ -391,7 +394,30 @@ local function BuildPanel(unitKey, elementKey)
     local height, refreshers = Controls.Build(content, SpecsFor(unitKey, elementKey), ctx, 4, -8, 520)
     content:SetHeight(height + 24)
     content:Hide()
-    return { frame = content, refreshers = refreshers, height = height + 24 }
+    -- textCount：表單的**結構**是 build 當下依 #els.texts 生的，記下來才比對得出
+    -- 「恢復預設之後條目數變了」（見底部的 SettingsApplied）
+    local texts = udb.elements and udb.elements.texts
+    return { frame = content, refreshers = refreshers, height = height + 24,
+             textCount = texts and #texts or nil }
+end
+
+------------------------------------------------------------
+-- 表單快取失效
+--
+-- 表單的**結構**是 build 當下依 DB 生出來的（文字分頁是 `for i = 1, #els.texts`），
+-- 之後就一直重用。所以「恢復預設」把文字條目數改掉之後，快取住的那份會停在舊的條數
+-- ——多的殘留、少的看不到。設定套用時把那個單位的表單全部丟掉，下次進去重建。
+--
+-- 只丟該單位的（`unitKey/*`），別的單位沒必要重建。
+------------------------------------------------------------
+local function InvalidatePanels(unitKey)
+    local prefix = unitKey .. "/"
+    for id, p in pairs(panels) do
+        if id:sub(1, #prefix) == prefix then
+            p.frame:Hide()     -- frame 無法銷毀，丟掉參照＋藏起來就好
+            panels[id] = nil
+        end
+    end
 end
 
 local function ShowPanel(unitKey, elementKey)
@@ -510,6 +536,30 @@ local function Init()
     scrollHolder:SetPoint("BOTTOMRIGHT", -8, 10)
     scroll = W.CreateScrollFrame(scrollHolder)
 end
+
+------------------------------------------------------------
+-- 表單快取失效（E5）
+--
+-- 文字分頁的表單是 `for i = 1, #els.texts` 生出來的，之後一直重用。「恢復預設」把
+-- 條目數改掉之後，快取住的那份會停在舊的條數 —— 多的殘留、少的看不到。
+--
+-- ⚠ 只在條目數**真的變了**時丟。ApplySettings 是每動一個控件都會跑的，
+-- 無條件重建會把輸入焦點與捲動位置弄掉。
+-- 註冊放在檔案底部：InvalidatePanels 與 ShowPanel 都要在 scope 裡（宣告在下面的
+-- local function 從上面呼叫會拿到全域 nil）。
+------------------------------------------------------------
+ns.RegisterCallback("SettingsApplied", "unitTabPanels", function(unitKey)
+    local p = panels[unitKey .. "/texts"]
+    if not p then return end
+    local udb = ns.GetUnitDB(unitKey)
+    local texts = udb and udb.elements and udb.elements.texts
+    if not texts or p.textCount == #texts then return end
+    InvalidatePanels(unitKey)
+    -- 現在顯示的那份可能剛被丟掉 → 立刻重建，不然分頁會空著等使用者亂點
+    if tab and tab:IsShown() and currentUnit == unitKey then
+        ShowPanel(currentUnit, currentElement)
+    end
+end)
 
 ns.RegisterCallback("ShowOptionsTab", "unitTab", function(id)
     if id ~= "units" then

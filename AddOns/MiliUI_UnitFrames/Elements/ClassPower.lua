@@ -233,16 +233,22 @@ end
 function ns.ResourceInfo(key) return RESOURCES[key] end
 
 -- 實際要畫的清單（套上使用者開關）
+--
+-- ⚠ 用檔案層級的 scratch 表，不要每次現配一張：Update 掛在 power 桶上
+-- （UNIT_POWER_UPDATE，盜賊／武僧的能量一秒好幾次），每次配一張表就是純粹的垃圾。
+-- 回傳的表**呼叫端不可以留著**，下一次呼叫就被 wipe 了。
+local activeRows = {}
+
 local function ActiveRows(edb)
     local cand = ns.ResourceCandidates()
     local off = edb.resources or {}
-    local rows = {}
+    wipe(activeRows)
     for _, key in ipairs(cand) do
         if off[key] ~= false and RESOURCES[key] then
-            rows[#rows + 1] = key
+            activeRows[#activeRows + 1] = key
         end
     end
-    return rows
+    return activeRows
 end
 
 ------------------------------------------------------------
@@ -388,17 +394,42 @@ local function Build(uf, edb)
     -- holybar 語意：錨在框架底邊下方
     f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", ns.P.Scale(edb.x or 0), ns.P.Scale(edb.y or 0))
     f:SetFrameLevel(edb.level or 5)
-    f.sig = nil          -- 逼下一次 Update 重排
+    f.sigKeys = nil      -- 逼下一次 Update 重排（見 LayoutMatches）
     f:Show()
 end
 
--- 目前這組列的指紋：清單或格數變了就重排
-local function Signature(rows, isPreview)
-    local parts = {}
-    for i, key in ipairs(rows) do
-        parts[i] = key .. ":" .. SegmentsFor(key, isPreview)
+------------------------------------------------------------
+-- 這組列跟上次排版的一樣嗎？（清單或格數變了就要重排）
+--
+-- ⚠ 以前是把 "key:段數" 串成一條字串當指紋再比字串 —— 每次 Update 都配一張表、
+-- 組 N 段字串、跑一次 table.concat，而 Update 掛在能量事件上（一秒好幾次）。
+-- 改成逐格比對：零配置，而且 SegmentsFor 的呼叫次數跟原本一樣。
+--
+-- f.sigKeys 為 nil 就一定不相符 —— Build 與 Reevaluate 靠 `f.sigKeys = nil` 強制重排
+-- （刻意不抽成 InvalidateLayout 函式：Build 排在這一段**之前**，那裡呼叫得到的會是
+--  同名的全域 nil，正是這個 repo 已經踩過幾次的坑）。
+------------------------------------------------------------
+local function LayoutMatches(f, rows, isPreview)
+    local keys, segs = f.sigKeys, f.sigSegs
+    if not (keys and segs) then return false end
+    if #keys ~= #rows then return false end
+    for i = 1, #rows do
+        local key = rows[i]
+        if keys[i] ~= key or segs[i] ~= SegmentsFor(key, isPreview) then return false end
     end
-    return table.concat(parts, "|")
+    return true
+end
+
+local function RememberLayout(f, rows, isPreview)
+    local keys, segs = f.sigKeys, f.sigSegs
+    if not keys then keys = {}; f.sigKeys = keys end
+    if not segs then segs = {}; f.sigSegs = segs end
+    wipe(keys)
+    wipe(segs)
+    for i = 1, #rows do
+        keys[i] = rows[i]
+        segs[i] = SegmentsFor(rows[i], isPreview)
+    end
 end
 
 local function Relayout(f, edb, rows, isPreview)
@@ -524,10 +555,9 @@ local function Update(uf, edb, bucket)
     end
     f:Show()
 
-    local sig = Signature(rows, isPreview)
-    if f.sig ~= sig then
-        f.sig = sig
+    if not LayoutMatches(f, rows, isPreview) then
         Relayout(f, edb, rows, isPreview)
+        RememberLayout(f, rows, isPreview)
     end
     for i = 1, #rows do
         UpdateRow(f.rows[i], edb, isPreview)
@@ -549,7 +579,7 @@ local function Reevaluate()
     if uf and uf.elements.classpower then
         local edb = uf.db.elements.classpower
         if edb and edb.enabled ~= false then
-            uf.elements.classpower.sig = nil
+            uf.elements.classpower.sigKeys = nil    -- 強制重排（見 LayoutMatches）
             Update(uf, edb, "powertype")
         end
     end

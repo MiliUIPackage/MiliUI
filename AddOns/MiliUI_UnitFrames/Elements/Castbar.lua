@@ -543,11 +543,14 @@ local function Build(uf, edb)
     end
 
     -- 版面（全部來自設定）
-    local L = edb.level or 6
+    -- ⚠ 不要叫 L：檔案層的 `local L = ns.L` 是語系表，這裡取名 L 會把它遮掉，
+    -- 之後任何人想在 Build 裡查一次語系表就會拿到一個數字然後炸掉。
+    -- （這裡刻意不把 L[...] 的樣子寫出來 —— 語系對齊檢查會把註解裡的當成真的 key。）
+    local lvl = edb.level or 6
     f:SetSize(edb.w or 200, edb.h or 20)
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", uf, "TOPLEFT", edb.x or 0, edb.y or 0)
-    f:SetFrameLevel(L)
+    f:SetFrameLevel(lvl)
     f.timeFormat = edb.timeFormat or "remainTotal"
     f.showInterruptState = edb.showInterruptState and true or false
     f.showCompleteFlash = edb.showCompleteFlash ~= false
@@ -560,7 +563,7 @@ local function Build(uf, edb)
     f.bar:SetStatusBarTexture(Media.BarTexture(ns.db.global.barTexture))
     -- 明確分層：條 L+1 → 圖示 L+2 → 文字 L+3。子 frame 預設層級是父+1，
     -- 若圖示也設 L+1 會跟條同層、繪製順序不保證 → 圖示被填充蓋掉（實測踩到）
-    f.bar:SetFrameLevel(L + 1)
+    f.bar:SetFrameLevel(lvl + 1)
 
     -- 邊框畫在 f 自己身上（層級 L）；條體/背景要「內縮 borderSize」，
     -- 否則 L+1 的填充會把邊框整個蓋掉、純黑背景又讓黑框隱形（同血條的 clip 教訓）
@@ -582,7 +585,7 @@ local function Build(uf, edb)
     f.iconFrame:SetSize(icon.w or 20, icon.h or 20)
     f.iconFrame:ClearAllPoints()
     f.iconFrame:SetPoint("TOPLEFT", f, "TOPLEFT", icon.x or 0, icon.y or 0)
-    f.iconFrame:SetFrameLevel(L + 2)
+    f.iconFrame:SetFrameLevel(lvl + 2)
     -- 黑底＋1px 黑框（跟 FocuserCastBar 一樣，圖示有透明區也不會透出條的填充）
     f.iconFrame:SetBackdrop({ bgFile = Media.WHITE8X8, edgeFile = Media.WHITE8X8,
                               edgeSize = ns.P.Scale(1) })
@@ -593,14 +596,14 @@ local function Build(uf, edb)
     -- 剛好把圖示完全罩住），最上層
     f.showShield = edb.showShield ~= false
     local sh = math.max(10, math.floor((icon.h or 20) * (edb.shieldScale or 1) + 0.5))
-    f.shieldFrame:SetFrameLevel(L + 4)
+    f.shieldFrame:SetFrameLevel(lvl + 4)
     f.shieldFrame:SetSize(sh, sh)
     f.shieldFrame:ClearAllPoints()
     f.shieldFrame:SetPoint("CENTER", f.iconFrame, "CENTER", (edb.shieldOffsetX or 0), (edb.shieldOffsetY or 0))
     f.shield:SetAllPoints(f.shieldFrame)
     Media.SetShieldTexture(f.shield, edb.shieldStyle)
 
-    f.textOverlay:SetFrameLevel(L + 3)
+    f.textOverlay:SetFrameLevel(lvl + 3)
     ApplyTextStyle(f.spellText, edb.spell or {}, f)
     ApplyTextStyle(f.timeText, edb.time or {}, f)
 

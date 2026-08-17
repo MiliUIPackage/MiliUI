@@ -65,14 +65,31 @@ local HELP = {
 
 local harmSpell, helpSpell, built
 
+-- ⚠⚠ `IsPlayerSpell` 在 **11.2.0 就被移除了**（wiki 明載），這裡原本第一個問的就是它
+-- ——那條分支早就是死碼，整個判斷實際上只靠第二個 `IsSpellKnownOrOverridesKnown`
+-- （還在，但已標記淘汰）。真的哪天連它也拿掉，探針會全部解不出來，而失敗是靜默的：
+-- 超出距離淡出直接不動作，沒有任何錯誤。
+--
+-- 12.x 正解是 C_SpellBook（本機的 Plumber 就寫 `local IsPlayerSpell = C_SpellBook.IsSpellKnown`，
+-- Platynator 與我們自己的 MiliUI/Enhance/FocuserCastBar 用 IsSpellKnownOrInSpellBook）：
+--   IsSpellKnownOrInSpellBook  法術書裡的 ＋ 被天賦替換掉的
+--   IsSpellKnown               專精授予的
+-- 兩個都問過才回 false；舊全域留在最後當備援。
+local CSB = C_SpellBook
+
+local function Known(id)
+    if CSB then
+        if CSB.IsSpellKnownOrInSpellBook and CSB.IsSpellKnownOrInSpellBook(id) then return true end
+        if CSB.IsSpellKnown and CSB.IsSpellKnown(id) then return true end
+    end
+    if IsSpellKnownOrOverridesKnown and IsSpellKnownOrOverridesKnown(id) then return true end
+    return false
+end
+
 local function FirstKnown(list)
     if not list then return nil end
     for _, id in ipairs(list) do
-        -- IsPlayerSpell 涵蓋專精授予的；OverridesKnown 涵蓋被天賦替換掉的
-        if (IsPlayerSpell and IsPlayerSpell(id))
-           or (IsSpellKnownOrOverridesKnown and IsSpellKnownOrOverridesKnown(id)) then
-            return id
-        end
+        if Known(id) then return id end
     end
     return nil
 end

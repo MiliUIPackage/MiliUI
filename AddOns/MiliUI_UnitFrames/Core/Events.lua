@@ -96,6 +96,59 @@ function ns.Events.AttachUnit(uf)
     end
 end
 
+------------------------------------------------------------
+-- 註冊簿
+--
+-- ⚠ 這一段必須排在 SPECIAL／SCOPED／Start 之前：Lua 的 local 只對「宣告之後」的
+-- 程式碼可見，宣告在下面的話上面那些函式體會抓到同名的**全域 nil** 而靜默失效
+-- （這個 repo 已經踩過兩次：Tags 的 _CSU、Totems 的 previewOn）。
+------------------------------------------------------------
+-- callback key 查表算一次就好。原本每次派發都現串 "EVENT_" .. event，
+-- 而 UNIT_AURA 這種在團隊戰是每秒數百次的量。
+local FIRE_KEY = setmetatable({}, { __index = function(t, event)
+    local k = "EVENT_" .. event
+    t[event] = k
+    return k
+end })
+
+local externalEvents = {}      -- [event] 註冊在全域 eventFrame 上的
+local unitScoped = {}          -- [event] 有任何 token 走過 unit 範圍註冊（不可再上全域，會雙送）
+local unitRegistered = {}      -- [event.."/"..token] 這個組合註冊過了
+local unitFrames = {}          -- unit token → frame
+
+-- 麵包屑：ADDON_ACTION_FORBIDDEN 只會告訴我們「Frame:RegisterEvent()」，
+-- 不會說是哪個事件。註冊前先記下來，攔截器就能指名（見 Core/Init.lua）
+local function Reg(event)
+    ns.trace = "RegisterEvent(" .. tostring(event) .. ")"
+    pcall(eventFrame.RegisterEvent, eventFrame, event)
+    ns.trace = nil
+end
+
+local SCOPED        -- 前置宣告：UnitReg 的處理器要查它，實體定義在 SPECIAL 後面
+
+-- 只關心特定單位的事件走這裡：RegisterUnitEvent 讓客戶端在 C 端就過濾掉，
+-- 不相干的單位根本不會進 Lua。全域 RegisterEvent 是「每個單位都送進來、
+-- 我們才判斷關不關自己的事」，團隊戰差距很大。
+--
+-- 同一個 token 的所有事件共用一顆 frame。處理器同時服務兩種來源：
+-- SCOPED 的內部邏輯（有定義才跑）與外部訂閱者的 callback。
+local function UnitReg(event, token, token2)
+    local f = unitFrames[token]
+    if not f then
+        f = CreateFrame("Frame")
+        f:SetScript("OnEvent", function(_, ev, unit, ...)
+            local def = SCOPED[ev]
+            if def then def.fn(unit) end
+            ns.Fire(FIRE_KEY[ev], unit, ...)
+        end)
+        unitFrames[token] = f
+    end
+    ns.trace = "RegisterUnitEvent(" .. tostring(event) .. ")"
+    pcall(f.RegisterUnitEvent, f, event, token, token2)
+    ns.trace = nil
+    return f
+end
+
 -- 非單位事件（沒有 unit 參數，或參數不是「這個框在看的單位」）走全域 frame。
 -- 這些都是低頻事件，留在全域沒有成本問題。
 local SPECIAL = {
@@ -128,95 +181,93 @@ local SPECIAL = {
     PLAYER_FLAGS_CHANGED = function(unit)
         RefreshUnit(unit, "reaction")
     end,
-    -- UNIT_TARGET：某單位的目標換了 → 對應的 xxtarget 框換人
-    UNIT_TARGET = function(unit)
-        if unit == "target" then
-            RefreshUnit("targettarget", "unitchanged")
-        elseif unit == "focus" then
-            RefreshUnit("focustarget", "unitchanged")
-        end
-    end,
     -- UNIT_PET：寵物換了（arg 是主人）
     UNIT_PET = function(unit)
         if unit == "player" then RefreshUnit("pet", "unitchanged") end
     end,
 }
 
--- 全域 frame 只負責 SPECIAL；單位事件已經全部移到 per-token tracker
-eventFrame:SetScript("OnEvent", function(_, event, arg1)
-    local special = SPECIAL[event]
-    if special then special(arg1) end
-end)
+------------------------------------------------------------
+-- 有 unit 參數、但我們只在乎少數 token 的事件
+--
+-- UNIT_TARGET 以前掛在全域 eventFrame 上，也就是 20 人團隊裡**每一個人**換目標都會
+-- 進 Lua，我們才判斷是不是 target／focus —— 九成以上是白工，正好是這個檔案在別處
+-- 用 RegisterUnitEvent 避掉的那件事。
+--
+-- 這顆 frame 同時做兩件事：跑我們自己的邏輯，以及 ns.Fire 給外部訂閱者（光環模組要用）。
+-- 所以 ns.Events.Register("UNIT_TARGET", …) 不可以再把它掛上全域 —— 由下面
+-- unitScoped 的守衛擋掉。
+------------------------------------------------------------
+SCOPED = {
+    UNIT_TARGET = {
+        tokens = { "target", "focus" },
+        fn = function(unit)
+            if unit == "target" then
+                RefreshUnit("targettarget", "unitchanged")
+            elseif unit == "focus" then
+                RefreshUnit("focustarget", "unitchanged")
+            end
+        end,
+    },
+}
 
--- 麵包屑：ADDON_ACTION_FORBIDDEN 只會告訴我們「Frame:RegisterEvent()」，
--- 不會說是哪個事件。註冊前先記下來，攔截器就能指名（見 Core/Init.lua）
-local function Reg(event)
-    ns.trace = "RegisterEvent(" .. tostring(event) .. ")"
-    pcall(eventFrame.RegisterEvent, eventFrame, event)
-    ns.trace = nil
-end
+-- ⚠⚠ 旗標要在**檔案載入期**就立起來，不能等 Events.Start()。
+-- 各元件模組是在自己被載入時（也就是 PLAYER_LOGIN 之前）就呼叫 ns.Events.Register 的，
+-- 那一刻 unitScoped 若還是空的，UNIT_TARGET 會先被掛上全域 frame，等 Start 再掛一次
+-- unit 範圍 ⇒ 同一個事件送兩次，callback 全部跑兩遍。
+-- 實際註冊仍然留在 Start（跟 SPECIAL 一致），這裡只先立旗標。
+for event in pairs(SCOPED) do unitScoped[event] = true end
+
+-- 全域 frame：SPECIAL 的內部邏輯 ＋ 有人訂閱的外掛事件
+eventFrame:SetScript("OnEvent", function(_, event, ...)
+    local special = SPECIAL[event]
+    if special then special(...) end
+    if externalEvents[event] then
+        ns.Fire(FIRE_KEY[event], ...)
+    end
+end)
 
 function ns.Events.Start()
     -- UNIT_EVENT_BUCKET 的事件**不在這裡註冊**：它們走 ns.Events.AttachUnit 的
     -- per-token tracker。同時上全域會被送兩次。
     for event in pairs(SPECIAL) do Reg(event) end
-end
 
-------------------------------------------------------------
--- 外掛事件（元件模組用：ClassPower 等）
-------------------------------------------------------------
--- callback key 查表算一次就好。原本每次派發都現串 "EVENT_" .. event，
--- 而 UNIT_AURA 這種在團隊戰是每秒數百次的量。
-local FIRE_KEY = setmetatable({}, { __index = function(t, event)
-    local k = "EVENT_" .. event
-    t[event] = k
-    return k
-end })
-
-local externalEvents = {}      -- 註冊在全域 eventFrame 上的
-local unitScoped = {}          -- 已經改走 RegisterUnitEvent 的（不可再上全域，會雙送）
-local unitFrames = {}          -- unit token → frame
-
--- 只關心特定單位的事件走這裡：RegisterUnitEvent 讓客戶端在 C 端就過濾掉，
--- 不相干的單位根本不會進 Lua。全域 RegisterEvent 是「每個單位都送進來、
--- 我們才判斷關不關自己的事」，團隊戰差距很大。
-local function UnitReg(event, token)
-    local f = unitFrames[token]
-    if not f then
-        f = CreateFrame("Frame")
-        f:SetScript("OnEvent", function(_, ev, ...)
-            ns.Fire(FIRE_KEY[ev], ...)
-        end)
-        unitFrames[token] = f
+    -- unit 範圍的內部事件：C 端就把不相干的單位過濾掉
+    for event, def in pairs(SCOPED) do
+        UnitReg(event, def.tokens[1], def.tokens[2])
+        unitScoped[event] = true
+        for _, token in ipairs(def.tokens) do
+            unitRegistered[event .. "/" .. token] = true
+        end
     end
-    ns.trace = "RegisterUnitEvent(" .. tostring(event) .. ")"
-    pcall(f.RegisterUnitEvent, f, event, token)
-    ns.trace = nil
 end
 
--- unitToken 給了就走 C 端過濾。⚠ 同一個事件不能同時出現在 UNIT_EVENT_BUCKET
--- （全域）與這裡的 unit 範圍註冊，否則會被送兩次。
+------------------------------------------------------------
+-- 外掛事件（元件模組用：ClassPower / Visibility / Portrait 等）
+------------------------------------------------------------
+-- unitToken 給了就走 C 端過濾。
+--
+-- ⚠ 兩個容易踩的點：
+--   1. 去重的鍵要含 token。以前只用 event 當鍵，同一個事件想再綁**第二個 token**
+--      就會整個被略過 —— 註冊靜默失敗、那個 token 的事件永遠不會進來。
+--   2. 已經有 unit 範圍註冊的事件**不可以再上全域**：全域那顆會把每個單位的事件都
+--      送進來，對已經被 scope 過的 token 就是雙送。所以走全域那條要先看 unitScoped。
+--      （UNIT_TARGET 就是這種：Events.Start 已經綁好 target+focus 並且會 ns.Fire，
+--        光環模組那邊照樣 ns.Events.Register 不傳 token，callback 一樣收得到。）
 function ns.Events.Register(event, key, fn, unitToken)
     ns.RegisterCallback(FIRE_KEY[event], key, fn)
     if unitToken then
-        if not unitScoped[event] then
+        local id = event .. "/" .. unitToken
+        if not unitRegistered[id] then
+            unitRegistered[id] = true
             unitScoped[event] = true
             UnitReg(event, unitToken)
         end
-    elseif not externalEvents[event] then
+    elseif not externalEvents[event] and not unitScoped[event] then
         externalEvents[event] = true
         Reg(event)
     end
 end
-
--- 讓外掛事件也走同一顆 frame：包一層（只對有人註冊的事件 Fire）
-local origHandler = eventFrame:GetScript("OnEvent")
-eventFrame:SetScript("OnEvent", function(self, event, ...)
-    origHandler(self, event, ...)
-    if externalEvents[event] then
-        ns.Fire(FIRE_KEY[event], ...)
-    end
-end)
 
 ------------------------------------------------------------
 -- Metro：共用 0.1s ticker，依 key 節流

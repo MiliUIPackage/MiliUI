@@ -266,6 +266,13 @@ end
 ------------------------------------------------------------
 local users = {}
 
+-- 脫戰還原真實框用的單一 watcher（見 Preview.Close 裡為什麼不現配）
+local restorer = CreateFrame("Frame")
+restorer:SetScript("OnEvent", function(self)
+    self:UnregisterAllEvents()
+    Preview.RestoreReal()
+end)
+
 function Preview.Open(user)
     users[user or "options"] = true
     if isOpen then return end
@@ -319,13 +326,10 @@ function Preview.Close(user)
     if suppressedReal then
         suppressedReal = false
         if InCombatLockdown() then
-            -- 戰鬥中不能動 protected frame：出戰鬥再還原
-            local restorer = CreateFrame("Frame")
+            -- 戰鬥中不能動 protected frame：出戰鬥再還原。
+            -- ⚠ 用模組層級的單一 watcher，不要在這裡 CreateFrame ——
+            -- WoW 的 frame 無法銷毀，每次「戰鬥中關掉設定面板」就會永久多一顆。
             restorer:RegisterEvent("PLAYER_REGEN_ENABLED")
-            restorer:SetScript("OnEvent", function(self)
-                self:UnregisterAllEvents()
-                Preview.RestoreReal()
-            end)
         else
             Preview.RestoreReal()
         end

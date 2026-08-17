@@ -79,24 +79,34 @@ local function UpdateDeathFields(uf)
     cache.ghost = UnitIsGhost(unit) and true or false
 end
 
-local function UpdateIdentityFields(uf)
+------------------------------------------------------------
+-- 身分欄位分兩組
+--
+-- 以前 info 與 reaction 兩個桶都跑同一支 17 個 API 的 UpdateIdentityFields。
+-- 而 reaction 是被 UNIT_FACTION / UNIT_FLAGS / GROUP_ROSTER_UPDATE /
+-- PARTY_LEADER_CHANGED 推的，那些事件裡名字、等級、種族職業一個都不會變。
+-- 隊伍變動走 ns.RefreshAll("reaction") ⇒ 11 個框 × 17 個 API，其中一半是白工。
+--
+-- ⚠ 這裡省下的只有「cache 重讀」那一段。真正貴的元件重畫本來就已經細分過了
+-- （Texts.Update 用 Tags.GetBuckets 算出的 f.buckets 逐條文字擋，pattern 是
+--  [name] 的文字不會因為 reaction 而重畫）。所以這是筆小帳，不要期待它解決什麼。
+--
+-- 桶名與元件訂閱**完全不動**。cache 從不整體 wipe，沒重讀的欄位仍然是有效值。
+--
+--   name 組  名字／種族職業／等級／分類／是不是玩家   → info 桶
+--   flag 組  陣營／PvP／AFK／可否協助攻擊／戰鬥中     → reaction 桶
+------------------------------------------------------------
+local function UpdateNameFields(uf)
     local cache, unit = uf.cache, uf.unit
     cache.name      = Desecret(UnitName(unit), "")
     cache.classFile = Desecret(UnitClassBase(unit), nil)
     cache.class     = Desecret((UnitClass(unit)), "")
     cache.race      = Desecret((UnitRace(unit)), "")
     cache.creaturetype = Desecret(UnitCreatureType(unit), "")
-    -- isPlayer = 真玩家（種族／職業才有意義）；pc = 玩家陣營控制（含寵物，染色用）
+    -- isPlayer = 真玩家（種族／職業才有意義）。放這組是因為「一個單位是不是玩家」
+    -- 不會中途改變，只有換人才會 —— 而換人時兩組都會跑。
+    -- ⚠ UpdateFlagFields 的 cache.pc 讀它，所以 unitchanged 一定要先跑這組。
     cache.isPlayer  = ToBool(UnitIsPlayer(unit)) or false
-    cache.pc        = cache.isPlayer or ToBool(UnitPlayerControlled(unit)) or false
-    cache.reaction  = PlainReaction(unit)
-    cache.afk       = SafeFlag(UnitIsAFK, unit) or false
-    cache.dnd       = SafeFlag(UnitIsDND, unit) or false
-    cache.tapped    = ToBool(UnitIsTapDenied(unit)) or false
-    cache.assist    = ToBool(UnitCanAssist("player", unit)) or false
-    cache.attackable = ToBool(UnitCanAttack("player", unit)) or false
-    cache.hostile   = ToBool(UnitIsEnemy("player", unit)) or false
-    cache.incombat  = ToBool(UnitAffectingCombat(unit)) or false
 
     local lvl = Desecret(UnitLevel(unit), nil)
     if lvl == nil or lvl == -1 then
@@ -107,6 +117,20 @@ local function UpdateIdentityFields(uf)
 
     local cls = Desecret(UnitClassification(unit), "normal")
     cache.classification = ns.db.global.classification[cls] or ""
+end
+
+local function UpdateFlagFields(uf)
+    local cache, unit = uf.cache, uf.unit
+    -- pc = 玩家陣營控制（含寵物，染色用）；isPlayer 由 UpdateNameFields 維護
+    cache.pc        = cache.isPlayer or ToBool(UnitPlayerControlled(unit)) or false
+    cache.reaction  = PlainReaction(unit)
+    cache.afk       = SafeFlag(UnitIsAFK, unit) or false
+    cache.dnd       = SafeFlag(UnitIsDND, unit) or false
+    cache.tapped    = ToBool(UnitIsTapDenied(unit)) or false
+    cache.assist    = ToBool(UnitCanAssist("player", unit)) or false
+    cache.attackable = ToBool(UnitCanAttack("player", unit)) or false
+    cache.hostile   = ToBool(UnitIsEnemy("player", unit)) or false
+    cache.incombat  = ToBool(UnitAffectingCombat(unit)) or false
 end
 
 -- 超出距離。以前只看 UnitIsVisible（那其實是「有沒有載入」，不是距離），
@@ -123,16 +147,16 @@ end
 
 function Cache.Update(uf, bucket)
     if bucket == "unitchanged" then
-        -- 換人：全部重讀
-        UpdateIdentityFields(uf)
+        -- 換人：全部重讀。⚠ name 一定要在 flag 之前（cache.pc 讀 cache.isPlayer）
+        UpdateNameFields(uf)
+        UpdateFlagFields(uf)
         UpdateHealthFields(uf)
         UpdatePowerFields(uf)
         UpdateDeathFields(uf)
-    elseif bucket == "info" or bucket == "reaction" then
-        -- 同一個單位，只有身分欄位變了。
-        -- （還可以再拆成「名字等級」與「陣營旗標」兩組，但 UpdateIdentityFields
-        --   本身不貴，真正貴的是後面那些元件——那個已經靠分桶擋掉了）
-        UpdateIdentityFields(uf)
+    elseif bucket == "info" then
+        UpdateNameFields(uf)
+    elseif bucket == "reaction" then
+        UpdateFlagFields(uf)
     elseif bucket == "health" then
         UpdateHealthFields(uf)
     elseif bucket == "power" then
