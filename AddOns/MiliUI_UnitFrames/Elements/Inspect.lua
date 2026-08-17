@@ -129,6 +129,20 @@ end
 ------------------------------------------------------------
 -- 建構／更新
 ------------------------------------------------------------
+-- 高亮貼圖依情況換：有底框時用白方塊罩整顆，光禿禿只有圖示時改用圖示自己
+-- （白方塊會在透明的地方憑空冒出一個方塊）。換過就記下來，同一款不要重設，
+-- 免得每次 Build 都丟掉舊的貼圖物件、連帶讓圓形遮罩掛在失效的那顆上。
+local function SetHighlight(btn, kind, texture)
+    if btn.hlKind ~= kind then
+        btn.hlKind = kind
+        btn:SetHighlightTexture(texture, "ADD")
+        btn.hlMask, btn.hlMasked = nil, false
+    end
+    local hl = btn:GetHighlightTexture()
+    hl:SetVertexColor(1, 1, 1, kind == "icon" and 0.45 or 0.15)
+    return hl
+end
+
 local function Build(uf, edb)
     local btn = uf.elements.inspect
     if not btn then
@@ -136,8 +150,6 @@ local function Build(uf, edb)
         btn.bg = btn:CreateTexture(nil, "BACKGROUND")
         btn.bg:SetTexture(Media.WHITE8X8)
         btn.icon = btn:CreateTexture(nil, "ARTWORK")
-        btn:SetHighlightTexture(Media.WHITE8X8, "ADD")
-        btn:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.15)
         btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         btn:SetScript("OnClick", OnClick)
         btn:SetScript("OnEnter", OnEnter)
@@ -152,8 +164,11 @@ local function Build(uf, edb)
     local inset = bordered and Media.BorderInset() or 0
     local c = edb.bgColor or { r = 0, g = 0, b = 0, a = 0.6 }
     local bc = (ns.db and ns.db.global.borderColor) or { r = 0, g = 0, b = 0, a = 1 }
-    local hl = btn:GetHighlightTexture()
     local isRound = edb.style == "round"
+    -- 沒邊框又沒底色 = 圖示直接浮在框上（使用者選的樣子），那時整套底框都不要畫
+    local bare = not isRound and not bordered and (c.a or 1) <= 0
+    local hl = SetHighlight(btn, bare and "icon" or "rect",
+        bare and (STYLE_DEFS[edb.style] or STYLE_DEFS.glass).texture or Media.WHITE8X8)
 
     if isRound then
         EnsureRound(btn)
@@ -193,19 +208,20 @@ local function Build(uf, edb)
         btn.bg:SetPoint("TOPLEFT", inset, -inset)
         btn.bg:SetPoint("BOTTOMRIGHT", -inset, inset)
         btn.bg:SetVertexColor(c.r, c.g, c.b, c.a or 1)
-        btn.bg:Show()
+        btn.bg:SetShown(not bare)
 
-        local pad = inset + ns.P.Scale(edb.iconPadding or 2)
+        local pad = inset + ns.P.Scale(edb.iconPadding or 0)
         btn.icon:ClearAllPoints()
         btn.icon:SetPoint("TOPLEFT", pad, -pad)
         btn.icon:SetPoint("BOTTOMRIGHT", -pad, pad)
         ApplyIcon(btn.icon, edb.style)
         btn.icon:Show()
 
-        -- 高亮也跟著內縮，不然滑過去會把邊框一起蓋掉
+        -- 有底框：高亮跟著內縮，不然滑過去會把邊框一起蓋掉
+        -- 光禿禿：高亮就是圖示本身，貼齊圖示才不會位移
         hl:ClearAllPoints()
-        hl:SetPoint("TOPLEFT", inset, -inset)
-        hl:SetPoint("BOTTOMRIGHT", -inset, inset)
+        hl:SetPoint("TOPLEFT", bare and pad or inset, -(bare and pad or inset))
+        hl:SetPoint("BOTTOMRIGHT", -(bare and pad or inset), bare and pad or inset)
     end
 
     -- 高亮跟著形狀走：方形白光罩在圓底上，四個角會凸出來。

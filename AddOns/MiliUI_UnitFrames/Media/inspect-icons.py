@@ -20,7 +20,7 @@ DARK = (10, 10, 12, 230)       # 描邊：接近純黑，留一點透明避免�
 CYAN = (77, 210, 255, 255)     # 套組主色
 GLASS = (77, 210, 255, 115)     # 鏡片內的淡青玻璃
 
-STROKE = int(0.055 * S)        # 描邊厚度（相對畫布，縮圖後約 1.4px）
+STROKE = int(0.080 * S)        # 描邊厚度：無底框時它是唯一的分離手段，寧可粗
 
 
 def canvas():
@@ -60,11 +60,11 @@ def bust(d, cx, cy, scale, fill):
 
 def shadow(img):
     """整張圖往下投一層淡影：貼在亮背景上才不會糊成一片。"""
-    a = img.split()[3].filter(ImageFilter.GaussianBlur(S * 0.02))
+    a = img.split()[3].filter(ImageFilter.GaussianBlur(S * 0.028))
     sh = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    sh.putalpha(a.point(lambda v: int(v * 0.45)))
+    sh.putalpha(a.point(lambda v: int(min(255, v * 0.75))))
     off = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    off.paste(sh, (0, int(S * 0.012)))
+    off.paste(sh, (0, int(S * 0.018)))
     return paste(off, img)
 
 

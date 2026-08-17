@@ -234,10 +234,12 @@ function DB.BuildDefaults()
                               status     = { enabled = true,  x = -8, y = 10, w = 14, h = 14, level = 10 },
                               leader     = { enabled = true,  x = 7,  y = 10, w = 12, h = 12, level = 10 },
                               pvp        = { enabled = false, x = 176, y = -12, w = 28, h = 28, level = 10 } },
-                    -- 觀察按鈕：點下去開觀察視窗。位置沿用舊版面（框右上角外側）
+                    -- 觀察按鈕：點下去開觀察視窗。位置沿用舊版面（框右上角外側）。
+                    -- 預設是「圖示直接浮在框上」——不畫邊框也不畫底色（使用者定案）；
+                    -- 圖本身帶描邊與投影，亮背景上也撐得住
                     inspect = { enabled = true, x = 186, y = 5, w = 25, h = 25, level = 8, alpha = 1,
-                                style = "inspector", border = true, bgColor = black(0.6),
-                                iconPadding = 2 },
+                                style = "glass", border = false, bgColor = black(0),
+                                iconPadding = 0 },
                 },
             },
 
@@ -496,6 +498,25 @@ function DB.Migrate(db)
             for _, udb in pairs(type(profile) == "table" and profile.units or {}) do
                 local e = type(udb) == "table" and type(udb.elements) == "table" and udb.elements.inspect
                 if type(e) == "table" and RENAME[e.style] then e.style = RENAME[e.style] end
+            end
+        end
+    end
+
+    -- v4：觀察按鈕預設改成「純放大鏡、不要外框」。值閘——只動仍等於 v3 預設的欄位，
+    -- 自己調過樣式／邊框／底色的人不碰。
+    if db.schemaVersion < 4 then
+        for _, profile in pairs(db.profiles or {}) do
+            for _, udb in pairs(type(profile) == "table" and profile.units or {}) do
+                local e = type(udb) == "table" and type(udb.elements) == "table" and udb.elements.inspect
+                if type(e) == "table" then
+                    if e.style == "inspector" then e.style = "glass" end
+                    if e.border == true then e.border = false end
+                    if e.iconPadding == 2 then e.iconPadding = 0 end
+                    local c = e.bgColor
+                    if type(c) == "table" and c.r == 0 and c.g == 0 and c.b == 0 and c.a == 0.6 then
+                        c.a = 0
+                    end
+                end
             end
         end
     end
