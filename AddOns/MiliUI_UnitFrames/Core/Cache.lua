@@ -119,14 +119,32 @@ end
 local function UpdateNameFields(uf)
     local cache, unit = uf.cache, uf.unit
     cache.name      = Desecret(UnitName(unit), "")
-    cache.classFile = Desecret(UnitClassBase(unit), nil)
-    cache.class     = Desecret((UnitClass(unit)), "")
-    cache.race      = Desecret((UnitRace(unit)), "")
     cache.creaturetype = Desecret(UnitCreatureType(unit), "")
     -- isPlayer = 真玩家（種族／職業才有意義）。放這組是因為「一個單位是不是玩家」
     -- 不會中途改變，只有換人才會 —— 而換人時兩組都會跑。
     -- ⚠ UpdateFlagFields 的 cache.pc 讀它，所以 unitchanged 一定要先跑這組。
+    -- ⚠ 也必須排在下面三個之前：它們拿它當閘。
     cache.isPlayer  = ToBool(UnitIsPlayer(unit)) or false
+
+    ------------------------------------------------------------
+    -- ⚠⚠ 職業／種族只對「真玩家」有意義，非玩家一律清成 nil。
+    --
+    -- `UnitClassBase` 對非玩家會回一個**看起來完全合法、實際上沒有意義**的職業 token
+    -- ——術士的惡魔僕從回 "ROGUE"（實測 rgb 255,244,104）。於是 methods.class 第一段
+    -- 就命中 RAID_CLASS_COLORS["ROGUE"]，寵物框被塗成盜賊黃，而且因為第一段就 return，
+    -- 後面「吃主人職業色」的備援永遠走不到。
+    -- `UnitClass` 更糟：對非玩家回的是**單位的名字**。
+    --
+    -- 這跟 Tags 的 race/class 用 UnitIsPlayer 閘是同一類問題，只是 cache 這層之前漏了。
+    -- 見筆記 wow-unitclass-npc-returns-name。
+    ------------------------------------------------------------
+    if cache.isPlayer then
+        cache.classFile = Desecret(UnitClassBase(unit), nil)
+        cache.class     = Desecret((UnitClass(unit)), "")
+        cache.race      = Desecret((UnitRace(unit)), "")
+    else
+        cache.classFile, cache.class, cache.race = nil, "", ""
+    end
     -- 非玩家但受玩家控制（寵物／載具）→ 記下主人的職業給上色用（見 OwnerClassOf）
     if cache.isPlayer then
         cache.ownerClass = nil

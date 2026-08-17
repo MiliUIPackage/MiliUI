@@ -38,7 +38,12 @@ local PT = Enum.PowerType
 -- 全域不存在時退回英文，不要讓 name 變 nil
 local function PowerName(global, fallback)
     local s = _G[global]
-    return (type(s) == "string" and s ~= "" and s) or fallback
+    if type(s) ~= "string" or s == "" then return fallback end
+    -- ⚠ 有些暴雪字串帶**複數轉義**：zhTW 的 SOUL_SHARDS 是「靈魂|4裂片:裂片;」。
+    -- `|4單數:複數;` 要由前面的數字驅動才會被客戶端解開，而我們只是拿它當標籤，
+    -- 所以會原樣印出來（實測設定面板與 /muf debug 都是「靈魂|4裂片:裂片;」）。
+    -- 取單數形就好。三種形式的語系寫成 |4a:b:c;，同樣取第一個。
+    return (s:gsub("|4([^:;]*):[^;]*;", "%1"))
 end
 
 local RESOURCES = {
