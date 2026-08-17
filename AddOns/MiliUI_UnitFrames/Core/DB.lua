@@ -398,12 +398,17 @@ function DB.BuildDefaults()
                 enabled = true,
                 frame = frameDef{ x = -470, y = -225, w = 120, h = 50, fadeOutOfRange = false },
                 elements = {
+                    -- 3D 頭像：層級照玩家框那套三明治（mp 0 / hp 背景 2 / 頭像 3 / hp 前景 4），
+                    -- 底色 alpha 0 去背、血條前景半透明，模型才透得出來。
+                    -- 尺寸與座標是寵物框自己的（120 寬），不是跟玩家共用設定。
                     portrait = { enabled = true, x = 0, y = 0, w = 120, h = 40, mode = "3d",
-                                 bg = { r = 0.165, g = 0.165, b = 0.165, a = 1 }, level = 2,
+                                 bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3,
+                                 zoom = 1, rotation = 0,
+                                 modelOffsetX = 0, modelOffsetY = 0,
                                  fallback2D = false },
-                    hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 40, level = 4, lossAlpha = 0.55,
+                    hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 40, level = 4, bgLevel = 2, lossAlpha = 0.9,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
-                              barAlpha = 0.8, bgAlpha = 1, border = true,
+                              barAlpha = 0.5, bgAlpha = 1, border = true,
                               -- 治療預估仍然關著（跟護盾是不同的勾選，要的話在單位→血條打開）
                               showHealPrediction = false,
                               -- 護盾：目標框有、Cell 也有，寵物沒理由沒有。
