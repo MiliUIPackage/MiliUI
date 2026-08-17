@@ -61,6 +61,10 @@ metadata:
 
 **Leatrix_Plus 已修（2026-08-13）**：`GetBuffDataByIndex(): Auras cannot be accessed when secret while tainted by 'Leatrix_Plus'`，觸發點是「取消變形」功能掛在 `PLAYER_REGEN_ENABLED` 的掃描——**離開戰鬥不等於光環解密**，還在首領戰／M+／PvP 場次時 `ShouldAurasBeSecret()` 仍是 true。上游作者已經在用 `canaccessvalue` 洗欄位，但漏了「**index / slot 版光環 API 本身就會拋錯**」這層（`canaccessvalue` 只能檢查已經拿到手的值，救不了拿不到的呼叫）。在檔案頂端加 `LeaPlusLC:AurasAreSecret()`（包 `C_Secrets.ShouldAurasBeSecret`），7 個呼叫點全閘掉：3 個變形取消迴圈（`Leatrix_Plus.lua` 6417/6439/6470）、2 個 `AuraUtil.ForEachAura`（8518/8653，它走 slot 版一樣炸）、法術 ID 提示的 `GetAuraDataByIndex`（8760，滑過光環就噴一次）、Myza's Oasis 指令的 `GetDebuffDataByIndex`（13681）。**不用補重試機制**：光環解密後任何一次 `UNIT_AURA` 全量更新都會讓變形取消自己跑起來，秘密期間功能就是靜靜停擺。
 
+**MRT RaidCheck 已修（2026-08-18）**：`GetAuraDataByIndex(): Auras cannot be accessed when secret while tainted by 'MRT'`，準備確認一次噴 89 個。上游其實已經在 6 個掃光環的 helper（`GetRunes` 那一票）頂端加了 `if C_Secrets and C_Secrets.ShouldAurasBeSecret() then return end`，但漏了兩處：① `module.frame:UpdateData`（`RaidCheck.lua:2767`）**把同一個檢查寫在迴圈裡、而且在呼叫之後**——`local auraData = GetAuraDataByIndex(...)` 先跑，`elseif ShouldAurasBeSecret() then break` 永遠等不到；② `CheckPotionsOnPull`（`RaidCheck.lua:1663`）完全沒閘，而它是掛在 `ENCOUNTER_START` 後 1.5 秒排程的，開場藥水名單在受限內容下必炸。修法是把閘提到呼叫之前（迴圈外先算一次 `aurasAreSecret`，迴圈第一行 `break`）。**通則同 Leatrix_Plus：`canaccessvalue` 只能洗已經拿到手的值，救不了「呼叫本身就拋錯」——閘的位置必須在 API 之前，寫成 `elseif` 分支等於沒寫。**
+
+MRT 其他檔案還有一批同型的裸呼叫沒閘（回報時沒噴，推測是功能沒開到）：`BossWatcher.lua` 487/621/1908、`ExCD2.lua` 4106/4762/4778/5029/5352/5414、`Reminder.lua` 19678/19687/19807/19829（後兩個還是舊 `UnitAura`）、`Inspect.lua` 1311。真的噴出來再閘，寫法照 RaidCheck。
+
 ### Ayije_CDM：裸迴圈 dispatch 是 12.1 的放大器（2026-08-13）
 
 Mili 回報「主技能圖示有時候會變小、只有 /reload 會好」。查下去發現真正該修的不是某一行，而是**這支插件有三條裸迴圈 dispatch，任何一個 handler 拋錯就靜默中斷後面全部**——12.1 之前這頂多掉一個功能，12.1 之後秘密值拋錯變成常態（同一場就抓到 `GetAuraDuration` x69），於是變成「插件只做了一半」而且完全沒有線索：
