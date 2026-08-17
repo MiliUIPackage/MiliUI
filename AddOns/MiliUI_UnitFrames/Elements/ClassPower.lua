@@ -566,7 +566,9 @@ ns.Events.Register("UNIT_MAXPOWER", "classpower_maxpower", function(unit)
     if unit == "player" then Reevaluate() end
 end)
 -- 光環堆疊型資源（漩渦之武／矛尖／靈魂碎片）沒有 UNIT_POWER 可用，只能吃 UNIT_AURA。
--- 團隊戰裡 UNIT_AURA 很吵，所以只有「這個職業真的有這種資源」才註冊
+-- UNIT_AURA 在團隊戰是全場最吵的事件之一，所以兩道閘都要：
+--   1. 只有「這個職業真的有這種資源」才註冊
+--   2. 綁 "player" 走 RegisterUnitEvent，其他單位的光環在 C 端就被擋掉、不進 Lua
 local AURA_DRIVEN_CLASSES = { SHAMAN = true, HUNTER = true, DEMONHUNTER = true }
 if AURA_DRIVEN_CLASSES[CLASS] then
 ns.Events.Register("UNIT_AURA", "classpower_aura", function(unit)
@@ -580,7 +582,7 @@ ns.Events.Register("UNIT_AURA", "classpower_aura", function(unit)
             UpdateRow(row, edb, uf.isPreview)
         end
     end
-end)
+end, "player")
 end
 
 ------------------------------------------------------------

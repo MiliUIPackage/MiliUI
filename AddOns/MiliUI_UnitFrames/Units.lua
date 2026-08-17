@@ -3,6 +3,53 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- tot / focustarget 沒有自己的單位事件，UNIT_TARGET 之外加輪詢當保險。
+-- ⚠ 常數表放檔案層級：這個回呼一秒跑兩次，寫成 ipairs({...}) 等於每次現配一張表
+local INDIRECT_UNITS = { "targettarget", "focustarget" }
+local INDIRECT_KEY = "watch_indirect"
+
+local function WatchIndirect()
+    for _, unit in ipairs(INDIRECT_UNITS) do
+        local uf = ns.frames[unit]
+        if uf and uf:IsVisible() then
+            -- 名字是秘密時 Desecret 後兩邊都是空字串，這裡比不出變化——
+            -- 主要路徑是 UNIT_TARGET 事件，這只是保險（見體檢報告 C2）
+            local name = ns.Desecret(UnitName(unit), "")
+            if name ~= uf.cache.name then
+                ns.Refresh(uf, "identity")
+            end
+        end
+    end
+end
+
+-- 兩個框都沒顯示就把輪詢卸掉，ticker 才停得下來
+local function SyncIndirectWatch()
+    for _, unit in ipairs(INDIRECT_UNITS) do
+        local uf = ns.frames[unit]
+        if uf and uf:IsShown() then
+            ns.Metro.Add(INDIRECT_KEY, 0.5, WatchIndirect)
+            return
+        end
+    end
+    ns.Metro.Remove(INDIRECT_KEY)
+end
+
+-- 框可能是登入後才被啟用（設定裡打開）才生出來的，所以掛勾要能重跑；
+-- 每個框自己記一個旗標避免疊上去
+local function HookIndirectWatch()
+    for _, unit in ipairs(INDIRECT_UNITS) do
+        local uf = ns.frames[unit]
+        if uf and not uf.indirectHooked then
+            uf.indirectHooked = true
+            uf:HookScript("OnShow", SyncIndirectWatch)
+            uf:HookScript("OnHide", SyncIndirectWatch)
+        end
+    end
+    SyncIndirectWatch()
+end
+
+ns.RegisterCallback("SettingsApplied", "watch_indirect", HookIndirectWatch)
+
 local loader = CreateFrame("Frame")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function()
@@ -21,19 +68,8 @@ loader:SetScript("OnEvent", function()
 
     ns.Fire("Loaded")     -- 圖騰等獨立模組在 DB 就緒後初始化
 
-    -- tot / focustarget 沒有自己的事件，UNIT_TARGET 之外加輪詢保險
-    -- （名字是秘密時 Desecret 後比對不到變化，UNIT_TARGET 事件補上主要路徑）
-    ns.Metro.Add("watch_indirect", 0.5, function()
-        for _, unit in ipairs({ "targettarget", "focustarget" }) do
-            local uf = ns.frames[unit]
-            if uf and uf:IsVisible() then
-                local name = ns.Desecret(UnitName(unit), "")
-                if name ~= uf.cache.name then
-                    ns.Refresh(uf, "identity")
-                end
-            end
-        end
-    end)
+    -- tot / focustarget 的輪詢保險：掛在兩個框的顯示狀態上
+    HookIndirectWatch()
 end)
 
 ------------------------------------------------------------

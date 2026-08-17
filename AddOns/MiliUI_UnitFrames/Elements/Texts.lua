@@ -63,19 +63,24 @@ local function Build(uf, edb)
         end
     end
 
-    -- 有 oor 這類 metro 依賴的文字 → 掛共用輪詢
-    local metroKey = "texts_" .. uf.unit
-    if needMetro and not uf.isPreview then
-        ns.Metro.Add(metroKey, 0.5, function()
-            if uf:IsVisible() then
+    -- 有 oor 這類 metro 依賴的文字 → 掛共用輪詢。
+    -- 用 Bind 而不是 Add：項目跟著框架可見度上下，框藏起來就卸掉，
+    -- 沒有任何框需要輪詢時整顆 ticker 才停得下來
+    -- ⚠ 預覽孿生框的 uf.unit 一律是 "player"（安全 token），key 會撞到真實玩家框，
+    -- 所以預覽完全不碰 metro——它本來就有自己的 ticker 在演
+    if not uf.isPreview then
+        local metroKey = "texts_" .. uf.unit
+        if needMetro then
+            uf.metroTextsFn = uf.metroTextsFn or function()
                 local texts = uf.db.elements.texts
                 if texts then
                     ns.Elements.texts.update(uf, texts, "metro")
                 end
             end
-        end)
-    else
-        ns.Metro.Remove(metroKey)
+            ns.Metro.Bind(uf, metroKey, 0.5, uf.metroTextsFn)
+        else
+            ns.Metro.Unbind(uf, metroKey)
+        end
     end
 end
 

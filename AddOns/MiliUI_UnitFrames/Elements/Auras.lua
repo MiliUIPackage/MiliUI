@@ -268,17 +268,23 @@ end
 ------------------------------------------------------------
 local pendingBounce = {}
 
+local function HideShow(c) c:Hide(); c:Show() end
+
 local function Kick(c)
-    pcall(function() c:Hide(); c:Show() end)
+    pcall(HideShow, c)      -- 現成函式：Kick 落在每次換目標上，別在這裡現配 closure
     if c.SetEnabled then pcall(c.SetEnabled, c, true) end
 end
 
+-- tag 由呼叫端在建容器時算一次存起來（見 entry.tag），這裡不再現串字串——
+-- Bounce 落在每次換目標上，只為了 /muf debug 的一行紀錄而每次組字串不划算。
+-- how 也一律用常數，不做串接。
 local function Bounce(c, tag)
     if not c then return end
     local how
     if InCombatLockdown() then
         pendingBounce[c] = true
-        how = "combat/dirty=" .. tostring(c.UpdateAllAuras and pcall(c.UpdateAllAuras, c) or false)
+        local dirty = c.UpdateAllAuras and pcall(c.UpdateAllAuras, c) or false
+        how = dirty and "combat/dirty" or "combat/nodirty"
     else
         pendingBounce[c] = nil
         Kick(c)
@@ -410,7 +416,9 @@ local function MakeElement(elementName, baseFilter)
             ns.aurasLastError = tostring(container)
             return
         end
-        uf.auraContainers[elementName] = { container = container, signature = signature }
+        -- tag 在這裡算一次就好，Bounce 每次換目標都要用（見 Bounce 的說明）
+        uf.auraContainers[elementName] = { container = container, signature = signature,
+                                           tag = uf.unit .. "/" .. elementName }
         uf.elements[elementName] = container
         container:Show()
     end
@@ -419,7 +427,7 @@ local function MakeElement(elementName, baseFilter)
     local function Repoke(uf)
         local entry = uf.auraContainers and uf.auraContainers[elementName]
         if not entry then return end
-        Bounce(entry.container, uf.unit .. "/" .. elementName)
+        Bounce(entry.container, entry.tag)
     end
 
     local function Update(uf, edb, bucket)

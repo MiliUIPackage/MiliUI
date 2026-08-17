@@ -46,6 +46,60 @@ local function EnsureOverlayBar(f, key, level)
     return bar
 end
 
+------------------------------------------------------------
+-- 疊加層的三段取值：秘密值算術要靠 pcall 逃逸，但**函式一定要是現成的**
+-- ——這三段落在每次血量更新上，寫成 pcall(function() … end) 等於每個
+-- UNIT_HEALTH 都新配三顆 closure。需要的東西一律走參數。
+--
+-- 各自的坑（順序、多回傳值、clamp）寫在呼叫點上方，動之前先讀那段。
+------------------------------------------------------------
+local function ApplyAbsorb(f, edb, calc, unit, maxHP)
+    local _, isClamped = calc:GetDamageAbsorbs()
+    local total = UnitGetTotalAbsorbs(unit)
+    local reverse = edb.absorbReverseFill ~= false     -- 預設反向
+    local shown  = reverse and f.shieldbarR or f.shieldbar
+    local hidden = reverse and f.shieldbar or f.shieldbarR
+    hidden:Hide()
+    shown:SetMinMaxValues(0, maxHP)
+    shown:SetValue(total)
+    shown:Show()
+    -- 溢盾光暈：方向自己一個開關，跟條的填充方向無關
+    local glowOn = edb.showOvershield ~= false
+    local gR = edb.overshieldGlowReverse
+    ns.SetOvershieldGlow(f.overShieldGlow,  glowOn and not gR, isClamped)
+    ns.SetOvershieldGlow(f.overShieldGlowR, glowOn and gR,     isClamped)
+end
+
+local function ApplyHealAbsorb(f, calc, maxHP)
+    -- ⚠⚠ **一定要先落地成單一變數**。getter 跟 GetDamageAbsorbs 一樣回兩個值
+    -- （量, isClamped），而 Lua 在「最後一個參數位置」會把多回傳值全部展開 →
+    -- `SetValue(calc:GetHealAbsorbs())` 實際上是 `SetValue(量, isClamped)`，
+    -- 第二個參數在 12.x 是**插值模式**，等於餵了一個秘密布林進去 → 整條被鋪滿。
+    local healAbsorbs = calc:GetHealAbsorbs()
+    f.healAbsorbBar:SetMinMaxValues(0, maxHP)
+    f.healAbsorbBar:SetValue(healAbsorbs)
+    f.healAbsorbBar:Show()
+end
+
+local function ApplyHealPrediction(f, hcalc, unit)
+    -- ⚠ clamp **每次更新都要重設**——UnitGetDetailedHealPrediction 會把計算器
+    -- 重新灌值，建立時設一次是沒用的。少了 MissingHealth clamp，GetIncomingHeals
+    -- 會回沒有上限的量，把整條剩餘血量填滿（那條「沒人補我卻整片白」的假預估）。
+    if hcalc.SetIncomingHealClampMode then
+        hcalc:SetIncomingHealClampMode(0)              -- 0 = MissingHealth
+    end
+    if hcalc.SetIncomingHealOverflowPercent then
+        hcalc:SetIncomingHealOverflowPercent(1.0)
+    end
+    UnitGetDetailedHealPrediction(unit, "player", hcalc)
+    -- 同上：先落地截斷多回傳值，別直接串進 SetValue
+    local incMax = hcalc:GetMaximumHealth()
+    local incoming = hcalc:GetIncomingHeals()
+    f.incbar:SetMinMaxValues(0, incMax)
+    f.incbar:SetValue(incoming)
+    f.incbar:Show()
+end
+
 local function AnchorOverlay(bar, hpTex, w, h)
     -- 錨到血條材質右緣，往右延伸；寬度來自設定（絕不回讀），超出由容器裁切
     bar:ClearAllPoints()
@@ -275,22 +329,7 @@ local function Update(uf, edb, bucket)
             ------------------------------------------------------------
             if edb.showAbsorb and f.shieldbar then
                 if overlaysOK and UnitGetTotalAbsorbs then
-                    pcall(function()
-                        local _, isClamped = calc:GetDamageAbsorbs()
-                        local total = UnitGetTotalAbsorbs(unit)
-                        local reverse = edb.absorbReverseFill ~= false     -- 預設反向
-                        local shown  = reverse and f.shieldbarR or f.shieldbar
-                        local hidden = reverse and f.shieldbar or f.shieldbarR
-                        hidden:Hide()
-                        shown:SetMinMaxValues(0, maxHP)
-                        shown:SetValue(total)
-                        shown:Show()
-                        -- 溢盾光暈：方向自己一個開關，跟條的填充方向無關
-                        local glowOn = edb.showOvershield ~= false
-                        local gR = edb.overshieldGlowReverse
-                        ns.SetOvershieldGlow(f.overShieldGlow,  glowOn and not gR, isClamped)
-                        ns.SetOvershieldGlow(f.overShieldGlowR, glowOn and gR,     isClamped)
-                    end)
+                    pcall(ApplyAbsorb, f, edb, calc, unit, maxHP)
                 else
                     f.shieldbar:Hide()
                     if f.shieldbarR then f.shieldbarR:Hide() end
@@ -303,46 +342,18 @@ local function Update(uf, edb, bucket)
             -- 我們上面那行 UnitGetDetailedHealPrediction 已經做了同一件事）
             if edb.showHealAbsorb and f.healAbsorbBar then
                 if overlaysOK then
-                    pcall(function()
-                        -- ⚠⚠ **一定要先落地成單一變數**。getter 跟 GetDamageAbsorbs 一樣
-                        -- 回兩個值（量, isClamped），而 Lua 在「最後一個參數位置」會把
-                        -- 多回傳值全部展開 → `SetValue(calc:GetHealAbsorbs())` 實際上是
-                        -- `SetValue(量, isClamped)`，第二個參數在 12.x 是**插值模式**，
-                        -- 等於餵了一個秘密布林進去 → 整條被鋪滿。
-                        -- 每個取值點都要先 `local x = calc:GetXxx()` 把多回傳值截斷。
-                        local healAbsorbs = calc:GetHealAbsorbs()
-                        f.healAbsorbBar:SetMinMaxValues(0, maxHP)
-                        f.healAbsorbBar:SetValue(healAbsorbs)
-                        f.healAbsorbBar:Show()
-                    end)
+                    pcall(ApplyHealAbsorb, f, calc, maxHP)
                 else
                     f.healAbsorbBar:Hide()
                 end
             end
-            -- 治療預估（12.x Midnight 路徑）。
-            -- ⚠ 關鍵在 clamp **每次更新都要重設**——`UnitGetDetailedHealPrediction`
-            -- 會把計算器重新灌值，建立時設一次是沒用的。少了 MissingHealth clamp，
-            -- GetIncomingHeals 會回沒有上限的量，把整條剩餘血量填滿（就是那條
-            -- 「沒人補我卻整片白」的假預估）。
-            -- 全域 UnitGetIncomingHeals 是**前 Midnight** 的舊路徑，12.x 別用。
+            -- 治療預估（12.x Midnight 路徑）。clamp 每次都要重設，理由見
+            -- ApplyHealPrediction。全域 UnitGetIncomingHeals 是**前 Midnight**
+            -- 的舊路徑，12.x 別用。
             if edb.showHealPrediction and f.incbar then
                 local hcalc = EnsureHealCalc(uf)
                 if overlaysOK and hcalc and UnitGetDetailedHealPrediction then
-                    pcall(function()
-                        if hcalc.SetIncomingHealClampMode then
-                            hcalc:SetIncomingHealClampMode(0)          -- 0 = MissingHealth
-                        end
-                        if hcalc.SetIncomingHealOverflowPercent then
-                            hcalc:SetIncomingHealOverflowPercent(1.0)
-                        end
-                        UnitGetDetailedHealPrediction(unit, "player", hcalc)
-                        -- 同上：先落地截斷多回傳值，別直接串進 SetValue
-                        local incMax = hcalc:GetMaximumHealth()
-                        local incoming = hcalc:GetIncomingHeals()
-                        f.incbar:SetMinMaxValues(0, incMax)
-                        f.incbar:SetValue(incoming)
-                        f.incbar:Show()
-                    end)
+                    pcall(ApplyHealPrediction, f, hcalc, unit)
                 else
                     f.incbar:Hide()
                 end

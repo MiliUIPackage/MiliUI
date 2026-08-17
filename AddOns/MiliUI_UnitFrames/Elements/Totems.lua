@@ -35,6 +35,10 @@ local frame          -- MiliUIUF_Totem
 local slots = {}     -- [i] = { btn, icon, bar, text, active, start, dur }
 local ticker
 
+-- 秘密值算術的逃逸函式（給 pcall 用的現成函式，不要在呼叫點現寫匿名函式）
+local function RemainingOf(start, dur) return start + dur - GetTime() end
+local function PlainNumber(v) return v + 0 end
+
 local function GetDB()
     return ns.db.units.totem
 end
@@ -138,6 +142,10 @@ local function Relayout()
     frame:SetSize(FrameSize())
 end
 
+-- ⚠ 前置宣告：UpdateBars 的假倒數分支要讀它，但設定它的預覽區塊在本檔更下面。
+-- 宣告寫在下面的話這裡讀到的是全域 nil，假倒數整段變死碼（實際踩過）。
+local previewOn = false
+
 local function UpdateBars()
     local db = GetDB()
     for i = 1, NUM_SLOTS do
@@ -156,9 +164,11 @@ local function UpdateBars()
                 slot.text:SetText(string.format("%dm", math.ceil(remain / 60)))
             end
         elseif slot and slot.active then
-            -- start/dur 可能是秘密值：算術一律 pcall 逃逸
-            local okR, remain = pcall(function() return slot.start + slot.dur - GetTime() end)
-            local okT, total = pcall(function() return slot.dur + 0 end)
+            -- start/dur 可能是秘密值：算術一律 pcall 逃逸。
+            -- 函式要現成的——這段跑在倒數的每一次更新上，現寫匿名函式等於每格
+            -- 每次都配兩顆 closure
+            local okR, remain = pcall(RemainingOf, slot.start, slot.dur)
+            local okT, total = pcall(PlainNumber, slot.dur)
             if okR and okT and type(remain) == "number" and type(total) == "number" and total > 0 then
                 if remain <= 0 then
                     slot.active = false
@@ -191,7 +201,6 @@ end
 -- 沒放召喚物時這個框是空的，開設定調位置／大小等於在對著空氣調。
 -- 打開「召喚物」分頁時填四格假資料（含會跑的時間條與倒數），關掉就回真實狀態。
 ------------------------------------------------------------
-local previewOn = false
 local DEMO = {
     { icon = "Interface\\Icons\\spell_nature_stoneskintotem",  dur = 60 },
     { icon = "Interface\\Icons\\spell_fire_searingtotem",      dur = 40 },

@@ -95,22 +95,59 @@ function ns.Events.Start()
     for event in pairs(SPECIAL) do Reg(event) end
 end
 
+------------------------------------------------------------
 -- 外掛事件（元件模組用：ClassPower 等）
-local externalEvents = {}
-function ns.Events.Register(event, key, fn)
-    ns.RegisterCallback("EVENT_" .. event, key, fn)
-    if not externalEvents[event] then
+------------------------------------------------------------
+-- callback key 查表算一次就好。原本每次派發都現串 "EVENT_" .. event，
+-- 而 UNIT_AURA 這種在團隊戰是每秒數百次的量。
+local FIRE_KEY = setmetatable({}, { __index = function(t, event)
+    local k = "EVENT_" .. event
+    t[event] = k
+    return k
+end })
+
+local externalEvents = {}      -- 註冊在全域 eventFrame 上的
+local unitScoped = {}          -- 已經改走 RegisterUnitEvent 的（不可再上全域，會雙送）
+local unitFrames = {}          -- unit token → frame
+
+-- 只關心特定單位的事件走這裡：RegisterUnitEvent 讓客戶端在 C 端就過濾掉，
+-- 不相干的單位根本不會進 Lua。全域 RegisterEvent 是「每個單位都送進來、
+-- 我們才判斷關不關自己的事」，團隊戰差距很大。
+local function UnitReg(event, token)
+    local f = unitFrames[token]
+    if not f then
+        f = CreateFrame("Frame")
+        f:SetScript("OnEvent", function(_, ev, ...)
+            ns.Fire(FIRE_KEY[ev], ...)
+        end)
+        unitFrames[token] = f
+    end
+    ns.trace = "RegisterUnitEvent(" .. tostring(event) .. ")"
+    pcall(f.RegisterUnitEvent, f, event, token)
+    ns.trace = nil
+end
+
+-- unitToken 給了就走 C 端過濾。⚠ 同一個事件不能同時出現在 UNIT_EVENT_BUCKET
+-- （全域）與這裡的 unit 範圍註冊，否則會被送兩次。
+function ns.Events.Register(event, key, fn, unitToken)
+    ns.RegisterCallback(FIRE_KEY[event], key, fn)
+    if unitToken then
+        if not unitScoped[event] then
+            unitScoped[event] = true
+            UnitReg(event, unitToken)
+        end
+    elseif not externalEvents[event] then
         externalEvents[event] = true
         Reg(event)
     end
 end
 
--- 讓外掛事件也走同一顆 frame：包一層（只對有人註冊的事件 Fire，避免高頻事件白做字串串接）
+-- 讓外掛事件也走同一顆 frame：包一層（只對有人註冊的事件 Fire）
 local origHandler = eventFrame:GetScript("OnEvent")
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     origHandler(self, event, ...)
     if externalEvents[event] then
-        ns.Fire("EVENT_" .. event, ...)
+        ns.Fire(FIRE_KEY[event], ...)
     end
 end)
 
@@ -130,8 +167,15 @@ local function MetroTick()
     end
 end
 
+-- ⚠ 既有項目只更新欄位、不重置 elapsed：Add 會被重複呼叫（Bind 每次 OnShow
+-- 都會叫一次），每次都歸零的話間隔長的項目永遠等不到觸發
 function ns.Metro.Add(key, interval, fn)
-    metroEntries[key] = { interval = interval, elapsed = 0, fn = fn }
+    local e = metroEntries[key]
+    if e then
+        e.interval, e.fn = interval, fn
+    else
+        metroEntries[key] = { interval = interval, elapsed = 0, fn = fn }
+    end
     if not metroTicker then
         metroTicker = C_Timer.NewTicker(0.1, MetroTick)
     end
@@ -143,4 +187,34 @@ function ns.Metro.Remove(key)
         metroTicker:Cancel()
         metroTicker = nil
     end
+end
+
+-- 把一個輪詢項目綁在框架的可見度上：框藏起來就卸下，整張表空了 ticker 才停得掉。
+-- 沒有這層的話一個永久項目就會讓 0.1 秒的 ticker 從登入轉到登出。
+-- OnShow/OnHide 只掛一次（Build 是冪等的，會被重跑）。
+function ns.Metro.Bind(uf, key, interval, fn)
+    local bound = uf.metroBound
+    if not bound then bound = {}; uf.metroBound = bound end
+    local function sync()
+        if uf:IsShown() then
+            ns.Metro.Add(key, interval, fn)
+        else
+            ns.Metro.Remove(key)
+        end
+    end
+    bound[key] = sync
+    if not uf.metroHooked then
+        uf.metroHooked = true
+        local function syncAll()
+            for _, s in pairs(uf.metroBound) do s() end
+        end
+        uf:HookScript("OnShow", syncAll)
+        uf:HookScript("OnHide", syncAll)
+    end
+    sync()
+end
+
+function ns.Metro.Unbind(uf, key)
+    if uf.metroBound then uf.metroBound[key] = nil end
+    ns.Metro.Remove(key)
 end
