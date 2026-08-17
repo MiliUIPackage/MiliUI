@@ -130,11 +130,24 @@ local function Debug()
         p("  玩家文字：textFrames 不存在")
     end
 
-    p("  召喚物槽（type / 值）：")
-    for i = 1, 4 do
-        local _, _, startTime, duration, icon = GetTotemInfo(i)
-        p(("   #%d icon=%s(%s) start=%s dur=%s"):format(
-            i, type(icon), SafeStr(icon), SafeStr(startTime), SafeStr(duration)))
+    -- 召喚物：倒數改由引擎跑（duration 物件）之後，「沒有數字」有好幾種斷法，
+    -- 每一段都印出來才分得出是哪一段
+    if ns.TotemsDebug then
+        local rows, cvar = ns.TotemsDebug()
+        p(("  召喚物槽（暴雪冷卻數字 CVar countdownForCooldowns=%s%s）：")
+            :format(tostring(cvar),
+                    cvar == "0" and " |cffff5555← 關著，引擎不會畫數字|r" or ""))
+        for _, r in ipairs(rows) do
+            p(("   #%d icon=%s start=%s dur=%s modRate=%s"):format(
+                r.i, SafeStr(r.icon), SafeStr(r.start), SafeStr(r.dur), SafeStr(r.modRate)))
+            p(("      槽=%s 啟用=%s duo=%s set=%s bar=%s cd=%s 數字=%s 條值=%s"):format(
+                tostring(r.hasSlot), tostring(r.active), tostring(r.hasDuo),
+                tostring(r.set), tostring(r.bar), tostring(r.cd),
+                r.numbersOn == nil and "?" or (r.numbersOn and "開" or "關"),
+                SafeStr(r.barValue)))
+        end
+    else
+        p("  召喚物槽：這個職業沒有召喚物欄位（Totems 模組沒載入）")
     end
     -- 施法條圖示：貼圖值、圖示框尺寸、邊框顏色（判斷「沒圖示」還是「圖示本身長那樣」）
     local bc = ns.db and ns.db.global.borderColor

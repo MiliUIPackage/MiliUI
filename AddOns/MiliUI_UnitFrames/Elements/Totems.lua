@@ -195,15 +195,48 @@ local function ArmTimer(slot, startTime, duration, modRate)
         return
     end
     -- C 端 setter，吃秘密值。⚠ 寫完不要再問它任何事（IsZero/GetTotalDuration 會炸）
-    pcall(duo.SetTimeFromStart, duo, startTime, duration, modRate)
+    slot.dbgSet = pcall(duo.SetTimeFromStart, duo, startTime, duration, modRate)
+    slot.dbgBar, slot.dbgCd = false, false
     if slot.bar.SetTimerDuration and TIMER_DIR then
         slot.bar:SetMinMaxValues(0, 1)
-        slot.bar:SetTimerDuration(duo, nil, TIMER_DIR)
+        slot.dbgBar = pcall(slot.bar.SetTimerDuration, slot.bar, duo, nil, TIMER_DIR)
     end
     if slot.cd then
-        slot.cd:SetCooldownFromDurationObject(duo)
-        slot.cd:SetHideCountdownNumbers(GetDB().showTimeText == false)
+        slot.dbgCd = pcall(slot.cd.SetCooldownFromDurationObject, slot.cd, duo)
+        slot.numbersOn = GetDB().showTimeText ~= false
+        pcall(slot.cd.SetHideCountdownNumbers, slot.cd, not slot.numbersOn)
     end
+end
+
+------------------------------------------------------------
+-- /muf debug 的探針
+--
+-- 倒數改由引擎跑之後，「沒有數字」有好幾種斷法，要分得出來：
+--   duo=✕        C_DurationUtil 不在 / 建不出來
+--   set=✕        SetTimeFromStart 被拒（秘密值真的餵不進去）
+--   bar=✕ cd=✕   duration 物件建好了但 widget 不收
+--   數字=關       是我們自己把 showTimeText 關掉的
+--   CVar=0       暴雪的「顯示冷卻數字」總開關關著 —— SetHideCountdownNumbers(false)
+--                也沒用，這是最容易忽略的一種
+------------------------------------------------------------
+function ns.TotemsDebug()
+    local out = {}
+    for i = 1, NUM_SLOTS do
+        local slot = slots[i]
+        local _, _, startTime, duration, icon, modRate = GetTotemInfo(i)
+        out[#out + 1] = {
+            i = i, icon = icon, start = startTime, dur = duration, modRate = modRate,
+            hasSlot = slot ~= nil,
+            active  = slot and slot.active or false,
+            hasDuo  = slot and slot.duo ~= nil or false,
+            set     = slot and slot.dbgSet, bar = slot and slot.dbgBar, cd = slot and slot.dbgCd,
+            numbersOn = slot and slot.numbersOn,
+            barValue  = slot and slot.bar and slot.bar:GetValue() or nil,
+        }
+    end
+    -- 暴雪的冷卻數字總開關。關著的話 Cooldown 不管怎麼設都不會畫數字
+    local cvar = GetCVar and GetCVar("countdownForCooldowns")
+    return out, cvar
 end
 
 ------------------------------------------------------------
