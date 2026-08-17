@@ -61,16 +61,19 @@ end
 
 -- 大框（player/target 200×50）的 castbar 預設
 -- own = 自己的施法條：單一顏色、不畫「不可打斷」的灰（只有敵方才需要標示）
+--
+-- ⚠ 這兩個框的施法條是 200×52 @ (0,0)，跟頭像 200×50 @ (0,0) **完全重疊**，
+-- 所以填充不透明的話唱法時整片蓋住 3D 頭像。使用者定案：填充 0.3 + 開前緣亮點
+-- ——薄薄一層色帶過去、頭像看得見，亮點負責標出進度到哪。
+-- 專注／寵物／首領的施法條不疊在頭像上，維持 1.0 且不畫亮點。
 local function bigCastbar(own)
     return {
         enabled = true, x = 0, y = 0, w = 200, h = 52, level = 6,
         bg = black(0.8), timeFormat = "elapsedTotal",
         showInterruptState = not own,   -- 自己的施法不套「不可打斷灰」也不畫盾牌
         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
-        showSpark = false,              -- 填充前緣的亮點（Stuf／FocuserCastBar 都沒有，預設關）
-        -- 填充色的透明度（背景另有 bg.a）。預設 1 = 不透明，維持原本的樣子；
-        -- 調低就看得到底下的 3D 頭像（玩家／目標的施法條剛好整片蓋住頭像）
-        barAlpha = 1,
+        showSpark = true,               -- 填充前緣的亮點：填充變淡之後靠它讀進度
+        barAlpha = 0.3,                 -- 只有彩色填充變淡；圖示與文字照樣清楚
         showShield = not own, shieldStyle = "blizzard", shieldScale = own and 1.2 or 1.4, shieldOffsetX = 0, shieldOffsetY = 0,
         spell = { x = 34, y = -2, w = 166, h = 50, size = 12, flags = "OUTLINE",
                   justifyH = "LEFT", justifyV = "MIDDLE", color = white(1) },
