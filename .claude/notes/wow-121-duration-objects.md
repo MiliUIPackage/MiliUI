@@ -66,6 +66,31 @@ Stuf 用的是等價的手法（`b.endtime = GetTime() + safeRemain`，把秘密
 明文時間戳存一次，之後自己算）。⚠ 但它捕捉失敗時退回 `i * 20` 的**假倒數** ——
 數字是編的，看起來卻很正常。不要抄那一段。
 
+## 秘密計時的第三條路：讓暴雪的框自己畫
+
+如果連 arm 都做不到（來源值在需要的那一刻就是秘密），還有一招：**不要自己畫，
+改造暴雪已經在畫的那個框**。暴雪的程式是 untainted，讀得到秘密值。
+
+實例：官方冷卻管理員（CDM）的「追蹤的量條」在戰鬥中有正確的圖騰倒數
+（`治療之泉圖騰` 等）。本機 `Ayije_CDM` 做的就是這件事 —— 它不自己算，
+而是對暴雪的四個 viewer 改外觀與位置：
+
+```lua
+VIEWERS = {  -- Ayije_CDM/Core/Constants.lua
+    ESSENTIAL = "EssentialCooldownViewer",
+    UTILITY   = "UtilityCooldownViewer",
+    BUFF      = "BuffIconCooldownViewer",
+    BUFF_BAR  = "BuffBarCooldownViewer",   -- 追蹤的量條
+}
+```
+
+判斷準則：**要「精確的秘密計時」就得寄生暴雪的框；要「自己排版的顯示」就只能接受
+arm 不到時沒有數字。** 兩者不可兼得，別花時間找第三種。
+
+而 `C_UnitAuras.GetAuraDuration(unit, auraInstanceID)` 回的是**引擎給的** DurationObject
+（Cell/Indicators/Base.lua 用它 → `SetCooldownFromDurationObject`），所以**光環**類的
+秘密計時是可以自己畫的 —— 受限的是「沒有 duration 物件 API 的東西」，例如圖騰槽。
+
 ## 別忘了 modRate
 
 `GetTotemInfo` 第 6 個回傳、`GetSpellCooldown` 的 `.modRate` 都是計時速率。
