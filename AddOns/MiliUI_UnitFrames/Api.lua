@@ -140,8 +140,9 @@ local function Debug()
         for _, r in ipairs(rows) do
             p(("   #%d icon=%s start=%s dur=%s modRate=%s"):format(
                 r.i, SafeStr(r.icon), SafeStr(r.start), SafeStr(r.dur), SafeStr(r.modRate)))
-            p(("      槽=%s 啟用=%s duo=%s set=%s bar=%s cd=%s 數字=%s 條值=%s"):format(
+            p(("      槽=%s 啟用=%s duo=%s armed=%s set=%s bar=%s cd=%s 數字=%s 條值=%s"):format(
                 tostring(r.hasSlot), tostring(r.active), tostring(r.hasDuo),
+                r.armed and "|cff44ff44是|r" or "|cffff5555否|r",
                 tostring(r.set), tostring(r.bar), tostring(r.cd),
                 r.numbersOn == nil and "?" or (r.numbersOn and "開" or "關"),
                 SafeStr(r.barValue)))

@@ -49,8 +49,18 @@ local slots = {}     -- [i] = { btn, icon, bar, cd, duo, active }
 -- 進度條與倒數數字全部由引擎跑 —— 所以不必自己輪詢（0.25 秒的 ticker 已經拿掉），
 -- 「時間到了」也改吃 `OnCooldownDone`。本機 Ayije_CDM 的飾品／自訂 buff 同一套。
 --
--- **戰鬥中**：start/duration 變成秘密值，而上面那個 setter 會被拒
--- （見 ArmTimer 裡的實測錯誤訊息）。這條路走不通，也沒有別條 —— 時間軌整條不畫。
+-- **戰鬥中**：start/duration 變成秘密值，`SetTimeFromStart` 會被拒
+-- （見 ArmTimer 裡的實測錯誤訊息），所以**戰鬥中新放的**圖騰 arm 不起來。
+--
+-- ⚠ 但「戰鬥中沒有倒數」不等於「戰鬥中不能有倒數」：**arm 成功之後倒數是引擎在跑的，
+-- 進戰鬥照樣繼續**，因為值在 arm 的那一刻就交出去了，之後不必再讀 GetTotemInfo。
+-- 所以要顧兩件事：
+--   1. 已經 arm 好的**不要重 arm**（Poll 會整批重跑；戰鬥中重 arm 會失敗並清掉好的）
+--   2. 戰鬥中沒 arm 到的，**脫戰時補一次**（那時值又變明文了，圖騰還在跑）
+-- 這樣「戰鬥前放的」全程正確，「戰鬥中放的」也只是晚幾秒才出現倒數。
+--
+-- （Stuf 的做法是把秘密值 pcall 換算成明文 endtime 存起來，之後自己算 —— 效果類似，
+--   但它捕捉失敗時退回 `i * 20` 的**假倒數**，那個不抄。）
 --
 -- ⚠ 另外一個獨立的坑：**不要把 duration 物件讀回來**。`duo:IsZero()`、
 -- `GetTotalDuration()` 這類 getter 回的是秘密值，一做布林測試就炸。
@@ -193,8 +203,8 @@ local function ArmTimer(slot, startTime, duration, modRate)
         slot.bar:Hide()
         slot.barBG:Hide()
         if slot.cd then pcall(slot.cd.Clear, slot.cd) end
-        slot.numbersOn = false
-        return
+        slot.numbersOn, slot.armed = false, false
+        return false
     end
     ------------------------------------------------------------
     -- ⚠⚠ 戰鬥中這裡**一定會失敗**，而且是暴雪刻意擋的。實測錯誤訊息：
@@ -207,12 +217,14 @@ local function ArmTimer(slot, startTime, duration, modRate)
     -- 但那是引擎在自己那邊用明文建的 —— 從 Lua 餵秘密值進去建一顆是被禁止的。
     -- 而 `GetTotemInfo` 沒有 duration 物件版本（沒有 C_Totem、沒有 GetTotemDuration）。
     --
-    -- ⇒ **戰鬥中的召喚物倒數，以目前的 API 無解。** 暴雪自己的 TotemFrame 做得到
-    --   純粹因為它 untainted（它在 Lua 裡算 `math.ceil(GetTotemTimeLeft(slot))`）。
-    --   詳見筆記 wow-121-duration-objects，不要再花時間找路了。
+    -- ⇒ 戰鬥中**新放**的圖騰 arm 不起來（暴雪自己的 TotemFrame 做得到純粹因為它
+    --   untainted，在 Lua 裡算 `math.ceil(GetTotemTimeLeft(slot))`）。
+    --   已經 arm 好的不受影響 —— 引擎會繼續跑。沒 arm 到的由脫戰時補。
+    --   詳見筆記 wow-121-duration-objects。
     ------------------------------------------------------------
     local ok, err = pcall(duo.SetTimeFromStart, duo, startTime, duration, modRate)
     slot.dbgSet, slot.dbgErr = ok, (not ok) and tostring(err) or nil
+    slot.armed = ok
     if not ok then
         -- 拿不到時間就**整條時間軌都不畫**。
         -- 試過的兩種都比這個糟：
@@ -223,7 +235,7 @@ local function ArmTimer(slot, startTime, duration, modRate)
         slot.barBG:Hide()
         if slot.cd then pcall(slot.cd.Clear, slot.cd) end
         slot.numbersOn = false
-        return
+        return false
     end
     slot.bar:Show()
     slot.barBG:Show()
@@ -237,6 +249,7 @@ local function ArmTimer(slot, startTime, duration, modRate)
         slot.numbersOn = GetDB().showTimeText ~= false
         pcall(slot.cd.SetHideCountdownNumbers, slot.cd, not slot.numbersOn)
     end
+    return true
 end
 
 ------------------------------------------------------------
@@ -260,6 +273,7 @@ function ns.TotemsDebug()
             hasSlot = slot ~= nil,
             active  = slot and slot.active or false,
             hasDuo  = slot and slot.duo ~= nil or false,
+            armed   = slot and slot.armed or false,
             set     = slot and slot.dbgSet, bar = slot and slot.dbgBar, cd = slot and slot.dbgCd,
             err     = slot and slot.dbgErr,
             numbersOn = slot and slot.numbersOn,
@@ -309,15 +323,28 @@ local function Poll()
         -- icon 是明文（字串路徑或數字 fileID），當存在 proxy——haveTotem 是秘密
         -- boolean 不能測。判斷式用 truthiness + ~= ""（數字 fileID 也成立）
         if icon and icon ~= "" then
+            local wasActive = slot.active
             slot.active = true
             slot.icon:SetTexture(icon)
             local c = SlotColor(i)
             slot.bar:SetStatusBarColor(c.r, c.g, c.b, 1)
-            ArmTimer(slot, startTime, duration, modRate)
+            -- ⚠⚠ **已經在跑的計時器不要重 arm**。
+            -- 一旦 arm 成功，倒數就由引擎自己跑，戰鬥中照樣正確 —— 因為值在 arm 的
+            -- 那一刻就交給引擎了，之後不需要再讀 GetTotemInfo。
+            -- 但 Poll 會因為「別的格子有動靜」而整批重跑，這時如果在戰鬥中，
+            -- 重 arm 會失敗並把原本跑得好好的計時器清掉。所以只在
+            -- 「剛出現」或「上次沒 arm 成功（等著補）」時才動它。
+            --
+            -- 代價：戰鬥中在同一格換一個圖騰，舊的計時器會繼續跑（值是舊的）。
+            -- 戰鬥外不會有這個問題（每次都 arm 得成功）。
+            if (not wasActive) or (not slot.armed) then
+                ArmTimer(slot, startTime, duration, modRate)
+            end
             slot.btn:Show()
             anyActive = true
         else
             slot.active = false
+            slot.armed = false
             slot.btn:Hide()
         end
     end
@@ -388,6 +415,16 @@ local function Init()
     ns.totemFrame = frame
     ns.Events.Register("PLAYER_TOTEM_UPDATE", "totems", Poll)
     ns.Events.Register("PLAYER_ENTERING_WORLD", "totems_pew", Poll)
+    -- 脫戰補 arm：戰鬥中放的圖騰當下拿不到時間（秘密值），但脫戰後 GetTotemInfo
+    -- 又變明文，而圖騰還在跑 —— 這時補 arm 一次，剩下的壽命就有正確倒數了。
+    ns.Events.Register("PLAYER_REGEN_ENABLED", "totems_regen", function()
+        local any = false
+        for i = 1, NUM_SLOTS do
+            local slot = slots[i]
+            if slot and slot.active and not slot.armed then any = true; break end
+        end
+        if any then Poll() end
+    end)
     Poll()
 end
 
