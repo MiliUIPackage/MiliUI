@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: de450f90-cdd7-4e1f-8c62-1e9716828626
-  modified: 2026-08-17T20:04:29.510Z
+  modified: 2026-08-17T20:11:57.231Z
 ---
 
 **任何「起始時間＋持續時間」在 12.1 變成秘密值之後，倒數的通解是 duration 物件。**
@@ -31,8 +31,15 @@ cooldown:SetHideCountdownNumbers(false)              -- 讓引擎畫數字
 ## ⚠⚠ 自己建的那顆**餵不進秘密值**（2026-08-18 實測）
 
 `SetTimeFromStart(secretStart, secretDur, secretModRate)` 會**失敗**（pcall 回 false）。
-duration 物件撐得住秘密計時，但那是**引擎在自己那邊用明文建的**；從 Lua 餵秘密值
-進去建一顆不行。
+`Cooldown:SetCooldown` 也一樣，而且訊息講得很白：
+
+```
+Usage: self:SetCooldown(start, duration [, modRate]).
+Secret values are only allowed during untainted execution for this argument.
+```
+
+**這不是 API 沒想到，是刻意擋的。** duration 物件撐得住秘密計時，但那是**引擎在自己
+那邊用明文建的**；從 Lua 餵秘密值進去建一顆是被禁止的。看到這句話就不用再找路了。
 
 所以這條路分兩種情況，差別很大：
 
