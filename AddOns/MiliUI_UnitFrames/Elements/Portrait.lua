@@ -82,7 +82,7 @@ local function RefreshEncounterFrames()
         if uf and uf:IsVisible() and uf.elements.portrait then
             local edb = uf.db.elements.portrait
             if edb and edb.enabled ~= false then
-                ns.Elements.portrait.update(uf, edb, "identity")
+                ns.Elements.portrait.update(uf, edb, "unitchanged")
             end
         end
     end
@@ -123,7 +123,7 @@ local function HealBlankModels()
             local fid = f.model.GetModelFileID and f.model:GetModelFileID()
             if fid == nil then    -- 還是空的才重畫，已載入的不動（避免串流時反覆重載）
                 f.modelKey = nil  -- ⚠ 一定要清：不清的話 update 會被「來源沒變」擋板短路
-                ns.Elements.portrait.update(uf, edb, "identity")
+                ns.Elements.portrait.update(uf, edb, "unitchanged")
             end
         end
     end
@@ -178,6 +178,9 @@ local function Update(uf, edb, bucket)
     local f = uf.elements.portrait
     if not f then return end
     local unit = uf.isPreview and "player" or uf.unit
+    -- portrait 桶＝UNIT_MODEL_CHANGED / UNIT_PORTRAIT_UPDATE，意思就是「同一個單位
+    -- 換了模型」（變身、幻化、變形術）。GUID 沒變，不主動清 key 會被重載擋板擋掉
+    if bucket == "portrait" then f.modelKey = nil end
 
     if edb.mode == "3d" then
         -- ⚠ PlayerModel 在**隱藏時會丟掉模型**（EUI 實地追出來的：載入畫面隱藏框架後，
@@ -278,7 +281,7 @@ end
 ns.RegisterElement{
     name = "portrait",
     order = 10,
-    buckets = {},          -- 只吃 identity 全量刷新
+    buckets = { "portrait" },   -- UNIT_MODEL_CHANGED / UNIT_PORTRAIT_UPDATE；換人另走 unitchanged
     build = Build,
     update = Update,
 }

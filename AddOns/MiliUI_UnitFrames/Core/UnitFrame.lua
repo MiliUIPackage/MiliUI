@@ -39,16 +39,48 @@ local function SafeUpdate(def, uf, edb, bucket)
     xpcall(def.update, ns.ReportError, uf, edb, bucket)
 end
 
-function ns.Refresh(uf, bucket)
+------------------------------------------------------------
+-- 同幀去重
+--
+-- UNIT_HEALTH / UNIT_MAXHEALTH / UNIT_ABSORB_AMOUNT_CHANGED /
+-- UNIT_HEAL_ABSORB_AMOUNT_CHANGED 全部對到 health 桶，同一幀四個都來就會跑四次
+-- 完整的 health 更新（cache 消毒 ＋ 血條計算器 ＋ 目標框八條文字 tag）。
+-- 一幀一個世代編號，同一 (框, 桶) 在同一幀只跑一次。
+--
+-- 我們每次都是「重讀當下的值」而不是套用差量，所以併掉中間那幾次不會漏資訊。
+------------------------------------------------------------
+local paintGen, lastGenTime = 0, 0
+
+local function Gen()
+    local now = GetTime()
+    if now ~= lastGenTime then
+        paintGen = paintGen + 1
+        lastGenTime = now
+    end
+    return paintGen
+end
+
+-- force = 跳過去重（設定套用要保證畫下去，不能被同幀稍早的刷新吃掉）
+function ns.Refresh(uf, bucket, force)
+    if not force then
+        local stamps = uf.paintStamps
+        if not stamps then stamps = {}; uf.paintStamps = stamps end
+        local gen = Gen()
+        if stamps[bucket] == gen then return end
+        -- 換人是全量重畫，不能被同幀稍早的數值重畫蓋掉 → 先清掉所有戳記
+        if bucket == "unitchanged" then wipe(stamps) end
+        stamps[bucket] = gen
+    end
+
     if not uf.isPreview then          -- 預覽孿生的 cache 由 Preview 模組維護（全假資料）
         ns.Cache.Update(uf, bucket)
     end
-    if bucket == "identity" then
-        -- 全量：跑所有元件的 update（依序）
+    if bucket == "unitchanged" then
+        -- 只有這個桶跑所有元件：框現在看的是另一個單位，每個元件都要重接
         for _, def in ipairs(ns.ElementOrder) do
             local edb = uf.db.elements and uf.db.elements[def.name]
             if edb and edb.enabled ~= false and uf.elements[def.name] and def.update then
-                SafeUpdate(def, uf, edb, "identity")
+                SafeUpdate(def, uf, edb, "unitchanged")
             end
         end
         return
@@ -103,13 +135,13 @@ function ns.EvalActiveUnit(uf)
             xpcall(def.setunit, ns.ReportError, uf, resolved)
         end
     end
-    ns.Refresh(uf, "identity")
+    ns.Refresh(uf, "unitchanged")
 end
 
 function ns.RefreshAll(bucket)
     for _, uf in pairs(ns.frames) do
         if uf:IsVisible() then
-            ns.Refresh(uf, bucket or "identity")
+            ns.Refresh(uf, bucket or "unitchanged")
         end
     end
 end
@@ -209,7 +241,7 @@ function ns.SpawnUnitFrame(unit)
 
     -- 單位出現時（RegisterUnitWatch 驅動 Show）做全量刷新
     uf:SetScript("OnShow", function(self)
-        ns.Refresh(self, "identity")
+        ns.Refresh(self, "unitchanged")
     end)
 
     -- 滑鼠提示（暴雪單位提示；EUI/暴雪同法）。OnEnter/OnLeave 不是受保護腳本，
@@ -228,13 +260,15 @@ function ns.SpawnUnitFrame(unit)
 
     if unit == "player" then
         uf:Show()
-        ns.Refresh(uf, "identity")
+        ns.Refresh(uf, "unitchanged")
     else
         uf:Hide()
         RegisterUnitWatch(uf, false)
     end
 
     ns.frames[unit] = uf
+    -- 單位事件走這個 token 專屬的 tracker（C 端過濾）
+    ns.Events.AttachUnit(uf)
     return uf
 end
 
@@ -282,7 +316,8 @@ function ns.ApplySettings(unitKey)
                     end
                     -- 一律重畫（不再只在可見時）：顏色、文字內容這些是在 update 才套用的，
                     -- 只 build 不 refresh 會出現「改了下拉選單沒反應、動別的設定才一起生效」
-                    ns.Refresh(uf, "identity")
+                    -- force：設定套用必須畫下去，不能被同幀稍早的刷新去重掉
+                    ns.Refresh(uf, "unitchanged", true)
                 end
             elseif uf then
                 UnregisterUnitWatch(uf)

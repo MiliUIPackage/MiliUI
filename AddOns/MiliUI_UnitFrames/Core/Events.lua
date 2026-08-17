@@ -9,7 +9,20 @@ ns.Metro = {}
 
 local eventFrame = CreateFrame("Frame")
 
--- 單位事件 → 桶（arg1 = unit token，直接查 ns.frames）
+------------------------------------------------------------
+-- 單位事件 → 刷新桶
+--
+-- ⚠ 這裡的分桶就是效能本身。以前 UNIT_FACTION / UNIT_FLAGS / UNIT_MODEL_CHANGED
+-- 這些通通對到 identity，而 identity 會跑**所有**元件——包含彈光環容器（強制整組
+-- 重掃）和重載 3D 模型。等於進出一次戰鬥、改一次 PvP 旗標就付一次全量重畫。
+--
+--   unitchanged  這個框現在看的是**另一個單位**了 → 全量（只有這個桶跑所有元件）
+--   info         名字／等級／分類 → 只有文字
+--   reaction     陣營／旗標 → 只有顏色與狀態文字
+--   portrait     模型換了 → 只有頭像
+--   health / power / powertype / death   數值類，照舊
+--   metro        輪詢（超出距離）
+------------------------------------------------------------
 local UNIT_EVENT_BUCKET = {
     UNIT_HEALTH = "health",
     UNIT_MAXHEALTH = "health",
@@ -20,14 +33,13 @@ local UNIT_EVENT_BUCKET = {
     UNIT_MAXPOWER = "power",
     UNIT_DISPLAYPOWER = "powertype",
     UNIT_CONNECTION = "death",
-    UNIT_NAME_UPDATE = "identity",
-    UNIT_FACTION = "identity",
-    UNIT_LEVEL = "identity",
-    UNIT_FLAGS = "identity",
-    UNIT_CLASSIFICATION_CHANGED = "identity",
-    UNIT_MODEL_CHANGED = "identity",
-    UNIT_PORTRAIT_UPDATE = "identity",
-    PLAYER_FLAGS_CHANGED = "identity",
+    UNIT_NAME_UPDATE = "info",
+    UNIT_LEVEL = "info",
+    UNIT_CLASSIFICATION_CHANGED = "info",
+    UNIT_FACTION = "reaction",
+    UNIT_FLAGS = "reaction",
+    UNIT_MODEL_CHANGED = "portrait",
+    UNIT_PORTRAIT_UPDATE = "portrait",
 }
 
 local function RefreshUnit(unitToken, bucket)
@@ -37,49 +49,92 @@ local function RefreshUnit(unitToken, bucket)
     end
 end
 
--- 非單位事件的特殊處理
+------------------------------------------------------------
+-- 每個 unit token 一顆 tracker frame
+--
+-- 全域 RegisterEvent 的語意是「**每一個**單位的事件都送進 Lua，我們才判斷關不關
+-- 自己的事」。20 人團隊戰裡 raid1-20、寵物、名條、首領的 UNIT_HEALTH 全部都會來，
+-- 而我們只在乎 11 個 token —— 九成以上是白工。RegisterUnitEvent 讓客戶端在 C 端
+-- 就過濾掉。
+--
+-- 副 token 在**註冊期**就一起收（EUI 的做法）：玩家框同時收 player 與 vehicle、
+-- 寵物框同時收 pet 與 player。這樣進出載具時 uf.unit 換掉就好，事件完全不用重註冊。
+------------------------------------------------------------
+local SECONDARY_TOKEN = { player = "vehicle", pet = "player" }
+local trackers = {}
+
+local function TrackerOnEvent(self, event)
+    local uf = self.uf
+    if not (uf and uf:IsVisible()) then return end
+    local bucket = UNIT_EVENT_BUCKET[event]
+    if bucket then ns.Refresh(uf, bucket) end
+end
+
+-- 單位框生出來時呼叫（SpawnUnitFrame）
+function ns.Events.AttachUnit(uf)
+    local token = uf.baseUnit
+    local t = trackers[token]
+    if t then t.uf = uf; return end
+    t = CreateFrame("Frame")
+    t.uf = uf
+    t:SetScript("OnEvent", TrackerOnEvent)
+    trackers[token] = t
+    local secondary = SECONDARY_TOKEN[token]
+    for event in pairs(UNIT_EVENT_BUCKET) do
+        -- 麵包屑同 Reg()：ADDON_ACTION_FORBIDDEN 不會說是哪個事件
+        ns.trace = "RegisterUnitEvent(" .. event .. ")"
+        if secondary then
+            pcall(t.RegisterUnitEvent, t, event, token, secondary)
+        else
+            pcall(t.RegisterUnitEvent, t, event, token)
+        end
+        ns.trace = nil
+    end
+end
+
+-- 非單位事件（沒有 unit 參數，或參數不是「這個框在看的單位」）走全域 frame。
+-- 這些都是低頻事件，留在全域沒有成本問題。
 local SPECIAL = {
     PLAYER_TARGET_CHANGED = function()
-        RefreshUnit("target", "identity")
-        RefreshUnit("targettarget", "identity")
+        RefreshUnit("target", "unitchanged")
+        RefreshUnit("targettarget", "unitchanged")
     end,
     PLAYER_FOCUS_CHANGED = function()
-        RefreshUnit("focus", "identity")
-        RefreshUnit("focustarget", "identity")
+        RefreshUnit("focus", "unitchanged")
+        RefreshUnit("focustarget", "unitchanged")
     end,
     INSTANCE_ENCOUNTER_ENGAGE_UNIT = function()
-        for i = 1, 5 do RefreshUnit("boss" .. i, "identity") end
+        for i = 1, 5 do RefreshUnit("boss" .. i, "unitchanged") end
     end,
+    -- 隊伍組成變了：影響的是隊長圖示與陣營色，不是「換人」
     GROUP_ROSTER_UPDATE = function()
-        RefreshUnit("player", "identity")
+        RefreshUnit("player", "reaction")
     end,
     PLAYER_ENTERING_WORLD = function()
-        ns.RefreshAll("identity")
+        ns.RefreshAll("unitchanged")
     end,
-    -- UNIT_TARGET：某單位的目標換了 → 對應的 xxtarget 框刷新
+    -- AFK／DND。不是 UNIT_ 事件，不確定 RegisterUnitEvent 吃不吃，留在全域比較保險
+    PLAYER_FLAGS_CHANGED = function(unit)
+        RefreshUnit(unit, "reaction")
+    end,
+    -- UNIT_TARGET：某單位的目標換了 → 對應的 xxtarget 框換人
     UNIT_TARGET = function(unit)
         if unit == "target" then
-            RefreshUnit("targettarget", "identity")
+            RefreshUnit("targettarget", "unitchanged")
         elseif unit == "focus" then
-            RefreshUnit("focustarget", "identity")
+            RefreshUnit("focustarget", "unitchanged")
         end
     end,
     -- UNIT_PET：寵物換了（arg 是主人）
     UNIT_PET = function(unit)
-        if unit == "player" then RefreshUnit("pet", "identity") end
+        if unit == "player" then RefreshUnit("pet", "unitchanged") end
     end,
 }
 
+-- 全域 frame 只負責 SPECIAL；單位事件已經全部移到 per-token tracker
 eventFrame:SetScript("OnEvent", function(_, event, arg1)
     local special = SPECIAL[event]
-    if special then
-        special(arg1)
-        return
-    end
-    local bucket = UNIT_EVENT_BUCKET[event]
-    if bucket and arg1 then
-        RefreshUnit(arg1, bucket)
-    end
+    if special then special(arg1) end
 end)
 
 -- 麵包屑：ADDON_ACTION_FORBIDDEN 只會告訴我們「Frame:RegisterEvent()」，
@@ -91,7 +146,8 @@ local function Reg(event)
 end
 
 function ns.Events.Start()
-    for event in pairs(UNIT_EVENT_BUCKET) do Reg(event) end
+    -- UNIT_EVENT_BUCKET 的事件**不在這裡註冊**：它們走 ns.Events.AttachUnit 的
+    -- per-token tracker。同時上全域會被送兩次。
     for event in pairs(SPECIAL) do Reg(event) end
 end
 

@@ -388,7 +388,8 @@ end
 ns.RegisterElement{
     name = "hpbar",
     order = 20,
-    buckets = { "health", "death" },
+    -- reaction：陣營／旗標會改上色法的結果（classreaction 讀 cache.reaction）
+    buckets = { "health", "death", "reaction" },
     build = Build,
     update = Update,
 }

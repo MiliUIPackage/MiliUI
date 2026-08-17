@@ -131,7 +131,7 @@ local function SpawnTwin(unitKey, bossIndex)
     ns.BuildElements(uf)
     BuildFakeAuras(uf, "buffs", uf.db.elements and uf.db.elements.buffs)
     BuildFakeAuras(uf, "debuffs", uf.db.elements and uf.db.elements.debuffs)
-    ns.Refresh(uf, "identity")
+    ns.Refresh(uf, "unitchanged")
     uf:Hide()
     return uf
 end
@@ -153,7 +153,7 @@ function Preview.Rebuild(unitKey)
         ns.BuildElements(uf)
         BuildFakeAuras(uf, "buffs", uf.db.elements and uf.db.elements.buffs)
         BuildFakeAuras(uf, "debuffs", uf.db.elements and uf.db.elements.debuffs)
-        ns.Refresh(uf, "identity")
+        ns.Refresh(uf, "unitchanged", true)   -- force：設定重建不能被同幀去重吃掉
         if uf.db.enabled then uf:Show() else uf:Hide() end
     end
     -- 重建會沿用舊 alpha，重新套一次高亮才不會全部變回不透明
@@ -342,7 +342,7 @@ function Preview.RestoreReal()
                 RegisterUnitWatch(uf, false)
             end
             if uf:IsVisible() then
-                ns.Refresh(uf, "identity")
+                ns.Refresh(uf, "unitchanged")
             end
         end
     end

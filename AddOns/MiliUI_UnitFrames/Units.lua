@@ -14,7 +14,7 @@ local INDIRECT_KEY = "watch_indirect"
 --     **fail closed**，框會停在上一個單位。失敗方向要朝「重畫」而不是「不動」。
 --
 -- GUID 自己也可能是秘密（受限身分單位）。那種情況比不出來，只能一律當作換人了；
--- 但 ns.Refresh(uf,"identity") 目前是全量重畫（會彈光環容器、重載 3D 模型），
+-- 但 ns.Refresh(uf,"unitchanged") 目前是全量重畫（會彈光環容器、重載 3D 模型），
 -- 每 0.5 秒來一次太貴 → 秘密時降到每 SECRET_EVERY 次輪詢才重畫一次。
 -- identity 拆桶（體檢報告 P2）之後這個節流就可以拿掉。
 -- 主要路徑仍然是 UNIT_TARGET 事件，這整段只是保險。
@@ -43,7 +43,7 @@ local function WatchIndirect()
     for _, unit in ipairs(INDIRECT_UNITS) do
         local uf = ns.frames[unit]
         if uf and uf:IsVisible() and UnitChanged(uf, unit) then
-            ns.Refresh(uf, "identity")
+            ns.Refresh(uf, "unitchanged")
         end
     end
 end

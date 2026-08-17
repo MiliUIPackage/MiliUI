@@ -220,7 +220,9 @@ end
 ns.RegisterElement{
     name = "icons",
     order = 70,
-    buckets = {},
+    -- reaction：隊長圖示吃 GROUP_ROSTER_UPDATE、PvP 圖示吃 UNIT_FACTION，
+    -- 兩個都在 reaction 桶。其餘（團標／戰鬥休息）自己掛事件
+    buckets = { "reaction" },
     build = Build,
     update = Update,
 }
@@ -229,7 +231,7 @@ ns.RegisterElement{
 local function UpdateIconsOnly(uf)
     if not (uf and uf.iconTextures and uf:IsVisible()) then return end
     local edb = uf.db.elements.icons
-    if edb and edb.enabled ~= false then Update(uf, edb, "identity") end
+    if edb and edb.enabled ~= false then Update(uf, edb, "unitchanged") end
 end
 
 ns.Events.Register("RAID_TARGET_UPDATE", "icons", function()

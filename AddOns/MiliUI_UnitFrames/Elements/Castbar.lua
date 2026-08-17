@@ -448,20 +448,30 @@ local function Build(uf, edb)
         local ev = not uf.isPreview and CreateFrame("Frame")
         if ev then
         f.evFrame = ev
-        local unit = uf.unit
-        ev:RegisterUnitEvent("UNIT_SPELLCAST_START", unit)
-        ev:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", unit)
-        ev:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_START", unit)
-        ev:RegisterUnitEvent("UNIT_SPELLCAST_STOP", unit)
-        ev:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", unit)
-        ev:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_STOP", unit)
-        ev:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", unit)
-        ev:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", unit)
-        ev:RegisterUnitEvent("UNIT_SPELLCAST_DELAYED", unit)
-        ev:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", unit)
-        ev:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_UPDATE", unit)
+        local unit = uf.baseUnit or uf.unit
+        -- 載具：跟 Core/Events 的 tracker 同一套——註冊期就把副 token 一起收，
+        -- 切換時只要 f.unit 換掉（setunit 鉤子），事件完全不用重註冊
+        local secondary = (unit == "player" and "vehicle") or (unit == "pet" and "player") or nil
+        local function RegUnit(event)
+            if secondary then
+                ev:RegisterUnitEvent(event, unit, secondary)
+            else
+                ev:RegisterUnitEvent(event, unit)
+            end
+        end
+        RegUnit("UNIT_SPELLCAST_START")
+        RegUnit("UNIT_SPELLCAST_CHANNEL_START")
+        RegUnit("UNIT_SPELLCAST_EMPOWER_START")
+        RegUnit("UNIT_SPELLCAST_STOP")
+        RegUnit("UNIT_SPELLCAST_CHANNEL_STOP")
+        RegUnit("UNIT_SPELLCAST_EMPOWER_STOP")
+        RegUnit("UNIT_SPELLCAST_INTERRUPTED")
+        RegUnit("UNIT_SPELLCAST_FAILED")
+        RegUnit("UNIT_SPELLCAST_DELAYED")
+        RegUnit("UNIT_SPELLCAST_CHANNEL_UPDATE")
+        RegUnit("UNIT_SPELLCAST_EMPOWER_UPDATE")
         ev:SetScript("OnEvent", function(_, event, evUnit, arg2, arg3, arg4, arg5)
-            if evUnit ~= unit then return end
+            if evUnit ~= f.unit then return end   -- f.unit 會被 setunit 換成 vehicle
             if not uf:IsVisible() then return end
             if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_CHANNEL_START"
                or event == "UNIT_SPELLCAST_EMPOWER_START" then
@@ -593,7 +603,7 @@ end
 ns.RegisterElement{
     name = "castbar",
     order = 50,
-    buckets = {},          -- 事件自驅動；identity 全量刷新時接上進行中的施法
+    buckets = {},          -- 事件自驅動；unitchanged 時接上進行中的施法
     build = Build,
     update = Update,
     disable = Disable,

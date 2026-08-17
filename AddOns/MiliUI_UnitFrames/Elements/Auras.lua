@@ -477,7 +477,7 @@ local function MakeElement(elementName, baseFilter)
     ns.RegisterElement{
         name = elementName,
         order = elementName == "buffs" and 60 or 61,
-        buckets = {},        -- 容器自驅動；identity 全量刷新時換單位
+        buckets = {},        -- 容器自驅動；unitchanged 時換單位
         build = Build,
         update = Update,
         disable = Disable,

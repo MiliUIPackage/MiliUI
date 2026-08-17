@@ -29,8 +29,8 @@ local specialchars = { nl = "\n", ["%"] = "%%", lp = "%(", rp = "%)" }
 ------------------------------------------------------------
 -- 明文 info tag → cache 欄位（cache[tag] 直取）；桶依賴
 local INFO_TAGS = {
-    name = "identity", level = "identity", race = "identity", class = "identity",
-    creaturetype = "identity", classification = "identity",
+    name = "info", level = "info", race = "info", class = "info",
+    creaturetype = "info", classification = "info",
     perchp = "health", percmp = "power",   -- 佔位符路徑，仍列出供 GetBuckets 用
     curhp = "health", maxhp = "health", curmp = "power", maxmp = "power",
     shields = "health", healabsorbs = "health",
@@ -115,14 +115,17 @@ Tags.conditions = conditions
 
 local CONDITION_BUCKETS = {
     dead = "death", ghost = "death", alive = "death", offline = "death",
-    oor = "metro", tapped = "identity", pc = "identity", npc = "identity",
-    afk = "identity", dnd = "identity", combat = "identity",
-    helpful = "identity", hostile = "identity", attackable = "identity",
+    oor = "metro",
+    -- 旗標類全部吃 reaction（陣營／PvP／AFK／戰鬥狀態）
+    tapped = "reaction", pc = "reaction", npc = "reaction",
+    afk = "reaction", dnd = "reaction", combat = "reaction",
+    helpful = "reaction", hostile = "reaction", attackable = "reaction",
 }
 
 local COLOR_BUCKETS = {
-    class = "identity", reaction = "identity", difficulty = "identity",
-    classreaction = "identity", power = "powertype",
+    class = "reaction", reaction = "reaction", classreaction = "reaction",
+    difficulty = "info",          -- 難度色讀的是等級
+    power = "powertype",
 }
 
 ------------------------------------------------------------
@@ -144,8 +147,7 @@ function Tags.GetBuckets(pattern)
             buckets[INFO_TAGS[token]] = true
         end
     end
-    -- 什麼都沒解析到（純文字）也至少掛 identity，換單位時要重畫
-    buckets.identity = true
+    -- 換單位時的重畫不靠這裡：unitchanged 桶本來就會跑所有元件（見 ns.Refresh）
     return buckets
 end
 

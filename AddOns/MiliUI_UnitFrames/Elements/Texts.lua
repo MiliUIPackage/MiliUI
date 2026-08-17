@@ -89,7 +89,7 @@ local function Update(uf, edb, bucket)
     for i, entry in ipairs(edb) do
         local f = uf.textFrames[i]
         if f and entry.enabled ~= false and f:IsShown() then
-            if bucket == "identity" or f.buckets[bucket] then
+            if bucket == "unitchanged" or f.buckets[bucket] then
                 Tags.Render(uf, f.fontstring, entry.pattern, entry)
             end
         end
@@ -99,7 +99,8 @@ end
 ns.RegisterElement{
     name = "texts",
     order = 40,
-    buckets = { "health", "power", "powertype", "death", "metro" },
+    -- info：名字／等級／分類；reaction：條件上色與狀態文字
+    buckets = { "health", "power", "powertype", "death", "metro", "info", "reaction" },
     build = Build,
     update = Update,
 }

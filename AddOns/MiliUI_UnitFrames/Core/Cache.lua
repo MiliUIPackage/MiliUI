@@ -121,11 +121,17 @@ function Cache.IsOOR(uf)
 end
 
 function Cache.Update(uf, bucket)
-    if bucket == "identity" then
+    if bucket == "unitchanged" then
+        -- 換人：全部重讀
         UpdateIdentityFields(uf)
         UpdateHealthFields(uf)
         UpdatePowerFields(uf)
         UpdateDeathFields(uf)
+    elseif bucket == "info" or bucket == "reaction" then
+        -- 同一個單位，只有身分欄位變了。
+        -- （還可以再拆成「名字等級」與「陣營旗標」兩組，但 UpdateIdentityFields
+        --   本身不貴，真正貴的是後面那些元件——那個已經靠分桶擋掉了）
+        UpdateIdentityFields(uf)
     elseif bucket == "health" then
         UpdateHealthFields(uf)
     elseif bucket == "power" then
