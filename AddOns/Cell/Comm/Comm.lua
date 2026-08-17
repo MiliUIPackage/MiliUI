@@ -92,13 +92,15 @@ local VERSION_URL = "|cFF00CCFFhttps://addons.miliui.com/wow/cell|r"
 
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 function eventFrame:GROUP_ROSTER_UPDATE()
-    if IsInGroup() then
-        eventFrame:UnregisterEvent("GROUP_ROSTER_UPDATE")
-        UpdateSendChannel()
-        if not IsCommRestricted() then
-            Comm:SendCommMessage(VERSION_PREFIX, Cell.version, sendChannel)
-        end
-    end
+    if not IsInGroup() then return end
+    UpdateSendChannel() -- also what initialises sendChannel for CELL_MARKS / CELL_PRIO
+    -- ⚠ Stop listening only once the broadcast has actually gone out. Upstream unregistered
+    -- first, which was safe because it had no comm guard -- but 12.1 blocks addon messages
+    -- during encounters/M+/PvP, so unregistering first would silently drop the version for
+    -- the whole session if the first time you were in a group happened to be mid-key.
+    if IsCommRestricted() then return end
+    eventFrame:UnregisterEvent("GROUP_ROSTER_UPDATE")
+    Comm:SendCommMessage(VERSION_PREFIX, Cell.version, sendChannel)
 end
 
 Comm:RegisterComm(VERSION_PREFIX, function(prefix, message, channel, sender)
