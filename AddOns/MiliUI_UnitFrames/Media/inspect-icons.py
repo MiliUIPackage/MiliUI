@@ -147,6 +147,35 @@ def glass(path):
     finish(img, path)
 
 
+# ---------------------------------------------------------------- 圓底問號
+# 深色圓底 + 白問號。以前這款是拿白方塊套圓形遮罩即時畫出來的，
+# 但遮罩貼圖是外部資產、失敗又沒有錯誤（畫面只會停在上一款），
+# 所以改成跟另外兩款一樣先畫成圖——同一條路徑、同一種失敗模式。
+def roundmark(path):
+    from PIL import ImageFont
+    img = canvas()
+    cx = cy = S // 2
+    r = int(S * 0.40)
+
+    l = canvas()
+    d = ImageDraw.Draw(l)
+    disc(d, cx, cy, r + STROKE, DARK)                 # 外圈描邊
+    disc(d, cx, cy, r, (26, 28, 34, 235))             # 圓底
+    ring(d, cx, cy, r - int(STROKE * 0.6), int(S * 0.018), (255, 255, 255, 40))  # 內緣一圈微亮
+    img = paste(img, l)
+
+    l = canvas()
+    d = ImageDraw.Draw(l)
+    font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", int(S * 0.62))
+    # 用 anchor="mm" 對齊字的視覺中心：問號有下降部，照 bbox 置中會偏上
+    d.text((cx, cy - int(S * 0.02)), "?", font=font, fill=LIGHT, anchor="mm",
+           stroke_width=int(S * 0.022), stroke_fill=DARK)
+    img = paste(img, l)
+
+    finish(img, path)
+
+
 if __name__ == "__main__":
     inspector("inspect-inspector.png")
     glass("inspect-glass.png")
+    roundmark("inspect-round.png")

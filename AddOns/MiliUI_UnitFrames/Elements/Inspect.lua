@@ -21,30 +21,31 @@ local Media = ns.Media
 -- UI-HUD-MicroMenu-CharacterInfo-Up 拿掉（微型選單整組重畫過），而 atlas 消失是
 -- 靜默的——畫面上只會變成一張莫名其妙的備援圖示，沒有任何錯誤。
 --
--- 兩張圖是 Media/inspect-icons.py 產生的（改造型就改那支再跑一次）：
--- 扁平白 + 套組主色 #4DD2FF 的鏡片，每個形狀都帶深色描邊，貼在 3D 頭像那種
+-- 三張圖都是 Media/inspect-icons.py 產生的（改造型就改那支再跑一次）：
+-- 扁平白 + 套組主色 #4DD2FF 的鏡片，每個形狀都帶深色描邊與投影，貼在 3D 頭像那種
 -- 亮的、花的背景上才撐得住對比。
 --
--- 「圓底問號」不吃這張表：它連圖都不用，整顆是畫出來的。
+-- ⚠ 圓底問號以前是「白方塊套圓形遮罩」即時畫的，已經改成跟另外兩款一樣是圖。
+-- 那條路徑的問題不是畫得不好看，是**失敗時不出聲**：遮罩貼圖是外部資產，
+-- 中途拋錯會被 BuildElements 的錯誤隔離接走，畫面停在上一款的樣子——症狀是
+-- 「選了圓底問號卻跑出觀察者的圖」，完全指不到真正的原因。三款走同一條路徑之後，
+-- 要壞就一起壞、而且壞法看得出來。
 ------------------------------------------------------------
 local MEDIA = "Interface\\AddOns\\MiliUI_UnitFrames\\Media\\"
 
 local STYLE_DEFS = {
     inspector = { texture = MEDIA .. "inspect-inspector.png" },
     glass     = { texture = MEDIA .. "inspect-glass.png" },
+    round     = { texture = MEDIA .. "inspect-round.png" },
 }
 ns.INSPECT_STYLE_DEFS = STYLE_DEFS      -- /muf debug 的探針要列
 
 -- 設定面板的下拉選單（唯一來源就是這裡）
--- round 不是圖示、是整顆按鈕換一種畫法（見 EnsureRound）
 ns.INSPECT_STYLE_ITEMS = {
     { text = L["Inspector"],           value = "inspector" },
     { text = L["Magnifier"],           value = "glass" },
     { text = L["Round question mark"], value = "round" },
 }
-
--- 圓形遮罩：暴雪內建，本包好幾支插件都在用，12.x 確定還在
-local CIRCLE_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 
 -- 自己的圖四周留白是畫進去的，不要再裁 texcoord（那是給暴雪 icon 檔用的，
 -- 它們四邊各有一圈邊框留白）；明寫 0,1 是為了洗掉舊版本留下的裁切
@@ -93,50 +94,17 @@ local function OnLeave()
 end
 
 ------------------------------------------------------------
--- 圓底問號的畫法
---
--- 純白方塊套上內建的圓形遮罩，任何尺寸都是乾淨的圓（縮放不糊、不必自帶貼圖）。
--- 邊框是「外圈一顆、內圈一顆內縮一個邊框厚度」疊出來的：中間露出來那一圈就是邊，
--- 比找一張圓環貼圖可靠得多，粗細也跟其他元件共用同一個 BorderInset。
-------------------------------------------------------------
-local function NewCircleMask(btn, tex)
-    local mask = btn:CreateMaskTexture()
-    mask:SetTexture(CIRCLE_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-    mask:SetAllPoints(tex)
-    return mask
-end
-
-local function MaskCircle(btn, tex)
-    local mask = NewCircleMask(btn, tex)
-    tex:AddMaskTexture(mask)
-    return mask
-end
-
-local function EnsureRound(btn)
-    if btn.disc then return end
-    btn.ring = btn:CreateTexture(nil, "BACKGROUND")
-    btn.ring:SetTexture(Media.WHITE8X8)
-    MaskCircle(btn, btn.ring)
-    btn.disc = btn:CreateTexture(nil, "BORDER")
-    btn.disc:SetTexture(Media.WHITE8X8)
-    MaskCircle(btn, btn.disc)
-    btn.glyph = btn:CreateFontString(nil, "ARTWORK")
-    btn.glyph:SetPoint("CENTER", 0, 0)
-    btn.glyph:SetTextColor(1, 1, 1, 1)
-    btn.glyph:SetText("?")
-end
-
-------------------------------------------------------------
 -- 建構／更新
 ------------------------------------------------------------
 -- 高亮貼圖依情況換：有底框時用白方塊罩整顆，光禿禿只有圖示時改用圖示自己
--- （白方塊會在透明的地方憑空冒出一個方塊）。換過就記下來，同一款不要重設，
--- 免得每次 Build 都丟掉舊的貼圖物件、連帶讓圓形遮罩掛在失效的那顆上。
+-- （白方塊會在透明的地方憑空冒出一個方塊）。
+--
+-- ⚠ 判斷要連貼圖一起比。只看「種類」的話，在同一種類裡換樣式（放大鏡→觀察者，
+-- 兩款都是無底框）貼圖不會更新——症狀是滑過去亮出來的是**上一款**的圖。
 local function SetHighlight(btn, kind, texture)
-    if btn.hlKind ~= kind then
-        btn.hlKind = kind
+    if btn.hlKind ~= kind or btn.hlTexture ~= texture then
+        btn.hlKind, btn.hlTexture = kind, texture
         btn:SetHighlightTexture(texture, "ADD")
-        btn.hlMask, btn.hlMasked = nil, false
     end
     local hl = btn:GetHighlightTexture()
     hl:SetVertexColor(1, 1, 1, kind == "icon" and 0.45 or 0.15)
@@ -163,79 +131,36 @@ local function Build(uf, edb)
     local bordered = edb.border ~= false
     local inset = bordered and Media.BorderInset() or 0
     local c = edb.bgColor or { r = 0, g = 0, b = 0, a = 0.6 }
-    local bc = (ns.db and ns.db.global.borderColor) or { r = 0, g = 0, b = 0, a = 1 }
-    local isRound = edb.style == "round"
-    -- 沒邊框又沒底色 = 圖示直接浮在框上（使用者選的樣子），那時整套底框都不要畫
-    local bare = not isRound and not bordered and (c.a or 1) <= 0
-    local hl = SetHighlight(btn, bare and "icon" or "rect",
-        bare and (STYLE_DEFS[edb.style] or STYLE_DEFS.glass).texture or Media.WHITE8X8)
+    -- 沒邊框又沒底色 = 圖示直接浮在框上（預設），那時整套底框都不要畫
+    local bare = not bordered and (c.a or 1) <= 0
+    local def = STYLE_DEFS[edb.style] or STYLE_DEFS.glass
 
-    if isRound then
-        EnsureRound(btn)
-        -- 方形那套全部收起來：backdrop 的直角邊畫在圓底上會露出四個角
-        btn:SetBackdrop(nil)
-        btn.bg:Hide()
-        btn.icon:Hide()
-
-        btn.ring:SetAllPoints(btn)
-        btn.ring:SetVertexColor(bc.r, bc.g, bc.b, bc.a or 1)
-        btn.ring:SetShown(bordered)
-        btn.disc:ClearAllPoints()
-        btn.disc:SetPoint("TOPLEFT", inset, -inset)
-        btn.disc:SetPoint("BOTTOMRIGHT", -inset, inset)
-        btn.disc:SetVertexColor(c.r, c.g, c.b, c.a or 1)
-        btn.disc:Show()
-
-        -- 問號跟著按鈕高度縮放，字級寫死的話換尺寸就爆框或縮成一點
-        Media.SetFont(btn.glyph, math.max(8, math.floor((edb.h or 25) * 0.62)), "OUTLINE")
-        btn.glyph:Show()
-
-        hl:ClearAllPoints()
-        hl:SetAllPoints(btn)
+    if bordered then
+        Media.ApplyBorder(btn)
     else
-        if bordered then
-            Media.ApplyBorder(btn)
-        else
-            btn:SetBackdrop(nil)
-        end
-        if btn.disc then                       -- 從圓底切回來：圓的那三件要收掉
-            btn.ring:Hide()
-            btn.disc:Hide()
-            btn.glyph:Hide()
-        end
-
-        btn.bg:ClearAllPoints()
-        btn.bg:SetPoint("TOPLEFT", inset, -inset)
-        btn.bg:SetPoint("BOTTOMRIGHT", -inset, inset)
-        btn.bg:SetVertexColor(c.r, c.g, c.b, c.a or 1)
-        btn.bg:SetShown(not bare)
-
-        local pad = inset + ns.P.Scale(edb.iconPadding or 0)
-        btn.icon:ClearAllPoints()
-        btn.icon:SetPoint("TOPLEFT", pad, -pad)
-        btn.icon:SetPoint("BOTTOMRIGHT", -pad, pad)
-        ApplyIcon(btn.icon, edb.style)
-        btn.icon:Show()
-
-        -- 有底框：高亮跟著內縮，不然滑過去會把邊框一起蓋掉
-        -- 光禿禿：高亮就是圖示本身，貼齊圖示才不會位移
-        hl:ClearAllPoints()
-        hl:SetPoint("TOPLEFT", bare and pad or inset, -(bare and pad or inset))
-        hl:SetPoint("BOTTOMRIGHT", -(bare and pad or inset), bare and pad or inset)
+        btn:SetBackdrop(nil)
     end
 
-    -- 高亮跟著形狀走：方形白光罩在圓底上，四個角會凸出來。
-    -- ⚠ 遮罩物件建了就拿不掉，切樣式只加／拆掛載，不要每次重建
-    if isRound then
-        btn.hlMask = btn.hlMask or NewCircleMask(btn, hl)
-        if not btn.hlMasked then
-            hl:AddMaskTexture(btn.hlMask)
-            btn.hlMasked = true
-        end
-    elseif btn.hlMasked then
-        hl:RemoveMaskTexture(btn.hlMask)
-        btn.hlMasked = false
-    end
+    btn.bg:ClearAllPoints()
+    btn.bg:SetPoint("TOPLEFT", inset, -inset)
+    btn.bg:SetPoint("BOTTOMRIGHT", -inset, inset)
+    btn.bg:SetVertexColor(c.r, c.g, c.b, c.a or 1)
+    btn.bg:SetShown(not bare)
+
+    local pad = inset + ns.P.Scale(edb.iconPadding or 0)
+    btn.icon:ClearAllPoints()
+    btn.icon:SetPoint("TOPLEFT", pad, -pad)
+    btn.icon:SetPoint("BOTTOMRIGHT", -pad, pad)
+    ApplyIcon(btn.icon, edb.style)
+    btn.icon:Show()
+
+    -- 有底框：高亮跟著內縮，不然滑過去會把邊框一起蓋掉
+    -- 光禿禿：高亮就是圖示本身，貼齊圖示才不會位移
+    local hl = SetHighlight(btn, bare and "icon" or "rect", bare and def.texture or Media.WHITE8X8)
+    local edge = bare and pad or inset
+    hl:ClearAllPoints()
+    hl:SetPoint("TOPLEFT", edge, -edge)
+    hl:SetPoint("BOTTOMRIGHT", -edge, edge)
 
     btn:Hide()      -- 顯示與否由 Update 決定
 end
