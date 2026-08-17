@@ -31,6 +31,12 @@ local REST_ROWS, REST_COLS, REST_FRAMES, REST_DURATION = 7, 6, 42, 1.5
 --   UI-StateIcon 的刀劍在自己那格裡約留兩成白
 local OVERSIZE = { restanim = 1.5, combat = 1.35 }
 
+-- 預覽用的假團隊標記：每個單位給不同號碼，一眼分得出是哪一格
+local PREVIEW_MARK = {
+    player = 1, target = 8, targettarget = 2, focus = 7,
+    focustarget = 3, pet = 6, boss = 8,
+}
+
 local atlasCache = {}
 local function AtlasInfo(name)
     local v = atlasCache[name]
@@ -149,11 +155,14 @@ end
 
 local function Update(uf, edb, bucket)
     if not uf.iconTextures then return end
-    local unit = uf.isPreview and "player" or uf.unit
+    local preview = uf.isPreview
+    local unit = preview and "player" or uf.unit
 
     local rt = uf.iconTextures.raidtarget
     if rt and not rt.disabled and edb.raidtarget and edb.raidtarget.enabled then
-        local index = GetRaidTargetIndex(unit)
+        -- 預覽查的是玩家自己的狀態：沒被標記就什麼都不畫，等於對著空氣調位置
+        -- → 有開就一律畫出來，團標每個單位給不同號碼比較好認
+        local index = preview and (PREVIEW_MARK[uf.unitKey] or 1) or GetRaidTargetIndex(unit)
         if index ~= nil then                          -- nil-ness 對秘密值可讀
             SetRaidTargetIconTexture(rt.tex, index)   -- C 端吃秘密 index
             rt:Show()
@@ -169,7 +178,7 @@ local function Update(uf, edb, bucket)
             local blz = edb.status.combatBlizzard and AtlasInfo(COMBAT_ATLAS)
             SetStatusMode(st, edb.status, blz and "combatblz" or "combat")
             st:Show()
-        elseif IsResting() then
+        elseif IsResting() or preview then           -- 預覽沒在戰鬥就畫 zzZ，總得看得到
             -- 動畫版：設定關掉、或這版遊戲沒這張 atlas 時退回靜態 zzZ
             local animate = edb.status.restAnimated ~= false and AtlasInfo(REST_ATLAS)
             SetStatusMode(st, edb.status, animate and "restanim" or "rest")
@@ -188,7 +197,7 @@ local function Update(uf, edb, bucket)
 
     local ld = uf.iconTextures.leader
     if ld and not ld.disabled and edb.leader and edb.leader.enabled then
-        if ToBool(UnitIsGroupLeader(unit)) then       -- 12.1 秘密 boolean → ToBool
+        if preview or ToBool(UnitIsGroupLeader(unit)) then   -- 12.1 秘密 boolean → ToBool
             ld:Show()
         else
             ld:Hide()
@@ -197,8 +206,8 @@ local function Update(uf, edb, bucket)
 
     local pvp = uf.iconTextures.pvp
     if pvp and not pvp.disabled and edb.pvp and edb.pvp.enabled then
-        local faction = ns.Desecret(UnitFactionGroup(unit), nil)
-        if faction and ToBool(UnitIsPVP(unit)) then
+        local faction = ns.Desecret(UnitFactionGroup(unit), nil) or (preview and "Alliance")
+        if faction and (preview or ToBool(UnitIsPVP(unit))) then
             pvp.tex:SetTexture("Interface\\TargetingFrame\\UI-PVP-" .. faction)
             pvp.tex:SetTexCoord(0, 0.62, 0, 0.62)
             pvp:Show()
