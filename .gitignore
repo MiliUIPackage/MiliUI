@@ -62,3 +62,6 @@ AddOns/MiliUI/.vscode/settings.json
 
 # luac 產物（luac -l 會寫出來，別再誤入版控）
 luac.out
+
+# 產生器腳本一律放 .claude/skills/<技能>/scripts/，不要留在插件資料夾裡
+AddOns/MiliUI_UnitFrames/Media/*.py
