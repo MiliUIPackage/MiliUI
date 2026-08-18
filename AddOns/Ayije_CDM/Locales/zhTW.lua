@@ -701,6 +701,11 @@ L["Edit Mode locked - use /acdm"] = "編輯模式已鎖定 - 輸入 /acdm"
 L["Cooldown Viewer settings are managed by /acdm."] = "冷卻管理器設定由 /acdm 管理。"
 L["use /acdm"] = "輸入 /acdm"
 
+-- fix from MiliUI: 編輯模式改成可以直接拖曳之後新增的字串
+L["Drag to move. Other settings are managed by /acdm."] = "拖曳即可移動位置，其餘設定由 /acdm 管理。"
+L["Anchored to resources - see /acdm > Resources"] = "已錨定至資源條 - 見 /acdm > 資源"
+L["Vertical only - unlock the utility bar in /acdm"] = "僅能上下移動 - 請先在 /acdm 解鎖輔助欄"
+
 -----------------------------------------------------------------------
 -- Core/Layout/Layout.lua (acdm 變體)
 -----------------------------------------------------------------------

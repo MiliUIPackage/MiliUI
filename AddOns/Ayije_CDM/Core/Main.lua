@@ -295,7 +295,7 @@ end
 
 local function ActivateEditMode()
     CDM.isEditModeActive = true
-    CDM:LockCooldownViewerEditModeFrames()
+    CDM:SetupCooldownViewerDragFrames()
     CDM:UpdateEditModeSelectionOverlays()
     CDM.Fading:ShowImmediate()
 end
@@ -304,6 +304,9 @@ local function SetupEditModeIntegration()
     EventRegistry:RegisterCallback("EditMode.Enter", ActivateEditMode, CDM)
     EventRegistry:RegisterCallback("EditMode.Exit", function()
         CDM.isEditModeActive = false
+        -- fix from MiliUI: 滑鼠在遊戲視窗外放開時 OnDragStop 不一定會進來，
+        -- 標記卡住的話之後所有 reanchor 都會被擋掉，離開編輯模式一律清乾淨
+        CDM.draggingViewer = nil
         CDM:ForceReanchorAll()
         CDM.Fading:Evaluate()
     end, CDM)
@@ -313,7 +316,7 @@ local function SetupEditModeIntegration()
         ActivateEditMode()
     end
 
-    CDM:SetupEditModeCooldownViewerLock()
+    CDM:SetupEditModeCooldownViewerIntegration()
 end
 
 local function SetupLoadingAndSpecCoordination()

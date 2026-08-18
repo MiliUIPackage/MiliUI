@@ -109,6 +109,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 ### 個別插件修補（上游更新後要重套）
 | 檔案 | 內容 |
 |---|---|
+| [project-ayije-cdm-editmode-drag.md](project-ayije-cdm-editmode-drag.md) | Ayije_CDM 編輯模式改成可拖曳 —— 四個容器的錨點語意換算表 |
 | [project-tinytooltip-perf.md](project-tinytooltip-perf.md) | TinyTooltip 滑過裝備掉 FPS |
 | [project-cell-vehicle-secret.md](project-cell-vehicle-secret.md) | Cell 載具名稱秘密值 |
 | [project-cell-no-update-notice.md](project-cell-no-update-notice.md) | Cell 的更新提示現況：不對原版廣播；MiliUI 版本走私有前綴互相提醒 |

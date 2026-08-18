@@ -20,6 +20,11 @@ L["use /acdm"] = "使用 /acdm"
 L["Edit Mode locked - use /acdm"] = "编辑模式已锁定 - 使用 /acdm"
 L["Cooldown Viewer settings are managed by /acdm."] = "冷却管理器的设置由 /acdm 管理"
 
+-- fix from MiliUI: 编辑模式改成可以直接拖曳之后新增的字符串
+L["Drag to move. Other settings are managed by /acdm."] = "拖曳即可移动位置，其余设置由 /acdm 管理。"
+L["Anchored to resources - see /acdm > Resources"] = "已锚定至资源条 - 见 /acdm > 资源"
+L["Vertical only - unlock the utility bar in /acdm"] = "仅能上下移动 - 请先在 /acdm 解锁辅助栏"
+
 -----------------------------------------------------------------------
 -- Modules/BuffGroupOverlays.lua
 -----------------------------------------------------------------------

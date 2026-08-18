@@ -108,6 +108,11 @@ local function CreateLayoutTab(page, tabId)
     end)
     xOffsetSlider:SetPoint("TOPLEFT", unlockCheckbox, "BOTTOMLEFT", 0, -10)
 
+    -- fix from MiliUI: 輔助欄在編輯模式被拖動時，水平偏移寫的是這個滑桿的值
+    CDM:RegisterPositionRefresher(function()
+        xOffsetSlider:UpdateUIValue(CDM.db.utilityXOffset or 0)
+    end)
+
     verticalCheckbox = UI.CreateModernCheckbox(
         content,
         L["Display Vertical"],

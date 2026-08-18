@@ -75,6 +75,15 @@ local function CreatePositionControls(parent, anchor, page, cfg)
     )
     page.controls[cfg.yKey]:SetPoint("TOPLEFT", page.controls[cfg.xKey], "BOTTOMLEFT", 0, -10)
 
+    -- fix from MiliUI: 位置現在也可以在編輯模式直接拖，拖完把滑桿與數值文字同步過來，
+    -- 否則面板還停在舊值，下次動滑桿會把框拉回去。
+    CDM:RegisterPositionRefresher(function()
+        local p = EnsurePosition(cfg.viewerName, cfg.defaults)
+        page.controls[cfg.xKey]:UpdateUIValue(p.x)
+        page.controls[cfg.yKey]:UpdateUIValue(p.y)
+        UpdateDisplay()
+    end)
+
     return page.controls[cfg.yKey]
 end
 
@@ -103,6 +112,10 @@ local function CreatePositionsTab(page, tabId)
         CDM.db.utilityYOffset = v; API:Refresh("LAYOUT")
     end)
     utilYOffsetSlider:SetPoint("TOPLEFT", essYSlider, "BOTTOMLEFT", 0, -10)
+
+    CDM:RegisterPositionRefresher(function()
+        utilYOffsetSlider:UpdateUIValue(CDM.db.utilityYOffset or 0)
+    end)
 
     local buffHeader = UI.CreateHeader(content, L["Main Buff Container Position"])
     buffHeader:SetPoint("TOPLEFT", utilYOffsetSlider, "BOTTOMLEFT", 0, -15)

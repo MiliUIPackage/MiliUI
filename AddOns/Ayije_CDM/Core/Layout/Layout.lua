@@ -477,7 +477,14 @@ local function GetPositionSettings(viewerName, layoutName)
     return viewerTable[layoutName]
 end
 
+-- fix from MiliUI: 編輯模式拖曳（Core/EditMode.lua）要寫回同一份位置資料，
+-- GetPositionSettings 是這支檔案的 local，開一個 getter 出去。
+function CDM:GetViewerPositionSettings(vName)
+    return GetPositionSettings(vName, "Default")
+end
+
 function CDM:UpdateBuffContainerPosition()
+    if CDM.draggingViewer == VIEWERS.BUFF then return end
     local buffContainer = self.anchorContainers[VIEWERS.BUFF]
     if not buffContainer then return end
 
@@ -510,6 +517,8 @@ end
 
 function CDM:ReanchorContainer(vName)
     if InCombatLockdown() then return end
+    -- fix from MiliUI: 編輯模式拖曳進行中，位置由滑鼠決定，放開時才寫回
+    if CDM.draggingViewer == vName then return end
     local container = self.anchorContainers and self.anchorContainers[vName]
     if not container then return end
 
@@ -986,6 +995,7 @@ CDM.CalculateEssentialRow1Width = CalculateEssentialRow1Width
 
 
 function CDM:UpdateBuffBarContainerPosition()
+    if CDM.draggingViewer == VIEWERS.BUFF_BAR then return end
     local container = self.anchorContainers and self.anchorContainers[VIEWERS.BUFF_BAR]
     if not container then return end
 
