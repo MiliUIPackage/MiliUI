@@ -298,11 +298,11 @@ function DB.BuildDefaults()
                                  color = { r = 0.984, g = 1, b = 0.953, a = 0.861 } },
                     },
                     castbar = bigCastbar(),
-                    buffs  = { enabled = true, x = -10, y = -62, w = 25, h = 25,
+                    buffs  = { enabled = true, x = -8, y = -62, w = 25, h = 25,
                                maxCount = 16, perRow = 8, growth = "LRTB", spacing = 1,
                                showStack = true, stackSize = 10,
                                durationText = true, durationThreshold = 60, filterMode = "all" },
-                    debuffs = { enabled = true, x = 0, y = 8, w = 25, h = 25,
+                    debuffs = { enabled = true, x = 0, y = 4, w = 25, h = 25,
                                 maxCount = 16, perRow = 8, growth = "LRBT", spacing = 1,
                                 showStack = true, stackSize = 10,
                                 durationText = true, durationThreshold = 60, filterMode = "all" },
@@ -354,7 +354,7 @@ function DB.BuildDefaults()
                                maxCount = 12, perRow = 6, growth = "LRTB", spacing = 1,
                                showStack = true, stackSize = 10,
                                durationText = false, durationThreshold = 60, filterMode = "all" },
-                    debuffs = { enabled = true, x = 0, y = 5, w = 20, h = 20,
+                    debuffs = { enabled = true, x = 0, y = 2, w = 20, h = 20,
                                 maxCount = 12, perRow = 6, growth = "LRBT", spacing = 1,
                                 showStack = true, stackSize = 10,
                                 durationText = false, durationThreshold = 60, filterMode = "all" },
@@ -513,7 +513,7 @@ function DB.BuildDefaults()
                                maxCount = 12, perRow = 6, growth = "LRTB", spacing = 1,
                                showStack = true, stackSize = 10,
                                durationText = false, durationThreshold = 60, filterMode = "all" },
-                    debuffs = { enabled = true, x = 0, y = 5, w = 20, h = 20,
+                    debuffs = { enabled = true, x = 0, y = 2, w = 20, h = 20,
                                 maxCount = 12, perRow = 6, growth = "LRBT", spacing = 1,
                                 showStack = true, stackSize = 10,
                                 durationText = false, durationThreshold = 60, filterMode = "all" },
@@ -686,6 +686,35 @@ local PROFILE_MIGRATIONS = {
         repaint("fail",             1,    0,    0,   1,     0.204, 0.145)
         repaint("notInterruptible", 0.53, 0.53, 0.53, 0.529, 0.529, 0.529)
         repaint("interruptReady",   0.20, 0.85, 1,   1,     0.741, 0)
+    end,
+
+    -- v6：光環貼齊框架。
+    --
+    -- 目標框的增益整排原本被推到 x = -10，比魔力條左緣還多出去 2。增益貼在框底下、
+    -- 上緣挨著魔力條，對齊的基準就是魔力條左緣（-8）——不是血條左緣。
+    -- 框上方那排減益沒有魔力條，維持對齊血條左緣的 0。
+    --
+    -- 間距則是反過來讓減益跟著增益走——「框體底緣」不是框架底緣，魔力條還往下露
+    -- 一截（目標框 8、目標的目標與寵物框 10），所以增益的間距一直比減益小。
+    -- 舊值是目標框 4 對 8、另外兩個 2 對 5，這裡把減益改成跟增益等距。
+    --
+    -- 值閘：只動仍等於舊預設的那個值，自己拉過位置的不碰。
+    [6] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+
+        local t = type(units.target) == "table" and units.target.elements
+        if type(t) == "table" and type(t.buffs) == "table" and t.buffs.x == -10 then
+            t.buffs.x = -8
+        end
+
+        -- [單位] = { 減益的舊上方間距, 新間距 }
+        local GAPS = { target = { 8, 4 }, targettarget = { 5, 2 }, pet = { 5, 2 } }
+        for unit, gap in pairs(GAPS) do
+            local e = type(units[unit]) == "table" and units[unit].elements
+            local d = type(e) == "table" and e.debuffs
+            if type(d) == "table" and d.y == gap[1] then d.y = gap[2] end
+        end
     end,
 }
 
