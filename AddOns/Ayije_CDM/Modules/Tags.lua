@@ -44,6 +44,36 @@ if CreateAbbreviateConfig then
     }
 end
 
+-- fix from MiliUI: 法力數字的縮寫格式做成選項（原本寫死上面那份 K 設定）。中文玩家慣用
+-- 萬／億，預設改成依語系走。縮寫一律交給暴雪的 C 端函式 —— 12.1 的法力是秘密值，
+-- 插件端不能自己做算術或格式化。
+local LOCALE = GetLocale()
+local BreakUpLargeNumbers = BreakUpLargeNumbers
+
+local function ResolveManaNumberMode()
+    local df = CDM.defaults or {}
+    local mode = CDM_C.GetConfigValue and CDM_C.GetConfigValue("manaNumberFormat", df.manaNumberFormat) or "auto"
+    if mode ~= "wan" and mode ~= "km" and mode ~= "raw" then
+        mode = (LOCALE == "zhTW" or LOCALE == "zhCN") and "wan" or "km"
+    end
+    return mode
+end
+
+local function SetManaText(textFrame, current)
+    local mode = ResolveManaNumberMode()
+
+    if mode == "wan" then
+        -- 不帶 config 的 AbbreviateNumbers 就是語系預設格式（中文＝萬／億）
+        textFrame.text:SetText(AbbreviateNumbers(current))
+    elseif mode == "raw" and BreakUpLargeNumbers then
+        textFrame.text:SetText(BreakUpLargeNumbers(current))
+    elseif manaAbbrevData then
+        textFrame.text:SetText(AbbreviateNumbers(current, manaAbbrevData))
+    else
+        textFrame.text:SetFormattedText("%d", current)
+    end
+end
+
 function TAGS:MarkDirty()
     self.styleDirty = true
 end
@@ -235,10 +265,8 @@ function TAGS:UpdateTagText(textFrame)
             if CDM:GetBarSetting("Mana", "displayAsPercent") then
                 local pct = UnitPowerPercent("player", PowerTypeMana, false, ScaleTo100) or 0
                 textFrame.text:SetFormattedText("%d", pct)
-            elseif manaAbbrevData then
-                textFrame.text:SetText(AbbreviateNumbers(current, manaAbbrevData))
             else
-                textFrame.text:SetFormattedText("%d", current)
+                SetManaText(textFrame, current)
             end
         elseif textFrame.powerType == PowerTypeSoulShards then
             if CDM:GetCurrentSpecID() == 267 then

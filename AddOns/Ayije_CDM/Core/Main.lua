@@ -519,6 +519,14 @@ function CDM:OnEnable()
         CDM:RequestConfigOpen("slash", nil)
     end
 
+    -- fix from MiliUI: 手動掃一次多餘的黑底（正常情況下 ApplyStyle／ApplyBarStyle
+    -- 已經會順手清掉，這個指令是漏網時的保險）
+    SLASH_AYIJECDMSWEEP1 = "/cdmhide"
+    SlashCmdList["AYIJECDMSWEEP"] = function()
+        local count = CDM:SweepRogueBlackShadows()
+        print("|cffffd200Ayije_CDM:|r " .. string.format(CDM.L["Cleared stray black backgrounds on %d icon frames."], count))
+    end
+
     InitializeAnchorContainers()
     for _, vName in ipairs(ALL_VIEWER_NAMES) do
         self:SetupViewer(vName)

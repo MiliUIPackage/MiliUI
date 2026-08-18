@@ -707,6 +707,16 @@ L["Anchored to resources - see /acdm > Resources"] = "已錨定至資源條 - �
 L["Vertical only - unlock the utility bar in /acdm"] = "僅能上下移動 - 請先在 /acdm 解鎖輔助欄"
 
 -----------------------------------------------------------------------
+-- fix from MiliUI: 從 MiliUI 併入的功能（數字縮寫選項、黑底清除）
+-----------------------------------------------------------------------
+
+L["Number abbreviation"] = "數字縮寫"
+L["By locale (wan/yi for Chinese, K/M otherwise)"] = "依語系（中文萬／億，其他 K／M）"
+L["Wan / Yi"] = "萬／億"
+L["No abbreviation (thousands separator)"] = "不縮寫（千分位）"
+L["Cleared stray black backgrounds on %d icon frames."] = "已清除 %d 個圖示框的多餘黑底。"
+
+-----------------------------------------------------------------------
 -- Core/Layout/Layout.lua (acdm 變體)
 -----------------------------------------------------------------------
 

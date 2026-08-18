@@ -189,6 +189,8 @@ CDM.defaults = {
     defensivesEnabled = true,
     trinketsEnabled = true,
     resourcesEnabled = true,
+    -- fix from MiliUI: 法力數字縮寫格式 auto | wan | km | raw（見 Modules/Tags.lua）
+    manaNumberFormat = "auto",
     externalsEnabled = true,
 
     -- Resources global settings (moved from per-class in schema v21)

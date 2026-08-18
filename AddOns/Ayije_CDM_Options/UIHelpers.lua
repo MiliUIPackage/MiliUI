@@ -434,6 +434,68 @@ function UI.CreateModernCheckbox(parent, label, initialValue, onChange)
     return frame
 end
 
+-- fix from MiliUI: 面板本來沒有下拉選單元件，數字縮寫這種多選一的設定需要。
+-- 用暴雪的 WowStyle1DropdownTemplate：選中的項目文字由 radio 自己帶，不必手動維護。
+-- items = { { text = "顯示文字", value = <任意值> }, ... }
+function UI.CreateModernDropdown(parent, label, items, initialValue, onChange, labelWidth, dropdownWidth)
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetSize(400, 26)
+
+    local text = frame:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+    text:SetPoint("LEFT", 0, 0)
+    text:SetWidth(labelWidth or 120)
+    text:SetJustifyH("LEFT")
+    text:SetText(label)
+
+    local dropdown = CreateFrame("DropdownButton", nil, frame, "WowStyle1DropdownTemplate")
+    dropdown:SetSize(dropdownWidth or 240, 26)
+    dropdown:SetPoint("LEFT", text, "RIGHT", 10, 0)
+
+    local selected = initialValue
+
+    dropdown:SetupMenu(function(_, rootDescription)
+        for _, item in ipairs(items) do
+            rootDescription:CreateRadio(
+                item.text,
+                function(value) return selected == value end,
+                function(value)
+                    if selected == value then return end
+                    selected = value
+                    if onChange then onChange(value) end
+                end,
+                item.value
+            )
+        end
+    end)
+
+    frame.dropdown = dropdown
+    frame.label = text
+
+    function frame:GetValue()
+        return selected
+    end
+
+    -- 外部改值（例如匯入設定檔）之後要重跑一次，按鈕文字才會跟著換
+    function frame:UpdateUIValue(value)
+        selected = value
+        dropdown:GenerateMenu()
+    end
+
+    function frame:SetEnabled(enabled)
+        if enabled then
+            dropdown:Enable()
+            text:SetTextColor(1, 1, 1, 1)
+            frame:SetAlpha(1)
+        else
+            dropdown:Disable()
+            text:SetTextColor(0.5, 0.5, 0.5, 1)
+            frame:SetAlpha(0.5)
+        end
+    end
+
+    return frame
+end
+
 function UI.CreateHeader(parent, text, anchorFrame, yOffset)
     return CreateSectionHeader(parent, text, anchorFrame, yOffset, "AyijeCDM_Font18", -15, -10)
 end

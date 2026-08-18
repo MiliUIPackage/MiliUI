@@ -714,6 +714,63 @@ end
 
 local RefreshKeybindForFrame
 
+-- fix from MiliUI: 有些圖示框會多帶一層純黑不透明的底圖，疊在自訂邊框下面看起來像
+-- 邊框變厚。找出「純黑 + 不透明 + 用的是純色貼圖」的 region 把它關掉。
+--
+-- 注意不能拿 GetSize() 之類的數值來篩：12.1 的 secure 框回傳的是秘密值，拿去做算術
+-- 會直接崩，所以只比對顏色與貼圖來源。
+local ROGUE_SHADOW_TEXTURE = "Interface\\Buttons\\WHITE8X8"
+
+local function RemoveRogueBlackShadow(frame)
+    if not frame or not frame.GetRegions then return false end
+
+    for _, r in ipairs({ frame:GetRegions() }) do
+        if r:GetObjectType() == "Texture" then
+            local cr, cg, cb, ca = r:GetVertexColor()
+            if cr and math_abs(cr) < 0.05 and math_abs(cg) < 0.05 and math_abs(cb) < 0.05 and ca > 0.5 then
+                local tex = r:GetTexture() or r:GetAtlas()
+                if type(tex) == "number" or tex == ROGUE_SHADOW_TEXTURE then
+                    if r:GetAlpha() > 0 or r:IsShown() then
+                        r:SetAlpha(0)
+                        r:Hide()
+                        r:SetTexture(nil)
+                        r:SetColorTexture(0, 0, 0, 0)
+                        return true
+                    end
+                end
+            end
+        end
+    end
+
+    return false
+end
+
+-- 掃過所有還活著的圖示框，撿掉漏網的黑底。掛在 /cdmhide 上當手動保險。
+function CDM:SweepRogueBlackShadows()
+    local count = 0
+
+    self:ForEachActiveFrame(CDM_C.ALL_VIEWER_NAMES, function(itemFrame)
+        if RemoveRogueBlackShadow(itemFrame) then count = count + 1 end
+        if itemFrame.IconFrame and RemoveRogueBlackShadow(itemFrame.IconFrame) then
+            count = count + 1
+        end
+    end)
+
+    for _, name in ipairs({ "DefensiveCooldownViewer", "ExternalCooldownViewer", "CDM_Trinkets" }) do
+        local v = _G[name]
+        if type(v) == "table" and type(v.itemFramePool) == "table" and v.itemFramePool.EnumerateActive then
+            for itemFrame in v.itemFramePool:EnumerateActive() do
+                if RemoveRogueBlackShadow(itemFrame) then count = count + 1 end
+                if itemFrame.IconFrame and RemoveRogueBlackShadow(itemFrame.IconFrame) then
+                    count = count + 1
+                end
+            end
+        end
+    end
+
+    return count
+end
+
 function CDM:ApplyStyle(frame, vName, forceUpdate)
     if not frame then return end
 
@@ -1125,6 +1182,8 @@ RefreshKeybindForFrame = function(frame, KB, kbCacheVer, styleVersion)
         kbFS:SetText("")
         kbFS:Hide()
     end
+
+    RemoveRogueBlackShadow(frame)
 end
 
 function CDM:RefreshViewerKeybindText()
@@ -1553,6 +1612,11 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
 
     if customNameChanged and frame.RefreshName then
         frame:RefreshName()
+    end
+
+    RemoveRogueBlackShadow(frame)
+    if frame.IconFrame then
+        RemoveRogueBlackShadow(frame.IconFrame)
     end
 end
 

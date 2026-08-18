@@ -251,10 +251,33 @@ local function CreateResourcesTab(page, tabId)
         page, L["Enable Resources"], enabled,
         function(checked)
             CDM.db.resourcesEnabled = checked
+            if page.controls.manaNumberFormat then
+                page.controls.manaNumberFormat:SetEnabled(checked)
+            end
             API:Refresh("RESOURCES", "LAYOUT")
         end
     )
     page.controls.resourcesEnabled:SetPoint("TOPLEFT", 1, -40)
+
+    -- fix from MiliUI: 法力數字的縮寫格式。實作在 Core 的 Modules/Tags.lua，
+    -- 縮寫全部交給暴雪 C 端函式（12.1 的法力是秘密值，插件不能自己算）。
+    page.controls.manaNumberFormat = UI.CreateModernDropdown(
+        page, L["Number abbreviation"],
+        {
+            { text = L["By locale (wan/yi for Chinese, K/M otherwise)"], value = "auto" },
+            { text = L["Wan / Yi"], value = "wan" },
+            { text = "K／M", value = "km" },
+            { text = L["No abbreviation (thousands separator)"], value = "raw" },
+        },
+        CDM.db.manaNumberFormat or "auto",
+        function(value)
+            CDM.db.manaNumberFormat = value
+            API:Refresh("RESOURCES")
+        end,
+        80, 240
+    )
+    page.controls.manaNumberFormat:SetPoint("LEFT", page.controls.resourcesEnabled.label, "RIGHT", 40, 0)
+    page.controls.manaNumberFormat:SetEnabled(enabled)
 
     local leftScroll = CreateFrame("ScrollFrame", nil, page, "ScrollFrameTemplate")
     leftScroll:SetPoint("TOPLEFT", LEFT_INSET - SCROLL_LEFT_PAD, -92)

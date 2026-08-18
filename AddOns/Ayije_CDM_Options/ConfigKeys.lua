@@ -145,6 +145,7 @@ ns.ConfigKeys = {
             label = L["Resource Bar Settings"],
             keys = {
                 "resourcesEnabled",
+                "manaNumberFormat",
                 "resourceBarSettings",
                 "resourceGroupSettings",
                 "unifiedBorder",

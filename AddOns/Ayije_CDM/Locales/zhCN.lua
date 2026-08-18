@@ -26,6 +26,16 @@ L["Anchored to resources - see /acdm > Resources"] = "已锚定至资源条 - �
 L["Vertical only - unlock the utility bar in /acdm"] = "仅能上下移动 - 请先在 /acdm 解锁辅助栏"
 
 -----------------------------------------------------------------------
+-- fix from MiliUI: 从 MiliUI 并入的功能（数字缩写选项、黑底清除）
+-----------------------------------------------------------------------
+
+L["Number abbreviation"] = "数字缩写"
+L["By locale (wan/yi for Chinese, K/M otherwise)"] = "依语系（中文万／亿，其他 K／M）"
+L["Wan / Yi"] = "万／亿"
+L["No abbreviation (thousands separator)"] = "不缩写（千分位）"
+L["Cleared stray black backgrounds on %d icon frames."] = "已清除 %d 个图标框的多余黑底。"
+
+-----------------------------------------------------------------------
 -- Modules/BuffGroupOverlays.lua
 -----------------------------------------------------------------------
 

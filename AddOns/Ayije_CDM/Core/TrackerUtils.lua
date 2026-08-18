@@ -143,7 +143,13 @@ function CDM.UnregisterTrackerPositionCallback(name)
     trackerPositionCallbacks[name] = nil
 end
 
+-- fix from MiliUI: 加入米利頭像框架，排最前面優先採用。
+-- 底下判斷「這個框看得見嗎」一律用 IsVisible 而不是 IsShown —— 米利頭像有「顯示條件」
+-- 功能，條件不成立時藏的是**父層閘框**，單位框自己仍然 IsShown()==true（顯示權在
+-- RegisterUnitWatch 手上）。用 IsShown 判斷的話，頭像明明看不見還是會被當成有效錨點，
+-- 飾品／防禦圖示就浮在空白處。IsVisible 會把整條父層鏈算進去。
 local PLAYER_FRAME_CANDIDATES = {
+    "MiliUIUF_Player",
     "ElvUF_Player",
     "SUFUnitplayer",
     "UUF_Player",
@@ -158,7 +164,7 @@ local function ResolvePlayerAnchorFrame()
         playerFrameSettled = false
     end
     if playerFrameSettled then
-        if cachedPlayerFrame and cachedPlayerFrame.IsShown and cachedPlayerFrame:IsShown() then
+        if cachedPlayerFrame and cachedPlayerFrame.IsVisible and cachedPlayerFrame:IsVisible() then
             return cachedPlayerFrame
         end
         playerFrameSettled = false
@@ -166,7 +172,7 @@ local function ResolvePlayerAnchorFrame()
 
     for _, name in ipairs(PLAYER_FRAME_CANDIDATES) do
         local frame = _G[name]
-        if frame and frame.IsShown and frame:IsShown() then
+        if frame and frame.IsVisible and frame:IsVisible() then
             cachedPlayerFrame = frame
             cachedPlayerFrameVersion = trackerAnchorCacheVersion
             playerFrameSettled = true
@@ -175,7 +181,7 @@ local function ResolvePlayerAnchorFrame()
     end
 
     local blizzFrame = _G["PlayerFrame"]
-    if blizzFrame and blizzFrame.IsShown and blizzFrame:IsShown() then
+    if blizzFrame and blizzFrame.IsVisible and blizzFrame:IsVisible() then
         cachedPlayerFrame = blizzFrame
         cachedPlayerFrameVersion = trackerAnchorCacheVersion
         local addonFramePending = false
@@ -281,10 +287,35 @@ function CDM.EnsureTrackerChargeWidgets(frame)
     return chargeCount.Current
 end
 
+-- fix from MiliUI: 米利頭像的邊框比其他頭像厚，貼齊會讓飾品／防禦圖示黏在框上，
+-- 錨到它時往外多推一點。方向跟著錨點走，使用者自己設的 offset 照樣疊加。
+local MILIUI_PLAYER_FRAME = "MiliUIUF_Player"
+local MILIUI_EXTRA_GAP = 10
+
+local function GetMiliUIAnchorGap(anchorPoint, targetFrame)
+    if targetFrame ~= _G[MILIUI_PLAYER_FRAME] then
+        return 0, 0
+    end
+
+    local gapX, gapY = 0, 0
+    if anchorPoint == "TOPLEFT" or anchorPoint == "BOTTOMLEFT" then
+        gapX = -MILIUI_EXTRA_GAP
+    elseif anchorPoint == "TOPRIGHT" or anchorPoint == "BOTTOMRIGHT" then
+        gapX = MILIUI_EXTRA_GAP
+    end
+    if anchorPoint == "TOPLEFT" or anchorPoint == "TOPRIGHT" then
+        gapY = MILIUI_EXTRA_GAP
+    elseif anchorPoint == "BOTTOMLEFT" or anchorPoint == "BOTTOMRIGHT" then
+        gapY = -MILIUI_EXTRA_GAP
+    end
+    return gapX, gapY
+end
+
 local function SetTrackerContainerAnchor(container, anchorPoint, offsetX, offsetY, targetFrame, containerAnchorOverride)
     container:ClearAllPoints()
     local containerAnchor = containerAnchorOverride or INVERTED_ANCHORS[anchorPoint] or anchorPoint
-    Pixel.SetPoint(container, containerAnchor, targetFrame, anchorPoint, offsetX, offsetY)
+    local gapX, gapY = GetMiliUIAnchorGap(anchorPoint, targetFrame)
+    Pixel.SetPoint(container, containerAnchor, targetFrame, anchorPoint, (offsetX or 0) + gapX, (offsetY or 0) + gapY)
 end
 
 function CDM.PositionTrackerIcons(container, frames, size, spacing, anchorPoint)
@@ -372,7 +403,7 @@ function CDM.AnchorToPlayerFrame(container, anchorPoint, offsetX, offsetY, modul
 
     if cacheCurrent and cached.targetFrame then
         local tf = cached.targetFrame
-        if not (tf.IsShown and tf:IsShown()) then
+        if not (tf.IsVisible and tf:IsVisible()) then
             trackerAnchorCache[container] = nil
         else
             if cached.requestAnchorPoint == anchorPoint and cached.requestOffsetX == offsetX and cached.requestOffsetY == offsetY and cached.requestContainerAnchor == containerAnchor then
