@@ -447,3 +447,7 @@ L["Filtering is done by the game, not by a spell list — 12.1 addons can't read
 -- 換設定檔（Core/DB.lua 的 SwitchProfile：只有啟用的單位不同才重載）
 L["This profile turns different unit frames on or off, so the UI has to reload. Continue?"] = "Dieses Profil aktiviert andere Einheitenfenster, daher muss die Oberfläche neu geladen werden. Fortfahren?"
 L["Switch profile? This applies right away, no reload needed."] = "Profil wechseln? Wird sofort übernommen, kein Neuladen nötig."
+
+-- 設定搜尋（Options/Search.lua）
+L["Search settings"] = "Einstellungen suchen"
+L["+%d more"] = "+%d weitere"

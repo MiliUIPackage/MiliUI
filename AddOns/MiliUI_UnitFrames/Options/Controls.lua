@@ -54,15 +54,22 @@ local function MakeLabel(parent, text, x, y, h)
     return fs
 end
 
--- 建一整組；回傳 (總高度, refreshers)
+-- 建一整組；回傳 (總高度, refreshers, rows)
+--
+-- rows 是給搜尋用的：每一列記下它在 content 裡的上下緣（`{ spec, top, bottom }`，
+-- 都是負值，跟 SetPoint 的 y 同一套座標）。設定面板的搜尋要「跳過去並標示那一列」，
+-- 而唯一知道每列落在哪的地方就是這支 —— 版面是它一列一列往下堆出來的。
+-- 不記的話搜尋只能跳到分頁、跳不到那一行。
 function Controls.Build(parent, controls, ctx, startX, startY, width)
     local x0 = startX or 0
     local y = startY or 0
     width = width or 500
     local cx = x0 + LABEL_W + GAP          -- 控件起點
     local refreshers = {}
+    local rows = {}
 
     for _, spec in ipairs(controls) do
+        local rowTop = y
         if spec.type == "header" then
             y = y - HEADER_GAP
             local fs = W.CreateGroupLabel(parent, spec.label)
@@ -217,8 +224,12 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
             end)
             y = y - ROW_H_TALL
         end
+        -- space 沒有東西可以標示；header 留著（搜尋也讓人跳到小節）
+        if spec.type ~= "space" then
+            rows[#rows + 1] = { spec = spec, top = rowTop, bottom = y }
+        end
     end
-    return -(y - startY), refreshers
+    return -(y - startY), refreshers, rows
 end
 
 ------------------------------------------------------------

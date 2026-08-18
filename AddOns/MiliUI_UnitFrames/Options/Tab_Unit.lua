@@ -418,13 +418,14 @@ local function BuildPanel(unitKey, elementKey)
         apply = function() ns.ApplySettings(unitKey) end,
     }
 
-    local height, refreshers = Controls.Build(content, SpecsFor(unitKey, elementKey), ctx, 4, -8, 520)
+    local height, refreshers, rows = Controls.Build(content, SpecsFor(unitKey, elementKey), ctx, 4, -8, 520)
     content:SetHeight(height + 24)
     content:Hide()
     -- textCount：表單的**結構**是 build 當下依 #els.texts 生的，記下來才比對得出
     -- 「恢復預設之後條目數變了」（見底部的 SettingsApplied）
     local texts = udb.elements and udb.elements.texts
     return { frame = content, refreshers = refreshers, height = height + 24,
+             rows = rows,
              textCount = texts and #texts or nil }
 end
 
@@ -613,3 +614,42 @@ ns.RegisterCallback("ShowOptionsTab", "unitTab", function(id)
     end
     SelectUnit(currentUnit)
 end)
+
+------------------------------------------------------------
+-- 設定搜尋（Options/Search.lua）
+--
+-- 列舉的是 spec 表本身，所以「單位 × 元件」每一種組合都進得了索引，
+-- 不必先把那些分頁建出來（這一頁有 7 個單位 × 最多 11 個元件，
+-- 靠「開過才收得到」的做法等於幾乎搜不到東西）。
+--
+-- 元件的可見性判斷跟 RefreshChips 同一套：DB 有這欄，而且這個職業真的有註冊該元件。
+------------------------------------------------------------
+ns.Search.Register("units", {
+    label = L["Units"],
+    enumerate = function(add)
+        for _, u in ipairs(UNIT_LIST) do
+            local udb = ns.GetUnitDB(u.key)
+            local els = udb and udb.elements
+            if els then
+                for _, e in ipairs(ELEMENT_LIST) do
+                    if e.key == "frame" or (els[e.key] ~= nil and ns.Elements[e.key] ~= nil) then
+                        add(SpecsFor(u.key, e.key), u.label .. " › " .. e.label,
+                            { unit = u.key, element = e.key })
+                    end
+                end
+            end
+        end
+    end,
+    jump = function(payload, spec)
+        if not payload then return end
+        Init()
+        -- 走跟使用者自己點一樣的路徑：SelectUnit 會重排 chip、切面板、同步預覽
+        currentElement = payload.element
+        SelectUnit(payload.unit)
+        for _, b in ipairs(tab._unitButtons) do
+            if b.id == payload.unit then tab._unitHighlight(b) end
+        end
+        local p = panels[payload.unit .. "/" .. payload.element]
+        if p then ns.Search.Reveal(scroll, p.frame, p.rows, spec) end
+    end,
+})

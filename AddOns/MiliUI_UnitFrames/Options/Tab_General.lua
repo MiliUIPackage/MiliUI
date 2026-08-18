@@ -7,7 +7,7 @@ local L = ns.L
 
 local W, Controls = ns.W, ns.Controls
 
-local tab, scroll
+local tab, scroll, content, rows
 local refreshers
 
 local function ApplyAll()
@@ -131,7 +131,7 @@ local function Init()
     scrollHolder:SetPoint("BOTTOMRIGHT", -8, 10)
     scroll = W.CreateScrollFrame(scrollHolder)
 
-    local content = CreateFrame("Frame", nil, scroll.child)
+    content = CreateFrame("Frame", nil, scroll.child)
     content:SetPoint("TOPLEFT")
     content:SetSize(640, 1)
 
@@ -154,7 +154,8 @@ local function Init()
         apply = ApplyAll,
     }
 
-    local height, r = Controls.Build(content, CONTROLS, ctx, 4, -4, 640)
+    local height, r, built = Controls.Build(content, CONTROLS, ctx, 4, -4, 640)
+    rows = built
     content:SetHeight(height + 20)
     scroll:SetContentHeight(height + 20)
     refreshers = r
@@ -169,3 +170,16 @@ ns.RegisterCallback("ShowOptionsTab", "generalTab", function(id)
     for _, fn in ipairs(refreshers) do fn() end
     tab:Show()
 end)
+
+------------------------------------------------------------
+-- 設定搜尋（Options/Search.lua）
+-- 列舉用的是 spec 表本身，不需要先把分頁建出來 —— 所以沒開過也搜得到
+------------------------------------------------------------
+ns.Search.Register("general", {
+    label = L["General"],
+    enumerate = function(add) add(CONTROLS, L["General"]) end,
+    jump = function(_, spec)
+        Init()
+        ns.Search.Reveal(scroll, content, rows, spec)
+    end,
+})

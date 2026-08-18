@@ -11,7 +11,7 @@ local L = ns.L
 
 local W, Controls = ns.W, ns.Controls
 
-local tab, scroll, content, refreshers, specSig
+local tab, scroll, content, refreshers, specSig, rows
 
 local function EDB()
     local u = ns.db.units.player
@@ -98,7 +98,8 @@ local function Rebuild()
     content = CreateFrame("Frame", nil, scroll.child)
     content:SetPoint("TOPLEFT")
     content:SetSize(620, 1)
-    local height, r = Controls.Build(content, controls, ctx, 4, -4, 620)
+    local height, r, built = Controls.Build(content, controls, ctx, 4, -4, 620)
+    rows = built
     content:SetHeight(height + 20)
     scroll:SetContentHeight(height + 20)
     scroll:SetVerticalScroll(0)
@@ -134,3 +135,18 @@ ns.RegisterCallback("ShowOptionsTab", "resourceTab", function(id)
     for _, fn in ipairs(refreshers) do fn() end
     tab:Show()
 end)
+
+------------------------------------------------------------
+-- 設定搜尋（Options/Search.lua）
+--
+-- ⚠ 這一頁的內容跟著目前專精走（資源清單不一樣），所以列舉時**現算**一次，
+-- 不快取。索引本身會在 SettingsApplied／ProfileChanged 時失效重建。
+------------------------------------------------------------
+ns.Search.Register("resource", {
+    label = L["Resources"],
+    enumerate = function(add) add((BuildControls()), L["Resources"]) end,
+    jump = function(_, spec)
+        Init()
+        ns.Search.Reveal(scroll, content, rows, spec)
+    end,
+})

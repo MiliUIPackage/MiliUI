@@ -151,6 +151,9 @@ local function CreatePanel()
     end
     highlightTab = W.CreateButtonGroup(tabButtons, ShowTab)
 
+    -- 搜尋框：跟標題同一列的另一端（標題在左、搜尋在右），不佔面板內部空間
+    if ns.Search then ns.Search.CreateBox(panel) end
+
     panel:SetScript("OnHide", function()
         ns.LogClick("panel OnHide")
         W.CloseDropdowns()

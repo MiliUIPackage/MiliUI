@@ -53,6 +53,7 @@ Elements\Totems.lua
 Units.lua
 Options\Widgets.lua
 Options\Controls.lua
+Options\Search.lua
 Options\Preview.lua
 Options\Panel.lua
 Options\Tab_General.lua

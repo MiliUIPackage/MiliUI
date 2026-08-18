@@ -7,7 +7,7 @@ local L = ns.L
 
 local W, Controls = ns.W, ns.Controls
 
-local tab, scroll
+local tab, scroll, content, rows
 local refreshers
 
 local CONTROLS = {
@@ -50,7 +50,7 @@ local function Init()
     holder:SetPoint("BOTTOMRIGHT", -8, 10)
     scroll = W.CreateScrollFrame(holder)
 
-    local content = CreateFrame("Frame", nil, scroll.child)
+    content = CreateFrame("Frame", nil, scroll.child)
     content:SetPoint("TOPLEFT")
     content:SetSize(620, 1)
 
@@ -68,7 +68,8 @@ local function Init()
         end,
     }
 
-    local height, r = Controls.Build(content, CONTROLS, ctx, 4, -4, 620)
+    local height, r, built = Controls.Build(content, CONTROLS, ctx, 4, -4, 620)
+    rows = built
     content:SetHeight(height + 20)
     scroll:SetContentHeight(height + 20)
     refreshers = r
@@ -85,3 +86,15 @@ ns.RegisterCallback("ShowOptionsTab", "totemTab", function(id)
     for _, fn in ipairs(refreshers) do fn() end
     tab:Show()
 end)
+
+------------------------------------------------------------
+-- 設定搜尋（Options/Search.lua）
+------------------------------------------------------------
+ns.Search.Register("totem", {
+    label = L["Summons"],
+    enumerate = function(add) add(CONTROLS, L["Summons"]) end,
+    jump = function(_, spec)
+        Init()
+        ns.Search.Reveal(scroll, content, rows, spec)
+    end,
+})
