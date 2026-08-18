@@ -757,6 +757,9 @@ function W.CreateConfirmPopup(parent, width, text, onAccept)
     fs:SetWidth((width or 240) - 24)
     fs:SetJustifyH("CENTER")
     fs:SetText(text)
+    -- 開出來：有些確認訊息要看當下狀況才決定怎麼寫（例如換設定檔要不要重載），
+    -- 而彈窗是建一次就重用的，不能把文字烘死在建立那一刻
+    popup.text = fs
 
     local yes = W.CreateButton(popup, L["Okay"], "green", 80, 22)
     yes:SetPoint("BOTTOMLEFT", 26, 12)

@@ -575,6 +575,19 @@ end
 -- 註冊放在檔案底部：InvalidatePanels 與 ShowPanel 都要在 scope 裡（宣告在下面的
 -- local function 從上面呼叫會拿到全域 nil）。
 ------------------------------------------------------------
+-- 換設定檔：每個面板的 ctx 都把**那一份**設定檔的 udb 捕捉在 closure 裡，
+-- 換過去之後那些 closure 還在寫舊表 —— 症狀是「切了設定檔，面板上的數字沒變，
+-- 而且一動就改到舊的那份」。全部丟掉重建。
+ns.RegisterCallback("ProfileChanged", "unitTabPanels", function()
+    for id, p in pairs(panels) do
+        p.frame:Hide()      -- frame 無法銷毀，丟參照＋藏起來
+        panels[id] = nil
+    end
+    if tab and tab:IsShown() and currentUnit then
+        ShowPanel(currentUnit, currentElement)
+    end
+end)
+
 ns.RegisterCallback("SettingsApplied", "unitTabPanels", function(unitKey)
     local p = panels[unitKey .. "/texts"]
     if not p then return end

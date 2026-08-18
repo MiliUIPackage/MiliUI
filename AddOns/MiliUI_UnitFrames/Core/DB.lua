@@ -773,10 +773,24 @@ function DB.Init()
     db.profiles[name] = db.profiles[name] or {}
 
     local defaults = DB.BuildDefaults()
-    MergeDefaults(db.profiles[name], { global = defaults.global, units = defaults.units })
     MergeDefaults(db, { minimap = defaults.minimap, optionsWindow = defaults.optionsWindow })
+    return DB.Activate(name)
+end
 
-    local p = db.profiles[name]
+------------------------------------------------------------
+-- 啟用一份設定檔
+--
+-- 補齊預設值 → 重指 ns.db → 記下名字。登入與換設定檔走同一支，兩條路不會漂掉。
+--
+-- ⚠ MergeDefaults 一定要在這裡跑，不能只在登入時對「目前這一份」跑：別份設定檔
+-- 可能是在某個鍵加進 BuildDefaults **之前**建立的，直接切過去會缺鍵。
+------------------------------------------------------------
+function DB.Activate(name)
+    local db = MiliUI_UnitFrames_DB
+    local p = db.profiles and db.profiles[name]
+    if not p then return nil end
+    local defaults = DB.BuildDefaults()
+    MergeDefaults(p, { global = defaults.global, units = defaults.units })
     ns.db = { global = p.global, units = p.units,
               minimap = db.minimap, optionsWindow = db.optionsWindow }
     ns.profileName = name
@@ -854,11 +868,78 @@ function DB.ListProfiles()
     return out
 end
 
+------------------------------------------------------------
+-- 換設定檔
+--
+-- 以前一律 ReloadUI，理由是「uf.db 與設定面板都抓著舊表的參照」。那是真的，
+-- 但參照可以重新指過去（ns.RebindProfile），不必整個重載。
+--
+-- ⚠⚠ 只有一種情況非重載不可：**兩份設定檔「啟用的單位」不一樣**。
+-- Core/HideBlizzard.lua 是**單向**的 —— 它把暴雪的框 reparent 進隱藏容器並解掉事件，
+-- 沒有還原路徑。所以：
+--   切到「停用了某個單位」的設定檔 → 我們的框藏起來、暴雪的框仍然藏著 ⇒ 那一格全空
+--   切到「多啟用一個單位」的設定檔 → 沒重跑 HideBlizzard ⇒ 兩個框疊在一起
+-- 這兩種只有重載乾淨。其餘（純版面／顏色／文字差異）一律走即時切換。
+------------------------------------------------------------
+local function EnabledUnitSet(profile)
+    local set = {}
+    for key, udb in pairs((profile or {}).units or {}) do
+        if type(udb) == "table" and udb.enabled then set[key] = true end
+    end
+    return set
+end
+
+-- 切到 name 需不需要重載。Tab_Share 拿它決定確認視窗要怎麼寫。
+-- ⚠ 自己補預設值再比：設定面板會在 SwitchProfile **之前**問這支，而目標設定檔
+-- 可能是在某個鍵加進 BuildDefaults 之前建立的 —— 缺鍵會被誤判成「這個單位沒啟用」，
+-- 於是每次切換都說要重載。補一次是冪等的，只是多算一份預設值，很便宜。
+function DB.WouldReload(name)
+    local db = MiliUI_UnitFrames_DB
+    local target = db and db.profiles and db.profiles[name]
+    if not target then return true end
+    local defaults = DB.BuildDefaults()
+    MergeDefaults(target, { global = defaults.global, units = defaults.units })
+    local current = db.profiles[ns.profileName]
+    if not current then return true end
+    local a, b = EnabledUnitSet(current), EnabledUnitSet(target)
+    for k in pairs(a) do if not b[k] then return true end end
+    for k in pairs(b) do if not a[k] then return true end end
+    return false
+end
+
+-- 戰鬥中兩條路都不該走（spawn／SetParent 受保護，ReloadUI 更不該在戰鬥中丟）。
+-- 整個延後，不做「一半即時一半排隊」——那會留下難推理的中間狀態。
+local pendingProfile
+local profileWatcher = CreateFrame("Frame")
+profileWatcher:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    local name = pendingProfile
+    pendingProfile = nil
+    if name then DB.SwitchProfile(name) end
+end)
+
 function DB.SwitchProfile(name)
     local db = MiliUI_UnitFrames_DB
     if not (db.profiles and db.profiles[name]) then return false end
-    db.profileKeys[CharKey()] = name
-    ReloadUI()
+    -- 先補滿目標的預設值：WouldReload 要拿 enabled 比較，缺鍵會比出假差異
+    local defaults = DB.BuildDefaults()
+    MergeDefaults(db.profiles[name], { global = defaults.global, units = defaults.units })
+
+    db.profileKeys[CharKey()] = name        -- 這一步永遠要做（重載後靠它認得回來）
+    if name == ns.profileName then return true end
+
+    if InCombatLockdown() then
+        pendingProfile = name
+        profileWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return true
+    end
+
+    if DB.WouldReload(name) then
+        ReloadUI()
+        return true
+    end
+    DB.Activate(name)
+    ns.RebindProfile()
     return true
 end
 

@@ -184,17 +184,23 @@ local function Init()
         end
         pendingSwitch = value
         if not switchConfirm then
-            switchConfirm = W.CreateConfirmPopup(ns.Options.panel, 300,
-                L["Switching profile reloads the UI. Continue?"],
+            switchConfirm = W.CreateConfirmPopup(ns.Options.panel, 300, "",
                 function() if pendingSwitch then ns.DB.SwitchProfile(pendingSwitch) end end)
         end
+        -- 大多數切換是即時的；只有「兩份設定檔啟用的單位不一樣」才需要重載
+        -- （暴雪原生框藏了就還不回來，見 Core/DB.lua 的 SwitchProfile）。
+        -- 訊息要在**顯示前**才決定，彈窗是重用的。
+        switchConfirm.text:SetText(ns.DB.WouldReload(value)
+            and L["This profile turns different unit frames on or off, so the UI has to reload. Continue?"]
+            or L["Switch profile? This applies right away, no reload needed."])
         switchConfirm:Show()
     end)
     profDD:SetPoint("TOPLEFT", 12, -68)
     profDD:SetSelectedValue(ns.profileName)
     profDD.text:SetText(ProfileLabel(ns.profileName))
 
-    -- 新建／複製：兩者都是「建立後立刻切過去」，切換本身會重載
+    -- 新建／複製：兩者都是「建立後立刻切過去」。新設定檔是從預設值或現有那份複製來的，
+    -- 啟用的單位跟目前這份一樣 ⇒ SwitchProfile 會走即時切換，不會重載。
     local function Make(copyFrom)
         local name = nameBox:GetText()
         local ok, why = ns.DB.CreateProfile(name, copyFrom)

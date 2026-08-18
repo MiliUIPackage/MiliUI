@@ -344,6 +344,40 @@ function ns.SpawnUnitFrame(unit)
 end
 
 ------------------------------------------------------------
+-- 換設定檔之後把活著的東西重新指到新表上
+--
+-- `ns.db` 由 DB.Activate 換掉了，這裡負責的是「還抓著舊表參照的人」。
+-- 逐一盤點過的清單（改動這個插件時新增任何長命的 db 參照，記得回來補）：
+--   uf.db          spawn 時存的（Core/UnitFrame.lua）→ 這裡重指
+--   預覽孿生       Options/Preview.lua 自己存一份 → 它訂閱 SettingsApplied，
+--                  下面的 ApplySettings 會帶它重指，不必特別處理
+--   設定面板       Options/Tab_Unit.lua 的 panels 快取把 udb 捕捉在 ctx 的 closure
+--                  裡，而它只在「文字條目數變了」時才丟快取 → 訂閱 ProfileChanged
+--   其餘分頁       Tab_General／Tab_Resource／Tab_Totem 都是每次現查 ns.db，安全
+--   圖騰           Totems 的 GetDB() 也是現查，安全
+--
+-- ⚠ 這支**不處理「啟用的單位集合變了」**——那種情況 DB.SwitchProfile 會改走
+-- ReloadUI，理由見那裡（HideBlizzard 是單向的）。
+------------------------------------------------------------
+function ns.RebindProfile()
+    for _, uf in pairs(ns.frames) do
+        uf.db = ns.GetUnitDB(uf.unitKey)
+    end
+    ns.Fire("ProfileChanged")
+    -- 每個 unitKey 重套一次（ApplySettings 內含 BuildElements ＋ 全量重畫，
+    -- 並且會 Fire SettingsApplied 帶動預覽與顯示條件）。boss1-5 共用一個 key，去重。
+    local seen = {}
+    for _, unit in ipairs(ns.UNITS) do
+        local key = ns.UNIT_KEYS[unit]
+        if key and not seen[key] then
+            seen[key] = true
+            ns.ApplySettings(key)
+        end
+    end
+    if ns.TotemsApplySettings then ns.TotemsApplySettings() end
+end
+
+------------------------------------------------------------
 -- 設定套用入口（設定 UI 唯一入口；戰鬥中排隊）
 ------------------------------------------------------------
 local pendingApply = {}
