@@ -932,7 +932,24 @@ local function Icons_SetNumPerLine(icons, numPerLine)
     end
 end
 
+-- ⚠ Every legacy *_SetOrientation branches on these four strings with NO else, so an
+-- unrecognised value leaves point1 nil and the next P.Point() throws
+-- "Frame:SetPoint(): Usage:" -- the whole frame goes down instead of the layout degrading.
+-- Reachable in practice: an indicator string imported from another Cell build, a layout saved
+-- while an option existed that no longer does, or a hand-edited SavedVariables.
+-- `default` exists because not every consumer supports all four (QuickAssist's bars are
+-- vertical-only, so left-to-right would be just as nil-producing there).
+local VALID_ORIENTATIONS = {
+    ["left-to-right"] = true, ["right-to-left"] = true,
+    ["top-to-bottom"] = true, ["bottom-to-top"] = true,
+}
+function I.SafeOrientation(orientation, default)
+    if VALID_ORIENTATIONS[orientation] then return orientation end
+    return default or "left-to-right"
+end
+
 local function Icons_SetOrientation(icons, orientation)
+    orientation = I.SafeOrientation(orientation)
     icons.orientation = orientation
 
     local anchor = icons:GetPoint()
@@ -2058,6 +2075,7 @@ local function QuickAssistBars_SetSize(bars, width, height)
 end
 
 local function QuickAssistBars_SetOrientation(bars, orientation)
+    orientation = I.SafeOrientation(orientation, "top-to-bottom")
     local point1, point2, offset
     if orientation == "top-to-bottom" then
         point1 = "TOPLEFT"

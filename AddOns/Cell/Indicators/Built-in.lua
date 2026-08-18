@@ -114,6 +114,7 @@ function I.Cooldowns_UpdatePixelPerfect(self)
 end
 
 function I.Cooldowns_SetOrientation(self, orientation)
+    orientation = I.SafeOrientation(orientation)
     local point1, point2, x, y
 
     if orientation == "left-to-right" then
@@ -155,6 +156,7 @@ function I.Cooldowns_SetOrientation(self, orientation)
 end
 
 function I.Cooldowns_SetOrientation_WithSpacing(self, orientation)
+    orientation = I.SafeOrientation(orientation)
     local point1, point2, x, y
 
     if orientation == "left-to-right" then
@@ -657,6 +659,7 @@ end
 
 --! NOTE: SetPoint must be invoked before SetOrientation
 local function Debuffs_SetOrientation(self, orientation)
+    orientation = I.SafeOrientation(orientation)
     self.orientation = orientation
     local point1, point2, v, h
     v = self.vAlignment == "CENTER" and "" or self.vAlignment
@@ -996,6 +999,7 @@ end
 
 --! SetSize must be invoked before this
 local function Dispels_SetOrientation(self, orientation)
+    orientation = I.SafeOrientation(orientation)
     self._orientation = orientation
     local point, x, y
     if orientation == "left-to-right" then
