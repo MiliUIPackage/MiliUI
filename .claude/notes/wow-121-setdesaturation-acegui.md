@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-10T03:46:06.403Z
+  modified: 2026-08-16T21:37:33.925Z
 ---
 
 12.1 把全域函式 **`SetDesaturation(texture, desaturate)`** 從 FrameXML 移除了（見 `Patch_12.1.0/API_changes` 的 FrameXML Removed 清單）。
@@ -58,5 +58,26 @@ end
 
 **通則**：看到 `attempt to call a nil value` 指向某個函式庫裡一行大寫開頭的舊全域，
 先去 `Blizzard_SharedXMLBase/` 找同名的 `XxxUtil.<Name>`，多半只是被收進表裡。
+
+### 自己要寫逐格動畫：用 FlipBook，不要用 AnimateTexCoords
+
+補全域只是讓舊函式庫別炸。新程式一律走 `AnimationGroup:CreateAnimation("FlipBook")`
+（C 端跑，不吃 OnUpdate）：`SetChildKey`／`SetDuration`／`SetFlipBookRows`／
+`SetFlipBookColumns`／`SetFlipBookFrames`，frame 寬高填 0 就由列行數自動推算。
+
+現成可抄的素材——暴雪玩家框的休息 zzZ（`PlayerFrame.PlayerRestLoop`）：
+atlas `UI-HUD-UnitFrame-Player-Rest-Flipbook`，7 列 6 行共 42 格，1.5 秒 REPEAT，
+貼圖四周有留白（暴雪把 30×30 塞進 20×20 的框，約放大 1.5 倍才跟靜態圖示一樣醒目）。
+MiliUI_UnitFrames `Elements/Icons.lua` 的 status 圖示就是這樣接的。
+`ag:Stop()` 會把 texcoord 留在最後一格，切回靜態貼圖一定要重設 `SetTexture` + `SetTexCoord`。
+
+同一套的戰鬥圖示是 `UI-HUD-UnitFrame-Player-CombatIcon`（`PlayerFrame` 的 `AttackIcon`），
+16×16、另有 `-2x` 高解版，`SetAtlas` 會自己挑所以放大不糊。舊的
+`Interface\CharacterFrame\UI-StateIcon`（左半 zzZ、右半刀劍）留白很兇，同樣框大小只有
+一半看得到圖——「圖示看起來超小」多半是這個原因，換 HUD atlas 就解決。
+
+**查 atlas 實際尺寸**：wago.tools 的 `UiTextureAtlasMember`，用 `filter[CommittedName]` 前綴查，
+回傳 Width/Height。例：`curl -s -G https://wago.tools/db2/UiTextureAtlasMember/csv --data-urlencode
+"filter[CommittedName]=UI-HUD-UnitFrame-Player-"`。同 [[wow-find-creature-displayid]] 的路子。
 
 相關：[[project-121-addon-migration]]

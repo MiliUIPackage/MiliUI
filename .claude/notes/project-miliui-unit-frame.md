@@ -46,13 +46,22 @@ B 整合條/C 冷卻環待選）。
 「開啟頭像框架設定」按鈕（呼叫全域 `MiliUI_OpenUnitFrameSettings()`）。
 
 **DB 遷移狀態**：2026-08-16 曾把開發期累積的 v2–v14 遷移全部清空、`DB_VERSION` 歸 1；
-之後又長出新的，**現況是 `DB_VERSION = 4`**（v2 單一設定→具名設定檔、v3 觀察按鈕樣式改名、
-v4 觀察按鈕預設改純放大鏡）。機制不變（`DB.Migrate` 版本閘鏈＋`DB.EachElement(db, name, fn)` 工具；
-`DB.Init` 有 downgrade clamp）。
-⚠ **`Share.Import` 不會觸發遷移**（2026-08-17 體檢發現，未修）：帳號層的 `schemaVersion` 還是新的，
-匯入舊版字串後版本閘不成立 → v3/v4 遷移永遠不跑。修法是匯入時把 `db.schemaVersion` 一起降到
-`data.schemaVersion`（遷移有值閘，對其他設定檔冪等）。**發佈後改預設值才需要寫遷移**；發佈前直接改預設、
-使用者用「恢復預設」或 `/muf reset` 吃新值。遷移原則不變：版本閘＋值閘，只動仍等於舊預設的欄位。
+之後又長出新的，**現況是 `DB_VERSION = 5`**（v2 單一設定→具名設定檔、v3 觀察按鈕樣式改名、
+v4 觀察按鈕預設改純放大鏡、v5 施法條配色對齊 Platynator）。
+`DB.Init` 有 downgrade clamp，`DB.EachElement(db, name, fn)` 是走訪工具。
+
+⚠⚠ **「改了預設值卻沒生效」的根因：`MergeDefaults` 只補 `nil`。** 舊設定檔裡那個鍵早就有值
+（就是舊預設），改 `BuildDefaults` 對已經玩過的人等於白改。所以**發佈後**改任何預設值都要配
+一條遷移；發佈前才可以直接改、叫使用者 `/muf reset`。
+遷移的兩道閘缺一不可：**版本閘**（只跑一次）＋**值閘**（只動「還等於舊預設」的欄位，
+使用者自己調過的一個都不碰）。v5 的 `repaint(key, 舊rgb, 新rgb)` 就是值閘的樣板。
+
+⚠ **遷移分帳號層與設定檔層兩種，不能混。**（2026-08-17 發現 `Share.Import` 不觸發遷移，
+2026-08-18 修完）匯入字串帶著**自己的** `schemaVersion`，可能比目前舊。那一份要補遷移，
+但**不能把帳號層的 `schemaVersion` 降下去** —— 那會讓遷移在**所有**設定檔上重跑一次，
+而 v4 那步會把別人刻意選的「觀察者」圖示改成「放大鏡」。**症狀出現在完全沒被匯入的那份設定檔上**，
+非常難聯想。正解是拆成 `DB.Migrate`（帳號層，改 SV 結構本身）與 `PROFILE_MIGRATIONS` +
+`DB.MigrateProfile(profile, fromVersion)`（設定檔層，只補一份），`Share.Import` 只呼叫後者。
 **陷阱記錄**：Api.lua 在 TOC 最後載入，`ns.OpenOptions` 必須寫成委派（曾直接定義而蓋掉 Panel 的實作）。
 Preview 有引用計數（options/editmode 兩個使用者），最後一個關閉才 RestoreReal。
 **元件一定要登記 `uf.elements[name]`**——Refresh 的派發閘門靠它判斷元件存在；Texts/Icons
@@ -80,8 +89,18 @@ tag 跟血量數字一樣走 Tags 的 `\001N` 佔位符管線（kind="string"）
 **⚠ `UNIT_SPELLCAST_FAILED` 會為別的施法而發**（引導中另放技能失敗最常見：武僧柔和之霧拉線時
 放招 → 誤判成中斷紅）。兩道閘：① 只在 castState==1（施法中）才理會，引導中一律忽略；
 ② `castGUID` 要相符（`UnitCastingInfo` 第 7 個回傳，兩邊都非 secret 才比較）。Stuf 同法。
-施法條五色：施法/引導/完成/失敗/不可打斷，全域可調；`showInterruptState` 每單位決定要不要套
-「不可打斷灰＋盾牌」（玩家/寵物預設關）。
+**⚠ `UNIT_SPELLCAST_INTERRUPTIBLE` / `UNIT_SPELLCAST_NOT_INTERRUPTIBLE` 一定要註冊**：
+首領常在施法途中改可打斷狀態。少了這兩個事件，條的顏色與盾牌會停在 `StartDisplay` 那一刻
+讀到的狀態 —— 而那正是打斷職業最需要看的那一格資訊。
+施法條配色（2026-08-18）**整組對齊 MiliUI 內建的 Platynator 名條預設**，理由是名條與頭像框
+同時在畫面上、同一個施法狀態卻不同色最難讀；來源是 `MiliUI/Config/Luxthos_Platynator.lua`
+的 `autoColors`。⚠ 換色要**整組一起換**：Platynator 的「斷法就緒」琥珀 `1/0.741/0` 跟舊的
+一般施法 `1/0.7/0` 幾乎一樣，只改其中一個會讓兩個狀態分不出來。
+色階（全域可調）：施法/引導/賦能/完成/失敗/不可打斷/斷法就緒/重要法術；
+`showInterruptState`（不可打斷灰＋盾牌）、`showInterruptReady`、`showImportantCast`
+每單位開關，玩家與寵物預設關（自己的施法沒有「能不能被斷」「重不重要」的意義）。
+`classColorBar` 讓施法/引導/賦能共用單位職業色（玩家框預設開，整個框只剩一個色調）；
+只換底色，重要法術／斷法就緒／不可打斷該疊照疊。疊色靠曲線串接，見 [[wow-121-secret-values]]。
 **PlayerModel:SetUnit 拿不到模型會退回玩家自己**（副本實測：點屍體／受限身分的活怪 3D 頭像都變成自己）：
 不可見、屍體淡出、12.1 受限身分（`IsSecret(UnitName(unit))` 是直接探針）三種都會。
 Portrait 的守則（使用者定案）：先探針 → 拿不到就**什麼都不畫**（不退 2D，明確選 2D 模式才畫）；
@@ -103,10 +122,16 @@ overlay 往右延伸被裁掉才蓋不到外框；邊框層級 = 元件層級 +1
 治療預估預設**跟血條同色 0.35 alpha**（`healPredictionFollowBar`），突兀的綠會被使用者嫌。
 **HealPredictionCalculator 對敵對單位的預估值不可信**（副本實測：連死掉的怪都整條滿，把扣血區
 染成粉紫）——治療預估 overlay 只對 `cache.assist` 的單位畫。吸收盾照 Platynator 12.1 名條的設定
-（只設 `SetDamageAbsorbClampMode(MaximumHealth)`、不碰 HealAbsorbClampMode、healer 參數 nil）敵我都畫；
+（只設 `SetDamageAbsorbClampMode(MaximumHealth)`、不碰 HealAbsorbClampMode）敵我都畫；
+⚠ **healer 參數後來確定不能傳 nil，一定是 `"player"`** —— 照抄 Platynator 的 nil 會讓
+`GetHealAbsorbs()` 回垃圾、把血條鋪滿紅條紋，見 [[wow-121-absorb-shield-secret]]；
 之前那次「藍灰滿條」是在我多呼叫 `SetHealAbsorbClampMode(1)` 的設定下發生的，改 Platy 設定後**待驗證**。
 Platy 是 `SetMaximumHealthMode(WithAbsorbs)`（條被吸收撐長的名條風格），我們保持預設（暴雪頭像框風格）。
 **後續實測 Platy 設定敵人吸收也是垃圾滿條 → 吸收/預估 overlay 一律只畫 assist 單位（定案）。**
+2026-08-18 補上**吸收盾獨立細條**（血條上/下一條細條，跟疊在血量上的那層互不相干、可同時開；
+滿血又有大盾時疊加層會把整條染白，這條讓血量保持可讀）。它**故意放在 assist 閘之外** ——
+只用 `UnitGetTotalAbsorbs`，那是直接 API，沒有計算器對敵對單位那道垃圾值問題，
+所以這是目前唯一能顯示**敵人身上的盾**的路。預設關。
 **跟進 Cell（2026-08-16）**：治療預估用**獨立計算器** `SetIncomingHealClampMode(0)`+`SetIncomingHealOverflowPercent(1.0)`
 （Cell 怕 clamp 污染共用那顆）；吸收盾改用暴雪條紋貼圖 `Interface\RaidFrame\Shield-Fill`；新增**治療吸收條**
 （`calc:GetHealAbsorbs()`，紅條紋、右緣釘血量前緣反向填充往左吃，暴雪 myHealAbsorb 同向）。

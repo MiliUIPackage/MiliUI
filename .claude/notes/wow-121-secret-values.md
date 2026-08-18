@@ -53,3 +53,47 @@ bar:SetValue(calc:GetHealAbsorbs())     -- ⚠ 實際上是 SetValue(量, isClam
 **追秘密值的正確工具**:秘密值**畫得出來、讀不進來**——`SetFormattedText` 是 C 端函式吃得下
 秘密值,把數字寫進 FontString 顯示在畫面上就看得到實際大小(`/muf secret` 就是這樣做的)。
 `tostring`/比較/算術一律不行。
+
+## 秘密值下的通則：**當傳遞者，不當讀取者**
+
+拿到一個秘密的「身分」（spellID、auraInstanceID…）不代表功能就做不了。很多時候
+**根本不需要知道它是什麼** —— 原封不動交回給另一支 C 端函式，查表由暴雪那邊做。
+
+實例：施法條的「重要法術」染色。
+
+```lua
+local spellID = UnitCastingInfo(unit)[9]     -- 可能是秘密值
+if spellID == nil then return end            -- 只比 nil，不讀值
+local isImportant = C_Spell.IsSpellImportant(spellID)   -- 轉交，不讀
+Eval(isImportant, 重要色, 原色)               -- 回來還是秘密布林，照舊只餵曲線
+```
+
+Platynator 的 `Display/Colors.lua` 就是這樣做的，而且**它沒有維護任何法術清單** ——
+判定完全是暴雪的 `C_Spell.IsSpellImportant`。看到「別的插件做得到，那它一定有一張表」
+先別下結論，多半是有一支對應的 C API。
+
+⚠ 這條的界線在 [[wow-121-duration-objects]]：圖騰槽做不到，是因為**沒有**一支
+「吃 secret spellID 回你要的東西」的 API，不是因為身分是秘密。差別在有沒有那支 API。
+
+## 曲線可以**串接**
+
+`C_CurveUtil.EvaluateColorValueFromBoolean` 的回傳（秘密數字）可以直接當**下一次**
+呼叫的參數，一層層疊上去做優先序。Platynator 的 `SplitEvaluate` + `colorQueue`
+整套就是這樣跑的（逐色道各跑一次，前一輪結果當下一輪的 whenFalse），已上線驗證。
+
+所以「不可打斷 > 斷法就緒 > 重要法術 > 一般」這種多層優先序在秘密值下做得出來，
+不必退化成只顯示一種狀態。
+
+## 上色一律走貼圖的 `SetVertexColor`，不要用 `SetStatusBarColor`
+
+只要顏色分量**可能是秘密數字**（最常見的來源：`C_ClassColor.GetClassColor(secretClassFile)`，
+或 `EvaluateColorValueFromBoolean` 算出來的結果），就不能指望 `StatusBar:SetStatusBarColor`
+吃得下 —— 它沒有保證。
+
+```lua
+bar:GetStatusBarTexture():SetVertexColor(r, g, b, a)   -- 貼圖層的 setter，吃得下秘密分量
+```
+
+MiliUI_UnitFrames 的血條、能量條、預估條一開始就是這樣寫的；2026-08-18 施法條加「職業色
+填充」時，因為職業色可能是秘密分量，也一併收斂成同一支 `SetBarColor`。
+明文全域色（打斷紅、淡出色）留用原本的 setter 沒差，但統一走一支比較不會忘。

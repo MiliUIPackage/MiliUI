@@ -21,12 +21,37 @@ cooldown:SetHideCountdownNumbers(false)              -- 讓引擎畫數字
 
 過期不必自己算：`cooldown:SetScript("OnCooldownDone", …)`。**輪詢的 ticker 可以整個拿掉。**
 
-## ⚠ 絕對不要讀回來
+## ⚠ 「取得」可以，「測試」不行
 
-`duo:IsZero()`、`duo:GetTotalDuration()` 這類 getter 回的是**秘密值**，一做布林測試或
-算術就炸。Plumber 的 `Modules/Shared/CooldownUtil.lua` 把整段 CreateDuration 註解掉並
-標「Unusable in combat」—— 踩到的是 `IsZero()`，**不是** `SetTimeFromStart`。
+`duo:IsZero()`、`duo:GetTotalDuration()` 這類 getter 回的是**秘密值**。關鍵分界是：
+
+```lua
+local zero = dur:IsZero()      -- ✅ 取得，沒問題
+if dur:IsZero() then ... end   -- ❌ 布林測試，當場炸
+```
+
+Plumber 的 `Modules/Shared/CooldownUtil.lua` 把整段 CreateDuration 註解掉並標
+「Unusable in combat」—— 踩到的是 `IsZero()` 的**測試**，**不是** `SetTimeFromStart`。
 分清楚這件事才知道這條路其實可以走。
+
+取得之後照 [[wow-121-secret-values]] 的「當傳遞者，不當讀取者」用掉就好：
+
+```lua
+local dur = C_Spell.GetSpellCooldownDuration(spellID)   -- 引擎給的物件
+Eval(dur:IsZero(), 就緒色, 原色)                          -- 秘密布林直接餵曲線
+```
+
+Platynator 的 `Display/Utilities.lua` 用同一套做 CastBar 的打斷標記；
+MiliUI_UnitFrames 的 `Core/Interrupt.lua`（斷法就緒染色）跟著抄。
+
+### 回秘密布林的函式要多回一個**明文**旗標
+
+自己包一層 `IsReady()` 之類的函式時，呼叫端一定會想知道「這次到底有沒有拿到值」。
+如果只回一個值、讓呼叫端寫 `if ready == nil then`，那是拿秘密布林做**比較** —— 秘密布林
+連布林測試都不准，比較更不用說，等於把炸點推給呼叫端。
+
+慣例：`return ready, has` —— `ready` 可能是秘密布林（只准往下餵曲線），
+`has` 由函式內部用明文算好（`pcall` 成不成功、spellID 有沒有），呼叫端只判斷 `has`。
 
 ## ⚠⚠ 自己建的那顆**餵不進秘密值**（2026-08-18 實測）
 

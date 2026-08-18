@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 370815d0-9f01-4f66-b973-db047100add7
-  modified: 2026-08-16T20:49:46.572Z
+  modified: 2026-08-16T21:22:41.665Z
 ---
 
 https://github.com/NeeRgY/Cell —— 血統是 enderneko → jdtoppin → krysiolol → NeeRgY，基底停在
