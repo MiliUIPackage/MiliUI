@@ -40,10 +40,11 @@ end
 -- 是 C 端函式、吃得下秘密值 —— 也就是說「畫在螢幕上」是合法的，只有「讀進 Lua」不行。
 -- 疊加層爆條這類問題只能靠這個看實際數字。
 ------------------------------------------------------------
+local READOUT_LINES = 22
+
 local function ShowSecretReadout()
-    local uf = ns.frames.player
-    local calc = uf and uf.hpCalc
-    if not (calc and UnitGetDetailedHealPrediction) then
+    local pf = ns.frames.player
+    if not (pf and pf.hpCalc and UnitGetDetailedHealPrediction) then
         print("|cff4DD2FF[米利頭像]|r 沒有玩家框或計算器，讀不了")
         return
     end
@@ -51,41 +52,166 @@ local function ShowSecretReadout()
     local f = ns.secretReadout
     if not f then
         f = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
-        f:SetPoint("CENTER", UIParent, "CENTER", 0, 220)
-        f:SetSize(420, 152)
+        f:SetPoint("CENTER", UIParent, "CENTER", 0, 160)
+        f:SetSize(460, 16 + READOUT_LINES * 19)
         f:SetFrameStrata("DIALOG")
         f:SetBackdrop({ bgFile = ns.Media.WHITE8X8, edgeFile = ns.Media.WHITE8X8, edgeSize = 1 })
         f:SetBackdropColor(0, 0, 0, 0.9)
         f:SetBackdropBorderColor(0.3, 0.8, 1, 1)
         f.lines = {}
-        for i = 1, 7 do
+        for i = 1, READOUT_LINES do
             local fs = f:CreateFontString(nil, "OVERLAY")
-            ns.Media.SetFont(fs, 13, "OUTLINE", ns.db.global.font)
-            fs:SetPoint("TOPLEFT", 10, -8 - (i - 1) * 20)
+            ns.Media.SetFont(fs, 12, "OUTLINE", ns.db.global.font)
+            fs:SetPoint("TOPLEFT", 10, -8 - (i - 1) * 19)
             fs:SetJustifyH("LEFT")
             f.lines[i] = fs
         end
         ns.secretReadout = f
     end
 
-    UnitGetDetailedHealPrediction("player", "player", calc)
-    local L = f.lines
-    local function put(i, fmt, v)
-        if not pcall(L[i].SetFormattedText, L[i], fmt, v) then
-            L[i]:SetText(fmt:gsub("%%d", "?"))
+    local L, n = f.lines, 0
+    local function line(text)
+        n = n + 1
+        if L[n] then L[n]:SetText(text) end
+    end
+    -- 秘密數字只能交給 C 端格式化，不能自己串字串
+    local function put(fmt, v)
+        n = n + 1
+        local fs = L[n]
+        if not fs then return end
+        if not pcall(fs.SetFormattedText, fs, fmt, v) then
+            fs:SetText((fmt:gsub("%%d", "?")))
         end
     end
-    L[1]:SetText("|cff4DD2FF玩家秘密值（畫得出來、讀不進來）|r")
-    put(2, "最大血量        = %d", calc:GetMaximumHealth())
-    put(3, "目前血量        = %d", calc:GetCurrentHealth())
-    put(4, "治療吸收 calc   = %d", calc:GetHealAbsorbs())
-    put(5, "治療吸收 全域   = %d", UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs("player") or 0)
-    put(6, "吸收盾 全域     = %d", UnitGetTotalAbsorbs and UnitGetTotalAbsorbs("player") or 0)
-    put(7, "治療預估 calc   = %d", calc:GetIncomingHeals())
+
+    ------------------------------------------------------------
+    -- ⚠⚠ 哪幾對「應該相等」是這張表的重點，標錯會讓人誤判：
+    --
+    --   血量兩對   **必須相等**。血條目前走計算器，而我們沒設任何 clamp mode
+    --              ⇒ 等價。這就是體檢 P1「能不能改走全域 API」的判準。
+    --   吸收盾兩行 **本來就不相等**。calc 的是「已裁切到剩餘血量」的量（滿血時是 0），
+    --              全域的是未裁切總量 —— Health.lua 正是因為這個差異才餵全域那顆。
+    --   治療吸收   **也不該拿來比**。calc 版在 12.1 回垃圾（無 debuff 卻填滿條），
+    --              所以我們走全域。留在這裡只是為了看它到底回什麼。
+    ------------------------------------------------------------
+    local function block(unit, ufr)
+        local c = ufr and ufr.hpCalc
+        if not c then line("   |cff888888（沒有框或計算器）|r"); return end
+        UnitGetDetailedHealPrediction(unit, "player", c)
+        put("  最大血量 calc      = %d", c:GetMaximumHealth())
+        put("  最大血量 全域      = %d", UnitHealthMax(unit))
+        put("  目前血量 calc      = %d", c:GetCurrentHealth())
+        put("  目前血量 全域      = %d", UnitHealth(unit))
+        -- ⚠ 第二個回傳是 isClamped（秘密布林），一定要先落地成單一變數
+        local dmgAbsorb = c:GetDamageAbsorbs()
+        put("  |cff888888吸收盾 calc（裁切後）= %d|r", dmgAbsorb)
+        put("  |cff888888吸收盾 全域（未裁切）= %d|r",
+            UnitGetTotalAbsorbs and UnitGetTotalAbsorbs(unit) or 0)
+        put("  |cff888888治療吸收 calc（不可信）= %d|r", c:GetHealAbsorbs())
+        put("  |cff888888治療吸收 全域        = %d|r",
+            UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs(unit) or 0)
+    end
+
+    for i = 1, READOUT_LINES do if L[i] then L[i]:SetText("") end end
+    line("|cff4DD2FF秘密值讀出板|r  白字兩兩必須相等（P1 判準）；灰字本來就不相等")
+    line("|cff4DD2FF玩家|r")
+    block("player", pf)
+    line(" ")
+    local tf = ns.frames.target
+    if UnitExists("target") and tf and tf.hpCalc then
+        -- assist 是明文（Cache 消毒過）。計算器對「不可協助」的單位回垃圾是已知的，
+        -- 標出來才不會把那個已知問題誤認成 P1 的阻礙
+        line(("|cff4DD2FF目標|r（可協助=%s%s）"):format(
+            tostring(tf.cache and tf.cache.assist),
+            (tf.cache and tf.cache.assist) and "" or "|cffff8800 ← 疊加層數值本來就不可信|r"))
+        block("target", tf)
+    else
+        line("|cff888888目標：沒有目標，或目標框沒生成／沒開血條|r")
+    end
     f:Show()
-    C_Timer.After(20, function() f:Hide() end)
+    C_Timer.After(30, function() f:Hide() end)
 end
 ns.ShowSecretReadout = ShowSecretReadout
+
+------------------------------------------------------------
+-- /muf bench：量「該不該為了省成本改寫」的成本
+--
+-- 體檢的 P1／P3 卡在同一個問題：那條路徑到底貴不貴？沒有數字就只能猜，
+-- 而猜錯的代價是「為了奈秒級的差異多開一個分支、多一個要維護的錯誤面」。
+--
+-- ⚠ `debugprofilestop` 的解析度是**毫秒**，所以一定要跑很多次再除 —— 量單次得到 0。
+-- ⚠ 這是**微基準**：量的是單一 API 的呼叫成本，回答得了「A 是不是比 B 貴很多」，
+--   回答不了「它佔實際幀時間多少」。後者要開 scriptProfile CVar 看整個插件的 CPU，
+--   那是另一件事，別拿這裡的數字去講那個結論。
+-- ⚠ 兩邊都包在一層 Lua 函式呼叫裡，所以**絕對值偏高、倍率才是可信的**。
+------------------------------------------------------------
+local BENCH_N = 5000
+
+local function BenchRun(fn)
+    fn()                       -- 暖機：第一次呼叫常含一次性成本
+    debugprofilestart()
+    for _ = 1, BENCH_N do fn() end
+    return debugprofilestop()
+end
+
+local function BenchReport(p, nameA, a, nameB, b)
+    p(("   %-16s %8.3f ms  %7.4f µs/次"):format(nameA, a, a * 1000 / BENCH_N))
+    p(("   %-16s %8.3f ms  %7.4f µs/次"):format(nameB, b, b * 1000 / BENCH_N))
+    if b <= 0 then p("   → 分母是 0，量不出倍率（跑更多次再試）"); return end
+    local ratio = a / b
+    p(("   → 倍率 %.2f×  %s"):format(ratio, ratio < 2
+        and "|cff888888低於 2× —— 不值得為它多開一個分支|r"
+        or  "|cffffbb00值得考慮|r"))
+end
+
+local function Bench()
+    local p = print
+    if not (debugprofilestart and debugprofilestop) then
+        p("|cff4DD2FF[米利頭像]|r 這個客戶端沒有 debugprofilestart／stop，量不了")
+        return
+    end
+    p(("|cff4DD2FF[米利頭像 bench]|r 每項 %d 次；倍率可信、絕對值偏高（見原始碼註解）"):format(BENCH_N))
+
+    ------------------------------------------------------------
+    -- P1：血條的兩條路。沒設任何 clamp mode ⇒ 兩者理論上等價
+    -- （等不等價用 /muf secret 的讀出板對數字，這裡只量成本）
+    ------------------------------------------------------------
+    local calc = ns.frames.player and ns.frames.player.hpCalc
+    if calc and UnitGetDetailedHealPrediction then
+        p("  P1 血條取值：")
+        local a = BenchRun(function()
+            UnitGetDetailedHealPrediction("player", "player", calc)
+            local _ = calc:GetMaximumHealth()
+            local _ = calc:GetCurrentHealth()
+        end)
+        local b = BenchRun(function()
+            local _ = UnitHealthMax("player")
+            local _ = UnitHealth("player")
+        end)
+        BenchReport(p, "計算器", a, "全域 API", b)
+    else
+        p("  P1：沒有玩家框或計算器，跳過")
+    end
+
+    ------------------------------------------------------------
+    -- P3：職業色的慢路。只有 cache 沒有明文 classFile（受限身分單位）才會走到，
+    -- 所以這個數字要在副本／戰場裡量才代表實際情況。
+    ------------------------------------------------------------
+    local GCC = C_ClassColor and C_ClassColor.GetClassColor
+    if GCC and UnitExists("target") then
+        p("  P3 職業色（慢路 vs 查表）：")
+        local a = BenchRun(function()
+            local raw = UnitClassBase("target")
+            if raw ~= nil then pcall(GCC, raw) end
+        end)
+        local b = BenchRun(function()
+            local _ = RAID_CLASS_COLORS[ns.playerClass]
+        end)
+        BenchReport(p, "UnitClassBase", a, "查表", b)
+    else
+        p("  P3：需要一個目標才量得了，跳過")
+    end
+end
 
 local function Debug()
     local p = print
@@ -590,6 +716,8 @@ SlashCmdList.MILIUIUF = function(msg)
         ShowSecretReadout()      -- 秘密數字畫在畫面上（印不出來）
     elseif msg == "secret" then
         ShowSecretReadout()
+    elseif msg == "bench" then
+        Bench()
     else
         ns.OpenOptions()
     end

@@ -366,73 +366,92 @@ local function Update(uf, edb, bucket)
             f.absorbStrip:SetMinMaxValues(0, 100); f.absorbStrip:SetValue(35); f.absorbStrip:Show()
         end
     else
-        local calc = uf.hpCalc
+        -- 治療預估／吸收盾 overlay 只對「可協助」的單位畫：計算器對敵對單位回的
+        -- 預估與吸收值都是垃圾（副本兩次實測：連 Platynator 同款設定也整條滿，
+        -- 把扣血區染成粉紫／灰藍）。敵人的護盾要顯示得另找可靠來源，不是這顆計算器。
+        local overlaysOK = uf.cache.assist
+
+        ------------------------------------------------------------
+        -- 血量本身走哪條路
+        --
+        -- 主計算器只有兩個疊加層真的需要：吸收盾要它的 `isClamped`（溢盾光暈），
+        -- 治療吸收要 `GetHealAbsorbs`。治療預估用的是**另一顆** hcalc，
+        -- 吸收盾獨立細條只用全域 API —— 兩者都不必動到這顆。
+        -- 而那兩個疊加層又都只對可協助的單位畫，所以**敵對的目標／首領框完全用不到它**。
+        --
+        -- 用不到就別叫：`UnitGetDetailedHealPrediction` ＋ 兩個 getter 實測是
+        -- 全域 `UnitHealthMax`／`UnitHealth` 的 **7.5–8 倍**（`/muf bench`，2026-08-18）。
+        -- ⚠ 兩條路等價的前提是**一個 clamp mode 都沒設**（見 EnsureCalc）。實測驗過：
+        -- 掉血到 439066／滿血 609040、身上還有 154339 的盾，calc 與全域四個數字
+        -- 完全相同（`/muf secret` 的讀出板就是為了這件事做的）。
+        -- 哪天有人給那顆計算器設 clamp，這個等價就沒了，這段要跟著改。
+        ------------------------------------------------------------
+        local needCalc = overlaysOK and (edb.showAbsorb or edb.showHealAbsorb)
+        local calc = needCalc and uf.hpCalc or nil
+        local maxHP, curHP
         if calc and UnitGetDetailedHealPrediction then
             -- ⚠ 第二個參數（healer）**一定要傳 "player"**，不能傳 nil。
             -- 原本照 Platynator 名條的寫法傳 nil，結果 `calc:GetHealAbsorbs()` 回垃圾
             -- ——沒有任何 debuff 卻把整條血條鋪滿紅條紋。同一台機器上其他團隊框同時
             -- 是正常的，差別只有這個參數。
             UnitGetDetailedHealPrediction(unit, "player", calc)
-            -- 原生 StatusBar 方法：C 端吃秘密值。絕不用 SmoothStatusBarMixin。
-            local maxHP = calc:GetMaximumHealth()
-            local curHP = calc:GetCurrentHealth()
-            f.bar:SetMinMaxValues(0, maxHP)
-            f.bar:SetValue(curHP, interp)
-            -- 治療預估／吸收盾 overlay 只對「可協助」的單位畫：計算器對敵對單位回的
-            -- 預估與吸收值都是垃圾（副本兩次實測：連 Platynator 同款設定也整條滿，
-            -- 把扣血區染成粉紫／灰藍）。敵人的護盾要顯示得另找可靠來源，不是這顆計算器。
-            local overlaysOK = uf.cache.assist
-
-            ------------------------------------------------------------
-            -- 吸收盾
-            --
-            -- ⚠⚠ **不要用 `calc:GetDamageAbsorbs()` 的第一個回傳**：那是「已裁到剩餘
-            -- 血量」的量，滿血時等於 0，護盾會整個消失（這就是
-            -- 「滿血不顯示護盾」的 bug）。要餵**未裁切**的 `UnitGetTotalAbsorbs(unit)`
-            -- ——它是秘密值，但 StatusBar:SetValue 吃得下。
-            -- 第二個回傳 `isClamped` 是秘密布林，溢出（overshield）時為真 →
-            -- 只拿來驅動光暈的 SetAlphaFromBoolean，永遠不去讀它。
-            ------------------------------------------------------------
-            if edb.showAbsorb and f.shieldbar then
-                if overlaysOK and UnitGetTotalAbsorbs then
-                    pcall(ApplyAbsorb, f, edb, calc, unit, maxHP)
-                else
-                    f.shieldbar:Hide()
-                    if f.shieldbarR then f.shieldbarR:Hide() end
-                    if f.overShieldGlow then f.overShieldGlow:Hide() end
-                    if f.overShieldGlowR then f.overShieldGlowR:Hide() end
-                end
-            end
-
-            -- 治療吸收：走計算器的 GetHealAbsorbs（每次更新前都要重灌計算器，
-            -- 我們上面那行 UnitGetDetailedHealPrediction 已經做了同一件事）
-            if edb.showHealAbsorb and f.healAbsorbBar then
-                if overlaysOK then
-                    pcall(ApplyHealAbsorb, f, calc, maxHP)
-                else
-                    f.healAbsorbBar:Hide()
-                end
-            end
-            -- 吸收盾獨立細條：故意放在 overlaysOK 之外，理由見 ApplyAbsorbStrip
-            if stripOn and f.absorbStrip and UnitGetTotalAbsorbs then
-                if not pcall(ApplyAbsorbStrip, f, unit, maxHP) then
-                    f.absorbStrip:Hide()
-                end
-            end
-            -- 治療預估（12.x Midnight 路徑）。clamp 每次都要重設，理由見
-            -- ApplyHealPrediction。全域 UnitGetIncomingHeals 是**前 Midnight**
-            -- 的舊路徑，12.x 別用。
-            if edb.showHealPrediction and f.incbar then
-                local hcalc = EnsureHealCalc(uf)
-                if overlaysOK and hcalc and UnitGetDetailedHealPrediction then
-                    pcall(ApplyHealPrediction, f, hcalc, unit)
-                else
-                    f.incbar:Hide()
-                end
-            end
+            maxHP = calc:GetMaximumHealth()
+            curHP = calc:GetCurrentHealth()
         else
-            f.bar:SetMinMaxValues(0, UnitHealthMax(unit))
-            f.bar:SetValue(UnitHealth(unit), interp)
+            calc = nil          -- 沒有 API 時也要清掉，下面用它當「能不能問計算器」的閘
+            maxHP = UnitHealthMax(unit)
+            curHP = UnitHealth(unit)
+        end
+        -- 原生 StatusBar 方法：C 端吃秘密值。絕不用 SmoothStatusBarMixin。
+        f.bar:SetMinMaxValues(0, maxHP)
+        f.bar:SetValue(curHP, interp)
+
+        ------------------------------------------------------------
+        -- 吸收盾
+        --
+        -- ⚠⚠ **不要用 `calc:GetDamageAbsorbs()` 的第一個回傳**：那是「已裁到剩餘
+        -- 血量」的量，滿血時等於 0，護盾會整個消失（這就是
+        -- 「滿血不顯示護盾」的 bug）。要餵**未裁切**的 `UnitGetTotalAbsorbs(unit)`
+        -- ——它是秘密值，但 StatusBar:SetValue 吃得下。
+        -- 第二個回傳 `isClamped` 是秘密布林，溢出（overshield）時為真 →
+        -- 只拿來驅動光暈的 SetAlphaFromBoolean，永遠不去讀它。
+        ------------------------------------------------------------
+        if edb.showAbsorb and f.shieldbar then
+            if overlaysOK and calc and UnitGetTotalAbsorbs then
+                pcall(ApplyAbsorb, f, edb, calc, unit, maxHP)
+            else
+                f.shieldbar:Hide()
+                if f.shieldbarR then f.shieldbarR:Hide() end
+                if f.overShieldGlow then f.overShieldGlow:Hide() end
+                if f.overShieldGlowR then f.overShieldGlowR:Hide() end
+            end
+        end
+
+        -- 治療吸收：走計算器的 GetHealAbsorbs（每次更新前都要重灌計算器，
+        -- 我們上面那行 UnitGetDetailedHealPrediction 已經做了同一件事）
+        if edb.showHealAbsorb and f.healAbsorbBar then
+            if overlaysOK and calc then
+                pcall(ApplyHealAbsorb, f, calc, maxHP)
+            else
+                f.healAbsorbBar:Hide()
+            end
+        end
+        -- 吸收盾獨立細條：故意放在 overlaysOK 之外，理由見 ApplyAbsorbStrip
+        if stripOn and f.absorbStrip and UnitGetTotalAbsorbs then
+            if not pcall(ApplyAbsorbStrip, f, unit, maxHP) then
+                f.absorbStrip:Hide()
+            end
+        end
+        -- 治療預估（12.x Midnight 路徑）。clamp 每次都要重設，理由見
+        -- ApplyHealPrediction。全域 UnitGetIncomingHeals 是**前 Midnight**
+        -- 的舊路徑，12.x 別用。
+        if edb.showHealPrediction and f.incbar then
+            local hcalc = EnsureHealCalc(uf)
+            if overlaysOK and hcalc and UnitGetDetailedHealPrediction then
+                pcall(ApplyHealPrediction, f, hcalc, unit)
+            else
+                f.incbar:Hide()
+            end
         end
     end
 
