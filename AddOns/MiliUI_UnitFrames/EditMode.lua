@@ -12,111 +12,49 @@ local L = ns.L
 local isInEditMode = false
 
 ------------------------------------------------------------
--- 格線與對齊輔助（C11）
+-- 吸附到格線（C11 修正版）
 --
--- 只在編輯模式期間存在，跟真實框完全無關（純貼圖，不碰 secure frame）。
+-- ⚠⚠ **不要自己畫格線。** 暴雪的編輯模式本來就有一套，而且做得更完整：
+--   Blizzard_EditMode/Shared/EditModeManager.lua 的 `EditModeGridMixin`
+--   —— 同樣從螢幕中心往外畫，面板上有「顯示格線」勾選框與間距滑桿，
+--   中心線還有自己的顏色。
+-- 第一版在上面又疊了一層白格線，結果就是兩套格線交錯、畫面一團亂。
 --
--- ⚠ 格線是「從螢幕中心往外」畫的，不是從左下角算。理由：拖曳寫回 db 的是
---   **CENTER 對 UIParent CENTER 的偏移**，格線必須跟那個座標系同原點，
---   不然「對到線」的位置吸附出來的數字會是 17、49 這種醜東西。
+-- 這裡只補暴雪**沒有**做到的那一塊：`EditModeMagnetismManager` 只服務暴雪自己
+-- 註冊的那些系統，我們的框是自訂的、拖曳是自己用游標差值算的，它管不到。
+-- 所以吸附要自己做，但參數一律讀暴雪的設定，不另外開一組。
 ------------------------------------------------------------
-local grid                    -- 容器（延遲建立）
-local gridLines = {}          -- 貼圖池
+local DEFAULT_SPACING = 32
 
-local function GridTexture(i)
-    local t = gridLines[i]
-    if not t then
-        t = grid:CreateTexture(nil, "BACKGROUND")
-        t:SetTexture(ns.Media.WHITE8X8)
-        gridLines[i] = t
+local function GridSpacing()
+    local mgr = EditModeManagerFrame
+    if not mgr then return DEFAULT_SPACING end
+    -- 帳號設定是權威來源（面板載入時就灌好了，不必等格線顯示過）
+    local ok, v = pcall(function()
+        return mgr:GetAccountSettingValue(Enum.EditModeAccountSetting.GridSpacing)
+    end)
+    if ok and type(v) == "number" and v > 0 then return v end
+    local grid = mgr.Grid
+    if grid and type(grid.gridSpacing) == "number" and grid.gridSpacing > 0 then
+        return grid.gridSpacing
     end
-    return t
+    return DEFAULT_SPACING
 end
 
-local function BuildGrid()
-    if not grid then
-        grid = CreateFrame("Frame", nil, UIParent)
-        grid:SetAllPoints(UIParent)
-        grid:SetFrameStrata("BACKGROUND")
-        grid:Hide()
-    end
-
-    local g = ns.db.global
-    local step = g.gridSize or 32
-    if step < 4 then step = 4 end
-
-    local w, h = UIParent:GetWidth(), UIParent:GetHeight()
-    local thick = ns.P.Scale(1)
-    local n = 0
-    local ga = g.gridAlpha or 0.25
-
-    -- 一般格線：中心往左右／上下各鋪到邊界
-    for x = step, w / 2, step do
-        for _, sign in ipairs({ -1, 1 }) do
-            n = n + 1
-            local t = GridTexture(n)
-            t:ClearAllPoints()
-            t:SetPoint("TOP", grid, "TOP", x * sign, 0)
-            t:SetPoint("BOTTOM", grid, "BOTTOM", x * sign, 0)
-            t:SetWidth(thick)
-            t:SetVertexColor(1, 1, 1, ga)
-            t:Show()
-        end
-    end
-    for y = step, h / 2, step do
-        for _, sign in ipairs({ -1, 1 }) do
-            n = n + 1
-            local t = GridTexture(n)
-            t:ClearAllPoints()
-            t:SetPoint("LEFT", grid, "LEFT", 0, y * sign)
-            t:SetPoint("RIGHT", grid, "RIGHT", 0, y * sign)
-            t:SetHeight(thick)
-            t:SetVertexColor(1, 1, 1, ga)
-            t:Show()
-        end
-    end
-
-    -- 中心十字：畫最後（蓋在一般格線上）、換色加粗，用來把框對到畫面正中
-    n = n + 1
-    local vc = GridTexture(n)
-    vc:ClearAllPoints()
-    vc:SetPoint("TOP", grid, "TOP", 0, 0)
-    vc:SetPoint("BOTTOM", grid, "BOTTOM", 0, 0)
-    vc:SetWidth(ns.P.Scale(2))
-    vc:SetVertexColor(1, 0.3, 0.3, math.min(1, ga * 2.5))
-    vc:Show()
-    n = n + 1
-    local hc = GridTexture(n)
-    hc:ClearAllPoints()
-    hc:SetPoint("LEFT", grid, "LEFT", 0, 0)
-    hc:SetPoint("RIGHT", grid, "RIGHT", 0, 0)
-    hc:SetHeight(ns.P.Scale(2))
-    hc:SetVertexColor(1, 0.3, 0.3, math.min(1, ga * 2.5))
-    hc:Show()
-
-    -- 縮小格線間距後多出來的貼圖要收掉，不然改大 gridSize 舊線還留著
-    for i = n + 1, #gridLines do gridLines[i]:Hide() end
+local function SnapEnabled()
+    local mgr = EditModeManagerFrame
+    if not (mgr and mgr.IsSnapEnabled) then return false end
+    local ok, v = pcall(mgr.IsSnapEnabled, mgr)
+    return ok and v and true or false
 end
 
-local function UpdateGrid()
-    local show = isInEditMode and ns.db and ns.db.global.gridShow ~= false
-    if not show then
-        if grid then grid:Hide() end
-        return
-    end
-    BuildGrid()
-    grid:Show()
-end
-ns.UpdateEditGrid = UpdateGrid          -- 設定面板改格線參數時即時重畫
-
--- 吸附：Shift 暫時反轉（沒開吸附時按住 Shift 就吸附，反之放行）——
--- 微調一兩格的時候比跑去設定面板關掉快
+-- 吸附：開關與間距都跟著編輯模式面板走，Shift 暫時反轉
+-- （微調一兩格的時候比跑去面板關掉快）
 local function Snap(v)
-    local g = ns.db and ns.db.global
-    local step = g and g.gridSize or 32
-    local on = g and g.gridSnap or false
+    local on = SnapEnabled()
     if IsShiftKeyDown() then on = not on end
-    if not on or step < 1 then return v end
+    if not on then return v end
+    local step = GridSpacing()
     return math.floor(v / step + 0.5) * step
 end
 
@@ -176,8 +114,6 @@ end
 ------------------------------------------------------------
 local function UpdateEditModeState()
     if not ns.db then return end
-
-    UpdateGrid()
 
     if isInEditMode then
         ns.Preview.Open("editmode")

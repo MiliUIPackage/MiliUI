@@ -115,11 +115,6 @@ function DB.BuildDefaults()
             -- 滑鼠移過的高亮邊框（開關在每單位的 frame.highlight）
             highlightColor = white(0.7),
             highlightSize  = 1,
-            -- 編輯模式格線（C11）：只在編輯模式期間出現，拖曳時 Shift 反轉吸附
-            gridShow    = true,
-            gridSnap    = false,
-            gridSize    = 32,
-            gridAlpha   = 0.25,
             strata      = "LOW",
             smoothBars  = true,
             showTooltip = true,          -- 滑鼠移到單位框顯示提示

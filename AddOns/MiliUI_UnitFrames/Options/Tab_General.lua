@@ -11,8 +11,6 @@ local tab, scroll
 local refreshers
 
 local function ApplyAll()
-    -- 格線參數改了要立刻重畫（設定面板通常就是在編輯模式裡開著的）
-    if ns.UpdateEditGrid then ns.UpdateEditGrid() end
     for unitKey in pairs(ns.db.units) do
         if unitKey == "totem" then
             if ns.TotemsApplySettings then ns.TotemsApplySettings() end
@@ -79,11 +77,7 @@ local CONTROLS = {
     { type = "text",   label = L["\"Your interrupt is ready\" tints the bar while your own interrupt is off cooldown, so you can see at a glance whether a cast is worth stopping. Enable it per unit under Units > Cast bar."] },
 
     { type = "header", label = L["Edit Mode grid"] },
-    { type = "toggle", key = "gridShow", label = L["Show grid"] },
-    { type = "toggle", key = "gridSnap", label = L["Snap frames to the grid"] },
-    { type = "slider", key = "gridSize", label = L["Grid spacing"], min = 8, max = 128, step = 4 },
-    { type = "slider", key = "gridAlpha", label = L["Grid transparency"], min = 0.05, max = 1, step = 0.05 },
-    { type = "text",   label = L["The grid appears only while Blizzard's Edit Mode is open. It is drawn outward from the center of the screen, matching how frame positions are stored, and the red cross marks that center. Hold Shift while dragging to invert snapping."] },
+    { type = "text",   label = L["There are no grid settings here on purpose: Edit Mode already has its own grid and snap controls, and a second grid on top of Blizzard's just makes the screen unreadable. Turn on \"Snap to grid\" in Edit Mode and these frames follow it, at whatever spacing you set there. Hold Shift while dragging to invert snapping."] },
 
     { type = "header", label = L["Tooltips"] },
     { type = "toggle", key = "showTooltip", label = L["Show unit tooltip"] },
