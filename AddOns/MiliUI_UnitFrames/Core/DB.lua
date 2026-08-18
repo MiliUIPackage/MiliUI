@@ -326,7 +326,9 @@ function DB.BuildDefaults()
                 enabled = true,
                 frame = frameDef{ x = 470, y = -214, w = 120, h = 28, fadeOutOfRange = true },
                 elements = {
-                    hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 20, level = 4,
+                    -- 條寬 119 不是 120：底下那排光環 6 顆 × 19 ＋ 5 個 1px 間距 = 119，
+                    -- 條跟光環整排等寬（使用者定案，見 v6 遷移）
+                    hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 20, level = 4,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,
                               -- 治療預估仍然關著（跟護盾是不同的勾選）
@@ -341,7 +343,7 @@ function DB.BuildDefaults()
                               absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
                               overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
-                    mpbar = { enabled = true, x = 0, y = -20, w = 120, h = 10, level = 0,
+                    mpbar = { enabled = true, x = 0, y = -20, w = 119, h = 10, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barAlpha = 0.4, bgAlpha = 0.6, border = true },
                     texts = {
@@ -350,11 +352,12 @@ function DB.BuildDefaults()
                         textDef{ pattern = "[perchp]%", x = 122, y = -2, w = 60, h = 10,
                                  justifyH = "LEFT", justifyV = "TOP" },
                     },
-                    buffs  = { enabled = true, x = 0, y = -32, w = 20, h = 20,
+                    -- 光環 19×19、上下各離框體 1（框體底緣 = 血條 20 ＋ 魔力條 10 = -30）
+                    buffs  = { enabled = true, x = 0, y = -31, w = 19, h = 19,
                                maxCount = 12, perRow = 6, growth = "LRTB", spacing = 1,
                                showStack = true, stackSize = 10,
                                durationText = false, durationThreshold = 60, filterMode = "all" },
-                    debuffs = { enabled = true, x = 0, y = 2, w = 20, h = 20,
+                    debuffs = { enabled = true, x = 0, y = 1, w = 19, h = 19,
                                 maxCount = 12, perRow = 6, growth = "LRBT", spacing = 1,
                                 showStack = true, stackSize = 10,
                                 durationText = false, durationThreshold = 60, filterMode = "all" },
@@ -457,12 +460,15 @@ function DB.BuildDefaults()
                     -- 3D 頭像：層級照玩家框那套三明治（mp 0 / hp 背景 2 / 頭像 3 / hp 前景 4），
                     -- 底色 alpha 0 去背、血條前景半透明，模型才透得出來。
                     -- 尺寸與座標是寵物框自己的（120 寬），不是跟玩家共用設定。
-                    portrait = { enabled = true, x = 0, y = 0, w = 120, h = 40, mode = "3d",
+                    -- 條寬 119 不是 120：跟目標的目標框同一個理由——底下那排光環
+                    -- 6 顆 × 19 ＋ 5 個 1px 間距 = 119，條跟光環整排等寬（使用者定案，見 v6 遷移）。
+                    -- 頭像夾在血條裡，寬度跟著條走。
+                    portrait = { enabled = true, x = 0, y = 0, w = 119, h = 40, mode = "3d",
                                  bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3,
                                  zoom = 1, rotation = 0,
                                  modelOffsetX = 0, modelOffsetY = 0,
                                  fallback2D = false },
-                    hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 40, level = 4, bgLevel = 2, lossAlpha = 0.9,
+                    hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 40, level = 4, bgLevel = 2, lossAlpha = 0.9,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.5, bgAlpha = 1, border = true,
                               -- 治療預估仍然關著（跟護盾是不同的勾選，要的話在單位→血條打開）
@@ -477,7 +483,7 @@ function DB.BuildDefaults()
                               absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
                               overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
-                    mpbar = { enabled = true, x = 0, y = -40, w = 120, h = 10, level = 0,
+                    mpbar = { enabled = true, x = 0, y = -40, w = 119, h = 10, level = 0,
                               colorMethod = "class", bgColorMethod = "classreactiondark",
                               barAlpha = 1, bgAlpha = 1, border = true },
                     texts = {
@@ -494,7 +500,7 @@ function DB.BuildDefaults()
                                  justifyH = "CENTER", justifyV = "BOTTOM" },
                     },
                     castbar = {
-                        enabled = true, x = 0, y = 0, w = 120, h = 40, level = 6, timeFormat = "elapsedTotal",
+                        enabled = true, x = 0, y = 0, w = 119, h = 40, level = 6, timeFormat = "elapsedTotal",
                         showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = false, showImportantCast = false,
                         showCastTarget = false,
                         castTarget = { x = 0, y = -2, w = 116, h = 40, size = 9, flags = "OUTLINE",
@@ -509,11 +515,12 @@ function DB.BuildDefaults()
                                   justifyH = "CENTER", justifyV = "MIDDLE", color = white(1) },
                         icon  = { x = 10, y = -11, w = 20, h = 20 },
                     },
-                    buffs  = { enabled = true, x = 0, y = -52, w = 20, h = 20,
+                    -- 光環 19×19、上下各離框體 1（框體底緣 = 血條 40 ＋ 魔力條 10 = -50）
+                    buffs  = { enabled = true, x = 0, y = -51, w = 19, h = 19,
                                maxCount = 12, perRow = 6, growth = "LRTB", spacing = 1,
                                showStack = true, stackSize = 10,
                                durationText = false, durationThreshold = 60, filterMode = "all" },
-                    debuffs = { enabled = true, x = 0, y = 2, w = 20, h = 20,
+                    debuffs = { enabled = true, x = 0, y = 1, w = 19, h = 19,
                                 maxCount = 12, perRow = 6, growth = "LRBT", spacing = 1,
                                 showStack = true, stackSize = 10,
                                 durationText = false, durationThreshold = 60, filterMode = "all" },
@@ -695,25 +702,55 @@ local PROFILE_MIGRATIONS = {
     -- 框上方那排減益沒有魔力條，維持對齊血條左緣的 0。
     --
     -- 間距則是反過來讓減益跟著增益走——「框體底緣」不是框架底緣，魔力條還往下露
-    -- 一截（目標框 8、目標的目標與寵物框 10），所以增益的間距一直比減益小。
-    -- 舊值是目標框 4 對 8、另外兩個 2 對 5，這裡把減益改成跟增益等距。
+    -- 一截（目標框 8），所以增益的間距一直比減益小。舊值 4 對 8，減益改成跟增益等距。
+    --
+    -- 目標的目標框、寵物框整組換成使用者實地調好的版面（2026-08-19 從 SavedVariables 收進來）：
+    -- 血條／魔力條（寵物還有頭像、施法條）120 → 119、光環 20 → 19，因為 6 顆 × 19 ＋ 5 × 1 = 119
+    -- 剛好跟條等寬；上下間距各 1（目標的目標：增益 -32 → -31、減益 5 → 1；
+    -- 寵物：增益 -52 → -51、減益 5 → 1）。
     --
     -- 值閘：只動仍等於舊預設的那個值，自己拉過位置的不碰。
     [6] = function(profile)
         local units = profile.units
         if type(units) ~= "table" then return end
 
-        local t = type(units.target) == "table" and units.target.elements
-        if type(t) == "table" and type(t.buffs) == "table" and t.buffs.x == -10 then
-            t.buffs.x = -8
+        local function gate(tbl, key, old, new)
+            if type(tbl) == "table" and tbl[key] == old then tbl[key] = new end
         end
 
-        -- [單位] = { 減益的舊上方間距, 新間距 }
-        local GAPS = { target = { 8, 4 }, targettarget = { 5, 2 }, pet = { 5, 2 } }
-        for unit, gap in pairs(GAPS) do
-            local e = type(units[unit]) == "table" and units[unit].elements
-            local d = type(e) == "table" and e.debuffs
-            if type(d) == "table" and d.y == gap[1] then d.y = gap[2] end
+        local t = type(units.target) == "table" and units.target.elements
+        if type(t) == "table" then
+            gate(t.buffs, "x", -10, -8)
+            gate(t.debuffs, "y", 8, 4)
+        end
+
+        local tt = type(units.targettarget) == "table" and units.targettarget.elements
+        if type(tt) == "table" then
+            gate(tt.hpbar, "w", 120, 119)
+            gate(tt.mpbar, "w", 120, 119)
+            gate(tt.buffs, "w", 20, 19)
+            gate(tt.buffs, "h", 20, 19)
+            gate(tt.buffs, "y", -32, -31)
+            gate(tt.debuffs, "w", 20, 19)
+            gate(tt.debuffs, "h", 20, 19)
+            gate(tt.debuffs, "y", 5, 1)
+            -- 2 是這一步定案前的過渡值（沒發佈過，只有本機的設定檔跑到），一併收掉
+            gate(tt.debuffs, "y", 2, 1)
+        end
+
+        local pet = type(units.pet) == "table" and units.pet.elements
+        if type(pet) == "table" then
+            gate(pet.portrait, "w", 120, 119)
+            gate(pet.hpbar, "w", 120, 119)
+            gate(pet.mpbar, "w", 120, 119)
+            gate(pet.castbar, "w", 120, 119)
+            gate(pet.buffs, "w", 20, 19)
+            gate(pet.buffs, "h", 20, 19)
+            gate(pet.buffs, "y", -52, -51)
+            gate(pet.debuffs, "w", 20, 19)
+            gate(pet.debuffs, "h", 20, 19)
+            gate(pet.debuffs, "y", 5, 1)
+            gate(pet.debuffs, "y", 2, 1)   -- 同上，過渡值
         end
     end,
 }
