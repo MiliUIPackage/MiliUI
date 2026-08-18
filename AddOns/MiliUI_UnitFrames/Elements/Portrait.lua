@@ -174,6 +174,12 @@ local function Build(uf, edb)
     f:Show()
 end
 
+-- 印布林值：12.1 的 Unit API 可能回秘密值，tostring 出來會是 <secret boolean>
+local function Probe(v)
+    if ns.IsSecret(v) then return "secret" end
+    return tostring(v)
+end
+
 local function Update(uf, edb, bucket)
     local f = uf.elements.portrait
     if not f then return end
@@ -253,12 +259,25 @@ local function Update(uf, edb, bucket)
                 pcall(f.model.ClearModel, f.model)
                 local pok, ret = pcall(f.model.SetUnit, f.model, unit)
                 ok = pok and ret ~= false
+                -- 失敗原因留給 /muf debug：「載不到」在受限身分以外還有別的可能
+                -- （轉場中、模型還在串流），分不出來就只能猜
+                if not ok then
+                    f.modelFailWhy = pok and "SetUnit 回 false（還在串流？）" or "SetUnit 出錯"
+                end
             else
                 ok = false
+                f.modelFailWhy = ("不可用（連線=%s 可見=%s 名字secret=%s）"):format(
+                    Probe(UnitIsConnected(unit)), Probe(UnitIsVisible(unit)),
+                    tostring(ns.IsSecret(UnitName(unit))))
             end
         end
 
-        f.modelReloads = (f.modelReloads or 0) + 1     -- /muf debug 用：閃爍＝這個數字一直跳
+        -- ⚠ 這個數字有兩種來源，查閃爍時一定要分開看（/muf debug 兩個都印）：
+        --   載得到 → 真的重串流了一次模型，只有這種會在畫面上閃
+        --   載不到 → 12.1 受限身分（副本裡的敵人）給不出模型，頭像本來就是空的；
+        --            而且 key latch 不上，之後每次刷新都會再試一次 ⇒ 數字照樣一直跳，
+        --            但畫面上什麼事都沒發生。副本裡數字衝高幾乎都是這一種。
+        f.modelReloads = (f.modelReloads or 0) + 1
         f.modelLastBucket = bucket
 
         if ok then
@@ -275,6 +294,8 @@ local function Update(uf, edb, bucket)
             pcall(f.model.SetPosition, f.model, 0, f.modelX or 0, f.modelY or 0)
         else
             f.modelKey = nil        -- 沒載成功，下次要再試
+            f.modelBlanks = (f.modelBlanks or 0) + 1
+            f.modelFailBucket = bucket
             -- 拿不到就清空（不 Hide！）
             pcall(f.model.ClearModel, f.model)
             -- 副本小怪是受限身分，SetUnit 不會報錯也不會退回玩家，就是給不出東西

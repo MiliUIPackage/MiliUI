@@ -269,6 +269,48 @@ local function Debug()
         p("  載具期間的事件來源：（還沒上過載具）")
     end
 
+    ------------------------------------------------------------
+    -- 載具現況
+    --
+    -- 「人在載具上，玩家框卻還是自己」有兩種可能，靠這段分辨：
+    --   HasVehicleUI=false ⇒ 暴雪自己也不換（坐騎式載具、計程車、單純掛在寵物欄的
+    --                        受控生物），玩家框顯示自己就是正確的
+    --   HasVehicleUI=true 但 mod 沒換 ⇒ 換不成，是這邊的問題
+    -- 對照 SecureTemplates.lua：swap 的條件就是 UnitHasVehicleUI(該單位)
+    -- ＋ toggleForVehicle 屬性，兩者缺一就不對調。
+    ------------------------------------------------------------
+    do
+        local function Probe(fn, ...)
+            if type(fn) ~= "function" then return "|cffff5555無此 API|r" end
+            local ok, v = pcall(fn, ...)
+            if not ok then return "|cffff5555呼叫失敗|r" end
+            return SafeStr(v)
+        end
+        p(("  載具現況：InVehicle=%s HasVehicleUI=%s vehicle單位存在=%s 可下車=%s"):format(
+            Probe(UnitInVehicle, "player"), Probe(UnitHasVehicleUI, "player"),
+            Probe(UnitExists, "vehicle"), Probe(CanExitVehicle)))
+        local guid = UnitGUID("pet")
+        local kind
+        if guid == nil then
+            kind = "（寵物欄空的）"
+        elseif ns.IsSecret(guid) then
+            kind = "<secret>"
+        else
+            kind = guid:match("^(%a+)") or "?"
+        end
+        p("   寵物欄 GUID 類型=" .. kind
+            .. "　Secure API：GetUnit=" .. (SecureButton_GetUnit and "有" or "|cffff5555無|r")
+            .. " GetModifiedUnit=" .. (SecureButton_GetModifiedUnit and "有" or "|cffff5555無|r"))
+        for _, key in ipairs({ "player", "pet" }) do
+            local vf = ns.frames[key]
+            if vf then
+                p(("   %s框 base=%s 現在讀=%s │ secure real=%s mod=%s"):format(
+                    key, tostring(vf.baseUnit), tostring(vf.unit),
+                    Probe(SecureButton_GetUnit, vf), Probe(SecureButton_GetModifiedUnit, vf)))
+            end
+        end
+    end
+
     local uf = ns.frames.player
     if uf and uf.textFrames then
         p("  玩家文字：")
@@ -472,16 +514,23 @@ local function Debug()
     end
 
     -- 模型重載計數：頭像閃爍時看這裡。下兩次 /muf debug 之間如果數字一直跳，
-    -- 就是擋板沒生效，lastBucket 會指出是哪條路在推
-    p("  頭像模型重載次數（框：次數／key／上次來源）：")
+    -- 就是擋板沒生效，lastBucket 會指出是哪條路在推。
+    -- 「載不到」是其中「SetUnit 給不出模型」的次數（副本敵人＝受限身分）——那種不會閃，
+    -- 會閃的是「重載 − 載不到」。
+    p("  頭像模型重載次數（框：次數／載不到／key／上次來源）：")
     for _, u in ipairs({ "player", "target", "focus", "pet" }) do
         local uf = ns.frames[u]
         local pfx = uf and uf.elements and uf.elements.portrait
         if pfx then
-            p(("   %-8s 重載=%-4s key=%s last=%s fid=%s"):format(u,
+            p(("   %-8s 重載=%-4s 載不到=%-4s key=%s last=%s fid=%s"):format(u,
                 tostring(pfx.modelReloads or 0),
+                tostring(pfx.modelBlanks or 0),
                 SafeStr(pfx.modelKey), tostring(pfx.modelLastBucket),
                 SafeStr(pfx.model and pfx.model.GetModelFileID and pfx.model:GetModelFileID())))
+            if pfx.modelFailWhy then
+                p(("            上次載不到：%s（桶=%s）"):format(
+                    tostring(pfx.modelFailWhy), tostring(pfx.modelFailBucket)))
+            end
         end
     end
 
