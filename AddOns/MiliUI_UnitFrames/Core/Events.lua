@@ -84,7 +84,19 @@ local trackers = {}
 local function TrackerOnEvent(self, event, unit)
     local uf = self.uf
     if not (uf and uf:IsVisible()) then return end
-    if unit ~= uf.unit and uf.unit == uf.baseUnit then return end
+    if uf.unit == uf.baseUnit then
+        -- 一般情況（99% 的時間）：只理會這個框正在畫的那個 token
+        if unit ~= uf.unit then return end
+    else
+        -- 框被重新對應（載具）：兩個 token 都放行，並記下**實際**收到的是哪一個。
+        -- 這張表就是「上面那道閘能不能收緊」的唯一證據，`/muf debug` 印得出來：
+        --   只出現 vehicle ⇒ 引擎按實際 token 派送，閘可以收緊成單純的 unit ~= uf.unit
+        --   出現 player    ⇒ 收緊會把載具中的事件擋掉，保守版本是必要的
+        -- 只在被重新對應時才配置，日常路徑一個位元組都不花。
+        local census = uf.tokenCensus
+        if not census then census = {}; uf.tokenCensus = census end
+        census[unit] = (census[unit] or 0) + 1
+    end
     local bucket = UNIT_EVENT_BUCKET[event]
     if bucket then ns.Refresh(uf, bucket) end
 end

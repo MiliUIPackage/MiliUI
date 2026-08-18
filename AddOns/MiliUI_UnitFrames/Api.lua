@@ -117,6 +117,31 @@ local function Debug()
     end
     p("  單位框（●顯示 ○隱藏 ✕沒生成；→ 表示實際讀的單位不同）：" .. table.concat(units, " "))
 
+    ------------------------------------------------------------
+    -- 載具期間的事件來源（Core/Events.lua 那道閘要不要收緊的證據）
+    --
+    -- 表在框被重新對應（uf.unit ≠ baseUnit）時才累積，下車後仍然留著，
+    -- 所以坐完一趟再打 /muf debug 就看得到。
+    ------------------------------------------------------------
+    local census = {}
+    for _, unit in ipairs(ns.UNITS) do
+        local cf = ns.frames[unit]
+        if cf and cf.tokenCensus then
+            local parts = {}
+            for tok, n in pairs(cf.tokenCensus) do
+                parts[#parts + 1] = ("%s×%d"):format(tostring(tok), n)
+            end
+            table.sort(parts)
+            census[#census + 1] = unit .. "=" .. table.concat(parts, ",")
+        end
+    end
+    if #census > 0 then
+        p("  載具期間的事件來源：" .. table.concat(census, "  "))
+        p("   |cff888888只有 vehicle ⇒ Core/Events.lua 的閘可收緊；出現 player ⇒ 維持現狀|r")
+    else
+        p("  載具期間的事件來源：（還沒上過載具）")
+    end
+
     local uf = ns.frames.player
     if uf and uf.textFrames then
         p("  玩家文字：")
