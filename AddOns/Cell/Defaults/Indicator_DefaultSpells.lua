@@ -1408,7 +1408,7 @@ local actions = {
     },
     {
         1236998, -- 猛烈捨棄藥劑 - Draught of Rampant Abandon
-        {"C3", {0.45, 0.2, 0.75}},
+        {"C3", {0.6, 0.2667, 1}},
     },
     {
         1262857, -- 強效治療藥水 - Potent Healing Potion

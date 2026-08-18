@@ -5532,7 +5532,32 @@ local function CreateSetting_ActionsPreview(parent)
 end
 
 local actionButtons = {}
+-- Every row below closes over its index into spellTable, and spellTable IS CellDB["actions"],
+-- so the on-screen order is the array order -- sorting the array is what sorts the display.
+-- Safe to reorder: I.ConvertActions keys the lookup by spell id, so the indicator never reads
+-- the array order. Animation type first (plain string compare already gives A < B < C1 < C2 <
+-- C3 < D < E < F < G), then spell id ascending.
+--
+-- Called only when the rows are (re)built, never straight after an in-place edit: the style
+-- dropdown and the colour picker write through spellTable[i], so re-sorting under a live row
+-- would silently repoint it at a different spell. Changing a type therefore leaves that row
+-- where it is until the panel is reopened, which is the intended trade.
+local function SortActionsForDisplay(spellTable)
+    table.sort(spellTable, function(a, b)
+        local aType = type(a) == "table" and type(a[2]) == "table" and a[2][1]
+        local bType = type(b) == "table" and type(b[2]) == "table" and b[2][1]
+        aType = type(aType) == "string" and aType or ""
+        bType = type(bType) == "string" and bType or ""
+        if aType ~= bType then return aType < bType end
+
+        local aId = type(a) == "table" and tonumber(a[1]) or 0
+        local bId = type(b) == "table" and tonumber(b[1]) or 0
+        return (aId or 0) < (bId or 0)
+    end)
+end
+
 local function CreateActionButtons(parent, spellTable, updateHeightFunc)
+    SortActionsForDisplay(spellTable)
     local n = #spellTable
 
     -- tooltip
