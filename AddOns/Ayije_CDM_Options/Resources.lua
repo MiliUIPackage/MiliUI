@@ -264,23 +264,23 @@ local function CreateResourcesTab(page, tabId)
     page.controls.manaNumberFormat = UI.CreateModernDropdown(
         page, L["Number abbreviation"],
         {
-            { text = L["By locale (wan/yi for Chinese, K/M otherwise)"], value = "auto" },
+            { text = L["By locale"], value = "auto" },
             { text = L["Wan / Yi"], value = "wan" },
             { text = "K／M", value = "km" },
-            { text = L["No abbreviation (thousands separator)"], value = "raw" },
+            { text = L["No abbreviation"], value = "raw" },
         },
         CDM.db.manaNumberFormat or "auto",
         function(value)
             CDM.db.manaNumberFormat = value
             API:Refresh("RESOURCES")
         end,
-        80, 240
+        70, 160
     )
-    page.controls.manaNumberFormat:SetPoint("LEFT", page.controls.resourcesEnabled.label, "RIGHT", 40, 0)
+    page.controls.manaNumberFormat:SetPoint("TOPLEFT", page.controls.resourcesEnabled, "BOTTOMLEFT", 0, -6)
     page.controls.manaNumberFormat:SetEnabled(enabled)
 
     local leftScroll = CreateFrame("ScrollFrame", nil, page, "ScrollFrameTemplate")
-    leftScroll:SetPoint("TOPLEFT", LEFT_INSET - SCROLL_LEFT_PAD, -92)
+    leftScroll:SetPoint("TOPLEFT", LEFT_INSET - SCROLL_LEFT_PAD, -120)
     leftScroll:SetPoint("BOTTOMLEFT", LEFT_INSET - SCROLL_LEFT_PAD, 20)
     leftScroll:SetWidth(LEFT_WIDTH + SCROLL_LEFT_PAD)
     local leftChild = CreateFrame("Frame", nil, leftScroll)

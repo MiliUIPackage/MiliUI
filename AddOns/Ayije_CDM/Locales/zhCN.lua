@@ -30,9 +30,9 @@ L["Vertical only - unlock the utility bar in /acdm"] = "仅能上下移动 - 请
 -----------------------------------------------------------------------
 
 L["Number abbreviation"] = "数字缩写"
-L["By locale (wan/yi for Chinese, K/M otherwise)"] = "依语系（中文万／亿，其他 K／M）"
+L["By locale"] = "依语系"
 L["Wan / Yi"] = "万／亿"
-L["No abbreviation (thousands separator)"] = "不缩写（千分位）"
+L["No abbreviation"] = "不缩写"
 L["Cleared stray black backgrounds on %d icon frames."] = "已清除 %d 个图标框的多余黑底。"
 
 -----------------------------------------------------------------------
