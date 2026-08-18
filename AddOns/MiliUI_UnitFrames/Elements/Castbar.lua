@@ -98,9 +98,34 @@ end
 -- 一般施法的底色：賦能引導 > 引導 > 施法。
 -- Platynator 的 `kind = "cast"` 那組就是這三個欄位（cast／channel／empowered），
 -- 這裡的欄位名刻意跟它一樣，對照設定時不用翻譯。
+--
+-- `classColorBar` 打開時三個狀態**共用職業色**：自己的施法條就在頭像上，血條、
+-- 資源條、施法條各一個顏色會很花；統一成職業色之後整個框只剩一個色調。
+-- 只換底色，上面的重要法術／斷法就緒／不可打斷該疊還是照疊。
+--
+-- ⚠ 職業色**可能是秘密分量**（cache 沒有 classFile 時會走 C_ClassColor 那條），
+-- 所以寫入一律走 SetBarColor → 貼圖的 SetVertexColor，不要用 SetStatusBarColor。
 local function BaseColor(f, c)
-    if f.castEmpowered and c.empowered then return c.empowered end
-    return f.castChannel and c.channel or c.cast
+    if f.classColorBar and f.uf then
+        -- ⚠ 回三個值而不是一張表：這支落在 10Hz 的 ticker 上，
+        -- 回表等於每個施法條每秒配置十顆
+        local r, g, b = ns.Colors.Get("class", f.uf, nil, 1, nil, nil)
+        if r then return r, g, b end          -- 非布林型別的秘密值可以布林測試
+    end
+    local col = (f.castEmpowered and c.empowered)
+        or (f.castChannel and c.channel or c.cast)
+    return col.r, col.g, col.b
+end
+
+-- 條的填充上色統一走這支。貼圖的 SetVertexColor 吃得下秘密分量，
+-- SetStatusBarColor 不保證（血條也是為了同一個理由這樣寫，見 Elements/Health.lua）。
+local function SetBarColor(f, r, g, b, a)
+    local tex = f.bar and f.bar:GetStatusBarTexture()
+    if tex then
+        tex:SetVertexColor(r, g, b, a)
+    else
+        f.bar:SetStatusBarColor(r, g, b, a)
+    end
 end
 
 -- 施法條共五色（全域設定，全部可調）：施法橙／引導綠／完成黃／失敗紅／不可打斷灰。
@@ -160,8 +185,8 @@ local function ApplySecretColor(f)
     local tex = f.bar:GetStatusBarTexture()
     if not tex then return end
     local c = Colors()
-    local base = BaseColor(f, c)
-    local r, g, b = base.r, base.g, base.b
+    local br, bg, bb = BaseColor(f, c)
+    local r, g, b = br, bg, bb
     local tinted = false
     -- 疊色順序＝優先序的反向（後蓋前）：重要法術 → 斷法就緒 → 不可打斷
     if chainOK then
@@ -179,7 +204,7 @@ local function ApplySecretColor(f)
         elseif tinted then
             -- 串接被擋：退回沒有就緒色的原路徑（這條是 C8 之前就在跑的寫法）
             chainOK = false
-            r, g, b = EvalTriple(ni, im, base.r, base.g, base.b)
+            r, g, b = EvalTriple(ni, im, br, bg, bb)
         end
     end
     -- alpha 來自設定（明文）；r/g/b 可能是秘密值，各參數互不影響
@@ -189,15 +214,17 @@ end
 -- 一般模式上色（notInterruptible 明文可分支）
 local function ApplyPlainColor(f, notInt)
     local c = Colors()
-    local grey = f.showInterruptState and notInt
-    local col = (grey and c.notInterruptible) or BaseColor(f, c)
-    local r, g, b = col.r, col.g, col.b
+    local r, g, b
     -- 不可打斷的灰優先，其餘依序疊重要法術、斷法就緒
-    if not grey then
+    if f.showInterruptState and notInt then
+        local im = c.notInterruptible
+        r, g, b = im.r, im.g, im.b
+    else
+        r, g, b = BaseColor(f, c)
         r, g, b = ImportantTint(f, r, g, b)
         r, g, b = ReadyTint(f, r, g, b)
     end
-    f.bar:SetStatusBarColor(r, g, b, f.barAlpha or 1)
+    SetBarColor(f, r, g, b, f.barAlpha or 1)
 end
 
 -- 施法中途「可打斷」狀態改變（首領常見：某段時間不可打斷）。
@@ -745,6 +772,8 @@ local function Build(uf, edb)
     f.showCastTarget = edb.showCastTarget and true or false
     f.showInterruptReady = edb.showInterruptReady and true or false
     f.showImportantCast = edb.showImportantCast and true or false
+    f.uf = uf                       -- 職業色要讀 uf.cache（BaseColor）
+    f.classColorBar = edb.classColorBar and true or false
     f.textOverlay:SetFrameLevel(lvl + 3)
     ApplyTextStyle(f.spellText, edb.spell or {}, f)
     ApplyTextStyle(f.timeText, edb.time or {}, f)

@@ -432,3 +432,5 @@ L["Every cast bar shares these colors; whether \"non-interruptible\" applies is 
 L["Important spell"] = "중요 주문"
 L["Tint important spells"] = "중요 주문에 색 입히기"
 L["Which spells count as important is decided by the game itself, not by a list this addon maintains — the same call the Platynator nameplates use. The color lives under General > Cast bar colors. Ranked below \"interrupt ready\" and \"non-interruptible\"."] = "어떤 주문이 \"중요\"인지는 애드온이 관리하는 목록이 아니라 게임이 직접 판단합니다 — Platynator 이름표가 쓰는 것과 같은 API입니다. 색은 일반 > 시전 바 색상에 있습니다. \"차단기 준비됨\"과 \"차단 불가\"보다 낮은 우선순위입니다."
+L["Use the class color for the fill"] = "직업 색으로 채우기"
+L["One color for casting, channeling and empowered alike, taken from the unit's class (pets use their owner's). On your own frame the cast bar sits on top of the portrait next to the health and power bars, and a single hue reads much calmer than three. The tints below still layer on top."] = "시전, 채널링, 강화 모두 유닛의 직업 색 하나로 표시합니다(소환수는 주인의 색). 내 프레임에서는 시전 바가 초상화 위, 생명력·자원 막대 옆에 겹쳐 있어서 색이 하나뿐인 편이 훨씬 차분하게 읽힙니다. 아래의 색 입히기는 그 위에 그대로 겹칩니다."

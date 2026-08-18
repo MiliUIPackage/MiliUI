@@ -430,3 +430,5 @@ L["Every cast bar shares these colors; whether \"non-interruptible\" applies is 
 L["Important spell"] = "重要法术"
 L["Tint important spells"] = "重要法术换色"
 L["Which spells count as important is decided by the game itself, not by a list this addon maintains — the same call the Platynator nameplates use. The color lives under General > Cast bar colors. Ranked below \"interrupt ready\" and \"non-interruptible\"."] = "哪些法术算“重要”是游戏自己判定的，不是这个插件维护的列表 —— 跟 Platynator 姓名板问的是同一个 API。颜色在“常规”标签 → 施法条颜色。优先级排在“打断就绪”与“不可打断”之下。"
+L["Use the class color for the fill"] = "填充用职业色"
+L["One color for casting, channeling and empowered alike, taken from the unit's class (pets use their owner's). On your own frame the cast bar sits on top of the portrait next to the health and power bars, and a single hue reads much calmer than three. The tints below still layer on top."] = "施法、引导、赋能全部同一个颜色，取自单位的职业（宠物用主人的）。自己的框上施法条叠在头像上、跟生命条资源条挤在一起，只有一个色调会干净很多。下面那几种染色照样叠在上面。"

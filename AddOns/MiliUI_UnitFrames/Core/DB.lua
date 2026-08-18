@@ -78,6 +78,9 @@ local function bigCastbar(own)
         showInterruptReady = not own,
         -- 重要法術（暴雪的 C_Spell.IsSpellImportant 判定）換色，同樣只有敵方開
         showImportantCast = not own,
+        -- 自己的施法條疊在頭像上，跟血條／資源條擠在同一塊。三個顏色各走各的很花，
+        -- 統一成職業色之後整個框只剩一個色調。敵方要靠顏色分辨施法狀態，所以不開。
+        classColorBar = own and true or false,
         -- C4：對誰施法。預設關（開了會多一行字，位置每個人喜好不同）
         showCastTarget = false,
         castTarget = { x = 0, y = -2, w = 196, h = 50, size = 10, flags = "OUTLINE",
