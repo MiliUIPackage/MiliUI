@@ -1386,6 +1386,38 @@ local actions = {
         1295247, -- 濃縮版銀月城生命藥水 - Concentrated Silvermoon Health Potion
         {"A", {1, 0.1, 0.1}},
     },
+    {
+        1236648, -- 光融法力藥水 - Lightfused Mana Potion
+        {"D", {0.2, 0.55, 1}},
+    },
+    {
+        1263074, -- 阿曼尼萃取物 - Amani Extract
+        {"A", {1, 0.4, 0.4}},
+    },
+    {
+        1239479, -- 吞噬夢境藥水 - Potion of Devoured Dreams
+        {"D", {0.6, 0.3, 1}},
+    },
+    {
+        1236590, -- 基礎活力藥水 - Basic Rejuvenation Potion
+        {"B", {0.3, 1, 0.75}},
+    },
+    {
+        1295132, -- 流光藥劑 - Liquid Luster
+        {"C3", {0.3, 0.85, 1}},
+    },
+    {
+        1236998, -- 猛烈捨棄藥劑 - Draught of Rampant Abandon
+        {"C3", {0.45, 0.2, 0.75}},
+    },
+    {
+        1262857, -- 強效治療藥水 - Potent Healing Potion
+        {"A", {1, 0.1, 0.1}},
+    },
+    {
+        1236994, -- 魯莽藥水 - Potion of Recklessness
+        {"C3", {0.85, 0.35, 1}},
+    },
 }
 -- ⚠ Seasonal. These are the CAST spell IDs, not item IDs -- the indicator watches the cast, so
 -- an item ID here silently tracks nothing. Cross-check against Ayije_CDM/Modules/Racials.lua,
@@ -1393,6 +1425,19 @@ local actions = {
 -- Midnight replaced TWW's 431416 (Algari Healing Potion) / 431932 (Tempered Potion).
 -- The concentrated tier is a SEPARATE cast ID, not another rank of 1234768, so both have to be
 -- listed: items 271883/271884 -> spell 1295247, items 241304/241305 -> spell 1234768.
+--
+-- Crafting quality does NOT change the cast id -- R1/R2/R3 of one potion share it (241304 and
+-- 241305 both cast 1234768). A different NAME is what means a different id.
+--
+-- Colours are grouped by what the consumable does, so a glance at the animation tells you
+-- which kind it was without reading the icon:
+--   red      restores health          1234768 1295247 1262857, paler red 1263074 (HoT)
+--   blue     restores mana            1236648, violet 1239479 (channelled, defenceless)
+--   teal     restores both            1236590
+--   yellow   Light's Potential        1236616
+--   purple/magenta stat buffs         1236998 primary, 1236994 secondary, 1295132 versatility
+--   green    Healthstone              6262
+-- To confirm any id in game: Cell options -> Indicators -> Actions -> Debug Mode, then drink.
 
 
 function I.GetDefaultActions()

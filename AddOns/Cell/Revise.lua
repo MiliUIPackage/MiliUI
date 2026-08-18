@@ -3658,6 +3658,49 @@ function F.Revise()
         end
     end
 
+    --! Midnight consumables top-up for the Actions indicator. Each of these is its own cast id,
+    --! not another rank of one already in the list -- crafting quality shares a cast id, a
+    --! different potion NAME does not. 1295247 in particular is the concentrated tier of the
+    --! Silvermoon potion and is NOT 1234768, so a list holding only 1234768 stays dark when
+    --! someone drinks it.
+    --!
+    --! Defaults only reach a fresh DB -- Core.lua fills CellDB["actions"] just when the key is
+    --! missing, and it is never missing for anyone who has run Cell before -- so top up the
+    --! saved list in place. Append-only and deduped by cast id: an entry the user recoloured
+    --! or reordered is left exactly as it is, and only ids absent from the list get added.
+    --! Same trade as the r288 healer top-up: an id the user deliberately deleted comes back
+    --! once. Keep this in sync with I.GetDefaultActions().
+    if not(CellDB["revise"]) or dbRevision < 292 then
+        if type(CellDB["actions"]) == "table" then
+            local topUp = {
+                {1295247, {"A", {1, 0.1, 0.1}}},      -- 濃縮版銀月城生命藥水
+                {1236648, {"D", {0.2, 0.55, 1}}},     -- 光融法力藥水
+                {1263074, {"A", {1, 0.4, 0.4}}},      -- 阿曼尼萃取物
+                {1239479, {"D", {0.6, 0.3, 1}}},      -- 吞噬夢境藥水
+                {1236590, {"B", {0.3, 1, 0.75}}},     -- 基礎活力藥水
+                {1295132, {"C3", {0.3, 0.85, 1}}},    -- 流光藥劑
+                {1236998, {"C3", {0.45, 0.2, 0.75}}}, -- 猛烈捨棄藥劑
+                {1262857, {"A", {1, 0.1, 0.1}}},      -- 強效治療藥水
+                {1236994, {"C3", {0.85, 0.35, 1}}},   -- 魯莽藥水
+            }
+
+            local seen = {}
+            for _, t in pairs(CellDB["actions"]) do
+                if type(t) == "table" then seen[t[1]] = true end
+            end
+
+            for _, t in ipairs(topUp) do
+                if not seen[t[1]] then
+                    seen[t[1]] = true
+                    tinsert(CellDB["actions"], F.Copy(t))
+                end
+            end
+
+            -- Revise runs after Core.lua has already built Cell.vars.actions, so rebuild it
+            Cell.vars.actions = I.ConvertActions(CellDB["actions"])
+        end
+    end
+
     CellDB["revise"] = Cell.version
     if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version
