@@ -240,7 +240,7 @@ local function InitSettings()
         local ufBtn = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
         ufBtn:SetSize(160, 24)
         ufBtn:SetPoint("TOPRIGHT", divider2, "BOTTOMRIGHT", 0, -8)
-        ufBtn:SetText("開啟頭像框架設定")
+        ufBtn:SetText("開啟單位框架設定")
         ufBtn:SetScript("OnClick", function()
             if MiliUI_OpenUnitFrameSettings then
                 MiliUI_OpenUnitFrameSettings()
@@ -728,7 +728,7 @@ local function InitSettings()
     legacyDesc:SetPoint("TOPLEFT", legacyCB, "BOTTOMLEFT", SUB_INDENT, -2)
     legacyDesc:SetWidth(520)
     legacyDesc:SetJustifyH("LEFT")
-    legacyDesc:SetText("套組已改用內建的米利頭像框架，不再附帶 Stuf。\n"
+    legacyDesc:SetText("套組已改用內建的「米利的單位框架」，不再附帶 Stuf。\n"
         .. "若 AddOns 資料夾裡還留著舊版的 Stuf / Stuf_Options / Stuf_Range，\n"
         .. "登入時會自動停用它們，避免兩套頭像重疊。\n"
         .. "取消勾選則不再自動處理，並把先前停用的插件重新啟用。\n"

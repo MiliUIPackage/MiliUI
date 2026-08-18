@@ -1,10 +1,13 @@
 ## Interface: 120100, 120105
 ## Title: MiliUI Unit Frames
 ## Title-zhTW: |cff4DD2FF[頭像]|r 米利的單位框架
+## Title-zhCN: |cff4488FF[MiliUI]|r 米利的单位框架
 ## Notes: Simple unit frames, easy to set up.|n|n|cffffd200Usage: |r/muf or the minimap button to open settings.
 ## Notes-zhTW: MiliUI Unit Frames|n|n米利的單位框架。|n|n|cffffd200使用方法: |r/muf 或小地圖按鈕開啟設定。
+## Notes-zhCN: MiliUI Unit Frames|n|n米利的单位框架。|n|n|cffffd200使用方法: |r/muf 或小地图按钮打开设置。
 ## Category: UnitFrame
 ## Category-zhTW: 頭像
+## Category-zhCN: 头像
 ## Author: Mili
 ## Version: 1.0.0
 ## X-Website: https://github.com/MiliUIPackage/MiliUI_UnitFrames

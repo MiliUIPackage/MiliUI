@@ -87,7 +87,7 @@ do
         local key = tostring(funcName)
         if not seen[key] then
             seen[key] = true
-            print("|cff4DD2FF[米利頭像]|r |cffff5555" .. line .. "|r")
+            print("|cff4DD2FF[米利單位框架]|r |cffff5555" .. line .. "|r")
         end
     end)
 end

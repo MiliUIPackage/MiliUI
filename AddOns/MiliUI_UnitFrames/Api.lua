@@ -45,7 +45,7 @@ local READOUT_LINES = 22
 local function ShowSecretReadout()
     local pf = ns.frames.player
     if not (pf and pf.hpCalc and UnitGetDetailedHealPrediction) then
-        print("|cff4DD2FF[米利頭像]|r 沒有玩家框或計算器，讀不了")
+        print("|cff4DD2FF[米利單位框架]|r 沒有玩家框或計算器，讀不了")
         return
     end
 
@@ -168,10 +168,10 @@ end
 local function Bench()
     local p = print
     if not (debugprofilestart and debugprofilestop) then
-        p("|cff4DD2FF[米利頭像]|r 這個客戶端沒有 debugprofilestart／stop，量不了")
+        p("|cff4DD2FF[米利單位框架]|r 這個客戶端沒有 debugprofilestart／stop，量不了")
         return
     end
-    p(("|cff4DD2FF[米利頭像 bench]|r 每項 %d 次；倍率可信、絕對值偏高（見原始碼註解）"):format(BENCH_N))
+    p(("|cff4DD2FF[米利單位框架 bench]|r 每項 %d 次；倍率可信、絕對值偏高（見原始碼註解）"):format(BENCH_N))
 
     ------------------------------------------------------------
     -- P1：血條的兩條路。沒設任何 clamp mode ⇒ 兩者理論上等價
@@ -216,7 +216,7 @@ end
 
 local function Debug()
     local p = print
-    p("|cff4DD2FF[米利頭像 debug]|r v" .. ns.VERSION
+    p("|cff4DD2FF[米利單位框架 debug]|r v" .. ns.VERSION
         .. "  DB schema=" .. tostring(MiliUI_UnitFrames_DB and MiliUI_UnitFrames_DB.schemaVersion)
         .. "/" .. ns.DB_VERSION .. "  設定檔=" .. tostring(ns.profileName))
 
