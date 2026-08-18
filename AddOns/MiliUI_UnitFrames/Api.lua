@@ -89,8 +89,9 @@ local function ShowSecretReadout()
     --
     --   血量兩對   **必須相等**。血條目前走計算器，而我們沒設任何 clamp mode
     --              ⇒ 等價。這就是體檢 P1「能不能改走全域 API」的判準。
-    --   吸收盾兩行 **本來就不相等**。calc 的是「已裁切到剩餘血量」的量（滿血時是 0），
-    --              全域的是未裁切總量 —— Health.lua 正是因為這個差異才餵全域那顆。
+    --   吸收盾兩行 **本來就不相等**。calc 的是裁切到**缺少的血量**（maxHP − curHP）
+    --              之後的量，滿血時是 0；全域的是未裁切總量 —— Health.lua 正是因為
+    --              這個差異才餵全域那顆。
     --   治療吸收   **也不該拿來比**。calc 版在 12.1 回垃圾（無 debuff 卻填滿條），
     --              所以我們走全域。留在這裡只是為了看它到底回什麼。
     ------------------------------------------------------------
@@ -104,7 +105,7 @@ local function ShowSecretReadout()
         put("  目前血量 全域      = %d", UnitHealth(unit))
         -- ⚠ 第二個回傳是 isClamped（秘密布林），一定要先落地成單一變數
         local dmgAbsorb = c:GetDamageAbsorbs()
-        put("  |cff888888吸收盾 calc（裁切後）= %d|r", dmgAbsorb)
+        put("  |cff888888吸收盾 calc（裁到缺血量）= %d|r", dmgAbsorb)
         put("  |cff888888吸收盾 全域（未裁切）= %d|r",
             UnitGetTotalAbsorbs and UnitGetTotalAbsorbs(unit) or 0)
         put("  |cff888888治療吸收 calc（不可信）= %d|r", c:GetHealAbsorbs())
