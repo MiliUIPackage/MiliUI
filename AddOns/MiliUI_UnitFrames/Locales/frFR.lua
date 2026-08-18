@@ -130,7 +130,6 @@ L["The \"health gradient\" method interpolates between these two; gray is used f
 L["Healthy"] = "En forme"
 L["Critical"] = "Critique"
 L["Cast bar colors"] = "Couleurs de la barre d’incantation"
-L["All cast bars share these five colors; whether \"non-interruptible\" applies is set per unit."] = "Toutes les barres d’incantation partagent ces cinq couleurs ; l’application de « non interruptible » se règle par unité."
 L["Casting"] = "Incantation"
 L["Channeling"] = "Canalisation"
 L["Completed"] = "Terminé"
@@ -428,3 +427,5 @@ L["Tints the bar while your own interrupt is off cooldown — one glance tells y
 L["Cast target"] = "Cible du sort"
 L["Show who the cast is aimed at"] = "Afficher sur qui le sort est lancé"
 L["The name of the caster's current target. Useful on the focus and boss frames for spotting a tank swap or a fixate. Only available for units the game gives a target token for (player, pet, target, focus, boss), and in restricted content the name may be unavailable."] = "Le nom de la cible actuelle de l'incantateur. Utile sur les cadres focus et boss pour repérer un changement de tank ou une fixation. Disponible seulement pour les unités dont le jeu fournit un jeton de cible (joueur, familier, cible, focus, boss) ; dans les contenus restreints, le nom peut être indisponible."
+L["Empowered"] = "Amplifié"
+L["Every cast bar shares these colors; whether \"non-interruptible\" applies is set per unit. The defaults match the Platynator nameplate preset that ships with MiliUI, so the same cast state reads the same on both."] = "Toutes les barres d'incantation partagent ces couleurs ; l'application de \"non interruptible\" se règle par unité. Les valeurs par défaut correspondent au préréglage des barres de nom Platynator fourni avec MiliUI, pour que le même état se lise pareil des deux côtés."

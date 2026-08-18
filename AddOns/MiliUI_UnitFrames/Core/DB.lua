@@ -135,13 +135,28 @@ function DB.BuildDefaults()
                 gray    = { r = 0.4, g = 0.4, b = 0.4, a = 0.8 },
                 bg      = black(0.4),
                 shadow  = black(0.9),
-                cast    = { r = 1, g = 0.7, b = 0 },
-                channel = { r = 0, g = 1, b = 0 },
-                complete = { r = 1, g = 1, b = 0 },
-                fail    = { r = 1, g = 0, b = 0 },
-                notInterruptible = { r = 0.53, g = 0.53, b = 0.53 },
+                ------------------------------------------------------------
+                -- 施法條配色：直接對齊 Platynator 名條的 autoColors
+                -- （MiliUI/Config/Luxthos_Platynator.lua，也是玩家實際在跑的那組）。
+                -- 名條與頭像框同時出現在畫面上，兩邊同一個狀態卻不同色最難讀。
+                --
+                -- Platynator 的優先序（上蓋下）也跟這裡一致：
+                --   不可打斷 > 斷法就緒 > 重要法術 > 一般施法
+                --
+                -- ⚠ 一般施法**不能**用琥珀色：Platynator 的「斷法就緒」就是琥珀
+                --   （1/0.741/0），舊的 cast 值 1/0.7/0 幾乎一模一樣，兩個狀態會分不出來。
+                --   一般施法要留在橘色，琥珀讓給就緒。
+                ------------------------------------------------------------
+                cast    = { r = 0.906, g = 0.424, b = 0.2 },    -- Platy cast 橘
+                channel = { r = 0.906, g = 0.424, b = 0.2 },    -- Platy 引導同色
+                empowered = { r = 0.020, g = 0.776, b = 0.4 },  -- Platy empowered 綠
+                fail    = { r = 1, g = 0.204, b = 0.145 },      -- Platy interrupted 紅
+                notInterruptible = { r = 0.529, g = 0.529, b = 0.529 },  -- Platy uninterruptable 灰
                 -- 斷法就緒（C8）：你的打斷技能好了，敵方施法條換這個色
-                interruptReady = { r = 0.20, g = 0.85, b = 1 },
+                interruptReady = { r = 1, g = 0.741, b = 0 },   -- Platy interruptReady 琥珀
+                -- ⚠ 完成色是 MiliUI 自己的（施法結束閃一下），Platynator 沒有對應項。
+                -- 不想要就把每單位的「完成時著色」關掉，行為就跟 Platynator 一樣只淡出。
+                complete = { r = 1, g = 1, b = 0 },
             },
             classification = {
                 worldboss = L[" Boss"], rareelite = L[" Rare Elite"],
@@ -643,6 +658,27 @@ local PROFILE_MIGRATIONS = {
                 end
             end
         end
+    end,
+
+    -- v5：施法條配色改成對齊 Platynator 名條（見 BuildDefaults 的 colors 區塊）。
+    --
+    -- 值閘：只換「還等於舊預設」的那幾個色，自己調過顏色的人一個都不碰。
+    -- 沒有這一步的話改預設值等於白改 —— MergeDefaults 只補 nil，舊設定檔裡已經
+    -- 存著舊顏色，改了 BuildDefaults 也不會生效。
+    [5] = function(profile)
+        local colors = profile.global and profile.global.colors
+        if type(colors) ~= "table" then return end
+        local function repaint(key, or_, og, ob, nr, ng, nb)
+            local c = colors[key]
+            if type(c) == "table" and c.r == or_ and c.g == og and c.b == ob then
+                c.r, c.g, c.b = nr, ng, nb
+            end
+        end
+        repaint("cast",             1,    0.7,  0,   0.906, 0.424, 0.2)
+        repaint("channel",          0,    1,    0,   0.906, 0.424, 0.2)
+        repaint("fail",             1,    0,    0,   1,     0.204, 0.145)
+        repaint("notInterruptible", 0.53, 0.53, 0.53, 0.529, 0.529, 0.529)
+        repaint("interruptReady",   0.20, 0.85, 1,   1,     0.741, 0)
     end,
 }
 

@@ -130,7 +130,6 @@ L["The \"health gradient\" method interpolates between these two; gray is used f
 L["Healthy"] = "건강"
 L["Critical"] = "위험"
 L["Cast bar colors"] = "시전 바 색상"
-L["All cast bars share these five colors; whether \"non-interruptible\" applies is set per unit."] = "모든 시전 바가 이 다섯 가지 색을 공유합니다. \"차단 불가\" 적용 여부는 유닛별로 설정합니다."
 L["Casting"] = "시전"
 L["Channeling"] = "정신 집중"
 L["Completed"] = "완료"
@@ -428,3 +427,5 @@ L["Tints the bar while your own interrupt is off cooldown — one glance tells y
 L["Cast target"] = "시전 대상"
 L["Show who the cast is aimed at"] = "이 시전이 누구를 향하는지 표시"
 L["The name of the caster's current target. Useful on the focus and boss frames for spotting a tank swap or a fixate. Only available for units the game gives a target token for (player, pet, target, focus, boss), and in restricted content the name may be unavailable."] = "시전자의 현재 대상 이름입니다. 주시 대상과 우두머리 프레임에서 방어 전환이나 고정 대상을 알아보는 데 유용합니다. 게임이 대상 토큰을 제공하는 유닛(플레이어, 소환수, 대상, 주시 대상, 우두머리)에서만 사용할 수 있고, 제한된 콘텐츠에서는 이름을 얻지 못할 수 있습니다."
+L["Empowered"] = "강화"
+L["Every cast bar shares these colors; whether \"non-interruptible\" applies is set per unit. The defaults match the Platynator nameplate preset that ships with MiliUI, so the same cast state reads the same on both."] = "모든 시전 바가 이 색들을 공유합니다. \"차단 불가\"를 적용할지는 유닛별로 설정합니다. 기본값은 MiliUI에 포함된 Platynator 이름표 설정과 맞춰져 있어, 같은 시전 상태가 이름표와 유닛 프레임에서 똑같이 보입니다."

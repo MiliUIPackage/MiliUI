@@ -93,6 +93,14 @@ local function Colors()
     return ns.db.global.colors
 end
 
+-- 一般施法的底色：賦能引導 > 引導 > 施法。
+-- Platynator 的 `kind = "cast"` 那組就是這三個欄位（cast／channel／empowered），
+-- 這裡的欄位名刻意跟它一樣，對照設定時不用翻譯。
+local function BaseColor(f, c)
+    if f.castEmpowered and c.empowered then return c.empowered end
+    return f.castChannel and c.channel or c.cast
+end
+
 -- 施法條共五色（全域設定，全部可調）：施法橙／引導綠／完成黃／失敗紅／不可打斷灰。
 -- `edb.showInterruptState` 關閉時（玩家／寵物預設）不套「不可打斷灰」也不畫盾牌——
 -- 自己的施法能不能被斷沒有意義。
@@ -126,7 +134,7 @@ local function ApplySecretColor(f)
     local tex = f.bar:GetStatusBarTexture()
     if not tex then return end
     local c = Colors()
-    local base = f.castChannel and c.channel or c.cast
+    local base = BaseColor(f, c)
     local r, g, b = base.r, base.g, base.b
     local tinted = false
     if chainOK then
@@ -153,8 +161,7 @@ end
 local function ApplyPlainColor(f, notInt)
     local c = Colors()
     local grey = f.showInterruptState and notInt
-    local col = (grey and c.notInterruptible)
-        or (f.castChannel and c.channel or c.cast)
+    local col = (grey and c.notInterruptible) or BaseColor(f, c)
     local r, g, b = col.r, col.g, col.b
     -- 不可打斷的灰優先，其餘才考慮斷法就緒
     if not grey then r, g, b = ReadyTint(f, r, g, b) end
@@ -306,6 +313,7 @@ local function StartDisplay(f, castTbl, chanTbl)
 
     f.displayToken = f.displayToken + 1
     f.castChannel = isChannel
+    f.castEmpowered = isEmpowered      -- 賦能引導自己一個底色（同 Platynator）
     f.castState = isChannel and 2 or 1        -- 1=施法 2=引導（FAILED 只在 1 才理會）
     f.castGUID = isCast and castTbl[7] or nil -- UnitCastingInfo 第 7 個回傳是 castID
     f.castNotInterruptible = notInt
@@ -388,6 +396,7 @@ local function ResyncTiming(f)
                 dur = UnitChannelDuration(unit)
             end
         end
+        f.castEmpowered = isEmpowered
         if dur and f.bar.SetTimerDuration then
             f.bar:SetTimerDuration(dur, nil, TimerDir(isChannel, isEmpowered))
         end

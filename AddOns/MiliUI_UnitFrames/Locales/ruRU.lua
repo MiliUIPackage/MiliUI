@@ -130,7 +130,6 @@ L["The \"health gradient\" method interpolates between these two; gray is used f
 L["Healthy"] = "Здоров"
 L["Critical"] = "Критично"
 L["Cast bar colors"] = "Цвета полосы заклинания"
-L["All cast bars share these five colors; whether \"non-interruptible\" applies is set per unit."] = "Все полосы заклинаний используют эти пять цветов; применяется ли \"непрерываемое\", задается отдельно для каждого юнита."
 L["Casting"] = "Чтение"
 L["Channeling"] = "Поддержание"
 L["Completed"] = "Завершено"
@@ -428,3 +427,5 @@ L["Tints the bar while your own interrupt is off cooldown — one glance tells y
 L["Cast target"] = "Цель заклинания"
 L["Show who the cast is aimed at"] = "Показывать, на кого направлено заклинание"
 L["The name of the caster's current target. Useful on the focus and boss frames for spotting a tank swap or a fixate. Only available for units the game gives a target token for (player, pet, target, focus, boss), and in restricted content the name may be unavailable."] = "Имя текущей цели заклинателя. Полезно на рамках фокуса и боссов, чтобы заметить смену танка или фиксацию. Доступно только для единиц, для которых игра даёт токен цели (player, pet, target, focus, boss); в ограниченном контенте имя может быть недоступно."
+L["Empowered"] = "Усиленное"
+L["Every cast bar shares these colors; whether \"non-interruptible\" applies is set per unit. The defaults match the Platynator nameplate preset that ships with MiliUI, so the same cast state reads the same on both."] = "Все полосы заклинаний используют эти цвета; применяется ли «непрерываемое», задаётся для каждой единицы. Значения по умолчанию совпадают с профилем полос имён Platynator из MiliUI, поэтому одно и то же состояние выглядит одинаково в обоих местах."

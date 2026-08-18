@@ -67,9 +67,10 @@ local CONTROLS = {
     { type = "color", sub = "colors", key = "gray",    label = L["Gray"] },
 
     { type = "header", label = L["Cast bar colors"] },
-    { type = "text",   label = L["All cast bars share these five colors; whether \"non-interruptible\" applies is set per unit."] },
+    { type = "text",   label = L["Every cast bar shares these colors; whether \"non-interruptible\" applies is set per unit. The defaults match the Platynator nameplate preset that ships with MiliUI, so the same cast state reads the same on both."] },
     { type = "color", sub = "colors", key = "cast",    label = L["Casting"], hasAlpha = false },
     { type = "color", sub = "colors", key = "channel", label = L["Channeling"], hasAlpha = false },
+    { type = "color", sub = "colors", key = "empowered", label = L["Empowered"], hasAlpha = false },
     { type = "color", sub = "colors", key = "complete", label = L["Completed"], hasAlpha = false },
     { type = "color", sub = "colors", key = "fail",    label = L["Failed / interrupted"], hasAlpha = false },
     { type = "color", sub = "colors", key = "notInterruptible", label = L["Non-interruptible"], hasAlpha = false },

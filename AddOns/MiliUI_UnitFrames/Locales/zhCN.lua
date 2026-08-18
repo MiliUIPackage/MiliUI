@@ -128,7 +128,6 @@ L["The \"health gradient\" method interpolates between these two; gray is used f
 L["Healthy"] = "健康"
 L["Critical"] = "危险"
 L["Cast bar colors"] = "施法条颜色"
-L["All cast bars share these five colors; whether \"non-interruptible\" applies is set per unit."] = "所有单位的施法条共用这五色；每个单位可各自决定要不要套用「不可打断」。"
 L["Casting"] = "施法"
 L["Channeling"] = "引导"
 L["Completed"] = "完成"
@@ -426,3 +425,5 @@ L["Tints the bar while your own interrupt is off cooldown — one glance tells y
 L["Cast target"] = "施法目标"
 L["Show who the cast is aimed at"] = "显示这次施法对准谁"
 L["The name of the caster's current target. Useful on the focus and boss frames for spotting a tank swap or a fixate. Only available for units the game gives a target token for (player, pet, target, focus, boss), and in restricted content the name may be unavailable."] = "施法者当前目标的名字。焦点与首领框上很有用，可以看出换坦或仇恨转移。只有游戏提供目标 token 的单位才有（玩家、宠物、目标、焦点、首领），而且在受限内容中名字可能拿不到。"
+L["Empowered"] = "赋能"
+L["Every cast bar shares these colors; whether \"non-interruptible\" applies is set per unit. The defaults match the Platynator nameplate preset that ships with MiliUI, so the same cast state reads the same on both."] = "所有施法条共用这几个颜色；“不可打断”要不要套用是逐单位设置的。默认值对齐 MiliUI 内置的 Platynator 姓名板设置，同一个施法状态在姓名板与头像框上看起来一致。"

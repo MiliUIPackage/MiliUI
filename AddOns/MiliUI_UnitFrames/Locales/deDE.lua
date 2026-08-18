@@ -130,7 +130,6 @@ L["The \"health gradient\" method interpolates between these two; gray is used f
 L["Healthy"] = "Gesund"
 L["Critical"] = "Kritisch"
 L["Cast bar colors"] = "Farben der Zauberleiste"
-L["All cast bars share these five colors; whether \"non-interruptible\" applies is set per unit."] = "Alle Zauberleisten teilen sich diese fünf Farben; ob \"nicht unterbrechbar\" greift, wird pro Einheit eingestellt."
 L["Casting"] = "Zaubern"
 L["Channeling"] = "Kanalisieren"
 L["Completed"] = "Abgeschlossen"
@@ -428,3 +427,5 @@ L["Tints the bar while your own interrupt is off cooldown — one glance tells y
 L["Cast target"] = "Zauberziel"
 L["Show who the cast is aimed at"] = "Anzeigen, auf wen der Zauber gerichtet ist"
 L["The name of the caster's current target. Useful on the focus and boss frames for spotting a tank swap or a fixate. Only available for units the game gives a target token for (player, pet, target, focus, boss), and in restricted content the name may be unavailable."] = "Der Name des aktuellen Ziels des Zaubernden. Nützlich bei Fokus- und Bossfenstern, um einen Tankwechsel oder eine Fixierung zu erkennen. Nur für Einheiten verfügbar, für die das Spiel ein Ziel-Token liefert (Spieler, Begleiter, Ziel, Fokus, Boss); in eingeschränkten Inhalten kann der Name fehlen."
+L["Empowered"] = "Verstärkt"
+L["Every cast bar shares these colors; whether \"non-interruptible\" applies is set per unit. The defaults match the Platynator nameplate preset that ships with MiliUI, so the same cast state reads the same on both."] = "Alle Zauberleisten teilen sich diese Farben; ob \"nicht unterbrechbar\" gilt, wird pro Einheit festgelegt. Die Standardwerte entsprechen der Platynator-Namensplaketten-Vorlage aus MiliUI, sodass derselbe Zauberzustand auf beiden gleich aussieht."
