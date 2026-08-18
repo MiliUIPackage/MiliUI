@@ -17,6 +17,7 @@ local Media = ns.Media
 local IsSecret = ns.IsSecret
 
 local Eval = C_CurveUtil and C_CurveUtil.EvaluateColorValueFromBoolean
+local IsSpellImportant = C_Spell and C_Spell.IsSpellImportant
 
 local function SecretsActive()
     return C_Secrets and C_Secrets.HasSecretRestrictions() and true or false
@@ -61,6 +62,7 @@ ns.CastbarFormatTime = FormatTime      -- 預覽孿生共用同一個 formatter
 local function HideBar(f)
     f.active = false
     f.castState = nil
+    f.castSpellID = nil
     if f.targetText then f.targetText:SetText("") end
     f.displayToken = f.displayToken + 1
     if f.ticker then f.ticker:Cancel(); f.ticker = nil end
@@ -109,6 +111,27 @@ local function EvalTriple(cond, col, r, g, b)
     return Eval(cond, col.r, r), Eval(cond, col.g, g), Eval(cond, col.b, b)
 end
 
+-- 重要法術染色（暴雪標記為「重要」的敵方施法）。
+--
+-- ⚠⚠ **不需要自己維護法術清單** —— 這是最容易走錯的一步。判定用暴雪的
+-- `C_Spell.IsSpellImportant(spellID)`，Platynator 的 importantCast 也是同一支
+-- （Display/Colors.lua），它同樣沒有清單。
+--
+-- 至於「怎麼知道怪在放哪顆法術」：spellID 是 `UnitCastingInfo` 的第 9 個回傳
+-- （引導是 `UnitChannelInfo` 的第 8 個）。受限內容裡它**可能是秘密值**，但這裡
+-- 從頭到尾沒有讀它 —— 拿到就原封不動交回給 C 端函式，查表是暴雪那邊做的。
+-- 回來的 isImportant 一樣可能是秘密布林，照舊只餵曲線。
+-- 這就是秘密值下的通則：**當傳遞者，不當讀取者。**
+local function ImportantTint(f, r, g, b)
+    if not (f.showImportantCast and Eval and IsSpellImportant) then return r, g, b, false end
+    local id = f.castSpellID
+    if id == nil then return r, g, b, false end          -- nil 比較合法，值本身不碰
+    local ok, imp = pcall(IsSpellImportant, id)
+    if not (ok and imp ~= nil) then return r, g, b, false end
+    local nr, ng, nb = EvalTriple(imp, Colors().important, r, g, b)
+    return nr, ng, nb, true
+end
+
 -- C8 斷法就緒染色：把底色換成「就緒色」。
 --
 -- ⚠ ns.Interrupt.IsReady() 回的可能是**秘密布林** —— 只能餵曲線，永不 if。
@@ -124,10 +147,13 @@ local function ReadyTint(f, r, g, b)
     return nr, ng, nb, true
 end
 
--- ⚠⚠ 兩層曲線**串接**的風險：就緒色算出來的 r/g/b 是秘密數字，再當成外層
--- 「不可打斷」曲線的 whenFalse 參數餵回去。C 端函式收秘密值一般沒問題，但這種
--- 串法沒有任何文件或現成插件背書。所以第一次被擋就永久放掉就緒染色 ——
--- 不可打斷的灰是更重要的資訊，不能因為附加功能而整條壞掉、還每秒噴十次錯誤。
+-- 曲線**串接**：前一層算出來的 r/g/b 是秘密數字，再當成下一層曲線的 whenFalse
+-- 參數餵回去。這是有現成背書的寫法 —— Platynator 的 Display/Colors.lua 整個
+-- colorQueue 就是這樣一層層疊上去的（`SplitEvaluate` 逐色道跑
+-- EvaluateColorValueFromBoolean，前一輪的結果直接當下一輪的參數）。
+--
+-- 還是留一道保險：萬一哪天被擋，第一次失敗就永久放掉附加染色，
+-- 保住「不可打斷灰」這個更重要的資訊，也避免每秒噴十次錯誤。
 local chainOK = true
 
 local function ApplySecretColor(f)
@@ -137,9 +163,12 @@ local function ApplySecretColor(f)
     local base = BaseColor(f, c)
     local r, g, b = base.r, base.g, base.b
     local tinted = false
+    -- 疊色順序＝優先序的反向（後蓋前）：重要法術 → 斷法就緒 → 不可打斷
     if chainOK then
-        local ok, rr, gg, bb, did = pcall(ReadyTint, f, r, g, b)
-        if ok then r, g, b, tinted = rr, gg, bb, did end
+        local ok, rr, gg, bb, did = pcall(ImportantTint, f, r, g, b)
+        if ok then r, g, b = rr, gg, bb; tinted = tinted or did end
+        ok, rr, gg, bb, did = pcall(ReadyTint, f, r, g, b)
+        if ok then r, g, b = rr, gg, bb; tinted = tinted or did end
     end
     -- notInterruptible 是秘密布林，不能 if；交給曲線選色
     if Eval and f.showInterruptState then
@@ -163,8 +192,11 @@ local function ApplyPlainColor(f, notInt)
     local grey = f.showInterruptState and notInt
     local col = (grey and c.notInterruptible) or BaseColor(f, c)
     local r, g, b = col.r, col.g, col.b
-    -- 不可打斷的灰優先，其餘才考慮斷法就緒
-    if not grey then r, g, b = ReadyTint(f, r, g, b) end
+    -- 不可打斷的灰優先，其餘依序疊重要法術、斷法就緒
+    if not grey then
+        r, g, b = ImportantTint(f, r, g, b)
+        r, g, b = ReadyTint(f, r, g, b)
+    end
     f.bar:SetStatusBarColor(r, g, b, f.barAlpha or 1)
 end
 
@@ -254,7 +286,9 @@ local function LegacyOnUpdate(f, dt)
         f.textAccum = 0
         f.timeText:SetText(FormatTime(f.timeFormat, now - f.castStart, total))
         -- 斷法冷卻在跑，顏色要跟著重算（秘密模式由 SecretTick 負責）
-        if f.showInterruptReady then ApplyPlainColor(f, f.castNotInterruptible) end
+        if f.showInterruptReady or f.showImportantCast then
+            ApplyPlainColor(f, f.castNotInterruptible)
+        end
     end
 end
 
@@ -300,20 +334,23 @@ local function StartDisplay(f, castTbl, chanTbl)
     if not (isCast or isChannel) then HideBar(f); return end
 
     -- 明文旗標選欄位；值本身可能是秘密，只賦值不分支
-    local name, texture, notInt, s4, s5, isEmpowered
+    local name, texture, notInt, s4, s5, isEmpowered, spellID
     if isCast then
         name, texture, notInt = castTbl[1], castTbl[3], castTbl[8]
         s4, s5 = castTbl[4], castTbl[5]
+        spellID = castTbl[9]        -- UnitCastingInfo 第 9 個回傳
         isEmpowered = false
     else
         name, texture, notInt = chanTbl[1], chanTbl[3], chanTbl[7]
         s4, s5 = chanTbl[4], chanTbl[5]
+        spellID = chanTbl[8]        -- UnitChannelInfo 第 8 個（少了 castID 那格）
         isEmpowered = chanTbl[9] and true or false
     end
 
     f.displayToken = f.displayToken + 1
     f.castChannel = isChannel
     f.castEmpowered = isEmpowered      -- 賦能引導自己一個底色（同 Platynator）
+    f.castSpellID = spellID            -- 可能是秘密值：只轉交，永不讀
     f.castState = isChannel and 2 or 1        -- 1=施法 2=引導（FAILED 只在 1 才理會）
     f.castGUID = isCast and castTbl[7] or nil -- UnitCastingInfo 第 7 個回傳是 castID
     f.castNotInterruptible = notInt
@@ -707,6 +744,7 @@ local function Build(uf, edb)
 
     f.showCastTarget = edb.showCastTarget and true or false
     f.showInterruptReady = edb.showInterruptReady and true or false
+    f.showImportantCast = edb.showImportantCast and true or false
     f.textOverlay:SetFrameLevel(lvl + 3)
     ApplyTextStyle(f.spellText, edb.spell or {}, f)
     ApplyTextStyle(f.timeText, edb.time or {}, f)

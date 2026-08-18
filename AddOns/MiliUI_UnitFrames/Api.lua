@@ -374,6 +374,11 @@ local function Debug()
         p(("   目標施法條 showInterruptReady=%s Eval=%s"):format(
             tostring(cb and cb.showInterruptReady),
             tostring(C_CurveUtil and C_CurveUtil.EvaluateColorValueFromBoolean ~= nil)))
+        -- 重要法術：清單是暴雪的，我們只轉交 spellID。API 不在就整個功能沒作用
+        p(("   重要法術 API=%s showImportantCast=%s 目前 spellID=%s"):format(
+            tostring(C_Spell and C_Spell.IsSpellImportant ~= nil),
+            tostring(cb and cb.showImportantCast),
+            SafeStr(cb and cb.castSpellID)))
     end
 
     -- 施法目標（C4）：分得出是沒開、單位沒有 target token，還是名字取不到

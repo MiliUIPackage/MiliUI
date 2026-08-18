@@ -74,6 +74,7 @@ local CONTROLS = {
     { type = "color", sub = "colors", key = "complete", label = L["Completed"], hasAlpha = false },
     { type = "color", sub = "colors", key = "fail",    label = L["Failed / interrupted"], hasAlpha = false },
     { type = "color", sub = "colors", key = "notInterruptible", label = L["Non-interruptible"], hasAlpha = false },
+    { type = "color", sub = "colors", key = "important", label = L["Important spell"], hasAlpha = false },
     { type = "color", sub = "colors", key = "interruptReady", label = L["Your interrupt is ready"], hasAlpha = false },
     { type = "text",   label = L["\"Your interrupt is ready\" tints the bar while your own interrupt is off cooldown, so you can see at a glance whether a cast is worth stopping. Enable it per unit under Units > Cast bar."] },
 

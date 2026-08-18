@@ -250,6 +250,8 @@ local function CastbarSpecs()
         { type = "text", label = L["When on, non-interruptible casts turn gray and show a shield on the icon. Off by default for you and your pet, since whether your own cast can be interrupted is meaningless."] },
         { type = "toggle", sub = "castbar", key = "showSpark", label = L["Spark at the leading edge"] },
         { type = "text", label = L["A bright dot that rides the front of the fill. Off by default: Stuf's cast bar never had one."] },
+        { type = "toggle", sub = "castbar", key = "showImportantCast", label = L["Tint important spells"] },
+        { type = "text", label = L["Which spells count as important is decided by the game itself, not by a list this addon maintains — the same call the Platynator nameplates use. The color lives under General > Cast bar colors. Ranked below \"interrupt ready\" and \"non-interruptible\"."] },
         { type = "toggle", sub = "castbar", key = "showInterruptReady", label = L["Tint while your interrupt is ready"] },
         { type = "text", label = L["Tints the bar while your own interrupt is off cooldown — one glance tells you whether a cast is worth stopping. The color lives under General > Cast bar colors. A non-interruptible cast still wins and stays gray. Off for you and your pet."] },
         { type = "toggle", sub = "castbar", key = "showCompleteFlash", label = L["Color on finish"] },

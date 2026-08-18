@@ -76,6 +76,8 @@ local function bigCastbar(own)
         barAlpha = 0.3,                 -- 只有彩色填充變淡；圖示與文字照樣清楚
         -- C8：你的斷法好了就換色。自己的施法沒有「能不能被斷」的意義，所以只有敵方開
         showInterruptReady = not own,
+        -- 重要法術（暴雪的 C_Spell.IsSpellImportant 判定）換色，同樣只有敵方開
+        showImportantCast = not own,
         -- C4：對誰施法。預設關（開了會多一行字，位置每個人喜好不同）
         showCastTarget = false,
         castTarget = { x = 0, y = -2, w = 196, h = 50, size = 10, flags = "OUTLINE",
@@ -143,10 +145,15 @@ function DB.BuildDefaults()
                 -- Platynator 的優先序（上蓋下）也跟這裡一致：
                 --   不可打斷 > 斷法就緒 > 重要法術 > 一般施法
                 --
+                -- 「重要法術」不需要自己維護法術清單 —— Platynator 也沒有。
+                -- 它問的是 `C_Spell.IsSpellImportant(spellID)`，暴雪自己的 API。
+                -- 詳見 Elements/Castbar.lua 的 ImportantTint。
+                --
                 -- ⚠ 一般施法**不能**用琥珀色：Platynator 的「斷法就緒」就是琥珀
                 --   （1/0.741/0），舊的 cast 值 1/0.7/0 幾乎一模一樣，兩個狀態會分不出來。
                 --   一般施法要留在橘色，琥珀讓給就緒。
                 ------------------------------------------------------------
+                important = { r = 0.761, g = 0.380, b = 1 },    -- Platy importantCast 紫
                 cast    = { r = 0.906, g = 0.424, b = 0.2 },    -- Platy cast 橘
                 channel = { r = 0.906, g = 0.424, b = 0.2 },    -- Platy 引導同色
                 empowered = { r = 0.020, g = 0.776, b = 0.4 },  -- Platy empowered 綠
@@ -388,7 +395,7 @@ function DB.BuildDefaults()
                                  size = 10, justifyH = "CENTER", justifyV = "MIDDLE", level = 6 },
                     },
                     castbar = {
-                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 7, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = true,
+                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 7, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = true, showImportantCast = true,
                         showCastTarget = false,
                         castTarget = { x = 0, y = 18, w = 160, h = 10, size = 9, flags = "OUTLINE",
                                       justifyH = "RIGHT", justifyV = "TOP",
@@ -488,7 +495,7 @@ function DB.BuildDefaults()
                     },
                     castbar = {
                         enabled = true, x = 0, y = 0, w = 120, h = 40, level = 6, timeFormat = "elapsedTotal",
-                        showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = false,
+                        showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = false, showImportantCast = false,
                         showCastTarget = false,
                         castTarget = { x = 0, y = -2, w = 116, h = 40, size = 9, flags = "OUTLINE",
                                       justifyH = "RIGHT", justifyV = "MIDDLE",
@@ -553,7 +560,7 @@ function DB.BuildDefaults()
                         enabled = true, x = 36, y = -22, w = 184, h = 14, level = 6,
                         timeFormat = "elapsedTotal", showInterruptState = true,
                         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
-                        showSpark = false, barAlpha = 1, showInterruptReady = true,
+                        showSpark = false, barAlpha = 1, showInterruptReady = true, showImportantCast = true,
                         -- 首領對誰施法：條只有 14 高，字放在條**下方**才不會跟時間撞
                         showCastTarget = false,
                         castTarget = { x = 0, y = -16, w = 184, h = 12, size = 11, flags = "OUTLINE",

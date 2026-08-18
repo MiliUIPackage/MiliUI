@@ -429,3 +429,6 @@ L["Show who the cast is aimed at"] = "이 시전이 누구를 향하는지 표�
 L["The name of the caster's current target. Useful on the focus and boss frames for spotting a tank swap or a fixate. Only available for units the game gives a target token for (player, pet, target, focus, boss), and in restricted content the name may be unavailable."] = "시전자의 현재 대상 이름입니다. 주시 대상과 우두머리 프레임에서 방어 전환이나 고정 대상을 알아보는 데 유용합니다. 게임이 대상 토큰을 제공하는 유닛(플레이어, 소환수, 대상, 주시 대상, 우두머리)에서만 사용할 수 있고, 제한된 콘텐츠에서는 이름을 얻지 못할 수 있습니다."
 L["Empowered"] = "강화"
 L["Every cast bar shares these colors; whether \"non-interruptible\" applies is set per unit. The defaults match the Platynator nameplate preset that ships with MiliUI, so the same cast state reads the same on both."] = "모든 시전 바가 이 색들을 공유합니다. \"차단 불가\"를 적용할지는 유닛별로 설정합니다. 기본값은 MiliUI에 포함된 Platynator 이름표 설정과 맞춰져 있어, 같은 시전 상태가 이름표와 유닛 프레임에서 똑같이 보입니다."
+L["Important spell"] = "중요 주문"
+L["Tint important spells"] = "중요 주문에 색 입히기"
+L["Which spells count as important is decided by the game itself, not by a list this addon maintains — the same call the Platynator nameplates use. The color lives under General > Cast bar colors. Ranked below \"interrupt ready\" and \"non-interruptible\"."] = "어떤 주문이 \"중요\"인지는 애드온이 관리하는 목록이 아니라 게임이 직접 판단합니다 — Platynator 이름표가 쓰는 것과 같은 API입니다. 색은 일반 > 시전 바 색상에 있습니다. \"차단기 준비됨\"과 \"차단 불가\"보다 낮은 우선순위입니다."
