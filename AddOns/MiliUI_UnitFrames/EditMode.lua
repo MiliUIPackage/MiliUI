@@ -41,18 +41,15 @@ local function GridSpacing()
     return DEFAULT_SPACING
 end
 
-local function SnapEnabled()
-    local mgr = EditModeManagerFrame
-    if not (mgr and mgr.IsSnapEnabled) then return false end
-    local ok, v = pcall(mgr.IsSnapEnabled, mgr)
-    return ok and v and true or false
-end
-
--- 吸附：開關與間距都跟著編輯模式面板走，Shift 暫時反轉
--- （微調一兩格的時候比跑去面板關掉快）
+-- 吸附的開關是**我們自己的**，預設關。
+--
+-- ⚠ 不要拿暴雪的 `IsSnapEnabled()` 當閘門：那個開關是給暴雪自己的框用的，
+-- 使用者可能為了別的目的打開它，結果我們的框莫名其妙跟著跳格 —— 沒開過任何
+-- 相關設定卻看到「怪怪的」行為，是最難回報也最難查的那種問題。
+-- 間距倒是照讀暴雪的，那是格線畫在哪裡的事實來源，另開一個只會對不上。
 local function Snap(v)
-    local on = SnapEnabled()
-    if IsShiftKeyDown() then on = not on end
+    local on = ns.db and ns.db.global.snapToGrid or false
+    if IsShiftKeyDown() then on = not on end     -- 暫時反轉：微調一兩格時好用
     if not on then return v end
     local step = GridSpacing()
     return math.floor(v / step + 0.5) * step

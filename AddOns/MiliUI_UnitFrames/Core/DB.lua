@@ -115,6 +115,8 @@ function DB.BuildDefaults()
             -- 滑鼠移過的高亮邊框（開關在每單位的 frame.highlight）
             highlightColor = white(0.7),
             highlightSize  = 1,
+            -- 編輯模式拖曳時吸附到格線。預設關：沒開過設定的人不該看到框自己跳格
+            snapToGrid  = false,
             strata      = "LOW",
             smoothBars  = true,
             showTooltip = true,          -- 滑鼠移到單位框顯示提示

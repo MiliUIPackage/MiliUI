@@ -411,19 +411,18 @@ local function Debug()
         p("  吸收盾細條（單位=位置/顯示/值）：" .. table.concat(rows, "  "))
     end
 
-    -- 編輯模式吸附（讀的是暴雪的設定，我們沒有自己的格線）
+    -- 編輯模式吸附：開關是我們的，間距讀暴雪的（我們沒有自己的格線）
     do
         local mgr = EditModeManagerFrame
-        local snap, space
+        local space
         if mgr then
-            local ok, v = pcall(mgr.IsSnapEnabled, mgr); snap = ok and v
-            local ok2, v2 = pcall(function()
+            local ok, v = pcall(function()
                 return mgr:GetAccountSettingValue(Enum.EditModeAccountSetting.GridSpacing)
             end)
-            space = ok2 and v2 or (mgr.Grid and mgr.Grid.gridSpacing)
+            space = ok and v or (mgr.Grid and mgr.Grid.gridSpacing)
         end
-        p(("  編輯模式吸附（暴雪設定）：吸附=%s 間距=%s"):format(
-            tostring(snap), tostring(space)))
+        p(("  編輯模式吸附：開關=%s 間距=%s（暴雪的格線設定）"):format(
+            tostring(ns.db.global.snapToGrid), tostring(space)))
     end
 
     p("  受限狀態 HasSecretRestrictions=" .. tostring(C_Secrets and C_Secrets.HasSecretRestrictions())

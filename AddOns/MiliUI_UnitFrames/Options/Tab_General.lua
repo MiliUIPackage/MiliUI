@@ -77,7 +77,8 @@ local CONTROLS = {
     { type = "text",   label = L["\"Your interrupt is ready\" tints the bar while your own interrupt is off cooldown, so you can see at a glance whether a cast is worth stopping. Enable it per unit under Units > Cast bar."] },
 
     { type = "header", label = L["Edit Mode grid"] },
-    { type = "text",   label = L["There are no grid settings here on purpose: Edit Mode already has its own grid and snap controls, and a second grid on top of Blizzard's just makes the screen unreadable. Turn on \"Snap to grid\" in Edit Mode and these frames follow it, at whatever spacing you set there. Hold Shift while dragging to invert snapping."] },
+    { type = "toggle", key = "snapToGrid", label = L["Snap to the grid while dragging"] },
+    { type = "text",   label = L["Spacing follows Edit Mode's own grid; hold Shift while dragging to invert this."] },
 
     { type = "header", label = L["Tooltips"] },
     { type = "toggle", key = "showTooltip", label = L["Show unit tooltip"] },
