@@ -9,8 +9,8 @@ local _, ns = ...
 
 local L = ns.L
 
-local W, Controls = ns.W, ns.Controls
-local PosSize, Pos = Controls.PosSize, Controls.Pos
+local W, Controls, Specs = ns.W, ns.Controls, ns.Specs
+local PosSize, Pos = Specs.PosSize, Specs.Pos
 
 -- ⚠ 這是**語系表的 key**，而 key 就是英文原文（Locales/Locale.lua 查不到就回傳 key）。
 -- 原本寫成三段 `.. ` 串接，key 是串接後的結果 —— 任何人改動其中一段的空格，
@@ -128,9 +128,9 @@ local function BarSpecs(name, isHP)
         { type = "header", label = L["Position and size"] },
         PosSize(name),
         { type = "header", label = L["Color"] },
-        { type = "dropdown", sub = name, key = "colorMethod", label = L["Foreground"], items = Controls.COLOR_METHOD_ITEMS },
+        { type = "dropdown", sub = name, key = "colorMethod", label = L["Foreground"], items = Specs.COLOR_METHOD_ITEMS },
         { type = "slider", sub = name, key = "barAlpha", label = L["Foreground opacity"], min = 0, max = 1, step = 0.05 },
-        { type = "dropdown", sub = name, key = "bgColorMethod", label = L["Background"], items = Controls.COLOR_METHOD_ITEMS },
+        { type = "dropdown", sub = name, key = "bgColorMethod", label = L["Background"], items = Specs.COLOR_METHOD_ITEMS },
         { type = "slider", sub = name, key = "bgAlpha", label = L["Background opacity"], min = 0, max = 1, step = 0.05 },
         { type = "color", sub = name, key = "barColor", label = L["Custom foreground color"], hasAlpha = false },
         { type = "color", sub = name, key = "bgColor", label = L["Custom background color"], hasAlpha = false },
@@ -229,8 +229,8 @@ local function TextStyleSpecs(sub, sub2, label)
         { type = "numbers", sub = sub, sub2 = sub2, label = L["Position and size"],
           fields = { { key = "x", label = "X" }, { key = "y", label = "Y" }, { key = "w", label = L["Width"] }, { key = "h", label = L["Height"] } } },
         { type = "slider", sub = sub, sub2 = sub2, key = "size", label = L["Font size"], min = 6, max = 32 },
-        { type = "dropdown", sub = sub, sub2 = sub2, key = "flags", label = L["Outline"], items = Controls.FLAGS_ITEMS },
-        { type = "dropdown", sub = sub, sub2 = sub2, key = "justifyH", label = L["Horizontal align"], items = Controls.JUSTIFY_H_ITEMS },
+        { type = "dropdown", sub = sub, sub2 = sub2, key = "flags", label = L["Outline"], items = Specs.FLAGS_ITEMS },
+        { type = "dropdown", sub = sub, sub2 = sub2, key = "justifyH", label = L["Horizontal align"], items = Specs.JUSTIFY_H_ITEMS },
         { type = "color", sub = sub, sub2 = sub2, key = "color", label = L["Color"] },
     }
 end
@@ -293,7 +293,7 @@ local function AuraSpecs(name)
         { type = "header", label = L["Position and layout"] },
         Pos(name),
         { type = "numbers", sub = name, label = L["Icon size"], fields = { { key = "w", label = L["Width"] }, { key = "h", label = L["Height"] } } },
-        { type = "dropdown", sub = name, key = "growth", label = L["Grow direction"], items = Controls.GROWTH_ITEMS },
+        { type = "dropdown", sub = name, key = "growth", label = L["Grow direction"], items = Specs.GROWTH_ITEMS },
         { type = "slider", sub = name, key = "perRow", label = L["Per row"], min = 1, max = 20 },
         { type = "slider", sub = name, key = "maxCount", label = L["Max count"], min = 1, max = 40 },
         { type = "slider", sub = name, key = "spacing", label = L["Spacing"], min = 0, max = 10 },
@@ -366,9 +366,9 @@ local function TextsSpecs(els)
         tinsert(list, { type = "numbers", sub = "texts", index = i, label = L["Position and size"],
                         fields = { { key = "x", label = "X" }, { key = "y", label = "Y" }, { key = "w", label = L["Width"] }, { key = "h", label = L["Height"] } } })
         tinsert(list, { type = "slider", sub = "texts", index = i, key = "size", label = L["Font size"], min = 6, max = 32 })
-        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "flags", label = L["Outline"], items = Controls.FLAGS_ITEMS })
-        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyH", label = L["Horizontal align"], items = Controls.JUSTIFY_H_ITEMS })
-        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyV", label = L["Vertical align"], items = Controls.JUSTIFY_V_ITEMS })
+        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "flags", label = L["Outline"], items = Specs.FLAGS_ITEMS })
+        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyH", label = L["Horizontal align"], items = Specs.JUSTIFY_H_ITEMS })
+        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyV", label = L["Vertical align"], items = Specs.JUSTIFY_V_ITEMS })
         tinsert(list, { type = "color", sub = "texts", index = i, key = "color", label = L["Color"] })
     end
     return list

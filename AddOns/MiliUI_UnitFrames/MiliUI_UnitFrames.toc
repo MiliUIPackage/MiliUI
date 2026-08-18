@@ -13,7 +13,7 @@
 ## OptionalDeps: Clique
 ## AddonCompartmentFunc: MiliUIUF_OnAddonCompartmentClick
 
-Libs\PixelPerfect.lua
+Libs\MiliUIWidgets\PixelPerfect.lua
 Libs\Callbacks.lua
 Locales\Locale.lua
 Locales\zhTW.lua
@@ -51,8 +51,10 @@ Elements\Icons.lua
 Elements\Inspect.lua
 Elements\Totems.lua
 Units.lua
-Options\Widgets.lua
-Options\Controls.lua
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\Controls.lua
+Options\Specs_UF.lua
 Options\Search.lua
 Options\Preview.lua
 Options\Panel.lua

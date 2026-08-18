@@ -1,24 +1,30 @@
 ------------------------------------------------------------
 -- 設定介面元件庫（白貼圖 backdrop + 1px 硬邊 + 職業 accent 色）
 -- 全部自寫，不依賴任何外部 UI 函式庫（避免 scale / 字型互相干擾）
+--
+-- ⚠ 共用層：這支可以逐字複製到其他 MiliUI 插件，宿主專屬的東西一律走
+--   ns.WidgetsEnv（見 Libs/MiliUIWidgets/Env.lua）。改這裡時不要引進新的 ns.* 依賴。
 ------------------------------------------------------------
 local _, ns = ...
 
-local L = ns.L
+local Env = ns.WidgetsEnv
+local L, P = Env.L, Env.P
+local NS = Env.NAMESPACE
 
 ns.W = {}
 local W = ns.W
-local P = ns.P
 
 local WHITE = "Interface\\BUTTONS\\WHITE8X8"
 
 ------------------------------------------------------------
--- accent 色 = 玩家職業色（player token 安全）
+-- accent 色（由宿主決定，本插件是玩家職業色）
 ------------------------------------------------------------
 local accent = { r = 0.7, g = 0.7, b = 0.7 }
 do
-    local c = ns.playerClass and RAID_CLASS_COLORS[ns.playerClass]
-    if c then accent.r, accent.g, accent.b = c.r, c.g, c.b end
+    -- 拿不到就留著灰色預設。少了這道守衛，Env.Accent 沒回值會讓 accent.r 變 nil，
+    -- 而爆點會落在很後面的 SetBackdropColor，看不出跟這裡有關。
+    local r, g, b = Env.Accent()
+    if r then accent.r, accent.g, accent.b = r, g, b end
 end
 function W.Accent(alpha)
     return accent.r, accent.g, accent.b, alpha or 1
@@ -26,15 +32,18 @@ end
 
 ------------------------------------------------------------
 -- 字型物件
+--
+-- 名字一定要帶 NS 前綴：CreateFont 撞名會回傳既有物件而不是新的，
+-- 兩個插件各帶一份這支卻用同名字型，就會互相蓋掉對方的字級與顏色。
 ------------------------------------------------------------
-local fontNormal = CreateFont("MiliUIUF_FontNormal")
-fontNormal:SetFont(ns.Media.Font(), 13, "")
+local fontNormal = CreateFont(NS .. "_FontNormal")
+fontNormal:SetFont(Env.Font(), 13, "")
 fontNormal:SetTextColor(1, 1, 1)
 fontNormal:SetShadowColor(0, 0, 0)
 fontNormal:SetShadowOffset(1, -1)
 
-local fontTitle = CreateFont("MiliUIUF_FontTitle")
-fontTitle:SetFont(ns.Media.Font(), 14, "")
+local fontTitle = CreateFont(NS .. "_FontTitle")
+fontTitle:SetFont(Env.Font(), 14, "")
 fontTitle:SetTextColor(1, 1, 1)
 fontTitle:SetShadowColor(0, 0, 0)
 fontTitle:SetShadowOffset(1, -1)
@@ -42,12 +51,12 @@ fontTitle:SetShadowOffset(1, -1)
 -- ⚠ 目前沒有人用。**不要**把它接回 CreateButton 的 SetDisabledFontObject：
 -- 切換 enable 狀態時換字型物件會讓 FontString 重新配置並吃掉最後一個字（實測）。
 -- 按鈕的停用灰字是自己 SetTextColor 上的。
-local fontDisabled = CreateFont("MiliUIUF_FontDisabled")
-fontDisabled:SetFont(ns.Media.Font(), 13, "")
+local fontDisabled = CreateFont(NS .. "_FontDisabled")
+fontDisabled:SetFont(Env.Font(), 13, "")
 fontDisabled:SetTextColor(0.4, 0.4, 0.4)
 
-local fontSmall = CreateFont("MiliUIUF_FontSmall")
-fontSmall:SetFont(ns.Media.Font(), 11, "")
+local fontSmall = CreateFont(NS .. "_FontSmall")
+fontSmall:SetFont(Env.Font(), 11, "")
 fontSmall:SetTextColor(0.8, 0.8, 0.8)
 fontSmall:SetShadowColor(0, 0, 0)
 fontSmall:SetShadowOffset(1, -1)
@@ -456,7 +465,7 @@ local MENU_MAX_ROWS = 14      -- 超過就裁切＋滾輪捲動（字型清單�
 local menuFrame
 local function EnsureMenu()
     if menuFrame then return menuFrame end
-    menuFrame = CreateFrame("Frame", "MiliUIUF_DropdownMenu", UIParent, "BackdropTemplate")
+    menuFrame = CreateFrame("Frame", NS .. "_DropdownMenu", UIParent, "BackdropTemplate")
     menuFrame:SetFrameStrata("TOOLTIP")
     W.Stylize(menuFrame, { 0.1, 0.1, 0.1, 0.97 })
     menuFrame:Hide()

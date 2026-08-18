@@ -17,10 +17,15 @@
 --   text     { label }                                     說明文字（灰）
 --   space    { h }                                         空行
 -- 共通：sub / sub2 / index 決定 ctx 取值路徑；ctx = { get, set, apply }
+--
+-- ⚠ 共用層：這支可以逐字複製到其他 MiliUI 插件，宿主專屬的東西一律走
+--   ns.WidgetsEnv（見 Libs/MiliUIWidgets/Env.lua）。改這裡時不要引進新的 ns.* 依賴——
+--   本插件專屬的選單清單與 spec 工廠放在 Options/Specs_UF.lua，不要寫回這裡。
 ------------------------------------------------------------
 local _, ns = ...
 
-local L = ns.L
+local Env = ns.WidgetsEnv
+local L = Env.L
 
 local W = ns.W
 
@@ -196,7 +201,7 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
             b:SetScript("OnClick", function()
                 if spec.confirm then
                     if not b.popup then
-                        b.popup = W.CreateConfirmPopup(ns.Options.panel, 300, spec.confirm, function()
+                        b.popup = W.CreateConfirmPopup(Env.PopupParent(), 300, spec.confirm, function()
                             spec.onClick()
                             for _, fn in ipairs(refreshers) do fn() end
                         end)
@@ -230,59 +235,4 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
         end
     end
     return -(y - startY), refreshers, rows
-end
-
-------------------------------------------------------------
--- 常用選單項
-------------------------------------------------------------
-Controls.COLOR_METHOD_ITEMS = {
-    { text = L["Class color"],        value = "class" },
-    { text = L["Class color (dark)"],  value = "classdark" },
-    { text = L["Reaction color"],        value = "reaction" },
-    { text = L["Reaction color (dark)"],  value = "reactiondark" },
-    { text = L["Class / reaction"],    value = "classreaction" },
-    { text = L["Class / reaction (dark)"], value = "classreactiondark" },
-    { text = L["Power color"],        value = "power" },
-    { text = L["Power color (dark)"],  value = "powerdark" },
-    { text = L["Health gradient"],      value = "hpthreshold" },
-    { text = L["Health gradient (dark)"], value = "hpthresholddark" },
-    { text = L["Green"],          value = "hpgreen" },
-    { text = L["Green (dark)"],    value = "hpgreendark" },
-    { text = L["Red"],          value = "hpred" },
-    { text = L["Red (dark)"],    value = "hpreddark" },
-    { text = L["Gray"],          value = "gray" },
-    { text = L["Custom color"],        value = "solid" },
-    { text = L["Hidden"],          value = "hide" },
-}
-
-Controls.GROWTH_ITEMS = {
-    { text = L["Left to right, downward"], value = "LRTB" },
-    { text = L["Left to right, upward"], value = "LRBT" },
-    { text = L["Right to left, downward"], value = "RLTB" },
-    { text = L["Right to left, upward"], value = "RLBT" },
-    { text = L["Top to bottom, rightward"], value = "TBLR" },
-    { text = L["Top to bottom, leftward"], value = "TBRL" },
-    { text = L["Bottom to top, rightward"], value = "BTLR" },
-    { text = L["Bottom to top, leftward"], value = "BTRL" },
-}
-
-Controls.JUSTIFY_H_ITEMS = {
-    { text = L["Left"], value = "LEFT" }, { text = L["Center"], value = "CENTER" }, { text = L["Right"], value = "RIGHT" },
-}
-Controls.JUSTIFY_V_ITEMS = {
-    { text = L["Top"], value = "TOP" }, { text = L["Center"], value = "MIDDLE" }, { text = L["Bottom"], value = "BOTTOM" },
-}
-Controls.FLAGS_ITEMS = {
-    { text = L["None"], value = "" }, { text = L["Outline"], value = "OUTLINE" }, { text = L["Thick outline"], value = "THICKOUTLINE" },
-}
-
--- 位置尺寸四件組（最常用，抽成工廠）
-function Controls.PosSize(sub, index, sub2)
-    return { type = "numbers", sub = sub, sub2 = sub2, index = index, label = L["Position and size"],
-             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" },
-                        { key = "w", label = L["Width"] }, { key = "h", label = L["Height"] } } }
-end
-function Controls.Pos(sub, index, sub2)
-    return { type = "numbers", sub = sub, sub2 = sub2, index = index, label = L["Position"],
-             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }
 end
