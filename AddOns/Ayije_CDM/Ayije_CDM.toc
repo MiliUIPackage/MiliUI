@@ -1,7 +1,7 @@
 ## Title: |cFF3bb273Ayije_CDM|r
 ## Notes: Cooldown Manager
 ## Author: Ayije
-## Version: 3.88
+## Version: 3.90_MiliUI
 ## Interface: 120005, 120007, 120100
 ## DefaultState: enabled
 ## OptionalDeps: MiliUI
