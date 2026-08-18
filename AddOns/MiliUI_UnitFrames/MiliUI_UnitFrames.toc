@@ -1,8 +1,8 @@
 ## Interface: 120100, 120105
 ## Title: MiliUI Unit Frames
-## Title-zhTW: |cff4DD2FF[頭像]|r 米利頭像框架
-## Notes: MiliUI unit frames, built natively for 12.1 secret values.
-## Notes-zhTW: MiliUI Unit Frames|n|n米利頭像框架。|n|n|cffffd200使用方法: |r/muf 或小地圖按鈕開啟設定。
+## Title-zhTW: |cff4DD2FF[頭像]|r 米利單位框架
+## Notes: Simple unit frames, easy to set up.|n|n|cffffd200Usage: |r/muf or the minimap button to open settings.
+## Notes-zhTW: MiliUI Unit Frames|n|n米利單位框架。|n|n|cffffd200使用方法: |r/muf 或小地圖按鈕開啟設定。
 ## Category: UnitFrame
 ## Category-zhTW: 頭像
 ## Author: Mili
