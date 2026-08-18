@@ -336,6 +336,12 @@ local function Update(uf, edb, bucket)
     if not f then return end
     local unit = uf.unit
 
+    -- 吸收盾細條的開關是「位置」不是布林（none / above / below）。
+    -- ⚠ 這個閘一定要有：Build 在 none 時只是把既有的細條 Hide 起來，框還在——
+    -- 下面兩處若只看 f.absorbStrip 存不存在就 Show，關掉之後下一個血量事件就會把它
+    -- 拉回來，症狀是「取消勾選沒有用」。另外三條疊加層各自吃 edb.showXxx，同一件事。
+    local stripOn = edb.absorbBarPosition == "above" or edb.absorbBarPosition == "below"
+
     local interp = ns.BarInterp()
     if uf.isPreview then
         -- 預覽：明文假資料（同樣走原生平滑）；順便示範吸收盾 12% / 治療吸收 8%
@@ -356,7 +362,7 @@ local function Update(uf, edb, bucket)
         if edb.showHealPrediction and f.incbar then
             f.incbar:SetMinMaxValues(0, 100); f.incbar:SetValue(12); f.incbar:Show()
         end
-        if f.absorbStrip then
+        if stripOn and f.absorbStrip then
             f.absorbStrip:SetMinMaxValues(0, 100); f.absorbStrip:SetValue(35); f.absorbStrip:Show()
         end
     else
@@ -408,7 +414,7 @@ local function Update(uf, edb, bucket)
                 end
             end
             -- 吸收盾獨立細條：故意放在 overlaysOK 之外，理由見 ApplyAbsorbStrip
-            if f.absorbStrip and UnitGetTotalAbsorbs then
+            if stripOn and f.absorbStrip and UnitGetTotalAbsorbs then
                 if not pcall(ApplyAbsorbStrip, f, unit, maxHP) then
                     f.absorbStrip:Hide()
                 end

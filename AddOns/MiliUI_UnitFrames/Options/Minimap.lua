@@ -129,9 +129,11 @@ ns.RegisterCallback("Loaded", "minimap", Init)
 -- 頭像資源串流完成／換裝變形／換角色進場都重抓一次
 ns.Events.Register("PORTRAITS_UPDATED", "minimapIcon", RefreshIcon)
 ns.Events.Register("PLAYER_ENTERING_WORLD", "minimapIcon", RefreshIcon)
+-- ⚠ 一定要綁 "player"。UNIT_PORTRAIT_UPDATE 在戰鬥中會反覆來（見 Elements/Portrait.lua
+-- 的實測註解），掛全域等於團隊裡每個單位的每一次都進 Lua，只為了一顆小地圖圖示。
 ns.Events.Register("UNIT_PORTRAIT_UPDATE", "minimapIcon", function(unit)
     if unit == "player" then RefreshIcon() end
-end)
+end, "player")
 
 function ns.SetMinimapButtonShown(shown)
     ns.db.minimap.hide = not shown

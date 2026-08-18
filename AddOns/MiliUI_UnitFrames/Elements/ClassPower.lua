@@ -597,9 +597,11 @@ ns.Events.Register("RUNE_POWER_UPDATE", "classpower", Reevaluate)
 -- 天賦換了 → 資源上限與被動都可能變（沒點的天賦 UnitPowerMax 會是 0）
 ns.Events.Register("PLAYER_TALENT_UPDATE", "classpower_talent", Reevaluate)
 ns.Events.Register("TRAIT_CONFIG_UPDATED", "classpower_trait", Reevaluate)
+-- 綁 "player" 走 RegisterUnitEvent：不綁的話是「團隊裡每一個單位的 UNIT_MAXPOWER
+-- 都進 Lua，我們才丟掉」。下面 UNIT_AURA 已經是這樣寫，這裡跟上。
 ns.Events.Register("UNIT_MAXPOWER", "classpower_maxpower", function(unit)
     if unit == "player" then Reevaluate() end
-end)
+end, "player")
 -- 光環堆疊型資源（漩渦之武／矛尖／靈魂碎片）沒有 UNIT_POWER 可用，只能吃 UNIT_AURA。
 -- UNIT_AURA 在團隊戰是全場最吵的事件之一，所以兩道閘都要：
 --   1. 只有「這個職業真的有這種資源」才註冊

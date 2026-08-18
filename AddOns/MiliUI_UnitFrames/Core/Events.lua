@@ -67,9 +67,24 @@ end
 local SECONDARY_TOKEN = { player = "vehicle", pet = "player" }
 local trackers = {}
 
-local function TrackerOnEvent(self, event)
+-- ⚠ 副 token 的事件要**擋掉**。上面那段讓一顆 tracker 同時收兩個 token，好處是
+-- 載具切換不必重註冊；代價是**沒在載具裡的時候**，寵物框照樣收得到 player 的事件
+-- （寵物框註冊的是 pet + player）。少了這道閘就是「玩家每次掉血都讓寵物框跑一次
+-- 完整 health 重畫」——cache 消毒＋血條計算器＋所有訂閱 health 桶的文字 tag，
+-- 而那次重畫讀的是 pet，跟事件毫無關係。獵人／術士／邪騎／法師整場戰鬥都在付。
+--
+-- ⚠⚠ 閘只在 `uf.unit == uf.baseUnit`（框正在畫它原本的單位）時生效，不是無條件
+-- 比對 uf.unit。理由是**我不確定進載具之後引擎是用哪個 token 派送**：
+--   * 若是 "vehicle" → 無條件比對 uf.unit 也會對
+--   * 若仍是 "player" → 無條件比對會把載具中的事件全部擋掉，玩家框整趟車不更新
+-- 後者是那種「只在載具裡壞、而且不報錯」的故障，不值得為了載具那幾十秒去賭。
+-- 加上 baseUnit 這個條件之後：日常情況（99% 的時間）該擋的全擋掉，一旦框被
+-- 重新對應到別的 token 就整個放行，行為跟改動前一模一樣 ⇒ 兩種答案下都正確。
+-- 哪天在載具裡實測確認過 token 是什麼，這裡可以再收緊成單純的 unit ~= uf.unit。
+local function TrackerOnEvent(self, event, unit)
     local uf = self.uf
     if not (uf and uf:IsVisible()) then return end
+    if unit ~= uf.unit and uf.unit == uf.baseUnit then return end
     local bucket = UNIT_EVENT_BUCKET[event]
     if bucket then ns.Refresh(uf, bucket) end
 end
