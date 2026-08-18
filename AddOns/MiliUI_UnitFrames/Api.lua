@@ -337,8 +337,11 @@ local function Debug()
                 tostring(ns.Cache.IsOOR(tuf)),
                 tostring(ns.Range.Check(tuf.unit))))
         end
-        local h, hp = ns.Range.Probes()
-        p(("   探針技能 harm=%s help=%s"):format(tostring(h), tostring(hp)))
+        -- melee 解得出來時它才是實際在用的那顆（近戰專精）；nil 有三種可能：
+        -- 不是近戰專精、這個職業沒列近戰探針、列了但這個專精沒學到
+        local h, hp, m = ns.Range.Probes()
+        p(("   探針技能 harm=%s help=%s melee=%s"):format(
+            tostring(h), tostring(hp), tostring(m)))
     end
 
     -- 模型重載計數：頭像閃爍時看這裡。下兩次 /muf debug 之間如果數字一直跳，
