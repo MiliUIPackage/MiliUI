@@ -1382,11 +1382,17 @@ local actions = {
         1236616, -- 潛能聖水 - Light's Potential
         {"C3", {1, 1, 0}},
     },
+    {
+        1295247, -- 濃縮版銀月城生命藥水 - Concentrated Silvermoon Health Potion
+        {"A", {1, 0.1, 0.1}},
+    },
 }
 -- ⚠ Seasonal. These are the CAST spell IDs, not item IDs -- the indicator watches the cast, so
 -- an item ID here silently tracks nothing. Cross-check against Ayije_CDM/Modules/Racials.lua,
 -- which carries the itemID/spellID pairs for the same consumables.
 -- Midnight replaced TWW's 431416 (Algari Healing Potion) / 431932 (Tempered Potion).
+-- The concentrated tier is a SEPARATE cast ID, not another rank of 1234768, so both have to be
+-- listed: items 271883/271884 -> spell 1295247, items 241304/241305 -> spell 1234768.
 
 
 function I.GetDefaultActions()
