@@ -1,0 +1,9 @@
+<Ui xmlns='http://www.blizzard.com/wow/ui/'>
+	<Script file='Init.lua'/>
+	<Script file='AnchorTargets.lua'/>
+	<Script file='Placement.lua'/>
+	<Script file='Native.lua'/>
+	<Script file='Overlay.lua'/>
+	<Script file='Panel.lua'/>
+	<Script file='Runtime.lua'/>
+</Ui>

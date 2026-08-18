@@ -1,0 +1,14 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <Script file="GUI2_Theme.lua"/>
+    <Script file="GUI2_Primitives.lua"/>
+    <Script file="GUI2_Form.lua"/>
+    <Script file="GUI2_Data.lua"/>
+    <Script file="GUI2_Overlay.lua"/>
+    <Script file="GUI2_Application.lua"/>
+    <Script file="GUI2_Secure.lua"/>
+    <Script file="GUI2_Animation.lua"/>
+    <Script file="GUI2_Appearance.lua"/>
+    <Script file="GUI2_AnimationLab.lua"/>
+    <Script file="GUI2_Lab.lua"/>
+    <Script file="GUI_Facade.lua"/>
+</Ui>

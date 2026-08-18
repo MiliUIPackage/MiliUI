@@ -1,0 +1,5 @@
+<Ui xmlns='http://www.blizzard.com/wow/ui/'>
+	<Script file='Module.lua'/>
+	<Include file='Layout\!load.xml'/>
+	<Script file='Monitor.lua'/>
+</Ui>

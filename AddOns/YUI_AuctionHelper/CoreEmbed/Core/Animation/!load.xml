@@ -1,0 +1,9 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <Script file="Namespace.lua"/>
+    <Script file="Handle.lua"/>
+    <Script file="Easing.lua"/>
+    <Script file="NativeDriver.lua"/>
+    <Script file="TweenDriver.lua"/>
+    <Script file="Effects.lua"/>
+    <Script file="Mask.lua"/>
+</Ui>
