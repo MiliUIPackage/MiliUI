@@ -5,7 +5,7 @@
 ## IconTexture: Interface\AddOns\MiliUI\icon
 ## Category: Pack
 ## Category-zhTW: [整合]
-## OptionalDeps: TeleportMenu, Cell, MiliUI_UnitFrames
+## OptionalDeps: TeleportMenu, Cell
 ## SavedVariables: MiliUI_DB, MiliUI_CastBarEnhanceDB
 ## SavedVariablesPerCharacter: MiliUI_CharDB
 

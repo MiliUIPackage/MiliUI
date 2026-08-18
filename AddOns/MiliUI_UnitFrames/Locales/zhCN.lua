@@ -96,7 +96,7 @@ L["Commands: |cffffd200/muf|r opens the options, |cffffd200/muf reset|r resets e
 L["Author: Mili (MiliUI package)"] = "作者：Mili（MiliUI 套组）"
 L["|cffffd200Credits|r"] = "|cffffd200致谢|r"
 L["My two favourite addons are |cff33CCFFCell|r and |cff4DD2FFStuf Unit Frames|r,"] = "我最喜欢的两个插件是 |cff33CCFFCell|r 与 |cff4DD2FFStuf Unit Frames|r，"
-L["and both the look and the design thinking here owe a lot to them."] = "这个框架的样貌与设计思路都深受这他们影响。"
+L["and both the look and the design thinking here owe a lot to them."] = "这个框架的外观与设计思路都深受他们影响。"
 L["Thanks to |cffffffffenderneko|r, the author of Cell,"] = "感谢 Cell 的作者 |cffffffffenderneko|r，"
 L["and to |cffffffffKato|r, the author of Stuf."] = "以及 Stuf 的作者 |cffffffffKato|r。"
 L["Addon structure, options UI style and bar overlays follow Cell;"] = "插件架构、设置界面风格与叠加层样式参考自 Cell，"
