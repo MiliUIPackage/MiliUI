@@ -12,7 +12,115 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- ⚠ 要在 FILTER_MODES／MODE_LABELS 之前宣告：那些表在檔案層就求值，
+-- 宣告寫在後面會抓到同名的全域 nil，標籤全變空字串而且不報錯
+local L = ns.L
+
 local Media = ns.Media
+
+------------------------------------------------------------
+-- 篩選模式
+--
+-- 12.1 讀不到光環內容，所以過濾只能交給引擎。兩個管道：
+--   token  filter 字串裡的一段（"HARMFUL|CROWD_CONTROL"），`|` 串接、`!` 否定
+--   cand   candidateFilters 表，引擎端求值 —— 有些概念沒有對應的 token，只能走這裡
+-- 完整詞彙與六條硬規則見 .claude/notes 的 wow-121-aura-filter-vocabulary。
+--
+-- ⚠⚠ 這裡刻意設計成**一個模式只對應一個 AuraGroup**。想「多個類別同時顯示」的話：
+-- token 不能 OR ⇒ 一類一個 group ⇒ 要手工維護互斥否定鏈（而且只能否定**已啟用**的
+-- 類別，否定沒啟用的會吃掉本來該顯示的光環）；再加上跨 group 沒有任何總量 API
+-- （maxFrameCount 是每 group 的，SetFlowLayoutMaximumLineSize 是**換行**預算不是上限，
+-- 超過只會多疊一列）⇒ 還得自己切預算，切錯就是靜默漏顯示。EUI 那一千多行絕大部分
+-- 是在付這兩筆帳。
+-- 團隊框需要那套（它問的是「這個隊友身上最重要的**那一個**」，天生多類別競爭）；
+-- 單位框不需要（它問的是「這個目標身上我在乎的**那一類**」，天生單選）。
+-- 單一 group ⇒ maxCount 全額給它，互斥與預算兩個問題都不存在。
+--
+-- ⚠ `IMPORTANT` 這個 token 沒有定論（EUI 註解說它只標 HELPFUL、Platynator 卻拿它配
+-- HARMFUL 出貨），所以「重要」走 candidateFilter `isPriorityAura`，兩邊都不得罪。
+-- ⚠ 不提供 spellID 黑名單：友方單位的減益禁止 ID 過濾（只有標記 NeverSecret 的
+-- 才生效），做出來會是一個「有時有用有時沒用」的功能，比沒有更糟。
+------------------------------------------------------------
+local FILTER_MODES = {
+    all         = {},
+    -- 增益
+    stealable   = { cand = { isStealable = true } },
+    cancelable  = { token = "CANCELABLE" },
+    bigdef      = { token = "BIG_DEFENSIVE" },
+    extdef      = { token = "EXTERNAL_DEFENSIVE" },
+    -- 減益
+    dispellable = { token = "RAID_PLAYER_DISPELLABLE" },
+    cc          = { token = "CROWD_CONTROL" },
+    priority    = { cand = { isPriorityAura = true } },
+    bossrole    = { cand = { isBossOrRoleAura = true } },
+}
+
+-- 下拉選單的內容與順序（設定面板用）。"all" 一律排第一。
+local MODE_ORDER = {
+    buffs   = { "all", "stealable", "cancelable", "bigdef", "extdef" },
+    debuffs = { "all", "dispellable", "cc", "priority", "bossrole" },
+}
+
+local MODE_LABELS = {
+    all         = L["All"],
+    stealable   = L["Stealable or purgeable"],
+    cancelable  = L["Cancelable by right-click"],
+    bigdef      = L["Major defensives"],
+    extdef      = L["External defensives"],
+    dispellable = L["Dispellable by me"],
+    cc          = L["Crowd control"],
+    priority    = L["Important"],
+    bossrole    = L["Boss and role auras"],
+}
+
+-- 設定面板呼叫（Options/Tab_Unit.lua）。模式清單只有這裡一份。
+function ns.AuraFilterItems(elementName)
+    local items = {}
+    for _, key in ipairs(MODE_ORDER[elementName] or MODE_ORDER.buffs) do
+        items[#items + 1] = { text = MODE_LABELS[key] or key, value = key }
+    end
+    return items
+end
+
+------------------------------------------------------------
+-- filter 字串組裝
+--
+-- ⚠ 被客戶端拒絕的 filter 字串是**靜默全空** —— 容器建得起來、事件也收得到，
+-- 就是一顆光環都不進來，看起來跟「插件壞了」一模一樣。所以兩件事缺一不可：
+--   ① 記下被拒的字串（/muf debug 印得出來）
+--   ② 逐級退回，絕不整組放棄（少顯示看得見，全空看不見）
+------------------------------------------------------------
+ns.auraRejectedFilters = {}
+
+local function ValidFilter(f)
+    -- 沒有這支 API 的話別擋（讓引擎自己決定），只有明確說「不合法」才算數
+    if not (AuraUtil and AuraUtil.IsValidFilterString) then return true end
+    local ok, valid = pcall(AuraUtil.IsValidFilterString, f)
+    if ok and valid then return true end
+    ns.auraRejectedFilters[f] = (ns.auraRejectedFilters[f] or 0) + 1
+    return false
+end
+
+-- 回傳 filter 字串 ＋ candidateFilters（可能是 nil）
+--
+-- 模式與「只顯示我上的」是**可以疊的**（`HARMFUL|CROWD_CONTROL|PLAYER` 仍然是
+-- 一個 group）。onlyMine 保留成獨立勾選而不是併進模式清單，除了能疊之外，
+-- 也讓既有設定檔不必遷移。
+local function BuildFilter(baseFilter, edb)
+    local mode = FILTER_MODES[edb.filterMode or "all"] or FILTER_MODES.all
+    local f = baseFilter
+    if mode.token then f = f .. "|" .. mode.token end
+    if edb.onlyMine then f = f .. "|PLAYER" end
+    if ValidFilter(f) then return f, mode.cand end
+
+    -- 退回階梯。模式的 token 被拒 ⇒ 那個模式整個做不到，cand 那一半也不送
+    -- （兩半是同一個概念，只送一半會得到一個沒人要求過的結果）。
+    if edb.onlyMine then
+        local withPlayer = baseFilter .. "|PLAYER"
+        if ValidFilter(withPlayer) then return withPlayer, nil end
+    end
+    return baseFilter, nil
+end
 
 ------------------------------------------------------------
 -- 能力偵測
@@ -253,7 +361,10 @@ local function BuildSignature(edb)
         tostring(edb.maxCount), tostring(edb.perRow), tostring(edb.growth),
         tostring(edb.spacing), tostring(edb.showStack), tostring(edb.stackSize),
         tostring(edb.durationText), tostring(edb.durationThreshold),
-        tostring(edb.onlyMine), tostring(ns.db.global.font),
+        -- ⚠ filterMode 一定要在簽章裡：filter 字串在 AddAuraGroup 宣告時就固定、
+        -- 沒有 setter，只能換整顆容器。漏了這個鍵的症狀是「改了下拉沒反應，
+        -- 動別的設定才一起生效」。
+        tostring(edb.onlyMine), tostring(edb.filterMode), tostring(ns.db.global.font),
     }, "|")
 end
 
@@ -303,7 +414,7 @@ ns.Events.Register("PLAYER_REGEN_ENABLED", "auras_bounce_replay", function()
     end
 end)
 
-local function CreateContainer(uf, elementName, edb, filter, style)
+local function CreateContainer(uf, elementName, edb, filter, cand, style)
     -- 容器掛中介 holder（不直接依附會被 Hide 的東西；也墊高層級蓋過血條）
     local holder = uf.auraHost
     if not holder then
@@ -334,6 +445,9 @@ local function CreateContainer(uf, elementName, edb, filter, style)
 
     container:AddAuraGroup("main", filter, {
         maxFrameCount = edb.maxCount or 16,
+        -- 有些篩選概念沒有對應的 filter token，只能走這裡（引擎端求值，不必讀秘密值）。
+        -- nil 就是不過濾，所以模式是 "all" 時直接傳 nil 沒問題。
+        candidateFilters = cand,
         layout = {
             elementWidth = edb.w or 20,
             elementHeight = edb.h or 20,
@@ -397,8 +511,7 @@ local function MakeElement(elementName, baseFilter)
         uf.auraContainers = uf.auraContainers or {}
         local entry = uf.auraContainers[elementName]
         local signature = BuildSignature(edb)
-        local filter = baseFilter
-        if edb.onlyMine then filter = filter .. "|PLAYER" end
+        local filter, cand = BuildFilter(baseFilter, edb)
 
         if entry and entry.signature == signature then
             entry.container:Show()
@@ -410,7 +523,7 @@ local function MakeElement(elementName, baseFilter)
             uf.auraContainers[elementName] = nil
         end
 
-        local ok, container = pcall(CreateContainer, uf, elementName, edb, filter,
+        local ok, container = pcall(CreateContainer, uf, elementName, edb, filter, cand,
                                     BuildStyle(elementName, edb))
         if not ok or not container then
             ns.aurasLastError = tostring(container)
@@ -418,6 +531,7 @@ local function MakeElement(elementName, baseFilter)
         end
         -- tag 在這裡算一次就好，Bounce 每次換目標都要用（見 Bounce 的說明）
         uf.auraContainers[elementName] = { container = container, signature = signature,
+                                           filter = filter, hasCand = cand ~= nil,
                                            tag = uf.unit .. "/" .. elementName }
         uf.elements[elementName] = container
         container:Show()

@@ -298,7 +298,11 @@ local function AuraSpecs(name)
         { type = "slider", sub = name, key = "maxCount", label = L["Max count"], min = 1, max = 40 },
         { type = "slider", sub = name, key = "spacing", label = L["Spacing"], min = 0, max = 10 },
         { type = "header", label = L["Filter"] },
+        -- 模式清單的唯一來源在 Elements/Auras.lua（ns.AuraFilterItems）
+        { type = "dropdown", sub = name, key = "filterMode", label = L["Show only"],
+          items = function() return ns.AuraFilterItems(name) end },
         { type = "toggle", sub = name, key = "onlyMine", label = L["Only show my own"] },
+        { type = "text", label = L["Filtering is done by the game, not by a spell list — 12.1 addons can't read aura contents. The two settings stack: \"dispellable by me\" plus \"only my own\" shows only what you applied and can remove. Changing either rebuilds the icons."] },
         { type = "header", label = L["Text"] },
         { type = "toggle", sub = name, key = "showStack", label = L["Show stacks"] },
         { type = "slider", sub = name, key = "stackSize", label = L["Stack font size"], min = 6, max = 20 },

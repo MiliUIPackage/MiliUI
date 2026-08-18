@@ -431,3 +431,16 @@ L["Use the class color for the fill"] = "Utiliser la couleur de classe pour le r
 L["One color for casting, channeling and empowered alike, taken from the unit's class (pets use their owner's). On your own frame the cast bar sits on top of the portrait next to the health and power bars, and a single hue reads much calmer than three. The tints below still layer on top."] = "Une seule couleur pour l'incantation, le canalisation et l'amplification, prise sur la classe de l'unité (les familiers utilisent celle de leur maître). Sur votre propre cadre, la barre d'incantation se superpose au portrait à côté des barres de vie et de ressource : une seule teinte se lit bien plus calmement que trois. Les teintes ci-dessous se superposent toujours."
 L["Snap to the grid while dragging"] = "Aligner sur la grille en déplaçant"
 L["Spacing follows Edit Mode's own grid; hold Shift while dragging to invert this."] = "L'espacement suit la grille du mode Édition ; maintenez Maj en déplaçant pour inverser."
+
+-- 光環篩選模式（Elements/Auras.lua 的 FILTER_MODES）
+L["Show only"] = "Afficher uniquement"
+L["All"] = "Tous"
+L["Stealable or purgeable"] = "Volable ou dissipable"
+L["Cancelable by right-click"] = "Annulable par clic droit"
+L["Major defensives"] = "Défensifs majeurs"
+L["External defensives"] = "Défensifs externes"
+L["Dispellable by me"] = "Dissipable par moi"
+L["Crowd control"] = "Contrôle de foule"
+L["Important"] = "Important"
+L["Boss and role auras"] = "Auras de boss et de rôle"
+L["Filtering is done by the game, not by a spell list — 12.1 addons can't read aura contents. The two settings stack: \"dispellable by me\" plus \"only my own\" shows only what you applied and can remove. Changing either rebuilds the icons."] = "Le filtrage est effectué par le jeu, et non par une liste de sorts maintenue par l’addon — en 12.1, les addons ne peuvent pas lire le contenu des auras. Les deux réglages se cumulent : « dissipable par moi » plus « uniquement les miennes » n’affiche que ce que vous avez appliqué et pouvez retirer. Modifier l’un ou l’autre reconstruit les icônes."

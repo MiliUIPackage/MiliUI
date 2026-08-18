@@ -431,3 +431,16 @@ L["Use the class color for the fill"] = "Использовать цвет кл�
 L["One color for casting, channeling and empowered alike, taken from the unit's class (pets use their owner's). On your own frame the cast bar sits on top of the portrait next to the health and power bars, and a single hue reads much calmer than three. The tints below still layer on top."] = "Один цвет для сотворения, поддерживаемых и усиленных заклинаний, взятый из класса единицы (питомцы используют цвет владельца). На вашей собственной рамке полоса заклинания лежит поверх портрета рядом с полосами здоровья и ресурса, и один оттенок читается гораздо спокойнее трёх. Окрашивания ниже по-прежнему накладываются сверху."
 L["Snap to the grid while dragging"] = "Привязывать к сетке при перетаскивании"
 L["Spacing follows Edit Mode's own grid; hold Shift while dragging to invert this."] = "Шаг берётся из сетки режима редактирования; удерживайте Shift при перетаскивании, чтобы инвертировать."
+
+-- 光環篩選模式（Elements/Auras.lua 的 FILTER_MODES）
+L["Show only"] = "Показывать только"
+L["All"] = "Все"
+L["Stealable or purgeable"] = "Можно похитить или рассеять"
+L["Cancelable by right-click"] = "Отменяется правым щелчком"
+L["Major defensives"] = "Основные защитные"
+L["External defensives"] = "Внешние защитные"
+L["Dispellable by me"] = "Я могу рассеять"
+L["Crowd control"] = "Контроль"
+L["Important"] = "Важное"
+L["Boss and role auras"] = "Ауры боссов и ролей"
+L["Filtering is done by the game, not by a spell list — 12.1 addons can't read aura contents. The two settings stack: \"dispellable by me\" plus \"only my own\" shows only what you applied and can remove. Changing either rebuilds the icons."] = "Фильтрацию выполняет сама игра, а не список заклинаний в аддоне — в 12.1 аддоны не могут читать содержимое аур. Обе настройки складываются: «я могу рассеять» вместе с «только мои» покажет лишь то, что наложили вы и можете снять сами. Изменение любой из них пересоздаёт значки."

@@ -431,3 +431,16 @@ L["Use the class color for the fill"] = "Usa il colore della classe per il riemp
 L["One color for casting, channeling and empowered alike, taken from the unit's class (pets use their owner's). On your own frame the cast bar sits on top of the portrait next to the health and power bars, and a single hue reads much calmer than three. The tints below still layer on top."] = "Un solo colore per lancio, canalizzazione e potenziamento, preso dalla classe dell'unità (i famigli usano quella del padrone). Sul tuo riquadro la barra di lancio sta sopra il ritratto accanto alle barre di salute e risorsa, e una sola tonalità si legge molto più tranquilla di tre. Le colorazioni sotto continuano a sovrapporsi."
 L["Snap to the grid while dragging"] = "Aggancia alla griglia durante il trascinamento"
 L["Spacing follows Edit Mode's own grid; hold Shift while dragging to invert this."] = "Il passo segue la griglia della Modalità Modifica; tieni premuto Maiusc durante il trascinamento per invertire."
+
+-- 光環篩選模式（Elements/Auras.lua 的 FILTER_MODES）
+L["Show only"] = "Mostra solo"
+L["All"] = "Tutti"
+L["Stealable or purgeable"] = "Rubabile o dissolvibile"
+L["Cancelable by right-click"] = "Annullabile con clic destro"
+L["Major defensives"] = "Difensive principali"
+L["External defensives"] = "Difensive esterne"
+L["Dispellable by me"] = "Dissolvibile da me"
+L["Crowd control"] = "Controllo della folla"
+L["Important"] = "Importante"
+L["Boss and role auras"] = "Aure del boss e di ruolo"
+L["Filtering is done by the game, not by a spell list — 12.1 addons can't read aura contents. The two settings stack: \"dispellable by me\" plus \"only my own\" shows only what you applied and can remove. Changing either rebuilds the icons."] = "Il filtraggio è gestito dal gioco, non da un elenco di magie mantenuto dall’addon — in 12.1 gli addon non possono leggere il contenuto delle aure. Le due impostazioni si sommano: «dissolvibile da me» più «solo le mie» mostra soltanto ciò che hai applicato e puoi rimuovere. Modificarne una ricostruisce le icone."

@@ -518,10 +518,26 @@ local function Debug()
                     p(("   %-10s %-8s shown=%s visible=%s 重掃=%s"):format(
                         unitKey, name, tostring(c:IsShown()), tostring(c:IsVisible()),
                         (ns.auraPokeLog and ns.auraPokeLog[unitKey .. "/" .. name]) or "—"))
+                    -- ⚠ filter 字串一定要把 `|` 跳脫成 `||`，否則 `|R`（RAID…）會被聊天
+                    -- 視窗當色碼吃掉，"HARMFUL|RAID_PLAYER_DISPELLABLE" 印成
+                    -- "HARMFULAID_PLAYER_DISPELLABLE"，看起來像壞掉
+                    p(("        filter=%s%s"):format(
+                        tostring(entry.filter or "?"):gsub("|", "||"),
+                        entry.hasCand and " +candidateFilters" or ""))
                 end
             end
         end
         if ns.aurasLastError then p("   建立失敗：" .. tostring(ns.aurasLastError)) end
+        -- 被客戶端拒絕的 filter 字串。被拒 = 那一組靜默全空（容器建得起來、事件也收得到，
+        -- 就是一顆都不進來），所以這一行是「光環整排不見」時第一個要看的地方
+        if ns.auraRejectedFilters and next(ns.auraRejectedFilters) then
+            local bad = {}
+            for f, n in pairs(ns.auraRejectedFilters) do
+                bad[#bad + 1] = ("%s×%d"):format(tostring(f):gsub("|", "||"), n)
+            end
+            table.sort(bad)
+            p("   |cffff5555客戶端拒絕的 filter：|r" .. table.concat(bad, "  "))
+        end
     end
 
     -- 資源條：這個專精/型態/天賦下，每個資源為什麼在或不在

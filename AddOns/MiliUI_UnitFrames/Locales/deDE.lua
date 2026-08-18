@@ -431,3 +431,16 @@ L["Use the class color for the fill"] = "Klassenfarbe für die Füllung verwende
 L["One color for casting, channeling and empowered alike, taken from the unit's class (pets use their owner's). On your own frame the cast bar sits on top of the portrait next to the health and power bars, and a single hue reads much calmer than three. The tints below still layer on top."] = "Eine Farbe für Zaubern, Kanalisieren und Verstärken gleichermaßen, genommen von der Klasse der Einheit (Begleiter nutzen die des Besitzers). Auf deinem eigenen Fenster liegt die Zauberleiste über dem Porträt neben Gesundheits- und Ressourcenleiste, und ein einziger Farbton wirkt deutlich ruhiger als drei. Die Färbungen darunter legen sich weiterhin darüber."
 L["Snap to the grid while dragging"] = "Beim Ziehen am Raster ausrichten"
 L["Spacing follows Edit Mode's own grid; hold Shift while dragging to invert this."] = "Der Abstand folgt dem Raster des Bearbeitungsmodus; halte beim Ziehen Shift, um dies umzukehren."
+
+-- 光環篩選模式（Elements/Auras.lua 的 FILTER_MODES）
+L["Show only"] = "Nur anzeigen"
+L["All"] = "Alle"
+L["Stealable or purgeable"] = "Stehlbar oder entfernbar"
+L["Cancelable by right-click"] = "Per Rechtsklick abbrechbar"
+L["Major defensives"] = "Große Verteidigungseffekte"
+L["External defensives"] = "Externe Verteidigungseffekte"
+L["Dispellable by me"] = "Von mir entfernbar"
+L["Crowd control"] = "Massenkontrolle"
+L["Important"] = "Wichtig"
+L["Boss and role auras"] = "Boss- und Rollenauren"
+L["Filtering is done by the game, not by a spell list — 12.1 addons can't read aura contents. The two settings stack: \"dispellable by me\" plus \"only my own\" shows only what you applied and can remove. Changing either rebuilds the icons."] = "Die Filterung übernimmt das Spiel, nicht eine vom Addon gepflegte Zauberliste – in 12.1 können Addons Aurainhalte nicht auslesen. Beide Einstellungen wirken zusammen: „Von mir entfernbar“ plus „Nur eigene“ zeigt nur, was du selbst gewirkt hast und auch entfernen kannst. Eine Änderung baut die Symbole neu auf."
