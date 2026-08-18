@@ -800,6 +800,35 @@ local function GroupLayout(cfg)
     }
 end
 
+-- How many icons ONE group may show, given its position in the declaration order.
+--
+-- ⚠ There is no cross-group total anywhere in the API: maxFrameCount is per GROUP, and
+-- SetFlowLayoutMaximumLineSize is a line-WRAP budget (overflow starts a second row, it is
+-- never clipped). So the total is whatever we hand out here, and handing it out badly is
+-- silent in one direction and ugly in the other.
+--
+-- Splitting `num` evenly across the groups was worse than it looks. The important display
+-- declares five categories and defaults to num=3, so every group got ceil(3/5) = 1:
+--   * the common case UNDER-fills -- three boss debuffs and nothing else is one populated
+--     group and four idle ones, so two of the three icons the user asked for silently
+--     never appear;
+--   * and the worst case still overshoots anyway (five populated groups = 5 > 3), so the
+--     even split did not even buy the cap it was paying for.
+--
+-- Declaration order already IS the priority order (BuildRecords declares important-first),
+-- so the budget follows it: the first group gets the whole `num`, everyone below gets one
+-- slot to prove they have something. num=3 over five categories is 3,1,1,1,1 -- worst case
+-- 7 instead of 15, and the case that actually happens is correct.
+--
+-- Index is the position among groups that were ADDED SUCCESSFULLY (handle._groupKeys),
+-- not among records: if the top record's filter string is rejected, the next one becomes
+-- the first real group and inherits the full budget. Keep Build and Handle:SetNum both
+-- calling this -- they used to carry the same formula twice.
+local function GroupBudget(index, total, wanted)
+    if total <= 1 then return wanted end
+    return index == 1 and wanted or 1
+end
+
 -- ============================================================
 -- BUILD  (create -> SetUnit -> AddAuraGroup* -> SetEnabled LAST)
 -- ============================================================
@@ -900,13 +929,9 @@ local function Build(handle)
     local groupLayout = GroupLayout(handle.config)
     -- ⚠ maxFrameCount is PER GROUP, not per container. The important display declares five
     -- category groups, so num=3 meant "up to 15 icons" and made Blizzard pre-allocate a
-    -- batch of 10 buttons PER GROUP (50 for three visible icons). Split the budget instead:
-    -- the row then holds at most `num` rounded up to the group count.
+    -- batch of 10 buttons PER GROUP (50 for three visible icons). The budget is handed out
+    -- per group by GroupBudget -- read the note above it before changing the shape.
     local wanted = handle.config.num or 3
-    local maxCount = wanted
-    if #records > 1 then
-        maxCount = math.max(1, math.ceil(wanted / #records))
-    end
 
     -- diagnostics: what filters/cf this container actually built with
     handle._recordInfo = {}
@@ -946,7 +971,8 @@ local function Build(handle)
             })
         else
             okG, errG = pcall(c.AddAuraGroup, c, rec.key, rec.filter, {
-                maxFrameCount = maxCount,
+                -- position among groups added so far (+1 = the one we are adding now)
+                maxFrameCount = GroupBudget(#handle._groupKeys + 1, #records, wanted),
                 initializeFrame = initFn,
                 layout = groupLayout,
                 candidateFilters = rec.candidateFilters,
@@ -1038,13 +1064,11 @@ function Handle:SetNum(n)
     -- on num too (the flow line budget is a pixel budget derived from it).
     local c = self.container
     if c and c.SetAuraGroupMaxFrameCount and self._groupKeys and #self._groupKeys > 0 then
-        -- same per-group split Build uses: maxFrameCount is per GROUP, not per container
-        local per = n
-        if #self._groupKeys > 1 then
-            per = math.max(1, math.ceil(n / #self._groupKeys))
-        end
+        -- same allocation Build uses -- one shared GroupBudget so the two cannot drift
+        local total = #self._groupKeys
         local allOK = true
-        for _, key in ipairs(self._groupKeys) do
+        for i, key in ipairs(self._groupKeys) do
+            local per = GroupBudget(i, total, n)
             if not pcall(c.SetAuraGroupMaxFrameCount, c, key, per) then allOK = false end
         end
         if allOK then
