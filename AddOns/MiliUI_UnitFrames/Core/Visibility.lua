@@ -195,23 +195,79 @@ end
 --
 -- 只收「有數字 level 且低於遮罩上限」的元件：光環容器（forbidden intrinsic，碰不得）、
 -- 文字、圖示的 edb 都沒有頂層 level，型別檢查會自動把它們排除。
-local function ScrimFor(uf, index, target, level)
+-- ⚠⚠ 遮罩要掛在**元件自己**底下，不是掛在 uf 上再用 SetAllPoints 對齊。
+-- 掛 uf 的話，元件藏起來（施法條沒在施法、頭像關掉…）遮罩還會留在原地 ——
+-- 實測就是首領框能量條下方浮著一塊莫名其妙的黑色方塊，那是**隱藏中的施法條**
+-- 的遮罩。掛成子物件之後，父層一藏子層自動跟著藏，不必自己追元件的顯示狀態
+-- （追了也會慢一拍：遮罩只在距離狀態變化時重算，施法開始／結束不會推它）。
+--
+-- 池子用元件名當鍵，元件重建時沿用同一顆。
+local function ScrimFor(uf, name, target, level)
     uf.oorScrims = uf.oorScrims or {}
-    local sc = uf.oorScrims[index]
-    if not sc then
+    local sc = uf.oorScrims[name]
+    if not sc or sc:GetParent() ~= target then
         -- CreateFrame 不受戰鬥限制；這是我們自己建的普通框，不是受保護物件
-        sc = CreateFrame("Frame", nil, uf)
+        sc = CreateFrame("Frame", nil, target)
         sc:EnableMouse(false)          -- 不要吃掉滑鼠（右鍵選單、提示都靠它）
         sc.tex = sc:CreateTexture(nil, "OVERLAY")
         sc.tex:SetAllPoints(sc)
         sc.tex:SetColorTexture(0, 0, 0, 1)
-        uf.oorScrims[index] = sc
+        uf.oorScrims[name] = sc
     end
     sc:SetFrameLevel(level)
     sc:ClearAllPoints()
     -- SetAllPoints 是「建立關係」不是回讀幾何，秘密值污染那條規則不適用
     sc:SetAllPoints(target)
     return sc
+end
+
+-- 暗色層的開關。狀態沒變就不重設（這支落在距離輪詢上）
+local function ApplyScrim(uf)
+    local g = ns.db.global
+    local on = (g.oorStyle or "dim") == "dim" and OutOfRange(uf)
+    local strength = on and (g.oorDim or 0.55) or nil
+    if uf.appliedScrim == strength then return end
+    uf.appliedScrim = strength
+
+    local list = uf.oorScrims
+    if not on then
+        if list then for _, sc in pairs(list) do sc:Hide() end end
+        -- 走 alpha 的那幾個要還原，否則會卡在淡的狀態
+        for name in pairs(SCRIM_ALPHA_ELEMENTS) do
+            local ef = uf.elements and uf.elements[name]
+            if ef and ef.SetAlpha then ef:SetAlpha(1) end
+        end
+        return
+    end
+
+    local els = uf.db and uf.db.elements
+    local seen = {}
+    if els then
+        for name, ef in pairs(uf.elements or {}) do
+            local edb = els[name]
+            if edb and edb.enabled ~= false and not NO_DIM_ELEMENTS[name]
+               and type(edb.level) == "number"
+               and edb.level < OOR_SCRIM_LEVEL and ef.SetPoint then
+                local fade = SCRIM_ALPHA_ELEMENTS[name]
+                if fade then
+                    ef:SetAlpha(fade)        -- 不規則圖示：走 alpha，不蓋方塊
+                else
+                    seen[name] = true
+                    local lvl = edb.level + 3
+                    if lvl > OOR_SCRIM_LEVEL then lvl = OOR_SCRIM_LEVEL end
+                    local sc = ScrimFor(uf, name, ef, lvl)
+                    sc.tex:SetAlpha(strength)
+                    sc:Show()
+                end
+            end
+        end
+    end
+    -- 這一輪沒輪到的（元件被停用了）藏起來
+    if list then
+        for name, sc in pairs(list) do
+            if not seen[name] then sc:Hide() end
+        end
+    end
 end
 
 function V.Alpha(uf)
