@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 顏色方法（移植 Stuf/core.lua colormethods，讀 uf.cache 明文資料）
+-- 顏色方法（讀 uf.cache 明文資料）
 -- 簽名：fn(uf, edb, value01, choiceKey, alphaKey) → r, g, b, a
 --   value01  : 0-1（hpthreshold 內插用，通常傳 cache.frachp）
 --   choiceKey: edb 內自訂色欄位名（solid 用，預設 "bgColor"）
@@ -172,7 +172,7 @@ methods.hide = function() return 0, 0, 0, 0 end
 
 Colors.methods = methods
 
--- 對外開放（沿用 Stuf AddColorMethod 語意）
+-- 對外開放：讓其他模組登記自訂的顏色方法
 function Colors.Register(name, fn)
     methods[name] = fn
 end
