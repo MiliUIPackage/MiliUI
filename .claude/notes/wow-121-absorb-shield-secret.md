@@ -56,3 +56,22 @@ StatusBar，`SetValue(absorbs, maxHealth)` → `SetMinMaxValues` + 原生 `SetVa
 吃滿血條寬。副作用：Midnight 版**沒有那圈 1px 黑邊**（框滿寬會框到空的部分），而且 0 護盾
 時不能 Hide（測不了 secret 是否為 0），靠零寬填充自然不顯示。`onlyShowOvershields` 在 secret
 下無法實作。相關：[[wow-121-secret-values]]、[[wow-121-unit-api-secrets]]。
+
+## 2026-08-18 實測：calc 的裁切上界，與「敵對不可信」的真正範圍
+
+`/muf secret` 讀出板（MiliUI_UnitFrames）把計算器與全域 API 的值成對畫出來，量到兩件事：
+
+**① `calc:GetDamageAbsorbs()` 的第一個回傳是裁切到「缺少的血量」**（`maxHP − curHP`），
+不是裁切到剩餘血量。證據剛好乾淨：滿血 609040、目前 593001（缺 16039），未裁切的
+`UnitGetTotalAbsorbs` 是 63428，而 calc 回的正是 **16039**。所以滿血時它必為 0
+——「滿血不顯示護盾」的根因。要顯示總量一律餵 `UnitGetTotalAbsorbs`。
+（另一次量到 154339 vs 146517、差 7822 而缺血量遠大於兩者，那是戰鬥中兩行讀取的
+取樣時間差，不是裁切。）
+
+**② 「計算器對敵對單位回垃圾」只涵蓋預估／吸收那幾個 getter，不含血量本體。**
+對敵對目標（`UnitCanAssist` 明文 false）實測，`GetMaximumHealth`／`GetCurrentHealth`
+與全域 `UnitHealthMax`／`UnitHealth` **完全相同**（700335／584104）。
+所以血量本體要換成全域 API 是等價替換；只有 `GetIncomingHeals`／`GetHealAbsorbs`／
+`GetDamageAbsorbs` 對敵對單位不可信。
+
+⚠ 前提：那顆計算器**一個 clamp mode 都沒設**。設了就不保證等價。

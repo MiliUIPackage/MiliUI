@@ -39,3 +39,26 @@ UNIT_PET               -- 載具真的出現了 ← 少了這個就永遠不會�
   症狀正是「載具名稱顯示未知目標、血量是錯的，整趟車都不會好」。見 [[project-local-addon-forks]]。
 
 跟 [[project-cell-vehicle-secret]] 是不同的問題（那個是 `GetPoint` 回秘密字串）。
+
+## 不是每台載具都會換框（2026-08-18 實測）
+
+`InVehicle=true` **不等於**框該換單位。暴雪 `SecureButton_GetModifiedUnit`
+（`Blizzard_FrameXML/SecureTemplates.lua`）的 player ↔ pet 對調條件是
+**`UnitHasVehicleUI(該單位)` ＋ `toggleForVehicle` 屬性**，缺一就原樣回傳。
+
+所以坐騎式載具／計程車那種 `HasVehicleUI=false` 的：
+
+- 暴雪原生 PlayerFrame 也不會變成載具（它看 `UNIT_ENTERED_VEHICLE` 的
+  `showVehicleFrame` 參數）。
+- 載具就單純掛在**寵物欄**：`UnitGUID("pet")` 是 `Vehicle-…`、`pc=true`、
+  `ownerClass` ＝主人職業（寵物上色會走主人的職業色）。
+- 玩家框顯示玩家自己、寵物框顯示載具 ⇒ **這是正確畫面，不要「修」**。
+
+判斷方式：`/muf debug` 的「載具現況」那行（Api.lua，2026-08-18 加的）印
+`InVehicle / HasVehicleUI / vehicle單位存在 / 可下車`，以及兩個框的
+`secure real=… mod=…`。`mod` 沒變 ⇒ 暴雪自己就不換；`mod` 變了但「現在讀」沒跟上
+⇒ 才是 `EvalActiveUnit` 那道存在性閘沒有第二次重試的問題。
+
+附帶：`Core/Events.lua` 那道「載具中該用哪個 token 派送事件」的閘要收緊，需要的證據是
+`tokenCensus`（debug 的「載具期間的事件來源」）。**沒有載具 UI 的載具永遠不會累積這張表**
+（框根本沒被重新對應），要驗證得找有載具 UI 的任務載具／砲台。

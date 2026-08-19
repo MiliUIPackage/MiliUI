@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 47adb948-8bd2-4804-9bff-d58a154ecf7c
-  modified: 2026-08-13T05:39:16.228Z
+  modified: 2026-08-18T04:27:40.777Z
 ---
 
 Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard AuraContainer（路線 A，見 [[wow-121-aura-containers]]），讓分類全走 Blizzard-side candidateFilters，照 DandersFrames v5 作法「一個都不少」。使用者 2026-08 選定路線 A。**已上線使用**（master，Cell r283-MiliUI）。
@@ -75,7 +75,24 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
 
 ## 待辦（2026-08-13 核對仍成立）
 
-1. 中央重要減益逐顆視覺確認（要實際撞到重要減益）；`maxFrameCount` 是每 group 上限，五類加起來可能 > num，或許要總量控制。
+1. 中央重要減益逐顆視覺確認（要實際撞到重要減益）。
+   ~~`maxFrameCount` 是每 group 上限，五類加起來可能 > num，或許要總量控制~~
+   → **總量控制已經做了**（`f5c6e4c39 refactor: Cell`）：`maxCount = ceil(num / #records)`，
+   Build 與 `Handle:SetNum` 兩處同一套。但 **2026-08-18 複查發現這個切法兩頭都不討好**：
+   預設 `num=3`、五類全開 ⇒ 每 group **只有 1**。
+   * 常見情況（首領戰身上兩三個 boss 減益、其餘四類都空）→ **只顯示 1 顆**，靜默漏掉其餘。
+   * 最壞情況仍是 5 顆 > num=3，所以連「總量不超過 num」這個目標也沒達成。
+   跨 group 沒有總量 API（`maximumLineSize` 是換行預算不是上限，見
+   [[wow-121-aura-filter-vocabulary]] 規則 6），所以只能自己分配 —— 但形狀該照
+   **宣告順序＝優先權**來給，而不是均分。
+   **2026-08-18 已改**：新增檔案層級的 `GroupBudget(index, total, wanted)`
+   ——**第一組給滿 `num`、其餘各 1**（num=3 五類 ⇒ 3,1,1,1,1，最壞 7 而不是 15，
+   常見情況正確）。Build 與 `Handle:SetNum` 共用它，兩處不會再各寫一次公式漂掉。
+   ⚠ index 算的是 **`handle._groupKeys` 裡的位置**（＝真的 add 成功的那些），不是
+   records 的位置：最上面那筆 filter 若被拒，下一筆遞補成第一組並繼承滿額預算。
+   bossRole 關掉時 priority 自動遞補，語意自洽。
+   ⚠ 這是改**程式碼**不是改 DB 預設值 ⇒ 不需要 revise 版本閘，也不會覆寫任何人調好的值。
+   **尚未在遊戲內驗證**（要實際撞到多顆同類重要減益才看得出差別）。
 2. glow / tooltip 尚未接到容器（`SetMouseMotionEnabled(false)` 寫死）。
 3. dispel 自訂 icon 樣式要走 CustomAsset+map。
 4. `crowdControls` 指示器還在手動路。

@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 7687a40a-9665-4a80-8ab5-d8ddb9ec65ee
-  modified: 2026-08-17T08:58:26.484Z
+  modified: 2026-08-19T13:47:58.563Z
 ---
 
 **MiliUI_UnitFrames**（2026-08-15 一次寫完五階段，約 5400 行；2026-08-17 從 `MiliUI_Unit_Frame`
@@ -15,7 +15,10 @@ SV `MiliUI_UnitFrames_DB`（同日一併改名，WTF 檔名與檔內變數名都
 全域框架名 `MiliUIUF_Player/Target/TargetTarget/Focus/FocusTarget/Pet/Boss1-5/Totem`，
 namespace `_G.MiliUIUF`。
 
-**使用者定案**：Stuf 三資料夾**原封不動**（並存，MiliUI 整合只做增量）；職業資源條 v1 就要
+**⚠ Stuf 已整包移除**（2026-08-19 確認，commit `cdb8358ce`）：不再並存，`MiliUI_UnitFrames`
+是套組**唯一**的頭像框架，出事沒有第二套可切 —— 這改變了所有取捨的失敗方向，任何「藏了暴雪框
+但自己的框沒生出來」都等於玩家整格空白。`MiliUI/Enhance/LegacyAddons.lua` 會自動停用玩家殘留的
+Stuf 三資料夾。（下面這條是移除前的舊定案，保留當歷史）舊：Stuf 三資料夾**原封不動**（並存，MiliUI 整合只做增量）；職業資源條 v1 就要
 （聖騎分段條做法推廣全職業）；單一帳號設定檔；圖騰樣式看設計稿再決定（A 膠囊列已實作為預設，
 B 整合條/C 冷卻環待選）。
 
@@ -42,7 +45,8 @@ B 整合條/C 冷卻環待選）。
 - 預設值逐鍵轉譯自 `MiliUI/Config/Stuf.lua`，邊框改 1px。
 
 **MiliUI 側增量修改**（Stuf 條目都保留）：`Enhance/Focuser.lua` 候選框架清單加 MiliUIUF_*；
-`Fix/AyijeCDM_StufAnchor.lua` GetStufPlayerFrame 優先找 MiliUIUF_Player；`Settings.lua` 主頁加
+（`Fix/AyijeCDM_StufAnchor.lua` 已隨 Stuf 移除而不存在，2026-08-19 確認；現在只剩
+`Enhance/Focuser.lua` 引用 `MiliUIUF_*`）；`Settings.lua` 主頁加
 「開啟頭像框架設定」按鈕（呼叫全域 `MiliUI_OpenUnitFrameSettings()`）。
 
 **DB 遷移狀態**：2026-08-16 曾把開發期累積的 v2–v14 遷移全部清空、`DB_VERSION` 歸 1；
@@ -167,6 +171,62 @@ spawn 迴圈 → 後續單位/小地圖鈕/圖騰全沒生。已在 Units spawn�
 逐一 xpcall(geterrorhandler()) 隔離。暴雪原生框由 `Core/HideBlizzard.lua` 隱藏
 （照 Stuf DisableDefault：alpha 0＋搬出畫面＋解註冊；施法條/圖騰列依我方對應元件啟用才藏），
 只在登入跑一次，中途停用單位要 /reload 才還原暴雪框。
+
+**設定面板搜尋**（2026-08-18，F3，`Options/Search.lua`）：搜尋框在面板上緣外側、跟標題同一列。
+⚠ **索引不是在建立控件時收集的**（EUI 走那條路，代價是沒開過的頁面收不到、得另外補一輪
+pre-build）。這裡由各分頁**列舉自己的 spec 表** —— 表單本來就是宣告式的，spec 是純資料，
+不必先生出 frame 就讀得到 ⇒ 沒開過的分頁照樣搜得到、`Controls.Build` 裡不必埋 hook、
+索引跟畫面完全解耦。分頁在檔尾 `ns.Search.Register(tabId, { label, enumerate(add), jump(payload, spec) })`。
+單位分頁列舉 7 單位 × 最多 11 元件的所有組合（可見性判斷跟 `RefreshChips` 同一套）。
+`Controls.Build` 因此多回傳第三個值 `rows`（每列的 `{spec, top, bottom}`），`Search.Reveal`
+拿它捲過去並閃一下（Alpha 動畫，不用 OnUpdate）。比對**刻意只做子字串不做模糊比對**：
+標籤是在地化字串，中文沒有詞界，模糊比對會命中一堆不相干的東西。索引在
+`SettingsApplied`／`ProfileChanged` 失效重建（純資料、很便宜）。
+⚠ 欄位叫 `jump` 不叫 `goto` —— 後者是 Lua 5.2+ 保留字，過不了 `luac -p`，見 [[wow-luac-global-scan]]。
+
+**距離探針改成分近戰／遠程**（2026-08-18，F4）：`Core/Range.lua` 原本一個職業一顆探針，
+近戰職業拿到的是遠距離技能（戰士＝嘲諷 30 碼）⇒ 要跑到 30 碼外框才淡出，而近戰在意的是
+5 碼。現在多一張 `MELEE_HARM` ＋ `MELEE_SPECS`（specID 集合，職業層級判斷不了：同職業有
+近戰也有遠程專精），近戰專精先問近戰探針，**答不出來就往下走原本那顆**（失敗方向朝
+「維持改動前行為」）。`Range.Probes()` 多回一個 melee 供 `/muf debug`。
+⚠⚠ **要查「某個技能是幾碼」，本機有權威來源：`AddOns/Platynator/Libs/LibRangeCheck-3.0/`**
+——那個函式庫的全部工作就是維護這張對照，每條 `tinsert(HarmSpells.CLASS, id) -- 名稱 (N yards)`
+都標了碼數，而且跟著改版更新。**不要憑印象寫 spell ID 的碼數**：寫錯的症狀是「明明在
+範圍內卻一直顯示超出距離」，靜默無錯誤。LRC 明載近戰的只有 DRUID 22568／MONK 100780／
+PALADIN 35395／SHAMAN 73899，其餘近戰職業用它列的次短項（WARRIOR 5246 八碼、DH 183752
+二十碼）或本 repo 已驗證過的 ID（DK 47528 來自 `Core/Interrupt.lua`）；ROGUE 的既有清單
+本來就是近戰，不必動。查不到可靠來源的就**留空**。
+
+**換設定檔已改成即時，不再一律 ReloadUI**（2026-08-18）：`DB.SwitchProfile` 現在
+只有在**兩份設定檔「啟用的單位集合」不一樣**時才重載，其餘走 `DB.Activate` ＋
+`ns.RebindProfile()`。
+⚠⚠ 那個例外是硬性的，不要想拿掉：**`Core/HideBlizzard.lua` 是單向的**（把暴雪的框
+reparent 進隱藏容器＋解事件，**沒有還原路徑**）。切到「停用某單位」的設定檔 →
+我們的框藏了、暴雪的框也還藏著 ⇒ 那一格全空；切到「多啟用一個」→ 沒重跑
+HideBlizzard ⇒ 兩個框疊著。`DB.WouldReload(name)` 就是這道判斷，設定面板拿它決定
+確認視窗的措辭（自己會先補預設值再比，否則舊設定檔缺鍵會被誤判成「沒啟用」）。
+**抓著 db 參照的人**（新增長命參照時要回來補這張表，`ns.RebindProfile` 的註解裡有同一份）：
+`uf.db`（spawn 時存）→ Rebind 重指；預覽孿生 → 訂閱 `SettingsApplied` 自己重指；
+**`EditMode.lua:63` 的 `AttachSelection` 把 `fdb` 烘進 closure，而 `frame.editSelection`
+一旦建立就永不重建 → 換設定檔後拖曳寫進舊設定檔（2026-08-19 覆核發現，這張清單原本漏了它，
+尚未修）**；`Options/Tab_Unit.lua` 的 `panels` 快取把 udb 捕捉在 ctx 的 closure 裡 → 新事件
+`ProfileChanged` 全丟重建（它原本只在「文字條目數變了」時才丟）；
+Tab_General／Tab_Resource／Tab_Totem 與 Totems 的 `GetDB()` 都是現查 `ns.db`，安全。
+`DB.Activate(name)` 是「啟用一份設定檔」的唯一入口（補預設＋重指 `ns.db`＋記名字），
+登入與換設定檔共用，**MergeDefaults 一定要在它裡面跑** —— 別份設定檔可能建立於某個鍵
+加進 `BuildDefaults` 之前。戰鬥中一律整個延後到 `PLAYER_REGEN_ENABLED`，不做半即時半排隊。
+這也是 A2／F2「依專精或副本自動換版面」要用的同一條路。
+
+**⚠ 載具中的 unit 事件用哪個 token 派送？未實測**（2026-08-18，commit 6d654b80a 留下的）：
+`Core/Events.lua` 的 tracker 一顆收兩個 token（玩家框 player+vehicle、寵物框 pet+player），
+原本處理器把 unit 參數整個丟掉 ⇒ **玩家每次掉血都讓寵物框跑一次完整 health 重畫**。
+加閘時卡在一個未知：進載具後 `uf.unit` 變 "vehicle"，但引擎派事件時給的是 "vehicle" 還是
+"player"？後者的話嚴格比對 `unit ~= uf.unit` 會讓玩家框**整趟車不更新且不報錯**。
+現行寫法多一個條件保底：`if unit ~= uf.unit and uf.unit == uf.baseUnit then return end`
+——框畫著原本的單位時才擋，被重新對應（載具）就整個放行 ⇒ 兩種答案下都正確。
+**驗證方式：坐上載具看玩家框血量／能量還會不會跳。會跳 = 派的是 "vehicle"，可收緊成
+單純的 `unit ~= uf.unit`。** ⚠ EUI 借不到當背書：它 `EUI_UnitFrames_Engine.lua:421`
+同樣收下 unitToken 卻**沒拿來過濾**數值頻道，兩邊只是一起在浪費。
 
 **待遊戲內驗證**（計畫的 R1-R10 風險全部未驗）：右鍵選單 togglemenu、boss RegisterUnitWatch、
 3D 頭像 secret 單位、AuraContainer SetUnit live 換目標、calculator getter（GetIncomingHeals/
