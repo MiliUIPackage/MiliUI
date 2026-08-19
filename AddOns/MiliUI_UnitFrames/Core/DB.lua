@@ -189,6 +189,7 @@ function DB.BuildDefaults()
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.5, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
+                              healPredictionAlpha = 0.35,   -- 沒有預設值時滑桿顯示 min(0.1)，實際卻是 0.35
                               -- 疊加層顏色／方向沿用團隊框慣用的預設
                               healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
@@ -267,6 +268,7 @@ function DB.BuildDefaults()
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.5, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
+                              healPredictionAlpha = 0.35,   -- 沒有預設值時滑桿顯示 min(0.1)，實際卻是 0.35
                               -- 疊加層顏色／方向沿用團隊框慣用的預設
                               healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
@@ -338,6 +340,7 @@ function DB.BuildDefaults()
                               barAlpha = 0.4, bgAlpha = 1, border = true,
                               -- 治療預估仍然關著（跟護盾是不同的勾選）
                               showHealPrediction = false,
+                              healPredictionAlpha = 0.35,   -- 沒有預設值時滑桿顯示 min(0.1)，實際卻是 0.35
                               -- 護盾：全部單位一致（疊加層只對 cache.assist 的單位畫，
                               -- 敵人身上本來就不會出現，開著不會多花什麼）
                               showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
@@ -383,6 +386,7 @@ function DB.BuildDefaults()
                               barAlpha = 0.4, bgAlpha = 1, border = true,      -- 跟目標框同款（0.4）
                               -- 治療預估仍然關著（跟護盾是不同的勾選）
                               showHealPrediction = false,
+                              healPredictionAlpha = 0.35,   -- 沒有預設值時滑桿顯示 min(0.1)，實際卻是 0.35
                               -- 護盾：全部單位一致（疊加層只對 cache.assist 的單位畫，
                               -- 敵人身上本來就不會出現，開著不會多花什麼）
                               showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
@@ -435,6 +439,7 @@ function DB.BuildDefaults()
                               barAlpha = 0.4, bgAlpha = 1, border = true,
                               -- 治療預估仍然關著（跟護盾是不同的勾選）
                               showHealPrediction = false,
+                              healPredictionAlpha = 0.35,   -- 沒有預設值時滑桿顯示 min(0.1)，實際卻是 0.35
                               -- 護盾：全部單位一致（疊加層只對 cache.assist 的單位畫，
                               -- 敵人身上本來就不會出現，開著不會多花什麼）
                               showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
@@ -484,6 +489,7 @@ function DB.BuildDefaults()
                               barAlpha = 0.5, bgAlpha = 1, border = true,
                               -- 治療預估仍然關著（跟護盾是不同的勾選，要的話在單位→血條打開）
                               showHealPrediction = false,
+                              healPredictionAlpha = 0.35,   -- 沒有預設值時滑桿顯示 min(0.1)，實際卻是 0.35
                               -- 護盾：目標框有、Cell 也有，寵物沒理由沒有。
                               -- 自己的寵物 cache.assist 為真，過得了疊加層的 assist 閘門
                               showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
@@ -556,6 +562,7 @@ function DB.BuildDefaults()
                               bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,
                               showHealPrediction = false, healPredictionFollowBar = false,
+                              healPredictionAlpha = 0.35,   -- 沒有預設值時滑桿顯示 min(0.1)，實際卻是 0.35
                               healPredictionColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
                               absorbReverseFill = true,

@@ -196,7 +196,10 @@ end
 -- 一律交給 ns.Visibility.ApplyAlpha 算完再設一次，它取兩者最低。
 ------------------------------------------------------------
 function ns.ApplyFrameFade(uf)
-    local key = "range_" .. uf.unit
+    -- ⚠ key 用 baseUnit：進載具後 uf.unit 變 "vehicle"，這時若重跑 ApplySettings
+    -- 會註冊 range_vehicle，而舊的 range_player 沒人 Unbind（Unbind 只認新 key）
+    -- ⇒ 留一個孤兒項目在 metroEntries 裡繼續每 0.2 秒跑
+    local key = "range_" .. (uf.baseUnit or uf.unit)
     if uf.isPreview or not uf.db.frame.fadeOutOfRange then
         ns.Metro.Unbind(uf, key)
     else
@@ -249,7 +252,9 @@ function ns.BuildElements(uf)
                 -- 逐一隔離：一個元件 build 炸掉，其他元件照常建
                 xpcall(def.build, ns.ReportError, uf, edb)
             elseif uf.elements[def.name] then
-                if def.disable then def.disable(uf) end
+                -- disable 也要隔離：跟上面的 build 同一個迴圈，一支拋錯會讓後面的
+                -- 元件整批不重建（而它們的設定已經被判定為「要停用」）
+                if def.disable then xpcall(def.disable, ns.ReportError, uf) end
                 uf.elements[def.name]:Hide()
             end
         end

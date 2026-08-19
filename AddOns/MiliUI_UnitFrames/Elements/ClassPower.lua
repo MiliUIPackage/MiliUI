@@ -387,7 +387,10 @@ end
 -- 元件
 ------------------------------------------------------------
 local function Build(uf, edb)
-    if uf.unit ~= "player" then return end
+    -- ⚠ 看 baseUnit 不是 unit：進載具後 uf.unit 變成 "vehicle"，用 unit 判斷會讓
+    -- 整個 Build 被跳過 ⇒ 這時改設定（面板開著、脫戰）位置／層級都不會重套，
+    -- 要下車才生效。baseUnit 是這個框「本來畫誰」，不隨載具改變。
+    if uf.baseUnit ~= "player" then return end
     local f = uf.elements.classpower
     if not f then
         f = CreateFrame("Frame", nil, uf)
@@ -639,7 +642,10 @@ if CLASS == "DRUID" or CLASS == "PRIEST" or CLASS == "SHAMAN" then
 local MANA = (Enum.PowerType and Enum.PowerType.Mana) or 0
 
 local function Build(uf, edb)
-    if uf.unit ~= "player" then return end
+    -- ⚠ 看 baseUnit 不是 unit：進載具後 uf.unit 變成 "vehicle"，用 unit 判斷會讓
+    -- 整個 Build 被跳過 ⇒ 這時改設定（面板開著、脫戰）位置／層級都不會重套，
+    -- 要下車才生效。baseUnit 是這個框「本來畫誰」，不隨載具改變。
+    if uf.baseUnit ~= "player" then return end
     local f = uf.elements.manabar
     if not f then
         f = CreateFrame("Frame", nil, uf, "BackdropTemplate")

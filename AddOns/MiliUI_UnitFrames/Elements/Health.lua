@@ -488,7 +488,9 @@ ns.RegisterElement{
     name = "hpbar",
     order = 20,
     -- reaction：陣營／旗標會改上色法的結果（classreaction 讀 cache.reaction）
-    buckets = { "health", "death", "reaction" },
+    -- info：難度色（methods.difficulty）讀的是 cache.level，只在 info 桶重讀 ——
+    --       少了它，選「難度色」的人升級或目標變等級時顏色不會更新
+    buckets = { "health", "death", "reaction", "info" },
     build = Build,
     update = Update,
 }

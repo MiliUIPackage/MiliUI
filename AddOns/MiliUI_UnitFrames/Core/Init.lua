@@ -73,7 +73,7 @@ do
     watcher:RegisterEvent("ADDON_ACTION_BLOCKED")
     local seen = {}
     watcher:SetScript("OnEvent", function(_, event, addonName, funcName)
-        if addonName ~= "MiliUI_UnitFrames" then return end
+        if addonName ~= ADDON then return end     -- 用檔頭的常數，不要寫死資料夾名
         -- ns.trace 是我們自己在做敏感操作前留的麵包屑（見 Core/Events.lua 的 Reg）。
         -- 事件發生時它是 nil ⇒ **不是我們自己呼叫的**，是暴雪的程式碼跑在被我們
         -- 染過的東西上——這一句就能把「我方 bug」和「taint 傳染」分開。

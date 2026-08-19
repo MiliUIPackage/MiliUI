@@ -69,15 +69,15 @@ local function ShowSecretReadout()
         ns.secretReadout = f
     end
 
-    local L, n = f.lines, 0
+    local lines, n = f.lines, 0      -- 不要叫 L：會遮蔽檔頭的語系表
     local function line(text)
         n = n + 1
-        if L[n] then L[n]:SetText(text) end
+        if lines[n] then lines[n]:SetText(text) end
     end
     -- 秘密數字只能交給 C 端格式化，不能自己串字串
     local function put(fmt, v)
         n = n + 1
-        local fs = L[n]
+        local fs = lines[n]
         if not fs then return end
         if not pcall(fs.SetFormattedText, fs, fmt, v) then
             fs:SetText((fmt:gsub("%%d", "?")))
@@ -113,7 +113,7 @@ local function ShowSecretReadout()
             UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs(unit) or 0)
     end
 
-    for i = 1, READOUT_LINES do if L[i] then L[i]:SetText("") end end
+    for i = 1, READOUT_LINES do if lines[i] then lines[i]:SetText("") end end
     line("|cff4DD2FF秘密值讀出板|r  白字兩兩必須相等（P1 判準）；灰字本來就不相等")
     line("|cff4DD2FF玩家|r")
     block("player", pf)

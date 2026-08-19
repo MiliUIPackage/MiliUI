@@ -100,7 +100,10 @@ end
 ns.RegisterElement{
     name = "mpbar",
     order = 30,
-    buckets = { "power", "powertype" },
+    -- reaction：能量條的上色法一樣吃得到陣營（首領框預設的 bgColorMethod 就是
+    -- classreactiondark）。hpbar 為了同一件事早就訂了，這裡以前漏掉 ⇒ 中立 NPC
+    -- 轉敵對時血條換色、能量條卻停在舊色，要等下一次能量變動才跟上
+    buckets = { "power", "powertype", "reaction" },
     build = Build,
     update = Update,
 }

@@ -332,7 +332,11 @@ local function Poll()
         end
         -- icon 是明文（字串路徑或數字 fileID），當存在 proxy——haveTotem 是秘密
         -- boolean 不能測。判斷式用 truthiness + ~= ""（數字 fileID 也成立）
-        if icon and icon ~= "" then
+        -- ⚠ 型別先分流再比較。這個判斷原本依賴「秘密值一定是數字」，但 GetTotemInfo
+        -- 的 icon 也可以是字串路徑 —— 萬一戰鬥中回的是秘密**字串**，`icon ~= ""`
+        -- 就變成同型別比較、當場拋錯。
+        local iconType = type(icon)
+        if icon ~= nil and (iconType == "number" or (iconType == "string" and icon ~= "")) then
             local wasActive = slot.active
             slot.active = true
             slot.icon:SetTexture(icon)

@@ -75,6 +75,16 @@ local function Init()
     refreshers = r
 end
 
+-- 換設定檔時，正開著的這一頁要重整。
+-- ⚠ ctx 是現查 ns.db 所以**寫入**一直都正確，錯的是**控件顯示值** —— 那是 refresher
+-- 推上去的，而 refresher 只在 ShowOptionsTab 跑。原本只有「單位」分頁訂了這個事件，
+-- 所以停在這一頁換設定檔會看到顏色與滑桿全停在舊值，切走再切回來才對。
+ns.RegisterCallback("ProfileChanged", "totemTabProfile", function()
+    if tab and tab:IsShown() then
+        for _, fn in ipairs(refreshers) do fn() end
+    end
+end)
+
 ns.RegisterCallback("ShowOptionsTab", "totemTab", function(id)
     -- 沒放召喚物時框是空的，調位置等於對著空氣調 → 進這一頁就填示範內容
     if ns.TotemsSetPreview then ns.TotemsSetPreview(id == "totem") end

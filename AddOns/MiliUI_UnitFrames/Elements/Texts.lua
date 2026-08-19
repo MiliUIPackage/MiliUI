@@ -51,15 +51,20 @@ local function Build(uf, edb)
     for i, entry in ipairs(edb) do
         if entry.enabled ~= false then
             local f = BuildOne(uf, entry, i)
+            if (uf.textFrameMax or 0) < i then uf.textFrameMax = i end
             if f.buckets.metro then needMetro = true end
         elseif uf.textFrames and uf.textFrames[i] then
             uf.textFrames[i]:Hide()
         end
     end
-    -- 多出來的舊框（設定刪條目後）藏掉
+    -- 多出來的舊框（設定刪條目後）藏掉。
+    -- ⚠ 不能用 #uf.textFrames：BuildOne 只對啟用的條目建框，停用第 1 條時
+    -- textFrames[1] 是 nil ⇒ 那張表有洞、`#` 的結果未定義，這個迴圈可能一格都不跑，
+    -- 刪掉條目後的舊框就永遠藏不掉。自己記最大索引。
     if uf.textFrames then
-        for i = #edb + 1, #uf.textFrames do
-            uf.textFrames[i]:Hide()
+        for i = #edb + 1, (uf.textFrameMax or 0) do
+            local f = uf.textFrames[i]
+            if f then f:Hide() end
         end
     end
 
@@ -69,7 +74,8 @@ local function Build(uf, edb)
     -- ⚠ 預覽孿生框的 uf.unit 一律是 "player"（安全 token），key 會撞到真實玩家框，
     -- 所以預覽完全不碰 metro——它本來就有自己的 ticker 在演
     if not uf.isPreview then
-        local metroKey = "texts_" .. uf.unit
+        -- key 用 baseUnit，理由同 Core/UnitFrame.lua 的 range key（載具會留孤兒項目）
+        local metroKey = "texts_" .. (uf.baseUnit or uf.unit)
         if needMetro then
             uf.metroTextsFn = uf.metroTextsFn or function()
                 local texts = uf.db.elements.texts

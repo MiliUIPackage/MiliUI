@@ -31,8 +31,14 @@ function ns.RegisterElement(def)
     ns.Elements[def.name] = def
     tinsert(ns.ElementOrder, def)
     table.sort(ns.ElementOrder, function(a, b) return (a.order or 50) < (b.order or 50) end)
+    -- ⚠ 這裡也要排序。只 tinsert 的話，同一個桶內的更新順序會變成「TOC 的載入
+    -- 順序」而不是宣告的 order。目前 health 桶剛好是 Health→Texts 所以對，但那是
+    -- 巧合 —— 把 Elements/Texts.lua 在 TOC 往上搬一行，文字就會用上一幀的血量
+    -- 渲染，而且完全不報錯。
+    local byOrder = function(a, b) return (a.order or 50) < (b.order or 50) end
     for _, bucket in ipairs(def.buckets or {}) do
         ns.BucketMembers[bucket] = ns.BucketMembers[bucket] or {}
         tinsert(ns.BucketMembers[bucket], def)
+        table.sort(ns.BucketMembers[bucket], byOrder)
     end
 end

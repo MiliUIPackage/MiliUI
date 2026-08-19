@@ -345,6 +345,11 @@ function W.CreateNumberBox(parent, width, step, onCommit)
     eb:SetScript("OnEditFocusLost", function(self)
         self:SetBackdropBorderColor(0, 0, 0, 1)
         self:EnableMouseWheel(false)
+        -- 打了字沒按 Enter 就點到別處：值並沒有套用，但框裡還顯示著剛打的數字，
+        -- 看起來像已經生效了。還原成實際值 —— 這裡刻意**不**提交，
+        -- 免得「不小心點掉」變成套用。
+        self:SetText(tostring(self.value or 0))
+        self:SetCursorPosition(0)
     end)
     eb:SetScript("OnMouseWheel", function(self, delta)
         if not self:HasFocus() then return end

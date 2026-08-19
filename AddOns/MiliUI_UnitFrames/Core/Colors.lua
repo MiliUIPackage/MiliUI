@@ -24,6 +24,15 @@ local function G()   -- 全域色票
     return ns.db.global.colors
 end
 
+-- 「暗色」變體共用的守衛。秘密值不能做算術，而上色法是使用者自由指定、彼此還會
+-- 互相委派的（classreactiondark → classdark／reactiondark），所以不要只在會出事的
+-- 那一支加閘 —— 七個變體一律走這裡。
+-- 遇到秘密分量就原色回傳：顏色沒變暗，總比整條 Refresh 拋錯好。
+local function Dim(r, g, b, a)
+    if ns.IsSecret(r) then return r, g, b, a end
+    return r * 0.3, g * 0.3, b * 0.3, a
+end
+
 -- 職業色：明文查表；受限身分的玩家（PvP 敵方玩家等）class 是秘密 → 走官方顯示管道
 -- C_ClassColor.GetClassColor(secretClass) 拿色物件，分量是秘密，只能餵貼圖 SetVertexColor
 -- （Platynator Colors.lua:290 同法）。呼叫端要用 IsSecret 判斷後決定能不能做暗色/塞文字色碼。
@@ -49,9 +58,7 @@ methods.class = function(uf, edb, value, choice, alphaKey)
     return WHITE.r, WHITE.g, WHITE.b, a
 end
 methods.classdark = function(uf, edb, value, choice, alphaKey)
-    local r, g, b, a = methods.class(uf, edb, value, choice, alphaKey)
-    if ns.IsSecret(r) then return r, g, b, a end        -- 秘密色不能做算術，原色回傳
-    return r * 0.3, g * 0.3, b * 0.3, a
+    return Dim(methods.class(uf, edb, value, choice, alphaKey))
 end
 
 -- ⚠ cache.reaction 在受限單位上可能抽不出明文（nil）。以前這種情況直接落到 WHITE，
@@ -70,7 +77,7 @@ methods.reaction = function(uf, edb, value, choice, alphaKey)
 end
 methods.reactiondark = function(uf, edb, value, choice, alphaKey)
     local r, g, b, a = methods.reaction(uf, edb, value, choice, alphaKey)
-    return r * 0.3, g * 0.3, b * 0.3, a
+    return Dim(r, g, b, a)
 end
 
 -- 玩家用職業色、NPC/敵對(2)/中立(4)用陣營色
@@ -105,7 +112,7 @@ methods.difficulty = function(uf, edb, value, choice, alphaKey)
 end
 methods.difficultydark = function(uf, edb, value, choice, alphaKey)
     local r, g, b, a = methods.difficulty(uf, edb, value, choice, alphaKey)
-    return r * 0.3, g * 0.3, b * 0.3, a
+    return Dim(r, g, b, a)
 end
 
 -- Enum.PowerType index → PowerBarColor 的字串鍵（數字鍵不一定存在，缺了會錯退成法力藍）
@@ -122,7 +129,7 @@ methods.power = function(uf, edb, value, choice, alphaKey)
 end
 methods.powerdark = function(uf, edb, value, choice, alphaKey)
     local r, g, b, a = methods.power(uf, edb, value, choice, alphaKey)
-    return r * 0.3, g * 0.3, b * 0.3, a
+    return Dim(r, g, b, a)
 end
 
 methods.hpgreen = function(uf, edb, value, choice, alphaKey)
@@ -131,7 +138,7 @@ methods.hpgreen = function(uf, edb, value, choice, alphaKey)
 end
 methods.hpgreendark = function(uf, edb, value, choice, alphaKey)
     local r, g, b, a = methods.hpgreen(uf, edb, value, choice, alphaKey)
-    return r * 0.3, g * 0.3, b * 0.3, a
+    return Dim(r, g, b, a)
 end
 methods.hpred = function(uf, edb, value, choice, alphaKey)
     local c = G().hpRed
@@ -139,7 +146,7 @@ methods.hpred = function(uf, edb, value, choice, alphaKey)
 end
 methods.hpreddark = function(uf, edb, value, choice, alphaKey)
     local r, g, b, a = methods.hpred(uf, edb, value, choice, alphaKey)
-    return r * 0.3, g * 0.3, b * 0.3, a
+    return Dim(r, g, b, a)
 end
 
 methods.hpthreshold = function(uf, edb, value, choice, alphaKey)
@@ -161,7 +168,7 @@ methods.hpthreshold = function(uf, edb, value, choice, alphaKey)
 end
 methods.hpthresholddark = function(uf, edb, value, choice, alphaKey)
     local r, g, b, a = methods.hpthreshold(uf, edb, value, choice, alphaKey)
-    return r * 0.3, g * 0.3, b * 0.3, a
+    return Dim(r, g, b, a)
 end
 
 methods.gray = function(uf, edb, value, choice, alphaKey)
