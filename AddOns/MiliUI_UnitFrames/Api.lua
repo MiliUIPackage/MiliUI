@@ -408,6 +408,16 @@ local function Debug()
         Probe("CreatureType", UnitCreatureType("target"))
         Probe("UnitLevel", UnitLevel("target"))
         Probe("Classification", UnitClassification("target"))
+        -- ⚠ 這條是「首領戰時目標框有沒有 3D 頭像」的關鍵。
+        -- boss1-5 走 uf.bossIndex 直接對到 EJ 的 displayID，但目標／專注框沒有
+        -- bossIndex，只能問「目標是不是 bossN」—— 而那個判斷若在受限內容回秘密值，
+        -- Portrait 的 EncounterDisplayFor 就會跳過，於是掉回一般路徑被身分閘擋下，
+        -- 結果是「boss 框有模型、選中同一隻的目標框卻空白」。
+        for i = 1, 5 do
+            if UnitExists("boss" .. i) then
+                Probe("IsUnit(boss" .. i .. ")", UnitIsUnit("target", "boss" .. i))
+            end
+        end
         Probe("UnitReaction", UnitReaction("target", "player"))
         Probe("UnitIsPlayer", UnitIsPlayer("target"))
         Probe("UnitHealth", UnitHealth("target"))

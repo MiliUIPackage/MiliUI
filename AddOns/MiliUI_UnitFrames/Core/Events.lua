@@ -292,13 +292,22 @@ function ns.Events.Register(event, key, fn, unitToken)
         end
     elseif not externalEvents[event] then
         if unitScoped[event] then
-            -- ⚠ 這個事件已經被別人用 token 註冊過 ⇒ 這個訂閱者只收得到那個 token 的
-            -- 事件，但它要的是全域範圍。以前這裡靜默略過，零錯誤零警告。
-            -- 行為不動（補註冊全域會讓既有的 token 訂閱者收到全場事件），只留麵包屑。
-            -- ⚠ 走 ns.errors 不走 ns.ReportError：後者會叫起錯誤處理器，而這是給
-            -- 開發者看的線索、不是玩家的問題，不該在登入時彈視窗。`/muf debug` 讀得到。
-            tinsert(ns.errors, ("Events.Register: %s 已被單位範圍註冊，key=%s 的全域訂閱收不到其他單位的事件")
-                :format(tostring(event), tostring(key)))
+            -- 這個事件已經被 unit 範圍註冊過，不可以再上全域（會雙送）。
+            --
+            -- ⚠⚠ **SCOPED 裡的事件是正常情況，不要警告。** 那張表綁好 token 之後，
+            -- 它的 OnEvent 會照樣 ns.Fire 給所有訂閱者 ⇒ 不傳 token 的訂閱者一樣
+            -- 收得到（上面那段註解本來就寫明了，UNIT_TARGET 就是這樣設計的）。
+            -- 我一度在這裡無條件記一筆「收不到其他單位的事件」，結果 /muf debug 上
+            -- 冒出兩條指著光環模組的假警報 —— 會誤導的診斷比靜默更糟。
+            --
+            -- 真正值得記的只有另一種：**別的模組臨時用 token 註冊**，把這個事件變成
+            -- unit 範圍，於是後來不傳 token 的訂閱者只收得到那個 token。那才是意外。
+            if not SCOPED[event] then
+                -- 走 ns.errors 不走 ns.ReportError：這是給開發者的線索、不是玩家的
+                -- 問題，不該在登入時彈錯誤視窗。`/muf debug` 讀得到。
+                tinsert(ns.errors, ("Events.Register: %s 已被 %s 之外的 token 註冊，key=%s 的全域訂閱只收得到那個 token")
+                    :format(tostring(event), "SCOPED", tostring(key)))
+            end
             return
         end
         externalEvents[event] = true
