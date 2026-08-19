@@ -12,10 +12,15 @@ metadata:
 
 （截至 2026-08-12。CLAUDE.md 的原則是**優先從 `MiliUI/Fix/`、`MiliUI/Enhance/` 掛勾**，下面這些是掛不上勾才直接改的。）
 
+**已從表中移除**：`Stuf / Stuf_Options / Stuf_Range`（2026-08-19 核對）。三支已在 `cdb8358ce`
+整包從套組移除，取代者是自製的 `MiliUI_UnitFrames`；`MiliUI/Enhance/LegacyAddons.lua` 會自動
+停用玩家殘留的那三個資料夾。原本記的修改內容（12.1 secret 洗白、zhTW 語系、broker/小地圖鈕、
+整包 Ace 換版）已無對象，不必再重套。
+⚠ 這次只核對了 Stuf 這一列，其餘各列沒有逐一重驗。
+
 | 插件 | 本地改了什麼 | 細節 |
 |---|---|---|
 | **Cell** ⚠**已不再追上游——我們自己就是上游**（2026-08-16 起），可以放手改，不用再考慮被洗掉 | 最多的一支：AuraContainer 路線 A 重寫、secret guard、停用版本檢查與更新日誌、載具名稱與載具 token 時序、LibGroupInfo GUID、護盾/溢盾 Midnight 路徑、預設值調整、內附 LibCustomGlow 手動改成 v25（就地改兩行，Cell 那份是 LF 且靠 `Libs/LoadLibs.xml` → `LibCustomGlow-1.0.xml` 載入） | [[project-cell-auracontainer-rewrite]]、[[project-cell-no-update-notice]]、[[project-cell-vehicle-secret]]、[[project-cell-libgroupinfo-secret-guid]]、[[wow-121-absorb-shield-secret]]、[[wow-vehicle-token-timing]]。TOC 版本號帶 `_MiliUI` 尾綴（底線，2026-08-17 從 `-` 改過來） |
-| **Stuf / Stuf_Options / Stuf_Range** | 12.1 secret 洗白（`core.lua` 的 `IsSecret`/`desecret`/`toBool`）、zhTW 語系、broker/小地圖按鈕、**整包 Ace 函式庫換版** | [[wow-121-setdesaturation-acegui]]。改動量僅次於 Cell |
 | **TinyTooltip-Remake** | 效能修補 + secret 版 `UnitColor` 取代暴雪的 `GameTooltip_UnitColor` | [[project-tinytooltip-perf]] |
 | **TinyInspect-Remake** | 12.1 secret guard：`InspectCore.lua` 的 `SafeUnitGUID`／血量新鮮度檢查、`ItemLevel.lua`／`InspectUnit.lua` 的 `IsInspectFrameData` | [[project-tinyinspect-secret-guid]]。全部有 `fix from MiliUI` 標記；`MiliUI/Fix/InspectTaintFix.lua` 是後備 |
 | **Ayije_CDM** | 12.1 secret guard、zhTW 翻譯修正、Externals 光環閘、**四條 dispatch 迴圈改 xpcall 隔離**、內附 LibCustomGlow 換成 v25、**編輯模式改成可拖曳**（[[project-ayije-cdm-editmode-drag]]）、**併入原本掛在 MiliUI 的三支**（法力數字縮寫選項→`Modules/Tags.lua` ＋ `/acdm` 資源頁下拉；米利頭像錨定→`Core/TrackerUtils.lua` 候選清單首位、可見性判斷一律 `IsVisible`；黑底清除→`Core/Style.lua` 的 `ApplyStyle`／`ApplyBarStyle` 尾端 ＋ `/cdmhide`） | TOC 有 `## OptionalDeps: MiliUI`。換函式庫時**別刪 `LibCustomGlow-1.0.xml`** —— 它是靠 `Libs/embeds.xml` Include 這個 xml 才載入的，BuffReminders 那份是 TOC 直接列 .lua 所以沒有 xml，整包蓋過去會讓函式庫完全不載入，見 [[wow-121-setdesaturation-acegui]] |
