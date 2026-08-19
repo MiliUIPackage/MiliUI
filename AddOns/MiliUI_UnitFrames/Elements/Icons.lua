@@ -6,6 +6,16 @@ local _, ns = ...
 
 local ToBool = ns.ToBool
 
+-- PvP 圖示的陣營貼圖。只有這幾張，路徑寫死成常數不必每次串接。
+-- ⚠ 中立（還沒選邊的熊貓人）UnitFactionGroup 回 "Neutral"，但暴雪沒有
+-- UI-PVP-Neutral 這張圖 —— 自由混戰用的是 FFA。
+local PVP_TEXTURE = {
+    Alliance = "Interface\\TargetingFrame\\UI-PVP-Alliance",
+    Horde    = "Interface\\TargetingFrame\\UI-PVP-Horde",
+    FFA      = "Interface\\TargetingFrame\\UI-PVP-FFA",
+    Neutral  = "Interface\\TargetingFrame\\UI-PVP-FFA",
+}
+
 local STATE_ICON = "Interface\\CharacterFrame\\UI-StateIcon"
 
 ------------------------------------------------------------
@@ -208,7 +218,10 @@ local function Update(uf, edb, bucket)
     if pvp and not pvp.disabled and edb.pvp and edb.pvp.enabled then
         local faction = ns.Desecret(UnitFactionGroup(unit), nil) or (preview and "Alliance")
         if faction and (preview or ToBool(UnitIsPVP(unit))) then
-            pvp.tex:SetTexture("Interface\\TargetingFrame\\UI-PVP-" .. faction)
+            -- 兩條完整路徑寫成常數：這條路徑每次 reaction 桶更新都會重建字串，
+            -- 而 GROUP_ROSTER_UPDATE 會把全部 11 個框掃一遍。
+            -- 中立（未選邊的熊貓人）沒有 UI-PVP-Neutral 這張圖，暴雪慣例是走 FFA。
+            pvp.tex:SetTexture(PVP_TEXTURE[faction] or PVP_TEXTURE.FFA)
             pvp.tex:SetTexCoord(0, 0.62, 0, 0.62)
             pvp:Show()
         else

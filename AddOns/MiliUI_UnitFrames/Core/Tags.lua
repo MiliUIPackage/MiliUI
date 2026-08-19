@@ -19,6 +19,7 @@ local Tags = ns.Tags
 
 local IsSecret = ns.IsSecret
 local format, gsub, strmatch = string.format, string.gsub, string.match
+local strfind = string.find
 -- ⚠ 要宣告在 SECRET_TAGS 之前：那些 closure 用到它，宣告在後面會抓到 nil 全域而靜默失效
 local _CSU = C_StringUtil
 
@@ -233,14 +234,26 @@ end
 --   wan = AbbreviateNumbers（依語系：萬/億）／km = AbbreviateLargeNumbers（K/M）
 --   raw = BreakUpLargeNumbers（千分位、不縮寫）
 -- 百分比用 string.format 取整（也吃秘密值）
+-- ⚠ 結果只在 numberFormat / percentDecimals 改動時才會變，但這支原本是**每次
+-- render 每條文字**都重推導一遍（一次查表 ＋ 最多三次字串比較）。快取起來，
+-- 設定變更時失效即可。
+local cachedAbbrev, cachedPctFmt
 local function NumberFormatters()
-    local mode = Tags.NumberMode()
-    local abbrev = (mode == "wan" and AbbreviateNumbers)
-        or (mode == "raw" and BreakUpLargeNumbers)
-        or AbbreviateLargeNumbers or AbbreviateNumbers
-    local pctFmt = (ns.db.global.percentDecimals or 0) > 0 and "%.1f" or "%.0f"
-    return abbrev, pctFmt
+    if not cachedAbbrev then
+        local mode = Tags.NumberMode()
+        cachedAbbrev = (mode == "wan" and AbbreviateNumbers)
+            or (mode == "raw" and BreakUpLargeNumbers)
+            or AbbreviateLargeNumbers or AbbreviateNumbers
+        cachedPctFmt = (ns.db.global.percentDecimals or 0) > 0 and "%.1f" or "%.0f"
+    end
+    return cachedAbbrev, cachedPctFmt
 end
+
+local function InvalidateNumberFormatters()
+    cachedAbbrev, cachedPctFmt = nil, nil
+end
+ns.RegisterCallback("SettingsApplied", "tags_numfmt", InvalidateNumberFormatters)
+ns.RegisterCallback("ProfileChanged", "tags_numfmt", InvalidateNumberFormatters)
 
 -- 一個 token 產出的片段（nil = 什麼都不輸出）
 local function EmitToken(p, uf, edb, cache, abbrev, pctFmt)
@@ -277,7 +290,13 @@ local function EmitToken(p, uf, edb, cache, abbrev, pctFmt)
         else
             body = abbrev and abbrev(v) or v
             if not IsSecret(body) then
-                body = gsub(tostring(body), " ([KMBTkmbt])", "%1")
+                -- 只有輸出裡真的有空白時才跑 gsub。這條落在每次血量／能量事件的
+                -- 每個數值 token 上，而 zhTW 的「萬／億」輸出根本沒有空白 ⇒
+                -- 幾乎永遠不命中，卻每次都配置結果字串與比對狀態。
+                body = tostring(body)
+                if strfind(body, " ", 1, true) then
+                    body = gsub(body, " ([KMBTkmbt])", "%1")
+                end
             end
         end
     elseif p.color then

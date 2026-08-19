@@ -197,21 +197,32 @@ local function AttachFakeCast(uf)
         cb:Hide()
         return
     end
-    -- 每次都重掛：元件停用時 HideBar 會把 OnUpdate 拆掉，再啟用要接回來
+    -- 每次都重掛：元件停用時 HideBar 會把 OnUpdate 拆掉，再啟用要接回來。
+    -- ⚠ 但閉包只建一次留在 cb 上 —— 這支是 0.8 秒的 ticker 呼叫的，最多九個分身，
+    -- 每次現配等於每秒十來顆閉包，而面板開著就一直跑。
     cb.previewElapsed = cb.previewElapsed or 0
-    cb:SetScript("OnUpdate", function(self, dt)
-        local edb = uf.db.elements and uf.db.elements.castbar
-        if not (edb and edb.enabled) then self:Hide(); return end
-        self.previewElapsed = (self.previewElapsed + dt) % CAST_TOTAL
-        self.bar:SetMinMaxValues(0, CAST_TOTAL)
-        self.bar:SetValue(self.previewElapsed)
-        -- 示範不可打斷盾牌：每輪施法的後半段顯示，方便調位置
-        if self.shield then
-            self.shield:SetShown(self.showShield and self.previewElapsed > CAST_TOTAL / 2)
+    cb.bar:SetMinMaxValues(0, CAST_TOTAL)      -- 常數，不必每幀重設
+    if not cb.previewFn then
+        cb.previewFn = function(self, dt)
+            local edb2 = uf.db.elements and uf.db.elements.castbar
+            if not (edb2 and edb2.enabled) then self:Hide(); return end
+            self.previewElapsed = (self.previewElapsed + dt) % CAST_TOTAL
+            self.bar:SetValue(self.previewElapsed)
+            -- 示範不可打斷盾牌：每輪施法的後半段顯示，方便調位置
+            if self.shield then
+                self.shield:SetShown(self.showShield and self.previewElapsed > CAST_TOTAL / 2)
+            end
+            -- 時間文字照使用者選的格式（跟真實條同一個 formatter）。
+            -- 變了才寫：全幀率下這串字大多跟上一幀相同，而 SetText 每次都逼
+            -- FontString 在 C 端重排（144fps × 九個分身）。
+            local t = ns.CastbarFormatTime(edb2.timeFormat, self.previewElapsed, CAST_TOTAL)
+            if t ~= self.__lastPreviewTime then
+                self.__lastPreviewTime = t
+                self.timeText:SetText(t)
+            end
         end
-        -- 時間文字照使用者選的格式（跟真實條同一個 formatter）
-        self.timeText:SetText(ns.CastbarFormatTime(edb.timeFormat, self.previewElapsed, CAST_TOTAL))
-    end)
+    end
+    cb:SetScript("OnUpdate", cb.previewFn)
 end
 
 local function Tick()

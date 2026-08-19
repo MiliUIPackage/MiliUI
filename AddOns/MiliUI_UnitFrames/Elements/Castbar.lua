@@ -151,8 +151,17 @@ local function ImportantTint(f, r, g, b)
     if not (f.showImportantCast and Eval and IsSpellImportant) then return r, g, b, false end
     local id = f.castSpellID
     if id == nil then return r, g, b, false end          -- nil 比較合法，值本身不碰
-    local ok, imp = pcall(IsSpellImportant, id)
-    if not (ok and imp ~= nil) then return r, g, b, false end
+    -- 同一次施法查一次就好：這支落在 10Hz 的 ticker 上，而法術在一次施法中不會變。
+    -- displayToken 每次 StartDisplay 都遞增，正好是「這一次施法」的鍵。
+    -- ⚠ 快取的值可能是秘密布林 —— 只能做 nil 比較，不能寫成 `and v or nil`
+    -- （那對「秘密的假」會塌成 nil，而秘密布林根本不能做布林測試）。
+    if f.impToken ~= f.displayToken then
+        f.impToken = f.displayToken
+        local ok, v = pcall(IsSpellImportant, id)
+        if ok and v ~= nil then f.impCached = v else f.impCached = nil end
+    end
+    local imp = f.impCached
+    if imp == nil then return r, g, b, false end
     local nr, ng, nb = EvalTriple(imp, Colors().important, r, g, b)
     return nr, ng, nb, true
 end
@@ -273,6 +282,16 @@ local function EndFade(f, color, label)
     f:Show()
 end
 
+-- 時間文字：變了才寫。SetText 每次都逼 FontString 在 C 端重排，而 %.1f 的解析度下
+-- 這串字約九成的 tick 跟上次一模一樣（10Hz ticker × 團隊七條同時唱＝每秒 70 次）。
+-- ⚠ 只有這裡能這樣做：elapsed 與 castTotal 都做過算術，所以是**明文**字串，
+-- 比較合法。秘密字串（法術名那類）絕對不能拿來比對。
+local function SetTimeText(f, text)
+    if f.__lastTime == text then return end
+    f.__lastTime = text
+    f.timeText:SetText(text)
+end
+
 local function SecretTick(f)
     if not (f.active and f.castSecret) then
         if f.ticker then f.ticker:Cancel(); f.ticker = nil end
@@ -290,7 +309,7 @@ local function SecretTick(f)
             return
         end
     end
-    f.timeText:SetText(FormatTime(f.timeFormat, elapsed, f.castTotal))
+    SetTimeText(f, FormatTime(f.timeFormat, elapsed, f.castTotal))
     ApplySecretColor(f)
 end
 
@@ -311,7 +330,7 @@ local function LegacyOnUpdate(f, dt)
     f.textAccum = (f.textAccum or 1) + dt
     if f.textAccum >= 0.05 then
         f.textAccum = 0
-        f.timeText:SetText(FormatTime(f.timeFormat, now - f.castStart, total))
+        SetTimeText(f, FormatTime(f.timeFormat, now - f.castStart, total))
         -- 斷法冷卻在跑，顏色要跟著重算（秘密模式由 SecretTick 負責）
         if f.showInterruptReady or f.showImportantCast then
             ApplyPlainColor(f, f.castNotInterruptible)
@@ -420,7 +439,10 @@ local function StartDisplay(f, castTbl, chanTbl)
         f.active = true
         ApplySecretColor(f)
         if not f.ticker then
-            f.ticker = C_Timer.NewTicker(0.1, function() SecretTick(f) end)
+            -- 閉包留在 f 上重複使用：ticker 每次施法結束都會 Cancel，不快取的話
+            -- 每次開唱都現配一顆（專案別處已是這個寫法，見 uf.rangeFn / metroTextsFn）
+            f.tickFn = f.tickFn or function() SecretTick(f) end
+            f.ticker = C_Timer.NewTicker(0.1, f.tickFn)
         end
         f:Show()
         return
@@ -450,10 +472,10 @@ local function ResyncTiming(f)
             isChannel, isEmpowered = false, false
             if UnitCastingDuration then dur = UnitCastingDuration(unit) end
         else
-            local chanTbl = { UnitChannelInfo(unit) }
-            if chanTbl[1] == nil then return end
+            local c1, _, _, _, _, _, _, _, c9 = UnitChannelInfo(unit)
+            if c1 == nil then return end
             isChannel = true
-            isEmpowered = chanTbl[9] and true or false
+            isEmpowered = c9 and true or false
             if isEmpowered and UnitEmpoweredChannelDuration then
                 dur = UnitEmpoweredChannelDuration(unit, true)
             elseif UnitChannelDuration then
@@ -465,14 +487,17 @@ local function ResyncTiming(f)
             f.bar:SetTimerDuration(dur, nil, TimerDir(isChannel, isEmpowered))
         end
     else
-        local castName = UnitCastingInfo(unit)
+        -- 一次呼叫、多重回傳落地（原本這裡叫了三次 UnitCastingInfo，
+        -- 而 ResyncTiming 掛在 UNIT_SPELLCAST_DELAYED / CHANNEL_UPDATE 上，
+        -- 被打斷或急速變動時會連續來）
+        local castName, _, _, cs4, cs5 = UnitCastingInfo(unit)
         local s4, s5
         if castName ~= nil then
-            s4, s5 = select(4, UnitCastingInfo(unit)), select(5, UnitCastingInfo(unit))
+            s4, s5 = cs4, cs5
         else
-            local chanTbl = { UnitChannelInfo(unit) }
-            if chanTbl[1] == nil then return end
-            s4, s5 = chanTbl[4], chanTbl[5]
+            local c1, _, _, c4, c5 = UnitChannelInfo(unit)
+            if c1 == nil then return end
+            s4, s5 = c4, c5
         end
         f.castStart = (s4 or 0) / 1000
         f.castEnd   = (s5 or 0) / 1000

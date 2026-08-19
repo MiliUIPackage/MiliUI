@@ -593,7 +593,16 @@ ns.ResourceReevaluate = Reevaluate
 
 ns.Events.Register("UPDATE_SHAPESHIFT_FORM", "classpower", Reevaluate)
 ns.Events.Register("PLAYER_SPECIALIZATION_CHANGED", "classpower", Reevaluate)
-ns.Events.Register("RUNE_POWER_UPDATE", "classpower", Reevaluate)
+-- ⚠ 符文變動只是「哪一格轉好了」——資源種類、上限、專精、天賦全都沒變。
+-- 走 Reevaluate 等於每次符文轉好都重推導一輪候選清單（每個 key 一次 Available()，
+-- 含 pcall(IsSpellKnown)，外加整排純 debug 用的字串）並強制重排整列，
+-- 而這在戰鬥中每秒來好幾次。要顯示的那件事 UpdateRow 的 rune 分支自己就做完了。
+ns.Events.Register("RUNE_POWER_UPDATE", "classpower_rune", function()
+    local uf = ns.frames.player
+    if not (uf and uf.elements.classpower) then return end
+    local edb = uf.db.elements.classpower
+    if edb and edb.enabled ~= false then Update(uf, edb, "power") end
+end)
 -- 天賦換了 → 資源上限與被動都可能變（沒點的天賦 UnitPowerMax 會是 0）
 ns.Events.Register("PLAYER_TALENT_UPDATE", "classpower_talent", Reevaluate)
 ns.Events.Register("TRAIT_CONFIG_UPDATED", "classpower_trait", Reevaluate)

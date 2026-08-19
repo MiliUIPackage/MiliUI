@@ -163,14 +163,15 @@ local function CreateSlot(i)
 end
 
 -- 顯示順序：土/火對調（沿用使用者原本的習慣）
+-- ⚠ 兩張常數表放檔案層級：只有兩種可能的順序，而 Relayout 落在每個
+-- PLAYER_TOTEM_UPDATE 與每次倒數結束上，現配一張表沒有意義。
+-- 回傳的是共用表，呼叫端只讀不寫。
+local ORDER_NORMAL, ORDER_SWAPPED = {}, {}
+for i = 1, NUM_SLOTS do ORDER_NORMAL[i] = i; ORDER_SWAPPED[i] = i end
+ORDER_SWAPPED[1], ORDER_SWAPPED[2] = 2, 1
+
 local function DisplayOrder()
-    local db = GetDB()
-    local order = {}
-    for i = 1, NUM_SLOTS do order[i] = i end
-    if db.swapEarthFire then
-        order[1], order[2] = 2, 1
-    end
-    return order
+    return GetDB().swapEarthFire and ORDER_SWAPPED or ORDER_NORMAL
 end
 
 -- 框固定四格寬、圖騰從左往右緊排：數量增減時位置不會飄

@@ -60,14 +60,18 @@ local function BuildEncounterDisplays(dungeonEncounterID)
     end
 end
 
+-- ⚠ 常數表放檔案層級：下面那個迴圈每次頭像更新都跑，現配 "boss"..i 等於
+-- 每次五顆字串，而 UNIT_PORTRAIT_UPDATE 在戰鬥中會反覆來（同檔下方有註記）
+local BOSS_TOKENS = { "boss1", "boss2", "boss3", "boss4", "boss5" }
+
 -- 這個單位在遭遇戰裡對應到哪顆 displayID（nil = 沒有）
 local function EncounterDisplayFor(uf)
     if not encounterActive or #encounterDisplays == 0 then return nil end
     local idx = uf.bossIndex
     if not idx then
         -- 目標／專注：明文確定是 bossN 才套（UnitIsUnit 可能回秘密值 → 跳過）
-        for i = 1, 5 do
-            local m = UnitIsUnit(uf.unit, "boss" .. i)
+        for i = 1, #BOSS_TOKENS do
+            local m = UnitIsUnit(uf.unit, BOSS_TOKENS[i])
             if not ns.IsSecret(m) and m then idx = i; break end
         end
     end
