@@ -205,7 +205,13 @@ end
 local function ScrimFor(uf, name, target, level)
     uf.oorScrims = uf.oorScrims or {}
     local sc = uf.oorScrims[name]
-    if not sc or sc:GetParent() ~= target then
+    if sc and sc:GetParent() ~= target then
+        -- ⚠ 元件被換成另一顆 frame 了。舊的遮罩**刪不掉**，不先藏起來就會變成
+        -- 一塊永久留在畫面上的黑色方塊（而且不在 uf.oorScrims 裡，之後誰都關不掉）。
+        sc:Hide()
+        sc = nil
+    end
+    if not sc then
         -- CreateFrame 不受戰鬥限制；這是我們自己建的普通框，不是受保護物件
         sc = CreateFrame("Frame", nil, target)
         sc:EnableMouse(false)          -- 不要吃掉滑鼠（右鍵選單、提示都靠它）
@@ -226,11 +232,14 @@ local function ApplyScrim(uf)
     local g = ns.db.global
     local on = (g.oorStyle or "dim") == "dim" and OutOfRange(uf)
     local strength = on and (g.oorDim or 0.55) or nil
-    if uf.appliedScrim == strength then return end
-    uf.appliedScrim = strength
 
     local list = uf.oorScrims
     if not on then
+        -- ⚠ **關閉路徑刻意不吃早退。** 早退是為了省「重複設定同一個強度」的成本，
+        -- 但只要有任何一條路徑讓 appliedScrim 與實際畫面不同步（元件重建、
+        -- 設定重套、我沒想到的第三條），遮罩就會永久卡住而且自己好不了。
+        -- 這裡每次輪詢都關一次：一輪最多幾個 Hide()，換到「一定會恢復」值得。
+        uf.appliedScrim = nil
         if list then for _, sc in pairs(list) do sc:Hide() end end
         -- 走 alpha 的那幾個要還原，否則會卡在淡的狀態
         for name in pairs(SCRIM_ALPHA_ELEMENTS) do
@@ -240,22 +249,27 @@ local function ApplyScrim(uf)
         return
     end
 
+    if uf.appliedScrim == strength then return end
+    uf.appliedScrim = strength
+
     local els = uf.db and uf.db.elements
     local seen = {}
     if els then
         for name, ef in pairs(uf.elements or {}) do
             local edb = els[name]
             if edb and edb.enabled ~= false and not NO_DIM_ELEMENTS[name]
-               and type(edb.level) == "number"
-               and edb.level < OOR_SCRIM_LEVEL and ef.SetPoint then
+               and type(edb.level) == "number" and ef.SetPoint then
                 local fade = SCRIM_ALPHA_ELEMENTS[name]
                 if fade then
                     ef:SetAlpha(fade)        -- 不規則圖示：走 alpha，不蓋方塊
                 else
                     seen[name] = true
-                    local lvl = edb.level + 3
-                    if lvl > OOR_SCRIM_LEVEL then lvl = OOR_SCRIM_LEVEL end
-                    local sc = ScrimFor(uf, name, ef, lvl)
+                    -- ⚠ 不再夾上限。遮罩現在是**元件自己的子物件**，只蓋得到自己那塊，
+                    -- 所以不需要靠上限去保護文字 —— 文字保持清晰是因為它們（10/11）
+                    -- 高於「條」（0–6）與條的遮罩（3–9）。
+                    -- 施法條是刻意例外：它要蓋住底下的文字，所以層級在文字之上（12），
+                    -- 遮罩跟著到 15，蓋的仍然只有施法條自己那塊。
+                    local sc = ScrimFor(uf, name, ef, edb.level + 3)
                     sc.tex:SetAlpha(strength)
                     sc:Show()
                 end

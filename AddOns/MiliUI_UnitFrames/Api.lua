@@ -519,6 +519,23 @@ local function Debug()
                 tostring(ns.Cache.IsOOR(tuf)),
                 tostring(ns.Range.Check(tuf.unit))))
         end
+        -- 超出距離的暗色遮罩現況。回報過「遮罩卡住不消失」，而且是那種
+        -- 「看得到但查不出誰畫的」——把每個框的遮罩逐一列出來就一目了然。
+        -- appliedScrim=nil 代表邏輯上是關的；若此時還有 shown=true，那就是卡住了。
+        for _, unit in ipairs(ns.UNITS) do
+            local uf = ns.frames[unit]
+            local list = uf and uf.oorScrims
+            if list then
+                local parts = {}
+                for name, sc in pairs(list) do
+                    parts[#parts + 1] = ("%s=%s"):format(name, sc:IsShown() and "顯示" or "藏")
+                end
+                if #parts > 0 then
+                    p(("   遮罩[%s] appliedScrim=%s  %s"):format(
+                        unit, tostring(uf.appliedScrim), table.concat(parts, " ")))
+                end
+            end
+        end
         -- melee 解得出來時它才是實際在用的那顆（近戰專精）；nil 有三種可能：
         -- 不是近戰專精、這個職業沒列近戰探針、列了但這個專精沒學到
         local h, hp, m = ns.Range.Probes()

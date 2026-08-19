@@ -73,7 +73,10 @@ end
 -- 專注／寵物／首領的施法條不疊在頭像上，維持 1.0 且不畫亮點。
 local function bigCastbar(own)
     return {
-        enabled = true, x = 0, y = 0, w = 200, h = 52, level = 6,
+        -- ⚠ 層級要**高於文字**（文字預設 10、部分 11）。施法條是暫時蓋住框內容的
+        -- 覆蓋層，唱法時本來就該把底下的名字／血量數字遮住。
+        -- 文字預設從 5 提到 10 之後（見 textDef），6 就變成在文字**底下**了。
+        enabled = true, x = 0, y = 0, w = 200, h = 52, level = 12,
         bg = black(0.8), timeFormat = "elapsedTotal",
         showInterruptState = not own,   -- 自己的施法不套「不可打斷灰」也不畫盾牌
         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
@@ -418,12 +421,12 @@ function DB.BuildDefaults()
                         textDef{ pattern = "[name]", x = 0, y = -4, w = 120, h = 12,
                                  justifyH = "CENTER", justifyV = "TOP" },
                         textDef{ pattern = "[perchp]%", x = 44, y = 6, w = 120, h = 10, size = 11,
-                                 justifyH = "CENTER", justifyV = "MIDDLE", level = 6 },
+                                 justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
                         textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -21, w = 120, h = 10,
-                                 size = 10, justifyH = "CENTER", justifyV = "MIDDLE", level = 6 },
+                                 size = 10, justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
                     },
                     castbar = {
-                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 7, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = true, showImportantCast = true,
+                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 12, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = true, showImportantCast = true,
                         showCastTarget = false,
                         castTarget = { x = 0, y = 18, w = 160, h = 10, size = 9, flags = "OUTLINE",
                                       justifyH = "RIGHT", justifyV = "TOP",
@@ -473,7 +476,7 @@ function DB.BuildDefaults()
                         textDef{ pattern = "[perchp]%", x = 17, y = 14, w = 70, h = 50, size = 8,
                                  justifyH = "RIGHT", justifyV = "MIDDLE" },
                         textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -21, w = 70, h = 10,
-                                 size = 8, justifyH = "CENTER", justifyV = "MIDDLE", level = 6 },
+                                 size = 8, justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
                     },
                     icons = { enabled = true,
                               raidtarget = { enabled = true, x = 27, y = 10, w = 16, h = 16, level = 6 } },
@@ -531,7 +534,7 @@ function DB.BuildDefaults()
                                  justifyH = "CENTER", justifyV = "BOTTOM" },
                     },
                     castbar = {
-                        enabled = true, x = 0, y = 0, w = 119, h = 40, level = 6, timeFormat = "elapsedTotal",
+                        enabled = true, x = 0, y = 0, w = 119, h = 40, level = 12, timeFormat = "elapsedTotal",
                         showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = false, showImportantCast = false,
                         showCastTarget = false,
                         castTarget = { x = 0, y = -2, w = 116, h = 40, size = 9, flags = "OUTLINE",
@@ -603,7 +606,7 @@ function DB.BuildDefaults()
                                  justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
                     },
                     castbar = {
-                        enabled = true, x = 36, y = -22, w = 184, h = 14, level = 6,
+                        enabled = true, x = 36, y = -22, w = 184, h = 14, level = 12,
                         timeFormat = "elapsedTotal", showInterruptState = true,
                         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
                         showSpark = false, barAlpha = 1, showInterruptReady = true, showImportantCast = true,
@@ -702,6 +705,28 @@ end
 ------------------------------------------------------------
 -- [版本號] = 把一份設定檔補到那個版本要做的事。加條目時 ns.DB_VERSION 一起 bump。
 local PROFILE_MIGRATIONS = {
+    -- v10：文字預設從 5 提到 10（v9）之後，施法條的 6／7 就落到文字**底下**了 ——
+    -- 唱法時遮不住底下的名字與血量數字，兩層字疊在一起。施法條本來就是覆蓋層，
+    -- 層級應該高於文字。一律提到 12（文字用 10、少數 11）。
+    -- 順帶把明寫 level = 6 的文字提到 10：那些會被血條的遮罩（level 4 → 遮罩 7）蓋暗。
+    -- 值閘：只動「還等於舊預設」的那些數字，自己調過的一個都不碰。
+    [10] = function(profile)
+        for _, udb in pairs(profile.units or {}) do
+            if type(udb) == "table" and type(udb.elements) == "table" then
+                local cb = udb.elements.castbar
+                if type(cb) == "table" and (cb.level == 6 or cb.level == 7) then
+                    cb.level = 12
+                end
+                local ts = udb.elements.texts
+                if type(ts) == "table" then
+                    for _, t in ipairs(ts) do
+                        if type(t) == "table" and t.level == 6 then t.level = 10 end
+                    end
+                end
+            end
+        end
+    end,
+
     -- v9：首領框補上「超出距離／死亡…」狀態文字（原本只有目標框有）。
     -- ⚠ 一定要配遷移：MergeDefaults 對 texts 這種長度由設定檔決定的陣列**不補洞**
     -- （v7 那次改的），所以光加進 BuildDefaults，既有設定檔一條都不會多出來。
