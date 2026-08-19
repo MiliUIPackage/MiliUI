@@ -214,8 +214,23 @@ local function Init()
         switchConfirm:Show()
     end)
     profDD:SetPoint("TOPLEFT", 12, -68)
-    profDD:SetSelectedValue(ns.profileName)
-    profDD.text:SetText(ProfileLabel(ns.profileName))
+
+    -- 下拉的清單與顯示名在 Init 只算一次就烘死了。即時換設定檔（不重載那條路）
+    -- 或新建／複製之後，顯示名還是舊的、新設定檔也不在清單裡 ⇒ 使用者會以為
+    -- 沒切成功而再按一次。刪除鈕的可用狀態同理。
+    local function SyncProfileWidgets()
+        profDD:SetItems(ProfileItems())
+        profDD:SetSelectedValue(ns.profileName)
+        profDD.text:SetText(ProfileLabel(ns.profileName))
+        if tab.__delBtn then
+            tab.__delBtn:SetEnabled(ns.profileName ~= ns.DB.DEFAULT_PROFILE)
+        end
+    end
+    tab.__syncProfiles = SyncProfileWidgets
+    SyncProfileWidgets()
+    ns.RegisterCallback("ProfileChanged", "shareTabProfile", function()
+        if tab.__syncProfiles then tab.__syncProfiles() end
+    end)
 
     -- 新建／複製：兩者都是「建立後立刻切過去」。新設定檔是從預設值或現有那份複製來的，
     -- 啟用的單位跟目前這份一樣 ⇒ SwitchProfile 會走即時切換，不會重載。
@@ -243,6 +258,7 @@ local function Init()
     local delBtn = W.CreateButton(tab, L["Delete"], "red", 64, 20)
     delBtn:SetPoint("TOPLEFT", 544, -68)
     delBtn:SetEnabled(ns.profileName ~= ns.DB.DEFAULT_PROFILE)
+    tab.__delBtn = delBtn      -- 給 SyncProfileWidgets 用（它建立得比這裡早）
     delBtn:SetScript("OnClick", function()
         if ns.profileName == ns.DB.DEFAULT_PROFILE then
             ProfileError(L["The shared profile can't be deleted"])

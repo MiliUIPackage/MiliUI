@@ -290,7 +290,17 @@ function ns.Events.Register(event, key, fn, unitToken)
             unitScoped[event] = true
             UnitReg(event, unitToken)
         end
-    elseif not externalEvents[event] and not unitScoped[event] then
+    elseif not externalEvents[event] then
+        if unitScoped[event] then
+            -- ⚠ 這個事件已經被別人用 token 註冊過 ⇒ 這個訂閱者只收得到那個 token 的
+            -- 事件，但它要的是全域範圍。以前這裡靜默略過，零錯誤零警告。
+            -- 行為不動（補註冊全域會讓既有的 token 訂閱者收到全場事件），只留麵包屑。
+            -- ⚠ 走 ns.errors 不走 ns.ReportError：後者會叫起錯誤處理器，而這是給
+            -- 開發者看的線索、不是玩家的問題，不該在登入時彈視窗。`/muf debug` 讀得到。
+            tinsert(ns.errors, ("Events.Register: %s 已被單位範圍註冊，key=%s 的全域訂閱收不到其他單位的事件")
+                :format(tostring(event), tostring(key)))
+            return
+        end
         externalEvents[event] = true
         Reg(event)
     end

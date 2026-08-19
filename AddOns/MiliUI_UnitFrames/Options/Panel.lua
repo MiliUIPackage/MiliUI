@@ -13,6 +13,10 @@ local Options = ns.Options
 
 local PANEL_W, PANEL_H = 700, 520
 
+-- 分頁鈕兼拖曳把手時的判定門檻（數值沿用 Options/Minimap.lua 已經調過的那組）
+local TAB_DRAG_THRESHOLD = 12
+local TAB_DRAG_DELAY     = 0.12
+
 local panel
 local tabButtons = {}
 local highlightTab
@@ -139,12 +143,36 @@ local function CreatePanel()
         else
             b:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, 1)
         end
-        b:RegisterForDrag("LeftButton")
-        b:SetScript("OnDragStart", function() panel:StartMoving() end)
-        b:SetScript("OnDragStop", function()
-            panel:StopMovingOrSizing()
-            panel:SetUserPlaced(false)
-            SavePosition()
+        -- 分頁鈕同時是視窗的拖曳把手。⚠ 不能用 RegisterForDrag：滑鼠稍微一抖就被
+        -- 判定成拖曳，那一下 OnClick 就被吃掉（切分頁「點了沒反應」，觸控板最明顯）。
+        -- 照 Options/Minimap.lua 已經驗證過的做法自己量距離＋最短按住時間。
+        b:HookScript("OnMouseDown", function(self, button)
+            if button ~= "LeftButton" then return end
+            local sx, sy = GetCursorPosition()
+            local downAt = GetTime()
+            self.dragging = false
+            self:SetScript("OnUpdate", function()
+                local px, py = GetCursorPosition()
+                if not self.dragging then
+                    if not ((math.abs(px - sx) > TAB_DRAG_THRESHOLD
+                             or math.abs(py - sy) > TAB_DRAG_THRESHOLD)
+                            and GetTime() - downAt >= TAB_DRAG_DELAY) then
+                        return
+                    end
+                    self.dragging = true
+                    panel:StartMoving()
+                end
+            end)
+        end)
+        b:HookScript("OnMouseUp", function(self, button)
+            self:SetScript("OnUpdate", nil)
+            if button ~= "LeftButton" then return end
+            if self.dragging then
+                self.dragging = false
+                panel:StopMovingOrSizing()
+                panel:SetUserPlaced(false)
+                SavePosition()
+            end
         end)
         prev = b
         tabButtons[i] = b

@@ -314,8 +314,12 @@ local function Update(uf, edb, bucket)
         return
     end
 
-    -- 明確選 2D 模式才畫 2D
-    f.model:Hide()
+    -- 明確選 2D 模式才畫 2D。
+    -- ⚠ 清空而不是 Hide：這個檔案上方立過規矩「model 永遠保持 Show，拿不到就
+    -- ClearModel()，絕不 Hide」—— 對隱藏中的 model 呼叫 SetUnit 會落空，之後
+    -- Show 出來就永久空白。清空的 model 不畫任何東西，視覺結果跟 Hide 一樣。
+    pcall(f.model.ClearModel, f.model)
+    f.modelKey = nil
     if pcall(SetPortraitTexture, f.tex2d, unit) then
         f.tex2d:Show()
     else

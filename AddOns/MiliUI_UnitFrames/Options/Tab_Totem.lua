@@ -100,6 +100,11 @@ end)
 ------------------------------------------------------------
 -- 設定搜尋（Options/Search.lua）
 ------------------------------------------------------------
+-- ⚠ 職業判斷要跟 Options/Panel.lua 的分頁清單同一套（兩邊都讀 ns.TOTEM_CLASSES）。
+-- 無條件註冊的話，法師搜「召喚物」會跳到一個根本沒有按鈕的分頁：高亮停在別的鈕上，
+-- 而 ShowOptionsTab 照樣把它叫出來，還順手替一個用不到的職業建出召喚物框、
+-- 鋪四個示範圖示。
+if ns.TOTEM_CLASSES[ns.playerClass] then
 ns.Search.Register("totem", {
     label = L["Summons"],
     enumerate = function(add) add(CONTROLS, L["Summons"]) end,
@@ -108,3 +113,4 @@ ns.Search.Register("totem", {
         ns.Search.Reveal(scroll, content, rows, spec)
     end,
 })
+end

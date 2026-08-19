@@ -419,7 +419,10 @@ local function Debug()
         local tuf0 = ns.frames.target
         local calc = tuf0 and tuf0.hpCalc
         if calc and UnitGetDetailedHealPrediction then
-            UnitGetDetailedHealPrediction("target", nil, calc)
+            -- ⚠ healer 一定要傳 "player"。傳 nil 會讓 GetHealAbsorbs 回垃圾，而這裡
+            -- 灌的是**正在使用中的** hpCalc ⇒ 接下來幾幀的疊加層都會拿到假值。
+            -- 傳 "player" 也才跟實際繪製路徑一致，探針看到的才是真的那份資料。
+            UnitGetDetailedHealPrediction("target", "player", calc)
             Probe("calc.MaxHealth", calc:GetMaximumHealth())
             Probe("calc.CurHealth", calc:GetCurrentHealth())
             Probe("calc.IncHeals", calc:GetIncomingHeals())
@@ -655,7 +658,8 @@ local function Debug()
     -- 玩家的計算器值（明文）＋三條 overlay 的實際 StatusBar 狀態
     local puf = ns.frames.player
     if puf and puf.hpCalc then
-        UnitGetDetailedHealPrediction("player", nil, puf.hpCalc)
+        -- 同上：不要用 nil 灌正在使用中的計算器
+        UnitGetDetailedHealPrediction("player", "player", puf.hpCalc)
         local c = puf.hpCalc
         p(("  玩家 calc：max=%s cur=%s dmgAbsorb=%s healAbsorb=%s incHeals=%s"):format(
             SafeStr(c:GetMaximumHealth()), SafeStr(c:GetCurrentHealth()),

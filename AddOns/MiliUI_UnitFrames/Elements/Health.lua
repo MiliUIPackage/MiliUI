@@ -39,7 +39,13 @@ end
 
 -- 疊在血條邊緣的延伸條（治療預估/吸收盾共用）
 local function EnsureOverlayBar(f, key, level)
-    if f[key] then return f[key] end
+    -- ⚠ 層級每次都要重套，不能只在建立當下設。edb.level 改了（匯入別人的設定檔、
+    -- 或未來的遷移）而這幾條還鎖在舊值的話，血條會升到護盾條上面把它蓋掉。
+    -- absorbStrip 與 borderFrame 都是每次 build 重設的，只有這幾條原本是例外。
+    if f[key] then
+        f[key]:SetFrameLevel(level)
+        return f[key]
+    end
     local bar = CreateFrame("StatusBar", nil, f)
     bar:SetFrameLevel(level)
     -- ⚠ 新建的 StatusBar 預設是「顯示中、min0 max1 value1」＝整條滿格。

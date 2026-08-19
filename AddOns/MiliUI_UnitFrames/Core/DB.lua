@@ -814,9 +814,13 @@ function DB.Migrate(db)
         end
     end
 
-    -- 設定檔層：每一份都補到目前版本
+    -- 設定檔層：每一份都補到目前版本。
+    -- ⚠ 起點取 max(目前版本, 曾經看過的最高版本)。跑過新版又退版、之後再升回來時，
+    -- 那幾步遷移已經在這份 SV 上生效過了 —— 再跑一次會把使用者在新版刻意調回去的
+    -- 值又改掉（值閘只認「還等於舊預設」，認不出「使用者剛剛才改回舊預設的樣子」）。
+    local seen = math.max(from, db.schemaVersionSeen or 0)
     for _, profile in pairs(db.profiles or {}) do
-        DB.MigrateProfile(profile, from)
+        DB.MigrateProfile(profile, seen)
     end
 end
 
@@ -852,12 +856,21 @@ function DB.Init()
     local db = MiliUI_UnitFrames_DB
     db.schemaVersion = db.schemaVersion or ns.DB_VERSION
     if db.schemaVersion > ns.DB_VERSION then
-        -- SV 來自較新版（或開發期版本號被重置）：對齊到目前版本，之後的遷移才跑得到
+        -- SV 來自較新版（或開發期版本號被重置）：對齊到目前版本，之後的遷移才跑得到。
+        -- ⚠ 但要記住「這份 SV 其實看過第幾版」。只把版本壓回來的話，日後升回新版時
+        -- 那幾步遷移會**再跑一次** —— 而值閘型的遷移（例如把某個舊預設值換成新的）
+        -- 會把使用者在新版刻意改回去的設定又改掉。這跟 Share.Import 那次踩的是
+        -- 同一種「值閘在錯誤的時機重跑」。
+        db.schemaVersionSeen = math.max(db.schemaVersionSeen or 0, db.schemaVersion)
         db.schemaVersion = ns.DB_VERSION
     end
     if db.schemaVersion < ns.DB_VERSION then
         DB.Migrate(db)
         db.schemaVersion = ns.DB_VERSION
+    end
+    -- 走完之後把「看過的最高版本」推上去，供下次降版／升版比對
+    if (db.schemaVersionSeen or 0) < db.schemaVersion then
+        db.schemaVersionSeen = db.schemaVersion
     end
 
     db.profiles = db.profiles or {}
