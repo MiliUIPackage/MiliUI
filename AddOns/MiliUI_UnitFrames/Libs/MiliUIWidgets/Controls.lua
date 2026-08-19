@@ -41,6 +41,33 @@ local HEADER_H   = 24
 local HEADER_GAP = 10      -- 小節上方留白
 local CONTROL_W  = 230     -- 滑桿 / 下拉 標準寬
 
+------------------------------------------------------------
+-- 連續型控件的 apply 合併
+--
+-- 滑桿拖曳與數字框滾輪會在**每一格**觸發 ctx.apply()，而 apply 通常是「整個單位
+-- 重建」等級的工作。最貴的一條是光環：容器的簽章一變就得重建，而暴雪的 frame
+-- 刪不掉（舊的只是被 Hide、永久留著）⇒ 把某個滑桿從 5 拖到 600 就是上百顆孤兒
+-- 容器，面板當場卡住。
+-- 值本身照舊立刻寫進 DB（ctx.set 不延後），只把「套用到畫面」合併成一次。
+------------------------------------------------------------
+local APPLY_DELAY = 0.05
+local pendingCtx, applyScheduled
+
+local function FlushApply()
+    applyScheduled = false
+    local ctx = pendingCtx
+    pendingCtx = nil
+    if ctx and ctx.apply then ctx.apply() end
+end
+
+-- 連續調整用；一次性的控件（toggle / dropdown / color）維持立刻套用
+local function ApplySoon(ctx)
+    pendingCtx = ctx
+    if applyScheduled then return end
+    applyScheduled = true
+    C_Timer.After(APPLY_DELAY, FlushApply)
+end
+
 function Controls.Resolve(tbl, spec)
     if spec.sub then tbl = tbl[spec.sub] end
     if spec.sub2 then tbl = tbl[spec.sub2] end
@@ -115,7 +142,7 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
                 nil,
                 function(v)
                     ctx.set(spec, scale == 1 and v or (v / scale))
-                    ctx.apply()
+                    ApplySoon(ctx)
                 end)
             s:SetPoint("LEFT", parent, "TOPLEFT", cx, y - ROW_H_TALL / 2)
             tinsert(refreshers, function()
@@ -128,7 +155,7 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
             MakeLabel(parent, spec.label, x0, y, ROW_H)
             local nb = W.CreateNumberBox(parent, 52, spec.step or 1, function(v)
                 ctx.set(spec, v)
-                ctx.apply()
+                ApplySoon(ctx)
             end)
             nb:SetPoint("LEFT", parent, "TOPLEFT", cx, y - ROW_H / 2)
             tinsert(refreshers, function()
@@ -153,7 +180,7 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
                 px = px + tag:GetStringWidth() + 4
                 local nb = W.CreateNumberBox(parent, 46, field.step or 1, function(v)
                     ctx.set(sub, v)
-                    ctx.apply()
+                    ApplySoon(ctx)
                 end)
                 nb:SetPoint("LEFT", parent, "TOPLEFT", px, y - ROW_H_TALL / 2)
                 px = px + 46 + 10

@@ -355,9 +355,13 @@ end
 ------------------------------------------------------------
 -- 容器生命週期
 ------------------------------------------------------------
+-- ⚠ x / y **刻意不在簽章裡**：位置是用 container:SetPoint 套的，可以就地重下。
+-- 簽章不符就得重建整顆容器，而暴雪的 frame 刪不掉（舊的只是被 Hide、永久留著）——
+-- 把位置放進來等於「挪一格就永久多一顆容器 ＋ maxCount 顆 AuraButton」。
+-- 其餘欄位是在 AddAuraGroup / initializeFrame 當下烘死的，沒有 setter，只能重建。
 local function BuildSignature(edb)
     return table.concat({
-        tostring(edb.x), tostring(edb.y), tostring(edb.w), tostring(edb.h),
+        tostring(edb.w), tostring(edb.h),
         tostring(edb.maxCount), tostring(edb.perRow), tostring(edb.growth),
         tostring(edb.spacing), tostring(edb.showStack), tostring(edb.stackSize),
         tostring(edb.durationText), tostring(edb.durationThreshold),
@@ -414,6 +418,15 @@ ns.Events.Register("PLAYER_REGEN_ENABLED", "auras_bounce_replay", function()
     end
 end)
 
+-- 容器定位：錨點角依生長方向（往上長要用 BOTTOM 邊釘原點）。
+-- 建立時與「簽章相符但位置變了」時共用同一支，兩邊算法不會走鐘。
+local function AnchorContainer(container, uf, edb)
+    local g = GROWTH[edb.growth or "LRTB"] or GROWTH.LRTB
+    local point = (g.growUp and "BOTTOM" or "TOP") .. (g.growLeft and "RIGHT" or "LEFT")
+    pcall(container.ClearAllPoints, container)
+    pcall(container.SetPoint, container, point, uf, "TOPLEFT", edb.x or 0, edb.y or 0)
+end
+
 local function CreateContainer(uf, elementName, edb, filter, cand, style)
     -- 容器掛中介 holder（不直接依附會被 Hide 的東西；也墊高層級蓋過血條）
     local holder = uf.auraHost
@@ -435,9 +448,7 @@ local function CreateContainer(uf, elementName, edb, filter, cand, style)
     local container = CreateFrame("AuraContainer", nil, holder, "CustomAuraContainerTemplate")
     container:SetSize(1, 1)
     container:SetFrameLevel(holder:GetFrameLevel() + 1)
-    -- 錨點角依生長方向：往上長要用 BOTTOM 邊釘原點
-    local anchorPoint = (g.growUp and "BOTTOM" or "TOP") .. (g.growLeft and "RIGHT" or "LEFT")
-    container:SetPoint(anchorPoint, uf, "TOPLEFT", edb.x or 0, edb.y or 0)
+    AnchorContainer(container, uf, edb)
     -- 建立順序：SetUnit 在 AddAuraGroup 之前、SetEnabled 最後。這是在這台機器上實跑過的。
     -- （EUI AuraKit 的「unit last」是配合它自己的分階段建構器，照搬會壞。）
     container:SetUnit(uf.unit)
@@ -475,8 +486,12 @@ local function CreateContainer(uf, elementName, edb, filter, cand, style)
             -- **安全端**觸發的，戰鬥中換目標就會在戰鬥中跑到這裡；對 intrinsic 下 Hide()
             -- 會被判成「Blizzard UI 專屬動作」跳封鎖視窗（而且 pcall 攔不住，那不是
             -- Lua error）。Bounce 有戰鬥閘，會改成設髒旗標、脫戰再補彈。
-            for k, e in pairs(uf.auraContainers or {}) do
-                Bounce(e.container, uf.unit .. "/" .. k)
+            -- ⚠ 這個 OnShow 落在**每次換目標**上：既不現配空表，也不現串字串。
+            -- e.tag 在建容器時就算好了（見 Bounce 上面的說明），直接用。
+            if uf.auraContainers then
+                for _, e in pairs(uf.auraContainers) do
+                    Bounce(e.container, e.tag)
+                end
             end
         end)
     end
@@ -514,6 +529,9 @@ local function MakeElement(elementName, baseFilter)
         local filter, cand = BuildFilter(baseFilter, edb)
 
         if entry and entry.signature == signature then
+            -- 位置不在簽章裡，就地重下（見 BuildSignature 上面的說明）。
+            -- ApplySettings 本身有戰鬥閘，所以這裡不會在戰鬥中對 intrinsic 動手。
+            AnchorContainer(entry.container, uf, edb)
             entry.container:Show()
             return
         end
@@ -541,6 +559,11 @@ local function MakeElement(elementName, baseFilter)
     local function Repoke(uf)
         local entry = uf.auraContainers and uf.auraContainers[elementName]
         if not entry then return end
+        -- ⚠ 下面四個事件是**直接掛的**，繞過 ns.Refresh 的 enabled 閘門。
+        -- 少了這道判斷，取消勾選之後只要換一次目標，Bounce 的 Show() 就會把容器
+        -- 放回來，而且從此每次換目標都復活 ⇒ 這個元件再也關不掉。
+        local edb = uf.db and uf.db.elements and uf.db.elements[elementName]
+        if not edb or edb.enabled == false then return end
         Bounce(entry.container, entry.tag)
     end
 
