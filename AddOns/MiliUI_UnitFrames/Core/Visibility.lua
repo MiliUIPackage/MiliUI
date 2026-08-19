@@ -156,6 +156,14 @@ end
 -- 不特別處理（level 本來就是「誰蓋誰」的唯一依據）。
 local OOR_SCRIM_LEVEL = 9
 
+-- 不適合用方形遮罩的元件：改走整體 alpha。
+-- 觀察按鈕是不規則圖示（放大鏡），蓋一塊方形暗色會看出明顯的直角邊界，很不自然。
+-- 這類元件本來就不是「條」，用 alpha 淡一點反而是對的表達 —— 它不承載數值，
+-- 淡掉不會像血條那樣有「顏色被背景污染」的問題。
+local SCRIM_ALPHA_ELEMENTS = {
+    inspect = 0.8,
+}
+
 local function OutOfRange(uf)
     local fdb = uf.db and uf.db.frame
     return fdb and fdb.fadeOutOfRange and ns.Range.IsOut(uf.unit) and true or false
@@ -226,6 +234,11 @@ local function ApplyScrim(uf)
     local list = uf.oorScrims
     if not on then
         if list then for i = 1, #list do list[i]:Hide() end end
+        -- 走 alpha 的那幾個要還原，否則會卡在淡的狀態
+        for name in pairs(SCRIM_ALPHA_ELEMENTS) do
+            local ef = uf.elements and uf.elements[name]
+            if ef and ef.SetAlpha then ef:SetAlpha(1) end
+        end
         return
     end
 
@@ -236,12 +249,17 @@ local function ApplyScrim(uf)
             local edb = els[name]
             if edb and edb.enabled ~= false and type(edb.level) == "number"
                and edb.level < OOR_SCRIM_LEVEL and ef.SetPoint then
-                n = n + 1
-                local lvl = edb.level + 3
-                if lvl > OOR_SCRIM_LEVEL then lvl = OOR_SCRIM_LEVEL end
-                local sc = ScrimFor(uf, n, ef, lvl)
-                sc.tex:SetAlpha(strength)
-                sc:Show()
+                local fade = SCRIM_ALPHA_ELEMENTS[name]
+                if fade then
+                    ef:SetAlpha(fade)        -- 不規則圖示：走 alpha，不蓋方塊
+                else
+                    n = n + 1
+                    local lvl = edb.level + 3
+                    if lvl > OOR_SCRIM_LEVEL then lvl = OOR_SCRIM_LEVEL end
+                    local sc = ScrimFor(uf, n, ef, lvl)
+                    sc.tex:SetAlpha(strength)
+                    sc:Show()
+                end
             end
         end
     end
