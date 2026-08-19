@@ -42,7 +42,9 @@ local function PlainReaction(unit)
 end
 
 -- pcall 抽百分比（rawpct 可能是秘密值，* 0.01 需要逃逸）
-local _scale = (CurveConstants and CurveConstants.ScaleTo100) or true
+-- 第三個參數是 curve 物件（health 是第 3、power 是第 4 位）。備援不能是 `or true` ——
+-- 那會把布林塞進 curve 的位置。拿不到就傳 nil，讓引擎回未經曲線的百分比。
+local _scale = CurveConstants and CurveConstants.ScaleTo100
 local function PlainFrac(rawpct, old)
     local ok, frac = pcall(Hundredth, rawpct)
     if ok and type(frac) == "number" then return frac end
@@ -67,7 +69,11 @@ end
 
 local function UpdatePowerFields(uf)
     local cache, unit = uf.cache, uf.unit
-    local ptype = Desecret(UnitPowerType(unit), 0)
+    -- ⚠ 抽不出明文時要留 nil，**不要**退成 0 —— 0 就是 MANA，受限的怒氣／能量怪會被
+    -- 當成法力：UnitPowerPercent 會照法力去算（[percmp] 顯示錯的資源），顏色也變法力藍。
+    -- 傳 nil 進 UnitPowerPercent 是讓引擎自己解析單位當前的資源；讀 cache.powertype
+    -- 的三處（Colors.power / ClassPower / Tags）本來就都寫成 `or 0`，沒有回歸。
+    local ptype = Desecret(UnitPowerType(unit))
     cache.powertype = ptype
     cache.fracmp = PlainFrac(UnitPowerPercent(unit, ptype, false, _scale), cache.fracmp)
     cache.percmp = cache.fracmp * 100

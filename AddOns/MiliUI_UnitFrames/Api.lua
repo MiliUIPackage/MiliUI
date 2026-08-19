@@ -412,7 +412,7 @@ local function Debug()
         Probe("UnitIsPlayer", UnitIsPlayer("target"))
         Probe("UnitHealth", UnitHealth("target"))
         Probe("HealthPercent", UnitHealthPercent("target", false,
-            (CurveConstants and CurveConstants.ScaleTo100) or true))
+            CurveConstants and CurveConstants.ScaleTo100))
         Probe("UnitPowerType", UnitPowerType("target"))
         Probe("CastingInfo[1]", (UnitCastingInfo("target")))
         -- 治療預估計算器（粉紫背景之謎：看 overlay 到底拿到什麼值）

@@ -54,8 +54,18 @@ methods.classdark = function(uf, edb, value, choice, alphaKey)
     return r * 0.3, g * 0.3, b * 0.3, a
 end
 
+-- ⚠ cache.reaction 在受限單位上可能抽不出明文（nil）。以前這種情況直接落到 WHITE，
+-- 於是副本裡的敵人血條變純白、看不出敵我 —— 而 cache.hostile / cache.attackable
+-- 就在同一支 UpdateFlagFields 裡算好了，沒被拿來用。
+-- 退階順序：明文 reaction → 敵對(2) → 可攻擊但不敵對＝中立(4) → 才是 WHITE。
+-- 旗標本身也抽不出來時兩個都是 false，結果跟改動前一樣，不會憑空塗成友好色。
 methods.reaction = function(uf, edb, value, choice, alphaKey)
-    local c = G().reaction[uf.cache.reaction or 0] or WHITE
+    local cache = uf.cache
+    local c = G().reaction[cache.reaction or 0]
+    if not c then
+        local pal = G().reaction
+        c = (cache.hostile and pal[2]) or (cache.attackable and pal[4]) or WHITE
+    end
     return c.r, c.g, c.b, alphaOf(edb, alphaKey, 1)
 end
 methods.reactiondark = function(uf, edb, value, choice, alphaKey)

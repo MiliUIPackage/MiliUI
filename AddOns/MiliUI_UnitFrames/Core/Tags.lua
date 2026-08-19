@@ -43,21 +43,21 @@ local INFO_TAGS = {
 --   kind = "string"  名字/種族/職業/生物類型 —— 12.1 對受限身分單位回秘密字串，
 --                    但 SetText / 串接 / string.format 都吃秘密字串，直接放行即可；
 --                    進 cache 被 Desecret 成空字串才是「副本裡看不到敵人名字」的原因
+-- ⚠ 這個 local 必須宣告在 SECRET_TAGS **之前**：下面的 closure 抓的是 upvalue，
+-- 放後面會抓到 nil 全域（跟 _CSU 同一個坑）。曲線物件是常數，每次 render 重查沒有意義。
+local PERCENT_CURVE = CurveConstants and CurveConstants.ScaleTo100
+
 local SECRET_TAGS = {
     curhp = { kind = "number", fn = function(u) return UnitHealth(u) end },
     maxhp = { kind = "number", fn = function(u) return UnitHealthMax(u) end },
     curmp = { kind = "number", fn = function(u) return UnitPower(u) end },
     maxmp = { kind = "number", fn = function(u) return UnitPowerMax(u) end },
     perchp = { kind = "percent",
-               fn = function(u)
-                   local _scale = (CurveConstants and CurveConstants.ScaleTo100) or true
-                   return UnitHealthPercent(u, false, _scale)
-               end },
+               fn = function(u) return UnitHealthPercent(u, false, PERCENT_CURVE) end },
+    -- powerType 傳 nil＝讓引擎解析該單位當前的資源。以前傳 UnitPowerType(u)，那個值
+    -- 在受限單位上是秘密值，等於把秘密值塞進列舉參數的位置。
     percmp = { kind = "percent",
-               fn = function(u)
-                   local _scale = (CurveConstants and CurveConstants.ScaleTo100) or true
-                   return UnitPowerPercent(u, UnitPowerType(u), false, _scale)
-               end },
+               fn = function(u) return UnitPowerPercent(u, nil, false, PERCENT_CURVE) end },
     -- 吸收盾／治療吸收數量：走全域 API（EUI 同法，不用計算器）。
     -- 無盾時用 C_StringUtil.TruncateWhenZero 讓它輸出空字串——這是官方的
     -- 「秘密數字為 0 就不顯示」管道，插件不必讀值（kind=string 直接串接）
