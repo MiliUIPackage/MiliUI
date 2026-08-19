@@ -371,26 +371,40 @@ local function UpdateCastTarget(f)
     fs:SetText(name)
 end
 
-local function StartDisplay(f, castTbl, chanTbl)
+-- ⚠ 一次呼叫、多重回傳落地，**不要配表**。這支不只吃開唱事件，還從 Update 的
+-- unitchanged 桶進來 ⇒ 每次換目標、每個有施法條的框都跑一次，而原本
+-- `{ UnitCastingInfo(unit) }` ＋ `{ UnitChannelInfo(unit) }` 是每次兩張表。
+-- 引導那組改成「不是在施法才查」：舊寫法無論如何都會呼叫兩支 API，而 chanTbl
+-- 的欄位本來就只在 not isCast 時才讀 —— 行為一樣，少一次呼叫。
+-- （原本的 castTbl/chanTbl 參數沒有任何呼叫端在用，一併拿掉。）
+local function StartDisplay(f)
     local unit = f.unit
-    castTbl = castTbl or { UnitCastingInfo(unit) }
-    chanTbl = chanTbl or { UnitChannelInfo(unit) }
-    local isCast    = castTbl[1] ~= nil
-    local isChannel = (not isCast) and (chanTbl[1] ~= nil)
+    -- UnitCastingInfo: name, text, texture, startMS, endMS, isTrade, castID, notInt, spellID
+    local cName, _, cTex, cS4, cS5, _, cCastID, cNotInt, cSpellID = UnitCastingInfo(unit)
+    local isCast = cName ~= nil
+
+    -- UnitChannelInfo: name, text, texture, startMS, endMS, isTrade, notInt, spellID, isEmpowered
+    -- （少了 castID 那格，所以欄位位置跟上面差一位）
+    local hName, hTex, hS4, hS5, hNotInt, hSpellID, hEmp
+    if not isCast then
+        local n, _, tex, s4, s5, _, ni, sid, emp = UnitChannelInfo(unit)
+        hName, hTex, hS4, hS5, hNotInt, hSpellID, hEmp = n, tex, s4, s5, ni, sid, emp
+    end
+    local isChannel = (not isCast) and (hName ~= nil)
     if not (isCast or isChannel) then HideBar(f); return end
 
     -- 明文旗標選欄位；值本身可能是秘密，只賦值不分支
     local name, texture, notInt, s4, s5, isEmpowered, spellID
     if isCast then
-        name, texture, notInt = castTbl[1], castTbl[3], castTbl[8]
-        s4, s5 = castTbl[4], castTbl[5]
-        spellID = castTbl[9]        -- UnitCastingInfo 第 9 個回傳
+        name, texture, notInt = cName, cTex, cNotInt
+        s4, s5 = cS4, cS5
+        spellID = cSpellID
         isEmpowered = false
     else
-        name, texture, notInt = chanTbl[1], chanTbl[3], chanTbl[7]
-        s4, s5 = chanTbl[4], chanTbl[5]
-        spellID = chanTbl[8]        -- UnitChannelInfo 第 8 個（少了 castID 那格）
-        isEmpowered = chanTbl[9] and true or false
+        name, texture, notInt = hName, hTex, hNotInt
+        s4, s5 = hS4, hS5
+        spellID = hSpellID
+        isEmpowered = hEmp and true or false
     end
 
     f.displayToken = f.displayToken + 1
@@ -398,7 +412,7 @@ local function StartDisplay(f, castTbl, chanTbl)
     f.castEmpowered = isEmpowered      -- 賦能引導自己一個底色（同 Platynator）
     f.castSpellID = spellID            -- 可能是秘密值：只轉交，永不讀
     f.castState = isChannel and 2 or 1        -- 1=施法 2=引導（FAILED 只在 1 才理會）
-    f.castGUID = isCast and castTbl[7] or nil -- UnitCastingInfo 第 7 個回傳是 castID
+    f.castGUID = isCast and cCastID or nil     -- UnitCastingInfo 第 7 個回傳是 castID
     f.castNotInterruptible = notInt
     f:SetAlpha(f.baseAlpha or 1)              -- 上一次淡出可能留下低 alpha
     f.icon:SetTexture(texture)
