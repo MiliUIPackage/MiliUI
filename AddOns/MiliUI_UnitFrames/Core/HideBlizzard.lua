@@ -100,12 +100,22 @@ local BLIZZARD_FRAMES = {
     pet          = function() return PetFrame end,
 }
 
+-- ⚠⚠ 「設定裡有啟用」不等於「我們的框真的生出來了」。
+-- SpawnUnitFrame 在把 uf 寫進 ns.frames 之前還有幾十行，任何一步拋錯都會被
+-- Units 的 xpcall 吃掉、然後這裡照樣把暴雪的框藏起來 ⇒ 那一格整個空白。
+-- 而這支模組是**單向的**（reparent + 解事件，沒有還原路徑），玩家連 /reload
+-- 都救不回來（錯誤是決定性的話會再失敗一次）。
+-- 所以失敗方向必須朝「退回暴雪原生框」而不是「什麼都沒有」。
+local function Spawned(unitKey)
+    return ns.frames[unitKey] ~= nil
+end
+
 function ns.HideBlizzardFrames()
     if InCombatLockdown() then return end   -- 登入時不會在戰鬥，保險
 
     for unitKey, getter in pairs(BLIZZARD_FRAMES) do
         local udb = ns.GetUnitDB(unitKey)
-        if udb and udb.enabled then
+        if udb and udb.enabled and Spawned(unitKey) then
             HandleFrame(getter())
             if unitKey == "player" then
                 for i = 1, #ALT_POWER_BARS do Unreg(_G[ALT_POWER_BARS[i]]) end
@@ -116,30 +126,31 @@ function ns.HideBlizzardFrames()
     -- 首領框：容器可以 reparent（Edit Mode 會想把它救回去，靠 hook 補掛），
     -- 但個別 BossNTargetFrame 是容器排版出來的，reparent 會把尺寸弄壞 → 只解事件
     local bossDB = ns.GetUnitDB("boss")
-    if bossDB and bossDB.enabled then
+    if bossDB and bossDB.enabled and Spawned("boss1") then
         HandleFrame(BossTargetFrameContainer)
         for i = 1, (_G.MAX_BOSS_FRAMES or 5) do
             HandleFrame("Boss" .. i .. "TargetFrame", true)
         end
     end
 
-    -- 施法條
-    local playerDB = ns.GetUnitDB("player")
-    if playerDB and playerDB.enabled and playerDB.elements.castbar
-       and playerDB.elements.castbar.enabled then
+    -- 施法條：閘看**元件實際建出來沒有**（uf.elements.castbar），不是只看設定值 ——
+    -- 元件 build 失敗同樣會被 BuildElements 的 xpcall 吃掉
+    local playerUF = ns.frames.player
+    if playerUF and playerUF.elements.castbar then
         Unreg(PlayerCastingBarFrame or CastingBarFrame)
     end
-    local petDB = ns.GetUnitDB("pet")
-    if petDB and petDB.enabled and petDB.elements.castbar
-       and petDB.elements.castbar.enabled then
+    local petUF = ns.frames.pet
+    if petUF and petUF.elements.castbar then
         Unreg(PetCastingBarFrame)
     end
 
     -- 暴雪圖騰列：**Edit Mode 自己管的系統框**，只解事件。
     -- 之前對它 Hide + ClearAllPoints + SetPoint，登入後 Edit Mode 跑版面時就會在
     -- 被染過的框上 RegisterEvent → 就是那個封鎖視窗的來源。
+    -- ⚠ 圖騰框是 "Loaded" 事件才建的，所以這整支要排在 ns.Fire("Loaded") 之後跑，
+    -- 否則 ns.totemFrame 永遠是 nil、這一段就變成永遠不執行。
     local totemDB = ns.db.units.totem
-    if totemDB and totemDB.enabled then
+    if totemDB and totemDB.enabled and ns.totemFrame then
         HandleFrame(TotemFrame, true)
         for i = 1, 4 do Unreg(_G["TotemFrameTotem" .. i]) end
         if TotemFrame then pcall(TotemFrame.SetAlpha, TotemFrame, 0) end

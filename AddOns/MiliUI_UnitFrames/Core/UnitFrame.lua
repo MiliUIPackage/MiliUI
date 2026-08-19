@@ -77,7 +77,10 @@ function ns.Refresh(uf, bucket, force)
     end
 
     if not uf.isPreview then          -- 預覽孿生的 cache 由 Preview 模組維護（全假資料）
-        ns.Cache.Update(uf, bucket)
+        -- ⚠ 這裡以前是裸呼叫，是整條 Refresh 上唯一沒有隔離的一步。Cache.Update 會碰
+        -- 受限單位的 Unit API（那些在某些情境會直接拋錯），一拋就等於這個框當次的
+        -- **所有**元件都不更新 —— 比「某個欄位讀不到」嚴重得多。
+        xpcall(ns.Cache.Update, ns.ReportError, uf, bucket)
     end
     if bucket == "unitchanged" then
         -- 只有這個桶跑所有元件：框現在看的是另一個單位，每個元件都要重接

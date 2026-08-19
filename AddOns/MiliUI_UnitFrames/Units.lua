@@ -99,13 +99,16 @@ loader:SetScript("OnEvent", function()
     -- LSM 可能比我們晚載入，這裡補登記一次（自己的材質不靠它，這只是分享出去）
     if ns.Media.RegisterSharedMedia then ns.Media.RegisterSharedMedia() end
 
-    ns.HideBlizzardFrames()
-
     -- 顯示條件／淡出的初次套用。PLAYER_ENTERING_WORLD 也會做同一件事，但那是
     -- 「登入時它一定排在 PLAYER_LOGIN 後面」的假設——明寫一次就不用賭載入順序
     ns.Visibility.Refresh()
 
     ns.Fire("Loaded")     -- 圖騰等獨立模組在 DB 就緒後初始化
+
+    -- ⚠ 一定要排在 spawn 迴圈與 Fire("Loaded") **之後**：HideBlizzard 的每道閘都要
+    -- 看「我們的框真的生出來了沒有」，而圖騰框是 "Loaded" 才建的。提前跑會讓
+    -- 圖騰那一段永遠不執行，也會讓 spawn 失敗的單位被藏掉暴雪框而空一格。
+    ns.HideBlizzardFrames()
 
     -- tot / focustarget 的輪詢保險：掛在兩個框的顯示狀態上
     HookIndirectWatch()

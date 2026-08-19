@@ -302,12 +302,15 @@ end
 local metroEntries = {}
 local metroTicker
 
+-- ⚠ 逐項隔離：這是裸迴圈 dispatch，一支拋錯會讓該次 tick 剩下的項目全部不跑。
+-- 症狀是「某個框的文字壞掉之後，所有框的超出距離淡出跟著凍結」，而且每 0.1 秒
+-- 重演一次。UnitFrame 的三處 dispatch 已經是這樣防的，這裡是同一類的最後一個缺口。
 local function MetroTick()
     for _, entry in pairs(metroEntries) do
         entry.elapsed = entry.elapsed + 0.1
         if entry.elapsed >= entry.interval then
             entry.elapsed = 0
-            entry.fn()
+            xpcall(entry.fn, ns.ReportError)
         end
     end
 end
