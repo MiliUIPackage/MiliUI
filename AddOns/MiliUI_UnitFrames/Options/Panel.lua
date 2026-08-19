@@ -151,9 +151,6 @@ local function CreatePanel()
     end
     highlightTab = W.CreateButtonGroup(tabButtons, ShowTab)
 
-    -- 搜尋框：跟標題同一列的另一端（標題在左、搜尋在右），不佔面板內部空間
-    if ns.Search then ns.Search.CreateBox(panel) end
-
     panel:SetScript("OnHide", function()
         ns.LogClick("panel OnHide")
         W.CloseDropdowns()
@@ -165,6 +162,12 @@ local function CreatePanel()
         ns.Preview.Open()
         SetCombatLocked(InCombatLockdown())   -- 戰鬥中開窗也要鎖
     end)
+
+    -- 搜尋框：跟標題同一列的另一端（標題在左、搜尋在右），不佔面板內部空間。
+    -- ⚠ 一定要排在上面兩個 SetScript **之後**：CreateBox 內部用 HookScript 掛
+    -- panel 的 OnHide 做關窗清理，先掛後 SetScript 會把它整個蓋掉 ⇒ 帶著搜尋結果
+    -- 關窗，下次開窗那串字與結果清單還在。
+    if ns.Search then ns.Search.CreateBox(panel) end
 
     ------------------------------------------------------------
     -- 戰鬥遮罩：事件掛在 panel 自己身上（隱藏的框照樣收得到事件）

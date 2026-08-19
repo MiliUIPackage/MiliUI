@@ -54,6 +54,11 @@ function Share.Decode(text)
     local ok3, data = pcall(C_EncodingUtil.DeserializeCBOR, cbor)
     if not ok3 or type(data) ~= "table" then return nil, L["Deserialization failed"] end
     if type(data.schemaVersion) ~= "number" then return nil, L["Missing version field"] end
+    -- ⚠ 結構也要驗，不能只看版本號。這兩張表會直接變成一份設定檔，缺了或型別不對
+    -- 的話錯誤要等到下次開設定面板／登入才炸，那時已經 ReloadUI 過、沒有回頭路。
+    if type(data.global) ~= "table" or type(data.units) ~= "table" then
+        return nil, L["Deserialization failed"]
+    end
     if data.schemaVersion > ns.DB_VERSION then
         return nil, L["String comes from a newer version, please update the addon first"]
     end
@@ -67,11 +72,24 @@ end
 -- 只補這一份：帳號層的 schemaVersion 不能降，降了會讓遷移在所有設定檔上重跑，
 -- 而 v4 那步會把別人刻意選的「觀察者」圖示改成「放大鏡」——別份設定檔不該被這次匯入影響。
 -- （拆分細節見 Core/DB.lua 的 PROFILE_MIGRATIONS）
+-- 只留預設值裡真的存在的單位鍵。多出來的鍵 MergeDefaults 清不掉（它只補 nil），
+-- 之後 Preview 與 spawn 會拿著這個假單位去跑，每次開面板重演一次。
+-- ⚠ 只過濾**頂層單位鍵**，不做深層的「不在預設就刪」——像 classpower.resources
+-- 那種開放式鍵值表（預設是空表）會被整個清空。
+local function KnownUnits(units)
+    local ref = ns.DB.BuildDefaults().units
+    local out = {}
+    for k, v in pairs(units) do
+        if ref[k] ~= nil and type(v) == "table" then out[k] = v end
+    end
+    return out
+end
+
 function Share.Import(data)
     local db = MiliUI_UnitFrames_DB
     local name = db.profileKeys and db.profileKeys[ns.DB.CharKey()]
     if not (name and db.profiles) then return end
-    local profile = { global = data.global, units = data.units }
+    local profile = { global = data.global, units = KnownUnits(data.units) }
     ns.DB.MigrateProfile(profile, data.schemaVersion)
     db.profiles[name] = profile
     ReloadUI()

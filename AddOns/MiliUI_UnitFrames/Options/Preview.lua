@@ -289,15 +289,28 @@ restorer:SetScript("OnEvent", function(self)
     Preview.RestoreReal()
 end)
 
-function Preview.Open(user)
-    users[user or "options"] = true
-    if isOpen then return end
-    if InCombatLockdown() then
-        print("|cff4DD2FF" .. L["[MiliUI UF]"] .. "|r " ..
-              L["Can't open the preview during combat; the real frames stay visible."])
-        isOpen = true      -- 面板照開，只是不動真實框
-        return
+-- 戰鬥中開面板時補開一次用的 watcher。跟 restorer 一樣是模組層級的單一顆
+-- （frame 無法銷毀，不要在函式裡現配）。
+local opener = CreateFrame("Frame")
+
+-- 一個 unitKey 的孿生：建立 ＋ 顯示。
+-- ⚠ 逐一隔離的對象就是它 —— Open 是面板 OnShow 呼叫的，任何一個 unitKey 拋錯
+-- （例如匯入字串帶進來的假單位）都會讓真實框已經藏起來、孿生只建到一半，
+-- 而且每次開面板重演一次。
+local function OpenTwinsFor(unitKey)
+    if not twins[unitKey] then
+        if unitKey == "boss" then
+            twins[unitKey] = { SpawnTwin(unitKey, 1), SpawnTwin(unitKey, 2), SpawnTwin(unitKey, 3) }
+        else
+            twins[unitKey] = { SpawnTwin(unitKey) }
+        end
     end
+    for _, uf in ipairs(twins[unitKey]) do
+        if uf.db.enabled then uf:Show() end
+    end
+end
+
+local function DoOpen()
     isOpen = true
     suppressedReal = true
 
@@ -310,16 +323,7 @@ function Preview.Open(user)
     -- 孿生：每個 unitKey 一個；boss 顯示 3 個示意
     for unitKey in pairs(ns.db.units) do
         if unitKey ~= "totem" then
-            if not twins[unitKey] then
-                if unitKey == "boss" then
-                    twins[unitKey] = { SpawnTwin(unitKey, 1), SpawnTwin(unitKey, 2), SpawnTwin(unitKey, 3) }
-                else
-                    twins[unitKey] = { SpawnTwin(unitKey) }
-                end
-            end
-            for _, uf in ipairs(twins[unitKey]) do
-                if uf.db.enabled then uf:Show() end
-            end
+            xpcall(OpenTwinsFor, ns.ReportError, unitKey)
         end
     end
 
@@ -329,11 +333,34 @@ function Preview.Open(user)
     Tick()
 end
 
+-- 脫戰補開：戰鬥中開面板時一顆孿生都沒建，而 Rebuild 遇到 twins[k] == nil 一律
+-- no-op ⇒ 打完架、遮罩解開了，選誰都還是沒有預覽，要關窗再開一次才正常。
+opener:SetScript("OnEvent", function(self)
+    self:UnregisterAllEvents()
+    if not next(users) then return end        -- 面板已經關了
+    if not isOpen then return end             -- 已經被正常開過
+    DoOpen()
+end)
+
+function Preview.Open(user)
+    users[user or "options"] = true
+    if isOpen then return end
+    if InCombatLockdown() then
+        print("|cff4DD2FF" .. L["[MiliUI UF]"] .. "|r " ..
+              L["Can't open the preview during combat; the real frames stay visible."])
+        isOpen = true      -- 面板照開，只是不動真實框
+        opener:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
+    DoOpen()
+end
+
 function Preview.Close(user)
     users[user or "options"] = nil
     if next(users) then return end     -- 還有人在用（例如編輯模式沒退）
     if not isOpen then return end
     isOpen = false
+    opener:UnregisterAllEvents()       -- 戰鬥中開、還沒脫戰就關窗：取消補開
     Preview.selectedKey = nil
     EachTwin(function(uf) uf:SetAlpha(1) end)   -- 還原變淡的孿生，下次開窗才不會留著
     if ticker then ticker:Cancel(); ticker = nil end
@@ -356,6 +383,15 @@ function Preview.RestoreReal()
     for unit, uf in pairs(ns.frames) do
         local udb = ns.GetUnitDB(ns.UNIT_KEYS[unit])
         if udb and udb.enabled then
+            -- ⚠ 預覽期間真實框是 Hide 的，而對**隱藏中的** PlayerModel 呼叫 SetUnit
+            -- 會落空（模型沒真的載上去），但回傳仍可能是成功 ⇒ modelKey 被 latch 住。
+            -- 放回來之後就「key 相符 → 早退 → 永遠不再 SetUnit」＝ 3D 頭像永久空白，
+            -- 要換一次目標或等 PORTRAITS_UPDATED 才會好。
+            -- 這裡清掉 key，強迫下面那次 unitchanged 重載一次模型。
+            -- （在這裡清而不是在 Portrait 加可見性守衛：那個元件的載入時序很敏感，
+            --   守衛一旦誤判就是頭像永遠不畫，比現在的症狀更糟。）
+            local p = uf.elements and uf.elements.portrait
+            if p then p.modelKey = nil end
             if unit == "player" then
                 uf:Show()
             else
