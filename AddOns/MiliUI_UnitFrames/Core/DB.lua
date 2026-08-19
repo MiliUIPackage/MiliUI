@@ -110,7 +110,15 @@ function DB.BuildDefaults()
             numberFormat = "auto",       -- auto | wan | km | raw（見 Tags.NumberMode）
             percentDecimals = 0,
             previewBossDisplayID = 131474,   -- 預覽敵對單位的示範模型（薩拉塔斯 12.x 形態；117121 = TWW 形態）
-            oorAlpha    = 0.45,          -- 超出距離時整個框的透明度
+            -- 超出距離的表現方式：
+            --   dim   疊一層暗色（預設）。alpha 保持 1 ⇒ 背景不會透出來，顏色可預測，
+            --         而且遮罩層級 9 夾在「非文字元件最高 8」與「文字最低 10」之間，
+            --         條變暗、數字保持清晰。
+            --   fade  整個框降 alpha（舊行為）。缺點是血條會跟背景混色 ——
+            --         紅條疊在草地上變濁褐，亮背景上甚至會顯得更亮，語意剛好相反。
+            oorStyle    = "dim",
+            oorDim      = 0.55,          -- dim：暗色層的不透明度
+            oorAlpha    = 0.45,          -- fade：超出距離時整個框的透明度
             oocAlpha    = 0.5,           -- 脫戰時整個框的透明度（哪些框要淡出是每單位設的）
             -- 滑鼠移過的高亮邊框（開關在每單位的 frame.highlight）
             highlightColor = white(0.7),
@@ -684,6 +692,21 @@ end
 ------------------------------------------------------------
 -- [版本號] = 把一份設定檔補到那個版本要做的事。加條目時 ns.DB_VERSION 一起 bump。
 local PROFILE_MIGRATIONS = {
+    -- v7：超出距離的預設表現從「整個框降 alpha」改成「疊一層暗色」。
+    --
+    -- oorStyle 是全新的鍵，MergeDefaults 本來就會把新預設補給所有設定檔 ——
+    -- 所以這條遷移**不是**為了保留舊樣子，而是為了認出「刻意調過的人」：
+    -- 動過 oorAlpha 就代表他對淡出的強度有意見、是有意識選過的，那份留在 fade。
+    -- 沒動過的（絕大多數）直接吃新預設，那正是這次要修的畫面。
+    [7] = function(profile)
+        local g = profile.global
+        if type(g) ~= "table" then return end
+        if g.oorStyle ~= nil then return end          -- 已經有值就別碰
+        if type(g.oorAlpha) == "number" and math.abs(g.oorAlpha - 0.45) > 0.001 then
+            g.oorStyle = "fade"
+        end
+    end,
+
     -- v3：觀察按鈕的圖示改用自製圖，樣式代號跟著換名。
     -- 暴雪的 atlas 在 Midnight 被拿掉了（微型選單重畫），留著舊值只會退成備援圖示。
     [3] = function(profile)

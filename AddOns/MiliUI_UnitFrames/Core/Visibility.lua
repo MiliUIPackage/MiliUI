@@ -148,12 +148,47 @@ end
 ------------------------------------------------------------
 -- 兩個來源取最低。用 uf.appliedAlpha 記住現值，一樣就不重設——SetAlpha 本身便宜，
 -- 但它會跟預覽的高亮 alpha 打架，能不叫就不叫。
+-- 超出距離的暗色遮罩層級。
+-- 非文字元件的預設 level 最高是 8、文字最低是 10 ⇒ 放 9 剛好把「條與頭像」蓋住、
+-- 「數字」留在上面。超出距離時最需要的資訊恰好是「他還剩多少血、要不要移動」，
+-- 那行數字不該跟著糊掉。
+-- ⚠ 使用者若把某條文字的 level 設到 9 以下，那條就會一起變暗 —— 這是可預期的，
+-- 不特別處理（level 本來就是「誰蓋誰」的唯一依據）。
+local OOR_SCRIM_LEVEL = 9
+
+local function OutOfRange(uf)
+    local fdb = uf.db and uf.db.frame
+    return fdb and fdb.fadeOutOfRange and ns.Range.IsOut(uf.unit) and true or false
+end
+
+-- 暗色層：不降 alpha，改在上面疊一層半透明黑。
+-- 降 alpha 會讓背景透出來 —— 紅血條疊在草地上變成濁褐色，而且在亮背景上甚至會
+-- 顯得更亮，語意剛好相反。疊暗色則是不管背景是什麼都一定變暗，顏色可預測，
+-- 也完全不碰 vertex color（職業色可能是秘密值，碰不得）。
+local function Scrim(uf)
+    local sc = uf.oorScrim
+    if not sc then
+        -- CreateFrame 本身不受戰鬥限制；這是我們自己建的普通框，不是受保護物件
+        sc = CreateFrame("Frame", nil, uf)
+        sc:SetAllPoints(uf)
+        sc:SetFrameLevel(OOR_SCRIM_LEVEL)
+        sc:EnableMouse(false)          -- 不要吃掉滑鼠（右鍵選單、提示都靠它）
+        sc.tex = sc:CreateTexture(nil, "OVERLAY")
+        sc.tex:SetAllPoints(sc)
+        sc.tex:SetColorTexture(0, 0, 0, 1)
+        sc:Hide()
+        uf.oorScrim = sc
+    end
+    return sc
+end
+
 function V.Alpha(uf)
     local fdb = uf.db and uf.db.frame
     if not fdb then return 1 end
     local g = ns.db.global
     local a = 1
-    if fdb.fadeOutOfRange and ns.Range.IsOut(uf.unit) then
+    -- 只有 fade 模式才降整框 alpha；dim 模式改走 Scrim
+    if (g.oorStyle or "dim") == "fade" and OutOfRange(uf) then
         local oor = g.oorAlpha or 0.45
         if oor < a then a = oor end
     end
@@ -164,8 +199,26 @@ function V.Alpha(uf)
     return a
 end
 
+-- 暗色層的開關。跟 alpha 一樣，狀態沒變就不要重設（這支落在 0.2 秒的輪詢上）
+local function ApplyScrim(uf)
+    local g = ns.db.global
+    local on = (g.oorStyle or "dim") == "dim" and OutOfRange(uf)
+    if not on then
+        if uf.oorScrim then uf.oorScrim:Hide() end
+        uf.appliedScrim = nil
+        return
+    end
+    local strength = g.oorDim or 0.55
+    if uf.appliedScrim == strength then return end
+    uf.appliedScrim = strength
+    local sc = Scrim(uf)
+    sc.tex:SetAlpha(strength)
+    sc:Show()
+end
+
 function V.ApplyAlpha(uf)
     if not uf or uf.isPreview then return end   -- 預覽的 alpha 由 Preview.Highlight 管
+    ApplyScrim(uf)
     local a = V.Alpha(uf)
     if a == uf.appliedAlpha then return end
     uf.appliedAlpha = a

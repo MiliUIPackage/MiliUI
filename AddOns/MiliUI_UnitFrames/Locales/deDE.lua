@@ -451,3 +451,8 @@ L["Switch profile? This applies right away, no reload needed."] = "Profil wechse
 -- 設定搜尋（Options/Search.lua）
 L["Search settings"] = "Einstellungen suchen"
 L["+%d more"] = "+%d weitere"
+L["Out of range look"] = "Darstellung außer Reichweite"
+L["Dim"] = "Abdunkeln"
+L["Fade out"] = "Ausblenden"
+L["Dim strength"] = "Stärke der Abdunklung"
+L["\"Dim\" lays a dark layer over the bars and keeps the numbers readable. \"Fade\" makes the whole frame transparent, so the background shows through and the bar color gets muddy."] = "„Abdunkeln“ legt eine dunkle Schicht über die Leisten, die Zahlen bleiben lesbar. „Ausblenden“ macht das ganze Fenster transparent – der Hintergrund scheint durch und die Leistenfarbe wird trüb."

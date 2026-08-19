@@ -449,3 +449,8 @@ L["Switch profile? This applies right away, no reload needed."] = "要切換設�
 -- 設定搜尋（Options/Search.lua）
 L["Search settings"] = "搜尋設定"
 L["+%d more"] = "還有 %d 筆"
+L["Out of range look"] = "超出距離的表現"
+L["Dim"] = "變暗"
+L["Fade out"] = "淡出"
+L["Dim strength"] = "變暗強度"
+L["\"Dim\" lays a dark layer over the bars and keeps the numbers readable. \"Fade\" makes the whole frame transparent, so the background shows through and the bar color gets muddy."] = "「變暗」是在條上疊一層暗色，數字保持清晰。「淡出」是整個框變透明，背景會透出來、血條顏色被染濁。"

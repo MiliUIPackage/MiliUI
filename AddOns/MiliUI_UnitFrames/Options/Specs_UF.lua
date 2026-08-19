@@ -14,6 +14,14 @@ local L = ns.WidgetsEnv.L
 ns.Specs = {}
 local Specs = ns.Specs
 
+-- 超出距離的表現方式（見 Core/Visibility.lua）
+Specs.OOR_STYLE_ITEMS = {
+    { text = L["Dim"],  value = "dim" },
+    -- ⚠ key 不能用 "Fade"：那個已經是「淡出」小節的標題（名詞形），
+    -- 重複定義會靜默蓋掉其中一個，而且五個語系的名詞／動詞形本來就不同
+    { text = L["Fade out"], value = "fade" },
+}
+
 Specs.COLOR_METHOD_ITEMS = {
     { text = L["Class color"],        value = "class" },
     { text = L["Class color (dark)"],  value = "classdark" },

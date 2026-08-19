@@ -451,3 +451,8 @@ L["Switch profile? This applies right away, no reload needed."] = "Cambiare prof
 -- 設定搜尋（Options/Search.lua）
 L["Search settings"] = "Cerca impostazioni"
 L["+%d more"] = "+%d altri"
+L["Out of range look"] = "Aspetto fuori portata"
+L["Dim"] = "Scurisci"
+L["Fade out"] = "Dissolvi"
+L["Dim strength"] = "Intensità dello scurimento"
+L["\"Dim\" lays a dark layer over the bars and keeps the numbers readable. \"Fade\" makes the whole frame transparent, so the background shows through and the bar color gets muddy."] = "“Scurisci” stende uno strato scuro sulle barre e mantiene i numeri leggibili. “Dissolvi” rende trasparente l’intera cornice: lo sfondo traspare e il colore della barra diventa torbido."

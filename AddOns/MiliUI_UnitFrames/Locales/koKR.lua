@@ -451,3 +451,8 @@ L["Switch profile? This applies right away, no reload needed."] = "프로필을 
 -- 設定搜尋（Options/Search.lua）
 L["Search settings"] = "설정 검색"
 L["+%d more"] = "외 %d개"
+L["Out of range look"] = "거리 밖 표현"
+L["Dim"] = "어둡게"
+L["Fade out"] = "투명하게"
+L["Dim strength"] = "어둡기"
+L["\"Dim\" lays a dark layer over the bars and keeps the numbers readable. \"Fade\" makes the whole frame transparent, so the background shows through and the bar color gets muddy."] = "‘어둡게’는 바 위에 어두운 층을 덮어 숫자를 읽을 수 있게 유지합니다. ‘투명하게’는 프레임 전체가 투명해져 배경이 비치고 바 색이 탁해집니다."

@@ -451,3 +451,8 @@ L["Switch profile? This applies right away, no reload needed."] = "¿Cambiar de 
 -- 設定搜尋（Options/Search.lua）
 L["Search settings"] = "Buscar ajustes"
 L["+%d more"] = "+%d más"
+L["Out of range look"] = "Aspecto fuera de alcance"
+L["Dim"] = "Oscurecer"
+L["Fade out"] = "Desvanecer"
+L["Dim strength"] = "Intensidad del oscurecido"
+L["\"Dim\" lays a dark layer over the bars and keeps the numbers readable. \"Fade\" makes the whole frame transparent, so the background shows through and the bar color gets muddy."] = "«Oscurecer» coloca una capa oscura sobre las barras y mantiene los números legibles. «Desvanecer» vuelve transparente todo el marco: el fondo se transparenta y el color de la barra se enturbia."

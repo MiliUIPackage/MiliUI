@@ -6,6 +6,7 @@ local _, ns = ...
 local L = ns.L
 
 local W, Controls = ns.W, ns.Controls
+local Specs = ns.Specs        -- 下拉選項清單（Options/Specs_UF.lua，TOC 排在本檔之前）
 
 local tab, scroll, content, rows
 local refreshers
@@ -49,6 +50,9 @@ local CONTROLS = {
     { type = "text",   label = L["Uses the engine's built-in interpolation (native in 12.x, works with secret values), so bars slide instead of jumping."] },
 
     { type = "header", label = L["Fade"] },
+    { type = "dropdown", key = "oorStyle", label = L["Out of range look"], items = Specs.OOR_STYLE_ITEMS },
+    { type = "text",   label = L["\"Dim\" lays a dark layer over the bars and keeps the numbers readable. \"Fade\" makes the whole frame transparent, so the background shows through and the bar color gets muddy."] },
+    { type = "slider", key = "oorDim", label = L["Dim strength"], min = 0.2, max = 0.9, step = 0.05 },
     { type = "slider", key = "oorAlpha", label = L["Out of range transparency"], min = 0.1, max = 1, step = 0.05 },
     { type = "slider", key = "oocAlpha", label = L["Out of combat transparency"], min = 0.1, max = 1, step = 0.05 },
     { type = "text",   label = L["Which frames fade, and on which of the two conditions, is set per unit under Units > Frame. With both on, whichever is more transparent wins."] },

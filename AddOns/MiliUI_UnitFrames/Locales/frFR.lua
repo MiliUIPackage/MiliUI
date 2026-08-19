@@ -451,3 +451,8 @@ L["Switch profile? This applies right away, no reload needed."] = "Changer de pr
 -- 設定搜尋（Options/Search.lua）
 L["Search settings"] = "Rechercher un réglage"
 L["+%d more"] = "+%d autres"
+L["Out of range look"] = "Apparence hors de portée"
+L["Dim"] = "Assombrir"
+L["Fade out"] = "Estomper"
+L["Dim strength"] = "Intensité de l’assombrissement"
+L["\"Dim\" lays a dark layer over the bars and keeps the numbers readable. \"Fade\" makes the whole frame transparent, so the background shows through and the bar color gets muddy."] = "« Assombrir » pose un calque sombre sur les barres et garde les chiffres lisibles. « Estomper » rend toute la fenêtre transparente : l’arrière-plan transparaît et la couleur de la barre devient terne."

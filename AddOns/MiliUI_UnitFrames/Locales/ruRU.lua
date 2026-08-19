@@ -451,3 +451,8 @@ L["Switch profile? This applies right away, no reload needed."] = "Сменит�
 -- 設定搜尋（Options/Search.lua）
 L["Search settings"] = "Поиск настроек"
 L["+%d more"] = "ещё %d"
+L["Out of range look"] = "Вид вне досягаемости"
+L["Dim"] = "Затемнение"
+L["Fade out"] = "Прозрачность"
+L["Dim strength"] = "Сила затемнения"
+L["\"Dim\" lays a dark layer over the bars and keeps the numbers readable. \"Fade\" makes the whole frame transparent, so the background shows through and the bar color gets muddy."] = "«Затемнение» накладывает тёмный слой на полосы, цифры остаются читаемыми. «Прозрачность» делает всю рамку прозрачной: фон просвечивает, а цвет полосы мутнеет."
