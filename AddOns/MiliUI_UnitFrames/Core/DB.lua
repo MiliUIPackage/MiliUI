@@ -54,7 +54,12 @@ local function textDef(o)
     o.flags    = o.flags or "OUTLINE"
     o.justifyH = o.justifyH or "LEFT"
     o.justifyV = o.justifyV or "TOP"
-    o.level    = o.level or 5
+    -- ⚠ 預設 10，不是 5。文字必須高於所有「條」：
+    --   * 條的 level 是 0–6，5 夾在中間 ⇒ 施法條(6) 本來就會蓋住預設層級的文字
+    --   * 超出距離的暗色遮罩最高到 9，低於它的文字會跟著被蓋暗（使用者要的是
+    --     「條變暗、數字保持清晰」）
+    -- 10 之上還留 11 給需要再壓一層的（既有的幾條文字就是用 11）。
+    o.level    = o.level or 10
     o.color    = o.color or white(1)
     return o
 end
@@ -591,6 +596,11 @@ function DB.BuildDefaults()
                                  justifyH = "RIGHT", justifyV = "MIDDLE" },
                         textDef{ pattern = "[percmp]%", x = 36, y = -14, w = 184, h = 10, size = 10,
                                  justifyH = "RIGHT", justifyV = "MIDDLE" },
+                        -- 狀態（超出距離／已標記／離線／死亡／靈魂）。置中壓在血條上，
+                        -- 跟目標框同一套寫法 —— key 也是同一條，9 個語系早就有翻譯了
+                        textDef{ pattern = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"],
+                                 x = 36, y = 0, w = 184, h = 14, size = 13,
+                                 justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
                     },
                     castbar = {
                         enabled = true, x = 36, y = -22, w = 184, h = 14, level = 6,
@@ -692,6 +702,41 @@ end
 ------------------------------------------------------------
 -- [版本號] = 把一份設定檔補到那個版本要做的事。加條目時 ns.DB_VERSION 一起 bump。
 local PROFILE_MIGRATIONS = {
+    -- v9：首領框補上「超出距離／死亡…」狀態文字（原本只有目標框有）。
+    -- ⚠ 一定要配遷移：MergeDefaults 對 texts 這種長度由設定檔決定的陣列**不補洞**
+    -- （v7 那次改的），所以光加進 BuildDefaults，既有設定檔一條都不會多出來。
+    -- 值閘用「有沒有任何一條的 pattern 含 gray_if_oor」判斷，不比對在地化字串
+    -- —— 玩家換過客戶端語系的話，比字面值會判錯。
+    [9] = function(profile)
+        -- (a) 所有單位：文字的預設層級 5 → 10。
+        -- 5 會被超出距離的暗色遮罩（最高 9）蓋住，也會被施法條（6）蓋住。
+        -- 值閘：只動「還等於舊預設 5」的，自己調過層級的一條都不碰。
+        for _, udb in pairs(profile.units or {}) do
+            local ts = type(udb) == "table" and type(udb.elements) == "table"
+                       and udb.elements.texts
+            if type(ts) == "table" then
+                for _, t in ipairs(ts) do
+                    if type(t) == "table" and t.level == 5 then t.level = 10 end
+                end
+            end
+        end
+
+        -- (b) 首領框補上狀態文字
+        local boss = profile.units and profile.units.boss
+        local texts = boss and boss.elements and boss.elements.texts
+        if type(texts) ~= "table" then return end
+        for _, t in ipairs(texts) do
+            if type(t) == "table" and type(t.pattern) == "string"
+               and t.pattern:find("gray_if_oor", 1, true) then
+                return                      -- 已經有了（或使用者自己加過）
+            end
+        end
+        texts[#texts + 1] = textDef{
+            pattern = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"],
+            x = 36, y = 0, w = 184, h = 14, size = 13,
+            justifyH = "CENTER", justifyV = "MIDDLE", level = 10 }
+    end,
+
     -- v8：暗色層 0.55 太深，預設調成 0.35。
     -- ⚠ oorDim 在 v7 就已經被 MergeDefaults 補進每一份設定檔了 ⇒ 光改 BuildDefaults
     -- 對已經載入過的人完全沒用（MergeDefaults 只補 nil）。所以要配這條。

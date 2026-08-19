@@ -164,6 +164,14 @@ local SCRIM_ALPHA_ELEMENTS = {
     inspect = 0.8,
 }
 
+-- **完全不處理**的元件（既不遮也不淡）。
+-- 3D 頭像是使用者定案要保持原樣：模型是這個框最有辨識度的東西，蓋暗或淡掉都會
+-- 讓「他是誰」變難認，而超出距離要傳達的是「打不到」不是「看不清」。
+-- 血量數字同理，不過那個靠層級就分開了（文字 10/11 高於遮罩上限 9）。
+local NO_DIM_ELEMENTS = {
+    portrait = true,
+}
+
 local function OutOfRange(uf)
     local fdb = uf.db and uf.db.frame
     return fdb and fdb.fadeOutOfRange and ns.Range.IsOut(uf.unit) and true or false
@@ -247,7 +255,8 @@ local function ApplyScrim(uf)
     if els then
         for name, ef in pairs(uf.elements or {}) do
             local edb = els[name]
-            if edb and edb.enabled ~= false and type(edb.level) == "number"
+            if edb and edb.enabled ~= false and not NO_DIM_ELEMENTS[name]
+               and type(edb.level) == "number"
                and edb.level < OOR_SCRIM_LEVEL and ef.SetPoint then
                 local fade = SCRIM_ALPHA_ELEMENTS[name]
                 if fade then
