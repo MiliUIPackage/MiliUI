@@ -121,6 +121,20 @@ ns.Events.Register("ENCOUNTER_START", "portrait_ej", function(encounterID)
     Snapshot("ENCOUNTER_START")
     RefreshEncounterFrames()
 end)
+-- ⚠⚠ **ENCOUNTER_START 那一刻 bossN 的 unit token 還不存在。**
+-- 所以那次 RefreshEncounterFrames 跑到目標框時，UnitIsUnit("target","boss1") 是 false
+-- ⇒ 解不出 displayID ⇒ 掉回一般路徑被身分閘擋下 ⇒ 空白，而且不會再有第二次機會。
+-- boss1-5 框沒事，是因為它們有 uf.bossIndex，根本不需要問 UnitIsUnit。
+--
+-- INSTANCE_ENCOUNTER_ENGAGE_UNIT 才是「boss token 可用了」的訊號，但 Core/Events.lua
+-- 的 SPECIAL 只拿它刷 boss1-5，目標／專注不在內 —— 補這一條就是補那次重試。
+--
+-- （以前會好是**巧合**：identity 還沒拆桶之前，UNIT_FLAGS／UNIT_FACTION／
+--   GROUP_ROSTER_UPDATE 這些事件都會順手全量重畫目標框，開戰後撞上一次就出現了。
+--   拆桶把那些事件收斂成只重畫該重畫的東西，那個意外的重試也就跟著消失。
+--   ——「以前是好的，哪次優化改掉的」指的就是這裡。）
+ns.Events.Register("INSTANCE_ENCOUNTER_ENGAGE_UNIT", "portrait_ej_engage", RefreshEncounterFrames)
+
 ns.Events.Register("ENCOUNTER_END", "portrait_ej_end", function()
     -- 先拍照再清：清完就沒東西可看了
     Snapshot("ENCOUNTER_END（清除前）")
