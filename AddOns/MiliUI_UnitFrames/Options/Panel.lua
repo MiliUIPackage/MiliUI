@@ -17,6 +17,17 @@ local PANEL_W, PANEL_H = 700, 520
 local TAB_DRAG_THRESHOLD = 12
 local TAB_DRAG_DELAY     = 0.12
 
+-- 分頁鈕：74 是**下限**不是固定寬。
+-- ⚠ 按鈕的 label 只錨 CENTER、`SetWordWrap(false)`，太長不會被裁掉而是**往兩側溢出**
+-- （見 Widgets.lua 的 CreateButton 註解）。固定 74 的話德文的 "Beschwörungen"
+-- 每邊要溢出 5px，而分頁間距只有 3px ⇒ 直接啃到隔壁分頁的文字。
+-- 中日韓的標籤都短，仍然吃 74 的下限，外觀完全不變。
+-- 自適應寬度的先例：Options/Tab_Unit.lua 的元件 chip。
+local TAB_MIN_W = 74
+local TAB_H     = 22
+local TAB_GAP   = 3
+local TAB_PAD   = 20        -- 文字左右各留 10
+
 local panel
 local tabButtons = {}
 local highlightTab
@@ -172,11 +183,18 @@ local function CreatePanel()
 
     -- 分頁鈕：上緣外側，一路排開，兼拖曳把手
     local prev
+    local stripW = 0
     for i, tab in ipairs(VisibleTabs()) do
-        local b = W.CreateButton(panel, tab.label, "accent-hover", 74, 22)
+        local b = W.CreateButton(panel, tab.label, "accent-hover", TAB_MIN_W, TAB_H)
         b.id = tab.id
+        -- 依實際文字寬撐開（下限 TAB_MIN_W）。要在 SetText 之後量，CreateButton 已經設好了
+        local fs = b:GetFontString()
+        local w = TAB_MIN_W
+        if fs then w = math.max(TAB_MIN_W, math.ceil(fs:GetStringWidth()) + TAB_PAD) end
+        P.Size(b, w, TAB_H)
+        stripW = stripW + w + (i > 1 and TAB_GAP or 0)
         if prev then
-            b:SetPoint("BOTTOMLEFT", prev, "BOTTOMRIGHT", 3, 0)
+            b:SetPoint("BOTTOMLEFT", prev, "BOTTOMRIGHT", TAB_GAP, 0)
         else
             b:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, 1)
         end
@@ -215,6 +233,11 @@ local function CreatePanel()
         tabButtons[i] = b
     end
     highlightTab = W.CreateButtonGroup(tabButtons, ShowTab)
+
+    -- 交給 Search.CreateBox 決定搜尋框放哪。用**累計出來的**寬度而不是回讀幾何：
+    -- 這裡每個值都是自己設下去的，沒有必要多一次 GetWidth。
+    Options.lastTabButton = prev
+    Options.tabRoom = PANEL_W - stripW - 8      -- 8 = 分頁列與搜尋框之間的間距
 
     panel:SetScript("OnHide", function()
         ns.LogClick("panel OnHide")

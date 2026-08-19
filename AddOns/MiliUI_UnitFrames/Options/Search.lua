@@ -27,6 +27,9 @@ local Search = ns.Search
 local MAX_RESULTS = 8
 local ROW_H = 22
 
+-- 搜尋框窄於這個就不值得放在分頁列了，退回標題列（見 Search.CreateBox）
+local MIN_BOX_W = 120
+
 local sources = {}          -- [tabId] = { label, enumerate, jump }
 
 function Search.Register(tabId, def)
@@ -231,8 +234,32 @@ function Search.CreateBox(panel)
     if box then return box end
 
     box = W.CreateEditBox(panel, 168, 20)
-    -- 面板上緣外側那條，跟標題同一列（標題在左、搜尋在右）
-    box:SetPoint("BOTTOMRIGHT", panel, "TOPRIGHT", 0, 26)
+
+    -- 位置：優先放在**分頁列右側**，填滿分頁用剩的寬度。
+    --
+    -- 搜尋做的事跟分頁鈕是同一類（換到某個設定所在的地方），放同一列語意才對得上；
+    -- 原本掛在標題列最右端，跟標題之間拉出一段很長的空白，而分頁列右側那 200 多 px
+    -- 反而空著。順帶：結果清單錨在搜尋框下方，移下來之後剛好從面板上緣開始，
+    -- 不會再蓋住分頁鈕。
+    --
+    -- 寬度取自 Panel.lua **累計**出來的剩餘空間，所以會自己隨語系伸縮
+    -- （中日韓約 241px、義俄約 206px、德文最窄約 190px，都比原本固定的 168 寬）。
+    --
+    -- ⚠ 只下**一個**錨點再明給寬度，不要用「左右各一個錨點」自動撐開 ——
+    -- LEFT 定的是垂直中線、RIGHT/TOPRIGHT 定的是另一個高度，兩個一起下會互相打架。
+    local lastTab = ns.Options.lastTabButton
+    local room = ns.Options.tabRoom or 0
+    if lastTab and room >= MIN_BOX_W then
+        -- ⚠ 走 P.Size 不要用 SetWidth：PixelPerfect 在 UI 縮放變動時會拿
+        -- frame.width 重算（PixelPerfect.lua 的 re-scale），只 SetWidth 的話
+        -- 那個欄位還停在 168，縮放一改搜尋框就彈回原寬。
+        ns.P.Size(box, room, 20)
+        box:SetPoint("LEFT", lastTab, "RIGHT", 8, 0)   -- 對齊分頁鈕的垂直中線
+    else
+        -- 空間不夠（日後多了分頁、或某個語系翻得特別長）→ 退回原本的標題列位置。
+        -- 最壞情況是「回到改動前的樣子」，不會變成一個擠扁的殘框。
+        box:SetPoint("BOTTOMRIGHT", panel, "TOPRIGHT", 0, 26)
+    end
 
     local hint = box:CreateFontString(nil, "OVERLAY")
     hint:SetFontObject(W.fontSmall)
