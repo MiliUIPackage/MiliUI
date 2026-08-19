@@ -49,6 +49,43 @@ local function VisibleTabs()
     return list
 end
 
+------------------------------------------------------------
+-- 分頁骨架（各分頁的 Init 本來逐字重複這幾段）
+--
+-- 拆成兩支是照實情走的：「一般／資源／召喚物」三頁是單純的表單，骨架完全一樣；
+-- 而 Tab_Unit（左欄選單位＋上方 chip＋逐元件面板）與 Tab_Share（多個獨立區塊、
+-- 沒有單一捲軸）只共用最外層那個蓋滿面板的 frame。硬把五頁塞進同一支會綁死版面。
+------------------------------------------------------------
+function Options.NewTabFrame()
+    local tab = CreateFrame("Frame", nil, Options.panel)
+    tab:SetAllPoints(Options.panel)
+    tab:Hide()
+    return tab
+end
+
+-- 單純表單分頁：frame ＋ 標題 ＋ 捲軸。回傳 tab, scroll
+function Options.MakeFormTab(titleText)
+    local tab = Options.NewTabFrame()
+    local title = W.CreateSectionTitle(tab, titleText, 660)
+    title:SetPoint("TOPLEFT", 16, -14)
+    local holder = CreateFrame("Frame", nil, tab)
+    holder:SetPoint("TOPLEFT", 16, -44)
+    holder:SetPoint("BOTTOMRIGHT", -8, 10)
+    return tab, W.CreateScrollFrame(holder)
+end
+
+-- 捲動內容 ＋ Controls.Build 的串接。回傳 content, rows, refreshers
+-- （rows 是給設定搜尋捲到指定那一列用的，見 Options/Search.lua）
+function Options.BuildScrollBody(scroll, controls, ctx, width)
+    local content = CreateFrame("Frame", nil, scroll.child)
+    content:SetPoint("TOPLEFT")
+    content:SetSize(width, 1)
+    local height, refreshers, rows = ns.Controls.Build(content, controls, ctx, 4, -4, width)
+    content:SetHeight(height + 20)
+    scroll:SetContentHeight(height + 20)
+    return content, rows, refreshers
+end
+
 local function SavePosition()
     local cx, cy = UIParent:GetCenter()
     local fx, fy = panel:GetCenter()

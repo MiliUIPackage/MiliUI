@@ -94,33 +94,16 @@ local ctx = {
 -- 直接鋪在 tab 上的話，內容一長就會整段掉出面板外面
 local function Rebuild()
     local controls, specID = BuildControls()
+    -- 舊的內容框留著（frame 刪不掉），藏起來就好
     if content then content:Hide() end
-    content = CreateFrame("Frame", nil, scroll.child)
-    content:SetPoint("TOPLEFT")
-    content:SetSize(620, 1)
-    local height, r, built = Controls.Build(content, controls, ctx, 4, -4, 620)
-    rows = built
-    content:SetHeight(height + 20)
-    scroll:SetContentHeight(height + 20)
+    content, rows, refreshers = ns.Options.BuildScrollBody(scroll, controls, ctx, 620)
     scroll:SetVerticalScroll(0)
-    refreshers = r
     specSig = specID or 0
 end
 
 local function Init()
     if tab then return end
-    tab = CreateFrame("Frame", nil, ns.Options.panel)
-    tab:SetAllPoints(ns.Options.panel)
-    tab:Hide()
-
-    local title = W.CreateSectionTitle(tab, L["Resource bars"], 660)
-    title:SetPoint("TOPLEFT", 16, -14)
-
-    local holder = CreateFrame("Frame", nil, tab)
-    holder:SetPoint("TOPLEFT", 16, -44)
-    holder:SetPoint("BOTTOMRIGHT", -8, 10)
-    scroll = W.CreateScrollFrame(holder)
-
+    tab, scroll = ns.Options.MakeFormTab(L["Resource bars"])
     Rebuild()
 end
 

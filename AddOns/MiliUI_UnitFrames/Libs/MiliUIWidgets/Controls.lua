@@ -75,6 +75,24 @@ function Controls.Resolve(tbl, spec)
     return tbl
 end
 
+-- ctx 工廠：多個分頁的 get/set 一字不差，差別只有「root 從哪來」與 apply 做什麼。
+-- rootFor(spec) 回傳這條 spec 該讀寫的那張表。
+-- ⚠ 不是每個分頁都適用 —— 有額外語意的（例如 spec.default 備援、自動建子表）
+-- 就自己寫，不要為了共用而把那些語意塞進來。
+function Controls.MakeCtx(rootFor, applyFn)
+    return {
+        get = function(spec)
+            local t = Controls.Resolve(rootFor(spec), spec)
+            return t and t[spec.key]
+        end,
+        set = function(spec, v)
+            local t = Controls.Resolve(rootFor(spec), spec)
+            if t then t[spec.key] = v end
+        end,
+        apply = applyFn,
+    }
+end
+
 local function MakeLabel(parent, text, x, y, h)
     local fs = parent:CreateFontString(nil, "OVERLAY")
     fs:SetFontObject(W.fontNormal)

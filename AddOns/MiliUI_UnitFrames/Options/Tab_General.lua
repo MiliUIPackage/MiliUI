@@ -119,46 +119,22 @@ local CONTROLS = {
 
 local function Init()
     if tab then return end
-    tab = CreateFrame("Frame", nil, ns.Options.panel)
-    tab:SetAllPoints(ns.Options.panel)
-    tab:Hide()
+    tab, scroll = ns.Options.MakeFormTab(L["Global style"])
 
-    local title = W.CreateSectionTitle(tab, L["Global style"], 660)
-    title:SetPoint("TOPLEFT", 16, -14)
+    -- 小地圖那條是特例：它不在 ns.db.global 底下，而且欄位語意是反的
+    -- （spec 問「要不要顯示」，DB 存的是 hide）。包一層而不是把特例塞進工廠。
+    local ctx = Controls.MakeCtx(function() return ns.db.global end, ApplyAll)
+    local baseGet, baseSet = ctx.get, ctx.set
+    ctx.get = function(spec)
+        if spec.root == "minimap" then return not ns.db.minimap.hide end
+        return baseGet(spec)
+    end
+    ctx.set = function(spec, v)
+        if spec.root == "minimap" then ns.SetMinimapButtonShown(v); return end
+        baseSet(spec, v)
+    end
 
-    local scrollHolder = CreateFrame("Frame", nil, tab)
-    scrollHolder:SetPoint("TOPLEFT", 16, -44)
-    scrollHolder:SetPoint("BOTTOMRIGHT", -8, 10)
-    scroll = W.CreateScrollFrame(scrollHolder)
-
-    content = CreateFrame("Frame", nil, scroll.child)
-    content:SetPoint("TOPLEFT")
-    content:SetSize(640, 1)
-
-    local ctx = {
-        get = function(spec)
-            if spec.root == "minimap" then
-                return not ns.db.minimap.hide
-            end
-            local t = Controls.Resolve(ns.db.global, spec)
-            return t[spec.key]
-        end,
-        set = function(spec, v)
-            if spec.root == "minimap" then
-                ns.SetMinimapButtonShown(v)
-                return
-            end
-            local t = Controls.Resolve(ns.db.global, spec)
-            t[spec.key] = v
-        end,
-        apply = ApplyAll,
-    }
-
-    local height, r, built = Controls.Build(content, CONTROLS, ctx, 4, -4, 640)
-    rows = built
-    content:SetHeight(height + 20)
-    scroll:SetContentHeight(height + 20)
-    refreshers = r
+    content, rows, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx, 640)
 end
 
 -- 換設定檔時，正開著的這一頁要重整。

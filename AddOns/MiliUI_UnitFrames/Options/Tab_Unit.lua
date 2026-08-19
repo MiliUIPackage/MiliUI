@@ -512,9 +512,7 @@ end
 ------------------------------------------------------------
 local function Init()
     if tab then return end
-    tab = CreateFrame("Frame", nil, ns.Options.panel)
-    tab:SetAllPoints(ns.Options.panel)
-    tab:Hide()
+    tab = ns.Options.NewTabFrame()
 
     -- 左欄單位清單
     local unitButtons = {}

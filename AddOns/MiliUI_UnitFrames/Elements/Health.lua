@@ -125,11 +125,13 @@ local function ApplyHealPrediction(f, hcalc, unit)
     f.incbar:Show()
 end
 
-local function AnchorOverlay(bar, hpTex, w, h)
-    -- 錨到血條材質右緣，往右延伸；寬度來自設定（絕不回讀），超出由容器裁切
-    bar:ClearAllPoints()
-    bar:SetPoint("TOPLEFT", hpTex, "TOPRIGHT", 0, 0)
-    bar:SetSize(w, h)
+-- 疊加層一律「錨在血量前緣、往右延伸」，超出的部分由 clip 容器裁掉。
+-- ⚠ 只收斂這一行，不要把整段版面收進來：兩個呼叫點的**第二個錨點**本來就不一樣
+-- （lossbar 撐到容器右下角、治療預估對齊條高之後給固定寬），硬塞進同一支
+-- helper 會改掉它們的行為。這裡統一的是「錨在哪」這個共通決定。
+local function AnchorToFillEdge(obj, hpTex)
+    obj:ClearAllPoints()
+    obj:SetPoint("TOPLEFT", hpTex, "TOPRIGHT", 0, 0)
 end
 
 local function Build(uf, edb)
@@ -203,8 +205,7 @@ local function Build(uf, edb)
     end
     local lossA = edb.lossAlpha or 0
     if lossA > 0 then
-        f.loss:ClearAllPoints()
-        f.loss:SetPoint("TOPLEFT", hpTex, "TOPRIGHT", 0, 0)
+        AnchorToFillEdge(f.loss, hpTex)
         f.loss:SetPoint("BOTTOMRIGHT", f.clip, "BOTTOMRIGHT", 0, 0)
         local lc = edb.lossColor or { r = 0, g = 0, b = 0 }
         f.loss:SetVertexColor(lc.r or 0, lc.g or 0, lc.b or 0, lossA)
@@ -286,8 +287,7 @@ local function Build(uf, edb)
     if edb.showHealPrediction then
         local ib = EnsureOverlayBar(f.clip, "incbar", (edb.level or 4) + 2)
         f.incbar = ib
-        ib:ClearAllPoints()
-        ib:SetPoint("TOPLEFT", hpTex, "TOPRIGHT", 0, 0)
+        AnchorToFillEdge(ib, hpTex)
         ib:SetPoint("BOTTOMLEFT", hpTex, "BOTTOMRIGHT", 0, 0)
         ib:SetWidth(innerW)
         ib:SetStatusBarTexture(texture)

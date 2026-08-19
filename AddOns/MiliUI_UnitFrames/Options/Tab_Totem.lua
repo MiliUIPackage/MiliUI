@@ -37,42 +37,14 @@ local CONTROLS = {
 
 local function Init()
     if tab then return end
-    tab = CreateFrame("Frame", nil, ns.Options.panel)
-    tab:SetAllPoints(ns.Options.panel)
-    tab:Hide()
+    -- 內容比面板高就會掉出去，一律走卷軸（同資源分頁）
+    tab, scroll = ns.Options.MakeFormTab(L["Summons"])
 
-    local title = W.CreateSectionTitle(tab, L["Summons"], 660)
-    title:SetPoint("TOPLEFT", 16, -14)
+    local ctx = Controls.MakeCtx(function() return ns.db.units.totem end, function()
+        if ns.TotemsApplySettings then ns.TotemsApplySettings() end
+    end)
 
-    -- 同資源分頁：內容比面板高就會掉出去，一律走卷軸
-    local holder = CreateFrame("Frame", nil, tab)
-    holder:SetPoint("TOPLEFT", 16, -44)
-    holder:SetPoint("BOTTOMRIGHT", -8, 10)
-    scroll = W.CreateScrollFrame(holder)
-
-    content = CreateFrame("Frame", nil, scroll.child)
-    content:SetPoint("TOPLEFT")
-    content:SetSize(620, 1)
-
-    local ctx = {
-        get = function(spec)
-            local t = Controls.Resolve(ns.db.units.totem, spec)
-            return t and t[spec.key]
-        end,
-        set = function(spec, v)
-            local t = Controls.Resolve(ns.db.units.totem, spec)
-            if t then t[spec.key] = v end
-        end,
-        apply = function()
-            if ns.TotemsApplySettings then ns.TotemsApplySettings() end
-        end,
-    }
-
-    local height, r, built = Controls.Build(content, CONTROLS, ctx, 4, -4, 620)
-    rows = built
-    content:SetHeight(height + 20)
-    scroll:SetContentHeight(height + 20)
-    refreshers = r
+    content, rows, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx, 620)
 end
 
 -- 換設定檔時，正開著的這一頁要重整。

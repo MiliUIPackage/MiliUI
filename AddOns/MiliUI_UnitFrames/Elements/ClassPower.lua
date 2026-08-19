@@ -383,6 +383,20 @@ local function SegmentsFor(key, isPreview)
     return math.min(MAX_SEGMENTS, max)
 end
 
+-- 這一輪各列要幾格：**算一次往下傳**。
+-- ⚠ SegmentsFor 對標準資源內含 UnitPower ＋ UnitPowerMax 各一次、外加兩次 Desecret，
+-- 而 Update 掛在能量事件上（戰鬥中一秒好幾次）。原本 LayoutMatches 與 UpdateRow
+-- 各自重算一輪 ⇒ 盜賊（能量＋連擊點兩列）每次事件就是六次 API 呼叫在做同一件事。
+-- 模組層級的 scratch 表重複使用，零配置。回傳的是共用表，呼叫端只讀、用完即棄
+-- （RememberLayout 會自己複製一份存進 f.sigSegs，不能直接持有這張表）。
+local segScratch = {}
+
+local function ComputeSegments(rows, isPreview)
+    for i = 1, #rows do segScratch[i] = SegmentsFor(rows[i], isPreview) end
+    for i = #rows + 1, #segScratch do segScratch[i] = nil end
+    return segScratch
+end
+
 ------------------------------------------------------------
 -- 元件
 ------------------------------------------------------------
@@ -417,30 +431,30 @@ end
 -- （刻意不抽成 InvalidateLayout 函式：Build 排在這一段**之前**，那裡呼叫得到的會是
 --  同名的全域 nil，正是這個 repo 已經踩過幾次的坑）。
 ------------------------------------------------------------
-local function LayoutMatches(f, rows, isPreview)
+local function LayoutMatches(f, rows, newSegs)
     local keys, segs = f.sigKeys, f.sigSegs
     if not (keys and segs) then return false end
     if #keys ~= #rows then return false end
     for i = 1, #rows do
-        local key = rows[i]
-        if keys[i] ~= key or segs[i] ~= SegmentsFor(key, isPreview) then return false end
+        if keys[i] ~= rows[i] or segs[i] ~= newSegs[i] then return false end
     end
     return true
 end
 
-local function RememberLayout(f, rows, isPreview)
+local function RememberLayout(f, rows, newSegs)
     local keys, segs = f.sigKeys, f.sigSegs
     if not keys then keys = {}; f.sigKeys = keys end
     if not segs then segs = {}; f.sigSegs = segs end
     wipe(keys)
     wipe(segs)
+    -- 複製而不是持有 segScratch：那張表下一次 Update 就會被覆寫
     for i = 1, #rows do
         keys[i] = rows[i]
-        segs[i] = SegmentsFor(rows[i], isPreview)
+        segs[i] = newSegs[i]
     end
 end
 
-local function Relayout(f, edb, rows, isPreview)
+local function Relayout(f, edb, rows, newSegs)
     local h = ns.P.Scale(edb.h or 6)
     local gap = ns.P.Scale(edb.rowSpacing or 2)
     local prev
@@ -457,7 +471,7 @@ local function Relayout(f, edb, rows, isPreview)
         else
             row:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
         end
-        LayoutRow(row, key, edb, SegmentsFor(key, isPreview))
+        LayoutRow(row, key, edb, newSegs[i])
         row:Show()
         prev = row
     end
@@ -492,14 +506,14 @@ local function SetPipText(row, def, edb, n)
     row.text:SetFormattedText("%d", n)
 end
 
-local function UpdateRow(row, edb, isPreview)
+local function UpdateRow(row, edb, isPreview, numSeg)
     local key = row.key
     local def = RESOURCES[key]
     if not def then return end
     local cc = def.color
 
     if def.mode == "pip" then
-        local numSeg = SegmentsFor(key, isPreview)
+        numSeg = numSeg or SegmentsFor(key, isPreview)   -- 沒帶進來才自己算
         if numSeg <= 0 then
             row.text:SetText("")
             return
@@ -563,12 +577,13 @@ local function Update(uf, edb, bucket)
     end
     f:Show()
 
-    if not LayoutMatches(f, rows, isPreview) then
-        Relayout(f, edb, rows, isPreview)
-        RememberLayout(f, rows, isPreview)
+    local segs = ComputeSegments(rows, isPreview)
+    if not LayoutMatches(f, rows, segs) then
+        Relayout(f, edb, rows, segs)
+        RememberLayout(f, rows, segs)
     end
     for i = 1, #rows do
-        UpdateRow(f.rows[i], edb, isPreview)
+        UpdateRow(f.rows[i], edb, isPreview, segs[i])
     end
 end
 
