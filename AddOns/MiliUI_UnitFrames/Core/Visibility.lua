@@ -165,12 +165,49 @@ end
 -- 降 alpha 會讓背景透出來 —— 紅血條疊在草地上變成濁褐色，而且在亮背景上甚至會
 -- 顯得更亮，語意剛好相反。疊暗色則是不管背景是什麼都一定變暗，顏色可預測，
 -- 也完全不碰 vertex color（職業色可能是秘密值，碰不得）。
+-- ⚠⚠ **視覺框體不等於框架矩形。** 魔力條是刻意伸出框外的（目標框 mpbar
+-- x=-8 y=-8 w=200 h=50，而框是 200×50 ⇒ 往左露 8、往下露 8）。
+-- 遮罩若只 SetAllPoints(uf)，那圈露出去的就不會被蓋到 —— 實測就是「血條暗了、
+-- 底下那條能量條還是亮的」。
+--
+-- 外擴量從**設定值**算，絕不回讀幾何（單位框子樹的 GetWidth/GetPoint 可能被秘密值污染）。
+-- 只看 level 比遮罩低的元件：層級 ≥ 9 的（文字 10/11、圖示 10、光環容器 12）本來就在
+-- 遮罩之上、不會被蓋到，把遮罩擴過去只會在框外多畫一塊黑。
+local function VisualInset(uf)
+    local udb = uf.db
+    local fdb = udb and udb.frame
+    local els = udb and udb.elements
+    if not (fdb and els) then return 0, 0, 0, 0 end
+    local fw, fh = fdb.w or 0, fdb.h or 0
+    local l, r, t, b = 0, 0, 0, 0
+    for _, e in pairs(els) do
+        if type(e) == "table" and e.enabled ~= false
+           and type(e.level) == "number" and e.level < OOR_SCRIM_LEVEL
+           and type(e.x) == "number" and type(e.y) == "number"
+           and type(e.w) == "number" and type(e.h) == "number" then
+            -- 元件座標相對框架 TOPLEFT，往下為負 ⇒ 它佔 y 到 y-h
+            if -e.x > l then l = -e.x end
+            if e.x + e.w - fw > r then r = e.x + e.w - fw end
+            if e.y > t then t = e.y end
+            local below = e.h - e.y - fh
+            if below > b then b = below end
+        end
+    end
+    return l, r, t, b
+end
+
+local function AnchorScrim(uf, sc)
+    local l, r, t, b = VisualInset(uf)
+    sc:ClearAllPoints()
+    sc:SetPoint("TOPLEFT",     uf, "TOPLEFT",     -ns.P.Scale(l),  ns.P.Scale(t))
+    sc:SetPoint("BOTTOMRIGHT", uf, "BOTTOMRIGHT",  ns.P.Scale(r), -ns.P.Scale(b))
+end
+
 local function Scrim(uf)
     local sc = uf.oorScrim
     if not sc then
         -- CreateFrame 本身不受戰鬥限制；這是我們自己建的普通框，不是受保護物件
         sc = CreateFrame("Frame", nil, uf)
-        sc:SetAllPoints(uf)
         sc:SetFrameLevel(OOR_SCRIM_LEVEL)
         sc:EnableMouse(false)          -- 不要吃掉滑鼠（右鍵選單、提示都靠它）
         sc.tex = sc:CreateTexture(nil, "OVERLAY")
@@ -179,6 +216,8 @@ local function Scrim(uf)
         sc:Hide()
         uf.oorScrim = sc
     end
+    -- 每次要顯示時重算：元件位置可能剛被改過（V.Refresh 會清 appliedScrim 逼它重來）
+    AnchorScrim(uf, sc)
     return sc
 end
 
@@ -240,6 +279,7 @@ function V.Refresh()
         if uf.db and uf.db.frame and uf.db.frame.fadeOutOfCombat then ooc = true end
         V.Apply(uf)
         uf.appliedAlpha = nil       -- 設定可能剛改過 oorAlpha／oocAlpha，強迫重設
+        uf.appliedScrim = nil       -- 同理：強度或元件位置可能變了，遮罩要重算外擴量
         V.ApplyAlpha(uf)
     end
     V.anyConditions, V.anyOocFade = conds, ooc
