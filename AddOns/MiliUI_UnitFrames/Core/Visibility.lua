@@ -165,59 +165,36 @@ end
 -- 降 alpha 會讓背景透出來 —— 紅血條疊在草地上變成濁褐色，而且在亮背景上甚至會
 -- 顯得更亮，語意剛好相反。疊暗色則是不管背景是什麼都一定變暗，顏色可預測，
 -- 也完全不碰 vertex color（職業色可能是秘密值，碰不得）。
--- ⚠⚠ **視覺框體不等於框架矩形。** 魔力條是刻意伸出框外的（目標框 mpbar
--- x=-8 y=-8 w=200 h=50，而框是 200×50 ⇒ 往左露 8、往下露 8）。
--- 遮罩若只 SetAllPoints(uf)，那圈露出去的就不會被蓋到 —— 實測就是「血條暗了、
--- 底下那條能量條還是亮的」。
+-- ⚠⚠ **不要用一個大矩形蓋整個框。**
+-- 第一版是「框架矩形 ∪ 所有露出去的元件」＝一張大方塊，結果把「什麼都沒畫」的角落
+-- 也塗黑了：目標框的觀察按鈕在 x=180 y=5（往上、往右各露 5）、魔力條往左下各露 8，
+-- union 起來就是一個四邊都比血條大一圈的黑框 —— 實測「超醜」，回報屬實。
 --
--- 外擴量從**設定值**算，絕不回讀幾何（單位框子樹的 GetWidth/GetPoint 可能被秘密值污染）。
--- 只看 level 比遮罩低的元件：層級 ≥ 9 的（文字 10/11、圖示 10、光環容器 12）本來就在
--- 遮罩之上、不會被蓋到，把遮罩擴過去只會在框外多畫一塊黑。
-local function VisualInset(uf)
-    local udb = uf.db
-    local fdb = udb and udb.frame
-    local els = udb and udb.elements
-    if not (fdb and els) then return 0, 0, 0, 0 end
-    local fw, fh = fdb.w or 0, fdb.h or 0
-    local l, r, t, b = 0, 0, 0, 0
-    for _, e in pairs(els) do
-        if type(e) == "table" and e.enabled ~= false
-           and type(e.level) == "number" and e.level < OOR_SCRIM_LEVEL
-           and type(e.x) == "number" and type(e.y) == "number"
-           and type(e.w) == "number" and type(e.h) == "number" then
-            -- 元件座標相對框架 TOPLEFT，往下為負 ⇒ 它佔 y 到 y-h
-            if -e.x > l then l = -e.x end
-            if e.x + e.w - fw > r then r = e.x + e.w - fw end
-            if e.y > t then t = e.y end
-            local below = e.h - e.y - fh
-            if below > b then b = below end
-        end
-    end
-    return l, r, t, b
-end
-
-local function AnchorScrim(uf, sc)
-    local l, r, t, b = VisualInset(uf)
-    sc:ClearAllPoints()
-    sc:SetPoint("TOPLEFT",     uf, "TOPLEFT",     -ns.P.Scale(l),  ns.P.Scale(t))
-    sc:SetPoint("BOTTOMRIGHT", uf, "BOTTOMRIGHT",  ns.P.Scale(r), -ns.P.Scale(b))
-end
-
-local function Scrim(uf)
-    local sc = uf.oorScrim
+-- 改成**每個元件各遮各的**：一個元件一張，貼合它自己的矩形，空白處自然不會被塗到。
+--
+-- 疊層怎麼處理：每張遮罩放在「它自己那個元件之上、但仍低於文字」的層級
+-- （level+3，上限 9）。於是被更高元件蓋住的元件，它的遮罩也會一起被蓋住 ——
+-- 靠既有的遮蔽關係就避開了重疊處變兩倍暗。半透明元件疊在別的元件上時仍會微微加深，
+-- 那是可接受的殘留。
+--
+-- 只收「有數字 level 且低於遮罩上限」的元件：光環容器（forbidden intrinsic，碰不得）、
+-- 文字、圖示的 edb 都沒有頂層 level，型別檢查會自動把它們排除。
+local function ScrimFor(uf, index, target, level)
+    uf.oorScrims = uf.oorScrims or {}
+    local sc = uf.oorScrims[index]
     if not sc then
-        -- CreateFrame 本身不受戰鬥限制；這是我們自己建的普通框，不是受保護物件
+        -- CreateFrame 不受戰鬥限制；這是我們自己建的普通框，不是受保護物件
         sc = CreateFrame("Frame", nil, uf)
-        sc:SetFrameLevel(OOR_SCRIM_LEVEL)
         sc:EnableMouse(false)          -- 不要吃掉滑鼠（右鍵選單、提示都靠它）
         sc.tex = sc:CreateTexture(nil, "OVERLAY")
         sc.tex:SetAllPoints(sc)
         sc.tex:SetColorTexture(0, 0, 0, 1)
-        sc:Hide()
-        uf.oorScrim = sc
+        uf.oorScrims[index] = sc
     end
-    -- 每次要顯示時重算：元件位置可能剛被改過（V.Refresh 會清 appliedScrim 逼它重來）
-    AnchorScrim(uf, sc)
+    sc:SetFrameLevel(level)
+    sc:ClearAllPoints()
+    -- SetAllPoints 是「建立關係」不是回讀幾何，秘密值污染那條規則不適用
+    sc:SetAllPoints(target)
     return sc
 end
 
@@ -238,21 +215,39 @@ function V.Alpha(uf)
     return a
 end
 
--- 暗色層的開關。跟 alpha 一樣，狀態沒變就不要重設（這支落在 0.2 秒的輪詢上）
+-- 暗色層的開關。狀態沒變就不重設（這支落在距離輪詢上）
 local function ApplyScrim(uf)
     local g = ns.db.global
     local on = (g.oorStyle or "dim") == "dim" and OutOfRange(uf)
-    if not on then
-        if uf.oorScrim then uf.oorScrim:Hide() end
-        uf.appliedScrim = nil
-        return
-    end
-    local strength = g.oorDim or 0.55
+    local strength = on and (g.oorDim or 0.55) or nil
     if uf.appliedScrim == strength then return end
     uf.appliedScrim = strength
-    local sc = Scrim(uf)
-    sc.tex:SetAlpha(strength)
-    sc:Show()
+
+    local list = uf.oorScrims
+    if not on then
+        if list then for i = 1, #list do list[i]:Hide() end end
+        return
+    end
+
+    local els = uf.db and uf.db.elements
+    local n = 0
+    if els then
+        for name, ef in pairs(uf.elements or {}) do
+            local edb = els[name]
+            if edb and edb.enabled ~= false and type(edb.level) == "number"
+               and edb.level < OOR_SCRIM_LEVEL and ef.SetPoint then
+                n = n + 1
+                local lvl = edb.level + 3
+                if lvl > OOR_SCRIM_LEVEL then lvl = OOR_SCRIM_LEVEL end
+                local sc = ScrimFor(uf, n, ef, lvl)
+                sc.tex:SetAlpha(strength)
+                sc:Show()
+            end
+        end
+    end
+    -- 池子裡多出來的（元件被停用了）藏起來
+    list = uf.oorScrims
+    if list then for i = n + 1, #list do list[i]:Hide() end end
 end
 
 function V.ApplyAlpha(uf)

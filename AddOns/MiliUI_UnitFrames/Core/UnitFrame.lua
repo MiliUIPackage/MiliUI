@@ -204,7 +204,12 @@ function ns.ApplyFrameFade(uf)
         ns.Metro.Unbind(uf, key)
     else
         uf.rangeFn = uf.rangeFn or function() ns.Visibility.ApplyAlpha(uf) end
-        ns.Metro.Bind(uf, key, 0.3, uf.rangeFn)
+        -- ⚠ 距離沒有事件可訂閱（WoW 不發「距離變了」），只能輪詢 ⇒ **間隔就是延遲**。
+        -- 0.3 秒時肉眼看得出遮罩／淡出慢半拍（實測回報）。收到 0.15：
+        -- 探針是 IsSpellInRange 這種便宜的 C 呼叫，而且只掛在「有開淡出且正在顯示」
+        -- 的框上（Metro.Bind 跟著可見度上下），成本可以接受。
+        -- ⚠ Core/Range.lua 的快取 TTL 必須比這個短，否則等於沒收緊。
+        ns.Metro.Bind(uf, key, 0.15, uf.rangeFn)
     end
     -- 不管有沒有掛輪詢都要套一次：關掉淡出時要把 alpha 還原，不然會卡在半透明
     uf.appliedAlpha = nil       -- 設定可能剛改過 oorAlpha／oocAlpha，強迫重設

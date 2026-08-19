@@ -173,7 +173,7 @@ ns.Events.Register("SPELLS_CHANGED", "range_spells", Rebuild)
 -- 所以帶一個極短命的快取。TTL 比輪詢間隔短一點就好，不需要精確。
 ------------------------------------------------------------
 local cache, cacheTime = {}, 0
-local TTL = 0.2
+local TTL = 0.1        -- ⚠ 必須比 Core/UnitFrame.lua 的輪詢間隔（0.15）短，否則輪詢會拿到過期值
 
 -- ⚠ 這個檔問的每一個 API 在受限內容裡都可能回**秘密布林**，而秘密布林不能做
 -- 布林測試（連 `v and true or false` 都算）——會直接拋 taint error。
