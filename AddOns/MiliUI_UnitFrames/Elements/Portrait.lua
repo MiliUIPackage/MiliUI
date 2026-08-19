@@ -93,16 +93,37 @@ local function RefreshEncounterFrames()
 end
 
 -- 給 /muf debug 看
+-- ⚠ 診斷用快照：ENCOUNTER_END 會清掉 encounterActive 與 encounterDisplays，
+-- 所以「打完再下 /muf debug」原本什麼都看不到 —— 而那正是唯一能好好打指令的時機。
+-- 這裡另存一份不會被清的，代價只有一張小表。
+local lastSnapshot = { active = false, n = 0, ids = "", dbg = "", when = "從未" }
+
+local function Snapshot(phase)
+    lastSnapshot.active = encounterActive
+    lastSnapshot.n = #encounterDisplays
+    lastSnapshot.ids = table.concat(encounterDisplays, ", ")
+    lastSnapshot.dbg = lastEncounterDebug
+    lastSnapshot.when = phase
+end
+
 function ns.GetEncounterDisplays()
     return encounterActive, encounterDisplays, lastEncounterDebug
+end
+
+-- 給 /muf debug 用：打完架之後仍讀得到開戰當下的狀況
+function ns.GetEncounterSnapshot()
+    return lastSnapshot
 end
 
 ns.Events.Register("ENCOUNTER_START", "portrait_ej", function(encounterID)
     encounterActive = true
     BuildEncounterDisplays(encounterID)
+    Snapshot("ENCOUNTER_START")
     RefreshEncounterFrames()
 end)
 ns.Events.Register("ENCOUNTER_END", "portrait_ej_end", function()
+    -- 先拍照再清：清完就沒東西可看了
+    Snapshot("ENCOUNTER_END（清除前）")
     encounterActive = false
     wipe(encounterDisplays)
     RefreshEncounterFrames()
@@ -249,9 +270,13 @@ local function Update(uf, edb, bucket)
         if demoID and demoID > 0 then
             pcall(f.model.ClearModel, f.model)
             ok = pcall(f.model.SetDisplayInfo, f.model, demoID)
+            f.lastDisplayID, f.lastDisplaySrc = demoID, "demo"
         elseif ejID then
             pcall(f.model.ClearModel, f.model)
             ok = pcall(f.model.SetDisplayInfo, f.model, ejID)
+            -- 供 /muf debug 追「EJ 有給 ID 但畫不出來」與「根本沒拿到 ID」的差別
+            f.lastDisplayID, f.lastDisplaySrc = ejID, "EJ"
+            f.lastDisplayOK = ok
         else
             -- 可用 = 已連線且可見（EUI 的 isAvailable）。SetUnit 對載不進來的單位不會清空，
             -- 而是留上一個模型或退回預設（widget 就叫 PlayerModel，預設是玩家自己）

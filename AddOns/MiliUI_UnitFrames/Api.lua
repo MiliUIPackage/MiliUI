@@ -743,6 +743,31 @@ local function Debug()
         p("  遭遇戰 EJ displayID：active=" .. tostring(active)
             .. " [" .. table.concat(list, ", ") .. "]  " .. tostring(dbg))
     end
+    -- ⚠ 上面那行在**戰鬥結束後**一定是 active=false []（ENCOUNTER_END 清掉了），
+    -- 所以真正有用的是下面這份快照 —— 它記的是開戰／收尾當下的狀況。
+    if ns.GetEncounterSnapshot then
+        local snap = ns.GetEncounterSnapshot()
+        p(("  └ 上次遭遇戰快照（%s）：active=%s  displayID %d 個 [%s]"):format(
+            tostring(snap.when), tostring(snap.active), snap.n or 0, tostring(snap.ids)))
+        p("    " .. tostring(snap.dbg))
+        if (snap.n or 0) == 0 then
+            p("    |cffffbb00→ 一個 displayID 都沒拿到：問題在 EJ 查詢（看上面 journalEnc 是不是 nil），"
+                .. "不是模型畫不出來|r")
+        end
+    end
+    -- 每個首領框的 3D 狀態（上面那份只講「有沒有拿到 ID」，這裡講「拿到之後畫了沒」）
+    for i = 1, 5 do
+        local buf = ns.frames["boss" .. i]
+        local bf = buf and buf.elements and buf.elements.portrait
+        if bf and bf.model then
+            local fid = bf.model.GetModelFileID and bf.model:GetModelFileID()
+            p(("  boss%d 頭像：顯示=%s displayID=%s(%s) 套用ok=%s fileID=%s key=%s%s"):format(
+                i, tostring(buf:IsVisible()),
+                tostring(bf.lastDisplayID), tostring(bf.lastDisplaySrc),
+                tostring(bf.lastDisplayOK), tostring(fid), tostring(bf.modelKey),
+                bf.modelFailWhy and ("  失敗=" .. tostring(bf.modelFailWhy)) or ""))
+        end
+    end
 
     -- 滑鼠底下是誰（把游標放在可疑的框上再打 /muf debug）
     local foci = GetMouseFoci and GetMouseFoci()
