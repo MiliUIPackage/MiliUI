@@ -60,7 +60,13 @@ end
 ------------------------------------------------------------
 -- applyPoint：這個系統自己的定位方式（不給就是 CENTER 對 UIParent CENTER）。
 -- 召喚物錨在玩家框左下角，用預設那套會把 CENTER 偏移寫進 TOPLEFT 語意的欄位。
-local function AttachSelection(frame, label, fdb, onMoved, applyPoint)
+--
+-- ⚠⚠ getFDB 是 **getter 不是表**。選取框建立一次就快取在 frame.editSelection 上、
+-- 永遠不重建，所以任何在這裡被 closure 抓住的設定表都會過期：DB.Activate 換設定檔時
+-- 會重建 ns.db，profile 的子表是不同物件，而 RebindProfile 只重指 uf.db、管不到這個
+-- closure。症狀是「框在畫面上動了，但 ApplySettings 重套後又彈回原位」＝看起來像拖不動，
+-- 實際上座標寫進了上一份設定檔。
+local function AttachSelection(frame, label, getFDB, onMoved, applyPoint)
     if frame.editSelection then return frame.editSelection end
 
     local sel = CreateFrame("Frame", nil, frame, "EditModeSystemSelectionTemplate")
@@ -83,7 +89,8 @@ local function AttachSelection(frame, label, fdb, onMoved, applyPoint)
     end
 
     sel:SetScript("OnDragStart", function(self)
-        baseX, baseY = fdb.x or 0, fdb.y or 0
+        local fdb = getFDB()
+        baseX, baseY = (fdb and fdb.x) or 0, (fdb and fdb.y) or 0
         startCX, startCY = GetCursorPosition()
         self:SetScript("OnUpdate", function()
             local cx, cy = GetCursorPosition()
@@ -94,12 +101,25 @@ local function AttachSelection(frame, label, fdb, onMoved, applyPoint)
     end)
     sel:SetScript("OnDragStop", function(self)
         self:SetScript("OnUpdate", nil)
+        if not baseX then return end        -- 沒有進行中的拖曳（見下面的 OnHide）
         local cx, cy = GetCursorPosition()
         local scale = UIParent:GetEffectiveScale()
-        -- 寫回的值必須跟拖曳時看到的位置一致，所以這裡也要過同一個 Snap
-        fdb.x = math.floor(Snap(baseX + (cx - startCX) / scale) + 0.5)
-        fdb.y = math.floor(Snap(baseY + (cy - startCY) / scale) + 0.5)
+        local fdb = getFDB()
+        if fdb then
+            -- 寫回的值必須跟拖曳時看到的位置一致，所以這裡也要過同一個 Snap
+            fdb.x = math.floor(Snap(baseX + (cx - startCX) / scale) + 0.5)
+            fdb.y = math.floor(Snap(baseY + (cy - startCY) / scale) + 0.5)
+        end
+        baseX, baseY, startCX, startCY = nil, nil, nil, nil
         if onMoved then onMoved() end
+    end)
+
+    -- 拖到一半離開編輯模式時只會 Hide，OnDragStop 不會來 ⇒ OnUpdate 留著、
+    -- baseX/startCX 也留著。下次 ShowHighlighted 再拖就會拿上一輪的基準算，框瞬間跳位。
+    -- ⚠ 用 HookScript：EditModeSystemSelectionTemplate 自己可能有 OnHide，SetScript 會蓋掉。
+    sel:HookScript("OnHide", function(self)
+        self:SetScript("OnUpdate", nil)
+        baseX, baseY, startCX, startCY = nil, nil, nil, nil
     end)
 
     frame.editSelection = sel
@@ -119,7 +139,8 @@ local function UpdateEditModeState()
             if uf.bossIndex and uf.bossIndex > 1 then return end
             if not uf.db.enabled then return end
             local label = ns.UNIT_LABELS[unitKey] or unitKey
-            local sel = AttachSelection(uf, L["MiliUI UF: "] .. label, uf.db.frame, function()
+            local sel = AttachSelection(uf, L["MiliUI UF: "] .. label,
+                function() return uf.db.frame end, function()
                 ns.ApplySettings(unitKey)     -- 同步 boss2-5 與孿生
             end)
             uf:EnableMouse(true)
@@ -128,7 +149,8 @@ local function UpdateEditModeState()
         -- 圖騰（真實框本身就不是 secure，可直接拖；顯示假內容供瞄準）
         local totem = ns.totemFrame
         if totem and ns.db.units.totem.enabled then
-            local sel = AttachSelection(totem, L["MiliUI UF: Summons"], ns.db.units.totem.frame, function()
+            local sel = AttachSelection(totem, L["MiliUI UF: Summons"],
+                function() return ns.db.units.totem.frame end, function()
                 if ns.TotemsApplySettings then ns.TotemsApplySettings() end
             end, ns.TotemsAnchorTo)
             totem:Show()      -- 框本身固定四格寬，選取框直接蓋得準
@@ -142,7 +164,15 @@ local function UpdateEditModeState()
         local totem = ns.totemFrame
         if totem and totem.editSelection then
             totem.editSelection:Hide()
-            totem:Hide()     -- 有圖騰在場的話 Poll 會再拉起來
+            -- ⚠ 不能只 Hide 就走。註解原本寫「有圖騰在場的話 Poll 會再拉起來」，但 Poll
+            -- 只由 PLAYER_TOTEM_UPDATE / PLAYER_ENTERING_WORLD / PLAYER_REGEN_ENABLED 推
+            -- ⇒ 地上已經有圖騰時進出編輯模式，框會消失到下次重放圖騰或進副本才回來。
+            -- TotemsApplySettings 結尾會 Poll()，讓它自己決定該顯示還是隱藏。
+            if ns.TotemsApplySettings then
+                ns.TotemsApplySettings()
+            else
+                totem:Hide()
+            end
         end
         ns.Preview.Close("editmode")
     end

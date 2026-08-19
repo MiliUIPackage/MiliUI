@@ -186,6 +186,7 @@ function DB.BuildDefaults()
                                  fallback2D = false },
                     hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.9,
                               colorMethod = "class", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.5, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
                               -- 疊加層顏色／方向沿用團隊框慣用的預設
@@ -200,6 +201,7 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 8, y = -8, w = 200, h = 50, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
                     classpower = { enabled = true, x = 8, y = -14, totalw = 200, h = 6,
                                    spacing = 1, rowSpacing = 2, level = 5,
@@ -262,6 +264,7 @@ function DB.BuildDefaults()
                                  fallback2D = false },   -- 副本小怪 3D 取不到時是否退 2D
                     hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.9,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.5, bgAlpha = 1, border = true,
                               showHealPrediction = true, showAbsorb = true,
                               -- 疊加層顏色／方向沿用團隊框慣用的預設
@@ -276,6 +279,7 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = -8, y = -8, w = 200, h = 50, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
                     texts = {
                         textDef{ pattern = "[name]",   x = 3, y = -3,  w = 200, h = 50, size = 15 },
@@ -330,6 +334,7 @@ function DB.BuildDefaults()
                     -- 條跟光環整排等寬（使用者定案，見 v6 遷移）
                     hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 20, level = 4,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,
                               -- 治療預估仍然關著（跟護盾是不同的勾選）
                               showHealPrediction = false,
@@ -345,6 +350,7 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 119, h = 10, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.4, bgAlpha = 0.6, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 0, y = 1, w = 120, h = 20,
@@ -373,6 +379,7 @@ function DB.BuildDefaults()
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 20, level = 5,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,      -- 跟目標框同款（0.4）
                               -- 治療預估仍然關著（跟護盾是不同的勾選）
                               showHealPrediction = false,
@@ -388,6 +395,7 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 120, h = 10, level = 5,
                               colorMethod = "power", bgColorMethod = "powerdark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 0, y = -4, w = 120, h = 12,
@@ -423,6 +431,7 @@ function DB.BuildDefaults()
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 70, h = 20, level = 4,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,
                               -- 治療預估仍然關著（跟護盾是不同的勾選）
                               showHealPrediction = false,
@@ -438,6 +447,7 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 70, h = 10, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 0.6, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 0, y = 14, w = 70, h = 50, size = 10,
@@ -470,6 +480,7 @@ function DB.BuildDefaults()
                                  fallback2D = false },
                     hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 40, level = 4, bgLevel = 2, lossAlpha = 0.9,
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.5, bgAlpha = 1, border = true,
                               -- 治療預估仍然關著（跟護盾是不同的勾選，要的話在單位→血條打開）
                               showHealPrediction = false,
@@ -485,6 +496,7 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -40, w = 119, h = 10, level = 0,
                               colorMethod = "class", bgColorMethod = "classreactiondark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 3, y = -3, w = 120, h = 12, size = 13 },
@@ -540,6 +552,7 @@ function DB.BuildDefaults()
                                  zoom = 1, rotation = 0, level = 0, fallback2D = false },
                     hpbar = { enabled = true, x = 36, y = 0, w = 184, h = 14, level = 4,
                               colorMethod = "classreaction", bgColorMethod = "solid",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,
                               showHealPrediction = false, healPredictionFollowBar = false,
@@ -554,6 +567,7 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
                     mpbar = { enabled = true, x = 36, y = -13, w = 184, h = 10, level = 4,
                               colorMethod = "power", bgColorMethod = "powerdark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 40, y = 13, w = 160, h = 14, size = 18,
@@ -609,12 +623,28 @@ end
 ------------------------------------------------------------
 -- 明確 nil-merge：只補 nil、不覆蓋使用者值
 ------------------------------------------------------------
+-- ⚠ 長度由設定檔自己決定的陣列：**不補洞**。
+-- MergeDefaults 不分陣列與雜湊，`dst[4] == nil` 就整條補一份預設進去。對 texts 來說
+-- 那是錯的：匯入一份條目較少的設定檔（對方版本較舊，或他自己刪過），補洞會讓框上
+-- 多出幾行他沒設定過的文字 ⇒ 匯入的版面重現不出來。
+-- 只列真正可變長度的鍵 —— 色票（reaction[1..10] 之類）是固定長度的陣列，仍要照補，
+-- 否則缺項就永遠補不回來。
+local USER_SIZED_ARRAYS = { texts = true }
+
 local function MergeDefaults(dst, src)
     for k, v in pairs(src) do
-        if type(v) == "table" then
-            if type(dst[k]) ~= "table" then dst[k] = {} end
-            MergeDefaults(dst[k], v)
-        elseif dst[k] == nil then
+        local cur = dst[k]
+        if USER_SIZED_ARRAYS[k] and type(cur) == "table" and cur[1] ~= nil then
+            -- 條目數以現有的為準：只補既有條目缺的鍵，不新增、不刪除
+            for i = 1, #cur do
+                if type(cur[i]) == "table" and type(v[i]) == "table" then
+                    MergeDefaults(cur[i], v[i])
+                end
+            end
+        elseif type(v) == "table" then
+            if type(cur) ~= "table" then dst[k] = {}; cur = dst[k] end
+            MergeDefaults(cur, v)
+        elseif cur == nil then
             dst[k] = v
         end
     end
@@ -992,7 +1022,17 @@ function DB.SwitchProfile(name)
     MergeDefaults(db.profiles[name], { global = defaults.global, units = defaults.units })
 
     db.profileKeys[CharKey()] = name        -- 這一步永遠要做（重載後靠它認得回來）
-    if name == ns.profileName then return true end
+    if name == ns.profileName then
+        -- ⚠ 早退之前要把排隊中的取消掉。戰鬥中先選了 B（排隊）、又改回目前這份 A：
+        -- 因為延後期間沒 Activate 過，ns.profileName 仍是 A ⇒ 走到這裡直接 return，
+        -- 但 pendingProfile 還是 B ⇒ 脫戰瞬間跳到使用者已經放棄的那一份，
+        -- 而 profileKeys 已經寫回 A，兩者就此不一致（下次登入又變回 A）。
+        if pendingProfile then
+            pendingProfile = nil
+            profileWatcher:UnregisterEvent("PLAYER_REGEN_ENABLED")
+        end
+        return true
+    end
 
     if InCombatLockdown() then
         pendingProfile = name

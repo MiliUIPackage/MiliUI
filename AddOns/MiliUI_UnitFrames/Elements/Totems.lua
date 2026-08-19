@@ -152,7 +152,11 @@ local function CreateSlot(i)
         if ok then slot.duo = duo end
     end
     -- 時間到：引擎通知，不必自己算（實體在下面，見檔案上方的前置宣告）
+    -- ⚠ 身分閘：暴雪的 frame 刪不掉，被丟棄的格子只是 Hide 掉、Cooldown 還活著。
+    -- 少了這道閘，舊計時器到期會去查「現在的」slots[i]，把現役圖騰標成過期並藏掉
+    -- （戰鬥中就是圖示無故消失）。現在已改成不丟棄格子，這是防止日後又改回去。
     cd:SetScript("OnCooldownDone", function()
+        if slots[slotIndex] ~= slot then return end
         if OnSlotExpired then OnSlotExpired(slotIndex) end
     end)
     return slot
@@ -446,11 +450,17 @@ ns.RegisterCallback("Loaded", "totems", Init)
 ns.TotemsApplySettings = function()
     if not frame then Init(); return end
     ApplyPosition()
+    -- ⚠ 不要丟棄既有格子重建。兩個理由：
+    --   1. 暴雪的 frame 刪不掉 —— 丟棄的只是被 Hide、永久留著。拖「圖示大小」滑桿
+    --      一格就漏四組 Frame＋Cooldown＋StatusBar，滑桿從 16 拖到 64 就是 192 組。
+    --   2. 舊格子的 Cooldown 還掛著 OnCooldownDone，到期時會去動現役的圖騰。
+    -- CreateSlot 裡唯一跟設定有關的只有 iconSize（其餘都是相對 btn 的固定值），
+    -- 就地重套即可；圖示、顏色與倒數一律由 Poll 重讀。
+    -- 附帶好處：改圖示大小不再把正在跑的倒數殺掉。
+    local size = GetDB().frame.iconSize or 28
     for i = 1, NUM_SLOTS do
-        if slots[i] then
-            slots[i].btn:Hide()
-            slots[i] = nil
-        end
+        local s = slots[i]
+        if s then s.btn:SetSize(size, size) end
     end
     Poll()
 end

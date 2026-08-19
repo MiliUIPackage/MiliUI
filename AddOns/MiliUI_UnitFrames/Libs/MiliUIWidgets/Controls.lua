@@ -140,7 +140,11 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
             MakeLabel(parent, spec.label, x0, y, ROW_H_TALL)
             local px = cx
             for _, field in ipairs(spec.fields) do
-                local sub = { sub = spec.sub, sub2 = spec.sub2, index = spec.index, key = field.key }
+                -- ⚠ root 一定要一起帶過去：ctx 靠它決定寫進 udb / udb.frame / udb.elements。
+                -- 漏掉的話「位置」「尺寸」那兩條（唯二帶 root="frame" 的 spec）會 fall-through
+                -- 到 elements ⇒ 四個數字框永遠顯示 0、改不動框，還在 elements 裡塞孤兒鍵。
+                local sub = { root = spec.root, sub = spec.sub, sub2 = spec.sub2,
+                              index = spec.index, key = field.key }
                 local tag = parent:CreateFontString(nil, "OVERLAY")
                 tag:SetFontObject(W.fontSmall)
                 tag:SetTextColor(0.6, 0.6, 0.6)
