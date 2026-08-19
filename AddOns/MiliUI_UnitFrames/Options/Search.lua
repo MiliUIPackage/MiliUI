@@ -243,7 +243,11 @@ function Search.CreateBox(panel)
     results = W.CreateFrame(nil, panel, 300, 8)
     results:SetPoint("TOPRIGHT", box, "BOTTOMRIGHT", 0, -3)
     results:SetFrameStrata("FULLSCREEN_DIALOG")
-    results:SetFrameLevel(panel:GetFrameLevel() + 60)
+    -- ⚠ 要壓在戰鬥遮罩（同 strata、level 500）之上。搜尋框錨在面板**外側**、
+    -- 遮罩蓋不到，所以戰鬥中照樣打得了字；但結果清單原本是 panel+60（=160），
+    -- 落在遮罩底下 ⇒ 打了字什麼都看不到，像是搜尋壞掉。
+    -- 搜尋只是跳轉、不改任何設定，戰鬥中可用是對的。
+    results:SetFrameLevel(520)
     results:SetBackdropBorderColor(W.Accent(0.8))
     results:Hide()
     results.rows = {}

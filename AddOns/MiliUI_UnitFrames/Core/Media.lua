@@ -49,7 +49,6 @@ M.TEXTURES = {
 M.SHIELD_TEXTURE      = MEDIA_PATH .. "shield"
 M.OVERSHIELD_TEXTURE  = MEDIA_PATH .. "overshield"
 M.OVERSHIELD_R_TEXTURE = MEDIA_PATH .. "overshield_reversed"
-M.OVERABSORB_TEXTURE  = MEDIA_PATH .. "overabsorb"
 M.DEFAULT_TEXTURE = M.TEXTURES.tuktex
 
 -- 登記到 LSM 用的顯示名。加前綴是因為 LSM **撞名會被拒絕**——別人若已經註冊過

@@ -309,6 +309,14 @@ local opener = CreateFrame("Frame")
 -- （例如匯入字串帶進來的假單位）都會讓真實框已經藏起來、孿生只建到一半，
 -- 而且每次開面板重演一次。
 local function OpenTwinsFor(unitKey)
+    -- 已經有孿生的話要重指 uf.db：換設定檔若在戰鬥中被排隊，脫戰時面板可能已經關了
+    -- ⇒ RebindProfile 觸發的 SettingsApplied 被 Preview 的 `if not isOpen` 吃掉，
+    -- 下次開窗孿生就還顯示上一份設定檔。
+    if twins[unitKey] then
+        for _, uf in ipairs(twins[unitKey]) do
+            uf.db = ns.GetUnitDB(unitKey)
+        end
+    end
     if not twins[unitKey] then
         if unitKey == "boss" then
             twins[unitKey] = { SpawnTwin(unitKey, 1), SpawnTwin(unitKey, 2), SpawnTwin(unitKey, 3) }

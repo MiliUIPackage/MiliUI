@@ -240,10 +240,18 @@ local function Build(uf, edb)
     end
 
     -- 溢盾光暈（overshield / overshield_reversed 兩張）：4px / 8px 寬的邊緣貼圖
+    -- ⚠ 光暈要自己一個容器，不能直接當 f.clip 的貼圖。護盾條是 f.clip 底下的
+    -- **frame**（level+1），而 frame 永遠畫在父層的貼圖之上、跟 draw layer 無關 ⇒
+    -- 光暈會被護盾條整個蓋掉。而「溢盾」的前提就是一定有盾（預設的反向填充還剛好
+    -- 從同一邊長過來），等於這個光暈永遠看不見。
     if not f.overShieldGlow then
-        f.overShieldGlow = f.clip:CreateTexture(nil, "OVERLAY")
-        f.overShieldGlowR = f.clip:CreateTexture(nil, "OVERLAY")
+        local gf = CreateFrame("Frame", nil, f.clip)
+        gf:SetAllPoints(f.clip)
+        f.overShieldFrame  = gf
+        f.overShieldGlow   = gf:CreateTexture(nil, "OVERLAY")
+        f.overShieldGlowR  = gf:CreateTexture(nil, "OVERLAY")
     end
+    f.overShieldFrame:SetFrameLevel((edb.level or 4) + 2)   -- 護盾條是 +1，要壓在它上面
     f.overShieldGlow:SetTexture(Media.OVERSHIELD_TEXTURE)
     f.overShieldGlow:ClearAllPoints()
     f.overShieldGlow:SetPoint("TOPRIGHT", f.clip, "TOPRIGHT", 0, 0)
