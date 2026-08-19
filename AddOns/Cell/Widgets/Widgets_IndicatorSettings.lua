@@ -5848,6 +5848,7 @@ local function CreateSetting_ActionsList(parent)
                 LCG.PixelGlow_Start(widget.debug, {0,1,0,1}, 9, 0.25, 8, 1)
             end
             Cell.vars.actionsDebugModeEnabled = self.enabled
+            if I.PrintActionsDebugStatus then I.PrintActionsDebugStatus(self.enabled) end
         end)
 
         widget.frame = Cell.CreateFrame(nil, widget, 20, 20)

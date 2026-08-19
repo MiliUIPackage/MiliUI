@@ -30,24 +30,66 @@ local function Display(b, ...)
     b.indicators.actions:Display(...)
 end
 
+-- Debug Mode has to report WHICH gate dropped an event. A single print placed after the gates
+-- makes "no line appeared" cover three unrelated faults at once -- the event never fired for
+-- that unit, the group filter rejected it, or the id arrived secret -- and they need opposite
+-- fixes. Each gate below therefore says so on the way out.
+--
+-- The token test is pure string matching on purpose: it never calls a unit API, so it can
+-- never itself trip over a secret value. It exists only to keep the drop messages down to your
+-- own group instead of every nameplate in the room.
+local function IsGroupToken(unit)
+    return unit and (unit == "player" or unit == "pet"
+        or strfind(unit, "^party") or strfind(unit, "^raid"))
+end
+
+local function DebugPrint(unit, msg)
+    print("|cFFFF3030[Cell]|r", tostring(unit), msg)
+end
+
 local eventFrame = CreateFrame("Frame")
 eventFrame:SetScript("OnEvent", function(self, event, unit, castGUID, spellID)
+    -- Report every group token, and ALSO any other token (target, focus, nameplateN...) whose
+    -- id is in the list. If a teammate's potion shows up as "target" but never as "party1",
+    -- the event fires and the group tokens are what's missing -- a very different fault from
+    -- the event not firing at all. The secret check has to come first: an enemy nameplate's
+    -- id can be secret, and a secret key would error on the table lookup.
+    local debugging = Cell.vars.actionsDebugModeEnabled
+        and (IsGroupToken(unit) or (F.IsValueNonSecret(spellID) and Cell.vars.actions[spellID] ~= nil))
+
     -- filter out players not in your group
     -- 12.1: UnitInRaid returns a secret boolean for identity-restricted units, and `not (...)`
     -- on a secret boolean is a hard Lua error
-    if not (F.ToBool(UnitInRaid(unit)) or UnitInParty(unit) or unit == "player" or unit == "pet") then return end
+    if not (F.ToBool(UnitInRaid(unit)) or UnitInParty(unit) or unit == "player" or unit == "pet") then
+        if debugging then
+            DebugPrint(unit, "|cFFFF7F00dropped: UnitInRaid and UnitInParty both say this unit is not in your group|r")
+        end
+        return
+    end
 
     -- Midnight 12.0.0+: spellID from UNIT_SPELLCAST_SUCCEEDED may be secret
     -- during restricted contexts; skip if so since we can't use it as a table key
-    if not F.IsValueNonSecret(spellID) then return end
-
-    if Cell.vars.actionsDebugModeEnabled then
-        local name = F.GetSpellInfo(spellID)
-        print("|cFFFF3030[Cell]|r |cFFB2B2B2" .. event .. ":|r", unit, "|cFF00FF00" .. (spellID or "nil") .. "|r", name)
+    if not F.IsValueNonSecret(spellID) then
+        if debugging then
+            DebugPrint(unit, "|cFFFF7F00dropped: spell id arrived as a secret value|r")
+        end
+        return
     end
 
-    if Cell.vars.actions[spellID] then
-        F.HandleUnitButton("unit", unit, Display, unpack(Cell.vars.actions[spellID]))
+    local action = Cell.vars.actions[spellID]
+
+    if action then
+        -- HandleUnitButton reports whether any visible button actually matched the unit, which
+        -- separates "we never saw the cast" from "we saw it and had nowhere to draw it"
+        local handled = F.HandleUnitButton("unit", unit, Display, unpack(action))
+        if debugging then
+            DebugPrint(unit, "|cFF00FF00" .. tostring(spellID) .. "|r " .. (F.GetSpellInfo(spellID) or "?")
+                .. (handled and " |cFF00FF00-> animation played|r"
+                             or " |cFFFF7F00-> in the list, but no Cell button is currently showing this unit|r"))
+        end
+    elseif debugging then
+        DebugPrint(unit, "|cFFB2B2B2" .. tostring(spellID) .. " " .. (F.GetSpellInfo(spellID) or "?")
+            .. " -- reached the indicator, but this id is not in the list|r")
     end
 end)
 
@@ -696,4 +738,13 @@ function I.EnableActions(enabled)
     else
         eventFrame:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     end
+end
+
+-- Printed when Debug Mode is switched on, so "no line appeared" can never mean "the event was
+-- never registered" (indicator disabled in this layout) or "debug was not actually on".
+function I.PrintActionsDebugStatus(enabled)
+    local registered = eventFrame:IsEventRegistered("UNIT_SPELLCAST_SUCCEEDED") and true or false
+    print("|cFFFF3030[Cell]|r Actions debug " .. (enabled and "|cFF00FF00ON|r" or "|cFFFF7F00OFF|r")
+        .. "  event registered: " .. (registered and "|cFF00FF00yes|r" or "|cFFFF3030NO -- indicator disabled in this layout?|r")
+        .. "  group: " .. tostring(Cell.vars.groupType))
 end
