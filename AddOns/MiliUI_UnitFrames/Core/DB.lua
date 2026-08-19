@@ -117,7 +117,7 @@ function DB.BuildDefaults()
             --   fade  整個框降 alpha（舊行為）。缺點是血條會跟背景混色 ——
             --         紅條疊在草地上變濁褐，亮背景上甚至會顯得更亮，語意剛好相反。
             oorStyle    = "dim",
-            oorDim      = 0.55,          -- dim：暗色層的不透明度
+            oorDim      = 0.35,          -- dim：暗色層的不透明度（0.55 太深，v8 調淺）
             oorAlpha    = 0.45,          -- fade：超出距離時整個框的透明度
             oocAlpha    = 0.5,           -- 脫戰時整個框的透明度（哪些框要淡出是每單位設的）
             -- 滑鼠移過的高亮邊框（開關在每單位的 frame.highlight）
@@ -692,6 +692,18 @@ end
 ------------------------------------------------------------
 -- [版本號] = 把一份設定檔補到那個版本要做的事。加條目時 ns.DB_VERSION 一起 bump。
 local PROFILE_MIGRATIONS = {
+    -- v8：暗色層 0.55 太深，預設調成 0.35。
+    -- ⚠ oorDim 在 v7 就已經被 MergeDefaults 補進每一份設定檔了 ⇒ 光改 BuildDefaults
+    -- 對已經載入過的人完全沒用（MergeDefaults 只補 nil）。所以要配這條。
+    -- 值閘：只動「還等於 v7 舊預設」的那些，自己拉過滑桿的一個都不碰。
+    [8] = function(profile)
+        local g = profile.global
+        if type(g) ~= "table" then return end
+        if type(g.oorDim) == "number" and math.abs(g.oorDim - 0.55) < 0.001 then
+            g.oorDim = 0.35
+        end
+    end,
+
     -- v7：超出距離的預設表現從「整個框降 alpha」改成「疊一層暗色」。
     --
     -- oorStyle 是全新的鍵，MergeDefaults 本來就會把新預設補給所有設定檔 ——
