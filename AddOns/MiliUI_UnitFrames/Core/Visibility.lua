@@ -201,48 +201,37 @@ end
 -- （追了也會慢一拍：遮罩只在距離狀態變化時重算，施法開始／結束不會推它）。
 --
 -- 池子用元件名當鍵，元件重建時沿用同一顆。
--- 本體遮罩的層級。要在所有「條」與它們的內部零件之上（條 0–6、邊框 +1、疊加層 +2），
--- 但在觀察按鈕(8)、文字(10/11)、圖示(10)、施法條(12) 之下。
-local BODY_SCRIM_LEVEL = 7
-
--- ⚠⚠ **本體只能有一張遮罩，不能一個元件一張。**
--- 一個元件一張的版本會在重疊處變兩倍暗，畫面上就是一條清楚的分隔線。
--- 目標框的實例：hpbar 是 0,0,200,50（遮罩 7）、mpbar 是 -8,-8,200,50（遮罩 3），
--- 兩者大幅重疊；而堆疊順序是
---     mpbar(0) → hpbar 底色(bgLevel 2) → mpbar 遮罩(3) → hpbar 填充(4) → hpbar 遮罩(7)
--- 加上目標框 barAlpha = 0.5（填充半透明），mpbar 的遮罩會從底下透上來 ⇒ 疊成兩倍暗。
--- 分隔線就落在 mpbar 的上緣 y = -8。
--- 「靠元件之間的遮蔽關係自然避開重疊」是錯的：層級本來就交錯，填充又是半透明的。
+-- 每個元件的遮罩要抬多高（相對它自己的 level）。
 --
--- 改成算出所有「要變暗的條」的**聯集矩形**，只鋪一張。
--- 聯集會多出一點空白角落（目標框是左上與右下各 8×8），但那比一條貫穿整個框的
--- 分隔線好得多 —— 而首領框的兩條 bar 是上下貼齊的，聯集剛好就是它們，沒有空白。
-local function BodyRect(uf)
-    local udb = uf.db
-    local els = udb and udb.elements
-    if not els then return nil end
-    local l, r, t, b
-    for name, edb in pairs(els) do
-        if type(edb) == "table" and edb.enabled ~= false
-           and not NO_DIM_ELEMENTS[name] and not SCRIM_ALPHA_ELEMENTS[name]
-           and type(edb.level) == "number" and edb.level < BODY_SCRIM_LEVEL
-           and type(edb.x) == "number" and type(edb.y) == "number"
-           and type(edb.w) == "number" and type(edb.h) == "number" then
-            local x1, x2 = edb.x, edb.x + edb.w
-            local y1, y2 = edb.y, edb.y - edb.h        -- 往下為負
-            if not l or x1 < l then l = x1 end
-            if not r or x2 > r then r = x2 end
-            if not t or y1 > t then t = y1 end
-            if not b or y2 < b then b = y2 end
-        end
-    end
-    if not l then return nil end
-    return l, r, t, b
-end
+-- ⚠⚠ 這張表是這整套的核心，數字不是隨便填的：
+--
+--   **往上要蓋住自己的內部零件。** 各元件內部都用 level+N 明寫過：
+--     hpbar   疊加層與溢盾框在 level+2  → 抬 3
+--     castbar 盾牌框在 lvl+4            → 抬 5
+--     mpbar   邊框在 level+1            → 只抬 1（見下）
+--
+--   **往下不能高過「壓在它上面那個元件的不透明底色」**，否則重疊處會疊成兩倍暗。
+--     mpbar 是刻意只抬 1 的：目標框 mpbar(-8,-8,200,50) 與 hpbar(0,0,200,50) 大幅重疊，
+--     而血條底色在 bgLevel 2（沒設 bgLevel 時就是血條框本身 4）。
+--     mp 遮罩放 1 ⇒ 重疊處被血條的不透明底色擋住、看不見；只有魔力條**露出血條之外**
+--     那截（左 8、下 8）才會被蓋到 —— 這正是我們要的。
+--     抬到 3 的話它會浮在血條底色之上，而血條填充是半透明的（目標框 barAlpha 0.5），
+--     於是從底下透出來跟 hpbar 的遮罩疊起來 ⇒ 一條落在 y = -8 的分隔線。
+--
+-- 只鋪一張聯集矩形也不行：形狀是各元件的聯集，左上與右下會多出空白的直角。
+local SCRIM_LIFT = {
+    hpbar   = 3,
+    castbar = 5,
+    mpbar   = 1,
+}
+-- 已知殘留（不修，記著就好）：首領框的 hpbar 沒設 bgLevel、底色就在血條框自己的
+-- level 4，而 mpbar 也是 4 ⇒ mp 遮罩(5) 會浮在血條之上。但那兩條 bar 只重疊 1 格
+-- （hpbar 到 -14、mpbar 從 -13 起），而且同層的繪製順序本來就不保證 ——
+-- 為 1px 加一套「誰蓋誰」的推導不划算。真的看得出來的話，把首領框魔力條的 y
+-- 從 -13 改成 -14（設定面板就能改）重疊就沒了。
+local DEFAULT_LIFT = 1
 
--- 施法條那類「層級高於文字」的元件仍然各遮各的：它們本來就要蓋住底下的東西，
--- 而且跟本體遮罩不會互相疊加（本體在 7，被施法條的不透明內容擋住）。
--- 遮罩掛成該元件的子物件 ⇒ 元件一藏，遮罩自動跟著藏。
+-- 遮罩掛成該元件的子物件 ⇒ 元件一藏，遮罩自動跟著藏（施法條沒在唱時不會留黑塊）。
 local function ScrimFor(uf, name, target, level)
     uf.oorScrims = uf.oorScrims or {}
     local sc = uf.oorScrims[name]
@@ -264,20 +253,6 @@ local function ScrimFor(uf, name, target, level)
     return sc
 end
 
-local function BodyScrim(uf)
-    local sc = uf.oorBody
-    if not sc then
-        sc = CreateFrame("Frame", nil, uf)
-        sc:EnableMouse(false)
-        sc:SetFrameLevel(BODY_SCRIM_LEVEL)
-        sc.tex = sc:CreateTexture(nil, "OVERLAY")
-        sc.tex:SetAllPoints(sc)
-        sc.tex:SetColorTexture(0, 0, 0, 1)
-        uf.oorBody = sc
-    end
-    return sc
-end
-
 -- 暗色層的開關
 local function ApplyScrim(uf)
     local g = ns.db.global
@@ -289,7 +264,6 @@ local function ApplyScrim(uf)
         -- ⚠ 關閉路徑刻意不吃早退：只要有任何一條路徑讓 appliedScrim 與畫面不同步，
         -- 遮罩就會永久卡住而且自己好不了。每次輪詢都關一次，換到「一定會恢復」。
         uf.appliedScrim = nil
-        if uf.oorBody then uf.oorBody:Hide() end
         if list then for _, sc in pairs(list) do sc:Hide() end end
         for name in pairs(SCRIM_ALPHA_ELEMENTS) do
             local ef = uf.elements and uf.elements[name]
@@ -301,20 +275,6 @@ local function ApplyScrim(uf)
     if uf.appliedScrim == strength then return end
     uf.appliedScrim = strength
 
-    -- 本體：一張，蓋住所有「條」的聯集
-    local l, r, t, b = BodyRect(uf)
-    if l then
-        local sc = BodyScrim(uf)
-        sc:ClearAllPoints()
-        sc:SetPoint("TOPLEFT",     uf, "TOPLEFT", ns.P.Scale(l), ns.P.Scale(t))
-        sc:SetPoint("BOTTOMRIGHT", uf, "TOPLEFT", ns.P.Scale(r), ns.P.Scale(b))
-        sc.tex:SetAlpha(strength)
-        sc:Show()
-    elseif uf.oorBody then
-        uf.oorBody:Hide()
-    end
-
-    -- 層級高於本體遮罩的元件（施法條）各遮各的；不規則圖示走 alpha
     local els = uf.db and uf.db.elements
     local seen = {}
     if els then
@@ -324,10 +284,11 @@ local function ApplyScrim(uf)
                and type(edb.level) == "number" and ef.SetPoint then
                 local fade = SCRIM_ALPHA_ELEMENTS[name]
                 if fade then
-                    ef:SetAlpha(fade)
-                elseif edb.level >= BODY_SCRIM_LEVEL then
+                    ef:SetAlpha(fade)        -- 不規則圖示：走 alpha，不蓋方塊
+                else
                     seen[name] = true
-                    local sc = ScrimFor(uf, name, ef, edb.level + 3)
+                    local sc = ScrimFor(uf, name, ef,
+                                        edb.level + (SCRIM_LIFT[name] or DEFAULT_LIFT))
                     sc.tex:SetAlpha(strength)
                     sc:Show()
                 end
