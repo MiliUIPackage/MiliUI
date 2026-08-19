@@ -154,7 +154,6 @@ end
 -- 那行數字不該跟著糊掉。
 -- ⚠ 使用者若把某條文字的 level 設到 9 以下，那條就會一起變暗 —— 這是可預期的，
 -- 不特別處理（level 本來就是「誰蓋誰」的唯一依據）。
-local OOR_SCRIM_LEVEL = 9
 
 -- 不適合用方形遮罩的元件：改走整體 alpha。
 -- 觀察按鈕是不規則圖示（放大鏡），蓋一塊方形暗色會看出明顯的直角邊界，很不自然。
@@ -202,19 +201,58 @@ end
 -- （追了也會慢一拍：遮罩只在距離狀態變化時重算，施法開始／結束不會推它）。
 --
 -- 池子用元件名當鍵，元件重建時沿用同一顆。
+-- 本體遮罩的層級。要在所有「條」與它們的內部零件之上（條 0–6、邊框 +1、疊加層 +2），
+-- 但在觀察按鈕(8)、文字(10/11)、圖示(10)、施法條(12) 之下。
+local BODY_SCRIM_LEVEL = 7
+
+-- ⚠⚠ **本體只能有一張遮罩，不能一個元件一張。**
+-- 一個元件一張的版本會在重疊處變兩倍暗，畫面上就是一條清楚的分隔線。
+-- 目標框的實例：hpbar 是 0,0,200,50（遮罩 7）、mpbar 是 -8,-8,200,50（遮罩 3），
+-- 兩者大幅重疊；而堆疊順序是
+--     mpbar(0) → hpbar 底色(bgLevel 2) → mpbar 遮罩(3) → hpbar 填充(4) → hpbar 遮罩(7)
+-- 加上目標框 barAlpha = 0.5（填充半透明），mpbar 的遮罩會從底下透上來 ⇒ 疊成兩倍暗。
+-- 分隔線就落在 mpbar 的上緣 y = -8。
+-- 「靠元件之間的遮蔽關係自然避開重疊」是錯的：層級本來就交錯，填充又是半透明的。
+--
+-- 改成算出所有「要變暗的條」的**聯集矩形**，只鋪一張。
+-- 聯集會多出一點空白角落（目標框是左上與右下各 8×8），但那比一條貫穿整個框的
+-- 分隔線好得多 —— 而首領框的兩條 bar 是上下貼齊的，聯集剛好就是它們，沒有空白。
+local function BodyRect(uf)
+    local udb = uf.db
+    local els = udb and udb.elements
+    if not els then return nil end
+    local l, r, t, b
+    for name, edb in pairs(els) do
+        if type(edb) == "table" and edb.enabled ~= false
+           and not NO_DIM_ELEMENTS[name] and not SCRIM_ALPHA_ELEMENTS[name]
+           and type(edb.level) == "number" and edb.level < BODY_SCRIM_LEVEL
+           and type(edb.x) == "number" and type(edb.y) == "number"
+           and type(edb.w) == "number" and type(edb.h) == "number" then
+            local x1, x2 = edb.x, edb.x + edb.w
+            local y1, y2 = edb.y, edb.y - edb.h        -- 往下為負
+            if not l or x1 < l then l = x1 end
+            if not r or x2 > r then r = x2 end
+            if not t or y1 > t then t = y1 end
+            if not b or y2 < b then b = y2 end
+        end
+    end
+    if not l then return nil end
+    return l, r, t, b
+end
+
+-- 施法條那類「層級高於文字」的元件仍然各遮各的：它們本來就要蓋住底下的東西，
+-- 而且跟本體遮罩不會互相疊加（本體在 7，被施法條的不透明內容擋住）。
+-- 遮罩掛成該元件的子物件 ⇒ 元件一藏，遮罩自動跟著藏。
 local function ScrimFor(uf, name, target, level)
     uf.oorScrims = uf.oorScrims or {}
     local sc = uf.oorScrims[name]
     if sc and sc:GetParent() ~= target then
-        -- ⚠ 元件被換成另一顆 frame 了。舊的遮罩**刪不掉**，不先藏起來就會變成
-        -- 一塊永久留在畫面上的黑色方塊（而且不在 uf.oorScrims 裡，之後誰都關不掉）。
-        sc:Hide()
+        sc:Hide()           -- frame 刪不掉，不先藏就會變成永久黑塊
         sc = nil
     end
     if not sc then
-        -- CreateFrame 不受戰鬥限制；這是我們自己建的普通框，不是受保護物件
         sc = CreateFrame("Frame", nil, target)
-        sc:EnableMouse(false)          -- 不要吃掉滑鼠（右鍵選單、提示都靠它）
+        sc:EnableMouse(false)
         sc.tex = sc:CreateTexture(nil, "OVERLAY")
         sc.tex:SetAllPoints(sc)
         sc.tex:SetColorTexture(0, 0, 0, 1)
@@ -222,26 +260,37 @@ local function ScrimFor(uf, name, target, level)
     end
     sc:SetFrameLevel(level)
     sc:ClearAllPoints()
-    -- SetAllPoints 是「建立關係」不是回讀幾何，秘密值污染那條規則不適用
     sc:SetAllPoints(target)
     return sc
 end
 
--- 暗色層的開關。狀態沒變就不重設（這支落在距離輪詢上）
+local function BodyScrim(uf)
+    local sc = uf.oorBody
+    if not sc then
+        sc = CreateFrame("Frame", nil, uf)
+        sc:EnableMouse(false)
+        sc:SetFrameLevel(BODY_SCRIM_LEVEL)
+        sc.tex = sc:CreateTexture(nil, "OVERLAY")
+        sc.tex:SetAllPoints(sc)
+        sc.tex:SetColorTexture(0, 0, 0, 1)
+        uf.oorBody = sc
+    end
+    return sc
+end
+
+-- 暗色層的開關
 local function ApplyScrim(uf)
     local g = ns.db.global
     local on = (g.oorStyle or "dim") == "dim" and OutOfRange(uf)
-    local strength = on and (g.oorDim or 0.55) or nil
+    local strength = on and (g.oorDim or 0.35) or nil
 
     local list = uf.oorScrims
     if not on then
-        -- ⚠ **關閉路徑刻意不吃早退。** 早退是為了省「重複設定同一個強度」的成本，
-        -- 但只要有任何一條路徑讓 appliedScrim 與實際畫面不同步（元件重建、
-        -- 設定重套、我沒想到的第三條），遮罩就會永久卡住而且自己好不了。
-        -- 這裡每次輪詢都關一次：一輪最多幾個 Hide()，換到「一定會恢復」值得。
+        -- ⚠ 關閉路徑刻意不吃早退：只要有任何一條路徑讓 appliedScrim 與畫面不同步，
+        -- 遮罩就會永久卡住而且自己好不了。每次輪詢都關一次，換到「一定會恢復」。
         uf.appliedScrim = nil
+        if uf.oorBody then uf.oorBody:Hide() end
         if list then for _, sc in pairs(list) do sc:Hide() end end
-        -- 走 alpha 的那幾個要還原，否則會卡在淡的狀態
         for name in pairs(SCRIM_ALPHA_ELEMENTS) do
             local ef = uf.elements and uf.elements[name]
             if ef and ef.SetAlpha then ef:SetAlpha(1) end
@@ -252,6 +301,20 @@ local function ApplyScrim(uf)
     if uf.appliedScrim == strength then return end
     uf.appliedScrim = strength
 
+    -- 本體：一張，蓋住所有「條」的聯集
+    local l, r, t, b = BodyRect(uf)
+    if l then
+        local sc = BodyScrim(uf)
+        sc:ClearAllPoints()
+        sc:SetPoint("TOPLEFT",     uf, "TOPLEFT", ns.P.Scale(l), ns.P.Scale(t))
+        sc:SetPoint("BOTTOMRIGHT", uf, "TOPLEFT", ns.P.Scale(r), ns.P.Scale(b))
+        sc.tex:SetAlpha(strength)
+        sc:Show()
+    elseif uf.oorBody then
+        uf.oorBody:Hide()
+    end
+
+    -- 層級高於本體遮罩的元件（施法條）各遮各的；不規則圖示走 alpha
     local els = uf.db and uf.db.elements
     local seen = {}
     if els then
@@ -261,14 +324,9 @@ local function ApplyScrim(uf)
                and type(edb.level) == "number" and ef.SetPoint then
                 local fade = SCRIM_ALPHA_ELEMENTS[name]
                 if fade then
-                    ef:SetAlpha(fade)        -- 不規則圖示：走 alpha，不蓋方塊
-                else
+                    ef:SetAlpha(fade)
+                elseif edb.level >= BODY_SCRIM_LEVEL then
                     seen[name] = true
-                    -- ⚠ 不再夾上限。遮罩現在是**元件自己的子物件**，只蓋得到自己那塊，
-                    -- 所以不需要靠上限去保護文字 —— 文字保持清晰是因為它們（10/11）
-                    -- 高於「條」（0–6）與條的遮罩（3–9）。
-                    -- 施法條是刻意例外：它要蓋住底下的文字，所以層級在文字之上（12），
-                    -- 遮罩跟著到 15，蓋的仍然只有施法條自己那塊。
                     local sc = ScrimFor(uf, name, ef, edb.level + 3)
                     sc.tex:SetAlpha(strength)
                     sc:Show()
@@ -276,7 +334,6 @@ local function ApplyScrim(uf)
             end
         end
     end
-    -- 這一輪沒輪到的（元件被停用了）藏起來
     if list then
         for name, sc in pairs(list) do
             if not seen[name] then sc:Hide() end
@@ -299,52 +356,6 @@ function V.Alpha(uf)
         if ooc < a then a = ooc end
     end
     return a
-end
-
--- 暗色層的開關。狀態沒變就不重設（這支落在距離輪詢上）
-local function ApplyScrim(uf)
-    local g = ns.db.global
-    local on = (g.oorStyle or "dim") == "dim" and OutOfRange(uf)
-    local strength = on and (g.oorDim or 0.55) or nil
-    if uf.appliedScrim == strength then return end
-    uf.appliedScrim = strength
-
-    local list = uf.oorScrims
-    if not on then
-        if list then for i = 1, #list do list[i]:Hide() end end
-        -- 走 alpha 的那幾個要還原，否則會卡在淡的狀態
-        for name in pairs(SCRIM_ALPHA_ELEMENTS) do
-            local ef = uf.elements and uf.elements[name]
-            if ef and ef.SetAlpha then ef:SetAlpha(1) end
-        end
-        return
-    end
-
-    local els = uf.db and uf.db.elements
-    local n = 0
-    if els then
-        for name, ef in pairs(uf.elements or {}) do
-            local edb = els[name]
-            if edb and edb.enabled ~= false and not NO_DIM_ELEMENTS[name]
-               and type(edb.level) == "number"
-               and edb.level < OOR_SCRIM_LEVEL and ef.SetPoint then
-                local fade = SCRIM_ALPHA_ELEMENTS[name]
-                if fade then
-                    ef:SetAlpha(fade)        -- 不規則圖示：走 alpha，不蓋方塊
-                else
-                    n = n + 1
-                    local lvl = edb.level + 3
-                    if lvl > OOR_SCRIM_LEVEL then lvl = OOR_SCRIM_LEVEL end
-                    local sc = ScrimFor(uf, n, ef, lvl)
-                    sc.tex:SetAlpha(strength)
-                    sc:Show()
-                end
-            end
-        end
-    end
-    -- 池子裡多出來的（元件被停用了）藏起來
-    list = uf.oorScrims
-    if list then for i = n + 1, #list do list[i]:Hide() end end
 end
 
 function V.ApplyAlpha(uf)
