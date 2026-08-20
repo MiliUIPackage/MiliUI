@@ -7,7 +7,7 @@ local L = ns.L          -- Locales\Locale.lua 在 TOC 排在本檔之前
 
 ns.ADDON_NAME  = ADDON
 ns.VERSION     = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
-ns.DB_VERSION  = 10          -- schemaVersion，遷移鏈用（DB.Migrate 加條目時一起 bump）
+ns.DB_VERSION  = 11          -- schemaVersion，遷移鏈用（DB.Migrate 加條目時一起 bump）
 
 -- 支援的單位（spawn 順序）
 ns.UNITS = {

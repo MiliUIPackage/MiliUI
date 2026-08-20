@@ -76,7 +76,9 @@ local function bigCastbar(own)
         -- ⚠ 層級要**高於文字**（文字預設 10、部分 11）。施法條是暫時蓋住框內容的
         -- 覆蓋層，唱法時本來就該把底下的名字／血量數字遮住。
         -- 文字預設從 5 提到 10 之後（見 textDef），6 就變成在文字**底下**了。
-        enabled = true, x = 0, y = 0, w = 200, h = 52, level = 12,
+        -- 高度 = 血條的 50：施法條蓋的是血條／頭像那塊，再高就會在
+        -- 魔力條沒墊到的那一側露出去（玩家的魔力條右移 8、目標左移 8）
+        enabled = true, x = 0, y = 0, w = 200, h = 50, level = 12,
         bg = black(0.8), timeFormat = "elapsedTotal",
         showInterruptState = not own,   -- 自己的施法不套「不可打斷灰」也不畫盾牌
         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
@@ -710,6 +712,19 @@ local PROFILE_MIGRATIONS = {
     -- 層級應該高於文字。一律提到 12（文字用 10、少數 11）。
     -- 順帶把明寫 level = 6 的文字提到 10：那些會被血條的遮罩（level 4 → 遮罩 7）蓋暗。
     -- 值閘：只動「還等於舊預設」的那些數字，自己調過的一個都不碰。
+    -- v11：玩家／目標的施法條 52 → 50。高度對齊血條——施法條蓋的是血條／頭像
+    -- 那塊，52 會在魔力條沒墊到的那一側露出 2（玩家的魔力條右移 8、目標左移 8）。
+    -- 值閘：只動還等於舊預設 52 的，自己調過高度的不碰。
+    -- ⚠ 不能補進 v6：v6 已隨 1.1.0 發佈，跑過的設定檔不會重跑。
+    [11] = function(profile)
+        for _, unit in ipairs({ "player", "target" }) do
+            local udb = profile.units and profile.units[unit]
+            local cb = type(udb) == "table" and type(udb.elements) == "table"
+                       and udb.elements.castbar
+            if type(cb) == "table" and cb.h == 52 then cb.h = 50 end
+        end
+    end,
+
     [10] = function(profile)
         for _, udb in pairs(profile.units or {}) do
             if type(udb) == "table" and type(udb.elements) == "table" then
