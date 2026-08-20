@@ -66,11 +66,15 @@ end
 
 -- force = 跳過去重（設定套用要保證畫下去，不能被同幀稍早的刷新吃掉）
 function ns.Refresh(uf, bucket, force)
-    if not force then
+    do
         local stamps = uf.paintStamps
         if not stamps then stamps = {}; uf.paintStamps = stamps end
         local gen = Gen()
-        if stamps[bucket] == gen then return end
+        -- ⚠ 只有「跳過」那一步吃 force，戳記維護**兩條路都要跑**。
+        -- 以前整段包在 `if not force` 裡，於是強制重畫既不清戳記也不留戳記：
+        -- 同幀稍早畫過的 health／info 戳記還在 ⇒ 換人之後那幾個桶當幀都被擋掉，
+        -- 血條與文字停在**上一個單位**的值。
+        if not force and stamps[bucket] == gen then return end
         -- 換人是全量重畫，不能被同幀稍早的數值重畫蓋掉 → 先清掉所有戳記
         if bucket == "unitchanged" then wipe(stamps) end
         stamps[bucket] = gen
@@ -142,7 +146,12 @@ function ns.EvalActiveUnit(uf)
             xpcall(def.setunit, ns.ReportError, uf, resolved)
         end
     end
-    ns.Refresh(uf, "unitchanged")
+    -- ⚠ force：換單位一定要畫下去。同一幀稍早只要有人跑過 unitchanged（OnShow 的
+    -- RegisterUnitWatch 重畫、顯示閘、輪詢的換人偵測都會），去重就會把這次整個吃掉
+    -- ⇒ uf.unit 已經是 "vehicle"，cache 卻還是上一個單位的（載具期間玩家框顯示
+    -- 自己的名字／職業色，而頭像已經換成載具 —— 那個「有時候好有時候壞」就是這裡）。
+    -- 換單位是新資訊，同幀稍早的任何一次重畫都不可能已經涵蓋它。
+    ns.Refresh(uf, "unitchanged", true)
 end
 
 function ns.RefreshAll(bucket)
