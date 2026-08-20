@@ -25,6 +25,7 @@ ns.optionDefaults = {
         -- tooltip
         show_loot = true,
         show_notes = true,
+        interval_enlarged = true,
         show_npc_id = false,
 
         -- rewards
@@ -40,6 +41,7 @@ ns.optionDefaults = {
 
         -- reward options
         show_all_transmog_rewards = false,
+        transmog_shared_appearances = true,
         show_claimed_rep_rewards = true,
 
         -- development
@@ -225,12 +227,20 @@ ns.options = {
                     order = 21,
                     width = 'full'
                 },
+                transmog_shared_appearances = {
+                    type = 'toggle',
+                    arg = 'transmog_shared_appearances',
+                    name = L['options_shared_appearances'],
+                    desc = L['options_shared_appearances_desc'],
+                    order = 22,
+                    width = 'full'
+                },
                 show_claimed_rep = {
                     type = 'toggle',
                     arg = 'show_claimed_rep_rewards',
                     name = L['options_claimed_rep_rewards'],
                     desc = L['options_claimed_rep_rewards_desc'],
-                    order = 22,
+                    order = 23,
                     width = 'full'
                 },
                 VisibilityHeader = {
@@ -381,11 +391,11 @@ ns.options = {
                     desc = L['options_toggle_show_notes_desc'],
                     order = 52
                 },
-                use_standard_time = {
+                interval_enlarged = {
                     type = 'toggle',
-                    arg = 'use_standard_time',
-                    name = L['options_toggle_use_standard_time'],
-                    desc = L['options_toggle_use_standard_time_desc'],
+                    arg = 'interval_enlarged',
+                    name = L['options_toggle_interval_enlarged'],
+                    desc = L['options_toggle_interval_enlarged_desc'],
                     order = 53
                 },
                 show_npc_id = {

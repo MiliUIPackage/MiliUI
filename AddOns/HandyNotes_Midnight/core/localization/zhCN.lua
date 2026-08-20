@@ -3,7 +3,7 @@ local L = ns.NewLocale('zhCN')
 if not L then return end
 
 -------------------------------------------------------------------------------
------------------------------------- GEAR -------------------------------------
+------------------------------------- GEAR ------------------------------------
 -------------------------------------------------------------------------------
 
 L['bag'] = '背包'
@@ -38,7 +38,7 @@ L['cloak'] = '披风'
 L['trinket'] = '饰品'
 
 -------------------------------------------------------------------------------
----------------------------------- TOOLTIPS -----------------------------------
+----------------------------------- TOOLTIPS ----------------------------------
 -------------------------------------------------------------------------------
 
 L['activation_unknown'] = '激活未知！'
@@ -76,7 +76,7 @@ L['quest_repeatable'] = '可重复任务'
 L['achievement'] = '成就'
 L['decor_owned'] = '已拥有：'
 
----------------------------------- LOCATION -----------------------------------
+----------------------------------- LOCATION ----------------------------------
 L['in_cave'] = '在洞穴。'
 L['in_small_cave'] = '在小洞穴。'
 L['in_water_cave'] = '在水下洞穴。'
@@ -84,14 +84,18 @@ L['in_waterfall_cave'] = '瀑布后面洞穴中。'
 L['in_water'] = '在水中。'
 L['in_building'] = '在建筑里面。'
 
------------------------------------- TIME -------------------------------------
-L['now'] = '现在'
+------------------------------------- TIME ------------------------------------
+L['starts_in'] = '距开始：'
+L['time_remaining'] = '剩余时间：'
+L['next_time'] = '下一次：'
 L['hourly'] = '每小时'
 L['daily'] = '每日'
 L['weekly'] = '每周'
 
-L['time_format_12hrs'] = '%m/%d - %I:%M %p 本地时间'
-L['time_format_24hrs'] = '%m/%d - %H:%M 本地时间'
+L['time_format_12hrs'] = '%m/%d - %I:%M %p'
+L['time_format_24hrs'] = '%m/%d - %H:%M'
+L['local_time'] = '本地时间'
+L['server_time'] = '服务器时间'
 
 ----------------------------------- REWARDS -----------------------------------
 L['decor'] = '装饰'
@@ -114,7 +118,7 @@ L['follower_type_follower'] = '追随者'
 L['follower_type_champion'] = '勇士'
 L['follower_type_companion'] = '伙伴'
 
---------------------------------- REPUTATION ----------------------------------
+---------------------------------- REPUTATION ---------------------------------
 L['rep_honored'] = '尊敬'
 L['rep_revered'] = '崇敬'
 L['rep_exalted'] = '崇拜'
@@ -172,7 +176,7 @@ L['options_icon_settings'] = '图标设置'
 L['options_scale'] = '缩放'
 L['options_scale_desc'] = '1 = 100%'
 L['options_opacity'] = '透明度'
-L['options_opacity_desc'] = '0 = 透明, 1 = 不透明'
+L['options_opacity_desc'] = '0 = 透明，1 = 不透明'
 
 ---------------------------------- VISIBILITY ---------------------------------
 
@@ -189,6 +193,8 @@ L['options_toggle_hide_done_treasure'] = '隐藏所有拾取已知的宝藏'
 L['options_toggle_hide_done_treasure_desc'] = '隐藏所有拾取已知的宝藏。'
 L['options_toggle_hide_minimap'] = '隐藏小地图上的所有图标'
 L['options_toggle_hide_minimap_desc'] = '在小地图上隐藏此插件的所有图标，只会在世界地图上显示。'
+L['options_toggle_interval_enlarged'] = '刷新窗口内放大图标'
+L['options_toggle_interval_enlarged_desc'] = '节点进入刷新窗口时放大其图标。关闭后所有图标保持正常大小。'
 L['options_toggle_maximized_enlarged'] = '世界地图最大化时图标放大'
 L['options_toggle_maximized_enlarged_desc'] = '当世界地图最大化，放大全部图标。'
 L['options_toggle_use_char_achieves'] = '使用角色成就'
@@ -222,6 +228,8 @@ L['options_transmog_rewards'] = '显示幻化奖励'
 L['options_transmog_rewards_desc'] = '在提示中显示幻化奖励并跟踪其收集状态。'
 L['options_all_transmog_rewards'] = '显示无法获取的幻化奖励'
 L['options_all_transmog_rewards_desc'] = '显示其它职业可以获取的幻化奖励。'
+L['options_shared_appearances'] = '共享模型幻化计为已获得'
+L['options_shared_appearances_desc'] = '开启后，获得同模型的其他物品幻化也会将本物品标记为已获得。'
 L['options_rep_rewards'] = '显示声望奖励'
 L['options_rep_rewards_desc'] = '在提示中显示声望奖励并跟踪其收集状态。'
 L['options_claimed_rep_rewards'] = '显示以已获得声望奖励'
@@ -255,8 +263,6 @@ L['options_toggle_show_loot'] = '显示拾取'
 L['options_toggle_show_loot_desc'] = '在提示中加入拾取信息'
 L['options_toggle_show_notes'] = '显示注释'
 L['options_toggle_show_notes_desc'] = '在提示中添加注释'
-L['options_toggle_use_standard_time'] = '使用12小时时钟'
-L['options_toggle_use_standard_time_desc'] = '在提示中使用12小时时钟（如：8:00 PM）而不是24小时时钟（如：20:00）。'
 L['options_toggle_show_npc_id'] = '显示 NPC ID'
 L['options_toggle_show_npc_id_desc'] = '显示 NPC ID 以供稀有扫描插件使用。'
 

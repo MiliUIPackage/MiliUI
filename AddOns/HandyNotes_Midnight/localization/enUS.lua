@@ -189,8 +189,8 @@ L['gulf_of_memory_chest_note'] = 'Walk up the roots of the tree to reach the tre
 
 L['lost_spirit_note'] = 'Return {item:269935} to {npc:261867}.'
 L['sunken_divers_chest_note'] = 'Kill the nearby {npc:263081} and loot 3 {item:271424}, then combine them to create {item:271423} to unlock the treasure.'
-L['vulzahn_smuggled_treasure_note'] = '1. Get {item:271791} from {dot:Blue}{npc:253837}\n\n2. Give {item:271791} to {dot:Red}{npc:262204} to receive {item:271788}\n\n3. Give {item:271788} to {dot:Green}{npc:263265} to receive {item:271792} and unlock the treasure.'
-L['grave_of_someone_forgotten_note'] = '1. Speak with {dot:Red}{npc:263242}.\n\n2. Speak with {dot:Green}{npc:263243}.\n\n3. Speak with {dot:Blue}{npc:263241}.\n\n4. Return to the grave to loot it.'
+L['vulzahn_smuggled_treasure_note'] = '1. Speak with {dot:Green}{npc:263265} next to the treasure.\n\n2. Speak with {dot:Red}{npc:262204}.\n\n3. Get {item:271791} from {dot:Blue}{npc:253837}.\n\n4. Give {item:271791} to {dot:Red}{npc:262204} to receive {item:271788}.\n\n5. Give {item:271788} to {dot:Green}{npc:263265} to receive {item:271792} and unlock the treasure.'
+L['grave_of_someone_forgotten_note'] = '1. Interact with the {object:Nameless Grave}.\n\n2. Speak with {dot:Red}{npc:263242}.\n\n3. Speak with {dot:Green}{npc:263243}.\n\n4. Speak with {dot:Blue}{npc:263241}.\n\n5. Return to the {object:Nameless Grave} to loot it.'
 L['profane_ritual_spoils_note'] = 'Face the statue and click the {npc:263187} in this order: top-right, top-left, bottom-right, bottom-left to unlock the treasure.'
 L['abandoned_amani_privateers_cache_note'] = '1. Fish in the {dot:Blue}{object:Grisly Cod Pool} to get a {item:265525}, then feed it to the {npc:258076} underwater.\n\n2. Follow the dolphin to collect the {item:265610} from the {dot:Red}{object:Waterlogged Crate} and the {item:265603} from the {dot:Green}{object:Broken Urn}.\n\n3. Right-click one half to combine them into the {item:265602} and unlock the treasure.\n\n{note:Stay underwater the whole time. If you surface, the dolphin swims away.}'
 L['grisly_cod_pool'] = 'Grisly Cod Pool'
@@ -210,3 +210,8 @@ L['options_icons_soft_underbelly_desc'] = 'Display locations for the {achievemen
 
 L['options_icons_the_honored_dead'] = '{achievement:63610}'
 L['options_icons_the_honored_dead_desc'] = 'Display the locations for the {achievement:63610} achievement.'
+
+L['options_icons_mysterious_mixing'] = '{achievement:63432}'
+L['options_icons_mysterious_mixing_desc'] = 'Display the {achievement:63432} locations.'
+L['mysterious_mixing_note'] = 'Complete the {quest:97016} daily for {npc:263327} to craft offerings:\n\n{note:Ingredients can be obtained from the {object:Cracked Canopic Jar}, {object:Venom-Clotted Bauble}, and {object:Singing Shell} around the isle, or bought at the auction house.}'
+L['curse_surge_note'] = 'Cursed Surge events rotate every 45 minutes.\n\n{note:If you missed it, group up cross-realm — other realms may still have the event running.}'

@@ -158,6 +158,14 @@ function Achievement:Initialize(attrs)
     self.criteria = ns.AsIDTable(self.criteria)
 end
 
+function Achievement:Prepare()
+    if self.criteria then
+        for _, c in ipairs(self.criteria) do
+            if c.note then ns.PrepareLinks(c.note) end
+        end
+    end
+end
+
 function Achievement:IsObtained()
     local _, _, _, completed, _, _, _, _, _, _, _, _, earnedByMe =
         GetAchievementInfo(self.id)
@@ -219,6 +227,7 @@ function Achievement:GetLines()
             end
             note = note and (note .. '  ' .. status) or status
         end
+        if note then note = ns.RenderLinks(note) end
 
         return ctext, note, r, g, b
     end
@@ -667,19 +676,28 @@ function Transmog:IsEnabled()
 end
 
 function Transmog:IsKnown()
-    if CTC.PlayerHasTransmog(self.item) then return true end
-    local appearanceID, sourceID = CTC.GetItemInfo(self.item)
-    if sourceID and CTC.PlayerHasTransmogItemModifiedAppearance(sourceID) then
-        return true
-    end
-    if appearanceID then
-        for i, sourceID in ipairs(CTC.GetAllAppearanceSources(appearanceID)) do
-            if CTC.PlayerHasTransmogItemModifiedAppearance(sourceID) then
-                return true
+    if ns:GetOpt('transmog_shared_appearances') then
+        if CTC.PlayerHasTransmog(self.item) then return true end
+        local appearanceID, sourceID = CTC.GetItemInfo(self.item)
+        if sourceID and CTC.PlayerHasTransmogItemModifiedAppearance(sourceID) then
+            return true
+        end
+        if appearanceID then
+            for i, sourceID in ipairs(CTC.GetAllAppearanceSources(appearanceID)) do
+                if CTC.PlayerHasTransmogItemModifiedAppearance(sourceID) then
+                    return true
+                end
             end
         end
+        return false
     end
-    return false
+    -- Only count the item's own source: shared-model appearances from
+    -- other items must not mark this reward as collected.
+    local _, sourceID = CTC.GetItemInfo(self.item)
+    if sourceID then
+        return CTC.PlayerHasTransmogItemModifiedAppearance(sourceID)
+    end
+    return CTC.PlayerHasTransmog(self.item)
 end
 
 function Transmog:IsLearnable()

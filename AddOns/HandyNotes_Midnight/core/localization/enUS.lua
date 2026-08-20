@@ -3,7 +3,7 @@ local L = ns.NewLocale('enUS')
 if not L then return end
 
 -------------------------------------------------------------------------------
------------------------------------- GEAR -------------------------------------
+------------------------------------- GEAR ------------------------------------
 -------------------------------------------------------------------------------
 
 L['bag'] = 'Bag'
@@ -38,7 +38,7 @@ L['cloak'] = 'Cloak'
 L['trinket'] = 'Trinket'
 
 -------------------------------------------------------------------------------
----------------------------------- TOOLTIPS -----------------------------------
+----------------------------------- TOOLTIPS ----------------------------------
 -------------------------------------------------------------------------------
 
 L['activation_unknown'] = 'Activation unknown!'
@@ -76,7 +76,7 @@ L['quest_repeatable'] = 'Repeatable Quest'
 L['achievement'] = 'Achievement'
 L['decor_owned'] = 'Owned: %s'
 
----------------------------------- LOCATION -----------------------------------
+----------------------------------- LOCATION ----------------------------------
 L['in_cave'] = 'In a cave.'
 L['in_small_cave'] = 'In a small cave.'
 L['in_water_cave'] = 'In an underwater cave.'
@@ -84,14 +84,18 @@ L['in_waterfall_cave'] = 'In a cave behind a waterfall.'
 L['in_water'] = 'In the water.'
 L['in_building'] = 'In the building.'
 
------------------------------------- TIME -------------------------------------
-L['now'] = 'Now'
+------------------------------------- TIME ------------------------------------
+L['starts_in'] = 'Starts In:'
+L['time_remaining'] = 'Time Remaining:'
+L['next_time'] = 'Next:'
 L['hourly'] = 'Hourly'
 L['daily'] = 'Daily'
 L['weekly'] = 'Weekly'
 
-L['time_format_12hrs'] = '%B %d - %I:%M %p local time'
-L['time_format_24hrs'] = '%B %d - %H:%M local time'
+L['time_format_12hrs'] = '%B %d - %I:%M %p'
+L['time_format_24hrs'] = '%B %d - %H:%M'
+L['local_time'] = 'local time'
+L['server_time'] = 'server time'
 
 ----------------------------------- REWARDS -----------------------------------
 L['decor'] = 'Housing Decor'
@@ -114,7 +118,7 @@ L['follower_type_follower'] = 'Follower'
 L['follower_type_champion'] = 'Champion'
 L['follower_type_companion'] = 'Companion'
 
---------------------------------- REPUTATION ----------------------------------
+---------------------------------- REPUTATION ---------------------------------
 L['rep_honored'] = 'Honored'
 L['rep_revered'] = 'Revered'
 L['rep_exalted'] = 'Exalted'
@@ -189,6 +193,8 @@ L['options_toggle_hide_done_treasure'] = 'Hide treasure if all rewards known'
 L['options_toggle_hide_done_treasure_desc'] = 'Hide all treasures for which all loot is known.'
 L['options_toggle_hide_minimap'] = 'Hide all icons on the minimap'
 L['options_toggle_hide_minimap_desc'] = 'Hides all icons from this addon on the minimap and displays them only on the main map.'
+L['options_toggle_interval_enlarged'] = 'Enlarge interval icons in their spawn window'
+L['options_toggle_interval_enlarged_desc'] = 'Enlarge the icon of an interval or timer node while it is in its spawn window. Disable to keep all icons at normal size.'
 L['options_toggle_maximized_enlarged'] = 'Enlarge icons on maximized world map'
 L['options_toggle_maximized_enlarged_desc'] = 'When the world map is maximized, enlarge all icons.'
 L['options_toggle_use_char_achieves'] = 'Use character achievements'
@@ -222,6 +228,8 @@ L['options_transmog_rewards'] = 'Show transmog rewards'
 L['options_transmog_rewards_desc'] = 'Display transmog rewards in tooltips and track their collected status.'
 L['options_all_transmog_rewards'] = 'Show unobtainable transmog rewards'
 L['options_all_transmog_rewards_desc'] = 'Display transmog rewards obtainable by other classes.'
+L['options_shared_appearances'] = 'Shared-model appearances count as collected'
+L['options_shared_appearances_desc'] = 'When enabled, collecting a shared-model appearance from another item marks this reward as collected.'
 L['options_rep_rewards'] = 'Show reputation rewards'
 L['options_rep_rewards_desc'] = 'Display reputation rewards in tooltips and track their collected status.'
 L['options_claimed_rep_rewards'] = 'Show claimed reputation rewards'
@@ -255,8 +263,6 @@ L['options_toggle_show_loot'] = 'Show Loot'
 L['options_toggle_show_loot_desc'] = 'Add loot information to the tooltip'
 L['options_toggle_show_notes'] = 'Show Notes'
 L['options_toggle_show_notes_desc'] = 'Add helpful notes to the tooltip where available'
-L['options_toggle_use_standard_time'] = 'Use 12-Hour Clock'
-L['options_toggle_use_standard_time_desc'] = 'Use 12-hour clock (ex: 8:00 PM) instead of 24-hour clock (ex: 20:00) in tooltips.'
 L['options_toggle_show_npc_id'] = 'Show NPC ID'
 L['options_toggle_show_npc_id_desc'] = 'Show the NPC\'s ID for use in rare-scanning addons.'
 

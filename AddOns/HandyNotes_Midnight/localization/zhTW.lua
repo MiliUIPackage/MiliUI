@@ -189,8 +189,8 @@ L['gulf_of_memory_chest_note'] = '沿著樹根向上走即可到達寶藏。'
 
 L['lost_spirit_note'] = '將 {item:269935} 交還給 {npc:261867}。'
 L['sunken_divers_chest_note'] = '擊殺附近的 {npc:263081} 並拾取 3 個 {item:271424}，接著將其合成為 {item:271423} 以解鎖寶藏。'
-L['vulzahn_smuggled_treasure_note'] = '1. 從 {dot:Blue}{npc:253837} 取得 {item:271791}\n\n2. 將 {item:271791} 交給 {dot:Red}{npc:262204} 以獲得 {item:271788}\n\n3. 將 {item:271788} 交給 {dot:Green}{npc:263265} 以獲得 {item:271792} 並解鎖寶藏'
-L['grave_of_someone_forgotten_note'] = '1. 與 {dot:Red}{npc:263242} 對話。\n\n2. 與 {dot:Green}{npc:263243} 對話。\n\n3. 與 {dot:Blue}{npc:263241} 對話。\n\n4. 返回墳墓進行拾取。'
+L['vulzahn_smuggled_treasure_note'] = '1. 與寶藏旁的 {dot:Green}{npc:263265} 對話。\n\n2. 與 {dot:Red}{npc:262204} 對話。\n\n3. 從 {dot:Blue}{npc:253837} 取得 {item:271791}。\n\n4. 將 {item:271791} 交給 {dot:Red}{npc:262204} 以獲得 {item:271788}。\n\n5. 將 {item:271788} 交給 {dot:Green}{npc:263265} 以獲得 {item:271792} 並解鎖寶藏。'
+L['grave_of_someone_forgotten_note'] = '1. 與 {object:無名墳墓}互動。\n\n2. 與 {dot:Red}{npc:263242} 對話。\n\n3. 與 {dot:Green}{npc:263243} 對話。\n\n4. 與 {dot:Blue}{npc:263241} 對話。\n\n5. 返回 {object:無名墳墓} 進行拾取。'
 L['profane_ritual_spoils_note'] = '面向雕像，依右上、左上、右下、左下的順序點擊 {npc:263187} 即可開啟寶藏。'
 L['abandoned_amani_privateers_cache_note'] = '1. 在 {dot:Blue}{object:可怖鱈魚群} 釣到 {item:265525}，喂給水下的 {npc:258076}。\n\n2. 跟隨海豚收集 {dot:Red}{object:浸水的箱子} 中的 {item:265610} 和 {dot:Green}{object:破損的甕} 中的 {item:265603}。\n\n3. 右鍵其中一半合成 {item:265602}，開啟寶藏。\n\n{note:全程保持在水下，浮出水面海豚就會游走。}'
 L['grisly_cod_pool'] = '可怖鱈魚群'
@@ -210,3 +210,8 @@ L['options_icons_soft_underbelly_desc'] = '顯示 {achievement:62601} 成就的�
 
 L['options_icons_the_honored_dead'] = '{achievement:63610}'
 L['options_icons_the_honored_dead_desc'] = '顯示 {achievement:63610} 成就的位置。'
+
+L['options_icons_mysterious_mixing'] = '{achievement:63432}'
+L['options_icons_mysterious_mixing_desc'] = '顯示 {achievement:63432} 成就的位置。'
+L['mysterious_mixing_note'] = '完成 {npc:263327} 的 {quest:97016} 每日，以調配所需的供品：\n\n{note:材料可從地圖中的 {object:碎裂的臟器罈}、{object:毒液凝結裝飾}、{object:歌唱甲殼} 中獲取，或從拍賣行購買。}'
+L['curse_surge_note'] = '詛咒狂湧事件每 45 分鐘輪換一次。\n\n{note:如果未完成，可跨服組隊完成——其他伺服器的事件可能仍在進行中。}'
