@@ -169,13 +169,22 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
             b.stack:Hide()
         end
 
-        -- 位移：沿生長方向排。往左長時 x 是負的、往上長時 y 是正的
-        local step = (i - 1) * ((vert and h or w) + gap)
-        local dx, dy = 0, 0
+        -- 位移：沿主軸排，排滿 perRow 個就換一行（往次軸方向疊）。
+        -- ⚠ 假光環一度沒有換行，perRow 設 6 卻把 8 個排成一直線 —— 而「換行」正是
+        -- 生長方向那個選項要演示的一半。真的容器是靠 SetFlowLayoutMaximumLineSize
+        -- 換行的，這裡要自己算。
+        --   橫向主軸（LR/RL）：col 沿水平、row 往上或往下疊
+        --   縱向主軸（TB/BT）：col 沿垂直、row 往左或往右疊
+        local col = (i - 1) % perRow
+        local row = math.floor((i - 1) / perRow)
+        local stepW, stepH = w + gap, h + gap
+        local dx, dy
         if vert then
-            dy = growUp and step or -step
+            dy = (growUp and 1 or -1) * col * stepH
+            dx = (growLeft and -1 or 1) * row * stepW
         else
-            dx = growLeft and -step or step
+            dx = (growLeft and -1 or 1) * col * stepW
+            dy = (growUp and 1 or -1) * row * stepH
         end
         b:ClearAllPoints()
         b:SetPoint(corner, uf, "TOPLEFT", (edb.x or 0) + dx, (edb.y or 0) + dy)
