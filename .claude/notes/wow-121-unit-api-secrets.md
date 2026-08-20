@@ -15,6 +15,12 @@ metadata:
 理由：防止把多個 API 組合起來在戰鬥中比對兩個 secret unit 是不是同一個。
 
 其他相關變更：
+- **`UnitIsUnit` 回 secret boolean**（2026-08-20 實測：`UnitIsUnit("boss1", "party4")`）：只要有一邊是
+  identity restricted 的單位就整個回 secret —— 這正是上面那條「理由」要擋的動作。而 secret **boolean**
+  連 `== true` 都不能比（`attempt to compare local 'same' (a secret boolean value)`），
+  `pcall` 也救不到值本身。寫法：`issecretvalue` 先擋，把「不給知道」當成第三種答案 `nil`，讓呼叫端
+  自己決定疑慮時 fail-open 還是 fail-closed，不要一律 `ok and x == true` 把它吃成 false。
+  範本：Cell `RaidFrames/AuraDisplay.lua` 的 `SameUnit()`。
 - `UnitIsCharmed` / `UnitIsPossessed`：auras 為 secret 時回 secret，但 unit token 是 `player` / `pet` / `vehicle` 時不會（PTR 8 修正）。
 - `GetGuildInfo` 不再接受 compound unit token（如 `boss1target`）。
 - `UnitName` 在 active PvP match 中**不再**回 secret（放寬）。

@@ -38,6 +38,19 @@ local CreateFrame = CreateFrame
 local InCombatLockdown = InCombatLockdown
 local issecretvalue = issecretvalue or function() return false end
 
+-- UnitIsUnit answers with a SECRET boolean as soon as the pairing involves a unit you are
+-- not allowed to identify -- "boss1" vs "party4" is the one that shows up in the vehicle
+-- watcher -- and comparing a secret boolean is an instant Lua error, not a false.
+-- Tri-state on purpose: true/false only when the engine actually told us, nil for
+-- "not allowed to know", so every caller has to say out loud what it does with doubt.
+local function SameUnit(a, b)
+    if type(a) ~= "string" or type(b) ~= "string" then return false end
+    if a == b then return true end
+    local ok, same = pcall(UnitIsUnit, a, b)
+    if not ok or issecretvalue(same) then return nil end
+    return same == true
+end
+
 -- Blizzard filter tokens (defensive: names differ slightly across PTR builds).
 local TOKEN_CC   = "CROWD_CONTROL"
 local TOKEN_DISP = "RAID_PLAYER_DISPELLABLE"
@@ -1357,8 +1370,9 @@ function Handle:ApplyIdentityGate()
         if type(unit) == "string" and UnitExists(unit) then
             local isOwn = unit == "player"
             if not isOwn then
-                local okU, same = pcall(UnitIsUnit, unit, "player") -- "raid5" can be you
-                isOwn = okU and same == true
+                -- "raid5" can be you. Doubt counts as own, per the note above: that is
+                -- the answer that leaves the row visible in SHOW mode.
+                isOwn = SameUnit(unit, "player") ~= false
             end
 
             -- (1) non-assistable (cross-faction, duel, cinematic): includeSpellIDs is
@@ -1566,13 +1580,6 @@ do
     -- row would stay blank until regen -- and in combat the aura churn re-parses it anyway.
     -- UNIT_PET is watched because THAT, not UNIT_ENTERED_VEHICLE, is when the vehicle
     -- actually lands; the enter event fires at the start of the transition, before data.
-    local function SameUnit(a, b)
-        if type(a) ~= "string" or type(b) ~= "string" then return false end
-        if a == b then return true end
-        local ok, same = pcall(UnitIsUnit, a, b)
-        return ok and same == true
-    end
-
     local vehQueued
     local function VehicleSettle(final)
         if final then vehQueued = nil end
@@ -1597,6 +1604,9 @@ do
 
         local latch = not InCombatLockdown()
         for h in pairs(AD._instances or {}) do
+            -- SameUnit nil (unknown -- a boss/arena row against a group token) is falsy
+            -- and skips: latching a row that has nothing to do with this transition would
+            -- blank it for a second, and the forced settle bounce below covers it anyway.
             if not h._destroyed and h._gateVulnerable and SameUnit(h.unit, unit) then
                 pcall(function() h:ApplyIdentityGate() end)
                 if latch then SetLatch(h, true) end
