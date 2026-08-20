@@ -89,6 +89,42 @@ local function ShortName(sender)
 end
 
 ----------------------------------------------------------------------
+-- 撞號提醒
+----------------------------------------------------------------------
+-- warned[短名] = 已經提醒過的編號。同一個人同一個編號只講一次，否則每次
+-- 心跳廣播都會洗一行；對方換圖示、或自己換圖示，都會重新評估。
+local warned = {}
+local lastMine = nil
+
+local function MarkIcon(index)
+    return "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_" .. index .. ":14|t"
+end
+
+local function WarnIfClash(name)
+    local info = peers[name]
+    if not info then return end
+    local mine = MyIndex()
+    if mine < 1 or info.index ~= mine then
+        warned[name] = nil       -- 現在沒撞；之後再撞要能重新提醒
+        return
+    end
+    if warned[name] == mine then return end
+    warned[name] = mine
+    print(("|cffff6600[MiliUI]|r 隊友：%s 的焦點標記符號 %s 和你重複。")
+        :format(name, MarkIcon(mine)))
+end
+
+-- 自己換圖示時整批重評：舊的提醒紀錄對新圖示沒有意義。
+-- 用 lastMine 擋掉「重選同一個圖示」的情況，免得重複印。
+local function RecheckAllClashes()
+    local mine = MyIndex()
+    if mine == lastMine then return end
+    lastMine = mine
+    wipe(warned)
+    for name in pairs(peers) do WarnIfClash(name) end
+end
+
+----------------------------------------------------------------------
 -- 名單維護
 ----------------------------------------------------------------------
 -- 回傳目前隊伍／團隊成員的短名集合；名字是秘密值時回 nil 代表「不確定」，
@@ -114,12 +150,16 @@ end
 local function PrunePeers()
     if not IsInGroup() then
         wipe(peers)
+        wipe(warned)
         return
     end
     local set = GroupShortNames()
     if not set then return end   -- 名字讀不到，這次不清
     for name in pairs(peers) do
-        if not set[name] then peers[name] = nil end
+        if not set[name] then
+            peers[name] = nil
+            warned[name] = nil
+        end
     end
 end
 
@@ -148,9 +188,11 @@ function MiliUI_FocuserSync.IsRestricted()
     return IsCommRestricted()
 end
 
--- 自己的設定改了 → 主動廣播（會順便引來隊友回覆，資料一起補齊）
+-- 自己的設定改了 → 主動廣播（會順便引來隊友回覆，資料一起補齊），
+-- 並拿新圖示重評一次撞號
 function MiliUI_FocuserSync.Broadcast()
     Send(false)
+    RecheckAllClashes()
 end
 
 ----------------------------------------------------------------------
@@ -189,6 +231,7 @@ f:SetScript("OnEvent", function(_, event, ...)
         local name = ShortName(sender)
         if not name then return end
         peers[name] = { index = index, time = GetTime() }
+        WarnIfClash(name)
 
         -- 對方是主動廣播（不是回覆）→ 回一則，讓他也知道我的設定。
         -- 回覆不會再引發回覆，所以不可能無限來回。
