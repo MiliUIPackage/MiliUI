@@ -272,12 +272,16 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
                 ctx.apply()
                 self:ClearFocus()
             end)
-            -- 沒按 Enter 就點到別處時還原顯示值（理由同數字框：框裡留著沒套用的
-            -- 內容最容易讓人以為已經生效）。
+            -- 失焦＝提交（同數字框）。還原的話會變成「打完點別處就沒了」，
+            -- 使用者的感受是這個欄位壞掉。
             -- ⚠ 用 HookScript：CreateEditBox 自己的 OnEditFocusLost 負責把邊框色復原，
             -- SetScript 會把它蓋掉、讓失焦後的邊框一直留在強調色。
             eb:HookScript("OnEditFocusLost", function(self)
-                self:SetText(tostring(ctx.get(spec) or ""))
+                local cur = self:GetText()
+                if cur ~= tostring(ctx.get(spec) or "") then
+                    ctx.set(spec, cur)
+                    ctx.apply()
+                end
                 self:SetCursorPosition(0)
             end)
             tinsert(refreshers, function()

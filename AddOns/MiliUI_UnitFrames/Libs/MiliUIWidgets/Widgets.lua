@@ -315,8 +315,14 @@ function W.CreateNumberBox(parent, width, step, onCommit)
     local function Commit(v)
         v = tonumber(v)
         if v == nil then
-            eb:SetText(eb.value or 0)
+            eb:SetText(eb.value or 0)       -- 打了不是數字的東西：還原
+            eb:SetCursorPosition(0)
             return
+        end
+        -- 沒變就不重複套用：Enter 之後緊接著失焦會再進來一次，而 onCommit 是
+        -- 「整個單位重套設定」等級的工作
+        if v == eb.value then
+            eb:SetText(v); eb:SetCursorPosition(0); return
         end
         eb.value = v
         eb:SetText(v)
@@ -332,8 +338,8 @@ function W.CreateNumberBox(parent, width, step, onCommit)
     function eb:GetValue() return eb.value end
 
     eb:SetScript("OnEnterPressed", function(self)
+        Commit(self:GetText())       -- 先提交再放掉焦點（失焦那條也會提交，Commit 會去重）
         self:ClearFocus()
-        Commit(self:GetText())
     end)
     -- 滾輪微調只在「點進去（有焦點）」時才吃：沒焦點時不攔截滾輪事件，
     -- 捲動設定頁滑過數字框既不會誤改數值、也不會卡住捲動
@@ -345,11 +351,11 @@ function W.CreateNumberBox(parent, width, step, onCommit)
     eb:SetScript("OnEditFocusLost", function(self)
         self:SetBackdropBorderColor(0, 0, 0, 1)
         self:EnableMouseWheel(false)
-        -- 打了字沒按 Enter 就點到別處：值並沒有套用，但框裡還顯示著剛打的數字，
-        -- 看起來像已經生效了。還原成實際值 —— 這裡刻意**不**提交，
-        -- 免得「不小心點掉」變成套用。
-        self:SetText(tostring(self.value or 0))
-        self:SetCursorPosition(0)
+        -- ⚠ 失焦＝提交，不是還原。
+        -- 一度寫成「還原成實際值，刻意不提交，免得不小心點掉變成套用」——
+        -- 那個顧慮站不住腳：在數字框裡打字，意圖是明確的。實際體驗是
+        -- 「打完數字點別處 → 值跳回去 → 等於改不了」。
+        Commit(self:GetText())
     end)
     eb:SetScript("OnMouseWheel", function(self, delta)
         if not self:HasFocus() then return end

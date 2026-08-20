@@ -73,6 +73,8 @@ end
 ------------------------------------------------------------
 -- 假光環（Auras 元件在預覽時不建容器，這裡鋪靜態圖示）
 ------------------------------------------------------------
+local auraDemoStep = 0      -- 調光環時，預覽循環演示數量（見 DemoCount）
+
 local FAKE_AURA_ICONS = {
     136085, 135987, 136078, 132333, 135932, 136048, 135953, 136105,
 }
@@ -88,7 +90,18 @@ local FAKE_STACKS    = { 0, 3, 0, 12, 0, 2 }      -- 0 = 不顯示層數
 --   1. **生長方向只認了「往上」**，不認右到左。首領框的減益用 RLBT（右緣對齊框架、
 --      往左長），舊寫法會從 x=220 往**右**排，整排飛到框外面去
 --   2. 沒有秒數與層數。那正是使用者要在預覽裡看的東西
-local function BuildFakeAuras(uf, elementName, edb)
+-- 演示用的數量序列：1 個 → 幾個 → 剛好一列 → 換行。
+-- ⚠ 這是「生長方向」那個選項的**說明方式**。「左→右，往上」到底是什麼意思、
+-- x/y 釘的又是哪一角，用文字寫再清楚都不如讓它演一次 —— 數量從 1 長到換行，
+-- 哪一邊不動、往哪個方向長，一眼就看得出來。
+local function DemoCount(edb)
+    local perRow = math.max(1, edb.perRow or 8)
+    local seq = { 1, math.min(3, perRow), perRow, perRow + 2 }
+    local n = seq[(auraDemoStep % #seq) + 1]
+    return math.max(1, math.min(n, edb.maxCount or 40, 12))
+end
+
+local function BuildFakeAuras(uf, elementName, edb, countOverride)
     uf.fakeAuras = uf.fakeAuras or {}
     local list = uf.fakeAuras[elementName]
     if not list then
@@ -104,7 +117,7 @@ local function BuildFakeAuras(uf, elementName, edb)
     local w, h = edb.w or 20, edb.h or 20
     local gap  = edb.spacing or 0
     local perRow = math.max(1, edb.perRow or 8)
-    local count = math.min(perRow, 6)
+    local count = countOverride or math.min(perRow, 6)
 
     -- 錨點角與真的那顆一致（見 Elements/Auras.lua 的 AnchorContainer）：
     -- 往上長就用 BOTTOM 邊釘原點，往左長就用 RIGHT 邊
@@ -276,6 +289,11 @@ end
 local function Tick()
     stateIndex = stateIndex % #STATES + 1
 
+    -- 正在調光環 ⇒ 讓數量循環，把生長方向演出來
+    local auraSel = (Preview.selectedElement == "buffs" or Preview.selectedElement == "debuffs")
+                    and Preview.selectedElement or nil
+    if auraSel then auraDemoStep = auraDemoStep + 1 end
+
     EachTwin(function(uf)
         local hp = uf.cache.previewHP + STATES[stateIndex]
         if hp > 100 then hp = 100 elseif hp < 0 then hp = 0 end
@@ -288,6 +306,11 @@ local function Tick()
 
         ns.Refresh(uf, "health")
         ns.Refresh(uf, "death")
+
+        if auraSel then
+            local aedb = uf.db.elements and uf.db.elements[auraSel]
+            if aedb then BuildFakeAuras(uf, auraSel, aedb, DemoCount(aedb)) end
+        end
 
         -- 假施法（有 castbar 的單位）：靜態部分在這裡，填充由 OnUpdate 連續驅動
         local cb = uf.elements.castbar
@@ -312,8 +335,20 @@ end
 
 -- 單位分頁切換元件時呼叫：只有選到施法條才演示假施法
 function Preview.SetElement(elementKey)
+    local wasAura = Preview.selectedElement == "buffs" or Preview.selectedElement == "debuffs"
     Preview.selectedElement = elementKey
     if not isOpen then return end
+    -- 從光環切走：數量演示停在半途會讓人以為那就是設定值，恢復成固定數量
+    if wasAura and elementKey ~= "buffs" and elementKey ~= "debuffs" then
+        auraDemoStep = 0
+        EachTwin(function(uf)
+            local els = uf.db.elements
+            if els then
+                BuildFakeAuras(uf, "buffs", els.buffs)
+                BuildFakeAuras(uf, "debuffs", els.debuffs)
+            end
+        end)
+    end
     EachTwin(function(uf)
         local cb = uf.elements and uf.elements.castbar
         if not cb then return end
