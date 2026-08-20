@@ -77,6 +77,17 @@ local FAKE_AURA_ICONS = {
     136085, 135987, 136078, 132333, 135932, 136048, 135953, 136105,
 }
 
+-- 假的剩餘秒數。刻意用長短不一的值：使用者要看的是「數字疊在圖示上會不會擠」，
+-- 全部同一個數字看不出最寬的情況。
+local FAKE_DURATIONS = { 42, 8, 118, 3, 27, 15 }
+local FAKE_STACKS    = { 0, 3, 0, 12, 0, 2 }      -- 0 = 不顯示層數
+
+-- ⚠ 這支要跟真的長一樣，否則「預覽」就失去意義 —— 使用者調的是尺寸與樣式，
+-- 而真正的 AuraButton 是暴雪畫的、插件塞不進假資料，只能在這裡自己重現一份。
+-- 兩件以前漏掉的：
+--   1. **生長方向只認了「往上」**，不認右到左。首領框的減益用 RLBT（右緣對齊框架、
+--      往左長），舊寫法會從 x=220 往**右**排，整排飛到框外面去
+--   2. 沒有秒數與層數。那正是使用者要在預覽裡看的東西
 local function BuildFakeAuras(uf, elementName, edb)
     uf.fakeAuras = uf.fakeAuras or {}
     local list = uf.fakeAuras[elementName]
@@ -89,8 +100,20 @@ local function BuildFakeAuras(uf, elementName, edb)
         for _, b in ipairs(list) do b:Hide() end
         return
     end
-    local count = math.min(edb.perRow or 8, 6)
-    local goingUp = (edb.growth or ""):find("BT") ~= nil
+
+    local w, h = edb.w or 20, edb.h or 20
+    local gap  = edb.spacing or 0
+    local perRow = math.max(1, edb.perRow or 8)
+    local count = math.min(perRow, 6)
+
+    -- 錨點角與真的那顆一致（見 Elements/Auras.lua 的 AnchorContainer）：
+    -- 往上長就用 BOTTOM 邊釘原點，往左長就用 RIGHT 邊
+    local g = edb.growth or "LRTB"
+    local growUp   = g:find("BT") ~= nil
+    local growLeft = g:find("RL") ~= nil       -- ⚠ 用 find 不是 sub(1,2)：TBRL／BTRL 的水平方向在第 3-4 碼
+    local vert     = g:sub(1, 1) == "T" or g:sub(1, 1) == "B"
+    local corner = (growUp and "BOTTOM" or "TOP") .. (growLeft and "RIGHT" or "LEFT")
+
     for i = 1, count do
         local b = list[i]
         if not b then
@@ -99,25 +122,50 @@ local function BuildFakeAuras(uf, elementName, edb)
             b.icon:SetPoint("TOPLEFT", 1, -1)
             b.icon:SetPoint("BOTTOMRIGHT", -1, 1)
             b.icon:SetTexCoord(0.12, 0.88, 0.12, 0.88)
+            b.dur = b:CreateFontString(nil, "OVERLAY")
+            b.dur:SetPoint("BOTTOM", b, "BOTTOM", 0, 1)
+            b.stack = b:CreateFontString(nil, "OVERLAY")
+            b.stack:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
             list[i] = b
         end
-        b:SetSize(edb.w or 20, edb.h or 20)
+        b:SetSize(w, h)
+        b:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8" })
         if elementName == "debuffs" then
-            b:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8" })
             b:SetBackdropColor(0.8, 0.1, 0.1, 1)
         else
-            b:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8" })
             b:SetBackdropColor(0, 0, 0, 1)      -- 同真實增益：1px 黑框
         end
         b.icon:SetTexture(FAKE_AURA_ICONS[(i - 1) % #FAKE_AURA_ICONS + 1])
-        b:ClearAllPoints()
-        local xoff = (edb.x or 0) + (i - 1) * ((edb.w or 20) + (edb.spacing or 0))
-        -- 往上長的群組錨 BOTTOMLEFT，其餘 TOPLEFT（近似即可，預覽用途）
-        if goingUp then
-            b:SetPoint("BOTTOMLEFT", uf, "TOPLEFT", xoff, edb.y or 0)
+
+        -- 秒數：跟著 durationText 開關走，字級抓圖示高度的一半（真的那顆由引擎畫，
+        -- 大小同樣是跟著按鈕走的，這裡取一個看得出比例的近似值）
+        if edb.durationText then
+            ns.Media.SetFont(b.dur, math.max(8, math.floor(h * 0.5)), "OUTLINE", ns.db.global.font)
+            b.dur:SetText(tostring(FAKE_DURATIONS[(i - 1) % #FAKE_DURATIONS + 1]))
+            b.dur:Show()
         else
-            b:SetPoint("TOPLEFT", uf, "TOPLEFT", xoff, edb.y or 0)
+            b.dur:Hide()
         end
+
+        local n = FAKE_STACKS[(i - 1) % #FAKE_STACKS + 1]
+        if edb.showStack and n > 0 then
+            ns.Media.SetFont(b.stack, edb.stackSize or 10, "OUTLINE", ns.db.global.font)
+            b.stack:SetText(tostring(n))
+            b.stack:Show()
+        else
+            b.stack:Hide()
+        end
+
+        -- 位移：沿生長方向排。往左長時 x 是負的、往上長時 y 是正的
+        local step = (i - 1) * ((vert and h or w) + gap)
+        local dx, dy = 0, 0
+        if vert then
+            dy = growUp and step or -step
+        else
+            dx = growLeft and -step or step
+        end
+        b:ClearAllPoints()
+        b:SetPoint(corner, uf, "TOPLEFT", (edb.x or 0) + dx, (edb.y or 0) + dy)
         b:Show()
     end
     for i = count + 1, #list do list[i]:Hide() end

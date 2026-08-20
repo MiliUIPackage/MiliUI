@@ -590,6 +590,23 @@ function DB.BuildDefaults()
                               absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
                               overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
+                    -- 自己掛在首領身上的減益（DoT／減速／破甲…）。
+                    --
+                    -- 版面：右緣對齊框架（x = 220 就是三條 bar 的右緣），往左長。
+                    -- 首領框的版面已經很滿 —— 頭像佔左上 x 37..103、名字在 y 13 附近、
+                    -- 血量% 靠右、三條 bar 佔 y 0..-36 —— 唯一連續的空白是
+                    -- 「頭像右邊、名字上面」那條，所以放在 y = 20、往左往上長。
+                    -- ⚠ growth 用 RLBT 不是 LRTB：從右緣往左長，圖示變多時往左延伸，
+                    -- 右緣永遠貼齊框架；用 LR 的話右緣會隨數量浮動，看起來就沒對齊。
+                    -- perRow 6 × 18px = 113 寬，左端落在 107，離頭像右緣（103）還有 4。
+                    --
+                    -- onlyMine 是這個元件的重點：首領身上別人的減益幾十個，
+                    -- 只有自己掛的才是「我該不該補」的資訊。
+                    debuffs = { enabled = true, x = 220, y = 20, w = 18, h = 18,
+                                maxCount = 12, perRow = 6, growth = "RLBT", spacing = 1,
+                                onlyMine = true, filterMode = "all",
+                                showStack = true, stackSize = 10,
+                                durationText = true, durationThreshold = 60 },
                     mpbar = { enabled = true, x = 36, y = -13, w = 184, h = 10, level = 4,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
