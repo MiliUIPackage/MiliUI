@@ -41,9 +41,8 @@ local DEFAULTS = {
     colorReady  = { 1,                  0.7411764860153198, 0 },
     colorCD     = { 0.9058824181556702, 0.4235294461250305, 0.2000000178813934 },
     colorImmune = { 0.5294117647058824, 0.5294117647058824, 0.5294117647058824 },
-    soundReadyEnabled  = false, soundReady  = nil,
-    soundCDEnabled     = false, soundCD     = nil,
-    soundImmuneEnabled = false, soundImmune = nil,
+    -- 12.1 起無法依斷法狀態挑音效（見 HandleSound），只剩「開始唱法就播一次」
+    soundCastEnabled = false, soundCast = nil,
 }
 
 local function CopyColor(c) return { c[1], c[2], c[3] } end
@@ -84,9 +83,15 @@ local function GetDB()
     if not db.colorReady  then db.colorReady  = CopyColor(DEFAULTS.colorReady)  end
     if not db.colorCD     then db.colorCD     = CopyColor(DEFAULTS.colorCD)     end
     if not db.colorImmune then db.colorImmune = CopyColor(DEFAULTS.colorImmune) end
-    if db.soundReadyEnabled  == nil then db.soundReadyEnabled  = DEFAULTS.soundReadyEnabled  end
-    if db.soundCDEnabled     == nil then db.soundCDEnabled     = DEFAULTS.soundCDEnabled     end
-    if db.soundImmuneEnabled == nil then db.soundImmuneEnabled = DEFAULTS.soundImmuneEnabled end
+    -- 舊的三態音效（ready/cd/immune）→ 單一音效，一次性搬移
+    if db.soundCastEnabled == nil then
+        local oldOn = db.soundReadyEnabled or db.soundCDEnabled or db.soundImmuneEnabled
+        db.soundCastEnabled = oldOn and true or DEFAULTS.soundCastEnabled
+        db.soundCast = db.soundCast or db.soundReady or db.soundCD or db.soundImmune
+        db.soundReadyEnabled, db.soundReady   = nil, nil
+        db.soundCDEnabled,    db.soundCD      = nil, nil
+        db.soundImmuneEnabled, db.soundImmune = nil, nil
+    end
     return db
 end
 
@@ -277,27 +282,23 @@ local function PlayAnySound(sound)
     end
 end
 
+-- 不看斷法狀態，焦點一開始讀條就播一次。
+--
+-- 為什麼不能像顏色那樣分三態：上色從頭到尾沒經過 Lua —— 秘密布林交給
+-- C_CurveUtil.EvaluateColorValueFromBoolean，引擎挑完直接塗到貼圖上，插件
+-- 不知道挑了哪個。音效沒有這種東西：PlaySound 吃明文數字、由 Lua 呼叫，
+-- 要在兩個音效之間選就得寫 `if ready then A else B end`，那一行就是在 Lua
+-- 讀秘密布林 → taint。整個 *FromBoolean 家族都是 frame/texture 的 setter
+-- （SetAlphaFromBoolean / SetVertexColorFromBoolean / SetBarColorFromBoolean…），
+-- 沒有音訊版本。這正是暴雪要封殺的自動斷法輔助，不是我們寫法的問題。
 local function HandleSound(castTbl, chanTbl)
     db = db or GetDB()
-    -- 秘密限制下 notInterruptible / 斷法冷卻皆為秘密值，無法依狀態挑音效
-    -- （挑音效必然要對秘密分支 → taint，也正是暴雪封殺的自動斷法行為），故停用。
-    if SecretsActive() then return end
+    if not db.soundCastEnabled then return end
     castTbl = castTbl or { UnitCastingInfo("focus") }
     chanTbl = chanTbl or { UnitChannelInfo("focus") }
-    local isCast = castTbl[1] ~= nil
-    if not isCast and chanTbl[1] == nil then return end
-
-    -- 非秘密模式：notInterruptible 可讀，可安全判斷
-    local notInterruptible
-    if isCast then notInterruptible = castTbl[8] else notInterruptible = chanTbl[7] end
-    local state = ComputeState(notInterruptible)
-    if state == "immune" then
-        if db.soundImmuneEnabled then PlayAnySound(db.soundImmune) end
-    elseif state == "ready" then
-        if db.soundReadyEnabled then PlayAnySound(db.soundReady) end
-    else
-        if db.soundCDEnabled then PlayAnySound(db.soundCD) end
-    end
+    -- 秘密字串可測 nil-ness（只洩漏有沒有在施法，可知）
+    if castTbl[1] == nil and chanTbl[1] == nil then return end
+    PlayAnySound(db.soundCast)
 end
 
 ----------------------------------------------------------------------
@@ -778,8 +779,8 @@ end)
 -- 公開 API（給 Settings.lua 用）
 ----------------------------------------------------------------------
 local COLOR_KEYS = { ready = "colorReady", cd = "colorCD", immune = "colorImmune" }
-local SOUND_EN_KEYS = { ready = "soundReadyEnabled", cd = "soundCDEnabled", immune = "soundImmuneEnabled" }
-local SOUND_KEYS = { ready = "soundReady", cd = "soundCD", immune = "soundImmune" }
+local SOUND_EN_KEYS = { cast = "soundCastEnabled" }
+local SOUND_KEYS = { cast = "soundCast" }
 local DEFAULT_COLOR = { ready = DEFAULTS.colorReady, cd = DEFAULTS.colorCD, immune = DEFAULTS.colorImmune }
 
 function MiliUI_FocusCast.IsMonitorEnabled()

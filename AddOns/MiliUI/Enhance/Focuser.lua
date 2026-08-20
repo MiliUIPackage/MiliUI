@@ -1,6 +1,6 @@
 ------------------------------------------------------------
 -- MiliUI Focuser
--- Shift+Click 設定焦點目標 + 自動上團隊標記
+-- Shift+Click（或自訂快捷鍵）設定焦點目標 + 自動上團隊標記
 ------------------------------------------------------------
 MiliUI_Focuser = {}
 
@@ -17,7 +17,9 @@ local function GetDB()
     if MiliUI_DB.focuserEnabled == nil then MiliUI_DB.focuserEnabled = true end
     if MiliUI_DB.focuserAutoMark == nil then MiliUI_DB.focuserAutoMark = false end
     if MiliUI_DB.focuserMarkIndex == nil then MiliUI_DB.focuserMarkIndex = 0 end
-    if MiliUI_DB.focuserClearMark == nil then MiliUI_DB.focuserClearMark = false end
+    if MiliUI_DB.focuserNoOverwriteMark == nil then MiliUI_DB.focuserNoOverwriteMark = true end
+    -- focuserHotkey：自訂快捷鍵的綁定字串（"F"、"ALT-CTRL-G"、"BUTTON4"…），
+    -- nil = 未設定（預設）。Shift+左鍵那組是固定的，不受這個影響。
     return MiliUI_DB
 end
 
@@ -27,13 +29,21 @@ local function GetActiveMacro(markOverride)
     local db = GetDB()
     local index = markOverride or db.focuserMarkIndex
     local lines = {}
-    if db.focuserClearMark and db.focuserAutoMark then
-        table.insert(lines, "/tm [@focus,exists] 0")
-    end
+    -- 這裡曾經有一行 `/tm [@focus,exists] 0`（換焦點時清掉舊焦點的標記）。
+    -- 拿掉了：巨集只能「無條件」清 —— 條件式沒有「已被標記」這種判斷，安全
+    -- 動作也只有 set / set-unmarked / clear / clear-all / toggle，沒有「等於 N
+    -- 才清」；而 12.1 的 GetRaidTargetIndex 回傳秘密值，Lua 端也比不了編號。
+    -- 結果就是它會把隊長標好的骷髏一起清掉。反正被標的怪死掉標記就跟著消失，
+    -- 這個功能救的只有「放掉一隻沒死的怪」，不值得為它冒誤清的風險。
     table.insert(lines, "/focus [@mouseover,exists]")
     table.insert(lines, "/clearfocus [@mouseover,noexists]")
     if db.focuserAutoMark and index > 0 and index <= 8 then
-        table.insert(lines, "/tm [@mouseover,exists] " .. index)
+        -- "~" 前綴是暴雪 /tm 內建的：目標身上已經有任何標記就整行跳過
+        -- （Blizzard_ChatFrameBase/Shared/SlashCommands.lua 的 TARGET_MARKER；
+        --  另有 "!" 前綴＝已經是同一個標記就跳過，這裡用不到）。
+        -- 巨集條件式沒有「已被標記」這種判斷，只有這條路能在戰鬥中成立。
+        local prefix = db.focuserNoOverwriteMark and "~" or ""
+        table.insert(lines, "/tm [@mouseover,exists] " .. prefix .. index)
     end
     return table.concat(lines, "\n")
 end
@@ -125,6 +135,40 @@ end
 ----------------------------------------------------------------------
 -- FocuserButton：override binding 處理名條 / 世界目標
 ----------------------------------------------------------------------
+-- SetOverrideBinding* 在戰鬥中會被擋，記下待辦脫戰再套
+local pendingBindings = false
+
+-- 兩組綁定都掛在 bindButton 上：固定的 shift+左鍵，以及玩家自訂的快捷鍵。
+-- 兩者走同一顆中繼按鈕 → 同一份巨集，行為完全一致。
+local function ApplyBindings()
+    if not bindButton then return end
+    if InCombatLockdown() then
+        pendingBindings = true
+        return
+    end
+    pendingBindings = false
+    ClearOverrideBindings(bindButton)
+    SetOverrideBindingClick(bindButton, true, modifier .. "-BUTTON" .. mouseButton, "FocuserBindButton")
+    local key = GetDB().focuserHotkey
+    if key and key ~= "" then
+        SetOverrideBindingClick(bindButton, true, key, "FocuserBindButton")
+    end
+end
+
+----------------------------------------------------------------------
+-- /focuscheck 用的小工具
+----------------------------------------------------------------------
+local issecret = issecretvalue or function() return false end
+
+-- 只描述「有沒有標記」，不印值也不印單位名 —— 兩者在 12.1 都可能是秘密值
+local function MarkDesc(unit)
+    if not UnitExists(unit) then return "無單位" end
+    local i = GetRaidTargetIndex(unit)
+    if i == nil then return "沒標記" end
+    if issecret(i) then return "有標記(秘密值)" end
+    return "有標記(" .. tostring(i) .. ")"
+end
+
 function SetupFocuserButton()   -- 已於檔案上方 forward-declare
     if not focuserButton then
         focuserButton = CreateFrame("CheckButton", "FocuserButton", UIParent, "SecureActionButtonTemplate")
@@ -156,8 +200,7 @@ function SetupFocuserButton()   -- 已於檔案上方 forward-declare
         bindButton:SetAttribute("type1", "click")
         bindButton:SetAttribute("clickbutton1", focuserButton)
     end
-    ClearOverrideBindings(bindButton)
-    SetOverrideBindingClick(bindButton, true, modifier .. "-BUTTON" .. mouseButton, "FocuserBindButton")
+    ApplyBindings()
 end
 
 local function TeardownFocuserButton()
@@ -246,6 +289,9 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
             if pendingMacro then
                 SwitchMacro()   -- 補套戰鬥中被擋下的巨集更新（含 FocuserButton）
             end
+            if pendingBindings then
+                ApplyBindings() -- 補套戰鬥中被擋下的快捷鍵綁定
+            end
         end
     elseif event == "NAME_PLATE_UNIT_ADDED" then
         if GetDB().focuserEnabled then
@@ -262,9 +308,28 @@ end)
 -- 或設上了但點擊被別的框架吃掉。這裡只回答第一個，第二個要用
 -- GetMouseFoci() 看焦點鏈。
 SLASH_MILIUIFOCUSCHECK1 = "/focuscheck"
-SlashCmdList["MILIUIFOCUSCHECK"] = function()
+SlashCmdList["MILIUIFOCUSCHECK"] = function(msg)
+    msg = (msg or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+
+    if msg == "macro" then
+        local db = GetDB()
+        print("|cffffe00a[MiliUI]|r 目前巨集（FocuserButton.macrotext）：")
+        local macro = focuserButton and focuserButton:GetAttribute("macrotext")
+        if macro then
+            for line in tostring(macro):gmatch("[^\n]+") do print("   " .. line) end
+        else
+            print("   （按鈕還沒建立）")
+        end
+        print(("|cffffe00a[MiliUI]|r 自動標記=%s 圖示=%s 不覆蓋既有標記=%s")
+            :format(tostring(db.focuserAutoMark), tostring(db.focuserMarkIndex),
+                    tostring(db.focuserNoOverwriteMark)))
+        print("   焦點：" .. MarkDesc("focus") .. "　指向：" .. MarkDesc("mouseover"))
+        return
+    end
+
     print("|cffffe00a[MiliUI]|r Focuser：啟用=" .. tostring(GetDB().focuserEnabled)
-        .. "　FocuserButton=" .. tostring(focuserButton ~= nil))
+        .. "　FocuserButton=" .. tostring(focuserButton ~= nil)
+        .. "　快捷鍵=" .. tostring(GetDB().focuserHotkey or "未設定"))
     local missing, ok = {}, 0
     for _, name in ipairs(defaultFrameNames) do
         local f = _G[name]
@@ -278,6 +343,7 @@ SlashCmdList["MILIUIFOCUSCHECK"] = function()
     end
     print("|cffffe00a[MiliUI]|r 已設定：" .. ok .. "　未設定：" .. #missing)
     for _, m in ipairs(missing) do print("   " .. m) end
+    print("|cffffe00a[MiliUI]|r 另有 /focuscheck macro（看目前巨集內容）")
 end
 
 -- 公開 API
@@ -333,11 +399,27 @@ function MiliUI_Focuser.GetMacroForMarkIndex(index)
     return GetActiveMacro(index)
 end
 
-function MiliUI_Focuser.IsClearMarkEnabled()
-    return GetDB().focuserClearMark
+-- 自訂快捷鍵：nil / "" = 未設定（只剩固定的 shift+左鍵）
+function MiliUI_Focuser.GetHotkey()
+    return GetDB().focuserHotkey
 end
 
-function MiliUI_Focuser.SetClearMark(val)
-    GetDB().focuserClearMark = val
+function MiliUI_Focuser.SetHotkey(key)
+    if key == "" then key = nil end
+    GetDB().focuserHotkey = key
+    if not bindButton and GetDB().focuserEnabled and not InCombatLockdown() then
+        SetupFocuserButton()   -- 尚未建立就順手補齊（ApplyBindings 需要 bindButton）
+        return
+    end
+    ApplyBindings()
+end
+
+function MiliUI_Focuser.IsNoOverwriteMarkEnabled()
+    return GetDB().focuserNoOverwriteMark
+end
+
+function MiliUI_Focuser.SetNoOverwriteMark(val)
+    GetDB().focuserNoOverwriteMark = val
     SwitchMacro()
 end
+

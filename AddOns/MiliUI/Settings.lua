@@ -1092,9 +1092,146 @@ local function InitSettings()
     focusCBDesc:SetText("在任何單位框架上按 Shift + 左鍵即可將該目標設為焦點目標。")
     focusCBDesc:SetTextColor(0.5, 0.5, 0.5)
 
+    ----------------------------------------------------------------
+    -- 自訂快捷鍵：綁定一顆鍵（可加 Shift/Ctrl/Alt，也可單鍵），
+    -- 效果跟 Shift+左鍵完全一樣（對滑鼠指向的單位設焦點 + 上標記）。
+    ----------------------------------------------------------------
+    local HOTKEY_MODIFIER_ONLY = {
+        LSHIFT = true, RSHIFT = true,
+        LCTRL  = true, RCTRL  = true,
+        LALT   = true, RALT   = true,
+        -- Mac 的 Command：綁定字串沒有 META- 前綴，當成不可用
+        LMETA  = true, RMETA  = true,
+        UNKNOWN = true,
+    }
+    -- OnClick 的 button 名稱 → 綁定字串（左右鍵留給「開始擷取 / 取消」）
+    local HOTKEY_MOUSE = {
+        MiddleButton = "BUTTON3",
+        Button4 = "BUTTON4",
+        Button5 = "BUTTON5",
+    }
+
+    -- 綁定字串的修飾鍵順序是固定的：ALT-CTRL-SHIFT-鍵
+    local function BuildHotkeyString(key)
+        local prefix = ""
+        if IsAltKeyDown() then prefix = prefix .. "ALT-" end
+        if IsControlKeyDown() then prefix = prefix .. "CTRL-" end
+        if IsShiftKeyDown() then prefix = prefix .. "SHIFT-" end
+        return prefix .. key
+    end
+
+    local hotkeyLabel = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    hotkeyLabel:SetPoint("TOPLEFT", focusCBDesc, "BOTTOMLEFT", 0, -10)
+    hotkeyLabel:SetText("快捷鍵：")
+
+    local hotkeyBtn = CreateFrame("Button", "MiliUI_FocuserHotkeyButton", focusFrame, "UIPanelButtonTemplate")
+    hotkeyBtn:SetSize(150, 22)
+    hotkeyBtn:SetPoint("LEFT", hotkeyLabel, "RIGHT", 6, 0)
+    hotkeyBtn:RegisterForClicks("AnyUp")
+
+    local hotkeyClearBtn = CreateFrame("Button", nil, focusFrame, "UIPanelButtonTemplate")
+    hotkeyClearBtn:SetSize(60, 22)
+    hotkeyClearBtn:SetPoint("LEFT", hotkeyBtn, "RIGHT", 6, 0)
+    hotkeyClearBtn:SetText("清除")
+
+    local hotkeyDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    hotkeyDesc:SetPoint("TOPLEFT", hotkeyLabel, "BOTTOMLEFT", 0, -14)
+    hotkeyDesc:SetWidth(520)
+    -- 固定高度（兩行份）：底下的控件都錨在這裡，衝突提示多一行時不能把版面推開
+    hotkeyDesc:SetHeight(30)
+    hotkeyDesc:SetJustifyH("LEFT")
+    hotkeyDesc:SetJustifyV("TOP")
+    hotkeyDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    local hotkeyCapturing = false
+
+    local function HotkeyText()
+        local key = MiliUI_Focuser and MiliUI_Focuser.GetHotkey and MiliUI_Focuser.GetHotkey()
+        if not key or key == "" then return "|cff808080未設定|r" end
+        return (GetBindingText and GetBindingText(key)) or key
+    end
+
+    local function UpdateHotkeyDesc()
+        local base = "點按鈕後按下要用的按鍵，可搭配 Shift / Ctrl / Alt 也可單鍵。Esc 取消、Backspace 清除。"
+        if hotkeyCapturing then
+            base = "|cffffe00a請按下要用的按鍵…|r Esc 取消、Backspace 清除。"
+        end
+        local key = MiliUI_Focuser and MiliUI_Focuser.GetHotkey and MiliUI_Focuser.GetHotkey()
+        if key and key ~= "" then
+            -- 覆寫綁定優先權高於一般綁定，所以原本的功能會被蓋掉，先講清楚
+            local action = GetBindingAction and GetBindingAction(key)
+            if action and action ~= "" then
+                local name = (GetBindingName and GetBindingName(action)) or action
+                base = base .. "\n|cffff9900此按鍵原本是「" .. name .. "」，會被蓋掉。|r"
+            end
+        end
+        hotkeyDesc:SetText(base)
+    end
+
+    local function RefreshHotkeyUI()
+        if hotkeyCapturing then
+            hotkeyBtn:SetText("|cffffe00a按下按鍵…|r")
+        else
+            hotkeyBtn:SetText(HotkeyText())
+        end
+        UpdateHotkeyDesc()
+    end
+
+    local function StopHotkeyCapture()
+        if not hotkeyCapturing then return end
+        hotkeyCapturing = false
+        hotkeyBtn:EnableKeyboard(false)
+        hotkeyBtn:SetPropagateKeyboardInput(true)
+        RefreshHotkeyUI()
+    end
+
+    local function StartHotkeyCapture()
+        if hotkeyCapturing then return end
+        hotkeyCapturing = true
+        hotkeyBtn:EnableKeyboard(true)
+        hotkeyBtn:SetPropagateKeyboardInput(false)
+        RefreshHotkeyUI()
+    end
+
+    local function SaveHotkey(key)
+        StopHotkeyCapture()
+        if not (MiliUI_Focuser and MiliUI_Focuser.SetHotkey) then return end
+        MiliUI_Focuser.SetHotkey(key)
+        RefreshHotkeyUI()
+        if key then
+            print("|cff00ff00[MiliUI]|r 焦點目標快捷鍵:", (GetBindingText and GetBindingText(key)) or key)
+        else
+            print("|cff00ff00[MiliUI]|r 焦點目標快捷鍵: 已清除")
+        end
+    end
+
+    hotkeyBtn:SetScript("OnClick", function(self, button)
+        if not hotkeyCapturing then
+            if button == "LeftButton" then StartHotkeyCapture() end
+            return
+        end
+        if button == "LeftButton" or button == "RightButton" then
+            StopHotkeyCapture()   -- 再點一次 = 放棄擷取
+            return
+        end
+        local key = HOTKEY_MOUSE[button]
+        if key then
+            SaveHotkey(BuildHotkeyString(key))
+        end
+    end)
+    hotkeyBtn:SetScript("OnKeyDown", function(self, key)
+        if not hotkeyCapturing then return end
+        if key == "ESCAPE" then StopHotkeyCapture() return end
+        if key == "BACKSPACE" or key == "DELETE" then SaveHotkey(nil) return end
+        if HOTKEY_MODIFIER_ONLY[key] then return end
+        SaveHotkey(BuildHotkeyString(key))
+    end)
+    hotkeyBtn:HookScript("OnHide", StopHotkeyCapture)
+    hotkeyClearBtn:SetScript("OnClick", function() SaveHotkey(nil) end)
+
     -- 自動標記 checkbox
     local focusMarkCB = CreateFrame("CheckButton", "MiliUI_FocuserAutoMarkCB", focusFrame, "UICheckButtonTemplate")
-    focusMarkCB:SetPoint("TOPLEFT", focusCBDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
+    focusMarkCB:SetPoint("TOPLEFT", hotkeyDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
     focusMarkCB.text:SetText("設定焦點目標時自動上團隊標記")
     focusMarkCB.text:SetFontObject("GameFontHighlight")
 
@@ -1118,7 +1255,8 @@ local function InitSettings()
     }
 
     local focusMarkLabel = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    focusMarkLabel:SetPoint("TOPLEFT", focusMarkDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
+    -- 縮排一格，讓「標記圖示」看起來是「自動上團隊標記」底下的子設定
+    focusMarkLabel:SetPoint("TOPLEFT", focusMarkDesc, "BOTTOMLEFT", 0, -12)
     focusMarkLabel:SetText("標記圖示：")
 
     local focusMarkDropdown = CreateFrame("Frame", "MiliUI_FocuserMarkDropdown", focusFrame, "UIDropDownMenuTemplate")
@@ -1144,22 +1282,27 @@ local function InitSettings()
     end
     UIDropDownMenu_Initialize(focusMarkDropdown, FocusMarkDropdown_Initialize)
 
-    -- 取消焦點時清除標記 checkbox
-    local focusClearMarkCB = CreateFrame("CheckButton", "MiliUI_FocuserClearMarkCB", focusFrame, "UICheckButtonTemplate")
-    focusClearMarkCB:SetPoint("TOPLEFT", focusMarkLabel, "BOTTOMLEFT", 0, -36)
-    focusClearMarkCB.text:SetText("取消焦點時清除標記")
-    focusClearMarkCB.text:SetFontObject("GameFontHighlight")
+    -- 不覆蓋既有標記 checkbox（自動標記的子選項，跟著縮排）
+    local focusNoOverwriteCB = CreateFrame("CheckButton", "MiliUI_FocuserNoOverwriteCB", focusFrame, "UICheckButtonTemplate")
+    focusNoOverwriteCB:SetPoint("TOPLEFT", focusMarkLabel, "BOTTOMLEFT", 0, -34)
+    focusNoOverwriteCB.text:SetText("不覆蓋既有標記")
+    focusNoOverwriteCB.text:SetFontObject("GameFontHighlight")
 
-    local focusClearMarkDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    focusClearMarkDesc:SetPoint("TOPLEFT", focusClearMarkCB, "BOTTOMLEFT", SUB_INDENT, -2)
-    focusClearMarkDesc:SetWidth(520)
-    focusClearMarkDesc:SetJustifyH("LEFT")
-    focusClearMarkDesc:SetText("清除焦點目標（或切換焦點）時，自動移除舊焦點身上的團隊標記。")
-    focusClearMarkDesc:SetTextColor(0.5, 0.5, 0.5)
+    local focusNoOverwriteDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    focusNoOverwriteDesc:SetPoint("TOPLEFT", focusNoOverwriteCB, "BOTTOMLEFT", SUB_INDENT, -2)
+    focusNoOverwriteDesc:SetWidth(494)
+    focusNoOverwriteDesc:SetJustifyH("LEFT")
+    focusNoOverwriteDesc:SetText("目標身上已經有任何團隊標記時就不動它（例如隊長標好的骷髏）。\n關閉的話會直接蓋成自己設定的圖示。")
+    focusNoOverwriteDesc:SetTextColor(0.5, 0.5, 0.5)
+
+    -- 這裡曾經有「取消焦點時清除標記」勾選框，已移除：巨集只能無條件清，
+    -- 會把隊長標好的標記一起清掉，而 12.1 沒有任何方式在戰鬥中分辨那是誰上的
+    -- （詳見 Enhance/Focuser.lua 的 GetActiveMacro 註解）。被標的怪死掉標記
+    -- 就跟著消失，這個功能救不到什麼，留著只是個陷阱。
 
     -- 標記切換列 checkbox
     local focusBarCB = CreateFrame("CheckButton", "MiliUI_FocuserBarCB", focusFrame, "UICheckButtonTemplate")
-    focusBarCB:SetPoint("TOPLEFT", focusClearMarkDesc, "BOTTOMLEFT", -SUB_INDENT, -12)
+    focusBarCB:SetPoint("TOPLEFT", focusNoOverwriteDesc, "BOTTOMLEFT", -SUB_INDENT * 2, -12)
     focusBarCB.text:SetText("顯示焦點標記切換列")
     focusBarCB.text:SetFontObject("GameFontHighlight")
 
@@ -1219,32 +1362,39 @@ local function InitSettings()
 
     local function UpdateFocusMarkSubControls(enabled)
         if enabled then
+            hotkeyBtn:Enable()
+            hotkeyClearBtn:Enable()
             focusMarkCB:Enable()
             focusMarkCB.text:SetFontObject("GameFontHighlight")
             focusMarkDropdown:SetAlpha(1)
-            focusClearMarkCB:Enable()
-            focusClearMarkCB.text:SetFontObject("GameFontHighlight")
             focusBarCB:Enable()
             focusBarCB.text:SetFontObject("GameFontHighlight")
         else
+            StopHotkeyCapture()
+            hotkeyBtn:Disable()
+            hotkeyClearBtn:Disable()
             focusMarkCB:Disable()
             focusMarkCB.text:SetFontObject("GameFontDisable")
             focusMarkCB:SetChecked(false)
             focusMarkDropdown:SetAlpha(0.5)
-            focusClearMarkCB:Disable()
-            focusClearMarkCB.text:SetFontObject("GameFontDisable")
-            focusClearMarkCB:SetChecked(false)
+            focusNoOverwriteCB:Disable()
+            focusNoOverwriteCB.text:SetFontObject("GameFontDisable")
             -- 標記切換列只鎖操作、不清設定值（Focuser 關閉時列會自動隱藏）
             focusBarCB:Disable()
             focusBarCB.text:SetFontObject("GameFontDisable")
         end
     end
 
+    -- 「標記圖示」與「不覆蓋既有標記」都只在自動標記開著時有意義
     local function UpdateFocusMarkDropdownState(enabled)
         if enabled then
             focusMarkDropdown:SetAlpha(1)
+            focusNoOverwriteCB:Enable()
+            focusNoOverwriteCB.text:SetFontObject("GameFontHighlight")
         else
             focusMarkDropdown:SetAlpha(0.5)
+            focusNoOverwriteCB:Disable()
+            focusNoOverwriteCB.text:SetFontObject("GameFontDisable")
         end
     end
 
@@ -1253,7 +1403,8 @@ local function InitSettings()
         local enabled = MiliUI_Focuser.IsEnabled()
         focusCB:SetChecked(enabled)
         focusMarkCB:SetChecked(MiliUI_Focuser.IsAutoMarkEnabled())
-        focusClearMarkCB:SetChecked(MiliUI_Focuser.IsClearMarkEnabled())
+        focusNoOverwriteCB:SetChecked(MiliUI_Focuser.IsNoOverwriteMarkEnabled())
+        RefreshHotkeyUI()
         if MiliUI_FocuserBar then
             focusBarCB:SetChecked(MiliUI_FocuserBar.IsShown())
             announceEdit:SetText(MiliUI_FocuserBar.GetAnnounceText())
@@ -1307,11 +1458,11 @@ local function InitSettings()
         print("|cff00ff00[MiliUI]|r 焦點目標自動標記:", enabled and "開" or "關")
     end)
 
-    focusClearMarkCB:HookScript("OnClick", function(self)
+    focusNoOverwriteCB:HookScript("OnClick", function(self)
         if not MiliUI_Focuser then return end
         local enabled = self:GetChecked() and true or false
-        MiliUI_Focuser.SetClearMark(enabled)
-        print("|cff00ff00[MiliUI]|r 取消焦點時清除標記:", enabled and "開" or "關")
+        MiliUI_Focuser.SetNoOverwriteMark(enabled)
+        print("|cff00ff00[MiliUI]|r 不覆蓋既有標記:", enabled and "開" or "關")
     end)
 
     focusBarCB:HookScript("OnClick", function(self)
@@ -1324,17 +1475,28 @@ local function InitSettings()
     -- ============================================================
     -- 以下：焦點目標施法監控相關（斷法巨集 / 施法條 / 唱法音效）
     -- ============================================================
+    -- 每一筆的 SoundKit ID 都查過 SoundKitEntry → FileDataID → 社群 listfile 的
+    -- 實際檔名（註解裡那個），確定播得出來也確定是哪個音。舊清單有兩個問題：
+    -- 標籤跟實際檔案對不上（8960 標「準備確認」其實是 levelup2），而且 7279
+    -- 根本沒有 SoundKitEntry ＝ 按了沒聲音。
+    --
+    -- 要加新的請照同一套流程查證，**而且要看 SoundKit 的 VolumeFloat**：
+    -- 37666（首領密語警告）檔案存在、SoundKitEntry 也對，但 VolumeFloat=0.01
+    -- ＝ 音量在資料表就被壓成靜音，實際播出來什麼都聽不到，已拔掉。
+    -- 以下每一筆的 VolumeFloat 都在 0.35~1.0 之間。
     local FOCUS_SOUND_BUILTINS = {
-        { name = "內建音效 1 (團隊警告)", val = 8959 },
-        { name = "內建音效 2 (準備確認)", val = 8960 },
-        { name = "內建音效 3 (PvP警告)",  val = 8332 },
-        { name = "內建音效 4 (升級)",     val = 8454 },
-        { name = "內建音效 5 (鬧鐘)",     val = 7279 },
-        { name = "內建音效 6 (地城獎勵)", val = 8574 },
-        { name = "內建音效 7",            val = 8457 },
-        { name = "內建音效 8",            val = 8458 },
-        { name = "內建音效 9",            val = 48149 },
-        { name = "內建音效 10",           val = 48150 },
+        { name = "PvP 奪旗警報",    val = 8332  },  -- Sound/SPELLS/PVPFlagTaken.ogg
+        { name = "團隊警告",        val = 8959  },  -- INTERFACE/RaidWarning.ogg
+        { name = "首領警告",        val = 12197 },  -- INTERFACE/RaidBossWarning.ogg
+        { name = "鑰石警告",        val = 34154 },  -- INTERFACE/UI_ChallengeMode_Warning.OGG
+        { name = "鬧鐘 1",          val = 18871 },  -- INTERFACE/AlarmClockWarning1.ogg
+        { name = "鬧鐘 2",          val = 12867 },  -- INTERFACE/AlarmClockWarning2.ogg
+        { name = "鬧鐘 3",          val = 12889 },  -- INTERFACE/AlarmClockWarning3.ogg
+        { name = "地圖標記",        val = 3175  },  -- INTERFACE/MapPing.ogg
+        { name = "稀有點位提示",    val = 37881 },  -- INTERFACE/UI_Vignette_MapPing_01.OGG
+        { name = "訊息提示",        val = 7355  },  -- INTERFACE/igTextPopupPing02.ogg
+        { name = "GM 訊息",         val = 15273 },  -- INTERFACE/GM_ChatWarning.ogg
+        { name = "仇恨警戒",        val = 15262 },  -- INTERFACE/Aggro_Enter_Warning_State.ogg
     }
     local function BuildFocusSoundList()
         local list = {}
@@ -1592,12 +1754,10 @@ local function InitSettings()
     local sndDesc = focusFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     sndDesc:SetPoint("TOPLEFT", sndLabel, "BOTTOMLEFT", 0, -6)
     sndDesc:SetWidth(520); sndDesc:SetJustifyH("LEFT")
-    sndDesc:SetText("焦點目標開始唱法時，依斷法狀態播放對應音效。此功能獨立於施法監控，三種狀態可各別啟用。")
+    sndDesc:SetText("焦點目標開始唱法時播放一次音效。此功能獨立於施法監控。\n12.1 起無法依斷法狀態分開播放（暴雪把斷法狀態改成秘密值），可斷與否請看施法條顏色。")
     sndDesc:SetTextColor(0.5, 0.5, 0.5)
 
-    local readySndCB  = MakeFocusSoundRow(sndDesc,     -12, "可斷法（斷法可用）",   "ready")
-    local cdSndCB     = MakeFocusSoundRow(readySndCB,  -34, "可斷法（斷法冷卻中）", "cd")
-    local immuneSndCB = MakeFocusSoundRow(cdSndCB,     -34, "不可中斷",             "immune")
+    local castSndCB = MakeFocusSoundRow(sndDesc, -12, "焦點開始唱法時播放", "cast")
 
     -- -------- 同步 / 事件 --------
     local function SyncFocusCast()
@@ -1607,7 +1767,7 @@ local function InitSettings()
         end
         monCB:SetChecked(MiliUI_FocusCast.IsMonitorEnabled())
         for _, sw in ipairs(focusColorSwatches) do sw.UpdateSwatch() end
-        readySndCB.Sync(); cdSndCB.Sync(); immuneSndCB.Sync()
+        castSndCB.Sync()
         ResetMacroText()
     end
     SyncFocusCast()
