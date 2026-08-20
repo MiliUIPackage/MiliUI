@@ -78,6 +78,7 @@ StaticPopupDialogs.KEYSTONELOOT_EXPORT = {
     button1 = CLOSE,
     hasEditBox = 1,
     editBoxWidth = 450,
+    maxLetters = 0,
     OnShow = function(self)
         self:GetEditBox():SetText(Favorites:Export());
         self:GetEditBox():HighlightText();
@@ -100,6 +101,7 @@ StaticPopupDialogs.KEYSTONELOOT_IMPORT = {
     button3 = CANCEL,
     hasEditBox = 1,
     editBoxWidth = 450,
+    maxLetters = 0,
     OnAccept = function(self)
         local text = self:GetEditBox():GetText();
         local success, result, skippedSpecs = Favorites:Import(text, false);
@@ -188,6 +190,11 @@ function KeystoneLootSettingsDropdownMixin:Init()
             L["Favorite in item tooltip"],
             function() return DB:Get("settings.favoriteTooltip"); end,
             function() DB:Set("settings.favoriteTooltip", not DB:Get("settings.favoriteTooltip")); end
+        );
+        rootDescription:CreateCheckbox(
+            L["Favorite on item icons"],
+            function() return DB:Get("settings.favoriteIcon"); end,
+            function() DB:Set("settings.favoriteIcon", not DB:Get("settings.favoriteIcon")); end
         );
         rootDescription:CreateCheckbox(
             L['Hide "Other" in All Slots'],

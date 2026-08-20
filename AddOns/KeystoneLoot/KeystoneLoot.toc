@@ -1,10 +1,10 @@
-## Interface: 120007, 120100
+## Interface: 120100
 ## Title: |cff9d5db8KeystoneLoot|r
 ## Notes: Shows the items from the mythic plus instances in a compact overview
 ## Notes-ruRU: Компактный аддон, который показывает уровни предметов из подземелий М+
 ## Author: Selina Ruesch
 ## X-Email: selina.ruesch@gmail.com
-## Version: 2.11.1
+## Version: 2.12.1
 ## IconTexture: Interface\Icons\INV_Relics_Hourglass_02
 ## Category-enUS: Dungeons & Raids
 ## Category-zhCN: 地下城和团队副本
@@ -13,9 +13,10 @@
 ## SavedVariables: KeystoneLootDB
 ## SavedVariablesPerCharacter: KeystoneLootCharDB
 
-## Category-zhTW: 資訊
-## Title-zhTW: |cff2DA267[裝備]|r 戰利品查詢
-## Notes-zhTW: KeystoneLoot |n|n 顯示所有地城的掉落，並可以標記最愛。|n|n|cffffd200使用方法：|r點小地圖旁按鈕。
+## Title-zhTW: |cffB973CC[物品]|r 職業適合裝備查詢
+## Notes-zhTW: |cff9d5db8Keystone Loot|r |n|n方便尋找在 M+ 地城、團隊和寶庫可取得的裝備，可以依照職業、專精、部位和物品等級來找裝備。|n|n|cffffd200使用方法: |r點小地圖按鈕。
+## Category-zhTW: 物品
+
 # Libs
 libs/menu/MenuConstants.lua
 libs/menu/Mainline/MenuConstants.lua
@@ -63,6 +64,7 @@ modules/api.lua
 # UI
 ui/keystone_tooltip.lua
 ui/item_tooltip.lua
+ui/favorite_icon.lua
 
 ui/templates/mixins/icon_button.lua
 ui/templates/mixins/entry_frame.lua

@@ -25,6 +25,7 @@ L["The Catalyst"] = "化生台";
 L["Minimap button"] = "小地图按钮";
 L["Item level in keystone tooltip"] = "在史诗钥匙显示对应等级";
 L["Favorite in item tooltip"] = "在物品提示中显示收藏";
+L["Favorite on item icons"] = "在物品图标上显示收藏";
 L['Hide "Other" in All Slots'] = "在「全部栏位」中隐藏「其他」物品";
 L["Loot reminder (dungeons)"] = "拾取专精提醒（地下城）";
 L["Highlighting"] = "高亮显示";
@@ -76,6 +77,7 @@ L["Set Favorite"] = "设置收藏";
 L["Nice to have"] = "锦上添花";
 L["Must have"] = "必须获取";
 L["Best in Slot"] = "最佳装备";
+L["Catalyst"] = "化生台";
 
 -- loot_reminder_frame.lua
 L["Correct loot specialization set?"] = "拾取专精是否正确？";
