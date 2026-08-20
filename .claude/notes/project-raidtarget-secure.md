@@ -18,4 +18,19 @@ metadata:
 2. `SECURE_ACTIONS.click` 的 `delegate:Click(button)` 不帶 down 參數＝只送「放開」邊緣；被委派的按鈕要照 BurstPotionHelper 配方：`pressAndHoldAction=true` + 同時設 `type`/`typerelease`/`type1`（macro 型對應 `macrotext`/`macrotextrelease`/`macrotext1`）才會恰好執行一次。鍵綁（會送下+上兩邊緣）不要直接綁在 pressAndHold 按鈕上（會跑兩次），綁到一顆 `type="click"` 中繼按鈕讓 cvar 門檻挑一個邊緣。
 3. 受限安全環境（wrap snippet）可以在戰鬥中改保護按鈕的屬性（含 macrotext）——戰鬥中熱切換巨集就靠這個，把每種變體的巨集文字預存成格子屬性再 `fb:SetAttribute()`。
 
+**標記巨集「不覆蓋既有標記」**：巨集條件式沒有「已被標記」這種判斷，但暴雪的 `/tm`
+自己吃前綴（Blizzard_ChatFrameBase/Shared/SlashCommands.lua 的 TARGET_MARKER）：
+
+- `/tm [@mouseover,exists] ~5` —— `~` ＝目標身上**已經有任何標記**就整行跳過
+- `/tm [@mouseover,exists] !5` —— `!` ＝**已經是同一個標記**就跳過（避免 toggle 掉）
+
+安全動作那邊的對應是 `action="set-unmarked"`（SECURE_ACTIONS.raidtarget）。
+兩條都是引擎端判斷，戰鬥中成立、也不必讀 GetRaidTargetIndex。
+
+**沒有「等於 N 才清」這種動作**（前綴只有 `!`/`~`，安全動作只有 set / set-unmarked /
+clear / clear-all / toggle，巨集條件式也沒有團隊標記相關判斷），加上 12.1 的
+`GetRaidTargetIndex` 回傳秘密值、Lua 端比不了編號 → **「換焦點時清掉舊焦點標記」
+在戰鬥中無解**，只能無條件清（會清掉隊長標的）。Focuser 的這個選項因此整個移除：
+被標的怪死掉標記就跟著消失，硬做不划算。不要再嘗試重做。
+
 相關：[[project-focuser-castbar]]
