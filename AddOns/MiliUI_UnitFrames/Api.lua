@@ -573,15 +573,19 @@ local function Debug()
         p("   " .. (#rows > 0 and table.concat(rows, "  ") or "（沒有框）"))
     end
 
-    -- 寵物上色：「寵物顏色不對」要分得出是沒有職業（classFile nil）、主人解不出來
-    -- （ownerClass nil）、還是被陣營色短路（reaction 2/4 走 reactish）
-    do
-        local puf = ns.frames.pet
-        local c = puf and puf.cache
+    -- 血條上色：「顏色不對」要分得出是沒有職業（classFile nil）、主人解不出來
+    -- （ownerClass nil）、還是被陣營色短路（reaction 2/4 走 reactish）。
+    -- ⚠ 玩家框一起印，因為載具期間它讀的就是 vehicle ——「載具血條是什麼色」只能從這裡看。
+    -- 非玩家沒有自己的職業（classFile 一定 nil，UnitClassBase 對 NPC 回的是假職業，
+    -- 見 Cache.lua 的警語），顏色全靠 ownerClass：OwnerClassOf 對 unit=="vehicle" 回主人職業。
+    for _, ckey in ipairs({ "player", "pet" }) do
+        local cuf = ns.frames[ckey]
+        local c = cuf and cuf.cache
         if c then
-            local hp = puf.db.elements.hpbar
-            local r, g, b = ns.Colors.Get(hp and hp.colorMethod, puf, hp, c.frachp, "barColor", "barAlpha")
-            p(("  寵物上色：classFile=%s ownerClass=%s reaction=%s pc=%s isPlayer=%s"):format(
+            local hp = cuf.db and cuf.db.elements and cuf.db.elements.hpbar
+            local r, g, b = ns.Colors.Get(hp and hp.colorMethod, cuf, hp, c.frachp, "barColor", "barAlpha")
+            p(("  %s框上色（現在讀=%s）：classFile=%s ownerClass=%s reaction=%s pc=%s isPlayer=%s"):format(
+                ckey, SafeStr(cuf.unit),
                 SafeStr(c.classFile), SafeStr(c.ownerClass), SafeStr(c.reaction),
                 tostring(c.pc), tostring(c.isPlayer)))
             p(("   法=%s → rgb=%s,%s,%s%s"):format(
@@ -590,7 +594,7 @@ local function Debug()
                 SafeStr(b and math.floor(b * 255)),
                 c.ownerClass and ("　（" .. tostring(c.ownerClass) .. " 主人色）") or ""))
         else
-            p("  寵物上色：沒有寵物")
+            p(("  %s框上色：沒有這個框"):format(ckey))
         end
     end
 
