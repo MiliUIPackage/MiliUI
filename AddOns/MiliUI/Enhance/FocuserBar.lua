@@ -46,6 +46,12 @@ end
 ----------------------------------------------------------------------
 -- 標記圖示
 ----------------------------------------------------------------------
+-- 單一標記圖示的材質跳脫字（tooltip / 聊天預覽用）
+local function MarkIcon(index, size)
+    return "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_"
+        .. index .. ":" .. (size or 14) .. "|t"
+end
+
 -- UI-RaidTargetingIcons 是 4x4 圖集，1-8 由左至右、由上而下
 local function SetMarkTexCoord(tex, index)
     local col = (index - 1) % 4
@@ -229,6 +235,22 @@ end
 -- 我的焦點打斷目標），不讀焦點身上的標記，所以不需要焦點存在。
 -- forChat = true 用 {rtN}（送進頻道由客戶端轉圖示）；
 -- false 用 |T...|t 材質跳脫（print / tooltip 本地顯示用，{rtN} 在本地不會轉）
+-- 隊友設定（由 FocuserSync 收集）。回傳兩個清單：有標記的、沒設定的。
+local function GetPeerLists()
+    local marked, idle = {}, {}
+    if not (MiliUI_FocuserSync and MiliUI_FocuserSync.GetPeers) then
+        return marked, idle
+    end
+    for _, p in ipairs(MiliUI_FocuserSync.GetPeers()) do
+        if p.index >= 1 and p.index <= 8 then
+            marked[#marked + 1] = p
+        else
+            idle[#idle + 1] = p
+        end
+    end
+    return marked, idle
+end
+
 local function BuildAnnounceMessage(forChat)
     local index = MiliUI_Focuser and MiliUI_Focuser.GetMarkIndex() or 0
     if index < 1 or index > 8 then
@@ -241,7 +263,22 @@ local function BuildAnnounceMessage(forChat)
         iconToken = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_" .. index .. ":16|t"
     end
     local text = GetDB().focuserAnnounceText or DEFAULT_ANNOUNCE
-    return (text:gsub("{icon}", iconToken))
+    local msg = (text:gsub("{icon}", iconToken))
+
+    -- 帶上隊友的標記，隊友一眼就看得出誰盯哪一隻。
+    -- 只列有設標記的；上限 6 個，免得團隊裡洗出一整面牆。
+    local marked = GetPeerLists()
+    if #marked > 0 then
+        local parts, shown = {}, math.min(#marked, 6)
+        for i = 1, shown do
+            local p = marked[i]
+            local token = forChat and ("{rt" .. p.index .. "}") or MarkIcon(p.index, 16)
+            parts[#parts + 1] = p.name .. token
+        end
+        if #marked > shown then parts[#parts + 1] = "…" end
+        msg = msg .. "（隊友：" .. table.concat(parts, " ") .. "）"
+    end
+    return msg
 end
 
 local lastAnnounce = 0
@@ -402,6 +439,38 @@ local function CreateBar()
         GameTooltip:AddLine("點擊開啟選單，選一個標記圖示", 0.8, 0.8, 0.8)
         GameTooltip:AddLine("選擇後會立即重標目前的焦點目標（戰鬥中可用）", 0.7, 0.7, 0.7)
         GameTooltip:AddLine("戰鬥中切換時，Shift+點擊巨集的標記編號會在脫戰後更新", 0.5, 0.5, 0.5)
+
+        -- 隊友設定（只有同樣裝米利UI的人才會回報）
+        local mine = MiliUI_Focuser and MiliUI_Focuser.GetEffectiveMarkIndex
+            and MiliUI_Focuser.GetEffectiveMarkIndex() or 0
+        local marked, idle = GetPeerLists()
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("隊友的焦點標記", 1, 0.82, 0)
+        if mine >= 1 then
+            GameTooltip:AddDoubleLine("你", MarkIcon(mine), 0.9, 0.9, 0.9, 1, 1, 1)
+        else
+            GameTooltip:AddDoubleLine("你", "未設定", 0.9, 0.9, 0.9, 0.6, 0.6, 0.6)
+        end
+        for _, p in ipairs(marked) do
+            if p.index == mine then
+                -- 撞號：這正是想知道「要不要換」的那一刻
+                GameTooltip:AddDoubleLine(p.name, MarkIcon(p.index) .. " 與你相同",
+                    1, 0.3, 0.3, 1, 0.3, 0.3)
+            else
+                GameTooltip:AddDoubleLine(p.name, MarkIcon(p.index), 0.8, 0.8, 0.8, 1, 1, 1)
+            end
+        end
+        for _, p in ipairs(idle) do
+            GameTooltip:AddDoubleLine(p.name, "未設定", 0.6, 0.6, 0.6, 0.5, 0.5, 0.5)
+        end
+        if #marked == 0 and #idle == 0 then
+            GameTooltip:AddLine("沒有偵測到其他使用米利UI的隊友", 0.5, 0.5, 0.5)
+        end
+        if MiliUI_FocuserSync and MiliUI_FocuserSync.IsRestricted
+            and MiliUI_FocuserSync.IsRestricted() then
+            GameTooltip:AddLine("（首領戰／M+／戰場中暴雪封鎖插件通訊，以上是開打前收到的）",
+                0.5, 0.5, 0.5, true)
+        end
         GameTooltip:Show()
     end)
     markBtn:SetScript("OnLeave", GameTooltip_Hide)

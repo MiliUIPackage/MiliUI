@@ -232,6 +232,12 @@ local function SwitchMacro()
         MiliUI_FocuserBar.SyncCellMacros()
     end
 end
+-- 設定改了就告訴隊友一聲（節流與封鎖判斷都在 FocuserSync 裡）
+local function BroadcastToPeers()
+    if MiliUI_FocuserSync and MiliUI_FocuserSync.Broadcast then
+        MiliUI_FocuserSync.Broadcast()
+    end
+end
 
 ----------------------------------------------------------------------
 -- Events
@@ -377,15 +383,28 @@ end
 function MiliUI_Focuser.SetAutoMark(val)
     GetDB().focuserAutoMark = val
     SwitchMacro()
+    BroadcastToPeers()
 end
 
 function MiliUI_Focuser.GetMarkIndex()
     return GetDB().focuserMarkIndex
 end
 
+-- 實際會用到的標記編號：自動標記關掉或沒選過 → 0。給 FocuserSync 廣播用，
+-- 隊友那邊看到 0 就知道「有裝米利UI，但沒在標」。
+function MiliUI_Focuser.GetEffectiveMarkIndex()
+    local db = GetDB()
+    if not db.focuserAutoMark then return 0 end
+    local i = db.focuserMarkIndex or 0
+    if i < 1 or i > 8 then return 0 end
+    return i
+end
+
+
 function MiliUI_Focuser.SetMarkIndex(index)
     GetDB().focuserMarkIndex = index
     SwitchMacro()
+    BroadcastToPeers()
     if MiliUI_FocuserBar then MiliUI_FocuserBar.UpdateMarkIcon() end
 end
 
