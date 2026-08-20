@@ -304,7 +304,8 @@ local function SecretTick(f)
             return
         end
     else
-        if UnitCastingInfo(f.unit) == nil and UnitChannelInfo(f.unit) == nil then
+        local cu = f.castUnit or f.unit
+        if UnitCastingInfo(cu) == nil and UnitChannelInfo(cu) == nil then
             HideBar(f)
             return
         end
@@ -361,7 +362,7 @@ local function UpdateCastTarget(f)
         fs:SetText("")
         return
     end
-    local token = TARGET_OF[f.unit]
+    local token = TARGET_OF[f.castUnit or f.unit]
     if not token then fs:SetText(""); return end
     -- 名字本身可能是**秘密字串**（受限內容），但兩件事都合法：
     --   「對非布林型別的秘密值做布林測試」是允許的 → `UnitName(token) or ""` 沒問題
@@ -378,7 +379,8 @@ end
 -- 的欄位本來就只在 not isCast 時才讀 —— 行為一樣，少一次呼叫。
 -- （原本的 castTbl/chanTbl 參數沒有任何呼叫端在用，一併拿掉。）
 local function StartDisplay(f)
-    local unit = f.unit
+    -- ⚠ castUnit，不是 unit：載具期間這條畫的可能是「你」的施法，而框畫的是載具
+    local unit = f.castUnit or f.unit
     -- UnitCastingInfo: name, text, texture, startMS, endMS, isTrade, castID, notInt, spellID
     local cName, _, cTex, cS4, cS5, _, cCastID, cNotInt, cSpellID = UnitCastingInfo(unit)
     local isCast = cName ~= nil
@@ -478,7 +480,7 @@ end
 
 local function ResyncTiming(f)
     if not f.active then return end
-    local unit = f.unit
+    local unit = f.castUnit or f.unit
     if f.castSecret then
         local castName = UnitCastingInfo(unit)
         local dur, isChannel, isEmpowered
@@ -600,12 +602,47 @@ local function ApplyTextStyle(fs, tdb, container)
     fs.holder:SetPoint("TOPLEFT", container, "TOPLEFT", tdb.x or 0, tdb.y or 0)
 end
 
+------------------------------------------------------------
+-- 載具期間「這次施法該畫在哪一格」
+--
+-- 事件在註冊期就同時收主副 token（玩家框 player+vehicle、寵物框 pet+player），
+-- 原本的閘卻是嚴格比對 `evUnit ~= f.unit` ⇒ 玩家框被重新對應成 vehicle 之後，
+-- **用 player 這個 token 報出來的施法整個被丟掉**，而寵物框這時剛好讀 player、
+-- 就把它接走了 ——「我在開載具，施法條卻長在旁邊那個小框上」的成因。
+--
+-- 引擎在載具期間兩個 token 都會派送（/muf debug 的「載具期間的事件來源」是證據，
+-- 實測 player 與 vehicle 都有），哪個技能走哪個 token 是暴雪決定的，不該賭。規則：
+--   * 沒被重新對應（99% 的時間）：照舊，只認 f.unit
+--   * 玩家框被重新對應（在載具上）：開唱事件兩個 token 都認，並記下這次是誰在施法；
+--     其餘事件只認「正在畫的那個」，免得載具與自己同時施法時互相收條
+--   * 寵物框被重新對應（這時它畫的是你自己）：讓位、一顆都不畫，否則同一次施法會
+--     在兩個框各畫一條
+--
+-- f.castUnit（這條在畫誰的施法）跟 f.unit（框在畫誰）刻意分開：載具期間兩者可以不同，
+-- 所有讀施法 API 的地方都要用 castUnit，不然會去問一個根本沒在施法的單位。
+local START_EVENTS = {
+    UNIT_SPELLCAST_START = true,
+    UNIT_SPELLCAST_CHANNEL_START = true,
+    UNIT_SPELLCAST_EMPOWER_START = true,
+}
+
+local function AcceptCastEvent(uf, f, event, evUnit)
+    if uf.unit == uf.baseUnit then return evUnit == f.unit end
+    if uf.baseUnit == "pet" then return false end
+    if START_EVENTS[event] then
+        f.castUnit = evUnit
+        return true
+    end
+    return evUnit == (f.castUnit or f.unit)
+end
+
 local function Build(uf, edb)
     local f = uf.elements.castbar
     if not f then
         f = CreateFrame("Frame", nil, uf, "BackdropTemplate")
         f.ename = "castbar"
         f.unit = uf.unit
+        f.castUnit = uf.unit
         f.displayToken = 0
 
         f.bgTex = f:CreateTexture(nil, "BACKGROUND")
@@ -692,7 +729,7 @@ local function Build(uf, edb)
         -- 施法者中途換目標 → 施法目標文字要跟上（C4）
         RegUnit("UNIT_TARGET")
         ev:SetScript("OnEvent", function(_, event, evUnit, arg2, arg3, arg4, arg5)
-            if evUnit ~= f.unit then return end   -- f.unit 會被 setunit 換成 vehicle
+            if not AcceptCastEvent(uf, f, event, evUnit) then return end
             if not uf:IsVisible() then return end
             if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_CHANNEL_START"
                or event == "UNIT_SPELLCAST_EMPOWER_START" then
@@ -851,7 +888,12 @@ end
 -- 施法條把 unit 另外存了一份（ResyncTiming 要用），換載具時要跟著換
 local function SetUnit(uf, unit)
     local f = uf.elements.castbar
-    if f then f.unit = unit end
+    if not f then return end
+    f.unit = unit
+    f.castUnit = unit
+    -- 寵物框在載具期間畫的是你自己，施法交給玩家框（見 AcceptCastEvent）→
+    -- 換過去的當下手上若還有一條，要收掉，否則它會卡在那裡直到淡出計時跑完
+    if uf.baseUnit == "pet" and unit ~= uf.baseUnit then HideBar(f) end
 end
 
 ns.RegisterElement{
