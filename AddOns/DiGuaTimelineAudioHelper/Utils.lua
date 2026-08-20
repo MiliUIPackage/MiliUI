@@ -163,15 +163,12 @@ function addonTable.GetTopWidgetText()
 end
 
 local RING_PATH = "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Ring_20px.tga"
-
 local RING_COLOR_NORMAL = {0.4, 1, 0.8, 0.85}
-local RING_COLOR_ALARM = {1, 0.2, 0.2, 0.9}
-local TargetEndTime = 0
-local CurrentRingIsCastSensitive = false
+
 local activeCircleTimer = nil
 local backupHideTimer = nil
 
--- 3. 创建主光圈 UI
+-- 创建主光圈 UI
 local RingFrame = CreateFrame("Frame", "MyCustomCircleTimer", UIParent)
 RingFrame:SetSize(120, 120)
 RingFrame:SetPoint("CENTER", 0, 0)
@@ -187,36 +184,24 @@ cd:SetAllPoints()
 cd:SetDrawEdge(false)
 cd:SetDrawSwipe(true)
 cd:SetSwipeTexture(RING_PATH)
-cd:SetSwipeColor(0.4, 1, 0.8, 0.85)
+cd:SetSwipeColor(unpack(RING_COLOR_NORMAL))
 cd:SetHideCountdownNumbers(true)
 cd:SetBlingTexture("")
 
-function UpdateRingColor(isAlarm)
-    if isAlarm then
-        PlaySoundFile(MEDIA_PATH .. "BuBu.ogg", DiGuaTimelineAudioHelper.audioChannel)
-        cd:SetSwipeColor(unpack(RING_COLOR_ALARM))
-    else
-        cd:SetSwipeColor(unpack(RING_COLOR_NORMAL))
-    end
-end
-
+-- 强制隐藏光圈及清理定时器
 local function ForceHideRingFrame()
     RingFrame:Hide()
-    CurrentRingIsCastSensitive = false
     if activeCircleTimer then activeCircleTimer:Cancel(); activeCircleTimer = nil end
     if backupHideTimer then backupHideTimer:Cancel(); backupHideTimer = nil end
 end
 
-function addonTable.StartCircleTimerBySeconds(seconds, checkCast, PlayerIsSpellTarget)
+-- 启动光圈倒计时
+function addonTable.StartCircleTimerBySeconds(seconds, PlayerIsSpellTarget)
     local duration = tonumber(seconds)
     if not duration or duration <= 0 then return end
     if PlayerIsSpellTarget == nil then PlayerIsSpellTarget = true end
 
     local startTime = GetTime()
-    TargetEndTime = startTime + duration
-    CurrentRingIsCastSensitive = checkCast
-
-    UpdateRingColor(false)
 
     if DiGuaTimelineAudioHelper.ringEnabled then
         cd:SetCooldown(startTime, duration)
@@ -228,6 +213,7 @@ function addonTable.StartCircleTimerBySeconds(seconds, checkCast, PlayerIsSpellT
 
     RingFrame:SetAlphaFromBoolean(PlayerIsSpellTarget, 0.85, 0)
 
+    -- 清理旧的定时器
     if activeCircleTimer then activeCircleTimer:Cancel() end
     if backupHideTimer then backupHideTimer:Cancel() end
 
@@ -236,3 +222,124 @@ function addonTable.StartCircleTimerBySeconds(seconds, checkCast, PlayerIsSpellT
 end
 
 
+local BAR_PATH = "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Bar_20px.tga"
+
+local BAR_COLOR_NORMAL = {0.4, 1, 0.8, 0.85}
+local BAR_COLOR_ALARM = {1, 0.2, 0.2, 0.9}
+local TargetBarEndTime = 0
+local CurrentBarIsCastSensitive = false
+local activeBarTimer = nil
+local backupBarHideTimer = nil
+
+-- 创建主进度条 UI
+local BarFrame = CreateFrame("Frame", "MyCustomBarTimerFrame", UIParent)
+BarFrame:SetSize(120, 15)
+BarFrame:SetPoint("CENTER", 0, 60)
+BarFrame:Hide()
+
+-- 进度条背景
+local barBg = BarFrame:CreateTexture(nil, "BACKGROUND")
+barBg:SetAllPoints()
+barBg:SetTexture(BAR_PATH)
+barBg:SetVertexColor(0, 0, 0, 0.3)
+
+-- 进度条主体
+local statusBar = CreateFrame("StatusBar", nil, BarFrame)
+statusBar:SetAllPoints()
+statusBar:SetStatusBarTexture(BAR_PATH)
+statusBar:SetStatusBarColor(unpack(BAR_COLOR_NORMAL))
+statusBar:SetMinMaxValues(0, 1)
+statusBar:SetValue(1)
+
+-- 更新进度条颜色与音效
+function UpdateBarColor(isAlarm)
+    if isAlarm then
+        PlaySoundFile(addonTable.GetMediaPath() .. "BuBu.ogg", DiGuaTimelineAudioHelper.audioChannel)
+        statusBar:SetStatusBarColor(unpack(BAR_COLOR_ALARM))
+    else
+        statusBar:SetStatusBarColor(unpack(BAR_COLOR_NORMAL))
+    end
+end
+
+-- 强制隐藏进度条及清理定时器
+local function ForceHideBarFrame()
+    BarFrame:Hide()
+    CurrentBarIsCastSensitive = false
+    if statusBar:GetScript("OnUpdate") then
+        statusBar:SetScript("OnUpdate", nil)
+    end
+    if activeBarTimer then activeBarTimer:Cancel(); activeBarTimer = nil end
+    if backupBarHideTimer then backupBarHideTimer:Cancel(); backupBarHideTimer = nil end
+end
+
+-- 启动 Bar 倒计时
+function addonTable.StartBarTimerBySeconds(seconds, checkCast, PlayerIsSpellTarget)
+    local duration = tonumber(seconds)
+    if not duration or duration <= 0 then return end
+    if PlayerIsSpellTarget == nil then PlayerIsSpellTarget = true end
+
+    local startTime = GetTime()
+    TargetBarEndTime = startTime + duration
+    CurrentBarIsCastSensitive = checkCast
+
+    UpdateBarColor(false)
+
+    if DiGuaTimelineAudioHelper.ringEnabled then -- 或使用独立的 barEnabled 变量
+        BarFrame:Show()
+    else
+        BarFrame:Hide()
+        return
+    end
+
+    BarFrame:SetAlphaFromBoolean(PlayerIsSpellTarget, 0.85, 0)
+
+    -- 清理旧的 OnUpdate 与定时器
+    statusBar:SetScript("OnUpdate", nil)
+    if activeBarTimer then activeBarTimer:Cancel() end
+    if backupBarHideTimer then backupBarHideTimer:Cancel() end
+
+    local hasTriggeredAlarm = false -- 状态标记：防重复播放音效
+
+    -- 驱动进度条平滑减少
+    statusBar:SetScript("OnUpdate", function(self)
+        local now = GetTime()
+        local remainingBar = TargetBarEndTime - now
+
+        if remainingBar <= 0 then
+            self:SetValue(0)
+            self:SetScript("OnUpdate", nil)
+        else
+            self:SetValue(remainingBar / duration)
+
+            -- 施法时长敏感度检测
+            if CurrentBarIsCastSensitive then
+                -- 获取玩家施法信息（第 5 个返回值 endTimeMillis 为毫秒单位的结束时间）
+                local _, _, _, _, castEndTime = UnitCastingInfo("player")
+                if not castEndTime then
+                    _, _, _, _, castEndTime = UnitChannelInfo("player")
+                end
+
+                local isDangerous = false
+                if castEndTime then
+                    local castRemaining = (castEndTime / 1000) - now
+                    -- 关键逻辑：玩家施法剩余时间 > Bar 剩余时间 时判定为危险
+                    if castRemaining > remainingBar then
+                        isDangerous = true
+                    end
+                end
+
+                -- 状态切换判定与音效触发
+                if isDangerous and not hasTriggeredAlarm then
+                    UpdateBarColor(true)  -- 变红 + 播放音效
+                    hasTriggeredAlarm = true
+                elseif not isDangerous and hasTriggeredAlarm then
+                    UpdateBarColor(false) -- 恢复原色（如果玩家取消施法或快读完条了）
+                    hasTriggeredAlarm = false
+                end
+            end
+        end
+    end)
+
+    activeBarTimer = C_Timer.NewTimer(duration, ForceHideBarFrame)
+    backupBarHideTimer = C_Timer.NewTimer(15, ForceHideBarFrame)
+end

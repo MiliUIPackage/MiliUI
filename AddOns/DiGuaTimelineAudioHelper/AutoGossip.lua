@@ -1,7 +1,8 @@
 local addonName, AutoGossip = ...
 
 AutoGossip.EnabledGossipIDs = {
-    [135009] = true, -- 洞穴
+    [135009] = true, -- 洞穴 (门口)
+    [135010] = true, -- 洞穴 (老二)
     [137021] = true, -- 密谋
 }
 

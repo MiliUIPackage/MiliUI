@@ -60,6 +60,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     end
 
     if not encounterWarningInfo then return end
+    if not DiGuaTimelineAudioHelper.bossVoiceEnabled and currentEncounterID ~= 0 then return end
 
     -- 实时从小函数里捞取主文件内部最新的隐身 local 变量
     local currentEncounterID = addonTable.GetEncounterID()
@@ -82,10 +83,13 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
     and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2   
     and (GetSubZoneText() == "漫长寒冬" or GetSubZoneText() == "恆常凜冬") -- 子区域 (漫长寒冬)
-    then 
+    then
+        addonTable.CustomEncounterBar(135857, 50, "强风")
         PlaySoundFile(MEDIA_PATH .. "KuaiZhaoYanTi.ogg", DiGuaTimelineAudioHelper.audioChannel)
         C_Timer.After(13, function()
-            PlaySoundFile(MEDIA_PATH .. "ChuiFengJieShu.ogg", DiGuaTimelineAudioHelper.audioChannel)
+            if currentEncounterID == 0 then
+                PlaySoundFile(MEDIA_PATH .. "ChuiFengJieShu.ogg", DiGuaTimelineAudioHelper.audioChannel)
+            end
         end)
         return
     end
@@ -113,7 +117,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
 
     -- 技能：阻断暴雨
     if currentEncounterID == 2623 and severity == 1 and not targetName then 
-        -- addonTable.StartCircleTimerBySeconds(5, true)
+        addonTable.StartBarTimerBySeconds(5, true)
         C_Timer.After(2, function()
             PlaySoundFile(MEDIA_PATH .. "DaoShu3.ogg", DiGuaTimelineAudioHelper.audioChannel)
         end)  
@@ -131,7 +135,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
 
     -- 技能：烈焰喷吐
     if currentEncounterID == 2623 and severity == 1 and targetName then 
-        addonTable.StartCircleTimerBySeconds(6)
+        addonTable.StartCircleTimerBySeconds(5.9)
         return
     end
 
@@ -168,6 +172,9 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     end
 
 
+
+
+
     -- 技能：吐金
     if currentEncounterID == 2139 and severity == 1 then
         local function SafePlay(soundFile)
@@ -185,6 +192,68 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
             SafePlay("DaoShu1.ogg")
         end)
         addonTable.StartCircleTimerBySeconds(8)
+        return
+    end
+
+
+
+    -- 技能：燃烧腐蚀
+    if currentEncounterID == 2142 and severity == 1 then
+        addonTable.StartCircleTimerBySeconds(3.9)
+        local function SafePlay(soundFile)
+            if addonTable.GetEncounterID() == 2142 then
+                PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+            end
+        end
+        C_Timer.After(0.9, function()
+            SafePlay("DaoShu3.ogg")
+        end)
+        C_Timer.After(1.9, function()
+            SafePlay("DaoShu2.ogg")
+        end)
+        C_Timer.After(2.9, function()
+            SafePlay("DaoShu1.ogg")
+        end)
+        return
+    end
+
+
+
+    -- 技能：元素的召唤
+    if currentEncounterID == 2140 and severity == 2 and not targetName then
+        local function SafePlay(soundFile)
+            if addonTable.GetEncounterID() == 2140 then
+                PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+            end
+        end
+        C_Timer.After(2.5, function()            
+            -- SafePlay("DaoShu8.ogg")
+        end)
+        C_Timer.After(3.5, function()
+            -- SafePlay("DaoShu7.ogg")
+        end)
+        C_Timer.After(4.5, function()
+            -- SafePlay("DaoShu6.ogg")
+        end)
+        C_Timer.After(5.5, function()
+            -- SafePlay("DaoShu5.ogg")
+        end)
+        C_Timer.After(6.5, function()
+            addonTable.StartBarTimerBySeconds(4, true)
+            SafePlay("ZhunBeiChenMo.ogg")
+        end)
+        C_Timer.After(7.5, function()
+            SafePlay("DaoShu3.ogg")
+        end)
+        C_Timer.After(8.5, function()
+            SafePlay("DaoShu2.ogg")
+        end)
+        C_Timer.After(9.5, function()
+            SafePlay("DaoShu1.ogg")
+        end)
+        C_Timer.After(10.5, function()
+            SafePlay("AnQuan.ogg")
+        end)
         return
     end
 

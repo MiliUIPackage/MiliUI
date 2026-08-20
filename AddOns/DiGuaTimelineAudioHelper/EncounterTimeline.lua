@@ -4,40 +4,16 @@
 local addonName, addonTable = ...
 
 addonTable.AudioTimeline = {
-    [3456] = { -- 拉维
-        interval = 999, 
-        startOffset = 0, 
-        alerts = {
-            [0]  = "ZhunBeiAOE.ogg",
-            [3]  = "ZhuYiDuoQuan.ogg",
-            [28] = "ZhuYiJieQuan.ogg",
-        }
-    },
 
-    [3457] = { -- 扭缠盘蛇
-        interval = 999, 
-        startOffset = 0, 
-        alerts = {
-            -- [24]  = "LaDuanLianXian.ogg",
-            -- [30]  = "XiaoGuaiDingNi.ogg",
-            -- [52]  = "DuoKaiChongFeng.ogg",
-            -- [57]  = "DuoKaiTouQian.ogg",
-        }
-    },
+    -- [2124] = { -- 阿德里斯和阿斯匹克斯
+    --     interval = 999, 
+    --     startOffset = 0, 
+    --     alerts = {
+    --         [40] = "DaoShu3.ogg",
+    --         [110] = "DaoShu2.ogg",
 
-    [3458] = { -- 祖尔加
-        interval = 64, 
-        startOffset = 0, 
-        alerts = {
-            [0]  = "ZhuYiDangXian.ogg",
-            [8]  = "DaoShu5.ogg",
-            [9]  = "DaoShu4.ogg",
-            [10]  = "DaoShu3.ogg",
-            [11]  = "DaoShu2.ogg",
-            [12]  = "DaoShu1.ogg",
-            [13]  = "AnQuan.ogg",
-        }
-    },
+    --     }
+    -- },
 
 
     -- [2126] = { -- 加瓦兹特
@@ -197,6 +173,43 @@ addonTable.AudioTimeline = {
     },
 
 
+    [3456] = { -- 拉维
+        interval = 999, 
+        startOffset = 0, 
+        alerts = {
+            [0]  = "ZhunBeiAOE.ogg",
+            [3]  = "ZhuYiDuoQuan.ogg",
+            [28] = "ZhuYiJieQuan.ogg",
+        }
+    },
+
+    [3457] = { -- 扭缠盘蛇
+        interval = 999, 
+        startOffset = 0, 
+        alerts = {
+            -- [24]  = "LaDuanLianXian.ogg",
+            -- [30]  = "XiaoGuaiDingNi.ogg",
+            -- [52]  = "DuoKaiChongFeng.ogg",
+            -- [57]  = "DuoKaiTouQian.ogg",
+        }
+    },
+
+    [3458] = { -- 祖尔加
+        interval = 64, 
+        startOffset = 0, 
+        alerts = {
+            [0]  = "ZhuYiDangXian.ogg",
+            [8]  = "DaoShu5.ogg",
+            [9]  = "DaoShu4.ogg",
+            [10]  = "DaoShu3.ogg",
+            [11]  = "DaoShu2.ogg",
+            [12]  = "DaoShu1.ogg",
+            [13]  = "AnQuan.ogg",
+        }
+    },
+
+
+
     [3470] = { -- 盘魂者内克扎莉
         interval = 999, 
         startOffset = 0, 
@@ -242,17 +255,58 @@ end
 frame:RegisterEvent("ENCOUNTER_START")
 frame:RegisterEvent("ENCOUNTER_END")
 
+-- 抽离出来的“恢复普通光环”辅助函数
+local function SafeRegisterAuras()
+    C_Timer.After(0.5, function()
+        if not DiGuaTimelineAudioHelper.bossVoiceEnabled then
+            if addonTable.RegisterNormalAuras then
+                addonTable.RegisterNormalAuras()
+                -- print("|cffffd100[DiGua]|r 注册光环音频")
+            end
+        end
+    end)
+end
+
 frame:SetScript("OnEvent", function(self, event, encounterID)
     if event == "ENCOUNTER_START" then
+        -- 核心逻辑：只有在【没勾选】首领语音时，才注销普通光环
+        if not DiGuaTimelineAudioHelper.bossVoiceEnabled then
+            if addonTable.UnregisterNormalAuras then
+                addonTable.UnregisterNormalAuras()
+                -- print("注销光环音频")
+            end
+            -- 拦截首领语音时间轴，不启动 OnUpdate
+            return
+        end
+
+        -- 勾选了首领语音：正常启动首领语音时间轴（不影响普通光环）
         currentEncounterID = encounterID
         startTime = GetTime()
         lastPlayedSecond = -1
         frame:SetScript("OnUpdate", OnUpdate)
 
     elseif event == "ENCOUNTER_END" then
+        -- 1. 重置首领语音时间轴
         startTime = 0
         currentEncounterID = 0
         frame:SetScript("OnUpdate", nil)
+
+        -- 2. 如果【没勾选】首领语音，准备重新注册普通光环
+        if not DiGuaTimelineAudioHelper.bossVoiceEnabled then
+            if not InCombatLockdown() then
+                -- 非战斗状态：直接延迟 0.5 秒注册
+                SafeRegisterAuras()
+            else
+                -- 战斗中：开启脱战事件监听，等脱战后再触发注册
+                self:RegisterEvent("PLAYER_REGEN_ENABLED")
+            end
+        end
+
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        -- 脱战后触发注册
+        SafeRegisterAuras()
+        -- 注册完成后注销脱战事件，防止平时无谓触发
+        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
     end
 end)
 

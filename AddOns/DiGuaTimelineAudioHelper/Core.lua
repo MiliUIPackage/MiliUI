@@ -25,6 +25,7 @@ end
 -- 2. 統一事件監聽框架
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_LOGIN")
+frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
@@ -37,7 +38,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
             if db.ringEnabled == nil then db.ringEnabled = true end
             if db.tenSecCountDown == nil then db.tenSecCountDown = false end
             if db.coTankAuraEnabled == nil then db.coTankAuraEnabled = false end
-            if db.bossVoiceEnabled == nil then db.bossVoiceEnabled = true end -- 新增：默認開啟（兼容新老用戶）
+            if db.bossVoiceEnabled == nil then db.bossVoiceEnabled = true end
+            if db.forceEncounterWarnings == nil then db.forceEncounterWarnings = true end
             if db.audioChannel == nil then db.audioChannel = "Master" end
             if db.coTankX == nil then db.coTankX = -400 end
             if db.coTankY == nil then db.coTankY = 350 end
@@ -54,15 +56,15 @@ frame:SetScript("OnEvent", function(self, event, ...)
             addonTable.registerTable(addonTable.EventSoundData)
         end
 
-        -- BigWigs 檢測與聲道/警告設置
         if not C_AddOns.IsAddOnLoaded("BigWigs") then
             C_Timer.After(2, function() SetCVar("encounterWarningsEnabled", 1) end)
         end
+
         SetCVar("Sound_NumChannels", 128)
 
         -- 打印歡迎信息
         C_Timer.After(2, function()
-            --print("感謝使用|cFF00FF00[神秘地瓜副本語音插件]|r如果覺得好用，請在|cFFFFA6D5「愛發電」|r平台搜索|cFFFFFF00「神秘地瓜」|r支持我的插件，您的支持就是我最大的動力。")
+            --print("感謝使用|cFF00FF00[神秘地瓜副本語音插件]|r如果覺得好用，請在|cFFFFA6D5「愛發電」|r平台搜索|cFFFFFF00「神秘地瓜」|r支持我的插件，您的支持就是我最大的動力。/digua 可開啟控制台")
         end)
 
         -- 同步 UI 控件勾選狀態
@@ -72,15 +74,24 @@ frame:SetScript("OnEvent", function(self, event, ...)
             DiGuaTimelineChannelCheck:SetChecked(DiGuaTimelineAudioHelper.audioChannel == "Ambience")
             DiGuaTimelineTenSecCheck:SetChecked(DiGuaTimelineAudioHelper.tenSecCountDown)
             DiGuaTimelineCoTankCheck:SetChecked(DiGuaTimelineAudioHelper.coTankAuraEnabled)
-            DiGuaTimelineBossVoiceCheck:SetChecked(DiGuaTimelineAudioHelper.bossVoiceEnabled) -- 同步勾選狀態
+            DiGuaTimelineBossVoiceCheck:SetChecked(DiGuaTimelineAudioHelper.bossVoiceEnabled)
+            DiGuaTimelineForceWarningsCheck:SetChecked(DiGuaTimelineAudioHelper.forceEncounterWarnings) -- 同步勾選狀態
         end
+
+        elseif event == "PLAYER_ENTERING_WORLD" then
+            if DiGuaTimelineAudioHelper.forceEncounterWarnings then                
+                C_Timer.After(3, function() 
+                    -- print("encounterWarningsEnabled")
+                    SetCVar("encounterWarningsEnabled", 1) 
+                end)
+            end
     end
 end)
 
 
 -- 4. 控制台 UI 界面構建
 local f = CreateFrame("Frame", "DiGuaTimelineMainFrame", UIParent, "BasicFrameTemplateWithInset")
-f:SetSize(180, 195) -- 調整高度避免 UI 擠壓
+f:SetSize(220, 220) -- 高度調大到 220px，避免新增選項重疊擠壓
 f:SetPoint("CENTER")
 f:SetMovable(true)
 f:EnableMouse(true)
@@ -134,7 +145,6 @@ local cbCoTank = CreateCheckButton("DiGuaTimelineCoTankCheck", "副坦私有光�
     if addonTable.UpdateRaidTankAuras then addonTable.UpdateRaidTankAuras() end
 end)
 
--- 新增：「開啟首領語音」復選框控件，直接在內聯中處理清空與注冊
 local cbBossVoice = CreateCheckButton("DiGuaTimelineBossVoiceCheck", "開啟首領語音警報", -160, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.bossVoiceEnabled = isEnabled
@@ -147,14 +157,23 @@ local cbBossVoice = CreateCheckButton("DiGuaTimelineBossVoiceCheck", "開啟首�
     print("|cffffd100[DiGua]|r 首領語音警報功能: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
+local cbForceWarnings = CreateCheckButton("DiGuaTimelineForceWarningsCheck", "自動開啟暴雪文字預警", -185, function(self)
+    local isEnabled = self:GetChecked()
+    DiGuaTimelineAudioHelper.forceEncounterWarnings = isEnabled
+    if isEnabled then
+        SetCVar("encounterWarningsEnabled", 1)
+    end
+    print("|cffffd100[DiGua]|r 自動開啟暴雪文字預警: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
+end)
+
 f:SetScript("OnShow", function() if addonTable.RefreshAnchorState then addonTable.RefreshAnchorState(true) end end)
 f:SetScript("OnHide", function() if addonTable.RefreshAnchorState then addonTable.RefreshAnchorState(false) end end)
 
 SLASH_DIGUA1 = "/digua"
+SLASH_DIGUA2 = "/dg" -- 新增別名 /dg
 SlashCmdList["DIGUA"] = function()
     if f:IsShown() then f:Hide() else f:Show() end
 end
-
 -- 5. 跨文件接口提供
 addonTable.GetMediaPath = function() return MEDIA_PATH end
 addonTable.GetAudioChannel = function() return DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.audioChannel or "Master" end

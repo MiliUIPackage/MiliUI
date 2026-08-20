@@ -15,11 +15,11 @@ local function DisplayNameplateText(u, textToDisplay)
     if not nameplateTexts[plate] then
         local fontString = plate:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         -- 字号设置为 40，使用描边样式
-        fontString:SetFont(STANDARD_TEXT_FONT, 40, "OUTLINE")
+        fontString:SetFont(STANDARD_TEXT_FONT, 45, "OUTLINE")
         fontString:SetTextColor(1, 1, 1, 1)
         fontString:SetShadowColor(0, 0, 0, 1)
         -- 核心锚点：将文本顶部 (TOP) 挂载到姓名板底部 (BOTTOM) 偏下 5 像素处
-        fontString:SetPoint("TOP", plate, "BOTTOM", 0, -5)
+        fontString:SetPoint("TOP", plate, "BOTTOM", 0, 0)
         
         nameplateTexts[plate] = fontString
     end
@@ -81,7 +81,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
-            and currentEncounterID == 0
+            and addonTable.GetEncounterID() == 0
             then
             
             -- 在姓名板下方显示竖排“图腾”

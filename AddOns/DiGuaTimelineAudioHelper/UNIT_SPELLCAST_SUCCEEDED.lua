@@ -91,21 +91,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
             and UnitSpellTargetName(unitTarget) -- 法术有目标
             and UnitGroupRolesAssigned("player") == "HEALER"
-            then PlaySoundFile(MEDIA_PATH .. "QuSanMoFa.ogg", DiGuaTimelineAudioHelper.audioChannel) end
-
-        -- if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 旋风斩 (工具) -- 魔化狂乱 (工具)
-        --     and select(8, GetInstanceInfo()) == 2813 -- 副本ID (密谋小径)
-        --     and (C_Map.GetBestMapForUnit("player") or 0) == 2434 -- 地图ID
-        --     and IsIndoors() == false -- 是否在室内
-        --     and UnitLevel(unitTarget) == UnitLevel("player") + 1
-        --     and UnitPowerType(unitTarget) == 1
-        --     and UnitAffectingCombat(unitTarget) == true -- 是否在战斗中
-        --     and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
-        --     and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
-        --     and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
-        --     and not UnitSpellTargetName(unitTarget) -- 法术无目标
-        --     then addonTable.SpellCastSuccessTriggered[unitTarget] = true 
-        --     C_Timer.After(1.5, function() addonTable.SpellCastSuccessTriggered[unitTarget] = nil end) end
+            then addonTable.CustomEncounterBar(132887, 6.5, "驱散魔法")
+            PlaySoundFile(MEDIA_PATH .. "QuSanMoFa.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 厄运诅咒
             and select(8, GetInstanceInfo()) == 2813 -- 副本ID (密谋小径)
@@ -119,13 +106,78 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and UnitSpellTargetName(unitTarget) -- 法术有目标
-            then 
+            then                
                 addonTable.SpellCastStartTime[unitTarget] = GetTime() - addonTable.SpellCastStartTime[unitTarget]
                 if addonTable.SpellCastStartTime[unitTarget] <= 1.6 then
                     -- 播放前检查职业：德鲁伊、唤魔师、法师、萨满
                     local class = UnitClassBase("player")
                     if class == "DRUID" or class == "EVOKER" or class == "MAGE" or class == "SHAMAN" then
+                        addonTable.CustomEncounterBar(136122, 25.5, "驱散诅咒")
                         PlaySoundFile(MEDIA_PATH .. "QuSanZuZhou.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                    end
+                end
+            end
+
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 风暴祝福
+            and select(8, GetInstanceInfo()) == 1877 -- 副本ID (塞塔里斯神庙)
+            and (C_Map.GetBestMapForUnit("player") or 0) == 1038 -- 地图ID
+            and IsIndoors() == true -- 在室内
+            and UnitLevel(unitTarget) == UnitLevel("player") + 2
+            and UnitPowerType(unitTarget) == 3
+            and UnitClassification(unitTarget) == "elite" -- 精英怪
+            and UnitAffectingCombat(unitTarget) == true -- 在战斗中
+            and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
+            and not UnitSpellTargetName(unitTarget) -- 法术无目标
+            then 
+                -- 确保时间表已初始化，且该单位有记录起始时间
+                local startTime = addonTable.SpellCastStartTime and addonTable.SpellCastStartTime[unitTarget]
+
+                if startTime then
+                    addonTable.SpellCastDuration[unitTarget] = GetTime() - startTime
+                    if addonTable.SpellCastDuration[unitTarget] >= 2.4 and addonTable.SpellCastDuration[unitTarget] <= 2.6 then
+                        PlaySoundFile(MEDIA_PATH .. "MuBiaoZhuanHuan.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                    end
+                end
+            end
+
+
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 嗜血飞斧 (工具) -- 灵魂碾压 (工具)
+            and select(8, GetInstanceInfo()) == 1762 -- 副本ID (诸王之眠)
+            and (C_Map.GetBestMapForUnit("player") or 0) == 1004 -- 地图ID
+            and IsIndoors() == true -- 在室内
+            and UnitLevel(unitTarget) == UnitLevel("player") + 1
+            and UnitPowerType(unitTarget) == 1
+            and UnitClassification(unitTarget) == "elite" -- 精英怪
+            and UnitAffectingCombat(unitTarget) == true -- 在战斗中
+            and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
+            and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
+            and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
+            and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
+            and UnitSpellTargetName(unitTarget) -- 法术没目标
+            then addonTable.SpellCastSuccessTriggered[unitTarget] = true -- 标记施法成功事件触发
+            C_Timer.After(0.5, function() addonTable.SpellCastSuccessTriggered[unitTarget] = nil end) end -- 0.5秒后清除标记
+        
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 地震岩层（工具） -- 暴怒猛击（工具）
+            and select(8, GetInstanceInfo()) == 1762 -- 副本ID (诸王之眠)
+            and (C_Map.GetBestMapForUnit("player") or 0) == 1004 -- 地图ID
+            and IsIndoors() == true -- 在室内
+            and UnitLevel(unitTarget) == UnitLevel("player") + 1
+            and UnitPowerType(unitTarget) == 1
+            and UnitClassification(unitTarget) == "elite" -- 精英怪
+            and UnitAffectingCombat(unitTarget) == true -- 在战斗中
+            and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
+            and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
+            and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
+            and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
+            and not UnitSpellTargetName(unitTarget) -- 法术没目标
+            then 
+                -- 确保时间表已初始化，且该单位有记录起始时间
+                local startTime = addonTable.SpellCastStartTime and addonTable.SpellCastStartTime[unitTarget]
+
+                if startTime then
+                    addonTable.SpellCastDuration[unitTarget] = GetTime() - startTime
+                    if addonTable.SpellCastDuration[unitTarget] >= 4.9 and addonTable.SpellCastDuration[unitTarget] <= 5.1 then
+                        addonTable.SpellCastCounter[unitTarget] = true
                     end
                 end
             end
@@ -195,7 +247,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 return end
 
 
-        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 地震术 -- 动荡图腾
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 地震术 (工具) -- 动荡图腾 (工具)
             and select(8, GetInstanceInfo()) == 2825 -- 副本ID (纳洛拉克的洞穴)
             and (C_Map.GetBestMapForUnit("player") or 0) == 2513 -- 地图ID
             and IsIndoors() == false -- 在室外
@@ -224,25 +276,17 @@ frame:SetScript("OnEvent", function(self, event, ...)
             -- 3. 清理该目标的临时耗时数据，防止因其他非判定内的施法成功事件导致错误计算
             addonTable.SpellCastStartTime[unitTarget] = nil
             end
-
-        
-        -- if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 召唤原始雷云 (工具) -- 暴风骤雨之盾 (工具)
-        --     and select(8, GetInstanceInfo()) == 2521 -- 副本ID (红玉新生法池)
-        --     and (C_Map.GetBestMapForUnit("player") or 0) == 2094 -- 地图ID
-        --     and IsIndoors() == false -- 在室外
-        --     and UnitLevel(unitTarget) == UnitLevel("player") + 1
-        --     and UnitPowerType(unitTarget) == 0
-        --     and UnitSex(unitTarget) == 3 -- 女性
-        --     and UnitClassification(unitTarget) == "elite" -- 精英怪
-        --     and UnitAffectingCombat(unitTarget) == true -- 在战斗中
-        --     and select(2, UnitClass(unitTarget)) == "PALADIN"
-        --     and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
-        --     and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
-        --     and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
-        --     and not UnitSpellTargetName(unitTarget) -- 法术没目标
-        --     then addonTable.SpellCastSuccessTriggered[unitTarget] = true -- 标记施法成功事件触发
-        --     C_Timer.After(0.5, function() addonTable.SpellCastSuccessTriggered[unitTarget] = nil end) end -- 0.5秒后清除标记
-
-
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 腐蚀精华 (工具)
+            and select(8, GetInstanceInfo()) == 2923 -- 副本ID (虚空之痕竞技场)
+            and (C_Map.GetBestMapForUnit("player") or 0) == 2572 -- 地图ID
+            and IsIndoors() == false -- 在室外
+            and UnitLevel(unitTarget) == UnitLevel("player") + 1
+            and UnitPowerType(unitTarget) == 1
+            and UnitClassification(unitTarget) == "elite" -- 精英怪
+            and UnitAffectingCombat(unitTarget) == true -- 在战斗中
+            and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
+            and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
+            and not UnitSpellTargetName(unitTarget) -- 法术无目标
+            then addonTable.SpellCastSuccessTriggered[unitTarget] = true end
     end
 end)
