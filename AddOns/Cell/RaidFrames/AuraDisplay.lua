@@ -1483,7 +1483,8 @@ end
 --
 -- Re-probe every vulnerable handle whenever assistability can flip: faction changes
 -- (cross-faction membership, duels -- and cinematics, which fire UNIT_FACTION), phasing,
--- roster and member-data settling, zoning, target/focus swaps. Event bursts coalesce onto
+-- roster and member-data settling, zoning, target/focus swaps -- and vehicle transitions,
+-- which get their own handling further down. Event bursts coalesce onto
 -- one 50ms timer and the per-handle probe is two API calls, so a raid-wide sweep is cheap.
 --
 -- PLAYER_ENTERING_WORLD parks two delayed sweeps as well: straight after a loading screen
@@ -1504,6 +1505,7 @@ do
         "PARTY_MEMBER_ENABLE", "PARTY_MEMBER_DISABLE", "GROUP_ROSTER_UPDATE",
         "PLAYER_ENTERING_WORLD", "PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED",
         "CINEMATIC_START", "CINEMATIC_STOP", "PLAY_MOVIE", "STOP_MOVIE",
+        "UNIT_ENTERED_VEHICLE", "UNIT_EXITED_VEHICLE", "UNIT_PET",
     }) do
         watcher:RegisterEvent(e)
     end
@@ -1542,9 +1544,88 @@ do
         end
     end
 
-    watcher:SetScript("OnEvent", function(_, event)
+    -- ── VEHICLE TRANSITIONS ───────────────────────────────────
+    -- Boarding or leaving a vehicle re-parses the pools while the unit is mid-transition,
+    -- when the assist check cannot be answered -- the same fail-open a cinematic causes,
+    -- announced by events nothing in the list above was listening to. It sticks HARDER
+    -- than the cinematic one: the engine re-parses on an aura CHANGE, and a taxi or
+    -- mount-style vehicle ride has no aura churn at all, so the unfiltered pool survives
+    -- the entire ride. That is the "I got on the boat and the whitelist row filled up with
+    -- everything" report -- /cab gate clears it, which is exactly what the settle pass
+    -- below now does by itself.
+    --
+    -- Both halves are needed:
+    --   1. probe + latch on the way IN, so the fail-open parse is never SEEN, and so the
+    --      assist false -> true EDGE ends up on record. Without a probe DURING the
+    --      transition there is no edge later, and ApplyIdentityGate never bounces.
+    --   2. a FORCED bounce once it settles. If assist never actually dropped, (1) records
+    --      nothing at all and only an unconditional re-parse can clear the stale pool.
+    --      This half also covers the button whose unit was swapped to the vehicle token,
+    --      which (1) cannot match against the event's unit.
+    -- ⚠ Latch OUT OF COMBAT only: in combat GateRefresh can only mark dirty, so a latched
+    -- row would stay blank until regen -- and in combat the aura churn re-parses it anyway.
+    -- UNIT_PET is watched because THAT, not UNIT_ENTERED_VEHICLE, is when the vehicle
+    -- actually lands; the enter event fires at the start of the transition, before data.
+    local function SameUnit(a, b)
+        if type(a) ~= "string" or type(b) ~= "string" then return false end
+        if a == b then return true end
+        local ok, same = pcall(UnitIsUnit, a, b)
+        return ok and same == true
+    end
+
+    local vehQueued
+    local function VehicleSettle(final)
+        if final then vehQueued = nil end
+        for h in pairs(AD._instances or {}) do
+            if not h._destroyed and h.container
+                and (h._gateVulnerable or h._gateSourceRelative) then
+                -- un-latch BEFORE the bounce: Show() on a hidden parent chain never fires
+                -- OnShow, and OnShow IS the re-parse (same trap as ApplyIdentityGate)
+                if h._cineLatched then SetLatch(h, nil) end
+                pcall(function() h:ApplyIdentityGate() end)
+                h:GateRefresh()
+            end
+        end
+    end
+
+    local function VehicleTransition(event, unit)
+        local okA, canA = pcall(UnitCanAssist, "player", unit)
+        AD._gateVehicleLog = ("%s unit=%s assist=%s t=%.1f"):format(
+            tostring(event), tostring(unit),
+            okA and (issecretvalue(canA) and "secret" or tostring(canA)) or "err",
+            GetTime())
+
+        local latch = not InCombatLockdown()
+        for h in pairs(AD._instances or {}) do
+            if not h._destroyed and h._gateVulnerable and SameUnit(h.unit, unit) then
+                pcall(function() h:ApplyIdentityGate() end)
+                if latch then SetLatch(h, true) end
+            end
+        end
+
+        -- one pair of passes per burst (a raid boarding together is still one burst):
+        -- 1s covers the normal case, 3s the slow landing.
+        if not vehQueued then
+            vehQueued = true
+            C_Timer.After(1, function() VehicleSettle(false) end)
+            C_Timer.After(3, function() VehicleSettle(true) end)
+        end
+    end
+
+    watcher:SetScript("OnEvent", function(_, event, unit)
         if event == "CINEMATIC_START" or event == "PLAY_MOVIE" then
             LatchAll()
+            return
+        end
+
+        if event == "UNIT_ENTERED_VEHICLE" or event == "UNIT_EXITED_VEHICLE"
+            or event == "UNIT_PET" then
+            -- UNIT_PET fires for every pet summon in the group; only a landing matters
+            if event == "UNIT_PET" then
+                local okV, inv = pcall(UnitInVehicle, unit)
+                if not okV or issecretvalue(inv) or inv ~= true then return end
+            end
+            VehicleTransition(event, unit)
             return
         end
 
@@ -1797,6 +1878,9 @@ end
 
 function AD.Inspect(unitToken)
     unitToken = unitToken or "player"
+    -- assist=false here is the whole answer to "why did my whitelist row fill up after I
+    -- got on that boat"; assist=true means the fail-open came from somewhere else
+    if AD._gateVehicleLog then p("最近一次載具轉場：" .. AD._gateVehicleLog) end
     local n = 0
     for h in pairs(AD._instances or {}) do
         if h.unit == unitToken then
