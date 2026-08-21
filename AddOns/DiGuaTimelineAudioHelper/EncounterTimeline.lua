@@ -214,7 +214,7 @@ addonTable.AudioTimeline = {
         interval = 999, 
         startOffset = 0, 
         alerts = {
-            [0]  = "ZhuYiDuoQuan.ogg",
+            [2]  = "ZhuYiDuoQuan.ogg",
             [22] = { file = "QuSanMoFa.ogg", role = "HEALER" },
         }
     },
@@ -240,10 +240,38 @@ local function OnUpdate(self, elapsed)
     local relativeTime = now - startTime - bossData.startOffset
     if relativeTime >= 0 then
         local moduloTime = relativeTime % bossData.interval
+        
+        -- 获取当前玩家职责
+        local playerRole = UnitGroupRolesAssigned("player")
+
         for triggerTime, alert in pairs(bossData.alerts) do
             if moduloTime >= triggerTime and moduloTime < (triggerTime + 0.8) then
-                local soundFile = type(alert) == "table" and alert.file or alert
-                if soundFile then
+                local soundFile = nil
+                local requiredRole = nil
+
+                if type(alert) == "table" then
+                    soundFile = alert.file
+                    requiredRole = alert.role
+                else
+                    soundFile = alert
+                end
+
+                -- 职责匹配逻辑：无要求 / 单字符串匹配 / 数组包含匹配
+                local roleMatched = false
+                if not requiredRole then
+                    roleMatched = true
+                elseif type(requiredRole) == "string" then
+                    roleMatched = (requiredRole == playerRole)
+                elseif type(requiredRole) == "table" then
+                    for _, r in ipairs(requiredRole) do
+                        if r == playerRole then
+                            roleMatched = true
+                            break
+                        end
+                    end
+                end
+
+                if soundFile and roleMatched then
                     PlaySoundFile(addonTable.GetMediaPath() .. soundFile, "Master")
                 end
                 break 

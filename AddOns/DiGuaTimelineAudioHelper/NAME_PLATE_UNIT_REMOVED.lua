@@ -10,5 +10,7 @@ f:SetScript("OnEvent", function(self, event, unit)
         if addonTable.SpellChannelStart then addonTable.SpellChannelStart[unit] = nil end
         if addonTable.SpellCastSuccessTriggered then addonTable.SpellCastSuccessTriggered[unit] = nil end
         if addonTable.SpellChannelCounter then addonTable.SpellChannelCounter[unit] = nil end
+        if addonTable.UnitAbsorbAmountChanged then addonTable.UnitAbsorbAmountChanged[unit] = nil end
+        
     end
 end)

@@ -164,7 +164,10 @@ end
 
 local RING_PATH = "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Ring_20px.tga"
 local RING_COLOR_NORMAL = {0.4, 1, 0.8, 0.85}
+local RING_COLOR_ALARM = {1, 0.2, 0.2, 0.9}
 
+local TargetCircleEndTime = 0
+local CurrentCircleIsCastSensitive = false
 local activeCircleTimer = nil
 local backupHideTimer = nil
 
@@ -188,20 +191,38 @@ cd:SetSwipeColor(unpack(RING_COLOR_NORMAL))
 cd:SetHideCountdownNumbers(true)
 cd:SetBlingTexture("")
 
+-- 更新光圈颜色与音效
+local function UpdateRingColor(isAlarm)
+    if isAlarm then
+        PlaySoundFile(addonTable.GetMediaPath() .. "BuBu.ogg", DiGuaTimelineAudioHelper.audioChannel)
+        cd:SetSwipeColor(unpack(RING_COLOR_ALARM))
+    else
+        cd:SetSwipeColor(unpack(RING_COLOR_NORMAL))
+    end
+end
+
 -- 强制隐藏光圈及清理定时器
 local function ForceHideRingFrame()
     RingFrame:Hide()
+    CurrentCircleIsCastSensitive = false
+    if cd:GetScript("OnUpdate") then
+        cd:SetScript("OnUpdate", nil)
+    end
     if activeCircleTimer then activeCircleTimer:Cancel(); activeCircleTimer = nil end
     if backupHideTimer then backupHideTimer:Cancel(); backupHideTimer = nil end
 end
 
--- 启动光圈倒计时
-function addonTable.StartCircleTimerBySeconds(seconds, PlayerIsSpellTarget)
+-- 启动光圈倒计时 (增加 checkCast 参数)
+function addonTable.StartCircleTimerBySeconds(seconds, checkCast, PlayerIsSpellTarget)
     local duration = tonumber(seconds)
     if not duration or duration <= 0 then return end
     if PlayerIsSpellTarget == nil then PlayerIsSpellTarget = true end
 
     local startTime = GetTime()
+    TargetCircleEndTime = startTime + duration
+    CurrentCircleIsCastSensitive = checkCast
+
+    UpdateRingColor(false)
 
     if DiGuaTimelineAudioHelper.ringEnabled then
         cd:SetCooldown(startTime, duration)
@@ -213,14 +234,57 @@ function addonTable.StartCircleTimerBySeconds(seconds, PlayerIsSpellTarget)
 
     RingFrame:SetAlphaFromBoolean(PlayerIsSpellTarget, 0.85, 0)
 
-    -- 清理旧的定时器
+    -- 清理旧的 OnUpdate 与定时器
+    cd:SetScript("OnUpdate", nil)
     if activeCircleTimer then activeCircleTimer:Cancel() end
     if backupHideTimer then backupHideTimer:Cancel() end
+
+    local hasTriggeredAlarm = false -- 状态标记：防重复播放音效
+
+    -- 实时检测玩家施法安全状态
+    cd:SetScript("OnUpdate", function(self)
+        local now = GetTime()
+        local remainingCircle = TargetCircleEndTime - now
+
+        if remainingCircle <= 0 then
+            self:SetScript("OnUpdate", nil)
+        else
+            -- 施法时长敏感度检测
+            if CurrentCircleIsCastSensitive then
+                local _, _, _, _, castEndTime = UnitCastingInfo("player")
+                if not castEndTime then
+                    _, _, _, _, castEndTime = UnitChannelInfo("player")
+                end
+
+                local isDangerous = false
+                if castEndTime then
+                    local castRemaining = (castEndTime / 1000) - now
+                    -- 关键逻辑：玩家施法剩余时间 > 光圈剩余时间 时判定为危险
+                    if castRemaining > remainingCircle then
+                        isDangerous = true
+                    end
+                end
+
+                -- 状态切换判定与音效触发
+                if isDangerous and not hasTriggeredAlarm then
+                    UpdateRingColor(true)  -- 变红 + 播放音效
+                    hasTriggeredAlarm = true
+                elseif not isDangerous and hasTriggeredAlarm then
+                    UpdateRingColor(false) -- 恢复原色
+                    hasTriggeredAlarm = false
+                end
+            end
+        end
+    end)
 
     activeCircleTimer = C_Timer.NewTimer(duration, ForceHideRingFrame)
     backupHideTimer = C_Timer.NewTimer(15, ForceHideRingFrame)
 end
 
+
+----------------------------------------------------------------------
+-- 以下为 Bar 模块保持不变
+----------------------------------------------------------------------
 
 local BAR_PATH = "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Bar_20px.tga"
 

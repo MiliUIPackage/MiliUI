@@ -394,7 +394,7 @@ addonTable.NormalAura = {
     -- ============================
     -- ==      盘魂者内克扎莉    ==
     -- ============================
-
+        [1285623] = "JingBao", -- 盘魂之井
         [1287434] = "TieBianQuSan", -- 精华撕裂
         [1288554] = "JingBao", -- 潜藏的教徒
         -- [1284103] = "", -- 附身弹幕
@@ -447,13 +447,14 @@ addonTable.NormalAura = {
         [1280935] = "NiBeiYiShang", -- 滴毒之牙
         -- [1282509] = "", -- 恶性催化剂
         -- [1281907] = "", -- 瘟疫泡沫        
-        [1294994] = "WuMaFenSan", -- 冥河感染
+        [1294994] = "ZhuYiJiaoXia", -- 冥河感染
         [1295224] = "KaoJinDuiYou", -- 虹吸感染
         [1295380] = "alarmbeep", -- 虹吸感染
-        [1295173] = "KuaiKaiJianShang", -- 爆炸感染
+        [1295173] = "YiMiaoKuaiKaiJianShang", -- 爆炸感染
         -- [1302489] = "", -- 冥河爆发
         -- [1283164] = "", -- 痛饮
-
+        [1291461] = "JingBao", -- 剧毒烟雾
+        
     -- ============================
     -- ==       斯索拉克         ==
     -- ============================
@@ -485,6 +486,7 @@ addonTable.NormalAura = {
         -- [1308356] = "", -- 唤醒子嗣
         [1310096] = "alarmbeep", -- 饱餐
         [1309471] = "JingBao", -- 剧毒粘液
+        [1293979] = "SheXianDianNi", -- 腐蚀唾液
         [1291478] = "SheXianDianNi", -- 腐蚀唾液
         [1292552] = "JingBao", -- 凝结的鲜血
         [1306925] = "JingBao", -- 凝结的鲜血
@@ -499,8 +501,9 @@ addonTable.NormalAura = {
         [1283290] = "JingBao", -- 剧毒之地
         [1286837] = "ZhuYiChiHun", -- 墓缚
         [1307425] = "KuaiPao", -- 处斩
-        [1283485] = "YiMiaoMuBiaoShiNi.ogg", -- 处斩
-        [1286901] = "ShiMaFenSan", -- 幽暗炸弹
+        [1283485] = "YiMiaoMuBiaoShiNi", -- 处斩        
+        [1310881] = "PaoKaiRenQun", -- 幽暗炸弹
+        [1286901] = "PaoKaiRenQun", -- 幽暗炸弹
         [1297445] = "NiBeiMeiHuo", -- 恐惧行军
         [1310744] = "alarmbeep", -- 恶毒共鸣
         [1301690] = "alarmbeep", -- 撕裂
@@ -522,7 +525,7 @@ addonTable.NormalAura = {
         [1311611] = "KuaiKaiJianShang", -- 攫取毒牙
         [1312967] = "BaMaFenSan", -- 易爆清除
         -- [1300938] = "", -- 步履维艰
-        [1288879] = "YiMiaoMuBiaoShiNi.ogg", -- 毒蛇之咬
+        [1288879] = "YiMiaoMuBiaoShiNi", -- 毒蛇之咬
         [1292403] = "JingBao", -- 腐蚀浪潮
         [1297338] = "JingBao", -- 致命剧毒
         [1298367] = "alarmbeep", -- 蛇母之怒
@@ -588,8 +591,10 @@ addonTable.NormalAura = {
         -- [1305225] = "yishangjieshu", -- 地壳震击
         -- [1294569] = "AnQuan", -- 麻痹射击
         -- 通用
-        [204018] = "PoZhouJieShu", -- 破咒祝福
+        [204018] = "PoZhouJieShu", -- 破咒祝福        
         [1281910] = "ZhuYiDuoBo", -- 瘟疫泡沫
+        [1281913] = "ZhuYiDuoBo", -- 瘟疫泡沫
+        
     },    
 
 }

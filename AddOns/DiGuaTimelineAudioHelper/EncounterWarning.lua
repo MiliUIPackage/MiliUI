@@ -94,6 +94,11 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
         return
     end
 
+    -- 技能：幽暗炸弹
+    if currentEncounterID == 3429 and severity == 1 then 
+            addonTable.StartCircleTimerBySeconds(4.9)
+        return
+    end
 
     -- 技能：濒死喘息
     if currentEncounterID == 3457 and severity == 2 then 
@@ -103,8 +108,6 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
         return
     end
 
-
-
     -- 技能：黑暗绽放
     if currentEncounterID == 3285 and severity == 2 then 
         C_Timer.After(4, function()
@@ -113,29 +116,36 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
         return
     end
 
-
-
-    -- 技能：阻断暴雨
+    -- 技能：阻断暴雨（非 战士/盗贼/死骑/猎人 且 非坦克职责 才生效）
     if currentEncounterID == 2623 and severity == 1 and not targetName then 
-        addonTable.StartBarTimerBySeconds(5, true)
-        C_Timer.After(2, function()
-            PlaySoundFile(MEDIA_PATH .. "DaoShu3.ogg", DiGuaTimelineAudioHelper.audioChannel)
-        end)  
-        C_Timer.After(3, function()
-            PlaySoundFile(MEDIA_PATH .. "DaoShu2.ogg", DiGuaTimelineAudioHelper.audioChannel)
-        end)  
-        C_Timer.After(4, function()
-            PlaySoundFile(MEDIA_PATH .. "DaoShu1.ogg", DiGuaTimelineAudioHelper.audioChannel)
-        end)  
-        C_Timer.After(5, function()
-            PlaySoundFile(MEDIA_PATH .. "AnQuan.ogg", DiGuaTimelineAudioHelper.audioChannel)
-        end)
+        local class = UnitClassBase("player")
+        local spec = GetSpecialization()
+        local role = spec and GetSpecializationRole(spec)
+
+        if role ~= "TANK" and class ~= "WARRIOR" and class ~= "ROGUE" and class ~= "DEATHKNIGHT" and class ~= "HUNTER" and class ~= "PALADIN" then
+            addonTable.StartCircleTimerBySeconds(4.9, true)
+            C_Timer.After(1.9, function()
+                PlaySoundFile(MEDIA_PATH .. "DaoShu3.ogg", DiGuaTimelineAudioHelper.audioChannel)
+            end)  
+            C_Timer.After(2.9, function()
+                PlaySoundFile(MEDIA_PATH .. "DaoShu2.ogg", DiGuaTimelineAudioHelper.audioChannel)
+            end)  
+            C_Timer.After(3.9, function()
+                PlaySoundFile(MEDIA_PATH .. "DaoShu1.ogg", DiGuaTimelineAudioHelper.audioChannel)
+            end)  
+            C_Timer.After(4.9, function()
+                PlaySoundFile(MEDIA_PATH .. "AnQuan.ogg", DiGuaTimelineAudioHelper.audioChannel)
+            end)
+        end
         return
     end
 
-    -- 技能：烈焰喷吐
-    if currentEncounterID == 2623 and severity == 1 and targetName then 
-        addonTable.StartCircleTimerBySeconds(5.9)
+    -- 技能：烈焰喷吐（仅 战士/盗贼/死骑/猎人 才生效）
+    if currentEncounterID == 2623 and severity == 1 and targetName then
+        local class = UnitClassBase("player")
+        if class == "WARRIOR" or class == "ROGUE" or class == "DEATHKNIGHT" or class == "HUNTER" or class == "PALADIN" then
+            addonTable.StartCircleTimerBySeconds(5.9)
+        end
         return
     end
 
@@ -172,9 +182,6 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     end
 
 
-
-
-
     -- 技能：吐金
     if currentEncounterID == 2139 and severity == 1 then
         local function SafePlay(soundFile)
@@ -182,16 +189,16 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
                 PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
             end
         end
-        C_Timer.After(5, function()
+        C_Timer.After(4.9, function()
             SafePlay("DaoShu3.ogg")
         end)
-        C_Timer.After(6, function()
+        C_Timer.After(5.9, function()
             SafePlay("DaoShu2.ogg")
         end)
-        C_Timer.After(7, function()
+        C_Timer.After(6.9, function()
             SafePlay("DaoShu1.ogg")
         end)
-        addonTable.StartCircleTimerBySeconds(8)
+        addonTable.StartCircleTimerBySeconds(7.9)
         return
     end
 
@@ -219,41 +226,35 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
 
 
 
-    -- 技能：元素的召唤
+    -- 技能：元素的召唤（非 战士/盗贼/死骑/猎人 且 非坦克职责 才生效）
     if currentEncounterID == 2140 and severity == 2 and not targetName then
-        local function SafePlay(soundFile)
-            if addonTable.GetEncounterID() == 2140 then
-                PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+        local class = UnitClassBase("player")
+        local spec = GetSpecialization()
+        local role = spec and GetSpecializationRole(spec)
+
+        if role ~= "TANK" and class ~= "WARRIOR" and class ~= "ROGUE" and class ~= "DEATHKNIGHT" and class ~= "HUNTER" and class ~= "PALADIN" then
+            local function SafePlay(soundFile)
+                if addonTable.GetEncounterID() == 2140 then
+                    PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+                end
             end
+            C_Timer.After(6.4, function()
+                addonTable.StartCircleTimerBySeconds(3.9, true)
+                SafePlay("ZhunBeiChenMo.ogg")
+            end)
+            C_Timer.After(7.4, function()
+                SafePlay("DaoShu3.ogg")
+            end)
+            C_Timer.After(8.4, function()
+                SafePlay("DaoShu2.ogg")
+            end)
+            C_Timer.After(9.4, function()
+                SafePlay("DaoShu1.ogg")
+            end)
+            C_Timer.After(10.4, function()
+                SafePlay("AnQuan.ogg")
+            end)
         end
-        C_Timer.After(2.5, function()            
-            -- SafePlay("DaoShu8.ogg")
-        end)
-        C_Timer.After(3.5, function()
-            -- SafePlay("DaoShu7.ogg")
-        end)
-        C_Timer.After(4.5, function()
-            -- SafePlay("DaoShu6.ogg")
-        end)
-        C_Timer.After(5.5, function()
-            -- SafePlay("DaoShu5.ogg")
-        end)
-        C_Timer.After(6.5, function()
-            addonTable.StartBarTimerBySeconds(4, true)
-            SafePlay("ZhunBeiChenMo.ogg")
-        end)
-        C_Timer.After(7.5, function()
-            SafePlay("DaoShu3.ogg")
-        end)
-        C_Timer.After(8.5, function()
-            SafePlay("DaoShu2.ogg")
-        end)
-        C_Timer.After(9.5, function()
-            SafePlay("DaoShu1.ogg")
-        end)
-        C_Timer.After(10.5, function()
-            SafePlay("AnQuan.ogg")
-        end)
         return
     end
 

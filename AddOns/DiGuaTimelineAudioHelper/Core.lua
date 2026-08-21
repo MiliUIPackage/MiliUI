@@ -1,13 +1,13 @@
 -- Core.lua
--- 副本語音助手核心控制台
+-- 副本语音助手核心控制台
 
 local addonName, addonTable = ...
 local frame = CreateFrame("Frame")
 
--- 1. 變量定義
+-- 1. 变量定义
 local MEDIA_PATH
 
--- 核心：路徑更新邏輯
+-- 核心：路径更新逻辑
 local function RefreshMediaPath()
     if DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.enabled == false then
         MEDIA_PATH = "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Mute\\"
@@ -22,7 +22,7 @@ local function RefreshMediaPath()
     end
 end
 
--- 2. 統一事件監聽框架
+-- 2. 统一事件监听框架
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -31,7 +31,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
         local loadedAddon = ...
         if loadedAddon == addonName then
-            -- 初始化數據庫 Defaults
+            -- 初始化数据库 Defaults
             DiGuaTimelineAudioHelper = DiGuaTimelineAudioHelper or {}
             local db = DiGuaTimelineAudioHelper
             if db.enabled == nil then db.enabled = true end
@@ -50,7 +50,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "PLAYER_LOGIN" then
         RefreshMediaPath()
 
-        -- 初始化首領語音狀態：關閉則清空，開啟則確保清理後重新注冊
+        -- 初始化首领语音状态：关闭则清空，开启则确保清理后重新注册
         addonTable.ClearTimelineSounds(addonTable.EventSoundData)
         if DiGuaTimelineAudioHelper.bossVoiceEnabled then
             addonTable.registerTable(addonTable.EventSoundData)
@@ -62,12 +62,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
         SetCVar("Sound_NumChannels", 128)
 
-        -- 打印歡迎信息
+        -- 打印欢迎信息
         C_Timer.After(2, function()
             --print("感謝使用|cFF00FF00[神秘地瓜副本語音插件]|r如果覺得好用，請在|cFFFFA6D5「愛發電」|r平台搜索|cFFFFFF00「神秘地瓜」|r支持我的插件，您的支持就是我最大的動力。/digua 可開啟控制台")
         end)
 
-        -- 同步 UI 控件勾選狀態
+        -- 同步 UI 控件勾选状态
         if DiGuaTimelineMainFrame then
             DiGuaTimelineEnableCheck:SetChecked(DiGuaTimelineAudioHelper.enabled)
             DiGuaTimelineRingCheck:SetChecked(DiGuaTimelineAudioHelper.ringEnabled)
@@ -75,7 +75,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             DiGuaTimelineTenSecCheck:SetChecked(DiGuaTimelineAudioHelper.tenSecCountDown)
             DiGuaTimelineCoTankCheck:SetChecked(DiGuaTimelineAudioHelper.coTankAuraEnabled)
             DiGuaTimelineBossVoiceCheck:SetChecked(DiGuaTimelineAudioHelper.bossVoiceEnabled)
-            DiGuaTimelineForceWarningsCheck:SetChecked(DiGuaTimelineAudioHelper.forceEncounterWarnings) -- 同步勾選狀態
+            DiGuaTimelineForceWarningsCheck:SetChecked(DiGuaTimelineAudioHelper.forceEncounterWarnings) -- 同步勾选状态
         end
 
         elseif event == "PLAYER_ENTERING_WORLD" then
@@ -89,9 +89,9 @@ frame:SetScript("OnEvent", function(self, event, ...)
 end)
 
 
--- 4. 控制台 UI 界面構建
+-- 4. 控制台 UI 界面构建
 local f = CreateFrame("Frame", "DiGuaTimelineMainFrame", UIParent, "BasicFrameTemplateWithInset")
-f:SetSize(220, 220) -- 高度調大到 220px，避免新增選項重疊擠壓
+f:SetSize(220, 220) -- 高度调大到 220px，避免新增选项重叠挤压
 f:SetPoint("CENTER")
 f:SetMovable(true)
 f:EnableMouse(true)
@@ -104,7 +104,7 @@ f.title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 f.title:SetPoint("TOP", f.TitleBg, "TOP", 0, -3)
 f.title:SetText("DiGua 控制台")
 
--- 復選框快速生成構建器
+-- 复选框快速生成构建器
 local function CreateCheckButton(name, labelText, yOffsetY, onClickFunc)
     local cb = CreateFrame("CheckButton", name, f, "ChatConfigCheckButtonTemplate")
     cb:SetPoint("TOPLEFT", 20, yOffsetY)
@@ -170,7 +170,7 @@ f:SetScript("OnShow", function() if addonTable.RefreshAnchorState then addonTabl
 f:SetScript("OnHide", function() if addonTable.RefreshAnchorState then addonTable.RefreshAnchorState(false) end end)
 
 SLASH_DIGUA1 = "/digua"
-SLASH_DIGUA2 = "/dg" -- 新增別名 /dg
+SLASH_DIGUA2 = "/dg" -- 新增别名 /dg
 SlashCmdList["DIGUA"] = function()
     if f:IsShown() then f:Hide() else f:Show() end
 end

@@ -19,7 +19,7 @@ addonTable.EventSoundData = {
     [182] = { {"WuMiaoZhuYiDuoQuan.ogg", 2} }, -- 光明坠落 (1240098)
     [184] = { {"ZhunBeiLiuXue.ogg", 1}, {"WuMiaoHouLiuXue.ogg", 2, {HEALER = true}} }, -- 凶残痛击 (1241058)
     [188] = { {"JieDuanZhuanHuan.ogg", 1} }, -- 峡谷之灵 (1241067)
-    [115] = { {"TanKeChengShang.ogg", 1} }, -- 撕裂之爪 (1258136)
+    [115] = { {"TanKeChengShang.ogg", 1, {TANK = true, HEALER = true}} }, -- 撕裂之爪 (1258136)
     [183] = { {"ZhuYiDianMing.ogg", 1} }, -- 粉碎打击 (1240210)
 
     -- 兹欧凯特
@@ -200,11 +200,11 @@ addonTable.EventSoundData = {
 
     -- 陵寝哨兵
     [637] = { {"ZhunBeiDaGuai.ogg", 1} }, -- 毒液凝块 (1284251)
-    [638] = { {"ZhuYiCaiQuan.ogg", 1} }, -- 剧毒水滴 (1284434)
+    [638] = { {"ZhunBeiCaiQuan.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 剧毒水滴 (1284434)
     [639] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 强化猛击 (1284458)
     [640] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 鲜血毒液注射 (1284487)
     [641] = { {"ZhunBeiQuSan.ogg", 1, {HEALER = true}} }, -- 凋零之血 (1284483)
-    [643] = { {"HeBingXingZuo.ogg", 1} }, -- 强酸静滞 (1284588)
+    [643] = { {"HeBingXingZuo.ogg", 0} }, -- 强酸静滞 (1284588)
     [668] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
     [673] = { {"FenTanShangHai.ogg", 1} }, -- 不稳定的瘴气 (1288232)
     [788] = { {"QuanTuanFenSan.ogg", 1} }, -- 变幻的原型毒液 (1296878)
@@ -212,7 +212,7 @@ addonTable.EventSoundData = {
     -- 迷失的探险者
     [721] = { {"ZhunBeiAOE.ogg", 0} }, -- 灾变祈求 (1291390)
     [722] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 冰封烈焰 (1286921)
-    [723] = { {"ZhuYiDianMing.ogg", 1}, {"YiMiaoMuBiaoShiNi.ogg", 0} }, -- 闪现新星 (1296025)
+    [723] = { {"ZhuYiDianMing.ogg", 1, {HEALER = true, DAMAGER = true}}, {"YiMiaoMuBiaoShiNi.ogg", 0} }, -- 闪现新星 (1296025)
     [724] = { {"ZhuYiDianMing.ogg", 1}, {"YiMiaoMuBiaoShiNi.ogg", 0} }, -- 闪现新星 (1290742)
     [725] = { {"FenTanShangHai.ogg", 1} }, -- 巨力重击 (1296092)
     [726] = { {"DuoBiGuiKe.ogg", 1} }, -- 旋壳 (1296061)
@@ -229,7 +229,7 @@ addonTable.EventSoundData = {
     [754] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 滴毒之牙 (1280935)
     [755] = { {"ZhuYiDianMing.ogg", 1} }, -- 适应性感染 (1282114)
     [756] = { {"ZhunBeiJieQuan.ogg", 1} }, -- 恶性催化剂 (1282509)
-    [757] = { {"WuMaFenSan.ogg", 1} }, -- 瘟疫泡沫 (1281907)
+    [757] = { {"ZhuYiFenSan.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 瘟疫泡沫 (1281907)
     [759] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 痛饮 (1283164)
     -- [770] = { {".ogg", 1} }, -- 冥河感染 (1294994)
     -- [771] = { {".ogg", 1} }, -- 虹吸感染 (1295224)
@@ -248,38 +248,38 @@ addonTable.EventSoundData = {
 
     -- 双子毒牙
     [711] = { {"TanKeJianCi.ogg", 0, {TANK = true}}, {"ZhuYiDuoQuan.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 腐蚀洪流 (1289192)
-    [739] = { {"TanKeJieQuan.ogg", 1} }, -- 碎石击 (1288484)
+    [739] = { {"TanKeJieQuan.ogg", 1, {TANK = true}} }, -- 碎石击 (1288484)
     [740] = { {"ZhunBeiTuXi.ogg", 1} }, -- 邪恶洪流 (1294293)
     -- [741] = { {".ogg", 1} }, -- 洪流 (1294921)
     -- [742] = { {".ogg", 1} }, -- 搅动深渊 (1290956)
     [743] = { {"ZhunBeiDianMing.ogg", 1} }, -- 盘卷脓液 (1290809)
-    [744] = { {"ZhunBeiDaDuan.ogg", 1} }, -- 剧毒涌现 (1291404)
+    [744] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 剧毒涌现 (1291404)
     [751] = { {"FenTanShangHai.ogg", 1}, {"WuMiaoHouFenTanShangHai.ogg", 2} }, -- 贪婪盛宴 (1290516)
     -- [753] = { {".ogg", 0} }, -- 腐蚀唾液 (1291478)
     -- [896] = { {".ogg", 1} }, -- 鲜血洪流 (1303230)
-    [897] = { {"ZhuYiDuoQuan.ogg", 1} }, -- 血色风暴 (1306872)
-    [900] = { {"ZhunBeiDaDuan.ogg", 1} }, -- 唤醒子嗣 (1308356)
-    [995] = { {"JieDuanZhuanHuan.ogg", 1} }, -- 下潜 (1308556)
+    [897] = { {"SanMiaoZhuYiDuoQuan.ogg", 1} }, -- 血色风暴 (1306872)
+    [900] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 唤醒子嗣 (1308356)
+    [995] = { {"WuMiaoJieDuanZhuanHuan.ogg", 2} }, -- 下潜 (1308556)
 
     -- 盘卷祭坛
-    -- [667] = { {".ogg", 1} }, -- 令人不安的凝视 (1285911)
-    [677] = { {"ZhunBeiAOE.ogg", 1} }, -- 熔炉之牙 (1282487)
-    [678] = { {"FenTanShangHai.ogg", 1} }, -- 处斩 (1283485)
-    [679] = { {"ZhunBeiZhongDu.ogg", 1} }, -- 毒牙 (1282281)
+    [667] = { {"XiaoGuaiDingNi.ogg", 0} }, -- 令人不安的凝视 (1285911)
+    [677] = { {"WuMiaoHouAOE.ogg", 2, {HEALER = true}} }, -- 盘卷祭坛之牙 (1282487)
+    [678] = { {"YiMiaoMuBiaoShiNi.ogg", 0}, {"FenTanShangHai.ogg", 1} }, -- 处斩 (1283485)
+    [679] = { {"ZhunBeiZhongDu.ogg", 1, {HEALER = true}} }, -- 毒牙 (1282281)
     -- [669] = { {".ogg", 1} }, -- 凋零毒素 (1287227)
-    [680] = { {"ZhuYiDuoQuan.ogg", 1} }, -- 碎斧 (1283832)
+    [680] = { {"ZhuYiDuoQuan.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 碎斧 (1283832)
     -- [681] = { {".ogg", 1} }, -- 凋零毒素 (1287200)
     [682] = { {"HuDunKuaiDa.ogg", 1} }, -- 永恒夜幕 (1286918)
     -- [683] = { {".ogg", 1} }, -- 影牙 (1286308)
-    [684] = { {"ZhunBeiDianMing.ogg", 1} }, -- 幽暗炸弹 (1310882)  
-    [685] = { {"ZhunBeiXinKong.ogg", 1}, {"WuMiaoHouXinKong.ogg", 2} }, -- 恐惧行军 (1289900)
-    [686] = { {"TanKeTouQian.ogg", 1} }, -- 灵魂撕裂 (1286573)
+    [684] = { {"ZhunBeiDianMing.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 幽暗炸弹 (1310882)  {"PaoKaiRenQun.ogg", 0}, 
+    [685] = { {"XinKongDianNi.ogg", 0}, {"ZhunBeiXinKong.ogg", 1}, {"WuMiaoHouXinKong.ogg", 2} }, -- 恐惧行军 (1289900)
+    [686] = { {"TanKeTouQian.ogg", 1}, {"WuMiaoHouTanKeJianCiSanErYi.ogg", 2, {TANK = true}} }, -- 灵魂撕裂 (1286573)
     [687] = { {"ZhaoHuanXiaoGuai.ogg", 1} }, -- 精魂狂笑 (1286441)
-    [794] = { {"ZhunBeiAOE.ogg", 1} }, -- 盘卷祭坛亵渎 (1298381)
+    [794] = { {"WuMiaoHouAOE.ogg", 2, {HEALER = true}} }, -- 盘卷祭坛亵渎 (1298381)
     [803] = { {"FenTanShangHai.ogg", 1} }, -- 冷酷处斩 (1299266)
-    [811] = { {"TanKeTouQian.ogg", 1} }, -- 撕裂 (1299680)
-    [812] = { {"KaiShiYunQiu.ogg", 0} }, -- 剧毒洪流 (1299960)
-    -- [898] = { {".ogg", 1} }, -- 凋零撕裂 (1307279)
+    [811] = { {"TanKeTouQian.ogg", 1}, {"WuMiaoHouTanKeJianCiSanErYi.ogg", 2, {TANK = true}} }, -- 撕裂 (1299680)
+    [812] = { {"KaiShiYunQiu.ogg", 0, {HEALER = true, DAMAGER = true}} }, -- 剧毒洪流 (1299960)
+    [898] = { {"TanKeTouQian.ogg", 1}, {"WuMiaoHouTanKeJianCiSanErYi.ogg", 2, {TANK = true}} }, -- 凋零撕裂 (1307279)
 
     -- 乌拉特克
     [799] = { {"WeiBaChuXian.ogg", 1} }, -- 血腥响尾 (1298559)
@@ -301,10 +301,10 @@ addonTable.EventSoundData = {
     [366] = { {"ZhuYiXiaoShui.ogg", 1, {TANK = true}} }, -- 水流喷射 (1268562)
     [367] = { {"ZhuanHuoXiaoGuai.ogg", 0} }, -- 诱人水泡 (1257717)
     -- [368] = { {"TieBianFangShui.ogg", 0} }, -- 冰霜弹幕 (1257608)
-    [369] = { {"ZhuYiDuoBi.ogg", 1} }, -- 激荡漩涡 (1258668)
+    [369] = { {"KuaiZhaoQueKou.ogg", 1} }, -- 激荡漩涡 (1258668)
     [370] = { {"ZhunBeiAOE.ogg", 1} }, -- 深渊之雨 (1260837)
     [745] = { {"ShouLingKuangBao.ogg", 1} }, -- 无尽潮汐 (1294867)
-    [976] = { {"ZhuYiDianMing.ogg", 1} }, -- 刺骨寒霜 (1313393)
+    [976] = { {"ZhuYiDianMing.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 刺骨寒霜 (1313393)
     [977] = { {"ZhuanHuoXiaoGuai.ogg", 0} }, -- 诱人水泡 (1257717)
 
     -- 小怪
@@ -312,37 +312,51 @@ addonTable.EventSoundData = {
     [476] = { {"ShouLingJiHuo.ogg", 0} }, -- 获得的供品达到上限 (1283004)
     -- [493] = { {"KuaiZhaoYanTi.ogg", 0} }, -- 强风 (1283107)
 
-    -- 毒瀑深渊
-    [978] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1291555)
-    [979] = { {"ZhunBeiQuSan.ogg", 1 } }, -- 虚空毒素 (1293824)
-    [980] = { {"TanKeJianCi.ogg", 1} }, -- 毒蛇猛击 (1293825)
-    [981] = { {"DaDuanBoss.ogg", 1} }, -- 灵魂灭绝 (1294963)
-    [982] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
-    [983] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1294984)
-    [984] = { {"ZhunBeiQuSan.ogg", 1} }, -- 虚空毒素 (1294983)
-    [985] = { {"TanKeJianCi.ogg", 1} }, -- 毒蛇猛击 (1294982)
-    [986] = { {"DaDuanBoss.ogg", 1} }, -- 灵魂灭绝 (1294981)
-    [987] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
+    -- -- 毒瀑深渊
+    -- [978] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1291555)
+    -- [979] = { {"ZhunBeiQuSan.ogg", 1 } }, -- 虚空毒素 (1293824)
+    -- [980] = { {"TanKeJianCi.ogg", 1} }, -- 毒蛇猛击 (1293825)
+    -- [981] = { {"DaDuanBoss.ogg", 1} }, -- 灵魂灭绝 (1294963)
+    -- [982] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
+    -- [983] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1294984)
+    -- [984] = { {"ZhunBeiQuSan.ogg", 1} }, -- 虚空毒素 (1294983)
+    -- [985] = { {"TanKeJianCi.ogg", 1} }, -- 毒蛇猛击 (1294982)
+    -- [986] = { {"DaDuanBoss.ogg", 1} }, -- 灵魂灭绝 (1294981)
+    -- [987] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
 
     -- 通用
     [937] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
     [668] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
     [633] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (64238)
 
-    -- -- 毒瀑深渊
-    -- [978] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1291555)
-    -- [979] = { {"ZhunBeiQuSan.ogg", 1, {HEALER = true}} }, -- 虚空毒素 (1293824)
-    -- [980] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 毒蛇猛击 (1293825)
-    -- [981] = { {"DaDuanDaGuai.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 灵魂灭绝 (1294963)
-    -- [982] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
-    -- [983] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1294984)
-    -- [984] = { {"ZhunBeiQuSan.ogg", 1, {HEALER = true}} }, -- 虚空毒素 (1294983)
-    -- [985] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 毒蛇猛击 (1294982)
-    -- [986] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 灵魂灭绝 (1294981)
-    -- [987] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
+    -- 毒瀑深渊
+    [978] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1291555)
+    [979] = { {"QuSanMoFa.ogg", 1, {HEALER = true}} }, -- 虚空毒素 (1293824)
+    [980] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 毒蛇猛击 (1293825)
+    [981] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 灵魂灭绝 (1294963)
+    [982] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
+    [983] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1294984)
+    [984] = { {"QuSanMoFa.ogg", 1, {HEALER = true}} }, -- 虚空毒素 (1294983)
+    [985] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 毒蛇猛击 (1294982)
+    [986] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 灵魂灭绝 (1294981)
+    [987] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
 
 }
 local frame = CreateFrame("Frame")
+
+-- 获取玩家职责（优先通过专精获取，无专精时兜底队伍职责）
+local function GetPlayerRole()
+    local spec = GetSpecialization()
+    local role = spec and GetSpecializationRole(spec)
+    
+    if role and role ~= "NONE" then
+        return role
+    end
+    
+    -- 兜底：未选择专精时回退至队伍职责
+    return UnitGroupRolesAssigned("player")
+end
+
 -- 清空声音的函数
 function addonTable.ClearTimelineSounds(dataTable)
     if not dataTable then return end
@@ -354,9 +368,13 @@ function addonTable.ClearTimelineSounds(dataTable)
         end
     end
 end
+
 -- 注册声音的函数
 function addonTable.registerTable(dataTable)
     if not dataTable then return end
+    
+    -- 获取当前推理出的职责 (TANK / HEALER / DAMAGER)
+    local currentRole = GetPlayerRole()
     
     for eventID, configs in pairs(dataTable) do
         -- 遍历该 ID 下的所有配置
@@ -371,11 +389,11 @@ function addonTable.registerTable(dataTable)
             if roleConfig == nil then
                 isMatch = true
             elseif type(roleConfig) == "table" then
-                if roleConfig[UnitGroupRolesAssigned("player")] then
+                if roleConfig[currentRole] then
                     isMatch = true
                 end
             elseif type(roleConfig) == "string" then
-                if roleConfig == UnitGroupRolesAssigned("player") then
+                if roleConfig == currentRole then
                     isMatch = true
                 end
             end
@@ -391,11 +409,16 @@ function addonTable.registerTable(dataTable)
         end
     end
 end
+
 frame:RegisterEvent("PLAYER_LOGIN")
+frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+
 frame:SetScript("OnEvent", function(self, event, ...)
-    if event == "PLAYER_LOGIN" then
-        addonTable.ClearTimelineSounds(addonTable.EventSoundData)
-        addonTable.registerTable(addonTable.EventSoundData)
+    if event == "PLAYER_LOGIN" or event == "PLAYER_SPECIALIZATION_CHANGED" then
+        -- 延迟 1 秒执行，确保专精与职责数据完全更新
+        C_Timer.After(1, function()
+            addonTable.ClearTimelineSounds(addonTable.EventSoundData)
+            addonTable.registerTable(addonTable.EventSoundData)
+        end)
     end
 end)
-
