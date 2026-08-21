@@ -2180,7 +2180,14 @@ local function UnitButton_UpdateTarget(self)
     local unit = self.states.displayedUnit
     if not unit then return end
 
-    if UnitIsUnit(unit, "target") then
+    -- 12.1: UnitIsUnit answers with a SECRET boolean as soon as either side is a unit you are
+    -- not allowed to identify, and "target" becomes exactly that the moment the player targets
+    -- a boss or an enemy player -- so a raw boolean test here is a hard Lua error, not a false.
+    --
+    -- Fail CLOSED (secret -> hide). The highlight marks ONE frame: "show on doubt" lights up
+    -- every row in the raid at once, which is worse than a missing highlight and reads as the
+    -- addon being broken. A wrongly-hidden highlight self-corrects on the next target change.
+    if F.ToBool(UnitIsUnit(unit, "target")) then
         if highlightEnabled then self.widgets.targetHighlight:Show() end
     else
         self.widgets.targetHighlight:Hide()

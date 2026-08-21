@@ -1009,8 +1009,17 @@ function F.GetUnitButtonByUnit(unit, getSpotlights, getQuickAssist)
     if getSpotlights then
         spotlights = {}
         for _, b in pairs(Cell.unitButtons.spotlight) do
-            if b.unit and UnitIsUnit(b.unit, unit) then
-                tinsert(spotlights, b)
+            -- Spotlight frames can be bound to "boss1"/"target"/"focus", so this pairing hits
+            -- the 12.1 rule that UnitIsUnit returns a SECRET boolean whenever either side is a
+            -- unit you may not identify -- and testing a secret boolean is a hard error.
+            -- Doubt counts as a match, same as F.HandleUnitButton below: a spurious refresh of
+            -- a spotlight frame costs nothing (it re-reads its own unit anyway), a missed one
+            -- leaves the frame stale until the next event.
+            if b.unit then
+                local isMatch = UnitIsUnit(b.unit, unit)
+                if not F.IsValueNonSecret(isMatch) or isMatch then
+                    tinsert(spotlights, b)
+                end
             end
         end
     end
