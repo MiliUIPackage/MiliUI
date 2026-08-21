@@ -98,7 +98,10 @@ end
 -- /reload. `discards` is therefore a running leak count, not just a work count -- if it
 -- climbs while nothing but the roster is changing, something is rebuilding that should be
 -- re-pointing (see Handle:SetUnit).
-AD.stats = {builds = 0, discards = 0, repoints = 0}
+-- `parks`/`reuses` are the same counters seen from the other side: a park is a container
+-- kept instead of leaked, a reuse is one taken back instead of created. builds+reuses is
+-- the total demand; builds alone is what the client actually had to allocate.
+AD.stats = {builds = 0, discards = 0, repoints = 0, parks = 0, reuses = 0}
 
 local function BuildRecords(opts)
     opts = opts or {}
@@ -842,6 +845,148 @@ local function GroupBudget(index, total, wanted)
     return index == 1 and wanted or 1
 end
 
+-- Table-valued options need a CONTENT signature, and the config must remember the
+-- signature rather than the table. Both halves matter, and each one was a bug:
+--
+--   * Some tables arrive fresh every call (spellIDs is rebuilt per push), so comparing by
+--     reference reports "changed" every time and rebuilds the container on every touch.
+--   * Others are mutated IN PLACE by the options panel -- Cell's font widget edits
+--     indicatorTable["font"][2] directly and then fires with the same table. There the
+--     reference is stable AND self.config[k] points at that very table, so the stored
+--     "old" value moves with the new one: identity says unchanged, and so does any content
+--     compare against it. That is why dragging the Healers duration font size did nothing.
+--
+-- Snapshotting the signature at the moment we accept a value is the only comparison that
+-- survives both. Keys AND values: font tables are arrays whose keys never change, so a
+-- keys-only signature reports "identical" no matter what the user drags.
+local function TableSig(t)
+    if type(t) ~= "table" then return nil end
+    local parts = {}
+    for k, v in pairs(t) do
+        parts[#parts + 1] = tostring(k) .. "=" .. (type(v) == "table" and TableSig(v) or tostring(v))
+    end
+    table.sort(parts)
+    return table.concat(parts, ",")
+end
+
+-- ============================================================
+-- CONTAINER PARK
+--
+-- WoW frames cannot be destroyed, so every container a rebuild throws away stays resident
+-- until /reload. Re-pointing already killed the roster-churn rebuilds (Handle:SetUnit), but
+-- the ones that remain are the expensive kind: an automatic LAYOUT SWITCH rebuilds every
+-- container on every unit button at once, and people switch layouts every time they zone.
+--
+-- So a torn-down host is parked under its build key instead of orphaned, and the next build
+-- asking for that exact key takes it back. Dungeon -> raid -> dungeon then costs one set of
+-- containers, not three.
+--
+-- ⚠ WHAT THE KEY MUST COVER: everything baked into the container at build time -- the group
+-- topology AND the per-button styling. Styling is in there because an existing AuraButton
+-- can only be styled from initializeFrame: once auras are secret, Restyle cannot touch it
+-- and rebuilds instead (see Handle:Restyle) -- which is exactly the situation inside the
+-- instance where the layout just switched. A container is therefore only ever handed to a
+-- handle that would have styled its buttons identically.
+-- Live-settable state (unit, frame level, layout geometry, maxFrameCount) is deliberately
+-- NOT in the key -- Build re-sends all of it.
+-- ============================================================
+
+-- Kill switch. If a reused container ever comes back showing the wrong unit's auras or a
+-- blank row, turn it off and /reload: every build then creates fresh, as it did before.
+--   /run Cell.AuraDisplay.PARK_ENABLED=false
+AD.PARK_ENABLED = true
+local PARK_CAP = 240        -- parked hosts held at once; past this, teardown orphans as before
+local park, parkCount = {}, 0
+local parkHolder
+local NO_RECORDS = {}
+
+local function ParkHolder()
+    if not parkHolder then
+        parkHolder = CreateFrame("Frame", nil, UIParent)
+        parkHolder:Hide()   -- parked hosts must not render or lay out while stored
+    end
+    return parkHolder
+end
+
+local function ParkKey(handle, records, overlay)
+    local parts = {overlay and "ov" or "flow", handle._testMinimal and "min" or ""}
+    for _, rec in ipairs(records) do
+        parts[#parts + 1] = rec.key .. "~" .. rec.filter .. "~" .. (TableSig(rec.candidateFilters) or "")
+    end
+    parts[#parts + 1] = "cfg:" .. (TableSig(handle.config) or "")
+    -- StyleButton reads the dispel palette straight out of CellDB rather than from config,
+    -- so it belongs to the key as well: a container styled with the old colours must not be
+    -- handed to a handle expecting the new ones.
+    parts[#parts + 1] = "pal:" .. (TableSig(CellDB and CellDB["debuffTypeColor"]) or "")
+    return table.concat(parts, "|")
+end
+
+-- Quiesce the handle's host and stash it (its container, buttons and group keys ride along),
+-- or orphan it exactly the way this used to when parking is off/full/unsafe.
+local function ParkOrDiscard(handle)
+    local host, c = handle.host, handle.container
+    handle.host, handle.container = nil, nil
+
+    -- ⚠ Nothing beyond SetEnabled/Hide is ever called ON the container: it carries Forbidden
+    -- Aspects, a refused SetParent would be swallowed by the pcall, and the container would
+    -- keep rendering under its replacement. The host is ours -- moving that moves it.
+    if c then
+        pcall(function() c:SetEnabled(false) end)
+        if not host then
+            pcall(function() c:Hide() end)
+            AD.stats.discards = AD.stats.discards + 1
+            return
+        end
+    end
+    if not host then return end
+
+    host._adOwner = nil     -- a late initializeFrame must not append to a handle that let go
+    host:Hide()
+    host:ClearAllPoints()
+
+    local key = handle._parkKey
+    if AD.PARK_ENABLED and c and key and parkCount < PARK_CAP then
+        host._adGroupsAdded = handle._groupsAdded
+        host:SetParent(ParkHolder())
+        -- verify the host actually went quiet; a host that still shows would draw its icons
+        -- on top of whatever replaced it, and parking it would spread that to the next user
+        if not host:IsShown() then
+            local stack = park[key]
+            if not stack then stack = {}; park[key] = stack end
+            stack[#stack + 1] = host
+            parkCount = parkCount + 1
+            AD.stats.parks = AD.stats.parks + 1
+            return
+        end
+    end
+
+    host:SetParent(nil)
+    -- verify the disposal actually took. If this ever trips, the ghost icons are NOT a
+    -- teardown-order problem and AD.Ghosts() will say so instead of us guessing.
+    if host:IsShown() or host:GetParent() then
+        handle._disposeFailed = (handle._disposeFailed or 0) + 1
+    end
+    AD.stats.discards = AD.stats.discards + 1
+end
+
+local function AcquireParked(key)
+    if not AD.PARK_ENABLED then return nil end
+    local stack = park[key]
+    if not stack or #stack == 0 then return nil end
+    local host = table.remove(stack)
+    if #stack == 0 then park[key] = nil end
+    parkCount = parkCount - 1
+    if not host._adContainer then return nil end -- can't happen; never hand back a bare host
+    return host
+end
+
+-- /cab park  -- what is being held, and under how many distinct keys
+function AD.ParkStats()
+    local keys = 0
+    for _ in pairs(park) do keys = keys + 1 end
+    return parkCount, keys
+end
+
 -- ============================================================
 -- BUILD  (create -> SetUnit -> AddAuraGroup* -> SetEnabled LAST)
 -- ============================================================
@@ -861,24 +1006,12 @@ local function Build(handle)
     -- old container rendering *underneath* the new one (the duplicated stack counts that
     -- only /reload cleared). So every build gets its own plain host frame that WE own:
     -- hiding and orphaning that is never forbidden, and it takes the container with it.
-    if handle.container then
-        pcall(function() handle.container:SetEnabled(false) end)
-        pcall(function() handle.container:Hide() end)
-        handle.container = nil
-        AD.stats.discards = AD.stats.discards + 1 -- orphaned for good; see AD.stats
-    end
-    if handle.host then
-        local old = handle.host
-        old:Hide()
-        old:SetParent(nil)
-        -- verify the disposal actually took. If this ever trips, the ghost icons are NOT a
-        -- teardown-order problem and AD.Ghosts() will say so instead of us guessing.
-        if old:IsShown() or old:GetParent() then
-            handle._disposeFailed = (handle._disposeFailed or 0) + 1
-        end
-        handle.host = nil
-    end
-    wipe(handle.buttons)
+    -- Parked under the key it was BUILT with, not the one about to be computed (the config
+    -- may have just changed -- that is why we are rebuilding). See the PARK section.
+    ParkOrDiscard(handle)
+    -- ⚠ REPLACED, not wiped: the old list belongs to the parked host now. Those buttons are
+    -- still its buttons, they keep their styling, and they come back together or not at all.
+    handle.buttons = {}
     handle._groupKeys = nil
     -- Identity-gate state is re-derived from THIS build's records below. Clearing it here
     -- is what lets a handle rebuilt onto non-vulnerable filters drop a stale hidden flag
@@ -901,18 +1034,46 @@ local function Build(handle)
         if RecordSourceRelative(rec) then handle._gateSourceRelative = true end
     end
 
-    local host = CreateFrame("Frame", nil, handle.frame)
-    host:SetAllPoints(handle.frame)
+    -- ⚠ declared here, not further down: ParkKey reads it, and a `local` declared after the
+    -- read would silently resolve to a nil global there (every overlay keyed as flow).
+    local overlay = handle.config.mode == "overlay"
 
-    local ok, c = pcall(CreateFrame, "AuraContainer", nil, host, "CustomAuraContainerTemplate")
-    if not ok or not c then
-        host:Hide()
-        host:SetParent(nil)
-        return
+    local key = ParkKey(handle, records, overlay)
+    handle._parkKey = key
+
+    local host, c = AcquireParked(key)
+    local reused = host ~= nil
+    if reused then
+        c = host._adContainer
+        host:SetParent(handle.frame)
+        host:ClearAllPoints()
+        host:SetAllPoints(handle.frame)
+        host._adOwner = handle
+        host:Show()
+        -- its buttons come back with it, already initialised and styled for exactly this key
+        handle.buttons = host._adButtons
+        handle._groupKeys = host._adGroupKeys
+        AD.stats.reuses = AD.stats.reuses + 1
+    else
+        host = CreateFrame("Frame", nil, handle.frame)
+        host:SetAllPoints(handle.frame)
+
+        local ok
+        ok, c = pcall(CreateFrame, "AuraContainer", nil, host, "CustomAuraContainerTemplate")
+        if not ok or not c then
+            host:Hide()
+            host:SetParent(nil)
+            return
+        end
+        host._adContainer = c
+        host._adButtons = handle.buttons
+        host._adGroupKeys = {}
+        host._adOwner = handle
+        handle._groupKeys = host._adGroupKeys
+        AD.stats.builds = AD.stats.builds + 1
     end
     handle.host = host
     handle.container = c
-    AD.stats.builds = AD.stats.builds + 1
     -- honour the indicator's frameLevel: the AuraButtons inherit their level from THIS chain
     -- (handle.frame -> host -> AuraContainer -> buttons), so set it BEFORE AddAuraGroup or the
     -- buttons keep the default level and the name text (indicatorFrame + level) covers them no
@@ -921,13 +1082,12 @@ local function Build(handle)
         pcall(function() host:SetFrameLevel(handle._hostLevel) end)
         pcall(function() c:SetFrameLevel(handle._hostLevel) end)
     end
-    handle._groupKeys = {}
     handle._errors = {}          -- diagnostics: per-step failures (see AD.Debug)
-    handle._initCount = 0        -- how many buttons Blizzard asked us to style
-    handle._groupsAdded = 0
+    -- how many buttons Blizzard asked us to style: a reused container already asked, once
+    handle._initCount = reused and #handle.buttons or 0
+    handle._groupsAdded = reused and (host._adGroupsAdded or #handle._groupKeys) or 0
     handle._enabledWhileVisible = false
 
-    local overlay = handle.config.mode == "overlay"
     if overlay then
         -- overlay covers its anchor frame (the health bar); no flow layout
         pcall(function() c:SetAllPoints(handle.frame) end)
@@ -959,19 +1119,29 @@ local function Build(handle)
     end
     handle._modeDbg = handle.config.mode or "important"
 
-    for _, rec in ipairs(records) do
+    -- ⚠ A REUSED container already carries exactly these groups -- they are part of the park
+    -- key -- with their buttons created, initialised and styled. AddAuraGroup here would
+    -- declare every one of them a second time, so the loop is fed nothing instead.
+    for _, rec in ipairs(reused and NO_RECORDS or records) do
         local initFn = function(button)
-            handle._initCount = (handle._initCount or 0) + 1
+            -- ⚠ Resolve the owner through the HOST, never through the captured `handle`.
+            -- Blizzard keeps this closure inside the group for the container's whole life,
+            -- and a parked container comes back owned by a different handle -- a captured
+            -- one would append the button to a list nobody reads and style it from a config
+            -- nobody is showing.
+            local h = host._adOwner
+            if not h then return end
+            h._initCount = (h._initCount or 0) + 1
             if overlay then pcall(function() button:SetAllPoints(c) end) end
             -- ⚠ Tracked HERE and nowhere else. This is the only place a genuinely new
             -- button arrives; StyleButton must never append, because Restyle iterates this
             -- very list and calls StyleButton on each entry -- appending from there grew
             -- the list exactly as fast as the iterator advanced, so the loop never ended
             -- and the client froze on every option change that triggers a restyle.
-            tinsert(handle.buttons, button)
-            local okS, errS = pcall(StyleButton, handle, button)
-            if not okS and #handle._errors < 6 then -- cap: 50 identical lines helps nobody
-                handle._errors[#handle._errors + 1] = "style: " .. tostring(errS)
+            tinsert(h.buttons, button)
+            local okS, errS = pcall(StyleButton, h, button)
+            if not okS and h._errors and #h._errors < 6 then -- cap: 50 identical lines helps nobody
+                h._errors[#h._errors + 1] = "style: " .. tostring(errS)
             end
         end
         local okG, errG
@@ -1008,7 +1178,17 @@ local function Build(handle)
     -- Whatever the gate says right now is this parse's baseline (_gateAssist was cleared
     -- above, so this probe records rather than recovers).
     handle:ApplyIdentityGate()
-    if handle.frame:IsVisible() then handle._enabledWhileVisible = true end
+    if reused then
+        -- ⚠ A container that has already parsed does NOT re-parse just because SetUnit
+        -- changed underneath it -- same trap as Handle:SetUnit and GateRefresh. Without the
+        -- Hide/Show bounce that crosses the partition, the row keeps showing the auras of
+        -- whichever unit this container was parked from.
+        handle._enabledWhileVisible = false
+        handle:ReassertEnable()
+        if not handle._enabledWhileVisible then handle:GateRefresh() end
+    elseif handle.frame:IsVisible() then
+        handle._enabledWhileVisible = true
+    end
 end
 
 -- regen flush
@@ -1137,29 +1317,7 @@ function Handle:Restyle()
     end
 end
 
--- Table-valued options need a CONTENT signature, and the config must remember the
--- signature rather than the table. Both halves matter, and each one was a bug:
---
---   * Some tables arrive fresh every call (spellIDs is rebuilt per push), so comparing by
---     reference reports "changed" every time and rebuilds the container on every touch.
---   * Others are mutated IN PLACE by the options panel -- Cell's font widget edits
---     indicatorTable["font"][2] directly and then fires with the same table. There the
---     reference is stable AND self.config[k] points at that very table, so the stored
---     "old" value moves with the new one: identity says unchanged, and so does any content
---     compare against it. That is why dragging the Healers duration font size did nothing.
---
--- Snapshotting the signature at the moment we accept a value is the only comparison that
--- survives both. Keys AND values: font tables are arrays whose keys never change, so a
--- keys-only signature reports "identical" no matter what the user drags.
-local function TableSig(t)
-    if type(t) ~= "table" then return nil end
-    local parts = {}
-    for k, v in pairs(t) do
-        parts[#parts + 1] = tostring(k) .. "=" .. (type(v) == "table" and TableSig(v) or tostring(v))
-    end
-    table.sort(parts)
-    return table.concat(parts, ",")
-end
+-- (TableSig moved above Build -- both SetOptions and the container park need it.)
 
 -- push the current geometry onto the live container; false = caller must rebuild
 function Handle:ApplyLiveLayout()
@@ -1427,17 +1585,10 @@ function Handle:Destroy()
     self._pendingBuild = nil
     AD._pending[self] = nil
     if AD._instances then AD._instances[self] = nil end
-    if self.container then
-        pcall(function() self.container:SetEnabled(false) end)
-        pcall(function() self.container:Hide() end)
-        self.container = nil
-    end
-    -- orphan the host we own: Hide() on the container itself may be refused (see Build)
-    if self.host then
-        self.host:Hide()
-        self.host:SetParent(nil)
-        self.host = nil
-    end
+    -- Same disposal as a rebuild: park it if it is still worth something, orphan it if not.
+    -- An indicator that gets deleted and re-added (or a preview button) hands its container
+    -- straight back to the next one asking for that key.
+    ParkOrDiscard(self)
     self.frame:Hide()
 end
 
@@ -2109,6 +2260,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         -- roster churn means something is still rebuilding when it should be re-pointing.
         if arg and strtrim(arg):lower() == "reset" then
             AD.stats.builds, AD.stats.discards, AD.stats.repoints = 0, 0, 0
+            AD.stats.parks, AD.stats.reuses = 0, 0
             p("計數歸零")
             return
         end
@@ -2116,9 +2268,14 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         for h in pairs(AD._instances or {}) do
             if h.container then live = live + 1 end
         end
+        local parked, parkKeys = AD.ParkStats()
         p(("容器建立 %d ／ 丟棄 %d（= 洩漏，只有 /reload 收得回）／ 換單位重指 %d ／ 目前存活 %d")
             :format(AD.stats.builds, AD.stats.discards, AD.stats.repoints, live))
+        p(("寄存 %d ／ 取回 %d ／ 目前寄存中 %d（%d 種簽章）%s")
+            :format(AD.stats.parks, AD.stats.reuses, parked, parkKeys,
+                AD.PARK_ENABLED and "" or " ｜寄存已關閉"))
         p("進出隊伍時 repoints 該漲、builds/discards 不該漲。歸零：/cab stats reset")
+        p("換版面（副本↔團隊↔野外）來回一次：第二次該是 reuses 漲、builds 不漲。")
 
     elseif cmd == "list" then
         -- which indicators are container-backed on a real unit button

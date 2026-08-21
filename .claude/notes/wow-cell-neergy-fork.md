@@ -79,4 +79,44 @@ r277，用 `r277.9.x` 自己往下編號。我們從 r282 走自己的路，**�
 
 **沒抄、因為我們本來就有**：Aura Blacklist 手動輸入 spellID —— 我們的
 `CreateAuraButtons`（`Widgets/Widgets_IndicatorSettings.lua`）一直支援，含「無效的法術 ID」驗證。
-那是他們自己弄壞又修好的迴歸。
+那是他們自己弄壞又修好的迴歸。（r277.9.7.1 他們**整個移除**了那個輸入框，理由「現行 API 做不到」
+——半對：`excludeSpellIDs` 只對 NeverSecret 法術生效，玩家自己加的首領減益確實擋不掉，
+但預設清單擋的疲勞／飽足那類是有效的。我們保留，UI 沒說清楚這個界線。）
+
+## 第二次比對（2026-08-21，他們 r277.9.7.8 / 我們 r293_MiliUI）
+
+08-17 → 08-20 又出了 8 版。**30 條 Retail 條目裡 20 條在修 `HideBlizzard.lua` 與編輯模式**
+——那 640 行改寫的後續火，我們一條都不適用（我們 104 行、只解事件＋換父層、**不碰成員框**，
+所以不帶 taint 也就不會有那一整串「Blizzard 框在 Cell taint 下讀秘密血量」的錯誤）。
+他們的 `HideBlizzard.lua` 現在 397 行，仍在收尾。
+
+**他們比我們好、已經沿用的**：
+- `UnitIsUnit` 秘密布林的兩處漏網（**我們自己的洞，他們提醒的**）：目標高亮
+  `UnitButton_UpdateTarget` 與 spotlight 查找 `F.GetUnitButtonByUnit`。兩個姊妹函式都有閘、
+  這兩個沒有，是機械式補閘時跳過的。目標高亮取 **fail-closed**（疑慮就不亮，否則整排全亮）
+  ——他們 9.7.7 正是從 fail-open 走回來的。
+- 光環容器 **park/reuse**：見 [[project-cell-auracontainer-rewrite]] 第 17 點。概念沿用，
+  實作自己寫（他們把整段 quiesce 包在同一個 pcall 裡，`SetUnit(nil)` 一丟例外後面全不跑；
+  池滿用 `pairs` 隨便挑一個丟）。**他們的 key 沒有涵蓋樣式**，我們有。
+
+**待驗證（可能影響我們三個地方）**：他們 9.7.6 宣稱 `RAID_PLAYER_DISPELLABLE`
+**在戰鬥中不再匹配**，把「只顯示我能驅散的」全改成 `includeDispelTypes`。
+`/cab test` 已加第 6 步當對照組，驗法寫在那份筆記的診斷段。
+
+**這次也沒抄的**：
+- 把 raidDebuffs 移出光環容器（9.7.6）——那是身分閘 fail-open 的症狀，
+  見 [[wow-121-identity-gate-failopen]]，我們從根解掉了，不必退路線。
+- 團隊標記改用 `macrotext "/tm N"` ＋ PreClick 猜 toggle（9.7.4）。我們的
+  `type="raidtarget"` ＋ `action1="toggle"` 是引擎端判斷，戰鬥中照樣正確；
+  他們那條路要讀 `GetRaidTargetIndex`（12.1 是秘密值）才知道要不要 toggle off。
+  唯一小輸：他們右鍵「鎖定標記」的首次套用走安全巨集，戰鬥中有效，我們是 OOC only。
+- `Widgets/Fonts.xml` ＋ `_G[name] or CreateFont(name)`（9.7.7）：他們先加 XML 宣告、
+  再回頭處理重複建立。真要修只補 XML 虛擬字型宣告，不要跟著改 `Widgets.lua`。
+- TOC 把 `Libs\LoadLibs.xml` 拆成逐行 .lua（9.7.1）：那是他們 packager 的問題
+  （函式庫在 `.gitignore` 裡），我們函式庫完整入庫，不適用。
+
+**可以但還沒做的**：
+- `Libs/PixelPerfect.lua` 的 `frame.PixelSnapDisabled` 改成弱鍵側表（不要往別人的 frame
+  寫欄位）＋ `issecretvalue` 閘。他們額外去鉤每個 frame 的 `CreateTexture`，那段別抄。
+- 預設減益黑名單補 `95809`／`160455`／`428628`／`25771`。⚠ 要配 Revise 遷移 append 到既有
+  `CellDB["debuffBlacklist"]`，否則老玩家吃不到（同 HoT 清單那次的坑）。

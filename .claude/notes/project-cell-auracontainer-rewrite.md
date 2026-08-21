@@ -63,10 +63,34 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
 14. **⚠⚠ 身分閘 fail-open**（2026-08-13 修，見 [[wow-121-identity-gate-failopen]]）：`includeSpellIDs` 在 `UnitCanAssist` 失敗時被整組跳過 → 白名單列顯示全部增益，且 assist 回來後引擎不會重讀（只有 `/reload` 有效）。Cell 的解法在 `AuraDisplay.lua`：`RecordVulnerableToIdentityGate`/`RecordSourceRelative` 推導旗標 → `ApplyIdentityGate`（assist false→true 邊緣才踢）→ `GateRefresh`（OOC `Hide();Show()`、戰鬥中標記 + regen 補踢），事件監看含過場動畫 latch，手動解卡 `/cab gate`。
 15. AuraButton 在 secret 時**整顆 forbidden、什麼都讀不到**（IsShown/幾何一 branch 就炸），「有沒有真的畫出光環」只能靠肉眼 —— 診斷工具能證明機制全綠，不能證明畫面正確。
 16. **⚠⚠ 換單位絕不能重建容器**（2026-08-17 修，r291）。`Handle:SetUnit` 原本直接 `Rebuild()`。團隊框是 SecureGroupHeader，有人進出 → header 重排 → 一大批按鈕換 unit token → 每顆按鈕上**每一個**容器整組拆掉重建（host + AuraContainer + 一批 AuraButton，每顆再帶 Cooldown 與 holder），同一幀、戰鬥外、無節流。**而且暴雪 frame 刪不掉**：`Build` 的拆除只是 `Hide()` + `SetParent(nil)`，所以每次進出隊伍都永久洩漏一批 frame，只有 `/reload` 收得回 —— 這就是玩家回報的「愈打愈卡」。正解是**重新指向活的容器**：group 拓樸與單位無關（`BuildRecords` 只讀 config），所以 `container:SetUnit(newUnit)` + bounce 就夠了。本機兩個實跑範例：`MiliUI_UnitFrames/Elements/Auras.lua`（換載具）、`Platynator/Display/Auras/AurasNext.lua`（名牌回收）。順序：清 `_gateAssist`/`_gateVisible` → `ApplyIdentityGate()`（先定可見性，彈一個被隱藏的框等於沒彈）→ 清 `_enabledWhileVisible` → `ReassertEnable()`，它沒跑才補 `GateRefresh()`（戰鬥中標記、regen 補彈）。計數看 `/cab stats`：**discards 就是洩漏數**，進出隊伍時只有 repoints 該漲。
+17. **重建剩下的那些改成「寄存」而不是丟棄**（2026-08-21，比對 NeeRgY r277.9.7.8 的
+    park/reuse 之後自己實作）。第 16 點解掉換單位那條之後，剩下的重建都是**版面自動切換**
+    ——進副本／進團隊各切一次，一次就是「每顆按鈕上每一個容器」全部重來，而 frame 刪不掉。
+    現在 `Build` 的拆除走 `ParkOrDiscard(handle)`：把 host（容器、按鈕、group keys 都掛在
+    上面）藏進一個隱藏 holder，用**建置簽章**當 key 存起來；下一次要求同一把 key 的 build
+    直接領回。副本↔團隊↔野外來回只付一組容器的錢。
+    * ⚠⚠ **簽章必須包含「樣式」，不只是拓樸。** 既有 AuraButton 只能在 `initializeFrame`
+      裡上樣式——auras 一旦 secret，`Restyle` 根本碰不了（第 7 點），而那正是「版面剛切換」
+      的當下。所以容器只會交給「本來就會把按鈕 style 成一模一樣」的 handle。key = records
+      （key/filter/cf）＋ `TableSig(config)` ＋ 調色盤（`CellDB.debuffTypeColor`，
+      `StyleButton` 是直接讀它的，不在 config 裡）＋ `_testMinimal`。可以事後設的
+      （unit、frameLevel、layout、maxFrameCount）刻意不進 key。
+    * ⚠ **`initializeFrame` 的閉包不能捕捉 `handle`。** 暴雪把它留在 group 裡跟容器同壽，
+      領回時擁有者已經換人了 —— 改成 `host._adOwner` 每次呼叫再解析，放手時設 nil。
+    * ⚠ 領回之後**一定要彈**（`ReassertEnable` → 沒跑就 `GateRefresh`）：已經 parse 過的
+      容器不會因為 `SetUnit` 換了就重讀，否則整排顯示上一個單位的光環（同第 16 點的坑）。
+    * ⚠ Lua 陷阱：`local overlay` 宣告在讀取點**下面**時，上面那個 `overlay` 會靜默解析成
+      **全域 nil**，不會報錯——差點讓每個 overlay 容器都被當成 flow 存進 key。
+    * 出事時的退路：`/run Cell.AuraDisplay.PARK_ENABLED=false` ＋ `/reload` 就回到舊行為。
+      `/cab stats` 多了寄存/取回/寄存中，**第二次切回同一個版面該是 reuses 漲、builds 不漲**。
 
 ## 診斷
 
-`/cab`：`list`/`ghosts`/`inspect [unit]`/`overdraw [unit]`/`spell <id>`/`test`（6 步二分：最小渲染→完整樣式→可驅散 token→布林 false→`!RAID` 抵銷→恢復；最小渲染用自己的 `dfTestIcon`，不借正式 icon —— 共用會讓正式 icon 事後蓋掉外環，診斷工具自己製造渲染錯誤）。健康基準線（正常時五個 display 的長相）在 2026-08-11 的 log，重點：`mode=buff groupsAdded=1 initCount=10 buttons=10 +cf{includeSpellIDs}`、anchorFrame 有實際矩形。
+`/cab`：`list`/`ghosts`/`inspect [unit]`/`overdraw [unit]`/`spell <id>`/`test`（7 步二分：最小渲染→完整樣式→可驅散 token→布林 false→`!RAID` 抵銷→**驅散學派 cf（第 3 步的對照組）**→恢復；最小渲染用自己的 `dfTestIcon`，不借正式 icon —— 共用會讓正式 icon 事後蓋掉外環，診斷工具自己製造渲染錯誤）。第 3 步與第 6 步是一對，**只有戰鬥中才回答問題**：NeeRgY 宣稱 `RAID_PLAYER_DISPELLABLE`
+一進戰鬥就不再匹配，因此把所有「只顯示我能驅散的」改成 `includeDispelTypes`；我們三個地方
+還在用那個 token（debuff mode、dispel mode、重要減益的 dispel record）。`AD.Test` 戰鬥中
+不能換 filter，所以驗法是：設第 3 步→開打→看整排會不會消失；再設第 6 步→開打→對照。
+**尚未驗證。** 健康基準線（正常時五個 display 的長相）在 2026-08-11 的 log，重點：`mode=buff groupsAdded=1 initCount=10 buttons=10 +cf{includeSpellIDs}`、anchorFrame 有實際矩形。
 
 ## 順手修掉的相關項
 
