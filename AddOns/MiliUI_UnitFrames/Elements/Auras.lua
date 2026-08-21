@@ -307,7 +307,10 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
         local stack = textFrame:CreateFontString(nil, "OVERLAY")
         stack:SetFont(Media.Font(ns.db.global.font), style.stackFontSize or 10, "OUTLINE")
         stack:SetTextColor(1, 1, 1)
-        stack:SetPoint("BOTTOMRIGHT", auraButton, "BOTTOMRIGHT", 2, -2)
+        -- 位置可調。錨點是「文字的哪一角貼到按鈕的同一角」，所以偏移的正負方向
+        -- 會隨錨點改變（TOPLEFT 要往右下推 = x 正、y 負；BOTTOMRIGHT 反之）。
+        local a = style.stackAnchor or "TOPLEFT"
+        stack:SetPoint(a, auraButton, a, style.stackX or 2, style.stackY or -2)
         auraButton.Count = stack
         if auraButton.SetApplicationCount then
             auraButton:SetApplicationCount(stack)
@@ -365,6 +368,10 @@ local function BuildSignature(edb)
         tostring(edb.maxCount), tostring(edb.perRow), tostring(edb.growth),
         tostring(edb.spacing), tostring(edb.showStack), tostring(edb.stackSize),
         tostring(edb.durationText), tostring(edb.durationThreshold),
+        -- ⚠ 層數的位置也要在簽章裡：它是在 initializeFrame 裡 SetPoint 的，
+        -- 之後整棵子樹就碰不得了 ⇒ 只能整顆容器重建。漏了這三個鍵的症狀是
+        -- 「改了層數位置沒反應，動別的設定才一起生效」（跟 filterMode 同一個坑）
+        tostring(edb.stackAnchor), tostring(edb.stackX), tostring(edb.stackY),
         -- ⚠ filterMode 一定要在簽章裡：filter 字串在 AddAuraGroup 宣告時就固定、
         -- 沒有 setter，只能換整顆容器。漏了這個鍵的症狀是「改了下拉沒反應，
         -- 動別的設定才一起生效」。
@@ -506,6 +513,7 @@ local function BuildStyle(elementName, edb)
             showDuration = edb.durationText and true or false,
             showStack = edb.showStack and true or false,
             stackFontSize = edb.stackSize or 10,
+            stackAnchor = edb.stackAnchor, stackX = edb.stackX, stackY = edb.stackY,
             durationThreshold = edb.durationThreshold,
         }
     end
@@ -514,6 +522,7 @@ local function BuildStyle(elementName, edb)
         showDuration = edb.durationText and true or false,
         showStack = edb.showStack and true or false,
         stackFontSize = edb.stackSize or 10,
+        stackAnchor = edb.stackAnchor, stackX = edb.stackX, stackY = edb.stackY,
         durationThreshold = edb.durationThreshold,
     }
 end

@@ -53,6 +53,20 @@ Specs.GROWTH_ITEMS = {
     { text = L["Bottom to top, leftward"], value = "BTRL" },
 }
 
+-- 九宮錨點。語意是「文字的哪一角貼到按鈕的同一角」，所以偏移的正負方向會隨錨點
+-- 改變（靠左上要往右下推＝x 正 y 負，靠右下相反）。
+Specs.ANCHOR_ITEMS = {
+    { text = L["Top left"], value = "TOPLEFT" },
+    { text = L["Top"], value = "TOP" },
+    { text = L["Top right"], value = "TOPRIGHT" },
+    { text = L["Left"], value = "LEFT" },
+    { text = L["Center"], value = "CENTER" },
+    { text = L["Right"], value = "RIGHT" },
+    { text = L["Bottom left"], value = "BOTTOMLEFT" },
+    { text = L["Bottom"], value = "BOTTOM" },
+    { text = L["Bottom right"], value = "BOTTOMRIGHT" },
+}
+
 Specs.JUSTIFY_H_ITEMS = {
     { text = L["Left"], value = "LEFT" }, { text = L["Center"], value = "CENTER" }, { text = L["Right"], value = "RIGHT" },
 }

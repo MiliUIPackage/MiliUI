@@ -82,7 +82,9 @@ local FAKE_AURA_ICONS = {
 -- 假的剩餘秒數。刻意用長短不一的值：使用者要看的是「數字疊在圖示上會不會擠」，
 -- 全部同一個數字看不出最寬的情況。
 local FAKE_DURATIONS = { 42, 8, 118, 3, 27, 15 }
-local FAKE_STACKS    = { 0, 3, 0, 12, 0, 2 }      -- 0 = 不顯示層數
+local FAKE_STACKS    = { 2, 12, 3, 0, 8, 5 }      -- 0 = 不顯示層數（留一個看沒層數的樣子）
+-- ⚠ 第一個一定要有層數：演示序列的第一步只畫 1 個圖示，那時看不到數字的話，
+-- 調層數位置就等於瞎調
 
 -- ⚠ 這支要跟真的長一樣，否則「預覽」就失去意義 —— 使用者調的是尺寸與樣式，
 -- 而真正的 AuraButton 是暴雪畫的、插件塞不進假資料，只能在這裡自己重現一份。
@@ -138,7 +140,6 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
             b.dur = b:CreateFontString(nil, "OVERLAY")
             b.dur:SetPoint("BOTTOM", b, "BOTTOM", 0, 1)
             b.stack = b:CreateFontString(nil, "OVERLAY")
-            b.stack:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
             list[i] = b
         end
         b:SetSize(w, h)
@@ -163,6 +164,13 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
         local n = FAKE_STACKS[(i - 1) % #FAKE_STACKS + 1]
         if edb.showStack and n > 0 then
             ns.Media.SetFont(b.stack, edb.stackSize or 10, "OUTLINE", ns.db.global.font)
+            -- 位置跟真的同一套（Elements/Auras.lua 的 InitAuraButton）：錨點是
+            -- 「文字的哪一角貼到圖示的同一角」，偏移的正負方向隨錨點改變。
+            -- ⚠ 每次都要重下 SetPoint，不能只在建立時設 —— 使用者就是要在這裡
+            -- 一邊調錨點一邊看效果
+            local a = edb.stackAnchor or "TOPLEFT"
+            b.stack:ClearAllPoints()
+            b.stack:SetPoint(a, b, a, edb.stackX or 2, edb.stackY or -2)
             b.stack:SetText(tostring(n))
             b.stack:Show()
         else
