@@ -138,7 +138,7 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
             b.icon:SetPoint("BOTTOMRIGHT", -1, 1)
             b.icon:SetTexCoord(0.12, 0.88, 0.12, 0.88)
             b.dur = b:CreateFontString(nil, "OVERLAY")
-            b.dur:SetPoint("BOTTOM", b, "BOTTOM", 0, 1)
+            b.dur:SetPoint("CENTER", b, "CENTER", 0, 0)
             b.stack = b:CreateFontString(nil, "OVERLAY")
             list[i] = b
         end
@@ -151,10 +151,11 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
         end
         b.icon:SetTexture(FAKE_AURA_ICONS[(i - 1) % #FAKE_AURA_ICONS + 1])
 
-        -- 秒數：跟著 durationText 開關走，字級抓圖示高度的一半（真的那顆由引擎畫，
-        -- 大小同樣是跟著按鈕走的，這裡取一個看得出比例的近似值）
+        -- 秒數：跟著 durationText 開關走。位置與字級都照抄真的那顆
+        -- （Elements/Auras.lua 的 InitAuraButton）—— 置中、0.55 倍圖示高。
+        -- ⚠ 這裡曾經是貼底邊、0.5 倍，跟實際長得不一樣，預覽就失去意義了。
         if edb.durationText then
-            ns.Media.SetFont(b.dur, math.max(8, math.floor(h * 0.5)), "OUTLINE", ns.db.global.font)
+            ns.Media.SetFont(b.dur, math.max(8, math.floor(h * 0.55)), "OUTLINE", ns.db.global.font)
             b.dur:SetText(tostring(FAKE_DURATIONS[(i - 1) % #FAKE_DURATIONS + 1]))
             b.dur:Show()
         else
