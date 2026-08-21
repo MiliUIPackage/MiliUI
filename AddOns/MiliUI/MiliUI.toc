@@ -59,3 +59,4 @@ Fix\InspectTaintFix.lua
 Fix\TinyInspectRemake_FlyoutItemLocation.lua
 Fix\TinyInspectRemake_OffhandEnchant.lua
 Fix\BugSack_SecretGuard.lua
+Fix\ParagonReputation_HideTooltipForbidden.lua

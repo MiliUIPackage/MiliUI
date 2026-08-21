@@ -91,3 +91,12 @@ Ayije 本來就有 `InstallScaleLockHook` 把 item frame 的 scale 壓回 1，�
 參考解法與 API 筆記見 [[wow-secret-key-table-lookup]]、[[wow-121-unit-api-secrets]]、[[wow-121-aura-containers]]、[[wow-121-other-api-changes]]。
 
 **本機可直接翻原始碼當範本的 12.1-ready 插件**（2026-08-13 核對）：Cell、Plumber、TinyTooltip-Remake、WarpDeplete（都已用 `issecretvalue`）。~~MiniCC~~、~~MiniAuras~~、~~Coolinator~~ 的原始碼**都不在本機了**（前兩者 2026-08-10 從套組移除；Coolinator 2026-08-13 發現只剩空目錄樹，要看去 GitHub，見 [[wow-121-coolinator-reference]]），**別再叫人去翻本機的**。另外 `BuffReminders/Display/AuraTracker.lua` 是 repo 內最小、最好讀的路線 A 實作（單一 AuraGroup + `includeSpellIDs`），要看整套流程但不想啃 Cell 的時候從它開始。
+
+**2026-08-21 EmbeddedItemTooltip 變 forbidden object（新的一類崩潰）。** 12.1 之後 `EmbeddedItemTooltip` 對「被插件污染的執行路徑」是 forbidden object，**連 `GetOwner()`／`NumLines()` 這種無害 getter 都不能呼叫**，一律拋 `Attempt to access forbidden object from code tainted by an AddOn`。狀態是動態的（同一個框架載入時還能套樣式、之後才被鎖），只能在每個入口重問 `IsForbidden()`——這個方法在 forbidden object 上永遠可以呼叫。同一天兩支插件中招，但性質不同：
+
+| 插件 | 拋錯位置 | 能不能自己擋 |
+|---|---|---|
+| TinyTooltip-Remake | 插件自己的 `ProcessInfo` 掛勾（UIWidget 的 `GameTooltip_ShowHyperlink` 借走 tooltip） | 可以，入口＋工具函式兩層 `IsForbidden` 閘，見 [[project-tinytooltip-perf]] |
+| ParagonReputation | **暴雪自己的** `ReputationEntryMixin:HideTooltip()`（ReputationFrame.lua:405） | 不行，只能把那一列的 `HideTooltip` 換成安全版 |
+
+ParagonReputation 那條的污染路徑值得記：插件把顯示字串**直接寫進暴雪框架的欄位**（`ReputationBar.reputationStandingText` / `barProgressText`），`OnLeave` 第一行的 `TryShowReputationStandingText()` 讀到髒欄位 → **整段 `OnLeave` 從此在污染狀態下跑** → 同一段稍後的 `HideTooltip()` 碰 `EmbeddedItemTooltip` 就炸。**通則：污染是「讀到髒欄位的那一刻」進來的，之後同一個呼叫堆疊全髒；所以錯誤行號跟你動過的地方可以差很遠。** 另一個副作用：`hooksecurefunc` 的後掛勾在原函式拋錯後不會執行，所以 ParagonReputation 自建的 `ParagonEmbeddedItemTooltip` 也跟著關不掉（浮窗卡畫面）。修法在 `MiliUI/Fix/ParagonReputation_HideTooltipForbidden.lua`：只對巔峰列（那列本來就髒了）把 `HideTooltip` 直接換成安全版，同時補做 Paragon 後掛勾要做的事。**列是 XML `mixin=` 複製上去的，掛 `ReputationEntryMixin` 只對之後才建立的列有效**，已存在的列要另外掃一次——跟上面 `EnumerateActive()` 那條是同一個道理。
