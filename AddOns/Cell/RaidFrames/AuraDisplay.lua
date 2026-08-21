@@ -1018,7 +1018,7 @@ local function Build(handle)
     -- instead of staying hidden forever; the assist verdict resets too, because a fresh
     -- parse has no fail-open history to recover from.
     handle._gateVulnerable, handle._gateSourceRelative = nil, nil
-    handle._gateAssist, handle._gateVisible = nil, nil
+    handle._gateAssist, handle._gateVisible, handle._gateConnected = nil, nil, nil
 
     if not handle.enabled or not handle.unit then return end
 
@@ -1423,7 +1423,7 @@ function Handle:SetUnit(unit)
 
     -- Both gate verdicts belong to the old unit. Clear them exactly as Build does, so the
     -- re-probe below records a fresh baseline instead of firing a bogus recovery edge.
-    self._gateAssist, self._gateVisible = nil, nil
+    self._gateAssist, self._gateVisible, self._gateConnected = nil, nil, nil
     -- Runs first: bouncing a row the gate wants hidden does nothing (Show() on a frame whose
     -- parent chain is hidden never fires OnShow), so visibility has to settle before the kick.
     self:ApplyIdentityGate()
@@ -1533,21 +1533,43 @@ function Handle:ApplyIdentityGate()
                 isOwn = SameUnit(unit, "player") ~= false
             end
 
-            -- (1) non-assistable (cross-faction, duel, cinematic): includeSpellIDs is
+            -- (1) OFFLINE. UnitCanAssist stays TRUE for a disconnected member -- faction did
+            --     not change -- so the assist check below never fires, while the engine can no
+            --     longer resolve the unit well enough to apply includeSpellIDs: the curated
+            --     rows fill with every buff the player was carrying when they dropped. This is
+            --     the fail-open people actually hit (someone disconnects mid-dungeon), and it
+            --     is checked first because it is the cheapest definite answer of the three.
+            --     ⚠ The event matters as much as the check: UNIT_CONNECTION is the only thing
+            --     that fires at the moment of the drop. Without it the row stays wrong until
+            --     some unrelated watched event happens to sweep.
+            if self._gateVulnerable or self._gateSourceRelative then
+                local okC, conn = pcall(UnitIsConnected, unit)
+                if okC and not issecretvalue(conn) then
+                    local was = self._gateConnected
+                    self._gateConnected = conn and true or false
+                    if was == false and self._gateConnected then recovered = true end
+                    if not conn and (not isOwn or GATE_FAIL_CLOSED) then hide = true end
+                end
+            end
+
+            -- (2) non-assistable (cross-faction, duel, cinematic): includeSpellIDs is
             --     skipped and every helpful aura passes. Signal: UnitCanAssist.
             if self._gateVulnerable then
                 local ok, can = pcall(UnitCanAssist, "player", unit)
                 if ok then
                     if issecretvalue(can) then can = true end
-                    recovered = self:_NoteGateRecovery(can)
+                    -- ⚠ OR, never plain assignment: the offline check above may already
+                    -- have set it, and an assignment here would wipe that recovery edge
+                    -- (reconnect while assist never moved = no bounce = row stays stale).
+                    if self:_NoteGateRecovery(can) then recovered = true end
                     if not can and (not isOwn or GATE_FAIL_CLOSED) then hide = true end
                 end
             end
 
-            -- (2) not in your visible world (different instance/phase): the engine cannot
+            -- (3) not in your visible world (different instance/phase): the engine cannot
             --     attribute a caster, so "mine" passes everyone's auras. Signal:
             --     UnitIsVisible. Same fail-safe -- only a definite, non-secret false hides.
-            --     Probed even when (1) already hid us, so the recovery edge is recorded:
+            --     Probed even when (1)/(2) already hid us, so the recovery edge is recorded:
             --     this pool goes stale-open exactly like the assist one, and coming back
             --     into view is not an aura change either.
             if self._gateSourceRelative then
@@ -1668,6 +1690,7 @@ do
     for _, e in ipairs({
         "UNIT_FACTION", "UNIT_PHASE", "UNIT_NAME_UPDATE",
         "PARTY_MEMBER_ENABLE", "PARTY_MEMBER_DISABLE", "GROUP_ROSTER_UPDATE",
+        "UNIT_CONNECTION", -- the drop/reconnect edge; nothing else fires at that moment
         "PLAYER_ENTERING_WORLD", "PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED",
         "CINEMATIC_START", "CINEMATIC_STOP", "PLAY_MOVIE", "STOP_MOVIE",
         "UNIT_ENTERED_VEHICLE", "UNIT_EXITED_VEHICLE", "UNIT_PET",
@@ -2110,9 +2133,10 @@ function AD.Inspect(unitToken)
             -- the fail-open state: "assist=false" IS the "why is my whitelist showing
             -- every buff" answer, and it is invisible from anywhere else
             if h._gateVulnerable or h._gateSourceRelative then
-                p(("    身分閘：白名單依賴=%s 來源依賴=%s assist=%s visible=%s 隱藏=%s 失效方向=%s")
+                p(("    身分閘：白名單依賴=%s 來源依賴=%s assist=%s visible=%s connected=%s 隱藏=%s 失效方向=%s")
                     :format(tostring(h._gateVulnerable or false), tostring(h._gateSourceRelative or false),
-                        tostring(h._gateAssist), tostring(h._gateVisible), tostring(h._gateHidden or false),
+                        tostring(h._gateAssist), tostring(h._gateVisible), tostring(h._gateConnected),
+                        tostring(h._gateHidden or false),
                         GATE_FAIL_CLOSED and "隱藏(fail-closed)" or "顯示(fail-open)"))
             end
             -- flow-layout ground truth: what orientation asked for, what the container

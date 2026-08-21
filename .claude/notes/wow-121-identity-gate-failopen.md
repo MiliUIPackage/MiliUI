@@ -22,6 +22,15 @@ assist 變 false 的場合：跨陣營隊友（副本外）、決鬥對手、**�
 第二條 fail-open：來源相關 pool（`HELPFUL|PLAYER`、`isFromPlayerOrPlayerPet`）對不在可見世界的
 單位（不同副本/分流）無法歸屬施法者 → 「我的」放行所有人，assist 仍是 true，訊號改看 `UnitIsVisible`。
 
+**第三條：離線**（2026-08-21，使用者實測回報）。隊友一斷線，`UnitCanAssist` **仍然是 true**
+（陣營沒變），所以第一條的閘完全不會動，但引擎已經解析不出這個單位，`includeSpellIDs`
+照樣被整組跳過 → 那個人的白名單列填滿他掉線當下身上的所有 buff。這是實際最常撞到的一條
+（副本打到一半有人掉線）。訊號是 `UnitIsConnected`。
+⚠ **事件跟檢查一樣重要**：掉線瞬間只有 `UNIT_CONNECTION` 會發，`GROUP_ROSTER_UPDATE`
+不一定跟著來 —— 沒監看它的話，那列會一直錯到某個不相干的事件剛好掃到為止
+（使用者原話：「離線的玩家一開始光環的過濾也會失效」，「一開始」就是這個時間差）。
+Cell 的三個檢查都在 `Handle:ApplyIdentityGate`，順序是 connected → assist → visible。
+
 機制由 DandersFrames v5 找出（`Frames/AuraContainer.lua:662` `filterVulnerableToIdentityGate`）。
 Cell 的對應實作與 `/cab gate` 解卡指令見 [[project-cell-auracontainer-rewrite]]，
 API 細節見 [[wow-121-aura-containers]]。
