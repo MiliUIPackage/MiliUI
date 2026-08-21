@@ -31,6 +31,18 @@ assist 變 false 的場合：跨陣營隊友（副本外）、決鬥對手、**�
 （使用者原話：「離線的玩家一開始光環的過濾也會失效」，「一開始」就是這個時間差）。
 Cell 的三個檢查都在 `Handle:ApplyIdentityGate`，順序是 connected → assist → visible。
 
+⚠⚠ **離線這條的守備範圍比前兩條大**（2026-08-21 第二次回報才發現）：前兩條只影響
+**HELPFUL** pool，離線是**整包 candidateFilters 都不套用**，所以 HARMFUL 的列一樣中招 ——
+- 減益排的黑名單走 `excludeSpellIDs` → 鬼魂／正在復活／疲勞全冒出來
+  （離線的人通常是死的，第一個看到的就是鬼魂）；
+- 「上面那列已經認領」的減法是 candidateFilter 布林（`isBossOrRoleAura=false`、
+  `isPriorityAura=false`）→ 同一顆減益同時畫在中央重要減益和減益排。
+Cell 因此有第三個旗標 `_gateCFDependent`（`RecordUsesCandidateFilters`：只要 record 帶
+任何 candidateFilters 就算），**只餵給 connected 這條訊號**。純 filter 字串的列
+（驅散圖示、血條 overlay）不帶 cf，離線時照常運作。
+判斷「哪一列出問題」的現場依據：**紅圈＝HARMFUL、綠圈＝HELPFUL**，配 `/cab inspect <unit>`
+的身分閘行（有印 `cf依賴=` 與 `connected=`）。
+
 機制由 DandersFrames v5 找出（`Frames/AuraContainer.lua:662` `filterVulnerableToIdentityGate`）。
 Cell 的對應實作與 `/cab gate` 解卡指令見 [[project-cell-auracontainer-rewrite]]，
 API 細節見 [[wow-121-aura-containers]]。

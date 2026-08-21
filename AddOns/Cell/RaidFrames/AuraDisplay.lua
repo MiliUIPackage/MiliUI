@@ -324,6 +324,22 @@ local function RecordVulnerableToIdentityGate(rec)
     return (cf and (cf.includeSpellIDs or cf.excludeSpellIDs)) and true or false
 end
 
+-- A record whose CORRECTNESS rests on candidateFilters, whatever the pool. The two
+-- predicates above are about the HELPFUL identity gate; this one exists for the OFFLINE
+-- case, where the engine drops candidateFilters wholesale for a unit it can no longer
+-- resolve -- and Cell's HARMFUL rows lean on them just as hard as the buff rows do:
+--   * the debuff row's blacklist rides on excludeSpellIDs (Ghost / Resurrecting /
+--     Exhaustion -- exactly what a disconnected, usually dead player is wearing), and
+--   * every "already claimed by the row above" subtraction is a candidateFilter boolean
+--     (isBossOrRoleAura = false, isPriorityAura = false), so losing them double-draws the
+--     same debuff in the central row AND the debuff row.
+-- Pure filter-string records (the dispel icons, the health-bar overlay) have nothing to
+-- lose here and are deliberately NOT flagged -- they keep working while a member is offline.
+local function RecordUsesCandidateFilters(rec)
+    local cf = rec.candidateFilters
+    return (type(cf) == "table" and next(cf) ~= nil) and true or false
+end
+
 local function RecordSourceRelative(rec)
     local f = rec.filter
     if type(f) == "string" then
@@ -1017,7 +1033,7 @@ local function Build(handle)
     -- is what lets a handle rebuilt onto non-vulnerable filters drop a stale hidden flag
     -- instead of staying hidden forever; the assist verdict resets too, because a fresh
     -- parse has no fail-open history to recover from.
-    handle._gateVulnerable, handle._gateSourceRelative = nil, nil
+    handle._gateVulnerable, handle._gateSourceRelative, handle._gateCFDependent = nil, nil, nil
     handle._gateAssist, handle._gateVisible, handle._gateConnected = nil, nil, nil
 
     if not handle.enabled or not handle.unit then return end
@@ -1032,6 +1048,7 @@ local function Build(handle)
     for _, rec in ipairs(records) do
         if RecordVulnerableToIdentityGate(rec) then handle._gateVulnerable = true end
         if RecordSourceRelative(rec) then handle._gateSourceRelative = true end
+        if RecordUsesCandidateFilters(rec) then handle._gateCFDependent = true end
     end
 
     -- ⚠ declared here, not further down: ParkKey reads it, and a `local` declared after the
@@ -1523,7 +1540,7 @@ end
 function Handle:ApplyIdentityGate()
     local hide, recovered = false, false
 
-    if self._gateVulnerable or self._gateSourceRelative then
+    if self._gateVulnerable or self._gateSourceRelative or self._gateCFDependent then
         local unit = self.unit
         if type(unit) == "string" and UnitExists(unit) then
             local isOwn = unit == "player"
@@ -1542,7 +1559,11 @@ function Handle:ApplyIdentityGate()
             --     ⚠ The event matters as much as the check: UNIT_CONNECTION is the only thing
             --     that fires at the moment of the drop. Without it the row stays wrong until
             --     some unrelated watched event happens to sweep.
-            if self._gateVulnerable or self._gateSourceRelative then
+            --     ⚠ Unlike (2)/(3) this one is NOT limited to the HELPFUL pools: offline drops
+            --     candidateFilters wholesale, so every row that depends on them is affected --
+            --     see RecordUsesCandidateFilters. No inner flag test: reaching here already
+            --     means at least one of the three dependencies holds.
+            do
                 local okC, conn = pcall(UnitIsConnected, unit)
                 if okC and not issecretvalue(conn) then
                     local was = self._gateConnected
@@ -1702,7 +1723,7 @@ do
     local function Sweep()
         queued = nil
         for h in pairs(AD._instances or {}) do
-            if not h._destroyed and (h._gateVulnerable or h._gateSourceRelative) then
+            if not h._destroyed and (h._gateVulnerable or h._gateSourceRelative or h._gateCFDependent) then
                 pcall(function() h:ApplyIdentityGate() end)
             end
         end
@@ -2132,9 +2153,10 @@ function AD.Inspect(unitToken)
             if h._recordInfo and #h._recordInfo == 0 then p("    record: (none -- container shows nothing)") end
             -- the fail-open state: "assist=false" IS the "why is my whitelist showing
             -- every buff" answer, and it is invisible from anywhere else
-            if h._gateVulnerable or h._gateSourceRelative then
-                p(("    身分閘：白名單依賴=%s 來源依賴=%s assist=%s visible=%s connected=%s 隱藏=%s 失效方向=%s")
+            if h._gateVulnerable or h._gateSourceRelative or h._gateCFDependent then
+                p(("    身分閘：白名單依賴=%s 來源依賴=%s cf依賴=%s assist=%s visible=%s connected=%s 隱藏=%s 失效方向=%s")
                     :format(tostring(h._gateVulnerable or false), tostring(h._gateSourceRelative or false),
+                        tostring(h._gateCFDependent or false),
                         tostring(h._gateAssist), tostring(h._gateVisible), tostring(h._gateConnected),
                         tostring(h._gateHidden or false),
                         GATE_FAIL_CLOSED and "隱藏(fail-closed)" or "顯示(fail-open)"))
@@ -2253,7 +2275,8 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         local n = 0
         if AD.GateSweep then AD.GateSweep() end
         for h in pairs(AD._instances or {}) do
-            if not h._destroyed and h.container and (h._gateVulnerable or h._gateSourceRelative) then
+            if not h._destroyed and h.container
+                and (h._gateVulnerable or h._gateSourceRelative or h._gateCFDependent) then
                 n = n + 1
                 h:GateRefresh()
             end
