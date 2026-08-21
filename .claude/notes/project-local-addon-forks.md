@@ -28,7 +28,7 @@ metadata:
 | **AppearanceTooltip** | `addon.lua` 的 `IsRectValid` guard | [[project-appearancetooltip-secret-rect]] |
 | **DamageMeterTools** | 錯誤處理器改成鏈式（原本會吃掉 BugSack 的錯誤）、登入卡頓修補 | 見 [[project-121-addon-migration]] |
 | **BuffReminders** | `Core/Bootstrap.lua` 註解掉每次登入的 external buffs 提示 | 一行 |
-| **DiGuaTimelineAudioHelper** | `Core.lua` 註解掉每次登入的「愛發電」贊助提示 print | 一行，有 `fix from MiliUI` 標記。這支會定期 `update:` 同步上游 |
+| **DiGuaTimelineAudioHelper** | ① `Core.lua` 註解掉每次登入的「愛發電」贊助提示 print ② `AutoGossip.lua` 的 `ShowGossipIDs` 預設改 `false`（對話選項後面附加 `[ID: 12345]` 只是作者拿來找 `gossipOptionID` 的除錯顯示，自動對話走 `C_GossipInfo.GetOptions()` 不靠它；要找新 ID 用 `/togid` 開） | 各一行，都有 `fix from MiliUI` 標記。這支會定期 `update:` 同步上游 |
 | **Leatrix_Plus** | 12.1 光環秘密值閘：`LeaPlusLC:AurasAreSecret()`（檔案頂端）＋ 7 個呼叫點 | 見 [[project-121-addon-migration]]。全部有 `fix from MiliUI` 標記 |
 | **MRT** | 12.1 光環秘密值閘：`RaidCheck.lua` 的 `module.frame:UpdateData`（閘從迴圈內移到呼叫前）與 `CheckPotionsOnPull`（新增閘） | [[project-121-addon-migration]]。兩處都有 `fix from MiliUI` 標記；上游自己有在修同一類問題，同步後要重看這兩個點 |
 | **HandyNotes_Midnight / _TheWarWithin / _Dragonflight** | 三支的 `core/util.lua` 各有同一個 C_Calendar secret guard（同一份 core 的三份副本，更新任何一支都要檢查） | 各一行 |
