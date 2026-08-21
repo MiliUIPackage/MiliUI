@@ -309,8 +309,9 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
         stack:SetTextColor(1, 1, 1)
         -- 位置可調。錨點是「文字的哪一角貼到按鈕的同一角」，所以偏移的正負方向
         -- 會隨錨點改變（TOPLEFT 要往右下推 = x 正、y 負；BOTTOMRIGHT 反之）。
-        local a = style.stackAnchor or "TOPLEFT"
-        stack:SetPoint(a, auraButton, a, style.stackX or 2, style.stackY or -2)
+        -- 備援值要跟 DB 預設一致，否則哪天真的漏了鍵，會安靜地退回舊版面
+        local a = style.stackAnchor or "TOP"
+        stack:SetPoint(a, auraButton, a, style.stackX or 0, style.stackY or 4)
         auraButton.Count = stack
         if auraButton.SetApplicationCount then
             auraButton:SetApplicationCount(stack)

@@ -168,9 +168,9 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
             -- 「文字的哪一角貼到圖示的同一角」，偏移的正負方向隨錨點改變。
             -- ⚠ 每次都要重下 SetPoint，不能只在建立時設 —— 使用者就是要在這裡
             -- 一邊調錨點一邊看效果
-            local a = edb.stackAnchor or "TOPLEFT"
+            local a = edb.stackAnchor or "TOP"
             b.stack:ClearAllPoints()
-            b.stack:SetPoint(a, b, a, edb.stackX or 2, edb.stackY or -2)
+            b.stack:SetPoint(a, b, a, edb.stackX or 0, edb.stackY or 4)
             b.stack:SetText(tostring(n))
             b.stack:Show()
         else
