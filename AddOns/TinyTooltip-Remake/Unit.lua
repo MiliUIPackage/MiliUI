@@ -300,7 +300,11 @@ local function PlayerCharacter(tip, unit, config, raw)
     addon:HideLine(tip, "^"..FACTION_HORDE)
     addon:HideLine(tip, "^"..PVP)
     for i, v in ipairs(data) do
-        addon:GetLine(tip,i):SetText(strip(SafeConcat(v, " ")))
+        -- fix from MiliUI: tip 被 UIWidget 鎖成 forbidden 時 GetLine 會回 nil
+        local line = addon:GetLine(tip,i)
+        if (line) then
+            line:SetText(strip(SafeConcat(v, " ")))
+        end
     end
     ColorBorder(tip, config, raw)
     ColorBackground(tip, config, raw)
@@ -319,7 +323,10 @@ local function NonPlayerCharacter(tip, unit, config, raw)
         local increase = 0
         for i, v in ipairs(data) do
             if (i == 1) then
-                addon:GetLine(tip,i):SetText(SafeConcat(v, " "))
+                local line = addon:GetLine(tip,i)
+                if (line) then
+                    line:SetText(SafeConcat(v, " "))
+                end
             end
             if (i == 2) then
                 if (config.elements.npcTitle.enable and titleLine) then
@@ -330,10 +337,16 @@ local function NonPlayerCharacter(tip, unit, config, raw)
                     end
                 end
                 i = i + increase
-                addon:GetLine(tip,i):SetText(SafeConcat(v, " "))
+                local line = addon:GetLine(tip,i)
+                if (line) then
+                    line:SetText(SafeConcat(v, " "))
+                end
             elseif ( i > 2) then
                 i = i + increase
-                addon:GetLine(tip,i):SetText(SafeConcat(v, " "))
+                local line = addon:GetLine(tip,i)
+                if (line) then
+                    line:SetText(SafeConcat(v, " "))
+                end
             end
         end
     end

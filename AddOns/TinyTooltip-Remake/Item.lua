@@ -41,10 +41,12 @@ end
 local function ItemIcon(tip, itemInfo)
     if (addon.db.item.showItemIcon) then
         local texture = itemInfo and itemInfo.itemTexture
-        local text = addon:GetLine(tip,1):GetText()
+        -- fix from MiliUI: tip 被 UIWidget 鎖成 forbidden 時 GetLine 會回 nil
+        local line1 = addon:GetLine(tip,1)
+        local text = line1 and line1:GetText()
         -- MiliUI: added issecretvalue() check to prevent secret string taint error
         if (texture and text and not issecretvalue(text) and not strfind(text, "^|T")) then
-            addon:GetLine(tip,1):SetFormattedText("|T%s:16:16:0:0:32:32:2:30:2:30|t %s", texture, text)
+            line1:SetFormattedText("|T%s:16:16:0:0:32:32:2:30:2:30|t %s", texture, text)
         end
     end
 end
@@ -53,10 +55,11 @@ local function ItemStackCount(tip, itemInfo)
     if (addon.db.item.showStackCount) then
         local stackCount = itemInfo and itemInfo.itemStackCount
         if (stackCount and stackCount > 1) then
-            local text = addon:GetLine(tip,1):GetText()
+            local line1 = addon:GetLine(tip,1)
+            local text = line1 and line1:GetText()
             -- MiliUI: added issecretvalue() check to prevent secret string taint error
             if (text and not issecretvalue(text)) then
-                addon:GetLine(tip,1):SetText(text .. format(" |cff00eeee/%s|r", stackCount))
+                line1:SetText(text .. format(" |cff00eeee/%s|r", stackCount))
             end
         end
     end

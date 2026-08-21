@@ -38,6 +38,17 @@ local C_BattleNet_GetAccountInfoByGUID = C_BattleNet and C_BattleNet.GetAccountI
 
 local addon = TinyTooltip
 
+-- fix from MiliUI: 12.1 之後，EmbeddedItemTooltip 被 UIWidget 系統拿去顯示安全內容時
+-- （Blizzard_UIWidgetTemplateBase.lua 的 OnEnter → GameTooltip_ShowHyperlink / SetShown）
+-- 會變成 forbidden object，插件對它、或對它底下我們自己建的材質呼叫任何方法（連
+-- NumLines() 都算），都會拋
+--   "Attempt to access forbidden object from code tainted by an AddOn"
+-- 這是動態狀態（同一個框架載入時還能正常套樣式，之後才被鎖），所以不能只在初始化判斷一次，
+-- 每個會碰到框架的入口都要重問。IsForbidden 本身在 forbidden object 上永遠可以呼叫。
+local function IsForbiddenObject(obj)
+    return (obj and obj.IsForbidden and obj:IsForbidden()) and true or false
+end
+
 -------------------------------------
 -- 12.1 secret value helpers
 -- UnitClass / UnitIsPVP / UnitCanAttack / UnitReaction return secrets for identity-restricted
@@ -767,6 +778,8 @@ end
 
 --自动调整宽度
 function addon:AutoSetTooltipWidth(tooltip)
+    -- fix from MiliUI: forbidden object 連 NumLines()/Show() 都不能碰
+    if (IsForbiddenObject(tooltip)) then return end
     local width, w = 80
     local measuredLines = 0
     local totalLines = tooltip:NumLines()
@@ -834,6 +847,8 @@ end
 -- 找行
 -- fix from MiliUI: issecretvalue pre-check replaces nested pcall to avoid taint
 function addon:FindLine(tooltip, keyword)
+    -- fix from MiliUI: forbidden object 連 NumLines() 都不能碰
+    if (IsForbiddenObject(tooltip)) then return end
     local _issv = issecretvalue
     local line
     for i = 2, tooltip:NumLines() do
@@ -852,6 +867,7 @@ end
 -- 刪行
 -- fix from MiliUI: issecretvalue pre-check replaces nested pcall to avoid taint
 function addon:HideLine(tooltip, keyword)
+    if (IsForbiddenObject(tooltip)) then return end
     local _issv = issecretvalue
     local line
     for i = 2, tooltip:NumLines() do
@@ -870,6 +886,7 @@ end
 
 -- 刪行
 function addon:HideLines(tooltip, number, endNumber)
+    if (IsForbiddenObject(tooltip)) then return end
     endNumber = endNumber or 999
     for i = number, tooltip:NumLines() do
         if (endNumber >= i) then
@@ -880,6 +897,8 @@ end
 
 -- 取行
 function addon:GetLine(tooltip, number)
+    -- fix from MiliUI: forbidden 時回 nil，呼叫端一律要判空
+    if (IsForbiddenObject(tooltip)) then return end
     local num = tooltip:NumLines()
     if (number > num) then
         tooltip:AddLine(" ")
@@ -1811,16 +1830,6 @@ local function SetStyleBackdropBorderColor(tip, r, g, b, a)
     TintNineSliceBorder(tip, tip._tinyBackdropBorderColor[1], tip._tinyBackdropBorderColor[2], tip._tinyBackdropBorderColor[3], tip._tinyBackdropBorderColor[4])
 end
 
--- fix from MiliUI: 12.1 之後，EmbeddedItemTooltip 被 UIWidget 系統拿去顯示安全內容時
--- （Blizzard_UIWidgetTemplateBase.lua 的 OnEnter → SetShown）會變成 forbidden object，
--- 插件對它、或對它底下我們自己建的材質呼叫任何方法，都會拋
---   "Attempt to access forbidden object from code tainted by an AddOn"
--- 這是動態狀態（同一個框架載入時還能正常套樣式，之後才被鎖），所以不能只在初始化判斷一次，
--- 每個會碰到框架的入口都要重問。IsForbidden 本身在 forbidden object 上永遠可以呼叫。
-local function IsForbiddenObject(obj)
-    return (obj and obj.IsForbidden and obj:IsForbidden()) and true or false
-end
-
 local function EnsureStyleMask(tip)
     if (not tip) then return end
     if (IsForbiddenObject(tip)) then return end
@@ -2304,6 +2313,9 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     -- for 10.0
     if (tip.ProcessInfo) then
         hooksecurefunc(tip, "ProcessInfo", function(self, info)
+            -- fix from MiliUI: UIWidget 借走 EmbeddedItemTooltip 時（GameTooltip_ShowHyperlink）
+            -- 框架已是 forbidden，下游 tooltip:spell/item/unit 全都會拋錯
+            if (IsForbiddenObject(self)) then return end
             if (not info or not info.tooltipData) then return end
             -- perf fix from MiliUI: 暴雪重建 tooltip 期間，抑制處理鏈裡 (Item.lua / LinkID) 的自我 Show()，
             -- 否則 Show() 會再觸發一次 ProcessInfo → 連鎖放大成每秒數百次（裝備比較窗 ShoppingTooltip 最嚴重）。
@@ -2397,13 +2409,16 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
         end)
     end
 
+    -- fix from MiliUI: 以下每個入口都可能在框架被鎖之後才觸發，逐一重問 forbidden
     tip:TinyHookScript("OnEvent",
         function(self, event, ...)
+            if (IsForbiddenObject(self)) then return end
             LibEvent:trigger("tooltip:event", self, event, ...)
         end
     )
     tip:TinyHookScript("OnTooltipSetUnit",
         function(self)
+            if (IsForbiddenObject(self)) then return end
             local okUnit, _, unit = pcall(self.GetUnit, self)
             if (not okUnit) then
                 unit = nil
@@ -2414,6 +2429,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     )
     tip:TinyHookScript("OnTooltipSetItem",
         function(self)
+            if (IsForbiddenObject(self)) then return end
             local link = select(2, self:GetItem())
             -- perf fix from MiliUI: 同 ProcessInfo，重建期間抑制自我 Show() 以斷開 ProcessInfo 迴圈
             local prevSuppress = self._tinySuppressShow
@@ -2429,6 +2445,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     )
     tip:TinyHookScript("OnTooltipSetSpell",
         function(self)
+            if (IsForbiddenObject(self)) then return end
             local spellId
             if (self.GetSpell) then
                 local ok, _, sid = pcall(self.GetSpell, self)
@@ -2441,6 +2458,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     )
     tip:TinyHookScript("OnTooltipCleared",
         function(self)
+            if (IsForbiddenObject(self)) then return end
             LibEvent:trigger("tooltip:cleared", self)
         end
     )
@@ -2455,6 +2473,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
         end
         tip:TinyHookScript("OnUpdate",
             function(self, elapsed)
+                if (IsForbiddenObject(self)) then return end
                 self.updateElapsed = (self.updateElapsed or 0) + elapsed
                 if (self.updateElapsed >= TOOLTIP_UPDATE_TIME) then
                     self.updateElapsed = 0
