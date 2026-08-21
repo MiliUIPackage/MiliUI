@@ -1696,28 +1696,71 @@ function AD.Test(filter, cf, minimal)
     local cfDesc = ""
     if cf then
         local keys = {}
-        for k, v in pairs(cf) do keys[#keys + 1] = k .. "=" .. tostring(v) end
+        for k, v in pairs(cf) do
+            -- set-valued candidateFilters (includeDispelTypes, include/excludeSpellIDs) would
+            -- otherwise print as "table: 0x..." and tell the tester nothing
+            if type(v) == "table" then
+                local inner = {}
+                for ik in pairs(v) do inner[#inner + 1] = tostring(ik) end
+                table.sort(inner)
+                v = "{" .. table.concat(inner, ",") .. "}"
+            end
+            keys[#keys + 1] = k .. "=" .. tostring(v)
+        end
         cfDesc = " cf{" .. table.concat(keys, ",") .. "}"
     end
     print("|cff33ff99[Cell 光環]|r central containers -> " .. (filter and (filter .. cfDesc) or "(restored to normal records)") .. " (" .. n .. " rebuilt; OOC only)")
 end
 
+-- The player's own dispel schools, i.e. the candidateFilter spelling of what the
+-- RAID_PLAYER_DISPELLABLE token says. Computed at press time because it follows the spec.
+local function MyDispelTypes()
+    local I = Cell.iFuncs
+    if not (I and I.CanDispel) then return nil end
+    local t = {}
+    for dispelType in pairs(ALL_DISPEL_TYPES) do
+        if I.CanDispel(dispelType) then t[dispelType] = true end
+    end
+    if not next(t) then return nil end -- nothing dispellable on this spec
+    return t
+end
+
 -- One-button stepper: /cab test
 -- Each press advances to the next bisect case and prints what to look for.
+--
+-- ⚠ Steps 3 and 6 are a PAIR, and they only answer their question IN COMBAT. NeeRgY's fork
+-- claims RAID_PLAYER_DISPELLABLE stops matching once you are in combat and moved every
+-- "dispellable by me" row onto includeDispelTypes because of it; we still ship the token in
+-- three places (debuff mode, dispel mode, the important row's dispel record). AD.Test cannot
+-- switch filters in combat (Rebuild is OOC-only), so the probe is: set step 3, pull, watch --
+-- then set step 6, pull again. Same debuffs, one filter each. Whichever survives combat wins.
 local TEST_STEPS = {
     { f = "HARMFUL", minimal = true,                desc = "第1步 最小渲染(只綁icon):任何減益都該亮" },
     { f = "HARMFUL",                                desc = "第2步 完整樣式:第1亮這步不亮=樣式綁定壞" },
-    { f = "HARMFUL|RAID_PLAYER_DISPELLABLE",        desc = "第3步 可驅散token:可驅散減益該亮" },
+    { f = "HARMFUL|RAID_PLAYER_DISPELLABLE",        desc = "第3步 可驅散token:可驅散減益該亮。設好後開打,看戰鬥中會不會整排消失(跟第6步對照)" },
     { f = "HARMFUL", cf = { isBossOrRoleAura = false },
                                                     desc = "第4步 布林false旗標:跟第2步同,不亮=布林false壞" },
     { f = "HARMFUL|RAID_PLAYER_DISPELLABLE|!RAID",  desc = "第5步 !RAID抵銷:第3步亮這步不亮=RAID抵銷確認" },
+    { f = "HARMFUL", cfFn = MyDispelTypes, cfKey = "includeDispelTypes",
+                                                    desc = "第6步 驅散學派cf(第3步的對照組):同樣開打,第3步戰鬥中掉、這步還在=token在戰鬥中失效" },
     { f = nil,                                      desc = "已恢復正常5組filter(再按一次回到第1步)" },
 }
 local testStep = 0
 local function StepTest()
     testStep = testStep % #TEST_STEPS + 1
     local s = TEST_STEPS[testStep]
-    AD.Test(s.f, s.cf, s.minimal)
+    local cf = s.cf
+    if s.cfFn then
+        local v = s.cfFn()
+        -- ⚠ never fall through to a bare HARMFUL: that shows EVERY debuff and reads as
+        -- "the candidateFilter works", which is the exact opposite of what happened.
+        if not v then
+            print("|cffff5555[Cell 光環 測試]|r 這個專精沒有可驅散學派,第" .. testStep .. "步跳過(不改動容器)")
+            return
+        end
+        cf = { [s.cfKey] = v }
+    end
+    AD.Test(s.f, cf, s.minimal)
     print("|cffffcc00[Cell 光環 測試 " .. testStep .. "/" .. #TEST_STEPS .. "]|r " .. s.desc)
     -- auto-surface any styling/bind errors captured during the rebuild
     if C_Timer and C_Timer.After then
