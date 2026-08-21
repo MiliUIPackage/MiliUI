@@ -31,8 +31,6 @@ function WarpDeplete:OnInitialize()
 	frames.deathsTooltip = CreateFrame("Frame", "WarpDepleteDeathsTooltip", frames.root)
 
 	self.frames = frames
-
-	self:HookObjectiveTracker()
 end
 
 function WarpDeplete:OnEnable()
@@ -145,16 +143,6 @@ function WarpDeplete:DisableDemoMode()
 	self:ResetState()
 end
 
-function WarpDeplete:HookObjectiveTracker()
-	if not ObjectiveTrackerFrame then return end
-
-	hooksecurefunc(ObjectiveTrackerFrame, "Show", function()
-		-- Prevent objective tracker from re-showing
-		-- while WarpDeplete is shown
-		if self.isShown then ObjectiveTrackerFrame:Hide() end
-	end)
-end
-
 function WarpDeplete:ShowObjectiveTracker()
 	-- If SylingTracker is loaded, it will re-show itself
 	-- and we don't need to do anything.
@@ -167,10 +155,11 @@ function WarpDeplete:ShowObjectiveTracker()
 		return
 	end
 
-	-- Just calling Show here is incorrect, since the frame
-	-- might actually be hidden (due to no quests being tracked).
-	-- Calling Update will correctly show/hide the frame.
-	ObjectiveTrackerFrame:Update()
+	-- fix from MiliUI: 12.1 用不安全程式呼叫 Hide()/Update() 會把追蹤器
+	-- 內部狀態染污，之後暴雪自己的計時器流程讀到就整路帶 taint，
+	-- MawBuffs 的光環檢查直接炸（Auras cannot be accessed when secret）。
+	-- 改用 alpha 隱藏，完全不碰追蹤器的邏輯狀態。同上游 PR #159。
+	ObjectiveTrackerFrame:SetAlpha(1)
 end
 
 function WarpDeplete:HideObjectiveTracker()
@@ -179,7 +168,9 @@ function WarpDeplete:HideObjectiveTracker()
 		return
 	end
 
-	ObjectiveTrackerFrame:Hide()
+	-- fix from MiliUI: 同 ShowObjectiveTracker，Hide() 會染污，
+	-- 而且追蹤器被快捷列錨定變成受保護框時 Hide() 會直接被封鎖。
+	ObjectiveTrackerFrame:SetAlpha(0)
 end
 
 function WarpDeplete:Show()

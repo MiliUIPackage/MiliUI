@@ -32,6 +32,7 @@ metadata:
 | **Leatrix_Plus** | 12.1 光環秘密值閘：`LeaPlusLC:AurasAreSecret()`（檔案頂端）＋ 7 個呼叫點 | 見 [[project-121-addon-migration]]。全部有 `fix from MiliUI` 標記 |
 | **MRT** | 12.1 光環秘密值閘：`RaidCheck.lua` 的 `module.frame:UpdateData`（閘從迴圈內移到呼叫前）與 `CheckPotionsOnPull`（新增閘） | [[project-121-addon-migration]]。兩處都有 `fix from MiliUI` 標記；上游自己有在修同一類問題，同步後要重看這兩個點 |
 | **HandyNotes_Midnight / _TheWarWithin / _Dragonflight** | 三支的 `core/util.lua` 各有同一個 C_Calendar secret guard（同一份 core 的三份副本，更新任何一支都要檢查） | 各一行 |
+| **WarpDeplete** | `Core.lua` 隱藏目標追蹤器改 alpha：刪掉 `HookObjectiveTracker`（hooksecurefunc Show→Hide），`Hide()`/`Update()` 換成 `SetAlpha(0)`/`SetAlpha(1)`。原寫法會染污追蹤器內部狀態，暴雪計時器流程（CheckTimers→MawBuffs）帶著 taint 讀光環，一場 M+ 噴 74 次 `GetAuraDataByIndex(): Auras cannot be accessed when secret while tainted by 'WarpDeplete'` | 內容同上游 [PR #159](https://github.com/happenslol/WarpDeplete/pull/159)（2026-08-21 尚未合併）；若上游合併後更新，本地改動會自然消失。有 `fix from MiliUI` 標記 |
 
 **Why:** 「上游更新後要重套」這句話散在一堆各自的筆記裡，但真正需要的是**動手之前先知道這支有沒有被改過**——一支一支翻筆記不會發生，被洗掉時也不會報錯，只是某個修好的問題悄悄回來。
 
