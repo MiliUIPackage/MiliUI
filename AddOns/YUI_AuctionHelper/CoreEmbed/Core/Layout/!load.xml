@@ -1,5 +1,6 @@
 <Ui xmlns='http://www.blizzard.com/wow/ui/'>
 	<Script file='Init.lua'/>
+	<Script file='Geometry.lua'/>
 	<Script file='AnchorTargets.lua'/>
 	<Script file='Placement.lua'/>
 	<Script file='Native.lua'/>

@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local ADDON_NAME, YUI = ...
 YUI = YUI or _G.YUI
@@ -17,6 +19,9 @@ Components.features = Components.features or {}
 Components.initializedFeatures = Components.initializedFeatures or {}
 Components.initializedFeatureStates = Components.initializedFeatureStates or {}
 Components.initializedFeatureErrors = Components.initializedFeatureErrors or {}
+
+local TOOLBOX_ENABLED_KEY = "__toolboxEnabled"
+local TOOLBOX_SNAPSHOT_KEY = "__toolboxSnapshot"
 
 Components.TAGS = Components.TAGS or {
     "全部",
@@ -35,6 +40,7 @@ local FEATURE_META = {
     ClassExtraMonitor = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 103, sourceRoot = "Components\\ClassExtraMonitor", versions = { "mainline" }, modSwitchImage = "modswitch\\classextramonitor-bg.png", modSwitchImageCrop = false },
 
     LagTolerance = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 200, sourceRoot = "Components\\LagTolerance", modSwitchImage = "modswitch\\lagtolerance-bg.png", modSwitchImageCrop = false },
+    SpellAlert = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 200.5, sourceRoot = "Components\\SpellAlert", assetFolders = { "Components\\SpellAlert\\Media" }, versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\spellalert-bg.png", modSwitchImageCrop = false },
     CombatCue = { tags = { "战斗辅助" }, settingsMode = "inline", order = 201, sourceRoot = "Components\\CombatCue", assetFolders = { "Components\\CombatCue\\Media" }, modSwitchImage = "modswitch\\combatcue-bg.png", modSwitchImageCrop = false },
     CombatEnhancement = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 202, sourceRoot = "Components\\CombatEnhancement", assetFolders = { "Components\\CombatEnhancement\\Media" }, versions = { "mainline", "wrath" }, modSwitchImage = "modswitch\\combatenhancement-bg.png", modSwitchImageCrop = false },
     TabChat = { tags = { "交易社交" }, settingsMode = "toggleOnly", order = 203, sourceRoot = "Components\\TabChat", modSwitchImage = "modswitch\\tabchat-bg.png", modSwitchImageCrop = false },
@@ -44,20 +50,22 @@ local FEATURE_META = {
     MinimapCollection = { tags = { "实用功能", "美化皮肤" }, settingsMode = "inline", order = 302, sourceRoot = "Components\\MinimapCollection", modSwitchImage = "modswitch\\minimapcollection-bg.png", modSwitchImageCrop = false },
     MapPosition = { tags = { "实用功能" }, settingsMode = "toggleOnly", order = 303, sourceRoot = "Components\\MapPosition", modSwitchImage = "modswitch\\mapposition-bg.png", modSwitchImageCrop = false },
     TradeEnhancement = { tags = { "实用功能" }, settingsMode = "inline", order = 304, sourceRoot = "Components\\TradeEnhancement", modSwitchImage = "modswitch\\tradeenhancement-bg.png", modSwitchImageCrop = false },
+    UtilityTools = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 305, sourceRoot = "Components\\UtilityTools", versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\utilitytools-bg.png", modSwitchImageCrop = false },
+    MouseEnhancement = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 306, sourceRoot = "Components\\MouseEnhancement", assetFolders = { "Components\\MouseEnhancement\\Media" }, versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\mouseenhancement-bg.png", modSwitchImageCrop = false },
+    CharacterEquipmentInfo = { tags = { "实用功能" }, settingsMode = "inline", order = 307, sourceRoot = "Components\\CharacterEquipmentInfo", assetFolders = { "Components\\CharacterEquipmentInfo\\Media" }, modSwitchImage = "modswitch\\characterequipmentinfo-bg.png", modSwitchImageCrop = false, versions = { "mainline" } },
 
     AuctionHelper = { tags = { "交易社交" }, settingsMode = "toggleOnly", standalone = true, order = 400, sourceRoot = "Components\\AuctionHelper", modSwitchImage = "modswitch\\auctionhelper-bg.png", modSwitchImageCrop = false },
     ChatBar = { tags = { "交易社交" }, settingsMode = "inline", order = 401, sourceRoot = "Components\\ChatBar", modSwitchImage = "modswitch\\chatbar-bg.png", modSwitchImageCrop = false },
-    WhisperManager = { tags = { "交易社交" }, settingsMode = "inline", order = 402, sourceRoot = "Components\\WhisperManager", modSwitchImage = "modswitch\\whispermanager-bg.png", modSwitchImageCrop = false },
-    WhisperColor = { tags = { "交易社交" }, settingsMode = "toggleOnly", order = 403, sourceRoot = "Components\\WhisperColor", modSwitchImage = "modswitch\\whispercolor-bg.png", modSwitchImageCrop = false },
+    WhisperManager = { tags = { "交易社交" }, settingsMode = "inline", default = true, order = 402, sourceRoot = "Components\\WhisperManager", versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\whispermanager-bg.png", modSwitchImageCrop = false },
+    RightPlus = { tags = { "交易社交" }, settingsMode = "toggleOnly", default = false, order = 403, sourceRoot = "Components\\RightPlus", versions = { "mainline", "wrath" } },
 
     ElvUIAdapter = { tags = { "插件适配", "美化皮肤" }, settingsMode = "inline", order = 500, sourceRoot = "Components\\ElvUIAdapter", modSwitchImage = "modswitch\\elvuiadapter-bg.png", modSwitchImageCrop = false },
     NDuiAdapter = { tags = { "插件适配", "美化皮肤" }, settingsMode = "toggleOnly", order = 501, sourceRoot = "Components\\NDuiAdapter", modSwitchImage = "modswitch\\nduiadapter-bg.png", modSwitchImageCrop = false },
     EQoLAdapter = { tags = { "插件适配" }, settingsMode = "inline", order = 502, sourceRoot = "Components\\EQoLAdapter", modSwitchImage = "modswitch\\eqoladapter-bg.png", modSwitchImageCrop = false },
-    AyijeCDMAdapter = { tags = { "插件适配" }, settingsMode = "toggleOnly", order = 503, sourceRoot = "Components\\AyijeCDMAdapter", modSwitchImage = "modswitch\\ayijecdmadapter-bg.png", modSwitchImageCrop = false },
+    EllesmereUIEnhancement = { tags = { "插件适配", "美化皮肤" }, settingsMode = "inline", default = true, order = 503, sourceRoot = "Components\\EllesmereUIEnhancement", assetFolders = { "Components\\EllesmereUIEnhancement\\Media" }, versions = { "mainline" }, modSwitchImage = "modswitch\\ellesmereuienhancement-bg.png", modSwitchImageCrop = false },
     MasqueSupport = { tags = { "美化皮肤", "插件适配" }, settingsMode = "inline", order = 504, sourceRoot = "Components\\MasqueSupport", modSwitchImage = "modswitch\\masquesupport-bg.png", modSwitchImageCrop = false },
     TalentFrameEnhancement = { tags = { "实用功能" }, settingsMode = "toggleOnly", default = true, order = 505, sourceRoot = "Components\\TalentFrameEnhancement", modSwitchImage = "modswitch\\talentframeenhancement-bg.png", modSwitchImageCrop = false },
 
-    HideErrorMessages = { tags = { "实用功能" }, settingsMode = "toggleOnly", order = 600, sourceRoot = "Components\\HideErrorMessages", modSwitchImage = "modswitch\\hideerrormessages-bg.png", modSwitchImageCrop = false },
     FixWrathKeyDown = { tags = { "系统修正" }, settingsMode = "toggleOnly", order = 601, sourceRoot = "Components\\FixWrathKeyDown", modSwitchImage = "modswitch\\fixwrathkeydown-bg.png", modSwitchImageCrop = false },
     ForbiddenNamePlates = { tags = { "插件适配" }, settingsMode = "toggleOnly", order = 602, sourceRoot = "Components\\ForbiddenNamePlates", modSwitchImage = "modswitch\\forbiddennameplates-bg.png", modSwitchImageCrop = false },
     SyncFriendlyNameplates = { tags = { "系统修正" }, settingsMode = "toggleOnly", order = 603, sourceRoot = "Components\\SyncFriendlyNameplates", modSwitchImage = "modswitch\\syncfriendlynameplates-bg.png", modSwitchImageCrop = false },
@@ -108,6 +116,21 @@ local function SortComponents(a, b)
         return nameA < nameB
     end
     return (a.id or "") < (b.id or "")
+end
+
+local function IsToolboxControlledComponent(component)
+    return component and component.kind == "component"
+        and (component.standalone ~= true or component.toolboxManaged == true)
+end
+
+local function ForEachToolboxComponent(owner, callback)
+    if not owner or type(callback) ~= "function" then return end
+    for _, id in ipairs(owner.order or {}) do
+        local component = owner.registry and owner.registry[id]
+        if IsToolboxControlledComponent(component) then
+            callback(id, component)
+        end
+    end
 end
 
 local function Normalize(def)
@@ -200,12 +223,26 @@ local function NormalizeEffectiveState(value, reason, tone)
                 effective = false,
                 reason = value.reason or value.message or reason or "该组件当前未生效。",
                 tone = value.tone or tone or "warning",
+                kind = value.kind,
+                controller = value.controller,
+                featureKey = value.featureKey,
+                featureLabel = value.featureLabel,
+                partial = value.partial == true,
+                status = value.status,
+                matches = value.matches,
             }
         end
         return {
             effective = true,
             reason = value.reason or value.message,
             tone = value.tone or tone,
+            kind = value.kind,
+            controller = value.controller,
+            featureKey = value.featureKey,
+            featureLabel = value.featureLabel,
+            partial = value.partial == true,
+            status = value.status,
+            matches = value.matches,
         }
     end
 
@@ -445,6 +482,7 @@ local function RegisterComponentBridge(key, feature)
         tags = CopyArray(feature.tags or meta.tags, { Components.TAGS[2] }),
         settingsMode = settingsMode,
         standalone = feature.standalone ~= nil and feature.standalone or meta.standalone,
+        toolboxManaged = feature.toolboxManaged == true,
         product = feature.product or meta.product or YUI.ProductId or "suite",
         order = meta.order or feature.order,
         storageKey = feature.storageKey or key,
@@ -503,6 +541,9 @@ function Components:RegisterFeature(key, options)
         options.tags = options.tags or CopyArray(meta.tags)
         options.settingsMode = options.settingsMode or meta.settingsMode
         options.standalone = options.standalone ~= nil and options.standalone or meta.standalone
+        if options.toolboxManaged == nil then
+            options.toolboxManaged = meta.toolboxManaged == true
+        end
         options.product = options.product or meta.product or YUI.ProductId or "suite"
         options.order = meta.order or options.order
         options.sourceRoot = options.sourceRoot or meta.sourceRoot
@@ -554,7 +595,7 @@ function Components:Initialize()
     return self:InitializeFeatures()
 end
 
-function Components:SetFeatureEnabled(key, enable)
+function Components:SetFeatureEnabled(key, enable, options)
     local feature = self.features[key]
     if not feature then
         return false
@@ -568,6 +609,11 @@ function Components:SetFeatureEnabled(key, enable)
     local store = EnsureStore(feature and feature.product)
     if store then
         store[key] = enable
+        local meta = FEATURE_META[key] or {}
+        local toolboxManaged = feature and feature.toolboxManaged == true
+        if enable and (toolboxManaged or (feature.standalone ~= true and meta.standalone ~= true)) then
+            store[TOOLBOX_ENABLED_KEY] = true
+        end
     end
 
     if feature.callback then
@@ -586,9 +632,54 @@ function Components:SetFeatureEnabled(key, enable)
         self.initializedFeatureErrors[key] = nil
     end
 
-    if feature.requiresReload and YUI.Settings and YUI.Settings.ShowReload then
+    if feature.requiresReload and not (type(options) == "table" and options.suppressReload == true)
+        and YUI.Settings and YUI.Settings.ShowReload then
         YUI.Settings:ShowReload()
     end
+    return true
+end
+
+function Components:IsToolboxEnabled(productId)
+    local store = EnsureStore(productId or "suite")
+    if store and store[TOOLBOX_ENABLED_KEY] ~= nil then
+        return store[TOOLBOX_ENABLED_KEY] == true
+    end
+    return true
+end
+
+function Components:SetToolboxEnabled(enabled, productId)
+    local store = EnsureStore(productId or "suite")
+    if not store then
+        return false
+    end
+
+    enabled = enabled == true
+    store[TOOLBOX_ENABLED_KEY] = enabled
+
+    if enabled then
+        local snapshot = type(store[TOOLBOX_SNAPSHOT_KEY]) == "table" and store[TOOLBOX_SNAPSHOT_KEY] or nil
+        ForEachToolboxComponent(self, function(id, component)
+            local nextEnabled
+            if snapshot and snapshot[id] ~= nil then
+                nextEnabled = snapshot[id] == true
+            elseif component.feature then
+                nextEnabled = component.feature.default == true
+            else
+                nextEnabled = component.default == true or component.defaultEnabled == true
+            end
+            self:SetEnabled(component, nextEnabled)
+        end)
+    else
+        local snapshot = {}
+        ForEachToolboxComponent(self, function(id, component)
+            snapshot[id] = self:IsEnabled(component) == true
+        end)
+        store[TOOLBOX_SNAPSHOT_KEY] = snapshot
+        ForEachToolboxComponent(self, function(_, component)
+            self:SetEnabled(component, false)
+        end)
+    end
+
     return true
 end
 

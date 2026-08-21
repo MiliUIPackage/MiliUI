@@ -17,7 +17,9 @@ local PRODUCT_SETTINGS = { enabled = false }
 local PRODUCT_DB = { enabled = true, savedVariable = "YUI_AuctionHelper_DB", storageKey = "AuctionHelper" }
 local PRODUCT_COMMANDS = { { alias = "/yah", aliases = { "/yauctionhelper" }, action = "openSettings" } }
 local PRODUCT_ASSET_FOLDERS = { "Components\\AuctionHelper\\Media" } or {}
-local PRODUCT_COMPONENT = nil
+local PRODUCT_COMPONENT = { id = "AuctionHelper", settingsMode = "toggleOnly" }
+local PRODUCT_COMPONENTS = nil or {}
+local SUITE_EXCLUSIVE = nil == true
 
 local function Report(message)
     local function write()
@@ -50,9 +52,24 @@ local function BlockProduct(reason, blockRegisteredProduct)
     Report(reason)
 end
 
+if SUITE_EXCLUSIVE and YUI.CoreMode == "suite" then
+    BlockProduct("完整 YUI 已启用，当前工具箱单体已停止加载。", false)
+    return
+end
+
 local existingProduct = YUI.Products and YUI.Products[PRODUCT_ID]
 if existingProduct and existingProduct.addonName ~= ADDON_NAME then
     BlockProduct(PRODUCT_TITLE .. " 已经由另一个 YUI 插件注册，当前副本已停止加载。", false)
+    return
+end
+
+local componentId = PRODUCT_COMPONENT and PRODUCT_COMPONENT.id
+local existingComponent = componentId
+    and YUI.Components
+    and YUI.Components.Get
+    and YUI.Components:Get(componentId)
+if existingComponent then
+    BlockProduct(PRODUCT_TITLE .. " 已经由 YUI 整合包中的同名组件提供，当前单体副本已停止加载。", false)
     return
 end
 
@@ -76,6 +93,17 @@ if YUI.Assets and YUI.Assets.RegisterProductRoot then
             break
         end
     end
+
+    if YUI.Assets.RegisterComponentRoot then
+        for i = 1, #PRODUCT_COMPONENTS do
+            local component = PRODUCT_COMPONENTS[i]
+            if component and type(component.id) == "string" and component.id ~= ""
+                and type(component.sourceRoot) == "string" and component.sourceRoot ~= "" then
+                local root = "Interface\\AddOns\\" .. ADDON_NAME .. "\\" .. component.sourceRoot .. "\\Media"
+                YUI.Assets:RegisterComponentRoot(component.id, root)
+            end
+        end
+    end
 end
 
 local product = {
@@ -90,7 +118,7 @@ local product = {
     shortTitleNamespace = "",
     localizedShortTitles = nil,
     logo = PRODUCT_LOGO,
-    version = "yah-103",
+    version = "yah-106",
     coreMode = "embedded",
     requiredCoreVersion = 1,
     embeddedCoreVersion = 1,
@@ -103,6 +131,7 @@ local product = {
     profileExportPrefix = "!YUI-AuctionHelper-v2:",
     settings = PRODUCT_SETTINGS,
     component = PRODUCT_COMPONENT,
+    components = PRODUCT_COMPONENTS,
     db = PRODUCT_DB,
     commands = PRODUCT_COMMANDS,
 }

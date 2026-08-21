@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 -------------------------------------------------------------------------------
 -- YUI | Layout edit mode - panel
@@ -39,8 +41,9 @@ local GetBuiltinAnchorPlaceholder = P.GetBuiltinAnchorPlaceholder
 local IsBuiltinAnchorTarget = P.IsBuiltinAnchorTarget
 local AnchorTargetDisplayText = P.AnchorTargetDisplayText
 local NormalizeAnchorTargetAlias = P.NormalizeAnchorTargetAlias
+local EvaluateAnchorTargetCandidate = P.EvaluateAnchorTargetCandidate
 local ANCHOR_POINTS = P.ANCHOR_POINTS
-local CaptureRelativePlacement = P.CaptureRelativePlacement
+local AnchorPointDisplayText = P.AnchorPointDisplayText
 local CapturePlacement = P.CapturePlacement
 local CaptureMoverPlacement = P.CaptureMoverPlacement or CapturePlacement
 local WouldCreateAnchorCycle = P.WouldCreateAnchorCycle
@@ -48,6 +51,8 @@ local IsAnchorTargetDeclared = P.IsAnchorTargetDeclared
 local GetOptions = P.GetOptions
 local NormalizeGridDensity = P.NormalizeGridDensity
 local SuppressNextOverlayClick = P.SuppressNextOverlayClick
+local RefreshDragCoordinateInfo = P.RefreshDragCoordinateInfo
+local HideDragCoordinateInfo = P.HideDragCoordinateInfo
 local ApplyMoverPanelLayer = P.ApplyMoverPanelLayer
 local SetArrowDirection = P.SetArrowDirection
 local MOVER_PANEL_STRATA = P.MOVER_PANEL_STRATA
@@ -305,6 +310,10 @@ local function DisplayAnchorTargetName(value)
     return AnchorTargetDisplayText and AnchorTargetDisplayText(value) or tostring(value or "")
 end
 
+local function DisplayAnchorPoint(value)
+    return AnchorPointDisplayText and AnchorPointDisplayText(value) or tostring(value or "")
+end
+
 local function GetPersistentFrameName(frame)
     if frame == UIParent then return "UIParent" end
     if frame and frame.GetName then
@@ -404,10 +413,15 @@ local function GetPickableAnchorTarget(frame)
     return nil, nil
 end
 
+local SetAnchorPickerStatus
+
 local function SetAnchorInputState(message, borderKey)
     local widgets = Layout.moverPanelWidgets
+    if Layout.anchorPickerEntryId and SetAnchorPickerStatus then
+        SetAnchorPickerStatus(message, borderKey)
+    end
     if not widgets then return end
-    local input = widgets.anchorName
+    local input = widgets.anchorName or widgets.anchorTarget
     if input and input.gui2Bg and GUI2 and GUI2.SetBorderColor then
         GUI2:SetBorderColor(input.gui2Bg, message and (borderKey or "color.border.error") or "color.border.default")
     end
@@ -420,6 +434,78 @@ local function SetAnchorInputState(message, borderKey)
             widgets.anchorStatus:Hide()
         end
     end
+end
+
+local function ReportPlacementError(reason)
+    if reason ~= "offscreen" then return false end
+    SetAnchorInputState(L("layout.position.offscreen_rejected"), "color.border.error")
+    return true
+end
+P.ReportPlacementError = ReportPlacementError
+
+local function CreateAnchorPickerStatusFrame()
+    if Layout.anchorPickerStatusFrame then return Layout.anchorPickerStatusFrame end
+
+    local width = 360
+    local height = 34
+    local frame
+    if GUI2 and GUI2.CreateFrame then
+        frame = GUI2:CreateFrame(UIParent, {
+            name = "YUI_LayoutAnchorPickerStatus",
+            template = "BackdropTemplate",
+            width = width,
+            height = height,
+            frameStrata = MOVER_PANEL_STRATA,
+        })
+    else
+        frame = CreateFrame("Frame", "YUI_LayoutAnchorPickerStatus", UIParent, "BackdropTemplate")
+        frame:SetSize(width, height)
+        frame:SetFrameStrata(MOVER_PANEL_STRATA)
+    end
+    frame.yuiLayoutInternal = true
+    frame:SetSize(width, height)
+    if frame.EnableMouse then frame:EnableMouse(false) end
+    if frame.SetFrameLevel then frame:SetFrameLevel((MOVER_PANEL_FRAME_LEVEL or 80) + 3) end
+    if frame.SetBackdrop then
+        frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8" })
+        frame:SetBackdropColor(0.04, 0.05, 0.07, 0.94)
+    end
+    if GUI2 and GUI2.CreateBorder then GUI2:CreateBorder(frame, SELECTED_BORDER) end
+
+    local text
+    if GUI2 and GUI2.CreateText then
+        text = GUI2:CreateText(frame, "", "font.size.md", "color.text.primary")
+    else
+        text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    end
+    text:SetPoint("LEFT", frame, "LEFT", 10, 0)
+    text:SetPoint("RIGHT", frame, "RIGHT", -10, 0)
+    text:SetJustifyH("CENTER")
+    text:SetWordWrap(false)
+    frame.text = text
+    frame:Hide()
+    Layout.anchorPickerStatusFrame = frame
+    return frame
+end
+
+SetAnchorPickerStatus = function(message, borderKey)
+    local frame = CreateAnchorPickerStatusFrame()
+    if not message or message == "" then
+        frame:Hide()
+        return
+    end
+    frame:ClearAllPoints()
+    frame:SetPoint("TOP", UIParent, "TOP", 0, -118)
+    if GUI2 and GUI2.SetBorderColor then
+        GUI2:SetBorderColor(frame, borderKey or "color.border.focus")
+    end
+    if frame.text then
+        frame.text:SetText(message)
+        if GUI2 and GUI2.SetTextColorKey then
+            GUI2:SetTextColorKey(frame.text, borderKey == "color.border.error" and "color.state.error" or "color.text.primary")
+        end
+    end
+    frame:Show()
 end
 
 local function RefreshAnchorPickerButton()
@@ -510,6 +596,58 @@ local function PositionPanelNearFrame(panel, anchor)
     return true
 end
 
+local function ResolveAnchorTargetForEntry(id, name)
+    local entry = Layout.frames[id]
+    if not entry then return nil end
+
+    local ok, normalized, reasonKey, target, status = EvaluateAnchorTargetCandidate(id, name)
+    if not ok then
+        SetAnchorInputState(L(reasonKey or "layout.position.invalid_anchor_target"), "color.border.error")
+        return nil
+    end
+    return entry, target, normalized, status
+end
+
+local function InferAnchorPointPair(entry, targetFrame, targetName)
+    local placement = entry and Layout:GetPlacement(entry.id) or nil
+    local anchor = placement and placement.anchor or nil
+    if anchor and NormalizeAnchorTargetAlias and NormalizeAnchorTargetAlias(anchor.relative or "UIParent") == targetName then
+        return anchor.point or "CENTER", anchor.relativePoint or anchor.point or "CENTER"
+    end
+
+    local sourceFrame = ResolveEntryFrame(entry)
+    local sourceLeft, sourceRight, sourceTop, sourceBottom = GetFrameRect(sourceFrame)
+    local targetLeft, targetRight, targetTop, targetBottom = GetFrameRect(targetFrame)
+    if not sourceLeft or not targetLeft then
+        return (anchor and anchor.point) or "CENTER", (anchor and (anchor.relativePoint or anchor.point)) or "CENTER"
+    end
+
+    local sourceX = (sourceLeft + sourceRight) / 2
+    local sourceY = (sourceTop + sourceBottom) / 2
+    local targetX = (targetLeft + targetRight) / 2
+    local targetY = (targetTop + targetBottom) / 2
+    local dx = sourceX - targetX
+    local dy = sourceY - targetY
+    if math_abs(dx) >= math_abs(dy) then
+        if dx >= 0 then
+            return "LEFT", "RIGHT"
+        end
+        return "RIGHT", "LEFT"
+    end
+    if dy >= 0 then
+        return "BOTTOM", "TOP"
+    end
+    return "TOP", "BOTTOM"
+end
+
+local function SetPendingAnchorSelection(entry, target, targetName)
+    local point, relativePoint = InferAnchorPointPair(entry, target, targetName)
+    Layout.pendingAnchorSourceId = entry.id
+    Layout.pendingAnchorTargetName = targetName
+    Layout.pendingAnchorPoint = point
+    Layout.pendingAnchorRelativePoint = relativePoint
+end
+
 local function CreateMoverBlankClickLayer()
     if Layout.moverBlankClickFrame then return Layout.moverBlankClickFrame end
 
@@ -541,29 +679,69 @@ function Layout:RefreshMoverBlankClickLayer()
     end
 end
 
-function Layout:ApplyAnchorTargetName(id, name)
-    local entry = self.frames[id]
+function Layout:BeginAnchorPointConfirm(id, name)
+    local entry, target, normalized = ResolveAnchorTargetForEntry(id, name)
     if not entry then return false end
-
-    local target, normalized, status = ResolveNamedAnchorTarget(name, entry)
-    if status ~= PLACEMENT_PENDING and (not target or target == ResolveEntryFrame(entry)) then
-        SetAnchorInputState(L("layout.position.invalid_anchor_target"), "color.border.error")
-        return false
-    end
-    if WouldCreateAnchorCycle(id, normalized) then
-        SetAnchorInputState(L("layout.position.anchor_cycle"), "color.border.error")
-        return false
-    end
-
     SetAnchorInputState(nil)
+    SetPendingAnchorSelection(entry, target, normalized)
+    if self.moverPanel then
+        self.moverPanel:Hide()
+    end
+    self:ShowAnchorPanel(entry)
+    self:RefreshOverlayVisuals()
+    return true
+end
+
+function Layout:ApplyAnchorTargetName(id, name)
+    return self:BeginAnchorPointConfirm(id, name)
+end
+
+function Layout:ConfirmAnchorPointSelection()
+    local id = self.pendingAnchorSourceId
+    local entry = id and self.frames[id]
+    local targetName = self.pendingAnchorTargetName
+    if not entry or not targetName then return false end
+
     local placement = self:GetPlacement(id)
     if not placement then return false end
     placement.anchor = placement.anchor or {}
-    placement.anchor.relative = normalized
-    if status == PLACEMENT_PENDING then
-        return self:SetPlacement(id, placement, true)
+    placement.offset = placement.offset or {}
+    placement.anchor.point = self.pendingAnchorPoint or "CENTER"
+    placement.anchor.relative = targetName
+    placement.anchor.relativePoint = self.pendingAnchorRelativePoint or placement.anchor.point
+    placement.offset.x = 0
+    placement.offset.y = 0
+
+    local applied, reason = self:CommitPlacementOrRestore(
+        id,
+        placement,
+        "anchor"
+    )
+    if not applied then
+        ReportPlacementError(reason)
+        return false
     end
-    return self:SetPlacement(id, CaptureRelativePlacement(entry, ResolveEntryFrame(entry), placement) or placement, true)
+
+    self.pendingAnchorSourceId = nil
+    self.pendingAnchorTargetName = nil
+    self.pendingAnchorPoint = nil
+    self.pendingAnchorRelativePoint = nil
+    self:HideAnchorPanel()
+    self:ShowMoverPanel(entry)
+    return true
+end
+
+function Layout:CancelAnchorPointSelection()
+    local id = self.pendingAnchorSourceId
+    self.pendingAnchorSourceId = nil
+    self.pendingAnchorTargetName = nil
+    self.pendingAnchorPoint = nil
+    self.pendingAnchorRelativePoint = nil
+    self:HideAnchorPanel()
+    if id and self.frames[id] then
+        self:ShowMoverPanel(id)
+    end
+    return true
 end
 
 function Layout:PickAnchorTargetFromEntry(entry)
@@ -575,18 +753,14 @@ function Layout:PickAnchorTargetFromEntry(entry)
         SetAnchorInputState(L("layout.position.invalid_anchor_target"), "color.border.error")
         return false
     end
-    self.anchorPickerCandidate = name
-    local widgets = self.moverPanelWidgets
-    if widgets and widgets.anchorName and not widgets.anchorName:HasFocus() then
-        widgets.anchorName:SetValue(name, true)
+    local ok, normalized, reasonKey = EvaluateAnchorTargetCandidate(sourceId, entry)
+    if not ok then
+        SetAnchorInputState(L(reasonKey or "layout.position.invalid_anchor_target"), "color.border.error")
+        return false
     end
-    SetAnchorInputState(L("layout.position.pick_ready") .. ": " .. name, "color.border.focus")
-    if self:ApplyAnchorTargetName(sourceId, name) then
-        self:StopAnchorTargetPicker()
-        if widgets and widgets.anchorName and not widgets.anchorName:HasFocus() then
-            widgets.anchorName:SetValue(name, true)
-        end
-        SetAnchorInputState(L("layout.position.pick_ready") .. ": " .. name, "color.border.focus")
+    self.anchorPickerCandidate = normalized or name
+    if self:BeginAnchorPointConfirm(sourceId, normalized or name) then
+        self:StopAnchorTargetPicker(false)
         self:RefreshOverlayVisuals()
         return true
     end
@@ -599,7 +773,8 @@ function Layout:CommitAnchorTargetInput(editbox)
     return self:ApplyAnchorTargetName(entry.id, editbox and editbox:GetText() or nil)
 end
 
-function Layout:StopAnchorTargetPicker()
+function Layout:StopAnchorTargetPicker(restorePanel)
+    local restoreId = self.anchorPickerEntryId
     self.anchorPickerEntryId = nil
     self.anchorPickerCandidate = nil
     self.anchorPickerWaitingForRelease = nil
@@ -609,8 +784,15 @@ function Layout:StopAnchorTargetPicker()
         self.anchorPickerFrame:Hide()
         self.anchorPickerFrame:SetScript("OnUpdate", nil)
     end
+    if self.anchorPickerStatusFrame then
+        self.anchorPickerStatusFrame:Hide()
+    end
     RefreshAnchorPickerButton()
     self:RefreshMoverBlankClickLayer()
+    self:RefreshOverlayVisuals()
+    if restorePanel and restoreId and self.frames[restoreId] then
+        self:ShowMoverPanel(restoreId)
+    end
 end
 
 function Layout:StartAnchorTargetPicker(id)
@@ -630,11 +812,22 @@ function Layout:StartAnchorTargetPicker(id)
     self.anchorPickerWaitingForRelease = IsMouseButtonDown and IsMouseButtonDown("LeftButton") or false
     self.anchorPickerLeftDown = self.anchorPickerWaitingForRelease
     self.anchorPickerElapsed = 0
+    if self.anchorPanel then self.anchorPanel:Hide() end
+    self.anchorPanelOpen = false
+    if self.moverPanel then self.moverPanel:Hide() end
     picker:SetScript("OnUpdate", function(_, elapsed) Layout:UpdateAnchorTargetPicker(elapsed) end)
+    if picker.EnableKeyboard then picker:EnableKeyboard(true) end
+    if picker.SetPropagateKeyboardInput then picker:SetPropagateKeyboardInput(true) end
+    picker:SetScript("OnKeyDown", function(_, key)
+        if key == "ESCAPE" then
+            Layout:StopAnchorTargetPicker(true)
+        end
+    end)
     picker:Show()
     RefreshAnchorPickerButton()
     SetAnchorInputState(L("layout.position.pick_active"), "color.border.focus")
     self:RefreshMoverBlankClickLayer()
+    self:RefreshOverlayVisuals()
     return true
 end
 
@@ -653,14 +846,7 @@ function Layout:UpdateAnchorTargetPicker(elapsed)
         else
             _, name = GetPickableAnchorTarget(focus)
         end
-        if name then
-            self.anchorPickerCandidate = name
-            local widgets = self.moverPanelWidgets
-            if widgets and widgets.anchorName and not widgets.anchorName:HasFocus() then
-                widgets.anchorName:SetValue(name, true)
-            end
-            SetAnchorInputState(L("layout.position.pick_ready") .. ": " .. name, "color.border.focus")
-        end
+        self.anchorPickerCandidate = name
     end
 
     if not IsMouseButtonDown then return end
@@ -676,9 +862,8 @@ function Layout:UpdateAnchorTargetPicker(elapsed)
         if overlayEntry and overlayEntry.overlay then
             SuppressNextOverlayClick(overlayEntry.overlay)
             self:PickAnchorTargetFromEntry(overlayEntry)
-        elseif self:ApplyAnchorTargetName(id, name) then
-            self:StopAnchorTargetPicker()
-            SetAnchorInputState(L("layout.position.pick_ready") .. ": " .. name, "color.border.focus")
+        elseif self:BeginAnchorPointConfirm(id, name) then
+            self:StopAnchorTargetPicker(false)
             self:RefreshOverlayVisuals()
         end
     end
@@ -732,7 +917,7 @@ local function RefreshAnchorPointGridVisual(frame)
                 paint = "color.text.disabled"
                 alpha = 0.35
             elseif selected then
-                paint = "color.text.accent"
+                paint = "color.accent.primary"
             elseif hovered then
                 paint = "color.text.primary"
             end
@@ -812,33 +997,34 @@ local function CreateAnchorPointGrid(parent, opts)
         })
         button:SetPoint("CENTER", frame, "TOPLEFT", pointX[col + 1], pointY[row + 1])
         button.anchorPointValue = point
-        local dot = GUI2:CreateTexture(button, "color.text.secondary", "ARTWORK")
+        local dot = GUI2:CreateTexture(button, nil, "ARTWORK")
         dot:SetSize(dotSize, dotSize)
         dot:SetPoint("CENTER")
         button.anchorPointDot = dot
-        button:SetScript("OnClick", function()
+        button:SetScript("OnClick", function(self)
             if frame.gui2Disabled then return end
-            if GameTooltip and GameTooltip:IsOwned(button) then
+            if GameTooltip and GameTooltip:IsOwned(self) then
                 YUI.HideGameTooltip()
             end
-            frame:SetValue(point)
+            frame:SetValue(self.anchorPointValue)
         end)
-        button:SetScript("OnEnter", function()
+        button:SetScript("OnEnter", function(self)
             if frame.gui2Disabled then return end
-            frame.hoverPoint = point
+            local value = self.anchorPointValue
+            frame.hoverPoint = value
             RefreshAnchorPointGridVisual(frame)
             if GameTooltip then
-                GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
-                GameTooltip:SetText(L("layout.position.select_anchor_point") .. ": " .. point)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(L("layout.position.select_anchor_point") .. ": " .. DisplayAnchorPoint(value))
                 GameTooltip:Show()
             end
         end)
-        button:SetScript("OnLeave", function()
-            if frame.hoverPoint == point then
+        button:SetScript("OnLeave", function(self)
+            if frame.hoverPoint == self.anchorPointValue then
                 frame.hoverPoint = nil
             end
             RefreshAnchorPointGridVisual(frame)
-            if GameTooltip and GameTooltip:IsOwned(button) then
+            if GameTooltip and GameTooltip:IsOwned(self) then
                 YUI.HideGameTooltip()
             end
         end)
@@ -891,7 +1077,13 @@ local function CommitOffsetInput(axis, editbox)
 
     local patch = {}
     patch[axis] = value
-    Layout:PatchPlacement(entry.id, patch)
+    local applied, reason = Layout:PatchPlacement(entry.id, patch)
+    if not applied then
+        ReportPlacementError(reason)
+        Layout:RefreshMovementWidgets()
+        return false
+    end
+    SetAnchorInputState(nil)
     return true
 end
 
@@ -904,7 +1096,12 @@ local function AddNudgeButton(parent, widgets, dx, dy, x, y, direction)
         onClick = function()
             local entry = GetMoverPanelEntry()
             if entry and (not Layout.IsPlacementReady or Layout:IsPlacementReady(entry.id)) then
-                Layout:NudgeFrame(entry.id, dx, dy)
+                local applied, reason = Layout:NudgeFrame(entry.id, dx, dy)
+                if not applied then
+                    ReportPlacementError(reason)
+                else
+                    SetAnchorInputState(nil)
+                end
             end
         end,
     })
@@ -932,9 +1129,9 @@ function Layout:CreateMoverPanel()
     if self.moverPanel then return self.moverPanel end
     if not GUI2 or not GUI2.Form then return nil end
 
-    local width = 276
-    local height = 174
-    local padding = 10
+    local width = 400
+    local height = 236
+    local padding = 14
     local panel = GUI2:CreateFrame(UIParent, {
         name = "YUI_LayoutMoverPanel",
         template = "BackdropTemplate",
@@ -958,15 +1155,15 @@ function Layout:CreateMoverPanel()
 
     local title = GUI2:CreateText(panel, "", "font.size.lg", "color.text.accent")
     title:SetPoint("TOPLEFT", panel, "TOPLEFT", padding, -11)
-    title:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -34, -11)
+    title:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -48, -11)
     title:SetJustifyH("LEFT")
-    title:SetWordWrap(false)
+    title:SetWordWrap(true)
     widgets.title = title
 
     local close = GUI2:CreateCloseButton(panel, function()
         Layout:HideMoverPanel()
     end)
-    close:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -8)
+    close:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -8)
     widgets.close = close
 
     CreatePanelLabel(panel, "X", padding, -44, 24)
@@ -1011,18 +1208,88 @@ function Layout:CreateMoverPanel()
     end)
     widgets.offsetY = offsetY
 
-    local resetWidth = 66
-    local anchorWidth = 62
-    local actionGap = 8
-    local actionGroupWidth = resetWidth + actionGap + anchorWidth
+    local resetWidth = 76
     local nudgeGroupWidth = 88
+    local rightSafe = 20
     widgets.nudges = {}
-    local nudgeX = width - padding - actionGroupWidth + (actionGroupWidth - nudgeGroupWidth) / 2
+    local nudgeX = width - padding - rightSafe - nudgeGroupWidth
     local nudgeY = -44
     AddNudgeButton(panel, widgets, 0, 1, nudgeX + 30, nudgeY, "up")
     AddNudgeButton(panel, widgets, -1, 0, nudgeX, nudgeY - 28, "left")
     AddNudgeButton(panel, widgets, 1, 0, nudgeX + 60, nudgeY - 28, "right")
     AddNudgeButton(panel, widgets, 0, -1, nudgeX + 30, nudgeY - 28, "down")
+
+    local anchorY = -112
+    local labelWidth = 78
+    local controlX = padding + labelWidth
+    local selectWidth = 72
+    local targetWidth = width - padding * 2 - labelWidth - selectWidth - 8
+    CreatePanelLabel(panel, L("layout.position.anchor_target"), padding, anchorY, labelWidth)
+    local anchorTarget = GUI2.Form:CreateDropdown(panel, {
+        width = targetWidth,
+        height = 26,
+        options = function()
+            return BuildAnchorTargetOptions(GetMoverPanelEntry())
+        end,
+        get = function()
+            local placement = GetMoverPanelPlacement(GetMoverPanelEntry())
+            return placement and placement.anchor and placement.anchor.relative or "UIParent"
+        end,
+        set = function(value)
+            local entry = GetMoverPanelEntry()
+            if entry then Layout:BeginAnchorPointConfirm(entry.id, value) end
+        end,
+    })
+    anchorTarget:SetPoint("TOPLEFT", panel, "TOPLEFT", controlX, anchorY)
+    widgets.anchorTarget = anchorTarget
+
+    local pickAnchor = GUI2.Form:CreateButton(panel, {
+        text = L("layout.action.select_anchor_target"),
+        width = selectWidth,
+        height = 26,
+        tone = "default",
+        onClick = function()
+            local entry = GetMoverPanelEntry()
+            if entry then Layout:StartAnchorTargetPicker(entry.id) end
+        end,
+    })
+    pickAnchor:SetPoint("LEFT", anchorTarget, "RIGHT", 8, 0)
+    widgets.pickAnchor = pickAnchor
+
+    local pointY = -148
+    local summaryWidth = 100
+    CreatePanelLabel(panel, L("layout.position.point"), padding, pointY, labelWidth)
+    local pointSummary = GUI2.Form:CreateButton(panel, {
+        text = "",
+        width = summaryWidth,
+        height = 26,
+        tone = "default",
+        onClick = function()
+            local entry = GetMoverPanelEntry()
+            local placement = GetMoverPanelPlacement(entry)
+            local target = placement and placement.anchor and placement.anchor.relative or "UIParent"
+            if entry then Layout:BeginAnchorPointConfirm(entry.id, target) end
+        end,
+    })
+    pointSummary:SetPoint("TOPLEFT", panel, "TOPLEFT", controlX, pointY)
+    widgets.pointSummary = pointSummary
+
+    local relativeLabelX = controlX + summaryWidth + 16
+    CreatePanelLabel(panel, L("layout.position.target_point"), relativeLabelX, pointY, 76)
+    local relativePointSummary = GUI2.Form:CreateButton(panel, {
+        text = "",
+        width = summaryWidth,
+        height = 26,
+        tone = "default",
+        onClick = function()
+            local entry = GetMoverPanelEntry()
+            local placement = GetMoverPanelPlacement(entry)
+            local target = placement and placement.anchor and placement.anchor.relative or "UIParent"
+            if entry then Layout:BeginAnchorPointConfirm(entry.id, target) end
+        end,
+    })
+    relativePointSummary:SetPoint("TOPLEFT", panel, "TOPLEFT", relativeLabelX + 76, pointY)
+    widgets.relativePointSummary = relativePointSummary
 
     local hint = GUI2:CreateText(panel, L("layout.hint.mousewheel_nudge"), "font.size.sm", "color.text.secondary")
     hint:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", padding, 18)
@@ -1030,24 +1297,6 @@ function Layout:CreateMoverPanel()
     hint:SetJustifyH("LEFT")
     hint:SetWordWrap(false)
     widgets.wheelHint = hint
-
-    local anchor = GUI2.Form:CreateButton(panel, {
-        text = L("layout.action.anchor_settings"),
-        width = anchorWidth,
-        height = 24,
-        tone = "default",
-        onClick = function()
-            local entry = GetMoverPanelEntry()
-            if not entry then return end
-            if Layout.anchorPanel and Layout.anchorPanel:IsShown() then
-                Layout:HideAnchorPanel()
-            else
-                Layout:ShowAnchorPanel(entry)
-            end
-        end,
-    })
-    anchor:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -padding, 14)
-    widgets.anchorToggle = anchor
 
     local reset = GUI2.Form:CreateButton(panel, {
         text = L("layout.action.reset_short"),
@@ -1063,7 +1312,7 @@ function Layout:CreateMoverPanel()
                     if Layout.frames[entryId] then Layout:ResetFrame(entryId) end
                 end, {
                     titleText = L("layout.action.reset_selected"),
-                    acceptTone = "accent",
+                    acceptTone = "danger",
                     cancelTone = "default",
                 })
             else
@@ -1071,7 +1320,7 @@ function Layout:CreateMoverPanel()
             end
         end,
     })
-    reset:SetPoint("RIGHT", anchor, "LEFT", -actionGap, 0)
+    reset:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -padding, 14)
     widgets.reset = reset
 
     panel:Hide()
@@ -1084,14 +1333,9 @@ function Layout:CreateAnchorPanel()
     if not GUI2 or not GUI2.Form then return nil end
 
     local width = 392
-    local height = 286
+    local height = 224
     local padding = 14
-    local labelWidth = 86
-    local controlX = padding + labelWidth
-    local controlWidth = width - padding * 2 - labelWidth
-    local pickWidth = 74
-    local inputWidth = controlWidth - pickWidth - 8
-    local rowGap = 32
+    local contentWidth = width - padding * 2
     local panel = GUI2:CreateFrame(UIParent, {
         name = "YUI_LayoutAnchorPanel",
         template = "BackdropTemplate",
@@ -1121,98 +1365,40 @@ function Layout:CreateAnchorPanel()
     widgets.anchorPanelTitle = title
 
     local close = GUI2:CreateCloseButton(panel, function()
-        Layout:HideAnchorPanel()
+        Layout:CancelAnchorPointSelection()
     end)
     close:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -8)
     widgets.anchorClose = close
 
-    local y = -46
-    CreatePanelLabel(panel, L("layout.position.anchor_target"), padding, y, labelWidth)
-    local anchorTarget = GUI2.Form:CreateDropdown(panel, {
-        width = controlWidth,
-        options = function()
-            return BuildAnchorTargetOptions(GetMoverPanelEntry())
-        end,
-        get = function()
-            local placement = GetMoverPanelPlacement(GetMoverPanelEntry())
-            return placement and placement.anchor and placement.anchor.relative or "UIParent"
-        end,
-        set = function(value)
-            local entry = GetMoverPanelEntry()
-            if entry then Layout:ApplyAnchorTargetName(entry.id, value) end
-        end,
-    })
-    anchorTarget:SetPoint("TOPLEFT", panel, "TOPLEFT", controlX, y)
-    widgets.anchorTarget = anchorTarget
+    local summary = GUI2:CreateText(panel, "", "font.size.sm", "color.text.secondary")
+    summary:SetPoint("TOPLEFT", panel, "TOPLEFT", padding, -40)
+    summary:SetWidth(contentWidth)
+    summary:SetJustifyH("LEFT")
+    summary:SetWordWrap(false)
+    widgets.anchorSummary = summary
 
-    y = y - rowGap
-    CreatePanelLabel(panel, L("layout.position.frame_name"), padding, y, labelWidth)
-    local anchorName = GUI2.Form:CreateEditBox(panel, {
-        width = inputWidth,
-        height = 26,
-        text = "",
-        onFocusLost = function(editbox)
-            Layout:CommitAnchorTargetInput(editbox)
-        end,
-    })
-    anchorName:SetPoint("TOPLEFT", panel, "TOPLEFT", controlX, y)
-    anchorName:SetScript("OnEnterPressed", function(editbox)
-        Layout:CommitAnchorTargetInput(editbox)
-        editbox:ClearFocus()
-    end)
-    anchorName:SetScript("OnEscapePressed", function(editbox)
-        Layout:RefreshMovementWidgets()
-        editbox:ClearFocus()
-    end)
-    widgets.anchorName = anchorName
-
-    local pickAnchor = GUI2.Form:CreateButton(panel, {
-        text = L("layout.action.pick_frame"),
-        width = pickWidth,
-        height = 26,
-        tone = "default",
-        onClick = function()
-            local entry = GetMoverPanelEntry()
-            if not entry then return end
-            if Layout.anchorPickerEntryId == entry.id then
-                if Layout.anchorPickerCandidate then
-                    Layout:ApplyAnchorTargetName(entry.id, Layout.anchorPickerCandidate)
-                end
-                Layout:StopAnchorTargetPicker()
-            else
-                Layout:StartAnchorTargetPicker(entry.id)
-            end
-        end,
-    })
-    pickAnchor:SetPoint("LEFT", anchorName, "RIGHT", 8, 0)
-    widgets.pickAnchor = pickAnchor
-
-    y = y - 24
     local anchorStatus = GUI2:CreateText(panel, "", "font.size.sm", "color.state.warning")
-    anchorStatus:SetPoint("TOPLEFT", panel, "TOPLEFT", controlX, y)
-    anchorStatus:SetWidth(controlWidth)
+    anchorStatus:SetPoint("TOPLEFT", summary, "BOTTOMLEFT", 0, -4)
+    anchorStatus:SetWidth(contentWidth)
     anchorStatus:SetJustifyH("LEFT")
     anchorStatus:SetWordWrap(false)
     anchorStatus:Hide()
     widgets.anchorStatus = anchorStatus
 
-    y = y - 28
-    CreatePanelLabel(panel, L("layout.position.anchor_points"), padding, y, labelWidth)
+    local y = -78
     local gridGap = 20
-    local gridWidth = math_floor((controlWidth - gridGap) / 2)
+    local gridWidth = math_floor((contentWidth - gridGap) / 2)
     local gridHeight = 114
     local point = CreateAnchorPointGrid(panel, {
         width = gridWidth,
         height = gridHeight,
         label = L("layout.position.point"),
         set = function(value)
-            local entry = GetMoverPanelEntry()
-            if entry and (not Layout.IsPlacementReady or Layout:IsPlacementReady(entry.id)) then
-                Layout:PatchPlacement(entry.id, { point = value })
-            end
+            Layout.pendingAnchorPoint = value
+            Layout:RefreshMovementWidgets()
         end,
     })
-    point:SetPoint("TOPLEFT", panel, "TOPLEFT", controlX, y)
+    point:SetPoint("TOPLEFT", panel, "TOPLEFT", padding, y)
     widgets.point = point
 
     local relativePoint = CreateAnchorPointGrid(panel, {
@@ -1220,14 +1406,36 @@ function Layout:CreateAnchorPanel()
         height = gridHeight,
         label = L("layout.position.target_point"),
         set = function(value)
-            local entry = GetMoverPanelEntry()
-            if entry and (not Layout.IsPlacementReady or Layout:IsPlacementReady(entry.id)) then
-                Layout:PatchPlacement(entry.id, { relativePoint = value })
-            end
+            Layout.pendingAnchorRelativePoint = value
+            Layout:RefreshMovementWidgets()
         end,
     })
     relativePoint:SetPoint("TOPLEFT", point, "TOPRIGHT", gridGap, 0)
     widgets.relativePoint = relativePoint
+
+    local confirm = GUI2.Form:CreateButton(panel, {
+        text = L("common.confirm"),
+        width = 112,
+        height = 26,
+        tone = "accent",
+        onClick = function()
+            Layout:ConfirmAnchorPointSelection()
+        end,
+    })
+    confirm:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -padding, 12)
+    widgets.anchorConfirm = confirm
+
+    local cancel = GUI2.Form:CreateButton(panel, {
+        text = L("common.cancel"),
+        width = 112,
+        height = 26,
+        tone = "default",
+        onClick = function()
+            Layout:CancelAnchorPointSelection()
+        end,
+    })
+    cancel:SetPoint("RIGHT", confirm, "LEFT", -8, 0)
+    widgets.anchorCancel = cancel
 
     panel:Hide()
     self.anchorPanel = panel
@@ -1263,8 +1471,16 @@ function Layout:ShowAnchorPanel(entryOrId)
 
     local panel = self:CreateAnchorPanel()
     if not panel then return false end
+    if self.pendingAnchorSourceId ~= entry.id or not self.pendingAnchorTargetName then
+        local placement = self:GetPlacement(entry.id)
+        local targetName = placement and placement.anchor and placement.anchor.relative or "UIParent"
+        local resolvedEntry, target, normalized = ResolveAnchorTargetForEntry(entry.id, targetName)
+        if not resolvedEntry then return false end
+        SetPendingAnchorSelection(entry, target, normalized)
+    end
     self.anchorPanelOpen = true
     panel.entryId = entry.id
+    panel.targetName = self.pendingAnchorTargetName
     panel:Show()
     self:PositionAnchorPanel(entry)
     self:RefreshMovementWidgets()
@@ -1277,8 +1493,13 @@ function Layout:HideAnchorPanel()
     self:StopAnchorTargetPicker()
     if self.anchorPanel then
         self.anchorPanel.entryId = nil
+        self.anchorPanel.targetName = nil
         self.anchorPanel:Hide()
     end
+    self.pendingAnchorSourceId = nil
+    self.pendingAnchorTargetName = nil
+    self.pendingAnchorPoint = nil
+    self.pendingAnchorRelativePoint = nil
     if self.moverPanel and self.moverPanel:IsShown() then
         self:RefreshMovementWidgets()
     end
@@ -1310,7 +1531,7 @@ function Layout:ShowMoverPanel(entryOrId)
 end
 
 function Layout:RefreshDraggingMover(entry, force)
-    if not entry or self.moverPanelEntryId ~= entry.id then return end
+    if not entry then return end
 
     local now = GetTime and GetTime() or nil
     if not force and now and self.nextMoverPanelRefresh and now < self.nextMoverPanelRefresh then
@@ -1320,27 +1541,54 @@ function Layout:RefreshDraggingMover(entry, force)
         self.nextMoverPanelRefresh = now + MOVER_REFRESH_INTERVAL
     end
 
+    local placement = CaptureMoverPlacement(entry)
+    if not placement then return end
     self.moverPanelLiveId = entry.id
-    self.moverPanelLivePlacement = CaptureMoverPlacement(entry)
-    self:PositionMoverPanel(entry)
-    self:RefreshMovementWidgets()
-    self:RefreshAnchorLine()
+    self.moverPanelLivePlacement = placement
+    if RefreshDragCoordinateInfo then
+        RefreshDragCoordinateInfo(entry, placement)
+    end
+    if self.moverPanelEntryId == entry.id and self.moverPanel and self.moverPanel:IsShown() then
+        self:PositionMoverPanel(entry)
+        self:RefreshMovementWidgets()
+    end
+    if self.selectedId == entry.id then
+        self:RefreshAnchorLine()
+    end
 end
 
 function Layout:HideMoverPanel(id)
     if id and self.moverPanelEntryId ~= id then return end
+    local closedEntryId = self.moverPanelEntryId
+    local deselectClosedEntry = closedEntryId and self.selectedId == closedEntryId
+    if not self.editing then
+        if HideDragCoordinateInfo then HideDragCoordinateInfo() end
+        if self.hoverInfoFrame then self.hoverInfoFrame:Hide() end
+        self.hoveredId = nil
+    end
     self.anchorPanelOpen = false
     if self.anchorPanel then
         self.anchorPanel.entryId = nil
+        self.anchorPanel.targetName = nil
         self.anchorPanel:Hide()
     end
     self:StopAnchorTargetPicker()
+    self.pendingAnchorSourceId = nil
+    self.pendingAnchorTargetName = nil
+    self.pendingAnchorPoint = nil
+    self.pendingAnchorRelativePoint = nil
     self.moverPanelEntryId = nil
     self.moverPanelLiveId = nil
     self.moverPanelLivePlacement = nil
     if self.moverPanel then
         self.moverPanel.entryId = nil
         self.moverPanel:Hide()
+    end
+    if deselectClosedEntry then
+        self.selectedId = nil
+        self:RefreshOverlayVisuals()
+        self:RefreshControlPanel()
+        self:RefreshSettingsPanel()
     end
     self:RefreshMoverBlankClickLayer()
 end
@@ -1519,9 +1767,12 @@ function Layout:RefreshMovementWidgets()
     local disabled = placement == nil
     local controls = {
         widgets.close,
-        widgets.anchorToggle,
         widgets.reset,
         widgets.anchorClose,
+        widgets.anchorConfirm,
+        widgets.anchorCancel,
+        widgets.pointSummary,
+        widgets.relativePointSummary,
     }
     local placementControls = {
         widgets.point,
@@ -1531,7 +1782,6 @@ function Layout:RefreshMovementWidgets()
     }
     local anchorControls = {
         widgets.anchorTarget,
-        widgets.anchorName,
         widgets.pickAnchor,
     }
     if widgets.nudges then
@@ -1546,7 +1796,7 @@ function Layout:RefreshMovementWidgets()
     end
     for _, widget in ipairs(anchorControls) do
         if widget and widget.SetDisabled then
-            widget:SetDisabled(disabled or placementState == PLACEMENT_PENDING)
+            widget:SetDisabled(disabled or placementBlocked)
         end
     end
     for _, widget in ipairs(placementControls) do
@@ -1565,9 +1815,6 @@ function Layout:RefreshMovementWidgets()
     if widgets.title then
         widgets.title:SetText(entry and (entry.spec.title or entry.id) or L("settings.layout.position"))
     end
-    if widgets.anchorToggle and widgets.anchorToggle.SetSelected then
-        widgets.anchorToggle:SetSelected(self.anchorPanel and self.anchorPanel:IsShown())
-    end
     if widgets.anchorPanelTitle then
         widgets.anchorPanelTitle:SetText(L("layout.action.anchor_settings"))
     end
@@ -1581,9 +1828,6 @@ function Layout:RefreshMovementWidgets()
     if widgets.anchorTarget and widgets.anchorTarget.SetValue then
         widgets.anchorTarget:SetValue(anchor.relative or "UIParent", true)
     end
-    if widgets.anchorName and widgets.anchorName.SetValue and not widgets.anchorName:HasFocus() then
-        widgets.anchorName:SetValue(DisplayAnchorTargetName(anchor.relative or "UIParent"), true)
-    end
     if self.anchorPickerEntryId ~= entry.id then
         if placementState == PLACEMENT_PENDING then
             SetAnchorInputState(L("layout.position.anchor_pending") .. ": " .. DisplayAnchorTargetName(entry.pendingAnchor or ""), "color.state.warning")
@@ -1595,11 +1839,24 @@ function Layout:RefreshMovementWidgets()
             SetAnchorInputState(nil)
         end
     end
+    local pendingForEntry = self.pendingAnchorSourceId == entry.id
+    local displayPoint = pendingForEntry and self.pendingAnchorPoint or anchor.point or "CENTER"
+    local displayRelativePoint = pendingForEntry and self.pendingAnchorRelativePoint or anchor.relativePoint or anchor.point or "CENTER"
+    local displayRelative = pendingForEntry and self.pendingAnchorTargetName or anchor.relative or "UIParent"
+    if widgets.anchorSummary then
+        widgets.anchorSummary:SetText((entry.spec.title or entry.id) .. " -> " .. DisplayAnchorTargetName(displayRelative))
+    end
+    if widgets.pointSummary and widgets.pointSummary.SetText then
+        widgets.pointSummary:SetText(DisplayAnchorPoint(displayPoint))
+    end
+    if widgets.relativePointSummary and widgets.relativePointSummary.SetText then
+        widgets.relativePointSummary:SetText(DisplayAnchorPoint(displayRelativePoint))
+    end
     if widgets.point and widgets.point.SetValue then
-        widgets.point:SetValue(anchor.point or "CENTER", true)
+        widgets.point:SetValue(displayPoint, true)
     end
     if widgets.relativePoint and widgets.relativePoint.SetValue then
-        widgets.relativePoint:SetValue(anchor.relativePoint or anchor.point or "CENTER", true)
+        widgets.relativePoint:SetValue(displayRelativePoint, true)
     end
     if widgets.offsetX and widgets.offsetX.SetValue and not widgets.offsetX:HasFocus() then
         widgets.offsetX:SetValue(Round(offset.x or 0), true)

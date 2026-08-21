@@ -1,5 +1,5 @@
 --[[--
-LibDeflate 1.0.2-release <br>
+LibDeflate 1.0.2-release with YUI bounded-output extension <br>
 Pure Lua compressor and decompressor with high compression ratio using
 DEFLATE/zlib format.
 
@@ -89,7 +89,7 @@ do
   -- 3. _MINOR
 
   -- version to store the official version of LibDeflate
-  local _VERSION = "1.0.2-release"
+  local _VERSION = "1.0.2-release-yui1"
 
   -- When MAJOR is changed, I should name it as LibDeflate2
   local _MAJOR = "LibDeflate"
@@ -99,7 +99,8 @@ do
   -- 1 : v1.0.0
   -- 2 : v1.0.1
   -- 3 : v1.0.2
-  local _MINOR = 3
+  -- 4 : YUI bounded-output decompression extension
+  local _MINOR = 4
 
   local _COPYRIGHT = "LibDeflate " .. _VERSION ..
                        " Copyright (C) 2018-2021 Haoqian He." ..
@@ -2273,8 +2274,9 @@ end
 -- @param str the whole string to be decompressed.
 -- @param dictionary The preset dictionary. nil if not provided.
 --		This dictionary should be produced by LibDeflate:CreateDictionary(str)
+-- @param max_output_bytes Optional maximum decompressed output size.
 -- @return The decomrpess state.
-local function CreateDecompressState(str, dictionary)
+local function CreateDecompressState(str, dictionary, max_output_bytes)
   local ReadBits, ReadBytes, Decode, ReaderBitlenLeft, SkipToByteBoundary =
     CreateReader(str)
   local state = {
@@ -2286,7 +2288,9 @@ local function CreateDecompressState(str, dictionary)
     buffer_size = 0,
     buffer = {},
     result_buffer = {},
-    dictionary = dictionary
+    dictionary = dictionary,
+    output_size = 0,
+    max_output_bytes = max_output_bytes
   }
   return state
 end
@@ -2360,6 +2364,8 @@ local function DecodeUntilEndOfBlock(state, lcodes_huffman_bitlens,
     state.buffer, state.buffer_size, state.ReadBits, state.Decode,
     state.ReaderBitlenLeft, state.result_buffer
   local dictionary = state.dictionary
+  local output_size = state.output_size or 0
+  local max_output_bytes = state.max_output_bytes
   local dict_string_table
   local dict_strlen
 
@@ -2383,8 +2389,12 @@ local function DecodeUntilEndOfBlock(state, lcodes_huffman_bitlens,
       -- invalid literal/length or distance code in fixed or dynamic block
       return -10
     elseif symbol < 256 then -- Literal
+      if max_output_bytes and output_size + 1 > max_output_bytes then
+        return -18 -- decompressed output exceeds the caller-provided limit
+      end
       buffer_size = buffer_size + 1
       buffer[buffer_size] = _byte_to_char[symbol]
+      output_size = output_size + 1
     elseif symbol > 256 then -- Length code
       symbol = symbol - 256
       local bitlen = _literal_deflate_code_to_base_len[symbol]
@@ -2392,6 +2402,9 @@ local function DecodeUntilEndOfBlock(state, lcodes_huffman_bitlens,
                  (bitlen +
                    ReadBits(_literal_deflate_code_to_extra_bitlen[symbol])) or
                  bitlen
+      if max_output_bytes and output_size + bitlen > max_output_bytes then
+        return -18 -- decompressed output exceeds the caller-provided limit
+      end
       symbol = Decode(dcodes_huffman_bitlens, dcodes_huffman_symbols,
                       dcodes_huffman_min_bitlen)
       if symbol < 0 or symbol > 29 then
@@ -2423,6 +2436,7 @@ local function DecodeUntilEndOfBlock(state, lcodes_huffman_bitlens,
           char_buffer_index = char_buffer_index + 1
         end
       end
+      output_size = output_size + bitlen
     end
 
     if ReaderBitlenLeft() < 0 then
@@ -2440,6 +2454,7 @@ local function DecodeUntilEndOfBlock(state, lcodes_huffman_bitlens,
   until symbol == 256
 
   state.buffer_size = buffer_size
+  state.output_size = output_size
 
   return 0
 end
@@ -2454,6 +2469,8 @@ local function DecompressStoreBlock(state)
                                             state.ReaderBitlenLeft,
                                             state.SkipToByteBoundary,
                                             state.result_buffer
+  local output_size = state.output_size or 0
+  local max_output_bytes = state.max_output_bytes
 
   SkipToByteBoundary()
   local bytelen = ReadBits(16)
@@ -2472,6 +2489,9 @@ local function DecompressStoreBlock(state)
     255 then
     return -2 -- Not one's complement
   end
+  if max_output_bytes and output_size + bytelen > max_output_bytes then
+    return -18 -- decompressed output exceeds the caller-provided limit
+  end
 
   -- Note that ReadBytes will skip to the next byte boundary first.
   buffer_size = ReadBytes(bytelen, buffer, buffer_size)
@@ -2487,6 +2507,7 @@ local function DecompressStoreBlock(state)
     buffer[buffer_size + 1] = nil
   end
   state.buffer_size = buffer_size
+  state.output_size = output_size + bytelen
   return 0
 end
 
@@ -2645,8 +2666,8 @@ end
 
 -- @see LibDeflate:DecompressDeflate(str)
 -- @see LibDeflate:DecompressDeflateWithDict(str, dictionary)
-local function DecompressDeflateInternal(str, dictionary)
-  local state = CreateDecompressState(str, dictionary)
+local function DecompressDeflateInternal(str, dictionary, max_output_bytes)
+  local state = CreateDecompressState(str, dictionary, max_output_bytes)
   local result, status = Inflate(state)
   if not result then return nil, status end
 
@@ -2726,8 +2747,16 @@ local function DecompressZlibInternal(str, dictionary)
   return result, bytelen_left
 end
 
+local function IsValidMaxOutputBytes(max_output_bytes)
+  return max_output_bytes == nil
+    or (type(max_output_bytes) == "number"
+      and max_output_bytes >= 0
+      and max_output_bytes % 1 == 0)
+end
+
 --- Decompress a raw deflate compressed data.
 -- @param str [string] The data to be decompressed.
+-- @param max_output_bytes [integer/nil] Optional decompressed output limit.
 -- @return [string/nil] If the decompression succeeds, return the decompressed
 -- data. If the decompression fails, return nil. You should check if this return
 -- value is non-nil to know if the decompression succeeds.
@@ -2739,12 +2768,16 @@ end
 -- If the decompression fails (The first return value of this function is nil),
 -- this return value is undefined.
 -- @see LibDeflate:CompressDeflate
-function LibDeflate:DecompressDeflate(str)
+function LibDeflate:DecompressDeflate(str, max_output_bytes)
   local arg_valid, arg_err = IsValidArguments(str)
   if not arg_valid then
     error(("Usage: LibDeflate:DecompressDeflate(str): " .. arg_err), 2)
   end
-  return DecompressDeflateInternal(str)
+  if not IsValidMaxOutputBytes(max_output_bytes) then
+    error("Usage: LibDeflate:DecompressDeflate(str, max_output_bytes): "
+      .. "max_output_bytes must be a non-negative integer or nil", 2)
+  end
+  return DecompressDeflateInternal(str, nil, max_output_bytes)
 end
 
 --- Decompress a raw deflate compressed data with a preset dictionary.
@@ -2754,6 +2787,7 @@ end
 -- Decompression and compression must use the same dictionary.
 -- Otherwise wrong decompressed data could be produced without generating any
 -- error.
+-- @param max_output_bytes [integer/nil] Optional decompressed output limit.
 -- @return [string/nil] If the decompression succeeds, return the decompressed
 -- data. If the decompression fails, return nil. You should check if this return
 -- value is non-nil to know if the decompression succeeds.
@@ -2765,13 +2799,18 @@ end
 -- If the decompression fails (The first return value of this function is nil),
 -- this return value is undefined.
 -- @see LibDeflate:CompressDeflateWithDict
-function LibDeflate:DecompressDeflateWithDict(str, dictionary)
+function LibDeflate:DecompressDeflateWithDict(str, dictionary, max_output_bytes)
   local arg_valid, arg_err = IsValidArguments(str, true, dictionary)
   if not arg_valid then
     error(("Usage: LibDeflate:DecompressDeflateWithDict(str, dictionary): " ..
             arg_err), 2)
   end
-  return DecompressDeflateInternal(str, dictionary)
+  if not IsValidMaxOutputBytes(max_output_bytes) then
+    error("Usage: LibDeflate:DecompressDeflateWithDict(str, dictionary, "
+      .. "max_output_bytes): max_output_bytes must be a non-negative integer "
+      .. "or nil", 2)
+  end
+  return DecompressDeflateInternal(str, dictionary, max_output_bytes)
 end
 
 --- Decompress a zlib compressed data.

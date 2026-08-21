@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local _, YUI = ...
 
@@ -18,16 +20,59 @@ local Unit = YUI.API and YUI.API.Unit or Legacy
 local type = type
 local pairs = pairs
 local ipairs = ipairs
+local math_min = math.min
+local math_max = math.max
 local tonumber = tonumber
 local tostring = tostring
+local string_find = string.find
+local string_gmatch = string.gmatch
+local string_gsub = string.gsub
+local string_match = string.match
 local strupper = string.upper
 local strlower = string.lower
+local table_insert = table.insert
 local table_sort = table.sort
 local unpack = unpack
 
 local DEFAULT_SET_ID = "blizzard"
 local SCOPE_STATE_VERSION = 2
 local NATIVE_SPEC_TEXCOORD = { 0.08, 0.92, 0.08, 0.92 }
+local DEFAULT_TEXTURE_INDEX_ROOT = "Interface\\Icons\\"
+
+local DEFAULT_SEARCH_ALIASES = {
+    ["红"] = { "red", "crimson", "scarlet", "ruby", "blood" },
+    ["红色"] = { "red", "crimson", "scarlet", "ruby", "blood" },
+    ["赤"] = { "red", "crimson", "scarlet", "ruby", "blood" },
+    ["蓝"] = { "blue", "azure", "cyan", "frost", "ice", "water" },
+    ["蓝色"] = { "blue", "azure", "cyan", "frost", "ice", "water" },
+    ["绿"] = { "green", "emerald", "nature", "poison", "fel" },
+    ["绿色"] = { "green", "emerald", "nature", "poison", "fel" },
+    ["黄"] = { "yellow", "gold", "holy", "light", "sun" },
+    ["黄色"] = { "yellow", "gold", "holy", "light", "sun" },
+    ["金"] = { "gold", "yellow", "holy", "light" },
+    ["金色"] = { "gold", "yellow", "holy", "light" },
+    ["紫"] = { "purple", "violet", "shadow", "arcane" },
+    ["紫色"] = { "purple", "violet", "shadow", "arcane" },
+    ["黑"] = { "black", "dark", "shadow", "death" },
+    ["黑色"] = { "black", "dark", "shadow", "death" },
+    ["白"] = { "white", "holy", "light", "frost" },
+    ["白色"] = { "white", "holy", "light", "frost" },
+    ["火"] = { "fire", "flame", "burn", "lava", "ember" },
+    ["火焰"] = { "fire", "flame", "burn", "lava", "ember" },
+    ["冰"] = { "frost", "ice", "cold", "snow" },
+    ["冰霜"] = { "frost", "ice", "cold", "snow" },
+    ["暗影"] = { "shadow", "dark", "void", "death" },
+    ["神圣"] = { "holy", "light", "priest" },
+    ["自然"] = { "nature", "leaf", "green", "earth" },
+    ["奥术"] = { "arcane", "magic", "mage" },
+    ["毒"] = { "poison", "toxic", "venom", "green" },
+    ["治疗"] = { "heal", "healing", "holy", "renew" },
+    ["盾"] = { "shield", "barrier", "protect" },
+    ["剑"] = { "sword", "blade" },
+    ["斧"] = { "axe" },
+    ["锤"] = { "hammer", "mace" },
+    ["弓"] = { "bow", "arrow" },
+}
 
 local NATIVE_TEXTURE_TO_SPEC = {
     [135770] = 250, [135773] = 251, [135775] = 252,
@@ -101,6 +146,7 @@ local RACE_ATLAS_STEM_OVERRIDES = {
     zandalaritroll = "zandalari",
     earthendwarf = "earthen",
     scourge = "undead",
+    harronir = "haranir",
 }
 
 local coordCache = {}
@@ -366,6 +412,8 @@ Icons.iconSets = Icons.iconSets or {}
 Icons.iconSetOrder = Icons.iconSetOrder or {}
 Icons.iconScopes = Icons.iconScopes or {}
 Icons.iconScopeOrder = Icons.iconScopeOrder or {}
+Icons.textureIndexes = Icons.textureIndexes or {}
+Icons.textureIndexOrder = Icons.textureIndexOrder or {}
 
 local function RememberOrder(order, id)
     for _, existing in ipairs(order) do
@@ -375,6 +423,327 @@ local function RememberOrder(order, id)
     end
     order[#order + 1] = id
 end
+
+local function Trim(value)
+    value = tostring(value or "")
+    return (string_gsub(value, "^%s+", ""):gsub("%s+$", ""))
+end
+
+local function NormalizeIconBaseName(value)
+    if type(value) ~= "string" then
+        return nil
+    end
+    value = Trim(value)
+    if value == "" then return nil end
+    value = string_gsub(value, "^Interface[/\\]Icons[/\\]", "")
+    value = string_gsub(value, "^Interface[/\\]icons[/\\]", "")
+    value = string_gsub(value, "^interface[/\\]icons[/\\]", "")
+    return value ~= "" and value or nil
+end
+
+local function NormalizeSearchText(value)
+    value = strlower(tostring(value or ""))
+    value = string_gsub(value, "[_%-%.]+", " ")
+    value = string_gsub(value, "%s+", " ")
+    return value
+end
+
+local function AddTokenGroup(groups, token)
+    if token == "" then return end
+    local group, seen = {}, {}
+    group[#group + 1] = token
+    seen[token] = true
+
+    local aliases = Icons.searchAliases and Icons.searchAliases[token]
+    if type(aliases) == "table" then
+        for _, alias in ipairs(aliases) do
+            alias = NormalizeSearchText(alias)
+            for aliasToken in string_gmatch(alias, "[^%s]+") do
+                if aliasToken ~= "" and not seen[aliasToken] then
+                    seen[aliasToken] = true
+                    group[#group + 1] = aliasToken
+                end
+            end
+        end
+    end
+
+    groups[#groups + 1] = group
+end
+
+local function SplitSearchTokens(query)
+    local groups = {}
+    query = NormalizeSearchText(query)
+    for token in string_gmatch(query, "[^%s]+") do
+        AddTokenGroup(groups, token)
+    end
+    return groups
+end
+
+local function JoinAliases(aliases)
+    if type(aliases) == "table" then
+        local values = {}
+        for _, alias in ipairs(aliases) do
+            values[#values + 1] = tostring(alias)
+        end
+        return table.concat(values, " ")
+    end
+    return tostring(aliases or "")
+end
+
+local function ParseTextureIndexEntry(entry)
+    local fileID, name, searchText
+    if type(entry) == "string" then
+        local rawID, rawName = string_match(entry, "^(%d+):(.+)$")
+        fileID = tonumber(rawID)
+        name = rawName or entry
+    elseif type(entry) == "table" then
+        fileID = tonumber(entry.fileID or entry.id or entry[1])
+        name = entry.name or entry.path or entry[2]
+        searchText = entry.searchText or entry.search or entry.aliases
+    end
+
+    name = NormalizeIconBaseName(name)
+    if not name then return nil end
+    return fileID, name, searchText
+end
+
+local function EnsureTextureIndexEntries(index)
+    if type(index) ~= "table" then return nil end
+    return type(index.entries) == "table" and index.entries or nil
+end
+
+local function GetTextureIndex(id)
+    if id and Icons.textureIndexes[id] then
+        return Icons.textureIndexes[id]
+    end
+    if Icons.activeTextureIndexID and Icons.textureIndexes[Icons.activeTextureIndexID] then
+        return Icons.textureIndexes[Icons.activeTextureIndexID]
+    end
+    for _, indexID in ipairs(Icons.textureIndexOrder) do
+        local index = Icons.textureIndexes[indexID]
+        if index then return index end
+    end
+    return nil
+end
+
+function Icons.RegisterTextureIndex(def)
+    if type(def) ~= "table" or type(def.id) ~= "string" or def.id == "" then
+        return false
+    end
+    if type(def.entries) ~= "table" then
+        return false
+    end
+
+    local id = def.id
+    Icons.textureIndexes[id] = {
+        id = id,
+        name = def.name or id,
+        version = def.version,
+        flavor = def.flavor,
+        root = def.root or DEFAULT_TEXTURE_INDEX_ROOT,
+        entries = def.entries,
+        count = tonumber(def.count) or #def.entries,
+    }
+    Icons.activeTextureIndexID = id
+    RememberOrder(Icons.textureIndexOrder, id)
+    return true
+end
+
+function Icons.HasTextureIndex(id)
+    local index = GetTextureIndex(id)
+    if not index then return false end
+    if type(index.entries) == "table" and #index.entries > 0 then return true end
+    return false
+end
+
+local function TextureEntryMatches(fileID, searchText, tokenGroups, numericQuery)
+    if numericQuery and fileID == numericQuery then
+        return true
+    end
+    if #tokenGroups == 0 then
+        return false
+    end
+    local haystack = searchText or ""
+    for _, group in ipairs(tokenGroups) do
+        local matched = false
+        for _, token in ipairs(group) do
+            if string_find(haystack, token, 1, true) then
+                matched = true
+                break
+            end
+        end
+        if not matched then
+            return false
+        end
+    end
+    return true
+end
+
+local function CreateTextureIndexSearchState(query, opts)
+    opts = type(opts) == "table" and opts or {}
+    local result = {
+        hasIndex = false,
+        total = 0,
+        truncated = false,
+        complete = true,
+        scanned = 0,
+    }
+    local index = GetTextureIndex(opts.indexID)
+    if not index then
+        return nil, result
+    end
+    local entries = EnsureTextureIndexEntries(index)
+    if type(entries) ~= "table" or #entries == 0 then
+        return nil, result
+    end
+
+    local queryText = Trim(query)
+    local tokenGroups = SplitSearchTokens(queryText)
+    local numericQuery = tonumber(queryText)
+    result.hasIndex = true
+    result.indexID = index.id
+    result.indexName = index.name
+    result.complete = false
+
+    return {
+        entries = entries,
+        root = index.root or DEFAULT_TEXTURE_INDEX_ROOT,
+        tokenGroups = tokenGroups,
+        numericQuery = numericQuery,
+        limit = math_min(math_max(tonumber(opts.limit) or 240, 1), 1000),
+        stopAfterLimit = opts.stopAfterLimit == true,
+        cursor = 1,
+        result = result,
+        done = false,
+    }, result
+end
+
+local function StepTextureIndexSearchState(state, opts)
+    if not state or state.done then
+        return true, state and state.result or nil
+    end
+    opts = type(opts) == "table" and opts or {}
+    local budgetMS = tonumber(opts.budgetMS)
+    local minEntries = tonumber(opts.minEntries) or 64
+    local maxEntries = tonumber(opts.maxEntries)
+    local startTime = budgetMS and debugprofilestop and debugprofilestop() or nil
+    local processed = 0
+    local entries = state.entries
+    local result = state.result
+
+    while state.cursor <= #entries do
+        local rawEntry = entries[state.cursor]
+        state.cursor = state.cursor + 1
+        processed = processed + 1
+
+        local fileID, name, searchExtra = ParseTextureIndexEntry(rawEntry)
+        if name then
+            local searchText = NormalizeSearchText(name .. " " .. JoinAliases(searchExtra))
+            local exactNumericMatch = state.numericQuery and fileID == state.numericQuery
+            if TextureEntryMatches(fileID, searchText, state.tokenGroups, state.numericQuery) then
+                result.total = result.total + 1
+                if #result < state.limit then
+                    local texture = state.root .. name
+                    table_insert(result, {
+                        group = "图标库",
+                        label = name,
+                        value = texture,
+                        icon = texture,
+                        source = "图标库",
+                        fileID = fileID,
+                        name = name,
+                    })
+                end
+                if exactNumericMatch or (state.stopAfterLimit and result.total > state.limit) then
+                    result.truncated = not exactNumericMatch
+                    state.done = true
+                    break
+                end
+            end
+        end
+
+        if maxEntries and processed >= maxEntries then
+            break
+        end
+        if startTime and processed >= minEntries and (debugprofilestop() - startTime) >= budgetMS then
+            break
+        end
+    end
+
+    result.scanned = state.cursor - 1
+    if state.cursor > #entries then
+        state.done = true
+    end
+    result.complete = state.done
+    if not state.stopAfterLimit then
+        result.truncated = result.total > #result
+    end
+    return state.done, result
+end
+
+function Icons.RegisterSearchAliases(map)
+    if type(map) ~= "table" then return false end
+    Icons.searchAliases = Icons.searchAliases or {}
+    for key, aliases in pairs(map) do
+        key = NormalizeSearchText(key)
+        if key ~= "" then
+            Icons.searchAliases[key] = aliases
+        end
+    end
+    return true
+end
+
+function Icons.SearchTextureIndex(query, opts)
+    opts = type(opts) == "table" and opts or {}
+    local offset = math_max(tonumber(opts.offset) or 0, 0)
+    local limit = math_min(math_max(tonumber(opts.limit) or 240, 1), 1000)
+    local state, result = CreateTextureIndexSearchState(query, opts)
+    if not state then return result end
+    state.limit = limit + offset
+    state.stopAfterLimit = opts.stopAfterLimit == true
+    StepTextureIndexSearchState(state, { maxEntries = nil })
+    if offset > 0 and #result > 0 then
+        local shifted = {}
+        for index = offset + 1, #result do
+            shifted[#shifted + 1] = result[index]
+        end
+        for index = 1, #result do
+            result[index] = nil
+        end
+        for index = 1, math_min(#shifted, limit) do
+            result[index] = shifted[index]
+        end
+    end
+    return result
+end
+
+function Icons.CreateTextureIndexSearchJob(query, opts)
+    opts = type(opts) == "table" and opts or {}
+    local state, result = CreateTextureIndexSearchState(query, {
+        indexID = opts.indexID,
+        limit = opts.limit,
+        stopAfterLimit = opts.stopAfterLimit ~= false,
+    })
+    local job = {
+        complete = state == nil,
+        result = result,
+    }
+
+    function job:Step(stepOpts)
+        if not state then
+            return true, self.result
+        end
+        local done, nextResult = StepTextureIndexSearchState(state, stepOpts)
+        self.complete = done
+        self.result = nextResult
+        return done, nextResult
+    end
+
+    return job
+end
+
+Icons.searchAliases = Icons.searchAliases or {}
+Icons.RegisterSearchAliases(DEFAULT_SEARCH_ALIASES)
 
 function Icons.RegisterIconSet(def)
     if type(def) ~= "table" or type(def.id) ~= "string" or def.id == "" then
@@ -805,7 +1174,22 @@ function Icons.ApplyIcon(texture, icon)
     end
 
     if icon.atlas and texture.SetAtlas then
-        texture:SetAtlas(icon.atlas, false)
+        if texture.ResetTexCoord then
+            pcall(texture.ResetTexCoord, texture)
+        elseif texture.SetTexCoord then
+            texture:SetTexCoord(0, 1, 0, 1)
+        end
+        local resetByAtlas = pcall(
+            texture.SetAtlas,
+            texture,
+            icon.atlas,
+            false,
+            nil,
+            true
+        )
+        if not resetByAtlas then
+            texture:SetAtlas(icon.atlas, false)
+        end
         if icon.texCoord then
             texture:SetTexCoord(unpack(icon.texCoord))
         end
@@ -854,6 +1238,15 @@ Icons.RegisterIconScope({
 })
 
 Icons.RegisterIconScope({
+    id = "ellesmere_damage_meters",
+    name = "EllesmereUI伤害统计",
+    nameKey = "settings.appearance.scope.ellesmere_damage_meters",
+    tooltipKey = "settings.appearance.scope.ellesmere_damage_meters.tooltip",
+    order = 25,
+    default = true,
+})
+
+Icons.RegisterIconScope({
     id = "details_spec_sync",
     name = "Details专精同步",
     nameKey = "settings.appearance.scope.details_spec_sync",
@@ -864,7 +1257,7 @@ Icons.RegisterIconScope({
 
 Icons.RegisterIconScope({
     id = "ybar",
-    name = "全能双栏",
+    name = "YUI InfoBar",
     nameKey = "settings.appearance.scope.ybar",
     tooltipKey = "settings.appearance.scope.ybar.tooltip",
     order = 40,

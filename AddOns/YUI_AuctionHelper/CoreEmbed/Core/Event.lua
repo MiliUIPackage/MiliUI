@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local _, YUI = ...
 
@@ -29,6 +31,22 @@ local unpack = unpack
 local next = next
 local API = YUI.WOW_API
 local CombatAPI = YUI.API and YUI.API.Combat or API
+local ROSTER_TRANSACTION_GROUP_ID = "event.transaction.GROUP_ROSTER_UPDATE"
+local ROSTER_TRANSACTION_LABEL = "GROUP_ROSTER_UPDATE transaction"
+
+local function ProfileBegin(key)
+    local profiler = YUI.YActionBar and YUI.YActionBar.Profiler
+    if profiler and profiler.enabled == true and profiler.Begin then
+        return profiler:Begin(key), profiler
+    end
+    return nil, nil
+end
+
+local function ProfileFinish(profiler, key, startedAt, count)
+    if profiler and profiler.Finish then
+        profiler:Finish(key, startedAt, count)
+    end
+end
 
 local function Now()
     if CombatAPI and CombatAPI.GetTime then
@@ -215,7 +233,10 @@ local function GetListenerTraceName(listener)
     if type(listener.handler) == "string" then
         return tostring(listener.handler)
     end
-    return "anonymous"
+    if listener.moduleId and listener.moduleId ~= "" then
+        return tostring(listener.moduleId)
+    end
+    return "anonymous#" .. tostring(listener.sequence or "unknown")
 end
 
 function Event:_Debug(...)
@@ -436,7 +457,31 @@ function Event:_Invoke(listener, event, ...)
         })
     end
 
+    local cpuWatchdog = self.cpuTimingWatchdog
+    local cpuStartedAt = cpuWatchdog and cpuWatchdog:BeginProbeTiming()
+    local profileStart, profiler = ProfileBegin("event.bus.total")
     local success, err = pcall(CallListener, listener, event, ...)
+    ProfileFinish(profiler, "event.bus.total", profileStart)
+    if cpuStartedAt then
+        local diagnosticID = listener.cpuDiagnosticID
+        local diagnosticLabel = listener.cpuDiagnosticLabel
+        if not diagnosticID then
+            local eventName = tostring(event)
+            local listenerName = tostring(GetListenerTraceName(listener))
+            diagnosticID = "event.listener." .. eventName .. "." .. listenerName
+            diagnosticLabel = eventName .. " / " .. listenerName
+            listener.cpuDiagnosticID = diagnosticID
+            listener.cpuDiagnosticLabel = diagnosticLabel
+        end
+        cpuWatchdog:EndDynamicProbeTiming(
+            diagnosticID,
+            diagnosticLabel,
+            "core.eventbus",
+            cpuStartedAt,
+            event == "GROUP_ROSTER_UPDATE" and ROSTER_TRANSACTION_GROUP_ID or nil,
+            event == "GROUP_ROSTER_UPDATE" and ROSTER_TRANSACTION_LABEL or nil
+        )
+    end
     local stats = GetStatsTable(self, event)
     if success then
         stats.listenerCalls = stats.listenerCalls + 1
@@ -539,12 +584,15 @@ function Event:_Dispatch(event, source, sourceKey, ...)
         return
     end
 
+    local cpuWatchdog = self.cpuTimingWatchdog
+    local cpuStartedAt = cpuWatchdog and cpuWatchdog:BeginProbeTiming()
     local stats = GetStatsTable(self, event)
     stats.fireCount = stats.fireCount + 1
     stats.lastFire = Now()
 
     local list = self.listeners[event]
     if not list or #list == 0 then
+        if cpuStartedAt then cpuWatchdog:EndProbeTiming("core.eventbus", cpuStartedAt) end
         return
     end
 
@@ -560,6 +608,7 @@ function Event:_Dispatch(event, source, sourceKey, ...)
             self:_QueueOrInvoke(listener, event, ...)
         end
     end
+    if cpuStartedAt then cpuWatchdog:EndProbeTiming("core.eventbus", cpuStartedAt) end
 end
 
 function Event:On(event, handler, owner, options)

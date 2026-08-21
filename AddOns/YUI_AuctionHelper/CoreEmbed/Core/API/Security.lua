@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local _, YUI = ...
 
@@ -48,7 +50,7 @@ end
 function Security.SecureCallFunction(func, ...)
     if not func then return nil end
 
-    if securecallfunction then
+    if type(securecallfunction) == "function" then
         return securecallfunction(func, ...)
     end
 
@@ -58,7 +60,7 @@ end
 function Security.SecureCallMethod(object, method, ...)
     if not object or not method then return nil end
 
-    if securecallmethod then
+    if type(securecallmethod) == "function" then
         return securecallmethod(object, method, ...)
     end
 
@@ -166,7 +168,7 @@ function Security.HideTooltip(tooltip)
         return false, "tooltip is nil"
     end
 
-    if securecallmethod then
+    if type(securecallmethod) == "function" then
         local ok, result = pcall(securecallmethod, tooltip, "Hide")
         if ok then
             return true, result

@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local YUI = _G.YUI
 YUI.GUI2 = YUI.GUI2 or {}
@@ -47,6 +49,14 @@ local function Color(r, g, b, a)
         type = "solid",
         value = { r, g, b, a == nil and 1 or a },
     }
+end
+
+local function WithAlpha(paint, alpha)
+    local copy = CopyValue(paint)
+    if type(copy) == "table" and type(copy.value) == "table" then
+        copy.value[4] = alpha
+    end
+    return copy
 end
 
 local function Gradient(fallback, direction, stops)
@@ -111,6 +121,33 @@ local function AddCommonTokens(tokens)
     tokens["color.state.error"] = Color(0.95, 0.25, 0.25, 1)
     tokens["color.state.info"] = Color(0.30, 0.62, 0.98, 1)
     tokens["color.state.danger"] = Color(0.92, 0.18, 0.18, 1)
+    tokens["color.tooltip.id.label"] = Color(1.00, 0.251, 0.251, 1)
+    tokens["color.tooltip.id.value"] = Color(1.00, 0.820, 0.000, 1)
+    tokens["color.configset.current.surface"] = Color(0.95, 0.70, 0.22, 0.15)
+    tokens["color.configset.current.border"] = Color(0.95, 0.70, 0.22, 0.72)
+    tokens["color.configset.enabled.surface"] = Color(0.30, 0.62, 0.98, 0.12)
+    tokens["color.configset.enabled.border"] = Color(0.30, 0.62, 0.98, 0.56)
+    tokens["color.badge.orange"] = Color(0.95, 0.43, 0.10, 1)
+    tokens["color.badge.orange.hover"] = Color(1.00, 0.58, 0.16, 1)
+    tokens["color.badge.orange.pressed"] = Color(0.70, 0.28, 0.04, 1)
+    tokens["color.badge.green"] = Color(0.12, 0.72, 0.34, 1)
+    tokens["color.badge.purple"] = Color(0.56, 0.31, 0.92, 1)
+    tokens["color.badge.text"] = Color(1, 1, 1, 1)
+
+    local interactionPaint = tokens["color.interaction.primary"]
+    local interaction = interactionPaint and interactionPaint.value or { 0.00, 0.60, 1.00, 1 }
+    tokens["color.interaction.primaryHover"] = Color(
+        interaction[1] + (1 - interaction[1]) * 0.18,
+        interaction[2] + (1 - interaction[2]) * 0.18,
+        interaction[3] + (1 - interaction[3]) * 0.18,
+        interaction[4] or 1
+    )
+    tokens["color.interaction.primaryPressed"] = Color(
+        interaction[1] * 0.72,
+        interaction[2] * 0.72,
+        interaction[3] * 0.72,
+        interaction[4] or 1
+    )
 
     local defaultFont = GUI2:GetDefaultFont()
     tokens["font.family.body"] = defaultFont
@@ -145,12 +182,17 @@ local function AddCommonTokens(tokens)
     tokens["layout.radius.panel"] = 0
     tokens["layout.radius.control"] = 0
     tokens["layout.radius.icon"] = 0
+    tokens["layout.radius.badge"] = 6
 
     tokens["color.control.choice.left"] = CopyValue(tokens["color.control.hover"] or tokens["color.control.track"] or tokens["color.control.bg"])
     tokens["color.control.choice.right"] = CopyValue(tokens["color.control.active"] or tokens["color.interaction.active"] or tokens["color.control.bg"])
     tokens["color.control.locked"] = Color(0.260, 0.185, 0.055, 0.86)
     tokens["color.border.locked"] = CopyValue(tokens["color.state.warning"])
     tokens["color.text.locked"] = CopyValue(tokens["color.state.warning"])
+
+    tokens["color.settings.panel"] = WithAlpha(tokens["color.surface.panel"], 0.78)
+    tokens["color.settings.raised"] = WithAlpha(tokens["color.surface.raised"], 0.84)
+    tokens["color.settings.navItem"] = WithAlpha(tokens["color.surface.nav"], 0.56)
 
     tokens["border.width.hairline"] = 1
     tokens["shadow.panel.size"] = 3
@@ -246,6 +288,7 @@ local function BuildNativeGildedTokens()
     tokens["color.overlay.highlight"] = Color(0.945, 0.824, 0.541, 0.13)
 
     local classColor = ResolveClassColor()
+    SetInteractionTokens(tokens, YUI_BLUE)
     SetAccentTokens(tokens, { 0.851, 0.706, 0.318, 1 })
     SetClassTokens(tokens, classColor)
     AddCommonTokens(tokens)

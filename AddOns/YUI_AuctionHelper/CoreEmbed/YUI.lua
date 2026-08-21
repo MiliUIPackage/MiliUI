@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local ADDON_NAME, YUI = ...
 local bootstrapState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[ADDON_NAME]
@@ -11,6 +13,19 @@ YUI.CoreVersion = YUI.CoreVersion or (bootstrapState and bootstrapState.embedded
 YUI.CoreMode = YUI.CoreMode or (bootstrapState and bootstrapState.coreMode) or "suite"
 YUI.ProductId = YUI.ProductId or (bootstrapState and bootstrapState.productId) or "suite"
 YUI.SettingsScope = YUI.SettingsScope or (bootstrapState and bootstrapState.settingsScope) or "suite"
+
+function YUI:GetAddonProductId(addonName, fallback)
+    local states = _G.YUI_CORE_EMBED_STATE
+    local state = states and addonName and states[addonName]
+    local productId = state and state.productId
+    if type(productId) == "string" and productId ~= "" then
+        return productId
+    end
+    if type(fallback) == "string" and fallback ~= "" then
+        return fallback
+    end
+    return self.ProductId or "suite"
+end
 YUI.Locale = YUI.Locale or {}
 YUI.Player = YUI.Player or {}
 YUI.Products = YUI.Products or {}
@@ -510,8 +525,8 @@ function DB:BindProductDatabase(productId, migrate)
     end
 
     local db = self:EnsureProductDatabase(product.id)
-    if db and migrate and self.MigrateSavedVariablesToV2 then
-        self:MigrateSavedVariablesToV2(db, product.db.savedVariable)
+    if db and migrate and self.MigrateSavedVariables then
+        self:MigrateSavedVariables(db, product.db.savedVariable)
     end
     return db
 end
@@ -931,10 +946,23 @@ function YUI:InitializeDB()
     local bootstrapProduct = {
         addonName = ADDON_NAME,
         id = (bootstrapState and bootstrapState.productId) or self.ProductId or "suite",
-        title = (bootstrapState and bootstrapState.productTitle) or (((bootstrapState and bootstrapState.productId) or self.ProductId) == "suite" and "YUI" or self.ProductId) or "YUI",
+        title = (bootstrapState and bootstrapState.productTitle) or (((bootstrapState and bootstrapState.productId) or self.ProductId) == "suite" and "YUI · YanForge" or self.ProductId) or "YUI",
+        localizedTitles = ((bootstrapState and bootstrapState.productId) or self.ProductId) == "suite" and {
+            zhCN = "YUI · 言工坊",
+            zhTW = "YUI · 言工坊",
+        } or nil,
+        shortTitle = "YUI",
+        localizedShortTitles = {
+            zhCN = "YUI",
+            zhTW = "YUI",
+        },
         logo = bootstrapState and bootstrapState.productLogo,
         author = "阿言",
-        notes = "一起见证最棒的界面配置成长",
+        notes = "The YUI all-in-one interface suite.",
+        localizedNotes = ((bootstrapState and bootstrapState.productId) or self.ProductId) == "suite" and {
+            zhCN = "YUI 整合界面插件。",
+            zhTW = "YUI 整合介面插件。",
+        } or nil,
         version = bootstrapState and bootstrapState.productVersion,
         coreMode = self.CoreMode,
         settingsScope = self.SettingsScope,
@@ -991,7 +1019,7 @@ function DB:InitializeSavedVariables()
         end
     end
 
-    if self.MigrateSavedVariablesToV2 then
+    if self.MigrateSavedVariables then
         local migratedSavedVariables = {}
         for db, savedVariableName in pairs(self.databaseSavedVariables or {}) do
             local migrationKey = savedVariableName or db
@@ -999,13 +1027,13 @@ function DB:InitializeSavedVariables()
                 migratedSavedVariables[migrationKey] = true
                 if YUI.Trace and YUI.Trace.Measure then
                     YUI.Trace:Measure("DB", "Migrate SavedVariables: " .. tostring(savedVariableName or "?"), function()
-                        self:MigrateSavedVariablesToV2(db, savedVariableName)
+                        self:MigrateSavedVariables(db, savedVariableName)
                     end, savedVariableName, {
                         moduleId = "YUI.DB",
                         phase = "MigrateSavedVariables",
                     })
                 else
-                    self:MigrateSavedVariablesToV2(db, savedVariableName)
+                    self:MigrateSavedVariables(db, savedVariableName)
                 end
             end
         end
@@ -1047,6 +1075,15 @@ function YUI:OnProfileChanged(event, database, newProfileKey)
     local product = self.Products and self.Products[productId]
     local title = self.GetProductTitle and self:GetProductTitle(product or productId) or (product and product.title or productId)
     self:Print(title .. " 配置已切换为: " .. (newProfileKey or current or "Default"))
+
+    local configSets = self.Settings and self.Settings.ConfigSets
+    if configSets and configSets.InvalidateTransactions then
+        configSets:InvalidateTransactions(database)
+    end
+    local configSetPicker = self.Settings and self.Settings.ConfigSetPicker
+    if configSetPicker and configSetPicker.Close then
+        configSetPicker:Close()
+    end
 
     if self.Settings and self.Settings.RefreshNav then
         self.Settings:RefreshNav()

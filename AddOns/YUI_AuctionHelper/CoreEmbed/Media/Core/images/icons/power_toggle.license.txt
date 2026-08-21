@@ -1,0 +1,5 @@
+Source: Lucide Power icon shape
+URL: https://lucide.dev/icons/power
+License: ISC License (Lucide)
+Files: power_toggle.png
+Notes: Rasterized as a single-color transparent Core UI texture for runtime tinting. Also used as the source for the GUI2 settings micro atlas power variants.

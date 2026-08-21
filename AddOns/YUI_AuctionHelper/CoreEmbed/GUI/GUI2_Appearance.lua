@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local YUI = _G.YUI
 YUI.GUI2 = YUI.GUI2 or {}
@@ -22,6 +24,7 @@ local DEFAULT_APPEARANCE = {
         motionStrength = "standard",
         density = "standard",
         iconShape = "rounded",
+        settingsBackground = "artwork",
     },
     tokenOverrides = {},
 }
@@ -171,6 +174,25 @@ function Appearance:SetUserOption(key, value)
     if not db then return end
     db.userOptions[key] = value
     self:RenderPreview()
+end
+
+function Appearance:GetSettingsBackgroundMode()
+    local db = self:GetDB()
+    local mode = db and db.userOptions and db.userOptions.settingsBackground
+    if mode == "solid" then
+        return "solid"
+    end
+    return DEFAULT_APPEARANCE.userOptions.settingsBackground
+end
+
+function Appearance:SetSettingsBackgroundMode(mode)
+    mode = mode == "solid" and "solid" or "artwork"
+    local db = self:GetDB()
+    if not db then return end
+    db.userOptions.settingsBackground = mode
+    if YUI.Settings and YUI.Settings.RefreshSettingsBackground then
+        YUI.Settings:RefreshSettingsBackground()
+    end
 end
 
 function Appearance:ResetCurrentPreset()
@@ -420,6 +442,9 @@ end
 if hooksecurefunc and YUI.OnProfileChanged then
     hooksecurefunc(YUI, "OnProfileChanged", function()
         Appearance:ApplyStoredPreset()
+        if YUI.Settings and YUI.Settings.RefreshSettingsBackground then
+            YUI.Settings:RefreshSettingsBackground()
+        end
         if Appearance.frame and Appearance.frame:IsShown() then
             Appearance:Render()
         end

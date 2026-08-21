@@ -2,4 +2,5 @@
 	<Script file='Module.lua'/>
 	<Include file='Layout\!load.xml'/>
 	<Script file='Monitor.lua'/>
+	<Script file='MonitorData.lua'/>
 </Ui>

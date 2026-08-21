@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local _, YUI = ...
 local Animation = YUI.Animation
@@ -226,6 +228,8 @@ local function OnUpdate(_, elapsed)
         return
     end
 
+    local cpuWatchdog = YUI.CPUWatchdog
+    local cpuStartedAt = cpuWatchdog and cpuWatchdog.timingActive and cpuWatchdog:BeginProbeTiming()
     for index = #Driver.active, 1, -1 do
         local handle = Driver.active[index]
         if not handle or handle._completed then
@@ -241,6 +245,7 @@ local function OnUpdate(_, elapsed)
             end
         end
     end
+    if cpuStartedAt then cpuWatchdog:EndProbeTiming("core.animation", cpuStartedAt) end
 end
 
 local function EnsureTicker()

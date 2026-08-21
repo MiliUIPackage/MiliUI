@@ -1,19 +1,24 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.productEnabled then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.productEnabled then
+        return
+    end
 end
 -------------------------------------------------------------------------------
 --- YUI 拍卖行购买助手
 --- 用于快速搜索和购买拍卖行物品
 -------------------------------------------------------------------------------
 
-local _, addonNs = ...
+local ADDON_NAME, addonNs = ...
 local ns = _G.YUI or addonNs
 local YUI = ns
 local GUI2 = ns.GUI2
 local Components = ns.Components
 local L = ns.Locale and ns.Locale:Get("AuctionHelper") or setmetatable({}, { __index = function(_, key) return tostring(key) end })
+local PRODUCT_ID = ns.GetAddonProductId and ns:GetAddonProductId(ADDON_NAME, "auction_helper")
+    or ns.ProductId or "auction_helper"
+local TOOLBOX_MANAGED = PRODUCT_ID == "suite" or PRODUCT_ID == "toolbox"
 
 -- 缓存全局函数
 local GetItemIcon = GetItemIcon or C_Item.GetItemIconByID
@@ -49,7 +54,7 @@ end
 
 local function GetProfile()
     if ns.DB and ns.DB.GetProfile then
-        local profile = ns.DB:GetProfile("auction_helper")
+        local profile = ns.DB:GetProfile(PRODUCT_ID)
         if type(profile) == "table" then
             return profile
         end
@@ -78,7 +83,7 @@ end
 
 function DB:IsEnabled()
     if Components and Components.GetStoreValue then
-        local isEnabled = Components:GetStoreValue("AuctionHelper", nil, "auction_helper")
+        local isEnabled = Components:GetStoreValue("AuctionHelper", nil, PRODUCT_ID)
         if isEnabled ~= nil then return isEnabled == true end
     end
     if Components and Components.features and Components.features["AuctionHelper"] then
@@ -99,14 +104,15 @@ local DATA = {
                 { id = {241322, 241323}, tagKey = "tag.mastery" },
                 { id = {241324, 241325}, tagKey = "tag.haste" },
                 { id = {259085}, tagKey = "tag.rune" },
+                { id = {245879, 245880}, tagKey = "tag.raid" },
             },
             {
                 { id = {243735, 243736}, tagKey = "tag.healing" },
                 { id = {243733, 243734}, tagKey = "tag.stats" },
                 { id = {243737, 243738}, tagKey = "tag.damage" },
-                { id = {237367, 237369}, tagKey = "tag.blunt" },
-                { id = {237370, 237371}, tagKey = "tag.blade" },
-                { id = {245879, 245880}, tagKey = "tag.raid"  },
+                { id = {237369, 237367}, tagKey = "tag.blunt" },
+                { id = {237371, 237370}, tagKey = "tag.blade" },
+                { id = {237373, 237372}, tagKey = "tag.finesse" },
             }
         }
     },
@@ -153,18 +159,21 @@ local DATA = {
             {
                 { id = { 241308, 241309 }, tagKey = "tag.primary" },
                 { id = { 241288, 241289 }, tagKey = "tag.secondary" },
+                { id = { 271887, 271886 }, tagKey = "tag.versatility" },
+                { id = { 271890, 271889 }, tagKey = "tag.shadow_damage" },
                 { id = { 241296, 241297 }, tagKey = "tag.damage" },
                 { id = { 241286, 241287 }, tagKey = "tag.shield" },
                 { id = { 241292, 241293 }, tagKey = "tag.primary" },
-                { id = { 241302, 241303 }, tagKey = "tag.invisible" },
             },
             {
-                { id = { 241304, 241305 }, tagKey = "tag.health"},
+                { id = { 271884, 271883 }, tagKey = "tag.health" },
+                { id = { 241304, 241305 }, tagKey = "tag.health" },
                 { id = 241299, tagKey = "tag.health" },
                 { id = { 241300, 241301 }, tagKey = "tag.mana" },
                 { id = { 241294, 241295 }, tagKey = "tag.mana" },
                 { id = { 241306, 241307 }, tagKey = "tag.serum" },
                 { id = { 241338, 241339 }, tagKey = "tag.slow_fall" },
+                { id = { 241302, 241303 }, tagKey = "tag.invisible" },
             }
         }
     },
@@ -254,15 +263,16 @@ local DATA = {
         rows = {
             {
                 { id = {244028, 244029}, tagKey = "tag.primary" },
+                { id = {273072, 273071}, tagKey = "tag.secondary" },
                 { id = {243970, 243971}, tagKey = "tag.critical" },
                 { id = {244030, 244031}, tagKey = "tag.mastery" },
                 { id = {243972, 243973}, tagKey = "tag.haste" },
                 { id = {244001, 244000}, tagKey = "tag.versatility" },
                 { id = {243998, 243999}, tagKey = "tag.damage" },
                 { id = {243996, 243997}, tagKey = "tag.healing" },
-                { id = {243968, 243969}, tagKey = "tag.bleed"  },
             },
             {
+                { id = {243968, 243969}, tagKey = "tag.bleed" },
                 { id = {244026, 244027}, tagKey = "tag.flame" },
                 { id = {257745, 257746}, tagKey = "tag.eagle_eye" },
                 { id = {257747, 257748}, tagKey = "tag.cat_eye" },
@@ -455,6 +465,7 @@ local DATA = {
                 { id = {245877, 245878}, tagKey = "tag.decay" },
                 { id = {245873, 245874}, tagKey = "tag.void" },
                 { id = {248130}, tagKey = "tag.clear" },
+                { id = {273060, 273059}, tagKey = "tag.hunter" },
             }
         }
     },
@@ -474,11 +485,101 @@ local DATA = {
 }
 
 local TABS = {
-    { nameKey = "tab.consumables", categories = {"buffs", "food", "potions", "other"} },
-    { nameKey = "tab.gems", categories = {"diamonds", "bloodstones", "high_gems", "low_gems"} },
-    { nameKey = "tab.enchants", categories = {"enchant_weapon", "enchant_helm", "enchant_shoulder", "enchant_chest", "enchant_legs", "enchant_boots", "enchant_gloves", "enchant_ring", "enchant_tool"} },
-    { nameKey = "tab.crafting", categories = {"missive_gear", "missive_tool", "embellishments", "engineering_gears"} },
+    { nameKey = "tab.consumables.name", icon = "consumable", categories = {"buffs", "food", "potions", "other"} },
+    { nameKey = "tab.gems.name", icon = "gem", categories = {"diamonds", "bloodstones", "high_gems", "low_gems"} },
+    { nameKey = "tab.enchants.name", icon = "enchant", categories = {"enchant_weapon", "enchant_helm", "enchant_shoulder", "enchant_chest", "enchant_legs", "enchant_boots", "enchant_gloves", "enchant_ring", "enchant_tool"} },
+    { nameKey = "tab.crafting.name", icon = "crafting", categories = {"missive_gear", "missive_tool", "embellishments", "engineering_gears"} },
 }
+
+local Profiles = ns.AuctionHelperProfiles
+if Profiles and Profiles.SetOfficialProfiles then
+    Profiles:SetOfficialProfiles({
+        {
+            id = "recommended",
+            revision = 2,
+            nameKey = "profile.official_recommended",
+            fallbackName = "12.1 Recommended List",
+            data = DATA,
+            tabs = TABS,
+        },
+    })
+end
+
+local function GetDefaultProfileName()
+    return L["profile.default_name"]
+end
+
+local function CreateEditorConfig(onChanged, ownerFrame)
+    return {
+        getDB = function()
+            return DB:Get()
+        end,
+        getDefaultName = GetDefaultProfileName,
+        onChanged = onChanged,
+        ownerFrame = ownerFrame,
+    }
+end
+
+local function OpenShoppingEditor()
+    local editor = ns.AuctionHelperEditor
+    if not editor or type(editor.Open) ~= "function" then return false end
+    editor:Open(CreateEditorConfig())
+    return true
+end
+
+local previousSlashHandler = ns.HandleSlashCommand
+function ns:HandleSlashCommand(msg)
+    local command = tostring(msg or ""):match("^%s*(%S+)")
+    if command and command:lower() == "shopping" then
+        OpenShoppingEditor()
+        return true
+    end
+    if previousSlashHandler then
+        return previousSlashHandler(self, msg)
+    end
+    return false
+end
+
+local function GetActiveShoppingProfile()
+    if not Profiles then return nil end
+    return Profiles:GetActive(DB:Get(), GetDefaultProfileName())
+end
+
+local function ResolveEntryText(entry, field, keyField)
+    if Profiles and Profiles.ResolveText then
+        return Profiles:ResolveText(entry, field, keyField, L)
+    end
+    if type(entry) ~= "table" then return "" end
+    return entry[field] or (entry[keyField] and L[entry[keyField]]) or ""
+end
+
+local DEFAULT_TAB_SHORT_KEYS = {
+    ["tab.consumables.name"] = "tab.consumables.short",
+    ["tab.gems.name"] = "tab.gems.short",
+    ["tab.enchants.name"] = "tab.enchants.short",
+    ["tab.crafting.name"] = "tab.crafting.short",
+}
+
+local function BuildTabLabel(tab)
+    local text = ResolveEntryText(tab, "name", "nameKey")
+    local shortKey = tab and DEFAULT_TAB_SHORT_KEYS[tab.nameKey]
+    if shortKey then text = L[shortKey] end
+    local preset = Profiles and Profiles:GetIconPreset(tab and tab.icon)
+    if preset and preset.atlas then
+        return ("|A:%s:16:16:0:1|a %s"):format(preset.atlas, text)
+    end
+    return text
+end
+
+local function ApplyOptionalFont(fontString, context)
+    local appearance = ns.AuctionHelperAppearance
+    return appearance and appearance:ApplyFont(fontString, context) or false
+end
+
+local function ApplyOptionalAccent(region, context)
+    local appearance = ns.AuctionHelperAppearance
+    return appearance and appearance:ApplyAccent(region, context) or false
+end
 
 local function ParseHexColor(hex)
     if not hex then return 0.2, 0.4, 0.8, 0.8 end
@@ -612,6 +713,27 @@ local function ApplyBrowseResultsFontSizeToObject(object, size, seen, depth, inc
     end
 end
 
+local function HasInitializedScrollBoxView(scrollBox)
+    if not scrollBox then return false end
+    if type(scrollBox.HasView) == "function" then
+        return scrollBox:HasView() == true
+    end
+    if type(scrollBox.GetView) == "function" then
+        return scrollBox:GetView() ~= nil
+    end
+    return false
+end
+
+local function ForEachInitializedScrollBoxFrame(scrollBox, callback)
+    if type(callback) ~= "function"
+        or type(scrollBox and scrollBox.ForEachFrame) ~= "function"
+        or not HasInitializedScrollBoxView(scrollBox) then
+        return false
+    end
+    scrollBox:ForEachFrame(callback)
+    return true
+end
+
 local function ApplyBrowseResultsFontSize()
     if not IsBrowseResultsFontFeatureEnabled() then
         RestoreBrowseResultsFontSize()
@@ -636,11 +758,9 @@ local function ApplyBrowseResultsFontSize()
         ApplyBrowseResultsFontSizeToObject(itemList.HeaderContainer, size, seen, 0, includeMoneyDisplay)
     end
 
-    if itemList.ScrollBox and itemList.ScrollBox.ForEachFrame then
-        itemList.ScrollBox:ForEachFrame(function(frame)
-            ApplyBrowseResultsFontSizeToObject(frame, size, seen, 0, includeMoneyDisplay)
-        end)
-    end
+    ForEachInitializedScrollBoxFrame(itemList.ScrollBox, function(frame)
+        ApplyBrowseResultsFontSizeToObject(frame, size, seen, 0, includeMoneyDisplay)
+    end)
 end
 
 local function RunScheduledBrowseResultsFontRefresh()
@@ -708,46 +828,46 @@ local function CreateUI()
     
     local parent = AuctionHouseFrame
     if not parent then return end
+
+    local helperWidth = 360
+    local contentInset = 5
+    local contentWidth = helperWidth - (contentInset * 2)
+    local scrollBarReservedWidth = 20
+    local itemColumns = 8
+    local itemButtonSize = 36
+    local itemSpacing = 4
+    local itemGridWidth = (itemColumns * itemButtonSize) + ((itemColumns - 1) * itemSpacing)
+    local itemGridInset = 10
     
     -- Forward declarations to ensure visibility across closures
     local RebuildTabContents
+    local RebuildTabs
     local CreateTabContent
     local UpdateCounts
     local allItemButtons = {}
     local tabContentFrames = {}
-    local tabs = {}
+    local tabWidget
+    local selectedTabIndex = 1
     
     local db = DB:Get()
-    local isSkinEnabled = false
-    if db.themeStyle == "native" then
-        isSkinEnabled = false
-    elseif db.themeStyle == "dark" then
-        isSkinEnabled = true
-    else
-        isSkinEnabled = C_AddOns.IsAddOnLoaded("ElvUI") or C_AddOns.IsAddOnLoaded("NDui")
+    local appearance = ns.AuctionHelperAppearance
+    local optionalSkin = appearance:Resolve(db.themeStyle)
+    local isSkinEnabled = appearance:IsDark(optionalSkin)
+    local appearanceTexts = {}
+
+    local function CreateAuctionText(parentFrame, text, sizeKey, colorKey, justifyH)
+        local fontString = GUI2:CreateText(parentFrame, text, sizeKey, colorKey, justifyH)
+        ApplyOptionalFont(fontString, optionalSkin)
+        appearanceTexts[#appearanceTexts + 1] = fontString
+        return fontString
     end
     
     local f = GUI2:CreateFrame(parent, { name = "YUI_AuctionHelperFrame" })
     f:SetPoint("TOPLEFT", parent, "TOPRIGHT", 2, 0)
     f:SetPoint("BOTTOMLEFT", parent, "BOTTOMRIGHT", 2, 0)
-    f:SetWidth(360) 
+    f:SetWidth(helperWidth)
     f:SetFrameLevel(parent:GetFrameLevel() + 20)
-    
-    if isSkinEnabled then
-        GUI2:CreateBackdrop(f, true)
-    else
-        -- Native system template: used only when the feature is set to Blizzard native style.
-        local bgFrame = CreateFrame("Frame", nil, f, "NineSlicePanelTemplate")
-        bgFrame:SetAllPoints(f)
-        bgFrame:SetFrameLevel(f:GetFrameLevel() - 5)
-        NineSliceUtil.ApplyLayoutByName(bgFrame, "ButtonFrameTemplateNoPortrait")
-        
-        local bgTexture = GUI2:CreateTexture(bgFrame, { layer = "BACKGROUND", subLevel = -7, texture = "Interface\\FrameGeneral\\UI-Background-Rock" })
-        bgTexture:SetPoint("TOPLEFT", bgFrame, "TOPLEFT", 6, -2)
-        bgTexture:SetPoint("BOTTOMRIGHT", bgFrame, "BOTTOMRIGHT", -2, 2)
-        bgTexture:SetHorizTile(true)
-        bgTexture:SetVertTile(true)
-    end
+    appearance:Register(f, { themeProvider = function() return DB:Get().themeStyle end, role = "helper" })
     
     ns.AuctionHelperFrame = f
     
@@ -891,26 +1011,11 @@ local function CreateUI()
     
     -- Settings Frame
     local settingsFrame = GUI2:CreateFrame(f)
-    settingsFrame:SetSize(260, 290)
+    settingsFrame:SetSize(300, 430)
     settingsFrame:SetPoint("TOPLEFT", f, "TOPRIGHT", 2, 0)
     settingsFrame:Hide()
     settingsFrame:SetFrameLevel(f:GetFrameLevel() + 5)
-    
-    if isSkinEnabled then
-        GUI2:CreateBackdrop(settingsFrame, true)
-    else
-        -- Native system template: used only when the feature is set to Blizzard native style.
-        local sBgFrame = CreateFrame("Frame", nil, settingsFrame, "NineSlicePanelTemplate")
-        sBgFrame:SetAllPoints(settingsFrame)
-        sBgFrame:SetFrameLevel(settingsFrame:GetFrameLevel() - 5)
-        NineSliceUtil.ApplyLayoutByName(sBgFrame, "ButtonFrameTemplateNoPortrait")
-        
-        local sBgTexture = GUI2:CreateTexture(sBgFrame, { layer = "BACKGROUND", subLevel = -7, texture = "Interface\\FrameGeneral\\UI-Background-Rock" })
-        sBgTexture:SetPoint("TOPLEFT", sBgFrame, "TOPLEFT", 6, -2)
-        sBgTexture:SetPoint("BOTTOMRIGHT", sBgFrame, "BOTTOMRIGHT", -2, 3)
-        sBgTexture:SetHorizTile(true)
-        sBgTexture:SetVertTile(true)
-    end
+    appearance:Register(settingsFrame, { themeProvider = function() return DB:Get().themeStyle end, role = "settings" })
 
     -- Settings Close Button
     local sCloseBtn = GUI2:CreateButtonFrame(settingsFrame, { template = "BackdropTemplate" })
@@ -955,9 +1060,16 @@ local function CreateUI()
     local db = DB:Get()
 
     -- Settings UI
-    local sTitle = GUI2:CreateText(settingsFrame, L["settings.title"], 14)
+    local sTitle = CreateAuctionText(settingsFrame, L["settings.title"], 14)
     sTitle:SetPoint("TOP", 0, -5)
-    GUI2:SetTextColorKey(sTitle, "color.text.accent")
+    if not ApplyOptionalAccent(sTitle, optionalSkin) then
+        GUI2:SetTextColorKey(sTitle, "color.text.accent")
+    end
+    appearance:Register(settingsFrame, {
+        themeProvider = function() return DB:Get().themeStyle end,
+        heading = sTitle,
+        role = "settings",
+    })
     
     local yPos = -40
 
@@ -970,6 +1082,31 @@ local function CreateUI()
                     btn.tagText:Hide()
                 end
             end
+        end
+    end
+
+    local editor = ns.AuctionHelperEditor
+    if editor and editor.CreateSettingsSection then
+        yPos = editor:CreateSettingsSection(
+            settingsFrame,
+            CreateEditorConfig(function()
+                selectedTabIndex = 1
+                RebuildTabContents()
+            end, f),
+            yPos
+        )
+    end
+
+    local function AlignSettingsSwitch(widget)
+        if not widget then return end
+        widget:SetWidth(272)
+        if widget.text then
+            widget.text:ClearAllPoints()
+            widget.text:SetPoint("LEFT", widget, "LEFT", 0, 0)
+        end
+        if widget.switch then
+            widget.switch:ClearAllPoints()
+            widget.switch:SetPoint("RIGHT", widget, "RIGHT", 0, 0)
         end
     end
     
@@ -986,40 +1123,12 @@ local function CreateUI()
             db.defaultCollapsed = value
         end
     })
-    collapseSwitch:SetPoint("TOPLEFT", 20, yPos)
+    collapseSwitch:SetPoint("TOPLEFT", 14, yPos)
+    AlignSettingsSwitch(collapseSwitch)
     yPos = yPos - 30
 
     RebuildTabContents = function()
-        if not tabContentFrames or not tabs then return end
-        
-        -- Clear old content
-        for _, frame in pairs(tabContentFrames) do
-            frame:Hide()
-            frame:SetParent(nil)
-        end
-        wipe(tabContentFrames)
-        if allItemButtons then
-            wipe(allItemButtons)
-        end
-        
-        -- Rebuild content for each tab
-        for i, tabData in ipairs(TABS) do
-            local content = CreateTabContent(i, tabData)
-            content:Hide()
-            tabContentFrames[i] = content
-        end
-        
-        -- Restore current tab selection
-        for _, btn in ipairs(tabs) do
-            if btn.isSelected then
-                btn:Click()
-                break
-            end
-        end
-        
-        if UpdateCounts then
-            UpdateCounts()
-        end
+        if RebuildTabs then RebuildTabs(selectedTabIndex) end
     end
 
     -- 2. Show Tag Text
@@ -1036,7 +1145,8 @@ local function CreateUI()
             SetTagTextVisibility(value)
         end
     })
-    tagSwitch:SetPoint("TOPLEFT", 20, yPos)
+    tagSwitch:SetPoint("TOPLEFT", 14, yPos)
+    AlignSettingsSwitch(tagSwitch)
     yPos = yPos - 35
 
     -- 3. Browse Results Font Size
@@ -1064,7 +1174,8 @@ local function CreateUI()
             ApplyBrowseResultsFontSize()
         end
     })
-    browseFontSizeSwitch:SetPoint("TOPLEFT", 20, yPos)
+    browseFontSizeSwitch:SetPoint("TOPLEFT", 14, yPos)
+    AlignSettingsSwitch(browseFontSizeSwitch)
     yPos = yPos - 30
 
     browseMoneyFontSizeSwitch = GUI2:CreateSwitch(settingsFrame, {
@@ -1085,7 +1196,8 @@ local function CreateUI()
             end
         end
     })
-    browseMoneyFontSizeSwitch:SetPoint("TOPLEFT", 20, yPos)
+    browseMoneyFontSizeSwitch:SetPoint("TOPLEFT", 14, yPos)
+    AlignSettingsSwitch(browseMoneyFontSizeSwitch)
     yPos = yPos - 30
 
     browseFontSizeSlider = GUI2:CreateSlider(settingsFrame, {
@@ -1094,9 +1206,9 @@ local function CreateUI()
         min = BROWSE_RESULTS_FONT_SIZE_MIN,
         max = BROWSE_RESULTS_FONT_SIZE_MAX,
         step = 1,
-        width = 220,
+        width = 272,
         inputWidth = 36,
-        labelWidth = 108,
+        labelWidth = 132,
         inline = true,
         disabled = not db.browseResultsFontSizeEnabled,
         onChange = function(widget, value)
@@ -1106,12 +1218,12 @@ local function CreateUI()
             end
         end
     })
-    browseFontSizeSlider:SetPoint("TOPLEFT", 20, yPos)
+    browseFontSizeSlider:SetPoint("TOPLEFT", 14, yPos)
     yPos = yPos - 35
     
     -- 4. Category Style
-    local styleLabel = GUI2:CreateText(settingsFrame, L["settings.category_style"], 14)
-    styleLabel:SetPoint("TOPLEFT", 20, yPos)
+    local styleLabel = CreateAuctionText(settingsFrame, L["settings.category_style"], 14)
+    styleLabel:SetPoint("TOPLEFT", 14, yPos)
     
     local styleDropdown = GUI2:CreateDropdown(settingsFrame, {
         options = {
@@ -1119,19 +1231,19 @@ local function CreateUI()
             { text = L["settings.style.background"], value = "background" }
         },
         default = db.categoryStyle,
-        width = 120,
+        width = 132,
         onChange = function(widget, value)
             db.categoryStyle = value
             RebuildTabContents()
         end
     })
-    styleDropdown:SetPoint("LEFT", styleLabel, "RIGHT", 10, 0)
+    styleDropdown:SetPoint("TOPRIGHT", settingsFrame, "TOPRIGHT", -14, yPos + 4)
 
     yPos = yPos - 35
     
     -- 5. Theme Style
-    local themeLabel = GUI2:CreateText(settingsFrame, L["settings.theme_style"], 14)
-    themeLabel:SetPoint("TOPLEFT", 20, yPos)
+    local themeLabel = CreateAuctionText(settingsFrame, L["settings.theme_style"], 14)
+    themeLabel:SetPoint("TOPLEFT", 14, yPos)
     
     local themeDropdown = GUI2:CreateDropdown(settingsFrame, {
         options = {
@@ -1140,29 +1252,24 @@ local function CreateUI()
             { text = L["settings.theme.dark"], value = "dark" }
         },
         default = db.themeStyle,
-        width = 120,
+        width = 132,
         onChange = function(widget, value)
             if db.themeStyle ~= value then
                 db.themeStyle = value
                 
-                if not StaticPopupDialogs["YUI_AUCTIONHELPER_RELOAD"] then
-                    StaticPopupDialogs["YUI_AUCTIONHELPER_RELOAD"] = {
-                        text = L["settings.reload_prompt"],
-                        button1 = L["settings.yes"],
-                        button2 = L["settings.no"],
-                        OnAccept = function()
-                            ReloadUI()
-                        end,
-                        timeout = 0,
-                        whileDead = true,
-                        hideOnEscape = true,
-                    }
+                local Settings = YUI.Settings
+                if Settings and Settings.ShowConfirmPopup then
+                    Settings:ShowConfirmPopup(L["settings.reload_prompt"], ReloadUI, {
+                        titleText = L["settings.reload_title"],
+                        acceptText = L["settings.yes"],
+                        cancelText = L["settings.no"],
+                        acceptTone = "danger",
+                    })
                 end
-                StaticPopup_Show("YUI_AUCTIONHELPER_RELOAD")
             end
         end
     })
-    themeDropdown:SetPoint("LEFT", themeLabel, "RIGHT", 10, 0)
+    themeDropdown:SetPoint("TOPRIGHT", settingsFrame, "TOPRIGHT", -14, yPos + 4)
     
     -- Collapse Button
     local collapseBtn = GUI2:CreateButtonFrame(f, { template = "BackdropTemplate" })
@@ -1233,20 +1340,27 @@ local function CreateUI()
         expandBtn:Hide()
     end)
     
-    local title = GUI2:CreateText(f, L["title.short"], 14)
+    local title = CreateAuctionText(f, L["title.short"], 14)
 
     title:SetPoint("TOP", 0, -5)
-    GUI2:SetTextColorKey(title, "color.text.accent")
+    if not ApplyOptionalAccent(title, optionalSkin) then
+        GUI2:SetTextColorKey(title, "color.text.accent")
+    end
+    appearance:Register(f, {
+        themeProvider = function() return DB:Get().themeStyle end,
+        heading = title,
+        role = "helper",
+    })
     
     -- Tab Container
     local tabContainer = GUI2:CreateFrame(f)
-    tabContainer:SetPoint("TOPLEFT", 5, -35)
-    tabContainer:SetPoint("TOPRIGHT", -5, -35)
+    tabContainer:SetPoint("TOPLEFT", contentInset + itemGridInset, -35)
+    tabContainer:SetWidth(itemGridWidth)
     tabContainer:SetHeight(24)
     
     local scrollFrame = GUI2:CreateScrollFrame(f)
-    scrollFrame:SetPoint("TOPLEFT", 5, -65) -- Shift down for Tabs
-    scrollFrame:SetPoint("BOTTOMRIGHT", -25, 5)
+    scrollFrame:SetPoint("TOPLEFT", contentInset, -65) -- Shift down for Tabs
+    scrollFrame:SetPoint("BOTTOMRIGHT", -(contentInset + scrollBarReservedWidth), contentInset)
     
     -- Cache item buttons to update counts
     -- initialized at top
@@ -1255,24 +1369,22 @@ local function CreateUI()
 
     CreateTabContent = function(tabIndex, tabData)
         local container = GUI2:CreateFrame(scrollFrame)
-        container:SetWidth(330)
+        container:SetWidth(contentWidth)
         
         local yOffset = 5
-        local xOffset_1st = 5
-        local buttonSize = 36
-        local spacing = 4
-        local xRight = -9
-
-        if not isSkinEnabled then
-            xOffset_1st = 10
-            xRight = -4
-        end
+        local xOffset_1st = itemGridInset
+        local buttonSize = itemButtonSize
+        local spacing = itemSpacing
+        local categoryEdgeInset = itemGridInset
         
         local db = DB:Get()
         
         local sourceData = {}
         if tabData.data then
              sourceData = tabData.data
+        elseif type(tabData.categories) == "table"
+            and type(tabData.categories[1]) == "table" then
+             sourceData = tabData.categories
         else
              for _, catKey in ipairs(tabData.categories) do
                  for _, d in ipairs(DATA) do
@@ -1285,22 +1397,27 @@ local function CreateUI()
         end
 
         for _, cat in ipairs(sourceData) do
-            local catTitle = GUI2:CreateText(container, L[cat.nameKey], 14)
+            local catTitle = CreateAuctionText(
+                container,
+                ResolveEntryText(cat, "name", "nameKey"),
+                14
+            )
             
             if db.categoryStyle == "background" then
                 catTitle:SetTextColor(1, 1, 1)
-                catTitle:SetPoint("TOPLEFT", 5, -yOffset - 2)
-                catTitle:SetPoint("TOPRIGHT", -9, -yOffset - 2)
+                catTitle:SetPoint("TOPLEFT", categoryEdgeInset, -yOffset - 2)
+                catTitle:SetWidth(itemGridWidth)
                 catTitle:SetJustifyH("CENTER")
                 
                 local titleBg = GUI2:CreateTexture(container, { layer = "BACKGROUND" })
                 titleBg:SetPoint("TOP", catTitle, "TOP", 0, 4)
                 titleBg:SetPoint("BOTTOM", catTitle, "BOTTOM", 0, -4)
-                titleBg:SetPoint("LEFT", xOffset_1st, 0)
-                titleBg:SetPoint("RIGHT", xRight, 0)
+                titleBg:SetPoint("LEFT", categoryEdgeInset, 0)
+                titleBg:SetWidth(itemGridWidth)
                 
-                if cat.bgColor then
-                    local r, g, b, a = ParseHexColor(cat.bgColor)
+                local categoryColor = cat.color or cat.bgColor
+                if categoryColor then
+                    local r, g, b, a = ParseHexColor(categoryColor)
                     titleBg:SetColorTexture(r, g, b, a)
                 else
                     titleBg:SetColorTexture(0.2, 0.4, 0.8, 0.8)
@@ -1316,7 +1433,7 @@ local function CreateUI()
             for _, row in ipairs(cat.rows) do
                 local xOffset = xOffset_1st
                 for _, item in ipairs(row) do
-                    local itemIDs = item.id
+                    local itemIDs = item.ids or item.id
                     if type(itemIDs) ~= "table" then itemIDs = {itemIDs} end
                     local primaryID = itemIDs[1]
     
@@ -1333,13 +1450,13 @@ local function CreateUI()
                     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
                     btn.icon = icon
                     
-                    if item.tagKey then
+                    if item.tag or item.tagKey then
                         local tagKey = item.tagKey
                         if item.enUSShortTagKey and ns.Locale and ns.Locale.Current and ns.Locale:Current() == "enUS" then
                             tagKey = item.enUSShortTagKey
                         end
 
-                        local tagText = L[tagKey]
+                        local tagText = item.tag or L[tagKey]
                         if ns.Locale and ns.Locale.Current and ns.Locale:Current() == "enUS" and type(tagText) == "string" and tagText:len() > 6 then
                             tagText = tagText:sub(1, 6)
                         end
@@ -1423,131 +1540,108 @@ local function CreateUI()
         return container
     end
 
-    -- initialized at top
-    -- local tabs = {}
-    -- local tabContentFrames = {}
-    local tabLeft = 5
-    -- local tabWidth = (360 - 10 - tabLeft) / #TABS
-    local tabWidth = (316) / #TABS
+    local function SelectTab(index)
+        if #tabContentFrames == 0 then return end
+        selectedTabIndex = math.max(1, math.min(index or 1, #tabContentFrames))
 
-    if not isSkinEnabled then
-        tabWidth = tabWidth - 1
-    end
-
-    -- Helper to set tab style based on state
-    local function UpdateTabStyle(btn, isSelected)
-        if isSkinEnabled then
-            local chrome = btn.backdrop or btn
-            if isSelected then
-                chrome:SetBackdropColor(0.2, 0.2, 0.2, 1)
-                GUI2:SetTextColorKey(btn.text, "color.text.accent")
-                GUI2:SetBorderColor(chrome, "color.border.accent")
-            else
-                chrome:SetBackdropColor(0.1, 0.1, 0.1, 1)
-                GUI2:SetTextColorKey(btn.text, "color.text.primary")
-                GUI2:SetBorderColor(chrome, "color.border.default")
-            end
-        else
-            if isSelected then
-                btn:SetBackdropColor(0.2, 0.2, 0.2, 1)
-                btn:SetBackdropBorderColor(1, 0.82, 0, 1)
-                GUI2:SetTextColorKey(btn.text, "color.text.accent")
-            else
-                btn:SetBackdropColor(0.1, 0.1, 0.1, 1)
-                btn:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
-                btn.text:SetTextColor(1, 1, 1)
+        for tabIndex, content in ipairs(tabContentFrames) do
+            local selected = tabIndex == selectedTabIndex
+            if selected then
+                content:Show()
+                scrollFrame:SetScrollChild(content)
+                local contentHeight = content:GetHeight()
+                local scrollHeight = scrollFrame:GetHeight()
+                local scrollBar = scrollFrame.ScrollBar
+                    or (scrollFrame.GetName and scrollFrame:GetName()
+                        and _G[scrollFrame:GetName() .. "ScrollBar"])
+                if contentHeight <= scrollHeight then
+                    content:SetWidth(contentWidth)
+                    if scrollBar then
+                        scrollBar:Hide()
+                        scrollBar:SetAlpha(0)
+                    end
+                    scrollFrame:SetPoint("BOTTOMRIGHT", -contentInset, contentInset)
+                    scrollFrame:EnableMouseWheel(false)
+                else
+                    content:SetWidth(contentWidth - scrollBarReservedWidth)
+                    if scrollBar then
+                        scrollBar:Show()
+                        scrollBar:SetAlpha(1)
+                    end
+                    scrollFrame:SetPoint(
+                        "BOTTOMRIGHT",
+                        -(contentInset + scrollBarReservedWidth),
+                        contentInset
+                    )
+                    scrollFrame:EnableMouseWheel(true)
+                end
+            elseif content then
+                content:Hide()
             end
         end
     end
 
-    for i, tabData in ipairs(TABS) do
-        local tabBtn = GUI2:CreateButtonFrame(tabContainer, { template = "BackdropTemplate" })
-        
-        if isSkinEnabled then
-            tabBtn:SetSize(tabWidth, 24)
-            tabBtn:SetPoint("LEFT", (i-1)*tabWidth + tabLeft, 0)
-            -- Use CreateBackdrop to ensure pixel-perfect border structure
-            GUI2:CreateBackdrop(tabBtn, false)
-        else
-            tabBtn:SetSize(tabWidth, 24)
-            tabBtn:SetPoint("LEFT", (i-1)*tabWidth + tabLeft + 4, 0)
-            tabBtn:SetBackdrop({
-                bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-                tile = true, tileSize = 16, edgeSize = 8,
-                insets = { left = 2, right = 2, top = 2, bottom = 2 }
-            })
-            tabBtn:SetBackdropColor(0.1, 0.1, 0.1, 1)
-            tabBtn:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+    RebuildTabs = function(preferredIndex)
+        for _, frame in ipairs(tabContentFrames) do
+            frame:Hide()
+            frame:SetParent(nil)
         end
-        
-        local text = GUI2:CreateText(tabBtn, L[tabData.nameKey], 12)
-        text:SetPoint("CENTER")
-        tabBtn.text = text
-        
-        -- Generate Content for this Tab
-        local content = CreateTabContent(i, tabData)
-        content:Hide()
-        tabContentFrames[i] = content
+        if tabWidget then
+            tabWidget:Hide()
+            tabWidget:SetParent(nil)
+            tabWidget = nil
+        end
+        wipe(tabContentFrames)
+        wipe(allItemButtons)
 
-        tabBtn:SetScript("OnEnter", function(self)
-             if self.isSelected then return end
-             if isSkinEnabled then
-                 local chrome = self.backdrop or self
-                 chrome:SetBackdropColor(0.2, 0.2, 0.2, 1)
-                 GUI2:SetBorderColor(chrome, "color.border.accent")
-             else
-                 self:SetBackdropColor(0.2, 0.2, 0.2, 1)
-                 self:SetBackdropBorderColor(1, 0.82, 0, 1)
-             end
-        end)
+        local profile = GetActiveShoppingProfile()
+        local sourceTabs = profile and profile.tabs or TABS
+        local tabItems = {}
+        for tabIndex, tabData in ipairs(sourceTabs) do
+            tabItems[tabIndex] = {
+                text = BuildTabLabel(tabData),
+                value = tabIndex,
+            }
 
-        tabBtn:SetScript("OnLeave", function(self)
-             if self.isSelected then return end
-             UpdateTabStyle(self, false)
-        end)
+            local content = CreateTabContent(tabIndex, tabData)
+            content:Hide()
+            tabContentFrames[tabIndex] = content
+        end
 
-        tabBtn:SetScript("OnClick", function()
-             for j, btn in ipairs(tabs) do
-                 if i == j then
-                     btn.isSelected = true
-                     UpdateTabStyle(btn, true)
-                     tabContentFrames[j]:Show()
-                     scrollFrame:SetScrollChild(tabContentFrames[j])
-                     
-                     -- Check if scrollbar is needed
-                     local contentHeight = tabContentFrames[j]:GetHeight()
-                     local scrollHeight = scrollFrame:GetHeight()
-                     local scrollBar = scrollFrame.ScrollBar or _G[scrollFrame:GetName().."ScrollBar"]
-                     
-                     if contentHeight <= scrollHeight then
-                         if scrollBar then
-                             scrollBar:Hide()
-                             scrollBar:SetAlpha(0)
-                         end
-                         scrollFrame:SetPoint("BOTTOMRIGHT", -5, 5)
-                         scrollFrame:EnableMouseWheel(false)
-                     else
-                         if scrollBar then
-                             scrollBar:Show()
-                             scrollBar:SetAlpha(1)
-                         end
-                         scrollFrame:SetPoint("BOTTOMRIGHT", -25, 5)
-                         scrollFrame:EnableMouseWheel(true)
-                     end
-                 else
-                     btn.isSelected = false
-                     UpdateTabStyle(btn, false)
-                     tabContentFrames[j]:Hide()
-                 end
-             end
-        end)
-        
-        table.insert(tabs, tabBtn)
+        selectedTabIndex = math.max(1, math.min(preferredIndex or 1, #tabItems))
+        local accent = optionalSkin and optionalSkin.accent
+        tabWidget = GUI2.Form:CreateUnderlineTabs(tabContainer, {
+            width = itemGridWidth,
+            height = 24,
+            items = tabItems,
+            value = selectedTabIndex,
+            overflow = "scroll",
+            contentAlignment = #tabItems <= 4 and "CENTER" or "LEFT",
+            gap = 4,
+            itemPaddingX = 8,
+            minItemWidth = 54,
+            indicatorOffsetY = -2,
+            indicatorHeight = 3,
+            indicatorColor = accent,
+            selectedColor = accent,
+            hoverColor = accent,
+            arrowColor = { 0.78, 0.78, 0.78, 1 },
+            arrowHoverColor = accent,
+            arrowDisabledColor = { 0.35, 0.35, 0.35, 1 },
+            onChange = function(_, value)
+                SelectTab(value)
+            end,
+        })
+        tabWidget:SetPoint("LEFT", tabContainer, "LEFT", 0, 0)
+        for _, button in ipairs(tabWidget.buttons) do
+            ApplyOptionalFont(button.text, optionalSkin)
+        end
+        tabWidget:Relayout()
+        SelectTab(selectedTabIndex)
+        if UpdateCounts then UpdateCounts() end
     end
-    
-    -- Select First Tab
-    tabs[1]:Click()
+
+    RebuildTabs(1)
     
     UpdateCounts = function()
         for _, btn in ipairs(allItemButtons) do
@@ -1576,9 +1670,54 @@ local function CreateUI()
     function f:UpdateCounts()
         UpdateCounts()
     end
+    function f:RefreshShoppingProfile()
+        selectedTabIndex = 1
+        RebuildTabs(1)
+    end
+    ns.AuctionHelperRefreshShoppingProfile = function()
+        if ns.AuctionHelperFrame and ns.AuctionHelperFrame.RefreshShoppingProfile then
+            ns.AuctionHelperFrame:RefreshShoppingProfile()
+        end
+    end
+
+    local function RefreshOptionalAppearance()
+        local previousSource = optionalSkin and optionalSkin.source
+        local previousAccent = optionalSkin and optionalSkin.accent
+        optionalSkin = appearance:Refresh(f) or optionalSkin
+        appearance:Refresh(settingsFrame)
+        isSkinEnabled = appearance:IsDark(optionalSkin)
+        for _, fontString in ipairs(appearanceTexts) do
+            ApplyOptionalFont(fontString, optionalSkin)
+        end
+        if not ApplyOptionalAccent(title, optionalSkin) then GUI2:SetTextColorKey(title, "color.text.accent") end
+        if not ApplyOptionalAccent(sTitle, optionalSkin) then GUI2:SetTextColorKey(sTitle, "color.text.accent") end
+        if tabWidget then
+            for _, button in ipairs(tabWidget.buttons) do
+                ApplyOptionalFont(button.text, optionalSkin)
+            end
+            local accent = optionalSkin and optionalSkin.accent
+            local accentChanged = previousAccent ~= accent
+            if previousAccent and accent then
+                accentChanged = previousAccent[1] ~= accent[1]
+                    or previousAccent[2] ~= accent[2]
+                    or previousAccent[3] ~= accent[3]
+                    or previousAccent[4] ~= accent[4]
+            end
+            if previousSource ~= optionalSkin.source or accentChanged then
+                RebuildTabs(selectedTabIndex)
+            else
+                tabWidget:RefreshTheme()
+                tabWidget:Relayout()
+            end
+        end
+    end
+
     YUI.Event:OffOwner(f)
     YUI.Event:On("BAG_UPDATE", "UpdateCounts", f)
-    f:SetScript("OnShow", UpdateCounts)
+    f:SetScript("OnShow", function()
+        RefreshOptionalAppearance()
+        UpdateCounts()
+    end)
     
     UpdateCounts()
     InstallBrowseResultsFontHooks()
@@ -1587,7 +1726,13 @@ end
 ns.Components:RegisterFeature("AuctionHelper", {
     name = L["feature.name"],
     description = L["feature.description"],
-    product = "auction_helper",
+    product = PRODUCT_ID,
+    standalone = true,
+    toolboxManaged = TOOLBOX_MANAGED,
+    transfer = {
+        dataRoot = "profile",
+        dataPaths = { "AuctionHelper" },
+    },
     default = true,
     callback = function(enable)
         auctionHelperFeatureActive = enable == true
@@ -1624,6 +1769,11 @@ ns.Components:RegisterFeature("AuctionHelper", {
         else
             auctionHelperFeatureActive = false
             RestoreBrowseResultsFontSize()
+            if ns.AuctionHelperEditor
+                and ns.AuctionHelperEditor.window
+                and ns.AuctionHelperEditor.window:IsShown() then
+                ns.AuctionHelperEditor:Close()
+            end
             if ns.AuctionHelperFrame then
                 ns.AuctionHelperFrame:Hide()
                 YUI.Event:OffOwner(ns.AuctionHelperFrame)

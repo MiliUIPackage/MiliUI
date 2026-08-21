@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local _, YUI = ...
 
@@ -35,6 +37,20 @@ end
 
 local function IsSecretValue(value)
     return issecretvalue and issecretvalue(value) == true
+end
+
+local function ReadSafeField(value, key)
+    if type(value) ~= "table" or IsSecretValue(value) then return nil end
+    local ok, result = pcall(function() return value[key] end)
+    if not ok or IsSecretValue(result) then return nil end
+    return result
+end
+
+local function NormalizeNumber(value)
+    if value == nil or IsSecretValue(value) then return nil end
+    local ok, result = pcall(tonumber, value)
+    if not ok or IsSecretValue(result) then return nil end
+    return result
 end
 
 local function EmitUpdated()
@@ -113,7 +129,10 @@ local function EnableRuntime()
             YUI.Event:OffOwner(Keystone)
         end
         YUI.Event:On("CHAT_MSG_ADDON", OnKeystoneEvent, Keystone)
-        YUI.Event:On("GROUP_ROSTER_UPDATE", OnKeystoneEvent, Keystone)
+        YUI.Event:On("GROUP_ROSTER_UPDATE", OnKeystoneEvent, Keystone, {
+            moduleId = "core:Keystone",
+            traceName = "Core:Keystone:GROUP_ROSTER_UPDATE",
+        })
     end
     return true
 end
@@ -149,6 +168,116 @@ end
 
 function Keystone.IsActive()
     return active == true
+end
+
+-- Shared presentation colors for Retail Mythic+ consumers. These return the
+-- Blizzard-owned color object when available and nil for unsafe/invalid input.
+function Keystone.GetKeystoneLevelColor(level)
+    if YUI.IsRetail ~= true then return nil end
+    level = NormalizeNumber(level)
+    if not level or level <= 0 then return nil end
+
+    local quality
+    if level >= 12 then
+        quality = 5
+    elseif level >= 9 then
+        quality = 4
+    elseif level >= 4 then
+        quality = 3
+    else
+        quality = 2
+    end
+
+    local color = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
+    if color == nil or IsSecretValue(color) then return nil end
+    return color
+end
+
+function Keystone.GetSpecificDungeonScoreColor(score)
+    score = NormalizeNumber(score)
+    if not score or score <= 0 then return nil end
+    if not (YUI.IsRetail == true and C_ChallengeMode and C_ChallengeMode.GetSpecificDungeonOverallScoreRarityColor) then
+        return nil
+    end
+
+    local color = SafeCall(C_ChallengeMode.GetSpecificDungeonOverallScoreRarityColor, score)
+    if color == nil or IsSecretValue(color) then return nil end
+    return color
+end
+
+-- Cold-path normalized view for player unit tooltips and inspection summaries.
+-- Returns nil when unsupported or unreadable; callers own the returned tables.
+function Keystone.GetPlayerRatingSummary(unit)
+    if not YUI.IsRetail or type(unit) ~= "string" or IsSecretValue(unit) or unit == "" then
+        return nil
+    end
+    if not (C_PlayerInfo and C_PlayerInfo.GetPlayerMythicPlusRatingSummary) then
+        return nil
+    end
+
+    local raw = SafeCall(C_PlayerInfo.GetPlayerMythicPlusRatingSummary, unit)
+    if type(raw) ~= "table" or IsSecretValue(raw) then return nil end
+
+    local score = NormalizeNumber(ReadSafeField(raw, "currentSeasonScore")) or 0
+    local result = { score = score, runs = {} }
+    local rawRuns = ReadSafeField(raw, "runs")
+    if type(rawRuns) ~= "table" or IsSecretValue(rawRuns) then
+        return result
+    end
+
+    local ok = pcall(function()
+        for _, run in ipairs(rawRuns) do
+            if type(run) == "table" and not IsSecretValue(run) then
+                local mapID = NormalizeNumber(ReadSafeField(run, "challengeModeID"))
+                local level = NormalizeNumber(ReadSafeField(run, "bestRunLevel"))
+                if mapID and mapID > 0 and level and level >= 0 then
+                    local finishedSuccess = ReadSafeField(run, "finishedSuccess")
+                    result.runs[#result.runs + 1] = {
+                        mapID = math.floor(mapID),
+                        mapScore = NormalizeNumber(ReadSafeField(run, "mapScore")) or 0,
+                        level = math.floor(level),
+                        durationMS = NormalizeNumber(ReadSafeField(run, "bestRunDurationMS")) or 0,
+                        timed = finishedSuccess == true,
+                    }
+                end
+            end
+        end
+    end)
+    if not ok then
+        result.runs = {}
+    end
+    return result
+end
+
+-- Returns the current official challenge-map order. Non-Retail and unavailable
+-- data use an empty table so cross-version consumers do not need branches.
+function Keystone.GetCurrentSeasonMaps()
+    local result = {}
+    if not YUI.IsRetail or not (C_ChallengeMode and C_ChallengeMode.GetMapTable and C_ChallengeMode.GetMapUIInfo) then
+        return result
+    end
+
+    local mapIDs = SafeCall(C_ChallengeMode.GetMapTable)
+    if type(mapIDs) ~= "table" or IsSecretValue(mapIDs) then return result end
+
+    local ok = pcall(function()
+        for _, rawMapID in ipairs(mapIDs) do
+            local mapID = NormalizeNumber(rawMapID)
+            if mapID and mapID > 0 then
+                local name, _, _, texture = SafeCall(C_ChallengeMode.GetMapUIInfo, mapID)
+                if type(name) == "string" and name ~= "" and not IsSecretValue(name) then
+                    if IsSecretValue(texture) then texture = nil end
+                    result[#result + 1] = {
+                        mapID = math.floor(mapID),
+                        name = name,
+                        texture = texture,
+                    }
+                end
+            end
+        end
+    end)
+    if not ok then return {} end
+    return result
 end
 
 function Keystone.GetPlayerKeystone()
@@ -199,7 +328,7 @@ function Keystone.GetPlayerKeystone()
     local rating = 0
     if C_PlayerInfo and C_PlayerInfo.GetPlayerMythicPlusRatingSummary then
         local ratingSummary = SafeCall(C_PlayerInfo.GetPlayerMythicPlusRatingSummary, "player")
-        rating = tonumber(ratingSummary and ratingSummary.currentSeasonScore) or 0
+        rating = NormalizeNumber(ReadSafeField(ratingSummary, "currentSeasonScore")) or 0
     end
 
     return {

@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local _, YUI = ...
 
@@ -512,14 +514,29 @@ function Frame.TogglePVPUI()
     return nil
 end
 
+function Frame.HideGameMenu()
+    if not GameMenuFrame or not GameMenuFrame:IsShown() then return nil end
+
+    if type(HideUIPanel) == "function" then
+        local ok, result = pcall(HideUIPanel, GameMenuFrame)
+        if ok or not GameMenuFrame:IsShown() then
+            return result
+        end
+    end
+
+    local hide = GameMenuFrame.Hide
+    if type(hide) == "function" then
+        return hide(GameMenuFrame)
+    end
+
+    return nil
+end
+
 function Frame.ToggleGameMenu()
     if not GameMenuFrame then return nil end
 
     if GameMenuFrame:IsShown() then
-        if HideUIPanel then
-            return HideUIPanel(GameMenuFrame)
-        end
-        return GameMenuFrame:Hide()
+        return Frame.HideGameMenu()
     end
 
     if ShowUIPanel then
@@ -618,5 +635,6 @@ Legacy.ToggleCollectionsJournal = Frame.ToggleCollectionsJournal
 Legacy.ToggleEncounterJournal = Frame.ToggleEncounterJournal
 Legacy.TogglePVEFrame = Frame.TogglePVEFrame
 Legacy.TogglePVPUI = Frame.TogglePVPUI
+Legacy.HideGameMenu = Frame.HideGameMenu
 Legacy.ToggleGameMenu = Frame.ToggleGameMenu
 Legacy.GetNamePlateForUnit = Frame.GetNamePlateForUnit

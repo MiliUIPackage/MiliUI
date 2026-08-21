@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 -------------------------------------------------------------------------------
 -- YUI | Layout edit mode - anchor targets
@@ -294,25 +296,35 @@ local function IsUsableAnchorFrame(frame)
 end
 P.IsUsableAnchorFrame = P.IsUsableAnchorFrame or IsUsableAnchorFrame
 
-local function SafeFrameNumber(frame, method)
-    local func = frame and frame[method]
-    if type(func) ~= "function" then return 0 end
-    local ok, value = SafeCall("Layout:anchorTarget:" .. method, func, frame)
-    if not ok then return 0 end
-    return tonumber(value) or 0
+local function ReadFrameGeometry(frame)
+    if type(frame.IsShown) == "function" and frame:IsShown() ~= true then return nil end
+    if type(frame.GetWidth) ~= "function" or type(frame.GetHeight) ~= "function"
+        or type(frame.GetLeft) ~= "function" or type(frame.GetBottom) ~= "function" then
+        return nil
+    end
+    local width = tonumber(frame:GetWidth()) or 0
+    local height = tonumber(frame:GetHeight()) or 0
+    if width <= 0 or height <= 0 then return nil end
+    local left = frame:GetLeft()
+    local bottom = frame:GetBottom()
+    if left == nil or bottom == nil then return nil end
+    return left, bottom, width, height
 end
 
+local function ReadVisibleAnchorFrameGeometry(frame)
+    if not IsUsableAnchorFrame(frame) then return nil end
+    local ok, left, bottom, width, height = SafeCall(
+        "Layout:anchorTarget:geometry",
+        ReadFrameGeometry,
+        frame
+    )
+    if not ok then return nil end
+    return left, bottom, width, height
+end
+P.ReadVisibleAnchorFrameGeometry = ReadVisibleAnchorFrameGeometry
+
 local function IsVisibleSizedFrame(frame)
-    if not IsUsableAnchorFrame(frame) then return false end
-    if type(frame.IsShown) == "function" then
-        local ok, shown = SafeCall("Layout:anchorTarget:IsShown", frame.IsShown, frame)
-        if not ok or shown ~= true then return false end
-    end
-    if SafeFrameNumber(frame, "GetWidth") <= 0 or SafeFrameNumber(frame, "GetHeight") <= 0 then return false end
-    if type(frame.GetLeft) ~= "function" or type(frame.GetBottom) ~= "function" then return false end
-    local okLeft, left = SafeCall("Layout:anchorTarget:GetLeft", frame.GetLeft, frame)
-    local okBottom, bottom = SafeCall("Layout:anchorTarget:GetBottom", frame.GetBottom, frame)
-    return okLeft and okBottom and left ~= nil and bottom ~= nil
+    return ReadVisibleAnchorFrameGeometry(frame) ~= nil
 end
 
 local function AddFrameCandidate(candidates, seen, frame)
@@ -538,6 +550,19 @@ local function AddEQoLCandidates(kind, candidates, seen)
     return true
 end
 
+local function AddEllesmereUICandidates(kind, candidates, seen)
+    local frame
+    if kind == "player" then
+        frame = _G.EllesmereUIUnitFrames_Player
+    elseif kind == "target" then
+        frame = _G.EllesmereUIUnitFrames_Target
+    end
+    if not IsUsableAnchorFrame(frame) then return false end
+
+    AddFrameCandidate(candidates, seen, frame)
+    return true
+end
+
 local function AddCellCandidates(kind, candidates, seen)
     if kind ~= "party" and kind ~= "raid" then return false end
     local active = HasAddOn("Cell", "Cell") or _G.CellMainFrame or _G.CellPartyFrame or _G.CellRaidFrame
@@ -577,6 +602,7 @@ local function AddDandersCandidates(kind, candidates, seen)
 end
 
 local UNIT_PROVIDERS = {
+    AddEllesmereUICandidates,
     AddElvUICandidates,
     AddNDuiCandidates,
     AddEQoLCandidates,
@@ -590,6 +616,22 @@ local GROUP_PROVIDERS = {
     AddEQoLCandidates,
 }
 
+-- Group containers normally keep the same frame identity while roster members
+-- change. Reusing a still-visible target avoids rebuilding provider candidate
+-- tables for every GROUP_ROSTER_UPDATE burst.
+local RESOLVED_GROUP_ANCHORS = {}
+
+local function ResolveGroupAnchorTarget(value, kind)
+    local cached = RESOLVED_GROUP_ANCHORS[value]
+    local left, bottom, width, height = ReadVisibleAnchorFrameGeometry(cached)
+    if left ~= nil then return cached, left, bottom, width, height end
+
+    local frame = PickFromProviders(kind, GROUP_PROVIDERS, true)
+    RESOLVED_GROUP_ANCHORS[value] = frame
+    left, bottom, width, height = ReadVisibleAnchorFrameGeometry(frame)
+    return frame, left, bottom, width, height
+end
+
 local function ResolveBuiltinAnchorTarget(value)
     value = TrimText(value)
     if value == BUILTIN_PLAYER then
@@ -597,9 +639,11 @@ local function ResolveBuiltinAnchorTarget(value)
     elseif value == BUILTIN_TARGET then
         return PickFromProviders("target", UNIT_PROVIDERS), BUILTIN_TARGET
     elseif value == BUILTIN_PARTY then
-        return PickFromProviders("party", GROUP_PROVIDERS, true), BUILTIN_PARTY
+        local frame, left, bottom, width, height = ResolveGroupAnchorTarget(value, "party")
+        return frame, BUILTIN_PARTY, left, bottom, width, height
     elseif value == BUILTIN_RAID then
-        return PickFromProviders("raid", GROUP_PROVIDERS, true), BUILTIN_RAID
+        local frame, left, bottom, width, height = ResolveGroupAnchorTarget(value, "raid")
+        return frame, BUILTIN_RAID, left, bottom, width, height
     end
     return nil, value
 end
@@ -614,6 +658,7 @@ local function NormalizeAnchorTargetAlias(value)
     value = TrimText(value)
     if value == "" then return value end
     if value == L("layout.anchor_target.screen") then return "UIParent" end
+    if value == L("layout.anchor_target.main_chat") then return "ChatFrame1" end
     for id, key in pairs(BUILTIN_LABELS) do
         if value == L(key) then return id end
     end
@@ -626,8 +671,27 @@ AnchorTargetDisplayText = function(value)
     if value == "" or value == "UIParent" then
         return L("layout.anchor_target.screen")
     end
+    if value == "ChatFrame1" then
+        return L("layout.anchor_target.main_chat")
+    end
     local key = BUILTIN_LABELS[value]
-    return key and L(key) or value
+    if key then return L(key) end
+
+    local findEntry = P.FindEntryByFrameName
+    if type(findEntry) == "function" then
+        local entry = findEntry(value)
+        local title = entry and entry.spec and entry.spec.title
+        if type(title) == "string" then
+            title = TrimText(title)
+            if title ~= "" then return title end
+        end
+    end
+    local cachedLabel = Layout.anchorTargetLabels and Layout.anchorTargetLabels[value]
+    if type(cachedLabel) == "string" then
+        cachedLabel = TrimText(cachedLabel)
+        if cachedLabel ~= "" then return cachedLabel end
+    end
+    return value
 end
 P.AnchorTargetDisplayText = AnchorTargetDisplayText
 

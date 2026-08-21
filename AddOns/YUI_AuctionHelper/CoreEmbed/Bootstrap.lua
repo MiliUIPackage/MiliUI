@@ -2,7 +2,7 @@ local ADDON_NAME = ...
 
 local PRODUCT_ID = "auction_helper"
 local PRODUCT_TITLE = "Auction Helper · YanForge"
-local PRODUCT_VERSION = "yah-103"
+local PRODUCT_VERSION = "yah-106"
 local PRODUCT_LOGO = "icons\\logo_256.png"
 local CORE_MODE = "embedded"
 local SETTINGS_SCOPE = "auction_helper"

@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local ADDON_NAME, YUI = ...
 YUI = YUI or _G.YUI
@@ -12,6 +14,8 @@ local DB = YUI.DB
 
 local SCHEMA_VERSION = 2
 local MIGRATION_KEY = "legacyToV2"
+local NATIVE_INTERFACE_MIGRATION_KEY = "nativeInterfaceV1"
+local NATIVE_INTERFACE_MIGRATION_VERSION = 1
 
 local APPEARANCE_LEGACY_KEYS = {
     elvUI = "YUISkins",
@@ -39,14 +43,12 @@ local LEGACY_COMPONENT_KEY_MAP = {
     ElvUIAdapter = "ElvUIAdapter",
     NDuiAdapter = "NDuiAdapter",
     EQoLAdapter = "EQoLAdapter",
-    AyijeCDMAdapter = "AyijeCDMAdapter",
     MasqueSupport = "MasqueSupport",
     YDamageMeter = "YDamageMeter",
     RaidOptimization = "RaidOptimization",
     SXMusic = "SXMusic",
     SyncFriendlyNameplates = "SyncFriendlyNameplates",
     GameMenuButtons = "GameMenuButtons",
-    HideErrorMessages = "HideErrorMessages",
     LoginCheck = "LoginCheck",
     MapPos = "MapPosition",
     MapPosition = "MapPosition",
@@ -127,7 +129,6 @@ local LEGACY_CONFIG_ALLOWLIST = {
     MasqueSupport_Config = {
         blizzardActionBars = true,
         blizzardAuras = true,
-        ayijeCDM = true,
     },
     RaidOptimization_Config = {
         DisableElvUIPortrait = true,
@@ -142,6 +143,10 @@ local LEGACY_CONFIG_ALLOWLIST = {
         tradeWhisper = true,
         autoBag = true,
         merchantFrame = true,
+        autoDelete = true,
+        batchBuy = true,
+        batchBuyMaxQuantity = 999,
+        batchBuyPriceWarningGold = 10000,
     },
 }
 
@@ -243,7 +248,16 @@ local function MigrateLegacyComponents(profile, stats)
         local componentKey = LEGACY_COMPONENT_KEY_MAP[key]
         local configAllowlist = LEGACY_CONFIG_ALLOWLIST[key]
 
-        if componentKey then
+        if key == "HideErrorMessages" then
+            local config = EnsureTable(components, "UtilityTools_Config")
+            local hideErrors = EnsureTable(config, "hideErrors")
+            if SetMissing(hideErrors, "enabled", type(value) == "table" or value == true, stats) then
+                copied = copied + 1
+            end
+            if SetMissing(components, "UtilityTools", true, stats) then
+                copied = copied + 1
+            end
+        elseif componentKey then
             if type(value) == "table" then
                 local configKey = LEGACY_COMPONENT_TABLE_CONFIG_MAP[key]
                 local allowlist = configKey and LEGACY_CONFIG_ALLOWLIST[configKey]
@@ -490,6 +504,190 @@ function DB:MigrateSavedVariablesToV2(db, savedVariableName)
     return stats
 end
 
+local function ResolveLegacyYActionBarVisibility(profile, key)
+    local actionBar = type(profile.YActionBar) == "table" and profile.YActionBar or nil
+    if not (actionBar and actionBar.enabled == true) then return false end
+    local blizzardUI = type(actionBar.blizzardUI) == "table" and actionBar.blizzardUI or nil
+    return not (blizzardUI and blizzardUI[key] == "show")
+end
+
+local function ResolveLegacyUtilityOption(profile, key)
+    if YUI.IsRetail ~= true then return false end
+    local components = type(profile.Components) == "table" and profile.Components or nil
+    if components and components.UtilityTools == false then return false end
+    local utility = components and type(components.UtilityTools_Config) == "table"
+        and components.UtilityTools_Config or nil
+    local native = utility and type(utility.nativeInterface) == "table"
+        and utility.nativeInterface or nil
+    return native and native[key] == true or false
+end
+
+local COMMON_NATIVE_INTERFACE_KEYS = {
+    "hideStatusTrackingBars",
+    "hideMicroMenu",
+    "hideBagsBar",
+}
+
+local RETAIL_NATIVE_INTERFACE_KEYS = {
+    "hideBuffCollapseButton",
+    "manageTopCenterWidget",
+    "managePowerBarWidget",
+    "suppressSupertrackTutorial",
+}
+
+local RETAIL_NATIVE_INTERFACE_LEGACY_KEYS = {
+    hideBuffCollapseButton = "hideBuffCollapseButton",
+    manageTopCenterWidget = "topCenterWidget",
+    managePowerBarWidget = "powerBarWidget",
+}
+
+local COMMON_NATIVE_INTERFACE_ALLOWED = {
+    hideStatusTrackingBars = true,
+    hideMicroMenu = true,
+    hideBagsBar = true,
+    _migrationVersion = true,
+}
+
+local RETAIL_NATIVE_INTERFACE_ALLOWED = {
+    hideStatusTrackingBars = true,
+    hideMicroMenu = true,
+    hideBagsBar = true,
+    hideBuffCollapseButton = true,
+    manageTopCenterWidget = true,
+    managePowerBarWidget = true,
+    suppressSupertrackTutorial = true,
+    _migrationVersion = true,
+}
+
+local function IsNormalizedNativeInterfaceConfig(config)
+    if type(config) ~= "table"
+        or config._migrationVersion ~= NATIVE_INTERFACE_MIGRATION_VERSION then
+        return false
+    end
+    for _, key in ipairs(COMMON_NATIVE_INTERFACE_KEYS) do
+        if type(config[key]) ~= "boolean" then return false end
+    end
+    if YUI.IsRetail == true then
+        for _, key in ipairs(RETAIL_NATIVE_INTERFACE_KEYS) do
+            if type(config[key]) ~= "boolean" then return false end
+        end
+    end
+    local expected = YUI.IsRetail == true
+        and RETAIL_NATIVE_INTERFACE_ALLOWED or COMMON_NATIVE_INTERFACE_ALLOWED
+    for key in pairs(config) do
+        if expected[key] ~= true then return false end
+    end
+    return true
+end
+
+local function NativeInterfaceConfigsEqual(left, right)
+    if type(left) ~= "table" or type(right) ~= "table" then return false end
+    for key, value in pairs(left) do
+        if right[key] ~= value then return false end
+    end
+    for key, value in pairs(right) do
+        if left[key] ~= value then return false end
+    end
+    return true
+end
+
+local function BuildNativeInterfaceCandidate(profile)
+    if YUI.CoreMode ~= "suite" or YUI.IsMists == true or type(profile) ~= "table" then
+        return nil, nil, "not-applicable"
+    end
+
+    local components = type(profile.Components) == "table" and profile.Components or nil
+    local current = components and components.NativeInterface_Config or nil
+    if IsNormalizedNativeInterfaceConfig(current) then return current, current end
+    local candidate = {}
+    for _, key in ipairs(COMMON_NATIVE_INTERFACE_KEYS) do
+        if type(current) == "table" and type(current[key]) == "boolean" then
+            candidate[key] = current[key]
+        else
+            candidate[key] = ResolveLegacyYActionBarVisibility(profile, key == "hideStatusTrackingBars"
+                and "statusTrackingBars" or key == "hideMicroMenu" and "microMenu" or "bagsBar")
+        end
+    end
+    if YUI.IsRetail == true then
+        for _, key in ipairs(RETAIL_NATIVE_INTERFACE_KEYS) do
+            if type(current) == "table" and type(current[key]) == "boolean" then
+                candidate[key] = current[key]
+            elseif key == "suppressSupertrackTutorial" then
+                candidate[key] = true
+            else
+                candidate[key] = ResolveLegacyUtilityOption(profile, RETAIL_NATIVE_INTERFACE_LEGACY_KEYS[key])
+            end
+        end
+    end
+    candidate._migrationVersion = NATIVE_INTERFACE_MIGRATION_VERSION
+    return candidate, current
+end
+
+local function CommitNativeInterfaceCandidate(profile, candidate)
+    local components = type(profile.Components) == "table" and profile.Components or nil
+    if not components then
+        components = {}
+        profile.Components = components
+    end
+    components.NativeInterface_Config = candidate
+end
+
+function DB:NormalizeNativeInterfaceProfile(profile)
+    local candidate, current, reason = BuildNativeInterfaceCandidate(profile)
+    if not candidate then return false, reason end
+    if NativeInterfaceConfigsEqual(current, candidate) then
+        return true, "already-migrated"
+    end
+
+    CommitNativeInterfaceCandidate(profile, candidate)
+    return true, "migrated"
+end
+
+function DB:MigrateNativeInterfaceV1(db, savedVariableName)
+    if YUI.CoreMode ~= "suite" or YUI.IsMists == true or savedVariableName ~= "YUI_DB" then
+        return { skipped = true, reason = "not-applicable" }
+    end
+    local sv = ResolveSavedVariables(db, savedVariableName)
+    if type(sv) ~= "table" then return nil, "saved-variables-unavailable" end
+    sv.global = type(sv.global) == "table" and sv.global or {}
+    sv.global._yuiMigrations = type(sv.global._yuiMigrations) == "table"
+        and sv.global._yuiMigrations or {}
+    if sv.global._yuiMigrations[NATIVE_INTERFACE_MIGRATION_KEY] == true then
+        return { skipped = true, migration = NATIVE_INTERFACE_MIGRATION_KEY }
+    end
+
+    local stats = { profiles = 0, migrated = 0 }
+    local pending = {}
+    if type(sv.profiles) == "table" then
+        for _, profile in pairs(sv.profiles) do
+            if type(profile) == "table" then
+                stats.profiles = stats.profiles + 1
+                local candidate, current, reason = BuildNativeInterfaceCandidate(profile)
+                if not candidate then return nil, reason end
+                if not NativeInterfaceConfigsEqual(current, candidate) then
+                    pending[#pending + 1] = { profile = profile, candidate = candidate }
+                end
+            end
+        end
+    end
+    for _, item in ipairs(pending) do
+        CommitNativeInterfaceCandidate(item.profile, item.candidate)
+    end
+    stats.migrated = #pending
+    sv.global._yuiMigrations[NATIVE_INTERFACE_MIGRATION_KEY] = true
+    return stats
+end
+
+function DB:MigrateSavedVariables(db, savedVariableName)
+    local legacy = self:MigrateSavedVariablesToV2(db, savedVariableName)
+    local native, nativeError = self:MigrateNativeInterfaceV1(db, savedVariableName)
+    return {
+        legacy = legacy,
+        nativeInterface = native,
+        nativeInterfaceError = nativeError,
+    }
+end
+
 function DB:NormalizeImportedProfile(data, sourcePrefix)
     if type(data) ~= "table" then
         return nil, {
@@ -513,6 +711,9 @@ function DB:NormalizeImportedProfile(data, sourcePrefix)
     local stats = {}
     if isLegacy or type(profile.YBox) == "table" then
         self:NormalizeLegacyProfile(profile, stats)
+    end
+    if YUI.CoreMode == "suite" and YUI.IsMists ~= true then
+        self:NormalizeNativeInterfaceProfile(profile)
     end
 
     return profile, {

@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local YUI = _G.YUI
 YUI.GUI2 = YUI.GUI2 or {}
@@ -30,6 +32,290 @@ local setmetatable = setmetatable
 local table_sort = table.sort
 
 GUI2.Form = GUI2.Form or {}
+
+local SLIDER_DIAGNOSTIC_DEFAULT_SAMPLE_LIMIT = 12
+local SLIDER_DIAGNOSTIC_MAX_SAMPLE_LIMIT = 40
+local SLIDER_STEP_ROUND_EPSILON = 0.000000001
+local SLIDER_DIAGNOSTIC_PHASE_LABELS = {
+    config = "配置同步/入队",
+    preview = "预览刷新",
+    autosave = "ConfigSet 保存",
+}
+local SliderDiagnostics = GUI2.Form.SliderDiagnostics or {
+    enabled = false,
+    sampleLimit = SLIDER_DIAGNOSTIC_DEFAULT_SAMPLE_LIMIT,
+    sequence = 0,
+}
+GUI2.Form.SliderDiagnostics = SliderDiagnostics
+
+local function SliderDiagnosticTimeMs()
+    local profiler = _G.debugprofilestop
+    if type(profiler) == "function" then
+        return profiler()
+    end
+    local precise = _G.GetTimePreciseSec
+    if type(precise) == "function" then
+        return precise() * 1000
+    end
+    local clock = _G.GetTime
+    if type(clock) == "function" then
+        return clock() * 1000
+    end
+    return nil
+end
+
+local function SliderDiagnosticWrite(message)
+    local chat = _G.DEFAULT_CHAT_FRAME
+    if chat and type(chat.AddMessage) == "function" then
+        chat:AddMessage(message)
+    elseif type(_G.print) == "function" then
+        _G.print(message)
+    end
+end
+
+function GUI2.Form:SetSliderDiagnosticsEnabled(enabled, sampleLimit)
+    SliderDiagnostics.enabled = enabled == true
+    sampleLimit = math_floor(tonumber(sampleLimit) or SliderDiagnostics.sampleLimit)
+    sampleLimit = math_max(0, math_min(SLIDER_DIAGNOSTIC_MAX_SAMPLE_LIMIT, sampleLimit))
+    SliderDiagnostics.sampleLimit = sampleLimit
+    SliderDiagnosticWrite(string_format(
+        "|cff33ccffYUI GUI2 Slider|r 诊断%s，事件样本上限：%d。",
+        SliderDiagnostics.enabled and "已启用" or "已关闭",
+        sampleLimit
+    ))
+    return SliderDiagnostics.enabled, sampleLimit
+end
+
+function GUI2.Form:GetSliderDiagnosticsEnabled()
+    return SliderDiagnostics.enabled == true, SliderDiagnostics.sampleLimit
+end
+
+function GUI2.Form:BeginSliderDiagnosticPhase(name)
+    if SliderDiagnostics.enabled ~= true then return nil end
+    local diagnostic = SliderDiagnostics.active
+    if type(diagnostic) ~= "table" then return nil end
+    local now = SliderDiagnosticTimeMs()
+    if type(now) ~= "number" then return nil end
+    return {
+        diagnostic = diagnostic,
+        name = tostring(name or "other"),
+        startedMs = now,
+    }
+end
+
+function GUI2.Form:EndSliderDiagnosticPhase(token)
+    if type(token) ~= "table" then return false end
+    local diagnostic = token.diagnostic
+    if diagnostic ~= SliderDiagnostics.active then return false end
+    local now = SliderDiagnosticTimeMs()
+    if type(now) ~= "number" or type(token.startedMs) ~= "number" then
+        return false
+    end
+    local elapsed = now - token.startedMs
+    if elapsed < 0 then return false end
+
+    local name = token.name
+    local phase = diagnostic.phases[name]
+    if not phase then
+        phase = {
+            count = 0,
+            totalMs = 0,
+            maxMs = 0,
+        }
+        diagnostic.phases[name] = phase
+        diagnostic.phaseOrder[#diagnostic.phaseOrder + 1] = name
+    end
+    phase.count = phase.count + 1
+    phase.totalMs = phase.totalMs + elapsed
+    phase.maxMs = math_max(phase.maxMs, elapsed)
+    return true, elapsed
+end
+
+local function BeginSliderDiagnostic(container, opts, normalizedValue, normalizedStepKey)
+    if SliderDiagnostics.enabled ~= true then return end
+    local now = SliderDiagnosticTimeMs()
+    if type(now) ~= "number" then
+        SliderDiagnosticWrite("|cffff5555YUI GUI2 Slider|r 无可用的毫秒计时 API。")
+        return
+    end
+    SliderDiagnostics.sequence = SliderDiagnostics.sequence + 1
+    local label = opts.diagnosticLabel or opts.label or opts.key or opts.name or "Slider"
+    container.gui2SliderDiagnostic = {
+        id = SliderDiagnostics.sequence,
+        label = tostring(label),
+        startedMs = now,
+        lastEventMs = nil,
+        lastNormalized = normalizedValue,
+        lastNormalizedStepKey = normalizedStepKey,
+        lastCommitted = normalizedValue,
+        lastCommittedStepKey = normalizedStepKey,
+        rawEvents = 0,
+        normalizedChanges = 0,
+        repeatedValues = 0,
+        commits = 0,
+        effectiveCommits = 0,
+        repeatedCommits = 0,
+        intervalCount = 0,
+        intervalTotalMs = 0,
+        intervalMinMs = nil,
+        intervalMaxMs = 0,
+        commitTotalMs = 0,
+        commitMaxMs = 0,
+        phases = {},
+        phaseOrder = {},
+        samples = {},
+        sampleLimit = SliderDiagnostics.sampleLimit,
+    }
+    SliderDiagnostics.active = container.gui2SliderDiagnostic
+end
+
+local function RecordSliderDiagnosticEvent(
+    container,
+    rawValue,
+    normalizedValue,
+    normalizedStepKey
+)
+    local diagnostic = container.gui2SliderDiagnostic
+    if not diagnostic then return end
+    local now = SliderDiagnosticTimeMs()
+    if type(now) ~= "number" then return end
+
+    diagnostic.rawEvents = diagnostic.rawEvents + 1
+    local changed = diagnostic.lastNormalizedStepKey ~= normalizedStepKey
+    if changed then
+        diagnostic.normalizedChanges = diagnostic.normalizedChanges + 1
+    else
+        diagnostic.repeatedValues = diagnostic.repeatedValues + 1
+    end
+    diagnostic.lastNormalized = normalizedValue
+    diagnostic.lastNormalizedStepKey = normalizedStepKey
+
+    if diagnostic.lastEventMs then
+        local interval = now - diagnostic.lastEventMs
+        if interval >= 0 then
+            diagnostic.intervalCount = diagnostic.intervalCount + 1
+            diagnostic.intervalTotalMs = diagnostic.intervalTotalMs + interval
+            diagnostic.intervalMinMs = diagnostic.intervalMinMs
+                and math_min(diagnostic.intervalMinMs, interval)
+                or interval
+            diagnostic.intervalMaxMs = math_max(diagnostic.intervalMaxMs, interval)
+        end
+    end
+    diagnostic.lastEventMs = now
+
+    local samples = diagnostic.samples
+    if #samples < diagnostic.sampleLimit then
+        samples[#samples + 1] = string_format(
+            "#%d at=%.3fms +%.3fms raw=%s value=%s %s",
+            diagnostic.rawEvents,
+            now,
+            now - diagnostic.startedMs,
+            tostring(rawValue),
+            tostring(normalizedValue),
+            changed and "changed" or "repeat"
+        )
+    end
+end
+
+local function RecordSliderDiagnosticCommit(container, value, stepKey, startedMs)
+    local diagnostic = container.gui2SliderDiagnostic
+    if not diagnostic then return end
+    diagnostic.commits = diagnostic.commits + 1
+    if diagnostic.lastCommittedStepKey == stepKey then
+        diagnostic.repeatedCommits = diagnostic.repeatedCommits + 1
+    else
+        diagnostic.effectiveCommits = diagnostic.effectiveCommits + 1
+    end
+    diagnostic.lastCommitted = value
+    diagnostic.lastCommittedStepKey = stepKey
+
+    local now = SliderDiagnosticTimeMs()
+    if type(startedMs) == "number" and type(now) == "number" then
+        local elapsed = now - startedMs
+        if elapsed >= 0 then
+            diagnostic.commitTotalMs = diagnostic.commitTotalMs + elapsed
+            diagnostic.commitMaxMs = math_max(diagnostic.commitMaxMs, elapsed)
+        end
+    end
+end
+
+local function FinishSliderDiagnostic(container)
+    local diagnostic = container.gui2SliderDiagnostic
+    if not diagnostic then return end
+    container.gui2SliderDiagnostic = nil
+    if SliderDiagnostics.active == diagnostic then
+        SliderDiagnostics.active = nil
+    end
+
+    local now = SliderDiagnosticTimeMs()
+    local duration = type(now) == "number" and math_max(0, now - diagnostic.startedMs) or 0
+    local eventRate = duration > 0 and (diagnostic.rawEvents * 1000 / duration) or 0
+    local averageInterval = diagnostic.intervalCount > 0
+        and (diagnostic.intervalTotalMs / diagnostic.intervalCount)
+        or 0
+    local averageCommit = diagnostic.commits > 0
+        and (diagnostic.commitTotalMs / diagnostic.commits)
+        or 0
+
+    SliderDiagnosticWrite(string_format(
+        "|cff33ccffYUI GUI2 Slider #%d|r [%s] 拖动 %.3fms，原始事件 %d（%.1f/s）。",
+        diagnostic.id,
+        diagnostic.label,
+        duration,
+        diagnostic.rawEvents,
+        eventRate
+    ))
+    SliderDiagnosticWrite(string_format(
+        "数值变化 %d，重复数值 %d；业务提交 %d（有效 %d，重复 %d）。",
+        diagnostic.normalizedChanges,
+        diagnostic.repeatedValues,
+        diagnostic.commits,
+        diagnostic.effectiveCommits,
+        diagnostic.repeatedCommits
+    ))
+    SliderDiagnosticWrite(string_format(
+        "事件间隔 min/avg/max：%.3f / %.3f / %.3fms；同步提交 total/avg/max：%.3f / %.3f / %.3fms。",
+        diagnostic.intervalMinMs or 0,
+        averageInterval,
+        diagnostic.intervalMaxMs,
+        diagnostic.commitTotalMs,
+        averageCommit,
+        diagnostic.commitMaxMs
+    ))
+    local attributedTotalMs = 0
+    for index = 1, #diagnostic.phaseOrder do
+        local name = diagnostic.phaseOrder[index]
+        local phase = diagnostic.phases[name]
+        if phase and phase.count > 0 then
+            local average = phase.totalMs / phase.count
+            attributedTotalMs = attributedTotalMs + phase.totalMs
+            SliderDiagnosticWrite(string_format(
+                "分段 %s：%d 次，total/avg/max：%.3f / %.3f / %.3fms。",
+                SLIDER_DIAGNOSTIC_PHASE_LABELS[name] or name,
+                phase.count,
+                phase.totalMs,
+                average,
+                phase.maxMs
+            ))
+        end
+    end
+    if attributedTotalMs > 0 then
+        SliderDiagnosticWrite(string_format(
+            "已归因 %.3fms；其余同步开销 %.3fms。",
+            attributedTotalMs,
+            math_max(0, diagnostic.commitTotalMs - attributedTotalMs)
+        ))
+    end
+    for index = 1, #diagnostic.samples do
+        SliderDiagnosticWrite("  " .. diagnostic.samples[index])
+    end
+    if diagnostic.rawEvents > #diagnostic.samples then
+        SliderDiagnosticWrite(string_format(
+            "  ……其余 %d 个原始事件已省略。",
+            diagnostic.rawEvents - #diagnostic.samples
+        ))
+    end
+end
 
 local function GetCoreText(key, fallback)
     local locale = YUI.Locale
@@ -134,6 +420,18 @@ local function CommitValue(opts, widget, value)
     if opts.onChange then opts.onChange(widget, value) end
 end
 
+local function ValuesEqual(left, right)
+    if left == right then return true end
+    if type(left) ~= type(right) or type(left) ~= "table" then return false end
+    for key, value in pairs(left) do
+        if not ValuesEqual(value, right[key]) then return false end
+    end
+    for key in pairs(right) do
+        if left[key] == nil then return false end
+    end
+    return true
+end
+
 local function NormalizeColorValue(value)
     if type(value) == "table" and type(value[1]) == "table" then
         value = value[1]
@@ -151,8 +449,10 @@ local function AddTooltip(frame, opts)
     if not frame or not opts or not opts.tooltip then return end
     frame:HookScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        if opts.label or opts.text then
-            GameTooltip:SetText(opts.label or opts.text)
+        local heading = opts.label
+        if heading == nil or heading == "" then heading = opts.text end
+        if heading ~= nil and heading ~= "" then
+            GameTooltip:SetText(heading)
             GameTooltip:AddLine(" ")
             GameTooltip:AddLine(opts.tooltip, 1, 1, 1, true)
         else
@@ -277,6 +577,9 @@ local function StateTokens(frame, state)
 
     if tone == "accent" then
         text = "color.text.accent"
+    elseif tone == "success" then
+        border = "color.state.success"
+        text = "color.state.success"
     elseif tone == "warning" then
         border = "color.state.warning"
         text = "color.state.warning"
@@ -287,14 +590,14 @@ local function StateTokens(frame, state)
 
     if state == "hover" then
         surface = "color.control.hover"
-        border = tone == "warning" and "color.state.warning" or tone == "danger" and "color.state.danger" or "color.border.accent"
+        border = tone == "success" and "color.state.success" or tone == "warning" and "color.state.warning" or tone == "danger" and "color.state.danger" or "color.border.accent"
     elseif state == "pressed" then
         surface = "color.control.pressed"
-        border = "color.border.strong"
+        border = tone == "success" and "color.state.success" or "color.border.strong"
     elseif state == "selected" or state == "active" then
         surface = "color.control.active"
-        border = "color.border.accent"
-        text = tone == "danger" and "color.state.danger" or "color.text.accent"
+        border = tone == "success" and "color.state.success" or "color.border.accent"
+        text = tone == "success" and "color.state.success" or tone == "danger" and "color.state.danger" or "color.text.accent"
     elseif state == "locked" then
         surface = "color.control.locked"
         border = "color.border.locked"
@@ -307,7 +610,102 @@ local function StateTokens(frame, state)
         text = "color.text.disabled"
     end
 
+    if state ~= "disabled" then
+        if state == "hover" then
+            surface = frame.gui2HoverSurfaceToken or surface
+            border = frame.gui2HoverBorderToken or border
+            text = frame.gui2HoverTextColorKey or text
+        elseif state == "pressed" then
+            surface = frame.gui2PressedSurfaceToken or surface
+            border = frame.gui2PressedBorderToken or border
+            text = frame.gui2PressedTextColorKey or text
+        elseif state == "normal" then
+            surface = frame.gui2SurfaceToken or surface
+            border = frame.gui2BorderToken or border
+            text = frame.gui2TextColorKey or text
+        end
+    end
+
     return surface, border, text
+end
+
+local function GetControlStateColor(value)
+    if type(value) == "table" then
+        local color = value.type == "solid" and value.value or value
+        return color[1] or 1, color[2] or 1, color[3] or 1, color[4] == nil and 1 or color[4]
+    end
+    return GUI2:GetColor(value)
+end
+
+local function LayoutButtonHairlineRelief(frame)
+    local edges = frame and frame.gui2HairlineEdges
+    if not edges then return end
+    local pixel = GUI2.GetPixelSize and GUI2:GetPixelSize(frame, 1, 1) or 1
+
+    edges.top:ClearAllPoints()
+    edges.top:SetPoint("TOPLEFT", frame, "TOPLEFT", pixel, -pixel)
+    edges.top:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -pixel, -pixel)
+    edges.top:SetHeight(pixel)
+
+    edges.bottom:ClearAllPoints()
+    edges.bottom:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", pixel, pixel)
+    edges.bottom:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -pixel, pixel)
+    edges.bottom:SetHeight(pixel)
+
+    edges.left:ClearAllPoints()
+    edges.left:SetPoint("TOPLEFT", frame, "TOPLEFT", pixel, -pixel)
+    edges.left:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", pixel, pixel)
+    edges.left:SetWidth(pixel)
+
+    edges.right:ClearAllPoints()
+    edges.right:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -pixel, -pixel)
+    edges.right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -pixel, pixel)
+    edges.right:SetWidth(pixel)
+end
+
+local function PaintButtonHairlineRelief(frame, state)
+    local edges = frame and frame.gui2HairlineEdges
+    if not edges then return end
+
+    local highlightKey = "color.badge.text"
+    local shadowKey = "color.surface.sunken"
+    local highlightAlpha, shadowAlpha = 0.28, 0.55
+    if state == "hover" then
+        highlightAlpha, shadowAlpha = 0.42, 0.48
+    elseif state == "pressed" then
+        highlightKey, shadowKey = shadowKey, highlightKey
+        highlightAlpha, shadowAlpha = 0.65, 0.12
+    elseif state == "disabled" then
+        highlightAlpha, shadowAlpha = 0.08, 0.15
+    end
+
+    GUI2:SetTexturePaintKey(edges.top, highlightKey)
+    GUI2:SetTexturePaintKey(edges.left, highlightKey)
+    GUI2:SetTexturePaintKey(edges.bottom, shadowKey)
+    GUI2:SetTexturePaintKey(edges.right, shadowKey)
+    edges.top:SetAlpha(highlightAlpha)
+    edges.left:SetAlpha(highlightAlpha)
+    edges.bottom:SetAlpha(shadowAlpha)
+    edges.right:SetAlpha(shadowAlpha)
+end
+
+local function EnsureButtonHairlineRelief(frame)
+    if not frame or frame.gui2HairlineEdges then return end
+    local function CreateEdge()
+        return GUI2:CreateTexture(frame, {
+            paint = "color.badge.text",
+            layer = "OVERLAY",
+            subLevel = 7,
+        })
+    end
+    frame.gui2HairlineEdges = {
+        top = CreateEdge(),
+        bottom = CreateEdge(),
+        left = CreateEdge(),
+        right = CreateEdge(),
+    }
+    frame.UpdateGUI2PixelLayout = LayoutButtonHairlineRelief
+    LayoutButtonHairlineRelief(frame)
 end
 
 local function ApplyControlState(frame, state)
@@ -318,19 +716,23 @@ local function ApplyControlState(frame, state)
     local surface, border, text = StateTokens(frame, state)
     frame.gui2Surface = surface
     if frame.SetBackdropColor then
-        frame:SetBackdropColor(GUI2:GetColor(surface))
+        frame:SetBackdropColor(GetControlStateColor(surface))
     end
     GUI2:SetBorderColor(frame, border)
     if frame.text then
         if frame.gui2CustomTextColor and state == "normal" then
             frame.text:SetTextColor(unpack(frame.gui2CustomTextColor))
+        elseif type(text) == "table" then
+            frame.text.gui2ColorKey = nil
+            frame.text:SetTextColor(GetControlStateColor(text))
         else
             GUI2:SetTextColorKey(frame.text, text)
         end
     end
-    if frame.icon and frame.icon.SetVertexColor then
-        frame.icon:SetVertexColor(GUI2:GetColor(text))
+    if frame.icon and frame.icon.SetVertexColor and not frame.gui2PreserveIconColor then
+        frame.icon:SetVertexColor(GetControlStateColor(text))
     end
+    PaintButtonHairlineRelief(frame, state)
 end
 
 local function GetButtonRestingState(button)
@@ -344,7 +746,11 @@ local function GetButtonRestingState(button)
 end
 
 local function SetButtonEnabled(button, enabled)
-    button.gui2Disabled = not enabled
+    local disabled = not enabled
+    if button.gui2DisabledInitialized and button.gui2Disabled == disabled then
+        return false
+    end
+    button.gui2Disabled = disabled
     if enabled then
         if button.Enable then button:Enable() end
         local state = GetButtonRestingState(button)
@@ -353,6 +759,41 @@ local function SetButtonEnabled(button, enabled)
     else
         if button.Disable then button:Disable() end
         ApplyControlState(button, "disabled")
+    end
+    button.gui2DisabledInitialized = true
+    return true
+end
+
+local function LayoutButtonContent(button, offsetX, offsetY)
+    if not button then return end
+    offsetX = offsetX or 0
+    offsetY = offsetY or 0
+
+    local text = button.text
+    local icon = button.icon
+    if text then text:ClearAllPoints() end
+    if icon and button.gui2ButtonOwnsIcon then icon:ClearAllPoints() end
+
+    if icon and button.gui2ButtonOwnsIcon then
+        local leftPadding = button.gui2IconLeftPadding or 8
+        local gap = button.gui2IconGap or 5
+        local iconYOffset = button.gui2IconYOffset or 0
+        if text and button.gui2ContentAlign == "center" then
+            local contentOffset = ((icon:GetWidth() or 0) + gap) * 0.5
+            text:SetPoint("CENTER", button, "CENTER", contentOffset + offsetX, offsetY)
+            text:SetJustifyH("CENTER")
+            icon:SetPoint("RIGHT", text, "LEFT", -gap, iconYOffset)
+        else
+            icon:SetPoint("LEFT", button, "LEFT", leftPadding + offsetX, offsetY + iconYOffset)
+        end
+        if text and button.gui2ContentAlign ~= "center" then
+            text:SetPoint("LEFT", icon, "RIGHT", gap, offsetY)
+            text:SetPoint("RIGHT", button, "RIGHT", -(button.gui2TextRightPadding or 8) + offsetX, offsetY)
+            text:SetJustifyH(button.gui2JustifyH or "LEFT")
+        end
+    elseif text then
+        text:SetPoint("CENTER", offsetX, offsetY)
+        text:SetJustifyH(button.gui2JustifyH or "CENTER")
     end
 end
 
@@ -367,17 +808,17 @@ local function WireButtonStates(button)
     end)
     button:SetScript("OnLeave", function(self)
         if self.gui2Disabled then return end
-        if self.text then self.text:SetPoint("CENTER", 0, 0) end
+        LayoutButtonContent(self)
         ApplyControlState(self, GetButtonRestingState(self))
     end)
     button:SetScript("OnMouseDown", function(self)
         if self.gui2Disabled then return end
         ApplyControlState(self, "pressed")
-        if self.text then self.text:SetPoint("CENTER", 1, -1) end
+        LayoutButtonContent(self, 1, -1)
     end)
     button:SetScript("OnMouseUp", function(self)
         if self.gui2Disabled then return end
-        if self.text then self.text:SetPoint("CENTER", 0, 0) end
+        LayoutButtonContent(self)
         ApplyControlState(self, (self:IsMouseOver() and not self.gui2Locked) and "hover" or GetButtonRestingState(self))
     end)
 end
@@ -391,12 +832,57 @@ function GUI2.Form:CreateButton(parent, opts)
     if button.RegisterForClicks then button:RegisterForClicks("AnyUp") end
     ConfigureMotion(button, opts)
     button.gui2Tone = opts.tone or "accent"
+    button.gui2Relief = opts.relief
     GUI2:ApplyBackdrop(button, "color.control.bg")
     GUI2:CreateBorder(button, "color.border.default")
+    if opts.relief == "hairline" then
+        EnsureButtonHairlineRelief(button)
+    end
 
+    local microIconName = opts.microIcon or opts.microIconName
+    local iconSource = opts.icon or opts.texture or opts.source
+    local hasIcon = microIconName ~= nil or iconSource ~= nil or opts.atlas ~= nil
     local label = GUI2:CreateText(button, opts.text or opts.label or "", opts.fontSizeKey or "font.size.md", "color.text.accent")
-    label:SetPoint("CENTER")
+    label:SetWordWrap(false)
     button.text = label
+
+    if hasIcon then
+        local iconCrop = opts.iconCrop
+        if iconCrop == nil then iconCrop = opts.crop end
+        local iconSize = opts.iconSize or math_max(math_min((opts.height or GetControlHeight(26)) - 10, 16), 12)
+        local icon
+        if microIconName then
+            icon = GUI2:CreateMicroIcon(button, {
+                iconName = microIconName,
+                size = iconSize,
+                maxSize = iconSize,
+                minPhysicalPixels = opts.iconMinPhysicalPixels,
+                pixelPolicy = opts.iconPixelPolicy,
+            })
+        else
+            icon = GUI2:CreateIcon(button, {
+                icon = iconSource,
+                atlas = opts.atlas,
+                size = iconSize,
+                texCoords = opts.iconTexCoords or opts.texCoords,
+                crop = iconCrop,
+                pixelPolicy = opts.iconPixelPolicy,
+            })
+        end
+        button.icon = icon
+        button.gui2ButtonOwnsIcon = true
+        button.gui2PreserveIconColor = opts.preserveIconColor == true
+        button.gui2ContentAlign = opts.contentAlign or "left"
+        button.gui2IconLeftPadding = opts.iconLeftPadding or 8
+        button.gui2IconGap = opts.iconGap or 5
+        button.gui2IconYOffset = opts.iconYOffset or 0
+        button.gui2TextRightPadding = opts.textRightPadding or 8
+        button.gui2JustifyH = opts.justifyH or "LEFT"
+        InheritMotion(icon, button)
+    else
+        button.gui2JustifyH = opts.justifyH or "CENTER"
+    end
+    LayoutButtonContent(button)
 
     function button:SetState(state)
         self.gui2Locked = state == "locked"
@@ -408,11 +894,14 @@ function GUI2.Form:CreateButton(parent, opts)
         self.gui2Selected = selected and true or false
         ApplyControlState(self, self.gui2Selected and "selected" or "normal")
     end
-    function button:SetDisabled(disabled)
+    function button:SetDisabled(disabled, force)
+        disabled = disabled and true or false
+        if force == true then self.gui2DisabledInitialized = nil end
         SetButtonEnabled(self, not disabled)
     end
     function button:SetText(value)
         if self.text then self.text:SetText(value or "") end
+        LayoutButtonContent(self)
     end
     function button:GetFontString()
         return self.text
@@ -424,12 +913,98 @@ function GUI2.Form:CreateButton(parent, opts)
     function button:RefreshTheme()
         ApplyControlState(self, self.gui2Disabled and "disabled" or GetButtonRestingState(self))
     end
+    function button:SetRelief(relief)
+        self.gui2Relief = relief
+        if relief == "hairline" then
+            EnsureButtonHairlineRelief(self)
+            for _, edge in pairs(self.gui2HairlineEdges) do edge:Show() end
+            LayoutButtonHairlineRelief(self)
+            PaintButtonHairlineRelief(self, self.gui2State or "normal")
+        elseif self.gui2HairlineEdges then
+            for _, edge in pairs(self.gui2HairlineEdges) do edge:Hide() end
+        end
+    end
 
     WireButtonStates(button)
     if opts.onClick then button:SetScript("OnClick", opts.onClick) end
     AddTooltip(button, opts)
     button:SetState(opts.state or "normal")
     button:SetDisabled(opts.disabled or opts.state == "disabled")
+    GUI2:RegisterThemeObject(button)
+    return button
+end
+
+function GUI2.Form:SetButtonRelief(button, relief)
+    if not button then return false end
+    if button.SetRelief then
+        button:SetRelief(relief)
+        return true
+    end
+    return false
+end
+
+function GUI2.Form:CreateTextLink(parent, opts)
+    opts = opts or {}
+    local width = ResolveFormWidth(opts, "compact", 92)
+    local height = opts.height or GetControlHeight(22)
+    local normalColor = opts.colorKey or "color.text.accent"
+    local hoverColor = opts.hoverColorKey or "color.text.heading"
+    local disabledColor = opts.disabledColorKey or "color.text.disabled"
+
+    local button = GUI2:CreateButtonFrame(parent, {
+        name = opts.name,
+        width = width,
+        height = height,
+        onClick = opts.onClick,
+    })
+    button.gui2Disabled = opts.disabled and true or false
+
+    local label = GUI2:CreateText(button, opts.text or opts.label or "", opts.fontSizeKey or "font.size.md", normalColor, opts.justifyH or "CENTER")
+    label:SetPoint("CENTER", 0, 1)
+    label:SetWordWrap(false)
+    button.text = label
+
+    local underline = GUI2:CreateTexture(button, normalColor, "ARTWORK")
+    underline:SetHeight(opts.underlineHeight or 1)
+    underline:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -1)
+    underline:SetPoint("TOPRIGHT", label, "BOTTOMRIGHT", 0, -1)
+    button.underline = underline
+
+    local function Refresh(frame, hovered)
+        local colorKey = frame.gui2Disabled and disabledColor or (hovered and hoverColor or normalColor)
+        GUI2:SetTextColorKey(frame.text, colorKey)
+        GUI2:SetTexturePaintKey(frame.underline, colorKey)
+        frame:SetAlpha(frame.gui2Disabled and 0.55 or 1)
+    end
+
+    function button:SetText(value)
+        if self.text then self.text:SetText(value or "") end
+    end
+    function button:SetDisabled(disabled)
+        disabled = disabled and true or false
+        if self.gui2DisabledInitialized and self.gui2Disabled == disabled then
+            return false
+        end
+        self.gui2Disabled = disabled
+        if self.EnableMouse then self:EnableMouse(not self.gui2Disabled) end
+        Refresh(self, false)
+        self.gui2DisabledInitialized = true
+        return true
+    end
+    function button:RefreshTheme()
+        Refresh(self, self:IsMouseOver() and not self.gui2Disabled)
+    end
+
+    button:SetScript("OnEnter", function(self)
+        Refresh(self, true)
+        if opts.onEnter then opts.onEnter(self) end
+    end)
+    button:SetScript("OnLeave", function(self)
+        Refresh(self, false)
+        if opts.onLeave then opts.onLeave(self) end
+    end)
+    AddTooltip(button, opts)
+    button:SetDisabled(button.gui2Disabled)
     GUI2:RegisterThemeObject(button)
     return button
 end
@@ -448,8 +1023,12 @@ function GUI2.Form:CreateIconButton(parent, opts)
         onClick = opts.onClick,
     })
     local icon = GUI2:CreateIcon(button, {
-        icon = opts.icon,
+        icon = opts.icon or opts.texture or opts.source,
         atlas = opts.atlas,
+        fallbackIcon = opts.fallbackIcon,
+        texCoords = opts.texCoords,
+        crop = opts.crop,
+        pixelPolicy = opts.iconPixelPolicy,
         size = math_max(size - 10, 12),
     })
     icon:SetPoint("CENTER")
@@ -497,22 +1076,37 @@ function GUI2.Form:CreateCheckbox(parent, opts)
         return self.gui2Checked
     end
     function frame:SetChecked(checked, silent)
-        local isSilent, animate = ParseSetOptions(silent)
+        local isSilent, animate, setOptions = ParseSetOptions(silent)
+        checked = checked and true or false
+        if self.gui2ValueInitialized
+            and self.gui2Checked == checked
+            and not (setOptions and setOptions.force == true) then
+            if not isSilent then CommitValue(opts, self, checked) end
+            return false
+        end
         local previous = self.gui2Checked
-        self.gui2Checked = checked and true or false
+        self.gui2Checked = checked
         self.box.gui2Surface = self.gui2Disabled and "color.control.disabled" or (self.gui2Checked and "color.accent.fill" or "color.control.bg")
         GUI2:RefreshPrimitive(self.box)
         GUI2:SetBorderColor(self.box, self.gui2Disabled and "color.border.subtle" or (self.gui2Checked and "color.border.accent" or "color.border.default"))
         if animate and previous ~= nil and previous ~= self.gui2Checked and not self.gui2Disabled then
             PlayMotionOverlay(self.boxMotion, self, "checkbox-check")
         end
+        self.gui2ValueInitialized = true
         if not isSilent then CommitValue(opts, self, self.gui2Checked) end
+        return true
     end
     function frame:SetValue(value, silent)
-        self:SetChecked(value, silent)
+        return self:SetChecked(value, silent)
     end
-    function frame:SetDisabled(disabled)
-        self.gui2Disabled = disabled and true or false
+    function frame:SetDisabled(disabled, force)
+        disabled = disabled and true or false
+        if force ~= true
+            and self.gui2DisabledInitialized
+            and self.gui2Disabled == disabled then
+            return false
+        end
+        self.gui2Disabled = disabled
         if self.gui2Disabled then
             GUI2:SetTextColorKey(self.text, "color.text.disabled")
             if self.Disable then self:Disable() end
@@ -520,11 +1114,12 @@ function GUI2.Form:CreateCheckbox(parent, opts)
             GUI2:SetTextColorKey(self.text, "color.text.primary")
             if self.Enable then self:Enable() end
         end
-        self:SetChecked(self.gui2Checked, true)
+        self:SetChecked(self.gui2Checked, { silent = true, force = true })
+        self.gui2DisabledInitialized = true
+        return true
     end
     function frame:RefreshTheme()
-        self:SetDisabled(self.gui2Disabled)
-        self:SetChecked(self.gui2Checked, true)
+        self:SetDisabled(self.gui2Disabled, true)
     end
 
     frame:SetScript("OnClick", function(self)
@@ -607,16 +1202,19 @@ function GUI2.Form:CreateSwitch(parent, opts)
         return self.gui2Checked
     end
     function frame:SetValue(value, silent)
-        local isSilent, animate = ParseSetOptions(silent)
+        local isSilent, animate, setOptions = ParseSetOptions(silent)
         local previousChecked = self.gui2Checked
         local checked = value == onValue or value == true and onValue == true
+        local normalizedValue = checked and onValue or offValue
+        if self.gui2ValueInitialized
+            and self.gui2Value == normalizedValue
+            and not (setOptions and setOptions.force == true) then
+            if not isSilent then CommitValue(opts, self, normalizedValue) end
+            return false
+        end
         local oldLeft = previousChecked and (self.width - thumbWidth - 3) or 3
         local newLeft = checked and (self.width - thumbWidth - 3) or 3
-        if checked then
-            self.gui2Value = onValue
-        else
-            self.gui2Value = offValue
-        end
+        self.gui2Value = normalizedValue
         self.gui2Checked = checked
         self.thumb:ClearAllPoints()
         self.text:ClearAllPoints()
@@ -676,27 +1274,37 @@ function GUI2.Form:CreateSwitch(parent, opts)
                 },
             })
         end
+        self.gui2ValueInitialized = true
         if not isSilent then CommitValue(opts, self, self.gui2Value) end
+        return true
     end
     function frame:SetChecked(checked, silent)
         if checked then
-            self:SetValue(onValue, silent)
+            return self:SetValue(onValue, silent)
         else
-            self:SetValue(offValue, silent)
+            return self:SetValue(offValue, silent)
         end
     end
-    function frame:SetDisabled(disabled)
-        self.gui2Disabled = disabled and true or false
+    function frame:SetDisabled(disabled, force)
+        disabled = disabled and true or false
+        if force ~= true
+            and self.gui2DisabledInitialized
+            and self.gui2Disabled == disabled then
+            return false
+        end
+        self.gui2Disabled = disabled
         if self.gui2Disabled then
             if self.Disable then self:Disable() end
         else
             if self.Enable then self:Enable() end
         end
-        self:SetValue(self.gui2Value, true)
+        self:SetValue(self.gui2Value, { silent = true, force = true })
+        self.gui2DisabledInitialized = true
+        return true
     end
     function frame:RefreshTheme()
         GUI2:ApplyBackdrop(self, self.gui2Surface or "color.control.track")
-        self:SetValue(self.gui2Value, true)
+        self:SetDisabled(self.gui2Disabled, true)
         if self.thumb then GUI2:RefreshPrimitive(self.thumb) end
     end
     function frame:Toggle()
@@ -718,7 +1326,7 @@ function GUI2.Form:CreateSwitch(parent, opts)
         GUI2:SetBorderColor(self, isChoiceVariant and "color.border.default" or "color.border.accent")
     end)
     frame:SetScript("OnLeave", function(self)
-        self:SetValue(self.gui2Value, true)
+        self:SetValue(self.gui2Value, { silent = true, force = true })
     end)
 
     AddTooltip(frame, opts)
@@ -757,14 +1365,26 @@ function GUI2.Form:CreateBinaryChoice(parent, opts)
     InheritMotion(indicator, frame)
 
     function frame:SetValue(value, silent)
-        local isSilent, animate = ParseSetOptions(silent)
+        local isSilent, animate, setOptions = ParseSetOptions(silent)
+        if self.gui2ValueInitialized
+            and self.value == value
+            and not (setOptions and setOptions.force == true) then
+            if not isSilent then CommitValue(opts, self, value) end
+            return false
+        end
         local oldIndex = self.selectedIndex
-        local newIndex = 1
+        local newIndex
+        for i, data in ipairs(values) do
+            if data.value == value and data.disabled ~= true then
+                newIndex = i
+                break
+            end
+        end
+        if not newIndex then return false end
         self.value = value
         for i, button in ipairs(self.buttons) do
-            local selected = values[i].value == value
+            local selected = i == newIndex
             button:SetSelected(selected)
-            if selected then newIndex = i end
         end
         self.selectedIndex = newIndex
         if self.indicator then
@@ -781,15 +1401,46 @@ function GUI2.Form:CreateBinaryChoice(parent, opts)
                 })
             end
         end
+        self.gui2ValueInitialized = true
         if not isSilent then CommitValue(opts, self, value) end
+        return true
+    end
+
+    function frame:SetItemDisabled(value, disabled)
+        disabled = disabled == true
+        for i, data in ipairs(values) do
+            if data.value == value then
+                if data.disabled == disabled then return false end
+                data.disabled = disabled
+                local button = self.buttons[i]
+                if button and button.SetDisabled then
+                    button:SetDisabled(disabled)
+                end
+                if disabled and self.selectedIndex == i then
+                    for fallbackIndex, fallback in ipairs(values) do
+                        if fallback.disabled ~= true then
+                            self.gui2ValueInitialized = nil
+                            self:SetValue(fallback.value)
+                            break
+                        end
+                    end
+                end
+                return true
+            end
+        end
+        return false
     end
 
     for i, data in ipairs(values) do
         local button = self:CreateButton(frame, { text = data.text, width = eachWidth, height = height, tone = "default" })
         button:SetPoint("LEFT", (i - 1) * eachWidth, 0)
         button:SetScript("OnClick", function()
+            if data.disabled == true then return end
             frame:SetValue(data.value)
         end)
+        if data.disabled == true and button.SetDisabled then
+            button:SetDisabled(true)
+        end
         frame.buttons[i] = button
     end
     if indicator.SetFrameLevel then
@@ -801,7 +1452,15 @@ function GUI2.Form:CreateBinaryChoice(parent, opts)
         end
         indicator:SetFrameLevel(level + 4)
     end
-    frame:SetValue(GetValue(opts) or values[1].value, true)
+    local initialValue = GetValue(opts) or values[1].value
+    if not frame:SetValue(initialValue, true) then
+        for _, data in ipairs(values) do
+            if data.disabled ~= true then
+                frame:SetValue(data.value, true)
+                break
+            end
+        end
+    end
     return frame
 end
 
@@ -813,10 +1472,598 @@ function GUI2.Form:CreateSegmentedControl(parent, opts)
         values[i] = {
             text = type(item) == "table" and item.text or item,
             value = type(item) == "table" and item.value or item,
+            disabled = type(item) == "table"
+                and item.disabled == true or false,
         }
     end
     opts.values = values
     return self:CreateBinaryChoice(parent, opts)
+end
+
+function GUI2.Form:CreateUnderlineTabs(parent, opts)
+    opts = opts or {}
+    local sourceItems = opts.items or { "One", "Two", "Three" }
+    local items = {}
+    for i, item in ipairs(sourceItems) do
+        items[i] = {
+            text = type(item) == "table" and item.text or item,
+            value = type(item) == "table" and item.value or item,
+            disabled = type(item) == "table" and item.disabled == true or false,
+        }
+    end
+
+    local height = opts.height or math_max(GetControlHeight(30), 30)
+    local scrollable = opts.overflow == "scroll"
+    local explicitWidth = tonumber(opts.width)
+    local contentAlignment = opts.contentAlignment == "CENTER" and "CENTER" or "LEFT"
+    local itemPaddingX = opts.itemPaddingX or GUI2:GetMetric("layout.gap.inline", 8)
+    local gap = opts.gap or (GUI2:GetMetric("layout.gap.inline", 8) * 3)
+    local minItemWidth = opts.minItemWidth or 44
+    local scrollButtonWidth = opts.scrollButtonWidth or 28
+    local scrollButtonGap = opts.scrollButtonGap or 2
+    local scrollEpsilon = 2
+    local indicatorOverhang = opts.indicatorOverhang or 4
+    local indicatorOffsetY = opts.indicatorOffsetY or -4
+    local indicatorHeight = opts.indicatorHeight or 2
+    local baselineHeight = opts.baselineHeight or 1
+    local showBaseline = opts.showBaseline == true
+    local fontSizeKey = opts.fontSizeKey or "font.size.md"
+    local fontSize = GUI2:GetMetric(fontSizeKey, 13)
+    local labelOffsetY = opts.labelOffsetY or 1
+    local lineOffsetY = opts.lineOffsetY
+    if lineOffsetY == nil then
+        lineOffsetY = math_max(
+            0,
+            math_floor(((height - fontSize) / 2) + labelOffsetY + indicatorOffsetY + 0.5)
+        )
+    end
+    local normalColor = opts.colorKey or "color.text.secondary"
+    local selectedColor = opts.selectedColorKey or "color.text.primary"
+    local hoverColor = opts.hoverColorKey or "color.text.accent"
+    local disabledColor = opts.disabledColorKey or "color.text.disabled"
+    local indicatorColor = opts.indicatorColorKey or "color.border.accent"
+    local baselineColor = opts.baselineColorKey or "color.border.subtle"
+    local literalIndicatorColor = type(opts.indicatorColor) == "table" and opts.indicatorColor or nil
+    local literalSelectedColor = type(opts.selectedColor) == "table" and opts.selectedColor or nil
+    local literalHoverColor = type(opts.hoverColor) == "table" and opts.hoverColor or nil
+    local literalArrowColor = type(opts.arrowColor) == "table" and opts.arrowColor or nil
+    local literalArrowHoverColor = type(opts.arrowHoverColor) == "table" and opts.arrowHoverColor or nil
+    local literalArrowDisabledColor = type(opts.arrowDisabledColor) == "table" and opts.arrowDisabledColor or nil
+
+    local frame = GUI2:CreateFrame(parent, {
+        name = opts.name,
+        width = opts.width or 1,
+        height = height,
+    })
+    frame.buttons = {}
+    frame.items = items
+    frame.gui2Disabled = opts.disabled == true
+    frame.gui2UnderlineTabsScrollable = scrollable
+    frame.gui2UnderlineTabStarts = {}
+    frame.gui2UnderlineTabEnds = {}
+    frame.gui2UnderlineTabsScrollOffset = 0
+    frame.gui2UnderlineTabsScrollTarget = 0
+    ConfigureMotion(frame, opts)
+
+    local tabParent = frame
+    if scrollable then
+        local viewport = GUI2:CreateScrollFrame(frame, {
+            template = false,
+            child = true,
+            width = explicitWidth or 1,
+            height = height,
+            childWidth = 1,
+            childHeight = height,
+        })
+        viewport:SetPoint("LEFT", frame, "LEFT", 0, 0)
+        viewport:SetHeight(height)
+        if viewport.EnableMouseWheel then viewport:EnableMouseWheel(false) end
+        frame.scrollViewport = viewport
+        frame.scrollChild = viewport.child
+        tabParent = viewport.child
+
+        local function PaintScrollIcon(icon, state)
+            local literalColor
+            local colorKey
+            if state == "hover" then
+                literalColor = literalArrowHoverColor
+                colorKey = "color.text.accent"
+            elseif state == "disabled" then
+                literalColor = literalArrowDisabledColor
+                colorKey = "color.text.disabled"
+            else
+                literalColor = literalArrowColor
+                colorKey = "color.text.secondary"
+            end
+            if literalColor then
+                icon:SetVertexColor(unpack(literalColor))
+            else
+                -- Atlas icons must keep their texture source across state changes.
+                -- Applying a paint token would replace the atlas with a solid color texture.
+                icon:SetVertexColor(GUI2:GetColor(colorKey))
+            end
+        end
+
+        local function CreateScrollButton(point, atlas, direction)
+            local button = GUI2:CreateButtonFrame(frame, {
+                width = scrollButtonWidth,
+                height = height,
+            })
+            button:SetPoint(point, frame, point, 0, 0)
+            local icon = GUI2:CreateIcon(button, {
+                atlas = atlas,
+                size = 14,
+                crop = false,
+            })
+            icon:SetPoint("CENTER")
+            PaintScrollIcon(icon, "normal")
+            button.icon = icon
+            button.gui2ScrollDirection = direction
+            button:SetScript("OnEnter", function(selfButton)
+                if not selfButton.gui2ScrollDisabled then
+                    PaintScrollIcon(selfButton.icon, "hover")
+                end
+            end)
+            button:SetScript("OnLeave", function(selfButton)
+                PaintScrollIcon(
+                    selfButton.icon,
+                    selfButton.gui2ScrollDisabled and "disabled" or "normal"
+                )
+            end)
+            button:Hide()
+            return button
+        end
+
+        frame.previousButton = CreateScrollButton(
+            "LEFT",
+            "common-icon-backarrow",
+            -1
+        )
+        frame.nextButton = CreateScrollButton(
+            "RIGHT",
+            "common-icon-forwardarrow",
+            1
+        )
+    end
+
+    if showBaseline then
+        local baseline = GUI2:CreateTexture(frame, nil, "ARTWORK")
+        GUI2:SetTexturePaintKey(baseline, baselineColor)
+        baseline:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, lineOffsetY)
+        baseline:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, lineOffsetY)
+        baseline:SetHeight(
+            GUI2.GetPixelSize
+                and GUI2:GetPixelSize(baseline, baselineHeight, 1)
+                or baselineHeight
+        )
+        frame.baseline = baseline
+    end
+    frame.indicators = {}
+
+    local function ItemIsDisabled(button)
+        return frame.gui2Disabled or button.gui2ItemDisabled == true
+    end
+
+    local function RefreshIndicator(button)
+        local indicator = button and button.indicator
+        if not indicator then return end
+        if not button.gui2Selected or not button.text then
+            indicator:Hide()
+            return
+        end
+        indicator:ClearAllPoints()
+        local textWidth = button.text:GetStringWidth()
+        indicator:SetWidth(math_max(1, math_ceil(textWidth + (indicatorOverhang * 2))))
+        indicator:SetPoint("BOTTOM", button, "BOTTOM", 0, lineOffsetY)
+        local heightPixels = GUI2.GetPixelSize
+            and GUI2:GetPixelSize(indicator, indicatorHeight, 1)
+            or indicatorHeight
+        indicator:SetHeight(heightPixels)
+        indicator:SetAlpha(frame.gui2Disabled and 0.55 or 1)
+        indicator:Show()
+        frame.indicator = indicator
+    end
+
+    local function RefreshButton(button)
+        local disabled = ItemIsDisabled(button)
+        local colorKey
+        if disabled then
+            colorKey = disabledColor
+        elseif button.gui2Selected then
+            colorKey = selectedColor
+        elseif button.gui2Hovered then
+            colorKey = hoverColor
+        else
+            colorKey = normalColor
+        end
+        local literalColor
+        if button.gui2Selected then
+            literalColor = literalSelectedColor
+        elseif button.gui2Hovered then
+            literalColor = literalHoverColor
+        end
+        if literalColor then
+            button.text:SetTextColor(unpack(literalColor))
+        else
+            GUI2:SetTextColorKey(button.text, colorKey)
+        end
+        if button.EnableMouse then button:EnableMouse(not disabled) end
+        button:SetAlpha(disabled and 0.55 or 1)
+        RefreshIndicator(button)
+    end
+
+    local function RefreshIndicators()
+        frame.indicator = nil
+        for _, button in ipairs(frame.buttons) do
+            RefreshIndicator(button)
+        end
+    end
+
+    local function FindEnabledIndex(value)
+        local firstEnabled
+        for i, button in ipairs(frame.buttons) do
+            if button.gui2ItemDisabled ~= true then
+                firstEnabled = firstEnabled or i
+                if items[i].value == value then return i end
+            end
+        end
+        return firstEnabled
+    end
+
+    local function SetScrollButtonState(button, enabled)
+        if not button then return end
+        button.gui2ScrollDisabled = not enabled
+        button:SetAlpha(enabled and 1 or 0.35)
+        if enabled then
+            if button.Enable then button:Enable() end
+            if literalArrowColor then
+                button.icon:SetVertexColor(unpack(literalArrowColor))
+            else
+                button.icon:SetVertexColor(GUI2:GetColor("color.text.secondary"))
+            end
+        else
+            if button.Disable then button:Disable() end
+            if literalArrowDisabledColor then
+                button.icon:SetVertexColor(unpack(literalArrowDisabledColor))
+            else
+                button.icon:SetVertexColor(GUI2:GetColor("color.text.disabled"))
+            end
+        end
+    end
+
+    local function StopScrollAnimation(owner, finish)
+        local animation = YUI.Animation
+        if animation and type(animation.StopOwner) == "function" then
+            animation:StopOwner(owner, finish == true)
+        end
+    end
+
+    function frame:SetScrollOffset(offset)
+        offset = math_max(0, math_min(tonumber(offset) or 0, self.maxScrollOffset or 0))
+        self.gui2UnderlineTabsScrollOffset = offset
+        if self.scrollViewport and self.scrollViewport.SetHorizontalScroll then
+            self.scrollViewport:SetHorizontalScroll(offset)
+        end
+        return offset
+    end
+
+    function frame:RefreshOverflow()
+        if not self.gui2UnderlineTabsScrollable then return false end
+        local width = explicitWidth or self:GetWidth() or 1
+        local hasOverflow = (self.contentWidth or 0) > width
+        local viewportWidth = width
+        if hasOverflow then
+            viewportWidth = math_max(1, width - ((scrollButtonWidth + scrollButtonGap) * 2))
+            self.previousButton:Show()
+            self.nextButton:Show()
+            self.scrollViewport:ClearAllPoints()
+            self.scrollViewport:SetPoint(
+                "LEFT",
+                self.previousButton,
+                "RIGHT",
+                scrollButtonGap,
+                0
+            )
+        else
+            self.previousButton:Hide()
+            self.nextButton:Hide()
+            self.scrollViewport:ClearAllPoints()
+            if contentAlignment == "CENTER" then
+                viewportWidth = math_max(1, math_min(width, self.contentWidth or width))
+                self.scrollViewport:SetPoint("CENTER", self, "CENTER", 0, 0)
+            else
+                self.scrollViewport:SetPoint("LEFT", self, "LEFT", 0, 0)
+            end
+        end
+        self.scrollViewport:SetWidth(viewportWidth)
+        self.viewportWidth = viewportWidth
+        self.maxScrollOffset = math_max(0, (self.contentWidth or 0) - viewportWidth)
+        local offset = self:SetScrollOffset(self.gui2UnderlineTabsScrollTarget or 0)
+        self.gui2UnderlineTabsScrollTarget = offset
+        SetScrollButtonState(self.previousButton, offset > scrollEpsilon)
+        SetScrollButtonState(self.nextButton, offset < (self.maxScrollOffset - scrollEpsilon))
+        self.overflowActive = hasOverflow
+        return hasOverflow
+    end
+
+    function frame:AnimateScrollTo(offset, animate)
+        offset = math_max(0, math_min(tonumber(offset) or 0, self.maxScrollOffset or 0))
+        self.gui2UnderlineTabsScrollTarget = offset
+        local current = self.gui2UnderlineTabsScrollOffset or 0
+        if not animate or not GUI2.PlayControlMotion then
+            StopScrollAnimation(self, false)
+            self:SetScrollOffset(offset)
+            self:RefreshOverflow()
+            return false
+        end
+        local handle = GUI2:PlayControlMotion(self, "underline-tabs-scroll", {
+            from = current,
+            to = offset,
+            duration = opts.scrollDuration or 0.16,
+            easing = "sineOut",
+            owner = self,
+            onUpdate = function(value)
+                self:SetScrollOffset(value)
+            end,
+            onFinished = function(_, _, finished)
+                if finished then
+                    self:SetScrollOffset(offset)
+                    self:RefreshOverflow()
+                end
+            end,
+        })
+        if not handle then
+            self:SetScrollOffset(offset)
+            self:RefreshOverflow()
+            return false
+        end
+        SetScrollButtonState(self.previousButton, offset > scrollEpsilon)
+        SetScrollButtonState(self.nextButton, offset < (self.maxScrollOffset - scrollEpsilon))
+        return true
+    end
+
+    function frame:ScrollByTab(direction, animate)
+        if not self.overflowActive then return false end
+        direction = tonumber(direction) or 0
+        if direction == 0 then return false end
+        local base = self.gui2UnderlineTabsScrollTarget or 0
+        local target = direction > 0 and self.maxScrollOffset or 0
+        if direction > 0 then
+            for _, startOffset in ipairs(self.gui2UnderlineTabStarts) do
+                if startOffset > base + scrollEpsilon then
+                    target = startOffset
+                    break
+                end
+            end
+        else
+            for i = #self.gui2UnderlineTabStarts, 1, -1 do
+                local startOffset = self.gui2UnderlineTabStarts[i]
+                if startOffset < base - scrollEpsilon then
+                    target = startOffset
+                    break
+                end
+            end
+        end
+        target = math_max(0, math_min(target, self.maxScrollOffset or 0))
+        if (self.maxScrollOffset or 0) - target <= scrollEpsilon then
+            target = self.maxScrollOffset or 0
+        end
+        if math.abs(target - base) <= scrollEpsilon then return false end
+        self:AnimateScrollTo(target, animate ~= false)
+        return true
+    end
+
+    function frame:EnsureValueVisible(value, animate)
+        if not self.overflowActive then return false end
+        local index
+        for i, item in ipairs(items) do
+            if item.value == value then index = i break end
+        end
+        if not index then return false end
+        local startOffset = self.gui2UnderlineTabStarts[index] or 0
+        local endOffset = self.gui2UnderlineTabEnds[index] or startOffset
+        local current = self.gui2UnderlineTabsScrollTarget or 0
+        local viewportWidth = self.viewportWidth or explicitWidth or 1
+        local target = current
+        if startOffset < current then
+            target = startOffset
+        elseif endOffset > current + viewportWidth then
+            target = endOffset - viewportWidth
+        end
+        target = math_max(0, math_min(target, self.maxScrollOffset or 0))
+        if math.abs(target - current) < 0.5 then return false end
+        self:AnimateScrollTo(target, animate == true)
+        return true
+    end
+
+    function frame:Relayout()
+        local x = 0
+        for i, button in ipairs(self.buttons) do
+            local textWidth = button.text and button.text:GetStringWidth() or 0
+            local itemWidth = math_max(minItemWidth, math_ceil(textWidth + (itemPaddingX * 2)))
+            button:SetSize(itemWidth, height)
+            button:ClearAllPoints()
+            button:SetPoint("LEFT", tabParent, "LEFT", x, 0)
+            button.gui2UnderlineTabWidth = itemWidth
+            self.gui2UnderlineTabStarts[i] = x
+            self.gui2UnderlineTabEnds[i] = x + itemWidth
+            x = x + itemWidth
+            if i < #self.buttons then x = x + gap end
+        end
+        self.contentWidth = math_max(x, 1)
+        if self.scrollChild then
+            self.scrollChild:SetSize(self.contentWidth, height)
+            self:SetSize(explicitWidth or self.contentWidth, height)
+            self:RefreshOverflow()
+        else
+            self:SetSize(explicitWidth or self.contentWidth, height)
+        end
+        RefreshIndicators()
+        return x
+    end
+
+    function frame:GetValue()
+        return self.value
+    end
+
+    function frame:SetValue(value, setOptions)
+        local silent, _, options = ParseSetOptions(setOptions)
+        local index = FindEnabledIndex(value)
+        if not index then return false end
+        local resolvedValue = items[index].value
+        if self.gui2ValueInitialized
+            and self.value == resolvedValue
+            and not (options and options.force == true) then
+            return false
+        end
+
+        self.value = resolvedValue
+        self.selectedIndex = index
+        self.indicator = nil
+        for i, button in ipairs(self.buttons) do
+            button.gui2Selected = i == index
+            RefreshButton(button)
+        end
+        self.gui2ValueInitialized = true
+        self:EnsureValueVisible(resolvedValue, options and options.animate == true)
+        if not silent then CommitValue(opts, self, resolvedValue) end
+        return true
+    end
+
+    function frame:SetDisabled(disabled)
+        disabled = disabled == true
+        if self.gui2DisabledInitialized and self.gui2Disabled == disabled then
+            return false
+        end
+        self.gui2Disabled = disabled
+        for _, button in ipairs(self.buttons) do
+            RefreshButton(button)
+        end
+        if self.baseline then
+            self.baseline:SetAlpha(disabled and 0.55 or 1)
+        end
+        self.gui2DisabledInitialized = true
+        return true
+    end
+
+    function frame:SetItemDisabled(value, disabled)
+        for i, button in ipairs(self.buttons) do
+            if items[i].value == value then
+                disabled = disabled == true
+                if button.gui2ItemDisabled == disabled then return false end
+                button.gui2ItemDisabled = disabled
+                items[i].disabled = disabled
+                if disabled and self.selectedIndex == i then
+                    self.gui2ValueInitialized = nil
+                    local fallbackIndex = FindEnabledIndex(nil)
+                    if fallbackIndex then
+                        self:SetValue(items[fallbackIndex].value)
+                    else
+                        self.value = nil
+                        self.selectedIndex = nil
+                        RefreshIndicators()
+                    end
+                else
+                    RefreshButton(button)
+                end
+                return true
+            end
+        end
+        return false
+    end
+
+    function frame:SetItemText(value, text)
+        for i, button in ipairs(self.buttons) do
+            if items[i].value == value then
+                items[i].text = text or ""
+                button.text:SetText(items[i].text)
+                self:Relayout()
+                return true
+            end
+        end
+        return false
+    end
+
+    function frame:RefreshTheme()
+        if self.baseline then
+            GUI2:SetTexturePaintKey(self.baseline, baselineColor)
+        end
+        for _, button in ipairs(self.buttons) do
+            if literalIndicatorColor then
+                button.indicator:SetColorTexture(unpack(literalIndicatorColor))
+            else
+                GUI2:SetTexturePaintKey(button.indicator, indicatorColor)
+            end
+            RefreshButton(button)
+        end
+        if self.gui2UnderlineTabsScrollable then
+            self:RefreshOverflow()
+        end
+    end
+
+    for i, data in ipairs(items) do
+        local button = GUI2:CreateButtonFrame(tabParent, {
+            width = minItemWidth,
+            height = height,
+        })
+        local label = GUI2:CreateText(
+            button,
+            data.text or "",
+            fontSizeKey,
+            normalColor,
+            "CENTER"
+        )
+        label:SetPoint("CENTER", 0, labelOffsetY)
+        label:SetWordWrap(false)
+        button.text = label
+        local indicator = GUI2:CreateTexture(button, nil, "OVERLAY")
+        if literalIndicatorColor then
+            indicator:SetColorTexture(unpack(literalIndicatorColor))
+        else
+            GUI2:SetTexturePaintKey(indicator, indicatorColor)
+        end
+        indicator:Hide()
+        button.indicator = indicator
+        frame.indicators[i] = indicator
+        InheritMotion(indicator, button)
+        button.gui2ItemDisabled = data.disabled == true
+        button.gui2TabValue = data.value
+        button:SetScript("OnClick", function(selfButton)
+            if not ItemIsDisabled(selfButton) then
+                frame:SetValue(selfButton.gui2TabValue)
+            end
+        end)
+        button:SetScript("OnEnter", function(selfButton)
+            if ItemIsDisabled(selfButton) then return end
+            selfButton.gui2Hovered = true
+            RefreshButton(selfButton)
+        end)
+        button:SetScript("OnLeave", function(selfButton)
+            selfButton.gui2Hovered = false
+            RefreshButton(selfButton)
+        end)
+        frame.buttons[i] = button
+    end
+
+    if frame.previousButton then
+        frame.previousButton:SetScript("OnClick", function()
+            frame:ScrollByTab(-1, true)
+        end)
+        frame.nextButton:SetScript("OnClick", function()
+            frame:ScrollByTab(1, true)
+        end)
+        frame:SetScript("OnHide", function(self)
+            StopScrollAnimation(self, false)
+        end)
+    end
+
+    frame:Relayout()
+    local initialValue = GetValue(opts)
+    if initialValue == nil and items[1] then initialValue = items[1].value end
+    frame:SetValue(initialValue, true)
+    frame:SetDisabled(frame.gui2Disabled)
+    GUI2:RegisterThemeObject(frame)
+    return frame
 end
 
 function GUI2.Form:CreateSlider(parent, opts)
@@ -834,8 +2081,10 @@ function GUI2.Form:CreateSlider(parent, opts)
     ConfigureMotion(container, opts)
 
     local labelWidth = 0
+    local labelFontSizeKey = opts.labelFontSizeKey or "font.size.md"
+    local labelColorKey = opts.labelColorKey or "color.text.primary"
     if opts.label and opts.inline then
-        local label = GUI2:CreateText(container, opts.label, "font.size.md", "color.text.primary")
+        local label = GUI2:CreateText(container, opts.label, labelFontSizeKey, labelColorKey)
         label:SetPoint("LEFT", 0, 0)
         labelWidth = opts.labelWidth or math_max(label:GetStringWidth() + 10, 30)
         label:SetWidth(labelWidth)
@@ -843,7 +2092,7 @@ function GUI2.Form:CreateSlider(parent, opts)
         label:SetWordWrap(false)
         container.label = label
     elseif opts.label then
-        local label = GUI2:CreateText(container, opts.label, "font.size.md", "color.text.primary")
+        local label = GUI2:CreateText(container, opts.label, labelFontSizeKey, labelColorKey)
         label:SetPoint("TOPLEFT", 0, 0)
         container.label = label
     end
@@ -881,30 +2130,109 @@ function GUI2.Form:CreateSlider(parent, opts)
     container.slider = slider
     container.inputBox = input
     local dragging = false
+    local interactionStartValue
+    local interactionStartStepKey
     local precision = opts.precision or 2
-    if opts.step and opts.step % 1 == 0 then precision = 0 end
+    local step = tonumber(opts.step)
+    if step and step <= 0 then step = nil end
+    if step and step % 1 == 0 then precision = 0 end
     local fmt = "%." .. precision .. "f"
 
     local function Normalize(value)
         value = tonumber(value) or minValue
         value = math_max(minValue, math_min(maxValue, value))
-        if opts.step then
-            value = math_floor(value / opts.step + 0.5) * opts.step
+        if step then
+            local stepKey = math_floor(
+                ((value - minValue) / step) + 0.5 + SLIDER_STEP_ROUND_EPSILON
+            )
+            value = minValue + (stepKey * step)
+            value = math_max(minValue, math_min(maxValue, value))
+            return value, stepKey
         end
-        return value
+        return value, value
     end
 
-    local function Update(value, source, silent)
-        value = Normalize(value)
-        container.value = value
-        if source ~= "slider" then
-            slider.gui2Updating = true
-            slider:SetValue(value)
-            slider.gui2Updating = false
+    local function Update(value, source, silent, forceCommit, diagnosticTrigger)
+        local rawValue = value
+        local stepKey
+        value, stepKey = Normalize(value)
+        if diagnosticTrigger == "value" and container.gui2SliderDiagnostic then
+            RecordSliderDiagnosticEvent(container, rawValue, value, stepKey)
         end
-        if source ~= "input" then input:SetText(string_format(fmt, value)) end
-        if silent or (dragging and opts.instantUpdate == false) then return end
-        CommitValue(opts, container, value)
+        local valueChanged = not container.gui2ValueInitialized
+            or container.gui2SliderStepKey ~= stepKey
+        local commitNeeded = container.gui2CommittedSliderStepKey ~= stepKey
+        if not valueChanged
+            and not (forceCommit == true and commitNeeded) then
+            if silent then
+                container.gui2CommittedSliderStepKey = stepKey
+                container.gui2CommittedSliderValue = value
+                container.gui2FinalizedSliderStepKey = stepKey
+                container.gui2FinalizedSliderValue = value
+            end
+            return false
+        end
+        if valueChanged then
+            container.value = value
+            container.gui2SliderStepKey = stepKey
+            if source ~= "slider" then
+                slider.gui2Updating = true
+                slider:SetValue(value)
+                slider.gui2Updating = false
+            end
+            if source ~= "input" then input:SetText(string_format(fmt, value)) end
+        end
+        local leftButtonDown = false
+        if type(_G.IsMouseButtonDown) == "function" then
+            local mouseOK, mouseDown = pcall(_G.IsMouseButtonDown, "LeftButton")
+            leftButtonDown = mouseOK and mouseDown == true
+        end
+        if silent
+            or (
+                forceCommit ~= true
+                and opts.instantUpdate == false
+                and (dragging or leftButtonDown)
+            )
+        then
+            container.gui2ValueInitialized = true
+            if silent then
+                container.gui2CommittedSliderStepKey = stepKey
+                container.gui2CommittedSliderValue = value
+                container.gui2FinalizedSliderStepKey = stepKey
+                container.gui2FinalizedSliderValue = value
+            end
+            return true
+        end
+        if not commitNeeded then
+            container.gui2ValueInitialized = true
+            return valueChanged
+        end
+        if container.gui2SliderDiagnostic then
+            local commitStarted = SliderDiagnosticTimeMs()
+            CommitValue(opts, container, value)
+            RecordSliderDiagnosticCommit(container, value, stepKey, commitStarted)
+        else
+            CommitValue(opts, container, value)
+        end
+        container.gui2CommittedSliderStepKey = stepKey
+        container.gui2CommittedSliderValue = value
+        container.gui2ValueInitialized = true
+        return true
+    end
+
+    local function Finalize(value, source, startStepKey)
+        local stepKey
+        value, stepKey = Normalize(value)
+        if startStepKey == nil then
+            startStepKey = container.gui2FinalizedSliderStepKey
+        end
+        local changed = startStepKey ~= stepKey
+        container.gui2FinalizedSliderStepKey = stepKey
+        container.gui2FinalizedSliderValue = value
+        if changed and type(opts.onCommit) == "function" then
+            opts.onCommit(container, value, source)
+        end
+        return changed
     end
 
     function container:GetValue()
@@ -914,7 +2242,11 @@ function GUI2.Form:CreateSlider(parent, opts)
         Update(value, nil, silent)
     end
     function container:SetDisabled(disabled)
-        self.gui2Disabled = disabled and true or false
+        disabled = disabled and true or false
+        if self.gui2DisabledInitialized and self.gui2Disabled == disabled then
+            return false
+        end
+        self.gui2Disabled = disabled
         if self.gui2Disabled then
             if slider.Disable then slider:Disable() end
             if input.SetDisabled then input:SetDisabled(true) end
@@ -928,6 +2260,8 @@ function GUI2.Form:CreateSlider(parent, opts)
             self.slider.gui2Bg.gui2Surface = self.gui2Disabled and "color.control.disabled" or "color.control.track"
             GUI2:RefreshPrimitive(self.slider.gui2Bg)
         end
+        self.gui2DisabledInitialized = true
+        return true
     end
     function container:RefreshTheme()
         if self.slider and self.slider.RefreshTheme then self.slider:RefreshTheme() end
@@ -938,18 +2272,35 @@ function GUI2.Form:CreateSlider(parent, opts)
     slider:SetScript("OnValueChanged", function(_, value)
         if slider.gui2Updating then return end
         slider.gui2Updating = true
-        Update(value, "slider")
+        Update(value, "slider", false, false, "value")
         slider.gui2Updating = false
     end)
     slider:SetScript("OnMouseDown", function()
         dragging = true
+        interactionStartValue, interactionStartStepKey = Normalize(slider:GetValue())
+        BeginSliderDiagnostic(
+            container,
+            opts,
+            interactionStartValue,
+            interactionStartStepKey
+        )
     end)
     slider:SetScript("OnMouseUp", function()
         dragging = false
-        Update(slider:GetValue(), "slider")
+        Update(slider:GetValue(), "slider", false, true, "release")
+        Finalize(
+            slider:GetValue(),
+            "release",
+            interactionStartStepKey
+        )
+        interactionStartValue = nil
+        interactionStartStepKey = nil
+        FinishSliderDiagnostic(container)
     end)
     input:SetScript("OnEnterPressed", function(editbox)
+        local startStepKey = container.gui2FinalizedSliderStepKey
         Update(editbox:GetText(), "input")
+        Finalize(container.value, "input", startStepKey)
         editbox:ClearFocus()
     end)
     input:SetScript("OnEscapePressed", function(editbox)
@@ -992,13 +2343,25 @@ function GUI2.Form:CreateEditBox(parent, opts)
         return self:GetText()
     end
     function edit:SetValue(value, silent)
+        local text = tostring(value or "")
+        if self.gui2ValueInitialized
+            and self:GetText() == text
+            and silent == true then
+            return false
+        end
         self.gui2SettingText = true
-        self:SetText(tostring(value or ""))
+        self:SetText(text)
         self.gui2SettingText = nil
+        self.gui2ValueInitialized = true
         if not silent then CommitValue(opts, self, self:GetText()) end
+        return true
     end
     function edit:SetDisabled(disabled)
-        self.gui2Disabled = disabled and true or false
+        disabled = disabled and true or false
+        if self.gui2DisabledInitialized and self.gui2Disabled == disabled then
+            return false
+        end
+        self.gui2Disabled = disabled
         if self.gui2Disabled then
             if self.Disable then self:Disable() end
             self:SetTextColor(GUI2:GetColor("color.text.disabled"))
@@ -1008,6 +2371,8 @@ function GUI2.Form:CreateEditBox(parent, opts)
             self.gui2Bg.gui2Surface = "color.control.bg"
         end
         self:RefreshTheme()
+        self.gui2DisabledInitialized = true
+        return true
     end
 
     edit:SetScript("OnEditFocusGained", function(self)
@@ -1029,6 +2394,192 @@ function GUI2.Form:CreateEditBox(parent, opts)
     edit:SetDisabled(opts.disabled)
     GUI2:RegisterThemeObject(edit)
     return edit
+end
+
+function GUI2.Form:CreateSpellIDInput(parent, opts)
+    opts = opts or {}
+    BindItem(opts)
+
+    local width = ResolveFormWidth(opts, "wide", opts.width or 300)
+    local height = opts.height or GetControlHeight(26)
+    local inputWidth = opts.inputWidth or 104
+    local iconSize = opts.iconSize or math_max(height - 4, 18)
+    local gap = opts.gap or GetFormMetric("gap", 10)
+    local fallbackIcon = opts.fallbackIcon or "Interface\\Icons\\INV_Misc_QuestionMark"
+
+    local frame = CreateFrame("Frame", opts.name, parent)
+    frame:SetSize(width, height)
+    frame.gui2Disabled = opts.disabled and true or false
+    ConfigureMotion(frame, opts)
+
+    local input = self:CreateEditBox(frame, {
+        width = inputWidth,
+        height = height,
+        autoFocus = opts.autoFocus == true,
+        text = opts.value or opts.text or GetValue(opts) or "",
+        tooltip = opts.tooltip,
+    })
+    input:SetPoint("LEFT", frame, "LEFT", 0, 0)
+    if input.SetNumeric then input:SetNumeric(true) end
+    if input.SetMaxLetters then input:SetMaxLetters(opts.maxLetters or 10) end
+    frame.input = input
+
+    local icon = GUI2:CreateIcon(frame, {
+        icon = fallbackIcon,
+        size = iconSize,
+        crop = false,
+    })
+    icon:SetPoint("LEFT", input, "RIGHT", gap, 0)
+    frame.icon = icon
+
+    local status = GUI2:CreateText(frame, "", "font.size.sm", "color.text.secondary", "LEFT")
+    status:SetPoint("LEFT", icon, "RIGHT", 6, 0)
+    status:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+    status:SetHeight(height)
+    status:SetJustifyH("LEFT")
+    status:SetWordWrap(false)
+    frame.statusText = status
+
+    local function SetInputBorder(colorKey)
+        if input.gui2Bg then
+            GUI2:SetBorderColor(input.gui2Bg, colorKey or "color.border.default")
+        end
+    end
+
+    local function SetStatus(text, colorKey, borderKey)
+        status:SetText(text or "")
+        GUI2:SetTextColorKey(status, colorKey or "color.text.secondary")
+        SetInputBorder(borderKey)
+    end
+
+    local function SetIcon(texture)
+        if icon.SetTexture then
+            icon:SetTexture(texture or fallbackIcon)
+        elseif GUI2.SetIconTexture then
+            GUI2:SetIconTexture(icon, texture or fallbackIcon)
+        end
+        if icon.SetVertexColor then icon:SetVertexColor(1, 1, 1, 1) end
+        icon:Show()
+    end
+
+    local function ResolveSpell(spellID)
+        local Spell = YUI.API and YUI.API.Spell or YUI.WOW_API
+        local info
+        if Spell and Spell.GetInfo then
+            local ok, result = pcall(Spell.GetInfo, spellID)
+            if ok then info = result end
+        end
+        local texture = info and (info.iconID or info.originalIconID)
+        if Spell and Spell.GetTexture then
+            local ok, result = pcall(Spell.GetTexture, spellID)
+            if ok and result then texture = result end
+        elseif Spell and Spell.GetSpellIcon then
+            local ok, result = pcall(Spell.GetSpellIcon, spellID)
+            if ok and result then texture = result end
+        end
+        if not (info and info.name) and GetSpellInfo then
+            local ok, name, _, iconID, castTime, minRange, maxRange, resolvedSpellID = pcall(GetSpellInfo, spellID)
+            if ok and name then
+                info = info or {}
+                info.name = name
+                info.iconID = iconID
+                info.castTime = castTime
+                info.minRange = minRange
+                info.maxRange = maxRange
+                info.spellID = resolvedSpellID or spellID
+                texture = texture or iconID
+            end
+        end
+        return info, texture
+    end
+
+    local function CommitSpellValue(rawText, silent)
+        local text = tostring(rawText or "")
+        local value = tonumber(text)
+        local info, texture
+        if text == "" then
+            SetIcon(fallbackIcon)
+            SetStatus(opts.placeholder or "输入法术 ID", "color.text.secondary", "color.border.default")
+        elseif not value or value <= 0 then
+            SetIcon(fallbackIcon)
+            SetStatus("请输入有效法术 ID", "color.state.warning", "color.state.warning")
+        else
+            info, texture = ResolveSpell(value)
+            if info and info.name then
+                SetIcon(texture or fallbackIcon)
+                SetStatus(tostring(info.name), "color.text.primary", "color.border.accent")
+            else
+                SetIcon(fallbackIcon)
+                SetStatus("未找到法术 ID " .. tostring(value), "color.state.error", "color.state.error")
+            end
+        end
+
+        frame.value = value
+        frame.spellInfo = info
+        if not silent then
+            if opts.set then opts.set(value) end
+            if opts.onChange then opts.onChange(value, info, frame) end
+        end
+    end
+
+    function frame:GetValue()
+        return self.value
+    end
+    function frame:SetValue(value, silent)
+        local text = value ~= nil and tostring(value) or ""
+        if self.gui2ValueInitialized
+            and input:GetText() == text
+            and silent == true then
+            return false
+        end
+        self.gui2SettingText = true
+        input:SetText(text)
+        self.gui2SettingText = nil
+        CommitSpellValue(input:GetText(), silent)
+        self.gui2ValueInitialized = true
+        return true
+    end
+    function frame:SetDisabled(disabled)
+        disabled = disabled and true or false
+        if self.gui2DisabledInitialized and self.gui2Disabled == disabled then
+            return false
+        end
+        self.gui2Disabled = disabled
+        if input.SetDisabled then input:SetDisabled(disabled) end
+        if self.gui2Disabled then
+            GUI2:SetTextColorKey(status, "color.text.disabled")
+        else
+            CommitSpellValue(input:GetText(), true)
+        end
+        self.gui2DisabledInitialized = true
+        return true
+    end
+    function frame:RefreshTheme()
+        if input.RefreshTheme then input:RefreshTheme() end
+        CommitSpellValue(input:GetText(), true)
+    end
+
+    local previousOnTextChanged = input.GetScript and input:GetScript("OnTextChanged")
+    input:SetScript("OnTextChanged", function(box, userInput)
+        if previousOnTextChanged then previousOnTextChanged(box, userInput) end
+        if frame.gui2SettingText or box.gui2SettingText then return end
+        CommitSpellValue(box:GetText())
+    end)
+    input:SetScript("OnEnterPressed", function(box)
+        CommitSpellValue(box:GetText())
+        box:ClearFocus()
+    end)
+    input:SetScript("OnEscapePressed", function(box)
+        box:SetText(frame.value ~= nil and tostring(frame.value) or "")
+        CommitSpellValue(box:GetText(), true)
+        box:ClearFocus()
+    end)
+
+    AddTooltip(frame, opts)
+    frame:SetValue(opts.value or opts.text or GetValue(opts), true)
+    frame:SetDisabled(opts.disabled)
+    GUI2:RegisterThemeObject(frame)
+    return frame
 end
 
 function GUI2.Form:CreateDropdown(parent, opts)
@@ -1062,6 +2613,20 @@ function GUI2.Form:CreateDropdown(parent, opts)
     local function ApplyOptionIcon(texture, option)
         if not texture or not HasOptionIcon(option) then return false end
 
+        local function ApplyIconColor()
+            local color = option.iconColor
+            if type(color) == "table" then
+                texture:SetVertexColor(
+                    color.r or color[1] or 1,
+                    color.g or color[2] or 1,
+                    color.b or color[3] or 1,
+                    color.a or color[4] or 1
+                )
+            else
+                texture:SetVertexColor(1, 1, 1, 1)
+            end
+        end
+
         local iconData = option.iconData
         local icons = YUI.API and YUI.API.Icons
         if type(iconData) == "table" and icons and icons.ApplyIcon and icons.ApplyIcon(texture, iconData) then
@@ -1069,6 +2634,7 @@ function GUI2.Form:CreateDropdown(parent, opts)
             if texCoord then
                 texture:SetTexCoord(unpack(texCoord))
             end
+            ApplyIconColor()
             texture:SetAlpha(1)
             texture:Show()
             return true
@@ -1088,15 +2654,15 @@ function GUI2.Form:CreateDropdown(parent, opts)
         else
             texture:SetTexCoord(0, 1, 0, 1)
         end
-        texture:SetVertexColor(1, 1, 1, 1)
+        ApplyIconColor()
         texture:SetAlpha(1)
         texture:SetBlendMode(option.blendMode or "BLEND")
         texture:Show()
         return true
     end
 
-    local function FindOption(value)
-        for _, option in ipairs(ResolveOptions()) do
+    local function FindOption(value, resolvedOptions)
+        for _, option in ipairs(resolvedOptions or ResolveOptions()) do
             local optionTable = NormalizeOption(option)
             if optionTable.value == value then
                 return optionTable
@@ -1105,8 +2671,12 @@ function GUI2.Form:CreateDropdown(parent, opts)
         return nil
     end
 
-    local function OptionText(value)
-        local option = FindOption(value)
+    local function OptionText(value, option)
+        if type(opts.getLabel) == "function" then
+            local label = opts.getLabel(value)
+            if label ~= nil then return tostring(label) end
+        end
+        option = option or FindOption(value)
         if option then
             return option.selectionText or option.text or tostring(option.value)
         end
@@ -1144,21 +2714,43 @@ function GUI2.Form:CreateDropdown(parent, opts)
         return self.value
     end
     function frame:SetValue(value, silent)
+        local isSilent, _, setOptions = ParseSetOptions(silent)
+        if self.gui2ValueInitialized
+            and self.value == value
+            and not (setOptions and setOptions.force == true) then
+            if not isSilent then CommitValue(opts, self, value) end
+            return false
+        end
         self.value = value
         local option = FindOption(value)
-        self.gui2FullText = OptionText(value) or ""
+        self.gui2FullText = OptionText(value, option) or ""
         ApplySelectionIcon(self, option)
         if self.text then self.text:SetText((self.gui2HasSelectionIcon and "" or " ") .. self.gui2FullText) end
-        if not silent then CommitValue(opts, self, value) end
+        self.gui2ValueInitialized = true
+        if not isSilent then CommitValue(opts, self, value) end
+        return true
+    end
+    function frame:RefreshOptions()
+        return self:SetValue(self.value, {
+            silent = true,
+            animate = false,
+            force = true,
+        })
     end
     function frame:SetDisabled(disabled)
-        self.gui2Disabled = disabled and true or false
+        disabled = disabled and true or false
+        if self.gui2DisabledInitialized and self.gui2Disabled == disabled then
+            return false
+        end
+        self.gui2Disabled = disabled
         if self.gui2Disabled then
             if self.Disable then self:Disable() end
         else
             if self.Enable then self:Enable() end
         end
         self:RefreshTheme()
+        self.gui2DisabledInitialized = true
+        return true
     end
     function frame:RefreshTheme()
         if self.bg then
@@ -1173,11 +2765,20 @@ function GUI2.Form:CreateDropdown(parent, opts)
 
     frame:SetScript("OnMouseUp", function(self)
         if self.gui2Disabled then return end
-        if type(opts.options) == "function" then
-            self:SetValue(self.value, true)
+        local resolvedOptions = ResolveOptions()
+        if type(opts.getLabel) ~= "function" then
+            local selected = FindOption(self.value, resolvedOptions)
+            self.gui2FullText = OptionText(self.value, selected) or ""
+            ApplySelectionIcon(self, selected)
+            if self.text then
+                self.text:SetText(
+                    (self.gui2HasSelectionIcon and "" or " ")
+                        .. self.gui2FullText
+                )
+            end
         end
         local menuOptions = {}
-        for _, option in ipairs(ResolveOptions()) do
+        for _, option in ipairs(resolvedOptions) do
             local optionTable = NormalizeOption(option)
             local opt = optionTable
             menuOptions[#menuOptions + 1] = {
@@ -1192,6 +2793,7 @@ function GUI2.Form:CreateDropdown(parent, opts)
                 texCoords = opt.texCoords,
                 iconData = opt.iconData,
                 iconSize = opt.iconSize,
+                iconColor = opt.iconColor,
                 blendMode = opt.blendMode,
                 actionFunc = opt.actionFunc,
                 actionTooltip = opt.actionTooltip,
@@ -1239,10 +2841,170 @@ function GUI2.Form:CreateDropdown(parent, opts)
     return frame
 end
 
+local function ResolveLSMFontPath(value)
+    if value == "chat" and _G.ChatFontNormal
+        and _G.ChatFontNormal.GetFont then
+        local path = _G.ChatFontNormal:GetFont()
+        if type(path) == "string" and path ~= "" then return path end
+    elseif value == "damage" and _G.DAMAGE_TEXT_FONT then
+        return _G.DAMAGE_TEXT_FONT
+    elseif value == "default" or value == nil or value == "" then
+        return GUI2:GetFont("font.family.body")
+    end
+    if LSM and LSM.Fetch then
+        local path = LSM:Fetch("font", value, true)
+        if type(path) == "string" and path ~= "" then return path end
+    end
+    return GUI2:GetFont("font.family.body")
+end
+
+local function BuildLSMFontOptions(opts)
+    local options = {}
+    local seen = {}
+    local fontSize = GUI2.Fonts and GUI2.Fonts.size_normal
+        or GUI2:GetMetric("font.size.md", 13)
+
+    local function AddOption(source)
+        local option = {}
+        if type(source) == "table" then
+            for key, value in pairs(source) do option[key] = value end
+        else
+            option.text = tostring(source)
+            option.value = source
+        end
+        option.value = option.value or option.text
+        if option.value == nil or seen[option.value] then return end
+        option.text = option.text or tostring(option.value)
+        seen[option.value] = true
+
+        local baseRender = option.render
+        local fontPath = option.fontPath or ResolveLSMFontPath(option.value)
+        option.render = function(button)
+            if baseRender then baseRender(button) end
+            if button and button.text and fontPath then
+                button.text:SetFont(fontPath, fontSize)
+            end
+        end
+        options[#options + 1] = option
+    end
+
+    local prepend = opts.prependOptions
+    if type(prepend) == "function" then prepend = prepend() end
+    for _, option in ipairs(type(prepend) == "table" and prepend or {}) do
+        AddOption(option)
+    end
+
+    local names = LSM and LSM.List and LSM:List("font")
+    if type(names) ~= "table" then
+        names = {}
+        local mediaTable = LSM and LSM.HashTable
+            and LSM:HashTable("font") or nil
+        for name in pairs(type(mediaTable) == "table" and mediaTable or {}) do
+            names[#names + 1] = name
+        end
+        table_sort(names)
+    end
+    for _, name in ipairs(names) do AddOption(name) end
+    return options
+end
+
+function GUI2.Form:BuildLSMFontOptions(opts)
+    return BuildLSMFontOptions(opts or {})
+end
+
+function GUI2.Form:CreateLSMFontDropdown(parent, opts)
+    opts = opts or {}
+    local dropdownOpts = {}
+    for key, value in pairs(opts) do dropdownOpts[key] = value end
+    dropdownOpts.options = function()
+        return BuildLSMFontOptions(opts)
+    end
+
+    local dropdown = self:CreateDropdown(parent, dropdownOpts)
+    local baseSetValue = dropdown.SetValue
+    local baseRefreshTheme = dropdown.RefreshTheme
+
+    local function ApplySelectedFont(control, value)
+        if opts.previewSelectedFont == false then return end
+        if not (control and control.text and control.text.SetFont) then return end
+        local path = ResolveLSMFontPath(value)
+        if not path then return end
+        local _, size, flags
+        if control.text.GetFont then
+            _, size, flags = control.text:GetFont()
+        end
+        local ok, applied = pcall(
+            control.text.SetFont,
+            control.text,
+            path,
+            size or GUI2:GetMetric("font.size.md", 13),
+            flags or ""
+        )
+        if not ok or applied == false then
+            pcall(
+                control.text.SetFont,
+                control.text,
+                GUI2:GetFont("font.family.body"),
+                size or GUI2:GetMetric("font.size.md", 13),
+                flags or ""
+            )
+        end
+    end
+
+    function dropdown:SetValue(value, silent)
+        local changed = baseSetValue(self, value, silent)
+        ApplySelectedFont(self, value)
+        return changed
+    end
+    function dropdown:RefreshTheme(...)
+        if baseRefreshTheme then baseRefreshTheme(self, ...) end
+        ApplySelectedFont(self, self.value)
+    end
+    dropdown:SetValue(dropdown.value, {
+        silent = true,
+        animate = false,
+        force = true,
+    })
+    return dropdown
+end
+
+function GUI2.Form:BuildFontOutlineOptions(opts)
+    opts = type(opts) == "table" and opts or {}
+    local options = {}
+    local prepend = opts.prependOptions
+    local values = type(opts.values) == "table" and opts.values or {}
+    if type(prepend) == "function" then prepend = prepend() end
+    for _, option in ipairs(type(prepend) == "table" and prepend or {}) do
+        options[#options + 1] = option
+    end
+    options[#options + 1] = {
+        text = opts.noneText or GetCoreText("font_outline.none", "None"),
+        value = values.none or "none",
+    }
+    options[#options + 1] = {
+        text = opts.outlineText or GetCoreText("font_outline.outline", "Outline"),
+        value = values.outline or "outline",
+    }
+    options[#options + 1] = {
+        text = opts.thickText or GetCoreText("font_outline.thick", "Thick Outline"),
+        value = values.thick or "thick",
+    }
+    options[#options + 1] = {
+        text = opts.shadowText or GetCoreText("font_outline.shadow", "Shadow"),
+        value = values.shadow or "shadow",
+    }
+    options[#options + 1] = {
+        text = opts.outlineShadowText
+            or GetCoreText("font_outline.outline_shadow", "Outline + Shadow"),
+        value = values.outlineShadow or "outlineShadow",
+    }
+    return options
+end
+
 local SOUND_PREVIEW_BUTTON_SIZE = 26
 local SOUND_PREVIEW_BUTTON_GAP = 8
-local SOUND_PREVIEW_PLAY_ATLAS = "common-dropdown-icon-next"
-local SOUND_PREVIEW_STOP_ATLAS = "common-dropdown-icon-stop"
+local SOUND_PREVIEW_PLAY_ICON = "play"
+local SOUND_PREVIEW_STOP_ICON = "square"
 local soundPreviewHandle
 local soundPreviewToken
 local soundPreviewButtons = setmetatable({}, { __mode = "k" })
@@ -1261,12 +3023,14 @@ local function RefreshSoundPreviewButtons()
     for button in pairs(soundPreviewButtons) do
         if button and button.soundPreviewIcon then
             local active = soundPreviewHandle ~= nil and soundPreviewToken ~= nil and button.gui2SoundPreviewToken == soundPreviewToken
-            local atlas = active and SOUND_PREVIEW_STOP_ATLAS or SOUND_PREVIEW_PLAY_ATLAS
-            if button.soundPreviewIcon.SetAtlas then
-                button.soundPreviewIcon:SetTexture(nil)
-                button.soundPreviewIcon:SetAtlas(atlas, false)
+            local icon = active and SOUND_PREVIEW_STOP_ICON or SOUND_PREVIEW_PLAY_ICON
+            if GUI2.ApplyMicroIcon then
+                GUI2:ApplyMicroIcon(button.soundPreviewIcon, icon, button.soundPreviewIconSize or 16)
             else
-                button.soundPreviewIcon:SetTexture(nil)
+                GUI2:SetIconTexture(button.soundPreviewIcon, GUI2.GetSettingsIcon and GUI2:GetSettingsIcon(icon) or nil)
+                if button.soundPreviewIcon.SetTexCoord then
+                    button.soundPreviewIcon:SetTexCoord(0, 1, 0, 1)
+                end
             end
             if button.soundPreviewIcon.SetVertexColor and GUI2.GetColor then
                 button.soundPreviewIcon:SetVertexColor(GUI2:GetColor("color.text.accent"))
@@ -1349,11 +3113,15 @@ function GUI2.Form:CreateSoundPreviewButton(parent, opts)
         end,
     })
     button.gui2SoundPreviewToken = opts.token
-    local icon = GUI2:CreateIcon(button, {
-        atlas = SOUND_PREVIEW_PLAY_ATLAS,
-        fillParent = true,
-        padding = opts.iconPadding or 6,
+    local iconPadding = opts.iconPadding or 5
+    local iconSize = opts.iconSize or 16
+    local icon = GUI2:CreateMicroIcon(button, {
+        iconName = SOUND_PREVIEW_PLAY_ICON,
+        size = iconSize,
+        maxSize = math_max(size - iconPadding * 2, 1),
+        minPhysicalPixels = opts.iconMinPhysicalPixels or 11,
     })
+    button.soundPreviewIconSize = iconSize
     if icon and icon.SetVertexColor and GUI2.GetColor then
         icon:SetVertexColor(GUI2:GetColor("color.text.accent"))
     end
@@ -1448,7 +3216,11 @@ local function BuildLSMSoundOptions(opts)
         if copy.value ~= "None" and type(copy.actionFunc) ~= "function" then
             local optionValue = copy.value
             local optionSoundPath = copy.soundPath
-            copy.actionAtlas = copy.actionAtlas or SOUND_PREVIEW_PLAY_ATLAS
+            if not copy.actionAtlas and not copy.actionIconAtlas and not copy.actionIcon and not copy.actionTexture and not copy.actionMicroIcon then
+                copy.actionMicroIcon = SOUND_PREVIEW_PLAY_ICON
+                copy.actionMicroIconSize = copy.actionMicroIconSize or 16
+                copy.actionIconPadding = copy.actionIconPadding or 5
+            end
             copy.actionTooltip = copy.actionTooltip or opts.previewTooltip or GetCoreText("common.preview_sound", "Preview sound")
             copy.actionFunc = function()
                 local path = optionSoundPath or FetchLSMSoundPath(optionValue)
@@ -1498,7 +3270,13 @@ function GUI2.Form:CreateLSMSoundDropdown(parent, opts)
     end
 
     local function Commit(value, silent)
-        frame.value = value or opts.default or "None"
+        local nextValue = value or opts.default or "None"
+        if frame.gui2ValueInitialized
+            and frame.value == nextValue
+            and silent == true then
+            return false
+        end
+        frame.value = nextValue
         if dropdown and dropdown.SetValue then
             dropdown:SetValue(frame.value, true)
         end
@@ -1509,6 +3287,8 @@ function GUI2.Form:CreateLSMSoundDropdown(parent, opts)
         if not silent then
             CommitValue(opts, frame, frame.value)
         end
+        frame.gui2ValueInitialized = true
+        return true
     end
 
     dropdown = self:CreateDropdown(frame, {
@@ -1552,13 +3332,19 @@ function GUI2.Form:CreateLSMSoundDropdown(parent, opts)
         Commit(value, silent == true)
     end
     function frame:SetDisabled(disabled)
-        self.gui2Disabled = disabled and true or false
+        disabled = disabled and true or false
+        if self.gui2DisabledInitialized and self.gui2Disabled == disabled then
+            return false
+        end
+        self.gui2Disabled = disabled
         if self.dropdown and self.dropdown.SetDisabled then
             self.dropdown:SetDisabled(self.gui2Disabled)
         end
         if self.previewButton and self.previewButton.SetDisabled then
             self.previewButton:SetDisabled(self.gui2Disabled)
         end
+        self.gui2DisabledInitialized = true
+        return true
     end
     function frame:RefreshTheme()
         if self.dropdown and self.dropdown.RefreshTheme then
@@ -1596,7 +3382,7 @@ function GUI2.Form:CreateSpecDropdown(parent, opts)
                 if value == nil then value = specID end
 
                 if value ~= nil then
-                    local name = spec.name or spec.text or tostring(value)
+                    local name = spec.displayName or spec.name or spec.text or tostring(value)
                     local iconData = spec.iconData
                     if not iconData and Icons and Icons.GetScopedSpecIcon and specID then
                         iconData = Icons.GetScopedSpecIcon(specID, spec.icon, scopeID, opts.iconSetID)
@@ -1644,6 +3430,111 @@ function GUI2.Form:CreateSpecDropdown(parent, opts)
         if baseRefreshTheme then baseRefreshTheme(self, ...) end
     end
     return dropdown
+end
+
+function GUI2.Form:CreateRaceDropdown(parent, opts)
+    opts = opts or {}
+
+    local function ResolveRaces()
+        local races = opts.races or opts.options
+        if type(races) == "function" then races = races() end
+        return type(races) == "table" and races or {}
+    end
+
+    local function BuildOptions()
+        local options = {}
+        local Icons = YUI.API and YUI.API.Icons
+
+        for _, race in ipairs(ResolveRaces()) do
+            if type(race) == "table" then
+                local raceID = tonumber(race.raceID)
+                local raceFile = race.raceFile
+                    or race.clientFileString
+                    or race.file
+                local value = race.value
+                if value == nil then value = raceFile or raceID end
+
+                if value ~= nil then
+                    local name = race.displayName
+                        or race.name
+                        or race.text
+                        or tostring(value)
+                    local iconData = race.iconData
+                    if not iconData and Icons and Icons.GetRaceIcon
+                        and raceFile then
+                        iconData = Icons.GetRaceIcon(
+                            raceFile,
+                            race.gender or opts.gender
+                        )
+                    end
+
+                    options[#options + 1] = {
+                        text = name,
+                        selectionText = race.selectionText or name,
+                        value = value,
+                        raceID = raceID,
+                        raceFile = raceFile,
+                        gender = race.gender,
+                        icon = race.icon,
+                        texture = race.texture,
+                        atlas = race.atlas,
+                        texCoord = race.texCoord,
+                        texCoords = race.texCoords,
+                        iconData = iconData,
+                        iconSize = race.iconSize or opts.iconSize or 18,
+                        blendMode = race.blendMode,
+                        render = race.render,
+                        func = race.func,
+                    }
+                end
+            end
+        end
+
+        return options
+    end
+
+    local dropdownOpts = {}
+    for key, value in pairs(opts) do
+        dropdownOpts[key] = value
+    end
+    dropdownOpts.options = BuildOptions
+    dropdownOpts.placeholder = opts.placeholder or opts.emptyText or ""
+
+    local dropdown = self:CreateDropdown(parent, dropdownOpts)
+    local baseRefreshTheme = dropdown.RefreshTheme
+    function dropdown:RefreshTheme(...)
+        if self.SetValue then
+            self:SetValue(self.value, true)
+        end
+        if baseRefreshTheme then baseRefreshTheme(self, ...) end
+    end
+    return dropdown
+end
+
+local activeColorPickerControl
+local colorPickerHideHookInstalled = false
+
+local function FinishActiveColorPicker(cancelled)
+    local control = activeColorPickerControl
+    if not control then return false end
+    activeColorPickerControl = nil
+    if control.FinishColorPreview then
+        return control:FinishColorPreview(cancelled == true)
+    end
+    return false
+end
+
+local function EnsureColorPickerHideHook()
+    if colorPickerHideHookInstalled or not ColorPickerFrame then
+        return colorPickerHideHookInstalled
+    end
+    if ColorPickerFrame.HookScript then
+        ColorPickerFrame:HookScript("OnHide", function()
+            FinishActiveColorPicker(false)
+        end)
+        colorPickerHideHookInstalled = true
+    end
+    return colorPickerHideHookInstalled
 end
 
 function GUI2.Form:CreateColorPicker(parent, opts)
@@ -1723,13 +3614,71 @@ function GUI2.Form:CreateColorPicker(parent, opts)
         local r, g, b, a = CurrentColor()
         chip:SetColorTexture(r, g, b, a)
     end
+    function frame:SetColorLifecycle(preview, commit, cancel)
+        self.gui2ColorPreview = type(preview) == "function"
+            and preview or nil
+        self.gui2ColorCommit = type(commit) == "function"
+            and commit or nil
+        self.gui2ColorCancel = type(cancel) == "function"
+            and cancel or nil
+        return self
+    end
+    function frame:PreviewColorValue(r, g, b, a)
+        local pending = self.gui2ColorPendingValue
+        if not pending then
+            pending = {}
+            self.gui2ColorPendingValue = pending
+        end
+        a = a == nil and 1 or a
+        if pending[1] == r and pending[2] == g
+            and pending[3] == b and pending[4] == a then
+            return false
+        end
+        pending[1], pending[2], pending[3], pending[4] = r, g, b, a
+        self.value = pending
+        opts.value = pending
+        UpdateChip()
+        if self.gui2ColorPreview then
+            self.gui2ColorPreview(pending, self)
+        end
+        return true
+    end
+    function frame:FinishColorPreview(cancelled)
+        if self.gui2ColorPreviewActive ~= true then return false end
+        self.gui2ColorPreviewActive = false
+        local value = cancelled
+            and self.gui2ColorOriginalValue
+            or self.gui2ColorPendingValue
+        if not value then return false end
+        self.value = value
+        opts.value = value
+        UpdateChip()
+        if cancelled then
+            if self.gui2ColorCancel then
+                self.gui2ColorCancel(value, self)
+            elseif self.gui2ColorPreview then
+                self.gui2ColorPreview(value, self)
+            end
+        elseif self.gui2ColorCommit then
+            self.gui2ColorCommit(value, self)
+        else
+            CommitValue(opts, self, value)
+        end
+        return true
+    end
     function frame:GetValue()
         local r, g, b, a = CurrentColor()
         return { r, g, b, a }
     end
     function frame:SetValue(value, silent)
         if value == nil then return end
-        local isSilent, animate = ParseSetOptions(silent)
+        local isSilent, animate, setOptions = ParseSetOptions(silent)
+        if self.gui2ValueInitialized
+            and ValuesEqual(self.value, value)
+            and not (setOptions and setOptions.force == true) then
+            if not isSilent then CommitValue(opts, self, value) end
+            return false
+        end
         self.value = value
         opts.value = value
         if not isSilent then CommitValue(opts, self, value) end
@@ -1737,15 +3686,23 @@ function GUI2.Form:CreateColorPicker(parent, opts)
         if animate and not self.gui2Disabled then
             PlayMotionOverlay(self.chipMotion, self, "color-chip")
         end
+        self.gui2ValueInitialized = true
+        return true
     end
     function frame:SetDisabled(disabled)
-        self.gui2Disabled = disabled and true or false
+        disabled = disabled and true or false
+        if self.gui2DisabledInitialized and self.gui2Disabled == disabled then
+            return false
+        end
+        self.gui2Disabled = disabled
         if self.gui2Disabled then
             if self.Disable then self:Disable() end
         else
             if self.Enable then self:Enable() end
         end
         self:RefreshTheme()
+        self.gui2DisabledInitialized = true
+        return true
     end
     function frame:RefreshTheme()
         if self.chipBg then GUI2:RefreshPrimitive(self.chipBg) end
@@ -1757,6 +3714,22 @@ function GUI2.Form:CreateColorPicker(parent, opts)
     frame:SetScript("OnClick", function(self)
         if self.gui2Disabled then return end
         local r, g, b, a = CurrentColor()
+        local enhanced = self.gui2ColorPreview ~= nil
+        if enhanced then
+            if activeColorPickerControl
+                and activeColorPickerControl ~= self then
+                FinishActiveColorPicker(false)
+            end
+            local original = self.gui2ColorOriginalValue or {}
+            local pending = self.gui2ColorPendingValue or {}
+            self.gui2ColorOriginalValue = original
+            self.gui2ColorPendingValue = pending
+            original[1], original[2], original[3], original[4] = r, g, b, a
+            pending[1], pending[2], pending[3], pending[4] = r, g, b, a
+            self.gui2ColorPreviewActive = true
+            activeColorPickerControl = self
+            EnsureColorPickerHideHook()
+        end
         local info
         info = {
             r = r,
@@ -1776,15 +3749,26 @@ function GUI2.Form:CreateColorPicker(parent, opts)
                         na = ColorPickerFrame.opacity
                     end
                 end
-                local value = { nr, ng, nb, na or 1 }
-                self:SetValue(value)
+                if enhanced then
+                    self:PreviewColorValue(nr, ng, nb, na or 1)
+                else
+                    local value = { nr, ng, nb, na or 1 }
+                    self:SetValue(value)
+                end
             end,
             opacityFunc = function()
                 if info.swatchFunc then info.swatchFunc() end
             end,
             cancelFunc = function()
-                local value = { r, g, b, a }
-                self:SetValue(value)
+                if enhanced then
+                    if activeColorPickerControl == self then
+                        activeColorPickerControl = nil
+                    end
+                    self:FinishColorPreview(true)
+                else
+                    local value = { r, g, b, a }
+                    self:SetValue(value)
+                end
             end,
         }
         if opts.default then
@@ -1807,6 +3791,16 @@ function GUI2.Form:CreateColorPicker(parent, opts)
             ColorPickerFrame.previousValues = { r, g, b, a }
             ColorPickerFrame:Show()
         end
+        if ColorPickerFrame.SetFrameStrata then
+            ColorPickerFrame:SetFrameStrata("TOOLTIP")
+        end
+        if ColorPickerFrame.SetFrameLevel then
+            ColorPickerFrame:SetFrameLevel(9800)
+        end
+        if ColorPickerFrame.SetToplevel then
+            ColorPickerFrame:SetToplevel(true)
+        end
+        if ColorPickerFrame.Raise then ColorPickerFrame:Raise() end
     end)
     frame:SetScript("OnEnter", function(self)
         if self.gui2Disabled then return end
@@ -1818,6 +3812,7 @@ function GUI2.Form:CreateColorPicker(parent, opts)
     end)
 
     AddTooltip(frame, opts)
+    frame:SetColorLifecycle(opts.preview, opts.commit, opts.cancel)
     frame:SetValue(GetValue(opts) or opts.default or { 1, 1, 1, 1 }, true)
     frame:SetDisabled(opts.disabled)
     GUI2:RegisterThemeObject(frame)
@@ -1865,11 +3860,13 @@ local function NormalizeGlowOptionsValue(value, fallback)
     if style ~= "none" and style ~= "pixel" and style ~= "soft" and style ~= "button" and style ~= "autocast" and style ~= "proc" and style ~= "pulse" then
         style = "soft"
     end
+    local defaultLines = style == "pixel" and 6 or 4
+    local defaultThickness = style == "pixel" and 2 or 1
     return {
         style = style,
         size = NormalizeGlowSizeOption(value.size, fallback.size),
-        lines = tonumber(value.lines) or tonumber(fallback.lines) or 4,
-        thickness = tonumber(value.thickness) or tonumber(fallback.thickness) or 1,
+        lines = tonumber(value.lines) or tonumber(fallback.lines) or defaultLines,
+        thickness = tonumber(value.thickness) or tonumber(fallback.thickness) or defaultThickness,
         length = tonumber(value.length) or tonumber(fallback.length) or 20,
         speed = tonumber(value.speed) or tonumber(fallback.speed) or 0.25,
         alpha = tonumber(value.alpha) or tonumber(fallback.alpha) or 0.9,
@@ -1939,10 +3936,8 @@ function GUI2.Form:CreateGlowOptions(parent, opts)
             return WithColorField({
                 { key = "lines", label = labels.lines or "线段数量", min = 1, max = 20, step = 1, precision = 0 },
                 { key = "thickness", label = labels.thickness or "线段粗细", min = 1, max = 20, step = 1, precision = 0 },
-                { key = "length", label = labels.length or "长度", min = 4, max = 80, step = 1, precision = 0 },
                 { key = "speed", label = labels.speed or "速度", min = 0, max = 3, step = 0.05, precision = 2 },
                 { key = "alpha", label = labels.alpha or "透明", min = 0.1, max = 1, step = 0.05, precision = 2 },
-                { key = "falloff", label = labels.falloff or "衰减", min = 0, max = 0.8, step = 0.05, precision = 2 },
                 { key = "offsetX", label = labels.offsetX or "X 扩展", min = -1, max = 1, step = 0.05, precision = 2 },
                 { key = "offsetY", label = labels.offsetY or "Y 扩展", min = -1, max = 1, step = 0.05, precision = 2 },
             })
@@ -1962,9 +3957,6 @@ function GUI2.Form:CreateGlowOptions(parent, opts)
             { key = "offsetX", label = labels.offsetX or "X 扩展", min = -1, max = 1, step = 0.05, precision = 2 },
             { key = "offsetY", label = labels.offsetY or "Y 扩展", min = -1, max = 1, step = 0.05, precision = 2 },
         }
-        if style == "autocast" then
-            table.insert(fields, 2, { key = "lines", label = labels.lines or "线段数量", min = 1, max = 20, step = 1, precision = 0 })
-        end
         return WithColorField(fields)
     end
 
@@ -2009,15 +4001,11 @@ function GUI2.Form:CreateGlowOptions(parent, opts)
         if current.style == "pixel" then
             parts[#parts + 1] = (labels.summaryLines or "线") .. " " .. FormatGlowSummaryNumber(current.lines, 0)
             parts[#parts + 1] = (labels.summaryThickness or "宽") .. " " .. FormatGlowSummaryNumber(current.thickness, 0)
-            parts[#parts + 1] = (labels.summaryLength or "长") .. " " .. FormatGlowSummaryNumber(current.length, 0)
             parts[#parts + 1] = (labels.summarySpeed or "速") .. " " .. FormatGlowSummaryNumber(current.speed, 2)
         elseif current.style == "soft" then
             parts[#parts + 1] = (labels.summarySize or "尺寸") .. " " .. FormatGlowSummaryNumber(current.size, 2)
         else
             parts[#parts + 1] = (labels.summarySize or "尺寸") .. " " .. FormatGlowSummaryNumber(current.size, 2)
-            if current.style == "autocast" then
-                parts[#parts + 1] = (labels.summaryLines or "线") .. " " .. FormatGlowSummaryNumber(current.lines, 0)
-            end
             parts[#parts + 1] = (labels.summarySpeed or "速") .. " " .. FormatGlowSummaryNumber(current.speed, 2)
         end
         parts[#parts + 1] = (labels.summaryAlpha or "透明") .. " " .. FormatGlowSummaryNumber(current.alpha, 2)
@@ -2116,8 +4104,10 @@ function GUI2.Form:CreateGlowOptions(parent, opts)
 
     local settingsButton = self:CreateIconButton(frame, {
         size = buttonSize,
-        icon = opts.settingsIcon or "Interface\\Icons\\INV_Misc_Gear_01",
+        icon = opts.settingsIcon or (GUI2.GetSettingsIcon and GUI2:GetSettingsIcon("settings")) or "Interface\\Icons\\INV_Misc_Gear_01",
         atlas = opts.settingsAtlas,
+        texCoords = opts.settingsTexCoords or opts.settingsTexCoord,
+        crop = opts.settingsCrop ~= nil and opts.settingsCrop or false,
         tone = "default",
         state = expanded and "selected" or "normal",
         onClick = function()
@@ -2209,6 +4199,9 @@ function GUI2.Form:CreateGlowOptions(parent, opts)
             text = labels.reset or "重置",
             width = resetButtonWidth,
             height = rowHeight,
+            icon = (GUI2.GetSettingsIcon and GUI2:GetSettingsIcon("rotate-ccw")) or nil,
+            iconSize = 14,
+            iconCrop = false,
             onClick = function()
                 Commit(BuildResetValue(), true)
                 RefreshSettingsTooltip()
@@ -2223,18 +4216,32 @@ function GUI2.Form:CreateGlowOptions(parent, opts)
         return value
     end
     function frame:SetValue(nextValue, silent)
-        value = NormalizeGlowOptionsValue(nextValue, opts.default)
-        self.value = value
+        local normalized = NormalizeGlowOptionsValue(nextValue, opts.default)
+        local isSilent, _, setOptions = ParseSetOptions(silent)
+        if self.gui2ValueInitialized
+            and ValuesEqual(value, normalized)
+            and not (setOptions and setOptions.force == true) then
+            if not isSilent then CommitValue(opts, self, value) end
+            return false
+        end
+        value = normalized
+        self.value = normalized
         if self.dropdown and self.dropdown.SetValue then
             self.dropdown:SetValue(value.style, true)
         end
         RefreshSettingsTooltip()
-        if not silent then
+        if not isSilent then
             CommitValue(opts, self, value)
         end
+        self.gui2ValueInitialized = true
+        return true
     end
     function frame:SetDisabled(disabled)
-        self.gui2Disabled = disabled and true or false
+        disabled = disabled and true or false
+        if self.gui2DisabledInitialized and self.gui2Disabled == disabled then
+            return false
+        end
+        self.gui2Disabled = disabled
         for _, control in ipairs(self.controls) do
             if control.SetDisabled then
                 control:SetDisabled(self.gui2Disabled)
@@ -2244,6 +4251,8 @@ function GUI2.Form:CreateGlowOptions(parent, opts)
                 control:Enable()
             end
         end
+        self.gui2DisabledInitialized = true
+        return true
     end
     function frame:RefreshTheme()
         if self.panel and self.panel.RefreshTheme then self.panel:RefreshTheme() end
@@ -2279,7 +4288,8 @@ function GUI2.Form:RenderLab(parent, lab)
     lab:RenderHeader(parent, "表单控件（Form）", "用于设置页和配置面板的输入控件，重点检查点击、选择、禁用、展开和输入状态。")
     lab:RenderComponentList(parent, "组件清单（Component List）", {
         "按钮（Button）", "复选框（Checkbox）", "开关（Switch）", "二选一（BinaryChoice）",
-        "分段选择（SegmentedControl）", "滑条（Slider）", "输入框（EditBox）", "下拉框（Dropdown）", "颜色选择（ColorPicker）",
+        "分段选择（SegmentedControl）", "下划线页签（UnderlineTabs）", "滑条（Slider）",
+        "输入框（EditBox）", "下拉框（Dropdown）", "颜色选择（ColorPicker）",
     })
 
     local statePanel = CreateSection(parent, "按钮状态（Button States）", 18, -88, width - 36, 84)
@@ -2339,6 +4349,15 @@ function GUI2.Form:RenderLab(parent, lab)
         },
     })
     segmented:SetPoint("TOPLEFT", 238, -116)
+    local underlineTabs = self:CreateUnderlineTabs(choicePanel, {
+        value = "minimap",
+        items = {
+            { text = "小地图", value = "minimap" },
+            { text = "世界地图设置", value = "world" },
+            { text = "禁用页签", value = "disabled", disabled = true },
+        },
+    })
+    underlineTabs:SetPoint("TOPLEFT", 12, -158)
 
     local inputPanel = CreateSection(parent, "输入控件（Inputs）", 456, -184, width - 474, 304)
     local slider = self:CreateSlider(inputPanel, { width = 320, value = 64, min = 0, max = 100, step = 1, inline = true, label = "缩放" })

@@ -1,15 +1,94 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local YUI = _G.YUI
 YUI.GUI2 = YUI.GUI2 or {}
 
 local GUI2 = YUI.GUI2
 local CreateFrame = CreateFrame
+local UIParent = UIParent
+local math_max = math.max
+local math_floor = math.floor
+local tonumber = tonumber
 
 GUI2.Overlay = GUI2.Overlay or {}
+
+local MODAL_SCRIM_ALPHA = 0.62
+local MODAL_SCRIM_FADE_DURATION = 0.20
+
+local function HideModalScrim(dialog)
+    if not dialog then return end
+    if YUI.Animation and YUI.Animation.StopOwner then
+        YUI.Animation:StopOwner(dialog)
+    end
+    local scrim = dialog.gui2ModalScrim
+    if scrim then
+        scrim:SetAlpha(1)
+        scrim:Hide()
+    end
+end
+
+function GUI2.Overlay:ShowModalScrim(dialog, opts)
+    if not (dialog and UIParent) then return nil end
+    opts = opts or {}
+
+    local scrim = dialog.gui2ModalScrim
+    if not scrim then
+        scrim = GUI2:CreateFrame(UIParent)
+        scrim:SetAllPoints(UIParent)
+        if scrim.EnableMouse then scrim:EnableMouse(true) end
+
+        local shade = GUI2:CreateTexture(scrim, { layer = "BACKGROUND" })
+        shade:SetAllPoints(scrim)
+        shade:SetColorTexture(0, 0, 0, opts.alpha or MODAL_SCRIM_ALPHA)
+        scrim.shade = shade
+        scrim:Hide()
+        dialog.gui2ModalScrim = scrim
+
+        if dialog.HookScript then
+            dialog:HookScript("OnHide", HideModalScrim)
+        end
+    elseif scrim.shade then
+        scrim.shade:SetColorTexture(0, 0, 0, opts.alpha or MODAL_SCRIM_ALPHA)
+    end
+
+    local dialogLevel = dialog.GetFrameLevel and dialog:GetFrameLevel() or 2
+    if dialogLevel < 2 and dialog.SetFrameLevel then
+        dialogLevel = 2
+        dialog:SetFrameLevel(dialogLevel)
+    end
+    if scrim.SetFrameStrata and dialog.GetFrameStrata then
+        scrim:SetFrameStrata(dialog:GetFrameStrata() or "DIALOG")
+    end
+    if scrim.SetFrameLevel then
+        local requestedLevel = tonumber(opts.frameLevel)
+        local scrimLevel = requestedLevel ~= nil
+            and math_max(math_floor(requestedLevel), 0)
+            or math_max(dialogLevel - 1, 0)
+        scrim:SetFrameLevel(scrimLevel)
+    end
+
+    scrim:SetAlpha(1)
+    scrim:Show()
+    if GUI2.FadeIn then
+        GUI2:FadeIn(scrim, {
+            from = 0,
+            to = 1,
+            duration = opts.duration or MODAL_SCRIM_FADE_DURATION,
+            owner = dialog,
+            key = opts.key or "modal-scrim",
+        })
+    end
+    return scrim
+end
+
+function GUI2:ShowModalScrim(dialog, opts)
+    return self.Overlay:ShowModalScrim(dialog, opts)
+end
 
 local function PlayOverlayEnter(frame, key)
     if frame and GUI2.SlideIn then
@@ -78,25 +157,53 @@ end
 
 function GUI2.Overlay:CreateMenu(parent, opts)
     opts = opts or {}
+    local width = opts.width or 180
+    local items = opts.items or { "第一项", "第二项", "禁用项" }
+    local rowHeight = opts.rowHeight or 24
+    local gap = opts.gap or 6
+    local height = opts.height or (16 + (#items * rowHeight) + math_max(#items - 1, 0) * gap)
     local frame = GUI2:CreatePanel(parent, {
-        width = opts.width or 180,
-        height = opts.height or 116,
+        width = width,
+        height = height,
         surface = "color.surface.popup",
         border = "color.popup.border",
         shadow = true,
         shadowKey = "shadow.popup.size",
     })
-    local items = opts.items or { "第一项", "第二项", "禁用项" }
     for i, item in ipairs(items) do
-        local row = GUI2:CreatePanel(frame, {
-            width = (opts.width or 180) - 16,
-            height = 24,
-            surface = i == 2 and "color.control.hover" or "color.surface.popup",
-            border = "color.border.subtle",
+        local spec = type(item) == "table" and item or { text = item }
+        local disabled = spec.disabled == true
+        local row = GUI2:CreateButtonFrame(frame, {
+            template = "BackdropTemplate",
+            width = width - 16,
+            height = rowHeight,
         })
-        row:SetPoint("TOPLEFT", 8, -8 - ((i - 1) * 30))
-        local text = GUI2:CreateText(row, item, "font.size.sm", i == 3 and "color.text.disabled" or "color.text.primary")
+        row.gui2Surface = "color.surface.popup"
+        GUI2:ApplyBackdrop(row, "color.surface.popup")
+        GUI2:CreateBorder(row, "color.border.subtle")
+        row:SetPoint("TOPLEFT", 8, -8 - ((i - 1) * (rowHeight + gap)))
+        local textColor = disabled and "color.text.disabled" or (spec.danger and "color.state.error" or "color.text.primary")
+        local text = GUI2:CreateText(row, spec.text or "", "font.size.sm", textColor)
         text:SetPoint("LEFT", 8, 0)
+        text:SetPoint("RIGHT", -8, 0)
+        text:SetJustifyH("LEFT")
+        row.text = text
+        row:SetScript("OnEnter", function(button)
+            if disabled then return end
+            button.gui2Surface = "color.control.hover"
+            GUI2:ApplyBackdrop(button, "color.control.hover")
+        end)
+        row:SetScript("OnLeave", function(button)
+            button.gui2Surface = "color.surface.popup"
+            GUI2:ApplyBackdrop(button, "color.surface.popup")
+        end)
+        row:SetScript("OnClick", function(button)
+            if disabled then return end
+            if spec.onClick then spec.onClick(button, frame, spec) end
+            if opts.closeOnClick ~= false then
+                frame:Hide()
+            end
+        end)
     end
     return frame
 end

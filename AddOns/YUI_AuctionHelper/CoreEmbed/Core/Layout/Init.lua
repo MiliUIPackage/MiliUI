@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 -------------------------------------------------------------------------------
 -- YUI | Layout edit mode - init
@@ -47,7 +49,7 @@ local string_find = string.find
 local string_gsub = string.gsub
 
 local MODULE_ID = "core.layout"
-local DB_VERSION = 1
+local DB_VERSION = 2
 local GRID_SPACING = 64
 local DEFAULT_GRID_DENSITY = "medium"
 local GRID_DENSITY_SPACING = { veryLow = 128, low = 96, medium = 64, high = 48, veryHigh = 32 }
@@ -73,10 +75,10 @@ local MOVER_COLOR_SELECTED = { 1.00, 0.82, 0.00, 1.00 }
 local MOVER_COLOR_ANCHOR = { 0.20, 0.86, 0.42, 1.00 }
 local MOVER_COLOR_SIMULATED = { 1.00, 0.30, 0.22, 1.00 }
 local MOVER_COLOR_PLACEHOLDER = { 0.08, 0.78, 1.00, 0.95 }
-local MOVER_BG_NORMAL = { 0.10, 0.55, 1.00, 0.13 }
-local MOVER_BG_SELECTED = { 1.00, 0.72, 0.00, 0.22 }
-local MOVER_BG_ANCHOR = { 0.12, 0.70, 0.30, 0.18 }
-local MOVER_BG_SIMULATED = { 1.00, 0.18, 0.12, 0.22 }
+local MOVER_BG_NORMAL = { 0.01, 0.025, 0.045, 0.38 }
+local MOVER_BG_SELECTED = { 0.06, 0.045, 0.005, 0.42 }
+local MOVER_BG_ANCHOR = { 0.01, 0.05, 0.02, 0.40 }
+local MOVER_BG_SIMULATED = { 0.06, 0.01, 0.01, 0.42 }
 local MOVER_BG_PLACEHOLDER = { 0.08, 0.62, 1.00, 0.18 }
 local PLACEMENT_READY = "ready"
 local PLACEMENT_PENDING = "pending"
@@ -92,6 +94,17 @@ local ANCHOR_POINTS = {
     "TOPLEFT", "TOP", "TOPRIGHT",
     "LEFT", "CENTER", "RIGHT",
     "BOTTOMLEFT", "BOTTOM", "BOTTOMRIGHT",
+}
+local ANCHOR_POINT_LABEL_KEYS = {
+    TOPLEFT = "layout.anchor_point.top_left",
+    TOP = "layout.anchor_point.top",
+    TOPRIGHT = "layout.anchor_point.top_right",
+    LEFT = "layout.anchor_point.left",
+    CENTER = "layout.anchor_point.center",
+    RIGHT = "layout.anchor_point.right",
+    BOTTOMLEFT = "layout.anchor_point.bottom_left",
+    BOTTOM = "layout.anchor_point.bottom",
+    BOTTOMRIGHT = "layout.anchor_point.bottom_right",
 }
 
 Layout.frames = Layout.frames or {}
@@ -186,9 +199,18 @@ Layout.native.bridgeMode = Layout.native.bridgeMode or "separate"
 Layout.settingsWidgets = Layout.settingsWidgets or {}
 Layout.pendingOptions = Layout.pendingOptions or {}
 Layout.pendingAnchors = Layout.pendingAnchors or {}
+Layout.combatDeferredPlacements = Layout.combatDeferredPlacements or {}
+Layout.groupAnchorEntries = Layout.groupAnchorEntries or {}
+Layout.groupAnchorKindCounts = Layout.groupAnchorKindCounts or { party = 0, raid = 0 }
+Layout.groupAnchorTargetState = Layout.groupAnchorTargetState or {}
 
 function P.L(key)
     return LC[key] or key
+end
+
+function P.AnchorPointDisplayText(point)
+    local key = ANCHOR_POINT_LABEL_KEYS[point]
+    return key and P.L(key) or tostring(point or "")
 end
 
 function P.Round(value)

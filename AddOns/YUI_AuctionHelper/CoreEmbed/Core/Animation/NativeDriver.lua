@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local _, YUI = ...
 local Animation = YUI.Animation
@@ -32,6 +34,53 @@ end
 
 local function EffectType(effect)
     return string.lower(tostring(effect and (effect.type or effect.kind) or ""))
+end
+
+local function ResolveScaleValues(effect)
+    local fromScale = effect.from
+    if fromScale == nil then
+        fromScale = effect.fromScale
+    end
+    if fromScale == nil then
+        fromScale = 1
+    end
+
+    local toScale = effect.to
+    if toScale == nil then
+        toScale = effect.scale
+    end
+    if toScale == nil then
+        toScale = effect.toScale
+    end
+    if toScale == nil then
+        toScale = 1
+    end
+
+    local fromScaleX = effect.fromScaleX
+    if fromScaleX == nil then
+        fromScaleX = fromScale
+    end
+    local fromScaleY = effect.fromScaleY
+    if fromScaleY == nil then
+        fromScaleY = fromScale
+    end
+
+    local toScaleX = effect.toScaleX
+    if toScaleX == nil then
+        toScaleX = effect.scaleX
+    end
+    if toScaleX == nil then
+        toScaleX = toScale
+    end
+    local toScaleY = effect.toScaleY
+    if toScaleY == nil then
+        toScaleY = effect.scaleY
+    end
+    if toScaleY == nil then
+        toScaleY = toScale
+    end
+
+    return fromScaleX, fromScaleY, toScaleX, toScaleY
 end
 
 function Driver:CanPlay(target, spec)
@@ -65,9 +114,9 @@ local function ApplyFinalValue(handle)
         if effectType == "alpha" and effect.to ~= nil then
             SafeCall(target.SetAlpha, target, effect.to)
         elseif effectType == "scale" then
-            local toScale = effect.to or effect.scale or effect.toScale
-            if toScale then
-                SafeCall(target.SetScale, target, toScale)
+            local _, _, toScaleX, toScaleY = ResolveScaleValues(effect)
+            if toScaleX == toScaleY then
+                SafeCall(target.SetScale, target, toScaleX)
             end
         elseif (effectType == "rotation" or effectType == "rotate") and target.SetRotation then
             local value = effect.radians or effect.toRadians
@@ -123,10 +172,14 @@ function Driver:Play(handle)
                 local y = (effect.toY or effect.y or 0) - (effect.fromY or 0)
                 SafeCall(anim.SetOffset, anim, x, y)
             elseif nativeType == "Scale" then
-                local fromScale = effect.from or effect.fromScale or 1
-                local toScale = effect.to or effect.scale or effect.toScale or 1
-                local scale = fromScale ~= 0 and (toScale / fromScale) or toScale
-                SafeCall(anim.SetScale, anim, scale, scale)
+                local fromScaleX, fromScaleY, toScaleX, toScaleY = ResolveScaleValues(effect)
+                local fromOk = SafeCall(anim.SetScaleFrom, anim, fromScaleX, fromScaleY)
+                local toOk = SafeCall(anim.SetScaleTo, anim, toScaleX, toScaleY)
+                if not (fromOk and toOk) then
+                    local scaleX = fromScaleX ~= 0 and (toScaleX / fromScaleX) or toScaleX
+                    local scaleY = fromScaleY ~= 0 and (toScaleY / fromScaleY) or toScaleY
+                    SafeCall(anim.SetScale, anim, scaleX, scaleY)
+                end
                 if effect.origin then
                     SafeCall(anim.SetOrigin, anim, effect.origin, effect.originX or 0, effect.originY or 0)
                 end

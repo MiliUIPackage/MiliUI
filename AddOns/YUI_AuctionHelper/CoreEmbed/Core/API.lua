@@ -1,7 +1,9 @@
-local __yuiAddonName = ...
-local __yuiState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[__yuiAddonName]
-if __yuiState and not __yuiState.loadCore then
-    return
+do
+    local addonName = ...
+    local state = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[addonName]
+    if state and not state.loadCore then
+        return
+    end
 end
 local _, YUI = ...
 YUI.API = YUI.API or {}
@@ -65,7 +67,7 @@ end
 
 function API.SecureCallFunction(func, ...)
     if not func then return nil end
-    if securecallfunction then
+    if type(securecallfunction) == "function" then
         return securecallfunction(func, ...)
     end
     return func(...)
@@ -73,7 +75,7 @@ end
 
 function API.SecureCallMethod(object, method, ...)
     if not object or not method then return nil end
-    if securecallmethod then
+    if type(securecallmethod) == "function" then
         return securecallmethod(object, method, ...)
     end
 
@@ -559,12 +561,36 @@ function API.TogglePVPUI()
     end
 end
 
-function API.ToggleGameMenu()
-    if GameMenuFrame:IsShown() then
-        HideUIPanel(GameMenuFrame)
-    else
-        ShowUIPanel(GameMenuFrame)
+function API.HideGameMenu()
+    if not GameMenuFrame or not GameMenuFrame:IsShown() then return nil end
+
+    if type(HideUIPanel) == "function" then
+        local ok, result = pcall(HideUIPanel, GameMenuFrame)
+        if ok or not GameMenuFrame:IsShown() then
+            return result
+        end
     end
+
+    local hide = GameMenuFrame.Hide
+    if type(hide) == "function" then
+        return hide(GameMenuFrame)
+    end
+
+    return nil
+end
+
+function API.ToggleGameMenu()
+    if not GameMenuFrame then return nil end
+
+    if GameMenuFrame:IsShown() then
+        return API.HideGameMenu()
+    end
+
+    if ShowUIPanel then
+        return ShowUIPanel(GameMenuFrame)
+    end
+
+    return GameMenuFrame:Show()
 end
 
 -------------------------------------------------------------------------------
