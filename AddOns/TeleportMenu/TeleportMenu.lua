@@ -226,9 +226,9 @@ local tpTable = {
 	{ id = 227, type = "flyout", iconId = 4640496, name = L["Dragonflight"], subtype = "path" }, -- Hero's Path: Dragonflight
 	{ id = 231, type = "flyout", iconId = 5342925, name = L["Dragonflight Raids"], subtype = "path" }, -- Hero's Path: Dragonflight Raids
 	{ id = 232, type = "flyout", iconId = 5872031, name = L["The War Within"], subtype = "path" }, -- Hero's Path: The War Within
-	{ id = 242, type = "flyout", iconId = 6997112, name = L["The War Within Raids"], subtype = "path", currentExpansion=true }, -- Hero's Path: The War Within Raids
-	{ id = 246, type = "flyout", iconId = 7266215, name = L["Midnight"], subtype = "path" }, -- Hero's Path: Midnight
-	--{ id = 246, type = "flyout", iconId = 7266215, name = L["Midnight Raids"], subtype = "path" }, -- Hero's Path: Midnight Raids
+	{ id = 242, type = "flyout", iconId = 6997112, name = L["The War Within Raids"], subtype = "path" }, -- Hero's Path: The War Within Raids
+	{ id = 246, type = "flyout", iconId = 7266215, name = L["Midnight"], subtype = "path", currentExpansion = true }, -- Hero's Path: Midnight
+	--{ id = 246, type = "flyout", iconId = 7266215, name = L["Midnight Raids"], subtype = "path", currentExpansion = true }, -- Hero's Path: Midnight Raids
 }
 
 local GetItemCount = C_Item.GetItemCount
@@ -677,17 +677,6 @@ function tpm:UpdateAvailableSeasonalTeleports()
 			[586] = 1286807, -- Den of Nalorakk
 			[587] = 1286809, -- Murder Row
 			[588] = 1286812, -- Altar of Fangs
-		},
-		-- TWW S3
-		[3] = {
-			[499] = 445444, -- Priory of the Sacred Flame
-			[542] = 1237215, -- Eco-Dome Al'dani
-			[378] = 354465, -- Halls of Atonement
-			[525] = 1216786, -- Operation: Floodgate
-			[503] = 445417, -- Ara-Kara, City of Echoes
-			[392] = 367416, -- Tazavesh: So'leah's Gambit
-			-- [391] = 367416, -- Tazavesh: Streets of Wonder
-			[505] = 445414, -- The Dawnbreaker
 		},
 	}
 
@@ -1176,7 +1165,7 @@ function events:ADDON_LOADED(...)
 
 	if addOnName == "TeleportMenu" then
 		db = tpm:GetOptions()
-		tpm.settings.current_season = 1
+		tpm.settings.current_season = 2
 
 		db.debug = false
 		f:UnregisterEvent("ADDON_LOADED")
