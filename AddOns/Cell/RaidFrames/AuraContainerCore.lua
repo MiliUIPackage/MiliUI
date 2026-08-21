@@ -129,6 +129,7 @@ end
 --     print a unit, and in zh locales all three print 「秒」.
 -- NumericRuleFormatter is the only one with rounding AND a bare "%d".
 --
+-- Sub-second remaining renders as tenths ("0.4"); see the breakpoint comment below.
 -- Thresholds are Blizzard's own promote points 91 / 5401 (NOT 60 / 3600), so
 -- 61-90s still prints whole seconds exactly like the default frames do. The
 -- quotient rounds UP because Blizzard's formatter sets SetCanRoundUpLastUnit.
@@ -158,12 +159,29 @@ function ACC.GetDurationFormatter(showDuration)
 
     local hideAbove = type(showDuration) == "number" and showDuration or nil
 
-    local ok, fmt = pcall(function()
+    -- tenths = add the sub-second band; the seconds band then starts at 1 instead of 0.
+    -- Built as one function so the whole thing can be re-attempted WITHOUT the sub-second
+    -- band: a formatter that already took some breakpoints cannot be un-taken, so a retry
+    -- needs a fresh one.
+    local function Build(tenths)
         local down = Enum.NumericRuleFormatRounding.Down
         local up = Enum.NumericRuleFormatRounding.Up
         local f = C_StringUtil.CreateNumericRuleFormatter()
+        local base = 0
+        if tenths then
+            -- Under a second: tenths. Without this band the seconds band's min = 1 pins the
+            -- text at "1" for the whole last second -- the remaining time is secret, so
+            -- nothing downstream can tell 0.9 from 0.1. Shape taken from two shipping addons
+            -- that do the same (Platynator's cast text, Ayije_CDM's cooldown text): step 0.1
+            -- with a "%.1f" format at threshold 0. Down-rounding matches the seconds band, so
+            -- the last tenth reads "0.0" instead of briefly claiming "1.0".
+            f:AddBreakpoint({ threshold = 0, step = 0.1, rounding = down, format = "%.1f" })
+            base = 1
+        end
         -- seconds band truncates: 45.6s remaining renders "45"
-        f:AddBreakpoint({ threshold = 0, step = 1, rounding = down, min = 1, format = "%d" })
+        if not hideAbove or hideAbove > base then
+            f:AddBreakpoint({ threshold = base, step = 1, rounding = down, min = 1, format = "%d" })
+        end
         if not hideAbove or hideAbove > 91 then
             f:AddBreakpoint({ threshold = 91, step = 1, rounding = down, min = 1, format = "%dm",
                               components = { { div = 60, rounding = up } } })
@@ -176,7 +194,12 @@ function ACC.GetDurationFormatter(showDuration)
             f:AddBreakpoint({ threshold = hideAbove, step = 1, rounding = down, format = "" })
         end
         return f
-    end)
+    end
+
+    local ok, fmt = pcall(Build, true)
+    -- a client that refuses the fractional step falls back to whole seconds rather than to
+    -- no formatter at all (which would hand the text back to Blizzard's own unit-suffixed one)
+    if not ok or not fmt then ok, fmt = pcall(Build, false) end
 
     if ok and fmt then formatterCache[key] = fmt end
     return formatterCache[key]

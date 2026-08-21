@@ -141,28 +141,40 @@ local function Detect()
 end
 
 ------------------------------------------------------------
--- 倒數格式：NumericRule 三段式（出貨插件驗證過的寫法）
+-- 倒數格式：NumericRule 四段式（出貨插件驗證過的寫法）
+--   <1 秒    小數（"0.4"）—— 少了這段，秒段的 min=1 會讓最後一整秒都卡在 "1"
 --   <91 秒   純數字（"27"）
 --   ≥91 秒   "Nm"（分數向上取整，2m32s → "3m"，跟暴雪自己的框架一致）
 --   ≥5401 秒 "Nh"
 -- 不用 SecondsFormatter：它的三種縮寫在中文全都輸出「秒」，設計上沒有無單位出口
+-- 小數段的 step 0.1 ＋ "%.1f" 抄自 Platynator 的施法時間與 Ayije_CDM 的冷卻文字；
+-- 沿用 Down 取整（跟秒段一致），所以最後一格是 "0.0"，不會先跳一下 "1.0"
 ------------------------------------------------------------
 local DurationFormatter
 do
-    if C_StringUtil and C_StringUtil.CreateNumericRuleFormatter then
-        local ok, formatter = pcall(C_StringUtil.CreateNumericRuleFormatter)
-        if ok and formatter then
-            local R = Enum and Enum.NumericRuleFormatRounding
-            local down, up = R and R.Down or nil, R and R.Up or nil
-            local added = pcall(function()
-                formatter:AddBreakpoint({ threshold = 0, step = 1, rounding = down, min = 1, format = "%d" })
-                formatter:AddBreakpoint({ threshold = 91, step = 1, rounding = down, min = 1, format = "%dm",
-                                          components = { { div = 60, rounding = up } } })
-                formatter:AddBreakpoint({ threshold = 5401, step = 1, rounding = down, min = 1, format = "%dh",
-                                          components = { { div = 3600, rounding = up } } })
-            end)
-            if added then DurationFormatter = formatter end
+    local R = Enum and Enum.NumericRuleFormatRounding
+    local down, up = R and R.Down or nil, R and R.Up or nil
+
+    -- 整包重建：斷點加進去就收不回來，要退掉小數段只能換一顆新的 formatter
+    local function Build(tenths)
+        local f = C_StringUtil.CreateNumericRuleFormatter()
+        if tenths then
+            f:AddBreakpoint({ threshold = 0, step = 0.1, rounding = down, format = "%.1f" })
         end
+        f:AddBreakpoint({ threshold = tenths and 1 or 0, step = 1, rounding = down, min = 1, format = "%d" })
+        f:AddBreakpoint({ threshold = 91, step = 1, rounding = down, min = 1, format = "%dm",
+                          components = { { div = 60, rounding = up } } })
+        f:AddBreakpoint({ threshold = 5401, step = 1, rounding = down, min = 1, format = "%dh",
+                          components = { { div = 3600, rounding = up } } })
+        return f
+    end
+
+    if C_StringUtil and C_StringUtil.CreateNumericRuleFormatter then
+        local ok, formatter = pcall(Build, true)
+        -- 客戶端要是不吃 0.1 的 step，退回整秒；整顆 formatter 掉了會換成暴雪自己那套
+        -- 帶單位的格式，那個更難看
+        if not ok or not formatter then ok, formatter = pcall(Build, false) end
+        if ok and formatter then DurationFormatter = formatter end
     end
 end
 

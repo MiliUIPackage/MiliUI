@@ -107,6 +107,13 @@ fmt:AddBreakpoint({ threshold = 0,    step = 1, rounding = down, min = 1, format
 fmt:AddBreakpoint({ threshold = 91,   step = 1, rounding = down, min = 1, format = "%dm", components = { { div = 60,   rounding = up } } })
 fmt:AddBreakpoint({ threshold = 5401, step = 1, rounding = down, min = 1, format = "%dh", components = { { div = 3600, rounding = up } } })
 ```
+**⚠ `min = 1` 會讓最後一整秒卡在 "1"**（剩 0.4 秒 → Down 成 0 → 被 min 拉回 1），而剩餘時間是秘密值，外面沒有任何辦法分辨 0.9 和 0.1。要顯示小數就在最前面補一段、秒段改從 1 起跳（2026-08-21 上線於 Cell `AuraContainerCore.lua` 與 MiliUI_UnitFrames `Elements/Auras.lua`）：
+```lua
+fmt:AddBreakpoint({ threshold = 0, step = 0.1, rounding = down, format = "%.1f" })      -- 0.9 → 0.0
+fmt:AddBreakpoint({ threshold = 1, step = 1,   rounding = down, min = 1, format = "%d" })
+```
+`step` 吃小數、`format` 吃 `%.1f`（Platynator 的施法時間、Ayije_CDM 的冷卻文字都這樣跑）。沿用 Down 取整的話最後一格會是 "0.0"；改 Up 不會有 0.0，但 0.95 秒時會先閃一下 "1.0"。**斷點加進去收不回來**，所以「失敗就退回整秒」必須重開一顆 formatter，不能沿用半成品那顆。
+
 門檻是暴雪 promote 點 **91/5401 不是 60/3600**（61–90s 仍印整秒，跟遊戲自己的框架一致）；分/時商數**向上取整**（2m32s→"3m"，暴雪 `SetCanRoundUpLastUnit(true)` 的行為）。TIMER 形（"5:32"）用 `components = { { div = 60 }, { mod = 60 } }`。
 
 別走 `textFormat` 那條：`components` 是**結構陣列**（元素要 `property` + `formatter` 兩個必填欄位，見 `DurationTextBindingSharedDocumentation.lua` 的 `DurationTextBindingFormatComponent`），丟裸列舉值會報 `bad argument #4 ... Current Field: [textFormat,components]`；就算照結構填，元素仍會在驗證時被吃掉而變成 0 個，報 `expected 0 format components for 1 placeholders`。`textFormatter` 一行就解決。
