@@ -602,7 +602,7 @@ function DB.BuildDefaults()
                     --
                     -- onlyMine 是這個元件的重點：首領身上別人的減益幾十個，
                     -- 只有自己掛的才是「我該不該補」的資訊。
-                    debuffs = { enabled = true, x = 220, y = 20, w = 18, h = 18,
+                    debuffs = { enabled = true, x = 220, y = 10, w = 18, h = 18,
                                 maxCount = 12, perRow = 6, growth = "RLBT", spacing = 1,
                                 onlyMine = true, filterMode = "all",
                                 showStack = true, stackSize = 10,
@@ -724,6 +724,7 @@ end
 ------------------------------------------------------------
 -- [版本號] = 把一份設定檔補到那個版本要做的事。加條目時 ns.DB_VERSION 一起 bump。
 local PROFILE_MIGRATIONS = {
+
     -- v10：文字預設從 5 提到 10（v9）之後，施法條的 6／7 就落到文字**底下**了 ——
     -- 唱法時遮不住底下的名字與血量數字，兩層字疊在一起。施法條本來就是覆蓋層，
     -- 層級應該高於文字。一律提到 12（文字用 10、少數 11）。
