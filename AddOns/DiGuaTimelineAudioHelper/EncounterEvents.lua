@@ -92,7 +92,7 @@ addonTable.EventSoundData = {
     -- 拉维
     [795] = { {"ZhunBeiPoDun.ogg", 2}, {"HuDunKuaiDa.ogg", 1} }, -- 嘶嘶食腐 (1309522)
     [796] = { {"ZhunBeiAOE.ogg", 1} }, -- 恶臭咆哮 (1296219)
-    [797] = { {"ZhunBeiDianMing.ogg", 1, {DAMAGER = true, HEALER = true}} }, -- 三重喷吐 (1296220) -- , {"WuMaFenSan.ogg", 0}
+    [797] = { {"ZhunBeiDianMing.ogg", 1, {DAMAGER = true, HEALER = true}}, {"WuMiaoHouDianMing.ogg", 2, {DAMAGER = true, HEALER = true}} }, -- 三重喷吐 (1296220) -- , {"WuMaFenSan.ogg", 0}
     [798] = { {"DuoKaiTouQian.ogg", 1} }, -- 反刍 (1296050)
     [899] = { {"ZhunBeiAOE.ogg", 1} }, -- 贪婪践踏 (1307894)
     -- [902] = { {".ogg", 1} }, -- 进食狂热 (1307765)

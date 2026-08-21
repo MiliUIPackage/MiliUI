@@ -1,8 +1,6 @@
 local addonName, addonTable = ...
 
 -- 开关控制：true 显示 ID，false 隐藏 ID
--- fix from MiliUI: 预设关闭。ID 只是拿来找 gossipOptionID 的除错显示，
--- 自动对话逻辑直接读 C_GossipInfo.GetOptions()，不靠这段文字。要找新 ID 时 /togid 打开。
 addonTable.ShowGossipIDs = false
 
 addonTable.EnabledGossipIDs = {
