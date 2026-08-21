@@ -48,6 +48,8 @@ local UnitIsCharmed = UnitIsCharmed
 local UnitIsPlayer = UnitIsPlayer
 local UnitInPartyIsAI = UnitInPartyIsAI
 local UnitGroupRolesAssigned = UnitGroupRolesAssigned
+local GetSpecialization = GetSpecialization or (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization)
+local GetSpecializationInfo = GetSpecializationInfo or (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo)
 local UnitThreatSituation = UnitThreatSituation
 local GetThreatStatusColor = GetThreatStatusColor
 local UnitExists = UnitExists
@@ -2206,6 +2208,17 @@ local function CheckVehicleRoot(self, petUnit)
     self.indicators.roleIcon:SetRole(isRoot and "VEHICLE-ROOT" or "VEHICLE")
 end
 
+-- The player's OWN role when Blizzard has not assigned one. Deliberately NOT via
+-- LibGroupInfo: LGI rebuilds its cache from the same PLAYER_SPECIALIZATION_CHANGED this
+-- refreshes on, and whichever handler the client happens to call first would decide whether
+-- we read the new spec or the old one. The spec itself is one call away and never stale.
+local function SpecRole()
+    if not (GetSpecialization and GetSpecializationInfo) then return end
+    local index = GetSpecialization()
+    if not index then return end
+    return select(5, GetSpecializationInfo(index))
+end
+
 UnitButton_UpdateRole = function(self)
     local unit = self.states.unit
     if not unit then return end
@@ -2214,10 +2227,27 @@ UnitButton_UpdateRole = function(self)
     local role = F.Desecret(UnitGroupRolesAssigned(unit))
     self.states.role = role
 
+    -- Blizzard only ASSIGNS a role in real group content. Solo, world groups and delves all
+    -- answer "NONE" -- a delve hands the AI companion whatever role you picked for it and
+    -- gives the player none at all -- so the icon hid itself exactly where the frame is one
+    -- of two. GetRole() falls back to LibGroupInfo's spec-derived role, the same fallback
+    -- the power filters have used all along. states.role keeps the ASSIGNED value so nothing
+    -- else starts reading a derived role as an assigned one.
+    -- Respecs are covered by PLAYER_SPECIALIZATION_CHANGED (registered below); solo there is
+    -- no GROUP_ROSTER_UPDATE to do it for us.
+    local iconRole = role
+    if not iconRole or iconRole == "NONE" then
+        if unit == "player" or F.ToBool(UnitIsUnit(unit, "player")) then
+            iconRole = SpecRole() or role
+        else
+            iconRole = GetRole(self) or role
+        end
+    end
+
     local roleIcon = self.indicators.roleIcon
     if enabledIndicators["roleIcon"] then
 
-        roleIcon:SetRole(role)
+        roleIcon:SetRole(iconRole)
 
         --! check vehicle root
         -- Midnight 12.0.0+: guid may be secret for NPC/boss units
@@ -3161,6 +3191,10 @@ local function UnitButton_RegisterEvents(self)
 
     -- self:RegisterEvent("PARTY_LEADER_CHANGED") -- GROUP_ROSTER_UPDATE
     -- self:RegisterEvent("PLAYER_ROLES_ASSIGNED") -- GROUP_ROSTER_UPDATE
+    -- the role icon falls back to the spec's role when nothing is assigned (delves, solo,
+    -- world groups -- see UnitButton_UpdateRole), and a solo respec fires nothing else that
+    -- would re-read it
+    self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
     self:RegisterEvent("PLAYER_REGEN_ENABLED")
     self:RegisterEvent("PLAYER_REGEN_DISABLED")
 
@@ -3209,6 +3243,13 @@ local function UnitButton_UnregisterEvents(self)
 end
 
 local function UnitButton_OnEvent(self, event, unit, arg)
+    -- Handled ahead of the unit filter on purpose: the event's unit is "player", which does
+    -- not match a button whose token is "raid5", and every button re-reads only its own role.
+    if event == "PLAYER_SPECIALIZATION_CHANGED" then
+        UnitButton_UpdateRole(self)
+        return
+    end
+
     if unit and (self.states.displayedUnit == unit or self.states.unit == unit) then
         if  event == "UNIT_ENTERED_VEHICLE" or event == "UNIT_EXITED_VEHICLE" or event == "UNIT_CONNECTION" then
             self._updateRequired = 1
