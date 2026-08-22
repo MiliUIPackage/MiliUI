@@ -38,3 +38,7 @@ end
 function Env.PopupParent()
     return ns.Options and ns.Options.panel
 end
+
+-- 標籤欄寬（選用）：本插件的 zhTW 標籤偏長（「隱藏『右鍵點擊顯示選單』提示行」），
+-- 預設 128 會換行／被裁，放寬到 200
+Env.LABEL_W = 200

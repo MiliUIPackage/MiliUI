@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 7d08d4b9-4715-4b8f-87ca-737e01131ca6
-  modified: 2026-08-21T16:37:39.192Z
+  modified: 2026-08-22T14:52:28.183Z
 ---
 
 **任何 MiliUI 自製插件要做設定介面，複製 `AddOns/MiliUI_UnitFrames/Libs/MiliUIWidgets/`
@@ -14,7 +14,10 @@ metadata:
 
 **內容**：`Widgets.lua`（元件庫）、`Controls.lua`（宣告式表單引擎）、`PixelPerfect.lua`、
 `Env.lua`。前三支逐字複製，**只改 `Env.lua`** —— 它是唯一的宿主接點，提供
-`NAMESPACE / L / P / Font / Accent / PopupParent` 六項。
+`NAMESPACE / L / P / Font / Accent / PopupParent` 六項，另有選用的 `LABEL_W`
+（表單標籤欄寬，預設 128；2026-08-22 加，Tooltip 的 zhTW 長標籤用 200）。
+同日 MakeLabel 補了左緣錨點＋WordWrap——原本只錨右緣，超過欄寬的標籤會往左
+溢出被捲軸邊緣裁掉開頭（症狀：字的前面被吃掉），夾住後改成換行。
 宿主專屬的選單清單與 spec 工廠放各自的 `Options/Specs_*.lua`，不要寫回 `Controls.lua`。
 
 **Why 選 vendor 而不是 LibStub 或 MiliUI_Core 插件**：

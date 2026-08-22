@@ -20,8 +20,10 @@ local Preview = ns.Preview
 
 local tip            -- 預覽 tooltip
 local chipHolder
+local chipsById = {}
 local mode = "player"
 local highlightChip
+local enabled = false   -- 只有樣式／玩家／NPC／物品與ID 分頁有預覽
 
 local PREVIEW_ITEM_ID = 19019   -- 雷霆之怒（橙裝，看得出品質邊框）
 
@@ -90,7 +92,7 @@ local function Position()
 end
 
 function Preview.Refresh()
-    if not tip or not ns.db then return end
+    if not tip or not ns.db or not enabled then return end
     -- SetOwner 會清空內容，所以每次重繪都重新 SetOwner 再填
     local panel = ns.Options and ns.Options.panel
     if not panel then return end
@@ -143,17 +145,54 @@ local function Ensure()
     highlightChip = W.CreateButtonGroup(chips, function(id, chip)
         SetMode(id, chip)
     end)
+    for _, chip in ipairs(chips) do
+        chipsById[chip.id] = chip
+    end
     highlightChip(chips[1])
     chipHolder:Hide()
 end
 
 function Preview.Open()
     Ensure()
-    chipHolder:Show()
-    Preview.Refresh()
+    -- 可見性交給 SetForTab：Panel.Open 顯示視窗後緊接著 ShowTab 就會進來
 end
 
+------------------------------------------------------------
+-- 預覽跟著頂層分頁走：玩家／NPC／物品與ID 各鎖定對應模式（不顯示切換鈕），
+-- 樣式分頁保留三顆切換鈕自由看，其他分頁整個收起來。
+------------------------------------------------------------
+local FIXED_MODE = { player = "player", npc = "npc", extra = "item" }
+
+function Preview.SetForTab(tabId)
+    if tabId == "general" or FIXED_MODE[tabId] then
+        Ensure()
+        enabled = true
+        if FIXED_MODE[tabId] then
+            mode = FIXED_MODE[tabId]
+            chipHolder:Hide()
+        else
+            chipHolder:Show()
+        end
+        if highlightChip and chipsById[mode] then
+            highlightChip(chipsById[mode])
+        end
+        Preview.Refresh()
+    else
+        enabled = false
+        if tip then
+            ns.Bar.Deactivate(tip)
+            tip:Hide()
+            chipHolder:Hide()
+        end
+    end
+end
+
+ns.RegisterCallback("ShowOptionsTab", "previewTab", function(id)
+    Preview.SetForTab(id)
+end)
+
 function Preview.Close()
+    enabled = false
     if not tip then return end
     ns.Bar.Deactivate(tip)
     tip:Hide()

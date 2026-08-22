@@ -32,6 +32,7 @@ MiliUI 各插件共用的設定介面元件庫。自寫、零外部依賴、零�
 | `Font(token)` | function | → 字型路徑 |
 | `Accent()` | function | → r, g, b |
 | `PopupParent()` | function | → 確認彈窗掛哪個框 |
+| `LABEL_W` | number（選用） | 表單標籤欄寬，預設 128。標籤普遍偏長的插件（例如滑鼠提示的 zhTW 標籤）調大這個，超過欄寬的標籤會換行而不是溢出被裁 |
 
 ### NAMESPACE 為什麼一定要不同
 

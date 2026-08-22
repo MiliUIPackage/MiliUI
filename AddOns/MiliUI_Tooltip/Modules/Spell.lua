@@ -105,6 +105,20 @@ watcher:SetScript("OnEvent", function(_, _, _, down)
     tip:Show()
 end)
 
+local function ShowMountSource(tip, spellId)
+    if not spellId or not ns.db.spell.showMountSource then return end
+    LoadMounts()
+    local mount = mounts[spellId]
+    if mount and mount.source and not S.IsForbiddenObject(tip) then
+        tip:AddLine(" ")
+        if mount.isCollected then
+            tip:AddDoubleLine(mount.source, L["collected"], 1, 1, 1, 0.1, 1, 0.1)
+        else
+            tip:AddLine(mount.source, 1, 1, 1)
+        end
+    end
+end
+
 function Spell.ApplyAura(tip, state, args)
     state.isUnitTip = nil
     local spellId
@@ -117,17 +131,59 @@ function Spell.ApplyAura(tip, state, args)
     end
     state.lastSpellId = spellId
     ShowSpellIds(tip, spellId)
+    ShowMountSource(tip, spellId)
+end
 
-    if spellId and ns.db.spell.showMountSource then
-        LoadMounts()
-        local mount = mounts[spellId]
-        if mount and mount.source and not S.IsForbiddenObject(tip) then
-            tip:AddLine(" ")
-            if mount.isCollected then
-                tip:AddDoubleLine(mount.source, L["collected"], 1, 1, 1, 0.1, 1, 0.1)
-            else
-                tip:AddLine(mount.source, 1, 1, 1)
-            end
+------------------------------------------------------------
+-- buff / debuff 提示：光環是用 GameTooltip 的 SetUnitAura / SetUnitBuff /
+-- SetUnit*ByAuraInstanceID 這族 setter 設進來的，post-call 的 tooltipData
+-- 常拿不到 spellId → 照 12.1 規則自己解析（光環變秘密時 index / instance
+-- 讀取會硬炸，先問 AurasAreSecret，戰鬥中沒有 ID 是正常的）。
+-- setter 後掛勾跑在 ProcessInfo 之外，加完行要 Show 重排。
+------------------------------------------------------------
+local function ApplyResolvedAura(tip, spellId)
+    if not ns.db then return end
+    local state = Skin.Get(tip)
+    if not state or S.IsForbiddenObject(tip) then return end
+    spellId = S.PlainNumber(spellId)
+    if not spellId then return end
+    state.lastSpellId = spellId
+    ShowSpellIds(tip, spellId)
+    ShowMountSource(tip, spellId)
+    if tip:IsShown() then tip:Show() end
+end
+
+local function ResolveAuraByIndex(unit, index, filter)
+    if ns.UnitInfo.AurasAreSecret() then return end
+    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
+        if ok and type(aura) == "table" then return S.PlainNumber(aura.spellId) end
+    end
+end
+
+local function ResolveAuraByInstance(unit, auraInstanceID)
+    if ns.UnitInfo.AurasAreSecret() then return end
+    if C_UnitAuras and C_UnitAuras.GetAuraDataByAuraInstanceID then
+        local ok, aura = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, auraInstanceID)
+        if ok and type(aura) == "table" then return S.PlainNumber(aura.spellId) end
+    end
+end
+
+do
+    local BY_INDEX = { "SetUnitAura", "SetUnitBuff", "SetUnitDebuff" }
+    local BY_INSTANCE = { "SetUnitAuraByAuraInstanceID", "SetUnitBuffByAuraInstanceID", "SetUnitDebuffByAuraInstanceID" }
+    for _, name in ipairs(BY_INDEX) do
+        if GameTooltip and type(GameTooltip[name]) == "function" then
+            hooksecurefunc(GameTooltip, name, function(tip, unit, index, filter)
+                ApplyResolvedAura(tip, ResolveAuraByIndex(unit, index, filter))
+            end)
+        end
+    end
+    for _, name in ipairs(BY_INSTANCE) do
+        if GameTooltip and type(GameTooltip[name]) == "function" then
+            hooksecurefunc(GameTooltip, name, function(tip, unit, auraInstanceID)
+                ApplyResolvedAura(tip, ResolveAuraByInstance(unit, auraInstanceID))
+            end)
         end
     end
 end

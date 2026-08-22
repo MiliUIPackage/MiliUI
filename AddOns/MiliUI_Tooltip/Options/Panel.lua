@@ -32,8 +32,8 @@ local TABS = {
     { id = "general", label = L["Style"] },
     { id = "player",  label = L["Player"] },
     { id = "npc",     label = "NPC" },
-    { id = "anchor",  label = L["Anchor"] },
     { id = "extra",   label = L["Item & IDs"] },
+    { id = "anchor",  label = L["Anchor"] },
     { id = "about",   label = L["About"] },
 }
 

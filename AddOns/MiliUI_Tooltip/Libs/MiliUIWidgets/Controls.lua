@@ -33,7 +33,9 @@ ns.Controls = {}
 local Controls = ns.Controls
 
 -- 版面常數
-local LABEL_W    = 128     -- 標籤欄寬（靠右對齊）
+-- 標籤欄寬：宿主可用 Env.LABEL_W 覆蓋（選用）。zhTW 的長標籤在 128 會塞不下，
+-- 例如滑鼠提示插件的「隱藏『右鍵點擊顯示選單』提示行」，那邊用 200。
+local LABEL_W    = ns.WidgetsEnv.LABEL_W or 128     -- 標籤欄寬（靠右對齊）
 local GAP        = 12      -- 標籤與控件間距
 local ROW_H      = 26      -- toggle / color / number
 local ROW_H_TALL = 30      -- slider / dropdown / input / numbers
@@ -97,9 +99,13 @@ local function MakeLabel(parent, text, x, y, h)
     local fs = parent:CreateFontString(nil, "OVERLAY")
     fs:SetFontObject(W.fontNormal)
     fs:SetPoint("TOPRIGHT", parent, "TOPLEFT", x + LABEL_W, y)
+    -- 左緣也要夾住：只錨右緣的話，比 LABEL_W 長的標籤會往左溢出、
+    -- 被捲軸邊緣裁掉開頭（字的前面被吃掉）。夾住之後太長改成換行。
+    fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
     fs:SetHeight(h)
     fs:SetJustifyH("RIGHT")
     fs:SetJustifyV("MIDDLE")
+    fs:SetWordWrap(true)
     fs:SetText(text or "")
     return fs
 end
