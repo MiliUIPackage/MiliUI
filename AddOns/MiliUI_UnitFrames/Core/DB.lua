@@ -4,7 +4,11 @@
 --
 -- 座標語意：
 --   units.<key>.frame.x/y = 框架「中心」相對 UIParent 中心的偏移（解析度無關）
---   元件 x/y             = 相對單位框 TOPLEFT 的偏移
+--   units.<key>.frame.scale = 整框縮放百分比；w/h 仍寫「未縮放」的尺寸，
+--                           畫面上的實際大小是 w×scale%（中心不動）
+--   global.scale          = 全域縮放百分比，**乘**在每個框自己的 scale 上
+--                           （見 ns.FrameScale；全域拉動不會改寫任何一個框的值）
+--   元件 x/y             = 相對單位框 TOPLEFT 的偏移（跟著整框縮放）
 --
 -- 合併規則（堵死 boolean 預設值陷阱）：
 --   * defaults 每個 boolean 都明寫 true/false，一律正向 enabled（廢除 hide）
@@ -35,6 +39,7 @@ local ICON_LEVEL = 21
 -- 抽成一支的理由：這幾個鍵七個單位都要有，散在七處遲早漂掉。呼叫點已經寫了的值
 -- 不覆蓋（例如 target 的 fadeOutOfRange 是 true），這裡只補「維持現狀」的預設。
 --
+--   scale             整框縮放，百分比（100 = 原始大小）
 --   visibility        主模式，見 Core/Visibility.lua 的 MODES
 --   vis*              附加條件，任一成立就藏
 --   fadeOutOfRange    超出距離淡出（輪詢）
@@ -42,6 +47,7 @@ local ICON_LEVEL = 21
 --   highlight         滑鼠移過時畫一圈高亮邊框
 ------------------------------------------------------------
 local function frameDef(o)
+    if o.scale == nil then o.scale = 100 end
     if o.visibility == nil then o.visibility = "always" end
     if o.visOnlyInstances == nil then o.visOnlyInstances = false end
     if o.visHideMounted == nil then o.visHideMounted = false end
@@ -119,6 +125,9 @@ function DB.BuildDefaults()
         schemaVersion = ns.DB_VERSION,
 
         global = {
+            -- 整套框架的縮放（百分比）。跟每個框自己的 frame.scale **相乘**，
+            -- 不改寫它們的值 —— 全域＝整套放大多少，個別＝這個框相對其他框的修正。
+            scale       = 100,
             barTexture  = "tuktex",
             font        = "DEFAULT",
             borderSize  = 1,
@@ -677,7 +686,7 @@ function DB.BuildDefaults()
                 -- 座標語意與資源條同一組：TOPLEFT 對玩家框 BOTTOMLEFT（往下是負的），
                 -- 玩家框搬家就自己跟著走。
                 -- 版面：框底 →6→ 魔力條(y=-6, 6 高) →2→ 資源條(y=-14, 6 高) →5→ 召喚物(y=-25)
-                frame = { x = 8, y = -25, iconSize = 28, spacing = 4, growth = "RIGHT" },
+                frame = { x = 8, y = -25, iconSize = 28, spacing = 4, growth = "RIGHT", scale = 100 },
                 colors = "accent",       -- "accent" | "element"
                 swapEarthFire = true,
                 showTimeText = true,     -- 圖示上的剩餘秒數

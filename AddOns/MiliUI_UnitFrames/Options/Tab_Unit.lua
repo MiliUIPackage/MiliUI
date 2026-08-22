@@ -60,6 +60,8 @@ local function FrameSpecs(unitKey)
                                  L["Click into a number box and use the mouse wheel to nudge it (Shift for ×10)."] },
         { type = "numbers", root = "frame", label = L["Position"], fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
         { type = "numbers", root = "frame", label = L["Size"], fields = { { key = "w", label = L["Width"] }, { key = "h", label = L["Height"] } } },
+        { type = "slider", root = "frame", key = "scale", label = L["Scale (%)"], min = 50, max = 200, step = 1 },
+        { type = "text", label = L["100 is the original size, multiplied by the global scale on the General tab. Everything on the frame scales with it, including the resource and mana bars anchored below; the frame grows around its center, so the position stays put."] },
     }
     if unitKey == "boss" then
         tinsert(list, { type = "header", label = L["Multiple boss layout"] })

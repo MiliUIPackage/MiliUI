@@ -396,18 +396,25 @@ end
 local function AnchorTo(x, y)
     if not frame then return end
     local anchor = ns.frames and ns.frames.player
+    -- ⚠ SetPoint 的位移量是**這個框自己的**單位，會被它的 scale 乘一次 ⇒ 縮放之後
+    -- 要除回去，位移量才維持「畫面上的距離」。編輯模式拖曳也走這支（游標差值也是
+    -- 畫面單位），不除的話框會跑在游標前面。單位框的 ApplyFramePosition 同一套算法。
+    local s = frame:GetScale()
+    if not s or s <= 0 then s = 1 end
     frame:ClearAllPoints()
     if anchor then
-        frame:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", ns.P.Scale(x or 0), ns.P.Scale(y or 0))
+        frame:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", ns.P.Scale(x or 0) / s, ns.P.Scale(y or 0) / s)
     else
         -- 玩家框還沒生出來時沒有基準點，先掛畫面中心，之後 ApplyPosition 會再校正
-        frame:SetPoint("CENTER", UIParent, "CENTER", ns.P.Scale(x or 0), ns.P.Scale(y or 0))
+        frame:SetPoint("CENTER", UIParent, "CENTER", ns.P.Scale(x or 0) / s, ns.P.Scale(y or 0) / s)
     end
 end
 ns.TotemsAnchorTo = AnchorTo     -- 編輯模式拖曳中即時定位用
 
 local function ApplyPosition()
     local db = GetDB()
+    -- 縮放要在錨定**之前**套：AnchorTo 讀 frame:GetScale() 把位移量除回去
+    if frame then frame:SetScale(ns.FrameScale(db.frame)) end
     AnchorTo(db.frame.x, db.frame.y)
     -- 層級跟著全域設定走（Init 只設一次，改了設定要在這裡重套，不然要 /reload 才生效）
     if frame then frame:SetFrameStrata(ns.db.global.strata or "LOW") end

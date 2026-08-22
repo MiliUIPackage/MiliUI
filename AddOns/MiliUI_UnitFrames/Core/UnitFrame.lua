@@ -165,12 +165,45 @@ end
 ------------------------------------------------------------
 -- 位置：CENTER 對 CENTER 偏移；boss1-5 依 growth/spacing 疊排
 ------------------------------------------------------------
+-- 在指定的 effective scale 上對齊實體像素。
+-- ⚠ 不能用 ns.P.Scale：它一律拿 UIParent 的縮放去湊整數像素，框架自己 SetScale 之後
+-- 框內一單位長度已經不是 UIParent 的一單位了 —— 用錯縮放去湊，湊出來的邊緣照樣糊。
+local function SnapAt(v, effScale)
+    if not v or v == 0 then return 0 end
+    return PixelUtil.GetNearestPixelSize(v, effScale)
+end
+
+------------------------------------------------------------
+-- 最終縮放倍率 = 全域縮放 × 這個框自己的縮放（兩個都是百分比）
+--
+-- ⚠ 兩層**相乘**，不是「全域一拉就把每個單位的值改寫成一樣」。改寫的話：
+--   * 使用者為某幾個框刻意調過的差異（例如首領框小一點）會在第一次拉全域時全部消失，
+--     而且拉回 100 也救不回來 —— 那是破壞性的，不是可逆的設定。
+--   * 兩個控制項會搶同一個欄位，「誰後寫誰贏」是最難跟使用者解釋的行為。
+-- 相乘之後兩者語意分層：全域是「整套 UI 放大多少」，個別是「這個框相對其他框的修正」，
+-- 各調各的、永遠不衝突。
+--
+-- 這也是圖騰／召喚物框的入口（它不是單位框，但一樣吃全域縮放）。
+------------------------------------------------------------
+function ns.FrameScale(fdb)
+    local g = tonumber(ns.db and ns.db.global and ns.db.global.scale) or 100
+    local u = tonumber(fdb and fdb.scale) or 100
+    local s = (g / 100) * (u / 100)
+    if s <= 0 then s = 1 end
+    return s
+end
+
 function ns.ApplyFramePosition(uf)
-    if InCombatLockdown() then return end   -- uf 是 protected frame
+    if InCombatLockdown() then return end   -- uf 是 protected frame（SetScale 也受保護）
     local fdb = uf.db.frame
     local x, y = fdb.x or 0, fdb.y or 0
+    -- 整框縮放：設定值是百分比（全域 × 個別，見 ns.FrameScale），w/h/元件座標全部維持
+    -- 「未縮放」的語意，放大縮小交給 SetScale ⇒ 調縮放不會動到任何一個既有數字。
+    local s = ns.FrameScale(fdb)
     if uf.bossIndex and uf.bossIndex > 1 then
-        local spacing = fdb.spacing or 47
+        -- 間距也跟著縮放：不跟的話放大後整疊首領框會互相重疊，
+        -- 縮小後又散開一大片 —— 使用者要的是「整組一起變大」而不是「每格變大」。
+        local spacing = (fdb.spacing or 47) * s
         if fdb.growth == "UP" then
             y = y + (uf.bossIndex - 1) * spacing
         else
@@ -185,13 +218,21 @@ function ns.ApplyFramePosition(uf)
     -- 改成從 UIParent 的 BOTTOMLEFT 起算：那是螢幕原點 (0,0)，保證在像素邊界上，
     -- 把左下角座標對齊之後，寬高又都是整數像素 ⇒ 四邊全部落在邊界。
     -- 設定值語意不變（仍是「框中心相對畫面中心的偏移」），只是換算後再錨定。
-    local w, h = ns.P.Scale(fdb.w or 100), ns.P.Scale(fdb.h or 30)
+    --
+    -- 縮放之後還要多注意兩件事：
+    --   * 尺寸是框自己的單位，要用**框自己的** effective scale 湊整數像素（見 SnapAt）
+    --   * SetPoint 的位移量也是框自己的單位，會被 scale 乘一次 ⇒ 算好畫面上的
+    --     位移之後要再除回去，否則 150% 的框會連位置一起被推到 1.5 倍遠。
+    uf:SetScale(s)
+    local eff = UIParent:GetEffectiveScale() * s
+    local w, h = SnapAt(fdb.w or 100, eff), SnapAt(fdb.h or 30, eff)
     uf:SetSize(w, h)
     uf:ClearAllPoints()
     local pw, ph = UIParent:GetWidth(), UIParent:GetHeight()
+    local vw, vh = w * s, h * s          -- 畫面上（UIParent 單位）的實際大小
     uf:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT",
-                ns.P.Scale(pw / 2 + x - w / 2),
-                ns.P.Scale(ph / 2 + y - h / 2))
+                ns.P.Scale(pw / 2 + x - vw / 2) / s,
+                ns.P.Scale(ph / 2 + y - vh / 2) / s)
     uf:SetFrameStrata(ns.db.global.strata or "LOW")
 end
 

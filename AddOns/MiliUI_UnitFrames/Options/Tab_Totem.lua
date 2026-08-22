@@ -19,6 +19,8 @@ local CONTROLS = {
     { type = "numbers", sub = "frame", label = L["Position"], fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
     { type = "slider", sub = "frame", key = "iconSize", label = L["Icon size"], min = 16, max = 64 },
     { type = "slider", sub = "frame", key = "spacing", label = L["Spacing"], min = 0, max = 16 },
+    { type = "slider", sub = "frame", key = "scale", label = L["Scale (%)"], min = 50, max = 200, step = 1 },
+    { type = "text",   label = L["100 is the original size, multiplied by the global scale on the General tab. Icon size and spacing keep their own numbers."] },
     { type = "header", label = L["Color and order"] },
     { type = "dropdown", key = "colors", label = L["Timer bar color"],
       items = { { text = L["Class color"], value = "accent" }, { text = L["Element colors (fire / earth / water / air)"], value = "element" } } },

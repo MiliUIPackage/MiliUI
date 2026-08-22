@@ -79,13 +79,18 @@ local function AttachSelection(frame, label, getFDB, onMoved, applyPoint)
 
     local baseX, baseY, startCX, startCY
 
+    -- nx/ny 是「畫面上（UIParent 單位）的位移」，而 SetPoint 的位移量是**被錨定的框
+    -- 自己的**單位，會被它的 scale 乘一次 ⇒ 縮放 150% 的框不除回去的話，游標移 100
+    -- 像素框會跑 150 像素（拖曳時框一路跑在游標前面，放手才彈回正確位置）。
     local function Place(nx, ny)
         if applyPoint then
             applyPoint(nx, ny)
             return
         end
+        local s = frame:GetScale()
+        if not s or s <= 0 then s = 1 end
         frame:ClearAllPoints()
-        frame:SetPoint("CENTER", UIParent, "CENTER", nx, ny)
+        frame:SetPoint("CENTER", UIParent, "CENTER", nx / s, ny / s)
     end
 
     sel:SetScript("OnDragStart", function(self)

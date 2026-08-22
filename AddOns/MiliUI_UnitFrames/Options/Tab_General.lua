@@ -22,6 +22,10 @@ local function ApplyAll()
 end
 
 local CONTROLS = {
+    { type = "header", label = L["Scale"] },
+    { type = "slider", key = "scale", label = L["Scale (%)"], min = 50, max = 200, step = 1 },
+    { type = "text",   label = L["Scales every frame at once, on top of each frame's own scale under Units > Frame: the final size is global × per-unit, and your per-unit values are left untouched. Positions stay put — each frame grows around its own center."] },
+
     -- items 傳的是函式不是表：材質／字型清單要等 LibSharedMedia 與其他插件註冊完才算得準，
     -- 檔案層先算好會列不全（見 Core/Media.lua 與 Controls.Build 的 dropdown 分支）
     { type = "header", label = L["Texture and font"] },
