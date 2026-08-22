@@ -286,7 +286,7 @@ init:SetScript("OnEvent", function(self, event, name)
             TrackTip(_G[tipName])
         end
         if C_AddOns.IsAddOnLoaded("TinyTooltip-Remake") then
-            print("|cff4DD2FF[米利滑鼠提示]|r |cffff5555偵測到 TinyTooltip-Remake 同時啟用——兩邊會重複改寫工具提示，請停用其中一個。|r")
+            print("|cff4DD2FF[米利的滑鼠提示]|r |cffff5555偵測到 TinyTooltip-Remake 同時啟用——兩邊會重複改寫工具提示，請停用其中一個。|r")
         end
     end
 end)

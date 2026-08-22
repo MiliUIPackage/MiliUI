@@ -44,7 +44,7 @@ L["Training Dummy"] = "训练假人"
 L["Humanoid"] = "人形生物"
 
 -- 窗口与标签页
-L["MiliUI Tooltip"] = "米利鼠标提示"
+L["MiliUI Tooltip"] = "米利的鼠标提示"
 L["Style"] = "样式"
 L["Player"] = "玩家"
 L["Anchor"] = "锚点"
