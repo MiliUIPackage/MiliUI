@@ -126,7 +126,11 @@ end
 -- 條值 + 文字。輪詢與事件都走這裡；整段 pcall 包住當保險
 local function RefreshInner(tip, state)
     local unit = state.barUnit
-    if not unit or not S.SafeBool(UnitExists, unit) then return end
+    if not unit then return end
+    -- 存在性 fail-open（同 UnitLines.Apply）：秘密 token 連 UnitExists 都回秘密布林，
+    -- 只有明文 false 才退；秘密照畫（SetValue / C 端縮寫都吃秘密值）
+    local exists = S.SafeCall(UnitExists, unit)
+    if exists ~= nil and not S.IsSecret(exists) and not exists then return end
     local bar, text = state.bar, state.barText
     local sb = ns.db.statusbar
 

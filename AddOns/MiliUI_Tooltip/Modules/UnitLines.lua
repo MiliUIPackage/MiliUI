@@ -314,10 +314,15 @@ end
 ------------------------------------------------------------
 function UnitLines.Apply(tip, state, unit, relayout)
     if not ns.db then return end
-    if not unit or not S.SafeBool(UnitExists, unit) then
+    if not unit then return end
+    -- 存在性判斷 fail-open：12.1 世界游標的 token 連 UnitExists 的回傳都是
+    -- 秘密布林（不能truth-test）。只有「明文 false」才早退；秘密就照畫——
+    -- 整條文法本來就秘密值安全，欄位由 C 端呈現。當初 SafeBool 把秘密當 false
+    -- 早退，害戰鬥中的敵方單位整個套不到文法。
+    local exists = S.SafeCall(UnitExists, unit)
+    if exists ~= nil and not S.IsSecret(exists) and not exists then
         if ns.logEnabled then
-            ns.Log("Apply 早退 unit=%s exists_plain=%s（線維持暴雪原樣）",
-                ns.Describe(unit), ns.Describe(S.SafeCall(UnitExists, unit)))
+            ns.Log("Apply 早退 unit=%s exists=false", ns.Describe(unit))
         end
         return
     end

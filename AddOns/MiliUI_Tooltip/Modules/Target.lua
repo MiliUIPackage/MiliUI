@@ -192,6 +192,11 @@ driver:SetScript("OnUpdate", function(_, elapsed)
     local tip = GameTooltip
     local state = Skin.Get(tip)
     if not state or not state.isUnitTip then return end
+    -- ⚠ 只在「目前內容確定是 mouseover」時才輪詢。這裡的 tip:Show() 會讓
+    -- tooltip 重新處理**儲存的上一份內容**——內容若是別的 token（例如 "target"），
+    -- Show 就把舊單位的資料翻回來蓋掉畫面、又把 isUnitTip 設回 true，
+    -- 形成自我延續的舊資料迴圈（實測：戰鬥中滑敵方一直顯示上一個友方）。
+    if S.SafeValue(state.unit) ~= "mouseover" then return end
     if not tip:IsShown() or S.IsForbiddenObject(tip) then return end
     -- 單位框的 tooltip 不輪詢（owner 有 unit 屬性；照 TinyTooltip 的判斷）
     local owner = tip:GetOwner()
