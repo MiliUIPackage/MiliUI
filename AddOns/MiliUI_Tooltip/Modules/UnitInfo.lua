@@ -480,17 +480,14 @@ function UnitInfo.GetUnitInfo(unit)
     t.classif      = classif
     t.title, t.titleIsPrefix = GetTitle(name, pvpName)
     if t.classifBoss then t.classifElite = nil end
-    t.mplusScoreValue = nil
-    t.mplusScoreColor = nil
-    local label = L["Mythic+ Score"]
+    -- 分數與括號拆開存：染色只染分數，括號（最佳層數）固定白色
     if mplusScore and mplusScore > 0 then
-        local bestText = (mplusBest and mplusBest > 0) and (" (" .. mplusBest .. ")") or ""
-        t.mplusScore = format("%s: %d%s", label, floor(mplusScore + 0.5), bestText)
-        t.mplusScoreValue = format("%d%s", floor(mplusScore + 0.5), bestText)
+        t.mplusScoreNumber = floor(mplusScore + 0.5)
+        t.mplusBestText = (mplusBest and mplusBest > 0) and (" (" .. mplusBest .. ")") or ""
         t.mplusScoreColor = mplusColor
     else
-        t.mplusScore = format("%s: %d (%d)", label, 0, 0)
-        t.mplusScoreValue = "0 (0)"
+        t.mplusScoreNumber = 0
+        t.mplusBestText = " (0)"
         t.mplusScoreColor = { r = 0.6, g = 0.6, b = 0.6 }
     end
     t.mountName = nil
@@ -610,19 +607,20 @@ function UnitInfo.GetUnitData(unit, elements, raw)
                     tinsert(out, classText)
                 end
             elseif e == "mplusScore" then
-                if CheckFilter(config, raw) and raw.mplusScore then
-                    if config.icon then
-                        local scoreText = raw.mplusScoreValue or raw.mplusScore
-                        if config.color and config.wildcard then
-                            scoreText = FormatData(scoreText, config, raw, scoreText)
-                        end
-                        tinsert(out, format("%s|cffffd200:|r %s", mplusIconTag, scoreText))
+                if CheckFilter(config, raw) and raw.mplusScoreNumber then
+                    -- 只染分數；括號（最佳層數）固定白色（使用者定案）
+                    local scorePart
+                    if config.color and config.wildcard then
+                        scorePart = FormatData(raw.mplusScoreNumber, config, raw, raw.mplusScoreNumber)
                     else
-                        local fullText = raw.mplusScore
-                        if config.color and config.wildcard then
-                            fullText = FormatData(fullText, config, raw, fullText)
-                        end
-                        tinsert(out, fullText)
+                        scorePart = tostring(raw.mplusScoreNumber)
+                    end
+                    local bestPart = (raw.mplusBestText and raw.mplusBestText ~= "")
+                        and ("|cffffffff" .. raw.mplusBestText .. "|r") or ""
+                    if config.icon then
+                        tinsert(out, format("%s|cffffd200:|r %s%s", mplusIconTag, scorePart, bestPart))
+                    else
+                        tinsert(out, format("|cffffd100%s:|r %s%s", L["Mythic+ Score"], scorePart, bestPart))
                     end
                 end
             elseif e == "itemLevel" then
