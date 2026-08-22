@@ -198,28 +198,69 @@ function W.CreateCheckButton(parent, label, onChange)
     end
 
     -- 勾＝職業色、刻意比框大一圈往外溢（暴雪原生勾選框的視覺語言，素材換成
-    -- 現代扁平的 checkmark-minimal 細勾）。灰框當安靜的底，狀態靠職業色的勾
-    -- 自己跳出來。勾用材質不用字元——中文字型沒有 ✓ 這類符號，會畫成方框；
-    -- 一律先去色再染，職業色才染得準。圖集不存在的極端情況退回舊素材。
-    local check = cb:CreateTexture(nil, "OVERLAY")
+    -- 現代扁平的 checkmark-minimal 細勾），外加 1px 黑描邊跟任何底色分離。
+    -- 顏色與形狀分離：底是純白貼圖直接染色（染色是乘法，圖集素材不是純白、
+    -- 直接染會比職業色文字暗一階），勾形用圖集的 alpha 當遮罩摳出來。
+    -- 描邊＝黑色同形往四個斜角各偏 1px 墊在下層（FontString OUTLINE 的
+    -- 土法煉鋼版——貼圖沒有內建描邊）。只墊斜角不墊正向：勾的筆畫是斜的，
+    -- 斜角剛好貼著筆畫包；八方向全墊的話軟邊疊加會讓描邊看起來有 2px 粗。
+    -- 勾用材質不用字元：中文字型沒有 ✓。
     local atlasInfo = C_Texture and C_Texture.GetAtlasInfo
         and C_Texture.GetAtlasInfo("checkmark-minimal")
+    local checkLayers = {}
+
     if atlasInfo then
-        check:SetAtlas("checkmark-minimal")
         local h = 24
         local w = (atlasInfo.height and atlasInfo.height > 0)
             and h * (atlasInfo.width / atlasInfo.height) or h
-        P.Size(check, w, h)
+        -- 描邊偏移用半像素：P.Scale(0.5) 會被像素對齊進位掉，
+        -- 所以取 1px 的實體尺寸自己乘——半像素靠 GPU 混色，出來是髮絲線
+        local px = P.Scale(1)
+        local function CheckLayer(r, g, b, dx, dy, sub)
+            local t = cb:CreateTexture(nil, "OVERLAY", nil, sub)
+            t:SetTexture(WHITE)
+            t:SetVertexColor(r, g, b)
+            P.Size(t, w, h)
+            t:SetPoint("CENTER", px * dx, px * dy)
+            local m = cb:CreateMaskTexture()
+            m:SetAtlas("checkmark-minimal")
+            m:SetAllPoints(t)
+            t:AddMaskTexture(m)
+            t:Hide()
+            checkLayers[#checkLayers + 1] = t
+            return t
+        end
+        for _, o in ipairs({ {0.5, 0.5}, {0.5, -0.5}, {-0.5, 0.5}, {-0.5, -0.5} }) do
+            CheckLayer(0, 0, 0, o[1], o[2], 1)
+        end
+        local ar, ag, ab = W.Accent()
+        CheckLayer(ar, ag, ab, 0, 0, 2)
     else
-        check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
-        P.Size(check, 26, 26)
+        -- 舊素材自帶暗影，描邊夠用
+        local t = cb:CreateTexture(nil, "OVERLAY")
+        t:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+        t:SetDesaturated(true)
+        t:SetVertexColor(W.Accent(1))
+        P.Size(t, 26, 26)
+        t:SetPoint("CENTER", 0, 0)
+        t:Hide()
+        checkLayers[1] = t
     end
-    check:SetDesaturated(true)
-    check:SetVertexColor(W.Accent(1))
-    check:SetPoint("CENTER", 0, 0)
-    cb:SetCheckedTexture(check)
+
+    -- 多層貼圖要一起顯隱，SetCheckedTexture 只管得了一張——
+    -- 自己包 SetChecked、OnClick 也跟著同步（refreshers 走 SetChecked、玩家走點擊）
+    local function UpdateVisual(self)
+        local on = self:GetChecked() and true or false
+        for _, t in ipairs(checkLayers) do t:SetShown(on) end
+    end
+    local rawSetChecked = cb.SetChecked
+    function cb:SetChecked(v)
+        rawSetChecked(self, v)
+        UpdateVisual(self)
+    end
 
     cb:SetScript("OnClick", function(self)
+        UpdateVisual(self)
         if onChange then onChange(self:GetChecked() and true or false) end
     end)
     cb:SetScript("OnEnter", function(self) self:SetBackdropBorderColor(W.Accent(1)) end)
@@ -489,6 +530,10 @@ end
 local ITEM_H = 18
 local MENU_MAX_ROWS = 14      -- 超過就裁切＋滾輪捲動（字型清單裝了幾個插件就會破百）
 
+-- 下拉的靜置框線：深灰、比控件底色亮一階（跟勾選框底色同值），
+-- 職業色只留給 hover 與「展開中」——常駐染色會讓整頁表單太吵
+local DD_BORDER = { 0.22, 0.22, 0.22, 1 }
+
 local menuFrame
 local function EnsureMenu()
     if menuFrame then return menuFrame end
@@ -512,7 +557,15 @@ local function EnsureMenu()
         self.offset = o
         if self.Reflow then self:Reflow() end
     end)
-    menuFrame:SetScript("OnHide", function(self) self:Hide() end)
+    menuFrame:SetScript("OnHide", function(self)
+        self:Hide()
+        -- 選單收起：owner 的「展開中」職業色框退回深灰（還壓著滑鼠的話
+        -- 讓 hover 狀態繼續，之後 OnLeave 會收尾）
+        local owner = self.owner
+        if owner and owner.SetBackdropBorderColor and not owner:IsMouseOver() then
+            owner:SetBackdropBorderColor(unpack(DD_BORDER))
+        end
+    end)
     return menuFrame
 end
 
@@ -524,10 +577,17 @@ function W.CreateDropdown(parent, width, items, onSelect)
     local dd = CreateFrame("Button", nil, parent, "BackdropTemplate")
     P.Size(dd, width or 120, 20)
     W.Stylize(dd, WIDGET_FILL)
-    -- 框線染職業色：平常 60%、滑過 100%（跟按鈕 accent-hover 同一套語言）
-    dd:SetBackdropBorderColor(W.Accent(0.6))
-    dd:SetScript("OnEnter", function(self) self:SetBackdropBorderColor(W.Accent(1)) end)
-    dd:SetScript("OnLeave", function(self) self:SetBackdropBorderColor(W.Accent(0.6)) end)
+    -- 框線平常深灰，hover 與展開中染職業色；展開中滑鼠移開不退色，
+    -- 選單收起（OnHide）或換別的下拉當 owner 時才還原
+    dd:SetBackdropBorderColor(unpack(DD_BORDER))
+    dd:SetScript("OnEnter", function(self)
+        self:SetBackdropBorderColor(W.Accent(1))
+    end)
+    dd:SetScript("OnLeave", function(self)
+        if not (menuFrame and menuFrame:IsShown() and menuFrame.owner == self) then
+            self:SetBackdropBorderColor(unpack(DD_BORDER))
+        end
+    end)
 
     dd.text = dd:CreateFontString(nil, "OVERLAY")
     dd.text:SetFontObject(fontNormal)
@@ -565,6 +625,10 @@ function W.CreateDropdown(parent, width, items, onSelect)
     dd:SetScript("OnClick", function(self)
         local menu = EnsureMenu()
         if menu:IsShown() and menu.owner == self then menu:Hide(); return end
+        -- 換 owner 不會經過 OnHide：舊 owner 的展開色在這裡還原
+        if menu.owner and menu.owner ~= self and menu.owner.SetBackdropBorderColor then
+            menu.owner:SetBackdropBorderColor(unpack(DD_BORDER))
+        end
         menu.owner = self
         menu.offset = 0
         -- 重建項目按鈕
@@ -830,6 +894,17 @@ function W.CreateCopyBox(parent, width, height, getText, selectLabel)
     width, height = width or 300, height or 44
     local box = W.CreateScrollEditBox(parent, width, height)
     local eb = box.editBox
+
+    -- 複製框的內容是宿主產生的、高度也由宿主配好，捲軸永遠用不到——
+    -- 留著只會剩一顆神祕的箭頭飾件掛在右上角，還吃掉 22px 寬度。
+    -- 藏掉（OnShow 再壓一次：範圍更新可能把它叫回來），寬度還給文字。
+    local bar = box.scroll.ScrollBar
+    if bar then
+        bar:Hide()
+        bar:HookScript("OnShow", function(s) s:Hide() end)
+    end
+    box.scroll:SetPoint("BOTTOMRIGHT", -4, 4)
+    eb:SetWidth(width - 12)
 
     function box:Refresh()
         eb:SetText((getText and getText()) or "")
