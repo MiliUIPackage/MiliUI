@@ -173,6 +173,105 @@ ns.Events.Register("PLAYER_ENTERING_WORLD", "portrait_heal_pew", function()
     C_Timer.After(1, HealBlankModels)
 end)
 
+------------------------------------------------------------
+-- 被視窗蓋住時藏起 3D 模型
+--
+-- 3D 模型不吃 2D 那套疊層規則：LOW 的 PlayerModel 照樣會疊在 HIGH 的 ModelScene
+-- 上面（坐騎面板、幻化面板實測，fstack 兩邊的 frame level 都停在 <3>）。
+-- 試過而且**無效**的：SetFrameStrata、SetFrameLevel、SetModelDrawLayer("BORDER")。
+-- 實測唯一有效的是把模型的 alpha 歸零。
+--
+-- 判準是「視窗矩形有沒有蓋到頭像」，不是「這個視窗裡有沒有 3D 模型」——視窗真的
+-- 蓋住頭像時，頭像本來就該看不見，會看到只是因為那個穿透。這樣就不必維護一張
+-- 「哪些官方視窗有模型」的清單，之後新增的視窗也自動涵蓋。
+--
+-- ⚠ 用 alpha 不用 Hide()：PlayerModel 隱藏時會丟掉模型（見下面 Update 的註解），
+--   Hide/Show 一輪等於關窗之後重新串流、閃一格。
+------------------------------------------------------------
+local STRATA_ORDER = {
+    BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4,
+    DIALOG = 5, FULLSCREEN = 6, FULLSCREEN_DIALOG = 7, TOOLTIP = 8,
+}
+
+local occluders = {}            -- [frame] = true；有沒有真的蓋到每次現算
+local occlusionPending = false
+
+-- 框在螢幕上的矩形（實體像素）。
+-- ⚠ GetRect() 回的是**框自己座標系**的數字，而單位框有 SetScale ⇒ 兩邊都要各自
+--   乘上 effective scale 才能比。直接拿 GetRect 相比，在縮放不是 1 的框上會算錯。
+local function ScreenRect(f)
+    if not f:IsVisible() then return nil end
+    if f.IsRectValid and not f:IsRectValid() then return nil end
+    local l, b, w, h = f:GetRect()
+    if not l then return nil end
+    local s = f:GetEffectiveScale()
+    return l * s, b * s, w * s, h * s
+end
+
+local function IsCovered(f)
+    local al, ab, aw, ah = ScreenRect(f)
+    if not al then return false end
+    local mine = STRATA_ORDER[f:GetFrameStrata()] or 2
+    for panel in pairs(occluders) do
+        -- 只有真的比我們高的層級才算遮擋：使用者可以把整組框調到 HIGH／DIALOG，
+        -- 那時候框在視窗上面是他要的，頭像不該跟著消失
+        if (STRATA_ORDER[panel:GetFrameStrata()] or 0) > mine then
+            local bl, bb, bw, bh = ScreenRect(panel)
+            if bl and al < bl + bw and bl < al + aw and ab < bb + bh and bb < ab + ah then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function ApplyOcclusion(uf)
+    local f = uf.elements and uf.elements.portrait
+    if f and f.model then
+        f.model:SetAlpha(IsCovered(f) and 0 or 1)
+    end
+end
+
+local function RefreshOcclusion()
+    occlusionPending = false
+    for _, uf in pairs(ns.frames) do ApplyOcclusion(uf) end
+    -- 預覽孿生錨在真實框的位置上，設定面板一樣會蓋到它們
+    if ns.Preview and ns.Preview.EachTwin then ns.Preview.EachTwin(ApplyOcclusion) end
+end
+
+-- ShowUIPanel 當下視窗還沒排好版（GetRect 拿到的是舊值或空的），隔一格再算。
+-- 同一格內重複呼叫只會算一次。
+local function ScheduleOcclusion()
+    if occlusionPending then return end
+    occlusionPending = true
+    C_Timer.After(0, RefreshOcclusion)
+end
+ns.ScheduleOcclusion = ScheduleOcclusion
+
+-- 官方視窗幾乎都走 UIPanel 系統（角色、收藏、幻化、冒險指南、試穿…），掛那兩個
+-- 全域函式就夠。**刻意不對暴雪的框 HookScript**：hooksecurefunc 一個全域函式是
+-- 最小的 taint 接觸面。關窗的各種路徑（關閉鈕／ESC／被別的面板擠掉／進戰鬥自動
+-- 關）最後都會走到 HideUIPanel。
+if type(ShowUIPanel) == "function" then
+    hooksecurefunc("ShowUIPanel", function(frame)
+        if frame then occluders[frame] = true end
+        ScheduleOcclusion()
+    end)
+end
+if type(HideUIPanel) == "function" then
+    hooksecurefunc("HideUIPanel", ScheduleOcclusion)
+end
+
+-- 不走 UIPanel 的視窗自己註冊（目前只有本插件的設定面板）。這是我們自己的框，
+-- 掛 OnShow/OnHide 沒有 taint 疑慮。
+function ns.WatchOccluder(frame)
+    if not frame or occluders[frame] then return end
+    occluders[frame] = true
+    frame:HookScript("OnShow", ScheduleOcclusion)
+    frame:HookScript("OnHide", ScheduleOcclusion)
+    ScheduleOcclusion()
+end
+
 local function Build(uf, edb)
     local f = uf.elements.portrait or ns.CreateElementBase(uf, "portrait", "Frame", "BackdropTemplate")
     ns.ApplyElementBase(uf, f, edb)
@@ -211,6 +310,7 @@ local function Build(uf, edb)
     f.tex2d:Hide()
 
     f:Show()
+    ScheduleOcclusion()     -- 位置／大小可能剛改過，重算一次遮擋
 end
 
 -- 印布林值：12.1 的 Unit API 可能回秘密值，tostring 出來會是 <secret boolean>
@@ -222,6 +322,8 @@ end
 local function Update(uf, edb, bucket)
     local f = uf.elements.portrait
     if not f then return end
+    -- 框重新顯示／換單位都會走到這裡：視窗開著時新冒出來的框也要算遮擋
+    ScheduleOcclusion()
     local unit = uf.isPreview and "player" or uf.unit
     -- ⚠ UNIT_MODEL_CHANGED **不是**「模型換了」的可靠訊號：實測增強薩滿在戰鬥中
     -- 每幾秒就來一次（武器附魔／光效那類純視覺變化也會推它）。而任何一次

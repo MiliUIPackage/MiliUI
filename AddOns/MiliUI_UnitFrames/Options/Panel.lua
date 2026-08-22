@@ -160,6 +160,10 @@ local function CreatePanel()
     ApplyPosition()
     Options.panel = panel
 
+    -- 設定面板不走 UIPanel 系統，要自己登記成遮擋來源：預覽孿生錨在真實框的位置上，
+    -- 被面板蓋住的那幾個，3D 頭像會穿透過來（見 Elements/Portrait.lua 的說明）
+    if ns.WatchOccluder then ns.WatchOccluder(panel) end
+
     -- ESC 關閉
     tinsert(UISpecialFrames, "MiliUIUF_Options")
 
