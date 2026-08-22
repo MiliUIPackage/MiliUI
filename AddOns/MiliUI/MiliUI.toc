@@ -21,10 +21,6 @@ Menu.lua
 Settings.lua
 Core.lua
 
-Enhance\Focuser.lua
-Enhance\FocuserSync.lua
-Enhance\FocuserBar.lua
-Enhance\FocuserCastBar.lua
 Enhance\SlashRL.lua
 # Enhance\SpellAnnouncer.lua
 Enhance\AyijeCDM_PixelFont.lua

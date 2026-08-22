@@ -72,6 +72,10 @@ Libs\MiliUIWidgets\Controls.lua
 - **宿主專屬的選單清單、spec 工廠不要寫回 `Controls.lua`。** 本插件的放在
   `Options/Specs_UF.lua`，新插件也比照辦理 —— 共用層混進宿主資料，複製過去的插件就得
   帶著一堆用不到的選單和翻譯字串。
+- **只有一個插件會用到的控件走 `custom` spec，不要在共用層長出新型別。**
+  `{ type = "custom", label, build, h }`，`build(parent, x, y, width, ctx)` 回傳
+  `高度, refresh(選用)`；共用層只負責排版與把 refresh 併進 refreshers。
+  （MiliUI_Focus 的「擷取按鍵」與「唯讀巨集複製框」就是這樣掛上去的。）
 - 改完跑 `luac -p`，再用 `luac -l` 掃一次 `_ENV` 讀取（`luac -p` 抓不到未宣告的全域）。
 
 ## 這包目前不含什麼

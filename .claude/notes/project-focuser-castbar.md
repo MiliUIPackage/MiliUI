@@ -7,9 +7,9 @@ metadata:
   originSessionId: 9e4f9255-c588-4b9e-a948-ba9035e7faa2
 ---
 
-MiliUI Focuser 施法監控功能，2026-07 新增，程式在 [AddOns/MiliUI/Enhance/FocuserCastBar.lua]，設定 UI 在 [AddOns/MiliUI/Settings.lua] 的「焦點目標」子分類（已改成捲動容器 focusCanvas/focusScroll/focusFrame）。
+焦點目標施法監控，2026-07 新增。**2026-08-22 已隨整組焦點功能拆成獨立插件**：程式在 [AddOns/MiliUI_Focus/Modules/CastBar.lua]，設定 UI 在 [AddOns/MiliUI_Focus/Options/Tab_Cast.lua]（MiliUI 套組裡的舊檔與「焦點目標」子分類已刪除，見 [[project-miliui-focus-addon]]）。
 
-**架構**：`FocuserCastBar.lua` 完全獨立、不依賴 Platynator/BloodlustMusic。全域 API `MiliUI_FocusCast.*` 給 Settings.lua 呼叫。設定存 `MiliUI_DB.focusCast`。
+**架構**：不依賴 Platynator/BloodlustMusic。對外只有插件內部的 `ns.CastBar.*`（舊的全域 `MiliUI_FocusCast` 已不存在）。設定存 `MiliUI_Focus_DB.cast`（舊的 `MiliUI_DB.focusCast` 只在首次遷移時讀一次）。
 
 **12.0 Secrets（極重要，踩過雷）**：Midnight 有 `C_Secrets.HasSecretRestrictions()`。生效時敵方施法的**起訖時間(cast[4]/[5])、notInterruptible(cast[8]/channel[7])、name(cast[1])、texture(cast[3])** 都是秘密值；連**玩家自己斷法冷卻** `C_Spell.GetSpellCooldownDuration(id):IsZero()` 也是秘密布林。
 
@@ -33,14 +33,14 @@ Lua 對秘密值的規則（實測歸納）：
 
 **執行架構（效能）**：閒置零成本（條隱藏→無 OnUpdate、事件 focus-only）。秘密模式**不掛每幀 OnUpdate**，改用單一 0.1s `displayTicker`（文字+顏色一起）；一般模式施法時才掛 `LegacyOnUpdate`（每幀 SetValue 平滑填充）。START 只讀一次 cast/chan table 傳給 HandleSound+StartDisplay；DELAYED 走輕量 `ResyncTiming`（只重設引擎計時，不重讀圖示/名稱/位置，castLocalStart 不動避免文字跳）。位置/大小只在建立與編輯模式套用，不在每次施法。OnUpdate/ticker 都成對掛卸（HideBar、StartDisplay、編輯模式進入）。
 
-**斷法判斷抄自 Platynator**（Display/Utilities.lua 的 interruptMap + Display/Colors.lua）：`notInterruptible`→immune；否則逐一檢查已學斷法法術 `C_Spell.GetSpellCooldownDuration:IsZero()`（fallback `GetSpellCooldown().startTime==0`）→ready/cd。三態顏色預設抄 [Config/Luxthos_Platynator.lua] autoColors：ready 金(1,0.741,0)、cd 橘(0.906,0.424,0.2)、immune 灰(0.529 灰階)。
+**斷法判斷抄自 Platynator**（Display/Utilities.lua 的 interruptMap + Display/Colors.lua）：`notInterruptible`→immune；否則逐一檢查已學斷法法術 `C_Spell.GetSpellCooldownDuration:IsZero()`（fallback `GetSpellCooldown().startTime==0`）→ready/cd。三態顏色預設抄 [AddOns/MiliUI/Config/Luxthos_Platynator.lua] autoColors：ready 金(1,0.741,0)、cd 橘(0.906,0.424,0.2)、immune 灰(0.529 灰階)。
 
 **每季/改版維護**：
 - `interruptMap`（各職業斷法 spellID）要跟 Platynator/Display/Utilities.lua 同步（新職業/改法術時）。
 - UnitCastingInfo notInterruptible 在第 8 個回傳、UnitChannelInfo 在第 7 個。
 
-**編輯模式拖曳**：抄 BloodlustMusic 三層 hook + EditModeSystemSelectionTemplate，作法已寫成 skill [[wow-editmode-draggable]]。名稱「焦點目標施法」，監控關閉時編輯模式不顯示。預設座標 x=0,y=260（刻意放 BLM 倒數條 y=300 下方，硬編碼不耦合）。
+**編輯模式拖曳**：抄 BloodlustMusic 三層 hook + EditModeSystemSelectionTemplate，作法已寫成 skill [[wow-editmode-draggable]]。名稱走語系檔 `L["Focus cast bar"]`（zhTW「焦點目標施法條」），監控關閉時編輯模式不顯示。預設座標 x=0,y=260（刻意放 BLM 倒數條 y=300 下方，硬編碼不耦合）。
 
 **唱法音效**：獨立於監控開關，三態各別啟用，SoundKit 數字或 LSM 字串（MiliUI 沒內建 LSM，用 `LibStub("LibSharedMedia-3.0", true)` 可選抓取）。
 
-**斷法巨集**：Settings 內唯讀 EditBox + 「全選」按鈕（HighlightText 讓使用者 Ctrl+C）。範本 `#showtooltip\n/cast [@focus,exists][@target] 法術名稱`，會用 `GetInterruptSpellName()` 自動填入玩家斷法技能名。
+**斷法巨集**：設定頁內唯讀 EditBox + 「全選」按鈕（HighlightText 讓使用者 Ctrl+C）。範本 `#showtooltip\n/cast [@focus,exists][@target] 法術名稱`，會用 `GetInterruptSpellName()` 自動填入玩家斷法技能名。

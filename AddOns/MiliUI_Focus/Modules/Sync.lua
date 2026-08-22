@@ -1,30 +1,25 @@
 ------------------------------------------------------------
--- MiliUI Focuser 隊友標記同步
+-- 隊友標記同步
 -- 在隊伍／團隊裡互相廣播「我的焦點自動標記是哪一號」，讓標記切換列的
 -- tooltip 能顯示隊友設定（撞號一眼看得出來），宣告時也一併帶上。
---
--- 通訊沿用 VersionCheck.lua 的配方（私有前綴 + IsCommRestricted 擋門）。
 ------------------------------------------------------------
-local AddonName = ...
-if AddonName ~= "MiliUI" then return end
+local _, ns = ...
 
-MiliUI_FocuserSync = {}
+ns.Sync = {}
+local Sync = ns.Sync
 
+-- ⚠ 前綴與協定沿用套組時代的 MiliUI_FM：還在用舊版 MiliUI 套組的隊友照樣
+-- 互通得到。改了就等於把那些人變成看不見。
 local PREFIX = "MiliUI_FM"
 
 -- 協定：`<版本>:<標記編號>[:r]`
---   標記編號 0 = 對方有裝米利UI但沒開自動標記
+--   標記編號 0 = 對方有裝但沒開自動標記
 --   結尾 :r  = 這是「回覆」，收到回覆不再回覆（避免互相回不停）
 local PROTOCOL = 1
 
 local SEND_THROTTLE  = 5     -- 自己主動送的最短間隔
 local REPLY_THROTTLE = 10    -- 收到別人廣播後，多久內不重複回覆
 local PEER_STALE_SEC = 1800  -- 超過這麼久沒更新就不顯示（30 分鐘）
-
-local C_ChatInfo, C_Timer = C_ChatInfo, C_Timer
-local IsInRaid, IsInGroup = IsInRaid, IsInGroup
-local GetTime, UnitName, GetRealmName = GetTime, UnitName, GetRealmName
-local GetNumGroupMembers = GetNumGroupMembers
 
 -- 12.1 的秘密值：名字有可能是秘密字串，拿它當 table key 會直接崩潰
 -- （"cannot be indexed with secret keys"）。所有名字進表前都先擋一次。
@@ -37,9 +32,9 @@ local lastSend = 0
 ----------------------------------------------------------------------
 -- 通訊
 ----------------------------------------------------------------------
--- 12.1：首領戰進行中／M+ 計時中／PvP 戰場中會封鎖 addon message（抄 Cell 的
--- IsCommRestricted）。注意這只擋「送」，**不清掉已經收到的資料** —— M+ 開始
--- 前在隊伍裡收到的設定，整趟鑰石都還用得上，正是最需要它的場合。
+-- 12.1：首領戰進行中／M+ 計時中／PvP 戰場中會封鎖 addon message。注意這只擋
+-- 「送」，**不清掉已經收到的資料** —— M+ 開始前在隊伍裡收到的設定，整趟鑰石都
+-- 還用得上，正是最需要它的場合。
 local function IsCommRestricted()
     if IsEncounterInProgress and IsEncounterInProgress() then return true end
     if C_MythicPlus and C_MythicPlus.IsRunActive and C_MythicPlus.IsRunActive() then return true end
@@ -54,17 +49,14 @@ local function GroupChannel()
 end
 
 local function MyIndex()
-    if MiliUI_Focuser and MiliUI_Focuser.GetEffectiveMarkIndex then
-        return MiliUI_Focuser.GetEffectiveMarkIndex()
-    end
-    return 0
+    return ns.Focuser.GetEffectiveMarkIndex()
 end
 
 local function Send(isReply)
     if not (C_ChatInfo and C_ChatInfo.SendAddonMessage) then return end
     local channel = GroupChannel()
     if not channel then return end
-    -- 擋在節流之前：被封鎖的嘗試不該吃掉節流窗口（同 VersionCheck 的理由）
+    -- 擋在節流之前：被封鎖的嘗試不該吃掉節流窗口
     if IsCommRestricted() then return end
     local now = GetTime()
     if not isReply and (now - lastSend) < SEND_THROTTLE then return end
@@ -110,7 +102,7 @@ local function WarnIfClash(name)
     end
     if warned[name] == mine then return end
     warned[name] = mine
-    print(("|cffff6600[MiliUI]|r 隊友：%s 的焦點標記符號 %s 和你重複。")
+    ns.Print(ns.L["Teammate %s uses the same focus marker %s as you."]
         :format(name, MarkIcon(mine)))
 end
 
@@ -168,7 +160,7 @@ end
 ----------------------------------------------------------------------
 -- 回傳陣列 { { name = 短名, index = 0..8 }, ... }
 -- 先依標記編號排序（沒設定的 0 排最後），同編號再依名字
-function MiliUI_FocuserSync.GetPeers()
+function Sync.GetPeers()
     local list, now = {}, GetTime()
     for name, info in pairs(peers) do
         if (now - info.time) <= PEER_STALE_SEC then
@@ -184,13 +176,13 @@ function MiliUI_FocuserSync.GetPeers()
     return list
 end
 
-function MiliUI_FocuserSync.IsRestricted()
+function Sync.IsRestricted()
     return IsCommRestricted()
 end
 
 -- 自己的設定改了 → 主動廣播（會順便引來隊友回覆，資料一起補齊），
 -- 並拿新圖示重評一次撞號
-function MiliUI_FocuserSync.Broadcast()
+function Sync.Broadcast()
     Send(false)
     RecheckAllClashes()
 end
@@ -199,17 +191,8 @@ end
 -- Events
 ----------------------------------------------------------------------
 local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_LOGIN")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
-f:RegisterEvent("GROUP_ROSTER_UPDATE")
-f:RegisterEvent("CHAT_MSG_ADDON")
 f:SetScript("OnEvent", function(_, event, ...)
-    if event == "PLAYER_LOGIN" then
-        if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
-            C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
-        end
-
-    elseif event == "PLAYER_ENTERING_WORLD" then
+    if event == "PLAYER_ENTERING_WORLD" then
         -- 進場／重載後主動報到。隊友收到會回覆，等於同時把他們的設定要回來
         -- （光靠 GROUP_ROSTER_UPDATE 不夠：自己重載 UI 時別人的名單沒變動）
         C_Timer.After(3, function() Send(false) end)
@@ -241,4 +224,13 @@ f:SetScript("OnEvent", function(_, event, ...)
             C_Timer.After(0.5 + math.random() * 2, function() Send(true) end)
         end
     end
+end)
+
+ns.RegisterCallback("Init", "sync", function()
+    if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
+        C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
+    end
+    f:RegisterEvent("PLAYER_ENTERING_WORLD")
+    f:RegisterEvent("GROUP_ROSTER_UPDATE")
+    f:RegisterEvent("CHAT_MSG_ADDON")
 end)

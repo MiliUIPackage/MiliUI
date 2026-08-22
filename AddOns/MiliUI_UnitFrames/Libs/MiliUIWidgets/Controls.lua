@@ -16,6 +16,7 @@
 --   input    { key, label }
 --   text     { label }                                     說明文字（灰）
 --   space    { h }                                         空行
+--   custom   { label, build, h }                           宿主自畫的一列（見下方分支）
 -- 共通：sub / sub2 / index 決定 ctx 取值路徑；ctx = { get, set, apply }
 --
 -- ⚠ 共用層：這支可以逐字複製到其他 MiliUI 插件，宿主專屬的東西一律走
@@ -295,6 +296,17 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
                 eb:SetCursorPosition(0)
             end)
             y = y - ROW_H_TALL
+
+        elseif spec.type == "custom" then
+            -- 宿主自畫的一列。共用層做不出來、又只有一個插件會用的控件
+            -- （擷取按鍵、唯讀的複製框…）走這裡，不要為了它在共用層長出新型別。
+            --   build(parent, x, y, width, ctx) → 高度, refresh(選用)
+            -- x / y 是控件欄的左上角（跟其他型別同一套座標），width 是可用寬度；
+            -- 回傳的 refresh 會併進 refreshers，跟其他列一起被叫。
+            if spec.label then MakeLabel(parent, spec.label, x0, y, spec.h or ROW_H_TALL) end
+            local h, refresh = spec.build(parent, cx, y, width - cx - 10, ctx)
+            if refresh then tinsert(refreshers, refresh) end
+            y = y - (h or spec.h or ROW_H_TALL)
         end
         -- space 沒有東西可以標示；header 留著（搜尋也讓人跳到小節）
         if spec.type ~= "space" then

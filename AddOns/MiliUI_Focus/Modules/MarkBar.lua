@@ -1,33 +1,32 @@
 ------------------------------------------------------------
--- MiliUI Focuser 標記切換列
--- 樣式抄 MiliUI_BurstPotionHelper/Bar.lua（1px 邊框 + 深色底 + 左側拖曳握把）
+-- 標記切換列
 -- 兩顆按鈕：
 --   1. 標記圖示：點擊彈出 8 格選單自行點選，切換焦點自動標記的圖示，
 --      並立即重標目前焦點（走 raidtarget 安全動作，戰鬥中可用）
 --   2. 宣告：把「我的焦點自動標記圖示是哪個」送到 副本/團隊/隊伍 頻道
 --      （{icon} → {rtN}；宣告的是設定的圖示，不讀焦點單位，避開秘密值）
--- 整條工具列都是非安全框架，戰鬥中顯示 / 點擊皆合法。
+-- 整條工具列本身是非安全框架，但選單格子是保護按鈕（標記只能走安全動作），
+-- 所以開關與建立都要 InCombatLockdown 守衛。
 ------------------------------------------------------------
-MiliUI_FocuserBar = {}
+local _, ns = ...
+
+ns.MarkBar = {}
+local MarkBar = ns.MarkBar
 
 local ICON_SIZE  = 34
 local ICON_SPACE = 5
 local PADDING    = 6
 local GRIP_WIDTH = 12
 
--- 預設放在爆發藥水列（y=10%）上方一點，避免兩條疊在一起
+-- 預設放在畫面下方 16% 高的位置（爆發藥水列預設在 10%，錯開避免疊在一起）
 local DEFAULT_Y_FRACTION = 0.16
 
-local DEFAULT_ANNOUNCE = "我的焦點打斷目標是{icon}！"
+local ANNOUNCE_ICON  = "Interface\\AddOns\\MiliUI_Focus\\Media\\announce"
+local MARK_NONE_ICON = "Interface\\RaidFrame\\ReadyCheck-NotReady"
+local MARKS_TEXTURE  = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
 
--- 宣告按鈕：MiliUI 自製的簡約廣播喇叭（白色線條+透明底 64x64 TGA，
--- 產生器：Interface/.agent/gen_announce_icon.py）
-local ANNOUNCE_ICON    = "Interface\\AddOns\\MiliUI\\Media\\announce"
-local MARK_NONE_ICON   = "Interface\\RaidFrame\\ReadyCheck-NotReady"
-local MARKS_TEXTURE    = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
-
--- MiliUI 慣用「無邊框」外觀：1px 像素邊 + 深色半透明底
-local MILIUI_BACKDROP = {
+-- 套組慣用「無邊框」外觀：1px 像素邊 + 深色半透明底
+local BACKDROP = {
     bgFile   = "Interface\\Buttons\\WHITE8X8",
     edgeFile = "Interface\\Buttons\\WHITE8X8",
     edgeSize = 1,
@@ -36,11 +35,8 @@ local MILIUI_BACKDROP = {
 local bar, markBtn, announceBtn
 local picker, pickerCells
 
-local function GetDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    if MiliUI_DB.focuserBarShown == nil then MiliUI_DB.focuserBarShown = false end
-    if MiliUI_DB.focuserAnnounceText == nil then MiliUI_DB.focuserAnnounceText = DEFAULT_ANNOUNCE end
-    return MiliUI_DB
+local function DB()
+    return ns.db.bar
 end
 
 ----------------------------------------------------------------------
@@ -60,18 +56,18 @@ local function SetMarkTexCoord(tex, index)
 end
 
 local function UpdateMarkIcon()
-    local index = MiliUI_Focuser and MiliUI_Focuser.GetMarkIndex() or 0
+    local index = ns.db and ns.db.focus.markIndex or 0
     if markBtn then
         if index >= 1 and index <= 8 then
             markBtn.icon:SetTexture(MARKS_TEXTURE)
             SetMarkTexCoord(markBtn.icon, index)
         else
-            -- 尚未選過標記：顯示紅色禁止圖（同爆發藥水列的「不用藥水」格）
+            -- 尚未選過標記：顯示紅色禁止圖
             markBtn.icon:SetTexture(MARK_NONE_ICON)
             markBtn.icon:SetTexCoord(0, 1, 0, 1)
         end
     end
-    -- 選單上目前選擇的黃框（同藥水列 selected border）
+    -- 選單上目前選擇的黃框
     if pickerCells then
         for i, cell in ipairs(pickerCells) do
             cell.border:SetShown(i == index)
@@ -81,10 +77,10 @@ end
 
 -- 點選標記後的非安全記帳（實際標記由格子的 raidtarget 安全動作執行）
 local function OnPickMark(index)
-    if not MiliUI_Focuser then return end
     -- SetMarkIndex 內部處理巨集更新（戰鬥中自動延後到脫戰）
-    MiliUI_Focuser.SetMarkIndex(index)
+    ns.Focuser.SetMarkIndex(index)
     UpdateMarkIcon()
+    ns.Fire("SettingsChanged")
     -- 收合選單交給安全 postbody（放開邊緣）；這裡不能收——本函式在
     -- 按下邊緣執行，先收會把放開邊緣才觸發的標記動作吃掉
 end
@@ -92,7 +88,7 @@ end
 ----------------------------------------------------------------------
 -- 標記選單：點圖示按鈕彈出，8 個標記排成 4x2，點選後套用並關閉。
 -- 12.0 Midnight 起 SetRaidTarget 是（戰鬥）保護函式，插件不能直接呼叫，
--- 標記改走 Blizzard 的 raidtarget 安全動作（SECURE_ACTIONS.raidtarget：
+-- 標記改走暴雪的 raidtarget 安全動作（SECURE_ACTIONS.raidtarget：
 -- 讀 marker / action / unit 屬性）。因此格子是保護按鈕，選單的開關
 -- 也必須走 SecureHandler 快照（戰鬥中一般程式不能 Show/Hide 保護框架）。
 ----------------------------------------------------------------------
@@ -101,16 +97,20 @@ local PICK_SPACE = 4
 
 local function CreatePicker()
     if picker then return picker end
+    ns.Focuser.EnsureButtons()   -- 見 Focuser.EnsureButtons 的註解（Init 順序不保證）
     -- SecureHandlerBaseTemplate：讓安全快照拿得到 picker 的 handle 來開關
-    picker = CreateFrame("Frame", "MiliUI_FocuserMarkPicker", bar,
+    picker = CreateFrame("Frame", "MiliUIFocus_MarkPicker", bar,
         "SecureHandlerBaseTemplate,BackdropTemplate")
     local w = PADDING * 2 + PICK_SIZE * 4 + PICK_SPACE * 3
     local h = PADDING * 2 + PICK_SIZE * 2 + PICK_SPACE
     picker:SetSize(w, h)
     picker:SetPoint("BOTTOM", markBtn, "TOP", 0, PADDING + 2)
-    picker:SetBackdrop(MILIUI_BACKDROP)
+    picker:SetBackdrop(BACKDROP)
     picker:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
     picker:SetBackdropBorderColor(0, 0, 0, 1)
+    -- 跟母框同一個 strata（HIGH），只靠 level 疊在列上面。母框已經壓過快捷列了，
+    -- 這裡再拉高一階是為了蓋住母框自己的背景與按鈕
+    picker:SetFrameStrata("HIGH")
     picker:SetFrameLevel(bar:GetFrameLevel() + 10)
     picker:SetClampedToScreen(true)
     picker:Hide()
@@ -123,7 +123,7 @@ local function CreatePicker()
         if InCombatLockdown() then return end
         rawHide(self)
     end
-    table.insert(UISpecialFrames, "MiliUI_FocuserMarkPicker")
+    tinsert(UISpecialFrames, "MiliUIFocus_MarkPicker")
 
     pickerCells = {}
     for i = 1, 8 do
@@ -136,22 +136,21 @@ local function CreatePicker()
             -(PADDING + row * (PICK_SIZE + PICK_SPACE)))
 
         -- 標記走安全動作，戰鬥中也能執行；"set" 具冪等性（已是該標記就跳過），
-        -- 所以 down/up 兩個邊緣都註冊也不會閃爍（抄藥水列的註冊方式）
+        -- 所以 down/up 兩個邊緣都註冊也不會閃爍
         cell:RegisterForClicks("AnyDown", "AnyUp")
         cell:SetAttribute("type1", "raidtarget")
         cell:SetAttribute("marker", i)
         cell:SetAttribute("action1", "set")
         cell:SetAttribute("unit", "focus")
 
-        -- 點選後在安全環境裡：收起選單 + 把 FocuserButton 的巨集換成
-        -- 此編號對應的版本（受限環境可改保護屬性，戰鬥中也能執行，
-        -- 這樣戰鬥中換圖示後，下一次 Shift+點擊立刻用新標記）。
-        -- 巨集文字預存在格子的 focusermacro 屬性（SyncCellMacros 維護）。
+        -- 點選後在安全環境裡：收起選單 + 把巨集換成此編號對應的版本
+        -- （受限環境可改保護屬性，戰鬥中也能執行，這樣戰鬥中換圖示後，
+        -- 下一次 Shift+點擊立刻用新標記）。巨集文字預存在格子的
+        -- focusermacro 屬性（SyncCellMacros 維護）。
         -- OnClick wrap 的 prebody 回傳值是 (改寫按鍵, message)，
         -- postbody 只在 message 非 nil 時執行：按鍵不改，第一個回 nil
         SecureHandlerSetFrameRef(cell, "picker", picker)
-        local focuserBtn = MiliUI_Focuser and MiliUI_Focuser.GetFocuserButton
-            and MiliUI_Focuser.GetFocuserButton()
+        local focuserBtn = ns.Focuser.GetButton()
         if focuserBtn then
             SecureHandlerSetFrameRef(cell, "focuser", focuserBtn)
         end
@@ -173,7 +172,7 @@ local function CreatePicker()
                 end
             ]])
 
-        -- 目前選擇的黃框（同藥水列）
+        -- 目前選擇的黃框
         cell.border = cell:CreateTexture(nil, "BACKGROUND", nil, 1)
         cell.border:SetPoint("TOPLEFT", -2, 2)
         cell.border:SetPoint("BOTTOMRIGHT", 2, -2)
@@ -204,7 +203,7 @@ local function CreatePicker()
         end)
         cell:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(_G["RAID_TARGET_" .. i] or ("標記 " .. i))
+            GameTooltip:SetText(_G["RAID_TARGET_" .. i] or ("" .. i))
             GameTooltip:Show()
         end)
         cell:SetScript("OnLeave", GameTooltip_Hide)
@@ -212,8 +211,8 @@ local function CreatePicker()
         pickerCells[i] = cell
     end
 
-    MiliUI_FocuserBar.SyncCellMacros()   -- 預存各編號的巨集文字
-    UpdateMarkIcon()                     -- 套上目前選擇的黃框
+    MarkBar.SyncCellMacros()   -- 預存各編號的巨集文字
+    UpdateMarkIcon()           -- 套上目前選擇的黃框
     return picker
 end
 
@@ -231,17 +230,10 @@ local function GetAnnounceChannel()
     return nil
 end
 
--- 組出宣告訊息。宣告的是「設定的自動標記圖示」（告訴隊友：這個標記就是
--- 我的焦點打斷目標），不讀焦點身上的標記，所以不需要焦點存在。
--- forChat = true 用 {rtN}（送進頻道由客戶端轉圖示）；
--- false 用 |T...|t 材質跳脫（print / tooltip 本地顯示用，{rtN} 在本地不會轉）
--- 隊友設定（由 FocuserSync 收集）。回傳兩個清單：有標記的、沒設定的。
+-- 隊友設定（由 Sync 收集）。回傳兩個清單：有標記的、沒設定的。
 local function GetPeerLists()
     local marked, idle = {}, {}
-    if not (MiliUI_FocuserSync and MiliUI_FocuserSync.GetPeers) then
-        return marked, idle
-    end
-    for _, p in ipairs(MiliUI_FocuserSync.GetPeers()) do
+    for _, p in ipairs(ns.Sync.GetPeers()) do
         if p.index >= 1 and p.index <= 8 then
             marked[#marked + 1] = p
         else
@@ -251,18 +243,22 @@ local function GetPeerLists()
     return marked, idle
 end
 
+-- 組出宣告訊息。宣告的是「設定的自動標記圖示」（告訴隊友：這個標記就是
+-- 我的焦點打斷目標），不讀焦點身上的標記，所以不需要焦點存在。
+-- forChat = true 用 {rtN}（送進頻道由客戶端轉圖示）；
+-- false 用 |T...|t 材質跳脫（print / tooltip 本地顯示用，{rtN} 在本地不會轉）
 local function BuildAnnounceMessage(forChat)
-    local index = MiliUI_Focuser and MiliUI_Focuser.GetMarkIndex() or 0
+    local index = ns.db.focus.markIndex or 0
     if index < 1 or index > 8 then
-        return nil, "還沒選擇標記圖示，請先點左邊的圖示選一個。"
+        return nil, ns.L["Pick a marker icon first (click the icon on the left)."]
     end
     local iconToken
     if forChat then
         iconToken = "{rt" .. index .. "}"
     else
-        iconToken = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_" .. index .. ":16|t"
+        iconToken = MarkIcon(index, 16)
     end
-    local text = GetDB().focuserAnnounceText or DEFAULT_ANNOUNCE
+    local text = DB().announceText or ns.L["My focus interrupt target is {icon}!"]
     local msg = (text:gsub("{icon}", iconToken))
 
     -- 帶上隊友的標記，隊友一眼就看得出誰盯哪一隻。
@@ -276,7 +272,7 @@ local function BuildAnnounceMessage(forChat)
             parts[#parts + 1] = p.name .. token
         end
         if #marked > shown then parts[#parts + 1] = "…" end
-        msg = msg .. "（隊友：" .. table.concat(parts, " ") .. "）"
+        msg = msg .. "(" .. ns.L["Teammates:"] .. " " .. table.concat(parts, " ") .. ")"
     end
     return msg
 end
@@ -287,7 +283,7 @@ local function Announce()
     if GetTime() - lastAnnounce < 1 then return end
     local msg, err = BuildAnnounceMessage(true)
     if not msg then
-        print("|cffff6600[MiliUI]|r " .. err)
+        ns.Print(err)
         return
     end
     lastAnnounce = GetTime()
@@ -296,31 +292,32 @@ local function Announce()
         SendChatMessage(msg, channel)
     else
         -- 本地預覽：{rtN} 不會被聊天框轉換，改用材質跳脫顯示
-        print("|cffff6600[MiliUI]|r 未加入隊伍，宣告內容：" .. BuildAnnounceMessage(false))
+        ns.Print(ns.L["Not in a group; the announcement would read:"]
+            .. " " .. BuildAnnounceMessage(false))
     end
 end
 
 ----------------------------------------------------------------------
--- 位置（抄爆發藥水列：BOTTOMLEFT 錨定，拖完存左/下緣座標）
+-- 位置（BOTTOMLEFT 錨定，拖完存左/下緣座標）
 ----------------------------------------------------------------------
 local function PositionBar()
     if not bar then return end
-    local db = GetDB()
-    if not db.focuserBarX then
-        db.focuserBarX = math.max(0, math.floor((UIParent:GetWidth() - bar:GetWidth()) / 2))
+    local db = DB()
+    if not db.x then
+        db.x = math.max(0, math.floor((UIParent:GetWidth() - bar:GetWidth()) / 2))
     end
-    if not db.focuserBarY then
-        db.focuserBarY = math.floor(UIParent:GetHeight() * DEFAULT_Y_FRACTION)
+    if not db.y then
+        db.y = math.floor(UIParent:GetHeight() * DEFAULT_Y_FRACTION)
     end
     bar:ClearAllPoints()
-    bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", db.focuserBarX, db.focuserBarY)
+    bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", db.x, db.y)
 end
 
 local function SavePosition()
     local x, y = bar:GetLeft(), bar:GetBottom()
     if not (x and y) then return end
-    local db = GetDB()
-    db.focuserBarX, db.focuserBarY = x, y
+    local db = DB()
+    db.x, db.y = x, y
     bar:ClearAllPoints()
     bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
 end
@@ -328,28 +325,7 @@ end
 ----------------------------------------------------------------------
 -- 建立
 ----------------------------------------------------------------------
-local function OpenFocusSettings()
-    if InCombatLockdown() then
-        print("|cff00ff00[MiliUI]|r 戰鬥中無法開啟。")
-        return
-    end
-    if not (Settings and Settings.OpenToCategory) then return end
-    -- Blizzard 12.0+ OpenToCategory 需要 numeric ID；「焦點目標」子分類的 ID
-    -- 被覆寫成字串 "MiliUI_Focus"，非數字時退回 MiliUI 主分類（同 GameMenu 入口做法）
-    local cat = MiliUI and MiliUI.FocusSettingsCategory
-    local id = cat and (cat.GetID and cat:GetID() or cat.ID)
-    if type(id) ~= "number" then
-        cat = MiliUI and MiliUI.SettingsCategory
-        id = cat and (cat.GetID and cat:GetID() or cat.ID)
-    end
-    if type(id) == "number" then
-        Settings.OpenToCategory(id)
-    elseif cat then
-        Settings.OpenToCategory(cat)
-    end
-end
-
-local function CreateButton(parent, template)
+local function CreateBarButton(parent, template)
     local btn = CreateFrame("Button", nil, parent, template)
     btn:SetSize(ICON_SIZE, ICON_SIZE)
     btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -373,14 +349,18 @@ end
 
 local function CreateBar()
     if bar then return bar end
-    local db = GetDB()
+    local L = ns.L
 
     local width = PADDING * 2 + GRIP_WIDTH + 4 + ICON_SIZE * 2 + ICON_SPACE
-    bar = CreateFrame("Frame", "MiliUI_FocuserBarFrame", UIParent, "BackdropTemplate")
+    bar = CreateFrame("Frame", "MiliUIFocus_MarkBar", UIParent, "BackdropTemplate")
     bar:SetSize(width, PADDING * 2 + ICON_SIZE)
+    -- ⚠ HIGH，不能用預設的 MEDIUM：快捷列按鈕也在 MEDIUM，而且 frame level 比
+    -- 這條列高 —— 列擺在快捷列附近時，按鍵文字與數量數字會直接印在標記圖示上。
+    -- 差別在 strata，調 level 沒用（不同 strata 之間先比 strata）。
+    bar:SetFrameStrata("HIGH")
     bar:SetClampedToScreen(true)
     bar:SetMovable(true)
-    bar:SetBackdrop(MILIUI_BACKDROP)
+    bar:SetBackdrop(BACKDROP)
     bar:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
     bar:SetBackdropBorderColor(0, 0, 0, 1)
     bar:Hide()
@@ -393,7 +373,7 @@ local function CreateBar()
     grip:EnableMouse(true)
     grip:RegisterForDrag("LeftButton")
 
-    -- 三條橫線的握把記號（本列沒有收合功能，不用藥水列的箭頭）
+    -- 三條橫線的握把記號
     for i = 1, 3 do
         local line = grip:CreateTexture(nil, "ARTWORK")
         line:SetSize(8, 1)
@@ -410,13 +390,13 @@ local function CreateBar()
         SavePosition()
     end)
     grip:SetScript("OnMouseUp", function(_, mouseButton)
-        if mouseButton == "RightButton" then OpenFocusSettings() end
+        if mouseButton == "RightButton" then ns.OpenOptions("bar") end
     end)
     grip:SetScript("OnEnter", function()
         GameTooltip:SetOwner(grip, "ANCHOR_RIGHT")
-        GameTooltip:SetText("焦點標記切換列")
-        GameTooltip:AddLine("左鍵拖曳移動", 0.8, 0.8, 0.8)
-        GameTooltip:AddLine("右鍵開啟設定", 0.5, 0.8, 1)
+        GameTooltip:SetText(L["Focus marker bar"])
+        GameTooltip:AddLine(L["Left-drag to move"], 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(L["Right-click to open settings"], 0.5, 0.8, 1)
         GameTooltip:Show()
     end)
     grip:SetScript("OnLeave", GameTooltip_Hide)
@@ -424,7 +404,7 @@ local function CreateBar()
     -- 按鈕 1：焦點標記圖示（點擊彈出選單自行點選）。
     -- 選單含保護按鈕，開關必須在安全環境執行（戰鬥中才不會被擋），
     -- 所以這顆是 SecureHandlerClickTemplate，用 _onclick 快照切換
-    markBtn = CreateButton(bar, "SecureHandlerClickTemplate")
+    markBtn = CreateBarButton(bar, "SecureHandlerClickTemplate")
     markBtn:SetPoint("LEFT", grip, "RIGHT", 4, 0)
     CreatePicker()
     SecureHandlerSetFrameRef(markBtn, "picker", picker)
@@ -435,40 +415,38 @@ local function CreateBar()
     ]])
     markBtn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("切換焦點標記圖示")
-        GameTooltip:AddLine("點擊開啟選單，選一個標記圖示", 0.8, 0.8, 0.8)
-        GameTooltip:AddLine("選擇後會立即重標目前的焦點目標（戰鬥中可用）", 0.7, 0.7, 0.7)
-        GameTooltip:AddLine("戰鬥中切換時，Shift+點擊巨集的標記編號會在脫戰後更新", 0.5, 0.5, 0.5)
+        GameTooltip:SetText(L["Switch focus marker"])
+        GameTooltip:AddLine(L["Click to open the picker and choose a marker icon"], 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(L["Your current focus is re-marked right away (works in combat)"], 0.7, 0.7, 0.7)
+        GameTooltip:AddLine(L["Switching in combat: the shift-click macro picks up the new marker after combat"], 0.5, 0.5, 0.5)
 
-        -- 隊友設定（只有同樣裝米利UI的人才會回報）
-        local mine = MiliUI_Focuser and MiliUI_Focuser.GetEffectiveMarkIndex
-            and MiliUI_Focuser.GetEffectiveMarkIndex() or 0
+        -- 隊友設定（只有同樣裝這個插件／米利UI套組的人才會回報）
+        local mine = ns.Focuser.GetEffectiveMarkIndex()
         local marked, idle = GetPeerLists()
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine("隊友的焦點標記", 1, 0.82, 0)
+        GameTooltip:AddLine(L["Teammate focus markers"], 1, 0.82, 0)
         if mine >= 1 then
-            GameTooltip:AddDoubleLine("你", MarkIcon(mine), 0.9, 0.9, 0.9, 1, 1, 1)
+            GameTooltip:AddDoubleLine(L["You"], MarkIcon(mine), 0.9, 0.9, 0.9, 1, 1, 1)
         else
-            GameTooltip:AddDoubleLine("你", "未設定", 0.9, 0.9, 0.9, 0.6, 0.6, 0.6)
+            GameTooltip:AddDoubleLine(L["You"], L["Not set"], 0.9, 0.9, 0.9, 0.6, 0.6, 0.6)
         end
         for _, p in ipairs(marked) do
             if p.index == mine then
                 -- 撞號：這正是想知道「要不要換」的那一刻
-                GameTooltip:AddDoubleLine(p.name, MarkIcon(p.index) .. " 與你相同",
+                GameTooltip:AddDoubleLine(p.name, MarkIcon(p.index) .. " " .. L["same as yours"],
                     1, 0.3, 0.3, 1, 0.3, 0.3)
             else
                 GameTooltip:AddDoubleLine(p.name, MarkIcon(p.index), 0.8, 0.8, 0.8, 1, 1, 1)
             end
         end
         for _, p in ipairs(idle) do
-            GameTooltip:AddDoubleLine(p.name, "未設定", 0.6, 0.6, 0.6, 0.5, 0.5, 0.5)
+            GameTooltip:AddDoubleLine(p.name, L["Not set"], 0.6, 0.6, 0.6, 0.5, 0.5, 0.5)
         end
         if #marked == 0 and #idle == 0 then
-            GameTooltip:AddLine("沒有偵測到其他使用米利UI的隊友", 0.5, 0.5, 0.5)
+            GameTooltip:AddLine(L["No teammates running this addon were detected"], 0.5, 0.5, 0.5)
         end
-        if MiliUI_FocuserSync and MiliUI_FocuserSync.IsRestricted
-            and MiliUI_FocuserSync.IsRestricted() then
-            GameTooltip:AddLine("（首領戰／M+／戰場中暴雪封鎖插件通訊，以上是開打前收到的）",
+        if ns.Sync.IsRestricted() then
+            GameTooltip:AddLine(L["(Blizzard blocks addon comms during boss fights / M+ / battlegrounds; the list above is what arrived before the pull)"],
                 0.5, 0.5, 0.5, true)
         end
         GameTooltip:Show()
@@ -476,7 +454,7 @@ local function CreateBar()
     markBtn:SetScript("OnLeave", GameTooltip_Hide)
 
     -- 按鈕 2：宣告焦點目標
-    announceBtn = CreateButton(bar)
+    announceBtn = CreateBarButton(bar)
     announceBtn:SetPoint("LEFT", markBtn, "RIGHT", ICON_SPACE, 0)
     -- 線條風自製圖示，保留 4px 留白（不像技能圖示要填滿裁邊）
     announceBtn.icon:SetTexture(ANNOUNCE_ICON)
@@ -485,17 +463,20 @@ local function CreateBar()
     end)
     announceBtn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("宣告焦點標記")
+        GameTooltip:SetText(L["Announce focus marker"])
         local msg = BuildAnnounceMessage(false)   -- tooltip 用材質跳脫顯示圖示
         if msg then
             GameTooltip:AddLine(msg, 1, 1, 1)
         end
         local channelNames = {
-            INSTANCE_CHAT = "副本頻道", RAID = "團隊頻道", PARTY = "隊伍頻道",
+            INSTANCE_CHAT = L["Instance chat"],
+            RAID = L["Raid chat"],
+            PARTY = L["Party chat"],
         }
         local channel = GetAnnounceChannel()
-        GameTooltip:AddLine("發送到：" .. (channelNames[channel] or "（未組隊，只顯示給自己）"), 0.8, 0.8, 0.8)
-        GameTooltip:AddLine("宣告內容可在設定內修改", 0.5, 0.8, 1)
+        GameTooltip:AddLine(L["Sends to:"] .. " "
+            .. (channelNames[channel] or L["(not in a group, shown to you only)"]), 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(L["The announcement text can be changed in the settings"], 0.5, 0.8, 1)
         GameTooltip:Show()
     end)
     announceBtn:SetScript("OnLeave", GameTooltip_Hide)
@@ -506,17 +487,16 @@ local function CreateBar()
 end
 
 ----------------------------------------------------------------------
--- 顯示邏輯：選項開啟 + Focuser 功能啟用才顯示
--- （純非安全框架，戰鬥中 Show/Hide 也合法）
+-- 顯示邏輯：選項開啟 + Shift+點擊功能啟用才顯示
 ----------------------------------------------------------------------
 local function ShouldShow()
-    return GetDB().focuserBarShown
-        and MiliUI_Focuser and MiliUI_Focuser.IsEnabled()
+    return ns.db and DB().shown and ns.db.focus.enabled
 end
 
 local pendingRefresh = false
 
-function MiliUI_FocuserBar.Refresh()
+function MarkBar.Refresh()
+    if not ns.db then return end
     -- 標記選單是保護框架，建立（寫安全屬性）與顯示/隱藏都不能在戰鬥中做，
     -- 延後到脫戰（PLAYER_REGEN_ENABLED）再套用；圖示更新只碰材質，隨時安全
     if InCombatLockdown() then
@@ -527,6 +507,7 @@ function MiliUI_FocuserBar.Refresh()
     if ShouldShow() then
         CreateBar()
         UpdateMarkIcon()
+        PositionBar()
         bar:Show()
     elseif bar then
         picker:Hide()
@@ -535,67 +516,43 @@ function MiliUI_FocuserBar.Refresh()
 end
 
 ----------------------------------------------------------------------
--- 公開 API（給 Settings.lua / Focuser.lua 用）
+-- 對外
 ----------------------------------------------------------------------
-function MiliUI_FocuserBar.IsShown()
-    return GetDB().focuserBarShown
-end
-
-function MiliUI_FocuserBar.SetShown(val)
-    GetDB().focuserBarShown = val and true or false
-    MiliUI_FocuserBar.Refresh()
-end
-
-function MiliUI_FocuserBar.GetAnnounceText()
-    return GetDB().focuserAnnounceText
-end
-
-function MiliUI_FocuserBar.SetAnnounceText(text)
-    if not text or text == "" then text = DEFAULT_ANNOUNCE end
-    GetDB().focuserAnnounceText = text
-end
-
-function MiliUI_FocuserBar.GetDefaultAnnounceText()
-    return DEFAULT_ANNOUNCE
-end
-
--- 標記圖示在設定面板改變時同步列上的圖示
-function MiliUI_FocuserBar.UpdateMarkIcon()
+function MarkBar.UpdateMarkIcon()
     UpdateMarkIcon()
 end
 
--- 預存「選了編號 i 時 FocuserButton 該用的巨集文字」到各格子的屬性，
--- 讓格子的安全快照能在戰鬥中直接換上。自動標記/清除標記等設定改變時
--- 由 Focuser.SwitchMacro 呼叫重算（保護屬性，只能脫戰寫；戰鬥中改設定
--- 由 Focuser 的 pendingMacro 延後到脫戰，屆時會再進到這裡）
-function MiliUI_FocuserBar.SyncCellMacros()
+-- 預存「選了編號 i 時巨集該長什麼樣」到各格子的屬性，讓格子的安全快照
+-- 能在戰鬥中直接換上。自動標記等設定改變時由 Focuser 呼叫重算（保護屬性，
+-- 只能脫戰寫；戰鬥中改設定由 Focuser 的 pendingMacro 延後到脫戰）
+function MarkBar.SyncCellMacros()
     if not pickerCells then return end
     if InCombatLockdown() then return end
-    if not (MiliUI_Focuser and MiliUI_Focuser.GetMacroForMarkIndex) then return end
     for i, cell in ipairs(pickerCells) do
-        cell:SetAttribute("focusermacro", MiliUI_Focuser.GetMacroForMarkIndex(i))
+        cell:SetAttribute("focusermacro", ns.Focuser.GetMacroForMarkIndex(i))
     end
 end
 
-function MiliUI_FocuserBar.ResetPosition()
-    local db = GetDB()
-    db.focuserBarX, db.focuserBarY = nil, nil
+function MarkBar.ResetPosition()
+    local db = DB()
+    db.x, db.y = nil, nil
     PositionBar()
+end
+
+function MarkBar.PreviewAnnounce()
+    return BuildAnnounceMessage(false)
 end
 
 ----------------------------------------------------------------------
 -- Events
 ----------------------------------------------------------------------
 local ev = CreateFrame("Frame")
-ev:RegisterEvent("PLAYER_LOGIN")
-ev:RegisterEvent("PLAYER_REGEN_ENABLED")
-ev:RegisterEvent("GLOBAL_MOUSE_DOWN")
 ev:SetScript("OnEvent", function(_, event)
     if event == "GLOBAL_MOUSE_DOWN" then
         -- 點選單以外的地方收起選單。排除標記按鈕本身（它的安全 _onclick
         -- 自己會切換，這裡先收會互相抵消變成永遠關不掉／關了又開）。
-        -- 戰鬥中不能從一般程式隱藏保護框架，略過（可用 ESC 以外的
-        -- 方式：再點一次標記按鈕或直接選一個標記）。
+        -- 戰鬥中不能從一般程式隱藏保護框架，略過（改用再點一次標記按鈕
+        -- 或直接選一個標記）。
         if picker and picker:IsShown() and not InCombatLockdown()
            and not picker:IsMouseOver() and not (markBtn and markBtn:IsMouseOver()) then
             picker:Hide()
@@ -603,9 +560,13 @@ ev:SetScript("OnEvent", function(_, event)
     elseif event == "PLAYER_REGEN_ENABLED" then
         if pendingRefresh then
             pendingRefresh = false
-            MiliUI_FocuserBar.Refresh()
+            MarkBar.Refresh()
         end
-    else
-        MiliUI_FocuserBar.Refresh()
     end
+end)
+
+ns.RegisterCallback("Init", "markbar", function()
+    ev:RegisterEvent("PLAYER_REGEN_ENABLED")
+    ev:RegisterEvent("GLOBAL_MOUSE_DOWN")
+    MarkBar.Refresh()
 end)

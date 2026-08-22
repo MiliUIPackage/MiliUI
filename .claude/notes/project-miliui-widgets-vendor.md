@@ -31,9 +31,17 @@ metadata:
 **踩雷點**：`Env.NAMESPACE` 每個插件必須不同。`CreateFont("同名")` 回傳既有物件而非
 新的，具名 frame 也一樣 —— 撞名會讓兩個插件互相蓋掉字型設定，而且不報錯。
 
-**現況**：兩個消費者——UnitFrames（source）與 **MiliUI_Tooltip**（2026-08-22 複製，
-第二個消費者，見 [[project-miliui-tooltip]]）。Env 六項契約在程式層夠用，未動共用層一字
-（遊戲內未驗證）。設定視窗本體（`Options/Panel.lua`）仍是各插件自己組裝（Tooltip 抄了
-一份簡化版：無搜尋、無小地圖鈕）；設定搜尋刻意不進包，理由寫在 README 末段。
+**現況**：三個消費者——UnitFrames（source）、**MiliUI_Tooltip**（2026-08-22，
+見 [[project-miliui-tooltip]]）、**MiliUI_Focus**（2026-08-22，見
+[[project-miliui-focus-addon]]）。設定視窗本體（`Options/Panel.lua`）仍是各插件自己組裝
+（Tooltip／Focus 都抄了簡化版：無搜尋、無小地圖鈕）；設定搜尋刻意不進包，理由寫在
+README 末段。
+
+**`custom` spec（2026-08-22 加，共用層唯一一次擴充）**：`Controls.Build` 多了
+`{ type = "custom", label, build, h }`，`build(parent, x, y, width, ctx)` 回傳
+`高度, refresh(選用)`。宿主自己畫那一列、共用層只負責排版與把 refresh 併進 refreshers。
+加它的理由：Focus 需要「擷取按鍵」與「唯讀巨集複製框」兩種控件，兩者都只有一個插件會用
+—— 與其在共用層長出 `keybind` / `copybox` 這種宿主味的型別，不如開一個通用逃生口。
+**三份 copy 必須一字不差**（改完 `diff` 三份確認），這次是同時改三份同步過去的。
 
 相關：[[project-miliui-unit-frame]]、[[project-miliui-release-version]]

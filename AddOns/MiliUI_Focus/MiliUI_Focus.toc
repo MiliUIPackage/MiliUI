@@ -1,0 +1,42 @@
+## Interface: 120100, 120105
+## Title: MiliUI Focus
+## Title-zhTW: |cff00FFFF[焦點]|r 米利的焦點助手
+## Title-zhCN: |cff4488FF[MiliUI]|r 米利的焦点助手
+## Notes: Focus target helper: shift-click focus with auto raid marker, focus cast bar with interrupt colors.|n|n|cffffd200Usage: |r/mfocus opens settings.
+## Notes-zhTW: MiliUI Focus|n|n米利的焦點助手。|n|nShift+點擊設焦點並自動上團隊標記、焦點施法條依斷法狀態變色。|n|n|cffffd200使用方法: |r/mfocus 開啟設定。
+## Notes-zhCN: MiliUI Focus|n|n米利的焦点助手。|n|nShift+点击设焦点并自动上团队标记、焦点施法条依打断状态变色。|n|n|cffffd200使用方法: |r/mfocus 打开设置。
+## Category: Combat
+## Category-zhTW: 戰鬥
+## Category-zhCN: 战斗
+## Author: Mili
+## Version: 1.0.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\ability_hunter_snipershot
+## SavedVariables: MiliUI_Focus_DB
+## AddonCompartmentFunc: MiliUIFocus_OnAddonCompartmentClick
+
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\Callbacks.lua
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+
+Core\Init.lua
+Core\Media.lua
+Core\DB.lua
+
+Modules\Focuser.lua
+Modules\Sync.lua
+Modules\MarkBar.lua
+Modules\CastBar.lua
+
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\Controls.lua
+Options\Specs.lua
+Options\Panel.lua
+Options\Tab_Focus.lua
+Options\Tab_Bar.lua
+Options\Tab_Cast.lua
+Options\Blizzard.lua
+Api.lua
