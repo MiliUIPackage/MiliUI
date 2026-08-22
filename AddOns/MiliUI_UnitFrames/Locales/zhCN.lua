@@ -466,3 +466,8 @@ L["Bottom right"] = "右下"
 L["Stack anchor"] = "层数位置"
 L["Stack offset"] = "层数偏移"
 L["The anchor is which corner of the number sits on the same corner of the icon, so which way the offset pushes depends on it: from the top left, positive X goes right and negative Y goes down."] = "锚点是「数字的哪一角贴到图标的同一角」，所以偏移往哪推会跟着锚点变：靠左上时 X 正往右、Y 负往下。"
+
+-- 暴雪「選項 > 插件」入口頁（Options/Blizzard.lua）
+L["Version: %s"] = "版本：%s"
+L["Use /muf to open options"] = "使用 /muf 打开设置"
+L["Open options"] = "打开设置"

@@ -468,3 +468,8 @@ L["Bottom right"] = "오른쪽 아래"
 L["Stack anchor"] = "중첩 위치"
 L["Stack offset"] = "중첩 오프셋"
 L["The anchor is which corner of the number sits on the same corner of the icon, so which way the offset pushes depends on it: from the top left, positive X goes right and negative Y goes down."] = "기준점은 '숫자의 어느 모서리를 아이콘의 같은 모서리에 붙일지'입니다. 따라서 오프셋 방향도 기준점에 따라 달라집니다. 왼쪽 위 기준이면 X 양수는 오른쪽, Y 음수는 아래로 갑니다."
+
+-- 暴雪「選項 > 插件」入口頁（Options/Blizzard.lua）
+L["Version: %s"] = "버전: %s"
+L["Use /muf to open options"] = "/muf 명령어로 설정 열기"
+L["Open options"] = "설정 열기"

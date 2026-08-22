@@ -468,3 +468,8 @@ L["Bottom right"] = "Снизу справа"
 L["Stack anchor"] = "Положение стаков"
 L["Stack offset"] = "Смещение стаков"
 L["The anchor is which corner of the number sits on the same corner of the icon, so which way the offset pushes depends on it: from the top left, positive X goes right and negative Y goes down."] = "Точка привязки — это то, каким углом число прикрепляется к тому же углу значка, поэтому направление смещения зависит от неё: от верхнего левого угла положительный X идёт вправо, а отрицательный Y — вниз."
+
+-- 暴雪「選項 > 插件」入口頁（Options/Blizzard.lua）
+L["Version: %s"] = "Версия: %s"
+L["Use /muf to open options"] = "Введите /muf, чтобы открыть настройки"
+L["Open options"] = "Открыть настройки"

@@ -468,3 +468,8 @@ L["Bottom right"] = "Unten rechts"
 L["Stack anchor"] = "Position der Stapelzahl"
 L["Stack offset"] = "Versatz der Stapelzahl"
 L["The anchor is which corner of the number sits on the same corner of the icon, so which way the offset pushes depends on it: from the top left, positive X goes right and negative Y goes down."] = "Der Ankerpunkt legt fest, welche Ecke der Zahl auf derselben Ecke des Symbols sitzt – die Richtung des Versatzes hängt also davon ab: Bei „Oben links“ geht ein positives X nach rechts und ein negatives Y nach unten."
+
+-- 暴雪「選項 > 插件」入口頁（Options/Blizzard.lua）
+L["Version: %s"] = "Version: %s"
+L["Use /muf to open options"] = "/muf eingeben, um die Optionen zu öffnen"
+L["Open options"] = "Optionen öffnen"

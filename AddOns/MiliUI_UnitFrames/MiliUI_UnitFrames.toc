@@ -66,6 +66,7 @@ Options\Tab_Unit.lua
 Options\Tab_Resource.lua
 Options\Tab_Totem.lua
 Options\Tab_Share.lua
+Options\Blizzard.lua
 Options\Minimap.lua
 EditMode.lua
 Api.lua

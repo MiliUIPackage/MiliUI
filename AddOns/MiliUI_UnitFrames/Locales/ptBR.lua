@@ -468,3 +468,8 @@ L["Bottom right"] = "Inferior direito"
 L["Stack anchor"] = "Posição do acúmulo"
 L["Stack offset"] = "Deslocamento do acúmulo"
 L["The anchor is which corner of the number sits on the same corner of the icon, so which way the offset pushes depends on it: from the top left, positive X goes right and negative Y goes down."] = "A ancoragem define qual canto do número fica no mesmo canto do ícone, então a direção do deslocamento depende dela: a partir do canto superior esquerdo, um X positivo vai para a direita e um Y negativo para baixo."
+
+-- 暴雪「選項 > 插件」入口頁（Options/Blizzard.lua）
+L["Version: %s"] = "Versão: %s"
+L["Use /muf to open options"] = "Use /muf para abrir as opções"
+L["Open options"] = "Abrir opções"
