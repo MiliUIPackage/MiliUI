@@ -35,7 +35,9 @@ end
 function Model.OnUnit(tip, state, unit)
     if tip ~= GameTooltip then return end
     if not ns.db then return end
-    if unit ~= "mouseover" then Model.Clear(tip) return end
+    -- ⚠ unit token 本身可能是秘密字串（SetWorldCursor 的世界單位提示走這條），
+    -- 跟明文字面值比較（同型別）會炸——先洗，洗不出明文就當不是 mouseover
+    if S.SafeValue(unit) ~= "mouseover" then Model.Clear(tip) return end
     if not S.SafeBool(UnitExists, unit) or not S.SafeBool(UnitIsVisible, unit) then
         Model.Clear(tip)
         return

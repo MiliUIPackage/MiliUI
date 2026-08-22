@@ -248,7 +248,8 @@ watcher:SetScript("OnEvent", function(_, _, key, stateArg)
     if not S.IsForbiddenObject(tip) then
         AnchorFrame(tip, tip:GetOwner() or UIParent, anchor, isUnitFrame, nil, ruleAnchor)
         if isDown then
-            if unit == "mouseover" and tip.SetMouseoverUnit then
+            -- unit token 可能是秘密字串（見 Model.lua）——字面值比較前先洗
+            if S.SafeValue(unit) == "mouseover" and tip.SetMouseoverUnit then
                 pcall(tip.SetMouseoverUnit, tip)
             else
                 pcall(tip.SetUnit, tip, unit)
