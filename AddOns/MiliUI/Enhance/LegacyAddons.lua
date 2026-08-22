@@ -27,16 +27,16 @@ local REPLACED = {
     {
         label   = "Stuf",
         folders = { "Stuf_Options", "Stuf_Range", "Stuf" },
-        -- 取代者：只有它真的在跑才算衝突。玩家若刻意停用米利頭像框架改用 Stuf，
+        -- 取代者：只有它真的在跑才算衝突。玩家若刻意停用米利的單位框架改用 Stuf，
         -- 這裡就不該多管閒事。
         replacement      = "MiliUI_UnitFrames",
-        replacementLabel = "米利頭像框架",
+        replacementLabel = "米利的單位框架",
     },
     {
         label   = "TinyTooltip",
         folders = { "TinyTooltip-Remake" },
         replacement      = "MiliUI_Tooltip",
-        replacementLabel = "米利滑鼠提示",
+        replacementLabel = "米利的滑鼠提示",
     },
 }
 

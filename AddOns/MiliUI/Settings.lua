@@ -235,7 +235,7 @@ local function InitSettings()
     tip:SetPoint("TOPLEFT", url, "BOTTOMLEFT", 0, -6)
     tip:SetText("若有任何問題歡迎在米利UI套組頁面下方留言討論")
 
-    -- 開啟米利頭像框架（MiliUI_UnitFrames）獨立設定面板
+    -- 開啟米利的單位框架（MiliUI_UnitFrames）獨立設定面板
     if C_AddOns.IsAddOnLoaded("MiliUI_UnitFrames") then
         local ufBtn = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
         ufBtn:SetSize(160, 24)

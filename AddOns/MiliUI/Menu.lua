@@ -43,10 +43,11 @@ local MIN_WIDTH   = 150
 local HIDE_DELAY  = 0.25       -- 滑鼠離開後多久收起來
 local DEFAULT_ICON = "Interface\\AddOns\\MiliUI\\icon"
 
--- 標籤開頭的 "MiliUI" 是雜訊：這張選單本身就叫米利UI了，
+-- 標籤開頭的 "MiliUI"／"米利的" 是雜訊：這張選單本身就叫米利UI了，
 -- 每一列再掛一次只會把真正的名字往右推。
+-- 註冊方的 text 維持完整名稱（插件列表、選項分類要用），只有這張選單顯示時剝掉。
 local function CleanLabel(text)
-    return (text:gsub("^MiliUI%s*", ""):gsub("^米利UI%s*", ""))
+    return (text:gsub("^MiliUI%s*", ""):gsub("^米利UI%s*", ""):gsub("^米利的", ""))
 end
 
 ------------------------------------------------------------
