@@ -30,6 +30,14 @@ local MEDIA = "Interface\\AddOns\\MiliUI_Tooltip\\Media\\"
 -- UI-PVP-ALLIANCE/HORDE 是舊版帶金屬圓框的立體徽章，縮到 14px 只剩一坨。
 -- 原本掛在 MiliUI/Enhance/TinyTooltipRemake_FactionIcon.lua，這裡改成內建。
 -- atlas 被暴雪拿掉時退回舊貼圖，不要塞出一個綠框。
+--
+-- 要換款式就把下面 icons 表裡的 atlas 名（與寬高）換成這幾組：
+--   社群面板款（純色符號、完全沒描邊，最扁平，但顏色偏暗）：
+--     communities-icon-faction-alliance 12×14 ／ communities-icon-faction-horde 12×14
+--   世界任務地圖款（小尺寸下最清楚、顏色最飽和）：
+--     worldquest-icon-alliance 14×13 ／ worldquest-icon-horde 14×13
+--   登入畫面剪影款（單色灰白、無陣營色；兩邊原生比例不同）：
+--     CharacterSelection_Alliance_Icon 11×14 ／ CharacterSelection_Horde_Icon 8×14
 local function FactionIcon(atlas, w, h, fallback)
     if type(CreateAtlasMarkup) == "function"
         and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) then
