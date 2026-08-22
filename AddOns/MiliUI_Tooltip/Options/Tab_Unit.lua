@@ -237,16 +237,18 @@ local function CreateBoard(parent, kind, width, onHeight)
                 local cfg = elements[key]
                 if cfg and cfg.enable then tinsert(shown, key) end
             end
-            local strip = AcquireStrip()
-            strip.rowIndex = r
-            strip:ClearAllPoints()
-            strip:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -y)
-            local lines = 1
+            -- 整列元素都停用的列不畫（例如預設關閉的「所在區域」獨佔一列，
+            -- 會變成一條永遠掛著的空 strip）。key 留在 DB 原位，
+            -- 重新啟用時還是回到原來的列。
             if #shown > 0 then
-                lines = FlowChips(strip, shown, false)
+                local strip = AcquireStrip()
+                strip.rowIndex = r
+                strip:ClearAllPoints()
+                strip:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -y)
+                local lines = FlowChips(strip, shown, false)
+                strip:SetSize(width, lines * STRIP_LINE_H + 4)
+                y = y + lines * STRIP_LINE_H + 4 + 4
             end
-            strip:SetSize(width, lines * STRIP_LINE_H + 4)
-            y = y + lines * STRIP_LINE_H + 4 + 4
         end
 
         -- 「新增一列」放置區
