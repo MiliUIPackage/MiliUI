@@ -61,3 +61,27 @@ pcall 失敗、無單位）**仍走 SHOW** —— 否則正常戰鬥中光環變
 不變（assist/visible 回來的邊緣觸發 `GateRefresh` bounce），所以 HIDE 會自己好，代價只是誤判
 那一瞬間列會閃一下不見。`/cab inspect` 身分閘行尾印「失效方向」可確認目前模式。翻回舊行為改
 常數為 false。
+
+
+## 跨陣營隊友（2026-08-22，使用者回報 → 待實測確認）
+
+隊友是聯盟、自己是部落，也會 filter 失效。處理方向跟離線一致：**凡是依賴 candidateFilters
+的列一律不顯示**（使用者拍板：寧可空的也不要錯的）。`ApplyIdentityGate` 動兩處：
+
+- **第 (2) 條 assist 的守備範圍擴大**：`_gateVulnerable` → `_gateVulnerable or _gateCFDependent`。
+  理由跟離線同一條 —— 引擎解不出身分就整包 candidateFilters 不套用，HARMFUL 的列
+  （減益排的 `excludeSpellIDs` 黑名單、「上面那列已認領」的布林減法）一樣中招。
+- **新增第 (2b) 條：陣營不同**（`UnitFactionGroup("player")` vs 單位）當獨立訊號。
+  理由是 `UnitCanAssist` 對「補得到血的隊友」很可能回 **true**（跨陣營組隊本來就能互補），
+  那 (2) 就永遠不會動 —— 陣營不同是確定、不會 secret 的答案，直接當訊號比較穩。
+  - ⚠ **副本內豁免**（`IsInInstance()`）：跨陣營鑰石/團隊是官方支援的玩法，為了這個把
+    整場的白名單列都藏掉會比原本的 bug 更糟。**只管開放世界。**
+  - ⚠ **恢復邊緣要含「變成無法回答」**：走進副本 → 這條分支整個跳過，但容器裡還留著
+    開放世界那次 fail-open 的解析，而進副本不是光環變動、沒有任何東西會踢它。
+    所以 `was == false and same ~= false`（不是 `and same`）才算恢復。
+  - Neutral（未選陣營的熊貓人）算「沒答案」，不是不同陣營。
+
+`/cab inspect <unit>` 身分閘那行多印 `同陣營=`（nil＝這條沒答案，副本內/中立/secret 都是）。
+**還沒現場驗證的是哪一條真正生效**：若 inspect 印 `assist=false` 就是 (2) 抓到，
+印 `assist=true 同陣營=false` 就是 (2b) 抓到 —— 後者代表「跨陣營＝assist 仍為 true」，
+那上面「跨陣營隊友（副本外）assist 會 false」的舊說法要改。
