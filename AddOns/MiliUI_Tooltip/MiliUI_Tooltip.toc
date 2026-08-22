@@ -48,4 +48,5 @@ Options\Panel.lua
 Options\Tab_General.lua
 Options\Tab_Unit.lua
 Options\Tab_Extra.lua
+Options\Blizzard.lua
 Api.lua
