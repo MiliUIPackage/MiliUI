@@ -53,6 +53,11 @@ local function OnUnit(tip)
     if not state then return end
     if not tip.GetUnit then return end
     local ok, _, unit = pcall(tip.GetUnit, tip)
+    if ns.logEnabled then
+        ns.Log("OnUnit tip=%s getunit_ok=%s unit=%s state.unit=%s combat=%s",
+            tip:GetName() or "?", tostring(ok), ns.Describe(unit),
+            ns.Describe(state.unit), tostring(InCombatLockdown()))
+    end
     if not ok or not unit then return end
     -- xpcall + ReportError：這裡吞錯會讓「行寫了、著色沒跑」這種半套結果
     -- 靜默發生（實測抓過一次），至少要進 /mtip debug 的錯誤紀錄

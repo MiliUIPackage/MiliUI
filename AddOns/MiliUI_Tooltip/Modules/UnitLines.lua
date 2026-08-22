@@ -314,7 +314,13 @@ end
 ------------------------------------------------------------
 function UnitLines.Apply(tip, state, unit, relayout)
     if not ns.db then return end
-    if not unit or not S.SafeBool(UnitExists, unit) then return end
+    if not unit or not S.SafeBool(UnitExists, unit) then
+        if ns.logEnabled then
+            ns.Log("Apply 早退 unit=%s exists_plain=%s（線維持暴雪原樣）",
+                ns.Describe(unit), ns.Describe(S.SafeCall(UnitExists, unit)))
+        end
+        return
+    end
 
     -- 換了單位就丟掉上一個單位的專精快取（GUID 可能是秘密 → 用 pcall 比較）
     local guid = S.SafeCall(UnitGUID, unit)
@@ -329,10 +335,25 @@ function UnitLines.Apply(tip, state, unit, relayout)
     local config = isPlayer and ns.db.unit.player or ns.db.unit.npc
     local raw = UnitInfo.GetUnitInfo(unit)
 
+    if ns.logEnabled then
+        local okN, n = pcall(tip.NumLines, tip)
+        ns.Log("Apply unit=%s isPlayer=%s name=%s guid=%s numlines_pre=%d relayout=%s",
+            ns.Describe(unit), tostring(isPlayer), ns.Describe(raw.name),
+            ns.Describe(state.unitGuid), okN and n or -1, tostring(relayout))
+    end
+
     if isPlayer then
         ApplyPlayer(tip, state, unit, config, raw)
     else
         ApplyNpc(tip, state, unit, config, raw)
+    end
+    if ns.logEnabled then
+        local okN, n = pcall(tip.NumLines, tip)
+        local line1 = _G[tip:GetName() .. "TextLeft1"]
+        local okT, text = pcall(function() return line1 and line1:GetText() end)
+        ns.Log("Apply 完成 branch=%s numlines=%d line1=%s",
+            isPlayer and "player" or "npc", okN and n or -1,
+            okT and ns.Describe(text) or "?")
     end
 
     ColorBorder(tip, config, raw)

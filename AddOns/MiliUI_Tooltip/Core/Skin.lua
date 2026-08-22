@@ -229,6 +229,9 @@ end
 function Skin.ClearTransient(tip)
     local state = State[tip]
     if not state then return end
+    if ns.logEnabled and (state.unit or state.isUnitTip) then
+        ns.Log("ClearTransient tip=%s 原state.unit=%s", tip:GetName() or "?", ns.Describe(state.unit))
+    end
     state.unit = nil
     state.unitGuid = nil
     state.specGuid = nil

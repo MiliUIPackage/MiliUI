@@ -23,6 +23,29 @@ function ns.ReportError(err)
 end
 
 ------------------------------------------------------------
+-- 診斷記錄器（/mtip log 開關、/mtip logdump 印出）
+-- 抓「戰鬥中敵方提示顯示成上一個友方」這類要看時序的問題用。
+-- 關閉時每個記錄點只付一次 boolean 檢查。
+------------------------------------------------------------
+ns.logEnabled = false
+ns.logBuf = {}
+
+-- 值的安全描述：秘密值不讀內容，只標型別
+function ns.Describe(v)
+    if v == nil then return "nil" end
+    if issecretvalue and issecretvalue(v) then return "secret<" .. type(v) .. ">" end
+    if type(v) == "string" then return '"' .. v .. '"' end
+    return tostring(v)
+end
+
+function ns.Log(fmt, ...)
+    if not ns.logEnabled then return end
+    local ok, line = pcall(string.format, fmt, ...)
+    tinsert(ns.logBuf, ("[%.2f] %s"):format(GetTime() % 1000, ok and line or fmt))
+    if #ns.logBuf > 150 then tremove(ns.logBuf, 1) end
+end
+
+------------------------------------------------------------
 -- 封鎖／禁止動作攔截（同 MiliUI_UnitFrames 的做法）
 -- ADDON_ACTION_FORBIDDEN 不是 Lua error、pcall 攔不住；事件會點名插件與函式，
 -- 抓下來直接印出，taint 傳染第一時間就看得到兇手。

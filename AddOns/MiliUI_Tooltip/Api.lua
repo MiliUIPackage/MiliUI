@@ -33,6 +33,14 @@ SlashCmdList.MILIUITIP = function(msg)
     msg = strtrim(strlower(msg or ""))
     if msg == "reset" then
         ns.DB.ResetAll()
+    elseif msg == "log" then
+        ns.logEnabled = not ns.logEnabled
+        if ns.logEnabled then wipe(ns.logBuf) end
+        print("|cff4DD2FF[米利的滑鼠提示]|r 診斷記錄：" .. (ns.logEnabled and "開（重現問題後 /mtip logdump 印出）" or "關"))
+    elseif msg == "logdump" then
+        print("|cff4DD2FF[米利的滑鼠提示]|r 診斷記錄 " .. #ns.logBuf .. " 條：")
+        for _, line in ipairs(ns.logBuf) do print(line) end
+        wipe(ns.logBuf)
     elseif msg == "debug" then
         print("|cff4DD2FF[MiliUI Tooltip]|r v" .. ns.VERSION)
         if #ns.errors == 0 then
