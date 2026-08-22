@@ -69,16 +69,15 @@ function Bar.ApplySettings(tip)
     bar:GetStatusBarTexture():SetTexture(Media.BarTexture(sb.texture))
 
     local h = P.Scale(math.max(1, sb.height or 4))
-    local inset = state.borderInset or P.Scale(1)
-    -- 血條是離框體 4px 的獨立條（使用者定案：有 gap 比蓋在框緣上漂亮）
+    -- 血條是離框體 4px 的獨立條（使用者定案），左右貼齊框體外緣
     local gap = P.Scale(4)
     bar:ClearAllPoints()
     if sb.position == "top" then
-        bar:SetPoint("BOTTOMLEFT", skin, "TOPLEFT", inset, gap)
-        bar:SetPoint("BOTTOMRIGHT", skin, "TOPRIGHT", -inset, gap)
+        bar:SetPoint("BOTTOMLEFT", skin, "TOPLEFT", 0, gap)
+        bar:SetPoint("BOTTOMRIGHT", skin, "TOPRIGHT", 0, gap)
     else
-        bar:SetPoint("TOPLEFT", skin, "BOTTOMLEFT", inset, -gap)
-        bar:SetPoint("TOPRIGHT", skin, "BOTTOMRIGHT", -inset, -gap)
+        bar:SetPoint("TOPLEFT", skin, "BOTTOMLEFT", 0, -gap)
+        bar:SetPoint("TOPRIGHT", skin, "BOTTOMRIGHT", 0, -gap)
     end
     bar:SetHeight(h)
 
@@ -203,11 +202,10 @@ function Bar.Activate(tip, unit)
     if not ns.db or not ns.db.statusbar.enable then return end
     local bar = Ensure(tip)
     if not bar then return end
-    -- 接觸面 #6 的重申：載入時 alpha 0 一次不夠——單位提示流程會把暴雪的血條
-    -- 弄回來（實測：粗綠條蓋在 tooltip 下緣）。每次啟用我們的條就再壓一次。
-    if tip == GameTooltip and GameTooltipStatusBar and GameTooltipStatusBar.SetAlpha then
-        pcall(GameTooltipStatusBar.SetAlpha, GameTooltipStatusBar, 0)
-    end
+    -- 接觸面 #6 的重申：載入時 alpha 0 一次不夠——單位提示流程會把模板自帶的
+    -- 血條弄回來（GameTooltip 的是 GameTooltipStatusBar，預覽 tooltip 有自己的
+    -- 一條）。每次啟用我們的條就再壓一次。
+    Skin.NeutralizeTemplateBar(tip)
     local state = Skin.Get(tip)
     state.barUnit = unit
     Bar.Refresh(tip)   -- 顯示與否交給 Refresh（含戰鬥中隱藏的判斷）

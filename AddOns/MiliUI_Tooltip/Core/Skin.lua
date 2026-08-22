@@ -46,6 +46,19 @@ local function NeutralizeNineSlice(tip)
     end
 end
 
+-- GameTooltipTemplate **自帶**一條 `$parentStatusBar`（GameTooltip 的就是全域
+-- GameTooltipStatusBar，我們的預覽 tooltip 也有自己的 MiliUITip_PreviewStatusBar），
+-- 單位提示時引擎會把它顯示出來，跟我們自己的血條疊在一起、寬度又不同
+--（/fstack 實測抓到兩條）。接管的 tip 一律把它 alpha 0。
+function Skin.NeutralizeTemplateBar(tip)
+    if S.IsForbiddenObject(tip) then return end
+    local ok, name = pcall(tip.GetName, tip)
+    local tplBar = ok and name and _G[name .. "StatusBar"]
+    if tplBar and tplBar.SetAlpha then
+        pcall(tplBar.SetAlpha, tplBar, 0)
+    end
+end
+
 ------------------------------------------------------------
 -- skin 建立
 ------------------------------------------------------------
@@ -106,6 +119,7 @@ function Skin.Attach(tip)
     skin:SetScript("OnShow", function(self)
         LowerSkinLevel(self)
         NeutralizeNineSlice(tip)
+        Skin.NeutralizeTemplateBar(tip)
         Skin.RaiseAccents(tip)
     end)
     skin:SetScript("OnHide", function()
@@ -114,6 +128,7 @@ function Skin.Attach(tip)
 
     LowerSkinLevel(skin)
     NeutralizeNineSlice(tip)
+    Skin.NeutralizeTemplateBar(tip)
     Skin.ApplyBase(tip)
     return state
 end
