@@ -1,0 +1,718 @@
+{
+ "pairs": {
+  "Core/AztarecHelper.lua": [
+   [
+    "    local okZ, zt = pcall(GetZoneText)\n    return (okZ and zt == \"Venomfall Deeps\") or false",
+    "    -- fix from MiliUI (中文化): GetZoneText 回傳的是客戶端語系的區域名，\n    -- 只比對英文的話，這道備援在中文客戶端等於沒作用\n    local okZ, zt = pcall(GetZoneText)\n    return (okZ and (zt == \"Venomfall Deeps\" or zt == \"毒瀑深淵\" or zt == \"毒瀑深渊\")) or false"
+   ],
+   [
+    "AZT.ARROW_ATLAS = \"NPE_Arrow%s\"\nAZT.QUAD_DIR = { N = \"Up\", E = \"Right\", S = \"Down\", W = \"Left\" }",
+    "AZT.ARROW_ATLAS = \"NPE_Arrow%s\"\n-- 這四個字同時是貼圖集的後綴（NPE_ArrowUp）和隊長報點發出去的約定字串，\n-- fix from MiliUI (中文化)：這兩個用途都不能翻譯，要顯示/念出來的中文另外放兩張表\nAZT.QUAD_DIR = { N = \"Up\", E = \"Right\", S = \"Down\", W = \"Left\" }\n-- 語音提示跟選單念出來的方向詞\nAZT.QUAD_DIR_WORD = { N = \"上\", E = \"右\", S = \"下\", W = \"左\" }\n-- 沒有標記也沒有箭頭時，象限就穿自己的方位字\nAZT.QUAD_LETTER = { N = \"北\", E = \"東\", S = \"南\", W = \"西\" }"
+   ],
+   [
+    "        return (\"|T\" .. AZT.MARK_TEX .. \":%d|t\"):format(idx, size)\n    end\n    return q\nend",
+    "        return (\"|T\" .. AZT.MARK_TEX .. \":%d|t\"):format(idx, size)\n    end\n    return AZT.QUAD_LETTER[q] or q\nend"
+   ],
+   [
+    "            chat(\"treating every zone as the delve - costs idle work, /azt anywhere again to turn off\")\n        else\n            chat(\"back to delve detection\")",
+    "            chat(\"現在把所有區域都當成探究 - 會多一點閒置耗用，再打一次 /azt anywhere 關掉\")\n        else\n            chat(\"回到自動偵測探究區域\")"
+   ],
+   [
+    "        chat(\"solo spoken cues: \" .. (AztarecHelperDB.cues and \"ON\" or \"OFF\"))",
+    "        chat(\"單人語音提示：\" .. (AztarecHelperDB.cues and \"開\" or \"關\"))"
+   ],
+   [
+    "            chat(\"relative turns: ON - first wave still names its quarter, marking and calling are off\")\n        else\n            chat(\"relative turns: OFF - back to naming the quarter you ran to\")",
+    "            chat(\"相對轉向：開 - 第一波還是要指象限，標記跟報點會關掉\")\n        else\n            chat(\"相對轉向：關 - 回到直接指你跑去的象限\")"
+   ],
+   [
+    "            chat(\"recording is automatic and the calls ride the answer keys - /azt manual first\")",
+    "            chat(\"現在是自動記錄，而報點是掛在回答鍵上的 - 先打 /azt manual\")"
+   ],
+   [
+    "            chat(\"your keys answer relative turns, and a turn has no quarter to call - /azt turns first\")",
+    "            chat(\"你的按鍵現在回答的是相對轉向，轉向沒有象限可以報 - 先打 /azt turns\")"
+   ],
+   [
+    "            chat(\"route calling is for the party leader - take the lead first\")",
+    "            chat(\"報點是隊長的工作 - 先拿到隊長\")"
+   ],
+   [
+    "                chat(\n                    \"route calling: ON - ask the party to keep chat quiet in the fight, stray lines land on their boards\"\n                )\n            else\n                chat(\"route calling: OFF\")",
+    "                chat(\n                    \"報點：開 - 請隊友戰鬥中少講話，雜訊會跑到他們的路線板上\"\n                )\n            else\n                chat(\"報點：關\")"
+   ],
+   [
+    "            chat(\"following is for party members - you lead, call the route instead\")",
+    "            chat(\"跟隨是隊員的功能 - 你是隊長，改成報點吧\")"
+   ],
+   [
+    "            chat(\"following the leader: \" .. (AztarecHelperDB.follow and \"ON\" or \"OFF\"))",
+    "            chat(\"跟隨隊長報點：\" .. (AztarecHelperDB.follow and \"開\" or \"關\"))"
+   ],
+   [
+    "        chat(\"recorded route cleared\")",
+    "        chat(\"已清掉記錄的路線\")"
+   ],
+   [
+    "        chat(ADDON .. \" v\" .. AZT.VERSION)",
+    "        chat(ADDON .. \" v\" .. AZT.VERSION)"
+   ],
+   [
+    "        chat(\"commands:\")",
+    "        chat(\"指令列表：\")"
+   ],
+   [
+    "function AZT.Log() end",
+    "-- fix from MiliUI（診斷用）: 正式版的這個函式是空的，而 SafeSpots 的事件處理器\n-- 整個包在 pcall 裡，所以記錯了、沒記到、丟出錯誤，通通不會留下任何線索。\n-- 這裡把它接到 AztarecHelperDB.log —— 作者本來就宣告了這個欄位而且列進\n-- SavedVariables，只留最後 LOG_MAX 行，/azt log 看，/azt log clear 清掉。\n-- 每個呼叫點傳進來的都是插件自己組好的字串，不會碰到秘密值。\nlocal LOG_MAX = 400\nfunction AZT.Log(line)\n    local db = AztarecHelperDB\n    if not db or type(db.log) ~= \"table\" then\n        return -- 存檔還沒載入\n    end\n    if not pcall(function()\n        db.log[#db.log + 1] = (\"%.2f  %s\"):format(GetTime(), tostring(line))\n    end) then\n        return\n    end\n    while #db.log > LOG_MAX do\n        table.remove(db.log, 1)\n    end\nend"
+   ],
+   [
+    "    \"/azt reset         - 清掉記錄的路線\",",
+    "    \"/azt reset         - 清掉記錄的路線\",\n    \"/azt log           - 印出診斷記錄（/azt log clear 清空）\","
+   ],
+   [
+    "    elseif cmd == \"reset\" then\n        AZT.Safe.Reset()\n        chat(\"已清掉記錄的路線\")",
+    "    elseif cmd == \"log\" then\n        -- fix from MiliUI（診斷用）\n        local log = AztarecHelperDB.log or {}\n        if rest == \"clear\" then\n            wipe(log)\n            chat(\"診斷記錄已清空\")\n        else\n            chat((\"診斷記錄共 %d 行，以下是最後 40 行（/reload 之後會寫進存檔）\"):format(#log))\n            for i = math.max(1, #log - 39), #log do\n                print(\"  \" .. log[i])\n            end\n        end\n    elseif cmd == \"reset\" then\n        AZT.Safe.Reset()\n        chat(\"已清掉記錄的路線\")"
+   ]
+  ],
+  "Core/Cues.lua": [
+   [
+    "local MEDIA = \"Interface\\\\AddOns\\\\AztarecHelper\\\\Media\\\\\"\nlocal SOUNDS = {\n    forward = MEDIA .. \"forward.mp3\",\n    left = MEDIA .. \"left.mp3\",\n    right = MEDIA .. \"right.mp3\",\n    stay = MEDIA .. \"stay.mp3\",\n}",
+    "local MEDIA = \"Interface\\\\AddOns\\\\AztarecHelper\\\\Media\\\\\"\n-- fix from MiliUI (中文化): 中文客戶端改播 Media\\zhTW\\ 底下的中文語音，\n-- 其他語系照舊用作者錄的英文檔\nlocal VOICE = MEDIA\ndo\n    local loc = GetLocale()\n    if loc == \"zhTW\" or loc == \"zhCN\" then\n        VOICE = MEDIA .. \"zhTW\\\\\"\n    end\nend\nlocal SOUNDS = {\n    forward = VOICE .. \"forward.mp3\",\n    left = VOICE .. \"left.mp3\",\n    right = VOICE .. \"right.mp3\",\n    stay = VOICE .. \"stay.mp3\",\n}"
+   ],
+   [
+    "        AZT.chat(\n            (\"cue '%s' failed to play on %s - check that channel is enabled in the sound options\"):format(turn, chan)\n        )",
+    "        AZT.chat(\n            (\"語音提示「%s」在 %s 聲道播不出來 - 確認音效設定裡有開這個聲道\"):format(turn, chan)\n        )"
+   ],
+   [
+    "-- names for the marker each quarter can wear, raid target indexing\nlocal MARK_NAMES = { \"Star\", \"Circle\", \"Diamond\", \"Triangle\", \"Moon\", \"Square\", \"Cross\", \"Skull\" }\n-- the same eight by colour, for groups that call them that way. Skull has\n-- no colour of its own so it stays skull\nlocal MARK_COLORS = { \"Yellow\", \"Orange\", \"Purple\", \"Green\", \"Silver\", \"Blue\", \"Red\", \"Skull\" }",
+    "-- names for the marker each quarter can wear, raid target indexing\n-- fix from MiliUI (中文化): 用暴雪自己的中文標記名，語音唸出來才對得上隊伍用語\nlocal MARK_NAMES = { \"星形\", \"圓形\", \"鑽石\", \"三角\", \"月形\", \"方形\", \"十字\", \"骷髏\" }\n-- the same eight by colour, for groups that call them that way. Skull has\n-- no colour of its own so it stays skull\nlocal MARK_COLORS = { \"黃色\", \"橘色\", \"紫色\", \"綠色\", \"銀色\", \"藍色\", \"紅色\", \"骷髏\" }"
+   ],
+   [
+    "function AZT.TtsVoices()\n    return C_VoiceChat.GetTtsVoices() or {}\nend",
+    "function AZT.TtsVoices()\n    return C_VoiceChat.GetTtsVoices() or {}\nend\n\n-- fix from MiliUI (中文化): 沒有指定語音時，優先挑一個中文語音。原本是\n-- 拿清單第一個，那通常是英文語音，會把「星形」「往前」唸成一團亂碼\nlocal ZH_HINTS = {\n    \"Chinese\",\n    \"Mandarin\",\n    \"Taiwan\",\n    \"中文\",\n    \"台灣\",\n    \"臺灣\",\n    \"Hanhan\",\n    \"Yating\",\n    \"Zhiwei\",\n    \"HsiaoChen\",\n    \"Meijia\",\n    \"Tingting\",\n    \"Huihui\",\n    \"Kangkang\",\n    \"Xiaoxiao\",\n    \"Yaoyao\",\n}\n\nlocal function looksChinese(name)\n    if type(name) ~= \"string\" then\n        return false\n    end\n    for _, hint in ipairs(ZH_HINTS) do\n        if name:find(hint, 1, true) then\n            return true\n        end\n    end\n    -- 名字本身就寫成中文（UTF-8 三位元組區段）也算\n    return name:find(\"[\\228-\\233][\\128-\\191][\\128-\\191]\") ~= nil\nend\n\nlocal function firstChinese(voices)\n    for _, v in ipairs(voices) do\n        if looksChinese(v.name) then\n            return v\n        end\n    end\nend"
+   ],
+   [
+    "    return voices[1], nil\nend",
+    "    return firstChinese(voices) or voices[1], nil\nend"
+   ],
+   [
+    "function AZT.QuadWord(q)\n    if AZT.Follow and AZT.Follow.Arrows() then\n        return AZT.QUAD_DIR[q]\n    end",
+    "function AZT.QuadWord(q)\n    if AZT.Follow and AZT.Follow.Arrows() then\n        -- 唸出來的是中文方向詞，不是貼圖集後綴\n        return AZT.QUAD_DIR_WORD[q] or AZT.QUAD_DIR[q]\n    end"
+   ],
+   [
+    "            AZT.chat(\"the marker names cannot be spoken on this machine - using the turn words instead\")",
+    "            AZT.chat(\"這台機器唸不出標記名稱 - 改用轉向語音\")"
+   ],
+   [
+    "function AZT.CueChannelCVar()\n    return VOL_CVAR[AztarecHelperDB.cueChannel or \"Master\"]\nend",
+    "function AZT.CueChannelCVar()\n    return VOL_CVAR[AztarecHelperDB.cueChannel or \"Master\"]\nend\n\n-- fix from MiliUI (中文化): 聲道代號要照舊存進設定，顯示時才換成中文\nlocal CHANNEL_LABEL = {\n    Master = \"主音量\",\n    SFX = \"音效\",\n    Music = \"音樂\",\n    Ambience = \"環境\",\n    Dialog = \"對話\",\n}\n\nfunction AZT.ChannelLabel(name)\n    name = name or AztarecHelperDB.cueChannel or \"Master\"\n    return CHANNEL_LABEL[name] or name\nend"
+   ],
+   [
+    "    AZT.chat((\"your game mixes only %d sounds at once, so the cues can get squeezed out mid fight\"):format(n))\n    AZT.chat(\n        \"the cue settings have an Audio channels slider for it, or set the Cue voice to Markers, which skips the mixer\"\n    )",
+    "    AZT.chat((\"你的遊戲同時只混音 %d 個音效，語音提示在戰鬥中可能會被擠掉\"):format(n))\n    AZT.chat(\n        \"語音提示的設定裡有「音效聲道數」滑桿可以調，或者把「提示語音」改成標記，那條路不經過混音器\"\n    )"
+   ]
+  ],
+  "Core/SafeSpots.lua": [
+   [
+    "BINDING_HEADER_AZTARECHELPER = \"Azta'rec Helper\"\n-- display names only. The MARK command ids stay, renaming those drops keybinds\nBINDING_NAME_AZTARECHELPER_MARK_NORTH = \"Azta'rec Helper: answer north\"\nBINDING_NAME_AZTARECHELPER_MARK_EAST = \"Azta'rec Helper: answer east\"\nBINDING_NAME_AZTARECHELPER_MARK_SOUTH = \"Azta'rec Helper: answer south\"\nBINDING_NAME_AZTARECHELPER_MARK_WEST = \"Azta'rec Helper: answer west\"",
+    "BINDING_HEADER_AZTARECHELPER = \"阿茲塔瑞小幫手\"\n-- display names only. The MARK command ids stay, renaming those drops keybinds\nBINDING_NAME_AZTARECHELPER_MARK_NORTH = \"阿茲塔瑞小幫手：回答北\"\nBINDING_NAME_AZTARECHELPER_MARK_EAST = \"阿茲塔瑞小幫手：回答東\"\nBINDING_NAME_AZTARECHELPER_MARK_SOUTH = \"阿茲塔瑞小幫手：回答南\"\nBINDING_NAME_AZTARECHELPER_MARK_WEST = \"阿茲塔瑞小幫手：回答西\""
+   ],
+   [
+    "local TURNS = { [0] = \"stay\", \"left\", \"forward\", \"right\" }",
+    "-- 這四個字是內部 key（對到音效檔、旋轉角度、偏移量），不能翻譯\nlocal TURNS = { [0] = \"stay\", \"left\", \"forward\", \"right\" }\n-- fix from MiliUI (中文化): 要顯示給玩家看的轉向詞另外放一張表\nAZT.TURN_WORD = { stay = \"原地\", left = \"左\", forward = \"前\", right = \"右\" }"
+   ],
+   [
+    "            AZT.chat(\n                \"something keeps turning the minimap rotation off, a minimap addon most likely - it is back on for the delve\"\n            )",
+    "            AZT.chat(\n                \"有東西一直把小地圖旋轉關掉，多半是某個小地圖插件 - 已經幫你在探究裡開回來\"\n            )"
+   ],
+   [
+    "            AZT.chat(\"the compass ring is turning, automatic recording can see your facing again\")",
+    "            AZT.chat(\"方位環會轉了，自動記錄又能讀到你的面向\")"
+   ],
+   [
+    "            ringWarned = true\n            AZT.chat(\"your minimap compass ring is not turning, so nothing here can tell which way you face\")",
+    "            ringWarned = true\n            AZT.chat(\"你的小地圖方位環沒有在轉，這樣沒有任何辦法判斷你面向哪邊\")"
+   ],
+   [
+    "    AZT.chat(\n        (\"ring report: recording %s, rotateMinimap=%s, in delve %s, rotation lent %s\"):format(\n            Safe.IsAuto() and \"automatic\" or \"by hand\",",
+    "    AZT.chat(\n        (\"方位環報告：記錄方式 %s，rotateMinimap=%s，在探究裡 %s，旋轉是借用的 %s\"):format(\n            Safe.IsAuto() and \"自動\" or \"手動\","
+   ],
+   [
+    "        AZT.chat(\"ring: MinimapCompassTexture is missing on this client\")",
+    "        AZT.chat(\"方位環：這個客戶端沒有 MinimapCompassTexture\")"
+   ],
+   [
+    "    local function deg(rad, none)\n        return rad and (\"%d deg\"):format(math.floor(math.deg(rad) + 0.5)) or none\n    end",
+    "    local function deg(rad, none)\n        return rad and (\"%d 度\"):format(math.floor(math.deg(rad) + 0.5)) or none\n    end"
+   ],
+   [
+    "        (\"ring: shown %s, visible %s, alpha %.2f, rotation %s, seen moving %s, facing %s\"):format(",
+    "        (\"方位環：shown %s，visible %s，alpha %.2f，旋轉 %s，看過它轉 %s，面向 %s\"):format("
+   ],
+   [
+    "            deg(ok and plainNum(rot), \"unreadable\"),\n            tostring(ringLive or false),\n            deg(Safe.RingFacing(), \"none\")",
+    "            deg(ok and plainNum(rot), \"讀不到\"),\n            tostring(ringLive or false),\n            deg(Safe.RingFacing(), \"無\")"
+   ],
+   [
+    "    AZT.chat(\"minimap addons loaded: \" .. (#loaded > 0 and table.concat(loaded, \", \") or \"none of the known ones\"))",
+    "    AZT.chat(\"已載入的小地圖插件：\" .. (#loaded > 0 and table.concat(loaded, \"、\") or \"已知清單裡的都沒有\"))"
+   ],
+   [
+    "        AZT.chat(\"minimap set to rotate while you are in the delve, it goes back when you leave\")",
+    "        AZT.chat(\"已把小地圖設成旋轉（只在探究裡），離開時會還原\")"
+   ],
+   [
+    "        AZT.chat(\"minimap rotation put back the way it was\")",
+    "        AZT.chat(\"小地圖旋轉已還原成原本的設定\")"
+   ],
+   [
+    "        AZT.chat(\"marking and calling: OFF - they need the keys, which belong to recording by hand\")",
+    "        AZT.chat(\"標記與報點：關 - 它們靠回答鍵運作，而回答鍵屬於手動記錄\")"
+   ],
+   [
+    "        AZT.chat(\"recording by hand, press a quarter key at each wave\")\n    else\n        AZT.chat(\"recording itself again\")",
+    "        AZT.chat(\"改成手動記錄，每一波按一次象限鍵\")\n    else\n        AZT.chat(\"恢復自動記錄\")"
+   ],
+   [
+    "        AZT.chat(\"cannot see which way you face, so this channel will record as unknown\")",
+    "        AZT.chat(\"看不出你面向哪邊，這次吟唱會全部記成未知\")"
+   ],
+   [
+    "    AZT.chat((\"safe spot %d: %s\"):format(i, AZT.QuadName(q, 14)))",
+    "    AZT.chat((\"安全點 %d：%s\"):format(i, AZT.QuadName(q, 14)))"
+   ],
+   [
+    "        AZT.chat((\"wave %d cannot repeat the quarter next to it, so that press was dropped\"):format(i))",
+    "        AZT.chat((\"第 %d 波不可能跟隔壁一樣，所以這次按鍵被丟掉了\"):format(i))"
+   ],
+   [
+    "            AZT.chat(\"recording itself right now, set Recording to By hand in the options to answer the waves yourself\")",
+    "            AZT.chat(\"現在是自動記錄。想自己回答的話，到設定把「記錄方式」改成手動\")"
+   ],
+   [
+    "            AZT.chat(\"the safe spot never stays put, so south answers nothing after the first wave\")",
+    "            AZT.chat(\"安全點不會停在原地，所以第一波之後「南」不代表任何回答\")"
+   ],
+   [
+    "        AZT.chat(\"nothing recorded yet - pull the boss once first\")\n        return\n    end\n    local parts, missed = {}, 0",
+    "        AZT.chat(\"還沒有記錄 - 先拉一次首領\")\n        return\n    end\n    local parts, missed = {}, 0"
+   ],
+   [
+    "    AZT.chat(\"last pull: \" .. table.concat(parts, \"  >  \"))\n    if missed > 0 then\n        AZT.chat((\"? = a wave you never answered, %d of them this pull\"):format(missed))\n    end",
+    "    AZT.chat(\"上一次：\" .. table.concat(parts, \"  >  \"))\n    if missed > 0 then\n        AZT.chat((\"? = 你沒回答到的波次，這次有 %d 個\"):format(missed))\n    end"
+   ],
+   [
+    "        AZT.chat((\"you died in echo %d, the one wave you never answered\"):format(d.wave))\n    elseif d.phase == \"echo\" and d.safe then\n        AZT.chat((\"you died in echo %d - safe was %s\"):format(d.wave, AZT.QuadName(d.safe, 14)))\n    elseif d.phase == \"wave\" then\n        AZT.chat((\"you died during wave %d of the channel\"):format(d.wave))\n    else\n        AZT.chat(\"you died between the waves and the echoes\")\n    end",
+    "        AZT.chat((\"你死在第 %d 次迴響，剛好就是你沒回答到的那一波\"):format(d.wave))\n    elseif d.phase == \"echo\" and d.safe then\n        AZT.chat((\"你死在第 %d 次迴響 - 安全點是 %s\"):format(d.wave, AZT.QuadName(d.safe, 14)))\n    elseif d.phase == \"wave\" then\n        AZT.chat((\"你死在吟唱的第 %d 波\"):format(d.wave))\n    else\n        AZT.chat(\"你死在波次跟迴響之間\")\n    end"
+   ],
+   [
+    "        AZT.chat(\"not during the pull\")",
+    "        AZT.chat(\"戰鬥中不能用\")"
+   ],
+   [
+    "        AZT.chat(\"replay stopped\")",
+    "        AZT.chat(\"已停止重放\")"
+   ],
+   [
+    "                Safe.StopReplay()\n                AZT.chat(\"replay done\")",
+    "                Safe.StopReplay()\n                AZT.chat(\"重放結束\")"
+   ],
+   [
+    "    if not lastPull or #lastPull.seq == 0 then\n        AZT.chat(\"nothing recorded yet - pull the boss once first\")\n        return\n    end\n    AZT.chat((\"replaying the last route (%d waves) - move along with it, or just watch\"):format(#lastPull.seq))",
+    "    if not lastPull or #lastPull.seq == 0 then\n        AZT.chat(\"還沒有記錄 - 先拉一次首領\")\n        return\n    end\n    AZT.chat((\"重放上一條路線（%d 波）- 可以跟著跑，也可以純看\"):format(#lastPull.seq))"
+   ],
+   [
+    "    AZT.chat((\"practice sermon over, %d of %d answered right - playing your recording back\"):format(right, #route))",
+    "    AZT.chat((\"模擬佈道結束，%d / %d 答對 - 現在把你記的路線放一次\"):format(right, #route))"
+   ],
+   [
+    "        AZT.chat(\"practice stopped\")",
+    "        AZT.chat(\"已停止練習\")"
+   ],
+   [
+    "    AZT.chat(\"practice sermon - green is safe, answer each wave like a real pull\")\n    if AztarecHelperDB.relativeTurns then\n        AZT.chat(\"your keys answer relative turns, first wave excepted\")\n    else\n        AZT.chat(\"your keys answer compass quarters\")\n    end\n    AZT.chat((\"starting in %d\"):format(PRACTICE_LEAD))",
+    "    AZT.chat(\"模擬佈道 - 綠色是安全的，像實戰一樣每一波都回答\")\n    if AztarecHelperDB.relativeTurns then\n        AZT.chat(\"你的按鍵回答的是相對轉向，第一波除外\")\n    else\n        AZT.chat(\"你的按鍵回答的是方位象限\")\n    end\n    AZT.chat((\"%d 秒後開始\"):format(PRACTICE_LEAD))"
+   ],
+   [
+    "local ENCOUNTER_IDS = { [3508] = \"? (normal)\", [3525] = \"?? (hard)\" }",
+    "local ENCOUNTER_IDS = { [3508] = \"?（普通）\", [3525] = \"??（困難）\" }"
+   ],
+   [
+    "            if ENCOUNTER_IDS[id] or (type(name) == \"string\" and name:find(\"Azta\")) then",
+    "            -- fix from MiliUI (中文化): 首領名在中文客戶端是「阿茲塔瑞」，\n            -- 只比對 Azta 的話這道備援等於沒作用\n            if\n                ENCOUNTER_IDS[id]\n                or (type(name) == \"string\" and (name:find(\"Azta\") or name:find(\"阿茲塔瑞\", 1, true)))\n            then"
+   ],
+   [
+    "                AZT.chat(\n                    (\"Azta'rec pulled - encounter %s = %s\"):format(\n                        tostring(id),\n                        ENCOUNTER_IDS[id] or \"unknown difficulty\"\n                    )\n                )",
+    "                AZT.chat(\n                    (\"已開打阿茲塔瑞 - 遭遇戰 %s = %s\"):format(\n                        tostring(id),\n                        ENCOUNTER_IDS[id] or \"未知難度\"\n                    )\n                )"
+   ]
+  ],
+  "Core/MarkKeys.lua": [
+   [
+    "        AZT.chat(\"marking and calling: OFF - a turn key has no quarter to mark or call\")",
+    "        AZT.chat(\"標記與報點：關 - 轉向鍵沒有象限可以標記或報點\")"
+   ]
+  ],
+  "Core/Follow.lua": [
+   [
+    "    if not pcall(fs.SetFormattedText, fs, table.concat(parts, \"  \"), unpack(args)) then\n        fs:SetText(\"route hidden this build\")\n    end",
+    "    if not pcall(fs.SetFormattedText, fs, table.concat(parts, \"  \"), unpack(args)) then\n        fs:SetText(\"這個版本無法顯示路線\")\n    end"
+   ],
+   [
+    "        if live then\n            board.now:SetText(\"waiting for calls\")",
+    "        if live then\n            board.now:SetText(\"等待隊長報點\")"
+   ],
+   [
+    "        board.trail:SetText(parkedFollow and \"leader's route\" or \"your route\")",
+    "        board.trail:SetText(parkedFollow and \"隊長的路線\" or \"你的路線\")"
+   ],
+   [
+    "        AZT.chat(\"no text to speech voice on this machine - the leader's calls stay on the board\")\n    else\n        AZT.chat(\"the leader's calls cannot be spoken on this build - the board still has them\")",
+    "        AZT.chat(\"這台機器沒有文字轉語音的聲音 - 隊長的報點只會顯示在路線板上\")\n    else\n        AZT.chat(\"這個版本唸不出隊長的報點 - 路線板上還是看得到\")"
+   ],
+   [
+    "        AZT.chat(\"following the leader: OFF - one role at a time\")",
+    "        AZT.chat(\"跟隨隊長報點：關 - 一次只能扮演一種角色\")"
+   ],
+   [
+    "        AZT.chat(\"route calling: OFF - one role at a time\")",
+    "        AZT.chat(\"報點：關 - 一次只能扮演一種角色\")"
+   ],
+   [
+    "-- Direction calls are words, so the voice can say one back without anything\n-- ever reading it. Marker calls are bare numbers and a voice announcing\n-- \"six\" helps nobdy, so those stay silent and the board carries them alone.",
+    "-- Direction calls are words, so the voice can say one back without anything\n-- ever reading it. Marker calls are bare numbers and a voice announcing\n-- \"six\" helps nobdy, so those stay silent and the board carries them alone.\n--\n-- fix from MiliUI (中文化)備註：報點內容在戰鬥中是 secret value，收到之後\n-- 只能原封不動存起來、丟給貼圖集或唸出來，不能檢查也不能翻譯，而且\n-- STYLES.arrows 是拿它當 NPE_Arrow%s 的後綴。所以隊長送出去的一律是\n-- Up/Right/Down/Left，跟隊員這邊聽到的也會是英文，這條沒辦法中文化。"
+   ]
+  ],
+  "UI/RoomView.lua": [
+   [
+    "local MARKS = { \"Star\", \"Circle\", \"Diamond\", \"Triangle\", \"Moon\", \"Square\", \"Cross\", \"Skull\" }",
+    "local MARKS = { \"星形\", \"圓形\", \"鑽石\", \"三角\", \"月形\", \"方形\", \"十字\", \"骷髏\" }"
+   ],
+   [
+    "        root:CreateTitle(qname .. \" quarter shows\")\n        root:CreateButton(\"Letter \" .. qname, function()\n            pickQuad(qname, nil, false)\n        end)\n        root:CreateButton(\n            (\"|A:\" .. AZT.ARROW_ATLAS .. \":16:16|a Direction arrows\"):format(AZT.QUAD_DIR[qname]),",
+    "        root:CreateTitle((AZT.QUAD_LETTER[qname] or qname) .. \"象限顯示為\")\n        root:CreateButton(\"方位字「\" .. (AZT.QUAD_LETTER[qname] or qname) .. \"」\", function()\n            pickQuad(qname, nil, false)\n        end)\n        root:CreateButton(\n            (\"|A:\" .. AZT.ARROW_ATLAS .. \":16:16|a 方向箭頭\"):format(AZT.QUAD_DIR[qname]),"
+   ],
+   [
+    "    title:SetText(\"Azta'rec Helper\")\n\n    local optBtn",
+    "    title:SetText(\"阿茲塔瑞小幫手\")\n\n    local optBtn"
+   ],
+   [
+    "    optBtn:SetText(\"Options\")",
+    "    optBtn:SetText(\"設定\")"
+   ],
+   [
+    "    instrBtn:SetText(\"Instructions\")",
+    "    instrBtn:SetText(\"使用說明\")"
+   ],
+   [
+    "            GameTooltip:SetText(\"Click to select a different marker\", 1, 1, 1, 1, true)",
+    "            GameTooltip:SetText(\"點一下可以換成別的標記\", 1, 1, 1, 1, true)"
+   ],
+   [
+    "    noKeys:SetText(\"keybinds not set\")",
+    "    noKeys:SetText(\"尚未設定快捷鍵\")"
+   ],
+   [
+    "        local fs = canvas:CreateFontString(nil, \"OVERLAY\", \"GameFontNormalSmall\")\n        fs:SetText(c[1])",
+    "        local fs = canvas:CreateFontString(nil, \"OVERLAY\", \"GameFontNormalSmall\")\n        fs:SetText(AZT.QUAD_LETTER[c[1]] or c[1])"
+   ],
+   [
+    "        optBtn:SetText(slim and \"Opts\" or \"Options\")",
+    "        optBtn:SetText(\"設定\")"
+   ],
+   [
+    "    AZT.stayText = safeNow\n            and (nextNow and nextNow ~= safeNow and (\"stay \" .. AZT.QuadName(safeNow, 18) .. \", next \" .. AZT.QuadName(\n                nextNow,\n                18\n            )) or (\"stay \" .. AZT.QuadName(safeNow, 18)))\n        or nil",
+    "    AZT.stayText = safeNow\n            and (nextNow and nextNow ~= safeNow and (\"待在 \" .. AZT.QuadName(safeNow, 18) .. \"，下一個 \" .. AZT.QuadName(\n                nextNow,\n                18\n            )) or (\"待在 \" .. AZT.QuadName(safeNow, 18)))\n        or nil"
+   ],
+   [
+    "    AZT.chat(\"map art backdrop: \" .. (on and \"ON\" or \"OFF\"))",
+    "    AZT.chat(\"地圖底圖：\" .. (on and \"開\" or \"關\"))"
+   ],
+   [
+    "        AZT.chat(\"room view hidden - /azt room or the options panel brings it back\")",
+    "        AZT.chat(\"已隱藏房間視圖 - /azt room 或設定面板可以叫回來\")"
+   ],
+   [
+    "    AZT.chat(\"room view shown - drag to move\")",
+    "    AZT.chat(\"已顯示房間視圖 - 拖曳可以移動位置\")"
+   ],
+   [
+    "            AZT.chat(\"entered Venomfall Deeps - room view on (/azt room to hide)\")",
+    "            AZT.chat(\"已進入毒瀑深淵 - 房間視圖已開啟（/azt room 可隱藏）\")"
+   ]
+  ],
+  "UI/WaveText.lua": [
+   [
+    "            msg = ((AZT.Safe and AZT.Safe.IsAuto() and \"recording wave %d\") or \"answer wave %d\"):format(w.idx)\n        elseif w.total then\n            msg = (\"wave %d of %d\"):format(w.idx, w.total)\n        else\n            msg = (\"wave %d\"):format(w.idx)\n        end",
+    "            msg = ((AZT.Safe and AZT.Safe.IsAuto() and \"記錄第 %d 波\") or \"回答第 %d 波\"):format(w.idx)\n        elseif w.total then\n            msg = (\"第 %d / %d 波\"):format(w.idx, w.total)\n        else\n            msg = (\"第 %d 波\"):format(w.idx)\n        end"
+   ],
+   [
+    "        waveFrame.text:SetText(\"wave countdown\")",
+    "        waveFrame.text:SetText(\"波次倒數\")"
+   ]
+  ],
+  "UI/Arrow.lua": [
+   [
+    "AZT.ARROW_COLORS = {\n    gold = { label = \"Gold\", rgb = nil },\n    red = { label = \"Red\", rgb = { 0.95, 0.3, 0.25 } },\n    green = { label = \"Green\", rgb = { 0.3, 0.95, 0.4 } },\n    white = { label = \"White\", rgb = { 1, 1, 1 } },\n    cyan = { label = \"Cyan\", rgb = { 0.35, 0.85, 1 } },\n    violet = { label = \"Violet\", rgb = { 0.78, 0.55, 1 } },\n}",
+    "AZT.ARROW_COLORS = {\n    gold = { label = \"金\", rgb = nil },\n    red = { label = \"紅\", rgb = { 0.95, 0.3, 0.25 } },\n    green = { label = \"綠\", rgb = { 0.3, 0.95, 0.4 } },\n    white = { label = \"白\", rgb = { 1, 1, 1 } },\n    cyan = { label = \"青\", rgb = { 0.35, 0.85, 1 } },\n    violet = { label = \"紫\", rgb = { 0.78, 0.55, 1 } },\n}"
+   ],
+   [
+    "        local mode = AztarecHelperDB.arrowCompass and \"compass arrow\" or \"safe-spot arrow\"",
+    "        local mode = AztarecHelperDB.arrowCompass and \"羅盤箭頭\" or \"安全點箭頭\""
+   ]
+  ],
+  "UI/Notice.lua": [
+   [
+    "local INSTR_TITLE = \"How to use it\"",
+    "local INSTR_TITLE = \"使用說明\""
+   ],
+   [
+    "        box.right:SetText(\"Got it\")",
+    "        box.right:SetText(\"知道了\")"
+   ],
+   [
+    "local COMPASS_TITLE = \"Compass arrow and the spoken cues\"\nlocal COMPASS_CUES = \"With compass arrow, the arrow points the way the room view does \"\n    .. \"but the voices still talk as if you are facing the boss. \"\n    .. \"Disable Solo spoken cues in options if you want the arrow to be the only cue. \"",
+    "local COMPASS_TITLE = \"羅盤箭頭與語音提示\"\nlocal COMPASS_CUES = \"用羅盤箭頭時，箭頭指的方向跟房間視圖一致，\"\n    .. \"但語音還是照「你面對首領」的講法在說。\"\n    .. \"如果你只想看箭頭，到設定把「單人語音提示」關掉。\""
+   ],
+   [
+    "        leftText = \"Turn cues off\",\n        left = function()\n            AztarecHelperDB.cues = false\n            AZT.chat(\"solo spoken cues: OFF\")\n        end,\n        rightText = \"Keep the cues\",",
+    "        leftText = \"關掉語音提示\",\n        left = function()\n            AztarecHelperDB.cues = false\n            AZT.chat(\"單人語音提示：關\")\n        end,\n        rightText = \"保留語音提示\","
+   ],
+   [
+    "local CALL_TITLE = \"Call the route for your party?\"",
+    "local CALL_TITLE = \"要幫隊伍報點路線嗎？\""
+   ],
+   [
+    "        leftText = \"Call the route\",\n        left = function()\n            AZT.SetCallRoute(true)\n            AZT.chat(\"route calling: ON while you lead\")\n        end,\n        rightText = \"Stay semi automatic\",",
+    "        leftText = \"幫隊伍報點\",\n        left = function()\n            AZT.SetCallRoute(true)\n            AZT.chat(\"報點：開（在你當隊長期間）\")\n        end,\n        rightText = \"維持半自動\","
+   ],
+   [
+    "local FOLLOW_TITLE = \"Follow the leader's calls?\"",
+    "local FOLLOW_TITLE = \"要跟隨隊長的報點嗎？\""
+   ],
+   [
+    "        leftText = \"Follow the calls\",\n        left = function()\n            AZT.SetFollow(true)\n            AZT.chat(\"following the leader: ON\")\n        end,\n        rightText = \"Stay semi automatic\",",
+    "        leftText = \"跟隨報點\",\n        left = function()\n            AZT.SetFollow(true)\n            AZT.chat(\"跟隨隊長報點：開\")\n        end,\n        rightText = \"維持半自動\","
+   ],
+   [
+    "local AUTO_TITLE = \"Record the route automatically?\"",
+    "local AUTO_TITLE = \"要讓它自動記錄路線嗎？\""
+   ],
+   [
+    "        leftText = \"Record automatically\",",
+    "        leftText = \"自動記錄\","
+   ],
+   [
+    "        rightText = \"Keep recording by hand\",",
+    "        rightText = \"維持手動記錄\","
+   ],
+   [
+    "local HOW_TITLE = \"The quarter behind you is what counts\"",
+    "local HOW_TITLE = \"算數的是你背後那個象限\""
+   ],
+   [
+    "local MISREAD_TITLE = \"That route could not be right\"",
+    "local MISREAD_TITLE = \"這條路線不可能是對的\""
+   ],
+   [
+    "local RING_TITLE = \"Automatic recording cannot see your facing\"",
+    "local RING_TITLE = \"自動記錄讀不到你的面向\""
+   ],
+   [
+    "        leftText = \"Record by hand\",\n        left = function()\n            AZT.SetManualMode(true)\n        end,\n        rightText = \"I was idle, check again\",",
+    "        leftText = \"改用手動記錄\",\n        left = function()\n            AZT.SetManualMode(true)\n        end,\n        rightText = \"我剛剛沒動，再測一次\","
+   ],
+   [
+    "local CALL_TEXT = \"You lead this group. With calling on, your answer keys also name each\"\n    .. \" quarter in party chat as you record, by its marker number or as a direction if you\"\n    .. \" switch that on, and party members running the addon see your route on the boss's\"\n    .. \" timing. The calls ride the key presses themselves, so answer with your keys, a\"\n    .. \" click on the room view answers for you alone and says nothing. The keys work\"\n    .. \" as before otherwise. One ask for the group: keep party chat quiet during the\"\n    .. \" fight, since stray lines land on the followers' boards as garbage. Declining\"\n    .. \" keeps the semi automatic mode, where you record and answer for yourself only.\"\n    .. \" Either way you can change your mind under Party in the options.\"",
+    "local CALL_TEXT = \"你是這隊的隊長。開啟報點後，你每按一次回答鍵，除了記錄之外還會把那個象限\"\n    .. \"唸進隊伍頻道（用標記編號，或者你有切換的話用方向詞），隊上有裝這個插件的人就會照\"\n    .. \"首領的節奏看到你的路線。報點是掛在按鍵上的，所以要用按鍵回答；在房間視圖上點擊只會\"\n    .. \"記錄給你自己，不會發出任何訊息。除此之外按鍵行為不變。有一件事要拜託隊友：戰鬥中\"\n    .. \"隊伍頻道請保持安靜，雜訊會變成亂碼落在跟隊者的路線板上。選擇不開就維持半自動模式，\"\n    .. \"只記錄、只回答給你自己。兩種選擇都可以隨時到設定的「隊伍」分類裡改。\""
+   ],
+   [
+    "local FOLLOW_TEXT = \"Someone else leads this group. With following on, their route calls show\"\n    .. \" on a board of their own and on the wave countdown, timed by the boss like always.\"\n    .. \" A leader who calls directions rather than markers gets read out loud as well, which\"\n    .. \" is its own tickbox under Party. The addon can show the calls but never read them, so\"\n    .. \" the arrow and the solo cues lock off while you follow,\"\n    .. \" and any party chat during the sermon lands on the board. Declining keeps the semi\"\n    .. \" automatic mode, where you record and answer for yourself like when solo. Either way\"\n    .. \" you can change your mind under Party in the options.\"",
+    "local FOLLOW_TEXT = \"這隊由別人帶。開啟跟隨後，隊長的報點會顯示在專屬的路線板上，也會出現在\"\n    .. \"波次倒數裡，時間點一樣由首領決定。如果隊長報的是方向而不是標記，還可以順便唸出來，\"\n    .. \"那是「隊伍」分類底下另一個勾選框。插件能顯示這些報點，但永遠讀不到內容，所以跟隨期間\"\n    .. \"箭頭跟單人語音提示會鎖住；而且佈道期間任何隊伍頻道發言都會落在路線板上。選擇不開就\"\n    .. \"維持半自動模式，像單人一樣自己記錄、自己回答。兩種選擇都可以隨時到設定的「隊伍」\"\n    .. \"分類裡改。\""
+   ],
+   [
+    "local AUTO = \"The route can record itself while you dodge, nothing to press during the Sermon. \"\n    .. \"It needs your minimap rotating with you: saying yes turns that on in the delve and \"\n    .. \"puts it back when you leave.\\n\\n\"\n    .. \"One rule: keep the boss in front of you. The quarter behind you is what each wave \"\n    .. \"records as safe.\\n\\n\"\n    .. \"|cffff5a5aAddon interference:|r minimap addons that square the map or hide its border get in the way of this, \"\n    .. \"EllesmereUI and Leatrix Plus among them. If the route records nothing, turn their \"\n    .. \"minimap module off.\\n\\n\"\n    .. \"The quarter keys, marking and calling rest while it records. The Recording switch in \"\n    .. \"the settings flips back any time.\"",
+    "local AUTO = \"路線可以在你閃技能的同時自己記下來，佈道期間完全不用按東西。\"\n    .. \"這需要你的小地圖跟著角色旋轉：選「是」的話，進探究時會幫你打開，離開時再還原。\\n\\n\"\n    .. \"只有一條規則：把首領保持在你正前方。每一波記下來的安全點，是你「背後」那個象限。\\n\\n\"\n    .. \"|cffff5a5a插件干擾：|r 那些把小地圖改成方形、或把外框藏起來的小地圖插件會擋住這個機制，\"\n    .. \"EllesmereUI 和 Leatrix Plus 都是。如果路線完全記不到東西，把它們的小地圖模組關掉。\\n\\n\"\n    .. \"自動記錄期間，象限鍵、標記、報點都會休息。設定裡的「記錄方式」開關隨時可以切回來。\""
+   ],
+   [
+    "local HOW = \"Face the boss while you dodge. The quarter at your back, the glowing one in the \"\n    .. \"red box here, is what the wave writes down as the safe spot. Turn your back on him \"\n    .. \"and the wrong quarter gets written, so keep him in front of you the whole Sermon.\"",
+    "local HOW = \"閃技能的時候面對首領。你背後那個象限——也就是圖上紅框裡發亮的那個——才是這一波\"\n    .. \"被寫進去的安全點。背對他的話寫進去的就是錯的象限，所以整場佈道都要把他留在正前方。\""
+   ],
+   [
+    "local MISREAD = \"This recording had the same safe quarter twice in a row, and the boss never \"\n    .. \"does that. It is the mark of dodging with your back to him: the addon writes down \"\n    .. \"the quarter behind you, so facing the wrong way files you into the wrong quarter \"\n    .. \"and the echoes send you somewhere false.\\n\\n\"\n    .. \"Keep the boss in front of you for the whole Sermons every single wave.\"",
+    "local MISREAD = \"這次記錄裡有連續兩波安全點落在同一個象限，而首領從來不會這樣做。\"\n    .. \"這就是「背對他閃技能」的特徵：插件記下來的是你背後那個象限，面向錯了就會被歸到\"\n    .. \"錯的象限，迴響階段自然把你送到錯的地方。\\n\\n\"\n    .. \"整場佈道、每一波，都要把首領留在你正前方。\""
+   ],
+   [
+    "    local culprit\n    if #loaded > 0 then\n        culprit = \"Loaded right now: \" .. table.concat(loaded, \", \") .. \". \"\n    else\n        culprit = \"None of the ones this addon knows by name are loaded, but any minimap addon or skin counts. \"\n    end\n    local text = \"Your minimap's compass ring has not turned for a while, and that ring is the only \"\n        .. \"place the addon can read which way you face in here. If you were standing still the \"\n        .. \"whole time, that is all this is, spin once and it comes alive.\\n\\n\"\n        .. \"If you were moving, a minimap addon that squares the map, hides its border or replaces \"\n        .. \"the compass is the usual cause, Leatrix Plus, EllesmereUI's minimap module, SexyMap and \"\n        .. \"the like. \"\n        .. culprit\n        .. \"Turn its minimap module off, reload, and set Recording to Automatic again.\\n\\n\"\n        .. \"Or keep your minimap as it is and record by hand, a quarter key or a click per wave.\"",
+    "    local culprit\n    if #loaded > 0 then\n        culprit = \"目前已載入：\" .. table.concat(loaded, \"、\") .. \"。\"\n    else\n        culprit = \"這個插件認得的那幾支都沒載入，但任何小地圖插件或外觀皮膚都算。\"\n    end\n    local text = \"你的小地圖方位環已經有一陣子沒轉了，而在這裡面，那個環是插件唯一能讀到你\"\n        .. \"面向哪邊的地方。如果你本來就一直站著沒動，那就只是這樣而已，轉一下它就活過來了。\\n\\n\"\n        .. \"如果你其實有在動，那通常是某個把小地圖改成方形、把外框藏起來、或整個換掉羅盤的\"\n        .. \"小地圖插件造成的，例如 Leatrix Plus、EllesmereUI 的小地圖模組、SexyMap 之類。\"\n        .. culprit\n        .. \"把它的小地圖模組關掉、重新載入介面，再把「記錄方式」設回自動。\\n\\n\"\n        .. \"或者小地圖維持原樣、改用手動記錄，每一波按一個象限鍵或點一下就好。\""
+   ]
+  ],
+  "UI/Options.lua": [
+   [
+    "panel.name = \"Azta'rec Helper\"",
+    "panel.name = \"阿茲塔瑞小幫手\""
+   ],
+   [
+    "title:SetText(\"Azta'rec Helper\")\n\n-- the layout cursor",
+    "title:SetText(\"阿茲塔瑞小幫手\")\n\n-- the layout cursor"
+   ],
+   [
+    "local FOLLOW_WHY = \"Locked while you follow the leader. Their calls arrive with no turn in them,\"\n    .. \" so this has nothing true to work from. It comes back the moment following stops.\"",
+    "local FOLLOW_WHY = \"跟隨隊長期間鎖定。隊長的報點裡沒有帶轉向資訊，\"\n    .. \"所以這個功能沒有可靠的東西可以用。停止跟隨就會馬上恢復。\""
+   ],
+   [
+    "    return key and GetBindingText(key) or \"not bound\"",
+    "    return key and GetBindingText(key) or \"未設定\""
+   ],
+   [
+    "    btn:SetText(\"press a key\")",
+    "    btn:SetText(\"請按一個鍵\")"
+   ],
+   [
+    "        \"Click, then press the key you want. Escape backs out and right click unbinds.\",",
+    "        \"點一下之後，按你想設的鍵。Esc 取消，右鍵解除設定。\","
+   ],
+   [
+    "section(\"Recording\")",
+    "section(\"記錄方式\")"
+   ],
+   [
+    "    \"Recording\",\n    \"By hand\",\n    \"Automatic\",",
+    "    \"記錄方式\",\n    \"手動\",\n    \"自動\","
+   ],
+   [
+    "    \"By hand, you press a quarter key or click the room view for each wave while the ground still\"\n        .. \" shows it. Automatic, the addon reads which way you face off the minimap and writes the\"\n        .. \" route down on its own while you dodge, which needs your minimap set to rotate with you.\"\n        .. \" The keys, marking and calling stand down while it is automatic. Switching either way\"\n        .. \" clears the current route.\",",
+    "    \"手動：地板還在顯示的時候，你每一波按一個象限鍵、或在房間視圖上點一下。\"\n        .. \"自動：插件從小地圖讀出你的面向，在你閃技能的同時自己把路線寫下來，\"\n        .. \"這需要你的小地圖設成跟著角色旋轉。自動期間象限鍵、標記、報點都會停用。\"\n        .. \"不管往哪個方向切換，都會清掉目前的路線。\","
+   ],
+   [
+    "    \"Rotate minimap in the delve\",\n    \"Turns your minimap rotation on while you are in the delve and puts it back when you leave.\"\n        .. \" The room view then turns with you and the arrow aims from where you actually stand.\"\n        .. \" Automatic recording reads your facing off that rotation, so it keeps this on.\",",
+    "    \"在探究裡讓小地圖旋轉\",\n    \"進探究時打開小地圖旋轉，離開時還原。這樣房間視圖會跟著你轉，\"\n        .. \"箭頭也會從你實際站的位置指方向。自動記錄就是靠這個旋轉讀出你的面向，所以它會強制開啟。\","
+   ],
+   [
+    "        \"Forced on while Recording is Automatic. It cannot tell which way you face without it.\"",
+    "        \"記錄方式為自動時強制開啟。沒有它就判斷不出你的面向。\""
+   ],
+   [
+    "section(\"Windows\")",
+    "section(\"視窗\")"
+   ],
+   [
+    "addCheck(\"Show the room view\", \"The main window with the top-down room. /azt room also shows and hides it.\", function()",
+    "addCheck(\"顯示房間視圖\", \"俯視房間的主視窗。/azt room 也可以開關它。\", function()"
+   ],
+   [
+    "    \"Solo route board\",\n    \"The route strip followers get, drawn from your own recording. It fills as the waves\"\n        .. \" get answered during the Sermon and steps through the echoes with the current\"\n        .. \" safe spot big on the left, ? for waves nobody answered. While you follow a\"\n        .. \" leader their calls own the board like before.\",",
+    "    \"單人路線板\",\n    \"跟隊者看到的那條路線列，但畫的是你自己記的路線。佈道期間隨著波次被回答逐格填滿，\"\n        .. \"迴響階段會一格一格往前走，目前的安全點放大顯示在最左邊，沒人回答的波次顯示 ?。\"\n        .. \"跟隨隊長時，板子一樣改由隊長的報點接管。\","
+   ],
+   [
+    "    \"Room view size\",\n    \"Full\",\n    \"Slim\",\n    \"Set to Slim, the room view is cut down to the room itself, with the excess padding removed.\"\n        .. \" `/azt help` still opens the instructions.\",",
+    "    \"房間視圖大小\",\n    \"完整\",\n    \"精簡\",\n    \"設成精簡時，房間視圖會縮到只剩房間本身，去掉多餘的留白。\"\n        .. \"使用說明一樣可以用 `/azt help` 打開。\","
+   ],
+   [
+    "addCheck(\"Map art backdrop\", \"Draws Blizzard's own map tiles behind the room view.\", function()",
+    "addCheck(\"地圖底圖\", \"在房間視圖後面畫上暴雪自己的地圖圖磚。\", function()"
+   ],
+   [
+    "addCheck(\"Wave countdown\", \"How long until the current wave hits, in a small window you can drag anywhere.\", function()",
+    "addCheck(\"波次倒數\", \"目前這一波還有多久落下，顯示在一個可以隨意拖曳的小視窗裡。\", function()"
+   ],
+   [
+    "    \"Safe-spot arrow\",\n    \"An arrow that shows the move for each echo. While your minimap rotates it points where the\"\n        .. \" move really is, whichever way you look. Without that it reads as if you were facing\"\n        .. \" the boss, so up means straight through him and down means stay where you are.\"\n        .. \" It sits dimmed in the delve before the pull so you can drag it into place.\",",
+    "    \"安全點箭頭\",\n    \"每次迴響指出該做的移動。小地圖有旋轉時，它指的是真實方向，不管你面向哪邊；\"\n        .. \"沒有旋轉時，它改成「假設你面對首領」的讀法，上＝直穿他過去，下＝待在原地。\"\n        .. \"開打前它會在探究裡以半透明停著，方便你拖到想要的位置。\","
+   ],
+   [
+    "    \"Arrow color\",\n    \"The color the arrow draws in during the echoes. Gold leaves the artwork as it was painted.\",",
+    "    \"箭頭顏色\",\n    \"迴響期間箭頭用的顏色。金色＝維持原始貼圖的顏色，不上色。\","
+   ],
+   [
+    "            root:CreateTitle(\"Arrow color\")",
+    "            root:CreateTitle(\"箭頭顏色\")"
+   ],
+   [
+    "    \"Arrow mode\",\n    \"Relative\",\n    \"Compass\",\n    \"Relative is the move to make, live from your facing when the minimap rotates and as if you\"\n        .. \" were facing the boss when it does not, and the voice calls the same move. Compass points\"\n        .. \" the way the room view points and carries that quarter's marker inside it. The spoken\"\n        .. \" cues keep talking as if you face the boss either way, so turn them off below if the\"\n        .. \" two readings mix badly for you.\",",
+    "    \"箭頭模式\",\n    \"相對\",\n    \"羅盤\",\n    \"相對：指的是該做的移動——小地圖會轉時用你的真實面向，不會轉時就假設你面對首領，\"\n        .. \"語音唸的也是同一個移動。羅盤：指的方向跟房間視圖一致，箭頭裡面帶著那個象限的標記。\"\n        .. \"兩種模式下語音都還是照「你面對首領」在講，如果兩種讀法混在一起讓你混亂，把下面的語音提示關掉。\","
+   ],
+   [
+    "section(\"Spoken cues\")",
+    "section(\"語音提示\")"
+   ],
+   [
+    "    \"Solo spoken cues\",\n    \"Plays a short cue for each wave, forward, left, right or stay, off the route you recorded\"\n        .. \" yourself. The cues assume you are facing the boss in the middle of the room.\"\n        .. \" Following someone else's calls has no turn in it to speak, so these lock off\"\n        .. \" while you follow and the Party section has the voice for that.\",",
+    "    \"單人語音提示\",\n    \"依你自己記的路線，每一波播一段短語音：往前、往左、往右或不要動。\"\n        .. \"這些提示假設你正面對房間中央的首領。跟隨別人的報點時沒有轉向可以唸，\"\n        .. \"所以跟隨期間會鎖住；那種情況的語音在「隊伍」分類裡。\","
+   ],
+   [
+    "    \"Cue voice\",\n    \"Relative\",\n    \"Markers\",\n    \"Relative is the recorded voice calling the move to make, as if you face the boss.\"\n        .. \" Markers is the game's text to speech naming the safe quarter's marker instead,\"\n        .. \" whatever each quarter wears, with no facing in it at all. The test buttons and\"\n        .. \" the volume below follow the choice.\",",
+    "    \"提示語音\",\n    \"相對\",\n    \"標記\",\n    \"相對：用錄好的語音唸出該做的移動，前提是你面對首領。\"\n        .. \"標記：改用遊戲內建的文字轉語音，直接唸出安全象限身上的標記名稱，完全不牽涉面向。\"\n        .. \"下面的測試按鈕跟音量都會跟著這個選擇走。\","
+   ],
+   [
+    "    \"Say marker colors\",\n    \"The marker voice names the colour instead of the shape, yellow for star, orange for\"\n        .. \" circle, purple, green, silver, blue and red for the rest. Skull has no colour and\"\n        .. \" stays skull. The test buttons follow.\",",
+    "    \"唸標記顏色\",\n    \"標記語音改唸顏色而不是形狀：星形＝黃色、圓形＝橘色，其餘依序是紫、綠、銀、藍、紅。\"\n        .. \"骷髏沒有自己的顏色，維持唸骷髏。測試按鈕也會跟著改。\","
+   ],
+   [
+    "            btn:SetText(dir:sub(1, 1):upper() .. dir:sub(2))",
+    "            btn:SetText(AZT.TURN_WORD[dir] or dir)"
+   ],
+   [
+    "cueLabel:SetText(\"Test cues\")",
+    "cueLabel:SetText(\"測試語音\")"
+   ],
+   [
+    "local function shortVoice(name)\n    name = name:gsub(\" %- .*\", \"\"):gsub(\"%s*%(.-%)\", \"\"):gsub(\"^Microsoft \", \"\")\n    if #name > 14 then\n        name = name:sub(1, 13) .. \"...\"\n    end\n    return name\nend",
+    "-- fix from MiliUI (中文化): 原本用位元組數截斷，中文語音名字會被切在半個字上，\n-- 畫面上直接變成亂碼。改成沿 UTF-8 邊界數字元再切\nlocal function trimChars(name, chars)\n    local i, n = 1, 0\n    while i <= #name do\n        if n >= chars then\n            return name:sub(1, i - 1) .. \"...\"\n        end\n        local b = name:byte(i)\n        i = i + ((b < 0x80 and 1) or (b < 0xE0 and 2) or (b < 0xF0 and 3) or 4)\n        n = n + 1\n    end\n    return name\nend\n\nlocal function shortVoice(name)\n    name = name:gsub(\" %- .*\", \"\"):gsub(\"%s*%(.-%)\", \"\"):gsub(\"^Microsoft \", \"\")\n    return trimChars(name, 10)\nend"
+   ],
+   [
+    "        cueChanBtn:SetText(\"Cues: \" .. AZT.CycleCueChannel())",
+    "        AZT.CycleCueChannel()\n        cueChanBtn:SetText(\"聲道：\" .. AZT.ChannelLabel())"
+   ],
+   [
+    "        root:CreateTitle(\"Marker voice\")",
+    "        root:CreateTitle(\"標記語音\")"
+   ],
+   [
+    "            root:CreateButton(\"no text to speech voices found\", function() end)",
+    "            root:CreateButton(\"找不到任何文字轉語音的聲音\", function() end)"
+   ],
+   [
+    "    \"For the recorded voice, the sound channel the cues play through, and that channel's\"\n        .. \" volume slider decides how loud they are. For the marker voice, which of the\"\n        .. \" machine's text to speech voices does the talking. Picking one says a word in it.\"",
+    "    \"在「相對」語音下，這是提示音走的聲道，音量由那個聲道的滑桿決定。\"\n        .. \"在「標記」語音下，這是選要用機器上哪一個文字轉語音的聲音來唸。選一個會用它唸一次給你聽。\""
+   ],
+   [
+    "        cueChanBtn:SetText(\"Voice: \" .. (v and shortVoice(v.name) or \"none\"))\n    else\n        cueChanBtn:SetText(\"Cues: \" .. (AztarecHelperDB.cueChannel or \"Master\"))",
+    "        cueChanBtn:SetText(\"語音：\" .. (v and shortVoice(v.name) or \"無\"))\n    else\n        cueChanBtn:SetText(\"聲道：\" .. AZT.ChannelLabel())"
+   ],
+   [
+    "    \"How loud the cues are. For the recorded voice this is the game's own volume for the\"\n        .. \" chosen channel, so moving it here moves the sound options too. For the marker\"\n        .. \" voice it is the text to speech volume, which is the addon's own number.\"",
+    "    \"提示音的音量。在「相對」語音下，這就是遊戲本身該聲道的音量，\"\n        .. \"在這裡拉等於同時改了音效設定。在「標記」語音下，它是文字轉語音的音量，是插件自己的數值。\""
+   ],
+   [
+    "    local why = AztarecHelperDB.cues and FOLLOW_WHY or \"Locked while Spoken cues is off. Tick it to use this.\"",
+    "    local why = AztarecHelperDB.cues and FOLLOW_WHY or \"「單人語音提示」關閉時鎖定。勾起來才能用。\""
+   ],
+   [
+    "        enableLook(colorCheck, false, \"Locked while the cue voice is Relative. It only names markers.\")",
+    "        enableLook(colorCheck, false, \"提示語音是「相對」時鎖定，這個選項只影響標記語音。\")"
+   ],
+   [
+    "section(\"Route\")",
+    "section(\"路線\")"
+   ],
+   [
+    "    label = \"Practice sermon\",",
+    "    label = \"模擬佈道\","
+   ],
+   [
+    "    tip = \"A pretend sermon on the room view: seven waves, safe quarter green and the rest red.\"\n        .. \" Answer each one with your keys or clicks like a real pull, and the echoes that\"\n        .. \" follow play back what you recorded. Click again to stop early.\",",
+    "    tip = \"在房間視圖上跑一場假的佈道：七波，安全象限是綠色、其餘紅色。\"\n        .. \"像實戰一樣用按鍵或點擊回答每一波，接著的迴響會把你記下來的東西放一次。\"\n        .. \"再點一次可以提前停止。\","
+   ],
+   [
+    "    label = \"Replay last pull\",",
+    "    label = \"重放上一次\","
+   ],
+   [
+    "    label = \"Review last pull\",",
+    "    label = \"檢視上一次\","
+   ],
+   [
+    "    label = \"Reset route\",",
+    "    label = \"清除路線\","
+   ],
+   [
+    "        AZT.chat(\"recorded route cleared\")\n    end,\n})",
+    "        AZT.chat(\"已清掉記錄的路線\")\n    end,\n})"
+   ],
+   [
+    "section(\"Quarter keybindings\")\n\naddBindRow(\"Answer north\", \"AZTARECHELPER_MARK_NORTH\")\naddBindRow(\"Answer east\", \"AZTARECHELPER_MARK_EAST\")\naddBindRow(\"Answer south\", \"AZTARECHELPER_MARK_SOUTH\")\naddBindRow(\"Answer west\", \"AZTARECHELPER_MARK_WEST\")",
+    "section(\"象限快捷鍵\")\n\naddBindRow(\"回答北\", \"AZTARECHELPER_MARK_NORTH\")\naddBindRow(\"回答東\", \"AZTARECHELPER_MARK_EAST\")\naddBindRow(\"回答南\", \"AZTARECHELPER_MARK_SOUTH\")\naddBindRow(\"回答西\", \"AZTARECHELPER_MARK_WEST\")"
+   ],
+   [
+    "    \"Answer keys\",\n    \"Quarters\",\n    \"Turns\",\n    \"Set to Turns, your keys say the move you made rather than the quarter you ran to, read like the arrow:\"\n        .. \" as if you face the boss in the middle. North is FORWARD, east is RIGHT and west\"\n        .. \" is LEFT. The first wave still needs its compass direction, which is where the\"\n        .. \" route starts. Marking and calling switch off, since a turn names no quarter.\",",
+    "    \"回答鍵\",\n    \"象限\",\n    \"轉向\",\n    \"設成轉向時，你的按鍵說的是你做的移動、而不是你跑去的象限，讀法跟箭頭一樣：\"\n        .. \"假設你面對房間中央的首領。北＝往前、東＝往右、西＝往左。\"\n        .. \"第一波還是要指出方位，路線是從那裡開始的。標記與報點會關掉，因為轉向指不出象限。\","
+   ],
+   [
+    "section(\"Party\")",
+    "section(\"隊伍\")"
+   ],
+   [
+    "    \"Quarter names\",\n    \"Markers\",\n    \"Arrows\",\n    \"Set to Arrows, the quarter markers become the four direction arrows everywhere the addon names a\"\n        .. \" quarter, with the room read north up like the room view draws it. Your calls say\"\n        .. \" Up, Right, Down or Left to match, so followers see arrows and their voice reads\"\n        .. \" them out, and the words mean something to party members without the addon too.\"\n        .. \" The same choice sits in the quarter menus on the room view.\",",
+    "    \"象限顯示\",\n    \"標記\",\n    \"箭頭\",\n    \"設成箭頭時，插件所有指到象限的地方都會改用四個方向箭頭，房間一律以北為上，跟房間視圖畫的一樣。\"\n        .. \"你的報點也會相應送出 Up / Right / Down / Left，跟隊者就會看到箭頭、語音也會唸出來，\"\n        .. \"而且沒裝插件的隊友也看得懂。房間視圖上每個象限的選單裡也有同一個選項。\"\n        .. \"（報點送出去的是英文，因為戰鬥中它是秘密值、只能原封不動丟給貼圖集，無法翻譯。）\","
+   ],
+   [
+    "    \"Answer keys mark me\",\n    \"Each press of a quarter key also puts that quarter's marker on you, through the game's own\"\n        .. \" target marker system, so the party sees where you are heading even without the addon.\"\n        .. \" It only arms inside the delve. The wiring locks when a fight starts, so the sermon\"\n        .. \" answers set markers as well as the echo moves.\",",
+    "    \"回答鍵順便標記自己\",\n    \"每按一次象限鍵，就用遊戲內建的目標標記系統把那個象限的標記打在自己身上，\"\n        .. \"這樣沒裝插件的隊友也看得到你要往哪跑。只在探究裡生效。\"\n        .. \"相關接線在戰鬥開始時會鎖住，所以佈道階段的回答跟迴響階段的移動都會一起打標記。\","
+   ],
+   [
+    "    \"Call the route (leader)\",\n    \"While you lead a party in the delve, each answer key press also says that quarter's marker\"\n        .. \" number in party chat, through the game's own macro system, so followers with the addon\"\n        .. \" see your route as you record it. Only the keys call, a click on the room view answers\"\n        .. \" for you alone. The wiring locks when a fight starts, so a leadership\"\n        .. \" change mid pull waits for the pull to end. One role at a time, turning this on turns\"\n        .. \" following off.\",",
+    "    \"報點路線（隊長）\",\n    \"當你在探究裡帶隊時，每按一次回答鍵，就透過遊戲內建的巨集系統把那個象限的標記編號\"\n        .. \"說進隊伍頻道，裝了插件的跟隊者就能同步看到你正在記的路線。只有按鍵會報點，\"\n        .. \"在房間視圖上點擊只算給你自己。相關接線在戰鬥開始時會鎖住，所以中途換隊長要等這次打完。\"\n        .. \"一次只能扮演一種角色，打開這個會把跟隨關掉。\","
+   ],
+   [
+    "    \"Follow the leader\",",
+    "    \"跟隨隊長\","
+   ],
+   [
+    "    \"Speak the leader's calls\",\n    \"Reads each call out loud as its echo comes up, in the game's own text to speech voice.\"\n        .. \" It waits on the leader: they have to be calling directions rather than markers,\"\n        .. \" since a voice reading a marker number out tells you nothing about where to run.\",",
+    "    \"唸出隊長的報點\",\n    \"每次迴響輪到時，用遊戲內建的文字轉語音把該次報點唸出來。\"\n        .. \"這取決於隊長：他必須報方向而不是標記，因為唸出一個標記編號完全講不出該往哪跑。\"\n        .. \"（報點內容在戰鬥中是秘密值、無法翻譯，所以唸出來的會是 Up / Right / Down / Left。）\","
+   ],
+   [
+    "local TURNS_WHY = \"Locked while Answer keys is set to Turns. A turn names no quarter, so there is\"\n    .. \" nothing to mark or call. Set the switch back to Quarters to use this.\"\nlocal AUTO_WHY = \"Locked while the route records on its own. Marking and calling ride the answer keys,\"\n    .. \" which only answer while Recording is set to By hand. Switch that to use this.\"\nlocal NOT_LEADER_WHY = \"Locked because you are not leading a party. Only the party leader calls the route.\"\nlocal LEADER_WHY = \"Locked because you lead the party. The leader calls the route and the others follow it.\"\nlocal NOT_FOLLOWING_WHY = \"Locked until Follow the leader is on. It only reads the leader's calls.\"",
+    "local TURNS_WHY = \"「回答鍵」設成轉向時鎖定。轉向指不出象限，沒有東西可以標記或報點。\"\n    .. \"把開關切回象限才能用。\"\nlocal AUTO_WHY = \"路線自動記錄時鎖定。標記與報點是掛在回答鍵上的，而回答鍵只有在\"\n    .. \"「記錄方式」為手動時才作用。切過去才能用。\"\nlocal NOT_LEADER_WHY = \"你不是隊長，所以鎖定。只有隊長能報點路線。\"\nlocal LEADER_WHY = \"你是隊長，所以鎖定。隊長負責報點，其他人負責跟。\"\nlocal NOT_FOLLOWING_WHY = \"要先開啟「跟隨隊長」。它只會唸隊長的報點。\""
+   ],
+   [
+    "section(\"Locks\")",
+    "section(\"鎖定\")"
+   ],
+   [
+    "local LOCK_TIP =\n    \"No dragging, and clicks pass through it. Hover its corner and click the padlock to unlock, or untick this.\"\nfor _, w in ipairs({\n    { key = \"arrow\", label = \"Lock the arrow\" },\n    { key = \"wave\", label = \"Lock the countdown\" },\n    { key = \"follow\", label = \"Lock the route board\" },\n    {\n        key = \"room\",\n        label = \"Lock the room view\",\n        tip = \"No dragging, and clicks pass through it. The Opts and Instructions buttons and the padlock keep working.\",\n    },\n}) do",
+    "local LOCK_TIP = \"不能拖曳，滑鼠點擊會直接穿過去。把游標移到角落點那個鎖頭可以解鎖，或者把這個勾取消。\"\nfor _, w in ipairs({\n    { key = \"arrow\", label = \"鎖定箭頭\" },\n    { key = \"wave\", label = \"鎖定波次倒數\" },\n    { key = \"follow\", label = \"鎖定路線板\" },\n    {\n        key = \"room\",\n        label = \"鎖定房間視圖\",\n        tip = \"不能拖曳，滑鼠點擊會直接穿過去。設定鈕、使用說明鈕和鎖頭還是可以用。\",\n    },\n}) do"
+   ],
+   [
+    "ver:SetText(\"v\" .. AZT.VERSION .. \", /azt for the command list\")",
+    "ver:SetText(\"v\" .. AZT.VERSION .. \"，指令列表打 /azt\")"
+   ],
+   [
+    "        AZT.chat(\"the settings panel can't open in combat\")",
+    "        AZT.chat(\"戰鬥中無法開啟設定面板\")"
+   ],
+   [
+    "                AZT.chat(\"no text to speech voice on this machine\")",
+    "                AZT.chat(\"這台機器沒有可用的文字轉語音聲音\")"
+   ],
+   [
+    "chanLabel:SetText(\"Audio channels\")",
+    "chanLabel:SetText(\"音效聲道數\")"
+   ],
+   [
+    "chanWarn:SetText(\"If the cues go quiet mid fight, try raising this.\")",
+    "chanWarn:SetText(\"如果語音提示在戰鬥中會消音，把這個調高試試。\")"
+   ],
+   [
+    "    \"How many sounds the game mixes at once, the same Audio Channels number as the sound\"\n        .. \" options, moved from either place. Low settings drop the quietest sounds when a\"\n        .. \" fight gets loud, and the recorded cues go first.\"",
+    "    \"遊戲同時混音的音效數量，跟音效設定裡的「音效聲道數」是同一個數值，兩邊都可以調。\"\n        .. \"設得太低時，戰鬥一吵，最小聲的音效會先被丟掉——而錄好的語音提示就是第一個被丟的。\""
+   ],
+   [
+    "addAction(\n    \"Recording problems\",\n    function()\n        AZT.ShowMisreadWarning()\n    end,\n    \"The warning the addon raises over your corpse when an automatic recording holds the\"\n        .. \" same quarter twice in a row, which the boss never calls. Read here at leisure:\"\n        .. \" doubled quarters mean the recording watched you dodge with your back to the boss.\"\n)",
+    "addAction(\n    \"記錄出問題？\",\n    function()\n        AZT.ShowMisreadWarning()\n    end,\n    \"自動記錄如果出現連續兩波同一個象限（首領從來不會這樣出招），插件會在你的屍體上跳出這個警告。\"\n        .. \"這裡可以隨時從容地讀一次：重複的象限代表記錄當下你是背對首領在閃技能。\"\n)"
+   ]
+  ],
+  "AztarecHelper.toc": [
+   [
+    "## SavedVariables: AztarecHelperDB\n\nCore\\AztarecHelper.lua",
+    "## SavedVariables: AztarecHelperDB\n\n## Title-zhTW: |cffFF7F00[副本]|r 阿茲塔瑞小幫手\n## Notes-zhTW: Azta'rec Helper |n|n毒瀑深淵探究首領「阿茲塔瑞」的佈道記憶小幫手。「烏拉特克的佈道」時記下每一波的安全象限，接著的「烏拉特克的迴響」再用房間視圖、箭頭與中文語音帶你跑位。|n|n|cffffd200使用方法: |r進探究會自動出現；設定打 /azt options，完整指令打 /azt。\n## Category-zhTW: 副本\n\nCore\\AztarecHelper.lua"
+   ]
+  ]
+ },
+ "regions": {
+  "UI/Notice.lua": [
+   [
+    "local INSTR = \"",
+    "\nlocal function build()",
+    "local INSTR = \"|cffffd100這場戰鬥：|r施放「烏拉特克的佈道」時，首領會一次砸下房間的三個象限、\"\n    .. \"只留一個安全，連續好幾波，而且地板會先告訴你哪一個安全。\"\n    .. \"接著的「迴響」會用一模一樣的順序再來一次，這次地板什麼都不顯示。\\n\\n\"\n    .. \"|cffffd100記下安全點：|r地板還在顯示的時候，按下安全象限的快捷鍵、或在房間視圖上點它，\"\n    .. \"一波回答一次。漏掉一波的話，下一次按鍵會自動補上。\"\n    .. \"或者把「記錄方式」設成自動，插件就會自己把每一波你站的位置寫下來，完全不用按。\"\n    .. \"自動判讀的是你|cffff5a5a背後|r那個象限，所以整場佈道都要面對首領，否則記下來的會是錯的位置。\\n\\n\"\n    .. \"|cffffd100閃過迴響：|r房間視圖會把安全象限點成綠色、下一個點成黃色，箭頭指出該做的移動，\"\n    .. \"語音也會把它唸出來。照著跑就對了。\\n\\n\"\n    .. \"|cffffd100練習：|r/azt practice 會跑一場模擬佈道，不需要首領在場。\"\n    .. \"每一個設定都在自己的提示文字裡有說明。\"\n\n"
+   ]
+  ],
+  "Core/AztarecHelper.lua": [
+   [
+    "local HELP = {",
+    "\nAZT.HELP = HELP",
+    "local HELP = {\n    \"/azt room          - 開關房間視圖（進探究會自動出現）\",\n    \"/azt map           - 開關房間視圖後面的地圖底圖\",\n    \"/azt manual        - 改成手動記錄路線，不自動記錄\",\n    \"/azt n|e|s|w       - 手動記錄時，用該象限回答一波（也可以設快捷鍵）\",\n    \"/azt replay        - 照真實節奏重放上一次記下的路線\",\n    \"/azt practice      - 模擬一場佈道，可以自己練記錄跟跑迴響，不用拉首領\",\n    \"/azt cue           - 開關迴響階段的單人語音提示\",\n    \"/azt turns         - 開關「第一波之後改用相對轉向回答」\",\n    \"/azt call          - 當隊長時，開關對隊伍報點路線\",\n    \"/azt follow        - 開關跟隨隊長的報點\",\n    \"/azt review        - 上一次拉首領記下了什麼、你死在哪\",\n    \"/azt ring          - 面向判讀器看到什麼，房間視圖不會轉的時候貼這個\",\n    \"/azt badroute      - 叫出「記錯路線」的說明，不用等團滅也能看\",\n    \"/azt reset         - 清掉記錄的路線\",\n    \"/azt log           - 印出診斷記錄（/azt log clear 清空）\",\n    \"/azt options       - 打開設定面板\",\n    \"/azt anywhere      - 把你現在站的地方當成探究，偵測壞掉時用\",\n    \"/azt help          - 記錄跟報點是怎麼運作的\",\n    \"/azt version       - 插件版本\",\n}\n\n"
+   ]
+  ]
+ }
+}
