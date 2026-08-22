@@ -48,7 +48,7 @@ L["MiliUI Tooltip"] = "米利的滑鼠提示"
 L["Style"] = "樣式"
 L["Player"] = "玩家"
 L["Anchor"] = "錨點"
-L["Item & IDs"] = "物品與ID"
+L["Item & spells"] = "物品與法術"
 L["About"] = "關於"
 L["Item"] = "物品"
 

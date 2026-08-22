@@ -27,6 +27,15 @@ local enabled = false   -- 只有樣式／玩家／NPC／物品與ID 分頁有�
 
 local PREVIEW_ITEM_ID = 19019   -- 雷霆之怒（橙裝，看得出品質邊框）
 
+-- 法術預覽用「玩家自己職業」的代表技能（跟自己最相關；沒對到就退爐石術）
+local CLASS_SPELLS = {
+    WARRIOR = 100, PALADIN = 853, HUNTER = 56641, ROGUE = 1833,
+    PRIEST = 589, DEATHKNIGHT = 49998, SHAMAN = 188196, MAGE = 133,
+    WARLOCK = 686, MONK = 100780, DRUID = 8921, DEMONHUNTER = 162794,
+    EVOKER = 361469,
+}
+local PREVIEW_SPELL_ID = CLASS_SPELLS[ns.playerClass] or 8690
+
 ------------------------------------------------------------
 -- NPC 假資料（全明文）
 ------------------------------------------------------------
@@ -78,6 +87,12 @@ local function RenderItem()
     end
 end
 
+local function RenderSpell()
+    tip:ClearLines()
+    ns.Bar.Deactivate(tip)
+    pcall(tip.SetSpellByID, tip, PREVIEW_SPELL_ID)
+end
+
 ------------------------------------------------------------
 -- 開關與重繪。預覽住在設定視窗的左欄（模式 chip 在上、tooltip 在下），
 -- 右欄表單捲動時它固定不動。
@@ -101,6 +116,8 @@ function Preview.Refresh()
         RenderNpc()
     elseif mode == "item" then
         RenderItem()
+    elseif mode == "spell" then
+        RenderSpell()
     else
         RenderPlayer()
     end
@@ -123,12 +140,21 @@ local function Ensure()
     ns.TrackTip(tip)
 
     chipHolder = CreateFrame("Frame", nil, panel)
-    chipHolder:SetSize(190, 22)
+    chipHolder:SetSize(260, 22)
+    -- 物品資料是非同步的：首次開物品預覽常常還沒快取（畫面卡在「讀取物品資訊」），
+    -- 到貨事件來了就重繪一次
+    chipHolder:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+    chipHolder:SetScript("OnEvent", function(_, _, itemID)
+        if enabled and mode == "item" and itemID == PREVIEW_ITEM_ID then
+            Preview.Refresh()
+        end
+    end)
     local chips = {}
     local defs = {
         { id = "player", label = L["Player"] },
         { id = "npc",    label = "NPC" },
         { id = "item",   label = L["Item"] },
+        { id = "spell",  label = L["Spell"] },
     }
     local prev
     for i, def in ipairs(defs) do

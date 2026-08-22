@@ -184,7 +184,8 @@ end
 ------------------------------------------------------------
 function W.CreateCheckButton(parent, label, onChange)
     local cb = CreateFrame("CheckButton", nil, parent, "BackdropTemplate")
-    P.Size(cb, 14, 14)
+    -- 18px：14px 配 zhTW 的大字標籤顯得小氣，加大到跟行高平衡
+    P.Size(cb, 18, 18)
     W.Stylize(cb, CHECKBOX_FILL)
 
     cb.label = cb:CreateFontString(nil, "OVERLAY")
@@ -196,12 +197,27 @@ function W.CreateCheckButton(parent, label, onChange)
         cb:SetHitRectInsets(0, -(cb.label:GetStringWidth() + 8), 0, 0)
     end
 
-    local checked = cb:CreateTexture(nil, "ARTWORK")
-    checked:SetTexture(WHITE)
-    checked:SetVertexColor(W.Accent(0.85))
-    checked:SetPoint("TOPLEFT", 2, -2)
-    checked:SetPoint("BOTTOMRIGHT", -2, 2)
-    cb:SetCheckedTexture(checked)
+    -- 勾＝職業色、刻意比框大一圈往外溢（暴雪原生勾選框的視覺語言，素材換成
+    -- 現代扁平的 checkmark-minimal 細勾）。灰框當安靜的底，狀態靠職業色的勾
+    -- 自己跳出來。勾用材質不用字元——中文字型沒有 ✓ 這類符號，會畫成方框；
+    -- 一律先去色再染，職業色才染得準。圖集不存在的極端情況退回舊素材。
+    local check = cb:CreateTexture(nil, "OVERLAY")
+    local atlasInfo = C_Texture and C_Texture.GetAtlasInfo
+        and C_Texture.GetAtlasInfo("checkmark-minimal")
+    if atlasInfo then
+        check:SetAtlas("checkmark-minimal")
+        local h = 24
+        local w = (atlasInfo.height and atlasInfo.height > 0)
+            and h * (atlasInfo.width / atlasInfo.height) or h
+        P.Size(check, w, h)
+    else
+        check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+        P.Size(check, 26, 26)
+    end
+    check:SetDesaturated(true)
+    check:SetVertexColor(W.Accent(1))
+    check:SetPoint("CENTER", 0, 0)
+    cb:SetCheckedTexture(check)
 
     cb:SetScript("OnClick", function(self)
         if onChange then onChange(self:GetChecked() and true or false) end
@@ -479,6 +495,7 @@ local function EnsureMenu()
     menuFrame = CreateFrame("Frame", NS .. "_DropdownMenu", UIParent, "BackdropTemplate")
     menuFrame:SetFrameStrata("TOOLTIP")
     W.Stylize(menuFrame, { 0.1, 0.1, 0.1, 0.97 })
+    menuFrame:SetBackdropBorderColor(W.Accent(0.8))   -- 跟下拉本體同一套職業色框
     menuFrame:Hide()
     menuFrame.items = {}
     menuFrame.offset = 0
@@ -507,6 +524,10 @@ function W.CreateDropdown(parent, width, items, onSelect)
     local dd = CreateFrame("Button", nil, parent, "BackdropTemplate")
     P.Size(dd, width or 120, 20)
     W.Stylize(dd, WIDGET_FILL)
+    -- 框線染職業色：平常 60%、滑過 100%（跟按鈕 accent-hover 同一套語言）
+    dd:SetBackdropBorderColor(W.Accent(0.6))
+    dd:SetScript("OnEnter", function(self) self:SetBackdropBorderColor(W.Accent(1)) end)
+    dd:SetScript("OnLeave", function(self) self:SetBackdropBorderColor(W.Accent(0.6)) end)
 
     dd.text = dd:CreateFontString(nil, "OVERLAY")
     dd.text:SetFontObject(fontNormal)
@@ -515,13 +536,15 @@ function W.CreateDropdown(parent, width, items, onSelect)
     dd.text:SetJustifyH("LEFT")
     dd.text:SetWordWrap(false)
 
-    -- 箭頭用貼圖不用字元：中文字型（blei00d）沒有 ▾ 這類符號，會畫成方框
+    -- 箭頭用貼圖不用字元：中文字型（blei00d）沒有 ▾ 這類符號，會畫成方框。
+    -- 素材本身是金色，去色後染職業色，才不會是整個主題裡唯一不合群的顏色
     local arrow = dd:CreateTexture(nil, "OVERLAY")
     arrow:SetTexture("Interface\\ChatFrame\\ChatFrameExpandArrow")
     arrow:SetRotation(math.rad(-90))
     P.Size(arrow, 12, 12)
     arrow:SetPoint("RIGHT", -3, 0)
-    arrow:SetVertexColor(0.8, 0.8, 0.8)
+    arrow:SetDesaturated(true)
+    arrow:SetVertexColor(W.Accent(1))
 
     dd.items = items or {}
     dd.selected = nil

@@ -87,7 +87,7 @@ local EXTRA_CONTROLS = {
 local function InitExtra()
     if extraTab then return end
     local scroll
-    extraTab, scroll = ns.Options.MakeFormTab(L["Item & IDs"])
+    extraTab, scroll = ns.Options.MakeFormTab(L["Item & spells"])
     local ctx = Controls.MakeCtx(function(spec)
         return ns.db[spec.root or "item"]
     end, ns.ApplyAll)

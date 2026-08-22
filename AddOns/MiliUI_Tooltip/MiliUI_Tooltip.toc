@@ -11,7 +11,7 @@
 ## Author: Mili
 ## Version: 1.0.0
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
-## IconTexture: Interface\Icons\inv_pet_riverotter_red
+## IconTexture: Interface\Icons\INV_Misc_Note_01
 ## SavedVariables: MiliUI_Tooltip_DB
 ## AddonCompartmentFunc: MiliUITip_OnAddonCompartmentClick
 
