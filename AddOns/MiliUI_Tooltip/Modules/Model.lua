@@ -35,6 +35,12 @@ end
 function Model.OnUnit(tip, state, unit)
     if tip ~= GameTooltip then return end
     if not ns.db then return end
+    -- 兩邊的 3D 都關著就整個不進來：這支是「要不要畫」的派發器，
+    -- 設定關了也會被每個單位提示呼叫一次，先擋掉省去後面的判斷
+    if not (ns.db.unit.player.showModel or ns.db.unit.npc.showModel) then
+        Model.Clear(tip)
+        return
+    end
     -- ⚠ unit token 本身可能是秘密字串（SetWorldCursor 的世界單位提示走這條），
     -- 跟明文字面值比較（同型別）會炸——先洗，洗不出明文就當不是 mouseover
     if S.SafeValue(unit) ~= "mouseover" then Model.Clear(tip) return end
