@@ -42,6 +42,15 @@ local function Ensure(tip)
     bg:SetTexture(Media.WHITE8X8)
     bg:SetVertexColor(0.2, 0.2, 0.2, 0.8)
 
+    -- 1px 黑框線（貼在條的外緣，不吃掉條的高度；上下兩條左右各多 1px 補角）
+    local edges = {}
+    for i = 1, 4 do
+        edges[i] = bar:CreateTexture(nil, "BORDER")
+        edges[i]:SetTexture(Media.WHITE8X8)
+        edges[i]:SetVertexColor(0, 0, 0, 1)
+    end
+    state.barEdges = edges
+
     local text = bar:CreateFontString(nil, "OVERLAY")
     text:SetPoint("CENTER", bar, "CENTER", 0, 0)
     state.barText = text
@@ -80,6 +89,27 @@ function Bar.ApplySettings(tip)
         bar:SetPoint("TOPRIGHT", skin, "BOTTOMRIGHT", 0, -gap)
     end
     bar:SetHeight(h)
+
+    local e = state.barEdges
+    if e then
+        local bw = P.Scale(1)
+        e[1]:ClearAllPoints()
+        e[1]:SetPoint("BOTTOMLEFT", bar, "TOPLEFT", -bw, 0)
+        e[1]:SetPoint("BOTTOMRIGHT", bar, "TOPRIGHT", bw, 0)
+        e[1]:SetHeight(bw)
+        e[2]:ClearAllPoints()
+        e[2]:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", -bw, 0)
+        e[2]:SetPoint("TOPRIGHT", bar, "BOTTOMRIGHT", bw, 0)
+        e[2]:SetHeight(bw)
+        e[3]:ClearAllPoints()
+        e[3]:SetPoint("TOPRIGHT", bar, "TOPLEFT", 0, 0)
+        e[3]:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", 0, 0)
+        e[3]:SetWidth(bw)
+        e[4]:ClearAllPoints()
+        e[4]:SetPoint("TOPLEFT", bar, "TOPRIGHT", 0, 0)
+        e[4]:SetPoint("BOTTOMLEFT", bar, "BOTTOMRIGHT", 0, 0)
+        e[4]:SetWidth(bw)
+    end
 
     local text = state.barText
     text:SetFont(Media.Font("default"), tonumber(sb.fontSize) or 10, "THINOUTLINE")
