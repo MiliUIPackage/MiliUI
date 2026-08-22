@@ -170,6 +170,13 @@ end
 function Bar.Refresh(tip)
     local state = Skin.Get(tip)
     if not state or not state.bar or not state.barUnit then return end
+    -- 戰鬥中隱藏（可關）。秘密值其實畫得出來（SetValue / C 端縮寫都吃），
+    -- 這純粹是「戰鬥中少一件東西」的選擇；出戰鬥由輪詢自動撿回來。
+    if ns.db.statusbar.hideInCombat and InCombatLockdown() then
+        state.bar:Hide()
+        return
+    end
+    if not state.bar:IsShown() then state.bar:Show() end
     local ok, err = pcall(RefreshInner, tip, state)
     if not ok then
         -- 秘密值環境下寧可空條也不要洗版；記一筆供 /mtip debug
@@ -190,8 +197,7 @@ function Bar.Activate(tip, unit)
     end
     local state = Skin.Get(tip)
     state.barUnit = unit
-    bar:Show()
-    Bar.Refresh(tip)
+    Bar.Refresh(tip)   -- 顯示與否交給 Refresh（含戰鬥中隱藏的判斷）
 end
 
 function Bar.Deactivate(tip)
@@ -243,8 +249,9 @@ driver:SetScript("OnUpdate", function(_, elapsed)
     elapsedSum = elapsedSum + elapsed
     if elapsedSum < POLL then return end
     elapsedSum = 0
+    -- 不看 IsShown：戰鬥中被藏起來的條要靠輪詢在出戰鬥後撿回來
     Skin.Each(function(tip, state)
-        if state.barUnit and state.bar and state.bar:IsShown() then
+        if state.barUnit and state.bar then
             Bar.Refresh(tip)
         end
     end)

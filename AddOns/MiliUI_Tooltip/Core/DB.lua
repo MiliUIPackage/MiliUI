@@ -45,6 +45,7 @@ local function BuildDefaults()
         },
         statusbar = {
             enable = true,
+            hideInCombat = true,   -- 戰鬥中收起（值其實畫得出來——C 端呈現，純粹清爽）
             height = 4,
             position = "bottom",           -- bottom | top
             texture = "tuktex",

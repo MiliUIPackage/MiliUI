@@ -32,6 +32,8 @@ local CONTROLS = {
 
     { type = "header", label = L["Health bar"] },
     { type = "toggle", root = "statusbar", key = "enable", label = L["Show health bar"] },
+    { type = "toggle", root = "statusbar", key = "hideInCombat", label = L["Hide during combat"] },
+    { type = "text",   label = L["The bar itself would still render in combat (the engine draws secret values); hiding it is purely decluttering."] },
     { type = "dropdown", root = "statusbar", key = "position", label = L["Position"], items = Specs.BAR_POSITION_ITEMS },
     { type = "slider", root = "statusbar", key = "height", label = L["Height"], min = 2, max = 20, step = 1 },
     { type = "dropdown", root = "statusbar", key = "texture", label = L["Bar texture"], items = function() return ns.Media.BarTextureItems() end },
