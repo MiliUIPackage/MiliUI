@@ -12,10 +12,10 @@ local L = ns.L
 local W, Controls, Specs = ns.W, ns.Controls, ns.Specs
 local PosSize, Pos = Specs.PosSize, Specs.Pos
 
--- ⚠ 這是**語系表的 key**，而 key 就是英文原文（Locales/Locale.lua 查不到就回傳 key）。
--- 原本寫成三段 `.. ` 串接，key 是串接後的結果 —— 任何人改動其中一段的空格，
--- 九個語系會同時對不上而且不報錯（靜默退成英文）。改成單一字面字串就沒有這個風險。
-local TAG_SYNTAX_HELP = "Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification]; conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."
+-- ⚠ L 的 key 就是英文原文（Locales/Locale.lua 查不到就回傳 key），而且必須以**單一字面
+-- 字串**直接寫在 L[...] 裡：拆段串接或先存變數再查表，九個語系檔（和 locale_audit）都會
+-- 對不上而且不報錯（靜默退成英文）。
+local TAG_SYNTAX_HELP = L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification]; conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."]
 
 local UNIT_LIST = {
     { key = "player",       label = L["Player"] },
@@ -363,7 +363,7 @@ end
 
 local function TextsSpecs(els)
     local list = {
-        { type = "text", label = L[TAG_SYNTAX_HELP] },
+        { type = "text", label = TAG_SYNTAX_HELP },
     }
     for i = 1, #els.texts do
         tinsert(list, { type = "header", label = L["Text %d"]:format(i) })
