@@ -70,17 +70,15 @@ function Bar.ApplySettings(tip)
 
     local h = P.Scale(math.max(1, sb.height or 4))
     local inset = state.borderInset or P.Scale(1)
-    -- 幾何照 TinyTooltip 的原始語意（使用者認可的樣式）：條不是浮在框外，
-    -- 而是**蓋在 tooltip 邊緣上**——top 邊高於 tooltip 底邊 borderInset+1 px，
-    -- 文字中心正好落在底邊上，看起來跟框是一體的。層級已在 tip+1，蓋得上去。
-    local overlap = inset + P.Scale(1)
+    -- 血條是離框體 4px 的獨立條（使用者定案：有 gap 比蓋在框緣上漂亮）
+    local gap = P.Scale(4)
     bar:ClearAllPoints()
     if sb.position == "top" then
-        bar:SetPoint("BOTTOMLEFT", skin, "TOPLEFT", overlap, -overlap)
-        bar:SetPoint("BOTTOMRIGHT", skin, "TOPRIGHT", -overlap, -overlap)
+        bar:SetPoint("BOTTOMLEFT", skin, "TOPLEFT", inset, gap)
+        bar:SetPoint("BOTTOMRIGHT", skin, "TOPRIGHT", -inset, gap)
     else
-        bar:SetPoint("TOPLEFT", skin, "BOTTOMLEFT", overlap, overlap)
-        bar:SetPoint("TOPRIGHT", skin, "BOTTOMRIGHT", -overlap, overlap)
+        bar:SetPoint("TOPLEFT", skin, "BOTTOMLEFT", inset, -gap)
+        bar:SetPoint("TOPRIGHT", skin, "BOTTOMRIGHT", -inset, -gap)
     end
     bar:SetHeight(h)
 
@@ -105,9 +103,13 @@ local function ColorBar(bar, unit)
         local c = sb.customColor
         r, g, b = c.r, c.g, c.b
     else
-        -- auto：玩家 → 職業色（可能是秘密分量）；其他 → 立場色（明文，微調同 TinyTooltip）
+        -- auto：拿得到職業就用職業色，拿不到才退立場色。
+        -- ⚠ 不拿 UnitIsPlayer 當閘：mouseover（連滑自己）身分是秘密值，SafeBool
+        -- 會把玩家踢去立場色備援 → 預覽（player 明文）跟實戰同一個人兩種顏色。
+        -- 明文 class 查表；秘密 class 走 C_ClassColor（秘密分量餵 SetVertexColor）；
+        -- NPC 的 UnitClass 回單位名字 → 查表撲空 → 自然落到立場色。
         local _, class = S.SafeCall(UnitClass, unit)
-        if S.SafeBool(UnitIsPlayer, unit) and class ~= nil then
+        if class then
             local plain = S.SafeValue(class)
             if plain then
                 local c = RAID_CLASS_COLORS[plain]
