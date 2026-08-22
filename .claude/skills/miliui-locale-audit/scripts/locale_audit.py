@@ -104,7 +104,13 @@ for p in locales:
     print()
 
 # ── TOC ────────────────────────────────────────────────
-toc = (ROOT / "MiliUI_UnitFrames.toc").read_text(encoding="utf-8")
+# TOC 檔名跟資料夾同名（MiliUI_UnitFrames、MiliUI_Tooltip…），用 glob 找而不是寫死
+toc_paths = sorted(ROOT.glob("*.toc"))
+if not toc_paths:
+    bad("找不到 .toc 檔")
+    print("\n共 %d 個問題" % problems)
+    sys.exit(1)
+toc = toc_paths[0].read_text(encoding="utf-8")
 lines = [l.strip() for l in toc.splitlines()]
 listed = [l for l in lines if l.lower().startswith("locales\\")]
 on_disk = sorted("Locales\\%s.lua" % p.stem for p in locales)
