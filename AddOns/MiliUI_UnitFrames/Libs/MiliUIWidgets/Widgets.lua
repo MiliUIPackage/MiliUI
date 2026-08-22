@@ -792,3 +792,217 @@ function W.CreateConfirmPopup(parent, width, text, onAccept)
     no:SetScript("OnClick", function() popup:Hide() end)
     return popup
 end
+
+------------------------------------------------------------
+-- 唯讀複製框
+--
+-- 內容是程式產生的（巨集內文、指令字串），玩家改了沒有意義，但又必須能整段選起來
+-- Ctrl+C。所以不是 SetEnabled(false) —— 停用的輸入框連選取都做不到；改成「一被
+-- 輸入就還原」，看得到、選得到、改不掉。
+--   getText()    → 目前該顯示的文字（每次 Refresh 重新問一次，內容會變的照樣對）
+--   selectLabel  選填。給了才長「全選」按鈕，字串由宿主在地化（共用層不吃這個 key）
+-- 回傳 holder：holder.editBox / holder.button / holder.totalHeight / holder:Refresh()
+------------------------------------------------------------
+function W.CreateCopyBox(parent, width, height, getText, selectLabel)
+    width, height = width or 300, height or 44
+    local box = W.CreateScrollEditBox(parent, width, height)
+    local eb = box.editBox
+
+    function box:Refresh()
+        eb:SetText((getText and getText()) or "")
+        eb:SetCursorPosition(0)
+    end
+    box:Refresh()
+
+    -- userInput 才還原：程式自己 SetText 也會觸發這個事件，不分辨的話會無限遞迴
+    eb:SetScript("OnTextChanged", function(_, userInput)
+        if userInput then box:Refresh() end
+    end)
+
+    box.totalHeight = height
+    if selectLabel then
+        local btn = W.CreateButton(parent, selectLabel, "normal", 80, 22)
+        btn:SetPoint("TOPLEFT", box, "BOTTOMLEFT", 0, -6)
+        btn:SetScript("OnClick", function()
+            box:Refresh()
+            eb:SetFocus()
+            eb:HighlightText()
+        end)
+        box.button = btn
+        box.totalHeight = height + 28
+    end
+    return box
+end
+
+------------------------------------------------------------
+-- 可捲動的列表（列走池子重複利用）
+--
+-- 給「一列一筆資料」的清單：藥水清單、曲目清單、頻道開關…。捲軸、列高、內容高度
+-- 都由這裡管，宿主只負責裝飾一列（buildRow）與填一列（updateRow）。
+--   buildRow(row, list)            新建一列時呼叫一次，在 row 上建控件
+--   list:Update(items, updateRow)  updateRow(row, item, index)，每次刷新都跑
+--
+-- ⚠ 列是回收再用的：updateRow 必須把每一格都重設，**包含 OnClick 的 closure**。
+--   少設一格的症狀是顯示上一筆的殘留值，而且只在筆數變動後才看得出來。
+------------------------------------------------------------
+function W.CreateRowList(parent, width, height, rowHeight, buildRow)
+    local holder = CreateFrame("Frame", nil, parent)
+    P.Size(holder, width or 300, height or 200)
+
+    local scroll = W.CreateScrollFrame(holder)
+    local rows = {}
+    holder.scroll, holder.rows = scroll, rows
+
+    -- 列高先量成實體像素，位移也用同一個值累加。兩邊單位不一致的話，列與列之間
+    -- 會依螢幕縮放露出縫或互相疊到。
+    local rh = P.Scale(rowHeight or 24)
+
+    function holder:Update(items, updateRow)
+        local y = 0
+        for i, item in ipairs(items) do
+            local row = rows[i]
+            if not row then
+                row = CreateFrame("Frame", nil, scroll.child)
+                row:SetHeight(rh)
+                -- 斑馬紋：一列只有一行字，沒有底色的話捲到第 20 列就對不到自己那行
+                row.stripe = row:CreateTexture(nil, "BACKGROUND")
+                row.stripe:SetAllPoints()
+                row.stripe:SetTexture(WHITE)
+                row.stripe:SetVertexColor(1, 1, 1, 0.03)
+                rows[i] = row
+                if buildRow then buildRow(row, holder) end
+            end
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", scroll.child, "TOPLEFT", 0, -y)
+            row:SetPoint("TOPRIGHT", scroll.child, "TOPRIGHT", 0, -y)
+            row.stripe:SetShown(i % 2 == 0)
+            row:Show()
+            if updateRow then updateRow(row, item, i) end
+            y = y + rh
+        end
+        for i = #items + 1, #rows do rows[i]:Hide() end
+        scroll:SetContentHeight(y)
+    end
+
+    return holder
+end
+
+------------------------------------------------------------
+-- 輸入彈窗：一到多個單行欄位 ＋ 確定／取消
+--
+-- 「新增一筆」「改名」這種要先問字串才能動作的對話框。跟確認彈窗同一套遮罩與層級，
+-- 差別只在中間多了輸入欄。
+--   fields = { { key = , label = , hint = , maxLetters = }, ... }
+--   popup:Open(values, onAccept, title)
+--       values           { [key] = 初值 }，nil 就是空的
+--       onAccept(values) 回傳 false ＝ 內容不合法，彈窗不關（讓玩家改）
+--       title            選填，同一個彈窗要當「新增／編輯」兩用時覆蓋標題
+-- 欄位物件開在 popup.boxes[key]，宿主要塞值進去（例如 Shift+點擊帶入）從那裡拿。
+------------------------------------------------------------
+function W.CreateInputPopup(parent, width, title, fields)
+    width = width or 360
+
+    local mask = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    mask:SetAllPoints(parent)
+    mask:SetFrameStrata("FULLSCREEN_DIALOG")
+    mask:SetFrameLevel(400)
+    mask:EnableMouse(true)
+    mask:SetBackdrop({ bgFile = WHITE })
+    mask:SetBackdropColor(0.15, 0.15, 0.15, 0.7)
+    mask:Hide()
+
+    local popup = W.CreateFrame(nil, parent, width, 100)
+    popup:SetFrameStrata("FULLSCREEN_DIALOG")
+    popup:SetFrameLevel(410)
+    popup:SetBackdropBorderColor(W.Accent(1))
+    popup:SetPoint("CENTER")
+    popup.mask = mask
+    popup:SetScript("OnShow", function() mask:Show() end)
+    popup:SetScript("OnHide", function() mask:Hide() end)
+    popup:Hide()
+
+    local titleFS = popup:CreateFontString(nil, "OVERLAY")
+    titleFS:SetFontObject(fontTitle)
+    titleFS:SetPoint("TOP", 0, -12)
+    titleFS:SetWidth(width - 24)
+    titleFS:SetJustifyH("CENTER")
+    titleFS:SetText(title or "")
+    popup.title = titleFS
+
+    local function Accept()
+        local out = {}
+        for _, f in ipairs(fields) do
+            out[f.key] = strtrim(popup.boxes[f.key]:GetText() or "")
+        end
+        if popup._onAccept and popup._onAccept(out) == false then return end
+        popup:Hide()
+    end
+
+    popup.boxes = {}
+    local order = {}
+    local y = -36
+    for i, f in ipairs(fields) do
+        local lb = popup:CreateFontString(nil, "OVERLAY")
+        lb:SetFontObject(fontSmall)
+        lb:SetPoint("TOPLEFT", 14, y)
+        lb:SetText(f.label or "")
+        y = y - 16
+
+        local eb = W.CreateEditBox(popup, width - 28, 20)
+        eb:SetPoint("TOPLEFT", 14, y)
+        if f.maxLetters then eb:SetMaxLetters(f.maxLetters) end
+        popup.boxes[f.key] = eb
+        order[i] = eb
+        y = y - 26
+
+        if f.hint then
+            local hint = popup:CreateFontString(nil, "OVERLAY")
+            hint:SetFontObject(fontSmall)
+            hint:SetTextColor(1, 0.82, 0)
+            hint:SetPoint("TOPLEFT", 14, y)
+            hint:SetWidth(width - 28)
+            hint:SetJustifyH("LEFT")
+            hint:SetSpacing(2)
+            hint:SetText(f.hint)
+            -- 下限一行：GetStringHeight 在版面還沒解算時可能回 0，沒有下限的話
+            -- 彈窗會算得太矮，說明文字直接壓在按鈕上
+            y = y - (math.max(hint:GetStringHeight(), 14) + 10)
+        end
+    end
+
+    for i, eb in ipairs(order) do
+        local nextBox = order[i + 1]
+        eb:SetScript("OnTabPressed", function() (nextBox or order[1]):SetFocus() end)
+        eb:SetScript("OnEnterPressed", function()
+            if nextBox then nextBox:SetFocus() else Accept() end
+        end)
+        -- HookScript：CreateEditBox 自己的 OnEscapePressed 負責 ClearFocus，
+        -- SetScript 會蓋掉它，焦點就卡在關掉的彈窗上（下一次打字全被吃掉）
+        eb:HookScript("OnEscapePressed", function() popup:Hide() end)
+    end
+
+    local ok = W.CreateButton(popup, L["Okay"], "green", 80, 22)
+    ok:SetPoint("BOTTOMLEFT", 26, 12)
+    ok:SetScript("OnClick", Accept)
+    local cancel = W.CreateButton(popup, L["Cancel"], "red", 80, 22)
+    cancel:SetPoint("BOTTOMRIGHT", -26, 12)
+    cancel:SetScript("OnClick", function() popup:Hide() end)
+
+    P.Height(popup, -y + 12 + 22 + 12)
+
+    function popup:Open(values, onAccept, newTitle)
+        if newTitle then titleFS:SetText(newTitle) end
+        for _, f in ipairs(fields) do
+            local eb = popup.boxes[f.key]
+            eb:SetText(tostring((values and values[f.key]) or ""))
+            eb:SetCursorPosition(0)
+        end
+        popup._onAccept = onAccept
+        popup:Show()
+        -- 刻意不 Raise：層級固定在 410（遮罩 400 之上、戰鬥遮罩 500 之下），
+        -- Raise 會把它抬到 strata 頂端，戰鬥中就變成浮在戰鬥遮罩上面還能按
+        if order[1] then order[1]:SetFocus() end
+    end
+
+    return popup
+end

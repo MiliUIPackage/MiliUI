@@ -26,32 +26,18 @@ end
 
 ------------------------------------------------------------
 -- 斷法巨集（唯讀 + 全選讓玩家 Ctrl+C）
+-- 斷法技能會隨專精／天賦變，所以文字每次刷新重新問一次，不烘死在建立那一刻
 ------------------------------------------------------------
 local function BuildMacroRow(parent, x, y, width)
-    local box = W.CreateScrollEditBox(parent, math.min(width, 360), 44)
-    box:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
-    local eb = box.editBox
-
     local function MacroText()
         local spell = ns.CastBar.GetInterruptSpellName() or L["Spell name"]
         return "#showtooltip\n/cast [@focus,exists][@target] " .. spell
     end
-    local function Reset() eb:SetText(MacroText()) end
 
-    -- 保持唯讀：使用者輸入後還原文字
-    eb:SetScript("OnTextChanged", function(_, userInput)
-        if userInput then Reset() end
-    end)
+    local box = W.CreateCopyBox(parent, math.min(width, 360), 44, MacroText, L["Select all"])
+    box:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
 
-    local btn = W.CreateButton(parent, L["Select all"], "normal", 80, 22)
-    btn:SetPoint("TOPLEFT", box, "BOTTOMLEFT", 0, -6)
-    btn:SetScript("OnClick", function()
-        Reset()
-        eb:SetFocus()
-        eb:HighlightText()
-    end)
-
-    return 82, Reset
+    return box.totalHeight + 10, function() box:Refresh() end
 end
 
 local CONTROLS = {

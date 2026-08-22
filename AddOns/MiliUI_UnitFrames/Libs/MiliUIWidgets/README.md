@@ -11,7 +11,7 @@ MiliUI 各插件共用的設定介面元件庫。自寫、零外部依賴、零�
 | 檔案 | 複製時 | 說明 |
 |---|---|---|
 | `Env.lua` | **要改** | 宿主接點，見下方契約 |
-| `Widgets.lua` | 逐字複製 | 元件庫：按鈕／勾選框／滑桿／下拉／色票／輸入框／遮罩／彈窗 |
+| `Widgets.lua` | 逐字複製 | 元件庫：按鈕／勾選框／滑桿／下拉／色票／輸入框／複製框／列表／遮罩／彈窗 |
 | `Controls.lua` | 逐字複製 | 表單引擎：吃一張 spec 清單，吐出對齊好的一整頁控制項 |
 | `PixelPerfect.lua` | 可略 | 像素對齊。插件已經有自己的一份就別帶，把 `Env.P` 指過去即可 |
 
@@ -64,6 +64,14 @@ Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\Controls.lua
 ```
+
+### 三個比較不明顯的元件
+
+| 元件 | 什麼時候用 |
+|---|---|
+| `W.CreateCopyBox(parent, w, h, getText, selectLabel)` | 巨集／指令那種「內容是程式產生的、玩家要整段複製走」的欄位。一被輸入就還原，等於唯讀但選得起來（停用的輸入框連選取都做不到）。`selectLabel` 給了才長全選鈕，字串由宿主在地化 |
+| `W.CreateRowList(parent, w, h, rowH, buildRow)` | 「一列一筆資料」的清單。捲軸／列高／內容高度由它管，宿主只寫 `buildRow`（建控件）與 `list:Update(items, updateRow)`（填值）。⚠ 列會回收再用，`updateRow` 必須連 `OnClick` 的 closure 一起重設 |
+| `W.CreateInputPopup(parent, w, title, fields)` | 「新增一筆／改名」這種要先問字串的對話框。`popup:Open(values, onAccept, title)`，`onAccept` 回傳 `false` 就不關窗 |
 
 ## 規矩
 
