@@ -73,7 +73,8 @@ SV `MiliUI_Focus_DB`、指令 `/mfocus`、NAMESPACE `MiliUIFocus`）。
 - **comm 前綴刻意沿用 `MiliUI_FM`、協定版本不動**：還在用舊套組的隊友照樣互通得到。
 - 設定介面走 [[project-miliui-widgets-vendor]]，是第三個消費者；為了「擷取按鍵」與
   「唯讀巨集複製框」在共用層加了通用的 `custom` spec（三份 copy 已同步）。
-- **標記列 strata 要 `HIGH`**：預設 MEDIUM 跟快捷列同層、而且 frame level 比它低，
-  列擺在快捷列附近時按鍵文字與數量數字會直接印在標記圖示上（2026-08-22 使用者回報）。
-  差別在 strata，調 level 沒用。
+- **標記列層級：`MEDIUM` ＋ `SetFrameLevel(600)`，兩邊都不要碰**（2026-08-22 試了三次才收斂）。
+  詳見 [[wow-actionbar-text-overlay-level-500]] —— 要越過的是快捷鍵**文字層的 500**，
+  不是按鈕本體的 level。改成 `HIGH` 則反過來蓋掉天賦樹等暴雪面板（那些面板其實也在
+  MEDIUM，只是帶 `toplevel` 會自我抬升），所以只能留在 MEDIUM 把 level 墊高。
 - 載入時偵測到舊的 `MiliUI_Focuser` 全域就印一次警告（套組沒更新的人），不自動停用。

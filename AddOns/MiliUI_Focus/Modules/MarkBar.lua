@@ -108,9 +108,7 @@ local function CreatePicker()
     picker:SetBackdrop(BACKDROP)
     picker:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
     picker:SetBackdropBorderColor(0, 0, 0, 1)
-    -- 跟母框同一個 strata（HIGH），只靠 level 疊在列上面。母框已經壓過快捷列了，
-    -- 這裡再拉高一階是為了蓋住母框自己的背景與按鈕
-    picker:SetFrameStrata("HIGH")
+    -- strata 跟著母框（MEDIUM），只靠 level 疊在列上面
     picker:SetFrameLevel(bar:GetFrameLevel() + 10)
     picker:SetClampedToScreen(true)
     picker:Hide()
@@ -354,10 +352,20 @@ local function CreateBar()
     local width = PADDING * 2 + GRIP_WIDTH + 4 + ICON_SIZE * 2 + ICON_SPACE
     bar = CreateFrame("Frame", "MiliUIFocus_MarkBar", UIParent, "BackdropTemplate")
     bar:SetSize(width, PADDING * 2 + ICON_SIZE)
-    -- ⚠ HIGH，不能用預設的 MEDIUM：快捷列按鈕也在 MEDIUM，而且 frame level 比
-    -- 這條列高 —— 列擺在快捷列附近時，按鍵文字與數量數字會直接印在標記圖示上。
-    -- 差別在 strata，調 level 沒用（不同 strata 之間先比 strata）。
-    bar:SetFrameStrata("HIGH")
+    -- ⚠ 層級：MEDIUM ＋ frame level 600，兩邊都不要碰。
+    --   * 要越過的數字是 **500**，不是快捷列按鈕自己的 level。
+    --     Blizzard_ActionBar/Mainline/ActionButtonTemplate.xml 把按鍵文字與數量
+    --     單獨放在 `TextOverlayContainer`，寫死 `frameLevel="500"` ＋ setAllPoints；
+    --     按鈕本體才 level 3。所以列擺在快捷列附近時，蓋上來的是那層 500。
+    --     （`/framestack` 滑過按鈕就看得到：`MultiBar5Button5` <3> 但
+    --      `MultiBar5Button5.TextOverlayContainer` <500>。）
+    --   * 但不能改 strata 去 HIGH：暴雪的面板（天賦樹 PlayerSpellsFrame 等）其實
+    --     **也在 MEDIUM**（XML 沒設 frameStrata），只是帶 toplevel 會把自己抬到同層
+    --     最上面。跳到 HIGH 就變成連天賦樹、角色面板都蓋住。
+    --   留在 MEDIUM、level 600：越過文字層那 500，而面板每次顯示都會重新抬到同層
+    --   最高，所以照樣蓋得住我們。
+    bar:SetFrameStrata("MEDIUM")
+    bar:SetFrameLevel(600)
     bar:SetClampedToScreen(true)
     bar:SetMovable(true)
     bar:SetBackdrop(BACKDROP)
