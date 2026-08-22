@@ -78,3 +78,13 @@ spell.modifierShowAll=true、成就色；**遷移鏈已整個拔掉（未發佈�
 這條）；④ 預設縮放 1.2 → 1，配 v2 值閘遷移。
 
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]
+
+**戰鬥中敵方顯示成上一個友方（2026-08-23 log 破案，兩層）**：
+① `tip:Show()` 會讓 tooltip **重新處理「儲存的上一份內容」**——目標行輪詢的 Show 把舊的
+`unit="target"` 內容翻回來、重跑又把 `isUnitTip` 設回 true ⇒ 自我延續的舊資料迴圈，跟世界
+游標畫的敵方內容互蓋。規則：**任何會 Show 的輪詢都要先確認「目前內容是自己要更新的那個
+token」**（`SafeValue(state.unit)=="mouseover"` 明文比對）。
+② 世界游標的秘密 token 連 `UnitExists` 都回**秘密布林**（不能 truth-test）⇒ SafeBool 當
+false 早退，敵方整個套不到文法。**存在性判斷要 fail-open**：只有明文 false 才退、秘密照畫
+（文法全程秘密值安全）。UnitLines.Apply 與 Bar.RefreshInner 兩處同款。
+診斷靠 `/mtip log`／`/mtip logdump`（Init.lua 的 ns.Log 記錄器，秘密值只標型別）。
