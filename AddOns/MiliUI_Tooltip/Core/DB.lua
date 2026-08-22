@@ -136,7 +136,7 @@ local function BuildDefaults()
             },
         },
         item = {
-            modifierShowAll = false,
+            modifierShowAll = true,
             coloredItemBorder = true,
             showItemIcon = true,
             showItemId = false,

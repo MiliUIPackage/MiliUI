@@ -70,13 +70,17 @@ function Bar.ApplySettings(tip)
 
     local h = P.Scale(math.max(1, sb.height or 4))
     local inset = state.borderInset or P.Scale(1)
+    -- 幾何照 TinyTooltip 的原始語意（使用者認可的樣式）：條不是浮在框外，
+    -- 而是**蓋在 tooltip 邊緣上**——top 邊高於 tooltip 底邊 borderInset+1 px，
+    -- 文字中心正好落在底邊上，看起來跟框是一體的。層級已在 tip+1，蓋得上去。
+    local overlap = inset + P.Scale(1)
     bar:ClearAllPoints()
     if sb.position == "top" then
-        bar:SetPoint("BOTTOMLEFT", skin, "TOPLEFT", inset, P.Scale(1))
-        bar:SetPoint("BOTTOMRIGHT", skin, "TOPRIGHT", -inset, P.Scale(1))
+        bar:SetPoint("BOTTOMLEFT", skin, "TOPLEFT", overlap, -overlap)
+        bar:SetPoint("BOTTOMRIGHT", skin, "TOPRIGHT", -overlap, -overlap)
     else
-        bar:SetPoint("TOPLEFT", skin, "BOTTOMLEFT", inset, -P.Scale(1))
-        bar:SetPoint("TOPRIGHT", skin, "BOTTOMRIGHT", -inset, -P.Scale(1))
+        bar:SetPoint("TOPLEFT", skin, "BOTTOMLEFT", overlap, overlap)
+        bar:SetPoint("TOPRIGHT", skin, "BOTTOMRIGHT", -overlap, overlap)
     end
     bar:SetHeight(h)
 
@@ -127,8 +131,11 @@ end
 local function RefreshInner(tip, state)
     local unit = state.barUnit
     if not unit then return end
-    -- 存在性 fail-open（同 UnitLines.Apply）：秘密 token 連 UnitExists 都回秘密布林，
-    -- 只有明文 false 才退；秘密照畫（SetValue / C 端縮寫都吃秘密值）
+    -- ⚠ 秘密 token 不能當血量 API 的參數（tainted 下 UnitHealth(secretToken)
+    -- 直接拒收，跟 UnitName 不同，血量家族更嚴）。世界游標的提示滑鼠一定壓在
+    -- 那個單位上，改用明文 "mouseover" 讀同一個單位。
+    if S.IsSecret(unit) then unit = "mouseover" end
+    -- 存在性：明文 false 才退（滑鼠已離開、tooltip 淡出中 → 維持最後畫面）
     local exists = S.SafeCall(UnitExists, unit)
     if exists ~= nil and not S.IsSecret(exists) and not exists then return end
     local bar, text = state.bar, state.barText
