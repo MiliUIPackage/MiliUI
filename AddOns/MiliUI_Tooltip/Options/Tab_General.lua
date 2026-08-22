@@ -54,7 +54,7 @@ local function Init()
         return ns.db.general
     end, ns.ApplyAll)
     local _
-    _, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx, 640)
+    _, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx, 600)
 end
 
 ns.RegisterCallback("ShowOptionsTab", "generalTab", function(id)

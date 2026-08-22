@@ -8,7 +8,7 @@ local ADDON, ns = ...
 
 ns.ADDON_NAME = ADDON
 ns.VERSION    = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
-ns.DB_VERSION = 2            -- schemaVersion，遷移鏈用（DB.lua 的 MIGRATIONS 加條目時一起 bump）
+ns.DB_VERSION = 1            -- schemaVersion。尚未發佈、沒有遷移鏈；發佈後改預設值要配遷移
 
 ns.playerClass = select(2, UnitClass("player"))   -- player token 不受 12.1 身分限制，安全
 

@@ -53,12 +53,10 @@ L["About"] = "關於"
 L["Item"] = "物品"
 
 -- 關於
-L["Tooltip restyling rebuilt for 12.1, replacing TinyTooltip."] = "為 12.1 重寫的滑鼠提示美化，取代 TinyTooltip。"
 L["All decoration lives on our own overlay frame; taint containment is part of the architecture."] = "所有裝飾都畫在自己的覆蓋框上，taint 圍堵是架構的一部分。"
 L["Commands: |cffffd200/mtip|r opens the options, |cffffd200/mtip reset|r resets everything"] = "指令：|cffffd200/mtip|r 開啟設定，|cffffd200/mtip reset|r 重置全部"
 L["Author: Mili (MiliUI package)"] = "作者：米利（MiliUI 套組）"
 L["|cffffd200Credits|r"] = "|cffffd200致謝|r"
-L["The look and feature set follow TinyTooltip by Boomi Wang;"] = "外觀與功能設計承襲 Boomi Wang 的 TinyTooltip；"
 L["this is a from-scratch rewrite for the 12.1 secret-value era."] = "本插件是為 12.1 秘密值時代從零重寫的版本。"
 
 -- 樣式分頁
@@ -169,13 +167,11 @@ L["Background opacity"] = "背景不透明度"
 L["Opacity applies only when a background tint is selected; \"Global background color\" uses the alpha from the Style tab."] = "不透明度只在選了背景著色時生效；「全域背景色」用的是「樣式」頁背景顏色裡的透明度。"
 L["Behavior"] = "行為"
 L["Show their target"] = "顯示他的目標"
-L["Show who targets them (in groups)"] = "顯示誰在打他（組隊時）"
 L["Show 3D model"] = "顯示 3D 模型"
 L["Gray out when dead"] = "死亡時轉為灰色"
 L["Lines and icons"] = "顯示元素"
 L["Icon instead of text"] = "用圖示代替文字標籤"
 L["Replaces the text label with a small icon (spec icon for class, dedicated icons for the rest)."] = "把文字標籤換成小圖示（職業換成專精圖示，其餘用專屬圖示）。"
-L["Element colors and per-element filters follow the pack defaults, matching the existing TinyTooltip look. Hold Alt or Ctrl over a unit to temporarily show every element."] = "元素顏色與顯示條件沿用套組預設，跟原本 TinyTooltip 的樣式一致。滑過單位時按住 Alt 或 Ctrl 可暫時顯示全部元素。"
 
 -- 錨點分頁
 L["Anchor mode"] = "錨點模式"
@@ -187,8 +183,6 @@ L["Hide tooltips in combat"] = "戰鬥中隱藏滑鼠提示"
 L["Hold to show anyway"] = "按住此鍵仍顯示"
 L["Use fixed position in combat"] = "戰鬥中改用固定位置"
 L["Use fixed position over unit frames"] = "滑過頭像框時改用固定位置"
-L["Quick focus click"] = "快速焦點鍵"
-L["Hold this key and left-click a unit to set it as focus (out of combat the binding updates immediately; in combat it waits for combat to end)."] = "按住此鍵左鍵點擊單位即設為焦點目標（脫戰時立即生效，戰鬥中會等脫戰後更新）。"
 L["Hide the right-click hint line"] = "隱藏「右鍵點擊顯示選單」提示行"
 L["Show tooltips when hovering chat links"] = "滑過聊天連結直接顯示提示"
 
@@ -207,3 +201,11 @@ L["Mount source on mount auras"] = "坐騎光環顯示取得來源"
 L["Quest"] = "任務"
 L["Border by quest difficulty"] = "邊框依任務等差染色"
 L["Quest ID in the quest log"] = "任務日誌顯示任務 ID"
+
+-- 2026-08-22 介面改版新增
+L["Show teammates targeting them"] = "顯示把他當目標的隊友"
+L["Drop here to start a new line"] = "拖到這裡新增一列"
+L["Hidden"] = "不顯示"
+L["One strip per tooltip line. Drag a block to reorder it, move it to another line, or drop it below to start a new line; drop it on \"Hidden\" (or just click it) to toggle it off. Hold Alt or Ctrl over a unit to temporarily show everything."] = "一條就是提示裡的一列。拖曳方塊可以調整順序、搬到別列，拖到最下面自成新的一列；拖進「不顯示」（或直接點一下方塊）就能開關。滑過單位時按住 Alt 或 Ctrl 可暫時顯示全部。"
+L["Tooltip restyling rebuilt for 12.1."] = "為 12.1 重寫的滑鼠提示美化。"
+L["The look and feature set follow TinyTooltip by 55510696;"] = "外觀與功能設計承襲 55510696 的 TinyTooltip；"

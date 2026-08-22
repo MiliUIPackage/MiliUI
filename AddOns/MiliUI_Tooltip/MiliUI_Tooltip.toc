@@ -2,9 +2,9 @@
 ## Title: MiliUI Tooltip
 ## Title-zhTW: |cff4DD2FF[提示]|r 米利的滑鼠提示
 ## Title-zhCN: |cff4488FF[MiliUI]|r 米利的鼠标提示
-## Notes: Tooltip restyling rebuilt for 12.1, replacing TinyTooltip.|n|n|cffffd200Usage: |r/mtip opens settings.
-## Notes-zhTW: MiliUI Tooltip|n|n米利的滑鼠提示，取代 TinyTooltip 的自製重寫版。|n|n|cffffd200使用方法: |r/mtip 開啟設定。
-## Notes-zhCN: MiliUI Tooltip|n|n米利的鼠标提示，取代 TinyTooltip 的自制重写版。|n|n|cffffd200使用方法: |r/mtip 打开设置。
+## Notes: Tooltip restyling rebuilt for 12.1.|n|n|cffffd200Usage: |r/mtip opens settings.
+## Notes-zhTW: MiliUI Tooltip|n|n米利的滑鼠提示。|n|n|cffffd200使用方法: |r/mtip 開啟設定。
+## Notes-zhCN: MiliUI Tooltip|n|n米利的鼠标提示。|n|n|cffffd200使用方法: |r/mtip 打开设置。
 ## Category: Tooltip
 ## Category-zhTW: 滑鼠提示
 ## Category-zhCN: 鼠标提示
@@ -39,7 +39,6 @@ Modules\Quest.lua
 Modules\Model.lua
 Modules\Anchor.lua
 Modules\ChatHover.lua
-Modules\QuickFocus.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\Controls.lua

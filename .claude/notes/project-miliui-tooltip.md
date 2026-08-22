@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 629d19ba-309f-41f7-aa47-258c1bee5d39
-  modified: 2026-08-22T13:40:20.823Z
+  modified: 2026-08-22T14:05:39.146Z
 ---
 
 **MiliUI_Tooltip**（2026-08-22 一次寫完，約 4700 行自寫 + 1200 行 vendor）：取代
@@ -58,6 +58,18 @@ UnitInfo.lua 圖標表，questlog atlas 款＋atlas 消失退回舊圖，另外�
 `MiliUI/Enhance/LegacyAddons.lua` 的 REPLACED 加了 TinyTooltip-Remake → MiliUI_Tooltip
 （自動停用玩家殘留資料夾）、AddonNames/MiliUI.toc 的引用清掉。
 [[project-tinytooltip-perf]] 與 [[project-local-addon-forks]] 的 TinyTooltip 列已標作廢。
+
+**第二輪實測回饋（2026-08-22）**：① 預覽移進設定視窗**左欄**（面板 1000 寬、左 340 固定
+放預覽、右欄捲動；預覽 tooltip 改成 panel 的 child、frameLevel panel+20）；② 顯示元素改成
+**可拖曳方塊看板**（Tab_Unit.lua：一列一條 strip、列內排序／跨列搬移／拖到「不顯示」隱藏／
+拖到底部自成一列／點一下快速開關；列版面直接寫回 DB elements 數字鍵陣列，DB 端
+OverwriteElementRows 改成 EnsureElementRows 健檢）；③ **QuickFocus 整個移除**（使用者不要）；
+④ 法術的「按住修飾鍵顯示全部」要靠 MODIFIER_STATE_CHANGED 監聽補行＋Show——法術提示
+不像物品會被比價系統一直重建，按修飾鍵不會重跑 post-call；⑤ **成就點數不是秘密值**
+（自己 GetTotalAchievementPoints、別人觀察快取，都先過 PlainNumber），新增 colorfunc
+"achievement"（4萬橘/2萬紫/1萬藍/5000綠/白）設為預設；⑥ 預設值再調：showModel 玩家=false、
+spell.modifierShowAll=true、成就色；**遷移鏈已整個拔掉（未發佈）**，預設值變動要使用者
+`/mtip reset` 才會吃到；⑦ 設定介面說明不提 TinyTooltip（致謝除外），原作者致謝名=55510696。
 
 **首輪實測回饋已修（2026-08-22）**：① 暴雪 GameTooltipStatusBar 載入時壓一次 alpha 0
 不夠，單位提示流程會弄回來 → Bar.Activate 每次重申；② 血條/模型層級要明寫 tip+1

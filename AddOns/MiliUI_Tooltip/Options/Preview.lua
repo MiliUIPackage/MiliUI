@@ -56,7 +56,7 @@ local function RenderNpc()
     if tip:NumLines() == 0 then tip:AddLine(L["Training Dummy"], 1, 1, 1) end
     ns.UnitLines.ColorBorder(tip, config, raw)
     ns.UnitLines.ColorBackground(tip, config, raw)
-    ns.Bar.Deactivate(tip)
+    ns.Bar.ActivateFake(tip)
 end
 
 local function RenderPlayer()
@@ -77,15 +77,16 @@ local function RenderItem()
 end
 
 ------------------------------------------------------------
--- 開關與重繪
+-- 開關與重繪。預覽住在設定視窗的左欄（模式 chip 在上、tooltip 在下），
+-- 右欄表單捲動時它固定不動。
 ------------------------------------------------------------
 local function Position()
     local panel = ns.Options and ns.Options.panel
     if not panel then return end
     tip:ClearAllPoints()
-    tip:SetPoint("TOPRIGHT", panel, "TOPLEFT", -14, -30)
+    tip:SetPoint("TOPLEFT", panel, "TOPLEFT", 16, -46)
     chipHolder:ClearAllPoints()
-    chipHolder:SetPoint("BOTTOMRIGHT", panel, "TOPLEFT", -14, -2)
+    chipHolder:SetPoint("TOPLEFT", panel, "TOPLEFT", 16, -14)
 end
 
 function Preview.Refresh()
@@ -113,12 +114,13 @@ end
 
 local function Ensure()
     if tip then return end
-    tip = CreateFrame("GameTooltip", "MiliUITip_Preview", UIParent, "GameTooltipTemplate")
-    tip:SetFrameStrata("DIALOG")
+    local panel = ns.Options.panel
+    -- 掛在面板底下：跟著開關、層級壓在面板底框之上（skin 會自己排到 tip−1）
+    tip = CreateFrame("GameTooltip", "MiliUITip_Preview", panel, "GameTooltipTemplate")
+    tip:SetFrameLevel(panel:GetFrameLevel() + 20)
     ns.TrackTip(tip)
 
-    chipHolder = CreateFrame("Frame", nil, UIParent)
-    chipHolder:SetFrameStrata("DIALOG")
+    chipHolder = CreateFrame("Frame", nil, panel)
     chipHolder:SetSize(190, 22)
     local chips = {}
     local defs = {

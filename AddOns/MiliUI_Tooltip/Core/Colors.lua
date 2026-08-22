@@ -131,6 +131,29 @@ colorfunc.mplus = function(raw)
     return 1, 1, 1, "ffffff"
 end
 
+-- 成就點數不是秘密值（自己走 GetTotalAchievementPoints、別人走觀察快取，
+-- 全都先過 PlainNumber 才進 raw），可以放心比較門檻上色
+colorfunc.achievement = function(raw)
+    local value = raw and tonumber(S.PlainNumber(raw._numericColorValue) or S.PlainNumber(raw.achievementPoints))
+    if not value then
+        return 0.6, 0.6, 0.6, "999999"
+    end
+    local color
+    if value >= 40000 then
+        color = ITEM_QUALITY_COLORS[5]      -- 傳說橘
+    elseif value >= 20000 then
+        color = ITEM_QUALITY_COLORS[4]      -- 史詩紫
+    elseif value >= 10000 then
+        color = ITEM_QUALITY_COLORS[3]      -- 優良藍
+    elseif value >= 5000 then
+        color = ITEM_QUALITY_COLORS[2]      -- 綠
+    end
+    if color then
+        return color.r, color.g, color.b, Colors.Hex(color.r, color.g, color.b)
+    end
+    return 1, 1, 1, "ffffff"
+end
+
 colorfunc.itemLevel = function(raw)
     local value = raw and tonumber(S.PlainNumber(raw._numericColorValue) or S.PlainNumber(raw.itemLevel))
     if not value then

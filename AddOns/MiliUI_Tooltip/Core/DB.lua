@@ -41,7 +41,6 @@ local function BuildDefaults()
             headerFont = "default", headerFontSize = 0, headerFontFlag = "default",
             bodyFont = "default", bodyFontSize = 0, bodyFontFlag = "default",
             hideUnitFrameHint = true,
-            quickFocusModKey = "none",
             chatHover = true,
         },
         statusbar = {
@@ -62,7 +61,7 @@ local function BuildDefaults()
                 anchor = DefaultAnchor(true),
                 showTarget = true,
                 showTargetBy = true,
-                showModel = true,
+                showModel = false,
                 grayForDead = false,
                 elements = {
                     raidIcon    = { enable = true, filter = "none" },
@@ -84,7 +83,7 @@ local function BuildDefaults()
                     guildRealm  = { enable = true, color = "00cccc", wildcard = "%s",   filter = "none" },
                     levelValue  = { enable = true, color = "level",  wildcard = "%s",   filter = "none" },
                     itemLevel   = { enable = true, color = "itemLevel", wildcard = "%s", filter = "none", icon = false },
-                    achievementPoints = { enable = true, color = "ffffff", wildcard = "%s", filter = "none", icon = false },
+                    achievementPoints = { enable = true, color = "achievement", wildcard = "%s", filter = "none", icon = false },
                     factionName = { enable = true, color = "faction", wildcard = "%s",  filter = "none" },
                     gender      = { enable = false, color = "999999", wildcard = "%s",  filter = "none" },
                     raceName    = { enable = true, color = "cccccc", wildcard = "%s",   filter = "none" },
@@ -145,7 +144,7 @@ local function BuildDefaults()
             showItemExpansion = true,
         },
         spell = {
-            modifierShowAll = false,
+            modifierShowAll = true,
             showIcon = true,
             showSpellId = false,
             showSpellIconId = false,
@@ -160,8 +159,6 @@ end
 DB.BuildDefaults = BuildDefaults
 
 -- nil-merge：只補缺的鍵，不動玩家已有的值。
--- elements 的「列版面」（數字鍵的陣列）整組跟著預設走 v1 不開放編輯，
--- 直接覆蓋可以讓未來新增元素自動出現在正確的列上。
 local function MergeDefaults(dst, src)
     for k, v in pairs(src) do
         if type(v) == "table" then
@@ -176,49 +173,60 @@ local function MergeDefaults(dst, src)
     end
 end
 
-local function OverwriteElementRows(db)
+-- 列版面（elements 的數字鍵陣列）存 SV，玩家可在設定頁拖曳排序。
+-- 這裡只做健檢：清掉重複與未知 key、把「預設版面有、SV 列裡沒有」的元素
+-- （通常是新版本加的）補進對應的列，最後清掉空列。
+local function EnsureElementRows(db)
     local defaults = BuildDefaults()
-    for _, key in ipairs({ "player", "npc" }) do
-        local saved = db.unit and db.unit[key] and db.unit[key].elements
-        local def = defaults.unit[key].elements
-        if saved then
-            for i = #saved, 1, -1 do saved[i] = nil end
-            for i, row in ipairs(def) do saved[i] = CopyTable(row) end
+    for _, kind in ipairs({ "player", "npc" }) do
+        local elements = db.unit and db.unit[kind] and db.unit[kind].elements
+        local def = defaults.unit[kind].elements
+        if elements then
+            local seen = {}
+            for r = #elements, 1, -1 do
+                local row = elements[r]
+                if type(row) ~= "table" then
+                    tremove(elements, r)
+                else
+                    for i = #row, 1, -1 do
+                        local key = row[i]
+                        if type(key) ~= "string" or seen[key] or type(elements[key]) ~= "table" then
+                            tremove(row, i)
+                        else
+                            seen[key] = true
+                        end
+                    end
+                end
+            end
+            for ri, drow in ipairs(def) do
+                for _, key in ipairs(drow) do
+                    if not seen[key] and type(elements[key]) == "table" then
+                        local target = elements[math.min(ri, #elements + 1)]
+                        if not target then
+                            target = {}
+                            elements[#elements + 1] = target
+                        end
+                        tinsert(target, key)
+                        seen[key] = true
+                    end
+                end
+            end
+            for r = #elements, 1, -1 do
+                if #elements[r] == 0 then tremove(elements, r) end
+            end
         end
     end
 end
-
-------------------------------------------------------------
--- 遷移鏈：版本閘（只跑一次）＋值閘（只動「還等於舊預設」的欄位，
--- 使用者自己調過的一個都不碰）。加條目時 Init.lua 的 DB_VERSION 一起 bump。
-------------------------------------------------------------
-local MIGRATIONS = {
-    -- v2（2026-08-22）：預設縮放 1.2 → 1（實測 1.2 太大）
-    [2] = function(db)
-        if db.general.scale == 1.2 then db.general.scale = 1 end
-    end,
-}
 
 function DB.Init()
     if type(MiliUI_Tooltip_DB) ~= "table" then
         MiliUI_Tooltip_DB = {}
     end
     local db = MiliUI_Tooltip_DB
-    local isFresh = db.schemaVersion == nil
     MergeDefaults(db, BuildDefaults())
-    OverwriteElementRows(db)
-
-    -- 降版 clamp：拿新版 SV 回舊版不重跑遷移
-    if type(db.schemaVersion) ~= "number" or db.schemaVersion > ns.DB_VERSION then
-        db.schemaVersion = ns.DB_VERSION
-    end
-    if not isFresh then
-        for v = db.schemaVersion + 1, ns.DB_VERSION do
-            if MIGRATIONS[v] then MIGRATIONS[v](db) end
-        end
-    end
+    EnsureElementRows(db)
+    -- 尚未發佈、沒有遷移鏈；schemaVersion 先佔位，發佈後改預設值要配遷移
     db.schemaVersion = ns.DB_VERSION
-
     ns.db = db
     return db
 end

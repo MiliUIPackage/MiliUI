@@ -235,6 +235,7 @@ function Skin.ClearTransient(tip)
     state.specLine = nil
     state.isUnitTip = nil
     state.targetLine = nil
+    state.lastSpellId = nil
     -- state.idData（物品 link 解析快取）刻意不清：它以 link 為 key 自我驗證，
     -- 清掉會讓比價重建風暴每秒重跑 20 幾次 gmatch 解析
     state.factionBig:Hide()

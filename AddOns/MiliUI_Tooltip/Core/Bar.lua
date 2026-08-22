@@ -83,6 +83,9 @@ function Bar.ApplySettings(tip)
     local text = state.barText
     text:SetFont(Media.Font("default"), tonumber(sb.fontSize) or 10, "THINOUTLINE")
     text:SetShown(sb.textFormat ~= "none")
+
+    -- 設定改動要立刻反映顏色與數值，不等 0.15s 輪詢
+    if state.barUnit then Bar.Refresh(tip) end
 end
 
 function Bar.ApplySettingsAll()
@@ -196,6 +199,38 @@ function Bar.Deactivate(tip)
     if not state then return end
     state.barUnit = nil
     if state.bar then state.bar:Hide() end
+end
+
+-- 預覽（NPC 假資料）用：固定 65%、明文數字，不進輪詢
+function Bar.ActivateFake(tip)
+    if not ns.db or not ns.db.statusbar.enable then
+        Bar.Deactivate(tip)
+        return
+    end
+    local bar = Ensure(tip)
+    if not bar then return end
+    local state = Skin.Get(tip)
+    state.barUnit = nil
+    local sb = ns.db.statusbar
+    bar:SetValue(65)
+    local text = state.barText
+    local fmt = sb.textFormat
+    if fmt == "percent" then
+        text:SetText("65%")
+    elseif fmt == "healthmax" then
+        text:SetFormattedText("%s / %s", Abbrev(6500000), Abbrev(10000000))
+    elseif fmt == "healthmaxpercent" then
+        text:SetFormattedText("%s / %s (65%%)", Abbrev(6500000), Abbrev(10000000))
+    else
+        text:SetText("")
+    end
+    local r, g, b = 0, 0.9, 0.1
+    if sb.color == "custom" then
+        local c = sb.customColor
+        r, g, b = c.r, c.g, c.b
+    end
+    bar:GetStatusBarTexture():SetVertexColor(r, g, b, 1)
+    bar:Show()
 end
 
 ------------------------------------------------------------

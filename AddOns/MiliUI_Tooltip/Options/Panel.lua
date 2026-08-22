@@ -11,7 +11,10 @@ local W, P = ns.W, ns.P
 ns.Options = {}
 local Options = ns.Options
 
-local PANEL_W, PANEL_H = 700, 520
+-- 左欄固定放即時預覽，右欄是會捲動的設定表單
+local PANEL_W, PANEL_H = 1000, 520
+local PREVIEW_W = 340
+Options.PREVIEW_W = PREVIEW_W
 
 local TAB_DRAG_THRESHOLD = 12
 local TAB_DRAG_DELAY     = 0.12
@@ -41,13 +44,13 @@ function Options.NewTabFrame()
     return tab
 end
 
--- 單純表單分頁：frame ＋ 標題 ＋ 捲軸。回傳 tab, scroll
+-- 單純表單分頁：frame ＋ 標題 ＋ 捲軸（右欄，左欄留給預覽）。回傳 tab, scroll
 function Options.MakeFormTab(titleText)
     local tab = Options.NewTabFrame()
-    local title = W.CreateSectionTitle(tab, titleText, 660)
-    title:SetPoint("TOPLEFT", 16, -14)
+    local title = W.CreateSectionTitle(tab, titleText, PANEL_W - PREVIEW_W - 40)
+    title:SetPoint("TOPLEFT", PREVIEW_W + 16, -14)
     local holder = CreateFrame("Frame", nil, tab)
-    holder:SetPoint("TOPLEFT", 16, -44)
+    holder:SetPoint("TOPLEFT", PREVIEW_W + 16, -44)
     holder:SetPoint("BOTTOMRIGHT", -8, 10)
     return tab, W.CreateScrollFrame(holder)
 end
@@ -129,6 +132,14 @@ local function CreatePanel()
     closeX:SetVertexColor(1, 0.85, 0.85)
     closeBtn:SetScript("OnClick", function() panel:Hide() end)
 
+    -- 左右欄分隔線
+    local sep = panel:CreateTexture(nil, "ARTWORK")
+    sep:SetTexture("Interface\\BUTTONS\\WHITE8X8")
+    sep:SetVertexColor(0, 0, 0, 1)
+    sep:SetPoint("TOPLEFT", PREVIEW_W, -1)
+    sep:SetPoint("BOTTOMLEFT", PREVIEW_W, 1)
+    sep:SetWidth(P.Scale(1))
+
     -- 分頁鈕：上緣外側兼拖曳把手（自己量距離＋最短按住時間，不用 RegisterForDrag）
     local prev
     for i, tab in ipairs(TABS) do
@@ -201,13 +212,13 @@ local function CreatePanel()
 
     local aboutText = aboutTab:CreateFontString(nil, "OVERLAY")
     aboutText:SetFontObject(W.fontNormal)
-    aboutText:SetPoint("TOPLEFT", 24, -40)
+    aboutText:SetPoint("TOPLEFT", PREVIEW_W + 24, -40)
     aboutText:SetJustifyH("LEFT")
     aboutText:SetSpacing(6)
     aboutText:SetText(table.concat({
         "|cff4DD2FF" .. L["MiliUI Tooltip"] .. "|r v" .. ns.VERSION,
         "",
-        L["Tooltip restyling rebuilt for 12.1, replacing TinyTooltip."],
+        L["Tooltip restyling rebuilt for 12.1."],
         L["All decoration lives on our own overlay frame; taint containment is part of the architecture."],
         "",
         L["Commands: |cffffd200/mtip|r opens the options, |cffffd200/mtip reset|r resets everything"],
@@ -215,7 +226,7 @@ local function CreatePanel()
         L["Author: Mili (MiliUI package)"],
         "",
         L["|cffffd200Credits|r"],
-        L["The look and feature set follow TinyTooltip by Boomi Wang;"],
+        L["The look and feature set follow TinyTooltip by 55510696;"],
         L["this is a from-scratch rewrite for the 12.1 secret-value era."],
     }, "\n"))
 

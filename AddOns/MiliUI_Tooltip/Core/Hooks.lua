@@ -197,7 +197,6 @@ function ns.ApplyAll()
     Skin.ApplyBaseAll()
     ns.Bar.ApplySettingsAll()
     ns.Fonts.Apply()
-    if ns.ApplyQuickFocusBinding then ns.ApplyQuickFocusBinding() end
     ns.Fire("SettingsApplied")
 end
 

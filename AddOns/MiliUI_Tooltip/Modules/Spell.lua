@@ -5,6 +5,7 @@ local _, ns = ...
 
 local S = ns.Secret
 local L = ns.L
+local Skin = ns.Skin
 local Lines = ns.Lines
 local Item = ns.Item
 
@@ -50,6 +51,7 @@ function Spell.Apply(tip, state, spellId)
         local ok, _, sid = pcall(tip.GetSpell, tip)
         if ok then spellId = S.PlainNumber(sid) end
     end
+    state.lastSpellId = spellId
     SpellIcon(tip, spellId)
     ShowSpellIds(tip, spellId)
 end
@@ -85,6 +87,24 @@ do
     end)
 end
 
+------------------------------------------------------------
+-- 法術提示不像物品有比價系統一直重建——顯示中按下修飾鍵不會重跑 post-call，
+-- 「按住修飾鍵顯示全部」就沒反應。這裡監聽修飾鍵，補加 ID 行再 Show 重排
+-- （在 ProcessInfo 之外，Show 是安全的）。
+------------------------------------------------------------
+local watcher = CreateFrame("Frame")
+watcher:RegisterEvent("MODIFIER_STATE_CHANGED")
+watcher:SetScript("OnEvent", function(_, _, _, down)
+    if tonumber(down) ~= 1 then return end
+    if not ns.db then return end
+    local tip = GameTooltip
+    local state = Skin.Get(tip)
+    if not state or not state.lastSpellId then return end
+    if not tip:IsShown() or S.IsForbiddenObject(tip) then return end
+    ShowSpellIds(tip, state.lastSpellId)
+    tip:Show()
+end)
+
 function Spell.ApplyAura(tip, state, args)
     state.isUnitTip = nil
     local spellId
@@ -95,6 +115,7 @@ function Spell.ApplyAura(tip, state, args)
         local ok, _, sid = pcall(tip.GetSpell, tip)
         if ok then spellId = S.PlainNumber(sid) end
     end
+    state.lastSpellId = spellId
     ShowSpellIds(tip, spellId)
 
     if spellId and ns.db.spell.showMountSource then

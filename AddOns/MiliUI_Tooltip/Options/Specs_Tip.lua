@@ -115,17 +115,5 @@ Specs.ELEMENT_LABELS = {
     reactionName = L["Reaction text"],
 }
 
--- 元素在設定頁的排列順序（跟預設版面的列一致，比照 DB 預設）
-Specs.PLAYER_ELEMENT_ORDER = {
-    "friendIcon", "raidIcon", "roleIcon", "pvpIcon", "factionIcon", "classIcon",
-    "title", "name", "realm", "statusAFK", "statusDND", "statusDC",
-    "guildName", "guildIndex", "guildRank", "guildRealm",
-    "levelValue", "factionName", "gender", "raceName", "className", "isPlayer", "role", "moveSpeed",
-    "mount", "mplusScore", "itemLevel", "achievementPoints", "zone", "factionBig",
-}
-
-Specs.NPC_ELEMENT_ORDER = {
-    "raidIcon", "classIcon", "questIcon", "name", "npcTitle",
-    "levelValue", "classifBoss", "classifElite", "classifRare", "creature", "reactionName",
-    "moveSpeed", "factionBig",
-}
+-- 元素的列排序改由玩家在「顯示元素」看板拖曳（Tab_Unit.lua），
+-- 順序資料就是 DB elements 的數字鍵陣列，這裡不再維護靜態清單。

@@ -27,8 +27,6 @@ local ANCHOR_CONTROLS = {
     { type = "toggle", root = "anchor", key = "returnOnUnitFrame", label = L["Use fixed position over unit frames"] },
 
     { type = "header", label = L["Behavior"] },
-    { type = "dropdown", root = "general", key = "quickFocusModKey", label = L["Quick focus click"], items = Specs.MOD_KEY_ITEMS },
-    { type = "text", label = L["Hold this key and left-click a unit to set it as focus (out of combat the binding updates immediately; in combat it waits for combat to end)."] },
     { type = "toggle", root = "general", key = "hideUnitFrameHint", label = L["Hide the right-click hint line"] },
     { type = "toggle", root = "general", key = "chatHover", label = L["Show tooltips when hovering chat links"] },
 }
@@ -42,7 +40,7 @@ local function InitAnchor()
         return ns.db.anchor
     end, ns.ApplyAll)
     local _
-    _, anchorRefreshers = ns.Options.BuildScrollBody(scroll, ANCHOR_CONTROLS, ctx, 640)
+    _, anchorRefreshers = ns.Options.BuildScrollBody(scroll, ANCHOR_CONTROLS, ctx, 600)
 end
 
 ns.RegisterCallback("ShowOptionsTab", "anchorTab", function(id)
@@ -94,7 +92,7 @@ local function InitExtra()
         return ns.db[spec.root or "item"]
     end, ns.ApplyAll)
     local _
-    _, extraRefreshers = ns.Options.BuildScrollBody(scroll, EXTRA_CONTROLS, ctx, 640)
+    _, extraRefreshers = ns.Options.BuildScrollBody(scroll, EXTRA_CONTROLS, ctx, 600)
 end
 
 ns.RegisterCallback("ShowOptionsTab", "extraTab", function(id)
