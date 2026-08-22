@@ -28,3 +28,10 @@ metadata:
 `SecretWhenUnitIdentityRestricted` 的定義：unit 不是 player-controlled、也不在隊伍/團隊裡時就是 restricted。compound token 只要鏈上任一 unit 不符就整串 secret。
 
 實務衝擊：所有靠 `UnitClass()` 取 class token 去查 `RAID_CLASS_COLORS` / `CLASS_ICON_TCOORDS` / `CLASS_BUTTONS` 的職業染色與職業圖示，在戰鬥中都會炸。見 [[wow-secret-key-table-lookup]]。
+
+**unit token 本身也可能是秘密字串**（2026-08-22 實測，MiliUI_Tooltip 滑世界單位 1208 連發）：
+`GameTooltip:GetUnit()` 的第二回傳在 **SetWorldCursor**（12.x 世界游標的單位提示）路徑上
+是秘密字串。它**傳遞給任何 Unit API、字串串接（`unit.."target"`）都合法**，但跟明文字面值
+比較（`unit ~= "mouseover"`——同型別字串比較）會直接炸。規則：unit token 要跟字面值比對前
+先 `SafeValue` 洗，洗不出明文就走否定分支；判斷「是不是某單位」改用 `UnitIsUnit(unit, "player")`
+（API 吃秘密 token，回傳再 SafeBool）。
