@@ -78,21 +78,22 @@ function Bar.ApplySettings(tip)
     bar:GetStatusBarTexture():SetTexture(Media.BarTexture(sb.texture))
 
     local h = P.Scale(math.max(1, sb.height or 4))
-    -- 血條是離框體 4px 的獨立條（使用者定案），左右貼齊框體外緣
+    -- 血條是離框體 4px 的獨立條（使用者定案）。黑框畫在條的外緣，所以條本身
+    -- 要往內縮 1px（bw），讓**黑框的外緣**貼齊框體外緣——條貼齊的話黑框會凸出去
     local gap = P.Scale(4)
+    local bw = P.Scale(1)
     bar:ClearAllPoints()
     if sb.position == "top" then
-        bar:SetPoint("BOTTOMLEFT", skin, "TOPLEFT", 0, gap)
-        bar:SetPoint("BOTTOMRIGHT", skin, "TOPRIGHT", 0, gap)
+        bar:SetPoint("BOTTOMLEFT", skin, "TOPLEFT", bw, gap)
+        bar:SetPoint("BOTTOMRIGHT", skin, "TOPRIGHT", -bw, gap)
     else
-        bar:SetPoint("TOPLEFT", skin, "BOTTOMLEFT", 0, -gap)
-        bar:SetPoint("TOPRIGHT", skin, "BOTTOMRIGHT", 0, -gap)
+        bar:SetPoint("TOPLEFT", skin, "BOTTOMLEFT", bw, -gap)
+        bar:SetPoint("TOPRIGHT", skin, "BOTTOMRIGHT", -bw, -gap)
     end
     bar:SetHeight(h)
 
     local e = state.barEdges
     if e then
-        local bw = P.Scale(1)
         e[1]:ClearAllPoints()
         e[1]:SetPoint("BOTTOMLEFT", bar, "TOPLEFT", -bw, 0)
         e[1]:SetPoint("BOTTOMRIGHT", bar, "TOPRIGHT", bw, 0)
