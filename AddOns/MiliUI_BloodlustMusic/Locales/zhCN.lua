@@ -3,18 +3,14 @@ local L = LibStub("AceLocale-3.0"):NewLocale("MiliUI_BloodlustMusic", "zhCN")
 if not L then return end
 
 -- Addon
-L["ADDON_NAME"] = "MiliUI 嗜血音乐"
+L["ADDON_NAME"] = "米利的嗜血音乐"
 L["ADDON_TITLE"] = "嗜血/英勇倒计时条"
-L["LOADED_MSG"] = "|cff00ff00MiliUI 嗜血音乐:|r 已加载 — /blm 打开设置"
+L["LOADED_MSG"] = "|cff00ff00米利的嗜血音乐:|r 已加载 — /blm 打开设置"
 
 -- Settings Categories
-L["SETTINGS_MAIN"] = "嗜血音乐"
 L["SETTINGS_MUSIC"] = "音乐设置"
 L["SETTINGS_BAR"] = "倒计时条"
 L["SETTINGS_MAIN_DESC"] = "嗜血/英勇音乐播放与倒计时条"
-L["SELECT_SUBCATEGORY"] = "请从左侧选择子类别："
-L["MUSIC_DESC"] = "音乐播放、曲目选择、声道"
-L["BAR_DESC"] = "倒计时条外观与位置"
 
 -- Music Settings
 L["MUSIC_SETTINGS_TITLE"] = "音乐设置"
@@ -26,7 +22,6 @@ L["PLAY_MODE_RANDOM"] = "随机播放"
 L["PLAY_MODE_SEQUENTIAL"] = "顺序播放"
 L["PLAY_MODE_DESC"] = "在随机播放与顺序播放之间切换"
 L["CHANNEL"] = "声道"
-L["CHANNEL_DESC"] = "选择音乐播放的声道"
 L["CHANNEL_MASTER_DESC"] = "使用主音量控制。即使关闭效果或音乐也能听到嗜血音乐。\n|cffff0000注意: 若 DBM 等插件也使用主声道，可能会因为游戏系统的频道数量限制导致嗜血音乐被中断。|r"
 L["CHANNEL_SFX_DESC"] = "使用效果音量控制。嗜血音乐会跟随效果音量滑杆调整，若效果音量关闭或过低可能听不到。"
 L["CHANNEL_DIALOG_DESC"] = "使用对话音量控制。通常不受其他音效压制影响，适合重要提示。"
@@ -67,7 +62,6 @@ L["MSG_POSITION_RESET"] = "|cff00ff00嗜血音乐:|r 倒计时条位置已重置
 
 -- Reminder Settings
 L["SETTINGS_REMINDER"] = "嗜血提醒"
-L["REMINDER_DESC"] = "嗜血提醒设置"
 L["REMINDER_SETTINGS_TITLE"] = "嗜血提醒设置"
 L["REMINDER_SETTINGS_DESC"] = "设置嗜血/英勇可用时的提醒"
 L["ENABLE_REMINDER"] = "启用提醒"
@@ -96,3 +90,23 @@ L["SOUND_PREFIX"] = "音效"
 L["SELECT_SOUND"] = "选择音效"
 L["SOUND_DEFAULT"] = "默认 (团队警告)"
 L["CREDIT_DFTL"] = "嗜血音乐与提醒功能深受 |cffffffffEnhBloodlust|r 及 |cffffffffDon't Forget to Lust|r 启发。\n特别感谢 |cffffffff彩虹UI Dololo|r 与 |cffffffff三皈依(BNS)|r 长期对魔兽插件社区，\n尤其是繁体中文的贡献！"
+
+-- MiliUIWidgets 共用层（组件库只查这四个 key）
+L["Apply"]  = "应用"
+L["Okay"]   = "确定"
+L["Cancel"] = "取消"
+L["Can't change settings during combat"] = "战斗中无法调整设置"
+
+-- 设置窗口
+L["TAB_TRACKS"]       = "曲目"
+L["TAB_ABOUT"]        = "关于"
+L["TRACKS_DESC"]      = "勾选哪些曲目可以被播放。内置曲目只能停用，自己加的曲目可以编辑与删除。"
+L["CHANNEL_VOLUME"]   = "声道音量"
+L["SECTION_POSITION"] = "位置"
+L["BAR_DRAG_HINT"]    = "倒计时条在编辑模式（Esc > 编辑模式）里拖动。"
+L["REMINDER_DRAG_HINT"] = "提醒信息在编辑模式（Esc > 编辑模式）里拖动。"
+L["VERSION_FORMAT"]   = "版本：%s"
+L["OPEN_HINT"]        = "输入 /blm 打开设置"
+L["BTN_OPEN_OPTIONS"] = "打开设置"
+L["ABOUT_SLASH"]      = "命令：|cffffd200/blm|r 打开设置，|cffffd200/blm test|r 试播一首并显示倒计时条，|cffffd200/blm stop|r 停止播放。"
+L["ABOUT_AUTHOR"]     = "作者：米利（米利UI套组）"

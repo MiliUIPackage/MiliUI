@@ -8,13 +8,9 @@ L["ADDON_TITLE"] = "영웅심/피의 욕망 카운트다운"
 L["LOADED_MSG"] = "|cff00ff00MiliUI 영웅심 음악:|r 로드됨 — /blm 설정 열기"
 
 -- Settings Categories
-L["SETTINGS_MAIN"] = "영웅심 음악"
 L["SETTINGS_MUSIC"] = "음악 설정"
 L["SETTINGS_BAR"] = "카운트다운 바"
 L["SETTINGS_MAIN_DESC"] = "영웅심/피의 욕망 음악 재생 및 카운트다운 바"
-L["SELECT_SUBCATEGORY"] = "왼쪽에서 하위 카테고리를 선택하세요:"
-L["MUSIC_DESC"] = "음악 재생, 트랙 선택, 채널"
-L["BAR_DESC"] = "카운트다운 바 외관 및 위치"
 
 -- Music Settings
 L["MUSIC_SETTINGS_TITLE"] = "음악 설정"
@@ -26,7 +22,6 @@ L["PLAY_MODE_RANDOM"] = "랜덤 재생"
 L["PLAY_MODE_SEQUENTIAL"] = "순차 재생"
 L["PLAY_MODE_DESC"] = "랜덤 재생과 순차 재생 사이 전환"
 L["CHANNEL"] = "오디오 채널"
-L["CHANNEL_DESC"] = "음악 재생에 사용할 오디오 채널 선택"
 L["CHANNEL_MASTER_DESC"] = "마스터 볼륨으로 제어됩니다. 효과 또는 음악이 꺼져 있어도 들립니다."
 L["CHANNEL_SFX_DESC"] = "효과 볼륨으로 제어됩니다. 효과 볼륨이 꺼져 있거나 너무 낮으면 들리지 않을 수 있습니다."
 L["CHANNEL_DIALOG_DESC"] = "대화 볼륨으로 제어됩니다. 다른 효과음에 묻히지 않아 중요한 알림에 적합합니다."
@@ -67,7 +62,6 @@ L["MSG_POSITION_RESET"] = "|cff00ff00영웅심 음악:|r 바 위치 초기화됨
 
 -- Reminder Settings
 L["SETTINGS_REMINDER"] = "영웅심 알림"
-L["REMINDER_DESC"] = "영웅심 알림 설정"
 L["REMINDER_SETTINGS_TITLE"] = "영웅심 알림 설정"
 L["REMINDER_SETTINGS_DESC"] = "영웅심/피의 욕망 사용 가능 시 알림 설정"
 L["ENABLE_REMINDER"] = "알림 활성화"

@@ -2,6 +2,17 @@ local addonName, ns = ...
 
 -- Localization
 local L = LibStub("AceLocale-3.0"):GetLocale("MiliUI_ChatBar")
+ns.L = L
+
+ns.VERSION      = C_AddOns.GetAddOnMetadata(addonName, "Version") or "dev"
+ns.PREFIX_COLOR = "|cffFF9999"
+
+-- 設定分頁的 callback 派送用（Libs/Callbacks.lua 的 xpcall 處理器）。
+-- 訂閱者之間不能連坐，但也不能變成黑洞——照常轉給全域 errorhandler。
+function ns.ReportError(err)
+    local handler = geterrorhandler()
+    if handler then handler(err) end
+end
 
 -- Configuration
 local width, height, padding = 25, 8, 5
@@ -39,20 +50,14 @@ local function CreateSD(parent)
     parent:SetBackdropBorderColor(0, 0, 0, 1)
 end
 
-StaticPopupDialogs["MILIUI_CHATBAR_RESET_ALL"] = {
-    text = L["CONFIRM_RESET_ALL"],
-    button1 = YES,
-    button2 = NO,
-    OnAccept = function() 
-        MiliUI_ChatBar_DB = nil
-        if MiliUI_ChatBar then MiliUI_ChatBar:SetUserPlaced(false) end
-        ReloadUI()
-    end,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3,
-}
+-- 全部重置：SavedVariables 整張丟掉再重載。SetUserPlaced(false) 一定要在重載前做，
+-- 否則暴雪會把「玩家擺過的位置」再寫回去，位置就重置不掉。
+-- （確認彈窗在設定視窗那邊，用共用元件庫的樣式）
+function ns.ResetAll()
+    MiliUI_ChatBar_DB = nil
+    if MiliUI_ChatBar then MiliUI_ChatBar:SetUserPlaced(false) end
+    ReloadUI()
+end
 
 local function PixelIcon(parent, texturePath, isZoome)
     if not parent.Icon then
@@ -154,7 +159,6 @@ local AddRGBButton
 local UpdateFontSize
 local UpdateButtonSize
 local UpdateButtonVisibility
-local RefreshChannelList
 
 --------
 -- Availability
@@ -418,6 +422,8 @@ local function UpdateChannelButtons()
     end
 
     UpdateButtonVisibility()
+    -- 動態頻道進出會改變按鈕清單，設定頁的頻道列表要跟著長／縮
+    if ns.RefreshChannelList then ns.RefreshChannelList() end
 end
 
 -- ROLL
@@ -693,6 +699,12 @@ local function CreateContextMenu()
         return btn
     end
     
+    -- 右鍵選單改到的欄位設定視窗也有一份，開著的話要跟著更新
+    -- （ns.Fire 來自 Libs/Callbacks.lua，載入順序在本檔之後，所以先確認有沒有）
+    local function Changed()
+        if ns.Fire then ns.Fire("SettingsChanged") end
+    end
+
     local lockBtn = CreateMenuButton(L["CONTEXT_LOCK_UNLOCK"], function()
         MiliUI_ChatBar_DB.Chatbar.Locked = not MiliUI_ChatBar_DB.Chatbar.Locked
         UpdateMoverState()
@@ -701,6 +713,7 @@ local function CreateContextMenu()
         else
             print(L["MSG_UNLOCKED"])
         end
+        Changed()
     end)
     lockBtn:SetPoint("TOP", 0, -10)
     
@@ -719,6 +732,7 @@ local function CreateContextMenu()
             MiliUI_ChatBar_DB.Chatbar.Orientation = "VERTICAL"
         end
         UpdateLayout()
+        Changed()
     end)
     orientBtn:SetPoint("TOP", resetBtn, "BOTTOM", 0, -5)
 
@@ -845,537 +859,45 @@ loader:SetScript("OnEvent", function(self, event)
 
     -- Delayed final refresh to catch any channel buttons added late
     C_Timer.After(2, function()
-        if RefreshChannelList then RefreshChannelList() end
+        if ns.RefreshChannelList then ns.RefreshChannelList() end
     end)
 end)
 
--- Interface Options Panel Integration (Subcategories like Auctionator)
--- Store category reference for subcategories
-local MiliUI_ChatbarSettingsCategory
-
--- Function to open settings panel
-local function OpenChatbarSettings()
-    if Settings and Settings.OpenToCategory then
-        Settings.OpenToCategory(MiliUI_ChatbarSettingsCategory:GetID())
-    end
-end
-
--- 米利UI選單（ESC 選單「米利UI設定」滑過展開）的項目。
--- 直接往全域表塞而不是呼叫 MiliUI 的函式：兩邊沒有相依宣告，載入順序不保證，
--- 而且玩家可能只裝這支、根本沒有 MiliUI 套組。接口說明見 MiliUI/Menu.lua。
-MiliUI_MenuEntries = MiliUI_MenuEntries or {}
-MiliUI_MenuEntries[#MiliUI_MenuEntries + 1] = {
-    key     = "chatbar",
-    text    = L["ADDON_NAME"],
-    icon    = "Interface\\Icons\\Achievement_Boss_HighMaul_King",
-    order   = 50,
-    OnClick = OpenChatbarSettings,
-}
-
 --------
--- Main Panel (Overview)
+-- 對設定視窗開放的介面
+--
+-- 設定頁在 Options/ 底下，跟這支檔案之間只透過 ns 溝通：這裡不知道有沒有設定頁
+-- （呼叫端一律加 nil 判斷），設定頁也不碰這裡的區域變數。
 --------
-local mainPanel = CreateFrame("Frame", "MiliUI_ChatbarMainPanel", UIParent, "BackdropTemplate")
-mainPanel.name = L["SETTINGS_MAIN"]
-mainPanel.OnCommit = function() end
-mainPanel.OnDefault = function() end
-mainPanel.OnRefresh = function() end
+ns.InitDB   = InitDB
+ns.Chatbar  = Chatbar
+ns.buttonList = buttonList
 
-local mainTitle = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-mainTitle:SetPoint("TOPLEFT", 16, -16)
-mainTitle:SetText(L["ADDON_NAME"])
+ns.UpdateLayout           = function() UpdateLayout() end
+ns.UpdateFontSize         = function() UpdateFontSize() end
+ns.UpdateButtonSize       = function() UpdateButtonSize() end
+ns.UpdateButtonVisibility = function() UpdateButtonVisibility() end
+ns.UpdateMoverState       = function() UpdateMoverState() end
 
-local mainDesc = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-mainDesc:SetPoint("TOPLEFT", mainTitle, "BOTTOMLEFT", 0, -8)
-mainDesc:SetText(L["SETTINGS_MAIN_DESC"])
-mainDesc:SetWidth(500)
-mainDesc:SetJustifyH("LEFT")
-
-local mainInfo = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-mainInfo:SetPoint("TOPLEFT", mainDesc, "BOTTOMLEFT", 0, -20)
-mainInfo:SetJustifyH("LEFT")
-mainInfo:SetText("|cffffd100" .. L["SELECT_SUBCATEGORY"] .. "|r")
-
-local item1 = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-item1:SetPoint("TOPLEFT", mainInfo, "BOTTOMLEFT", 0, -12)
-item1:SetText("• |cff00ff00" .. L["SETTINGS_GENERAL"] .. "|r")
-
-local item1Desc = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-item1Desc:SetPoint("LEFT", item1, "RIGHT", 8, 0)
-item1Desc:SetText("- " .. L["GENERAL_DESC"])
-
-local item2 = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-item2:SetPoint("TOPLEFT", item1, "BOTTOMLEFT", 0, -8)
-item2:SetText("• |cff00ff00" .. L["SETTINGS_CHANNELS"] .. "|r")
-
-local item2Desc = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-item2Desc:SetPoint("LEFT", item1Desc, "LEFT", 0, 0)
-item2Desc:SetPoint("TOP", item2, "TOP", 0, 0)
-item2Desc:SetText("- " .. L["CHANNELS_DESC"])
-
--- Register main category
-mainPanel:Hide()   -- hidden first, same reason as channelPanel below
-MiliUI_ChatbarSettingsCategory = Settings.RegisterCanvasLayoutCategory(mainPanel, mainPanel.name)
-Settings.RegisterAddOnCategory(MiliUI_ChatbarSettingsCategory)
-
---------
--- General Settings Subcategory
---------
-local generalPanel = CreateFrame("Frame", "MiliUI_ChatbarGeneralPanel", UIParent, "BackdropTemplate")
-generalPanel.name = L["SETTINGS_GENERAL"]
-generalPanel.OnCommit = function() end
-generalPanel.OnDefault = function() end
-generalPanel.OnRefresh = function() end
-
-local genTitle = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-genTitle:SetPoint("TOPLEFT", 16, -16)
-genTitle:SetText(L["GENERAL_SETTINGS_TITLE"])
-
-local genDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-genDesc:SetPoint("TOPLEFT", genTitle, "BOTTOMLEFT", 0, -8)
-genDesc:SetText(L["GENERAL_SETTINGS_DESC"])
-
-local function CreateOptionButton(parent, text, func, anchor, xOff, yOff)
-    local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    btn:SetSize(140, 28)
-    btn:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", xOff or 0, yOff or -15)
-    btn:SetText(text)
-    btn:SetScript("OnClick", func)
-    return btn
-end
-
-local lockBtn = CreateOptionButton(generalPanel, L["LOCK_UNLOCK"], function()
-    InitDB()
-    MiliUI_ChatBar_DB.Chatbar.Locked = not MiliUI_ChatBar_DB.Chatbar.Locked
-    UpdateMoverState()
-    if MiliUI_ChatBar_DB.Chatbar.Locked then
-        print(L["MSG_LOCKED"])
-    else
-        print(L["MSG_UNLOCKED"])
-    end
-end, genDesc, 0, -20)
-
-local lockDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-lockDesc:SetPoint("LEFT", lockBtn, "RIGHT", 10, 0)
-lockDesc:SetText(L["LOCK_UNLOCK_DESC"])
-
-local resetBtn = CreateOptionButton(generalPanel, L["RESET_POSITION"], function()
+-- 位置重置：錨點寫死成預設的左下角，再重排一次
+function ns.ResetPosition()
     Chatbar:ClearAllPoints()
     Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
     UpdateLayout()
     print(L["MSG_RESET"])
-end, lockBtn, 0, -10)
-
-local resetDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-resetDesc:SetPoint("LEFT", resetBtn, "RIGHT", 10, 0)
-resetDesc:SetText(L["RESET_POSITION_DESC"])
-
-local orientBtn = CreateOptionButton(generalPanel, L["TOGGLE_ORIENTATION"], function()
-    InitDB()
-    if MiliUI_ChatBar_DB.Chatbar.Orientation == "VERTICAL" then
-        MiliUI_ChatBar_DB.Chatbar.Orientation = "HORIZONTAL"
-        print(L["MSG_HORIZONTAL"])
-    else
-        MiliUI_ChatBar_DB.Chatbar.Orientation = "VERTICAL"
-        print(L["MSG_VERTICAL"])
-    end
-    UpdateLayout()
-end, resetBtn, 0, -10)
-
-local orientDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-orientDesc:SetPoint("LEFT", orientBtn, "RIGHT", 10, 0)
-orientDesc:SetText(L["TOGGLE_ORIENTATION_DESC"])
-
-local fontSlider = CreateFrame("Slider", "MiliUI_ChatBar_FontSlider", generalPanel, "OptionsSliderTemplate")
-fontSlider:SetPoint("TOPLEFT", orientBtn, "BOTTOMLEFT", 0, -30)
-fontSlider:SetWidth(200)
-fontSlider:SetMinMaxValues(6, 24)
-fontSlider:SetValueStep(1)
-fontSlider:SetObeyStepOnDrag(true)
-
-fontSlider.Low:SetText("6")
-fontSlider.High:SetText("24")
-fontSlider.Text:SetText(L["FONT_SIZE"])
-
-fontSlider:SetScript("OnShow", function(self)
-    local val = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.FontSize) or 9
-    self:SetValue(val)
-    self.Text:SetText(L["FONT_SIZE"] .. ": " .. val)
-end)
-
-fontSlider:SetScript("OnValueChanged", function(self, value)
-    local val = math.floor(value)
-    self.Text:SetText(L["FONT_SIZE"] .. ": " .. val)
-    
-    InitDB()
-    
-    if MiliUI_ChatBar_DB.Chatbar.FontSize ~= val then
-        MiliUI_ChatBar_DB.Chatbar.FontSize = val
-        UpdateFontSize()
-    end
-end)
-
-
-
-local fontDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-fontDesc:SetPoint("LEFT", fontSlider, "RIGHT", 15, 0)
-fontDesc:SetText(L["FONT_SIZE_DESC"])
-
--- Button Width Slider
-local widthSlider = CreateFrame("Slider", "MiliUI_ChatBar_WidthSlider", generalPanel, "OptionsSliderTemplate")
-widthSlider:SetPoint("TOPLEFT", fontSlider, "BOTTOMLEFT", 0, -30)
-widthSlider:SetWidth(200)
-widthSlider:SetMinMaxValues(10, 60)
-widthSlider:SetValueStep(1)
-widthSlider:SetObeyStepOnDrag(true)
-
-widthSlider.Low:SetText("10")
-widthSlider.High:SetText("60")
-widthSlider.Text:SetText(L["BUTTON_WIDTH"])
-
-widthSlider:SetScript("OnShow", function(self)
-    local val = GetButtonWidth()
-    self:SetValue(val)
-    self.Text:SetText(L["BUTTON_WIDTH"] .. ": " .. val)
-end)
-
-widthSlider:SetScript("OnValueChanged", function(self, value)
-    local val = math.floor(value)
-    self.Text:SetText(L["BUTTON_WIDTH"] .. ": " .. val)
-    
-    InitDB()
-    
-    if MiliUI_ChatBar_DB.Chatbar.ButtonWidth ~= val then
-        MiliUI_ChatBar_DB.Chatbar.ButtonWidth = val
-        UpdateButtonSize()
-    end
-end)
-
-local widthDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-widthDesc:SetPoint("LEFT", widthSlider, "RIGHT", 15, 0)
-widthDesc:SetText(L["BUTTON_WIDTH_DESC"])
-
--- Button Height Slider
-local heightSlider = CreateFrame("Slider", "MiliUI_ChatBar_HeightSlider", generalPanel, "OptionsSliderTemplate")
-heightSlider:SetPoint("TOPLEFT", widthSlider, "BOTTOMLEFT", 0, -30)
-heightSlider:SetWidth(200)
-heightSlider:SetMinMaxValues(4, 30)
-heightSlider:SetValueStep(1)
-heightSlider:SetObeyStepOnDrag(true)
-
-heightSlider.Low:SetText("4")
-heightSlider.High:SetText("30")
-heightSlider.Text:SetText(L["BUTTON_HEIGHT"])
-
-heightSlider:SetScript("OnShow", function(self)
-    local val = GetButtonHeight()
-    self:SetValue(val)
-    self.Text:SetText(L["BUTTON_HEIGHT"] .. ": " .. val)
-end)
-
-heightSlider:SetScript("OnValueChanged", function(self, value)
-    local val = math.floor(value)
-    self.Text:SetText(L["BUTTON_HEIGHT"] .. ": " .. val)
-    
-    InitDB()
-    
-    if MiliUI_ChatBar_DB.Chatbar.ButtonHeight ~= val then
-        MiliUI_ChatBar_DB.Chatbar.ButtonHeight = val
-        UpdateButtonSize()
-    end
-end)
-
-local heightDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-heightDesc:SetPoint("LEFT", heightSlider, "RIGHT", 15, 0)
-heightDesc:SetText(L["BUTTON_HEIGHT_DESC"])
-
-local resetAllBtn = CreateOptionButton(generalPanel, L["RESET_ALL"], function()
-    StaticPopup_Show("MILIUI_CHATBAR_RESET_ALL")
-end, heightSlider, 0, -30)
-
-local resetAllDesc = generalPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-resetAllDesc:SetPoint("LEFT", resetAllBtn, "RIGHT", 10, 0)
-resetAllDesc:SetText(L["RESET_ALL_DESC"])
-
--- Update sliders on refresh (Settings API)
-generalPanel.OnRefresh = function()
-    if fontSlider then
-        local val = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.FontSize) or 9
-        fontSlider:SetValue(val)
-        fontSlider.Text:SetText(L["FONT_SIZE"] .. ": " .. val)
-    end
-    if widthSlider then
-        local val = GetButtonWidth()
-        widthSlider:SetValue(val)
-        widthSlider.Text:SetText(L["BUTTON_WIDTH"] .. ": " .. val)
-    end
-    if heightSlider then
-        local val = GetButtonHeight()
-        heightSlider:SetValue(val)
-        heightSlider.Text:SetText(L["BUTTON_HEIGHT"] .. ": " .. val)
-    end
 end
 
--- Register as subcategory (hidden first, same reason as channelPanel below)
-generalPanel:Hide()
-local generalSubcategory = Settings.RegisterCanvasLayoutSubcategory(MiliUI_ChatbarSettingsCategory, generalPanel, generalPanel.name)
-Settings.RegisterAddOnCategory(generalSubcategory)
-
---------
--- Channels Settings Subcategory
---------
-local channelPanel = CreateFrame("Frame", "MiliUI_ChatbarChannelPanel", UIParent, "BackdropTemplate")
-channelPanel.name = L["SETTINGS_CHANNELS"]
-channelPanel.OnCommit = function() end
-channelPanel.OnDefault = function() end
-channelPanel.OnRefresh = function() end
-
-local chTitle = channelPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-chTitle:SetPoint("TOPLEFT", 16, -16)
-chTitle:SetText(L["CHANNEL_SETTINGS_TITLE"])
-
-local chDesc = channelPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-chDesc:SetPoint("TOPLEFT", chTitle, "BOTTOMLEFT", 0, -8)
-chDesc:SetText(L["CHANNEL_SETTINGS_DESC"])
-
--- Container for channel list (direct child of channelPanel for Settings API compatibility)
-local channelContainer = CreateFrame("Frame", "MiliUI_ChatbarChannelContainer", channelPanel)
-channelContainer:SetPoint("TOPLEFT", chDesc, "BOTTOMLEFT", 0, -15)
-channelContainer:SetSize(400, 500)
-channelContainer:Show()
-
-channelContainer.checks = {}
-channelContainer.swatches = {}
-channelContainer.sliders = {}
-
--- DBM Pull Seconds Slider (created once, positioned in RefreshChannelList)
-local dbmSlider = CreateFrame("Slider", "MiliUI_ChatBar_DBMPullSlider", channelContainer, "OptionsSliderTemplate")
-dbmSlider:SetWidth(140)
-dbmSlider:SetHeight(17)
-dbmSlider:SetMinMaxValues(1, 30)
-dbmSlider:SetValueStep(1)
-dbmSlider:SetObeyStepOnDrag(true)
-dbmSlider:Hide() -- Initially hidden, shown when DBM checkbox is visible
-
-dbmSlider.Low:SetText("1")
-dbmSlider.High:SetText("30")
-dbmSlider.Text:SetText(L["DBM_PULL_SECONDS"])
-
--- Slider description
-local dbmSliderDesc = channelContainer:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-dbmSliderDesc:SetPoint("LEFT", dbmSlider, "RIGHT", 10, 0)
-dbmSliderDesc:SetText(L["DBM_PULL_SECONDS_DESC"])
-
-dbmSlider:SetScript("OnShow", function(self)
-    local val = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds) or 10
-    self:SetValue(val)
-    self.Text:SetText(L["DBM_PULL_SECONDS"] .. ": " .. val)
-end)
-
-dbmSlider:SetScript("OnValueChanged", function(self, value)
-    local val = math.floor(value)
-    self.Text:SetText(L["DBM_PULL_SECONDS"] .. ": " .. val)
-    
-    InitDB()
-    
-    if MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds ~= val then
-        MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds = val
-        if ns.UpdateDBMButton then ns.UpdateDBMButton() end
-    end
-end)
-
--- Store slider reference for positioning in RefreshChannelList
-channelContainer.dbmSlider = dbmSlider
-channelContainer.dbmSliderDesc = dbmSliderDesc
-
--- Helper for Color Picker
-local function ShowColorPicker(r, g, b, callback)
-    if ColorPickerFrame.SetupColorPickerAndShow then 
-        -- Retail API
-        local info = {
-            r = r, g = g, b = b,
-            swatchFunc = function() 
-                 local r,g,b = ColorPickerFrame:GetColorRGB()
-                 callback(r,g,b)
-            end,
-            cancelFunc = function(restore)
-                 -- restore contains {r,g,b}
-                 if restore then callback(restore.r, restore.g, restore.b) end
-            end,
-            hasOpacity = false,
-        }
-        ColorPickerFrame:SetupColorPickerAndShow(info)
-    else
-        -- Classic/Legacy API
-        ColorPickerFrame:SetColorRGB(r, g, b)
-        ColorPickerFrame.hasOpacity = false
-        ColorPickerFrame.func = function()
-            local r, g, b = ColorPickerFrame:GetColorRGB()
-            callback(r, g, b)
-        end
-        ColorPickerFrame.cancelFunc = function()
-            callback(r, g, b)
-        end
-        ColorPickerFrame:Hide()
-        ColorPickerFrame:Show()
-    end
+-- 一顆按鈕現在的顏色（自訂色優先，其次頻道預設色）
+function ns.GetButtonColor(bu)
+    InitDB()   -- CustomColors 由它保證存在（少了這行，DB 還沒初始化就查會炸）
+    local cc = MiliUI_ChatBar_DB.Chatbar.CustomColors[bu.configKey]
+    if cc then return cc.r, cc.g, cc.b end
+    return bu.Icon:GetVertexColor()
 end
 
--- Refresh channel checkboxes
-RefreshChannelList = function()
+function ns.SetButtonColor(bu, r, g, b)
     InitDB()
-
-    local lastItem
-    for i, bu in ipairs(buttonList) do
-        local ck = channelContainer.checks[i]
-        if not ck then
-            ck = CreateFrame("CheckButton", nil, channelContainer, "UICheckButtonTemplate")
-            channelContainer.checks[i] = ck
-        end
-        
-        ck:ClearAllPoints()
-        if i == 1 then
-            ck:SetPoint("TOPLEFT", 0, 0)
-        else
-            -- Check if previous item was DBM (which has slider below it)
-            local prevButton = buttonList[i-1]
-            if prevButton and prevButton.configKey == "DBM" and channelContainer.dbmSlider then
-                -- Position below the slider instead of the checkbox
-                ck:SetPoint("TOPLEFT", channelContainer.dbmSlider, "BOTTOMLEFT", -20, -12)
-            else
-                ck:SetPoint("TOPLEFT", channelContainer.checks[i-1], "BOTTOMLEFT", 0, -2)
-            end
-        end
-        
-        if not ck.Text then
-            ck.Text = ck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            ck.Text:SetPoint("LEFT", ck, "RIGHT", 5, 0)
-        end
-        
-        local name = bu.tooltipText or (bu.fs and bu.fs:GetText()) or bu.configKey
-        ck.Text:SetText(name)
-        
-        local isHidden = MiliUI_ChatBar_DB.Chatbar.Hidden[bu.configKey]
-        ck:SetChecked(not isHidden)
-        
-        -- 勾選框代表「使用者要不要這顆」，實際顯示還要過可用性那關，
-        -- 所以打勾但沒隊伍時，隊按鈕仍然不會出現。
-        ck:SetScript("OnClick", function(self)
-            if self:GetChecked() then
-                MiliUI_ChatBar_DB.Chatbar.Hidden[bu.configKey] = nil
-            else
-                MiliUI_ChatBar_DB.Chatbar.Hidden[bu.configKey] = true
-            end
-            UpdateButtonVisibility()
-        end)
-        
-        ck:Show()
-        lastItem = ck
-
-        -- Color Swatch for specific buttons
-        if bu.configKey == "ROLL" or bu.configKey == "DBM" or bu.configKey == "RESET" or bu.configKey == "COMBATLOG" then
-            local sw = channelContainer.swatches[i]
-            if not sw then
-                sw = CreateFrame("Button", nil, channelContainer, "BackdropTemplate")
-                sw:SetSize(16, 16)
-                CreateSD(sw)
-                sw.tex = sw:CreateTexture(nil, "ARTWORK")
-                sw.tex:SetAllPoints()
-                sw.tex:SetColorTexture(1, 1, 1)
-                sw:SetNormalTexture(sw.tex)
-                channelContainer.swatches[i] = sw
-            end
-            sw:SetPoint("LEFT", ck.Text, "RIGHT", 10, 0)
-            
-            -- Get current color
-            local cr, cg, cb = bu.Icon:GetVertexColor()
-            sw.tex:SetVertexColor(cr, cg, cb)
-            
-            sw:SetScript("OnClick", function()
-                local currentR, currentG, currentB = bu.Icon:GetVertexColor()
-                ShowColorPicker(currentR, currentG, currentB, function(r, g, b)
-                    -- Update Swatch
-                    sw.tex:SetVertexColor(r, g, b)
-                    -- Update Button
-                    bu.Icon:SetVertexColor(r, g, b)
-                    if bu.fs then bu.fs:SetTextColor(r, g, b) end
-                    -- Save to DB (InitDB guarantees CustomColors exists)
-                    MiliUI_ChatBar_DB.Chatbar.CustomColors[bu.configKey] = {r = r, g = g, b = b}
-                end)
-            end)
-            sw:Show()
-        else
-            if channelContainer.swatches[i] then channelContainer.swatches[i]:Hide() end
-        end
-        
-        -- DBM Pull Slider positioning (below DBM checkbox)
-        if bu.configKey == "DBM" then
-            channelContainer.dbmSlider:ClearAllPoints()
-            channelContainer.dbmSlider:SetPoint("TOPLEFT", ck, "BOTTOMLEFT", 20, -8)
-            channelContainer.dbmSlider:Show()
-            -- Trigger OnShow to refresh value
-            if channelContainer.dbmSlider:GetScript("OnShow") then
-                channelContainer.dbmSlider:GetScript("OnShow")(channelContainer.dbmSlider)
-            end
-        end
-    end
-    
-    -- Hide extra checks
-    for i = #buttonList + 1, #channelContainer.checks do
-        channelContainer.checks[i]:Hide()
-    end
-    for i = #buttonList + 1, #channelContainer.swatches do
-        if channelContainer.swatches[i] then channelContainer.swatches[i]:Hide() end
-    end
+    MiliUI_ChatBar_DB.Chatbar.CustomColors[bu.configKey] = { r = r, g = g, b = b }
+    bu.Icon:SetVertexColor(r, g, b)
+    if bu.fs then bu.fs:SetTextColor(r, g, b) end
 end
-
--- Everything this panel mirrors from the DB, in one place.
-channelPanel.Refresh = function()
-    InitDB()
-
-    -- Force show container
-    channelContainer:Show()
-
-    RefreshChannelList()
-
-    -- Force show all existing checkboxes
-    for i, ck in ipairs(channelContainer.checks) do
-        if ck then ck:Show() end
-    end
-
-    if channelContainer.dbmSlider then
-        local val = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.DBMPullSeconds) or 10
-        channelContainer.dbmSlider:SetValue(val)
-        channelContainer.dbmSlider.Text:SetText(L["DBM_PULL_SECONDS"] .. ": " .. val)
-    end
-end
-channelPanel:SetScript("OnShow", channelPanel.Refresh)
-
--- Register as subcategory. Hidden first: the panel is created shown under
--- UIParent, so the Settings framework's frame:Show() would be a no-op and
--- OnShow would never fire when switching in from another canvas panel.
-channelPanel:Hide()
-local channelSubcategory = Settings.RegisterCanvasLayoutSubcategory(MiliUI_ChatbarSettingsCategory, channelPanel, channelPanel.name)
-Settings.RegisterAddOnCategory(channelSubcategory)
-
--- OnRefresh is the hook the Settings framework calls on EVERY display of a canvas
--- category, and unlike OnShow it fires even when the canvas container is already
--- visible (switching in from another canvas panel). It has to rebuild the whole
--- panel, not just the DBM slider — see .claude/notes/wow-settings-canvas-onrefresh.md
-channelPanel.OnRefresh = function()
-    channelPanel.Refresh()
-    -- Delayed refresh to handle Settings API timing
-    C_Timer.After(0.1, function()
-        if channelPanel:IsShown() then channelPanel.Refresh() end
-    end)
-end
-
--- Pre-create checkboxes at load time (not waiting for panel to show)
--- This ensures checkboxes exist before panel is ever opened
-C_Timer.After(0.5, function()
-    InitDB()
-    RefreshChannelList()
-end)
-
--- Exposed on addon namespace for cross-section use (context menu)
-ns.OpenSettings = OpenChatbarSettings

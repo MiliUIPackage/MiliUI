@@ -7,13 +7,9 @@ L["ADDON_TITLE"] = "Bloodlust / Heroism Countdown"
 L["LOADED_MSG"] = "|cff00ff00MiliUI BloodlustMusic:|r loaded — /blm to configure"
 
 -- Settings Categories
-L["SETTINGS_MAIN"] = "Bloodlust Music"
 L["SETTINGS_MUSIC"] = "Music Settings"
 L["SETTINGS_BAR"] = "Countdown Bar"
 L["SETTINGS_MAIN_DESC"] = "Bloodlust music playback and countdown bar"
-L["SELECT_SUBCATEGORY"] = "Please select a subcategory from the left:"
-L["MUSIC_DESC"] = "Music playback, track selection, channel"
-L["BAR_DESC"] = "Countdown bar appearance and position"
 
 -- Music Settings
 L["MUSIC_SETTINGS_TITLE"] = "Music Settings"
@@ -25,7 +21,6 @@ L["PLAY_MODE_RANDOM"] = "Random"
 L["PLAY_MODE_SEQUENTIAL"] = "Sequential"
 L["PLAY_MODE_DESC"] = "Switch between random and sequential playback"
 L["CHANNEL"] = "Audio Channel"
-L["CHANNEL_DESC"] = "Select the audio channel for music playback"
 L["CHANNEL_MASTER_DESC"] = "Controlled by Master Volume. Audible even if Effects or Music volume is muted.\n|cffff0000Note: If DBM or other addons heavily use the Master channel, Bloodlust music might get interrupted due to WoW's audio channel limits.|r"
 L["CHANNEL_SFX_DESC"] = "Controlled by Effects volume. Won't play if Effects volume is muted or set too low."
 L["CHANNEL_DIALOG_DESC"] = "Controlled by Dialog volume. Typically not affected by other audio ducking, suitable for important alerts."
@@ -66,7 +61,6 @@ L["MSG_POSITION_RESET"] = "|cff00ff00BloodlustMusic:|r Bar position reset"
 
 -- Reminder Settings
 L["SETTINGS_REMINDER"] = "Bloodlust Reminder"
-L["REMINDER_DESC"] = "Bloodlust reminder settings"
 L["REMINDER_SETTINGS_TITLE"] = "Bloodlust Reminder Settings"
 L["REMINDER_SETTINGS_DESC"] = "Configure alerts when Bloodlust is available"
 L["ENABLE_REMINDER"] = "Enable Reminder"
@@ -95,3 +89,23 @@ L["SOUND_PREFIX"] = "Sound"
 L["SELECT_SOUND"] = "Select Sound"
 L["SOUND_DEFAULT"] = "Default (Raid Warning)"
 L["CREDIT_DFTL"] = "Bloodlust Music and Reminder inspired by |cffffffffEnhBloodlust|r and |cffffffffDon't Forget to Lust|r.\nSpecial thanks to |cffffffffRainbowUI Dololo|r and |cffffffffBNS|r for their long-term contributions to the WoW addon community,\nespecially for Traditional Chinese!"
+
+-- MiliUIWidgets 共用層（元件庫只查這四個 key，見 Libs/MiliUIWidgets/README.md）
+L["Apply"]  = "Apply"
+L["Okay"]   = "Okay"
+L["Cancel"] = "Cancel"
+L["Can't change settings during combat"] = "Can't change settings during combat"
+
+-- Options window
+L["TAB_TRACKS"]       = "Tracks"
+L["TAB_ABOUT"]        = "About"
+L["TRACKS_DESC"]      = "Pick which tracks may play. Built-in tracks can only be turned off; your own tracks can be edited and deleted."
+L["CHANNEL_VOLUME"]   = "Channel volume"
+L["SECTION_POSITION"] = "Position"
+L["BAR_DRAG_HINT"]    = "Drag the countdown bar in Edit Mode (Esc > Edit Mode)."
+L["REMINDER_DRAG_HINT"] = "Drag the reminder in Edit Mode (Esc > Edit Mode)."
+L["VERSION_FORMAT"]   = "Version: %s"
+L["OPEN_HINT"]        = "Use /blm to open options"
+L["BTN_OPEN_OPTIONS"] = "Open options"
+L["ABOUT_SLASH"]      = "Commands: |cffffd200/blm|r opens the options, |cffffd200/blm test|r plays a track with the bar, |cffffd200/blm stop|r stops it."
+L["ABOUT_AUTHOR"]     = "Author: Mili (MiliUI package)"

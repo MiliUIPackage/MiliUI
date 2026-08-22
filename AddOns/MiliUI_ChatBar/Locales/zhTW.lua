@@ -3,35 +3,24 @@ local L = LibStub("AceLocale-3.0"):NewLocale("MiliUI_ChatBar", "zhTW")
 if not L then return end
 
 -- Addon Name
-L["ADDON_NAME"] = "MiliUI 快捷聊天列"
+L["ADDON_NAME"] = "米利的快捷聊天列"
 L["ADDON_TITLE"] = "快捷聊天列"
 
 -- Settings Categories
-L["SETTINGS_MAIN"] = "快捷聊天列"
-L["SETTINGS_GENERAL"] = "一般設定"
 L["SETTINGS_CHANNELS"] = "頻道設定"
 L["SETTINGS_MAIN_DESC"] = "快捷聊天列插件設定"
 
 -- Main Panel
-L["SELECT_SUBCATEGORY"] = "請選擇左側子選單進行設定："
-L["GENERAL_DESC"] = "鎖定、位置、方向"
-L["CHANNELS_DESC"] = "顯示/隱藏頻道按鈕"
 
 -- General Settings
 L["GENERAL_SETTINGS_TITLE"] = "一般設定"
-L["GENERAL_SETTINGS_DESC"] = "設定快捷聊天列的外觀與位置"
 L["LOCK_UNLOCK"] = "鎖定/解鎖"
 L["LOCK_UNLOCK_DESC"] = "切換是否可以拖曳移動聊天列"
 L["RESET_POSITION"] = "重置位置"
 L["RESET_POSITION_DESC"] = "將聊天列移回預設位置"
-L["TOGGLE_ORIENTATION"] = "切換垂直/水平"
-L["TOGGLE_ORIENTATION_DESC"] = "在垂直與水平佈局之間切換"
 L["FONT_SIZE"] = "字體大小"
-L["FONT_SIZE_DESC"] = "調整 ChatBar 按鈕的字體大小"
 L["BUTTON_WIDTH"] = "按鈕寬度"
-L["BUTTON_WIDTH_DESC"] = "調整 ChatBar 按鈕著色方塊的寬度"
 L["BUTTON_HEIGHT"] = "按鈕高度"
-L["BUTTON_HEIGHT_DESC"] = "調整 ChatBar 按鈕著色方塊的高度"
 L["RESET_ALL"] = "重置所有設定"
 L["RESET_ALL_DESC"] = "將所有設定恢復預設值"
 L["CONFIRM_RESET_ALL"] = "確定要重置所有設定嗎？"
@@ -47,11 +36,9 @@ L["CONTEXT_TOGGLE_ORIENTATION"] = "切換方向"
 L["CONTEXT_OPEN_SETTINGS"] = "開啟設定"
 
 -- Messages
-L["MSG_LOCKED"] = "|cff00ff00MiliUI 快捷聊天列:|r 已鎖定"
-L["MSG_UNLOCKED"] = "|cff00ff00MiliUI 快捷聊天列:|r 已解鎖"
-L["MSG_RESET"] = "|cff00ff00MiliUI 快捷聊天列:|r 位置已重置"
-L["MSG_HORIZONTAL"] = "|cff00ff00MiliUI 快捷聊天列:|r 水平模式"
-L["MSG_VERTICAL"] = "|cff00ff00MiliUI 快捷聊天列:|r 垂直模式"
+L["MSG_LOCKED"] = "|cff00ff00米利的快捷聊天列:|r 已鎖定"
+L["MSG_UNLOCKED"] = "|cff00ff00米利的快捷聊天列:|r 已解鎖"
+L["MSG_RESET"] = "|cff00ff00米利的快捷聊天列:|r 位置已重置"
 
 -- Channel Names
 L["CHANNEL_SAY"] = "說"
@@ -89,5 +76,23 @@ L["TIP_RESET"] = "左鍵:重置副本 | 右鍵:戰鬥記錄"
 L["DBM_PULL_SECONDS"] = "開怪倒數秒數"
 L["DBM_PULL_SECONDS_DESC"] = "設定開怪倒數秒數（右鍵）"
 
+-- MiliUIWidgets 共用層（元件庫只查這四個 key）
+L["Apply"]  = "套用"
+L["Okay"]   = "確定"
+L["Cancel"] = "取消"
+L["Can't change settings during combat"] = "戰鬥中無法調整設定"
 
-
+-- 設定視窗
+L["TAB_GENERAL"]       = "一般"
+L["TAB_ABOUT"]         = "關於"
+L["ORIENTATION"]       = "排列方向"
+L["ORIENT_HORIZONTAL"] = "橫向"
+L["ORIENT_VERTICAL"]   = "直向"
+L["SECTION_SIZE"]      = "尺寸"
+L["SECTION_RESET"]     = "重置"
+L["VERSION_FORMAT"]    = "版本：%s"
+L["OPEN_HINT"]         = "輸入 /mchatbar 開啟設定"
+L["BTN_OPEN_OPTIONS"]  = "開啟設定"
+L["ABOUT_USAGE"]       = "點一格色塊就切到那個聊天頻道。解鎖後可以拖曳移動，右鍵聊天列會跳出快捷選單。"
+L["ABOUT_TAB"]         = "指令：|cffffd200/mchatbar|r 開啟設定，|cffffd200/mchatbar reset|r 把聊天列放回左下角。"
+L["ABOUT_AUTHOR"]      = "作者：米利（米利UI套組）"

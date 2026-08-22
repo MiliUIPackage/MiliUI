@@ -2,6 +2,16 @@ local addonName, ns = ...
 ns.L = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local L = ns.L
 
+ns.VERSION      = C_AddOns.GetAddOnMetadata(addonName, "Version") or "dev"
+ns.PREFIX_COLOR = "|cff4488FF"
+
+-- 設定分頁的 callback 派送用（Libs/Callbacks.lua 的 xpcall 處理器）。
+-- 訂閱者之間不能連坐，但也不能變成黑洞——照常轉給全域 errorhandler。
+function ns.ReportError(err)
+    local handler = geterrorhandler()
+    if handler then handler(err) end
+end
+
 --[[--------------------------------------------------------------------
   TAINT / SECRET-VALUE SAFETY MODEL
   --------------------------------------------------------------------

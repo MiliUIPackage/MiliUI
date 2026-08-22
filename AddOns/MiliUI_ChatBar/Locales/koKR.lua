@@ -7,31 +7,20 @@ L["ADDON_NAME"] = "MiliUI 채팅바"
 L["ADDON_TITLE"] = "빠른 채팅 바"
 
 -- Settings Categories
-L["SETTINGS_MAIN"] = "빠른 채팅 바"
-L["SETTINGS_GENERAL"] = "일반 설정"
 L["SETTINGS_CHANNELS"] = "채널 설정"
 L["SETTINGS_MAIN_DESC"] = "빠른 채팅 바 애드온 설정"
 
 -- Main Panel
-L["SELECT_SUBCATEGORY"] = "왼쪽에서 하위 카테고리를 선택하세요:"
-L["GENERAL_DESC"] = "잠금, 위치, 방향"
-L["CHANNELS_DESC"] = "채널 버튼 표시/숨기기"
 
 -- General Settings
 L["GENERAL_SETTINGS_TITLE"] = "일반 설정"
-L["GENERAL_SETTINGS_DESC"] = "채팅 바의 외관과 위치 설정"
 L["LOCK_UNLOCK"] = "잠금/해제"
 L["LOCK_UNLOCK_DESC"] = "채팅 바 드래그 가능 여부 전환"
 L["RESET_POSITION"] = "위치 초기화"
 L["RESET_POSITION_DESC"] = "채팅 바를 기본 위치로 이동"
-L["TOGGLE_ORIENTATION"] = "세로/가로 전환"
-L["TOGGLE_ORIENTATION_DESC"] = "세로 및 가로 레이아웃 간 전환"
 L["FONT_SIZE"] = "글꼴 크기"
-L["FONT_SIZE_DESC"] = "채팅 바 버튼의 글꼴 크기 조절"
 L["BUTTON_WIDTH"] = "버튼 너비"
-L["BUTTON_WIDTH_DESC"] = "채팅 바 색상 블록의 너비 조절"
 L["BUTTON_HEIGHT"] = "버튼 높이"
-L["BUTTON_HEIGHT_DESC"] = "채팅 바 색상 블록의 높이 조절"
 L["RESET_ALL"] = "모든 설정 초기화"
 L["RESET_ALL_DESC"] = "모든 설정을 기본값으로 초기화"
 L["CONFIRM_RESET_ALL"] = "모든 설정을 초기화하시겠습니까?"
@@ -50,8 +39,6 @@ L["CONTEXT_OPEN_SETTINGS"] = "설정 열기"
 L["MSG_LOCKED"] = "|cff00ff00MiliUI 채팅바:|r 잠금됨"
 L["MSG_UNLOCKED"] = "|cff00ff00MiliUI 채팅바:|r 해제됨"
 L["MSG_RESET"] = "|cff00ff00MiliUI 채팅바:|r 위치 초기화됨"
-L["MSG_HORIZONTAL"] = "|cff00ff00MiliUI 채팅바:|r 가로 모드"
-L["MSG_VERTICAL"] = "|cff00ff00MiliUI 채팅바:|r 세로 모드"
 
 -- Channel Names
 L["CHANNEL_SAY"] = "일반"
@@ -88,7 +75,3 @@ L["TIP_RESET"] = "좌클릭: 인스턴스 초기화 | 우클릭: 전투 기록"
 -- Pull Timer (native countdown)
 L["DBM_PULL_SECONDS"] = "풀 카운트다운 초"
 L["DBM_PULL_SECONDS_DESC"] = "풀 타이머 카운트다운 초 설정 (우클릭)"
-
-
-
-

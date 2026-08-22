@@ -6,31 +6,20 @@ L["ADDON_NAME"] = "MiliUI ChatBar"
 L["ADDON_TITLE"] = "Quick Chat Bar"
 
 -- Settings Categories
-L["SETTINGS_MAIN"] = "Quick Chat Bar"
-L["SETTINGS_GENERAL"] = "General Settings"
 L["SETTINGS_CHANNELS"] = "Channel Settings"
 L["SETTINGS_MAIN_DESC"] = "Quick chat bar addon settings"
 
 -- Main Panel
-L["SELECT_SUBCATEGORY"] = "Please select a subcategory from the left:"
-L["GENERAL_DESC"] = "Lock, position, orientation"
-L["CHANNELS_DESC"] = "Show/hide channel buttons"
 
 -- General Settings
 L["GENERAL_SETTINGS_TITLE"] = "General Settings"
-L["GENERAL_SETTINGS_DESC"] = "Configure chat bar appearance and position"
 L["LOCK_UNLOCK"] = "Lock/Unlock"
 L["LOCK_UNLOCK_DESC"] = "Toggle whether the chat bar can be dragged"
 L["RESET_POSITION"] = "Reset Position"
 L["RESET_POSITION_DESC"] = "Reset chat bar to default position"
-L["TOGGLE_ORIENTATION"] = "Toggle Vertical/Horizontal"
-L["TOGGLE_ORIENTATION_DESC"] = "Switch between vertical and horizontal layout"
 L["FONT_SIZE"] = "Font Size"
-L["FONT_SIZE_DESC"] = "Adjust the font size of ChatBar buttons"
 L["BUTTON_WIDTH"] = "Button Width"
-L["BUTTON_WIDTH_DESC"] = "Adjust the width of ChatBar color blocks"
 L["BUTTON_HEIGHT"] = "Button Height"
-L["BUTTON_HEIGHT_DESC"] = "Adjust the height of ChatBar color blocks"
 L["RESET_ALL"] = "Reset All Settings"
 L["RESET_ALL_DESC"] = "Reset all settings to default"
 L["CONFIRM_RESET_ALL"] = "Are you sure you want to reset all settings?"
@@ -49,8 +38,6 @@ L["CONTEXT_OPEN_SETTINGS"] = "Open Settings"
 L["MSG_LOCKED"] = "|cff00ff00MiliUI ChatBar:|r Locked"
 L["MSG_UNLOCKED"] = "|cff00ff00MiliUI ChatBar:|r Unlocked"
 L["MSG_RESET"] = "|cff00ff00MiliUI ChatBar:|r Position reset"
-L["MSG_HORIZONTAL"] = "|cff00ff00MiliUI ChatBar:|r Horizontal mode"
-L["MSG_VERTICAL"] = "|cff00ff00MiliUI ChatBar:|r Vertical mode"
 
 -- Channel Names
 L["CHANNEL_SAY"] = "Say"
@@ -88,5 +75,23 @@ L["TIP_RESET"] = "Left: Reset Instance | Right: Combat Log"
 L["DBM_PULL_SECONDS"] = "Pull Countdown Seconds"
 L["DBM_PULL_SECONDS_DESC"] = "Set the countdown seconds for the pull timer (right-click)"
 
+-- MiliUIWidgets 共用層（元件庫只查這四個 key，見 Libs/MiliUIWidgets/README.md）
+L["Apply"]  = "Apply"
+L["Okay"]   = "Okay"
+L["Cancel"] = "Cancel"
+L["Can't change settings during combat"] = "Can't change settings during combat"
 
-
+-- Options window
+L["TAB_GENERAL"]       = "General"
+L["TAB_ABOUT"]         = "About"
+L["ORIENTATION"]       = "Orientation"
+L["ORIENT_HORIZONTAL"] = "Horizontal"
+L["ORIENT_VERTICAL"]   = "Vertical"
+L["SECTION_SIZE"]      = "Size"
+L["SECTION_RESET"]     = "Reset"
+L["VERSION_FORMAT"]    = "Version: %s"
+L["OPEN_HINT"]         = "Use /mchatbar to open options"
+L["BTN_OPEN_OPTIONS"]  = "Open options"
+L["ABOUT_USAGE"]       = "Click a block to switch your chat channel. Drag the bar by its left edge when it is unlocked, or right-click it for a quick menu."
+L["ABOUT_TAB"]         = "Commands: |cffffd200/mchatbar|r opens the options, |cffffd200/mchatbar reset|r puts the bar back to the bottom-left corner."
+L["ABOUT_AUTHOR"]      = "Author: Mili (MiliUI package)"
