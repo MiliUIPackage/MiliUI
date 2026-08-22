@@ -49,6 +49,7 @@ local function Ensure(tip)
     bar:Hide()
     state.bar = bar
     Bar.ApplySettings(tip)
+    Skin.RaiseAccents(tip)
     return bar
 end
 Bar.Ensure = Ensure
@@ -179,6 +180,11 @@ function Bar.Activate(tip, unit)
     if not ns.db or not ns.db.statusbar.enable then return end
     local bar = Ensure(tip)
     if not bar then return end
+    -- 接觸面 #6 的重申：載入時 alpha 0 一次不夠——單位提示流程會把暴雪的血條
+    -- 弄回來（實測：粗綠條蓋在 tooltip 下緣）。每次啟用我們的條就再壓一次。
+    if tip == GameTooltip and GameTooltipStatusBar and GameTooltipStatusBar.SetAlpha then
+        pcall(GameTooltipStatusBar.SetAlpha, GameTooltipStatusBar, 0)
+    end
     local state = Skin.Get(tip)
     state.barUnit = unit
     bar:Show()

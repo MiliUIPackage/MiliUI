@@ -106,8 +106,11 @@ local function ColorBackground(tip, config, raw)
     local bg = config.background
     if not bg then return end
     if bg.colorfunc == "default" or bg.colorfunc == "" or bg.colorfunc == "inherit" or not bg.colorfunc then
+        -- 全域背景色連同它的透明度一起用。曾經拿 per-unit alpha 蓋過去，
+        -- 結果「樣式」頁的背景透明度怎麼調都沒反應（單位與預覽全走這條）。
+        -- per-unit alpha 只在下面「有著色」的分支才有意義（colorfunc 只給 rgb）。
         local c = ns.db.general.background
-        Skin.SetBackgroundColor(tip, c.r, c.g, c.b, bg.alpha or c.a)
+        Skin.SetBackgroundColor(tip, c.r, c.g, c.b, c.a)
         return
     end
     if Colors.colorfunc[bg.colorfunc] then

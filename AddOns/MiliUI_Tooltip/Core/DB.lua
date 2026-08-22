@@ -32,7 +32,7 @@ local function BuildDefaults()
         schemaVersion = ns.DB_VERSION,
         optionsWindow = { x = 0, y = 0 },
         general = {
-            scale = 1.2,
+            scale = 1,
             mask = false,
             bgfile = "solid",
             background = Color(0.133, 0.133, 0.133, 1),
@@ -188,17 +188,34 @@ local function OverwriteElementRows(db)
     end
 end
 
+------------------------------------------------------------
+-- 遷移鏈：版本閘（只跑一次）＋值閘（只動「還等於舊預設」的欄位，
+-- 使用者自己調過的一個都不碰）。加條目時 Init.lua 的 DB_VERSION 一起 bump。
+------------------------------------------------------------
+local MIGRATIONS = {
+    -- v2（2026-08-22）：預設縮放 1.2 → 1（實測 1.2 太大）
+    [2] = function(db)
+        if db.general.scale == 1.2 then db.general.scale = 1 end
+    end,
+}
+
 function DB.Init()
     if type(MiliUI_Tooltip_DB) ~= "table" then
         MiliUI_Tooltip_DB = {}
     end
     local db = MiliUI_Tooltip_DB
+    local isFresh = db.schemaVersion == nil
     MergeDefaults(db, BuildDefaults())
     OverwriteElementRows(db)
 
-    -- 遷移鏈（目前只有 v1，佔位）。降版 clamp：拿新版 SV 回舊版不重跑遷移。
+    -- 降版 clamp：拿新版 SV 回舊版不重跑遷移
     if type(db.schemaVersion) ~= "number" or db.schemaVersion > ns.DB_VERSION then
         db.schemaVersion = ns.DB_VERSION
+    end
+    if not isFresh then
+        for v = db.schemaVersion + 1, ns.DB_VERSION do
+            if MIGRATIONS[v] then MIGRATIONS[v](db) end
+        end
     end
     db.schemaVersion = ns.DB_VERSION
 

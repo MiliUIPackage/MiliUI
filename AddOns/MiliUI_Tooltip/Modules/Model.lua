@@ -28,6 +28,7 @@ local function Ensure(state)
         end
     end)
     state.model = model
+    Skin.RaiseAccents(GameTooltip)
     return model
 end
 

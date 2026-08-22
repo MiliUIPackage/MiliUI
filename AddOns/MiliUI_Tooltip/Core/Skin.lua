@@ -106,6 +106,7 @@ function Skin.Attach(tip)
     skin:SetScript("OnShow", function(self)
         LowerSkinLevel(self)
         NeutralizeNineSlice(tip)
+        Skin.RaiseAccents(tip)
     end)
     skin:SetScript("OnHide", function()
         Skin.ClearTransient(tip)
@@ -115,6 +116,21 @@ function Skin.Attach(tip)
     NeutralizeNineSlice(tip)
     Skin.ApplyBase(tip)
     return state
+end
+
+------------------------------------------------------------
+-- 血條 / 模型的層級要**明寫在 tip 之上**（子 frame 層級要明寫）：
+-- 它們是 skin（tip−1）的 child，放著不管會落在 tip 之下——血條文字往上
+-- 溢進 tooltip 矩形的那半截會被 tooltip 背景蓋掉（實測：文字被吃半行）。
+-- skin 本體維持 tip−1（背景不能蓋字），只有這兩個附掛件抬到 tip+1。
+------------------------------------------------------------
+function Skin.RaiseAccents(tip)
+    local state = State[tip]
+    if not state or S.IsForbiddenObject(tip) then return end
+    local ok, level = pcall(tip.GetFrameLevel, tip)
+    if not ok or type(level) ~= "number" or S.IsSecret(level) then return end
+    if state.bar then state.bar:SetFrameLevel(level + 1) end
+    if state.model then state.model:SetFrameLevel(level + 1) end
 end
 
 ------------------------------------------------------------

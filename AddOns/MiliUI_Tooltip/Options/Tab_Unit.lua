@@ -18,6 +18,7 @@ local function BuildControls(kind)
         { type = "dropdown", key = "coloredBorder", label = L["Border tint"], items = Specs.BORDER_COLOR_ITEMS },
         { type = "dropdown", sub = "background", key = "colorfunc", label = L["Background tint"], items = Specs.BG_COLOR_ITEMS },
         { type = "slider", sub = "background", key = "alpha", label = L["Background opacity"], min = 0.1, max = 1, step = 0.05 },
+        { type = "text", label = L["Opacity applies only when a background tint is selected; \"Global background color\" uses the alpha from the Style tab."] },
 
         { type = "header", label = L["Behavior"] },
         { type = "toggle", key = "showTarget", label = L["Show their target"] },
