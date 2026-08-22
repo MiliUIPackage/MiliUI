@@ -53,10 +53,12 @@ local function OnUnit(tip)
     if not tip.GetUnit then return end
     local ok, _, unit = pcall(tip.GetUnit, tip)
     if not ok or not unit then return end
-    local applied = select(1, pcall(ns.UnitLines.Apply, tip, state, unit, false))
+    -- xpcall + ReportError：這裡吞錯會讓「行寫了、著色沒跑」這種半套結果
+    -- 靜默發生（實測抓過一次），至少要進 /mtip debug 的錯誤紀錄
+    local applied = xpcall(ns.UnitLines.Apply, ns.ReportError, tip, state, unit, false)
     if not applied then return end
-    pcall(ns.Target.OnUnit, tip, state, unit)
-    pcall(ns.Model.OnUnit, tip, state, unit)
+    xpcall(ns.Target.OnUnit, ns.ReportError, tip, state, unit)
+    xpcall(ns.Model.OnUnit, ns.ReportError, tip, state, unit)
     if tip == GameTooltip then
         ns.Bar.Activate(tip, unit)
     end
@@ -71,7 +73,7 @@ local function OnItem(tip)
         local ok, _, l = pcall(tip.GetItem, tip)
         if ok then link = l end
     end
-    pcall(ns.Item.Apply, tip, state, link)
+    xpcall(ns.Item.Apply, ns.ReportError, tip, state, link)
 end
 
 local function OnSpell(tip, data)
@@ -79,14 +81,14 @@ local function OnSpell(tip, data)
     if not state then return end
     ns.Bar.Deactivate(tip)
     local spellId = data and S.PlainNumber(data.id)
-    pcall(ns.Spell.Apply, tip, state, spellId)
+    xpcall(ns.Spell.Apply, ns.ReportError, tip, state, spellId)
 end
 
 local function OnUnitAura(tip, data)
     local state = Gate(tip)
     if not state then return end
     ns.Bar.Deactivate(tip)
-    pcall(ns.Spell.ApplyAura, tip, state, data and data.args)
+    xpcall(ns.Spell.ApplyAura, ns.ReportError, tip, state, data and data.args)
 end
 
 ------------------------------------------------------------
@@ -132,9 +134,9 @@ local function RouteMacroPayload(tip, spellId, itemLink)
     local state = Gate(tip)
     if not state then return end
     if itemLink then
-        pcall(ns.Item.Apply, tip, state, itemLink)
+        xpcall(ns.Item.Apply, ns.ReportError, tip, state, itemLink)
     elseif spellId then
-        pcall(ns.Spell.Apply, tip, state, spellId)
+        xpcall(ns.Spell.Apply, ns.ReportError, tip, state, spellId)
     end
 end
 

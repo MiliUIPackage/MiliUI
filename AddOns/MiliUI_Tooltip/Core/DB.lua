@@ -47,7 +47,7 @@ local function BuildDefaults()
             enable = true,
             height = 4,
             position = "bottom",           -- bottom | top
-            texture = "solid",
+            texture = "tuktex",
             textFormat = "healthmaxpercent", -- none | percent | healthmax | healthmaxpercent
             fontSize = 10,
             color = "auto",                -- auto（職業/立場色）| custom
@@ -56,7 +56,10 @@ local function BuildDefaults()
         anchor = DefaultAnchor(false),
         unit = {
             player = {
-                coloredBorder = "class",   -- default | class | level | reaction | selection | faction | HEX
+                -- 邊框著色預設用全域深色框。class 在 12.1 對 mouseover 是秘密值路徑
+                -- （預覽拿 player token 是明文 → 預覽綠、實戰不綠），兩邊行為不一致，
+                -- 使用者也定案要深色（2026-08-22 實測比對）
+                coloredBorder = "default", -- default | class | level | reaction | selection | faction
                 background = { colorfunc = "default", alpha = 0.9 },
                 anchor = DefaultAnchor(true),
                 showTarget = true,
