@@ -17,6 +17,7 @@ Config\Luxthos_Platynator.lua
 Config\Ayije_CDM.lua
 Config\BugSack.lua
 Style.lua
+Menu.lua
 Settings.lua
 Core.lua
 

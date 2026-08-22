@@ -1,11 +1,12 @@
 ------------------------------------------------------------
 -- 在 ESC 選單 (GameMenuFrame) 加入「米利UI設定」入口按鈕，
 -- 以及右側的「重載介面」圖示按鈕。
--- 風格沿用 MiliUI.Style.ApplyButton（暗夜藍底 + 暗金邊 + 金色字）。
+-- 風格走 MiliUI.Style 的深色皮（對齊米利單位框架設定介面：黑邊白字、hover 職業色）。
 --
--- 設定按鈕點擊後：
---   1. 隱藏 ESC 選單（避免擋住設定面板）
---   2. 開啟 Blizzard Settings → MiliUI 主分類
+-- 設定按鈕：
+--   點擊 → 隱藏 ESC 選單、開啟 Blizzard Settings → MiliUI 主分類（原本的行為）
+--   滑過 → 往上展開米利UI選單，列出各米利系列插件的設定入口
+--          （選單本體與註冊接口在 Menu.lua）
 -- 重載按鈕：左鍵跳出確認視窗，右鍵直接 ReloadUI()
 ------------------------------------------------------------
 
@@ -22,6 +23,7 @@ local VERSION_NEW_FORMAT = "米利UI套組：%s\n發現新版本：%s"
 
 local settingBtn -- 設定按鈕，OnShow 時建立一次
 local reloadBtn  -- 重載按鈕，OnShow 時建立一次
+local menu       -- 滑過設定按鈕展開的米利UI選單，第一次滑過才建立
 local versionText -- 右下角版本標籤，OnShow 時建立一次
 
 StaticPopupDialogs["MILIUI_GAMEMENU_RELOAD"] = {
@@ -62,13 +64,38 @@ local function DoReload(_, button)
     end
 end
 
+------------------------------------------------------------
+-- 米利UI選單（滑過設定按鈕往上展開）
+-- 項目由各米利系列插件自己註冊，清單與接口見 MiliUI/Menu.lua。
+-- 沒有任何插件註冊時 OpenAt 會自己判空不開，這裡不必先檢查。
+------------------------------------------------------------
+local function EnsureMenu()
+    if menu then return menu end
+    if not (MiliUI and MiliUI.Menu and MiliUI.Menu.Create) then return nil end
+    if not GameMenuFrame then return nil end
+
+    menu = MiliUI.Menu.Create(GameMenuFrame, function()
+        -- 開設定面板要先收掉 ESC 選單，但那是暴雪的面板系統管的框，
+        -- 戰鬥中動它會惹麻煩 —— 跟設定按鈕本身同一套判斷。
+        if InCombatLockdown() then
+            print("|cff00ff00[MiliUI]|r 戰鬥中無法開啟。")
+            return false
+        end
+        HideUIPanel(GameMenuFrame)
+    end)
+    -- 選單會長到 GameMenuFrame 的框外，level 要壓過設定按鈕（+10）
+    menu:SetFrameStrata(GameMenuFrame:GetFrameStrata())
+    menu:SetFrameLevel(GameMenuFrame:GetFrameLevel() + 20)
+    return menu
+end
+
 local function EnsureButton()
     if settingBtn then return settingBtn end
     if not GameMenuFrame then return nil end
 
     settingBtn = CreateFrame("Button", "MiliUI_GameMenuButton", GameMenuFrame, "BackdropTemplate")
-    if MiliUI and MiliUI.Style and MiliUI.Style.ApplyButton then
-        MiliUI.Style.ApplyButton(settingBtn, BUTTON_TEXT, nil, 12)
+    if MiliUI and MiliUI.Style and MiliUI.Style.ApplyDarkButton then
+        MiliUI.Style.ApplyDarkButton(settingBtn, BUTTON_TEXT, nil, 12)
     else
         local fs = settingBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         fs:SetPoint("CENTER")
@@ -80,6 +107,14 @@ local function EnsureButton()
     settingBtn:SetFrameLevel(GameMenuFrame:GetFrameLevel() + 10)
     settingBtn:RegisterForClicks("LeftButtonUp")
     settingBtn:SetScript("OnClick", OpenSettings)
+
+    -- ⚠ 一定要在 ApplyDarkButton 之後才 Hook：那支是用 SetScript 掛 hover 變色的，
+    -- 順序反過來這個 hook 會被整個蓋掉，而且不報錯。
+    settingBtn:HookScript("OnEnter", function(self)
+        local m = EnsureMenu()
+        if m then m:OpenAt(self) end
+    end)
+
     return settingBtn
 end
 
@@ -88,17 +123,17 @@ local function EnsureReloadButton()
     if not GameMenuFrame then return nil end
 
     reloadBtn = CreateFrame("Button", "MiliUI_GameMenuReloadButton", GameMenuFrame, "BackdropTemplate")
-    if MiliUI and MiliUI.Style and MiliUI.Style.ApplyButton then
+    if MiliUI and MiliUI.Style and MiliUI.Style.ApplyDarkButton then
         -- 純圖示按鈕，不帶文字，其餘外觀與設定按鈕一致
-        MiliUI.Style.ApplyButton(reloadBtn, nil, nil, 12)
+        MiliUI.Style.ApplyDarkButton(reloadBtn, nil, nil, 12)
     end
 
     local icon = reloadBtn:CreateTexture(nil, "ARTWORK")
     icon:SetTexture(RELOAD_ICON)
     icon:SetPoint("CENTER", 0, 0)
     icon:SetSize(14, 14)
-    -- 與按鈕文字同一組金色
-    local c = MiliUI and MiliUI.Style and MiliUI.Style.Colors and MiliUI.Style.Colors.text
+    -- 與按鈕文字同一組白
+    local c = MiliUI and MiliUI.Style and MiliUI.Style.Dark and MiliUI.Style.Dark.text
     if c then icon:SetVertexColor(c[1], c[2], c[3]) end
     reloadBtn._miliIcon = icon
 

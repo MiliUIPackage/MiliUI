@@ -88,3 +88,82 @@ function S.ApplyPanel(frame)
     frame:SetBackdropColor(unpack(S.Colors.panelBg))
     frame:SetBackdropBorderColor(unpack(S.Colors.border))
 end
+
+------------------------------------------------------------
+-- 深色皮：對齊 MiliUI_UnitFrames 設定介面的外觀
+--
+-- 白貼圖 backdrop、1px 純黑硬邊、白字、hover 走職業色。數值是從
+-- MiliUI_UnitFrames/Libs/MiliUIWidgets/Widgets.lua 抄過來的，那邊改了這邊要跟。
+--
+-- 跟上面那組 ApplyButton（暗夜藍＋暗金邊）是**兩套並存**的皮，不是要取代它 ——
+-- CharacterNotes 整個視窗都吃暗金那套，就地改掉會把它一起換色。
+------------------------------------------------------------
+S.Dark = {
+    panel     = { 0.1, 0.1, 0.1, 0.97 },     -- 選單／面板底
+    fill      = { 0.115, 0.115, 0.115, 1 },  -- 控件底
+    fillHover = { 0.23, 0.23, 0.23, 1 },
+    border    = { 0, 0, 0, 1 },
+    text      = { 1, 1, 1, 1 },
+    textDim   = { 0.8, 0.8, 0.8, 1 },
+}
+
+------------------------------------------------------------
+-- 強調色 = 玩家職業色
+--
+-- 懶算＋快取：Style.lua 在 TOC 很前面就載入，那個時間點 UnitClass("player")
+-- 不保證有值，載入時就算會拿到灰色而且再也不會更新。
+-- （player token 讀職業在 12.1 下不是秘密值，可以放心讀。）
+------------------------------------------------------------
+local accentR, accentG, accentB
+function S.Accent(alpha)
+    if not accentR then
+        accentR, accentG, accentB = 0.7, 0.7, 0.7
+        local _, class = UnitClass("player")
+        local c = class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+        if c then accentR, accentG, accentB = c.r, c.g, c.b end
+    end
+    return accentR, accentG, accentB, alpha or 1
+end
+
+------------------------------------------------------------
+-- 深色面板（選單框、彈出視窗）
+------------------------------------------------------------
+function S.ApplyDarkPanel(frame, color)
+    if not frame then return end
+    frame:SetBackdrop(S.Backdrop)
+    frame:SetBackdropColor(unpack(color or S.Dark.panel))
+    frame:SetBackdropBorderColor(unpack(S.Dark.border))
+end
+
+------------------------------------------------------------
+-- 深色按鈕：底色固定，hover 時邊框換成職業色
+-- 回傳 fontstring 以便外部後續調整（與 S.ApplyButton 同介面）
+------------------------------------------------------------
+function S.ApplyDarkButton(frame, text, size, fontSize)
+    if not frame then return end
+    if size then frame:SetSize(size[1], size[2]) end
+
+    frame:SetBackdrop(S.Backdrop)
+    frame:SetBackdropColor(unpack(S.Dark.fill))
+    frame:SetBackdropBorderColor(unpack(S.Dark.border))
+
+    local fs = frame:CreateFontString(nil, "OVERLAY")
+    fs:SetFont(S.Font, fontSize or 12, "")
+    fs:SetShadowColor(0, 0, 0)
+    fs:SetShadowOffset(1, -1)
+    fs:SetPoint("CENTER", 0, 0)
+    fs:SetTextColor(unpack(S.Dark.text))
+    if text then fs:SetText(text) end
+    frame._miliText = fs
+
+    frame:SetScript("OnEnter", function(self)
+        self:SetBackdropColor(unpack(S.Dark.fillHover))
+        self:SetBackdropBorderColor(S.Accent(1))
+    end)
+    frame:SetScript("OnLeave", function(self)
+        self:SetBackdropColor(unpack(S.Dark.fill))
+        self:SetBackdropBorderColor(unpack(S.Dark.border))
+    end)
+
+    return fs
+end
