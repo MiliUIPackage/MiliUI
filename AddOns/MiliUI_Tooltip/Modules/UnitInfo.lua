@@ -25,9 +25,24 @@ local MEDIA = "Interface\\AddOns\\MiliUI_Tooltip\\Media\\"
 ------------------------------------------------------------
 -- 圖標集
 ------------------------------------------------------------
+
+-- 陣營圖示用扁平 atlas（任務日誌的陣營任務標）：TinyTooltip 內建的
+-- UI-PVP-ALLIANCE/HORDE 是舊版帶金屬圓框的立體徽章，縮到 14px 只剩一坨。
+-- 原本掛在 MiliUI/Enhance/TinyTooltipRemake_FactionIcon.lua，這裡改成內建。
+-- atlas 被暴雪拿掉時退回舊貼圖，不要塞出一個綠框。
+local function FactionIcon(atlas, w, h, fallback)
+    if type(CreateAtlasMarkup) == "function"
+        and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) then
+        return CreateAtlasMarkup(atlas, w, h)
+    end
+    return fallback
+end
+
 local icons = {
-    Alliance   = "|TInterface\\TargetingFrame\\UI-PVP-ALLIANCE:14:14:0:0:64:64:10:36:2:38|t",
-    Horde      = "|TInterface\\TargetingFrame\\UI-PVP-HORDE:14:14:0:0:64:64:4:38:2:36|t",
+    Alliance   = FactionIcon("questlog-questtypeicon-alliance", 14, 14,
+        "|TInterface\\TargetingFrame\\UI-PVP-ALLIANCE:14:14:0:0:64:64:10:36:2:38|t"),
+    Horde      = FactionIcon("questlog-questtypeicon-horde", 14, 14,
+        "|TInterface\\TargetingFrame\\UI-PVP-HORDE:14:14:0:0:64:64:4:38:2:36|t"),
     Neutral    = "|TInterface\\Timer\\Panda-Logo:14|t",
     pvp        = "|TInterface\\TargetingFrame\\UI-PVP-FFA:14:14:0:0:64:64:10:36:0:38|t",
     class      = "|TInterface\\TargetingFrame\\UI-Classes-Circles:14:14:0:0:256:256:%d:%d:%d:%d|t",
