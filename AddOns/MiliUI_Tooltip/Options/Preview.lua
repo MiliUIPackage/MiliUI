@@ -80,6 +80,17 @@ end
 local function RenderItem()
     tip:ClearLines()
     ns.Bar.Deactivate(tip)
+    -- 物品資料非同步：沒快取時先畫（引擎會顯示讀取中），掛 ContinueOnItemLoad
+    -- 到貨重繪。⚠ 只在「未快取」時掛——快取好時 Continue 會立刻執行，
+    -- 掛在重繪路徑上會變成自我迴圈。
+    if C_Item and C_Item.IsItemDataCachedByID and Item and Item.CreateFromItemID
+        and not C_Item.IsItemDataCachedByID(PREVIEW_ITEM_ID) then
+        Item:CreateFromItemID(PREVIEW_ITEM_ID):ContinueOnItemLoad(function()
+            if enabled and mode == "item" then
+                Preview.Refresh()
+            end
+        end)
+    end
     if tip.SetItemByID then
         pcall(tip.SetItemByID, tip, PREVIEW_ITEM_ID)
     else
@@ -141,14 +152,6 @@ local function Ensure()
 
     chipHolder = CreateFrame("Frame", nil, panel)
     chipHolder:SetSize(260, 22)
-    -- 物品資料是非同步的：首次開物品預覽常常還沒快取（畫面卡在「讀取物品資訊」），
-    -- 到貨事件來了就重繪一次
-    chipHolder:RegisterEvent("GET_ITEM_INFO_RECEIVED")
-    chipHolder:SetScript("OnEvent", function(_, _, itemID)
-        if enabled and mode == "item" and itemID == PREVIEW_ITEM_ID then
-            Preview.Refresh()
-        end
-    end)
     local chips = {}
     local defs = {
         { id = "player", label = L["Player"] },
