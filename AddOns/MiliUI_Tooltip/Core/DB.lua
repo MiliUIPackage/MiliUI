@@ -84,7 +84,7 @@ local function BuildDefaults()
                     guildName   = { enable = true, color = "ff00ff", wildcard = "<%s>", filter = "none" },
                     guildIndex  = { enable = true, color = "cc88ff", wildcard = "%s",   filter = "none" },
                     guildRank   = { enable = true, color = "cc88ff", wildcard = "(%s)", filter = "none" },
-                    guildRealm  = { enable = true, color = "00cccc", wildcard = "%s",   filter = "none" },
+                    guildRealm  = { enable = false, color = "00cccc", wildcard = "%s",  filter = "none" },
                     levelValue  = { enable = true, color = "level",  wildcard = "%s",   filter = "none" },
                     itemLevel   = { enable = true, color = "itemLevel", wildcard = "%s", filter = "none", icon = false },
                     achievementPoints = { enable = true, color = "achievement", wildcard = "%s", filter = "none", icon = false },
