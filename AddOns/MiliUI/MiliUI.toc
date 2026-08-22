@@ -10,15 +10,29 @@
 ## SavedVariablesPerCharacter: MiliUI_CharDB
 
 Libs\Libs.xml
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\Callbacks.lua
 
 Config\Luxthos_Platynator.lua
 # Config\Luxthos_Sensei.lua
 # Config\Luxthos_CMC.lua
 Config\Ayije_CDM.lua
 Config\BugSack.lua
+
+Init.lua
 Style.lua
 Menu.lua
-Settings.lua
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\Controls.lua
+Options\Roster.lua
+Options\Panel.lua
+Options\Tab_Addons.lua
+Options\Tab_Enhance.lua
+Options\Tab_Aura.lua
+Options\Tab_Import.lua
+Options\Blizzard.lua
+Api.lua
 Core.lua
 
 Enhance\SlashRL.lua

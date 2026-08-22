@@ -3,7 +3,7 @@
 --
 -- 同資料夾的 Widgets.lua / Controls.lua / PixelPerfect.lua 一律只認 ns.WidgetsEnv，
 -- 複製到別的插件時一個字都不用動；重寫的只有這支。完整說明見
--- MiliUI_UnitFrames/Libs/MiliUIWidgets/README.md（原始 source 在那裡，改共用層
+-- MiliUI/Libs/MiliUIWidgets/README.md（原始 source 在套組本體那裡，改共用層
 -- 請改那邊再同步過來）。
 --
 -- ⚠ 契約：下面全部欄位都要有，缺一個會在載入時炸。

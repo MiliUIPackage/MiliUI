@@ -10,7 +10,7 @@
 -- 重載按鈕：左鍵跳出確認視窗，右鍵直接 ReloadUI()
 ------------------------------------------------------------
 
-local AddonName, _ = ...
+local AddonName, ns = ...
 if AddonName ~= "MiliUI" then return end
 
 local BUTTON_TEXT = "米利UI設定"
@@ -43,16 +43,8 @@ local function OpenSettings()
         return
     end
     HideUIPanel(GameMenuFrame)
-    local cat = MiliUI and MiliUI.SettingsCategory
-    if cat and Settings and Settings.OpenToCategory then
-        -- Blizzard 12.0+: OpenToCategory 收 numeric ID (C_SettingsUtil.OpenSettingsPanel)
-        local id = cat.GetID and cat:GetID() or cat.ID
-        if type(id) == "number" then
-            Settings.OpenToCategory(id)
-        else
-            Settings.OpenToCategory(cat)  -- 退回傳物件
-        end
-    end
+    -- 開自製設定視窗（Options/Panel.lua），不再繞暴雪 Settings 面板
+    ns.OpenOptions()
 end
 
 local function DoReload(_, button)

@@ -1,6 +1,6 @@
 ---
 name: miliui-import-addon
-description: 為 MiliUI 設定面板新增一個插件的「預設值匯入」按鈕（新增匯入插件、importRegistry 加條目、讓玩家能一鍵套用某插件的推薦設定）。當使用者說「讓 MiliUI 可以匯入 XXX 的設定」「預設值匯入多加一個插件」，或要動 MiliUI/Settings.lua 的 importRegistry 時使用。
+description: 為 MiliUI 設定面板新增一個插件的「預設值匯入」按鈕（新增匯入插件、importRegistry 加條目、讓玩家能一鍵套用某插件的推薦設定）。當使用者說「讓 MiliUI 可以匯入 XXX 的設定」「預設值匯入多加一個插件」，或要動 MiliUI/Options/Tab_Import.lua 的 importRegistry 時使用。
 ---
 
 # 為 MiliUI 新增一個匯入插件
@@ -18,7 +18,8 @@ description: 為 MiliUI 設定面板新增一個插件的「預設值匯入」�
    - 在 `MiliUI.toc` 加上這個檔案的載入行 —— **漏了這行，資料檔不會被載入，
      `dataCheck` 永遠回 false，按鈕會是灰的**
 
-2. **在 `MiliUI/Settings.lua` 的 `importRegistry` 新增條目**
+2. **在 `MiliUI/Options/Tab_Import.lua` 的 `importRegistry` 新增條目**
+   （2026-08-23 起本體改用自製設定視窗，registry 從舊的 `Settings.lua` 搬到這裡）
 
    ```lua
    {
@@ -42,7 +43,7 @@ description: 為 MiliUI 設定面板新增一個插件的「預設值匯入」�
    和腳本。
 
 4. **測試**
-   - `/reload` → 設定 → 米利UI → 預設值匯入
+   - `/reload` → `/miliui` →「預設值匯入」分頁（或 ESC 選單的「米利UI設定」）
    - 確認新按鈕出現而且不是灰的
    - 點擊匯入 → 確認 → 觀察 ReloadUI
    - 驗證插件設定真的套用了（不要只看有沒有跳訊息）
