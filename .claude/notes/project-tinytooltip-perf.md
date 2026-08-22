@@ -5,7 +5,14 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 20ca021f-292c-45db-a109-d31d6d73f347
+  modified: 2026-08-22T13:34:53.104Z
 ---
+
+**⚠ 已作廢（2026-08-22）：TinyTooltip-Remake 已整包從套組移除**，取代者是自製的
+`MiliUI_Tooltip`（見 [[project-miliui-tooltip]]），`MiliUI/Enhance/LegacyAddons.lua` 會自動
+停用玩家殘留的資料夾。以下保留當歷史——「比價系統每秒清空重建 20-25 次」「Show 連鎖風暴」
+「結構/顏色拆 key」這些**根因分析仍然有效**，MiliUI_Tooltip 的架構就是照著這些教訓設計的
+（post-call 時序＋純貼圖 skin，讓三個放大來源在設計上不存在）。
 
 TinyTooltip-Remake 是 MiliUI 維護的**就地修補**插件（Core.lua/Item.lua/LinkID.lua/General.lua 內有大量 `fix from MiliUI`〔taint〕與 `perf fix from MiliUI`〔效能〕標記）。**上游更新會覆蓋這些修補，更新後需重新套用。**
 

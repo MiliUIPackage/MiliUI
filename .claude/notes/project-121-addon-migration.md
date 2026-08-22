@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-12T18:28:11.601Z
+  modified: 2026-08-22T13:40:42.608Z
 ---
 
 2026-08-10 起，Mili 在 `ptr-12.1` 分支把套組搬到 12.1（TOC `120100`），主線是 secret values 擴大造成的崩潰修復。**2026-08-12 已併回 `master`，工作目錄從 `_ptr_` 換成 `_retail_`**（`/Applications/World of Warcraft/_retail_/Interface`）。以下「已修」條目均已實戰上線，「未上 PTR 實測」的時間戳記是當時寫下的，之後沒再逐條回頭驗證。
@@ -36,7 +36,8 @@ metadata:
 
 - **Ayije_CDM 已修**：`Init.lua` 加 `CDM.IsReadable` / `CDM.SafeNumber` / `CDM.CanDiffAuraPayload`。`Resources_Trackers.lua` 四個 handler + `CustomBuffs.lua` 的 `OnBloodlustAura` 不可讀時改呼叫既有的 `Seed*()`（走 `GetPlayerAuraBySpellID`）→ **功能完整保留**。另外把 `Seed*` 裡 `a.applications` / `a.auraInstanceID` / `a.expirationTime` 全包 `CDM.SafeNumber`，因為 12.1 的 AuraData struct 預設全 secret。
 - **Cell 已修但功能有損（後來治本了）**：`Utils.lua` 加 `F.IsSecretTable` / `F.CanDiffAuraPayload`，`UnitButton.lua` 與 `Utilities/QuickAssist.lua` 不可讀時直接 return。Cell 的全量重掃走 `GetAuraSlots`/`GetAuraDataBySlot`，在 12.1 一樣 error，所以當時**戰鬥中光環指示器會凍結在進戰前的狀態**。→ **這個限制已被 AuraContainer 重寫解除**（debuff 排、重要減益、驅散、三個 cooldown 指示器都搬容器了，見 [[project-cell-auracontainer-rewrite]]）；仍走手動路的只剩效果型自訂指示器與 crowdControls。
-- **TinyTooltip-Remake 已修**：`GameTooltip_UnitColor()` 雖然是暴雪的函式，但跑在**我們的 tainted 呼叫路徑**上，它內部對 `UnitIsPVP` / `UnitCanAttack` 的布林測試會 error 並歸咎於本插件——這種只能**整個換掉**不能包 guard。在 `Core.lua`（`local addon = TinyTooltip` 之後，順序很重要）加了 `addon.IsSecret` / `addon.SafeValue` / `addon.UnitColor`，`UnitColor` 完整複刻暴雪邏輯但每個輸入都擋 secret，讀不到就回白色。`General.lua` / `Target.lua` / `Core.lua` 的 `GetClassColor(secret class)` 也一併擋掉。注意 `General.lua:83` 有個**既有**的壞跳脫 `"Interface\\\Buttons\\..."`，luac 5.4 會拒絕但 WoW 的 Lua 5.1 吃得下，不是這次改壞的。
+- **TinyTooltip-Remake 已修**（⚠ 2026-08-22 整支插件已從套組移除，取代者是自製
+  [[project-miliui-tooltip]]；以下留當歷史，`UnitColor` 換掉不能 guard 的教訓仍然有效）：`GameTooltip_UnitColor()` 雖然是暴雪的函式，但跑在**我們的 tainted 呼叫路徑**上，它內部對 `UnitIsPVP` / `UnitCanAttack` 的布林測試會 error 並歸咎於本插件——這種只能**整個換掉**不能包 guard。在 `Core.lua`（`local addon = TinyTooltip` 之後，順序很重要）加了 `addon.IsSecret` / `addon.SafeValue` / `addon.UnitColor`，`UnitColor` 完整複刻暴雪邏輯但每個輸入都擋 secret，讀不到就回白色。`General.lua` / `Target.lua` / `Core.lua` 的 `GetClassColor(secret class)` 也一併擋掉。注意 `General.lua:83` 有個**既有**的壞跳脫 `"Interface\\\Buttons\\..."`，luac 5.4 會拒絕但 WoW 的 Lua 5.1 吃得下，不是這次改壞的。
 
 **DamageMeterTools 已修（2026-08-10，未上 PTR 實測）——這支不是 secret 問題**：整包沒呼叫過任何 `Unit*` API，純粹是套在暴雪內建 DamageMeter 上的外觀插件；它自存的 `DamageMeterToolsDB.errors.log` 也是空的，可排除錯誤風暴。Mili 回報的「登入嚴重卡頓」是設計問題，修了三處：
 - TOC `120007` → `120100`。
@@ -90,13 +91,13 @@ Ayije 本來就有 `InstallScaleLockHook` 把 item frame 的 scale 壓回 1，�
 
 參考解法與 API 筆記見 [[wow-secret-key-table-lookup]]、[[wow-121-unit-api-secrets]]、[[wow-121-aura-containers]]、[[wow-121-other-api-changes]]。
 
-**本機可直接翻原始碼當範本的 12.1-ready 插件**（2026-08-13 核對）：Cell、Plumber、TinyTooltip-Remake、WarpDeplete（都已用 `issecretvalue`）。~~MiniCC~~、~~MiniAuras~~、~~Coolinator~~ 的原始碼**都不在本機了**（前兩者 2026-08-10 從套組移除；Coolinator 2026-08-13 發現只剩空目錄樹，要看去 GitHub，見 [[wow-121-coolinator-reference]]），**別再叫人去翻本機的**。另外 `BuffReminders/Display/AuraTracker.lua` 是 repo 內最小、最好讀的路線 A 實作（單一 AuraGroup + `includeSpellIDs`），要看整套流程但不想啃 Cell 的時候從它開始。
+**本機可直接翻原始碼當範本的 12.1-ready 插件**（2026-08-13 核對；2026-08-22 更新）：Cell、Plumber、WarpDeplete（都已用 `issecretvalue`）、自製的 MiliUI_Tooltip／MiliUI_UnitFrames。~~TinyTooltip-Remake~~ 2026-08-22 從套組移除（取代者 MiliUI_Tooltip）。~~MiniCC~~、~~MiniAuras~~、~~Coolinator~~ 的原始碼**都不在本機了**（前兩者 2026-08-10 從套組移除；Coolinator 2026-08-13 發現只剩空目錄樹，要看去 GitHub，見 [[wow-121-coolinator-reference]]），**別再叫人去翻本機的**。另外 `BuffReminders/Display/AuraTracker.lua` 是 repo 內最小、最好讀的路線 A 實作（單一 AuraGroup + `includeSpellIDs`），要看整套流程但不想啃 Cell 的時候從它開始。
 
 **2026-08-21 EmbeddedItemTooltip 變 forbidden object（新的一類崩潰）。** 12.1 之後 `EmbeddedItemTooltip` 對「被插件污染的執行路徑」是 forbidden object，**連 `GetOwner()`／`NumLines()` 這種無害 getter 都不能呼叫**，一律拋 `Attempt to access forbidden object from code tainted by an AddOn`。狀態是動態的（同一個框架載入時還能套樣式、之後才被鎖），只能在每個入口重問 `IsForbidden()`——這個方法在 forbidden object 上永遠可以呼叫。同一天兩支插件中招，但性質不同：
 
 | 插件 | 拋錯位置 | 能不能自己擋 |
 |---|---|---|
-| TinyTooltip-Remake | 插件自己的 `ProcessInfo` 掛勾（UIWidget 的 `GameTooltip_ShowHyperlink` 借走 tooltip） | 可以，入口＋工具函式兩層 `IsForbidden` 閘，見 [[project-tinytooltip-perf]] |
+| ~~TinyTooltip-Remake~~（已移除） | 插件自己的 `ProcessInfo` 掛勾（UIWidget 的 `GameTooltip_ShowHyperlink` 借走 tooltip） | 歷史：入口＋工具函式兩層 `IsForbidden` 閘，見 [[project-tinytooltip-perf]]；MiliUI_Tooltip 從設計上不碰 EmbeddedItemTooltip |
 | ParagonReputation | **暴雪自己的** `ReputationEntryMixin:HideTooltip()`（ReputationFrame.lua:405） | 不行，只能把那一列的 `HideTooltip` 換成安全版 |
 
 ParagonReputation 那條的污染路徑值得記：插件把顯示字串**直接寫進暴雪框架的欄位**（`ReputationBar.reputationStandingText` / `barProgressText`），`OnLeave` 第一行的 `TryShowReputationStandingText()` 讀到髒欄位 → **整段 `OnLeave` 從此在污染狀態下跑** → 同一段稍後的 `HideTooltip()` 碰 `EmbeddedItemTooltip` 就炸。**通則：污染是「讀到髒欄位的那一刻」進來的，之後同一個呼叫堆疊全髒；所以錯誤行號跟你動過的地方可以差很遠。** 另一個副作用：`hooksecurefunc` 的後掛勾在原函式拋錯後不會執行，所以 ParagonReputation 自建的 `ParagonEmbeddedItemTooltip` 也跟著關不掉（浮窗卡畫面）。修法在 `MiliUI/Fix/ParagonReputation_HideTooltipForbidden.lua`：只對巔峰列（那列本來就髒了）把 `HideTooltip` 直接換成安全版，同時補做 Paragon 後掛勾要做的事。**列是 XML `mixin=` 複製上去的，掛 `ReputationEntryMixin` 只對之後才建立的列有效**，已存在的列要另外掃一次——跟上面 `EnumerateActive()` 那條是同一個道理。

@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 7d08d4b9-4715-4b8f-87ca-737e01131ca6
-  modified: 2026-08-18T10:07:13.941Z
+  modified: 2026-08-21T16:37:39.192Z
 ---
 
 **任何 MiliUI 自製插件要做設定介面，複製 `AddOns/MiliUI_UnitFrames/Libs/MiliUIWidgets/`
@@ -28,8 +28,9 @@ metadata:
 **踩雷點**：`Env.NAMESPACE` 每個插件必須不同。`CreateFont("同名")` 回傳既有物件而非
 新的，具名 frame 也一樣 —— 撞名會讓兩個插件互相蓋掉字型設定，而且不報錯。
 
-**現況**：目前只有 UnitFrames 在用，**Env 契約還沒被第二個消費者驗證過**。等真的複製到
-第二個插件時才會知道六項夠不夠，那時再定案。設定視窗本體（`Options/Panel.lua`）與設定
-搜尋（`Options/Search.lua`）刻意不進包，理由寫在 README 末段。
+**現況**：兩個消費者——UnitFrames（source）與 **MiliUI_Tooltip**（2026-08-22 複製，
+第二個消費者，見 [[project-miliui-tooltip]]）。Env 六項契約在程式層夠用，未動共用層一字
+（遊戲內未驗證）。設定視窗本體（`Options/Panel.lua`）仍是各插件自己組裝（Tooltip 抄了
+一份簡化版：無搜尋、無小地圖鈕）；設定搜尋刻意不進包，理由寫在 README 末段。
 
 相關：[[project-miliui-unit-frame]]、[[project-miliui-release-version]]

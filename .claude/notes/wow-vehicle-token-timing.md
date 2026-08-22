@@ -62,3 +62,22 @@ UNIT_PET               -- 載具真的出現了 ← 少了這個就永遠不會�
 附帶：`Core/Events.lua` 那道「載具中該用哪個 token 派送事件」的閘要收緊，需要的證據是
 `tokenCensus`（debug 的「載具期間的事件來源」）。**沒有載具 UI 的載具永遠不會累積這張表**
 （框根本沒被重新對應），要驗證得找有載具 UI 的任務載具／砲台。
+
+## 載具期間兩個 token 都會派送（2026-08-20 實測）
+
+副 token 在註冊期一起收（`RegisterUnitEvent(event, "player", "vehicle")`）是對的做法，
+但**收進來之後的閘不能嚴格比對「框現在畫誰」**。實測 `/muf debug` 的「載具期間的事件
+來源」：`player=player×2,vehicle×4`、`pet=pet×4,player×2` —— 兩個 token 都有。
+
+**技能可能掛在 `player` 上報**，即使框已經被對應成 `vehicle`。所以
+`if evUnit ~= f.unit then return end` 這種寫法會把自己的施法整個丟掉，而寵物框
+（載具期間讀 `player`）剛好接走 ⇒「我在開載具，施法條長在旁邊那個小框上」。
+
+正確的形狀（`MiliUI_UnitFrames/Elements/Castbar.lua` 的 `AcceptCastEvent`）：
+把「**框在畫誰**」跟「**這條在畫誰的施法**」拆成兩個欄位（`f.unit` / `f.castUnit`），
+被重新對應時開唱事件兩個 token 都認、記下這次是誰施法，其餘事件只認正在畫的那個；
+讓出的那一格（寵物框）完全不畫，否則同一次施法會畫兩條。所有讀施法 API 的地方一律
+用 castUnit —— 用 f.unit 會去問一個根本沒在施法的單位。
+
+`Core/Events.lua` 的閘早就寫成「被重新對應時兩個 token 全放行」的保守版，註解裡留了
+「哪天實測確認過就可以收緊」的問號 —— **答案是不能收緊**，收緊會把 player 那半擋掉。

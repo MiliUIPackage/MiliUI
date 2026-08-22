@@ -5,12 +5,12 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-12T18:27:19.831Z
+  modified: 2026-08-22T13:40:33.299Z
 ---
 
 Coolinator（plusmouse / TheMouseNest）是第一個原生為 12.1 寫的插件，它的寫法是 secret values 的正解範本。GitHub: https://github.com/TheMouseNest/Coolinator
 
-**⚠ 原始碼已不在本機**（2026-08-13 確認：`AddOns/Coolinator/` 只剩空目錄樹，一個檔案都沒有，從未進過 git）。要翻原始碼走 GitHub（用 `wow-ui-source-lookup` 技能同款 WebFetch 手法）。**本機還在、可直接翻的 12.1-ready 範本**：Cell（本地改版）、Plumber、WarpDeplete、TinyTooltip-Remake，以及最小最好讀的 `BuffReminders/Display/AuraTracker.lua`。
+**⚠ 原始碼已不在本機**（2026-08-13 確認：`AddOns/Coolinator/` 只剩空目錄樹，一個檔案都沒有，從未進過 git）。要翻原始碼走 GitHub（用 `wow-ui-source-lookup` 技能同款 WebFetch 手法）。**本機還在、可直接翻的 12.1-ready 範本**：Cell（本地改版）、Plumber、WarpDeplete、MiliUI_Tooltip（自製，taint 圍堵範本），以及最小最好讀的 `BuffReminders/Display/AuraTracker.lua`。（TinyTooltip-Remake 2026-08-22 已從套組移除，別再翻本機的。）
 
 核心原則：**secret 不要落進 Lua 變數，從 API 直接接到 widget**。
 

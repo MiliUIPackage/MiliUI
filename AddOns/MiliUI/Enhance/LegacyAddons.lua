@@ -32,6 +32,12 @@ local REPLACED = {
         replacement      = "MiliUI_UnitFrames",
         replacementLabel = "米利頭像框架",
     },
+    {
+        label   = "TinyTooltip",
+        folders = { "TinyTooltip-Remake" },
+        replacement      = "MiliUI_Tooltip",
+        replacementLabel = "米利滑鼠提示",
+    },
 }
 
 -- 已從套組移除、沒有取代者 → 只提醒刪除

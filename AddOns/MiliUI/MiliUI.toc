@@ -46,7 +46,6 @@ Enhance\VersionCheck.lua
 Enhance\KeystoneAutoReport.lua
 Enhance\TinyInspectRemake_GearSlots.lua
 Enhance\TinyInspectRemake_TrackColors.lua
-Enhance\TinyTooltipRemake_FactionIcon.lua
 Enhance\GameplayCVars.lua
 Enhance\CharacterNotes.lua
 Enhance\DBM_PrivateAura.lua
