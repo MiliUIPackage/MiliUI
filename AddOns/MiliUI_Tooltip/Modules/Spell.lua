@@ -106,6 +106,8 @@ watcher:SetScript("OnEvent", function(_, _, _, down)
 end)
 
 local function ShowMountSource(tip, spellId)
+    -- 查表要明文（秘密數字不能當 table key）；戰鬥中查不了坐騎來源是正常的
+    spellId = S.PlainNumber(spellId)
     if not spellId or not ns.db.spell.showMountSource then return end
     LoadMounts()
     local mount = mounts[spellId]
@@ -121,14 +123,18 @@ end
 
 function Spell.ApplyAura(tip, state, args)
     state.isUnitTip = nil
+    -- ⚠ 不消毒：戰鬥中 tooltip 資料自帶的 spellId（args[2].intVal）是秘密數字，
+    -- 但「顯示」走 format 傳遞照樣印得出來（TinyTooltip 同法）；
+    -- 需要明文的（坐騎查表、圖示 ID）各自在下游把關
     local spellId
     if type(args) == "table" and type(args[2]) == "table" then
-        spellId = S.PlainNumber(args[2].intVal)
+        spellId = args[2].intVal
     end
     if not spellId and tip.GetSpell then
         local ok, _, sid = pcall(tip.GetSpell, tip)
-        if ok then spellId = S.PlainNumber(sid) end
+        if ok then spellId = sid end
     end
+    if type(spellId) ~= "number" then spellId = nil end
     state.lastSpellId = spellId
     ShowSpellIds(tip, spellId)
     ShowMountSource(tip, spellId)

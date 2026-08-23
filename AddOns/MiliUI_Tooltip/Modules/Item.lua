@@ -23,13 +23,15 @@ local function ParseHyperLink(link)
 end
 Item.ParseHyperLink = ParseHyperLink
 
--- 加一條「標籤: 值」行；FindLine 去重（同一次重建裡不會重複加）
+-- 加一條「標籤: 值」行；FindLine 去重（同一次重建裡不會重複加）。
+-- ⚠ value 可能是秘密數字（戰鬥中光環的 spellId）：不 tostring（會炸），
+-- 直接進 format 讓 C 端呈現——這正是 TinyTooltip 戰鬥中能顯示光環 ID 的原理
 local function AddIdLine(tip, label, value, noBlankLine)
     if not label or value == nil then return end
     if S.IsForbiddenObject(tip) then return end
     if Lines.Find(tip, label) then return end
     if not noBlankLine then tip:AddLine(" ") end
-    tip:AddLine(format("%s: |cffffffff%s|r", label, tostring(value)), 1, 0.82, 0)
+    tip:AddLine(format("%s: |cffffffff%s|r", label, value), 1, 0.82, 0)
 end
 Item.AddIdLine = AddIdLine
 
