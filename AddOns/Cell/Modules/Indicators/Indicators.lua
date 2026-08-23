@@ -787,10 +787,13 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     indicator:SetTexture(t["texture"])
                 end
                 -- update animation (style string wins; the boolean is the old spelling)
-                if type(t["animationStyle"]) == "string" then
-                    indicator:ShowAnimation(t["animationStyle"])
-                elseif type(t["showAnimation"]) == "boolean" then
-                    indicator:ShowAnimation(t["showAnimation"])
+                -- ⚠ guarded on the METHOD: only aura-icon indicators have ShowAnimation
+                if indicator.ShowAnimation then
+                    if type(t["animationStyle"]) == "string" then
+                        indicator:ShowAnimation(t["animationStyle"])
+                    elseif type(t["showAnimation"]) == "boolean" then
+                        indicator:ShowAnimation(t["showAnimation"])
+                    end
                 end
                 -- update duration
                 if type(t["showDuration"]) == "boolean" or type(t["showDuration"]) == "number" then
@@ -1108,10 +1111,12 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 indicator:ShowDuration(value["showDuration"])
             end
             -- update animation
-            if type(value["animationStyle"]) == "string" then
-                indicator:ShowAnimation(value["animationStyle"])
-            elseif type(value["showAnimation"]) == "boolean" then
-                indicator:ShowAnimation(value["showAnimation"])
+            if indicator.ShowAnimation then
+                if type(value["animationStyle"]) == "string" then
+                    indicator:ShowAnimation(value["animationStyle"])
+                elseif type(value["showAnimation"]) == "boolean" then
+                    indicator:ShowAnimation(value["showAnimation"])
+                end
             end
             -- update stack
             if type(value["showStack"]) ~= "nil" then

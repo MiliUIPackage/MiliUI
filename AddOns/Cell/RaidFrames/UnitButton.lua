@@ -371,10 +371,14 @@ local function HandleIndicators(b)
             indicator:SetIconStyle(t["iconStyle"])
         end
         -- update animation (style string wins; the boolean is the pre-12.1 spelling)
-        if type(t["animationStyle"]) == "string" then
-            indicator:ShowAnimation(t["animationStyle"])
-        elseif type(t["showAnimation"]) == "boolean" then
-            indicator:ShowAnimation(t["showAnimation"])
+        -- ⚠ guarded on the METHOD, not just on the key: only aura-icon indicators have
+        -- ShowAnimation, and a layout entry can carry the key without the widget
+        if indicator.ShowAnimation then
+            if type(t["animationStyle"]) == "string" then
+                indicator:ShowAnimation(t["animationStyle"])
+            elseif type(t["showAnimation"]) == "boolean" then
+                indicator:ShowAnimation(t["showAnimation"])
+            end
         end
         -- update duration
         if type(t["showDuration"]) == "boolean" or type(t["showDuration"]) == "number" then
@@ -1130,10 +1134,12 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     indicator:SetTexture(value["texture"])
                 end
                 -- update showAnimation
-                if type(value["animationStyle"]) == "string" then
-                    indicator:ShowAnimation(value["animationStyle"])
-                elseif type(value["showAnimation"]) == "boolean" then
-                    indicator:ShowAnimation(value["showAnimation"])
+                if indicator.ShowAnimation then
+                    if type(value["animationStyle"]) == "string" then
+                        indicator:ShowAnimation(value["animationStyle"])
+                    elseif type(value["showAnimation"]) == "boolean" then
+                        indicator:ShowAnimation(value["showAnimation"])
+                    end
                 end
                 -- update showDuration
                 if type(value["showDuration"]) ~= "nil" then

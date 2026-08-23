@@ -3707,10 +3707,24 @@ function F.Revise()
     --! need one because they rewrote existing values).
     --! Resolved from the old showAnimation boolean so nobody's frames change look on
     --! upgrade: an indicator that was animating keeps the sweep it already had.
+    --!
+    --! ⚠ ONLY the indicators that actually own the option. The first cut of this wrote the
+    --! key onto every entry in the layout, and the apply path then called ShowAnimation on
+    --! things like nameText, which has no such method -- "attempt to call a nil value" on
+    --! every unit button. The call sites are guarded now too, but a Name Text carrying an
+    --! animation style is still nonsense, so stale ones get cleared here.
+    local ANIMATED_INDICATORS = {
+        externalCooldowns = true, defensiveCooldowns = true, offensiveCooldowns = true,
+        allCooldowns = true, debuffs = true, raidDebuffs = true, crowdControls = true,
+    }
     for _, layout in pairs(CellDB["layouts"] or {}) do
         for _, i in pairs(layout["indicators"] or {}) do
-            if type(i.animationStyle) ~= "string" then
-                i.animationStyle = (i.showAnimation == false) and "none" or "clock"
+            if ANIMATED_INDICATORS[i.indicatorName] or i.type == "icon" or i.type == "icons" then
+                if type(i.animationStyle) ~= "string" then
+                    i.animationStyle = (i.showAnimation == false) and "none" or "clock"
+                end
+            elseif i.animationStyle ~= nil then
+                i.animationStyle = nil
             end
         end
     end
