@@ -123,29 +123,15 @@ end
 
 function Spell.ApplyAura(tip, state, data)
     state.isUnitTip = nil
-    -- ⚠ 不消毒：戰鬥中資料裡的 spellId 是秘密數字，但「顯示」走 format 傳遞
-    -- 照樣印得出來；需要明文的（坐騎查表、圖示 ID）各自在下游把關。
-    -- 資料源依序：args[2].intVal（舊制，12.1 已不帶）→ **data.id**
-    --（log 實證：12.1 光環的 spellId 在這，戰鬥中是秘密數字）→
-    -- lines[1].tooltipID → tip:GetSpell()
+    -- ⚠ 不消毒：戰鬥中 spellId 是秘密數字，但「顯示」走 format 傳遞照樣
+    -- 印得出來；需要明文的（坐騎查表、圖示 ID）各自在下游把關。
+    -- 12.1 的光環 spellId 就在 **tooltipData.id**（2026-08-23 三輪 log 實證；
+    -- 舊制的 args[2].intVal、lines[1].tooltipID、GetSpell() 都實證是死路，
+    -- 已刪——哪天暴雪再搬家，開 /mtip log 看 OnUnitAura 那行就知道搬去哪）
     local spellId
-    if type(data) == "table" then
-        if type(data.args) == "table" and type(data.args[2]) == "table" then
-            spellId = data.args[2].intVal
-        end
-        if spellId == nil and type(data.id) == "number" then
-            spellId = data.id
-        end
-        if spellId == nil and type(data.lines) == "table" and type(data.lines[1]) == "table" then
-            local tid = data.lines[1].tooltipID
-            if type(tid) == "number" then spellId = tid end
-        end
+    if type(data) == "table" and type(data.id) == "number" then
+        spellId = data.id
     end
-    if spellId == nil and tip.GetSpell then
-        local ok, _, sid = pcall(tip.GetSpell, tip)
-        if ok then spellId = sid end
-    end
-    if type(spellId) ~= "number" then spellId = nil end
     if ns.logEnabled then
         ns.Log("ApplyAura spellId=%s showSpellId=%s", ns.Describe(spellId), tostring(ns.db.spell.showSpellId))
     end
