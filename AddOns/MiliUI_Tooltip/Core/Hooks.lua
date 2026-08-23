@@ -85,6 +85,9 @@ end
 local function OnSpell(tip, data)
     local state = Gate(tip)
     if not state then return end
+    if ns.logEnabled then
+        ns.Log("OnSpell tip=%s data.id=%s", tip:GetName() or "?", ns.Describe(data and data.id))
+    end
     ns.Bar.Deactivate(tip)
     local spellId = data and S.PlainNumber(data.id)
     xpcall(ns.Spell.Apply, ns.ReportError, tip, state, spellId)
@@ -93,6 +96,14 @@ end
 local function OnUnitAura(tip, data)
     local state = Gate(tip)
     if not state then return end
+    if ns.logEnabled then
+        local iv
+        if data and type(data.args) == "table" and type(data.args[2]) == "table" then
+            iv = data.args[2].intVal
+        end
+        ns.Log("OnUnitAura tip=%s has_args=%s intVal=%s", tip:GetName() or "?",
+            tostring(data and data.args ~= nil), ns.Describe(iv))
+    end
     ns.Bar.Deactivate(tip)
     xpcall(ns.Spell.ApplyAura, ns.ReportError, tip, state, data and data.args)
 end

@@ -135,6 +135,9 @@ function Spell.ApplyAura(tip, state, args)
         if ok then spellId = sid end
     end
     if type(spellId) ~= "number" then spellId = nil end
+    if ns.logEnabled then
+        ns.Log("ApplyAura spellId=%s showSpellId=%s", ns.Describe(spellId), tostring(ns.db.spell.showSpellId))
+    end
     state.lastSpellId = spellId
     ShowSpellIds(tip, spellId)
     ShowMountSource(tip, spellId)
@@ -151,6 +154,9 @@ local function ApplyResolvedAura(tip, spellId)
     if not ns.db then return end
     local state = Skin.Get(tip)
     if not state or S.IsForbiddenObject(tip) then return end
+    if ns.logEnabled then
+        ns.Log("AuraSetter resolved=%s", ns.Describe(spellId))
+    end
     spellId = S.PlainNumber(spellId)
     if not spellId then return end
     state.lastSpellId = spellId
