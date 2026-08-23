@@ -32,7 +32,32 @@ metadata:
 
 **已驗證的 AuraButton API**（抄自 Coolinator `Display/AuraIconNext.lua`，正式出貨的 12.1 程式碼，不是猜的）：`SetIcon(texture)`、`SetApplicationCount(fontString)`、`SetDurationCooldown(cooldownFrame)`、`SetDurationText(fontString)`、`SetAuraBorder(texture, {style = Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset, showIcon = false})`、`SetMouseMotionEnabled`、`SetCollapsesLayout`、`SetIgnoringChildrenForBounds`。options table 長這樣：`{initializeFrame = function(auraButton) ... end, candidateFilters = {includeSpellIDs = {[id]=true}}}`。
 
-**倒數的三種呈現方式，都是「交出 widget 讓暴雪畫」**：`SetDurationText(fontString)` 數字、`SetDurationCooldown(cooldownFrame)` 掃描（Cooldown 一定要帶 `CooldownFrameTemplate`，少了 template 它不會動）、`SetDurationBar(statusBar)` 長條。三者共通的性質要先講清楚，免得又去想怎麼「讀秒數」：**插件端永遠拿不回剩餘時間**，交出去的 widget 會被蓋上 SecretAspect。所以「剩 5 秒變紅 / 播音效 / 到期 glow」這類條件式行為在路線 A 底下做不到，只能改用別的訊號（例如 `SPELL_AURA_APPLIED` 自己起算，但對延長與提前結束會失準）。三種都必須在 `initializeFrame` 視窗內掛好，bar 要建成 AuraButton 的子物件。本機用法見 `MiliUI/Fix/AuraContainerCore.lua`（`durationStyle` 在 bar/swipe 之間切換）。
+**倒數的三種呈現方式，都是「交出 widget 讓暴雪畫」**：`SetDurationText(fontString)` 數字、`SetDurationCooldown(cooldownFrame)` 掃描（Cooldown 一定要帶 `CooldownFrameTemplate`，少了 template 它不會動）、`SetDurationBar(statusBar)` 長條。三者共通的性質要先講清楚，免得又去想怎麼「讀秒數」：**插件端永遠拿不回剩餘時間**，交出去的 widget 會被蓋上 SecretAspect。所以「剩 5 秒變紅 / 播音效 / 到期 glow」這類條件式行為在路線 A 底下做不到，只能改用別的訊號（例如 `SPELL_AURA_APPLIED` 自己起算，但對延長與提前結束會失準）。三種都必須在 `initializeFrame` 視窗內掛好，bar 要建成 AuraButton 的子物件。
+
+**`SetDurationBar` 的完整簽章是 `SetDurationBar(statusBar, options)`**（wiki `INTRINSIC AuraButton`；
+`options` 是 `CustomAuraButtonDurationBarOptions`，暴雪沒公開欄位，也不必傳）。搭配
+`ClearDurationBar()` / `GetDurationBar()` 解綁。**要做「黑色遮罩由上往下蓋住圖示」（Cell 舊的
+`CELL_COOLDOWN_STYLE = "VERTICAL"`）就是靠這支**，配方是：
+
+```lua
+local bar = CreateFrame("StatusBar", nil, auraButton)   -- 一定是 AuraButton 的子物件
+bar:SetOrientation("VERTICAL")
+bar:SetReverseFill(true)                                -- ← 這個才是「由上往下」
+bar:SetStatusBarTexture(WHITE)
+bar:GetStatusBarTexture():SetVertexColor(0, 0, 0, 0.65) -- 白色整片會把圖示洗掉，很醜
+auraButton:SetDurationBar(bar)
+```
+
+⚠ **不要自己猜填充方向**。`SetReverseFill(true)` ＝ 遮罩由上往下長（＝已經過去的時間），
+是 2026-08 在還叫 `AuraContainerBridge.lua` 的版本實測出來的；沒有 API 可以問「暴雪是餵
+elapsed 還是 remaining」。要翻方向就是改這一行。自己拿 `StatusBar:SetTimerDuration` 驅動
+只在**引擎給的** DurationObject 上成立（`C_UnitAuras.GetAuraDuration` 拿得到，但它吃
+`auraInstanceID`，路線 A 下是秘密值 —— 所以容器路只能走 `SetDurationBar`）。
+
+本機用法：Cell `RaidFrames/AuraDisplay.lua` 的 `StyleButton`（`animationStyle` 在
+clock/vertical/none 之間切）。歷史版本在 `MiliUI/Fix/AuraContainerCore.lua`
+與 `Cell/RaidFrames/AuraContainerBridge.lua`（`durationStyle`），兩個檔案都已刪除，要看去 git 歷史
+（`git log --all -S SetDurationBar`）。
 
 ## 「續壓時圖示跳一下」做不到，但 pandemic 區域可以
 

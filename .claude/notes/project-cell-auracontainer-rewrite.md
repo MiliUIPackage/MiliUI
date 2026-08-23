@@ -35,7 +35,8 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
 
 ## 樣式規則（StyleButton）
 
-- 只有一種 icon 樣式（使用者定案）：Cooldown 蓋滿整顆 → 圖示在內縮子框架 level+2 蓋住中間 → 只露外圈環。**顏色反轉是被迫的不是風格**：`SetSwipeColor` 只吃字面 RGB、AuraButton 不告訴我們學派，所以顏色必須在靜態環上、swipe（灰/黑 + `SetReverse(true)`）是吃掉它的那個。
+- 只有一種 icon 幾何（使用者定案）：Cooldown 蓋滿整顆 → 圖示在內縮子框架 level+2 蓋住中間 → 只露外圈環。**顏色反轉是被迫的不是風格**：`SetSwipeColor` 只吃字面 RGB、AuraButton 不告訴我們學派，所以顏色必須在靜態環上、swipe（灰/黑 + `SetReverse(true)`）是吃掉它的那個。
+- **動畫有三種，每個指示器各自選**（2026-08-24 加，DB key `animationStyle`）：`clock`（外環時鐘掃描，＝原本唯一那種）、`vertical`（黑色遮罩由上往下蓋住圖示，走 `SetDurationBar`，配方見 [[wow-121-aura-containers]]）、`none`。遮罩在 `base+3`（圖示 `base+2` 之上、秒數 `base+6` 之下），**只蓋圖示不蓋外環**，驅散色才讀得到。`animationStyle` 不在 COSMETIC/LAYOUT_KEYS 裡 ⇒ 改它會重建，這是必要的（bind 只在 `initializeFrame` 有效），park 簽章含 `TableSig(config)` 所以兩種樣式不會互相領錯。舊版面由 Revise 冪等補寫（`showAnimation == false → none`，其餘 `clock`），升級不會改變任何人現有的畫面。
 - **環色三段規則**：有學派 → `CellDB.debuffTypeColor` 使用者調色盤；無學派且 HARMFUL → `debuffTypeColor["none"]`（Cell 可調項，預設 0.8/0/0）；無學派且 HELPFUL → 綠 `{0, 0.55, 0.15}`（刻意調暗，太亮會在小圖示上蓋過圖示本身）。`cfg.borderColor` 可覆寫後兩者。`ACC.GetNoDispelColor()` 回傳**共用表**，呼叫端只可讀不可留存。
 - ⚠ **兩層絕不能同色**：暴雪學派上色是 vertex colour，紅 tint 疊深綠底會相乘成近黑。職責分離 —— `dfBG`（BACKGROUND）自家 fallback 色恆亮；`dfDispelBorder`（BORDER）**純白**交給暴雪 tint、只在有學派時顯示。
 - 字體：依 `cfg.stackFont`/`cfg.durationFont` 套 Cell 字體表，倒數強制置中（對齊暴雪 `ApplyCountdownFont`，所以倒數字體選項沒有偏移欄位）。容器支援非正方形 `size`/`sizeH`（減傷 12×20）。
@@ -83,6 +84,27 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
       **全域 nil**，不會報錯——差點讓每個 overlay 容器都被當成 flow 存進 key。
     * 出事時的退路：`/run Cell.AuraDisplay.PARK_ENABLED=false` ＋ `/reload` 就回到舊行為。
       `/cab stats` 多了寄存/取回/寄存中，**第二次切回同一個版面該是 reuses 漲、builds 不漲**。
+
+## 預覽（設定面板）與遊戲內必須長一樣
+
+**預覽按鈕不建容器**（`IsPreviewButton` 在每個 attach 點擋掉），它保留舊的 icon 池 ——
+**在預覽按鈕上那個池就是預覽**。所以「預覽」＝ `Indicators/Base.lua` 的 BorderIcon／BarIcon，
+「遊戲內」＝ `AuraDisplay.StyleButton`，**兩份程式碼畫同一件事**，很容易漂掉。
+2026-08-24 一次修掉四個已經漂掉的：
+
+1. **`BorderIcon.ShowAnimation` 本來是 `function() end`** —— 動畫選項在預覽完全沒作用。
+2. **`BorderIcon_SetCooldown` 畫「彩色掃描 ＋ 藏起來的外框」**，跟同檔案的
+   `SetCooldownFromAura`、跟 `StyleButton` 剛好相反（那兩個是「彩色外框被黑色掃描吃掉」）。
+   已統一成後者 —— 順帶把仍走舊路的**群體控制**外觀也一起統一了。
+3. **無學派減益**：預覽用 `""` 查 `GetDebuffTypeColor` → 純黑；遊戲內是調色盤的 `"none"`
+   （預設暗紅，`ACC.GetNoDispelColor`）。預覽改用 `"none"` 當 key。
+4. **增益冷卻的預覽外框在綠／黃之間交替**（`_isPreviewPlayerCast`，暗示「我放的／別人放的」）。
+   12.1 來源是秘密值，容器一律 `BUFF_GREEN {0,0.55,0.15}` —— 預覽等於在承諾一個不存在的區別。已移除。
+
+**還沒對齊的一項**：自訂 `icon`/`icons` 指示器的預覽用的是 **BarIcon**（圖示外一圈 1px 彩色底、
+掃描蓋在圖示上），遊戲內是容器的環形。`vertical` 樣式下兩者幾乎一樣，`clock` 下看得出差別。
+要對齊就得讓 BarIcon 也有內縮 iconFrame —— 但那個 widget 同時被 QuickAssist／missingBuffs 用，
+**改了會讓 QuickAssist 的垂直遮罩跑到圖示底下（＝看不見）**，所以沒動。
 
 ## 診斷
 
