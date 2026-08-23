@@ -88,3 +88,9 @@ token」**（`SafeValue(state.unit)=="mouseover"` 明文比對）。
 false 早退，敵方整個套不到文法。**存在性判斷要 fail-open**：只有明文 false 才退、秘密照畫
 （文法全程秘密值安全）。UnitLines.Apply 與 Bar.RefreshInner 兩處同款。
 診斷靠 `/mtip log`／`/mtip logdump`（Init.lua 的 ns.Log 記錄器，秘密值只標型別）。
+
+**戰鬥中光環顯示法術 ID（2026-08-23 三輪 log 收斂）**：12.1 光環 tooltip 資料
+**不帶 `args`**（TinyTooltip 讀 `args[2].intVal` 是舊制）、`lines[1].tooltipID` 也是 nil，
+**spellId 在 `tooltipData.id`，戰鬥中是秘密數字**。顯示走 format 傳遞（AddIdLine 不可
+tostring，秘密值會炸）；要明文的（坐騎查表、圖示 ID 解析）下游各自把關，戰鬥中沒有
+那兩項是正常的。`C_UnitAuras` 的 setter 解析（AurasAreSecret 閘）只剩脫戰時的補充。
