@@ -62,6 +62,7 @@ Enhance\GameplayCVars.lua
 Enhance\CharacterNotes.lua
 Enhance\DBM_PrivateAura.lua
 Enhance\ItemUpgrade_PreviewIcon.lua
+Enhance\MplusAdventureGuide_Masque.lua
 Enhance\LegacyAddons.lua
 
 Fix\DeprecatedGlobals.lua
