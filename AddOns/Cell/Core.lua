@@ -295,15 +295,21 @@ function eventFrame:ADDON_LOADED(arg1)
             if type(k["left"]) ~= "string" then k["left"] = "" end
             if type(k["right"]) ~= "string" then k["right"] = "" end
             if type(k["middle"]) ~= "string" then k["middle"] = "" end
-            if type(k["alt"]) ~= "string" then k["alt"] = "A" end
-            if type(k["ctrl"]) ~= "string" then k["ctrl"] = "C" end
-            if type(k["shift"]) ~= "string" then k["shift"] = "S" end
-            if type(k["meta"]) ~= "string" then k["meta"] = "M" end
+            -- the trailing "+" is what separates the modifier from the key: "S+R" reads
+            -- as a combination, "SR" reads as one token
+            if type(k["alt"]) ~= "string" then k["alt"] = "A+" end
+            if type(k["ctrl"]) ~= "string" then k["ctrl"] = "C+" end
+            if type(k["shift"]) ~= "string" then k["shift"] = "S+" end
+            if type(k["meta"]) ~= "string" then k["meta"] = "M+" end
             -- where the keybind sits on the icon. Default: floating just above it, so it
             -- never covers the art and never fights the countdown at the bottom.
             if type(t["keyAnchor"]) ~= "string" then t["keyAnchor"] = "TOP" end
             if type(t["keyX"]) ~= "number" then t["keyX"] = 0 end
             if type(t["keyY"]) ~= "number" then t["keyY"] = 10 end
+            -- ⚠ a FIXED size, never derived from the icon size. The label's width depends
+            -- on how much the player wrote in it, so auto-fitting made the text jump
+            -- between icons; one number they control is more predictable than a clever one.
+            if type(t["keyFontSize"]) ~= "number" then t["keyFontSize"] = 12 end
             -- and where the cooldown number sits: centred, the way a cooldown normally
             -- reads. The keybind floats ABOVE the icon (keyY = 10) rather than on it, so
             -- the two never actually collide.

@@ -344,33 +344,27 @@ local function ApplyDurationText(icon, size)
     fs:SetFont(GameFontNormal:GetFont(), max(8, floor((size or db["size"]) * 0.4)), "OUTLINE")
 end
 
---! Shrink to fit instead of truncating. The label is clipped to the icon width, and a
---! binding cut off half way ("S" where it should say "SC4") is worse than a small one.
---! Rebuilt at every candidate size because the mouse glyph's dimensions live inside the
---! string.
-local KEY_FONT_MIN = 7
-
-local function ApplyKeyLabel(icon, size, fontSize)
-    if not CellDB["tools"]["clickCastingHints"]["showKeys"] then
+--! ⚠ One fixed font size for the whole bar, set by the player -- NOT fitted per icon.
+--! Auto-shrinking meant the size depended on how long that particular binding happened to
+--! be, so "S+R" and "R" ended up at different sizes side by side. The label is anchored by
+--! a single point and is free to be wider than its icon; a player who wants more text in
+--! there turns the size down.
+local function ApplyKeyLabel(icon)
+    local db = CellDB["tools"]["clickCastingHints"]
+    if not db["showKeys"] then
         icon.keyText:Hide()
         return
     end
     icon.keyText:Show()
 
-    local db = CellDB["tools"]["clickCastingHints"]
     local point = db["keyAnchor"]
     P.ClearPoints(icon.keyText)
     P.Point(icon.keyText, point, icon, point, db["keyX"], db["keyY"])
     icon.keyText:SetJustifyH(JustifyFor(point))
 
-    local maxWidth = size - 2 -- the 1px border on each side
-    local font = GameFontNormal:GetFont()
-
-    for s = max(fontSize, KEY_FONT_MIN), KEY_FONT_MIN, -1 do
-        icon.keyText:SetFont(font, s, "OUTLINE")
-        icon.keyText:SetText(BuildKeyLabel(icon.bindModifier or "", icon.bindKey or "", s))
-        if icon.keyText:GetStringWidth() <= maxWidth then return end
-    end
+    local fontSize = db["keyFontSize"]
+    icon.keyText:SetFont(GameFontNormal:GetFont(), fontSize, "OUTLINE")
+    icon.keyText:SetText(BuildKeyLabel(icon.bindModifier or "", icon.bindKey or "", fontSize))
 end
 
 -------------------------------------------------
@@ -540,8 +534,6 @@ Layout = function()
     local orientation = db["orientation"]
     local isHorizontal = orientation == "left-to-right" or orientation == "right-to-left"
 
-    local fontSize = max(8, floor(size * 0.42))
-
     local point, stepX, stepY, lineX, lineY
     if orientation == "left-to-right" then
         point = "TOPLEFT"
@@ -570,7 +562,7 @@ Layout = function()
         P.Size(icon, size, size)
         P.ClearPoints(icon)
         P.Point(icon, point, hintsFrame, point, pos * stepX + line * lineX, pos * stepY + line * lineY)
-        ApplyKeyLabel(icon, size, fontSize)
+        ApplyKeyLabel(icon)
         ApplyDurationText(icon, size)
     end
 
@@ -902,6 +894,7 @@ local function CreatePane()
     CreateAnchorDropdown("keyAnchor", L["Keybind Position"], spacingSlider, 0, -50)
     CreateValueBox("keyX", 55, "X", spacingSlider, 130, -50)
     CreateValueBox("keyY", 55, "Y", spacingSlider, 190, -50)
+    CreateValueBox("keyFontSize", 90, L["Font Size"], spacingSlider, 255, -50, 6, 32)
 
     CreateAnchorDropdown("durationAnchor", L["Duration Position"], spacingSlider, 0, -92)
     CreateValueBox("durationX", 55, "X", spacingSlider, 130, -92)
@@ -916,7 +909,7 @@ local function CreatePane()
         local eb = Cell.CreateEditBox(cchPane, width, 20)
         labelBoxes[key] = eb
         P.Point(eb, "TOPLEFT", anchor, "TOPLEFT", x, y)
-        eb:SetMaxLetters(5)
+        eb:SetMaxLetters(6) -- "Shift+" has to fit
         eb:SetScript("OnTextChanged", function(self, userChanged)
             if not userChanged then return end
             CellDB["tools"]["clickCastingHints"]["keyLabels"][key] = self:GetText()

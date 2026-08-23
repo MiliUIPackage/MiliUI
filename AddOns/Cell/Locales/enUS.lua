@@ -93,6 +93,7 @@ select(2, ...).L = setmetatable({
     ["Show Keybind"] = "Show keybind",
     ["Duration Threshold"] = "Show under (s)",
     ["Keybind Position"] = "Keybind position",
+    ["Font Size"] = "Font size",
     ["Duration Position"] = "Duration position",
     ["Left Button"] = "Left",
     ["Right Button"] = "Right",
