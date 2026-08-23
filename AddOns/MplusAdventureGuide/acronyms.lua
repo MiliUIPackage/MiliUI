@@ -44,6 +44,15 @@ local mapToAcronym = {
     [161] = "SKY",
     [556] = "POS",
     [558] = "MT",
+    
+    -- Noon season 2
+    [585] = "VS",
+    [588] = "AOF",
+    [586] = "DEN",
+    [249] = "KR",
+    [587] = "MR",
+    [250] = "TOS",
+    [584] = "BV",
 }
 
 function addon:initAcronyms()

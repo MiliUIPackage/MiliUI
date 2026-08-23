@@ -13,8 +13,8 @@ function addon:initHouseDropdownFactionIcon()
     if not addon.db.profile.houseDropdownFactionIcon then return end
     local houseInfoList
     
-    local ddFactionIcon = HousingDashboardFrame.HouseInfoContent.HouseDropdown:CreateTexture(nil, "OVERLAY")
-    ddFactionIcon:SetPoint("RIGHT", HousingDashboardFrame.HouseInfoContent.HouseDropdown, "RIGHT", -25, 0)
+    local ddFactionIcon = HousingDashboardFrame.HouseDropdown.Dropdown:CreateTexture(nil, "OVERLAY")
+    ddFactionIcon:SetPoint("RIGHT", HousingDashboardFrame.HouseDropdown.Dropdown, "RIGHT", -25, 0)
     ddFactionIcon:SetSize(18, 18)
     
     local function updateDDFactionIcon()
@@ -29,16 +29,16 @@ function addon:initHouseDropdownFactionIcon()
         end
     end
     
-    hooksecurefunc(HousingDashboardFrame.HouseInfoContent, "OnHouseListUpdated", function(self, list)
+    hooksecurefunc(HousingDashboardFrame.HouseDropdown, "OnHouseListUpdated", function(self, list)
         houseInfoList = list
         updateDDFactionIcon()
     end)
     
-    hooksecurefunc(HousingDashboardFrame.HouseInfoContent.HouseDropdown, "OpenMenu", function()
+    hooksecurefunc(HousingDashboardFrame.HouseDropdown.Dropdown, "OpenMenu", function()
         if not houseInfoList then return end
-        if not HousingDashboardFrame.HouseInfoContent.HouseDropdown.menu then return end
+        if not HousingDashboardFrame.HouseDropdown.Dropdown.menu then return end
         
-        for houseInfoID, row in ipairs(HousingDashboardFrame.HouseInfoContent.HouseDropdown.menu:GetLayoutChildren()) do
+        for houseInfoID, row in ipairs(HousingDashboardFrame.HouseDropdown.Dropdown.menu:GetLayoutChildren()) do
             local houseInfo = houseInfoList[houseInfoID];
             if not row.MPAGFactionIcon then
                 row.MPAGFactionIcon = row:AttachTexture(nil, "OVERLAY")
@@ -54,5 +54,5 @@ function addon:initHouseDropdownFactionIcon()
         end
     end)
     
-    hooksecurefunc(HousingDashboardFrame.HouseInfoContent.HouseDropdown, "onMenuClosedCallback", updateDDFactionIcon)
+    hooksecurefunc(HousingDashboardFrame.HouseDropdown.Dropdown, "onMenuClosedCallback", updateDDFactionIcon)
 end

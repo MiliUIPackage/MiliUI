@@ -275,6 +275,42 @@ local db = {
         primarySpell = 1254572,
         alternateSpells = {},
     },
+    
+    -- Midnight season 2
+    [585] = { -- Voidscar
+        primarySpell = 1286804,
+        alternateSpells = {
+            1254563, -- Nexus Point
+        },
+    },
+    [588] = { -- Altar of Fangs
+        primarySpell = 1286812,
+        alternateSpells = {},
+    },
+    [586] = { -- Den of Nalorakk
+        primarySpell = 1286807,
+        alternateSpells = {
+            1254559, -- Maisara Caverns
+        },
+    },
+    [249] = { -- King's Rest
+        primarySpell = 1286831,
+        alternateSpells = {
+            424187, -- Atal'dazar
+        },
+    },
+    [587] = { -- Murder Row
+        primarySpell = 1286809,
+        alternateSpells = {},
+    },
+    [250] = { -- Temple of Sethraliss
+        primarySpell = 1286828,
+        alternateSpells = {},
+    },
+    [584] = { -- The Blinding Vale
+        primarySpell = 1286801,
+        alternateSpells = {},
+    },
 }
 
 local loaded = false
