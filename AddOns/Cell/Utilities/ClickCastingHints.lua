@@ -194,15 +194,12 @@ end)
 --! bindKey comes from Cell.CreateBindingButton: mouse buttons are "Left" /
 --! "Right" / "Middle" / "ButtonN", the wheel is "ScrollUp" / "ScrollDown" and
 --! everything else is a raw WoW key name ("F", "1", "F1", "NUMPAD1", "SPACE").
---! Mouse "Left" and arrow key "LEFT" only differ in case, so the table below
---! must stay case-sensitive.
+--!
+--! ⚠ Mouse buttons are NOT in this table: they get a glyph (see MOUSE_GLYPH). A letter
+--! cannot tell them apart from the keyboard -- "R" was both the right mouse button and
+--! the R key -- and spelling them out is both too long for a 30px icon and a
+--! translation problem. A picture is neither.
 local KEY_ABBR = {
-    ["Left"] = "L",
-    ["Right"] = "R",
-    ["Middle"] = "M",
-    ["ScrollUp"] = "WU",
-    ["ScrollDown"] = "WD",
-
     ["SPACE"] = "SP",
     ["TAB"] = "TAB",
     ["ESCAPE"] = "ESC",
@@ -233,18 +230,60 @@ local function AbbrevKey(key)
     return key
 end
 
---! Modifiers are greyed so the key itself still reads at 24px.
-local function GetKeyDisplay(modifier, key)
+--! One glyph per mouse button, drawn by .claude/scripts/cell-mouse-icons.py -- change
+--! the script and re-run, never the PNGs. The wheel and the side buttons reuse a glyph
+--! plus one character, because four more silhouettes would be indistinguishable at this
+--! size. [2] is that character.
+local MOUSE_MEDIA = "Interface\\AddOns\\Cell\\Media\\Icons\\"
+--! ⚠ the ".png" is required. Extensions are optional for BLP/TGA but not for PNG.
+local MOUSE_GLYPH = {
+    ["Left"]       = {MOUSE_MEDIA .. "mouse-left.png"},
+    ["Right"]      = {MOUSE_MEDIA .. "mouse-right.png"},
+    ["Middle"]     = {MOUSE_MEDIA .. "mouse-middle.png"},
+    ["ScrollUp"]   = {MOUSE_MEDIA .. "mouse-middle.png", "↑"},
+    ["ScrollDown"] = {MOUSE_MEDIA .. "mouse-middle.png", "↓"},
+}
+
+--! Everything is plain white with the font's outline -- no colour coding. The modifiers
+--! used to be grey to keep them out of the way, which just made "S" and "C" hard to read
+--! at all against a bright spell icon.
+local function BuildKeyLabel(modifier, key, fontSize)
     local mods = ""
     if strfind(modifier, "alt") then mods = mods .. "A" end
     if strfind(modifier, "ctrl") then mods = mods .. "C" end
     if strfind(modifier, "shift") then mods = mods .. "S" end
     if strfind(modifier, "meta") then mods = mods .. "M" end
 
-    if mods == "" then
-        return AbbrevKey(key)
+    local glyph = MOUSE_GLYPH[key]
+    if not glyph then
+        local n = strmatch(key, "^Button(%d+)$")
+        if n then glyph = {MOUSE_MEDIA .. "mouse-extra.png", n} end
     end
-    return "|cff909090" .. mods .. "|r" .. AbbrevKey(key)
+
+    if glyph then
+        -- square: the PNG is square with the silhouette centred in it
+        local h = fontSize + 4
+        return mods .. "|T" .. glyph[1] .. ":" .. h .. ":" .. h .. "|t" .. (glyph[2] or "")
+    end
+
+    return mods .. AbbrevKey(key)
+end
+
+--! Shrink to fit instead of truncating. The label is clipped to the icon width, and a
+--! binding cut off half way ("S" where it should say "SC4") is worse than a small one.
+--! Rebuilt at every candidate size because the mouse glyph's dimensions live inside the
+--! string.
+local KEY_FONT_MIN = 7
+
+local function ApplyKeyLabel(icon, size, fontSize)
+    local maxWidth = size - 2 -- the 1px border on each side
+    local font = GameFontNormal:GetFont()
+
+    for s = max(fontSize, KEY_FONT_MIN), KEY_FONT_MIN, -1 do
+        icon.keyText:SetFont(font, s, "OUTLINE")
+        icon.keyText:SetText(BuildKeyLabel(icon.bindModifier or "", icon.bindKey or "", s))
+        if icon.keyText:GetStringWidth() <= maxWidth then return end
+    end
 end
 
 -------------------------------------------------
@@ -280,6 +319,7 @@ local function CreateHintIcon()
 
     icon.keyText = icon.overlay:CreateFontString(nil, "OVERLAY")
     icon.keyText:SetFont(GameFontNormal:GetFont(), 10, "OUTLINE") -- resized in Layout()
+    icon.keyText:SetTextColor(1, 1, 1, 1)
     icon.keyText:SetJustifyH("RIGHT")
     icon.keyText:SetWordWrap(false)
     icon.keyText:SetShadowColor(0, 0, 0, 1)
@@ -352,7 +392,11 @@ local function CollectBindings()
                 tinsert(t, {
                     spellId = spellId,
                     texture = texture,
-                    key = GetKeyDisplay(modifier, bindKey),
+                    --! raw, not a finished string: the label embeds a mouse glyph whose
+                    --! size depends on the font, and the font depends on the icon size --
+                    --! so it can only be built once Layout() knows how big the icon is.
+                    modifier = modifier,
+                    key = bindKey,
                 })
             end
         end
@@ -372,7 +416,7 @@ local function Build()
         local icon = icons[i]
         icon.spellId = info.spellId
         icon.tex:SetTexture(info.texture)
-        icon.keyText:SetText(info.key)
+        icon.bindModifier, icon.bindKey = info.modifier, info.key
         ArmCooldown(icon)
         icon:Show()
     end
@@ -425,7 +469,7 @@ Layout = function()
         P.Size(icon, size, size)
         P.ClearPoints(icon)
         P.Point(icon, point, hintsFrame, point, pos * stepX + line * lineX, pos * stepY + line * lineY)
-        icon.keyText:SetFont(GameFontNormal:GetFont(), fontSize, "OUTLINE")
+        ApplyKeyLabel(icon, size, fontSize)
     end
 
     local lines = shown == 0 and 0 or ceil(shown / perLine)

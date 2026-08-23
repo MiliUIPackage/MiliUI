@@ -1039,18 +1039,33 @@ local function BarIcon_ShowAnimation(frame, style)
 
     local base = frame:GetFrameLevel()
 
-    if style == "border" then
-        Shared_SetCooldownStyle(frame, "CLOCK")
-        frame.cooldown:ClearAllPoints()
-        frame.cooldown:SetAllPoints(frame)  -- the border too, not just the inset icon
+    if style == "vertical" then
+        -- the mask belongs OVER the icon
+        if frame.iconFrame then frame.iconFrame:SetFrameLevel(base) end
+        Shared_SetCooldownStyle(frame, "VERTICAL")
         frame.cooldown:SetFrameLevel(base + 1)
+        frame.cooldown:Show()
+        return
+    end
+
+    --! ⚠ Both remaining styles reuse the CLOCK widget, so Shared_SetCooldownStyle
+    --! early-returns when switching BETWEEN them -- every difference has to be re-applied
+    --! here by hand, or "clock" would keep the border geometry it inherited.
+    --! P.ClearPoints, not ClearAllPoints: it also empties frame.points, so a later
+    --! P.Repoint (UpdatePixelPerfect) cannot drag the widget back to its creation anchors.
+    Shared_SetCooldownStyle(frame, "CLOCK")
+    P.ClearPoints(frame.cooldown)
+    frame.cooldown:SetFrameLevel(base + 1)
+
+    if style == "border" then
+        frame.cooldown:SetAllPoints(frame) -- the backdrop border too, not just the icon
         frame.cooldown:SetSwipeColor(0, 0, 0, 1)
         BarIcon_EnsureIconFrame(frame):SetFrameLevel(base + 2)
-    else
-        -- the sweep/mask belongs OVER the icon again
+    else -- clock: back to the inset sweep, over the icon
+        P.Point(frame.cooldown, "TOPLEFT", frame, CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+        P.Point(frame.cooldown, "BOTTOMRIGHT", frame, -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+        frame.cooldown:SetSwipeColor(0, 0, 0, 0.77)
         if frame.iconFrame then frame.iconFrame:SetFrameLevel(base) end
-        Shared_SetCooldownStyle(frame, style == "vertical" and "VERTICAL" or "CLOCK")
-        frame.cooldown:SetFrameLevel(base + 1)
     end
 
     frame.cooldown:Show()

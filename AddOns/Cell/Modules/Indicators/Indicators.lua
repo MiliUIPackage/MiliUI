@@ -137,16 +137,30 @@ end
 --! school, and buffs have none.
 local BUFF_RING_COLOR = {0, 0.55, 0.15} -- keep in sync with AuraDisplay's BUFF_GREEN
 
-local function SetOnUpdate(indicator, type, icon, stack, extra)
+--! ⚠ the parameter is debuffType, NOT `type`: it used to shadow the Lua builtin, which
+--! made every type() check inside this function silently impossible.
+local function SetOnUpdate(indicator, debuffType, icon, stack, extra, ringColor)
     indicator.preview = indicator.preview or CreateFrame("Frame", nil, indicator)
     local function doPreview()
-        indicator:SetCooldown(GetTime(), 13, type, icon, stack or 0, false, extra)
+        indicator:SetCooldown(GetTime(), 13, debuffType, icon, stack or 0, false, extra)
+
         --! 12.1 cannot tell "cast by me" from "cast by someone else" (the source is
         --! secret), so the container paints every buff ring the same green. The preview
         --! used to alternate green/yellow, promising a distinction the frames never make.
-        if not type and indicator.border then
-            indicator.border:SetColorTexture(BUFF_RING_COLOR[1], BUFF_RING_COLOR[2], BUFF_RING_COLOR[3])
-            indicator.border:Show()
+        if not debuffType then
+            local c = ringColor or BUFF_RING_COLOR
+            if indicator.border then
+                -- BorderIcon: the ring is a texture
+                indicator.border:SetColorTexture(c[1], c[2], c[3])
+                indicator.border:Show()
+            elseif ringColor and indicator.SetBackdropColor then
+                --! BarIcon: its "ring" is the frame BACKDROP, and SetCooldown paints that
+                --! black whenever there is no dispel school -- i.e. for every buff. So a
+                --! custom icon indicator previewed a black border with a black sweep over
+                --! it: the border countdown was there, just invisible. In game the
+                --! container paints the same ring BUFF_GREEN.
+                indicator:SetBackdropColor(c[1], c[2], c[3], 1)
+            end
         end
     end
     indicator.preview:SetScript("OnUpdate", function(self, elapsed)
@@ -579,11 +593,20 @@ local function InitIndicator(indicatorName)
             indicator[i]:SetCooldown(0, 0, nil, buffs[i], 0)
         end
     elseif string.find(indicatorName, "indicator") then
+        --! Only the icon types get a ring colour: they are the ones the container draws
+        --! as ring + icon. Leaving it nil keeps every effect type exactly as it was.
+        local cfgs = indicator.configs
+        local ringColor
+        if cfgs and (cfgs["type"] == "icon" or cfgs["type"] == "icons") then
+            local c = cfgs["color"]
+            ringColor = (type(c) == "table" and type(c[1]) == "number") and c or BUFF_RING_COLOR
+        end
+
         if indicator.indicatorType == "icons" then
             -- pool-driven: buff icon indicators are AuraContainer-backed and their legacy
             -- pool is discarded on attach, so this loop no-ops for them
             for i = 1, #indicator do
-                SetOnUpdate(indicator[i], nil, 134400, i)
+                SetOnUpdate(indicator[i], nil, 134400, i, nil, ringColor)
             end
         elseif indicator.indicatorType == "bars" or indicator.indicatorType == "blocks" then
             local colors = {1, 0.26667, 0.4}
@@ -629,7 +652,7 @@ local function InitIndicator(indicatorName)
             local color = {1, 0.26667, 0.4}
             SetOnUpdate(indicator, nil, 134400, 0, color)
         else
-            SetOnUpdate(indicator, nil, 134400, 5)
+            SetOnUpdate(indicator, nil, 134400, 5, nil, ringColor)
         end
     end
     indicator.init = true
