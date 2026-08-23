@@ -304,10 +304,12 @@ function eventFrame:ADDON_LOADED(arg1)
             if type(t["keyAnchor"]) ~= "string" then t["keyAnchor"] = "TOP" end
             if type(t["keyX"]) ~= "number" then t["keyX"] = 0 end
             if type(t["keyY"]) ~= "number" then t["keyY"] = 10 end
-            -- and where the cooldown number sits. Bottom, because the top is taken.
-            if type(t["durationAnchor"]) ~= "string" then t["durationAnchor"] = "BOTTOM" end
+            -- and where the cooldown number sits: centred, the way a cooldown normally
+            -- reads. The keybind floats ABOVE the icon (keyY = 10) rather than on it, so
+            -- the two never actually collide.
+            if type(t["durationAnchor"]) ~= "string" then t["durationAnchor"] = "CENTER" end
             if type(t["durationX"]) ~= "number" then t["durationX"] = 0 end
-            if type(t["durationY"]) ~= "number" then t["durationY"] = 1 end
+            if type(t["durationY"]) ~= "number" then t["durationY"] = 0 end
             -- only show the number once the cooldown is under this many seconds; 0 = always
             if type(t["durationThreshold"]) ~= "number" then t["durationThreshold"] = 60 end
         end
