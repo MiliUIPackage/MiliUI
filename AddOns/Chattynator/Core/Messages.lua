@@ -1192,8 +1192,7 @@ function addonTable.MessagesMonitorMixin:MessageEventHandler(event, ...)
     local message = string.format(arg1, string.format("|Hplayer:%s|h%s|h", arg2, playerWrapper:format(coloredName)));
     self:AddMessage(message, info.r, info.g, info.b, info.id);
   elseif (type == "PING") then
-    local outMsg = arg1;
-    self:AddMessage(outMsg, info.r, info.g, info.b, info.id);
+    self:AddMessage(string.format('%s: %s', coloredName, arg1), info.r, info.g, info.b, info.id);
   elseif ( type == "IGNORED" ) then
     self:AddMessage(string.format(CHAT_IGNORED, arg2), info.r, info.g, info.b, info.id);
   elseif ( type == "FILTERED" ) then
