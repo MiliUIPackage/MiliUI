@@ -11,10 +11,14 @@
 --   locked   true = 不給停用（目前只有套組本體：關了它這個視窗就不存在了）
 --   desc     覆蓋說明文字；省略就用 TOC 的 Notes（客戶端自動選 zhTW）
 --   menuKey  自製插件用：從 MiliUI_MenuEntries 找同 key 的項目來開設定
---   slash    第三方用：斜線指令。開啟前會先查 hash_SlashCmdList 確認
---            真的有註冊，沒有就不長按鈕——寫錯頂多按鈕不出現，不會炸
+--   slash    第三方用：斜線指令，可帶參數（例如 "/cell opt"）。點擊時掃
+--            SlashCmdList 的 token ＋ SLASH_<token>N 全域確認真的有註冊
+--            （不查 hash_SlashCmdList，那只是「玩家輸入過」的快取）——
+--            寫錯頂多退到分類搜尋，不會炸
 --   category 沒有指令的插件用：暴雪 Settings 分類的註冊名稱（要跟該插件
 --            RegisterCanvasLayoutCategory 的第二參數一字不差）
+--   settings true = 沒有指令、分類名也不好寫死，但確定有註冊 Settings 分類：
+--            點擊時拿標題／資料夾名去比對分類清單，找到就跳進暴雪設定頁
 --
 -- 沒列在這裡的已安裝插件會自動補列，名稱／說明／分組都取自它的 TOC。
 ------------------------------------------------------------
@@ -36,7 +40,7 @@ ns.AddonRoster = {
 
         -- ===== 介面與外觀 =====
         { key = "Ayije_CDM", folders = { "Ayije_CDM", "Ayije_CDM_Options" }, slash = "/cdm" },
-        { key = "Cell", folders = { "Cell" }, slash = "/cell" },
+        { key = "Cell", folders = { "Cell" }, slash = "/cell opt" },
         { key = "Platynator", folders = { "Platynator" }, slash = "/platy" },
         { key = "Chattynator", folders = { "Chattynator" }, slash = "/chattynator" },
         { key = "Leatrix_Plus", folders = { "Leatrix_Plus" }, slash = "/ltp" },
@@ -48,22 +52,25 @@ ns.AddonRoster = {
         { key = "tullaRange", folders = { "tullaRange", "tullaRange_Config" }, category = "tullaRange" },
         { key = "Falcon", folders = { "Falcon" }, slash = "/falcon" },
         { key = "Plumber", folders = { "Plumber" }, category = "Plumber" },
-        { key = "EasyExperienceBar", folders = { "EasyExperienceBar" } },
+        { key = "EasyExperienceBar", folders = { "EasyExperienceBar" }, settings = true },
 
         -- ===== 戰鬥與副本 =====
-        { key = "MRT", folders = { "MRT" }, slash = "/mrt" },
+        -- 沒有 /mrt：它註冊的是 /exrt、/rt、/raidtools、/methodraidtools（core.lua:847）
+        { key = "MRT", folders = { "MRT" }, slash = "/exrt" },
         { key = "BuffReminders", folders = { "BuffReminders" }, slash = "/br" },
         { key = "DamageMeterTools", folders = { "DamageMeterTools" }, slash = "/dmt" },
         { key = "WarpDeplete", folders = { "WarpDeplete" }, slash = "/warp" },
         { key = "DiGuaTimelineAudioHelper", folders = { "DiGuaTimelineAudioHelper" }, slash = "/dg" },
-        { key = "VoidChimes", folders = { "VoidChimes" }, slash = "/vc" },
+        { key = "VoidChimes", folders = { "VoidChimes" }, slash = "/vc settings" },
         { key = "PremadeGroupsFilter", folders = { "PremadeGroupsFilter" }, slash = "/pgf" },
         { key = "RaiderIO",
           folders = { "RaiderIO", "RaiderIO_DB_TW_M", "RaiderIO_DB_TW_R", "RaiderIO_DB_TW_F",
                       "RaiderIO_DB_CN_M", "RaiderIO_DB_CN_R", "RaiderIO_DB_CN_F" },
           slash = "/raiderio",
           desc = "顯示玩家的 M+ 與團本經歷評分。這一筆連同台服／中國服資料庫一起開關。" },
-        { key = "BlockMessageTeamGuard", folders = { "BlockMessageTeamGuard" }, slash = "/bsc" },
+        -- 刻意不給 slash：它的 /BSC 呼叫 Settings.OpenToCategory("廣告守衛")，
+        -- 傳名字字串在新版 API 是靜默失敗（要數字 ID）。走分類搜尋反而開得起來。
+        { key = "BlockMessageTeamGuard", folders = { "BlockMessageTeamGuard" }, category = "廣告守衛" },
 
         -- ===== 物品與商業 =====
         { key = "Baganator", folders = { "Baganator", "Syndicator" }, slash = "/bgr",
@@ -73,7 +80,7 @@ ns.AddonRoster = {
         { key = "AppearanceTooltip", folders = { "AppearanceTooltip" }, slash = "/aptip" },
         { key = "TinyInspect-Remake", folders = { "TinyInspect-Remake" }, slash = "/ti" },
         { key = "KeystoneLoot", folders = { "KeystoneLoot" }, slash = "/ksl" },
-        { key = "Krowi_ExtendedVendorUI", folders = { "Krowi_ExtendedVendorUI" } },
+        { key = "Krowi_ExtendedVendorUI", folders = { "Krowi_ExtendedVendorUI" }, settings = true },
 
         -- ===== 地圖與導覽 =====
         { key = "HandyNotes",
@@ -85,8 +92,8 @@ ns.AddonRoster = {
         { key = "Mapster", folders = { "Mapster" }, slash = "/mapster" },
         { key = "TeleportMenu", folders = { "TeleportMenu" }, slash = "/tpm" },
         { key = "MBB", folders = { "MBB" }, slash = "/mbb" },
-        { key = "ParagonReputation", folders = { "ParagonReputation" } },
-        { key = "MplusAdventureGuide", folders = { "MplusAdventureGuide" } },
+        { key = "ParagonReputation", folders = { "ParagonReputation" }, settings = true },
+        { key = "MplusAdventureGuide", folders = { "MplusAdventureGuide" }, settings = true },
 
         -- ===== 工具與其他 =====
         { key = "BugSack", folders = { "BugSack", "!BugGrabber" }, slash = "/bugsack",

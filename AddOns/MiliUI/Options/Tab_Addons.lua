@@ -60,6 +60,10 @@ local function EntryTitle(entry)
     return EntryMeta(entry, "Title") or entry.folders[1]
 end
 
+local function StripCodes(s)
+    return (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+end
+
 local function EntryCPU(entry)
     if not (C_AddOnProfiler and C_AddOnProfiler.GetAddOnMetric
             and Enum.AddOnProfilerMetric and Enum.AddOnProfilerMetric.RecentAverageTime) then
@@ -75,8 +79,70 @@ end
 
 ------------------------------------------------------------
 -- 開啟該插件設定的路由：自製走 MiliUI_MenuEntries、第三方走斜線指令、
--- 都沒有就試暴雪 Settings 分類。解析不到就回 nil（按鈕不長出來）。
+-- 再退到暴雪 Settings 分類（永遠會試）。解析不到就回 nil。
 ------------------------------------------------------------
+
+-- 通用的分類搜尋：名冊指定名 → 剝掉色碼與「[標籤]」的 TOC 標題 → 資料夾名，
+-- 逐一比對已註冊的 Settings 分類。比對前先正規化（剝色碼、去空白標點、轉小寫），
+-- 「PremadeGroupsFilter」才對得上註冊名「Premade Groups Filter」。
+-- 再借 AddonNames 的對照表反查：ParagonReputation 註冊的分類名是「聲望」，
+-- 玩家看到的「巔峰聲望」是那張表改的——比對「改名後的顯示名」就能命中。
+local function Norm(s)
+    return (StripCodes(s or ""):gsub("[%s%p]", ""):lower())
+end
+
+------------------------------------------------------------
+-- 指令 → 處理函式
+--
+-- 反向掃 _G 找「值等於這個指令的 SLASH_* 全域」，再從鍵名取出 token 去
+-- SlashCmdList 拿處理函式。
+--
+-- ⚠ 不要反過來做（拿 token 去猜 SLASH_<token>N 全域）：那要求 token 大小寫
+-- 與全域名一字不差、索引還得從 1 連續，MRT（token mrtSlash、指令排到 6）
+-- 這種就抓不到。也不要查 hash_SlashCmdList——那只是「玩家輸入過」的快取。
+-- 每次呼叫重掃：插件可能晚註冊（Ace 系、LoD），快取會讓晚到的永遠找不到。
+------------------------------------------------------------
+function ns.FindSlashHandler(cmd)
+    if type(cmd) ~= "string" then return nil end
+    cmd = string.lower(cmd)
+    for k, v in pairs(_G) do
+        if type(k) == "string" and type(v) == "string" and string.lower(v) == cmd then
+            local token = k:match("^SLASH_(.+)%d+$")
+            local fn = token and SlashCmdList[token]
+            if type(fn) == "function" then return fn end
+        end
+    end
+end
+
+local function FindSettingsCategory(entry)
+    if not (Settings and SettingsPanel and SettingsPanel.GetAllCategories) then return nil end
+    local ok, cats = pcall(SettingsPanel.GetAllCategories, SettingsPanel)
+    if not ok or type(cats) ~= "table" then return nil end
+
+    local candidates = {}
+    if entry.category then candidates[Norm(entry.category)] = true end
+    local title = StripCodes(EntryTitle(entry))
+    candidates[Norm(title)] = true
+    local bare = title:match("^%[.-%]%s*(.+)$")
+    if bare then candidates[Norm(bare)] = true end
+    candidates[Norm(entry.folders[1])] = true
+    candidates[""] = nil   -- 正規化後的空字串不當候選
+
+    local renames = MiliUI and MiliUI.AddonListNames   -- AddonNames.lua 的對照表（僅 zhTW 有）
+    for _, c in ipairs(cats) do
+        if c.GetName then
+            local okName, n = pcall(c.GetName, c)
+            if okName and n then
+                local plain = StripCodes(n)
+                if candidates[Norm(plain)]
+                        or (renames and renames[plain] and candidates[Norm(renames[plain])]) then
+                    return c
+                end
+            end
+        end
+    end
+end
+
 local function ResolveOpen(entry)
     if entry.menuKey and MiliUI_MenuEntries then
         for _, e in ipairs(MiliUI_MenuEntries) do
@@ -85,29 +151,49 @@ local function ResolveOpen(entry)
             end
         end
     end
-    -- 指令先查 hash_SlashCmdList 確認真的有註冊——插件被停用（沒載入）時
-    -- 指令不存在，這裡就自然解析失敗，不會出現一顆按了沒反應的按鈕
+    -- 指令可以帶參數（例如 "/cell opt"）：查表用第一個字、其餘傳給處理器
     if entry.slash then
-        local hash = _G.hash_SlashCmdList
-        local fn = hash and hash[string.upper(entry.slash)]
-        if type(fn) == "function" then
-            return function() pcall(fn, "") end   -- 處理器簽章是 (msg, editBox)，絕大多數不碰第二參數
+        local cmd, args = entry.slash:match("^(%S+)%s*(.-)$")
+        local fn = ns.FindSlashHandler(cmd)
+        if fn then
+            -- 簽章是 (msg, editBox)，絕大多數不碰第二參數
+            return function() pcall(fn, args or "") end
         end
     end
-    if entry.category and Settings and SettingsPanel and SettingsPanel.GetAllCategories then
-        local ok, cats = pcall(SettingsPanel.GetAllCategories, SettingsPanel)
-        if ok and type(cats) == "table" then
-            for _, c in ipairs(cats) do
-                if c.GetName and c:GetName() == entry.category then
-                    return function()
-                        local id = c.GetID and c:GetID()
-                        pcall(Settings.OpenToCategory, id or c)
-                    end
-                end
-            end
+    local c = FindSettingsCategory(entry)
+    if c then
+        return function()
+            local id = c.GetID and c:GetID()
+            pcall(Settings.OpenToCategory, id or c)
         end
     end
     return nil
+end
+
+-- 按下「開啟設定」那一刻才解析入口：LoD 設定模組（如 tullaRange_Config）
+-- 還沒載的話先拉起來重試，真的解析不到就講原因
+-- 給 /miliui check 診斷用（Api.lua）
+ns.ResolveEntryOpen = ResolveOpen
+ns.FindEntryCategory = FindSettingsCategory
+
+local function OpenEntrySettings(entry)
+    local fn = ResolveOpen(entry)
+    if not fn then
+        for _, folder in ipairs(entry.folders) do
+            if C_AddOns.IsAddOnLoadOnDemand and C_AddOns.IsAddOnLoadOnDemand(folder)
+                    and not C_AddOns.IsAddOnLoaded(folder) then
+                pcall(C_AddOns.LoadAddOn, folder)
+            end
+        end
+        fn = ResolveOpen(entry)
+    end
+    if fn then
+        -- 別家的設定視窗多半在較低的 strata，先讓路
+        if ns.Options.panel then ns.Options.panel:Hide() end
+        fn()
+    else
+        ns.Print("這個插件還沒註冊設定入口（可能要等它載入完成），稍後再試。")
+    end
 end
 
 ------------------------------------------------------------
@@ -282,12 +368,13 @@ local function ShowDetail(entry)
     local descText = entry.desc or EntryMeta(entry, "Notes") or "（這個插件沒有提供說明）"
     detailUI.desc:SetText(descText)
 
-    local open = ResolveOpen(entry)
-    if open then
+    -- 按鈕顯示與否由名冊寫死（有定義入口＋插件啟用中就顯示），介面才穩定；
+    -- 「入口當下到底在不在」的即時偵測移到按下去那一刻（OpenEntrySettings）——
+    -- 解析失敗會講原因，不會有靜默的死按鈕。
+    if (entry.menuKey or entry.slash or entry.category or entry.settings)
+            and EntryEnabled(entry) and not entry.locked then
         detailUI.openBtn:SetScript("OnClick", function()
-            -- 別家的設定視窗多半在較低的 strata，先讓路
-            if ns.Options.panel then ns.Options.panel:Hide() end
-            open()
+            OpenEntrySettings(entry)
         end)
         detailUI.openBtn:Show()
         detailUI.openHint:Hide()
@@ -465,10 +552,6 @@ end
 -- 分組讀主資料夾的 TOC Category（客戶端語系版），組內剝掉色碼後按標題排。
 -- 沒列名冊的已安裝插件自動補列，分組一樣看它的 Category。
 ------------------------------------------------------------
-local function StripCodes(s)
-    return (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
-end
-
 local function EntryCategory(entry)
     local main = entry.folders[1]
     local cat = C_AddOns.GetAddOnMetadata(main, "Category-" .. GetLocale())

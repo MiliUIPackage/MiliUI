@@ -14,7 +14,7 @@ local AddonName, ns = ...
 if AddonName ~= "MiliUI" then return end
 
 local BUTTON_TEXT = "米利UI設定"
-local RELOAD_TIP_LEFT  = "左鍵：重新載入"
+local RELOAD_TIP_LEFT  = "重新載入"
 local RELOAD_TIP_RIGHT = "右鍵：立即重新載入"
 local RELOAD_ICON = "Interface\\Buttons\\UI-RefreshButton"
 
