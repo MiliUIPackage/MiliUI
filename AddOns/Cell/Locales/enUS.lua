@@ -31,6 +31,10 @@ select(2, ...).L = setmetatable({
     ["trackByName"] = "Track by name",
     ["showDuration"] = "Show duration text",
     ["showAnimation"] = "Show animation",
+    -- fix from MiliUI: per-indicator cooldown animation style
+    ["Cooldown Animation"] = "Cooldown Animation",
+    ["Clock Sweep"] = "Clock sweep",
+    ["Falling Shadow"] = "Falling shadow",
     ["showStack"] = "Show stack text",
     ["showTooltip"] = "Show aura tooltip",
     ["enableHighlight"] = "Highlight unit button",

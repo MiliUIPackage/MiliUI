@@ -3701,6 +3701,20 @@ function F.Revise()
         end
     end
 
+    --! fix from MiliUI: per-indicator cooldown animation style.
+    --! No version gate on purpose -- it only writes a key that is absent, so re-running it
+    --! can never overwrite a choice the player made (see the r281/r282 gates, which DID
+    --! need one because they rewrote existing values).
+    --! Resolved from the old showAnimation boolean so nobody's frames change look on
+    --! upgrade: an indicator that was animating keeps the sweep it already had.
+    for _, layout in pairs(CellDB["layouts"] or {}) do
+        for _, i in pairs(layout["indicators"] or {}) do
+            if type(i.animationStyle) ~= "string" then
+                i.animationStyle = (i.showAnimation == false) and "none" or "clock"
+            end
+        end
+    end
+
     CellDB["revise"] = Cell.version
     if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version

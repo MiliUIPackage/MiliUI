@@ -25,6 +25,8 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["showStack"] = true,
             ["showDuration"] = true,
             ["showAnimation"] = true,
+            -- "clock" / "vertical" / "none"; showAnimation is kept for older Cell versions
+            ["animationStyle"] = "clock",
             ["auraType"] = auraType,
             ["auras"] = {},
             ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}},
@@ -141,6 +143,8 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["showStack"] = true,
             ["showDuration"] = false,
             ["showAnimation"] = true,
+            -- "clock" / "vertical" / "none"; showAnimation is kept for older Cell versions
+            ["animationStyle"] = "clock",
             ["auraType"] = auraType,
             ["auras"] = {},
             ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}},

@@ -328,8 +328,10 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
             spellIDs = getSpellIDs(t),
             showDuration = t.showDuration,
             showStack = t.showStack,
-            -- toggles the cooldown swipe (see StyleButton). Carried through as-is so nil
-            -- stays nil: AuraDisplay reads it as "~= false", i.e. absent means ON.
+            -- cooldown animation: "clock" / "vertical" / "none" (see StyleButton).
+            -- Both carried through as-is so nil stays nil -- AuraDisplay falls back to
+            -- the old showAnimation boolean for layouts saved before the style existed.
+            animationStyle = t.animationStyle,
             showAnimation = t.showAnimation,
             onlyMine = (t.castBy == "me") or nil,
             orientation = t.orientation,
@@ -857,6 +859,8 @@ function I.CreateDebuffs(parent)
             showDuration = t.showDuration,
             showStack = t.showStack,
             orientation = t.orientation,
+            animationStyle = t.animationStyle,
+            showAnimation = t.showAnimation,
             -- ⚠ The blacklist only bites on spells flagged NeverSecret: ID filtering is
             -- banned for harmful auras on assistable units. That still covers what it is
             -- actually for -- the noisy always-on debuffs (Exhaustion/Sated and friends).
@@ -1350,6 +1354,7 @@ function I.CreateRaidDebuffs(parent)
     raidDebuffs.SetBorder = I.Cooldowns_SetBorder
     raidDebuffs.UpdateSize = I.Cooldowns_UpdateSize_WithSpacing
     raidDebuffs.ShowDuration = I.Cooldowns_ShowDuration
+    raidDebuffs.ShowAnimation = I.Cooldowns_ShowAnimation
     raidDebuffs.SetOrientation = I.Cooldowns_SetOrientation_WithSpacing
     raidDebuffs.SetFont = I.Cooldowns_SetFont
     raidDebuffs.ShowGlow = RaidDebuffs_ShowGlow
@@ -1417,6 +1422,8 @@ function I.CreateRaidDebuffs(parent)
                     -- true = always; number N = only when remaining < N s; false = never
                     showDuration        = t.showDuration,
                     orientation         = t.orientation,
+                    animationStyle      = t.animationStyle,
+                    showAnimation       = t.showAnimation,
                 }
                 -- Cell font tables: [1] = stack, [2] = duration
                 if t.font then
@@ -3040,6 +3047,7 @@ function I.CreateCrowdControls(parent)
     crowdControls.SetBorder = I.Cooldowns_SetBorder
     crowdControls.UpdateSize = I.Cooldowns_UpdateSize_WithSpacing
     crowdControls.ShowDuration = I.Cooldowns_ShowDuration
+    crowdControls.ShowAnimation = I.Cooldowns_ShowAnimation
     crowdControls.SetOrientation = I.Cooldowns_SetOrientation_WithSpacing
     crowdControls.SetFont = I.Cooldowns_SetFont
     crowdControls.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect

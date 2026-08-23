@@ -370,8 +370,10 @@ local function HandleIndicators(b)
         if t["iconStyle"] then
             indicator:SetIconStyle(t["iconStyle"])
         end
-        -- update animation
-        if type(t["showAnimation"]) == "boolean" then
+        -- update animation (style string wins; the boolean is the pre-12.1 spelling)
+        if type(t["animationStyle"]) == "string" then
+            indicator:ShowAnimation(t["animationStyle"])
+        elseif type(t["showAnimation"]) == "boolean" then
             indicator:ShowAnimation(t["showAnimation"])
         end
         -- update duration
@@ -938,6 +940,17 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 b.indicators[indicatorName]:ShowDuration(value)
                 UnitButton_UpdateAuras(b)
             end, true)
+        elseif setting == "animationStyle" then
+            -- Only reaches the legacy widgets (crowdControls, and the fallback pools where
+            -- AuraContainer is unsupported). Container-backed indicators get it from
+            -- PushContainerConfig at the end of this function.
+            F.IterateAllUnitButtons(function(b)
+                local ind = b.indicators[indicatorName]
+                if ind and ind.ShowAnimation then
+                    ind:ShowAnimation(value)
+                    UnitButton_UpdateAuras(b)
+                end
+            end, true)
         elseif setting == "privateAuraOptions" then
             F.IterateAllUnitButtons(function(b)
                 b.indicators[indicatorName]:UpdateOptions(value)
@@ -1117,7 +1130,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     indicator:SetTexture(value["texture"])
                 end
                 -- update showAnimation
-                if type(value["showAnimation"]) == "boolean" then
+                if type(value["animationStyle"]) == "string" then
+                    indicator:ShowAnimation(value["animationStyle"])
+                elseif type(value["showAnimation"]) == "boolean" then
                     indicator:ShowAnimation(value["showAnimation"])
                 end
                 -- update showDuration
