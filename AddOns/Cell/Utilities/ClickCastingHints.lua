@@ -733,6 +733,11 @@ local function UpdatePerLineLabel(orientation)
     end
 end
 
+--! ⚠ Everything in here is placed with P.Point, never a bare SetPoint. The options frame
+--! height goes through P.Scale (P.Height in Utilities.lua), so on any UI scale other than
+--! 1 a raw offset is measured in different units than the frame it sits in -- the rows
+--! drift down and the last one ends up outside the panel. Cell's other panes get away with
+--! raw offsets only because they leave a lot of slack at the bottom.
 local function CreatePane()
     cchPane = Cell.CreateTitledPane(Cell.frames.utilitiesTab, L["Click-Casting Hints"], 422, 190)
     cchPane:SetPoint("TOPLEFT", 5, -5)
@@ -767,7 +772,7 @@ local function CreatePane()
         for _, dd in pairs(anchorDropdowns) do dd:SetEnabled(checked) end
         Save("enabled", checked)
     end, L["Click-Casting Hints"], L["CLICK_CASTING_HINTS_TIPS"])
-    enabledCB:SetPoint("TOPLEFT", cchPane, "TOPLEFT", 5, -27)
+    P.Point(enabledCB, "TOPLEFT", cchPane, "TOPLEFT", 5, -27)
     Cell.RegisterForCloseDropdown(enabledCB)
 
     -- magnet ---------------------------------------------------------------------------
@@ -782,7 +787,7 @@ local function CreatePane()
             Detach()
         end
     end, L["Snap to Cell"], L["SNAP_TO_CELL_TIPS"])
-    snapCB:SetPoint("TOPLEFT", enabledCB, "BOTTOMLEFT", 0, -8)
+    P.Point(snapCB, "TOPLEFT", enabledCB, "BOTTOMLEFT", 0, -8)
 
     -- keybind text ---------------------------------------------------------------------
     showKeysCB = Cell.CreateCheckButton(cchPane, L["Show Keybind"], function(checked)
@@ -791,17 +796,17 @@ local function CreatePane()
         end
         Save("showKeys", checked)
     end, L["Show Keybind"], L["SHOW_KEYBIND_TIPS"])
-    showKeysCB:SetPoint("TOPLEFT", snapCB, "BOTTOMLEFT", 0, -8)
+    P.Point(showKeysCB, "TOPLEFT", snapCB, "BOTTOMLEFT", 0, -8)
 
     -- size -----------------------------------------------------------------------------
     sizeSlider = Cell.CreateSlider(L["Size"], cchPane, 12, 64, 120, 1, function(value)
         Save("size", value)
     end)
-    sizeSlider:SetPoint("TOPLEFT", showKeysCB, 0, -55)
+    P.Point(sizeSlider, "TOPLEFT", showKeysCB, "TOPLEFT", 0, -55)
 
     -- orientation ----------------------------------------------------------------------
     orientationDD = Cell.CreateDropdown(cchPane, 120)
-    orientationDD:SetPoint("TOPLEFT", sizeSlider, 146, 0)
+    P.Point(orientationDD, "TOPLEFT", sizeSlider, "TOPLEFT", 146, 0)
 
     local orientations = {"left-to-right", "right-to-left", "top-to-bottom", "bottom-to-top"}
     local items = {}
@@ -819,19 +824,19 @@ local function CreatePane()
 
     local orientationText = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     orientationText:SetText(L["Orientation"])
-    orientationText:SetPoint("BOTTOMLEFT", orientationDD, "TOPLEFT", 0, 1)
+    P.Point(orientationText, "BOTTOMLEFT", orientationDD, "TOPLEFT", 0, 1)
 
     -- icons per line -------------------------------------------------------------------
     perLineSlider = Cell.CreateSlider(L["Columns"], cchPane, 1, 20, 120, 1, function(value)
         Save("perRow", value)
     end)
-    perLineSlider:SetPoint("TOPLEFT", orientationDD, 146, 0)
+    P.Point(perLineSlider, "TOPLEFT", orientationDD, "TOPLEFT", 146, 0)
 
     -- spacing --------------------------------------------------------------------------
     spacingSlider = Cell.CreateSlider(L["Spacing"], cchPane, 0, 20, 120, 1, function(value)
         Save("spacing", value)
     end)
-    spacingSlider:SetPoint("TOPLEFT", sizeSlider, 0, -55)
+    P.Point(spacingSlider, "TOPLEFT", sizeSlider, "TOPLEFT", 0, -55)
 
     -- text positions -------------------------------------------------------------------
     --! Free text rather than sliders: an offset is a number the player already has in mind
@@ -840,7 +845,7 @@ local function CreatePane()
     local function CreateValueBox(key, width, text, anchor, x, y, minV, maxV)
         local eb = Cell.CreateEditBox(cchPane, width, 20)
         valueBoxes[key] = eb
-        eb:SetPoint("TOPLEFT", anchor, "TOPLEFT", x, y)
+        P.Point(eb, "TOPLEFT", anchor, "TOPLEFT", x, y)
         eb:SetMaxLetters(5)
 
         --! commit on focus loss, not on every keystroke: "-1" passes through "-" first,
@@ -866,14 +871,14 @@ local function CreatePane()
 
         local fs = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
         fs:SetText(text)
-        fs:SetPoint("BOTTOMLEFT", eb, "TOPLEFT", 0, 1)
+        P.Point(fs, "BOTTOMLEFT", eb, "TOPLEFT", 0, 1)
         return eb
     end
 
     local function CreateAnchorDropdown(key, text, anchor, x, y)
         local dd = Cell.CreateDropdown(cchPane, 120)
         anchorDropdowns[key] = dd
-        dd:SetPoint("TOPLEFT", anchor, "TOPLEFT", x, y)
+        P.Point(dd, "TOPLEFT", anchor, "TOPLEFT", x, y)
 
         local anchorItems = {}
         for _, point in ipairs(ANCHOR_POINTS) do
@@ -887,18 +892,21 @@ local function CreatePane()
 
         local fs = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
         fs:SetText(text)
-        fs:SetPoint("BOTTOMLEFT", dd, "TOPLEFT", 0, 1)
+        P.Point(fs, "BOTTOMLEFT", dd, "TOPLEFT", 0, 1)
         return dd
     end
 
-    CreateAnchorDropdown("keyAnchor", L["Show Keybind"], spacingSlider, 0, -50)
-    CreateValueBox("keyX", 60, L["X Offset"], spacingSlider, 130, -50)
-    CreateValueBox("keyY", 60, L["Y Offset"], spacingSlider, 196, -50)
+    --! ⚠ The offset columns are labelled "X" / "Y", not L["X Offset"] / L["Y Offset"].
+    --! Those strings are ~90px in zhTW over a 55px box, so each one ran straight through
+    --! its neighbour. A caption may never be wider than the column it belongs to.
+    CreateAnchorDropdown("keyAnchor", L["Keybind Position"], spacingSlider, 0, -50)
+    CreateValueBox("keyX", 55, "X", spacingSlider, 130, -50)
+    CreateValueBox("keyY", 55, "Y", spacingSlider, 190, -50)
 
-    CreateAnchorDropdown("durationAnchor", L["Duration Text"], spacingSlider, 0, -95)
-    CreateValueBox("durationX", 60, L["X Offset"], spacingSlider, 130, -95)
-    CreateValueBox("durationY", 60, L["Y Offset"], spacingSlider, 196, -95)
-    CreateValueBox("durationThreshold", 100, L["Duration Threshold"], spacingSlider, 266, -95, 0, 3600)
+    CreateAnchorDropdown("durationAnchor", L["Duration Position"], spacingSlider, 0, -92)
+    CreateValueBox("durationX", 55, "X", spacingSlider, 130, -92)
+    CreateValueBox("durationY", 55, "Y", spacingSlider, 190, -92)
+    CreateValueBox("durationThreshold", 90, L["Duration Threshold"], spacingSlider, 255, -92, 0, 3600)
 
     -- key labels -----------------------------------------------------------------------
     --! The mouse rows are labelled WITH the glyph, not just with a name. It is the only
@@ -907,7 +915,7 @@ local function CreatePane()
     local function CreateLabelBox(key, width, text, anchor, x, y)
         local eb = Cell.CreateEditBox(cchPane, width, 20)
         labelBoxes[key] = eb
-        eb:SetPoint("TOPLEFT", anchor, "TOPLEFT", x, y)
+        P.Point(eb, "TOPLEFT", anchor, "TOPLEFT", x, y)
         eb:SetMaxLetters(5)
         eb:SetScript("OnTextChanged", function(self, userChanged)
             if not userChanged then return end
@@ -917,7 +925,7 @@ local function CreatePane()
 
         local fs = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
         fs:SetText(text)
-        fs:SetPoint("BOTTOMLEFT", eb, "TOPLEFT", 0, 1)
+        P.Point(fs, "BOTTOMLEFT", eb, "TOPLEFT", 0, 1)
         return eb
     end
 
@@ -925,14 +933,17 @@ local function CreatePane()
         return "|T" .. MOUSE_MEDIA .. file .. ":14:14|t "
     end
 
-    CreateLabelBox("left", 120, Glyph("mouse-left.png") .. L["Left Button"], spacingSlider, 0, -140)
-    CreateLabelBox("right", 120, Glyph("mouse-right.png") .. L["Right Button"], spacingSlider, 140, -140)
-    CreateLabelBox("middle", 120, Glyph("mouse-middle.png") .. L["Middle Button"], spacingSlider, 280, -140)
+    CreateLabelBox("left", 120, Glyph("mouse-left.png") .. L["Left Button"], spacingSlider, 0, -134)
+    CreateLabelBox("right", 120, Glyph("mouse-right.png") .. L["Right Button"], spacingSlider, 140, -134)
+    CreateLabelBox("middle", 120, Glyph("mouse-middle.png") .. L["Middle Button"], spacingSlider, 280, -134)
 
-    CreateLabelBox("alt", 95, _G.ALT_KEY_TEXT or "Alt", spacingSlider, 0, -185)
-    CreateLabelBox("ctrl", 95, _G.CTRL_KEY_TEXT or "Ctrl", spacingSlider, 103, -185)
-    CreateLabelBox("shift", 95, _G.SHIFT_KEY_TEXT or "Shift", spacingSlider, 206, -185)
-    CreateLabelBox("meta", 95, "Cmd", spacingSlider, 309, -185)
+    --! plain "Alt" / "Ctrl" / "Shift" rather than ALT_KEY_TEXT and friends: the localised
+    --! globals are a mix of cases and lengths ("Alt 鍵" next to "CTRL" next to "SHIFT"),
+    --! and these four are read as names, not translated.
+    CreateLabelBox("alt", 95, "Alt", spacingSlider, 0, -176)
+    CreateLabelBox("ctrl", 95, "Ctrl", spacingSlider, 103, -176)
+    CreateLabelBox("shift", 95, "Shift", spacingSlider, 206, -176)
+    CreateLabelBox("meta", 95, "Cmd", spacingSlider, 309, -176)
 
     -- tips -----------------------------------------------------------------------------
     local tips = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
