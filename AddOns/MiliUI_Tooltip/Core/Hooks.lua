@@ -97,15 +97,19 @@ local function OnUnitAura(tip, data)
     local state = Gate(tip)
     if not state then return end
     if ns.logEnabled then
-        local iv
+        local iv, tid
         if data and type(data.args) == "table" and type(data.args[2]) == "table" then
             iv = data.args[2].intVal
         end
-        ns.Log("OnUnitAura tip=%s has_args=%s intVal=%s", tip:GetName() or "?",
-            tostring(data and data.args ~= nil), ns.Describe(iv))
+        if data and type(data.lines) == "table" and type(data.lines[1]) == "table" then
+            tid = data.lines[1].tooltipID
+        end
+        ns.Log("OnUnitAura tip=%s has_args=%s intVal=%s data.id=%s lines1.tooltipID=%s",
+            tip:GetName() or "?", tostring(data and data.args ~= nil),
+            ns.Describe(iv), ns.Describe(data and data.id), ns.Describe(tid))
     end
     ns.Bar.Deactivate(tip)
-    xpcall(ns.Spell.ApplyAura, ns.ReportError, tip, state, data and data.args)
+    xpcall(ns.Spell.ApplyAura, ns.ReportError, tip, state, data)
 end
 
 ------------------------------------------------------------

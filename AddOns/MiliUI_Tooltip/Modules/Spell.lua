@@ -121,16 +121,23 @@ local function ShowMountSource(tip, spellId)
     end
 end
 
-function Spell.ApplyAura(tip, state, args)
+function Spell.ApplyAura(tip, state, data)
     state.isUnitTip = nil
-    -- ⚠ 不消毒：戰鬥中 tooltip 資料自帶的 spellId（args[2].intVal）是秘密數字，
-    -- 但「顯示」走 format 傳遞照樣印得出來（TinyTooltip 同法）；
-    -- 需要明文的（坐騎查表、圖示 ID）各自在下游把關
+    -- ⚠ 不消毒：戰鬥中資料裡的 spellId 是秘密數字，但「顯示」走 format 傳遞
+    -- 照樣印得出來；需要明文的（坐騎查表、圖示 ID）各自在下游把關。
+    -- 資料源依序：args[2].intVal（舊制，12.1 已不帶）→ lines[1].tooltipID
+    --（實測 12.1 光環提示的 ID 在這）→ tip:GetSpell()
     local spellId
-    if type(args) == "table" and type(args[2]) == "table" then
-        spellId = args[2].intVal
+    if type(data) == "table" then
+        if type(data.args) == "table" and type(data.args[2]) == "table" then
+            spellId = data.args[2].intVal
+        end
+        if spellId == nil and type(data.lines) == "table" and type(data.lines[1]) == "table" then
+            local tid = data.lines[1].tooltipID
+            if type(tid) == "number" then spellId = tid end
+        end
     end
-    if not spellId and tip.GetSpell then
+    if spellId == nil and tip.GetSpell then
         local ok, _, sid = pcall(tip.GetSpell, tip)
         if ok then spellId = sid end
     end
