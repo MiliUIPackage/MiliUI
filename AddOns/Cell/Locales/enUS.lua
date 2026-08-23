@@ -81,6 +81,11 @@ select(2, ...).L = setmetatable({
     ["cleuAurasTips"] = "Check CLEU events for invisible auras",
     ["raidRosterTips"] = "[Right-Click] promote/demote (assistant). [Alt+Right-Click] uninvite.",
 
+    -- fix from MiliUI: click-casting hints
+    ["Click-Casting Hints"] = "Click-Casting Hints",
+    ["Only Click-Castings of the Spell type are shown"] = "Only Click-Castings of the Spell type are shown",
+    ["CLICK_CASTING_HINTS_TIPS"] = "A movable bar showing every spell you bound in Click-Castings, with its key and cooldown",
+
     ["RAID_DEBUFFS_TIPS"] = "Tips: [Drag & Drop] to change debuff order. [Double-Click] on instance name to open Encounter Journal. [Shift+Left Click] on instance/boss name to share debuffs. [Alt+Left Click] on instance/boss name to reset debuffs. The priority of General Debuffs is higher than Boss Debuffs.",
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
     ["BACKUP_TIPS"] = "Backups are not always reliable, especially when they are too old. It is recommended to backup often. When sharing profiles, backups are not included.",

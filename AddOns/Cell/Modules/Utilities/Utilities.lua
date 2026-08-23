@@ -36,6 +36,9 @@ function F.CreateUtilityList(anchor)
     dumbFS1:SetText(L["Quick Assist"])
     local dumbFS2 = listFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     dumbFS2:SetText(L["Dispel Request"])
+    -- fix from MiliUI: the hints entry has the longest label, so it decides the width
+    local dumbFS3 = listFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    dumbFS3:SetText(L["Click-Casting Hints"])
 
     -- buttons
     buttons["raidTools"] = Cell.CreateButton(listFrame, L["Raid Tools"], "transparent-accent", {20, 20}, true)
@@ -53,6 +56,7 @@ function F.CreateUtilityList(anchor)
     buttons["dispelRequest"]:SetPoint("TOPLEFT", buttons["spellRequest"], "BOTTOMLEFT")
     buttons["dispelRequest"]:SetPoint("TOPRIGHT", buttons["spellRequest"], "BOTTOMRIGHT")
 
+    local lastButton
     if Cell.isRetail then
         buttons["quickAssist"] = Cell.CreateButton(listFrame, L["Quick Assist"], "transparent-accent", {20, 20}, true)
         buttons["quickAssist"].id = "quickAssist"
@@ -63,10 +67,19 @@ function F.CreateUtilityList(anchor)
         buttons["quickCast"].id = "quickCast"
         buttons["quickCast"]:SetPoint("TOPLEFT", buttons["quickAssist"], "BOTTOMLEFT")
         buttons["quickCast"]:SetPoint("TOPRIGHT", buttons["quickAssist"], "BOTTOMRIGHT")
-        P.Size(listFrame, ceil(max(dumbFS1:GetStringWidth(), dumbFS2:GetStringWidth())) + 13, 20*5)
+        lastButton = buttons["quickCast"]
     else
-        P.Size(listFrame, ceil(max(dumbFS1:GetStringWidth(), dumbFS2:GetStringWidth())) + 13, 20*3)
+        lastButton = buttons["dispelRequest"]
     end
+
+    -- fix from MiliUI: click-casting hints
+    buttons["clickCastingHints"] = Cell.CreateButton(listFrame, L["Click-Casting Hints"], "transparent-accent", {20, 20}, true)
+    buttons["clickCastingHints"].id = "clickCastingHints"
+    buttons["clickCastingHints"]:SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT")
+    buttons["clickCastingHints"]:SetPoint("TOPRIGHT", lastButton, "BOTTOMRIGHT")
+
+    local listWidth = ceil(max(dumbFS1:GetStringWidth(), dumbFS2:GetStringWidth(), dumbFS3:GetStringWidth())) + 13
+    P.Size(listFrame, listWidth, 20 * (Cell.isRetail and 6 or 4))
 
     local highlight = Cell.CreateButtonGroup(buttons, function(id)
         lastShown = id
@@ -99,6 +112,7 @@ local utilityHeight = {
     ["dispelRequest"] = 420,
     ["quickAssist"] = 510,
     ["quickCast"] = 510,
+    ["clickCastingHints"] = 200,
 }
 
 local init

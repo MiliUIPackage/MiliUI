@@ -18,4 +18,5 @@
     <Script file="QuickAssist_Config.lua"/>
     <Script file="QuickAssist_ImportExport.lua"/>
     <Script file="QuickCast.lua"/>
+    <Script file="ClickCastingHints.lua"/>
 </Ui>

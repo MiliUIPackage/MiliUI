@@ -808,6 +808,20 @@ function F.UpdateClickCastings(noReload, onlyqueued)
 end
 Cell.RegisterCallback("UpdateClickCastings", "UpdateClickCastings", F.UpdateClickCastings)
 
+-- fix from MiliUI: expose the bindings so the Click-Casting Hints tool reads the
+-- same profile this file does instead of decoding CellDB a second time.
+-- Resolved the same way F.UpdateClickCastings resolves clickCastingTable rather
+-- than handing out that upvalue: callbacks fire in no particular order, so on a
+-- profile or spec switch the upvalue can still point at the outgoing table when
+-- another UpdateClickCastings listener runs.
+function F.GetActiveClickCastings()
+    local cc = Cell.vars.clickCastings
+    if type(cc) ~= "table" then return clickCastingTable end
+    return cc["useCommon"] and cc["common"] or cc[Cell.vars.playerSpecID]
+end
+
+F.DecodeClickCastingDB = DecodeDB
+
 local function UpdateQueuedClickCastings()
     UpdateClickCastings(true, true)
 end

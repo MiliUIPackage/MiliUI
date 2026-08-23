@@ -265,6 +265,19 @@ function eventFrame:ADDON_LOADED(arg1)
             }
         end
 
+        -- fix from MiliUI: click-casting hints is newer than the block above, so it has to
+        -- be topped up separately or existing databases never get it
+        if type(CellDB["tools"]["clickCastingHints"]) ~= "table" then
+            CellDB["tools"]["clickCastingHints"] = {
+                ["enabled"] = false,
+                ["size"] = 24,
+                ["perRow"] = 10,
+                ["spacing"] = 2,
+                ["orientation"] = "left-to-right",
+                ["position"] = {},
+            }
+        end
+
         -- spellRequest ---------------------------------------------------------------------------
         if type(CellDB["spellRequest"]) ~= "table" then
             local POWER_INFUSION, POWER_INFUSION_ICON = F.GetSpellInfo(10060)
@@ -985,6 +998,10 @@ function SlashCmdList.CELL(msg, editbox)
             P.ClearPoints(Cell.frames.buffTrackerFrame)
             Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", CellParent, "CENTER")
             CellDB["tools"]["buffTracker"][4] = {}
+            -- fix from MiliUI: click-casting hints
+            P.ClearPoints(Cell.frames.clickCastingHintsFrame)
+            Cell.frames.clickCastingHintsFrame:SetPoint("TOPLEFT", CellParent, "CENTER")
+            CellDB["tools"]["clickCastingHints"]["position"] = {}
 
         elseif rest == "all" then
             Cell.frames.anchorFrame:ClearAllPoints()
@@ -995,6 +1012,9 @@ function SlashCmdList.CELL(msg, editbox)
             Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", CellParent, "CENTER")
             Cell.frames.buffTrackerFrame:ClearAllPoints()
             Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", CellParent, "CENTER")
+            -- fix from MiliUI: click-casting hints
+            Cell.frames.clickCastingHintsFrame:ClearAllPoints()
+            Cell.frames.clickCastingHintsFrame:SetPoint("TOPLEFT", CellParent, "CENTER")
             CellDB = nil
             ReloadUI()
 
