@@ -8,7 +8,7 @@
 -- 垂直方向 Menu.lua 的 OpenAt 每次開啟都會即時判斷（上面塞不下就往下開）；
 -- 水平方向靠 SetClampedToScreen 夾回螢幕內。
 ------------------------------------------------------------
-local AddonName, _ = ...
+local AddonName, ns = ...
 if AddonName ~= "MiliUI" then return end
 
 local menu
@@ -22,6 +22,18 @@ local function EnsureMenu(anchor)
     -- 代價是失去 Menu.lua「父層一藏選單跟著消失」的便利，但這裡本來就靠
     -- 滑鼠移開自動收合，不影響。
     menu = MiliUI.Menu.Create(UIParent)
+    menu.centerLabel = true
+    -- 只列一項：小地圖鈕是隨手點的入口，開設定就好，不要把七個插件全攤開。
+    -- 各插件的入口在設定視窗的「插件總覽」與 ESC 選單那份選單裡都找得到。
+    menu.entriesProvider = function()
+        return { {
+            key  = "pack",
+            text = "米利UI設定",
+            rawLabel = true,   -- 不要被剝成「設定」
+            icon = "Interface\\AddOns\\MiliUI\\icon",
+            OnClick = function() ns.OpenOptions() end,
+        } }
+    end
     -- FULLSCREEN_DIALOG：壓得過任務追蹤與小地圖周邊，又低於 TOOLTIP，
     -- 不跟滑鼠提示／冷卻圖示那層互搶（在那層誰後建誰贏，行為不穩定）
     menu:SetFrameStrata("FULLSCREEN_DIALOG")

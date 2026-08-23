@@ -122,6 +122,9 @@ end
 
 -- parent      : 選單掛哪（父層一藏，選單跟著消失）
 -- beforeClick : 選填，function(entry) → 回 false 中止
+--
+-- 建好之後可以指定 menu.entriesProvider = function() return { entry, ... } end，
+-- 讓這個選單列自己的項目而不是註冊表的全部（小地圖鈕只列一項「米利UI設定」）。
 function M.Create(parent, beforeClick)
     local menu = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     menu:Hide()
@@ -132,7 +135,7 @@ function M.Create(parent, beforeClick)
     menu.beforeClick = beforeClick
 
     function menu:Rebuild()
-        local entries = M.GetEntries()
+        local entries = self.entriesProvider and self.entriesProvider() or M.GetEntries()
         local widest = 0
         for i, e in ipairs(entries) do
             local row = self.rows[i]
@@ -142,7 +145,24 @@ function M.Create(parent, beforeClick)
             end
             row.entry = e
             row.icon:SetTexture(e.icon or DEFAULT_ICON)
-            row.text:SetText(CleanLabel(e.text))
+            -- entry.rawLabel = true 就照原文顯示：剝前綴是為了「一整排插件名」
+            -- 那個情境，只有一項的選單反而要完整名字才看得懂
+            row.text:SetText(e.rawLabel and e.text or CleanLabel(e.text))
+            -- menu.centerLabel：只有一項的選單把「圖示＋文字」當一組置中比較好看；
+            -- 一整排插件名還是靠左才對得齊。錨點每次 Rebuild 都重設（列會回收再用）。
+            row.icon:ClearAllPoints()
+            row.text:ClearAllPoints()
+            if self.centerLabel then
+                -- 整組寬 = 圖示 + 6 + 字寬；要讓組置中，圖示中心得往左讓半個「6+字寬」
+                local tw = row.text:GetStringWidth() or 0
+                row.icon:SetPoint("CENTER", row, "CENTER", -(tw + 6) / 2, 0)
+                row.text:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
+            else
+                row.icon:SetPoint("LEFT", 5, 0)
+                row.text:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
+                row.text:SetPoint("RIGHT", -6, 0)
+            end
+            row.text:SetJustifyH("LEFT")
             row:ClearAllPoints()
             row:SetPoint("TOPLEFT", self, "TOPLEFT", PAD, -(PAD + (i - 1) * ROW_H))
             row:Show()
