@@ -297,8 +297,13 @@ AD.BuildRecords = BuildRecords
 -- engine cannot attribute a caster, so "mine" passes every caster's auras while
 -- UnitCanAssist stays true. Signal for that one is UnitIsVisible.
 --
--- HARMFUL pools are out of scope: their gate is UnitCanAttack, and ID filtering on a
--- friendly unit's debuffs is banned outright anyway (see the debuff mode above).
+-- HARMFUL pools have their own ID gate (UnitCanAttack, and ID filtering on a friendly
+-- unit's debuffs is banned outright anyway -- see the debuff mode above), so they never
+-- lose a whitelist the way a buff row does. They are NOT exempt from the fallout, though:
+-- when the engine refuses to resolve a unit's identity AT ALL it drops the entire
+-- candidateFilters payload, booleans included, and the HARMFUL rows lean on those just as
+-- hard (see RecordUsesCandidateFilters). Offline proved that; a cross-faction party member
+-- is handled the same way here -- user call: an empty row beats a wrong one.
 --
 -- FAIL DIRECTION when a vulnerable row is caught in the gate (cinematic / loading /
 -- cross-faction / phase):
@@ -1035,6 +1040,7 @@ local function Build(handle)
     -- parse has no fail-open history to recover from.
     handle._gateVulnerable, handle._gateSourceRelative, handle._gateCFDependent = nil, nil, nil
     handle._gateAssist, handle._gateVisible, handle._gateConnected = nil, nil, nil
+    handle._gateFaction = nil
 
     if not handle.enabled or not handle.unit then return end
 
@@ -1441,6 +1447,7 @@ function Handle:SetUnit(unit)
     -- Both gate verdicts belong to the old unit. Clear them exactly as Build does, so the
     -- re-probe below records a fresh baseline instead of firing a bogus recovery edge.
     self._gateAssist, self._gateVisible, self._gateConnected = nil, nil, nil
+    self._gateFaction = nil
     -- Runs first: bouncing a row the gate wants hidden does nothing (Show() on a frame whose
     -- parent chain is hidden never fires OnShow), so visibility has to settle before the kick.
     self:ApplyIdentityGate()
@@ -1575,7 +1582,11 @@ function Handle:ApplyIdentityGate()
 
             -- (2) non-assistable (cross-faction, duel, cinematic): includeSpellIDs is
             --     skipped and every helpful aura passes. Signal: UnitCanAssist.
-            if self._gateVulnerable then
+            --     ⚠ Scope is every cf-DEPENDENT row, not just the HELPFUL whitelists -- the
+            --     same widening (1) needed. A unit the engine will not resolve loses the
+            --     whole candidateFilters payload, so the debuff row's excludeSpellIDs
+            --     blacklist and the "already claimed above" booleans go with it.
+            if self._gateVulnerable or self._gateCFDependent then
                 local ok, can = pcall(UnitCanAssist, "player", unit)
                 if ok then
                     if issecretvalue(can) then can = true end
@@ -1585,6 +1596,36 @@ function Handle:ApplyIdentityGate()
                     if self:_NoteGateRecovery(can) then recovered = true end
                     if not can and (not isOwn or GATE_FAIL_CLOSED) then hide = true end
                 end
+            end
+
+            -- (2b) CROSS-FACTION IN THE OPEN WORLD -- a Horde player with an Alliance
+            --      party member. (2) is meant to cover it (assist is documented to go false
+            --      for a cross-faction member outside instanced content) but it only fires
+            --      if UnitCanAssist actually says false, and a group member you are allowed
+            --      to heal answers true. The faction mismatch itself is a definite,
+            --      never-secret answer, so it stands as its own signal.
+            --      ⚠ INSTANCED CONTENT IS EXEMPT. Cross-faction dungeon/raid groups are a
+            --      supported feature; blanking every curated row for a whole cross-faction
+            --      key would be a worse bug than the one being fixed. Open world only.
+            --      Neutral (an undecided pandaren) is not a mismatch -- it is "no answer".
+            if (self._gateVulnerable or self._gateCFDependent) and not isOwn then
+                local same -- nil = no answer (instanced, neutral, secret, no faction yet)
+                local okF, mine = pcall(UnitFactionGroup, "player")
+                local okU, theirs = pcall(UnitFactionGroup, unit)
+                if okF and okU and not IsInInstance()
+                    and not issecretvalue(mine) and not issecretvalue(theirs)
+                    and type(mine) == "string" and type(theirs) == "string"
+                    and mine ~= "Neutral" and theirs ~= "Neutral" then
+                    same = mine == theirs
+                end
+                local was = self._gateFaction
+                self._gateFaction = same
+                -- ⚠ the recovery edge is "stopped being a mismatch", which includes
+                -- BECOMING UNANSWERABLE: zoning into a dungeon takes this whole branch
+                -- away, and the container is still holding the open-world fail-open parse.
+                -- Nothing else bounces it -- entering an instance is not an aura change.
+                if was == false and same ~= false then recovered = true end
+                if same == false then hide = true end
             end
 
             -- (3) not in your visible world (different instance/phase): the engine cannot
@@ -2154,10 +2195,11 @@ function AD.Inspect(unitToken)
             -- the fail-open state: "assist=false" IS the "why is my whitelist showing
             -- every buff" answer, and it is invisible from anywhere else
             if h._gateVulnerable or h._gateSourceRelative or h._gateCFDependent then
-                p(("    身分閘：白名單依賴=%s 來源依賴=%s cf依賴=%s assist=%s visible=%s connected=%s 隱藏=%s 失效方向=%s")
+                p(("    身分閘：白名單依賴=%s 來源依賴=%s cf依賴=%s assist=%s visible=%s connected=%s 同陣營=%s 隱藏=%s 失效方向=%s")
                     :format(tostring(h._gateVulnerable or false), tostring(h._gateSourceRelative or false),
                         tostring(h._gateCFDependent or false),
                         tostring(h._gateAssist), tostring(h._gateVisible), tostring(h._gateConnected),
+                        tostring(h._gateFaction),
                         tostring(h._gateHidden or false),
                         GATE_FAIL_CLOSED and "隱藏(fail-closed)" or "顯示(fail-open)"))
             end
