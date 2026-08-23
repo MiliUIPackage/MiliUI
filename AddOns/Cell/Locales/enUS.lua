@@ -88,9 +88,16 @@ select(2, ...).L = setmetatable({
 
     -- fix from MiliUI: click-casting hints
     ["Click-Casting Hints"] = "Click-Casting Hints",
-    ["Only Click-Castings of the Spell type are shown"] = "Only Click-Castings of the Spell type are shown",
     ["CLICK_CASTING_HINTS_TIPS"] = "A movable bar showing every spell you bound in Click-Castings, with its key and cooldown",
     ["Snap to Cell"] = "Snap to Cell",
+    ["Show Keybind"] = "Show keybind",
+    ["Duration Threshold"] = "Show under (s)",
+    ["Duration Text"] = "Duration text",
+    ["Left Button"] = "Left",
+    ["Right Button"] = "Right",
+    ["Middle Button"] = "Middle",
+    ["SHOW_KEYBIND_TIPS"] = "Draw the key combination on each icon",
+    ["KEY_LABEL_TIPS"] = "Only Click-Castings of the Spell type are shown. Leave a mouse button empty to draw its icon instead of text.",
     ["Snapped"] = "[snapped]",
     ["SNAP_TO_CELL_TIPS"] = "Drop the bar next to the raid frames and it remembers where it sits relative to Cell, then follows whenever Cell is moved. Drop it further away to detach.",
 

@@ -244,15 +244,39 @@ local MOUSE_GLYPH = {
     ["ScrollDown"] = {MOUSE_MEDIA .. "mouse-middle.png", "↓"},
 }
 
+-- which keyLabels entry a bindKey draws from, and what to append after it
+local MOUSE_LABEL_KEY = {
+    ["Left"]       = {"left"},
+    ["Right"]      = {"right"},
+    ["Middle"]     = {"middle"},
+    --! the wheel follows the MIDDLE setting: it is the same physical button, so a player
+    --! who renames the middle button expects the wheel to match
+    ["ScrollUp"]   = {"middle", "↑"},
+    ["ScrollDown"] = {"middle", "↓"},
+}
+
 --! Everything is plain white with the font's outline -- no colour coding. The modifiers
 --! used to be grey to keep them out of the way, which just made "S" and "C" hard to read
 --! at all against a bright spell icon.
 local function BuildKeyLabel(modifier, key, fontSize)
+    local labels = CellDB["tools"]["clickCastingHints"]["keyLabels"]
+
     local mods = ""
-    if strfind(modifier, "alt") then mods = mods .. "A" end
-    if strfind(modifier, "ctrl") then mods = mods .. "C" end
-    if strfind(modifier, "shift") then mods = mods .. "S" end
-    if strfind(modifier, "meta") then mods = mods .. "M" end
+    if strfind(modifier, "alt") then mods = mods .. labels["alt"] end
+    if strfind(modifier, "ctrl") then mods = mods .. labels["ctrl"] end
+    if strfind(modifier, "shift") then mods = mods .. labels["shift"] end
+    if strfind(modifier, "meta") then mods = mods .. labels["meta"] end
+
+    local suffix
+    local mouse = MOUSE_LABEL_KEY[key]
+    if mouse then
+        local custom = labels[mouse[1]]
+        if custom ~= "" then
+            -- the player put their own wording in; the glyph is not wanted here
+            return mods .. custom .. (mouse[2] or "")
+        end
+        suffix = mouse[2]
+    end
 
     local glyph = MOUSE_GLYPH[key]
     if not glyph then
@@ -263,10 +287,61 @@ local function BuildKeyLabel(modifier, key, fontSize)
     if glyph then
         -- square: the PNG is square with the silhouette centred in it
         local h = fontSize + 4
-        return mods .. "|T" .. glyph[1] .. ":" .. h .. ":" .. h .. "|t" .. (glyph[2] or "")
+        return mods .. "|T" .. glyph[1] .. ":" .. h .. ":" .. h .. "|t" .. (suffix or glyph[2] or "")
     end
 
     return mods .. AbbrevKey(key)
+end
+
+-- the five anchors offered for the two texts; x/y offsets reach everything else
+local ANCHOR_POINTS = {"TOP", "BOTTOM", "LEFT", "RIGHT", "CENTER"}
+
+local function JustifyFor(point)
+    if point == "LEFT" or point == "RIGHT" then return point end
+    return "CENTER"
+end
+
+--! Should the cooldown number be hidden right now, and if so for how long?
+--!
+--! ⚠ Every read, comparison and subtraction happens INSIDE the pcall. These are the
+--! player's own spells, so start/duration are normally plain numbers -- but in restricted
+--! content they can come back as secret values, and a secret cannot be compared, only
+--! passed on. Doing the maths outside would throw on the first boss pull.
+--! Failure is deliberately OPEN (show the number): a countdown that is wrongly visible is
+--! a cosmetic slip, one that is wrongly hidden looks like the addon is broken.
+local function CountdownGate(spellId, threshold)
+    if threshold <= 0 then return false end
+
+    local ok, hide, delay = pcall(function()
+        local start, duration = F.GetSpellCooldown(spellId)
+        if not start or not duration or duration <= 0 then return false end
+        local remaining = start + duration - GetTime()
+        if remaining <= threshold then return false end
+        return true, remaining - threshold
+    end)
+
+    if not ok then return false end
+    return hide, delay
+end
+
+--! Blizzard's own countdown FontString, moved to where the player asked for it. It only
+--! exists once the Cooldown has something to draw, so this is re-run on every arm rather
+--! than done once at creation.
+local function ApplyDurationText(icon, size)
+    local cd = icon.cooldown
+    if not cd.GetCountdownFontString then return end
+    local fs = cd:GetCountdownFontString()
+    if not fs then return end
+
+    local db = CellDB["tools"]["clickCastingHints"]
+    local point = db["durationAnchor"]
+
+    -- onto the overlay so it is never buried under the cooldown swipe
+    if fs:GetParent() ~= icon.overlay then fs:SetParent(icon.overlay) end
+    fs:ClearAllPoints()
+    fs:SetPoint(point, icon, point, P.Scale(db["durationX"]), P.Scale(db["durationY"]))
+    fs:SetJustifyH(JustifyFor(point))
+    fs:SetFont(GameFontNormal:GetFont(), max(8, floor((size or db["size"]) * 0.4)), "OUTLINE")
 end
 
 --! Shrink to fit instead of truncating. The label is clipped to the icon width, and a
@@ -276,6 +351,18 @@ end
 local KEY_FONT_MIN = 7
 
 local function ApplyKeyLabel(icon, size, fontSize)
+    if not CellDB["tools"]["clickCastingHints"]["showKeys"] then
+        icon.keyText:Hide()
+        return
+    end
+    icon.keyText:Show()
+
+    local db = CellDB["tools"]["clickCastingHints"]
+    local point = db["keyAnchor"]
+    P.ClearPoints(icon.keyText)
+    P.Point(icon.keyText, point, icon, point, db["keyX"], db["keyY"])
+    icon.keyText:SetJustifyH(JustifyFor(point))
+
     local maxWidth = size - 2 -- the 1px border on each side
     local font = GameFontNormal:GetFont()
 
@@ -320,12 +407,10 @@ local function CreateHintIcon()
     icon.keyText = icon.overlay:CreateFontString(nil, "OVERLAY")
     icon.keyText:SetFont(GameFontNormal:GetFont(), 10, "OUTLINE") -- resized in Layout()
     icon.keyText:SetTextColor(1, 1, 1, 1)
-    icon.keyText:SetJustifyH("RIGHT")
     icon.keyText:SetWordWrap(false)
     icon.keyText:SetShadowColor(0, 0, 0, 1)
     icon.keyText:SetShadowOffset(0, 0)
-    P.Point(icon.keyText, "TOPLEFT", icon, "TOPLEFT", 1, -1)
-    P.Point(icon.keyText, "TOPRIGHT", icon, "TOPRIGHT", -1, -1)
+    -- anchored in ApplyKeyLabel, which knows the configured position
 
     function icon:UpdatePixelPerfect()
         P.Resize(icon)
@@ -333,7 +418,6 @@ local function CreateHintIcon()
         icon:SetBackdrop({edgeFile = Cell.vars.whiteTexture, edgeSize = P.Scale(1)})
         icon:SetBackdropBorderColor(0, 0, 0, 1)
         P.Repoint(icon.tex)
-        P.Repoint(icon.keyText)
     end
 
     return icon
@@ -347,6 +431,21 @@ local function ArmCooldown(icon)
         return
     end
 
+    --! bumped on every arm so a pending "now show the number" timer from an EARLIER
+    --! cooldown cannot fire onto this one
+    icon._cdGen = (icon._cdGen or 0) + 1
+    local gen = icon._cdGen
+
+    local hide, delay = CountdownGate(spellId, CellDB["tools"]["clickCastingHints"]["durationThreshold"])
+    cd:SetHideCountdownNumbers(hide)
+    if hide and delay and delay > 0 then
+        C_Timer.After(delay, function()
+            if icon._cdGen ~= gen then return end
+            icon.cooldown:SetHideCountdownNumbers(false)
+            ApplyDurationText(icon)
+        end)
+    end
+
     if GetSpellCooldownDuration then
         --! ignoreGCD left OFF: the global cooldown sweeps here too, same as an action bar.
         --! Never test the object (IsZero() returns a secret) -- just hand it over and let
@@ -357,6 +456,7 @@ local function ArmCooldown(icon)
         else
             cd:Clear()
         end
+        ApplyDurationText(icon)
     else
         local start, duration = F.GetSpellCooldown(spellId)
         if start and duration and duration > 0 then
@@ -364,6 +464,7 @@ local function ArmCooldown(icon)
         else
             cd:Clear()
         end
+        ApplyDurationText(icon)
     end
 end
 
@@ -470,6 +571,7 @@ Layout = function()
         P.ClearPoints(icon)
         P.Point(icon, point, hintsFrame, point, pos * stepX + line * lineX, pos * stepY + line * lineY)
         ApplyKeyLabel(icon, size, fontSize)
+        ApplyDurationText(icon, size)
     end
 
     local lines = shown == 0 and 0 or ceil(shown / perLine)
@@ -606,7 +708,11 @@ Cell.RegisterCallback("UpdatePixelPerfect", "ClickCastingHints_UpdatePixelPerfec
 -------------------------------------------------
 local LCG = LibStub("LibCustomGlow-1.0")
 
-local cchPane, unlockBtn, enabledCB, snapCB, sizeSlider, orientationDD, perLineSlider, spacingSlider
+local cchPane, unlockBtn, enabledCB, snapCB, showKeysCB, sizeSlider, orientationDD,
+    perLineSlider, spacingSlider
+local labelBoxes = {}   -- keyLabels entries, free text
+local valueBoxes = {}   -- plain numeric settings (offsets, threshold)
+local anchorDropdowns = {}
 
 --! Dragging a slider fires once per step, so only "enabled" takes the full
 --! rebuild path -- everything else is pure geometry and Layout() covers it.
@@ -653,7 +759,12 @@ local function CreatePane()
 
     -- enabled --------------------------------------------------------------------------
     enabledCB = Cell.CreateCheckButton(cchPane, L["Click-Casting Hints"], function(checked)
-        Cell.SetEnabled(checked, snapCB, sizeSlider, orientationDD, perLineSlider, spacingSlider)
+        Cell.SetEnabled(checked, snapCB, showKeysCB, sizeSlider, orientationDD, perLineSlider, spacingSlider)
+        for _, eb in pairs(labelBoxes) do
+            eb:SetEnabled(checked and CellDB["tools"]["clickCastingHints"]["showKeys"])
+        end
+        for _, eb in pairs(valueBoxes) do eb:SetEnabled(checked) end
+        for _, dd in pairs(anchorDropdowns) do dd:SetEnabled(checked) end
         Save("enabled", checked)
     end, L["Click-Casting Hints"], L["CLICK_CASTING_HINTS_TIPS"])
     enabledCB:SetPoint("TOPLEFT", cchPane, "TOPLEFT", 5, -27)
@@ -673,11 +784,20 @@ local function CreatePane()
     end, L["Snap to Cell"], L["SNAP_TO_CELL_TIPS"])
     snapCB:SetPoint("TOPLEFT", enabledCB, "BOTTOMLEFT", 0, -8)
 
+    -- keybind text ---------------------------------------------------------------------
+    showKeysCB = Cell.CreateCheckButton(cchPane, L["Show Keybind"], function(checked)
+        for _, eb in pairs(labelBoxes) do
+            eb:SetEnabled(checked)
+        end
+        Save("showKeys", checked)
+    end, L["Show Keybind"], L["SHOW_KEYBIND_TIPS"])
+    showKeysCB:SetPoint("TOPLEFT", snapCB, "BOTTOMLEFT", 0, -8)
+
     -- size -----------------------------------------------------------------------------
     sizeSlider = Cell.CreateSlider(L["Size"], cchPane, 12, 64, 120, 1, function(value)
         Save("size", value)
     end)
-    sizeSlider:SetPoint("TOPLEFT", snapCB, 0, -55)
+    sizeSlider:SetPoint("TOPLEFT", showKeysCB, 0, -55)
 
     -- orientation ----------------------------------------------------------------------
     orientationDD = Cell.CreateDropdown(cchPane, 120)
@@ -713,10 +833,114 @@ local function CreatePane()
     end)
     spacingSlider:SetPoint("TOPLEFT", sizeSlider, 0, -55)
 
+    -- text positions -------------------------------------------------------------------
+    --! Free text rather than sliders: an offset is a number the player already has in mind
+    --! ("nudge it up 10"), and four sliders would cost more vertical room than the rest of
+    --! this pane put together.
+    local function CreateValueBox(key, width, text, anchor, x, y, minV, maxV)
+        local eb = Cell.CreateEditBox(cchPane, width, 20)
+        valueBoxes[key] = eb
+        eb:SetPoint("TOPLEFT", anchor, "TOPLEFT", x, y)
+        eb:SetMaxLetters(5)
+
+        --! commit on focus loss, not on every keystroke: "-1" passes through "-" first,
+        --! and typing "12" would apply 1 on the way. OnEnterPressed clears focus, so
+        --! Enter lands here too.
+        eb:HookScript("OnEditFocusLost", function(self)
+            local db = CellDB["tools"]["clickCastingHints"]
+            local v = tonumber(self:GetText())
+            if v then
+                if minV and v < minV then v = minV end
+                if maxV and v > maxV then v = maxV end
+            else
+                v = db[key]
+            end
+            self:SetText(v)
+            db[key] = v
+            if key == "durationThreshold" then
+                RefreshCooldowns() -- the gate has to be re-evaluated, not just redrawn
+            else
+                Layout()
+            end
+        end)
+
+        local fs = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+        fs:SetText(text)
+        fs:SetPoint("BOTTOMLEFT", eb, "TOPLEFT", 0, 1)
+        return eb
+    end
+
+    local function CreateAnchorDropdown(key, text, anchor, x, y)
+        local dd = Cell.CreateDropdown(cchPane, 120)
+        anchorDropdowns[key] = dd
+        dd:SetPoint("TOPLEFT", anchor, "TOPLEFT", x, y)
+
+        local anchorItems = {}
+        for _, point in ipairs(ANCHOR_POINTS) do
+            tinsert(anchorItems, {
+                ["text"] = L[point],
+                ["value"] = point,
+                ["onClick"] = function() Save(key, point) end,
+            })
+        end
+        dd:SetItems(anchorItems)
+
+        local fs = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+        fs:SetText(text)
+        fs:SetPoint("BOTTOMLEFT", dd, "TOPLEFT", 0, 1)
+        return dd
+    end
+
+    CreateAnchorDropdown("keyAnchor", L["Show Keybind"], spacingSlider, 0, -50)
+    CreateValueBox("keyX", 60, L["X Offset"], spacingSlider, 130, -50)
+    CreateValueBox("keyY", 60, L["Y Offset"], spacingSlider, 196, -50)
+
+    CreateAnchorDropdown("durationAnchor", L["Duration Text"], spacingSlider, 0, -95)
+    CreateValueBox("durationX", 60, L["X Offset"], spacingSlider, 130, -95)
+    CreateValueBox("durationY", 60, L["Y Offset"], spacingSlider, 196, -95)
+    CreateValueBox("durationThreshold", 100, L["Duration Threshold"], spacingSlider, 266, -95, 0, 3600)
+
+    -- key labels -----------------------------------------------------------------------
+    --! The mouse rows are labelled WITH the glyph, not just with a name. It is the only
+    --! place a player can find out what the picture on their bar means, and it doubles as
+    --! a preview of what they are about to replace.
+    local function CreateLabelBox(key, width, text, anchor, x, y)
+        local eb = Cell.CreateEditBox(cchPane, width, 20)
+        labelBoxes[key] = eb
+        eb:SetPoint("TOPLEFT", anchor, "TOPLEFT", x, y)
+        eb:SetMaxLetters(5)
+        eb:SetScript("OnTextChanged", function(self, userChanged)
+            if not userChanged then return end
+            CellDB["tools"]["clickCastingHints"]["keyLabels"][key] = self:GetText()
+            Layout()
+        end)
+
+        local fs = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+        fs:SetText(text)
+        fs:SetPoint("BOTTOMLEFT", eb, "TOPLEFT", 0, 1)
+        return eb
+    end
+
+    local function Glyph(file)
+        return "|T" .. MOUSE_MEDIA .. file .. ":14:14|t "
+    end
+
+    CreateLabelBox("left", 120, Glyph("mouse-left.png") .. L["Left Button"], spacingSlider, 0, -140)
+    CreateLabelBox("right", 120, Glyph("mouse-right.png") .. L["Right Button"], spacingSlider, 140, -140)
+    CreateLabelBox("middle", 120, Glyph("mouse-middle.png") .. L["Middle Button"], spacingSlider, 280, -140)
+
+    CreateLabelBox("alt", 95, _G.ALT_KEY_TEXT or "Alt", spacingSlider, 0, -185)
+    CreateLabelBox("ctrl", 95, _G.CTRL_KEY_TEXT or "Ctrl", spacingSlider, 103, -185)
+    CreateLabelBox("shift", 95, _G.SHIFT_KEY_TEXT or "Shift", spacingSlider, 206, -185)
+    CreateLabelBox("meta", 95, "Cmd", spacingSlider, 309, -185)
+
     -- tips -----------------------------------------------------------------------------
     local tips = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    tips:SetText("|cffababab" .. L["Only Click-Castings of the Spell type are shown"])
+    tips:SetText("|cffababab" .. L["KEY_LABEL_TIPS"])
     tips:SetPoint("BOTTOMLEFT")
+    tips:SetPoint("BOTTOMRIGHT")
+    tips:SetJustifyH("LEFT")
+    tips:SetSpacing(2)
 end
 
 local init
@@ -730,12 +954,25 @@ local function ShowUtilitySettings(which)
         local db = CellDB["tools"]["clickCastingHints"]
         enabledCB:SetChecked(db["enabled"])
         snapCB:SetChecked(db["snap"])
+        showKeysCB:SetChecked(db["showKeys"])
+        for key, eb in pairs(labelBoxes) do
+            eb:SetText(db["keyLabels"][key] or "")
+            eb:SetEnabled(db["enabled"] and db["showKeys"])
+        end
+        for key, eb in pairs(valueBoxes) do
+            eb:SetText(db[key])
+            eb:SetEnabled(db["enabled"])
+        end
+        for key, dd in pairs(anchorDropdowns) do
+            dd:SetSelectedValue(db[key])
+            dd:SetEnabled(db["enabled"])
+        end
         sizeSlider:SetValue(db["size"])
         orientationDD:SetSelectedValue(db["orientation"])
         UpdatePerLineLabel(db["orientation"])
         perLineSlider:SetValue(db["perRow"])
         spacingSlider:SetValue(db["spacing"])
-        Cell.SetEnabled(db["enabled"], snapCB, sizeSlider, orientationDD, perLineSlider, spacingSlider)
+        Cell.SetEnabled(db["enabled"], snapCB, showKeysCB, sizeSlider, orientationDD, perLineSlider, spacingSlider)
 
         cchPane:Show()
 

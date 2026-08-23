@@ -286,6 +286,30 @@ function eventFrame:ADDON_LOADED(arg1)
             -- somewhere sensible instead of in the middle of the screen.
             if type(t["snap"]) ~= "boolean" then t["snap"] = true end
             if t["anchor"] == nil then t["anchor"] = {-139, -17} end
+            -- keybind label: master switch, then what each key is drawn as. An EMPTY
+            -- string on a mouse button means "use the glyph"; anything else is used
+            -- literally, so a player can put their own wording there.
+            if type(t["showKeys"]) ~= "boolean" then t["showKeys"] = true end
+            if type(t["keyLabels"]) ~= "table" then t["keyLabels"] = {} end
+            local k = t["keyLabels"]
+            if type(k["left"]) ~= "string" then k["left"] = "" end
+            if type(k["right"]) ~= "string" then k["right"] = "" end
+            if type(k["middle"]) ~= "string" then k["middle"] = "" end
+            if type(k["alt"]) ~= "string" then k["alt"] = "A" end
+            if type(k["ctrl"]) ~= "string" then k["ctrl"] = "C" end
+            if type(k["shift"]) ~= "string" then k["shift"] = "S" end
+            if type(k["meta"]) ~= "string" then k["meta"] = "M" end
+            -- where the keybind sits on the icon. Default: floating just above it, so it
+            -- never covers the art and never fights the countdown at the bottom.
+            if type(t["keyAnchor"]) ~= "string" then t["keyAnchor"] = "TOP" end
+            if type(t["keyX"]) ~= "number" then t["keyX"] = 0 end
+            if type(t["keyY"]) ~= "number" then t["keyY"] = 10 end
+            -- and where the cooldown number sits. Bottom, because the top is taken.
+            if type(t["durationAnchor"]) ~= "string" then t["durationAnchor"] = "BOTTOM" end
+            if type(t["durationX"]) ~= "number" then t["durationX"] = 0 end
+            if type(t["durationY"]) ~= "number" then t["durationY"] = 1 end
+            -- only show the number once the cooldown is under this many seconds; 0 = always
+            if type(t["durationThreshold"]) ~= "number" then t["durationThreshold"] = 60 end
         end
 
         -- spellRequest ---------------------------------------------------------------------------
