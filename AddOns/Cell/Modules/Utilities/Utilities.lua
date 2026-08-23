@@ -112,7 +112,7 @@ local utilityHeight = {
     ["dispelRequest"] = 420,
     ["quickAssist"] = 510,
     ["quickCast"] = 510,
-    ["clickCastingHints"] = 200,
+    ["clickCastingHints"] = 235,
 }
 
 local init

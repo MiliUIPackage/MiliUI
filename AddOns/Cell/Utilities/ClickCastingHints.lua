@@ -20,7 +20,7 @@ local P = Cell.pixelPerfectFuncs
 
 local GetSpellCooldownDuration = C_Spell and C_Spell.GetSpellCooldownDuration
 
-local ceil, floor, max, min = math.ceil, math.floor, math.max, math.min
+local ceil, floor, max, min, abs = math.ceil, math.floor, math.max, math.min, math.abs
 
 local MOVER_MIN_WIDTH, MOVER_MIN_HEIGHT = 60, 20
 
@@ -37,20 +37,156 @@ hintsFrame:RegisterForDrag("LeftButton")
 hintsFrame:EnableMouse(false)
 hintsFrame:Hide()
 
+-- the label floats above the bar so the frame stays exactly as big as the icons
+hintsFrame.moverText = hintsFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+hintsFrame.moverText:SetPoint("BOTTOM", hintsFrame, "TOP", 0, 2)
+hintsFrame.moverText:SetText(L["Mover"])
+hintsFrame.moverText:Hide()
+
+-------------------------------------------------
+-- magnet
+-------------------------------------------------
+--! With "snap" on, dropping the bar next to the raid frames stops storing a SCREEN
+--! position and stores an offset from CellAnchorFrame instead -- the little menu block
+--! that IS Cell's position handle. Everything else in Cell is laid out from that frame,
+--! so anchoring to it means the bar simply comes along when Cell is dragged; there is
+--! nothing to keep in sync and no hook on Cell's own drag.
+--!
+--! ⚠ Distances are compared in raw UI coordinates, NOT through P.Scale. Every frame
+--! involved lives under CellParent and therefore shares one effective scale, so GetLeft()
+--! values are directly comparable -- and the offset that comes out of them is exactly what
+--! SetPoint wants. Running them through P.Scale would scale an already-scaled number.
+--! This is the same convention P.SavePosition / P.LoadPosition use.
+
+local ATTACH_RANGE = 40 -- how close the bar has to land before it sticks to Cell at all
+local EDGE_SNAP = 10    -- once it sticks, how close an edge has to be to align exactly
+
+-- The rectangle the player thinks of as "Cell": the menu block plus every unit button of
+-- the CURRENT group type. skipShared leaves out the NPC and spotlight frames -- those have
+-- their own movers and can sit anywhere, so counting them would make "near Cell" meaningless.
+local function GetCellRect()
+    local left, right, top, bottom
+
+    local function add(f)
+        --! a resolvable rect is NOT implied by IsVisible() -- check the numbers
+        local l, r, t, b = f:GetLeft(), f:GetRight(), f:GetTop(), f:GetBottom()
+        if not (l and r and t and b) then return end
+        if not left or l < left then left = l end
+        if not right or r > right then right = r end
+        if not top or t > top then top = t end
+        if not bottom or b < bottom then bottom = b end
+    end
+
+    local function addIfVisible(f)
+        if f and f.IsVisible and f:IsVisible() then add(f) end
+    end
+
+    --! unconditionally, even when the menu block is hidden: it is Cell's position handle
+    --! and always has a rect, so the magnet still has something to grab when the raid
+    --! frames themselves are hidden (solo, or a layout set to hide)
+    if Cell.frames.anchorFrame then add(Cell.frames.anchorFrame) end
+    F.IterateAllUnitButtons(addIfVisible, true, false, true)
+
+    return left, right, top, bottom
+end
+
+-- Align one axis: try putting our low edge, our high edge or our centre on each of the
+-- target's edges/centre, and take whichever lands closest. Returns the new low edge.
+local function SnapEdge(lo, hi, t1, t2)
+    local size = hi - lo
+    local targets = {t1, t2, (t1 + t2) / 2}
+    local best, bestDist
+
+    for _, target in ipairs(targets) do
+        for _, candidate in ipairs({target, target - size, target - size / 2}) do
+            local d = abs(candidate - lo)
+            if d <= EDGE_SNAP and (not bestDist or d < bestDist) then
+                best, bestDist = candidate, d
+            end
+        end
+    end
+
+    return best or lo
+end
+
+-- Returns true when the bar ended up attached.
+local function TryAttach()
+    local db = CellDB["tools"]["clickCastingHints"]
+    if not db["snap"] then return false end
+
+    local anchor = Cell.frames.anchorFrame
+    if not (anchor and anchor:GetLeft()) then return false end
+
+    local cl, cr, ct, cb = GetCellRect()
+    if not cl then return false end
+
+    local l, r, t, b = hintsFrame:GetLeft(), hintsFrame:GetRight(), hintsFrame:GetTop(), hintsFrame:GetBottom()
+    if not (l and r and t and b) then return false end
+
+    -- gap between the two rectangles on each axis; 0 when they overlap
+    local gapX = max(cl - r, l - cr, 0)
+    local gapY = max(cb - t, b - ct, 0)
+    if gapX > ATTACH_RANGE or gapY > ATTACH_RANGE then return false end
+
+    local newL = SnapEdge(l, r, cl, cr)
+    local newB = SnapEdge(b, t, cb, ct)
+    local newT = newB + (t - b)
+
+    db["anchor"] = {newL - anchor:GetLeft(), newT - anchor:GetTop()}
+    return true
+end
+
+local function IsAttached()
+    local a = CellDB["tools"]["clickCastingHints"]["anchor"]
+    return CellDB["tools"]["clickCastingHints"]["snap"] and type(a) == "table"
+        and type(a[1]) == "number" and type(a[2]) == "number"
+end
+
+local function ApplyPosition()
+    local db = CellDB["tools"]["clickCastingHints"]
+    P.ClearPoints(hintsFrame)
+
+    if IsAttached() then
+        --! ⚠ clamping OFF while attached: the clamp repositions the frame to keep it on
+        --! screen, which silently overrides the anchor whenever Cell sits near an edge --
+        --! the bar would look like it had stopped following.
+        hintsFrame:SetClampedToScreen(false)
+        hintsFrame:SetPoint("TOPLEFT", Cell.frames.anchorFrame, "TOPLEFT", db["anchor"][1], db["anchor"][2])
+    else
+        hintsFrame:SetClampedToScreen(true)
+        if not P.LoadPosition(hintsFrame, db["position"]) then
+            PixelUtil.SetPoint(hintsFrame, "TOPLEFT", CellParent, "CENTER", 1, -1)
+        end
+    end
+
+    if hintsFrame.moverText:IsShown() then
+        hintsFrame.moverText:SetText(IsAttached() and (L["Mover"] .. " |cff00ff00" .. L["Snapped"]) or L["Mover"])
+    end
+end
+
+-- Stop following Cell but stay exactly where the bar currently is.
+local function Detach()
+    local db = CellDB["tools"]["clickCastingHints"]
+    if db["anchor"] then
+        P.SavePosition(hintsFrame, db["position"])
+        db["anchor"] = false
+    end
+    ApplyPosition()
+end
+
 hintsFrame:SetScript("OnDragStart", function()
     hintsFrame:StartMoving()
     hintsFrame:SetUserPlaced(false)
 end)
 hintsFrame:SetScript("OnDragStop", function()
     hintsFrame:StopMovingOrSizing()
-    P.SavePosition(hintsFrame, CellDB["tools"]["clickCastingHints"]["position"])
+    local db = CellDB["tools"]["clickCastingHints"]
+    if not TryAttach() then
+        db["anchor"] = false
+        P.SavePosition(hintsFrame, db["position"])
+    end
+    ApplyPosition()
 end)
-
--- the label floats above the bar so the frame stays exactly as big as the icons
-hintsFrame.moverText = hintsFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-hintsFrame.moverText:SetPoint("BOTTOM", hintsFrame, "TOP", 0, 2)
-hintsFrame.moverText:SetText(L["Mover"])
-hintsFrame.moverText:Hide()
 
 -------------------------------------------------
 -- key abbreviations
@@ -370,6 +506,7 @@ local function ShowMover(show)
     if show then
         if not CellDB["tools"]["clickCastingHints"]["enabled"] then return end
         hintsFrame:EnableMouse(true)
+        hintsFrame.moverText:SetText(IsAttached() and (L["Mover"] .. " |cff00ff00" .. L["Snapped"]) or L["Mover"])
         hintsFrame.moverText:Show()
         Cell.StylizeFrame(hintsFrame, {0, 1, 0, 0.4}, {0, 0, 0, 0})
         Layout()
@@ -394,7 +531,7 @@ local function UpdateTools(which)
     end
 
     if not which then -- position
-        P.LoadPosition(hintsFrame, CellDB["tools"]["clickCastingHints"]["position"])
+        ApplyPosition()
     end
 end
 Cell.RegisterCallback("UpdateTools", "ClickCastingHints_UpdateTools", UpdateTools)
@@ -426,7 +563,7 @@ Cell.RegisterCallback("UpdatePixelPerfect", "ClickCastingHints_UpdatePixelPerfec
 -------------------------------------------------
 local LCG = LibStub("LibCustomGlow-1.0")
 
-local cchPane, unlockBtn, enabledCB, sizeSlider, orientationDD, perLineSlider, spacingSlider
+local cchPane, unlockBtn, enabledCB, snapCB, sizeSlider, orientationDD, perLineSlider, spacingSlider
 
 --! Dragging a slider fires once per step, so only "enabled" takes the full
 --! rebuild path -- everything else is pure geometry and Layout() covers it.
@@ -473,17 +610,31 @@ local function CreatePane()
 
     -- enabled --------------------------------------------------------------------------
     enabledCB = Cell.CreateCheckButton(cchPane, L["Click-Casting Hints"], function(checked)
-        Cell.SetEnabled(checked, sizeSlider, orientationDD, perLineSlider, spacingSlider)
+        Cell.SetEnabled(checked, snapCB, sizeSlider, orientationDD, perLineSlider, spacingSlider)
         Save("enabled", checked)
     end, L["Click-Casting Hints"], L["CLICK_CASTING_HINTS_TIPS"])
     enabledCB:SetPoint("TOPLEFT", cchPane, "TOPLEFT", 5, -27)
     Cell.RegisterForCloseDropdown(enabledCB)
 
+    -- magnet ---------------------------------------------------------------------------
+    snapCB = Cell.CreateCheckButton(cchPane, L["Snap to Cell"], function(checked)
+        CellDB["tools"]["clickCastingHints"]["snap"] = checked
+        if checked then
+            -- attach right away if the bar already sits next to the frames, instead of
+            -- making the player pick it up and drop it again to see anything happen
+            TryAttach()
+            ApplyPosition()
+        else
+            Detach()
+        end
+    end, L["Snap to Cell"], L["SNAP_TO_CELL_TIPS"])
+    snapCB:SetPoint("TOPLEFT", enabledCB, "BOTTOMLEFT", 0, -8)
+
     -- size -----------------------------------------------------------------------------
     sizeSlider = Cell.CreateSlider(L["Size"], cchPane, 12, 64, 120, 1, function(value)
         Save("size", value)
     end)
-    sizeSlider:SetPoint("TOPLEFT", enabledCB, 0, -55)
+    sizeSlider:SetPoint("TOPLEFT", snapCB, 0, -55)
 
     -- orientation ----------------------------------------------------------------------
     orientationDD = Cell.CreateDropdown(cchPane, 120)
@@ -535,12 +686,13 @@ local function ShowUtilitySettings(which)
 
         local db = CellDB["tools"]["clickCastingHints"]
         enabledCB:SetChecked(db["enabled"])
+        snapCB:SetChecked(db["snap"])
         sizeSlider:SetValue(db["size"])
         orientationDD:SetSelectedValue(db["orientation"])
         UpdatePerLineLabel(db["orientation"])
         perLineSlider:SetValue(db["perRow"])
         spacingSlider:SetValue(db["spacing"])
-        Cell.SetEnabled(db["enabled"], sizeSlider, orientationDD, perLineSlider, spacingSlider)
+        Cell.SetEnabled(db["enabled"], snapCB, sizeSlider, orientationDD, perLineSlider, spacingSlider)
 
         cchPane:Show()
 

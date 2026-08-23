@@ -89,6 +89,9 @@ select(2, ...).L = setmetatable({
     ["Click-Casting Hints"] = "Click-Casting Hints",
     ["Only Click-Castings of the Spell type are shown"] = "Only Click-Castings of the Spell type are shown",
     ["CLICK_CASTING_HINTS_TIPS"] = "A movable bar showing every spell you bound in Click-Castings, with its key and cooldown",
+    ["Snap to Cell"] = "Snap to Cell",
+    ["Snapped"] = "[snapped]",
+    ["SNAP_TO_CELL_TIPS"] = "Drop the bar next to the raid frames and it remembers where it sits relative to Cell, then follows whenever Cell is moved. Drop it further away to detach.",
 
     ["RAID_DEBUFFS_TIPS"] = "Tips: [Drag & Drop] to change debuff order. [Double-Click] on instance name to open Encounter Journal. [Shift+Left Click] on instance/boss name to share debuffs. [Alt+Left Click] on instance/boss name to reset debuffs. The priority of General Debuffs is higher than Boss Debuffs.",
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",

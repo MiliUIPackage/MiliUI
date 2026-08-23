@@ -266,16 +266,24 @@ function eventFrame:ADDON_LOADED(arg1)
         end
 
         -- fix from MiliUI: click-casting hints is newer than the block above, so it has to
-        -- be topped up separately or existing databases never get it
+        -- be topped up separately or existing databases never get it. Per KEY, not per
+        -- table: options added after the tool shipped would otherwise never reach anyone
+        -- who already has the table.
         if type(CellDB["tools"]["clickCastingHints"]) ~= "table" then
-            CellDB["tools"]["clickCastingHints"] = {
-                ["enabled"] = false,
-                ["size"] = 24,
-                ["perRow"] = 10,
-                ["spacing"] = 2,
-                ["orientation"] = "left-to-right",
-                ["position"] = {},
-            }
+            CellDB["tools"]["clickCastingHints"] = {}
+        end
+        do
+            local t = CellDB["tools"]["clickCastingHints"]
+            if type(t["enabled"]) ~= "boolean" then t["enabled"] = false end
+            if type(t["size"]) ~= "number" then t["size"] = 24 end
+            if type(t["perRow"]) ~= "number" then t["perRow"] = 10 end
+            if type(t["spacing"]) ~= "number" then t["spacing"] = 2 end
+            if type(t["orientation"]) ~= "string" then t["orientation"] = "left-to-right" end
+            if type(t["position"]) ~= "table" then t["position"] = {} end
+            -- magnet: with snap on, anchor holds an {x, y} offset from CellAnchorFrame
+            -- and position is ignored
+            if type(t["snap"]) ~= "boolean" then t["snap"] = false end
+            if t["anchor"] == nil then t["anchor"] = false end
         end
 
         -- spellRequest ---------------------------------------------------------------------------
@@ -1002,6 +1010,7 @@ function SlashCmdList.CELL(msg, editbox)
             P.ClearPoints(Cell.frames.clickCastingHintsFrame)
             Cell.frames.clickCastingHintsFrame:SetPoint("TOPLEFT", CellParent, "CENTER")
             CellDB["tools"]["clickCastingHints"]["position"] = {}
+            CellDB["tools"]["clickCastingHints"]["anchor"] = false
 
         elseif rest == "all" then
             Cell.frames.anchorFrame:ClearAllPoints()
