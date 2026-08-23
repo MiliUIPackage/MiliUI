@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------
 -- CharacterKeystones
 -- 記錄各角色當前鑰石（升級/降級/獲得時更新），在 KeystoneLoot addon 視窗左側顯示
+-- 另記本週寶庫進度、探究懸賞圖狀態（拿過沒/用了沒）與鍍金儲物箱進度
 -- 週重置後自動清除上週資料
 -- 面板 parent 到 KeystoneLootFrame，跟隨其顯示/隱藏與拖曳
 --------------------------------------------------------------------------------
@@ -42,12 +43,23 @@ local function GetLastWeeklyReset()
     return GetServerTime() - SEVEN_DAYS
 end
 
+-- 角色「最後上線記錄」時間：鑰石記錄時間與寶庫快照時間取較新者
+-- （鑰石沒換 rec.timestamp 整週不動；寶庫快照每次上線都會刷新）
+-- 週清理、列表排序、日期欄都用這個值
+local function GetRecordLastSeen(data)
+    local ts = data.timestamp or 0
+    local vaultTs = data.vault and data.vault.timestamp or 0
+    if vaultTs > ts then ts = vaultTs end
+    return ts
+end
+
 local function PruneOldRecords()
     local history = MiliUI_DB and MiliUI_DB.characterKeystones
     if not history then return end
     local cutoff = GetLastWeeklyReset()
     for key, data in pairs(history) do
-        if not data.timestamp or data.timestamp < cutoff then
+        local ts = GetRecordLastSeen(data)
+        if ts == 0 or ts < cutoff then
             if MiliUI_KeystoneDebug then
                 print(string.format(
                     "|cff00ff00[Keystone]|r Prune: %s ts=%s cutoff=%s (差%ds)",
@@ -78,6 +90,65 @@ local VAULT_TYPES = {
     pvp   = 2,
     world = 6,
 }
+
+-- 探究者懸賞圖（每週掉一張的藏寶圖）
+-- 「本週拿過沒」看隱藏追蹤任務 86371 —— 換季換的是物品，這個旗標任務不變，
+-- 每週重置（做法同 Plumber GameTooltip_DelvesItem.lua）。
+-- 「用了沒」沒有旗標可查，用「拿過＋身上已經沒有」推論；每隻角色在線上時
+-- 記自己的數量，所以不會有「圖在別隻身上」的誤判。
+local BOUNTY_FLAG_QUEST = 86371
+local BOUNTY_ITEM_ID    = 274374 -- Midnight S2；⚠ 每季要換（照 Plumber MID_Activity.lua 的 Seasonal.DelveBountyItemID）
+local BOUNTY_ICON       = 1064187
+
+-- 鍍金儲物箱（每週前幾次高階豐收探究的額外寶箱）
+-- 讀 UI widget 7591 的法術顯示文字，從 tooltip 抓「x/y」——沒有直接的進度 API，
+-- 這是 Blizzard 自己在探究介面顯示進度的資料源。上限不寫死，跟著 tooltip 的分母走。
+--
+-- ⚠ 這個 widget 只有在探究「裡面」才是活資料；在外面常回傳預設的 0/x 殘值
+-- （EverythingDelves 2026-06 實測註記；Plumber DelvesDashboard 也只認 shownState==1）。
+-- 所以讀值要過信任閘：spellInfo.shownState == 1，或 UPDATE_UI_WIDGET(7591) 剛觸發過
+-- 的短暫窗口內（事件本身就是「這個 widget 的資料更新了」的通知）。
+local STASH_WIDGET_ID = 7591
+local STASH_SPELL_ID  = 1216211
+local stashTrustedUntil = 0  -- UPDATE_UI_WIDGET(7591) 觸發時往後推 5 秒
+
+local function StashDebug(fmt, ...)
+    if MiliUI_KeystoneDebug then
+        print("|cff00ff00[Keystone]|r " .. string.format(fmt, ...))
+    end
+end
+
+local function ReadOwnGildedStash(reason)
+    local getter = C_UIWidgetManager and C_UIWidgetManager.GetSpellDisplayVisualizationInfo
+    if not getter then return nil end
+    local ok, info = pcall(getter, STASH_WIDGET_ID)
+    if not ok or not info then
+        StashDebug("Stash(%s): widget %d 無資料", tostring(reason), STASH_WIDGET_ID)
+        return nil
+    end
+    local spellInfo = info.spellInfo
+    if not spellInfo or spellInfo.spellID ~= STASH_SPELL_ID then
+        StashDebug("Stash(%s): spellID 不符 (%s)",
+            tostring(reason), tostring(spellInfo and spellInfo.spellID))
+        return nil
+    end
+    local tip = spellInfo.tooltip
+    local cur, max
+    if type(tip) == "string" then
+        cur, max = string.match(tip, "(%d+)%s*/%s*(%d+)")
+        cur, max = tonumber(cur), tonumber(max)
+    end
+    local trusted = GetTime() < stashTrustedUntil
+    StashDebug("Stash(%s): shown=%s wShown=%s trusted=%s parsed=%s/%s tip=%s",
+        tostring(reason), tostring(spellInfo.shownState), tostring(info.shownState),
+        tostring(trusted), tostring(cur), tostring(max), tostring(tip))
+    if not (cur and max and max > 0) then return nil end
+    if spellInfo.shownState ~= 1 and not trusted then
+        StashDebug("Stash(%s): 讀值不可信，忽略（shownState~=1 且非事件窗口）", tostring(reason))
+        return nil
+    end
+    return { cur = cur, max = max }
+end
 
 local lastOwnMapID, lastOwnLevel = 0, 0
 local baselineSet = false
@@ -192,6 +263,14 @@ local function ReadOwnVaultSnapshot()
         snap.mplusRuns = runs
         anyData = true
     end
+    -- 懸賞圖：got=本週掉過（含銀行/戰團銀行的持有量；不含 uses）
+    snap.bounty = {
+        got   = C_QuestLog.IsQuestFlaggedCompleted(BOUNTY_FLAG_QUEST),
+        count = C_Item.GetItemCount(BOUNTY_ITEM_ID, true, false, true, true) or 0,
+    }
+    if snap.bounty.got then anyData = true end
+    -- 鍍金儲物箱進度（讀不到或不可信就回 nil，由 SaveVaultSnapshot 沿用上次的值）
+    snap.stash = ReadOwnGildedStash("snapshot")
     if not anyData then return nil end
     return snap
 end
@@ -216,6 +295,24 @@ local function SaveVaultSnapshot()
             timestamp = GetServerTime(),
         }
         MiliUI_DB.characterKeystones[key] = rec
+    end
+    -- 冷快取防護：剛登入或快速 relog 的短 session，旗標/widget 可能讀到假的空值。
+    -- 懸賞圖旗標與儲物箱進度在一週內只會單向前進（週重置由 PruneOldRecords 整筆清掉，
+    -- 不會跨週殘留），所以永遠不用「更差」的讀值蓋掉已存的。
+    local prev = rec.vault
+    if prev then
+        local pb = prev.bounty
+        if pb and pb.got and not snap.bounty.got then
+            -- 旗標讀到 false 視為冷快取；count 同樣不可信，一併沿用上次的
+            snap.bounty.got = true
+            snap.bounty.count = pb.count or 0
+        end
+        local ps = prev.stash
+        if not snap.stash then
+            snap.stash = ps
+        elseif ps and ps.max == snap.stash.max and (ps.cur or 0) > (snap.stash.cur or 0) then
+            snap.stash.cur = ps.cur
+        end
     end
     rec.vault = snap
 
@@ -351,7 +448,7 @@ local function SendKeystoneReport(channel)
     end
 
     if #entries == 0 then return end
-    table.sort(entries, function(a, b) return (a.timestamp or 0) > (b.timestamp or 0) end)
+    table.sort(entries, function(a, b) return GetRecordLastSeen(a) > GetRecordLastSeen(b) end)
 
     for i, data in ipairs(entries) do
         local line = FormatAltReportLine(data)
@@ -386,13 +483,17 @@ local COL_DEFS = {
     { label = "角色",     width = 88,  align = "LEFT" },
     { label = "鑰石",     width = 132, align = "CENTER" },
     { label = "寶庫(M+)", width = 96,  align = "CENTER" },
+    { label = "探究懸賞圖", width = 68,  align = "CENTER" },
+    { label = "鍍金儲物箱", width = 68,  align = "CENTER" },
     { label = "日期",     width = 50,  align = "CENTER" },
 }
 
 local VAULT_COL_INDEX  = 3
-local DATE_COL_INDEX   = 4   -- 有 Syndicator 載入時會被調為 5
-local SPARK_COL_INDEX  = nil -- 有 Syndicator 載入時會被設為 4
-local PANEL_WIDTH      = 410 -- 有 Syndicator 載入時會加上虛無之核欄寬度
+local BOUNTY_COL_INDEX = 4
+local STASH_COL_INDEX  = 5
+local DATE_COL_INDEX   = 6   -- 有 Syndicator 載入時會被調為 7
+local SPARK_COL_INDEX  = nil -- 有 Syndicator 載入時會被設為 6
+local PANEL_WIDTH      = 554 -- 有 Syndicator 載入時會加上虛無之核欄寬度
 
 -- 星雲虛無之核（Midnight 賽季鍛造材料 currency）
 --
@@ -914,6 +1015,20 @@ local function GetOrCreateRow(parent, index)
     row.vaultArea:SetScript("OnLeave", HideVaultTooltip)
     xOff = xOff + COL_DEFS[VAULT_COL_INDEX].width + PADDING_X
 
+    row.fsBounty = row:CreateFontString(nil, "OVERLAY")
+    row.fsBounty:SetFont(barFont, 12, "OUTLINE")
+    row.fsBounty:SetPoint("LEFT", row, "LEFT", xOff, 0)
+    row.fsBounty:SetWidth(COL_DEFS[BOUNTY_COL_INDEX].width)
+    row.fsBounty:SetJustifyH(COL_DEFS[BOUNTY_COL_INDEX].align)
+    xOff = xOff + COL_DEFS[BOUNTY_COL_INDEX].width + PADDING_X
+
+    row.fsStash = row:CreateFontString(nil, "OVERLAY")
+    row.fsStash:SetFont(barFont, 12, "OUTLINE")
+    row.fsStash:SetPoint("LEFT", row, "LEFT", xOff, 0)
+    row.fsStash:SetWidth(COL_DEFS[STASH_COL_INDEX].width)
+    row.fsStash:SetJustifyH(COL_DEFS[STASH_COL_INDEX].align)
+    xOff = xOff + COL_DEFS[STASH_COL_INDEX].width + PADDING_X
+
     -- 虛無之核欄（只在 Syndicator 載入時建立）
     if SPARK_COL_INDEX then
         row.fsSpark = row:CreateFontString(nil, "OVERLAY")
@@ -945,11 +1060,11 @@ local function SetupCharacterKeystones()
 
     setupDone = true
 
-    -- 有 Syndicator 才加虛無之核欄；無此插件就維持 4 欄不顯示
+    -- 有 Syndicator 才加虛無之核欄；無此插件就維持 6 欄不顯示
     if HasSyndicator() then
-        table.insert(COL_DEFS, 4, { label = "虛無之核", width = SPARK_COL_WIDTH, align = "CENTER" })
-        SPARK_COL_INDEX = 4
-        DATE_COL_INDEX  = 5
+        table.insert(COL_DEFS, 6, { label = "虛無之核", width = SPARK_COL_WIDTH, align = "CENTER" })
+        SPARK_COL_INDEX = 6
+        DATE_COL_INDEX  = 7
         PANEL_WIDTH     = PANEL_WIDTH + SPARK_COL_WIDTH + PADDING_X
     end
 
@@ -1066,7 +1181,7 @@ local function SetupCharacterKeystones()
     local rowStartY = TABLE_TOP - HEADER_HEIGHT - 8
     local sorted = {}
     local function sortByTimestamp(a, b)
-        return (a.data.timestamp or 0) > (b.data.timestamp or 0)
+        return GetRecordLastSeen(a.data) > GetRecordLastSeen(b.data)
     end
 
     local function PopulateList()
@@ -1135,6 +1250,38 @@ local function SetupCharacterKeystones()
                 end
             end
 
+            -- 懸賞圖欄三態：本週沒掉＝灰點、掉了還沒用＝金色地圖提醒、用掉了＝綠勾
+            -- （count 是該角色自己在線上時存的，圖不能交易，跨角色不會誤判）
+            local bounty = data.vault and data.vault.bounty
+            if bounty and bounty.got then
+                if (bounty.count or 0) > 0 then
+                    row.fsBounty:SetText("|T" .. BOUNTY_ICON .. ":14:14|t 未用")
+                    row.fsBounty:SetTextColor(1, 0.84, 0)
+                else
+                    row.fsBounty:SetText("|A:common-icon-checkmark:12:12|a 已用")
+                    row.fsBounty:SetTextColor(unpack(VALUE_COLOR))
+                end
+            else
+                row.fsBounty:SetText("·")
+                row.fsBounty:SetTextColor(LOCKED_CELL_R, LOCKED_CELL_G, LOCKED_CELL_B)
+            end
+
+            -- 儲物箱欄：沒資料＝灰點、進行中＝金色 x/y、拿滿＝綠色 x/y
+            local stash = data.vault and data.vault.stash
+            if stash and stash.max then
+                row.fsStash:SetText(stash.cur .. "/" .. stash.max)
+                if stash.cur >= stash.max then
+                    row.fsStash:SetTextColor(0.25, 0.75, 0.25)
+                elseif stash.cur > 0 then
+                    row.fsStash:SetTextColor(1, 0.84, 0)
+                else
+                    row.fsStash:SetTextColor(unpack(VALUE_COLOR))
+                end
+            else
+                row.fsStash:SetText("·")
+                row.fsStash:SetTextColor(LOCKED_CELL_R, LOCKED_CELL_G, LOCKED_CELL_B)
+            end
+
             -- 虛無之核欄（Syndicator 載入時才有）
             if row.fsSpark then
                 local lookupKey = (data.name or "") .. "-" .. NormalizeRealmName(data.realm)
@@ -1149,7 +1296,7 @@ local function SetupCharacterKeystones()
             end
 
             row.fsDate:SetTextColor(unpack(VALUE_COLOR))
-            row.fsDate:SetText(date("%m/%d", data.timestamp or 0))
+            row.fsDate:SetText(date("%m/%d", GetRecordLastSeen(data)))
         end
 
         for i = #sorted + 1, #rowPool do
@@ -1236,12 +1383,23 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
         self:RegisterEvent("PVP_MATCH_COMPLETE")      -- PvP 賽局結束
         self:RegisterEvent("LFG_COMPLETION_REWARD")   -- 探究/隨機副本/情景
         self:RegisterEvent("QUEST_TURNED_IN")         -- 世界任務（RequestVaultData 內建節流）
+        self:RegisterEvent("BAG_UPDATE_DELAYED")      -- 懸賞圖入手/用掉的當下（有變才存）
+        self:RegisterEvent("UPDATE_UI_WIDGET")        -- 鍍金儲物箱 widget 更新（探究內開箱的當下）
         -- 一次性遷移舊資料：keystoneHistory → characterKeystones
         if MiliUI_DB and MiliUI_DB.keystoneHistory and not MiliUI_DB.characterKeystones then
             MiliUI_DB.characterKeystones = MiliUI_DB.keystoneHistory
             MiliUI_DB.keystoneHistory = nil
         end
         PruneOldRecords()
+        -- 儲物箱 0/x 多半是信任閘擋下前、在探究外讀到的殘值，一律還原成「無資料」；
+        -- 真實的 0 進度會在下次進探究時由 UPDATE_UI_WIDGET 補回，不損失資訊
+        if MiliUI_DB and MiliUI_DB.characterKeystones then
+            for _, data in pairs(MiliUI_DB.characterKeystones) do
+                if data.vault and data.vault.stash and (data.vault.stash.cur or 0) == 0 then
+                    data.vault.stash = nil
+                end
+            end
+        end
         C_Timer.After(BASELINE_DELAY, function()
             if not baselineSet then
                 local mapID, level = ReadOwnKeystoneState()
@@ -1269,6 +1427,9 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
         end
     elseif event == "PLAYER_LOGOUT" then
         SaveKeystoneOnLogout()
+        -- 懸賞圖入手/用掉常發生在最後一次快照之後（開箱、在探究裡用圖），
+        -- 登出前補存一次；GetActivities 讀的是快取，此刻同步呼叫沒問題
+        SaveVaultSnapshot()
     -- 以下兩個是「資料已刷新」事件 → 直接存檔（此刻 GetActivities/GetRunHistory 才是新的）
     elseif event == "WEEKLY_REWARDS_UPDATE" then
         -- 領寶庫會給本週鑰石，但不觸發 CHALLENGE_MODE_COMPLETED / 鑰石 NPC gossip，
@@ -1289,6 +1450,35 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
         RequestVaultData("LFG_COMPLETION_REWARD")
     elseif event == "QUEST_TURNED_IN" then
         RequestVaultData("QUEST_TURNED_IN")
+    elseif event == "BAG_UPDATE_DELAYED" then
+        -- 撿到懸賞圖／用掉懸賞圖不會觸發上面任何寶庫事件，這裡便宜地比對一下，
+        -- 狀態真的變了才走完整快照（SnapshotAndRefresh 自帶 debounce）
+        local rec = MiliUI_DB and MiliUI_DB.characterKeystones
+            and MiliUI_DB.characterKeystones[GetCharacterKey()]
+        local saved = rec and rec.vault and rec.vault.bounty
+        local got   = C_QuestLog.IsQuestFlaggedCompleted(BOUNTY_FLAG_QUEST)
+        local count = C_Item.GetItemCount(BOUNTY_ITEM_ID, true, false, true, true) or 0
+        -- 與 SaveVaultSnapshot 相同的合併方向：讀到 false 視為冷快取、不算變化
+        if saved and saved.got and not got then
+            got, count = true, saved.count or 0
+        end
+        local changed
+        if saved then
+            changed = (saved.got ~= got) or ((saved.count or 0) ~= count)
+        else
+            changed = got or count > 0
+        end
+        if changed then
+            SnapshotAndRefresh("bounty changed got=" .. tostring(got) .. " count=" .. count)
+        end
+    elseif event == "UPDATE_UI_WIDGET" then
+        -- 高頻事件，先用 widgetID 守衛；命中才開信任窗口並排快照
+        -- （SnapshotAndRefresh 的 0.3s debounce 落在 5 秒窗口內，讀值必被採信）
+        local widgetInfo = ...
+        if widgetInfo and widgetInfo.widgetID == STASH_WIDGET_ID then
+            stashTrustedUntil = GetTime() + 5
+            SnapshotAndRefresh("UPDATE_UI_WIDGET stash")
+        end
     end
 end)
 
@@ -1365,8 +1555,45 @@ hookFrame:SetScript("OnEvent", function(self)
 end)
 
 -- 開關 debug：/milikeydbg
+-- 探測鍍金儲物箱 widget：/milikeydbg stash（在探究內、外各跑一次，把輸出貼回來）
 SLASH_MILIKEYDBG1 = "/milikeydbg"
-SlashCmdList.MILIKEYDBG = function()
+SlashCmdList.MILIKEYDBG = function(msg)
+    msg = (msg or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+    if msg == "stash" then
+        local getter = C_UIWidgetManager and C_UIWidgetManager.GetSpellDisplayVisualizationInfo
+        if not getter then
+            print("|cff00ff00[Keystone]|r 此版本沒有 GetSpellDisplayVisualizationInfo")
+            return
+        end
+        local ok, info = pcall(getter, STASH_WIDGET_ID)
+        if ok and info then
+            local si = info.spellInfo
+            print(string.format(
+                "|cff00ff00[Keystone]|r widget %d: wShown=%s spellID=%s shown=%s tip=%s",
+                STASH_WIDGET_ID, tostring(info.shownState),
+                tostring(si and si.spellID), tostring(si and si.shownState),
+                tostring(si and si.tooltip)))
+        else
+            print(string.format("|cff00ff00[Keystone]|r widget %d 無資料", STASH_WIDGET_ID))
+        end
+        -- 掃描附近的 widget ID，找其他帶「x/y」文字的候選（改版後 ID 可能換）
+        local hits = 0
+        for id = 7400, 7800 do
+            if id ~= STASH_WIDGET_ID then
+                local ok2, info2 = pcall(getter, id)
+                local tip2 = ok2 and info2 and info2.spellInfo and info2.spellInfo.tooltip
+                if type(tip2) == "string" and tip2:match("%d+%s*/%s*%d+") then
+                    hits = hits + 1
+                    print(string.format("  候選 widget %d (shown=%s): %s",
+                        id, tostring(info2.spellInfo.shownState), tip2:sub(1, 120)))
+                end
+            end
+        end
+        print(string.format(
+            "|cff00ff00[Keystone]|r 掃描完成：7400–7800 有 %d 個候選。請在探究內/外各跑一次並貼回輸出。",
+            hits))
+        return
+    end
     MiliUI_KeystoneDebug = not MiliUI_KeystoneDebug
     print("|cff00ff00[Keystone]|r debug:", MiliUI_KeystoneDebug and "ON" or "OFF")
 end
