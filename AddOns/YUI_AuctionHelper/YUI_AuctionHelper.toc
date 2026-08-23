@@ -15,6 +15,8 @@
 ## X-YUI-RequiredCoreVersion: 1
 ## X-YUI-EmbeddedCoreVersion: 1
 ## Category-zhTW: 拍賣
+## Title-zhTW: |cffFFFF99[拍賣]|r 購物助手
+## Notes-zhTW: Auction Helper · YanForge|n|n言工坊出品的拍賣行購物助手，方便快速選購與批次購買。|n|n|cffffd200使用方法: |r輸入 /yui2 開啟設定。
 
 CoreEmbed\Bootstrap.lua
 CoreEmbed\Libs\!load.xml
