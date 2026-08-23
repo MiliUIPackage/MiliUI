@@ -461,8 +461,22 @@ local function UpdateRow(row, item)
 end
 
 ------------------------------------------------------------
--- 名冊 → 攤平清單。沒列名冊的已安裝插件自動歸進「工具與其他」。
+-- 名冊 → 攤平清單，分組與排序照官方插件列表：
+-- 分組讀主資料夾的 TOC Category（客戶端語系版），組內剝掉色碼後按標題排。
+-- 沒列名冊的已安裝插件自動補列，分組一樣看它的 Category。
 ------------------------------------------------------------
+local function StripCodes(s)
+    return (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+end
+
+local function EntryCategory(entry)
+    local main = entry.folders[1]
+    local cat = C_AddOns.GetAddOnMetadata(main, "Category-" .. GetLocale())
+        or C_AddOns.GetAddOnMetadata(main, "Category")
+    if not cat or cat == "" then cat = "其他" end
+    return cat
+end
+
 local function RebuildItems()
     wipe(items)
     local installed = GetInstalled()
@@ -473,32 +487,39 @@ local function RebuildItems()
         for _, f in ipairs(e.folders) do covered[f] = true end
     end
 
-    for _, g in ipairs(ns.AddonRoster.groups) do
-        local rows = {}
-        for _, e in ipairs(ns.AddonRoster.entries) do
-            if e.group == g.key and installed[e.folders[1]] then
-                rows[#rows + 1] = { kind = "entry", entry = e }
+    local visible = {}
+    for _, e in ipairs(ns.AddonRoster.entries) do
+        if installed[e.folders[1]] then visible[#visible + 1] = e end
+    end
+    for name in pairs(installed) do
+        if not covered[name] then
+            local e = autoByFolder[name]
+            if not e then
+                e = { key = name, folders = { name }, auto = true }
+                autoByFolder[name] = e
             end
+            entriesByKey[e.key] = e
+            visible[#visible + 1] = e
         end
-        if g.key == "misc" then
-            local extras = {}
-            for name in pairs(installed) do
-                if not covered[name] then extras[#extras + 1] = name end
-            end
-            table.sort(extras)
-            for _, name in ipairs(extras) do
-                local e = autoByFolder[name]
-                if not e then
-                    e = { key = name, folders = { name }, group = "misc", auto = true }
-                    autoByFolder[name] = e
-                end
-                entriesByKey[e.key] = e
-                rows[#rows + 1] = { kind = "entry", entry = e }
-            end
+    end
+
+    local byCat, catOrder = {}, {}
+    for _, e in ipairs(visible) do
+        local cat = EntryCategory(e)
+        if not byCat[cat] then
+            byCat[cat] = {}
+            catOrder[#catOrder + 1] = cat
         end
-        if #rows > 0 then
-            items[#items + 1] = { kind = "group", label = g.label }
-            for _, r in ipairs(rows) do items[#items + 1] = r end
+        tinsert(byCat[cat], e)
+    end
+    table.sort(catOrder)   -- 「[整合]」的半形括號字典序在中文之前，套組本體那組自然置頂
+    for _, cat in ipairs(catOrder) do
+        table.sort(byCat[cat], function(a, b)
+            return StripCodes(EntryTitle(a)) < StripCodes(EntryTitle(b))
+        end)
+        items[#items + 1] = { kind = "group", label = cat }
+        for _, e in ipairs(byCat[cat]) do
+            items[#items + 1] = { kind = "entry", entry = e }
         end
     end
 end
