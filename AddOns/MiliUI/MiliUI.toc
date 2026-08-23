@@ -53,6 +53,7 @@ Enhance\TeleportMenu_Spacing.lua
 Enhance\AuctionHouseFilter.lua
 Enhance\BuffDurationStyle.lua
 Enhance\GameMenu_MiliUIButton.lua
+Enhance\MBB_MiliUIMenu.lua
 Enhance\VersionCheck.lua
 Enhance\KeystoneAutoReport.lua
 Enhance\TinyInspectRemake_GearSlots.lua

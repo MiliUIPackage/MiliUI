@@ -165,19 +165,32 @@ function M.Create(parent, beforeClick)
         end
     end
 
-    -- 貼齊 anchor 上緣往上開，中間不留縫——留了縫滑鼠滑過去的瞬間會判定成離開。
-    function menu:OpenAt(anchor)
+    -- 貼齊 anchor 開，中間不留縫——留了縫滑鼠滑過去的瞬間會判定成離開。
+    -- prefer："up"（預設，ESC 選單用——往下開會蓋住遊戲選單本體）或 "down"
+    -- （小地圖按鈕這類位置不定的 anchor 用）。兩種都在塞不下時翻向另一邊，
+    -- 邊界每次開啟都即時重算，anchor 被玩家拖到哪都對。
+    function menu:OpenAt(anchor, prefer)
         self:Rebuild()
         if self.count == 0 then self:Hide(); return end
         self.anchor = anchor
         self.hideTimer = 0
         self:ClearAllPoints()
-        local top = anchor:GetTop()
+        local h = self:GetHeight()
         local screenH = UIParent:GetHeight() or 1080
-        if top and (top + self:GetHeight()) > screenH then
-            self:SetPoint("TOPRIGHT", anchor, "BOTTOMRIGHT", 0, 0)   -- 上面塞不下就翻下來
+        if prefer == "down" then
+            local bottom = anchor:GetBottom()
+            if bottom and (bottom - h) < 0 then
+                self:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, 0)   -- 下面塞不下才往上
+            else
+                self:SetPoint("TOPRIGHT", anchor, "BOTTOMRIGHT", 0, 0)
+            end
         else
-            self:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, 0)
+            local top = anchor:GetTop()
+            if top and (top + h) > screenH then
+                self:SetPoint("TOPRIGHT", anchor, "BOTTOMRIGHT", 0, 0)   -- 上面塞不下就翻下來
+            else
+                self:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, 0)
+            end
         end
         self:Show()
     end
