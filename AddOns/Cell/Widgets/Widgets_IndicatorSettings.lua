@@ -1647,10 +1647,10 @@ local function CreateSetting_Orientation(parent)
     return widget
 end
 
--- Cooldown animation style: the radial sweep, the falling shadow, or nothing.
--- Container-backed indicators show the sweep on the RING only (the icon sits above it),
--- which is why "clock" reads as an outline countdown there and as a sweep over the icon
--- on the legacy BarIcon widgets.
+-- Cooldown animation style. All three are the same idea -- something dark grows as the
+-- aura runs out -- and differ only in WHERE it grows: on the border ("border", Cell's
+-- long-standing look), over the icon in a clock sweep ("clock", how Blizzard draws a
+-- spell cooldown), or falling from the top ("vertical").
 local function CreateSetting_AnimationStyle(parent)
     local widget
 
@@ -1661,6 +1661,13 @@ local function CreateSetting_AnimationStyle(parent)
         widget.style = Cell.CreateDropdown(widget, 245)
         widget.style:SetPoint("TOPLEFT", 5, -20)
         widget.style:SetItems({
+            {
+                ["text"] = L["Border Countdown"],
+                ["value"] = "border",
+                ["onClick"] = function()
+                    widget.func("border")
+                end,
+            },
             {
                 ["text"] = L["Clock Sweep"],
                 ["value"] = "clock",
@@ -1695,8 +1702,8 @@ local function CreateSetting_AnimationStyle(parent)
 
         -- show db value
         function widget:SetDBValue(style)
-            if style ~= "clock" and style ~= "vertical" and style ~= "none" then
-                style = "clock"
+            if style ~= "border" and style ~= "clock" and style ~= "vertical" and style ~= "none" then
+                style = "border"
             end
             widget.style:SetSelectedValue(style)
         end

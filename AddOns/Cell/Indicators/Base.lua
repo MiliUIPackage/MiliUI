@@ -30,23 +30,27 @@ CELL_COOLDOWN_STYLE = "VERTICAL"
 -------------------------------------------------
 -- cooldown animation style (per indicator)
 -------------------------------------------------
--- "clock"    the radial sweep. On the ring-shaped icons (BorderIcon and every
---            AuraContainer-backed indicator) the icon sits above the sweep, so
---            what the player sees is the coloured ring being eaten clockwise.
+-- "border"   the DEFAULT and what Cell has always drawn: the coloured ring counts
+--            down. Two layers -- a static coloured ring, and a black sweep over it
+--            with the icon on top -- so the sweep is only ever visible on the border
+--            and the middle of the icon never darkens.
+-- "clock"    the sweep itself, over the ICON, the way Blizzard's own spell cooldown
+--            looks. Same widget as "border", just moved above the icon.
 -- "vertical" a dark mask falling from the top down over the icon -- the look
 --            CELL_COOLDOWN_STYLE = "VERTICAL" used to give globally, now a
 --            per-indicator choice that also works on the container path.
 -- "none"     no animation; the ring/border stays static.
 --
 -- Layouts saved before this option carry the old showAnimation boolean instead.
--- Absent counts as ON, which is what those layouts were already doing.
-local ANIMATION_STYLES = {clock = true, vertical = true, none = true}
+-- Absent counts as ON, which is what those layouts were already doing -- and "on" for
+-- them meant the border countdown, so that is the fallback.
+local ANIMATION_STYLES = {border = true, clock = true, vertical = true, none = true}
 
 function I.ResolveAnimationStyle(t)
     local style = t and t.animationStyle
     if ANIMATION_STYLES[style] then return style end
     if t and t.showAnimation == false then return "none" end
-    return "clock"
+    return "border"
 end
 
 -- Widgets accept both the new string and the old boolean: ShowAnimation is still
@@ -59,7 +63,7 @@ function I.NormalizeAnimationStyle(style, current)
     if style == false then return "none" end
     -- true / nil
     if ANIMATION_STYLES[current] and current ~= "none" then return current end
-    return "clock"
+    return "border"
 end
 
 -- 12.1: an engine-provided DurationObject drives a StatusBar without the addon ever
@@ -104,6 +108,11 @@ local function VerticalMask_Clear(bar)
     bar._start, bar._duration = nil, nil
     bar:Hide()
 end
+
+--! ⚠ forward declaration. BorderIcon_SetCooldown / _SetCooldownFromAura are defined
+--! ABOVE the body of this function, and a `local function` declared below its call site
+--! resolves to a nil GLOBAL there -- no error until it actually runs.
+local BorderIcon_ApplySweep
 
 -- A dark mask that covers `region` and fills from the top down. Used by BorderIcon;
 -- AuraDisplay builds its own (Blizzard drives that one through SetDurationBar).
@@ -592,12 +601,10 @@ local function BorderIcon_SetCooldownFromAura(frame, unit, auraInstanceID, textu
     local durObj = _GetAuraDuration and _GetAuraDuration(unit, auraInstanceID)
     if durObj and frame.cooldown and frame.cooldown._SetCooldown
         and frame.cooldown.SetCooldownFromDurationObject then
-        local style = frame.animationStyle or "clock"
-        -- The Cooldown runs in every style: it draws Blizzard's countdown numbers.
-        -- Only the swipe colour is made transparent (see BorderIcon_SetCooldown).
+        local style = frame.animationStyle or "border"
         frame.cooldown:SetDrawSwipe(true)
-        frame.cooldown:SetSwipeColor(0, 0, 0, style == "clock" and 1 or 0)
         frame.cooldown:SetReverse(true)
+        BorderIcon_ApplySweep(frame, style)
         frame.cooldown:SetCooldownFromDurationObject(durObj, true)
         -- Apply font settings once (cached via _countdownFontApplied flag)
         if not frame._countdownFontApplied then
@@ -703,7 +710,7 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
         frame._threshold = nil
         frame._elapsedTime = nil
     else
-        local style = frame.animationStyle or "clock"
+        local style = frame.animationStyle or "border"
         -- ⚠ The COLOUR lives on the static ring and the sweep is the black that eats
         -- it -- not the other way round. This used to paint a coloured sweep over a
         -- hidden border, which disagreed with BOTH the secret path in this same file
@@ -712,12 +719,9 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
         -- against the frames it was previewing.
         frame.border:Show()
         frame.border:SetColorTexture(r, g, b)
-        -- ⚠ The Cooldown runs in EVERY style and is only made invisible, never
-        -- SetDrawSwipe(false)'d: it is what draws Blizzard's countdown numbers, and the
-        -- previews loop on its OnCooldownDone. A transparent swipe keeps both alive.
         frame.cooldown:SetDrawSwipe(true)
         frame.cooldown:SetReverse(true)
-        frame.cooldown:SetSwipeColor(0, 0, 0, style == "clock" and 1 or 0)
+        BorderIcon_ApplySweep(frame, style)
         frame.cooldown:Show()
         frame.cooldown:_SetCooldown(start, duration)
         if Cell.isMidnight and not frame._countdownFontApplied then
@@ -784,17 +788,48 @@ local function BorderIcon_SetBorder(frame, thickness)
     P.Point(frame.iconFrame, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -thickness, thickness)
 end
 
+-- Fixed layering, re-asserted on every pass because SetFrameLevel stores an ABSOLUTE
+-- number and the indicator's own level moves with its frameLevel setting:
+--   L+1  the sweep, for "border" (under the icon -> only the ring shows it)
+--   L+2  the icon
+--   L+3  the vertical mask
+--   L+4  the sweep, for "clock" (over the icon -> the sweep IS what you see)
+--   L+5  stack / countdown text, always on top of both animations
+function BorderIcon_ApplySweep(frame, style)
+    local base = frame:GetFrameLevel()
+
+    frame.iconFrame:SetFrameLevel(base + 2)
+    frame.vMask:SetFrameLevel(base + 3)
+    frame.textFrame:SetFrameLevel(base + 5)
+
+    local cd = frame.cooldown
+    if not cd then return end
+
+    cd:ClearAllPoints()
+    if style == "clock" then
+        cd:SetAllPoints(frame.iconFrame)
+        cd:SetFrameLevel(base + 4)
+        -- not opaque: the whole point of this style is watching the icon behind it
+        cd:SetSwipeColor(0, 0, 0, 0.77)
+    else
+        cd:SetAllPoints(frame)
+        cd:SetFrameLevel(base + 1)
+        --! "border" eats the coloured ring outright. For the other styles the swipe is
+        --! made INVISIBLE rather than switched off -- the Cooldown still has to run,
+        --! because it is what draws Blizzard's countdown numbers and what the previews
+        --! loop on through OnCooldownDone.
+        cd:SetSwipeColor(0, 0, 0, style == "border" and 1 or 0)
+    end
+end
+
 -- ⚠ used to be a no-op, which is why the animation option had no effect on the
 -- preview button (the preview is the only place BorderIcon carries a pool).
 local function BorderIcon_ShowAnimation(frame, style)
-    -- a BorderIcon animates with its Cooldown swipe, so a bare "on" means "clock"
-    frame.animationStyle = I.NormalizeAnimationStyle(style, frame.animationStyle or "clock")
+    frame.animationStyle = I.NormalizeAnimationStyle(style, frame.animationStyle or "border")
     if frame.animationStyle ~= "vertical" then
         VerticalMask_Clear(frame.vMask)
     end
-    if frame.cooldown and frame.cooldown.SetSwipeColor then
-        frame.cooldown:SetSwipeColor(0, 0, 0, frame.animationStyle == "clock" and 1 or 0)
-    end
+    BorderIcon_ApplySweep(frame, frame.animationStyle)
 end
 
 local function BorderIcon_ShowDuration(frame, show)
@@ -818,12 +853,7 @@ local function BorderIcon_UpdatePixelPerfect(frame)
     P.Resize(frame)
     P.Repoint(frame)
     P.Repoint(frame.iconFrame)
-    if frame.vMask then
-        frame.vMask:SetFrameLevel(frame.iconFrame:GetFrameLevel() + 1)
-        if frame.textFrame then
-            frame.textFrame:SetFrameLevel(frame.vMask:GetFrameLevel() + 1)
-        end
-    end
+    BorderIcon_ApplySweep(frame, frame.animationStyle or "border")
     P.Repoint(frame.stack)
     P.Repoint(frame.duration)
 end
@@ -860,7 +890,7 @@ function I.CreateAura_BorderIcon(name, parent, borderSize)
     frame.iconFrame = iconFrame
     P.Point(iconFrame, "TOPLEFT", frame, "TOPLEFT", borderSize, -borderSize)
     P.Point(iconFrame, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -borderSize, borderSize)
-    iconFrame:SetFrameLevel(cooldown:GetFrameLevel()+1)
+    iconFrame:SetFrameLevel(frame:GetFrameLevel() + 2) -- see BorderIcon_ApplySweep
 
     local icon = iconFrame:CreateTexture(name.."Icon", "ARTWORK")
     frame.icon = icon
@@ -870,15 +900,15 @@ function I.CreateAura_BorderIcon(name, parent, borderSize)
     -- "vertical" animation: covers the ICON, not the ring, so the dispel colour on
     -- the ring stays readable while the mask falls. Above iconFrame or the icon
     -- texture would cover it (a child frame always draws over the parent's layers).
-    frame.vMask = CreateVerticalMask(frame, iconFrame, iconFrame:GetFrameLevel() + 1)
+    frame.vMask = CreateVerticalMask(frame, iconFrame, frame:GetFrameLevel() + 3)
 
-    -- ⚠ Text goes ABOVE the mask, for the same reason: on the container path the
+    -- ⚠ Text goes ABOVE both animations, for the same reason: on the container path the
     -- countdown and stack sit at base+6/+7 while the mask is at base+3, so if these
     -- stayed on iconFrame the preview would dim its own numbers and in-game would not.
     local textFrame = CreateFrame("Frame", nil, frame)
     frame.textFrame = textFrame
     textFrame:SetAllPoints(iconFrame)
-    textFrame:SetFrameLevel(frame.vMask:GetFrameLevel() + 1)
+    textFrame:SetFrameLevel(frame:GetFrameLevel() + 5)
 
     frame.stack = textFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
     frame.duration = textFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
@@ -928,8 +958,11 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
     else
         if frame.showAnimation then
             frame.cooldown:ShowCooldown(start, duration, nil, texture, debuffType)
-            frame.duration:SetParent(frame.cooldown)
-            frame.stack:SetParent(frame.cooldown)
+            --! in "border" mode the sweep sits UNDER the icon frame, so hanging the text
+            --! off it would bury the numbers behind the icon
+            local textHost = (frame.animationStyle == "border" and frame.iconFrame) or frame.cooldown
+            frame.duration:SetParent(textHost)
+            frame.stack:SetParent(textHost)
         else
             frame.cooldown:Hide()
             frame.duration:SetParent(frame)
@@ -976,6 +1009,20 @@ end
 -- boolean). "vertical"/"clock" swap the whole cooldown widget through
 -- Shared_SetCooldownStyle, which is the same switch CELL_COOLDOWN_STYLE used to do
 -- globally -- it is now per indicator.
+-- "border" needs the icon ABOVE the sweep, so that only the 1px backdrop border
+-- animates. Created lazily and ONLY for that style: QuickAssist and the buff-tracker
+-- BarIcons never ask for it, and moving their icon into a frame would put it above the
+-- vertical mask (a child frame) and hide the mask completely.
+local function BarIcon_EnsureIconFrame(frame)
+    if not frame.iconFrame then
+        local f = CreateFrame("Frame", nil, frame)
+        frame.iconFrame = f
+        f:SetAllPoints(frame)
+        frame.icon:SetParent(f) -- its points anchor to `frame`, so they still resolve
+    end
+    return frame.iconFrame
+end
+
 local function BarIcon_ShowAnimation(frame, style)
     -- a BarIcon is built with the global CELL_COOLDOWN_STYLE, so that is what a bare
     -- "on" means for this widget
@@ -990,7 +1037,22 @@ local function BarIcon_ShowAnimation(frame, style)
         return
     end
 
-    Shared_SetCooldownStyle(frame, style == "vertical" and "VERTICAL" or "CLOCK")
+    local base = frame:GetFrameLevel()
+
+    if style == "border" then
+        Shared_SetCooldownStyle(frame, "CLOCK")
+        frame.cooldown:ClearAllPoints()
+        frame.cooldown:SetAllPoints(frame)  -- the border too, not just the inset icon
+        frame.cooldown:SetFrameLevel(base + 1)
+        frame.cooldown:SetSwipeColor(0, 0, 0, 1)
+        BarIcon_EnsureIconFrame(frame):SetFrameLevel(base + 2)
+    else
+        -- the sweep/mask belongs OVER the icon again
+        if frame.iconFrame then frame.iconFrame:SetFrameLevel(base) end
+        Shared_SetCooldownStyle(frame, style == "vertical" and "VERTICAL" or "CLOCK")
+        frame.cooldown:SetFrameLevel(base + 1)
+    end
+
     frame.cooldown:Show()
 end
 

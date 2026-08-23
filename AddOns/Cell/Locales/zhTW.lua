@@ -602,6 +602,7 @@ L["showAllSpells"] = "顯示所有法術"
 L["showAnimation"] = "顯示冷卻動畫效果"
 -- fix from MiliUI: per-indicator cooldown animation style
 L["Cooldown Animation"] = "冷卻動畫"
+L["Border Countdown"] = "外框倒數"
 L["Clock Sweep"] = "時鐘掃描"
 L["Falling Shadow"] = "陰影下落"
 L["showBackground"] = "顯示背景"

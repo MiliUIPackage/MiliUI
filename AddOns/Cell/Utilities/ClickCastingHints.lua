@@ -308,10 +308,10 @@ local function ArmCooldown(icon)
     end
 
     if GetSpellCooldownDuration then
-        --! ignoreGCD = true, otherwise every single global cooldown repaints
-        --! the whole bar. Never test the object (IsZero() returns a secret) --
-        --! just hand it over and let the engine draw whatever is left.
-        local duration = GetSpellCooldownDuration(spellId, true)
+        --! ignoreGCD left OFF: the global cooldown sweeps here too, same as an action bar.
+        --! Never test the object (IsZero() returns a secret) -- just hand it over and let
+        --! the engine draw whatever is left.
+        local duration = GetSpellCooldownDuration(spellId)
         if duration then
             cd:SetCooldownFromDurationObject(duration)
         else
@@ -319,8 +319,7 @@ local function ArmCooldown(icon)
         end
     else
         local start, duration = F.GetSpellCooldown(spellId)
-        local _, gcd = F.GetSpellCooldown(61304)
-        if start and duration and duration > 0 and duration ~= gcd then
+        if start and duration and duration > 0 then
             cd:SetCooldown(start, duration)
         else
             cd:Clear()

@@ -275,15 +275,17 @@ function eventFrame:ADDON_LOADED(arg1)
         do
             local t = CellDB["tools"]["clickCastingHints"]
             if type(t["enabled"]) ~= "boolean" then t["enabled"] = false end
-            if type(t["size"]) ~= "number" then t["size"] = 24 end
-            if type(t["perRow"]) ~= "number" then t["perRow"] = 10 end
+            if type(t["size"]) ~= "number" then t["size"] = 30 end
+            if type(t["perRow"]) ~= "number" then t["perRow"] = 5 end
             if type(t["spacing"]) ~= "number" then t["spacing"] = 2 end
             if type(t["orientation"]) ~= "string" then t["orientation"] = "left-to-right" end
             if type(t["position"]) ~= "table" then t["position"] = {} end
             -- magnet: with snap on, anchor holds an {x, y} offset from CellAnchorFrame
-            -- and position is ignored
-            if type(t["snap"]) ~= "boolean" then t["snap"] = false end
-            if t["anchor"] == nil then t["anchor"] = false end
+            -- and position is ignored. Snapped by default, parked to the left of the
+            -- raid frames -- the pack's own placement, so enabling the tool puts it
+            -- somewhere sensible instead of in the middle of the screen.
+            if type(t["snap"]) ~= "boolean" then t["snap"] = true end
+            if t["anchor"] == nil then t["anchor"] = {-139, -17} end
         end
 
         -- spellRequest ---------------------------------------------------------------------------

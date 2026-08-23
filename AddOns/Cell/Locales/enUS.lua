@@ -33,6 +33,7 @@ select(2, ...).L = setmetatable({
     ["showAnimation"] = "Show animation",
     -- fix from MiliUI: per-indicator cooldown animation style
     ["Cooldown Animation"] = "Cooldown Animation",
+    ["Border Countdown"] = "Border countdown",
     ["Clock Sweep"] = "Clock sweep",
     ["Falling Shadow"] = "Falling shadow",
     ["showStack"] = "Show stack text",

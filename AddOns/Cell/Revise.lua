@@ -3721,10 +3721,29 @@ function F.Revise()
         for _, i in pairs(layout["indicators"] or {}) do
             if ANIMATED_INDICATORS[i.indicatorName] or i.type == "icon" or i.type == "icons" then
                 if type(i.animationStyle) ~= "string" then
-                    i.animationStyle = (i.showAnimation == false) and "none" or "clock"
+                    i.animationStyle = (i.showAnimation == false) and "none" or "border"
                 end
             elseif i.animationStyle ~= nil then
                 i.animationStyle = nil
+            end
+        end
+    end
+
+    --! fix from MiliUI: "clock" used to mean what is now "border" -- the animation was a
+    --! single style whose sweep happens to land on the ring, and splitting the real clock
+    --! sweep out of it left the old value pointing at the wrong look. Rename it once.
+    --!
+    --! ⚠ Guarded by a ONE-SHOT MARKER, not by dbRevision: a revision gate would need Cell's
+    --! TOC "## Version" bumped, and that number is a release signal the user owns -- see
+    --! .claude/notes. Without the marker this would keep dragging a deliberate "clock" back
+    --! to "border" on every login.
+    if not CellDB["miliuiAnimationStyleSplit"] then
+        CellDB["miliuiAnimationStyleSplit"] = true
+        for _, layout in pairs(CellDB["layouts"] or {}) do
+            for _, i in pairs(layout["indicators"] or {}) do
+                if i.animationStyle == "clock" then
+                    i.animationStyle = "border"
+                end
             end
         end
     end
