@@ -125,12 +125,16 @@ function Spell.ApplyAura(tip, state, data)
     state.isUnitTip = nil
     -- ⚠ 不消毒：戰鬥中資料裡的 spellId 是秘密數字，但「顯示」走 format 傳遞
     -- 照樣印得出來；需要明文的（坐騎查表、圖示 ID）各自在下游把關。
-    -- 資料源依序：args[2].intVal（舊制，12.1 已不帶）→ lines[1].tooltipID
-    --（實測 12.1 光環提示的 ID 在這）→ tip:GetSpell()
+    -- 資料源依序：args[2].intVal（舊制，12.1 已不帶）→ **data.id**
+    --（log 實證：12.1 光環的 spellId 在這，戰鬥中是秘密數字）→
+    -- lines[1].tooltipID → tip:GetSpell()
     local spellId
     if type(data) == "table" then
         if type(data.args) == "table" and type(data.args[2]) == "table" then
             spellId = data.args[2].intVal
+        end
+        if spellId == nil and type(data.id) == "number" then
+            spellId = data.id
         end
         if spellId == nil and type(data.lines) == "table" and type(data.lines[1]) == "table" then
             local tid = data.lines[1].tooltipID
