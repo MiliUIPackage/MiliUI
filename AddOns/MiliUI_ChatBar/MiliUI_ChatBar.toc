@@ -20,6 +20,7 @@ embeds.xml
 Locales\Locales.xml
 
 ChatBar.lua
+Fix_ReplyTell.lua
 
 Libs\Callbacks.lua
 Libs\MiliUIWidgets\Env.lua
