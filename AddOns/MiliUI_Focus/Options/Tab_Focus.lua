@@ -24,12 +24,21 @@ end
 
 ------------------------------------------------------------
 -- 快捷鍵擷取列（共用層沒有這種控件，走 custom）
+--
+-- ⚠ 鍵盤獨佔一律用「顯示／隱藏一個專用覆蓋層」做，**不要**在按鈕上開關
+--   EnableKeyboard / SetPropagateKeyboardInput：
+--   * 快捷鍵綁定是掛在最底層的 WorldFrame 上，所以只要有**任何一個**
+--     鍵盤啟用又不轉發的框顯示著，全遊戲的快捷鍵（含 ESC）就通通不會觸發。
+--     擷取狀態一旦卡住（點了按鈕又跑去點別的地方、或還原那一步失敗），
+--     症狀是「設定視窗按 ESC 關不掉、整頁鍵盤沒反應」，完全指不到這一列。
+--   * SetPropagateKeyboardInput 從 10.1.5 起在戰鬥中是受限函式，還原那一步
+--     有機會直接失敗 —— 換成 Show/Hide 就沒有這個問題：隱藏自己的普通框
+--     永遠合法，而文件寫的是「**顯示中**才會擋掉綁定」。
+--   結果就是執行期完全不碰那兩支 API，卡不住。
 ------------------------------------------------------------
 local function BuildHotkeyRow(parent, x, y, width)
-    local capturing = false
     local btn = W.CreateButton(parent, "", "normal", 150, 22)
     btn:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 3)
-    btn:RegisterForClicks("AnyUp")   -- 中鍵 / 側鍵也要能綁
 
     local clearBtn = W.CreateButton(parent, L["Clear"], "normal", 60, 22)
     clearBtn:SetPoint("LEFT", btn, "RIGHT", 6, 0)
@@ -40,13 +49,63 @@ local function BuildHotkeyRow(parent, x, y, width)
     desc:SetWidth(width)
     desc:SetJustifyH("LEFT")
 
+    -- 擷取覆蓋層：蓋滿畫面、吃滑鼠也吃鍵盤。蓋滿是刻意的——擷取中點畫面任何
+    -- 地方都代表放棄，不會有「以為離開了其實還按著」的中間狀態。
+    local capture = CreateFrame("Frame", nil, UIParent)
+    capture:SetFrameStrata("FULLSCREEN_DIALOG")
+    capture:SetAllPoints(UIParent)
+    capture:EnableMouse(true)
+    capture:EnableKeyboard(true)
+    capture:Hide()
+    local dim = capture:CreateTexture(nil, "BACKGROUND")
+    dim:SetAllPoints()
+    dim:SetColorTexture(0, 0, 0, 0.25)   -- 淡淡壓一層，讓人知道現在是等按鍵的狀態
+
+    local Refresh, Save
+
+    local function StopCapture()
+        capture:Hide()
+        Refresh()
+    end
+
+    local function StartCapture()
+        if capture:IsShown() then return end
+        if InCombatLockdown() then
+            ns.Print(L["Can't change settings during combat"])
+            return
+        end
+        capture:Show()
+        Refresh()
+    end
+
+    capture:SetScript("OnShow", function(self)
+        -- 只在這裡設一次，而且擋掉戰鬥（10.1.5 起受限）。設不到最多是按到的鍵
+        -- 同時觸發原本的綁定，不會卡死鍵盤。
+        if not InCombatLockdown() then self:SetPropagateKeyboardInput(false) end
+    end)
+    capture:SetScript("OnKeyDown", function(_, key)
+        if key == "ESCAPE" then StopCapture() return end
+        if key == "BACKSPACE" or key == "DELETE" then Save(nil) return end
+        if Specs.HOTKEY_MODIFIER_ONLY[key] then return end
+        Save(Specs.BuildHotkeyString(key))
+    end)
+    capture:SetScript("OnMouseDown", function(_, mouseButton)
+        -- 中鍵／側鍵可以當快捷鍵，左右鍵留給「放棄」
+        local key = Specs.HOTKEY_MOUSE[mouseButton]
+        if key then Save(Specs.BuildHotkeyString(key)) else StopCapture() end
+    end)
+    -- 進戰鬥就收掉：戰鬥中還原不了轉發設定，先把框藏起來（隱藏永遠合法）
+    capture:RegisterEvent("PLAYER_REGEN_DISABLED")
+    capture:SetScript("OnEvent", StopCapture)
+
     local function HotkeyText()
         local key = ns.db.focus.hotkey
         if not key or key == "" then return "|cff808080" .. L["Not set"] .. "|r" end
         return (GetBindingText and GetBindingText(key)) or key
     end
 
-    local function Refresh()
+    function Refresh()
+        local capturing = capture:IsShown()
         btn:SetText(capturing and ("|cffffe00a" .. L["Press a key..."] .. "|r") or HotkeyText())
         local base = L["Click the button, then press the key you want. Modifiers optional. Esc cancels, Backspace clears."]
         if capturing then
@@ -67,23 +126,7 @@ local function BuildHotkeyRow(parent, x, y, width)
         desc:SetText(base)
     end
 
-    local function StopCapture()
-        if not capturing then return end
-        capturing = false
-        btn:EnableKeyboard(false)
-        btn:SetPropagateKeyboardInput(true)
-        Refresh()
-    end
-
-    local function StartCapture()
-        if capturing then return end
-        capturing = true
-        btn:EnableKeyboard(true)
-        btn:SetPropagateKeyboardInput(false)
-        Refresh()
-    end
-
-    local function Save(key)
+    function Save(key)
         StopCapture()
         if key == "" then key = nil end
         ns.db.focus.hotkey = key
@@ -96,25 +139,8 @@ local function BuildHotkeyRow(parent, x, y, width)
         end
     end
 
-    btn:SetScript("OnClick", function(_, button)
-        if not capturing then
-            if button == "LeftButton" then StartCapture() end
-            return
-        end
-        if button == "LeftButton" or button == "RightButton" then
-            StopCapture()   -- 再點一次 = 放棄擷取
-            return
-        end
-        local key = Specs.HOTKEY_MOUSE[button]
-        if key then Save(Specs.BuildHotkeyString(key)) end
-    end)
-    btn:SetScript("OnKeyDown", function(_, key)
-        if not capturing then return end
-        if key == "ESCAPE" then StopCapture() return end
-        if key == "BACKSPACE" or key == "DELETE" then Save(nil) return end
-        if Specs.HOTKEY_MODIFIER_ONLY[key] then return end
-        Save(Specs.BuildHotkeyString(key))
-    end)
+    btn:SetScript("OnClick", function() StartCapture() end)
+    -- 分頁切走／視窗關掉都要收：覆蓋層掛在 UIParent 上，不會跟著一起消失
     btn:HookScript("OnHide", StopCapture)
     clearBtn:SetScript("OnClick", function() Save(nil) end)
 

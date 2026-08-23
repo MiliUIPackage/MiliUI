@@ -77,4 +77,7 @@ SV `MiliUI_Focus_DB`、指令 `/mfocus`、NAMESPACE `MiliUIFocus`）。
   詳見 [[wow-actionbar-text-overlay-level-500]] —— 要越過的是快捷鍵**文字層的 500**，
   不是按鈕本體的 level。改成 `HIGH` 則反過來蓋掉天賦樹等暴雪面板（那些面板其實也在
   MEDIUM，只是帶 `toplevel` 會自我抬升），所以只能留在 MEDIUM 把 level 墊高。
+- **自訂快捷鍵那一列的鍵盤擷取走覆蓋層 Show/Hide**，不要在按鈕上切
+  `EnableKeyboard`／`SetPropagateKeyboardInput` —— 卡住會讓全遊戲快捷鍵含 ESC 全部失效，
+  而症狀是「設定視窗按 ESC 關不掉」。踩過一次，見 [[wow-keyboard-capture-blocks-bindings]]。
 - 載入時偵測到舊的 `MiliUI_Focuser` 全域就印一次警告（套組沒更新的人），不自動停用。
