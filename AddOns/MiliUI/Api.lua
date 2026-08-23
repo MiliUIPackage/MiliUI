@@ -7,16 +7,8 @@ function ns.OpenOptions(tabId)
     ns.Options.Open(tabId)
 end
 
--- 米利UI選單（ESC 選單「米利UI設定」滑過展開）的項目。
--- 本體排最前（order = 0），開到「插件總覽」——它就是整包的控制台。
-MiliUI_MenuEntries = MiliUI_MenuEntries or {}
-MiliUI_MenuEntries[#MiliUI_MenuEntries + 1] = {
-    key     = "pack",
-    text    = "米利UI套組",
-    icon    = "Interface\\AddOns\\MiliUI\\icon",
-    order   = 0,
-    OnClick = function() ns.OpenOptions("addons") end,
-}
+-- 刻意不往 MiliUI_MenuEntries 塞「套組」項目：ESC 那顆「米利UI設定」按鈕
+-- 點下去開的就是本體設定，選單裡再列一次是重複入口。
 
 SLASH_MILIUIPACK1 = "/miliui"
 SLASH_MILIUIPACK2 = "/mili"
