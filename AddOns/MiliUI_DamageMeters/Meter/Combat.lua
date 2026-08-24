@@ -297,6 +297,35 @@ local function OnEvent(_, event, ...)
         return
     end
 
+    if event == "PLAYER_ENTERING_WORLD" then
+        ------------------------------------------------------------
+        -- 換區／離開副本 —— **一定要在這裡強制收尾**
+        --
+        -- 打到一半被傳出戰場、競技場結束、丟掉鑰石、爐石回城…這些情況
+        -- PLAYER_REGEN_ENABLED 不保證送得到。沒有這一段的話 _inCombat 會一直是
+        -- true，ticker 就在外面的世界一直跑下去（症狀：離開戰場之後計時器還在走、
+        -- 統計還在刷新）。這是戰場／競技場最實際的一個問題。
+        ------------------------------------------------------------
+        if IsGroupInCombat() then
+            -- 死著重載／觀戰中：別硬斷，照「隊友先開怪」那條路輪詢就好。
+            -- 一樣不設 _inCombat —— 玩家可能自己根本沒進戰鬥。
+            _inCombat = false
+            _combatEndTime = 0
+            _needsFinalRefresh = true
+            if not _sharedTicker then C.StartTicker() end
+        else
+            local wasLive = _inCombat or _needsFinalRefresh or _inEncounter
+            _inEncounter = false
+            _inCombat = false
+            _needsFinalRefresh = false
+            C.StopTicker()
+            -- 剛剛還在打就把計時器釘住，不然它會停在一個沒收尾的數字
+            if wasLive and _combatEndTime == 0 then FreezeCombat() end
+            RefreshAll()
+        end
+        return
+    end
+
     if event == "PLAYER_REGEN_DISABLED" then
         if C.IsPvPBlocked() then return end   -- PvP 賽後清場的傷害不該開新分段
         BeginSegment()
@@ -384,6 +413,8 @@ end
 ns.RegisterCallback("Init", "combat", function()
     combatFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
     combatFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    -- 換區時強制收尾（離開戰場／競技場／副本時 REGEN_ENABLED 不保證送得到）
+    combatFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     combatFrame:RegisterEvent("UNIT_FLAGS")
     combatFrame:RegisterEvent("ENCOUNTER_START")
     combatFrame:RegisterEvent("ENCOUNTER_END")

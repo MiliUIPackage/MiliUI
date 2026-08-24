@@ -95,6 +95,10 @@ Enum.DamageMeterSessionType.{Current,Overall}
 - **PvP 要另外靠 `C_PvP.IsMatchActive()` 收尾**：競技場／純劣者之戰回合之間
   `IsGroupInCombat()` 一直是 true，`PLAYER_REGEN_ENABLED` 不可靠。結束後還要擋 20 秒，
   免得賽後清場的傷害開出一個新分段。
+- **`PLAYER_ENTERING_WORLD` 一定要強制收尾。** 打到一半被傳出戰場、競技場結束、
+  丟鑰石、爐石回城 —— 這些情況 `PLAYER_REGEN_ENABLED` 不保證送得到，
+  沒有這一段的話 `_inCombat` 會一直是 true，ticker 在外面的世界一直跑下去。
+  例外：全隊還在戰鬥（死著重載／觀戰）就別硬斷，走輪詢那條路。
 - **假死**：暴雪不為假死送 `UNIT_AURA`，只能監聽 `UNIT_SPELLCAST_SUCCEEDED` 抓 spellID
   5384 記 GUID，然後在死亡列表裡濾掉（`deathRecapID > 0` 對假死也成立）。
   這是高頻事件，handler 第一件事就要用整數比較早退。
@@ -146,6 +150,20 @@ DAMAGE_METER_CURRENT_SESSION_UPDATED     -- 「Current 剛剛換了」的權威�
 - **轉給下游的 handler 要包 pcall，而且要擋「handler 就是自己」**（無窮迴圈）。
 
 （同一組修正在 `DamageMeterTools` 的 12.1 修補裡也出現過一次，是通用的。）
+
+## 戰場／競技場：渲染器沒有特別的問題
+
+會在 PvP 出事的是**去改暴雪自己那些框**的插件（例如 `DamageMeterTools` 會重貼
+`DamageMeterSessionWindow*` 的材質與標題列皮膚）—— 受限 PvP 內容裡那些框是受保護的，
+碰了就跳「Blizzard UI 專屬動作遭到封鎖」。它因此在 `instanceType == "pvp"/"arena"` 時
+把那些視覺強化整個停掉。
+
+**自己畫框、只讀 `C_DamageMeter` 的渲染器沒有這個問題**，不需要在 PvP 停用或隱藏。
+真正要處理的只有兩件，兩件都在別的小節：
+1. `PLAYER_ENTERING_WORLD` 的強制收尾（上面「分段判定」那節）
+2. 競技場回合之間 `IsGroupInCombat()` 一直是 true → 靠 `C_PvP.IsMatchActive()` 收尾
+
+至於「想在 PvP 裡看不到它」純粹是偏好，做成每視窗的顯示條件選項就好。
 
 ## 12.1 秘密值紀律（這類插件特別多）
 
