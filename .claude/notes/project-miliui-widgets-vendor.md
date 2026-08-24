@@ -33,11 +33,12 @@ UnitFrames 搬到 MiliUI 本體——本體那天也改用自製視窗，順勢�
 **踩雷點**：`Env.NAMESPACE` 每個插件必須不同。`CreateFont("同名")` 回傳既有物件而非
 新的，具名 frame 也一樣 —— 撞名會讓兩個插件互相蓋掉字型設定，而且不報錯。
 
-**現況**：七個消費者——**MiliUI 本體（source，2026-08-23 起）**、UnitFrames（舊 source）、
+**現況**：八個消費者——**MiliUI 本體（source，2026-08-23 起）**、UnitFrames（舊 source）、
 **MiliUI_Tooltip**（2026-08-22，見 [[project-miliui-tooltip]]）、**MiliUI_Focus**
 （2026-08-22，見 [[project-miliui-focus-addon]]）、**MiliUI_BurstPotionHelper／
 MiliUI_BloodlustMusic／MiliUI_ChatBar**（2026-08-23，見
-[[project-miliui-esc-menu-window-migration]]）。
+[[project-miliui-esc-menu-window-migration]]）、**MiliUI_DamageMeters**（2026-08-24，見
+[[project-miliui-damagemeters]]）。
 設定視窗本體（`Options/Panel.lua`）仍是各插件自己組裝（簡化版：無搜尋、無小地圖鈕）；
 設定搜尋刻意不進包，理由寫在 README 末段。
 本體的視窗（2026-08-23）比別家多：頂部 banner（職業色漸層＋版本號，零圖檔）、開窗
@@ -45,7 +46,7 @@ MiliUI_BloodlustMusic／MiliUI_ChatBar**（2026-08-23，見
 分組清單＋勾選批次開關插件＋詳情面板含擷圖/說明/CPU/開啟設定按鈕；擷圖放
 `MiliUI/Media/Shots/<key>.png` 840x420，佔位圖墊底所以不用偵測檔案存在）。
 NAMESPACE 已用掉：MiliUIPack（本體）/MiliUIUF/MiliUITip/MiliUIFocus/MiliUIChatBar/
-MiliUIBurst/MiliUIBLM。舊 `MiliUI/Settings.lua`（暴雪 canvas 面板）已刪，importRegistry
+MiliUIBurst/MiliUIBLM/MiliUIDM。舊 `MiliUI/Settings.lua`（暴雪 canvas 面板）已刪，importRegistry
 搬到 `MiliUI/Options/Tab_Import.lua`。
 
 **`custom` spec（2026-08-22 加，共用層唯一一次擴充）**：`Controls.Build` 多了
