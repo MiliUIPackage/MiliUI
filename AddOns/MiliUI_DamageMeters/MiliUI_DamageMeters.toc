@@ -1,0 +1,60 @@
+## Interface: 120100, 120105
+## Title: MiliUI Damage Meters
+## Title-zhTW: |cffFF7C0A[統計]|r 米利的傷害統計
+## Title-zhCN: |cff4488FF[MiliUI]|r 米利的伤害统计
+## Notes: Lightweight damage meter built on Blizzard's C_DamageMeter API — it never parses the combat log, so the cost scales with visible rows instead of raid size.|n|n|cffffd200Usage: |r/mdm opens settings.
+## Notes-zhTW: MiliUI Damage Meters|n|n米利的傷害統計。|n|n加總由暴雪的 C_DamageMeter 完成，完全不解析戰鬥記錄，成本只跟看得到幾列有關。|n|n|cffffd200使用方法: |r/mdm 開啟設定。
+## Notes-zhCN: MiliUI Damage Meters|n|n米利的伤害统计。|n|n汇总由暴雪的 C_DamageMeter 完成，完全不解析战斗记录，成本只跟看得到几行有关。|n|n|cffffd200使用方法: |r/mdm 打开设置。
+## Category: Combat
+## Category-zhTW: 戰鬥
+## Category-zhCN: 战斗
+## Author: Mili
+## Version: 1.0.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\Ability_DualWield
+## SavedVariables: MiliUI_DamageMeters_DB
+## AddonCompartmentFunc: MiliUIDamageMeters_OnAddonCompartmentClick
+## OptionalDeps: LibSharedMedia-3.0
+
+# 像素工具單獨排最前面：其他模組（Data.Px）也吃 ns.P
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\Callbacks.lua
+
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+
+# Init 要在 Media 之前：Media 在檔案層就用 ns.playerClass 算強調色
+Core\Init.lua
+Core\Media.lua
+Core\DB.lua
+
+# Window 要在 Rows / Breakdown / Tooltip / Home / Manager 之前（它們在檔案層取 ns.Window）
+Meter\Data.lua
+Meter\Combat.lua
+Meter\Menu.lua
+Meter\Window.lua
+Meter\Rows.lua
+Meter\Breakdown.lua
+Meter\Tooltip.lua
+Meter\Home.lua
+Meter\Builtin.lua
+Meter\Move.lua
+Meter\Manager.lua
+
+# 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\Controls.lua
+
+Options\Specs.lua
+Options\Panel.lua
+Options\Tab_General.lua
+Options\Tab_Bars.lua
+Options\Tab_Text.lua
+Options\Tab_Window.lua
+Options\Tab_Each.lua
+Options\Tab_About.lua
+Options\Blizzard.lua
+
+Api.lua

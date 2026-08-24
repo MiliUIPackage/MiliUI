@@ -1,0 +1,181 @@
+---
+name: project-miliui-damagemeters
+description: 自製傷害統計 MiliUI_DamageMeters —— 走 C_DamageMeter 渲染器路線，架構決策與踩過的點
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: bc14d1ba-6f88-47b5-925d-02454b87ba76
+  modified: 2026-08-24T04:06:36.908Z
+---
+
+`AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，v1.0.0）。SavedVariables=`MiliUI_DamageMeters_DB`，
+指令 `/mdm`，NAMESPACE=`MiliUIDM`。約 5500 行、392KB。
+
+**設計哲學整包抄 `tmp/EUIStandaloneDamageMeters`**，通則寫在
+[[wow-damagemeter-c-api-design]]（不解析戰鬥記錄、固定 bar 池、cacheKey、每列備忘、
+可視剔除、分段判定的髒事件、秘密值紀律）。**動這支之前先看那份筆記。**
+
+## 檔案分工
+
+```
+Core/     Init（啟動＋HAS_API 客戶端閘）/ Media（字型、材質、職業色）/ DB
+Meter/    Data（C_DamageMeter 包裝＋秘密值守衛＋數字格式）
+          Combat（戰鬥狀態機＋共用 ticker）  Menu（視窗內選單）
+          Window（視窗工廠）  Rows（熱路徑繪製）  Breakdown  Tooltip  Home
+          Move（拖曳／縮放／磁吸／編輯模式）  Manager（視窗池、統一套用、選單內容）
+Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗／關於）
+```
+
+## 七個跟 EUI 不一樣的決定（都是刻意的）
+
+1. **拆函式，不要頂 upvalue 天花板。** EUI 的 `CreateDMWindow` 是單一 2300 行函式，
+   已經撞到 Lua 5.1 的 60 upvalue 上限，所以它到處在把 helper 從 `ns` 繞回來拿。
+   這裡工廠只建 `W`（frame 樹＋池），繪製／拖曳／展開／首頁都是模組層級函式、`W` 當第一參數。
+2. **視窗池化，不做 Destroy。** frame 在 WoW 刪不掉（[[wow-frame-lifecycle-costs]]），
+   EUI 的 Destroy 是 Hide + SetParent(nil)，視窗數 3→1→3 來回調就留一堆孤兒。
+   這裡 `_pool[idx]` 建一次，數量只決定「顯示到第幾個」。
+3. **unlock mode → 編輯模式覆蓋層。** EUI 為了自家的解鎖模式寫了 12871 行；
+   這裡走 `EditModeSystemSelectionTemplate`（[[wow-editmode-draggable]] 技能），
+   外加標題列直接拖曳。
+4. **位置存 TOPLEFT 位移，不是編輯模式技能推薦的 CENTER 位移。**
+   這是可縮放視窗——錨 CENTER 從右下角拉大會讓整個框往左上漂。
+5. **磁吸做成設定**（使用者要求）：`style.snapEnabled` ＋ 每視窗 `snapDisabled`（右鍵選單）。
+   而且 **X/Y 兩軸都吸**，EUI 只吸 X 軸與寬高。拖曳自己算游標位移不用 `StartMoving`，
+   因為磁吸要在拖的當下就吸住。
+6. **標題職業色**（使用者要求）：`hdrTextUseClassColor` 預設開，用玩家自己的職業色
+   ＝ `Media.Accent()` ＝ MiliUIWidgets 的 `Env.Accent()`，整包同一個來源。關掉走自訂色。
+7. **細線樣式，而且是預設**（使用者要求）：`style.barStyle` = `line-bottom`（預設）／
+   `line-top`／`fill`。細線**不是把填滿條變矮**，是另外一條 1~6px 的 StatusBar
+   （`Win.ApplyBarStyle` 回傳「實際要餵值的那條」，呼叫端存 `bar._target`）。
+   兩個關鍵：
+   - 填滿條要留著當圖示與文字的容器 → 隱藏它要用 `SetStatusBarColor(0,0,0,0)`，
+     **不能用 `SetAlpha(0)`**（那會連子物件一起隱形）。
+   - 兩條都是 StatusBar，長度由引擎用同一套 min/max/value 算 → 不必去量填滿條的寬度，
+     而那個寬度在秘密值下本來就量不得。
+   副作用（好的）：細線模式下填滿條從來沒收過秘密值 → 它與掛在它身上的圖示／文字層
+   幾何都是乾淨的。
+   預設字級同時改成 12 ＋ `fontOutline = "OUTLINE"`。
+
+## 資產
+
+- **材質 `tuktex.tga` 從 MiliUI_UnitFrames 複製一份**（md5 相同），預設值就用它，
+  LSM 註冊名同樣是 `"MiliUI TukTex"`。**不要指到 UnitFrames 的路徑**——插件是單體發佈的，
+  玩家可能只裝這一支。同名註冊誰先載入誰成功，另一邊靜默失敗，但兩邊解析都走自己的
+  `M.TEXTURES`，不受影響。做法見 [[project-miliui-widgets-vendor]] 的同一套邏輯。
+- **標題列六款圖示是 Pillow 畫的**，腳本在 `miliui-damagemeter-icons` 技能。
+  第一版用暴雪的 `Interface\Buttons\*`，使用者回報「好糊」——那些是 16~32px 的舊素材，
+  而且六張來自三個不同年代，湊一排像雜牌軍。**也不要改用 atlas**（消失時是靜默失敗）。
+
+## 踩過 / 差點踩到的點
+
+- **`{ [Enum.X.Y] = ... }` 在舊客戶端是載入時硬錯**（table index is nil）。
+  類型名稱／圖示／排序三張表改成逐筆檢查再塞。
+- **`header` 必須是 Button 不是 Frame**：右鍵選單走 `OnClick`，那是 Button 才有的腳本。
+- **`Win.MakeBar` 建立時就要給字型**：沒有字型物件的 FontString 一 `SetText` 就丟錯，
+  而不是每條路徑都會經過 `RelayoutBar`（展開頁的名次欄就不會）。
+- **選單裡的開關項目要「原地重畫」**：直接再呼叫 `Menu.Show` 會撞上「同一顆再按一次＝關閉」
+  而把選單關掉。加了 `keepAnchor` 參數，並記住上次解出來的錨點。
+- **`Move.UpdateEditState` 在開檔時就可能被呼叫**（編輯模式已經開著），
+  而 `Manager.lua` 在 TOC 排在 `Move.lua` 之後 → 要 guard `if not ns.Windows then return end`。
+- **標題不要放進每秒的刷新迴圈**：`FitTitle` 有一個 `GetStringWidth` 的截字迴圈。
+  它只在切類型／切分段／改尺寸時會變，那三條路各自叫一次就好。
+- **首頁蓋著的時候不要畫長條**（`Rows.Render` 的 `painting` 閘）：首頁自己就要為八種類型
+  各問一次 API，是最貴的一頁。
+- **細線與填滿條都錨在 `bar.row`**，不是「線錨在填滿條上」（EUI 是後者）。
+  填滿條的幾何在秘密值下是髒的，不要讓它往下傳染。
+- **確認彈窗一進「關於」分頁就自己跳出來**：`W.CreateConfirmPopup` 建完沒有 `Hide()`，
+  而 `W.CreateFrame` 預設是顯示的。修在共用層（八份同步），見
+  [[project-miliui-widgets-vendor]]。
+- **`SetStatusBarTexture` 不會清掉 `SetStatusBarColor`。** 細線樣式把填滿條的頂點色
+  設成 `(0,0,0,0)` 當隱形容器，換回實心時那個全透明**原封不動留著** —— 症狀是
+  「選了實心填滿沒反應，要 /reload 才出現」（reload 後 bar 是全新建的，沒有殘留）。
+  離開細線樣式時要 `SetStatusBarColor(1,1,1,1)` 把它救回來。EUI 的 `ClearThinLine`
+  有一模一樣的註解，它也踩過。
+- **外觀設定要在 `Win.ApplyStyle` 裡直接套，不能只交給繪製路徑。**
+  `RelayoutBar` 只走「有資料而且在可視範圍內」的列 —— 改樣式的當下若沒有資料
+  （剛登入、剛重置），就會留在舊樣式直到下一場戰鬥。
+- **事件名稱猜錯 ＋ 被 pcall 吞掉。** 寫成 `COMBAT_SESSION_UPDATED`（漏了
+  `DAMAGE_METER_` 前綴），`RegisterEvent` 拋錯被 pcall 吃掉 → 閒置時視窗永遠不更新，
+  零徵兆。現在名稱照 EUI 抄，註冊失敗會記進 `ns.errors`（`/mdm debug` 看得到）。
+  **通則：包 pcall 可以，但不能讓失敗無聲。**
+- **戰鬥中點別人的列會開出空白展開頁**：秘密 GUID 被 getter 拒收、錯誤被我們的 pcall
+  吃掉。要在呼叫**之前**擋（只放行死亡與自己那一列），細節見
+  [[wow-damagemeter-c-api-design]]。
+- **拖曳／縮放進行中不能再 SetPoint / SetSize。** `Move.ApplyPosition` 與
+  `Win.ApplyStyle` 都要看 `W._drag / W._resize` 早退，否則會跟逐幀的 SetPoint 打架
+  （畫面上是視窗抽動）。EUI 也留了同一道守衛。
+- **語系稽核的兩個假警報**：類型名稱本來寫成 `L[D.TYPE_NAMES[t]]` 間接查表，
+  被 `miliui-locale-audit` 報成「多餘 8 條」→ 改成在 `TYPE_DEFS` 就用字面字串查好。
+  註解裡寫 `L["字面量"]` 也會被掃進去，別在註解裡寫這種形狀。
+
+## 第一次擺放：接手暴雪內建統計視窗的位置
+
+**暴雪內建的傷害統計視窗叫 `DamageMeterSessionWindow1` ~ `3`**（12.0 起，最多三個）。
+是從本機的 `DamageMeterTools` 插件挖出來的 —— 那支是專門增強內建統計的，
+要找內建統計相關的框架名稱先翻它。
+
+沒有存過位置時的順序：內建視窗的位置 → 左上角（邊距 16）。**不放畫面中央**
+（統計視窗擺中間會壓到施法條與角色）。同編號接手就原地照抄，只接到第一個就錯開 24px。
+
+兩個實作要點：
+- `wdb.autoPlaced` 記號：接不到時設 true，代表「這位置是我們挑的、玩家還沒碰過」。
+  登入 3 秒後 `Move.RetryAdoptBlizzardPosition()` 再試一次（內建視窗可能比我們晚建好）。
+  記號存在 SV，這次沒接到下次登入還會再試。玩家一拖曳／一動設定頁就清掉。
+- **不去猜 `Blizzard_DamageMeter` 這個插件名**配 `ContinueOnAddOnLoaded` —— 猜錯是靜默
+  失效。直接延遲看 `_G` 比較實在。
+- 讀內建視窗的 `GetLeft/GetTop` 要過 `D.IsSecret`：它會把秘密值餵給自己的長條，
+  幾何有被污染的可能，讀到秘密就當作沒有這個位置。
+
+## 內建統計：藏起來自己做，關掉交給玩家按
+
+`Meter/Builtin.lua` 是跟暴雪內建統計互動的唯一出口。視窗叫
+`DamageMeterSessionWindow1` ~ `3`（名字從本機 `DamageMeterTools` 挖的）。
+
+**官方開關是 CVar `damageMeterEnabled`**，不是 Edit Mode 版面資料 ——
+出處是 `Blizzard_DamageMeter/DamageMeter.lua` 的 `DAMAGE_METER_ENABLED_CVAR`
+（Gethe/wow-ui-source 查到的），對應「選項 → 遊戲體驗強化 → 傷害量表 → 啟用傷害量表」。
+**一開始誤判成「沒有官方開關、只能動 Edit Mode」，是錯的** —— 那一整層設定面板幾乎都是 CVar 撐的，
+先去 `Blizzard_<系統>` 的原始碼找 `*_CVAR` 常數再下結論。
+
+兩件事分開做：
+
+- **藏起來**（`style.hideBuiltinMeter`，**預設開**）：只改 `SetAlpha` 與 `EnableMouse`。
+  兩個統計框同時出現又醜又讓人分不清。
+  ⚠ **不要 `Hide()`／`SetParent`／`ClearAllPoints`** —— Edit Mode 管的框碰了會讓暴雪自己的
+  `RegisterEvent` 在非戰鬥變成禁止動作（[[project-miliui-hide-blizzard-taint]]）。
+  DamageMeterTools 的戰鬥隱藏也是一路只用 alpha。
+  代價要對玩家講明：**框還在、還在跑、還在吃資源**。
+- **關掉**（真的省資源）：`SetCVar("damageMeterEnabled", 0)`。CVar 改得動也還原得回去，
+  但**還是不自動改** —— 那是玩家的設定，靜默改掉他移除插件後會一頭霧水。
+  做法是「偵測 ＋ 開場提醒一次 ＋ 設定頁一顆按鈕」，由他按。
+
+四個實作細節：
+- **編輯模式期間一律放它出來**，否則玩家沒辦法搬它、也沒辦法關掉它。
+- **只寫「我們動過的」視窗**（`_state[i]` 記帳）。DamageMeterTools 也在驅動同一個 alpha，
+  無條件寫 `SetAlpha(1)` 會把它洗掉。
+- **換分身／換區要重套**（`PLAYER_ENTERING_WORLD`）—— 內建視窗會重新擺好。
+- 提醒的印記存 SV，**玩家關掉時自動歸零**，所以之後若又打開還會再提醒一次。
+  延後 8 秒才講（登入瞬間會被一堆插件的問候洗掉）。
+- CVar 變動走 `CVarCallbackRegistry:RegisterCallback`（暴雪自己那套，Blizzard_DamageMeter
+  也用它），包 pcall —— 簽章不是穩定 API，失敗就退回「換區時再檢查」。
+
+## 發佈前：改預設值不配遷移
+
+**這支還沒發佈**（2026-08-24 使用者明確交代），所以調任何 `BuildDefaults()` 的值都
+直接改，不要寫遷移。`MergeDefaults` 只補 nil，發佈之後才需要「版本閘＋值閘」那一套。
+
+副作用要講清楚：**已經跑過一次的機器，SavedVariables 裡的舊值會留著**，
+改預設值對自己這台沒有效果 —— 要看新預設得 `/mdm resetall`（整包還原並重載）
+或到設定頁手動調。
+
+## 待驗證（都還沒進遊戲跑過）
+
+- `C_DamageMeter` 的欄位名是從 EUI 的原始碼抄的，沒有實機對過
+- 標題列六張圖示在遊戲內 22px 的實際觀感（只在 Pillow 端看過模擬）
+- 秘密值路徑：受限內容裡的名字／數字／GUID 有沒有漏掉的 guard
+- 磁吸手感（`snapThreshold` 預設 6 是抄 EUI 的）
+- 細線樣式在 18px 列高 ＋ 12pt 描邊字下的實際觀感（參考圖的列看起來比 18px 高）
+- 分段判定的各種邊界（連拉、滅團、PvP 回合間、假死）
+
+相關：[[wow-damagemeter-c-api-design]]、[[project-miliui-widgets-vendor]]、
+[[wow-121-secret-values]]、[[wow-frame-lifecycle-costs]]

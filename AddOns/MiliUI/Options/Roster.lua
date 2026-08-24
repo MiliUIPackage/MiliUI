@@ -36,6 +36,7 @@ ns.AddonRoster = {
         { key = "MiliUI_ChatBar", folders = { "MiliUI_ChatBar" }, menuKey = "chatbar" },
         { key = "MiliUI_BurstPotionHelper", folders = { "MiliUI_BurstPotionHelper" }, menuKey = "burstpotion" },
         { key = "MiliUI_BloodlustMusic", folders = { "MiliUI_BloodlustMusic" }, menuKey = "bloodlustmusic" },
+        { key = "MiliUI_DamageMeters", folders = { "MiliUI_DamageMeters" }, menuKey = "damagemeters" },
         { key = "MiliUI_AdventureGuideSpecCompare", folders = { "MiliUI_AdventureGuideSpecCompare" }, slash = "/agsc" },
 
         -- ===== 介面與外觀 =====
