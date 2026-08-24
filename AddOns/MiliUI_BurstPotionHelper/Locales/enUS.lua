@@ -53,7 +53,6 @@ L["LABEL_T2"]            = "Medium quality"
 L["LABEL_T1"]            = "Normal quality"
 
 -- Messages
-L["MSG_LOADED"]          = "loaded. Bind |cff33ff33%s|r in your burst macro; click a potion on the bar to switch quickly."
 L["MSG_SWITCHED"]        = "switched to |cff33ff33%s|r x%d"
 L["MSG_SWITCHED_Q"]      = "switched to |cff33ff33%s (%s)|r x%d"
 L["MSG_DISABLED"]        = "burst potion disabled — the macro won't drink anything."

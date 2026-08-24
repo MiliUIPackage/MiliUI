@@ -5,7 +5,6 @@ if not L then return end
 -- Addon
 L["ADDON_NAME"] = "米利的嗜血音樂"
 L["ADDON_TITLE"] = "嗜血/英勇倒數條"
-L["LOADED_MSG"] = "|cff00ff00米利的嗜血音樂:|r 已載入 — /blm 開啟設定"
 
 -- Settings Categories
 L["SETTINGS_MUSIC"] = "音樂設定"

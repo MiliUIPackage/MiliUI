@@ -544,7 +544,6 @@ f:SetScript("OnEvent", function(_, event, arg1)
         -- won't render child frames created during its own first OnShow (you'd
         -- have to click the subcategory a few times); pre-creating avoids that.
         if ns.RefreshSettingsList then ns.RefreshSettingsList() end
-        ns.Print(L.MSG_LOADED:format(ns.MACRO_LINE))
     elseif event == "PLAYER_ENTERING_WORLD" then
         -- Fires after every loading screen, when GetInstanceInfo is reliable —
         -- the one place the environment context can change.

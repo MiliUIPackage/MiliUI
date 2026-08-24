@@ -822,8 +822,6 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             end
         end)
 
-        print(L["LOADED_MSG"])
-
     elseif event == "PLAYER_ENTERING_WORLD" then
         -- Fires at login and after every loading screen (zone/instance
         -- change). Auras re-detected within this window are pre-existing,

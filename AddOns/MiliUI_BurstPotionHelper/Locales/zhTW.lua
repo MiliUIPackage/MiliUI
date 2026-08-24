@@ -49,7 +49,6 @@ L["LABEL_T3"]            = "高品質"
 L["LABEL_T2"]            = "中品質"
 L["LABEL_T1"]            = "一般品質"
 
-L["MSG_LOADED"]          = "已載入。把 |cff33ff33%s|r 放進你的爆發巨集，點擊切換列上的藥水可快速切換藥水。"
 L["MSG_SWITCHED"]        = "已切換至 |cff33ff33%s|r x%d"
 L["MSG_SWITCHED_Q"]      = "已切換至 |cff33ff33%s（%s）|r x%d"
 L["MSG_DISABLED"]        = "已停用爆發藥水"

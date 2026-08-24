@@ -49,7 +49,6 @@ L["LABEL_T3"]            = "高品质"
 L["LABEL_T2"]            = "中品质"
 L["LABEL_T1"]            = "一般品质"
 
-L["MSG_LOADED"]          = "已加载。把 |cff33ff33%s|r 放进你的爆发宏，点击切换条上的药水可快速切换药水。"
 L["MSG_SWITCHED"]        = "已切换至 |cff33ff33%s|r x%d"
 L["MSG_SWITCHED_Q"]      = "已切换至 |cff33ff33%s（%s）|r x%d"
 L["MSG_DISABLED"]        = "已停用爆发药（宏不会喝药）"

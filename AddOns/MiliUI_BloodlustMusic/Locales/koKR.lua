@@ -5,7 +5,6 @@ if not L then return end
 -- Addon
 L["ADDON_NAME"] = "MiliUI 영웅심 음악"
 L["ADDON_TITLE"] = "영웅심/피의 욕망 카운트다운"
-L["LOADED_MSG"] = "|cff00ff00MiliUI 영웅심 음악:|r 로드됨 — /blm 설정 열기"
 
 -- Settings Categories
 L["SETTINGS_MUSIC"] = "음악 설정"

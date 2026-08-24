@@ -4,7 +4,6 @@ local L = LibStub("AceLocale-3.0"):NewLocale("MiliUI_BloodlustMusic", "enUS", tr
 -- Addon
 L["ADDON_NAME"] = "MiliUI BloodlustMusic"
 L["ADDON_TITLE"] = "Bloodlust / Heroism Countdown"
-L["LOADED_MSG"] = "|cff00ff00MiliUI BloodlustMusic:|r loaded — /blm to configure"
 
 -- Settings Categories
 L["SETTINGS_MUSIC"] = "Music Settings"
