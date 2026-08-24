@@ -60,6 +60,7 @@ Enhance\TinyInspectRemake_GearSlots.lua
 Enhance\TinyInspectRemake_TrackColors.lua
 Enhance\GameplayCVars.lua
 Enhance\WorldMapCoords.lua
+Enhance\Delves_MarkButton.lua
 Enhance\Chattynator_TabStyle.lua
 Enhance\CharacterNotes.lua
 Enhance\DBM_PrivateAura.lua

@@ -126,6 +126,26 @@ local CONTROLS = {
         .. "登入自動停用它們，避免兩套功能重疊。取消勾選則不再自動處理，並把先前停用的重新啟用。" },
 }
 
+-- 探究「標記敦敦」按鈕。
+-- ⚠ 這一段是在檔案層條件加進去的，不是寫在 CONTROLS 字面裡：名字目前只有繁中的
+-- 「敦敦」，其他語系的叫法還沒查，硬留一個按了只會 /target 失敗的選項更糟。
+-- 這裡不能問 MiliUI_DelveMarkButton.IsAvailable()——Enhance 的模組在 TOC 排在
+-- 本檔**之後**，這個時間點它還不存在，所以直接看語系（兩邊同一道閘）。
+if GetLocale() == "zhTW" then
+    tinsert(CONTROLS, { type = "header", label = "探究" })
+    tinsert(CONTROLS, { type = "toggle", label = "顯示「點擊標記敦敦」按鈕",
+        get = function() return MiliUI_DelveMarkButton and MiliUI_DelveMarkButton.IsEnabled() end,
+        set = function(v) if MiliUI_DelveMarkButton then MiliUI_DelveMarkButton.SetEnabled(v) end end })
+    tinsert(CONTROLS, { type = "text", label = "在豐碩探究裡、而且探究等級已經到 3（寶藏獵人）時，"
+        .. "畫面上多一顆按鈕，點一下就 /target 敦敦 並標上骷髏（/tm 8）。"
+        .. "按鈕可以拖曳移動，戰鬥中不能移動。|n"
+        .. "沒出現的話在探究裡輸入 /run MiliUI_DelveMarkButton.Debug() 看判定卡在哪一關。" })
+    tinsert(CONTROLS, { type = "button", label = "", text = "重設按鈕位置", width = 120,
+        onClick = function()
+            if MiliUI_DelveMarkButton then MiliUI_DelveMarkButton.ResetPosition() end
+        end })
+end
+
 -- spec 自帶 get/set，ctx 只是轉接
 local ctx = {
     get = function(spec) if spec.get then return spec.get() end end,
