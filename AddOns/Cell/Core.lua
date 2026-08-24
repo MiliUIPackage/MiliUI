@@ -265,62 +265,35 @@ function eventFrame:ADDON_LOADED(arg1)
             }
         end
 
-        -- fix from MiliUI: click-casting hints is newer than the block above, so it has to
-        -- be topped up separately or existing databases never get it. Per KEY, not per
+        -- fix from MiliUI: click-casting hints is newer than the block above, so it has
+        -- to be topped up separately or existing databases never get it. Per KEY, not per
         -- table: options added after the tool shipped would otherwise never reach anyone
         -- who already has the table.
-        if type(CellDB["tools"]["clickCastingHints"]) ~= "table" then
-            CellDB["tools"]["clickCastingHints"] = {}
-        end
+        -- The VALUES live with the tool (Utilities/ClickCastingHints.lua) so that this and
+        -- its "restore defaults" button cannot disagree about what default means.
         do
+            if type(CellDB["tools"]["clickCastingHints"]) ~= "table" then
+                CellDB["tools"]["clickCastingHints"] = {}
+            end
             local t = CellDB["tools"]["clickCastingHints"]
-            if type(t["enabled"]) ~= "boolean" then t["enabled"] = false end
-            if type(t["size"]) ~= "number" then t["size"] = 30 end
-            if type(t["perRow"]) ~= "number" then t["perRow"] = 5 end
-            if type(t["spacing"]) ~= "number" then t["spacing"] = 2 end
-            if type(t["orientation"]) ~= "string" then t["orientation"] = "left-to-right" end
+            local d = Cell.defaults.clickCastingHints
+
+            for key, value in pairs(d) do
+                if type(value) ~= "table" and type(t[key]) ~= type(value) then
+                    t[key] = value
+                end
+            end
+
             if type(t["position"]) ~= "table" then t["position"] = {} end
-            -- magnet: with snap on, anchor holds an {x, y} offset from CellAnchorFrame
-            -- and position is ignored. Snapped by default, parked to the left of the
-            -- raid frames -- the pack's own placement, so enabling the tool puts it
-            -- somewhere sensible instead of in the middle of the screen.
-            if type(t["snap"]) ~= "boolean" then t["snap"] = true end
-            if t["anchor"] == nil then t["anchor"] = {-139, -17} end
-            -- keybind label: master switch, then what each key is drawn as. An EMPTY
-            -- string on a mouse button means "use the glyph"; anything else is used
-            -- literally, so a player can put their own wording there.
-            if type(t["showKeys"]) ~= "boolean" then t["showKeys"] = true end
+            --! ⚠ anchor is topped up on nil ONLY. `false` is a real value there -- it means
+            --! "dragged away from Cell" -- so a type check would haul a detached bar back
+            --! onto the raid frames on every login.
+            if t["anchor"] == nil then t["anchor"] = F.Copy(d["anchor"]) end
+
             if type(t["keyLabels"]) ~= "table" then t["keyLabels"] = {} end
-            local k = t["keyLabels"]
-            if type(k["left"]) ~= "string" then k["left"] = "" end
-            if type(k["right"]) ~= "string" then k["right"] = "" end
-            if type(k["middle"]) ~= "string" then k["middle"] = "" end
-            -- the trailing "+" is what separates the modifier from the key: "S+R" reads
-            -- as a combination, "SR" reads as one token
-            if type(k["alt"]) ~= "string" then k["alt"] = "A+" end
-            if type(k["ctrl"]) ~= "string" then k["ctrl"] = "C+" end
-            if type(k["shift"]) ~= "string" then k["shift"] = "S+" end
-            if type(k["meta"]) ~= "string" then k["meta"] = "M+" end
-            -- where the keybind sits on the icon. Default: floating just above it, so it
-            -- never covers the art and never fights the countdown at the bottom.
-            if type(t["keyAnchor"]) ~= "string" then t["keyAnchor"] = "TOP" end
-            if type(t["keyX"]) ~= "number" then t["keyX"] = 0 end
-            if type(t["keyY"]) ~= "number" then t["keyY"] = 5 end
-            -- ⚠ a FIXED size, never derived from the icon size. The label's width depends
-            -- on how much the player wrote in it, so auto-fitting made the text jump
-            -- between icons; one number they control is more predictable than a clever one.
-            if type(t["keyFontSize"]) ~= "number" then t["keyFontSize"] = 12 end
-            -- and where the cooldown number sits: centred, the way a cooldown normally
-            -- reads. The keybind floats ABOVE the icon (keyY = 10) rather than on it, so
-            -- the two never actually collide.
-            if type(t["durationAnchor"]) ~= "string" then t["durationAnchor"] = "CENTER" end
-            if type(t["durationX"]) ~= "number" then t["durationX"] = 0 end
-            if type(t["durationY"]) ~= "number" then t["durationY"] = -4 end
-            -- fixed, for the same reason as keyFontSize: nothing here should change size
-            -- because of how big the icons happen to be
-            if type(t["durationFontSize"]) ~= "number" then t["durationFontSize"] = 15 end
-            -- only show the number once the cooldown is under this many seconds; 0 = always
-            if type(t["durationThreshold"]) ~= "number" then t["durationThreshold"] = 60 end
+            for key, value in pairs(d["keyLabels"]) do
+                if type(t["keyLabels"][key]) ~= "string" then t["keyLabels"][key] = value end
+            end
         end
 
         -- spellRequest ---------------------------------------------------------------------------

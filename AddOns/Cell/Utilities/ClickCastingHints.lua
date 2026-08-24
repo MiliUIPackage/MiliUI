@@ -25,6 +25,48 @@ local ceil, floor, max, min, abs = math.ceil, math.floor, math.max, math.min, ma
 local MOVER_MIN_WIDTH, MOVER_MIN_HEIGHT = 60, 20
 
 -------------------------------------------------
+-- defaults
+-------------------------------------------------
+--! ⚠ ONE copy of these values, here, because two things read them: Core's per-key top-up
+--! (which fills whatever a saved database is missing) and the "restore defaults" button.
+--! Written out twice they drift, and the drift is invisible -- the button would quietly
+--! restore a look nobody has shipped.
+--! Read at ADDON_LOADED, which fires after every file in the addon has run, so Core can
+--! use it even though this file loads long after Core.lua.
+Cell.defaults.clickCastingHints = {
+    ["enabled"] = false,
+    ["size"] = 30,
+    ["perRow"] = 5,
+    ["spacing"] = 2,
+    ["orientation"] = "left-to-right",
+    ["position"] = {},
+    -- magnet: with snap on, anchor holds an {x, y} offset from CellAnchorFrame and
+    -- position is ignored. Snapped by default and parked to the left of the raid frames --
+    -- the pack's own placement, so enabling the tool puts it somewhere sensible rather
+    -- than in the middle of the screen.
+    ["snap"] = true,
+    ["anchor"] = {-139, -17},
+    -- keybind label: master switch, then what each key is drawn as. An EMPTY string on a
+    -- mouse button means "use the glyph"; anything else is used literally.
+    ["showKeys"] = true,
+    ["keyLabels"] = {
+        ["left"] = "", ["right"] = "", ["middle"] = "",
+        -- the trailing "+" is what separates the modifier from the key: "S+R" reads as a
+        -- combination, "SR" reads as one token
+        ["alt"] = "A+", ["ctrl"] = "C+", ["shift"] = "S+", ["meta"] = "M+",
+    },
+    -- the keybind floats just above the icon, so it never covers the art
+    ["keyAnchor"] = "TOP", ["keyX"] = 0, ["keyY"] = 5,
+    -- ⚠ FIXED sizes, never derived from the icon size: a label's width depends on how much
+    -- the player wrote in it, so auto-fitting made neighbouring icons disagree
+    ["keyFontSize"] = 12,
+    ["durationAnchor"] = "CENTER", ["durationX"] = 0, ["durationY"] = -4,
+    ["durationFontSize"] = 15,
+    -- only show the number once the cooldown is under this many seconds; 0 = always
+    ["durationThreshold"] = 60,
+}
+
+-------------------------------------------------
 -- frame
 -------------------------------------------------
 local hintsFrame = CreateFrame("Frame", "CellClickCastingHintsFrame", Cell.frames.mainFrame, "BackdropTemplate")
@@ -738,6 +780,11 @@ local function UpdatePerLineLabel(orientation)
     end
 end
 
+--! ⚠ forward declaration -- the reset button's handler is written inside CreatePane,
+--! which is above the body. A `local function` declared below its call site resolves to a
+--! nil GLOBAL there, and nothing complains until the button is actually clicked.
+local RestoreDefaults
+
 --! ⚠ Everything in here is placed with P.Point, never a bare SetPoint. The options frame
 --! height goes through P.Scale (P.Height in Utilities.lua), so on any UI scale other than
 --! 1 a raw offset is measured in different units than the frame it sits in -- the rows
@@ -957,13 +1004,64 @@ local function CreatePane()
     CreateLabelBox("shift", 95, "Shift", spacingSlider, 206, -176)
     CreateLabelBox("meta", 95, "Cmd", spacingSlider, 309, -176)
 
-    -- tips -----------------------------------------------------------------------------
+    -- restore defaults -----------------------------------------------------------------
     local tips = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     tips:SetText("|cffababab" .. L["KEY_LABEL_TIPS"])
     tips:SetPoint("BOTTOMLEFT")
     tips:SetPoint("BOTTOMRIGHT")
     tips:SetJustifyH("LEFT")
     tips:SetSpacing(2)
+
+    local resetBtn = Cell.CreateButton(cchPane, L["Restore Defaults"], "red-hover", {110, 20})
+    P.Point(resetBtn, "BOTTOMRIGHT", tips, "TOPRIGHT", 0, 4)
+    resetBtn:SetScript("OnClick", function()
+        -- confirmed, not immediate: this throws away hand-typed key names and the position
+        local popup = Cell.CreateConfirmPopup(cchPane, 250, L["RESTORE_DEFAULTS_CONFIRM"],
+            RestoreDefaults, nil, true)
+        popup:SetPoint("CENTER")
+    end)
+end
+
+local function LoadDB()
+    local db = CellDB["tools"]["clickCastingHints"]
+    enabledCB:SetChecked(db["enabled"])
+    snapCB:SetChecked(db["snap"])
+    showKeysCB:SetChecked(db["showKeys"])
+    for key, eb in pairs(labelBoxes) do
+        eb:SetText(db["keyLabels"][key] or "")
+        eb:SetEnabled(db["enabled"] and db["showKeys"])
+    end
+    for key, eb in pairs(valueBoxes) do
+        eb:SetText(db[key])
+        eb:SetEnabled(db["enabled"])
+    end
+    for key, dd in pairs(anchorDropdowns) do
+        dd:SetSelectedValue(db[key])
+        dd:SetEnabled(db["enabled"])
+    end
+    sizeSlider:SetValue(db["size"])
+    orientationDD:SetSelectedValue(db["orientation"])
+    UpdatePerLineLabel(db["orientation"])
+    perLineSlider:SetValue(db["perRow"])
+    spacingSlider:SetValue(db["spacing"])
+    Cell.SetEnabled(db["enabled"], snapCB, showKeysCB, sizeSlider, orientationDD, perLineSlider, spacingSlider)
+end
+
+--! Everything except `enabled`. The master switch is not part of "how it looks", and a
+--! reset that makes the whole bar disappear reads as a bug rather than as a reset.
+function RestoreDefaults()
+    local t = CellDB["tools"]["clickCastingHints"]
+    local enabled = t["enabled"]
+
+    wipe(t)
+    for key, value in pairs(Cell.defaults.clickCastingHints) do
+        t[key] = type(value) == "table" and F.Copy(value) or value
+    end
+    t["enabled"] = enabled
+
+    Cell.Fire("UpdateTools", "clickCastingHints")
+    ApplyPosition() -- UpdateTools only reloads the position on a full refresh
+    LoadDB()
 end
 
 local init
@@ -974,29 +1072,7 @@ local function ShowUtilitySettings(which)
             CreatePane()
         end
 
-        local db = CellDB["tools"]["clickCastingHints"]
-        enabledCB:SetChecked(db["enabled"])
-        snapCB:SetChecked(db["snap"])
-        showKeysCB:SetChecked(db["showKeys"])
-        for key, eb in pairs(labelBoxes) do
-            eb:SetText(db["keyLabels"][key] or "")
-            eb:SetEnabled(db["enabled"] and db["showKeys"])
-        end
-        for key, eb in pairs(valueBoxes) do
-            eb:SetText(db[key])
-            eb:SetEnabled(db["enabled"])
-        end
-        for key, dd in pairs(anchorDropdowns) do
-            dd:SetSelectedValue(db[key])
-            dd:SetEnabled(db["enabled"])
-        end
-        sizeSlider:SetValue(db["size"])
-        orientationDD:SetSelectedValue(db["orientation"])
-        UpdatePerLineLabel(db["orientation"])
-        perLineSlider:SetValue(db["perRow"])
-        spacingSlider:SetValue(db["spacing"])
-        Cell.SetEnabled(db["enabled"], snapCB, showKeysCB, sizeSlider, orientationDD, perLineSlider, spacingSlider)
-
+        LoadDB()
         cchPane:Show()
 
     elseif init then
