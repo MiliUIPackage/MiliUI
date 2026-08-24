@@ -393,7 +393,10 @@ module.db.topEnchGems = IS_MN and {
 
 
 module.db.achievementsList = {
-	{	--MN T1.5
+	{
+		L.S_ZoneT36VA.."/"..L.S_ZoneT36RG,
+		63530,63531,63532,63521,63523,63524,63525,63526,63527,63528,63529,63476,63683,63681,63682,
+	},{	--MN T1.5
 		L.S_ZoneT35S,
 		63237,63240,63241,
 	},{	--MN T1
@@ -495,7 +498,9 @@ module.db.achievementsList = {
 	},
 }
 module.db.achievementsList_statistic = {
-	{	--MN T1.5
+	{
+		0,0,0,0,{63533,63534,63535,63536},{63537,63538,63539,63540},{63541,63552,63553,63554},{63547,63555,63556,63557},{63548,63558,63559,63560},{63549,63561,63562,63563},{63550,63564,63565,63566},{63551,63567,63568,63569},0,0,{63613,63614,63615,63616},
+	},{	--MN T1.5
 		0,0,{63233,63234,63235,63236},
 	},{	--MN T1
 		0,0,0,0,{61276,61277,61278,61279},{61280,61281,61282,61283},{61284,61285,61286,61287},{61288,61289,61290,61291},{61292,61293,61294,61295},{61296,61297,61298,61299},0,{61474,61475,61476,61477},0,{61300,61301,61302,61303},{61304,61305,61306,61307},
@@ -2167,11 +2172,11 @@ function module.options:Load()
 			item:SetScript("OnLeave",function() ELib.Tooltip:Hide() ELib.Tooltip:HideAdd() end)
 			item:SetScript("OnUpdate",function(self)
 				for j=1,#extraIconsDropdown do
-					if extraIconsDropdown[j]:IsVisible() and MouseIsOver(extraIconsDropdown[j]) then
+					if extraIconsDropdown[j]:IsVisible() and extraIconsDropdown[j]:IsMouseOver() then
 						return
 					end
 				end
-				if extraIconsDropdown[1] and extraIconsDropdown[1].main and MouseIsOver(extraIconsDropdown[1].main) then
+				if extraIconsDropdown[1] and extraIconsDropdown[1].main and extraIconsDropdown[1].main:IsMouseOver() then
 					return
 				end
 				self:Hide()

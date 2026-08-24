@@ -1,9 +1,9 @@
-## Interface: 40402, 11508, 50503, 50504, 20505, 38001
+## Interface: 40402, 11509, 50504, 50504, 20506, 38002
 ## Title: Method Raid Tools
 ## Author: ykiigor
 ## Notes: Method Raid Tools
 ## SavedVariables: VMRT
-## Version: 5315
+## Version: 5325
 ## AddonCompartmentFunc: MRT_MinimapClickFunction
 ## IconTexture: Interface\AddOns\MRT\media\MiniMap.tga
 ## X-Wago-ID: 5bGoJnK0

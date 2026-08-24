@@ -1181,12 +1181,22 @@ function module.options:Load()
 		{L.S_ZoneT35S..": "..L.bossName[3181],{2427,0.73,0.72,2}},
 
 		--311-320
+		{L.S_ZoneT36RG..": "..L.bossName[3379],{2632,0.51,0.54,2}},
+		{L.S_ZoneT36VA..": "..L.bossName[3470],{2606,0.5,0.5,4}},
+		{L.S_ZoneT36VA..": "..L.bossName[3421],{2607,0.5,0.58,2}},
+		{L.S_ZoneT36VA..": "..L.bossName[3445],{2608,0.53,0.3,3}},
+		{L.S_ZoneT36VA..": "..L.bossName[3455],{2608,0.43,0.70,2.5}},
+		{L.S_ZoneT36VA..": "..L.bossName[3497],{2609,0.48,0.32,3}},
+		{L.S_ZoneT36VA..": "..L.bossName[3420],{2609,0.55,0.72,3}},
+		{L.S_ZoneT36VA..": "..L.bossName[3429],{2610,0.50,0.77,3}},
+		{L.S_ZoneT36VA..": "..L.bossName[3492],{2610,0.50,0.26,3.5}},
 	}
 
 
 	local mapsSorted = {
 		1,
 		{L.NoteColor,10,94,95,96,97,98,99},
+		{L.S_ZoneT36VA.."/"..L.S_ZoneT36RG,311,312,313,314,315,316,317,318,319},
 		{L.S_ZoneT35S,310},
 		{L.S_ZoneT35KD.."/"..L.S_ZoneT35D.."/"..L.S_ZoneT35A,295,296,297},
 		{L.S_ZoneT34,283,284,285,286,282,281,280,279,278,277,276},
@@ -2090,7 +2100,7 @@ function module.options:Load()
 			end
 			for i=1,#text_pos_X do
 				local obj = text_OBJ[i]
-				if MouseIsOver(obj) then
+				if obj:IsMouseOver() then
 					moveObjects[ text_GROUP[i] ] = {
 						type = 3,
 						index = i,
@@ -2405,7 +2415,7 @@ function module.options:Load()
 		end
 		for i=1,#text_pos_X do
 			local obj = text_OBJ[i]
-			if MouseIsOver(obj) then
+			if obj:IsMouseOver() then
 				groupsUnderCursor[ text_GROUP[i] ] = true
 			end
 		end

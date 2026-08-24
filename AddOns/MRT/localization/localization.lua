@@ -238,7 +238,9 @@ local zoneEJids = {
 	S_ZoneT35KD = 1308,
 	S_ZoneT35D = 1314,
 	S_ZoneT35A = 1307,	
-	S_ZoneT35S = 1305,	
+	S_ZoneT35S = 1305,
+	S_ZoneT36RG = 1317,
+	S_ZoneT36VA = 1320,
 }
 for prefix,eID in pairs(zoneEJids) do
 	L[prefix] = EJ_GetInstanceInfo(eID)

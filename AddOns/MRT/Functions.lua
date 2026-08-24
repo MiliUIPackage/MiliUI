@@ -2583,6 +2583,7 @@ ExRT.GDB.EncountersList = {
 	{2501,3212,3213,3214},	--Maisara Caverns:Dung
 	{2556,3328,3332,3333},	--Nexus-Point Xenas:Dung
 	{2572,3285,3286,3287},	--Voidscar Arena:Dung
+	{2588,3456,3457,3458},	--Altar of Fangs:Dung
 
 	{232,663,664,665,666,667,668,669,670,671,672},
 	{287,610,611,612,613,614,615,616,617},
@@ -2642,7 +2643,10 @@ ExRT.GDB.EncountersList = {
 	{2532,3306},	--The Dreamrift:Raid
 	{2533,3182,3183},	--March on Quel'Danas:Raid
 	{2427,3159},	--Sporefall:Raid
+	{2606,3470,3445,3497,3455,3420,3421,3429,3492},	--The Venomous Abyss:Raid
+	{2632,3379},	--The Tidebound Grotto:Raid
 }
+
 
 function ExRT.F.EJ_AutoScan()
 	local TIER_MIN = 11

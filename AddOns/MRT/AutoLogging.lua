@@ -40,7 +40,7 @@ function module.options:Load()
 		end
 	end)
 		
-	self.shtml1 = ELib:Text(self," -"..L.S_ZoneT35S.."\n -"..L.S_ZoneT35KD.."\n -"..L.S_ZoneT35D.."\n -"..L.S_ZoneT35A,12):Size(620,0):Point("TOP",0,-65):Top()
+	self.shtml1 = ELib:Text(self," -"..L.S_ZoneT36VA.."\n -"..L.S_ZoneT36RG.."\n -"..L.S_ZoneT35S.."\n -"..L.S_ZoneT35KD.."\n -"..L.S_ZoneT35D.."\n -"..L.S_ZoneT35A,12):Size(620,0):Point("TOP",0,-65):Top()
 
 	self.shtml2 = ELib:Text(self,L.LoggingHelp1,12):Size(650,0):Point("TOP",self.shtml1,"BOTTOM",0,-15):Top()
 	

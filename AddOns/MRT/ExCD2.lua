@@ -15813,11 +15813,13 @@ elseif ExRT.isBC then
 		{11958,	"MAGE",		1,	{11958,	480,	0}},	--Cold Snap
 		{12472,	"MAGE",		1,	{12472,	180,	20}},	--IV
 		{45438,	"MAGE",		1,	{45438,	300,	10}},	--IB
+		{12042,	"MAGE",		1,	{12042,	180,	15}},	--Arcane Power
 
 		{1020,	"PALADIN",	1,	{1020,	300,	12}},	--DS
 		{10310,	"PALADIN",	1,	{10310,	3600,	0}},	--LoH
 		{19752,	"PALADIN",	1,	{19752,	3600,	180}},	--DI
 		{31884,	"PALADIN",	1,	{31884,	180,	20}},	--AW
+		{10278,	"PALADIN",	1,	{10278,	300,	10}},	--BoP
 
 		{16190,	"SHAMAN",	1,	{16190,	300,	12}},	--MTT
 		{32182,	"SHAMAN",	1,	{32182,	600,	40},	specialCheck=function() if UnitFactionGroup('player')=="Alliance" then return true end end},	--BL [A]
@@ -15827,6 +15829,7 @@ elseif ExRT.isBC then
 		{2062, 	"SHAMAN",	1,	{2062, 	1200,	120}},	--EET
 
 		{20765,	"WARLOCK",	1,	{20765,	1800,	0}},	--Soulstone
+		{29858,	"WARLOCK",	1,	{29858,	300,	0}},	--Soulshatter
 
 		{19801, "HUNTER",	1,	{19801,	20,	0}},	--Tranq
 		{34477, "HUNTER",	1,	{34477,	120,	30}},	--MD
@@ -15837,15 +15840,20 @@ elseif ExRT.isBC then
 		{6346, 	"PRIEST",	1,	{6346,	180,	0}}, 	--Fear Ward
 		{32548, "PRIEST",	1,	{32548,	300,	15},	specialCheck=function(_,_,_,r) if r=="Draenei" then return true end end}, 	--Symbol of Hope
 		{10060, "PRIEST",	1,	{10060,	180,	15}},	--Power Infusion
+		{33206, "PRIEST",	1,	{33206,	120,	8}},	--Pain Suppression
 
 		{5277, 	"ROGUE",	1,	{5277,	300,	15}},	--Evasion
 	}
 	module.db.spell_isTalent[GetSpellInfo(16190) or "spell:16190"] = true	module.db.spell_isTalent[16190] = true
 	module.db.spell_isTalent[GetSpellInfo(10060) or "spell:10060"] = true	module.db.spell_isTalent[10060] = true
 	module.db.spell_isTalent[GetSpellInfo(11958) or "spell:11958"] = true	module.db.spell_isTalent[11958] = true
+	module.db.spell_isTalent[GetSpellInfo(33206) or "spell:33206"] = true	module.db.spell_isTalent[33206] = true
+	module.db.spell_isTalent[GetSpellInfo(12042) or "spell:12042"] = true	module.db.spell_isTalent[12042] = true
 
 	module.db.spell_resetOtherSpells[GetSpellInfo(11958) or "spell:11958"] = {GetSpellInfo(45438)}
 	module.db.spell_aura_list[GetSpellInfo(45438) or "spell:45438"] = GetSpellInfo(45438)
+
+	module.db.spell_cdByTalent_fix[10278] = {20174,{-60,-120}}
 
 elseif ExRT.isClassic then
 	module.db.AllSpells = {

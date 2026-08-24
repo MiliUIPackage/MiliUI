@@ -3873,7 +3873,7 @@ do
 			local swapLine
 			for i=1,#mainFrame.List do
 				local line = mainFrame.List[i]
-				if line ~= self and line:IsShown() and MouseIsOver(line) then
+				if line ~= self and line:IsShown() and line:IsMouseOver() then
 					swapLine = line
 					break
 				end
