@@ -1,33 +1,27 @@
 ------------------------------------------------------------
--- 暴雪內建傷害統計視窗（12.0 起）
+-- 暴雪內建傷害統計（12.0 起）
 --
 -- 這支檔案是「跟內建統計互動」的唯一出口，兩件事：
 --   1. 讀它的位置 —— 我們第一次擺放時直接接手（玩家早就擺在習慣的地方了）
---   2. 把它藏起來（預設**開**），並偵測官方開關、提醒玩家真的關掉它
+--   2. **主動關掉它**（`style.disableBuiltinMeter`，預設開）
 --
 -- 視窗叫 DamageMeterSessionWindow1 ~ 3。名字是從本機的 DamageMeterTools 挖出來的
 -- （那支專門增強內建統計）—— 要找內建統計相關的框架名稱先翻它。
 --
 -- ════════════════════════════════════════════════════════════
--- 「藏起來」與「關掉」是兩件事，兩件都做但方式不同
+-- 為什麼是「關掉」而不是「藏起來」
 -- ════════════════════════════════════════════════════════════
 --
--- **藏起來（預設開）**：`style.hideBuiltinMeter`，只改 alpha 與滑鼠接收。
---   兩個框同時出現又醜又讓人搞不清楚哪個是哪個，所以預設就把官方那個弄不見。
---   ⚠ 只能用 alpha —— **不要 Hide()／SetParent／ClearAllPoints**。內建統計是
---   Edit Mode 管的框，那三個動作會讓暴雪自己的 RegisterEvent 在**非戰鬥**變成
---   禁止動作，跳出關不掉、pcall 不掉的「遭到封鎖」彈窗（見
---   project-miliui-hide-blizzard-taint）。DamageMeterTools 的戰鬥隱藏也是一路只用 alpha。
+-- 開關是 CVar **`damageMeterEnabled`**（來源：Blizzard_DamageMeter/DamageMeter.lua 的
+-- `DAMAGE_METER_ENABLED_CVAR`，對應「選項 → 遊戲體驗強化 → 傷害量表 → 啟用傷害量表」）。
 --
---   代價要講清楚：**框還在、還在跑、還在吃資源**，我們只是讓它看不見。
+-- 曾經考慮過只用 `SetAlpha(0)` 化妝性地藏起來、不碰玩家的設定。**否決了**：
+-- 那樣框還在、還在跑、還在吃資源，等於兩份統計同時算 —— 而效能與版面乾淨是這個
+-- 套組的第一原則。同時出現兩個統計視窗對玩家來說也只是困惑。
 --
--- **關掉（要玩家自己按）**：真的省資源只有一條路 —— CVar `damageMeterEnabled`
---   （來源：Blizzard_DamageMeter/DamageMeter.lua 的 DAMAGE_METER_ENABLED_CVAR，
---   對應「選項 → 遊戲體驗強化 → 傷害量表 → 啟用傷害量表」）。
---
---   它是**普通 CVar**，不是 Edit Mode 版面資料，所以改得動也還原得回去。
---   即使如此我們還是**不自動關**：那是玩家的設定，靜默改掉的話他哪天移除插件會
---   一頭霧水。做法是「偵測 ＋ 提醒 ＋ 給一顆按鈕」，由他按下去。
+-- 這是**普通 CVar**，不是 Edit Mode 版面資料，所以：改得動、還原得回去、不牽扯 taint。
+-- 為了讓它真的可逆，我們記下「關之前它是開著的」（`db.builtinRestore`），
+-- 玩家把這個選項關掉時就原樣還回去。**借了要還**，這是這個功能唯一的約束。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -37,16 +31,11 @@ local D = ns.Data
 
 local NAME = "DamageMeterSessionWindow"
 local MAX  = 3
+local CVAR = "damageMeterEnabled"
 
 B.WINDOW_NAME = NAME
 B.MAX_WINDOWS = MAX
-
-local function IsEditing()
-    if C_EditMode and C_EditMode.IsEditModeActive then
-        return C_EditMode.IsEditModeActive()
-    end
-    return EditModeManagerFrame and EditModeManagerFrame:IsShown() or false
-end
+B.CVAR = CVAR
 
 ------------------------------------------------------------
 -- 讀位置
@@ -54,8 +43,8 @@ end
 -- 回傳 (x, y, matchedIndex)：相對 UIParent 左上角的 TOPLEFT 位移。
 -- 同編號優先，沒有就退回第一個（玩家通常只開一個）。
 --
--- 注意 alpha 為 0 不影響幾何，所以「藏起來」跟「讀得到位置」不衝突 ——
--- 順序上仍然是先讀再藏（見 ns.Move 與 Manager 的呼叫點），因為那是比較好懂的因果。
+-- ⚠ 這件事跟「關掉內建統計」有先後：關掉之後那些視窗就不存在了，位置也就讀不到。
+--   所以 Enforce 一定要排在接手位置之後（見 Meter/Manager.lua 的呼叫點）。
 ------------------------------------------------------------
 function B.WindowOffset(idx)
     local pl, pt = UIParent:GetLeft(), UIParent:GetTop()
@@ -77,11 +66,8 @@ function B.WindowOffset(idx)
 end
 
 ------------------------------------------------------------
--- 官方統計的開關（CVar）
+-- 開關
 ------------------------------------------------------------
-local CVAR = "damageMeterEnabled"
-B.CVAR = CVAR
-
 -- 讀不到就回 nil（分不出「關著」與「這個客戶端沒有這個 CVar」）
 function B.IsEnabled()
     if not GetCVarBool then return nil end
@@ -90,66 +76,60 @@ function B.IsEnabled()
     return v and true or false
 end
 
--- **只由玩家的明確動作呼叫**（設定頁那顆按鈕）。不要自動跑。
-function B.Disable()
+local function SetEnabled(on)
     if not SetCVar then return false end
-    local ok = pcall(SetCVar, CVAR, "0")
-    if ok then
-        B.Apply()
-        if ns.db then ns.db.builtinReminderShown = false end
-    end
-    return ok
+    -- 戰鬥中不動 CVar：部分 CVar 在戰鬥鎖定時是受保護的，而這件事一點都不急
+    if InCombatLockdown() then return false end
+    return (pcall(SetCVar, CVAR, on and "1" or "0"))
 end
 
 ------------------------------------------------------------
--- 提醒
+-- 主動關掉
 --
--- 官方統計還開著就講一次：我們只是把它弄不見，它還在吃資源。
--- 印記存在 SV，講過就不再囉唆；**玩家哪天把它關掉，印記會自己清掉**
--- （見 B.Disable 與下面的 CheckReminder），所以之後若又打開，還會再提醒一次。
+-- 每次登入都跑（不是只跑一次）：只要插件開著，內建統計就該是關的。
+-- 玩家想要它回來，就把這個選項關掉，或停用這支插件。
 ------------------------------------------------------------
-function B.CheckReminder()
-    local db = ns.db
-    if not db then return end
+function B.Enforce()
+    local db, s = ns.db, ns.DB.Style()
+    if not (db and s) then return end
+    if s.disableBuiltinMeter == false then return end
+
     local enabled = B.IsEnabled()
+    if enabled ~= true then return end          -- 已經關了，或這個客戶端沒有這個 CVar
 
-    if enabled == false then
-        db.builtinReminderShown = false   -- 已經關了：印記歸零，之後再開才會再提醒
-        return
+    if not SetEnabled(false) then return end
+
+    -- 記下「我們動過，而且動之前它是開著的」→ 選項關掉時要還回去
+    local first = not db.builtinRestore
+    db.builtinRestore = true
+
+    -- 只在**第一次**真的關掉時講一句，免得玩家莫名其妙發現內建統計不見了。
+    -- 之後每次登入都會靜靜地關，不再囉唆。
+    if first then
+        ns.Print(ns.L["Turned off Blizzard's built-in damage meter so the two don't overlap and double up the cost. You can get it back from this addon's settings."])
     end
-    if enabled ~= true then return end    -- 讀不到就別亂講
-    if db.builtinReminderShown then return end
-    db.builtinReminderShown = true
-
-    ns.Print(ns.L["Blizzard's built-in damage meter is still on. This addon only makes it invisible — it keeps running and still costs resources."])
-    ns.Print(ns.L["Turn it off at: Options → Gameplay Enhancements → Damage Meter → Enable Damage Meter (or use the button in /mdm)."])
 end
 
 ------------------------------------------------------------
--- 化妝性質的隱藏
+-- 還回去
+--
+-- 玩家把「自動關閉內建統計」關掉時呼叫。只有我們動過才還 ——
+-- 沒動過就還原等於替玩家開了一個他本來就沒開的東西。
 ------------------------------------------------------------
--- 記下「我們對每一個視窗寫過什麼」。沒碰過的就完全不去動 ——
--- 別的插件（例如 DamageMeterTools 的戰鬥隱藏／滑過顯示）也在驅動同一個 alpha，
--- 無條件寫 alpha=1 會把它的效果洗掉。
-local _state = {}
+function B.Release()
+    local db = ns.db
+    if not (db and db.builtinRestore) then return end
+    db.builtinRestore = false
+    SetEnabled(true)
+end
 
-function B.Apply()
+-- 選項變動時的統一入口
+function B.ApplySetting()
     local s = ns.DB.Style()
     if not s then return end
-
-    -- 編輯模式期間一律放它出來：不然玩家沒辦法看到、也沒辦法搬或關掉內建統計。
-    local want = (s.hideBuiltinMeter == true) and not IsEditing()
-
-    for i = 1, MAX do
-        local f = _G[NAME .. i]
-        -- 只在「狀態要變」而且「這個視窗是我們動過的」時候才寫。
-        -- want=false ＋ 從沒碰過 → 什麼都不做。
-        if f and _state[i] ~= want and (want or _state[i] ~= nil) then
-            -- ⚠ 只有這兩行是安全的。**不要 Hide()、不要 SetParent、不要 ClearAllPoints** ——
-            -- 那三個都會讓 Edit Mode 的版面流程碰到被我們染過的框。
-            f:SetAlpha(want and 0 or 1)
-            if f.EnableMouse then f:EnableMouse(not want) end
-            _state[i] = want
-        end
+    if s.disableBuiltinMeter == false then
+        B.Release()
+    else
+        B.Enforce()
     end
 end

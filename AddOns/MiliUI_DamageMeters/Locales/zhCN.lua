@@ -60,23 +60,11 @@ L["Refresh rate (seconds)"] = "刷新率（秒）"
 L["The refresh timer only exists while you are in combat, so this does not cost anything when idle. Blizzard does the tallying (C_DamageMeter) — this addon only draws it, which is why it stays cheap even in a 20-player raid."] =
     "刷新用的计时器只在战斗期间存在，空闲时完全不花资源。汇总是暴雪做的（C_DamageMeter），这个插件只负责画，所以二十人团队照样轻。"
 L["Blizzard's built-in meter"] = "暴雪内置统计"
-L["Hide Blizzard's built-in damage meter"] = "隐藏暴雪内置的伤害统计"
-L["It is always visible again while Edit Mode is open, so you can still move it or switch it off there."] =
-    "编辑模式打开时它一定会现身，所以你照样可以在那里搬它或关掉它。"
-L["On by default — two meter windows on screen at once is confusing. But this only makes it invisible (transparent and click-through): the frame still exists, still updates, and still costs resources."] =
-    "默认开 —— 画面上同时出现两个统计窗口又丑又让人分不清哪个是哪个。但这只是让它看不见（全透明、点不到）：框还在、还在更新、也还在吃资源。"
-L["Really turn it off"] = "真的关掉它"
-L["Turn off the built-in meter"] = "关闭内置伤害统计"
-L["Currently on"] = "目前是开着的"
-L["Already off"] = "已经关掉了"
-L["Could not change that setting; please use the game's Options panel."] =
-    "改不动这个设置，请到游戏的选项面板操作。"
-L["This flips the game's own setting (Options → Gameplay Enhancements → Damage Meter). It is a normal setting — you can turn it back on there at any time."] =
-    "这会翻动游戏自己的设置（选项 → 游戏体验强化 → 伤害量表）。那是一般设置，你随时可以在那里开回来。"
-L["Blizzard's built-in damage meter is still on. This addon only makes it invisible — it keeps running and still costs resources."] =
-    "暴雪内置的伤害统计还开着。这个插件只是把它弄成看不见 —— 它还在跑，也还在吃资源。"
-L["Turn it off at: Options → Gameplay Enhancements → Damage Meter → Enable Damage Meter (or use the button in /mdm)."] =
-    "关闭位置：选项 → 游戏体验强化 → 伤害量表 → 启用伤害量表（或用 /mdm 里的按钮）。"
+L["Turn off Blizzard's built-in damage meter"] = "关闭暴雪内置的伤害统计"
+L["On by default. Two meters running at once pays the cost twice and puts two overlapping windows on your screen. This flips the game's own setting (Options → Gameplay Enhancements → Damage Meter); unchecking this box turns it back on."] =
+    "默认开。两份统计同时跑等于同一件事算两次，画面上还会叠出两个窗口。这会翻动游戏自己的设置（选项 → 游戏体验强化 → 伤害量表）；取消勾选就会把它开回来。"
+L["Turned off Blizzard's built-in damage meter so the two don't overlap and double up the cost. You can get it back from this addon's settings."] =
+    "已经关闭暴雪内置的伤害统计，免得两个窗口叠在一起、成本也算两次。想要它回来就到这个插件的设置里取消那个勾选。"
 L["Snapping"] = "吸附"
 L["Snap windows to each other"] = "窗口互相吸附"
 L["While dragging or resizing, edges and sizes stick to the other meter windows. A single window can be excluded from its right-click menu."] =

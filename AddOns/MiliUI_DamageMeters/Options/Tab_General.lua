@@ -14,6 +14,7 @@ local function RefreshAll()
 end
 
 local function Apply()
+    ns.Builtin.ApplySetting()
     ns.Windows.ApplyStyle()
     RefreshAll()
 end
@@ -30,40 +31,8 @@ local CONTROLS = {
     { type = "text",   label = L["The refresh timer only exists while you are in combat, so this does not cost anything when idle. Blizzard does the tallying (C_DamageMeter) — this addon only draws it, which is why it stays cheap even in a 20-player raid."] },
 
     { type = "header", label = L["Blizzard's built-in meter"] },
-    { type = "toggle", key = "hideBuiltinMeter", label = L["Hide Blizzard's built-in damage meter"] },
-    { type = "text",   label = L["On by default — two meter windows on screen at once is confusing. But this only makes it invisible (transparent and click-through): the frame still exists, still updates, and still costs resources."] },
-    { type = "text",   label = L["It is always visible again while Edit Mode is open, so you can still move it or switch it off there."] },
-    { type = "custom", label = L["Really turn it off"], build = function(parent, x, y, width)
-        local btn = ns.W.CreateButton(parent, L["Turn off the built-in meter"], "red", 220, 22)
-        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 13)
-        local note = parent:CreateFontString(nil, "OVERLAY")
-        note:SetFontObject(ns.W.fontSmall)
-        note:SetPoint("LEFT", btn, "RIGHT", 8, 0)
-        note:SetTextColor(0.6, 0.6, 0.6)
-
-        local function Refresh()
-            local on = ns.Builtin.IsEnabled()
-            btn:SetEnabled(on == true)
-            if on == true then
-                note:SetText(L["Currently on"])
-                note:SetTextColor(1, 0.7, 0.2)
-            elseif on == false then
-                note:SetText(L["Already off"])
-                note:SetTextColor(0.45, 0.75, 0.45)
-            else
-                note:SetText("")
-            end
-        end
-        btn:SetScript("OnClick", function()
-            -- 這一步刻意只在玩家按下去才跑 —— 那是他的設定，我們不自動改
-            if not ns.Builtin.Disable() then
-                ns.Print(L["Could not change that setting; please use the game's Options panel."])
-            end
-            Refresh()
-        end)
-        return 26, Refresh
-    end },
-    { type = "text",   label = L["This flips the game's own setting (Options → Gameplay Enhancements → Damage Meter). It is a normal setting — you can turn it back on there at any time."] },
+    { type = "toggle", key = "disableBuiltinMeter", label = L["Turn off Blizzard's built-in damage meter"] },
+    { type = "text",   label = L["On by default. Two meters running at once pays the cost twice and puts two overlapping windows on your screen. This flips the game's own setting (Options → Gameplay Enhancements → Damage Meter); unchecking this box turns it back on."] },
 
     { type = "header", label = L["Snapping"] },
     { type = "toggle", key = "snapEnabled", label = L["Snap windows to each other"] },

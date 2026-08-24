@@ -278,8 +278,6 @@ local _editHooked = false
 function Move.IsEditing() return _editing end
 
 local function UpdateEditState()
-    -- 編輯模式期間要把內建統計放出來，否則玩家沒辦法搬它、也沒辦法關掉它
-    if ns.Builtin then ns.Builtin.Apply() end
     -- 開檔時就可能被呼叫到（EditModeManagerFrame 已經開著的情況），
     -- 而 Manager.lua 在 TOC 排在本檔之後 —— ns.Windows 那時還不存在
     if not ns.Windows then return end

@@ -54,9 +54,9 @@ local function BuildDefaults()
     return {
         schemaVersion = ns.DB_VERSION,
         optionsWindow = { x = 0, y = 0 },
-        -- 「官方統計還開著」的提醒講過沒。玩家把它關掉時會自動歸零，
-        -- 所以之後若又打開還會再提醒一次（見 Meter/Builtin.lua）
-        builtinReminderShown = false,
+        -- 我們是不是關掉過玩家的內建傷害統計。true = 欠著一個還原，
+        -- 玩家把「自動關閉內建統計」關掉時要把 CVar 還回去（見 Meter/Builtin.lua）
+        builtinRestore = false,
 
         style = {
             ------------------------------------------------------------
@@ -151,10 +151,10 @@ local function BuildDefaults()
             showHoverTooltip  = true,   -- 滑過長條顯示法術預覽
             showSpellTooltips = true,   -- 展開頁滑過法術顯示遊戲工具提示
             breakdownAnchor   = "row",  -- row | center | left | right
-            -- 把暴雪內建的傷害統計「藏起來」。**預設開** —— 兩個統計框同時出現
-            -- 又醜又讓人分不清哪個是哪個。但這只是化妝（alpha ＋ 滑鼠），
-            -- 真的要省資源得關掉 CVar，那一步由玩家自己按。見 Meter/Builtin.lua 檔頭。
-            hideBuiltinMeter = true,
+            -- 只要這支插件開著，就主動把暴雪內建的傷害統計關掉（CVar
+            -- damageMeterEnabled）。**預設開**：兩份統計同時算是白花的成本，
+            -- 兩個框同時出現也只是讓人困惑。關掉這個選項會把 CVar 還回去。
+            disableBuiltinMeter = true,
             -- 視窗互相磁吸（拖曳與縮放時吸附其他統計視窗的邊緣與尺寸）
             snapEnabled   = true,
             snapThreshold = 6,

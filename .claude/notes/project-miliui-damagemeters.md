@@ -126,38 +126,32 @@ Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗
 - 讀內建視窗的 `GetLeft/GetTop` 要過 `D.IsSecret`：它會把秘密值餵給自己的長條，
   幾何有被污染的可能，讀到秘密就當作沒有這個位置。
 
-## 內建統計：藏起來自己做，關掉交給玩家按
+## 內建統計：登入就主動關掉（使用者拍板，不要改回去）
 
 `Meter/Builtin.lua` 是跟暴雪內建統計互動的唯一出口。視窗叫
 `DamageMeterSessionWindow1` ~ `3`（名字從本機 `DamageMeterTools` 挖的）。
 
-**官方開關是 CVar `damageMeterEnabled`**，不是 Edit Mode 版面資料 ——
-出處是 `Blizzard_DamageMeter/DamageMeter.lua` 的 `DAMAGE_METER_ENABLED_CVAR`
-（Gethe/wow-ui-source 查到的），對應「選項 → 遊戲體驗強化 → 傷害量表 → 啟用傷害量表」。
-**一開始誤判成「沒有官方開關、只能動 Edit Mode」，是錯的** —— 那一整層設定面板幾乎都是 CVar 撐的，
-先去 `Blizzard_<系統>` 的原始碼找 `*_CVAR` 常數再下結論。
+**開關是 CVar `damageMeterEnabled`** —— 出處是 `Blizzard_DamageMeter/DamageMeter.lua` 的
+`DAMAGE_METER_ENABLED_CVAR`（Gethe/wow-ui-source 查到），對應「選項 → 遊戲體驗強化 →
+傷害量表 → 啟用傷害量表」。
+⚠ **一度誤判成「沒有官方開關、只能碰 Edit Mode」**。設定面板那一層幾乎都是 CVar 撐的，
+下這種結論之前先去 `Blizzard_<系統>` 的原始碼找 `*_CVAR` 常數。
 
-兩件事分開做：
+**行為：只要插件開著，每次登入就把它關掉**（`style.disableBuiltinMeter`，預設開）。
 
-- **藏起來**（`style.hideBuiltinMeter`，**預設開**）：只改 `SetAlpha` 與 `EnableMouse`。
-  兩個統計框同時出現又醜又讓人分不清。
-  ⚠ **不要 `Hide()`／`SetParent`／`ClearAllPoints`** —— Edit Mode 管的框碰了會讓暴雪自己的
-  `RegisterEvent` 在非戰鬥變成禁止動作（[[project-miliui-hide-blizzard-taint]]）。
-  DamageMeterTools 的戰鬥隱藏也是一路只用 alpha。
-  代價要對玩家講明：**框還在、還在跑、還在吃資源**。
-- **關掉**（真的省資源）：`SetCVar("damageMeterEnabled", 0)`。CVar 改得動也還原得回去，
-  但**還是不自動改** —— 那是玩家的設定，靜默改掉他移除插件後會一頭霧水。
-  做法是「偵測 ＋ 開場提醒一次 ＋ 設定頁一顆按鈕」，由他按。
+> 我提過「不要靜默改玩家的設定」，**使用者明確否決並要求照做** ——
+> 理由是「效能和版面乾淨是我的天條」，代價（一個可還原的 CVar）非常低。
+> 這是他的決定，**不要再自作主張改成「只是藏起來」或「跳出來問」**。
+> 中間做過的 `SetAlpha(0)` 化妝版已經整個移除。
 
-四個實作細節：
-- **編輯模式期間一律放它出來**，否則玩家沒辦法搬它、也沒辦法關掉它。
-- **只寫「我們動過的」視窗**（`_state[i]` 記帳）。DamageMeterTools 也在驅動同一個 alpha，
-  無條件寫 `SetAlpha(1)` 會把它洗掉。
-- **換分身／換區要重套**（`PLAYER_ENTERING_WORLD`）—— 內建視窗會重新擺好。
-- 提醒的印記存 SV，**玩家關掉時自動歸零**，所以之後若又打開還會再提醒一次。
-  延後 8 秒才講（登入瞬間會被一堆插件的問候洗掉）。
-- CVar 變動走 `CVarCallbackRegistry:RegisterCallback`（暴雪自己那套，Blizzard_DamageMeter
-  也用它），包 pcall —— 簽章不是穩定 API，失敗就退回「換區時再檢查」。
+四個實作約束：
+- **借了要還。** 關掉時記 `db.builtinRestore = true`；玩家取消那個勾選就把 CVar 還原成 1。
+  沒動過就不還（否則等於替他開了一個他本來就沒開的東西）。
+- **順序是硬的：先接手位置、再關掉。** 關掉之後那三個視窗就不存在了，
+  第一次擺放要接手的位置永遠讀不到（新角色最明顯）。所以：沒有視窗在等接手就當場關，
+  有的話排在位置接手（登入後 3 秒）之後。
+- **戰鬥中不動 CVar**（部分 CVar 在戰鬥鎖定時受保護），而且這件事一點都不急。
+- **只在第一次真的關掉時講一句**，之後每次登入靜靜地關。免得玩家莫名其妙發現內建統計不見了。
 
 ## 發佈前：改預設值不配遷移
 

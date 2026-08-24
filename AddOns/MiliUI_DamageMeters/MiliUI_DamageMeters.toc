@@ -1,6 +1,6 @@
 ## Interface: 120100, 120105
 ## Title: MiliUI Damage Meters
-## Title-zhTW: |cffFF7C0A[統計]|r 米利的傷害統計
+## Title-zhTW: |cffFFB627[統計]|r 米利的傷害統計
 ## Title-zhCN: |cff4488FF[MiliUI]|r 米利的伤害统计
 ## Notes: Lightweight damage meter built on Blizzard's C_DamageMeter API — it never parses the combat log, so the cost scales with visible rows instead of raid size.|n|n|cffffd200Usage: |r/mdm opens settings.
 ## Notes-zhTW: MiliUI Damage Meters|n|n米利的傷害統計。|n|n加總由暴雪的 C_DamageMeter 完成，完全不解析戰鬥記錄，成本只跟看得到幾列有關。|n|n|cffffd200使用方法: |r/mdm 開啟設定。

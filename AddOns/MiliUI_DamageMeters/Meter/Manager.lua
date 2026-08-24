@@ -70,7 +70,6 @@ function Windows.Rebuild()
     end
 
     _active = want
-    ns.Builtin.Apply()
     Windows.ForEach(function(W)
         Win.UpdateVisibility(W)
         W.Refresh()
@@ -83,7 +82,6 @@ end
 ------------------------------------------------------------
 function Windows.ApplyStyle()
     D.RebuildNumberFormat()
-    ns.Builtin.Apply()
     Windows.ForEach(function(W)
         W.ApplyStyle()
         ns.Move.ApplyLock(W)
@@ -258,6 +256,12 @@ local visFrame = CreateFrame("Frame")
 ns.RegisterCallback("Init", "windows", function()
     Windows.Rebuild()
 
+    -- 沒有任何視窗還在等著接手內建統計的位置，就不必等下面那 3 秒 —— 直接關。
+    -- （autoPlaced 只有在「還沒接到位置」時才會是 true，見 Meter/Move.lua）
+    local waiting = false
+    Windows.ForEach(function(W) if W.wdb.autoPlaced then waiting = true end end)
+    if not waiting then ns.Builtin.Enforce() end
+
     visFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     visFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     visFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
@@ -265,25 +269,7 @@ ns.RegisterCallback("Init", "windows", function()
     visFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     visFrame:SetScript("OnEvent", function()
         Windows.UpdateVisibility()
-        -- 換分身、換區之後內建統計會重新擺好，隱藏狀態要跟著重套
-        ns.Builtin.Apply()
     end)
-
-    -- 官方統計的開關是普通 CVar，玩家隨時可能在選項面板裡翻它。
-    -- CVarCallbackRegistry 是暴雪自己用的那套（Blizzard_DamageMeter 也走它），
-    -- 包 pcall 是因為它的簽章不是穩定 API；失敗就退回「換區時再檢查」。
-    if CVarCallbackRegistry and CVarCallbackRegistry.RegisterCallback then
-        pcall(function()
-            CVarCallbackRegistry:RegisterCallback(ns.Builtin.CVAR, function()
-                ns.Builtin.Apply()
-                ns.Builtin.CheckReminder()
-            end, ns.Builtin)
-        end)
-    end
-
-    -- 官方統計還開著的話講一次（印記在 SV，關掉之後會自己歸零）。
-    -- 延後 8 秒：登入瞬間的訊息會被一堆插件的問候洗掉，而且那時玩家還在讀條。
-    C_Timer.After(8, function() ns.Builtin.CheckReminder() end)
 
     ------------------------------------------------------------
     -- 分段資料變動
@@ -343,12 +329,11 @@ ns.RegisterCallback("Init", "windows", function()
     -- 第一次擺放沒接到它的位置的視窗，這裡再試一次。刻意不去猜
     -- Blizzard_DamageMeter 這個插件名（猜錯是靜默失效）—— 直接等一下再看 _G。
     --
-    -- 順序：**先接手位置、再套隱藏**。alpha 為 0 其實不影響幾何，所以技術上沒有
-    -- 硬性先後，但寫成這個順序是因為因果比較好懂 —— 以後有人把隱藏改成
-    -- 真正的 Hide 也不會踩到「藏了之後讀不到位置」。
+    -- ⚠ 順序是硬的：**先接手位置、再關掉內建統計**。關掉之後那三個視窗就不存在了，
+    -- 位置也就永遠讀不到（新角色第一次登入時最明顯）。
     C_Timer.After(3, function()
         ns.Move.RetryAdoptBlizzardPosition()
-        ns.Builtin.Apply()
+        ns.Builtin.Enforce()
     end)
 end)
 
