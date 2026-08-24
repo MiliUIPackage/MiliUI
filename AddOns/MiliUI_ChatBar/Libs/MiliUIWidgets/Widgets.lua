@@ -877,6 +877,14 @@ function W.CreateConfirmPopup(parent, width, text, onAccept)
     local no = W.CreateButton(popup, L["Cancel"], "red", 80, 22)
     no:SetPoint("BOTTOMRIGHT", -26, 12)
     no:SetScript("OnClick", function() popup:Hide() end)
+
+    -- ⚠ 一定要關掉再回傳：CreateFrame 建出來預設是**顯示**的。
+    -- 兩個實際踩到的後果：
+    --   1. 「建好但先不開」的用法（在分頁 Init 就先建好、按鈕按下去才 Show）
+    --      會讓確認視窗一進分頁就自己跳出來。
+    --   2. 就算是「建完馬上 Show」的用法也壞：對一個已經顯示的框呼叫 Show()
+    --      **不會觸發 OnShow**，所以第一次按下去時背後那層遮罩不會出現。
+    popup:Hide()
     return popup
 end
 
