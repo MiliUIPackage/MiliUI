@@ -59,6 +59,7 @@ Enhance\KeystoneAutoReport.lua
 Enhance\TinyInspectRemake_GearSlots.lua
 Enhance\TinyInspectRemake_TrackColors.lua
 Enhance\GameplayCVars.lua
+Enhance\WorldMapCoords.lua
 Enhance\CharacterNotes.lua
 Enhance\DBM_PrivateAura.lua
 Enhance\ItemUpgrade_PreviewIcon.lua

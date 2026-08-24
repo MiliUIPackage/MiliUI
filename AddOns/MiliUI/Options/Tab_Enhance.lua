@@ -104,6 +104,12 @@ local CONTROLS = {
           if old ~= v then AskReload() end
       end },
     { type = "text", label = "選擇「強制」後，每次登入／重載介面會自動套用（deselectOnClick），覆蓋遊戲選項與其他插件寫入的值。" },
+    { type = "toggle", label = "隱藏內建世界地圖座標",
+      get = function() return MiliUI_WorldMapCoords and MiliUI_WorldMapCoords.IsEnabled() end,
+      set = function(v) if MiliUI_WorldMapCoords then MiliUI_WorldMapCoords.SetEnabled(v) end end },
+    { type = "text", label = "關掉世界地圖左下角內建的「玩家地圖座標」與「游標地圖座標」兩塊面板"
+        .. "（worldMapShowPlayerCoords、worldMapShowCursorCoords），一次兩個一起。"
+        .. "取消勾選則兩個都顯示。改完立即生效，不需要重載。" },
 
     { type = "header", label = "舊插件相容" },
     { type = "toggle", label = "自動停用被取代的舊插件",
