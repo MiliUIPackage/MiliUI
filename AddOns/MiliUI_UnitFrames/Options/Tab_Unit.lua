@@ -289,8 +289,32 @@ local function CastbarSpecs()
     return list
 end
 
-local function AuraSpecs(name)
-    return {
+-- 黑名單那一列：按鈕寫著目前筆數，點開是挑選視窗（Options/AuraBlacklist.lua）
+local function BlacklistRow(unitKey, name)
+    return function(parent, x, y)
+        local btn = W.CreateButton(parent, L["Blacklist"], "normal", 180, 22)
+        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+        local function UpdateText()
+            local edb = ns.GetUnitDB(unitKey).elements[name]
+            btn:SetText(L["Blacklist"] .. "  (" .. ns.AuraBlacklist.Count(edb) .. ")")
+        end
+        btn:SetScript("OnClick", function()
+            ns.AuraBlacklist.Open(unitKey, name, UpdateText)
+        end)
+        return 30, UpdateText
+    end
+end
+
+-- 黑名單只擺在引擎真的會過濾的地方。
+-- 增益一律可以；減益只有敵方單位算數 —— 遊戲對「友方單位的減益」禁止 ID 過濾
+-- （反自動化），擺在玩家／寵物的減益頁只會是一個按了沒反應的按鈕。
+-- 目標／焦點這些**執行期**才知道是敵是友，所以放著並在下面註明。
+local FRIENDLY_ONLY_UNITS = { player = true, pet = true }
+
+local BLACKLIST_MARKER = {}     -- 佔位，下面依單位決定要不要換成真的那一列
+
+local function AuraSpecs(name, unitKey)
+    local list = {
         { type = "toggle", sub = name, key = "enabled", label = L["Show"] },
         { type = "header", label = L["Position and layout"] },
         Pos(name),
@@ -305,6 +329,7 @@ local function AuraSpecs(name)
           items = function() return ns.AuraFilterItems(name) end },
         { type = "toggle", sub = name, key = "onlyMine", label = L["Only show my own"] },
         { type = "text", label = L["Filtering is done by the game, not by a spell list — 12.1 addons can't read aura contents. The two settings stack: \"dispellable by me\" plus \"only my own\" shows only what you applied and can remove. Changing either rebuilds the icons."] },
+        BLACKLIST_MARKER,
         { type = "header", label = L["Text"] },
         { type = "toggle", sub = name, key = "showStack", label = L["Show stacks"] },
         { type = "slider", sub = name, key = "stackSize", label = L["Stack font size"], min = 6, max = 20 },
@@ -316,6 +341,22 @@ local function AuraSpecs(name)
         { type = "slider", sub = name, key = "durationThreshold", label = L["Show within seconds"], min = 5, max = 600, step = 5 },
         { type = "text", label = L["The countdown is drawn by the game (12.1 addons can't read the remaining seconds); changing this rebuilds the icons."] },
     }
+
+    local allowed = (name == "buffs") or not FRIENDLY_ONLY_UNITS[unitKey]
+    for i = #list, 1, -1 do
+        if list[i] == BLACKLIST_MARKER then
+            if allowed then
+                list[i] = { type = "custom", label = "", build = BlacklistRow(unitKey, name) }
+                if name == "debuffs" then
+                    tinsert(list, i + 1, { type = "text",
+                        label = L["The game only allows spell-ID filtering for debuffs on enemies, so this list does nothing while the unit is friendly."] })
+                end
+            else
+                tremove(list, i)
+            end
+        end
+    end
+    return list
 end
 
 local function IconSpecs(els)
@@ -389,8 +430,8 @@ local function SpecsFor(unitKey, elementKey)
     if elementKey == "mpbar" then return BarSpecs("mpbar", false) end
     if elementKey == "manabar" then return ManaBarSpecs() end
     if elementKey == "castbar" then return CastbarSpecs() end
-    if elementKey == "buffs" then return AuraSpecs("buffs") end
-    if elementKey == "debuffs" then return AuraSpecs("debuffs") end
+    if elementKey == "buffs" then return AuraSpecs("buffs", unitKey) end
+    if elementKey == "debuffs" then return AuraSpecs("debuffs", unitKey) end
     if elementKey == "icons" then return IconSpecs(els) end
     if elementKey == "inspect" then return InspectSpecs() end
     if elementKey == "texts" then return TextsSpecs(els) end

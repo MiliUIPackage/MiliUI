@@ -473,3 +473,15 @@ L["The anchor is which corner of the number sits on the same corner of the icon,
 L["Version: %s"] = "버전: %s"
 L["Use /muf to open options"] = "/muf 명령어로 설정 열기"
 L["Open options"] = "설정 열기"
+
+-- Aura blacklist (Options/AuraBlacklist.lua)
+L["Blacklist"] = "차단 목록"
+L["Auras on this unit"] = "이 대상의 효과"
+L["Blacklisted"] = "차단됨"
+L["Rescan"] = "다시 검색"
+L["Aura details are hidden in combat, encounters, Mythic+ and rated PvP, so nothing can be listed there. Step outside to pick."] = "전투 중, 우두머리 전투, 쐐기돌 던전, 등급전 PvP에서는 게임이 효과 정보를 숨기므로 여기에 아무것도 표시할 수 없습니다. 해당 상황을 벗어난 뒤 선택하세요."
+L["The game only allows spell-ID filtering for debuffs on enemies, so this list does nothing while the unit is friendly."] = "게임은 적에게 걸린 해로운 효과에만 주문 ID 필터를 허용합니다. 대상이 아군이면 이 목록은 적용되지 않습니다."
+L["Add by spell ID"] = "주문 ID로 추가"
+L["Spell ID"] = "주문 ID"
+L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so this is the only way to add something you only ever see mid-fight."] = "주문 ID를 입력하거나 주문 링크를 붙여넣으세요. 전투 중에는 효과 정보가 숨겨지므로, 전투 중에만 보이는 효과는 이 방법으로만 추가할 수 있습니다."
+L["No spell with that ID."] = "해당 ID의 주문을 찾을 수 없습니다."

@@ -471,3 +471,15 @@ L["The anchor is which corner of the number sits on the same corner of the icon,
 L["Version: %s"] = "版本：%s"
 L["Use /muf to open options"] = "使用 /muf 開啟選項"
 L["Open options"] = "開啟選項"
+
+-- 光環黑名單（Options/AuraBlacklist.lua）
+L["Blacklist"] = "黑名單"
+L["Auras on this unit"] = "這個單位身上的光環"
+L["Blacklisted"] = "已封鎖"
+L["Rescan"] = "重新掃描"
+L["Aura details are hidden in combat, encounters, Mythic+ and rated PvP, so nothing can be listed there. Step outside to pick."] = "戰鬥中、首領戰、M+ 與評分 PvP 裡，遊戲會把光環內容藏起來，這裡列不出東西。離開這些情境再來挑。"
+L["The game only allows spell-ID filtering for debuffs on enemies, so this list does nothing while the unit is friendly."] = "遊戲只允許對敵方單位的減益做法術 ID 過濾，目標是友方時這份名單不會生效。"
+L["Add by spell ID"] = "以法術 ID 新增"
+L["Spell ID"] = "法術 ID"
+L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so this is the only way to add something you only ever see mid-fight."] = "輸入法術 ID，或貼上法術連結。戰鬥中光環內容是隱藏的，只在戰鬥裡看得到的東西只能從這裡加。"
+L["No spell with that ID."] = "找不到這個法術 ID。"

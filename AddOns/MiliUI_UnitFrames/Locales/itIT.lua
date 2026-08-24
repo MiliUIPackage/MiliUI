@@ -473,3 +473,15 @@ L["The anchor is which corner of the number sits on the same corner of the icon,
 L["Version: %s"] = "Versione: %s"
 L["Use /muf to open options"] = "Usa /muf per aprire le opzioni"
 L["Open options"] = "Apri opzioni"
+
+-- Aura blacklist (Options/AuraBlacklist.lua)
+L["Blacklist"] = "Lista nera"
+L["Auras on this unit"] = "Aure su questa unità"
+L["Blacklisted"] = "In lista nera"
+L["Rescan"] = "Riesegui scansione"
+L["Aura details are hidden in combat, encounters, Mythic+ and rated PvP, so nothing can be listed there. Step outside to pick."] = "In combattimento, negli scontri, in Mitica+ e nel PvP classificato il gioco nasconde i dati delle aure, quindi qui non si può elencare nulla. Esci da queste situazioni per scegliere."
+L["The game only allows spell-ID filtering for debuffs on enemies, so this list does nothing while the unit is friendly."] = "Il gioco consente il filtro per ID incantesimo solo per i malefici sui nemici; con un bersaglio alleato questa lista non ha effetto."
+L["Add by spell ID"] = "Aggiungi per ID incantesimo"
+L["Spell ID"] = "ID incantesimo"
+L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so this is the only way to add something you only ever see mid-fight."] = "Inserisci un ID incantesimo o incolla un collegamento a un incantesimo. In combattimento i dati delle aure sono nascosti, quindi questo è l'unico modo per aggiungere qualcosa che vedi solo durante lo scontro."
+L["No spell with that ID."] = "Nessun incantesimo con quell'ID."

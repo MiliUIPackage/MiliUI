@@ -101,6 +101,27 @@ local function ValidFilter(f)
     return false
 end
 
+------------------------------------------------------------
+-- 黑名單 → candidateFilters.excludeSpellIDs
+--
+-- 插件端讀不到光環內容，所以「不要顯示這幾顆」只能把法術 ID 交給引擎。
+-- ⚠ 引擎對「友方單位的**減益**」禁止 ID 過濾（反自動化），所以黑名單在
+-- 玩家／隊友的減益那一欄是無效的 —— 增益、以及敵方身上的減益都可以。
+-- 設定面板那邊有寫清楚，這裡不另外擋（送過去被忽略而已，不會壞）。
+------------------------------------------------------------
+local function WithBlacklist(cand, edb)
+    local bl = edb.blacklist
+    if type(bl) ~= "table" or next(bl) == nil then return cand end
+    -- ⚠ 不能直接往 mode.cand 上加：那是 FILTER_MODES 裡的共用常數表，
+    -- 改下去會污染每一個用到同一個模式的單位。一律複製一份新的。
+    local out = {}
+    if cand then
+        for k, v in pairs(cand) do out[k] = v end
+    end
+    out.excludeSpellIDs = bl        -- 格式跟我們存的一樣：[spellID] = true
+    return out
+end
+
 -- 回傳 filter 字串 ＋ candidateFilters（可能是 nil）
 --
 -- 模式與「只顯示我上的」是**可以疊的**（`HARMFUL|CROWD_CONTROL|PLAYER` 仍然是
@@ -111,15 +132,16 @@ local function BuildFilter(baseFilter, edb)
     local f = baseFilter
     if mode.token then f = f .. "|" .. mode.token end
     if edb.onlyMine then f = f .. "|PLAYER" end
-    if ValidFilter(f) then return f, mode.cand end
+    if ValidFilter(f) then return f, WithBlacklist(mode.cand, edb) end
 
     -- 退回階梯。模式的 token 被拒 ⇒ 那個模式整個做不到，cand 那一半也不送
     -- （兩半是同一個概念，只送一半會得到一個沒人要求過的結果）。
+    -- 黑名單跟模式無關，兩層退回都要帶著。
     if edb.onlyMine then
         local withPlayer = baseFilter .. "|PLAYER"
-        if ValidFilter(withPlayer) then return withPlayer, nil end
+        if ValidFilter(withPlayer) then return withPlayer, WithBlacklist(nil, edb) end
     end
-    return baseFilter, nil
+    return baseFilter, WithBlacklist(nil, edb)
 end
 
 ------------------------------------------------------------
@@ -375,6 +397,21 @@ end
 -- 簽章不符就得重建整顆容器，而暴雪的 frame 刪不掉（舊的只是被 Hide、永久留著）——
 -- 把位置放進來等於「挪一格就永久多一顆容器 ＋ maxCount 顆 AuraButton」。
 -- 其餘欄位是在 AddAuraGroup / initializeFrame 當下烘死的，沒有 setter，只能重建。
+-- 黑名單的指紋。
+-- ⚠ 一定要排序：pairs 的順序不保證，同一份名單每次算出來的字串可能不同
+-- ⇒ 每次套設定都白重建一顆容器（而重建的舊容器刪不掉，只是被藏起來）。
+local blScratch = {}
+local function BlacklistKey(edb)
+    local bl = edb.blacklist
+    if type(bl) ~= "table" then return "" end
+    wipe(blScratch)
+    for id, on in pairs(bl) do
+        if on then blScratch[#blScratch + 1] = id end
+    end
+    table.sort(blScratch)
+    return table.concat(blScratch, ",")
+end
+
 local function BuildSignature(edb)
     return table.concat({
         tostring(edb.w), tostring(edb.h),
@@ -389,6 +426,8 @@ local function BuildSignature(edb)
         -- 沒有 setter，只能換整顆容器。漏了這個鍵的症狀是「改了下拉沒反應，
         -- 動別的設定才一起生效」。
         tostring(edb.onlyMine), tostring(edb.filterMode), tostring(ns.db.global.font),
+        -- 黑名單走 candidateFilters，同樣是宣告時就固定、沒有 setter（見 filterMode）
+        BlacklistKey(edb),
     }, "|")
 end
 

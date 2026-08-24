@@ -473,3 +473,15 @@ L["The anchor is which corner of the number sits on the same corner of the icon,
 L["Version: %s"] = "Версия: %s"
 L["Use /muf to open options"] = "Введите /muf, чтобы открыть настройки"
 L["Open options"] = "Открыть настройки"
+
+-- Aura blacklist (Options/AuraBlacklist.lua)
+L["Blacklist"] = "Чёрный список"
+L["Auras on this unit"] = "Ауры на этой цели"
+L["Blacklisted"] = "В чёрном списке"
+L["Rescan"] = "Пересканировать"
+L["Aura details are hidden in combat, encounters, Mythic+ and rated PvP, so nothing can be listed there. Step outside to pick."] = "В бою, в сражениях с боссами, в ключах и в рейтинговом PvP игра скрывает данные аур, поэтому здесь ничего не отобразится. Выйдите из этих ситуаций, чтобы выбрать."
+L["The game only allows spell-ID filtering for debuffs on enemies, so this list does nothing while the unit is friendly."] = "Игра разрешает фильтр по ID заклинания только для отрицательных эффектов на врагах; если цель дружественная, список не действует."
+L["Add by spell ID"] = "Добавить по ID заклинания"
+L["Spell ID"] = "ID заклинания"
+L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so this is the only way to add something you only ever see mid-fight."] = "Введите ID заклинания или вставьте ссылку на заклинание. В бою данные аур скрыты, поэтому это единственный способ добавить то, что видно только в бою."
+L["No spell with that ID."] = "Заклинание с таким ID не найдено."

@@ -473,3 +473,15 @@ L["The anchor is which corner of the number sits on the same corner of the icon,
 L["Version: %s"] = "Version : %s"
 L["Use /muf to open options"] = "Utilisez /muf pour ouvrir les options"
 L["Open options"] = "Ouvrir les options"
+
+-- Aura blacklist (Options/AuraBlacklist.lua)
+L["Blacklist"] = "Liste noire"
+L["Auras on this unit"] = "Auras sur cette unité"
+L["Blacklisted"] = "Sur la liste noire"
+L["Rescan"] = "Rescanner"
+L["Aura details are hidden in combat, encounters, Mythic+ and rated PvP, so nothing can be listed there. Step outside to pick."] = "En combat, lors des rencontres, en Mythique+ et en JcJ coté, le jeu masque les données des auras : rien ne peut être listé ici. Sortez de ces situations pour faire votre choix."
+L["The game only allows spell-ID filtering for debuffs on enemies, so this list does nothing while the unit is friendly."] = "Le jeu n'autorise le filtrage par ID de sort que pour les affaiblissements sur les ennemis ; sur une cible alliée cette liste reste sans effet."
+L["Add by spell ID"] = "Ajouter par ID de sort"
+L["Spell ID"] = "ID de sort"
+L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so this is the only way to add something you only ever see mid-fight."] = "Saisissez un ID de sort ou collez un lien de sort. En combat, les données des auras sont masquées : c'est le seul moyen d'ajouter quelque chose que vous ne voyez qu'en plein combat."
+L["No spell with that ID."] = "Aucun sort ne correspond à cet ID."
