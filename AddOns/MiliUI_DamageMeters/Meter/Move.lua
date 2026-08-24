@@ -35,22 +35,45 @@ end
 local EDGE_MARGIN = 16
 local STAGGER     = 24     -- 多視窗錯開量，避免疊成一坨
 
+-- 第二個以後的視窗：貼在前一個的正下方（上緣＝前一個的下緣），
+-- 也就是磁吸會吸出來的那個位置。前一個一定先建好（Rebuild 是 1..n 跑的），
+-- 所以這裡讀得到它的座標。
+local function StackBelowPrevious(W)
+    local prev = ns.DB.Win(W.idx - 1)
+    if not prev or type(prev.x) ~= "number" or type(prev.y) ~= "number" then return false end
+    W.wdb.x = prev.x
+    W.wdb.y = prev.y - (prev.height or 200)
+    W.wdb.autoPlaced = prev.autoPlaced   -- 前一個還在等接手，這一個也跟著等
+    return true
+end
+
 local function PlaceInitial(W)
     local wdb = W.wdb
     local x, y, matched = ns.Builtin.WindowOffset(W.idx)
+
+    -- 只認「自己這一號」的內建視窗。第二個以後若只對到內建的第一個，
+    -- 照抄就會疊在我們自己的第一個視窗上 —— 那種情況一律改成往下疊。
+    if x and matched == W.idx then
+        wdb.x, wdb.y = x, y
+        wdb.autoPlaced = nil
+        return
+    end
+
+    if W.idx > 1 and StackBelowPrevious(W) then return end
+
     if x then
-        -- 接手到「自己這一號」就原地照抄；只接手到第一個就錯開，免得疊在一起
-        local off = (matched == W.idx) and 0 or (W.idx - 1) * STAGGER
+        local off = (W.idx - 1) * STAGGER
         wdb.x, wdb.y = x + off, y - off
         wdb.autoPlaced = nil
-    else
-        local off = (W.idx - 1) * STAGGER
-        wdb.x = EDGE_MARGIN + off
-        wdb.y = -(EDGE_MARGIN + off)
-        -- 記號：這個位置是我們自己挑的、玩家還沒碰過。內建視窗晚一步才出現的話
-        -- （Blizzard_DamageMeter 可能是需求載入），之後還可以再接手一次。
-        wdb.autoPlaced = true
+        return
     end
+
+    local off = (W.idx - 1) * STAGGER
+    wdb.x = EDGE_MARGIN + off
+    wdb.y = -(EDGE_MARGIN + off)
+    -- 記號：這個位置是我們自己挑的、玩家還沒碰過。內建視窗晚一步才出現的話
+    -- （Blizzard_DamageMeter 可能是需求載入），之後還可以再接手一次。
+    wdb.autoPlaced = true
 end
 
 ------------------------------------------------------------
@@ -60,18 +83,25 @@ end
 ------------------------------------------------------------
 function Move.RetryAdoptBlizzardPosition()
     if not ns.Windows then return end
-    local moved = false
+
+    local pending = false
+    ns.Windows.ForEach(function(W) if W.wdb.autoPlaced then pending = true end end)
+    if not pending then return end
+
+    -- 內建視窗還是沒出現：維持現在的暫時位置，下次登入再試（記號留在 SV）
+    if not ns.Builtin.WindowOffset(1) then return end
+
+    -- ⚠ 清掉座標整組**照編號順序**重跑一次 PlaceInitial，不要各自算各自的。
+    --   第二個以後是貼在前一個下面的 —— 第一個一接手到新位置，
+    --   後面那些就得跟著搬，否則會被留在原地變成兩個不相干的框。
+    --   ForEach 是 1..n，順序剛好對。
     ns.Windows.ForEach(function(W)
         if not W.wdb.autoPlaced then return end
-        local x, y, matched = ns.Builtin.WindowOffset(W.idx)
-        if not x then return end
-        local off = (matched == W.idx) and 0 or (W.idx - 1) * STAGGER
-        W.wdb.x, W.wdb.y = x + off, y - off
-        W.wdb.autoPlaced = nil
+        W.wdb.x, W.wdb.y = nil, nil
+        PlaceInitial(W)
         Move.ApplyPosition(W)
-        moved = true
     end)
-    if moved then ns.Fire("SettingsChanged") end
+    ns.Fire("SettingsChanged")
 end
 
 function Move.ApplyPosition(W)

@@ -41,17 +41,37 @@ local DARK_BG = 0x1A / 255   -- 0.102
 -- 錨 CENTER 的話從右下角拉大會讓整個框往左上漂，錨 TOPLEFT 才是「標題列不動、
 -- 往右下長」的直覺行為。x/y = nil 代表還沒擺過，第一次顯示時算螢幕中央偏上。
 ------------------------------------------------------------
+------------------------------------------------------------
+-- 開箱預設：兩個上下貼齊的視窗
+--
+--   1  傷害輸出
+--   2  治療量（貼在 1 的正下方，見 Meter/Move.lua 的 PlaceInitial）
+--
+-- 兩個都開**分段連動**：上下並排看的就是同一場戰鬥，切分段不同步反而是 bug 感。
+-- 第二個**不顯示計時器**：兩個框貼在一起，同一個秒數印兩次是重複的噪音。
+--
+-- 第三個以後沒有 preset，就是一般的傷害輸出視窗。
+------------------------------------------------------------
+local WINDOW_PRESET = {
+    [1] = { dmType = "DamageDone",  syncSegments = true },
+    [2] = { dmType = "HealingDone", syncSegments = true, hideTimer = true },
+}
+
 function DB.NewWindow(idx)
+    local preset = WINDOW_PRESET[idx] or {}
+    local T = Enum.DamageMeterType
+    -- 注意 0 在 Lua 是 truthy，所以 DamageDone == 0 也走得通這串 or
+    local dmType = (T and preset.dmType and T[preset.dmType]) or (T and T.DamageDone) or 0
     return {
-        curDMType  = Enum.DamageMeterType and Enum.DamageMeterType.DamageDone or 0,
+        curDMType  = dmType,
         curSession = Enum.DamageMeterSessionType and Enum.DamageMeterSessionType.Current or 0,
         x = nil, y = nil,
         width = 300, height = 200,
         locked = false,
-        hideTimer = false,
+        hideTimer = preset.hideTimer or false,
         snapDisabled = false,
         -- 分段連動：勾了的視窗切分段時會一起切（看同一場戰鬥的不同統計類型時很有用）
-        syncSegments = false,
+        syncSegments = preset.syncSegments or false,
         -- 戰鬥開始時，正在看歷史分段的視窗自動跳回「本場」。
         -- 預設關：翻舊分段通常是刻意在比對，開打就被搶走視線很惱人。
         autoCurrentOnCombat = false,
@@ -185,7 +205,9 @@ local function BuildDefaults()
             snapThreshold = 6,
         },
 
-        windowCount = 1,
+        -- 兩個：傷害輸出 ＋ 治療量。單獨一個傷害統計看不出治療在做什麼，
+        -- 而兩個上下貼齊佔的橫向空間跟一個一樣。
+        windowCount = 2,
         windows = nil,   -- DB.Init 補
     }
 end
