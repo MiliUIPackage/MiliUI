@@ -836,6 +836,9 @@ function W.CreateChoicePopup(parent, width, text, choices)
             if c.onClick then c.onClick() end
         end)
     end
+
+    -- 建完先關掉，理由同 CreateConfirmPopup 結尾那段註解
+    popup:Hide()
     return popup
 end
 
