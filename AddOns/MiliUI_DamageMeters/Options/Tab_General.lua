@@ -37,7 +37,7 @@ local CONTROLS = {
     { type = "header", label = L["New run"] },
     { type = "dropdown", key = "autoReset", label = L["Entering a new instance"],
       items = Specs.AUTO_RESET },
-    { type = "text",   label = L["A Mythic+ key starting counts as a new run too, even in the same dungeon. It stays quiet in three cases: while you are in combat (it waits until you drop out), when there is nothing recorded to reset, and on login or /reload."] },
+    { type = "text",   label = L["A Mythic+ key starting counts as a new run too, even in the same dungeon. Nothing happens in three cases: while you are in combat (it waits until you drop out), when there is nothing recorded to reset, and on login or /reload."] },
 
     { type = "header", label = L["Snapping"] },
     { type = "toggle", key = "snapEnabled", label = L["Snap windows to each other"] },

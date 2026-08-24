@@ -162,10 +162,10 @@ local function BuildDefaults()
             -- damageMeterEnabled）。**預設開**：兩份統計同時算是白花的成本，
             -- 兩個框同時出現也只是讓人困惑。關掉這個選項會把 CVar 還回去。
             disableBuiltinMeter = true,
-            -- 進入新副本時要不要重置：off / ask（預設）/ auto。
+            -- 進入新副本時要不要重置：off / ask / auto（預設）。
             -- 三選一而不是「自動重置」＋「先確認」兩個勾選 —— 那樣會多出一個
             -- 無意義的組合，理由寫在 Meter/AutoReset.lua 的檔頭。
-            autoReset = "ask",
+            autoReset = "auto",
             -- 視窗互相磁吸（拖曳與縮放時吸附其他統計視窗的邊緣與尺寸）
             snapEnabled   = true,
             snapThreshold = 6,

@@ -71,8 +71,8 @@ L["Ask first"] = "跳出確認"
 L["Reset silently"] = "直接重置"
 L["Do nothing"] = "不做任何事"
 L["Entering %s. Reset the damage meter?"] = "進入%s。要重置傷害統計嗎？"
-L["A Mythic+ key starting counts as a new run too, even in the same dungeon. It stays quiet in three cases: while you are in combat (it waits until you drop out), when there is nothing recorded to reset, and on login or /reload."] =
-    "鑰石開始也算新的一趟，即使副本跟上一趟相同。三種情況下它不會吵你：戰鬥中（會等你脫離戰鬥再處理）、沒有資料可重置、以及登入或 /reload 的時候。"
+L["A Mythic+ key starting counts as a new run too, even in the same dungeon. Nothing happens in three cases: while you are in combat (it waits until you drop out), when there is nothing recorded to reset, and on login or /reload."] =
+    "鑰石開始也算新的一趟，即使副本跟上一趟相同。三種情況下不會有任何動作：戰鬥中（會等你脫離戰鬥再處理）、沒有資料可重置、以及登入或 /reload 的時候。"
 L["Snapping"] = "磁吸"
 L["Snap windows to each other"] = "視窗互相磁吸"
 L["While dragging or resizing, edges and sizes stick to the other meter windows. A single window can be excluded from its right-click menu."] =
