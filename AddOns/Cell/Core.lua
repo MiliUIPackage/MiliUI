@@ -315,10 +315,10 @@ function eventFrame:ADDON_LOADED(arg1)
             -- the two never actually collide.
             if type(t["durationAnchor"]) ~= "string" then t["durationAnchor"] = "CENTER" end
             if type(t["durationX"]) ~= "number" then t["durationX"] = 0 end
-            if type(t["durationY"]) ~= "number" then t["durationY"] = 0 end
+            if type(t["durationY"]) ~= "number" then t["durationY"] = -4 end
             -- fixed, for the same reason as keyFontSize: nothing here should change size
             -- because of how big the icons happen to be
-            if type(t["durationFontSize"]) ~= "number" then t["durationFontSize"] = 12 end
+            if type(t["durationFontSize"]) ~= "number" then t["durationFontSize"] = 15 end
             -- only show the number once the cooldown is under this many seconds; 0 = always
             if type(t["durationThreshold"]) ~= "number" then t["durationThreshold"] = 60 end
         end

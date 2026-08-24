@@ -235,6 +235,10 @@ end
 --! plus one character, because four more silhouettes would be indistinguishable at this
 --! size. [2] is that character.
 local MOUSE_MEDIA = "Interface\\AddOns\\Cell\\Media\\Icons\\"
+--! How much taller than the font the mouse glyph is drawn -- and, because of that, how
+--! tall EVERY keybind label's box is. The two have to be the same number; see ApplyKeyLabel.
+local KEY_GLYPH_PAD = 4
+
 --! ⚠ the ".png" is required. Extensions are optional for BLP/TGA but not for PNG.
 local MOUSE_GLYPH = {
     ["Left"]       = {MOUSE_MEDIA .. "mouse-left.png"},
@@ -286,7 +290,7 @@ local function BuildKeyLabel(modifier, key, fontSize)
 
     if glyph then
         -- square: the PNG is square with the silhouette centred in it
-        local h = fontSize + 4
+        local h = fontSize + KEY_GLYPH_PAD
         return mods .. "|T" .. glyph[1] .. ":" .. h .. ":" .. h .. "|t" .. (suffix or glyph[2] or "")
     end
 
@@ -364,6 +368,15 @@ local function ApplyKeyLabel(icon)
 
     local fontSize = db["keyFontSize"]
     icon.keyText:SetFont(GameFontNormal:GetFont(), fontSize, "OUTLINE")
+
+    --! ⚠ Fixed height + MIDDLE, not the string's natural height. An inline texture makes
+    --! its line taller than a text-only line, and the string is anchored by its TOP -- so
+    --! "C+<glyph>" sat a couple of pixels lower than the plain "S+R" beside it. Giving
+    --! every label the same box (as tall as the tallest possible line, i.e. the glyph) and
+    --! centring inside it makes the two line up whatever they contain.
+    icon.keyText:SetHeight(fontSize + KEY_GLYPH_PAD)
+    icon.keyText:SetJustifyV("MIDDLE")
+
     icon.keyText:SetText(BuildKeyLabel(icon.bindModifier or "", icon.bindKey or "", fontSize))
 end
 
