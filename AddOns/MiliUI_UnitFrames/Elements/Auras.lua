@@ -402,6 +402,7 @@ end
 -- 戰鬥中不彈（受保護的 intrinsic 擋 Hide），先設髒旗標記下來，脫戰再補彈一次。
 ------------------------------------------------------------
 local pendingBounce = {}
+local pendingHide = {}
 
 local function HideShow(c) c:Hide(); c:Show() end
 
@@ -415,6 +416,7 @@ end
 -- how 也一律用常數，不做串接。
 local function Bounce(c, tag)
     if not c then return end
+    pendingHide[c] = nil    -- 要彈就不會是要收，兩張延後表不能同時記著同一個容器
     local how
     if InCombatLockdown() then
         pendingBounce[c] = true
@@ -431,7 +433,40 @@ local function Bounce(c, tag)
     end
 end
 
+------------------------------------------------------------
+-- 「這個元件現在該不該在畫面上」的唯一真相
+--
+-- ⚠ 容器有好幾條 Show 的路（換目標、進出載具、框重新顯示、脫戰補彈）**全部繞過
+-- ns.Refresh 的 enabled 閘門** —— 那些是直接掛的事件與 script handler。少一道判斷，
+-- 取消勾選之後只要任何一條路跑過一次，Bounce 的 Show() 就把容器放回來，
+-- 而且從此每次都復活 ⇒ 這個元件再也關不掉。所以每一條路都要過這裡。
+------------------------------------------------------------
+local function IsEnabled(uf, elementName)
+    local edb = uf.db and uf.db.elements and uf.db.elements[elementName]
+    return edb ~= nil and edb.enabled ~= false
+end
+
+-- 收掉容器。
+-- ⚠ 戰鬥中不能對 intrinsic 下 Hide：會被判成「Blizzard UI 專屬動作」跳封鎖視窗，
+-- 而且那不是 Lua error、pcall 攔不住。所以跟 Bounce 一樣先記下來、脫戰再收。
+-- 順手清掉 pendingBounce 是必要的——不清的話脫戰時的補彈會把剛關掉的容器又放回來。
+local function Quiet(c)
+    if not c then return end
+    pendingBounce[c] = nil
+    if InCombatLockdown() then
+        pendingHide[c] = true
+    else
+        pendingHide[c] = nil
+        pcall(c.Hide, c)
+    end
+end
+
 ns.Events.Register("PLAYER_REGEN_ENABLED", "auras_bounce_replay", function()
+    -- 先收後彈：兩張表互斥（見 Bounce / Quiet），順序只是保險
+    for c in pairs(pendingHide) do
+        pendingHide[c] = nil
+        pcall(c.Hide, c)
+    end
     for c in pairs(pendingBounce) do
         pendingBounce[c] = nil
         Kick(c)
@@ -509,8 +544,14 @@ local function CreateContainer(uf, elementName, edb, filter, cand, style)
             -- ⚠ 這個 OnShow 落在**每次換目標**上：既不現配空表，也不現串字串。
             -- e.tag 在建容器時就算好了（見 Bounce 上面的說明），直接用。
             if uf.auraContainers then
-                for _, e in pairs(uf.auraContainers) do
-                    Bounce(e.container, e.tag)
+                -- 表的 key 就是元件名，直接拿來問 DB。這條路是「框重新顯示」
+                -- （顯示條件重算、關預覽、/reload），關掉的元件不能跟著被放回來。
+                for name, e in pairs(uf.auraContainers) do
+                    if IsEnabled(uf, name) then
+                        Bounce(e.container, e.tag)
+                    else
+                        Quiet(e.container)
+                    end
                 end
             end
         end)
@@ -581,11 +622,11 @@ local function MakeElement(elementName, baseFilter)
     local function Repoke(uf)
         local entry = uf.auraContainers and uf.auraContainers[elementName]
         if not entry then return end
-        -- ⚠ 下面四個事件是**直接掛的**，繞過 ns.Refresh 的 enabled 閘門。
-        -- 少了這道判斷，取消勾選之後只要換一次目標，Bounce 的 Show() 就會把容器
-        -- 放回來，而且從此每次換目標都復活 ⇒ 這個元件再也關不掉。
-        local edb = uf.db and uf.db.elements and uf.db.elements[elementName]
-        if not edb or edb.enabled == false then return end
+        -- ⚠ 下面四個事件是**直接掛的**，繞過 ns.Refresh 的 enabled 閘門（見 IsEnabled）
+        if not IsEnabled(uf, elementName) then
+            Quiet(entry.container)      -- 順手自癒：漏網的那次顯示在這裡收掉
+            return
+        end
         Bounce(entry.container, entry.tag)
     end
 
@@ -620,7 +661,7 @@ local function MakeElement(elementName, baseFilter)
 
     local function Disable(uf)
         local entry = uf.auraContainers and uf.auraContainers[elementName]
-        if entry then entry.container:Hide() end
+        if entry then Quiet(entry.container) end
     end
 
     -- 容器建立時就綁死了單位（CreateContainer 的 SetUnit），換載具時要重綁。
@@ -628,8 +669,13 @@ local function MakeElement(elementName, baseFilter)
     local function SetUnit(uf, unit)
         local entry = uf.auraContainers and uf.auraContainers[elementName]
         if not entry then return end
+        -- 單位照樣重綁（關掉的元件之後重新勾選才會接到正確的單位），但不要彈出來
         pcall(entry.container.SetUnit, entry.container, unit)
         entry.tag = unit .. "/" .. elementName
+        if not IsEnabled(uf, elementName) then
+            Quiet(entry.container)
+            return
+        end
         Bounce(entry.container, entry.tag)
     end
 

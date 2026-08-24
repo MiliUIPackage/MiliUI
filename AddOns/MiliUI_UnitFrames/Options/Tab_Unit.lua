@@ -514,6 +514,33 @@ local function SelectElement(elementKey)
 end
 
 ------------------------------------------------------------
+-- 從預覽點進來（點孿生框＝選單位，點孿生框上的光環圖示＝連元件一起選）
+--
+-- ⚠ 不能只呼叫 SelectUnit：按鈕群組的高亮是掛在**按鈕自己的 OnClick** 上的
+-- （見 W.CreateButtonGroup），從外面呼叫的話表單會換、左欄卻還亮著上一個單位，
+-- 看起來像點錯了。兩排高亮都要自己補。
+------------------------------------------------------------
+function ns.Options.FocusUnitElement(unitKey, elementKey)
+    local udb = ns.GetUnitDB(unitKey)
+    if not udb then return end
+
+    -- 先把選擇寫進狀態，再開分頁。
+    -- Options.Open 一定會派送 ShowOptionsTab，而本頁的處理器就是照 currentUnit /
+    -- currentElement 把兩排高亮與表單一次擺好 —— 先開再改的話會多閃一次舊的那頁。
+    -- 這個單位沒有該元件時就不換（RefreshChips 本來也會退回「框架」）。
+    if elementKey then
+        local els = udb.elements
+        if els and els[elementKey] and ns.Elements[elementKey] then
+            currentElement = elementKey
+        end
+    end
+    currentUnit = unitKey
+
+    -- 面板可能停在別的分頁；帶 tabId 就不會被當成「再按一次＝關閉」
+    ns.Options.Open("units")
+end
+
+------------------------------------------------------------
 -- 分頁本體
 ------------------------------------------------------------
 local function Init()

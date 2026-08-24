@@ -264,13 +264,19 @@ function DB.BuildDefaults()
                                  justifyH = "RIGHT", justifyV = "MIDDLE" },
                     },
                     castbar = bigCastbar(true),
-                    buffs  = { enabled = false, x = 0, y = -52, w = 17, h = 17,
-                               maxCount = 32, perRow = 16, growth = "LRTB", spacing = 1,
+                    -- 版面比照目標框（見那邊的說明），差別只在左右相反：玩家的魔力條
+                    -- 往**右**露 8，框體是 0~208。
+                    --   增益：x = 8 靠齊魔力條／資源條的左緣（不是血條左緣），
+                    --         y = -77 讓開框下那疊（魔力條露出的一截到 -58、資源條到 -20）
+                    --   減益：在框上 y = 4 往上長，x = 0 對血條左緣（8×24 ＋ 7 間距 = 199）
+                    -- 舊預設兩排都是 y = -52，同時開的話會完全疊在一起。
+                    buffs  = { enabled = false, x = 8, y = -77, w = 25, h = 25,
+                               maxCount = 16, perRow = 8, growth = "LRTB", spacing = 1,
                                showStack = true, stackSize = 10,
                                stackAnchor = "TOP", stackX = 0, stackY = 4,
                                durationText = true, durationThreshold = 60, filterMode = "all" },
-                    debuffs = { enabled = false, x = 0, y = -52, w = 17, h = 17,
-                                maxCount = 40, perRow = 16, growth = "LRTB", spacing = 1,
+                    debuffs = { enabled = false, x = 0, y = 4, w = 24, h = 24,
+                                maxCount = 16, perRow = 8, growth = "LRBT", spacing = 1,
                                 showStack = true, stackSize = 10,
                                 stackAnchor = "TOP", stackX = 0, stackY = 4,
                                 durationText = true, durationThreshold = 60, filterMode = "all" },
@@ -995,6 +1001,39 @@ local PROFILE_MIGRATIONS = {
             gate(pet.debuffs, "y", 5, 1)
             gate(pet.debuffs, "y", 2, 1)   -- 同上，過渡值
         end
+    end,
+
+    -- v14：玩家框的增益／減益版面比照目標框。
+    --
+    -- 舊預設是沒調過的佔位值：兩排都放 y = -52（同時開會完全疊在一起）、圖示 17
+    -- 配一排 16 顆（17×16 ＋ 15 = 287，比 200 的框寬了快一半）。
+    -- 新版是實地調出來的：增益靠齊魔力條／資源條左緣（x = 8）、放在框下那疊的下面
+    -- （y = -77）；減益在框上往上長，對血條左緣（x = 0、y = 4）。
+    --
+    -- 值閘：只動仍等於舊預設的那個值，自己拉過的不碰。
+    [14] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        local p = type(units.player) == "table" and units.player.elements
+        if type(p) ~= "table" then return end
+
+        local function gate(tbl, key, old, new)
+            if type(tbl) == "table" and tbl[key] == old then tbl[key] = new end
+        end
+
+        gate(p.buffs, "x", 0, 8)
+        gate(p.buffs, "y", -52, -77)
+        gate(p.buffs, "w", 17, 25)
+        gate(p.buffs, "h", 17, 25)
+        gate(p.buffs, "perRow", 16, 8)
+        gate(p.buffs, "maxCount", 32, 16)
+
+        gate(p.debuffs, "y", -52, 4)
+        gate(p.debuffs, "w", 17, 24)
+        gate(p.debuffs, "h", 17, 24)
+        gate(p.debuffs, "perRow", 16, 8)
+        gate(p.debuffs, "maxCount", 40, 16)
+        gate(p.debuffs, "growth", "LRTB", "LRBT")
     end,
 }
 

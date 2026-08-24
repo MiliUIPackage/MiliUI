@@ -14,6 +14,9 @@ local twins = {}         -- [unitKey] = { uf, ... }（boss 有 3 個）
 local ticker
 local isOpen = false
 local suppressedReal = false
+-- 設定面板開著＝孿生可以點（切選單）也可以拖（改位置）。編輯模式開的預覽不算：
+-- 那邊自己蓋 EditModeSystemSelectionTemplate，藍色選取框會吃掉滑鼠。
+local interactive = false
 
 ------------------------------------------------------------
 -- 假資料
@@ -132,7 +135,8 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
     for i = 1, count do
         local b = list[i]
         if not b then
-            b = CreateFrame("Frame", nil, uf, "BackdropTemplate")
+            -- Button 而不是 Frame：圖示要能點（跳到對應的增益／減益分頁）
+            b = CreateFrame("Button", nil, uf, "BackdropTemplate")
             b.icon = b:CreateTexture(nil, "ARTWORK")
             b.icon:SetPoint("TOPLEFT", 1, -1)
             b.icon:SetPoint("BOTTOMRIGHT", -1, 1)
@@ -140,6 +144,22 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
             b.dur = b:CreateFontString(nil, "OVERLAY")
             b.dur:SetPoint("CENTER", b, "CENTER", 0, 0)
             b.stack = b:CreateFontString(nil, "OVERLAY")
+            -- 光環排在框外（上面或下面），是「這個元件在哪裡」最直觀的靶。
+            -- elementName 對每一條 list 都是固定的（表是 uf.fakeAuras[elementName]），
+            -- 所以抓進 closure 是安全的。
+            b:RegisterForClicks("LeftButtonUp")
+            b:SetScript("OnClick", function()
+                if ns.Options and ns.Options.FocusUnitElement then
+                    ns.Options.FocusUnitElement(uf.unitKey, elementName)
+                end
+            end)
+            -- 從圖示上拖曳＝搬整個框（不然框底下那排光環會變成拖不動的死角）
+            if not (uf.bossIndex and uf.bossIndex > 1) then
+                ns.AttachDrag(b, uf, function() return uf.db.frame end, function()
+                    ns.ApplySettings(uf.unitKey)
+                end)
+            end
+            b:EnableMouse(interactive)
             list[i] = b
         end
         b:SetSize(w, h)
@@ -230,6 +250,44 @@ local function EachTwin(fn)
 end
 Preview.EachTwin = EachTwin
 
+------------------------------------------------------------
+-- 設定面板開著時的直接操作
+--
+-- 拖曳沿用編輯模式那套（ns.AttachDrag：游標差值、吸附、寫回 db.frame.x/y），
+-- 差別只在這裡是孿生自己吃滑鼠，不蓋藍色選取框。
+-- RegisterForDrag 與 OnClick 可以並存：暴雪自己分辨「有沒有拖過門檻」，
+-- 拖過了就走 OnDragStart、沒拖就放手時走 OnClick，不必自己量距離。
+------------------------------------------------------------
+local function HookTwinMouse(uf, unitKey)
+    if uf.__optionsHooked then return end
+    uf.__optionsHooked = true
+    uf:RegisterForClicks("LeftButtonUp")
+    uf:SetScript("OnClick", function()
+        if ns.Options and ns.Options.FocusUnitElement then
+            ns.Options.FocusUnitElement(unitKey)
+        end
+    end)
+    -- boss 只有第一格可拖，跟編輯模式同一個規則（拖了整組跟著走）
+    if not (uf.bossIndex and uf.bossIndex > 1) then
+        ns.AttachDrag(uf, uf, function() return uf.db.frame end, function()
+            ns.ApplySettings(unitKey)
+        end)
+    end
+end
+
+function Preview.ApplyInteractive()
+    EachTwin(function(uf, unitKey)
+        if interactive then HookTwinMouse(uf, unitKey) end
+        uf:EnableMouse(interactive)
+        -- 光環圖示是各自獨立的框，要一個一個開（它們排在框外面，不吃父層的設定）
+        if uf.fakeAuras then
+            for _, list in pairs(uf.fakeAuras) do
+                for _, b in ipairs(list) do b:EnableMouse(interactive) end
+            end
+        end
+    end)
+end
+
 function Preview.Rebuild(unitKey)
     if not isOpen then return end
     local list = twins[unitKey]
@@ -245,6 +303,7 @@ function Preview.Rebuild(unitKey)
     end
     -- 重建會沿用舊 alpha，重新套一次高亮才不會全部變回不透明
     if Preview.selectedKey then Preview.Highlight(Preview.selectedKey) end
+    Preview.ApplyInteractive()   -- 這次重建可能長出新的光環圖示，補開滑鼠
 end
 
 -- 選中單位高亮：用「其他單位變淡」表示，不畫外框。
@@ -460,11 +519,16 @@ opener:SetScript("OnEvent", function(self)
     if not next(users) then return end        -- 面板已經關了
     if not isOpen then return end             -- 已經被正常開過
     DoOpen()
+    Preview.ApplyInteractive()
 end)
 
 function Preview.Open(user)
     users[user or "options"] = true
-    if isOpen then return end
+    interactive = users.options and true or false
+    if isOpen then
+        Preview.ApplyInteractive()
+        return
+    end
     if InCombatLockdown() then
         print("|cff4DD2FF" .. L["[MiliUI UF]"] .. "|r " ..
               L["Can't open the preview during combat; the real frames stay visible."])
@@ -473,11 +537,16 @@ function Preview.Open(user)
         return
     end
     DoOpen()
+    Preview.ApplyInteractive()
 end
 
 function Preview.Close(user)
     users[user or "options"] = nil
-    if next(users) then return end     -- 還有人在用（例如編輯模式沒退）
+    interactive = users.options and true or false
+    if next(users) then
+        Preview.ApplyInteractive()     -- 例如關掉設定面板但編輯模式還開著
+        return
+    end
     if not isOpen then return end
     isOpen = false
     opener:UnregisterAllEvents()       -- 戰鬥中開、還沒脫戰就關窗：取消補開

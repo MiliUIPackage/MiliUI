@@ -56,26 +56,24 @@ local function Snap(v)
 end
 
 ------------------------------------------------------------
--- 選取框 + 游標差值拖曳
-------------------------------------------------------------
--- applyPoint：這個系統自己的定位方式（不給就是 CENTER 對 UIParent CENTER）。
--- 召喚物錨在玩家框左下角，用預設那套會把 CENTER 偏移寫進 TOPLEFT 語意的欄位。
+-- 游標差值拖曳
 --
--- ⚠⚠ getFDB 是 **getter 不是表**。選取框建立一次就快取在 frame.editSelection 上、
--- 永遠不重建，所以任何在這裡被 closure 抓住的設定表都會過期：DB.Activate 換設定檔時
--- 會重建 ns.db，profile 的子表是不同物件，而 RebindProfile 只重指 uf.db、管不到這個
--- closure。症狀是「框在畫面上動了，但 ApplySettings 重套後又彈回原位」＝看起來像拖不動，
--- 實際上座標寫進了上一份設定檔。
-local function AttachSelection(frame, label, getFDB, onMoved, applyPoint)
-    if frame.editSelection then return frame.editSelection end
-
-    local sel = CreateFrame("Frame", nil, frame, "EditModeSystemSelectionTemplate")
-    sel:SetAllPoints()
-    sel:Hide()
-    sel:RegisterForDrag("LeftButton")
-    sel.system = {
-        GetSystemName = function() return label end,
-    }
+-- 拖曳全程不讀框架幾何（R4：避開秘密值幾何污染的疑慮），只累加游標位移。
+--   handle     實際吃滑鼠的框。編輯模式是藍色選取框，設定面板是孿生自己
+--   frame      要跟著動的那個框
+--   applyPoint 這個系統自己的定位方式（不給就是 CENTER 對 UIParent CENTER）。
+--              召喚物錨在玩家框左下角，用預設那套會把 CENTER 偏移寫進 TOPLEFT 語意的欄位
+--
+-- ⚠⚠ getFDB 是 **getter 不是表**。掛勾只建一次就長期留在框上、永遠不重建，所以任何
+-- 在這裡被 closure 抓住的設定表都會過期：DB.Activate 換設定檔時會重建 ns.db，profile
+-- 的子表是不同物件，而 RebindProfile 只重指 uf.db、管不到這個 closure。症狀是「框在
+-- 畫面上動了，但 ApplySettings 重套後又彈回原位」＝看起來像拖不動，實際上座標寫進了
+-- 上一份設定檔。
+------------------------------------------------------------
+function ns.AttachDrag(handle, frame, getFDB, onMoved, applyPoint)
+    if handle.__miliDragHooked then return end
+    handle.__miliDragHooked = true
+    handle:RegisterForDrag("LeftButton")
 
     local baseX, baseY, startCX, startCY
 
@@ -93,7 +91,7 @@ local function AttachSelection(frame, label, getFDB, onMoved, applyPoint)
         frame:SetPoint("CENTER", UIParent, "CENTER", nx / s, ny / s)
     end
 
-    sel:SetScript("OnDragStart", function(self)
+    handle:SetScript("OnDragStart", function(self)
         local fdb = getFDB()
         baseX, baseY = (fdb and fdb.x) or 0, (fdb and fdb.y) or 0
         startCX, startCY = GetCursorPosition()
@@ -104,7 +102,7 @@ local function AttachSelection(frame, label, getFDB, onMoved, applyPoint)
             Place(Snap(baseX + (cx - startCX) / scale), Snap(baseY + (cy - startCY) / scale))
         end)
     end)
-    sel:SetScript("OnDragStop", function(self)
+    handle:SetScript("OnDragStop", function(self)
         self:SetScript("OnUpdate", nil)
         if not baseX then return end        -- 沒有進行中的拖曳（見下面的 OnHide）
         local cx, cy = GetCursorPosition()
@@ -119,13 +117,28 @@ local function AttachSelection(frame, label, getFDB, onMoved, applyPoint)
         if onMoved then onMoved() end
     end)
 
-    -- 拖到一半離開編輯模式時只會 Hide，OnDragStop 不會來 ⇒ OnUpdate 留著、
-    -- baseX/startCX 也留著。下次 ShowHighlighted 再拖就會拿上一輪的基準算，框瞬間跳位。
+    -- 拖到一半離開編輯模式／關掉設定面板時只會 Hide，OnDragStop 不會來 ⇒ OnUpdate
+    -- 留著、baseX/startCX 也留著。下次再拖就會拿上一輪的基準算，框瞬間跳位。
     -- ⚠ 用 HookScript：EditModeSystemSelectionTemplate 自己可能有 OnHide，SetScript 會蓋掉。
-    sel:HookScript("OnHide", function(self)
+    handle:HookScript("OnHide", function(self)
         self:SetScript("OnUpdate", nil)
         baseX, baseY, startCX, startCY = nil, nil, nil, nil
     end)
+end
+
+------------------------------------------------------------
+-- 選取框（編輯模式專用的藍色外框 ＋ 系統名稱）
+------------------------------------------------------------
+local function AttachSelection(frame, label, getFDB, onMoved, applyPoint)
+    if frame.editSelection then return frame.editSelection end
+
+    local sel = CreateFrame("Frame", nil, frame, "EditModeSystemSelectionTemplate")
+    sel:SetAllPoints()
+    sel:Hide()
+    sel.system = {
+        GetSystemName = function() return label end,
+    }
+    ns.AttachDrag(sel, frame, getFDB, onMoved, applyPoint)
 
     frame.editSelection = sel
     return sel
@@ -166,6 +179,9 @@ local function UpdateEditModeState()
             if uf.editSelection then uf.editSelection:Hide() end
             uf:EnableMouse(false)
         end)
+        -- 設定面板可能還開著（兩邊共用同一批孿生）：上面那圈把滑鼠一律關掉了，
+        -- 收尾時讓 Preview 依它自己的狀態決定要不要再打開。
+        -- ⚠ 要放在 Preview.Close 之後——Close 會重算那個狀態。
         local totem = ns.totemFrame
         if totem and totem.editSelection then
             totem.editSelection:Hide()
@@ -180,6 +196,7 @@ local function UpdateEditModeState()
             end
         end
         ns.Preview.Close("editmode")
+        ns.Preview.ApplyInteractive()
     end
 end
 
