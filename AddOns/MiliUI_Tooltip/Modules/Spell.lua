@@ -140,59 +140,6 @@ function Spell.ApplyAura(tip, state, data)
     ShowMountSource(tip, spellId)
 end
 
-------------------------------------------------------------
--- buff / debuff 提示：光環是用 GameTooltip 的 SetUnitAura / SetUnitBuff /
--- SetUnit*ByAuraInstanceID 這族 setter 設進來的，post-call 的 tooltipData
--- 常拿不到 spellId → 照 12.1 規則自己解析（光環變秘密時 index / instance
--- 讀取會硬炸，先問 AurasAreSecret，戰鬥中沒有 ID 是正常的）。
--- setter 後掛勾跑在 ProcessInfo 之外，加完行要 Show 重排。
-------------------------------------------------------------
-local function ApplyResolvedAura(tip, spellId)
-    if not ns.db then return end
-    local state = Skin.Get(tip)
-    if not state or S.IsForbiddenObject(tip) then return end
-    if ns.logEnabled then
-        ns.Log("AuraSetter resolved=%s", ns.Describe(spellId))
-    end
-    spellId = S.PlainNumber(spellId)
-    if not spellId then return end
-    state.lastSpellId = spellId
-    ShowSpellIds(tip, spellId)
-    ShowMountSource(tip, spellId)
-    if tip:IsShown() then tip:Show() end
-end
-
-local function ResolveAuraByIndex(unit, index, filter)
-    if ns.UnitInfo.AurasAreSecret() then return end
-    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
-        local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, unit, index, filter)
-        if ok and type(aura) == "table" then return S.PlainNumber(aura.spellId) end
-    end
-end
-
-local function ResolveAuraByInstance(unit, auraInstanceID)
-    if ns.UnitInfo.AurasAreSecret() then return end
-    if C_UnitAuras and C_UnitAuras.GetAuraDataByAuraInstanceID then
-        local ok, aura = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, auraInstanceID)
-        if ok and type(aura) == "table" then return S.PlainNumber(aura.spellId) end
-    end
-end
-
-do
-    local BY_INDEX = { "SetUnitAura", "SetUnitBuff", "SetUnitDebuff" }
-    local BY_INSTANCE = { "SetUnitAuraByAuraInstanceID", "SetUnitBuffByAuraInstanceID", "SetUnitDebuffByAuraInstanceID" }
-    for _, name in ipairs(BY_INDEX) do
-        if GameTooltip and type(GameTooltip[name]) == "function" then
-            hooksecurefunc(GameTooltip, name, function(tip, unit, index, filter)
-                ApplyResolvedAura(tip, ResolveAuraByIndex(unit, index, filter))
-            end)
-        end
-    end
-    for _, name in ipairs(BY_INSTANCE) do
-        if GameTooltip and type(GameTooltip[name]) == "function" then
-            hooksecurefunc(GameTooltip, name, function(tip, unit, auraInstanceID)
-                ApplyResolvedAura(tip, ResolveAuraByInstance(unit, auraInstanceID))
-            end)
-        end
-    end
-end
+-- （光環 setter 六支的後掛勾已刪：post-call 的 tooltipData.id 每次都拿得到 ID，
+-- 那條路完全冗餘，還會把來源／ID 行各多加一份——post-call 一份、掛勾又一份，
+-- 實測坐騎光環的「貿易站 已收藏」出現兩次就是它。）

@@ -5,7 +5,6 @@
 --   1. TooltipDataProcessor.AddTooltipPostCall（官方入口）
 --   2. hooksecurefunc：GameTooltip_SetDefaultAnchor（Anchor.lua）、
 --      GameTooltip_AddInstructionLine、GameTooltip.SetAction / SetMacro、
---      GameTooltip 的光環 setter 六支（Spell.lua）、
 --      ItemRefTooltip.SetHyperlink（Quest.lua）、InspectUnit（UnitInfo.lua）
 --   3. HookScript("OnTooltipCleared")（清理暫態）
 --   4. line FontString 的 SetText / SetTextColor（UnitLines.lua；暴雪每次
