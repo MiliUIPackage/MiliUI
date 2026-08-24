@@ -34,6 +34,11 @@ local CONTROLS = {
     { type = "toggle", key = "disableBuiltinMeter", label = L["Turn off Blizzard's built-in damage meter"] },
     { type = "text",   label = L["On by default. Two meters running at once pays the cost twice and puts two overlapping windows on your screen. This flips the game's own setting (Options → Gameplay Enhancements → Damage Meter); unchecking this box turns it back on."] },
 
+    { type = "header", label = L["New run"] },
+    { type = "dropdown", key = "autoReset", label = L["Entering a new instance"],
+      items = Specs.AUTO_RESET },
+    { type = "text",   label = L["A Mythic+ key starting counts as a new run too, even in the same dungeon. It stays quiet in three cases: while you are in combat (it waits until you drop out), when there is nothing recorded to reset, and on login or /reload."] },
+
     { type = "header", label = L["Snapping"] },
     { type = "toggle", key = "snapEnabled", label = L["Snap windows to each other"] },
     { type = "text",   label = L["While dragging or resizing, edges and sizes stick to the other meter windows. A single window can be excluded from its right-click menu."] },

@@ -41,6 +41,7 @@ Meter\Home.lua
 Meter\Builtin.lua
 Meter\Move.lua
 Meter\Manager.lua
+Meter\AutoReset.lua
 
 # 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
 Libs\MiliUIWidgets\Env.lua

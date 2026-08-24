@@ -260,6 +260,14 @@ function Windows.ShowContextMenu(W, btn, redraw)
             end,
         },
         {
+            text = L["Jump back to Current when combat starts"],
+            isActive = wdb.autoCurrentOnCombat, keepOpen = true,
+            onClick = function()
+                wdb.autoCurrentOnCombat = not wdb.autoCurrentOnCombat
+                Windows.ShowContextMenu(W, btn, true)
+            end,
+        },
+        {
             -- 全域磁吸關著的時候這一項沒有意義，標示出來
             text = s.snapEnabled and L["Don't snap this window"] or L["Snapping is off in the settings"],
             isActive = wdb.snapDisabled, keepOpen = true,

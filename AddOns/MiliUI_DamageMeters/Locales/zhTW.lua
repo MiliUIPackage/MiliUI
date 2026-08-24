@@ -65,6 +65,14 @@ L["On by default. Two meters running at once pays the cost twice and puts two ov
     "預設開。兩份統計同時跑等於同一件事算兩次，畫面上還會疊出兩個視窗。這會翻動遊戲自己的設定（選項 → 遊戲體驗強化 → 傷害量表）；取消勾選就會把它開回來。"
 L["Turned off Blizzard's built-in damage meter so the two don't overlap and double up the cost. You can get it back from this addon's settings."] =
     "已經關閉暴雪內建的傷害統計，免得兩個視窗疊在一起、成本也算兩次。想要它回來就到這支插件的設定裡取消那個勾選。"
+L["New run"] = "新的一趟"
+L["Entering a new instance"] = "進入新副本時"
+L["Ask first"] = "跳出確認"
+L["Reset silently"] = "直接重置"
+L["Do nothing"] = "不做任何事"
+L["Entering %s. Reset the damage meter?"] = "進入%s。要重置傷害統計嗎？"
+L["A Mythic+ key starting counts as a new run too, even in the same dungeon. It stays quiet in three cases: while you are in combat (it waits until you drop out), when there is nothing recorded to reset, and on login or /reload."] =
+    "鑰石開始也算新的一趟，即使副本跟上一趟相同。三種情況下它不會吵你：戰鬥中（會等你脫離戰鬥再處理）、沒有資料可重置、以及登入或 /reload 的時候。"
 L["Snapping"] = "磁吸"
 L["Snap windows to each other"] = "視窗互相磁吸"
 L["While dragging or resizing, edges and sizes stick to the other meter windows. A single window can be excluded from its right-click menu."] =

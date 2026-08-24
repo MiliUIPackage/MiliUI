@@ -52,6 +52,12 @@ Specs.ICON_STYLES = {
     { text = L["None"],                value = "none" },
 }
 
+Specs.AUTO_RESET = {
+    { text = L["Ask first"],       value = "ask" },
+    { text = L["Reset silently"],  value = "auto" },
+    { text = L["Do nothing"],      value = "off" },
+}
+
 Specs.BAR_STYLES = {
     { text = L["Line under the row"], value = "line-bottom" },
     { text = L["Line above the row"], value = "line-top" },

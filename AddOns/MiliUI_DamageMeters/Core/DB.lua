@@ -39,8 +39,9 @@ function DB.NewWindow(idx)
         snapDisabled = false,
         -- 分段連動：勾了的視窗切分段時會一起切（看同一場戰鬥的不同統計類型時很有用）
         syncSegments = false,
-        -- 戰鬥開始時，正在看歷史分段的視窗自動跳回「本場」
-        autoCurrentOnCombat = true,
+        -- 戰鬥開始時，正在看歷史分段的視窗自動跳回「本場」。
+        -- 預設關：翻舊分段通常是刻意在比對，開打就被搶走視線很惱人。
+        autoCurrentOnCombat = false,
         -- 顯示條件
         visibility = "always",   -- always | combat | instance | group
         hideInDungeon = false,
@@ -57,6 +58,9 @@ local function BuildDefaults()
         -- 我們是不是關掉過玩家的內建傷害統計。true = 欠著一個還原，
         -- 玩家把「自動關閉內建統計」關掉時要把 CVar 還回去（見 Meter/Builtin.lua）
         builtinRestore = false,
+        -- 上一次記錄到的副本（instanceID:難度）。用來判斷「這是不是新的一趟」。
+        -- 帳號層：這是這台機器當下在哪裡，不是玩家調的設定，不能跟著匯出字串跑。
+        lastInstanceKey = nil,
 
         style = {
             ------------------------------------------------------------
@@ -158,6 +162,10 @@ local function BuildDefaults()
             -- damageMeterEnabled）。**預設開**：兩份統計同時算是白花的成本，
             -- 兩個框同時出現也只是讓人困惑。關掉這個選項會把 CVar 還回去。
             disableBuiltinMeter = true,
+            -- 進入新副本時要不要重置：off / ask（預設）/ auto。
+            -- 三選一而不是「自動重置」＋「先確認」兩個勾選 —— 那樣會多出一個
+            -- 無意義的組合，理由寫在 Meter/AutoReset.lua 的檔頭。
+            autoReset = "ask",
             -- 視窗互相磁吸（拖曳與縮放時吸附其他統計視窗的邊緣與尺寸）
             snapEnabled   = true,
             snapThreshold = 6,
