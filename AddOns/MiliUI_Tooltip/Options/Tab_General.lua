@@ -41,11 +41,6 @@ local CONTROLS = {
     { type = "number", root = "statusbar", key = "fontSize", label = L["Text size"], step = 1 },
     { type = "dropdown", root = "statusbar", key = "color", label = L["Bar color"], items = Specs.BAR_COLOR_ITEMS },
     { type = "color",  root = "statusbar", key = "customColor", label = L["Custom bar color"], hasAlpha = false },
-
-    { type = "header", label = L["Reset"] },
-    { type = "button", label = L["Everything"], text = L["Restore all defaults"], color = "red",
-      confirm = L["Restore every setting to defaults and reload the UI?"],
-      onClick = function() ns.DB.ResetAll() end },
 }
 
 local function Init()

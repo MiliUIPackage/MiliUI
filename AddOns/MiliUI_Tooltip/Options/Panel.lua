@@ -34,8 +34,16 @@ local TABS = {
     { id = "npc",     label = "NPC" },
     { id = "extra",   label = L["Item & spells"] },
     { id = "anchor",  label = L["Anchor"] },
+    -- fullWidth：這個分頁沒有預覽（見 Options/Preview.lua 的 SetForTab），
+    -- 左右欄的分隔線也要跟著收起來，不然會有一條垂直線穿過版面
+    { id = "share",   label = L["Profile"], fullWidth = true },
     { id = "about",   label = L["About"] },
 }
+
+local FULL_WIDTH = {}
+for _, t in ipairs(TABS) do
+    if t.fullWidth then FULL_WIDTH[t.id] = true end
+end
 
 function Options.NewTabFrame()
     local tab = CreateFrame("Frame", nil, Options.panel)
@@ -69,12 +77,13 @@ end
 local function SavePosition()
     local cx, cy = UIParent:GetCenter()
     local fx, fy = panel:GetCenter()
-    ns.db.optionsWindow.x = math.floor(fx - cx + 0.5)
-    ns.db.optionsWindow.y = math.floor(fy - cy + 0.5)
+    local w = ns.DB.Account().optionsWindow
+    w.x = math.floor(fx - cx + 0.5)
+    w.y = math.floor(fy - cy + 0.5)
 end
 
 local function ApplyPosition()
-    local w = ns.db.optionsWindow
+    local w = ns.DB.Account().optionsWindow
     local maxX = (GetScreenWidth() or 1920) / 2
     local maxY = (GetScreenHeight() or 1080) / 2
     if type(w.x) ~= "number" or math.abs(w.x) > maxX then w.x = 0 end
@@ -139,6 +148,9 @@ local function CreatePanel()
     sep:SetPoint("TOPLEFT", PREVIEW_W, -1)
     sep:SetPoint("BOTTOMLEFT", PREVIEW_W, 1)
     sep:SetWidth(P.Scale(1))
+    ns.RegisterCallback("ShowOptionsTab", "panelPreviewSep", function(id)
+        sep:SetShown(not FULL_WIDTH[id])
+    end)
 
     -- 分頁鈕：上緣外側兼拖曳把手（自己量距離＋最短按住時間，不用 RegisterForDrag）
     local prev
