@@ -18,10 +18,10 @@ ns.DB_VERSION = 1
 ns.playerClass = select(2, UnitClass("player"))
 ns.playerGUID  = UnitGUID("player")
 
--- 聊天前綴與設定視窗標題共用這一個色，跟 TOC 的 [統計] 標籤同色（FFB627）。
--- 跟 DamageMeterTools 的 [統計] 是同色系不同亮度：我們是主體（飽和），
--- 它是增強工具（收斂）—— 兩個在插件列表裡相鄰，這樣看得出是一組又分得出主從。
-ns.PREFIX_COLOR = "|cffFFB627"
+-- 聊天前綴與設定視窗標題共用這一個色，跟 TOC 的 [統計] 標籤同色。
+-- 00FFFF 是套組的既有用色（Focus 的 [焦點]、BurstPotionHelper 的 [巨集]、
+-- DamageMeterTools 的 [統計] 都是它）—— 兩支統計插件在列表裡相鄰，同色才像一組。
+ns.PREFIX_COLOR = "|cff00FFFF"
 
 function ns.Print(...)
     print(ns.PREFIX_COLOR .. "[" .. ns.L["MiliUI Damage Meters"] .. "]|r", ...)
