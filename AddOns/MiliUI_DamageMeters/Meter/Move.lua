@@ -228,12 +228,18 @@ local function BeginDrag(W)
     W.dragFrame:Show()
 end
 
+-- 回傳「這次有沒有真的拖動過」。標題那塊同時是「切換統計類型」的按鈕，
+-- 靠這個值分辨玩家是想拖視窗還是想點一下。
 local function EndDrag(W)
-    if not W._drag then return end
+    local d = W._drag
+    if not d then return false end
     W._drag = nil
     W.dragFrame:Hide()
-    SavePosition(W)
+    if d.moved then SavePosition(W) end
+    return d.moved == true
 end
+
+local DRAG_SLOP = 4   -- 超過這個距離才算「拖」，不然算「點一下」
 
 local function DragTick(W)
     local d = W._drag
@@ -243,8 +249,12 @@ local function DragTick(W)
 
     local scale = UIScale()
     local cx, cy = GetCursorPosition()
-    local left = d.left + (cx / scale - d.cx)
-    local top  = d.top  + (cy / scale - d.cy)
+    local dx, dy = cx / scale - d.cx, cy / scale - d.cy
+    if not d.moved and (math.abs(dx) > DRAG_SLOP or math.abs(dy) > DRAG_SLOP) then
+        d.moved = true
+    end
+    local left = d.left + dx
+    local top  = d.top  + dy
 
     local frame = W.frame
     left, top = ApplySnap(W, left, top, frame:GetWidth(), frame:GetHeight())
@@ -252,6 +262,20 @@ local function DragTick(W)
     local pl, pt = UIParent:GetLeft(), UIParent:GetTop()
     frame:ClearAllPoints()
     frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", left - pl, top - pt)
+end
+
+------------------------------------------------------------
+-- 給標題按鈕用：它蓋在標題列上，拖曳得由它轉發過來
+------------------------------------------------------------
+function Move.BeginHeaderDrag(W)
+    if W.wdb.locked and not Move.IsEditing() then return false end
+    BeginDrag(W)
+    return true
+end
+
+-- 回傳有沒有真的拖動過（沒有＝玩家只是點了一下）
+function Move.EndHeaderDrag(W)
+    return EndDrag(W)
 end
 
 ------------------------------------------------------------

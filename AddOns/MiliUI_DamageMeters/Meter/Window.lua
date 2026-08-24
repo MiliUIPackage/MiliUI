@@ -29,6 +29,8 @@ local ICON_HOVER_ALPHA = 1.00
 -- 按鈕之間留一點縫。零間距的一排圖示會黏成一條帶子 —— 圖檔本身已經有 18% 留白，
 -- 這是第二層（見 miliui-damagemeter-icons 技能的「留白是設計的一部分」）。
 local BTN_GAP = 2
+local TYPE_PAD = 5     -- 左側類型圖示離視窗左緣
+local TYPE_GAP = 4     -- 類型圖示與標題之間
 
 ------------------------------------------------------------
 -- 標題列按鈕的貼圖
@@ -393,9 +395,11 @@ function Win.FitTitle(W)
     -- 藏起來的圖示不佔空間，標題就吃整條標題列（不要對著一個不存在的空隙截字）
     local n = W._hdrIconsShown and (W._hdrButtonCount or 0) or 0
     local headerW = W.frame:GetWidth() or (W.wdb.width or 300)
-    -- 每顆佔 size + BTN_GAP，要跟 LayoutHeaderButtons 用同一套算法，
-    -- 不然標題會截在錯的地方（多留或少留一段）
-    local avail = headerW - ((iconSz + BTN_GAP) * n) - (6 + (s.hdrTextOffX or 0)) - 8
+    -- 右邊每顆佔 size + BTN_GAP，要跟 LayoutHeaderButtons 用同一套算法，
+    -- 不然標題會截在錯的地方（多留或少留一段）。
+    -- 左邊要另外扣掉類型圖示那一塊（TYPE_PAD + 圖示 + TYPE_GAP）。
+    local leftUsed = TYPE_PAD + iconSz + TYPE_GAP + (s.hdrTextOffX or 0)
+    local avail = headerW - ((iconSz + BTN_GAP) * n) - leftUsed - 8
     if avail < 1 then avail = 1 end
     if fs:GetStringWidth() <= avail then return end
 
@@ -580,6 +584,29 @@ function Win.Create(idx)
     header.bottomBorder:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, 0)
     header.bottomBorder:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 0)
 
+    ------------------------------------------------------------
+    -- 左側「統計類型」區塊：圖示 ＋ 標題，整塊都是切換按鈕
+    --
+    -- 這一顆刻意**不放在右邊那組**：右邊是「對這個視窗做什麼」（分段、重置、
+    -- 選單、鎖定），這一顆是「這個視窗在看什麼」—— 不同類的東西不該混在一起。
+    -- 放在標題左邊，圖示與標題一起讀成「類型：傷害輸出」，而且整塊可點
+    -- ＝ 標準的選擇器語彙（點標籤本身就會展開，不必去找那顆小圖示）。
+    ------------------------------------------------------------
+    local typeBtn = CreateFrame("Button", nil, header)
+    typeBtn:SetFrameLevel(header:GetFrameLevel() + 2)
+    typeBtn:SetPoint("TOPLEFT", header, "TOPLEFT", 0, 0)
+    typeBtn:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, 0)
+    W.typeBtn = typeBtn
+
+    typeBtn.hl = typeBtn:CreateTexture(nil, "BACKGROUND")
+    typeBtn.hl:SetAllPoints()
+    typeBtn.hl:SetColorTexture(M.Accent())
+    typeBtn.hl:SetAlpha(0.12)
+    typeBtn.hl:Hide()
+
+    W.typeIcon = typeBtn:CreateTexture(nil, "ARTWORK")
+    W.typeIcon:SetTexture(BTN_TEX.meters)
+
     W.titleText = header:CreateFontString(nil, "OVERLAY")
     W.titleText:SetPoint("LEFT", header, "LEFT", 6, 0)
 
@@ -684,8 +711,36 @@ function Win.Create(idx)
     MakeHeaderButton(W, "segments", L["Segments"], function(btn)
         ns.Windows.ShowSegmentMenu(W, btn)
     end)
-    MakeHeaderButton(W, "meters", L["Meter type"], function()
-        ns.Home.Toggle(W)
+    ------------------------------------------------------------
+    -- 左側區塊的行為：左鍵切類型、右鍵開選單，而且**還是拖得動視窗**
+    --
+    -- 標題是最自然的拖曳把手，蓋一顆按鈕上去不能把拖曳吃掉。做法是把
+    -- 按下／放開轉發給拖曳邏輯，放開時問它「剛剛有沒有真的拖過」——
+    -- 沒有才當成點一下（見 Move.lua 的 DRAG_SLOP）。
+    ------------------------------------------------------------
+    typeBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    typeBtn:SetScript("OnEnter", function(self)
+        self.hl:Show()
+        W.typeIcon:SetAlpha(ICON_HOVER_ALPHA)
+        -- 子按鈕會擋掉 header 的 OnEnter，右側那組「滑過才出現」的圖示得自己叫醒。
+        -- （離開那邊不用管：header 的 OnLeave 用 IsMouseOver 判斷，涵蓋整個標題列）
+        SetHeaderIconsShown(W, true)
+    end)
+    typeBtn:SetScript("OnLeave", function(self)
+        self.hl:Hide()
+        W.typeIcon:SetAlpha(ICON_ALPHA)
+    end)
+    typeBtn:SetScript("OnMouseDown", function(_, button)
+        if button ~= "LeftButton" then return end
+        ns.Move.BeginHeaderDrag(W)
+    end)
+    typeBtn:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" then
+            ns.Windows.ShowContextMenu(W)
+            return
+        end
+        if button ~= "LeftButton" then return end
+        if not ns.Move.EndHeaderDrag(W) then ns.Home.Toggle(W) end
     end)
 
     header:SetScript("OnEnter", function() SetHeaderIconsShown(W, true) end)
@@ -780,11 +835,21 @@ function Win.ApplyStyle(W)
     header.bottomBorder:SetColorTexture(bb.r or 0, bb.g or 0, bb.b or 0, bb.a or 1)
     header.bottomBorder:SetShown((s.hdrBottomBorderSize or 0) > 0)
 
+    -- 左側類型區塊：圖示貼左緣，標題接在它右邊
+    local iconSz = s.hdrIconSize or 20
+    W.typeIcon:SetSize(iconSz, iconSz)
+    W.typeIcon:ClearAllPoints()
+    W.typeIcon:SetPoint("LEFT", header, "LEFT", TYPE_PAD, 0)
+    W.typeIcon:SetVertexColor(M.Accent())
+    W.typeIcon:SetAlpha(ICON_ALPHA)
+
     -- 標題文字
     Win.SetFont(W.titleText, s.hdrFontSize or 11)
     Win.SetFont(W.timerText, s.hdrFontSize or 11)
     W.titleText:ClearAllPoints()
-    W.titleText:SetPoint("LEFT", header, "LEFT", 6 + (s.hdrTextOffX or 0), s.hdrTextOffY or 0)
+    W.titleText:SetPoint("LEFT", W.typeIcon, "RIGHT", TYPE_GAP + (s.hdrTextOffX or 0), s.hdrTextOffY or 0)
+    -- 可點範圍蓋住「圖示 ＋ 標題」整塊，右緣跟著標題走
+    W.typeBtn:SetPoint("RIGHT", W.titleText, "RIGHT", TYPE_GAP, 0)
     if s.hdrTextUseClassColor then
         W.titleText:SetTextColor(M.Accent())
     else
