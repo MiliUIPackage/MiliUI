@@ -88,8 +88,8 @@ select(2, ...).L = setmetatable({
 
     -- fix from MiliUI: click-casting hints
     ["Click-Casting Hints"] = "Click-Casting Hints",
-    ["CLICK_CASTING_HINTS_TIPS"] = "A movable bar showing every spell you bound in Click-Castings, with its key and cooldown",
-    ["CLICK_CASTING_HINTS_JUMP_TIPS"] = "Set the hint bar up here: it lists every click-cast binding you have, with its key and cooldown",
+    ["CLICK_CASTING_HINTS_TIPS"] = "Shows the spells bound in Click-Castings as an on-screen bar with their keys and cooldowns; unlock it to move it.",
+    ["CLICK_CASTING_HINTS_JUMP_TIPS"] = "Click to open Utilities > Click-Casting Hints, where the bindings below can be shown on screen as a bar.",
     ["Snap to Cell"] = "Snap to Cell",
     ["Show Keybind"] = "Show keybind",
     ["Duration Threshold"] = "Show under (s)",

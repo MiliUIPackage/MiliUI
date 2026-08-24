@@ -838,16 +838,15 @@ local function CreateProfilePane()
 
     -- fix from MiliUI: the hint bar that displays these bindings is configured two tabs away,
     -- under Utilities, and nothing on this page ever said so -- people set their click-casts up
-    -- and never found the thing that shows them. The label IS the path, and clicking walks there.
-    -- Sits on the pane's title line (same trick as the Unlock button in RaidTools), so no pane
-    -- below it has to move.
-    local hintsBtn = Cell.CreateButton(profilePane,
-        L["Utilities"] .. " > " .. L["Click-Casting Hints"],
-        "accent-hover", {150, 17}, nil, nil, nil, nil, nil,
-        L["Click-Casting Hints"], L["CLICK_CASTING_HINTS_JUMP_TIPS"], L["CLICK_CASTING_HINTS_TIPS"])
-    hintsBtn:SetPoint("TOPRIGHT")
-    -- the path is a lot wider in English than in Chinese, so take the width from the string
-    P.Width(hintsBtn, math.ceil(hintsBtn:GetFontString():GetStringWidth()) + 12)
+    -- and never found the thing that shows them. Sits in the gap under the two dropdown panes
+    -- (they are fixed-offset from the top, so -124 is stable) and above the profile list, which
+    -- is anchored to the BOTTOM -- nothing has to move for it.
+    local hintsBtn = Cell.CreateButton(clickCastingsTab, L["Click-Casting Hints"],
+        "accent-hover", {100, 17}, nil, nil, nil, nil, nil,
+        L["Click-Casting Hints"], L["CLICK_CASTING_HINTS_JUMP_TIPS"])
+    hintsBtn:SetPoint("TOPLEFT", clickCastingsTab, "TOPLEFT", 5, -124)
+    -- the label is much wider in English than in Chinese, so take the width from the string
+    P.Width(hintsBtn, math.ceil(hintsBtn:GetFontString():GetStringWidth()) + 14)
     hintsBtn:SetScript("OnClick", function()
         F.ShowUtilitiesTab()
         F.ShowClickCastingHintsTab()
