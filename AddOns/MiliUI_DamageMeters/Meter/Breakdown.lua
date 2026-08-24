@@ -257,6 +257,9 @@ function B.Open(W, guid, creatureID, name, classFile, recapID)
     W.sourceRecapID    = recapID
     W.sourceOpen       = true
     W._cachedTargets   = nil
+    -- 換人／換模式：三種內容共用同一個 bar 池，圖示的有無與列數都會變，
+    -- 讓上面那層版面備忘整批失效（開展開頁是罕見動作，成本無所謂）
+    W._srcLayGen = (W._srcLayGen or 0) + 1
 
     local s = ns.DB.Style()
     Win.SetFont(W.srcTitle, s.leftFontSize or 11)
@@ -291,8 +294,27 @@ local function BarGeometry()
     return s, barH, barH + D.Px(s.barSpacing or 2)
 end
 
--- 回傳實際要餵值／上色的 StatusBar（實心模式是填滿條，細線模式是那條線）
+------------------------------------------------------------
+-- 排一列的版面。回傳值是實際要餵值／上色的 StatusBar
+-- （實心模式是填滿條，細線模式是那條線，存在 bar._target）。
+--
+-- ⚠ 這一頁跟主清單一樣是**每 tick** 被叫的，但本來一層快取都沒有：每列每次都跑
+--   完整的十二個 setter（含兩次 SetFont，而 SetFont 內部還會重查一次設定與字型路徑）。
+--   二十條法術就是每秒約 480 次 setter —— 主清單四十列全開才 80。
+--
+-- 備忘的鍵是 (y, iconOffset, 外觀世代)，三個都沒變就整段跳過。
+-- ⚠ y 與 iconOffset **一定要進鍵**，不能只看世代：
+--     * y 會隨資料筆數變（「打了誰」那段接在法術列後面，法術少一條整段就上移）
+--     * iconOffset 是逐列不同的（查不到圖示的那列是 0）
+--   外觀世代由 Win.ApplyStyle 與 B.Open 遞增，涵蓋字級／材質／列高／樣式。
+------------------------------------------------------------
 local function LayoutSpellBar(W, bar, y, barH, texPath, leftFS, rightFS, iconOffset)
+    if bar._layY == y and bar._layOff == iconOffset and bar._layGen == W._srcLayGen then
+        bar.row:Show()   -- HideFrom 可能把它藏過，版面本身還是對的
+        return
+    end
+    bar._layY, bar._layOff, bar._layGen = y, iconOffset, W._srcLayGen
+
     local s = ns.DB.Style()
     bar.row:ClearAllPoints()
     bar.row:SetPoint("TOPLEFT", W.srcContent, "TOPLEFT", 0, y)

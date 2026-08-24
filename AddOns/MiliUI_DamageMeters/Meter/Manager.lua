@@ -108,6 +108,7 @@ function Windows.InvalidateData()
         W._barSources = nil
         W._cachedTargets = nil
         W._timerSec = nil
+        W._segDur = nil
     end)
 end
 

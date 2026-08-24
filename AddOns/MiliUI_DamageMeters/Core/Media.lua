@@ -26,12 +26,23 @@ end
 M.LSM = LSM
 
 -- token → 字型路徑；nil / "default" = 在地化字型
+--
+-- 解出來的路徑記一份：Win.SetFont 是每列每次重排都會叫的，選了 LSM 字型時
+-- 每次都要 LibStub ＋ Fetch 一趟。**只快取問到的**，問不到不記 ——
+-- 註冊那支字型的插件可能比我們晚載入，記了 nil 就永遠退成預設字型。
+local _fontCache = {}
+
 function M.Font(token)
     if not token or token == "default" or token == "DEFAULT" then return DEFAULT_FONT end
+    local cached = _fontCache[token]
+    if cached then return cached end
     local lsm = LSM()
     if lsm then
         local path = lsm:Fetch("font", token, true)
-        if path then return path end
+        if path then
+            _fontCache[token] = path
+            return path
+        end
     end
     return DEFAULT_FONT
 end

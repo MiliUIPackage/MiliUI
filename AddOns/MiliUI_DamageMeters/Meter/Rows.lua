@@ -164,9 +164,14 @@ end
 ------------------------------------------------------------
 -- 死亡列表：API 給的是「最近的在前」，反轉成時間順序，並濾掉假死
 ------------------------------------------------------------
-local function FilterDeaths(sources)
+local function FilterDeaths(W, sources)
     ns.Combat.CleanupFeignCache()
-    local out = {}
+    -- 緩衝重用：這支每 tick 都跑，每次配一張新表就是每秒四張垃圾。
+    -- 安全性：回傳的表只在這一趟 Render 裡被讀完（PaintBar／UpdateSticky），
+    -- 沒有任何地方跨 tick 抓著它。
+    local out = W._deathBuf
+    if not out then out = {}; W._deathBuf = out end
+    wipe(out)
     for i = #sources, 1, -1 do
         local src = sources[i]
         local rid = src.deathRecapID
@@ -188,7 +193,12 @@ function Rows.RecalcViewport(W, count)
     local s = ns.DB.Style()
     local stride = D.Px(s.barHeight or 18) + D.Px(s.barSpacing or 2)
     local totalH = count * stride
-    W.content:SetHeight(math.max(10, totalH))
+    -- 內容高度只跟「列數 × 列高」有關，兩個都沒變就不必再 SetHeight 一次。
+    -- （下面夾捲動位置那段照樣每次跑：可視高度會隨釘住／縮放變。）
+    if W._contentH ~= totalH then
+        W._contentH = totalH
+        W.content:SetHeight(math.max(10, totalH))
+    end
     local viewH = W.viewport:GetHeight()
     if viewH < 1 then viewH = 1 end
     W.scrollMax = math.max(0, totalH - viewH)
@@ -315,7 +325,7 @@ function Rows.Render(W, session)
     if session and session.combatSources then
         local sources = session.combatSources
         local isDeaths = D.IsDeathType(W.curDMType)
-        if isDeaths then sources = FilterDeaths(sources) end
+        if isDeaths then sources = FilterDeaths(W, sources) end
         W._barSources = sources
 
         local barH   = D.Px(s.barHeight or 18)
@@ -339,24 +349,28 @@ function Rows.Render(W, session)
             if ok and sum > 0 then total = sum end
         end
 
-        local ctx = {
-            s = s,
-            barH = barH,
-            stride = barH + barSp,
-            leftFS = leftFS,
-            rightFS = rightFS,
-            texPath = texPath,
-            labelW = math.max(20, rowWidth * 0.60),
-            maxAmt = isDeaths and 1 or (sources[1] and sources[1].totalAmount or 1),
-            isDeaths = isDeaths,
-            isCount = D.IsCountType(W.curDMType),
-            isOverall = (not W.curSessionID and W.curSession == D.S.Overall),
-            iconStyle = s.iconStyle or "spec",
-            iconZoom = s.iconZoom or 0.06,
-            numFmt = s.numberFormat or 2,
-            dmType = W.curDMType,
-            total = total,
-        }
+        -- ctx 每個視窗一張、重複使用：它只在這一趟 Render 裡流動
+        -- （PaintBar／RelayoutBar／UpdateSticky 都不會留著它），每 tick 配一張純浪費。
+        -- ⚠ **每個欄位都要無條件覆寫**（含可能是 nil 的 total），
+        --   漏一個就會把上一個 tick 的值帶進來。加欄位時這裡一起加。
+        local ctx = W._ctx
+        if not ctx then ctx = {}; W._ctx = ctx end
+        ctx.s = s
+        ctx.barH = barH
+        ctx.stride = barH + barSp
+        ctx.leftFS = leftFS
+        ctx.rightFS = rightFS
+        ctx.texPath = texPath
+        ctx.labelW = math.max(20, rowWidth * 0.60)
+        ctx.maxAmt = isDeaths and 1 or (sources[1] and sources[1].totalAmount or 1)
+        ctx.isDeaths = isDeaths
+        ctx.isCount = D.IsCountType(W.curDMType)
+        ctx.isOverall = (not W.curSessionID and W.curSession == D.S.Overall)
+        ctx.iconStyle = s.iconStyle or "spec"
+        ctx.iconZoom = s.iconZoom or 0.06
+        ctx.numFmt = s.numberFormat or 2
+        ctx.dmType = W.curDMType
+        ctx.total = total
 
         -- cacheKey：一條字串比較決定要不要整批重排版面
         local key = table.concat({

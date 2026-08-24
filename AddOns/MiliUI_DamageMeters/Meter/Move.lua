@@ -338,7 +338,16 @@ local function UpdateEditState()
     ns.Windows.ForEach(function(W)
         if not W.frame then return end
         if _editing then
+            -- 編輯模式一律顯示。⚠ 這裡是繞過 Win.UpdateVisibility 直接 Show 的，
+            -- 而藏著的視窗 W.Refresh 會早退（見 Window.lua 的 W.Refresh）——
+            -- 所以「本來藏著、被編輯模式叫出來」這條邊緣要自己補畫一次，
+            -- 否則會看到一個空的框（脫戰時根本沒有下一個 tick 會補）。
+            local was = W.frame:IsShown()
             W.frame:Show()
+            if not was then
+                W._barCacheKey = nil
+                W.Refresh()
+            end
             if W.editSelection then W.editSelection:ShowHighlighted() end
         else
             if W.editSelection then W.editSelection:Hide() end

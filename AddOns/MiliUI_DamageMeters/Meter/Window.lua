@@ -440,7 +440,17 @@ function Win.UpdateTimerText(W)
 
     local dur
     if W.curSessionID then
-        dur = D.GetSessionDuration(nil, W.curSessionID)
+        -- 歷史分段的時長是**定值**，而 D.GetSessionDuration 要抓整份分段清單再線性
+        -- 搜尋 —— 每 tick 做一次是白做的。切分段時清成 nil 重解一次。
+        -- ⚠ 只快取真的解出來的數字：剛切過去時分段可能還沒進清單，
+        --   存 false 會讓那一格永遠是空的。
+        if W._segDur == nil then
+            local d = D.GetSessionDuration(nil, W.curSessionID)
+            if type(d) == "number" then W._segDur = d end
+            dur = d
+        else
+            dur = W._segDur
+        end
     elseif W.curSession == D.S.Current then
         -- 跟長條讀的是同一個分段，所以伺服器換分段時兩邊一起歸零
         dur = ns.Combat.CurrentDuration()
@@ -469,6 +479,7 @@ function Win.SetDMType(W, dmType)
     W._barCacheKey = nil
     W._barSources = nil
     W._cachedTargets = nil
+    W._segDur = nil
     ns.Breakdown.Close(W)
     ns.Home.Hide(W)
     Win.UpdateTitle(W)
@@ -484,6 +495,7 @@ function Win.SetSegment(W, sessionType, sessionID)
         if sessionType then w.wdb.curSession = sessionType end
         w._barCacheKey = nil
         w._timerSec = nil
+        w._segDur = nil
         w._cachedTargets = nil
         ns.Breakdown.Close(w)
         Win.UpdateTitle(w)
@@ -502,29 +514,41 @@ end
 ------------------------------------------------------------
 function Win.UpdateVisibility(W)
     if not W.frame then return end
+
+    -- 藏著的期間 W.Refresh 是直接早退的，所以「重新顯示」這條邊緣要自己補畫一次，
+    -- 否則會停在藏起來那一刻的畫面直到下一個 tick（脫戰時根本沒有下一個 tick）。
+    local was = W.frame:IsShown()
+    local function Set(shown)
+        W.frame:SetShown(shown)
+        if shown and not was then
+            W._barCacheKey = nil
+            W.Refresh()
+        end
+    end
+
     -- 編輯模式與設定視窗開著時一律顯示，否則玩家看不到自己在調什麼
     if ns.Move.IsEditing() or ns._optionsOpen then
-        W.frame:Show()
+        Set(true)
         return
     end
 
     local wdb = W.wdb
     local _, iType = IsInInstance()
 
-    if wdb.hideInDungeon and iType == "party" then W.frame:Hide(); return end
-    if wdb.hideInRaid and iType == "raid" then W.frame:Hide(); return end
-    if wdb.hideInPvP and (iType == "pvp" or iType == "arena") then W.frame:Hide(); return end
-    if wdb.hideOutOfInstance and (iType == "none" or iType == nil) then W.frame:Hide(); return end
+    if wdb.hideInDungeon and iType == "party" then Set(false); return end
+    if wdb.hideInRaid and iType == "raid" then Set(false); return end
+    if wdb.hideInPvP and (iType == "pvp" or iType == "arena") then Set(false); return end
+    if wdb.hideOutOfInstance and (iType == "none" or iType == nil) then Set(false); return end
 
     local vis = wdb.visibility or "always"
     if vis == "combat" then
-        W.frame:SetShown(ns.Combat.IsInCombat() or InCombatLockdown())
+        Set(ns.Combat.IsInCombat() or InCombatLockdown())
     elseif vis == "instance" then
-        W.frame:SetShown(iType == "party" or iType == "raid")
+        Set(iType == "party" or iType == "raid")
     elseif vis == "group" then
-        W.frame:SetShown((GetNumGroupMembers() or 0) > 0)
+        Set((GetNumGroupMembers() or 0) > 0)
     else
-        W.frame:Show()
+        Set(true)
     end
 end
 
@@ -773,6 +797,11 @@ function Win.Create(idx)
     ------------------------------------------------------------
     W.Refresh = function()
         if not W.frame then return end
+        -- 藏起來的視窗不必付這筆（一次 API ＋ 一輪繪製）。顯示條件把它藏起來之後，
+        -- ticker 照樣每秒替它跑完整趟是純浪費。
+        -- ⚠ 由隱藏轉顯示時 Win.UpdateVisibility 會作廢版面快取並補畫一次，
+        --   所以不會看到「藏起來那一刻」的舊資料。
+        if not W.frame:IsShown() then return end
         -- API 呼叫的耗時要量：偶爾會有尖峰（歷史分段、大團隊），
         -- 尖峰那一幀就把繪製推到下一幀，不要讓兩個尖峰疊在同一幀
         local t0 = debugprofilestop()
@@ -878,6 +907,7 @@ function Win.ApplyStyle(W)
     -- 長條：外觀改了就把版面快取作廢，下一次刷新整批重建
     W._barCacheKey = nil
     W._stickyCacheKey = nil
+    W._srcLayGen = (W._srcLayGen or 0) + 1   -- 展開頁那一頁的版面備忘（見 Breakdown.LayoutSpellBar）
     -- 樣式在這裡就直接套到每一條，不要只交給繪製路徑（RelayoutBar）——
     -- 那條路徑只走「有資料而且在可視範圍內」的列，換樣式的當下如果沒有資料
     -- （剛登入、剛重置），就會留在舊樣式直到下一場戰鬥。
