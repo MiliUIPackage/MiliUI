@@ -316,6 +316,18 @@ local function MakeHeaderButton(W, key, tooltip, onClick)
     return btn
 end
 
+-- 哪幾顆按鈕被設定藏起來了。三個地方要用同一個判斷（排版、滑過顯示、切換顯示），
+-- 所以收斂成一支 —— 之前三處各寫一份，加第三顆按鈕時就會漏改。
+local HIDE_OPTION = {
+    reset    = "hideResetButton",
+    settings = "hideSettingsButton",
+}
+
+local function HiddenByOption(btn, s)
+    local key = HIDE_OPTION[btn.key]
+    return key ~= nil and s[key] == true
+end
+
 -- 由右到左排列，回傳實際顯示的顆數（給 FitTitle 算可用寬度）
 function Win.LayoutHeaderButtons(W)
     local s = ns.DB.Style()
@@ -323,7 +335,7 @@ function Win.LayoutHeaderButtons(W)
     local x = -(BTN_GAP + 1)
     local n = 0
     for _, btn in ipairs(W.hdrButtons) do
-        local hide = (btn.key == "reset" and s.hideResetButton)
+        local hide = HiddenByOption(btn, s)
         if hide then
             btn:Hide()
         else
@@ -345,7 +357,7 @@ function Win.ApplyHeaderHoverIcons(W)
     if not s.hdrMouseoverIcons then
         W._hdrIconsShown = true
         for _, btn in ipairs(W.hdrButtons) do
-            if not (btn.key == "reset" and s.hideResetButton) then btn:Show() end
+            if not HiddenByOption(btn, s) then btn:Show() end
         end
         Win.FitTitle(W)
         return
@@ -361,7 +373,7 @@ local function SetHeaderIconsShown(W, shown)
     if W._hdrIconsShown == shown then return end
     W._hdrIconsShown = shown
     for _, btn in ipairs(W.hdrButtons) do
-        if shown and not (btn.key == "reset" and s.hideResetButton) then btn:Show()
+        if shown and not HiddenByOption(btn, s) then btn:Show()
         else btn:Hide() end
     end
     Win.FitTitle(W)

@@ -75,9 +75,10 @@ L["Pin your own row when it scrolls out of view"] = "自己滚出画面时把那
 L["Show a spell preview on hover"] = "鼠标悬停显示法术预览"
 L["Preview position"] = "预览位置"
 L["Show the game tooltip on breakdown rows"] = "展开页悬停法术显示游戏提示"
+L["Hide the settings button in the title bar"] = "隐藏标题栏的设置（齿轮）按钮"
+L["Both on by default. The gear opens the same menu as right-clicking the window, and resetting is destructive enough that it should not sit under a stray click — right-click still has both, and /mdm reset works too."] =
+    "两个默认都开。齿轮开的就是在窗口上点右键的那个菜单，功能完全重复；重置是不可逆的动作，不该摆在一颗随手就会点到的按钮上。右键菜单里两个都还在，/mdm reset 也照样能用。"
 L["Hide the reset button in the title bar"] = "隐藏标题栏的重置按钮"
-L["Resetting is still available from the right-click menu and from /mdm reset."] =
-    "隐藏之后仍可从右键菜单或 /mdm reset 重置。"
 L["Data"] = "数据"
 L["Combat data"] = "战斗数据"
 L["Reset all segments"] = "清除所有分段"

@@ -189,6 +189,35 @@ local function SegmentItems(W)
     return items
 end
 
+------------------------------------------------------------
+-- 主選單右側的「目前值」讀數
+--
+-- 讓玩家不用展開子選單就知道現在是什麼狀態 —— 「要先點開才知道自己選了什麼」
+-- 是階層式選單最常見的不直覺來源。
+------------------------------------------------------------
+local function CurrentTypeLabel(W)
+    return D.TYPE_NAMES[W.curDMType] or "?"
+end
+
+local function CurrentSegmentLabel(W)
+    local L = ns.L
+    if not W.curSessionID then
+        return (W.curSession == D.S.Overall) and L["Overall"] or L["Current"]
+    end
+    local list = D.GetAvailableSessions()
+    if list then
+        for i, sess in ipairs(list) do
+            if sess.sessionID == W.curSessionID then
+                -- 分段名稱可能是秘密字串：不能串接，只能整個拿去顯示或退回編號
+                local label = sess.name
+                if label and not D.IsSecret(label) then return label end
+                return L["Segment"] .. " " .. i
+            end
+        end
+    end
+    return L["Segment"]
+end
+
 function Windows.ShowSegmentMenu(W, btn)
     ns.Menu.Show(SegmentItems(W), btn)
 end
@@ -201,8 +230,8 @@ function Windows.ShowContextMenu(W, btn, redraw)
 
     local items = {
         { text = L["MiliUI Damage Meters"] .. " " .. W.idx, isTitle = true },
-        { text = L["Meter type"],  submenu = TypeItems(W) },
-        { text = L["Segments"],    submenu = SegmentItems(W) },
+        { text = L["Meter type"], value = CurrentTypeLabel(W),    submenu = TypeItems(W) },
+        { text = L["Segments"],   value = CurrentSegmentLabel(W), submenu = SegmentItems(W) },
         { isSeparator = true },
         {
             text = L["Lock window"], isActive = wdb.locked, keepOpen = true,

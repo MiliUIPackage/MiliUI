@@ -13,11 +13,21 @@ ns.Menu = {}
 local Menu = ns.Menu
 local M = ns.Media
 
-local ITEM_H = 22
-local TITLE_H = 20
-local SEP_H  = 7
-local MIN_W  = 110
-local PAD_X  = 10
+------------------------------------------------------------
+-- 版面尺寸
+--
+-- ⚠ GUTTER 是**每一列都要留**的打勾欄，不是只有勾起來的那列。
+--   只在有勾的時候才留位置的話，文字會參差不齊，整份選單看起來像壞掉。
+------------------------------------------------------------
+local ITEM_H  = 22
+local TITLE_H = 21
+local SEP_H   = 7
+local MIN_W   = 110
+local PAD_X   = 6      -- 面板左右內距
+local GUTTER  = 16     -- 打勾欄寬
+local CHECK   = 11     -- 打勾圖的邊長
+local ARROW_W = 14     -- 子選單箭頭佔寬
+local VAL_GAP = 14     -- 標籤與右側值之間的最小間距
 local FONT_SZ = 12
 
 ------------------------------------------------------------
@@ -76,7 +86,7 @@ local function EnsureRow(panel, idx)
 
     row.text = row:CreateFontString(nil, "OVERLAY")
     StyleFont(row.text)
-    row.text:SetPoint("LEFT", row, "LEFT", PAD_X, 0)
+    row.text:SetPoint("LEFT", row, "LEFT", PAD_X + GUTTER, 0)
     row.text:SetJustifyH("LEFT")
 
     -- 有子選單的箭頭：用字元不用圖檔
@@ -86,11 +96,50 @@ local function EnsureRow(panel, idx)
     row.arrow:SetText("|cff888888>|r")
     row.arrow:Hide()
 
-    -- 目前選中的項目左邊點一個小方塊（比打勾號在小字級下清楚）
-    row.dot = row:CreateTexture(nil, "OVERLAY")
-    row.dot:SetSize(3, 3)
-    row.dot:SetPoint("LEFT", row, "LEFT", 4, 0)
-    row.dot:Hide()
+    -- 右側的「目前值」：不用展開子選單就看得到現在選的是什麼。
+    -- 刻意用灰不用強調色 —— 它是狀態讀數，不是「這一列被選中了」；
+    -- 上強調色會跟子選單裡真正的選中項搶同一個語意。
+    row.value = row:CreateFontString(nil, "OVERLAY")
+    StyleFont(row.value)
+    row.value:SetJustifyH("RIGHT")
+    row.value:SetTextColor(0.58, 0.58, 0.58)
+    row.value:Hide()
+
+    ------------------------------------------------------------
+    -- 打勾
+    --
+    -- 跟設定面板的勾選框同一個素材（暴雪的 checkmark-minimal 圖集），
+    -- 但**不畫方框** —— 選單列本來就整列可點，框只是多餘的噪音。
+    -- 做法跟 Widgets.lua 的勾一樣：純白貼圖染強調色，勾形用圖集的 alpha 當遮罩摳。
+    -- 直接把圖集當貼圖染色會偏暗（染色是乘法、素材不是純白），所以要走遮罩。
+    --
+    -- 圖集有可能被暴雪拿掉，而且是**靜默**的（見 miliui-inspect-icons 技能踩過的坑），
+    -- 所以留一條退路：退回從古至今都在的 UI-CheckBox-Check（那張本來就只有勾、沒有框）。
+    ------------------------------------------------------------
+    row.check = row:CreateTexture(nil, "OVERLAY")
+    row.check:SetSize(CHECK, CHECK)
+    row.check:SetPoint("LEFT", row, "LEFT", PAD_X, 0)
+    local hasAtlas = C_Texture and C_Texture.GetAtlasInfo
+        and C_Texture.GetAtlasInfo("checkmark-minimal")
+    if hasAtlas then
+        row.check:SetTexture("Interface\\Buttons\\WHITE8X8")
+        local mask = row:CreateMaskTexture()
+        mask:SetAtlas("checkmark-minimal")
+        mask:SetAllPoints(row.check)
+        row.check:AddMaskTexture(mask)
+    else
+        row.check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+    end
+    row.check:Hide()
+
+    -- 標題底下的髮絲線。標題與內容之間需要一條**結構性**的分隔 ——
+    -- 光靠顏色不同還是會被讀成「另一個選項」。
+    row.rule = row:CreateTexture(nil, "ARTWORK")
+    row.rule:SetHeight(1)
+    row.rule:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", PAD_X, 0)
+    row.rule:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -PAD_X, 0)
+    row.rule:SetColorTexture(1, 1, 1, 0.10)
+    row.rule:Hide()
 
     row:SetScript("OnEnter", function(self)
         if self.enabled == false then return end
@@ -108,7 +157,18 @@ local function EnsureRow(panel, idx)
     return row
 end
 
--- 回傳版面高度；items 是 { text, onClick, isActive, isTitle, isSeparator, submenu } 的陣列
+------------------------------------------------------------
+-- 排版
+--
+-- items 是 { text, onClick, isActive, isTitle, isSeparator, submenu, keepOpen } 的陣列。
+--
+-- ⚠ 標題與「目前選中」**不能用同一種視覺訊號**。第一版兩者都上強調色，
+--   結果子選單最上面兩行（標題「統計類型」與選中的「傷害輸出」）看起來一模一樣，
+--   分不出哪個是標籤哪個是選項。分法：
+--     標題 → 比內容**更弱**（灰、小一級、底下一條髮絲線）。它是後設資訊，不該搶戲。
+--     選中 → 比內容**更強**（強調色 ＋ 左槽打勾）。它是內容，而且是當前狀態。
+--   顏色只是其中一層；真正把兩者分開的是「結構」（分隔線）與「圖示」（打勾）。
+------------------------------------------------------------
 local function Layout(panel, items, onDismiss)
     local width = MIN_W
     local y = -1
@@ -123,58 +183,70 @@ local function Layout(panel, items, onDismiss)
         row.submenu = item.submenu
         row.enabled = not (item.isTitle or item.isSeparator)
 
+        row.check:Hide()
+        row.rule:Hide()
+        row.value:Hide()
+        if row.sepTex then row.sepTex:Hide() end
+
         if item.isSeparator then
             row:SetHeight(SEP_H)
             row.text:SetText("")
             row.arrow:Hide()
-            row.dot:Hide()
             row:EnableMouse(false)
             if not row.sepTex then
                 row.sepTex = row:CreateTexture(nil, "ARTWORK")
                 row.sepTex:SetHeight(1)
-                row.sepTex:SetPoint("LEFT", row, "LEFT", 6, 0)
-                row.sepTex:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+                row.sepTex:SetPoint("LEFT", row, "LEFT", PAD_X, 0)
+                row.sepTex:SetPoint("RIGHT", row, "RIGHT", -PAD_X, 0)
                 row.sepTex:SetColorTexture(1, 1, 1, 0.12)
             end
             row.sepTex:Show()
             y = y - SEP_H
+
+        elseif item.isTitle then
+            row:SetHeight(TITLE_H)
+            -- 小一級 ＋ 灰：標題要**退後**，不要跟選項爭
+            row.text:SetFont(M.Font(ns.DB.Style() and ns.DB.Style().font), FONT_SZ - 1, "")
+            row.text:SetText(item.text or "")
+            row.text:SetTextColor(0.52, 0.52, 0.52)
+            row.arrow:Hide()
+            row:SetScript("OnClick", nil)
+            row:EnableMouse(false)
+            row.rule:Show()
+            y = y - TITLE_H
+
         else
-            if row.sepTex then row.sepTex:Hide() end
-            local h = item.isTitle and TITLE_H or ITEM_H
-            row:SetHeight(h)
+            row:SetHeight(ITEM_H)
             StyleFont(row.text)
             row:EnableMouse(true)
-
-            if item.isTitle then
-                row.text:SetText(item.text or "")
+            row.text:SetText(item.text or "")
+            if item.isActive then
+                row.check:SetVertexColor(M.Accent())
+                row.check:Show()
                 row.text:SetTextColor(M.Accent())
-                row.arrow:Hide()
-                row.dot:Hide()
-                row:SetScript("OnClick", nil)
-                row:EnableMouse(false)
             else
-                row.text:SetText(item.text or "")
-                if item.isActive then
-                    row.text:SetTextColor(M.Accent())
-                    row.dot:SetColorTexture(M.Accent())
-                    row.dot:Show()
-                else
-                    row.text:SetTextColor(0.85, 0.85, 0.85)
-                    row.dot:Hide()
-                end
-                row.arrow:SetShown(item.submenu ~= nil)
-                local fn = item.onClick
-                local keepOpen = item.keepOpen
-                row:SetScript("OnClick", function()
-                    if item.submenu then return end
-                    if fn then fn() end
-                    if not keepOpen and onDismiss then onDismiss() end
-                end)
+                row.text:SetTextColor(0.86, 0.86, 0.86)
             end
-            y = y - h
+            row.arrow:SetShown(item.submenu ~= nil)
+            if item.value then
+                row.value:SetText(item.value)
+                row.value:ClearAllPoints()
+                row.value:SetPoint("RIGHT", row, "RIGHT",
+                    -(PAD_X + (item.submenu and ARROW_W or 0)), 0)
+                row.value:Show()
+            end
+            local fn, keepOpen = item.onClick, item.keepOpen
+            row:SetScript("OnClick", function()
+                if item.submenu then return end
+                if fn then fn() end
+                if not keepOpen and onDismiss then onDismiss() end
+            end)
+            y = y - ITEM_H
         end
 
-        local w = row.text:GetStringWidth() + PAD_X * 2 + (item.submenu and 14 or 0)
+        local w = PAD_X + GUTTER + row.text:GetStringWidth() + PAD_X
+        if item.value then w = w + VAL_GAP + row.value:GetStringWidth() end
+        if item.submenu then w = w + ARROW_W end
         if w > width then width = w end
     end
 
