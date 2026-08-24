@@ -13,9 +13,9 @@
 ## SavedVariables: KeystoneLootDB
 ## SavedVariablesPerCharacter: KeystoneLootCharDB
 
-## Title-zhTW: |cffB973CC[物品]|r 職業適合裝備查詢
-## Notes-zhTW: |cff9d5db8Keystone Loot|r |n|n方便尋找在 M+ 地城、團隊和寶庫可取得的裝備，可以依照職業、專精、部位和物品等級來找裝備。|n|n|cffffd200使用方法: |r點小地圖按鈕。
-## Category-zhTW: 物品
+## Category-zhTW: 資訊
+## Title-zhTW: |cff2DA267[裝備]|r 戰利品查詢
+## Notes-zhTW: KeystoneLoot |n|n 顯示所有地城的掉落，並可以標記最愛。|n|n|cffffd200使用方法：|r點小地圖旁按鈕。
 
 # Libs
 libs/menu/MenuConstants.lua
