@@ -7,7 +7,7 @@
 ## Notes-zhTW: 暴雪內建傷害統計增強工具
 ## Notes-zhCN: 暴雪内建伤害统计增强工具
 
-## Title-zhTW: |cff00FFFF[統計]|r 暴雪傷害統計增強
+## Title-zhTW: |cffD9922B[統計]|r 暴雪傷害統計增強
 ## Notes-zhTW: DamageMeterTools|n|n暴雪內建傷害統計增強工具|n|n|cffffd200使用方法: |r點小地圖按鈕，或從Esc>選項>插件>傷害統計增強，或輸入指令 /dmt 進行設定。
 ## Category-zhTW: 戰鬥
 
