@@ -2,9 +2,7 @@
 -- MiliUI: 探究「標記敦敦」按鈕
 --
 -- 在**豐碩探究**裡，而且探究等級已經到 3（寶藏獵人）時，畫面上多一顆按鈕，
--- 點一下就是：
---     /target 敦敦
---     /tm 8
+-- 點一下就跑一串巨集：指定敦敦、標上橘圈、對它報點（內容見下面的 MACRO_LINES）。
 --
 -- ⚠ 為什麼是安全按鈕而不是直接呼叫 API：12.0 起 `SetRaidTarget` 是戰鬥保護函式，
 -- 插件程式在戰鬥中呼叫會被擋掉（點了沒反應）。走 SecureActionButtonTemplate 的
@@ -14,18 +12,38 @@
 -- 巨集內文在建立時就寫死，顯示切換一律過 InCombatLockdown 閘、延到脫戰再補。
 --
 -- 名字目前只有繁中的「敦敦」。其他語系的叫法還沒查，所以非 zhTW 的客戶端不啟用
--- （硬套一個查不到的名字，巨集只會 /target 失敗，比不顯示更糟）。
+-- （硬套一個查不到的名字，巨集只會 /tar 失敗，比不顯示更糟）。
 --
 -- 讀寫於 MiliUI_DB.delveMarkButton（boolean，預設開）與 .delveMarkButtonPos。
 ------------------------------------------------------------
 
 local MIN_LEVEL   = 3            -- 探究**等級**（賽季軌道），不是探究的難度層級
 local TARGET_NAME = "敦敦"
--- ⚠ `!8` 不是打錯：`!` 是暴雪 /tm 內建的前綴，「已經是同一個標記就整行跳過」
--- （Blizzard_ChatFrameBase/Shared/SlashCommands.lua 的 TARGET_MARKER）。
--- 沒有它的話，萬一按下與放開兩個邊緣都執行到，第二次會把剛標上的骷髏 toggle 掉
--- —— 症狀正好是「點了沒作用」。加上之後這串巨集重複執行是安全的。
-local MACRO_TEXT  = "/target " .. TARGET_NAME .. "\n/tm [@target,exists] !8"
+
+------------------------------------------------------------
+-- 巨集
+--
+-- ⚠ 這串是**唯一一份**：安全按鈕的 macrotext 與工具提示都讀它。
+--   （原本工具提示自己抄了一份字串，改巨集很容易只改到一邊。）
+--
+-- ⚠ `!2` 不是打錯：`!` 是暴雪 /tm 內建的前綴，「已經是同一個標記就整行跳過」
+--   （Blizzard_ChatFrameBase/Shared/SlashCommands.lua 的 TARGET_MARKER）。
+--   沒有它的話，萬一按下與放開兩個邊緣都執行到，第二次會把剛標上的記號 toggle 掉
+--   —— 症狀正好是「點了沒作用」。加上之後這串巨集重複執行是安全的。
+--
+-- ⚠ `/tm` 排在 `/tar` 前面是刻意的：巨集由上往下跑，所以**第一下是指定＋報點、
+--   第二下才標得上記號**（已經指定著敦敦的話按一下就標到）。要一下到位就把這兩行對調。
+--
+-- ⚠ `/cleartarget [help]` 是防呆：`/tar 敦敦` 萬一對到友方（同名玩家、友方 NPC）
+--   就把它丟掉，免得記號與報點打在隊友身上。
+------------------------------------------------------------
+local MACRO_LINES = {
+    "/tm [@target,exists] !2",
+    "/tar " .. TARGET_NAME,
+    "/cleartarget [help]",
+    "/ping [@target]",
+}
+local MACRO_TEXT  = table.concat(MACRO_LINES, "\n")
 local BUTTON_TEXT = "點擊標記" .. TARGET_NAME
 
 -- 畫面正中央往上 400（CENTER 對 CENTER，y 正值 = 往上）。
@@ -246,8 +264,9 @@ local function CreateButton()
     button:HookScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine(BUTTON_TEXT)
-        GameTooltip:AddLine("/target " .. TARGET_NAME, 0.6, 0.9, 1)
-        GameTooltip:AddLine("/tm [@target,exists] !8", 0.6, 0.9, 1)
+        for _, line in ipairs(MACRO_LINES) do
+            GameTooltip:AddLine(line, 0.6, 0.9, 1)
+        end
         GameTooltip:AddLine("拖曳可移動（戰鬥中不能移動）", 0.6, 0.6, 0.6)
         GameTooltip:Show()
     end)
