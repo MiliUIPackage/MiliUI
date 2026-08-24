@@ -21,6 +21,19 @@ local function Color(r, g, b, a)
 end
 
 ------------------------------------------------------------
+-- 視窗底色：跟 Chattynator 的 Dark 樣式對齊
+--
+-- 出處是 Chattynator 自己的預設值 —— 分頁底色 `#1a1a1a`
+-- （Core/Config.lua 的 GetEmptyTabConfig）配 `skins.dark.chat_transparency = 0.2`
+-- → alpha 0.8（Skins/Dark.lua）。它的 solid_chat_background 也預設開，
+-- 所以是純色不是底圖，我們照抄純色即可。
+--
+-- 拉成常數而不是各寫各的：聊天視窗跟統計視窗並排時要是**同一個灰**，
+-- 兩邊各填一個很接近的數字，日後改一邊就會悄悄分岔。
+------------------------------------------------------------
+local DARK_BG = 0x1A / 255   -- 0.102
+
+------------------------------------------------------------
 -- 每視窗預設值
 --
 -- 位置存 TOPLEFT 相對 UIParent TOPLEFT 的位移（y 為負）。
@@ -122,7 +135,7 @@ local function BuildDefaults()
             ------------------------------------------------------------
             -- 視窗
             ------------------------------------------------------------
-            bgColor = Color(0, 0, 0, 0.75),
+            bgColor = Color(DARK_BG, DARK_BG, DARK_BG, 0.8),
             borderSize = 0,
             borderColor = Color(0, 0, 0, 1),
 
@@ -131,7 +144,8 @@ local function BuildDefaults()
             ------------------------------------------------------------
             hdrHeight   = 22,
             hdrFontSize = 12,
-            hdrBgColor  = Color(0x1B/255, 0x1B/255, 0x1B/255, 1),
+            -- 標題列同一個灰但不透明：它是實心的橫條，跟內容區分開
+            hdrBgColor  = Color(DARK_BG, DARK_BG, DARK_BG, 1),
             hdrBottomBorderSize = 0,
             hdrBottomBorderColor = Color(0, 0, 0, 1),
             -- 標題文字職業色：預設用玩家自己的職業色（跟 MiliUI 其他插件的
