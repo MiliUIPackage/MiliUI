@@ -305,7 +305,7 @@ function eventFrame:ADDON_LOADED(arg1)
             -- never covers the art and never fights the countdown at the bottom.
             if type(t["keyAnchor"]) ~= "string" then t["keyAnchor"] = "TOP" end
             if type(t["keyX"]) ~= "number" then t["keyX"] = 0 end
-            if type(t["keyY"]) ~= "number" then t["keyY"] = 10 end
+            if type(t["keyY"]) ~= "number" then t["keyY"] = 5 end
             -- ⚠ a FIXED size, never derived from the icon size. The label's width depends
             -- on how much the player wrote in it, so auto-fitting made the text jump
             -- between icons; one number they control is more predictable than a clever one.
@@ -316,6 +316,9 @@ function eventFrame:ADDON_LOADED(arg1)
             if type(t["durationAnchor"]) ~= "string" then t["durationAnchor"] = "CENTER" end
             if type(t["durationX"]) ~= "number" then t["durationX"] = 0 end
             if type(t["durationY"]) ~= "number" then t["durationY"] = 0 end
+            -- fixed, for the same reason as keyFontSize: nothing here should change size
+            -- because of how big the icons happen to be
+            if type(t["durationFontSize"]) ~= "number" then t["durationFontSize"] = 12 end
             -- only show the number once the cooldown is under this many seconds; 0 = always
             if type(t["durationThreshold"]) ~= "number" then t["durationThreshold"] = 60 end
         end

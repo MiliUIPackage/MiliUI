@@ -327,7 +327,7 @@ end
 --! Blizzard's own countdown FontString, moved to where the player asked for it. It only
 --! exists once the Cooldown has something to draw, so this is re-run on every arm rather
 --! than done once at creation.
-local function ApplyDurationText(icon, size)
+local function ApplyDurationText(icon)
     local cd = icon.cooldown
     if not cd.GetCountdownFontString then return end
     local fs = cd:GetCountdownFontString()
@@ -341,7 +341,7 @@ local function ApplyDurationText(icon, size)
     fs:ClearAllPoints()
     fs:SetPoint(point, icon, point, P.Scale(db["durationX"]), P.Scale(db["durationY"]))
     fs:SetJustifyH(JustifyFor(point))
-    fs:SetFont(GameFontNormal:GetFont(), max(8, floor((size or db["size"]) * 0.4)), "OUTLINE")
+    fs:SetFont(GameFontNormal:GetFont(), db["durationFontSize"], "OUTLINE")
 end
 
 --! ⚠ One fixed font size for the whole bar, set by the player -- NOT fitted per icon.
@@ -563,7 +563,7 @@ Layout = function()
         P.ClearPoints(icon)
         P.Point(icon, point, hintsFrame, point, pos * stepX + line * lineX, pos * stepY + line * lineY)
         ApplyKeyLabel(icon)
-        ApplyDurationText(icon, size)
+        ApplyDurationText(icon)
     end
 
     local lines = shown == 0 and 0 or ceil(shown / perLine)
@@ -868,7 +868,7 @@ local function CreatePane()
     end
 
     local function CreateAnchorDropdown(key, text, anchor, x, y)
-        local dd = Cell.CreateDropdown(cchPane, 120)
+        local dd = Cell.CreateDropdown(cchPane, 100)
         anchorDropdowns[key] = dd
         P.Point(dd, "TOPLEFT", anchor, "TOPLEFT", x, y)
 
@@ -891,15 +891,21 @@ local function CreatePane()
     --! ⚠ The offset columns are labelled "X" / "Y", not L["X Offset"] / L["Y Offset"].
     --! Those strings are ~90px in zhTW over a 55px box, so each one ran straight through
     --! its neighbour. A caption may never be wider than the column it belongs to.
-    CreateAnchorDropdown("keyAnchor", L["Keybind Position"], spacingSlider, 0, -50)
-    CreateValueBox("keyX", 55, "X", spacingSlider, 130, -50)
-    CreateValueBox("keyY", 55, "Y", spacingSlider, 190, -50)
-    CreateValueBox("keyFontSize", 90, L["Font Size"], spacingSlider, 255, -50, 6, 32)
+    --! One column grid shared by both rows -- anchor, X, Y, size, and one row-specific
+    --! extra. Keeping the two rows on the same x positions is what makes them read as a
+    --! pair rather than as two unrelated clumps of boxes.
+    local COL = {0, 110, 168, 226, 319}
 
-    CreateAnchorDropdown("durationAnchor", L["Duration Position"], spacingSlider, 0, -92)
-    CreateValueBox("durationX", 55, "X", spacingSlider, 130, -92)
-    CreateValueBox("durationY", 55, "Y", spacingSlider, 190, -92)
-    CreateValueBox("durationThreshold", 90, L["Duration Threshold"], spacingSlider, 255, -92, 0, 3600)
+    CreateAnchorDropdown("keyAnchor", L["Keybind Position"], spacingSlider, COL[1], -50)
+    CreateValueBox("keyX", 50, "X", spacingSlider, COL[2], -50)
+    CreateValueBox("keyY", 50, "Y", spacingSlider, COL[3], -50)
+    CreateValueBox("keyFontSize", 85, L["Font Size"], spacingSlider, COL[4], -50, 6, 32)
+
+    CreateAnchorDropdown("durationAnchor", L["Duration Position"], spacingSlider, COL[1], -92)
+    CreateValueBox("durationX", 50, "X", spacingSlider, COL[2], -92)
+    CreateValueBox("durationY", 50, "Y", spacingSlider, COL[3], -92)
+    CreateValueBox("durationFontSize", 85, L["Font Size"], spacingSlider, COL[4], -92, 6, 32)
+    CreateValueBox("durationThreshold", 85, L["Duration Threshold"], spacingSlider, COL[5], -92, 0, 3600)
 
     -- key labels -----------------------------------------------------------------------
     --! The mouse rows are labelled WITH the glyph, not just with a name. It is the only
