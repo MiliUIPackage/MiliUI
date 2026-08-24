@@ -265,12 +265,12 @@ function DB.BuildDefaults()
                     },
                     castbar = bigCastbar(true),
                     -- 版面比照目標框（見那邊的說明），差別只在左右相反：玩家的魔力條
-                    -- 往**右**露 8，框體是 0~208。
-                    --   增益：x = 8 靠齊魔力條／資源條的左緣（不是血條左緣），
+                    -- 往**右**露 8，框體是 0~208。兩排都是 8 顆 × 24 ＋ 7 間距 = 199 寬：
+                    --   增益：x = 8 靠齊魔力條／資源條的左緣（不是血條左緣），右緣落在 207，
                     --         y = -77 讓開框下那疊（魔力條露出的一截到 -58、資源條到 -20）
-                    --   減益：在框上 y = 4 往上長，x = 0 對血條左緣（8×24 ＋ 7 間距 = 199）
+                    --   減益：x = 0 對血條左緣、右緣落在 199，在框上 y = 4 往上長
                     -- 舊預設兩排都是 y = -52，同時開的話會完全疊在一起。
-                    buffs  = { enabled = false, x = 8, y = -77, w = 25, h = 25,
+                    buffs  = { enabled = false, x = 8, y = -77, w = 24, h = 24,
                                maxCount = 16, perRow = 8, growth = "LRTB", spacing = 1,
                                showStack = true, stackSize = 10,
                                stackAnchor = "TOP", stackX = 0, stackY = 4,
@@ -1007,8 +1007,8 @@ local PROFILE_MIGRATIONS = {
     --
     -- 舊預設是沒調過的佔位值：兩排都放 y = -52（同時開會完全疊在一起）、圖示 17
     -- 配一排 16 顆（17×16 ＋ 15 = 287，比 200 的框寬了快一半）。
-    -- 新版是實地調出來的：增益靠齊魔力條／資源條左緣（x = 8）、放在框下那疊的下面
-    -- （y = -77）；減益在框上往上長，對血條左緣（x = 0、y = 4）。
+    -- 新版是實地調出來的：兩排都是 8 顆 × 24；增益靠齊魔力條／資源條左緣（x = 8）、
+    -- 放在框下那疊的下面（y = -77），減益在框上往上長、對血條左緣（x = 0、y = 4）。
     --
     -- 值閘：只動仍等於舊預設的那個值，自己拉過的不碰。
     [14] = function(profile)
@@ -1023,8 +1023,8 @@ local PROFILE_MIGRATIONS = {
 
         gate(p.buffs, "x", 0, 8)
         gate(p.buffs, "y", -52, -77)
-        gate(p.buffs, "w", 17, 25)
-        gate(p.buffs, "h", 17, 25)
+        gate(p.buffs, "w", 17, 24)
+        gate(p.buffs, "h", 17, 24)
         gate(p.buffs, "perRow", 16, 8)
         gate(p.buffs, "maxCount", 32, 16)
 
