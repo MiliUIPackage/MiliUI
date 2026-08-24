@@ -101,16 +101,27 @@ local BOUNTY_ITEM_ID    = 274374 -- Midnight S2；⚠ 每季要換（照 Plumber
 local BOUNTY_ICON       = 1064187
 
 -- 鍍金儲物箱（每週前幾次高階豐收探究的額外寶箱）
--- 讀 UI widget 7591 的法術顯示文字，從 tooltip 抓「x/y」——沒有直接的進度 API，
--- 這是 Blizzard 自己在探究介面顯示進度的資料源。上限不寫死，跟著 tooltip 的分母走。
+-- 讀探究難度選擇器的 UI widget（法術顯示）文字，從 tooltip 抓「x/y」——沒有直接的進度
+-- API，這是 Blizzard 自己在探究介面顯示進度的資料源。上限不寫死，跟著 tooltip 的分母走。
 --
--- ⚠ 這個 widget 只有在探究「裡面」才是活資料；在外面常回傳預設的 0/x 殘值
--- （EverythingDelves 2026-06 實測註記；Plumber DelvesDashboard 也只認 shownState==1）。
--- 所以讀值要過信任閘：spellInfo.shownState == 1，或 UPDATE_UI_WIDGET(7591) 剛觸發過
--- 的短暫窗口內（事件本身就是「這個 widget 的資料更新了」的通知）。
-local STASH_WIDGET_ID = 7591
+-- widget ID 每個資料片/區域一組（WidgetTag=delveDifficultyScaling、OrderIndex=6），改版
+-- 會換，所以照 Plumber DelvesDashboard 掃整串候選，取第一個吐出這顆法術的。
+--
+-- ⚠ 讀值有兩種可信度：
+--   spellInfo.shownState == 1（或 UPDATE_UI_WIDGET 剛觸發的窗口內）＝活資料，權威值；
+--   否則是離開探究區域後留在 widget 裡的殘值——可能是舊的，也可能是預設的 0/x。
+-- 殘值不是垃圾：Plumber 就是靠它在任何地方都顯示得出進度。所以殘值照收，但只能「往上
+-- 加」，不能把已存的值改小；而 untrusted 讀到 0 一律當沒讀到（那才是預設殘值的樣子）。
+local STASH_WIDGET_IDS = {
+    7591,                                            -- Midnight
+    7193, 6794, 6729, 6728, 6727, 6726, 6725, 6724,  -- TWW 各區
+    6723, 6722, 6721, 6720, 6719, 6718, 6659,
+}
+local STASH_WIDGET_LOOKUP = {}
+for _, id in ipairs(STASH_WIDGET_IDS) do STASH_WIDGET_LOOKUP[id] = true end
+local STASH_WIDGET_ID = STASH_WIDGET_IDS[1]  -- /milikeydbg stash 的主要探測目標
 local STASH_SPELL_ID  = 1216211
-local stashTrustedUntil = 0  -- UPDATE_UI_WIDGET(7591) 觸發時往後推 5 秒
+local stashTrustedUntil = 0  -- UPDATE_UI_WIDGET（候選 ID）觸發時往後推 5 秒
 
 local function StashDebug(fmt, ...)
     if MiliUI_KeystoneDebug then
@@ -118,36 +129,40 @@ local function StashDebug(fmt, ...)
     end
 end
 
+-- 回傳 { cur, max, trusted } 或 nil；trusted 代表這是活資料（可當權威值覆蓋）
 local function ReadOwnGildedStash(reason)
     local getter = C_UIWidgetManager and C_UIWidgetManager.GetSpellDisplayVisualizationInfo
     if not getter then return nil end
-    local ok, info = pcall(getter, STASH_WIDGET_ID)
-    if not ok or not info then
-        StashDebug("Stash(%s): widget %d 無資料", tostring(reason), STASH_WIDGET_ID)
-        return nil
+    local eventWindow = GetTime() < stashTrustedUntil
+    local stale
+    for _, widgetID in ipairs(STASH_WIDGET_IDS) do
+        local ok, info = pcall(getter, widgetID)
+        local spellInfo = ok and info and info.spellInfo
+        if spellInfo and spellInfo.spellID == STASH_SPELL_ID then
+            local tip = spellInfo.tooltip
+            local cur, max
+            if type(tip) == "string" then
+                cur, max = string.match(tip, "(%d+)%s*/%s*(%d+)")
+                cur, max = tonumber(cur), tonumber(max)
+            end
+            local trusted = (spellInfo.shownState == 1) or eventWindow
+            StashDebug("Stash(%s): widget=%d shown=%s wShown=%s trusted=%s parsed=%s/%s",
+                tostring(reason), widgetID, tostring(spellInfo.shownState),
+                tostring(info.shownState), tostring(trusted), tostring(cur), tostring(max))
+            if cur and max and max > 0 then
+                if trusted then
+                    return { cur = cur, max = max, trusted = true }
+                elseif cur > 0 and not stale then
+                    -- 殘值：先留著，繼續找有沒有哪個 widget 是活的
+                    stale = { cur = cur, max = max }
+                end
+            end
+        end
     end
-    local spellInfo = info.spellInfo
-    if not spellInfo or spellInfo.spellID ~= STASH_SPELL_ID then
-        StashDebug("Stash(%s): spellID 不符 (%s)",
-            tostring(reason), tostring(spellInfo and spellInfo.spellID))
-        return nil
+    if not stale then
+        StashDebug("Stash(%s): 沒有候選 widget 吐出進度", tostring(reason))
     end
-    local tip = spellInfo.tooltip
-    local cur, max
-    if type(tip) == "string" then
-        cur, max = string.match(tip, "(%d+)%s*/%s*(%d+)")
-        cur, max = tonumber(cur), tonumber(max)
-    end
-    local trusted = GetTime() < stashTrustedUntil
-    StashDebug("Stash(%s): shown=%s wShown=%s trusted=%s parsed=%s/%s tip=%s",
-        tostring(reason), tostring(spellInfo.shownState), tostring(info.shownState),
-        tostring(trusted), tostring(cur), tostring(max), tostring(tip))
-    if not (cur and max and max > 0) then return nil end
-    if spellInfo.shownState ~= 1 and not trusted then
-        StashDebug("Stash(%s): 讀值不可信，忽略（shownState~=1 且非事件窗口）", tostring(reason))
-        return nil
-    end
-    return { cur = cur, max = max }
+    return stale
 end
 
 local lastOwnMapID, lastOwnLevel = 0, 0
@@ -307,11 +322,18 @@ local function SaveVaultSnapshot()
             snap.bounty.got = true
             snap.bounty.count = pb.count or 0
         end
-        local ps = prev.stash
-        if not snap.stash then
+        -- 儲物箱：活資料是權威值（只擋兩個活資料之間變小的冷快取）；殘值只能往上加
+        local ps, ns = prev.stash, snap.stash
+        if not ns then
             snap.stash = ps
-        elseif ps and ps.max == snap.stash.max and (ps.cur or 0) > (snap.stash.cur or 0) then
-            snap.stash.cur = ps.cur
+        elseif ps then
+            if ns.trusted then
+                if ps.trusted and ps.max == ns.max and (ps.cur or 0) > (ns.cur or 0) then
+                    ns.cur = ps.cur
+                end
+            elseif not (ps.max == ns.max and (ns.cur or 0) > (ps.cur or 0)) then
+                snap.stash = ps
+            end
         end
     end
     rec.vault = snap
@@ -1384,15 +1406,19 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
         self:RegisterEvent("LFG_COMPLETION_REWARD")   -- 探究/隨機副本/情景
         self:RegisterEvent("QUEST_TURNED_IN")         -- 世界任務（RequestVaultData 內建節流）
         self:RegisterEvent("BAG_UPDATE_DELAYED")      -- 懸賞圖入手/用掉的當下（有變才存）
-        self:RegisterEvent("UPDATE_UI_WIDGET")        -- 鍍金儲物箱 widget 更新（探究內開箱的當下）
+        self:RegisterEvent("UPDATE_UI_WIDGET")        -- 鍍金儲物箱 widget 更新（開箱的當下）
+        -- 進出探究／難度選擇器資料到位；只有 Plumber 在用這個事件名，
+        -- 萬一哪版被移除，RegisterEvent 會丟錯連帶中斷後面的初始化，包 pcall 保險
+        pcall(self.RegisterEvent, self, "ACTIVE_DELVE_DATA_UPDATE")
+        self:RegisterEvent("ZONE_CHANGED_NEW_AREA")   -- 走進探究所在區域，widget 才是活資料
         -- 一次性遷移舊資料：keystoneHistory → characterKeystones
         if MiliUI_DB and MiliUI_DB.keystoneHistory and not MiliUI_DB.characterKeystones then
             MiliUI_DB.characterKeystones = MiliUI_DB.keystoneHistory
             MiliUI_DB.keystoneHistory = nil
         end
         PruneOldRecords()
-        -- 儲物箱 0/x 多半是信任閘擋下前、在探究外讀到的殘值，一律還原成「無資料」；
-        -- 真實的 0 進度會在下次進探究時由 UPDATE_UI_WIDGET 補回，不損失資訊
+        -- 儲物箱 0/x 一律還原成「無資料」：顯示上兩者都是灰點，而 0 多半是探究區域外
+        -- 讀到的預設殘值。真實的 0 進度下次靠近探究時會重新讀到，不損失資訊
         if MiliUI_DB and MiliUI_DB.characterKeystones then
             for _, data in pairs(MiliUI_DB.characterKeystones) do
                 if data.vault and data.vault.stash and (data.vault.stash.cur or 0) == 0 then
@@ -1475,10 +1501,15 @@ dataFrame:SetScript("OnEvent", function(self, event, ...)
         -- 高頻事件，先用 widgetID 守衛；命中才開信任窗口並排快照
         -- （SnapshotAndRefresh 的 0.3s debounce 落在 5 秒窗口內，讀值必被採信）
         local widgetInfo = ...
-        if widgetInfo and widgetInfo.widgetID == STASH_WIDGET_ID then
+        if widgetInfo and STASH_WIDGET_LOOKUP[widgetInfo.widgetID] then
             stashTrustedUntil = GetTime() + 5
-            SnapshotAndRefresh("UPDATE_UI_WIDGET stash")
+            SnapshotAndRefresh("UPDATE_UI_WIDGET stash " .. tostring(widgetInfo.widgetID))
         end
+    elseif event == "ACTIVE_DELVE_DATA_UPDATE" or event == "ZONE_CHANGED_NEW_AREA" then
+        -- 難度選擇器的 widget 只有在探究區域內是活資料，換區後補抓一次。
+        -- 資料不一定跟事件同時到（Plumber 也延遲 0.5 秒），所以再排一次延遲快照。
+        SnapshotAndRefresh(event)
+        C_Timer.After(2, function() SnapshotAndRefresh(event .. " +2s") end)
     end
 end)
 
@@ -1565,17 +1596,20 @@ SlashCmdList.MILIKEYDBG = function(msg)
             print("|cff00ff00[Keystone]|r 此版本沒有 GetSpellDisplayVisualizationInfo")
             return
         end
-        local ok, info = pcall(getter, STASH_WIDGET_ID)
-        if ok and info then
-            local si = info.spellInfo
-            print(string.format(
-                "|cff00ff00[Keystone]|r widget %d: wShown=%s spellID=%s shown=%s tip=%s",
-                STASH_WIDGET_ID, tostring(info.shownState),
-                tostring(si and si.spellID), tostring(si and si.shownState),
-                tostring(si and si.tooltip)))
-        else
-            print(string.format("|cff00ff00[Keystone]|r widget %d 無資料", STASH_WIDGET_ID))
+        for _, id in ipairs(STASH_WIDGET_IDS) do
+            local ok, info = pcall(getter, id)
+            local si = ok and info and info.spellInfo
+            if si then
+                print(string.format(
+                    "|cff00ff00[Keystone]|r widget %d: wShown=%s spellID=%s shown=%s tip=%s",
+                    id, tostring(info.shownState), tostring(si.spellID),
+                    tostring(si.shownState), tostring(si.tooltip)))
+            end
         end
+        local read = ReadOwnGildedStash("debug")
+        print(string.format("|cff00ff00[Keystone]|r 目前判定：%s",
+            read and string.format("%d/%d（%s）", read.cur, read.max,
+                read.trusted and "活資料" or "殘值") or "讀不到"))
         -- 掃描附近的 widget ID，找其他帶「x/y」文字的候選（改版後 ID 可能換）
         local hits = 0
         for id = 7400, 7800 do
