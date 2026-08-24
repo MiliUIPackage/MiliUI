@@ -4,7 +4,7 @@
 -- ⚠ 接觸面清單（要碰暴雪物件的新程式碼必須先過這張表）：
 --   1. TooltipDataProcessor.AddTooltipPostCall（官方入口）
 --   2. hooksecurefunc：GameTooltip_SetDefaultAnchor（Anchor.lua）、
---      GameTooltip_AddInstructionLine、GameTooltip.SetAction / SetMacro、
+--      GameTooltip_AddInstructionLine、
 --      ItemRefTooltip.SetHyperlink（Quest.lua）、InspectUnit（UnitInfo.lua）
 --   3. HookScript("OnTooltipCleared")（清理暫態）
 --   4. line FontString 的 SetText / SetTextColor（UnitLines.lua；暴雪每次
@@ -166,51 +166,10 @@ local function OnMacro(tip, data)
     RouteMacroPayload(tip, spellId, itemLink)
 end
 
-local function OnSetAction(tip, slot)
-    if not Gate(tip) then return end
-    local function doAction()
-        local spellId, itemLink
-        if type(slot) == "number" and type(GetActionInfo) == "function" then
-            local ok, actionType, actionId = pcall(GetActionInfo, slot)
-            if ok and actionType == "spell" then
-                spellId = ResolveSpellIdFromToken(actionId)
-            elseif ok and actionType == "item" and actionId then
-                local okInfo, _, link = pcall(GetItemInfo, actionId)
-                if okInfo and type(link) == "string" and link ~= "" then itemLink = link end
-            elseif ok and actionType == "macro" then
-                spellId, itemLink = ResolveMacroPayload(tip, actionId)
-            end
-        end
-        if not spellId and not itemLink and tip.GetSpell then
-            local ok, _, sid = pcall(tip.GetSpell, tip)
-            if ok then spellId = S.PlainNumber(sid) end
-        end
-        RouteMacroPayload(tip, spellId, itemLink)
-    end
-    -- 戰鬥中延後一幀，斷開 secure 動作條路徑的 taint 鏈
-    if InCombatLockdown() then
-        C_Timer.After(0, function()
-            if not S.IsForbiddenObject(tip) and tip:IsShown() then doAction() end
-        end)
-    else
-        doAction()
-    end
-end
-
-local function OnSetMacro(tip, macroId)
-    if not Gate(tip) then return end
-    local function doAction()
-        local spellId, itemLink = ResolveMacroPayload(tip, macroId)
-        RouteMacroPayload(tip, spellId, itemLink)
-    end
-    if InCombatLockdown() then
-        C_Timer.After(0, function()
-            if not S.IsForbiddenObject(tip) and tip:IsShown() then doAction() end
-        end)
-    else
-        doAction()
-    end
-end
+-- （SetAction / SetMacro 的後掛勾已刪：動作條上的法術／物品／巨集提示都會
+-- 產生型別化資料、由 post-call 在排版前處理。掛勾那條在戰鬥中延後一幀加行
+-- ＝排版之後才塞 → ID 行掛在框體外面閃（TinyTooltip 一路帶過來的老毛病，
+-- 使用者以為是官方 bug）。post-call 版本沒有這個時序問題。）
 
 ------------------------------------------------------------
 -- 設定套用總入口（設定面板 / 載入時）
@@ -256,12 +215,6 @@ local function Install()
     end
 
     -- 動作條 / 巨集（接觸面 #2）
-    if GameTooltip and type(GameTooltip.SetAction) == "function" then
-        hooksecurefunc(GameTooltip, "SetAction", OnSetAction)
-    end
-    if GameTooltip and type(GameTooltip.SetMacro) == "function" then
-        hooksecurefunc(GameTooltip, "SetMacro", OnSetMacro)
-    end
 
     -- 右鍵提示：暴雪加進來的當下就移掉（接觸面 #2）
     if GameTooltip_AddInstructionLine then
