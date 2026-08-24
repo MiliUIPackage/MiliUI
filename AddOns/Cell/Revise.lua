@@ -3492,25 +3492,45 @@ function F.Revise()
         end
     end
 
-    --! 12.1: the debuff row is AuraContainer-backed. Its "size-normal-big" setting became a
-    --! plain size (a container group has one element size), and the duration threshold now
-    --! works again on the container path -- so "always" becomes "under 60s" where it was
-    --! only ever "always" because thresholds were unavailable.
+    --! 12.1: the debuff row is AuraContainer-backed and its "size-normal-big" setting became
+    --! a plain size (a container group has one element size). Shape fix only, and it is
+    --! self-limiting -- it fires only while the old nested table is still there -- so it can
+    --! stay ungated.
     for _, layout in pairs(CellDB["layouts"]) do
         for _, t in pairs(layout["indicators"] or {}) do
-            local name = t["indicatorName"]
-            if name == "debuffs" and type(t["size"]) == "table" and type(t["size"][1]) == "table" then
+            if t["indicatorName"] == "debuffs" and type(t["size"]) == "table" and type(t["size"][1]) == "table" then
                 t["size"] = {t["size"][1][1], t["size"][1][2]}
                 t["bigDebuffs"] = nil
                 t["enableBlacklistShortcut"] = nil
             end
-            -- ...and the same for CUSTOM buff icon indicators (Healers and friends): their
-            -- lists carry permanent/very long healer buffs, so "always" prints "28m" forever.
-            local isCustomIcon = t["type"] == "icons" or t["type"] == "icon"
-            if t["showDuration"] == true and (name == "debuffs" or name == "raidDebuffs"
-                or name == "externalCooldowns" or name == "defensiveCooldowns"
-                or (isCustomIcon and t["auraType"] == "buff")) then
-                t["showDuration"] = 60
+        end
+    end
+
+    --! ...and the duration threshold: it works again on the container path, so rows whose
+    --! lists carry permanent or very long buffs ("always" printing 28m forever) were moved
+    --! from "always" to "under 60s".
+    --!
+    --! ⚠ ONE-SHOT. This used to run on every login, which meant the conversion was not a
+    --! conversion at all -- it was a lock: anyone who chose "always" on the Healers row (or
+    --! the debuff rows) got it silently reset to 60s at the next reload, forever, with no
+    --! error and nothing in the UI to explain it. A preference the user can set and the
+    --! addon un-sets behind their back is worse than the wrong default it was fixing.
+    if not CellDB["miliuiDurationThresholdOnce"] then
+        CellDB["miliuiDurationThresholdOnce"] = true
+        --! ⚠ and skip the conversion entirely for a database that has already logged in on
+        --! this build: the old ungated loop converted it long ago, so the only thing a run
+        --! now could do is undo an "always" the player has since chosen on purpose.
+        if CellDB["revise"] ~= Cell.version then
+            for _, layout in pairs(CellDB["layouts"]) do
+                for _, t in pairs(layout["indicators"] or {}) do
+                    local name = t["indicatorName"]
+                    local isCustomIcon = t["type"] == "icons" or t["type"] == "icon"
+                    if t["showDuration"] == true and (name == "debuffs" or name == "raidDebuffs"
+                        or name == "externalCooldowns" or name == "defensiveCooldowns"
+                        or (isCustomIcon and t["auraType"] == "buff")) then
+                        t["showDuration"] = 60
+                    end
+                end
             end
         end
     end
