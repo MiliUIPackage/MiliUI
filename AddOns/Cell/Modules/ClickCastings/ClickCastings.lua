@@ -1589,7 +1589,11 @@ local function UpdateCurrentText(isCommon)
 end
 
 local function CreateListPane()
-    listPane = Cell.CreateTitledPane(clickCastingsTab, L["Current Profile"], 422, 451)
+    -- ⚠ height, not a top offset: this pane is anchored to the BOTTOM, so its height is what
+    -- decides where its title line lands. The tab is 592 tall (OptionsFrame.lua), the hints
+    -- button above ends at -141, so 592 - 5 - 442 = 145 leaves the title 4px of clearance.
+    -- Shrinking the pane only costs rows in a list that scrolls anyway.
+    listPane = Cell.CreateTitledPane(clickCastingsTab, L["Current Profile"], 422, 442)
     listPane:SetPoint("BOTTOMLEFT", clickCastingsTab, 5, 5)
 
     local hint = Cell.CreateButton(listPane, nil, "accent-hover", {17, 17}, nil, nil, nil, nil, nil,

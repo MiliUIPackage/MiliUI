@@ -45,7 +45,15 @@ Cell.defaults.clickCastingHints = {
     -- the pack's own placement, so enabling the tool puts it somewhere sensible rather
     -- than in the middle of the screen.
     ["snap"] = true,
-    ["anchor"] = {-139, -17},
+    -- ⚠ myAnchor decides WHICH CORNER OF OURS the offset describes, and it is not cosmetic:
+    -- the bar is as wide as the character has bindings, so a bar parked to the LEFT of the
+    -- frames and pinned by its TOPLEFT has its facing edge float -- a 3-spell character sits
+    -- a spell and a half further from the frames than a 5-spell one. Pin the facing edge
+    -- instead. Default TOPRIGHT because the pack parks the bar on Cell's left.
+    ["myAnchor"] = "TOPRIGHT",
+    -- offset of THAT corner from CellAnchorFrame's TOPLEFT. -13 keeps the shipped placement
+    -- (the old TOPLEFT default was -139, which is where a 4-icon bar's right edge landed).
+    ["anchor"] = {-13, -17},
     -- keybind label: master switch, then what each key is drawn as. An EMPTY string on a
     -- mouse button means "use the glyph"; anything else is used literally.
     ["showKeys"] = true,
@@ -151,6 +159,22 @@ local function SnapEdge(lo, hi, t1, t2)
     return best or lo
 end
 
+-- Which corner of ours the stored offset describes. Anything unexpected in the database
+-- falls back to the shipped default.
+local MY_ANCHOR_POINTS = {"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT"}
+local MY_ANCHOR_VALID = {}
+for _, point in ipairs(MY_ANCHOR_POINTS) do MY_ANCHOR_VALID[point] = true end
+
+local function MyAnchorPoint()
+    local p = CellDB["tools"]["clickCastingHints"]["myAnchor"]
+    return MY_ANCHOR_VALID[p] and p or Cell.defaults.clickCastingHints["myAnchor"]
+end
+
+-- the screen coordinates of that corner of a rect
+local function CornerOf(point, l, r, t, b)
+    return (strfind(point, "RIGHT") and r or l), (strfind(point, "BOTTOM") and b or t)
+end
+
 -- Returns true when the bar ended up attached.
 local function TryAttach()
     local db = CellDB["tools"]["clickCastingHints"]
@@ -173,8 +197,11 @@ local function TryAttach()
     local newL = SnapEdge(l, r, cl, cr)
     local newB = SnapEdge(b, t, cb, ct)
     local newT = newB + (t - b)
+    local newR = newL + (r - l)
 
-    db["anchor"] = {newL - anchor:GetLeft(), newT - anchor:GetTop()}
+    -- store the offset of OUR CHOSEN corner, not always the top-left one
+    local x, y = CornerOf(MyAnchorPoint(), newL, newR, newT, newB)
+    db["anchor"] = {x - anchor:GetLeft(), y - anchor:GetTop()}
     return true
 end
 
@@ -193,7 +220,7 @@ local function ApplyPosition()
         --! screen, which silently overrides the anchor whenever Cell sits near an edge --
         --! the bar would look like it had stopped following.
         hintsFrame:SetClampedToScreen(false)
-        hintsFrame:SetPoint("TOPLEFT", Cell.frames.anchorFrame, "TOPLEFT", db["anchor"][1], db["anchor"][2])
+        hintsFrame:SetPoint(MyAnchorPoint(), Cell.frames.anchorFrame, "TOPLEFT", db["anchor"][1], db["anchor"][2])
     else
         hintsFrame:SetClampedToScreen(true)
         if not P.LoadPosition(hintsFrame, db["position"]) then
@@ -756,7 +783,7 @@ Cell.RegisterCallback("UpdatePixelPerfect", "ClickCastingHints_UpdatePixelPerfec
 local LCG = LibStub("LibCustomGlow-1.0")
 
 local cchPane, unlockBtn, enabledCB, snapCB, showKeysCB, sizeSlider, orientationDD,
-    perLineSlider, spacingSlider
+    perLineSlider, spacingSlider, myAnchorDD
 local labelBoxes = {}   -- keyLabels entries, free text
 local valueBoxes = {}   -- plain numeric settings (offsets, threshold)
 local anchorDropdowns = {}
@@ -816,7 +843,7 @@ local function CreatePane()
 
     -- enabled --------------------------------------------------------------------------
     enabledCB = Cell.CreateCheckButton(cchPane, L["Click-Casting Hints"], function(checked)
-        Cell.SetEnabled(checked, snapCB, showKeysCB, sizeSlider, orientationDD, perLineSlider, spacingSlider)
+        Cell.SetEnabled(checked, snapCB, showKeysCB, sizeSlider, orientationDD, perLineSlider, spacingSlider, myAnchorDD)
         for _, eb in pairs(labelBoxes) do
             eb:SetEnabled(checked and CellDB["tools"]["clickCastingHints"]["showKeys"])
         end
@@ -889,6 +916,39 @@ local function CreatePane()
         Save("spacing", value)
     end)
     P.Point(spacingSlider, "TOPLEFT", sizeSlider, "TOPLEFT", 0, -55)
+
+    -- my anchor point ------------------------------------------------------------------
+    --! Which corner of the BAR the stored offset describes. Switching it must never move the
+    --! bar, so the offset is re-expressed from the rect the bar occupies right now -- the
+    --! setting changes what is pinned, not where the thing sits.
+    myAnchorDD = Cell.CreateDropdown(cchPane, 120)
+    P.Point(myAnchorDD, "TOPLEFT", spacingSlider, "TOPLEFT", 146, 0)
+
+    local myAnchorItems = {}
+    for _, point in ipairs(MY_ANCHOR_POINTS) do
+        tinsert(myAnchorItems, {
+            ["text"] = L[point],
+            ["value"] = point,
+            ["onClick"] = function()
+                local db = CellDB["tools"]["clickCastingHints"]
+                if db["myAnchor"] == point then return end
+                local a = Cell.frames.anchorFrame
+                local l, r, t, b = hintsFrame:GetLeft(), hintsFrame:GetRight(), hintsFrame:GetTop(), hintsFrame:GetBottom()
+                db["myAnchor"] = point
+                if IsAttached() and a and a:GetLeft() and l then
+                    local x, y = CornerOf(point, l, r, t, b)
+                    db["anchor"] = {x - a:GetLeft(), y - a:GetTop()}
+                end
+                ApplyPosition()
+            end,
+        })
+    end
+    myAnchorDD:SetItems(myAnchorItems)
+
+    local myAnchorText = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    myAnchorText:SetText(L["My Anchor Point"])
+    P.Point(myAnchorText, "BOTTOMLEFT", myAnchorDD, "TOPLEFT", 0, 1)
+    Cell.SetTooltips(myAnchorDD, "ANCHOR_TOPLEFT", 0, 3, L["My Anchor Point"], L["MY_ANCHOR_POINT_TIPS"])
 
     -- text positions -------------------------------------------------------------------
     --! Free text rather than sliders: an offset is a number the player already has in mind
@@ -1040,11 +1100,12 @@ local function LoadDB()
         dd:SetEnabled(db["enabled"])
     end
     sizeSlider:SetValue(db["size"])
+    myAnchorDD:SetSelectedValue(MyAnchorPoint())
     orientationDD:SetSelectedValue(db["orientation"])
     UpdatePerLineLabel(db["orientation"])
     perLineSlider:SetValue(db["perRow"])
     spacingSlider:SetValue(db["spacing"])
-    Cell.SetEnabled(db["enabled"], snapCB, showKeysCB, sizeSlider, orientationDD, perLineSlider, spacingSlider)
+    Cell.SetEnabled(db["enabled"], snapCB, showKeysCB, sizeSlider, orientationDD, perLineSlider, spacingSlider, myAnchorDD)
 end
 
 --! Everything except `enabled`. The master switch is not part of "how it looks", and a
