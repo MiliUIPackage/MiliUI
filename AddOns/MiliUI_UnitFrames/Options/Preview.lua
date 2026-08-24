@@ -148,7 +148,8 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
             -- elementName 對每一條 list 都是固定的（表是 uf.fakeAuras[elementName]），
             -- 所以抓進 closure 是安全的。
             b:RegisterForClicks("LeftButtonUp")
-            b:SetScript("OnClick", function()
+            b:SetScript("OnClick", function(self)
+                if ns.WasDragging(self) then return end
                 if ns.Options and ns.Options.FocusUnitElement then
                     ns.Options.FocusUnitElement(uf.unitKey, elementName)
                 end
@@ -258,11 +259,40 @@ Preview.EachTwin = EachTwin
 -- RegisterForDrag 與 OnClick 可以並存：暴雪自己分辨「有沒有拖過門檻」，
 -- 拖過了就走 OnDragStart、沒拖就放手時走 OnClick，不必自己量距離。
 ------------------------------------------------------------
+-- 錨在框**外面**的元件：它們是框的子物件，但畫在框體之外（資源條與魔力小條掛在
+-- 框底下），所以父層的 EnableMouse 管不到它們，要一個一個開。
+--   tab     ＝ 點下去跳到主視窗的哪個分頁（資源條有自己的分頁，不在單位分頁的切換列裡）
+--   element ＝ 跳到單位分頁的哪個元件
+local OUTSIDE_ELEMENTS = {
+    classpower = { tab = "resource" },
+    manabar    = { element = "manabar" },
+}
+
+local function HookOutsideElement(uf, unitKey, region, target)
+    if region.__optionsHooked then return end
+    region.__optionsHooked = true
+    -- 這兩個是 Frame 不是 Button，沒有 OnClick 可用
+    region:SetScript("OnMouseUp", function(self, button)
+        if button ~= "LeftButton" or ns.WasDragging(self) then return end
+        if target.tab then
+            ns.Options.Open(target.tab)
+        elseif ns.Options.FocusUnitElement then
+            ns.Options.FocusUnitElement(unitKey, target.element)
+        end
+    end)
+    if not (uf.bossIndex and uf.bossIndex > 1) then
+        ns.AttachDrag(region, uf, function() return uf.db.frame end, function()
+            ns.ApplySettings(unitKey)
+        end)
+    end
+end
+
 local function HookTwinMouse(uf, unitKey)
     if uf.__optionsHooked then return end
     uf.__optionsHooked = true
     uf:RegisterForClicks("LeftButtonUp")
-    uf:SetScript("OnClick", function()
+    uf:SetScript("OnClick", function(self)
+        if ns.WasDragging(self) then return end
         if ns.Options and ns.Options.FocusUnitElement then
             ns.Options.FocusUnitElement(unitKey)
         end
@@ -283,6 +313,13 @@ function Preview.ApplyInteractive()
         if uf.fakeAuras then
             for _, list in pairs(uf.fakeAuras) do
                 for _, b in ipairs(list) do b:EnableMouse(interactive) end
+            end
+        end
+        for ename, target in pairs(OUTSIDE_ELEMENTS) do
+            local region = uf.elements and uf.elements[ename]
+            if region then
+                if interactive then HookOutsideElement(uf, unitKey, region, target) end
+                region:EnableMouse(interactive)
             end
         end
     end)

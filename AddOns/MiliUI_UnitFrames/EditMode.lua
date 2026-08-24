@@ -114,6 +114,7 @@ function ns.AttachDrag(handle, frame, getFDB, onMoved, applyPoint)
             fdb.y = math.floor(Snap(baseY + (cy - startCY) / scale) + 0.5)
         end
         baseX, baseY, startCX, startCY = nil, nil, nil, nil
+        self.__miliDragEnd = GetTime()
         if onMoved then onMoved() end
     end)
 
@@ -124,6 +125,14 @@ function ns.AttachDrag(handle, frame, getFDB, onMoved, applyPoint)
         self:SetScript("OnUpdate", nil)
         baseX, baseY, startCX, startCY = nil, nil, nil, nil
     end)
+end
+
+-- 剛剛放開的那一下是拖曳嗎？
+-- 拖完放手時 OnClick / OnMouseUp 照樣會來（暴雪不會因為拖過就吃掉點擊），
+-- 不擋的話「把框拖到新位置」會順便觸發「跳到這個元件的分頁」。
+function ns.WasDragging(handle)
+    local t = handle and handle.__miliDragEnd
+    return t ~= nil and (GetTime() - t) < 0.15
 end
 
 ------------------------------------------------------------
