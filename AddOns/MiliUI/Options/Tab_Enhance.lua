@@ -89,6 +89,13 @@ local CONTROLS = {
     { type = "text", label = "在 Baganator 背包中為鑰石加上彩色邊框、脈動光暈與「鑰石」文字標籤。" },
     { type = "custom", label = "發光顏色", build = BuildKeystoneColorRow },
 
+    { type = "header", label = "Chattynator 聊天視窗" },
+    { type = "toggle", label = "分頁標籤改用套組樣式",
+      get = function() return MiliUI_ChattynatorTabs and MiliUI_ChattynatorTabs.IsEnabled() end,
+      set = function(v) if MiliUI_ChattynatorTabs then MiliUI_ChattynatorTabs.SetEnabled(v) end end },
+    { type = "text", label = "把聊天視窗的分頁標籤換成跟設定介面同一套：不透明純色底、1px 直角硬邊、白字。"
+        .. "每個標籤的顏色仍然由 Chattynator 自己的設定決定（右鍵標籤 →「標籤顏色」），這裡只換樣式。" },
+
     { type = "header", label = "遊戲行為（強制覆蓋 CVar，每次載入時套用）" },
     { type = "dropdown", label = "點擊地板清除目標",
       items = {
