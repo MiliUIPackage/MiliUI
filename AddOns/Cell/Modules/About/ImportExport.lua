@@ -119,7 +119,6 @@ local function DoImport(noReload)
     F.FilterInvalidSpells(imported["debuffBlacklist"])
     F.FilterInvalidSpells(imported["bigDebuffs"])
     F.FilterInvalidSpells(imported["actions"])
-    F.FilterInvalidSpells(imported["aoeHealings"] and imported["aoeHealings"]["custom"])
     F.FilterInvalidSpells(imported["defensives"]["custom"])
     F.FilterInvalidSpells(imported["externals"]["custom"])
     F.FilterInvalidSpells(imported["targetedSpellsList"])
@@ -280,7 +279,6 @@ local function CreateImportConfirmationFrame()
         ignoredIndices["dispelBlacklist"] = not checked
         ignoredIndices["debuffBlacklist"] = not checked
         ignoredIndices["bigDebuffs"] = not checked
-        ignoredIndices["aoeHealings"] = not checked
         ignoredIndices["defensives"] = not checked
         ignoredIndices["externals"] = not checked
         ignoredIndices["targetedSpellsList"] = not checked

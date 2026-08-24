@@ -195,50 +195,29 @@ end
 -------------------------------------------------
 -- FIXME: fix health updating boss678
 -- ! BLIZZARD, FIX IT!
--- NOTE: On Midnight (12.0.0+) COMBAT_LOG_EVENT_UNFILTERED is unavailable.
--- Boss6-8 health/aura updates fall back entirely to the periodic poll
--- (elapsed3 >= 5) and UNIT_HEALTH / UNIT_AURA unit events registered below.
--- The CLEU path is guarded by Cell.isMidnight.
+-- NOTE: boss6-8 have no unit events of their own, and the CLEU top-up that used to cover
+-- them is impossible on 12.x (addons cannot register COMBAT_LOG_EVENT_UNFILTERED), so their
+-- health/auras come from the periodic poll (elapsed3 >= 5) plus the UNIT_HEALTH / UNIT_AURA
+-- registrations below. The dead CLEU frame and its two arm/disarm timers are gone.
 -------------------------------------------------
 local boss678_guidToButton = {}
 local boss678_buttonToGuid = {}
 
-local cleu = CreateFrame("Frame")
-
-if not Cell.isMidnight then
-    cleu:SetScript("OnEvent", function()
-        local timestamp, subEvent, _, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags = CombatLogGetCurrentEventInfo()
-        if boss678_guidToButton[destGUID] then
-            if subEvent == "SPELL_HEAL" or subEvent == "SPELL_PERIODIC_HEAL" or subEvent == "SPELL_DAMAGE" or subEvent == "SPELL_PERIODIC_DAMAGE" then
-                B.UpdateHealth(boss678_guidToButton[destGUID])
-            elseif subEvent == "SPELL_AURA_REFRESH" or subEvent == "SPELL_AURA_APPLIED" or subEvent == "SPELL_AURA_REMOVED" or subEvent == "SPELL_AURA_APPLIED_DOSE" or subEvent == "SPELL_AURA_REMOVED_DOSE" then
-                B.UpdateAuras(boss678_guidToButton[destGUID])
-            end
-        end
-    end)
-else
-    -- Midnight: use UNIT_HEALTH and UNIT_AURA for boss6-8 unit events.
-    -- These events fire for units that WoW tracks; boss6-8 visibility may be
-    -- limited but is better than nothing and complements the periodic poll.
-    cleu:SetScript("OnEvent", function(self, event, unit)
-        local button = unit and F.HandleUnitButton and nil
-        -- resolve unit to button via the boss678 unit map
-        for idx = 6, 8 do
-            local b = Cell.unitButtons.npc[idx]
-            if b and b.states and b.states.unit == unit then
-                if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
-                    B.UpdateHealth(b)
-                elseif event == "UNIT_AURA" then
-                    B.UpdateAuras(b)
-                end
-                break
-            end
-        end
-    end)
-end
-
 for i = 6, 8 do
     local button = Cell.unitButtons.npc[i]
+
+    -- ⚠ one event frame PER SLOT. RegisterUnitEvent keeps at most two units per event, so a
+    -- single shared frame would silently stop watching boss6 the moment boss8 registered --
+    -- which is what the old shared `cleu` frame did once the CLEU path was gone.
+    local events = CreateFrame("Frame")
+    events:SetScript("OnEvent", function(_, event)
+        if event == "UNIT_AURA" then
+            B.UpdateAuras(button)
+        else -- UNIT_HEALTH / UNIT_MAXHEALTH
+            B.UpdateHealth(button)
+        end
+    end)
+
     button.helper:HookScript("OnShow", function()
         local guid = UnitGUID(button.states.unit)
         if not guid then return end
@@ -249,14 +228,11 @@ for i = 6, 8 do
         -- update now
         B.UpdateAll(button)
 
-        if Cell.isMidnight then
-            -- Register unit events for this boss slot on Midnight
-            local unit = button.states.unit
-            if unit then
-                cleu:RegisterUnitEvent("UNIT_HEALTH", unit)
-                cleu:RegisterUnitEvent("UNIT_MAXHEALTH", unit)
-                cleu:RegisterUnitEvent("UNIT_AURA", unit)
-            end
+        local unit = button.states.unit
+        if unit then
+            events:RegisterUnitEvent("UNIT_HEALTH", unit)
+            events:RegisterUnitEvent("UNIT_MAXHEALTH", unit)
+            events:RegisterUnitEvent("UNIT_AURA", unit)
         end
     end)
 
@@ -268,13 +244,7 @@ for i = 6, 8 do
         button.helper.elapsed2 = nil
         button.helper.elapsed3 = nil
 
-        if not Cell.isMidnight then
-            if F.Getn(boss678_buttonToGuid) == 0 then
-                cleu:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-            end
-        end
-        -- Note: unit events registered via RegisterUnitEvent are automatically
-        -- unregistered when no units match; no explicit cleanup needed.
+        events:UnregisterAllEvents()
     end)
 
     button.helper:HookScript("OnUpdate", function(self, elapsed)
@@ -295,15 +265,6 @@ for i = 6, 8 do
                 B.UpdateAll(button)
             end
             button.helper.elapsed = 0
-        end
-
-        if not Cell.isMidnight then
-            if button.helper.elapsed2 >= 1 then
-                if not cleu:IsEventRegistered("COMBAT_LOG_EVENT_UNFILTERED") then
-                    cleu:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-                end
-                button.helper.elapsed2 = 0
-            end
         end
 
         if button.helper.elapsed3 >= 5 then

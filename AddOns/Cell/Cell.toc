@@ -31,7 +31,6 @@ HideBlizzard.lua
 Indicators\Base.lua
 Indicators\Built-in.lua
 Indicators\StatusIcon.lua
-Indicators\AoEHealing.lua
 Indicators\TargetCounter.lua
 Indicators\TargetedSpells.lua
 Indicators\Actions.lua

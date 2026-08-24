@@ -15,9 +15,14 @@ end
 
 local function Deserialize(encoded)
     local decoded = LibDeflate:DecodeForWoWAddonChannel(encoded) -- decode
+    if not decoded then -- garbage on the channel: DecompressDeflate(nil) would error
+        F.Debug("Error decoding: bad addon-channel payload")
+        return
+    end
     local decompressed = LibDeflate:DecompressDeflate(decoded) -- decompress
     if not decompressed then
-        F.Debug("Error decompressing: " .. errorMsg)
+        -- ⚠ was `.. errorMsg`, an undeclared global -- the error path itself errored
+        F.Debug("Error decompressing")
         return
     end
     local success, data = Serializer:Deserialize(decompressed) -- deserialize

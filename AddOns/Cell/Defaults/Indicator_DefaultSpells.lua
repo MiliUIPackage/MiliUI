@@ -86,108 +86,6 @@ function I.GetDefaultBigDebuffs()
     return bigDebuffs
 end
 
--------------------------------------------------
--- aoeHealings
--------------------------------------------------
-local aoeHealings = {
-    ["DRUID"] = {
-        [740] = true,      -- 宁静 - Tranquility
-        [145205] = true,   -- 百花齐放 - Efflorescence
-    },
-
-    ["EVOKER"] = {
-        [355916] = true,   -- 翡翠之花 - Emerald Blossom
-        [361361] = true,   -- 婆娑幼苗 - Fluttering Seedlings
-        [363534] = true,   -- 回溯 - Rewind
-        [367230] = true,   -- 精神之花 - Spiritbloom
-        [370984] = true,   -- 翡翠交融 - Emerald Communion
-        [371441] = true,   -- 赐命者之焰 - Life-Giver's Flame
-        [371879] = true,   -- 生生不息 - Cycle of Life
-        [377509] = false,  -- 梦境投影（pvp）- Dream Projection
-    },
-
-    ["MONK"] = {
-        [115098] = true,   -- 真气波 - Chi Wave
-        [123986] = true,   -- 真气爆裂 - Chi Burst
-        [115310] = true,   -- 还魂术 - Revival
-        [322118] = true,   -- 青龙下凡 (SUMMON) - Invoke Yu'lon, the Jade Serpent
-        [388193] = true,   -- 碧火踏 - Jadefire Stomp
-        [443028] = true,   -- 天神御身 - Celestial Conduit
-        [343819] = false,  -- 迷雾之风 (朱鹤下凡产生的“迷雾之风”的施法者是玩家) - Gust of Mists
-    },
-
-    ["PALADIN"] = {
-        [85222]  = true,   -- 黎明之光 - Light of Dawn
-        [119952] = true,   -- 弧形圣光 - Arcing Light
-        [114165] = true,   -- 神圣棱镜 - Holy Prism
-        [200654] = true,   -- 提尔的拯救 - Tyr's Deliverance
-        [216371] = true,   -- 复仇十字军 - Avenging Crusader
-    },
-
-    ["PRIEST"] = {
-        [120517] = true,   -- 光晕 - Halo (moved to Archon hero talent in 12.0)
-        [34861]  = true,   -- 圣言术：灵 - Holy Word: Sanctify
-        [596]    = true,   -- 治疗祷言 - Prayer of Healing
-        [64843]  = true,   -- 神圣赞美诗 - Divine Hymn
-        -- [110744] = true,   -- 神圣之星 - Divine Star (removed in 12.0)
-        [204883] = true,   -- 治疗之环 - Circle of Healing
-        [281265] = true,   -- 神圣新星 - Holy Nova
-        -- [314867] = true,   -- 暗影盟约 - Shadow Covenant (removed in 12.0)
-        [15290]  = true,   -- 吸血鬼的拥抱 - Vampiric Embrace
-        [372787] = true,   -- 神言术：佑 - Divine Word: Sanctuary
-    },
-
-    ["SHAMAN"] = {
-        [1064]   = true,   -- 治疗链 - Chain Heal
-        [73920]  = true,   -- 治疗之雨 - Healing Rain
-        [108280] = true,   -- 治疗之潮图腾 (SUMMON) - Healing Tide Totem
-        [52042]  = true,   -- 治疗之泉图腾 (SUMMON) - Healing Stream Totem
-        [197995] = true,   -- 奔涌之流 - Wellspring
-        -- [157503] = true,   -- 暴雨图腾 - Cloudburst (removed in 12.0)
-        [114911] = true,   -- 先祖指引 - Ancestral Guidance
-        [382311] = true,   -- 先祖复苏 - Ancestral Awakening
-        [207778] = true,   -- 倾盆大雨 - Downpour
-        [114083] = true,   -- 恢复迷雾 (升腾) - Restorative Mists
-    },
-}
-
-function I.GetAoEHealings()
-    return aoeHealings
-end
-
-local builtInAoEHealings = {}
-local customAoEHealings = {}
-
-function I.UpdateAoEHealings(t)
-    -- user disabled
-    wipe(builtInAoEHealings)
-    for class, spells in pairs(aoeHealings) do
-        for id, trackByName in pairs(spells) do
-            if not t["disabled"][id] then -- not disabled
-                if trackByName then
-                    local name = F.GetSpellInfo(id)
-                    if name then
-                        builtInAoEHealings[name] = true
-                    end
-                else
-                    builtInAoEHealings[id] = true
-                end
-            end
-        end
-    end
-
-    -- user created
-    wipe(customAoEHealings)
-    for _, id in pairs(t["custom"]) do
-        customAoEHealings[id] = true
-    end
-end
-
-function I.IsAoEHealing(name, id)
-    if not F.IsValueNonSecret(name) or not F.IsValueNonSecret(id) then return end
-    return builtInAoEHealings[name] or builtInAoEHealings[id] or customAoEHealings[id]
-end
-
 local summonDuration = {
     -- evoker
     [377509] = 6, -- 梦境投影（pvp）- Dream Projection
@@ -1097,6 +995,7 @@ function F.FirstRun()
         local currentLayoutTable = Cell.vars.currentLayoutTable
 
         local last = #currentLayoutTable["indicators"]
+        local indicatorName -- ⚠ was a global write (and read) -- addon code must not leak names
         if currentLayoutTable["indicators"][last]["type"] == "built-in" then
             indicatorName = "indicator1"
         else

@@ -3462,7 +3462,7 @@ function F.Revise()
             for i = 1, maxKey do
                 if i <= Cell.defaults.builtIns then
                     if not temp[i] or i ~= Cell.defaults.indicatorIndices[temp[i]["indicatorName"]] then
-                        F.Debug(layoutName, "RESET_WRONG", i, name)
+                        F.Debug(layoutName, "RESET_WRONG", i, temp[i] and temp[i]["indicatorName"])
                         temp[i] = F.Copy(Cell.defaults.layout.indicators[i])
                     end
                 else
@@ -3743,6 +3743,64 @@ function F.Revise()
             for _, i in pairs(layout["indicators"] or {}) do
                 if i.animationStyle == "clock" then
                     i.animationStyle = "border"
+                end
+            end
+        end
+    end
+
+    --! fix from MiliUI: the AoE Healing indicator is GONE. It only ever lit up from
+    --! COMBAT_LOG_EVENT_UNFILTERED (SPELL_HEAL / SPELL_PERIODIC_HEAL), which addons cannot
+    --! register on 12.x -- the option was there but the texture could never flash.
+    --!
+    --! ⚠ Its slot has to leave the saved layouts as well: Cell.defaults.indicatorIndices IS
+    --! the position map into layout["indicators"], so a stale entry left at 17 pushes every
+    --! later built-in one slot out of line, and the config loop would then try to create an
+    --! indicator that no longer exists (b.indicators.aoeHealing is nil -> I.CreateIndicator
+    --! on a "built-in" entry -> indexing a nil). The validation pass above re-indexes by name
+    --! and would drop it, but that whole block only runs when CellDB["revise"] differs from
+    --! the TOC version -- and that number is a release signal the user owns (see .claude
+    --! notes), so it cannot be relied on here. One-shot marker instead.
+    if not CellDB["miliuiAoEHealingRemoved"] then
+        CellDB["miliuiAoEHealingRemoved"] = true
+        for _, layout in pairs(CellDB["layouts"] or {}) do
+            local indicators = layout["indicators"]
+            if type(indicators) == "table" then
+                for i = #indicators, 1, -1 do
+                    if type(indicators[i]) == "table" and indicators[i]["indicatorName"] == "aoeHealing" then
+                        tremove(indicators, i)
+                    end
+                end
+            end
+        end
+        CellDB["aoeHealings"] = nil
+    end
+
+    --! fix from MiliUI: the two LEFT-side cooldown rows (Defensive Cooldowns, Externals +
+    --! Defensives) were pinned LEFT-to-LEFT. Those rows hang off the side of the frame and
+    --! their width follows how many icons are actually up, which is class/spec dependent --
+    --! so the edge FACING the frame sat one row-width away from the anchor and the gap moved
+    --! every time you logged onto a different character. Re-pin them by their own RIGHT edge
+    --! to the button's LEFT edge (facing edge = anchor, gap = x) and flow them outward.
+    --! ⚠ One-shot marker, same reason as above: dbRevision needs the TOC version bumped.
+    --! Only the old LEFT/LEFT pair is touched -- anything the user re-anchored is left alone.
+    if not CellDB["miliuiLeftCooldownAnchor"] then
+        CellDB["miliuiLeftCooldownAnchor"] = true
+        local LEFT_ROWS = { defensiveCooldowns = true, allCooldowns = true }
+        for _, layout in pairs(CellDB["layouts"] or {}) do
+            for _, t in pairs(layout["indicators"] or {}) do
+                if type(t) == "table" and LEFT_ROWS[t["indicatorName"]] then
+                    local p = t["position"]
+                    if type(p) == "table" and p[1] == "LEFT" and p[3] == "LEFT" then
+                        p[1] = "RIGHT"
+                        -- x used to have to cover the row's own width to clear the frame; now
+                        -- it is just the gap, so a value tuned for the old pin would fling the
+                        -- row out into the raid. Anything further out than the default gap
+                        -- collapses back to it; a value the user pulled INWARD is kept.
+                        if type(p[4]) == "number" and p[4] < -2 then p[4] = -2 end
+                        if t["orientation"] == "left-to-right" then
+                            t["orientation"] = "right-to-left"
+                        end
+                    end
                 end
             end
         end

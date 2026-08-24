@@ -130,3 +130,8 @@ end)
 function F.ShowQuickAssistTab()
     buttons["quickAssist"]:Click()
 end
+
+-- fix from MiliUI: the Click-Castings tab links here (its own settings live two tabs away)
+function F.ShowClickCastingHintsTab()
+    if buttons["clickCastingHints"] then buttons["clickCastingHints"]:Click() end
+end

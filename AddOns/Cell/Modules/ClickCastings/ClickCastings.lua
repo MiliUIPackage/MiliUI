@@ -836,6 +836,23 @@ local function CreateProfilePane()
     local profilePane = Cell.CreateTitledPane(clickCastingsTab, L["Profiles"], 422, 50)
     profilePane:SetPoint("TOPLEFT", 5, -5)
 
+    -- fix from MiliUI: the hint bar that displays these bindings is configured two tabs away,
+    -- under Utilities, and nothing on this page ever said so -- people set their click-casts up
+    -- and never found the thing that shows them. The label IS the path, and clicking walks there.
+    -- Sits on the pane's title line (same trick as the Unlock button in RaidTools), so no pane
+    -- below it has to move.
+    local hintsBtn = Cell.CreateButton(profilePane,
+        L["Utilities"] .. " > " .. L["Click-Casting Hints"],
+        "accent-hover", {150, 17}, nil, nil, nil, nil, nil,
+        L["Click-Casting Hints"], L["CLICK_CASTING_HINTS_JUMP_TIPS"], L["CLICK_CASTING_HINTS_TIPS"])
+    hintsBtn:SetPoint("TOPRIGHT")
+    -- the path is a lot wider in English than in Chinese, so take the width from the string
+    P.Width(hintsBtn, math.ceil(hintsBtn:GetFontString():GetStringWidth()) + 12)
+    hintsBtn:SetScript("OnClick", function()
+        F.ShowUtilitiesTab()
+        F.ShowClickCastingHintsTab()
+    end)
+
     profileDropdown = Cell.CreateDropdown(profilePane, 412)
     profileDropdown:SetPoint("TOPLEFT", profilePane, "TOPLEFT", 5, -27)
 

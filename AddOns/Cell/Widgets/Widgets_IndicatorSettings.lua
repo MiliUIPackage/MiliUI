@@ -7196,7 +7196,6 @@ local builders = {
     ["glowOptions"] = CreateSetting_Glow,
     ["targetedSpellsGlow"] = CreateSetting_Glow,
     ["texture"] = CreateSetting_Texture,
-    ["builtInAoEHealings"] = CreateSetting_BuiltIns,
     ["builtInDefensives"] = CreateSetting_BuiltIns,
     ["builtInExternals"] = CreateSetting_BuiltIns,
     ["builtInOffensives"] = CreateSetting_BuiltIns,
@@ -7257,7 +7256,7 @@ function Cell.CreateIndicatorSettings(parent, settingsTable)
         elseif string.find(setting, "^checkbutton") then
             tinsert(widgetsTable, CreateSetting_CheckButton(parent))
         elseif setting == "auras" or setting == "debuffBlacklist" or setting == "dispelBlacklist" or setting == "targetedSpellsList"
-        or setting == "customAoEHealings" or setting == "customDefensives" or setting == "customExternals"
+        or setting == "customDefensives" or setting == "customExternals"
         or setting == "customOffensives" or setting == "customCrowdControls" then
             tinsert(widgetsTable, CreateSetting_Auras(parent, 1))
         elseif setting == "auras2" or setting == "bigDebuffs" then

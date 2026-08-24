@@ -99,9 +99,6 @@ local function CreateIndicatorsExportFrame()
 
             -- data.related
             local name = CellDB["layouts"][fromLayout]["indicators"][index]["indicatorName"]
-            if name == "aoeHealing" then
-                data["related"]["aoeHealings"] = CellDB["aoeHealings"]
-            end
             if name == "defensiveCooldowns" or name == "allCooldowns" then
                 data["related"]["defensives"] = CellDB["defensives"]
             end

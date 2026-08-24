@@ -97,3 +97,24 @@ bar:GetStatusBarTexture():SetVertexColor(r, g, b, a)   -- 貼圖層的 setter，
 MiliUI_UnitFrames 的血條、能量條、預估條一開始就是這樣寫的；2026-08-18 施法條加「職業色
 填充」時，因為職業色可能是秘密分量，也一併收斂成同一支 `SetBarColor`。
 明文全域色（打斷紅、淡出色）留用原本的 setter 沒差，但統一走一支比較不會忘。
+
+## 分支搬進引擎：一個區間一條曲線（2026-08-24，Cell 血量門檻）
+
+想要「在 N 個區間裡挑一個顯示」但判斷值是秘密的（血量百分比）：**不要挑，全部畫出來，
+再用曲線關掉不該亮的**。
+
+- 每個區間一個貼圖，位置/顏色是靜態的（門檻百分比 × 血條寬），啟動時就擺好；
+- 每個貼圖配一條曲線：區間內 = 1、區間外 = 0（用 `AddPoint(下界-eps, 0)` /
+  `AddPoint(下界, 1)` 做出方波）；
+- 每次更新 `tex:SetAlpha(calc:EvaluateCurrentHealthPercent(該區間的曲線))`。
+  alpha 吃秘密值，所以引擎自己挑，Lua 從頭到尾沒有比較過任何東西。
+
+⚠ **區間不是「小於某條線」**：Cell 舊邏輯是「第一條**高於**目前血量的門檻」，
+所以門檻 i 的區間是 `[t(i-1), t(i))`，t(0)=0。做成獨立的「血量 < t(i)」會讓
+目前血量以上的門檻全部同時亮。
+
+⚠ **血條寬度要進快取簽章**：版面還沒定位時 `GetWidth()` 是 0，用簽章快取住那一刻
+等於把所有線釘在 offset 0，之後永遠不會重建。
+
+實作在 `Cell/Indicators/Built-in.lua` 的 `CheckThresholdMidnight`
+（同檔的 `CELL_FADE_OUT_HEALTH_PERCENT` 是同一招的單門檻版）。

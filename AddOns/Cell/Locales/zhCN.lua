@@ -209,6 +209,9 @@ L["Bleed"] = "流血"
 -- click-castings
 -------------------------------------------------
 L["Click-Castings"] = "点击施法"
+L["Click-Casting Hints"] = "鼠标施法提示"
+L["CLICK_CASTING_HINTS_TIPS"] = "把鼠标点击施法里设置的法术排成一列，标上快捷键并监控冷却，解锁后可以自由拖动"
+L["CLICK_CASTING_HINTS_JUMP_TIPS"] = "在这里设置鼠标施法提示：它会把你所有的鼠标施法快捷排成一列，标上按键并监控冷却"
 L["Profiles"] = "配置"
 L["Use common profile"] = "使用通用配置"
 L["Use separate profile for each spec"] = "为每个专精使用独立配置"

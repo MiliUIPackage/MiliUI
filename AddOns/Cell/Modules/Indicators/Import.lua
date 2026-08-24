@@ -92,8 +92,6 @@ local function CreateIndicatorsImportFrame()
                     Cell.vars.debuffBlacklist = F.ConvertTable(CellDB[k])
                 elseif k == "bigDebuffs" then
                     Cell.vars.bigDebuffs = F.ConvertTable(CellDB[k])
-                elseif k == "aoeHealings" then
-                    I.UpdateAoEHealings(CellDB[k])
                 elseif k == "defensives" then
                     I.UpdateDefensives(CellDB[k])
                 elseif k == "externals" then

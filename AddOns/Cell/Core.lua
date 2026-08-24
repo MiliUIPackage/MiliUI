@@ -519,8 +519,6 @@ function eventFrame:ADDON_LOADED(arg1)
             I.ResetDebuffTypeColor()
         end
 
-        -- aoeHealings ----------------------------------------------------------------------------
-        if type(CellDB["aoeHealings"]) ~= "table" then CellDB["aoeHealings"] = {["disabled"]={}, ["custom"]={}} end
 
         -- defensives/externals -------------------------------------------------------------------
         if type(CellDB["defensives"]) ~= "table" then CellDB["defensives"] = {["disabled"]={}, ["custom"]={}} end
@@ -898,7 +896,6 @@ function eventFrame:PLAYER_LOGIN()
     -- update CLEU health
     Cell.Fire("UpdateCLEU")
     -- update builtIns and customs
-    I.UpdateAoEHealings(CellDB["aoeHealings"])
     I.UpdateDefensives(CellDB["defensives"])
     I.UpdateExternals(CellDB["externals"])
     I.UpdateOffensives(CellDB["offensives"])

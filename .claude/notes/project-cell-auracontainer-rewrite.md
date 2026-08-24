@@ -150,3 +150,24 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
 實作過程走過：獨立插件 `MiliUI_CellAuraBridge` → `MiliUI/Fix/Cell_AuraContainer.lua` → Cell 內建 `RaidDebuffContainer.lua`（RDC）+ 平行的 `AuraContainerBridge.lua`（pull 模式）→ 2026-08-11 全部收斂成 ACC + AD（push 模式，−1051 行）。中間版本的檔名（`RaidDebuffContainer.lua`、`Cell_AuraContainer.lua`）與三種 iconStyle **都不存在了**，舊對話/舊筆記提到它們時以本檔為準；細節在 git 歷史（2026-08-10 ~ 08-12 的 `fix: Cell` 系列）。
 
 相關：[[wow-121-aura-containers]]、[[project-121-addon-migration]]、[[wow-cell-fork-comm]]
+
+## 移除一個內建指示物的正確做法（2026-08-24，AoE 治療）
+
+`Cell.defaults.indicatorIndices` 的數字**就是** `layout["indicators"]` 的陣列位置，
+所以刪掉中間一個會把後面每一個都往前推。安全的順序：
+
+1. `Defaults/Layout_Defaults.lua`：刪陣列裡那筆、把後面的 `-- N` 註解與 indicatorIndices
+   一起重編（我是直接照陣列順序重生成 indicatorIndices，避免手抄錯），`Cell.defaults.builtIns` 減一。
+2. **靠 `Revise.lua` 的驗證迴圈自己收尾**：它會把玩家存檔裡的內建指示物**按名字**重排到
+   新的 index（`toValidate[name]` 查不到的就直接丟掉、缺的補預設），所以玩家的設定不會被洗掉。
+   ⚠ 但那段被 `if CellDB["revise"] ~= Cell.version` 包著，而 Cell.version 來自 TOC `## Version`
+   ——那是釋出訊號、由使用者決定何時 bump（見 [[feedback-no-cell-version-bump]]），不能當作會跑。
+3. 所以要補一段**一次性旗標**遷移（`CellDB["miliuiAoEHealingRemoved"]`，仿 `miliuiAnimationStyleSplit`）
+   把存檔裡那筆 `tremove` 掉。**沒做的下場**：`b.indicators["aoeHealing"]` 是 nil →
+   `I.CreateIndicator` 拿到 `type == "built-in"` 回 nil → `indicator.configs = t` 索引 nil 直接炸框架。
+4. 掃乾淨這幾處：`Cell.toc` 檔案列表、`RaidFrames/UnitButton.lua`（Create/Enable 呼叫與
+   `ResetIndicators` 的 elseif）、`Core.lua`（DB 預設值＋初始化呼叫）、
+   `Defaults/Indicator_DefaultSpells.lua`（法術表與 I.Get/Update/Is*）、
+   `Modules/Indicators/Indicators.lua`（三份設定列表＋兩個 currentSetting 分支）、
+   `Modules/Indicators/{Export,Import}.lua`、`Modules/About/ImportExport.lua`、
+   `Widgets/Widgets_IndicatorSettings.lua`（setting → 建構函式的對應表）。語系字串留著無害。
