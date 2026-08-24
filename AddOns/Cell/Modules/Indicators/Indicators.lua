@@ -139,10 +139,13 @@ local BUFF_RING_COLOR = {0, 0.55, 0.15} -- keep in sync with AuraDisplay's BUFF_
 
 --! ⚠ the parameter is debuffType, NOT `type`: it used to shadow the Lua builtin, which
 --! made every type() check inside this function silently impossible.
+--! `icon` may be a function: aura indicators resolve their preview art from the spell list
+--! they actually watch, and that list can change while this pane is open.
 local function SetOnUpdate(indicator, debuffType, icon, stack, extra, ringColor)
     indicator.preview = indicator.preview or CreateFrame("Frame", nil, indicator)
     local function doPreview()
-        indicator:SetCooldown(GetTime(), 13, debuffType, icon, stack or 0, false, extra)
+        local tex = type(icon) == "function" and icon() or icon
+        indicator:SetCooldown(GetTime(), 13, debuffType, tex, stack or 0, false, extra)
 
         --! 12.1 cannot tell "cast by me" from "cast by someone else" (the source is
         --! secret), so the container paints every buff ring the same green. The preview
@@ -174,6 +177,45 @@ local function SetOnUpdate(indicator, debuffType, icon, stack, extra, ringColor)
         indicator.preview.elapsedTime = 0
         doPreview()
     end)
+end
+
+--! Preview art for a custom AURA indicator: sample from the spell list the indicator
+--! actually watches instead of drawing a row of red question marks -- five random entries
+--! say "this is my Healers row" at a glance, five question marks say nothing.
+--!
+--! ⚠ Re-sampled only when the LIST changes (cheap signature), not every preview cycle:
+--! icons reshuffling every 13s while the player is dragging the row around reads as a bug.
+--! Unresolvable ids are dropped (a spell from another expansion still sits in plenty of
+--! shared lists), and a list shorter than the row cycles rather than falling back to "?" --
+--! the preview is about layout, and a gap at the end looks like a broken slot.
+local function PreviewIconSampler(cfgs, count)
+    local state = {}
+    return function(index)
+        local auras = cfgs and cfgs["auras"]
+        if type(auras) ~= "table" or #auras == 0 then return 134400 end
+
+        local sig = #auras .. ":" .. tostring(auras[1]) .. ":" .. tostring(auras[#auras])
+        if state.sig ~= sig then
+            state.sig = sig
+            state.icons = {}
+
+            local pool = {}
+            for _, id in ipairs(auras) do
+                local _, icon = F.GetSpellInfo(id)
+                if icon then tinsert(pool, icon) end
+            end
+            if #pool == 0 then return 134400 end
+
+            for i = #pool, 2, -1 do -- Fisher-Yates over a copy; the list itself is untouched
+                local j = math.random(i)
+                pool[i], pool[j] = pool[j], pool[i]
+            end
+            for i = 1, count do
+                state.icons[i] = pool[(i - 1) % #pool + 1]
+            end
+        end
+        return state.icons[index] or 134400
+    end
 end
 
 -- init preview button indicator animation
@@ -605,8 +647,9 @@ local function InitIndicator(indicatorName)
         if indicator.indicatorType == "icons" then
             -- pool-driven: buff icon indicators are AuraContainer-backed and their legacy
             -- pool is discarded on attach, so this loop no-ops for them
+            local sample = PreviewIconSampler(cfgs, #indicator)
             for i = 1, #indicator do
-                SetOnUpdate(indicator[i], nil, 134400, i, nil, ringColor)
+                SetOnUpdate(indicator[i], nil, function() return sample(i) end, i, nil, ringColor)
             end
         elseif indicator.indicatorType == "bars" or indicator.indicatorType == "blocks" then
             local colors = {1, 0.26667, 0.4}
@@ -651,6 +694,9 @@ local function InitIndicator(indicatorName)
             end
             local color = {1, 0.26667, 0.4}
             SetOnUpdate(indicator, nil, 134400, 0, color)
+        elseif cfgs and cfgs["type"] == "icon" then
+            local sample = PreviewIconSampler(cfgs, 1)
+            SetOnUpdate(indicator, nil, function() return sample(1) end, 5, nil, ringColor)
         else
             SetOnUpdate(indicator, nil, 134400, 5, nil, ringColor)
         end
@@ -1561,10 +1607,13 @@ local function CreateListPane()
     renameBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\rename", {16, 16}, {"CENTER", 0, 0})
     renameBtn:SetEnabled(false)
     renameBtn:SetScript("OnClick", function()
-        local name = currentLayoutTable["indicators"][selected]["name"]
+        local t = currentLayoutTable["indicators"][selected]
+        local name = I.GetIndicatorName(t)
         local popup = Cell.CreateConfirmPopup(indicatorsTab, 200, L["Rename indicator"].."\n"..name, function(self)
             local newName = strtrim(self.editBox:GetText())
             currentLayoutTable["indicators"][selected]["name"] = newName
+            --! from here the name is the player's, so it stops following the locale table
+            currentLayoutTable["indicators"][selected]["nameKey"] = nil
             listButtons[selected]:SetText(newName)
         end, nil, true, true)
         popup:SetPoint("TOPLEFT", 117, -187)
@@ -1576,7 +1625,7 @@ local function CreateListPane()
     deleteBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\trash", {16, 16}, {"CENTER", 0, 0})
     deleteBtn:SetEnabled(false)
     deleteBtn:SetScript("OnClick", function()
-        local name = currentLayoutTable["indicators"][selected]["name"]
+        local name = I.GetIndicatorName(currentLayoutTable["indicators"][selected])
         local indicatorName = currentLayoutTable["indicators"][selected]["indicatorName"]
         local auraType = currentLayoutTable["indicators"][selected]["auraType"]
 
@@ -2301,14 +2350,14 @@ LoadIndicatorList = function()
 
         if t["type"] == "built-in" then
             b.isBuiltIn = true
-            b:SetText(L[t["name"]])
+            b:SetText(I.GetIndicatorName(t))
             b:GetFontString():ClearAllPoints()
             b:GetFontString():SetPoint("LEFT", 5, 0)
             b:GetFontString():SetPoint("RIGHT", -5, 0)
             b.typeIcon:Hide()
         else
             b.isBuiltIn = false
-            b:SetText(t["name"])
+            b:SetText(I.GetIndicatorName(t))
             b:GetFontString():ClearAllPoints()
             b:GetFontString():SetPoint("LEFT", 5, 0)
             b:GetFontString():SetPoint("RIGHT", b.typeIcon, "LEFT", -2, 0)

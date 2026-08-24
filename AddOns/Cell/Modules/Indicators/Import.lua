@@ -181,9 +181,9 @@ local function CreateIndicatorsImportFrame()
                                 local b
                                 if t["type"] == "built-in" then
                                     local color = Cell.defaults.indicatorIndices[t.indicatorName] and "" or "|cff777777"
-                                    b = Cell.CreateButton(listFrame.scrollFrame.content, color..L[t["name"]], "transparent-accent", {20, 20})
+                                    b = Cell.CreateButton(listFrame.scrollFrame.content, color..I.GetIndicatorName(t), "transparent-accent", {20, 20})
                                 else
-                                    b = Cell.CreateButton(listFrame.scrollFrame.content, t["name"], "transparent-accent", {20, 20})
+                                    b = Cell.CreateButton(listFrame.scrollFrame.content, I.GetIndicatorName(t), "transparent-accent", {20, 20})
                                     b.typeIcon = b:CreateTexture(nil, "ARTWORK")
                                     b.typeIcon:SetPoint("RIGHT", -2, 0)
                                     b.typeIcon:SetSize(16, 16)

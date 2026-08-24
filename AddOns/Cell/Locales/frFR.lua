@@ -323,6 +323,7 @@ L["Health Bar"] = "Barre de vie"
 --[[ L["Health Text"] = "Health Text"--]]
 --[[Translation missing --]]
 --[[ L["Health Thresholds"] = "Health Thresholds"--]]
+L["Healers"] = "Soigneurs"
 L["Height"] = "Hauteur"
 L["Hide"] = "Cacher"
 L["Hide Blizzard Frames"] = "Masquer les cadres Blizzard"
@@ -687,6 +688,7 @@ L["Show pets in a separate frame"] = "Afficher les familiers dans un cadre sépa
 L["Show Raid"] = "Afficher le raid"
 --[[Translation missing --]]
 --[[ L["Show Raid Pets"] = "Show Raid Pets"--]]
+L["Show Spell Tooltip"] = "Afficher l'infobulle du sort"
 L["Show Solo"] = "Afficher en solo"
 L["Show Solo Pet"] = "Afficher le familier en solo"
 L["Show units you care about more in a separate frame"] = "Afficher les unités prioritaires dans un cadre séparé"

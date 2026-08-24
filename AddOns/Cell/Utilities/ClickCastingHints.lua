@@ -38,7 +38,10 @@ Cell.defaults.clickCastingHints = {
     ["size"] = 30,
     ["perRow"] = 5,
     ["spacing"] = 2,
-    ["orientation"] = "left-to-right",
+    -- grows AWAY from the frames: the bar is parked on Cell's left and pinned by its
+    -- top-right corner (see myAnchor), so a left-to-right row would run at the raid frames
+    -- and only the far end would move when the icon count changes.
+    ["orientation"] = "right-to-left",
     ["position"] = {},
     -- magnet: with snap on, anchor holds an {x, y} offset from CellAnchorFrame and
     -- position is ignored. Snapped by default and parked to the left of the raid frames --
@@ -54,6 +57,9 @@ Cell.defaults.clickCastingHints = {
     -- offset of THAT corner from CellAnchorFrame's TOPLEFT. -13 keeps the shipped placement
     -- (the old TOPLEFT default was -139, which is where a 4-icon bar's right edge landed).
     ["anchor"] = {-13, -17},
+    -- mouse over an icon -> the spell's own tooltip. ⚠ The bar catches the mouse while this
+    -- is on (each icon does, not the whole strip), which is why it is a setting at all.
+    ["showTooltip"] = true,
     -- keybind label: master switch, then what each key is drawn as. An EMPTY string on a
     -- mouse button means "use the glyph"; anything else is used literally.
     ["showKeys"] = true,
@@ -488,6 +494,20 @@ local function CreateHintIcon()
     icon.keyText:SetShadowOffset(0, 0)
     -- anchored in ApplyKeyLabel, which knows the configured position
 
+    --! The spell's own tooltip, through Cell's tooltip frame (the same one the Quick Assist
+    --! spell pickers use) so it is skinned like the rest of the addon and carries the icon.
+    --! Mouse is enabled per ICON in Layout(), never on the strip: the strip's own mouse is
+    --! the mover's, and swallowing it here would make the bar undraggable.
+    icon:SetScript("OnEnter", function(self)
+        if not (self.spellId and CellSpellTooltip) then return end
+        CellSpellTooltip:SetOwner(self, "ANCHOR_TOP")
+        CellSpellTooltip:SetSpellByID(self.spellId, self.tex:GetTexture())
+        CellSpellTooltip:Show()
+    end)
+    icon:SetScript("OnLeave", function()
+        if CellSpellTooltip then CellSpellTooltip:Hide() end
+    end)
+
     function icon:UpdatePixelPerfect()
         P.Resize(icon)
         P.Repoint(icon)
@@ -644,6 +664,9 @@ Layout = function()
         P.Size(icon, size, size)
         P.ClearPoints(icon)
         P.Point(icon, point, hintsFrame, point, pos * stepX + line * lineX, pos * stepY + line * lineY)
+        --! ⚠ off while the mover is up, whatever the setting says: the drag lives on the
+        --! strip, and a mouse-enabled icon would eat the click that is supposed to move it.
+        icon:EnableMouse(db["showTooltip"] and not Cell.vars.showMover and true or false)
         ApplyKeyLabel(icon)
         ApplyDurationText(icon)
     end
@@ -782,7 +805,7 @@ Cell.RegisterCallback("UpdatePixelPerfect", "ClickCastingHints_UpdatePixelPerfec
 -------------------------------------------------
 local LCG = LibStub("LibCustomGlow-1.0")
 
-local cchPane, unlockBtn, enabledCB, snapCB, showKeysCB, sizeSlider, orientationDD,
+local cchPane, unlockBtn, enabledCB, snapCB, showKeysCB, showTooltipCB, sizeSlider, orientationDD,
     perLineSlider, spacingSlider, myAnchorDD
 local labelBoxes = {}   -- keyLabels entries, free text
 local valueBoxes = {}   -- plain numeric settings (offsets, threshold)
@@ -843,7 +866,7 @@ local function CreatePane()
 
     -- enabled --------------------------------------------------------------------------
     enabledCB = Cell.CreateCheckButton(cchPane, L["Click-Casting Hints"], function(checked)
-        Cell.SetEnabled(checked, snapCB, showKeysCB, sizeSlider, orientationDD, perLineSlider, spacingSlider, myAnchorDD)
+        Cell.SetEnabled(checked, snapCB, showKeysCB, showTooltipCB, sizeSlider, orientationDD, perLineSlider, spacingSlider, myAnchorDD)
         for _, eb in pairs(labelBoxes) do
             eb:SetEnabled(checked and CellDB["tools"]["clickCastingHints"]["showKeys"])
         end
@@ -876,6 +899,14 @@ local function CreatePane()
         Save("showKeys", checked)
     end, L["Show Keybind"], L["SHOW_KEYBIND_TIPS"])
     P.Point(showKeysCB, "TOPLEFT", snapCB, "BOTTOMLEFT", 0, -8)
+
+    -- spell tooltip ---------------------------------------------------------------------
+    showTooltipCB = Cell.CreateCheckButton(cchPane, L["Show Spell Tooltip"], function(checked)
+        Save("showTooltip", checked)
+    end, L["Show Spell Tooltip"], L["SHOW_SPELL_TOOLTIP_TIPS"])
+    --! second column rather than a fourth row: the sliders below are anchored to showKeysCB
+    --! with a fixed -55, so another row here would land on top of them.
+    P.Point(showTooltipCB, "TOPLEFT", showKeysCB, "TOPLEFT", 200, 0)
 
     -- size -----------------------------------------------------------------------------
     sizeSlider = Cell.CreateSlider(L["Size"], cchPane, 12, 64, 120, 1, function(value)
@@ -1087,6 +1118,7 @@ local function LoadDB()
     enabledCB:SetChecked(db["enabled"])
     snapCB:SetChecked(db["snap"])
     showKeysCB:SetChecked(db["showKeys"])
+    showTooltipCB:SetChecked(db["showTooltip"])
     for key, eb in pairs(labelBoxes) do
         eb:SetText(db["keyLabels"][key] or "")
         eb:SetEnabled(db["enabled"] and db["showKeys"])
@@ -1105,7 +1137,7 @@ local function LoadDB()
     UpdatePerLineLabel(db["orientation"])
     perLineSlider:SetValue(db["perRow"])
     spacingSlider:SetValue(db["spacing"])
-    Cell.SetEnabled(db["enabled"], snapCB, showKeysCB, sizeSlider, orientationDD, perLineSlider, spacingSlider, myAnchorDD)
+    Cell.SetEnabled(db["enabled"], snapCB, showKeysCB, showTooltipCB, sizeSlider, orientationDD, perLineSlider, spacingSlider, myAnchorDD)
 end
 
 --! Everything except `enabled`. The master switch is not part of "how it looks", and a

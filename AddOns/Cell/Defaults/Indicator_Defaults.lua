@@ -1,8 +1,25 @@
 local _, Cell = ...
+local L = Cell.L
 ---@type CellFuncs
 local F = Cell.funcs
 ---@class CellUnitButtonFuncs
 local I = Cell.iFuncs
+
+--! The name a player SEES.
+--!
+--! A built-in is localized by its name. A CUSTOM indicator's name is free text and must never
+--! go through the locale table -- someone who names a row "Size" would find it translated out
+--! from under them. The exception is a row CELL created for them (the Healers row): those
+--! carry a nameKey, and only that key is localized. Storing the key instead of the localized
+--! string is what makes it real i18n: the name follows the client language, and a profile
+--! exported from a zhTW client shows up in English on an enUS one instead of dragging Chinese
+--! along. Renaming clears the key -- from that moment the name belongs to the player.
+function I.GetIndicatorName(t)
+    if type(t) ~= "table" then return "" end
+    if t["type"] == "built-in" then return L[t["name"]] end
+    if t["nameKey"] then return L[t["nameKey"]] end
+    return t["name"] or ""
+end
 
 -------------------------------------------------
 -- custom indicator

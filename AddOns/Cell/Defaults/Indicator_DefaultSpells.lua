@@ -1003,7 +1003,12 @@ function F.FirstRun()
         end
 
         tinsert(currentLayoutTable["indicators"], {
+            --! nameKey, not a translated name: the string in `name` is the fallback, and
+            --! I.GetIndicatorName localizes the KEY at display time. That keeps the row in
+            --! the player's own language after a client language change, and keeps an
+            --! exported profile from carrying one language into another client.
             ["name"] = "Healers",
+            ["nameKey"] = "Healers",
             ["indicatorName"] = indicatorName,
             ["type"] = "icons",
             ["enabled"] = true,

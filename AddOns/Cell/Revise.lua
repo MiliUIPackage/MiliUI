@@ -3806,6 +3806,28 @@ function F.Revise()
         end
     end
 
+    --! fix from MiliUI: the "Healers" row Cell offers to create is localized now, and it is
+    --! localized through a KEY (see I.GetIndicatorName) rather than by writing a translated
+    --! string into the layout -- a stored translation would freeze the row in whatever
+    --! language the client happened to be, and an exported profile would carry that language
+    --! into everyone else's UI. Tag the rows that already exist with the same key.
+    --!
+    --! ⚠ Only the untouched default string is tagged. A name the player typed is theirs, and
+    --! custom names are free text: matching anything looser would relabel real user data.
+    --! ⚠ One-shot marker, not dbRevision: that gate needs the TOC "## Version" bumped, and
+    --! that number is a release signal the user owns.
+    if not CellDB["miliuiHealersNameKey"] then
+        CellDB["miliuiHealersNameKey"] = true
+        for _, layout in pairs(CellDB["layouts"] or {}) do
+            for _, t in pairs(layout["indicators"] or {}) do
+                if type(t) == "table" and t["type"] ~= "built-in" and t["name"] == "Healers"
+                    and t["nameKey"] == nil then
+                    t["nameKey"] = "Healers"
+                end
+            end
+        end
+    end
+
     CellDB["revise"] = Cell.version
     if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version
