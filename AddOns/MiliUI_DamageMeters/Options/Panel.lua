@@ -32,6 +32,7 @@ local TABS = {
     { id = "text",    label = L["Text"] },
     { id = "window",  label = L["Window"] },
     { id = "each",    label = L["Per window"] },
+    { id = "share",   label = L["Profile"] },
     { id = "about",   label = L["About"] },
 }
 
@@ -69,12 +70,14 @@ Options.FORM_W = FORM_W
 local function SavePosition()
     local cx, cy = UIParent:GetCenter()
     local fx, fy = panel:GetCenter()
-    ns.db.optionsWindow.x = math.floor(fx - cx + 0.5)
-    ns.db.optionsWindow.y = math.floor(fy - cy + 0.5)
+    -- 視窗位置是帳號層的，不跟設定檔走
+    local w = ns.DB.Account().optionsWindow
+    w.x = math.floor(fx - cx + 0.5)
+    w.y = math.floor(fy - cy + 0.5)
 end
 
 local function ApplyPosition()
-    local w = ns.db.optionsWindow
+    local w = ns.DB.Account().optionsWindow
     local maxX = (GetScreenWidth() or 1920) / 2
     local maxY = (GetScreenHeight() or 1080) / 2
     if type(w.x) ~= "number" or math.abs(w.x) > maxX then w.x = 0 end

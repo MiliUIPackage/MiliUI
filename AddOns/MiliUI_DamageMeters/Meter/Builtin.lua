@@ -99,9 +99,13 @@ function B.Enforce()
 
     if not SetEnabled(false) then return end
 
-    -- 記下「我們動過，而且動之前它是開著的」→ 選項關掉時要還回去
-    local first = not db.builtinRestore
-    db.builtinRestore = true
+    -- 記下「我們動過，而且動之前它是開著的」→ 選項關掉時要還回去。
+    -- ⚠ 存帳號層（DB.Account）而不是設定檔裡：這是「這台機器欠著一個 CVar 還原」
+    -- 的狀態，不是玩家調的設定。放進設定檔的話換一份設定檔就忘了要還，
+    -- 而且會跟著匯出字串跑到別人那裡去。
+    local acc = ns.DB.Account()
+    local first = not acc.builtinRestore
+    acc.builtinRestore = true
 
     -- 只在**第一次**真的關掉時講一句，免得玩家莫名其妙發現內建統計不見了。
     -- 之後每次登入都會靜靜地關，不再囉唆。
@@ -117,9 +121,9 @@ end
 -- 沒動過就還原等於替玩家開了一個他本來就沒開的東西。
 ------------------------------------------------------------
 function B.Release()
-    local db = ns.db
-    if not (db and db.builtinRestore) then return end
-    db.builtinRestore = false
+    local acc = ns.DB.Account()
+    if not (acc and acc.builtinRestore) then return end
+    acc.builtinRestore = false
     SetEnabled(true)
 end
 

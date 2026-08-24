@@ -70,7 +70,7 @@ local function Init()
             if spec.root == "db" then
                 if spec.key == "windowCount" then
                     ns.db.windowCount = math.floor(v + 0.5)
-                    ns.DB.Init()          -- 補齊新視窗的預設值
+                    ns.DB.EnsureWindows() -- 補齊新視窗的預設值
                     ns.Windows.Rebuild()
                     return
                 end

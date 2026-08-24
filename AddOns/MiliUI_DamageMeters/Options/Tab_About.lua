@@ -30,13 +30,6 @@ local function Init()
         "",
         L["Author: Mili (MiliUI package)"],
     }, "\n"))
-
-    local resetBtn = W.CreateButton(tab, L["Restore default settings"], "red", 200, 24)
-    resetBtn:SetPoint("TOPLEFT", 24, -280)
-    local popup = W.CreateConfirmPopup(ns.Options.panel, 340,
-        L["Reset every setting of this addon and reload the interface?"],
-        function() ns.DB.ResetAll() end)
-    resetBtn:SetScript("OnClick", function() popup:Show() end)
 end
 
 ns.RegisterCallback("ShowOptionsTab", "aboutTab", function(id)

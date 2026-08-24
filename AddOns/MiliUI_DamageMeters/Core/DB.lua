@@ -187,7 +187,7 @@ end
 ------------------------------------------------------------
 -- 存取器
 --
--- 一律走函式現查，不快取設定表：換 profile／還原預設值時就不必到處失效，
+-- 一律走函式現查，不快取設定表：換設定檔／還原預設值時就不必到處失效，
 -- 而且成本只是一次 table 索引。
 ------------------------------------------------------------
 function DB.Style()
@@ -204,13 +204,189 @@ function DB.Win(idx)
     return db.windows[idx]
 end
 
+local function ClampCount(n)
+    n = tonumber(n) or 1
+    if n < 1 then return 1 end
+    if n > DB.MAX_WINDOWS then return DB.MAX_WINDOWS end
+    return math.floor(n)
+end
+
 function DB.WindowCount()
-    local db = ns.db
-    if not db then return 1 end
-    local n = tonumber(db.windowCount) or 1
-    if n < 1 then n = 1 end
-    if n > DB.MAX_WINDOWS then n = DB.MAX_WINDOWS end
-    return n
+    return ClampCount(ns.db and ns.db.windowCount)
+end
+
+------------------------------------------------------------
+-- 補齊視窗設定：至少一個，而且每一個都補齊欄位（玩家可能是從舊版升上來的）
+--
+-- ⚠ 讀的是**傳進來的那份設定檔**，不是 ns.db。DB.Activate 在 ns.db 指過去之前
+-- 就要算視窗數，讀 ns.db 的話登入那次永遠拿到 nil ⇒ 視窗數每次登入都被壓回 1，
+-- 多視窗設定活不過一次重載。
+------------------------------------------------------------
+function DB.EnsureWindows(profile)
+    local p = profile or ns.db
+    if not p then return 1 end
+    p.windows = p.windows or {}
+    local count = ClampCount(p.windowCount)
+    p.windowCount = count
+    for i = 1, count do
+        if type(p.windows[i]) ~= "table" then
+            p.windows[i] = DB.NewWindow(i)
+        else
+            MergeDefaults(p.windows[i], DB.NewWindow(i))
+        end
+    end
+    -- 超出數量的殘留設定留著不刪：玩家把視窗數調回去時位置還在
+    return count
+end
+
+------------------------------------------------------------
+-- 設定檔
+--
+-- SV 結構：
+--   MiliUI_DamageMeters_DB = {
+--       schemaVersion, optionsWindow, builtinRestore, charClasses,  -- 帳號層
+--       profiles    = { ["Default"] = { style=, windowCount=, windows= } },
+--       profileKeys = { ["米利 - 世界之樹"] = "Default" },            -- 每角色指標
+--   }
+--
+-- ns.db **就是那份設定檔本身**，不是另外組一張扁平表。這樣 ns.db.style /
+-- ns.db.windows / ns.db.windowCount 的既有讀寫點全部不用改，而且純量寫入
+-- （ns.db.windowCount = 3）也真的會落進 SV。
+-- 帳號層的東西改走 DB.Account()：視窗位置（Options/Panel.lua）與「欠著一個
+-- CVar 還原」的旗標（Meter/Builtin.lua）—— 後者是這台機器的狀態，
+-- 絕對不能跟著設定檔或匯出字串跑。
+--
+-- 換設定檔一律 ReloadUI：每個統計視窗的框架、Rows 的池化列、Options 的
+-- refresher 全都抓著舊表的參照，而換設定檔是罕見的刻意操作，重載最乾淨，
+-- 也跟既有的「匯入並重載」一致。
+------------------------------------------------------------
+-- ⚠ 這是存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上，
+-- 使用者會看到一份空白設定。顯示名稱由 Options 那邊翻（共用／角色專屬／自訂）。
+DB.DEFAULT_PROFILE = "Default"
+
+-- 「角色專屬」用保留前綴而不是另開一張表：這樣切換／刪除／匯出匯入全部共用
+-- 同一套邏輯，不用到處寫特例。
+local CHAR_PREFIX = "char:"
+
+-- 一份設定檔裝哪些鍵。沒列到的頂層鍵就是帳號層的。
+-- ⚠ 加新區塊時這裡要一起加，不然它會變成帳號層、切設定檔時不跟著換。
+-- windows 不在這裡：它的預設值是 nil（由 DB.EnsureWindows 生），
+-- 但**匯出匯入與深拷貝要帶著它走**，所以那幾支各自處理。
+local PROFILE_KEYS = { "style", "windowCount", "windows" }
+
+-- 一份全新設定檔。每次呼叫都是新表（BuildDefaults 自己就重建），
+-- 所以拿去塞進 profiles 不會跟別份共用子表。
+local function ProfileDefaults()
+    local d = BuildDefaults()
+    local out = {}
+    for _, k in ipairs(PROFILE_KEYS) do out[k] = d[k] end
+    return out
+end
+DB.ProfileDefaults = ProfileDefaults
+
+-- 帳號層（SV 根）。視窗位置、內建統計還原旗標、角色職業表住這裡。
+function DB.Account()
+    return MiliUI_DamageMeters_DB
+end
+
+local function CharKey()
+    return (UnitName("player") or "?") .. " - " .. (GetRealmName() or "?")
+end
+DB.CharKey = CharKey
+
+function DB.CharProfileKey()
+    return CHAR_PREFIX .. CharKey()
+end
+
+function DB.IsCharProfile(name)
+    return type(name) == "string" and name:sub(1, #CHAR_PREFIX) == CHAR_PREFIX
+end
+
+-- "char:米利 - 世界之樹" → "米利 - 世界之樹"（顯示層要用）
+function DB.CharProfileOwner(name)
+    if not DB.IsCharProfile(name) then return nil end
+    return name:sub(#CHAR_PREFIX + 1)
+end
+
+-- 那隻角色的職業（沒登入過就查不到，回 nil）
+function DB.CharClass(charKey)
+    local db = MiliUI_DamageMeters_DB
+    return db and db.charClasses and db.charClasses[charKey]
+end
+
+-- 深拷貝：兩份設定檔絕不能共用同一張子表
+local function DeepCopy(t)
+    local o = {}
+    for k, v in pairs(t) do o[k] = type(v) == "table" and DeepCopy(v) or v end
+    return o
+end
+
+-- 全部列出來，包含**別隻角色**的角色專屬——刻意的：想直接切去用別隻角色調好的
+-- 版面，或從他那份複製一份出來，都靠這個。
+function DB.ListProfiles()
+    local out = {}
+    for name in pairs(MiliUI_DamageMeters_DB.profiles or {}) do out[#out + 1] = name end
+    table.sort(out)
+    return out
+end
+
+------------------------------------------------------------
+-- 遷移
+------------------------------------------------------------
+-- 帳號層：style / windowCount / windows 原本住在 SV 最上層，具名設定檔上線後要
+-- 搬進「共用」那份。判準用**結構**而不是版本號：這支的 schemaVersion 還只是佔位，
+-- 而真正要問的問題就是「有沒有 profiles」。搬完把頂層那幾個鍵清掉，
+-- 不留兩份會漂掉的資料。builtinRestore 與 optionsWindow 不在名單裡，原地留著。
+local function MigrateAccount(db)
+    if db.profiles then return end
+    local moved
+    for _, k in ipairs(PROFILE_KEYS) do
+        if db[k] ~= nil then
+            moved = moved or {}
+            moved[k] = db[k]
+            db[k] = nil
+        end
+    end
+    if moved then
+        db.profiles = { [DB.DEFAULT_PROFILE] = moved }
+    end
+end
+
+-- 設定檔層：[版本號] = 把一份設定檔補到那個版本要做的事。
+-- 目前是空的（還沒發佈過需要遷移的預設值變更）。發佈之後改任何預設值都要在這裡
+-- 加一條並 bump ns.DB_VERSION——通則是「只動還等於舊預設值的欄位」（值閘），
+-- 使用者調過的不碰。
+--
+-- 為什麼跟帳號層拆開：**匯入字串**帶著自己的 schemaVersion，可能比目前舊。那一份
+-- 要補遷移，但不能把帳號層的版本號降下去——降了會讓遷移在所有設定檔上重跑一次。
+local PROFILE_MIGRATIONS = {}
+
+function DB.MigrateProfile(profile, fromVersion)
+    if type(profile) ~= "table" then return end
+    local from = tonumber(fromVersion) or 1
+    for v = from + 1, ns.DB_VERSION do
+        local step = PROFILE_MIGRATIONS[v]
+        if step then pcall(step, profile) end
+    end
+end
+
+------------------------------------------------------------
+-- 啟用一份設定檔
+--
+-- 補齊預設值 → 指給 ns.db → 記下名字。登入與換設定檔走同一支，兩條路不會漂掉。
+--
+-- ⚠ MergeDefaults 一定要在這裡跑，不能只在登入時對「目前這一份」跑：別份設定檔
+-- 可能是在某個鍵加進 BuildDefaults **之前**建立的，直接切過去會缺鍵。
+------------------------------------------------------------
+function DB.Activate(name)
+    local db = MiliUI_DamageMeters_DB
+    local p = db.profiles and db.profiles[name]
+    if not p then return nil end
+    MergeDefaults(p, ProfileDefaults())
+    DB.EnsureWindows(p)
+    ns.db = p
+    ns.profileName = name
+    return p
 end
 
 function DB.Init()
@@ -218,28 +394,115 @@ function DB.Init()
         MiliUI_DamageMeters_DB = {}
     end
     local db = MiliUI_DamageMeters_DB
-
-    MergeDefaults(db, BuildDefaults())
-
-    -- 至少一個視窗，而且每一個都補齊欄位（玩家可能是從舊版升上來的）
-    db.windows = db.windows or {}
-    local count = DB.WindowCount()
-    db.windowCount = count
-    for i = 1, count do
-        if type(db.windows[i]) ~= "table" then
-            db.windows[i] = DB.NewWindow(i)
-        else
-            MergeDefaults(db.windows[i], DB.NewWindow(i))
-        end
-    end
-    -- 超出數量的殘留設定留著不刪：玩家把視窗數調回去時位置還在
-
+    MigrateAccount(db)
+    -- 尚未發佈、沒有遷移鏈；schemaVersion 先佔位，發佈後改預設值要配遷移
     db.schemaVersion = ns.DB_VERSION
-    ns.db = db
-    return db
+
+    -- 帳號層預設值（設定視窗位置、內建統計還原旗標）
+    local defaults = BuildDefaults()
+    MergeDefaults(db, { optionsWindow = defaults.optionsWindow,
+                        builtinRestore = defaults.builtinRestore })
+
+    db.profiles = db.profiles or {}
+    db.profileKeys = db.profileKeys or {}
+    -- 角色 → 職業。設定檔清單要用職業色顯示「角色-伺服器」，而別隻角色的職業
+    -- 沒有 API 可查，只能靠每隻角色登入時自己記一筆。
+    -- ⚠ 存在帳號層而不是設定檔裡：設定檔會被深拷貝／重新灌種子，放進去會被帶錯。
+    db.charClasses = db.charClasses or {}
+    db.charClasses[CharKey()] = ns.playerClass
+
+    local key = CharKey()
+    local name = db.profileKeys[key]
+    if type(name) ~= "string" or not db.profiles[name] then
+        name = DB.DEFAULT_PROFILE
+        db.profileKeys[key] = name
+    end
+    db.profiles[name] = db.profiles[name] or {}
+    return DB.Activate(name)
 end
 
+------------------------------------------------------------
+-- 三種設定檔
+--   共用      key = "Default"，所有角色的預設，不給刪
+--   角色專屬  key = "char:<角色> - <伺服器>"，第一次選才建立，來源由彈窗問
+--   自訂      使用者自己命名的
+------------------------------------------------------------
+-- 寫入角色專屬那份。seed 只接受這三種，**沒有預設值**——來源一律由使用者在切換前
+-- 的選擇彈窗指定（見 Options/Tab_Share.lua），這裡不替他猜。
+--   "current"  目前正在用的那份（眼前看到的樣子）
+--   "shared"   共用那份
+--   "fresh"    全新預設值
+-- ⚠ 會覆蓋既有內容，呼叫端必須先問過。
+function DB.SeedCharProfile(seed)
+    local db = MiliUI_DamageMeters_DB
+    local key = DB.CharProfileKey()
+    if seed == "fresh" then
+        db.profiles[key] = ProfileDefaults()
+        return key
+    end
+    local src
+    if seed == "shared" then
+        src = db.profiles[DB.DEFAULT_PROFILE]
+    elseif seed == "current" then
+        src = db.profiles[ns.profileName]
+    end
+    if not src then return nil end
+    db.profiles[key] = DeepCopy(src)
+    return key
+end
+
+-- copyFrom = nil 代表從預設值建立
+function DB.CreateProfile(name, copyFrom)
+    name = type(name) == "string" and name:gsub("^%s+", ""):gsub("%s+$", "") or ""
+    if name == "" then return false, "empty" end
+    if DB.IsCharProfile(name) then return false, "reserved" end   -- char: 是保留前綴
+    local db = MiliUI_DamageMeters_DB
+    if db.profiles[name] then return false, "exists" end
+    if copyFrom then
+        local src = db.profiles[copyFrom]
+        if not src then return false, "nosource" end
+        db.profiles[name] = DeepCopy(src)
+    else
+        db.profiles[name] = ProfileDefaults()
+    end
+    return true
+end
+
+-- 刪掉指定那份，指著它的角色改回共用。共用本身不給刪。
+function DB.DeleteProfile(name)
+    local db = MiliUI_DamageMeters_DB
+    if name == DB.DEFAULT_PROFILE or not db.profiles[name] then return false end
+    db.profiles[name] = nil
+    -- 指著它的角色全部改回共用，不然下次登入會看到一份空白設定
+    for k, v in pairs(db.profileKeys) do
+        if v == name then db.profileKeys[k] = DB.DEFAULT_PROFILE end
+    end
+    return true
+end
+
+-- 換設定檔：寫下指標再重載。
+-- ⚠ profileKeys 一定要在 ReloadUI **之前**寫，重載之後就是靠它認得回來。
+function DB.SwitchProfile(name)
+    local db = MiliUI_DamageMeters_DB
+    if not (db.profiles and db.profiles[name]) then return false end
+    db.profileKeys[CharKey()] = name
+    if name == ns.profileName then return true end
+    ReloadUI()
+    return true
+end
+
+------------------------------------------------------------
+-- 恢復預設
+------------------------------------------------------------
+-- 目前這份設定檔全部恢復預設後重載。
+-- ⚠ 只動這一份，其他設定檔與帳號層（設定視窗位置、內建統計還原旗標）不碰——
+-- 有設定檔系統之後，「重置」把整個帳號炸掉太超過了。想從零開始就切到一份新的。
+-- ⚠ 這是**設定**的重置，跟 /mdm reset（清掉記錄的戰鬥分段）是兩件事。
 function DB.ResetAll()
-    MiliUI_DamageMeters_DB = nil
+    local db = MiliUI_DamageMeters_DB
+    local name = db and db.profileKeys and db.profileKeys[CharKey()]
+    if db and name and db.profiles then
+        db.profiles[name] = ProfileDefaults()
+    end
     ReloadUI()
 end
