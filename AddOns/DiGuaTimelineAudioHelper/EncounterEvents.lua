@@ -96,7 +96,7 @@ addonTable.EventSoundData = {
     [798] = { {"DuoKaiTouQian.ogg", 1} }, -- 反刍 (1296050)
     [899] = { {"ZhunBeiAOE.ogg", 1} }, -- 贪婪践踏 (1307894)
     -- [902] = { {".ogg", 1} }, -- 进食狂热 (1307765)
-    [901] = { {"TanKeDaiWei.ogg", 0} }, -- 鲜肉 (1307921)
+    [901] = { {"TanKeDaiWei.ogg", 0, {TANK = true}} }, -- 鲜肉 (1307921)
 
     -- 扭缠盘蛇
     [813] = { {"ZhunBeiAOE.ogg", 1} }, -- 同步毒液 (1299154)
@@ -105,12 +105,12 @@ addonTable.EventSoundData = {
     [816] = { {"ZhunBeiLaXian.ogg", 1} }, -- 濒死喘息 (1299053)
     -- [817] = { {"XiaoGuaiDingNi.ogg", 0} }, -- 怨毒狩猎 (1300503)
     [818] = { {"JieDuanZhuanHuan.ogg", 1} }, -- 同化 (1300686)
-    [938] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 准备毒素 (1310357)
+    -- [938] = { {"YiDaDuan.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 剧毒弹幕 (1310357)
     [939] = { {"DaDuanXiaoGuai.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 剧毒萎缩 (1310547)
 
     -- 祖尔加
     [821] = { {"ZhuYiXiaoCeng.ogg", 1} }, -- 切骨者 (1301413)
-    -- [822] = { {"ZhuYiDangXian.ogg", 1} }, -- 毒牙仪式 (1300876)
+    [822] = { {"ZhuYiDangXian.ogg", 1} }, -- 毒牙仪式 (1300876)
     [823] = { {"ZhuYiTouQian.ogg", 1} }, -- 碎斧 (1301111)
     [824] = { {"WuMiaoHouTanKeJianCiSanErYi.ogg", 2, {TANK = true, HEALER = true}}, {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 砍倒 (1301350)
     
@@ -182,7 +182,7 @@ addonTable.EventSoundData = {
     [832] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 剑刃连击 (268586)
     [833] = { {"ZhunBeiAOE.ogg", 1} }, -- 镀金毁灭 (1303267)
     [834] = { {"WuMiaoDuoKaiTouQian.ogg", 2} }, -- 狩猎跃击 (269230)
-    [835] = { {"DaDuanDaGuai.ogg", 1} }, -- 致命咆哮 (269369)
+    [835] = { {"DaDuanDaGuai.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 致命咆哮 (269369)
     [836] = { {"BaMaFenSan.ogg", 0} }, -- 震地之跃 (1303326)
     [837] = { {"TanKeLiuXue.ogg", 1, {TANK = true, HEALER = true}} }, -- 野蛮槌击 (1303481)
 

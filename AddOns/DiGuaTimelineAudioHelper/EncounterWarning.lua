@@ -6,6 +6,8 @@ local addonName, addonTable = ...
 -- 独立事件分发控制中心（直接平铺业务逻辑）
 -- ------------------------------------------
 local WarningFrame = CreateFrame("Frame")
+addonTable.JuDuWeiSuo = false
+addonTable.JuDuWeiSuoCounter = 0
 WarningFrame:RegisterEvent("ENCOUNTER_WARNING")
 WarningFrame:RegisterEvent("RAID_BOSS_EMOTE")
 
@@ -86,7 +88,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     then
         addonTable.CustomEncounterBar(135857, 50, "强风")
         PlaySoundFile(MEDIA_PATH .. "KuaiZhaoYanTi.ogg", DiGuaTimelineAudioHelper.audioChannel)
-        C_Timer.After(13, function()
+        C_Timer.After(14, function()
             if currentEncounterID == 0 then
                 PlaySoundFile(MEDIA_PATH .. "ChuiFengJieShu.ogg", DiGuaTimelineAudioHelper.audioChannel)
             end
@@ -99,6 +101,18 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
             addonTable.StartCircleTimerBySeconds(4.9)
         return
     end
+
+    -- 技能：剧毒萎缩
+    -- if currentEncounterID == 3457 and severity == 1 then
+    --     print("[剧毒萎缩] severity==1 命中 → 打开开关，重置计数")
+    --     addonTable.JuDuWeiSuo = true
+    --     addonTable.JuDuWeiSuoCounter = 0
+    --     C_Timer.After(10, function()
+    --         print("[剧毒萎缩] 10秒超时 → 关闭开关")
+    --         addonTable.JuDuWeiSuo = false
+    --     end)
+    --     return
+    -- end
 
     -- 技能：濒死喘息
     if currentEncounterID == 3457 and severity == 2 then 
@@ -238,8 +252,14 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
                     PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
                 end
             end
+            -- 跟 SafePlay 一样：只有仍在 2140 战斗中才显示圆环
+            local function SafeCircle()
+                if addonTable.GetEncounterID() == 2140 then
+                    addonTable.StartCircleTimerBySeconds(3.9, true)
+                end
+            end
             C_Timer.After(6.4, function()
-                addonTable.StartCircleTimerBySeconds(3.9, true)
+                SafeCircle()
                 SafePlay("ZhunBeiChenMo.ogg")
             end)
             C_Timer.After(7.4, function()
@@ -252,6 +272,22 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
                 SafePlay("DaoShu1.ogg")
             end)
             C_Timer.After(10.4, function()
+                SafePlay("AnQuan.ogg")
+            end)
+            C_Timer.After(15.4, function()
+                SafeCircle()
+                SafePlay("ZhunBeiChenMo.ogg")
+            end)
+            C_Timer.After(16.4, function()
+                SafePlay("DaoShu3.ogg")
+            end)
+            C_Timer.After(17.4, function()
+                SafePlay("DaoShu2.ogg")
+            end)
+            C_Timer.After(18.4, function()
+                SafePlay("DaoShu1.ogg")
+            end)
+            C_Timer.After(19.4, function()
                 SafePlay("AnQuan.ogg")
             end)
         end

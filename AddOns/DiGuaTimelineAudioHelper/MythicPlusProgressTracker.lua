@@ -3,7 +3,7 @@ local addonName, addonTable = ...
 
 addonTable.XuChuFaShi = false
 addonTable.LuMangJianDuZhe = false
-
+addonTable.PoHuaiMoChengFaZhe = 0
 -- 1. 将防抖锁挂载到 addonTable，供其他 Lua 文件共享
 addonTable.isAudioDebounced = false
 
@@ -25,12 +25,15 @@ frame:SetScript("OnEvent", function(self, event, criteriaID)
 
         -- 2. 机制判断
 
-        if criteriaID == 116483 then -- 活体毒液
+        if criteriaID == 113962 then -- 破坏魔惩罚者
+            addonTable.PoHuaiMoChengFaZhe = addonTable.PoHuaiMoChengFaZhe + 1
+
+        elseif criteriaID == 116483 then -- 活体毒液
             if not addonTable.isAudioDebounced then
                 addonTable.isAudioDebounced = true
                 PlaySoundFile(addonTable.GetMediaPath() .. "KuaiKaiJianShang.ogg", DiGuaTimelineAudioHelper.audioChannel)
                 
-                C_Timer.After(8, function()
+                C_Timer.After(20, function()
                     addonTable.isAudioDebounced = false
                 end)
             end
@@ -59,5 +62,6 @@ frame:SetScript("OnEvent", function(self, event, criteriaID)
         addonTable.XuChuFaShi = false
         addonTable.LuMangJianDuZhe = false
         addonTable.isAudioDebounced = false
+        addonTable.PoHuaiMoChengFaZhe = 0
     end
 end)

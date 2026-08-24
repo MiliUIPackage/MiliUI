@@ -115,37 +115,37 @@ local function CreateCheckButton(name, labelText, yOffsetY, onClickFunc)
     return cb
 end
 
-local cb = CreateCheckButton("DiGuaTimelineEnableCheck", "啟用語音", -35, function(self)
+local cb = CreateCheckButton("DiGuaTimelineEnableCheck", "启用语音", -35, function(self)
     DiGuaTimelineAudioHelper.enabled = self:GetChecked()
     RefreshMediaPath()
-    print("|cffffd100[DiGua]|r 整體音效狀態: " .. (DiGuaTimelineAudioHelper.enabled and "|cff00ff00已開啟|r" or "|cffff0000已禁用|r"))
+    print("|cffffd100[DiGua]|r 整体音效状态: " .. (DiGuaTimelineAudioHelper.enabled and "|cff00ff00已开启|r" or "|cffff0000已禁用|r"))
 end)
 
-local cbRing = CreateCheckButton("DiGuaTimelineRingCheck", "顯示倒計時光圈", -60, function(self)
+local cbRing = CreateCheckButton("DiGuaTimelineRingCheck", "显示倒计时光圈", -60, function(self)
     DiGuaTimelineAudioHelper.ringEnabled = self:GetChecked()
-    print("|cffffd100[DiGua]|r 倒計時光圈圖標狀態: " .. (DiGuaTimelineAudioHelper.ringEnabled and "|cff00ff00已顯示|r" or "|cffff0000已隱藏|r"))
+    print("|cffffd100[DiGua]|r 倒计时光圈图标状态: " .. (DiGuaTimelineAudioHelper.ringEnabled and "|cff00ff00已显示|r" or "|cffff0000已隐藏|r"))
 end)
 
-local cbChannel = CreateCheckButton("DiGuaTimelineChannelCheck", "使用環境音頻道", -85, function(self)
+local cbChannel = CreateCheckButton("DiGuaTimelineChannelCheck", "使用环境音频道", -85, function(self)
     local isAmbience = self:GetChecked()
     DiGuaTimelineAudioHelper.audioChannel = isAmbience and "Ambience" or "Master"
-    print("|cffffd100[DiGua]|r 播放聲道已切換至: " .. (isAmbience and "|cff00ff00環境音 (Ambience)|r" or "|cffffd100主音量 (Master)|r"))
+    print("|cffffd100[DiGua]|r 播放声道已切换至: " .. (isAmbience and "|cff00ff00环境音 (Ambience)|r" or "|cffffd100主音量 (Master)|r"))
 end)
 
-local cbTenSec = CreateCheckButton("DiGuaTimelineTenSecCheck", "開啟 10 秒倒數", -110, function(self)
+local cbTenSec = CreateCheckButton("DiGuaTimelineTenSecCheck", "开启 10 秒倒数", -110, function(self)
     DiGuaTimelineAudioHelper.tenSecCountDown = self:GetChecked()
-    print("|cffffd100[DiGua]|r 團隊倒計時模式: " .. (DiGuaTimelineAudioHelper.tenSecCountDown and "|cff00ff00已開啟 (10秒)|r" or "|cffff0000未開啟 (默認5秒)|r"))
+    print("|cffffd100[DiGua]|r 团队倒计时模式: " .. (DiGuaTimelineAudioHelper.tenSecCountDown and "|cff00ff00已开启 (10秒)|r" or "|cffff0000未开启 (默认5秒)|r"))
 end)
 
-local cbCoTank = CreateCheckButton("DiGuaTimelineCoTankCheck", "副坦私有光環監控", -135, function(self)
+local cbCoTank = CreateCheckButton("DiGuaTimelineCoTankCheck", "副坦私有光环监控", -135, function(self)
     DiGuaTimelineAudioHelper.coTankAuraEnabled = self:GetChecked()
-    print("|cffffd100[DiGua]|r 副坦私有光環監控: " .. (DiGuaTimelineAudioHelper.coTankAuraEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
+    print("|cffffd100[DiGua]|r 副坦私有光环监控: " .. (DiGuaTimelineAudioHelper.coTankAuraEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
     
     if addonTable.RefreshAnchorState then addonTable.RefreshAnchorState(f:IsShown()) end
     if addonTable.UpdateRaidTankAuras then addonTable.UpdateRaidTankAuras() end
 end)
 
-local cbBossVoice = CreateCheckButton("DiGuaTimelineBossVoiceCheck", "開啟首領語音警報", -160, function(self)
+local cbBossVoice = CreateCheckButton("DiGuaTimelineBossVoiceCheck", "开启首领语音警报", -160, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.bossVoiceEnabled = isEnabled
     
@@ -154,16 +154,16 @@ local cbBossVoice = CreateCheckButton("DiGuaTimelineBossVoiceCheck", "開啟首�
         addonTable.registerTable(addonTable.EventSoundData)
     end
     
-    print("|cffffd100[DiGua]|r 首領語音警報功能: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
+    print("|cffffd100[DiGua]|r 首领语音警报功能: " .. (isEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
 end)
 
-local cbForceWarnings = CreateCheckButton("DiGuaTimelineForceWarningsCheck", "自動開啟暴雪文字預警", -185, function(self)
+local cbForceWarnings = CreateCheckButton("DiGuaTimelineForceWarningsCheck", "自动开启暴雪文字预警", -185, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.forceEncounterWarnings = isEnabled
     if isEnabled then
         SetCVar("encounterWarningsEnabled", 1)
     end
-    print("|cffffd100[DiGua]|r 自動開啟暴雪文字預警: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
+    print("|cffffd100[DiGua]|r 自动开启暴雪文字预警: " .. (isEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
 end)
 
 f:SetScript("OnShow", function() if addonTable.RefreshAnchorState then addonTable.RefreshAnchorState(true) end end)

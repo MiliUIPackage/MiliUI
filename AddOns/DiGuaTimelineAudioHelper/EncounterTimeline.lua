@@ -150,8 +150,8 @@ addonTable.AudioTimeline = {
         interval = 70, 
         startOffset = 0, 
         alerts = {
-            [15]  = "ZhuYiDuoQuan.ogg",
-            [51]  = "ZhuYiDuoQuan.ogg",
+            [15]  = "DuoQuan.ogg",
+            [51]  = "DuoQuan.ogg",
         }
     },
 
@@ -178,7 +178,7 @@ addonTable.AudioTimeline = {
         startOffset = 0, 
         alerts = {
             [0]  = "ZhunBeiAOE.ogg",
-            [3]  = "ZhuYiDuoQuan.ogg",
+            [2]  = "ZhuYiDuoQuan.ogg",
             [28] = "ZhuYiJieQuan.ogg",
         }
     },
@@ -195,16 +195,16 @@ addonTable.AudioTimeline = {
     },
 
     [3458] = { -- 祖尔加
-        interval = 64, 
+        interval = 65, 
         startOffset = 0, 
         alerts = {
-            [0]  = "ZhuYiDangXian.ogg",
-            [8]  = "DaoShu5.ogg",
-            [9]  = "DaoShu4.ogg",
-            [10]  = "DaoShu3.ogg",
-            [11]  = "DaoShu2.ogg",
-            [12]  = "DaoShu1.ogg",
-            [13]  = "AnQuan.ogg",
+            -- [3]  = "ZhuYiDangXian.ogg",
+            -- [12] = "DaoShu5.ogg",
+            -- [13] = "DaoShu4.ogg",
+            -- [14] = "DaoShu3.ogg",
+            -- [15] = "DaoShu2.ogg",
+            -- [16] = "DaoShu1.ogg",
+            -- [17] = "AnQuan.ogg",
         }
     },
 
@@ -272,7 +272,7 @@ local function OnUpdate(self, elapsed)
                 end
 
                 if soundFile and roleMatched then
-                    PlaySoundFile(addonTable.GetMediaPath() .. soundFile, "Master")
+                    PlaySoundFile(addonTable.GetMediaPath() .. soundFile, DiGuaTimelineAudioHelper.audioChannel)
                 end
                 break 
             end
