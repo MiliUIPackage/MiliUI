@@ -448,7 +448,7 @@ L["Magic"] = "Magique"
 --[[ L["Main"] = "Main"--]]
 L["many"] = "beaucoup"
 L["Marks Bar"] = "Barre de marques"
-L["marksTips"] = "\n|rMarqueur de cible\nClic gauche : |cffffffffdéfinir le marqueur de raid sur la cible|r\nClic droit : |cffffffffverrouiller le marqueur de raid sur la cible (dans votre groupe)|r"
+L["marksTips"] = "\n|rMarqueur de cible\nClic gauche : |cffffffffdéfinir le marqueur de raid sur la cible|r"
 --[[Translation missing --]]
 --[[ L["Max Buttons"] = ""--]]
 --[[Translation missing --]]

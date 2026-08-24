@@ -386,8 +386,7 @@ L["many"] = "很多"
 L["Marks Bar"] = "標記工具列"
 L["marksTips"] = [=[
 |r目標標記
-左鍵: |cffffffff在目標上設置標記|r
-右鍵: |cffffffff將標記鎖定在目標上 (在你的隊伍中)|r]=]
+左鍵: |cffffffff在目標上設置標記|r]=]
 L["Max Buttons"] = "按鈕數量"
 L["Max Columns"] = "最大列數"
 L["Max Displayed"] = "最大顯示數量"

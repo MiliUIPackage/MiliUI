@@ -84,7 +84,6 @@ marks = Cell.CreateFrame("CellRaidMarksFrame_Marks", marksFrame, 196, 20, true)
 marks:SetPoint("BOTTOMLEFT")
 marks:Hide()
 
-local ticker
 local markButtons = {}
 for i = 1, 9 do
     -- Midnight 12.0+: SetRaidTarget is protected. Use SecureActionButtonTemplate
@@ -110,51 +109,11 @@ for i = 1, 9 do
         markButtons[i]:SetAttribute("marker", i)
         markButtons[i]:SetAttribute("action1", "toggle")
 
-        -- Right click: lock/unlock raid target icon (post-click script)
-        -- Lock uses SetRaidTarget in a timer which can't be secured;
-        -- this is a best-effort feature that may not work during combat.
-        local idx = i
-        markButtons[i]:SetScript("PostClick", function(self, button)
-            if button == "RightButton" then
-                local unit, name, class = F.GetTargetUnitInfo()
-                if unit and name then
-                    if markButtons[idx].locked then
-                        F.NotifyMarkUnlock(idx, name, class)
-                        -- Clear the mark from the locked unit (skip in combat — protected)
-                        if not InCombatLockdown() then
-                            SetRaidTarget(markButtons[idx].locked, 0)
-                        end
-                        markButtons[idx]:SetBackdropBorderColor(0, 0, 0, 1)
-                        markButtons[idx].locked = nil
-                        if markButtons[idx].ticker then
-                            markButtons[idx].ticker:Cancel()
-                            markButtons[idx].ticker = nil
-                        end
-                    else
-                        F.NotifyMarkLock(idx, name, class)
-                        -- Apply mark immediately (skip in combat — protected)
-                        if not InCombatLockdown() then
-                            SetRaidTarget(unit, idx)
-                        end
-                        markButtons[idx]:SetBackdropBorderColor(markColors[idx][1], markColors[idx][2], markColors[idx][3], 1)
-                        markButtons[idx].locked = unit
-                        markButtons[idx].ticker = C_Timer.NewTicker(1.5, function()
-                            -- SetRaidTarget is protected on Midnight; skip in combat
-                            if InCombatLockdown() then return end
-                            if UnitName(unit) == name then
-                                -- Re-apply mark (SetRaidTarget is a no-op if already correct)
-                                SetRaidTarget(unit, idx)
-                            else
-                                markButtons[idx].locked = nil
-                                markButtons[idx].ticker:Cancel()
-                                markButtons[idx].ticker = nil
-                                markButtons[idx]:SetBackdropBorderColor(0, 0, 0, 1)
-                            end
-                        end)
-                    end
-                end
-            end
-        end)
+        -- Right-click "lock the mark onto this unit" is GONE on 12.x: re-applying a mark
+        -- means calling SetRaidTarget from a ticker, and SetRaidTarget is a protected
+        -- function since 12.0 -- the ticker could only ever fire out of combat, which is
+        -- the one time nobody needs a mark re-applied. The secure left-click above is the
+        -- whole feature now. (F.NotifyMarkLock/Unlock went with it.)
     end
 
     markButtons[i].bg:SetColorTexture(0.1, 0.1, 0.1, 0.7)
@@ -168,17 +127,6 @@ for i = 1, 9 do
     --     P.Point(markButtons[i], "LEFT", markButtons[i-1], "RIGHT", 2, 0)
     -- end
 end
-
-marks:SetScript("OnHide", function()
-    for i = 1, 8 do
-        markButtons[i].locked = nil
-        if markButtons[i].ticker then
-            markButtons[i].ticker:Cancel()
-            markButtons[i].ticker = nil
-        end
-        markButtons[i]:SetBackdropBorderColor(0, 0, 0, 1)
-    end
-end)
 
 -------------------------------------------------
 -- world marks

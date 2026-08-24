@@ -93,7 +93,7 @@ local VERSION_URL = "|cFF00CCFFhttps://addons.miliui.com/wow/cell|r"
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 function eventFrame:GROUP_ROSTER_UPDATE()
     if not IsInGroup() then return end
-    UpdateSendChannel() -- also what initialises sendChannel for CELL_MARKS / CELL_PRIO
+    UpdateSendChannel() -- also what initialises sendChannel for CELL_PRIO
     -- ⚠ Stop listening only once the broadcast has actually gone out. Upstream unregistered
     -- first, which was safe because it had no comm guard -- but 12.1 blocks addon messages
     -- during encounters/M+/PvP, so unregistering first would silently drop the version for
@@ -125,47 +125,11 @@ Comm:RegisterComm(VERSION_PREFIX, function(prefix, message, channel, sender)
 end)
 
 -----------------------------------------
--- Notify Marks
+-- Notify Marks (REMOVED)
 -----------------------------------------
-Comm:RegisterComm("CELL_MARKS", function(prefix, message, channel, sender)
-    if sender == UnitName("player") then return end
-    local data = Deserialize(message)
-    if Cell.vars.hasPartyMarkPermission and CellDB["tools"]["marks"][1] and (strfind(CellDB["tools"]["marks"][3], "^target") or strfind(CellDB["tools"]["marks"][3], "^both")) and data then
-        sender = F.GetClassColorStr(select(2, UnitClass(sender)))..sender.."|r"
-
-        if data[1] then -- lock
-            F.Print(L["%s lock %s on %s."]:format(sender, F.GetMarkEscapeSequence(data[2]), data[3]))
-        else
-            F.Print(L["%s unlock %s from %s."]:format(sender, F.GetMarkEscapeSequence(data[2]), data[3]))
-        end
-    end
-end)
-
-function F.NotifyMarkLock(mark, name, class)
-    name = F.GetClassColorStr(class)..name.."|r"
-    F.Print(L["%s lock %s on %s."]:format(L["You"], F.GetMarkEscapeSequence(mark), name))
-
-    UpdateSendChannel()
-    -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
-    if IsCommRestricted() then
-        F.Debug("Cell: Comm suppressed - restricted context (CELL_MARKS lock)")
-        return
-    end
-    Comm:SendCommMessage("CELL_MARKS", Serialize({true, mark, name}), sendChannel, nil, "ALERT")
-end
-
-function F.NotifyMarkUnlock(mark, name, class)
-    name = F.GetClassColorStr(class)..name.."|r"
-    F.Print(L["%s unlock %s from %s."]:format(L["You"], F.GetMarkEscapeSequence(mark), name))
-
-    UpdateSendChannel()
-    -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
-    if IsCommRestricted() then
-        F.Debug("Cell: Comm suppressed - restricted context (CELL_MARKS unlock)")
-        return
-    end
-    Comm:SendCommMessage("CELL_MARKS", Serialize({false, mark, name}), sendChannel, nil, "ALERT")
-end
+-- The CELL_MARKS lock/unlock broadcast (and F.NotifyMarkLock / F.NotifyMarkUnlock) went
+-- with the mark-lock feature: keeping a mark stuck on a unit needs SetRaidTarget from a
+-- ticker, and that is a protected function on 12.x. Nothing announces marks any more.
 
 -----------------------------------------
 -- Priority Check

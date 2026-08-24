@@ -367,8 +367,7 @@ L["many"] = "muchos"
 L["Marks Bar"] = "Barra de Marcas"
 L["marksTips"] = [=[
 |rMarcador de objetivo
-Clic izquierdo: |cffffffffestablecer marcador de incursión en el objetivo|r
-Clic derecho: |cffffffffbloquear marcador de incursión en el objetivo (en tu grupo)|r]=]
+Clic izquierdo: |cffffffffestablecer marcador de incursión en el objetivo|r]=]
 L["Max Buttons"] = "Max botones"
 L["Max Columns"] = "Max Columnas"
 L["Max Displayed"] = "Máx. Visible"

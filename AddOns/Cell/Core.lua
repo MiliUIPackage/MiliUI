@@ -883,8 +883,6 @@ function eventFrame:PLAYER_LOGIN()
     Cell.UpdateAboutFont(CellDB["appearance"]["optionsFontSizeOffset"])
     -- update tools
     Cell.Fire("UpdateTools")
-    -- update requests
-    Cell.Fire("UpdateRequests")
     -- update quick assist
     -- Cell.Fire("UpdateQuickAssist") -- NOTE: update in GroupTypeChanged/SpecChanged
     -- update quick cast

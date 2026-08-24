@@ -4333,7 +4333,6 @@ function B.UpdatePixelPerfect(button, updateIndicators)
         end
     end
 
-    button.widgets.srIcon:UpdatePixelPerfect()
 end
 
 B.UpdateAll = UnitButton_UpdateAll
@@ -4491,17 +4490,9 @@ function CellUnitButton_OnLoad(button)
     tsGlowFrame:SetFrameLevel(button:GetFrameLevel()+200)
     tsGlowFrame:SetAllPoints(button)
 
-    --* srGlowFrame (Spell Request)
-    local srGlowFrame = CreateFrame("Frame", name.."SRGlowFrame", button)
-    button.widgets.srGlowFrame = srGlowFrame
-    srGlowFrame:SetFrameLevel(button:GetFrameLevel()+200)
-    srGlowFrame:SetAllPoints(button)
-
-    --* drGlowFrame (Dispel Request)
-    local drGlowFrame = CreateFrame("Frame", name.."DRGlowFrame", button)
-    button.widgets.drGlowFrame = drGlowFrame
-    drGlowFrame:SetFrameLevel(button:GetFrameLevel()+200)
-    drGlowFrame:SetAllPoints(button)
+    --* srGlowFrame / drGlowFrame (Spell + Dispel Request): both features are gone on 12.x
+    --* (comm blocked in encounters, aura reads restricted, CLEU unavailable), and with them
+    --* two frames per unit button that had nothing left to draw.
 
     --* highLevelFrame
     local highLevelFrame = CreateFrame("Frame", name.."HighLevelFrame", button)
@@ -4724,8 +4715,6 @@ function CellUnitButton_OnLoad(button)
     I.CreateActions(button)
     I.CreateMissingBuffs(button)
     I.CreateHealthThresholds(button)
-    U.CreateSpellRequestIcon(button)
-    U.CreateDispelRequestText(button)
 
     button._waitingForIndicatorCreation = true
 
