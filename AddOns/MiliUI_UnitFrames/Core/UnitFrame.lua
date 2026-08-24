@@ -367,7 +367,7 @@ function ns.SpawnUnitFrame(unit)
         ns.Refresh(self, "unitchanged")     -- 單位出現時（RegisterUnitWatch 驅動）全量刷新
     end)
 
-    -- 滑鼠提示與高亮（暴雪單位提示；EUI/暴雪同法）。OnEnter/OnLeave 不是受保護腳本，
+    -- 滑鼠提示與高亮（走暴雪的單位提示）。OnEnter/OnLeave 不是受保護腳本，
     -- 掛在 SecureUnitButton 上安全。
     -- ⚠ 高亮要在提示的 early return **之前**：關掉提示的人一樣要看得到高亮。
     uf:SetScript("OnEnter", function(self)

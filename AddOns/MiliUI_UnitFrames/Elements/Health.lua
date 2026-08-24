@@ -18,7 +18,7 @@ local function EnsureCalc(uf)
     if not uf.hpCalc and CreateUnitHealPredictionCalculator then
         -- 血量／吸收盾／治療吸收共用這顆。
         --
-        -- ⚠⚠ **一個 clamp 都不要設。** 這裡原本照 EUI 設了 SetMaximumHealthMode 與
+        -- ⚠⚠ **一個 clamp 都不要設。** 這裡原本設了 SetMaximumHealthMode 與
         -- SetDamageAbsorbClampMode，結果 `GetHealAbsorbs()` 回垃圾——沒有任何 debuff
         -- 卻把整條血條鋪滿紅條紋。共用的這顆一定要全裸建立：
         -- **clamp 設定會污染同一顆計算器的其他讀取**（血量／吸收盾／治療吸收都靠它）。

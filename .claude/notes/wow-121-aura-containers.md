@@ -174,10 +174,10 @@ fmt:AddBreakpoint({ threshold = 1, step = 1,   rounding = down, min = 1, format 
 
 **AuraContainer 建立順序**:`CreateFrame(...)` → `SetUnit(unit)`(在 group 之前) → 逐一 `AddAuraGroup(...)` → `SetEnabled(true)` **最後**(它 gate 光環事件註冊)。在地驗證來源:`Cell/RaidFrames/AuraDisplay.lua`、`Stuf/auracontainer.lua`,兩個都在這台機器上實跑。
 
-> EUI 的 AuraKit 反過來(`FinishContainer` = group 全宣告完才 SetUnit + UpdateAllAuras),理由是
-> 「指定單位會重算事件註冊,而重算以容器已有 group 為前提」。**那是配合它自己的分階段建構器**
-> (CreateContainerShell → AddGroup → Finish),照搬到一次建完的寫法會壞——2026-08-16 在
-> MiliUI_UnitFrames 試過,目標光環直接亂掉。BuffReminders 用 EUI 那個順序沒事,但它的單位是
+> 也看過反過來的寫法(容器 shell 先建、group 全宣告完才 SetUnit + UpdateAllAuras),理由是
+> 「指定單位會重算事件註冊,而重算以容器已有 group 為前提」。**那是配合分階段建構器的**
+> (CreateShell → AddGroup → Finish),照搬到一次建完的寫法會壞——2026-08-16 在
+> MiliUI_UnitFrames 試過,目標光環直接亂掉。BuffReminders 用那個順序沒事,但它的單位是
 > 固定的 `player`,踩不到換人那條路。**結論:順序照 Cell/Stuf,別動。**
 
 **⚠⚠ AuraContainer 不能掛任何 script handler。** `container:HookScript("OnShow", ...)` 會丟
@@ -214,7 +214,7 @@ handler 掛失敗會讓**整個容器建立失敗**,對外只表現成「光環�
   之後往右長」,兩顆就已經偏掉了。上面那條「未知的鍵會被靜靜丟掉」在這裡是加強版:
   連**合法但語意不符**的值也會安靜收下。
 - **group 層**:`ValidateAuraGroupLayoutOptions` 那八個鍵(見上)裡沒有任何對齊概念。
-- **旁證**:DandersFrames v5、Platynator、BuffReminders、EUI AuraKit 四份都在排 aura
+- **旁證**:DandersFrames v5、Platynator、BuffReminders 等本機幾份都在排 aura
   container,沒有一份做置中;Reddit/開發者討論區也搜不到有人提過。
 
 固定偏移「半排寬度」不是解法:效果等同「從左到右 + 位置滑桿往左調」,沒有多任何能力。

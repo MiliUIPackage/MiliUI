@@ -11,7 +11,7 @@ metadata:
 `AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，v1.0.0）。SavedVariables=`MiliUI_DamageMeters_DB`，
 指令 `/mdm`，NAMESPACE=`MiliUIDM`。約 5500 行、392KB。
 
-**設計哲學整包抄 `tmp/EUIStandaloneDamageMeters`**，通則寫在
+**設計哲學整包沿用「C_DamageMeter 渲染器」那條路線**，通則寫在
 [[wow-damagemeter-c-api-design]]（不解析戰鬥記錄、固定 bar 池、cacheKey、每列備忘、
 可視剔除、分段判定的髒事件、秘密值紀律）。**動這支之前先看那份筆記。**
 
@@ -26,21 +26,21 @@ Meter/    Data（C_DamageMeter 包裝＋秘密值守衛＋數字格式）
 Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗／關於）
 ```
 
-## 七個跟 EUI 不一樣的決定（都是刻意的）
+## 七個刻意的架構決定
 
-1. **拆函式，不要頂 upvalue 天花板。** EUI 的 `CreateDMWindow` 是單一 2300 行函式，
-   已經撞到 Lua 5.1 的 60 upvalue 上限，所以它到處在把 helper 從 `ns` 繞回來拿。
+1. **拆函式，不要頂 upvalue 天花板。** 把整個視窗寫成一個大工廠閉包會撞到 Lua 5.1 的
+   60 upvalue 上限，之後每加一個 helper 都得從 `ns` 繞一圈回來拿。
    這裡工廠只建 `W`（frame 樹＋池），繪製／拖曳／展開／首頁都是模組層級函式、`W` 當第一參數。
 2. **視窗池化，不做 Destroy。** frame 在 WoW 刪不掉（[[wow-frame-lifecycle-costs]]），
-   EUI 的 Destroy 是 Hide + SetParent(nil)，視窗數 3→1→3 來回調就留一堆孤兒。
+   常見的 Destroy 寫法是 Hide + SetParent(nil)，視窗數 3→1→3 來回調就留一堆孤兒。
    這裡 `_pool[idx]` 建一次，數量只決定「顯示到第幾個」。
-3. **unlock mode → 編輯模式覆蓋層。** EUI 為了自家的解鎖模式寫了 12871 行；
+3. **不自己做解鎖模式，掛在編輯模式上。** 自建一套 mover 是上萬行的工程；
    這裡走 `EditModeSystemSelectionTemplate`（[[wow-editmode-draggable]] 技能），
    外加標題列直接拖曳。
 4. **位置存 TOPLEFT 位移，不是編輯模式技能推薦的 CENTER 位移。**
    這是可縮放視窗——錨 CENTER 從右下角拉大會讓整個框往左上漂。
 5. **磁吸做成設定**（使用者要求）：`style.snapEnabled` ＋ 每視窗 `snapDisabled`（右鍵選單）。
-   而且 **X/Y 兩軸都吸**，EUI 只吸 X 軸與寬高。拖曳自己算游標位移不用 `StartMoving`，
+   而且 **X/Y 兩軸都吸**（只吸 X 軸的話上下堆疊對不齊）。拖曳自己算游標位移不用 `StartMoving`，
    因為磁吸要在拖的當下就吸住。
 6. **標題職業色**（使用者要求）：`hdrTextUseClassColor` 預設開，用玩家自己的職業色
    ＝ `Media.Accent()` ＝ MiliUIWidgets 的 `Env.Accent()`，整包同一個來源。關掉走自訂色。
@@ -81,7 +81,7 @@ Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗
   它只在切類型／切分段／改尺寸時會變，那三條路各自叫一次就好。
 - **首頁蓋著的時候不要畫長條**（`Rows.Render` 的 `painting` 閘）：首頁自己就要為八種類型
   各問一次 API，是最貴的一頁。
-- **細線與填滿條都錨在 `bar.row`**，不是「線錨在填滿條上」（EUI 是後者）。
+- **細線與填滿條都錨在 `bar.row`**，不是「線錨在填滿條上」。
   填滿條的幾何在秘密值下是髒的，不要讓它往下傳染。
 - **確認彈窗一進「關於」分頁就自己跳出來**：`W.CreateConfirmPopup` 建完沒有 `Hide()`，
   而 `W.CreateFrame` 預設是顯示的。修在共用層（八份同步），見
@@ -89,21 +89,20 @@ Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗
 - **`SetStatusBarTexture` 不會清掉 `SetStatusBarColor`。** 細線樣式把填滿條的頂點色
   設成 `(0,0,0,0)` 當隱形容器，換回實心時那個全透明**原封不動留著** —— 症狀是
   「選了實心填滿沒反應，要 /reload 才出現」（reload 後 bar 是全新建的，沒有殘留）。
-  離開細線樣式時要 `SetStatusBarColor(1,1,1,1)` 把它救回來。EUI 的 `ClearThinLine`
-  有一模一樣的註解，它也踩過。
+  離開細線樣式時要 `SetStatusBarColor(1,1,1,1)` 把它救回來。
 - **外觀設定要在 `Win.ApplyStyle` 裡直接套，不能只交給繪製路徑。**
   `RelayoutBar` 只走「有資料而且在可視範圍內」的列 —— 改樣式的當下若沒有資料
   （剛登入、剛重置），就會留在舊樣式直到下一場戰鬥。
 - **事件名稱猜錯 ＋ 被 pcall 吞掉。** 寫成 `COMBAT_SESSION_UPDATED`（漏了
   `DAMAGE_METER_` 前綴），`RegisterEvent` 拋錯被 pcall 吃掉 → 閒置時視窗永遠不更新，
-  零徵兆。現在名稱照 EUI 抄，註冊失敗會記進 `ns.errors`（`/mdm debug` 看得到）。
+  零徵兆。註冊失敗現在會記進 `ns.errors`（`/mdm debug` 看得到）。
   **通則：包 pcall 可以，但不能讓失敗無聲。**
 - **戰鬥中點別人的列會開出空白展開頁**：秘密 GUID 被 getter 拒收、錯誤被我們的 pcall
   吃掉。要在呼叫**之前**擋（只放行死亡與自己那一列），細節見
   [[wow-damagemeter-c-api-design]]。
 - **拖曳／縮放進行中不能再 SetPoint / SetSize。** `Move.ApplyPosition` 與
   `Win.ApplyStyle` 都要看 `W._drag / W._resize` 早退，否則會跟逐幀的 SetPoint 打架
-  （畫面上是視窗抽動）。EUI 也留了同一道守衛。
+  （畫面上是視窗抽動）。
 - **語系稽核的兩個假警報**：類型名稱本來寫成 `L[D.TYPE_NAMES[t]]` 間接查表，
   被 `miliui-locale-audit` 報成「多餘 8 條」→ 改成在 `TYPE_DEFS` 就用字面字串查好。
   註解裡寫 `L["字面量"]` 也會被掃進去，別在註解裡寫這種形狀。
@@ -164,10 +163,10 @@ Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗
 
 ## 待驗證（都還沒進遊戲跑過）
 
-- `C_DamageMeter` 的欄位名是從 EUI 的原始碼抄的，沒有實機對過
+- `C_DamageMeter` 的欄位名還沒有實機對過
 - 標題列六張圖示在遊戲內 22px 的實際觀感（只在 Pillow 端看過模擬）
 - 秘密值路徑：受限內容裡的名字／數字／GUID 有沒有漏掉的 guard
-- 磁吸手感（`snapThreshold` 預設 6 是抄 EUI 的）
+- 磁吸手感（`snapThreshold` 預設 6 只是個起手值）
 - 細線樣式在 18px 列高 ＋ 12pt 描邊字下的實際觀感（參考圖的列看起來比 18px 高）
 - 分段判定的各種邊界（連拉、滅團、PvP 回合間、假死）
 

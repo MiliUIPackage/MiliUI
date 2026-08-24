@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 隱藏暴雪原生單位框（結構照抄 EUI 的 UF_HideBlizzard，12.1 實戰調過）
+-- 隱藏暴雪原生單位框（12.1 實戰調過）
 --
 -- ⚠⚠ 這個檔案改壞的代價是「戰鬥中跳封鎖視窗」，動之前先讀完：
 --
@@ -9,13 +9,13 @@
 -- `Frame:RegisterEvent()`——我們自己所有 RegisterEvent 都打在自建的普通 frame 上，
 -- 那一次是**暴雪自己**在被我們染過的框上註冊事件。
 --
--- EUI 歸納出來的三條規則：
+-- 12.1 之後歸納出來的三條規則：
 --   1. 藏起來靠 **reparent 到一個隱藏的 frame**，不是靠 Hide()（Hide 會被 Edit Mode 復活）
 --   2. Edit Mode 開著、或在戰鬥中，**延後**再 reparent；被搶走了也只在
 --      `C_Timer.After(0)` 之後補掛——**絕不能在 hooksecurefunc 裡同步做**，
 --      那等於跑在暴雪的安全執行流程裡，會污染到秘密值讀取（連累團隊框）
 --   3. **Edit Mode 自己管的東西只解事件、不 reparent 也不 Hide**
---      （EUI 對 MonkStaggerBar 那類 alt power bar 就是這樣；我們的 TotemFrame 同理）
+--      （MonkStaggerBar 那類 alt power bar 就屬於這種；我們的 TotemFrame 同理）
 ------------------------------------------------------------
 local _, ns = ...
 

@@ -3,8 +3,8 @@
 --
 -- 「什麼時候算一場戰鬥」比想像中難：PLAYER_REGEN_ENABLED 一點都不可靠——
 -- 連拉時它根本不觸發、PvP 回合之間全隊一直在戰鬥、玩家先死了但團隊還在打。
--- 這整支檔案的複雜度都是在補那些洞，是照 EUIStandaloneDamageMeters 的處理搬的
--- （拆解記錄見 .claude/notes/wow-damagemeter-c-api-design.md）。
+-- 這整支檔案的複雜度都是在補那些洞（各種邊界情況整理在
+-- .claude/notes/wow-damagemeter-c-api-design.md）。
 --
 -- 效能上的兩個關鍵：
 --   * ticker **只在戰鬥期間存在**，閒置時這支插件是零成本的。

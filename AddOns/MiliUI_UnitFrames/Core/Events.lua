@@ -61,7 +61,7 @@ end
 -- 而我們只在乎 11 個 token —— 九成以上是白工。RegisterUnitEvent 讓客戶端在 C 端
 -- 就過濾掉。
 --
--- 副 token 在**註冊期**就一起收（EUI 的做法）：玩家框同時收 player 與 vehicle、
+-- 副 token 在**註冊期**就一起收：玩家框同時收 player 與 vehicle、
 -- 寵物框同時收 pet 與 player。這樣進出載具時 uf.unit 換掉就好，事件完全不用重註冊。
 ------------------------------------------------------------
 local SECONDARY_TOKEN = { player = "vehicle", pet = "player" }

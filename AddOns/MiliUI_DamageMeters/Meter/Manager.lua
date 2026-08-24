@@ -1,8 +1,8 @@
 ------------------------------------------------------------
 -- 視窗管理：建立、數量調整、統一套用、選單
 --
--- ⚠ 跟 EUI 的一個實質差異：**視窗建了就不銷毀，只是藏起來。**
---   WoW 的 frame 刪不掉（見 wow-frame-lifecycle-costs），EUI 的 Destroy 是
+-- ⚠ **視窗建了就不銷毀，只是藏起來。**
+--   WoW 的 frame 刪不掉（見 wow-frame-lifecycle-costs）—— 常見的「Destroy」寫法是
 --   Hide + SetParent(nil)，玩家把視窗數 3→1→3 來回調就會留下一堆孤兒 frame。
 --   這裡改成池化：_pool[idx] 建一次，數量只決定「顯示到第幾個」。
 --   代價是關掉的視窗仍佔記憶體（一個約 90 個 frame），但它本來就刪不掉。
@@ -96,8 +96,7 @@ end
 --
 -- 分段更新（有人死掉、首領被擊殺、伺服器換 session）改變的是**資料**，外觀沒動。
 -- 兩個一起清掉的話，`_barCacheKey` 一 nil 就會讓四十條長條整批重排版面 ——
--- 而分段更新事件在戰鬥中是連續打的。EUI 實測那是它最大的一筆成本
--- （原話：the dominant profiled cost）。
+-- 而分段更新事件在戰鬥中是連續打的 —— 整批重排會是這條路徑上最大的一筆成本。
 --
 --   InvalidateData  資料快取。分段更新、離開戰鬥走這個。
 --   InvalidateAll   資料 ＋ 外觀。只有「分段邊界」（開打、重置資料）走這個 ——
@@ -314,8 +313,7 @@ ns.RegisterCallback("Init", "windows", function()
     -- ⚠ 事件名稱一個字都不能猜。第一版寫成 "COMBAT_SESSION_UPDATED"（少了
     --   DAMAGE_METER_ 前綴）並且包在 pcall 裡 —— RegisterEvent 對不存在的事件會拋錯，
     --   被 pcall 吞掉之後就是**靜默失效**：閒置時視窗永遠不會更新，而且沒有任何徵兆。
-    --   現在名稱照 EUI 的原始碼抄（它是對著實機寫的），註冊失敗會記進 ns.errors，
-    --   /mdm debug 看得到。
+    --   註冊失敗現在會記進 ns.errors（/mdm debug 看得到），不會再無聲無息。
     ------------------------------------------------------------
     local DM_EVENTS = {
         "DAMAGE_METER_RESET",

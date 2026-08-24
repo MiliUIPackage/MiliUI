@@ -59,7 +59,7 @@ local SECRET_TAGS = {
     -- 在受限單位上是秘密值，等於把秘密值塞進列舉參數的位置。
     percmp = { kind = "percent",
                fn = function(u) return UnitPowerPercent(u, nil, false, PERCENT_CURVE) end },
-    -- 吸收盾／治療吸收數量：走全域 API（EUI 同法，不用計算器）。
+    -- 吸收盾／治療吸收數量：走全域 API，不用計算器。
     -- 無盾時用 C_StringUtil.TruncateWhenZero 讓它輸出空字串——這是官方的
     -- 「秘密數字為 0 就不顯示」管道，插件不必讀值（kind=string 直接串接）
     shields = { kind = "string", fn = function(u)

@@ -77,12 +77,12 @@ tag 跟血量數字一樣走 Tags 的 `\001N` 佔位符管線（kind="string"）
 顏色前綴用明文 `|cff..` + 佔位符 + `|r`。cache 裡的明文版只給比較/查表用。
 光環倒數 formatter 一律 NumericRule 三段（91/5401），SecondsFormatter 中文必帶「秒」不要用。
 `/muf debug` 有目標各 API 的 type/secret 探針。
-**⚠⚠ PlayerModel 隱藏時會丟掉模型**（EUI `EUIStandaloneUnitFrames.lua:2944` 實地追出）：
+**⚠⚠ PlayerModel 隱藏時會丟掉模型**（2026 實地追出）：
 對隱藏中的 model 呼叫 SetUnit 會落空，之後 Show 出來就永久空白 —— 這是「一個目標沒模型之後，
 所有目標都沒模型」的根因。**對策：model 永遠保持 Show，拿不到就 `ClearModel()`（清空＝看不見）**，
-絕不 Hide。另外兩個 EUI 教訓：世界轉場會清掉同 guid 的模型狀態（PEW 後補畫）、Show 後的重畫
+絕不 Hide。另外兩個教訓：世界轉場會清掉同 guid 的模型狀態（PEW 後補畫）、Show 後的重畫
 可能早於模型串流完成 → 用 `PORTRAITS_UPDATED` 且 `GetModelFileID()==nil` 時才補 SetUnit（已載入的不動）。
-**動態 unit token 的光環會停在前一個單位**（EUI `EUI_UnitFrames_AuraContainers.lua:1512`）：
+**動態 unit token 的光環會停在前一個單位**：
 引擎只在 UNIT_AURA 或 show/hide 才重新解析，換目標時框架保持顯示 → 顯示舊光環。
 正解 `container:UpdateAllAuras()`，而且要**直接掛 PLAYER_TARGET_CHANGED/UNIT_TARGET 等事件**，
 不能只靠 identity 桶（框架剛顯示那瞬間 IsVisible 還是 false，派發會被閘門擋掉）。
@@ -144,13 +144,13 @@ Platy 是 `SetMaximumHealthMode(WithAbsorbs)`（條被吸收撐長的名條風�
 `calc:GetHealAbsorbs()`、`calc:GetIncomingHeals()` 在 12.1 都回垃圾（沒有 debuff／沒有治療進來時
 仍填滿整條）。改用 `UnitGetTotalHealAbsorbs(unit)` / `UnitGetIncomingHeals(unit)` / `UnitGetTotalAbsorbs(unit)`
 （秘密數字直接餵 SetValue）。計算器只留給**血量本體**（`GetMaximumHealth`/`GetCurrentHealth`）
-與吸收盾條（`GetDamageAbsorbs`，EUI 也這樣用）。EUI 沒有實作治療預估，別去那裡找參考。
-**⚠⚠ 治療吸收不要用計算器：`calc:GetHealAbsorbs()` 在 12.1 不可信**（2026-08-16 結案，本機
-`tmp/EUIStandaloneUnitFrames` 為證）：無 debuff 卻填半條～整條；補 `SetHealAbsorbClampMode(Capped)`
-也沒用（那是 Stuf/oUF 的舊說法）。**EUI 全部 8 個呼叫點一律走全域 `UnitGetTotalHealAbsorbs(unit)`**，
-秘密數字直接餵 `SetValue`。吸收盾則照樣用 `calc:GetDamageAbsorbs()`（EUI 同法）。
-EUI 的計算器設定：`SetMaximumHealthMode(Default)` + `SetDamageAbsorbClampMode(MaximumHealth)`。
-**零值不顯示的官方管道：`C_StringUtil.TruncateWhenZero(secretNumber)`**（EUI tag 用法：
+與吸收盾條（`GetDamageAbsorbs`）。治療預估沒有現成的參考實作，得自己來。
+**⚠⚠ 治療吸收不要用計算器：`calc:GetHealAbsorbs()` 在 12.1 不可信**（2026-08-16 結案，
+對照過其他 12.1 已適配的單位框架）：無 debuff 卻填半條～整條；補 `SetHealAbsorbClampMode(Capped)`
+也沒用（那是舊版 oUF 系的說法）。**治療吸收一律走全域 `UnitGetTotalHealAbsorbs(unit)`**，
+秘密數字直接餵 `SetValue`。吸收盾則照樣用 `calc:GetDamageAbsorbs()`。
+計算器設定：`SetMaximumHealthMode(Default)` + `SetDamageAbsorbClampMode(MaximumHealth)`。
+**零值不顯示的官方管道：`C_StringUtil.TruncateWhenZero(secretNumber)`**（tag 用法：
 `format("%s", TruncateWhenZero(UnitGetTotalAbsorbs(u) or 0))`）——秘密數字為 0 時輸出空字串，
 插件不必讀值。我們的 `[shields]`/`[healabsorbs]` 走這條，`_short` 版走一般縮寫。
 ⚠ Lua 陷阱：這些 tag closure 用到的 `local _CSU = C_StringUtil` **必須宣告在 SECRET_TAGS 之前**，
@@ -173,7 +173,7 @@ spawn 迴圈 → 後續單位/小地圖鈕/圖騰全沒生。已在 Units spawn�
 只在登入跑一次，中途停用單位要 /reload 才還原暴雪框。
 
 **設定面板搜尋**（2026-08-18，F3，`Options/Search.lua`）：搜尋框在面板上緣外側、跟標題同一列。
-⚠ **索引不是在建立控件時收集的**（EUI 走那條路，代價是沒開過的頁面收不到、得另外補一輪
+⚠ **索引不是在建立控件時收集的**（那條路的代價是沒開過的頁面收不到、得另外補一輪
 pre-build）。這裡由各分頁**列舉自己的 spec 表** —— 表單本來就是宣告式的，spec 是純資料，
 不必先生出 frame 就讀得到 ⇒ 沒開過的分頁照樣搜得到、`Controls.Build` 裡不必埋 hook、
 索引跟畫面完全解耦。分頁在檔尾 `ns.Search.Register(tabId, { label, enumerate(add), jump(payload, spec) })`。
@@ -225,8 +225,8 @@ Tab_General／Tab_Resource／Tab_Totem 與 Totems 的 `GetDB()` 都是現查 `ns
 現行寫法多一個條件保底：`if unit ~= uf.unit and uf.unit == uf.baseUnit then return end`
 ——框畫著原本的單位時才擋，被重新對應（載具）就整個放行 ⇒ 兩種答案下都正確。
 **驗證方式：坐上載具看玩家框血量／能量還會不會跳。會跳 = 派的是 "vehicle"，可收緊成
-單純的 `unit ~= uf.unit`。** ⚠ EUI 借不到當背書：它 `EUI_UnitFrames_Engine.lua:421`
-同樣收下 unitToken 卻**沒拿來過濾**數值頻道，兩邊只是一起在浪費。
+單純的 `unit ~= uf.unit`。** ⚠ 別拿「別的框架也這樣寫」當背書：有些實作同樣收下 unitToken
+卻**沒拿來過濾**數值頻道，那只是一起在浪費。
 
 **待遊戲內驗證**（計畫的 R1-R10 風險全部未驗）：右鍵選單 togglemenu、boss RegisterUnitWatch、
 3D 頭像 secret 單位、AuraContainer SetUnit live 換目標、calculator getter（GetIncomingHeals/

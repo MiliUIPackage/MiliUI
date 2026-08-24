@@ -30,13 +30,13 @@ local Media = ns.Media
 -- token 不能 OR ⇒ 一類一個 group ⇒ 要手工維護互斥否定鏈（而且只能否定**已啟用**的
 -- 類別，否定沒啟用的會吃掉本來該顯示的光環）；再加上跨 group 沒有任何總量 API
 -- （maxFrameCount 是每 group 的，SetFlowLayoutMaximumLineSize 是**換行**預算不是上限，
--- 超過只會多疊一列）⇒ 還得自己切預算，切錯就是靜默漏顯示。EUI 那一千多行絕大部分
--- 是在付這兩筆帳。
+-- 超過只會多疊一列）⇒ 還得自己切預算，切錯就是靜默漏顯示。做完整那一套的實作
+-- 動輒上千行，絕大部分都是在付這兩筆帳。
 -- 團隊框需要那套（它問的是「這個隊友身上最重要的**那一個**」，天生多類別競爭）；
 -- 單位框不需要（它問的是「這個目標身上我在乎的**那一類**」，天生單選）。
 -- 單一 group ⇒ maxCount 全額給它，互斥與預算兩個問題都不存在。
 --
--- ⚠ `IMPORTANT` 這個 token 沒有定論（EUI 註解說它只標 HELPFUL、Platynator 卻拿它配
+-- ⚠ `IMPORTANT` 這個 token 沒有定論（有的實作認為它只標 HELPFUL，也有實作拿它配
 -- HARMFUL 出貨），所以「重要」走 candidateFilter `isPriorityAura`，兩邊都不得罪。
 -- ⚠ 不提供 spellID 黑名單：友方單位的減益禁止 ID 過濾（只有標記 NeverSecret 的
 -- 才生效），做出來會是一個「有時有用有時沒用」的功能，比沒有更糟。
@@ -233,7 +233,7 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
     auraButton:SetSize(sizeW, sizeH)
     auraButton:SetMouseClickEnabled(false)
     -- 滑鼠提示：光環內容是秘密值，插件畫不出提示——開啟 motion 讓 AuraButton
-    -- 自己顯示暴雪的光環提示（12.1 build 68914 的按鈕 API，EUI 同法）
+    -- 自己顯示暴雪的光環提示（12.1 build 68914 的按鈕 API）
     if style.tooltips ~= false then
         pcall(auraButton.SetMouseMotionEnabled, auraButton, true)
         if auraButton.SetHideTooltipInCombat then
@@ -544,7 +544,7 @@ local function CreateContainer(uf, elementName, edb, filter, cand, style)
     container:SetFrameLevel(holder:GetFrameLevel() + 1)
     AnchorContainer(container, uf, edb)
     -- 建立順序：SetUnit 在 AddAuraGroup 之前、SetEnabled 最後。這是在這台機器上實跑過的。
-    -- （EUI AuraKit 的「unit last」是配合它自己的分階段建構器，照搬會壞。）
+    -- （別處看到的「unit last」順序是配合分階段建構器的，照搬到這裡會壞。）
     container:SetUnit(uf.unit)
     ApplyFlowLayout(container, spec)
 

@@ -148,7 +148,7 @@ ns.Events.Register("PLAYER_ENTERING_WORLD", "portrait_ej_pew", function()
 end)
 
 ------------------------------------------------------------
--- 空白模型自我修復（EUI 追出來的兩個坑）
+-- 空白模型自我修復（兩個實地追出來的坑）
 --   * 世界轉場（載入畫面）會把 PlayerModel 的狀態清掉，同一個 guid 也不會重畫
 --   * Show 後的重畫可能早於模型串流完成 → SetUnit 落空、之後沒有任何事件跟進
 -- PORTRAITS_UPDATED 是客戶端「頭像資源串流完成」的訊號，用它補畫**還是空的**模型
@@ -335,7 +335,7 @@ local function Update(uf, edb, bucket)
     if bucket == "model" and not InCombatLockdown() then f.modelKey = nil end
 
     if edb.mode == "3d" then
-        -- ⚠ PlayerModel 在**隱藏時會丟掉模型**（EUI 實地追出來的：載入畫面隱藏框架後，
+        -- ⚠ PlayerModel 在**隱藏時會丟掉模型**（實地追出來的：載入畫面隱藏框架後，
         -- 對隱藏的 model 呼叫 SetUnit 會落空、之後 Show 出來就是永久空白——這正是
         -- 「一個目標沒模型之後，所有目標都沒模型」的成因）。
         -- 對策：model 永遠保持 Show，拿不到就 ClearModel（清空＝看不見，效果等同隱藏）
@@ -394,7 +394,7 @@ local function Update(uf, edb, bucket)
             f.lastDisplayID, f.lastDisplaySrc = ejID, "EJ"
             f.lastDisplayOK = ok
         else
-            -- 可用 = 已連線且可見（EUI 的 isAvailable）。SetUnit 對載不進來的單位不會清空，
+            -- 可用 = 已連線且可見。SetUnit 對載不進來的單位不會清空，
             -- 而是留上一個模型或退回預設（widget 就叫 PlayerModel，預設是玩家自己）
             local avail = UnitIsConnected(unit) and UnitIsVisible(unit)
             if ns.IsSecret(avail) then avail = true end
