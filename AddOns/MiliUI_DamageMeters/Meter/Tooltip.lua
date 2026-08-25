@@ -19,7 +19,7 @@ local MAX_ROWS = 8
 local ROW_H    = 16
 local ROW_SP   = 1
 local HDR_H    = 20
-local WIDTH    = 260
+local WIDTH    = 288   -- 比原本寬一點：數值多了佔比那一欄
 local PAD      = 4
 
 local _frame, _bars, _ticker
@@ -75,15 +75,18 @@ local function EnsureBar(i)
     tf:SetAllPoints()
     tf:SetFrameLevel(bar.fill:GetFrameLevel() + 2)
 
-    bar.label = tf:CreateFontString(nil, "OVERLAY")
-    bar.label:SetPoint("LEFT", bar.icon, "RIGHT", 3, 0)
-    bar.label:SetJustifyH("LEFT")
-    bar.label:SetWordWrap(false)
-
+    -- ⚠ 錨定順序：**數值先，名字才截斷**。
+    -- 原本是名字佔滿、數值被擠壓 —— 但被截掉的如果是數字，這一列就沒有意義了。
+    -- 所以數值只錨右緣（跟著自己的文字長），名字的右緣去追數值的左緣。
     bar.amount = tf:CreateFontString(nil, "OVERLAY")
     bar.amount:SetPoint("RIGHT", tf, "RIGHT", -3, 0)
-    bar.amount:SetPoint("LEFT", bar.label, "RIGHT", 2, 0)
     bar.amount:SetJustifyH("RIGHT")
+
+    bar.label = tf:CreateFontString(nil, "OVERLAY")
+    bar.label:SetPoint("LEFT", bar.icon, "RIGHT", 3, 0)
+    bar.label:SetPoint("RIGHT", bar.amount, "LEFT", -6, 0)
+    bar.label:SetJustifyH("LEFT")
+    bar.label:SetWordWrap(false)
 
     _bars[i] = bar
     return bar
@@ -113,6 +116,9 @@ local function Populate(bar)
     -- 取資料
     ------------------------------------------------------------
     local rows, maxAmt = nil, 1
+    -- 佔比的分母。⚠ 要加**全部**法術，不是只加顯示的那幾筆 —— 否則同一個法術
+    -- 在預覽與展開頁會出現兩個不同的百分比。
+    local total = nil
 
     if D.IsDeathType(W.curDMType) then
         local recapID = src.deathRecapID
@@ -154,6 +160,15 @@ local function Populate(bar)
                 }
             end
             maxAmt = spells[1].totalAmount or 1
+
+            -- 加總要做算術，秘密值撐不住 → 有任何一筆是秘密就整欄不顯示佔比
+            local sum, ok = 0, true
+            for _, sp in ipairs(spells) do
+                local amt = sp.totalAmount
+                if D.IsSecret(amt) or type(amt) ~= "number" then ok = false; break end
+                sum = sum + amt
+            end
+            if ok and sum > 0 then total = sum end
         end
     end
 
@@ -196,7 +211,13 @@ local function Populate(bar)
             tb.amount:SetTextColor(1, 1, 1)
             -- 名字可能是秘密：交給 SetFormattedText，不要走 Lua 的字串運算
             tb.label:SetFormattedText("%s", row.name or ns.L["Unknown"])
-            tb.amount:SetText(D.Abbrev(row.amount))
+            -- 格式跟展開頁一字不差（Breakdown.lua 的 RefreshSpells）：
+            -- 同一筆資料在兩個地方長得不一樣，玩家會以為是兩種東西
+            if total and not D.IsSecret(row.amount) and type(row.amount) == "number" then
+                tb.amount:SetFormattedText("%s  %.1f%%", D.Abbrev(row.amount), row.amount / total * 100)
+            else
+                tb.amount:SetText(D.Abbrev(row.amount))
+            end
 
             y = y - (ROW_H + ROW_SP)
         elseif tb then
