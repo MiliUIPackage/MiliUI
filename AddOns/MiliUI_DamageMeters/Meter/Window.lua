@@ -579,6 +579,8 @@ function Win.UpdateVisibility(W)
     if wdb.hideInDungeon and iType == "party" then Set(false); return end
     if wdb.hideInRaid and iType == "raid" then Set(false); return end
     if wdb.hideInPvP and (iType == "pvp" or iType == "arena") then Set(false); return end
+    -- 探究不看 instanceType（它是 scenario，跟其他場景混在一起），走專用偵測
+    if wdb.hideInDelve and D.IsInDelve() then Set(false); return end
     if wdb.hideOutOfInstance and (iType == "none" or iType == nil) then Set(false); return end
 
     local vis = wdb.visibility or "always"

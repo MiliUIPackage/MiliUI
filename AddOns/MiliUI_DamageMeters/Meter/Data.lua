@@ -306,6 +306,22 @@ function D.ResolveIcon(src, tex, size, style, zoom)
 end
 
 ------------------------------------------------------------
+-- 在不在探究（Delve）裡
+--
+-- ⚠ 用 `C_PartyInfo.IsPartyWalkIn()`，**不要用 `IsDelveInProgress()`**。
+--   本機的證據很一致：Plumber 與 Cell 都把 `IsDelveInProgress` 註解掉改用這支，
+--   我們自己的 MiliUI/Enhance/Delves_MarkButton.lua 也是（實機驗證過，
+--   見 notes/wow-delve-detection）。EUI 用的是大家已經放棄的那支。
+--
+-- ⚠ 已知延遲：**離開探究的那一瞬間它還會回 true**（Plumber 的 API.lua 為此加了
+--   0.5 秒的強制延遲）。所以呼叫端不能只在換區事件當下判斷一次 ——
+--   Manager 的顯示條件另外排了一次延後重算。
+------------------------------------------------------------
+function D.IsInDelve()
+    return (C_PartyInfo and C_PartyInfo.IsPartyWalkIn and C_PartyInfo.IsPartyWalkIn()) and true or false
+end
+
+------------------------------------------------------------
 -- 像素對齊：設定值＝實體像素數，換算成能對齊實體像素的框架單位。
 -- 列高／間距一律走這裡，否則 UI 縮放不是整數倍時每一列會差半個像素，
 -- 四十列累積下來就是「最後幾列跟捲軸對不上」。

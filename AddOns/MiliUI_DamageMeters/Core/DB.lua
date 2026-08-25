@@ -80,6 +80,7 @@ function DB.NewWindow(idx)
         hideInDungeon = false,
         hideInRaid = false,
         hideInPvP = false,
+        hideInDelve = false,
         hideOutOfInstance = false,
     }
 end

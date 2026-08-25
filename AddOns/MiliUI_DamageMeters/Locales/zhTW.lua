@@ -200,6 +200,7 @@ L["In instances"] = "副本內"
 L["In a group"] = "組隊時"
 L["Hide in dungeons"] = "地城中隱藏"
 L["Hide in raids"] = "團隊副本中隱藏"
+L["Hide in Delves"] = "探究中隱藏"
 L["Hide in battlegrounds and arenas"] = "戰場與競技場中隱藏"
 L["Hide outside instances"] = "副本外隱藏"
 L["The window is always shown while Edit Mode or this settings panel is open, so you can see what you are adjusting."] =

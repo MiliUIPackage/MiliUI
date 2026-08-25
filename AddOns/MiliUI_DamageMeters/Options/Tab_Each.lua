@@ -96,6 +96,7 @@ local CONTROLS = {
     { type = "toggle",   key = "hideInDungeon", label = L["Hide in dungeons"] },
     { type = "toggle",   key = "hideInRaid", label = L["Hide in raids"] },
     { type = "toggle",   key = "hideInPvP", label = L["Hide in battlegrounds and arenas"] },
+    { type = "toggle",   key = "hideInDelve", label = L["Hide in Delves"] },
     { type = "toggle",   key = "hideOutOfInstance", label = L["Hide outside instances"] },
     { type = "text",     label = L["The window is always shown while Edit Mode or this settings panel is open, so you can see what you are adjusting."] },
 }

@@ -309,6 +309,10 @@ ns.RegisterCallback("Init", "windows", function()
     visFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     visFrame:SetScript("OnEvent", function()
         Windows.UpdateVisibility()
+        -- ⚠ 再算一次。**離開探究的那一瞬間 IsPartyWalkIn() 還是 true**
+        -- （見 Meter/Data.lua 的 D.IsInDelve），只在事件當下判斷會讓視窗
+        -- 多藏一段時間。1 秒是抄 Plumber 那 0.5 秒再放寬一點。
+        C_Timer.After(1, Windows.UpdateVisibility)
     end)
 
     ------------------------------------------------------------
