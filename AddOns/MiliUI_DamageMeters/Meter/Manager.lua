@@ -135,6 +135,65 @@ function Windows.AutoCurrentOnCombat()
 end
 
 ------------------------------------------------------------
+-- 「這是哪個視窗」的識別覆蓋層
+--
+-- 「各視窗」分頁一次只設定一個視窗，但畫面上有好幾個長得一模一樣的框 ——
+-- 玩家沒辦法知道自己正在調哪一個。開那一頁時就在每個視窗上蓋一層編號，
+-- 並且把**正在編輯的那個**用強調色標出來。編輯模式的老套路，不是新發明。
+--
+-- 名稱走 Windows.Label：跟下拉選單裡的字**必須一字不差**，
+-- 兩邊各拼各的日後改一邊就對不起來。
+------------------------------------------------------------
+function Windows.Label(idx)
+    return ns.L["Window"] .. " " .. idx
+end
+
+local function EnsureIdentify(W)
+    if W.identify then return W.identify end
+    local f = CreateFrame("Frame", nil, W.frame, "BackdropTemplate")
+    f:SetAllPoints(W.frame)
+    -- 蓋在展開頁（+30）與首頁（+25）之上；不改 strata，免得跨視窗互相遮住
+    f:SetFrameLevel(W.frame:GetFrameLevel() + 60)
+    f:EnableMouse(false)          -- 純標示，不能吃掉點擊與拖曳
+    f:SetBackdrop({ edgeFile = ns.Media.WHITE8X8, edgeSize = 2 })
+
+    f.bg = f:CreateTexture(nil, "BACKGROUND")
+    f.bg:SetAllPoints()
+
+    f.label = f:CreateFontString(nil, "OVERLAY")
+    f.label:SetPoint("CENTER")
+    f:Hide()
+    W.identify = f
+    return f
+end
+
+-- selectedIdx = 目前在設定頁選中的那個（其餘的畫成次要）
+function Windows.ShowIdentify(selectedIdx)
+    Windows.ForEach(function(W)
+        local f = EnsureIdentify(W)
+        local on = (W.idx == selectedIdx)
+        -- 兩者都鋪一層暗底：編號要讀得出來，而且「現在處於設定狀態」本身就該有感
+        f.bg:SetColorTexture(0, 0, 0, on and 0.35 or 0.6)
+        if on then
+            f:SetBackdropBorderColor(ns.Media.Accent())
+            f.label:SetTextColor(ns.Media.Accent())
+        else
+            f:SetBackdropBorderColor(0.35, 0.35, 0.35, 1)
+            f.label:SetTextColor(0.65, 0.65, 0.65)
+        end
+        f.label:SetFont(ns.Media.Font(), on and 22 or 18, "OUTLINE")
+        f.label:SetText(Windows.Label(W.idx))
+        f:Show()
+    end)
+end
+
+function Windows.HideIdentify()
+    Windows.ForEach(function(W)
+        if W.identify then W.identify:Hide() end
+    end)
+end
+
+------------------------------------------------------------
 -- 選單
 ------------------------------------------------------------
 local function TypeItems(W)

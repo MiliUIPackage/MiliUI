@@ -186,7 +186,10 @@ local function CreatePanel()
         W.CloseDropdowns()
         ns._optionsOpen = false
         -- 設定開著時所有視窗強制顯示，關掉要把顯示條件放回去
-        if ns.Windows then ns.Windows.UpdateVisibility() end
+        if ns.Windows then
+            ns.Windows.HideIdentify()   -- 「各視窗」分頁的編號標示不能留在畫面上
+            ns.Windows.UpdateVisibility()
+        end
     end)
     panel:SetScript("OnShow", function()
         ns._optionsOpen = true

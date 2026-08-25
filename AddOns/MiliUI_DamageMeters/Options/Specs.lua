@@ -92,7 +92,7 @@ Specs.SESSION_TYPES = {
 function Specs.WindowItems()
     local items = {}
     for i = 1, ns.DB.WindowCount() do
-        items[i] = { text = L["Window"] .. " " .. i, value = i }
+        items[i] = { text = ns.Windows.Label(i), value = i }
     end
     return items
 end

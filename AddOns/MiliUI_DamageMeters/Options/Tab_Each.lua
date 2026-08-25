@@ -42,6 +42,8 @@ local function Apply()
         W.Refresh()
     end
     RefreshAll()
+    -- 換選了哪一個 → 標示也要跟著換（這一頁開著才有意義）
+    if tab and tab:IsShown() then ns.Windows.ShowIdentify(selected) end
 end
 
 ------------------------------------------------------------
@@ -117,9 +119,11 @@ end)
 ns.RegisterCallback("ShowOptionsTab", "eachTab", function(id)
     if id ~= "each" then
         if tab then tab:Hide() end
+        ns.Windows.HideIdentify()
         return
     end
     Init()
     RefreshAll()
     tab:Show()
+    ns.Windows.ShowIdentify(selected)
 end)
