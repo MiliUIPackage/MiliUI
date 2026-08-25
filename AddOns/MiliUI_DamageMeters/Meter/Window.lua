@@ -355,9 +355,59 @@ function Win.LayoutHeaderButtons(W)
     return n
 end
 
+------------------------------------------------------------
+-- 「滑過才顯示」的收合：靠輪詢，不能靠 OnLeave
+--
+-- ⚠ 為什麼不用 OnLeave（原本就是那樣寫的，會卡住）：
+--   標題左邊的 typeBtn 是**覆蓋在 header 上的子按鈕，它會搶走滑鼠焦點**。
+--   游標從左側標題那一塊進來時 header 根本沒收到 OnEnter，自然也永遠等不到
+--   OnLeave —— 圖示就一直掛在那裡。慢慢移動之所以正常，是因為會經過標題與
+--   按鈕之間那條裸露的 header，剛好補觸發到；移動快就跳過去了。
+--   （症狀：游標明明已經在長條上了，右邊的圖示還在。）
+--
+--   `header:IsMouseOver()` 是**用矩形判斷**的，不管焦點在哪個子框都算數，
+--   所以一次檢查就涵蓋 typeBtn 與所有按鈕。
+--
+-- 成本：ticker 只在圖示顯示期間存在（＝游標正在標題列上），其餘時間零成本。
+------------------------------------------------------------
+local function StopHeaderHoverPoll(W)
+    if W._hdrHoverTicker then
+        W._hdrHoverTicker:Cancel()
+        W._hdrHoverTicker = nil
+    end
+end
+Win.StopHeaderHoverPoll = StopHeaderHoverPoll
+
+local SetHeaderIconsShown   -- 下面兩支互相呼叫，先宣告
+
+local function StartHeaderHoverPoll(W)
+    if W._hdrHoverTicker then return end
+    W._hdrHoverTicker = C_Timer.NewTicker(0.1, function()
+        local h = W.header
+        if not h or not h:IsShown() or not h:IsMouseOver() then
+            StopHeaderHoverPoll(W)
+            SetHeaderIconsShown(W, false)
+        end
+    end)
+end
+
+function SetHeaderIconsShown(W, shown)
+    local s = ns.DB.Style()
+    if not s.hdrMouseoverIcons then return end
+    if shown then StartHeaderHoverPoll(W) else StopHeaderHoverPoll(W) end
+    if W._hdrIconsShown == shown then return end
+    W._hdrIconsShown = shown
+    for _, btn in ipairs(W.hdrButtons) do
+        if shown and not HiddenByOption(btn, s) then btn:Show()
+        else btn:Hide() end
+    end
+    Win.FitTitle(W)
+end
+
 -- 選項：圖示藏到滑過標題列才出現
 function Win.ApplyHeaderHoverIcons(W)
     local s = ns.DB.Style()
+    StopHeaderHoverPoll(W)   -- 換模式時把上一輪的輪詢收掉
     if not s.hdrMouseoverIcons then
         W._hdrIconsShown = true
         for _, btn in ipairs(W.hdrButtons) do
@@ -368,18 +418,6 @@ function Win.ApplyHeaderHoverIcons(W)
     end
     W._hdrIconsShown = false
     for _, btn in ipairs(W.hdrButtons) do btn:Hide() end
-    Win.FitTitle(W)
-end
-
-local function SetHeaderIconsShown(W, shown)
-    local s = ns.DB.Style()
-    if not s.hdrMouseoverIcons then return end
-    if W._hdrIconsShown == shown then return end
-    W._hdrIconsShown = shown
-    for _, btn in ipairs(W.hdrButtons) do
-        if shown and not HiddenByOption(btn, s) then btn:Show()
-        else btn:Hide() end
-    end
     Win.FitTitle(W)
 end
 
@@ -749,7 +787,7 @@ function Win.Create(idx)
         self.hl:Show()
         W.typeIcon:SetAlpha(ICON_HOVER_ALPHA)
         -- 子按鈕會擋掉 header 的 OnEnter，右側那組「滑過才出現」的圖示得自己叫醒。
-        -- （離開那邊不用管：header 的 OnLeave 用 IsMouseOver 判斷，涵蓋整個標題列）
+        -- 收合不用管：輪詢會處理（而且正是因為這顆按鈕會搶焦點，收合才不能靠事件）
         SetHeaderIconsShown(W, true)
     end)
     typeBtn:SetScript("OnLeave", function(self)
@@ -769,18 +807,8 @@ function Win.Create(idx)
         if not ns.Move.EndHeaderDrag(W) then ns.Home.Toggle(W) end
     end)
 
+    -- 只需要 OnEnter：收合交給輪詢（見 SetHeaderIconsShown 上方的說明）
     header:SetScript("OnEnter", function() SetHeaderIconsShown(W, true) end)
-    header:SetScript("OnLeave", function()
-        -- 滑到子按鈕上時 header 也會收到 OnLeave，下一幀再確認一次真的離開了
-        C_Timer.After(0.05, function()
-            if not W.header then return end
-            if W.header:IsMouseOver() then return end
-            for _, btn in ipairs(W.hdrButtons) do
-                if btn:IsMouseOver() then return end
-            end
-            SetHeaderIconsShown(W, false)
-        end)
-    end)
 
     ------------------------------------------------------------
     -- 右鍵：整個視窗背景都能開選單

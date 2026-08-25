@@ -62,6 +62,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-vehicle-token-timing.md](wow-vehicle-token-timing.md) | `"vehicle"` 在還沒有資料之前就解得出來；`UNIT_PET` 才是重讀點，缺它整趟車顯示「未知目標」 |
 | [wow-unitclass-npc-returns-name.md](wow-unitclass-npc-returns-name.md) | `UnitClass` 對非玩家回單位名字 —— 寵物／載具要用 `UnitIsPlayer` 閘 |
 | [wow-playermodel-setunit-restreams.md](wow-playermodel-setunit-restreams.md) | 3D 頭像閃爍：`SetUnit` 沒有「就地刷新」；`UNIT_MODEL_CHANGED` 不是模型換了 |
+| [wow-child-frame-steals-mouse-focus.md](wow-child-frame-steals-mouse-focus.md) | 覆蓋在父框上的子按鈕會搶走滑鼠焦點 —— 症狀是「滑鼠移動快會卡住、慢慢移動正常」 |
 | [wow-setscript-clobbers-hookscript.md](wow-setscript-clobbers-hookscript.md) | `SetScript` 蓋掉 `HookScript`：腳本要在會掛勾的初始化之前設，失效是靜默的 |
 | [wow-3d-model-ignores-strata.md](wow-3d-model-ignores-strata.md) | 3D 模型不吃 strata／frame level，`SetModelDrawLayer` 也無效 —— 被視窗蓋住只能把 model alpha 歸零 |
 | [wow-keyboard-capture-blocks-bindings.md](wow-keyboard-capture-blocks-bindings.md) | 鍵盤啟用又不轉發的框會擋掉**全部**快捷鍵含 ESC —— 擷取按鍵要用顯示／隱藏覆蓋層 |
