@@ -482,7 +482,7 @@ local function Update(uf, edb, bucket)
     local r, g, b, a = Colors.Get(edb.colorMethod, uf, edb, frac, "barColor", "barAlpha")
     -- 閾值上色蓋在最後：不管上面選的是哪一種，血量低於門檻就換成門檻色。
     -- 只套在血條前景 —— 背景／能量條／施法條跟著變只會讓畫面更吵。
-    r, g, b, a = Colors.Threshold(uf, r, g, b, a)
+    r, g, b, a = Colors.Threshold(uf, edb, r, g, b, a)
     -- 用貼圖的 SetVertexColor 而不是 SetStatusBarColor：職業色可能是秘密分量
     -- （C_ClassColor 管道），貼圖 API 吃秘密值
     f.bar:GetStatusBarTexture():SetVertexColor(r, g, b, a)

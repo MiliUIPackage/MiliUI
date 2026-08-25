@@ -72,11 +72,6 @@ local CONTROLS = {
     { type = "color", sub = "colors", key = "hpRed",   label = L["Critical"] },
     { type = "color", sub = "colors", key = "gray",    label = L["Gray"] },
 
-    { type = "header", label = L["Threshold coloring"] },
-    { type = "toggle", sub = "healthThreshold", key = "enabled", label = L["Recolor below a threshold"] },
-    { type = "text",   label = L["Overrides whichever coloring method you picked: once health drops below this, the bar switches to the color below. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] },
-    { type = "slider", sub = "healthThreshold", key = "pct", label = L["Below this health"], min = 5, max = 95, step = 5 },
-    { type = "color",  sub = "healthThreshold", key = "color", label = L["Threshold color"], hasAlpha = false },
 
     { type = "header", label = L["Cast bar colors"] },
     { type = "text",   label = L["Every cast bar shares these colors; whether \"non-interruptible\" applies is set per unit. The defaults match the Platynator nameplate preset that ships with MiliUI, so the same cast state reads the same on both."] },

@@ -124,7 +124,22 @@ local function FrameSpecs(unitKey)
     return list
 end
 
-local function BarSpecs(name, isHP)
+-- 血量門檻那一列：按鈕寫著目前筆數，點開是編輯器（Options/HealthThresholds.lua）
+local function ThresholdRow(unitKey)
+    return function(parent, x, y)
+        local btn = W.CreateButton(parent, L["Health thresholds"], "normal", 200, 22)
+        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+        local function UpdateText()
+            btn:SetText(L["Health thresholds"] .. "  (" .. ns.HealthThresholds.Count(unitKey) .. ")")
+        end
+        btn:SetScript("OnClick", function()
+            ns.HealthThresholds.Open(unitKey, UpdateText)
+        end)
+        return 30, UpdateText
+    end
+end
+
+local function BarSpecs(name, isHP, unitKey)
     local list = {
         { type = "toggle", sub = name, key = "enabled", label = L["Show"] },
         { type = "header", label = L["Position and size"] },
@@ -176,6 +191,12 @@ local function BarSpecs(name, isHP)
         tinsert(list, { type = "toggle", sub = name, key = "showHealAbsorb", label = L["Heal absorb"] })
         tinsert(list, { type = "color", sub = name, key = "healAbsorbColor", label = L["Heal absorb color"] })
         tinsert(list, { type = "text", label = L["Debuffs that eat healing, such as Necrotic. Reverse-filled and drawn on top."] })
+
+        tinsert(list, { type = "header", label = L["Threshold coloring"] })
+        tinsert(list, { type = "toggle", sub = name, key = "thresholdEnabled",
+                        label = L["Recolor below a threshold"] })
+        tinsert(list, { type = "text", label = L["Overrides whichever coloring method you picked above: once health drops below a threshold, the bar switches to that threshold's color. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] })
+        tinsert(list, { type = "custom", label = "", build = ThresholdRow(unitKey) })
     end
     return list
 end
@@ -426,8 +447,8 @@ local function SpecsFor(unitKey, elementKey)
     local els = udb.elements
     if elementKey == "frame" then return FrameSpecs(unitKey) end
     if elementKey == "portrait" then return PortraitSpecs() end
-    if elementKey == "hpbar" then return BarSpecs("hpbar", true) end
-    if elementKey == "mpbar" then return BarSpecs("mpbar", false) end
+    if elementKey == "hpbar" then return BarSpecs("hpbar", true, unitKey) end
+    if elementKey == "mpbar" then return BarSpecs("mpbar", false, unitKey) end
     if elementKey == "manabar" then return ManaBarSpecs() end
     if elementKey == "castbar" then return CastbarSpecs() end
     if elementKey == "buffs" then return AuraSpecs("buffs", unitKey) end

@@ -150,14 +150,20 @@ methods.hpreddark = function(uf, edb, value, choice, alphaKey)
 end
 
 ------------------------------------------------------------
--- 閾值上色：血量低於門檻就換成指定顏色，蓋過玩家選的任何一種上色方式
+-- 閾值上色：血量低於門檻就換色，蓋過該單位血條選的任何一種上色方式
 --
--- ⚠ 判斷交給引擎，插件端不讀血量 —— 這是重點。受限單位（副本／M+／團隊）的血量
--- 是秘密值，自己抽明文抽不到就只能用舊值或猜，顏色會凍住。改成餵一條 Step 曲線
--- 給 UnitHealthPercent，由 C 端決定落在哪一段：
---     0        → 門檻色
---     門檻     → 原本的顏色
--- Step ＝ 到點才跳色，所以門檻以下一律門檻色、以上一律原色。
+-- 設定在**每個單位的血條**上（edb.thresholdEnabled / edb.thresholds），可以放
+-- 好幾個門檻，愈低的愈優先：例如 50% 橘、20% 紅 —— 20 以下紅、20~50 橘、
+-- 50 以上維持原色。
+--
+-- ⚠ 判斷交給引擎，插件端不讀血量。受限單位（副本／M+／團隊）的血量是秘密值，
+-- 自己抽明文抽不到就只能用舊值或猜，顏色會凍住。改成餵一條 Step 曲線給
+-- UnitHealthPercent，由 C 端決定落在哪一段。門檻由低到高排序後：
+--     (0,      最低門檻的顏色)
+--     (t1,     第二低門檻的顏色)
+--     ...
+--     (t最高,  原本的顏色)
+-- Step ＝取「最後一個 x ≤ 目前血量」的點，所以每一段都吃到正確的顏色。
 --
 -- ⚠⚠ 曲線的 x 軸是**原生的 0~1 血量比例**，不是 0~100。餵 0/50/100 的話所有值都
 -- 落在第一個點上 ⇒ 整條血條永遠是第一個點的顏色（實測：野外全紅）。
@@ -165,21 +171,34 @@ end
 local CreateColorCurve = C_CurveUtil and C_CurveUtil.CreateColorCurve
 local thresholdCurve
 
-function Colors.Threshold(uf, r, g, b, a)
-    local cfg = G().healthThreshold
-    if not (cfg and cfg.enabled) then return r, g, b, a end
-    local c = cfg.color or WHITE
-    local pct = cfg.pct or 35
+-- 由低到高。就地排序 edb.thresholds，排過的下次是 no-op
+local function SortedThresholds(edb)
+    local list = edb and edb.thresholds
+    if type(list) ~= "table" or #list == 0 then return nil end
+    table.sort(list, function(x, y) return (x.pct or 0) < (y.pct or 0) end)
+    return list
+end
+
+function Colors.Threshold(uf, edb, r, g, b, a)
+    if not (edb and edb.thresholdEnabled) then return r, g, b, a end
+    local list = SortedThresholds(edb)
+    if not list then return r, g, b, a end
 
     -- 預覽孿生的血量是假的明文，而曲線路會去讀**真實玩家**的血 → 自己判斷
     if uf.isPreview then
-        if (uf.cache.frachp or 1) * 100 <= pct then return c.r, c.g, c.b, a end
+        local pct = (uf.cache.frachp or 1) * 100
+        for _, t in ipairs(list) do
+            if pct < (t.pct or 0) then
+                local c = t.color or WHITE
+                return c.r, c.g, c.b, a
+            end
+        end
         return r, g, b, a
     end
 
     if not (CreateColorCurve and CreateColor) then return r, g, b, a end
-    -- ⚠ 原色要當成曲線的一個點餵進去，所以它必須讀得出來。職業色在受限單位上是
-    -- 秘密顏色（C_ClassColor 那條路）⇒ 這種情況放棄套用、維持原色，
+    -- ⚠ 原色要當成曲線的最後一個點餵進去，所以它必須讀得出來。職業色在受限單位上
+    -- 是秘密顏色（C_ClassColor 那條路）⇒ 這種情況放棄套用、維持原色，
     -- 不要拿秘密值去組曲線。
     if ns.IsSecret(r) then return r, g, b, a end
 
@@ -187,8 +206,20 @@ function Colors.Threshold(uf, r, g, b, a)
     local T = Enum.LuaCurveType
     if T and T.Step then thresholdCurve:SetType(T.Step) end
     thresholdCurve:ClearPoints()
-    thresholdCurve:AddPoint(0, CreateColor(c.r, c.g, c.b, 1))
-    thresholdCurve:AddPoint(pct / 100, CreateColor(r, g, b, 1))
+
+    -- 0 那個點吃最低門檻的顏色；第 i 個門檻的點吃「下一個門檻」的顏色；
+    -- 最高門檻的點吃原色
+    local first = (list[1] and list[1].color) or WHITE
+    thresholdCurve:AddPoint(0, CreateColor(first.r, first.g, first.b, 1))
+    for i = 1, #list do
+        local nextC = list[i + 1] and list[i + 1].color
+        local x = (list[i].pct or 0) / 100
+        if nextC then
+            thresholdCurve:AddPoint(x, CreateColor(nextC.r, nextC.g, nextC.b, 1))
+        else
+            thresholdCurve:AddPoint(x, CreateColor(r, g, b, 1))
+        end
+    end
 
     local ok, col = pcall(UnitHealthPercent, uf.unit, nil, thresholdCurve)
     if ok and col then return col.r, col.g, col.b, a end
