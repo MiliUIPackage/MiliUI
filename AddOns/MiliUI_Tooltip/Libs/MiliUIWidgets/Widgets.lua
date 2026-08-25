@@ -542,6 +542,7 @@ local function EnsureMenu()
     W.Stylize(menuFrame, { 0.1, 0.1, 0.1, 0.97 })
     menuFrame:SetBackdropBorderColor(W.Accent(0.8))   -- 跟下拉本體同一套職業色框
     menuFrame:Hide()
+    W.CloseOnEscape(menuFrame)
     menuFrame.items = {}
     menuFrame.offset = 0
     -- 內容比視窗高時靠裁切＋位移捲動（不用 ScrollFrame：項目是共用池，
@@ -567,6 +568,31 @@ local function EnsureMenu()
         end
     end)
     return menuFrame
+end
+
+------------------------------------------------------------
+-- ESC 關閉
+--
+-- 走暴雪的 `UISpecialFrames`，**絕對不要自己 EnableKeyboard 擷取按鍵** ——
+-- 鍵盤啟用又不轉發的框會擋掉**全部**快捷鍵（連 ESC 本身都會失效），
+-- 症狀是「視窗關不掉」。見 notes/wow-keyboard-capture-blocks-bindings。
+--
+-- ⚠ 兩個限制，決定了它只適合哪些東西：
+--   1. 它吃的是**全域名稱**，所以框必須具名（沒名字就掛一個到 _G）。
+--   2. 註冊之後**不會移除**，那張表只會長不會縮。
+--   → 只給「一個插件建不了幾個」的東西用：下拉選單、彈窗。
+--      **不要在迴圈或每次開啟時呼叫**，建立時叫一次就好。
+------------------------------------------------------------
+local escSeq = 0
+
+function W.CloseOnEscape(frame)
+    local name = frame:GetName()
+    if not name then
+        escSeq = escSeq + 1
+        name = NS .. "_EscFrame" .. escSeq
+        _G[name] = frame        -- UISpecialFrames 是靠 _G[name] 反查框的
+    end
+    tinsert(UISpecialFrames, name)
 end
 
 function W.CloseDropdowns()
@@ -821,6 +847,7 @@ function W.CreateChoicePopup(parent, width, text, choices)
     mask:Hide()
 
     local popup = W.CreateFrame(nil, parent, width, 96)
+    W.CloseOnEscape(popup)
     popup:SetFrameStrata("FULLSCREEN_DIALOG")
     popup:SetFrameLevel(410)
     popup:SetBackdropBorderColor(W.Accent(1))
@@ -865,6 +892,7 @@ function W.CreateConfirmPopup(parent, width, text, onAccept)
     mask:Hide()
 
     local popup = W.CreateFrame(nil, parent, width or 240, 84)
+    W.CloseOnEscape(popup)
     popup:SetFrameStrata("FULLSCREEN_DIALOG")
     popup:SetFrameLevel(410)
     popup:SetBackdropBorderColor(W.Accent(1))
@@ -1033,6 +1061,7 @@ function W.CreateInputPopup(parent, width, title, fields)
     mask:Hide()
 
     local popup = W.CreateFrame(nil, parent, width, 100)
+    W.CloseOnEscape(popup)
     popup:SetFrameStrata("FULLSCREEN_DIALOG")
     popup:SetFrameLevel(410)
     popup:SetBackdropBorderColor(W.Accent(1))
