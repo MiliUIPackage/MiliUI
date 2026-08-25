@@ -53,8 +53,13 @@ local function StyleFont(fs)
     fs:SetFont(M.Font(s and s.font), FONT_SZ, "")
 end
 
+-- ⚠ 具名：ESC 關閉走暴雪的 UISpecialFrames，而它是靠**全域名稱**反查框的。
+-- 名字必須唯一 —— 具名 frame 撞名會拿到既有物件而不是新的，而且不報錯。
+local panelSeq = 0
+
 local function MakePanel()
-    local f = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+    panelSeq = panelSeq + 1
+    local f = CreateFrame("Frame", "MiliUIDM_ContextMenu" .. panelSeq, UIParent, "BackdropTemplate")
     f:SetFrameStrata("FULLSCREEN_DIALOG")
     f:EnableMouse(true)
     f:SetBackdrop({
@@ -67,6 +72,28 @@ local function MakePanel()
     f.rows = {}
     f:Hide()
     return f
+end
+
+------------------------------------------------------------
+-- ESC 關閉
+--
+-- 借共用層那支（Widgets.lua 的 W.CloseOnEscape）——邏輯只該有一份。
+-- 它比本檔晚載入，但這裡是**執行期**（第一次開選單）才呼叫，查得到。
+--
+-- 只註冊主面板：暴雪的 CloseSpecialWindows 會把表裡**所有**顯示中的框一起關掉，
+-- 而子選單只在主面板開著時才存在 —— 主面板的 OnHide 會把它一起收掉。
+--
+-- ⚠ ESC 是**繞過 Menu.Hide() 直接 Hide 框**的，所以收尾一定要掛在 OnHide 上，
+--   不能只寫在 Menu.Hide 裡。漏了的話：ESC 之後那層全螢幕的點擊攔截器還留著，
+--   下一次點擊會被它吃掉（症狀是「按了 ESC 之後第一下點不到東西」）。
+------------------------------------------------------------
+local function SetupEscape(f)
+    if ns.W and ns.W.CloseOnEscape then ns.W.CloseOnEscape(f) end
+    f:SetScript("OnHide", function()
+        if _sub then _sub:Hide() end
+        if _catcher then _catcher:Hide() end
+        _anchorBtn = nil
+    end)
 end
 
 local function EnsureRow(panel, idx)
@@ -326,6 +353,7 @@ function Menu.Show(items, anchorBtn, keepAnchor)
     if not _main then
         _main = MakePanel()
         _main:SetFrameLevel(EnsureCatcher():GetFrameLevel() + 5)
+        SetupEscape(_main)
     end
     EnsureCatcher():Show()
     if _sub then _sub:Hide() end
