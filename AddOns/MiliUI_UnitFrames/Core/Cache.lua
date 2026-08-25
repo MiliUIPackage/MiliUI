@@ -61,7 +61,13 @@ end
 
 local function UpdateHealthFields(uf)
     local cache, unit = uf.cache, uf.unit
-    cache.frachp = PlainFrac(UnitHealthPercent(unit, false, _scale), cache.frachp)
+    -- ⚠ 第二個參數是 **usePredicted**，官方預設就是 true（引擎用戰鬥記錄補上伺服器
+    -- 還沒確認的傷害，值比較即時）。這裡原本傳 false —— 看起來是照抄下面那行
+    -- UnitPowerPercent 的位置，但**那個位置在能量那支是 unmodified**，false 才對。
+    -- 傳 false 的後果：百分比比暴雪自己的框與名條慢一拍，猛烈掉血時差距很明顯
+    -- （玩家回報「數據不準」就是拿名條對比出來的）。
+    -- 這個布林**不控制秘密值**，決定型別的是第三個參數 curve。
+    cache.frachp = PlainFrac(UnitHealthPercent(unit, true, _scale), cache.frachp)
     cache.perchp = cache.frachp * 100
     cache.dead = UnitIsDeadOrGhost(unit) and true or false
     cache.ghost = UnitIsGhost(unit) and true or false
