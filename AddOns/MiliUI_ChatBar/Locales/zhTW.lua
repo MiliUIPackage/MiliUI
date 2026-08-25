@@ -30,9 +30,6 @@ L["CHANNEL_SETTINGS_TITLE"] = "頻道設定"
 L["CHANNEL_SETTINGS_DESC"] = "顯示或隱藏個別頻道按鈕"
 
 -- Context Menu
-L["CONTEXT_LOCK_UNLOCK"] = "鎖定/解鎖"
-L["CONTEXT_RESET_POSITION"] = "重置位置"
-L["CONTEXT_TOGGLE_ORIENTATION"] = "切換方向"
 L["CONTEXT_OPEN_SETTINGS"] = "開啟設定"
 
 -- Messages
@@ -94,5 +91,13 @@ L["VERSION_FORMAT"]    = "版本：%s"
 L["OPEN_HINT"]         = "輸入 /mchatbar 開啟設定"
 L["BTN_OPEN_OPTIONS"]  = "開啟設定"
 L["ABOUT_USAGE"]       = "點一格色塊就切到那個聊天頻道。解鎖後可以拖曳移動，右鍵聊天列會跳出快捷選單。"
-L["ABOUT_TAB"]         = "指令：|cffffd200/mchatbar|r 開啟設定，|cffffd200/mchatbar reset|r 把聊天列放回左下角。"
+L["ABOUT_TAB"]         = "指令：|cffffd200/mchatbar|r 開啟設定，|cffffd200/mchatbar reset|r 把聊天列放回預設位置。"
 L["ABOUT_AUTHOR"]      = "作者：米利（米利UI套組）"
+-- 磁吸與自適應寬度
+L["MENU_LOCK"]              = "鎖定聊天列"
+L["GROUP_WITH_CHAT"]        = "聊天列與聊天視窗同組"
+L["GROUP_WITH_CHAT_DESC"]   = "聊天列吸附在聊天視窗上，聊天視窗被拖動或改變大小時跟著走。拖曳時按住 Shift 放開就不吸附。"
+L["MATCH_CHAT_WIDTH"]       = "總寬度對齊聊天視窗"
+L["MATCH_CHAT_WIDTH_DESC"]  = "僅橫向排列：聊天列的總寬度跟聊天視窗一樣寬。"
+L["AUTO_BUTTON_WIDTH"]      = "按鈕寬度自適應"
+L["AUTO_BUTTON_WIDTH_DESC"] = "把總寬度平分給看得到的按鈕，此時「按鈕寬度」由程式決定、不能調整。"

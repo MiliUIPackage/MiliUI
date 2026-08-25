@@ -30,9 +30,6 @@ L["CHANNEL_SETTINGS_TITLE"] = "채널 설정"
 L["CHANNEL_SETTINGS_DESC"] = "개별 채널 버튼 표시 또는 숨기기"
 
 -- Context Menu
-L["CONTEXT_LOCK_UNLOCK"] = "잠금/해제"
-L["CONTEXT_RESET_POSITION"] = "위치 초기화"
-L["CONTEXT_TOGGLE_ORIENTATION"] = "방향 전환"
 L["CONTEXT_OPEN_SETTINGS"] = "설정 열기"
 
 -- Messages

@@ -35,6 +35,14 @@ local function InitDB()
     if cb.ButtonWidth       == nil then cb.ButtonWidth       = width        end
     if cb.ButtonHeight      == nil then cb.ButtonHeight      = height       end
     if cb.FontSize          == nil then cb.FontSize          = 9            end
+    -- 跟聊天視窗綁在一起：預設開。位置本身存在 cb.Position，由 Anchor.lua 管
+    -- （舊玩家的 SetUserPlaced 位置在 Anchor.Init 抄過來，所以這裡不給預設值）
+    if cb.GroupWithChat     == nil then cb.GroupWithChat     = true         end
+
+    -- 自適應寬度預設開（舊玩家一起）。原本的按鈕寬度沒有被丟掉，只是先不生效，
+    -- 取消勾選就會整條回到原本的樣子。
+    if cb.MatchChatWidth    == nil then cb.MatchChatWidth    = true         end
+    if cb.AutoButtonWidth   == nil then cb.AutoButtonWidth   = true         end
 end
 
 --------
@@ -93,8 +101,18 @@ local Chatbar = CreateFrame("Frame", "MiliUI_ChatBar", UIParent, "BackdropTempla
 Chatbar:SetSize(width, height)
 Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
 Chatbar:SetMovable(true)
+-- ⚠ 這裡的 true 是**給舊玩家搬家用的**，不是還在用暴雪存位置。
+-- 開著它，暴雪才會在載入時把舊版存下來的位置擺回來，Anchor.Init 才抄得到；
+-- 抄完它就會把 UserPlaced 關掉，之後位置全部由 SavedVariables 管。
 Chatbar:SetUserPlaced(true)
 Chatbar:SetClampedToScreen(true)
+-- 放開拖曳：位置與吸附全部交給 Anchor.lua 決定（按住 Shift 放開＝不吸）。
+-- 位置不再走 SetUserPlaced，錨在聊天視窗上的位置暴雪存不了。
+local function StopDragging()
+    Chatbar:StopMovingOrSizing()
+    if ns.Anchor then ns.Anchor.OnDragStop() end
+end
+
 -- Create a mover/handle
 local Mover = CreateFrame("Frame", nil, Chatbar, "BackdropTemplate")
 Mover:SetAllPoints()
@@ -102,7 +120,7 @@ Mover:SetFrameLevel(Chatbar:GetFrameLevel() + 5)
 Mover:EnableMouse(true)
 Mover:RegisterForDrag("LeftButton")
 Mover:SetScript("OnDragStart", function() Chatbar:StartMoving() end)
-Mover:SetScript("OnDragStop", function() Chatbar:StopMovingOrSizing() end)
+Mover:SetScript("OnDragStop", StopDragging)
 
 -- Edit Mode Integration
 -- When WoW's Edit Mode is active, allow dragging regardless of lock state
@@ -116,7 +134,7 @@ EditModeSelection:Hide()
 -- Make EditModeSelection draggable
 EditModeSelection:RegisterForDrag("LeftButton")
 EditModeSelection:SetScript("OnDragStart", function() Chatbar:StartMoving() end)
-EditModeSelection:SetScript("OnDragStop", function() Chatbar:StopMovingOrSizing() end)
+EditModeSelection:SetScript("OnDragStop", StopDragging)
 
 -- Add system info for the selection template
 EditModeSelection.system = {
@@ -576,10 +594,15 @@ bgFrame:SetPoint("RIGHT", Chatbar, "RIGHT")
 bgFrame:SetHeight(18)
 bgFrame:SetFrameLevel(Chatbar:GetFrameLevel() - 1)
 
+-- 自適應時按鈕最窄壓到幾像素。頻道多的時候平分下來會很細，但再細就只剩一條線、
+-- 點不到也看不出顏色了 —— 寧可讓整條稍微超出聊天視窗也不要有點不到的按鈕。
+local MIN_AUTO_BUTTON_W = 6
+
 -- Layout Logic
 UpdateLayout = function()
     if InCombatLockdown() then return end
-    local orientation = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.Orientation) or "HORIZONTAL"
+    local cb = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar) or {}
+    local orientation = cb.Orientation or "HORIZONTAL"
     local bw = GetButtonWidth()
     local bh = GetButtonHeight()
     local endPadding = 10 -- Main axis padding
@@ -608,6 +631,8 @@ UpdateLayout = function()
         Chatbar:SetSize(bw, barHeight)
         
         for i, bu in ipairs(visibleButtons) do
+            -- 直向沒有自適應寬度，但橫向可能剛把寬度算成別的值，這裡要收回來
+            bu:SetSize(bw, bh)
             bu:ClearAllPoints()
             if i == 1 then
                 bu:SetPoint("TOP", Chatbar, "TOP", 0, -vTopPadding)
@@ -626,20 +651,42 @@ UpdateLayout = function()
         
     else
         -- HORIZONTAL
-        
+
+        ------------------------------------------------------------
+        -- 自適應寬度
+        --
+        -- 兩段獨立的開關：
+        --   MatchChatWidth  → 整條的總寬度＝聊天視窗的寬度（跟著它一起變）
+        --   AutoButtonWidth → 再把總寬度扣掉內距與間隔之後，由按鈕顆數平分
+        -- 只在橫向有意義：直向那條是「一排往下」，寬度對齊聊天視窗沒有意義。
+        -- 拿不到聊天視窗（還沒建好／玩家關掉了）就整組退回手動寬度，不要留一條
+        -- 寬度為零的空棒子在畫面上。
+        ------------------------------------------------------------
+        local n = #visibleButtons
+        local chatWidth = cb.MatchChatWidth and ns.Anchor and ns.Anchor.ChatWidth() or nil
+
+        if chatWidth and cb.AutoButtonWidth and n > 0 then
+            local avail = chatWidth - (endPadding * 2) - ((n - 1) * padding)
+            bw = math.max(MIN_AUTO_BUTTON_W, math.floor(avail / n))
+        end
+
         -- Width calculation uses endPadding (Left/Right)
-        local totalButtonWidth = (#visibleButtons * bw) + ((#visibleButtons - 1) * padding)
+        local totalButtonWidth = (n * bw) + ((n - 1) * padding)
         local fitWidth = totalButtonWidth + (endPadding * 2)
-        
-        local barWidth = fitWidth
+
+        local barWidth = chatWidth or fitWidth
         -- Height calculation uses sidePadding (Top/Bottom)
         local barHeight = bh + (sidePadding * 2) -- e.g., 8 + 10 = 18
-        
+
         Chatbar:SetSize(barWidth, barHeight)
-        
-        local startOffset = endPadding -- Align left with endPadding
-        
+
+        -- 整排置中。沒有對齊聊天視窗的時候 barWidth 剛好是 fitWidth，算出來就是
+        -- endPadding，跟以前一樣靠左；有對齊的時候多出來的寬度才會左右平分
+        -- —— 平分不盡的餘數（floor）也一起被吃掉，右邊不會單獨留一條縫。
+        local startOffset = math.max(0, math.floor((barWidth - totalButtonWidth) / 2))
+
         for i, bu in ipairs(visibleButtons) do
+            bu:SetSize(bw, bh)
             bu:ClearAllPoints()
             if i == 1 then
                 bu:SetPoint("LEFT", Chatbar, "LEFT", startOffset, 0)
@@ -657,101 +704,38 @@ UpdateLayout = function()
     end
 end
 
--- Hook into ChatFrame1 resize
-if ChatFrame1 then
-    ChatFrame1:HookScript("OnSizeChanged", function()
-        UpdateLayout()
-    end)
-end
+-- 聊天視窗改變大小要重排（總寬度對齊聊天視窗時尤其明顯）。
+-- 掛勾的對象由 Anchor 決定 —— Chattynator 在的話真正的聊天視窗不是 ChatFrame1。
 
 -- Initial Layout
 UpdateLayout()
 
--- Simple flat color
+------------------------------------------------------------
+-- 底色：跟 MiliUI_DamageMeters 的視窗底色同一個灰
+--
+-- 出處是 Chattynator 自己的預設值 —— 分頁底色 `#1a1a1a` 配
+-- `skins.dark.chat_transparency = 0.2` → alpha 0.8。聊天列就貼在聊天視窗下面，
+-- 跟統計視窗並排時三個東西必須是**同一個灰**，各填一個很接近的數字日後會悄悄分岔。
+-- 改這個值的時候記得同步 MiliUI_DamageMeters/Core/DB.lua 的 DARK_BG。
+--
+-- 這個值沒有進 SavedVariables（一直都是寫死的），所以不需要遷移：
+-- 舊玩家 /reload 之後直接就是新的顏色。
+------------------------------------------------------------
+local DARK_BG = 0x1A / 255   -- 0.102
+
 local grad = bgFrame:CreateTexture(nil, "BACKGROUND")
 grad:SetAllPoints()
-grad:SetColorTexture(0, 0, 0, 0.5)
+grad:SetColorTexture(DARK_BG, DARK_BG, DARK_BG, 0.8)
 
--- Context Menu
-local contextMenu
-local function CreateContextMenu()
-    if contextMenu then return end
-    contextMenu = CreateFrame("Frame", "MiliUI_ChatbarContextMenu", UIParent, "BackdropTemplate")
-    contextMenu:SetSize(120, 115) -- Increased height for new button
-    contextMenu:SetFrameStrata("DIALOG")
-    CreateSD(contextMenu)
-    contextMenu:SetBackdropColor(0, 0, 0, 0.9)
-    contextMenu:Hide()
-    
-    local close = CreateFrame("Button", nil, contextMenu, "UIPanelCloseButton")
-    close:SetPoint("TOPRIGHT", 0, 0)
-    
-    table.insert(UISpecialFrames, "MiliUI_ChatbarContextMenu")
-    
-    local function CreateMenuButton(text, func)
-        local btn = CreateFrame("Button", nil, contextMenu, "UIPanelButtonTemplate")
-        btn:SetSize(110, 20)
-        btn:SetText(text)
-        btn:SetScript("OnClick", function() 
-            func() 
-            contextMenu:Hide() 
-        end)
-        return btn
-    end
-    
-    -- 右鍵選單改到的欄位設定視窗也有一份，開著的話要跟著更新
-    -- （ns.Fire 來自 Libs/Callbacks.lua，載入順序在本檔之後，所以先確認有沒有）
-    local function Changed()
-        if ns.Fire then ns.Fire("SettingsChanged") end
-    end
-
-    local lockBtn = CreateMenuButton(L["CONTEXT_LOCK_UNLOCK"], function()
-        MiliUI_ChatBar_DB.Chatbar.Locked = not MiliUI_ChatBar_DB.Chatbar.Locked
-        UpdateMoverState()
-        if MiliUI_ChatBar_DB.Chatbar.Locked then
-            print(L["MSG_LOCKED"])
-        else
-            print(L["MSG_UNLOCKED"])
-        end
-        Changed()
-    end)
-    lockBtn:SetPoint("TOP", 0, -10)
-    
-    local resetBtn = CreateMenuButton(L["CONTEXT_RESET_POSITION"], function()
-        Chatbar:ClearAllPoints()
-        Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
-        UpdateLayout()
-        print(L["MSG_RESET"])
-    end)
-    resetBtn:SetPoint("TOP", lockBtn, "BOTTOM", 0, -5)
-    
-    local orientBtn = CreateMenuButton(L["CONTEXT_TOGGLE_ORIENTATION"], function()
-        if MiliUI_ChatBar_DB.Chatbar.Orientation == "VERTICAL" then
-            MiliUI_ChatBar_DB.Chatbar.Orientation = "HORIZONTAL"
-        else
-            MiliUI_ChatBar_DB.Chatbar.Orientation = "VERTICAL"
-        end
-        UpdateLayout()
-        Changed()
-    end)
-    orientBtn:SetPoint("TOP", resetBtn, "BOTTOM", 0, -5)
-
-    local menuBtn = CreateMenuButton(L["CONTEXT_OPEN_SETTINGS"], function()
-        if ns.OpenSettings then ns.OpenSettings() end
-    end)
-    menuBtn:SetPoint("TOP", orientBtn, "BOTTOM", 0, -5)
-end
-
--- Right click on background to show context menu
+------------------------------------------------------------
+-- 右鍵選單
+--
+-- 選單本體在 Menu.lua（載入順序在共用層之後，所以這裡只在被點到的時候問一次
+-- 有沒有 ns.ShowBarMenu）。這支只負責「哪裡按右鍵會叫出它」。
+------------------------------------------------------------
 local function OnContextClick(self, btn)
-    if btn == "RightButton" then
-        if not contextMenu then CreateContextMenu() end
-        -- Position menu at cursor
-        local x, y = GetCursorPosition()
-        local scale = UIParent:GetEffectiveScale()
-        contextMenu:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x/scale, y/scale)
-        contextMenu:Show()
-    end
+    if btn ~= "RightButton" then return end
+    if ns.ShowBarMenu then ns.ShowBarMenu() end
 end
 
 bgFrame:EnableMouse(true)
@@ -808,8 +792,9 @@ loader:SetScript("OnEvent", function(self, event)
         return
     end
 
-    -- 離開戰鬥後補跑：戰鬥中被擋掉的顯示變更在這裡補上
+    -- 離開戰鬥後補跑：戰鬥中被擋掉的顯示變更與位置在這裡補上
     if event == "PLAYER_REGEN_ENABLED" then
+        if ns.Anchor then ns.Anchor.Apply() end
         UpdateButtonVisibility()
         return
     end
@@ -857,6 +842,14 @@ loader:SetScript("OnEvent", function(self, event)
     -- Update DBM button with saved pull seconds
     UpdateDBMButton()
 
+    -- 位置／吸附。這一步會把舊玩家的 SetUserPlaced 位置抄進 DB，所以要在
+    -- 任何 SetPoint 之後才跑（不然抄到的是程式寫死的初始值）。
+    -- 跑完才知道聊天視窗在哪、多寬 ⇒ 再重排一次，自適應寬度才吃得到。
+    if ns.Anchor then
+        ns.Anchor.Init()
+        UpdateLayout()
+    end
+
     -- Delayed final refresh to catch any channel buttons added late
     C_Timer.After(2, function()
         if ns.RefreshChannelList then ns.RefreshChannelList() end
@@ -879,12 +872,45 @@ ns.UpdateButtonSize       = function() UpdateButtonSize() end
 ns.UpdateButtonVisibility = function() UpdateButtonVisibility() end
 ns.UpdateMoverState       = function() UpdateMoverState() end
 
--- 位置重置：錨點寫死成預設的左下角，再重排一次
+-- 位置重置：回到預設（吸在聊天視窗下；沒有聊天視窗就左下角），再重排一次
 function ns.ResetPosition()
-    Chatbar:ClearAllPoints()
-    Chatbar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
+    if ns.Anchor then ns.Anchor.Reset() end
     UpdateLayout()
     print(L["MSG_RESET"])
+end
+
+------------------------------------------------------------
+-- 右鍵選單與設定頁共用的三個開關
+--
+-- 兩邊都會改到同樣的東西，副作用（重排、存檔、通知另一邊刷新）只寫一份。
+-- ns.Fire 來自 Libs/Callbacks.lua，載入順序在本檔之後 ⇒ 呼叫前先確認有沒有。
+------------------------------------------------------------
+local function Changed()
+    if ns.Fire then ns.Fire("SettingsChanged") end
+end
+
+function ns.SetLocked(locked)
+    InitDB()
+    MiliUI_ChatBar_DB.Chatbar.Locked = locked and true or false
+    UpdateMoverState()
+    print(locked and L["MSG_LOCKED"] or L["MSG_UNLOCKED"])
+    Changed()
+end
+
+function ns.SetOrientation(orientation)
+    InitDB()
+    MiliUI_ChatBar_DB.Chatbar.Orientation =
+        (orientation == "VERTICAL") and "VERTICAL" or "HORIZONTAL"
+    UpdateLayout()
+    Changed()
+end
+
+function ns.SetGroupWithChat(grouped)
+    InitDB()
+    MiliUI_ChatBar_DB.Chatbar.GroupWithChat = grouped and true or false
+    if ns.Anchor then ns.Anchor.OnSettingsChanged() end
+    UpdateLayout()
+    Changed()
 end
 
 -- 一顆按鈕現在的顏色（自訂色優先，其次頻道預設色）

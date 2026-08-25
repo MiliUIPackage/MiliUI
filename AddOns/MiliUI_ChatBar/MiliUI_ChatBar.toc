@@ -20,12 +20,14 @@ embeds.xml
 Locales\Locales.xml
 
 ChatBar.lua
+Anchor.lua
 Fix_ReplyTell.lua
 
 Libs\Callbacks.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\Controls.lua
+Menu.lua
 Options\Panel.lua
 Options\Tab_General.lua
 Options\Tab_Channels.lua

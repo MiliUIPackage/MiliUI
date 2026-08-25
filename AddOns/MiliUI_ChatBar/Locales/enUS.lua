@@ -29,9 +29,6 @@ L["CHANNEL_SETTINGS_TITLE"] = "Channel Settings"
 L["CHANNEL_SETTINGS_DESC"] = "Show or hide individual channel buttons"
 
 -- Context Menu
-L["CONTEXT_LOCK_UNLOCK"] = "Lock/Unlock"
-L["CONTEXT_RESET_POSITION"] = "Reset Position"
-L["CONTEXT_TOGGLE_ORIENTATION"] = "Toggle Orientation"
 L["CONTEXT_OPEN_SETTINGS"] = "Open Settings"
 
 -- Messages
@@ -93,5 +90,13 @@ L["VERSION_FORMAT"]    = "Version: %s"
 L["OPEN_HINT"]         = "Use /mchatbar to open options"
 L["BTN_OPEN_OPTIONS"]  = "Open options"
 L["ABOUT_USAGE"]       = "Click a block to switch your chat channel. Drag the bar by its left edge when it is unlocked, or right-click it for a quick menu."
-L["ABOUT_TAB"]         = "Commands: |cffffd200/mchatbar|r opens the options, |cffffd200/mchatbar reset|r puts the bar back to the bottom-left corner."
+L["ABOUT_TAB"]         = "Commands: |cffffd200/mchatbar|r opens the options, |cffffd200/mchatbar reset|r puts the bar back to its default position."
 L["ABOUT_AUTHOR"]      = "Author: Mili (MiliUI package)"
+-- Anchoring / adaptive width
+L["MENU_LOCK"]              = "Lock the bar"
+L["GROUP_WITH_CHAT"]        = "Group with chat window"
+L["GROUP_WITH_CHAT_DESC"]   = "Snap the bar to the chat window and keep it there when the chat window is moved or resized. Hold Shift while dropping the bar to place it freely."
+L["MATCH_CHAT_WIDTH"]       = "Match chat window width"
+L["MATCH_CHAT_WIDTH_DESC"]  = "Horizontal layout only: the bar is exactly as wide as the chat window."
+L["AUTO_BUTTON_WIDTH"]      = "Auto button width"
+L["AUTO_BUTTON_WIDTH_DESC"] = "Split that width evenly between the visible buttons. Button Width is then computed for you."
