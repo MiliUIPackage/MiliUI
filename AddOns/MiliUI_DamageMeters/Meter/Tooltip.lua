@@ -19,7 +19,7 @@ local MAX_ROWS = 8
 local ROW_H    = 16
 local ROW_SP   = 1
 local HDR_H    = 20
-local WIDTH    = 288   -- 比原本寬一點：數值多了佔比那一欄
+local WIDTH    = 288   -- 只在拿不到本體視窗寬度時才用（見 Populate）
 local PAD      = 4
 
 local _frame, _bars, _ticker
@@ -104,6 +104,11 @@ local function Populate(bar)
     local s = ns.DB.Style()
     local fs = math.max(8, (s.leftFontSize or 11) - 1)
 
+    -- 寬度跟本體視窗一樣：預覽是那一列的延伸，寬度對不齊看起來像另一個東西。
+    -- （視窗 frame 的幾何是乾淨的 —— 秘密值只餵給 bar.fill / bar.line）
+    local W_frame = W.frame
+    _frame:SetWidth((W_frame and W_frame:GetWidth()) or WIDTH)
+
     Win.SetFont(_frame.title, s.leftFontSize or 11)
     Win.SetFont(_frame.subtitle, fs)
 
@@ -155,7 +160,8 @@ local function Populate(bar)
                 end
                 rows[#rows + 1] = {
                     spellID = sp.spellID,
-                    name = name or sp.creatureName,
+                    name = name,
+                    pet = sp.creatureName,   -- 寵物／守護物；玩家自己放的是空的
                     amount = sp.totalAmount,
                 }
             end
@@ -209,8 +215,9 @@ local function Populate(bar)
             Win.SetFont(tb.amount, fs)
             tb.label:SetTextColor(0.9, 0.9, 0.9)
             tb.amount:SetTextColor(1, 1, 1)
-            -- 名字可能是秘密：交給 SetFormattedText，不要走 Lua 的字串運算
-            tb.label:SetFormattedText("%s", row.name or ns.L["Unknown"])
+            -- 名字可能是秘密：交給 SetFormattedText，不要走 Lua 的字串運算。
+            -- 寵物放的技能標註方式跟展開頁共用同一支（法術名 (寵物名)）
+            D.SpellLabel(tb.label, row.name, row.pet, ns.L["Unknown"])
             -- 格式跟展開頁一字不差（Breakdown.lua 的 RefreshSpells）：
             -- 同一筆資料在兩個地方長得不一樣，玩家會以為是兩種東西
             if total and not D.IsSecret(row.amount) and type(row.amount) == "number" then

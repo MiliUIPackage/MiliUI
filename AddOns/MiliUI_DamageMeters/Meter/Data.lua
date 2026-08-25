@@ -164,6 +164,26 @@ function D.FormatValue(amt, perSec, numFmt)
     return D.Abbrev(amt)
 end
 
+------------------------------------------------------------
+-- 法術標籤：寵物／守護物放的技能，後面用灰括號標出施法者
+--
+-- 來源是 `spell.creatureName`。本來只拿它當「查不到法術名」的退路，但它其實是
+-- **施法的寵物名**（Details 也是這樣用的：`法術名 (creatureName)`）。
+-- 玩家自己放的技能這一欄是空的。
+--
+-- ⚠ 它可能是秘密字串：串接與 SetFormattedText 都合法（C 端吃得下、FontString
+--   顯示得出來），但**不能測 `~= ""`**，所以秘密的那條路要先分出來。
+------------------------------------------------------------
+function D.SpellLabel(fs, spellName, creatureName, fallback)
+    if issecret(creatureName) then
+        fs:SetFormattedText("%s (|cFF999999%s|r)", spellName or fallback, creatureName)
+    elseif spellName and creatureName and creatureName ~= "" then
+        fs:SetFormattedText("%s (|cFF999999%s|r)", spellName, creatureName)
+    else
+        fs:SetText(spellName or creatureName or fallback)
+    end
+end
+
 function D.StripRealm(name)
     if name == nil then return "?" end
     if Ambiguate then return Ambiguate(name, "short") or name end

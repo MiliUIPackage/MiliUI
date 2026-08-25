@@ -552,7 +552,7 @@ local function RefreshSpells(W)
             local ok, sn = pcall(C_Spell.GetSpellName, spID)
             if ok then spellName = sn end
         end
-        bar.label:SetText(spellName or spell.creatureName or ns.L["Unknown"])
+        D.SpellLabel(bar.label, spellName, spell.creatureName, ns.L["Unknown"])
 
         if canPercent and total > 0 then
             bar.amount:SetFormattedText("%s  %.1f%%", D.Abbrev(spell.totalAmount),
