@@ -589,6 +589,18 @@ function W.CreateDropdown(parent, width, items, onSelect)
         end
     end)
 
+    -- ⚠ 展開中的選單是掛在 UIParent 上的**共用框**，不是這顆下拉的子物件，所以
+    -- 下拉被藏起來時它不會跟著消失 —— 切分頁／切單位／切元件／關掉整個視窗，
+    -- 都會留下一張浮在畫面上、還吃滑鼠與滾輪的選單（看起來就是「選單卡住」）。
+    -- 讓擁有者自己收尾，就不必在每一個切換點都記得呼叫 CloseDropdowns，
+    -- 之後新增的分頁與清單也自動免疫。
+    -- 用 HookScript：這支的 OnHide 目前沒別人用，但不要把位置佔死。
+    dd:HookScript("OnHide", function(self)
+        if menuFrame and menuFrame.owner == self then
+            menuFrame:Hide()      -- 選單的 OnHide 會把 owner 的展開色還原
+        end
+    end)
+
     dd.text = dd:CreateFontString(nil, "OVERLAY")
     dd.text:SetFontObject(fontNormal)
     dd.text:SetPoint("LEFT", 5, 0)
