@@ -53,7 +53,7 @@ local CONTROLS = {
     { type = "toggle", key = "showSpellTooltips", label = L["Show the game tooltip on breakdown rows"] },
     { type = "toggle", key = "hideResetButton", label = L["Hide the reset button in the title bar"] },
     { type = "toggle", key = "hideSettingsButton", label = L["Hide the settings button in the title bar"] },
-    { type = "text",   label = L["Both on by default. The gear opens the same menu as right-clicking the window, and resetting is destructive enough that it should not sit under a stray click — right-click still has both, and /mdm reset works too."] },
+    { type = "toggle", key = "hideLockButton", label = L["Hide the lock button in the title bar"] },
 
     { type = "header", label = L["Data"] },
     { type = "button", label = L["Combat data"], text = L["Reset all segments"], color = "red",

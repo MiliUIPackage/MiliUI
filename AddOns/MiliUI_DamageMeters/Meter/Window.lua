@@ -322,6 +322,9 @@ end
 local HIDE_OPTION = {
     reset    = "hideResetButton",
     settings = "hideSettingsButton",
+    -- ⚠ 鎖頭的 key 會在這兩個值之間切換（見 Win.UpdateLockIcon），兩個都要列
+    locked   = "hideLockButton",
+    unlocked = "hideLockButton",
 }
 
 local function HiddenByOption(btn, s)

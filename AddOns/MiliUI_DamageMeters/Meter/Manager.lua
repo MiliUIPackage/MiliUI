@@ -234,15 +234,6 @@ function Windows.ShowContextMenu(W, btn, redraw)
         { text = L["Segments"],   value = CurrentSegmentLabel(W), submenu = SegmentItems(W) },
         { isSeparator = true },
         {
-            text = L["Lock window"], isActive = wdb.locked, keepOpen = true,
-            onClick = function()
-                wdb.locked = not wdb.locked
-                Win.UpdateLockIcon(W)
-                ns.Move.ApplyLock(W)
-                Windows.ShowContextMenu(W, btn, true)   -- 原地重畫勾選狀態
-            end,
-        },
-        {
             text = L["Hide the timer"], isActive = wdb.hideTimer, keepOpen = true,
             onClick = function()
                 wdb.hideTimer = not wdb.hideTimer
@@ -279,6 +270,18 @@ function Windows.ShowContextMenu(W, btn, redraw)
         },
         { isSeparator = true },
         { text = L["Reset data"], onClick = function() ns.Combat.ResetData() end },
+        -- 鎖定放在這裡而不是上面那組開關：標題列的鎖頭預設是藏起來的
+        -- （style.hideLockButton），所以這裡是玩家實際會用的那個入口，
+        -- 擺在動作區比夾在一排視窗行為開關裡好找。
+        {
+            text = L["Lock window"], isActive = wdb.locked, keepOpen = true,
+            onClick = function()
+                wdb.locked = not wdb.locked
+                Win.UpdateLockIcon(W)
+                ns.Move.ApplyLock(W)
+                Windows.ShowContextMenu(W, btn, true)   -- 原地重畫勾選狀態
+            end,
+        },
         { text = L["Settings"],   onClick = function() ns.OpenOptions() end },
     }
 
