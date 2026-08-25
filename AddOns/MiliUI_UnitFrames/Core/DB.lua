@@ -253,9 +253,9 @@ function DB.BuildDefaults()
                         textDef{ pattern = "[curhp] || ", x = -42, y = -2, w = 200, h = 50, size = 10,
                                  justifyH = "RIGHT", justifyV = "MIDDLE",
                                  color = { r = 0.851, g = 0.851, b = 0.851, a = 1 } },
-                        textDef{ pattern = "[curmp]/[maxmp]", x = 8, y = -10, w = 200, h = 50,
+                        textDef{ pattern = "[curmp]/[maxmp]", x = 8, y = -14, w = 200, h = 50,
                                  justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
-                        textDef{ pattern = "[percmp]%", x = 10, y = -48, w = 200, h = 10, size = 10,
+                        textDef{ pattern = "[percmp]%", x = 10, y = -51, w = 200, h = 10, size = 10,
                                  justifyH = "RIGHT", justifyV = "BOTTOM", level = 11 },
                         textDef{ pattern = L["[gray_if_dead:Dead][gray_if_ghost:Ghost]"],
                                  x = 0, y = 3, w = 200, h = 50, size = 14,
@@ -331,9 +331,9 @@ function DB.BuildDefaults()
                         textDef{ pattern = "[curhp] || ", x = -42, y = -2, w = 200, h = 50, size = 10,
                                  justifyH = "RIGHT", justifyV = "MIDDLE",
                                  color = { r = 0.851, g = 0.851, b = 0.851, a = 1 } },
-                        textDef{ pattern = "[curmp]/[maxmp]", x = -8, y = -10, w = 200, h = 50,
+                        textDef{ pattern = "[curmp]/[maxmp]", x = -8, y = -14, w = 200, h = 50,
                                  justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
-                        textDef{ pattern = "[percmp]%", x = 0, y = -48, w = 200, h = 10, size = 10,
+                        textDef{ pattern = "[percmp]%", x = 0, y = -51, w = 200, h = 10, size = 10,
                                  justifyH = "RIGHT", justifyV = "BOTTOM", level = 11 },
                         textDef{ pattern = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"],
                                  x = 0, y = 3, w = 200, h = 50, size = 14,
@@ -1089,6 +1089,34 @@ local PROFILE_MIGRATIONS = {
                             if edb[key] == "healthcolor" then edb[key] = "hpgreen" end
                         end
                     end
+                end
+            end
+        end
+    end,
+
+    -- v17：玩家框與目標框的魔力文字往下 —— 實地調出來的位置。
+    --   [curmp]/[maxmp]  y = -10 → -14
+    --   [percmp]%        y = -48 → -51
+    -- 只動這兩個單位：其餘單位的魔力文字是另一套版面（寬度、對齊都不同），
+    -- 沒有一起調過。
+    --
+    -- 文字是陣列，所以用 pattern 認人而不是用索引 —— 使用者可能加過、刪過、
+    -- 搬過條目，索引完全不可靠。
+    -- 值閘：只動仍等於舊預設的那個 y，自己拉過位置的不碰。
+    [17] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        local MOVES = {
+            ["[curmp]/[maxmp]"] = { old = -10, new = -14 },
+            ["[percmp]%"]       = { old = -48, new = -51 },
+        }
+        for _, unitKey in ipairs({ "player", "target" }) do
+            local udb = units[unitKey]
+            local texts = type(udb) == "table" and udb.elements and udb.elements.texts
+            if type(texts) == "table" then
+                for _, t in ipairs(texts) do
+                    local move = type(t) == "table" and MOVES[t.pattern]
+                    if move and t.y == move.old then t.y = move.new end
                 end
             end
         end
