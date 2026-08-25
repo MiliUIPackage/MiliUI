@@ -322,6 +322,41 @@ end
 ------------------------------------------------------------
 -- Spawn
 ------------------------------------------------------------
+------------------------------------------------------------
+-- 右鍵選單
+--
+-- ⚠⚠ **不要用 `type2 = "togglemenu"`。** 暴雪那支安全動作是靠一串
+--     UnitIsUnit(unit, "player") / "vehicle" / "pet"
+-- 決定要開哪一種選單，而 12.1 的 `UnitIsUnit` 對**身分受限**的單位回**秘密布林**
+-- （受限＝不是你控制的、也不在你隊伍／團隊裡）。所以對「不同隊的玩家」，判斷鏈在
+-- 走到「這是玩家」那一條之前就被前面某一條吃掉 —— 實際症狀是**跳出寵物選單**。
+-- 距離只是表象：隊友再遠也正常，路人站旁邊一樣壞。
+--
+-- 改成自己決定選單類型，完全不碰 UnitIsUnit：
+--   * 能靜態決定的直接查表（玩家／寵物／焦點／首領）
+--   * 剩下的看**已經消毒過**的 cache.isPlayer —— 受限單位抽不出明文時它是 false，
+--     就退回 TARGET，那是暴雪自己對非玩家目標用的選單，內容會自己適應
+------------------------------------------------------------
+local STATIC_MENU = {
+    player = "SELF",
+    pet    = "PET",
+    focus  = "FOCUS",
+    boss   = "BOSS",
+}
+
+local function MenuType(uf)
+    local which = STATIC_MENU[uf.unitKey]
+    if which then return which end
+    -- isPlayer 為真 ⇒ 這個單位不受限（受限的抽不出明文，Cache 會存成 false），
+    -- 所以下面兩支問下去是安全的；保險起見仍然過 ToBool
+    if uf.cache and uf.cache.isPlayer then
+        if ns.ToBool(UnitInRaid(uf.unit)) then return "RAID_PLAYER" end
+        if ns.ToBool(UnitInParty(uf.unit)) then return "PARTY" end
+        return "PLAYER"
+    end
+    return "TARGET"
+end
+
 function ns.SpawnUnitFrame(unit)
     if ns.frames[unit] then return ns.frames[unit] end
     local unitKey = ns.UNIT_KEYS[unit]
@@ -342,11 +377,17 @@ function ns.SpawnUnitFrame(unit)
 
     uf:RegisterForClicks("AnyUp")
     uf:SetAttribute("*type1", "target")
-    uf:SetAttribute("type2", "togglemenu")     -- R1：12.1 行為待遊戲內驗證
+    -- type2 刻意留空：右鍵選單自己開（見上面 MenuType 的說明）
     uf:SetAttribute("unit", unit)
     -- 載具：讓 secure 端在點擊時自己把 player ↔ pet 對調（讀取時計算，不寫屬性，
     -- 所以戰鬥中也有效）。顯示面由 ns.EvalActiveUnit 跟上，見那裡的說明。
     uf:SetAttribute("toggleForVehicle", true)
+    -- HookScript：OnClick 是 SecureUnitButtonTemplate 自己的，SetScript 會蓋掉左鍵指定
+    uf:HookScript("OnClick", function(self, button)
+        if button ~= "RightButton" then return end
+        if not UnitPopup_OpenMenu then return end
+        UnitPopup_OpenMenu(MenuType(self), { unit = self.unit })
+    end)
     -- secure 端搬動 unit 屬性時同步顯示面
     uf:HookScript("OnAttributeChanged", function(self, attr)
         if attr == "unit" or attr == "toggleForVehicle" then
