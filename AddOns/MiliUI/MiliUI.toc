@@ -62,6 +62,7 @@ Enhance\GameplayCVars.lua
 Enhance\WorldMapCoords.lua
 Enhance\Delves_MarkButton.lua
 Enhance\Chattynator_TabStyle.lua
+Enhance\Chattynator_ButtonStyle.lua
 Enhance\CharacterNotes.lua
 Enhance\DBM_PrivateAura.lua
 Enhance\ItemUpgrade_PreviewIcon.lua

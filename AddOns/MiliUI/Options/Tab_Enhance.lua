@@ -95,6 +95,12 @@ local CONTROLS = {
       set = function(v) if MiliUI_ChattynatorTabs then MiliUI_ChattynatorTabs.SetEnabled(v) end end },
     { type = "text", label = "把聊天視窗的分頁標籤換成跟設定介面同一套：不透明純色底、1px 直角硬邊、白字。"
         .. "每個標籤的顏色仍然由 Chattynator 自己的設定決定（右鍵標籤 →「標籤顏色」），這裡只換樣式。" },
+    { type = "toggle", label = "側邊按鈕改用套組樣式",
+      get = function() return MiliUI_ChattynatorButtons and MiliUI_ChattynatorButtons.IsEnabled() end,
+      set = function(v) if MiliUI_ChattynatorButtons then MiliUI_ChattynatorButtons.SetEnabled(v) end end },
+    { type = "text", label = "把左側那排按鈕（好友／頻道／語音／快捷聊天／搜尋／複製／設定）的圓角底"
+        .. "換成純色方底加 1px 直角硬邊，按鈕間距收窄、整排下移到訊息區頂端，"
+        .. "好友數那串數字也挪到圖示底下並加上描邊。" },
 
     { type = "header", label = "遊戲行為（強制覆蓋 CVar，每次載入時套用）" },
     { type = "dropdown", label = "點擊地板清除目標",
