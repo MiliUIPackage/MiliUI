@@ -484,13 +484,9 @@ L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so
 L["No spell with that ID."] = "No hay ningún hechizo con esa ID."
 
 -- 血量顏色（Options/HealthColorPoints.lua）
-L["Health color"] = "Color de salud"
-L["Health color points"] = "Puntos de color"
-L["At"] = "En"
-L["Add point"] = "Añadir punto"
-L["Blending"] = "Mezcla"
-L["Smooth gradient"] = "Degradado suave"
-L["Step at each point"] = "Salto en cada punto"
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "Los métodos «Verde» y «Rojo» usan estos dos colores; el gris se usa para muerto/desconectado/fuera de alcance."
-L["Used by the \"Health color\" coloring method. The game evaluates the color curve itself, so it keeps working on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Lo usa el método de color «Color de salud». El juego evalúa la curva de color por sí mismo, así que sigue funcionando en unidades cuya salud el accesorio no puede leer (mazmorras, Mítica+, bandas)."
-L["The bar takes the color of the point at that health, blending between points. The topmost point is full health."] = "La barra toma el color del punto correspondiente a esa salud, mezclando entre puntos. El punto más alto es la salud completa."
+L["Threshold coloring"] = "Color por umbral"
+L["Recolor below a threshold"] = "Recolorear bajo un umbral"
+L["Below this health"] = "Por debajo de esta salud"
+L["Threshold color"] = "Color del umbral"
+L["Overrides whichever coloring method you picked: once health drops below this, the bar switches to the color below. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Sustituye al método de color elegido: cuando la salud baja de este valor, la barra cambia al color de abajo. El juego decide de qué lado del umbral está la unidad, así que también funciona en unidades cuya salud el accesorio no puede leer (mazmorras, Mítica+, bandas)."

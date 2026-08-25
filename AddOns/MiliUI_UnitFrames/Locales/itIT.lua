@@ -484,13 +484,9 @@ L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so
 L["No spell with that ID."] = "Nessun incantesimo con quell'ID."
 
 -- 血量顏色（Options/HealthColorPoints.lua）
-L["Health color"] = "Colore salute"
-L["Health color points"] = "Punti colore"
-L["At"] = "A"
-L["Add point"] = "Aggiungi punto"
-L["Blending"] = "Sfumatura"
-L["Smooth gradient"] = "Sfumatura morbida"
-L["Step at each point"] = "Salto a ogni punto"
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "I metodi «Verde» e «Rosso» usano questi due colori; il grigio è per morto/offline/fuori portata."
-L["Used by the \"Health color\" coloring method. The game evaluates the color curve itself, so it keeps working on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Usato dal metodo di colorazione «Colore salute». Il gioco valuta da sé la curva di colore, quindi continua a funzionare sulle unità di cui l'addon non può leggere la salute (spedizioni, Mitiche+, incursioni)."
-L["The bar takes the color of the point at that health, blending between points. The topmost point is full health."] = "La barra assume il colore del punto corrispondente a quella salute, sfumando tra i punti. Il punto più alto è la salute piena."
+L["Threshold coloring"] = "Colorazione a soglia"
+L["Recolor below a threshold"] = "Ricolora sotto una soglia"
+L["Below this health"] = "Sotto questa salute"
+L["Threshold color"] = "Colore della soglia"
+L["Overrides whichever coloring method you picked: once health drops below this, the bar switches to the color below. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Sostituisce il metodo di colorazione scelto: quando la salute scende sotto questo valore, la barra passa al colore qui sotto. È il gioco a decidere da che parte della soglia si trova l'unità, quindi funziona anche sulle unità di cui l'addon non può leggere la salute (spedizioni, Mitiche+, incursioni)."

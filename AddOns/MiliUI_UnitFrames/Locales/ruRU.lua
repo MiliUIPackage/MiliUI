@@ -484,13 +484,9 @@ L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so
 L["No spell with that ID."] = "Заклинание с таким ID не найдено."
 
 -- 血量顏色（Options/HealthColorPoints.lua）
-L["Health color"] = "Цвет здоровья"
-L["Health color points"] = "Точки цвета"
-L["At"] = "На"
-L["Add point"] = "Добавить точку"
-L["Blending"] = "Смешивание"
-L["Smooth gradient"] = "Плавный градиент"
-L["Step at each point"] = "Скачок на каждой точке"
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "Способы «Зелёный» и «Красный» используют эти два цвета; серый — для мёртвых/офлайн/вне досягаемости."
-L["Used by the \"Health color\" coloring method. The game evaluates the color curve itself, so it keeps working on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Используется способом «Цвет здоровья». Игра сама вычисляет цветовую кривую, поэтому он продолжает работать на целях, здоровье которых аддон прочитать не может (подземелья, «Мифик+», рейды)."
-L["The bar takes the color of the point at that health, blending between points. The topmost point is full health."] = "Полоса принимает цвет точки, соответствующей текущему здоровью, плавно переходя между точками. Самая верхняя точка — полное здоровье."
+L["Threshold coloring"] = "Цвет по порогу"
+L["Recolor below a threshold"] = "Менять цвет ниже порога"
+L["Below this health"] = "Ниже этого здоровья"
+L["Threshold color"] = "Цвет порога"
+L["Overrides whichever coloring method you picked: once health drops below this, the bar switches to the color below. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Переопределяет выбранный способ окраски: как только здоровье опускается ниже этого значения, полоса меняется на цвет ниже. Игра сама определяет, по какую сторону порога находится цель, поэтому это работает и на целях, здоровье которых аддон прочитать не может (подземелья, «Мифик+», рейды)."

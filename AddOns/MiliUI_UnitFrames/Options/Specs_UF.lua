@@ -31,9 +31,6 @@ Specs.COLOR_METHOD_ITEMS = {
     { text = L["Class / reaction (dark)"], value = "classreactiondark" },
     { text = L["Power color"],        value = "power" },
     { text = L["Power color (dark)"],  value = "powerdark" },
-    -- 舊的「血量漸層／血量漸層（暗）」在 v15 併成這一個：顏色點可自訂，而且求值
-    -- 在引擎端，副本裡不會凍住（見 Core/Colors.lua 的 methods.healthcolor）
-    { text = L["Health color"],       value = "healthcolor" },
     { text = L["Green"],          value = "hpgreen" },
     { text = L["Green (dark)"],    value = "hpgreendark" },
     { text = L["Red"],          value = "hpred" },

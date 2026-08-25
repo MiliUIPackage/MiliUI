@@ -150,88 +150,49 @@ methods.hpreddark = function(uf, edb, value, choice, alphaKey)
 end
 
 ------------------------------------------------------------
--- 血量顏色：把顏色曲線交給引擎求值
+-- 閾值上色：血量低於門檻就換成指定顏色，蓋過玩家選的任何一種上色方式
 --
--- ⚠ 這是整個檔案裡唯一**不讀血量**的血量相關上色。舊的 hpthreshold 要先把百分比
--- 抽成明文才能內插，而受限單位（副本／M+／團隊）抽不出來 ⇒ 顏色凍在上一個值，
--- 或者從沒抽到過就一路顯示滿血色。改成交一條曲線給 UnitHealthPercent，由引擎在
--- C 端求值，回傳的顏色分量可能是秘密值 —— 直接餵 SetStatusBarColor / SetVertexColor
--- 就好，**不要再對它做任何算術**（所以沒有 dark 變體，要暗就把顏色點調暗）。
+-- ⚠ 判斷交給引擎，插件端不讀血量 —— 這是重點。受限單位（副本／M+／團隊）的血量
+-- 是秘密值，自己抽明文抽不到就只能用舊值或猜，顏色會凍住。改成餵一條 Step 曲線
+-- 給 UnitHealthPercent，由 C 端決定落在哪一段：
+--     0        → 門檻色
+--     門檻     → 原本的顏色
+-- Step ＝ 到點才跳色，所以門檻以下一律門檻色、以上一律原色。
 --
--- 曲線物件共用一顆、每次求值重新加點：ClearPoints + 幾個 AddPoint 很便宜，
--- 省掉「設定改了要失效重建」那一整套。
+-- ⚠⚠ 曲線的 x 軸是**原生的 0~1 血量比例**，不是 0~100。餵 0/50/100 的話所有值都
+-- 落在第一個點上 ⇒ 整條血條永遠是第一個點的顏色（實測：野外全紅）。
 ------------------------------------------------------------
 local CreateColorCurve = C_CurveUtil and C_CurveUtil.CreateColorCurve
-local healthCurve
+local thresholdCurve
 
--- 點要照百分比排序才餵得進曲線。就地排序：點很少，而且排過的下次是 no-op
-local function SortedPoints()
-    local cfg = G().healthColor
-    if type(cfg) ~= "table" or type(cfg.points) ~= "table" or #cfg.points == 0 then
-        return nil, nil
-    end
-    table.sort(cfg.points, function(x, y) return (x.pct or 0) < (y.pct or 0) end)
-    return cfg.points, cfg.mode
-end
+function Colors.Threshold(uf, r, g, b, a)
+    local cfg = G().healthThreshold
+    if not (cfg and cfg.enabled) then return r, g, b, a end
+    local c = cfg.color or WHITE
+    local pct = cfg.pct or 35
 
-local function HealthCurve()
-    if not (CreateColorCurve and CreateColor) then return nil end
-    local points, mode = SortedPoints()
-    if not points then return nil end
-
-    if not healthCurve then healthCurve = CreateColorCurve() end
-    local T = Enum.LuaCurveType
-    if T then
-        healthCurve:SetType((mode == "step" and T.Step) or T.Linear or T.Step)
-    end
-    healthCurve:ClearPoints()
-    for _, p in ipairs(points) do
-        local c = p.color or WHITE
-        healthCurve:AddPoint(p.pct or 0, CreateColor(c.r or 1, c.g or 1, c.b or 1, c.a or 1))
-    end
-    return healthCurve
-end
-
--- 預覽孿生用：血量是假的明文，曲線路會去讀**真實玩家**的血，所以這裡自己內插。
--- 這條全程明文，不受秘密值限制。
-local function PlainEval(frac)
-    local points, mode = SortedPoints()
-    if not points then return nil end
-    local pct = (frac or 1) * 100
-    local prev
-    for _, p in ipairs(points) do
-        local at = p.pct or 0
-        if pct <= at then
-            local c = p.color or WHITE
-            if not prev or mode == "step" then return c.r, c.g, c.b end
-            local pc, span = prev.color or WHITE, at - (prev.pct or 0)
-            local t = span > 0 and (pct - (prev.pct or 0)) / span or 0
-            return pc.r + (c.r - pc.r) * t,
-                   pc.g + (c.g - pc.g) * t,
-                   pc.b + (c.b - pc.b) * t
-        end
-        prev = p
-    end
-    local c = (prev and prev.color) or WHITE
-    return c.r, c.g, c.b
-end
-
-methods.healthcolor = function(uf, edb, value, choice, alphaKey)
-    local a = alphaOf(edb, alphaKey, 1)
-
+    -- 預覽孿生的血量是假的明文，而曲線路會去讀**真實玩家**的血 → 自己判斷
     if uf.isPreview then
-        local r, g, b = PlainEval(value or uf.cache.frachp or 1)
-        if r then return r, g, b, a end
-        return WHITE.r, WHITE.g, WHITE.b, a
+        if (uf.cache.frachp or 1) * 100 <= pct then return c.r, c.g, c.b, a end
+        return r, g, b, a
     end
 
-    local curve = HealthCurve()
-    if curve then
-        -- 第二個參數留 nil ＝ usePredicted 用官方預設（true）
-        local ok, col = pcall(UnitHealthPercent, uf.unit, nil, curve)
-        if ok and col then return col.r, col.g, col.b, a end
-    end
-    return WHITE.r, WHITE.g, WHITE.b, a
+    if not (CreateColorCurve and CreateColor) then return r, g, b, a end
+    -- ⚠ 原色要當成曲線的一個點餵進去，所以它必須讀得出來。職業色在受限單位上是
+    -- 秘密顏色（C_ClassColor 那條路）⇒ 這種情況放棄套用、維持原色，
+    -- 不要拿秘密值去組曲線。
+    if ns.IsSecret(r) then return r, g, b, a end
+
+    if not thresholdCurve then thresholdCurve = CreateColorCurve() end
+    local T = Enum.LuaCurveType
+    if T and T.Step then thresholdCurve:SetType(T.Step) end
+    thresholdCurve:ClearPoints()
+    thresholdCurve:AddPoint(0, CreateColor(c.r, c.g, c.b, 1))
+    thresholdCurve:AddPoint(pct / 100, CreateColor(r, g, b, 1))
+
+    local ok, col = pcall(UnitHealthPercent, uf.unit, nil, thresholdCurve)
+    if ok and col then return col.r, col.g, col.b, a end
+    return r, g, b, a
 end
 
 methods.gray = function(uf, edb, value, choice, alphaKey)
@@ -258,5 +219,10 @@ function Colors.Register(name, fn)
 end
 
 function Colors.Get(method, uf, edb, value01, choiceKey, alphaKey)
-    return (methods[method or "hide"] or methods.hide)(uf, edb, value01, choiceKey, alphaKey)
+    local fn = methods[method or "hide"]
+    -- ⚠ 認不得的名字**不要**退回 hide —— 那是全透明，症狀是「血條整條消失」，
+    -- 而原因（設定檔留著一個已經改名／移除的方式）完全看不出來。設定值是 nil
+    -- 才當成刻意隱藏；是字串但查不到就給一個看得見的顏色。
+    if not fn then fn = (method == nil) and methods.hide or methods.hpgreen end
+    return fn(uf, edb, value01, choiceKey, alphaKey)
 end

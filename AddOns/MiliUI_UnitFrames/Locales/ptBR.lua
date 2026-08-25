@@ -484,13 +484,9 @@ L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so
 L["No spell with that ID."] = "Nenhuma magia com essa ID."
 
 -- 血量顏色（Options/HealthColorPoints.lua）
-L["Health color"] = "Cor de vida"
-L["Health color points"] = "Pontos de cor"
-L["At"] = "Em"
-L["Add point"] = "Adicionar ponto"
-L["Blending"] = "Mesclagem"
-L["Smooth gradient"] = "Gradiente suave"
-L["Step at each point"] = "Salto em cada ponto"
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "Os métodos “Verde” e “Vermelho” usam estas duas cores; o cinza é usado para morto/offline/fora de alcance."
-L["Used by the \"Health color\" coloring method. The game evaluates the color curve itself, so it keeps working on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Usado pelo método de cor “Cor de vida”. O jogo avalia a curva de cor por conta própria, então continua funcionando em unidades cuja vida o addon não consegue ler (masmorras, Mítica+, raides)."
-L["The bar takes the color of the point at that health, blending between points. The topmost point is full health."] = "A barra assume a cor do ponto correspondente àquela vida, mesclando entre os pontos. O ponto mais alto é a vida cheia."
+L["Threshold coloring"] = "Cor por limiar"
+L["Recolor below a threshold"] = "Recolorir abaixo de um limiar"
+L["Below this health"] = "Abaixo desta vida"
+L["Threshold color"] = "Cor do limiar"
+L["Overrides whichever coloring method you picked: once health drops below this, the bar switches to the color below. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Sobrepõe o método de cor escolhido: quando a vida cai abaixo deste valor, a barra muda para a cor abaixo. O jogo decide de que lado do limiar a unidade está, então também funciona em unidades cuja vida o addon não consegue ler (masmorras, Mítica+, raides)."

@@ -482,13 +482,9 @@ L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so
 L["No spell with that ID."] = "找不到這個法術 ID。"
 
 -- 血量顏色（Options/HealthColorPoints.lua）
-L["Health color"] = "血量顏色"
-L["Health color points"] = "血量顏色點"
-L["At"] = "在"
-L["Add point"] = "新增顏色點"
-L["Blending"] = "混色方式"
-L["Smooth gradient"] = "平滑漸層"
-L["Step at each point"] = "到點才跳色"
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "「純綠」與「純紅」兩種上色方式用這兩個顏色；灰色用於死亡／離線／超出距離的文字。"
-L["Used by the \"Health color\" coloring method. The game evaluates the color curve itself, so it keeps working on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "「血量顏色」這個上色方式用的。顏色曲線由遊戲自己求值，所以在插件讀不到血量的單位上（地城、M+、團隊）照樣有效。"
-L["The bar takes the color of the point at that health, blending between points. The topmost point is full health."] = "血條會取當下血量所在那個點的顏色，點與點之間漸變。最上面那個點就是滿血。"
+L["Threshold coloring"] = "閾值上色"
+L["Recolor below a threshold"] = "低於門檻時換色"
+L["Below this health"] = "門檻血量"
+L["Threshold color"] = "門檻顏色"
+L["Overrides whichever coloring method you picked: once health drops below this, the bar switches to the color below. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "蓋過你選的任何一種上色方式：血量掉到這個門檻以下，血條就換成下面那個顏色。落在門檻哪一邊由遊戲判斷，所以在插件讀不到血量的單位上（地城、M+、團隊）照樣有效。"

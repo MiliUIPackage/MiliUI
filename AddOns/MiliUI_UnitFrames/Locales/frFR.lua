@@ -484,13 +484,9 @@ L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so
 L["No spell with that ID."] = "Aucun sort ne correspond à cet ID."
 
 -- 血量顏色（Options/HealthColorPoints.lua）
-L["Health color"] = "Couleur de santé"
-L["Health color points"] = "Points de couleur"
-L["At"] = "À"
-L["Add point"] = "Ajouter un point"
-L["Blending"] = "Fondu"
-L["Smooth gradient"] = "Dégradé progressif"
-L["Step at each point"] = "Saut à chaque point"
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "Les méthodes « Vert » et « Rouge » utilisent ces deux couleurs ; le gris sert pour mort/hors ligne/hors de portée."
-L["Used by the \"Health color\" coloring method. The game evaluates the color curve itself, so it keeps working on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Utilisé par la méthode « Couleur de santé ». Le jeu évalue lui-même la courbe de couleur, elle continue donc de fonctionner sur les unités dont l'addon ne peut pas lire la santé (donjons, Mythique+, raids)."
-L["The bar takes the color of the point at that health, blending between points. The topmost point is full health."] = "La barre prend la couleur du point correspondant à cette santé, avec un fondu entre les points. Le point le plus haut correspond à la santé maximale."
+L["Threshold coloring"] = "Coloration par seuil"
+L["Recolor below a threshold"] = "Recolorer sous un seuil"
+L["Below this health"] = "En dessous de cette santé"
+L["Threshold color"] = "Couleur du seuil"
+L["Overrides whichever coloring method you picked: once health drops below this, the bar switches to the color below. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Remplace la méthode de coloration choisie : dès que la santé passe sous ce seuil, la barre prend la couleur ci-dessous. C'est le jeu qui détermine de quel côté du seuil se trouve l'unité, cela fonctionne donc aussi sur les unités dont l'addon ne peut pas lire la santé (donjons, Mythique+, raids)."

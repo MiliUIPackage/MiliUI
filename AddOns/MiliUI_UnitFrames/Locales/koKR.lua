@@ -484,13 +484,9 @@ L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so
 L["No spell with that ID."] = "해당 ID의 주문을 찾을 수 없습니다."
 
 -- 血量顏色（Options/HealthColorPoints.lua）
-L["Health color"] = "생명력 색상"
-L["Health color points"] = "색상 지점"
-L["At"] = "위치"
-L["Add point"] = "지점 추가"
-L["Blending"] = "혼합 방식"
-L["Smooth gradient"] = "부드러운 그라데이션"
-L["Step at each point"] = "지점마다 단계 전환"
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "「초록」과 「빨강」 색상 방식이 이 두 색을 사용합니다. 회색은 사망/오프라인/거리 밖 텍스트에 쓰입니다."
-L["Used by the \"Health color\" coloring method. The game evaluates the color curve itself, so it keeps working on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "「생명력 색상」 방식이 사용합니다. 색상 곡선을 게임이 직접 계산하므로, 애드온이 생명력을 읽을 수 없는 대상(던전, 신화+, 공격대)에서도 그대로 동작합니다."
-L["The bar takes the color of the point at that health, blending between points. The topmost point is full health."] = "생명력 바는 해당 생명력 위치의 지점 색을 따르며, 지점 사이는 자연스럽게 섞입니다. 가장 높은 지점이 최대 생명력입니다."
+L["Threshold coloring"] = "임계값 색상"
+L["Recolor below a threshold"] = "임계값 아래에서 색 변경"
+L["Below this health"] = "이 생명력 미만"
+L["Threshold color"] = "임계값 색상"
+L["Overrides whichever coloring method you picked: once health drops below this, the bar switches to the color below. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "선택한 색상 방식을 덮어씁니다. 생명력이 이 값 아래로 내려가면 바가 아래 색으로 바뀝니다. 임계값의 어느 쪽인지는 게임이 판단하므로, 애드온이 생명력을 읽을 수 없는 대상(던전, 신화+, 공격대)에서도 동작합니다."

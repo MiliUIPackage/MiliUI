@@ -21,21 +21,6 @@ local function ApplyAll()
     end
 end
 
--- 血量顏色點：點數可增減，而這一頁的表單是建一次就快取重用的
--- （custom 那一列的高度在建立當下就固定），所以編輯器開成獨立視窗
--- （Options/HealthColorPoints.lua），這裡只留一顆按鈕。
-local function BuildHealthPointsRow(parent, x, y)
-    local btn = W.CreateButton(parent, L["Health color points"], "normal", 200, 22)
-    btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
-    local function UpdateText()
-        btn:SetText(L["Health color points"] .. "  (" .. ns.HealthColorPoints.Count() .. ")")
-    end
-    btn:SetScript("OnClick", function()
-        ns.HealthColorPoints.Open(UpdateText)
-    end)
-    return 30, UpdateText
-end
-
 local CONTROLS = {
     { type = "header", label = L["Scale"] },
     { type = "slider", key = "scale", label = L["Scale (%)"], min = 50, max = 200, step = 1 },
@@ -87,13 +72,11 @@ local CONTROLS = {
     { type = "color", sub = "colors", key = "hpRed",   label = L["Critical"] },
     { type = "color", sub = "colors", key = "gray",    label = L["Gray"] },
 
-    { type = "header", label = L["Health color"] },
-    { type = "text",   label = L["Used by the \"Health color\" coloring method. The game evaluates the color curve itself, so it keeps working on units whose health the addon can't read (dungeons, Mythic+, raids)."] },
-    { type = "dropdown", sub = "healthColor", key = "mode", label = L["Blending"], items = {
-        { text = L["Smooth gradient"], value = "linear" },
-        { text = L["Step at each point"], value = "step" },
-    } },
-    { type = "custom", label = "", build = BuildHealthPointsRow },
+    { type = "header", label = L["Threshold coloring"] },
+    { type = "toggle", sub = "healthThreshold", key = "enabled", label = L["Recolor below a threshold"] },
+    { type = "text",   label = L["Overrides whichever coloring method you picked: once health drops below this, the bar switches to the color below. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] },
+    { type = "slider", sub = "healthThreshold", key = "pct", label = L["Below this health"], min = 5, max = 95, step = 5 },
+    { type = "color",  sub = "healthThreshold", key = "color", label = L["Threshold color"], hasAlpha = false },
 
     { type = "header", label = L["Cast bar colors"] },
     { type = "text",   label = L["Every cast bar shares these colors; whether \"non-interruptible\" applies is set per unit. The defaults match the Platynator nameplate preset that ships with MiliUI, so the same cast state reads the same on both."] },

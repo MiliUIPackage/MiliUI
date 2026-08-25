@@ -484,13 +484,9 @@ L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so
 L["No spell with that ID."] = "Zu dieser ID gibt es keinen Zauber."
 
 -- 血量顏色（Options/HealthColorPoints.lua）
-L["Health color"] = "Gesundheitsfarbe"
-L["Health color points"] = "Farbpunkte"
-L["At"] = "Bei"
-L["Add point"] = "Punkt hinzufügen"
-L["Blending"] = "Übergang"
-L["Smooth gradient"] = "Weicher Verlauf"
-L["Step at each point"] = "Sprung an jedem Punkt"
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "Die Färbungen „Grün“ und „Rot“ verwenden diese beiden Farben; Grau wird für tot/offline/außer Reichweite verwendet."
-L["Used by the \"Health color\" coloring method. The game evaluates the color curve itself, so it keeps working on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Wird von der Färbung „Gesundheitsfarbe“ verwendet. Das Spiel wertet die Farbkurve selbst aus, daher funktioniert sie auch bei Einheiten, deren Gesundheit das AddOn nicht lesen kann (Dungeons, Mythisch+, Schlachtzüge)."
-L["The bar takes the color of the point at that health, blending between points. The topmost point is full health."] = "Der Balken nimmt die Farbe des Punktes bei diesem Gesundheitswert an und blendet zwischen den Punkten über. Der oberste Punkt entspricht voller Gesundheit."
+L["Threshold coloring"] = "Schwellenfärbung"
+L["Recolor below a threshold"] = "Unterhalb einer Schwelle umfärben"
+L["Below this health"] = "Unterhalb dieser Gesundheit"
+L["Threshold color"] = "Schwellenfarbe"
+L["Overrides whichever coloring method you picked: once health drops below this, the bar switches to the color below. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] = "Überschreibt die gewählte Färbung: Sinkt die Gesundheit unter diesen Wert, wechselt der Balken zur Farbe unten. Das Spiel entscheidet, auf welcher Seite der Grenze die Einheit liegt, daher funktioniert es auch bei Einheiten, deren Gesundheit das AddOn nicht lesen kann (Dungeons, Mythisch+, Schlachtzüge)."
