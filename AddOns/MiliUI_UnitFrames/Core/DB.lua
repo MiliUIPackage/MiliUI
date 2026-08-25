@@ -167,6 +167,25 @@ function DB.BuildDefaults()
                 },
                 hpGreen = { r = 0, g = 0.5, b = 0, a = 1 },
                 hpRed   = { r = 0.5, g = 0, b = 0, a = 1 },
+                ------------------------------------------------------------
+                -- 血量顏色（上色方式選「血量顏色」時用）
+                --
+                -- 交給引擎的顏色曲線求值，插件端**完全不讀血量**——這是它跟舊的
+                -- 「血量漸層」最大的差別：舊的要先把百分比抽成明文，而受限單位
+                -- （副本／M+／團隊）抽不出來，顏色就會凍在上一個值或滿血色。
+                --
+                -- 預設三個點跟舊漸層長得一樣（0 暗紅 / 50 暗黃 / 100 暗綠），
+                -- 但點數與位置都可以自己加。
+                --   mode = "linear" 兩點之間平滑漸層／"step" 到門檻才跳色
+                ------------------------------------------------------------
+                healthColor = {
+                    mode = "linear",
+                    points = {
+                        { pct = 0,   color = { r = 0.5, g = 0,   b = 0, a = 1 } },
+                        { pct = 50,  color = { r = 0.5, g = 0.5, b = 0, a = 1 } },
+                        { pct = 100, color = { r = 0,   g = 0.5, b = 0, a = 1 } },
+                    },
+                },
                 gray    = { r = 0.4, g = 0.4, b = 0.4, a = 0.8 },
                 bg      = black(0.4),
                 shadow  = black(0.9),
@@ -1034,6 +1053,33 @@ local PROFILE_MIGRATIONS = {
         gate(p.debuffs, "perRow", 16, 8)
         gate(p.debuffs, "maxCount", 40, 16)
         gate(p.debuffs, "growth", "LRTB", "LRBT")
+    end,
+
+    -- v15：「血量漸層」換成引擎求值的「血量顏色」。
+    --
+    -- 舊的兩個上色方式（hpthreshold / hpthresholddark）要先把血量百分比抽成明文
+    -- 才能內插，而受限單位（副本／M+／團隊）抽不出來 ⇒ 顏色凍在上一個值，或者
+    -- 從來沒抽到過就一路顯示滿血色。新的把顏色曲線交給引擎求值，插件端不讀血量。
+    --
+    -- ⚠ dark 變體沒有對應項：它是把漸層色再乘 0.6 暗化，而暗化是 Lua 算術、
+    -- 對秘密顏色做不到。改成兩者都指向同一個方式，要暗就自己把顏色點調暗。
+    [15] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        for _, udb in pairs(units) do
+            local els = type(udb) == "table" and udb.elements
+            if type(els) == "table" then
+                for _, edb in pairs(els) do
+                    if type(edb) == "table" then
+                        for _, key in ipairs({ "colorMethod", "bgColorMethod" }) do
+                            if edb[key] == "hpthreshold" or edb[key] == "hpthresholddark" then
+                                edb[key] = "healthcolor"
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end,
 }
 

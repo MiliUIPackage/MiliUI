@@ -62,6 +62,7 @@ Options\Search.lua
 Options\Preview.lua
 Options\Panel.lua
 Options\Tab_General.lua
+Options\HealthColorPoints.lua
 Options\Tab_Unit.lua
 Options\AuraBlacklist.lua
 Options\Tab_Resource.lua

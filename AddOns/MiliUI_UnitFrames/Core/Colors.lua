@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 -- 顏色方法（讀 uf.cache 明文資料）
 -- 簽名：fn(uf, edb, value01, choiceKey, alphaKey) → r, g, b, a
---   value01  : 0-1（hpthreshold 內插用，通常傳 cache.frachp）
+--   value01  : 0-1（血量顏色的預覽路內插用，通常傳 cache.frachp）
 --   choiceKey: edb 內自訂色欄位名（solid 用，預設 "bgColor"）
 --   alphaKey : edb 內 alpha 欄位名（如 "barAlpha"/"bgAlpha"）
 -- cache 已在 Cache.lua 消毒完畢，這裡可以放心做比較與查表。
@@ -149,26 +149,89 @@ methods.hpreddark = function(uf, edb, value, choice, alphaKey)
     return Dim(r, g, b, a)
 end
 
-methods.hpthreshold = function(uf, edb, value, choice, alphaKey)
-    value = value or uf.cache.frachp or 1
-    local hpGreen, hpRed = G().hpGreen, G().hpRed
-    local r, g, b, a
-    if value > 0.5 then
-        r = hpGreen.r + ((1 - value) * 2 * (hpGreen.g - hpGreen.r))
-        g = hpGreen.g
-        b = hpGreen.b
-        a = alphaOf(edb, alphaKey, hpGreen.a)
-    else
-        r = hpRed.r
-        g = hpGreen.g - ((0.5 - value) * 2 * hpGreen.g)
-        b = hpRed.b
-        a = alphaOf(edb, alphaKey, hpRed.a)
+------------------------------------------------------------
+-- 血量顏色：把顏色曲線交給引擎求值
+--
+-- ⚠ 這是整個檔案裡唯一**不讀血量**的血量相關上色。舊的 hpthreshold 要先把百分比
+-- 抽成明文才能內插，而受限單位（副本／M+／團隊）抽不出來 ⇒ 顏色凍在上一個值，
+-- 或者從沒抽到過就一路顯示滿血色。改成交一條曲線給 UnitHealthPercent，由引擎在
+-- C 端求值，回傳的顏色分量可能是秘密值 —— 直接餵 SetStatusBarColor / SetVertexColor
+-- 就好，**不要再對它做任何算術**（所以沒有 dark 變體，要暗就把顏色點調暗）。
+--
+-- 曲線物件共用一顆、每次求值重新加點：ClearPoints + 幾個 AddPoint 很便宜，
+-- 省掉「設定改了要失效重建」那一整套。
+------------------------------------------------------------
+local CreateColorCurve = C_CurveUtil and C_CurveUtil.CreateColorCurve
+local healthCurve
+
+-- 點要照百分比排序才餵得進曲線。就地排序：點很少，而且排過的下次是 no-op
+local function SortedPoints()
+    local cfg = G().healthColor
+    if type(cfg) ~= "table" or type(cfg.points) ~= "table" or #cfg.points == 0 then
+        return nil, nil
     end
-    return r, g, b, a
+    table.sort(cfg.points, function(x, y) return (x.pct or 0) < (y.pct or 0) end)
+    return cfg.points, cfg.mode
 end
-methods.hpthresholddark = function(uf, edb, value, choice, alphaKey)
-    local r, g, b, a = methods.hpthreshold(uf, edb, value, choice, alphaKey)
-    return Dim(r, g, b, a)
+
+local function HealthCurve()
+    if not (CreateColorCurve and CreateColor) then return nil end
+    local points, mode = SortedPoints()
+    if not points then return nil end
+
+    if not healthCurve then healthCurve = CreateColorCurve() end
+    local T = Enum.LuaCurveType
+    if T then
+        healthCurve:SetType((mode == "step" and T.Step) or T.Linear or T.Step)
+    end
+    healthCurve:ClearPoints()
+    for _, p in ipairs(points) do
+        local c = p.color or WHITE
+        healthCurve:AddPoint(p.pct or 0, CreateColor(c.r or 1, c.g or 1, c.b or 1, c.a or 1))
+    end
+    return healthCurve
+end
+
+-- 預覽孿生用：血量是假的明文，曲線路會去讀**真實玩家**的血，所以這裡自己內插。
+-- 這條全程明文，不受秘密值限制。
+local function PlainEval(frac)
+    local points, mode = SortedPoints()
+    if not points then return nil end
+    local pct = (frac or 1) * 100
+    local prev
+    for _, p in ipairs(points) do
+        local at = p.pct or 0
+        if pct <= at then
+            local c = p.color or WHITE
+            if not prev or mode == "step" then return c.r, c.g, c.b end
+            local pc, span = prev.color or WHITE, at - (prev.pct or 0)
+            local t = span > 0 and (pct - (prev.pct or 0)) / span or 0
+            return pc.r + (c.r - pc.r) * t,
+                   pc.g + (c.g - pc.g) * t,
+                   pc.b + (c.b - pc.b) * t
+        end
+        prev = p
+    end
+    local c = (prev and prev.color) or WHITE
+    return c.r, c.g, c.b
+end
+
+methods.healthcolor = function(uf, edb, value, choice, alphaKey)
+    local a = alphaOf(edb, alphaKey, 1)
+
+    if uf.isPreview then
+        local r, g, b = PlainEval(value or uf.cache.frachp or 1)
+        if r then return r, g, b, a end
+        return WHITE.r, WHITE.g, WHITE.b, a
+    end
+
+    local curve = HealthCurve()
+    if curve then
+        -- 第二個參數留 nil ＝ usePredicted 用官方預設（true）
+        local ok, col = pcall(UnitHealthPercent, uf.unit, nil, curve)
+        if ok and col then return col.r, col.g, col.b, a end
+    end
+    return WHITE.r, WHITE.g, WHITE.b, a
 end
 
 methods.gray = function(uf, edb, value, choice, alphaKey)
