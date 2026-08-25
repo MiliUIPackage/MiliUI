@@ -53,8 +53,13 @@ local SECRET_TAGS = {
     maxhp = { kind = "number", fn = function(u) return UnitHealthMax(u) end },
     curmp = { kind = "number", fn = function(u) return UnitPower(u) end },
     maxmp = { kind = "number", fn = function(u) return UnitPowerMax(u) end },
+    -- ⚠ 第二個參數是 usePredicted，官方預設 true。這裡跟 Core/Cache.lua 的
+    -- UpdateHealthFields **是兩條各自獨立的路**：那邊算的是上色與漸層用的
+    -- cache.frachp，這邊才是玩家真正看到的 [perchp] 文字。改一邊沒用，
+    -- 兩邊都要傳 true（Platynator 的 HealthText.lua 也是 true）。
+    -- 下面 percmp 的 false 是對的 —— 能量那支同一個位置是 unmodified。
     perchp = { kind = "percent",
-               fn = function(u) return UnitHealthPercent(u, false, PERCENT_CURVE) end },
+               fn = function(u) return UnitHealthPercent(u, true, PERCENT_CURVE) end },
     -- powerType 傳 nil＝讓引擎解析該單位當前的資源。以前傳 UnitPowerType(u)，那個值
     -- 在受限單位上是秘密值，等於把秘密值塞進列舉參數的位置。
     percmp = { kind = "percent",
