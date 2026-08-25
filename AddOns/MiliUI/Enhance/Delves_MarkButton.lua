@@ -60,12 +60,11 @@ local SUPPORTED = GetLocale() == "zhTW"
 ------------------------------------------------------------
 -- 「這場是豐碩探究嗎」
 --
--- 探究的詞綴掛在場景標頭 widget 的 spells 清單上，一個詞綴一顆法術
--- （Plumber 的 DelvesScenario.lua 也是這樣認「宿敵」的）。所以判斷方式是
--- 「標頭上有沒有那顆法術」。
+-- 探究的詞綴掛在場景標頭 widget 的 spells 清單上，一個詞綴一顆法術。
+-- 所以判斷方式是「標頭上有沒有那顆法術」。
 --
--- ⚠ 有些詞綴的法術 ID **每個賽季會換**（宿敵就是，Plumber 為此寫了兩個賽季各一顆
--- 的分支）。所以這裡不只吃 ID：先查 ID 白名單，查不到再退回比對法術名稱。要補 ID 的話，
+-- ⚠ 有些詞綴的法術 ID **每個賽季會換**（宿敵就是）。所以這裡不只吃 ID：
+-- 先查 ID 白名單，查不到再退回比對法術名稱。要補 ID 的話，
 -- 在探究裡把滑鼠移到標頭那顆詞綴圖示上，然後：
 --     /dump GetMouseFoci()[1].spellID
 -- 或直接 /run MiliUI_DelveMarkButton.Debug() ——它會把標頭上每顆法術的
@@ -102,8 +101,7 @@ end
 ------------------------------------------------------------
 -- 偵測
 ------------------------------------------------------------
--- ⚠ 不要用 C_DelvesUI.HasActiveDelve(mapID)：在探究裡重新登入時它會失準
--- （Plumber 的 API.lua 就是為了這個換掉的，那段舊寫法還註解在原地）。
+-- ⚠ 不要用 C_DelvesUI.HasActiveDelve(mapID)：在探究裡重新登入時它會失準。
 local function InDelve()
     return C_PartyInfo and C_PartyInfo.IsPartyWalkIn and C_PartyInfo.IsPartyWalkIn() and true or false
 end

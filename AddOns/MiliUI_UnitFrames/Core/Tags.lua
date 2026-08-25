@@ -56,7 +56,7 @@ local SECRET_TAGS = {
     -- ⚠ 第二個參數是 usePredicted，官方預設 true。這裡跟 Core/Cache.lua 的
     -- UpdateHealthFields **是兩條各自獨立的路**：那邊算的是上色與漸層用的
     -- cache.frachp，這邊才是玩家真正看到的 [perchp] 文字。改一邊沒用，
-    -- 兩邊都要傳 true（Platynator 的 HealthText.lua 也是 true）。
+    -- 兩邊都要傳 true。
     -- 下面 percmp 的 false 是對的 —— 能量那支同一個位置是 unmodified。
     perchp = { kind = "percent",
                fn = function(u) return UnitHealthPercent(u, true, PERCENT_CURVE) end },
