@@ -176,6 +176,11 @@ local function EnsureFrame(W)
     W.srcHint = top:CreateFontString(nil, "OVERLAY")
     W.srcHint:SetPoint("RIGHT", top, "RIGHT", -6, 0)
     W.srcHint:SetTextColor(0.6, 0.6, 0.6)
+    -- 這個人的總量（右邊、緊鄰返回提示）。聚合數字放標題列，不要塞進每一列 ——
+    -- 一列擠四個數字誰也看不懂
+    W.srcTotal = top:CreateFontString(nil, "OVERLAY")
+    W.srcTotal:SetPoint("RIGHT", W.srcHint, "LEFT", -8, 0)
+    W.srcTotal:SetTextColor(0.88, 0.88, 0.88)
     -- 先給字型再 SetText：沒有字型物件的 FontString 一寫字就丟錯
     local st = ns.DB.Style()
     Win.SetFont(W.srcTitle, st.leftFontSize or 11)
@@ -243,18 +248,32 @@ function B.OpenFromBar(W, bar)
     local guid = src.sourceGUID
     if D.IsSecret(guid) and D.IsOwnRow(src) then guid = ns.playerGUID end
 
-    B.Open(W, guid, src.sourceCreatureID, src.name, src.classFilename, src.deathRecapID)
+    B.Open(W, {
+        guid       = guid,
+        creatureID = src.sourceCreatureID,
+        name       = src.name,
+        classFile  = src.classFilename,
+        recapID    = src.deathRecapID,
+        -- 標題列的總量讀數。從點下去那一列直接帶過來，省一次 API 往返，
+        -- 而且跟主清單顯示的數字保證一致（同一筆來源）
+        total      = src.totalAmount,
+        perSec     = src.amountPerSecond,
+    })
 end
 
-function B.Open(W, guid, creatureID, name, classFile, recapID)
-    if guid == nil and creatureID == nil then return end
+-- info = { guid, creatureID, name, classFile, recapID, total, perSec }
+-- 收成一張表而不是排八個參數：位置參數到第五個之後就沒人記得順序了
+function B.Open(W, info)
+    if not info then return end
+    if info.guid == nil and info.creatureID == nil then return end
     EnsureFrame(W)
 
-    W.sourceGUID       = guid
-    W.sourceCreatureID = creatureID
+    local name, classFile = info.name, info.classFile
+    W.sourceGUID       = info.guid
+    W.sourceCreatureID = info.creatureID
     W.sourceClass      = D.SafeClass(classFile)
     W.sourceName       = name
-    W.sourceRecapID    = recapID
+    W.sourceRecapID    = info.recapID
     W.sourceOpen       = true
     W._cachedTargets   = nil
     -- 換人／換模式：三種內容共用同一個 bar 池，圖示的有無與列數都會變，
@@ -264,10 +283,18 @@ function B.Open(W, guid, creatureID, name, classFile, recapID)
     local s = ns.DB.Style()
     Win.SetFont(W.srcTitle, s.leftFontSize or 11)
     Win.SetFont(W.srcHint, math.max(8, (s.leftFontSize or 11) - 2))
+    Win.SetFont(W.srcTotal, s.rightFontSize or 11)
     local r, g, b = M.ClassColor(classFile)
     W.srcTitle:SetTextColor(r or 1, g or 1, b or 1)
     -- 名字可能是秘密：FontString 顯示得出來，不要拿去串接
     W.srcTitle:SetText(D.StripRealm(name))
+
+    -- 死亡回顧沒有「總量」可言（那一頁是血量曲線），留白
+    if info.total ~= nil and not D.IsDeathType(W.curDMType) then
+        W.srcTotal:SetText(D.FormatValue(info.total, info.perSec, s.numberFormat or 2))
+    else
+        W.srcTotal:SetText("")
+    end
 
     ns.Tooltip.HideFor(W)
     W.srcFrame:Show()
@@ -323,6 +350,10 @@ local function LayoutSpellBar(W, bar, y, barH, texPath, leftFS, rightFS, iconOff
     bar.fill:SetHeight(barH)
     bar._target = Win.ApplyBarStyle(bar, s, texPath)
     Win.AnchorBarFill(bar, iconOffset)
+    -- ⚠ 名字的右緣要追**數值的左緣**，不能沿用 MakeBar 那個固定 -70。
+    -- 右欄現在是「總量 (每秒)  佔比%」，比 70px 長得多 —— 沿用舊錨點兩邊會疊字。
+    -- 數值只錨右緣（跟著自己的文字長），被截斷的永遠是名字不是數字。
+    bar.label:SetPoint("RIGHT", bar.amount, "LEFT", -6, 0)
     Win.SetFont(bar.label, leftFS)
     Win.SetFont(bar.amount, rightFS)
     bar.rank:SetText("")
@@ -504,6 +535,7 @@ local function RefreshSpells(W)
 
     local spells = srcData.combatSpells   -- API 已排序
     local s, barH, stride = BarGeometry()
+    local numFmt = s.numberFormat or 2
     local texPath = M.BarTexture(s.barTexture)
     local leftFS, rightFS = s.leftFontSize or 11, s.rightFontSize or 11
 
@@ -554,12 +586,20 @@ local function RefreshSpells(W)
         end
         D.SpellLabel(bar.label, spellName, spell.creatureName, ns.L["Unknown"])
 
+        ------------------------------------------------------------
+        -- 右欄：總量（每秒）＋ 佔比
+        --
+        -- 每秒值走 D.FormatValue，所以會**跟著玩家在「文字 → 數值格式」選的樣式**
+        -- ——主清單顯示「總量 (每秒)」時這裡也是，選「只顯示總量」時這裡也只有總量。
+        -- 同一個偏好只設定一次，兩處自動一致。
+        ------------------------------------------------------------
+        local valueText = D.FormatValue(spell.totalAmount, spell.amountPerSecond, numFmt)
         if canPercent and total > 0 then
-            bar.amount:SetFormattedText("%s  %.1f%%", D.Abbrev(spell.totalAmount),
-                spell.totalAmount / total * 100)
+            bar.amount:SetFormattedText("%s  %.1f%%", valueText, spell.totalAmount / total * 100)
         else
-            bar.amount:SetText(D.Abbrev(spell.totalAmount))
+            bar.amount:SetText(valueText)
         end
+
         bar._spellID = spID
     end
 
