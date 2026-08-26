@@ -2054,6 +2054,22 @@ local function predicate(...)
     return idToFind == id
 end
 
+--! By NAME, for the handful of statuses whose curated lists are names rather than ids
+--! (drink, soulstone). ⚠ There used to be call sites for an `F.FindAuraByName` that was
+--! never written -- guarded with `F.FindAuraByName and ...`, so they silently evaluated to
+--! nil forever and the status they were meant to clear could never clear.
+--! pcall'd: aura access Lua-errors while auras are secret, and every caller here is a
+--! "is it still there?" check that must degrade to "cannot tell", not to an error.
+function F.FindAuraByName(unit, type, name)
+    if not (unit and name) then return nil end
+    if Cell.isMidnight and F.IsAuraRestricted() then return nil end
+    if not (C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName) then return nil end
+    local ok, aura = pcall(C_UnitAuras.GetAuraDataBySpellName, unit,
+        name, type == "BUFF" and "HELPFUL" or "HARMFUL")
+    if ok then return aura end
+    return nil
+end
+
 function F.FindAuraById(unit, type, spellId)
     -- 12.0+: skip when aura data is restricted (secret values)
     if Cell.isMidnight and F.IsAuraRestricted() then return nil end

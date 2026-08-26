@@ -171,3 +171,23 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
    `Modules/Indicators/Indicators.lua`（三份設定列表＋兩個 currentSetting 分支）、
    `Modules/Indicators/{Export,Import}.lua`、`Modules/About/ImportExport.lua`、
    `Widgets/Widgets_IndicatorSettings.lua`（setting → 建構函式的對應表）。語系字串留著無害。
+
+## 由「手動光環掃描」驅動的狀態，一定要有不靠掃描的清除路徑（2026-08-24）
+
+`UnitButton_UpdateAuras` 在 `C_Secrets.ShouldAurasBeSecret()` 為真時**整個函式 return**
+（GetAuraSlots 在秘密狀態下會 Lua 錯誤）。凡是「由掃描設定、也只由掃描清除」的狀態，
+在那段期間就會**卡在最後一次可讀時的值**，而且不會自己好 —— 要等那個單位下一次
+**可讀的**光環變動，副本打完都不一定會來。
+
+實例：隊友開打前喝水 → 拉王 → 光環變秘密 → 掃描停擺 → 整場都掛著「喝水」。
+
+寫法：狀態要有一條**不經過掃描**的清除路徑。Cell 的 `ClearStaleDrinking`：
+- 只在該狀態真的亮著時才做事（平常零成本）；
+- 光環可讀 → 直接問 API（`C_UnitAuras.GetAuraDataBySpellName` 逐個名字）；
+- **問不到就清掉**（受限情境＝戰鬥中，沒人會在戰鬥中喝水，而且我們也無法驗證）；
+- 另外掛 `PLAYER_REGEN_DISABLED` —— 開戰是唯一保證會收到的時機，UNIT_AURA 不是。
+
+⚠ 同一時間發現 `F.FindAuraByName` **從來沒有被實作過**，呼叫端寫成
+`F.FindAuraByName and F.FindAuraByName(...)`，所以永遠是 nil ——
+StatusIcon 的靈魂石移除偵測等於一直沒在跑。**用 `and` 守衛一個不存在的函式，
+會讓「功能沒做」看起來像「功能有做」**，靜默到只能靠全域掃描或讀原始碼發現。

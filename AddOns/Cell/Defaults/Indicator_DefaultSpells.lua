@@ -860,6 +860,21 @@ function I.IsDrinking(name)
     return drinks[name]
 end
 
+--! Ask the API directly instead of waiting for the buff scan to say so. The scan is what
+--! sets the DRINKING status, and the scan is exactly what stops running when auras go
+--! secret -- so the status outlives the aura and the row wears "DRINKING" for the rest of
+--! the fight. One call per name, and only ever while that status is actually up.
+--! Returns nil (not false) when the answer cannot be had -- restricted auras are "unknown",
+--! and the caller decides what to do with unknown.
+function I.HasDrinkAura(unit)
+    if not unit then return nil end
+    if Cell.isMidnight and F.IsAuraRestricted() then return nil end
+    for name in pairs(drinks) do
+        if F.FindAuraByName(unit, "BUFF", name) then return true end
+    end
+    return false
+end
+
 -------------------------------------------------
 -- healer
 -------------------------------------------------

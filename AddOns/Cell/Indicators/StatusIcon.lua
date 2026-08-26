@@ -46,7 +46,7 @@ statusEvents:SetScript("OnEvent", function(self, event, unit)
         if not F.IsValueNonSecret(guid) then return end
         -- Check if soulstone buff is now absent but was present
         -- (simple: after UNIT_AURA fires, see if unit still has it)
-        local hasSoulstone = F.FindAuraByName and F.FindAuraByName(unit, "BUFF", SOULSTONE)
+        local hasSoulstone = F.FindAuraByName(unit, "BUFF", SOULSTONE)
         if not hasSoulstone and soulstones[guid] then
             -- aura gone; keep window open for death
             C_Timer.After(0.1, function()

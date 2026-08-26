@@ -1711,11 +1711,36 @@ end
 -------------------------------------------------
 -- functions
 -------------------------------------------------
+
+--! DRINKING is the one status that can outlive its aura. It is written by the manual buff
+--! scan -- and that scan is exactly what stops running the moment auras go secret (a boss
+--! pull, a key). A teammate who drank before the pull therefore wears "DRINKING" for the
+--! whole fight, and nothing takes it off until that unit's next READABLE aura change, which
+--! may not come until the group leaves the instance.
+--!
+--! Two rules, and both are free unless the status is actually up:
+--!   * auras readable   -> ask the API whether a drink buff is still on the unit;
+--!   * cannot tell      -> clear it. Nobody drinks through combat, and a status we can
+--!                         neither verify nor refresh is a lie by default.
+--! It re-appears by itself the moment a readable scan sees the buff again.
+local function ClearStaleDrinking(self)
+    local statusText = self.indicators and self.indicators.statusText
+    if not statusText or statusText:GetStatus() ~= "DRINKING" then return end
+
+    if I.HasDrinkAura(self.states.displayedUnit) == true then return end
+
+    if self._buffs then self._buffs.drinkingFound = false end
+    statusText:SetStatus()
+end
+
 UnitButton_UpdateAuras = function(self, updateInfo)
     if not self._indicatorsReady then return end
 
     local unit = self.states.displayedUnit
     if not unit then return end
+
+    --! before the secret bails below, not after: those bails are the reason it gets stuck
+    ClearStaleDrinking(self)
 
     -- 12.1 Route A: hand the current unit to the raid-debuff AuraContainer BEFORE the
     -- secret-payload bail below. The container is Blizzard-driven, so it keeps working
@@ -3335,6 +3360,9 @@ local function UnitButton_OnEvent(self, event, unit, arg)
 
         elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_REGEN_DISABLED" then
             UnitButton_UpdateLeader(self, event)
+            --! combat started: whatever they were drinking, they are not any more -- and this
+            --! is the one moment we are certain to hear about, UNIT_AURA is not
+            if event == "PLAYER_REGEN_DISABLED" then ClearStaleDrinking(self) end
 
         elseif event == "PLAYER_TARGET_CHANGED" then
             UnitButton_UpdateTarget(self)
