@@ -75,7 +75,8 @@ local CONTROLS = {
     { type = "dropdown", key = "curDMType", label = L["Meter type"],
       items = function() return Specs.MeterTypeItems() end },
     { type = "dropdown", key = "curSession", label = L["Segment"], items = Specs.SESSION_TYPES },
-    { type = "toggle",   key = "autoCurrentOnCombat", label = L["Jump back to Current when combat starts"] },
+    { type = "toggle",   key = "smartDisplay", label = L["Smart display"] },
+    { type = "text",     label = L["In combat this window shows Current; once combat ends it switches to Overall. While you are reviewing a specific past segment it stays hands-off — it resumes when you switch back to Current or Overall yourself, or when you turn this option on again."] },
     { type = "toggle",   key = "syncSegments", label = L["Sync segments with other windows"] },
     { type = "text",     label = L["Windows with this checked switch segment together — handy when one shows damage and another healing for the same fight."] },
 
@@ -106,7 +107,20 @@ local CONTROLS = {
 local function Init()
     if tab then return end
     tab, scroll = ns.Options.MakeFormTab(L["Per window"])
-    local ctx = ns.Controls.MakeCtx(Target, Apply)
+    local base = ns.Controls.MakeCtx(Target, Apply)
+    -- smartDisplay 要走 Windows.SetSmartDisplay：規格說「重新開啟就恢復主動切換」，
+    -- 通用的 ctx.set 只會寫值、不知道剛剛是 off→on。只特例這一個 key。
+    local ctx = {
+        get = base.get,
+        set = function(spec, v)
+            if spec.key == "smartDisplay" then
+                local W = ns.Windows.Get(selected)
+                if W then ns.Windows.SetSmartDisplay(W, v); return end
+            end
+            base.set(spec, v)
+        end,
+        apply = Apply,
+    }
     local _
     _, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx)
 end

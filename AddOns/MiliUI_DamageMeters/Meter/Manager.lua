@@ -74,6 +74,9 @@ function Windows.Rebuild()
         Win.UpdateVisibility(W)
         W.Refresh()
     end)
+    -- 登入／調整視窗數之後把智慧顯示的視圖擺對（脫戰＝總計）。
+    -- 非 force：正在看特定分段的視窗不動
+    Windows.SmartApply(ns.Combat.IsInCombat())
     ns.Move.UpdateEditState()
 end
 
@@ -130,12 +133,47 @@ end
 
 -- 戰鬥開始：正在看歷史分段的視窗跳回「本場」（每視窗可關）。
 -- 看「總計」的不動——那本來就是要跨場累積的。
-function Windows.AutoCurrentOnCombat()
-    Windows.ForEach(function(W)
-        if not W.wdb.autoCurrentOnCombat then return end
-        if not W.curSessionID then return end
-        Win.SetSegment(W, D.S.Current, nil)
-    end)
+------------------------------------------------------------
+-- 智慧顯示：戰鬥中看「目前」、脫戰看「總計」
+--
+-- 只在兩個戰鬥邊界動手（BeginSegment / FreezeCombat，見 Meter/Combat.lua），
+-- 平時完全不跑。**豁免是無狀態的**：玩家正在看特定的歷史分段
+-- （curSessionID ~= nil）就不干預 —— 他自己切回「目前／總計」的那一刻
+-- curSessionID 歸 nil，智慧顯示自然恢復，不需要另外記一個「被暫停」旗標。
+-- 唯一的例外是「玩家剛把智慧顯示打開」（force）：規格說重新開啟就恢復主動切換，
+-- 這時連豁免都拿掉。
+--
+-- 刻意**不走 Win.SetSegment**：那支會沿 syncSegments 傳播。智慧切換是
+-- 每個開了智慧顯示的視窗各自處理 —— 走傳播的話，一個開智慧、一個沒開但有連動
+-- 的組合會被拖著走。
+------------------------------------------------------------
+local function SmartApplyFor(W, inCombat, force)
+    if not W.wdb.smartDisplay then return end
+    if W.curSessionID ~= nil and not force then return end
+    local target = inCombat and D.S.Current or D.S.Overall
+    if W.curSessionID == nil and W.curSession == target then return end
+    W.curSessionID = nil
+    W.curSession = target
+    W.wdb.curSession = target
+    -- 只清資料相關的備忘，不動 _barCacheKey：換分段改的是資料不是版面，
+    -- 智慧切換一場戰鬥跑兩次，nil 掉版面快取等於每場白白整批重排兩回
+    W._timerSec = nil
+    W._segDur = nil
+    W._cachedTargets = nil
+    ns.Breakdown.Close(W)
+    Win.UpdateTitle(W)
+    W.Refresh()
+end
+
+function Windows.SmartApply(inCombat)
+    Windows.ForEach(function(W) SmartApplyFor(W, inCombat, false) end)
+end
+
+-- 開關的唯一入口（右鍵選單與設定頁都走這裡）。
+-- 打開的那一刻立刻恢復主動切換 —— 連「正在看特定分段」的豁免都拿掉（規格）。
+function Windows.SetSmartDisplay(W, on)
+    W.wdb.smartDisplay = on and true or false
+    if on then SmartApplyFor(W, ns.Combat.IsInCombat(), true) end
 end
 
 ------------------------------------------------------------
@@ -314,10 +352,10 @@ function Windows.ShowContextMenu(W, btn, redraw)
             end,
         },
         {
-            text = L["Jump back to Current when combat starts"],
-            isActive = wdb.autoCurrentOnCombat, keepOpen = true,
+            text = L["Smart display"],
+            isActive = wdb.smartDisplay, keepOpen = true,
             onClick = function()
-                wdb.autoCurrentOnCombat = not wdb.autoCurrentOnCombat
+                Windows.SetSmartDisplay(W, not wdb.smartDisplay)
                 Windows.ShowContextMenu(W, btn, true)
             end,
         },

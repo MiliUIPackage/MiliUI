@@ -71,6 +71,10 @@ local function FreezeCombat(ts)
         _curViewFrozenDur = d
     end
     _combatEndTime = ts or GetTime()
+    -- 智慧顯示的「脫戰 → 總計」掛在這裡：FreezeCombat 是所有戰鬥結束路徑的
+    -- 唯一匯流點（五個出口的呼叫端都有 _combatEndTime 守衛，每個分段最多跑一次）。
+    -- 一定要在讀完 Current 的時長**之後**才切走。
+    if ns.Windows and ns.Windows.SmartApply then ns.Windows.SmartApply(false) end
 end
 
 ------------------------------------------------------------
@@ -217,7 +221,7 @@ local function BeginSegment()
     _needsFinalRefresh = false
     if ns.Windows and ns.Windows.InvalidateAll then ns.Windows.InvalidateAll() end
     if not _sharedTicker then C.StartTicker() end
-    if ns.Windows and ns.Windows.AutoCurrentOnCombat then ns.Windows.AutoCurrentOnCombat() end
+    if ns.Windows and ns.Windows.SmartApply then ns.Windows.SmartApply(true) end
 end
 
 ------------------------------------------------------------

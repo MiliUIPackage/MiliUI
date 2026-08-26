@@ -28,7 +28,7 @@ L["Dispels"] = "驅散"
 L["Deaths"] = "死亡"
 
 -- 分段
-L["Current"] = "本場"
+L["Current"] = "目前"
 L["Overall"] = "總計"
 L["Segment"] = "分段"
 L["Segments"] = "分段"
@@ -182,7 +182,9 @@ L["Hidden buttons take up no space, so the title gets the whole bar."] =
 -- 各視窗分頁
 L["Add or remove windows on the General tab."] = "要增減視窗數量請到「一般」分頁。"
 L["Content"] = "內容"
-L["Jump back to Current when combat starts"] = "戰鬥開始時跳回「本場」"
+L["Smart display"] = "智慧顯示"
+L["In combat this window shows Current; once combat ends it switches to Overall. While you are reviewing a specific past segment it stays hands-off — it resumes when you switch back to Current or Overall yourself, or when you turn this option on again."] =
+    "戰鬥中顯示「目前」，脫離戰鬥自動切到「總計」。翻看某個特定分段時它不會插手 —— 等你自己切回「目前」或「總計」，或重新打開這個選項，才恢復主動切換。"
 L["Windows with this checked switch segment together — handy when one shows damage and another healing for the same fight."] =
     "勾了的視窗會一起換分段 —— 一個看傷害、一個看治療同一場戰鬥時很好用。"
 L["Placement"] = "擺放"

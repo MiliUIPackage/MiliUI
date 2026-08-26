@@ -72,9 +72,10 @@ function DB.NewWindow(idx)
         snapDisabled = false,
         -- 分段連動：勾了的視窗切分段時會一起切（看同一場戰鬥的不同統計類型時很有用）
         syncSegments = preset.syncSegments or false,
-        -- 戰鬥開始時，正在看歷史分段的視窗自動跳回「本場」。
-        -- 預設關：翻舊分段通常是刻意在比對，開打就被搶走視線很惱人。
-        autoCurrentOnCombat = false,
+        -- 智慧顯示：戰鬥中看「目前」、脫戰看「總計」，由 Windows.SmartApply 在
+        -- 戰鬥邊界切換。翻看特定分段時它不插手（規則寫在 Manager 的 SmartApplyFor）。
+        -- 取代了舊的 autoCurrentOnCombat（只做一半、而且會搶走玩家正在看的分段）。
+        smartDisplay = true,
         -- 顯示條件
         visibility = "always",   -- always | combat | instance | group
         hideInDungeon = false,

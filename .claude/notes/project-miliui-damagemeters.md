@@ -11,7 +11,7 @@ metadata:
 `AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，v1.0.0）。SavedVariables=`MiliUI_DamageMeters_DB`，
 指令 `/mdm`，NAMESPACE=`MiliUIDM`。約 5500 行、392KB。
 
-**設計哲學整包沿用「C_DamageMeter 渲染器」那條路線**，通則寫在
+**設計哲學整包抄 `tmp/EUIStandaloneDamageMeters`**，通則寫在
 [[wow-damagemeter-c-api-design]]（不解析戰鬥記錄、固定 bar 池、cacheKey、每列備忘、
 可視剔除、分段判定的髒事件、秘密值紀律）。**動這支之前先看那份筆記。**
 
@@ -26,21 +26,21 @@ Meter/    Data（C_DamageMeter 包裝＋秘密值守衛＋數字格式）
 Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗／關於）
 ```
 
-## 七個刻意的架構決定
+## 七個跟 EUI 不一樣的決定（都是刻意的）
 
-1. **拆函式，不要頂 upvalue 天花板。** 把整個視窗寫成一個大工廠閉包會撞到 Lua 5.1 的
-   60 upvalue 上限，之後每加一個 helper 都得從 `ns` 繞一圈回來拿。
+1. **拆函式，不要頂 upvalue 天花板。** EUI 的 `CreateDMWindow` 是單一 2300 行函式，
+   已經撞到 Lua 5.1 的 60 upvalue 上限，所以它到處在把 helper 從 `ns` 繞回來拿。
    這裡工廠只建 `W`（frame 樹＋池），繪製／拖曳／展開／首頁都是模組層級函式、`W` 當第一參數。
 2. **視窗池化，不做 Destroy。** frame 在 WoW 刪不掉（[[wow-frame-lifecycle-costs]]），
-   常見的 Destroy 寫法是 Hide + SetParent(nil)，視窗數 3→1→3 來回調就留一堆孤兒。
+   EUI 的 Destroy 是 Hide + SetParent(nil)，視窗數 3→1→3 來回調就留一堆孤兒。
    這裡 `_pool[idx]` 建一次，數量只決定「顯示到第幾個」。
-3. **不自己做解鎖模式，掛在編輯模式上。** 自建一套 mover 是上萬行的工程；
+3. **unlock mode → 編輯模式覆蓋層。** EUI 為了自家的解鎖模式寫了 12871 行；
    這裡走 `EditModeSystemSelectionTemplate`（[[wow-editmode-draggable]] 技能），
    外加標題列直接拖曳。
 4. **位置存 TOPLEFT 位移，不是編輯模式技能推薦的 CENTER 位移。**
    這是可縮放視窗——錨 CENTER 從右下角拉大會讓整個框往左上漂。
 5. **磁吸做成設定**（使用者要求）：`style.snapEnabled` ＋ 每視窗 `snapDisabled`（右鍵選單）。
-   而且 **X/Y 兩軸都吸**（只吸 X 軸的話上下堆疊對不齊）。拖曳自己算游標位移不用 `StartMoving`，
+   而且 **X/Y 兩軸都吸**，EUI 只吸 X 軸與寬高。拖曳自己算游標位移不用 `StartMoving`，
    因為磁吸要在拖的當下就吸住。
 6. **標題職業色**（使用者要求）：`hdrTextUseClassColor` 預設開，用玩家自己的職業色
    ＝ `Media.Accent()` ＝ MiliUIWidgets 的 `Env.Accent()`，整包同一個來源。關掉走自訂色。
@@ -81,7 +81,7 @@ Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗
   它只在切類型／切分段／改尺寸時會變，那三條路各自叫一次就好。
 - **首頁蓋著的時候不要畫長條**（`Rows.Render` 的 `painting` 閘）：首頁自己就要為八種類型
   各問一次 API，是最貴的一頁。
-- **細線與填滿條都錨在 `bar.row`**，不是「線錨在填滿條上」。
+- **細線與填滿條都錨在 `bar.row`**，不是「線錨在填滿條上」（EUI 是後者）。
   填滿條的幾何在秘密值下是髒的，不要讓它往下傳染。
 - **確認彈窗一進「關於」分頁就自己跳出來**：`W.CreateConfirmPopup` 建完沒有 `Hide()`，
   而 `W.CreateFrame` 預設是顯示的。修在共用層（八份同步），見
@@ -89,20 +89,21 @@ Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗
 - **`SetStatusBarTexture` 不會清掉 `SetStatusBarColor`。** 細線樣式把填滿條的頂點色
   設成 `(0,0,0,0)` 當隱形容器，換回實心時那個全透明**原封不動留著** —— 症狀是
   「選了實心填滿沒反應，要 /reload 才出現」（reload 後 bar 是全新建的，沒有殘留）。
-  離開細線樣式時要 `SetStatusBarColor(1,1,1,1)` 把它救回來。
+  離開細線樣式時要 `SetStatusBarColor(1,1,1,1)` 把它救回來。EUI 的 `ClearThinLine`
+  有一模一樣的註解，它也踩過。
 - **外觀設定要在 `Win.ApplyStyle` 裡直接套，不能只交給繪製路徑。**
   `RelayoutBar` 只走「有資料而且在可視範圍內」的列 —— 改樣式的當下若沒有資料
   （剛登入、剛重置），就會留在舊樣式直到下一場戰鬥。
 - **事件名稱猜錯 ＋ 被 pcall 吞掉。** 寫成 `COMBAT_SESSION_UPDATED`（漏了
   `DAMAGE_METER_` 前綴），`RegisterEvent` 拋錯被 pcall 吃掉 → 閒置時視窗永遠不更新，
-  零徵兆。註冊失敗現在會記進 `ns.errors`（`/mdm debug` 看得到）。
+  零徵兆。現在名稱照 EUI 抄，註冊失敗會記進 `ns.errors`（`/mdm debug` 看得到）。
   **通則：包 pcall 可以，但不能讓失敗無聲。**
 - **戰鬥中點別人的列會開出空白展開頁**：秘密 GUID 被 getter 拒收、錯誤被我們的 pcall
   吃掉。要在呼叫**之前**擋（只放行死亡與自己那一列），細節見
   [[wow-damagemeter-c-api-design]]。
 - **拖曳／縮放進行中不能再 SetPoint / SetSize。** `Move.ApplyPosition` 與
   `Win.ApplyStyle` 都要看 `W._drag / W._resize` 早退，否則會跟逐幀的 SetPoint 打架
-  （畫面上是視窗抽動）。
+  （畫面上是視窗抽動）。EUI 也留了同一道守衛。
 - **語系稽核的兩個假警報**：類型名稱本來寫成 `L[D.TYPE_NAMES[t]]` 間接查表，
   被 `miliui-locale-audit` 報成「多餘 8 條」→ 改成在 `TYPE_DEFS` 就用字面字串查好。
   註解裡寫 `L["字面量"]` 也會被掃進去，別在註解裡寫這種形狀。
@@ -152,6 +153,26 @@ Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗
 - **戰鬥中不動 CVar**（部分 CVar 在戰鬥鎖定時受保護），而且這件事一點都不急。
 - **只在第一次真的關掉時講一句**，之後每次登入靜靜地關。免得玩家莫名其妙發現內建統計不見了。
 
+## 智慧顯示（2026-08-26，取代 autoCurrentOnCombat）
+
+每視窗 `wdb.smartDisplay`（預設開）：**戰鬥中看「目前」、脫戰看「總計」**。
+zhTW 的 Current 譯名同時從「本場」改成「目前」（使用者點名：本場會被讀成「這個副本」）。
+
+- 只在兩個戰鬥邊界動手：`BeginSegment` → SmartApply(true)、`FreezeCombat` →
+  SmartApply(false)。**FreezeCombat 是五個戰鬥結束路徑的唯一匯流點**（呼叫端都有
+  `_combatEndTime` 守衛），掛這裡每分段最多跑一次；要在讀完 Current 時長之後才切走。
+- **豁免是無狀態的**：玩家正在看特定歷史分段（`curSessionID ~= nil`）就不干預；
+  他切回目前／總計的那一刻 curSessionID 歸 nil，自然恢復 —— 不需要「被暫停」旗標。
+  唯一例外：重新打開智慧顯示（`Windows.SetSmartDisplay` 的 force）連豁免都拿掉，規格如此。
+- **不走 `Win.SetSegment`**（它會沿 syncSegments 傳播）：智慧切換是每個開了的視窗
+  各自處理，避免「一個開智慧、一個只開連動」被拖著走。也不清 `_barCacheKey`
+  （換分段是資料不是版面，一場戰鬥切兩次、清版面快取等於每場整批重排兩回）。
+- 開關唯一入口 `Windows.SetSmartDisplay`：右鍵選單直接呼叫；設定頁的通用 toggle
+  不知道 off→on 的轉變，所以 Tab_Each 的 ctx.set **特例了 smartDisplay 這一個 key**。
+- 舊的 `autoCurrentOnCombat` 整個移除。它「失效」的原因：guard 是
+  `if not W.curSessionID then return end` —— 只救「正在看歷史分段」的視窗，
+  玩家最常見的 Overall（無 ID）反而完全不動。
+
 ## 發佈前：改預設值不配遷移
 
 **這支還沒發佈**（2026-08-24 使用者明確交代），所以調任何 `BuildDefaults()` 的值都
@@ -161,12 +182,49 @@ Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗
 改預設值對自己這台沒有效果 —— 要看新預設得 `/mdm resetall`（整包還原並重載）
 或到設定頁手動調。
 
+## 效能：熱路徑的現況與一條硬不變式（2026-08-25）
+
+主清單（`Rows.PaintBar`）本來就有三層快取，沒什麼可挖。成本集中在兩個沒被照顧到的地方，
+兩個都已經修掉：
+
+1. **展開頁每 tick 對每一列跑完整版面**（12 個 setter 含兩次 `SetFont`，而 `SetFont`
+   內部又重查設定與字型路徑）。20 條法術 ≈ 每秒 480 次 setter，主清單 40 列全開才 80。
+   `LayoutSpellBar` 加了 `(y, iconOffset, W._srcLayGen)` 三元組備忘 → 約 40。
+   **y 與 iconOffset 一定要進鍵**，不能只看世代：y 隨資料筆數變（「打了誰」那段接在
+   法術列後面），iconOffset 逐列不同（查不到圖示的那列是 0）。
+   世代由 `Win.ApplyStyle` 與 `B.Open` 遞增。
+2. **隱藏的視窗照樣全額刷新** → `W.Refresh` 開頭 `IsShown()` 早退。
+
+### ⚠ 不變式：「藏著就不畫」⇒ 每一條讓視窗現身的路徑都要補畫一次
+
+沒補的話會停在藏起來那一刻的畫面，而且**脫戰時根本沒有下一個 tick 會補**，
+症狀是「切回來是一個空框，要等下一場戰鬥」。目前的出口有兩條，加第三條時記得一起補：
+
+- `Win.UpdateVisibility` —— 全部分支收斂成一個 `Set(shown)` 閉包，由隱藏轉顯示時
+  `W._barCacheKey = nil` ＋ `W.Refresh()`。
+- `Move.UpdateEditState` —— **它是繞過 `UpdateVisibility` 直接 `frame:Show()` 的**，
+  所以另外補了一份。這種繞過的路徑是這條不變式最容易漏的地方。
+
+### 刻意沒做的三項（不要再提案）
+
+- **cacheKey 改成世代序號**：每 tick 重建那條字串只花 ~40 µs/秒，而它現在是一張
+  **自動安全網**（16 個外觀欄位任一變動都必然被抓到）。換成手動 bump 等於買進
+  「漏 bump 就靜默留在舊版面」的風險。不划算。
+- **`P.Scale` 快取**：同上，20 次 C 呼叫/秒換一個要手動失效的快取。
+- **展開頁圖示 `SetTexture` 備忘**：還有 ~15%，但要對 `spellID` 做 `~=` 比較，
+  那是秘密值會丟錯的地方。要做得先套「是秘密就直接寫、清備忘」那個形狀。
+
+其餘都是拿掉純浪費、行為不變：`ctx` 表與 `FilterDeaths` 緩衝改每視窗重用、
+`RecalcViewport` 用 `totalH` 備忘、歷史分段時長快取進 `W._segDur`
+（失效點：`SetDMType` / `SetSegment` / `InvalidateData` / `Tab_Each.Apply`）、
+`M.Font` 記住解出來的路徑（**只快取問到的** —— 註冊那支字型的插件可能比我們晚載入）。
+
 ## 待驗證（都還沒進遊戲跑過）
 
-- `C_DamageMeter` 的欄位名還沒有實機對過
+- `C_DamageMeter` 的欄位名是從 EUI 的原始碼抄的，沒有實機對過
 - 標題列六張圖示在遊戲內 22px 的實際觀感（只在 Pillow 端看過模擬）
 - 秘密值路徑：受限內容裡的名字／數字／GUID 有沒有漏掉的 guard
-- 磁吸手感（`snapThreshold` 預設 6 只是個起手值）
+- 磁吸手感（`snapThreshold` 預設 6 是抄 EUI 的）
 - 細線樣式在 18px 列高 ＋ 12pt 描邊字下的實際觀感（參考圖的列看起來比 18px 高）
 - 分段判定的各種邊界（連拉、滅團、PvP 回合間、假死）
 
