@@ -16,8 +16,6 @@ local PANEL_W, PANEL_H = 1000, 520
 local PREVIEW_W = 340
 Options.PREVIEW_W = PREVIEW_W
 
-local TAB_DRAG_THRESHOLD = 12
-local TAB_DRAG_DELAY     = 0.12
 local TAB_MIN_W = 74
 local TAB_H     = 22
 local TAB_GAP   = 3
@@ -126,10 +124,9 @@ local function CreatePanel()
 
     tinsert(UISpecialFrames, "MiliUITip_Options")
 
-    local title = panel:CreateFontString(nil, "OVERLAY")
-    title:SetFontObject(W.fontTitle)
-    title:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 2, 26)
-    title:SetText("|cff4DD2FF" .. L["MiliUI Tooltip"] .. "|r  v" .. ns.VERSION)
+    -- 標題列：看得見的拖曳把手（⠿ 拖曳移動）＋ 標題文字，整條都能拖著移動視窗。
+    -- 右鍵把視窗叫回畫面中央。實作在共用層 Libs/MiliUIWidgets/Widgets.lua
+    W.CreateTitleBar(panel, "|cff4DD2FF" .. L["MiliUI Tooltip"] .. "|r  v" .. ns.VERSION, SavePosition)
 
     closeBtn = W.CreateButton(panel, "", "red", 20, 20)
     closeBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -3, -3)
@@ -152,7 +149,8 @@ local function CreatePanel()
         sep:SetShown(not FULL_WIDTH[id])
     end)
 
-    -- 分頁鈕：上緣外側兼拖曳把手（自己量距離＋最短按住時間，不用 RegisterForDrag）
+    -- 分頁鈕：上緣外側，一路排開。分頁鈕本身也是拖曳把手（隱藏的便利功能，
+    -- 看得見的那個在標題列上），所以標題列與分頁列哪裡抓都能移動視窗
     local prev
     for i, tab in ipairs(TABS) do
         local b = W.CreateButton(panel, tab.label, "accent-hover", TAB_MIN_W, TAB_H)
@@ -166,34 +164,7 @@ local function CreatePanel()
         else
             b:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, 1)
         end
-        b:HookScript("OnMouseDown", function(self, button)
-            if button ~= "LeftButton" then return end
-            local sx, sy = GetCursorPosition()
-            local downAt = GetTime()
-            self.dragging = false
-            self:SetScript("OnUpdate", function()
-                local px, py = GetCursorPosition()
-                if not self.dragging then
-                    if not ((math.abs(px - sx) > TAB_DRAG_THRESHOLD
-                             or math.abs(py - sy) > TAB_DRAG_THRESHOLD)
-                            and GetTime() - downAt >= TAB_DRAG_DELAY) then
-                        return
-                    end
-                    self.dragging = true
-                    panel:StartMoving()
-                end
-            end)
-        end)
-        b:HookScript("OnMouseUp", function(self, button)
-            self:SetScript("OnUpdate", nil)
-            if button ~= "LeftButton" then return end
-            if self.dragging then
-                self.dragging = false
-                panel:StopMovingOrSizing()
-                panel:SetUserPlaced(false)
-                SavePosition()
-            end
-        end)
+        W.MakeDragHandle(b, panel, SavePosition)
         prev = b
         tabButtons[i] = b
     end

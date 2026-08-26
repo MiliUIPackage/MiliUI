@@ -180,6 +180,228 @@ function W.CreateButtonGroup(buttons, onClick)
 end
 
 ------------------------------------------------------------
+-- 視窗拖曳把手 ／ 標題列
+--
+-- 設定視窗沒有暴雪那種厚標題列，所以「哪裡可以抓」完全沒有訊號。九個插件本來
+-- 各自複製同一段「分頁鈕兼把手」的程式 —— 但那個把手是**隱形**的：分頁鈕的視覺
+-- 語言講的是「切換頁面」，沒人會想到它同時能拖。實際回報就是「這視窗不能移動」。
+--
+-- 兩層解法：
+--   W.MakeDragHandle  把任何區域變成把手（分頁鈕沿用，行為不變）
+--   W.CreateTitleBar  視窗上緣外側的標題列：看得見的把手 chip ＋ 標題文字，整條都能拖
+--
+-- ⚠ 不用 RegisterForDrag：滑鼠稍微一抖就被判定成拖曳，那一下 OnClick 會被吃掉
+--   （分頁「點了沒反應」，觸控板最明顯）。改成自己量位移＋最短按住時間。
+------------------------------------------------------------
+local DRAG_THRESHOLD = 12       -- 位移超過幾 px 才算拖曳（GetCursorPosition 的單位，不隨 UI 縮放）
+local DRAG_DELAY     = 0.12     -- 按住幾秒之後才算拖曳
+
+local function FinishDrag(handle)
+    handle:SetScript("OnUpdate", nil)
+    if not handle._dragging then return end
+    handle._dragging = false
+    handle._dragTarget:StopMovingOrSizing()
+    -- 位置一律走插件自己的 SV，不要讓暴雪的版面存檔接手
+    handle._dragTarget:SetUserPlaced(false)
+    if handle._onMoved then handle._onMoved() end
+end
+
+-- handle 要收得到滑鼠（Button 天生有，純 Frame 記得 EnableMouse(true)）
+function W.MakeDragHandle(handle, target, onMoved)
+    handle._dragTarget, handle._onMoved = target, onMoved
+
+    handle:HookScript("OnMouseDown", function(self, button)
+        if button ~= "LeftButton" or not target:IsMovable() then return end
+        local sx, sy = GetCursorPosition()
+        local downAt = GetTime()
+        self._dragging = false
+        self:SetScript("OnUpdate", function(s)
+            -- 放開的那一下如果落在把手外面（拖到螢幕邊緣被 clamp 住時會發生），
+            -- OnMouseUp 收不到 —— 沒有這道自檢，視窗就黏在游標上了
+            if not IsMouseButtonDown("LeftButton") then return FinishDrag(s) end
+            if s._dragging then return end
+            local px, py = GetCursorPosition()
+            if (math.abs(px - sx) > DRAG_THRESHOLD or math.abs(py - sy) > DRAG_THRESHOLD)
+                and GetTime() - downAt >= DRAG_DELAY then
+                s._dragging = true
+                target:StartMoving()
+            end
+        end)
+    end)
+
+    handle:HookScript("OnMouseUp", function(self, button)
+        if button ~= "LeftButton" then return end
+        FinishDrag(self)
+    end)
+
+    return handle
+end
+
+------------------------------------------------------------
+-- 拖曳提示的文案
+--
+-- ⚠ 這是共用層唯一**自帶**的字串。契約本來是「文案由宿主傳進來」（README 的
+--   「L 只需要四個 key」），這裡破例：這是共用層自己長出來的元件，九個宿主 ×
+--   最多十個語系去補 key，補完必然漂移。宿主真要改就傳 opts.label / opts.tip*。
+------------------------------------------------------------
+local DRAG_TEXT = {
+    enUS = { "Drag to move", "Move this window",
+             "Hold the left mouse button and drag.",
+             "Right-click: back to the centre of the screen" },
+    zhTW = { "拖曳移動", "移動這個視窗",
+             "按住左鍵拖曳。",
+             "右鍵：回到畫面正中央" },
+    zhCN = { "拖动移动", "移动这个窗口",
+             "按住左键拖动。",
+             "右键：回到屏幕正中央" },
+    koKR = { "드래그해서 이동", "창 이동",
+             "왼쪽 버튼을 누른 채 끌어 주세요.",
+             "우클릭: 화면 중앙으로" },
+    deDE = { "Verschieben", "Fenster verschieben",
+             "Halte die linke Maustaste gedrückt und ziehe.",
+             "Rechtsklick: zurück zur Bildschirmmitte" },
+    frFR = { "Déplacer", "Déplacer la fenêtre",
+             "Maintenez le bouton gauche et faites glisser.",
+             "Clic droit : au centre de l'écran" },
+    esES = { "Mover", "Mover la ventana",
+             "Mantén pulsado el botón izquierdo y arrastra.",
+             "Clic derecho: volver al centro de la pantalla" },
+    itIT = { "Sposta", "Sposta la finestra",
+             "Tieni premuto il tasto sinistro e trascina.",
+             "Clic destro: torna al centro dello schermo" },
+    ptBR = { "Mover", "Mover a janela",
+             "Segure o botão esquerdo e arraste.",
+             "Clique direito: voltar ao centro da tela" },
+    ruRU = { "Переместить", "Переместить окно",
+             "Удерживайте левую кнопку мыши и перетащите.",
+             "Правый клик: вернуть в центр экрана" },
+}
+DRAG_TEXT.esMX = DRAG_TEXT.esES
+DRAG_TEXT.ptPT = DRAG_TEXT.ptBR
+
+local dragText = DRAG_TEXT[GetLocale()] or DRAG_TEXT.enUS
+
+------------------------------------------------------------
+-- 標題列
+--
+-- 版面：`[⠿ 拖曳移動] 插件名稱 v1.2.3`，掛在面板上緣外側、分頁列的上面一層。
+-- 整條（含標題文字）都是拖曳區，右鍵把視窗叫回畫面中央。
+--
+-- 為什麼把手是一個**有底有邊的 chip**、而不是光禿禿六個點：標題列在面板**外側**，
+-- 背後是會動的遊戲畫面，灰點在亮色地圖上等於不存在。chip 到哪都讀得到，而且跟
+-- 底下的分頁鈕同一套視覺語言（WIDGET_FILL 底、hover 換 accent），一看就知道能按。
+--
+-- 寬度只包到標題文字結束，不整條拉滿：右半邊有些插件放搜尋框（Options/Search.lua
+-- 的退回位置），而且「滑過空白處跳出工具提示」本身也怪。
+------------------------------------------------------------
+local BAR_H     = 21     -- 標題列高
+local BAR_Y     = 24     -- 標題列底緣離面板上緣多高（分頁鈕高 22，剛好讓開）
+local CHIP_H    = 18
+local GRIP_X    = 7      -- ⠿ 距 chip 左緣
+local GRIP_W    = 5      -- ⠿ 佔的寬（兩欄點 + 欄距）
+local GRIP_GAP  = 5      -- ⠿ 與提示字之間
+local CHIP_PAD  = 8      -- chip 右內距
+
+function W.CreateTitleBar(panel, titleText, onMoved, opts)
+    opts = opts or {}
+
+    local bar = CreateFrame("Frame", nil, panel)
+    bar:EnableMouse(true)
+    bar:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, opts.y or BAR_Y)
+
+    local chip = CreateFrame("Frame", nil, bar, "BackdropTemplate")
+    W.Stylize(chip, WIDGET_FILL)
+    chip:SetPoint("LEFT", 0, 0)
+
+    -- ⠿：兩欄 × 三列的 2px 點。chip 不 EnableMouse，滑鼠一路落到 bar 上，
+    -- 所以三個元件（chip／點／提示字）的 hover 都由 bar 統一驅動
+    local dots = {}
+    for col = 0, 1 do
+        for row = 0, 2 do
+            local d = chip:CreateTexture(nil, "ARTWORK")
+            d:SetTexture(WHITE)
+            d:SetSize(P.Scale(2), P.Scale(2))
+            d:SetPoint("CENTER", chip, "LEFT", P.Scale(GRIP_X + col * 3 + 1), P.Scale(3 - row * 3))
+            dots[#dots + 1] = d
+        end
+    end
+
+    local hint = chip:CreateFontString(nil, "OVERLAY")
+    hint:SetFontObject(fontSmall)
+    hint:SetPoint("LEFT", chip, "LEFT", P.Scale(GRIP_X + GRIP_W + GRIP_GAP), 0)
+    hint:SetText(opts.label or dragText[1])
+    -- 量字寬要在 SetText 之後。這裡跟分頁鈕一樣把 GetStringWidth 當「想要的 px」
+    -- 餵進 P.Size，讓 PixelPerfect 在 UI 縮放變動時能自己重算
+    local chipW = GRIP_X + GRIP_W + GRIP_GAP + math.ceil(hint:GetStringWidth()) + CHIP_PAD
+    P.Size(chip, chipW, CHIP_H)
+
+    local barW = chipW
+    local title
+    if titleText and titleText ~= "" then
+        title = bar:CreateFontString(nil, "OVERLAY")
+        title:SetFontObject(fontTitle)
+        title:SetPoint("LEFT", chip, "RIGHT", P.Scale(8), 0)
+        title:SetText(titleText)
+        barW = barW + 8 + math.ceil(title:GetStringWidth()) + 6
+    end
+    P.Size(bar, barW, BAR_H)
+
+    -- hover：只換明暗不換色相（見 miliui-color-states），階梯直接沿用按鈕那組
+    local function SetHot(hot)
+        if hot then
+            chip:SetBackdropColor(W.Accent(0.6))
+            hint:SetTextColor(1, 1, 1)
+        else
+            chip:SetBackdropColor(unpack(WIDGET_FILL))
+            hint:SetTextColor(0.8, 0.8, 0.8)
+        end
+        for _, d in ipairs(dots) do
+            d:SetVertexColor(hot and 1 or 0.6, hot and 1 or 0.6, hot and 1 or 0.6, 1)
+        end
+    end
+    SetHot(false)
+
+    bar:SetScript("OnEnter", function()
+        SetHot(true)
+        GameTooltip:SetOwner(bar, "ANCHOR_NONE")
+        GameTooltip:ClearAllPoints()
+        -- 優先擺在上方；視窗貼到螢幕頂端時改擺下方（三行約需 70px）。
+        -- 螢幕左右邊界交給 GameTooltip 自己的 clamp
+        local top = bar:GetTop()
+        if top and (UIParent:GetTop() - top) > 70 then
+            GameTooltip:SetPoint("BOTTOMLEFT", chip, "TOPLEFT", 0, 6)
+        else
+            GameTooltip:SetPoint("TOPLEFT", chip, "BOTTOMLEFT", 0, -6)
+        end
+        GameTooltip:AddLine(opts.tipTitle or dragText[2])
+        GameTooltip:AddLine(opts.tipBody or dragText[3], 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(opts.tipReset or dragText[4], 0.55, 0.55, 0.55, true)
+        GameTooltip:Show()
+    end)
+    bar:SetScript("OnLeave", function()
+        SetHot(false)
+        GameTooltip:Hide()
+    end)
+
+    -- 右鍵：把視窗叫回畫面中央。存到看不見的地方是拖曳一定會發生的意外，
+    -- 而「關掉再開」不會救回來（位置有存檔）—— 沒有這條就只能重灌設定。
+    -- ⚠ 一定要排在 MakeDragHandle **之前**：那支走 HookScript，
+    --   反過來的話這行 SetScript 會把它的 OnMouseUp 整個蓋掉
+    bar:SetScript("OnMouseUp", function(_, button)
+        if button ~= "RightButton" then return end
+        panel:ClearAllPoints()
+        panel:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        panel:SetUserPlaced(false)
+        if onMoved then onMoved() end
+    end)
+
+    W.MakeDragHandle(bar, panel, onMoved)
+
+    bar.chip, bar.title = chip, title
+    return bar
+end
+
+------------------------------------------------------------
 -- 勾選框
 ------------------------------------------------------------
 function W.CreateCheckButton(parent, label, onChange)

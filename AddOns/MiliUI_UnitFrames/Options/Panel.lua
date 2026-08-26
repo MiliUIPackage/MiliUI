@@ -13,10 +13,6 @@ local Options = ns.Options
 
 local PANEL_W, PANEL_H = 700, 520
 
--- 分頁鈕兼拖曳把手時的判定門檻（數值沿用 Options/Minimap.lua 已經調過的那組）
-local TAB_DRAG_THRESHOLD = 12
-local TAB_DRAG_DELAY     = 0.12
-
 -- 分頁鈕：74 是**下限**不是固定寬。
 -- ⚠ 按鈕的 label 只錨 CENTER、`SetWordWrap(false)`，太長不會被裁掉而是**往兩側溢出**
 -- （見 Widgets.lua 的 CreateButton 註解）。固定 74 的話德文的 "Beschwörungen"
@@ -167,11 +163,9 @@ local function CreatePanel()
     -- ESC 關閉
     tinsert(UISpecialFrames, "MiliUIUF_Options")
 
-    -- 標題（左上外側）
-    local title = panel:CreateFontString(nil, "OVERLAY")
-    title:SetFontObject(W.fontTitle)
-    title:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 2, 26)
-    title:SetText("|cff4DD2FF" .. L["MiliUI Unit Frames"] .. "|r  v" .. ns.VERSION)
+    -- 標題列：看得見的拖曳把手（⠿ 拖曳移動）＋ 標題文字，整條都能拖著移動視窗。
+    -- 右鍵把視窗叫回畫面中央。實作在共用層 Libs/MiliUIWidgets/Widgets.lua
+    W.CreateTitleBar(panel, "|cff4DD2FF" .. L["MiliUI Unit Frames"] .. "|r  v" .. ns.VERSION, SavePosition)
 
     -- 關閉鈕（右上角）
     -- 關閉鈕用貼圖不用「×」字元（中文字型可能沒這個字形）
@@ -185,7 +179,8 @@ local function CreatePanel()
     closeX:SetVertexColor(1, 0.85, 0.85)
     closeBtn:SetScript("OnClick", function() panel:Hide() end)
 
-    -- 分頁鈕：上緣外側，一路排開，兼拖曳把手
+    -- 分頁鈕：上緣外側，一路排開。分頁鈕本身也是拖曳把手（隱藏的便利功能，
+    -- 看得見的那個在標題列上），所以標題列與分頁列哪裡抓都能移動視窗
     local prev
     local stripW = 0
     for i, tab in ipairs(VisibleTabs()) do
@@ -202,37 +197,7 @@ local function CreatePanel()
         else
             b:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, 1)
         end
-        -- 分頁鈕同時是視窗的拖曳把手。⚠ 不能用 RegisterForDrag：滑鼠稍微一抖就被
-        -- 判定成拖曳，那一下 OnClick 就被吃掉（切分頁「點了沒反應」，觸控板最明顯）。
-        -- 照 Options/Minimap.lua 已經驗證過的做法自己量距離＋最短按住時間。
-        b:HookScript("OnMouseDown", function(self, button)
-            if button ~= "LeftButton" then return end
-            local sx, sy = GetCursorPosition()
-            local downAt = GetTime()
-            self.dragging = false
-            self:SetScript("OnUpdate", function()
-                local px, py = GetCursorPosition()
-                if not self.dragging then
-                    if not ((math.abs(px - sx) > TAB_DRAG_THRESHOLD
-                             or math.abs(py - sy) > TAB_DRAG_THRESHOLD)
-                            and GetTime() - downAt >= TAB_DRAG_DELAY) then
-                        return
-                    end
-                    self.dragging = true
-                    panel:StartMoving()
-                end
-            end)
-        end)
-        b:HookScript("OnMouseUp", function(self, button)
-            self:SetScript("OnUpdate", nil)
-            if button ~= "LeftButton" then return end
-            if self.dragging then
-                self.dragging = false
-                panel:StopMovingOrSizing()
-                panel:SetUserPlaced(false)
-                SavePosition()
-            end
-        end)
+        W.MakeDragHandle(b, panel, SavePosition)
         prev = b
         tabButtons[i] = b
     end

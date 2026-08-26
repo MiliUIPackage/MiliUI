@@ -1,7 +1,7 @@
 # MiliUIWidgets
 
 MiliUI 各插件共用的設定介面元件庫。自寫、零外部依賴、零資產檔（材質只用暴雪內建的
-`WHITE8X8`，字型走暴雪內建路徑），所以整包就是四支 `.lua`，複製過去就會動。
+`WHITE8X8`，字型走暴雪內建路徑），所以整包就是五支 `.lua`，複製過去就會動。
 
 **這是 vendor 包，不是 LibStub 函式庫。** 每個插件各帶一份、各跑各的，彼此不共享執行期
 狀態。原始碼的唯一來源是 **MiliUI 本體**（`AddOns/MiliUI/Libs/MiliUIWidgets/`）這份，
@@ -12,7 +12,7 @@ MiliUI 各插件共用的設定介面元件庫。自寫、零外部依賴、零�
 | 檔案 | 複製時 | 說明 |
 |---|---|---|
 | `Env.lua` | **要改** | 宿主接點，見下方契約 |
-| `Widgets.lua` | 逐字複製 | 元件庫：按鈕／勾選框／滑桿／下拉／色票／輸入框／複製框／列表／遮罩／彈窗 |
+| `Widgets.lua` | 逐字複製 | 元件庫：按鈕／勾選框／滑桿／下拉／色票／輸入框／複製框／列表／遮罩／彈窗／標題列 |
 | `ContextMenu.lua` | 逐字複製 | 右鍵／情境選單（長在遊戲畫面上的那種，不是設定表單裡的下拉） |
 | `Controls.lua` | 逐字複製 | 表單引擎：吃一張 spec 清單，吐出對齊好的一整頁控制項 |
 | `PixelPerfect.lua` | 可略 | 像素對齊。插件已經有自己的一份就別帶，把 `Env.P` 指過去即可 |
@@ -43,7 +43,7 @@ MiliUI 各插件共用的設定介面元件庫。自寫、零外部依賴、零�
 邊的介面「莫名其妙變了樣」。
 
 已用掉的前綴：`MiliUIPack`（本體）、`MiliUIUF`、`MiliUITip`、`MiliUIFocus`、
-`MiliUIChatBar`、`MiliUIBurst`、`MiliUIBLM`、`MiliUIDM`、`MiliUIAura`。
+`MiliUIChatBar`、`MiliUIBurst`、`MiliUIBLM`、`MiliUIDM`、`MiliUIAura`、`MiliUINote`。
 
 ### L 只需要四個 key
 
@@ -101,6 +101,33 @@ ChatBar 與 DamageMeters 各帶一份幾乎一樣的引擎，結果同一個「E
 | `W.CreateRowList(parent, w, h, rowH, buildRow)` | 「一列一筆資料」的清單。捲軸／列高／內容高度由它管，宿主只寫 `buildRow`（建控件）與 `list:Update(items, updateRow)`（填值）。⚠ 列會回收再用，`updateRow` 必須連 `OnClick` 的 closure 一起重設 |
 | `W.CreateInputPopup(parent, w, title, fields)` | 「新增一筆／改名」這種要先問字串的對話框。`popup:Open(values, onAccept, title)`，`onAccept` 回傳 `false` 就不關窗 |
 
+### 視窗拖曳（`W.CreateTitleBar` / `W.MakeDragHandle`）
+
+```lua
+W.CreateTitleBar(panel, titleText, onMoved, opts)   -- 上緣外側的標題列，含看得見的把手
+W.MakeDragHandle(handle, target, onMoved)           -- 把任何區域變成把手
+```
+
+`W.CreateTitleBar` 在面板**上緣外側**（分頁列的上面一層）畫一條
+`[⠿ 拖曳移動] 插件名稱 v1.2.3`，整條都是拖曳區，右鍵把視窗叫回畫面中央。
+`titleText` 傳 `nil` 就只長把手 chip（本體的視窗有 banner 寫名稱，用這個模式）。
+`onMoved` 是宿主的 `SavePosition`。`opts` 可蓋掉 `label` / `tipTitle` / `tipBody` /
+`tipReset` / `y`。
+
+**為什麼要有一顆看得見的 chip**：分頁鈕本來就兼拖曳把手，但那是**隱形**的 ——
+分頁鈕的視覺語言講的是「切換頁面」，玩家不會想到它同時能拖，實際回報就是
+「這個視窗不能移動」。chip 有底有邊（標題列在面板外側，背後是會動的遊戲畫面，
+光禿禿幾個灰點在亮色地圖上等於不存在），而且跟底下的分頁鈕同一套視覺語言。
+
+⚠ **`opts` 之外的文案是共用層自帶的**（`DRAG_TEXT`，十個語系）。這是這包唯一
+一組不由宿主提供的字串 —— 共用層自己長出來的元件，九個宿主 × 十個語系去補 key，
+補完必然漂移。**新增語系請改這裡再同步出去。**
+
+⚠ `MakeDragHandle` 走 `HookScript`，所以宿主要在同一個 frame 上 `SetScript`
+`OnMouseUp` 的話**必須排在它前面**，不然會把它的處理器整個蓋掉。
+把手不用 `RegisterForDrag`：滑鼠一抖就判定成拖曳，那一下 `OnClick` 會被吃掉
+（分頁「點了沒反應」，觸控板最明顯），所以改成自己量位移＋最短按住時間。
+
 ## 規矩
 
 - **不要在 `Widgets.lua` / `Controls.lua` 裡引進新的 `ns.*` 依賴。** 要用宿主的東西就加到
@@ -117,7 +144,8 @@ ChatBar 與 DamageMeters 各帶一份幾乎一樣的引擎，結果同一個「E
 ## 這包目前不含什麼
 
 - **設定視窗本體**（`Options/Panel.lua`）：分頁清單、尺寸、開關時機都是宿主專屬的組裝，
-  沒有共用價值。要參考「分頁鈕掛上緣兼拖曳把手＋戰鬥遮罩」那套做法就去看各插件那支；
+  沒有共用價值。要參考「分頁鈕掛上緣＋戰鬥遮罩」那套做法就去看各插件那支（拖曳把手
+  已經收進共用層，見上面的 `W.CreateTitleBar`）；
   本體的版本另外多了頂部 banner 與開窗淡入。
 - **設定搜尋**（`Options/Search.lua`，在 MiliUI_UnitFrames）：機制是通用的（靠
   `Controls.Build` 回傳的 `rows` 定位到某一列），但它另外還耦合了宿主的 `ReportError` /
