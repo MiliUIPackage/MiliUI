@@ -20,6 +20,10 @@ local _, ns = ...
 ns.Skin = {}
 local Skin = ns.Skin
 
+-- 武器附魔外框染成紫色。這是套組原本那支光環樣式插件的行為，接手就得照搬，
+-- 不然玩家更新完會發現顏色莫名其妙變了。原始貼圖是橘金色，跟增益的邊框太像。
+local ENCHANT_BORDER_COLOR = { 0.75, 0, 1 }
+
 -- 這個字串會變成引擎設定裡的群組 ID（ID = 這個 .. "_" .. staticID），
 -- **刻意不在地化**：跟著客戶端語言變的話，玩家換個語言就會拿到一組全新的預設樣式。
 local GROUP_ADDON = "MiliUI Aura Enhance"
@@ -161,6 +165,14 @@ local function Attach(btn, isDebuff)
 
     btn.Icon:Hide()
     MoveRegions(btn, w)
+
+    local eb = btn.TempEnchantBorder
+    if eb then
+        -- 原本的顏色記一份，停用時還得回去
+        if not w.enchantColor then w.enchantColor = { eb:GetVertexColor() } end
+        eb:SetVertexColor(ENCHANT_BORDER_COLOR[1], ENCHANT_BORDER_COLOR[2], ENCHANT_BORDER_COLOR[3])
+    end
+
     w:Show()
     w.attached = true
 
@@ -182,6 +194,10 @@ local function Detach(btn)
     if group then group:RemoveButton(w) end
 
     MoveRegions(btn, btn)
+
+    local eb, ec = btn.TempEnchantBorder, w.enchantColor
+    if eb and ec then eb:SetVertexColor(ec[1] or 1, ec[2] or 1, ec[3] or 1, ec[4]) end
+
     w:Hide()
     w.attached = false
     if btn.Icon then btn.Icon:Show() end

@@ -30,12 +30,15 @@ local function SetFontSafe(fs, path, size, flags)
     return fs:SetFont(Media.DEFAULT_FONT, size, flags)
 end
 
--- 時間文字的字型路徑：沒選自訂字型就沿用暴雪原本那支
+-- 時間文字的字型路徑：沒選自訂字型就沿用暴雪的。
+--
+-- ⚠ 「暴雪的」要讀**當下**那支，不能用第一次掛勾時記下來的那份：暴雪會依剩餘時間
+--   在兩個字型物件之間切換（樣板繼承的那支只是起點，跑起來會被換掉），釘在起點
+--   等於把字臉鎖成另一支字型 —— 症狀是「更新完字型變了」。
+--   記下來的那份只有一個用途：停用時還原。
 local function DurationFontPath(dur)
     local custom = Media.OptionalFont(DUR.font)
     if custom then return custom end
-    local orig = dur.MiliUIAura_origFont
-    if orig and orig[1] then return orig[1] end
     return (dur:GetFont()) or Media.DEFAULT_FONT
 end
 
