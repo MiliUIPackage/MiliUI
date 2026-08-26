@@ -256,10 +256,14 @@ local function InstallHooks()
     for _, entry in ipairs(Containers()) do
         local container, isDebuff = entry[1], entry[2]
         if container and container.AuraContainer then
-            hooksecurefunc(container.AuraContainer, "UpdateGridLayout", function(_, auras)
+            hooksecurefunc(container.AuraContainer, "UpdateGridLayout", function(self, auras)
                 if not auras then return end
                 for _, aura in ipairs(auras) do
-                    if aura and aura.Icon and not aura.isAuraAnchor then
+                    -- ⚠ 這份清單不是只有光環按鈕：整併圖示（開了「合併增益」時會被排在
+                    --   第一個）與私人光環的錨點也在裡面，兩者的父層都不是容器本身。
+                    --   整併圖示帶自訂的 TexCoord，被我們當成光環處理會畫錯。
+                    --   只認容器自己的孩子，日後暴雪再塞別的東西進來也不會中招。
+                    if aura and aura.Icon and not aura.isAuraAnchor and aura:GetParent() == self then
                         ns.Skin.OnButton(aura, isDebuff)
                         if aura.Duration then HookDuration(aura) end
                         if aura.Count    then HookCount(aura) end

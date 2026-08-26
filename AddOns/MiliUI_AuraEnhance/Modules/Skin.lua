@@ -8,6 +8,8 @@
 --
 -- 1. **不要把光環按鈕本身交出去。** 那顆按鈕是「圖示 ＋ 底下一行時間文字」的長方形，
 --    樣式會被拉成長方形，邊框糊掉。要另外包一層跟圖示等大的方框交出去。
+--    ⚠ 那層方框的尺寸要**自己寫死**、錨點掛在按鈕上，不要 SetAllPoints 到暴雪那張
+--    圖示——理由見下面 SyncGeometry。
 -- 2. **不要讓引擎去畫暴雪那張圖示。** 暴雪每次更新都會重設它的位置，兩邊搶著擺會
 --    一直跳。改成自己畫一張同內容的、把原本那張藏起來，位置就穩定了。
 -- 3. **層數／減益外框那些區塊要搬進包裝框。** 子框的貼圖永遠蓋過父層的區塊，
@@ -73,14 +75,48 @@ end
 -- ⚠ 一顆按鈕只建一次、之後重複使用：貼圖鏡射是掛 hook 的，重建會愈疊愈多層。
 -- 停用時只是還原並隱藏，不丟掉（暴雪的 frame 本來就刪不掉）。
 ------------------------------------------------------------
+-- 圖示在按鈕樣板裡就是 30x30；按鈕縮放走 SetScale，尺寸本身不會變
+local ICON_SIZE = 30
+
+------------------------------------------------------------
+-- 包裝框的幾何
+--
+-- ⚠⚠ **不要 SetAllPoints 到暴雪那張圖示上。** 踩過，症狀是畫面上多出一個位置與
+-- 大小都不對的方框（樣式的貼圖跟著框走，框歪了就整個歪）。原因是那張圖示的錨點
+-- 不是穩定的東西：
+--   * 容器每次重排都先 ClearAllPoints 再重下；
+--   * 減益容器還多設了「停用中的按鈕不排版」，所以沒在用的那些按鈕，它們的圖示
+--     **從頭到尾沒有錨點**。把自己的矩形接上去，等於押在一個隨時不存在的東西上。
+--   （只有減益容器有那個設定，所以壞的永遠是減益那排。）
+--
+-- 改成：尺寸自己寫死，錨點直接掛在按鈕上、每次重排跟著同步一次。最壞情況也只是
+-- 一個 30x30 的框跑錯位置，而且它是按鈕的子框，按鈕一藏它就跟著不見。
+------------------------------------------------------------
+local function SyncGeometry(btn, w)
+    local iw, ih = btn.Icon:GetSize()
+    if not iw or iw <= 0 then iw = ICON_SIZE end
+    if not ih or ih <= 0 then ih = ICON_SIZE end
+    w:SetSize(iw, ih)
+
+    -- 圖示錨在按鈕的哪一邊會隨排列方向變（往上長／往下長／直排），照抄它現在那一筆，
+    -- 但 relativeTo 一律換成按鈕自己
+    local point, rel, relPoint, x, y = btn.Icon:GetPoint(1)
+    w:ClearAllPoints()
+    if point and rel == btn then
+        w:SetPoint(point, btn, relPoint, x or 0, y or 0)
+    else
+        w:SetPoint("TOP", btn, "TOP")
+    end
+end
+
 local function EnsureWrapper(btn, kind)
     local w = wrappers[btn]
     if w then return w end
     if not (btn.Icon and btn.Icon.GetTexture) then return nil end
 
     w = CreateFrame("Frame", nil, btn)
-    w:SetAllPoints(btn.Icon)   -- 跟著圖示走，編輯模式改圖示大小也不用重算
     w.kind = kind
+    SyncGeometry(btn, w)
 
     local icon = w:CreateTexture(nil, "BACKGROUND")
     icon:SetAllPoints(w)
@@ -114,6 +150,10 @@ local function Attach(btn, isDebuff)
 
     local w = EnsureWrapper(btn, kind)
     if not w then return end
+
+    -- 暴雪每次重排都會重新錨圖示，所以每次都跟著同步一次（見 SyncGeometry）
+    SyncGeometry(btn, w)
+
     -- 按鈕是回收再用的：同一顆這次是減益、下次可能是暫時附魔。種類換了要重掛到
     -- 對應的群組（AddButton 會自己把它從舊群組移走），沒換就什麼都不用做。
     if w.attached and w.kind == kind then return end
