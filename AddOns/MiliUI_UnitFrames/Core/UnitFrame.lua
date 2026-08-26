@@ -379,18 +379,32 @@ end
 -- （ModifyMenu 的回呼是在 UnitPopup_OpenMenu **裡面**同步跑的，旗標包住呼叫就夠。）
 ------------------------------------------------------------
 local reopenUnit
-local function ModifyReopenedMenu(owner, rootDescription, contextData)
-    if not reopenUnit then return end
-    if not contextData or contextData.unit ~= reopenUnit then return end
-    for _, d in rootDescription:EnumerateElementDescriptions() do
+
+-- 遞迴走訪：像「複製角色名稱」這種項目藏在「其他選項」**子選單**裡，
+-- 只掃第一層根本碰不到它。
+local function GreyBrokenItems(desc, hasName)
+    for _, d in desc:EnumerateElementDescriptions() do
         if d.SetEnabled then
             local ok, text = pcall(MenuUtil.GetElementText, d)
             if ok and text and (text == SET_FOCUS or text == FOLLOW
-                    or text == RAID_TARGET_ICON or text == UNIT_VIEW_HOUSES) then
+                    or text == RAID_TARGET_ICON or text == UNIT_VIEW_HOUSES
+                    -- 複製角色名稱＝CopyToClipboard(contextData.name)。名字補得進
+                    -- context 的話它是好的（見重開處），補不進去才灰 —— nil 進
+                    -- 剪貼簿 API 一點就報錯
+                    or (not hasName and text == COPY_CHARACTER_NAME)) then
                 d:SetEnabled(false)
             end
         end
+        if d.EnumerateElementDescriptions then
+            GreyBrokenItems(d, hasName)
+        end
     end
+end
+
+local function ModifyReopenedMenu(owner, rootDescription, contextData)
+    if not reopenUnit then return end
+    if not contextData or contextData.unit ~= reopenUnit then return end
+    GreyBrokenItems(rootDescription, contextData.name ~= nil)
 end
 
 local menuFixInstalled = false
@@ -426,9 +440,19 @@ local function InstallMenuClassifierFix()
         local guid = UnitGUID(unit)
         if ns.IsSecret(guid) then return end          -- 判不出來就不動
         if type(guid) ~= "string" or not guid:find("^Player%-") then return end
+        -- 名字讀得到就補進 context：暴雪自己開選單時 context 帶著 name，我們重開
+        -- 只給 unit 的話「複製角色名稱」拿到 nil 必炸。隊友（含離線）的名字是明文；
+        -- 讀不到（秘密值）就不補，上面的走訪會把那一項灰掉。
+        local ctx = { unit = unit }
+        local n, realm = (UnitNameUnmodified or UnitName)(unit)
+        n = ns.Desecret(n)
+        if n then
+            realm = ns.Desecret(realm)
+            ctx.name = (realm and realm ~= "" and (n .. "-" .. realm)) or n
+        end
         reopening = true
         reopenUnit = unit
-        UnitPopup_OpenMenu(MenuWhichFor(lu, guid), { unit = unit })
+        UnitPopup_OpenMenu(MenuWhichFor(lu, guid), ctx)
         reopenUnit = nil
         reopening = false
     end)
