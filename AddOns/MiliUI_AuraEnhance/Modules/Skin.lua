@@ -65,7 +65,8 @@ end
 
 -- 暫時附魔那幾顆混在增益容器裡，靠它自己的外框認
 local function KindOf(btn, isDebuff)
-    if btn.TempEnchantBorder then return "Enchant" end
+    -- ⚠ 不要用「有沒有 TempEnchantBorder」判斷：那是樣板區塊，**每顆按鈕都有**，
+    --   非附魔時只是藏起來。拿它當判準會把所有光環都算成附魔（增益／減益兩組全空）。
     local t = btn.auraType
     if t == "TempEnchant" then return "Enchant" end
     if t == "Debuff" or t == "DeadlyDebuff" then return "Debuff" end
@@ -79,38 +80,29 @@ end
 -- ⚠ 一顆按鈕只建一次、之後重複使用：貼圖鏡射是掛 hook 的，重建會愈疊愈多層。
 -- 停用時只是還原並隱藏，不丟掉（暴雪的 frame 本來就刪不掉）。
 ------------------------------------------------------------
--- 圖示在按鈕樣板裡就是 30x30；按鈕縮放走 SetScale，尺寸本身不會變
-local ICON_SIZE = 30
+------------------------------------------------------------
+-- 包裝框的幾何：**只用常數，一個字都不從光環框上讀**
+--
+-- ⚠⚠ 兩面牆，兩次都撞過：
+--
+-- 1. 12.1 的光環框連幾何都是秘密值。`btn.Icon:GetSize()` 回的是秘密數字，
+--    拿去比大小當場就是
+--    「attempt to compare local 'iw' (a secret number value...)」。
+--    `GetPoint()` 同理，不要碰。**光環框上的東西一律只傳不讀。**
+--
+-- 2. 就算讀得到也不該讀：那張圖示的錨點每次重排都會被清掉再重下，而減益容器
+--    還設了「停用中的按鈕不排版」，所以沒在用的按鈕的圖示根本沒有錨點。把自己的
+--    矩形接上去，畫面上就會多出一個位置與大小都不對的方框。
+--
+-- 所以：尺寸寫死跟樣板的圖示一樣大，錨點直接掛按鈕上。按鈕縮放走 SetScale，
+-- 我們是它的子框，跟著縮不用管。
+------------------------------------------------------------
+local ICON_SIZE = 30   -- 樣板裡的圖示尺寸
 
-------------------------------------------------------------
--- 包裝框的幾何
---
--- ⚠⚠ **不要 SetAllPoints 到暴雪那張圖示上。** 踩過，症狀是畫面上多出一個位置與
--- 大小都不對的方框（樣式的貼圖跟著框走，框歪了就整個歪）。原因是那張圖示的錨點
--- 不是穩定的東西：
---   * 容器每次重排都先 ClearAllPoints 再重下；
---   * 減益容器還多設了「停用中的按鈕不排版」，所以沒在用的那些按鈕，它們的圖示
---     **從頭到尾沒有錨點**。把自己的矩形接上去，等於押在一個隨時不存在的東西上。
---   （只有減益容器有那個設定，所以壞的永遠是減益那排。）
---
--- 改成：尺寸自己寫死，錨點直接掛在按鈕上、每次重排跟著同步一次。最壞情況也只是
--- 一個 30x30 的框跑錯位置，而且它是按鈕的子框，按鈕一藏它就跟著不見。
-------------------------------------------------------------
 local function SyncGeometry(btn, w)
-    local iw, ih = btn.Icon:GetSize()
-    if not iw or iw <= 0 then iw = ICON_SIZE end
-    if not ih or ih <= 0 then ih = ICON_SIZE end
-    w:SetSize(iw, ih)
-
-    -- 圖示錨在按鈕的哪一邊會隨排列方向變（往上長／往下長／直排），照抄它現在那一筆，
-    -- 但 relativeTo 一律換成按鈕自己
-    local point, rel, relPoint, x, y = btn.Icon:GetPoint(1)
+    w:SetSize(ICON_SIZE, ICON_SIZE)
     w:ClearAllPoints()
-    if point and rel == btn then
-        w:SetPoint(point, btn, relPoint, x or 0, y or 0)
-    else
-        w:SetPoint("TOP", btn, "TOP")
-    end
+    w:SetPoint("TOP", btn, "TOP")
 end
 
 local function EnsureWrapper(btn, kind)
@@ -129,7 +121,9 @@ local function EnsureWrapper(btn, kind)
     -- 按鈕是回收再用的，暴雪重新指派時會把它叫回來，兩張圖示疊在一起很明顯。
     hooksecurefunc(btn.Icon, "SetTexture", function(self, tex)
         icon:SetTexture(tex)
-        if w.attached and self:IsShown() then self:Hide() end
+        -- 按鈕是回收再用的，暴雪重新指派時會把原圖示叫回來，兩張疊在一起很明顯。
+        -- 不判斷「現在是不是顯示的」——那也是從光環框讀東西，而 Hide() 本來就能重複叫。
+        if w.attached then self:Hide() end
     end)
     w.icon = icon
 
@@ -168,8 +162,6 @@ local function Attach(btn, isDebuff)
 
     local eb = btn.TempEnchantBorder
     if eb then
-        -- 原本的顏色記一份，停用時還得回去
-        if not w.enchantColor then w.enchantColor = { eb:GetVertexColor() } end
         eb:SetVertexColor(ENCHANT_BORDER_COLOR[1], ENCHANT_BORDER_COLOR[2], ENCHANT_BORDER_COLOR[3])
     end
 
@@ -195,8 +187,8 @@ local function Detach(btn)
 
     MoveRegions(btn, btn)
 
-    local eb, ec = btn.TempEnchantBorder, w.enchantColor
-    if eb and ec then eb:SetVertexColor(ec[1] or 1, ec[2] or 1, ec[3] or 1, ec[4]) end
+    -- 還原成不染色。不去讀「原本是什麼顏色」——光環框上的東西只傳不讀
+    if btn.TempEnchantBorder then btn.TempEnchantBorder:SetVertexColor(1, 1, 1) end
 
     w:Hide()
     w.attached = false
