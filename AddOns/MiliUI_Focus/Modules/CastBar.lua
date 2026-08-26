@@ -17,7 +17,10 @@ local CastBar = ns.CastBar
 local interruptMap = {
     ["DEATHKNIGHT"] = { 47528 },
     ["WARRIOR"]     = { 6552 },
-    ["WARLOCK"]     = { 89766, 119910, 132409 },
+    -- 89766 斧頭投擲（惡魔守衛）／19647 法術鎖定（獸僕）／119910、132409 玩家端
+    -- 版本（惡魔支配、獻祭語彙）／1276467 12.x 新編號。少了 19647 的話，
+    -- 帶獸僕（最常見）的術士整條斷法變色都不亮。
+    ["WARLOCK"]     = { 19647, 89766, 119910, 132409, 1276467 },
     ["SHAMAN"]      = { 57994 },
     ["ROGUE"]       = { 1766 },
     ["PRIEST"]      = { 15487 },
@@ -648,7 +651,8 @@ end
 -- complete 參數，interrupterGUID 在第 5 位
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(self, event, unit, arg2, arg3, arg4, arg5)
-    if event == "SPELLS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
+    if event == "SPELLS_CHANGED" or event == "PLAYER_ENTERING_WORLD"
+       or event == "UNIT_PET" then      -- 術士換惡魔＝換斷法，寵物 bank 的答案跟著變
         RefreshInterruptSpells()
         return
 
@@ -701,6 +705,7 @@ ns.RegisterCallback("Init", "castbar", function()
 
     ev:RegisterEvent("SPELLS_CHANGED")
     ev:RegisterEvent("PLAYER_ENTERING_WORLD")
+    ev:RegisterUnitEvent("UNIT_PET", "player")
     ev:RegisterEvent("PLAYER_FOCUS_CHANGED")
     ev:RegisterUnitEvent("UNIT_SPELLCAST_START",          "focus")
     ev:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START",  "focus")

@@ -41,36 +41,52 @@ local INTERRUPTS = {
     PRIEST      = { 15487 },            -- 沉默（暗影）
     ROGUE       = { 1766 },             -- 腳踢
     SHAMAN      = { 57994 },            -- 風剪
-    WARLOCK     = { 19647 },            -- 法術鎖定（寵物）
+    -- 術士的斷法跟著召喚的惡魔走：獸僕＝法術鎖定、惡魔守衛＝斧頭投擲，
+    -- 另有惡魔支配／獻祭語彙拿到的玩家端版本。只列一顆的話，帶惡魔守衛的
+    -- 惡魔學識術士整場都被當成「沒有斷法」。
+    WARLOCK     = { 19647, 89766, 119910, 1276467, 132409 },
     WARRIOR     = { 6552 },             -- 拳擊
 }
 
 local spellID          -- 目前這個專精能用的那顆（nil = 沒有斷法）
 local built = false
 
-local function Known(id)
+local PET_BANK = Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Pet
+
+local function KnownIn(id, bank)
     if not CSB then return false end
-    -- 兩個 bank 都問：術士／獵人的斷法在寵物法術書裡
     if CSB.IsSpellKnownOrInSpellBook then
-        if CSB.IsSpellKnownOrInSpellBook(id) then return true end
-        local pet = Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Pet
-        if pet and CSB.IsSpellKnownOrInSpellBook(id, pet) then return true end
+        return CSB.IsSpellKnownOrInSpellBook(id, bank) and true or false
     end
-    if CSB.IsSpellKnown and CSB.IsSpellKnown(id) then return true end
+    if not bank and CSB.IsSpellKnown and CSB.IsSpellKnown(id) then return true end
     return false
 end
 
+-- ⚠ 寵物法術書的命中**壓過**玩家法術書的：帶惡魔守衛時牠的斧頭投擲才是真的
+-- 能按的那顆，但玩家法術書仍可能回報別的候選「已知」—— 先信寵物 bank，
+-- 挑出來的才不會是一顆永遠不會施放的法術（冷卻變色跟著它就一直是錯的）。
 local function Rebuild()
     spellID = nil
+    local petHit, playerHit
     for _, id in ipairs(INTERRUPTS[CLASS] or {}) do
-        if Known(id) then spellID = id; break end
+        if PET_BANK and KnownIn(id, PET_BANK) then
+            petHit = petHit or id
+        elseif not playerHit and KnownIn(id) then
+            playerHit = id
+        end
     end
+    spellID = petHit or playerHit
     built = true
 end
 
 ns.Events.Register("SPELLS_CHANGED", "interrupt_spells", Rebuild)
 ns.Events.Register("PLAYER_SPECIALIZATION_CHANGED", "interrupt_spec", Rebuild)
 ns.Events.Register("PLAYER_TALENT_UPDATE", "interrupt_talent", Rebuild)
+-- 換惡魔＝換斷法（獸僕的法術鎖定 ↔ 惡魔守衛的斧頭投擲），SPELLS_CHANGED
+-- 不保證每次召喚都來，挑錯了要到玩家按斷法沒反應才看得出來
+ns.Events.Register("UNIT_PET", "interrupt_pet", function(unit)
+    if unit == "player" then Rebuild() end
+end, "player")
 
 -- 給 /muf debug
 function I.SpellID()
