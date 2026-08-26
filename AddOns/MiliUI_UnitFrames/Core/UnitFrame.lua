@@ -386,7 +386,16 @@ function ns.SpawnUnitFrame(unit)
     uf:HookScript("OnClick", function(self, button)
         if button ~= "RightButton" then return end
         if not UnitPopup_OpenMenu then return end
-        UnitPopup_OpenMenu(MenuType(self), { unit = self.unit })
+        -- ⚠⚠ 一定要走 securecallfunction。直接呼叫的話整個選單都帶著我們的 taint，
+        -- 裡面的**保護項目**按下去會跳「嘗試調用保護功能」——實測是「設為焦點」
+        -- （FocusUnit），traceback 指向 Blizzard_UnitPopupShared，看起來像暴雪的錯，
+        -- 其實兇手是開選單的這一行。
+        -- securecallfunction 讓被呼叫的函式不繼承呼叫端的 taint。
+        if securecallfunction then
+            securecallfunction(UnitPopup_OpenMenu, MenuType(self), { unit = self.unit })
+        else
+            UnitPopup_OpenMenu(MenuType(self), { unit = self.unit })
+        end
     end)
     -- secure 端搬動 unit 屬性時同步顯示面
     uf:HookScript("OnAttributeChanged", function(self, attr)
