@@ -337,6 +337,15 @@ end
 --   * 剩下的看**已經消毒過**的 cache.isPlayer —— 受限單位抽不出明文時它是 false，
 --     就退回 TARGET，那是暴雪自己對非玩家目標用的選單，內容會自己適應
 ------------------------------------------------------------
+-- 能交給暴雪安全動作的單位：不會有 taint，選單裡的保護項目（設為焦點…）全部正常。
+--   focus / boss  暴雪那條鏈的**前四條分支是純字串比對**，直接命中、不碰 UnitIsUnit
+--   player / pet  雖然走到 UnitIsUnit，但這兩個永遠是玩家控制的、不會被身分限制，
+--                 拿到的是明文布林，結果正確
+-- 剩下的 target / targettarget / focustarget 指向誰不固定，會踩到秘密布林 ⇒ 自己開。
+local SECURE_MENU_UNITS = {
+    player = true, pet = true, focus = true, boss = true,
+}
+
 local STATIC_MENU = {
     player = "SELF",
     pet    = "PET",
@@ -377,7 +386,10 @@ function ns.SpawnUnitFrame(unit)
 
     uf:RegisterForClicks("AnyUp")
     uf:SetAttribute("*type1", "target")
-    -- type2 刻意留空：右鍵選單自己開（見上面 MenuType 的說明）
+    -- 右鍵選單：能交給安全動作的就交出去，只有指向不固定的那三個自己開
+    if SECURE_MENU_UNITS[unitKey] then
+        uf:SetAttribute("type2", "togglemenu")
+    end
     uf:SetAttribute("unit", unit)
     -- 載具：讓 secure 端在點擊時自己把 player ↔ pet 對調（讀取時計算，不寫屬性，
     -- 所以戰鬥中也有效）。顯示面由 ns.EvalActiveUnit 跟上，見那裡的說明。
@@ -385,6 +397,7 @@ function ns.SpawnUnitFrame(unit)
     -- HookScript：OnClick 是 SecureUnitButtonTemplate 自己的，SetScript 會蓋掉左鍵指定
     uf:HookScript("OnClick", function(self, button)
         if button ~= "RightButton" then return end
+        if SECURE_MENU_UNITS[self.unitKey] then return end   -- 安全動作已經開過了
         if not UnitPopup_OpenMenu then return end
         -- ⚠⚠ 一定要走 securecallfunction。直接呼叫的話整個選單都帶著我們的 taint，
         -- 裡面的**保護項目**按下去會跳「嘗試調用保護功能」——實測是「設為焦點」
