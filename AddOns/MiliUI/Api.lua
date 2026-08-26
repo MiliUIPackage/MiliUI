@@ -14,7 +14,9 @@ SLASH_MILIUIPACK1 = "/miliui"
 SLASH_MILIUIPACK2 = "/mili"
 SlashCmdList.MILIUIPACK = function(msg)
     msg = strtrim(strlower(msg or ""))
-    if msg == "check" then
+    if msg == "perf" or msg == "cpu" then
+        ns.OpenOptions("perf")
+    elseif msg == "check" then
         -- 逐筆報告「開啟設定」會走哪條路：指令有沒有真的註冊、分類找不找得到。
         -- 插件的指令壞掉（例如呼叫舊版 OpenToCategory）從外面看不出來，
         -- 這裡至少能分辨「解析不到」與「解析到了但那支自己沒反應」。

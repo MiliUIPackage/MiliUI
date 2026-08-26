@@ -64,6 +64,16 @@ local function StripCodes(s)
     return (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
 end
 
+-- 「效能監控」分頁也要照同一套規則把名冊攤成條目（見 Options/Tab_Perf.lua）。
+-- 抄一份過去的話，哪天標題／圖示的取法變了就得記得改兩個地方。
+-- ⚠ 這幾支只讀 entry.folders[1]，傳進來的表有 folders 就夠，不必是名冊裡的那筆。
+ns.AddonInfo = {
+    GetInstalled = GetInstalled,
+    EntryMeta    = EntryMeta,
+    EntryTitle   = EntryTitle,
+    StripCodes   = StripCodes,
+}
+
 local function EntryCPU(entry)
     if not (C_AddOnProfiler and C_AddOnProfiler.GetAddOnMetric
             and Enum.AddOnProfilerMetric and Enum.AddOnProfilerMetric.RecentAverageTime) then

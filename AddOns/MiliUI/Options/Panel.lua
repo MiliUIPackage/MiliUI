@@ -30,6 +30,7 @@ local bannerVersion, bannerNewest
 local TABS = {
     { id = "addons",  label = "插件總覽" },
     { id = "enhance", label = "插件強化" },
+    { id = "perf",    label = "效能監控" },
     { id = "import",  label = "預設值匯入" },
     { id = "about",   label = "關於" },
 }
@@ -87,14 +88,22 @@ local function ApplyPosition()
     panel:SetPoint("CENTER", UIParent, "CENTER", w.x, w.y)
 end
 
+-- 戰鬥遮罩不蓋這些分頁：它們是唯讀的儀表板，沒有任何會被戰鬥擋下的動作，
+-- 而「戰鬥中插件吃多少 CPU」正好是最需要看的時候（首領戰平均那個指標就是為此存在）
+local READ_ONLY_TABS = { perf = true }
+local currentTab
+local SetCombatLocked   -- 前置宣告：ShowTab 要用，但它的本體在下面
+
 local function ShowTab(id)
     W.CloseDropdowns()
+    currentTab = id
     ns.Fire("ShowOptionsTab", id)
+    SetCombatLocked(InCombatLockdown())
 end
 
-local function SetCombatLocked(locked)
+function SetCombatLocked(locked)
     if not panel or not panel.combatMask then return end
-    if locked then
+    if locked and not READ_ONLY_TABS[currentTab] then
         W.CloseDropdowns()
         panel.combatMask:Show()
         closeBtn:SetFrameStrata("FULLSCREEN_DIALOG")
@@ -290,6 +299,7 @@ local function CreatePanel()
         ns.PREFIX_COLOR .. "快速導覽|r",
         "|cff8888cc•|r  |cffffd200插件總覽|r — 檢視套組收錄的插件、開啟各插件設定、勾選啟用或停用",
         "|cff8888cc•|r  |cffffd200插件強化|r — 施法條美化、拍賣行篩選、鑰石發光等注入式功能",
+        "|cff8888cc•|r  |cffffd200效能監控|r — 看每個插件吃掉多少 CPU 與記憶體，揪出拖慢遊戲的那一個",
         "|cff8888cc•|r  |cffffd200預設值匯入|r — 一鍵匯入 MiliUI 精心調校的插件設定",
         "",
         "指令：|cffffd200/miliui|r 開啟這個視窗；ESC 選單的「米利UI設定」按鈕也通到這裡。",
