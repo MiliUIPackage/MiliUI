@@ -93,9 +93,6 @@ local function FrameSpecs(unitKey)
                     label = L["Hide without a target"] })
     tinsert(list, { type = "toggle", root = "frame", key = "visHideNoEnemy",
                     label = L["Hide without a hostile target"] })
-    tinsert(list, { type = "toggle", root = "frame", key = "visHideAtFull",
-                    label = L["Hide at full health"] })
-    tinsert(list, { type = "text", label = L["Hides the whole frame while the unit is at full health. In dungeons, Mythic+ and raids the game hides health from addons — when it can't be read the frame stays visible, so it never gets stuck hidden."] })
     tinsert(list, { type = "text", label = L["These stack on top of the choice above: any one of them hides the frame. Inside restricted content whether a target is hostile can be a secret value; when it can't be determined the frame stays visible."] })
 
     ------------------------------------------------------------

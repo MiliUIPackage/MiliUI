@@ -48,13 +48,7 @@ local UNIT_EVENT_BUCKET = {
 
 local function RefreshUnit(unitToken, bucket)
     local uf = ns.frames[unitToken]
-    if not uf then return end
-    -- ⚠ 「滿血時隱藏」要在可見性檢查**之前**重算：它會把框藏起來，而藏起來的框
-    -- 不再更新 ⇒ 只靠框自己的更新路徑，掉血時永遠叫不回來。
-    if bucket == "health" and uf.db and uf.db.frame and uf.db.frame.visHideAtFull then
-        ns.Visibility.Apply(uf)
-    end
-    if uf:IsVisible() then
+    if uf and uf:IsVisible() then
         ns.Refresh(uf, bucket)
     end
 end

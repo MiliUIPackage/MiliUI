@@ -33,9 +33,6 @@ local V = ns.Visibility
 -- 這個檔問的東西幾乎都是玩家自己的狀態（明文），只有 UnitCanAttack 對受限單位
 -- 可能回秘密布林。秘密與 nil 一律回 nil ＝「判不出來」，呼叫端當作不擋（fail open）：
 -- 把該看到的框藏掉，比偶爾多顯示一次糟糕得多。
--- 明文百分比用的曲線（0~100）。ScaleTo100 拿不到就傳 nil，讓引擎回未經曲線的值
-local PERCENT_CURVE = CurveConstants and CurveConstants.ScaleTo100
-
 local function PlainBool(v)
     if v == nil or ns.IsSecret(v) then return nil end
     return v and true or false
@@ -100,21 +97,6 @@ function V.Eval(uf)
         if PlainBool(UnitCanAttack("player", "target")) == false then return false end
     end
 
-    -- 滿血時隱藏整個框。
-    --
-    -- ⚠ 這條只能用明文判斷：閘是普通 frame，Show/Hide 由 Lua 決定，沒有「把判斷
-    -- 交給引擎」的餘地（顏色與 alpha 才有曲線那條路）。受限單位（副本／M+／團隊）
-    -- 的百分比抽不出明文 ⇒ **判不出來就放行**。寧可多顯示一個框，也不要留下一個
-    -- 永遠叫不回來的。
-    --
-    -- ⚠ 門檻 99.5 不是 100：數字是四捨五入顯示的，99.5% 以上就寫成「100%」，
-    -- 門檻要跟眼睛看到的一致。
-    if fdb.visHideAtFull then
-        local ok, pct = pcall(UnitHealthPercent, uf.unit, true, PERCENT_CURVE)
-        pct = ok and ns.Desecret(pct) or nil
-        if pct and pct >= 99.5 then return false end
-    end
-
     return true
 end
 
@@ -124,7 +106,7 @@ local function HasConditions(uf)
     if not fdb then return false end
     return (fdb.visibility or "always") ~= "always"
         or fdb.visOnlyInstances or fdb.visHideMounted
-        or fdb.visHideNoTarget or fdb.visHideNoEnemy or fdb.visHideAtFull
+        or fdb.visHideNoTarget or fdb.visHideNoEnemy
 end
 
 ------------------------------------------------------------
@@ -406,7 +388,7 @@ ns.RegisterCallback("SettingsApplied", "visibility", function() V.Refresh() end)
 -- /muf debug
 ------------------------------------------------------------
 function V.Debug()
-    local out = {}
+    local out = { ("anyConditions=%s"):format(tostring(V.anyConditions)) }
     for _, unit in ipairs(ns.UNITS) do
         local uf = ns.frames[unit]
         if uf and uf.visGate then
