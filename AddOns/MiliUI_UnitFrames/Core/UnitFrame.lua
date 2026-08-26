@@ -380,23 +380,48 @@ end
 ------------------------------------------------------------
 local reopenUnit
 
+-- 「複製角色名稱」的替代品：CopyToClipboard 是**保護函式**（實測 FORBIDDEN，
+-- 訊息就點名它），tainted 選單裡點暴雪那顆必被封鎖，名字給得再全也沒用。
+-- 改開一個 Blizzard 風格的彈窗、名字反白 —— 剪貼簿我們寫不進去，
+-- 但玩家自己 Ctrl+C 不受任何限制。
+local COPY_POPUP = "MILIUIUF_COPY_NAME"
+StaticPopupDialogs[COPY_POPUP] = {
+    text = COPY_CHARACTER_NAME,
+    button1 = OKAY,
+    hasEditBox = true,
+    editBoxWidth = 260,
+    OnShow = function(self, data)
+        self.editBox:SetText(data or "")
+        self.editBox:HighlightText()
+        self.editBox:SetFocus()
+    end,
+    -- 唯讀：使用者一改就還原（跟共用層複製框同一套語意）
+    EditBoxOnTextChanged = function(self)
+        local data = self:GetParent().data
+        if self:GetText() ~= (data or "") then
+            self:SetText(data or "")
+            self:HighlightText()
+        end
+    end,
+    EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+    EditBoxOnEnterPressed = function(self) self:GetParent():Hide() end,
+    timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+}
+
 -- 遞迴走訪：像「複製角色名稱」這種項目藏在「其他選項」**子選單**裡，
 -- 只掃第一層根本碰不到它。
-local function GreyBrokenItems(desc, hasName)
+local function GreyBrokenItems(desc)
     for _, d in desc:EnumerateElementDescriptions() do
         if d.SetEnabled then
             local ok, text = pcall(MenuUtil.GetElementText, d)
             if ok and text and (text == SET_FOCUS or text == FOLLOW
                     or text == RAID_TARGET_ICON or text == UNIT_VIEW_HOUSES
-                    -- 複製角色名稱＝CopyToClipboard(contextData.name)。名字補得進
-                    -- context 的話它是好的（見重開處），補不進去才灰 —— nil 進
-                    -- 剪貼簿 API 一點就報錯
-                    or (not hasName and text == COPY_CHARACTER_NAME)) then
+                    or text == COPY_CHARACTER_NAME) then
                 d:SetEnabled(false)
             end
         end
         if d.EnumerateElementDescriptions then
-            GreyBrokenItems(d, hasName)
+            GreyBrokenItems(d)
         end
     end
 end
@@ -404,7 +429,15 @@ end
 local function ModifyReopenedMenu(owner, rootDescription, contextData)
     if not reopenUnit then return end
     if not contextData or contextData.unit ~= reopenUnit then return end
-    GreyBrokenItems(rootDescription, contextData.name ~= nil)
+    GreyBrokenItems(rootDescription)
+    -- 名字讀得到才補我們自己的那顆（讀不到＝連給玩家 Ctrl+C 的內容都沒有）。
+    -- 這份選單本來就是 tainted 的，加一般按鈕沒有額外代價。
+    local name = contextData.name
+    if name and rootDescription.CreateButton then
+        rootDescription:CreateButton(COPY_CHARACTER_NAME, function()
+            StaticPopup_Show(COPY_POPUP, nil, nil, name)
+        end)
+    end
 end
 
 local menuFixInstalled = false
@@ -440,9 +473,9 @@ local function InstallMenuClassifierFix()
         local guid = UnitGUID(unit)
         if ns.IsSecret(guid) then return end          -- 判不出來就不動
         if type(guid) ~= "string" or not guid:find("^Player%-") then return end
-        -- 名字讀得到就補進 context：暴雪自己開選單時 context 帶著 name，我們重開
-        -- 只給 unit 的話「複製角色名稱」拿到 nil 必炸。隊友（含離線）的名字是明文；
-        -- 讀不到（秘密值）就不補，上面的走訪會把那一項灰掉。
+        -- 名字讀得到就放進 context：餵給我們自己補的那顆「複製角色名稱」
+        -- （暴雪那顆在 tainted 選單裡點了必被封鎖，一律灰掉——見上面）。
+        -- 隊友（含離線）的名字是明文；讀不到（秘密值）就不補、也不長我們那顆。
         local ctx = { unit = unit }
         local n, realm = (UnitNameUnmodified or UnitName)(unit)
         n = ns.Desecret(n)
