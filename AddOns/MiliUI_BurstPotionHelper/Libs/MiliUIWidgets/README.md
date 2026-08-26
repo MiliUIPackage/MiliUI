@@ -42,7 +42,7 @@ MiliUI 各插件共用的設定介面元件庫。自寫、零外部依賴、零�
 邊的介面「莫名其妙變了樣」。
 
 已用掉的前綴：`MiliUIPack`（本體）、`MiliUIUF`、`MiliUITip`、`MiliUIFocus`、
-`MiliUIChatBar`、`MiliUIBurst`、`MiliUIBLM`。
+`MiliUIChatBar`、`MiliUIBurst`、`MiliUIBLM`、`MiliUIDM`、`MiliUIAura`。
 
 ### L 只需要四個 key
 
