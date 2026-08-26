@@ -36,7 +36,7 @@ local UnitIsGhost = UnitIsGhost
 local UnitPowerType = UnitPowerType
 local UnitPowerMax = UnitPowerMax
 -- local UnitInRange = UnitInRange
--- local UnitIsVisible = UnitIsVisible
+local UnitIsVisible = UnitIsVisible -- UnitButton_UpdateInRange, on the event path
 local SetRaidTargetIconTexture = SetRaidTargetIconTexture
 local GetTime = GetTime
 local GetRaidTargetIndex = GetRaidTargetIndex
@@ -2808,13 +2808,36 @@ local function UnitButton_UpdateCombatIcon(self)
     end
 end
 
--- UNIT_IN_RANGE_UPDATE: unit, inRange
+-- UNIT_IN_RANGE_UPDATE hands us `inRange` for the unit that changed. For a GROUP member
+-- that is exactly what F.IsInRange computes anyway (UnitInRange, no spell refinement -- read
+-- the group branch there), so taking it saves the whole call and, more to the point, makes
+-- the fade instant instead of up to half a second late.
+--
+-- ⚠ Not a total replacement, which is why the periodic sweep survives at half its old rate:
+--   * the event only exists for group members. A spotlight bound to target/focus/bossN, an
+--     NPC frame or an Xtarget never fires it and is still swept.
+--   * visibility stays ours to decide. The event answers "in range", and upstream's copy of
+--     this in QuickAssist carries a "FIXME: BLIZZARD, IT'S BUGGY!" -- so a missed edge is
+--     assumed, not ruled out, and the sweep corrects it within 0.5s.
 local IsInRange = F.IsInRange
 local function UnitButton_UpdateInRange(self, ir)
     local unit = self.states.displayedUnit
     if not unit then return end
 
-    local inRange = IsInRange(unit)
+    local inRange
+    -- ⚠ secret test FIRST, then the nil test. `ir ~= nil` is still a comparison, and the
+    -- payload for an identity-restricted teammate can arrive secret; F.IsValueNonSecret(nil)
+    -- answers true, so ordering it this way costs nothing and keeps the nil case working.
+    if F.IsValueNonSecret(ir) and ir ~= nil then
+        local visible = UnitIsVisible(unit)
+        if F.IsValueNonSecret(visible) and not visible then
+            inRange = false
+        else
+            inRange = ir and true or false
+        end
+    else
+        inRange = IsInRange(unit)
+    end
     -- Nil-safety: if IsInRange errors (e.g. secret value issue), default to true
     -- so frames don't grey out incorrectly
     if inRange == nil then inRange = true end
@@ -3173,6 +3196,10 @@ local function UnitButton_RegisterEvents(self)
     self:RegisterEvent("UNIT_FACTION") -- mind control
 
     self:RegisterEvent("UNIT_CONNECTION") -- offline
+    -- Range for GROUP members, so the fade happens on the frame it changes instead of on the
+    -- next sweep. Not a replacement for the sweep -- see UnitButton_UpdateInRange for the two
+    -- things it does not cover.
+    self:RegisterEvent("UNIT_IN_RANGE_UPDATE")
     self:RegisterEvent("PLAYER_FLAGS_CHANGED") -- afk
     self:RegisterEvent("UNIT_NAME_UPDATE") -- unknown target
     self:RegisterEvent("ZONE_CHANGED_NEW_AREA") --? update status text
@@ -3317,8 +3344,8 @@ local function UnitButton_OnEvent(self, event, unit, arg)
         elseif event == "UNIT_AURA" then
             UnitButton_UpdateAuras(self, arg)
 
-        -- elseif event == "UNIT_IN_RANGE_UPDATE" then
-        --     UnitButton_UpdateInRange(self, arg)
+        elseif event == "UNIT_IN_RANGE_UPDATE" then
+            UnitButton_UpdateInRange(self, arg)
 
         elseif event == "UNIT_TARGET" then
             UnitButton_UpdateTargetRaidIcon(self)
@@ -3463,11 +3490,15 @@ end
 Cell.vars.guids = {} -- guid to unitid
 Cell.vars.names = {} -- name to unitid
 
+-- Shared tick driver membership; defined with the driver, below UnitButton_OnTick.
+local StartTicking, StopTicking
+
 local function UnitButton_OnShow(self)
     -- print(GetTime(), "OnShow", self:GetName())
     self._updateRequired = nil -- prevent UnitButton_UpdateAll twice. when convert party <-> raid, GROUP_ROSTER_UPDATE fired.
     self._powerUpdateRequired = 1
     UnitButton_RegisterEvents(self)
+    StartTicking(self)
 
     --[[
     if self.states.unit then
@@ -3493,6 +3524,7 @@ end
 local function UnitButton_OnHide(self)
     -- print(GetTime(), "OnHide", self:GetName())
     UnitButton_UnregisterEvents(self)
+    StopTicking(self)
 
     ResetAuraTables(self)
 
@@ -3590,10 +3622,13 @@ local function UnitButton_OnTick(self)
 
     self.__tickCount = e
 
-    -- !TODO: use UNIT_DISTANCE_CHECK_UPDATE and UNIT_IN_RANGE_UPDATE events in 10.1.5
-    -- if self.states.displayedUnit == "target" or self.states.displayedUnit == "focus" then
+    -- Range SWEEP, every other tick (0.5s). Group members are already event-driven and
+    -- correct within a frame of the change (UNIT_IN_RANGE_UPDATE, see UnitButton_UpdateInRange);
+    -- this is the safety net for a missed edge and the only path for the tokens the event
+    -- does not cover -- spotlight target/focus/bossN, NPC frames, Xtarget.
+    if e == 0 then
         UnitButton_UpdateInRange(self)
-    -- end
+    end
 
     if self._updateRequired and self._indicatorsReady then
         self._updateRequired = nil
@@ -3606,14 +3641,58 @@ local function UnitButton_OnTick(self)
     end
 end
 
-local function UnitButton_OnUpdate(self, elapsed)
-    local e = (self.__updateElapsed or 0) + elapsed
-    if e > 0.25 then
-        e = 0
-        UnitButton_OnTick(self)
-        UnitButton_UpdateCombatIcon(self)
+-------------------------------------------------
+-- shared tick driver
+--
+-- ONE ticker for every shown unit button, in place of an OnUpdate on each of them.
+--
+-- The old shape paid a Lua call per button per FRAME just to accumulate `elapsed` -- 40
+-- buttons at 144fps is ~5,700 calls a second -- while the body it was gating only ever ran
+-- four times a second. A C_Timer ticker sleeps in C between fires, so the same four passes
+-- now cost four calls a second regardless of raid size or framerate.
+--
+-- Membership rides OnShow/OnHide, which already pair with Register/UnregisterEvents, so a
+-- hidden button stops ticking exactly as it stopped getting OnUpdate. The ticker cancels
+-- itself when the last button leaves: with the frames hidden there is no per-frame code at
+-- all, which an always-on ticker would not give us.
+--
+-- ⚠ Iterating `pairs` while a tick body hides a button is safe (removing the CURRENT key
+-- during traversal is defined in Lua), but a body that SHOWS one may or may not visit it
+-- this pass. Both are fine here -- the newly shown button just starts next pass.
+--
+-- ⚠ Each button is ticked under pcall. A per-button OnUpdate isolated failures for free;
+-- one shared loop does not, and an error on raid7 would silently cost raid8..40 their tick
+-- for the rest of the fight. Same guard, and the same F.Debug report, as UnitButton_UpdateAll.
+-------------------------------------------------
+local tickingButtons = {}
+local tickDriver
+
+local function TickOne(b)
+    UnitButton_OnTick(b)
+    UnitButton_UpdateCombatIcon(b)
+end
+
+function StartTicking(self)
+    tickingButtons[self] = true
+    if not tickDriver then
+        tickDriver = C_Timer.NewTicker(0.25, function()
+            for b in pairs(tickingButtons) do
+                local ok, err = pcall(TickOne, b)
+                if not ok then
+                    F.Debug("UnitButton tick |cffff0000FAILED:|r", b:GetName(), err)
+                end
+            end
+        end)
     end
-    self.__updateElapsed = e
+end
+
+function StopTicking(self)
+    if tickingButtons[self] == nil then return end
+    tickingButtons[self] = nil
+    if tickDriver and next(tickingButtons) == nil then
+        tickDriver:Cancel()
+        tickDriver = nil
+    end
 end
 
 -------------------------------------------------
@@ -4686,7 +4765,8 @@ function CellUnitButton_OnLoad(button)
     button:HookScript("OnHide", UnitButton_OnHide) -- use _onhide for click-castings
     button:HookScript("OnEnter", UnitButton_OnEnter) -- SecureHandlerEnterLeaveTemplate
     button:HookScript("OnLeave", UnitButton_OnLeave) -- SecureHandlerEnterLeaveTemplate
-    button:SetScript("OnUpdate", UnitButton_OnUpdate)
+    -- no OnUpdate: the 0.25s tick runs on one shared C_Timer for every shown button
+    -- (see the shared tick driver above UnitButton_OnShow's StartTicking)
     button:SetScript("OnEvent", UnitButton_OnEvent)
     button:RegisterForClicks("AnyDown")
 end
