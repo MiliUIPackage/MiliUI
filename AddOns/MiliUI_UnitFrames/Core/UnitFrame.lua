@@ -323,48 +323,22 @@ end
 -- Spawn
 ------------------------------------------------------------
 ------------------------------------------------------------
--- 右鍵選單
+-- 右鍵選單：一律交給暴雪的安全動作 type2 = "togglemenu"
 --
--- ⚠⚠ **不要用 `type2 = "togglemenu"`。** 暴雪那支安全動作是靠一串
---     UnitIsUnit(unit, "player") / "vehicle" / "pet"
--- 決定要開哪一種選單，而 12.1 的 `UnitIsUnit` 對**身分受限**的單位回**秘密布林**
--- （受限＝不是你控制的、也不在你隊伍／團隊裡）。所以對「不同隊的玩家」，判斷鏈在
--- 走到「這是玩家」那一條之前就被前面某一條吃掉 —— 實際症狀是**跳出寵物選單**。
+-- ⚠ **已知缺陷，而且無解**：對「不同隊的玩家」與 NPC，暴雪那支安全動作會跳出
+-- 錯誤的選單（實測是寵物選單）。成因在它自己的判斷鏈：
+--     UnitIsUnit(unit, "player") / "vehicle" / "pet" → … → UnitIsPlayer(unit)
+-- 而 12.1 的 UnitIsUnit 對**身分受限**的單位回秘密布林（受限＝不是你控制的、
+-- 也不在你隊伍／團隊裡），判斷在走到「這是玩家」之前就被前面某一條吃掉。
 -- 距離只是表象：隊友再遠也正常，路人站旁邊一樣壞。
 --
--- 改成自己決定選單類型，完全不碰 UnitIsUnit：
---   * 能靜態決定的直接查表（玩家／寵物／焦點／首領）
---   * 剩下的看**已經消毒過**的 cache.isPlayer —— 受限單位抽不出明文時它是 false，
---     就退回 TARGET，那是暴雪自己對非玩家目標用的選單，內容會自己適應
+-- ⚠⚠ **試過自己開選單，行不通，不要再試第二次。**
+-- 自己算出選單類型再呼叫 UnitPopup_OpenMenu 確實會開出正確的選單，但整個選單都
+-- 帶著我們的 taint ⇒ 裡面的保護項目（設為焦點 FocusUnit…）按下去會跳
+-- 「嘗試進行 Blizzard UI 專屬動作，遭到封鎖」的**強制彈窗**，而那個彈窗還會建議
+-- 玩家關掉插件。外面包 securecallfunction 也救不回來（2026-08-26 實測）。
+-- 結論：選單跳錯令人困惑，封鎖彈窗則是直接勸退，兩害相權取前者。
 ------------------------------------------------------------
--- 能交給暴雪安全動作的單位：不會有 taint，選單裡的保護項目（設為焦點…）全部正常。
---   focus / boss  暴雪那條鏈的**前四條分支是純字串比對**，直接命中、不碰 UnitIsUnit
---   player / pet  雖然走到 UnitIsUnit，但這兩個永遠是玩家控制的、不會被身分限制，
---                 拿到的是明文布林，結果正確
--- 剩下的 target / targettarget / focustarget 指向誰不固定，會踩到秘密布林 ⇒ 自己開。
-local SECURE_MENU_UNITS = {
-    player = true, pet = true, focus = true, boss = true,
-}
-
-local STATIC_MENU = {
-    player = "SELF",
-    pet    = "PET",
-    focus  = "FOCUS",
-    boss   = "BOSS",
-}
-
-local function MenuType(uf)
-    local which = STATIC_MENU[uf.unitKey]
-    if which then return which end
-    -- isPlayer 為真 ⇒ 這個單位不受限（受限的抽不出明文，Cache 會存成 false），
-    -- 所以下面兩支問下去是安全的；保險起見仍然過 ToBool
-    if uf.cache and uf.cache.isPlayer then
-        if ns.ToBool(UnitInRaid(uf.unit)) then return "RAID_PLAYER" end
-        if ns.ToBool(UnitInParty(uf.unit)) then return "PARTY" end
-        return "PLAYER"
-    end
-    return "TARGET"
-end
 
 function ns.SpawnUnitFrame(unit)
     if ns.frames[unit] then return ns.frames[unit] end
@@ -386,30 +360,12 @@ function ns.SpawnUnitFrame(unit)
 
     uf:RegisterForClicks("AnyUp")
     uf:SetAttribute("*type1", "target")
-    -- 右鍵選單：能交給安全動作的就交出去，只有指向不固定的那三個自己開
-    if SECURE_MENU_UNITS[unitKey] then
-        uf:SetAttribute("type2", "togglemenu")
-    end
+    uf:SetAttribute("type2", "togglemenu")     -- 見上面「右鍵選單」那段
     uf:SetAttribute("unit", unit)
     -- 載具：讓 secure 端在點擊時自己把 player ↔ pet 對調（讀取時計算，不寫屬性，
     -- 所以戰鬥中也有效）。顯示面由 ns.EvalActiveUnit 跟上，見那裡的說明。
     uf:SetAttribute("toggleForVehicle", true)
     -- HookScript：OnClick 是 SecureUnitButtonTemplate 自己的，SetScript 會蓋掉左鍵指定
-    uf:HookScript("OnClick", function(self, button)
-        if button ~= "RightButton" then return end
-        if SECURE_MENU_UNITS[self.unitKey] then return end   -- 安全動作已經開過了
-        if not UnitPopup_OpenMenu then return end
-        -- ⚠⚠ 一定要走 securecallfunction。直接呼叫的話整個選單都帶著我們的 taint，
-        -- 裡面的**保護項目**按下去會跳「嘗試調用保護功能」——實測是「設為焦點」
-        -- （FocusUnit），traceback 指向 Blizzard_UnitPopupShared，看起來像暴雪的錯，
-        -- 其實兇手是開選單的這一行。
-        -- securecallfunction 讓被呼叫的函式不繼承呼叫端的 taint。
-        if securecallfunction then
-            securecallfunction(UnitPopup_OpenMenu, MenuType(self), { unit = self.unit })
-        else
-            UnitPopup_OpenMenu(MenuType(self), { unit = self.unit })
-        end
-    end)
     -- secure 端搬動 unit 屬性時同步顯示面
     uf:HookScript("OnAttributeChanged", function(self, attr)
         if attr == "unit" or attr == "toggleForVehicle" then
