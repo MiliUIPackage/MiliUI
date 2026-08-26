@@ -41,6 +41,7 @@ Modules\Anchor.lua
 Modules\ChatHover.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 Options\Specs_Tip.lua
 Options\Preview.lua

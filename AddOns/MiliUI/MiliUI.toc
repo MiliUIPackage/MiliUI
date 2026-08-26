@@ -24,6 +24,7 @@ Style.lua
 Menu.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 Options\Roster.lua
 Options\Panel.lua

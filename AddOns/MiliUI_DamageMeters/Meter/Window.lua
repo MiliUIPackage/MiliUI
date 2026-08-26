@@ -299,7 +299,7 @@ local function MakeHeaderButton(W, key, tooltip, onClick)
 
     btn:SetScript("OnEnter", function(self)
         self.icon:SetAlpha(ICON_HOVER_ALPHA)
-        if ns.Menu.IsOpenFor(self) then return end   -- 選單開著時不要再疊工具提示
+        if ns.W.Menu.IsOpenFor(self) then return end   -- 選單開著時不要再疊工具提示
         AnchorButtonTooltip(self)
         GameTooltip:SetText(tooltip, 1, 1, 1)
         GameTooltip:Show()

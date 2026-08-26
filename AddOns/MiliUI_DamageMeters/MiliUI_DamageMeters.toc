@@ -32,7 +32,6 @@ Core\DB.lua
 # Window 要在 Rows / Breakdown / Tooltip / Home / Manager 之前（它們在檔案層取 ns.Window）
 Meter\Data.lua
 Meter\Combat.lua
-Meter\Menu.lua
 Meter\Window.lua
 Meter\Rows.lua
 Meter\Breakdown.lua
@@ -46,6 +45,7 @@ Meter\AutoReset.lua
 # 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 
 Options\Specs.lua

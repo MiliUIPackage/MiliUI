@@ -1,17 +1,38 @@
 ------------------------------------------------------------
--- 視窗內的右鍵／標題鈕選單（全部視窗共用一份）
+-- 右鍵／情境選單（共用層）
 --
--- 為什麼不用 MiliUIWidgets 的 CreateDropdown：那是設定表單裡的控件，長寬與配色
--- 跟著設定視窗走。這個選單長在遊戲畫面上、貼著統計視窗開，外觀應該跟著**統計視窗
--- 自己的字型與字級**，不是設定面板的。
+-- ⚠ 這支可以逐字複製到其他 MiliUI 插件，宿主專屬的東西一律走 ns.WidgetsEnv。
+--   改這裡時**不要引進新的 ns.* 依賴**，也不要把宿主的選單內容寫回來 ——
+--   「有哪些項目」是宿主自己的事（見 README 的規矩那節）。
 --
--- 最多兩層（主選單 ＋ 一層子選單）。三層以上的選單在遊戲裡沒人點得動。
+-- 為什麼不用 W.CreateDropdown：那是設定表單裡的控件，長寬與配色跟著設定視窗走。
+-- 這個選單長在遊戲畫面上、貼著宿主的框開，外觀要跟著**宿主自己的字型與字級**。
+--
+-- 用法：
+--   W.Menu.Show(items, anchorBtn, keepAnchor)
+--   W.Menu.Hide()
+--   W.Menu.IsOpenFor(btn)          -- 同一顆按鈕再按一次＝關閉，宿主用它避免疊工具提示
+--   W.SetMenuFont(token, size)     -- 選用；不叫就用 Env 的預設字型與 12
+--
+-- items 是一個陣列，每一筆：
+--   { text, onClick, value, isActive, isTitle, isSeparator, submenu, keepOpen }
+--   value    右側的「目前值」讀數（灰色）—— 不用展開子選單就知道現在選什麼
+--   isActive 左槽打勾 ＋ 強調色
+--   keepOpen 點下去不關閉（開關型項目用；配 keepAnchor 原地重畫）
+--
+-- 版面與互動的設計規則寫在 .claude/skills/miliui-menu-design。
+-- 最多兩層（主選單 ＋ 一層子選單）：三層以上在遊戲裡沒人點得動。
 ------------------------------------------------------------
 local _, ns = ...
 
-ns.Menu = {}
-local Menu = ns.Menu
-local M = ns.Media
+local Env = ns.WidgetsEnv
+local W = ns.W
+local NS = Env.NAMESPACE
+
+W.Menu = {}
+local Menu = W.Menu
+
+local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 ------------------------------------------------------------
 -- 版面尺寸
@@ -48,9 +69,17 @@ local _anchorBtn      -- 哪顆按鈕開的（同一顆再按一次＝關閉）
 local _anchorPoints   -- 上次解出來的錨點，供 keepAnchor 重畫時原地重貼
 
 -- 選單跟著統計視窗自己的字型走（不是設定面板的）
-local function StyleFont(fs)
-    local s = ns.DB.Style()
-    fs:SetFont(M.Font(s and s.font), FONT_SZ, "")
+-- 選單字型。宿主想跟著自己的字型設定走就叫 W.SetMenuFont，不叫就用 Env 的預設。
+local menuFontToken, menuFontSize = nil, FONT_SZ
+
+function W.SetMenuFont(token, size)
+    menuFontToken = token
+    menuFontSize = size or FONT_SZ
+end
+
+-- delta 讓標題那一列小一級（見 Layout 的階層規則）
+local function StyleFont(fs, delta)
+    fs:SetFont(Env.Font(menuFontToken), menuFontSize + (delta or 0), "")
 end
 
 -- ⚠ 具名：ESC 關閉走暴雪的 UISpecialFrames，而它是靠**全域名稱**反查框的。
@@ -59,12 +88,12 @@ local panelSeq = 0
 
 local function MakePanel()
     panelSeq = panelSeq + 1
-    local f = CreateFrame("Frame", "MiliUIDM_ContextMenu" .. panelSeq, UIParent, "BackdropTemplate")
+    local f = CreateFrame("Frame", NS .. "_ContextMenu" .. panelSeq, UIParent, "BackdropTemplate")
     f:SetFrameStrata("FULLSCREEN_DIALOG")
     f:EnableMouse(true)
     f:SetBackdrop({
-        bgFile = M.WHITE8X8,
-        edgeFile = M.WHITE8X8,
+        bgFile = WHITE,
+        edgeFile = WHITE,
         edgeSize = 1,
     })
     f:SetBackdropColor(0.06, 0.06, 0.06, 0.96)
@@ -77,8 +106,8 @@ end
 ------------------------------------------------------------
 -- ESC 關閉
 --
--- 借共用層那支（Widgets.lua 的 W.CloseOnEscape）——邏輯只該有一份。
--- 它比本檔晚載入，但這裡是**執行期**（第一次開選單）才呼叫，查得到。
+-- 走 Widgets.lua 的 W.CloseOnEscape。**不要自己 EnableKeyboard 抓 ESC**：
+-- 鍵盤啟用又不轉發的框會擋掉全部快捷鍵、連 ESC 本身都會失效。
 --
 -- 只註冊主面板：暴雪的 CloseSpecialWindows 會把表裡**所有**顯示中的框一起關掉，
 -- 而子選單只在主面板開著時才存在 —— 主面板的 OnHide 會把它一起收掉。
@@ -88,7 +117,7 @@ end
 --   下一次點擊會被它吃掉（症狀是「按了 ESC 之後第一下點不到東西」）。
 ------------------------------------------------------------
 local function SetupEscape(f)
-    if ns.W and ns.W.CloseOnEscape then ns.W.CloseOnEscape(f) end
+    W.CloseOnEscape(f)
     f:SetScript("OnHide", function()
         if _sub then _sub:Hide() end
         if _catcher then _catcher:Hide() end
@@ -107,7 +136,7 @@ local function EnsureRow(panel, idx)
 
     row.hl = row:CreateTexture(nil, "BACKGROUND")
     row.hl:SetAllPoints()
-    row.hl:SetColorTexture(M.Accent())
+    row.hl:SetColorTexture(W.Accent())
     row.hl:SetAlpha(0.25)
     row.hl:Hide()
 
@@ -233,7 +262,7 @@ local function Layout(panel, items, onDismiss)
         elseif item.isTitle then
             row:SetHeight(TITLE_H)
             -- 小一級 ＋ 灰：標題要**退後**，不要跟選項爭
-            row.text:SetFont(M.Font(ns.DB.Style() and ns.DB.Style().font), FONT_SZ - 1, "")
+            StyleFont(row.text, -1)
             row.text:SetText(item.text or "")
             row.text:SetTextColor(0.52, 0.52, 0.52)
             row.arrow:Hide()
@@ -248,9 +277,9 @@ local function Layout(panel, items, onDismiss)
             row:EnableMouse(true)
             row.text:SetText(item.text or "")
             if item.isActive then
-                row.check:SetVertexColor(M.Accent())
+                row.check:SetVertexColor(W.Accent())
                 row.check:Show()
-                row.text:SetTextColor(M.Accent())
+                row.text:SetTextColor(W.Accent())
             else
                 row.text:SetTextColor(0.86, 0.86, 0.86)
             end

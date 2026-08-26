@@ -13,6 +13,7 @@ MiliUI 各插件共用的設定介面元件庫。自寫、零外部依賴、零�
 |---|---|---|
 | `Env.lua` | **要改** | 宿主接點，見下方契約 |
 | `Widgets.lua` | 逐字複製 | 元件庫：按鈕／勾選框／滑桿／下拉／色票／輸入框／複製框／列表／遮罩／彈窗 |
+| `ContextMenu.lua` | 逐字複製 | 右鍵／情境選單（長在遊戲畫面上的那種，不是設定表單裡的下拉） |
 | `Controls.lua` | 逐字複製 | 表單引擎：吃一張 spec 清單，吐出對齊好的一整頁控制項 |
 | `PixelPerfect.lua` | 可略 | 像素對齊。插件已經有自己的一份就別帶，把 `Env.P` 指過去即可 |
 
@@ -56,6 +57,7 @@ MiliUI 各插件共用的設定介面元件庫。自寫、零外部依賴、零�
 
 ## 載入順序
 
+`ContextMenu.lua` 要在 `Widgets.lua` **之後**（它用 `W.Accent` / `W.CloseOnEscape`）。
 `Env.lua` 要在 `Widgets.lua` 之前，而且它讀宿主的語系／字型／職業色，所以整包要排在那些
 東西之後。`Widgets.lua` 在檔案層就會建字型物件，順序錯了會靜默拿到 nil 字型。
 
@@ -66,8 +68,30 @@ Libs\MiliUIWidgets\PixelPerfect.lua
 ...(語系、Core 等)...
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 ```
+
+### 右鍵選單（`ContextMenu.lua`）
+
+長在**遊戲畫面上**的那種選單，不是設定表單裡的 `CreateDropdown`。
+
+```lua
+W.Menu.Show(items, anchorBtn, keepAnchor)
+W.Menu.Hide()
+W.Menu.IsOpenFor(btn)        -- 同一顆再按一次＝關閉；宿主用它避免疊工具提示
+W.SetMenuFont(token, size)   -- 選用，讓選單跟著宿主自己的字型設定走
+```
+
+`items` 每一筆：`{ text, onClick, value, isActive, isTitle, isSeparator, submenu, keepOpen }`。
+`value` 是右側的「目前值」讀數，`isActive` 會在左槽打勾。
+
+⚠ **「有哪些項目」是宿主自己的事，不要寫回這支。** 這包會進共用層正是因為
+ChatBar 與 DamageMeters 各帶一份幾乎一樣的引擎，結果同一個「ESC 關不掉」的 bug
+要修兩次 —— 但兩邊的**選單內容**本來就該各寫各的。
+
+版面與互動的設計規則（打勾欄、標題階層、子選單寬限期）寫在
+[`miliui-menu-design`](../../../../.claude/skills/miliui-menu-design/SKILL.md) 技能。
 
 ### 三個比較不明顯的元件
 

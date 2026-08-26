@@ -12,7 +12,7 @@ metadata:
 整包過去，不要重寫、也不要叫 agent「參考頭像的介面」。** 那是唯一 source，包內
 `README.md` 寫了完整的複製契約。（2026-08-18 建立；2026-08-23 唯一 source 從
 UnitFrames 搬到 MiliUI 本體——本體那天也改用自製視窗，順勢接手 source 角色。
-七份 copy 的 Widgets/Controls/PixelPerfect/README 均已 md5 同步。）
+九份 copy 的 Widgets/Controls/PixelPerfect/README 均已 md5 同步。）
 
 **內容**：`Widgets.lua`（元件庫）、`Controls.lua`（宣告式表單引擎）、`PixelPerfect.lua`、
 `Env.lua`。前三支逐字複製，**只改 `Env.lua`** —— 它是唯一的宿主接點，提供
@@ -33,12 +33,12 @@ UnitFrames 搬到 MiliUI 本體——本體那天也改用自製視窗，順勢�
 **踩雷點**：`Env.NAMESPACE` 每個插件必須不同。`CreateFont("同名")` 回傳既有物件而非
 新的，具名 frame 也一樣 —— 撞名會讓兩個插件互相蓋掉字型設定，而且不報錯。
 
-**現況**：八個消費者——**MiliUI 本體（source，2026-08-23 起）**、UnitFrames（舊 source）、
+**現況**：九個消費者——**MiliUI 本體（source，2026-08-23 起）**、UnitFrames（舊 source）、
 **MiliUI_Tooltip**（2026-08-22，見 [[project-miliui-tooltip]]）、**MiliUI_Focus**
 （2026-08-22，見 [[project-miliui-focus-addon]]）、**MiliUI_BurstPotionHelper／
 MiliUI_BloodlustMusic／MiliUI_ChatBar**（2026-08-23，見
-[[project-miliui-esc-menu-window-migration]]）、**MiliUI_DamageMeters**（2026-08-24，見
-[[project-miliui-damagemeters]]）。
+[[project-miliui-esc-menu-window-migration]]）、**MiliUI_DamageMeters**、
+**MiliUI_AuraEnhance**（2026-08-26，見 [[project-miliui-auraenhance]]）。
 設定視窗本體（`Options/Panel.lua`）仍是各插件自己組裝（簡化版：無搜尋、無小地圖鈕）；
 設定搜尋刻意不進包，理由寫在 README 末段。
 本體的視窗（2026-08-23）比別家多：頂部 banner（職業色漸層＋版本號，零圖檔）、開窗
@@ -46,7 +46,8 @@ MiliUI_BloodlustMusic／MiliUI_ChatBar**（2026-08-23，見
 分組清單＋勾選批次開關插件＋詳情面板含擷圖/說明/CPU/開啟設定按鈕；擷圖放
 `MiliUI/Media/Shots/<key>.png` 840x420，佔位圖墊底所以不用偵測檔案存在）。
 NAMESPACE 已用掉：MiliUIPack（本體）/MiliUIUF/MiliUITip/MiliUIFocus/MiliUIChatBar/
-MiliUIBurst/MiliUIBLM/MiliUIDM。舊 `MiliUI/Settings.lua`（暴雪 canvas 面板）已刪，importRegistry
+MiliUIBurst/MiliUIBLM/MiliUIDM/MiliUIAura（2026-08-26 起共九份 copy，README 的前綴
+清單那天補上後面兩個並同步）。舊 `MiliUI/Settings.lua`（暴雪 canvas 面板）已刪，importRegistry
 搬到 `MiliUI/Options/Tab_Import.lua`。
 
 **`custom` spec（2026-08-22 加，共用層唯一一次擴充）**：`Controls.Build` 多了
@@ -77,6 +78,28 @@ MiliUIBurst/MiliUIBLM/MiliUIDM。舊 `MiliUI/Settings.lua`（暴雪 canvas 面�
    不會觸發 `OnShow`，所以第一次按下去時背後那層遮罩不會出現。
 修法是 `return popup` 之前補一行 `popup:Hide()`。
 通則：**共用層任何「建好但預設不顯示」的元件都要自己關掉**，不要指望呼叫端記得。
+
+**2026-08-26 第三次擴充：右鍵選單收進共用層（`ContextMenu.lua`）。**
+起因是同一個「ESC 關不掉」的 bug 修了兩次 —— ChatBar 與 DamageMeters 各帶一份幾乎
+一樣的選單引擎，而且已經分家（約 400 行裡 150 行不同，DamageMeters 那份多了子選單
+關閉寬限期、打勾欄、標題階層、右側值讀數）。這正是這包當初存在的理由重演一次。
+
+API：`W.Menu.Show(items, anchorBtn, keepAnchor)` / `.Hide()` / `.IsOpenFor(btn)`，
+外加選用的 `W.SetMenuFont(token, size)`（讓選單跟著宿主自己的字型設定走 ——
+DamageMeters 從 `Windows.ApplyStyle` 餵）。**「有哪些項目」留在宿主**，
+ChatBar 的 `Menu.lua` 從 417 行縮成 63 行、只剩 `Items()` 與 `ns.ShowBarMenu`。
+載入順序：`ContextMenu.lua` 要在 `Widgets.lua` **之後**（它用 `W.Accent` /
+`W.CloseOnEscape`）。設計規則見 `miliui-menu-design` 技能。
+
+**同一批的 ESC 修正**：共用層原本**完全沒有處理 ESC**（下拉、三個彈窗都是）。
+新增 `W.CloseOnEscape(frame)` 走 `UISpecialFrames`。
+⚠ **不要自己 `EnableKeyboard` 抓 ESC** —— 鍵盤啟用又不轉發的框會擋掉全部快捷鍵、
+連 ESC 本身都失效（[[wow-keyboard-capture-blocks-bindings]]）。
+兩個限制決定了它只適合彈窗與選單：吃全域名稱（沒名字就掛一個到 `_G`）、註冊後不移除。
+⚠ 收尾要掛在 `OnHide`，不能只寫在自己的 `Hide()` 裡 —— ESC 是繞過那支直接 Hide 框的。
+
+⚠ **消費者現在是九個**（多了 MiliUI_AuraEnhance）。同步時 `ls -d */Libs/MiliUIWidgets`
+列一次，不要憑記憶打清單 —— 這次就差點漏掉它。
 
 **AceLocale 宿主要補四個 key**：那三支是 AceLocale（大寫 key 風格），共用層查的是
 `Apply / Okay / Cancel / Can't change settings during combat` 這四個英文原文 key，

@@ -82,6 +82,10 @@ end
 ------------------------------------------------------------
 function Windows.ApplyStyle()
     D.RebuildNumberFormat()
+    -- 右鍵選單的引擎在共用層，字型要由宿主餵進去 ——
+    -- 它長在遊戲畫面上、貼著統計視窗開，跟著視窗自己的字型才不會突兀
+    local s = ns.DB.Style()
+    if ns.W and ns.W.SetMenuFont and s then ns.W.SetMenuFont(s.font, 12) end
     Windows.ForEach(function(W)
         W.ApplyStyle()
         ns.Move.ApplyLock(W)
@@ -278,7 +282,7 @@ local function CurrentSegmentLabel(W)
 end
 
 function Windows.ShowSegmentMenu(W, btn)
-    ns.Menu.Show(SegmentItems(W), btn)
+    ns.W.Menu.Show(SegmentItems(W), btn)
 end
 
 -- redraw = true：從選單裡的開關項目回頭重畫（原地更新勾選狀態，不要當成再按一次）
@@ -344,7 +348,7 @@ function Windows.ShowContextMenu(W, btn, redraw)
         { text = L["Settings"],   onClick = function() ns.OpenOptions() end },
     }
 
-    ns.Menu.Show(items, btn, redraw)
+    ns.W.Menu.Show(items, btn, redraw)
 end
 
 ------------------------------------------------------------

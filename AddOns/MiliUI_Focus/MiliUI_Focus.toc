@@ -32,6 +32,7 @@ Modules\CastBar.lua
 
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 Options\Specs.lua
 Options\Panel.lua
