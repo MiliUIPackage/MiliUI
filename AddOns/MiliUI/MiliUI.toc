@@ -29,7 +29,6 @@ Options\Roster.lua
 Options\Panel.lua
 Options\Tab_Addons.lua
 Options\Tab_Enhance.lua
-Options\Tab_Aura.lua
 Options\Tab_Import.lua
 Options\Blizzard.lua
 Api.lua
@@ -51,7 +50,6 @@ Enhance\CharacterKeystones.lua
 Enhance\AutoStoryStroll.lua
 Enhance\TeleportMenu_Spacing.lua
 Enhance\AuctionHouseFilter.lua
-Enhance\BuffDurationStyle.lua
 Enhance\GameMenu_MiliUIButton.lua
 Enhance\MBB_MiliUIMenu.lua
 Enhance\VersionCheck.lua

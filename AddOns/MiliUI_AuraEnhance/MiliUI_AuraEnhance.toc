@@ -1,0 +1,46 @@
+## Interface: 120007, 120100, 120105
+## Title: MiliUI Aura Enhance
+## Title-zhTW: |cff33A3FF[光環]|r 米利的光環美化
+## Title-zhCN: |cff4488FF[MiliUI]|r 米利的光环美化
+## Notes: Restyles the duration and stack text on Blizzard's buff and debuff icons: font, size, outline and position. The text itself is never touched.|n|n|cffffd200Usage: |r/maura opens settings.
+## Notes-zhTW: MiliUI Aura Enhance|n|n米利的光環美化。|n|n調整增益／減益圖示的時間文字與堆疊層數：字型、大小、描邊與位置，不修改文字內容。|n|n|cffffd200使用方法: |r/maura 開啟設定。
+## Notes-zhCN: MiliUI Aura Enhance|n|n米利的光环美化。|n|n调整增益／减益图标的时间文字与堆叠层数：字体、大小、描边与位置，不修改文字内容。|n|n|cffffd200使用方法: |r/maura 打开设置。
+## Category: Interface
+## Category-zhTW: 介面
+## Category-zhCN: 界面
+## Author: Mili
+## Version: 1.2.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\Spell_Holy_WordFortitude
+## SavedVariables: MiliUI_AuraEnhance_DB, MiliUI_AuraEnhanceDB
+## AddonCompartmentFunc: MiliUIAuraEnhance_OnAddonCompartmentClick
+## OptionalDeps: LibSharedMedia-3.0
+
+# 像素工具單獨排最前面：其他模組也吃 ns.P
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\Callbacks.lua
+
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+
+# Init 要在 Media 之前：Media 在檔案層就用 ns.playerClass 算強調色
+Core\Init.lua
+Core\Media.lua
+Core\DB.lua
+
+Modules\AuraStyle.lua
+
+# 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\Controls.lua
+
+Options\Specs.lua
+Options\Panel.lua
+Options\Tab_Duration.lua
+Options\Tab_Count.lua
+Options\Tab_About.lua
+Options\Blizzard.lua
+
+Api.lua

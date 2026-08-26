@@ -32,7 +32,6 @@ local bannerVersion, bannerNewest
 local TABS = {
     { id = "addons",  label = "插件總覽" },
     { id = "enhance", label = "插件強化" },
-    { id = "aura",    label = "光環時間" },
     { id = "import",  label = "預設值匯入" },
     { id = "about",   label = "關於" },
 }
@@ -311,7 +310,6 @@ local function CreatePanel()
         ns.PREFIX_COLOR .. "快速導覽|r",
         "|cff8888cc•|r  |cffffd200插件總覽|r — 檢視套組收錄的插件、開啟各插件設定、勾選啟用或停用",
         "|cff8888cc•|r  |cffffd200插件強化|r — 施法條美化、拍賣行篩選、鑰石發光等注入式功能",
-        "|cff8888cc•|r  |cffffd200光環時間|r — 自訂增益／減益圖示的時間文字樣式",
         "|cff8888cc•|r  |cffffd200預設值匯入|r — 一鍵匯入 MiliUI 精心調校的插件設定",
         "",
         "指令：|cffffd200/miliui|r 開啟這個視窗；ESC 選單的「米利UI設定」按鈕也通到這裡。",

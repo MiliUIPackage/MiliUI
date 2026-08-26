@@ -1,0 +1,85 @@
+------------------------------------------------------------
+-- MiliUI_AuraEnhance 命名空間與啟動流程
+--
+-- 這支插件原本是 MiliUI 套組裡的 Enhance/BuffDurationStyle.lua ＋ 設定頁的
+-- 「光環時間」分頁，2026-08-26 拆成獨立插件。做的事很單純：把暴雪增益／減益
+-- 圖示的**時間文字**與**堆疊層數**改成自己想要的字型／大小／描邊／位置，
+-- 文字內容一個字都不改。
+--
+-- 啟動一律等到 PLAYER_LOGIN：
+--   * 自己的 SavedVariables 那時已經載入；
+--   * 首次啟動要讀 MiliUI 的 MiliUI_DB 做一次性遷移，而那份 SV 要等 MiliUI 自己的
+--     ADDON_LOADED 才會出現。等到 PLAYER_LOGIN 就不必猜插件載入順序。
+------------------------------------------------------------
+local ADDON, ns = ...
+
+ns.ADDON_NAME = ADDON
+ns.VERSION    = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
+ns.DB_VERSION = 1
+
+-- player token 不受 12.1 身分限制，讀職業是安全的
+ns.playerClass = select(2, UnitClass("player"))
+
+-- 聊天前綴與設定視窗標題共用這一個色，跟 TOC 的 [光環] 標籤同色
+ns.PREFIX_COLOR = "|cff33A3FF"
+
+function ns.Print(...)
+    print(ns.PREFIX_COLOR .. "[" .. ns.L["MiliUI Aura Enhance"] .. "]|r", ...)
+end
+
+------------------------------------------------------------
+-- 錯誤收集：xpcall 隔離不能變成黑洞——記下最近的錯誤供 /maura debug 印出，
+-- 同時照常轉給全域 errorhandler（有裝 BugSack 就進 BugSack）
+--
+-- ⚠ 這支是 **xpcall 的訊息處理器**，自己絕對不能拋錯——拋了的話錯誤會穿出
+--   xpcall 的隔離變成「error in error handling」，比原本那個錯誤更難查。
+------------------------------------------------------------
+ns.errors = {}
+local inReport = false
+
+function ns.ReportError(err)
+    -- 防遞迴：有些插件會「包住前一個 handler 再呼叫」，錯誤有可能繞回這裡
+    if inReport then return end
+    inReport = true
+
+    -- err 可能是秘密字串（只要呼叫堆疊上有秘密值參與，debugstack() 就是秘密的），
+    -- 而 tostring(secret) 是禁止的操作
+    local text
+    if issecretvalue and issecretvalue(err) then
+        text = "<secret error>"
+    else
+        local ok, str = pcall(tostring, err)
+        text = ok and str or "<unprintable error>"
+    end
+    tinsert(ns.errors, text)
+    if #ns.errors > 10 then tremove(ns.errors, 1) end
+
+    local handler = geterrorhandler()
+    if type(handler) == "function" and handler ~= ns.ReportError then
+        pcall(handler, err)
+    end
+
+    inReport = false
+end
+
+------------------------------------------------------------
+-- 啟動：初始化資料庫 → 通知各模組
+------------------------------------------------------------
+local boot = CreateFrame("Frame")
+boot:RegisterEvent("PLAYER_LOGIN")
+boot:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_LOGIN")
+    ns.DB.Init()
+    ns.Fire("Init")
+
+    -- 舊版米利UI套組還帶著同一組功能的話，兩邊會各自 hook 同一批 FontString，
+    -- 位置與字型會互相蓋來蓋去。這種情況只會發生在「裝了新插件但套組沒更新」，
+    -- 講一次就好（不自動停用：玩家可能是刻意留著舊的在比對）。
+    if _G.MiliUI_BuffDurationStyle then
+        C_Timer.After(6, function()
+            ns.Print("|cffff5555" .. ns.L["The MiliUI package still has its own aura duration module loaded. Update the package — otherwise both will restyle the same text."] .. "|r")
+        end)
+    end
+end)
+
+_G.MiliUIAuraEnhance = ns
