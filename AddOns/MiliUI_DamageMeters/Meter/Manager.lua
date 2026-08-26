@@ -147,10 +147,25 @@ end
 -- 每個開了智慧顯示的視窗各自處理 —— 走傳播的話，一個開智慧、一個沒開但有連動
 -- 的組合會被拖著走。
 ------------------------------------------------------------
+-- 團隊裡不切「總計」，一路釘在「目前」（使用者要求）。
+-- 理由：團隊的總計是「今晚打到現在」跨好幾個首領的一鍋粥，看不出東西；
+-- 玩家在兩次拉怪之間要看的一定是剛剛那一場。五人本相反 —— 那裡的總計
+-- 就是整趟副本（有進副本自動重置撐著），本來就是收尾要看的數字。
+--
+-- 戰場排除掉：戰場也是團隊隊伍（IsInRaid 為真），但那裡的總計＝整場戰場，
+-- 正是玩家最後要看的東西，釘在「目前」只會讓它永遠停在最後一次小規模接觸。
+local function PinCurrent()
+    if not IsInRaid() then return false end
+    local _, iType = IsInInstance()
+    return iType ~= "pvp" and iType ~= "arena"
+end
+
 local function SmartApplyFor(W, inCombat, force)
     if not W.wdb.smartDisplay then return end
     if W.curSessionID ~= nil and not force then return end
-    local target = inCombat and D.S.Current or D.S.Overall
+    -- ⚠ 只在戰鬥邊界求值，所以「出了團隊之後還沒再打過」會停在「目前」。
+    -- 這是良性的（那時候你要看的多半就是最後一場），下一場戰鬥結束就自己修正。
+    local target = (inCombat or PinCurrent()) and D.S.Current or D.S.Overall
     if W.curSessionID == nil and W.curSession == target then return end
     W.curSessionID = nil
     W.curSession = target
