@@ -1,5 +1,5 @@
 ## Interface: 120007, 120100, 120105
-## Version: 20260825
+## Version: 20260826
 ## Title: |cffffe00a[整合]|r 米利UI套組
 ## Notes: 歡迎使用米利UI套組。|nUI套組不定時更新，|n請至|cff9c27b0[奇樂-魔獸世界中文插件補給站]|r取得最新版本的UI。|n若有任何問題歡迎前往討論唷。|n|cffffd200https://addons.miliui.com|r
 ## IconTexture: Interface\AddOns\MiliUI\icon
@@ -7,6 +7,8 @@
 ## Category-zhTW: [整合]
 ## OptionalDeps: TeleportMenu, Cell
 ## SavedVariables: MiliUI_DB, MiliUI_CastBarEnhanceDB
+# MiliUI_CharDB 目前套組自己已經不寫了（角色筆記拆成 MiliUI_CharacterNotes），
+# 但那支要靠它做一次性搬家 —— 拿掉宣告等於讓還沒登入過的分身讀不到舊筆記。
 ## SavedVariablesPerCharacter: MiliUI_CharDB
 
 Libs\Libs.xml
@@ -62,7 +64,6 @@ Enhance\WorldMapCoords.lua
 Enhance\Delves_MarkButton.lua
 Enhance\Chattynator_TabStyle.lua
 Enhance\Chattynator_ButtonStyle.lua
-Enhance\CharacterNotes.lua
 Enhance\DBM_PrivateAura.lua
 Enhance\ItemUpgrade_PreviewIcon.lua
 Enhance\MplusAdventureGuide_Masque.lua
