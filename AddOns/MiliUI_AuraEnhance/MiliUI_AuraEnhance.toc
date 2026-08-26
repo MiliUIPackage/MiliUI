@@ -14,7 +14,7 @@
 ## IconTexture: Interface\Icons\Spell_Holy_WordFortitude
 ## SavedVariables: MiliUI_AuraEnhance_DB, MiliUI_AuraEnhanceDB
 ## AddonCompartmentFunc: MiliUIAuraEnhance_OnAddonCompartmentClick
-## OptionalDeps: LibSharedMedia-3.0
+## OptionalDeps: Masque, LibSharedMedia-3.0
 
 # 像素工具單獨排最前面：其他模組也吃 ns.P
 Libs\MiliUIWidgets\PixelPerfect.lua
@@ -30,6 +30,7 @@ Core\Media.lua
 Core\DB.lua
 
 Modules\AuraStyle.lua
+Modules\Skin.lua
 
 # 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
 Libs\MiliUIWidgets\Env.lua
@@ -41,6 +42,7 @@ Options\Specs.lua
 Options\Panel.lua
 Options\Tab_Duration.lua
 Options\Tab_Count.lua
+Options\Tab_Skin.lua
 Options\Tab_About.lua
 Options\Blizzard.lua
 

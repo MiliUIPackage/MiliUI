@@ -29,6 +29,7 @@ local closeBtn
 local TABS = {
     { id = "duration", label = L["Duration text"] },
     { id = "count",    label = L["Stacks"] },
+    { id = "skin",     label = L["Icon skin"] },
     { id = "about",    label = L["About"] },
 }
 

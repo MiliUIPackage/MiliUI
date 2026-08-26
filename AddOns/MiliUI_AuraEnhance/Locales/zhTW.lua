@@ -34,6 +34,18 @@ L["The offset is measured from the corner you picked above."] = "位移量是從
 L["Only the typeface changes — the stack number keeps Blizzard's own size."] = "只換字體，層數文字的大小維持暴雪原本的設定。"
 L["Use Blizzard's font"] = "沿用暴雪字型"
 
+-- 圖示樣式分頁
+L["Icon skin"] = "圖示樣式"
+L["Skin the aura icons"] = "讓光環圖示套用按鈕樣式"
+L["Draws the buff and debuff icons through Masque, so they can wear the same button skin as your action bars."] = "把增益／減益圖示交給 Masque 畫，就能套用跟快捷列同一款按鈕樣式。"
+L["The skin itself is picked in Masque — buffs, debuffs and weapon enchants are three separate groups, so they can each wear a different one."] = "樣式本身在 Masque 裡挑。增益、減益、武器附魔是三個獨立群組，可以各挑各的。"
+L["Skin"] = "樣式"
+L["Open Masque"] = "開啟 Masque"
+L["Masque is not installed. This page needs it to skin the icons; nothing here does anything without it."] = "沒有偵測到 Masque。圖示樣式要靠它才畫得出來，沒裝的話這一頁不會有任何作用。"
+L["Buffs"] = "增益"
+L["Debuffs"] = "減益"
+L["Weapon enchants"] = "武器附魔"
+
 -- 方位
 L["Top left"] = "左上"
 L["Top"] = "上"
@@ -46,7 +58,8 @@ L["Bottom right"] = "右下"
 
 -- 關於分頁
 L["Restyles the duration and stack text on Blizzard's own buff and debuff icons."] = "美化暴雪增益／減益圖示上的時間文字與堆疊層數。"
-L["It only changes how the text looks and where it sits — never what it says, and never the icons themselves."] = "只動文字的外觀與位置，不改文字內容，也不動圖示本身。"
+L["It only changes how the text looks and where it sits — never what it says."] = "只動文字的外觀與位置，不改文字內容。"
+L["Buff and debuff icons can also wear a skin from Masque; see the Icon skin tab."] = "增益／減益的圖示也可以套用 Masque 的按鈕樣式，見「圖示樣式」分頁。"
 L["Commands: |cffffd200/maura|r opens the options, |cffffd200/maura reset|r restores the defaults, |cffffd200/maura debug|r reports recent errors"] = "指令：|cffffd200/maura|r 開啟設定、|cffffd200/maura reset|r 還原預設值、|cffffd200/maura debug|r 印出最近的錯誤"
 L["Author: Mili (MiliUI package)"] = "作者：Mili（米利UI套組）"
 L["This used to be the \"Aura duration\" section of the MiliUI package; your old settings were imported the first time this addon ran."] = "這組功能原本是米利UI套組設定裡的「光環時間」分頁，第一次啟動時已經把舊設定搬過來了。"

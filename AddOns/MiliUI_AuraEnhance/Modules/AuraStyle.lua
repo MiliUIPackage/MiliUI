@@ -230,12 +230,18 @@ local function RestoreCountStyle(btn)
     overriding = false
 end
 
+-- { 容器, 是不是減益 }。外觀樣式那邊要分增益／減益兩個群組，所以這裡要把來源帶出去。
+local function Containers()
+    return { { BuffFrame, false }, { DebuffFrame, true } }
+end
+
 local function ForEachAuraButton(func)
-    for _, container in ipairs({ BuffFrame, DebuffFrame }) do
+    for _, entry in ipairs(Containers()) do
+        local container, isDebuff = entry[1], entry[2]
         if container and container.AuraContainer then
             for _, btn in ipairs({ container.AuraContainer:GetChildren() }) do
                 if btn.Icon and not btn.isAuraAnchor then
-                    func(btn)
+                    func(btn, isDebuff)
                 end
             end
         end
@@ -247,12 +253,14 @@ end
 ------------------------------------------------------------
 local function InstallHooks()
     -- 先掛 UpdateGridLayout 攔截未來新建的按鈕
-    for _, container in ipairs({ BuffFrame, DebuffFrame }) do
+    for _, entry in ipairs(Containers()) do
+        local container, isDebuff = entry[1], entry[2]
         if container and container.AuraContainer then
             hooksecurefunc(container.AuraContainer, "UpdateGridLayout", function(_, auras)
                 if not auras then return end
                 for _, aura in ipairs(auras) do
                     if aura and aura.Icon and not aura.isAuraAnchor then
+                        ns.Skin.OnButton(aura, isDebuff)
                         if aura.Duration then HookDuration(aura) end
                         if aura.Count    then HookCount(aura) end
                     end
@@ -264,7 +272,10 @@ local function InstallHooks()
     -- 現有按鈕：掛 hook ＋ 立刻套用（單次迭代）
     -- 停用時什麼都不做：這時候還沒動過任何東西，跑 Restore 反而是拿我們猜的
     -- 「暴雪預設」去蓋掉暴雪真正的預設。
-    ForEachAuraButton(function(btn)
+    -- ⚠ 外觀樣式要排在文字樣式前面：它會把層數搬到自己的包裝框，
+    --   文字樣式接著才把層數搬到覆蓋層（我們的位置設定要贏）。
+    ForEachAuraButton(function(btn, isDebuff)
+        ns.Skin.OnButton(btn, isDebuff)
         if btn.Duration then
             HookDuration(btn)
             if DUR.enabled then ApplyDurationStyle(btn) end
@@ -279,6 +290,9 @@ end
 ------------------------------------------------------------
 -- 對外：設定改完一律叫這支（設定頁的 ctx.apply 就是它）
 ------------------------------------------------------------
+-- 讓別的模組共用同一條列舉路徑（外觀樣式要用），不要各掃各的
+AuraStyle.ForEach = ForEachAuraButton
+
 function AuraStyle.Apply()
     if not DUR then return end
     ForEachAuraButton(function(btn)

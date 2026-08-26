@@ -43,6 +43,11 @@ local function BuildDefaults()
             x       = 0,
             y       = 0,
         },
+        -- 圖示外觀樣式。預設開：套組本來就內建一支專做這件事的插件，
+        -- 這裡接手它的位置，預設關掉的話玩家更新完會覺得功能不見了。
+        skin = {
+            enabled = true,
+        },
     }
 end
 DB.BuildDefaults = BuildDefaults
@@ -201,12 +206,15 @@ function DB.ResetAll()
     local db = ns.db
     if not db then return end
     local def = BuildDefaults()
-    for _, section in ipairs({ "duration", "count" }) do
+    for _, section in ipairs({ "duration", "count", "skin" }) do
         wipe(db[section])
         for k, v in pairs(def[section]) do
             db[section][k] = v
         end
     end
+    -- 樣式先跑、文字後跑：樣式會把層數搬進自己的包裝框，文字樣式接著才把它搬到
+    -- 覆蓋層，順序反過來位置設定會慢一拍
+    ns.Skin.Apply()
     ns.AuraStyle.Apply()
     ns.Fire("SettingsChanged")
 end
