@@ -133,21 +133,36 @@ function I.CreateIndicator(parent, indicatorTable)
     -- render aura PRESENCE rather than icons, and presence is secret.
     -- NOTE: trackByName matches by name in the manual path; the container matches the
     -- configured IDs exactly (candidateFilters has no name form).
-    -- 12.1 "Route A" now also covers effect-type BUFF indicators: block and text render aura
-    -- PRESENCE, which the manual path cannot read once auras are secret. The container drives
-    -- visibility so they update in combat -- as a fixed-colour block or a bare countdown/stack
-    -- number (no time-based recolour; remaining duration stays secret). See StyleButton.
+    -- 12.1 "Route A" now also covers EFFECT-type BUFF indicators. These render aura
+    -- PRESENCE rather than an icon, and presence is exactly what the manual path lost when
+    -- auras became secret -- so on 12.1 they simply froze at whatever they showed when the
+    -- pull started. Under a container the engine owns the slot button's visibility, so the
+    -- effect appears and disappears with the aura and nothing here reads presence at all.
+    -- What does NOT survive: fade-out, colour-by-remaining, and the percent/seconds
+    -- threshold bands -- every one of them needs a countdown we can no longer read.
+    -- (glow / bar / bars / blocks are still on the manual path: see the notes in
+    -- AuraDisplay's EFFECT SLOTS block for what each of them still needs.)
     local ctype = indicatorTable["type"]
     local isIconish  = ctype == "icon" or ctype == "icons"
     local isEffectish = ctype == "block" or ctype == "text"
+        or ctype == "color" or ctype == "border" or ctype == "rect" or ctype == "texture"
     if indicator and indicatorTable["auraType"] == "buff" and I.AttachBuffContainer
         and (isIconish or isEffectish) then
         local isMulti = ctype == "icons"
         local customStyle = isEffectish and ctype or nil
         I.AttachBuffContainer(parent, indicator, function(t)
+            -- ⚠ TWO list shapes. Plain types store {id, id, ...}; the colour-carrying ones
+            -- (border, bars, blocks) store {{id, {r,g,b,a}}, ...}. Reading only the number
+            -- case left every colour-carrying indicator with an EMPTY include map -- which
+            -- BuildRecords turns into "no records", i.e. a container that renders nothing,
+            -- with no error anywhere.
             local ids = {}
-            for _, id in pairs(t["auras"] or {}) do
-                if type(id) == "number" then ids[id] = true end
+            for _, row in pairs(t["auras"] or {}) do
+                if type(row) == "number" then
+                    ids[row] = true
+                elseif type(row) == "table" and type(row[1]) == "number" then
+                    ids[row[1]] = true
+                end
             end
             return ids
         end, isMulti and (indicatorTable["num"] or 3) or 1,

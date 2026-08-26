@@ -53,6 +53,11 @@ local function SameUnit(a, b)
     return same == true
 end
 
+-- How many single-spell effect slots one indicator may declare before it collapses back to
+-- a single shared slot. Each slot is an AuraButton on EVERY unit button, so this is a real
+-- per-frame cost, not a config nicety.
+local EFFECT_PER_SPELL_CAP = 8
+
 -- Blizzard filter tokens (defensive: names differ slightly across PTR builds).
 local TOKEN_CC   = "CROWD_CONTROL"
 local TOKEN_DISP = "RAID_PLAYER_DISPELLABLE"
@@ -204,6 +209,32 @@ local function BuildRecords(opts)
         if not ValidFilter(f) then
             f = "HELPFUL"
             if not ValidFilter(f) then return {} end
+        end
+        -- PER-AURA COLOUR (the border effect): the colour belongs to the SPELL, and which
+        -- spell matched is exactly what a container will not tell us. So ask a different
+        -- question -- declare one slot PER spell, each filtered to that single ID and tinted
+        -- at style time. The engine shows whichever one is actually present, and the colour
+        -- is right because the slot could only ever have been that spell.
+        -- Capped: each slot is a real AuraButton on every unit button, and past a handful the
+        -- indicator is really a list, not a highlight. Over the cap it collapses to one slot
+        -- in the first spell's colour rather than refusing to render.
+        local perSpell = opts.effectSpellColors
+        if type(perSpell) == "table" then
+            local recs = {}
+            for id in pairs(ids) do
+                if type(id) == "number" then
+                    recs[#recs + 1] = {
+                        key = "eff" .. id, filter = f,
+                        candidateFilters = { includeSpellIDs = { [id] = true } },
+                        effColor = perSpell[id],
+                    }
+                end
+            end
+            if #recs > 0 and #recs <= EFFECT_PER_SPELL_CAP then
+                -- stable order so a park key built from these records does not churn
+                table.sort(recs, function(a, b) return a.key < b.key end)
+                return recs
+            end
         end
         return { { key = "buff", filter = f, candidateFilters = { includeSpellIDs = ids } } }
     end
@@ -399,6 +430,52 @@ local BUFF_GREEN  = { 0, 0.55, 0.15, 1 }
 -- what the ring turns into as it drains -- black, i.e. Cell's ordinary icon border
 local SPENT_COLOR = { 0, 0, 0, 1 }
 
+-- ============================================================
+-- EFFECT SLOTS  (the answer to "presence is secret")
+--
+-- An effect indicator (colour tint, frame border, rect, texture) renders aura PRESENCE
+-- rather than an icon, and presence is exactly what 12.1 took away -- which is why these
+-- froze on the manual scan path for a whole encounter.
+--
+-- The way out is to stop asking. Declare an AddAuraSlot, let the engine own the slot
+-- button's visibility, and BUILD THE EFFECT ONTO THAT BUTTON: the tint/border/texture is
+-- a child of the button, so it appears and disappears with the aura and nothing on our
+-- side ever reads whether the aura is there. The whole chain
+-- (handle.frame -> host -> AuraContainer -> slot button) is SetAllPoints, so anchoring
+-- handle.frame at the health bar puts the effect on the health bar.
+--
+-- Usually that is one slot. Where the colour belongs to the SPELL rather than to the
+-- indicator (border), it is one slot PER spell instead -- see BuildRecords: the slot could
+-- only ever have been that one spell, so its colour is knowable without reading anything.
+--
+-- Three rules, all learned the hard way (and all of them fail SILENTLY):
+--   1. Every region is created in the initializeFrame window (StyleButton's first pass on
+--      a button). Outside it the engine denies calls on the button subtree and the pcall
+--      swallows the denial, so "create it in the apply pass" builds nothing, ever.
+--   2. Nothing is READ back from the button afterwards -- not a level, not a rect. Set it
+--      at creation and leave it.
+--   3. No Lua-driven animation: OnUpdate / AnimationGroup attach inside the subtree but
+--      never tick (onUpdateMode is disabled and inherits). Effects are static. Anything
+--      time-based must come from the engine (SetDurationCooldown / SetDurationBar) or not
+--      at all -- "fade out as it expires" is gone with the remaining duration.
+-- ============================================================
+local EFFECT_SLOT_STYLES = {
+    color   = true,   -- health-bar / unit-button tint
+    border  = true,   -- ring around the unit button
+    rect    = true,   -- filled rectangle with a border
+    texture = true,   -- arbitrary texture / atlas
+}
+AD.EFFECT_SLOT_STYLES = EFFECT_SLOT_STYLES
+
+-- Single-slot containers: one AddAuraSlot filling the handle frame, no flow layout.
+-- The dispel health-bar highlight (mode "overlay") was the first of these; the effect
+-- styles are the same shape with a different visual.
+local function IsSlotMode(cfg)
+    if not cfg then return false end
+    return cfg.mode == "overlay" or (cfg.customStyle ~= nil and EFFECT_SLOT_STYLES[cfg.customStyle] == true)
+end
+AD.IsSlotMode = IsSlotMode
+
 -- Seconds-based colour curve for a countdown: hard bands built from a base colour + a list of
 -- { sec, color } thresholds. The C side samples it against the SECRET remaining duration, so
 -- we never read the time. Bands are made with close-point pairs (a 0.01s gap) so the colour
@@ -486,6 +563,175 @@ local function BindDurStack(button, cfg, base, durColorOpt)
     end
 end
 
+-- ============================================================
+-- EFFECT SLOT RENDERING
+--
+-- One slot button, one static visual built onto it. Read the EFFECT SLOTS note above
+-- before touching anything here -- especially rule 1 (create in the window) and rule 3
+-- (nothing animates).
+--
+-- Every region hangs off a holder frame we create on the button rather than off the button
+-- itself: a holder is ours, so its colours can still be written later (the class-colour
+-- refresh does exactly that), while the button's own methods are denied outside the window.
+-- ============================================================
+
+-- Resolve a {r,g,b,a} array, with a fallback for a malformed/absent entry.
+local function ColorOr(c, fr, fg, fb, fa)
+    if type(c) == "table" and type(c[1]) == "number" then
+        return c[1], c[2] or 0, c[3] or 0, c[4] or 1
+    end
+    return fr, fg, fb, fa
+end
+
+-- The colour a `color` indicator settles on. Its time-varying modes cannot survive here --
+-- change-over-time reads the remaining duration, which is secret -- so each collapses onto
+-- the shade it would show at full duration. class-color is resolved live (see
+-- Handle:RefreshEffectTint); everything else is baked at style time.
+local function EffectColorFor(handle, cfg)
+    local colors = cfg.effectColors
+    local kind = type(colors) == "table" and colors[1] or "solid"
+    if kind == "class-color" then
+        -- Resolved from the UNIT, so it changes with no config change at all: SetContainerUnit
+        -- stamps handle._effClassColor and Handle:RefreshEffectTint repaints the live texture.
+        -- ⚠ Deliberately NOT in config -- ParkKey hashes config, so a class colour in there
+        -- would give every class its own park bucket and destroy reuse for the one style that
+        -- does not need a rebuild to change colour.
+        return ColorOr(handle._effClassColor, 0.5, 0.5, 0.5, 1)
+    end
+    if kind == "change-over-time" then
+        -- colors[4] is the "plenty of time left" colour; [5]/[6] are the percent/seconds
+        -- bands, and neither can fire without a readable countdown.
+        return ColorOr(colors[4], 0, 1, 0, 1)
+    end
+    return ColorOr(colors and colors[2], 0, 1, 0, 1)
+end
+
+local function BuildEffectColor(handle, button, cfg)
+    local holder = button.dfEffHolder
+    if not holder then
+        holder = CreateFrame("Frame", nil, button)
+        holder:SetAllPoints(button)
+        button.dfEffHolder = holder
+        button.dfEffTex = holder:CreateTexture(nil, "ARTWORK")
+        button.dfEffTex:SetAllPoints(holder)
+        button.dfEffGrad = holder:CreateTexture(nil, "ARTWORK")
+        button.dfEffGrad:SetAllPoints(holder)
+    end
+
+    local colors = cfg.effectColors
+    local kind = type(colors) == "table" and colors[1] or "solid"
+    local tex, grad = button.dfEffTex, button.dfEffGrad
+
+    if kind == "gradient-vertical" or kind == "gradient-horizontal" then
+        tex:Hide()
+        grad:SetTexture(Cell.vars.whiteTexture)
+        local r1, g1, b1, a1 = ColorOr(colors[2], 0, 1, 0, 1)
+        local r2, g2, b2, a2 = ColorOr(colors[3], 0, 1, 0, 0)
+        grad:SetGradient(kind == "gradient-vertical" and "VERTICAL" or "HORIZONTAL",
+            CreateColor(r1, g1, b1, a1), CreateColor(r2, g2, b2, a2))
+        grad:Show()
+    else
+        grad:Hide()
+        -- The player's own statusbar texture, matching what the manual path drew. Read here
+        -- (style time) rather than on an OnShow hook: script handlers are forbidden on this
+        -- subtree, and an appearance change rebuilds the container anyway.
+        tex:SetTexture(Cell.vars.texture)
+        local r, g, b, a = EffectColorFor(handle, cfg)
+        tex:SetVertexColor(r, g, b, a)
+        tex:Show()
+    end
+end
+
+local function BuildEffectBorder(handle, button, cfg)
+    -- Cell's border ring is a full-rect texture with a mask punched out of the middle,
+    -- plus a second, larger-masked black texture underneath for the outline. Masks are
+    -- pure rendering, so the whole thing survives the forbidden subtree untouched.
+    local thickness = cfg.effectThickness or 2
+    local holder = button.dfEffHolder
+    if not holder then
+        holder = CreateFrame("Frame", nil, button)
+        holder:SetAllPoints(button)
+        button.dfEffHolder = holder
+
+        local mask = holder:CreateMaskTexture()
+        mask:SetTexture(Cell.vars.emptyTexture, "CLAMPTOWHITE", "CLAMPTOWHITE")
+        button.dfEffMask = mask
+        local tex = holder:CreateTexture(nil, "ARTWORK")
+        tex:SetAllPoints(holder)
+        tex:SetTexture(Cell.vars.whiteTexture)
+        tex:AddMaskTexture(mask)
+        button.dfEffTex = tex
+
+        local mask2 = holder:CreateMaskTexture()
+        mask2:SetTexture(Cell.vars.emptyTexture, "CLAMPTOWHITE", "CLAMPTOWHITE")
+        button.dfEffMask2 = mask2
+        local tex2 = holder:CreateTexture(nil, "ARTWORK", nil, -1)
+        tex2:SetAllPoints(holder)
+        tex2:SetColorTexture(0, 0, 0)
+        tex2:AddMaskTexture(mask2)
+    end
+
+    local m, m2 = button.dfEffMask, button.dfEffMask2
+    m:ClearAllPoints()
+    m:SetPoint("TOPLEFT", holder, "TOPLEFT", thickness, -thickness)
+    m:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -thickness, thickness)
+    m2:ClearAllPoints()
+    m2:SetPoint("TOPLEFT", holder, "TOPLEFT", thickness + CELL_BORDER_SIZE, -thickness - CELL_BORDER_SIZE)
+    m2:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -thickness - CELL_BORDER_SIZE, thickness + CELL_BORDER_SIZE)
+
+    -- per-spell slot colour first (see BuildRecords), then the indicator-level fallback
+    local r, g, b, a = ColorOr(button._adEffColor or cfg.effectColors, 1, 0, 0, 1)
+    button.dfEffTex:SetVertexColor(r, g, b, a)
+end
+
+local function BuildEffectRect(handle, button, cfg)
+    local holder = button.dfEffHolder
+    if not holder then
+        holder = CreateFrame("Frame", nil, button, "BackdropTemplate")
+        holder:SetAllPoints(button)
+        holder:SetBackdrop({ edgeFile = Cell.vars.whiteTexture, edgeSize = CELL_BORDER_SIZE })
+        button.dfEffHolder = holder
+        button.dfEffTex = holder:CreateTexture(nil, "BORDER", nil, -7)
+        button.dfEffTex:SetAllPoints(holder)
+    end
+    local colors = cfg.effectColors
+    local fr, fg, fb, fa = ColorOr(colors and colors[1], 0, 1, 0, 1)
+    button.dfEffTex:SetColorTexture(fr, fg, fb, fa)
+    local br, bg, bb, ba = ColorOr(colors and colors[4], 0, 0, 0, 1)
+    holder:SetBackdropBorderColor(br, bg, bb, ba)
+end
+
+local function BuildEffectTexture(handle, button, cfg)
+    local holder = button.dfEffHolder
+    if not holder then
+        holder = CreateFrame("Frame", nil, button)
+        holder:SetAllPoints(button)
+        button.dfEffHolder = holder
+        button.dfEffTex = holder:CreateTexture(nil, "OVERLAY")
+        button.dfEffTex:SetAllPoints(holder)
+    end
+    local spec = cfg.effectTexture
+    local path = type(spec) == "table" and spec[1] or nil
+    local tex = button.dfEffTex
+    if type(path) == "string" and path ~= "" then
+        if path:lower():find("^interface") then
+            tex:SetTexture(path)
+        else
+            tex:SetAtlas(path)
+        end
+    end
+    tex:SetRotation(((type(spec) == "table" and spec[2]) or 0) * math.pi / 180)
+    local r, g, b, a = ColorOr(type(spec) == "table" and spec[3] or nil, 1, 1, 1, 1)
+    tex:SetVertexColor(r, g, b, a)
+end
+
+local EFFECT_BUILDERS = {
+    color   = BuildEffectColor,
+    border  = BuildEffectBorder,
+    rect    = BuildEffectRect,
+    texture = BuildEffectTexture,
+}
+
 local function StyleButton(handle, button)
     local cfg = handle.config
     local size = cfg.size or 22
@@ -558,6 +804,31 @@ local function StyleButton(handle, button)
         if not button._boundDispelIcon then
             button._boundDispelIcon = true
             BindDispelTexture(button, button.dfDispelIcon, "Icon")
+        end
+        return
+    end
+
+    -- EFFECT SLOT styles (buff-only): colour / border / rect / texture. Same cure as
+    -- block/text -- the container owns the button's visibility, so aura PRESENCE needs no
+    -- read -- but these fill their whole anchor rather than sitting in a row, so the slot
+    -- button IS the effect. See the EFFECT SLOTS note at the top of the file.
+    -- ⚠ No time-based behaviour of any kind: the old fade-out / colour-by-remaining and the
+    -- percent-and-seconds threshold bands all needed a countdown we can no longer read.
+    local effBuild = cfg.customStyle and EFFECT_BUILDERS[cfg.customStyle]
+    if effBuild then
+        effBuild(handle, button, cfg)
+        -- rect is the one effect with room for text, and Blizzard renders both blind, so it
+        -- keeps its countdown and stack -- more than the manual path could show in an
+        -- instance. The others are pure fills with nowhere sensible to put a number.
+        if cfg.customStyle == "rect" then
+            BindDurStack(button, cfg, button:GetFrameLevel(), BuildDurColorOpt(cfg))
+            if button.dfDur then
+                local colors = cfg.effectColors
+                local nb = (cfg.durationColors and cfg.durationColors.base)
+                    or (type(colors) == "table" and colors[4])
+                local r, g, b, a = ColorOr(nb, 1, 1, 1, 1)
+                button.dfDur:SetTextColor(r, g, b, a)
+            end
         end
         return
     end
@@ -984,8 +1255,8 @@ local function ParkHolder()
     return parkHolder
 end
 
-local function ParkKey(handle, records, overlay)
-    local parts = {overlay and "ov" or "flow", handle._testMinimal and "min" or ""}
+local function ParkKey(handle, records, slotMode)
+    local parts = {slotMode and "ov" or "flow", handle._testMinimal and "min" or ""}
     for _, rec in ipairs(records) do
         parts[#parts + 1] = rec.key .. "~" .. rec.filter .. "~" .. (TableSig(rec.candidateFilters) or "")
     end
@@ -1114,9 +1385,11 @@ local function Build(handle)
 
     -- ⚠ declared here, not further down: ParkKey reads it, and a `local` declared after the
     -- read would silently resolve to a nil global there (every overlay keyed as flow).
-    local overlay = handle.config.mode == "overlay"
+    -- Slot mode = ONE AddAuraSlot filling the frame: the dispel health-bar highlight and
+    -- every effect style (colour/border/rect/texture). Flow mode = a row of icons.
+    local slotMode = IsSlotMode(handle.config)
 
-    local key = ParkKey(handle, records, overlay)
+    local key = ParkKey(handle, records, slotMode)
     handle._parkKey = key
 
     local host, c = AcquireParked(key)
@@ -1166,8 +1439,9 @@ local function Build(handle)
     handle._groupsAdded = reused and (host._adGroupsAdded or #handle._groupKeys) or 0
     handle._enabledWhileVisible = false
 
-    if overlay then
-        -- overlay covers its anchor frame (the health bar); no flow layout
+    if slotMode then
+        -- the slot covers its anchor frame (health bar, unit button, wherever the indicator
+        -- put it); no flow layout
         pcall(function() c:SetAllPoints(handle.frame) end)
     else
         ApplyLayout(handle)
@@ -1210,7 +1484,12 @@ local function Build(handle)
             local h = host._adOwner
             if not h then return end
             h._initCount = (h._initCount or 0) + 1
-            if overlay then pcall(function() button:SetAllPoints(c) end) end
+            if slotMode then pcall(function() button:SetAllPoints(c) end) end
+            -- Per-spell effect slots: stamp the record's colour BEFORE StyleButton so the
+            -- builder can read it. Stamped once, at creation, and never re-read from the
+            -- engine -- the park key covers the record set, so a returning button always
+            -- carries the colour its record was built with.
+            if rec.effColor ~= nil then button._adEffColor = rec.effColor end
             -- ⚠ Tracked HERE and nowhere else. This is the only place a genuinely new
             -- button arrives; StyleButton must never append, because Restyle iterates this
             -- very list and calls StyleButton on each entry -- appending from there grew
@@ -1223,7 +1502,7 @@ local function Build(handle)
             end
         end
         local okG, errG
-        if overlay then
+        if slotMode then
             -- single slot covering the frame (AddAuraGroup eagerly batches; AddAuraSlot
             -- is the genuine single-icon/overlay primitive)
             okG, errG = pcall(c.AddAuraSlot, c, rec.key, rec.filter, {
@@ -1242,7 +1521,7 @@ local function Build(handle)
         if okG then
             handle._groupsAdded = handle._groupsAdded + 1
             -- remembered so SetNum can drive maxFrameCount live (slots are always 1)
-            if not overlay then handle._groupKeys[#handle._groupKeys + 1] = rec.key end
+            if not slotMode then handle._groupKeys[#handle._groupKeys + 1] = rec.key end
         else
             handle._errors[#handle._errors + 1] = "Add[" .. rec.key .. "] (" .. rec.filter .. "): " .. tostring(errG)
         end
@@ -1355,7 +1634,12 @@ end
 -- keys that only affect per-button cosmetics: restyle the cached buttons instead of
 -- recreating the container (a rebuild re-creates ~10 buttons per group -- far too heavy
 -- for a font slider drag)
-local COSMETIC_KEYS = { stackFont = true, durationFont = true, borderColor = true }
+local COSMETIC_KEYS = {
+    stackFont = true, durationFont = true, borderColor = true,
+    -- effect-slot visuals: pure styling, so a colour/thickness/texture tweak restyles the
+    -- existing slot instead of tearing the container down and rebuilding it
+    effectColors = true, effectThickness = true, effectTexture = true,
+}
 
 -- geometry keys: 12.1 has SetAuraGroupLayout as a LIVE setter and StyleButton already
 -- re-applies per-button size/border, so these never need a rebuild either. Keeping them
@@ -1410,6 +1694,31 @@ function Handle:ApplyLiveLayout()
     end
     ApplyLayout(self)
     return true
+end
+
+-- Repaint the effect slot's tint WITHOUT a restyle.
+--
+-- The texture is ours (created on a holder frame we own), and writing to our own regions
+-- stays legal outside the initializeFrame window -- it is the BUTTON's own methods and any
+-- read-back that the engine denies. That is what makes a live class-colour possible: a
+-- roster shuffle re-points the container at a new unit, and this repaints the tint in the
+-- same breath. Routing it through SetOptions instead would mark the config dirty and
+-- rebuild the container on every roster update, which is the cost SetUnit exists to avoid.
+function Handle:SetEffectClassColor(color)
+    self._effClassColor = color
+    self:RefreshEffectTint()
+end
+
+function Handle:RefreshEffectTint()
+    local cfg = self.config
+    if cfg.customStyle ~= "color" then return end
+    local colors = cfg.effectColors
+    if type(colors) ~= "table" or colors[1] ~= "class-color" then return end
+    local r, g, b, a = ColorOr(self._effClassColor, 0.5, 0.5, 0.5, 1)
+    for _, button in ipairs(self.buttons) do
+        local tex = button.dfEffTex
+        if tex then pcall(tex.SetVertexColor, tex, r, g, b, a) end
+    end
 end
 
 function Handle:SetOptions(opts)
@@ -2255,8 +2564,10 @@ function AD.Inspect(unitToken)
             local idCount = 0
             if type(ids) == "table" then for _ in pairs(ids) do idCount = idCount + 1 end end
 
-            p(("--- handle #%d mode=%s shown=%s built=%s buttons=%d")
-                :format(n, tostring(cfg.mode or "important"), tostring(h.frame:IsShown()),
+            p(("--- handle #%d mode=%s%s shown=%s built=%s buttons=%d")
+                :format(n, tostring(cfg.mode or "important"),
+                    cfg.customStyle and ("/" .. cfg.customStyle .. (IsSlotMode(cfg) and " slot" or "")) or "",
+                    tostring(h.frame:IsShown()),
                     tostring(h.container ~= nil), #h.buttons))
             p(("    parent=%s size=%s num=%s onlyMine=%s")
                 :format(tostring(h.frame:GetParent() and h.frame:GetParent():GetName() or "?"),
@@ -2283,7 +2594,7 @@ function AD.Inspect(unitToken)
             -- ACTUALLY resolved to, and whether each setter took (see ACC.ApplyFlowLayout).
             -- If Get* disagrees with the orientation, the setters are not applying; if they
             -- agree yet growth still looks wrong, it is the container pin / SetSize instead.
-            if h.container and h.container.GetFlowLayoutAnchorPoint and cfg.mode ~= "overlay" then
+            if h.container and h.container.GetFlowLayoutAnchorPoint and not IsSlotMode(cfg) then
                 local c = h.container
                 local function g(fn) local ok, a, b = pcall(fn, c); if not ok then return "?" end
                     return b ~= nil and (tostring(a) .. "," .. tostring(b)) or tostring(a) end

@@ -282,6 +282,71 @@ local function IsPreviewButton(frame)
     return name ~= nil and name:find("PreviewButton", 1, true) ~= nil
 end
 
+-- ⚠ Resolved at CALL time, never at file scope: this file loads before AuraDisplay.lua
+-- (Cell.toc), so Cell.AuraDisplay is still nil here. A file-scope copy would be an empty
+-- table forever and every effect indicator would silently fall through to the icon path.
+local function IsEffectStyle(style)
+    local AD = Cell.AuraDisplay
+    local set = AD and AD.EFFECT_SLOT_STYLES
+    return style ~= nil and set ~= nil and set[style] == true
+end
+
+-- The unit's class colour as an {r,g,b,a} array. F.GetClassColor desecrets and falls back to
+-- white on its own, so this is safe on a teammate whose identity is restricted.
+local function ClassColorFor(parent)
+    local cls = parent and parent.states and parent.states.class
+    local r, g, b = F.GetClassColor(cls)
+    return { r, g, b, 1 }
+end
+
+-- EFFECT SLOT anchoring. These styles are not a row of icons -- they ARE the frame they
+-- cover -- so the container's holder is stretched over whatever the indicator is meant to
+-- tint, and the whole chain (holder -> AuraContainer -> slot button -> our texture) rides
+-- along. Returns true when it placed the frame; false = use the ordinary position/size path.
+local function AnchorEffectFrame(cfr, parent, style, t)
+    if style == "color" then
+        -- mirrors Color_SetAnchor: the four things a colour indicator can cover
+        local anchorTo = t["anchor"]
+        local w = parent.widgets
+        local target
+        if anchorTo == "healthbar-current" then
+            target = w and w.healthBar and w.healthBar:GetStatusBarTexture()
+        elseif anchorTo == "healthbar-loss" then
+            target = w and w.healthBarLoss
+        elseif anchorTo == "healthbar-entire" then
+            target = w and w.healthBar
+        end
+        cfr:ClearAllPoints()
+        if target then
+            cfr:SetAllPoints(target)
+        else -- "unitbutton" (and any unknown value): the button inside its own border
+            cfr:SetPoint("TOPLEFT", parent, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+            cfr:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+        end
+        return true
+    elseif style == "border" then
+        cfr:ClearAllPoints()
+        cfr:SetPoint("TOPLEFT", parent, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+        cfr:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+        return true
+    end
+    return false -- rect / texture are ordinary positioned boxes
+end
+
+-- Per-spell colours for the effect styles whose colour belongs to the SPELL rather than to
+-- the indicator (border). The layout stores those lists as {spellID, {r,g,b,a}} rows;
+-- AuraDisplay turns the result into one single-spell slot each.
+local function EffectSpellColors(t)
+    local out
+    for _, row in pairs(t["auras"] or {}) do
+        if type(row) == "table" and type(row[1]) == "number" and type(row[2]) == "table" then
+            out = out or {}
+            out[row[1]] = row[2]
+        end
+    end
+    return out
+end
+
 -- useConfigColor: take the ring colour from the indicator's own 顏色 setting instead of
 -- the default green. Only custom indicators have such a setting; the three built-in
 -- cooldown rows keep the default.
@@ -313,16 +378,20 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         -- rect-less while its (now unused) fallback icons are hidden -- and children of a
         -- rect-less frame never render, even though IsVisible() reports true.
         local cfr = self.container:GetFrame()
-        local pos = t.position
-        local rel = (pos and pos[2] == "healthBar" and parent.widgets and parent.widgets.healthBar)
-            or parent
-        cfr:ClearAllPoints()
-        if pos then
-            cfr:SetPoint(pos[1], rel, pos[3], pos[4], pos[5])
-        else
-            cfr:SetPoint("CENTER", parent, "CENTER", 0, 0)
+        -- colour / border stretch over the health bar or the whole button; rect / texture
+        -- are ordinary boxes and fall through to position + size like every icon display.
+        if not AnchorEffectFrame(cfr, parent, customStyle, t) then
+            local pos = t.position
+            local rel = (pos and pos[2] == "healthBar" and parent.widgets and parent.widgets.healthBar)
+                or parent
+            cfr:ClearAllPoints()
+            if pos then
+                cfr:SetPoint(pos[1], rel, pos[3], pos[4], pos[5])
+            else
+                cfr:SetPoint("CENTER", parent, "CENTER", 0, 0)
+            end
+            cfr:SetSize((t.size and t.size[1]) or 20, (t.size and t.size[2]) or 20)
         end
-        cfr:SetSize((t.size and t.size[1]) or 20, (t.size and t.size[2]) or 20)
 
         local opts = {
             spellIDs = getSpellIDs(t),
@@ -336,6 +405,32 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
             onlyMine = (t.castBy == "me") or nil,
             orientation = t.orientation,
         }
+        -- EFFECT SLOTS (colour/border/rect/texture): the visual is built from the
+        -- indicator's own settings, and everything time-based is dropped -- the fade-out and
+        -- the percent/seconds colour bands all needed a countdown that is now secret.
+        -- (Fonts fall through to the icon/block branch below: rect stores t.font in the same
+        -- {stackFont, durationFont} shape.)
+        if IsEffectStyle(customStyle) then
+            -- only the colour style has a live, unit-derived tint; everything else is baked
+            -- at style time, so SetContainerUnit can skip the lookup entirely
+            self._effWantsClassColor = customStyle == "color"
+                and type(t["colors"]) == "table" and t["colors"][1] == "class-color"
+            opts.effectColors = t["colors"]
+            opts.effectThickness = t["thickness"]
+            opts.effectTexture = t["texture"]
+            if customStyle == "border" then
+                -- border's colour is per SPELL, so it splits into one slot per spell
+                opts.effectSpellColors = EffectSpellColors(t)
+                -- the fallback when the list is over the split cap: the first row's colour
+                local first = t["auras"] and t["auras"][1]
+                opts.effectColors = (type(first) == "table" and first[2]) or t["colors"]
+            end
+            if customStyle ~= "rect" then
+                -- a fill or a ring has nowhere to put a number
+                opts.showDuration = false
+                opts.showStack = false
+            end
+        end
         -- a text-style indicator with no explicit duration toggle still shows its countdown
         -- (a text indicator that renders nothing is useless); an explicit false is respected.
         if customStyle == "text" and opts.showDuration == nil then
@@ -405,6 +500,11 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         if self.container.SetContainerLevel then
             self.container:SetContainerLevel(self:GetFrameLevel())
         end
+        if self._effWantsClassColor then
+            -- stamped BEFORE SetOptions: a structural change rebuilds inside that call, and
+            -- the rebuild styles its fresh buttons from the handle's stored colour
+            self.container._effClassColor = ClassColorFor(parent)
+        end
         self.container:SetOptions(opts)
         self.container:SetEnabled(t.enabled and true or false)
     end
@@ -413,6 +513,12 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         if not self.container then return end
         self.container:SetUnit(unit)
         self.container:ReassertEnable()
+        -- A class-coloured effect follows the PERSON, not the config, so the tint is
+        -- repainted here rather than through SetOptions -- see Handle:RefreshEffectTint for
+        -- why routing it through the option channel would rebuild on every roster update.
+        if self._effWantsClassColor and self.container.SetEffectClassColor then
+            self.container:SetEffectClassColor(ClassColorFor(parent))
+        end
     end
 
     I.DiscardFallbackIcons(indicator) -- no legacy pool under the container
