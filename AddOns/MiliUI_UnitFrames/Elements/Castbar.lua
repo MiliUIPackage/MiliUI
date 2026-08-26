@@ -636,6 +636,46 @@ local function AcceptCastEvent(uf, f, event, evUnit)
     return evUnit == (f.castUnit or f.unit)
 end
 
+-- 施法條訂閱的事件。抽成清單是為了「停用時整批拆掉、重新啟用時整批裝回」——
+-- 這條是**事件自驅動**的（StartDisplay 自己 f:Show()），光把 frame 藏起來擋不住它。
+local CAST_EVENTS = {
+    "UNIT_SPELLCAST_START",
+    "UNIT_SPELLCAST_CHANNEL_START",
+    "UNIT_SPELLCAST_EMPOWER_START",
+    "UNIT_SPELLCAST_STOP",
+    "UNIT_SPELLCAST_CHANNEL_STOP",
+    "UNIT_SPELLCAST_EMPOWER_STOP",
+    "UNIT_SPELLCAST_INTERRUPTED",
+    "UNIT_SPELLCAST_FAILED",
+    "UNIT_SPELLCAST_DELAYED",
+    "UNIT_SPELLCAST_CHANNEL_UPDATE",
+    "UNIT_SPELLCAST_EMPOWER_UPDATE",
+    -- 施法中途「可打斷」狀態改變（首領常見）。少了這兩個，條的顏色與盾牌會
+    -- 停在 StartDisplay 那一刻讀到的狀態——而這正是打斷職業最需要看的那一格資訊
+    "UNIT_SPELLCAST_INTERRUPTIBLE",
+    "UNIT_SPELLCAST_NOT_INTERRUPTIBLE",
+    -- 施法者中途換目標 → 施法目標文字要跟上（C4）
+    "UNIT_TARGET",
+}
+
+-- 每次 build 都重跑（RegisterUnitEvent 重複呼叫是冪等的）。停用過再啟用時，
+-- 事件是靠這裡裝回來的
+local function RegisterCastEvents(uf, f)
+    local ev = f.evFrame
+    if not ev then return end
+    local unit = uf.baseUnit or uf.unit
+    -- 載具：跟 Core/Events 的 tracker 同一套——註冊期就把副 token 一起收，
+    -- 切換時只要 f.unit 換掉（setunit 鉤子），事件完全不用重註冊
+    local secondary = (unit == "player" and "vehicle") or (unit == "pet" and "player") or nil
+    for _, event in ipairs(CAST_EVENTS) do
+        if secondary then
+            ev:RegisterUnitEvent(event, unit, secondary)
+        else
+            ev:RegisterUnitEvent(event, unit)
+        end
+    end
+end
+
 local function Build(uf, edb)
     local f = uf.elements.castbar
     if not f then
@@ -696,38 +736,11 @@ local function Build(uf, edb)
         f.targetText:SetWordWrap(false)
         f.targetText.holder = targetHolder
 
-        -- 事件：本單位專屬 frame（RegisterUnitEvent 綁 unit）；預覽孿生不接真實事件
+        -- 事件：本單位專屬 frame（RegisterUnitEvent 綁 unit）；預覽孿生不接真實事件。
+        -- 註冊本身在下面的版面段（每次 build 都重跑），因為停用時要整批拆掉
         local ev = not uf.isPreview and CreateFrame("Frame")
         if ev then
         f.evFrame = ev
-        local unit = uf.baseUnit or uf.unit
-        -- 載具：跟 Core/Events 的 tracker 同一套——註冊期就把副 token 一起收，
-        -- 切換時只要 f.unit 換掉（setunit 鉤子），事件完全不用重註冊
-        local secondary = (unit == "player" and "vehicle") or (unit == "pet" and "player") or nil
-        local function RegUnit(event)
-            if secondary then
-                ev:RegisterUnitEvent(event, unit, secondary)
-            else
-                ev:RegisterUnitEvent(event, unit)
-            end
-        end
-        RegUnit("UNIT_SPELLCAST_START")
-        RegUnit("UNIT_SPELLCAST_CHANNEL_START")
-        RegUnit("UNIT_SPELLCAST_EMPOWER_START")
-        RegUnit("UNIT_SPELLCAST_STOP")
-        RegUnit("UNIT_SPELLCAST_CHANNEL_STOP")
-        RegUnit("UNIT_SPELLCAST_EMPOWER_STOP")
-        RegUnit("UNIT_SPELLCAST_INTERRUPTED")
-        RegUnit("UNIT_SPELLCAST_FAILED")
-        RegUnit("UNIT_SPELLCAST_DELAYED")
-        RegUnit("UNIT_SPELLCAST_CHANNEL_UPDATE")
-        RegUnit("UNIT_SPELLCAST_EMPOWER_UPDATE")
-        -- 施法中途「可打斷」狀態改變（首領常見）。少了這兩個，條的顏色與盾牌會
-        -- 停在 StartDisplay 那一刻讀到的狀態——而這正是打斷職業最需要看的那一格資訊
-        RegUnit("UNIT_SPELLCAST_INTERRUPTIBLE")
-        RegUnit("UNIT_SPELLCAST_NOT_INTERRUPTIBLE")
-        -- 施法者中途換目標 → 施法目標文字要跟上（C4）
-        RegUnit("UNIT_TARGET")
         ev:SetScript("OnEvent", function(_, event, evUnit, arg2, arg3, arg4, arg5)
             if not AcceptCastEvent(uf, f, event, evUnit) then return end
             if not uf:IsVisible() then return end
@@ -779,6 +792,8 @@ local function Build(uf, edb)
         uf.elements.castbar = f
         f:Hide()
     end
+
+    RegisterCastEvents(uf, f)
 
     -- 版面（全部來自設定）
     -- ⚠ 不要叫 L：檔案層的 `local L = ns.L` 是語系表，這裡取名 L 會把它遮掉，
@@ -881,6 +896,10 @@ end
 local function Disable(uf)
     local f = uf.elements.castbar
     if f then
+        -- ⚠ 事件一定要一起拆。這條是事件自驅動的：下一次 UNIT_SPELLCAST_START 進來，
+        -- StartDisplay 就自己 f:Show() 把它叫回來 —— 症狀正是「取消勾選還是會顯示」。
+        -- 其他元件沒這個問題，它們都走刷新桶，而桶派送本來就會看 enabled。
+        if f.evFrame then f.evFrame:UnregisterAllEvents() end
         HideBar(f)
     end
 end

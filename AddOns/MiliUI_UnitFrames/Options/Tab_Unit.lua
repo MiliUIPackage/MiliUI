@@ -274,7 +274,10 @@ end
 
 local function CastbarSpecs()
     local list = {
-        { type = "toggle", sub = "castbar", key = "enabled", label = L["Show"] },
+        -- 關掉之後暴雪原生的施法條會在下次 /reload 回來（Core/HideBlizzard.lua 的閘看
+        -- 「我們的施法條實際建出來沒有」）。沿用單位框那顆開關同一句提示，不多開語系 key
+        { type = "toggle", sub = "castbar", key = "enabled", label = L["Show"],
+          hint = L["Blizzard's own frame does not come back on its own after disabling; /reload is needed"] },
         { type = "header", label = L["Position and size"] },
         PosSize("castbar"),
         { type = "header", label = L["Appearance"] },
