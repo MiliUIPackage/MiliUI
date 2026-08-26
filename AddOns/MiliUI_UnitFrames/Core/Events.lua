@@ -210,6 +210,22 @@ local SPECIAL = {
     PLAYER_ENTERING_WORLD = function()
         ns.RefreshAll("unitchanged")
     end,
+    -- 生死狀態。
+    -- ⚠ 這三個是**全域**事件，不是 UNIT_ 事件，所以不會經過上面那張 unit 事件表。
+    -- 少了它們的症狀是：跑屍復活之後「靈魂」字樣不會消失 —— cache.ghost 其實已經
+    -- 被 UNIT_HEALTH 那條路更新了，但顯示「靈魂」的文字訂閱的是 **death 桶**，
+    -- 而 death 桶只有 UNIT_CONNECTION 會推，所以那顆文字根本沒有重畫的機會。
+    -- 三個都收：PLAYER_DEAD（倒地）、PLAYER_UNGHOST（從靈魂變回活人）、
+    -- PLAYER_ALIVE（放棄屍體變靈魂，以及登入時）。都是罕見事件，成本可以忽略。
+    PLAYER_DEAD = function()
+        RefreshUnit("player", "death")
+    end,
+    PLAYER_ALIVE = function()
+        RefreshUnit("player", "death")
+    end,
+    PLAYER_UNGHOST = function()
+        RefreshUnit("player", "death")
+    end,
     -- AFK／DND。不是 UNIT_ 事件，不確定 RegisterUnitEvent 吃不吃，留在全域比較保險
     PLAYER_FLAGS_CHANGED = function(unit)
         RefreshUnit(unit, "reaction")
