@@ -338,7 +338,57 @@ end
 -- 「嘗試進行 Blizzard UI 專屬動作，遭到封鎖」的**強制彈窗**，而那個彈窗還會建議
 -- 玩家關掉插件。外面包 securecallfunction 也救不回來（2026-08-26 實測）。
 -- 結論：選單跳錯令人困惑，封鎖彈窗則是直接勸退，兩害相權取前者。
+--
+-- ── 補救：只在「已經跳錯」的那一刻重開 ─────────────────────────
+-- 上面說的是「不要接管整條路」。但可以在**後掛勾**裡補救：平常完全不介入
+-- （選單維持全安全、保護項目都能用），只有當開出來的是寵物家族選單、而那個單位的
+-- GUID 又明明是 Player- 開頭時，才重新開一次正確的。taint 只沾到那一個**本來就是
+-- 錯的**選單實例，正常選單一個都不受影響。
+--
+-- ⚠ GUID 是秘密值就放棄（不同隊的路人多半如此）。這條救得回來的是「GUID 讀得到、
+--    但暴雪那條 UnitIsUnit 鏈誤判」的情況 —— 隊友／團友資料還沒串流過來時就是這樣。
+-- ⚠ which 只從 **token** 推，不要用 UnitInRaid/UnitInParty：那些在同一批單位上
+--    同樣可能是秘密值。
+-- ⚠⚠ 重開一定要傳**全新的 context 表**：UnitPopup_OpenMenu 會就地把
+--    playerLocation/accountInfo 塞進你給的表，而它入口又斷言那些欄位是 nil ⇒
+--    把第一次那張表再傳一次會直接 assertion failed。
 ------------------------------------------------------------
+local PET_MENUS = { PET = true, OTHERPET = true, OTHERBATTLEPET = true }
+
+-- 會被誤判的 token。刻意用白名單：寵物家族的 token（pet / partypetN / raidpetN）
+-- 開寵物選單是對的，不能碰。
+local MENU_FIX_TOKENS = {
+    target = true, targettarget = true, focus = true, focustarget = true,
+}
+
+local function PlayerMenuForToken(lu)
+    if lu:match("^raid%d+$") then return "RAID_PLAYER" end
+    if lu:match("^party%d+$") then return "PARTY" end
+    return "PLAYER"
+end
+
+local menuFixInstalled = false
+local function InstallMenuClassifierFix()
+    if menuFixInstalled or type(UnitPopup_OpenMenu) ~= "function" then return end
+    menuFixInstalled = true
+    local reopening = false
+    hooksecurefunc("UnitPopup_OpenMenu", function(which, contextData)
+        if reopening then return end
+        if not PET_MENUS[which] then return end
+        local unit = contextData and contextData.unit
+        if type(unit) ~= "string" then return end
+        local lu = unit:lower()
+        if not (MENU_FIX_TOKENS[lu] or lu:match("^raid%d+$") or lu:match("^party%d+$")) then
+            return
+        end
+        local guid = UnitGUID(unit)
+        if ns.IsSecret(guid) then return end          -- 判不出來就不動
+        if type(guid) ~= "string" or not guid:find("^Player%-") then return end
+        reopening = true
+        UnitPopup_OpenMenu(PlayerMenuForToken(lu), { unit = unit })
+        reopening = false
+    end)
+end
 
 function ns.SpawnUnitFrame(unit)
     if ns.frames[unit] then return ns.frames[unit] end
@@ -361,6 +411,7 @@ function ns.SpawnUnitFrame(unit)
     uf:RegisterForClicks("AnyUp")
     uf:SetAttribute("*type1", "target")
     uf:SetAttribute("type2", "togglemenu")     -- 見上面「右鍵選單」那段
+    InstallMenuClassifierFix()                 -- 只裝一次，第一個框生成時順便
     uf:SetAttribute("unit", unit)
     -- 載具：讓 secure 端在點擊時自己把 player ↔ pet 對調（讀取時計算，不寫屬性，
     -- 所以戰鬥中也有效）。顯示面由 ns.EvalActiveUnit 跟上，見那裡的說明。
