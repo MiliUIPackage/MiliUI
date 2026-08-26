@@ -1561,7 +1561,14 @@ function Handle:ReassertEnable()
     if self._enabledWhileVisible then return end
     self._enabledWhileVisible = true
     pcall(function() c:SetEnabled(true) end)
-    pcall(function() c:Hide(); c:Show() end) -- partition kick -> force a fresh scan
+    -- partition kick -> force a fresh scan. Host first, for the same reason as GateRefresh:
+    -- a Hide() on the container itself can be refused and the pcall would eat the refusal.
+    local host = self.host
+    if host then
+        pcall(function() host:Hide(); host:Show() end)
+    else
+        pcall(function() c:Hide(); c:Show() end)
+    end
 end
 
 -- ============================================================
@@ -1582,7 +1589,21 @@ function Handle:GateRefresh()
         if type(c.UpdateAllAuras) == "function" then pcall(function() c:UpdateAllAuras() end) end
         return
     end
-    pcall(function() c:Hide(); c:Show() end)
+    -- ⚠ bounce the HOST, not the container. The container carries Forbidden Aspects, so
+    -- Hide()/Show() ON IT can be refused for a tainted caller -- and the pcall swallows the
+    -- refusal, so the re-parse silently never happens and the row keeps rendering whatever
+    -- it last parsed (a buff that has long since fallen off, or the previous occupant's).
+    -- The host is a plain frame we created, hiding it can never be refused, and it takes the
+    -- container's visibility with it -- which is what fires the intrinsic OnShow that IS the
+    -- re-parse. Same reasoning as the park path, which stopped touching the container for
+    -- exactly this reason. The container bounce stays as a fallback for handles built before
+    -- the host existed.
+    local host = self.host
+    if host then
+        pcall(function() host:Hide(); host:Show() end)
+    else
+        pcall(function() c:Hide(); c:Show() end)
+    end
 end
 
 -- assist false -> true is the moment the pool stops being fail-open, and the only moment a
