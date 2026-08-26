@@ -110,7 +110,7 @@ end
 -- the total demand; builds alone is what the client actually had to allocate.
 AD.stats = {builds = 0, discards = 0, repoints = 0, parks = 0, reuses = 0}
 
-local function BuildRecords(opts)
+local function BuildRecordsRaw(opts)
     opts = opts or {}
 
     -- Dispel indicator mode: a single slot/record. dispelByMe (Cell's dispellableByMe):
@@ -301,6 +301,65 @@ local function BuildRecords(opts)
         end
     end
     return out
+end
+
+-- ============================================================
+-- CANONICAL FILTER STRINGS
+--
+-- The engine batches aura parsing per container BY THE FILTER STRING, and two of them share
+-- one parse only when the strings are byte-identical. Everything above builds these by
+-- concatenation, in whatever order each branch happens to append -- so
+-- "HARMFUL|RAID|!CROWD_CONTROL" and "HARMFUL|!CROWD_CONTROL|RAID" mean exactly the same
+-- thing and get scanned twice, once per spelling.
+--
+-- One canonical order fixes that for free: polarity first (the engine wants it there), then
+-- everything else alphabetically, with a negation sorted directly after its bare token so
+-- "!RAID" never drifts away from "RAID".
+--
+-- ⚠ Applied AFTER ValidFilter, deliberately. Validation runs on the string each branch
+-- actually composed, so a rejected token is still reported against the spelling that was
+-- written -- and reordering a token set never changes whether it is valid.
+-- ============================================================
+local filterCanonCache = {}
+
+local function CanonFilter(f)
+    if type(f) ~= "string" or f == "" then return f end
+    local cached = filterCanonCache[f]
+    if cached then return cached end
+
+    local base, rest = nil, {}
+    for token in f:gmatch("[^|]+") do
+        if token == "HELPFUL" or token == "HARMFUL" then
+            base = token
+        else
+            rest[#rest + 1] = token
+        end
+    end
+    table.sort(rest, function(a, b)
+        local ka = a:sub(1, 1) == "!" and (a:sub(2) .. "!") or a
+        local kb = b:sub(1, 1) == "!" and (b:sub(2) .. "!") or b
+        return ka < kb
+    end)
+
+    local out
+    if base and #rest > 0 then
+        out = base .. "|" .. table.concat(rest, "|")
+    elseif base then
+        out = base
+    else
+        out = table.concat(rest, "|")
+    end
+    filterCanonCache[f] = out
+    return out
+end
+AD.CanonFilter = CanonFilter
+
+local function BuildRecords(opts)
+    local records = BuildRecordsRaw(opts)
+    for i = 1, #records do
+        records[i].filter = CanonFilter(records[i].filter)
+    end
+    return records
 end
 AD.BuildRecords = BuildRecords
 

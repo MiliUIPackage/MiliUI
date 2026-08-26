@@ -3148,24 +3148,53 @@ UnitButton_UpdateHealthColor = function(self)
         barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, 0, 1, 0.2)
     end
 
+    -- Incoming-heal tint: the configured colour, or the bar's own at 40%.
+    local ihR, ihG, ihB, ihA
+    if Cell.loaded and CellDB["appearance"]["healPrediction"][2] then
+        local hp = CellDB["appearance"]["healPrediction"][3]
+        ihR, ihG, ihB, ihA = hp[1], hp[2], hp[3], hp[4]
+    else
+        ihR, ihG, ihB, ihA = barR, barG, barB, 0.4
+    end
+
+    -- ⚠ APPLIED-COLOUR STAMP. With "colour by health" or "full-health colour" on, this whole
+    -- function runs on EVERY UNIT_HEALTH -- and the colour it computes is usually the one
+    -- already on the bar. On Midnight it is worse: health percent is secret inside instances,
+    -- states.healthPercent is pinned to 0, so the colour provably cannot change and every
+    -- tick re-applied identical values to three widgets.
+    --
+    -- Stamping the OUTPUT (not the inputs) keeps this exact: the incoming-heal colour is
+    -- folded in above, so a settings change moves one of the twelve numbers and the skip
+    -- lifts by itself. The two paths that replace the widgets underneath us -- B.SetTexture
+    -- and B.UpdateColor -- clear the stamp explicitly.
+    if self.__hcBarR == barR and self.__hcBarG == barG and self.__hcBarB == barB and self.__hcBarA == barA
+        and self.__hcLossR == lossR and self.__hcLossG == lossG and self.__hcLossB == lossB and self.__hcLossA == lossA
+        and self.__hcIhR == ihR and self.__hcIhG == ihG and self.__hcIhB == ihB and self.__hcIhA == ihA then
+        return
+    end
+    self.__hcBarR, self.__hcBarG, self.__hcBarB, self.__hcBarA = barR, barG, barB, barA
+    self.__hcLossR, self.__hcLossG, self.__hcLossB, self.__hcLossA = lossR, lossG, lossB, lossA
+    self.__hcIhR, self.__hcIhG, self.__hcIhB, self.__hcIhA = ihR, ihG, ihB, ihA
+
     self.widgets.healthBar:SetStatusBarColor(barR, barG, barB, barA)
     self.widgets.healthBarLoss:SetVertexColor(lossR, lossG, lossB, lossA)
 
     if Cell.isMidnight then
         -- StatusBar on Midnight: use SetStatusBarColor
-        if Cell.loaded and CellDB["appearance"]["healPrediction"][2] then
-            self.widgets.incomingHeal:SetStatusBarColor(CellDB["appearance"]["healPrediction"][3][1], CellDB["appearance"]["healPrediction"][3][2], CellDB["appearance"]["healPrediction"][3][3], CellDB["appearance"]["healPrediction"][3][4])
-        else
-            self.widgets.incomingHeal:SetStatusBarColor(barR, barG, barB, 0.4)
-        end
+        self.widgets.incomingHeal:SetStatusBarColor(ihR, ihG, ihB, ihA)
     else
         -- Texture on pre-Midnight: use SetVertexColor
-        if Cell.loaded and CellDB["appearance"]["healPrediction"][2] then
-            self.widgets.incomingHeal:SetVertexColor(CellDB["appearance"]["healPrediction"][3][1], CellDB["appearance"]["healPrediction"][3][2], CellDB["appearance"]["healPrediction"][3][3], CellDB["appearance"]["healPrediction"][3][4])
-        else
-            self.widgets.incomingHeal:SetVertexColor(barR, barG, barB, 0.4)
-        end
+        self.widgets.incomingHeal:SetVertexColor(ihR, ihG, ihB, ihA)
     end
+end
+
+-- Forget what colour the widgets are wearing. Anything that replaces or repaints them from
+-- outside UnitButton_UpdateHealthColor must call this, or the stamp above will skip the
+-- repaint that puts the colour back.
+local function InvalidateHealthColor(b)
+    b.__hcBarR, b.__hcBarG, b.__hcBarB, b.__hcBarA = nil, nil, nil, nil
+    b.__hcLossR, b.__hcLossG, b.__hcLossB, b.__hcLossA = nil, nil, nil, nil
+    b.__hcIhR, b.__hcIhG, b.__hcIhB, b.__hcIhA = nil, nil, nil, nil
 end
 
 -- Configures the health color curve for a button (Midnight 12.0.0+)
@@ -3825,6 +3854,8 @@ function B.UpdateShields(button)
 end
 
 function B.SetTexture(button, tex)
+    -- new texture objects underneath, so whatever colour they were wearing is gone
+    InvalidateHealthColor(button)
     button.widgets.healthBar:SetStatusBarTexture(tex)
     button.widgets.healthBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", -7) --! VERY IMPORTANT
     button.widgets.healthBarLoss:SetTexture(tex)
@@ -3840,6 +3871,9 @@ function B.SetTexture(button, tex)
 end
 
 function B.UpdateColor(button)
+    -- the user just changed a colour setting: this call is the whole point, do not let the
+    -- stamp decide it is unnecessary
+    InvalidateHealthColor(button)
     UnitButton_UpdateHealthColor(button)
     UnitButton_UpdatePowerType(button)
     UnitButton_UpdatePowerTextColor(button)
