@@ -267,7 +267,6 @@ local function InstallHooks()
                     --   整併圖示帶自訂的 TexCoord，被我們當成光環處理會畫錯。
                     --   只認容器自己的孩子，日後暴雪再塞別的東西進來也不會中招。
                     if aura and aura.Icon and not aura.isAuraAnchor and aura:GetParent() == self then
-                        ns.Skin.OnButton(aura, isDebuff)
                         if aura.Duration then HookDuration(aura) end
                         if aura.Count    then HookCount(aura) end
                     end
@@ -279,10 +278,7 @@ local function InstallHooks()
     -- 現有按鈕：掛 hook ＋ 立刻套用（單次迭代）
     -- 停用時什麼都不做：這時候還沒動過任何東西，跑 Restore 反而是拿我們猜的
     -- 「暴雪預設」去蓋掉暴雪真正的預設。
-    -- ⚠ 外觀樣式要排在文字樣式前面：它會把層數搬到自己的包裝框，
-    --   文字樣式接著才把層數搬到覆蓋層（我們的位置設定要贏）。
-    ForEachAuraButton(function(btn, isDebuff)
-        ns.Skin.OnButton(btn, isDebuff)
+    ForEachAuraButton(function(btn)
         if btn.Duration then
             HookDuration(btn)
             if DUR.enabled then ApplyDurationStyle(btn) end
@@ -297,9 +293,6 @@ end
 ------------------------------------------------------------
 -- 對外：設定改完一律叫這支（設定頁的 ctx.apply 就是它）
 ------------------------------------------------------------
--- 讓別的模組共用同一條列舉路徑（外觀樣式要用），不要各掃各的
-AuraStyle.ForEach = ForEachAuraButton
-
 function AuraStyle.Apply()
     if not DUR then return end
     ForEachAuraButton(function(btn)

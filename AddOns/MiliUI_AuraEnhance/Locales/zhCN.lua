@@ -38,13 +38,9 @@ L["Use Blizzard's font"] = "沿用暴雪字体"
 L["Icon skin"] = "图标样式"
 L["Skin the aura icons"] = "让光环图标套用按钮样式"
 L["Draws the buff and debuff icons through Masque, so they can wear the same button skin as your action bars."] = "把增益／减益图标交给 Masque 画，就能套用跟快捷栏同一款按钮样式。"
-L["The skin itself is picked in Masque — buffs, debuffs and weapon enchants are three separate groups, so they can each wear a different one."] = "样式本身在 Masque 里挑。增益、减益、武器附魔是三个独立分组，可以各挑各的。"
 L["Skin"] = "样式"
 L["Open Masque"] = "开启 Masque"
 L["Masque is not installed. This page needs it to skin the icons; nothing here does anything without it."] = "没有检测到 Masque。图标样式要靠它才画得出来，没装的话这一页不会有任何作用。"
-L["Buffs"] = "增益"
-L["Debuffs"] = "减益"
-L["Weapon enchants"] = "武器附魔"
 
 -- 方位
 L["Top left"] = "左上"
@@ -77,3 +73,9 @@ L["No errors recorded"] = "没有记录到错误"
 L["Version: %s"] = "版本：%s"
 L["Use /maura to open options"] = "使用 /maura 打开设置"
 L["Open options"] = "打开设置"
+
+-- 圖示樣式
+L["The skin itself is picked in Masque — buffs and debuffs are two separate groups, so they can each wear a different one."] = "样式本身在 Masque 里挑。增益、减益是两个独立分组，可以各挑各的。"
+L["Takes effect after you reload the interface."] = "改完要重新载入界面才会生效。"
+L["Buffs"] = "增益"
+L["Debuffs"] = "减益"

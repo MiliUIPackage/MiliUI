@@ -214,7 +214,6 @@ function DB.ResetAll()
     end
     -- 樣式先跑、文字後跑：樣式會把層數搬進自己的包裝框，文字樣式接著才把它搬到
     -- 覆蓋層，順序反過來位置設定會慢一拍
-    ns.Skin.Apply()
     ns.AuraStyle.Apply()
     ns.Fire("SettingsChanged")
 end

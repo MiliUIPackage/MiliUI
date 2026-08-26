@@ -30,10 +30,9 @@ local function RefreshAll()
     for _, fn in ipairs(refreshers) do fn() end
 end
 
+-- 開關只在啟動時讀一次（見 Modules/Skin.lua 結尾），所以這裡沒有「立刻套用」，
+-- 只把值寫進設定
 local function Apply()
-    ns.Skin.Apply()
-    -- 開關樣式會動到層數文字的歸屬，文字樣式要跟著重套一次
-    ns.AuraStyle.Apply()
 end
 
 -- 清單要在開分頁那一刻才組：引擎裝沒裝決定這一頁長什麼樣，
@@ -51,7 +50,8 @@ local function BuildControls()
 
     list[#list + 1] = { type = "toggle", key = "enabled", label = L["Skin the aura icons"] }
     list[#list + 1] = { type = "text",   label = L["Draws the buff and debuff icons through Masque, so they can wear the same button skin as your action bars."] }
-    list[#list + 1] = { type = "text",   label = L["The skin itself is picked in Masque — buffs, debuffs and weapon enchants are three separate groups, so they can each wear a different one."] }
+    list[#list + 1] = { type = "text",   label = L["Takes effect after you reload the interface."] }
+    list[#list + 1] = { type = "text",   label = L["The skin itself is picked in Masque — buffs and debuffs are two separate groups, so they can each wear a different one."] }
     list[#list + 1] = { type = "button", label = L["Skin"], text = L["Open Masque"],
                         onClick = function() ns.Skin.OpenEngineOptions() end }
     return list
