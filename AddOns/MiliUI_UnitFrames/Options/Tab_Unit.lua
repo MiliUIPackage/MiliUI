@@ -93,6 +93,9 @@ local function FrameSpecs(unitKey)
                     label = L["Hide without a target"] })
     tinsert(list, { type = "toggle", root = "frame", key = "visHideNoEnemy",
                     label = L["Hide without a hostile target"] })
+    tinsert(list, { type = "toggle", root = "frame", key = "visHideAtFull",
+                    label = L["Hide at full health"] })
+    tinsert(list, { type = "text", label = L["Hides the whole frame while the unit is at full health. In dungeons, Mythic+ and raids the game hides health from addons — when it can't be read the frame stays visible, so it never gets stuck hidden."] })
     tinsert(list, { type = "text", label = L["These stack on top of the choice above: any one of them hides the frame. Inside restricted content whether a target is hostile can be a secret value; when it can't be determined the frame stays visible."] })
 
     ------------------------------------------------------------
@@ -452,9 +455,6 @@ local function TextsSpecs(els)
         tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyH", label = L["Horizontal align"], items = Specs.JUSTIFY_H_ITEMS })
         tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyV", label = L["Vertical align"], items = Specs.JUSTIFY_V_ITEMS })
         tinsert(list, { type = "color", sub = "texts", index = i, key = "color", label = L["Color"] })
-        tinsert(list, { type = "toggle", sub = "texts", index = i, key = "hideAtFull",
-                        label = L["Hide at full health"] })
-        tinsert(list, { type = "text", label = L["Hides this whole line while health is full — useful for a percentage that only matters when something is missing. The game decides whether the unit is full, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] })
     end
     return list
 end
