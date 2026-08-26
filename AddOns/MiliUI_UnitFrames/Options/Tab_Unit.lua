@@ -452,6 +452,9 @@ local function TextsSpecs(els)
         tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyH", label = L["Horizontal align"], items = Specs.JUSTIFY_H_ITEMS })
         tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyV", label = L["Vertical align"], items = Specs.JUSTIFY_V_ITEMS })
         tinsert(list, { type = "color", sub = "texts", index = i, key = "color", label = L["Color"] })
+        tinsert(list, { type = "toggle", sub = "texts", index = i, key = "hideAtFull",
+                        label = L["Hide at full health"] })
+        tinsert(list, { type = "text", label = L["Hides this whole line while health is full — useful for a percentage that only matters when something is missing. The game decides whether the unit is full, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] })
     end
     return list
 end

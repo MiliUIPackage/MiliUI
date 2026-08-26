@@ -323,6 +323,61 @@ local function EmitToken(p, uf, edb, cache, abbrev, pctFmt)
 end
 
 -- fs 可為 nil（僅想取回字串時）；edb 供 colormethod 取 fontcolor alpha
+------------------------------------------------------------
+-- 「滿血時隱藏」
+--
+-- ⚠ Lua 這邊判定不了：百分比在受限單位上是秘密數字，`== 100` 直接炸，pcall 包起來
+-- 也只是拿不到答案。改成把一條顏色曲線交給引擎求值，拿回傳顏色的 **alpha** 當開關：
+--     x <  門檻 → alpha = 這條文字設定的 alpha
+--     x >= 門檻 → alpha = 0（看不見）
+-- 整條文字一起隱藏，而不是只把數字換成空字串 —— 樣式多半是 `[perchp]%`，
+-- 只吃掉數字會留下一個孤零零的百分比符號。
+--
+-- ⚠ 門檻用 0.995 不是 1：數字是四捨五入顯示的，99.5% 以上就會寫成「100%」，
+-- 門檻要跟眼睛看到的一致，否則會出現「明明寫著 100% 卻沒隱藏」。
+--
+-- ⚠ 曲線的 x 軸是原生的 0~1 血量比例，不是 0~100。
+------------------------------------------------------------
+local CreateColorCurve = C_CurveUtil and C_CurveUtil.CreateColorCurve
+local fullCurve
+local FULL_AT = 0.995
+
+local function ApplyHideAtFull(uf, fs, edb)
+    if not (fs and edb) then return end
+    local c = edb.color or { r = 1, g = 1, b = 1, a = 1 }
+    local baseA = c.a or 1
+
+    -- 關掉的時候要把 alpha 收回來 —— 上一次可能被設成 0，不還原就永遠是隱形的。
+    -- 用旗標守住：顏色平常只在 build 時設一次，這條落在每次血量事件上，
+    -- 沒有真的動過就不必每幀白呼叫一次 SetTextColor。
+    if not edb.hideAtFull then
+        if fs.__miliHidAtFull then
+            fs.__miliHidAtFull = nil
+            fs:SetTextColor(c.r, c.g, c.b, baseA)
+        end
+        return
+    end
+    fs.__miliHidAtFull = true
+
+    -- 預覽孿生的血量是假的明文，曲線路會去讀真實玩家的血 → 自己判斷
+    if uf.isPreview then
+        local full = (uf.cache.frachp or 1) >= FULL_AT
+        fs:SetTextColor(c.r, c.g, c.b, full and 0 or baseA)
+        return
+    end
+
+    if not (CreateColorCurve and CreateColor) then return end
+    if not fullCurve then fullCurve = CreateColorCurve() end
+    local T = Enum.LuaCurveType
+    if T and T.Step then fullCurve:SetType(T.Step) end
+    fullCurve:ClearPoints()
+    fullCurve:AddPoint(0, CreateColor(c.r, c.g, c.b, baseA))
+    fullCurve:AddPoint(FULL_AT, CreateColor(c.r, c.g, c.b, 0))
+
+    local ok, col = pcall(UnitHealthPercent, uf.unit, nil, fullCurve)
+    if ok and col then fs:SetTextColor(col.r, col.g, col.b, col.a) end
+end
+
 function Tags.Render(uf, fs, pattern, edb)
     if not pattern or pattern == "" then
         if fs then fs:SetText("") end
@@ -344,6 +399,9 @@ function Tags.Render(uf, fs, pattern, edb)
         end
     end
 
-    if fs then fs:SetText(out) end
+    if fs then
+        fs:SetText(out)
+        ApplyHideAtFull(uf, fs, edb)
+    end
     return out
 end
