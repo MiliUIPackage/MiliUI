@@ -152,6 +152,8 @@ local UnitButton_UpdateHealthColor, UnitButton_UpdateNameTextColor, UnitButton_U
 local UnitButton_UpdatePowerMax, UnitButton_UpdatePower, UnitButton_UpdatePowerType, UnitButton_UpdatePowerText, UnitButton_UpdatePowerTextColor
 local UnitButton_UpdateShieldAbsorbs
 local CheckPowerEventRegistration, ShouldShowPowerText, ShouldShowPowerBar
+-- assigned with the unit-scoped registration helpers, further down
+local ScopeTokens
 
 -------------------------------------------------
 -- unit button init indicators
@@ -2093,10 +2095,14 @@ ShouldShowPowerBar = function(b)
 end
 
 CheckPowerEventRegistration = function(b)
-    if b:IsVisible() and not b.isPreview and (b._shouldShowPowerText or b._shouldShowPowerBar) then
-        b:RegisterEvent("UNIT_POWER_FREQUENT")
-        b:RegisterEvent("UNIT_MAXPOWER")
-        b:RegisterEvent("UNIT_DISPLAYPOWER")
+    -- UNIT_POWER_FREQUENT is the single noisiest event in the game -- every rogue's energy,
+    -- every mana tick, on every unit -- so it is scoped to this button's tokens like the rest
+    -- (see RegisterUnitScopedEvents). No unit yet = nothing to listen for.
+    local u, du = ScopeTokens(b)
+    if u and b:IsVisible() and not b.isPreview and (b._shouldShowPowerText or b._shouldShowPowerBar) then
+        b:RegisterUnitEvent("UNIT_POWER_FREQUENT", u, du)
+        b:RegisterUnitEvent("UNIT_MAXPOWER", u, du)
+        b:RegisterUnitEvent("UNIT_DISPLAYPOWER", u, du)
         return true
     else
         b:UnregisterEvent("UNIT_POWER_FREQUENT")
@@ -2873,6 +2879,80 @@ local function UnitButton_UpdateInRange(self, ir)
     end
 end
 
+-------------------------------------------------
+-- unit-scoped event registration
+--
+-- Every event listed below is handled ONLY inside UnitButton_OnEvent's
+-- `self.states.displayedUnit == unit or self.states.unit == unit` branch -- so let the ENGINE
+-- do that filtering in C instead of waking 40 Lua handlers to throw 39 of them away.
+--
+-- The old shape was not subtly wasteful. With plain RegisterEvent, every UNIT_HEALTH /
+-- UNIT_POWER_FREQUENT / UNIT_AURA fired by ANY unit in the world -- teammates, the boss,
+-- every nameplate, your own energy ticking -- entered EVERY unit button's handler and was
+-- rejected by a string compare. In a 20-man fight that is tens of thousands of pointless
+-- Lua calls a second, and it scales with raid size times world activity.
+--
+-- ⚠ TWO units per registration, `unit` AND `displayedUnit`. They differ for the whole time
+-- someone is in a vehicle (raid3 / raid3pet, player / vehicle) and BOTH tokens get dispatched
+-- during the ride -- registering only one goes deaf halfway through.
+--
+-- ⚠ What is deliberately NOT scoped:
+--   * UNIT_THREAT_LIST_UPDATE -- also handled in the OTHER branch, where it drives the threat
+--     BAR from the payload of units this button is NOT bound to. Scoping it would silently
+--     freeze that bar, with nothing to point at.
+--   * PLAYER_FLAGS_CHANGED / READY_CHECK_CONFIRM / INCOMING_SUMMON_CHANGED -- they carry a
+--     unit argument but are not unit events, so RegisterUnitEvent does not filter them.
+--     They stay broadcast and Lua-filtered; all three are rare.
+-------------------------------------------------
+local UNIT_SCOPED_EVENTS = {
+    "UNIT_HEALTH", "UNIT_MAXHEALTH",
+    "UNIT_AURA",
+    "UNIT_HEAL_PREDICTION", "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_HEAL_ABSORB_AMOUNT_CHANGED",
+    "UNIT_THREAT_SITUATION_UPDATE",
+    "UNIT_ENTERED_VEHICLE", "UNIT_EXITED_VEHICLE", "UNIT_PET",
+    "UNIT_FLAGS", "UNIT_FACTION", "UNIT_CONNECTION",
+    "UNIT_IN_RANGE_UPDATE", "UNIT_NAME_UPDATE", "UNIT_PORTRAIT_UPDATE",
+}
+
+-- The button's current token pair, or nil when it has no unit.
+ScopeTokens = function(b)
+    local u = b.states and b.states.unit
+    if type(u) ~= "string" then return nil end
+    local du = b.states.displayedUnit
+    if du == u or type(du) ~= "string" then du = nil end
+    return u, du
+end
+
+-- Register ONE scoped event for the button's current tokens. Used by the indicator toggles,
+-- which turn a single event on and off without touching the rest.
+local function RegisterScopedEvent(b, event)
+    local u, du = ScopeTokens(b)
+    if not u then return end
+    b:RegisterUnitEvent(event, u, du)
+end
+
+-- Re-point every scoped registration at the button's current tokens. Called wherever those
+-- tokens can change: the header assigning a unit, a vehicle swap, and the OnShow path that
+-- registers everything from scratch.
+--
+-- ⚠ Gated on _eventsRegistered. The secure header assigns units to HIDDEN buttons too, and
+-- registering there would resurrect events on a button OnHide had just torn down -- a hidden
+-- raid slot quietly updating for whoever used to stand in it.
+local function RegisterUnitScopedEvents(b)
+    if not b._eventsRegistered then return end
+    local u, du = ScopeTokens(b)
+    if not u then return end
+    for i = 1, #UNIT_SCOPED_EVENTS do
+        b:RegisterUnitEvent(UNIT_SCOPED_EVENTS[i], u, du)
+    end
+    -- UNIT_TARGET rides the targetRaidIcon toggle (see B.UpdateTargetRaidIcon); before Cell
+    -- has loaded its indicator config everything is registered, matching UnitButton_RegisterEvents.
+    if not Cell.loaded or enabledIndicators["targetRaidIcon"] then
+        b:RegisterUnitEvent("UNIT_TARGET", u, du)
+    end
+    CheckPowerEventRegistration(b)
+end
+
 local function UnitButton_UpdateVehicleStatus(self)
     local unit = self.states.unit
     if not unit then return end
@@ -2908,6 +2988,10 @@ local function UnitButton_UpdateVehicleStatus(self)
         self.states.displayedUnit = self.states.unit
         self.indicators.nameText.vehicle:SetText("")
     end
+
+    -- displayedUnit just moved; the scoped registrations are pinned to the OLD pair until
+    -- they are re-pointed, and a button listening to the wrong token shows nothing at all.
+    RegisterUnitScopedEvents(self)
 end
 
 -- 12.1: UnitIsAFK can return a SECRET boolean (or error) -- a direct boolean test on it
@@ -3169,39 +3253,23 @@ end
 -- unit button events
 -------------------------------------------------
 local function UnitButton_RegisterEvents(self)
+    self._eventsRegistered = true
     -- self:RegisterEvent("PLAYER_ENTERING_WORLD")
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
 
-    self:RegisterEvent("UNIT_HEALTH")
-    self:RegisterEvent("UNIT_MAXHEALTH")
+    -- The UNIT_* events this button actually cares about are registered per-token at the
+    -- bottom of this function (RegisterUnitScopedEvents) so the engine filters them in C.
+    -- What stays broadcast here is what CANNOT be scoped -- read the note above
+    -- UNIT_SCOPED_EVENTS before moving anything between the two lists.
 
-    self:RegisterEvent("UNIT_POWER_FREQUENT")
-    self:RegisterEvent("UNIT_MAXPOWER")
-    self:RegisterEvent("UNIT_DISPLAYPOWER")
-
-    self:RegisterEvent("UNIT_AURA")
-
-    self:RegisterEvent("UNIT_HEAL_PREDICTION")
-    self:RegisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
-    self:RegisterEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
-
-    self:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE")
+    -- also handled in the non-matching branch, for the threat BAR: it reads the payload of
+    -- units this button is not bound to, so it must keep hearing everyone
     self:RegisterEvent("UNIT_THREAT_LIST_UPDATE")
-    self:RegisterEvent("UNIT_ENTERED_VEHICLE")
-    self:RegisterEvent("UNIT_EXITED_VEHICLE")
-    self:RegisterEvent("UNIT_PET") -- the vehicle rides in the pet slot; see UnitButton_OnEvent
 
+    -- carry a unit argument but are not unit events; RegisterUnitEvent would not filter them
     self:RegisterEvent("INCOMING_SUMMON_CHANGED")
-    self:RegisterEvent("UNIT_FLAGS") -- afk
-    self:RegisterEvent("UNIT_FACTION") -- mind control
-
-    self:RegisterEvent("UNIT_CONNECTION") -- offline
-    -- Range for GROUP members, so the fade happens on the frame it changes instead of on the
-    -- next sweep. Not a replacement for the sweep -- see UnitButton_UpdateInRange for the two
-    -- things it does not cover.
-    self:RegisterEvent("UNIT_IN_RANGE_UPDATE")
     self:RegisterEvent("PLAYER_FLAGS_CHANGED") -- afk
-    self:RegisterEvent("UNIT_NAME_UPDATE") -- unknown target
+
     self:RegisterEvent("ZONE_CHANGED_NEW_AREA") --? update status text
 
     -- self:RegisterEvent("PARTY_LEADER_CHANGED") -- GROUP_ROSTER_UPDATE
@@ -3219,9 +3287,7 @@ local function UnitButton_RegisterEvents(self)
         if enabledIndicators["playerRaidIcon"] then
             self:RegisterEvent("RAID_TARGET_UPDATE")
         end
-        if enabledIndicators["targetRaidIcon"] then
-            self:RegisterEvent("UNIT_TARGET")
-        end
+        -- UNIT_TARGET is scoped; RegisterUnitScopedEvents below reads the same flag
         if enabledIndicators["readyCheckIcon"] then
             self:RegisterEvent("READY_CHECK")
             self:RegisterEvent("READY_CHECK_FINISHED")
@@ -3229,7 +3295,6 @@ local function UnitButton_RegisterEvents(self)
         end
     else
         self:RegisterEvent("RAID_TARGET_UPDATE")
-        self:RegisterEvent("UNIT_TARGET")
         self:RegisterEvent("READY_CHECK")
         self:RegisterEvent("READY_CHECK_FINISHED")
         self:RegisterEvent("READY_CHECK_CONFIRM")
@@ -3243,8 +3308,8 @@ local function UnitButton_RegisterEvents(self)
     -- self:RegisterEvent("VOICE_CHAT_CHANNEL_ACTIVATED")
     -- self:RegisterEvent("VOICE_CHAT_CHANNEL_DEACTIVATED")
 
-    -- self:RegisterEvent("UNIT_PET")
-    self:RegisterEvent("UNIT_PORTRAIT_UPDATE") -- pet summoned far away
+    -- Everything unit-scoped, pointed at this button's current tokens.
+    RegisterUnitScopedEvents(self)
 
     --! OnShowæ—¶ç«‹å³æ‰§è¡Œï¼Œä½†UpdateIndicatorså¯èƒ½å¹¶æœªæ‰§è¡Œå®Œæ¯•ï¼Œå¯¼è‡´åœ¨ResetCustomIndicatorsè¿‡ç¨‹ä¸­æŒ‡ç¤ºå™¨å‘ç”Ÿå˜åŒ–ï¼Œè¿›è€ŒæŠ¥é”™
     local success, result = pcall(UnitButton_UpdateAll, self)
@@ -3255,6 +3320,9 @@ end
 
 local function UnitButton_UnregisterEvents(self)
     self:UnregisterAllEvents()
+    -- ⚠ Cleared so a unit assignment on a HIDDEN button cannot re-register anything
+    -- (RegisterUnitScopedEvents is gated on this).
+    self._eventsRegistered = nil
 end
 
 local function UnitButton_OnEvent(self, event, unit, arg)
@@ -3465,10 +3533,10 @@ local function UnitButton_OnAttributeChanged(self, name, value)
             self.states.displayedUnit = value
             if string.find(value, "^raid%d+$") then Cell.unitButtons.raid.units[value] = self end
 
-            -- range
-            -- if value ~= "focus" and not strfind(value, "target$") then
-            --     self:RegisterUnitEvent("UNIT_IN_RANGE_UPDATE", value)
-            -- end
+            -- The token just changed, so every scoped registration is pointed at the
+            -- PREVIOUS occupant. No-op while the button is hidden -- OnShow registers from
+            -- scratch -- see the gate in RegisterUnitScopedEvents.
+            RegisterUnitScopedEvents(self)
 
             -- for omnicd
             if string.match(value, "raid%d") then
@@ -3478,8 +3546,6 @@ local function UnitButton_OnAttributeChanged(self, name, value)
             end
 
             -- ResetAuraTables(self)
-        -- else
-        --     self:UnregisterEvent("UNIT_IN_RANGE_UPDATE")
         end
     end
 end
@@ -4245,7 +4311,7 @@ function B.UpdateTargetRaidIcon(button, enabled)
     if not button:IsShown() then return end
     UnitButton_UpdateTargetRaidIcon(button)
     if enabled then
-        button:RegisterEvent("UNIT_TARGET")
+        RegisterScopedEvent(button, "UNIT_TARGET")
     else
         button:UnregisterEvent("UNIT_TARGET")
     end
