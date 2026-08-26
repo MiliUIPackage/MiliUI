@@ -1,0 +1,60 @@
+## Interface: 120007, 120100, 120105
+## Title: MiliUI Character Notes
+## Title-zhTW: |cffE8C56C[筆記]|r 米利的角色筆記
+## Title-zhCN: |cffE8C56C[笔记]|r 米利的角色笔记
+## Notes: A notebook that lives in the game: checklists, bullet and numbered blocks, account-wide or per-character notes, plus notes bound to a dungeon or raid and to each of its bosses — those pop up on their own when you walk in or when the boss starts.|n|nShare any note with your group through a chat link.|n|n|cffffd200Usage: |r/mnote opens the notebook, /mnote config opens the settings.
+## Notes-zhTW: MiliUI Character Notes|n|n米利的角色筆記。|n|n遊戲內的筆記本：勾選框／項目符號／編號區塊，可存成戰隊共用或角色專屬。|n|n另外可以把筆記綁在副本與首領上——走進副本、或首領戰開打時自己跳出來。|n|n筆記可以透過聊天連結分享給隊友。|n|n|cffffd200使用方法: |r/mnote 開啟筆記本，/mnote config 開啟設定。
+## Notes-zhCN: MiliUI Character Notes|n|n米利的角色笔记。|n|n游戏内的笔记本：勾选框／项目符号／编号区块，可存成战队共享或角色专属。|n|n另外可以把笔记绑在副本与首领上——走进副本、或首领战开打时自己跳出来。|n|n笔记可以通过聊天链接分享给队友。|n|n|cffffd200使用方法: |r/mnote 打开笔记本，/mnote config 打开设置。
+## Category: Interface
+## Category-zhTW: 介面
+## Category-zhCN: 界面
+## Author: Mili
+## Version: 1.0.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\INV_Misc_Note_01
+## SavedVariables: MiliUI_CharacterNotes_DB
+## AddonCompartmentFunc: MiliUICharacterNotes_OnAddonCompartmentClick
+
+# 像素工具單獨排最前面：其他模組也吃 ns.P
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\Callbacks.lua
+
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+
+# Init 要在 Media 之前：Media 在檔案層就用 ns.playerClass 算強調色
+Core\Init.lua
+Core\Media.lua
+Core\DB.lua
+Core\Notes.lua
+Core\Roster.lua
+
+# 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
+Libs\MiliUIWidgets\Controls.lua
+
+Modules\Journal.lua
+Modules\Clock.lua
+Modules\Tags.lua
+Modules\Comm.lua
+Modules\Share.lua
+Modules\Sync.lua
+
+UI\Blocks.lua
+UI\RosterMenu.lua
+UI\Editor.lua
+UI\Window.lua
+UI\Overlay.lua
+UI\Minimap.lua
+
+Options\Panel.lua
+Options\Tab_General.lua
+Options\Tab_Roster.lua
+Options\Tab_Share.lua
+Options\Tab_About.lua
+Options\Blizzard.lua
+
+Api.lua

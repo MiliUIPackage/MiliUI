@@ -33,12 +33,13 @@ UnitFrames 搬到 MiliUI 本體——本體那天也改用自製視窗，順勢�
 **踩雷點**：`Env.NAMESPACE` 每個插件必須不同。`CreateFont("同名")` 回傳既有物件而非
 新的，具名 frame 也一樣 —— 撞名會讓兩個插件互相蓋掉字型設定，而且不報錯。
 
-**現況**：九個消費者——**MiliUI 本體（source，2026-08-23 起）**、UnitFrames（舊 source）、
+**現況**：十個消費者——**MiliUI 本體（source，2026-08-23 起）**、UnitFrames（舊 source）、
 **MiliUI_Tooltip**（2026-08-22，見 [[project-miliui-tooltip]]）、**MiliUI_Focus**
 （2026-08-22，見 [[project-miliui-focus-addon]]）、**MiliUI_BurstPotionHelper／
 MiliUI_BloodlustMusic／MiliUI_ChatBar**（2026-08-23，見
 [[project-miliui-esc-menu-window-migration]]）、**MiliUI_DamageMeters**、
-**MiliUI_AuraEnhance**（2026-08-26，見 [[project-miliui-auraenhance]]）。
+**MiliUI_AuraEnhance**（2026-08-26，見 [[project-miliui-auraenhance]]）、
+**MiliUI_CharacterNotes**（2026-08-26，見 [[project-miliui-characternotes]]）。
 設定視窗本體（`Options/Panel.lua`）仍是各插件自己組裝（簡化版：無搜尋、無小地圖鈕）；
 設定搜尋刻意不進包，理由寫在 README 末段。
 本體的視窗（2026-08-23）比別家多：頂部 banner（職業色漸層＋版本號，零圖檔）、開窗
@@ -46,8 +47,8 @@ MiliUI_BloodlustMusic／MiliUI_ChatBar**（2026-08-23，見
 分組清單＋勾選批次開關插件＋詳情面板含擷圖/說明/CPU/開啟設定按鈕；擷圖放
 `MiliUI/Media/Shots/<key>.png` 840x420，佔位圖墊底所以不用偵測檔案存在）。
 NAMESPACE 已用掉：MiliUIPack（本體）/MiliUIUF/MiliUITip/MiliUIFocus/MiliUIChatBar/
-MiliUIBurst/MiliUIBLM/MiliUIDM/MiliUIAura（2026-08-26 起共九份 copy，README 的前綴
-清單那天補上後面兩個並同步）。舊 `MiliUI/Settings.lua`（暴雪 canvas 面板）已刪，importRegistry
+MiliUIBurst/MiliUIBLM/MiliUIDM/MiliUIAura/MiliUINote（2026-08-26 起共十份 copy，README 的
+前綴清單同步更新；順手把 README 的「整包就是四支 .lua」改成五支——ContextMenu 早就進來了）。舊 `MiliUI/Settings.lua`（暴雪 canvas 面板）已刪，importRegistry
 搬到 `MiliUI/Options/Tab_Import.lua`。
 
 **`custom` spec（2026-08-22 加，共用層唯一一次擴充）**：`Controls.Build` 多了
@@ -98,8 +99,33 @@ ChatBar 的 `Menu.lua` 從 417 行縮成 63 行、只剩 `Items()` 與 `ns.ShowB
 兩個限制決定了它只適合彈窗與選單：吃全域名稱（沒名字就掛一個到 `_G`）、註冊後不移除。
 ⚠ 收尾要掛在 `OnHide`，不能只寫在自己的 `Hide()` 裡 —— ESC 是繞過那支直接 Hide 框的。
 
-⚠ **消費者現在是九個**（多了 MiliUI_AuraEnhance）。同步時 `ls -d */Libs/MiliUIWidgets`
+⚠ **消費者現在是十個**（多了 MiliUI_AuraEnhance 與 MiliUI_CharacterNotes）。同步時 `ls -d */Libs/MiliUIWidgets`
 列一次，不要憑記憶打清單 —— 這次就差點漏掉它。
+
+**2026-08-26 第四次擴充：視窗拖曳把手（`W.CreateTitleBar` / `W.MakeDragHandle`）。**
+起因是玩家回報「設定視窗不能移動」—— 其實一直能拖（分頁鈕兼把手），但那個把手是
+**隱形**的：分頁鈕的視覺語言講的是「切換頁面」，沒有任何訊號說它同時能移動視窗。
+**通則：雙用途控件一定要給第二個訊號，否則等於沒有那個用途。**
+
+`W.CreateTitleBar(panel, titleText, onMoved, opts)` 在面板**上緣外側**（分頁列的上面
+一層）畫 `[⠿ 拖曳移動] 插件名稱 v1.2.3`，整條含標題文字都是拖曳區，右鍵把視窗叫回
+畫面中央（拖到看不見是必然會發生的意外，而位置有存檔，關掉再開救不回來）。
+`titleText` 傳 `nil` 就只長把手 chip —— 本體的視窗有 banner 寫名稱，用這個模式，
+另外把 banner 自己也 `MakeDragHandle` 起來。**把手 chip 在十個視窗都在左上角同一格**。
+
+- 把手做成**有底有邊的 chip** 而不是光禿禿六個點：標題列在面板外側，背後是會動的
+  遊戲畫面，灰點在亮色地圖上等於不存在。chip 沿用 `WIDGET_FILL` 底 ＋ hover 換
+  accent，跟底下的分頁鈕同一套視覺語言。
+- `W.MakeDragHandle(handle, target, onMoved)` 收掉九份複製的把手邏輯，順便補
+  **「放開落在把手外面」的自檢**（`IsMouseButtonDown` 輪詢）—— 拖到螢幕邊緣被 clamp
+  住時 `OnMouseUp` 收不到，原本的版本會讓視窗黏在游標上。
+- ⚠ 它走 `HookScript`，宿主要在同一個 frame `SetScript("OnMouseUp")` 必須排在它
+  **前面**（[[wow-setscript-clobbers-hookscript]]）。標題列的右鍵重設就是這樣排的。
+- ⚠ **拖曳文案是共用層自帶的**（`DRAG_TEXT`，十個語系），這是這包唯一不由宿主提供的
+  字串。破例的理由：共用層自己長出來的元件，九個宿主 × 十個語系去補 key，補完必然
+  漂移。宿主要蓋掉走 `opts.label / tipTitle / tipBody / tipReset`。
+- 工具提示原本有第三句「上面那排分頁標籤也可以拖」，使用者當場砍掉 —— 隱藏的便利
+  功能不必寫進提示，寫了反而讓提示變成三行牆。
 
 **AceLocale 宿主要補四個 key**：那三支是 AceLocale（大寫 key 風格），共用層查的是
 `Apply / Okay / Cancel / Can't change settings during combat` 這四個英文原文 key，

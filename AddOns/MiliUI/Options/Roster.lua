@@ -38,6 +38,7 @@ ns.AddonRoster = {
         { key = "MiliUI_BloodlustMusic", folders = { "MiliUI_BloodlustMusic" }, menuKey = "bloodlustmusic" },
         { key = "MiliUI_DamageMeters", folders = { "MiliUI_DamageMeters" }, menuKey = "damagemeters" },
         { key = "MiliUI_AuraEnhance", folders = { "MiliUI_AuraEnhance" }, menuKey = "auraenhance" },
+        { key = "MiliUI_CharacterNotes", folders = { "MiliUI_CharacterNotes" }, menuKey = "characternotes" },
         { key = "MiliUI_AdventureGuideSpecCompare", folders = { "MiliUI_AdventureGuideSpecCompare" }, slash = "/agsc" },
 
         -- ===== 介面與外觀 =====
