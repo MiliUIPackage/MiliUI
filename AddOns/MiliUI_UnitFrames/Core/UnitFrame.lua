@@ -391,9 +391,12 @@ StaticPopupDialogs[COPY_POPUP] = {
     hasEditBox = true,
     editBoxWidth = 260,
     OnShow = function(self, data)
-        self.editBox:SetText(data or "")
-        self.editBox:HighlightText()
-        self.editBox:SetFocus()
+        -- 12.x 的 StaticPopup 欄位是大寫 EditBox（舊版小寫 editBox），兩個都認
+        local eb = self.EditBox or self.editBox
+        if not eb then return end
+        eb:SetText(data or "")
+        eb:HighlightText()
+        eb:SetFocus()
     end,
     -- 唯讀：使用者一改就還原（跟共用層複製框同一套語意）
     EditBoxOnTextChanged = function(self)
