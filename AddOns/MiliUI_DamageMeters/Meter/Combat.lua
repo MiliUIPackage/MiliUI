@@ -23,6 +23,10 @@ local TICK_DEFAULT = 1
 ------------------------------------------------------------
 local _inCombat        = false
 local _inEncounter     = false
+-- 智慧顯示切「總計」前的緩衝秒數。打完立刻跳走的話最後一下的數字根本來不及看，
+-- 而那一眼往往正是玩家在等的東西（尤其是收尾的爆發）。
+local SMART_OVERALL_DELAY = 3
+
 local _needsFinalRefresh = false   -- 玩家不在戰鬥、團隊還在打：繼續輪詢直到全隊脫離
 local _combatEndTime   = 0         -- 戰鬥結束的 GetTime()，同時當「已凍結」的哨兵
 local _curViewFrozenDur = 0        -- 結束瞬間釘住的「本場」時長
@@ -74,7 +78,21 @@ local function FreezeCombat(ts)
     -- 智慧顯示的「脫戰 → 總計」掛在這裡：FreezeCombat 是所有戰鬥結束路徑的
     -- 唯一匯流點（五個出口的呼叫端都有 _combatEndTime 守衛，每個分段最多跑一次）。
     -- 一定要在讀完 Current 的時長**之後**才切走。
-    if ns.Windows and ns.Windows.SmartApply then ns.Windows.SmartApply(false) end
+    --
+    -- **不立刻切**，留 SMART_OVERALL_DELAY 秒讓玩家看完最後的數字。
+    -- 這段期間畫面是靜止的（ticker 已經因為 _combatEndTime > 0 停掉、時長也凍結了），
+    -- 所以緩衝完全不花成本 —— 就只是晚一點換一次視圖。
+    --
+    -- 守衛跟 ScheduleStopTicker 同一套：世代不符（緩衝期間又開打，M+ 連拉最常見）
+    -- 就整個放棄 —— BeginSegment 已經把畫面切到「目前」，這個排隊中的切換再跑
+    -- 就會在新戰鬥打到一半跳去總計。世代沒動但又活過來的路徑（隊友先開怪、
+    -- 死著重載）看 _inCombat / _needsFinalRefresh。
+    local gen = _combatGen
+    C_Timer.After(SMART_OVERALL_DELAY, function()
+        if gen ~= _combatGen then return end
+        if _inCombat or _needsFinalRefresh then return end
+        if ns.Windows and ns.Windows.SmartApply then ns.Windows.SmartApply(false) end
+    end)
 end
 
 ------------------------------------------------------------

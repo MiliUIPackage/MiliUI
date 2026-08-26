@@ -183,8 +183,8 @@ L["Hidden buttons take up no space, so the title gets the whole bar."] =
 L["Add or remove windows on the General tab."] = "要增减窗口数量请到“常规”标签页。"
 L["Content"] = "内容"
 L["Smart display"] = "智能显示"
-L["In combat this window shows Current; once combat ends it switches to Overall. While you are reviewing a specific past segment it stays hands-off — it resumes when you switch back to Current or Overall yourself, or when you turn this option on again."] =
-    "战斗中显示「当前」，脱离战斗自动切到「总计」。翻看某个特定分段时它不会插手 —— 等你自己切回「当前」或「总计」，或重新打开这个选项，才恢复主动切换。"
+L["In combat this window shows Current; a few seconds after combat ends it switches to Overall. While you are reviewing a specific past segment it stays hands-off — it resumes when you switch back to Current or Overall yourself, or when you turn this option on again."] =
+    "战斗中显示「当前」，脱离战斗几秒后自动切到「总计」（留一下让你看完最后的数字）。翻看某个特定分段时它不会插手 —— 等你自己切回「当前」或「总计」，或重新打开这个选项，才恢复主动切换。"
 L["Windows with this checked switch segment together — handy when one shows damage and another healing for the same fight."] =
     "勾选的窗口会一起换分段 —— 一个看伤害、一个看治疗同一场战斗时很好用。"
 L["Placement"] = "摆放"

@@ -161,6 +161,13 @@ zhTW 的 Current 譯名同時從「本場」改成「目前」（使用者點名
 - 只在兩個戰鬥邊界動手：`BeginSegment` → SmartApply(true)、`FreezeCombat` →
   SmartApply(false)。**FreezeCombat 是五個戰鬥結束路徑的唯一匯流點**（呼叫端都有
   `_combatEndTime` 守衛），掛這裡每分段最多跑一次；要在讀完 Current 時長之後才切走。
+- **切總計前緩衝 `SMART_OVERALL_DELAY` = 3 秒**（使用者要求）：打完立刻跳走的話
+  最後一下的數字來不及看。緩衝期間畫面本來就是靜止的（ticker 已因 `_combatEndTime > 0`
+  停掉、時長也凍結），所以零成本。守衛照抄 `ScheduleStopTicker`：**世代不符就整個放棄**
+  （M+ 連拉最常見 —— BeginSegment 已切到「目前」，排隊中的切換再跑會在新戰鬥中途
+  跳去總計），世代沒動但又活過來的路徑（隊友先開怪、死著重載）看
+  `_inCombat / _needsFinalRefresh`。緩衝只在這條路徑上，`Windows.SmartApply` 本身
+  仍是立即的（登入 / Rebuild 要當場擺對）—— **Manager 管「切成什麼」，Combat 管「何時」**。
 - **豁免是無狀態的**：玩家正在看特定歷史分段（`curSessionID ~= nil`）就不干預；
   他切回目前／總計的那一刻 curSessionID 歸 nil，自然恢復 —— 不需要「被暫停」旗標。
   唯一例外：重新打開智慧顯示（`Windows.SetSmartDisplay` 的 force）連豁免都拿掉，規格如此。
