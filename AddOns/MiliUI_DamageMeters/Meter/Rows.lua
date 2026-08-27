@@ -139,9 +139,10 @@ local function RelayoutBar(W, bar, i, ctx)
     local s = ctx.s
     bar._slot = i
     bar.row:ClearAllPoints()
-    local y = -((i - 1) * ctx.stride)
-    bar.row:SetPoint("TOPLEFT", W.content, "TOPLEFT", 0, y)
-    bar.row:SetPoint("TOPRIGHT", W.content, "TOPRIGHT", 0, y)
+    local O = ctx.O
+    local y = -((i - 1) * ctx.stride) * O.v
+    bar.row:SetPoint(O.topL, W.content, O.topL, 0, y)
+    bar.row:SetPoint(O.topR, W.content, O.topR, 0, y)
     bar.row:SetHeight(ctx.barH)
     bar.fill:SetHeight(ctx.barH)
     bar._target = Win.ApplyBarStyle(bar, s, ctx.texPath)
@@ -187,29 +188,62 @@ local function FilterDeaths(W, sources)
 end
 
 ------------------------------------------------------------
+-- 邏輯捲動
+--
+-- **0 永遠是「看得到第一名」那一端**，不管排列是正的還是反的。
+-- 反轉時第一名在 content 的底部，而 ScrollFrame 的 0 是頂部 —— 所以原始值要倒過來。
+-- 有了這層，可視剔除、釘住自己那列、滾輪三處的算式都不必分兩種寫法。
+--
+-- 另一個好處：存的是邏輯位置，所以列數變多時（新的人打出傷害）第一名那端不會
+-- 被推走。反轉時這正是玩家盯著的地方。
+------------------------------------------------------------
+function Rows.GetScroll(W)
+    local raw = W.viewport:GetVerticalScroll() or 0
+    if not W.wdb.reverse then return raw end
+    return math.max(0, (W.scrollMax or 0) - raw)
+end
+
+function Rows.SetScroll(W, v)
+    local maxv = W.scrollMax or 0
+    v = math.max(0, math.min(maxv, v))
+    W.viewport:SetVerticalScroll(W.wdb.reverse and (maxv - v) or v)
+end
+
+------------------------------------------------------------
 -- 捲動範圍
 ------------------------------------------------------------
 function Rows.RecalcViewport(W, count)
     local s = ns.DB.Style()
     local stride = D.Px(s.barHeight or 18) + D.Px(s.barSpacing or 2)
     local totalH = count * stride
-    -- 內容高度只跟「列數 × 列高」有關，兩個都沒變就不必再 SetHeight 一次。
-    -- （下面夾捲動位置那段照樣每次跑：可視高度會隨釘住／縮放變。）
-    if W._contentH ~= totalH then
-        W._contentH = totalH
-        W.content:SetHeight(math.max(10, totalH))
-    end
     local viewH = W.viewport:GetHeight()
     if viewH < 1 then viewH = 1 end
+
+    -- 先用**舊的** scrollMax 把目前位置解成邏輯值，換完高度再用新的貼回去。
+    -- 不這樣做的話，反轉時每次列數一變畫面就會自己跳。
+    local logical = Rows.GetScroll(W)
+
+    -- 反轉時內容至少要有一個可視高：content 的底邊就是第一名的位置，
+    -- 內容比視窗矮的話它會浮在半空中（ScrollFrame 把 content 貼在頂端）。
+    local wantH = totalH
+    if W.wdb.reverse and wantH < viewH then wantH = viewH end
+    -- 高度沒變就不必再 SetHeight 一次。⚠ 反轉時 viewH 也是輸入（縮放視窗會變），
+    -- 所以備忘存的是算完的 wantH 而不是 totalH。
+    if W._contentH ~= wantH then
+        W._contentH = wantH
+        W.content:SetHeight(math.max(10, wantH))
+    end
+
     W.scrollMax = math.max(0, totalH - viewH)
-    local cur = W.viewport:GetVerticalScroll() or 0
-    if cur > W.scrollMax then W.viewport:SetVerticalScroll(W.scrollMax) end
+    Rows.SetScroll(W, logical)
 end
 
 local function ResetScrollAnchors(W)
+    local O = Win.Orient(W)
     W.stickyGuard = true
-    W.viewport:SetPoint("TOPLEFT", W.header, "BOTTOMLEFT", 0, 0)
-    W.viewport:SetPoint("BOTTOMRIGHT", W.frame, "BOTTOMRIGHT", 0, 0)
+    W.viewport:ClearAllPoints()
+    W.viewport:SetPoint(O.topL, W.header, O.botL, 0, 0)
+    W.viewport:SetPoint(O.botR, W.frame, O.botR, 0, 0)
     W.stickyGuard = false
 end
 
@@ -246,7 +280,7 @@ function Rows.UpdateSticky(W, sources, ctx)
 
     local barH  = ctx and ctx.barH or D.Px(s.barHeight or 18)
     local stride = ctx and ctx.stride or (barH + D.Px(s.barSpacing or 2))
-    local scroll = W.viewport:GetVerticalScroll() or 0
+    local scroll = Rows.GetScroll(W)
     local viewH  = W.frame:GetHeight() - D.Px(s.hdrHeight or 22)
     if viewH < 1 then viewH = 1 end
 
@@ -255,37 +289,40 @@ function Rows.UpdateSticky(W, sources, ctx)
     -- 完全落在可視範圍內就不必釘（1px 容差吸收浮點誤差）
     if top >= scroll - 1 and bot <= scroll + viewH + 1 then return Off() end
 
-    local pinTop = (top < scroll)
+    -- 釘在「標題列那一端」還是「另一端」。名字用不到上下 —— 反轉之後
+    -- 標題列那端就是畫面下方，但語意（自己排在可視範圍之前）完全一樣。
+    local pinHeaderSide = (top < scroll)
     local pinnedH = barH + 1
+    local O = Win.Orient(W)
 
     bar.row:ClearAllPoints(); sep:ClearAllPoints(); sep:SetHeight(1)
+    W.viewport:ClearAllPoints()
     W.stickyGuard = true
-    if pinTop then
-        bar.row:SetPoint("TOPLEFT", W.header, "BOTTOMLEFT", 0, 0)
-        bar.row:SetPoint("TOPRIGHT", W.header, "BOTTOMRIGHT", 0, 0)
-        sep:SetPoint("TOPLEFT", bar.row, "BOTTOMLEFT", 0, 0)
-        sep:SetPoint("TOPRIGHT", bar.row, "BOTTOMRIGHT", 0, 0)
-        W.viewport:SetPoint("TOPLEFT", W.header, "BOTTOMLEFT", 0, -pinnedH)
-        W.viewport:SetPoint("BOTTOMRIGHT", W.frame, "BOTTOMRIGHT", 0, 0)
+    if pinHeaderSide then
+        bar.row:SetPoint(O.topL, W.header, O.botL, 0, 0)
+        bar.row:SetPoint(O.topR, W.header, O.botR, 0, 0)
+        sep:SetPoint(O.topL, bar.row, O.botL, 0, 0)
+        sep:SetPoint(O.topR, bar.row, O.botR, 0, 0)
+        W.viewport:SetPoint(O.topL, W.header, O.botL, 0, -pinnedH * O.v)
+        W.viewport:SetPoint(O.botR, W.frame, O.botR, 0, 0)
     else
-        bar.row:SetPoint("BOTTOMLEFT", W.frame, "BOTTOMLEFT", 0, 0)
-        bar.row:SetPoint("BOTTOMRIGHT", W.frame, "BOTTOMRIGHT", 0, 0)
-        sep:SetPoint("BOTTOMLEFT", bar.row, "TOPLEFT", 0, 0)
-        sep:SetPoint("BOTTOMRIGHT", bar.row, "TOPRIGHT", 0, 0)
-        W.viewport:SetPoint("TOPLEFT", W.header, "BOTTOMLEFT", 0, 0)
-        W.viewport:SetPoint("BOTTOMRIGHT", W.frame, "BOTTOMRIGHT", 0, pinnedH)
+        bar.row:SetPoint(O.botL, W.frame, O.botL, 0, 0)
+        bar.row:SetPoint(O.botR, W.frame, O.botR, 0, 0)
+        sep:SetPoint(O.botL, bar.row, O.topL, 0, 0)
+        sep:SetPoint(O.botR, bar.row, O.topR, 0, 0)
+        W.viewport:SetPoint(O.topL, W.header, O.botL, 0, 0)
+        W.viewport:SetPoint(O.botR, W.frame, O.botR, 0, pinnedH * O.v)
     end
     W.stickyGuard = false
     W.stickyPinned = true
-    W.stickyAtTop = pinTop
+    W.stickyAtTop = pinHeaderSide
 
     -- 捲動區變矮了，夾一次捲動位置
     local newViewH = W.viewport:GetHeight()
     if newViewH and newViewH > 0 then
+        local logical = Rows.GetScroll(W)
         W.scrollMax = math.max(0, #sources * stride - newViewH)
-        if (W.viewport:GetVerticalScroll() or 0) > W.scrollMax then
-            W.viewport:SetVerticalScroll(W.scrollMax)
-        end
+        Rows.SetScroll(W, logical)
     end
 
     -- 版面快取：釘住那列的字級／材質變了才重排
@@ -356,6 +393,7 @@ function Rows.Render(W, session)
         local ctx = W._ctx
         if not ctx then ctx = {}; W._ctx = ctx end
         ctx.s = s
+        ctx.O = Win.Orient(W)
         ctx.barH = barH
         ctx.stride = barH + barSp
         ctx.leftFS = leftFS
@@ -379,12 +417,13 @@ function Rows.Render(W, session)
             tostring(s.barStyle), tostring(s.barLineHeight),
             tostring(s.hideRank), tostring(s.leftTextUseClassColor),
             tostring(s.rightTextUseClassColor), tostring(s.font), tostring(s.fontOutline),
+            tostring(W.wdb.reverse),   -- 翻面＝每一列的錨點都要重貼
         }, "|")
         ctx.fullRebuild = (key ~= W._barCacheKey)
         if ctx.fullRebuild then W._barCacheKey = key end
 
         -- 可視範圍：只有這個區間內的列會填內容
-        local scroll = W.viewport:GetVerticalScroll() or 0
+        local scroll = Rows.GetScroll(W)
         local viewH  = W.viewport:GetHeight() or 200
         local first  = math.floor(scroll / ctx.stride) + 1
         local last   = math.min(count, math.ceil((scroll + viewH) / ctx.stride))

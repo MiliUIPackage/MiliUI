@@ -104,6 +104,28 @@ function Move.RetryAdoptBlizzardPosition()
     ns.Fire("SettingsChanged")
 end
 
+------------------------------------------------------------
+-- 縮放把手換角
+--
+-- 把手一定要待在**離標題列最遠**的那個角：反轉時標題列跑到底部，把手還留在
+-- 右下角的話就整個壓在標題列右側那排圖示鈕上，兩邊搶同一塊滑鼠區域。
+-- 貼圖也跟著上下鏡射（SetTexCoord 的 v 對調），不然箭頭指的方向跟拖的方向相反。
+------------------------------------------------------------
+function Move.ApplyOrientation(W)
+    local grip = W.resizeGrip
+    if not grip then return end
+    local O = ns.Window.Orient(W)
+    grip:ClearAllPoints()
+    grip:SetPoint(O.botR, W.frame, O.botR, 0, 0)
+    if W.resizeGripTex then
+        if W.wdb.reverse then
+            W.resizeGripTex:SetTexCoord(0, 1, 1, 0)
+        else
+            W.resizeGripTex:SetTexCoord(0, 1, 0, 1)
+        end
+    end
+end
+
 function Move.ApplyPosition(W)
     local wdb, frame = W.wdb, W.frame
     if not frame then return end
@@ -288,6 +310,7 @@ local function BeginResize(W)
     W._resize = {
         cx = cx / scale, cy = cy / scale,
         w = frame:GetWidth(), h = frame:GetHeight(),
+        y = W.wdb.y,   -- 反轉時要靠它把底邊釘住（見 ResizeTick）
     }
     W.dragFrame:Show()
 end
@@ -311,10 +334,19 @@ local function ResizeTick(W)
 
     local scale = UIScale()
     local cx, cy = GetCursorPosition()
+    local dy = cy / scale - r.cy
     local newW = math.max(ns.Window.MIN_W, r.w + (cx / scale - r.cx))
-    local newH = math.max(ns.Window.MIN_H, r.h - (cy / scale - r.cy))
+    -- 反轉時把手在右上角，往上拖才是變高（正常是右下角、往下拖變高）
+    local newH = math.max(ns.Window.MIN_H, W.wdb.reverse and (r.h + dy) or (r.h - dy))
     newW, newH = SnapSize(W, newW, newH)
-    -- 錨點是 TOPLEFT，所以改尺寸不會動到左上角，不必重設位置
+    -- 框的錨點永遠是 TOPLEFT，所以改尺寸不會動到左上角。
+    -- 但反轉時拖的是**上緣**，該不動的是下緣 —— 左上角得往上補一樣的高度差，
+    -- 否則視窗會從標題列那一端整個往下長出去。
+    if W.wdb.reverse and type(r.y) == "number" then
+        W.wdb.y = (r.y - r.h) + newH
+        W.frame:ClearAllPoints()
+        W.frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", W.wdb.x, W.wdb.y)
+    end
     W.frame:SetSize(newW, newH)
     -- 標題的可用寬度變了，跟著重新截斷（Rows.Render 不做這件事）
     ns.Window.FitTitle(W)
@@ -405,7 +437,6 @@ function Move.Setup(W)
     ------------------------------------------------------------
     local grip = CreateFrame("Button", nil, frame)
     grip:SetSize(GRIP_SIZE, GRIP_SIZE)
-    grip:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
     grip:SetFrameLevel(frame:GetFrameLevel() + 15)
     grip:RegisterForClicks("LeftButtonUp")
     local gripTex = grip:CreateTexture(nil, "OVERLAY")
@@ -421,6 +452,7 @@ function Move.Setup(W)
     end)
     grip:SetScript("OnMouseUp", function() EndResize(W) end)
     W.resizeGrip = grip
+    W.resizeGripTex = gripTex
 
     ------------------------------------------------------------
     -- 編輯模式選取框

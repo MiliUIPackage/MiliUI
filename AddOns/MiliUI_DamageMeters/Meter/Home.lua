@@ -64,8 +64,9 @@ local function Ensure(W)
     local frame = W.frame
 
     local f = CreateFrame("Frame", nil, frame)
-    f:SetPoint("TOPLEFT", W.header, "BOTTOMLEFT", 0, 0)
-    f:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+    local O = ns.Window.Orient(W)
+    f:SetPoint(O.topL, W.header, O.botL, 0, 0)
+    f:SetPoint(O.botR, frame, O.botR, 0, 0)
     f:SetFrameLevel(frame:GetFrameLevel() + 25)
     f:EnableMouse(true)
     f:Hide()

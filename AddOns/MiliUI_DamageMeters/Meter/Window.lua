@@ -598,6 +598,79 @@ end
 ------------------------------------------------------------
 -- 建立
 ------------------------------------------------------------
+------------------------------------------------------------
+-- 反轉顯示
+--
+-- 玩家要的是「標題列在最下面、第一名在最底部、整個上下顛倒」。版面上這就只是
+-- **垂直翻面**一件事，所以不要在各處寫 if —— 全部收斂成一組錨點常數，呼叫端
+-- 寫 O.topL 而不是字面的 "TOPLEFT"，翻面時語意自動跟著走：
+--
+--   O.topL/topR  「標題列那一端」的左右角      O.botL/botR 「遠離標題列」的那一端
+--   O.v          垂直位移的正負號（正常 1、反轉 -1）
+--
+-- ⚠ 兩張表是模組層級常數、不是每次現配 —— PaintBar 是每 tick 每列都會過的路。
+------------------------------------------------------------
+local ORIENT_NORMAL = {
+    v = 1,
+    topL = "TOPLEFT",    topR = "TOPRIGHT",
+    botL = "BOTTOMLEFT", botR = "BOTTOMRIGHT",
+}
+local ORIENT_FLIP = {
+    v = -1,
+    topL = "BOTTOMLEFT", topR = "BOTTOMRIGHT",
+    botL = "TOPLEFT",    botR = "TOPRIGHT",
+}
+
+function Win.Orient(W)
+    return W.wdb.reverse and ORIENT_FLIP or ORIENT_NORMAL
+end
+
+------------------------------------------------------------
+-- 把方向套到「跟著翻面」的那幾個框
+--
+-- 這些點在建立時與每次 ApplyStyle 都要重貼：SetPoint 是**逐個錨點覆寫**，
+-- 不先 ClearAllPoints 的話舊方向那一組會留著，兩組打架的結果是框被拉長。
+------------------------------------------------------------
+function Win.ApplyOrientation(W)
+    local s = ns.DB.Style()
+    local O = Win.Orient(W)
+    local frame, header = W.frame, W.header
+    local hdrH = D.Px(s.hdrHeight or 22)
+
+    frame.bg:ClearAllPoints()
+    frame.bg:SetPoint(O.topL, frame, O.topL, 0, -hdrH * O.v)
+    frame.bg:SetPoint(O.botR, frame, O.botR, 0, 0)
+
+    header:ClearAllPoints()
+    header:SetPoint(O.topL, frame, O.topL, 0, 0)
+    header:SetPoint(O.topR, frame, O.topR, 0, 0)
+
+    header.bottomBorder:ClearAllPoints()
+    header.bottomBorder:SetPoint(O.botL, header, O.botL, 0, 0)
+    header.bottomBorder:SetPoint(O.botR, header, O.botR, 0, 0)
+
+    -- 釘住自己那列的時候捲動區的錨點屬於那段邏輯，別在這裡搶
+    if not W.stickyPinned then
+        W.viewport:ClearAllPoints()
+        W.viewport:SetPoint(O.topL, header, O.botL, 0, 0)
+        W.viewport:SetPoint(O.botR, frame, O.botR, 0, 0)
+    end
+
+    -- 首頁與展開頁是**建一次就重用**的，翻面之後不重貼會留在舊方向。
+    -- 兩者都是懶初始化，各自判存在 —— 不要放進一張表用 ipairs 走，
+    -- 前面那個是 nil 的話 ipairs 當場就停，後面那個會被靜默跳過。
+    local function AnchorPage(page)
+        if not page then return end
+        page:ClearAllPoints()
+        page:SetPoint(O.topL, header, O.botL, 0, 0)
+        page:SetPoint(O.botR, frame, O.botR, 0, 0)
+    end
+    AnchorPage(W.homeFrame)
+    AnchorPage(W.srcFrame)
+
+    if ns.Move and ns.Move.ApplyOrientation then ns.Move.ApplyOrientation(W) end
+end
+
 function Win.Create(idx)
     local W = {}
     local wdb = ns.DB.Win(idx)
@@ -628,8 +701,6 @@ function Win.Create(idx)
     W.frame = frame
 
     frame.bg = frame:CreateTexture(nil, "BACKGROUND")
-    frame.bg:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -hdrH)
-    frame.bg:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
 
     ------------------------------------------------------------
     -- 標題列
@@ -637,8 +708,6 @@ function Win.Create(idx)
     -- Button 而不是 Frame：右鍵選單走 OnClick，那是 Button 才有的腳本
     local header = CreateFrame("Button", nil, frame)
     header:SetHeight(hdrH)
-    header:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-    header:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
     header:SetFrameLevel(frame:GetFrameLevel() + 20)
     header:EnableMouse(true)
     W.header = header
@@ -646,9 +715,9 @@ function Win.Create(idx)
     header.bg = header:CreateTexture(nil, "BACKGROUND")
     header.bg:SetAllPoints()
 
+    -- 「標題列與清單之間」那條分隔線。反轉時它會跑到標題列上緣 —— 名字留著
+    -- （設定頁與樣式套用都在用），語意是「面向清單的那一邊」。
     header.bottomBorder = header:CreateTexture(nil, "OVERLAY", nil, 7)
-    header.bottomBorder:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, 0)
-    header.bottomBorder:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 0)
 
     ------------------------------------------------------------
     -- 左側「統計類型」區塊：圖示 ＋ 標題，整塊都是切換按鈕
@@ -694,8 +763,6 @@ function Win.Create(idx)
     -- 捲動區
     ------------------------------------------------------------
     local viewport = CreateFrame("ScrollFrame", nil, frame)
-    viewport:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, 0)
-    viewport:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
     viewport:SetFrameLevel(frame:GetFrameLevel() + 1)
     W.viewport = viewport
 
@@ -707,11 +774,10 @@ function Win.Create(idx)
 
     -- 沒有捲軸貼圖，只吃滾輪：40 列的清單畫一條捲軸只是佔寬度
     local function Wheel(_, delta)
-        local cur = viewport:GetVerticalScroll() or 0
         local cfg = ns.DB.Style()
         local step = D.Px(cfg.barHeight or 18) + D.Px(cfg.barSpacing or 2)
-        local target = math.max(0, math.min(W.scrollMax or 0, cur - delta * step))
-        viewport:SetVerticalScroll(target)
+        -- 邏輯捲動：0 永遠是第一名那端，所以滾輪的方向在正反兩種排列下一致
+        ns.Rows.SetScroll(W, ns.Rows.GetScroll(W) - delta * step)
         -- 捲動會換可視範圍，要重畫（RefreshUI 只填可視列）
         if W._lastSession then ns.Rows.Render(W, W._lastSession) end
     end
@@ -883,7 +949,7 @@ function Win.ApplyStyle(W)
 
     local hdrH = D.Px(s.hdrHeight or 22)
     header:SetHeight(hdrH)
-    frame.bg:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -hdrH)
+    Win.ApplyOrientation(W)
 
     local bg = s.bgColor
     frame.bg:SetColorTexture(bg.r or 0, bg.g or 0, bg.b or 0, bg.a or 0.75)

@@ -150,8 +150,11 @@ local function EnsureFrame(W)
     local frame = W.frame
 
     local f = CreateFrame("Frame", nil, frame)
-    f:SetPoint("TOPLEFT", W.header, "BOTTOMLEFT", 0, 0)
-    f:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+    -- 蓋住清單區（標題列以外的全部）。反轉時標題列在下面，這一頁就往上長。
+    -- 頁內的法術清單維持由上往下 —— 那是另一個檢視，不是主排行的延伸。
+    local O = ns.Window.Orient(W)
+    f:SetPoint(O.topL, W.header, O.botL, 0, 0)
+    f:SetPoint(O.botR, frame, O.botR, 0, 0)
     f:SetFrameLevel(frame:GetFrameLevel() + 30)
     f:EnableMouse(true)
     f:Hide()

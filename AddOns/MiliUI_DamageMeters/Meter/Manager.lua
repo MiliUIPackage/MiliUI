@@ -186,6 +186,23 @@ end
 
 -- 開關的唯一入口（右鍵選單與設定頁都走這裡）。
 -- 打開的那一刻立刻恢復主動切換 —— 連「正在看特定分段」的豁免都拿掉（規格）。
+------------------------------------------------------------
+-- 反轉顯示的唯一套用入口
+--
+-- 翻面同時動到「框的錨點」與「每一列的錨點」，兩邊都要重來：
+-- ApplyStyle 走 Win.ApplyOrientation 重貼框，_barCacheKey 歸零讓 Rows 整批重排。
+-- 釘住的那一列也要放掉 —— 它的錨點是另一套邏輯貼的，不歸 ApplyOrientation 管。
+------------------------------------------------------------
+function Windows.SetReverse(W, on)
+    W.wdb.reverse = on and true or false
+    W.stickyPinned = false
+    W._barCacheKey = nil
+    W._stickyCacheKey = nil
+    W._contentH = nil
+    Win.ApplyStyle(W)
+    W.Refresh()
+end
+
 function Windows.SetSmartDisplay(W, on)
     W.wdb.smartDisplay = on and true or false
     if on then SmartApplyFor(W, ns.Combat.IsInCombat(), true) end
@@ -363,6 +380,14 @@ function Windows.ShowContextMenu(W, btn, redraw)
             text = L["Sync segments with other windows"], isActive = wdb.syncSegments, keepOpen = true,
             onClick = function()
                 wdb.syncSegments = not wdb.syncSegments
+                Windows.ShowContextMenu(W, btn, true)
+            end,
+        },
+        {
+            text = L["Reverse layout"],
+            isActive = wdb.reverse, keepOpen = true,
+            onClick = function()
+                Windows.SetReverse(W, not wdb.reverse)
                 Windows.ShowContextMenu(W, btn, true)
             end,
         },

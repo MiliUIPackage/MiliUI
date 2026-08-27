@@ -75,6 +75,8 @@ local CONTROLS = {
     { type = "dropdown", key = "curDMType", label = L["Meter type"],
       items = function() return Specs.MeterTypeItems() end },
     { type = "dropdown", key = "curSession", label = L["Segment"], items = Specs.SESSION_TYPES },
+    { type = "toggle",   key = "reverse", label = L["Reverse layout"] },
+    { type = "text",     label = L["The title bar moves to the bottom and bars stack upward, so the top damage sits at the very bottom."] },
     { type = "toggle",   key = "smartDisplay", label = L["Smart display"] },
     { type = "text",     label = L["In combat this window shows Current; a few seconds after combat ends it switches to Overall. In a raid it stays on Current instead, since the overall there spans the whole night across many bosses. While you are reviewing a specific past segment it stays hands-off — it resumes when you switch back to Current or Overall yourself, or when you turn this option on again."] },
     { type = "toggle",   key = "syncSegments", label = L["Sync segments with other windows"] },
@@ -116,6 +118,11 @@ local function Init()
             if spec.key == "smartDisplay" then
                 local W = ns.Windows.Get(selected)
                 if W then ns.Windows.SetSmartDisplay(W, v); return end
+            end
+            -- 反轉要重貼錨點並讓整批列重排，光寫值不夠
+            if spec.key == "reverse" then
+                local W = ns.Windows.Get(selected)
+                if W then ns.Windows.SetReverse(W, v); return end
             end
             base.set(spec, v)
         end,

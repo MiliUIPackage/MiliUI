@@ -182,6 +182,9 @@ L["Hidden buttons take up no space, so the title gets the whole bar."] =
 -- 各窗口
 L["Add or remove windows on the General tab."] = "要增减窗口数量请到“常规”标签页。"
 L["Content"] = "内容"
+L["Reverse layout"] = "反转显示"
+L["The title bar moves to the bottom and bars stack upward, so the top damage sits at the very bottom."] =
+    "标题栏移到最下面，长条由下往上排 —— 伤害最高的那一列就在最底部。"
 L["Smart display"] = "智能显示"
 L["In combat this window shows Current; a few seconds after combat ends it switches to Overall. In a raid it stays on Current instead, since the overall there spans the whole night across many bosses. While you are reviewing a specific past segment it stays hands-off — it resumes when you switch back to Current or Overall yourself, or when you turn this option on again."] =
     "战斗中显示「当前」，脱离战斗几秒后自动切到「总计」（留一下让你看完最后的数字）。在团队里则一路保持「当前」，因为那里的总计是跨好几个首领的一整晚。翻看某个特定分段时它不会插手 —— 等你自己切回「当前」或「总计」，或重新打开这个选项，才恢复主动切换。"

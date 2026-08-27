@@ -186,6 +186,35 @@ zhTW 的 Current 譯名同時從「本場」改成「目前」（使用者點名
   `if not W.curSessionID then return end` —— 只救「正在看歷史分段」的視窗，
   玩家最常見的 Overall（無 ID）反而完全不動。
 
+## 反轉顯示（每視窗 `wdb.reverse`，2026-08-28）
+
+標題列移到底部、長條由下往上排、第一名貼著標題列。版面上**就只是垂直翻面一件事**，
+所以不要在各處寫 if —— 全部收斂成 `Win.Orient(W)` 回傳的一組錨點常數
+（`O.topL/topR` ＝ 標題列那一端，`O.botL/botR` ＝ 另一端，`O.v` ＝ 位移正負號）。
+呼叫端寫 `O.topL` 而不是字面 `"TOPLEFT"`，翻面時語意自動跟著走。
+⚠ 兩張表是模組層級常數不是現配的：`RelayoutBar` 是每 tick 每列都會過的路。
+
+- **`Win.ApplyOrientation`** 重貼會翻面的框：`frame.bg`／`header`／`bottomBorder`
+  （語意是「面向清單的那一邊」）／`viewport`／首頁與展開頁／縮放把手。
+  每次 `ApplyStyle` 都跑，而且**一定要先 ClearAllPoints** —— SetPoint 是逐個錨點
+  覆寫，不清的話舊方向那組會留著，兩組打架把框拉長。
+- **邏輯捲動 `Rows.GetScroll/SetScroll`**：0 永遠是「看得到第一名」那端。反轉時
+  第一名在 content 底部而 ScrollFrame 的 0 是頂部，所以原始值 = `scrollMax - 邏輯值`。
+  有這層之後可視剔除／釘住自己那列／滾輪三處算式都不必分兩種寫法。
+  `RecalcViewport` 要**先用舊 scrollMax 解出邏輯值、換完高度再用新的貼回去**，
+  否則反轉時列數一變畫面就自己跳。
+- **反轉時 content 高度至少要一個可視高**（`max(totalH, viewH)`）：content 的底邊
+  就是第一名的位置，內容比視窗矮的話它會浮在半空中（ScrollFrame 把 content 貼頂端）。
+  因此高度備忘 `_contentH` 存的是算完的值而不是 totalH（viewH 也是輸入）。
+- **縮放把手要換到離標題列最遠的角**：留在右下角會整個壓在標題列右側那排圖示鈕上。
+  貼圖同時上下鏡射（`SetTexCoord(0,1,1,0)`），不然箭頭方向跟拖的方向相反。
+  反轉時拖的是上緣、該不動的是下緣 —— 框永遠錨 TOPLEFT，所以要自己把
+  `wdb.y` 補上高度差，不然視窗會從標題列那端往下長出去。
+- 展開頁與首頁**內部維持由上往下**：那是另一個檢視，不是主排行的延伸。
+- 開關唯一入口 `Windows.SetReverse`（右鍵選單與設定頁都走它）：翻面同時動到框與
+  每一列的錨點，要 `stickyPinned = false` ＋ `_barCacheKey/_stickyCacheKey/_contentH`
+  歸零。`_barCacheKey` 也把 `reverse` 算進去當自動安全網。
+
 ## 發佈前：改預設值不配遷移
 
 **這支還沒發佈**（2026-08-24 使用者明確交代），所以調任何 `BuildDefaults()` 的值都

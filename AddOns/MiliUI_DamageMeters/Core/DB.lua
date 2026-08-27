@@ -70,6 +70,9 @@ function DB.NewWindow(idx)
         locked = false,
         hideTimer = preset.hideTimer or false,
         snapDisabled = false,
+        -- 反轉顯示：標題列移到底部，長條由下往上排（第一名貼著標題列）。
+        -- 版面上就只有「垂直翻面」這一件事，見 Window.lua 的 Win.Orient。
+        reverse = false,
         -- 分段連動：勾了的視窗切分段時會一起切（看同一場戰鬥的不同統計類型時很有用）
         syncSegments = preset.syncSegments or false,
         -- 智慧顯示：戰鬥中看「目前」、脫戰看「總計」，由 Windows.SmartApply 在
