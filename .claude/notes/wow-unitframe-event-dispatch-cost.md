@@ -97,5 +97,35 @@ EUI 也保留了條件式輪詢。**正解是混合**：事件負責即時，掃
 但**會從外面換掉 widget 的路要明確清戳記**——換貼圖（`SetStatusBarTexture` 會換掉
 貼圖物件）、以及「使用者剛按下改顏色」那條路。
 
+## 本機現況（2026-08-27，全部遊戲內驗證通過）
+
+| | 1 事件 scope | 2 共用 ticker | 3 距離事件 | 4 filter 正規化 | 5 顏色戳記 | 同幀去重 |
+|---|---|---|---|---|---|---|
+| Cell 團隊框架 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Cell QuickAssist | ✅ | ✅ | ✅ | — | — | — |
+| Cell QuickCast | ✅ | 自解除，本來就沒問題 | 本來就是事件 | — | — | — |
+| MiliUI_UnitFrames | ✅ 一直都是 | ✅ `ns.Metro` | ✅ | — | — | ✅ `paintGen` |
+
+MiliUI_UnitFrames 是後來從零寫的，本來就照這幾條建的（`Core/Events.lua` 的 tracker、
+`Core/UnitFrame.lua` 的 `paintGen` 同幀去重）——這次是 Cell 追上它，不是反過來。
+
+**還沒做的**：Cell 的 `UnitButton_UpdateCombatIcon` 與 GUID 偵測還在 0.25/0.5 秒輪詢；
+`Indicators/TargetedSpells.lua` 等共用 eventFrame 註冊了九個 `UNIT_SPELLCAST_*`（單一 frame，
+沒有 ×N 放大，成本在 handler 本體）。
+
+## 6. 發光的動畫閘
+
+LibCustomGlow 對**每一個**發光各掛一個沒有節流的 OnUpdate，所以發光的成本跟你的幀數
+成正比——144fps 的機器付 60fps 機器的 2.4 倍，畫面一模一樣。閘在 1/60 秒，**把累積的 dt
+整份傳給原函式**，動畫速度完全不變。
+
+不用改函式庫：在 `*_Start` 後掛勾，`GetScript("OnUpdate")` 拿到它剛設好的更新函式，包一層
+再設回去。池化重用自然銜接（回收時 lib 自己 `SetScript(nil)`，下次 Start 再設，掛勾再包）。
+本機實作 `MiliUI/Enhance/LibCustomGlow_FpsGate.lua`；EUI 自製發光引擎的 `DRIVER_GATE = 0.016`
+是同一個結論。
+
+⚠ 要等 `PLAYER_LOGIN` 才裝：LibCustomGlow 被十幾個插件各自內嵌，LibStub 留的是版本最高
+那一份，「哪一份贏」要到全部載入完才定案。
+
 相關：[[wow-frame-lifecycle-costs]]、[[wow-addon-profiler-cost]]、
 [[project-cell-auracontainer-rewrite]]、[[wow-121-aura-containers]]

@@ -148,8 +148,8 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
 3. dispel 自訂 icon 樣式要走 CustomAsset+map。
 4. `crowdControls` 指示器還在手動路。
 5. ~~效果型自訂指示器在 secret 內容中凍住~~ —— color/border/rect/texture 已走效果槽（見下），
-   **尚未在遊戲內驗證**。剩 glow（需要 C 端動畫取代 LibCustomGlow）與 bar/bars/blocks（多槽 ＋ 每顆
-   光環自己的顏色 ＋ `SetDurationBar` 排水）。
+   **2026-08-27 遊戲內驗證通過**。剩 glow（需要 C 端動畫取代 LibCustomGlow）與 bar/bars/blocks
+   （多槽 ＋ 每顆光環自己的顏色 ＋ `SetDurationBar` 排水）。
 6. 未在遊戲內驗證：合併後的 debuff 排 / 三個 cooldown / 自訂圖示指示器、統一後的外環顏色與 `SetReverse(true)` 消退方向。
 
 ## 效果槽：presence 是 secret 的解法（2026-08-27）

@@ -48,6 +48,7 @@ Enhance\Baganator_Keystone.lua
 Enhance\ChallengesUI_Buttons.lua
 Enhance\PartyKeystone.lua
 Enhance\ChallengesUI_LootTable.lua
+Enhance\LibCustomGlow_FpsGate.lua
 Enhance\CraftingOrders_RewardColumn.xml
 Enhance\CraftingOrders_RewardColumn.lua
 Enhance\CharacterKeystones.lua
