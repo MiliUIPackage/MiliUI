@@ -102,7 +102,7 @@ local CONTROLS = {
         .. "換成純色方底加 1px 直角硬邊，按鈕間距收窄、整排下移到訊息區頂端，"
         .. "好友數那串數字也挪到圖示底下並加上描邊。" },
 
-    { type = "header", label = "星雲之核骰裝提示" },
+    { type = "header", label = "星雲之核骰裝隱藏" },
     { type = "toggle", label = "依內容類型隱藏骰裝提示",
       get = function() return MiliUI_BonusRollFilter and MiliUI_BonusRollFilter.IsEnabled() end,
       set = function(v) if MiliUI_BonusRollFilter then MiliUI_BonusRollFilter.SetEnabled(v) end end },
