@@ -1884,21 +1884,28 @@ end
 -- Updates the health prediction calculator for a button (Midnight 12.0.0+)
 -- Refresh the heal-prediction calculator for this button.
 --
--- ⚠ ONE refresh per button per frame. Three separate paths ask for this -- health states,
--- shield absorbs, heal absorbs -- and a single UNIT_HEALTH runs all three, so the same
--- UnitGetDetailedHealPrediction ran three times over on identical data. Absorb-family events
--- often land several per button in one frame too, multiplying it again.
+-- ⚠ AT MOST one refresh per button per frame on the OVERLAY paths (shield absorbs, heal
+-- absorbs): a single UNIT_HEALTH already refreshed for all of them, and absorb-family
+-- events often land several per button in one frame too.
 --
--- GetTime() is constant for a whole frame, and the game state behind this call cannot change
--- inside one: events are dispatched between frames. Stamping the UNIT as well means a vehicle
--- swap or a roster re-point in the same frame still forces a real refresh.
-local function UnitButton_UpdateCalculator(self)
+-- ⚠ The health-states path passes force=true. "Game state cannot change inside one frame"
+-- is FALSE on multi-packet frames: under load (a raid-wide AoE, mass deaths) the client
+-- applies several server packets inside one rendered frame and dispatches events after
+-- each, while GetTime() stays frozen -- so a stamp hit hands back a snapshot from an
+-- EARLIER packet. Death makes that permanent: a bar painted from a stale pre-death
+-- snapshot never gets another UNIT_HEALTH to repair it (the "dead but bar shows full"
+-- freeze). The overlay painters can afford the stamp because absorbs keep producing events
+-- that repaint them a frame later; the health VALUE has no such second chance.
+--
+-- Stamping the UNIT as well means a vehicle swap or a roster re-point in the same frame
+-- still forces a real refresh.
+local function UnitButton_UpdateCalculator(self, force)
     local unit = self.states.displayedUnit
     if not unit then return end
     local calc = self.widgets.healthCalculator
     if not calc then return end
     local now = GetTime()
-    if self.__calcStamp == now and self.__calcUnit == unit then return end
+    if not force and self.__calcStamp == now and self.__calcUnit == unit then return end
     self.__calcStamp, self.__calcUnit = now, unit
     UnitGetDetailedHealPrediction(unit, "player", calc)
 end
@@ -1908,7 +1915,10 @@ local function UnitButton_UpdateHealthStates(self, diff)
 
     if Cell.isMidnight and self.widgets.healthCalculator then
         -- MIDNIGHT PATH: use calculator â€" no arithmetic on secrets
-        UnitButton_UpdateCalculator(self)
+        -- force: the bar value below is a snapshot read, and a same-frame stamp skip here
+        -- freezes a dying unit's bar at its pre-death health forever (see the comment on
+        -- UnitButton_UpdateCalculator)
+        UnitButton_UpdateCalculator(self, true)
         -- Store healthPercent for color logic.
         -- GetCurrentHealthPercent() returns a secret value inside PvP instances —
         -- Lua comparisons on secrets throw errors. Use it only when non-secret.
