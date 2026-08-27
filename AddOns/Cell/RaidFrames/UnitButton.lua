@@ -1882,11 +1882,24 @@ UnitButton_UpdateAuras = function(self, updateInfo)
 end
 
 -- Updates the health prediction calculator for a button (Midnight 12.0.0+)
+-- Refresh the heal-prediction calculator for this button.
+--
+-- ⚠ ONE refresh per button per frame. Three separate paths ask for this -- health states,
+-- shield absorbs, heal absorbs -- and a single UNIT_HEALTH runs all three, so the same
+-- UnitGetDetailedHealPrediction ran three times over on identical data. Absorb-family events
+-- often land several per button in one frame too, multiplying it again.
+--
+-- GetTime() is constant for a whole frame, and the game state behind this call cannot change
+-- inside one: events are dispatched between frames. Stamping the UNIT as well means a vehicle
+-- swap or a roster re-point in the same frame still forces a real refresh.
 local function UnitButton_UpdateCalculator(self)
     local unit = self.states.displayedUnit
     if not unit then return end
     local calc = self.widgets.healthCalculator
     if not calc then return end
+    local now = GetTime()
+    if self.__calcStamp == now and self.__calcUnit == unit then return end
+    self.__calcStamp, self.__calcUnit = now, unit
     UnitGetDetailedHealPrediction(unit, "player", calc)
 end
 
@@ -3354,6 +3367,65 @@ local function UnitButton_UnregisterEvents(self)
     self._eventsRegistered = nil
 end
 
+-------------------------------------------------
+-- overlay repaint coalescer
+--
+-- Heal prediction, shields and heal absorbs are three repaints of the SAME overlay stack on
+-- the health bar, and each of the five health/absorb events wants some combination of them.
+-- At raid scale the server lands several of those on one button in a single frame -- a heal
+-- landing while a shield ticks while the target takes damage -- and only the LAST repaint is
+-- ever seen. The rest are drawn and thrown away before the frame reaches the screen.
+--
+-- So mark here, paint once. This is Blizzard's own model for the stock raid frames: absorb
+-- and heal-prediction repaints are "frequent and expensive, update once per frame at most".
+--
+-- ⚠ Only the EVENT paths are coalesced. UnitButton_UpdateAll, the appearance/option paths and
+-- anything the user just clicked keep calling the three directly -- those must land before
+-- whatever reads the widgets next, and none of them are hot.
+--
+-- ⚠ The budget is the backstop for a genuine storm (a raid-wide shield landing on everyone in
+-- one frame). Leftovers keep the frame shown and are painted next frame; because entries are
+-- removed as they are painted, the next pass naturally starts with whoever was skipped.
+--
+-- ⚠ The flush paints all three rather than tracking which event marked the button. That is a
+-- deliberate trade, not an oversight: UNIT_HEALTH is by far the most common of the five and
+-- already wanted all three, and with the calculator refresh stamped per frame the extra two
+-- are a handful of getters and a SetValue. Tracking dirty KINDS would save that in the
+-- single-absorb-event-alone case and cost a mask on every mark.
+-------------------------------------------------
+local overlayDirty = {}
+local overlayFlush = CreateFrame("Frame")
+local OVERLAY_FLUSH_BUDGET = 20
+overlayFlush:Hide()
+overlayFlush:SetScript("OnUpdate", function(self)
+    local left = OVERLAY_FLUSH_BUDGET
+    for b in pairs(overlayDirty) do
+        overlayDirty[b] = nil
+        -- a button can be hidden, or re-pointed at someone else, between mark and paint
+        if b:IsVisible() and b.states and b.states.displayedUnit then
+            -- ⚠ skipStateUpdates = true below, so the pre-Midnight branches inside the three
+            -- would skip their own UnitButton_UpdateHealthStates -- which is where classic
+            -- reads states.totalAbsorbs / healAbsorbs from. Run it ONCE here instead of up to
+            -- three times inside them. On Midnight all three return before that block (the
+            -- calculator path), so this is skipped entirely.
+            if not Cell.isMidnight then
+                UnitButton_UpdateHealthStates(b)
+            end
+            UnitButton_UpdateHealPrediction(b, true)
+            UnitButton_UpdateShieldAbsorbs(b, true)
+            UnitButton_UpdateHealAbsorbs(b, true)
+        end
+        left = left - 1
+        if left <= 0 then break end
+    end
+    if next(overlayDirty) == nil then self:Hide() end
+end)
+
+local function MarkOverlayDirty(b)
+    overlayDirty[b] = true
+    overlayFlush:Show()
+end
+
 local function UnitButton_OnEvent(self, event, unit, arg)
     -- Handled ahead of the unit filter on purpose: the event's unit is "player", which does
     -- not match a button whose token is "raid5", and every button re-reads only its own role.
@@ -3399,25 +3471,19 @@ local function UnitButton_OnEvent(self, event, unit, arg)
         elseif event == "UNIT_MAXHEALTH" then
             UnitButton_UpdateHealthMax(self)
             UnitButton_UpdateHealth(self, nil, true)
-            UnitButton_UpdateHealPrediction(self, true)
-            UnitButton_UpdateShieldAbsorbs(self, true)
-            UnitButton_UpdateHealAbsorbs(self, true)
+            MarkOverlayDirty(self)
 
         elseif event == "UNIT_HEALTH" then
+            -- the bar value itself stays synchronous: it is one SetValue, and states.* below
+            -- it are read by other handlers in the same frame
             UnitButton_UpdateHealth(self)
-            UnitButton_UpdateHealPrediction(self, true)
-            UnitButton_UpdateShieldAbsorbs(self, true)
-            UnitButton_UpdateHealAbsorbs(self, true)
+            MarkOverlayDirty(self)
             -- UnitButton_UpdateStatusText(self)
 
-        elseif event == "UNIT_HEAL_PREDICTION" then
-            UnitButton_UpdateHealPrediction(self)
-
-        elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
-            UnitButton_UpdateShieldAbsorbs(self)
-
-        elseif event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" then
-            UnitButton_UpdateHealAbsorbs(self)
+        elseif event == "UNIT_HEAL_PREDICTION"
+            or event == "UNIT_ABSORB_AMOUNT_CHANGED"
+            or event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" then
+            MarkOverlayDirty(self)
 
         elseif event == "UNIT_MAXPOWER" then
             UnitButton_UpdatePowerStates(self)
