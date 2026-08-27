@@ -101,6 +101,25 @@ ChatBar 與 DamageMeters 各帶一份幾乎一樣的引擎，結果同一個「E
 | `W.CreateRowList(parent, w, h, rowH, buildRow)` | 「一列一筆資料」的清單。捲軸／列高／內容高度由它管，宿主只寫 `buildRow`（建控件）與 `list:Update(items, updateRow)`（填值）。⚠ 列會回收再用，`updateRow` 必須連 `OnClick` 的 closure 一起重設 |
 | `W.CreateInputPopup(parent, w, title, fields)` | 「新增一筆／改名」這種要先問字串的對話框。`popup:Open(values, onAccept, title)`，`onAccept` 回傳 `false` 就不關窗 |
 
+### 貼齊螢幕（`W.PlaceClamped` / `W.ScreenNudge`）
+
+**任何貼著某個東西彈出來的浮動面板都要過這裡**，不然擺在畫面邊角時會開到畫面外——
+那不只是難看，是**點不到**（被裁掉的那截沒辦法捲到）。右鍵選單、子選單、下拉清單
+都已經走這條路；新做的浮動面板也照辦。
+
+```lua
+local pts = { "TOPRIGHT", btn, "BOTTOMRIGHT", 0, -2 }
+panel:Show()                    -- 先有尺寸、先 Show，否則量到舊的矩形
+W.PlaceClamped(panel, pts)      -- pts 會被就地改寫成推回後的偏移
+```
+
+兩段式，**順序不能倒過來**：先由呼叫端決定要不要**翻面**（往下開改成往上開——
+只有它知道另一側在哪、翻過去合不合理），翻完還出界才由 `W.PlaceClamped` **平移**。
+先平移的話面板會蓋住開它的那顆按鈕。
+
+`pts` 被就地改寫是刻意的：呼叫端存起來重貼時（選單的開關項目要原地重畫）才會回到
+同一個位置，不然按一下就自己跳回出界的地方。
+
 ### 視窗拖曳（`W.CreateTitleBar` / `W.MakeDragHandle`）
 
 ```lua

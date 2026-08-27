@@ -68,7 +68,12 @@ local _main, _sub, _catcher
 local _anchorBtn      -- 哪顆按鈕開的（同一顆再按一次＝關閉）
 local _anchorPoints   -- 上次解出來的錨點，供 keepAnchor 重畫時原地重貼
 
--- 選單跟著統計視窗自己的字型走（不是設定面板的）
+------------------------------------------------------------
+-- 貼齊螢幕：翻面由這裡決定，平移交給共用層的 W.PlaceClamped
+-- （設計理由與座標空間的注意事項寫在 Widgets.lua 的同名段落）
+------------------------------------------------------------
+local SCREEN_PAD = W.SCREEN_PAD
+
 -- 選單字型。宿主想跟著自己的字型設定走就叫 W.SetMenuFont，不叫就用 Env 的預設。
 local menuFontToken, menuFontSize = nil, FONT_SZ
 
@@ -356,17 +361,22 @@ function Menu.ShowSub(items, parentRow)
         _sub:SetFrameLevel(_main and (_main:GetFrameLevel() + 10) or 20)
     end
     Layout(_sub, items, Menu.Hide)
-    _sub:ClearAllPoints()
+    _sub:Show()
+
     -- x 偏移 0 而不是 1：留一格空隙的話，游標橫著移過去會先掉進「兩個選單之間」
     -- 那一列縫裡。子選單直接壓在主選單的邊框上，路徑才是連續的。
-    _sub:SetPoint("TOPLEFT", parentRow, "TOPRIGHT", 0, 2)
-    _sub:Show()
+    local pts = { "TOPLEFT", parentRow, "TOPRIGHT", 0, 2 }
+    _sub:ClearAllPoints()
+    _sub:SetPoint(unpack(pts))
     -- 超出右邊界就翻到左邊
-    local right = _sub:GetRight()
-    if right and right > UIParent:GetRight() then
-        _sub:ClearAllPoints()
-        _sub:SetPoint("TOPRIGHT", parentRow, "TOPLEFT", 0, 2)
+    local right, pr = _sub:GetRight(), UIParent:GetRight()
+    if right and pr and right > pr - SCREEN_PAD then
+        pts = { "TOPRIGHT", parentRow, "TOPLEFT", 0, 2 }
     end
+    -- 垂直方向**只平移不翻面**。子選單常常比主選單長得多（分段清單動輒二十列），
+    -- 從靠下的那一列展開時必定掉出下緣 —— 但翻成「往上長」會讓它的頂端離開所屬
+    -- 的那一列，看起來像另一個選單。平移只是頂端不再對齊，來源仍然讀得出來。
+    W.PlaceClamped(_sub, pts)
 end
 
 -- anchorBtn 給了就貼著它開，並且「同一顆再按一次＝關閉」。
@@ -404,21 +414,23 @@ function Menu.Show(items, anchorBtn, keepAnchor)
         local x, y = GetCursorPosition()
         _anchorPoints = { "TOPLEFT", UIParent, "BOTTOMLEFT", x / scale, y / scale }
     end
-    _main:SetPoint(unpack(_anchorPoints))
     _main:Show()
 
-    -- 貼齊螢幕：往下開會超出下緣就改成往上開
-    local bottom = _main:GetBottom()
-    if bottom and bottom < 0 and anchorBtn then
-        _anchorPoints = { "BOTTOMRIGHT", anchorBtn, "TOPRIGHT", 0, 2 }
-        _main:ClearAllPoints()
-        _main:SetPoint(unpack(_anchorPoints))
+    -- 第一段：翻面。往下開會超出下緣就改成往上開。
+    _main:ClearAllPoints()
+    _main:SetPoint(unpack(_anchorPoints))
+    local b, pb = _main:GetBottom(), UIParent:GetBottom()
+    if b and pb and b < pb + SCREEN_PAD then
+        if anchorBtn then
+            _anchorPoints = { "BOTTOMRIGHT", anchorBtn, "TOPRIGHT", 0, 2 }
+        else
+            -- 游標錨定：讓游標那一點變成左下角，選單往上長
+            _anchorPoints[1] = "BOTTOMLEFT"
+        end
     end
-    local left = _main:GetLeft()
-    if left and left < 0 then
-        _anchorPoints = { "BOTTOMLEFT", UIParent, "BOTTOMLEFT", 2, 2 }
-        _main:ClearAllPoints()
-        _main:SetPoint(unpack(_anchorPoints))
-    end
+    -- 第二段：平移。翻完還是出界（上下都塞不下、或選單比按鈕寬出畫面）就推回來。
+    -- 這裡取代了舊版「左邊出界就丟到畫面左下角」的處理 —— 那會讓選單整個離開
+    -- 它的來源，玩家看到的是憑空出現在角落的一張選單。
+    W.PlaceClamped(_main, _anchorPoints)
     _anchorBtn = anchorBtn
 end

@@ -793,6 +793,59 @@ local function EnsureMenu()
 end
 
 ------------------------------------------------------------
+-- 貼齊螢幕
+--
+-- 任何「浮在畫面上、貼著某個東西彈出來」的面板都該過這裡：右鍵選單、子選單、
+-- 下拉清單。起因是玩家把統計視窗擺在畫面右下角，右鍵選單整片開到畫面外面 ——
+-- 那不只是難看，是**點不到**（被裁掉的那一截沒有任何辦法捲到）。
+--
+-- 兩段式，順序不能倒過來：
+--   1. **翻面** —— 裝不下就改貼錨點的另一側（往下開改成往上開）。呼叫端自己決定，
+--      因為只有它知道「另一側」在哪、翻過去合不合理。
+--   2. **平移**（`W.PlaceClamped`）—— 翻完還是出界才把整個面板推回畫面內。
+--
+-- 先平移的話面板會蓋住開它的那顆按鈕（在螢幕下緣特別明顯，因為它正好往上疊在
+-- 按鈕身上）；翻面則永遠貼著錨點，讀起來還是「從這裡長出來的」。
+------------------------------------------------------------
+W.SCREEN_PAD = 4
+
+-- 面板超出畫面多少 → 回傳要補的位移 (dx, dy)。四個邊都看。
+-- ⚠ 比對 UIParent 自己的四邊，不要寫死 0 與 GetWidth/GetHeight。
+-- 一個方向塞不下時**保左上**（面板是從上往下、從左往右讀的，要截也截讀最後那端）。
+function W.ScreenNudge(f)
+    local pl, pr = UIParent:GetLeft(), UIParent:GetRight()
+    local pb, pt = UIParent:GetBottom(), UIParent:GetTop()
+    local l, r = f:GetLeft(), f:GetRight()
+    local b, t = f:GetBottom(), f:GetTop()
+    if not (pl and pr and pb and pt and l and r and b and t) then return 0, 0 end
+    local pad = W.SCREEN_PAD
+    local dx, dy = 0, 0
+    if r > pr - pad then dx = (pr - pad) - r end
+    if l + dx < pl + pad then dx = (pl + pad) - l end
+    if b < pb + pad then dy = (pb + pad) - b end
+    if t + dy > pt - pad then dy = (pt - pad) - t end
+    return dx, dy
+end
+
+-- 貼上錨點，再把超出畫面的部分推回來。**面板要先有正確的尺寸並且已經 Show**，
+-- 否則量到的矩形是舊的。
+--
+-- pts 是 `{ point, relativeTo, relativePoint, x, y }`，**會被就地改寫成推回後的
+-- 偏移** —— 呼叫端把它存起來重貼時（例如選單的開關項目要原地重畫）才會回到同一
+-- 個位置，不然按一下就自己跳回出界的地方。
+function W.PlaceClamped(f, pts)
+    f:ClearAllPoints()
+    f:SetPoint(unpack(pts))
+    local dx, dy = W.ScreenNudge(f)
+    if dx ~= 0 or dy ~= 0 then
+        pts[4] = (pts[4] or 0) + dx
+        pts[5] = (pts[5] or 0) + dy
+        f:ClearAllPoints()
+        f:SetPoint(unpack(pts))
+    end
+end
+
+------------------------------------------------------------
 -- ESC 關閉
 --
 -- 走暴雪的 `UISpecialFrames`，**絕對不要自己 EnableKeyboard 擷取按鍵** ——
@@ -949,15 +1002,18 @@ function W.CreateDropdown(parent, width, items, onSelect)
         -- 下面塞不下就往上開。有了高度上限才算得出來要不要翻——沒有上限的話
         -- 長清單無論往哪開都會有一截在畫面外，而裁切之後那一截是**捲不到**的。
         -- （回讀的是設定面板自己的幾何，跟單位框那條「絕不回讀」的規則無關）
-        menu:ClearAllPoints()
         local roomBelow = self:GetBottom()
+        local pts
         if roomBelow and roomBelow - menu.viewH - 2 < 0 then
-            menu:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 0, 2)
+            pts = { "BOTTOMLEFT", self, "TOPLEFT", 0, 2 }
         else
-            menu:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -2)
+            pts = { "TOPLEFT", self, "BOTTOMLEFT", 0, -2 }
         end
+        -- 先給尺寸再 Show 再定位：W.PlaceClamped 要量矩形，順序反了就量到舊的
         P.Size(menu, menuW, menu.viewH)
         menu:Show()
+        -- 翻上去之後頂端還是可能出界（設定視窗貼著畫面上緣時），推回來
+        W.PlaceClamped(menu, pts)
     end)
     return dd
 end
