@@ -69,6 +69,7 @@ Enhance\Chattynator_ButtonStyle.lua
 Enhance\DBM_PrivateAura.lua
 Enhance\ItemUpgrade_PreviewIcon.lua
 Enhance\MplusAdventureGuide_Masque.lua
+Enhance\BonusRoll_Filter.lua
 Enhance\LegacyAddons.lua
 
 Fix\DeprecatedGlobals.lua

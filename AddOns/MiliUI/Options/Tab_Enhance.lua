@@ -102,6 +102,32 @@ local CONTROLS = {
         .. "換成純色方底加 1px 直角硬邊，按鈕間距收窄、整排下移到訊息區頂端，"
         .. "好友數那串數字也挪到圖示底下並加上描邊。" },
 
+    { type = "header", label = "星雲之核骰裝提示" },
+    { type = "toggle", label = "依內容類型隱藏骰裝提示",
+      get = function() return MiliUI_BonusRollFilter and MiliUI_BonusRollFilter.IsEnabled() end,
+      set = function(v) if MiliUI_BonusRollFilter then MiliUI_BonusRollFilter.SetEnabled(v) end end },
+    { type = "text", label = "副本結束時跳出的星雲之核骰裝提示，依下面的條件決定顯不顯示，"
+        .. "讓提示只在骰得到高品質裝備的場合出現。只是不顯示提示，"
+        .. "不會代替你做決定，也不會消耗核心。關掉總開關則一律顯示。" },
+    { type = "toggle", label = "探究、儀式地點隱藏",
+      get = function() return MiliUI_BonusRollFilter and MiliUI_BonusRollFilter.GetOption("hideWorld") end,
+      set = function(v) if MiliUI_BonusRollFilter then MiliUI_BonusRollFilter.SetOption("hideWorld", v) end end },
+    { type = "text", label = "探究與儀式地點完成時不顯示，也涵蓋世界首領等其他開放世界內容。" },
+    { type = "dropdown", label = "傳奇鑰石（M+）",
+      items = {
+          { text = "全部顯示",                       value = "show" },
+          { text = "隱藏 +7（含）以下",              value = "low" },
+          { text = "全部隱藏",                       value = "all" },
+      },
+      get = function() return MiliUI_BonusRollFilter and MiliUI_BonusRollFilter.GetOption("mplusMode") end,
+      set = function(v) if MiliUI_BonusRollFilter then MiliUI_BonusRollFilter.SetOption("mplusMode", v) end end },
+    { type = "text", label = "預設隱藏 +7（含）以下：+8 以上完成時獎勵已是傳奇（Myth）軌道，"
+        .. "骰裝才有機會拿到傳奇品質，低層數的提示就不用跳出來了。" },
+    { type = "toggle", label = "團本普通難度（含）以下隱藏",
+      get = function() return MiliUI_BonusRollFilter and MiliUI_BonusRollFilter.GetOption("hideRaidNormal") end,
+      set = function(v) if MiliUI_BonusRollFilter then MiliUI_BonusRollFilter.SetOption("hideRaidNormal", v) end end },
+    { type = "text", label = "隨機、故事、普通難度的首領擊殺不顯示；英雄與傳奇難度照常顯示。" },
+
     { type = "header", label = "遊戲行為（強制覆蓋 CVar，每次載入時套用）" },
     { type = "dropdown", label = "點擊地板清除目標",
       items = {
