@@ -7,6 +7,7 @@ local A = Cell.animations
 local P = Cell.pixelPerfectFuncs
 
 local UnitIsConnected = UnitIsConnected
+local UnitIsVisible = UnitIsVisible
 local InCombatLockdown = InCombatLockdown
 local GetUnitName = GetUnitName
 local UnitGUID = UnitGUID
@@ -459,23 +460,32 @@ local function QuickAssist_UpdateTarget(self)
     end
 end
 
--- FIXME: BLIZZARD, IT'S BUGGY!
--- UNIT_IN_RANGE_UPDATE: unit, inRange
+-- ONE range path, whether the answer came from UNIT_IN_RANGE_UPDATE or from the sweep.
+--
+-- There used to be two: an event version that faded on EVERY call (no edge check, so it
+-- re-ran the animation whenever the event repeated) and a tick version that only acted on a
+-- change. The event version was also unreachable -- its registration was commented out --
+-- which is why the sweep was carrying the whole feature.
+--
+-- ⚠ The event only exists for GROUP members, and upstream's "FIXME: BLIZZARD, IT'S BUGGY!"
+-- sat right here, so the sweep stays as the correction net. It just runs at half the rate now.
+local IsInRange = F.IsInRange
 local function QuickAssist_UpdateInRange(self, ir)
     if not self.unit then return end
 
-    if ir then
-        A.FrameFadeIn(self, 0.25, self:GetAlpha(), 1)
+    local inRange
+    -- secret test FIRST, then the nil test: `ir ~= nil` is still a comparison and the payload
+    -- can arrive secret for an identity-restricted teammate
+    if F.IsValueNonSecret(ir) and ir ~= nil then
+        local visible = UnitIsVisible(self.unit)
+        if F.IsValueNonSecret(visible) and not visible then
+            inRange = false
+        else
+            inRange = ir and true or false
+        end
     else
-        A.FrameFadeOut(self, 0.25, self:GetAlpha(), styleTable["oorAlpha"] or 0.25)
+        inRange = IsInRange(self.unit)
     end
-end
-
-local IsInRange = F.IsInRange
-local function QuickAssist_UpdateInRange_OnTick(self)
-    if not self.unit then return end
-
-    local inRange = IsInRange(self.unit)
 
     self.inRange = inRange
     if Cell.loaded then
@@ -499,24 +509,39 @@ local function QuickAssist_UpdateAll(self)
     QuickAssist_UpdateHealth(self)
     QuickAssist_UpdateHealthColor(self)
     QuickAssist_UpdateTarget(self)
-    -- QuickAssist_UpdateInRange(self, IsInRange(self.unit))
-    QuickAssist_UpdateInRange_OnTick(self)
+    QuickAssist_UpdateInRange(self)
     QuickAssist_UpdateAuras(self)
 end
 
+-- Everything QuickAssist_OnEvent handles inside its `self.unit == unit` branch, so the
+-- engine can filter in C instead of waking every button for every unit in the world.
+-- UNIT_SPELLCAST_SUCCEEDED is the one that really hurt: with plain RegisterEvent it fires for
+-- EVERY cast by EVERY unit in range, into every QuickAssist button.
+-- (No displayedUnit here -- QuickAssist has no vehicle handling, so one token is the whole story.)
+local QA_SCOPED_EVENTS = {
+    "UNIT_HEALTH", "UNIT_MAXHEALTH",
+    "UNIT_AURA", "UNIT_SPELLCAST_SUCCEEDED",
+    "UNIT_CONNECTION", "UNIT_NAME_UPDATE",
+    "UNIT_IN_RANGE_UPDATE",
+}
+
+-- ⚠ Gated on _eventsRegistered: the secure header assigns units to HIDDEN buttons too, and
+-- registering there would resurrect events OnHide had just torn down.
+local function QuickAssist_RegisterScopedEvents(self)
+    if not self._eventsRegistered then return end
+    if type(self.unit) ~= "string" then return end
+    for i = 1, #QA_SCOPED_EVENTS do
+        self:RegisterUnitEvent(QA_SCOPED_EVENTS[i], self.unit)
+    end
+end
+
 local function QuickAssist_RegisterEvents(self)
+    self._eventsRegistered = true
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
-
-    self:RegisterEvent("UNIT_HEALTH")
-    self:RegisterEvent("UNIT_MAXHEALTH")
-
-    self:RegisterEvent("UNIT_AURA")
-    self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-
-    self:RegisterEvent("UNIT_CONNECTION") -- offline
-    self:RegisterEvent("UNIT_NAME_UPDATE") -- unknown target
-
     self:RegisterEvent("PLAYER_TARGET_CHANGED")
+
+    -- the unit-filtered ones, pointed at this button's token
+    QuickAssist_RegisterScopedEvents(self)
 
     if quickAssistReady then
         QuickAssist_UpdateAll(self)
@@ -525,6 +550,7 @@ end
 
 local function QuickAssist_UnregisterEvents(self)
     self:UnregisterAllEvents()
+    self._eventsRegistered = nil
 end
 
 local function QuickAssist_OnEvent(self, event, unit, arg, arg2)
@@ -564,15 +590,20 @@ local function QuickAssist_OnEvent(self, event, unit, arg, arg2)
     end
 end
 
+-- Shared tick driver membership; defined with the driver, below QuickAssist_OnTick.
+local QuickAssist_StartTicking, QuickAssist_StopTicking
+
 local function QuickAssist_OnShow(self)
     -- print(GetTime(), "OnShow", self:GetName())
     self._updateRequired = nil -- prevent QuickAssist_UpdateAll twice. when convert party <-> raid, GROUP_ROSTER_UPDATE fired.
     QuickAssist_RegisterEvents(self)
+    QuickAssist_StartTicking(self)
 end
 
 local function QuickAssist_OnHide(self)
     -- print(GetTime(), "OnHide", self:GetName())
     QuickAssist_UnregisterEvents(self)
+    QuickAssist_StopTicking(self)
     ResetAuraTables(self)
 end
 
@@ -603,7 +634,11 @@ local function QuickAssist_OnTick(self)
 
     self.__tickCount = e
 
-    QuickAssist_UpdateInRange_OnTick(self)
+    -- Range SWEEP, every other tick (0.5s): group members are already event-driven, this is
+    -- the correction net. See QuickAssist_UpdateInRange.
+    if e == 0 then
+        QuickAssist_UpdateInRange(self)
+    end
 
     if self._updateRequired then
         self._updateRequired = nil
@@ -611,13 +646,36 @@ local function QuickAssist_OnTick(self)
     end
 end
 
-local function QuickAssist_OnUpdate(self, elapsed)
-    local e = (self.__updateElapsed or 0) + elapsed
-    if e > 0.25 then
-        QuickAssist_OnTick(self)
-        e = 0
+-- One shared 0.25s ticker for every shown button, instead of an OnUpdate on each of them --
+-- the same change as the raid frames' shared tick driver, and for the same reason: the old
+-- shape paid a Lua call per button per FRAME just to accumulate elapsed, while the body it
+-- gated only ever ran four times a second. Membership rides OnShow/OnHide; the ticker cancels
+-- itself when the last button leaves, so a hidden QuickAssist costs nothing.
+--
+-- ⚠ Each button under pcall: a shared loop has none of the per-button failure isolation an
+-- individual OnUpdate gave away for free.
+local qaTicking = {}
+local qaTicker
+
+function QuickAssist_StartTicking(self)
+    qaTicking[self] = true
+    if not qaTicker then
+        qaTicker = C_Timer.NewTicker(0.25, function()
+            for b in pairs(qaTicking) do
+                local ok, err = pcall(QuickAssist_OnTick, b)
+                if not ok then F.Debug("QuickAssist tick |cffff0000FAILED:|r", b:GetName(), err) end
+            end
+        end)
     end
-    self.__updateElapsed = e
+end
+
+function QuickAssist_StopTicking(self)
+    if qaTicking[self] == nil then return end
+    qaTicking[self] = nil
+    if qaTicker and next(qaTicking) == nil then
+        qaTicker:Cancel()
+        qaTicker = nil
+    end
 end
 
 local function QuickAssist_OnSizeChanged(self)
@@ -629,7 +687,9 @@ local function QuickAssist_OnAttributeChanged(self, name, value)
     if name == "unit" then
         if self.unit ~= value then
             self.unit = value
-            -- self:RegisterUnitEvent("UNIT_IN_RANGE_UPDATE", value)
+            -- every scoped registration is still pointed at the PREVIOUS occupant; no-op
+            -- while hidden, OnShow registers from scratch
+            QuickAssist_RegisterScopedEvents(self)
             ResetAuraTables(self)
         end
 
@@ -728,7 +788,7 @@ function CellQuickAssist_OnLoad(button)
     button:HookScript("OnHide", QuickAssist_OnHide) -- click-castings: _onhide
     button:HookScript("OnEnter", QuickAssist_OnEnter) -- click-castings: _onenter
     button:HookScript("OnLeave", QuickAssist_OnLeave) -- click-castings: _onleave
-    button:SetScript("OnUpdate", QuickAssist_OnUpdate)
+    -- no OnUpdate: one shared C_Timer ticks every shown button (see QuickAssist_StartTicking)
     button:SetScript("OnSizeChanged", QuickAssist_OnSizeChanged)
     button:SetScript("OnEvent", QuickAssist_OnEvent)
     button:RegisterForClicks("AnyDown")
