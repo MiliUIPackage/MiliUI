@@ -54,4 +54,20 @@ metadata:
 "invalid order function"）。一律 `pcall` ＋ `v ~= v`（nan）／`v == math.huge` 檢查
 再用。
 
-實作在 [[project-miliui-perf-tab]]。相關：[[wow-frame-lifecycle-costs]]。
+## ⚠ 數字算在誰頭上，取決於 frame 是「誰建的」
+
+引擎把一個 script handler 的**整棵呼叫樹**，算在「當初呼叫 `CreateFrame` 建出那個
+frame 的執行脈絡」所屬的插件頭上。**closure 寫在哪個檔案不算數，誰呼叫 `SetScript`
+也不算數**——而且那個脈絡是像 taint 一樣從當下的引擎進入點繼承來的。
+
+實務後果：在 `OnInitialize` / `OnEnable` 裡建的 frame，跑的是母插件的生命週期派送，
+所以整個 session 都會算在**母插件**頭上。EUI 為此做了一個 90 個 frame 的池子在主
+chunk 先建好，之後所有事件宿主都用 `TakeShell()` 領走而不是 `CreateFrame`
+（`EUIStandaloneRaidFrames.lua` 的 shell pool，與 `_Ticker.lua` 的 `NewDriver`）。
+出處是他們 2026-07-26 的實測註解。
+
+兩個用途：(a) 自己的多資料夾插件要讓數字落在對的那個；(b) **看別人的數字時要知道
+這件事**——母子拆包的套組，子模組看起來很省有可能只是成本記到母插件身上了。
+
+實作在 [[project-miliui-perf-tab]]。相關：[[wow-frame-lifecycle-costs]]、
+[[wow-unitframe-event-dispatch-cost]]。
