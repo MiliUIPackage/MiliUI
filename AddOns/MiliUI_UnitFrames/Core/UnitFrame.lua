@@ -342,6 +342,12 @@ local PET_MENUS = { PET = true, OTHERPET = true, OTHERBATTLEPET = true }
 
 -- 會被誤判的 token。刻意用白名單：寵物家族的 token（pet / partypetN / raidpetN）
 -- 開寵物選單是對的，不能碰。
+--
+-- 為什麼剛好是這幾個：SECURE_ACTIONS.togglemenu 先拿 token 字串分類，比中就結束——
+-- partyN / bossN / focus / arenaN 都在那一段早退出，**一次 UnitIsUnit 都不呼叫**。
+-- 比不中的才會掉進 UnitIsUnit 鏈，而 TARGET 的判斷排在寵物家族**後面**，所以
+-- target / targettarget / focustarget 是會被誤判的那幾個。
+-- （focus 其實早退出、不會誤判，留著是防其他分類路徑。）
 local MENU_FIX_TOKENS = {
     target = true, targettarget = true, focus = true, focustarget = true,
 }
@@ -470,6 +476,13 @@ local function InstallMenuClassifierFix()
         local unit = contextData and contextData.unit
         if type(unit) ~= "string" then return end
         local lu = unit:lower()
+        -- ⚠ raidN / partyN 不是死碼，別清掉：**我們自己沒有隊伍／團隊框**（見
+        --   ns.UNIT_KEYS），這兩條是為了套組裡的 Cell。raidN 在
+        --   SECURE_ACTIONS.togglemenu 沒有早退出分支，跟 target 一樣會走完整條
+        --   UnitIsUnit 鏈而被誤判成寵物；partyN 走那條路是安全的（第一個分支就命中），
+        --   但暴雪自己的隊伍框是另一條分類路徑，所以一起留著。
+        --   這個掛勾是全域的，Cell 的團隊框右鍵也會經過這裡 —— 目前那是
+        --   Cell 團隊框唯一的補救，Cell 內部沒有自己的一份。
         if not (MENU_FIX_TOKENS[lu] or lu:match("^raid%d+$") or lu:match("^party%d+$")) then
             return
         end
@@ -519,9 +532,16 @@ function ns.SpawnUnitFrame(unit)
     -- 互動綁定（被點擊施法設定洗掉、或本來就沒有）的話，動作**靜默丟棄**，症狀是
     -- 「右鍵沒反應」而且只有部分玩家中。SecureActionButton_OnClick 沒有這道閘，
     -- 所以右鍵轉成巨集 /click 到一顆隱藏代理鈕，由代理跑 togglemenu（一樣是安全開啟）。
-    -- ⚠ 不能用 type="click" 委派：12.1 的 click 安全動作本身壞掉
-    --   （SecureTemplates.lua 把按鈕字串當 frame 傳給 HasAnyForbiddenAspects），
-    --   /click 巨集打的是 SecureActionButton_OnClick，不經過那條路。
+    -- 閘的判準是 C_ClickBindings.GetBindingType(button, modifiers) 回不回 None
+    -- （SecureTemplates.lua 的 expectBinding 那三行），**沒有按鍵編號豁免**——平常
+    -- 救到右鍵的是帳號還留著原廠互動綁定，不是「它是第 2 鍵」。
+    -- ⚠ 更正（2026-08-27 實測）：type="click" 委派其實也能繞過去，但 clickbutton
+    --   **必須傳 frame 物件**——SECURE_ACTIONS.click 會對它呼叫 HasAccessConstraints()
+    --   與 HasAnyForbiddenAspects()，傳按鈕**名字串**才會炸。這裡原本記成「12.1 的
+    --   click 動作壞掉」，錯在當初傳的是名字串（跟隔壁 macrotext 同一個變數）。
+    --   兩條路都通，這裡維持巨集：macrotext 建框時寫死一次就結束，不像 clickbutton
+    --   那樣每次重套點擊施法都要重鋪（而且戰鬥中鋪不了會退回被閘住的直接動作），
+    --   也少那兩道引擎檢查。Cell 走的是 clickbutton 那條，見它的 ClickCastings.lua。
     local proxyName = ns.GLOBAL_NAMES[unit] .. "MenuProxy"
     local proxy = CreateFrame("Button", proxyName, uf, "SecureActionButtonTemplate")
     proxy:SetSize(1, 1)
