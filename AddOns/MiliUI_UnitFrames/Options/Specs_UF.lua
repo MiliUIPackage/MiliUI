@@ -27,6 +27,8 @@ Specs.COLOR_METHOD_ITEMS = {
     { text = L["Class color (dark)"],  value = "classdark" },
     { text = L["Reaction color"],        value = "reaction" },
     { text = L["Reaction color (dark)"],  value = "reactiondark" },
+    { text = L["Class first"],         value = "classfirst" },
+    { text = L["Class first (dark)"],  value = "classfirstdark" },
     { text = L["Class / reaction"],    value = "classreaction" },
     { text = L["Class / reaction (dark)"], value = "classreactiondark" },
     { text = L["Power color"],        value = "power" },

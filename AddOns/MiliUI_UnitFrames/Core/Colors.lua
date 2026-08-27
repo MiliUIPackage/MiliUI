@@ -37,25 +37,46 @@ end
 -- C_ClassColor.GetClassColor(secretClass) 拿色物件，分量是秘密，只能餵貼圖 SetVertexColor
 -- （Platynator Colors.lua:290 同法）。呼叫端要用 IsSecret 判斷後決定能不能做暗色/塞文字色碼。
 local GetClassColor = C_ClassColor and C_ClassColor.GetClassColor
-methods.class = function(uf, edb, value, choice, alphaKey)
-    local a = alphaOf(edb, alphaKey, 1)
+
+-- 前向宣告：methods.classreaction 排在定義之前就用到它
+-- （檔案層的 local 一定要先宣告，不然抓到的是同名全域 nil）
+local ClassOrReaction
+
+-- 職業色的三個分量（**可能是秘密值**），拿不到回 nil。
+--
+-- ⚠ cache.classFile 只在 cache.isPlayer 為真時才填，而 isPlayer 對**身分受限**的單位
+-- （PvP 敵方玩家、不同隊的路人）抽不出明文 ⇒ 存的是 false ⇒ classFile 是 nil。
+-- 這就是「PvP 看不到職業色」的成因：不是查不到職業，是我們自己先把路封了。
+-- 所以受限時直接問 UnitClassBase 拿秘密字串，交給官方顯示管道換成顏色。
+--
+-- ⚠⚠ 這支**不保證回來的是玩家的**顏色：UnitClassBase 對非玩家會回一個假職業
+-- （惡魔僕從回 ROGUE，見筆記 wow-unitclassbase-npc-returns-rogue）。
+-- 呼叫端必須自己決定「這單位算不算玩家」——見下面的 ClassOrReaction。
+local function ClassRGB(uf)
     local c = uf.cache.classFile and RAID_CLASS_COLORS[uf.cache.classFile]
-    if c then return c.r, c.g, c.b, a end
-    -- 寵物／載具沒有自己的職業（UnitClassBase 回 nil），吃主人的 —— 少了這段就會一路
-    -- 掉到最後的 WHITE，寵物框變成灰白的沒有職業色（Cell 也是給主人的職業色）
+    if c then return c.r, c.g, c.b end
+    -- 寵物／載具沒有自己的職業，吃主人的（Cell 也是給主人的職業色）
     local owner = uf.cache.ownerClass
     if owner then
         c = RAID_CLASS_COLORS[owner]
-        if c then return c.r, c.g, c.b, a end
+        if c then return c.r, c.g, c.b end
     end
-    if uf.cache.pc and not uf.isPreview and GetClassColor then
-        local raw = UnitClassBase(uf.unit)
-        if raw ~= nil and ns.IsSecret(raw) then          -- nil-ness 對秘密值可讀
-            local ok, col = pcall(GetClassColor, raw)
-            if ok and col then return col.r, col.g, col.b, a end
-        end
-    end
-    return WHITE.r, WHITE.g, WHITE.b, a
+    if uf.isPreview or not GetClassColor then return nil end
+    local raw = UnitClassBase(uf.unit)
+    if raw == nil then return nil end                -- nil-ness 對秘密值可讀
+    local ok, col = pcall(GetClassColor, raw)
+    if ok and col then return col.r, col.g, col.b end
+    return nil
+end
+
+-- 職業色；拿不到就退陣營色。
+-- ⚠ 以前這裡退的是 WHITE —— 症狀是「上色方式選職業，打 NPC 時血條整條純白」。
+-- 陣營色至少還分得出敵我，比純白有用。
+methods.class = function(uf, edb, value, choice, alphaKey)
+    local a = alphaOf(edb, alphaKey, 1)
+    local r, g, b = ClassRGB(uf)
+    if r then return r, g, b, a end
+    return methods.reaction(uf, edb, value, choice, alphaKey)
 end
 methods.classdark = function(uf, edb, value, choice, alphaKey)
     return Dim(methods.class(uf, edb, value, choice, alphaKey))
@@ -86,23 +107,72 @@ end
 -- 不排除的話，寵物的 UnitReaction 只要回 4（中立）就會被塗成陣營黃，而
 -- 「自己的寵物用中立色」沒有任何意義 —— 而且 classreaction 會在這裡短路，
 -- 根本走不到 methods.class 的 ownerClass 那段。
+-- ⚠ 這裡**不能**再用 `not cache.pc` 當「不是玩家」：pc 對受限單位是 false，
+-- 於是不同隊的友方玩家（路人）也被當成 NPC 塗成陣營色。改成只認明文的敵對／中立，
+-- 其餘一律交給 ClassOrReaction —— 它自己會用引擎的秘密布林分辨玩家與小怪。
 local function reactish(cache)
     if cache.ownerClass then return false end
-    return not cache.pc or cache.reaction == 2 or cache.reaction == 4
+    return cache.reaction == 2 or cache.reaction == 4
 end
 methods.classreaction = function(uf, edb, value, choice, alphaKey)
-    return methods[reactish(uf.cache) and "reaction" or "class"](uf, edb, value, choice, alphaKey)
+    if reactish(uf.cache) then
+        return methods.reaction(uf, edb, value, choice, alphaKey)
+    end
+    return ClassOrReaction(uf, edb, value, choice, alphaKey)
 end
 methods.classreactiondark = function(uf, edb, value, choice, alphaKey)
-    return methods[reactish(uf.cache) and "reactiondark" or "classdark"](uf, edb, value, choice, alphaKey)
+    if reactish(uf.cache) then
+        return methods.reactiondark(uf, edb, value, choice, alphaKey)
+    end
+    return Dim(ClassOrReaction(uf, edb, value, choice, alphaKey))
 end
 
-methods.reactionnpc = function(uf, edb, value, choice, alphaKey)
-    return methods[uf.cache.pc and "class" or "reaction"](uf, edb, value, choice, alphaKey)
+------------------------------------------------------------
+-- 職業優先：是玩家就職業色，其餘（小怪、寵物…）陣營色
+--
+-- ⚠ 「是不是玩家」在受限單位上是**秘密布林**，Lua 不能 if 它。三段處理：
+--   明文 false → 直接陣營色
+--   明文 true  → 直接職業色（保持明文，dark 變體才暗得下去）
+--   抽不出來   → 兩組顏色都算好，交給引擎用那顆秘密布林挑
+--                （C_CurveUtil.EvaluateColorValueFromBoolean，ns.Curves.BoolColor 包好的）
+-- 第三段正是 PvP 敵方玩家與路人會走的那條 —— 也只有這條救得到「職業色出不來」。
+------------------------------------------------------------
+ClassOrReaction = function(uf, edb, value, choice, alphaKey)
+    local a = alphaOf(edb, alphaKey, 1)
+    -- 自己的寵物／載具直接吃主人職業色，不必問它是不是玩家（它本來就不是）
+    if uf.cache.ownerClass then
+        local c = RAID_CLASS_COLORS[uf.cache.ownerClass]
+        if c then return c.r, c.g, c.b, a end
+    end
+
+    local rr, rg, rb = methods.reaction(uf, edb, value, choice, alphaKey)
+    if uf.isPreview then
+        if uf.cache.isPlayer then
+            local cr, cg, cb = ClassRGB(uf)
+            if cr then return cr, cg, cb, a end
+        end
+        return rr, rg, rb, a
+    end
+
+    local plain = ns.ToBool(UnitIsPlayer(uf.unit))
+    if plain == false then return rr, rg, rb, a end
+
+    local cr, cg, cb = ClassRGB(uf)
+    if not cr then return rr, rg, rb, a end
+    if plain == true then return cr, cg, cb, a end
+
+    local r, g, b = ns.Curves.BoolColor(UnitIsPlayer(uf.unit), cr, cg, cb, rr, rg, rb)
+    return r, g, b, a
 end
-methods.reactionnpcdark = function(uf, edb, value, choice, alphaKey)
-    return methods[uf.cache.pc and "classdark" or "reactiondark"](uf, edb, value, choice, alphaKey)
+
+methods.classfirst = ClassOrReaction
+methods.classfirstdark = function(uf, edb, value, choice, alphaKey)
+    return Dim(ClassOrReaction(uf, edb, value, choice, alphaKey))
 end
+
+-- 舊名，語意相同（沒出現在設定下拉裡，留著給既有設定檔用）
+methods.reactionnpc = ClassOrReaction
+methods.reactionnpcdark = methods.classfirstdark
 
 local GetDifficultyColor = GetQuestDifficultyColor or function() return WHITE end
 methods.difficulty = function(uf, edb, value, choice, alphaKey)
