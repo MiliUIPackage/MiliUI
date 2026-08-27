@@ -1190,6 +1190,35 @@ end
 -- end
 
 -------------------------------------------------
+-- anchor moving with combat release (fix from MiliUI)
+-------------------------------------------------
+-- 被 secure 框錨定（或本身 secure）的 anchor 在戰鬥中屬保護框，拖曳中進戰必須趕在
+-- lockdown 生效前（PLAYER_REGEN_DISABLED 當下）強制 StopMovingOrSizing，
+-- 否則 anchor 會黏著游標且整場戰鬥都無法釋放
+local movingAnchor, movingOnStop
+
+function F.StartAnchorMoving(anchor, onStop)
+    if InCombatLockdown() then return end
+    anchor:StartMoving()
+    anchor:SetUserPlaced(false)
+    movingAnchor, movingOnStop = anchor, onStop
+end
+
+function F.StopAnchorMoving()
+    if not movingAnchor then return end
+    local anchor, onStop = movingAnchor, movingOnStop
+    movingAnchor, movingOnStop = nil, nil
+    anchor:StopMovingOrSizing()
+    if onStop then onStop() end
+end
+
+local combatRelease = CreateFrame("Frame")
+combatRelease:RegisterEvent("PLAYER_REGEN_DISABLED")
+combatRelease:SetScript("OnEvent", function()
+    F.StopAnchorMoving()
+end)
+
+-------------------------------------------------
 -- global functions
 -------------------------------------------------
 local UnitGUID = UnitGUID

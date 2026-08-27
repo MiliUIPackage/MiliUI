@@ -610,13 +610,13 @@ local function UpdateLayoutPreview()
             -- drag
             layoutPreviewButtons[i]:RegisterForDrag("LeftButton")
             layoutPreviewButtons[i]:SetScript("OnDragStart", function()
-                CellQuickAssistAnchorFrame:StartMoving()
-                CellQuickAssistAnchorFrame:SetUserPlaced(false)
+                F.StartAnchorMoving(CellQuickAssistAnchorFrame, function()
+                    P.SavePosition(CellQuickAssistAnchorFrame, layoutTable["position"])
+                end)
             end)
 
             layoutPreviewButtons[i]:SetScript("OnDragStop", function()
-                CellQuickAssistAnchorFrame:StopMovingOrSizing()
-                P.SavePosition(CellQuickAssistAnchorFrame, layoutTable["position"])
+                F.StopAnchorMoving()
             end)
         end
     end

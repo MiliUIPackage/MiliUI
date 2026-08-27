@@ -139,21 +139,22 @@ local function CreateLayoutPreview()
 
     layoutPreviewAnchor:SetScript("OnDragStart", function()
         if selectedLayout == Cell.vars.currentLayout then
-            Cell.frames.anchorFrame:StartMoving()
-            Cell.frames.anchorFrame:SetUserPlaced(false)
+            F.StartAnchorMoving(Cell.frames.anchorFrame, function()
+                P.SavePosition(layoutPreviewAnchor, selectedLayoutTable["main"]["position"])
+            end)
         else
-        layoutPreviewAnchor:StartMoving()
-        layoutPreviewAnchor:SetUserPlaced(false)
+            layoutPreviewAnchor:StartMoving()
+            layoutPreviewAnchor:SetUserPlaced(false)
         end
     end)
 
     layoutPreviewAnchor:SetScript("OnDragStop", function()
         if selectedLayout == Cell.vars.currentLayout then
-            Cell.frames.anchorFrame:StopMovingOrSizing()
+            F.StopAnchorMoving()
         else
-        layoutPreviewAnchor:StopMovingOrSizing()
+            layoutPreviewAnchor:StopMovingOrSizing()
+            P.SavePosition(layoutPreviewAnchor, selectedLayoutTable["main"]["position"])
         end
-        P.SavePosition(layoutPreviewAnchor, selectedLayoutTable["main"]["position"])
     end)
 
     layoutPreviewName = layoutPreviewAnchor:CreateFontString(nil, "OVERLAY", "CELL_FONT_CLASS_TITLE")

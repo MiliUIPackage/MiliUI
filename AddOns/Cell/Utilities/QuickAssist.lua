@@ -67,13 +67,13 @@ config:SetScript("OnClick", function(self, button)
 end)
 
 config:SetScript("OnDragStart", function()
-    anchorFrame:StartMoving()
-    anchorFrame:SetUserPlaced(false)
+    F.StartAnchorMoving(anchorFrame, function()
+        P.SavePosition(anchorFrame, layoutTable["position"])
+    end)
 end)
 
 config:SetScript("OnDragStop", function()
-    anchorFrame:StopMovingOrSizing()
-    P.SavePosition(anchorFrame, layoutTable["position"])
+    F.StopAnchorMoving()
 end)
 
 config:HookScript("OnEnter", function()

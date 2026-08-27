@@ -859,15 +859,15 @@ local function RegisterDrag(frame)
             targetFrame.label:SetText(L["Unit"])
 
         elseif IsAltKeyDown() then --! move
-            quickCastFrame:StartMoving()
-            quickCastFrame:SetUserPlaced(false)
+            F.StartAnchorMoving(quickCastFrame, function()
+                if not InCombatLockdown() then P.PixelPerfectPoint(quickCastFrame) end
+                P.SavePosition(quickCastFrame, quickCastTable["position"])
+            end)
         end
     end)
 
     frame:SetScript("OnDragStop", function()
-        quickCastFrame:StopMovingOrSizing()
-        if not InCombatLockdown() then P.PixelPerfectPoint(quickCastFrame) end
-        P.SavePosition(quickCastFrame, quickCastTable["position"])
+        F.StopAnchorMoving()
 
         --! target
         if targetFrame.isMoving then
@@ -1038,14 +1038,14 @@ local function CreatePreviewButton(b)
     p:EnableMouse(true)
 
     p:SetScript("OnDragStart", function()
-        quickCastFrame:StartMoving()
-        quickCastFrame:SetUserPlaced(false)
+        F.StartAnchorMoving(quickCastFrame, function()
+            if not InCombatLockdown() then P.PixelPerfectPoint(quickCastFrame) end
+            P.SavePosition(quickCastFrame, quickCastTable["position"])
+        end)
     end)
 
     p:SetScript("OnDragStop", function()
-        quickCastFrame:StopMovingOrSizing()
-        if not InCombatLockdown() then P.PixelPerfectPoint(quickCastFrame) end
-        P.SavePosition(quickCastFrame, quickCastTable["position"])
+        F.StopAnchorMoving()
     end)
 end
 
