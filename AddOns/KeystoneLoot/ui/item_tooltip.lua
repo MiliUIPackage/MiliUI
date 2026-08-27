@@ -46,9 +46,9 @@ local function GetSourceInfo(itemId)
     end
 end
 
-local function OnTooltipSetItem(tooltip)
+local function OnTooltipSetItem(Tooltip)
     -- GameTooltip and ItemRefTooltip only
-    if (tooltip ~= GameTooltip and tooltip ~= ItemRefTooltip) then
+    if (Tooltip ~= GameTooltip and Tooltip ~= ItemRefTooltip) then
         return;
     end
 
@@ -57,12 +57,12 @@ local function OnTooltipSetItem(tooltip)
         return;
     end
 
-    if (tooltip.KeystoneLootOwned) then
+    if (Tooltip.KeystoneLootOwned) then
         return;
     end
 
     -- Get item link from tooltip
-    local _, itemLink = tooltip:GetItem();
+    local _, itemLink = Tooltip:GetItem();
     if (not itemLink) then
         return;
     end
@@ -116,15 +116,15 @@ local function OnTooltipSetItem(tooltip)
     local _, _, _, _, _, _, _, currentInstanceId = GetInstanceInfo();
     local inCorrectInstance = currentInstanceId == sourceInfo.instanceId;
 
-    tooltip:AddLine(" ");
-    tooltip:AddLine("|cff9d5db8KeystoneLoot|r");
-    tooltip:AddLine(string.format("|T%s:16:16|t %s (%s)", Favorites:GetTierIcon(tier), Favorites.TIER_NAME[tier], specText));
+    Tooltip:AddLine(" ");
+    Tooltip:AddLine("|cff9d5db8KeystoneLoot|r");
+    Tooltip:AddLine(string.format("|T%s:16:16|t %s (%s)", Favorites:GetTierIcon(tier), Favorites.TIER_NAME[tier], specText));
 
     if (not inCorrectInstance) then
-        tooltip:AddLine(sourceName);
+        Tooltip:AddLine(sourceName);
     end
 
-    tooltip:Show();
+    Tooltip:Show();
 end
 
 -- Register tooltip hook

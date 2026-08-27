@@ -167,8 +167,8 @@ function KeystoneLootSlotDropdownMixin:Init()
             if (not self:SlotHasItems(slotId)) then
                 checkbox:SetEnabled(false);
 
-                checkbox:SetTooltip(function(tooltip, elementDescription)
-                    GameTooltip_AddColoredLine(tooltip, BROWSE_NO_RESULTS, RED_FONT_COLOR);
+                checkbox:SetTooltip(function(Tooltip, elementDescription)
+                    GameTooltip_AddColoredLine(Tooltip, BROWSE_NO_RESULTS, RED_FONT_COLOR);
                 end);
             end
         end

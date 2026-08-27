@@ -48,8 +48,8 @@ function KeystoneLootCharacterDropdownMixin:Init()
             local radio = rootDescription:CreateRadio(label, IsSelected, SetSelected, data);
 
             if (data.isHidden) then
-                radio:SetTooltip(function(tooltip, elementDescription)
-                    tooltip:SetText(L["This character is hidden."]);
+                radio:SetTooltip(function(Tooltip, elementDescription)
+                    Tooltip:SetText(L["This character is hidden."]);
                 end);
             end
         end

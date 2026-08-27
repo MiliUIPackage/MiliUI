@@ -106,9 +106,9 @@ function Keystone:GetLootReminderItemList(challengeModeId)
     -- Collect all favorited items across all specs (deduplicated)
     local favoriteItems = {};
     for specId in pairs(specHasFavorite) do
-        for itemId, itemInfo in pairs(sourceFavorites[specId]) do
+        for itemId in pairs(sourceFavorites[specId]) do
             if (not favoriteItems[itemId]) then
-                favoriteItems[itemId] = itemInfo.icon;
+                favoriteItems[itemId] = Query:GetItemIcon(itemId);
             end
         end
     end

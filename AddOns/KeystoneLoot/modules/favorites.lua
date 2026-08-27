@@ -571,6 +571,33 @@ function Favorites:GetEnchant(itemId, specId)
     return GetExtras(itemId, "enchant", specId);
 end
 
+function Favorites:GetCatalystItemForSlot(slotId)
+    local characterKey = Character:GetSelectedKey();
+    local favorites    = DB:Get("favorites");
+
+    if (not slotId or not favorites or not favorites[characterKey]) then
+        return nil;
+    end
+
+    local bestItemId;
+
+    for sourceId, sourceData in pairs(favorites[characterKey]) do
+        if (sourceId ~= "catalyst") then
+            for _, specData in pairs(sourceData) do
+                for itemId, itemInfo in pairs(specData) do
+                    if (itemInfo.tier == self.TIER_CATALYST
+                            and self:GetItemSlotId(itemId) == slotId
+                            and (not bestItemId or itemId < bestItemId)) then
+                        bestItemId = itemId;
+                    end
+                end
+            end
+        end
+    end
+
+    return bestItemId;
+end
+
 function Favorites:SetTier(itemId, specId, tier, characterKey)
     if (not itemId or not self:IsTierAllowedForItem(tier, itemId)) then
         return false;

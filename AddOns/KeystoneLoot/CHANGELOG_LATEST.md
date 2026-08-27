@@ -1,3 +1,6 @@
+## Bugfixes
+- Catalyst tooltips keep Blizzard's token values and list the catalyst result separately
+
 ## Improvements
-- Added Baganator for the icon buttons. All credit for this goes to @WanderingFox - Thanks!
-- Update the favorite icon right away when a favorite changes
+- Show the favorite icon in EllesmereUI Bags
+- Optional EllesmereUI skin when the addon is installed

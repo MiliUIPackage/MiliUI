@@ -4,9 +4,9 @@ local Keystone = KeystoneLoot.Keystone;
 local DB = KeystoneLoot.DB;
 local L = KeystoneLoot.L;
 
-local function OnTooltipSetItem(tooltip)
+local function OnTooltipSetItem(Tooltip)
     -- GameTooltip and ItemRefTooltip only
-    if (tooltip ~= GameTooltip and tooltip ~= ItemRefTooltip) then
+    if (Tooltip ~= GameTooltip and Tooltip ~= ItemRefTooltip) then
         return;
     end
 
@@ -16,7 +16,7 @@ local function OnTooltipSetItem(tooltip)
     end
 
     -- Get item link from tooltip
-    local _, itemLink = tooltip:GetItem();
+    local _, itemLink = Tooltip:GetItem();
     if (not itemLink) then
         return;
     end
@@ -41,21 +41,21 @@ local function OnTooltipSetItem(tooltip)
     end
 
     -- Add to tooltip
-    tooltip:AddLine(" ");
-    tooltip:AddLine("|cff9d5db8KeystoneLoot|r");
-    tooltip:AddDoubleLine(
+    Tooltip:AddLine(" ");
+    Tooltip:AddLine("|cff9d5db8KeystoneLoot|r");
+    Tooltip:AddDoubleLine(
         LOOT,
         rewards.endOfRun.level .. " (" .. rewards.endOfRun.rank .. ")",
         1, 1, 1,
         1, 1, 1
     );
-    tooltip:AddDoubleLine(
+    Tooltip:AddDoubleLine(
         L["Great Vault"],
         rewards.greatVault.level .. " (" .. rewards.greatVault.rank .. ")",
         1, 1, 1,
         1, 1, 1
     );
-    tooltip:Show();
+    Tooltip:Show();
 end
 
 -- Register tooltip hook

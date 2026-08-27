@@ -6,6 +6,7 @@ local Favorites = KeystoneLoot.Favorites;
 local Character = KeystoneLoot.Character;
 local Query = KeystoneLoot.Query;
 local Voidcore = KeystoneLoot.Voidcore;
+local CopyPopup = KeystoneLoot.CopyPopup;
 local L = KeystoneLoot.L;
 
 local STAT_HIGHLIGHT_KEYS = {
@@ -14,6 +15,63 @@ local STAT_HIGHLIGHT_KEYS = {
     [2] = "mastery",
     [3] = "versatility"
 };
+
+local SECONDARY_STAT_NAMES = {
+    [ITEM_MOD_CRIT_RATING_SHORT] = true,
+    [ITEM_MOD_HASTE_RATING_SHORT] = true,
+    [ITEM_MOD_MASTERY_RATING_SHORT] = true,
+    [ITEM_MOD_VERSATILITY] = true
+};
+
+local function GetCopyItemIds(itemLink)
+    local enchantId, gem1, gem2, gem3, gem4 = string.match(itemLink, "^item:%d+:(%d*):(%d*):(%d*):(%d*):(%d*)");
+    local itemIds = {};
+
+    local enchantItemId = KeystoneLoot.EnchantDatabase[tonumber(enchantId)];
+    if (enchantItemId) then
+        table.insert(itemIds, enchantItemId);
+    end
+
+    for _, gemId in ipairs({ gem1, gem2, gem3, gem4 }) do
+        if (gemId and gemId ~= "") then
+            table.insert(itemIds, gemId);
+        end
+    end
+
+    return itemIds;
+end
+
+local function PreloadCopyItems(itemLink)
+    for _, copyItemId in ipairs(GetCopyItemIds(itemLink)) do
+        if (not C_Item.IsItemDataCachedByID(copyItemId)) then
+            C_Item.RequestLoadItemDataByID(copyItemId);
+        end
+    end
+end
+
+local function AddCopyEntries(rootDescription, itemId)
+    local names = {};
+
+    for _, copyItemId in ipairs(GetCopyItemIds(Upgrade:BuildItemLink(itemId))) do
+        local name = C_Item.GetItemInfo(copyItemId);
+        if (name) then
+            table.insert(names, name);
+        end
+    end
+
+    if (#names == 0) then
+        return;
+    end
+
+    rootDescription:CreateDivider();
+    rootDescription:CreateTitle(COPY_NAME);
+
+    for _, name in ipairs(names) do
+        rootDescription:CreateButton(name, function()
+            CopyPopup:Show(name);
+        end);
+    end
+end
 
 local function GenerateContextMenu(Button, rootDescription, specId, sourceId, currentTier)
     local itemId = Button.itemId;
@@ -40,7 +98,6 @@ local function GenerateContextMenu(Button, rootDescription, specId, sourceId, cu
     end
 
     if (currentTier > 0) then
-        rootDescription:CreateDivider();
         rootDescription:CreateButton(REMOVE, function()
             Favorites:Remove(itemId, specId);
 
@@ -49,22 +106,22 @@ local function GenerateContextMenu(Button, rootDescription, specId, sourceId, cu
         end);
     end
 
-    if (not Voidcore:IsEligible(itemId)) then
-        return;
+    if (Voidcore:IsEligible(itemId)) then
+        local function IsVoidcoreUsed()
+            return Voidcore:IsUsed(itemId);
+        end
+
+        local function SetVoidcoreUsed()
+            Voidcore:SetUsed(itemId, not Voidcore:IsUsed(itemId));
+            Button:UpdateVoidcoreIcon();
+        end
+
+        rootDescription:CreateDivider();
+        rootDescription:CreateTitle(BONUS_LOOT_LABEL);
+        rootDescription:CreateCheckbox(L["Voidcore used"], IsVoidcoreUsed, SetVoidcoreUsed);
     end
 
-    local function IsVoidcoreUsed()
-        return Voidcore:IsUsed(itemId);
-    end
-
-    local function SetVoidcoreUsed()
-        Voidcore:SetUsed(itemId, not Voidcore:IsUsed(itemId));
-        Button:UpdateVoidcoreIcon();
-    end
-
-    rootDescription:CreateDivider();
-    rootDescription:CreateTitle(BONUS_LOOT_LABEL);
-    rootDescription:CreateCheckbox(L["Voidcore used"], IsVoidcoreUsed, SetVoidcoreUsed);
+    AddCopyEntries(rootDescription, itemId);
 end
 
 local function GetFavoritesSpecId()
@@ -134,6 +191,100 @@ local function AddSpecLinesToTooltip(itemId)
 
     GameTooltip:AddLine(" ");
     GameTooltip:AddLine("|A:quest-important-available:16:16:0:0|a " .. line, nil, nil, nil, true);
+end
+
+local function GetSecondaryStatName(text)
+    local statName = string.match(text or "", "^%+[%d%.,]+ (.+)$");
+
+    return statName and SECONDARY_STAT_NAMES[statName] and statName or nil;
+end
+
+local function GetBaseItem(itemId)
+    local catalystItem = KeystoneLoot.CatalystDatabase[itemId];
+    local baseItemId = catalystItem and Favorites:GetCatalystItemForSlot(catalystItem.slotId);
+    if (not baseItemId) then
+        return nil;
+    end
+
+    if (not C_Item.IsItemDataCachedByID(baseItemId)) then
+        C_Item.RequestLoadItemDataByID(baseItemId);
+        return nil;
+    end
+
+    local data = C_TooltipInfo.GetHyperlink(Upgrade:BuildItemLink(baseItemId));
+    if (not data) then
+        return nil;
+    end
+
+    local statLines = {};
+    for _, lineData in ipairs(data.lines) do
+        if (GetSecondaryStatName(lineData.leftText)) then
+            table.insert(statLines, lineData.leftText);
+        end
+    end
+
+    if (#statLines == 0) then
+        return nil;
+    end
+
+    return C_Item.GetItemInfo(baseItemId), statLines;
+end
+
+local function CountSecondaryStatLines(itemLink)
+    local data = C_TooltipInfo.GetHyperlink(itemLink);
+    if (not data) then
+        return 0;
+    end
+
+    local count = 0;
+    for _, lineData in ipairs(data.lines) do
+        if (GetSecondaryStatName(lineData.leftText)) then
+            count = count + 1;
+        end
+    end
+
+    return count;
+end
+
+local function SetCatalystTooltip(itemId, itemLink)
+    local baseName, statLines = GetBaseItem(itemId);
+    local lastStatLine = CountSecondaryStatLines(itemLink);
+    local Info = CreateBaseTooltipInfo("GetHyperlink", itemLink);
+    local index = 0;
+
+    Info.linePreCall = function(Tooltip, lineData)
+        if (not GetSecondaryStatName(lineData.leftText)) then
+            return;
+        end
+
+        index = index + 1;
+        if (index == 1) then
+            Tooltip:AddLine(" ");
+            Tooltip:AddLine(string.format("|cff9d5db8%s:|r", L["Tier token"]));
+        end
+    end;
+
+    Info.linePostCall = function(Tooltip, lineData)
+        if (index ~= lastStatLine or not GetSecondaryStatName(lineData.leftText)) then
+            return;
+        end
+
+        local color = lineData.leftColor or NORMAL_FONT_COLOR;
+
+        Tooltip:AddLine(" ");
+        Tooltip:AddLine(string.format("|cff9d5db8%s:%s|r", L["Catalyst"], baseName and (" " .. baseName) or ""));
+
+        if (not statLines) then
+            Tooltip:AddLine(L["+Secondary stats of the base item"], color:GetRGB());
+            return;
+        end
+
+        for _, statLine in ipairs(statLines) do
+            Tooltip:AddLine(statLine, color:GetRGB());
+        end
+    end;
+
+    GameTooltip:ProcessInfo(Info);
 end
 
 KeystoneLootLootIconButtonMixin = {};
@@ -248,8 +399,18 @@ function KeystoneLootLootIconButtonMixin:OnEnter()
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT", 0, 12);
     end
 
+    local itemLink = Upgrade:BuildItemLink(self.itemId);
+
+    PreloadCopyItems(itemLink);
+
     GameTooltip.KeystoneLootOwned = true;
-    GameTooltip:SetHyperlink(Upgrade:BuildItemLink(self.itemId));
+
+    if (KeystoneLoot.CatalystDatabase[self.itemId]) then
+        SetCatalystTooltip(self.itemId, itemLink);
+    else
+        GameTooltip:SetHyperlink(itemLink);
+    end
+
     AddSpecLinesToTooltip(self.itemId);
     GameTooltip:Show();
 

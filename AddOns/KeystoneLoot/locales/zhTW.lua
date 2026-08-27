@@ -8,7 +8,7 @@ local L = KeystoneLoot.L;
 
 -- keystoneloot_frame.lua
 L["%s (%s Season %d)"] = "%s（%s 第 %d 賽季）";
-L["Import BIS items from |cnACCOUNT_WIDE_FONT_COLOR:www.keystoneloot.io|r"] = "從 |cnACCOUNT_WIDE_FONT_COLOR:www.keystoneloot.io|r 匯入 BIS 物品";
+L["Import BIS items from %s"] = "從 %s 匯入 BIS 物品";
 
 -- itemlevel_dropdown.lua
 L["Veteran"] = "精兵";
@@ -78,6 +78,11 @@ L["Nice to have"] = "有更好";
 L["Must have"] = "必須取得";
 L["Best in Slot"] = "最佳裝備";
 L["Catalyst"] = "催化器";
+L["+Secondary stats of the base item"] = "+基礎物品的副屬性";
+L["Tier token"] = "套裝標記";
+
+-- copy_popup.lua
+L["Press CTRL+C to copy"] = "按 CTRL+C 複製";
 
 -- loot_reminder_frame.lua
 L["Correct loot specialization set?"] = "戰利品專精的設定是否正確？";

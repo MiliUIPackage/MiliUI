@@ -136,13 +136,7 @@ function Upgrade:BuildItemLink(itemId)
     -- 6. Always add 1674 (epic)
     table.insert(bonusIds, 1674);
 
-    -- 7. Midnight Season 1 bonus rings and amulets
-    local _, _, _, itemEquipLoc = C_Item.GetItemInfoInstant(itemId);
-    if (itemEquipLoc == "INVTYPE_FINGER" or itemEquipLoc == "INVTYPE_NECK") then
-        table.insert(bonusIds, 13534);
-    end
-
-    -- 8. Optional enchant and/or gems from favorites
+    -- 7. Optional enchant and/or gems from favorites
     local enchant = Favorites:GetEnchant(itemId, specId) or "";
     local gems    = Favorites:GetGems(itemId, specId);
     local gem1    = gems and gems[1] or "";
@@ -150,6 +144,14 @@ function Upgrade:BuildItemLink(itemId)
     local gem3    = gems and gems[3] or "";
     local gem4    = gems and gems[4] or "";
     local extras  = string.format("%s:%s:%s:%s:%s", enchant, gem1, gem2, gem3, gem4);
+
+    -- 8. Midnight Season 2 bonus rings and amulets
+    local _, _, _, itemEquipLoc = C_Item.GetItemInfoInstant(itemId);
+    if (
+            gem1 == "" and gem2 == "" and gem3 == "" and gem4 == ""
+            and (itemEquipLoc == "INVTYPE_FINGER" or itemEquipLoc == "INVTYPE_NECK")) then
+        table.insert(bonusIds, 13534);
+    end
 
     -- Build link
     local playerLevel = UnitLevel("player");

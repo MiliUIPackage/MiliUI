@@ -2,7 +2,7 @@
 --
 -- Blizzard:    bags, bank, character frame, inspect, equipment flyout, loot frame
 -- Bag addons:  Bagnon, Bagnonium, Inventorian, ArkInventory, BetterBags,
---              Baggins, LiteBag (Commented out Baganator; see comment)
+--              Baggins, LiteBag, EllesmereUI Bags, Baganator
 
 local AddonName, KeystoneLoot = ...;
 
@@ -63,8 +63,8 @@ local function UpdateByItemLink(Button, itemLink, characterKey, point)
     UpdateByItemId(Button, itemLink and tonumber(string.match(itemLink, "item:(%d+)")), characterKey, point);
 end
 
-local function UpdateByContainerSlot(Button, bagId, slotId, characterKey)
-    UpdateByItemId(Button, bagId and slotId and C_Container.GetContainerItemID(bagId, slotId), characterKey);
+local function UpdateByContainerSlot(Button, bagId, slotId, characterKey, point)
+    UpdateByItemId(Button, bagId and slotId and C_Container.GetContainerItemID(bagId, slotId), characterKey, point);
 end
 
 local function UpdateContainer(Frame)
@@ -301,6 +301,24 @@ EventUtil.ContinueOnAddOnLoaded("Baganator", function()
         { corner = "top_left", priority = 1 }
     );
 end);
+
+for _, addon in ipairs({ "EllesmereUIBags", "EUIStandaloneBags" }) do
+    EventUtil.ContinueOnAddOnLoaded(addon, function()
+        local function UpdateSlots(Frame)
+            for _, Child in ipairs({ Frame:GetChildren() }) do
+                if (Child.SetItemButtonTexture) then
+                    UpdateByContainerSlot(Child, Child:GetParent():GetID(), Child:GetID(), nil, "BOTTOMLEFT");
+                else
+                    UpdateSlots(Child);
+                end
+            end
+        end
+
+        hooksecurefunc(EUI_Bags, "RefreshInventory", UpdateSlots);
+        hooksecurefunc(EUI_BagsReagent, "RefreshInventory", UpdateSlots);
+        hooksecurefunc(EUI_BankFrame, "RefreshBank", UpdateSlots);
+    end);
+end
 
 EventUtil.ContinueOnAddOnLoaded("BetterBags", function()
     local betterBags = LibStub("AceAddon-3.0", true):GetAddon("BetterBags", true);

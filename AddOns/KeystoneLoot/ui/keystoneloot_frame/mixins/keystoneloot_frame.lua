@@ -5,7 +5,10 @@ local Favorites = KeystoneLoot.Favorites;
 local Character = KeystoneLoot.Character;
 local Voidcore = KeystoneLoot.Voidcore;
 local Keystone = KeystoneLoot.Keystone;
+local CopyPopup = KeystoneLoot.CopyPopup;
 local L = KeystoneLoot.L;
+
+local WEBSITE_URL = "www.keystoneloot.io";
 
 local isResponsePaused = false;
 
@@ -22,7 +25,13 @@ function KeystoneLootFrameMixin:OnLoad()
     self:SetPortraitToAsset("Interface\\Icons\\INV_Relics_Hourglass_02");
     self:SetTitle(string.format(L['%s (%s Season %d)'], AddonName, KeystoneLoot.Config.expansionName, KeystoneLoot.Config.seasonNumber));
 
-    self.FooterText:SetText("Made with LOVE in Germany - " .. L["Import BIS items from |cnACCOUNT_WIDE_FONT_COLOR:www.keystoneloot.io|r"]);
+    local website = string.format(L["Import BIS items from %s"], ACCOUNT_WIDE_FONT_COLOR:WrapTextInColorCode(WEBSITE_URL));
+
+    self.FooterText:SetText("Made with LOVE in Germany - " .. website);
+
+    self.FooterButton:SetScript("OnClick", function()
+        CopyPopup:Show(WEBSITE_URL);
+    end);
 
     table.insert(UISpecialFrames, self:GetName());
 end
