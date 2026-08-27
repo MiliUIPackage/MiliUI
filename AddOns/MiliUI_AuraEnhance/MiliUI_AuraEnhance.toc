@@ -9,7 +9,7 @@
 ## Category-zhTW: 介面
 ## Category-zhCN: 界面
 ## Author: Mili
-## Version: 1.2.0
+## Version: 1.3.0
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\Spell_Holy_WordFortitude
 ## SavedVariables: MiliUI_AuraEnhance_DB, MiliUI_AuraEnhanceDB
