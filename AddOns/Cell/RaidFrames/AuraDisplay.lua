@@ -2072,13 +2072,21 @@ function Handle:ApplyIdentityGate()
                 if same == false then hide = true end
             end
 
-            -- (3) not in your visible world (different instance/phase): the engine cannot
-            --     attribute a caster, so "mine" passes everyone's auras. Signal:
-            --     UnitIsVisible. Same fail-safe -- only a definite, non-secret false hides.
-            --     Probed even when (1)/(2) already hid us, so the recovery edge is recorded:
-            --     this pool goes stale-open exactly like the assist one, and coming back
-            --     into view is not an aura change either.
-            if self._gateSourceRelative then
+            -- (3) not in your visible world -- a different shard/phase, or simply too far
+            --     away (an LFG member idling in another city shard is the everyday case):
+            --     the engine cannot attribute a caster, so "mine" passes everyone's auras.
+            --     Signal: UnitIsVisible. Same fail-safe -- only a definite, non-secret
+            --     false hides. Probed even when (1)/(2) already hid us, so the recovery
+            --     edge is recorded: this pool goes stale-open exactly like the assist one,
+            --     and coming back into view is not an aura change either.
+            --     ⚠ Scope is every cf-DEPENDENT row too, the same widening (1) and (2)
+            --     needed: a unit the engine will not resolve loses the whole
+            --     candidateFilters payload. Field fingerprint (out-of-shard party member,
+            --     connected and assistable): the SAME debuff drawn twice in the central row
+            --     (boss/role and priority both degrade to bare HARMFUL), again in the
+            --     debuff row (the "already claimed above" booleans are gone), and the buff
+            --     whitelists fill with everything.
+            if self._gateSourceRelative or self._gateVulnerable or self._gateCFDependent then
                 local okV, vis = pcall(UnitIsVisible, unit)
                 if okV and not issecretvalue(vis) then
                     local was = self._gateVisible
@@ -2265,7 +2273,7 @@ do
         if final then vehQueued = nil end
         for h in pairs(AD._instances or {}) do
             if not h._destroyed and h.container
-                and (h._gateVulnerable or h._gateSourceRelative) then
+                and (h._gateVulnerable or h._gateSourceRelative or h._gateCFDependent) then
                 -- un-latch BEFORE the bounce: Show() on a hidden parent chain never fires
                 -- OnShow, and OnShow IS the re-parse (same trap as ApplyIdentityGate)
                 if h._cineLatched then SetLatch(h, nil) end

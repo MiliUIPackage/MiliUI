@@ -29,7 +29,7 @@ assist 變 false 的場合：跨陣營隊友（副本外）、決鬥對手、**�
 ⚠ **事件跟檢查一樣重要**：掉線瞬間只有 `UNIT_CONNECTION` 會發，`GROUP_ROSTER_UPDATE`
 不一定跟著來 —— 沒監看它的話，那列會一直錯到某個不相干的事件剛好掃到為止
 （使用者原話：「離線的玩家一開始光環的過濾也會失效」，「一開始」就是這個時間差）。
-Cell 的三個檢查都在 `Handle:ApplyIdentityGate`，順序是 connected → assist → visible。
+Cell 的檢查都在 `Handle:ApplyIdentityGate`，順序是 connected → assist → 同陣營 → visible。
 
 ⚠⚠ **離線這條的守備範圍比前兩條大**（2026-08-21 第二次回報才發現）：前兩條只影響
 **HELPFUL** pool，離線是**整包 candidateFilters 都不套用**，所以 HARMFUL 的列一樣中招 ——
@@ -85,3 +85,26 @@ pcall 失敗、無單位）**仍走 SHOW** —— 否則正常戰鬥中光環變
 **還沒現場驗證的是哪一條真正生效**：若 inspect 印 `assist=false` 就是 (2) 抓到，
 印 `assist=true 同陣營=false` 就是 (2b) 抓到 —— 後者代表「跨陣營＝assist 仍為 true」，
 那上面「跨陣營隊友（副本外）assist 會 false」的舊說法要改。
+
+## 第四條：不在可見世界（2026-08-27，使用者截圖回報）
+
+隊友**連線中、可協助、同陣營**，只是不在你的可見世界 —— 最日常的場合是 LFG 成軍後
+大家還在各自城市的分流裡（畫面上是「超出距離」的灰框）。這時整包 candidateFilters
+一樣不套用，守備範圍跟離線那條一樣大。**現場指紋**（截圖實錄）：
+
+- 同一顆減益在中央重要減益畫**兩次**（bossRole 與 priority 兩個 group 都退化成裸
+  `HARMFUL`，各畫一顆）；
+- 同一顆又出現在左下減益排（「上面那列已認領」的布林減法消失）；
+- 白名單 buff 列填滿所有增益。
+
+`/cab list` 完全正常（filter 字串對、rejected: none）—— 這條跟前三條一樣，
+機制全綠、畫面全錯。
+
+**修法（2026-08-27）**：`ApplyIdentityGate` 第 (3) 條 visible 檢查的守備範圍從
+`_gateSourceRelative` 擴大成 `_gateSourceRelative or _gateVulnerable or _gateCFDependent`，
+與 (1) 離線、(2) assist 一致；VehicleSettle 的強制彈跳也補上 `_gateCFDependent`。
+訊號仍是 `UnitIsVisible` 的**確定 false**（secret／pcall 失敗照舊走 SHOW）。
+
+⚠ **已知限制：純距離的變化沒有事件**。走出 100 碼／走回來都不會發任何 watched event，
+所以 fail-closed 藏起來的列要等下一個掃過的事件（換目標、隊伍變動、UNIT_PHASE 分流合併…）
+才會恢復 —— 這跟來源相關列原本的限制相同，實務上事件很密所以可接受。手動解卡照舊 `/cab gate`。
