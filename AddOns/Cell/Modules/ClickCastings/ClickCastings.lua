@@ -122,24 +122,43 @@ local function ClearProxyRoutes(frame)
     end
 end
 
+-- Parse a mouse bind key ("type2", "shift-type2") into modifier + button number.
+-- Returns nil for keyboard bindings, which never reach SecureUnitButton_OnClick
+-- and so are never gated.
+local function ParseMouseBind(bindKey)
+    local modifier, _, key = strmatch(bindKey, "^(.*)type(-*)(.+)$")
+    if not modifier then return nil end
+    return modifier, tonumber(key)
+end
+
 -- Check if a bindKey represents a gated action for target/menu.
--- Returns: isGated, actionType ("target" or "togglemenu")
 local function IsGatedAction(bindKey, actionType)
     if actionType ~= "target" and actionType ~= "togglemenu" and actionType ~= "menu" then
         return false
     end
-    -- Parse modifier prefix and button number from bindKey (e.g. "shift-type2")
-    local modifier, dash, key = strmatch(bindKey, "^(.*)type(-*)(.+)$")
+    local modifier, buttonNum = ParseMouseBind(bindKey)
     if not modifier then return false end -- keyboard binding, not gated
-    local hasModifier = modifier and modifier ~= ""
-    local buttonNum = tonumber(key)
+
     if actionType == "target" then
-        -- target is gated when: has modifier OR not plain left-click (button 1)
-        return hasModifier or (buttonNum and buttonNum ~= 1)
-    else -- togglemenu / menu
-        -- menu is gated when: has modifier OR not plain right-click (button 2)
-        return hasModifier or (buttonNum and buttonNum ~= 2)
+        -- target keeps the plain-left-click exemption. Routing type1 through the
+        -- proxy would change targeting for every player, and the stock left-click
+        -- interaction binding is the one nobody removes.
+        return modifier ~= "" or (buttonNum and buttonNum ~= 1)
     end
+
+    -- togglemenu / menu is ALWAYS routed. There is no button-number exemption in
+    -- the gate: Blizzard_FrameXML/SecureTemplates.lua SecureUnitButton_OnClick reads
+    --
+    --     local expectBinding = type == "target" or type == "menu" or type == "togglemenu"
+    --     if expectBinding and bindingType == Enum.ClickBindingType.None then return end
+    --
+    -- where bindingType is C_ClickBindings.GetBindingType(button, modifiers). What
+    -- normally saves plain right-click is that the account still carries the stock
+    -- "open menu" interaction binding on button 2 -- not the button number. Once a
+    -- player edits their Click Bindings and that interaction is gone, plain
+    -- right-click stops opening the unit menu with no error and no clue why.
+    -- SecureActionButton_OnClick (the proxy) has no such gate.
+    return true
 end
 
 -- local modifiers = {"", "shift-", "ctrl-", "alt-", "ctrl-shift-", "alt-shift-", "alt-ctrl-", "alt-ctrl-shift-"}
@@ -639,9 +658,16 @@ local function ApplyClickCastings(b)
         end
 
         if t[2] == "togglemenu_nocombat" then
-            -- togglemenu_nocombat sets the "menu" attribute to the bindKey
-            -- This is a togglemenu action, check if gated
-            if IsGatedAction(bindKey, "togglemenu") then
+            -- togglemenu_nocombat sets the "menu" attribute to the bindKey; the
+            -- "not in combat" half comes from the secure snippets above, which write
+            -- that attribute at runtime as combat starts/ends. The proxy route cannot
+            -- carry it -- routing turns the option into a plain menu bind that also
+            -- works in combat. So this branch keeps the OLD button test on purpose:
+            -- only the keys that were already being routed stay routed, and plain
+            -- right-click keeps meaning what the option says (at the cost of still
+            -- sitting behind the click-binding gate described in IsGatedAction).
+            local ncModifier, ncButtonNum = ParseMouseBind(bindKey)
+            if ncModifier and (ncModifier ~= "" or (ncButtonNum and ncButtonNum ~= 2)) then
                 -- Route through proxy: set type attribute to "click" and clickbutton to proxy
                 local typeAttr = bindKey
                 local clickbuttonAttr = string.gsub(bindKey, "type", "clickbutton")
