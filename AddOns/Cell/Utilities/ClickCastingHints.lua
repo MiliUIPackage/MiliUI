@@ -803,7 +803,7 @@ Cell.RegisterCallback("UpdatePixelPerfect", "ClickCastingHints_UpdatePixelPerfec
 -------------------------------------------------
 -- settings pane
 -------------------------------------------------
-local LCG = LibStub("LibCustomGlow-1.0")
+local LCG = Cell.MiliUIGlow
 
 local cchPane, unlockBtn, enabledCB, snapCB, showKeysCB, showTooltipCB, sizeSlider, orientationDD,
     perLineSlider, spacingSlider, myAnchorDD

@@ -8,7 +8,8 @@
     <Script file="LibStub\LibStub.lua"/>
     <Include file="CallbackHandler-1.0\CallbackHandler-1.0.xml"/>
     <Include file="LibSharedMedia-3.0\lib.xml"/>
-    <Include file="LibCustomGlow-1.0\LibCustomGlow-1.0.xml"/>
+    <!-- MiliUIGlow 取代 LibCustomGlow：vendor 複製、不走 LibStub，契約見 MiliUIGlow/README.md -->
+    <Script file="MiliUIGlow\MiliUIGlow.lua"/>
     <Include file="AceComm-3.0\AceComm-3.0.xml"/>
     <Include file="LibSerialize\lib.xml"/>
     <Include file="LibDeflate\lib.xml"/>

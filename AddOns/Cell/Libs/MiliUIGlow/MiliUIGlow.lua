@@ -1,17 +1,132 @@
 --[[
-This library contains work of Hendrick "nevcairiel" Leppkes
-https://www.wowace.com/projects/libbuttonglow-1-0
+MiliUIGlow -- MiliUI 套組的發光引擎
+
+    ⚠ 這是 vendor 複製，不是 LibStub 函式庫。唯一 source 在
+      AddOns/MiliUI/Libs/MiliUIGlow/。要改就改 source 再同步全部 copy，
+      複製契約看同目錄的 README.md。
+
+來源：LibCustomGlow-1.0 v25（Hendrick "nevcairiel" Leppkes 的 LibButtonGlow-1.0 之後續）
+      https://www.wowace.com/projects/libcustomglow
+
+API 與 LibCustomGlow **完全相同**，所以抽換只要改綁定那一行：
+    local LCG = LibStub("LibCustomGlow-1.0")   -->   local LCG = <ns>.MiliUIGlow
+
+跟上游的差別只有兩處，其餘逐字不動（動畫長相因此必然一致）：
+
+ 1. 不註冊到 LibStub，改掛在插件自己的私有表上。
+    LibStub 只留版本最高的那一份，而「哪一份贏」取決於全部插件載入完之後的結果 ——
+    也就是說改自己內附的那份，很可能根本不是實際在跑的那份。單體發佈更禁不起這種
+    不確定性：玩家只裝一支插件時，那支必須自己就是完整的。
+
+ 2. 三個各自的 OnUpdate 收成一支共用 driver，並且閘在 60fps。
+    上游對**每一個**發光各掛一個沒有節流的 OnUpdate，所以成本跟玩家的幀數成正比 ——
+    144fps 的機器付 60fps 機器的 2.4 倍，換到的畫面一模一樣。
+
+    driver 沒有訂閱者就自己隱藏（沒有發光時零成本），
+    **把累積的 dt 整份傳給原本的更新函式**，所以動畫速度跟逐幀版完全一致。
 ]]
 
--- luacheck: globals CreateFromMixins ObjectPoolMixin CreateTexturePool CreateFramePool
+local _, ns = ...
+if not ns then return end
 
-local MAJOR_VERSION = "LibCustomGlow-1.0"
-local MINOR_VERSION = 25
-if not LibStub then error(MAJOR_VERSION .. " requires LibStub.") end
-local lib, oldversion = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
-if not lib then return end
-local Masque = LibStub("Masque", true)
+local lib = {}
+lib.glowList = {}
+lib.startList = {}
+lib.stopList = {}
+ns.MiliUIGlow = lib
+
+local Masque = _G.LibStub and _G.LibStub("Masque", true)
 local AnimateTexCoords = (TextureUtil and TextureUtil.AnimateTexCoords) or _G.AnimateTexCoords
+
+-------------------------------------------------------------------------------
+--  共用動畫 driver
+--
+--  一支 OnUpdate 跑全部發光，整個派送閘在 ~60fps。發光是「一圈點在跑」，60fps 以上
+--  肉眼分不出來，以下才會看得出在跳。
+--
+--  ⚠ 累積的 dt 整份往下傳，而且累積器歸零（不是減掉 GATE）—— 傳出去的 dt 總和等於
+--    真實經過時間，動畫速度才會跟逐幀呼叫完全一樣。
+--
+--  ⚠ 可見度閘是**還原**上游行為，不是新增的最佳化：原本一個發光各自掛 OnUpdate，
+--    frame 或它任何一層祖先被隱藏時就自動不跑了。共用 driver 沒有這個性質，要自己補。
+--    註冊留著不動，所以重新顯示時會自己接回去。
+--
+--  ⚠ 可見度探測包 pcall：12.1 之後，位於引擎光環按鈕子樹裡的 frame 其可見度是秘密值，
+--    對它做布林測試會直接拋錯 —— 而一個會拋錯的訂閱者會讓**整輪派送**中斷，
+--    排在它後面的發光全部凍住。拋錯就永久踢掉（那個分割區不會恢復）。
+-------------------------------------------------------------------------------
+local GATE = 1 / 60
+
+local _reg, _regFn, _regIndex, _regCount = {}, {}, {}, 0
+local _driver, _accum = nil, 0
+
+local function VisProbe(f) return f:IsVisible() end
+
+local function DriverRemove(f)
+    local i = _regIndex[f]
+    if not i then return end
+    local last = _reg[_regCount]
+    _reg[i], _regFn[i] = last, _regFn[_regCount]
+    _regIndex[last] = i
+    _reg[_regCount], _regFn[_regCount] = nil, nil
+    _regCount = _regCount - 1
+    _regIndex[f] = nil
+    if _regCount == 0 and _driver then _driver:Hide() end
+end
+
+local function DriverOnUpdate(self, elapsed)
+    local dt = _accum + elapsed
+    if dt < GATE then
+        _accum = dt
+        return
+    end
+    _accum = 0
+    -- 走密集陣列。訂閱者可能在自己的更新裡把自己（或別人）移除，那是 swap-remove，
+    -- 會讓 _regCount 縮小並把別的項目搬進當前這格 —— 所以每一步重讀 _regCount，
+    -- 而且當前格被換掉時要重測同一格，不能往前進。
+    local i = 1
+    while i <= _regCount do
+        local f = _reg[i]
+        local ok, vis = pcall(VisProbe, f)
+        if not ok then
+            DriverRemove(f)
+        else
+            -- ⚠ issecretvalue 一定要問在前面。IsVisible 對身分受限單位的子樹可能回
+            -- **秘密布林**，而把秘密布林放進 if 判斷本身就是硬錯誤 —— 先用 vis 當條件
+            -- 再檢查它是不是秘密，等於錯誤已經發生了。秘密一律當作隱藏。
+            if issecretvalue and issecretvalue(vis) then
+                -- 隱藏處理：跳過，註冊留著
+            elseif vis then
+                local fn = _regFn[i]
+                if fn then fn(f, dt) end
+            end
+            if _reg[i] == f then i = i + 1 end
+        end
+    end
+    if _regCount == 0 then self:Hide() end
+end
+
+local function DriverAdd(f, fn)
+    local i = _regIndex[f]
+    if i then
+        _regFn[i] = fn
+        return
+    end
+    _regCount = _regCount + 1
+    _reg[_regCount], _regFn[_regCount] = f, fn
+    _regIndex[f] = _regCount
+    if _regCount == 1 then
+        if not _driver then
+            _driver = CreateFrame("Frame")
+            _driver:Hide()
+            _driver:SetScript("OnUpdate", DriverOnUpdate)
+        end
+        _accum = 0          -- 閒置一段時間之後不要吃到一發過大的 dt
+        _driver:Show()
+    end
+end
+
+-- luacheck: globals CreateFromMixins ObjectPoolMixin CreateTexturePool CreateFramePool
 
 local isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 local textureList = {
@@ -29,10 +144,6 @@ end
 function lib.RegisterTextures(texture,id)
     textureList[id] = texture
 end
-
-lib.glowList = {}
-lib.startList = {}
-lib.stopList = {}
 
 local GlowParent = UIParent
 local GlowMaskPool = {
@@ -92,7 +203,7 @@ local GlowTexPool = CreateTexturePool(GlowParent ,"ARTWORK",7,nil,TexPoolResette
 lib.GlowTexPool = GlowTexPool
 
 local FramePoolResetter = function(framePool,frame)
-    frame:SetScript("OnUpdate",nil)
+    DriverRemove(frame)
     local parent = frame:GetParent()
     if parent[frame.name] then
         parent[frame.name] = nil
@@ -342,7 +453,7 @@ function lib.PixelGlow_Start(r,color,N,frequency,length,th,xOffset,yOffset,borde
         f.info.length = length
     end
     pUpdate(f, 0)
-    f:SetScript("OnUpdate",pUpdate)
+    DriverAdd(f, pUpdate)
 end
 
 function lib.PixelGlow_Stop(r,key)
@@ -437,7 +548,7 @@ function lib.AutoCastGlow_Start(r,color,N,frequency,scale,xOffset,yOffset,key,fr
     f.info = f.info or {}
     f.info.N = N
     f.info.period = period
-    f:SetScript("OnUpdate",acUpdate)
+    DriverAdd(f, acUpdate)
     acUpdate(f, 0)
 end
 
@@ -460,7 +571,7 @@ lib.stopList["Autocast Shine"] = lib.AutoCastGlow_Stop
 
 --Action Button Glow--
 local function ButtonGlowResetter(framePool,frame)
-    frame:SetScript("OnUpdate",nil)
+    DriverRemove(frame)
     local parent = frame:GetParent()
     if parent._ButtonGlow then
         parent._ButtonGlow = nil
@@ -738,7 +849,7 @@ function lib.ButtonGlow_Start(r,color,frequency,frameLevel)
             end
         end
         f.throttle = throttle
-        f:SetScript("OnUpdate", bgUpdate)
+        DriverAdd(f, bgUpdate)
 
         f.animIn:Play()
 

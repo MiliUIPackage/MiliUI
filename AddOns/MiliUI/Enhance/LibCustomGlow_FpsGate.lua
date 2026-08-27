@@ -22,6 +22,10 @@
 --   自製發光引擎也是把整個派送閘在 ~60fps（EUICoreStandaloneRaidFrames_Glows.lua
 --   的 DRIVER_GATE = 0.016），同一個結論。
 --
+-- ⚠ 這支管的是**別人的** LibCustomGlow —— 套組裡還在用它的是 Ayije_CDM、BuffReminders、
+--   WarpDeplete、MRT。Cell 已經改用 MiliUIGlow（vendor 複製，自帶共用 driver 與同一個
+--   60fps 閘），不再經過這裡。兩邊的閘值要一起改，見 MiliUI/Libs/MiliUIGlow/README.md。
+--
 -- ⚠ 池化重用是自然銜接的：LibCustomGlow 回收發光時會 SetScript("OnUpdate", nil)，
 --   下次 *_Start 再把真正的更新函式設回去，我們的掛勾跟著再包一次。不需要自己
 --   偵測回收，也不會留下抓著死 frame 的參考。

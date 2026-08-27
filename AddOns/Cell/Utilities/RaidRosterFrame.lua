@@ -4,7 +4,7 @@ local F = Cell.funcs
 local P = Cell.pixelPerfectFuncs
 local A = Cell.animations
 local LibTranslit = LibStub("LibTranslit-1.0")
-local LCG = LibStub("LibCustomGlow-1.0")
+local LCG = Cell.MiliUIGlow
 
 local GetRaidRosterInfo = GetRaidRosterInfo
 local SwapRaidSubgroup = SwapRaidSubgroup

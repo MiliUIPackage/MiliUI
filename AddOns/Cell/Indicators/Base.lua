@@ -11,7 +11,7 @@ local P = Cell.pixelPerfectFuncs
 -- is guarded for secret values in Indicators/Built-in.lua (HealthText_SetValue).
 -- All other numeric display in this file uses SetText/SetFormattedText which accept secrets.
 
-local LCG = LibStub("LibCustomGlow-1.0")
+local LCG = Cell.MiliUIGlow
 
 -- Midnight 12.0.0+: helper for stack text display (most common pattern)
 -- Secret stack counts are passed through directly; SetText is C-level and

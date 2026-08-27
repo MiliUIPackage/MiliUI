@@ -119,13 +119,18 @@ LibCustomGlow 對**每一個**發光各掛一個沒有節流的 OnUpdate，所�
 成正比——144fps 的機器付 60fps 機器的 2.4 倍，畫面一模一樣。閘在 1/60 秒，**把累積的 dt
 整份傳給原函式**，動畫速度完全不變。
 
-不用改函式庫：在 `*_Start` 後掛勾，`GetScript("OnUpdate")` 拿到它剛設好的更新函式，包一層
-再設回去。池化重用自然銜接（回收時 lib 自己 `SetScript(nil)`，下次 Start 再設，掛勾再包）。
-本機實作 `MiliUI/Enhance/LibCustomGlow_FpsGate.lua`；EUI 自製發光引擎的 `DRIVER_GATE = 0.016`
-是同一個結論。
+本機有**兩個實作**，因為有兩種處境（EUI 自製發光引擎的 `DRIVER_GATE = 0.016` 是同一個結論）：
 
-⚠ 要等 `PLAYER_LOGIN` 才裝：LibCustomGlow 被十幾個插件各自內嵌，LibStub 留的是版本最高
-那一份，「哪一份贏」要到全部載入完才定案。
+- **自己的插件** → `MiliUIGlow`（vendor 複製，共用 driver ＋ 60fps 閘），見
+  [[project-miliui-glow-vendor]]。Cell 已改用。
+- **別人的插件**（Ayije_CDM / BuffReminders / WarpDeplete / MRT）→ 掛勾版
+  `MiliUI/Enhance/LibCustomGlow_FpsGate.lua`：在 `*_Start` 後 `GetScript("OnUpdate")` 拿到
+  它剛設好的更新函式，包一層再設回去。池化重用自然銜接（回收時 lib 自己 `SetScript(nil)`，
+  下次 Start 再設，掛勾再包）。**兩邊的閘值要一起改。**
+
+⚠ 掛勾版要等 `PLAYER_LOGIN` 才裝：LibCustomGlow 被十幾個插件各自內嵌，LibStub 留的是版本
+最高那一份，**而且先到先贏**（`oldminor >= minor` 就退回 nil），「哪一份贏」要到全部載入完
+才定案。這條同時是**自己的插件不該走 LibStub** 的理由。
 
 相關：[[wow-frame-lifecycle-costs]]、[[wow-addon-profiler-cost]]、
 [[project-cell-auracontainer-rewrite]]、[[wow-121-aura-containers]]

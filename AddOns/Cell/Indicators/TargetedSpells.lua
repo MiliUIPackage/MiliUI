@@ -4,7 +4,7 @@ local L = Cell.L
 local F = Cell.funcs
 ---@class CellIndicatorFuncs
 local I = Cell.iFuncs
-local LCG = LibStub("LibCustomGlow-1.0")
+local LCG = Cell.MiliUIGlow
 
 local UnitIsVisible = UnitIsVisible
 local UnitExists = UnitExists

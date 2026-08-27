@@ -6,7 +6,7 @@ local L = Cell.L
 local F = Cell.funcs
 ---@type PixelPerfectFuncs
 local P = Cell.pixelPerfectFuncs
-local LCG = LibStub("LibCustomGlow-1.0")
+local LCG = Cell.MiliUIGlow
 
 -----------------------------------------
 -- Color
