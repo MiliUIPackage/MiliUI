@@ -47,6 +47,7 @@ RaidDebuffs\LoadRaidDebuffs.xml
 
 RaidFrames\UnitButton.lua
 RaidFrames\UnitButton.xml
+RaidFrames\UnitPopupFix.lua
 RaidFrames\Groups\SoloFrame.lua
 RaidFrames\Groups\PartyFrame.lua
 RaidFrames\Groups\RaidFrame.lua

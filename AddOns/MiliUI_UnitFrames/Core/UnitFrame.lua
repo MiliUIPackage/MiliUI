@@ -476,13 +476,16 @@ local function InstallMenuClassifierFix()
         local unit = contextData and contextData.unit
         if type(unit) ~= "string" then return end
         local lu = unit:lower()
-        -- ⚠ raidN / partyN 不是死碼，別清掉：**我們自己沒有隊伍／團隊框**（見
-        --   ns.UNIT_KEYS），這兩條是為了套組裡的 Cell。raidN 在
-        --   SECURE_ACTIONS.togglemenu 沒有早退出分支，跟 target 一樣會走完整條
-        --   UnitIsUnit 鏈而被誤判成寵物；partyN 走那條路是安全的（第一個分支就命中），
-        --   但暴雪自己的隊伍框是另一條分類路徑，所以一起留著。
-        --   這個掛勾是全域的，Cell 的團隊框右鍵也會經過這裡 —— 目前那是
-        --   Cell 團隊框唯一的補救，Cell 內部沒有自己的一份。
+        -- ⚠ Cell 有自己的一份（Cell/RaidFrames/UnitPopupFix.lua，同一套邏輯），載入時會
+        --   豎起 CellUnitPopupClassifierFix。兩份都救的話會各重開一次、開出兩層選單。
+        --   這種掛勾**只看 token 不看是誰的框**，而兩邊用的是同一組 token（Cell 的
+        --   Spotlight 框可以被指到 target/focus 那幾個），沒辦法按插件切一半，所以
+        --   Cell 在就整組讓給它，Cell 不在才由我們接。
+        if _G.CellUnitPopupClassifierFix then return end
+        -- ⚠⚠ raidN / partyN 不是死碼，別清掉：**我們自己沒有隊伍／團隊框**（見
+        --   ns.UNIT_KEYS），這兩條是為了別人的團隊框（沒有 Cell 的安裝、或暴雪原生框）。
+        --   raidN 在 SECURE_ACTIONS.togglemenu 沒有早退出分支，跟 target 一樣會走完整條
+        --   UnitIsUnit 鏈而被誤判成寵物。
         if not (MENU_FIX_TOKENS[lu] or lu:match("^raid%d+$") or lu:match("^party%d+$")) then
             return
         end
