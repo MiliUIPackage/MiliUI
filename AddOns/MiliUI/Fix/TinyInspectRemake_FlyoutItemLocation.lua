@@ -242,9 +242,14 @@ local function FixButton(button, modernHint)
 
     local link = C_Item.GetItemLink and C_Item.GetItemLink(loc)
     if (not link) then
+        -- ⚠ 空的物品位置不可以掛 ContinueOnItemLoad：那是官方契約
+        -- （ItemMixin 自己就 assert not IsItemEmpty()），而且空物品永遠不會「到貨」，
+        -- 掛上去就是一筆永遠不會被清掉的登記。玩家一直開合裝備飛出選單就一直累積。
         if (Item and Item.CreateFromItemLocation) then
             local item = Item:CreateFromItemLocation(loc)
-            item:ContinueOnItemLoad(function() FixButton(button) end)
+            if (item and not item:IsItemEmpty()) then
+                item:ContinueOnItemLoad(function() FixButton(button) end)
+            end
         end
         return
     end
