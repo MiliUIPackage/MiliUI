@@ -144,15 +144,150 @@ local function ThresholdRow(unitKey)
     end
 end
 
+------------------------------------------------------------
+-- 上色方式的色塊列
+--
+-- 下拉的名字只講得出**範圍**（「所有玩家」「僅友方玩家」），講不出看起來會是什麼樣。
+-- 這一列拿四個代表性的假單位跑一次真正的 Colors.Get，把結果畫成色塊：玩家改過全域
+-- 色票或自訂色，這裡就跟著變，不會像寫死的說明文字那樣過期。
+--
+-- 四個單位是「最小可分辨集合」——任兩種上色方式至少有一格顏色不同：
+--   友方玩家 vs 敵方玩家   分開「所有玩家」與「僅友方玩家」
+--   敵方玩家 vs 敵對小怪   分開「所有單位」與「所有玩家」
+--   自己的寵物             三種職業色模式下都是主人的職業色（最常被問的一格）
+--
+-- ⚠ 兩個玩家格刻意用**同一個職業**（玩家自己的）：差別要落在「職業色 vs 敵我色」，
+-- 用兩個不同職業的話玩家會以為那格在演職業本身。
+-- ⚠ 小怪那格明寫 classFile = "WARRIOR"。真實框對非玩家一律是 nil（Cache.lua 清掉的），
+-- 顏色來自 ClassRGB 最後那段 UnitClassBase —— 而那段在 isPreview 時直接 return nil，
+-- 預覽演不出來。塞 classFile 讓「所有單位」演得出假職業，其餘方式照樣走 isPlayer 分支。
+------------------------------------------------------------
+local swatchRows = {}          -- [表單 frame] = { Refresh, ... }（見底下的 SettingsApplied）
+local SWATCH_W, SWATCH_H = 14, 14
+local SWATCH_GAP  = 6          -- 色塊與它的標籤之間
+local SWATCH_PAD  = 14         -- 格與格之間
+local SWATCH_ROW_H = 20
+
+-- 秘密值進不了預覽（假 cache 全是明文），但上色法是使用者自由指定的，防禦成本又是零
+local function SwatchRGB(method, uf, edb, choiceKey)
+    local ok, r, g, b, a = pcall(ns.Colors.Get, method, uf, edb, uf.cache.frachp, choiceKey, nil)
+    if not ok or type(r) ~= "number" then return nil end
+    return r, g, b, (type(a) == "number" and a or 1)
+end
+
+local function SwatchUnits()
+    local cls = ns.playerClass
+    local base = { level = 80, powertype = 0, frachp = 0.75, perchp = 75,
+                   dead = false, ghost = false, offline = false, afk = false,
+                   dnd = false, tapped = false, incombat = false }
+    local function cache(over)
+        local t = {}
+        for k, v in pairs(base) do t[k] = v end
+        for k, v in pairs(over) do t[k] = v end
+        return t
+    end
+    return {
+        { label = L["Friendly player"], cache = cache({ isPlayer = true, pc = true, classFile = cls,
+              reaction = 5, assist = true, hostile = false, attackable = false }) },
+        { label = L["Enemy player"], cache = cache({ isPlayer = true, pc = true, classFile = cls,
+              reaction = 2, assist = false, hostile = true, attackable = true }) },
+        { label = L["Enemy NPC"], cache = cache({ isPlayer = false, pc = false, classFile = "WARRIOR",
+              reaction = 2, assist = false, hostile = true, attackable = true }) },
+        { label = L["Your pet"], cache = cache({ isPlayer = false, pc = true, ownerClass = cls,
+              reaction = 5, assist = true, hostile = false, attackable = false }) },
+    }
+end
+
+-- methodKey/choiceKey：要演哪一個下拉（前景 colorMethod/barColor、背景 bgColorMethod/bgColor）
+local function ColorSwatchRow(unitKey, name, methodKey, choiceKey)
+    return function(parent, x, y, width)
+        local units = SwatchUnits()
+        local cells = {}
+        -- 欄寬照**實際字寬**算，不用固定值：「友方玩家」四個中文字擠得下的欄寬，
+        -- 換成德文的 Verbündeter Spieler 會被裁掉一半。排不下就換行（可用寬度是
+        -- Controls 傳進來的，跟說明文字同一條右界）。
+        local px, py, lines = x, y - 3, 1
+        for i, u in ipairs(units) do
+            local slot = parent:CreateTexture(nil, "ARTWORK")
+            slot:SetSize(SWATCH_W, SWATCH_H)
+            -- 深底當 1px 外框，色塊內縮一格疊上去。alpha 0（「隱藏」）時看到的是
+            -- 空的深色格子，而不是一整列憑空消失的東西。
+            slot:SetColorTexture(0, 0, 0, 0.6)
+
+            local tex = parent:CreateTexture(nil, "OVERLAY")
+            tex:SetPoint("TOPLEFT", slot, "TOPLEFT", 1, -1)
+            tex:SetPoint("BOTTOMRIGHT", slot, "BOTTOMRIGHT", -1, 1)
+
+            local fs = parent:CreateFontString(nil, "OVERLAY")
+            fs:SetFontObject(W.fontSmall)
+            fs:SetJustifyH("LEFT")
+            fs:SetWordWrap(false)
+            fs:SetText(u.label)
+            fs:SetPoint("LEFT", slot, "RIGHT", SWATCH_GAP, 0)
+
+            local cellW = SWATCH_W + SWATCH_GAP + math.ceil(fs:GetStringWidth()) + SWATCH_PAD
+            if i > 1 and (px - x) + cellW - SWATCH_PAD > (width or 360) then
+                px, py, lines = x, py - SWATCH_ROW_H, lines + 1
+            end
+            slot:SetPoint("TOPLEFT", parent, "TOPLEFT", px, py)
+            px = px + cellW
+
+            cells[i] = { tex = tex, uf = { isPreview = true, unit = "player", cache = u.cache } }
+        end
+
+        local function Refresh()
+            local udb = ns.GetUnitDB(unitKey)
+            local edb = udb and udb.elements and udb.elements[name]
+            local method = edb and edb[methodKey]
+            for _, cell in ipairs(cells) do
+                local r, g, b, a = SwatchRGB(method, cell.uf, edb, choiceKey)
+                if r then
+                    cell.tex:SetColorTexture(r, g, b, a)
+                else
+                    cell.tex:SetColorTexture(0, 0, 0, 0)
+                end
+            end
+        end
+        Refresh()
+        -- ⚠ 一個表單裡有兩列（前景、背景）而 parent 是同一個 frame ⇒ 要存成串列。
+        -- 直接 swatchRows[parent] = Refresh 的話後面那列會把前面那列蓋掉，
+        -- 症狀是「背景的色塊會動、前景的不會」。
+        local bucket = swatchRows[parent]
+        if not bucket then
+            bucket = {}
+            swatchRows[parent] = bucket
+        end
+        tinsert(bucket, Refresh)
+        return lines * SWATCH_ROW_H + 4, Refresh
+    end
+end
+
+-- 色塊要跟著設定變，而「改了什麼」的入口不只一個：下拉、自訂色的即時回呼、
+-- 恢復預設、換設定檔 —— 全部都會走到 ns.ApplySettings，所以掛在它的回呼上一次收乾淨，
+-- 不必去改共用層的 Controls（那支是可以逐字複製到別的插件的）。
+-- 只刷現在看得到的那幾列（同時只有一個面板是顯示的 ⇒ 最多兩列），其餘留給下次顯示時
+-- 的 refresher。表單 frame 刪不掉，被 InvalidatePanels 丟掉參照的那些會永遠 Hidden ⇒
+-- 這裡自然跳過，不必自己清表。
+ns.RegisterCallback("SettingsApplied", "unitTabSwatches", function()
+    for frame, bucket in pairs(swatchRows) do
+        if frame:IsShown() then
+            for _, fn in ipairs(bucket) do fn() end
+        end
+    end
+end)
+
 local function BarSpecs(name, isHP, unitKey)
     local list = {
         { type = "toggle", sub = name, key = "enabled", label = L["Show"] },
         { type = "header", label = L["Position and size"] },
         PosSize(name),
         { type = "header", label = L["Color"] },
+        { type = "text", label = L["The four class-color methods form a ladder: each step down, fewer units get class color and the rest fall back to reaction color. Mobs get a class from Blizzard's own creature data (melee = warrior, casters = mage), not a real one."] },
         { type = "dropdown", sub = name, key = "colorMethod", label = L["Foreground"], items = Specs.COLOR_METHOD_ITEMS },
+        { type = "custom", label = "", build = ColorSwatchRow(unitKey, name, "colorMethod", "barColor") },
         { type = "slider", sub = name, key = "barAlpha", label = L["Foreground opacity"], min = 0, max = 1, step = 0.05 },
         { type = "dropdown", sub = name, key = "bgColorMethod", label = L["Background"], items = Specs.COLOR_METHOD_ITEMS },
+        { type = "custom", label = "", build = ColorSwatchRow(unitKey, name, "bgColorMethod", "bgColor") },
         { type = "slider", sub = name, key = "bgAlpha", label = L["Background opacity"], min = 0, max = 1, step = 0.05 },
         { type = "color", sub = name, key = "barColor", label = L["Custom foreground color"], hasAlpha = false },
         { type = "color", sub = name, key = "bgColor", label = L["Custom background color"], hasAlpha = false },

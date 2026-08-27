@@ -22,15 +22,25 @@ Specs.OOR_STYLE_ITEMS = {
     { text = L["Fade out"], value = "fade" },
 }
 
+-- 上色方式。前四組（連同各自的暗色變體）是一條階梯：往下一階，能拿到職業色的單位
+-- 就少一圈，拿不到的一律退敵我關係色。
+--   class         所有單位 —— 小怪吃的是暴雪內部的假職業（近戰＝戰士色、施法者＝法師色）
+--   classfirst    所有玩家 —— 含 PvP 敵方玩家與跨陣營路人（身分被藏起來時靠秘密布林曲線挑色）
+--   classreaction 僅友方玩家 —— 敵對(2)／中立(4) 先被攔下來，所以 PvP 對手是紅的
+--   reaction      沒有人
+-- 順序本身就是說明的一部分，不要為了別的理由打散它（以前 reaction 卡在第二個，階梯是斷的）。
+--
+-- ⚠ text 改名隨意，**value 不能動** —— 那是存進 SavedVariables 的東西，而 Colors.Get
+-- 對認不得的方法名會退成綠色血條（不是隱藏），玩家的設定會靜默變綠而且看不出原因。
 Specs.COLOR_METHOD_ITEMS = {
-    { text = L["Class color"],        value = "class" },
-    { text = L["Class color (dark)"],  value = "classdark" },
-    { text = L["Reaction color"],        value = "reaction" },
-    { text = L["Reaction color (dark)"],  value = "reactiondark" },
-    { text = L["Class first"],         value = "classfirst" },
-    { text = L["Class first (dark)"],  value = "classfirstdark" },
-    { text = L["Class / reaction"],    value = "classreaction" },
-    { text = L["Class / reaction (dark)"], value = "classreactiondark" },
+    { text = L["Class color (everything)"],             value = "class" },
+    { text = L["Class color (everything, dark)"],       value = "classdark" },
+    { text = L["Class color (all players)"],            value = "classfirst" },
+    { text = L["Class color (all players, dark)"],      value = "classfirstdark" },
+    { text = L["Class color (friendly players)"],       value = "classreaction" },
+    { text = L["Class color (friendly players, dark)"], value = "classreactiondark" },
+    { text = L["Reaction color"],       value = "reaction" },
+    { text = L["Reaction color (dark)"], value = "reactiondark" },
     { text = L["Power color"],        value = "power" },
     { text = L["Power color (dark)"],  value = "powerdark" },
     { text = L["Green"],          value = "hpgreen" },
