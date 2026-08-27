@@ -1039,6 +1039,44 @@ function F.GetUnitButtonByName(name, getSpotlights, getQuickAssist)
     return F.GetUnitButtonByUnit(Cell.vars.names[name], getSpotlights, getQuickAssist)
 end
 
+-- Cheap "does Cell draw this unit at all?" test.
+--
+-- For hot event handlers that hear about EVERY unit in the world. F.HandleUnitButton answers
+-- the same question but pays for it: a UnitIsUnit C call per spotlight button, every time.
+-- This resolves the normal-button maps (pure table lookups) and only reports "maybe" when a
+-- spotlight is actually bound to something -- deciding whether that spotlight matches is the
+-- cost we are trying to avoid, so the caller does the real work in that case, exactly as before.
+--
+-- Never answers false where HandleUnitButton would have done something, which is what makes it
+-- safe to use as an early return.
+function F.HasUnitButton(unit)
+    if not unit then return false end
+
+    local normal
+    if Cell.vars.groupType == "raid" then
+        if Cell.vars.inBattleground == 5 then
+            normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.arena[unit]
+        else
+            normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.pet.units[unit]
+        end
+    elseif Cell.vars.groupType == "party" then
+        normal = Cell.unitButtons.party.units[unit] or Cell.unitButtons.npc.units[unit]
+    else -- solo
+        normal = Cell.unitButtons.solo[unit] or Cell.unitButtons.npc.units[unit]
+    end
+    if normal then return true end
+
+    -- guarded: this is a general utility now, and a caller could reach it before the spotlight
+    -- table exists (HandleUnitButton below only ever runs well after setup, so it does not)
+    local spotlights = Cell.unitButtons.spotlight
+    if spotlights then
+        for _, b in pairs(spotlights) do
+            if b.states and b.states.unit then return true end
+        end
+    end
+    return false
+end
+
 function F.HandleUnitButton(type, unit, func, ...)
     if not unit then return end
 

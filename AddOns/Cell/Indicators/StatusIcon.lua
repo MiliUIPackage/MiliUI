@@ -39,6 +39,17 @@ local statusEvents = CreateFrame("Frame")
 -- We watch for soulstone buff removal and immediately note the guid;
 -- then UNIT_HEALTH (UnitIsDeadOrGhost) confirms the death.
 statusEvents:SetScript("OnEvent", function(self, event, unit)
+    -- ⚠ ORDER. UNIT_AURA and UNIT_HEALTH are the two noisiest events in the game, and this is a
+    -- shared frame with a plain RegisterEvent -- so it hears them for EVERY unit in the world:
+    -- every nameplate, the boss, pets, your target, units in other groups. Everything below
+    -- only means something for a unit Cell actually draws, and the old order paid UnitGUID, a
+    -- pcall'd aura lookup (F.FindAuraByName) and a UnitIsUnit scan over every spotlight BEFORE
+    -- discovering the answer was no.
+    --
+    -- (A soulstone on a unit with no button goes unrecorded, which is the point: the record is
+    -- only ever consumed through F.HandleUnitButton, so it could never have been read.)
+    if not F.HasUnitButton(unit) then return end
+
     if event == "UNIT_AURA" then
         local guid = UnitGUID(unit)
         if not guid then return end
