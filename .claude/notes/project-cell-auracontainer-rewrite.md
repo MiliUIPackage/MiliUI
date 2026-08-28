@@ -151,6 +151,37 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
 
 相關：[[wow-121-aura-containers]]、[[project-121-addon-migration]]、[[wow-cell-fork-comm]]
 
+## 戰後卡圖示與自動補彈（2026-08-28~29，be3e2e2dc）
+
+**病理**：光環在整場遭遇戰都 secret，減益在視窗內掉落時引擎的 parse 可能停在舊狀態；
+打完沒有光環變動能推它重讀，圖示就永遠掛著（自己與隊友的框都會發生，實例是中央
+重要減益的 CC 圖示）。與載具那條同病：引擎只在光環變動時重新解析。`/cab gate` 實測能清。
+
+**解法（AuraDisplay.lua「POST-FIGHT SETTLE」區塊）**：`PLAYER_REGEN_ENABLED` 後 1 秒
+自動跑一次無條件 bounce。成本閘四層：秘密視窗閘（`sawSecret`，REGEN_DISABLED／
+ENCOUNTER_START／REGEN_ENABLED 三處探測，野外殺怪整段跳過）、只彈看得見的容器
+（藏著的靠揭示時的 OnShow）、每幀 10 個（**每幀成本是常數，人數只拉長總時長**：
+15 人約 0.17 秒、40 人約 0.47 秒）、3 秒節流但合併不丟棄。迭代前先快照 `_instances`
+（跨幀，表會變）。開關 `SETTLE_ENABLED`；`/cab stats` 有「戰後補彈／跳過」計數，
+**跳過數是秘密視窗閘的保險絲**——沒進過 secret 的戰後若仍卡圖示，就是被這道閘擋的。
+
+**通道之爭（未裁決）**：EUI-RF 與 BuffReminders 重讀舊容器都只用
+`container:UpdateAllAuras()`，註解自稱 field-proven；Cell 身分閘的實測結論相反
+（addon 端只設髒旗標，host bounce 才跨 partition）。引擎端重過濾（成本大頭）兩通道
+相同，差的只是 Hide/Show 外圈。預設走驗證過的 bounce；`SETTLE_CHEAP=true` 可實測
+輕量通道——開著它戰後圖示照樣消失就定案，記回這裡。
+
+**EUI 研究結論**：EUI 對這顆 bug 零處理（lift watcher 只重播有蓋章的被拒樣式工作，
+不重讀內容）。它的紀律是「只重播有髒標記的工作」——我們做不到針對性重播的原因是硬的：
+AuraButton 渲染狀態 secret，**無法知道哪個容器掛著舊圖示**，可見全彈是被迫下限。
+
+**右鍵「重新整理單位按鈕」現在也涵蓋容器**（`AD.BounceAll`，MainFrame 右鍵接上）：
+`B.UpdateAll` 只重推手動 widget 層，光環掃描在 secret 下直接 bail、對同單位容器是
+no-op——容器時代它救不了任何容器病。BounceAll 彈**全部**存活容器（手動逃生口求完整
+不求省）。
+
+**尚未在遊戲內驗證**：settle 自動清掉卡圖示（看戰後補彈計數＋圖示自消）；SETTLE_CHEAP。
+
 ## 移除一個內建指示物的正確做法（2026-08-24，AoE 治療）
 
 `Cell.defaults.indicatorIndices` 的數字**就是** `layout["indicators"]` 的陣列位置，
