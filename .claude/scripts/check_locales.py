@@ -15,6 +15,21 @@
 
 不檢查「多餘的 key」：那需要判斷有沒有動態組 key（`L[opt.key]`），誤報率太高。
 清死鍵是人工的事，交給 miliui-locale-audit 技能。
+
+⚠⚠⚠ **不要自動刪「沒人用的 key」。** key 有四種取法，靜態掃描認不全：
+
+    L["KEY"]                中括號 ＋ 字串字面值
+    L.KEY                   dot notation（key 是合法識別字時）
+    L[variable]             變數
+    L["PREFIX" .. suffix]   **前綴拼接** —— 最陰的一種，因為那一行確實含 `L["`
+
+  2026-08-28 為了清死鍵翻車兩次：第一次只認第一種，把 MiliUI_BurstPotionHelper
+  一整批 `L.TIP_*` 刪掉（遊戲裡變成 AceLocale 的 Missing entry 洗版）；補上
+  dot notation 之後又差點刪掉 `CONTEXT_*` —— 那批是
+  `L["CONTEXT_" .. ctx:upper()]` 組出來的。
+
+  留著幾十條沒人用的字串在執行期是**零成本**，刪錯的代價是玩家的畫面。
+  所以這支只報「用到但沒定義」，不報反向。真要清就人工一條一條確認。
 """
 
 import os
@@ -25,7 +40,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 ADDONS = os.path.join(REPO, "AddOns")
 
+# ⚠⚠ **兩種寫法都要認。** 2026-08-28 踩過：稽核只比對中括號 L["KEY"]，
+#   於是 MiliUI_BurstPotionHelper 那種用 dot notation（`L.TIP_NONE`）的插件，
+#   整批還在用的 key 被判成死鍵刪掉，遊戲裡才變成 AceLocale 的 Missing entry。
+#   dot notation 只在 key 是合法 Lua 識別字時可用，所以規則不同、要分兩條。
 USE_RE = re.compile(r'L\[\s*"((?:[^"\\]|\\.)*)"\s*\]')
+USE_DOT_RE = re.compile(r'\bL\.([A-Za-z_][A-Za-z0-9_]*)')
 DEF_RE = re.compile(r'^L\[\s*"((?:[^"\\]|\\.)*)"\s*\]\s*=\s*(.*)$', re.M)
 FMT_RE = re.compile(r'%[-+ #0]*\d*(?:\.\d+)?[sdifgxXqc%]')
 
@@ -102,6 +122,7 @@ def main():
                     continue
                 src = strip_comments(read(os.path.join(dirpath, name)))
                 used |= set(USE_RE.findall(src))
+                used |= set(USE_DOT_RE.findall(src))
                 # L[變數] ⇒ key 是動態組出來的，缺鍵檢查對這支不可信
                 if re.search(r'L\[\s*[^"\s\]]', src):
                     dynamic = True

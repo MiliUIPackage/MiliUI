@@ -27,13 +27,41 @@ L["OPT_ITEM_TOOLTIP"]    = "滑鼠移過時顯示道具資訊"
 L["OPT_SPLIT_CONTEXT"]   = "依環境分開記憶藥水選擇"
 
 -- 分環境記憶
+L["CONTEXT_WORLD"]       = "世界"
+L["CONTEXT_PARTY"]       = "M+／地城"
+L["CONTEXT_RAID"]        = "團隊"
+L["CONTEXT_PVP"]         = "戰場"
+L["CONTEXT_ARENA"]       = "競技場"
+L["CONTEXT_SCENARIO"]    = "探究／儀式"
 L["CONTEXT_SHARED"]      = "共用（未分開）"
+L["CONTEXT_NO_POTION"]   = "不使用藥水"
 L["SETTINGS_CURRENT_CONTEXT"] = "目前套用的記憶：%s"
+L["MSG_CONTEXT_APPLIED"] = "進入%s，已套用該環境的藥水記憶：|cff33ff33%s|r"
+L["TIP_CONTEXT"]         = "目前記憶：|cff33ff33%s|r"
 
 L["MACRO_HELP"]          = "把這一行放進你的爆發巨集即可。"
 L["BTN_RESET_POS"]       = "重置切換列位置"
 
 L["COPY_HINT"]           = "按 Ctrl+C 複製，再用 Ctrl+V 貼進巨集裡。"
+
+L["LABEL_FLEETING"]      = "大鍋"
+L["LABEL_T3"]            = "高品質"
+L["LABEL_T2"]            = "中品質"
+L["LABEL_T1"]            = "一般品質"
+
+L["MSG_SWITCHED"]        = "已切換至 |cff33ff33%s|r x%d"
+L["MSG_SWITCHED_Q"]      = "已切換至 |cff33ff33%s（%s）|r x%d"
+L["MSG_DISABLED"]        = "已停用爆發藥水"
+L["MSG_NO_POTION"]       = "背包裡找不到爆發藥水。"
+L["MSG_COLLAPSE_COMBAT"] = "戰鬥中無法即時收合／展開，將於離開戰鬥後套用。"
+
+L["TIP_DRAG"]            = "拖動以移動"
+L["TIP_LOCKED"]          = "已鎖定"
+L["TIP_COLLAPSE"]        = "左鍵：收合／展開"
+L["TIP_SETTINGS"]        = "右鍵開啟設定"
+L["TIP_SELECT"]          = "左鍵：選擇此藥水"
+L["TIP_USE"]             = "右鍵：直接使用此藥水"
+L["TIP_NONE"]            = "左鍵：不使用藥水"
 
 -- MiliUIWidgets 共用層（元件庫只查這四個 key）
 L["Apply"]               = "套用"
