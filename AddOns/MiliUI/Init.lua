@@ -26,6 +26,23 @@ function ns.Print(...)
     print("|cff00ff00[MiliUI]|r", ...)
 end
 
+-- Midnight 12.1：首領戰進行中／M+ 計時中／PvP 戰場中會封鎖插件通訊。
+--
+-- 任何 SendAddonMessage 之前都要先問這個，不要去賭受限時是回傳失敗碼還是直接報錯。
+-- 判斷本身抄自 Cell `Comm/Comm.lua` 的同名函式（它匯出成 `F.IsCommRestricted()`）。
+--
+-- 放 Init.lua 而不是各 Enhance 檔各寫一份：這條規則是 12.1 才長出來的，之後很可能
+-- 再加情境（2026-08-28 體檢時發現 Enhance/PartyKeystone.lua 就是漏掉的那一份）。
+-- ⚠ Init.lua 在 TOC 排在所有 Enhance 之前，所以那些檔在**檔案層**就抓得到它。
+-- 跨插件的那幾份（MiliUI_CharacterNotes/Modules/Comm.lua、MiliUI_Focus/Modules/Sync.lua）
+-- 是各自獨立發佈的插件，不能依賴這裡，維持自己那一份。
+function ns.IsCommRestricted()
+    if IsEncounterInProgress and IsEncounterInProgress() then return true end
+    if C_MythicPlus and C_MythicPlus.IsRunActive and C_MythicPlus.IsRunActive() then return true end
+    if C_PvP and C_PvP.IsActiveBattlefield and C_PvP.IsActiveBattlefield() then return true end
+    return false
+end
+
 -- 錯誤收集：Callbacks 的 xpcall 隔離不能變成黑洞——記下最近的錯誤，
 -- 同時照常轉給全域 errorhandler（BugSack 有裝就進 BugSack）
 ns.errors = {}

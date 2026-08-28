@@ -14,9 +14,16 @@
 -- 設計風格：深色半透明面板 + 金色邊框，與 Enhance/ChallengesUI_Buttons.lua 一致。
 --------------------------------------------------------------------------------
 
+local _, ns = ...
+
 local LibStub = _G.LibStub
 local OR = LibStub and LibStub("LibOpenRaid-1.0", true)
 local KS = LibStub and LibStub("LibKeystone", true)
+
+-- 12.1 在首領戰／M+ 計時中／PvP 戰場中封鎖插件通訊，見 Init.lua 的說明。
+-- 這支特別容易撞到：觸發條件是「有人在隊伍頻道打 key」，而那件事在鑰石計時開始
+-- 之後照樣會發生（討論下一把）。
+local IsCommRestricted = ns.IsCommRestricted
 
 -- Locale-aware font (對齊 ChallengesUI_Buttons)
 local barFont
@@ -389,7 +396,11 @@ local function SendSummary()
     local messages = EntriesToMessages(CollectEntries())
     if (#messages == 0) then return end
     lastReply = GetTime()
-    C_ChatInfo.SendAddonMessage(DEDUP_PREFIX, "SENT", channel)
+    -- 通訊在 CLAIM_WINDOW 中途被封鎖（正好開首領）時這一則送不出去 —— 只是別人的
+    -- 排程不會被取消，不影響我們自己這一輪的推舉結果（claims 是封鎖前收齊的）。
+    if (not IsCommRestricted()) then
+        C_ChatInfo.SendAddonMessage(DEDUP_PREFIX, "SENT", channel)
+    end
     for i, line in ipairs(messages) do
         C_Timer.After((i - 1) * LINE_SPACING, function()
             SendChatMessage(line, channel)
@@ -399,6 +410,11 @@ end
 
 local function OnTrigger()
     if (scheduledSend) then return end
+    -- ⚠⚠ 通訊被封鎖時**整個不參加**，不是「照發但沒有去重」。
+    --   下面那套推舉（CLAIM / SENT）完全靠 addon message，被封鎖時每個裝了 MiliUI 的
+    --   隊友都會以為自己贏了 ⇒ 同一份彙報被貼 N 次到隊伍頻道。那比「不回應」糟很多，
+    --   而且是靜默的（SendAddonMessage 不會告訴你它被丟掉了）。
+    if (IsCommRestricted()) then return end
     if (GetTime() - lastReply < REPLY_COOLDOWN) then return end
     local channel = GetSendChannel()
     if (not channel) then return end

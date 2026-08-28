@@ -11,7 +11,7 @@
 --   4. 自己發給自己的訊息不會誤觸發（版本相等不提示）。
 ------------------------------------------------------------
 
-local AddonName, _ = ...
+local AddonName, ns = ...
 if AddonName ~= "MiliUI" then return end
 
 local PREFIX = "MiliUI_VC"
@@ -48,16 +48,9 @@ MiliUI.Version = {
     newestText = nil,
 }
 
--- Midnight 12.1：戰鬥事件／M+／PvP 進行中會封鎖插件通訊。
--- 這是照 Cell `Comm/Comm.lua` 的 IsCommRestricted() 補的——本檔當初參照的是還沒有這個
--- 判斷的舊版 Cell。版本廣播在這些場合本來就沒有意義（大家正在打），與其去賭
--- SendAddonMessage 在受限時是回傳失敗碼還是直接報錯，不如照著上游的做法擋掉。
-local function IsCommRestricted()
-    if IsEncounterInProgress and IsEncounterInProgress() then return true end
-    if C_MythicPlus and C_MythicPlus.IsRunActive and C_MythicPlus.IsRunActive() then return true end
-    if C_PvP and C_PvP.IsActiveBattlefield and C_PvP.IsActiveBattlefield() then return true end
-    return false
-end
+-- Midnight 12.1：戰鬥事件／M+／PvP 進行中會封鎖插件通訊。版本廣播在這些場合本來就
+-- 沒有意義（大家正在打）。判斷搬到 Init.lua 共用，理由與出處寫在那裡。
+local IsCommRestricted = ns.IsCommRestricted
 
 local function SendVersion(channel)
     if MY_VERSION == 0 then return end
