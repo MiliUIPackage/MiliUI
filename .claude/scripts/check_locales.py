@@ -38,6 +38,36 @@ def read(path):
         return fh.read()
 
 
+def strip_comments(src):
+    """把 Lua 註解拿掉再掃 L[...]。
+
+    ⚠ 沒有這一步，**註解裡的用法範例會被當成真的用到**。2026-08-28 踩到：
+      共用層 BlizzOptions.lua 的檔頭寫了 `L["MiliUI Tooltip"]` 當範例，
+      於是每一支插件都被報「用到但沒定義 'MiliUI Tooltip'」。
+    """
+    # 長註解 --[[ ... ]] / --[==[ ... ]==]
+    src = re.sub(r'--\[(=*)\[.*?\]\1\]', '', src, flags=re.S)
+    out = []
+    for line in src.split("\n"):
+        i, n, quote = 0, len(line), None
+        cut = None
+        while i < n:
+            c = line[i]
+            if quote:
+                if c == "\\":
+                    i += 2; continue
+                if c == quote:
+                    quote = None
+            elif c in "\"'":
+                quote = c
+            elif c == "-" and i + 1 < n and line[i + 1] == "-":
+                cut = i
+                break
+            i += 1
+        out.append(line if cut is None else line[:cut])
+    return "\n".join(out)
+
+
 def main():
     problems = 0
     checked = 0
@@ -55,13 +85,22 @@ def main():
         used = set()
         dynamic = False
         for dirpath, dirnames, filenames in os.walk(root):
-            dirnames[:] = [d for d in dirnames if d != "Libs"]
+            # ⚠ **不要整個跳過 Libs**：共用層（Libs/MiliUIWidgets）自己也會查 L[...]，
+            #   而宿主必須滿足它查的每一個 key。2026-08-28 就是漏掉這裡 ——
+            #   BlizzOptions.lua 偷查了 L["Version: %s"] / L["Open options"]，在用
+            #   AceLocale ＋ token key 的三支插件上變成 "Missing entry" 洗版，
+            #   而這支腳本因為跳過 Libs 完全沒看到。
+            #   其餘 vendor 函式庫（Ace*、LibStub…）有自己的語系機制，照樣跳過。
+            dirnames[:] = [d for d in dirnames
+                           if d != "Libs" or os.path.isdir(os.path.join(dirpath, d, "MiliUIWidgets"))]
+            if os.path.basename(dirpath) == "Libs":
+                dirnames[:] = [d for d in dirnames if d == "MiliUIWidgets"]
             if os.path.abspath(dirpath) == os.path.abspath(ldir):
                 continue
             for name in filenames:
                 if not name.endswith(".lua"):
                     continue
-                src = read(os.path.join(dirpath, name))
+                src = strip_comments(read(os.path.join(dirpath, name)))
                 used |= set(USE_RE.findall(src))
                 # L[變數] ⇒ key 是動態組出來的，缺鍵檢查對這支不可信
                 if re.search(r'L\[\s*[^"\s\]]', src):

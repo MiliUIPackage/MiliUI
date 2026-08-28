@@ -9,11 +9,13 @@
 --
 --     local _, ns = ...
 --     ns.BlizzCategory = ns.RegisterBlizzardCategory{
---         title        = ns.L["MiliUI Tooltip"],
---         instructions = ns.L["Use /mtip to open options"],
+--         title        = L["MiliUI Tooltip"],
+--         instructions = L["Use /mtip to open options"],
+--         versionText  = L["Version: %s"]:format(ns.VERSION),
+--         buttonText   = L["Open options"],
 --     }
 --
--- ⚠ 要排在 Widgets 那一區之後：它讀 ns.L / ns.VERSION / ns.OpenOptions。
+-- ⚠ 要排在 Options 那一區之前、Widgets 之後：它讀 ns.VERSION / ns.OpenOptions。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -25,12 +27,18 @@ local _, ns = ...
 --   color         標題色碼，預設 ns.PREFIX_COLOR，再不然白色
 --   categoryName  分類在暴雪清單裡的名字（本體用 "0米利UI設定" 排最前）
 --   setCategoryID 預設 true。⚠ 本體要傳 false —— 見下面
---   versionText   版本那一行的完整字串，預設用 L["Version: %s"]
---   buttonText    按鈕文字，預設 L["Open options"]
---   onClick       按鈕行為，預設 ns.OpenOptions()
+--   versionText   版本那一行的完整字串（**已經格式化好的**）
+--   buttonText    按鈕文字
+--
+-- ⚠⚠ versionText / buttonText 一定要宿主自己傳，這支**不查語系表**。
+--   共用層的語系契約只有四個 key（見 README 的「L 只需要四個 key」），這裡原本
+--   偷懶查 L["Version: %s"] 與 L["Open options"]，結果在用 AceLocale ＋ token key
+--   的那三支（快捷聊天列／爆發藥水／嗜血音樂）上變成
+--   「AceLocale-3.0: Missing entry for 'Open options'」洗版 —— 那三支的對應 key
+--   叫 VERSION_FORMAT 與 BTN_OPEN_OPTIONS。
+--   共用層擅自擴充語系契約就是這個下場，沒傳就退回英文字面值，不要再查表。
 ------------------------------------------------------------
 function ns.RegisterBlizzardCategory(spec)
-    local L = ns.L or setmetatable({}, { __index = function(_, k) return k end })
     local title = spec.title or ns.ADDON_NAME or "MiliUI"
     local color = spec.color or ns.PREFIX_COLOR or "|cffffffff"
 
@@ -43,7 +51,7 @@ function ns.RegisterBlizzardCategory(spec)
     local version = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     version:SetPoint("CENTER", panel, "CENTER", 0, 40)
     version:SetText("|cffffffff"
-        .. (spec.versionText or (L["Version: %s"]):format(ns.VERSION or "?"))
+        .. (spec.versionText or ("Version: " .. (ns.VERSION or "?")))
         .. "|r")
 
     if spec.instructions then
@@ -58,7 +66,7 @@ function ns.RegisterBlizzardCategory(spec)
         template = "UIPanelDynamicResizeButtonTemplate"
     end
     local button = CreateFrame("Button", nil, panel, template)
-    button:SetText(spec.buttonText or L["Open options"])
+    button:SetText(spec.buttonText or "Open options")
     button.padding = 40
     if DynamicResizeButton_Resize then DynamicResizeButton_Resize(button) end
     button:SetPoint("CENTER", panel, "CENTER", 0, -30)
