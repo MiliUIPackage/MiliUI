@@ -225,4 +225,25 @@ handler 掛失敗會讓**整個容器建立失敗**,對外只表現成「光環�
 ⚠ 這一整輪本來可以省下:上面「`options.layout` 的合法欄位」與「未知的鍵會被靜靜丟掉」
 兩條在 2026-08-13 就寫在這份筆記裡了。**動手前先把這篇讀完,不要只掃技能的索引表。**
 
+## 舊路徑 BuffFrame 的驅散類型上色：對污染端整面封死（2026-08-28 查證）
+
+玩家自身的 BuffFrame／DebuffFrame 到 12.1 仍是舊的 `AuraButtonMixin`（不是路線 A），
+想在它上面做「自己的貼圖按驅散類型上色」，四條路全都走不通：
+
+1. 讀 `debuffType` 自己查色表 —— 受限時是秘密值，當 table key 直接崩潰。
+2. `C_UnitAuras.GetAuraDispelTypeColor(unit, auraInstanceID, curve)` —— 12.1 專門的
+   曲線 API（驅散類型 ID 當曲線的 x），但 `SecretArguments = "AllowedWhenUntainted"`：
+   受限時 `auraInstanceID` 是秘密值，污染端一傳就被拒。正好在最需要的場合失效。
+3. 掛勾暴雪上色路徑、只換形狀不碰顏色 —— 暴雪是
+   `AuraUtil.SetAuraBorderAtlas` → `DEBUFF_DISPLAY_INFO[dispelType]` →
+   `SetAtlas(per-type atlas)`，**顏色烤死在每型一張的 atlas 裡**，沒有 vertex color
+   可以搭便車。
+4. `AddDispelTypeTexture`（把調色盤交給引擎、引擎替你的貼圖上色；Cell 在用）——
+   只存在於路線 A 的 intrinsic AuraButton，舊路徑沒這接口。`SetIcon` 同理。
+
+唯一可靠的色彩載體＝暴雪自己的 `DebuffBorder`（安全端畫的，哪裡都正常）。
+要改它外面的視覺就疊自己的區塊，別想取代它。
+實例：MiliUI_AuraEnhance `Modules/Skin.lua`（1px 邊框 + 保留 DebuffBorder），
+完整三代演進見 [[project-miliui-auraenhance]]。
+
 相關：[[wow-121-secret-values]]、[[wow-121-coolinator-reference]]、[[project-121-addon-migration]]
