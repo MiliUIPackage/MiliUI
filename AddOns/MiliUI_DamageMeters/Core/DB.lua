@@ -199,7 +199,7 @@ local function BuildDefaults()
             showPinnedSelf    = true,   -- 自己掉出可視範圍時把那一列釘在上/下緣
             showHoverTooltip  = true,   -- 滑過長條顯示法術預覽
             showSpellTooltips = true,   -- 展開頁滑過法術顯示遊戲工具提示
-            breakdownAnchor   = "row",  -- row | center | left | right
+            breakdownAnchor   = "right",  -- row | center | left | right
             -- 只要這支插件開著，就主動把暴雪內建的傷害統計關掉（CVar
             -- damageMeterEnabled）。**預設開**：兩份統計同時算是白花的成本，
             -- 兩個框同時出現也只是讓人困惑。關掉這個選項會把 CVar 還回去。

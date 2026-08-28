@@ -242,7 +242,7 @@ end
 ------------------------------------------------------------
 local function Anchor(bar)
     local s = ns.DB.Style()
-    local mode = s.breakdownAnchor or "row"
+    local mode = s.breakdownAnchor or "right"
     local W = bar.W
     _frame:ClearAllPoints()
 
@@ -250,22 +250,38 @@ local function Anchor(bar)
         _frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
         return
     end
+
+    local LEFT_PTS  = { "TOPRIGHT", W and W.frame, "TOPLEFT", -4, 0 }
+    local RIGHT_PTS = { "TOPLEFT",  W and W.frame, "TOPRIGHT", 4, 0 }
+    local pts
+
     if (mode == "left" or mode == "right") and W and W.frame then
-        if mode == "left" then
-            _frame:SetPoint("TOPRIGHT", W.frame, "TOPLEFT", -4, 0)
-        else
-            _frame:SetPoint("TOPLEFT", W.frame, "TOPRIGHT", 4, 0)
+        pts = (mode == "left") and LEFT_PTS or RIGHT_PTS
+        -- 偏好的那一側放不下就換邊 —— 統計視窗貼著畫面邊緣時一定會遇到，
+        -- 而右側是預設值，所以這是常態不是例外。
+        _frame:SetPoint(unpack(pts))
+        local l, r = _frame:GetLeft(), _frame:GetRight()
+        local pl, pr = UIParent:GetLeft(), UIParent:GetRight()
+        if l and r and pl and pr then
+            if mode == "right" and r > pr then
+                pts = LEFT_PTS
+            elseif mode == "left" and l < pl then
+                pts = RIGHT_PTS
+            end
         end
-        return
+    else
+        -- 貼在滑過那一列的上方；上面放不下就翻到下方
+        pts = { "BOTTOMLEFT", bar.row, "TOPLEFT", 0, 2 }
+        _frame:SetPoint(unpack(pts))
+        local top = _frame:GetTop()
+        if top and top > UIParent:GetTop() then
+            pts = { "TOPLEFT", bar.row, "BOTTOMLEFT", 0, -2 }
+        end
     end
 
-    -- 預設：貼在滑過那一列的上方；上面放不下就翻到下方
-    _frame:SetPoint("BOTTOMLEFT", bar.row, "TOPLEFT", 0, 2)
-    local top = _frame:GetTop()
-    if top and top > UIParent:GetTop() then
-        _frame:ClearAllPoints()
-        _frame:SetPoint("TOPLEFT", bar.row, "BOTTOMLEFT", 0, -2)
-    end
+    -- 換邊之後還是塞不下（螢幕窄、預覽跟視窗一樣寬）就硬推回畫面內。
+    -- 那時預覽會蓋到統計視窗上，但看得見永遠比整片在畫面外好。
+    ns.W.PlaceClamped(_frame, pts)
 end
 
 ------------------------------------------------------------
