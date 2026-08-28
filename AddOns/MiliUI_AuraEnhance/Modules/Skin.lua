@@ -59,6 +59,11 @@ local function ApplyFrames(frames)
         if btn.Icon and btn.Icon.GetTexture and not btn.isAuraAnchor then
             local border = borders[btn]
             if not border then
+                -- 裁掉圖示素材烤在圖裡的內建斜邊框，1px 框才會像 Cell 一樣乾淨。
+                -- 0.12/0.88 是套組標準裁切（Cell、MiliUI_UnitFrames 同值）。
+                -- 純 setter、常數進場；暴雪的光環路徑不會重設 TexCoord，設一次就好。
+                btn.Icon:SetTexCoord(0.12, 0.88, 0.12, 0.88)
+
                 -- Icon 在 BACKGROUND 層級 0（AuraButtonArtTemplate），邊框墊在 -1
                 border = btn:CreateTexture(nil, "BACKGROUND", nil, -1)
                 border:SetPoint("TOPLEFT", btn.Icon, "TOPLEFT", -INSET, INSET)
