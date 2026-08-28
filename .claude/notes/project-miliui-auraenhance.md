@@ -107,7 +107,15 @@ upvalue（hook 是熱路徑），換表的話 hook 會繼續指著舊的那份�
    Masque 從 TOC OptionalDeps 移除；玩家挑皮膚的能力隨之取消（上線僅三天，套組
    哲學本來就是整包調好）。
 
-**減益的驅散類型 1px 上色做不到（四條路全查證過，2026-08-28）**：
+**減益的驅散色 1px：可讀才上、秘密不動（2026-08-28 落地）**。受限場合四條路
+仍然全封死（見下），但**非受限**時 `btn.buttonInfo.debuffType`（＝auraData.dispelName，
+明碼字串 Magic/Curse/Disease/Poison）讀得到：三道護欄（`type(info)=="table"` →
+`issecrettable` → `issecretvalue`）任一擋下就回 nil＝「不動」（黑框＋暴雪外框藝術照舊，
+受限下玩家照樣看得到類型色）；讀到就染 1px＋`DebuffBorder:SetAlpha(0)` 收掉外框藝術。
+每輪 UpdateAuraButtons 重判，狀態切換自己跟上。色表是經典 DebuffTypeColor 四色，
+自帶不吃全域。
+
+**受限場合做不到的證明（四條路全查證過，2026-08-28）**：
 ① `debuffType` 受限時是秘密值，當 table key 查色表直接崩潰；
 ② 專用 API `C_UnitAuras.GetAuraDispelTypeColor(unit, auraInstanceID, curve)`
 （驅散類型當曲線 x）是 `AllowedWhenUntainted`，受限時 `auraInstanceID` 是秘密，

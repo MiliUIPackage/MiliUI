@@ -41,7 +41,7 @@ L["Border thickness"] = "邊框厚度"
 L["Icon spacing"] = "圖示間隔"
 L["Spacing between the aura icons. This value takes over from the icon padding in Edit Mode's buff and debuff frame settings."] = "光環圖示彼此的間距。這裡的值會蓋過編輯模式裡增益／減益框的「圖示間距」。"
 L["The switch takes effect after you reload the interface."] = "開關要重新載入介面才會生效；厚度即時套用。"
-L["Draws a thin border around the buff and debuff icons, matching the rest of the MiliUI package. Weapon enchants get a purple border instead; debuffs keep Blizzard's dispel-type colours on the outside."] = "為增益／減益圖示畫上跟套組一致的細邊框。武器附魔改用紫色，減益的外圈保留暴雪的驅散類型顏色。"
+L["Draws a thin border around the buff and debuff icons, matching the rest of the MiliUI package. Weapon enchants get a purple border. Debuff borders take the dispel-type colour whenever the aura is readable; in raids, Mythic+ and PvP the aura data is sealed, so those keep Blizzard's own dispel border art instead."] = "為增益／減益圖示畫上跟套組一致的細邊框，武器附魔用紫色。減益在光環可讀時，邊框直接染成驅散類型色；首領戰／M+／PvP 裡光環是封起來的，這時保留暴雪自己的驅散色外框。"
 
 -- 方位
 L["Top left"] = "左上"

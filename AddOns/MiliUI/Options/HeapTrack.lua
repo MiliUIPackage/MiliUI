@@ -100,6 +100,39 @@ function HT.GetTrend()
     }
 end
 
+------------------------------------------------------------
+-- 文字報告 -> /miliui heap（效能監控分頁畫的是同一份資料）
+------------------------------------------------------------
+local SPARK = { "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█" }
+
+function HT.Report()
+    local nowMB = HT.GetCurrentMB()
+    local t = HT.GetTrend()
+    if not t then
+        ns.Print(("Lua 堆目前 %.0f MB。取樣還不夠（每分鐘一點，已有 %d 點）—— "
+            .. "玩個 20 分鐘以上再回來看趨勢。"):format(nowMB, #samples))
+        return
+    end
+
+    local range = math.max(t.hiMB - t.loMB, 1)
+    local bars = {}
+    for i = 1, #samples do
+        local mb = samples[i].kb / 1024
+        bars[i] = SPARK[math.floor((mb - t.loMB) / range * (#SPARK - 1) + 0.5) + 1]
+    end
+
+    local colour = (t.level == "bad" and "|cffff5555")
+        or (t.level == "warn" and "|cffff9900")
+        or (t.level == "good" and "|cff33ff66") or "|cff888888"
+
+    ns.Print(("Lua 堆成長曲線（%d 分鐘、%d 個取樣點，記的是每分鐘活資料下界）："):format(
+        math.floor(t.spanMin + 0.5), #samples))
+    print("  " .. table.concat(bars))
+    print(("  範圍 %.0f ～ %.0f MB｜目前 %.0f MB｜前段均值 %.0f → 後段均值 %.0f"):format(
+        t.loMB, t.hiMB, nowMB, t.headMB, t.tailMB))
+    print(("  %s%s|r"):format(colour, t.text))
+end
+
 startTime = GetTime()
 bucketEnd = startTime + BUCKET_SEC
 C_Timer.NewTicker(SAMPLE_SEC, Sample)

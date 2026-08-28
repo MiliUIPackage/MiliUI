@@ -21,7 +21,7 @@ local function BuildControls()
     return {
         { type = "header", label = L["Icon skin"] },
         { type = "toggle", key = "enabled", label = L["Frame the aura icons"] },
-        { type = "text",   label = L["Draws a thin border around the buff and debuff icons, matching the rest of the MiliUI package. Weapon enchants get a purple border instead; debuffs keep Blizzard's dispel-type colours on the outside."] },
+        { type = "text",   label = L["Draws a thin border around the buff and debuff icons, matching the rest of the MiliUI package. Weapon enchants get a purple border. Debuff borders take the dispel-type colour whenever the aura is readable; in raids, Mythic+ and PvP the aura data is sealed, so those keep Blizzard's own dispel border art instead."] },
         { type = "text",   label = L["The switch takes effect after you reload the interface."] },
         { type = "slider", key = "inset", label = L["Border thickness"],
           min = 1, max = 4, step = 1 },

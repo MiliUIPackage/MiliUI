@@ -18,6 +18,8 @@ SlashCmdList.MILIUIPACK = function(msg)
         ns.OpenOptions("perf")
     elseif msg == "lag" or msg:match("^lag%s") then
         ns.LagWatch.Command(msg:match("^lag%s*(.*)$"))
+    elseif msg == "heap" or msg == "mem" then
+        ns.HeapTrack.Report()
     elseif msg == "check" then
         -- 逐筆報告「開啟設定」會走哪條路：指令有沒有真的註冊、分類找不找得到。
         -- 插件的指令壞掉（例如呼叫舊版 OpenToCategory）從外面看不出來，

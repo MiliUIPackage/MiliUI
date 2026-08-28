@@ -172,42 +172,6 @@ function ns.LagWatch.GetThreshold()
     return DB().lagMs
 end
 
--- 迷你走勢圖：八階方塊，比的是「這一段的最低點」在整體範圍裡的相對高度。
--- 資料來自 ns.HeapTrack（常駐取樣，跟這台記錄器的開關無關）——效能監控分頁
--- 畫的是同一份資料，這裡只是給不想開視窗的人的文字版。
-local SPARK = { "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█" }
-
-local function HeapReport()
-    local HT = ns.HeapTrack
-    local nowMB = HT and HT.GetCurrentMB() or 0
-    local t = HT and HT.GetTrend()
-    if not t then
-        ns.Print(("Lua 堆目前 %.0f MB。取樣還不夠（每分鐘一點，已有 %d 點）—— "
-            .. "玩個 20 分鐘以上再回來看趨勢。"):format(
-                nowMB, HT and #HT.GetSamples() or 0))
-        return
-    end
-
-    local samples = HT.GetSamples()
-    local range = math.max(t.hiMB - t.loMB, 1)
-    local bars = {}
-    for i = 1, #samples do
-        local mb = samples[i].kb / 1024
-        bars[i] = SPARK[math.floor((mb - t.loMB) / range * (#SPARK - 1) + 0.5) + 1]
-    end
-
-    local colour = (t.level == "bad" and "|cffff5555")
-        or (t.level == "warn" and "|cffff9900")
-        or (t.level == "good" and "|cff33ff66") or "|cff888888"
-
-    ns.Print(("Lua 堆成長曲線（%d 分鐘、%d 個取樣點，記的是每分鐘活資料下界）："):format(
-        t.spanMin + 0.5, #samples))
-    print("  " .. table.concat(bars))
-    print(("  範圍 %.0f ～ %.0f MB｜目前 %.0f MB｜前段均值 %.0f → 後段均值 %.0f"):format(
-        t.loMB, t.hiMB, nowMB, t.headMB, t.tailMB))
-    print(("  %s%s|r"):format(colour, t.text))
-end
-
 function ns.LagWatch.Command(arg)
     arg = strtrim(arg or "")
     local db = DB()
@@ -218,7 +182,9 @@ function ns.LagWatch.Command(arg)
         ns.LagWatch.SetEnabled(false)
         ns.Print("卡頓記錄器：關")
     elseif arg == "heap" or arg == "mem" then
-        HeapReport()
+        -- 堆曲線已經是獨立常駐的東西（HeapTrack），正式入口是 /miliui heap；
+        -- 這裡留著是因為它一度住在這台記錄器裡，手指還記得
+        if ns.HeapTrack then ns.HeapTrack.Report() end
     elseif arg == "clear" then
         wipe(events)
         if ns.HeapTrack then ns.HeapTrack.Reset() end
@@ -231,7 +197,7 @@ function ns.LagWatch.Command(arg)
         ns.Print(("卡頓記錄（門檻 %d 毫秒，記錄器%s）："):format(
             db.lagMs, db.lagWatch and "開啟中" or "|cffff5555已關閉|r"))
         if #events == 0 then
-            print("  還沒有記錄。門檻：/miliui lag <毫秒>｜記憶體趨勢：/miliui lag heap")
+            print("  還沒有記錄。門檻：/miliui lag <毫秒>")
             return
         end
         for i = #events, 1, -1 do
@@ -245,6 +211,5 @@ function ns.LagWatch.Command(arg)
                 #parts > 0 and table.concat(parts, "、") or "無",
                 ev.gcMB >= 10 and ("｜GC 回收 %.0f MB"):format(ev.gcMB) or ""))
         end
-        print("  |cff888888記憶體趨勢：/miliui lag heap|r")
     end
 end

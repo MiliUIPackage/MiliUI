@@ -140,6 +140,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-luac-global-scan.md](wow-luac-global-scan.md) | `luac -p` 抓不到未宣告全域；要用 `luac -l` 掃 `_ENV` 讀取 |
 | [wow-locale-key-access-patterns.md](wow-locale-key-access-patterns.md) | 語系 key 的四種取法（含前綴拼接）；**不要自動刪沒人用的語系條目** —— 為此翻車兩次 |
 | [wow-ui-source-lookup（技能）](../skills/wow-ui-source-lookup/SKILL.md) | 查暴雪原生 UI 原始碼與 API 簽章 |
+| [wow-png-shrink（技能）](../skills/wow-png-shrink/SKILL.md) | 壓縮插件 PNG —— 三個量測過的手段、縮圖要拿顯示尺寸驗證、索引色為何否決 |
 
 ### 每季／每次改版要維護
 | 檔案 | 內容 |

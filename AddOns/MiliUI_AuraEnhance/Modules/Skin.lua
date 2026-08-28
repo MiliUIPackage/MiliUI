@@ -76,6 +76,36 @@ end
 local borders = {}
 
 local _issecret = issecretvalue
+local _issecrettable = issecrettable
+
+------------------------------------------------------------
+-- 減益的驅散色：可讀才上，秘密完全不動
+--
+-- 受限場合（首領戰／M+／PvP）光環資料是秘密值，那裡讀不到、也不去讀——
+-- 黑框照舊、暴雪自己的驅散色外框照舊，玩家一樣看得到類型色。
+-- 非受限場合 `buttonInfo.debuffType`（＝auraData.dispelName）是明碼字串，
+-- 這時把 1px 染成類型色、順手用 alpha 收掉暴雪那圈外框藝術，得到跟
+-- 單位框架一樣乾淨的樣子。每輪重判，狀態切換自己會跟上。
+------------------------------------------------------------
+local DISPEL_COLOR = {
+    Magic   = { 0.2, 0.6, 1.0 },
+    Curse   = { 0.6, 0.0, 1.0 },
+    Disease = { 0.6, 0.4, 0.0 },
+    Poison  = { 0.0, 0.6, 0.0 },
+}
+
+-- 回傳驅散色，讀不到（秘密／沒類型／不可驅散）一律回 nil ＝「不動」。
+-- 三道護欄缺一不可：buttonInfo 可能整張表是秘密（索引就炸）、
+-- debuffType 可能單值是秘密（比較就炸）、明碼才准進色表查表。
+local function DispelColor(btn)
+    local info = btn.buttonInfo
+    if type(info) ~= "table" then return nil end
+    if _issecrettable and _issecrettable(info) then return nil end
+    local t = info.debuffType
+    if t == nil then return nil end
+    if _issecret and _issecret(t) then return nil end
+    return DISPEL_COLOR[t]
+end
 
 -- 這顆按鈕現在是不是武器附魔。
 -- 表欄位讀取永遠合法；比較之前先驗秘密值 —— 萬一哪天 auraType 變成秘密，
@@ -87,7 +117,7 @@ local function IsTempEnchant(btn)
     return t == "TempEnchant"
 end
 
-local function ApplyFrames(frames)
+local function ApplyFrames(frames, isDebuff)
     for i = 1, #frames do
         local btn = frames[i]
         -- 私人光環的錨點框也在這份清單裡，它的 Icon 是 Frame 不是 Texture。
@@ -114,6 +144,16 @@ local function ApplyFrames(frames)
 
             -- 顏色每輪重判：按鈕是回收再用的，種類（減益→附魔）會變
             local c = IsTempEnchant(btn) and ENCHANT_COLOR or BORDER_COLOR
+            if isDebuff then
+                local dc = DispelColor(btn)
+                if dc then
+                    c = dc
+                    -- 類型色上了 1px，暴雪那圈外框藝術就收掉（alpha 它不會動）
+                    if btn.DebuffBorder then btn.DebuffBorder:SetAlpha(0) end
+                elseif btn.DebuffBorder then
+                    btn.DebuffBorder:SetAlpha(1)
+                end
+            end
             border:SetColorTexture(c[1], c[2], c[3])
         end
     end
@@ -130,14 +170,16 @@ function Skin.Apply()
     ApplyPadding(DebuffFrame)
 end
 
-local function Hook(self)
-    ApplyFrames(self.auraFrames)
-    if self.exampleAuraFrames then
-        ApplyFrames(self.exampleAuraFrames)
+local function MakeHook(isDebuff)
+    return function(self)
+        ApplyFrames(self.auraFrames, isDebuff)
+        if self.exampleAuraFrames then
+            ApplyFrames(self.exampleAuraFrames, isDebuff)
+        end
+        -- 順手把間隔守住（比較守門，值沒偏是兩次表讀取而已）——
+        -- 這條也涵蓋「編輯模式在我們掛勾之前就套完設定」的登入時序
+        ApplyPadding(self)
     end
-    -- 順手把間隔守住（比較守門，值沒偏是兩次表讀取而已）——
-    -- 這條也涵蓋「編輯模式在我們掛勾之前就套完設定」的登入時序
-    ApplyPadding(self)
 end
 
 ------------------------------------------------------------
@@ -150,10 +192,11 @@ ns.RegisterCallback("Init", "skin", function()
     SKN = ns.db.skin
     if not SKN.enabled then return end
 
-    hooksecurefunc(BuffFrame, "UpdateAuraButtons", Hook)
-    hooksecurefunc(BuffFrame, "OnEditModeEnter", Hook)
-    hooksecurefunc(DebuffFrame, "UpdateAuraButtons", Hook)
-    hooksecurefunc(DebuffFrame, "OnEditModeEnter", Hook)
+    local buffHook, debuffHook = MakeHook(false), MakeHook(true)
+    hooksecurefunc(BuffFrame, "UpdateAuraButtons", buffHook)
+    hooksecurefunc(BuffFrame, "OnEditModeEnter", buffHook)
+    hooksecurefunc(DebuffFrame, "UpdateAuraButtons", debuffHook)
+    hooksecurefunc(DebuffFrame, "OnEditModeEnter", debuffHook)
 
     -- 編輯模式重寫間隔的當下就蓋回來（見 ApplyPadding 的說明）
     for _, frame in ipairs({ BuffFrame, DebuffFrame }) do
