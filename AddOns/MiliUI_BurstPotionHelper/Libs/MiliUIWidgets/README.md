@@ -1,17 +1,31 @@
 # MiliUIWidgets
 
-MiliUI 各插件共用的設定介面元件庫。自寫、零外部依賴、零資產檔（材質只用暴雪內建的
-`WHITE8X8`，字型走暴雪內建路徑），所以整包就是五支 `.lua`，複製過去就會動。
+MiliUI 各插件共用的元件與基礎設施。自寫、零外部依賴、零資產檔（材質只用暴雪內建的
+`WHITE8X8`，字型走暴雪內建路徑），複製過去就會動。
 
 **這是 vendor 包，不是 LibStub 函式庫。** 每個插件各帶一份、各跑各的，彼此不共享執行期
-狀態。原始碼的唯一來源是 **MiliUI 本體**（`AddOns/MiliUI/Libs/MiliUIWidgets/`）這份，
-改動請改那裡再同步出去。
+狀態 —— 所以單獨發佈某支插件時，玩家只會下載到**一個**資料夾，不必另外裝共用層。
+
+原始碼的唯一來源是 **MiliUI 本體**（`AddOns/MiliUI/Libs/MiliUIWidgets/`）這份。
+改動請改那裡，然後：
+
+```bash
+python3 .claude/scripts/sync-widgets.py           # 同步出去
+python3 .claude/scripts/sync-widgets.py --check   # 只檢查漂移（提交前檢查會跑）
+```
+
+⚠ 那支腳本**不會主動把新模組塞進沒帶它的插件**，只更新已經帶著的那幾支。要讓某支
+插件開始用新模組，先手動複製一次、TOC 排好，之後它才管得到。
 
 ## 檔案
 
 | 檔案 | 複製時 | 說明 |
 |---|---|---|
 | `Env.lua` | **要改** | 宿主接點，見下方契約 |
+| `Secret.lua` | 逐字複製 | 12.1 秘密值工具（`ns.Secret`）。**無相依，排在最前面** |
+| `Errors.lua` | 逐字複製 | 錯誤處理器與封鎖動作攔截（`ns.Errors`）。**無相依，排在最前面** |
+| `Metro.lua` | 逐字複製 | 共用輪詢 ticker（`ns.Metro.New`）。**無相依，排在最前面** |
+| `BlizzOptions.lua` | 逐字複製 | 暴雪「選項 > 插件」入口頁（`ns.RegisterBlizzardCategory`），排在 `Options\Blizzard.lua` 之前 |
 | `Widgets.lua` | 逐字複製 | 元件庫：按鈕／勾選框／滑桿／下拉／色票／輸入框／複製框／列表／遮罩／彈窗／標題列 |
 | `ContextMenu.lua` | 逐字複製 | 右鍵／情境選單（長在遊戲畫面上的那種，不是設定表單裡的下拉） |
 | `Controls.lua` | 逐字複製 | 表單引擎：吃一張 spec 清單，吐出對齊好的一整頁控制項 |
@@ -65,12 +79,21 @@ MiliUI 各插件共用的設定介面元件庫。自寫、零外部依賴、零�
 
 ```
 Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
 ...(語系、Core 等)...
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
+...(Options 各分頁)...
+Libs\MiliUIWidgets\BlizzOptions.lua
+Options\Blizzard.lua
 ```
+
+`Secret` / `Errors` / `Metro` 三支**完全沒有相依**（不讀 Env、不讀語系），所以跟
+`PixelPerfect.lua` 一起排在最前面 —— 宿主的 `Core/*.lua` 在檔案層就會用到它們。
 
 ### 右鍵選單（`ContextMenu.lua`）
 

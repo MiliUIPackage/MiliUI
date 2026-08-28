@@ -23,6 +23,7 @@ run() {
 run "Lua：語法 ＋ 可疑的全域寫入" python3 .claude/scripts/check_lua.py
 run "TOC：載入清單與 Interface 版本"  python3 .claude/scripts/check_toc.py
 run "語系：缺鍵／重複／格式符／色碼"  python3 .claude/scripts/check_locales.py
+run "共用層：MiliUIWidgets 有沒有漂移" python3 .claude/scripts/sync-widgets.py --check
 
 # notes 同步只在本機有 agent memory 時才有意義（CI 上沒有那個目錄），
 # 所以它自己判斷，找不到就跳過而不是失敗。

@@ -12,15 +12,18 @@ ns.DB_VERSION = 1            -- schemaVersion。尚未發佈、沒有遷移鏈�
 
 ns.playerClass = select(2, UnitClass("player"))   -- player token 不受 12.1 身分限制，安全
 
--- 錯誤收集：xpcall 隔離不能變成黑洞——記下最近的錯誤供 /mtip debug 印出，
--- 同時照常轉給全域 errorhandler（BugSack 有裝就進 BugSack）
-ns.errors = {}
-function ns.ReportError(err)
-    tinsert(ns.errors, tostring(err))
-    if #ns.errors > 10 then tremove(ns.errors, 1) end
-    local handler = geterrorhandler()
-    if handler then handler(err) end
-end
+------------------------------------------------------------
+-- 錯誤收集與封鎖動作攔截 —— 共用層 Libs/MiliUIWidgets/Errors.lua
+--
+--   ns.ReportError  xpcall 的訊息處理器（三道守衛：防遞迴、err 本身可能是秘密
+--                   字串、下游 handler 包 pcall）。記進 ns.errors 供 /mtip debug 印出，
+--                   同時照常轉給全域 errorhandler（有裝 BugSack 就進 BugSack）。
+--   封鎖動作攔截    ADDON_ACTION_FORBIDDEN 不是 Lua error、pcall 攔不住，
+--                   但事件會點名是哪個插件的哪個函式。
+------------------------------------------------------------
+ns.Errors.Install(function(line)
+    print(ns.PREFIX_COLOR .. "[米利的滑鼠提示]|r |cffff5555" .. line .. "|r")
+end)
 
 ------------------------------------------------------------
 -- 診斷記錄器（/mtip log 開關、/mtip logdump 印出）

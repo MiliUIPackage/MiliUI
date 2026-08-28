@@ -16,6 +16,9 @@
 ## SavedVariables: MiliUI_ChatBar_DB
 
 Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
 embeds.xml
 Locales\Locales.xml
 
@@ -32,5 +35,6 @@ Menu.lua
 Options\Panel.lua
 Options\Tab_General.lua
 Options\Tab_Channels.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Api.lua

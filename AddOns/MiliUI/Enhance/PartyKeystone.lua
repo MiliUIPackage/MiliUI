@@ -46,7 +46,7 @@ local CLAIM_WINDOW   = 1.8          -- 等資料回來 + 收集 CLAIM 的窗口
 local REPLY_COOLDOWN = 30           -- 送出彙報後的冷卻秒數
 local LINE_SPACING   = 0.15         -- 每行延遲避免 server throttle
 local TRIGGER_KEYWORDS = { ["key"]=true, ["keys"]=true, ["!key"]=true, ["!keys"]=true, ["鑰石"]=true }
-local issecretvalue = _G.issecretvalue or function() return false end
+local issecretvalue = ns.Secret.IsSecret
 
 local Refresh        -- forward declaration（面板實際刷新）
 local QueueRefresh   -- forward declaration（節流 + 僅可見時刷新，供函式庫 callback 用）

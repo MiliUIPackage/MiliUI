@@ -49,43 +49,13 @@ end
 -- ⚠ 判斷可見度用的是我們**自己的** skin frame 的 OnShow/OnHide，不是掛暴雪 tooltip
 --   的腳本。skin 是 tip 的 child，父層一藏子層就跟著發 OnHide，等價而且零接觸面。
 ------------------------------------------------------------
-local TICK = 0.05          -- 基礎心跳，必須比任何一個 interval 短
-local pollEntries = {}
-local pollTicker
+-- 共用 ticker 在 Libs/MiliUIWidgets/Metro.lua（逐項隔離、沒項目就不存在都在那裡）。
+-- 基礎心跳 0.05 秒，要比任何一個 interval 短。
+local poll = ns.Metro.New(0.05, ns.ReportError)
+Skin.Poll = poll.Add
+Skin.Unpoll = poll.Remove
+
 local shownCount = 0
-
-local function PollTick()
-    for _, e in pairs(pollEntries) do
-        e.elapsed = e.elapsed + TICK
-        if e.elapsed >= e.interval then
-            e.elapsed = 0
-            -- 逐項隔離：裸迴圈 dispatch，一支拋錯會讓同一輪剩下的全部不跑
-            xpcall(e.fn, ns.ReportError)
-        end
-    end
-end
-
-local function SyncPollTicker()
-    local want = shownCount > 0 and next(pollEntries) ~= nil
-    if want and not pollTicker then
-        pollTicker = C_Timer.NewTicker(TICK, PollTick)
-    elseif not want and pollTicker then
-        pollTicker:Cancel()
-        pollTicker = nil
-    end
-end
-
--- 既有項目只更新欄位、不重置 elapsed（跟 ns.Metro.Add 同樣的理由：
--- 重複註冊時每次歸零的話，間隔長的項目永遠等不到觸發）
-function Skin.Poll(key, interval, fn)
-    local e = pollEntries[key]
-    if e then
-        e.interval, e.fn = interval, fn
-    else
-        pollEntries[key] = { interval = interval, elapsed = 0, fn = fn }
-    end
-    SyncPollTicker()
-end
 
 -- skin 的 OnShow/OnHide 呼叫；state.visible 當去重閘，避免計數飄掉
 local function NoteVisibility(state, visible)
@@ -93,7 +63,7 @@ local function NoteVisibility(state, visible)
     state.visible = visible
     shownCount = shownCount + (visible and 1 or -1)
     if shownCount < 0 then shownCount = 0 end
-    SyncPollTicker()
+    poll.SetEnabled(shownCount > 0)
 end
 
 ------------------------------------------------------------

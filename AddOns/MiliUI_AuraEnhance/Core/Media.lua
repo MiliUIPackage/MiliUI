@@ -99,7 +99,7 @@ end
 --   RAID_CLASS_COLORS[secret] 會丟 "cannot be indexed with secret keys"。
 --   不過 player token 讀職業是安全的，這裡只是保險。
 ------------------------------------------------------------
-local issecret = issecretvalue or function() return false end
+local issecret = ns.Secret.IsSecret
 
 local ar, ag, ab = 0.7, 0.7, 0.7
 do

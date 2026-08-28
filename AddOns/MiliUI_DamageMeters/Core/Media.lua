@@ -144,7 +144,7 @@ end
 --   RAID_CLASS_COLORS[secret] 會丟 "cannot be indexed with secret keys"。
 --   拿不到就回 nil，讓呼叫端自己決定退什麼色（不要在這裡偷偷退成盜賊黃）。
 ------------------------------------------------------------
-local issecret = issecretvalue or function() return false end
+local issecret = ns.Secret.IsSecret
 M.IsSecret = issecret
 
 function M.ClassColor(classFile)

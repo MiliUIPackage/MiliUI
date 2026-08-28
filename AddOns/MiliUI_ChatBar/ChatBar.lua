@@ -7,7 +7,7 @@ ns.L = L
 ns.VERSION      = C_AddOns.GetAddOnMetadata(addonName, "Version") or "dev"
 ns.PREFIX_COLOR = "|cffFF9999"
 
-local issecretvalue = _G.issecretvalue or function() return false end
+local issecretvalue = ns.Secret.IsSecret
 
 -- 設定分頁的 callback 派送用（Libs/Callbacks.lua 的 xpcall 處理器）。
 -- 訂閱者之間不能連坐，但也不能變成黑洞——照常轉給全域 errorhandler。

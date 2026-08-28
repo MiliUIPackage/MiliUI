@@ -16,13 +16,15 @@
 ## AddonCompartmentFunc: MiliUITip_OnAddonCompartmentClick
 
 Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
 Libs\Callbacks.lua
 Locales\Locale.lua
 Locales\zhTW.lua
 Locales\zhCN.lua
 
 Core\Init.lua
-Core\Secret.lua
 Core\Media.lua
 Core\DB.lua
 Core\Colors.lua
@@ -50,5 +52,6 @@ Options\Tab_General.lua
 Options\Tab_Unit.lua
 Options\Tab_Extra.lua
 Options\Tab_Share.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Api.lua

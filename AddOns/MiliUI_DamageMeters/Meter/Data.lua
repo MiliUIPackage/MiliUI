@@ -12,7 +12,7 @@ local D = ns.Data
 local M = ns.Media
 local L = ns.L
 
-local issecret = issecretvalue or function() return false end
+local issecret = ns.Secret.IsSecret
 D.IsSecret = issecret
 
 ------------------------------------------------------------

@@ -16,6 +16,9 @@
 ## AddonCompartmentFunc: MiliUIFocus_OnAddonCompartmentClick
 
 Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
 Libs\Callbacks.lua
 Locales\Locale.lua
 Locales\zhTW.lua
@@ -39,5 +42,6 @@ Options\Panel.lua
 Options\Tab_Focus.lua
 Options\Tab_Bar.lua
 Options\Tab_Cast.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Api.lua

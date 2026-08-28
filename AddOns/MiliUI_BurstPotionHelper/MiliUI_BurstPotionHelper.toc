@@ -14,6 +14,9 @@
 ## Category-zhCN: 战斗
 
 Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
 embeds.xml
 Locales\Locales.xml
 
@@ -31,5 +34,6 @@ Options\Panel.lua
 Options\Tab_General.lua
 Options\Tab_List.lua
 Options\Tab_Macro.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Api.lua

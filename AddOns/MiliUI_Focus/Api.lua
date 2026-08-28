@@ -33,7 +33,7 @@ MiliUI_MenuEntries[#MiliUI_MenuEntries + 1] = {
 -- 或設上了但點擊被別的框架吃掉。這裡只回答第一個，第二個要用
 -- GetMouseFoci() 看焦點鏈。
 ------------------------------------------------------------
-local issecret = issecretvalue or function() return false end
+local issecret = ns.Secret.IsSecret
 
 -- 只描述「有沒有標記」，不印值也不印單位名 —— 兩者在 12.1 都可能是秘密值
 local function MarkDesc(unit)

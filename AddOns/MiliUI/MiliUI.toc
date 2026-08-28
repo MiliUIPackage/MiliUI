@@ -13,6 +13,9 @@
 
 Libs\Libs.xml
 Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
 Libs\Callbacks.lua
 
 Config\Luxthos_Platynator.lua
@@ -32,6 +35,7 @@ Options\Tab_Addons.lua
 Options\Tab_Enhance.lua
 Options\Tab_Perf.lua
 Options\Tab_Import.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Api.lua
 Core.lua

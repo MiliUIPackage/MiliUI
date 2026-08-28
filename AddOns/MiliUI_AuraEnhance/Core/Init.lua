@@ -28,39 +28,17 @@ function ns.Print(...)
 end
 
 ------------------------------------------------------------
--- 錯誤收集：xpcall 隔離不能變成黑洞——記下最近的錯誤供 /maura debug 印出，
--- 同時照常轉給全域 errorhandler（有裝 BugSack 就進 BugSack）
+-- 錯誤收集與封鎖動作攔截 —— 共用層 Libs/MiliUIWidgets/Errors.lua
 --
--- ⚠ 這支是 **xpcall 的訊息處理器**，自己絕對不能拋錯——拋了的話錯誤會穿出
---   xpcall 的隔離變成「error in error handling」，比原本那個錯誤更難查。
+--   ns.ReportError  xpcall 的訊息處理器（三道守衛：防遞迴、err 本身可能是秘密
+--                   字串、下游 handler 包 pcall）。記進 ns.errors 供 /maura debug 印出，
+--                   同時照常轉給全域 errorhandler（有裝 BugSack 就進 BugSack）。
+--   封鎖動作攔截    ADDON_ACTION_FORBIDDEN 不是 Lua error、pcall 攔不住，
+--                   但事件會點名是哪個插件的哪個函式。
 ------------------------------------------------------------
-ns.errors = {}
-local inReport = false
-
-function ns.ReportError(err)
-    -- 防遞迴：有些插件會「包住前一個 handler 再呼叫」，錯誤有可能繞回這裡
-    if inReport then return end
-    inReport = true
-
-    -- err 可能是秘密字串（只要呼叫堆疊上有秘密值參與，debugstack() 就是秘密的），
-    -- 而 tostring(secret) 是禁止的操作
-    local text
-    if issecretvalue and issecretvalue(err) then
-        text = "<secret error>"
-    else
-        local ok, str = pcall(tostring, err)
-        text = ok and str or "<unprintable error>"
-    end
-    tinsert(ns.errors, text)
-    if #ns.errors > 10 then tremove(ns.errors, 1) end
-
-    local handler = geterrorhandler()
-    if type(handler) == "function" and handler ~= ns.ReportError then
-        pcall(handler, err)
-    end
-
-    inReport = false
-end
+ns.Errors.Install(function(line)
+    ns.Print("|cffff5555" .. line .. "|r")
+end)
 
 ------------------------------------------------------------
 -- 啟動：初始化資料庫 → 通知各模組

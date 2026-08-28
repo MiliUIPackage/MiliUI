@@ -11,6 +11,8 @@
 -- Author: Mili
 ---------------------------------------------------------------
 
+local _, ns = ...
+
 local KEY_CHECK_DELAY     = 1   -- 事件後每次 check 間隔秒數
 local BASELINE_DELAY      = 10  -- 登入後設定基準值延遲
 local KEY_CHECK_MAX_RETRY = 6   -- 最多重試次數 (API 延遲時才需要)
@@ -19,7 +21,7 @@ local KEYSTONE_NPC_IDS = {      -- 鑰石 NPC (洗 / 換 / 降)
     [197915] = true,   -- 副本內
 }
 
-local issecretvalue = _G.issecretvalue or function() return false end
+local issecretvalue = ns.Secret.IsSecret
 
 local lastOwnMapID, lastOwnLevel = 0, 0
 local baselineSet = false

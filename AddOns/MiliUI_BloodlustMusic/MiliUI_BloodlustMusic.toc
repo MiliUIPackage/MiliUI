@@ -16,6 +16,9 @@
 ## SavedVariables: MiliUI_BloodlustMusic_DB
 
 Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
 embeds.xml
 Locales\Locales.xml
 
@@ -34,5 +37,6 @@ Options\Tab_Music.lua
 Options\Tab_Tracks.lua
 Options\Tab_Bar.lua
 Options\Tab_Reminder.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Api.lua

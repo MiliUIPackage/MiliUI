@@ -51,3 +51,7 @@ jobs:
 
       - name: 語系 — 缺鍵／重複／格式符／色碼
         run: python3 .claude/scripts/check_locales.py
+
+      # vendor 包最怕的就是「改了來源忘了同步」，所以這道一定要在 CI 上
+      - name: 共用層 — MiliUIWidgets 有沒有漂移
+        run: python3 .claude/scripts/sync-widgets.py --check

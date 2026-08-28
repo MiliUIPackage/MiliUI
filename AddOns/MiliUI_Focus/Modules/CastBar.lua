@@ -40,7 +40,7 @@ local function SecretsActive()
 end
 
 -- 12.0.1：pcall 接不到秘密值錯誤，數值存入明文變數前一律先檢查
-local issecret = issecretvalue or function() return false end
+local issecret = ns.Secret.IsSecret
 
 local function DB()
     return ns.db.cast

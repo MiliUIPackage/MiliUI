@@ -23,7 +23,7 @@ local PEER_STALE_SEC = 1800  -- 超過這麼久沒更新就不顯示（30 分鐘
 
 -- 12.1 的秘密值：名字有可能是秘密字串，拿它當 table key 會直接崩潰
 -- （"cannot be indexed with secret keys"）。所有名字進表前都先擋一次。
-local issecret = issecretvalue or function() return false end
+local issecret = ns.Secret.IsSecret
 
 -- peers[短名] = { index = 0..8, time = GetTime() }
 local peers = {}

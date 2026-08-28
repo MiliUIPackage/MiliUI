@@ -18,6 +18,9 @@
 
 # 像素工具單獨排最前面：其他模組（Data.Px）也吃 ns.P
 Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
 Libs\Callbacks.lua
 
 Locales\Locale.lua
@@ -57,6 +60,7 @@ Options\Tab_Window.lua
 Options\Tab_Each.lua
 Options\Tab_Share.lua
 Options\Tab_About.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 
 Api.lua

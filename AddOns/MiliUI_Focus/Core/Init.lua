@@ -23,41 +23,18 @@ function ns.Print(...)
     print(ns.PREFIX_COLOR .. "[" .. ns.L["MiliUI Focus"] .. "]|r", ...)
 end
 
--- 錯誤收集：xpcall 隔離不能變成黑洞——記下最近的錯誤供 /mfocus debug 印出，
--- 同時照常轉給全域 errorhandler（BugSack 有裝就進 BugSack）
-ns.errors = {}
-function ns.ReportError(err)
-    tinsert(ns.errors, tostring(err))
-    if #ns.errors > 10 then tremove(ns.errors, 1) end
-    local handler = geterrorhandler()
-    if handler then handler(err) end
-end
-
 ------------------------------------------------------------
--- 封鎖／禁止動作攔截（同 MiliUI_UnitFrames / MiliUI_Tooltip 的做法）
--- ADDON_ACTION_FORBIDDEN 不是 Lua error、pcall 攔不住；事件會點名插件與函式，
--- 抓下來直接印出，taint 傳染第一時間就看得到兇手。
--- 本插件有安全按鈕與覆寫綁定，這條線特別值得留著。
+-- 錯誤收集與封鎖動作攔截 —— 共用層 Libs/MiliUIWidgets/Errors.lua
+--
+--   ns.ReportError  xpcall 的訊息處理器（三道守衛：防遞迴、err 本身可能是秘密
+--                   字串、下游 handler 包 pcall）。記進 ns.errors 供 /mfocus debug 印出，
+--                   同時照常轉給全域 errorhandler（有裝 BugSack 就進 BugSack）。
+--   封鎖動作攔截    ADDON_ACTION_FORBIDDEN 不是 Lua error、pcall 攔不住，
+--                   但事件會點名是哪個插件的哪個函式。
 ------------------------------------------------------------
-do
-    local watcher = CreateFrame("Frame")
-    watcher:RegisterEvent("ADDON_ACTION_FORBIDDEN")
-    watcher:RegisterEvent("ADDON_ACTION_BLOCKED")
-    local seen = {}
-    watcher:SetScript("OnEvent", function(_, event, addonName, funcName)
-        if addonName ~= ADDON then return end
-        local line = ("%s: %s (combat=%s)"):format(
-            event == "ADDON_ACTION_FORBIDDEN" and "FORBIDDEN" or "BLOCKED",
-            tostring(funcName), tostring(InCombatLockdown() and true or false))
-        tinsert(ns.errors, line)
-        if #ns.errors > 10 then tremove(ns.errors, 1) end
-        local key = tostring(funcName)
-        if not seen[key] then
-            seen[key] = true
-            ns.Print("|cffff5555" .. line .. "|r")
-        end
-    end)
-end
+ns.Errors.Install(function(line)
+    ns.Print("|cffff5555" .. line .. "|r")
+end)
 
 ------------------------------------------------------------
 -- 啟動：初始化資料庫 → 通知各模組
