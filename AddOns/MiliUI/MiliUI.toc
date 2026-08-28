@@ -34,6 +34,7 @@ Options\Panel.lua
 Options\Tab_Addons.lua
 Options\Tab_Enhance.lua
 Options\Tab_Perf.lua
+Options\LagWatch.lua
 Options\Tab_Import.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua

@@ -69,7 +69,7 @@ local METRICS = {
 
 local SORTS = { cpu = true, mem = true, name = true }
 
-local tab, list, stampFS, warnBox
+local tab, list, stampFS, warnBox, lagCB
 local cards = {}
 local headerCells = {}
 local valueFont
@@ -735,6 +735,10 @@ local function Init()
         autoMem = checked
         memAcc = 0
         if checked then
+            -- 打勾的當下講一次就好：這是整頁唯一真的會花錢的動作，玩家該知道
+            -- 代價再決定留不留著（工具提示只有滑過才看得到，不夠）
+            ns.Print("自動測量每 5 秒掃描一次整個 Lua 堆，堆越大越貴，"
+                .. "開著可能造成額外的細微頓格（戰鬥中會自動停手）。看完記得取消勾選。")
             MeasureMemory()
             Refresh(true)
         end
@@ -744,6 +748,36 @@ local function Init()
     autoCB:SetPoint("RIGHT", measureBtn, "LEFT",
         -(math.ceil(autoCB.label:GetStringWidth()) + 14), 0)
     autoCB:SetChecked(DB().autoMem)
+    autoCB:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(autoCB, "ANCHOR_TOPLEFT", 0, 4)
+        GameTooltip:AddLine("每 5 秒自動測量", 1, 1, 1)
+        GameTooltip:AddLine("每 5 秒重新歸戶一次記憶體。用途：抓「數字持續爬升、"
+            .. "過一陣子突然回落」的那幾列 —— 那是垃圾製造機，跟佔用大是兩回事。", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("這是整個 Lua 堆的掃描，堆越大越貴，開著可能造成額外的"
+            .. "細微頓格。戰鬥中自動停手，分頁一關就停。", 1, 0.6, 0.3, true)
+        GameTooltip:Show()
+    end)
+    autoCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- 卡頓記錄器的開關住在這一頁最順手：儀表板回答「誰平常吃最多」，
+    -- 這顆回答「剛剛那一下是誰」。實作在 LagWatch.lua，指令 /miliui lag 同一組開關。
+    lagCB = W.CreateCheckButton(tab, "卡頓記錄器", function(checked)
+        if ns.LagWatch then ns.LagWatch.SetEnabled(checked) end
+    end)
+    lagCB:SetPoint("RIGHT", autoCB, "LEFT",
+        -(math.ceil(lagCB.label:GetStringWidth()) + 18), 0)
+    lagCB:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(lagCB, "ANCHOR_TOPLEFT", 0, 4)
+        GameTooltip:AddLine("卡頓記錄器", 1, 1, 1)
+        GameTooltip:AddLine(("某一幀超過 %d 毫秒時，自動記下那一幀每個插件"
+            .. "各花了幾毫秒，並在聊天視窗點名主嫌（插件／GC 回收／遊戲引擎）。")
+            :format(ns.LagWatch and ns.LagWatch.GetThreshold() or 250), 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("平常每幀只做一次比較，開著沒有可感知的成本。", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("/miliui lag 看記錄｜lag <毫秒> 改門檻｜lag clear 清空", 0.5, 0.7, 1)
+        GameTooltip:Show()
+    end)
+    lagCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     stampFS = tab:CreateFontString(nil, "OVERLAY")
     stampFS:SetFontObject(W.fontSmall)
@@ -839,6 +873,7 @@ ns.RegisterCallback("ShowOptionsTab", "perfTab", function(id)
     hasProfiler = ProfilerAvailable()
     warnBox:SetShown(not hasProfiler)
     autoMem = DB().autoMem
+    lagCB:SetChecked(ns.LagWatch and ns.LagWatch.IsEnabled() or false)
 
     RebuildEntries()
     -- 記憶體重新量：每次開分頁都當作沒量過，免得顯示的是上次開窗留下的舊數字
