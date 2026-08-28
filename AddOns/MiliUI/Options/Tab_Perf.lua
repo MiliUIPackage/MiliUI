@@ -28,26 +28,40 @@ local _, ns = ...
 local W, P = ns.W, ns.P
 
 local SIDE       = 16
-local CARD_Y     = -44
-local CARD_H     = 48
-local CARD_GAP   = 8
-local CTRL_Y     = -100
-local HEAD_Y     = -128
-local LIST_TOP   = -150
--- 底部由下往上堆疊，每一段的高度與間距都具名：頁尾 → 走勢圖 → 標籤列 →
--- 分隔線，清單吃剩下的高度。這樣改圖高只要動 GRAPH_H，清單會自己讓位
--- （之前頁尾多加一行就直接壓到圖上，就是因為 GRAPH_BOT 是寫死的）。
+
+-- 這一頁分成 CPU／記憶體兩個子分頁。CPU 講「時間花在哪」（幀時間、逐插件毫秒），
+-- 記憶體講「空間用在哪、往哪個方向走」（總量構成、趨勢、逐插件 MB 與變化）——
+-- 兩個主題本來就沒有互相解釋的關係，硬擠在同一屏才是之前「資訊零散」的來源。
+local SUB_Y      = -40          -- 子分頁鈕列
+local SUB_H      = 22
+local PAGE_TOP   = -70          -- 子頁內容起點
+
+-- 子頁最上面那塊主題面板：標題（右上角放前提）／大數字／圖形／註腳 四列
+local PANEL_H    = 84
+local ROW_CAP    = -7
+local ROW_VALUE  = -22
+local ROW_GRAPH  = -48
+local ROW_FOOT   = -68
+local GRAPH_H    = 17           -- 面板內圖形（佔比條／構成條）的高度
+
+-- CPU 子頁（Y 都相對子頁框）
+local CPU_CTRL_Y   = -(PANEL_H + 12)
+local CPU_HEAD_Y   = CPU_CTRL_Y - 30
+local CPU_LIST_TOP = CPU_HEAD_Y - 22
+
+-- 記憶體子頁：面板下面是放大的趨勢圖（有自己的標籤列），再來控制列與清單
+local RAM_TRENDLBL_Y = -(PANEL_H + 12)
+local RAM_PLOT_Y     = RAM_TRENDLBL_Y - 18
+local RAM_PLOT_H     = 56
+local RAM_CTRL_Y     = RAM_PLOT_Y - RAM_PLOT_H - 12
+local RAM_HEAD_Y     = RAM_CTRL_Y - 30
+local RAM_LIST_TOP   = RAM_HEAD_Y - 22
+
 local FOOT_Y     = 8            -- 頁尾離分頁底部
-local FOOT_H     = 28           -- 頁尾兩行小字的實際高度
-local GRAPH_GAP  = 10           -- 圖與頁尾之間
-local GRAPH_H    = 38           -- 繪圖區高度
-local GRAPH_LBL  = 14           -- 標籤列高度
-local LBL_GAP    = 4            -- 標籤與圖之間
-local SEC_GAP    = 8            -- 分隔線與標籤之間
-local GRAPH_BOT  = FOOT_Y + FOOT_H + GRAPH_GAP
-local LIST_BOT   = GRAPH_BOT + GRAPH_H + LBL_GAP + GRAPH_LBL + SEC_GAP
+local LIST_BOT   = FOOT_Y + 20  -- 頁尾一行，剩下的全給清單
 local ROW_H      = 22
 local BAR_H      = 10           -- 長條圖高度（列高 22，上下各留 6）
+local CPUBAR_MIN_PCT = 0        -- 佔比條的下限（0 = 不夾，插件真的沒吃就畫不出來）
 -- 走勢圖 Y 軸的最小跨距。沒有下限的話自動縮放會把幾 MB 的正常呼吸畫成劇烈
 -- 震盪 —— 穩定的堆就該看起來是平的，這是誠實不是美化。
 local GRAPH_MIN_SPAN_MB = 60
@@ -74,6 +88,16 @@ local COL = {
     MEMBAR_R = -8,   MEMBAR_W = 90,
 }
 
+-- 記憶體子頁的欄位幾何（清單較窄的欄配置：MB／長條／與上次測量的差／佔插件合計）
+local COL2 = {
+    NAME_L   = 28,
+    NAME_R   = -352,
+    MEM_R    = -288, MEM_W    = 60,
+    MEMBAR_R = -132, MEMBAR_W = 148,
+    DELTA_R  = -64,  DELTA_W  = 62,
+    SHARE_R  = -8,   SHARE_W  = 48,
+}
+
 -- value 直接就是 Enum.AddOnProfilerMetric 的鍵名，不另外做一層對照表
 local METRICS = {
     { value = "RecentAverageTime",    text = "近期平均（最近 60 幀）", avg = true },
@@ -84,14 +108,26 @@ local METRICS = {
 
 local SORTS = { cpu = true, mem = true, name = true }
 
-local tab, list, stampFS, warnBox, lagCB, graph
+local tab, list, warnBox, lagCB, graph, folderFS
+local cpuPage, ramPage
+local subButtons = {}           -- id -> 子分頁鈕，還原選取狀態用
+local subHighlight              -- W.CreateButtonGroup 回傳的高亮函式
+local memList                   -- 記憶體子頁的清單
+local trendRangeFS, trendVerdictFS
 local cards = {}
 local headerCells = {}
 local valueFont
 
 local entries = {}              -- 攤平後的條目（一列一個插件，可含多個資料夾）
 local memKB = {}                -- folder -> KB，測量過才有值
+local memPrevKB = {}            -- 上一次測量的快照，「變化」欄跟它比
+local memHasPrev = false
+local memEntries = {}           -- 記憶體子頁的排序副本（固定 MB 由大到小）
+local memTotalKB = 0
 local memStamp                  -- 上次測量的 GetTime()，nil = 這次開窗還沒量過
+-- ⚠ 前置宣告：MeasureMemory 在上面就會呼叫它們。local 宣告在讀取點下面的話，
+--    讀取點那個名字會靜默解析成全域 nil（本檔已經踩過一次，見 SetBar）
+local RebuildMemEntries, RefreshMemPanel, RefreshMemList
 local maxCPU, maxMem = 0, 0
 local totalFolders, loadedFolders = 0, 0
 local hasProfiler = false
@@ -124,6 +160,7 @@ local function DB()
     if not SORTS[db.sort] then db.sort = "cpu" end
     if type(db.desc) ~= "boolean" then db.desc = true end
     if type(db.autoMem) ~= "boolean" then db.autoMem = false end
+    if db.page ~= "cpu" and db.page ~= "ram" then db.page = "cpu" end
     return db
 end
 
@@ -205,6 +242,13 @@ local function MeasureMemory()
         return
     end
     UpdateAddOnMemoryUsage()
+    -- 「變化」欄跟上一次測量比。快照要在覆寫前抄走 —— 存參照的話新舊是同一張表，
+    -- 差值永遠是 0（同一個坑見 Cell 筆記的 sig 快照）
+    if memStamp then
+        wipe(memPrevKB)
+        for f, kb in pairs(memKB) do memPrevKB[f] = kb end
+        memHasPrev = true
+    end
     wipe(memKB)
     for _, item in ipairs(entries) do
         for _, f in ipairs(item.folders) do
@@ -212,6 +256,13 @@ local function MeasureMemory()
         end
     end
     memStamp = GetTime()
+    if RebuildMemEntries then
+        RebuildMemEntries()
+        if ramPage and ramPage:IsShown() then
+            RefreshMemPanel()
+            RefreshMemList()
+        end
+    end
 end
 
 ------------------------------------------------------------
@@ -336,71 +387,158 @@ local function Resort()
 end
 
 ------------------------------------------------------------
--- 上方四張數字卡
+-- 長條填充：面板的佔比條與清單每一列的長條共用
+-- ⚠ 必須宣告在兩個面板的 Refresh 之前。local 宣告在讀取點下面的話，上面那個
+--    名字會靜默解析成全域 nil —— 不會報錯，只會在第一次重畫時炸掉。
 ------------------------------------------------------------
-local function CreateCard(parent, caption)
-    local card = W.CreateFrame(nil, parent, nil, nil)
-    card:SetSize(10, CARD_H)
-    W.Stylize(card, { 0.08, 0.08, 0.08, 0.9 })
+local function SetBar(track, value, max)
+    if not max or max <= 0 or value <= 0 then
+        track.fill:Hide()
+        return
+    end
+    local frac = value / max
+    if frac > 1 then frac = 1 end
+    -- 下限一個實體像素：真的有量到就該看得見一條，否則「0」跟「非常小」長得一模一樣
+    track.fill:SetWidth(math.max(P.Scale(1), track.maxW * frac))
+    track.fill:Show()
+end
+
+------------------------------------------------------------
+-- 上方兩塊主題面板
+--
+-- 四列的骨架兩塊共用：標題（右上角放「這個數字的前提」）、大數字、一條圖形、
+-- 註腳。左邊講這一幀的時間花在哪，右邊講記憶體用了多少、往哪個方向走。
+------------------------------------------------------------
+local function CreatePanel(parent, caption)
+    local panel = W.CreateFrame(nil, parent)
+    panel:SetSize(10, PANEL_H)
+    W.Stylize(panel, { 0.08, 0.08, 0.08, 0.9 })
 
     -- 左緣 3px 職業色直條：跟總覽選中列同一個視覺語彙
-    local edge = card:CreateTexture(nil, "ARTWORK")
+    local edge = panel:CreateTexture(nil, "ARTWORK")
     edge:SetColorTexture(W.Accent(0.9))
     edge:SetPoint("TOPLEFT", 0, 0)
     edge:SetPoint("BOTTOMLEFT", 0, 0)
     edge:SetWidth(P.Scale(3))
 
-    local cap = card:CreateFontString(nil, "OVERLAY")
+    local cap = panel:CreateFontString(nil, "OVERLAY")
     cap:SetFontObject(W.fontSmall)
-    cap:SetPoint("TOPLEFT", 10, -7)
+    cap:SetPoint("TOPLEFT", 10, ROW_CAP)
     cap:SetText("|cff999999" .. caption .. "|r")
 
-    card.value = card:CreateFontString(nil, "OVERLAY")
-    card.value:SetFontObject(valueFont)
-    card.value:SetPoint("TOPLEFT", cap, "BOTTOMLEFT", 0, -3)
-    card.value:SetJustifyH("LEFT")
+    -- 右上角：這個數字的前提（CPU 是哪個指標算的／記憶體是什麼時候量的）。
+    -- 放在標題同一列而不是塞進註腳 —— 前提要在讀到數字之前就看到。
+    panel.note = panel:CreateFontString(nil, "OVERLAY")
+    panel.note:SetFontObject(W.fontSmall)
+    panel.note:SetPoint("TOPRIGHT", -10, ROW_CAP)
+    panel.note:SetJustifyH("RIGHT")
 
-    card.sub = card:CreateFontString(nil, "OVERLAY")
-    card.sub:SetFontObject(W.fontSmall)
-    card.sub:SetPoint("LEFT", card.value, "RIGHT", 5, -1)
-    card.sub:SetJustifyH("LEFT")
+    panel.value = panel:CreateFontString(nil, "OVERLAY")
+    panel.value:SetFontObject(valueFont)
+    panel.value:SetPoint("TOPLEFT", 10, ROW_VALUE)
+    panel.value:SetJustifyH("LEFT")
 
-    return card
+    panel.sub = panel:CreateFontString(nil, "OVERLAY")
+    panel.sub:SetFontObject(W.fontSmall)
+    panel.sub:SetPoint("LEFT", panel.value, "RIGHT", 5, -1)
+    panel.sub:SetJustifyH("LEFT")
+
+    panel.foot = panel:CreateFontString(nil, "OVERLAY")
+    panel.foot:SetFontObject(W.fontSmall)
+    panel.foot:SetPoint("TOPLEFT", 10, ROW_FOOT)
+    panel.foot:SetJustifyH("LEFT")
+
+    panel.footRight = panel:CreateFontString(nil, "OVERLAY")
+    panel.footRight:SetFontObject(W.fontSmall)
+    panel.footRight:SetPoint("TOPRIGHT", -10, ROW_FOOT)
+    panel.footRight:SetJustifyH("RIGHT")
+
+    return panel
 end
 
-local function RefreshCards()
-    local metric = MetricEnum(DB().metric)
+-- 面板內的圖形區：兩塊面板各自放不同東西（佔比條／走勢圖），但位置與高度
+-- 共用，橫著看才是一條線
+local function PanelGraphArea(panel, leftInset)
+    local area = W.CreateFrame(nil, panel)
+    W.Stylize(area, { 0.13, 0.13, 0.14, 1 })
+    area:SetPoint("TOPLEFT", leftInset or 10, ROW_GRAPH)
+    area:SetPoint("TOPRIGHT", -10, ROW_GRAPH)
+    area:SetHeight(GRAPH_H)
+    return area
+end
+
+local function RefreshCpuPanel()
+    local info = CurrentMetric()
+    local metric = MetricEnum(info.value)
     local addonMs = GlobalMetric("GetOverallMetric", metric)
     local appMs   = GlobalMetric("GetApplicationMetric", metric)
+    local fps = GetFramerate() or 0
+
+    -- ⚠ 單位跟著指標走：在「單幀尖峰」下 appMs 是**最差的一幀**，不是每幀
+    local cpu = cards.cpu
+    cpu.note:SetText("|cff777777" .. info.text:gsub("（.-）", "") .. "|r")
 
     if hasProfiler then
-        cards.cpu.value:SetText(MsColor(addonMs) .. FmtMs(addonMs) .. "|r")
-        cards.cpu.sub:SetText(appMs > 0
-            and ("|cff999999毫秒／幀　佔遊戲 %.1f%%|r"):format(addonMs / appMs * 100)
-            or "|cff999999毫秒／幀|r")
+        cpu.value:SetText(MsColor(addonMs) .. FmtMs(addonMs) .. "|r")
+        cpu.sub:SetText("|cff999999毫秒|r")
     else
-        cards.cpu.value:SetText("|cff666666—|r")
-        cards.cpu.sub:SetText("|cff999999毫秒／幀|r")
+        cpu.value:SetText("|cff666666—|r")
+        cpu.sub:SetText("")
     end
 
-    local fps = GetFramerate() or 0
-    cards.fps.value:SetText(("%d"):format(math.floor(fps + 0.5)))
-    cards.fps.sub:SetText(appMs > 0
-        and ("|cff999999FPS　每幀 %.1f 毫秒|r"):format(appMs)
-        or "|cff999999FPS|r")
+    local pct = (hasProfiler and appMs > 0) and (addonMs / appMs * 100) or 0
+    cpu.pctFS:SetText(hasProfiler and appMs > 0
+        and ("|cff999999插件佔 %.1f%%|r"):format(pct) or "|cff666666插件佔比不明|r")
+    SetBar(cpu.bar, pct, 100)
 
-    -- 總量走 collectgarbage("count")：純讀計數器，跟昂貴的 UpdateAddOnMemoryUsage 無關
-    cards.mem.value:SetText(FmtMB(collectgarbage("count")))
-    if memStamp then
-        local sum = 0
-        for _, kb in pairs(memKB) do sum = sum + kb end
-        cards.mem.sub:SetText(("|cff999999MB　插件合計 %s MB|r"):format(FmtMB(sum)))
-    else
-        cards.mem.sub:SetText("|cff999999MB|r")
+    cpu.foot:SetText(("|cff999999%d FPS|r"):format(math.floor(fps + 0.5)))
+    cpu.footRight:SetText(appMs > 0 and ("|cff999999%s %.1f 毫秒|r"):format(
+        info.avg and "每幀" or "最差的一幀", appMs) or "")
+
+    if folderFS then
+        folderFS:SetText(("|cff777777已載入 %d ／ 共 %d 個插件資料夾|r"):format(
+            loadedFolders, totalFolders))
+    end
+end
+
+-- 記憶體面板：總量、歸戶時間、構成條（插件 vs 暴雪與未歸戶）。
+-- 前置宣告過的 local，這裡是本體
+function RefreshMemPanel()
+    local mem = cards.mem
+    local totalKB = collectgarbage("count")   -- 純讀計數器，免費
+    mem.value:SetText(FmtMB(totalKB))
+    mem.sub:SetText("|cff999999MB|r")
+
+    if not memStamp then
+        mem.note:SetText("|cff666666尚未歸戶|r")
+        mem.comp.fill:Hide()
+        mem.foot:SetText("|cff666666按「重新測量記憶體」把總量歸戶到各插件|r")
+        mem.footRight:SetText("")
+        return
     end
 
-    cards.count.value:SetText(("%d"):format(loadedFolders))
-    cards.count.sub:SetText(("|cff999999已載入　共 %d 個資料夾|r"):format(totalFolders))
+    local ago = math.floor(GetTime() - memStamp)
+    if ago < 2 then
+        mem.note:SetText("|cff777777剛剛歸戶|r")
+    elseif ago < 60 then
+        mem.note:SetText(("|cff777777%d 秒前歸戶|r"):format(ago))
+    else
+        mem.note:SetText(("|cff777777%d 分鐘前歸戶|r"):format(math.floor(ago / 60)))
+    end
+
+    -- 構成條：亮的那段是插件歸戶合計，暗的其餘是暴雪 UI＋歸不了戶的部分。
+    -- 兩個數字的取樣時間不同（總量即時、歸戶是上次測量），比例只會準到「分鐘級」，
+    -- 但這裡要回答的問題本來就是「一半一半還是三七開」，不是小數點
+    local addonKB = 0
+    for _, kb in pairs(memKB) do addonKB = addonKB + kb end
+    local frac = totalKB > 0 and math.min(addonKB / totalKB, 1) or 0
+    local track = mem.comp
+    track.fill:SetWidth(math.max(P.Scale(1), track:GetWidth() * frac))
+    track.fill:Show()
+
+    mem.foot:SetText(("|cff999999插件 %s MB（%.0f%%）｜暴雪與未歸戶 %s MB|r"):format(
+        FmtMB(addonKB), frac * 100, FmtMB(math.max(totalKB - addonKB, 0))))
+    mem.footRight:SetText("")
 end
 
 ------------------------------------------------------------
@@ -469,18 +607,6 @@ local function CreateBar(row, width, right)
 
     track.fill, track.maxW = fill, width
     return track
-end
-
-local function SetBar(track, value, max)
-    if not max or max <= 0 or value <= 0 then
-        track.fill:Hide()
-        return
-    end
-    local frac = value / max
-    if frac > 1 then frac = 1 end
-    -- 下限一個實體像素：真的有量到就該看得見一條，否則「0」跟「非常小」長得一模一樣
-    track.fill:SetWidth(math.max(P.Scale(1), track.maxW * frac))
-    track.fill:Show()
 end
 
 local TOOLTIP_COUNTS = {
@@ -615,7 +741,130 @@ local function UpdateRow(row, item)
 end
 
 ------------------------------------------------------------
--- Lua 堆走勢圖
+-- 記憶體子頁：排序副本與資料列
+--
+-- CPU 清單每秒重讀重排；記憶體只在「測量」的那一刻才有新數字，所以這份清單
+-- 固定 MB 由大到小、只在測量後重建 —— 不用表頭排序，也沒有每秒的重寫。
+------------------------------------------------------------
+function RebuildMemEntries()
+    wipe(memEntries)
+    memTotalKB = 0
+    for _, item in ipairs(entries) do
+        local mem, prev = 0, 0
+        for _, f in ipairs(item.folders) do
+            mem = mem + (memKB[f] or 0)
+            prev = prev + (memPrevKB[f] or 0)
+        end
+        -- 獨立欄位不共用 item.mem：那個每秒被 CPU 頁的 Recompute 覆寫
+        item.mem2 = mem
+        item.memDelta = memHasPrev and (mem - prev) or nil
+        memTotalKB = memTotalKB + mem
+        if mem > 0 then memEntries[#memEntries + 1] = item end
+    end
+    table.sort(memEntries, function(a, b)
+        if a.mem2 ~= b.mem2 then return a.mem2 > b.mem2 end
+        return a.sortName < b.sortName
+    end)
+end
+
+-- 「變化」欄的上色：跟上一次測量比。爬升是嫌疑（垃圾製造機的指紋是「爬升又
+-- 回落」），回落是 GC 收走了。半 MB 以下當雜訊 —— 每次測量之間的正常呼吸
+local function FmtDelta(kb)
+    if kb == nil then return "|cff666666—|r" end
+    local mb = kb / 1024
+    if mb >= 5 then return ("|cffff5555+%.1f|r"):format(mb) end
+    if mb >= 0.5 then return ("|cffff9900+%.1f|r"):format(mb) end
+    if mb <= -0.5 then return ("|cff33ff66%.1f|r"):format(mb) end
+    return "|cff8888880.0|r"
+end
+
+local function ShowMemRowTooltip(row)
+    local item = row.item
+    if not item then return end
+    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+    GameTooltip:AddLine(item.title, 1, 1, 1)
+    if #item.folders > 1 then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("資料夾明細", 1, 0.82, 0)
+        for _, f in ipairs(item.folders) do
+            GameTooltip:AddDoubleLine(f, FmtMB(memKB[f]) .. " MB", 0.8, 0.8, 0.8, 1, 1, 1)
+        end
+    end
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine("「變化」是跟上一次測量比。持續 +、過一陣子突然一大筆 − ＝"
+        .. "垃圾製造機（配置快），跟佔用大是兩回事；佔用大但不動的是資料庫，無害。",
+        0.6, 0.6, 0.6, true)
+    GameTooltip:Show()
+end
+
+local function BuildMemRow(row)
+    row:EnableMouse(true)
+
+    row.hoverTex = row:CreateTexture(nil, "BACKGROUND", nil, 3)
+    row.hoverTex:SetAllPoints()
+    row.hoverTex:SetColorTexture(1, 1, 1, 0.05)
+    row.hoverTex:Hide()
+
+    row.icon = row:CreateTexture(nil, "ARTWORK")
+    row.icon:SetSize(16, 16)
+    row.icon:SetPoint("LEFT", 6, 0)
+    row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+    row.nameFS = row:CreateFontString(nil, "OVERLAY")
+    row.nameFS:SetFontObject(W.fontNormal)
+    row.nameFS:SetPoint("LEFT", COL2.NAME_L, 0)
+    row.nameFS:SetPoint("RIGHT", row, "RIGHT", COL2.NAME_R, 0)
+    row.nameFS:SetJustifyH("LEFT")
+    row.nameFS:SetWordWrap(false)
+
+    local function RightText(width, right, fontObject)
+        local fs = row:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(fontObject or W.fontNormal)
+        fs:SetPoint("RIGHT", row, "RIGHT", right, 0)
+        fs:SetWidth(width)
+        fs:SetJustifyH("RIGHT")
+        fs:SetWordWrap(false)
+        return fs
+    end
+
+    row.memFS   = RightText(COL2.MEM_W, COL2.MEM_R)
+    row.memBar  = CreateBar(row, COL2.MEMBAR_W, COL2.MEMBAR_R)
+    row.deltaFS = RightText(COL2.DELTA_W, COL2.DELTA_R)
+    row.shareFS = RightText(COL2.SHARE_W, COL2.SHARE_R, W.fontSmall)
+
+    row:SetScript("OnEnter", function(self)
+        self.hoverTex:Show()
+        ShowMemRowTooltip(self)
+    end)
+    row:SetScript("OnLeave", function(self)
+        self.hoverTex:Hide()
+        GameTooltip:Hide()
+    end)
+end
+
+local function UpdateMemRow(row, item)
+    row.item = item
+    if row.shownKey ~= item.key then
+        row.shownKey = item.key
+        row.icon:SetTexture(item.icon)
+        row.nameFS:SetText(item.title)
+    end
+    row.memFS:SetText(FmtMB(item.mem2))
+    SetBar(row.memBar, item.mem2, memEntries[1] and memEntries[1].mem2 or 0)
+    row.deltaFS:SetText(FmtDelta(item.memDelta))
+    if memTotalKB > 0 then
+        row.shareFS:SetText(("|cff999999%.1f%%|r"):format(item.mem2 / memTotalKB * 100))
+    else
+        row.shareFS:SetText("")
+    end
+end
+
+function RefreshMemList()
+    if memList then memList:Update(memEntries, UpdateMemRow) end
+end
+
+------------------------------------------------------------
+-- Lua 堆走勢圖（記憶體子頁）
 --
 -- 資料來自 ns.HeapTrack（常駐、1 Hz 取樣、每分鐘留一個最低點），這裡只負責畫。
 -- 直條而不是折線：折線得自己算斜率再轉成貼圖，直條就是一根貼圖一個取樣點 ——
@@ -638,10 +887,10 @@ local function RefreshGraph()
 
     if n < GRAPH_MIN_POINTS then
         for _, col in ipairs(graph.cols) do col:Hide() end
-        graph.emptyFS:SetText(("|cff666666累積中…每分鐘一個取樣點，已有 %d 點|r"):format(n))
+        graph.emptyFS:SetText(("|cff666666趨勢累積中…每分鐘一點，已有 %d 點|r"):format(n))
         graph.emptyFS:Show()
-        graph.rangeFS:SetText("")
-        graph.verdictFS:SetText("")
+        trendRangeFS:SetText("")
+        trendVerdictFS:SetText("")
         return
     end
     graph.emptyFS:Hide()
@@ -653,9 +902,8 @@ local function RefreshGraph()
         local mid = (lo + hi) / 2
         lo, hi = mid - GRAPH_MIN_SPAN_MB / 2, mid + GRAPH_MIN_SPAN_MB / 2
     end
-    -- ⚠ 再把底部往下讓一截：Y 軸從最小值起算的話，最低的那一兩點會被畫成
-    -- 零高度，看起來像「那段沒有資料」而不是「那段最低」。讓出 12% 之後
-    -- 最低點仍有可見的一截。
+    -- ⚠ 底部再往下讓一截：Y 軸從最小值起算的話，最低的那幾點會被畫成零高度，
+    -- 看起來像「那段沒有資料」而不是「那段最低」
     lo = lo - (hi - lo) * 0.12
 
     local plotW, plotH = graph.plot:GetWidth(), graph.plot:GetHeight()
@@ -671,40 +919,24 @@ local function RefreshGraph()
     end
     for i = n + 1, #graph.cols do graph.cols[i]:Hide() end
 
-    graph.rangeFS:SetText(("|cff888888%.0f – %.0f MB／%d 分鐘|r"):format(
+    -- 標籤列左邊講「看到的是什麼範圍」，右邊講「結論」——視線掃右緣就有答案
+    trendRangeFS:SetText(("|cff888888%.0f – %.0f MB／%d 分鐘|r"):format(
         t.loMB, t.hiMB, math.floor(t.spanMin + 0.5)))
     local colour = (t.level == "bad" and "|cffff5555")
         or (t.level == "warn" and "|cffff9900")
         or (t.level == "good" and "|cff33ff66") or "|cff888888"
-    graph.verdictFS:SetText(colour .. t.text .. "|r")
+    trendVerdictFS:SetText(colour .. t.text .. "|r")
 end
 
 ------------------------------------------------------------
--- 更新迴圈
+-- 更新迴圈：兩個子頁各自只付自己需要的錢
 ------------------------------------------------------------
-local function RefreshStamp()
-    if not stampFS then return end
-    if not memStamp then
-        stampFS:SetText("|cff666666記憶體尚未測量|r")
-        return
-    end
-    local ago = math.floor(GetTime() - memStamp)
-    if ago < 2 then
-        stampFS:SetText("|cff888888記憶體：剛剛測量|r")
-    elseif ago < 60 then
-        stampFS:SetText(("|cff888888記憶體：%d 秒前測量|r"):format(ago))
-    else
-        stampFS:SetText(("|cff888888記憶體：%d 分鐘前測量|r"):format(math.floor(ago / 60)))
-    end
-end
-
 -- 順序沒動的那幾秒只重寫欄位文字，不走 list:Update ——
 -- 那支每列都會 ClearAllPoints ＋兩次 SetPoint，六十列每秒重錨一次是白花的。
 local function Refresh(resort)
     Recompute()
     if resort then Resort() end
-    RefreshCards()
-    RefreshStamp()
+    RefreshCpuPanel()
     if resort or rendered ~= #entries then
         list:Update(entries, list.updateRow)
         rendered = #entries
@@ -724,21 +956,28 @@ local function OnTabUpdate(_, elapsed)
         memAcc = memAcc + elapsed
         if memAcc >= MEM_TICK then
             memAcc = 0
-            MeasureMemory()
+            MeasureMemory()     -- 自己會把記憶體子頁的面板與清單一起帶起來
         end
     end
     -- 走勢圖每分鐘才有新資料，用版號比對就好，不必每秒重畫幾十根貼圖
-    local rev = ns.HeapTrack and ns.HeapTrack.GetRevision() or 0
-    if rev ~= graphRev then
-        graphRev = rev
-        RefreshGraph()
+    if ramPage:IsShown() then
+        local rev = ns.HeapTrack and ns.HeapTrack.GetRevision() or 0
+        if rev ~= graphRev then
+            graphRev = rev
+            RefreshGraph()
+        end
     end
 
     if valueAcc < VALUE_TICK then return end
     valueAcc = 0
-    local resort = (sortAcc >= SORT_TICK)
-    if resort then sortAcc = 0 end
-    Refresh(resort)
+    if cpuPage:IsShown() then
+        local resort = (sortAcc >= SORT_TICK)
+        if resort then sortAcc = 0 end
+        Refresh(resort)
+    else
+        -- 記憶體頁每秒只有兩樣東西會動：總量數字與「幾秒前歸戶」
+        RefreshMemPanel()
+    end
 end
 
 ------------------------------------------------------------
@@ -757,6 +996,22 @@ local function OnHeaderClick(cell)
     Refresh(true)
 end
 
+local function ShowPage(id)
+    DB().page = id
+    cpuPage:SetShown(id == "cpu")
+    ramPage:SetShown(id == "ram")
+    if subHighlight and subButtons[id] then subHighlight(subButtons[id]) end
+    if id == "cpu" then
+        sortAcc = 0
+        Refresh(true)
+    else
+        RefreshMemPanel()
+        RefreshMemList()
+        graphRev = -1           -- 進頁立刻重畫，不等下一個取樣點
+        RefreshGraph()
+    end
+end
+
 local function Init()
     if tab then return end
     tab = ns.Options.NewTabFrame()
@@ -771,38 +1026,71 @@ local function Init()
     local title = W.CreateSectionTitle(tab, "效能監控", ns.Options.PANEL_W - 32)
     title:SetPoint("TOPLEFT", SIDE, -14)
 
-    ------------------------------------------------------------
-    -- 數字卡
-    ------------------------------------------------------------
-    local cardW = (ns.Options.PANEL_W - SIDE * 2 - CARD_GAP * 3) / 4
-    local defs = {
-        { key = "cpu",   caption = "插件 CPU" },
-        { key = "fps",   caption = "遊戲畫面" },
-        { key = "mem",   caption = "Lua 記憶體" },
-        { key = "count", caption = "插件資料夾" },
-    }
-    local prev
-    for _, d in ipairs(defs) do
-        local card = CreateCard(tab, d.caption)
-        card:SetSize(cardW, CARD_H)
-        if prev then
-            card:SetPoint("TOPLEFT", prev, "TOPRIGHT", CARD_GAP, 0)
-        else
-            card:SetPoint("TOPLEFT", SIDE, CARD_Y)
-        end
-        cards[d.key] = card
-        prev = card
-    end
+    -- 靜態的環境資訊收在標題列右緣，不佔資料版面
+    folderFS = tab:CreateFontString(nil, "OVERLAY")
+    folderFS:SetFontObject(W.fontSmall)
+    folderFS:SetPoint("TOPRIGHT", tab, "TOPRIGHT", -SIDE, -18)
+    folderFS:SetJustifyH("RIGHT")
 
     ------------------------------------------------------------
-    -- 控制列
+    -- 子分頁鈕：跟視窗頂端的分頁同一套視覺（accent-hover ＋ ButtonGroup 高亮）
     ------------------------------------------------------------
-    local metricLabel = tab:CreateFontString(nil, "OVERLAY")
+    local defs = { { id = "cpu", label = "CPU" }, { id = "ram", label = "記憶體" } }
+    local prev, groupList = nil, {}
+    for _, d in ipairs(defs) do
+        local b = W.CreateButton(tab, d.label, "accent-hover", 76, SUB_H)
+        b.id = d.id
+        if prev then
+            b:SetPoint("TOPLEFT", prev, "TOPRIGHT", 4, 0)
+        else
+            b:SetPoint("TOPLEFT", SIDE, SUB_Y)
+        end
+        subButtons[d.id] = b
+        groupList[#groupList + 1] = b
+        prev = b
+    end
+    subHighlight = W.CreateButtonGroup(groupList, ShowPage)
+
+    cpuPage = CreateFrame("Frame", nil, tab)
+    cpuPage:SetPoint("TOPLEFT", 0, PAGE_TOP)
+    cpuPage:SetPoint("BOTTOMRIGHT")
+    ramPage = CreateFrame("Frame", nil, tab)
+    ramPage:SetPoint("TOPLEFT", 0, PAGE_TOP)
+    ramPage:SetPoint("BOTTOMRIGHT")
+    ramPage:Hide()
+
+    local innerW = ns.Options.PANEL_W - SIDE * 2
+
+    ------------------------------------------------------------
+    -- CPU 子頁
+    ------------------------------------------------------------
+    cards.cpu = CreatePanel(cpuPage, "幀時間")
+    cards.cpu:SetSize(innerW, PANEL_H)
+    cards.cpu:SetPoint("TOPLEFT", SIDE, 0)
+
+    -- 佔比條：純數字看不出 48% 是多還是少，一條填一半的軌道看得出來
+    cards.cpu.pctFS = cards.cpu:CreateFontString(nil, "OVERLAY")
+    cards.cpu.pctFS:SetFontObject(W.fontSmall)
+    cards.cpu.pctFS:SetPoint("TOPLEFT", 10, ROW_GRAPH - 3)
+    cards.cpu.pctFS:SetJustifyH("LEFT")
+
+    cards.cpu.bar = W.CreateFrame(nil, cards.cpu)
+    W.Stylize(cards.cpu.bar, { 0.13, 0.13, 0.14, 1 })
+    cards.cpu.bar:SetPoint("TOPLEFT", 110, ROW_GRAPH)
+    cards.cpu.bar:SetPoint("TOPRIGHT", -10, ROW_GRAPH)
+    cards.cpu.bar:SetHeight(GRAPH_H - 5)
+    cards.cpu.bar.fill = cards.cpu.bar:CreateTexture(nil, "ARTWORK")
+    cards.cpu.bar.fill:SetColorTexture(W.Accent(0.75))
+    cards.cpu.bar.fill:SetPoint("TOPLEFT")
+    cards.cpu.bar.fill:SetPoint("BOTTOMLEFT")
+    cards.cpu.bar.maxW = innerW - 120
+
+    local metricLabel = cpuPage:CreateFontString(nil, "OVERLAY")
     metricLabel:SetFontObject(W.fontNormal)
-    metricLabel:SetPoint("TOPLEFT", SIDE, CTRL_Y - 3)
+    metricLabel:SetPoint("TOPLEFT", SIDE, CPU_CTRL_Y - 3)
     metricLabel:SetText("CPU 指標")
 
-    local metricDD = W.CreateDropdown(tab, 170, METRICS, function(value)
+    local metricDD = W.CreateDropdown(cpuPage, 170, METRICS, function(value)
         DB().metric = value
         sortAcc = 0
         Refresh(true)
@@ -810,50 +1098,12 @@ local function Init()
     metricDD:SetPoint("LEFT", metricLabel, "RIGHT", 8, 0)
     metricDD:SetSelectedValue(DB().metric)
 
-    local measureBtn = W.CreateButton(tab, "重新測量記憶體", "accent", 120, 22)
-    measureBtn:SetPoint("TOPRIGHT", tab, "TOPRIGHT", -SIDE, CTRL_Y)
-    measureBtn:SetScript("OnClick", function()
-        MeasureMemory()
-        memAcc = 0
-        Refresh(true)
-    end)
-
-    local autoCB = W.CreateCheckButton(tab, "每 5 秒自動測量", function(checked)
-        DB().autoMem = checked
-        autoMem = checked
-        memAcc = 0
-        if checked then
-            -- 打勾的當下講一次就好：這是整頁唯一真的會花錢的動作，玩家該知道
-            -- 代價再決定留不留著（工具提示只有滑過才看得到，不夠）
-            ns.Print("自動測量每 5 秒掃描一次整個 Lua 堆，堆越大越貴，"
-                .. "開著可能造成額外的細微頓格（戰鬥中會自動停手）。看完記得取消勾選。")
-            MeasureMemory()
-            Refresh(true)
-        end
-    end)
-    -- 量標籤實際字寬來擺位：勾選框的標籤掛在框的右邊往按鈕方向長，
-    -- 位移寫死的話換字型或改字就會疊到「重新測量記憶體」上
-    autoCB:SetPoint("RIGHT", measureBtn, "LEFT",
-        -(math.ceil(autoCB.label:GetStringWidth()) + 14), 0)
-    autoCB:SetChecked(DB().autoMem)
-    autoCB:SetScript("OnEnter", function()
-        GameTooltip:SetOwner(autoCB, "ANCHOR_TOPLEFT", 0, 4)
-        GameTooltip:AddLine("每 5 秒自動測量", 1, 1, 1)
-        GameTooltip:AddLine("每 5 秒重新歸戶一次記憶體。用途：抓「數字持續爬升、"
-            .. "過一陣子突然回落」的那幾列 —— 那是垃圾製造機，跟佔用大是兩回事。", 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine("這是整個 Lua 堆的掃描，堆越大越貴，開著可能造成額外的"
-            .. "細微頓格。戰鬥中自動停手，分頁一關就停。", 1, 0.6, 0.3, true)
-        GameTooltip:Show()
-    end)
-    autoCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-    -- 卡頓記錄器的開關住在這一頁最順手：儀表板回答「誰平常吃最多」，
-    -- 這顆回答「剛剛那一下是誰」。實作在 LagWatch.lua，指令 /miliui lag 同一組開關。
-    lagCB = W.CreateCheckButton(tab, "卡頓記錄器", function(checked)
+    -- 卡頓記錄器住在 CPU 頁：它回答的是「剛剛那一幀是誰」，是時間的問題
+    lagCB = W.CreateCheckButton(cpuPage, "卡頓記錄器", function(checked)
         if ns.LagWatch then ns.LagWatch.SetEnabled(checked) end
     end)
-    lagCB:SetPoint("RIGHT", autoCB, "LEFT",
-        -(math.ceil(lagCB.label:GetStringWidth()) + 18), 0)
+    lagCB:SetPoint("TOPRIGHT", cpuPage, "TOPRIGHT",
+        -SIDE - math.ceil(lagCB.label:GetStringWidth()) - 8, CPU_CTRL_Y - 2)
     lagCB:SetScript("OnEnter", function()
         GameTooltip:SetOwner(lagCB, "ANCHOR_TOPLEFT", 0, 4)
         GameTooltip:AddLine("卡頓記錄器", 1, 1, 1)
@@ -864,23 +1114,15 @@ local function Init()
         GameTooltip:AddLine("預設關閉 —— 它會主動在聊天視窗講話。要抓卡頓請先勾起來，"
             .. "關著的期間發生的卡頓抓不到。", 1, 0.6, 0.3, true)
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(" ")
         GameTooltip:AddLine("/miliui lag 看記錄｜lag <毫秒> 改門檻｜lag clear 清空", 0.5, 0.7, 1)
         GameTooltip:Show()
     end)
     lagCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    stampFS = tab:CreateFontString(nil, "OVERLAY")
-    stampFS:SetFontObject(W.fontSmall)
-    stampFS:SetPoint("LEFT", metricDD, "RIGHT", 14, 0)
-    stampFS:SetJustifyH("LEFT")
-
-    ------------------------------------------------------------
     -- 表頭：欄位幾何跟資料列共用 COL，捲軸那 20px 也要一起讓開才對得齊
-    ------------------------------------------------------------
-    local header = CreateFrame("Frame", nil, tab)
-    header:SetPoint("TOPLEFT", SIDE, HEAD_Y)
-    header:SetPoint("TOPRIGHT", tab, "TOPRIGHT", -SIDE - SCROLL_W, HEAD_Y)
+    local header = CreateFrame("Frame", nil, cpuPage)
+    header:SetPoint("TOPLEFT", SIDE, CPU_HEAD_Y)
+    header:SetPoint("TOPRIGHT", cpuPage, "TOPRIGHT", -SIDE - SCROLL_W, CPU_HEAD_Y)
     header:SetHeight(16)
 
     local nameCell = CreateHeaderCell(header, "名稱", "name", "LEFT", 120, OnHeaderClick)
@@ -904,23 +1146,20 @@ local function Init()
     headLine:SetPoint("BOTTOMRIGHT", 0, -3)
     headLine:SetHeight(P.Scale(1))
 
-    ------------------------------------------------------------
-    -- 清單
-    ------------------------------------------------------------
-    list = W.CreateRowList(tab, 1, 1, ROW_H, BuildRow)
-    list:SetPoint("TOPLEFT", SIDE, LIST_TOP)
-    list:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -SIDE, LIST_BOT)
+    list = W.CreateRowList(cpuPage, 1, 1, ROW_H, BuildRow)
+    list:SetPoint("TOPLEFT", SIDE, CPU_LIST_TOP)
+    list:SetPoint("BOTTOMRIGHT", cpuPage, "BOTTOMRIGHT", -SIDE, LIST_BOT)
     list.updateRow = UpdateRow
 
     -- 分析器被關掉的話 CPU 整欄都是 0，講一聲比讓玩家以為插件都不吃 CPU 好。
-    -- ⚠ 警語得住在自己的 frame 裡：字掛在 tab 上的話會被清單的列（子 frame）
+    -- ⚠ 警語得住在自己的 frame 裡：字掛在頁框上的話會被清單的列（子 frame）
     --   蓋掉 —— 子 frame 永遠畫在父層貼圖之上，調 DrawLayer 沒用。
-    warnBox = W.CreateFrame(nil, tab)
+    warnBox = W.CreateFrame(nil, cpuPage)
     W.Stylize(warnBox, { 0.14, 0.06, 0.06, 1 })
     warnBox:SetPoint("TOPLEFT", list, "TOPLEFT", 0, 0)
     warnBox:SetPoint("TOPRIGHT", list, "TOPRIGHT", 0, 0)
     warnBox:SetHeight(26)
-    warnBox:SetFrameLevel(tab:GetFrameLevel() + 20)
+    warnBox:SetFrameLevel(cpuPage:GetFrameLevel() + 20)
     warnBox:Hide()
 
     local warnFS = warnBox:CreateFontString(nil, "OVERLAY")
@@ -928,54 +1167,68 @@ local function Init()
     warnFS:SetPoint("CENTER")
     warnFS:SetText("|cffff5555這個客戶端沒有啟用插件分析器，CPU 數據無法取得（記憶體仍可測量）。|r")
 
+    local cpuFooter = cpuPage:CreateFontString(nil, "OVERLAY")
+    cpuFooter:SetFontObject(W.fontSmall)
+    cpuFooter:SetPoint("BOTTOMLEFT", SIDE + 2, FOOT_Y)
+    cpuFooter:SetWidth(innerW - 4)
+    cpuFooter:SetJustifyH("LEFT")
+    cpuFooter:SetText("|cff888888CPU 由遊戲內建的分析器直接提供，開著這一頁不會讓遊戲變慢。"
+        .. "點欄名換排序；滑鼠移到列上看資料夾明細與卡頓次數。|r")
+
     ------------------------------------------------------------
-    -- Lua 堆走勢圖
+    -- 記憶體子頁
     ------------------------------------------------------------
+    cards.mem = CreatePanel(ramPage, "Lua 記憶體")
+    cards.mem:SetSize(innerW, PANEL_H)
+    cards.mem:SetPoint("TOPLEFT", SIDE, 0)
+    cards.mem.comp = PanelGraphArea(cards.mem)
+    cards.mem.comp.fill = cards.mem.comp:CreateTexture(nil, "ARTWORK")
+    cards.mem.comp.fill:SetColorTexture(W.Accent(0.75))
+    cards.mem.comp.fill:SetPoint("TOPLEFT")
+    cards.mem.comp.fill:SetPoint("BOTTOMLEFT")
+    cards.mem.comp:EnableMouse(true)
+    cards.mem.comp:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(cards.mem.comp, "ANCHOR_TOP")
+        GameTooltip:AddLine("總量的構成", 1, 1, 1)
+        GameTooltip:AddLine("亮的那段是歸戶給插件的合計；其餘是暴雪 UI 本體與"
+            .. "歸不了戶的部分（10.1 起暴雪模組直接拒絕查詢），加上還沒被 GC "
+            .. "收走的浮動垃圾。", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    cards.mem.comp:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- 走勢圖：放大版，有自己的標籤列
+    local trendLbl = ramPage:CreateFontString(nil, "OVERLAY")
+    trendLbl:SetFontObject(W.fontSmall)
+    trendLbl:SetPoint("TOPLEFT", SIDE, RAM_TRENDLBL_Y)
+    trendLbl:SetText("記憶體趨勢")
+
+    trendRangeFS = ramPage:CreateFontString(nil, "OVERLAY")
+    trendRangeFS:SetFontObject(W.fontSmall)
+    trendRangeFS:SetPoint("LEFT", trendLbl, "RIGHT", 8, 0)
+
+    trendVerdictFS = ramPage:CreateFontString(nil, "OVERLAY")
+    trendVerdictFS:SetFontObject(W.fontSmall)
+    trendVerdictFS:SetPoint("TOPRIGHT", ramPage, "TOPRIGHT", -SIDE, RAM_TRENDLBL_Y)
+    trendVerdictFS:SetJustifyH("RIGHT")
+
     graph = { cols = {} }
-
-    -- 分隔線：讓走勢圖讀起來是「另一個區塊」而不是清單掉出來的東西。
-    -- 比表頭那條再暗一階 —— 它分的是區塊，不是欄位。
-    local sepLine = tab:CreateTexture(nil, "ARTWORK")
-    sepLine:SetColorTexture(W.Accent(0.18))
-    sepLine:SetPoint("BOTTOMLEFT", SIDE, LIST_BOT - SEC_GAP)
-    sepLine:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -SIDE, LIST_BOT - SEC_GAP)
-    sepLine:SetHeight(P.Scale(1))
-
-    local labelY = GRAPH_BOT + GRAPH_H + LBL_GAP
-
-    local graphLbl = tab:CreateFontString(nil, "OVERLAY")
-    graphLbl:SetFontObject(W.fontSmall)
-    graphLbl:SetPoint("BOTTOMLEFT", SIDE, labelY)
-    graphLbl:SetText("Lua 記憶體趨勢")
-
-    graph.rangeFS = tab:CreateFontString(nil, "OVERLAY")
-    graph.rangeFS:SetFontObject(W.fontSmall)
-    graph.rangeFS:SetPoint("LEFT", graphLbl, "RIGHT", 8, 0)
-
-    -- 判決靠右：跟左邊的標題與範圍分開，玩家的視線只要掃右緣就能看結論
-    graph.verdictFS = tab:CreateFontString(nil, "OVERLAY")
-    graph.verdictFS:SetFontObject(W.fontSmall)
-    graph.verdictFS:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -SIDE, labelY)
-    graph.verdictFS:SetJustifyH("RIGHT")
-
-    -- 繪圖區自己一個 frame：直條是它的子貼圖，SetSize 用原始單位跟欄位一致
-    graph.plot = W.CreateFrame(nil, tab)
+    graph.plot = W.CreateFrame(nil, ramPage)
     W.Stylize(graph.plot, { 0.09, 0.09, 0.10, 1 })
-    graph.plot:SetPoint("BOTTOMLEFT", SIDE, GRAPH_BOT)
-    graph.plot:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -SIDE, GRAPH_BOT)
-    graph.plot:SetHeight(GRAPH_H)
+    graph.plot:SetPoint("TOPLEFT", SIDE, RAM_PLOT_Y)
+    graph.plot:SetPoint("TOPRIGHT", ramPage, "TOPRIGHT", -SIDE, RAM_PLOT_Y)
+    graph.plot:SetHeight(RAM_PLOT_H)
 
-    -- 說明住在工具提示而不是頁尾：頁尾每多一行就把圖往上擠一行，而這段話
-    -- 只有第一次看的人需要
+    -- 說明住在工具提示：這段話只有第一次看的人需要，讓它常駐佔版面不划算
     graph.plot:EnableMouse(true)
     graph.plot:SetScript("OnEnter", function()
         GameTooltip:SetOwner(graph.plot, "ANCHOR_TOP")
-        GameTooltip:AddLine("Lua 記憶體趨勢", 1, 1, 1)
+        GameTooltip:AddLine("記憶體趨勢", 1, 1, 1)
         GameTooltip:AddLine("每分鐘記一點，值是那一分鐘的最低點 —— 最低點最接近"
             .. "「活資料」，浮動的垃圾不會抬高它，洩漏會。", 0.8, 0.8, 0.8, true)
         GameTooltip:AddLine("記憶體大不大要看斜率不是數值：平穩就沒事（六十幾個插件"
-            .. "的重裝本來就是幾百 MB），持續往上爬才是洩漏。", 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine("縱軸是自動縮放的，範圍寫在左上角；曲線只記這次登入，"
+            .. "的重裝停在 6 百多 MB 是常態），持續往上爬才是洩漏。", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("縱軸自動縮放，範圍在左上角；曲線只記這次登入，"
             .. "不需要開任何選項，一直都在記。", 0.6, 0.6, 0.6, true)
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine("/miliui heap 可以在聊天視窗看同一份資料", 0.5, 0.7, 1)
@@ -987,27 +1240,86 @@ local function Init()
     graph.emptyFS:SetFontObject(W.fontSmall)
     graph.emptyFS:SetPoint("CENTER")
 
-    ------------------------------------------------------------
-    -- 底部說明
-    ------------------------------------------------------------
-    local footer = tab:CreateFontString(nil, "OVERLAY")
-    footer:SetFontObject(W.fontSmall)
-    footer:SetPoint("BOTTOMLEFT", SIDE + 2, FOOT_Y)
-    footer:SetWidth(ns.Options.PANEL_W - SIDE * 2 - 4)
-    footer:SetJustifyH("LEFT")
-    footer:SetSpacing(2)
-    footer:SetText("|cff888888CPU 由遊戲內建的分析器直接提供，開著這一頁不會讓遊戲變慢；"
-        .. "記憶體要掃過整個 Lua 堆才分得出是誰用的，所以只在開啟分頁時量一次。\n"
-        .. "點欄名可以換排序；滑鼠移到一列或走勢圖可以看更多說明。|r")
+    -- 控制列：管記憶體的按鈕住在記憶體頁，跟它管的東西在一起
+    local measureBtn = W.CreateButton(ramPage, "重新測量記憶體", "accent", 120, 22)
+    measureBtn:SetPoint("TOPLEFT", SIDE, RAM_CTRL_Y)
+    measureBtn:SetScript("OnClick", function()
+        MeasureMemory()
+        memAcc = 0
+    end)
 
-    RefreshHeaders()
+    local autoCB = W.CreateCheckButton(ramPage, "每 5 秒自動測量", function(checked)
+        DB().autoMem = checked
+        autoMem = checked
+        memAcc = 0
+        if checked then
+            -- 打勾的當下講一次就好：這是整頁唯一真的會花錢的動作，玩家該知道
+            -- 代價再決定留不留著（工具提示只有滑過才看得到，不夠）
+            ns.Print("自動測量每 5 秒掃描一次整個 Lua 堆，堆越大越貴，"
+                .. "開著可能造成額外的細微頓格（戰鬥中會自動停手）。看完記得取消勾選。")
+            MeasureMemory()
+        end
+    end)
+    autoCB:SetPoint("LEFT", measureBtn, "RIGHT", 14, 0)
+    autoCB:SetChecked(DB().autoMem)
+    autoCB:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(autoCB, "ANCHOR_TOPLEFT", 0, 4)
+        GameTooltip:AddLine("每 5 秒自動測量", 1, 1, 1)
+        GameTooltip:AddLine("每 5 秒重新歸戶一次。搭配「變化」欄抓垃圾製造機：持續 +、"
+            .. "過一陣子突然一大筆 − 的那幾列就是 —— 跟佔用大是兩回事。", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("這是整個 Lua 堆的掃描，堆越大越貴，開著可能造成額外的"
+            .. "細微頓格。戰鬥中自動停手，分頁一關就停。", 1, 0.6, 0.3, true)
+        GameTooltip:Show()
+    end)
+    autoCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- 記憶體清單：固定 MB 由大到小，只在測量後才變，所以表頭是靜態標籤不是按鈕
+    local memHeader = CreateFrame("Frame", nil, ramPage)
+    memHeader:SetPoint("TOPLEFT", SIDE, RAM_HEAD_Y)
+    memHeader:SetPoint("TOPRIGHT", ramPage, "TOPRIGHT", -SIDE - SCROLL_W, RAM_HEAD_Y)
+    memHeader:SetHeight(16)
+
+    local function MemHeadLabel(text, right, justify)
+        local fs = memHeader:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontSmall)
+        fs:SetTextColor(0.6, 0.6, 0.6)
+        if justify == "LEFT" then
+            fs:SetPoint("LEFT", right, 0)
+        else
+            fs:SetPoint("RIGHT", memHeader, "RIGHT", right, 0)
+        end
+        fs:SetText(text)
+        return fs
+    end
+    MemHeadLabel("名稱", COL2.NAME_L, "LEFT")
+    MemHeadLabel("記憶體 MB", COL2.MEM_R)
+    MemHeadLabel("變化", COL2.DELTA_R)
+    MemHeadLabel("佔插件", COL2.SHARE_R)
+
+    local memHeadLine = memHeader:CreateTexture(nil, "ARTWORK")
+    memHeadLine:SetColorTexture(W.Accent(0.3))
+    memHeadLine:SetPoint("BOTTOMLEFT", 0, -3)
+    memHeadLine:SetPoint("BOTTOMRIGHT", 0, -3)
+    memHeadLine:SetHeight(P.Scale(1))
+
+    memList = W.CreateRowList(ramPage, 1, 1, ROW_H, BuildMemRow)
+    memList:SetPoint("TOPLEFT", SIDE, RAM_LIST_TOP)
+    memList:SetPoint("BOTTOMRIGHT", ramPage, "BOTTOMRIGHT", -SIDE, LIST_BOT)
+
+    local ramFooter = ramPage:CreateFontString(nil, "OVERLAY")
+    ramFooter:SetFontObject(W.fontSmall)
+    ramFooter:SetPoint("BOTTOMLEFT", SIDE + 2, FOOT_Y)
+    ramFooter:SetWidth(innerW - 4)
+    ramFooter:SetJustifyH("LEFT")
+    ramFooter:SetText("|cff888888記憶體要掃過整個 Lua 堆才分得出是誰用的，所以只在測量時更新。"
+        .. "「變化」是跟上一次測量比 —— 佔用大而不動的是資料庫，持續爬升的才要追。|r")
 
     -- 昂貴的記憶體測量延到下一幀：先讓分頁畫出來，玩家才不會覺得「點分頁卡一下」
     tab:SetScript("OnShow", function()
         RunNextFrame(function()
             if not (tab and tab:IsShown()) then return end
             MeasureMemory()
-            Refresh(true)
+            if cpuPage:IsShown() then Refresh(true) end
         end)
     end)
     tab:SetScript("OnUpdate", OnTabUpdate)
@@ -1026,12 +1338,16 @@ ns.RegisterCallback("ShowOptionsTab", "perfTab", function(id)
     lagCB:SetChecked(ns.LagWatch and ns.LagWatch.IsEnabled() or false)
 
     RebuildEntries()
-    -- 記憶體重新量：每次開分頁都當作沒量過，免得顯示的是上次開窗留下的舊數字
+    -- 記憶體重新量：每次開分頁都當作沒量過，免得顯示的是上次開窗留下的舊數字。
+    -- 「上一次」的快照也一起丟 —— 隔了一個開窗週期的差值沒有意義
     memStamp = nil
     wipe(memKB)
+    wipe(memPrevKB)
+    memHasPrev = false
+    RebuildMemEntries()
     valueAcc, sortAcc, memAcc = 0, 0, 0
-    Refresh(true)
-    -- 版號歸零強制重畫：分頁可能關了一小時，那期間累積的點都還沒畫過
+    RefreshHeaders()
     graphRev = -1
+    ShowPage(DB().page)
     tab:Show()
 end)
