@@ -43,6 +43,33 @@ Cell 因此有第三個旗標 `_gateCFDependent`（`RecordUsesCandidateFilters`�
 判斷「哪一列出問題」的現場依據：**紅圈＝HARMFUL、綠圈＝HELPFUL**，配 `/cab inspect <unit>`
 的身分閘行（有印 `cf依賴=` 與 `connected=`）。
 
+## ⚠ 這條**不能外推到所有 candidateFilters**（2026-08-28 實測否證）
+
+上面整篇講的都是 **`includeSpellIDs` / `excludeSpellIDs`**（以及離線那條「整包不套用」）。
+把它外推成「敵對單位 ⇒ `UnitCanAssist` 為 false ⇒ 任何 candidateFilters 都被跳過」是**錯的**。
+
+實測（MiliUI_UnitFrames 目標框，首領戰中，目標是「庫洛格·恐怖圖騰」?? 精英）：
+
+| 增益列篩選 | 送出去的 | 結果 |
+|---|---|---|
+| 全部 | `HELPFUL`，無 candidateFilters | 首領的增益全部顯示（4 顆） |
+| 可偷取或驅散 | `HELPFUL` ＋ `{ isStealable = true }` | **空的** |
+
+同一個容器、同一份版面設定，唯一的差別就是那個 payload。空的 ⇒ **candidateFilters
+確實被採用了**（若被跳過會退成裸 `HELPFUL`，看到的會是那 4 顆全部）。而首領的增益
+本來就幾乎一律不可偷取／驅散，所以「空」是正確答案。
+
+⇒ **布林型的 candidateFilters（`isStealable`／`isPriorityAura`／`isBossOrRoleAura`…）
+對敵對單位正常運作**，不需要為它們補身分閘。
+
+⚠ 還沒驗的是**這則筆記真正點名的那一個**：`excludeSpellIDs` 在敵對單位的增益列上會不會
+被靜默忽略。驗法：把某顆首領增益的法術 ID 加進目標框增益列的黑名單，看擋不擋得掉。
+
+**教訓：這則筆記所有的觀察都來自「友方隊友」情境**（離線、跨陣營、不在可見世界），
+那些單位的 `UnitCanAssist` 平常是 true、只是情境性地失效。敵對單位的 assist **恆為 false**，
+是完全不同的一種輸入 —— 對它套用同一條結論等於沒有根據。引用這篇之前先看清楚
+自己要處理的是哪一種單位。
+
 機制由 DandersFrames v5 找出（`Frames/AuraContainer.lua:662` `filterVulnerableToIdentityGate`）。
 Cell 的對應實作與 `/cab gate` 解卡指令見 [[project-cell-auracontainer-rewrite]]，
 API 細節見 [[wow-121-aura-containers]]。

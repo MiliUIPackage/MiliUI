@@ -26,6 +26,14 @@ local Media = ns.Media
 --   cand   candidateFilters 表，引擎端求值 —— 有些概念沒有對應的 token，只能走這裡
 -- 完整詞彙與六條硬規則見 .claude/notes 的 wow-121-aura-filter-vocabulary。
 --
+-- ✅ **布林型 candidateFilters 對敵對單位正常運作**（2026-08-28 首領戰實測）：
+--    同一個容器，「全部」顯示首領的 4 顆增益，切成「可偷取或驅散」
+--    （`{ isStealable = true }`）就變空 —— 差別只有那個 payload，所以引擎確實採用了它，
+--    首領的增益本來就沒有可偷取的。**不需要為這幾個模式補身分閘。**
+--    ⚠ wow-121-identity-gate-failopen 那篇的 fail-open 只講 `include/excludeSpellIDs`，
+--      而且觀察全部來自「友方隊友」情境，不要外推到這裡。
+--    ⚠ 還沒驗的是黑名單（`excludeSpellIDs`）在敵對單位的增益列上會不會被靜默忽略。
+--
 -- ⚠⚠ 這裡刻意設計成**一個模式只對應一個 AuraGroup**。想「多個類別同時顯示」的話：
 -- token 不能 OR ⇒ 一類一個 group ⇒ 要手工維護互斥否定鏈（而且只能否定**已啟用**的
 -- 類別，否定沒啟用的會吃掉本來該顯示的光環）；再加上跨 group 沒有任何總量 API
