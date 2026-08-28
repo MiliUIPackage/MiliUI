@@ -47,6 +47,13 @@ end
 為真時回的是 `auraData.name`，受限光環下是秘密字串，要先過 [[wow-121-secret-values]]
 的 `issecretvalue`。
 
+**最省事的做法是「根本不要 Hide 名字文字框」**：不顯示就只熄 alpha、保持 `IsShown()` 為真，
+暴雪照寫、畫面上看不到，整類問題就不存在了 —— 比「藏了再想辦法補寫」少一半程式碼，
+也不用去追誰在什麼時候把它藏起來。倒數與層數沒有這個限制（倒數每幀重寫、層數無條件寫），
+可以照常 Hide。**唯一還要處理的是暴雪自己藏它的那次**（編輯模式「條列內容」設成僅圖示，
+`SetBarContent` 會 `nameFontString:Hide()`）：插件把它顯示回來之後，那一輪的字是空的，
+要自己補叫一次 `RefreshName`。
+
 套組裡的實作在 `Ayije_CDM/Core/Style.lua`（就地改，見 [[project-local-addon-forks]]）：
-`SetBarContent` 掛勾把被舊旗標壓掉的 `Show()` 還原成 alpha 0 ＋ 顯示（讓暴雪寫得進字，
-畫面上還是看不到），`ApplyBarStyle` 記下「藏→顯示」的轉換再補叫 `RefreshBarNameText`。
+名字改成 alpha-only、可見度掛勾只留給倒數與層數，`ApplyBarStyle` 尾端在
+「剛從隱藏切回來或字是空的」時補叫 `RefreshBarNameText`。

@@ -1231,8 +1231,6 @@ local function InstallBuffBarVisibilityShowHook(frame, hookKey, textElement, res
     end)
 end
 
-local BAR_CONTENT_ICON_ONLY = Enum.CooldownViewerBarContent and Enum.CooldownViewerBarContent.IconOnly
-
 local function IsSecretValue(v)
     if issecretvalue == nil then return false end
     return issecretvalue(v) and true or false
@@ -1401,22 +1399,8 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
 
     if not frame.cdmBarContentHooked and frame.SetBarContent then
         frame.cdmBarContentHooked = true
-        hooksecurefunc(frame, "SetBarContent", function(_, barContent)
+        hooksecurefunc(frame, "SetBarContent", function()
             frame.cdmBarStyled = false
-
-            -- fix from MiliUI: 框架從池子回收再取出也會走這裡，而這一刻
-            -- cdmResolvedShowName 還是「上一格」的結論。上一格若是不顯示名字，
-            -- 可見度掛勾就會把暴雪剛剛那次 Show() 壓回去，接著的 RefreshName()
-            -- 因為 IsShown() 為 false 直接跳過 —— 條出現了、名字卻是空的，而且
-            -- 空到下一次上 buff。這裡把暴雪的意思還原回去（alpha 歸零先藏著，
-            -- 讓 RefreshData() 有機會把字寫進去），要不要顯示稍後由 ApplyBarStyle 決定。
-            local nameFS = frame.Bar and frame.Bar.Name
-            if nameFS and not nameFS:IsShown() and barContent ~= BAR_CONTENT_ICON_ONLY then
-                frame.cdmResolvedShowName = nil
-                nameFS:SetAlpha(0)
-                nameFS:Show()
-            end
-
             if frame.cdmLastBarIconPosition == "HIDDEN" then
                 if frame.Icon then frame.Icon:Hide() end
                 local bar = frame.Bar
@@ -1470,7 +1454,6 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
     local appOffsetX = ResolveBarField(groupData, "applicationsOffsetX", "buffBarApplicationsOffsetX")
     local appOffsetY = ResolveBarField(groupData, "applicationsOffsetY", "buffBarApplicationsOffsetY")
 
-    frame.cdmResolvedShowName = showName and true or false
     frame.cdmResolvedShowDuration = showDuration and true or false
     frame.cdmResolvedShowApplications = showApplications and true or false
 
@@ -1578,11 +1561,10 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
             frame.cdmBarTextContainer:Show()
 
             if nameText then
-                InstallBuffBarVisibilityShowHook(frame, "cdmNameHooked", nameText, "cdmResolvedShowName")
                 InstallBarNameTextHook(frame, nameText)
                 nameText:SetParent(frame.cdmBarTextContainer)
                 if showName then
-                    -- 藏→顯示的這一輪，暴雪那邊已經跳過寫字了，稍後要補叫 RefreshName()
+                    -- 文字框如果剛從隱藏切回來，暴雪那一輪已經跳過寫字了，稍後補叫 RefreshName()
                     nameNeedsRefill = not nameText:IsShown() or BarNameIsEmpty(nameText)
                     nameText:SetAlpha(1)
                     nameText:Show()
@@ -1602,8 +1584,13 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
                         nameText:SetWidth(0)
                     end
                 else
-                    nameText:Hide()
+                    -- 名字文字框「不顯示」一律只用 alpha，不 Hide()。
+                    -- 暴雪的 RefreshName() 開頭就是 `if not nameFontString:IsShown() then return end`，
+                    -- 而且只有 RefreshData() 與剛變成 active 時各寫一次（倒數那行有 OnUpdate
+                    -- 每幀重寫所以藏了也沒差，名字沒有）。一旦藏過，之後再顯示出來就是空的，
+                    -- 而且空到下一次上 buff。保持顯示、alpha 歸零，暴雪照寫、畫面上看不到。
                     nameText:SetAlpha(0)
+                    nameText:Show()
                 end
             end
 
@@ -1632,7 +1619,8 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
             end
         else
             if frame.cdmBarTextContainer then frame.cdmBarTextContainer:Hide() end
-            if bar.Name then bar.Name:Hide(); bar.Name:SetAlpha(0) end
+            -- 名字同上：只熄 alpha，不 Hide()（容器藏起來一樣看不到，但暴雪還寫得進字）
+            if bar.Name then bar.Name:SetAlpha(0); bar.Name:Show() end
             if bar.Duration then bar.Duration:Hide(); bar.Duration:SetAlpha(0) end
         end
 
@@ -1712,7 +1700,6 @@ function CDM:InstallStyleAcquireResetHook(v)
         itemFrame.cdmLastBuffBorderColorVer = nil
         itemFrame.cdmLastBuffBorderStyleVer = nil
         itemFrame.cdmLastBarOv = nil
-        itemFrame.cdmResolvedShowName = nil
         itemFrame.cdmResolvedShowDuration = nil
         itemFrame.cdmResolvedShowApplications = nil
         itemFrame.cdmResolvedCustomName = nil
