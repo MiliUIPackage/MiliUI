@@ -46,10 +46,24 @@ local UNIT_EVENT_BUCKET = {
     UNIT_PORTRAIT_UPDATE = "portrait",
 }
 
-local function RefreshUnit(unitToken, bucket)
+-- ⚠⚠ 這幾個事件**不吃同幀去重**（戳記照寫，只是不吃它跳過）。
+--
+-- 它們帶的是「值」本身，而且對應的狀態可能是**終點**：死亡之後血量不再變動，
+-- 同幀第二波派送被戳記擋掉就永遠等不到下一次補救，血條會停在死前那一格。
+-- 完整理由寫在 Core/UnitFrame.lua 的「同幀去重」那段。
+--
+-- 只列帶值的：absorb 家族（UNIT_ABSORB_AMOUNT_CHANGED 等）**刻意不列** ——
+-- 護盾會持續產生事件，過期一幀下一幀就自我修復，而它們正是同幀重複派送的大宗，
+-- 去重省下來的就是它們。
+local FORCE_EVENT = {
+    UNIT_HEALTH = true,
+    UNIT_MAXHEALTH = true,
+}
+
+local function RefreshUnit(unitToken, bucket, force)
     local uf = ns.frames[unitToken]
     if uf and uf:IsVisible() then
-        ns.Refresh(uf, bucket)
+        ns.Refresh(uf, bucket, force)
     end
 end
 
@@ -104,7 +118,7 @@ local function TrackerOnEvent(self, event, unit)
         census[unit] = (census[unit] or 0) + 1
     end
     local bucket = UNIT_EVENT_BUCKET[event]
-    if bucket then ns.Refresh(uf, bucket) end
+    if bucket then ns.Refresh(uf, bucket, FORCE_EVENT[event]) end
 end
 
 -- 單位框生出來時呼叫（SpawnUnitFrame）
@@ -217,14 +231,15 @@ local SPECIAL = {
     -- 而 death 桶只有 UNIT_CONNECTION 會推，所以那顆文字根本沒有重畫的機會。
     -- 三個都收：PLAYER_DEAD（倒地）、PLAYER_UNGHOST（從靈魂變回活人）、
     -- PLAYER_ALIVE（放棄屍體變靈魂，以及登入時）。都是罕見事件，成本可以忽略。
+    -- 一律 force：生死是終點狀態，被同幀稍早的重畫吃掉就等不到下一次了（同 FORCE_EVENT）。
     PLAYER_DEAD = function()
-        RefreshUnit("player", "death")
+        RefreshUnit("player", "death", true)
     end,
     PLAYER_ALIVE = function()
-        RefreshUnit("player", "death")
+        RefreshUnit("player", "death", true)
     end,
     PLAYER_UNGHOST = function()
-        RefreshUnit("player", "death")
+        RefreshUnit("player", "death", true)
     end,
     -- AFK／DND。不是 UNIT_ 事件，不確定 RegisterUnitEvent 吃不吃，留在全域比較保險
     PLAYER_FLAGS_CHANGED = function(unit)
