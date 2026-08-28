@@ -133,4 +133,41 @@ ChatBar 的 `Menu.lua` 從 417 行縮成 63 行、只剩 `Items()` 與 `ns.ShowB
 另外 **`miliui-locale-audit` 技能的腳本對這三支不適用**——它假設 `ns.L` ＋ 英文原文 key
 的架構，跑 AceLocale 插件會噴一整排假警報（格式符、TOC 找不到 Locale.lua…）。
 
+**2026-08-28 第五次擴充：這包從「設定介面元件庫」變成「共用基礎設施」。**
+體檢查出四樣「每支插件都在重寫」的東西，全部收進來（照舊 vendor 複製，
+所以單體發佈時玩家還是只下載一個資料夾）：
+
+| 新模組 | 取代掉 | 為什麼值得收 |
+|---|---|---|
+| `Secret.lua` | 8 支插件的 15 處 `issecretvalue` 宣告、4 種命名，＋ Tooltip／UnitFrames 兩份 `Core/Secret.lua` | **秘密值規則半年改三輪**，散著就是下一輪要改 15 個地方 |
+| `Errors.lua` | 8 份 `ReportError` ＋ 3 份封鎖動作攔截 | **這項是修 bug 不是省行數**，見下 |
+| `Metro.lua` | 各自的輪詢 ticker | `ns.Metro.New(tick, onError)` → `Add/Remove/SetEnabled/Debug` |
+| `BlizzOptions.lua` | 10 份只差四個字串的暴雪入口頁（412 → 108 行） | |
+
+⚠⚠ **`Errors.lua` 是修 bug**：8 份 `ReportError` 只有 2 份有守衛，其餘 6 份是裸的
+`tostring(err)` —— 而 `tostring(secret)` 是禁止操作，也就是說**那 6 支的錯誤處理器
+在最需要它的時候（呼叫堆疊上有秘密值）自己會炸**成 "error in error handling"。
+共用版三道守衛缺一不可：① 防遞迴（有插件會包住前一個 handler 再呼叫）
+② err 可能是秘密字串 ③ 下游 handler 包 pcall（順便擋「handler 就是自己」）。
+
+⚠⚠ **共用層絕對不要擴充語系契約。** `BlizzOptions.lua` 第一版偷懶查
+`L["Version: %s"]` / `L["Open options"]`，那是自寫 `ns.L` 那六支的 key 形狀；
+用 AceLocale ＋ token key 的三支（ChatBar／BurstPotionHelper／BloodlustMusic）
+當場變成 `AceLocale-3.0: Missing entry for 'Open options'` 洗版。
+**契約就是那四個 key，多一個都不行** —— 需要字串就從 spec 收，沒傳退回英文字面值。
+（同一次也修了 `check_locales.py`：它原本整個跳過 `Libs/`，所以共用層自己查的 key
+從來沒被掃過。現在 `MiliUIWidgets` 照掃，而且會先剝註解 —— 否則檔頭的用法範例
+`L["MiliUI Tooltip"]` 會被當成真的用到，九支全被誤報。）
+
+**同步終於有腳本了**：`.claude/scripts/sync-widgets.py`（無參數＝同步並列出改了哪幾份，
+`--check`＝檢查漂移），已接進 `check-all.sh` 與 CI。
+vendor 最怕的就是「改了來源忘了同步」，這道檢查上線第一天就抓到一次
+（BlizzOptions 修完，九份消費者還帶著舊版）。
+⚠ 腳本**不會主動把新模組塞進沒帶它的插件**，只更新已經帶著的那幾支 —— 要讓某支
+開始用新模組得先手動複製一次、TOC 排好。
+
+載入順序：`Secret` / `Errors` / `Metro` **完全沒有相依**（不讀 Env、不讀語系），
+跟 `PixelPerfect.lua` 一起排在 TOC 最前面 —— 宿主的 `Core/*.lua` 在檔案層就會用到。
+`BlizzOptions.lua` 排在 `Options\Blizzard.lua` 之前。
+
 相關：[[project-miliui-unit-frame]]、[[project-miliui-release-version]]

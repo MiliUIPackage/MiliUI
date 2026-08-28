@@ -77,6 +77,24 @@ spell.modifierShowAll=true、成就色；**遷移鏈已整個拔掉（未發佈�
 不能拿 per-unit alpha 蓋全域 alpha（會讓「樣式」頁的背景透明度整個失效，預覽也走
 這條）；④ 預設縮放 1.2 → 1，配 v2 值閘遷移。
 
+## 輪詢改走共用 ticker（2026-08-28）
+
+血條數值與 mouseover 目標行原本各自開一個**永久顯示**的 driver frame 掛 OnUpdate，
+內部累加到門檻（0.15s／0.2s）才做事。問題不在做事那部分，而是 **OnUpdate 本身每一幀
+都會進 Lua** —— 兩支加起來在 144fps 是每秒約 300 次空轉，從登入到登出，即使畫面上
+根本沒有任何提示。
+
+現在走 `Skin.Poll`（`ns.Metro.New(0.05, ns.ReportError)`，共用層），並掛在
+「有沒有 tooltip 顯示中」上：沒有提示的時候 ticker 根本不存在。
+可見度判斷用**我們自己的 skin frame 的 OnShow/OnHide** —— skin 是 tip 的 child，
+父層一藏子層就跟著發 OnHide，等價而且**零接觸面**（不必掛暴雪 tooltip 的腳本，
+不進 Core/Hooks.lua 那張接觸面清單）。
+
+⚠ `Core/Bar.lua` 那條「不看個別 tip 的 IsShown」的需求還在（戰鬥中被藏起來的條要靠
+輪詢在出戰鬥後撿回來）—— 新的閘是「有**任何**提示顯示中」，比它粗，所以沒有衝突。
+
+⚠ `Core/Secret.lua` 已整支刪除，`ns.Secret` 改由共用層提供（是舊版的超集，
+7 個 API 全含），呼叫點一個字都沒改。見 [[project-miliui-widgets-vendor]]。
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]
 
 **戰鬥中敵方顯示成上一個友方（2026-08-23 log 破案，兩層）**：

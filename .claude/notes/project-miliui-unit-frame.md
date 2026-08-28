@@ -233,4 +233,27 @@ Tab_General／Tab_Resource／Tab_Totem 與 Totems 的 `GetDB()` 都是現查 `ns
 GetDamageAbsorbs 抄自 Stuf/Platynator 應該對）、totem pcall 抽值、預覽開關與 secure 框的互動、
 編輯模式拖曳。驗證用指令：`/muf` 開設定、`/muf reset` 清 SV。
 
+**⚠⚠ 血量路徑不吃同幀去重**（2026-08-28 修，跟 Cell `ae8ae5852` 是同一條）：
+`ns.Refresh` 用 `GetTime()` 當每幀世代編號做去重，原本的理由寫著「我們每次都是重讀
+當下的值而不是套用差量，所以併掉中間那幾次不會漏資訊」—— **那是錯的**。多封包幀
+（團滅、一堆人同幀掉血）客戶端在同一個渲染幀裡連續處理多個封包、每批各派送一次事件，
+而 `GetTime()` 整幀凍結；被戳記擋掉的那一波就是**沒有去讀**，跟讀法是不是差量無關。
+死亡是終點狀態 ⇒ 之後永遠等不到下一個 `UNIT_HEALTH` 補救，血條停在死前那格
+（死亡文字走即時的 `UnitIsDeadOrGhost`，所以「**字對條錯**」是指紋）。
+修法：`Core/Events.lua` 的 `FORCE_EVENT = { UNIT_HEALTH, UNIT_MAXHEALTH }` 傳
+`force=true`（戳記照寫、只是不吃它跳過）；absorb 家族**刻意不列**（會持續來事件、
+過期一幀就自我修復，而且它們正是同幀重複派送的大宗）；三個玩家生死的全域事件也一律
+force。常態幀的刷新次數不變。細節見 [[wow-gettime-stamp-multipacket]]。
+
+**光環篩選已實作且驗過**（2026-08-28）：九個模式見 [[wow-121-aura-filter-vocabulary]]
+的「MiliUI_UnitFrames 現況」。首領戰實測確認**布林型 candidateFilters 對敵對單位
+正常運作**，不需要補身分閘 —— 那條 fail-open 只涵蓋 `include/excludeSpellIDs`，
+而且觀察全部來自友方隊友情境，見 [[wow-121-identity-gate-failopen]] 末節。
+⚠ 還沒驗：黑名單（`excludeSpellIDs`）在敵對單位的增益列上會不會被靜默忽略。
+
+**共用層**：`Core/Secret.lua` 現在只留單位框自己的 `BarInterp` 與 `Curves`，
+通用的秘密值工具、錯誤處理器與封鎖動作攔截都在 `Libs/MiliUIWidgets/`
+（見 [[project-miliui-widgets-vendor]]）。⚠ `ns.ToBool` 沿用舊短名但語意換成共用層的
+（對 false 回 false 而非 nil）—— 七個使用點逐一核對過，全都只做布林測試或接 `or false`。
+
 相關：[[project-121-addon-migration]]、[[wow-121-aura-containers]]、[[project-focuser-castbar]]

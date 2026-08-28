@@ -89,11 +89,32 @@ filter 測試表加一條 `HARMFUL|IMPORTANT` 就看得出來。
   那個暗地裡看玩家職業（是「我能不能驅散」而不是「這是什麼學派」）。
   「我能驅散的」是另一個東西：token `RAID_PLAYER_DISPELLABLE`。
 
-## MiliUI_UnitFrames 現況
+## MiliUI_UnitFrames 現況（2026-08-28 更新）
 
-只用 `HELPFUL` / `HARMFUL` ＋ `onlyMine` 時串 `|PLAYER`（`Elements/Auras.lua`），
-上面整套一個都沒用到 —— 這是它跟 EUI 差距最大的一項。
-`BuildSignature` 已經是規則 2 要的那套機制，把 filter 加進簽章就能接。
+**已經接上了**，不再只是裸 `HELPFUL` / `HARMFUL`。`Elements/Auras.lua` 的
+`FILTER_MODES` 提供九個模式，增益與減益各一組下拉：
+
+| 增益 | 減益 |
+|---|---|
+| 全部 | 全部 |
+| 可偷取或驅散 `{ isStealable }` | 我能驅散的 `RAID_PLAYER_DISPELLABLE` |
+| 右鍵可取消 `CANCELABLE` | 控場 `CROWD_CONTROL` |
+| 主要防禦 `BIG_DEFENSIVE` | 重要 `{ isPriorityAura }` |
+| 外部防禦 `EXTERNAL_DEFENSIVE` | 首領與角色 `{ isBossOrRoleAura }` |
+
+⚠ **刻意設計成「一個模式對應一個 AuraGroup」**：token 不能 OR（規則 1），要多類別
+同時顯示就得手工維護互斥否定鏈，再加上跨 group 沒有總量控制（規則 6）還要自己切預算。
+團隊框需要那一整套（它問「這個隊友身上最重要的**那一個**」，天生多類別競爭）；
+單位框不需要（它問「這個目標身上我在乎的**那一類**」，天生單選）。單一 group ⇒
+maxCount 全額給它，互斥與預算兩個問題都不存在。
+
+黑名單走 `candidateFilters.excludeSpellIDs`，`onlyMine` 串 `|PLAYER`（可以跟模式疊）。
+被拒的 filter 記進 `ns.auraRejectedFilters`，`/muf debug` 印得出來（規則 3）。
+不提供 spellID 白名單：友方單位的減益禁止 ID 過濾（規則 4），做出來會是一個
+「有時有用有時沒用」的功能。
+
+✅ **布林型 candidateFilters 對敵對單位正常運作**（2026-08-28 首領戰實測，見
+[[wow-121-identity-gate-failopen]] 末節）—— 不要把身分閘那條 fail-open 外推到它們。
 
 相關：[[wow-121-aura-containers]]、[[project-cell-auracontainer-rewrite]]、
 [[project-miliui-unit-frame]]、[[wow-121-secret-values]]

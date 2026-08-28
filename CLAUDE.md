@@ -22,7 +22,7 @@ repo 是**公開的**（github.com/MiliUIPackage/MiliUI），玩家會整包 clo
 |---|---|
 | [.claude/skills/](.claude/skills/) | 技能，會依情境自動觸發，附帶的腳本放各自的 `scripts/` |
 | [.claude/notes/](.claude/notes/) | API 規則與各插件現況，索引在 [notes/README.md](.claude/notes/README.md) |
-| [.claude/scripts/](.claude/scripts/) | 不屬於任何單一技能的工具：`check-all.sh`（提交前檢查）、`sync-notes.sh`（把 memory 匯出成 notes） |
+| [.claude/scripts/](.claude/scripts/) | 不屬於任何單一技能的工具：`check-all.sh`（提交前檢查）、`sync-notes.sh`（把 memory 匯出成 notes）、`sync-widgets.py`（把共用層從本體同步到各插件） |
 
 `.claude/*.local.json` 是個人設定，不進版控。
 
@@ -48,6 +48,11 @@ API 改成 secret value，照舊寫法會直接崩潰，而且錯誤訊息不會
 
 - **`.toc` 的 Interface 版本號不要手改**，用 `wow-toc-interface-bump` 技能的腳本。
   正式服是 6 位數、經典服是 5 位數，手改很容易把多版本相容的插件弄壞。
+- **改共用層（`Libs/MiliUIWidgets/`）只改本體那一份**，然後跑
+  `python3 .claude/scripts/sync-widgets.py` 同步到十個消費者。那是 vendor 複製不是
+  函式庫，改錯地方會被下次同步蓋掉。⚠ 共用層的語系契約只有四個 key
+  （`Apply`／`Okay`／`Cancel`／`Can't change settings during combat`），**不要擴充** ——
+  用 AceLocale ＋ token key 的那三支會當場洗版。
 - **改完跑一次 `bash .claude/scripts/check-all.sh`**（語法、可疑的全域寫入、TOC 載入清單
   與 Interface 版本、語系缺鍵／格式符、`.claude/notes` 有沒有落後 memory）。
   遊戲裡沒有測試可跑，這幾樣都是「不報錯但會壞」的類型。同一批腳本由
