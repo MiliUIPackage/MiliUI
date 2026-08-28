@@ -243,25 +243,76 @@ local function BeginSegment()
 end
 
 ------------------------------------------------------------
+-- 假死監看：只有隊伍裡真的有獵人才註冊
+--
+-- `UNIT_SPELLCAST_SUCCEEDED` 是遊戲裡最高頻的事件之一 —— 全域註冊等於**視野內每一個
+-- 單位的每一次施法成功**都進 Lua。而它在這支插件裡唯一的用途是抓法術 5384（假死），
+-- 一個**只有獵人放得出來**的技能。處理器本身已經寫得很省（第一個判斷、整數比較早退），
+-- 但省的是「進來之後」，進來這件事本身才是成本，尤其在主城與四十人團隊戰。
+--
+-- 所以閘在註冊面：隊伍裡（含自己）沒有獵人就整個不掛。單刷、大部分五人隊、
+-- 以及在城裡掛機的時間全部歸零。
+--
+-- ⚠ **刻意不再加「只在戰鬥中才掛」那道閘。** 想過，但獵人會在開怪前假死洗仇恨 ——
+--   那一下發生在戰鬥開始之前，掛戰鬥閘就會漏掉，而漏掉的後果是那個人整場被算成
+--   「死了」。省下來的那點成本不值得換一個會出錯的統計。
+------------------------------------------------------------
+local feignFrame = CreateFrame("Frame")
+local _feignWatching = false
+
+local function GroupHasHunter()
+    if ns.playerClass == "HUNTER" then return true end
+    local n = GetNumGroupMembers() or 0
+    if n == 0 then return false end
+    local prefix = IsInRaid() and "raid" or "party"
+    local count = IsInRaid() and n or (n - 1)
+    for i = 1, count do
+        local unit = prefix .. i
+        if UnitExists(unit) then
+            -- 隊伍成員不受 12.1 的受限身分影響，但拿不到明文就當「可能有」比較保險
+            local class = UnitClassBase and UnitClassBase(unit)
+            if class == nil or D.IsSecret(class) or D.SafeClass(class) == "HUNTER" then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function SyncFeignWatch()
+    local want = GroupHasHunter()
+    if want == _feignWatching then return end
+    _feignWatching = want
+    if want then
+        feignFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+    else
+        feignFrame:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+        wipe(_feignDeathGUIDs)   -- 沒有獵人了，留著的標記只會誤篩掉真的死亡
+    end
+end
+C.SyncFeignWatch = SyncFeignWatch
+
+-- 用整數比較早退，非假死的施法幾乎零成本
+local function OnFeignEvent(_, _, unit, _, spellID)
+    if not unit then return end
+    -- spellID 被 C_DamageMeter 污染時可能是秘密數字，比較它會丟錯；
+    -- 沒有可用的 spellID 就沒辦法分類，直接放棄這次
+    if D.IsSecret(spellID) then return end
+    if spellID ~= 5384 then return end       -- 假死
+    local guid = D.PlainGUID(UnitGUID(unit))
+    if guid then _feignDeathGUIDs[guid] = true end
+    -- 不因為「後來又施了別的法」就清掉：假死中的獵人照樣有有效的 deathRecapID，
+    -- 要等 CleanupFeignCache 確認真的死了才清
+end
+
+------------------------------------------------------------
 -- 事件
 ------------------------------------------------------------
 local combatFrame = CreateFrame("Frame")
 
 local function OnEvent(_, event, ...)
-    -- UNIT_SPELLCAST_SUCCEEDED 是這裡最高頻的事件，第一個判斷、用整數比較早退，
-    -- 非假死的施法幾乎零成本
-    if event == "UNIT_SPELLCAST_SUCCEEDED" then
-        local unit, _, spellID = ...
-        if not unit then return end
-        -- spellID 被 C_DamageMeter 污染時可能是秘密數字，比較它會丟錯；
-        -- 沒有可用的 spellID 就沒辦法分類，直接放棄這次
-        if D.IsSecret(spellID) then return end
-        if spellID == 5384 then   -- 假死
-            local guid = D.PlainGUID(UnitGUID(unit))
-            if guid then _feignDeathGUIDs[guid] = true end
-        end
-        -- 不因為「後來又施了別的法」就清掉：假死中的獵人照樣有有效的 deathRecapID，
-        -- 要等 CleanupFeignCache 確認真的死了才清
+    if event == "GROUP_ROSTER_UPDATE" then
+        SyncFeignWatch()
         return
     end
 
@@ -320,6 +371,9 @@ local function OnEvent(_, event, ...)
     end
 
     if event == "PLAYER_ENTERING_WORLD" then
+        -- 保險：換區／重載之後隊伍組成可能跟上次算的不一樣，而 GROUP_ROSTER_UPDATE
+        -- 不保證一定會跟著來（單人時本來就不會發）
+        SyncFeignWatch()
         ------------------------------------------------------------
         -- 換區／離開副本 —— **一定要在這裡強制收尾**
         --
@@ -440,11 +494,18 @@ ns.RegisterCallback("Init", "combat", function()
     combatFrame:RegisterEvent("UNIT_FLAGS")
     combatFrame:RegisterEvent("ENCOUNTER_START")
     combatFrame:RegisterEvent("ENCOUNTER_END")
-    -- 暴雪不為假死送 UNIT_AURA，戰鬥記錄也不可靠，只剩這條路
-    combatFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+    -- 隊伍組成變了就重算「要不要監看假死」
+    combatFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
     combatFrame:SetScript("OnEvent", function(...)
         xpcall(OnEvent, ns.ReportError, ...)
     end)
+
+    -- 假死：暴雪不為它送 UNIT_AURA，戰鬥記錄在 12.x 又對插件關閉，只剩施法事件這條路。
+    -- 註冊與否由 SyncFeignWatch 依「隊伍裡有沒有獵人」決定，見上面那段。
+    feignFrame:SetScript("OnEvent", function(...)
+        xpcall(OnFeignEvent, ns.ReportError, ...)
+    end)
+    SyncFeignWatch()
 
     pvpFrame:RegisterEvent("PVP_MATCH_COMPLETE")
     pvpFrame:RegisterEvent("PVP_MATCH_STATE_CHANGED")
