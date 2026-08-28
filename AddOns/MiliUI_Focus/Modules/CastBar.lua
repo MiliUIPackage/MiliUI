@@ -415,8 +415,16 @@ local function ShowInterrupted(interrupterGUID)
             if u then name, class = UnitName(u), UnitClassBase(u) end
         end
         if name ~= nil then
+            -- ⚠ class 是秘密字串就**不上色**（維持白字），不要硬查表。
+            --   兩個各自會炸的點：
+            --     1. `RAID_CLASS_COLORS[class]` —— 秘密值不能當 table key，直接硬錯
+            --        （"cannot be indexed with secret keys"）。這條備援平常走不到
+            --        （12.1 有 C_ClassColor），但 GetClassColor 回 nil 時就會落下來。
+            --     2. 就算走 C_ClassColor 那條，回來的分量也是秘密的，而
+            --        `FontString:SetTextColor` 不在「吃得下秘密值」的名單裡。
+            --   名字本身照樣顯示得出來 —— SetText 收秘密字串是合法的（當傳遞者不當讀取者）。
             local r, g, b = 1, 1, 1
-            if class ~= nil then
+            if class ~= nil and not issecret(class) then
                 local color = C_ClassColor and C_ClassColor.GetClassColor(class)
                     or RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
                 if color then r, g, b = color:GetRGB() end
