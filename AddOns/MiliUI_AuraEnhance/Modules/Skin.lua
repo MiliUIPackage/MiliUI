@@ -49,6 +49,29 @@ local function AnchorBorder(border, icon, inset)
     border:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", inset, -inset)
 end
 
+------------------------------------------------------------
+-- 圖示間隔：接管容器的 iconPadding
+--
+-- 間隔本來歸編輯模式管（增益／減益框的「圖示間距」，暴雪預設 5），它的套用
+-- 方式就是一行明碼欄位寫入（UpdateSystemSettingIconPadding 的本體只有
+-- `self.AuraContainer.iconPadding = value`，查證過）。我們用同一招蓋回來：
+--
+--  * 寫的是明碼數字；下游只有非保護框的排版 setter，編輯模式**存檔**讀的是
+--    它自己的資料存放區、不回讀這個欄位——所以不會把污染寫進玩家的版面存檔。
+--  * 編輯模式每次套用版面都會重寫欄位，所以掛在它的套用函式後面蓋回來；
+--    比較守門（值沒偏就不動）避免每輪白跑一次重排。
+--  * 代價要知道：編輯模式裡那根「圖示間距」滑桿對增益／減益框會失效
+--    （拖了就被蓋回來），設定頁的說明文字有交代。
+------------------------------------------------------------
+local function ApplyPadding(frame)
+    local c = frame and frame.AuraContainer
+    local pad = SKN and SKN.spacing
+    if c and pad and c.iconPadding ~= pad then
+        c.iconPadding = pad
+        frame:UpdateGridLayout()
+    end
+end
+
 -- 光環按鈕 → 邊框貼圖。按鈕池只長不消（暴雪 frame 刪不掉），一顆只建一次。
 local borders = {}
 
@@ -103,6 +126,8 @@ function Skin.Apply()
     for btn, border in pairs(borders) do
         AnchorBorder(border, btn.Icon, inset)
     end
+    ApplyPadding(BuffFrame)
+    ApplyPadding(DebuffFrame)
 end
 
 local function Hook(self)
@@ -110,6 +135,9 @@ local function Hook(self)
     if self.exampleAuraFrames then
         ApplyFrames(self.exampleAuraFrames)
     end
+    -- 順手把間隔守住（比較守門，值沒偏是兩次表讀取而已）——
+    -- 這條也涵蓋「編輯模式在我們掛勾之前就套完設定」的登入時序
+    ApplyPadding(self)
 end
 
 ------------------------------------------------------------
@@ -126,4 +154,11 @@ ns.RegisterCallback("Init", "skin", function()
     hooksecurefunc(BuffFrame, "OnEditModeEnter", Hook)
     hooksecurefunc(DebuffFrame, "UpdateAuraButtons", Hook)
     hooksecurefunc(DebuffFrame, "OnEditModeEnter", Hook)
+
+    -- 編輯模式重寫間隔的當下就蓋回來（見 ApplyPadding 的說明）
+    for _, frame in ipairs({ BuffFrame, DebuffFrame }) do
+        if frame.UpdateSystemSettingIconPadding then
+            hooksecurefunc(frame, "UpdateSystemSettingIconPadding", ApplyPadding)
+        end
+    end
 end)

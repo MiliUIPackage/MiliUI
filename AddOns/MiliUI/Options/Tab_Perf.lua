@@ -34,9 +34,16 @@ local CARD_GAP   = 8
 local CTRL_Y     = -100
 local HEAD_Y     = -128
 local LIST_TOP   = -150
-local LIST_BOT   = 42
+local GRAPH_BOT  = 46           -- 走勢圖底邊離分頁底部（底下留給說明文字）
+local GRAPH_H    = 40           -- 繪圖區高度，不含上面那排標籤
+local GRAPH_LBL  = 16           -- 標籤列高度
+local LIST_BOT   = GRAPH_BOT + GRAPH_H + GRAPH_LBL + 6
 local ROW_H      = 22
 local BAR_H      = 10           -- 長條圖高度（列高 22，上下各留 6）
+-- 走勢圖 Y 軸的最小跨距。沒有下限的話自動縮放會把幾 MB 的正常呼吸畫成劇烈
+-- 震盪 —— 穩定的堆就該看起來是平的，這是誠實不是美化。
+local GRAPH_MIN_SPAN_MB = 60
+local GRAPH_MIN_POINTS  = 3
 local SCROLL_W   = 20           -- CreateScrollFrame 固定讓出的捲軸寬，表頭要跟著讓
 
 local VALUE_TICK = 1            -- 數字重讀間隔（免費，只在分頁開著時跑）
@@ -69,7 +76,7 @@ local METRICS = {
 
 local SORTS = { cpu = true, mem = true, name = true }
 
-local tab, list, stampFS, warnBox, lagCB
+local tab, list, stampFS, warnBox, lagCB, graph
 local cards = {}
 local headerCells = {}
 local valueFont
@@ -82,6 +89,7 @@ local totalFolders, loadedFolders = 0, 0
 local hasProfiler = false
 local rendered = 0              -- 上次真的重排過的列數（見 Refresh）
 local valueAcc, sortAcc, memAcc = 0, 0, 0
+local graphRev = -1             -- 上次畫圖時的 HeapTrack 版號
 
 -- 這兩個是 DB() 的快取。DB() 每次都要走訪 METRICS 驗證欄位，而這兩個值一個
 -- 每幀讀（OnUpdate）、一個每列讀（MsColor）—— 直接查 DB 等於把驗證邏輯
@@ -599,6 +607,67 @@ local function UpdateRow(row, item)
 end
 
 ------------------------------------------------------------
+-- Lua 堆走勢圖
+--
+-- 資料來自 ns.HeapTrack（常駐、1 Hz 取樣、每分鐘留一個最低點），這裡只負責畫。
+-- 直條而不是折線：折線得自己算斜率再轉成貼圖，直條就是一根貼圖一個取樣點 ——
+-- 一樣讀得出趨勢，而且不必為了幾何去對抗像素對齊。
+------------------------------------------------------------
+local function GraphColumn(i)
+    local col = graph.cols[i]
+    if not col then
+        col = graph.plot:CreateTexture(nil, "ARTWORK")
+        col:SetColorTexture(W.Accent(0.75))
+        graph.cols[i] = col
+    end
+    return col
+end
+
+local function RefreshGraph()
+    local HT = ns.HeapTrack
+    local samples = HT and HT.GetSamples()
+    local n = samples and #samples or 0
+
+    if n < GRAPH_MIN_POINTS then
+        for _, col in ipairs(graph.cols) do col:Hide() end
+        graph.emptyFS:SetText(("|cff666666累積中…每分鐘一個取樣點，已有 %d 點|r"):format(n))
+        graph.emptyFS:Show()
+        graph.rangeFS:SetText("")
+        graph.verdictFS:SetText("")
+        return
+    end
+    graph.emptyFS:Hide()
+
+    local t = HT.GetTrend()
+    -- 下限撐開後以資料中心對齊，否則平穩的線會被推到圖的邊緣
+    local lo, hi = t.loMB, t.hiMB
+    if hi - lo < GRAPH_MIN_SPAN_MB then
+        local mid = (lo + hi) / 2
+        lo, hi = mid - GRAPH_MIN_SPAN_MB / 2, mid + GRAPH_MIN_SPAN_MB / 2
+    end
+
+    local plotW, plotH = graph.plot:GetWidth(), graph.plot:GetHeight()
+    local colW, span = plotW / n, hi - lo
+    for i = 1, n do
+        local col = GraphColumn(i)
+        local frac = (samples[i].kb / 1024 - lo) / span
+        col:ClearAllPoints()
+        col:SetPoint("BOTTOMLEFT", graph.plot, "BOTTOMLEFT", (i - 1) * colW, 0)
+        -- 寬度多給半格把相鄰兩根之間的縫填掉：colW 幾乎不會是整數像素
+        col:SetSize(math.max(1, colW + 0.5), math.max(P.Scale(1), plotH * frac))
+        col:Show()
+    end
+    for i = n + 1, #graph.cols do graph.cols[i]:Hide() end
+
+    graph.rangeFS:SetText(("|cff888888%.0f – %.0f MB／%d 分鐘|r"):format(
+        t.loMB, t.hiMB, t.spanMin + 0.5))
+    local colour = (t.level == "bad" and "|cffff5555")
+        or (t.level == "warn" and "|cffff9900")
+        or (t.level == "good" and "|cff33ff66") or "|cff888888"
+    graph.verdictFS:SetText(colour .. t.text .. "|r")
+end
+
+------------------------------------------------------------
 -- 更新迴圈
 ------------------------------------------------------------
 local function RefreshStamp()
@@ -646,6 +715,13 @@ local function OnTabUpdate(_, elapsed)
             MeasureMemory()
         end
     end
+    -- 走勢圖每分鐘才有新資料，用版號比對就好，不必每秒重畫幾十根貼圖
+    local rev = ns.HeapTrack and ns.HeapTrack.GetRevision() or 0
+    if rev ~= graphRev then
+        graphRev = rev
+        RefreshGraph()
+    end
+
     if valueAcc < VALUE_TICK then return end
     valueAcc = 0
     local resort = (sortAcc >= SORT_TICK)
@@ -841,6 +917,37 @@ local function Init()
     warnFS:SetText("|cffff5555這個客戶端沒有啟用插件分析器，CPU 數據無法取得（記憶體仍可測量）。|r")
 
     ------------------------------------------------------------
+    -- Lua 堆走勢圖
+    ------------------------------------------------------------
+    graph = { cols = {} }
+
+    local graphLbl = tab:CreateFontString(nil, "OVERLAY")
+    graphLbl:SetFontObject(W.fontSmall)
+    graphLbl:SetPoint("BOTTOMLEFT", SIDE, GRAPH_BOT + GRAPH_H + 3)
+    graphLbl:SetText("Lua 記憶體趨勢")
+
+    graph.rangeFS = tab:CreateFontString(nil, "OVERLAY")
+    graph.rangeFS:SetFontObject(W.fontSmall)
+    graph.rangeFS:SetPoint("LEFT", graphLbl, "RIGHT", 8, 0)
+
+    -- 判決靠右：跟左邊的標題與範圍分開，玩家的視線只要掃右緣就能看結論
+    graph.verdictFS = tab:CreateFontString(nil, "OVERLAY")
+    graph.verdictFS:SetFontObject(W.fontSmall)
+    graph.verdictFS:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -SIDE, GRAPH_BOT + GRAPH_H + 3)
+    graph.verdictFS:SetJustifyH("RIGHT")
+
+    -- 繪圖區自己一個 frame：直條是它的子貼圖，SetSize 用原始單位跟欄位一致
+    graph.plot = W.CreateFrame(nil, tab)
+    W.Stylize(graph.plot, { 0.06, 0.06, 0.07, 1 })
+    graph.plot:SetPoint("BOTTOMLEFT", SIDE, GRAPH_BOT)
+    graph.plot:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -SIDE, GRAPH_BOT)
+    graph.plot:SetHeight(GRAPH_H)
+
+    graph.emptyFS = graph.plot:CreateFontString(nil, "OVERLAY")
+    graph.emptyFS:SetFontObject(W.fontSmall)
+    graph.emptyFS:SetPoint("CENTER")
+
+    ------------------------------------------------------------
     -- 底部說明
     ------------------------------------------------------------
     local footer = tab:CreateFontString(nil, "OVERLAY")
@@ -851,7 +958,9 @@ local function Init()
     footer:SetSpacing(2)
     footer:SetText("|cff888888CPU 由遊戲內建的分析器直接提供，開著這一頁不會讓遊戲變慢；"
         .. "記憶體要掃過整個 Lua 堆才分得出是誰用的，所以只在開啟分頁時量一次。\n"
-        .. "點欄名可以換排序；滑鼠移到一列可以看資料夾明細與卡頓次數。|r")
+        .. "點欄名可以換排序；滑鼠移到一列可以看資料夾明細與卡頓次數。\n"
+        .. "下方走勢圖每分鐘記一點「活資料下界」——記憶體大不大要看斜率不是數值，"
+        .. "平穩就沒事，持續往上爬才是洩漏。|r")
 
     RefreshHeaders()
 
@@ -884,5 +993,7 @@ ns.RegisterCallback("ShowOptionsTab", "perfTab", function(id)
     wipe(memKB)
     valueAcc, sortAcc, memAcc = 0, 0, 0
     Refresh(true)
+    -- 版號歸零強制重畫：分頁可能關了一小時，那期間累積的點都還沒畫過
+    graphRev = -1
     tab:Show()
 end)

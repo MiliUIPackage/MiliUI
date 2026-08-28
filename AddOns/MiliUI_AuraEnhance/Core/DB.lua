@@ -48,7 +48,9 @@ local function BuildDefaults()
         skin = {
             enabled = true,
             -- 邊框厚度（框架單位）
-            inset   = 2,
+            inset   = 1,
+            -- 圖示間隔。會蓋過編輯模式裡增益／減益框的「圖示間距」（暴雪預設 5）
+            spacing = 3,
         },
     }
 end

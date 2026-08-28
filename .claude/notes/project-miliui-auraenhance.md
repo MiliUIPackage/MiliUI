@@ -90,9 +90,16 @@ upvalue（hook 是熱路徑），換表的話 hook 會繼續指著舊的那份�
    `CreateTexture(nil, "BACKGROUND", nil, -1)` 錨在 `btn.Icon` ±1px（Icon 在
    BACKGROUND 層級 0），Icon 裁 `SetTexCoord(0.12, 0.88, ...)` 去掉素材內建的
    斜邊框（套組標準裁切，Cell／MiliUI_UnitFrames 同值；不裁的話 1px 框裡還套
-   一圈舊框，很醜——玩家實測回報過）。厚度是設定值（`skin.inset`，預設 2、
+   一圈舊框，很醜——玩家實測回報過）。厚度是設定值（`skin.inset`，預設 1、
    範圍 1–4）：**厚度即時套用**（`Skin.Apply()` 重錨自己的貼圖，純 setter），
-   開關才要 /reload（hook 單向）。**錨在 Icon 上所以暴雪排版怎麼搬都自動跟隨——連排版 hook
+   開關才要 /reload（hook 單向）。**圖示間隔也是設定值**（`skin.spacing`，
+   預設 3、範圍 0–10）：接管容器的 `iconPadding`——間隔本來歸編輯模式管
+   （「圖示間距」，暴雪預設 5），它的套用就是一行明碼欄位寫入
+   （`UpdateSystemSettingIconPadding` 本體只有 `AuraContainer.iconPadding = value`，
+   查證過），我們掛在它後面用同一招蓋回來＋`frame:UpdateGridLayout()` 重排，
+   比較守門避免白跑。存檔不會髒：編輯模式存的是自己的資料存放區，不回讀欄位。
+   代價：編輯模式那根「圖示間距」滑桿對增益／減益框失效（拖了就被蓋回來），
+   設定頁文字有交代。**錨在 Icon 上所以暴雪排版怎麼搬都自動跟隨——連排版 hook
    都不需要**；一般黑、附魔紫（0.75,0,1；`TempEnchantBorder:SetAlpha(0)` 藏原本的
    橘金藝術——alpha 暴雪不動，藏一次永久有效）、減益保留暴雪 `DebuffBorder`。
    附魔判斷讀 `btn.auraType`（表欄位讀取合法），**比較前過 `issecretvalue` 護欄**，

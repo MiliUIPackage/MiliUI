@@ -38,6 +38,8 @@ L["Use Blizzard's font"] = "沿用暴雪字体"
 L["Icon skin"] = "图标样式"
 L["Frame the aura icons"] = "为光环图标加上边框"
 L["Border thickness"] = "边框厚度"
+L["Icon spacing"] = "图标间隔"
+L["Spacing between the aura icons. This value takes over from the icon padding in Edit Mode's buff and debuff frame settings."] = "光环图标彼此的间距。这里的值会盖过编辑模式里增益／减益框的「图标间距」。"
 L["The switch takes effect after you reload the interface."] = "开关要重新载入界面才会生效；厚度即时套用。"
 L["Draws a thin border around the buff and debuff icons, matching the rest of the MiliUI package. Weapon enchants get a purple border instead; debuffs keep Blizzard's dispel-type colours on the outside."] = "为增益／减益图标画上与套组一致的细边框。武器附魔改用紫色，减益的外圈保留暴雪的驱散类型颜色。"
 

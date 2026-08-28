@@ -25,6 +25,9 @@ local function BuildControls()
         { type = "text",   label = L["The switch takes effect after you reload the interface."] },
         { type = "slider", key = "inset", label = L["Border thickness"],
           min = 1, max = 4, step = 1 },
+        { type = "slider", key = "spacing", label = L["Icon spacing"],
+          min = 0, max = 10, step = 1 },
+        { type = "text",   label = L["Spacing between the aura icons. This value takes over from the icon padding in Edit Mode's buff and debuff frame settings."] },
     }
 end
 
