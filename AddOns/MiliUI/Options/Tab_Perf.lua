@@ -34,10 +34,18 @@ local CARD_GAP   = 8
 local CTRL_Y     = -100
 local HEAD_Y     = -128
 local LIST_TOP   = -150
-local GRAPH_BOT  = 46           -- 走勢圖底邊離分頁底部（底下留給說明文字）
-local GRAPH_H    = 40           -- 繪圖區高度，不含上面那排標籤
-local GRAPH_LBL  = 16           -- 標籤列高度
-local LIST_BOT   = GRAPH_BOT + GRAPH_H + GRAPH_LBL + 6
+-- 底部由下往上堆疊，每一段的高度與間距都具名：頁尾 → 走勢圖 → 標籤列 →
+-- 分隔線，清單吃剩下的高度。這樣改圖高只要動 GRAPH_H，清單會自己讓位
+-- （之前頁尾多加一行就直接壓到圖上，就是因為 GRAPH_BOT 是寫死的）。
+local FOOT_Y     = 8            -- 頁尾離分頁底部
+local FOOT_H     = 28           -- 頁尾兩行小字的實際高度
+local GRAPH_GAP  = 10           -- 圖與頁尾之間
+local GRAPH_H    = 38           -- 繪圖區高度
+local GRAPH_LBL  = 14           -- 標籤列高度
+local LBL_GAP    = 4            -- 標籤與圖之間
+local SEC_GAP    = 8            -- 分隔線與標籤之間
+local GRAPH_BOT  = FOOT_Y + FOOT_H + GRAPH_GAP
+local LIST_BOT   = GRAPH_BOT + GRAPH_H + LBL_GAP + GRAPH_LBL + SEC_GAP
 local ROW_H      = 22
 local BAR_H      = 10           -- 長條圖高度（列高 22，上下各留 6）
 -- 走勢圖 Y 軸的最小跨距。沒有下限的話自動縮放會把幾 MB 的正常呼吸畫成劇烈
@@ -645,6 +653,10 @@ local function RefreshGraph()
         local mid = (lo + hi) / 2
         lo, hi = mid - GRAPH_MIN_SPAN_MB / 2, mid + GRAPH_MIN_SPAN_MB / 2
     end
+    -- ⚠ 再把底部往下讓一截：Y 軸從最小值起算的話，最低的那一兩點會被畫成
+    -- 零高度，看起來像「那段沒有資料」而不是「那段最低」。讓出 12% 之後
+    -- 最低點仍有可見的一截。
+    lo = lo - (hi - lo) * 0.12
 
     local plotW, plotH = graph.plot:GetWidth(), graph.plot:GetHeight()
     local colW, span = plotW / n, hi - lo
@@ -660,7 +672,7 @@ local function RefreshGraph()
     for i = n + 1, #graph.cols do graph.cols[i]:Hide() end
 
     graph.rangeFS:SetText(("|cff888888%.0f – %.0f MB／%d 分鐘|r"):format(
-        t.loMB, t.hiMB, t.spanMin + 0.5))
+        t.loMB, t.hiMB, math.floor(t.spanMin + 0.5)))
     local colour = (t.level == "bad" and "|cffff5555")
         or (t.level == "warn" and "|cffff9900")
         or (t.level == "good" and "|cff33ff66") or "|cff888888"
@@ -921,9 +933,19 @@ local function Init()
     ------------------------------------------------------------
     graph = { cols = {} }
 
+    -- 分隔線：讓走勢圖讀起來是「另一個區塊」而不是清單掉出來的東西。
+    -- 比表頭那條再暗一階 —— 它分的是區塊，不是欄位。
+    local sepLine = tab:CreateTexture(nil, "ARTWORK")
+    sepLine:SetColorTexture(W.Accent(0.18))
+    sepLine:SetPoint("BOTTOMLEFT", SIDE, LIST_BOT - SEC_GAP)
+    sepLine:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -SIDE, LIST_BOT - SEC_GAP)
+    sepLine:SetHeight(P.Scale(1))
+
+    local labelY = GRAPH_BOT + GRAPH_H + LBL_GAP
+
     local graphLbl = tab:CreateFontString(nil, "OVERLAY")
     graphLbl:SetFontObject(W.fontSmall)
-    graphLbl:SetPoint("BOTTOMLEFT", SIDE, GRAPH_BOT + GRAPH_H + 3)
+    graphLbl:SetPoint("BOTTOMLEFT", SIDE, labelY)
     graphLbl:SetText("Lua 記憶體趨勢")
 
     graph.rangeFS = tab:CreateFontString(nil, "OVERLAY")
@@ -933,15 +955,33 @@ local function Init()
     -- 判決靠右：跟左邊的標題與範圍分開，玩家的視線只要掃右緣就能看結論
     graph.verdictFS = tab:CreateFontString(nil, "OVERLAY")
     graph.verdictFS:SetFontObject(W.fontSmall)
-    graph.verdictFS:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -SIDE, GRAPH_BOT + GRAPH_H + 3)
+    graph.verdictFS:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -SIDE, labelY)
     graph.verdictFS:SetJustifyH("RIGHT")
 
     -- 繪圖區自己一個 frame：直條是它的子貼圖，SetSize 用原始單位跟欄位一致
     graph.plot = W.CreateFrame(nil, tab)
-    W.Stylize(graph.plot, { 0.06, 0.06, 0.07, 1 })
+    W.Stylize(graph.plot, { 0.09, 0.09, 0.10, 1 })
     graph.plot:SetPoint("BOTTOMLEFT", SIDE, GRAPH_BOT)
     graph.plot:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -SIDE, GRAPH_BOT)
     graph.plot:SetHeight(GRAPH_H)
+
+    -- 說明住在工具提示而不是頁尾：頁尾每多一行就把圖往上擠一行，而這段話
+    -- 只有第一次看的人需要
+    graph.plot:EnableMouse(true)
+    graph.plot:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(graph.plot, "ANCHOR_TOP")
+        GameTooltip:AddLine("Lua 記憶體趨勢", 1, 1, 1)
+        GameTooltip:AddLine("每分鐘記一點，值是那一分鐘的最低點 —— 最低點最接近"
+            .. "「活資料」，浮動的垃圾不會抬高它，洩漏會。", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("記憶體大不大要看斜率不是數值：平穩就沒事（六十幾個插件"
+            .. "的重裝本來就是幾百 MB），持續往上爬才是洩漏。", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("縱軸是自動縮放的，範圍寫在左上角；曲線只記這次登入。",
+            0.6, 0.6, 0.6, true)
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("/miliui lag heap 可以在聊天視窗看同一份資料", 0.5, 0.7, 1)
+        GameTooltip:Show()
+    end)
+    graph.plot:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     graph.emptyFS = graph.plot:CreateFontString(nil, "OVERLAY")
     graph.emptyFS:SetFontObject(W.fontSmall)
@@ -952,15 +992,13 @@ local function Init()
     ------------------------------------------------------------
     local footer = tab:CreateFontString(nil, "OVERLAY")
     footer:SetFontObject(W.fontSmall)
-    footer:SetPoint("BOTTOMLEFT", SIDE + 2, 8)
+    footer:SetPoint("BOTTOMLEFT", SIDE + 2, FOOT_Y)
     footer:SetWidth(ns.Options.PANEL_W - SIDE * 2 - 4)
     footer:SetJustifyH("LEFT")
     footer:SetSpacing(2)
     footer:SetText("|cff888888CPU 由遊戲內建的分析器直接提供，開著這一頁不會讓遊戲變慢；"
         .. "記憶體要掃過整個 Lua 堆才分得出是誰用的，所以只在開啟分頁時量一次。\n"
-        .. "點欄名可以換排序；滑鼠移到一列可以看資料夾明細與卡頓次數。\n"
-        .. "下方走勢圖每分鐘記一點「活資料下界」——記憶體大不大要看斜率不是數值，"
-        .. "平穩就沒事，持續往上爬才是洩漏。|r")
+        .. "點欄名可以換排序；滑鼠移到一列或走勢圖可以看更多說明。|r")
 
     RefreshHeaders()
 
