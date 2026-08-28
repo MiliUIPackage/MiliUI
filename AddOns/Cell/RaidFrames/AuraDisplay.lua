@@ -108,7 +108,8 @@ end
 -- `parks`/`reuses` are the same counters seen from the other side: a park is a container
 -- kept instead of leaked, a reuse is one taken back instead of created. builds+reuses is
 -- the total demand; builds alone is what the client actually had to allocate.
-AD.stats = {builds = 0, discards = 0, repoints = 0, parks = 0, reuses = 0}
+AD.stats = {builds = 0, discards = 0, repoints = 0, parks = 0, reuses = 0,
+    settles = 0, settleBounced = 0, settleSkipped = 0}
 
 local function BuildRecordsRaw(opts)
     opts = opts or {}
@@ -2208,6 +2209,8 @@ do
         "PLAYER_ENTERING_WORLD", "PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED",
         "CINEMATIC_START", "CINEMATIC_STOP", "PLAY_MOVIE", "STOP_MOVIE",
         "UNIT_ENTERED_VEHICLE", "UNIT_EXITED_VEHICLE", "UNIT_PET",
+        "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED", "ENCOUNTER_START",
+        -- the post-fight settle and the secret-window gate that arms it, see below
     }) do
         watcher:RegisterEvent(e)
     end
@@ -2310,6 +2313,116 @@ do
         end
     end
 
+    -- ── POST-FIGHT SETTLE ─────────────────────────────────────
+    -- Auras are secret for the WHOLE encounter, not just while in combat, and the engine
+    -- only re-parses a container when an aura CHANGES. A debuff that drops inside that
+    -- window can therefore leave the last parse standing -- and once the pull is over
+    -- there is no further churn to correct it, so the row keeps an icon for an aura
+    -- nobody carries any more. Exactly the vehicle failure ("a taxi ride has no aura
+    -- churn at all, so the pool survives the entire ride"), announced by a different
+    -- event. Field report 2026-08-28: one CC icon frozen on the central row after a
+    -- fight, on own and teammates' buttons alike; /cab gate cleared it, and this pass is
+    -- that command running by itself.
+    --
+    -- No gate verdict moved, so an edge-only Sweep() cannot fix it -- the bounce has to be
+    -- UNCONDITIONAL. Two things keep the cost down, because unlike a vehicle ride this
+    -- fires after every trash pull:
+    --   * VISIBLE containers only -- a hidden one re-parses from the Show that reveals it
+    --     (the intrinsic OnShow IS the re-parse; see GateRefresh);
+    --   * spread over frames, and coalesced so back-to-back pulls share one pass.
+    -- Kill switch: /run Cell.AuraDisplay.SETTLE_ENABLED = false
+    AD.SETTLE_ENABLED = true
+
+    -- CHANNEL EXPERIMENT (studied against EUI-RF and BuffReminders, 2026-08-29). Both
+    -- of those resync a stale container with container:UpdateAllAuras() ALONE -- no
+    -- Hide/Show -- and their comments call it field-proven (EUI: "the assist gate's
+    -- proven channel"; BuffReminders resyncs after cinematics/vehicles with it and
+    -- labels the staleness a Blizzard bug). Cell's identity-gate work concluded the
+    -- opposite: addon-context UpdateAllAuras only sets dirty flags, and the host
+    -- bounce is what actually re-parses (see GateRefresh). Only a live test can
+    -- adjudicate. The bounce stays the default because it is the channel /cab gate
+    -- verified against THIS bug; the engine-side re-filter (the dominant cost) is the
+    -- same either way, so the cheap channel saves only the frame Hide/Show churn.
+    --   /run Cell.AuraDisplay.SETTLE_CHEAP = true
+    -- If a post-fight icon then sticks while 戰後補彈 keeps counting, the claim is
+    -- settled the other way: flip it back and record the answer in the notes.
+    AD.SETTLE_CHEAP = false
+    local SETTLE_DELAY = 1          -- let the secret->readable flip settle before asking
+    local SETTLE_THROTTLE = 3       -- minimum gap between passes (coalesced, never dropped)
+    local SETTLE_PER_TICK = 10      -- containers bounced per frame
+
+    local settleQueued, settleLast, settleTicker = nil, 0, nil
+
+    -- ⚠ ARMED BY THE SECRET WINDOW, not by combat. A parse can only drift while auras are
+    -- secret -- that is when candidateFilters degrade and when removals can go undelivered.
+    -- Outside it the engine re-parses on every aura change like it always did, so a pass
+    -- there would be pure waste, and killing a quest mob is BY FAR the most common way to
+    -- leave combat. Probed at both ends because either can be the only true one: entering
+    -- an instance mid-fight, or an encounter that ends before combat does.
+    -- If a row ever sticks after a fight where auras were never secret, this gate is what
+    -- suppressed the pass -- `跳過` in /cab stats counts exactly that, so widen it then.
+    local sawSecret = false
+
+    local function AurasSecret()
+        local fn = C_Secrets and C_Secrets.ShouldAurasBeSecret
+        if not fn then return false end
+        local ok, v = pcall(fn)
+        return ok and v == true
+    end
+
+    local function SettlePass()
+        settleQueued = nil
+        sawSecret = false
+        if not AD.SETTLE_ENABLED then return end
+        -- Re-pulled while we waited: GateRefresh could only mark dirty now, and the aura
+        -- churn of the new fight re-parses anyway. The next regen brings us back.
+        if InCombatLockdown() then return end
+        settleLast = GetTime()
+
+        -- ⚠ Snapshot first: the pass spans frames and _instances mutates underneath it.
+        local list, n = {}, 0
+        for h in pairs(AD._instances or {}) do
+            if not h._destroyed and h.container and h.frame:IsVisible()
+                and (h._gateVulnerable or h._gateSourceRelative or h._gateCFDependent) then
+                n = n + 1
+                list[n] = h
+            end
+        end
+        if n == 0 then return end
+        AD.stats.settles = AD.stats.settles + 1
+
+        if settleTicker then settleTicker:Cancel() end
+        local i = 0
+        settleTicker = C_Timer.NewTicker(0, function(t)
+            for _ = 1, SETTLE_PER_TICK do
+                i = i + 1
+                if i > n then
+                    t:Cancel()
+                    if settleTicker == t then settleTicker = nil end
+                    return
+                end
+                local h = list[i]
+                -- destroyed or torn down since the snapshot
+                if not h._destroyed and h.container then
+                    -- un-latch BEFORE the bounce: Show() on a hidden parent chain never
+                    -- fires OnShow, and OnShow IS the re-parse (same trap as everywhere else)
+                    if h._cineLatched then SetLatch(h, nil) end
+                    -- ApplyIdentityGate is edge-driven with same-state early-outs, so it
+                    -- is near-free here; a genuine recovery edge escalates to a full
+                    -- bounce on its own regardless of the channel chosen below.
+                    pcall(function() h:ApplyIdentityGate() end)
+                    if AD.SETTLE_CHEAP then
+                        local c = h.container
+                        if c then pcall(function() c:UpdateAllAuras() end) end
+                    else
+                        h:GateRefresh()
+                    end
+                    AD.stats.settleBounced = AD.stats.settleBounced + 1
+                end
+            end
+        end)
+    end
+
     watcher:SetScript("OnEvent", function(_, event, unit)
         if event == "CINEMATIC_START" or event == "PLAY_MOVIE" then
             LatchAll()
@@ -2324,6 +2437,29 @@ do
                 if not okV or issecretvalue(inv) or inv ~= true then return end
             end
             VehicleTransition(event, unit)
+            return
+        end
+
+        if event == "PLAYER_REGEN_DISABLED" or event == "ENCOUNTER_START" then
+            if AurasSecret() then sawSecret = true end
+            return
+        end
+
+        if event == "PLAYER_REGEN_ENABLED" then
+            if AurasSecret() then sawSecret = true end
+            if not sawSecret then
+                AD.stats.settleSkipped = AD.stats.settleSkipped + 1
+                return
+            end
+            -- Coalesce rather than drop: two pulls ending inside the throttle window still
+            -- get a pass, just one shared one. Dropping the second would leave a row that
+            -- only went stale in THAT fight frozen until something else bounces it.
+            if not settleQueued then
+                settleQueued = true
+                local wait, since = SETTLE_DELAY, GetTime() - settleLast
+                if since < SETTLE_THROTTLE then wait = math.max(wait, SETTLE_THROTTLE - since) end
+                C_Timer.After(wait, SettlePass)
+            end
             return
         end
 
@@ -2752,6 +2888,23 @@ end
 -- scrape-and-poll model -- test / reset / where -- are gone with it.)
 -- ============================================================
 
+-- Manual full resync -- the container half of the main menu's right-click "refresh
+-- unit buttons". B.UpdateAll only re-drives the MANUALLY-driven widgets (and its aura
+-- scan bails outright while auras are secret); a container's parse lives engine-side,
+-- and only the host bounce reaches it. Every live container, not just the gate-relevant
+-- set: this is a user-initiated escape hatch, so completeness beats cost.
+function AD.BounceAll()
+    if AD.GateSweep then AD.GateSweep() end
+    local n = 0
+    for h in pairs(AD._instances or {}) do
+        if not h._destroyed and h.container then
+            n = n + 1
+            h:GateRefresh()
+        end
+    end
+    return n
+end
+
 SLASH_CELLAURACONTAINER1 = "/cab"
 SlashCmdList["CELLAURACONTAINER"] = function(msg)
     local cmd, arg = strsplit(" ", strtrim(msg or ""), 2)
@@ -2804,6 +2957,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         if arg and strtrim(arg):lower() == "reset" then
             AD.stats.builds, AD.stats.discards, AD.stats.repoints = 0, 0, 0
             AD.stats.parks, AD.stats.reuses = 0, 0
+            AD.stats.settles, AD.stats.settleBounced, AD.stats.settleSkipped = 0, 0, 0
             p("計數歸零")
             return
         end
@@ -2817,6 +2971,9 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         p(("寄存 %d ／ 取回 %d ／ 目前寄存中 %d（%d 種簽章）%s")
             :format(AD.stats.parks, AD.stats.reuses, parked, parkKeys,
                 AD.PARK_ENABLED and "" or " ｜寄存已關閉"))
+        p(("戰後補彈 %d 次／共彈 %d 個容器／跳過 %d 次（光環沒進過秘密狀態）%s")
+            :format(AD.stats.settles, AD.stats.settleBounced, AD.stats.settleSkipped,
+                AD.SETTLE_ENABLED and "" or " ｜已關閉"))
         p("進出隊伍時 repoints 該漲、builds/discards 不該漲。歸零：/cab stats reset")
         p("換版面（副本↔團隊↔野外）來回一次：第二次該是 reuses 漲、builds 不漲。")
 

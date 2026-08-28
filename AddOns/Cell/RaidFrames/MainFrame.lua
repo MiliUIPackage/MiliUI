@@ -83,6 +83,12 @@ options:SetScript("OnClick", function(self, button)
         F.ShowOptionsFrame()
     elseif button == "RightButton" then
         F.IterateAllUnitButtons(B.UpdateAll, true)
+        -- UpdateAll covers the manually-driven widgets only; the AuraContainers' parse
+        -- is engine-side and only the host bounce re-reads it (in combat it marks and
+        -- replays on regen -- see AuraDisplay.GateRefresh).
+        if Cell.AuraDisplay and Cell.AuraDisplay.BounceAll then
+            Cell.AuraDisplay.BounceAll()
+        end
         F.Print(L["Unit buttons refreshed (%s)."]:format(F.UpperFirst(L["all"])))
     end
 end)
