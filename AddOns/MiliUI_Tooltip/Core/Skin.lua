@@ -35,6 +35,68 @@ function Skin.Each(fn)
 end
 
 ------------------------------------------------------------
+-- 共用輪詢：**只有在有 tooltip 顯示中的時候才跑**
+--
+-- 有兩件事需要輪詢（血條的數值、mouseover 的目標行），兩邊原本各自開一個永久顯示的
+-- driver frame 掛 OnUpdate，內部累加到門檻才做事。問題不在做事那部分，而是
+-- **OnUpdate 本身每一幀都會進 Lua**：兩支加起來在 144fps 是每秒約 300 次空轉，
+-- 從登入到登出，即使畫面上根本沒有任何提示。（2026-08-28 體檢抓到。）
+--
+-- 這裡收成一支 ticker，並且掛在「有沒有 tooltip 在顯示」上：沒有提示的時候
+-- ticker 根本不存在。形狀照 MiliUI_UnitFrames/Core/Events.lua 的 ns.Metro
+-- （那邊是綁在單位框的可見度上），同一個結論：整張表空了就要停得掉。
+--
+-- ⚠ 判斷可見度用的是我們**自己的** skin frame 的 OnShow/OnHide，不是掛暴雪 tooltip
+--   的腳本。skin 是 tip 的 child，父層一藏子層就跟著發 OnHide，等價而且零接觸面。
+------------------------------------------------------------
+local TICK = 0.05          -- 基礎心跳，必須比任何一個 interval 短
+local pollEntries = {}
+local pollTicker
+local shownCount = 0
+
+local function PollTick()
+    for _, e in pairs(pollEntries) do
+        e.elapsed = e.elapsed + TICK
+        if e.elapsed >= e.interval then
+            e.elapsed = 0
+            -- 逐項隔離：裸迴圈 dispatch，一支拋錯會讓同一輪剩下的全部不跑
+            xpcall(e.fn, ns.ReportError)
+        end
+    end
+end
+
+local function SyncPollTicker()
+    local want = shownCount > 0 and next(pollEntries) ~= nil
+    if want and not pollTicker then
+        pollTicker = C_Timer.NewTicker(TICK, PollTick)
+    elseif not want and pollTicker then
+        pollTicker:Cancel()
+        pollTicker = nil
+    end
+end
+
+-- 既有項目只更新欄位、不重置 elapsed（跟 ns.Metro.Add 同樣的理由：
+-- 重複註冊時每次歸零的話，間隔長的項目永遠等不到觸發）
+function Skin.Poll(key, interval, fn)
+    local e = pollEntries[key]
+    if e then
+        e.interval, e.fn = interval, fn
+    else
+        pollEntries[key] = { interval = interval, elapsed = 0, fn = fn }
+    end
+    SyncPollTicker()
+end
+
+-- skin 的 OnShow/OnHide 呼叫；state.visible 當去重閘，避免計數飄掉
+local function NoteVisibility(state, visible)
+    if state.visible == visible then return end
+    state.visible = visible
+    shownCount = shownCount + (visible and 1 or -1)
+    if shownCount < 0 then shownCount = 0 end
+    SyncPollTicker()
+end
+
+------------------------------------------------------------
 -- 一次性視覺中和：把暴雪自己的底框藏起來（alpha，不動結構、不掛勾）
 -- 動態 forbidden 有可能發生，所以每次都閘。
 ------------------------------------------------------------
@@ -121,9 +183,11 @@ function Skin.Attach(tip)
         NeutralizeNineSlice(tip)
         Skin.NeutralizeTemplateBar(tip)
         Skin.RaiseAccents(tip)
+        NoteVisibility(state, true)      -- 共用輪詢的開關，見 Skin.Poll
     end)
     skin:SetScript("OnHide", function()
         Skin.ClearTransient(tip)
+        NoteVisibility(state, false)
     end)
 
     LowerSkinLevel(skin)

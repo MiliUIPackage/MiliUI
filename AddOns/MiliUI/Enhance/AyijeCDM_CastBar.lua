@@ -311,12 +311,53 @@ local function HookCastBar()
         UpdateChannelingTicks()
     end)
 
+    -- ⚠ 這個 frame 必須在 lagFrame 之前建立：lagFrame 的處理器要 Show 它。
+    --
+    -- 獨立 Update Frame（不掛在 CDM 的 OnUpdate，避免 SetScript("OnUpdate", nil) 問題）。
+    --
+    -- ⚠⚠ **平常是 Hide 的**，只有施法期間才 Show。隱藏的 frame 完全不發 OnUpdate，
+    --   所以不施法時這支插件在每幀路徑上是零成本。
+    --   （原本它是永久顯示、沒有節流的：不施法時每一幀還是會呼叫兩次 :Hide()，
+    --     144fps 就是每秒 288 次，從登入到登出。連延遲條設定關掉也照跑。
+    --     2026-08-28 體檢抓到 —— 隔壁的 LibCustomGlow_FpsGate.lua 為了同一類浪費
+    --     寫了 95 行去修別人的插件，自己這支反而漏了。）
+    --
+    -- 收尾靠自己而不是靠 STOP 事件：條件一不成立就 Hide 自己 ⇒ 就算哪個結束事件
+    -- 沒收到，最多多跑一幀，不會卡在永遠顯示。
+    local updateFrame = CreateFrame("Frame")
+    updateFrame:Hide()
+    updateFrame:SetScript("OnUpdate", function(self)
+        if not cdmFrame or not (cdmFrame.casting or cdmFrame.channeling) then
+            HideLatencyBar()
+            self:Hide()
+            return
+        end
+        if not MiliUI_CastBarEnhanceDB.latencyBar then
+            HideLatencyBar()
+            self:Hide()          -- 設定關著就別空轉；下次施法 START 會再 Show 起來
+            return
+        end
+        UpdateLatencyBar(cdmFrame)
+    end)
+
     -- 延遲快照：在 UNIT_SPELLCAST_SENT 時記錄時間戳 + spellID（Gnosis 方式）
+    --
+    -- 三個 START 也掛在這裡（而不是上面那個 CDM 的 OnEvent 掛勾）：這顆 frame 的
+    -- 註冊是我們自己的，不受「CDM 有沒有註冊那個事件」影響 —— 開關 updateFrame 是
+    -- 每幀成本的閘門，不該賭別人的註冊清單。
     local lagFrame = CreateFrame("Frame")
     lagFrame:RegisterUnitEvent("UNIT_SPELLCAST_SENT", "player")
-    lagFrame:SetScript("OnEvent", function(_, _, _, _, _, sID)
-        sentTimestamp = GetTime()
-        sentSpellID = sID
+    lagFrame:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
+    lagFrame:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", "player")
+    lagFrame:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_START", "player")
+    lagFrame:SetScript("OnEvent", function(_, event, ...)
+        if event == "UNIT_SPELLCAST_SENT" then
+            -- 參數是 (unit, target, castGUID, spellID)，比其他幾個多一個 target
+            sentTimestamp = GetTime()
+            sentSpellID = select(4, ...)
+        else
+            updateFrame:Show()
+        end
     end)
 
     -- Hook OnEvent：Channel Start/Stop/Update
@@ -394,16 +435,6 @@ local function HookCastBar()
         end
     end)
 
-    -- 獨立 Update Frame（不掛在 CDM 的 OnUpdate，避免 SetScript("OnUpdate", nil) 問題）
-    local updateFrame = CreateFrame("Frame")
-    updateFrame:SetScript("OnUpdate", function()
-        if not cdmFrame then return end
-        if cdmFrame.casting or cdmFrame.channeling then
-            UpdateLatencyBar(cdmFrame)
-        else
-            HideLatencyBar()
-        end
-    end)
 end
 
 EventUtil.ContinueOnAddOnLoaded("Ayije_CDM", function()

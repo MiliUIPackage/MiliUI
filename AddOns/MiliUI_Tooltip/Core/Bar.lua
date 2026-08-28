@@ -282,16 +282,15 @@ function Bar.ActivateFake(tip)
 end
 
 ------------------------------------------------------------
--- 輪詢：自己的 driver frame（不掛 tooltip 的 OnUpdate）
+-- 輪詢：走 Skin.Poll 的共用 ticker
+--
+-- ⚠ 這裡**不看個別 tip 的 IsShown**：戰鬥中被藏起來的條要靠輪詢在出戰鬥後撿回來。
+--   共用 ticker 的閘是「有沒有**任何** tooltip 顯示中」，比這個粗，所以那條需求還在。
+--   （原本是一支永久顯示的 driver frame 掛 OnUpdate，等於整場遊戲每幀進 Lua 一次；
+--     理由見 Core/Skin.lua 的 Skin.Poll。）
 ------------------------------------------------------------
 local POLL = 0.15
-local driver = CreateFrame("Frame")
-local elapsedSum = 0
-driver:SetScript("OnUpdate", function(_, elapsed)
-    elapsedSum = elapsedSum + elapsed
-    if elapsedSum < POLL then return end
-    elapsedSum = 0
-    -- 不看 IsShown：戰鬥中被藏起來的條要靠輪詢在出戰鬥後撿回來
+Skin.Poll("bar", POLL, function()
     Skin.Each(function(tip, state)
         if state.barUnit and state.bar then
             Bar.Refresh(tip)

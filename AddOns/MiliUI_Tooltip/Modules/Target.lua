@@ -182,13 +182,10 @@ end
 ------------------------------------------------------------
 -- 輪詢：mouseover 的目標會一直換，0.2s 更新一次目標行
 ------------------------------------------------------------
+-- 走 Skin.Poll 的共用 ticker：沒有任何 tooltip 顯示中的時候，ticker 根本不存在。
+-- （原本是一支永久顯示的 driver frame 掛 OnUpdate，理由見 Core/Skin.lua 的 Skin.Poll。）
 local POLL = 0.2
-local driver = CreateFrame("Frame")
-local acc = 0
-driver:SetScript("OnUpdate", function(_, elapsed)
-    acc = acc + elapsed
-    if acc < POLL then return end
-    acc = 0
+Skin.Poll("target", POLL, function()
     local tip = GameTooltip
     local state = Skin.Get(tip)
     if not state or not state.isUnitTip then return end
