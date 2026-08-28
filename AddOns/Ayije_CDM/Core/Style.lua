@@ -1231,6 +1231,13 @@ local function InstallBuffBarVisibilityShowHook(frame, hookKey, textElement, res
     end)
 end
 
+local BAR_CONTENT_ICON_ONLY = Enum.CooldownViewerBarContent and Enum.CooldownViewerBarContent.IconOnly
+
+local function IsSecretValue(v)
+    if issecretvalue == nil then return false end
+    return issecretvalue(v) and true or false
+end
+
 local function InstallBarNameTextHook(frame, nameText)
     if not nameText or frame.cdmNameTextHooked then return end
     frame.cdmNameTextHooked = true
@@ -1238,10 +1245,55 @@ local function InstallBarNameTextHook(frame, nameText)
         if frame.cdmNameTextApplyGuard then return end
         local custom = frame.cdmResolvedCustomName
         if not custom or custom == "" then return end
-        if text == custom then return end
+        -- fix from MiliUI: 12.1 的 GetNameText() 在 UsesDynamicAppearance 為真時
+        -- 回的是 auraData.name，受限光環下是秘密字串，拿去比較會直接拋錯。
+        -- 是秘密就當作「不是自訂名字」往下走，讓自訂名字蓋上去（安全的方向）。
+        if not IsSecretValue(text) and text == custom then return end
         frame.cdmNameTextApplyGuard = true
         self:SetText(custom)
         frame.cdmNameTextApplyGuard = false
+    end)
+end
+
+-- fix from MiliUI: 暴雪只在名字文字框「正在顯示」的那一刻寫字
+--   CooldownViewerBuffBarItemMixin:RefreshName()
+--       if not nameFontString:IsShown() then return end
+-- 而且只有 RefreshData() 與剛變成 active 時各寫一次。倒數那行（RefreshCooldownInfo）
+-- 有同樣的閘，但 active 期間每幀 OnUpdate 都會再試一次，所以會自己補回來；
+-- 名字沒有這個補救，撲空一次就空到下一次上 buff。
+-- 所以我們自己把文字框從隱藏切回顯示之後，要補叫一次 RefreshName()。
+local function BarNameIsEmpty(nameText)
+    local text = nameText:GetText()
+    if IsSecretValue(text) then return false end   -- 秘密字串＝有字，而且不能比較
+    return text == nil or text == ""
+end
+
+local function RefreshBarNameText(frame, nameText, allowRetry)
+    if type(frame.RefreshName) ~= "function" or not nameText:IsShown() then return end
+
+    -- 走 securecallfunction，不要把污染帶進 RefreshName 內部的光環讀取
+    if securecallfunction then
+        securecallfunction(frame.RefreshName, frame)
+    else
+        frame:RefreshName()
+    end
+
+    if not allowRetry or not BarNameIsEmpty(nameText) then return end
+
+    -- 補寫還是空的：法術資料還沒載入時 C_Spell.GetSpellName 回 nil，
+    -- 當場重試沒有意義，請求載入之後隔一個 tick 再試最後一次。
+    local spellID = frame.GetSpellID and frame:GetSpellID()
+    if type(spellID) == "number" and not IsSecretValue(spellID) then
+        C_Spell.RequestLoadSpellData(spellID)
+    end
+
+    if frame.cdmNameRetryPending then return end
+    frame.cdmNameRetryPending = true
+    C_Timer.After(0.15, function()
+        frame.cdmNameRetryPending = nil
+        if nameText:IsShown() and BarNameIsEmpty(nameText) then
+            RefreshBarNameText(frame, nameText, false)
+        end
     end)
 end
 
@@ -1349,8 +1401,22 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
 
     if not frame.cdmBarContentHooked and frame.SetBarContent then
         frame.cdmBarContentHooked = true
-        hooksecurefunc(frame, "SetBarContent", function()
+        hooksecurefunc(frame, "SetBarContent", function(_, barContent)
             frame.cdmBarStyled = false
+
+            -- fix from MiliUI: 框架從池子回收再取出也會走這裡，而這一刻
+            -- cdmResolvedShowName 還是「上一格」的結論。上一格若是不顯示名字，
+            -- 可見度掛勾就會把暴雪剛剛那次 Show() 壓回去，接著的 RefreshName()
+            -- 因為 IsShown() 為 false 直接跳過 —— 條出現了、名字卻是空的，而且
+            -- 空到下一次上 buff。這裡把暴雪的意思還原回去（alpha 歸零先藏著，
+            -- 讓 RefreshData() 有機會把字寫進去），要不要顯示稍後由 ApplyBarStyle 決定。
+            local nameFS = frame.Bar and frame.Bar.Name
+            if nameFS and not nameFS:IsShown() and barContent ~= BAR_CONTENT_ICON_ONLY then
+                frame.cdmResolvedShowName = nil
+                nameFS:SetAlpha(0)
+                nameFS:Show()
+            end
+
             if frame.cdmLastBarIconPosition == "HIDDEN" then
                 if frame.Icon then frame.Icon:Hide() end
                 local bar = frame.Bar
@@ -1464,6 +1530,9 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
             EnsureIconBorder(frame, iconFrame, "cdmIconBorder", styleCache.isBorderActive, borderVersion)
         end
     end
+
+    local nameNeedsRefill = false
+
     if bar then
         bar:ClearAllPoints()
         bar:SetHeight(barHeight)
@@ -1513,6 +1582,8 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
                 InstallBarNameTextHook(frame, nameText)
                 nameText:SetParent(frame.cdmBarTextContainer)
                 if showName then
+                    -- 藏→顯示的這一輪，暴雪那邊已經跳過寫字了，稍後要補叫 RefreshName()
+                    nameNeedsRefill = not nameText:IsShown() or BarNameIsEmpty(nameText)
                     nameText:SetAlpha(1)
                     nameText:Show()
                     nameText:SetIgnoreParentScale(true)
@@ -1610,8 +1681,9 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
 
     frame.cdmBarStyled = true
 
-    if customNameChanged and frame.RefreshName then
-        frame:RefreshName()
+    local nameFS = bar and bar.Name
+    if nameFS and (customNameChanged or nameNeedsRefill) then
+        RefreshBarNameText(frame, nameFS, nameNeedsRefill)
     end
 
     RemoveRogueBlackShadow(frame)

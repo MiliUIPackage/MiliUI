@@ -62,6 +62,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | 檔案 | 內容 |
 |---|---|
 | [wow-settings-canvas-onrefresh.md](wow-settings-canvas-onrefresh.md) | Settings canvas 面板的勾選框有時全空白 —— OnShow 不一定觸發，官方鉤子是 `frame.OnRefresh` |
+| [wow-cooldownviewer-buffbar-text-gate.md](wow-cooldownviewer-buffbar-text-gate.md) | 增益長條的名字只在文字框顯示中才寫；撲空一次就空到下次上 buff，倒數會自己補所以別外推 |
 | [wow-icon-row-anchor-facing-edge.md](wow-icon-row-anchor-facing-edge.md) | 圖示排的錨點要選面向框架的那一邊，否則顆數一變間距就跑掉 |
 | [wow-setpoint-nil-relativeto.md](wow-setpoint-nil-relativeto.md) | `SetPoint` 的 relativeTo 傳 nil 會靜默退成父層；`GetStatusBarTexture()` 在設材質前回 nil |
 | [wow-setscale-offset-units.md](wow-setscale-offset-units.md) | `SetScale` 之後位移量也被縮放：框放大順便跑位／拖曳加速的成因 |
