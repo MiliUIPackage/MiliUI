@@ -93,7 +93,7 @@ upvalue（hook 是熱路徑），換表的話 hook 會繼續指著舊的那份�
    一圈舊框，很醜——玩家實測回報過）。厚度是設定值（`skin.inset`，預設 1、
    範圍 1–4）：**厚度即時套用**（`Skin.Apply()` 重錨自己的貼圖，純 setter），
    開關才要 /reload（hook 單向）。**圖示間隔也是設定值**（`skin.spacing`，
-   預設 6、範圍 0–10）：接管容器的 `iconPadding`——間隔本來歸編輯模式管
+   預設 5、範圍 0–10；跟暴雪的編輯模式預設同值，但仍走接管路徑，玩家在我們這邊調才會生效）：接管容器的 `iconPadding`——間隔本來歸編輯模式管
    （「圖示間距」，暴雪預設 5），它的套用就是一行明碼欄位寫入
    （`UpdateSystemSettingIconPadding` 本體只有 `AuraContainer.iconPadding = value`，
    查證過），我們掛在它後面用同一招蓋回來＋`frame:UpdateGridLayout()` 重排，
