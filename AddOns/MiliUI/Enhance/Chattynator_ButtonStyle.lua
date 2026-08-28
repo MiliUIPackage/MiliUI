@@ -5,7 +5,8 @@
 -- 是拿一張圓角 PNG（Assets/ChatButton.png）當底，四個角都是圓弧。這裡換成跟
 -- 設定介面、分頁標籤同一套：純色方底 ＋ 1px 直角硬邊，沒有圓角。
 --
--- 另外三件事：
+-- 另外四件事：
+--   * 滑過時邊框與圖示換職業色（內建 skin 是寫死的青色，跟套組其他地方對不起來）
 --   * 好友數那串數字挪到圖示底下（原本疊在圖示身上）並加黑色描邊
 --   * 按鈕間距從 5 收到 2
 --   * 整排往下拉進聊天框背景，左右上三邊邊距統一（原本是左 3、右 5、上 7）
@@ -44,9 +45,9 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 -- 這排按鈕沒有身分色（不是玩家設的、也不是職業／品質色），所以走 Widgets.lua
 -- 那套既有的色階，不是標籤那套 seed 推導：閒置 0.115、滑過 0.23。
 --
--- 滑過那階交給 highlight 貼圖，引擎自己管顯示，不用掛 OnEnter／OnLeave
--- （那種掛法會被之後的 SetScript 洗掉）。白色 alpha 0.13 疊在 0.115 上
--- 剛好等於 0.23：0.115 x (1 - 0.13) + 0.13 = 0.23。
+-- 滑過那階的**底色**交給 highlight 貼圖，引擎自己管顯示，不用掛腳本。
+-- 白色 alpha 0.13 疊在 0.115 上剛好等於 0.23：0.115 x (1 - 0.13) + 0.13 = 0.23。
+-- （職業色那半是掛 OnEnter／OnLeave 的，理由見 ApplyButton。）
 local FILL_IDLE    = { 0.115, 0.115, 0.115, 1 }
 local FILL_PUSHED  = { 0.04, 0.04, 0.04, 1 }
 local HIGHLIGHT    = { 1, 1, 1, 0.13 }
@@ -55,6 +56,17 @@ local HIGHLIGHT    = { 1, 1, 1, 0.13 }
 -- 這排按鈕坐在會動的遊戲畫面上，黑邊會讓整顆糊成一團看不出是方的。
 -- 拉到 0.30（比滑過那階再亮一點）才描得出方形，也還沒跳出既有色階。
 local EDGE         = { 0.30, 0.30, 0.30, 1 }
+
+-- 滑過時邊框與圖示換職業色。底色的明暗階梯（0.115 → 0.23）照舊 ——
+-- 明暗說「它現在怎麼了」，職業色說「焦點在這」，跟設定視窗的深色按鈕
+-- （Style.lua 的 DarkEnter）、勾選框、下拉是同一句話。
+-- 顏色只加在 1px 的邊跟 15x15 的圖示上，大面積的底色不碰。
+--
+-- 內建 skin 自己有一組 hover 色，但是寫死的青色（Dark.lua 的 hoverColor
+-- = 59/210/237），跟套組其他地方對不起來，這裡整個蓋掉。
+local function Accent(alpha)
+    return MiliUI.Style.Accent(alpha)
+end
 
 -- 間距：按鈕之間 2，跟聊天框邊緣 4（左、右、上三邊同一個值）。
 -- 內小外大是刻意的 —— 差一倍，這排才會讀成「一組」而不是四散的方塊。
@@ -174,10 +186,24 @@ local function EnsureEdges(button)
     edges[3]:SetWidth(px)
     edges[4]:SetWidth(px)
     for _, e in ipairs(edges) do
-        e:SetVertexColor(EDGE[1], EDGE[2], EDGE[3], EDGE[4])
         e:Show()
     end
     return edges
+end
+
+-- 邊框顏色每次重套都重問一次滑鼠焦點：ApplyLook 會在滑鼠還停在按鈕上時重跑
+-- （SetIconToState、Update 都會），無條件塗回灰色的話滑過的職業色會被自己抹掉。
+local function UpdateEdgeColor(button)
+    local edges = button._miliBtnEdges
+    if not edges then return end
+    if button:IsMouseMotionFocus() then
+        local r, g, b = Accent(1)
+        for _, e in ipairs(edges) do e:SetVertexColor(r, g, b, 1) end
+    else
+        for _, e in ipairs(edges) do
+            e:SetVertexColor(EDGE[1], EDGE[2], EDGE[3], EDGE[4])
+        end
+    end
 end
 
 ------------------------------------------------------------
@@ -220,6 +246,7 @@ local function ApplyLook(button)
     end
 
     EnsureEdges(button)
+    UpdateEdgeColor(button)
 end
 
 ------------------------------------------------------------
@@ -280,6 +307,41 @@ local function RestoreCountFont(button)
 end
 
 ------------------------------------------------------------
+-- 滑過的職業色：圖示 ＋ 好友數
+--
+-- 閒置色不寫死，改成從按鈕身上抄一份 —— 語音／頻道按鈕的閒置色會隨狀態變
+-- （通話中是綠的），寫死就會把那個狀態訊號抹掉。抄的時機是「滑鼠不在按鈕上」
+-- 的每一次重套，所以狀態換過就跟著更新。
+------------------------------------------------------------
+local function SnapshotIdleTint(button)
+    if button:IsMouseMotionFocus() then return end
+    local icon = button.Icon
+    if icon and icon.GetVertexColor then
+        button._miliIconIdle = { icon:GetVertexColor() }
+    end
+    local fs = GetCountText(button)
+    if fs then
+        button._miliCountIdle = { fs:GetTextColor() }
+    end
+end
+
+local function SetAccentTint(button, on)
+    local icon, fs = button.Icon, GetCountText(button)
+    if on then
+        local r, g, b = Accent(1)
+        if icon and icon.SetVertexColor then icon:SetVertexColor(r, g, b) end
+        if fs then fs:SetTextColor(r, g, b) end
+    else
+        local c = button._miliIconIdle
+        if icon and icon.SetVertexColor and c then
+            icon:SetVertexColor(c[1], c[2], c[3], c[4])
+        end
+        local t = button._miliCountIdle
+        if fs and t then fs:SetTextColor(t[1], t[2], t[3], t[4]) end
+    end
+end
+
+------------------------------------------------------------
 -- 單顆按鈕
 ------------------------------------------------------------
 local function ApplyButton(button)
@@ -288,27 +350,49 @@ local function ApplyButton(button)
 
         -- 淡入時會 Show，等於免費的重套點
         button:HookScript("OnShow", function()
-            if active then ApplyLook(button) end
+            if not active then return end
+            ApplyLook(button)
+            SnapshotIdleTint(button)
         end)
 
-        -- 頻道／語音按鈕換狀態時，skin 會把整組貼圖重設回圓角圖。
-        -- 我們比 skin 晚掛 → 晚執行，蓋得回來。
+        -- 頻道／語音按鈕換狀態時，skin 會把整組貼圖重設回圓角圖、順便重上圖示色。
+        -- 我們比 skin 晚掛 → 晚執行，蓋得回來；滑鼠還停在上面的話職業色要補回去。
         if button.SetIconToState then
             hooksecurefunc(button, "SetIconToState", function()
-                if active then ApplyLook(button) end
+                if not active then return end
+                ApplyLook(button)
+                SnapshotIdleTint(button)
+                if button:IsMouseMotionFocus() then SetAccentTint(button, true) end
             end)
         end
+
+        -- 滑過換職業色。這裡掛 OnEnter／OnLeave 是安全的：Chattynator 只在建按鈕
+        -- 那一刻 SetScript 一次（AddButtons 被 madeButtons 擋著不會重跑），之後
+        -- 它自己跟各家 skin 一律走 HookScript，洗不掉我們。
+        button:HookScript("OnEnter", function()
+            if not active then return end
+            SetAccentTint(button, true)
+            UpdateEdgeColor(button)
+        end)
+        button:HookScript("OnLeave", function()
+            if not active then return end
+            SetAccentTint(button, false)
+            UpdateEdgeColor(button)
+        end)
 
         styledButtons[button] = true
     end
 
     ApplyLook(button)
     ApplyCountFont(button)
+    SnapshotIdleTint(button)
 end
 
 local function RestoreButton(button)
     local orig = button._miliBtnOrig
     if not orig then return end
+
+    SetAccentTint(button, false)
 
     if orig.hadNormal then
         RestoreTexture(button:GetNormalTexture(), orig.normal)
