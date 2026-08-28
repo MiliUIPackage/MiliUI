@@ -27,41 +27,13 @@ L["OPT_ITEM_TOOLTIP"]    = "鼠标悬停时显示道具信息"
 L["OPT_SPLIT_CONTEXT"]   = "依环境分开记忆药水选择"
 
 -- 分环境记忆
-L["CONTEXT_WORLD"]       = "世界"
-L["CONTEXT_PARTY"]       = "M+/地下城"
-L["CONTEXT_RAID"]        = "团队"
-L["CONTEXT_PVP"]         = "战场"
-L["CONTEXT_ARENA"]       = "竞技场"
-L["CONTEXT_SCENARIO"]    = "探索/仪式"
 L["CONTEXT_SHARED"]      = "共用（未分开）"
-L["CONTEXT_NO_POTION"]   = "不使用药水"
 L["SETTINGS_CURRENT_CONTEXT"] = "当前套用的记忆：%s"
-L["MSG_CONTEXT_APPLIED"] = "进入%s，已套用该环境的药水记忆：|cff33ff33%s|r"
-L["TIP_CONTEXT"]         = "当前记忆：|cff33ff33%s|r"
 
 L["MACRO_HELP"]          = "把这一行放进你的爆发宏即可。"
 L["BTN_RESET_POS"]       = "重置切换条位置"
 
 L["COPY_HINT"]           = "按 Ctrl+C 复制，再用 Ctrl+V 粘进宏里。"
-
-L["LABEL_FLEETING"]      = "飞逝"
-L["LABEL_T3"]            = "高品质"
-L["LABEL_T2"]            = "中品质"
-L["LABEL_T1"]            = "一般品质"
-
-L["MSG_SWITCHED"]        = "已切换至 |cff33ff33%s|r x%d"
-L["MSG_SWITCHED_Q"]      = "已切换至 |cff33ff33%s（%s）|r x%d"
-L["MSG_DISABLED"]        = "已停用爆发药（宏不会喝药）"
-L["MSG_NO_POTION"]       = "背包里找不到爆发药水。"
-L["MSG_COLLAPSE_COMBAT"] = "战斗中无法即时收合/展开，将于离开战斗后套用。"
-
-L["TIP_DRAG"]            = "拖动以移动"
-L["TIP_LOCKED"]          = "已锁定"
-L["TIP_COLLAPSE"]        = "左键：收合/展开"
-L["TIP_SETTINGS"]        = "右键打开设置"
-L["TIP_SELECT"]          = "左键：选择此药水"
-L["TIP_USE"]             = "右键：直接使用此药水"
-L["TIP_NONE"]            = "左键：不使用药水"
 
 -- MiliUIWidgets 共用层（组件库只查这四个 key）
 L["Apply"]               = "应用"

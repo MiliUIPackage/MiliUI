@@ -16,8 +16,6 @@ Libs\MiliUIWidgets\PixelPerfect.lua
 Libs\Callbacks.lua
 
 Config\Luxthos_Platynator.lua
-# Config\Luxthos_Sensei.lua
-# Config\Luxthos_CMC.lua
 Config\Ayije_CDM.lua
 Config\BugSack.lua
 
@@ -39,7 +37,6 @@ Api.lua
 Core.lua
 
 Enhance\SlashRL.lua
-# Enhance\SpellAnnouncer.lua
 Enhance\AyijeCDM_PixelFont.lua
 Enhance\AyijeCDM_CastBar.lua
 Enhance\AddonNames.lua

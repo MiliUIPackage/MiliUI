@@ -3,6 +3,11 @@
 --
 -- importRegistry 可擴展：新增插件只需在這裡加一條
 -- （條目結構與匯入流程沿用舊 Settings.lua，只是介面換成自製視窗）
+--
+-- 加一筆的完整步驟在 .claude/skills/miliui-import-addon —— 條目本身只是這裡的一列，
+-- 但預設值資料要先擺進 Config\ 並在 TOC 掛上，兩件事缺一不可。
+-- （2026-08-28 清掉了 SenseiClassResourceBar 與 CooldownManagerCentered 兩筆註解掉的
+--   範例：那兩支插件早就不在套組裡、Config\ 的資料檔也一併移除了。要看範例翻 git。）
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -58,47 +63,6 @@ local importRegistry = {
             return true
         end,
     },
-    --[[
-    {
-        name = "SenseiClassResourceBar",
-        desc = "資源條插件 (Resource Bar)",
-        addonName = "SenseiClassResourceBar",
-        dataCheck = function()
-            return MiliUI_Luxthos_SenseiDB ~= nil
-        end,
-        import = function()
-            if not MiliUI_Luxthos_SenseiDB then return false, "MiliUI 預設值資料不存在" end
-            SenseiClassResourceBarDB = CopyTable(MiliUI_Luxthos_SenseiDB)
-            return true
-        end,
-    },
-    {
-        name = "CooldownManagerCentered",
-        desc = "冷卻管理插件 (Cooldown Manager)",
-        addonName = "CooldownManagerCentered",
-        dataCheck = function()
-            return MiliUI_Luxthos_CMCDB and MiliUI_Luxthos_CMCDB.profiles and MiliUI_Luxthos_CMCDB.profiles["Luxthos"]
-        end,
-        import = function()
-            if not MiliUI_Luxthos_CMCDB or not MiliUI_Luxthos_CMCDB.profiles then
-                return false, "MiliUI 預設值資料不存在"
-            end
-            local source = MiliUI_Luxthos_CMCDB.profiles["Luxthos"]
-            if not source then return false, "找不到 Luxthos profile" end
-
-            if not CooldownManagerCenteredDB then CooldownManagerCenteredDB = {} end
-            if not CooldownManagerCenteredDB.profiles then CooldownManagerCenteredDB.profiles = {} end
-            if not CooldownManagerCenteredDB.profileKeys then CooldownManagerCenteredDB.profileKeys = {} end
-
-            CooldownManagerCenteredDB.profiles["Default"] = CopyTable(source)
-
-            local charKey = UnitName("player") .. " - " .. GetRealmName()
-            CooldownManagerCenteredDB.profileKeys[charKey] = "Default"
-
-            return true
-        end,
-    },
-    ]]
 }
 
 ------------------------------------------------------------

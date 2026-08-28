@@ -29,17 +29,8 @@ L["OPT_ITEM_TOOLTIP"]    = "Show item info in the tooltip"
 L["OPT_SPLIT_CONTEXT"]   = "Remember the choice per environment"
 
 -- Per-environment memory contexts
-L["CONTEXT_WORLD"]       = "World"
-L["CONTEXT_PARTY"]       = "M+ / Dungeon"
-L["CONTEXT_RAID"]        = "Raid"
-L["CONTEXT_PVP"]         = "Battleground"
-L["CONTEXT_ARENA"]       = "Arena"
-L["CONTEXT_SCENARIO"]    = "Delve / Ritual"
 L["CONTEXT_SHARED"]      = "shared (not split)"
-L["CONTEXT_NO_POTION"]   = "no potion"
 L["SETTINGS_CURRENT_CONTEXT"] = "Active memory: %s"
-L["MSG_CONTEXT_APPLIED"] = "entered %s — applied its potion memory: |cff33ff33%s|r"
-L["TIP_CONTEXT"]         = "Memory: |cff33ff33%s|r"
 
 L["MACRO_HELP"]          = "Put this one line in your burst macro."
 L["BTN_RESET_POS"]       = "Reset bar position"
@@ -47,26 +38,10 @@ L["BTN_RESET_POS"]       = "Reset bar position"
 L["COPY_HINT"]           = "Press Ctrl+C to copy, then Ctrl+V into your macro."
 
 -- Quality / variant labels
-L["LABEL_FLEETING"]      = "Fleeting"
-L["LABEL_T3"]            = "High quality"
-L["LABEL_T2"]            = "Medium quality"
-L["LABEL_T1"]            = "Normal quality"
 
 -- Messages
-L["MSG_SWITCHED"]        = "switched to |cff33ff33%s|r x%d"
-L["MSG_SWITCHED_Q"]      = "switched to |cff33ff33%s (%s)|r x%d"
-L["MSG_DISABLED"]        = "burst potion disabled — the macro won't drink anything."
-L["MSG_NO_POTION"]       = "no burst potions found in your bags."
-L["MSG_COLLAPSE_COMBAT"] = "can't collapse/expand in combat — it will apply when you leave combat."
 
 -- Bar tooltips
-L["TIP_DRAG"]            = "Drag to move"
-L["TIP_LOCKED"]          = "Locked"
-L["TIP_COLLAPSE"]        = "Left-click: collapse / expand"
-L["TIP_SETTINGS"]        = "Right-click for settings"
-L["TIP_SELECT"]          = "Left-click: select this potion"
-L["TIP_USE"]             = "Right-click: use this potion"
-L["TIP_NONE"]            = "Left-click: use no potion"
 
 -- MiliUIWidgets 共用層（元件庫只查這四個 key，見 Libs/MiliUIWidgets/README.md）
 L["Apply"]               = "Apply"
