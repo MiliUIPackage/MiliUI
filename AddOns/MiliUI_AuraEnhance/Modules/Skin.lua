@@ -116,25 +116,29 @@ local function SkinFrames(group, frames)
 end
 
 ------------------------------------------------------------
--- 排版之後把樣式重套回去
+-- 排版之後把圖示錨回包裝框
 --
 -- 容器的排版函式每一次都會 `Icon:ClearAllPoints()` 再錨回按鈕角落，無條件、
 -- 不管位置有沒有真的變，等於每次都洗掉引擎排好的位置。
 --
--- ⚠ 還原**只能叫引擎自己重套**。位置是引擎從樣式資料算出來的，我們沒辦法先記下來
---   再擺回去 —— 讀 `Icon:GetPoint()` 在 12.1 回的是秘密數字。重套完全不讀框上的
---   幾何，是這裡唯一安全的還原手段。
+-- ⚠ 只重錨圖示，**不要叫引擎 ReSkin**。ReSkin 是重套「全部區塊」——它會把
+--   DebuffBorder 也重畫一次，蓋掉暴雪在 Update 裡剛設好的驅散類型 atlas
+--   （下毒綠、疾病棕那些），症狀是減益外框永遠只剩皮膚的靜態邊框（2026-08-28
+--   玩家回報實測）。附魔外框的染紫同理也會被洗掉。
 --
--- 成本：一次排版對每顆圖示重套一次。排版是事件驅動（光環有增減才跑），不是每幀，
--- 所以可以接受；真的吃到 CPU 再從這裡開刀。
+-- 錨到包裝框正中央：跟引擎自己的預設錨法一致，也正是舊實作那張自畫圖示
+-- 寫死的位置（SetPoint("CENTER")），行為對得上。尺寸不必管——排版只動按鈕的
+-- 尺寸，圖示的尺寸是引擎在 AddButton 時設的，沒人會再動它。
+-- 讀 `Icon:GetPoint()` 先記再擺的路走不通：12.1 回的是秘密數字。
 ------------------------------------------------------------
-local function RestoreAnchors(group, auras)
+local function RestoreAnchors(auras)
     if not auras then return end
     -- 用 ipairs 跟容器自己走同一份清單的方式一致
     for _, aura in ipairs(auras) do
         local wrapper = skinned[aura]
         if wrapper then
-            group:ReSkin(wrapper)
+            aura.Icon:ClearAllPoints()
+            aura.Icon:SetPoint("CENTER", wrapper)
         end
     end
 end
@@ -175,7 +179,7 @@ ns.RegisterCallback("Init", "skin", function()
     --   存在。掛不上不會報錯，只會安靜地沒作用（症狀是圖示位置偏掉），所以等到
     --   PLAYER_ENTERING_WORLD 才掛（跟 AuraStyle 的 InstallHooks 同一個時機），
     --   而且沒掛成就下次進場再試一次，兩個都掛上了才收工。
-    local targets = { { BuffFrame, buffs }, { DebuffFrame, debuffs } }
+    local targets = { BuffFrame, DebuffFrame }
     local hooked = {}
 
     local loader = CreateFrame("Frame")
@@ -184,11 +188,10 @@ ns.RegisterCallback("Init", "skin", function()
         local remaining = 0
         for i = 1, #targets do
             if not hooked[i] then
-                local frame, group = targets[i][1], targets[i][2]
-                local container = frame and frame.AuraContainer
+                local container = targets[i] and targets[i].AuraContainer
                 if container then
                     hooksecurefunc(container, "UpdateGridLayout", function(_, auras)
-                        RestoreAnchors(group, auras)
+                        RestoreAnchors(auras)
                     end)
                     hooked[i] = true
                 else
