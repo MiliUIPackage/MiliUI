@@ -39,7 +39,11 @@ local function DB()
     if not MiliUI_DB then MiliUI_DB = {} end
     local db = MiliUI_DB.perf
     if type(db) ~= "table" then db = {}; MiliUI_DB.perf = db end
-    if type(db.lagWatch) ~= "boolean" then db.lagWatch = true end
+    -- ⚠ 預設關。成本雖然趨近零，但它會在卡頓時主動印聊天訊息 —— 對一個
+    -- 公開套組來說，沒被要求就跳診斷訊息是越界的。代價要說清楚：關著的
+    -- 期間發生的卡頓抓不到，玩家得先勾起來、再等下一次卡。真正無條件常駐
+    -- 的是 HeapTrack（那個完全靜默，所以可以一直記）。
+    if type(db.lagWatch) ~= "boolean" then db.lagWatch = false end
     if type(db.lagMs) ~= "number" or db.lagMs < 50 or db.lagMs > 5000 then
         db.lagMs = THRESH_DEFAULT
     end
@@ -197,7 +201,12 @@ function ns.LagWatch.Command(arg)
         ns.Print(("卡頓記錄（門檻 %d 毫秒，記錄器%s）："):format(
             db.lagMs, db.lagWatch and "開啟中" or "|cffff5555已關閉|r"))
         if #events == 0 then
-            print("  還沒有記錄。門檻：/miliui lag <毫秒>")
+            if not db.lagWatch then
+                print("  |cffff9900記錄器沒開，所以什麼都沒在記。|r/miliui lag on 開始記錄，"
+                    .. "之後發生的卡頓才會被抓到。")
+            else
+                print("  還沒有記錄。門檻：/miliui lag <毫秒>")
+            end
             return
         end
         for i = #events, 1, -1 do

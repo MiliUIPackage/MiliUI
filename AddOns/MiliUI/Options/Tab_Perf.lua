@@ -861,6 +861,8 @@ local function Init()
             .. "各花了幾毫秒，並在聊天視窗點名主嫌（插件／GC 回收／遊戲引擎）。")
             :format(ns.LagWatch and ns.LagWatch.GetThreshold() or 250), 0.8, 0.8, 0.8, true)
         GameTooltip:AddLine("平常每幀只做一次比較，開著沒有可感知的成本。", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("預設關閉 —— 它會主動在聊天視窗講話。要抓卡頓請先勾起來，"
+            .. "關著的期間發生的卡頓抓不到。", 1, 0.6, 0.3, true)
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine("/miliui lag 看記錄｜lag <毫秒> 改門檻｜lag clear 清空", 0.5, 0.7, 1)
