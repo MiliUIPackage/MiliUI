@@ -7,6 +7,8 @@ ns.L = L
 ns.VERSION      = C_AddOns.GetAddOnMetadata(addonName, "Version") or "dev"
 ns.PREFIX_COLOR = "|cffFF9999"
 
+local issecretvalue = _G.issecretvalue or function() return false end
+
 -- 設定分頁的 callback 派送用（Libs/Callbacks.lua 的 xpcall 處理器）。
 -- 訂閱者之間不能連坐，但也不能變成黑洞——照常轉給全域 errorhandler。
 function ns.ReportError(err)
@@ -349,17 +351,28 @@ sayBtn.tabChat = function() return "SAY" end
 
 -- WHISPER
 -- 刻意不給 tabChat：密語需要對象，Tab 循環時直接跳過。
+--
+-- ⚠⚠ 名字是秘密值時**不能代填**，只能開一個空的 `/w `。
+--   `GetUnitName("target", true)` 對「不在隊伍裡的玩家」回的是秘密字串（12.1 的受限身分）。
+--   串接秘密字串本身合法，問題在下游：OpenChat 結尾會呼叫 ChatEdit_ParseText，而
+--   `/w 名字 ` **結尾那個空格**會讓它當場解析成 WHISPER —— 那次解析跑在我們自己的髒堆疊上，
+--   撞 `editBox:SetTellTarget()` 的 SetAttribute（AllowedWhenUntainted，收不下秘密值）。
+--   換寫法沒有用，這條路本身就是死的。
+--   退成空的 `/w ` 玩家並沒有損失什麼：Tab 補完照樣會把目標名字補上去，而那一下是
+--   引擎發動的乾淨執行，暴雪自己填得進秘密名字。
+--   詳見 .claude/notes/wow-121-chat-reply-secret-taint.md。
 AddColorKeyButton("WHISPER", "WHISPER", WHISPER, L["SHORT_WHISPER"], function(_, btn)
     local chatFrame = SELECTED_DOCK_FRAME or DEFAULT_CHAT_FRAME
     if btn == "RightButton" then
         ChatFrame_ReplyTell(chatFrame)
     else
-        if UnitExists("target") and UnitName("target") and UnitIsPlayer("target") then
-            local name = GetUnitName("target", true)
-            OpenChat("/w "..name.." ")
-        else
-            OpenChat("/w ")
+        local name
+        if UnitExists("target") and UnitIsPlayer("target") then
+            name = GetUnitName("target", true)
+            -- 非 boolean 的秘密值做布林測試是允許的，所以 `name and` 這樣寫安全
+            if name and (issecretvalue(name) or name == "") then name = nil end
         end
+        OpenChat(name and ("/w " .. name .. " ") or "/w ")
     end
 end, 11)
 
