@@ -25,6 +25,8 @@ local THRESH_DEFAULT = 250          -- 毫秒；低於這個玩家多半感覺�
 local SUPPRESS_SEC   = 5            -- 讀取畫面/過場後的靜默期：那些「幀」動輒數秒，不是卡頓
 local MAX_EVENTS     = 15
 local PRINT_CD       = 30           -- 連環卡頓時聊天視窗只提示一次，記錄照收
+local HEAP_TICK      = 60           -- 堆取樣間隔（秒）
+local HEAP_MAX       = 180          -- 保留幾個取樣點：3 小時，比任何一場遊戲長
 
 local events = {}                   -- 新的在後面
 local threshMs = THRESH_DEFAULT     -- DB 的快取：門檻比較在最熱的迴圈裡，不能每幀走 DB()
@@ -33,6 +35,17 @@ local lastPrint = 0
 local prevMemKB = 0
 local prevDeltaKB = 0               -- 上一幀的記憶體差值，見事件成立處的註解
 local metricLast                    -- Enum 解析結果，登入時定一次
+
+-- 堆成長曲線：判斷「記憶體大得正不正常」要看**斜率不是數值**。63 個插件的重裝
+-- 穩在 6 百多 MB 是常態，同一場遊戲從 400 爬到 900 才是洩漏。每分鐘一個取樣點，
+-- 成本是每幀一次加法比較（gcinfo 那個讀取本來就為了 GC 偵測在做，順手用）。
+-- ⚠ 存的是**活資料的下界**不是當下值：取樣點會被浮動垃圾推高幾十 MB，
+-- 一條鋸齒線看不出趨勢。所以每分鐘記的是「這一分鐘內看過的最低點」——
+-- 垃圾被收掉的那一刻最接近活資料，取最小值等於免費做了一次趨勢濾波。
+local heap = {}                     -- { {t = 登入後秒數, kb = 該分鐘最低點}, ... }
+local heapAcc = 0
+local heapFloorKB                   -- 本分鐘看過的最低點，nil = 這一分鐘還沒開始
+local heapStart
 
 local function DB()
     if not MiliUI_DB then MiliUI_DB = {} end
@@ -110,6 +123,15 @@ watcher:SetScript("OnUpdate", function(_, elapsed)
     local gcDelta = nowKB - prevMemKB
     prevMemKB = nowKB
 
+    if not heapFloorKB or nowKB < heapFloorKB then heapFloorKB = nowKB end
+    heapAcc = heapAcc + elapsed
+    if heapAcc >= HEAP_TICK then
+        heapAcc = 0
+        heap[#heap + 1] = { t = GetTime() - (heapStart or GetTime()), kb = heapFloorKB }
+        heapFloorKB = nil
+        while #heap > HEAP_MAX do table.remove(heap, 1) end
+    end
+
     local ms = elapsed * 1000
     if ms < threshMs then prevDeltaKB = gcDelta return end
     if GetTime() < suppressUntil then prevDeltaKB = gcDelta return end
@@ -157,6 +179,10 @@ function ns.LagWatch.SetEnabled(on)
         threshMs = db.lagMs
         prevMemKB = collectgarbage("count")   -- 關著的期間記憶體早就變了，別把那段當 GC
         prevDeltaKB = 0
+        -- 曲線只在記錄器開著時累積。中途關掉再開會在圖上留下一段空白，
+        -- 那是誠實的（那段沒量），不要用內插假裝有資料。
+        heapStart = heapStart or GetTime()
+        heapFloorKB = nil
         watcher:Show()
     else
         watcher:Hide()
@@ -171,6 +197,60 @@ function ns.LagWatch.GetThreshold()
     return DB().lagMs
 end
 
+-- 迷你走勢圖：八階方塊，比對的是「這一段的最低點」在整體範圍裡的相對高度。
+local SPARK = { "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█" }
+
+local function HeapReport()
+    local nowMB = collectgarbage("count") / 1024
+    if #heap < 3 then
+        ns.Print(("Lua 堆目前 %.0f MB。取樣還不夠（每分鐘一點，已有 %d 點）—— "
+            .. "玩個 20 分鐘以上再回來看趨勢。"):format(nowMB, #heap))
+        return
+    end
+
+    local lo, hi = heap[1].kb, heap[1].kb
+    for _, pt in ipairs(heap) do
+        if pt.kb < lo then lo = pt.kb end
+        if pt.kb > hi then hi = pt.kb end
+    end
+
+    -- 斜率用頭尾各三分之一的平均比，不用單點：單點會被剛好落在 GC 前後的
+    -- 取樣點主導，那是相位不是趨勢
+    local third = math.max(1, math.floor(#heap / 3))
+    local headSum, tailSum = 0, 0
+    for i = 1, third do headSum = headSum + heap[i].kb end
+    for i = #heap - third + 1, #heap do tailSum = tailSum + heap[i].kb end
+    local headMB, tailMB = headSum / third / 1024, tailSum / third / 1024
+    local grew = tailMB - headMB
+    local span = (heap[#heap].t - heap[1].t) / 60      -- 分鐘
+
+    local bars = {}
+    local range = math.max(hi - lo, 1)
+    for _, pt in ipairs(heap) do
+        local idx = math.floor((pt.kb - lo) / range * (#SPARK - 1) + 0.5) + 1
+        bars[#bars + 1] = SPARK[idx]
+    end
+
+    ns.Print(("Lua 堆成長曲線（%d 分鐘、%d 個取樣點，記的是每分鐘活資料下界）："):format(
+        math.floor(span + 0.5), #heap))
+    print("  " .. table.concat(bars))
+    print(("  範圍 %.0f ～ %.0f MB｜目前 %.0f MB｜前段均值 %.0f → 後段均值 %.0f"):format(
+        lo / 1024, hi / 1024, nowMB, headMB, tailMB))
+
+    -- 判準走「每小時多少 MB」而不是總量：玩 20 分鐘漲 60MB 跟玩 3 小時漲 60MB
+    -- 是完全不同的兩件事
+    local perHour = span > 0 and (grew / span * 60) or 0
+    if span < 15 then
+        print(("  |cff888888時間還短（%d 分鐘），趨勢僅供參考。|r"):format(math.floor(span + 0.5)))
+    elseif perHour >= 100 then
+        print(("  |cffff5555每小時 +%.0f MB —— 這是洩漏的量級，值得追。|r"):format(perHour))
+    elseif perHour >= 30 then
+        print(("  |cffff9900每小時 +%.0f MB —— 偏高，再觀察一小時看有沒有停下來。|r"):format(perHour))
+    else
+        print(("  |cff33ff66每小時 %+.0f MB —— 穩定，沒有洩漏跡象。|r"):format(perHour))
+    end
+end
+
 function ns.LagWatch.Command(arg)
     arg = strtrim(arg or "")
     local db = DB()
@@ -180,9 +260,13 @@ function ns.LagWatch.Command(arg)
     elseif arg == "off" then
         ns.LagWatch.SetEnabled(false)
         ns.Print("卡頓記錄器：關")
+    elseif arg == "heap" or arg == "mem" then
+        HeapReport()
     elseif arg == "clear" then
         wipe(events)
-        ns.Print("卡頓記錄已清空")
+        wipe(heap)
+        heapStart, heapFloorKB, heapAcc = GetTime(), nil, 0
+        ns.Print("卡頓記錄與堆曲線已清空")
     elseif tonumber(arg) then
         db.lagMs = math.max(50, math.min(5000, tonumber(arg)))
         threshMs = db.lagMs
@@ -191,7 +275,7 @@ function ns.LagWatch.Command(arg)
         ns.Print(("卡頓記錄（門檻 %d 毫秒，記錄器%s）："):format(
             db.lagMs, db.lagWatch and "開啟中" or "|cffff5555已關閉|r"))
         if #events == 0 then
-            print("  還沒有記錄。門檻：/miliui lag <毫秒>")
+            print("  還沒有記錄。門檻：/miliui lag <毫秒>｜記憶體趨勢：/miliui lag heap")
             return
         end
         for i = #events, 1, -1 do
@@ -205,5 +289,6 @@ function ns.LagWatch.Command(arg)
                 #parts > 0 and table.concat(parts, "、") or "無",
                 ev.gcMB >= 10 and ("｜GC 回收 %.0f MB"):format(ev.gcMB) or ""))
         end
+        print("  |cff888888記憶體趨勢：/miliui lag heap|r")
     end
 end

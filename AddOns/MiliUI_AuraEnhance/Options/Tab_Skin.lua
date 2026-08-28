@@ -12,9 +12,9 @@ local function RefreshAll()
     for _, fn in ipairs(refreshers) do fn() end
 end
 
--- 開關只在啟動時讀一次（見 Modules/Skin.lua 結尾），所以這裡沒有「立刻套用」，
--- 只把值寫進設定
+-- 厚度即時套用；開關只在啟動時讀一次（hook 是單向的），要重載才生效
 local function Apply()
+    ns.Skin.Apply()
 end
 
 local function BuildControls()
@@ -22,7 +22,9 @@ local function BuildControls()
         { type = "header", label = L["Icon skin"] },
         { type = "toggle", key = "enabled", label = L["Frame the aura icons"] },
         { type = "text",   label = L["Draws a thin border around the buff and debuff icons, matching the rest of the MiliUI package. Weapon enchants get a purple border instead; debuffs keep Blizzard's dispel-type colours on the outside."] },
-        { type = "text",   label = L["Takes effect after you reload the interface."] },
+        { type = "text",   label = L["The switch takes effect after you reload the interface."] },
+        { type = "slider", key = "inset", label = L["Border thickness"],
+          min = 1, max = 4, step = 1 },
     }
 end
 

@@ -37,6 +37,8 @@ L["Use Blizzard's font"] = "沿用暴雪字型"
 -- 圖示樣式分頁
 L["Icon skin"] = "圖示樣式"
 L["Frame the aura icons"] = "光環圖示加上邊框"
+L["Border thickness"] = "邊框厚度"
+L["The switch takes effect after you reload the interface."] = "開關要重新載入介面才會生效；厚度即時套用。"
 L["Draws a thin border around the buff and debuff icons, matching the rest of the MiliUI package. Weapon enchants get a purple border instead; debuffs keep Blizzard's dispel-type colours on the outside."] = "為增益／減益圖示畫上跟套組一致的細邊框。武器附魔改用紫色，減益的外圈保留暴雪的驅散類型顏色。"
 
 -- 方位
@@ -72,6 +74,5 @@ L["Use /maura to open options"] = "使用 /maura 開啟設定"
 L["Open options"] = "開啟設定"
 
 -- 圖示樣式
-L["Takes effect after you reload the interface."] = "改完要重新載入介面才會生效。"
 L["Buffs"] = "增益"
 L["Debuffs"] = "減益"

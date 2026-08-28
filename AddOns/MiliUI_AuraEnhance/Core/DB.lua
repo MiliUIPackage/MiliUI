@@ -47,6 +47,8 @@ local function BuildDefaults()
         -- 這裡接手它的位置，預設關掉的話玩家更新完會覺得功能不見了。
         skin = {
             enabled = true,
+            -- 邊框厚度（框架單位）
+            inset   = 2,
         },
     }
 end

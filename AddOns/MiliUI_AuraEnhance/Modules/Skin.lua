@@ -28,13 +28,26 @@
 local _, ns = ...
 
 ns.Skin = {}
+local Skin = ns.Skin
 
 -- 一般光環黑框；武器附魔染紫（原本的橘金外框藝術跟增益邊框太像）
 local BORDER_COLOR  = { 0, 0, 0 }
 local ENCHANT_COLOR = { 0.75, 0, 1 }
 
+-- ns.db.skin。hook 是熱路徑，抓成 upvalue（Init 時接上）。
+-- ⚠ DB.ResetAll 只覆寫表的內容、不換表，upvalue 才不會指到舊表。
+local SKN
+
 -- 邊框厚度（框架單位；按鈕吃編輯模式的 SetScale，非整數倍時就跟著縮放）
-local INSET = 1
+local function Inset()
+    return (SKN and SKN.inset) or 2
+end
+
+local function AnchorBorder(border, icon, inset)
+    border:ClearAllPoints()
+    border:SetPoint("TOPLEFT", icon, "TOPLEFT", -inset, inset)
+    border:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", inset, -inset)
+end
 
 -- 光環按鈕 → 邊框貼圖。按鈕池只長不消（暴雪 frame 刪不掉），一顆只建一次。
 local borders = {}
@@ -66,8 +79,7 @@ local function ApplyFrames(frames)
 
                 -- Icon 在 BACKGROUND 層級 0（AuraButtonArtTemplate），邊框墊在 -1
                 border = btn:CreateTexture(nil, "BACKGROUND", nil, -1)
-                border:SetPoint("TOPLEFT", btn.Icon, "TOPLEFT", -INSET, INSET)
-                border:SetPoint("BOTTOMRIGHT", btn.Icon, "BOTTOMRIGHT", INSET, -INSET)
+                AnchorBorder(border, btn.Icon, Inset())
                 borders[btn] = border
 
                 -- 附魔的橘金外框藝術不再需要（1px 紫框取代）。用 alpha 藏：
@@ -81,6 +93,15 @@ local function ApplyFrames(frames)
             local c = IsTempEnchant(btn) and ENCHANT_COLOR or BORDER_COLOR
             border:SetColorTexture(c[1], c[2], c[3])
         end
+    end
+end
+
+-- 設定改變時把新厚度套到既有的邊框上（設定頁的 apply 就是它）。
+-- 純 setter 重錨自己的貼圖，所以厚度不用重載；開關才需要（hook 是單向的）。
+function Skin.Apply()
+    local inset = Inset()
+    for btn, border in pairs(borders) do
+        AnchorBorder(border, btn.Icon, inset)
     end
 end
 
@@ -98,7 +119,8 @@ end
 --   什麼都還沒建，也就沒有東西要收。
 ------------------------------------------------------------
 ns.RegisterCallback("Init", "skin", function()
-    if not ns.db.skin.enabled then return end
+    SKN = ns.db.skin
+    if not SKN.enabled then return end
 
     hooksecurefunc(BuffFrame, "UpdateAuraButtons", Hook)
     hooksecurefunc(BuffFrame, "OnEditModeEnter", Hook)
