@@ -65,3 +65,7 @@ luac.out
 
 # 產生器腳本一律放 .claude/skills/<技能>/scripts/，不要留在插件資料夾裡
 AddOns/MiliUI_UnitFrames/Media/*.py
+
+# Python 快取（技能腳本跑過會產生）
+__pycache__/
+*.pyc
