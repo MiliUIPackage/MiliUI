@@ -405,13 +405,25 @@ local function MigrateAccount(db)
 end
 
 -- 設定檔層：[版本號] = 把一份設定檔補到那個版本要做的事。
--- 目前是空的（還沒發佈過需要遷移的預設值變更）。發佈之後改任何預設值都要在這裡
--- 加一條並 bump ns.DB_VERSION——通則是「只動還等於舊預設值的欄位」（值閘），
--- 使用者調過的不碰。
+-- 改預設值要在這裡加一條並 bump ns.DB_VERSION——通則是**值閘**：
+-- 「只動還等於舊預設值的欄位」，使用者自己調過的不碰。
+--
+-- 值閘有一個沒得解的模糊地帶：刻意把某欄位設成「剛好等於舊預設」的人會被一起改到。
+-- 分不出「沒動過」與「動過但選了同一個值」，這是這套做法的固有代價 ——
+-- 換成「記錄每個欄位有沒有被碰過」才分得出來，不值得為此養一張旗標表。
 --
 -- 為什麼跟帳號層拆開：**匯入字串**帶著自己的 schemaVersion，可能比目前舊。那一份
 -- 要補遷移，但不能把帳號層的版本號降下去——降了會讓遷移在所有設定檔上重跑一次。
-local PROFILE_MIGRATIONS = {}
+local PROFILE_MIGRATIONS = {
+    -- v2：懸停預覽的預設位置 row → right。
+    -- 貼在滑過那一列上方會蓋住下面幾名，看不到自己在整份排行裡的位置。
+    [2] = function(p)
+        local st = p.style
+        if st and st.breakdownAnchor == "row" then
+            st.breakdownAnchor = "right"
+        end
+    end,
+}
 
 function DB.MigrateProfile(profile, fromVersion)
     if type(profile) ~= "table" then return end
@@ -447,8 +459,9 @@ function DB.Init()
     end
     local db = MiliUI_DamageMeters_DB
     MigrateAccount(db)
-    -- 尚未發佈、沒有遷移鏈；schemaVersion 先佔位，發佈後改預設值要配遷移
-    db.schemaVersion = ns.DB_VERSION
+    -- ⚠ 舊版本號要在蓋掉**之前**先留下來，蓋完就再也分不出這份 SV 是從哪一版來的。
+    -- 沒有戳記（真正的新安裝）當 1 看：遷移全是值閘，對剛灌好的預設值是無操作。
+    local fromVersion = tonumber(db.schemaVersion) or 1
 
     -- 帳號層預設值（設定視窗位置、內建統計還原旗標）
     local defaults = BuildDefaults()
@@ -457,6 +470,13 @@ function DB.Init()
 
     db.profiles = db.profiles or {}
     db.profileKeys = db.profileKeys or {}
+
+    -- 遷移**每一份**設定檔，不是只有現在這隻角色用的那份：別份要等切過去才補的話，
+    -- 切過去的當下畫面已經用舊值畫過一輪了。跑完才把版本號蓋上去。
+    for _, p in pairs(db.profiles) do
+        DB.MigrateProfile(p, fromVersion)
+    end
+    db.schemaVersion = ns.DB_VERSION
     -- 角色 → 職業。設定檔清單要用職業色顯示「角色-伺服器」，而別隻角色的職業
     -- 沒有 API 可查，只能靠每隻角色登入時自己記一筆。
     -- ⚠ 存在帳號層而不是設定檔裡：設定檔會被深拷貝／重新灌種子，放進去會被帶錯。
