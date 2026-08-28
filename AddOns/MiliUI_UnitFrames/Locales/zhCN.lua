@@ -2,7 +2,7 @@
 -- 简体中文
 --
 -- 由 zhTW.lua 转换而来：词汇层套了两岸用语与官方译名差异，字形层做繁简转换。
--- 语句节奏仍偏台湾中文，欢迎母语玩家 PR 润饰：github.com/MiliUIPackage/MiliUI_UnitFrames
+-- 语句节奏仍偏台湾中文，欢迎母语玩家 PR 润饰：github.com/MiliUIPackage/MiliUI
 -- key＝英文原文，缺的条目会自动退回英文。
 ------------------------------------------------------------
 local _, ns = ...

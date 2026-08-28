@@ -5,7 +5,7 @@
 -- English on their own (never blank, never broken).
 -- WARNING: translated from the English source, not proofread by a native
 --          player. Fix any wording you disagree with, or open a PR at
---          github.com/MiliUIPackage/MiliUI_UnitFrames
+--          github.com/MiliUIPackage/MiliUI
 ------------------------------------------------------------
 local _, ns = ...
 if GetLocale() ~= "itIT" then return end
