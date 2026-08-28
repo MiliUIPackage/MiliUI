@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: ecf43e09-8c1d-426c-b1ad-ffcf37466b77
-  modified: 2026-08-15T15:55:09.064Z
+  modified: 2026-08-27T13:58:36.274Z
 ---
 
 12.1 的 `candidateFilters.include/excludeSpellIDs` 只在 `CanApplyIdentityCandidateFilters` 內

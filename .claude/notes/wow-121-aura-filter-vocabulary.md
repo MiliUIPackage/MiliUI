@@ -9,8 +9,9 @@ metadata:
 ---
 
 12.1 之後插件**讀不到光環內容**，所以「過濾」只剩一條路：把條件交給引擎，由 C 端決定
-哪些光環進容器。本機有幾個出貨中的插件在用同一套詞彙（**Cell** `RaidFrames/AuraDisplay.lua`、
-**Platynator** `Display/Auras/AurasNext.lua` 等），互相對照過的結果如下。
+哪些光環進容器。本機有三個出貨中的插件在用同一套詞彙（**Cell** `RaidFrames/AuraDisplay.lua`、
+**Platynator** `Display/Auras/AurasNext.lua`、**EUI** `EUI_UnitFrames_AuraContainers.lua`），
+互相對照過的結果如下。
 
 ## 兩個機制
 
@@ -70,9 +71,9 @@ includeSpellIDs     excludeSpellIDs      maxDuration
 
 **兩個出貨插件講的不一樣，還沒實測。**
 
-- 有一份實作在註解裡明講：依 `AuraUtil.lua`，`IMPORTANT` 標的是 **HELPFUL**
-  （敵方名條的增益重要度），所以 `HARMFUL|IMPORTANT` 是**空集合**；
-  它整套重要減益因此改用 candidateFilter `isPriorityAura`。
+- EUI 註解（`EUI_UnitFrames_AuraContainers.lua:77-79`）明講：依 `AuraUtil.lua`，
+  `IMPORTANT` 標的是 **HELPFUL**（敵方名條的增益重要度），所以 `HARMFUL|IMPORTANT`
+  是**空集合**；它整套重要減益因此改用 candidateFilter `isPriorityAura`。
 - Platynator 卻實際出貨 `HARMFUL|IMPORTANT|PLAYER|!CROWD_CONTROL`
   與 `HARMFUL|!IMPORTANT|...`（`AurasNext.lua:223-231`）。
 
@@ -91,7 +92,7 @@ filter 測試表加一條 `HARMFUL|IMPORTANT` 就看得出來。
 ## MiliUI_UnitFrames 現況
 
 只用 `HELPFUL` / `HARMFUL` ＋ `onlyMine` 時串 `|PLAYER`（`Elements/Auras.lua`），
-上面整套一個都沒用到 —— 這是它跟成熟實作差距最大的一項。
+上面整套一個都沒用到 —— 這是它跟 EUI 差距最大的一項。
 `BuildSignature` 已經是規則 2 要的那套機制，把 filter 加進簽章就能接。
 
 相關：[[wow-121-aura-containers]]、[[project-cell-auracontainer-rewrite]]、

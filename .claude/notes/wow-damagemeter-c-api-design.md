@@ -1,6 +1,6 @@
 ---
 name: wow-damagemeter-c-api-design
-description: 走 C_DamageMeter 的「輕量傷害統計」設計哲學——不解析戰鬥記錄、成本只跟可見列數走
+description: 走 C_DamageMeter 的「輕量傷害統計」設計哲學——不解析戰鬥記錄、成本只跟可見列數走；從 EUIStandaloneDamageMeters 拆解而來
 metadata: 
   node_type: memory
   type: reference
@@ -8,9 +8,9 @@ metadata:
   modified: 2026-08-24T03:09:53.975Z
 ---
 
-12.0 起暴雪自己做加總（`C_DamageMeter`），插件只要負責畫。這份筆記整理那條路線的
-成本模型與所有踩過的邊界。`MiliUI_DamageMeters` 照這條路線走，
-見 [[project-miliui-damagemeters]]。
+拆解對象：`tmp/EUIStandaloneDamageMeters`（Ellesmere，v8.9.8）。核心檔案是
+`EUIStandaloneDamageMeters.lua`（5200 行，其餘一萬多行是它自家的 EUI 框架）。
+`MiliUI_DamageMeters` 照這條路線走，見 [[project-miliui-damagemeters]]。
 
 ## 一句話哲學：**當渲染器，不當統計引擎**
 
@@ -120,8 +120,8 @@ DAMAGE_METER_CURRENT_SESSION_UPDATED     -- 「Current 剛剛換了」的權威�
 1. **去抖 0.1 秒。** 這兩個 SESSION_UPDATED 在戰鬥中是連續打的（每次有人死、
    每次伺服器換 session）。不合併等於在 ticker 之外多開一條不受刷新率控制的重畫路徑。
 2. **只清資料快取，不要清外觀快取。** 分段更新改變的是資料，外觀沒動。
-   一起清掉的話每次有人死都會讓四十條長條整批重排版面 —— 那是這條路徑上
-   最大的一筆成本。外觀快取只由設定的套用路徑負責作廢。
+   一起清掉的話每次有人死都會讓四十條長條整批重排版面 —— EUI 的原話是
+   「the dominant profiled cost」。外觀快取只由設定的套用路徑負責作廢。
 3. **趁機救回死掉的 ticker。** 延後停止的收尾有可能落在新一波開打之後
    （世代 token 擋掉大部分但不是全部）。伺服器還在送新分段就是「還在打」的鐵證。
 
@@ -184,8 +184,8 @@ DAMAGE_METER_CURRENT_SESSION_UPDATED     -- 「Current 剛剛換了」的權威�
 - `spellID` 是秘密照樣原封不動丟給 `C_Spell.GetSpellTexture`（當傳遞者不當讀取者）。
 - `SetFormattedText` 是 C 端函式，吃得下秘密值，比字串串接安全。
 - **`fill:SetValue(secret)` 會把整個 StatusBar 的幾何標成秘密**（[[wow-121-secret-values]]
-  已記）。實務上的後果：「邊框跟著填充長度」這種模式不能用 Backdrop／NineSlice，因為那些會
-  `GetWidth()` 一個錨在 fill 上的框然後崩潰，只能改成四條純色貼圖用引擎錨點。
+  已記）。EUI 正面撞上：它的「邊框跟著填充長度」模式不能用 Backdrop／NineSlice，因為那些會
+  `GetWidth()` 一個錨在 fill 上的框然後崩潰，只好改成四條純色貼圖用引擎錨點。
   **通則：條的填充長度是秘密的那一刻起，這條 bar 的任何尺寸都只能來自設定值，不能量。**
 - 跨 source 比大小的功能（例如「這個人打了哪些目標」）**在戰鬥中直接跳過**，
   離開戰鬥 0.5 秒後 API 才會把 GUID 解密。

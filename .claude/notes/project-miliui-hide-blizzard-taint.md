@@ -14,7 +14,7 @@ metadata:
 (TotemFrame、BossTargetFrameContainer、PlayerFrame…):登入後 Edit Mode 會跑一次版面,
 碰到我們用 `Hide()` / `ClearAllPoints()` / `SetPoint()` 動過的框就中獎。
 
-**規則(12.1 實戰調過)**:
+**規則(照 EUI 的 `ns.UF_HideBlizzard`,12.1 實戰調過)**:
 1. 藏起來靠 **reparent 到隱藏 frame**,不是 `Hide()`——Hide 會被 Edit Mode 復活。
 2. 被搶走了要補掛,但 `hooksecurefunc(frame,"SetParent",...)` 裡**只能排程**
    (`C_Timer.After(0)`),同步做等於跑在暴雪的安全流程裡,會污染秘密值讀取、連累團隊框。

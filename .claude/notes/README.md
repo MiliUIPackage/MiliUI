@@ -19,13 +19,18 @@ memory 存在家目錄、不會跟著 git 走，換一台電腦就沒了，所�
 在 repo 根目錄（`Interface/`）執行：
 
 ```
-cp ~/.claude/projects/-Applications-World-of-Warcraft--retail--Interface/memory/*.md .claude/notes/
-rm .claude/notes/MEMORY.md .claude/notes/feedback-language.md
+bash .claude/scripts/sync-notes.sh           # 匯出，並列出新增／更新了哪幾篇
+bash .claude/scripts/sync-notes.sh --check   # 只檢查有沒有落後（落後回傳 1）
 ```
 
 memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結果，不要兩邊手改。
 （`MEMORY.md` 是 memory 自己的索引檔，不匯出，這份 README 就是索引；
 `feedback-language.md` 是個人偏好，不屬於專案筆記。）
+
+⚠ **這件事會忘記。** 2026-08-28 體檢時查到 16 篇完全沒進 repo、11 篇是舊版——
+其中包含當時正在用來修 bug 的 `wow-gettime-stamp-multipacket`。手動流程撐不住，
+所以才有上面那支腳本；`--check` 是拿來掛進 commit 前檢查的。
+**新增的檔案腳本不會自己補進下面的索引表**，要自己加一行。
 
 命名慣例：檔名 = frontmatter 的 `name` = kebab-case，筆記互相引用用 `[[name]]`
 （2026-08-13 已全面統一，別再用底線）。
@@ -49,6 +54,8 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-identity-gate-failopen.md](wow-121-identity-gate-failopen.md) | 身分閘 fail-open：白名單 buff 變成顯示全部、且只有 `/reload` 有效 |
 | [wow-121-other-api-changes.md](wow-121-other-api-changes.md) | SVG、徑向遮罩、Roleset、**首領戰／M+／PvP 封鎖插件通訊**、改名與移除 |
 | [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | 移除的 FrameXML 全域：SetDesaturation（AceConfig 面板全空白）、AnimateTexCoords（按鈕發光每幀報錯） |
+| [wow-121-chat-reply-secret-taint.md](wow-121-chat-reply-secret-taint.md) | 密語回覆的死路：`SetAttribute`／`SendChatMessage` 只收未污染的秘密值；**別覆寫回覆路徑上的暴雪函式**、也別代填 `/w 名字 ` |
+| [wow-121-unitpopup-menu.md](wow-121-unitpopup-menu.md) | 右鍵單位選單地雷圖：`togglemenu` 誤判、tainted 重開的代價、ClickBindings 閘、`CopyToClipboard` 是保護函式 |
 | [wow-121-coolinator-reference.md](wow-121-coolinator-reference.md) | 12.1 正解範本 —— **原始碼已不在本機**，要看去 GitHub |
 
 ### 暴雪 UI 通則
@@ -73,6 +80,16 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-damagemeter-c-api-design.md](wow-damagemeter-c-api-design.md) | 走 `C_DamageMeter` 的輕量統計：當渲染器不當統計引擎；省資源手法、分段判定、秘密值紀律 |
 | [wow-addon-profiler-cost.md](wow-addon-profiler-cost.md) | 插件效能數據的成本：`C_AddOnProfiler` 讀值免費、`UpdateAddOnMemoryUsage` 是全堆掃描（別放進每秒迴圈）|
 | [wow-unitframe-event-dispatch-cost.md](wow-unitframe-event-dispatch-cost.md) | 團隊框架的成本在事件派送不在繪圖：`RegisterUnitEvent` 的 C 層過濾、共用 ticker 取代 N 個 OnUpdate、filter 字串共用解析、顏色套用戳記 |
+| [wow-gettime-stamp-multipacket.md](wow-gettime-stamp-multipacket.md) | **「一幀之內狀態不會變」是錯的**：多封包幀同一個 `GetTime()` 派送多波事件 —— 快照讀取＋終點狀態不能吃戳記跳過，「字對條錯」是指紋 |
+| [wow-combat-drag-release.md](wow-combat-drag-release.md) | 拖曳保護框進戰會黏著游標放不開；`PLAYER_REGEN_DISABLED` 是強制鬆開的窗口 |
+| [wow-chattynator-chat-window-frame.md](wow-chattynator-chat-window-frame.md) | 要吸附／對齊「聊天視窗」時 `ChatFrame1` 是錯的答案 —— 沒名字的那顆怎麼認 |
+
+### 字型
+| 檔案 | 內容 |
+|---|---|
+| [wow-zhtw-font-slots.md](wow-zhtw-font-slots.md) | zhTW 四個字型檔各自的用途 —— `bKAI00M` 是傷害數字不是任務內文，檔名猜不出來 |
+| [wow-font-metrics-dropin.md](wow-font-metrics-dropin.md) | 換字型要先對齊度量：行高／字面率換算法，改 upm 的前提是沒 hinting |
+| [wow-font-weight-ink-matching.md](wow-font-weight-ink-matching.md) | 用「墨水量」對齊粗細：雅黑 Bold ≈ 思源黑體 Black(900)，不是 Bold(700) |
 
 ### 工作現況
 | 檔案 | 內容 |
@@ -93,6 +110,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-pixel-snapping.md](project-miliui-pixel-snapping.md) | 單位框像素對齊：邊框露縫的成因，內縮量必須走 `Media.BorderInset()` |
 | [project-miliui-hide-blizzard-taint.md](project-miliui-hide-blizzard-taint.md) | 隱藏暴雪框的 taint 規則：Edit Mode 管的框只能解事件 |
 | [feedback-no-cell-version-bump.md](feedback-no-cell-version-bump.md) | 不要主動 bump Cell 的 `## Version` —— 那是釋出訊號，由使用者決定 |
+| [feedback-ui-visual-style.md](feedback-ui-visual-style.md) | UI 視覺風格偏好：純色直角、深底白字、間距要緊；狀態只換明暗不換色 |
 | [project-agent-dir-convention.md](project-agent-dir-convention.md) | agent 資料的擺放慣例（就是這個結構） |
 
 ### 自製功能
@@ -103,6 +121,10 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-focus-addon.md](project-miliui-focus-addon.md) | 米利的焦點助手 MiliUI_Focus —— 從套組拆出的獨立插件、一次性 SV 遷移 |
 | [project-miliui-perf-tab.md](project-miliui-perf-tab.md) | 設定視窗的「效能監控」分頁 —— 插件 CPU／記憶體儀表板；成本紀律、戰鬥遮罩例外、待驗證清單 |
 | [project-miliui-characternotes.md](project-miliui-characternotes.md) | 米利的角色筆記 MiliUI_CharacterNotes —— 從套組拆出的獨立插件；副本／首領筆記（難度分層、本季名單）、聊天連結分享 |
+| [project-miliui-auraenhance.md](project-miliui-auraenhance.md) | 米利的光環美化 MiliUI_AuraEnhance —— 兩條遷移來源、字型存路徑還是 LSM 名稱、鏡射圖示在 12.1 變紅問號 |
+| [project-miliui-chatbar-snap.md](project-miliui-chatbar-snap.md) | 快捷聊天列的磁吸與自適應寬度 —— 位置從 `SetUserPlaced` 收回自己存 |
+| [project-miliui-esc-menu-window-migration.md](project-miliui-esc-menu-window-migration.md) | 三支小插件改自製設定視窗（爆發藥水／嗜血音樂／快捷聊天列）；踩過的點 |
+| [project-miliui-font-pack.md](project-miliui-font-pack.md) | 套組字型改用思源黑體：基底配置、`~/MiliUI-Fonts` 典藏庫、雅黑授權問題 |
 | [project-focuser-castbar.md](project-focuser-castbar.md) | 焦點施法條／斷法巨集（已移入 MiliUI_Focus） |
 | [project-loot-history-tracking.md](project-loot-history-tracking.md) | 戰利品取得記錄（沒有歷史 API） |
 | [project-speccompare-equipment-filter.md](project-speccompare-equipment-filter.md) | 裝備篩選排除玩具／純造型 |
@@ -121,8 +143,11 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 |---|---|
 | [project-miliui-voidcore-currency.md](project-miliui-voidcore-currency.md) | 虛無之核貨幣代碼（每季補一個 ID） |
 | [project-miliui-vault-tracking.md](project-miliui-vault-tracking.md) | 分身寶庫記錄：解鎖判準、M0 的 level 是 0 |
+| [project-miliui-bonusroll-filter.md](project-miliui-bonusroll-filter.md) | 星雲之核骰裝提示過濾 —— `MPLUS_SHOW_MIN` 傳奇軌道門檻每季要驗 |
+| [project-miliui-bounty-map-column.md](project-miliui-bounty-map-column.md) | 分身列表的懸賞圖／儲物箱欄 —— 旗標任務 86371 不換季，`BOUNTY_ITEM_ID` 每季抄 Plumber |
 | [wow-find-season-currency-id.md](wow-find-season-currency-id.md) | 查新賽季貨幣代碼的兩行巨集 |
 | [wow-find-creature-displayid.md](wow-find-creature-displayid.md) | 查生物 displayID（wago.tools CSV 端點） |
+| [wow-delve-detection.md](wow-delve-detection.md) | 探究的三種偵測：在不在裡面／探究等級（是聲望軌道）／詞綴法術 ID |
 | [project-platynator-preset.md](project-platynator-preset.md) | Platynator 內建預設值怎麼更新 |
 | [project-toc-interface-bump.md](project-toc-interface-bump.md) | 一鍵更新 `## Interface:`（工具在 wow-toc-interface-bump 技能） |
 | [project-toc-title-tag-style.md](project-toc-title-tag-style.md) | Title-zhTW 兩字標籤與漸層上色法、排序剝色碼、Notes `\|n\|n` 換行慣例 |

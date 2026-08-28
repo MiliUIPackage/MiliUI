@@ -18,12 +18,7 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
 
 **已搬容器的指示器**：中央「重要減益」（原 Raid Debuffs，顯示名已改，key `raidDebuffs` 不動）、左下 debuff 排（`excludeSpellIDs = 黑名單`）、右下驅散 icon + 血條 highlight overlay（一個指示器兩個容器）、減傷（自身/來自他人）、allCooldowns、自訂 **icon/icons 型** buff 指示器（如 Healers）。
 
-**效果型自訂指示器已解**（2026-08-27，路線見下面「效果槽」）：`block`/`text` 走一般 flow 容器，
-`color`/`border`/`rect`/`texture` 走**效果槽**（單一 `AddAuraSlot` 撐滿錨點）。
-
-**仍走手動路**（secret 內容中會凍住）：`glow`（LibCustomGlow 靠 OnUpdate，在槽子樹裡不會 tick）、
-`bar`/`bars`/`blocks`、`crowdControls`。debuff 型的效果指示器也全部留在手動路 —— 友方減益禁止用
-spellID 過濾，容器認不出是哪顆。
+**仍走手動路**（secret 內容中會凍住）：效果型自訂指示器（color/glow/border/overlay/text/bar/bars/block/blocks/rect —— 渲染的是「有沒有」而 presence 是 secret，不能照抄圖示路）、`crowdControls`。
 
 **驅動是泛型的**：按鈕上 `_containerIndicators` 註冊表（`I.RegisterContainerIndicator`），`UnitButton_UpdateAuras` 迭代呼叫 `SetContainerUnit`；`UpdateIndicators` 的即時推送對「任何有 `ConfigureContainer` 方法的指示器」生效；`CONTAINER_DEPENDENTS = {raidDebuffs = {"debuffs"}}` + `PushContainerConfig` 做跨指示器重推。生命週期：`I.RemoveIndicator`/`RemoveAllCustomIndicators` 呼叫 `I.UnregisterContainerIndicator`（Destroy + 移出註冊表），`Handle:Destroy` 有 `_destroyed` 旗標。
 
@@ -147,53 +142,8 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
 2. glow / tooltip 尚未接到容器（`SetMouseMotionEnabled(false)` 寫死）。
 3. dispel 自訂 icon 樣式要走 CustomAsset+map。
 4. `crowdControls` 指示器還在手動路。
-5. ~~效果型自訂指示器在 secret 內容中凍住~~ —— color/border/rect/texture 已走效果槽（見下），
-   **2026-08-27 遊戲內驗證通過**。剩 glow（需要 C 端動畫取代 LibCustomGlow）與 bar/bars/blocks
-   （多槽 ＋ 每顆光環自己的顏色 ＋ `SetDurationBar` 排水）。
+5. 效果型自訂指示器（bar/bars/block…）在 secret 內容中凍住 —— 要做要另外設計，不是照抄圖示路。
 6. 未在遊戲內驗證：合併後的 debuff 排 / 三個 cooldown / 自訂圖示指示器、統一後的外環顏色與 `SetReverse(true)` 消退方向。
-
-## 效果槽：presence 是 secret 的解法（2026-08-27）
-
-效果型指示器渲染的是「這顆光環在不在」，而 presence 正是 12.1 拿走的東西 —— 所以它們在
-secret 內容中會**卡在開打瞬間的樣子**一整場。
-
-**解法是不要問。** 宣告一個 `AddAuraSlot`，讓引擎決定那顆槽按鈕顯不顯示，然後**把效果本身
-建在那顆按鈕上**：貼圖是按鈕的子物件，光環在它就在、光環掉它就掉，Lua 這邊一次都不用讀。
-整條鏈（`handle.frame → host → AuraContainer → slot button → 我們的貼圖`）都是 `SetAllPoints`，
-所以把 `handle.frame` 錨到血條，效果就長在血條上。
-
-程式碼：`AuraDisplay.lua` 的 `EFFECT_SLOT_STYLES` / `IsSlotMode` / `EFFECT_BUILDERS`，
-設定與錨點在 `Indicators/Built-in.lua` 的 `AnchorEffectFrame`。`IsSlotMode` 同時涵蓋原本的驅散
-血條 highlight（`mode == "overlay"`）—— 那其實就是第一個效果槽，只是當時沒這樣命名。
-
-**三條硬規則，而且全部是靜默失效：**
-1. **所有 region 只能在 `initializeFrame` 視窗內建**（＝ `StyleButton` 對一顆按鈕的第一次）。
-   出了視窗引擎會拒絕對按鈕子樹的呼叫，而外面的 `pcall` 會把拒絕吃掉 —— 「在套用時才建」等於
-   永遠沒建。
-2. **建完不要再從按鈕讀回任何東西**（frame level、rect 都不行）。建立當下設好就別碰。
-3. **不能有 Lua 驅動的動畫。** `OnUpdate` / `AnimationGroup` 掛得上去但不會 tick
-   （`onUpdateMode` disabled 會傳染）。效果一律靜態；要跟時間有關只能交給引擎
-   （`SetDurationCooldown` / `SetDurationBar`）。所以**淡出、剩 X 秒變色、百分比/秒數色帶
-   全部做不到** —— 它們都需要一個讀不到的倒數。
-
-### 每顆光環自己的顏色 → 一顆光環一個槽
-
-`border` 的顏色存在**法術**上（`ConvertSpellTable_WithColor`），而「是哪顆光環命中」正是容器
-不會告訴我們的。解法是換個問法：**一個法術宣告一個槽**（`includeSpellIDs = {[id]=true}`），
-顏色在建立時就烤進去 —— 那顆槽只可能是那顆法術，所以顏色一定對。
-上限 `EFFECT_PER_SPELL_CAP = 8`，超過就退回單一共用槽用第一列的顏色（每個槽都是每顆單位框上
-一顆真的 AuraButton，這是實打實的成本）。這招之後也是 `bars`/`blocks` 的路。
-
-⚠ **`t["auras"]` 有兩種形狀**：一般型是 `{id, id, ...}`，帶顏色的（border/bars/blocks）是
-`{{id, {r,g,b,a}}, ...}`。原本 `Custom.lua` 抽 ID 的 closure 只認 number，所以帶顏色的指示器
-拿到的 include map 是**空的** → `BuildRecords` 回零筆 → 容器什麼都不畫，而且沒有任何錯誤。
-
-### 職業色不能進 config
-
-`color` 的 class-color 模式跟**人**走而不是跟設定走。放進 `config` 會被 `ParkKey` 雜湊進去，
-等於每個職業一個 park 桶，把 reuse 全毀掉。所以存在 handle 上（`_effClassColor`），
-`SetContainerUnit` 時用 `Handle:SetEffectClassColor` 直接重畫我們自己的貼圖 ——
-**寫自己建的 region 在視窗外是合法的**，被拒絕的是按鈕自己的方法跟讀回。
 
 ## 歷史
 

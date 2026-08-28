@@ -28,6 +28,14 @@ Secret aspects：把 secret 丟給 widget API 會在該物件上留下 aspect（
 
 **踩過的坑：`StatusBar:SetValue(secret)` 會污染整個 frame 的幾何資料。** 它「接受 secret 但沒有對應的 aspect」，所以不是只標記某個面向，而是把**整個物件**標成 has-secret-values → 之後 `GetWidth()` / `GetHeight()` / 錨點資料全部回 secret，而且會往下傳染給錨在它身上的子區域，只有 `SetToDefaults()` 能清。
 
+**暴雪自己的光環按鈕（BuffFrame / DebuffFrame 的 AuraContainer 子按鈕）也是這個狀態。**
+`btn.Icon:GetSize()` 回的是秘密數字，拿去比大小就是
+`attempt to compare local 'iw' (a secret number value, while execution tainted by '<你的插件>')`，
+`GetPoint()` 同理。**掛在光環按鈕上做事的插件，一律只傳不讀**：位置與尺寸自己用常數
+（樣板的圖示就是 30x30，縮放走 `SetScale`，當它的子框就會跟著縮），
+`Icon:GetTexture()` 這種「拿到就直接餵給 `SetTexture`」是允許的（傳遞者不是讀取者）。
+2026-08-26 在 [[project-miliui-auraenhance]] 撞到，見那份的包裝框那節。
+
 所以「把 secret 直接餵給 widget」這招只有在**該 frame 的版面完全不回讀幾何**時才成立。Coolinator 能這樣做是因為它的尺寸全部來自自己的設定（`PixelUtil.SetSize(bar, sizing.statusWidth * scale, ...)`）；Ayije_CDM 的資源條在 `SetValue` 之後緊接著 `RefreshBarTicks()` → `bar:GetWidth()` 做刻度算術，套用同一招會換來一個更難查、而且會沾黏的崩潰。評估任何 pass-through 之前先 grep 那個 frame 有沒有 `GetWidth`/`GetHeight`/`GetPoint`。
 
 **`debugstack()` / `debuglocals()` 也會回 secret string**：只要呼叫堆疊上有秘密值參與就是（`debuglocals` 的輸出裡個別的值反而是被塗成 `<secret string>` 的明碼）。所以任何錯誤處理／回報插件對 stack、locals 做 `:gsub()`、`:find()`、`:sub()` 之前都要 `issecretvalue` 檢查——BugSack 就是這樣整個視窗打不開的，見 [[project-121-addon-migration]]。
@@ -119,32 +127,20 @@ MiliUI_UnitFrames 的血條、能量條、預估條一開始就是這樣寫的�
 實作在 `Cell/Indicators/Built-in.lua` 的 `CheckThresholdMidnight`
 （同檔的 `CELL_FADE_OUT_HEALTH_PERCENT` 是同一招的單門檻版）。
 
-## 材質值也是秘密值，而且失效是**靜默的畫錯**（2026-08-28，光環圖示變紅問號）
+## 秘密幾何噴在排版上：訊息指的是 FrameUtil，不是 LayoutFrame
 
-秘密值的討論多半集中在數字（血量、秒數、層數），但**貼圖的 fileID 一樣會是秘密值**。
-光環受限時暴雪往 `Icon:SetTexture(buttonInfo.texture)` 餵的就是秘密值。
+秘密面向會**沿著錨點往下傳染**：插進 `GameTooltip` 的那些行（`GameTooltip_InsertFrame`）
+錨在已經有秘密面向的 tooltip 上，`GetRect()` / `GetScaledRect()` 就跟著回秘密數字，
+接著暴雪自己的排版做除法直接拋錯。實例：滑過團隊戰利品紀錄的條目
+（`LootHistoryElementMixin:OnEnter` → `SetTooltip` → `Layout`）。
 
-危險的地方在於它**不拋錯**。算術／比較會當場炸，材質不會——你只是畫不出來，
-停在那張貼圖原本的樣子。玩家 `scriptErrors` 預設關閉，所以什麼都不會浮上來。
+兩個要記住的細節：
 
-**指紋：同一顆按鈕上「暴雪自己畫的部分正常、我們畫的部分錯」。**
-（那次是倒數秒數正常、圖示全變紅問號 —— 紅問號是 `AuraButtonTemplate` 的
-樣板預設材質 `INV_Misc_QuestionMark`，也就是「從來沒被成功指派過」的樣子。）
-
-⚠ **「鏡射」這個模式在 12.1 整類失效。** `hooksecurefunc(區域, "SetTexture", 轉發)`
-＋ 藏掉原本那個，是插件界很常見的手法（要換父層、要交給樣式引擎、要改繪製層都會用）。
-只要來源值可能是秘密的，這個模式就沒有安全版本 —— 污染端既讀不出也餵不進。
-
-正解是**交出原件，不要複製**：把暴雪那個區域本人交給下游（樣式引擎／容器），
-自己只做 `SetParent` / `SetPoint` / `SetSize` 這類 setter。轉手可以（見上面
-「當傳遞者，不當讀取者」），但那條的前提是**你手上真的接得到那個值**；
-材質這裡連接都接不到，所以連轉手都不成立。
-
-⚠ **不能拿暴雪的原始碼當「我們也可以這樣寫」的依據。** 同一版 `BuffFrame.lua` 裡
-就有 `buttonInfo.count > 1` ——安全端讀秘密值完全合法，污染端照抄會炸。
-**光看原始碼分辨不出來**，要去
-`Blizzard_APIDocumentationGenerated/` 查那支 API 的 `SecretArguments`。
-
-同理，引進任何 12.1 之前寫成的實作（哪怕它「跑了很多年零錯誤」）都要單獨問一次
-「它碰不碰秘密值」。那份零錯誤是在結構上產生不出這個 bug 的環境裡累積的，
-不構成證據。實例見 MiliUI_AuraEnhance 的 `Modules/Skin.lua`。
+- **拋出點是 `Blizzard_SharedXMLBase/FrameUtil.lua` 的 `GetUnscaledFrameRect()`**
+  （`frameLeft / scale`），`LayoutFrame.lua` 只出現在堆疊上。錯誤處理器如果比對
+  訊息字串，只寫 `LayoutFrame.lua` 會整批漏接 —— `MiliUI/Fix/TooltipTaintFix.lua`
+  的過濾器 2026-08-27 因此補上 `FrameUtil.lua`。
+- 污染來源印成 `*** ForceTaint_Strong ***` 表示是**引擎自己 forceinsecure**，
+  不是某個插件。整條路徑都是暴雪程式碼時，插件端沒有東西可修，只能過濾錯誤 ——
+  而且**不要去替換 `GetUnscaledFrameRect` 這種泛用函式**，那會讓所有 `Layout()`
+  都變成被污染的執行，換來更大的災難。
