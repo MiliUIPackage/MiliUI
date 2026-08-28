@@ -19,5 +19,6 @@
 # Exclude from git archive
 # 開發用的東西，不進玩家的發布包
 .claude/ export-ignore
+.github/ export-ignore
 CLAUDE.md export-ignore
 *.py export-ignore

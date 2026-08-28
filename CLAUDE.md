@@ -8,11 +8,11 @@ repo 是**公開的**（github.com/MiliUIPackage/MiliUI），玩家會整包 clo
 
 ## 分支
 
-| 分支 | 用途 |
-|---|---|
-| `master` | 正式服，玩家實際下載的版本 |
-| `ptr-12.1` | 12.1 改版工程（目前主力） |
-| `beta` | 測試 |
+`master` 是唯一活著的分支 —— 正式服，玩家實際下載的版本。發佈＝push。
+
+（`ptr-12.1` 在 2026-08-12 併回 master 之後就刪掉了；本機殘留的 `unitframes` 是
+單位框架還在獨立 repo 時期的舊分支，跟 master 不同 root，已無用途。
+下次改版要開工程分支再照 `ptr-<版本>` 的慣例開一條。）
 
 ## agent 資料在 `.claude/`
 
@@ -22,6 +22,7 @@ repo 是**公開的**（github.com/MiliUIPackage/MiliUI），玩家會整包 clo
 |---|---|
 | [.claude/skills/](.claude/skills/) | 技能，會依情境自動觸發，附帶的腳本放各自的 `scripts/` |
 | [.claude/notes/](.claude/notes/) | API 規則與各插件現況，索引在 [notes/README.md](.claude/notes/README.md) |
+| [.claude/scripts/](.claude/scripts/) | 不屬於任何單一技能的工具：`check-all.sh`（提交前檢查）、`sync-notes.sh`（把 memory 匯出成 notes） |
 
 `.claude/*.local.json` 是個人設定，不進版控。
 
@@ -47,7 +48,10 @@ API 改成 secret value，照舊寫法會直接崩潰，而且錯誤訊息不會
 
 - **`.toc` 的 Interface 版本號不要手改**，用 `wow-toc-interface-bump` 技能的腳本。
   正式服是 6 位數、經典服是 5 位數，手改很容易把多版本相容的插件弄壞。
-- **改完用 `luac -p` 過一次語法**，這裡沒有測試可跑，語法錯誤要到遊戲裡才會炸。
+- **改完跑一次 `bash .claude/scripts/check-all.sh`**（語法、可疑的全域寫入、TOC 載入清單
+  與 Interface 版本、語系缺鍵／格式符、`.claude/notes` 有沒有落後 memory）。
+  遊戲裡沒有測試可跑，這幾樣都是「不報錯但會壞」的類型。同一批腳本由
+  [.github/workflows/checks.yml](.github/workflows/checks.yml) 在 push 時再跑一次。
 - **commit 訊息**：`feat:` / `fix:` / `update:` / `chore:` 開頭，後面接中文或英文簡述，
   通常點名插件（例：`fix: Ayije_CDM 翻譯`、`update: Cell`）。
 - **回報用語**：使用者用繁體中文，回覆也用繁體中文。

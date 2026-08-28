@@ -1,0 +1,53 @@
+name: checks
+
+# 這個 repo 就是一份實際的 Interface/ 資料夾，玩家直接 clone 下來用 ——
+# 「發佈」等於 push，所以把關只能在 push 之前。遊戲裡沒有測試可跑，語法錯誤要到
+# 登入時才會炸，而且錯誤訊息常常指向不相干的地方（見 .claude/notes/wow-luac-global-scan.md）。
+#
+# 這四道檢查跟本機 `bash .claude/scripts/check-all.sh` 跑的是同一批腳本。
+
+on:
+  push:
+    branches: [master, beta, "ptr-*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ⚠ 版本要跟開發機一致（本機是 brew 的 lua 5.5.0）。
+      #   apt 的 lua5.4 也編得過大部分檔案，但 `luac -l` 的位元組碼列表格式在版本之間
+      #   會變，而全域洩漏檢查是靠解析那個輸出的 —— 版本不同會靜默少抓。
+      - name: Cache Lua
+        id: cache-lua
+        uses: actions/cache@v4
+        with:
+          path: ~/.local
+          key: lua-5.5.0-${{ runner.os }}
+
+      - name: Build Lua 5.5.0
+        if: steps.cache-lua.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          curl -fsSL https://www.lua.org/ftp/lua-5.5.0.tar.gz -o lua.tar.gz
+          tar xf lua.tar.gz
+          cd lua-5.5.0
+          make -j"$(nproc)" linux
+          make install INSTALL_TOP="$HOME/.local"
+
+      - name: Add Lua to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - run: luac -v
+
+      - name: Lua — 語法與可疑的全域寫入
+        run: python3 .claude/scripts/check_lua.py
+
+      - name: TOC — 載入清單與 Interface 版本
+        run: python3 .claude/scripts/check_toc.py
+
+      - name: 語系 — 缺鍵／重複／格式符／色碼
+        run: python3 .claude/scripts/check_locales.py
