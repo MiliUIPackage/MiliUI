@@ -150,6 +150,16 @@ local CONTROLS = {
         .. "（worldMapShowPlayerCoords、worldMapShowCursorCoords），一次兩個一起。"
         .. "取消勾選則兩個都顯示。改完立即生效，不需要重載。" },
 
+    { type = "header", label = "登入訊息" },
+    { type = "toggle", label = "更新後在聊天視窗提示一次",
+      get = function() return not MiliUI_DB or MiliUI_DB.welcomeMessage ~= false end,
+      set = function(v)
+          if not MiliUI_DB then MiliUI_DB = {} end
+          MiliUI_DB.welcomeMessage = v
+      end },
+    { type = "text", label = "套組版本號變動之後的第一次登入，在聊天視窗印一行更新提示與網址。"
+        .. "版本沒變就不會再出現（不是每次登入都講）。取消勾選則完全不印。" },
+
     { type = "header", label = "舊插件相容" },
     { type = "toggle", label = "自動停用被取代的舊插件",
       get = function() return MiliUI_LegacyAddons and MiliUI_LegacyAddons.IsEnabled() end,
