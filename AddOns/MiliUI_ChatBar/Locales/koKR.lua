@@ -4,6 +4,9 @@ if not L then return end
 
 -- Addon Name
 L["ADDON_NAME"] = "MiliUI 채팅바"
+
+-- 密語回覆降級（見 Fix_ReplyTell.lua）
+L["REPLY_FALLBACK_HINT"] = "12.1에서는 귓속말 대상의 이름이 보호된 데이터라 애드온이 대신 입력할 수 없습니다. |cffffd200/r|r 을 입력해 두었으니 띄어쓰기 후 메시지를 입력하세요."
 L["ADDON_TITLE"] = "빠른 채팅 바"
 
 -- Settings Categories

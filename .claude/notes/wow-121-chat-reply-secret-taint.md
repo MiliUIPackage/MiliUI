@@ -45,15 +45,55 @@ hooksecurefunc 不會污染欄位，而且新的一定放在 `[1]`，一個變�
 同理，`GetUnitName("target", true)` 對非隊友是秘密字串，插件不能代填 `/w 名字 `，
 只能開 `/w ` 讓玩家自己打（Tab 補完還在）。
 
-⚠⚠ **上面那段是「應該怎麼做」，不是現況。**（2026-08-28 體檢核對）
-`MiliUI_ChatBar/Fix_ReplyTell.lua` 目前仍是 2026-08-24 `ea465fefb` 那一版：
-**在檔案載入期無條件覆寫 `ChatFrameUtil.GetLastTellTarget`**，也就是這一節警告的那種做法。
-`git log --follow` 這支檔案只有那一個 commit，設計改了但沒落地。
+## 2026-08-28：對過暴雪原始碼，並改成條件式接手
 
-要嘛照這裡寫的改（預設完全不覆寫，只在 `issecurevariable("LAST_ACTIVE_CHAT_EDIT_BOX")`
-回報已髒時才接手 `ReplyTell`，並提供「幫玩家填 `/r`、結尾不加空格」的降級），
-要嘛實測確認鏡射法其實可行、回頭改這則筆記。**兩邊互相矛盾的狀態不要留著** ——
-下次遇到密語問題會先花半小時在「到底哪個算數」。
+原始碼在 `Blizzard_ChatFrameBase/Shared/`（`ChatFrameUtil.lua` ＋ `ChatFrameEditBox.lua`），
+逐字核對後的三件事：
+
+1. **兩條路徑不一樣，這是整件事的關鍵。**
+   - 按 R → `ReplyTell`：① `ChooseBoxForSend` →`GetLastActiveWindow()`→**讀 `LAST_ACTIVE_CHAT_EDIT_BOX`**
+     ② `GetLastTellTarget()` 的 `value ~= ""` ③ `SetTellTarget` → `SetAttribute`
+   - 打 `/r 訊息` → `ProcessChatType(msg,"REPLY",send)`：**只有 ②③，沒有 ①**
+   ⇒ 全域髒掉之後 `/r` 仍然乾淨，那是唯一還活著的路。**不要碰它。**
+2. `chatEditLastTell` 開檔就被 `""` 填滿 `MaxRememberedWhisperTargets` 格，所以 ② 的比較
+   **每次都會跑**，不是「有紀錄才跑」。
+3. 鏡射要掛 **`SetLastTellTarget`**，不是 `SetLastToldTarget` —— `GetLastTellTarget` 只讀
+   `chatEditLastTell`，而那張表只有前者會寫；後者是另一組單格變數（記「我剛剛密語了誰」）。
+
+**染髒路徑實測**（使用者 2026-08-28）：登入後
+`/dump issecurevariable("LAST_ACTIVE_CHAT_EDIT_BOX")` → `true`；點一顆聊天列按鈕後 →
+`false, "MiliUI_ChatBar"`。也就是說「這次登入還沒點過按鈕」是真的能達成的乾淨狀態。
+
+⚠ **繞不過去**：`ActivateChat` 有 `editBox.disableActivate` 早退旗標（設了就不寫那個全域），
+但設了輸入框根本不會啟用 —— 對聊天列毫無意義。**任何會替玩家開輸入框的插件都必然沾上。**
+
+### 現行實作（改掉了 `ea465fefb` 那一版）
+
+`ea465fefb`（2026-08-24）在檔案載入期**無條件覆寫 `GetLastTellTarget`**。那是在幫倒忙，
+四種情境沒有一種比「什麼都不做」好，而且弄壞了三種原本會動的：
+
+| 情境（對象名字是秘密值） | 無條件覆寫 | 什麼都不做 | 條件式接手 |
+|---|---|---|---|
+| 沒點過按鈕 → 按 R | ✗ 炸在 ③ | ✓ | ✓ |
+| 沒點過按鈕 → `/r 訊息` | ✗ 炸在 ③ | ✓ | ✓ |
+| 點過按鈕 → 按 R | ✗ 炸在 ③ | ✗ 炸在 ② | ◐ 填 `/r` 降級 |
+| 點過按鈕 → `/r 訊息` | ✗ 炸在 ③ | ✓ | ✓ |
+
+現在的做法：
+- **預設什麼都不覆寫**，只用 `hooksecurefunc` 鏡射 `SetLastTellTarget`（不污染欄位）。
+- `hooksecurefunc(ChatFrameUtil, "SetLastActiveWindow", …)` 在暴雪寫那個全域的當下檢查
+  `issecurevariable`，**確定已髒才**接手 `ReplyTell`（那時候已經沒有可失去的東西）。
+- 接手後仍然**只對秘密名字改行為**：污染的執行只對秘密值有意見，明文名字照樣讓暴雪跑完
+  （`return original(chatFrame)`）。
+- 秘密名字就填 `/r` 降級。⚠ `ParseText` 的早退條件已逐字確認：
+  `if ( send ~= 1 and not parseIfNoSpaces and not strfind(text, "%s") ) then return end`
+  —— 所以**結尾不能有空格**。
+- **完全不再覆寫 `GetLastTellTarget`。**（接手之後 `ReplyTell` 根本走不到它；
+  明文那條由原函式處理，比較安全。）
+
+⚠ 還沒實測的一項：「呼叫被染髒的 table 函式欄位會不會染整段執行」——上表前兩列與末列
+靠它。標準 taint 模型與這個 repo 的舊觀察（錯誤從 ② 移到 ③）都支持，但沒有現場重現過。
+就算它是錯的，條件式接手在兩種答案下都不比舊版差，所以沒有等它的必要。
 
 同一次體檢一併修掉的是另一半：`ChatBar.lua` 的密語按鈕原本會代填 `/w 名字 `
 （正是本節結尾禁止的那件事），已改成名字是秘密值就退回空的 `/w `。
