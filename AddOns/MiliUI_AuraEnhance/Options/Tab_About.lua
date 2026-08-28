@@ -23,7 +23,7 @@ local function Init()
         "",
         L["Restyles the duration and stack text on Blizzard's own buff and debuff icons."],
         L["It only changes how the text looks and where it sits — never what it says."],
-        L["Buff and debuff icons can also wear a skin from Masque; see the Icon skin tab."],
+        L["Buff and debuff icons can also get a thin package-style border; see the Icon skin tab."],
         "",
         L["Commands: |cffffd200/maura|r opens the options, |cffffd200/maura reset|r restores the defaults, |cffffd200/maura debug|r reports recent errors"],
         "",

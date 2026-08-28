@@ -36,11 +36,8 @@ L["Use Blizzard's font"] = "沿用暴雪字体"
 
 -- 图标样式页签
 L["Icon skin"] = "图标样式"
-L["Skin the aura icons"] = "让光环图标套用按钮样式"
-L["Draws the buff and debuff icons through Masque, so they can wear the same button skin as your action bars."] = "把增益／减益图标交给 Masque 画，就能套用跟快捷栏同一款按钮样式。"
-L["Skin"] = "样式"
-L["Open Masque"] = "开启 Masque"
-L["Masque is not installed. This page needs it to skin the icons; nothing here does anything without it."] = "没有检测到 Masque。图标样式要靠它才画得出来，没装的话这一页不会有任何作用。"
+L["Frame the aura icons"] = "为光环图标加上边框"
+L["Draws a thin border around the buff and debuff icons, matching the rest of the MiliUI package. Weapon enchants get a purple border instead; debuffs keep Blizzard's dispel-type colours on the outside."] = "为增益／减益图标画上与套组一致的细边框。武器附魔改用紫色，减益的外圈保留暴雪的驱散类型颜色。"
 
 -- 方位
 L["Top left"] = "左上"
@@ -55,7 +52,7 @@ L["Bottom right"] = "右下"
 -- 关于页签
 L["Restyles the duration and stack text on Blizzard's own buff and debuff icons."] = "美化暴雪增益／减益图标上的时间文字与堆叠层数。"
 L["It only changes how the text looks and where it sits — never what it says."] = "只动文字的外观与位置，不改文字内容。"
-L["Buff and debuff icons can also wear a skin from Masque; see the Icon skin tab."] = "增益／减益的图标也可以套用 Masque 的按钮样式，见「图标样式」页签。"
+L["Buff and debuff icons can also get a thin package-style border; see the Icon skin tab."] = "增益／减益的图标也可以加上套组风格的细边框，见「图标样式」页签。"
 L["Commands: |cffffd200/maura|r opens the options, |cffffd200/maura reset|r restores the defaults, |cffffd200/maura debug|r reports recent errors"] = "命令：|cffffd200/maura|r 打开设置、|cffffd200/maura reset|r 还原默认值、|cffffd200/maura debug|r 打印最近的错误"
 L["Author: Mili (MiliUI package)"] = "作者：Mili（米利UI套组）"
 L["This used to be the \"Aura duration\" section of the MiliUI package; your old settings were imported the first time this addon ran."] = "这组功能原本是米利UI套组设置里的「光环时间」页签，第一次启动时已经把旧设置搬过来了。"
@@ -75,7 +72,6 @@ L["Use /maura to open options"] = "使用 /maura 打开设置"
 L["Open options"] = "打开设置"
 
 -- 圖示樣式
-L["The skin itself is picked in Masque — buffs and debuffs are two separate groups, so they can each wear a different one."] = "样式本身在 Masque 里挑。增益、减益是两个独立分组，可以各挑各的。"
 L["Takes effect after you reload the interface."] = "改完要重新载入界面才会生效。"
 L["Buffs"] = "增益"
 L["Debuffs"] = "减益"

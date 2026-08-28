@@ -1,206 +1,102 @@
 ------------------------------------------------------------
--- 圖示樣式：把光環圖示交給外觀樣式引擎畫
+-- 圖示樣式：光環圖示加上套組風格的 1px 邊框
 --
--- ⚠⚠ 2026-08-28 換過做法，動手前先讀完這段。
+-- ⚠⚠ 2026-08-28 第二次換做法，動手前先讀完這段歷史。
 --
--- 舊做法是「藏掉暴雪那張圖示、自己畫一張、掛勾 SetTexture 跟著換圖」。那份實作在
--- 12.1 之前跑了四年零錯誤，但**在 12.1 是結構性死路**：光環受限時（首領戰／M+／PvP，
--- 判斷式是 C_Secrets.ShouldAurasBeSecret）材質值是秘密值，污染端的我們既讀不出來也
--- 餵不進去，鏡射那張永遠停在樣板的預設圖 —— 而樣板預設圖正是 INV_Misc_QuestionMark。
--- 症狀是「倒數正常、整排圖示變紅問號」，而且一個錯誤都不會報。
+-- 第一代（外觀樣式引擎 + 鏡射圖示）：藏掉暴雪的 Icon、自畫一張、掛勾 SetTexture
+-- 跟著換圖。12.1 光環受限時（首領戰／M+／PvP）材質值是秘密值，污染端既讀不出
+-- 也餵不進，鏡射永遠停在樣板預設圖 —— 也就是紅問號，而且零報錯。
 --
--- 現在的做法：**把暴雪那張 Icon 原封不動交給引擎**，材質值我們從頭到尾不經手。
--- 引擎對它只做 SetParent／SetTexCoord／SetDrawLayer／SetSize／SetPoint 與遮罩，
--- 全是 setter 不讀值，所以秘密值碰不到我們這一側。
+-- 第二代（外觀樣式引擎 + 交出真 Icon）：修掉了問號，但要維持一整串活動零件：
+-- 包裝框、四個區塊搬家、排版後重錨 hook、引擎本身、玩家挑的任意皮膚。
+-- 每個零件都是一個潛在的靜默失效面（減益驅散色被 ReSkin 蓋掉就是實例）。
 --
--- 代價是真的（舊做法藏圖示就是為了躲這個）：容器排版每一次都會無條件把 Icon 的錨點
--- 洗掉重錨到按鈕角落，覆蓋掉引擎排好的位置。所以排版之後要重套，見 RestoreAnchors。
+-- 現在（第三代）：不用引擎了。一張 1px 邊框貼圖錨在 Icon 四周、疊在下層，
+-- 純色直角，跟套組其他部分同一套視覺語言。
 --
--- 其餘幾條照舊，都是撞牆撞出來的：
---  * 不要把光環按鈕本身交出去。它是「圖示 ＋ 底下一行時間文字」的 30x40 長方形，
---    交出去樣式會被拉長、邊框糊掉。要另外包一層 30x30 的方框交出去。
---  * 包裝框的尺寸與錨點**寫死**，一個字都不從光環框上讀。12.1 連光環框的幾何都是
---    秘密值：`Icon:GetSize()` / `GetPoint()` 回的是秘密數字，比大小當場拋
---    "attempt to compare ... a secret number value"。
---  * 群組是**兩組**，由「哪個容器」決定（增益容器一組、減益容器一組），
---    不是由光環種類決定。種類走 AddButton 的第三個參數。
---  * 每顆按鈕只處理一次（`skinned` 表）。按鈕是回收再用的，重複處理會疊。
+-- 污染紀律（這支檔案的存在理由就是把接觸面縮到最小）：
+--  * 只建自己的區塊，只呼叫純 setter。不藏、不搬、不鏡射任何暴雪的東西。
+--  * 邊框錨在 `btn.Icon` 上 —— 暴雪排版怎麼搬 Icon，邊框自動跟著，
+--    所以完全不需要排版 hook，也永遠不讀幾何（12.1 幾何是秘密數字）。
+--  * 唯一的一個值判斷（附魔與否）讀 `btn.auraType`：表欄位讀取永遠合法，
+--    但比較之前要過 `issecretvalue` 護欄 —— 秘密值一比較就崩潰。
+--  * 減益的驅散類型色**做不到也不用做**：類型是秘密值、專用 API
+--    （C_UnitAuras.GetAuraDispelTypeColor）是 AllowedWhenUntainted、顏色烤死在
+--    per-type atlas 裡、AddDispelTypeTexture 只存在於路線 A 的 AuraButton。
+--    四條路都封死，所以保留暴雪自己的 DebuffBorder（安全端畫的，哪裡都正常）。
 ------------------------------------------------------------
 local _, ns = ...
 
 ns.Skin = {}
-local Skin = ns.Skin
 
-local L = ns.L
+-- 一般光環黑框；武器附魔染紫（原本的橘金外框藝術跟增益邊框太像）
+local BORDER_COLOR  = { 0, 0, 0 }
+local ENCHANT_COLOR = { 0.75, 0, 1 }
 
--- 武器附魔外框染紫。原始貼圖是橘金色，跟增益的邊框太像。
-local ENCHANT_BORDER_COLOR = { 0.75, 0, 1 }
+-- 邊框厚度（框架單位；按鈕吃編輯模式的 SetScale，非整數倍時就跟著縮放）
+local INSET = 1
 
-local ICON_SIZE = 30
+-- 光環按鈕 → 邊框貼圖。按鈕池只長不消（暴雪 frame 刪不掉），一顆只建一次。
+local borders = {}
 
-------------------------------------------------------------
--- 引擎
-------------------------------------------------------------
-local engine
-local function Engine()
-    if engine ~= nil then return engine end
-    engine = (LibStub and LibStub("Masque", true)) or false
-    return engine
+local _issecret = issecretvalue
+
+-- 這顆按鈕現在是不是武器附魔。
+-- 表欄位讀取永遠合法；比較之前先驗秘密值 —— 萬一哪天 auraType 變成秘密，
+-- 退成黑框，而不是整條 hook 鏈崩潰。
+local function IsTempEnchant(btn)
+    local t = btn.auraType
+    if t == nil then return false end
+    if _issecret and _issecret(t) then return false end
+    return t == "TempEnchant"
 end
 
-function Skin.IsAvailable()
-    return Engine() and true or false
-end
-
--- 帶玩家去挑樣式。引擎自己的設定介面，沒有就算了。
-function Skin.OpenEngineOptions()
-    if SlashCmdList and SlashCmdList["MASQUE"] then
-        SlashCmdList["MASQUE"]("")
-    end
-end
-
-------------------------------------------------------------
--- 套用
-------------------------------------------------------------
--- 已處理過的按鈕 → 它的包裝框。排版後要靠這張表找回去重套。
-local skinned = {}
-
-local function SkinFrames(group, frames)
+local function ApplyFrames(frames)
     for i = 1, #frames do
-        local frame = frames[i]
+        local btn = frames[i]
         -- 私人光環的錨點框也在這份清單裡，它的 Icon 是 Frame 不是 Texture。
-        -- 這裡是拿 GetTexture 當型別探針（我們並不呼叫它），一條就擋掉。
-        if not skinned[frame] and frame.Icon and frame.Icon.GetTexture then
-            local skinWrapper = CreateFrame("Frame")
-            skinWrapper:SetParent(frame)
-            skinWrapper:SetSize(ICON_SIZE, ICON_SIZE)
-            skinWrapper:SetPoint("TOP")
-            -- 出事時 /framestack 認得出是誰的，不影響行為
-            frame.MiliUIAura_Skin = skinWrapper
-            skinned[frame] = skinWrapper
+        -- GetTexture 只當型別探針（看欄位在不在，不呼叫）。
+        if btn.Icon and btn.Icon.GetTexture and not btn.isAuraAnchor then
+            local border = borders[btn]
+            if not border then
+                -- Icon 在 BACKGROUND 層級 0（AuraButtonArtTemplate），邊框墊在 -1
+                border = btn:CreateTexture(nil, "BACKGROUND", nil, -1)
+                border:SetPoint("TOPLEFT", btn.Icon, "TOPLEFT", -INSET, INSET)
+                border:SetPoint("BOTTOMRIGHT", btn.Icon, "BOTTOMRIGHT", INSET, -INSET)
+                borders[btn] = border
 
-            if frame.Count then
-                -- 編輯模式的示範圖示沒有層數文字
-                frame.Count:SetParent(skinWrapper)
-            end
-            if frame.DebuffBorder then
-                frame.DebuffBorder:SetParent(skinWrapper)
-            end
-            if frame.TempEnchantBorder then
-                frame.TempEnchantBorder:SetParent(skinWrapper)
-                frame.TempEnchantBorder:SetVertexColor(
-                    ENCHANT_BORDER_COLOR[1], ENCHANT_BORDER_COLOR[2], ENCHANT_BORDER_COLOR[3])
-            end
-            if frame.Symbol then
-                -- 色盲模式用文字標示驅散類型
-                frame.Symbol:SetParent(skinWrapper)
+                -- 附魔的橘金外框藝術不再需要（1px 紫框取代）。用 alpha 藏：
+                -- Show/Hide 歸暴雪管、我們不跟它搶，alpha 它不會動，藏一次就永久有效
+                if btn.TempEnchantBorder then
+                    btn.TempEnchantBorder:SetAlpha(0)
+                end
             end
 
-            local bType = frame.auraType or "Aura"
-            if bType == "DeadlyDebuff" then
-                bType = "Debuff"
-            end
-
-            -- ⚠ 交出去的是**暴雪自己那張** Icon，不是複製品。引擎會把它收進包裝框、
-            --   套上尺寸／裁切／遮罩。材質值全程由暴雪那一側寫入，我們不讀也不寫 ——
-            --   這是 12.1 秘密值底下唯一走得通的路。
-            group:AddButton(skinWrapper, {
-                Icon = frame.Icon,
-                DebuffBorder = frame.DebuffBorder,
-                EnchantBorder = frame.TempEnchantBorder,
-                Count = frame.Count,
-                HotKey = frame.Symbol,
-            }, bType)
+            -- 顏色每輪重判：按鈕是回收再用的，種類（減益→附魔）會變
+            local c = IsTempEnchant(btn) and ENCHANT_COLOR or BORDER_COLOR
+            border:SetColorTexture(c[1], c[2], c[3])
         end
     end
 end
 
-------------------------------------------------------------
--- 排版之後把圖示錨回包裝框
---
--- 容器的排版函式每一次都會 `Icon:ClearAllPoints()` 再錨回按鈕角落，無條件、
--- 不管位置有沒有真的變，等於每次都洗掉引擎排好的位置。
---
--- ⚠ 只重錨圖示，**不要叫引擎 ReSkin**。ReSkin 是重套「全部區塊」——它會把
---   DebuffBorder 也重畫一次，蓋掉暴雪在 Update 裡剛設好的驅散類型 atlas
---   （下毒綠、疾病棕那些），症狀是減益外框永遠只剩皮膚的靜態邊框（2026-08-28
---   玩家回報實測）。附魔外框的染紫同理也會被洗掉。
---
--- 錨到包裝框正中央：跟引擎自己的預設錨法一致，也正是舊實作那張自畫圖示
--- 寫死的位置（SetPoint("CENTER")），行為對得上。尺寸不必管——排版只動按鈕的
--- 尺寸，圖示的尺寸是引擎在 AddButton 時設的，沒人會再動它。
--- 讀 `Icon:GetPoint()` 先記再擺的路走不通：12.1 回的是秘密數字。
-------------------------------------------------------------
-local function RestoreAnchors(auras)
-    if not auras then return end
-    -- 用 ipairs 跟容器自己走同一份清單的方式一致
-    for _, aura in ipairs(auras) do
-        local wrapper = skinned[aura]
-        if wrapper then
-            aura.Icon:ClearAllPoints()
-            aura.Icon:SetPoint("CENTER", wrapper)
-        end
-    end
-end
-
-local function MakeHook(group)
-    return function(self)
-        SkinFrames(group, self.auraFrames)
-        if self.exampleAuraFrames then
-            SkinFrames(group, self.exampleAuraFrames)
-        end
+local function Hook(self)
+    ApplyFrames(self.auraFrames)
+    if self.exampleAuraFrames then
+        ApplyFrames(self.exampleAuraFrames)
     end
 end
 
 ------------------------------------------------------------
 -- 啟動
 --
--- ⚠ 開關只在啟動時看一次，改完要重載介面。這是刻意的：上面每一步都是單向的
---   （把區塊搬進包裝框、交給引擎），逐一還原是另一套沒有人驗證過的程式碼。
---   寧可要一次重載，不要一條沒跑過的路。
+-- ⚠ 開關只在啟動時看一次，改完要重載介面。停用時不跑任何還原：那時候
+--   什麼都還沒建，也就沒有東西要收。
 ------------------------------------------------------------
 ns.RegisterCallback("Init", "skin", function()
     if not ns.db.skin.enabled then return end
 
-    local LMB = Engine()
-    if not LMB then return end
-
-    local buffs   = LMB:Group(L["MiliUI Aura Enhance"], L["Buffs"])
-    local debuffs = LMB:Group(L["MiliUI Aura Enhance"], L["Debuffs"])
-
-    hooksecurefunc(BuffFrame, "UpdateAuraButtons", MakeHook(buffs))
-    hooksecurefunc(BuffFrame, "OnEditModeEnter", MakeHook(buffs))
-    hooksecurefunc(DebuffFrame, "UpdateAuraButtons", MakeHook(debuffs))
-    hooksecurefunc(DebuffFrame, "OnEditModeEnter", MakeHook(debuffs))
-
-    -- 排版會洗掉引擎排好的圖示位置，排完要重套回去。
-    --
-    -- ⚠ 容器**不是 XML 建的**，是暴雪在 Lua 裡動態生出來的，PLAYER_LOGIN 當下不保證
-    --   存在。掛不上不會報錯，只會安靜地沒作用（症狀是圖示位置偏掉），所以等到
-    --   PLAYER_ENTERING_WORLD 才掛（跟 AuraStyle 的 InstallHooks 同一個時機），
-    --   而且沒掛成就下次進場再試一次，兩個都掛上了才收工。
-    local targets = { BuffFrame, DebuffFrame }
-    local hooked = {}
-
-    local loader = CreateFrame("Frame")
-    loader:RegisterEvent("PLAYER_ENTERING_WORLD")
-    loader:SetScript("OnEvent", function(self)
-        local remaining = 0
-        for i = 1, #targets do
-            if not hooked[i] then
-                local container = targets[i] and targets[i].AuraContainer
-                if container then
-                    hooksecurefunc(container, "UpdateGridLayout", function(_, auras)
-                        RestoreAnchors(auras)
-                    end)
-                    hooked[i] = true
-                else
-                    remaining = remaining + 1
-                end
-            end
-        end
-        if remaining == 0 then
-            self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-        end
-    end)
+    hooksecurefunc(BuffFrame, "UpdateAuraButtons", Hook)
+    hooksecurefunc(BuffFrame, "OnEditModeEnter", Hook)
+    hooksecurefunc(DebuffFrame, "UpdateAuraButtons", Hook)
+    hooksecurefunc(DebuffFrame, "OnEditModeEnter", Hook)
 end)

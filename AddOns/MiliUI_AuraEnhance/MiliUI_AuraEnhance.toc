@@ -14,7 +14,7 @@
 ## IconTexture: Interface\Icons\Spell_Holy_WordFortitude
 ## SavedVariables: MiliUI_AuraEnhance_DB, MiliUI_AuraEnhanceDB
 ## AddonCompartmentFunc: MiliUIAuraEnhance_OnAddonCompartmentClick
-## OptionalDeps: Masque, LibSharedMedia-3.0
+## OptionalDeps: LibSharedMedia-3.0
 
 # 像素工具單獨排最前面：其他模組也吃 ns.P
 Libs\MiliUIWidgets\PixelPerfect.lua

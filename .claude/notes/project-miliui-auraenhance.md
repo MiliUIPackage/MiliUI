@@ -47,17 +47,8 @@ upvalue（hook 是熱路徑），換表的話 hook 會繼續指著舊的那份�
 `git rm` 掉，`Options/Roster.lua` 的 Masque 那筆也把它從 folders 拿掉、desc 改寫。
 **後果要跟玩家講**：群組 ID 換人了，之前挑好的樣式不會沿用，要重挑一次。
 
-三個非做不可的動作（照做才不會撞牆，來源是那支插件的實作）：
-
-1. **交出去的必須是另外包的一層方框，不是光環按鈕本身。** 按鈕是「圖示＋底下一行
-   時間文字」的長方形，直接交出去樣式會被拉長、邊框糊掉。包裝框 `SetAllPoints(btn.Icon)`
-   ——跟著圖示走，編輯模式改圖示大小不用重算（那支插件是寫死 30x30 錨 TOP）。
-2. ⚠ **這條在 2026-08-28 被推翻，見下面「鏡射圖示是死路」。** 原本寫的是「不要讓引擎去畫
-   暴雪那張圖示，自己畫一張鏡射的」——那在 12.1 會讓整排圖示變紅問號。**現在是把暴雪
-   那張 Icon 直接交出去。**
-3. **層數／減益外框／附魔外框／色盲符號要搬進包裝框。** 子框的貼圖永遠蓋過父層的區塊
-   （見 [[wow-frame-vs-texture-layering]]），留在原地會被樣式的邊框蓋掉。停用時要**一個一個
-   還回去**，否則它們跟著隱藏的包裝框一起消失。
+⚠ **2026-08-28 起 Masque 路線整組退場**，下面「三代演進」是現況；本節其餘內容是
+第一、二代的歷史，留著是因為每一條都是撞牆記錄。
 
 ### 圖示樣式：整段照搬，不要重寫（同一支檔案我翻車三次）
 
@@ -73,17 +64,8 @@ upvalue（hook 是熱路徑），換表的話 hook 會繼續指著舊的那份�
 3. `KindOf` 用「有沒有 `TempEnchantBorder`」判種類 —— 那是樣板區塊、**每顆按鈕都有**，
    非附魔時只是藏起來。結果所有光環都被判成附魔，另外兩組全空，而且不報錯。
 
-**現在的做法（＝原本那份，逐條照搬）**：
-- **兩組**，群組由「哪個容器」決定（增益容器一組、減益容器一組），不是由種類決定；
-  種類走 `AddButton` 的第三參數（`frame.auraType or "Aura"`，DeadlyDebuff→Debuff）。
-- 掛 `UpdateAuraButtons` ＋ `OnEditModeEnter`（後者在 12.1 由 `EditModeSystemMixin`
-  提供，掛得上），走 `self.auraFrames`；`skinned` 表保證一顆只處理一次。
-- 包裝框 `SetSize(30,30)` ＋ `SetPoint("TOP")`。**全部寫死**。
-- ~~`Icon:Hide()` ＋ 自畫一張鏡射~~ → **2026-08-28 改成直接交出 `frame.Icon`**，見下一節。
-- `Count` / `DebuffBorder` / `TempEnchantBorder`（染紫 0.75,0,1）/ `Symbol`
-  搬進包裝框，`AddButton` 的區塊表照原樣（含 `HotKey = Symbol`）。
-- 開關**啟動時讀一次，改完要重載**：上面每一步都是單向的，逐一還原是另一套沒人
-  驗證過的程式碼。
+（第二代做法的操作細節——包裝框、區塊搬家、排版後重錨——已隨 Masque 退場，
+要看去 git 歷史：`git log --oneline -- AddOns/MiliUI_AuraEnhance/Modules/Skin.lua`。）
 
 **教訓（使用者的原話）：那是撞牆撞出來的，完全不會報錯 —— 執行面照搬，不要自己改。**
 看起來「可以更聰明一點」的每一處，都是別人已經撞過的牆。
@@ -98,17 +80,31 @@ upvalue（hook 是熱路徑），換表的話 hook 會繼續指著舊的那份�
 自畫那張就永遠停在樣板預設圖。倒數是暴雪自己的 FontString，所以照常跑——
 **「字對圖錯」就是這個 bug 的指紋。**
 
-**現在的做法：`Icon = frame.Icon` 直接交給引擎**，材質值全程不經手。引擎對 Icon 只做
-`SetParent`／`SetTexCoord`／`SetDrawLayer`／`SetSize`／`SetPoint` 與遮罩，全是 setter
-不讀值（實地讀過 `Masque/Core/Regions/Icon.lua` 確認：只有背包類型會 `SetTexture`）。
+## 三代演進（2026-08-28 定案：自製 1px，Masque 退場）
 
-**代價**：`AuraContainerMixin:UpdateGridLayout` 每次排版都**無條件**
-`Icon:ClearAllPoints()` ＋ `SetPoint(iconPoint, aura, iconPoint)`，洗掉引擎排好的位置
-（舊做法藏圖示就是為了躲這個，理由是真的）。還原**只能叫引擎自己重套**
-`group:ReSkin(wrapper)`——位置是從樣式資料算的，我們沒辦法先記下來再擺回去，
-`Icon:GetPoint()` 在 12.1 回秘密數字。掛在兩個容器的 `UpdateGridLayout` 後面。
-`ReSkin` 會連 `Count` 一起重擺，但 AuraStyle 的 `Count:SetPoint` reactive hook 會搶回來
-（跟它原本應付暴雪重錨是同一套機制），不是新的失效模式。
+1. **鏡射**（Masque＋自畫圖示）：12.1 受限下整排紅問號，見上。
+2. **交出真 Icon 給 Masque**：修掉問號，但踩出第二個靜默失效——排版後用
+   `group:ReSkin` 還原圖示位置，`ReSkin` 是重套**全部區塊**，把暴雪剛設好的
+   `DebuffBorder` 驅散色 atlas 蓋掉（玩家回報減益全變白框）。改成只重錨 Icon 才修好。
+3. **自製 1px 邊框（現況）**：一張 `SetColorTexture` 貼圖
+   `CreateTexture(nil, "BACKGROUND", nil, -1)` 錨在 `btn.Icon` ±1px（Icon 在
+   BACKGROUND 層級 0）。**錨在 Icon 上所以暴雪排版怎麼搬都自動跟隨——連排版 hook
+   都不需要**；一般黑、附魔紫（0.75,0,1；`TempEnchantBorder:SetAlpha(0)` 藏原本的
+   橘金藝術——alpha 暴雪不動，藏一次永久有效）、減益保留暴雪 `DebuffBorder`。
+   附魔判斷讀 `btn.auraType`（表欄位讀取合法），**比較前過 `issecretvalue` 護欄**，
+   秘密就退成黑框。顏色每輪 `UpdateAuraButtons` 重判（按鈕回收會換種類）。
+   Masque 從 TOC OptionalDeps 移除；玩家挑皮膚的能力隨之取消（上線僅三天，套組
+   哲學本來就是整包調好）。
+
+**減益的驅散類型 1px 上色做不到（四條路全查證過，2026-08-28）**：
+① `debuffType` 受限時是秘密值，當 table key 查色表直接崩潰；
+② 專用 API `C_UnitAuras.GetAuraDispelTypeColor(unit, auraInstanceID, curve)`
+（驅散類型當曲線 x）是 `AllowedWhenUntainted`，受限時 `auraInstanceID` 是秘密，
+污染端一傳就被拒；③ 暴雪自己的上色是 `AuraUtil.SetAuraBorderAtlas` →
+`DEBUFF_DISPLAY_INFO[dispelType]` → per-type **烤色 atlas**，沒有 vertex color
+可搭便車；④ `AddDispelTypeTexture`（引擎替你的貼圖上色、Cell 在用）只存在於
+路線 A 的 intrinsic AuraButton，玩家自身 BuffFrame 是舊路徑沒這接口。
+唯一可靠的色彩載體＝暴雪自己的 DebuffBorder（安全端畫的）。
 
 **沒有替代的交付 API**：Cell／MiliUI_UnitFrames 走 `button:SetIcon(自己的貼圖)`，
 但那只存在於 AuraContainer 路線的 intrinsic AuraButton；玩家自身的 BuffFrame 到 12.1
@@ -140,7 +136,7 @@ upvalue（hook 是熱路徑），換表的話 hook 會繼續指著舊的那份�
 而不是容器，一條就擋掉，日後暴雪再往清單塞東西也不會中招。
 （`isAuraAnchor` 只擋得住私人光環錨點。）
 
-其他實作決定：
+其他實作決定（**一、二代 Masque 路線的，已隨退場失效**，僅存查考）：
 
 - `AddButton` 傳的是 **Frame**（不是 Button），Masque 因此自動 `Strict = true`，只會動我們
   列出來的區塊，不會自己去按鈕上翻別的東西。
@@ -156,8 +152,7 @@ upvalue（hook 是熱路徑），換表的話 hook 會繼續指著舊的那份�
 - 兩個模組共用 `ns.AuraStyle.ForEach`（會帶出「這顆是不是減益」），不要各掃各的。
 
 ⚠ **註解裡不要出現第三方插件名**（見 [[project-miliui-uf-comment-attribution]]）——
-Masque 只出現在程式碼（`LibStub("Masque", true)`）與**面向玩家的字串**裡，
-註解一律寫「外觀樣式引擎」。
+這條在三代照舊適用：Skin.lua 的歷史註解寫「外觀樣式引擎」，不點名。
 
 ## 行為上維持原樣的部分
 
