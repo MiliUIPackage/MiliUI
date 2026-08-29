@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: c0d1056b-afe5-4f0b-a0d1-24a0f3f4c05d
-  modified: 2026-08-29T07:59:39.917Z
+  modified: 2026-08-29T08:36:21.762Z
 ---
 
 `AddOns/MiliUI_InfoBar/`（2026-08-29 新增）。純色方底一長條：資訊區塊（裝等／耐久／
@@ -64,11 +64,13 @@ metadata:
 - 天賦名的事件坑（EUI 實測）：TRAIT_CONFIG_UPDATED 時 last-selected 指標還是舊的，
   要等 SPELLS_CHANGED 收尾；兩個都註冊、處理冪等。擲骰 SetLootSpecialization 是
   非保護偏好呼叫，戰鬥中合法，選單不掛戰鬥閘。
-- 編輯模式訊號走雙保險：EditModeManagerFrame 的 OnShow/OnHide 掛勾＋
-  `EventRegistry` 的 `"EditMode.Enter"/"EditMode.Exit"`（官方在 EnterEditMode／
-  ExitEditMode 內部發的，Blizzard_EditMode/Shared/EditModeManager.lua）。
+- 編輯模式訊號走**三重保險**：EditModeManagerFrame 的 OnShow/OnHide 掛勾＋
+  `hooksecurefunc(EditModeManagerFrame, "EnterEditMode"/"ExitEditMode")`（方法本體，
+  編輯模式真的啟動就必然執行）＋ `EventRegistry` 的 `"EditMode.Enter"/"EditMode.Exit"`
+  （官方在 EnterEditMode／ExitEditMode 內部發的）。全部冪等。
   選取框**開檔就建**——進了編輯模式才在暴雪的 OnShow 路徑裡建框是沒驗證過的
   時序；建立包 pcall（DamageMeters 同款防禦），失敗就自畫藍框頂著。
+  完整步驟已整編進 wow-editmode-draggable 技能（2026-08-29 重寫）。
 - 設定視窗開著＝職業色「拖曳移動」遮罩蓋整條（照 MiliUI_Minimap 的慣例：
   開設定多半就是要搬家；右鍵回預設位置）。遮罩是保護框子層，Show/Hide 走
   ns.Defer。編輯模式的藍框跟這套遮罩是**兩套視覺**。
