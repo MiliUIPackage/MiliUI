@@ -16,7 +16,7 @@ L["Automation"] = "自动化"
 L["About"] = "关于"
 
 -- 标题栏
-L["Quests"] = "任务"
+L["Objectives"] = "目标"
 L["Auto turn-in"] = "自动交任务"
 L["Auto accept"] = "自动接任务"
 
@@ -36,7 +36,7 @@ L["Colours"] = "颜色"
 L["Quest title"] = "任务标题"
 L["Completed"] = "已完成"
 L["Tracked"] = "追踪中"
-L["Objectives"] = "目标文字"
+L["Objective text"] = "目标文字"
 L["Section headers use your class colour"] = "分区标题使用职业色"
 L["Section header colour"] = "分区标题颜色"
 
@@ -60,7 +60,7 @@ L["Widens the hit area of Blizzard's own +/- button across the whole header row.
 -- 外观：标题栏
 L["MiliUI title bar"] = "米利的标题栏"
 L["Show the title bar"] = "显示标题栏"
-L["Show the tracked quest count"] = "显示追踪中的任务数"
+L["Show the number of tracked items"] = "显示追踪中的项目数"
 L["Click the title bar to fold the list"] = "点击标题栏折叠整份列表"
 
 -- 自动折叠

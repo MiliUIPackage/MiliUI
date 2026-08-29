@@ -115,6 +115,21 @@ function T.EachBlock(tracker, fn)
     end
 end
 
+-- 清單裡現在有幾筆。標題列的讀數用這個，不要用 C_QuestLog.GetNumQuestWatches()
+-- —— 那支只數任務，而標題列講的是**整份清單**（戰役、成就、專業都在裡面）。
+--
+-- ⚠ 共用 widget pool 的兩支（場景／UI widget）數不到：它們的區塊碰不得（規矩 3）。
+--   代價是在副本場景／M+ 裡會少算那一段。可以接受 —— 那時候清單裡本來就多半是
+--   場景進度，而不是玩家在追蹤的東西。
+function T.CountBlocks()
+    local n = 0
+    T.EachTracker(function(tracker)
+        if not (tracker.IsShown and tracker:IsShown()) then return end
+        T.EachBlock(tracker, function() n = n + 1 end)
+    end)
+    return n
+end
+
 -- 走一個區塊的所有目標行。
 --
 -- ⚠ 欄位是 `usedLines`，**不是 `lines`** —— 對照過 Blizzard_ObjectiveTrackerBlock.lua

@@ -217,6 +217,12 @@ local function EnsureFrames()
     newBar.label:SetPoint("LEFT", newBar.arrow, "RIGHT", P.Scale(6), 0)
     newBar.label:SetFont(Font(), Cfg().headerSize, Outline())   -- 理由同 chip.label
 
+    -- 讀數是獨立的 FontString 而不是同一串裡塞色碼：要的不只是換色，還有小一級。
+    -- 色碼做不到字級
+    newBar.count = newBar:CreateFontString(nil, "OVERLAY")
+    newBar.count:SetPoint("LEFT", newBar.label, "RIGHT", P.Scale(5), 0)
+    newBar.count:SetFont(Font(), Cfg().headerSize, Outline())
+
     -- 重建時先清空：上一輪如果死在半路，chips 裡會留著孤兒
     wipe(chips)
     newBar.turnIn = CreateChip(newBar, L["Auto turn-in"],
@@ -419,14 +425,32 @@ end
 --
 -- 數量只數**被追蹤的**任務，不是任務日誌總數 —— 標題列講的是底下這份清單。
 ------------------------------------------------------------
+-- 標籤叫「目標」而不是「任務」：這條是**整個追蹤器**的標題（它取代暴雪的
+-- 「所有目標」），底下同時裝著戰役、任務、成就、專業。叫「任務」的話標籤與內容
+-- 對不起來 —— 而那正是「數字看不懂」的真正成因，不是排版問題。
+--
+-- 讀數用括號包起來、壓灰、小一級。三層訊號都用上：括號（結構）講「這是前面那個
+-- 東西的數量」、灰（顏色）講「這是附註不是標題」、小一級（字級）再確認一次階層。
+--
+-- ⚠ 這裡跟套組其他地方**相反**，是刻意的。MiliUI_InfoBar 的 Dim() 是把**標籤**
+--   壓灰（`裝等 489`）—— 資訊列你要掃的是數字。這裡是標題列，「目標」是這份清單的
+--   名字、不是註記，壓灰會讓標題變成最弱的元素。不要為了「統一」把它改回去。
+local COUNT_DIM = 0.667   -- 對齊套組的 |cffaaaaaa
+
 function Chrome.UpdateLabel()
     if not bar then return end
-    local text = L["Quests"]
-    if BarCfg().showCount then
-        local n = C_QuestLog and C_QuestLog.GetNumQuestWatches and C_QuestLog.GetNumQuestWatches() or 0
-        if n > 0 then text = text .. "  " .. n end
+    local a = Cfg()
+    bar.label:SetText(L["Objectives"])
+
+    local n = BarCfg().showCount and ns.Tracker.CountBlocks() or 0
+    if n > 0 then
+        bar.count:SetFont(Font(), math.max(8, a.headerSize - 2), Outline())
+        bar.count:SetTextColor(COUNT_DIM, COUNT_DIM, COUNT_DIM)
+        bar.count:SetText("(" .. n .. ")")
+        bar.count:Show()
+    else
+        bar.count:Hide()
     end
-    bar.label:SetText(text)
 end
 
 ------------------------------------------------------------

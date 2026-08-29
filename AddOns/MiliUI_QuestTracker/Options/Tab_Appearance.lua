@@ -48,7 +48,7 @@ local function BuildControls()
         { type = "color",  key = "titleColor",     label = L["Quest title"],  hasAlpha = false },
         { type = "color",  key = "completedColor", label = L["Completed"],    hasAlpha = false },
         { type = "color",  key = "focusColor",     label = L["Tracked"],      hasAlpha = false },
-        { type = "color",  key = "objectiveColor", label = L["Objectives"],   hasAlpha = false },
+        { type = "color",  key = "objectiveColor", label = L["Objective text"], hasAlpha = false },
         { type = "toggle", key = "headerUseClass", label = L["Section headers use your class colour"] },
         { type = "color",  key = "headerColor",    label = L["Section header colour"], hasAlpha = false },
 
@@ -70,7 +70,7 @@ local function BuildControls()
 
         { type = "header", label = L["MiliUI title bar"] },
         { type = "toggle", root = "titleBar", key = "enabled",     label = L["Show the title bar"] },
-        { type = "toggle", root = "titleBar", key = "showCount",   label = L["Show the tracked quest count"] },
+        { type = "toggle", root = "titleBar", key = "showCount",   label = L["Show the number of tracked items"] },
         { type = "toggle", root = "titleBar", key = "clickToFold", label = L["Click the title bar to fold the list"] },
     }
 end
