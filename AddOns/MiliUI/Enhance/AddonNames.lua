@@ -16,7 +16,6 @@ local addonNames = {
     -- ==================== 介面 / 通用 ====================
     ["AdvancedInterfaceOptions"]                            = "進階介面選項",
     ["AppearanceTooltip"]                                   = "外觀預覽提示",
-    ["Leatrix Plus"]                                        = "功能百寶箱",
     ["Plumber"]                                             = "實用工具包",
     ["Masque"]                                              = "快捷列樣式",
     ["tullaRange"]                                          = "技能範圍提示",

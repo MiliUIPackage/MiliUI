@@ -47,7 +47,6 @@ ns.AddonRoster = {
         { key = "Cell", folders = { "Cell" }, slash = "/cell opt" },
         { key = "Platynator", folders = { "Platynator" }, slash = "/platy" },
         { key = "Chattynator", folders = { "Chattynator" }, slash = "/chattynator" },
-        { key = "Leatrix_Plus", folders = { "Leatrix_Plus" }, slash = "/ltp" },
         { key = "AdvancedInterfaceOptions", folders = { "AdvancedInterfaceOptions" }, slash = "/aio" },
         { key = "Masque",
           folders = { "Masque", "MasqueBlizzBars", "Masque_Caith", "Masque_FlatSquares", "Masque_Raeli" },

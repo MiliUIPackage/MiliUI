@@ -22,6 +22,14 @@ metadata:
 `MiliUI_Tooltip`（[[project-miliui-tooltip]]），LegacyAddons 會自動停用玩家殘留的資料夾。
 原本記的修改內容（效能修補＋secret 版 UnitColor，[[project-tinytooltip-perf]]）已無對象。
 
+**已從表中移除**：`Leatrix_Plus`（2026-08-29）。整包從套組移除——套組已經自己做掉它主要
+被用到的那幾件事（商人自動修裝／自動賣垃圾在 `MiliUI/Enhance/Merchant_Automation.lua`、
+任務自動接交在 `MiliUI_QuestTracker`、小地圖按鈕收納在 `MiliUI_Minimap`、提示在
+`MiliUI_Tooltip`、快速拾取由 Plumber 的 LootUI 提供）。原本記的修改（12.1 光環秘密值閘，
+`LeaPlusLC:AurasAreSecret()` ＋ 7 個呼叫點）已無對象。**沒有**加進 LegacyAddons 自動停用：
+玩家自己另外裝回來是合理的，三處撞車偵測（商人／任務／資訊列耐久選單）都留著，讀不到
+`LeaPlusDB` 就自動靜音。
+
 | 插件 | 本地改了什麼 | 細節 |
 |---|---|---|
 | **Cell** ⚠**已不再追上游——我們自己就是上游**（2026-08-16 起），可以放手改，不用再考慮被洗掉 | 最多的一支：AuraContainer 路線 A 重寫、secret guard、停用版本檢查與更新日誌、載具名稱與載具 token 時序、LibGroupInfo GUID、護盾/溢盾 Midnight 路徑、**沒有指派角色時 roleIcon 退回專精定位**（探究裡暴雪只給 AI 同伴角色、玩家一律 `NONE`；自己那格直接讀專精不走 LibGroupInfo，另註冊 `PLAYER_SPECIALIZATION_CHANGED` 補單人換專精）、預設值調整、**移除 12.x 不可行的功能**（2026-08-24）：法術請求／請求驅散（comm 在首領戰/M+/戰場送不出去＋光環讀不到＋CLEU 熄燈沒了，四個 Request_*.lua 全刪）、標記列的右鍵「鎖定標記」（要靠 ticker 重呼叫 SetRaidTarget，12.0 起是保護函式；連帶砍掉 CELL_MARKS 廣播與 11 份語系的右鍵說明）、死亡報告的 CLEU 分支（只留 UNIT_HEALTH+UnitIsDeadOrGhost 的簡化版：只講誰死、不講被什麼打死）、**AoE 治療指示物**（純 CLEU，做法見 [[project-cell-auracontainer-rewrite]] 的「移除一個內建指示物」）、UnitButton 的鏡像／群體護盾 CLEU 追蹤（旗標早就沒人讀）、StatusIcon 與 NPCFrame 的 CLEU 分支；**修好**血量門檻在 12.x 的實作（`CheckThresholdMidnight` 被呼叫卻從來沒定義過，一開這個指示物就每次血量事件報錯；改成每門檻一條曲線，見 [[wow-121-secret-values]]）、左側冷卻排改用自己的右緣對齊（換角色不再位移）、滑鼠施法提示改名與從滑鼠點擊施法頁跳轉的按鈕、滑鼠施法提示新增「我的錨點」設定（存檔那個偏移描述所選的那一角，預設右上＝面向團隊框的那一邊）、**拖曳進戰強制鬆開**（2026-08-27，Utils.lua 的 `F.StartAnchorMoving`／`F.StopAnchorMoving`，12 個拖曳點全改走它，見 [[wow-combat-drag-release]]）；DB 預設值與 Revise 遷移刻意留著。見 [[wow-121-other-api-changes]]、內附 LibCustomGlow 手動改成 v25（就地改兩行，Cell 那份是 LF 且靠 `Libs/LoadLibs.xml` → `LibCustomGlow-1.0.xml` 載入） | [[project-cell-auracontainer-rewrite]]、[[project-cell-no-update-notice]]、[[project-cell-vehicle-secret]]、[[project-cell-libgroupinfo-secret-guid]]、[[wow-121-absorb-shield-secret]]、[[wow-vehicle-token-timing]]。TOC 版本號帶 `_MiliUI` 尾綴（底線，2026-08-17 從 `-` 改過來） |
@@ -32,7 +40,6 @@ metadata:
 | **DamageMeterTools** | 錯誤處理器改成鏈式（原本會吃掉 BugSack 的錯誤）、登入卡頓修補 | 見 [[project-121-addon-migration]] |
 | **BuffReminders** | `Core/Bootstrap.lua` 註解掉每次登入的 external buffs 提示 | 一行 |
 | **DiGuaTimelineAudioHelper** | `Core.lua` 註解掉每次登入的「愛發電」贊助提示 print | 一行，有 `fix from MiliUI` 標記。這支會定期 `update:` 同步上游 |
-| **Leatrix_Plus** | 12.1 光環秘密值閘：`LeaPlusLC:AurasAreSecret()`（檔案頂端）＋ 7 個呼叫點 | 見 [[project-121-addon-migration]]。全部有 `fix from MiliUI` 標記 |
 | **MRT** | 12.1 光環秘密值閘：`RaidCheck.lua` 的 `module.frame:UpdateData`（閘從迴圈內移到呼叫前）與 `CheckPotionsOnPull`（新增閘） | [[project-121-addon-migration]]。兩處都有 `fix from MiliUI` 標記；上游自己有在修同一類問題，同步後要重看這兩個點 |
 | **AztarecHelper**（目前 2.1.4） | **整包 zhTW 中文化**（2026-08-22）——**重套不用手工，跑 `python3 .claude/patches/AztarecHelper-zhTW.py AddOns/AztarecHelper`**（169 處對照＋區塊，已驗證能從乾淨上游完整重現；沒命中的會列出來，那就是上游改過字的地方）：所有玩家看得到的字串就地翻譯、`Media/zhTW/` 放自製中文語音提示（往前／往左／往右／不要動，macOS `say -v Meijia` 產生）、TTS 沒指定時優先挑中文語音、`shortVoice` 位元組截斷改成 UTF-8 邊界、`InDelve()` 與 `ENCOUNTER_START` 的名稱備援補上「毒瀑深淵」「阿茲塔瑞」。另外**把空的 `AZT.Log` 接到 `AztarecHelperDB.log`**（診斷用，`/azt log`）—— SafeSpots 的事件處理器整個包在 pcall 裡，上游正式版出事完全靜音，接起來之後 `SAFE_ERR`／`WINDOW n locked`／`CAPTURE closed` 才留得下來 | 全部有 `fix from MiliUI (中文化)` 標記。**不能翻的三處**：`AZT.QUAD_DIR`（同時是 `NPE_Arrow%s` 貼圖集後綴＋隊長報點的線上約定字串）、報點 payload（戰鬥中是 secret value，收到只能原封不動轉手）、`TURNS` 的 stay/left/forward/right（音效檔名與角度表的 key）。上游是 All Rights Reserved 的閉源插件，翻譯只是本地改動，沒有回上游的路。**語音檔 `Media/zhTW/` 不在上游包裡，覆蓋新版前要先留下來**（重生方式寫在補丁腳本的 docstring）|
 | **ChatThrottleLib**（`<插件>/Libs/AceComm-3.0/ChatThrottleLib.lua`，v31）——**四份副本全部改了**：`MiliUI`／`Cell`／`WarpDeplete`／`BugSack` | `Hook_SendChatMessage`／`Hook_SendAddonMessage` 的 `tostring(text/prefix/destination)` 改走新增的 `SafeStrLen()`（`issecretvalue` 就回固定長度 32）。密語給跨服／戰網／非隊友時，名字是秘密字串，統計掛勾一 tostring 就噴 `attempt to perform string conversion on a secret string value`（怪罪對象是當時載入那份的宿主，實測是 Cell） | 2026-08-29。**四份都改是因為誰先載入誰贏**（版本相同就比載入順序），只修一份會在停用／更新某支之後悄悄復發。有 `fix from MiliUI` 標記，`grep -rn SafeStrLen AddOns/*/Libs/AceComm-3.0/ChatThrottleLib.lua` 一眼看得出有沒有被洗掉。⚠ 這是流量統計，估錯長度只影響節流帳，不影響實際發送 |

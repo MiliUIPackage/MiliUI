@@ -188,6 +188,10 @@ end
 -- Leatrix 的執行期設定表是檔案內的 local，外面拿不到，所以沒辦法「幫他關掉」，
 -- 也沒辦法即時同步 —— 只能讀他的 SavedVariables。那份是登入當下的值，玩家在
 -- 遊戲中改了要等下次 /reload 我們才看得到，所以文案要講清楚是登入時的狀態。
+--
+-- ⚠ 米利UI 套組已經不內附 Leatrix Plus（2026-08-29 移除），這段仍然要留著：
+--   玩家自己裝回來時 LeaPlusDB 才會存在，沒裝就靜音（同
+--   MiliUI/Enhance/Merchant_Automation.lua 的判斷）。
 ------------------------------------------------------------
 function AQ.LeatrixConflict()
     local db = _G.LeaPlusDB
