@@ -146,6 +146,37 @@ ARTWORK、圓框被當成圖示），最後才發現主因是 strata。**別在�
 我們只拆得掉認得出來的暴雪圓框，自帶造型的插件會留一張我們不認識的裝飾貼圖在
 ARTWORK，把圖示壓下去等於讓那張貼圖蓋在圖示上面 —— 同樣是「像被上了遮罩」。
 
+## ⚠⚠ 記憶體：每幀掃全部好友（2026-08-30 修）
+
+使用者回報這支 **26 分鐘吃掉 96 MB、佔全部插件記憶體 31%**。根因是一條每幀觸發的鏈：
+
+```
+被收納的插件 btn:Show()      ← LibDBIcon 系每個事件甚至每幀都叫一次
+  → 我們的 Show 掛勾
+  → QueueLayout → Buttons.Layout
+  → Fire("BagCountChanged") → Bar.Update → 三格 UpdateSlot
+  → D.FriendsOnline()
+```
+
+`C_BattleNet.GetFriendAccountInfo(i)` **每次呼叫都配一張新表**，裡面還巢著一張
+`gameAccountInfo`。40 個戰網好友 ＝ 每幀 80 張表的垃圾。
+
+**教訓一：把「別人會怎麼呼叫我的掛勾」當成每幀。** `hooksecurefunc(btn, "Show")`
+看起來是事件驅動，實際上取決於**別人**的呼叫頻率 —— 而 `Show()` 對已顯示的框
+是常見的無害重複呼叫，沒人會覺得那需要節制。掛勾裡一定要先問「狀態真的變了嗎」。
+
+**教訓二：鏈上每一環都要補守衛，不要只堵最貴的那個。** 四道各自獨立：
+- Show/Hide 掛勾：`_miliShown` 沒變就不排程
+- `Buttons.Layout`：顆數沒變就不廣播
+- `D.FriendsOnline`：1 秒 TTL（人數是**讀數**不是狀態機，差一秒無影響）
+- `UpdateSlot` / `UpdateClock`：內容沒變就不 `SetFormattedText`
+  （時鐘只到分鐘，0.5 秒 ticker 一分鐘有 119 次在重寫同一串字）
+
+**教訓三：回傳 table 的 C API 是配置點。** `GetFriendAccountInfo`、
+`C_Map.GetPlayerMapPosition`、`GetMouseFoci` 這類每次都給新物件，放進任何
+「可能被高頻呼叫」的路徑之前先想清楚誰會叫它。
+相關：[[wow-addon-profiler-cost]]。
+
 ## 尺寸
 
 - 預設 172 **太小**（暴雪原本約 198），使用者第一時間就反映了。改 200 起跳。
