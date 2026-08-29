@@ -320,6 +320,9 @@ local function Escalate(questID)
 
     if not db[questID] then
         db[questID] = true
+        -- 實測蓋過玩家的忽略：「我不要你預設塞給我」跟「量出來就是會失敗」是兩件事
+        local dismissed = Cfg() and Cfg().dismissedSlow
+        if dismissed then dismissed[questID] = nil end
         Trace("   %s 沒接到 ⇒ 記進清單，下次先等 %.2fs", Safe(questID), Wait())
         return
     end

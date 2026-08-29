@@ -34,7 +34,10 @@ local function BuildSlowList(parent, x, y, width, ctx)
         row.del:SetScript("OnClick", function(self)
             local id = self:GetParent().questID
             if not id then return end
-            ns.db.automation.slowQuests[id] = nil
+            local au = ns.db.automation
+            au.slowQuests[id] = nil
+            -- 記下「玩家不要這一條」，否則下次登入內建清單會把它併回來
+            au.dismissedSlow[id] = true
             ns.Fire("SettingsChanged")
         end)
     end)
@@ -125,7 +128,10 @@ local function BuildControls()
     controls[#controls + 1] = { type = "button", label = "", text = L["Clear the list"],
         color = "red", confirm = L["Forget every quest in the list? They will be learned again the next time they fail."],
         onClick = function()
-            wipe(ns.db.automation.slowQuests)
+            local au = ns.db.automation
+            -- 逐條記成「不要」再清空，理由同單筆移除
+            for questID in pairs(au.slowQuests) do au.dismissedSlow[questID] = true end
+            wipe(au.slowQuests)
             ns.Fire("SettingsChanged")
         end }
 

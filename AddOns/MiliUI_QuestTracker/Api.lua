@@ -50,6 +50,8 @@ SlashCmdList.MILIUIQUEST = function(msg)
         -- 再失敗，不清就再也量不到了
         local db = ns.db.automation.slowQuests
         if msg:match("clear") then
+            -- 逐條記成「不要」再清空，否則下次登入內建清單會把它們併回來
+            for questID in pairs(db) do ns.db.automation.dismissedSlow[questID] = true end
             wipe(db)
             ns.Print(L["Cleared the learned quest delays."])
         else

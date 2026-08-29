@@ -128,8 +128,22 @@ local function BuildDefaults()
             -- questID → true
             -- ⚠ 存在帳號層級（TOC 是 SavedVariables 不是 PerCharacter）是刻意的：
             --   週任每隻分身都要跑，一隻角色踩過一次，其他分身直接就是對的。
-            -- ⚠ 也不能寫死一張清單 —— 週任的 questID 每週都不一樣。
+            --
+            -- 這裡可以直接內建已知的 questID（`[98232] = true` 這樣寫一行）：
+            -- MergeDefaults 對 table 是遞迴、對值只補 nil，所以玩家已經有的原封不動、
+            -- 沒有的才補上。週任雖然每週換，但會**輪替**，蒐集幾輪就湊得齊。
             slowQuests = {},
+
+            -- 玩家自己從清單移除過的。
+            --
+            -- ⚠ 沒有這張表的話，內建清單一上線就會出現「移除了、下次登入又冒出來」——
+            --   因為 nil-merge 分不出「玩家沒有過」跟「玩家刪掉了」，兩種都是 nil。
+            --   玩家看到的是「移除鈕壞掉」，而且只有內建清單存在時才會發生，現在測不出來。
+            --
+            -- ⚠ 它只擋**內建預設值**被併回來，不擋實測。真的又接失敗時 Escalate 會把
+            --   這裡的紀錄清掉重新學 —— 「我不要你預設塞給我」跟「量出來就是會失敗」
+            --   是兩件事，後者該贏。
+            dismissedSlow = {},
 
             showTurnInToggle = true,
             showAcceptToggle = true,
@@ -167,6 +181,15 @@ local function Clamp(tbl, key, limits)
 end
 
 local function Normalize(db)
+    -- 玩家拒絕過的，不要讓 MergeDefaults 又把內建清單併回來。
+    -- ⚠ 順序：一定要在 MergeDefaults **之後**跑
+    local au = db.automation
+    if au and au.slowQuests and au.dismissedSlow then
+        for questID in pairs(au.dismissedSlow) do
+            au.slowQuests[questID] = nil
+        end
+    end
+
     local a = db.appearance
     Clamp(a, "headerSize",    DB.LIMITS.headerSize)
     Clamp(a, "titleSize",     DB.LIMITS.titleSize)
