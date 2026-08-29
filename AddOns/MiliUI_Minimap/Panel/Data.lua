@@ -72,18 +72,28 @@ end
 -- ⚠ TTL 30 秒看起來很久，但「人數會變」的時刻已經被精準事件蓋掉了 ——
 --   TTL 只是替雜訊事件兜底。實際的更新延遲仍然是即時的。
 ------------------------------------------------------------
-local _fCount, _fAt = 0, -1
+local _fCount, _fAt, _fDirty = 0, -1, true
 local FRIEND_TTL = 30
 
 -- 精準事件用：讓下一次查詢一定重算
 function D.InvalidateFriends()
-    _fAt = -1
+    _fAt, _fDirty = -1, true
+end
+
+-- 雜訊事件用：只標記「可能變了」。TTL 到期時**有標記才重算** ——
+-- 沒有任何好友活動的時候，這支就完全不會跑。
+function D.TouchFriends()
+    _fDirty = true
 end
 
 function D.FriendsOnline()
     ns.Count("Data.FriendsOnline")
     local now = GetTime()
+    -- 沒到期就用快取；到期了但**沒有任何事件說可能變了**也不必重算。
+    -- 少了後半句，閒置時每 30 秒還是會白掃一次 242 KB。
     if now - _fAt < FRIEND_TTL then return _fCount end
+    if not _fDirty and _fAt >= 0 then return _fCount end
+    _fDirty = false
 
     ns.Count("Data.FriendsOnline!walk")   -- ! ＝ 真的掃了一遍
     local n = 0

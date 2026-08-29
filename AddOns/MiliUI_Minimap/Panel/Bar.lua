@@ -605,7 +605,11 @@ ns.RegisterCallback("Init", "Bar", function()
         if event == "PLAYER_ENTERING_WORLD" and IsInGuild() then
             C_GuildInfo.GuildRoster()
         end
-        if EXACT_EVENTS[event] then D.InvalidateFriends() end
+        if EXACT_EVENTS[event] then
+            D.InvalidateFriends()          -- 人數真的變了：強制重算
+        elseif event == "BN_FRIEND_INFO_CHANGED" then
+            D.TouchFriends()               -- 可能變了：等 TTL 到期再說
+        end
         Schedule(SLOW_EVENTS[event] and 5 or 0.5)
     end)
 end)
