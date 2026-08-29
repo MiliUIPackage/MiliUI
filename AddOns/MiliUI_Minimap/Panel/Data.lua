@@ -35,7 +35,29 @@ function D.GuildOnline()
     return online, PlainNumber(total) or 0
 end
 
+------------------------------------------------------------
+-- ⚠⚠ **這支很貴，一定要走快取。**
+--
+--   `C_BattleNet.GetFriendAccountInfo(i)` **每次呼叫都配一張新表**，而且裡面
+--   還巢著一張 `gameAccountInfo`。掃一輪 40 個戰網好友 ＝ 80 張表的垃圾。
+--
+--   2026-08-30 實測：這支被掛在一條會**每幀**觸發的鏈上（見下），26 分鐘就替
+--   這個插件累積了 96 MB、佔全部插件記憶體的 31%。
+--
+--   觸發鏈是：任何被收納的插件呼叫 `btn:Show()` → 我們的 Show 掛勾
+--   → `Buttons.QueueLayout` → `Buttons.Layout` → `Fire("BagCountChanged")`
+--   → `Bar.Update` → 三格 `UpdateSlot` → **這支**。
+--   不少 LibDBIcon 系的插件每個事件（甚至每幀）都會 Show 自己的圖示一次。
+--
+--   三道防線各修各的（鏈上每一環都補了守衛），這裡是最後一道：
+--   同一秒內只真的算一次。人數是**讀數**不是狀態機，差一秒沒有任何影響。
+------------------------------------------------------------
+local _fCount, _fAt = 0, -1
+
 function D.FriendsOnline()
+    local now = GetTime()
+    if now - _fAt < 1 then return _fCount end
+
     local n = 0
     -- 角色好友
     local numChar = C_FriendList.GetNumOnlineFriends and C_FriendList.GetNumOnlineFriends() or 0
@@ -50,6 +72,8 @@ function D.FriendsOnline()
             n = n + 1
         end
     end
+
+    _fAt, _fCount = now, n
     return n
 end
 

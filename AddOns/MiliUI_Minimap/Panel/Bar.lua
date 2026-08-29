@@ -346,14 +346,22 @@ local function UpdateSlot(btn)
         -- 兩件事的下一步動作完全不同。
         btn.text:SetText(src.empty and src.empty() or "")
         btn.text:SetTextColor(unpack(S.TEXT_DIM))
+        btn.lastN = nil    -- 退出這個狀態時要能重畫（例如重新加入公會）
         return
     end
 
     btn.text:SetTextColor(unpack(S.TEXT))
-    if ns.DB.Get().infoAccentNumbers then
-        btn.text:SetFormattedText("%s |c%s%d|r", src.label(), S.AccentHex(), n)
-    else
-        btn.text:SetFormattedText("%s %d", src.label(), n)
+    -- ⚠ 內容沒變就不要重寫。`SetFormattedText` 每次都會**組一條新字串**
+    --   （還要先組出 |cffXXXXXX 的色碼），而這支是掛在事件上的 ——
+    --   公會名冊與好友狀態在大公會裡一秒可以發好幾十次。
+    --   數字沒動的那幾十次全部是純垃圾。
+    if btn.lastN ~= n then
+        btn.lastN = n
+        if ns.DB.Get().infoAccentNumbers then
+            btn.text:SetFormattedText("%s |c%s%d|r", src.label(), S.AccentHex(), n)
+        else
+            btn.text:SetFormattedText("%s %d", src.label(), n)
+        end
     end
 end
 
@@ -487,6 +495,10 @@ function Bar.Apply()
     for _, btn in ipairs(slots) do
         S.SetFont(btn.text, db.infoBarFontSize)
     end
+
+    -- 設定變動（換來源、開關職業色數字、換字級）之後標籤本身會變，
+    -- 清掉 UpdateSlot 的去重快取讓它重畫一次
+    for _, btn in ipairs(slots) do btn.lastN = nil end
 
     local any = LayoutSlots(db, barW, h)
     bar:SetShown(any)

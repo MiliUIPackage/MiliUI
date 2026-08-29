@@ -201,8 +201,18 @@ local hooked = {}
 local function HookVisibility(btn)
     if hooked[btn] then return end
     hooked[btn] = true
-    hooksecurefunc(btn, "Show", function() Buttons.QueueLayout() end)
-    hooksecurefunc(btn, "Hide", function() Buttons.QueueLayout() end)
+    -- ⚠ **只有顯示狀態真的變了才排重排。** 不少插件每個事件（甚至每幀）都會對
+    --   自己的圖示叫一次 `Show()`，而那多半是「本來就顯示著」的重複呼叫 ——
+    --   無條件排程等於把整條更新鏈（Layout → BagCountChanged → Bar.Update →
+    --   掃全部好友）掛上每一幀。`_miliShown` 由 Layout 寫入，見那裡的註解。
+    hooksecurefunc(btn, "Show", function(self)
+        if self._miliShown then return end
+        Buttons.QueueLayout()
+    end)
+    hooksecurefunc(btn, "Hide", function(self)
+        if self._miliShown == false then return end
+        Buttons.QueueLayout()
+    end)
 end
 
 function Buttons.Scan()
@@ -371,8 +381,14 @@ function Buttons.Layout()
     local cols = math.max(1, db.btnColumns)
     local nBag = LayoutInto(bag, bagList, cols, size, gap)
     SizeContainer(bag, nBag, cols, size, gap)
+    -- 記下每顆按鈕**這次排版時的顯示狀態**，Show/Hide 掛勾靠它判斷「版面會不會變」
+    for _, btn in ipairs(collected) do btn._miliShown = btn:IsShown() end
+
+    -- ⚠ 只在數字真的變了才廣播。這條廣播的下游是「掃一遍全部好友」，
+    --   而 Layout 可能被每幀觸發（見 HookVisibility）—— 無條件 Fire 等於
+    --   把最貴的那支掛上每一幀。
+    local changed = (bag.count ~= nBag)
     bag.count = nBag
-    ns.Fire("BagCountChanged")
 
     ------------------------------------------------------------
     -- 常駐排：單排（橫或直），不折行
@@ -394,7 +410,10 @@ function Buttons.Layout()
         pin:SetPoint(side[1], ns.holder, side[2], P.Scale(side[3] * 3), P.Scale(side[4] * 3))
     end
     pin:SetShown(nPin > 0)
+    if pin.count ~= nPin then changed = true end
     pin.count = nPin
+
+    if changed then ns.Fire("BagCountChanged") end
 end
 
 ------------------------------------------------------------

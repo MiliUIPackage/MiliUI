@@ -225,6 +225,7 @@ local function UpdateCoords()
     coordText:SetFormattedText("%.1f  %.1f", x * 100, y * 100)
 end
 
+local lastClockH, lastClockM
 local function UpdateClock()
     if not clockText or not clockText:IsShown() then return end
     -- 跟著暴雪的「24 小時制」設定走，玩家不必在兩個地方各設一次
@@ -235,6 +236,11 @@ local function UpdateClock()
         h, m = GetGameTime()
     end
     if not h then return end
+    -- ticker 是 0.5 秒一次、時鐘只到分鐘 ⇒ 一分鐘裡有 119 次是重寫同一串字。
+    -- SetFormattedText 每次都會組一條新字串，跳過等於省掉那 119 次的垃圾。
+    if h == lastClockH and m == lastClockM then return end
+    lastClockH, lastClockM = h, m
+
     if GetCVarBool("timeMgrUseMilitaryTime") then
         clockText:SetFormattedText("%02d:%02d", h, m)
     else
@@ -274,7 +280,7 @@ local function ApplyElementVisibility()
 
     if showZone then UpdateZone() end
     if showCoord then UpdateCoords() end
-    if showClock then UpdateClock() end
+    if showClock then lastClockH = nil; UpdateClock() end
 end
 
 local function SetHovering(v)
