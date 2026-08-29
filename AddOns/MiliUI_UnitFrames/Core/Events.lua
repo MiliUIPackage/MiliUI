@@ -282,12 +282,63 @@ SCOPED = {
 -- 實際註冊仍然留在 Start（跟 SPECIAL 一致），這裡只先立旗標。
 for event in pairs(SCOPED) do unitScoped[event] = true end
 
+------------------------------------------------------------
+-- 全域 frame 的派送要延到下一幀（taint 隔離）
+--
+-- ⚠⚠ 這裡的事件有一部分是**在暴雪的 secure 執行流程裡同步派送**的：
+--
+--   TARGETNEARESTENEMY:2     → TargetNearestEnemy()  ─┐
+--   TURNORACTION:4           → TurnOrActionStop()    ─┼→ PLAYER_TARGET_CHANGED
+--   MULTIACTIONBAR4BUTTON9:2 → UseAction()           ─┘
+--
+-- 也就是「按 Tab 選目標」「右鍵轉向點怪」「按技能」這三個最常按的動作。在這個
+-- handler 裡同步跑 RefreshUnit／ns.Fire，等於把 MiliUI_UnitFrames 的 taint 灌進
+-- 那條按鍵的 secure 執行流程 —— 2026-08-30 的 taint.log：一分鐘內 119 次，
+-- 期間暴雪的 SetTexture 被封鎖 62 次。
+--
+-- 跟 Core/UnitFrame.lua 的 OnShow 是同一類問題（我們的 Lua 跑在暴雪的 secure
+-- 堆疊裡面），同一招處理：丟到下一幀就完全脫離那條堆疊。那邊實測有效
+-- （SecureStateDriverManager 那條從 60 筆歸零、SetAttribute 封鎖從 40 次歸零）。
+--
+-- 幾個刻意的決定：
+--   * **不去重**。UNIT_PET / PLAYER_FLAGS_CHANGED / UNIT_PORTRAIT_UPDATE 的參數是
+--     unit token，同一幀來兩次很可能是**不同單位**，去重會吃掉一筆。這張表上的
+--     事件本來就低頻（檔案上方那句「留在全域沒有成本問題」），照單全收最安全。
+--   * 參數整包留著（`n` ＋ unpack）而不是只存第一個。目前只有兩個 handler 吃參數、
+--     而且都只吃第一個，但 externalEvents 是開放註冊的，寫死 arg1 會在未來某支
+--     元件註冊「要第二個參數」的事件時**靜默**壞掉。
+--   * 雙緩衝：flush 途中若有 handler 又觸發事件，新的進另一個桶，不會蓋掉正在跑的。
+------------------------------------------------------------
+local qA, qB = {}, {}
+local queue, queueN, queueQueued = qA, 0, false
+
+local function FlushGlobalEvents()
+    queueQueued = false
+    local run, n = queue, queueN
+    queue = (run == qA) and qB or qA
+    queueN = 0
+    for i = 1, n do
+        local a = run[i]
+        run[i] = nil
+        local event = a.event
+        local special = SPECIAL[event]
+        if special then special(unpack(a, 1, a.n)) end
+        if externalEvents[event] then
+            ns.Fire(FIRE_KEY[event], unpack(a, 1, a.n))
+        end
+    end
+end
+
 -- 全域 frame：SPECIAL 的內部邏輯 ＋ 有人訂閱的外掛事件
 eventFrame:SetScript("OnEvent", function(_, event, ...)
-    local special = SPECIAL[event]
-    if special then special(...) end
-    if externalEvents[event] then
-        ns.Fire(FIRE_KEY[event], ...)
+    -- 這裡**只做記帳**，真正的工作在下一幀 —— 見上面那段的說明
+    local a = { n = select("#", ...), ... }
+    a.event = event
+    queueN = queueN + 1
+    queue[queueN] = a
+    if not queueQueued then
+        queueQueued = true
+        C_Timer.After(0, FlushGlobalEvents)
     end
 end)
 

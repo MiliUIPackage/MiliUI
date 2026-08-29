@@ -176,6 +176,59 @@ function ns.RefreshAll(bucket)
 end
 
 ------------------------------------------------------------
+-- OnShow 的全量刷新要延到下一幀（taint 隔離）
+--
+-- ⚠⚠ RegisterUnitWatch 的顯示是暴雪**從 secure 端**做的：
+--
+--   -- Blizzard_RestrictedAddOnEnvironment/SecureStateDriver.lua:83
+--   local function SecureStateDriverManager_UpdateUnitWatch(frame, doState)
+--       ...
+--       if exists then
+--           frame:Show()                            ← 我們的 OnShow 在這裡同步跑
+--           frame:SetAttribute("statehidden", nil)  ← 下一行當場被封鎖
+--
+-- 在 OnShow 裡直接呼叫 ns.Refresh，等於把 MiliUI_UnitFrames 的 taint 灌進暴雪
+-- 那條執行流程。而外層是 `for frame in pairs(unitExistsWatchers)` 的迴圈 ——
+-- 染一次之後**後面每一個 watcher**（包含別的插件的單位框）的 statehidden
+-- 都跟著被封鎖，真正的污染點根本不在被點名的那支插件的堆疊裡。
+--
+-- 2026-08-30 taint.log 實測（3 分半的樣本）：這條走了 60 次，
+-- 期間 SetAttribute 被封鎖 40 次。這也是「MiliUI_UnitFrames 完全不碰快捷列
+-- 卻被 ADDON_ACTION_BLOCKED 點名」的來源，見 .claude/notes/wow-actionbar-taint-blame.md。
+--
+-- 丟到下一幀就完全脫離那條堆疊。單位「剛出現」延一幀沒有視覺差別。
+-- 用共用旗標而不是每次 Show 都排一個 closure：切目標很頻繁。
+------------------------------------------------------------
+local showDirty, showWork, showFlushQueued = {}, {}, false
+
+local function FlushShowRefresh()
+    showFlushQueued = false
+    -- 先把待辦收成陣列再跑：Refresh 途中若有東西被 Show，改的是 showDirty 而不是
+    -- 正在走訪的容器
+    local n = 0
+    for uf in pairs(showDirty) do
+        showDirty[uf] = nil
+        n = n + 1
+        showWork[n] = uf
+    end
+    for i = 1, n do
+        local uf = showWork[i]
+        showWork[i] = nil
+        -- 這一幀之內可能又被藏回去（快速切目標、或顯示閘關起來）：藏了就不用畫，
+        -- 閘框重新顯示時它自己的 OnShow 會補一次全量重畫
+        if uf:IsVisible() then ns.Refresh(uf, "unitchanged") end
+    end
+end
+
+local function QueueShowRefresh(uf)
+    showDirty[uf] = true
+    if not showFlushQueued then
+        showFlushQueued = true
+        C_Timer.After(0, FlushShowRefresh)
+    end
+end
+
+------------------------------------------------------------
 -- 位置：CENTER 對 CENTER 偏移；boss1-5 依 growth/spacing 疊排
 ------------------------------------------------------------
 -- 在指定的 effective scale 上對齊實體像素。
@@ -596,7 +649,10 @@ function ns.SpawnUnitFrame(unit)
     -- SetScript 的話那個 hook 會被整個蓋掉——症狀是輪詢永遠掛不上、超出距離的
     -- 文字凍結在選目標那一刻，而且完全不報錯。實際踩過。
     uf:SetScript("OnShow", function(self)
-        ns.Refresh(self, "unitchanged")     -- 單位出現時（RegisterUnitWatch 驅動）全量刷新
+        -- 單位出現時（RegisterUnitWatch 驅動）全量刷新。
+        -- ⚠ 不可以在這裡同步跑 —— Show() 是暴雪 secure 端呼叫的，見上面
+        -- QueueShowRefresh 那段的說明。
+        QueueShowRefresh(self)
     end)
 
     -- 滑鼠提示與高亮（走暴雪的單位提示）。OnEnter/OnLeave 不是受保護腳本，

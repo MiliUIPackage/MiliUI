@@ -337,9 +337,22 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
                     }
                 end
             end
+            -- ⚠ 備援也要包 pcall。這裡是 initializeFrame，整段跑在暴雪
+            -- Blizzard_AuraContainerFrameProviders 的 CreateFrame 裡面（樣式只能在
+            -- 這裡做，之後 AuraButton 就 forbidden 了），所以執行流程一定是被我們
+            -- 污染的 —— 而 SetDurationText 內部會走到 CreateColor()，12.1 的
+            -- ColorMixin 是「被污染時不給存取」的表：
+            --
+            --   Blizzard_SharedXMLBase/Color.lua:10: attempted to index a table that
+            --   cannot be accessed while tainted (execution tainted by 'MiliUI_UnitFrames')
+            --
+            -- 主要路徑本來就有 pcall，備援卻是裸的 ⇒ 它一炸就把整個 InitAuraButton
+            -- 從中間截斷，後面的層數文字完全沒建（錯誤 locals 裡沒有 Count 就是指紋）。
+            -- 備援的意義是「主要的壞了還能撐住」，它自己不設防等於白做。
+            -- 兩條都失敗就是沒有倒數文字 —— 難看，但至少按鈕是完整的。
             if not pcall(auraButton.SetDurationText, auraButton, duration,
                          next(options) and options or nil) then
-                auraButton:SetDurationText(duration)
+                pcall(auraButton.SetDurationText, auraButton, duration)
             end
         end
     end
@@ -568,7 +581,14 @@ local function CreateContainer(uf, elementName, edb, filter, cand, style)
             lineSpacing = edb.spacing or 0,
         },
         initializeFrame = function(auraButton)
-            InitAuraButton(auraButton, style, edb.w or 20, edb.h or 20)
+            -- ⚠ 整段要隔離。這個 callback 跑在暴雪 Blizzard_AuraContainerFrameProviders
+            -- 的 CreateFrame → CreateFrameBatch 裡面，錯誤逃出去會把**整批** frame 的
+            -- 建立一起打斷，不是只有這一顆按鈕。而 12.1 一直在追加「被污染時不給存取」
+            -- 的表（ColorMixin 就是一張），初始化裡每個裸的暴雪 API 呼叫都是一顆地雷 ——
+            -- InitAuraButton 裡的 SetAuraBorder / SetDurationCooldown / SetIcon /
+            -- SetApplicationCount 都還是裸的。
+            -- 這道閘的代價是「那顆按鈕外觀不完整」，比「整批光環不出來」便宜太多。
+            xpcall(InitAuraButton, ns.ReportError, auraButton, style, edb.w or 20, edb.h or 20)
         end,
     })
 
