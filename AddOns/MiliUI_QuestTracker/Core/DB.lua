@@ -101,8 +101,11 @@ local function BuildDefaults()
         },
 
         automation = {
-            autoTurnIn = false,
-            autoAccept = false,
+            -- 預設開。安全網是底下那三個閘：有多個獎勵可選一律留給玩家、
+            -- 要花金幣／貨幣／材料的不自動交、同一個 NPC 有多條可接就不亂挑。
+            -- 標題列上的兩顆開關預設也顯示，隨時看得到現在是開是關
+            autoTurnIn = true,
+            autoAccept = true,
             -- 按住 Shift 暫停自動化（跟 Leatrix Plus 的預設方向一致）
             shiftSkip  = true,
             -- 同一個 NPC 有多個可接任務時不要亂挑，讓玩家自己選
