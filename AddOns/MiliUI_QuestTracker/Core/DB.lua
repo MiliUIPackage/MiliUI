@@ -28,11 +28,6 @@ local function BuildDefaults()
         -- 座標是 TOPLEFT 相對 UIParent TOPLEFT 的位移（y 為負），跟
         -- MiliUI_DamageMeters 的視窗同一套 —— 追蹤器的內容往下長，
         -- 用 CENTER 位移的話內容一多整條就會自己往上飄。
-        -- 「立刻接會失敗、要先等一下」的任務。不是設定，是**量出來的**：
-        -- 客戶端看不到任何可以事先判斷的訊號（六種都試過，記在 AutoQuest.lua），
-        -- 所以改成接不到就記起來、下次先等。記進存檔 ⇒ 每條問題任務一輩子只失敗一次。
-        slowQuests = {},
-
         position = { set = false, x = 0, y = 0 },
 
         -- 玩家自己按標題列摺起來的狀態。存檔的理由：摺疊是一個明確的意圖

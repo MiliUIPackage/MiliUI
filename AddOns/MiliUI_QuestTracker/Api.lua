@@ -45,22 +45,6 @@ SlashCmdList.MILIUIQUEST = function(msg)
             and "|cff88ccff" .. L["Quest automation trace ON — reproduce the problem, then paste the lines here."] .. "|r"
             or L["Quest automation trace off."])
 
-    elseif msg:match("^slow") then
-        -- 「要先等一下才接得到」的任務清單。清掉可以重測 —— 學習式的設計讓
-        -- 同一條任務只會失敗一次，不清就再也量不到了
-        local db = ns.db.slowQuests
-        if msg:match("clear") then
-            wipe(db)
-            ns.Print(L["Cleared the list of quests that need a wait."])
-        else
-            local ids = {}
-            for id in pairs(db) do ids[#ids + 1] = id end
-            table.sort(ids)
-            ns.Print(L["Quests that need a wait (%.2fs): %s"]
-                :format(ns.AutoQuest.acceptTimeout,
-                    #ids > 0 and table.concat(ids, ", ") or "—"))
-        end
-
     elseif msg:match("^delay") then
         -- 診斷用：把接受任務前的等待拉長，就能在插件動手之前自己手動點一次。
         -- session 內有效、不存檔
