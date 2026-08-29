@@ -24,14 +24,23 @@ local AQ = ns.AutoQuest
 
 local function Cfg() return ns.db and ns.db.automation end
 
--- 按下接受鈕之前等多久。0.25 秒對玩家來說察覺不到（任務視窗本來就要一下才看得清），
--- 但足以蓋過冷啟動時那段任務資料還沒到齊的空窗。
+-- 按下接受鈕之前等多久。
+--
+-- 這個值是**實測逼出來的**，不是體感挑的：
+--   0.25s → 第一次接必定失敗（任務視窗閃一下就關、沒進日誌）
+--   3.00s → 第一次就成功
+-- 成因是客戶端第一次拿到某條任務的資料要跟伺服器要一次，之後才有快取 ——
+-- 所以「第一次失敗、第二次成功、放棄之後重演」全部說得通。
+-- 1 秒是取中間值；驗證方式見下面 Trace 印出來的獎勵欄位。
+--
+-- ⚠ 想調小之前先重現一次那條週任（至暗之夜：阿塔烏特克寶庫，98232）。
+--   /mquest delay <秒> 可以臨時改，不用改檔案。
 -- ⚠ 調小之前先重現一次那條週任 —— 這個值是實測逼出來的，不是隨手挑的。
 --
 -- 可以用 /mquest delay <秒> 臨時改（session 內有效、不存檔）。那是診斷用的：
 -- 把它拉長到 3 秒，就能在我們動手之前自己手動點一次接受 —— 這是目前唯一能把
 -- 「合成點擊本身不行」跟「我們在點擊之前弄壞了什麼」分開的辦法。
-AQ.acceptDelay = 0.25
+AQ.acceptDelay = 1.0
 
 ------------------------------------------------------------
 -- 事件追蹤（/mquest trace 開關，session 內有效、不存檔）
@@ -297,10 +306,13 @@ local function OnEvent(_, event)
                           or "任務沒接成，視窗被關掉了")
                 return
             end
-            if C_QuestLog and C_QuestLog.GetNumQuestLogEntries then
-                Trace("   任務日誌 %s/%s", Safe(C_QuestLog.GetNumQuestLogEntries()),
-                    Safe(C_QuestLog.GetMaxNumQuests and C_QuestLog.GetMaxNumQuests()))
-            end
+            -- 按下去的當下，這份任務提供的獎勵資料到齊了沒有。
+            -- 「冷的時候資料還沒到」如果是真的成因，這幾個數字在失敗與成功的
+            -- 那兩次之間就會不一樣 —— 那會直接指出該等什麼訊號，而不是硬等秒數
+            Trace("   獎勵 選擇=%s 固定=%s 金錢=%s",
+                Safe(GetNumQuestChoices and GetNumQuestChoices()),
+                Safe(GetNumQuestRewards and GetNumQuestRewards()),
+                Safe(GetQuestMoneyToGet and GetQuestMoneyToGet()))
             local btn = _G.QuestFrameAcceptButton
             if btn and btn:IsShown() and btn:IsEnabled() then
                 Trace("   %.2fs 後按下暴雪的接受鈕", AQ.acceptDelay)
