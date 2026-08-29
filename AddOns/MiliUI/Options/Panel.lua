@@ -11,7 +11,9 @@ local W, P = ns.W, ns.P
 ns.Options = {}
 local Options = ns.Options
 
-local PANEL_W, PANEL_H = 780, 540
+-- 高度 620：效能監控那兩頁最吃高度（面板＋趨勢圖＋控制列都是固定高，剩下的
+-- 才給清單），540 的時候清單只剩七八列，捲起來很難比對。
+local PANEL_W, PANEL_H = 780, 620
 local BANNER_H = 58                 -- 頂部 banner 高度；分頁內容從它下面開始
 local FORM_W   = 700                -- 表單分頁的捲動內容寬度（扣掉捲軸）
 local FADE_DUR = 0.15               -- 開窗淡入

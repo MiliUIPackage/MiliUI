@@ -1449,10 +1449,14 @@ local function Init()
     ramFooter:SetWidth(innerW - 4)
     ramFooter:SetJustifyH("LEFT")
     ramFooter:SetText("|cff888888記憶體要掃過整個 Lua 堆才分得出是誰用的，所以只在測量時更新。"
-        .. "「變化」是跟上一次測量比 —— 佔用大而不動的是資料庫，持續爬升的才要追。|n"
-        .. "「累計成長」只在自動測量勾著的時候累加，而且只加漲的、不扣跌的"
-        .. "（回落是 GC 收走，不該把前面爬升的證據抵銷掉）。記錄跨登入留著，"
-        .. "有記錄時清單就依成長排序，要換觀察區間請按「清除成長記錄」。|r")
+        .. "「變化」是跟上一次測量比 —— 佔用大而不動的是資料庫，持續爬升的才要追。"
+        .. "「累計成長」只在自動測量勾著時累加、只加漲的不扣跌的，跨登入留著。|r")
+
+    -- ⚠ 清單底部跟著註腳的**實際**高度走，不要用寫死的「頁尾一行」常數：
+    -- 這段文字長到換兩行的時候就會被清單的最後幾列蓋住（2026-08-30 踩過）。
+    -- 量過再錨，之後改文字也不會再撞。
+    memList:SetPoint("BOTTOMRIGHT", ramPage, "BOTTOMRIGHT", -SIDE,
+        FOOT_Y + math.ceil(ramFooter:GetStringHeight()) + 8)
 
     -- 昂貴的記憶體測量延到下一幀：先讓分頁畫出來，玩家才不會覺得「點分頁卡一下」
     tab:SetScript("OnShow", function()
