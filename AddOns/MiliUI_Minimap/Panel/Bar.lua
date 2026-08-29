@@ -365,18 +365,60 @@ local function UpdateSlot(btn)
     end
 end
 
+local lastTipRefresh = 0
+
 function Bar.Update()
     if not bar or not bar:IsShown() then return end
     for _, btn in ipairs(slots) do UpdateSlot(btn) end
+
     -- 提示開著的時候順便重畫：公會有人上線時那張名單要跟著動，
     -- 不然玩家會看到「數字變了但名單沒變」。
+    --
+    -- ⚠ 但這是**整條路徑上最貴的一件事** —— 重建一張 30 列的名單要走一遍
+    --   761 人的公會名冊，每一列還要 string.format 好幾次。而觸發它的事件
+    --   （BN_FRIEND_INFO_CHANGED）是會連發的，所以自己再壓一道秒級節流。
+    --   名單晚一秒更新，人眼看不出來。
+    local now = GetTime()
+    if now - lastTipRefresh < 1 then return end
     for _, btn in ipairs(slots) do
         if ns.Tip.IsOwnedBy(btn) then
+            lastTipRefresh = now
             local enter = btn:GetScript("OnEnter")
             if enter then ns.Safe(enter, btn) end
         end
     end
 end
+
+------------------------------------------------------------
+-- 事件合流
+--
+-- ⚠⚠ **`BN_FRIEND_INFO_CHANGED` 是消防水管。** 好友一換區域、改狀態、改廣播
+--   都會發一次；三十個好友在打副本的時候一秒可以來好幾十發。把 Bar.Update
+--   直接掛上去，等於把「掃一遍全部好友」掛上那個頻率。
+--
+--   （2026-08-30 第二輪：第一輪只在 D.FriendsOnline 加了 1 秒 TTL，那只是把
+--   「每幀」壓成「每秒」—— 只要事件不停就永遠每秒掃一次，一小時還是好幾 MB。
+--   TTL 是**地板**不是節流，真正該做的是讓事件本身合流。）
+--
+--   一連串事件只排一次更新，而且**分兩種急迫度**：
+--     慢（5 秒）好友名單的雜訊 —— 人數晚五秒更新沒有人看得出來
+--     快（0.5 秒）真的上下線／換公會 —— 這種要有反應
+------------------------------------------------------------
+local pending
+local function Schedule(delay)
+    if pending and pending <= delay then return end
+    pending = delay
+    C_Timer.After(delay, function()
+        pending = nil
+        ns.Safe(Bar.Update)
+    end)
+end
+
+local SLOW_EVENTS = {
+    BN_FRIEND_INFO_CHANGED = true,
+    FRIENDLIST_UPDATE = true,
+    GUILD_ROSTER_UPDATE = true,
+}
 
 ------------------------------------------------------------
 -- 建框
@@ -544,7 +586,7 @@ ns.RegisterCallback("Init", "Bar", function()
         if event == "PLAYER_ENTERING_WORLD" and IsInGuild() then
             C_GuildInfo.GuildRoster()
         end
-        ns.Safe(Bar.Update)
+        Schedule(SLOW_EVENTS[event] and 5 or 0.5)
     end)
 end)
 

@@ -52,11 +52,15 @@ end
 --   三道防線各修各的（鏈上每一環都補了守衛），這裡是最後一道：
 --   同一秒內只真的算一次。人數是**讀數**不是狀態機，差一秒沒有任何影響。
 ------------------------------------------------------------
+--   ⚠ TTL 是**地板**，不是節流。第一版只有這道 1 秒 TTL，結果是「只要事件不停
+--     就永遠每秒掃一次」—— 一小時還是好幾 MB。真正的節流在 Panel/Bar.lua 的
+--     事件合流（慢事件 5 秒），這裡只負責擋掉同一波事件裡的重複呼叫。
 local _fCount, _fAt = 0, -1
+local FRIEND_TTL = 2
 
 function D.FriendsOnline()
     local now = GetTime()
-    if now - _fAt < 1 then return _fCount end
+    if now - _fAt < FRIEND_TTL then return _fCount end
 
     local n = 0
     -- 角色好友
