@@ -45,6 +45,23 @@ SlashCmdList.MILIUIQUEST = function(msg)
             and "|cff88ccff" .. L["Quest automation trace ON — reproduce the problem, then paste the lines here."] .. "|r"
             or L["Quest automation trace off."])
 
+    elseif msg:match("^slow") then
+        -- 學到的「要先等一下」清單。清空是為了能重測 —— 同一條任務學會之後就不會
+        -- 再失敗，不清就再也量不到了
+        local db = ns.db.slowQuests
+        if msg:match("clear") then
+            wipe(db)
+            ns.Print(L["Cleared the learned quest delays."])
+        else
+            local rows = {}
+            for id, delay in pairs(db) do
+                rows[#rows + 1] = ("%d=%.2fs"):format(id, tonumber(delay) or 0)
+            end
+            table.sort(rows)
+            ns.Print(L["Quests that need a wait: %s"]
+                :format(#rows > 0 and table.concat(rows, "  ") or "—"))
+        end
+
     elseif msg:match("^delay") then
         -- 診斷用：把接受任務前的等待拉長，就能在插件動手之前自己手動點一次。
         -- session 內有效、不存檔

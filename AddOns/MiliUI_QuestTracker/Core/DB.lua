@@ -28,6 +28,16 @@ local function BuildDefaults()
         -- 座標是 TOPLEFT 相對 UIParent TOPLEFT 的位移（y 為負），跟
         -- MiliUI_DamageMeters 的視窗同一套 —— 追蹤器的內容往下長，
         -- 用 CENTER 位移的話內容一多整條就會自己往上飄。
+        -- 「立刻接會失敗、要先等一下」的任務：questID → 該等幾秒。
+        -- 不是設定，是**量出來的** —— 客戶端沒有任何訊號可以事先判斷哪條任務要等
+        -- （六種都試過，記在 Modules/AutoQuest.lua），所以接不到就記起來、下次先等，
+        -- 還是不行就每次加 0.1 秒往上收斂。
+        --
+        -- ⚠ 存在帳號層級（TOC 是 SavedVariables 不是 PerCharacter）是刻意的：
+        --   週任每隻分身都要跑，一隻角色踩過一次，其他分身直接就是對的。
+        -- ⚠ 也不能寫死一張清單 —— 週任的 questID 每週都不一樣。
+        slowQuests = {},
+
         position = { set = false, x = 0, y = 0 },
 
         -- 玩家自己按標題列摺起來的狀態。存檔的理由：摺疊是一個明確的意圖
