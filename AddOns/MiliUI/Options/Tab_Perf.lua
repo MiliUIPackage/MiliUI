@@ -1325,6 +1325,17 @@ local function Init()
     tab:SetScript("OnUpdate", OnTabUpdate)
 end
 
+-- 對外入口（跨插件，例如 MiliUI_InfoBar 的 CPU／記憶體方塊）：開設定視窗到
+-- 效能監控並選好子分頁。sub = "cpu"／"ram"，其他值＝上次看的那頁。
+-- 先寫 DB().page 再開窗：ShowOptionsTab 的處理最後會 ShowPage(DB().page)，
+-- 順著原本的流程走，不用碰子分頁鈕的高亮。
+function ns.OpenPerfPage(sub)
+    if sub == "cpu" or sub == "ram" then
+        DB().page = sub
+    end
+    ns.OpenOptions("perf")
+end
+
 ns.RegisterCallback("ShowOptionsTab", "perfTab", function(id)
     if id ~= "perf" then
         if tab then tab:Hide() end

@@ -7,6 +7,13 @@ function ns.OpenOptions(tabId)
     ns.Options.Open(tabId)
 end
 
+-- 跨插件入口：MiliUI_InfoBar 的 CPU／記憶體方塊點擊直達效能監控的對應子分頁
+-- （sub = "cpu"／"ram"）。走全域不走相依宣告——那支插件沒裝本體也要能載入。
+MiliUI = MiliUI or {}
+function MiliUI.OpenPerf(sub)
+    ns.OpenPerfPage(sub)
+end
+
 -- 刻意不往 MiliUI_MenuEntries 塞「套組」項目：ESC 那顆「米利UI設定」按鈕
 -- 點下去開的就是本體設定，選單裡再列一次是重複入口。
 

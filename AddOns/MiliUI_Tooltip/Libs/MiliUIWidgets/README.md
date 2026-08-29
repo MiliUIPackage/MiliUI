@@ -57,7 +57,8 @@ python3 .claude/scripts/sync-widgets.py --check   # 只檢查漂移（提交前�
 邊的介面「莫名其妙變了樣」。
 
 已用掉的前綴：`MiliUIPack`（本體）、`MiliUIUF`、`MiliUITip`、`MiliUIFocus`、
-`MiliUIChatBar`、`MiliUIBurst`、`MiliUIBLM`、`MiliUIDM`、`MiliUIAura`、`MiliUINote`。
+`MiliUIChatBar`、`MiliUIBurst`、`MiliUIBLM`、`MiliUIDM`、`MiliUIAura`、`MiliUINote`、
+`MiliUIInfo`。
 
 ### L 只需要四個 key
 
