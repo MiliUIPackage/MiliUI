@@ -286,8 +286,15 @@ local function OnEvent(_, event)
             local now = GetQuestID and GetQuestID() or 0
             -- 這段時間裡玩家可能自己按了、或點到另一條任務
             if now ~= questID then
-                Trace("   %.2fs 後 questID 變成 %s（原本 %s）⇒ 放棄，不亂接",
-                    AQ.acceptDelay, Safe(now), Safe(questID))
+                -- 分辨兩種完全不同的情況，不然這行看起來一樣：
+                --   已經在日誌裡 ⇒ 有人（多半是玩家自己）在我們之前接掉了
+                --   不在日誌裡   ⇒ 視窗只是關掉了，任務沒接成
+                local inLog = C_QuestLog and C_QuestLog.GetLogIndexForQuestID
+                    and C_QuestLog.GetLogIndexForQuestID(questID)
+                Trace("   %.2fs 後 questID 變成 %s（原本 %s，%s）⇒ 放棄，不亂接",
+                    AQ.acceptDelay, Safe(now), Safe(questID),
+                    inLog and "已經有人接走了 —— 這一輪沒測到我們的點擊"
+                          or "任務沒接成，視窗被關掉了")
                 return
             end
             if C_QuestLog and C_QuestLog.GetNumQuestLogEntries then
