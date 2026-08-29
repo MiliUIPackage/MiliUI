@@ -50,6 +50,33 @@ local function Safe(v)
     return tostring(v)
 end
 
+------------------------------------------------------------
+-- 追蹤期間順便聽伺服器的紅字／黃字
+--
+-- ⚠ 這是一開始就該加的。伺服器拒絕一個動作時多半會送一則 UI_ERROR_MESSAGE
+--   說原因（任務日誌滿了、不符合條件、已經接過…），而我們四輪都在猜「我們做錯
+--   什麼」，完全沒去聽它有沒有直接講答案。
+--
+--   只在 trace 開著時註冊：UI_ERROR_MESSAGE 在戰鬥中很吵，平常不需要付這個派送成本。
+local msgFrame
+
+local function SetMessageCapture(on)
+    if on then
+        if not msgFrame then
+            msgFrame = CreateFrame("Frame")
+            msgFrame:SetScript("OnEvent", function(_, event, arg1, arg2)
+                -- arg1 是錯誤代碼、arg2 才是文字（UI_INFO_MESSAGE 同形）
+                Trace("|cffff6666<%s>|r %s", event, Safe(arg2 or arg1))
+            end)
+        end
+        msgFrame:RegisterEvent("UI_ERROR_MESSAGE")
+        msgFrame:RegisterEvent("UI_INFO_MESSAGE")
+    elseif msgFrame then
+        msgFrame:UnregisterAllEvents()
+    end
+end
+AQ.SetMessageCapture = SetMessageCapture
+
 local function Paused()
     local c = Cfg()
     if not c then return true end
@@ -259,6 +286,10 @@ local function OnEvent(_, event)
                     ACCEPT_DELAY, Safe(now), Safe(questID))
                 return
             end
+            if C_QuestLog and C_QuestLog.GetNumQuestLogEntries then
+                Trace("   任務日誌 %s/%s", Safe(C_QuestLog.GetNumQuestLogEntries()),
+                    Safe(C_QuestLog.GetMaxNumQuests and C_QuestLog.GetMaxNumQuests()))
+            end
             local btn = _G.QuestFrameAcceptButton
             if btn and btn:IsShown() and btn:IsEnabled() then
                 Trace("   %.2fs 後按下暴雪的接受鈕", ACCEPT_DELAY)
@@ -321,9 +352,11 @@ ns.RegisterCallback("Init", "autoquest", function()
     for _, e in ipairs({
         "GOSSIP_SHOW", "QUEST_GREETING", "QUEST_DETAIL", "QUEST_ACCEPT_CONFIRM",
         "QUEST_PROGRESS", "QUEST_COMPLETE",
-        -- 下面三個我們沒有對應的分支，純粹是為了讓 /mquest trace 看得到完整時序：
-        -- 「第一次失敗」很可能就發生在這幾個事件之間
-        "QUEST_ACCEPTED", "QUEST_FINISHED", "GOSSIP_CLOSED",
+        -- 下面這些我們沒有對應的分支，純粹是為了讓 /mquest trace 看得到完整時序：
+        -- 「第一次失敗」很可能就發生在這幾個事件之間。
+        -- ⚠ QUEST_REMOVED 是刻意加的：要排除「其實接到了、但馬上又被拿掉」這種
+        --    可能 —— 那跟「根本沒接到」在畫面上長得一模一樣，但成因完全不同。
+        "QUEST_ACCEPTED", "QUEST_REMOVED", "QUEST_FINISHED", "GOSSIP_CLOSED",
     }) do
         evt:RegisterEvent(e)
     end

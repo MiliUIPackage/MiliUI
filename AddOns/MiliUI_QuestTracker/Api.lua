@@ -40,6 +40,7 @@ SlashCmdList.MILIUIQUEST = function(msg)
 
     elseif msg == "trace" then
         ns.AutoQuest.trace = not ns.AutoQuest.trace
+        ns.AutoQuest.SetMessageCapture(ns.AutoQuest.trace)
         ns.Print(ns.AutoQuest.trace
             and "|cff88ccff" .. L["Quest automation trace ON — reproduce the problem, then paste the lines here."] .. "|r"
             or L["Quest automation trace off."])
