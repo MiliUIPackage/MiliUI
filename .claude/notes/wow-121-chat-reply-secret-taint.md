@@ -98,6 +98,29 @@ hooksecurefunc 不會污染欄位，而且新的一定放在 `[1]`，一個變�
 同一次體檢一併修掉的是另一半：`ChatBar.lua` 的密語按鈕原本會代填 `/w 名字 `
 （正是本節結尾禁止的那件事），已改成名字是秘密值就退回空的 `/w `。
 
+## 2026-08-29：另一條路 —— ChatThrottleLib 的流量統計掛勾
+
+**跟回覆無關，玩家自己打 `/w 跨服玩家 訊息` 也會炸。** 症狀：
+
+```
+attempt to perform string conversion on a secret string value (execution tainted by 'Cell')
+[Cell/Libs/AceComm-3.0/ChatThrottleLib.lua]:286
+[C]: in function 'SendChatMessage'
+```
+
+`ChatThrottleLib.Hook_SendChatMessage`（`hooksecurefunc` 掛在 `SendChatMessage` 上，
+純粹為了統計「不經過函式庫的流量」）做 `strlen(tostring(destination or ""))` ——
+密語對象是秘密字串就當場報錯。**訊息其實已經送出去了**（post-hook），只是每次密語噴一行錯。
+
+- 怪罪對象是「載入了那份 ChatThrottleLib 的插件」，不是它做錯什麼；錯誤訊息裡的插件名會誤導。
+- 修法：`SafeStrLen()` 包一層 `issecretvalue`，秘密值回固定長度估值。
+- **四份 v31 副本要一起改**（MiliUI／Cell／WarpDeplete／BugSack），誰先載入誰贏。
+- **不要改成從 MiliUI 覆寫 `ChatThrottleLib.Hook_SendChatMessage`**：那只是把污染來源從
+  Cell 換成 MiliUI，而且污染會落在「玩家按 Enter 送出訊息」這條執行路徑上，得不償失。
+  這種在函式庫內部、後面沒有保護呼叫的地方，就地補 guard 比掛勾乾淨。
+
+相關：[[project-local-addon-forks]]
+
 ## 2026-08-29：第三條路 —— 輸入框上「留著的」秘密密語對象
 
 **跟回覆也無關，按聊天列上隨便哪一顆按鈕都會炸。** 症狀：

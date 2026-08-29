@@ -278,12 +278,26 @@ end
 
 local bMyTraffic = false
 
+-- fix from MiliUI: 12.1 起玩家名字可能是秘密字串（跨服／戰網／不在隊伍裡），
+-- 被污染的執行對它 tostring 會直接報錯（attempt to perform string conversion
+-- on a secret string value）。下面兩支只是流量統計，取不到長度就用固定值估。
+local issecretvalue = _G.issecretvalue
+local SECRET_STR_LEN = 32
+local function SafeStrLen(v)
+	if v == nil then
+		return 0
+	elseif issecretvalue and issecretvalue(v) then
+		return SECRET_STR_LEN
+	end
+	return strlen(tostring(v))
+end
+
 function ChatThrottleLib.Hook_SendChatMessage(text, chattype, language, destination, ...)
 	if bMyTraffic then
 		return
 	end
 	local self = ChatThrottleLib
-	local size = strlen(tostring(text or "")) + strlen(tostring(destination or "")) + self.MSG_OVERHEAD
+	local size = SafeStrLen(text) + SafeStrLen(destination) + self.MSG_OVERHEAD
 	self.avail = self.avail - size
 	self.nBypass = self.nBypass + size	-- just a statistic
 end
@@ -292,8 +306,8 @@ function ChatThrottleLib.Hook_SendAddonMessage(prefix, text, chattype, destinati
 		return
 	end
 	local self = ChatThrottleLib
-	local size = tostring(text or ""):len() + tostring(prefix or ""):len();
-	size = size + tostring(destination or ""):len() + self.MSG_OVERHEAD
+	local size = SafeStrLen(text) + SafeStrLen(prefix);
+	size = size + SafeStrLen(destination) + self.MSG_OVERHEAD
 	self.avail = self.avail - size
 	self.nBypass = self.nBypass + size	-- just a statistic
 end
