@@ -306,7 +306,9 @@ local function ApplyTypeIcon(block)
         return
     end
 
-    local qID = type(block.id) == "number" and block.id or nil
+    -- 同 ApplyTitleColor：只有任務區塊的 id 才是 questID。拿成就的號碼去查
+    -- 任務分類快取，撞到的話會在成就上蓋一顆「戰役任務」之類的圖示
+    local qID = T.IsQuestBlock(block) and block.id or nil
     local entry = qID and classifyCache[qID]
     if not entry then
         if ico then ico:Hide() end
@@ -366,7 +368,9 @@ local function ApplyTitleColor(block)
     local fs = TitleFS(block)
     if not fs then return end
     local a = Cfg()
-    local qID = type(block.id) == "number" and block.id or nil
+    -- ⚠ 只有任務區塊的 id 才是 questID（成就是 achievementID、配方是 recipeID），
+    --   不分辨的話會拿成就的號碼去跟 super-track 的任務號碼比 —— 兩邊值域重疊
+    local qID = T.IsQuestBlock(block) and block.id or nil
     local c
     if qID and qID == superTrackedID then
         c = a.focusColor

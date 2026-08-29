@@ -580,11 +580,13 @@ function Chrome.UpdateMoveOverlay()
     moveOverlay:SetPoint("BOTTOMRIGHT", bottomRef, "BOTTOMRIGHT", 0, 0)
 
     -- 底色用**壓暗過的**強調色而不是原色淡淡一層：遮罩底下是會動的地形，
-    -- 0.18 的原色在亮的地方等於沒有，字也讀不出來。壓暗到 0.35 再拉高不透明度，
-    -- 白字壓上去在任何背景都看得清楚，而色相仍然是玩家的職業色。
-    -- 邊框保持原色全亮，這樣「暗面 ＋ 亮邊」的對比也把範圍講清楚了。
+    -- 原色淡淡一層在亮的地方等於沒有，字也讀不出來。壓暗之後白字壓上去在任何
+    -- 背景都看得清楚，而色相仍然是玩家的職業色。
+    -- 邊框保持原色全亮，「暗面 ＋ 亮邊」的對比也把範圍講清楚了。
+    -- 不透明度調過兩輪：0.18 太淡（看不出有遮罩）、0.85 太重（底下的清單整個沒了，
+    -- 而玩家拖的時候需要看得到自己在搬什麼）。0.55 是兩者之間。
     local r, g, b = ns.Media.Accent()
-    moveOverlay:SetBackdropColor(r * 0.35, g * 0.35, b * 0.35, 0.85)
+    moveOverlay:SetBackdropColor(r * 0.45, g * 0.45, b * 0.45, 0.55)
     moveOverlay:SetBackdropBorderColor(r, g, b, 1)
     moveOverlay.label:SetFont(Font(), 14, "OUTLINE")
     moveOverlay.label:SetText(L["Drag to move"])
