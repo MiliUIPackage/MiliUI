@@ -27,7 +27,11 @@ local function Cfg() return ns.db and ns.db.automation end
 -- 按下接受鈕之前等多久。0.25 秒對玩家來說察覺不到（任務視窗本來就要一下才看得清），
 -- 但足以蓋過冷啟動時那段任務資料還沒到齊的空窗。
 -- ⚠ 調小之前先重現一次那條週任 —— 這個值是實測逼出來的，不是隨手挑的。
-local ACCEPT_DELAY = 0.25
+--
+-- 可以用 /mquest delay <秒> 臨時改（session 內有效、不存檔）。那是診斷用的：
+-- 把它拉長到 3 秒，就能在我們動手之前自己手動點一次接受 —— 這是目前唯一能把
+-- 「合成點擊本身不行」跟「我們在點擊之前弄壞了什麼」分開的辦法。
+AQ.acceptDelay = 0.25
 
 ------------------------------------------------------------
 -- 事件追蹤（/mquest trace 開關，session 內有效、不存檔）
@@ -278,12 +282,12 @@ local function OnEvent(_, event)
         --
         -- 兩個變因分不開（手動點既是「真的按鈕」也是「一秒之後」），所以一起補：
         -- 等一小段時間，然後走暴雪自己的 OnClick。按鈕不在就退回直接呼叫。
-        C_Timer.After(ACCEPT_DELAY, function()
+        C_Timer.After(AQ.acceptDelay, function()
             local now = GetQuestID and GetQuestID() or 0
             -- 這段時間裡玩家可能自己按了、或點到另一條任務
             if now ~= questID then
                 Trace("   %.2fs 後 questID 變成 %s（原本 %s）⇒ 放棄，不亂接",
-                    ACCEPT_DELAY, Safe(now), Safe(questID))
+                    AQ.acceptDelay, Safe(now), Safe(questID))
                 return
             end
             if C_QuestLog and C_QuestLog.GetNumQuestLogEntries then
@@ -292,10 +296,10 @@ local function OnEvent(_, event)
             end
             local btn = _G.QuestFrameAcceptButton
             if btn and btn:IsShown() and btn:IsEnabled() then
-                Trace("   %.2fs 後按下暴雪的接受鈕", ACCEPT_DELAY)
+                Trace("   %.2fs 後按下暴雪的接受鈕", AQ.acceptDelay)
                 btn:Click()
             else
-                Trace("   %.2fs 後接受鈕不可用 ⇒ 退回 AcceptQuest()", ACCEPT_DELAY)
+                Trace("   %.2fs 後接受鈕不可用 ⇒ 退回 AcceptQuest()", AQ.acceptDelay)
                 AcceptQuest()
             end
         end)

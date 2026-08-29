@@ -45,6 +45,18 @@ SlashCmdList.MILIUIQUEST = function(msg)
             and "|cff88ccff" .. L["Quest automation trace ON — reproduce the problem, then paste the lines here."] .. "|r"
             or L["Quest automation trace off."])
 
+    elseif msg:match("^delay") then
+        -- 診斷用：把接受任務前的等待拉長，就能在插件動手之前自己手動點一次。
+        -- session 內有效、不存檔
+        local secs = tonumber(msg:match("^delay%s+([%d%.]+)$"))
+        if secs and secs >= 0 and secs <= 10 then
+            ns.AutoQuest.acceptDelay = secs
+            ns.Print(L["Accept delay set to %.2fs (this session only)."]:format(secs))
+        else
+            ns.Print(L["Usage: /mquest delay <seconds 0-10>"]
+                .. "  (" .. ("%.2f"):format(ns.AutoQuest.acceptDelay) .. ")")
+        end
+
     elseif msg == "debug" then
         ns.Print("v" .. ns.VERSION
             .. "  folded=" .. tostring(ns.Visibility.IsFolded())

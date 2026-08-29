@@ -133,3 +133,7 @@ L["\"Navigating\" is the one the map arrow is pointing at right now — not \"in
 L["Quest automation trace ON — reproduce the problem, then paste the lines here."] = "任务自动化追踪：已开启。重现一次问题，然后把打印出来的行贴给我。"
 L["Quest automation trace off."] = "任务自动化追踪：已关闭。"
 L["Commands: |cffffd200/mquest|r opens the options, |cffffd200/mquest fold|r folds or unfolds the list, |cffffd200/mquest trace|r logs the quest automation, |cffffd200/mquest reset|r restores the defaults, |cffffd200/mquest debug|r reports recent errors"] = "命令：|cffffd200/mquest|r 打开设置，|cffffd200/mquest fold|r 折叠或展开列表，|cffffd200/mquest trace|r 追踪任务自动化，|cffffd200/mquest reset|r 还原默认值，|cffffd200/mquest debug|r 显示最近的报错"
+
+-- 診斷用的延遲調整
+L["Accept delay set to %.2fs (this session only)."] = "接受任务前的等待改成 %.2f 秒（仅本次登录有效）。"
+L["Usage: /mquest delay <seconds 0-10>"] = "用法：/mquest delay <秒数 0-10>"
