@@ -27,7 +27,7 @@ local function Cfg() return ns.db and ns.db.automation end
 -- 等「任務資料到齊」的上限。到了還沒等到就照樣按下去 —— 寧可失敗一次，
 -- 也不要靜靜地不接。這是安全網，正常情況下不會走到。
 -- /mquest delay <秒> 可以臨時改（session 內有效、不存檔）。
-AQ.acceptTimeout = 1.5
+AQ.acceptTimeout = 0.5
 
 -- 按下去之後多久查勤「到底接到了沒有」。要比伺服器來回久、又要短到玩家還沒走開
 local VERIFY_AFTER = 0.8

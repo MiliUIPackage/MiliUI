@@ -137,3 +137,7 @@ L["Commands: |cffffd200/mquest|r opens the options, |cffffd200/mquest fold|r fol
 -- 診斷用的延遲調整
 L["Accept delay set to %.2fs (this session only)."] = "接受任务前的等待改成 %.2f 秒（仅本次登录有效）。"
 L["Usage: /mquest delay <seconds 0-10>"] = "用法：/mquest delay <秒数 0-10>"
+
+-- 需要等待的任務清單
+L["Cleared the list of quests that need a wait."] = "已清除「需要先等一下」的任务列表。"
+L["Quests that need a wait (%.2fs): %s"] = "需要先等一下（%.2f 秒）的任务：%s"
