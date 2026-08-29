@@ -419,10 +419,21 @@ local function Schedule(delay)
     end)
 end
 
+-- 只有雜訊事件走慢速；會真的改變人數的走快速（見下面的 EXACT_EVENTS）
 local SLOW_EVENTS = {
     BN_FRIEND_INFO_CHANGED = true,
-    FRIENDLIST_UPDATE = true,
     GUILD_ROSTER_UPDATE = true,
+}
+
+-- ⚠ 這幾個是**人數真的會變**的時刻，而且很少發生 —— 讓好友快取強制失效，
+--   其餘時間就吃 30 秒的 TTL。這樣「有人上線」還是即時反映，但閒著的時候
+--   完全不會去掃那份 242 KB 的名單。
+local EXACT_EVENTS = {
+    BN_FRIEND_ACCOUNT_ONLINE = true,
+    BN_FRIEND_ACCOUNT_OFFLINE = true,
+    BN_CONNECTED = true,
+    BN_DISCONNECTED = true,
+    FRIENDLIST_UPDATE = true,
 }
 
 ------------------------------------------------------------
@@ -588,10 +599,13 @@ ns.RegisterCallback("Init", "Bar", function()
     ev:RegisterEvent("BN_FRIEND_INFO_CHANGED")
     ev:RegisterEvent("BN_CONNECTED")
     ev:RegisterEvent("BN_DISCONNECTED")
+    ev:RegisterEvent("BN_FRIEND_ACCOUNT_ONLINE")
+    ev:RegisterEvent("BN_FRIEND_ACCOUNT_OFFLINE")
     ev:SetScript("OnEvent", function(_, event)
         if event == "PLAYER_ENTERING_WORLD" and IsInGuild() then
             C_GuildInfo.GuildRoster()
         end
+        if EXACT_EVENTS[event] then D.InvalidateFriends() end
         Schedule(SLOW_EVENTS[event] and 5 or 0.5)
     end)
 end)
