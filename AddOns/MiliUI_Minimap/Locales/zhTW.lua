@@ -186,3 +186,4 @@ L["If no slot shows the addon buttons, the bag has no way to open — /mmap bag 
     "三格都沒放「插件按鈕」的話，收納袋就沒有入口了——這時候還可以用 /mmap bag 打開。"
 L["Commands: |cffffd200/mmap|r opens the options, |cffffd200/mmap bag|r opens the addon-button bag, |cffffd200/mmap lock|r and |cffffd200/mmap unlock|r toggle dragging, |cffffd200/mmap reset|r restores defaults, |cffffd200/mmap debug|r reports recent errors"] =
     "指令：|cffffd200/mmap|r 開啟設定，|cffffd200/mmap bag|r 打開插件按鈕收納袋，|cffffd200/mmap lock|r 與 |cffffd200/mmap unlock|r 切換拖曳，|cffffd200/mmap reset|r 還原預設值，|cffffd200/mmap debug|r 印出最近的錯誤"
+L["Drag to resize"] = "拉這裡調整大小"

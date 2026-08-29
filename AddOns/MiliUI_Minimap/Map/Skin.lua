@@ -413,13 +413,61 @@ local function Build()
     --   箭頭**要求畫布是正方形**（長方形要另外做一張裁切遮罩貼圖，見下面的註解）。
     --   自己讀游標算邊長反而更短、也能保證正方。
     ------------------------------------------------------------
+    -- ⚠ 造型：**三格斜階**，不是一塊實心方塊。
+    --   第一版是「邊長 = 地圖 1/5 的實心色塊」—— 使用者第一眼的反應是
+    --   「地圖左下角有個方塊」，也就是說它完全沒有傳達「這裡可以拉」。
+    --   一塊沒有形狀的色塊只會被讀成「這裡有東西壞了」。
+    --   斜階是縮放把手的通用符號，而且它只用三張方形貼圖就畫得出來 ——
+    --   不必旋轉、不必圖檔，也還在「純色直角」的語言裡。
+    --
+    --   點擊範圍（GRIP_HIT）比圖案大：圖案要小才不擋地圖，但 8px 的東西
+    --   在遊戲裡抓不到。
+    local GRIP_HIT, GRIP_STEP = 20, 3
     local grip = CreateFrame("Button", nil, dragOverlay)
     grip:SetPoint("BOTTOMLEFT", dragOverlay, "BOTTOMLEFT", 0, 0)
+    grip:SetSize(P.Scale(GRIP_HIT), P.Scale(GRIP_HIT))
     grip:SetFrameLevel(dragOverlay:GetFrameLevel() + 1)
     grip:RegisterForClicks("LeftButtonUp")
-    grip.tex = grip:CreateTexture(nil, "OVERLAY")
-    grip.tex:SetAllPoints(grip)
+    grip.steps = {}
+    for i = 1, 3 do
+        local t = grip:CreateTexture(nil, "OVERLAY")
+        -- ⚠ 一定要先給貼圖。空的 texture 上 SetVertexColor 是**靜默無效**的
+        --   （沒有東西可以染色），畫面上什麼都不會出現。
+        t:SetColorTexture(1, 1, 1, 1)
+        t:SetSize(P.Scale(GRIP_STEP), P.Scale(GRIP_STEP))
+        -- 由左下往右上一格一格退，畫成 ⋰
+        t:SetPoint("BOTTOMLEFT", grip, "BOTTOMLEFT",
+            P.Scale(3 + (i - 1) * (GRIP_STEP + 1)),
+            P.Scale(3 + (3 - i) * (GRIP_STEP + 1)))
+        grip.steps[i] = t
+    end
     dragOverlay.grip = grip
+
+    local function TintGrip(a)
+        for _, t in ipairs(grip.steps) do t:SetVertexColor(S.Accent(a)) end
+    end
+    grip.Tint = TintGrip
+
+    grip:SetScript("OnEnter", function(self)
+        TintGrip(1)
+        local tip = ns.Tip.Open(self, "BOTTOMLEFT", "TOPLEFT", 0, 4)
+        -- ⚠ S.Accent() 回四個值，AddLine 的第四個參數是 wrapText —— 直接展開
+        --   會把 alpha 當成換行旗標（見 Panel/Tip.lua 的 AddSection 註解）。
+        local ar, ag, ab = S.Accent()
+        tip:AddLine(ns.L["Drag to resize"], ar, ag, ab)
+        tip:AddLine(("%d × %d"):format(math.floor(holder:GetWidth() + 0.5),
+                                       math.floor(holder:GetHeight() + 0.5)), 1, 1, 1)
+        tip:Show()
+    end)
+    -- ⚠ 靜置亮度**不用 STATE_ALPHA.idle（0.55）**。那個階是給常駐在畫面上的元件用的
+    --   —— 平常低調、滑過才亮。這顆把手相反：它只在編輯模式存在幾秒鐘，
+    --   「被找到」就是它的全部工作，低調等於失效。
+    local GRIP_REST = 0.85
+    grip:SetScript("OnLeave", function()
+        TintGrip(GRIP_REST)
+        ns.Tip.Close()
+    end)
+    grip.REST = GRIP_REST
 
     local function GripUpdate()
         local hs = holder:GetEffectiveScale()
@@ -444,6 +492,7 @@ local function Build()
         self:SetScript("OnUpdate", nil)
         ns.DB.Get().size = math.floor(holder:GetWidth() + 0.5)
         dragOverlay.label:SetText(ns.L["Drag to move"])
+        ns.Tip.Close()
         ns.Safe(Skin.Apply)
     end)
 
@@ -584,13 +633,9 @@ function Skin.Apply()
     dragOverlay:SetBackdropColor(S.Accent(0.25))
     dragOverlay:SetBackdropBorderColor(S.Accent(1))
     S.SetFont(dragOverlay.label, 13)
-    do
-        -- 把手比按鈕大一點（1/5 邊長，最少 14）：它只在解鎖時出現，
-        -- 那個當下「抓得到」比「不佔位置」重要。
-        local g = math.max(14, math.floor(db.size / 5))
-        dragOverlay.grip:SetSize(P.Scale(g), P.Scale(g))
-        dragOverlay.grip.tex:SetColorTexture(S.Accent(0.9))
-    end
+    -- 把手的尺寸是固定的（建立時就設好），這裡只重新上色 ——
+    -- 它是一個符號不是版面元件，跟著地圖放大只會變成一塊礙眼的色塊。
+    dragOverlay.grip.Tint(dragOverlay.grip.REST)
     Skin.RefreshDrag()
 
     ------------------------------------------------------------

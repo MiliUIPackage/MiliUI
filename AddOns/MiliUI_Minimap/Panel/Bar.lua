@@ -174,7 +174,9 @@ SOURCES.bag = {
 
     tooltip = function(tip)
         local inBag, pinned = ns.Buttons.Counts()
-        tip:AddLine(ns.L["Addon buttons"], S.Accent())
+        -- ⚠ 不能直接展開 S.Accent()（回四個值，第四個會被 AddLine 當成 wrapText）
+        local ar, ag, ab = S.Accent()
+        tip:AddLine(ns.L["Addon buttons"], ar, ag, ab)
         tip:AddLine(ns.L["%d in the bag, %d pinned"]:format(inBag, pinned), 1, 1, 1)
         ns.Tip.AddHint(ns.L["Left-click: open the bag"], ns.L["Right-click: settings"])
     end,
