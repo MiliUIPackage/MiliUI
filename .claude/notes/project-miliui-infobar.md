@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: c0d1056b-afe5-4f0b-a0d1-24a0f3f4c05d
-  modified: 2026-08-29T15:13:50.147Z
+  modified: 2026-08-29T15:28:31.411Z
 ---
 
 `AddOns/MiliUI_InfoBar/`（2026-08-29 新增）。純色方底一長條：資訊區塊（裝等／耐久／
@@ -77,15 +77,20 @@ metadata:
   2. **要主動補掃一次現役提示。** 掛勾只接得到之後的 Show；登入當下就掛著、
      而且會一直留到玩家按叉叉的那種（PvP 天賦欄位）在掛勾前就顯示完了，
      之後不會再有 Show 呼叫。ApplyAll 之後延一幀掃 `EnumerateActive()`。
-  3. **⚠⚠ 換完 `relativeRegion` 再叫 `frame:AnchorAndRotate()` 實機上沒有用。**
-     欄位確實變了（`/mib debug` 印得出來），泡泡卻留在原地——連 `autoHorizontalSlide`
-     那個**每幀**都會 `AnchorAndRotate` 的 OnUpdate 也沒把它拉過來（推測是拋錯被
-     BugSack 吞掉）。所以不能信任那條路：呼叫要包 `pcall`，然後**量泡泡的中心 x
-     有沒有真的靠近方塊**，沒有就自己 `ClearAllPoints` + `SetPoint` 接手，並把
-     `OnUpdate` 設成 nil（不然每幀重錨會跟我們搶）。
-     **教訓：欄位對了不等於畫面對了。** 這一輪浪費了三次 /reload 才發現——診斷
-     只印狀態欄位是不夠的，一定要連**實際座標**一起印（方塊的 x 對泡泡的 x），
-     差距一眼就看得出來。
+  3. **⚠⚠ 只換 `relativeRegion` 再叫 `AnchorAndRotate()` 不會有任何反應，也不報錯。**
+     那支開頭有一道快取閘（HelpTip.lua:552）：
+     `if targetPoint == self.appliedTargetPoint and alignment == self.appliedAlignment then return`。
+     我們動的是錨定**對象**，targetPoint／alignment 都沒變 ⇒ 直接 return，連每幀跑的
+     OnUpdate 也被同一道閘擋掉。**要先把 `appliedTargetPoint` / `appliedAlignment`
+     設成 nil**，它才會真的重算。
+     箭頭方向也在同一支裡處理（RotateArrow ＋ AnchorArrow），所以讓它重算就位置與
+     箭頭一起對；要決定的只有泡泡在哪一側：方塊在畫面下半 → `TopEdgeCenter`
+     （泡泡在上、箭頭朝下），上半 → `BottomEdgeCenter`。**寫進 `info.targetPoint`，
+     不要用 AnchorAndRotate 的 override 參數**——OnUpdate 每幀拿 `info.targetPoint`
+     重算，只傳 override 下一幀就被翻回去。
+     **教訓：欄位對了不等於畫面對了。** 這一輪繞了三次 /reload 才逼出真因——診斷
+     只印狀態欄位是不夠的，一定要連**實際座標**一起印（方塊的 x 對泡泡的 x）；
+     而「改了沒反應又不報錯」的第一嫌疑犯是**早退快取**，不是拋錯。
 - **原鈕的閃爍要鏡射**：原鈕藏起來後，暴雪畫在它身上的提示（有人申請、法術書有
   新東西）就看不到了。掛全域 `MicroButtonPulse` / `MicroButtonPulseStop`
   （MainMenuBarMicroButtons.lua）把閃爍轉到我們的方塊上——**不要去列舉「哪些情境

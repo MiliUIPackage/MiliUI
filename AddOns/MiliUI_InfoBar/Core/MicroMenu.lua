@@ -252,23 +252,38 @@ local function TipFollowed(frame, tile)
     return math.abs(fx - tx) < 250
 end
 
--- ⚠ 換了 relativeRegion 再叫 AnchorAndRotate() **在實機上沒有用**：欄位確實變了
--- （/mib debug 看得到），泡泡卻留在原地不動，連每幀跑的 OnUpdate 也沒把它拉過來
--- （2026-08-29 實測，靠印座標才確認）。所以這裡不信任那條路：先照官方的方式試，
--- 然後**驗證泡泡有沒有真的移動**，沒有就自己 SetPoint 接手。
+-- ⚠⚠ 只換 `relativeRegion` 再叫 `AnchorAndRotate()` **不會有任何反應**，而且不報錯。
+-- 原因是那支開頭有一道快取閘（HelpTip.lua:552）：
+--     if targetPoint == self.appliedTargetPoint and alignment == self.appliedAlignment then
+--         return;
+-- 我們動的是錨定「對象」，targetPoint／alignment 都沒變，所以它直接 return——
+-- 連每幀跑的 OnUpdate 也是同一道閘擋掉。**清掉那兩個快取欄位**它才會真的重算。
 --
--- 自己接手時要把 OnUpdate 拿掉：autoHorizontalSlide 會每幀重錨，留著就是跟我們搶
--- （代價是沒有貼邊自動滑動；泡泡錨在資訊列上，本來也不太需要）。
+-- 箭頭方向也在同一支裡處理（RotateArrow ＋ AnchorArrow），所以只要讓它重算，
+-- 位置與箭頭會一起對；我們唯一要決定的是泡泡該在方塊的哪一側：
+--   方塊在畫面下半 → 泡泡放上方 → targetPoint = TopEdgeCenter（箭頭朝下）
+--   方塊在畫面上半 → 泡泡放下方 → targetPoint = BottomEdgeCenter（箭頭朝上）
+-- 寫進 `info.targetPoint` 而不是用 AnchorAndRotate 的 override 參數：OnUpdate
+-- 每幀都會拿 `info.targetPoint` 重算一次，只傳 override 的話下一幀就被翻回去。
 local function ApplyAnchor(frame, tile)
     frame.relativeRegion = tile
+
+    local _, cy = tile:GetCenter()
+    if cy and cy > UIParent:GetHeight() / 2 then
+        frame.info.targetPoint = HelpTip.Point.BottomEdgeCenter
+    else
+        frame.info.targetPoint = HelpTip.Point.TopEdgeCenter
+    end
+
+    frame.appliedTargetPoint = nil
+    frame.appliedAlignment = nil
     pcall(frame.AnchorAndRotate, frame)
     if TipFollowed(frame, tile) then return "官方" end
 
+    -- 保險絲：官方那條路萬一又變了，至少位置要對（箭頭方向就只能將就）。
+    -- 自己接手時要把 OnUpdate 拿掉，不然 autoHorizontalSlide 每幀會跟我們搶。
     frame:SetScript("OnUpdate", nil)
     frame:ClearAllPoints()
-    -- 箭頭是泡泡自己的貼圖、方向由官方那條路決定，我們只保證泡泡在正確的那一側：
-    -- 方塊在畫面下半 → 泡泡放上方（箭頭朝下，跟預設 TopEdgeCenter 一致）
-    local _, cy = tile:GetCenter()
     if cy and cy > UIParent:GetHeight() / 2 then
         frame:SetPoint("TOP", tile, "BOTTOM", 0, -14)
     else
