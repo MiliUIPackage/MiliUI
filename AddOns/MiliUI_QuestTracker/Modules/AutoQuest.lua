@@ -24,23 +24,10 @@ local AQ = ns.AutoQuest
 
 local function Cfg() return ns.db and ns.db.automation end
 
--- 按下接受鈕之前等多久。
---
--- 這個值是**實測逼出來的**，不是體感挑的：
---   0.25s → 第一次接必定失敗（任務視窗閃一下就關、沒進日誌）
---   3.00s → 第一次就成功
--- 成因是客戶端第一次拿到某條任務的資料要跟伺服器要一次，之後才有快取 ——
--- 所以「第一次失敗、第二次成功、放棄之後重演」全部說得通。
--- 1 秒是取中間值；驗證方式見下面 Trace 印出來的獎勵欄位。
---
--- ⚠ 想調小之前先重現一次那條週任（至暗之夜：阿塔烏特克寶庫，98232）。
---   /mquest delay <秒> 可以臨時改，不用改檔案。
--- ⚠ 調小之前先重現一次那條週任 —— 這個值是實測逼出來的，不是隨手挑的。
---
--- 可以用 /mquest delay <秒> 臨時改（session 內有效、不存檔）。那是診斷用的：
--- 把它拉長到 3 秒，就能在我們動手之前自己手動點一次接受 —— 這是目前唯一能把
--- 「合成點擊本身不行」跟「我們在點擊之前弄壞了什麼」分開的辦法。
-AQ.acceptDelay = 1.0
+-- 等「任務資料到齊」的上限。到了還沒等到就照樣按下去 —— 寧可失敗一次，
+-- 也不要靜靜地不接。這是安全網，正常情況下不會走到。
+-- /mquest delay <秒> 可以臨時改（session 內有效、不存檔）。
+AQ.acceptTimeout = 1.5
 
 ------------------------------------------------------------
 -- 事件追蹤（/mquest trace 開關，session 內有效、不存檔）
@@ -226,10 +213,79 @@ local function HandleGreeting()
 end
 
 ------------------------------------------------------------
+-- 接受任務：等資料到齊
+--
+-- 走過的死路（都是實測打掉的，不要重走）：
+--   1. QuestGetAutoAccept() 殘留 ⇒ 錯，旗標兩次都是 false。
+--   2. 對話／四選一的選取邏輯 ⇒ 錯，這條任務完全沒有 GOSSIP_SHOW。
+--   3. 我們搶在暴雪的 QuestFrame 前面 ⇒ 錯，兩次的 QuestFrame:IsShown() 與
+--      接受鈕的顯示／可按都是 true，延後一幀也沒改善。
+--   4. 合成點擊 vs 硬體點擊 ⇒ 錯，等 3 秒之後我們自己按也會成功。
+--   5. 獎勵資料還沒到 ⇒ 錯，失敗與成功那兩次的
+--      GetNumQuestChoices/GetNumQuestRewards/GetQuestMoneyToGet 完全一樣。
+--
+-- 成立的是：資料非同步載入，冷的時候要一段時間（實測 0.25 秒不夠、1 秒夠）。
+------------------------------------------------------------
+local pending   -- { questID = , t0 = }
+
+local function DoAccept(questID, why)
+    pending = nil
+    local now = GetQuestID and GetQuestID() or 0
+    if now ~= questID then
+        -- 分辨兩種完全不同的情況，不然這行看起來一樣：
+        --   已經在日誌裡 ⇒ 有人（多半是玩家自己）在我們之前接掉了
+        --   不在日誌裡   ⇒ 視窗只是關掉了，任務沒接成
+        local inLog = C_QuestLog and C_QuestLog.GetLogIndexForQuestID
+            and C_QuestLog.GetLogIndexForQuestID(questID)
+        Trace("   questID 變成 %s（原本 %s，%s）⇒ 放棄，不亂接", Safe(now), Safe(questID),
+            inLog and "已經有人接走了" or "任務沒接成，視窗被關掉了")
+        return
+    end
+    local btn = _G.QuestFrameAcceptButton
+    if btn and btn:IsShown() and btn:IsEnabled() then
+        Trace("   %s ⇒ 按下暴雪的接受鈕", why)
+        btn:Click()
+    else
+        Trace("   %s ⇒ 接受鈕不可用，退回 AcceptQuest()", why)
+        AcceptQuest()
+    end
+end
+
+local function AcceptWhenReady(questID)
+    pending = { questID = questID, t0 = GetTime() }
+
+    -- 請求載入。已經在手上的話這一步是白工，但很便宜；而且我們無論如何都要
+    -- 等那個事件，所以不必先問「到底載入了沒有」
+    if C_QuestLog and C_QuestLog.RequestLoadQuestByID then
+        C_QuestLog.RequestLoadQuestByID(questID)
+    end
+
+    -- 安全網：訊號沒來就照樣按。走到這裡代表等訊號這條路對這個任務不管用，
+    -- 行為退回成「等固定秒數」——跟改這版之前一樣，不會更糟
+    C_Timer.After(AQ.acceptTimeout, function()
+        if pending and pending.questID == questID then
+            DoAccept(questID, ("逾時 %.2fs"):format(AQ.acceptTimeout))
+        end
+    end)
+end
+
+------------------------------------------------------------
 -- 事件
 ------------------------------------------------------------
-local function OnEvent(_, event)
+local function OnEvent(_, event, arg1, arg2)
     if not ns.db then return end
+
+    if event == "QUEST_DATA_LOAD_RESULT" then
+        if pending and arg1 == pending.questID then
+            DoAccept(pending.questID,
+                ("資料到齊（%.2fs, success=%s）"):format(GetTime() - pending.t0, Safe(arg2)))
+        end
+        return
+    end
+    -- 任務互動結束就把等待作廢，免得計時器醒來時接到另一條任務
+    if event == "QUEST_FINISHED" or event == "QUEST_ACCEPTED" then
+        pending = nil
+    end
     if AQ.trace and event ~= "GOSSIP_SHOW" and event ~= "QUEST_DETAIL" then
         Trace("%s  currentQuestID=%s", event, Safe(GetQuestID and GetQuestID()))
     end
@@ -272,57 +328,20 @@ local function OnEvent(_, event)
             return
         end
 
-        -- ⚠ 這裡不直接呼叫 AcceptQuest()，而是「等一下，然後按暴雪自己那顆按鈕」。
+        -- ⚠ 不要在這裡直接接。等「任務資料到齊」的訊號，到了才按。
         --
-        -- 這是三個假設全錯之後、靠實測收斂出來的。案例：週任「至暗之夜：阿塔烏特克
-        -- 寶庫」(98232)，第一次接**必定**失敗（任務視窗閃 0.1 秒就關、任務沒進日誌），
-        -- 第二次才成功；放棄重來照樣重現。
+        -- 案例：週任「至暗之夜：阿塔烏特克寶庫」(98232)，第一次接必定失敗
+        -- （視窗閃一下就關、沒進日誌），第二次才成功；放棄重來照樣重演。
+        -- 七輪實測收斂出來的結論，路上排除掉的死路都記在 AcceptWhenReady() 上面。
         --
-        -- 被實測排除的三個方向：
-        --   1. QuestGetAutoAccept() 殘留 ⇒ 錯。旗標兩次都是 false。
-        --   2. 對話／四選一的選取邏輯 ⇒ 錯。這條任務**完全沒有 GOSSIP_SHOW**。
-        --   3. 我們搶在暴雪的 QuestFrame 前面 ⇒ 錯。兩次的 QuestFrame:IsShown() 與
-        --      接受鈕的顯示／可按狀態都是 true，延後一幀也沒有改善。
+        -- 關鍵是暴雪的任務資料是**非同步**載入的：C_QuestLog.RequestLoadQuestByID()
+        -- 送出請求，資料到了才派送 QUEST_DATA_LOAD_RESULT。冷的時候我們在資料到齊
+        -- 之前就按下去，那個 accept 會被丟掉。
         --
-        -- 決定性的一筆：**關掉自動接任務、手動點「接受」，第一次就成功。**
-        -- 所以差別在「怎麼按」，不在狀態。
-        -- 而「單純要等久一點」也被同一份資料排除了 —— 若是每次都要等 N 毫秒，
-        -- 第二次同樣只等一幀，應該一樣失敗，但它成功了。
-        --
-        -- 兩個變因分不開（手動點既是「真的按鈕」也是「一秒之後」），所以一起補：
-        -- 等一小段時間，然後走暴雪自己的 OnClick。按鈕不在就退回直接呼叫。
-        C_Timer.After(AQ.acceptDelay, function()
-            local now = GetQuestID and GetQuestID() or 0
-            -- 這段時間裡玩家可能自己按了、或點到另一條任務
-            if now ~= questID then
-                -- 分辨兩種完全不同的情況，不然這行看起來一樣：
-                --   已經在日誌裡 ⇒ 有人（多半是玩家自己）在我們之前接掉了
-                --   不在日誌裡   ⇒ 視窗只是關掉了，任務沒接成
-                local inLog = C_QuestLog and C_QuestLog.GetLogIndexForQuestID
-                    and C_QuestLog.GetLogIndexForQuestID(questID)
-                Trace("   %.2fs 後 questID 變成 %s（原本 %s，%s）⇒ 放棄，不亂接",
-                    AQ.acceptDelay, Safe(now), Safe(questID),
-                    inLog and "已經有人接走了 —— 這一輪沒測到我們的點擊"
-                          or "任務沒接成，視窗被關掉了")
-                return
-            end
-            -- 按下去的當下，這份任務提供的獎勵資料到齊了沒有。
-            -- 「冷的時候資料還沒到」如果是真的成因，這幾個數字在失敗與成功的
-            -- 那兩次之間就會不一樣 —— 那會直接指出該等什麼訊號，而不是硬等秒數
-            Trace("   獎勵 選擇=%s 固定=%s 金錢=%s",
-                Safe(GetNumQuestChoices and GetNumQuestChoices()),
-                Safe(GetNumQuestRewards and GetNumQuestRewards()),
-                Safe(GetQuestMoneyToGet and GetQuestMoneyToGet()))
-            local btn = _G.QuestFrameAcceptButton
-            if btn and btn:IsShown() and btn:IsEnabled() then
-                Trace("   %.2fs 後按下暴雪的接受鈕", AQ.acceptDelay)
-                btn:Click()
-            else
-                Trace("   %.2fs 後接受鈕不可用 ⇒ 退回 AcceptQuest()", AQ.acceptDelay)
-                AcceptQuest()
-            end
-        end)
-
+        -- ⚠ 不用固定秒數等 —— 那是「競態條件加上額外步驟」：挑短了會隨伺服器狀態
+        --   時好時壞（最難回報的那種 bug），挑長了每一條任務都被拖慢。
+        --   等訊號則是熱的瞬間接、冷的剛好等夠。逾時只是安全網，不是機制。
+        AcceptWhenReady(questID)
     elseif event == "QUEST_ACCEPT_CONFIRM" then
         -- 隊友分享的護送任務會多問一次
         if not CanAccept() then return end
@@ -380,6 +399,8 @@ ns.RegisterCallback("Init", "autoquest", function()
         -- ⚠ QUEST_REMOVED 是刻意加的：要排除「其實接到了、但馬上又被拿掉」這種
         --    可能 —— 那跟「根本沒接到」在畫面上長得一模一樣，但成因完全不同。
         "QUEST_ACCEPTED", "QUEST_REMOVED", "QUEST_FINISHED", "GOSSIP_CLOSED",
+        -- 這個才是真正在等的訊號
+        "QUEST_DATA_LOAD_RESULT",
     }) do
         evt:RegisterEvent(e)
     end
