@@ -24,6 +24,11 @@ local AQ = ns.AutoQuest
 
 local function Cfg() return ns.db and ns.db.automation end
 
+-- 按下接受鈕之前等多久。0.25 秒對玩家來說察覺不到（任務視窗本來就要一下才看得清），
+-- 但足以蓋過冷啟動時那段任務資料還沒到齊的空窗。
+-- ⚠ 調小之前先重現一次那條週任 —— 這個值是實測逼出來的，不是隨手挑的。
+local ACCEPT_DELAY = 0.25
+
 ------------------------------------------------------------
 -- 事件追蹤（/mquest trace 開關，session 內有效、不存檔）
 --
@@ -220,34 +225,48 @@ local function OnEvent(_, event)
             Safe(questID), Safe(GetTitleText and GetTitleText()), Safe(alreadyInLog),
             Safe(qf and qf:IsShown()),
             Safe(accept and accept:IsShown()), Safe(accept and accept:IsEnabled()),
-            alreadyInLog and "CloseQuest" or "AcceptQuest(延後一幀)")
+            alreadyInLog and "CloseQuest" or "延後後按接受鈕")
 
         if alreadyInLog then
             CloseQuest()
             return
         end
 
-        -- ⚠ 延後一幀才接。
+        -- ⚠ 這裡不直接呼叫 AcceptQuest()，而是「等一下，然後按暴雪自己那顆按鈕」。
         --
-        -- 追蹤證據（四選一週任「第一次必定失敗、第二次成功」）：兩次的 QUEST_DETAIL
-        -- 狀態**一模一樣**（同 questID、日誌索引都是 nil、旗標都是 false），我們兩次
-        -- 都呼叫了 AcceptQuest()，但只有第二次收得到 QUEST_ACCEPTED。狀態相同而結果
-        -- 不同 ⇒ 是時序，不是狀態。
+        -- 這是三個假設全錯之後、靠實測收斂出來的。案例：週任「至暗之夜：阿塔烏特克
+        -- 寶庫」(98232)，第一次接**必定**失敗（任務視窗閃 0.1 秒就關、任務沒進日誌），
+        -- 第二次才成功；放棄重來照樣重現。
         --
-        -- 我們跟暴雪的 QuestFrame 都在聽 QUEST_DETAIL，而事件派送的先後沒有保證。
-        -- 排在它前面時，AcceptQuest() 落在一個詳情頁還沒建好的狀態上就被丟掉。
-        -- 讓出一幀，暴雪那邊一定已經處理完。
+        -- 被實測排除的三個方向：
+        --   1. QuestGetAutoAccept() 殘留 ⇒ 錯。旗標兩次都是 false。
+        --   2. 對話／四選一的選取邏輯 ⇒ 錯。這條任務**完全沒有 GOSSIP_SHOW**。
+        --   3. 我們搶在暴雪的 QuestFrame 前面 ⇒ 錯。兩次的 QuestFrame:IsShown() 與
+        --      接受鈕的顯示／可按狀態都是 true，延後一幀也沒有改善。
         --
-        -- 換任務就不接：延後期間玩家可能自己按了、或點到另一條任務
-        C_Timer.After(0, function()
+        -- 決定性的一筆：**關掉自動接任務、手動點「接受」，第一次就成功。**
+        -- 所以差別在「怎麼按」，不在狀態。
+        -- 而「單純要等久一點」也被同一份資料排除了 —— 若是每次都要等 N 毫秒，
+        -- 第二次同樣只等一幀，應該一樣失敗，但它成功了。
+        --
+        -- 兩個變因分不開（手動點既是「真的按鈕」也是「一秒之後」），所以一起補：
+        -- 等一小段時間，然後走暴雪自己的 OnClick。按鈕不在就退回直接呼叫。
+        C_Timer.After(ACCEPT_DELAY, function()
             local now = GetQuestID and GetQuestID() or 0
+            -- 這段時間裡玩家可能自己按了、或點到另一條任務
             if now ~= questID then
-                Trace("   延後後 questID 變成 %s（原本 %s）⇒ 放棄，不亂接",
-                    Safe(now), Safe(questID))
+                Trace("   %.2fs 後 questID 變成 %s（原本 %s）⇒ 放棄，不亂接",
+                    ACCEPT_DELAY, Safe(now), Safe(questID))
                 return
             end
-            Trace("   延後後仍是 %s ⇒ AcceptQuest()", Safe(questID))
-            AcceptQuest()
+            local btn = _G.QuestFrameAcceptButton
+            if btn and btn:IsShown() and btn:IsEnabled() then
+                Trace("   %.2fs 後按下暴雪的接受鈕", ACCEPT_DELAY)
+                btn:Click()
+            else
+                Trace("   %.2fs 後接受鈕不可用 ⇒ 退回 AcceptQuest()", ACCEPT_DELAY)
+                AcceptQuest()
+            end
         end)
 
     elseif event == "QUEST_ACCEPT_CONFIRM" then
