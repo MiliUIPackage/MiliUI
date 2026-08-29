@@ -152,8 +152,23 @@ local function OnEvent(_, event)
     elseif event == "QUEST_DETAIL" then
         if not CanAccept() then return end
         -- 遊戲已經幫忙接掉的（世界任務、飛過去自動觸發的那種）只要把視窗收起來，
-        -- 再 AcceptQuest 一次會在聊天視窗留下一則沒有意義的錯誤
-        if QuestGetAutoAccept and QuestGetAutoAccept() then
+        -- 再 AcceptQuest 一次會在聊天視窗留下一則沒有意義的錯誤。
+        --
+        -- ⚠ 但「是不是已經接了」要問**狀態**，不要問 QuestGetAutoAccept()。
+        --   那支描述的是「上一次的任務詳情是不是遊戲自動接的」，而它不保證在
+        --   「對話 → 選任務 → QUEST_DETAIL」這條路上被重設。讀到上一趟殘留的 true
+        --   就會走 CloseQuest()：視窗關掉、任務沒接 —— 症狀正是「第一次沒接到、
+        --   再點一次就成功」。
+        --
+        --   改問「這個任務現在在不在我的任務日誌裡」。GetQuestID() 在 QUEST_DETAIL
+        --   當下有效（12.1 仍在），而任務日誌是當下的事實，不會殘留上一趟的狀態。
+        --   萬一 GetQuestID() 回 0，判斷會落到「不在日誌裡」⇒ 照樣 AcceptQuest()。
+        --   那是比較好的失敗方向：自動接任務寧可多按一次，也不要靜靜地不接。
+        local questID = GetQuestID and GetQuestID() or 0
+        local alreadyInLog = questID ~= 0
+            and C_QuestLog and C_QuestLog.GetLogIndexForQuestID
+            and C_QuestLog.GetLogIndexForQuestID(questID)
+        if alreadyInLog then
             CloseQuest()
         else
             AcceptQuest()
