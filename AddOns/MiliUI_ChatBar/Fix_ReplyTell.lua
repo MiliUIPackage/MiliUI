@@ -109,6 +109,10 @@ local warned = false
 local function PrefillReply(chatFrame)
     local open = (ChatFrameUtil and ChatFrameUtil.OpenChat) or _G.ChatFrame_OpenChat
     if not open then return end
+    -- ⚠ 走到這裡代表對象是秘密字串，而輸入框上八成還留著同一個。不先洗掉的話，
+    --   open() 裡的 ActivateChat → UpdateHeader 會拿秘密標頭去量寬度再相減而崩
+    --   （ChatFrameEditBox.lua:679）。成因詳見 ChatBar.lua 的 ClearSecretTellTarget。
+    if ns.ClearSecretTellTarget then ns.ClearSecretTellTarget(chatFrame) end
     open("/r", chatFrame)       -- ⚠ 不要加空格
     if not warned then
         warned = true
@@ -138,6 +142,35 @@ local function Install()
         end
         PrefillReply(chatFrame)
     end
+end
+
+------------------------------------------------------------
+-- 給插件自己呼叫的回覆入口（聊天列的密語鍵右鍵走這支）
+--
+-- ⚠ 上面那道「確定已髒才接手」的閘是**給按鍵 R 用的**：那是引擎發動的乾淨執行，
+--   全域還乾淨的時候暴雪自己跑得完，先接手只會把本來會動的情況弄壞。
+--   但**我們自己**呼叫的時候，執行從第一行就是髒的 —— 全域乾不乾淨完全不影響結果，
+--   秘密名字照樣撞 ③ 的 SetAttribute。所以自家的呼叫一律走條件式降級，不看 installed。
+--   （否則「這次登入的第一個聊天列動作就是右鍵密語鍵」那一下必炸。）
+--
+-- ⚠ 判準只看 target[1]：暴雪的 `GetLastTellTarget` 是
+--       for i=1,#chatEditLastTell do local value = chatEditLastTell[i]
+--           if value ~= "" then return value, … end end
+--   —— `[1]` 非空就直接回傳，後面幾格根本不會比到（空的一律被擠到尾巴）。
+--   所以「`[1]` 是不是秘密值」就是全部的判準，跟我們鏡射的 target[1] 一對一。
+--
+-- 名字是明文就原封不動交給暴雪跑完（此時 ChatFrameUtil.ReplyTell 可能是原版、也可能
+-- 是上面換過的那一份 —— 兩份對明文的行為一樣）。
+------------------------------------------------------------
+function ns.ReplyTell(chatFrame)
+    local name = target[1]
+    if name ~= nil and issecret(name) then
+        PrefillReply(chatFrame)
+        return
+    end
+
+    local reply = ChatFrameUtil.ReplyTell or _G.ChatFrame_ReplyTell
+    if reply then reply(chatFrame) end
 end
 
 -- 這支在暴雪寫 LAST_ACTIVE_CHAT_EDIT_BOX 的當下被呼叫（ActivateChat → 它），

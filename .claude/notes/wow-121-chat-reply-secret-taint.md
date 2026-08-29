@@ -98,4 +98,74 @@ hooksecurefunc 不會污染欄位，而且新的一定放在 `[1]`，一個變�
 同一次體檢一併修掉的是另一半：`ChatBar.lua` 的密語按鈕原本會代填 `/w 名字 `
 （正是本節結尾禁止的那件事），已改成名字是秘密值就退回空的 `/w `。
 
+## 2026-08-29：第三條路 —— 輸入框上「留著的」秘密密語對象
+
+**跟回覆也無關，按聊天列上隨便哪一顆按鈕都會炸。** 症狀：
+
+```
+ChatFrameEditBox.lua:679: attempt to perform arithmetic on a secret number value
+                          (execution tainted by 'MiliUI_ChatBar')
+[C]: in function 'UpdateHeader'   ← ActivateChat → SetFocus → ActivateChat
+[MiliUI_ChatBar/ChatBar.lua]:354  ← ChatFrame_OpenChat("/i ", chatFrame)
+locals: type="WHISPER", tellTarget=<secret string>
+```
+
+**新的通則：把秘密字串寫進 FontString，那個 FontString 的幾何也變成秘密。**
+`ChatFrameEditBoxMixin:UpdateHeader` 的順序是
+
+```lua
+header:SetFormattedText(CHAT_WHISPER_SEND, tellTarget)          -- 標頭字串 → 秘密
+local headerWidth = (header:GetRight() or 0) - (header:GetLeft() or 0)   -- 679：秘密數字相減
+```
+
+—— 量出來的 `GetRight()/GetLeft()` 是秘密數字，減法在髒堆疊上當場崩。
+（暴雪自己跑這一段是乾淨的，所以只有插件開輸入框時才炸。）
+
+三件事湊起來才會踩到：
+
+1. 輸入框的 `chatType`／`tellTarget` **關掉之後仍然留著**（`OnShow` 的 `ResetChatType`
+   只把 PARTY／RAID／GUILD／INSTANCE 退回 SAY，**不動 WHISPER**）。
+2. `ChatFrame_OpenChat` → `ActivateChat` **一定**會呼叫 `UpdateHeader`，繞不過去。
+3. 而我們給的文字（`/i `）要到**下一幀**的 `OnUpdate`（`editBox.setText = 1`）才被
+   `ParseText` 解析成新頻道 —— 那是乾淨的執行，但輪不到它救，崩在前面。
+
+⇒ 只要上一次密語的對象是秘密字串，**下一次按聊天列任何一顆按鈕都炸**，
+錯誤行號指向暴雪的減法，跟被按的那顆是什麼頻道完全無關。
+
+修法（`ChatBar.lua` 的 `ClearSecretTellTarget`）：開之前先洗輸入框 ——
+`SetAttribute("tellTarget", nil)` ＋ `SetAttribute("chatType", "SAY")`。
+- 清 `nil` 不受 AllowedWhenUntainted 影響（那條只擋**秘密值**寫入）。
+- 退回 SAY 讓第一次 `UpdateHeader` 就走明文分支（`header:SetText(CHAT_SAY_SEND)`），
+  不必賭「FontString 換成明文之後幾何會不會跟著乾淨」。
+- 只在 `issecretvalue(tellTarget)` 時動手：明文名字照樣讓暴雪跑完，不必弄丟玩家狀態。
+- 洗的要是 `ChatFrameUtil.ChooseBoxForSend(chatFrame)` 挑出來的那一個 ——
+  classic 聊天樣式一律用預設視窗的輸入框，跟 `chatFrame.editBox` 不見得同一個。
+- 輸入框**已經開著**的那條分支不必洗：`ParseText` 會先 `SetChatType` 才 `UpdateHeader`。
+
+⚠ 順手發現的：`_G.ChatFrame_ReplyTell` 是載入期就抓好的**同一個函式物件**，
+換掉 `ChatFrameUtil.ReplyTell` 這個 table 欄位對它沒有效果 —— 插件要呼叫回覆，
+一律走 `ChatFrameUtil.ReplyTell`，不然自己裝的降級會被繞過去。
+（同理 `ChatFrame_OpenChat` ≡ `ChatFrameUtil.OpenChat`：traceback 印的是全域名字，
+函式本體卻在 `ChatFrameUtil.lua`，這就是直接別名的指紋。）
+
+### 「已髒才接手」的閘只對按鍵 R 成立，插件自己呼叫要一律降級
+
+上面那道 `issecurevariable("LAST_ACTIVE_CHAT_EDIT_BOX")` 閘的前提是「**乾淨的執行**下
+暴雪自己跑得完」—— 那只適用於引擎發動的按鍵 R。**插件自己呼叫回覆**（聊天列的密語鍵右鍵）
+從第一行就是髒的，全域乾不乾淨完全不影響結果，秘密名字照樣撞 ③ 的 `SetAttribute`。
+所以自家入口（`ns.ReplyTell`）**不看 installed**，一律走條件式降級。
+沒有這一層的話，「這次登入的第一個聊天列動作就是右鍵密語鍵」那一下必炸。
+
+判準只要看**最後一個**對象：`GetLastTellTarget` 是
+
+```lua
+for i = 1, #chatEditLastTell do
+    local value = chatEditLastTell[i]
+    if ( value ~= "" ) then return value, chatEditLastTellType[i] end
+end
+```
+
+`[1]` 非空就直接 return，後面幾格根本比不到（空格一律被 `SetLastTellTarget` 的搬移
+擠到尾巴）。⇒ **只有 `[1]` 的秘密性會害人**，跟鏡射的 `target[1]` 一對一，不必掃整張表。
+
 相關：[[wow-121-secret-values]]、[[wow-121-unit-api-secrets]]、[[project-miliui-chatbar-snap]]

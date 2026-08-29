@@ -8,6 +8,7 @@ ns.VERSION      = C_AddOns.GetAddOnMetadata(addonName, "Version") or "dev"
 ns.PREFIX_COLOR = "|cffFF9999"
 
 local issecretvalue = ns.Secret.IsSecret
+local plaintext     = ns.Secret.PlainText
 
 -- 設定分頁的 callback 派送用（Libs/Callbacks.lua 的 xpcall 處理器）。
 -- 訂閱者之間不能連坐，但也不能變成黑洞——照常轉給全域 errorhandler。
@@ -347,12 +348,66 @@ AddRGBButton = function(configKey, r, g, b, text, labelText, func, order)
     return bu
 end
 
+------------------------------------------------------------
+-- ⚠ 開輸入框之前，先把「秘密的密語對象」從輸入框上清掉
+--
+-- 輸入框的 chatType / tellTarget 關掉之後仍然留著。上一次密語的對象如果是秘密字串
+-- （跨服／戰網／不在隊伍裡的玩家），暴雪的 `ChatFrameEditBoxMixin:UpdateHeader` 就會走到
+--     header:SetFormattedText(CHAT_WHISPER_SEND, tellTarget)   -- 標頭字串變成秘密值
+--     ...
+--     local headerWidth = (header:GetRight() or 0) - (header:GetLeft() or 0)
+-- **秘密字串量出來的寬度也是秘密數字**，那一行減法在我們的髒堆疊上直接崩：
+--     ChatFrameEditBox.lua:679: attempt to perform arithmetic on a secret number value
+--                               (execution tainted by 'MiliUI_ChatBar')
+--
+-- UpdateHeader 繞不過去：ChatFrame_OpenChat → ActivateChat 一定會呼叫它，而且是在我們的
+-- 文字（`/i `）被解析成新頻道**之前** —— 那段解析其實排到下一幀的 OnUpdate 才跑
+-- （`editBox.setText = 1`），是乾淨的執行，輪不到它救。
+-- 所以只要「上一次是密語秘密對象」，聊天列**隨便哪一顆**按鈕按下去都會炸，跟被按的那顆
+-- 是什麼頻道無關；錯誤行號指向暴雪的減法，不會指向真正的原因。
+--
+-- 洗法：對象清掉、頻道退回 SAY。每顆按鈕接著都會用自己的指令（`/p `、`/i `…）把頻道設成
+-- 該設的，只有密語按鈕會停在 SAY —— 而那一刻本來就沒有對象可言。
+--
+-- 只在**對象是秘密值**的時候動手：污染的執行只對秘密值有意見，明文名字照樣跑得完，
+-- 沒必要順手弄丟玩家的密語狀態。
+--
+-- 詳見 .claude/notes/wow-121-chat-reply-secret-taint.md
+------------------------------------------------------------
+local WHISPER_CHAT_TYPES = {
+    WHISPER       = true,
+    BN_WHISPER    = true,
+    SMART_WHISPER = true,
+}
+
+-- 洗的必須是暴雪待會兒**真的會開的**那一個輸入框：classic 聊天樣式一律用預設視窗的，
+-- 跟 chatFrame.editBox 不見得同一個。
+local function ClearSecretTellTarget(chatFrame)
+    local choose = ChatFrameUtil and ChatFrameUtil.ChooseBoxForSend
+    local editBox = (choose and choose(chatFrame)) or (chatFrame and chatFrame.editBox)
+    if not editBox then return end
+
+    -- chatType 一向是明碼，但秘密值不能當 table key —— 撲空也比崩潰好
+    if not WHISPER_CHAT_TYPES[plaintext(editBox:GetAttribute("chatType"))] then return end
+
+    local target = editBox:GetAttribute("tellTarget")
+    if target == nil or not issecretvalue(target) then return end
+
+    editBox:SetAttribute("tellTarget", nil)
+    editBox:SetAttribute("chatType", "SAY")
+end
+
+-- Fix_ReplyTell.lua 的 `/r` 降級也要先洗（那條路的對象一定是秘密值）
+ns.ClearSecretTellTarget = ClearSecretTellTarget
+
 local function OpenChat(cmd)
     local chatFrame = SELECTED_DOCK_FRAME or DEFAULT_CHAT_FRAME
     local editBox = chatFrame.editBox
     if not editBox:IsVisible() then
-        ChatFrame_OpenChat(cmd, chatFrame) 
+        ClearSecretTellTarget(chatFrame)
+        ChatFrame_OpenChat(cmd, chatFrame)
     else
+        -- 已經開著的話不必洗：ParseText 會先把 chatType 設成新頻道才更新標頭
         editBox:SetText(cmd)
     end
     ChatEdit_ParseText(editBox, 0)
@@ -387,7 +442,15 @@ sayBtn.tabChat = function() return "SAY" end
 AddColorKeyButton("WHISPER", "WHISPER", WHISPER, L["SHORT_WHISPER"], function(_, btn)
     local chatFrame = SELECTED_DOCK_FRAME or DEFAULT_CHAT_FRAME
     if btn == "RightButton" then
-        ChatFrame_ReplyTell(chatFrame)
+        -- 回覆走 Fix_ReplyTell.lua 的入口：只有那支知道最後的密語對象是不是秘密值，
+        -- 是的話改成幫玩家填 `/r` 降級。**我們這一下的執行本來就是髒的**，
+        -- 所以不能等它那道「全域已髒才接手」的閘（那是給按鍵 R 用的）。
+        --
+        -- ⚠ 備援不要用 _G.ChatFrame_ReplyTell —— 那是載入期就抓好的**同一個函式物件**，
+        --   換掉 ChatFrameUtil.ReplyTell 這個 table 欄位對它沒有效果。
+        local reply = ns.ReplyTell or (ChatFrameUtil and ChatFrameUtil.ReplyTell)
+                      or _G.ChatFrame_ReplyTell
+        if reply then reply(chatFrame) end
     else
         local name
         if UnitExists("target") and UnitIsPlayer("target") then
