@@ -731,10 +731,13 @@ ns.RegisterCallback("Init", "Skin", function()
     -- 縮小版：N 個每幀腳本的成本主要在派送次數，不在腳本內容
     -- （見 .claude/notes/wow-unitframe-event-dispatch-cost.md）。
     -- 0.5 秒對「走路時的座標」與「分鐘制的時鐘」都綽綽有餘。
+    -- ⚠ 走 ns.Meter 不是 ns.Safe：剖析關著時它就是 ns.Safe（行為完全一致），
+    --   開著時會量出這一段吃了幾 KB。這是目前唯一的週期性路徑，
+    --   要找配置點就得能把它切開來量（見 Core/Profile.lua 的說明）。
     C_Timer.NewTicker(0.5, function()
         if not holder or not holder:IsVisible() then return end
-        ns.Safe(UpdateCoords)
-        ns.Safe(UpdateClock)
+        ns.Meter("tick.Coords", UpdateCoords)
+        ns.Meter("tick.Clock", UpdateClock)
     end)
 end)
 
