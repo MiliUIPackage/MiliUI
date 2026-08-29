@@ -88,13 +88,17 @@ local COL = {
     MEMBAR_R = -8,   MEMBAR_W = 90,
 }
 
--- 記憶體子頁的欄位幾何（清單較窄的欄配置：MB／長條／與上次測量的差／佔插件合計）
+-- 記憶體子頁的欄位幾何
+-- （MB／長條／與上次測量的差／記錄期間的累計成長／佔插件合計）
+-- 加「累計成長」那一欄的空間是跟長條借的（148 → 92），不是跟名稱借的：
+-- 名稱被截斷比長條短一截難用得多。
 local COL2 = {
     NAME_L   = 28,
-    NAME_R   = -352,
-    MEM_R    = -288, MEM_W    = 60,
-    MEMBAR_R = -132, MEMBAR_W = 148,
-    DELTA_R  = -64,  DELTA_W  = 62,
+    NAME_R   = -368,
+    MEM_R    = -304, MEM_W    = 60,
+    MEMBAR_R = -204, MEMBAR_W = 92,
+    DELTA_R  = -138, DELTA_W  = 58,
+    GROWTH_R = -64,  GROWTH_W = 66,
     SHARE_R  = -8,   SHARE_W  = 48,
 }
 
@@ -113,6 +117,9 @@ local cpuPage, ramPage
 local subButtons = {}           -- id -> 子分頁鈕，還原選取狀態用
 local subHighlight              -- W.CreateButtonGroup 回傳的高亮函式
 local memList                   -- 記憶體子頁的清單
+local growthFS                  -- 成長記錄的狀態列
+local clearGrowthBtn            -- 「清除成長記錄」
+local memGrowthHead             -- 「累計成長」表頭（是排序欄時染強調色）
 local trendRangeFS, trendVerdictFS
 local cards = {}
 local headerCells = {}
@@ -127,7 +134,7 @@ local memTotalKB = 0
 local memStamp                  -- 上次測量的 GetTime()，nil = 這次開窗還沒量過
 -- ⚠ 前置宣告：MeasureMemory 在上面就會呼叫它們。local 宣告在讀取點下面的話，
 --    讀取點那個名字會靜默解析成全域 nil（本檔已經踩過一次，見 SetBar）
-local RebuildMemEntries, RefreshMemPanel, RefreshMemList
+local RebuildMemEntries, RefreshMemPanel, RefreshMemList, RefreshGrowthStatus
 local maxCPU, maxMem = 0, 0
 local totalFolders, loadedFolders = 0, 0
 local hasProfiler = false
@@ -161,7 +168,75 @@ local function DB()
     if type(db.desc) ~= "boolean" then db.desc = true end
     if type(db.autoMem) ~= "boolean" then db.autoMem = false end
     if db.page ~= "cpu" and db.page ~= "ram" then db.page = "cpu" end
+    -- 成長記錄：勾著「自動測量」的那段時間，每個插件總共往上長了多少。
+    -- 存在 SavedVariables 所以登出／斷線都留著，要清由玩家自己按鈕。
+    if type(db.growth) ~= "table" then db.growth = {} end
+    if type(db.growth.addons) ~= "table" then db.growth.addons = {} end
+    if type(db.growth.samples) ~= "number" then db.growth.samples = 0 end
     return db
+end
+
+------------------------------------------------------------
+-- 成長記錄
+--
+-- 累加的是**正的差值**：每次測量跟上一次比，漲了就加進去、跌了不扣。
+-- 理由是這一欄要回答的問題是「誰在持續往上爬」，而 GC 收走的那一大筆回落
+-- 不該把前面爬升的證據抵銷掉（抵銷之後垃圾製造機的指紋會變成一條零線）。
+--
+-- 這個累加法也剛好跨得過登出：新的一次登入第一次測量沒有「上一次」可比，
+-- 不會產生差值，所以不會把「堆被清空」誤記成一筆巨大的負成長或成長。
+--
+-- ⚠ 只在**自動測量勾著**的時候累加。手動按「重新測量」不算——玩家講的是
+-- 「勾選之後這段時間」，把零星的手動測量混進去會讓區間失去意義。
+------------------------------------------------------------
+local function GrowthDB()
+    return DB().growth
+end
+
+local function RecordGrowth()
+    local g = GrowthDB()
+    if not g.since then g.since = date("%Y-%m-%d %H:%M") end
+    g.samples = g.samples + 1
+    for f, kb in pairs(memKB) do
+        local prev = memPrevKB[f]
+        if prev then
+            local delta = kb - prev
+            if delta > 0 then
+                g.addons[f] = (g.addons[f] or 0) + delta
+            end
+        end
+    end
+end
+
+local function ClearGrowth()
+    local g = GrowthDB()
+    wipe(g.addons)
+    g.samples = 0
+    g.since = nil
+end
+
+local function HasGrowthData()
+    local g = GrowthDB()
+    if g.samples <= 0 then return false end
+    return next(g.addons) ~= nil
+end
+
+-- 狀態列：記錄從什麼時候開始、量了幾次，以及清單現在是照什麼排的。
+-- 排序會隨著有沒有記錄而變，不講的話玩家會覺得清單自己亂跳。
+function RefreshGrowthStatus()
+    if not growthFS then return end
+    local g = GrowthDB()
+    if not HasGrowthData() then
+        growthFS:SetText("|cff666666勾選自動測量後開始記錄各插件的累計成長|r")
+        if clearGrowthBtn then clearGrowthBtn:SetEnabled(false) end
+        if memGrowthHead then memGrowthHead:SetTextColor(0.6, 0.6, 0.6) end
+        return
+    end
+    growthFS:SetText(("|cff999999記錄自 %s ・ %d 次測量 ・ 清單依成長排序|r")
+        :format(g.since or "?", g.samples))
+    if clearGrowthBtn then clearGrowthBtn:SetEnabled(true) end
+    -- 表頭染色＝「現在是照這一欄排的」，跟 CPU 頁的排序表頭同一個語彙
+    if memGrowthHead then memGrowthHead:SetTextColor(W.Accent()) end
 end
 
 local function CurrentMetric()
@@ -256,11 +331,13 @@ local function MeasureMemory()
         end
     end
     memStamp = GetTime()
+    if autoMem and memHasPrev then RecordGrowth() end
     if RebuildMemEntries then
         RebuildMemEntries()
         if ramPage and ramPage:IsShown() then
             RefreshMemPanel()
             RefreshMemList()
+            if RefreshGrowthStatus then RefreshGrowthStatus() end
         end
     end
 end
@@ -749,6 +826,7 @@ end
 function RebuildMemEntries()
     wipe(memEntries)
     memTotalKB = 0
+    local growthAddons = GrowthDB().addons
     for _, item in ipairs(entries) do
         local mem, prev = 0, 0
         for _, f in ipairs(item.folders) do
@@ -758,13 +836,28 @@ function RebuildMemEntries()
         -- 獨立欄位不共用 item.mem：那個每秒被 CPU 頁的 Recompute 覆寫
         item.mem2 = mem
         item.memDelta = memHasPrev and (mem - prev) or nil
+        local grown = 0
+        for _, f in ipairs(item.folders) do
+            grown = grown + (growthAddons[f] or 0)
+        end
+        item.memGrowth = grown
         memTotalKB = memTotalKB + mem
         if mem > 0 then memEntries[#memEntries + 1] = item end
     end
-    table.sort(memEntries, function(a, b)
-        if a.mem2 ~= b.mem2 then return a.mem2 > b.mem2 end
-        return a.sortName < b.sortName
-    end)
+    -- 有成長記錄就改成「成長最多的排最上面」——那正是開著記錄時要看的東西；
+    -- 沒有記錄（或剛清掉）就回到固定 MB 由大到小。
+    if HasGrowthData() then
+        table.sort(memEntries, function(a, b)
+            if a.memGrowth ~= b.memGrowth then return a.memGrowth > b.memGrowth end
+            if a.mem2 ~= b.mem2 then return a.mem2 > b.mem2 end
+            return a.sortName < b.sortName
+        end)
+    else
+        table.sort(memEntries, function(a, b)
+            if a.mem2 ~= b.mem2 then return a.mem2 > b.mem2 end
+            return a.sortName < b.sortName
+        end)
+    end
 end
 
 -- 「變化」欄的上色：跟上一次測量比。爬升是嫌疑（垃圾製造機的指紋是「爬升又
@@ -776,6 +869,17 @@ local function FmtDelta(kb)
     if mb >= 0.5 then return ("|cffff9900+%.1f|r"):format(mb) end
     if mb <= -0.5 then return ("|cff33ff66%.1f|r"):format(mb) end
     return "|cff8888880.0|r"
+end
+
+-- 「累計成長」欄：記錄期間往上長的總和。只有正值（見 RecordGrowth），
+-- 所以不需要像「變化」那樣有回落的顏色；用亮度分級講「這筆值不值得追」。
+local function FmtGrowth(kb)
+    if not kb or kb <= 0 then return "|cff666666—|r" end
+    local mb = kb / 1024
+    if mb >= 20 then return ("|cffff5555+%.1f|r"):format(mb) end
+    if mb >= 5  then return ("|cffff9900+%.1f|r"):format(mb) end
+    if mb >= 0.5 then return ("|cffcccccc+%.1f|r"):format(mb) end
+    return "|cff666666—|r"
 end
 
 local function ShowMemRowTooltip(row)
@@ -827,10 +931,11 @@ local function BuildMemRow(row)
         return fs
     end
 
-    row.memFS   = RightText(COL2.MEM_W, COL2.MEM_R)
-    row.memBar  = CreateBar(row, COL2.MEMBAR_W, COL2.MEMBAR_R)
-    row.deltaFS = RightText(COL2.DELTA_W, COL2.DELTA_R)
-    row.shareFS = RightText(COL2.SHARE_W, COL2.SHARE_R, W.fontSmall)
+    row.memFS    = RightText(COL2.MEM_W, COL2.MEM_R)
+    row.memBar   = CreateBar(row, COL2.MEMBAR_W, COL2.MEMBAR_R)
+    row.deltaFS  = RightText(COL2.DELTA_W, COL2.DELTA_R)
+    row.growthFS = RightText(COL2.GROWTH_W, COL2.GROWTH_R)
+    row.shareFS  = RightText(COL2.SHARE_W, COL2.SHARE_R, W.fontSmall)
 
     row:SetScript("OnEnter", function(self)
         self.hoverTex:Show()
@@ -852,6 +957,7 @@ local function UpdateMemRow(row, item)
     row.memFS:SetText(FmtMB(item.mem2))
     SetBar(row.memBar, item.mem2, memEntries[1] and memEntries[1].mem2 or 0)
     row.deltaFS:SetText(FmtDelta(item.memDelta))
+    row.growthFS:SetText(FmtGrowth(item.memGrowth))
     if memTotalKB > 0 then
         row.shareFS:SetText(("|cff999999%.1f%%|r"):format(item.mem2 / memTotalKB * 100))
     else
@@ -1007,6 +1113,7 @@ local function ShowPage(id)
     else
         RefreshMemPanel()
         RefreshMemList()
+        RefreshGrowthStatus()
         graphRev = -1           -- 進頁立刻重畫，不等下一個取樣點
         RefreshGraph()
     end
@@ -1273,6 +1380,34 @@ local function Init()
     end)
     autoCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+    ------------------------------------------------------------
+    -- 成長記錄的狀態與清除
+    --
+    -- 記錄本身跨登入留著（存在 SavedVariables），所以一定要給一個「從什麼時候
+    -- 開始算的」——不然玩家看到一筆 300MB 的成長，不知道那是十分鐘還是三天。
+    ------------------------------------------------------------
+    clearGrowthBtn = W.CreateButton(ramPage, "清除成長記錄", "red", 110, 22)
+    clearGrowthBtn:SetPoint("LEFT", autoCB, "RIGHT", 150, 0)
+    clearGrowthBtn:SetScript("OnClick", function()
+        ClearGrowth()
+        RebuildMemEntries()     -- 清掉之後排序要回到 MB 由大到小
+        RefreshMemList()
+        RefreshGrowthStatus()
+    end)
+    clearGrowthBtn:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(clearGrowthBtn, "ANCHOR_TOPLEFT", 0, 4)
+        GameTooltip:AddLine("清除成長記錄", 1, 1, 1)
+        GameTooltip:AddLine("把「累計成長」歸零、重新開始算。記錄會跨登入留著，"
+            .. "所以要換一個觀察區間就得自己清一次。", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    clearGrowthBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    growthFS = ramPage:CreateFontString(nil, "OVERLAY")
+    growthFS:SetFontObject(W.fontSmall)
+    growthFS:SetPoint("LEFT", clearGrowthBtn, "RIGHT", 10, 0)
+    growthFS:SetJustifyH("LEFT")
+
     -- 記憶體清單：固定 MB 由大到小，只在測量後才變，所以表頭是靜態標籤不是按鈕
     local memHeader = CreateFrame("Frame", nil, ramPage)
     memHeader:SetPoint("TOPLEFT", SIDE, RAM_HEAD_Y)
@@ -1294,6 +1429,7 @@ local function Init()
     MemHeadLabel("名稱", COL2.NAME_L, "LEFT")
     MemHeadLabel("記憶體 MB", COL2.MEM_R)
     MemHeadLabel("變化", COL2.DELTA_R)
+    memGrowthHead = MemHeadLabel("累計成長", COL2.GROWTH_R)
     MemHeadLabel("佔插件", COL2.SHARE_R)
 
     local memHeadLine = memHeader:CreateTexture(nil, "ARTWORK")
@@ -1312,7 +1448,10 @@ local function Init()
     ramFooter:SetWidth(innerW - 4)
     ramFooter:SetJustifyH("LEFT")
     ramFooter:SetText("|cff888888記憶體要掃過整個 Lua 堆才分得出是誰用的，所以只在測量時更新。"
-        .. "「變化」是跟上一次測量比 —— 佔用大而不動的是資料庫，持續爬升的才要追。|r")
+        .. "「變化」是跟上一次測量比 —— 佔用大而不動的是資料庫，持續爬升的才要追。|n"
+        .. "「累計成長」只在自動測量勾著的時候累加，而且只加漲的、不扣跌的"
+        .. "（回落是 GC 收走，不該把前面爬升的證據抵銷掉）。記錄跨登入留著，"
+        .. "有記錄時清單就依成長排序，要換觀察區間請按「清除成長記錄」。|r")
 
     -- 昂貴的記憶體測量延到下一幀：先讓分頁畫出來，玩家才不會覺得「點分頁卡一下」
     tab:SetScript("OnShow", function()
