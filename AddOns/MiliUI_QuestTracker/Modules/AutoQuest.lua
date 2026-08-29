@@ -342,9 +342,12 @@ local function ClickAccept(questID, why)
     if now ~= questID then
         -- 分辨兩種完全不同的情況，不然這行看起來一樣：
         --   已經在日誌裡 ⇒ 有人（多半是玩家自己）在我們之前接掉了
-        --   不在日誌裡   ⇒ 視窗只是關掉了，任務沒接成
+        --   不在日誌裡   ⇒ 視窗被關掉了（多半是玩家自己按 ESC）
         Trace("   questID 變成 %s（原本 %s，%s）⇒ 放棄，不亂接", Safe(now), Safe(questID),
-            InLog(questID) and "已經有人接走了" or "任務沒接成，視窗被關掉了")
+            InLog(questID) and "已經有人接走了" or "視窗被關掉了")
+        -- ⚠ **這裡的 return 一定要排在查勤前面。**
+        --   玩家自己取消 ≠ 我們接失敗。搬到查勤後面的話，按 ESC 會變成「跳一則
+        --   接失敗訊息 ＋ 把等待往上加 0.1 秒」—— 罵錯人，而且會把等待值養大。
         return
     end
 
@@ -396,7 +399,10 @@ end
 local function OnEvent(_, event)
     if not ns.db then return end
 
-    -- 任務互動結束就把等待作廢，免得計時器醒來時接到另一條任務
+    -- 任務互動結束就把等待作廢。兩個作用：
+    --   1. 計時器醒來時不會接到另一條任務
+    --   2. **玩家在等待期間自己按 ESC 關掉視窗，我們就整個不動作** ——
+    --      那是取消，不是接失敗，所以既不提示也不加等待時間
     if event == "QUEST_FINISHED" or event == "QUEST_ACCEPTED" then
         pending = nil
     end
