@@ -484,7 +484,15 @@ end
 
 function Buttons.TintIcon(btn, alpha)
     if not btn.dots then return end
-    local r, g, b = S.Accent()
+    -- 關掉職業色就用白 —— **跟「公會」「好友」那兩個標籤同一個色**（S.TEXT）。
+    -- 這裡不另外開一個自訂色：整條資訊列只有兩種身分（標籤色與強調色），
+    -- 多一個顏色來源就是多一個會跟其他兩格對不起來的地方。
+    local r, g, b
+    if ns.DB.Get().btnAccentIcon == false then
+        r, g, b = S.TEXT[1], S.TEXT[2], S.TEXT[3]
+    else
+        r, g, b = S.Accent()
+    end
     for _, t in ipairs(btn.dots) do t:SetVertexColor(r, g, b, alpha) end
 end
 

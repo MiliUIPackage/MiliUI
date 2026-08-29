@@ -35,8 +35,9 @@ local CONTROLS = {
     { type = "slider",   key = "btnSize",    label = L["Button size"], min = 16, max = 40, step = 1 },
     { type = "slider",   key = "btnGap",     label = L["Spacing"], min = 0, max = 10, step = 1 },
     { type = "slider",   key = "btnColumns", label = L["Columns in the bag"], min = 2, max = 12, step = 1 },
+    { type = "toggle",   key = "btnAccentIcon", label = L["Bag icon uses your class colour"] },
     { type = "dropdown", key = "pinSide", label = L["Pinned row side"], items = Specs.PIN_SIDES },
-    { type = "text",     label = L["Third-party minimap buttons are moved into a bag that opens from the grid button above the map. Turning this off only hides the bag — buttons already collected stay collected until you /reload."] },
+    { type = "text",     label = L["Third-party minimap buttons are moved into a bag that opens from the grid slot in the info bar. Turning this off only hides the bag — buttons already collected stay collected until you /reload."] },
 }
 
 ------------------------------------------------------------

@@ -187,3 +187,6 @@ L["If no slot shows the addon buttons, the bag has no way to open — /mmap bag 
 L["Commands: |cffffd200/mmap|r opens the options, |cffffd200/mmap bag|r opens the addon-button bag, |cffffd200/mmap lock|r and |cffffd200/mmap unlock|r toggle dragging, |cffffd200/mmap reset|r restores defaults, |cffffd200/mmap debug|r reports recent errors"] =
     "命令：|cffffd200/mmap|r 打开设置，|cffffd200/mmap bag|r 打开插件按钮收纳袋，|cffffd200/mmap lock|r 与 |cffffd200/mmap unlock|r 切换拖动，|cffffd200/mmap reset|r 还原默认值，|cffffd200/mmap debug|r 打印最近的错误"
 L["Drag to resize"] = "拉这里调整大小"
+L["Bag icon uses your class colour"] = "收纳袋图标用职业色"
+L["Third-party minimap buttons are moved into a bag that opens from the grid slot in the info bar. Turning this off only hides the bag — buttons already collected stay collected until you /reload."] =
+    "第三方插件的小地图按钮会被搬进一个收纳袋，从信息栏那格九宫格打开。关掉这个选项只是把收纳袋藏起来，已经收进来的按钮要 /reload 才会回到地图上。"
