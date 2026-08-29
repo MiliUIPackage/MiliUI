@@ -388,8 +388,8 @@ local function Build()
     blocker:EnableMouseWheel(true)
     blocker:SetPassThroughButtons("LeftButton", "RightButton", "MiddleButton")
     blocker:SetPropagateMouseMotion(true)
-    blocker:SetScript("OnEnter", function() SetHovering(true) end)
-    blocker:SetScript("OnLeave", function() SetHovering(false) end)
+    blocker:SetScript("OnEnter", function() ns.Count("blocker.Enter"); SetHovering(true) end)
+    blocker:SetScript("OnLeave", function() ns.Count("blocker.Leave"); SetHovering(false) end)
     blocker:SetScript("OnMouseWheel", function(_, delta)
         if not ns.DB.Get().scrollZoom then return end
         local z = Minimap:GetZoom() + (delta > 0 and 1 or -1)
@@ -577,6 +577,7 @@ local function TakeOver()
         -- 不要在 hook 裡同步做 —— 那等於跑在暴雪的安全流程裡
         -- （見 project-miliui-hide-blizzard-taint 第 2 條）。
         hooksecurefunc(Minimap, "SetParent", function()
+            ns.Count("hook:Minimap.SetParent")
             if Minimap:GetParent() == holder then return end
             C_Timer.After(0, function()
                 if InCombatLockdown() then Skin.Queue(); return end

@@ -67,6 +67,15 @@ function ns.ProfileToggle()
         -- 就代表那是**被回收掉的垃圾**（churn），不是佔著不放的洩漏。
         ns.Print(("  對照：整個 Lua 堆 %+.0f KB（含 GC 回收）"):format(dheap))
 
+        if prof.ticker then prof.ticker:Cancel(); prof.ticker = nil end
+        if prof.curve and #prof.curve > 1 then
+            local parts, b = {}, prof.curve[1]
+            for i = 1, #prof.curve do
+                parts[#parts + 1] = ("%.0f"):format(prof.curve[i] - b)
+            end
+            ns.Print("  每 5 秒的累計 KB：" .. table.concat(parts, " → "))
+        end
+
         local kb = {}
         for k, v in pairs(prof.kb) do kb[#kb + 1] = { k = k, v = v } end
         table.sort(kb, function(a, b) return a.v > b.v end)
@@ -92,6 +101,14 @@ function ns.ProfileToggle()
         prof.heap0 = collectgarbage("count")
         prof.t0 = GetTime()
         prof.on = true
+        -- ⚠ 取樣曲線是這一輪的重點。兩次剖析長度不同（61／62 秒）卻都得到
+        --   **一字不差的 +5146 KB** —— 那不是速率，是固定量。固定量代表
+        --   「強制 GC 之後，工作集重新被歸帳回來」，而不是「一直在漏」。
+        --   每 5 秒記一點，看它是一路爬還是一次跳完就平了，兩者的修法完全不同。
+        prof.curve = { prof.base }
+        prof.ticker = C_Timer.NewTicker(5, function()
+            prof.curve[#prof.curve + 1] = MemKB()
+        end)
         ns.Print("|cffffd200剖析開始|r —— 放著別動，30 秒後再輸入一次 /mmap prof 收尾。")
     end
 end

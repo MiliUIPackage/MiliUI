@@ -205,11 +205,17 @@ local function HookVisibility(btn)
     --   自己的圖示叫一次 `Show()`，而那多半是「本來就顯示著」的重複呼叫 ——
     --   無條件排程等於把整條更新鏈（Layout → BagCountChanged → Bar.Update →
     --   掃全部好友）掛上每一幀。`_miliShown` 由 Layout 寫入，見那裡的註解。
+    -- ⚠ 計數要放在**提前 return 之前**。第一輪剖析只在 QueueLayout 裡計數，
+    --   於是「掛勾一秒被叫一千次但每次都提前 return」這種情況在報告上是
+    --   **完全隱形的** —— 而那正是最可疑的一種：掛勾的執行頻率由別人決定，
+    --   而執行期間的配置會被歸帳到我們頭上。
     hooksecurefunc(btn, "Show", function(self)
+        ns.Count("hook:btn.Show")
         if self._miliShown then return end
         Buttons.QueueLayout()
     end)
     hooksecurefunc(btn, "Hide", function(self)
+        ns.Count("hook:btn.Hide")
         if self._miliShown == false then return end
         Buttons.QueueLayout()
     end)
