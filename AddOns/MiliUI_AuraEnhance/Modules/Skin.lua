@@ -64,6 +64,9 @@ end
 -- 間隔請玩家在編輯模式調（增益／減益框的「圖示間距」），那條是安全端。
 ------------------------------------------------------------
 
+-- 光環按鈕 → 邊框貼圖。按鈕池只長不消（暴雪 frame 刪不掉），一顆只建一次。
+local borders = {}
+
 local _issecret = issecretvalue
 local _issecrettable = issecrettable
 
