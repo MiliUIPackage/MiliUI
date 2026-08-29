@@ -71,8 +71,24 @@ function D.FriendsOnline()
     n = n + (PlainNumber(numChar) or 0)
     -- BNet：只算正在玩 WoW 的。算上所有掛在暴雪戰網的人會讓數字跟「能不能找他
     -- 一起打」脫鉤 —— 那才是玩家看這個數字的理由。
-    local numBNet = BNGetNumFriends and BNGetNumFriends() or 0
-    for i = 1, (PlainNumber(numBNet) or 0) do
+------------------------------------------------------------
+-- ⚠⚠⚠ **`BNGetNumFriends()` 回傳兩個值：`numTotal, numOnline`。**
+--
+--   只取第一個 ＝ 連**離線**好友也一筆一筆走過。而 `C_BattleNet.GetFriendAccountInfo(i)`
+--   每次呼叫都配一張巢狀表（帳號 ＋ gameAccountInfo，幾十個欄位、一堆字串），
+--   所以「為了數出 13 個在線的人，把整份幾百人的名單全配了一遍」。
+--
+--   2026-08-30 實測：**每次掃描 855 KB**（三輪剖析各為 857／855／855，一致到
+--   個位數）。這就是「記憶體每 5～10 秒 +0.8MB」的全部來源。
+--
+--   戰網好友清單是**在線優先排序**的（暴雪自己的 FriendsList_Update 就靠這個
+--   前提跑），所以只要走 `1 .. numOnline` 就涵蓋全部在線的人。
+--
+--   ⚠ 前面三輪都沒抓到，是因為我一直在看「這支被叫幾次」而不是「這支一次吃多少」。
+--     次數只有 0.1/秒，看起來完全無辜 —— 貴的是**單次成本**，不是頻率。
+------------------------------------------------------------
+    local _, numOnline = BNGetNumFriends()
+    for i = 1, (PlainNumber(numOnline) or 0) do
         local acct = C_BattleNet.GetFriendAccountInfo(i)
         local game = acct and acct.gameAccountInfo
         if game and game.isOnline and game.clientProgram == BNET_CLIENT_WOW then
@@ -147,8 +163,10 @@ function D.FriendsRoster()
     local favorites, others = {}, {}
     local seen = {}
 
-    local numBNet = PlainNumber(BNGetNumFriends and BNGetNumFriends()) or 0
-    for i = 1, numBNet do
+    -- 同上：只走在線的那一段（`numOnline`），不要走 `numTotal`。
+    -- 理由與實測數字見 D.FriendsOnline 上面那一大段。
+    local _, numOnline = BNGetNumFriends()
+    for i = 1, (PlainNumber(numOnline) or 0) do
         local acct = C_BattleNet.GetFriendAccountInfo(i)
         local game = acct and acct.gameAccountInfo
         if game and game.isOnline and game.clientProgram == BNET_CLIENT_WOW then

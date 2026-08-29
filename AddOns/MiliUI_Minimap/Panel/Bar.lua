@@ -341,6 +341,9 @@ local function UpdateSlot(btn)
         return
     end
 
+    -- ⚠ 這裡**不要**包 ns.Meter。包了就得傳一個 closure，而 closure 是每次呼叫
+    --   都會配置的 —— 即使剖析關著。量測工具自己變成配置點是最糟的一種 bug
+    --   （ns.Fire 那裡已經踩過一次）。要量單次成本就直接量 Data 那一層。
     local n = src.count()
     if n == nil then
         -- 沒公會：灰字「無公會」。不要顯示 0 —— 0 的意思是「有公會但沒人在線」，
