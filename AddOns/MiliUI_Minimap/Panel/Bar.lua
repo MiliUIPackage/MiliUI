@@ -419,22 +419,16 @@ local function Schedule(delay)
     end)
 end
 
--- 只有雜訊事件走慢速；會真的改變人數的走快速（見下面的 EXACT_EVENTS）
+-- 雜訊事件（好友換區、公會名冊刷新）走慢速合流；其餘走快速。
+-- 人數本身是免費算的，這裡合流只是為了少跑幾次版面與提示重建。
 local SLOW_EVENTS = {
     BN_FRIEND_INFO_CHANGED = true,
     GUILD_ROSTER_UPDATE = true,
 }
 
--- ⚠ 這幾個是**人數真的會變**的時刻，而且很少發生 —— 讓好友快取強制失效，
---   其餘時間就吃 30 秒的 TTL。這樣「有人上線」還是即時反映，但閒著的時候
---   完全不會去掃那份 242 KB 的名單。
-local EXACT_EVENTS = {
-    BN_FRIEND_ACCOUNT_ONLINE = true,
-    BN_FRIEND_ACCOUNT_OFFLINE = true,
-    BN_CONNECTED = true,
-    BN_DISCONNECTED = true,
-    FRIENDLIST_UPDATE = true,
-}
+-- （2026-08-30：這裡本來還有一組 EXACT_EVENTS 負責讓好友快取失效。
+--   人數改用零配置的 API 之後那整套快取／TTL／dirty 旗標都不需要了 ——
+--   每次事件直接重算是免費的。少一個會不同步的狀態機。）
 
 ------------------------------------------------------------
 -- 建框
@@ -604,11 +598,6 @@ ns.RegisterCallback("Init", "Bar", function()
     ev:SetScript("OnEvent", function(_, event)
         if event == "PLAYER_ENTERING_WORLD" and IsInGuild() then
             C_GuildInfo.GuildRoster()
-        end
-        if EXACT_EVENTS[event] then
-            D.InvalidateFriends()          -- 人數真的變了：強制重算
-        elseif event == "BN_FRIEND_INFO_CHANGED" then
-            D.TouchFriends()               -- 可能變了：等 TTL 到期再說
         end
         Schedule(SLOW_EVENTS[event] and 5 or 0.5)
     end)

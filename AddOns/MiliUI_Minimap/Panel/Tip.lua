@@ -85,6 +85,21 @@ local ZONE_SAME = { 0.35, 0.85, 0.35 }
 local ZONE_OTHER = { 0.6, 0.6, 0.6 }
 
 function Tip.AddMember(entry, currentZone, showZone)
+    ------------------------------------------------------------
+    -- 不在 WoW 的好友：整列壓成灰的，右欄顯示他在玩什麼。
+    -- 不上職業色也不標等級 —— 那兩樣是「這個人現在能不能一起打」的訊號，
+    -- 對不在遊戲裡的人套上去只會讓清單看起來每一列都一樣重要。
+    ------------------------------------------------------------
+    if entry.inWoW == false then
+        local left = "|cff888888" .. entry.name .. "|r"
+        if entry.zone ~= "" then
+            tip:AddDoubleLine(left, entry.zone, 1, 1, 1, 0.45, 0.45, 0.45)
+        else
+            tip:AddLine(left, 1, 1, 1)
+        end
+        return
+    end
+
     local hex = S.ClassHex(entry.class)
     local left
     if entry.level then

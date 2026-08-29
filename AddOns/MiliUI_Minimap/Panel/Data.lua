@@ -57,85 +57,39 @@ end
 --     就永遠每秒掃一次」—— 一小時還是好幾 MB。真正的節流在 Panel/Bar.lua 的
 --     事件合流（慢事件 5 秒），這裡只負責擋掉同一波事件裡的重複呼叫。
 ------------------------------------------------------------
--- 快取策略：**TTL 拉長 ＋ 精準事件強制失效**
+-- 好友在線人數：**零配置**
 --
--- 走 `1..numOnline` 之後單次成本從 855 KB 降到 242 KB（13 個在線好友，每個約
--- 18 KB —— `GetFriendAccountInfo` 回的結構就是那麼大，砍不掉）。剩下的只能砍頻率。
+-- ⚠⚠ 這裡有一個看起來很合理、實際上非常貴的設計，2026-08-30 整個拆掉，
+--    過程值得留著：
 --
--- 分成兩類事件（接點在 Panel/Bar.lua）：
---   精準（好友上／下線、戰網連上／斷線、角色好友清單變動）
---       → `D.InvalidateFriends()` 強制重算。這些**正是人數會變的時刻**，而且很少發生。
---   雜訊（`BN_FRIEND_INFO_CHANGED`：換區域、改狀態、改廣播）
---       → 不強制，交給 TTL。它偶爾也會改變人數（有人從別的遊戲切進 WoW），
---         所以不能完全忽略，但也不值得為它每次都掃一遍。
+--    原本的語意是「只算**正在玩 WoW** 的好友」—— 理由是「算上掛在戰網上的人
+--    會讓數字跟『能不能找他一起打』脫鉤」。那個理由本身沒錯，但它的代價是
+--    **每次都得逐一問過每個在線好友在玩什麼**，而 `C_BattleNet.GetFriendAccountInfo(i)`
+--    每個好友回一張約 18 KB 的巢狀表 ⇒ 一次 244 KB，而且沒有更便宜的問法。
+--    後面為了壓它加了快取、TTL、dirty 旗標、事件分級…… 全部都只是在調頻率，
+--    地板永遠是那 244 KB。尖峰時段人來人往、事件狂發的時候最糟。
 --
--- ⚠ TTL 30 秒看起來很久，但「人數會變」的時刻已經被精準事件蓋掉了 ——
---   TTL 只是替雜訊事件兜底。實際的更新延遲仍然是即時的。
+--    ElvUI 與 EllesmereUI 都是同一個答案，而且不是靠什麼技巧：
+--      ElvUI（DataTexts/Friends.lua）數字直接用
+--        `C_FriendList.GetNumOnlineFriends() + select(2, BNGetNumFriends())`，
+--        建表那段的註解寫著 "only retrieve information for all on-line members
+--        when we actually view the tooltip"。
+--      Ellesmere（GatherOnlineFriends）："Zero background work -- all data is
+--        read live when the tooltip opens."
+--
+--    也就是說：**常駐的數字一律用免費的 API，昂貴的逐人查詢只在提示打開時做。**
+--    代價是數字的語意變成「在線好友」而不是「在玩 WoW 的好友」。
+--
+-- 結論：**語意的代價要在選語意的時候就算清楚。** 一個「更精確」的定義如果需要
+-- 常駐輪詢才維持得住，那它就不是更好的定義，只是更貴的定義 —— 而且貴在最不該
+-- 貴的時候（人多、事件多）。提示裡照樣分得出誰在 WoW、誰在別的遊戲，資訊沒有少。
 ------------------------------------------------------------
-local _fCount, _fAt, _fDirty = 0, -1, true
--- 60 秒。**這是「雜訊路徑」的兜底週期，不是更新延遲** ——
--- 真的有人上／下線會走精準事件強制重算，那條是即時的。
--- 這條只在「有人換區域／改狀態」之後兜底，而那種變動多半不會改變人數。
---
--- ⚠ 為什麼不繼續往下壓：單次 244 KB 是這個語意（只算在玩 WoW 的好友）的**地板**
---   —— `GetFriendAccountInfo` 每個在線好友回一張約 18 KB 的巢狀表，砍不掉。
---   想再降只有兩條路，兩條都有代價，見 project-miliui-minimap 筆記。
-local FRIEND_TTL = 60
-
--- 精準事件用：讓下一次查詢一定重算
-function D.InvalidateFriends()
-    _fAt, _fDirty = -1, true
-end
-
--- 雜訊事件用：只標記「可能變了」。TTL 到期時**有標記才重算** ——
--- 沒有任何好友活動的時候，這支就完全不會跑。
-function D.TouchFriends()
-    _fDirty = true
-end
-
 function D.FriendsOnline()
     ns.Count("Data.FriendsOnline")
-    local now = GetTime()
-    -- 沒到期就用快取；到期了但**沒有任何事件說可能變了**也不必重算。
-    -- 少了後半句，閒置時每 30 秒還是會白掃一次 242 KB。
-    if now - _fAt < FRIEND_TTL then return _fCount end
-    if not _fDirty and _fAt >= 0 then return _fCount end
-    _fDirty = false
-
-    ns.Count("Data.FriendsOnline!walk")   -- ! ＝ 真的掃了一遍
-    local n = 0
-    -- 角色好友
-    local numChar = C_FriendList.GetNumOnlineFriends and C_FriendList.GetNumOnlineFriends() or 0
-    n = n + (PlainNumber(numChar) or 0)
-    -- BNet：只算正在玩 WoW 的。算上所有掛在暴雪戰網的人會讓數字跟「能不能找他
-    -- 一起打」脫鉤 —— 那才是玩家看這個數字的理由。
-------------------------------------------------------------
--- ⚠⚠⚠ **`BNGetNumFriends()` 回傳兩個值：`numTotal, numOnline`。**
---
---   只取第一個 ＝ 連**離線**好友也一筆一筆走過。而 `C_BattleNet.GetFriendAccountInfo(i)`
---   每次呼叫都配一張巢狀表（帳號 ＋ gameAccountInfo，幾十個欄位、一堆字串），
---   所以「為了數出 13 個在線的人，把整份幾百人的名單全配了一遍」。
---
---   2026-08-30 實測：**每次掃描 855 KB**（三輪剖析各為 857／855／855，一致到
---   個位數）。這就是「記憶體每 5～10 秒 +0.8MB」的全部來源。
---
---   戰網好友清單是**在線優先排序**的（暴雪自己的 FriendsList_Update 就靠這個
---   前提跑），所以只要走 `1 .. numOnline` 就涵蓋全部在線的人。
---
---   ⚠ 前面三輪都沒抓到，是因為我一直在看「這支被叫幾次」而不是「這支一次吃多少」。
---     次數只有 0.1/秒，看起來完全無辜 —— 貴的是**單次成本**，不是頻率。
-------------------------------------------------------------
-    local _, numOnline = BNGetNumFriends()
-    for i = 1, (PlainNumber(numOnline) or 0) do
-        local acct = C_BattleNet.GetFriendAccountInfo(i)
-        local game = acct and acct.gameAccountInfo
-        if game and game.isOnline and game.clientProgram == BNET_CLIENT_WOW then
-            n = n + 1
-        end
-    end
-
-    _fAt, _fCount = now, n
-    return n
+    -- 兩支都是純計數，不配置任何東西
+    local char = PlainNumber(C_FriendList.GetNumOnlineFriends and C_FriendList.GetNumOnlineFriends()) or 0
+    local _, bnetOnline = BNGetNumFriends()
+    return char + (PlainNumber(bnetOnline) or 0)
 end
 
 ------------------------------------------------------------
@@ -207,7 +161,11 @@ function D.FriendsRoster()
     for i = 1, (PlainNumber(numOnline) or 0) do
         local acct = C_BattleNet.GetFriendAccountInfo(i)
         local game = acct and acct.gameAccountInfo
-        if game and game.isOnline and game.clientProgram == BNET_CLIENT_WOW then
+        -- ⚠ **不再只收 WoW。** 資訊列的數字現在是「在線好友」（免費 API 給的），
+        --   清單只收 WoW 的話兩者就對不上 —— 而「數字跟底下列數不一樣」是使用者
+        --   最容易當成 bug 的一種畫面。非 WoW 的照樣列，右欄改顯示他在玩什麼。
+        if game and game.isOnline then
+            local inWoW = (game.clientProgram == BNET_CLIENT_WOW)
             ------------------------------------------------------------
             -- ⚠ 「在玩 WoW」不等於「有角色名可用」。
             --
@@ -248,6 +206,7 @@ function D.FriendsRoster()
             local display = charName or tag
             local entry = display and {
                 name  = display,
+                inWoW = inWoW,
                 full  = full,
                 tag   = tag,
                 -- 沒有角色名／跨版本 ⇒ 邀請無效，右鍵選單的邀請清單會跳過
@@ -259,7 +218,10 @@ function D.FriendsRoster()
                 bnetID   = acct.bnetAccountID,
                 level = level,
                 class = classFile,
-                zone  = PlainText(game.areaName) or "",
+                -- WoW 的人顯示所在區域；其他遊戲的顯示「他在玩什麼」
+                -- （richPresence 是暴雪給的在地化字串，例如「在《暗黑破壞神 IV》中」）
+                zone  = inWoW and (PlainText(game.areaName) or "")
+                        or (PlainText(game.richPresence) or PlainText(game.clientProgram) or ""),
                 bnet  = true,
             }
             if entry then
@@ -286,6 +248,7 @@ function D.FriendsRoster()
                     name  = charName:match("^([^%-]+)") or charName,
                     full  = charName,
                     level = lvl,
+                    inWoW = true,
                     canInvite = true,
                     -- ⚠ C_FriendList 只給在地化的職業名，沒有 classFile。
                     --   拿不到就不上色（Style.ClassColor 會回 nil），
@@ -297,7 +260,12 @@ function D.FriendsRoster()
         end
     end
 
-    local byName = function(a, b) return (a.tag or a.name):lower() < (b.tag or b.name):lower() end
+    -- WoW 的排前面 —— 這張清單的用途是「找誰一起玩」，其他遊戲的是附帶資訊。
+    -- 同一組裡再依名字排。
+    local byName = function(a, b)
+        if (a.inWoW and 1 or 0) ~= (b.inWoW and 1 or 0) then return a.inWoW end
+        return (a.tag or a.name):lower() < (b.tag or b.name):lower()
+    end
     table.sort(favorites, byName)
     table.sort(others, byName)
     return favorites, others
