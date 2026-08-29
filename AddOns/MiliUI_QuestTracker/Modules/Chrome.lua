@@ -41,6 +41,18 @@ local function Font()
     return (a and ns.Media.OptionalFont(a.font)) or ns.Media.DEFAULT_FONT
 end
 
+local function Outline()
+    local a = Cfg()
+    return (a and a.outline) and "OUTLINE" or ""
+end
+
+-- 開關 chip 的字級是固定的：它是框上的裝飾，不是內容。字型與描邊則跟著設定走 ——
+-- 同一條列上的東西描邊不一致看起來會很怪
+local CHIP_FONT_SIZE = 11
+local function ChipFont(fs)
+    fs:SetFont(Font(), CHIP_FONT_SIZE, Outline())
+end
+
 ------------------------------------------------------------
 -- 1px 實線。⚠ 高度要換算成「框架單位」——直接 SetHeight(1) 在非 1.0 的縮放下
 -- 會變成 1.3 個實體像素，然後被四捨五入成忽粗忽細的線
@@ -95,7 +107,7 @@ local function CreateChip(parent, text, getFn, setFn)
     -- ⚠ 剛建出來的 FontString 沒有字型，這時候 SetText 會丟 "Font not set"。
     --   LayoutChip 稍後還會照設定重設一次，但**建立當下就得先有一個**，
     --   不然這一行就把整個 EnsureFrames 打斷在半路
-    chip.label:SetFont(Font(), 11, "")
+    ChipFont(chip.label)
     chip.label:SetText(text)
 
     chip.Get = getFn
@@ -148,7 +160,7 @@ local function LayoutChip(chip)
     e.RIGHT:ClearAllPoints()
     e.RIGHT:SetPoint("TOPRIGHT"); e.RIGHT:SetPoint("BOTTOMRIGHT"); e.RIGHT:SetWidth(px)
 
-    chip.label:SetFont(Font(), 11, "")
+    ChipFont(chip.label)
     chip:SetWidth(P.Scale(3 + CHIP_BOX + 4 + 6) + chip.label:GetStringWidth())
 end
 
@@ -203,7 +215,7 @@ local function EnsureFrames()
 
     newBar.label = newBar:CreateFontString(nil, "OVERLAY")
     newBar.label:SetPoint("LEFT", newBar.arrow, "RIGHT", P.Scale(6), 0)
-    newBar.label:SetFont(Font(), Cfg().headerSize, "")   -- 理由同 chip.label
+    newBar.label:SetFont(Font(), Cfg().headerSize, Outline())   -- 理由同 chip.label
 
     -- 重建時先清空：上一輪如果死在半路，chips 裡會留著孤兒
     wipe(chips)
@@ -391,7 +403,7 @@ function Chrome.ApplyStyle()
     if bar.arrow.SetDesaturated then bar.arrow:SetDesaturated(true) end
     bar.arrow:SetVertexColor(r, g, b)
 
-    bar.label:SetFont(Font(), a.headerSize, a.outline and "OUTLINE" or "")
+    bar.label:SetFont(Font(), a.headerSize, Outline())
     bar.label:SetTextColor(1, 1, 1, hovered and 1 or 0.85)
     Chrome.UpdateLabel()
 
@@ -497,6 +509,8 @@ local function EnsureMoveOverlay()
         edgeSize = P.Scale(1),
     })
 
+    -- 遮罩上的字**一律描邊**，不跟著設定走：它壓在會動的遊戲畫面上，
+    -- 沒描邊在亮的地形會讀不出來。這不是漏掉，不要「修正」成 Outline()
     o.label = o:CreateFontString(nil, "OVERLAY")
     o.label:SetPoint("CENTER", o, "CENTER", 0, P.Scale(8))
     o.label:SetFont(Font(), 14, "OUTLINE")

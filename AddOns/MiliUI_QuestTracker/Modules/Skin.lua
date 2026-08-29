@@ -438,7 +438,7 @@ end
 --   剩下控制字元自己顯示成方塊。
 --
 --   通則：**不要盲掃 FontString 重設字型。** 只動我們認得的那幾個
---   （區塊標題、block.lines 的 Text/Dash），其餘一律當作可能帶秘密值。
+--   （區塊標題、目標行的 Text/Dash、任務物品數量），其餘一律當作可能帶秘密值。
 --   代價是進度條與計時條的數字保留暴雪原本的字型 —— 那本來就是它們該有的樣子。
 local function ProcessChildren(frame, depth)
     if not frame or depth > 3 or not frame.GetChildren then return end
@@ -507,9 +507,7 @@ local function SkinBlock(block)
     if skinnedBlock[block] then
         ApplyTypeIcon(block)
         ApplyTitleColor(block)
-        if block.lines then
-            for _, line in pairs(block.lines) do SkinLine(line) end
-        end
+        T.EachLine(block, SkinLine)
         return
     end
 
@@ -545,9 +543,7 @@ local function SkinBlock(block)
 
     ApplyTypeIcon(block)
     ApplyTitleColor(block)
-    if block.lines then
-        for _, line in pairs(block.lines) do SkinLine(line) end
-    end
+    T.EachLine(block, SkinLine)
     ProcessChildren(block, 0)
 
     skinnedBlock[block] = true

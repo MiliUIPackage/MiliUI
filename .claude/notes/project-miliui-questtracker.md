@@ -55,6 +55,20 @@ UIParent，換父層會連位置一起跑掉，我們錨在它身上的標題列
 **暴雪原生的收合（`Header:SetCollapsed`）不能拿來做自動摺疊** —— 那要跑它整串收合程式碼。
 所以「自動縮起」是我們自己藏，配一條自畫的標題列當把手（`Modules/Chrome.lua`）。
 
+## ⚠ 目標行是 `block.usedLines`，不是 `block.lines`
+
+**寫錯不會報錯**，那圈迴圈只是永遠空的 —— 症狀是「目標文字大小拉了完全沒反應」。
+對照 `Blizzard_ObjectiveTrackerBlock.lua` 的 `ObjectiveTrackerBlockMixin:GetLine()`：
+`self.usedLines[objectiveKey] = line`。行上的 FontString 是 `line.Text` / `line.Dash`。
+收在 `T.EachLine()` 裡（兩個欄位都試，`usedLines` 優先）。
+
+⚠ **另一支同類插件也寫成 `lines`**，但它另有一段盲掃 FontString 的程式碼把行文字
+順手蓋到了，所以看起來是有效的。**別人怎麼寫不能當根據，要去對原始碼。**
+（這次連帶咬到自己：把盲掃拿掉修 `□%` 之後，這個一直存在的 bug 才浮出來。）
+
+`ObjectiveTrackerLineMixin` 本身不碰字型（`Blizzard_ObjectiveTrackerShared.lua`
+裡唯一的 `SetFontObject` 是獎勵彈窗），所以我們設上去的字型不會被下一次排版蓋掉。
+
 ## ⚠ 不要盲掃 FontString 重設字型
 
 **症狀：進度條的百分比顯示成 `□%`。** 那個方塊是秘密值的佔位控制字元（`\001N`）

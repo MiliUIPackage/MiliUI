@@ -115,6 +115,22 @@ function T.EachBlock(tracker, fn)
     end
 end
 
+-- 走一個區塊的所有目標行。
+--
+-- ⚠ 欄位是 `usedLines`，**不是 `lines`** —— 對照過 Blizzard_ObjectiveTrackerBlock.lua
+--   的 ObjectiveTrackerBlockMixin:GetLine()，它寫的是 `self.usedLines[objectiveKey] = line`。
+--   寫成 `lines` 的話這圈永遠是空的，而且**不會報錯**：症狀是「目標文字大小拉了沒反應」。
+--   （2026-08-29 踩過一次。當時另一支同類插件也寫 `lines`，但它另外有一段盲掃
+--   FontString 的程式碼把行文字順手蓋到了，所以看起來像是有效的 —— 別人怎麼寫
+--   不能當根據，要去對原始碼。）
+function T.EachLine(block, fn)
+    local lines = block and (block.usedLines or block.lines)
+    if type(lines) ~= "table" then return end
+    for _, line in pairs(lines) do
+        if type(line) == "table" then fn(line) end
+    end
+end
+
 -- 這個子追蹤器現在有沒有東西可顯示。三個訊號取聯集：收合中的區段仍然算「有內容」，
 -- 所以不能只看有沒有區塊
 function T.TrackerHasContent(tracker)
