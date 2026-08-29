@@ -157,6 +157,215 @@ local function ShowTooltip(tile)
 end
 
 ------------------------------------------------------------
+-- 通知鏡射：暴雪原鈕的閃爍搬到我們的方塊上
+--
+-- 原鈕被藏起來之後，暴雪畫在它身上的提示（有人申請入隊、法術書有新東西、
+-- 公會有未讀）玩家就看不到了。
+--
+-- 掛的是**全域函式** MicroButtonPulse / MicroButtonPulseStop
+-- （Blizzard_MicroMenu/Mainline/MainMenuBarMicroButtons.lua），不是逐一去接
+-- 「哪些情境會閃」——那份清單散在十幾支暴雪檔案裡，列舉一定會漏，而且改版
+-- 就過期。掛在源頭上，誰呼叫都算數。
+--
+-- 聲音不用管：PlaySound 跟框的顯示狀態無關，照樣會響（唯一的例外是排隊眼睛，
+-- 它的音效綁在自己的動畫上，所以上面的 hider 不碰它）。
+------------------------------------------------------------
+local refToTile = {}          -- 暴雪原鈕 → 我們的方塊
+local ourTiles = {}           -- 我們的方塊（集合），診斷時用來認出「已經重錨過了」
+local pulseHooked = false
+
+local function EnsurePulseTexture(tile)
+    if tile.pulseTex then return tile.pulseTex end
+    local t = tile:CreateTexture(nil, "OVERLAY", nil, 7)
+    t:SetAllPoints()
+    t:SetTexture("Interface\\Buttons\\WHITE8X8")
+    t:SetAlpha(0)
+    t:Hide()
+    local ag = t:CreateAnimationGroup()
+    ag:SetLooping("BOUNCE")
+    local a = ag:CreateAnimation("Alpha")
+    a:SetFromAlpha(0)
+    a:SetToAlpha(0.4)
+    a:SetDuration(0.6)
+    t.anim = ag
+    tile.pulseTex = t
+    return t
+end
+
+local function SetTilePulsing(tile, on)
+    if not tile then return end
+    if on then
+        local t = EnsurePulseTexture(tile)
+        t:SetVertexColor(ns.W.Accent(1))
+        t:Show()
+        t.anim:Play()
+    elseif tile.pulseTex then
+        tile.pulseTex.anim:Stop()
+        tile.pulseTex:SetAlpha(0)
+        tile.pulseTex:Hide()
+    end
+end
+
+local function EnsurePulseHooks()
+    if pulseHooked then return end
+    if not (_G.MicroButtonPulse and _G.MicroButtonPulseStop) then return end
+    pulseHooked = true
+    hooksecurefunc("MicroButtonPulse", function(btn)
+        SetTilePulsing(refToTile[btn], true)
+    end)
+    hooksecurefunc("MicroButtonPulseStop", function(btn)
+        SetTilePulsing(refToTile[btn], false)
+    end)
+end
+
+------------------------------------------------------------
+-- 教學提示重錨（「你有可用的 PvP 天賦欄位」那種黃色泡泡）
+--
+-- 暴雪把提示錨在**原鈕**上：MainMenuMicroButton_ShowAlert 裡是
+-- `HelpTip:Show(UIParent, info, microButton)`（MainMenuBarMicroButtons.lua）。
+-- 原鈕被藏起來但位置還在畫面右下角，提示就飛到那裡，跟資訊列完全對不上。
+--
+-- **不搬暴雪的按鈕**：它們是 GridLayoutFrame 的子物件，那個容器一重排就把我們
+-- 的 SetPoint 蓋掉；而且按鈕顆數會隨設定變、尺寸也會變，硬對位置是撐不住的。
+-- 改成提示**建出來之後**把它的 relativeRegion 換成對應的方塊、再讓暴雪自己重錨
+-- 一次。查表走 refToTile，所以顆數與尺寸怎麼變都自動對得上。
+--
+-- `AnchorAndRotate()` 不帶參數就是 Init 收尾的那一下（HelpTip.lua:530），
+-- 箭頭方向與偏移全部照暴雪自己的算法重算，我們不自己算座標。
+------------------------------------------------------------
+local helpTipHooked = false
+
+-- 把一個還在顯示中的提示改錨到對應的方塊上。
+-- 比對用 **relativeRegion**（錨定對象）而不是 info 表的參照：
+-- `MainMenuMicroButton_ShowAlert` 每次呼叫都新建一張 helpTipInfo，而
+-- `HelpTip:Show` 在「同樣的文字已經在顯示中」時會**提前 return、不重建 frame**
+-- （HelpTip.lua:181）——那條路上舊 frame 的 info 跟這次傳進來的根本不是同一張表，
+-- 拿 info 比對就永遠對不上。
+-- 泡泡有沒有真的黏過來（只看水平距離就夠了：錯位時是整個飛到畫面另一邊）
+local function TipFollowed(frame, tile)
+    if not (frame.IsRectValid and frame:IsRectValid() and tile:IsRectValid()) then
+        return false
+    end
+    local fx = frame:GetCenter()
+    local tx = tile:GetCenter()
+    if not (fx and tx) then return false end
+    return math.abs(fx - tx) < 250
+end
+
+-- ⚠ 換了 relativeRegion 再叫 AnchorAndRotate() **在實機上沒有用**：欄位確實變了
+-- （/mib debug 看得到），泡泡卻留在原地不動，連每幀跑的 OnUpdate 也沒把它拉過來
+-- （2026-08-29 實測，靠印座標才確認）。所以這裡不信任那條路：先照官方的方式試，
+-- 然後**驗證泡泡有沒有真的移動**，沒有就自己 SetPoint 接手。
+--
+-- 自己接手時要把 OnUpdate 拿掉：autoHorizontalSlide 會每幀重錨，留著就是跟我們搶
+-- （代價是沒有貼邊自動滑動；泡泡錨在資訊列上，本來也不太需要）。
+local function ApplyAnchor(frame, tile)
+    frame.relativeRegion = tile
+    pcall(frame.AnchorAndRotate, frame)
+    if TipFollowed(frame, tile) then return "官方" end
+
+    frame:SetScript("OnUpdate", nil)
+    frame:ClearAllPoints()
+    -- 箭頭是泡泡自己的貼圖、方向由官方那條路決定，我們只保證泡泡在正確的那一側：
+    -- 方塊在畫面下半 → 泡泡放上方（箭頭朝下，跟預設 TopEdgeCenter 一致）
+    local _, cy = tile:GetCenter()
+    if cy and cy > UIParent:GetHeight() / 2 then
+        frame:SetPoint("TOP", tile, "BOTTOM", 0, -14)
+    else
+        frame:SetPoint("BOTTOM", tile, "TOP", 0, 14)
+    end
+    return "自己接手"
+end
+
+local function ReanchorTo(relativeRegion)
+    local tile = relativeRegion and refToTile[relativeRegion]
+    if not (tile and tile:IsShown()) then return end
+    local pool = HelpTip and HelpTip.framePool
+    if not (pool and pool.EnumerateActive) then return end
+    for frame in pool:EnumerateActive() do
+        if frame.relativeRegion == relativeRegion then
+            ApplyAnchor(frame, tile)
+        end
+    end
+end
+
+-- 補掃：掛勾只接得到「之後」的 Show。登入當下就已經掛著的提示（PvP 天賦欄位
+-- 那種一直留到玩家按叉叉為止的）在我們掛勾之前就顯示完了，之後也不會再有
+-- Show 呼叫，所以要主動掃一次現役的提示。
+local function ReanchorExisting()
+    if not ns.GetDB().hideBlizzard then return end
+    local pool = HelpTip and HelpTip.framePool
+    if not (pool and pool.EnumerateActive) then return end
+    for frame in pool:EnumerateActive() do
+        local rr = frame.relativeRegion
+        -- 兩種都要補：還錨在暴雪原鈕上的，以及錨點換過來了但位置沒跟上的
+        local tile = rr and (refToTile[rr] or (ourTiles[rr] and rr))
+        if tile and tile:IsShown() and not TipFollowed(frame, tile) then
+            ApplyAnchor(frame, tile)
+        end
+    end
+end
+
+local function EnsureHelpTipHook()
+    if helpTipHooked then return end
+    local pool = HelpTip and HelpTip.framePool
+    if not (HelpTip and HelpTip.Show and pool and pool.EnumerateActive) then return end
+    helpTipHooked = true
+    hooksecurefunc(HelpTip, "Show", function(_, _, _, relativeRegion)
+        -- 沒在藏原廠那排的話，提示本來就錨在看得見的原鈕上，不要多事
+        if not ns.GetDB().hideBlizzard then return end
+        ReanchorTo(relativeRegion)
+    end)
+end
+
+------------------------------------------------------------
+-- /mib debug 用的現場報告
+------------------------------------------------------------
+local function FrameName(f)
+    if not f then return "nil" end
+    if f.GetName and f:GetName() then return f:GetName() end
+    return "(無名框)"
+end
+
+function MM.DebugInfo()
+    print("  hideBlizzard：" .. tostring(ns.GetDB().hideBlizzard)
+        .. "　HelpTip 掛勾：" .. (helpTipHooked and "已掛" or "沒掛"))
+    local n = 0
+    for _ in pairs(refToTile) do n = n + 1 end
+    print("  refToTile 登記了 " .. n .. " 顆原鈕")
+    local pool = HelpTip and HelpTip.framePool
+    if not (pool and pool.EnumerateActive) then
+        print("  HelpTip.framePool：讀不到（這就是掛勾失敗的原因）")
+        return
+    end
+    local function Pos(f)
+        if not (f and f.GetLeft and f:IsRectValid()) then return "座標讀不到" end
+        return string.format("x=%d y=%d 顯示=%s",
+            math.floor(f:GetLeft() or 0), math.floor(f:GetTop() or 0), tostring(f:IsShown()))
+    end
+
+    local any = false
+    for frame in pool:EnumerateActive() do
+        any = true
+        local rr = frame.relativeRegion
+        local state
+        if rr and ourTiles[rr] then
+            state = "|cff33ff66已重錨到資訊列|r"
+        elseif rr and refToTile[rr] then
+            state = "|cffff9900還錨在暴雪原鈕上（待重錨）|r"
+        else
+            state = "跟資訊列無關，不動它"
+        end
+        local text = frame.info and frame.info.text or frame.lastInfoText or "?"
+        if #text > 18 then text = text:sub(1, 18) .. "…" end
+        print("  提示「" .. text .. "」" .. state)
+        print("      錨在 " .. FrameName(rr) .. "（" .. Pos(rr) .. "）")
+        print("      泡泡本身 " .. Pos(frame))
+    end
+    if not any then print("  現役提示：沒有") end
+end
+
+------------------------------------------------------------
 -- 右鍵選單（共用層 W.Menu）：進設定的捷徑＋隱藏這一顆。
 -- 「隱藏」跟一般項目用分隔線隔開、不放第一個（選單設計標準）；
 -- 藏掉之後的救回路徑就是上面那條「開啟設定」。
@@ -249,6 +458,8 @@ function ns.Blocks.micromenu.create()
                 GameTooltip:Hide()
             end)
 
+            refToTile[ref] = tile
+            ourTiles[tile] = true
             inst.buttons[def.key] = tile
             inst.tiles[#inst.tiles + 1] = tile
         end
@@ -261,9 +472,13 @@ function ns.Blocks.micromenu.create()
             tile.desiredW = db.height          -- 正方形
             ApplyIconStyle(tile)
         end
+        -- 方塊排完位置才有效的錨點：延到下一幀補掃現役提示
+        C_Timer.After(0, ReanchorExisting)
     end
 
     function inst:Enable()
+        EnsurePulseHooks()
+        EnsureHelpTipHook()
         -- 頭像要跟著換裝／換形象更新；別的圖示是 atlas，不會變
         ns.Events.Register("UNIT_PORTRAIT_UPDATE", "micromenu", function(unit)
             if unit ~= "player" then return end
@@ -320,7 +535,13 @@ function MM.UpdateBlizzardHidden(force)
 
     ns.Defer("mm-blizzhider", function()
         local targets = {}
-        if _G.MicroMenuContainer then targets[#targets + 1] = _G.MicroMenuContainer end
+        -- ⚠ 藏的是 MicroMenu（按鈕格），**不是** MicroMenuContainer。
+        -- QueueStatusButton（排隊中的綠色眼睛）的父層就是那個容器，跟按鈕格是
+        -- 兄弟——藏容器會把眼睛一起帶走，而那顆眼睛不只是顯示排隊狀態：
+        -- 「有人申請入隊」的音效是掛在它的 EyeHighlightAnim 動畫迴圈的 OnLoop 上
+        -- （Blizzard_QueueStatusFrame/Mainline/QueueStatusFrame.xml），動畫不跑
+        -- 就連聲音都沒了。所以只藏按鈕格，眼睛留給暴雪自己管。
+        if _G.MicroMenu then targets[#targets + 1] = _G.MicroMenu end
         if _G.MicroButtonAndBagsBar then targets[#targets + 1] = _G.MicroButtonAndBagsBar end
         for i = 1, #targets do
             local h = GetHider(targets[i])

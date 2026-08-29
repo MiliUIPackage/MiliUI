@@ -708,6 +708,9 @@ function ns.PrintDebug()
     end
     print("  資訊列：" .. (bar and "存在" or "nil")
         .. (bar and (bar:IsShown() and "／顯示中" or "／隱藏") or ""))
+    if ns.MicroMenu and ns.MicroMenu.DebugInfo then
+        ns.MicroMenu.DebugInfo()
+    end
 end
 
 ----------------------------------------------------------------------

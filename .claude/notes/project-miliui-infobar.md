@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: c0d1056b-afe5-4f0b-a0d1-24a0f3f4c05d
-  modified: 2026-08-29T11:33:27.851Z
+  modified: 2026-08-29T15:13:50.147Z
 ---
 
 `AddOns/MiliUI_InfoBar/`（2026-08-29 新增）。純色方底一長條：資訊區塊（裝等／耐久／
@@ -21,7 +21,13 @@ metadata:
    （少這行 ActionButtonUseKeyDown CVar 會把 AnyUp 點擊丟掉）。12.1 起天賦／法術書
    **必須**走 secure 點擊——addon Lua 直開會污染，之後 SpellBookItem 的 SetCooldown
    吃到秘密值就崩。**刻意不掛戰鬥鎖**（EUI 有掛）：戰鬥中能點開天賦、換擲骰正是需求。
-2. **藏暴雪那排只能走 secure hider**：MicroMenuContainer 是 Edit Mode 管理框，
+2. **藏暴雪那排只能走 secure hider**，而且要藏 **`MicroMenu`（按鈕格）不是
+   `MicroMenuContainer`（容器）**：`QueueStatusButton`（排隊中的綠色眼睛）的父層
+   就是容器，跟按鈕格是兄弟。藏容器會把眼睛一起帶走，而那顆眼睛不只顯示排隊狀態
+   ——**「有人申請入隊」的音效是掛在它的 `EyeHighlightAnim` 迴圈 `OnLoop` 上**
+   （Blizzard_QueueStatusFrame/Mainline/QueueStatusFrame.xml），動畫不跑連聲音都
+   沒了。EUI 的結論一樣：排隊眼睛只管位置、`noManagedVisibility` 不碰顯示。
+   其餘關於 hider 本身：MicroMenuContainer 是 Edit Mode 管理框，
    insecure `:Hide()` 會污染 managed frame system（症狀：離開載具時
    ActionBarController_UpdateAll 被封鎖）。`SecureHandlerStateTemplate` 的
    `_onstate-vis` ＋ RegisterStateDriver **常數狀態**——snippet 只跑一次，外力
@@ -53,7 +59,38 @@ metadata:
   EditModeManagerFrame:SelectSystem(self.parent)**。借用模板的自訂框不是真系統，
   點一下不拖就把 UIParent 塞進暴雪選取流程（報錯＋污染）。必須
   `SetScript("OnMouseDown", function() end)` 中和。套組其他七處同病（已開 task 修）。
-- 區域變數不要叫 `MicroMenu`——暴雪 DF 起有全域框就叫這名字，遮蔽掉 hider 會拿錯目標。
+- 區域變數不要叫 `MicroMenu`——暴雪 DF 起有全域框就叫這名字，而 hider 現在就是
+  拿它當目標，遮蔽掉會直接壞掉。
+- **教學提示（HelpTip）要重錨**：暴雪把黃色泡泡錨在**原鈕**上
+  （`HelpTip:Show(UIParent, info, microButton)`，MainMenuBarMicroButtons.lua 的
+  `MainMenuMicroButton_ShowAlert`），原鈕藏起來但位置還在右下角，提示就飛過去。
+  **不要搬暴雪的按鈕**去對位置——它們是 GridLayoutFrame 的子物件，容器一重排就
+  蓋掉，而且顆數／尺寸會變。正解是 `hooksecurefunc(HelpTip, "Show", ...)`，從
+  `HelpTip.framePool:EnumerateActive()` 用 `frame.info == info`（同一張表的參照）
+  找出那個提示框，把 `frame.relativeRegion` 換成對應方塊。查表走 refToTile，
+  顆數尺寸怎麼變都自動對得上。
+  ⚠ 這裡有三個各自都足以讓它整組失效的坑，三個都是實測踩出來的：
+  1. **比對要用 `frame.relativeRegion`，不能用 `frame.info`。**
+     `MainMenuMicroButton_ShowAlert` 每次呼叫都新建一張 helpTipInfo，而
+     `HelpTip:Show` 在「同樣的文字已經在顯示中」時會**提前 return、不重建 frame**
+     （HelpTip.lua:181）——舊 frame 的 info 跟這次傳進來的不是同一張表。
+  2. **要主動補掃一次現役提示。** 掛勾只接得到之後的 Show；登入當下就掛著、
+     而且會一直留到玩家按叉叉的那種（PvP 天賦欄位）在掛勾前就顯示完了，
+     之後不會再有 Show 呼叫。ApplyAll 之後延一幀掃 `EnumerateActive()`。
+  3. **⚠⚠ 換完 `relativeRegion` 再叫 `frame:AnchorAndRotate()` 實機上沒有用。**
+     欄位確實變了（`/mib debug` 印得出來），泡泡卻留在原地——連 `autoHorizontalSlide`
+     那個**每幀**都會 `AnchorAndRotate` 的 OnUpdate 也沒把它拉過來（推測是拋錯被
+     BugSack 吞掉）。所以不能信任那條路：呼叫要包 `pcall`，然後**量泡泡的中心 x
+     有沒有真的靠近方塊**，沒有就自己 `ClearAllPoints` + `SetPoint` 接手，並把
+     `OnUpdate` 設成 nil（不然每幀重錨會跟我們搶）。
+     **教訓：欄位對了不等於畫面對了。** 這一輪浪費了三次 /reload 才發現——診斷
+     只印狀態欄位是不夠的，一定要連**實際座標**一起印（方塊的 x 對泡泡的 x），
+     差距一眼就看得出來。
+- **原鈕的閃爍要鏡射**：原鈕藏起來後，暴雪畫在它身上的提示（有人申請、法術書有
+  新東西）就看不到了。掛全域 `MicroButtonPulse` / `MicroButtonPulseStop`
+  （MainMenuBarMicroButtons.lua）把閃爍轉到我們的方塊上——**不要去列舉「哪些情境
+  會閃」**，那份清單散在十幾支暴雪檔案裡，列舉一定會漏而且改版就過期。
+  聲音不用管：`PlaySound` 跟框的顯示狀態無關（唯一例外是上面那顆眼睛）。
 - 圖示不自備圖檔：執行期讀暴雪按鈕 `GetNormalTexture():GetAtlas()`，單色風格
   SetDesaturated＋上色、彩色風格原圖直出；atlas 是直式（約 32x41），要按
   C_Texture.GetAtlasInfo 的比例縮，塞正方形會壓扁。角色鈕用 SetPortraitTexture。
