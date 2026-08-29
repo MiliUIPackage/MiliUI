@@ -327,6 +327,7 @@ end
 -- 這裡做任何 SetPoint 都會變成每秒好幾次的重排。
 ------------------------------------------------------------
 local function UpdateSlot(btn)
+    ns.Count("Bar.UpdateSlot")
     local src = SOURCES[btn.sourceKey]
     if not src or not btn.laidOut then
         btn:Hide()
@@ -368,6 +369,7 @@ end
 local lastTipRefresh = 0
 
 function Bar.Update()
+    ns.Count("Bar.Update")
     if not bar or not bar:IsShown() then return end
     for _, btn in ipairs(slots) do UpdateSlot(btn) end
 
@@ -508,6 +510,7 @@ end
 -- 套用設定
 ------------------------------------------------------------
 function Bar.Apply()
+    ns.Count("Bar.Apply")
     local db = ns.DB.Get()
     if not db.infoBar then
         if bar then bar:Hide() end

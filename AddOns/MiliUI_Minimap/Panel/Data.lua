@@ -27,6 +27,7 @@ local PlainNumber = Sec.PlainNumber
 -- 人數：只給數字，不掃名單
 ------------------------------------------------------------
 function D.GuildOnline()
+    ns.Count("Data.GuildOnline")
     if not IsInGuild() then return nil end
     -- GetNumGuildMembers() → total, online, onlineAndMobile
     -- 10.2 之後中間那個參數的語意變過，兩個都取、擇一有值的用。
@@ -59,9 +60,11 @@ local _fCount, _fAt = 0, -1
 local FRIEND_TTL = 2
 
 function D.FriendsOnline()
+    ns.Count("Data.FriendsOnline")
     local now = GetTime()
     if now - _fAt < FRIEND_TTL then return _fCount end
 
+    ns.Count("Data.FriendsOnline!walk")   -- ! ＝ 真的掃了一遍
     local n = 0
     -- 角色好友
     local numChar = C_FriendList.GetNumOnlineFriends and C_FriendList.GetNumOnlineFriends() or 0
@@ -92,6 +95,7 @@ local STATUS_AFK = 1
 local STATUS_DND = 2
 
 function D.GuildRoster()
+    ns.Count("Data.GuildRoster")
     local out = {}
     if not IsInGuild() then return out end
 
@@ -139,6 +143,7 @@ end
 -- 把它平鋪進同一張 A-Z 清單等於把那個資訊丟掉。
 ------------------------------------------------------------
 function D.FriendsRoster()
+    ns.Count("Data.FriendsRoster")
     local favorites, others = {}, {}
     local seen = {}
 

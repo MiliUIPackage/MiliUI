@@ -216,6 +216,7 @@ local function HookVisibility(btn)
 end
 
 function Buttons.Scan()
+    ns.Count("Buttons.Scan")
     if not bag then return end
     if InCombatLockdown() then Buttons.Queue(); return end
 
@@ -266,6 +267,7 @@ function Buttons.Queue()
 end
 
 function Buttons.QueueLayout()
+    ns.Count("Buttons.QueueLayout")
     if layoutQueued then return end
     layoutQueued = true
     C_Timer.After(0, function()
@@ -365,6 +367,7 @@ local function SizeContainer(frame, count, cols, size, gap, horizontal)
 end
 
 function Buttons.Layout()
+    ns.Count("Buttons.Layout")
     if not bag or not ns.holder then return end
     if InCombatLockdown() then return end        -- reparent 會被封鎖；出戰鬥時 Scan 會補
     local db = ns.DB.Get()
@@ -594,6 +597,7 @@ Buttons.ShowMenu = ShowMenu
 -- 套用設定
 ------------------------------------------------------------
 function Buttons.Apply()
+    ns.Count("Buttons.Apply")
     local db = ns.DB.Get()
     if not ns.overlay then return end       -- Skin 還沒建好，SkinApplied 會再叫一次
 

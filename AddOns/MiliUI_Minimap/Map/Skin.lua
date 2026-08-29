@@ -207,6 +207,7 @@ end
 ------------------------------------------------------------
 local lastZone
 local function UpdateZone()
+    ns.Count("Skin.UpdateZone")
     if not zoneText then return end
     local sub = GetMinimapZoneText()
     local text = (sub and sub ~= "") and sub or (GetZoneText() or "")
@@ -216,6 +217,7 @@ local function UpdateZone()
 end
 
 local function UpdateCoords()
+    ns.Count("Skin.UpdateCoords")
     if not coordText or not coordText:IsShown() then return end
     local mapID = C_Map.GetBestMapForUnit("player")
     local pos = mapID and C_Map.GetPlayerMapPosition(mapID, "player")
@@ -227,6 +229,7 @@ end
 
 local lastClockH, lastClockM
 local function UpdateClock()
+    ns.Count("Skin.UpdateClock")
     if not clockText or not clockText:IsShown() then return end
     -- 跟著暴雪的「24 小時制」設定走，玩家不必在兩個地方各設一次
     local h, m
@@ -267,6 +270,7 @@ local function ModeShown(mode)
 end
 
 local function ApplyElementVisibility()
+    ns.Count("Skin.ElementVisibility")
     local db = ns.DB.Get()
     local showZone  = ModeShown(db.zoneText)
     local showCoord = ModeShown(db.coords)
@@ -595,6 +599,7 @@ end
 -- 刷新迴圈只做 SetText。
 ------------------------------------------------------------
 function Skin.Apply()
+    ns.Count("Skin.Apply")
     if not holder then return end
     local db = ns.DB.Get()
 

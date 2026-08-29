@@ -32,6 +32,7 @@ Libs\Callbacks.lua
 Core\Style.lua
 Core\DB.lua
 Core\Init.lua
+Core\Profile.lua
 
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua

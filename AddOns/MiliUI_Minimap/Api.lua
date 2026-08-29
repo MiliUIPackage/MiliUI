@@ -48,6 +48,9 @@ SlashCmdList.MILIUIMINIMAP = function(msg)
         ns.DB.ResetAll()
         ns.Print(L["Settings restored to defaults."])
 
+    elseif cmd == "prof" then
+        ns.ProfileToggle()
+
     elseif cmd == "debug" then
         -- ns.errors 由共用層 Libs/MiliUIWidgets/Errors.lua 收集
         local list = ns.errors
