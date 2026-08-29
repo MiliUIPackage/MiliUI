@@ -24,22 +24,50 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 -- 邊框 0.30 的理由也一樣：這排東西坐在會動的遊戲畫面上，
 -- 純黑描不出方形，拉亮到 0.30 才立得起來。
 ------------------------------------------------------------
-local FILL_IDLE   = { 0.115, 0.115, 0.115, 1 }
-local FILL_PUSHED = { 0.04, 0.04, 0.04, 1 }
-local HIGHLIGHT   = { 1, 1, 1, 0.13 }
-local EDGE        = { 0.30, 0.30, 0.30, 1 }
+-- 底色與框線色是可設定的（設定 > 一般），預設值在 Config.lua 的 DB_DEFAULTS。
+-- 按下去的暗色不另外開設定：從底色推導（乘 PUSHED_MUL），玩家換了底色它自動跟著，
+-- 而且永遠比底色暗——開成獨立設定只會多一個能調到「按下去比較亮」的坑。
+local PUSHED_MUL = 0.35
+local HIGHLIGHT  = { 1, 1, 1, 0.13 }   -- 滑過的白薄膜，疊在任何底色上都成立
 
 local TILE_GAP  = 2   -- 同一區塊內 tile 的間距
 local BLOCK_GAP = 6   -- 區塊之間的間距（內小外大，這排才讀得成「一組一組」）
 local PAD_X     = 8   -- 文字 tile 的左右內距
 
-ns.EDGE_COLOR = EDGE
-
-----------------------------------------------------------------------
--- SavedVariables
-----------------------------------------------------------------------
+-- ⚠ 這一行要在下面幾支取色函式**之前**：宣告在後面的話，它們裡面的 `db`
+-- 會被當成全域（永遠 nil），色票就靜默失效、永遠讀預設值。
 local db
 
+local function BgColor()
+    local c = db and db.bgColor or ns.DB_DEFAULTS.bgColor
+    return c.r, c.g, c.b, c.a
+end
+
+local function EdgeColor()
+    local c = db and db.edgeColor or ns.DB_DEFAULTS.edgeColor
+    return c.r, c.g, c.b, c.a
+end
+
+local function PushedColor()
+    local r, g, b, a = BgColor()
+    return r * PUSHED_MUL, g * PUSHED_MUL, b * PUSHED_MUL, a
+end
+
+-- 文字強調色＝數值那半的顏色。標籤那半在 Blocks.lua 用 |cffaaaaaa 寫死成灰，
+-- 而 |r 是「還原成 FontString 的基準色」——所以這裡設基準色就只染到數值，
+-- 不必去動每一支 getText。
+local function TextColor()
+    local mode = db and db.textColorMode or ns.DB_DEFAULTS.textColorMode
+    if mode == "class" then
+        return ns.W.Accent(1)
+    end
+    local c = db and db.textColor or ns.DB_DEFAULTS.textColor
+    return c.r, c.g, c.b, c.a
+end
+
+----------------------------------------------------------------------
+-- SavedVariables（`local db` 宣告在上面的取色函式之前）
+----------------------------------------------------------------------
 local function CopyDefaults(src, dst)
     for k, v in pairs(src) do
         if type(v) == "table" then
@@ -65,7 +93,67 @@ function ns.InitDB()
             db.x, db.y = nil, nil
         end
     end
+    -- 配色預設值演進：只搬「還停在上一版預設」的存檔，自己挑過顏色的一概不動。
+    --   v2：框線 0.30（看得見的灰框）→ 跟底色同色（看不出有框）
+    --   v3：不透明 0.115 → 套組標準的半透明灰（跟傷害統計／聊天視窗同一個底）
+    local cv = db.colorVersion or 1
+    if cv < 2 then
+        local e = db.edgeColor
+        if type(e) == "table" and e.r == 0.30 and e.g == 0.30 and e.b == 0.30 then
+            e.r, e.g, e.b, e.a = db.bgColor.r, db.bgColor.g, db.bgColor.b, db.bgColor.a
+        end
+    end
+    if cv < 3 then
+        local b, e = db.bgColor, db.edgeColor
+        if type(b) == "table" and b.r == 0.115 and b.g == 0.115 and b.b == 0.115 and b.a == 1
+           and type(e) == "table" and e.r == 0.115 and e.g == 0.115 and e.b == 0.115 then
+            ns.ApplyColorPreset("pack")
+        end
+    end
+    db.colorVersion = 3
     return db
+end
+
+----------------------------------------------------------------------
+-- 配色 preset：把某一組 preset 的顏色寫進 bgColor / edgeColor
+--
+-- ⚠ 一定要**原地改欄位**、不要換掉整張 color 表：設定頁的色票每次 refresh
+-- 都重讀 db.bgColor，換表雖然也讀得到，但 ResetDB 那類原地清空的路徑就會
+-- 出現兩張表打架。統一成原地改，只有一種行為要記。
+----------------------------------------------------------------------
+local function CopyColor(dst, src)
+    dst.r, dst.g, dst.b, dst.a = src.r, src.g, src.b, src.a
+end
+
+function ns.GetColorPreset(id)
+    for _, p in ipairs(ns.COLOR_PRESETS) do
+        if p.id == id then return p end
+    end
+end
+
+function ns.ApplyColorPreset(id)
+    local p = ns.GetColorPreset(id)
+    if not (p and db) then return end
+    CopyColor(db.bgColor, p.bg)
+    CopyColor(db.edgeColor, p.edge)
+end
+
+-- 現在的顏色屬於哪一組 preset（都對不上就是 "custom"）。
+-- 下拉選單的顯示值走這支——preset 不存進 DB，所以不可能出現
+-- 「下拉說是 A、顏色其實是 B」的狀態。
+local function SameColor(c, ref)
+    return type(c) == "table"
+       and c.r == ref.r and c.g == ref.g and c.b == ref.b and (c.a or 1) == ref.a
+end
+
+function ns.CurrentColorPreset()
+    if not db then return "custom" end
+    for _, p in ipairs(ns.COLOR_PRESETS) do
+        if SameColor(db.bgColor, p.bg) and SameColor(db.edgeColor, p.edge) then
+            return p.id
+        end
+    end
+    return "custom"
 end
 
 function ns.GetDB()
@@ -155,13 +243,22 @@ local function ApplyEdgeColor(tile, hover)
         local r, g, b = ns.W.Accent(1)
         for _, e in ipairs(edges) do e:SetVertexColor(r, g, b, 1) end
     else
-        for _, e in ipairs(edges) do
-            e:SetVertexColor(EDGE[1], EDGE[2], EDGE[3], EDGE[4])
-        end
+        local r, g, b, a = EdgeColor()
+        for _, e in ipairs(edges) do e:SetVertexColor(r, g, b, a) end
     end
 end
 
 ns.ApplyEdgeColor = ApplyEdgeColor
+
+-- 換過底色／框線色之後重新套到每一顆 tile（含已經建好、現在沒顯示的）。
+-- 滑鼠正停在上面的那顆維持職業色，不然拖著色票調色時焦點那顆會被抹掉。
+local function ApplyColors()
+    for _, tile in ipairs(allTiles) do
+        if tile.bg then tile.bg:SetVertexColor(BgColor()) end
+        if tile.edges then ApplyEdgeColor(tile, tile:IsMouseMotionFocus()) end
+        if tile.text then tile.text:SetTextColor(TextColor()) end
+    end
+end
 
 function ns.CreateTile(name, opts)
     opts = opts or {}
@@ -171,7 +268,7 @@ function ns.CreateTile(name, opts)
     local bg = tile:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
     bg:SetTexture(WHITE)
-    bg:SetVertexColor(FILL_IDLE[1], FILL_IDLE[2], FILL_IDLE[3], FILL_IDLE[4])
+    bg:SetVertexColor(BgColor())
     tile.bg = bg
 
     local edges = {}
@@ -196,6 +293,7 @@ function ns.CreateTile(name, opts)
         fs:SetPoint("CENTER")
         fs:SetJustifyH("CENTER")
         fs:SetWordWrap(false)
+        fs:SetTextColor(TextColor())
         tile.text = fs
     end
 
@@ -212,10 +310,10 @@ function ns.CreateTile(name, opts)
         tile:HookScript("OnEnter", function(self) ApplyEdgeColor(self, true) end)
         tile:HookScript("OnLeave", function(self) ApplyEdgeColor(self, false) end)
         tile:HookScript("OnMouseDown", function(self)
-            self.bg:SetVertexColor(FILL_PUSHED[1], FILL_PUSHED[2], FILL_PUSHED[3], FILL_PUSHED[4])
+            self.bg:SetVertexColor(PushedColor())
         end)
         tile:HookScript("OnMouseUp", function(self)
-            self.bg:SetVertexColor(FILL_IDLE[1], FILL_IDLE[2], FILL_IDLE[3], FILL_IDLE[4])
+            self.bg:SetVertexColor(BgColor())
         end)
     else
         -- 純顯示的 tile 不吃滑鼠：資訊列不該擋住底下的遊戲畫面點擊
@@ -288,28 +386,43 @@ local function Layout()
     local tileGap = math.min(TILE_GAP, blockGap)
     local merged = (blockGap == 0)
 
-    local x = 0
-    local shownList = {}
+    -- 先收集「要顯示的 tile ＋ 它前面該留多少間距」，再一次排出去。
+    -- 分兩段是為了知道每個 tile 的前一顆是誰——鏈式錨定要用（見下）。
+    local shownList, gapBefore = {}, {}
     local list = EnabledInstancesInOrder()
     for i, entry in ipairs(list) do
-        local tiles = entry.inst.tiles
-        local shownAny = false
-        for _, tile in ipairs(tiles) do
+        local first = true
+        for _, tile in ipairs(entry.inst.tiles) do
             if not tile._blockHidden then
-                P.Size(tile, tile.desiredW, h)
-                tile:ClearAllPoints()
-                tile:SetPoint("LEFT", bar, "LEFT", x, 0)
-                tile:Show()
                 shownList[#shownList + 1] = tile
-                x = x + tile.desiredW + tileGap
-                shownAny = true
+                -- 同區塊內用 tileGap，跨區塊用 blockGap；整條第一顆沒有前間距
+                gapBefore[#shownList] = (#shownList == 1) and 0
+                    or (first and blockGap or tileGap)
+                first = false
             else
                 tile:Hide()
             end
         end
-        if shownAny then
-            x = x - tileGap + (i < #list and blockGap or 0)
+    end
+
+    -- ⚠ 位置**鏈式錨定**在前一顆的右緣，不是從 bar 左緣累加算出來的絕對 x。
+    -- P.Size 會把寬度捨到像素格，跟我們累加用的 desiredW 差那麼一點點；
+    -- 累加式定位會把這個誤差一路疊上去，跨過一個像素就在某兩塊之間露出一條縫
+    -- （間距 0 卻有空隙的成因，2026-08-29 實測）。錨在右緣就由引擎保證貼齊，
+    -- 誤差不會累積。
+    local total = 0
+    for i, tile in ipairs(shownList) do
+        P.Size(tile, tile.desiredW, h)
+        local gap = P.Scale(gapBefore[i])
+        tile:ClearAllPoints()
+        if i == 1 then
+            tile:SetPoint("LEFT", bar, "LEFT", 0, 0)
+        else
+            tile:SetPoint("LEFT", shownList[i - 1], "RIGHT", gap, 0)
         end
+        tile:Show()
+        -- 總寬用**實際**（已捨入）的寬度加總，bar 的外框才會剛好包住內容
+        total = total + gap + tile:GetWidth()
     end
 
     -- 間距 0 ＝整條融成一長條：tile 貼死之後左右隔線會疊成雙線，
@@ -319,8 +432,8 @@ local function Layout()
         tile.edges[4]:SetShown(not merged or i == #shownList)
     end
 
-    if x < 1 then x = 1 end
-    P.Size(bar, x, h)
+    if total < 1 then total = 1 end
+    bar:SetSize(total, P.Scale(h))
 end
 
 function ns.RequestLayout()
@@ -665,10 +778,25 @@ function ns.ApplyAll()
     end
 
     if ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden() end
+    ApplyColors()
     ApplyPosition()
     Layout()
     bar:Show()
     UpdateEditModeState()
+end
+
+----------------------------------------------------------------------
+-- 還原全部設定（設定 > 關於）
+--
+-- ⚠ 必須**原地清空**這張表，不能 `MiliUI_InfoBar_DB = {}`：上面的 `db`
+-- 拿著舊表的參照，換新表等於整支插件從此讀不到玩家的設定。
+----------------------------------------------------------------------
+function ns.ResetDB()
+    ns.InitDB()
+    wipe(db)
+    CopyDefaults(ns.DB_DEFAULTS, db)
+    db.posVersion = 2       -- 位置遷移已經是最新格式，別讓它再跑一次
+    ns.ApplyAll()
 end
 
 ----------------------------------------------------------------------

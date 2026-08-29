@@ -89,8 +89,11 @@ local function ApplyPosition()
     panel:SetPoint("CENTER", UIParent, "CENTER", w.x, w.y)
 end
 
+local currentTab
+
 local function ShowTab(id)
     W.CloseDropdowns()
+    currentTab = id
     ns.Fire("ShowOptionsTab", id)
 end
 
@@ -198,6 +201,35 @@ local function CreatePanel()
         "",
         L["ABOUT_AUTHOR"],
     }, "\n"))
+
+    ------------------------------------------------------------
+    -- 還原全部設定
+    --
+    -- 破壞性動作，所以 (1) 收在「關於」分頁最下面、不跟日常設定混在一起，
+    -- (2) 紅色按鈕，(3) 一定要過確認彈窗。
+    -- 還原之後把當前分頁重跑一次，畫面上的控制項才會顯示新值——
+    -- 各分頁的 refreshers 只在 ShowOptionsTab 時才重讀。
+    ------------------------------------------------------------
+    local resetBtn = W.CreateButton(aboutTab, L["RESET_ALL"], "red", 180, 24)
+    resetBtn:SetPoint("TOPLEFT", aboutText, "BOTTOMLEFT", 0, -24)
+    resetBtn:SetScript("OnClick", function(self)
+        if not self.popup then
+            self.popup = W.CreateConfirmPopup(panel, 320, L["RESET_ALL_CONFIRM"], function()
+                ns.ResetDB()
+                ShowTab(currentTab or "about")
+                print(ns.PREFIX_COLOR .. L["ADDON_NAME"] .. "|r " .. L["MSG_RESET_ALL"])
+            end)
+        end
+        self.popup:Show()
+    end)
+
+    local resetHint = aboutTab:CreateFontString(nil, "OVERLAY")
+    resetHint:SetFontObject(W.fontSmall)
+    resetHint:SetPoint("TOPLEFT", resetBtn, "BOTTOMLEFT", 0, -6)
+    resetHint:SetWidth(PANEL_W - 48)
+    resetHint:SetJustifyH("LEFT")
+    resetHint:SetTextColor(0.6, 0.6, 0.6)
+    resetHint:SetText(L["RESET_ALL_DESC"])
 
     ns.RegisterCallback("ShowOptionsTab", "aboutTab", function(id)
         aboutTab:SetShown(id == "about")

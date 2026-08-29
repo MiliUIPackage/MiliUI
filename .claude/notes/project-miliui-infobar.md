@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: c0d1056b-afe5-4f0b-a0d1-24a0f3f4c05d
-  modified: 2026-08-29T08:36:21.762Z
+  modified: 2026-08-29T11:33:27.851Z
 ---
 
 `AddOns/MiliUI_InfoBar/`（2026-08-29 新增）。純色方底一長條：資訊區塊（裝等／耐久／
@@ -78,6 +78,13 @@ metadata:
   `Api.lua` 出全域 `MiliUI.OpenPerf("cpu"/"ram")`（內部走 Tab_Perf 的
   `ns.OpenPerfPage`——先寫 `DB().page` 再開窗，讓 ShowOptionsTab 自己選頁）。
   資訊列在建立時檢查入口在不在，沒裝本體就退回純顯示不吃滑鼠。
+- **排一列東西不要用「累加游標」定位，要鏈式錨定。** 間距設 0 卻在某兩塊之間
+  露出一條縫的成因：`P.Size` 把每塊寬度捨到像素格，而游標是用未捨入的
+  `desiredW` 推進的，誤差一路累積，跨過一個像素就露縫——所以**只有某幾個**
+  邊界有縫、其他正常（這就是它的指紋，看起來像隨機）。修法是每塊
+  `SetPoint("LEFT", 前一塊, "RIGHT", gap, 0)`，貼齊交給引擎保證；總寬要用
+  `GetWidth()`（已捨入）加總，外框才會剛好包住。附帶好處：某塊文字變寬時
+  後面的會即時跟著滑，不必等重排。相關 [[project-miliui-pixel-snapping]]。
 - 區塊分頁是方塊拖曳看板（照 MiliUI_Tooltip 的 Options/Tab_Unit.lua：拖曳換位、
   拖進「不顯示」或點一下開關、滑過看說明）。DB 仍是 blocks[key]={enabled,order}，
   看板只是視圖，拖放後整條序列重編成 10/20/30 寫回 order。

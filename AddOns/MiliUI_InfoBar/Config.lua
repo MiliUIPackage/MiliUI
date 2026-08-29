@@ -55,6 +55,28 @@ ns.BLOCK_DEFS = {
 }
 
 ----------------------------------------------------------------------
+-- 配色 preset
+--
+-- ⚠ PACK_GRAY 要跟 MiliUI_DamageMeters（Core/DB.lua 的 DARK_BG）與聊天視窗
+-- 是**同一個灰**——那邊的註解寫明了「並排時要是同一個灰，各寫各的日後會悄悄
+-- 分岔」。改這個值之前先去看那邊。
+--
+-- preset 本身不存進 DB：存的只有 bgColor / edgeColor，設定頁的下拉是拿現在的
+-- 顏色回頭比對出來的。這樣「選了 preset 再手動微調顏色」不會出現
+-- 「下拉說是套組標準、顏色其實是別的」這種對不起來的狀態。
+----------------------------------------------------------------------
+local PACK_GRAY = 0x1A / 255   -- 0.102
+
+ns.COLOR_PRESETS = {
+    -- 跟套組其他視窗並排時同一個底：半透明，框線同色所以看不出框
+    { id = "pack",  bg = { r = PACK_GRAY, g = PACK_GRAY, b = PACK_GRAY, a = 0.8 },
+                    edge = { r = PACK_GRAY, g = PACK_GRAY, b = PACK_GRAY, a = 0.8 } },
+    -- 不透明的純色底，遊戲畫面完全透不出來
+    { id = "solid", bg = { r = 0.115, g = 0.115, b = 0.115, a = 1 },
+                    edge = { r = 0.115, g = 0.115, b = 0.115, a = 1 } },
+}
+
+----------------------------------------------------------------------
 -- SavedVariables defaults
 ----------------------------------------------------------------------
 local blockDefaults = {}
@@ -70,6 +92,14 @@ ns.DB_DEFAULTS = {
     height       = 26,
     fontSize     = 12,
     blockGap     = 0,           -- 區塊間距；0 = 整條融成一長條（無間距也無隔線）
+    -- 底色與框線色。預設＝上面 COLOR_PRESETS 的 pack，兩者同色＝看不出有框。
+    -- 這兩格才是真正的設定值；「配色」下拉是從它們**推導**出來的，不另外存。
+    bgColor      = { r = PACK_GRAY, g = PACK_GRAY, b = PACK_GRAY, a = 0.8 },
+    edgeColor    = { r = PACK_GRAY, g = PACK_GRAY, b = PACK_GRAY, a = 0.8 },
+    -- 文字強調色：數值那半的顏色（標籤那半固定是灰的）。
+    -- "custom" 用 textColor，"class" 用玩家職業色。
+    textColorMode = "custom",
+    textColor     = { r = 1, g = 1, b = 1, a = 1 },
     iconStyle    = "mono",      -- "mono"（去飽和＋滑過職業色）| "blizzard"（官方彩色）
     hideBlizzard = true,        -- 用 secure hider 藏暴雪那排（只在 micromenu 區塊啟用時生效）
     blocks       = blockDefaults,
