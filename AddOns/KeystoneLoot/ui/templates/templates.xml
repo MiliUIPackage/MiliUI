@@ -40,10 +40,19 @@
                             </Anchors>
                         </Texture>
                     </Layer>
+                    <Layer level="OVERLAY">
+                        <FontString parentKey="SlotText" inherits="GameFontWhiteTiny" justifyH="CENTER" wordwrap="false" maxLines="1" hidden="true">
+                            <Size x="38"/>
+                            <Anchors>
+                                <Anchor point="BOTTOM" relativeKey="$parent.Icon" y="1"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
                 </Layers>
             </Frame>
         </Frames>
         <Scripts>
+            <OnLoad method="OnLoad"/>
             <OnEnter method="OnEnter"/>
             <OnLeave method="OnLeave"/>
             <OnClick method="OnClick"/>

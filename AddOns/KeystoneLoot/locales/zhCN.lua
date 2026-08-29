@@ -26,6 +26,7 @@ L["Minimap button"] = "小地图按钮";
 L["Item level in keystone tooltip"] = "在史诗钥匙显示对应等级";
 L["Favorite in item tooltip"] = "在物品提示中显示收藏";
 L["Favorite on item icons"] = "在物品图标上显示收藏";
+L["Slot name on item icons"] = "在物品图标上显示部位";
 L['Hide "Other" in All Slots'] = "在「全部栏位」中隐藏「其他」物品";
 L["Loot reminder (dungeons)"] = "拾取专精提醒（地下城）";
 L["Highlighting"] = "高亮显示";
@@ -80,6 +81,26 @@ L["Best in Slot"] = "最佳装备";
 L["Catalyst"] = "化生台";
 L["+Secondary stats of the base item"] = "+基础物品的副属性";
 L["Tier token"] = "套装标记";
+
+-- icon_button.lua
+L["Head"] = "头";
+L["Neck"] = "项链";
+L["Shoulder"] = "肩";
+L["Back"] = "披风";
+L["Chest"] = "胸";
+L["Wrist"] = "腕";
+L["Hands"] = "手";
+L["Waist"] = "腰";
+L["Legs"] = "腿";
+L["Feet"] = "脚";
+L["1H"] = "单手";
+L["2H"] = "双手";
+L["Main"] = "主手";
+L["Off"] = "副手";
+L["Shield"] = "盾牌";
+L["Ranged"] = "远程";
+L["Ring"] = "戒指";
+L["Trinket"] = "饰品";
 
 -- copy_popup.lua
 L["Press CTRL+C to copy"] = "按 CTRL+C 复制";

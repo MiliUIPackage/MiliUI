@@ -26,6 +26,7 @@ L["Minimap button"] = "小地圖按鈕";
 L["Item level in keystone tooltip"] = "在傳奇鑰石顯示對應等級";
 L["Favorite in item tooltip"] = "在物品提示中顯示最愛";
 L["Favorite on item icons"] = "在物品圖示上顯示最愛";
+L["Slot name on item icons"] = "在物品圖示上顯示部位";
 L['Hide "Other" in All Slots'] = "在「所有欄位」中隱藏「其他」物品";
 L["Loot reminder (dungeons)"] = "戰利品提醒（地城）";
 L["Highlighting"] = "高亮顯示";
@@ -80,6 +81,26 @@ L["Best in Slot"] = "最佳裝備";
 L["Catalyst"] = "催化器";
 L["+Secondary stats of the base item"] = "+基礎物品的副屬性";
 L["Tier token"] = "套裝標記";
+
+-- icon_button.lua
+L["Head"] = "頭";
+L["Neck"] = "項鍊";
+L["Shoulder"] = "肩";
+L["Back"] = "披風";
+L["Chest"] = "胸";
+L["Wrist"] = "腕";
+L["Hands"] = "手";
+L["Waist"] = "腰";
+L["Legs"] = "腿";
+L["Feet"] = "腳";
+L["1H"] = "單手";
+L["2H"] = "雙手";
+L["Main"] = "主手";
+L["Off"] = "副手";
+L["Shield"] = "盾牌";
+L["Ranged"] = "遠程";
+L["Ring"] = "戒指";
+L["Trinket"] = "飾品";
 
 -- copy_popup.lua
 L["Press CTRL+C to copy"] = "按 CTRL+C 複製";

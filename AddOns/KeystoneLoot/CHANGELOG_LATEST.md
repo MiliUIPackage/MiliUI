@@ -1,6 +1,5 @@
-## Bugfixes
-- Catalyst tooltips keep Blizzard's token values and list the catalyst result separately
+## New Features
+- Show the equipment slot on item icons, can be turned off in the settings
 
-## Improvements
-- Show the favorite icon in EllesmereUI Bags
-- Optional EllesmereUI skin when the addon is installed
+## Other Changes
+- Update data

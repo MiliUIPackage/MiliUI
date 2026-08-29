@@ -16,6 +16,30 @@ local STAT_HIGHLIGHT_KEYS = {
     [3] = "versatility"
 };
 
+local SLOT_NAMES = {
+    ["INVTYPE_HEAD"] = L["Head"],
+    ["INVTYPE_NECK"] = L["Neck"],
+    ["INVTYPE_SHOULDER"] = L["Shoulder"],
+    ["INVTYPE_CLOAK"] = L["Back"],
+    ["INVTYPE_CHEST"] = L["Chest"],
+    ["INVTYPE_ROBE"] = L["Chest"],
+    ["INVTYPE_WRIST"] = L["Wrist"],
+    ["INVTYPE_HAND"] = L["Hands"],
+    ["INVTYPE_WAIST"] = L["Waist"],
+    ["INVTYPE_LEGS"] = L["Legs"],
+    ["INVTYPE_FEET"] = L["Feet"],
+    ["INVTYPE_WEAPON"] = L["1H"],
+    ["INVTYPE_2HWEAPON"] = L["2H"],
+    ["INVTYPE_WEAPONMAINHAND"] = L["Main"],
+    ["INVTYPE_RANGED"] = L["Ranged"],
+    ["INVTYPE_RANGEDRIGHT"] = L["Ranged"],
+    ["INVTYPE_WEAPONOFFHAND"] = L["Off"],
+    ["INVTYPE_HOLDABLE"] = L["Off"],
+    ["INVTYPE_SHIELD"] = L["Shield"],
+    ["INVTYPE_FINGER"] = L["Ring"],
+    ["INVTYPE_TRINKET"] = L["Trinket"]
+};
+
 local SECONDARY_STAT_NAMES = {
     [ITEM_MOD_CRIT_RATING_SHORT] = true,
     [ITEM_MOD_HASTE_RATING_SHORT] = true,
@@ -289,6 +313,11 @@ end
 
 KeystoneLootLootIconButtonMixin = {};
 
+function KeystoneLootLootIconButtonMixin:OnLoad()
+    local file, height = self.Content.SlotText:GetFont();
+    self.Content.SlotText:SetFont(file, height, "OUTLINE");
+end
+
 function KeystoneLootLootIconButtonMixin:Init(item)
     self:SetEnabled(item.itemId ~= 0);
 
@@ -298,7 +327,26 @@ function KeystoneLootLootIconButtonMixin:Init(item)
     self.Content.Icon:SetTexture(Query:GetItemIcon(item.itemId));
     self:UpdateFavoriteIcon();
     self:UpdateVoidcoreIcon();
+    self:UpdateSlotText();
     self:UpdateHighlight();
+end
+
+function KeystoneLootLootIconButtonMixin:UpdateSlotText()
+    if (not self:IsEnabled() or not DB:Get("settings.slotName")) then
+        self.Content.SlotText:Hide();
+        return;
+    end
+
+    local _, _, _, equipLoc = C_Item.GetItemInfoInstant(self.itemId);
+    local slotName = SLOT_NAMES[equipLoc];
+
+    if (not slotName) then
+        self.Content.SlotText:Hide();
+        return;
+    end
+
+    self.Content.SlotText:SetText(slotName);
+    self.Content.SlotText:Show();
 end
 
 function KeystoneLootLootIconButtonMixin:UpdateHighlight()

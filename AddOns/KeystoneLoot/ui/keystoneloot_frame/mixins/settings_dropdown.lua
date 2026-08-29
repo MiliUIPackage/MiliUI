@@ -197,6 +197,11 @@ function KeystoneLootSettingsDropdownMixin:Init()
             function() DB:Set("settings.favoriteIcon", not DB:Get("settings.favoriteIcon")); end
         );
         rootDescription:CreateCheckbox(
+            L["Slot name on item icons"],
+            function() return DB:Get("settings.slotName"); end,
+            function() DB:Set("settings.slotName", not DB:Get("settings.slotName")); end
+        );
+        rootDescription:CreateCheckbox(
             L['Hide "Other" in All Slots'],
             function() return DB:Get("settings.hideOtherItems"); end,
             function() DB:Set("settings.hideOtherItems", not DB:Get("settings.hideOtherItems")); end

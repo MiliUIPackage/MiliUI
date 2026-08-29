@@ -23,6 +23,7 @@ function KeystoneLootCustomItemFrameMixin:Init()
     DB:AddObserver("filters.specId", OnChanged);
     DB:AddObserver("filters.slotId", OnChanged);
     DB:AddObserver("ui.selectedCharacterKey", OnChanged);
+    DB:AddObserver("settings.slotName", OnChanged);
 
     self:Refresh();
 end
