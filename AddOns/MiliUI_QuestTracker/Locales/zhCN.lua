@@ -101,7 +101,6 @@ L["Leatrix Plus is also automating quests. Turn one of the two off, or they will
 -- 关于
 L["Blizzard still draws the tracker. This addon restyles it, puts a MiliUI title bar on top of it, and decides when to fold it away."] = "追踪器仍然由暴雪绘制。这个插件负责换它的外观、在上面加一条米利的标题栏，以及决定什么时候把它折起来。"
 L["Nothing here reads or changes your quests — the list you see is the game's own."] = "这里不读也不改你的任务数据，你看到的列表就是游戏自己那份。"
-L["Commands: |cffffd200/mquest|r opens the options, |cffffd200/mquest fold|r folds or unfolds the list, |cffffd200/mquest reset|r restores the defaults, |cffffd200/mquest debug|r reports recent errors"] = "命令：|cffffd200/mquest|r 打开设置，|cffffd200/mquest fold|r 折叠或展开列表，|cffffd200/mquest reset|r 还原默认值，|cffffd200/mquest debug|r 显示最近的报错"
 L["Author: Mili (MiliUI package)"] = "作者：Mili（米利UI套组）"
 L["Restore defaults"] = "还原默认值"
 L["Restore every setting to its default?"] = "把所有设置还原成默认值？"
@@ -129,3 +128,8 @@ L["Position"] = "位置"
 L["Open this window and a coloured overlay appears on the tracker: drag it to move, right-click to hand the position back to Edit Mode."] = "打开这个窗口时，追踪器上会盖一层职业色遮罩：左键拖动移动，右键把位置交还给编辑模式。"
 L["Edit Mode owns the tracker's position until you drag it once. After that this addon keeps putting it back where you left it, including after Edit Mode applies a layout."] = "追踪器的位置本来是编辑模式在管的。你用遮罩拖过一次之后就改由这个插件接管——包含编辑模式套用布局之后，它都会把追踪器贴回你放的地方。"
 L["\"Navigating\" is the one the map arrow is pointing at right now — not \"in the list\", which is all of them. Only one quest can hold it, and the game moves it to whatever you accept next."] = "「导航中」是地图箭头目前指向的那一条，不是「在列表里」——列表里每一笔都在追踪。同时只会有一条，接新任务时游戏会自动把箭头切过去。（跟界面选项的「游戏内导航」是同一件事。）"
+
+-- 追蹤指令
+L["Quest automation trace ON — reproduce the problem, then paste the lines here."] = "任务自动化追踪：已开启。重现一次问题，然后把打印出来的行贴给我。"
+L["Quest automation trace off."] = "任务自动化追踪：已关闭。"
+L["Commands: |cffffd200/mquest|r opens the options, |cffffd200/mquest fold|r folds or unfolds the list, |cffffd200/mquest trace|r logs the quest automation, |cffffd200/mquest reset|r restores the defaults, |cffffd200/mquest debug|r reports recent errors"] = "命令：|cffffd200/mquest|r 打开设置，|cffffd200/mquest fold|r 折叠或展开列表，|cffffd200/mquest trace|r 追踪任务自动化，|cffffd200/mquest reset|r 还原默认值，|cffffd200/mquest debug|r 显示最近的报错"

@@ -24,7 +24,7 @@ local function Init()
         L["Blizzard still draws the tracker. This addon restyles it, puts a MiliUI title bar on top of it, and decides when to fold it away."],
         L["Nothing here reads or changes your quests — the list you see is the game's own."],
         "",
-        L["Commands: |cffffd200/mquest|r opens the options, |cffffd200/mquest fold|r folds or unfolds the list, |cffffd200/mquest reset|r restores the defaults, |cffffd200/mquest debug|r reports recent errors"],
+        L["Commands: |cffffd200/mquest|r opens the options, |cffffd200/mquest fold|r folds or unfolds the list, |cffffd200/mquest trace|r logs the quest automation, |cffffd200/mquest reset|r restores the defaults, |cffffd200/mquest debug|r reports recent errors"],
         "",
         L["Author: Mili (MiliUI package)"],
     }, "\n"))

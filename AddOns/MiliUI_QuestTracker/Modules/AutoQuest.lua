@@ -24,6 +24,27 @@ local AQ = ns.AutoQuest
 
 local function Cfg() return ns.db and ns.db.automation end
 
+------------------------------------------------------------
+-- 事件追蹤（/mquest trace 開關，session 內有效、不存檔）
+--
+-- 「第一次必定失敗、第二次成功」這種**確定性**的症狀，猜是沒有用的 —— 要知道
+-- 每一個事件當下的實際狀態，以及我們走了哪一條分支。開著它跑一次，把輸出貼回來。
+------------------------------------------------------------
+AQ.trace = false
+
+local function Trace(fmt, ...)
+    if not AQ.trace then return end
+    local ok, line = pcall(string.format, fmt, ...)
+    ns.Print("|cff88ccff[trace]|r " .. (ok and line or fmt))
+end
+
+-- 秘密值不能 tostring，任何從遊戲拿到的字串都先過這裡
+local function Safe(v)
+    if v == nil then return "nil" end
+    if ns.Secret.IsSecret(v) then return "<secret>" end
+    return tostring(v)
+end
+
 local function Paused()
     local c = Cfg()
     if not c then return true end
@@ -91,7 +112,25 @@ local function GossipHasSpecialOption()
 end
 
 local function HandleGossip()
-    if GossipHasSpecialOption() then return end
+    if AQ.trace then
+        local avail = C_GossipInfo.GetAvailableQuests and C_GossipInfo.GetAvailableQuests()
+        local active = C_GossipInfo.GetActiveQuests and C_GossipInfo.GetActiveQuests()
+        local opts = C_GossipInfo.GetOptions and C_GossipInfo.GetOptions()
+        Trace("GOSSIP_SHOW  可接=%d 進行中=%d 對話選項=%d  autoAccept=%s preventMulti=%s shift=%s",
+            avail and #avail or -1, active and #active or -1, opts and #opts or -1,
+            Safe(Cfg().autoAccept), Safe(Cfg().preventMulti), Safe(IsShiftKeyDown()))
+        if avail then
+            for i, q in ipairs(avail) do
+                Trace("   可接[%d] id=%s freq=%s trivial=%s",
+                    i, Safe(q.questID), Safe(q.frequency), Safe(q.isTrivial))
+            end
+        end
+    end
+
+    if GossipHasSpecialOption() then
+        Trace("GOSSIP：對話裡有帶色碼／角括號的選項 ⇒ 整個不動作")
+        return
+    end
 
     if CanTurnIn() and C_GossipInfo.GetActiveQuests then
         local active = C_GossipInfo.GetActiveQuests()
@@ -109,8 +148,12 @@ local function HandleGossip()
         local available = C_GossipInfo.GetAvailableQuests()
         if type(available) == "table" and #available > 0 then
             -- 不只一個可接時讓玩家自己挑：自動挑第一個等於幫他決定接哪一條
-            if Cfg().preventMulti and #available > 1 then return end
+            if Cfg().preventMulti and #available > 1 then
+                Trace("GOSSIP：可接任務有 %d 個 ⇒ 不自動挑（preventMulti）", #available)
+                return
+            end
             if available[1].questID then
+                Trace("GOSSIP：SelectAvailableQuest(%s)", Safe(available[1].questID))
                 C_GossipInfo.SelectAvailableQuest(available[1].questID)
             end
         end
@@ -142,6 +185,10 @@ end
 ------------------------------------------------------------
 local function OnEvent(_, event)
     if not ns.db then return end
+    if AQ.trace and event ~= "GOSSIP_SHOW" then
+        Trace("%s  autoAccept=%s autoTurnIn=%s paused=%s",
+            event, Safe(Cfg().autoAccept), Safe(Cfg().autoTurnIn), Safe(Paused()))
+    end
 
     if event == "GOSSIP_SHOW" then
         HandleGossip()
@@ -168,6 +215,10 @@ local function OnEvent(_, event)
         local alreadyInLog = questID ~= 0
             and C_QuestLog and C_QuestLog.GetLogIndexForQuestID
             and C_QuestLog.GetLogIndexForQuestID(questID)
+        Trace("QUEST_DETAIL id=%s 標題=%s 日誌索引=%s autoAcceptFlag=%s ⇒ %s",
+            Safe(questID), Safe(GetTitleText and GetTitleText()),
+            Safe(alreadyInLog), Safe(QuestGetAutoAccept and QuestGetAutoAccept()),
+            alreadyInLog and "CloseQuest" or "AcceptQuest")
         if alreadyInLog then
             CloseQuest()
         else
@@ -177,6 +228,7 @@ local function OnEvent(_, event)
     elseif event == "QUEST_ACCEPT_CONFIRM" then
         -- 隊友分享的護送任務會多問一次
         if not CanAccept() then return end
+        Trace("QUEST_ACCEPT_CONFIRM ⇒ ConfirmAcceptQuest")
         ConfirmAcceptQuest()
         StaticPopup_Hide("QUEST_ACCEPT")
 
@@ -225,6 +277,9 @@ ns.RegisterCallback("Init", "autoquest", function()
     for _, e in ipairs({
         "GOSSIP_SHOW", "QUEST_GREETING", "QUEST_DETAIL", "QUEST_ACCEPT_CONFIRM",
         "QUEST_PROGRESS", "QUEST_COMPLETE",
+        -- 下面三個我們沒有對應的分支，純粹是為了讓 /mquest trace 看得到完整時序：
+        -- 「第一次失敗」很可能就發生在這幾個事件之間
+        "QUEST_ACCEPTED", "QUEST_FINISHED", "GOSSIP_CLOSED",
     }) do
         evt:RegisterEvent(e)
     end

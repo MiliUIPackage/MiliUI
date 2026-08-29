@@ -38,6 +38,12 @@ SlashCmdList.MILIUIQUEST = function(msg)
         ns.DB.ResetAll()
         ns.Print(L["Restored the default settings."])
 
+    elseif msg == "trace" then
+        ns.AutoQuest.trace = not ns.AutoQuest.trace
+        ns.Print(ns.AutoQuest.trace
+            and "|cff88ccff" .. L["Quest automation trace ON — reproduce the problem, then paste the lines here."] .. "|r"
+            or L["Quest automation trace off."])
+
     elseif msg == "debug" then
         ns.Print("v" .. ns.VERSION
             .. "  folded=" .. tostring(ns.Visibility.IsFolded())
