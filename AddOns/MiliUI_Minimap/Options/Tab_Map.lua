@@ -23,7 +23,10 @@ local CONTROLS = {
 
     { type = "header",   label = L["Shape and size"] },
     { type = "dropdown", key = "shape", label = L["Shape"], items = Specs.SHAPES },
-    { type = "slider",   key = "size",  label = L["Map size"], min = 100, max = 300, step = 2 },
+    -- ⚠ 範圍必須跟拉把手一致（Map/Skin.lua 的 MIN_SIZE / MAX_SIZE = 100 / 400）。
+    --   原本滑桿只到 300、把手卻能拉到 400 —— 拉到 350 之後回設定頁，滑桿就表示
+    --   不出那個值了（滑桿會顯示成上限，看起來像設定被改掉）。
+    { type = "slider",   key = "size",  label = L["Map size"], min = 100, max = 400, step = 2 },
     { type = "slider",   key = "scale", label = L["Scale"], min = 0.5, max = 2, step = 0.05 },
     { type = "text",     label = L["Position is set by dragging: uncheck \"Lock in place\" below (opening this window unlocks it for you), then drag the map. Right-click the drag overlay to send it back to the top-right corner."] },
     { type = "text",     label = L["Drag the bottom-left corner to resize"] },

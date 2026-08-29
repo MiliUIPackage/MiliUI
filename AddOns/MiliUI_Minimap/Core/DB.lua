@@ -26,9 +26,12 @@ local DEFAULTS = {
     ------------------------------------------------------------
     enabled   = true,
     shape     = "square",       -- square | circle
-    -- 暴雪原本的小地圖大約是 198。第一版給 172 太保守，實際擺上去比原本還小
-    -- —— 「美化」不該讓東西變得更難讀。200 起跳，之後拉角落自己調。
-    size      = 200,
+    -- 240。演進：172（比暴雪原本的 198 還小，使用者第一時間就反映太小）
+    -- → 200 → 240（實際擺上去定的）。方形地圖的可視面積比同邊長的圓形大，
+    -- 但下緣被資訊列佔掉一條，所以要比圓形時代再大一階才讀得一樣舒服。
+    -- ⚠ 上下限跟拉把手共用（Map/Skin.lua 的 MIN_SIZE / MAX_SIZE = 100 / 400），
+    --   設定頁的滑桿範圍也要跟著那兩個數字，不要各寫各的。
+    size      = 240,
     scale     = 1,
     -- 位置存 TOPRIGHT 相對 UIParent TOPRIGHT 的位移（x 為負、y 為負）。
     -- 小地圖是**釘在右上角**的東西，錨右上角才會在改變解析度或改尺寸時
@@ -154,6 +157,11 @@ function DB.Init()
     if type(db.y) ~= "number" or math.abs(db.y) > halfH then db.y = DEFAULTS.y end
     if type(db.infoBarX) ~= "number" or math.abs(db.infoBarX) > halfW then db.infoBarX = DEFAULTS.infoBarX end
     if type(db.infoBarY) ~= "number" or math.abs(db.infoBarY) > halfH then db.infoBarY = DEFAULTS.infoBarY end
+
+    -- 尺寸也夾一次：存檔可能是舊版本存的、或被手動編輯過，而 Skin.Apply 不會
+    -- 再檢查一次（拉把手才夾）。100 / 400 要跟 Map/Skin.lua 的 MIN_SIZE / MAX_SIZE 一致。
+    if type(db.size) ~= "number" then db.size = DEFAULTS.size end
+    db.size = math.max(100, math.min(400, db.size))
 
     return db
 end
