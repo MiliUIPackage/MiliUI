@@ -277,9 +277,14 @@ local function BuildSlot(index)
     -- ⚠ 建出來就給字型。沒有字型物件的 FontString 一 SetText 就丟
     --   "Font not set"，而且會中斷整支初始化
     --   （見 .claude/notes/wow-fontstring-font-before-settext.md）。
+    -- 鋪滿整格 ＋ JustifyV MIDDLE，而不是單點 CENTER 錨定。
+    -- 兩者幾何上等價，但鋪滿的寫法在格子寬度改變（換來源、改字級）時
+    -- 不需要重新設點，而且截斷也是以格子為界而不是以字串為界。
     btn.text = btn:CreateFontString(nil, "OVERLAY")
-    btn.text:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    btn.text:SetPoint("TOPLEFT", btn, "TOPLEFT", 2, 0)
+    btn.text:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -2, 0)
     btn.text:SetJustifyH("CENTER")
+    btn.text:SetJustifyV("MIDDLE")
     btn.text:SetWordWrap(false)
     S.SetFont(btn.text, ns.DB.Get().infoBarFontSize)
 
