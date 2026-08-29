@@ -69,7 +69,7 @@ ns.DB_DEFAULTS = {
     -- 放了預設值反而把「沒拖過」這個狀態蓋掉。
     height       = 26,
     fontSize     = 12,
-    blockGap     = 6,           -- 區塊間距；0 = 整條融成一長條（無間距也無隔線）
+    blockGap     = 0,           -- 區塊間距；0 = 整條融成一長條（無間距也無隔線）
     iconStyle    = "mono",      -- "mono"（去飽和＋滑過職業色）| "blizzard"（官方彩色）
     hideBlizzard = true,        -- 用 secure hider 藏暴雪那排（只在 micromenu 區塊啟用時生效）
     blocks       = blockDefaults,
