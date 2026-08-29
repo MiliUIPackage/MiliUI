@@ -115,6 +115,35 @@ function T.EachBlock(tracker, fn)
     end
 end
 
+-- 這個區塊的 `id` 是不是 questID。
+--
+-- ⚠ `block.id` 的意思**隨區塊來自哪個子追蹤器而不同**：任務區塊是 questID，
+--   成就區塊是 achievementID，專業配方是 recipeID。不分辨就拿去問
+--   `C_QuestLog.IsComplete()` 或跟 super-track 的 questID 比對，等於在比兩個
+--   不同號碼系統的數字 —— 成就 ID 與任務 ID 的值域是重疊的，所以偶爾會有一筆
+--   成就無緣無故被上成「導航中」的顏色。
+--
+--   用排除法而不是白名單：任務類的子追蹤器有好幾支（一般、戰役、World Quest、
+--   額外目標…），漏掉一支的後果是那一段整個不上色；而「不是任務」的那幾支是
+--   數得完的。
+local NON_QUEST_TRACKERS = {
+    "AchievementObjectiveTracker",
+    "ProfessionsRecipeTracker",
+    "MonthlyActivitiesObjectiveTracker",
+    "ScenarioObjectiveTracker",
+    "UIWidgetObjectiveTracker",
+}
+
+function T.IsQuestBlock(block)
+    if type(block) ~= "table" or type(block.id) ~= "number" then return false end
+    local module = block.parentModule
+    if not module then return true end
+    for _, name in ipairs(NON_QUEST_TRACKERS) do
+        if module == _G[name] then return false end
+    end
+    return true
+end
+
 -- 清單裡現在有幾筆。標題列的讀數用這個，不要用 C_QuestLog.GetNumQuestWatches()
 -- —— 那支只數任務，而標題列講的是**整份清單**（戰役、成就、專業都在裡面）。
 --
