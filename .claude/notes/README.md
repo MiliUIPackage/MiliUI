@@ -81,6 +81,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-frame-vs-texture-layering.md](wow-frame-vs-texture-layering.md) | 子 frame 永遠畫在父層貼圖之上，**跟 DrawLayer 無關** —— 貼圖被蓋住時調 layer 是白費工 |
 | [wow-frame-lifecycle-costs.md](wow-frame-lifecycle-costs.md) | frame 刪不掉的三條設計後果：簽章重建＝洩漏、連續控件是放大器、池化格子不要丟棄 |
 | [wow-editmode-blizzard-grid.md](wow-editmode-blizzard-grid.md) | 編輯模式的格線是內建的，別自己畫；吸附讀 `IsSnapEnabled`／`GridSpacing` |
+| [wow-editmode-custom-setting-row.md](wow-editmode-custom-setting-row.md) | 編輯模式設定視窗掛自己的設定列：值自己存、別重用 `EditModeSettingSliderTemplate`、選取框要 `SetIgnoreParentAlpha` |
 | [wow-damagemeter-c-api-design.md](wow-damagemeter-c-api-design.md) | 走 `C_DamageMeter` 的輕量統計：當渲染器不當統計引擎；省資源手法、分段判定、秘密值紀律 |
 | [wow-addon-profiler-cost.md](wow-addon-profiler-cost.md) | 插件效能數據的成本：`C_AddOnProfiler` 讀值免費、`UpdateAddOnMemoryUsage` 是全堆掃描（別放進每秒迴圈）|
 | [wow-unitframe-event-dispatch-cost.md](wow-unitframe-event-dispatch-cost.md) | 團隊框架的成本在事件派送不在繪圖：`RegisterUnitEvent` 的 C 層過濾、共用 ticker 取代 N 個 OnUpdate、filter 字串共用解析、顏色套用戳記 |

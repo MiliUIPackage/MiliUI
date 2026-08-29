@@ -45,7 +45,8 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_OpenUnitFrameSettings", "MiliUIUF_OnAddonCompartmentClick",
     "MiliUICrafterTableCellRewardsMixin",
     # 各 Enhance 模組的對外開關（設定面板要叫得到）
-    "MiliUI_AHFilter", "MiliUI_BaganatorKeystone", "MiliUI_BonusRollFilter",
+    "MiliUI_AHFilter", "MiliUI_BagsAlpha", "MiliUI_BaganatorKeystone",
+    "MiliUI_BonusRollFilter",
     "MiliUI_CVarEnforce", "MiliUI_CastBarEnhance", "MiliUI_CastBarPixelFont",
     "MiliUI_ChattynatorButtons", "MiliUI_ChattynatorTabs",
     "MiliUI_DelveMarkButton", "MiliUI_KeystoneDebug", "MiliUI_LegacyAddons",
