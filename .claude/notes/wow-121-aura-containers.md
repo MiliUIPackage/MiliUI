@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-13T08:51:21.754Z
+  modified: 2026-08-29T16:54:26.191Z
 ---
 
 12.1.0 最大的改動：光環（buff/debuff）。官方 blue post: https://us.forums.blizzard.com/en/wow/t/addons-and-auras-in-curse-of-ula%E2%80%99tek/2317456
@@ -246,4 +246,26 @@ handler 掛失敗會讓**整個容器建立失敗**,對外只表現成「光環�
 實例：MiliUI_AuraEnhance `Modules/Skin.lua`（1px 邊框 + 保留 DebuffBorder），
 完整三代演進見 [[project-miliui-auraenhance]]。
 
-相關：[[wow-121-secret-values]]、[[wow-121-coolinator-reference]]、[[project-121-addon-migration]]
+## ⚠ `initializeFrame` 裡不能呼叫 `CreateColor()`
+
+那個 callback 跑在 `Blizzard_AuraContainerFrameProviders` 的 `CreateFrame`
+（`securecallfunction` 內），執行流程**一定**是被自己污染的（樣式只能在那裡做）。
+`CreateColor()` 會走到 `ColorMixin:OnLoad` 的 `self:SetRGBA(...)`：
+
+```
+Blizzard_SharedXMLBase/Color.lua:10: attempted to index a table that cannot be
+accessed while tainted (execution tainted by '<你的插件>')
+```
+
+倒數淡出要用 `C_CurveUtil.CreateColorCurve` ＋ 兩顆 `CreateColor` 的話，**曲線只跟
+(threshold, r, g, b) 有關 ⇒ 快取起來，由容器建立時（正常插件路徑）先建好**，
+callback 裡只查表。2026-08-30 在 MiliUI_UnitFrames `Elements/Auras.lua` 修的。
+
+同一件事的通則：**整個 `initializeFrame` 要用 `xpcall` 隔離**。錯誤逃出去會打斷暴雪
+`CreateFrameBatch` 的**整批** frame 建立，不是只有那一顆按鈕（症狀：一整排光環不見）。
+裡面每個裸的暴雪 API 呼叫（`SetAuraBorder` / `SetDurationCooldown` / `SetIcon` /
+`SetApplicationCount` / `SetDurationText`）都是同一面牆的候選，12.1 還在持續追加
+「被污染時不給存取」的表。這條是 [[wow-121-addon-code-in-secure-stack]] 的第三個入口，
+而且**不能用延一幀解決**——AuraButton 初始化完就 forbidden。
+
+相關：[[wow-121-secret-values]]、[[wow-121-coolinator-reference]]、[[project-121-addon-migration]]、[[wow-121-addon-code-in-secure-stack]]

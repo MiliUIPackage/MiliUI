@@ -44,6 +44,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | 檔案 | 內容 |
 |---|---|
 | [wow-121-secret-values.md](wow-121-secret-values.md) | tainted 程式對 secret 能做／不能做什麼；**當傳遞者，不當讀取者**、曲線可串接、上色走 `SetVertexColor` |
+| [wow-121-addon-code-in-secure-stack.md](wow-121-addon-code-in-secure-stack.md) | 自己的 Lua 跑在暴雪的 secure 堆疊裡就會污染它 —— 三個入口（`RegisterUnitWatch` 的 `Show()`、按鍵同步派送的事件、`initializeFrame`）、**延一幀**的解法、**taintLog 對執行層級的污染是瞎的** |
 | [wow-121-unit-api-secrets.md](wow-121-unit-api-secrets.md) | 變 secret 的 Unit API 完整清單 |
 | [wow-secret-key-table-lookup.md](wow-secret-key-table-lookup.md) | 「cannot be indexed with secret keys」的成因與寫法 |
 | [wow-121-aura-containers.md](wow-121-aura-containers.md) | 光環系統重寫：AuraContainer／AuraButton |

@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 7687a40a-9665-4a80-8ab5-d8ddb9ec65ee
-  modified: 2026-08-19T13:47:58.563Z
+  modified: 2026-08-29T16:54:41.863Z
 ---
 
 **MiliUI_UnitFrames**（2026-08-15 一次寫完五階段，約 5400 行；2026-08-17 從 `MiliUI_Unit_Frame`
@@ -256,4 +256,23 @@ force。常態幀的刷新次數不變。細節見 [[wow-gettime-stamp-multipack
 （見 [[project-miliui-widgets-vendor]]）。⚠ `ns.ToBool` 沿用舊短名但語意換成共用層的
 （對 false 回 false 而非 nil）—— 七個使用點逐一核對過，全都只做布林測試或接 `or false`。
 
-相關：[[project-121-addon-migration]]、[[wow-121-aura-containers]]、[[project-focuser-castbar]]
+## 兩處「延一幀」是 taint 隔離，不是效能優化（2026-08-30）
+
+改動任何一處之前先看 [[wow-121-addon-code-in-secure-stack]]。把它們改回同步呼叫，
+外面看起來完全正常，代價是暴雪那邊被封鎖的動作會靜默回來。
+
+- **`Core/UnitFrame.lua` 的 OnShow**：`QueueShowRefresh` → 下一幀 flush，不是直接
+  `ns.Refresh`。`RegisterUnitWatch` 的 `Show()` 是暴雪 secure 端呼叫的。
+- **`Core/Events.lua` 的全域 eventFrame**：OnEvent 只記帳，`SPECIAL` 與 `ns.Fire`
+  都在下一幀跑。`PLAYER_TARGET_CHANGED` 是在按鍵的 secure 流程裡同步派送的。
+  **刻意不去重**（`UNIT_PET` / `PLAYER_FLAGS_CHANGED` 的參數是 unit token，同幀
+  兩次很可能是不同單位）、**參數整包留著**（`externalEvents` 開放註冊，寫死 arg1
+  會靜默壞掉）、**雙緩衝**（flush 途中新來的事件不能蓋掉正在跑的）。
+
+代價：全域那張表上的事件晚一幀生效（約 16ms），視覺上看不出來。
+
+⚠ 每個框各自的 tracker frame（`Core/Events.lua` 的 unit 事件）**不需要延** ——
+那些是我們自己的 frame 的 OnEvent，堆疊底下沒有暴雪 secure 程式。判準就是看
+taint.log 裡那條堆疊的**底部**是誰。
+
+相關：[[project-121-addon-migration]]、[[wow-121-aura-containers]]、[[project-focuser-castbar]]、[[wow-121-addon-code-in-secure-stack]]
