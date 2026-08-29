@@ -238,7 +238,9 @@ local function UpdateClock()
     if GetCVarBool("timeMgrUseMilitaryTime") then
         clockText:SetFormattedText("%02d:%02d", h, m)
     else
-        local suffix = h >= 12 and "pm" or "am"
+        -- 大寫。小寫的 am/pm 在描邊白字裡跟數字混成一團（p 的下伸部會跟
+        -- 下一條帶的邊貼在一起），大寫的字身高度一致，讀起來才是一個標記。
+        local suffix = h >= 12 and "PM" or "AM"
         local h12 = h % 12
         if h12 == 0 then h12 = 12 end
         clockText:SetFormattedText("%d:%02d %s", h12, m, suffix)
