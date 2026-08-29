@@ -2,9 +2,9 @@
 ## Title: MiliUI Minimap
 ## Title-zhTW: |cff33E0FF[地圖]|r 米利的小地圖
 ## Title-zhCN: |cff33E0FF[地图]|r 米利的小地图
-## Notes: A square minimap in the MiliUI house style — black translucent panel, 1px border in your class colour — plus an info bar underneath showing guild and friends online.|n|n|cffffd200Usage: |r/mmap opens settings.
-## Notes-zhTW: MiliUI Minimap|n|n米利的小地圖。|n|n方形小地圖，套組統一的黑色半透明底＋1px 職業色框線；區域名、座標與時鐘收進上下兩條資訊帶。|n|n地圖下方一條資訊列：左邊公會在線、右邊好友在線，滑過去看名單、點下去開面板、右鍵密語或邀請。|n|n|cffffd200使用方法: |r/mmap 開啟設定。
-## Notes-zhCN: MiliUI Minimap|n|n米利的小地图。|n|n方形小地图，套组统一的黑色半透明底＋1px 职业色框线；区域名、坐标与时钟收进上下两条信息带。|n|n地图下方一条信息栏：左边公会在线、右边好友在线，滑过去看名单、点下去开面板、右键密语或邀请。|n|n|cffffd200使用方法: |r/mmap 打开设置。
+## Notes: A square minimap in the MiliUI house style — black translucent panel, 1px border in your class colour — plus a three-slot info bar underneath: guild online, friends online, and a bag that collects every addon's minimap button.|n|nHover a slot for the full list, left-click for its whisper / invite menu, right-click to open the panel.|n|n|cffffd200Usage: |r/mmap opens settings.
+## Notes-zhTW: MiliUI Minimap|n|n米利的小地圖。|n|n方形小地圖，套組統一的黑色半透明底＋1px 職業色框線；區域名、座標與時鐘收進上下兩條資訊帶。|n|n地圖下方一條資訊列，切成三格：公會在線、好友在線、插件按鈕收納袋（把各插件散在地圖旁的圓鈕全收進來，也可以單獨釘幾顆留在地圖上）。|n|n滑鼠移過去看完整名單，左鍵開密語／邀請選單，右鍵開對應的面板。|n|n|cffffd200使用方法: |r/mmap 開啟設定。
+## Notes-zhCN: MiliUI Minimap|n|n米利的小地图。|n|n方形小地图，套组统一的黑色半透明底＋1px 职业色框线；区域名、坐标与时钟收进上下两条信息带。|n|n地图下方一条信息栏，切成三格：公会在线、好友在线、插件按钮收纳袋（把各插件散在地图旁的圆钮全收进来，也可以单独钉几颗留在地图上）。|n|n鼠标滑过去看完整名单，左键开密语／邀请菜单，右键开对应的面板。|n|n|cffffd200使用方法: |r/mmap 打开设置。
 ## Category: Interface
 ## Category-zhTW: 介面
 ## Category-zhCN: 界面

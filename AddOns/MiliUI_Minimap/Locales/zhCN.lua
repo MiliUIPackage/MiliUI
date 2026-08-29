@@ -114,9 +114,9 @@ L["...and %d more"] = "……还有 %d 人"
 L["Mobile"] = "手机"
 L["Whisper"] = "密语"
 L["Invite"] = "邀请"
-L["Left-click: guild roster"] = "左键：公会名册"
-L["Left-click: friends list"] = "左键：好友列表"
-L["Right-click: whisper / invite"] = "右键：密语／邀请"
+L["Left-click: whisper / invite"] = "左键：密语／邀请"
+L["Right-click: guild roster"] = "右键：公会名册"
+L["Right-click: friends list"] = "右键：好友列表"
 
 -- 命令回复
 L["Minimap locked."] = "小地图已锁定。"
@@ -190,3 +190,5 @@ L["Drag to resize"] = "拉这里调整大小"
 L["Bag icon uses your class colour"] = "收纳袋图标用职业色"
 L["Third-party minimap buttons are moved into a bag that opens from the grid slot in the info bar. Turning this off only hides the bag — buttons already collected stay collected until you /reload."] =
     "第三方插件的小地图按钮会被搬进一个收纳袋，从信息栏那格九宫格打开。关掉这个选项只是把收纳袋藏起来，已经收进来的按钮要 /reload 才会回到地图上。"
+L["A single strip under the map, split into three slots. Left-click a slot for its whisper / invite menu, right-click to open the full panel, hover for the list."] =
+    "地图下方一条横条，切成三格。左键开该格的密语／邀请菜单，右键开完整面板，鼠标滑过去看名单。"

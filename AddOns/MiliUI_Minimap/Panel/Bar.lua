@@ -89,14 +89,18 @@ SOURCES.guild = {
                 ns.Tip.AddMember(entry, zone, showZone)
             end
         end
-        ns.Tip.AddHint(ns.L["Left-click: guild roster"], ns.L["Right-click: whisper / invite"])
+        ns.Tip.AddHint(ns.L["Left-click: whisper / invite"], ns.L["Right-click: guild roster"])
     end,
 
+    -- ⚠ 左鍵＝密語／邀請，右鍵＝開面板。**跟一般的「右鍵開選單」相反**，是刻意的：
+    --   從小地圖上的人數點下去，十次有九次是想找某個人講話或拉他進隊，
+    --   開整個公會面板反而是偶爾才做的事。常用的動作給比較好按的那顆鍵。
+    --   （收納袋那格不對調 —— 它的左鍵本來就是主要動作。）
     click = function(btn, slot)
         if btn == "RightButton" then
-            Bar.ShowMemberMenu("guild", slot)
-        else
             ToggleGuildFrame()
+        else
+            Bar.ShowMemberMenu("guild", slot)
         end
     end,
 }
@@ -145,14 +149,15 @@ SOURCES.friends = {
                 end
             end
         end
-        ns.Tip.AddHint(ns.L["Left-click: friends list"], ns.L["Right-click: whisper / invite"])
+        ns.Tip.AddHint(ns.L["Left-click: whisper / invite"], ns.L["Right-click: friends list"])
     end,
 
+    -- 同公會那格：左鍵密語／邀請，右鍵開好友清單（理由見上面）
     click = function(btn, slot)
         if btn == "RightButton" then
-            Bar.ShowMemberMenu("friends", slot)
-        else
             ToggleFriendsFrame()
+        else
+            Bar.ShowMemberMenu("friends", slot)
         end
     end,
 }

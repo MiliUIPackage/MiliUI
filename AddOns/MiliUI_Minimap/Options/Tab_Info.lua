@@ -15,7 +15,7 @@ end
 
 local CONTROLS = {
     { type = "toggle",   key = "infoBar", label = L["Show the info bar"] },
-    { type = "text",     label = L["A single strip under the map, split into three slots. Left-click a slot to open that panel, right-click for a whisper / invite menu, hover for the full list."] },
+    { type = "text",     label = L["A single strip under the map, split into three slots. Left-click a slot for its whisper / invite menu, right-click to open the full panel, hover for the list."] },
 
     { type = "header",   label = L["Contents"] },
     { type = "dropdown", key = "infoSlot1", label = L["Slot 1"], items = Specs.INFO_SOURCES },
