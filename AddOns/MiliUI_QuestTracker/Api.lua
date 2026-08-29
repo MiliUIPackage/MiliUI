@@ -55,7 +55,9 @@ SlashCmdList.MILIUIQUEST = function(msg)
         else
             local rows = {}
             for id, delay in pairs(db) do
-                rows[#rows + 1] = ("%d=%.2fs"):format(id, tonumber(delay) or 0)
+                -- 清單在載入時就正規化成秒數了，這裡不再 `or 0` ——
+                -- 那種寫法會把「值壞掉」顯示成「0.00 秒」，反而掩蓋問題
+                rows[#rows + 1] = ("%d=%.2fs"):format(id, delay)
             end
             table.sort(rows)
             ns.Print(L["Quests that need a wait: %s"]

@@ -271,12 +271,33 @@ end
 local function DelayFor(questID)
     local db = SlowList()
     local v = db and db[questID]
-    -- 舊版存過 true（還有一版存時間戳），一律當成「在清單裡但值不可信」，
-    -- 退回起始值重新收斂 —— 比做一次資料遷移便宜，而且代價只是多等一輪
-    if type(v) ~= "number" or v < AQ.acceptDelay then
-        return v and AQ.acceptDelay or nil
+    if v == nil then return nil end
+    return math.min(math.max(tonumber(v) or AQ.acceptDelay, AQ.acceptDelay), MAX_DELAY)
+end
+
+------------------------------------------------------------
+-- 載入時把清單正規化一次
+--
+-- ⚠ 這個欄位的格式改過兩次（true → 時間戳 → 秒數），玩家的存檔裡可能是任何一種。
+--   讀的時候臨時換算是不夠的：值永遠不會被寫回去，所以 /mquest slow 會一直顯示
+--   舊格式換算出來的怪數字（實際回報就是「98232=0.00s」）。
+--   在入口正規化一次，之後全部程式碼都可以假設它是秒數。
+------------------------------------------------------------
+local function NormalizeSlowList()
+    local db = SlowList()
+    if not db then return end
+    for questID, v in pairs(db) do
+        if type(questID) ~= "number" then
+            db[questID] = nil
+        else
+            local secs = tonumber(v)
+            -- 非數字（舊的 true）或超出合理範圍（舊的時間戳）⇒ 退回起始值重新收斂
+            if not secs or secs < AQ.acceptDelay or secs > MAX_DELAY then
+                secs = AQ.acceptDelay
+            end
+            db[questID] = secs
+        end
     end
-    return math.min(v, MAX_DELAY)
 end
 
 -- 沒接到就把這條任務的等待往上加一階
@@ -444,6 +465,8 @@ function AQ.LeatrixConflict()
 end
 
 ns.RegisterCallback("Init", "autoquest", function()
+    NormalizeSlowList()
+
     local evt = CreateFrame("Frame")
     for _, e in ipairs({
         "GOSSIP_SHOW", "QUEST_GREETING", "QUEST_DETAIL", "QUEST_ACCEPT_CONFIRM",
