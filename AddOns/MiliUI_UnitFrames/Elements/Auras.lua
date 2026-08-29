@@ -209,21 +209,64 @@ do
 end
 
 -- 「剩餘低於 threshold 秒才顯示數字」：alpha 階梯 ColorCurve
+--
+-- ⚠⚠ 這個**絕對不能在 initializeFrame 裡呼叫**。那個 callback 跑在暴雪
+-- Blizzard_AuraContainerFrameProviders 的 CreateFrame 裡（securecallfunction 內），
+-- 執行流程一定是被我們污染的，而 `CreateColor()` 會走到
+-- `ColorMixin:OnLoad` → `self:SetRGBA(...)`：
+--
+--   Blizzard_SharedXMLBase/Color.lua:10: attempted to index a table that cannot be
+--   accessed while tainted (execution tainted by 'MiliUI_UnitFrames')
+--
+-- 所以做兩件事：
+--   1. **快取**。曲線只跟 (threshold, r, g, b) 有關，同一個設定全部按鈕共用一顆。
+--   2. 由呼叫端在容器建立時（正常的插件路徑，不在暴雪的 frame 建立堆疊裡）先
+--      WarmDurationAlphaCurve 一次；初始化裡就只是查表，一次 CreateColor 都不做。
+-- 兩顆 CreateColor 另外包 pcall：哪天暴雪把更多表鎖起來，代價是「沒有淡出效果」，
+-- 不是整顆按鈕建到一半斷掉。
+local curveCache = {}
+
 local function BuildDurationAlphaCurve(threshold, r, g, b)
-    if not (C_CurveUtil and C_CurveUtil.CreateColorCurve and CreateColor) then return nil end
-    local ok, curve = pcall(C_CurveUtil.CreateColorCurve)
-    if not ok or not curve then return nil end
     r, g, b = r or 1, g or 1, b or 1
-    local visible = CreateColor(r, g, b, 1)
-    local hidden = CreateColor(r, g, b, 0)
+    local key = ("%s/%s/%s/%s"):format(threshold, r, g, b)
+    local hit = curveCache[key]
+    if hit ~= nil then return hit or nil end          -- false = 建過但失敗，不要重試
+
+    if not (C_CurveUtil and C_CurveUtil.CreateColorCurve and CreateColor) then
+        curveCache[key] = false
+        return nil
+    end
+    local ok, curve = pcall(C_CurveUtil.CreateColorCurve)
+    if not ok or not curve then
+        curveCache[key] = false
+        return nil
+    end
+    local okColor, visible, hidden = pcall(function()
+        return CreateColor(r, g, b, 1), CreateColor(r, g, b, 0)
+    end)
+    if not okColor or not visible or not hidden then
+        curveCache[key] = false
+        return nil
+    end
     local added = pcall(function()
         curve:AddPoint(0, visible)
         curve:AddPoint(threshold, visible)
         curve:AddPoint(threshold + 0.01, hidden)
         curve:AddPoint(threshold + 86400, hidden)
     end)
-    if not added then return nil end
+    if not added then
+        curveCache[key] = false
+        return nil
+    end
+    curveCache[key] = curve
     return curve
+end
+
+-- 在乾淨的插件路徑上先把曲線建好放進快取，讓 initializeFrame 只需要查表
+local function WarmDurationAlphaCurve(style)
+    if style and style.showDuration and style.durationThreshold then
+        BuildDurationAlphaCurve(style.durationThreshold, 1, 1, 1)
+    end
 end
 
 ------------------------------------------------------------
@@ -568,6 +611,10 @@ local function CreateContainer(uf, elementName, edb, filter, cand, style)
     -- （別處看到的「unit last」順序是配合分階段建構器的，照搬到這裡會壞。）
     container:SetUnit(uf.unit)
     ApplyFlowLayout(container, spec)
+
+    -- ⚠ 曲線一定要在這裡先建好。initializeFrame 裡呼叫 CreateColor 會撞上
+    -- 「被污染時不給存取」的 ColorMixin —— 見 BuildDurationAlphaCurve 上面那段。
+    WarmDurationAlphaCurve(style)
 
     container:AddAuraGroup("main", filter, {
         maxFrameCount = edb.maxCount or 16,
