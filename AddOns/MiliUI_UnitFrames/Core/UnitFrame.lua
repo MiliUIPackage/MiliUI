@@ -336,12 +336,54 @@ end
 -- 滑鼠移過高亮
 --
 -- 一圈細邊框，層級要壓過光環容器的 holder（12），不然滑到有光環的框上時高亮會被
--- 光環蓋掉一角。EnableMouse(false)：它鋪滿整個框，吃到滑鼠就會把單位框的點擊擋掉。
+-- 光環蓋掉一角。EnableMouse(false)：它整片蓋在框體上，吃到滑鼠就會把單位框的點擊擋掉。
 ------------------------------------------------------------
 -- 高過使用者能調的上限（各層級滑桿是 0-15），邊框才不會被框內元件遮掉。
 -- ⚠ 但小圖示要**再高一層**：團標之類的故意突出框體邊緣，邊框壓上去會從圖示中間
 -- 劃過。它們的層級在 Core/DB.lua 的 ICON_LEVEL，改這個數字要連那邊一起看。
 local HIGHLIGHT_LEVEL = 20
+
+------------------------------------------------------------
+-- 高亮貼的是「視覺框體」，不是框架矩形
+--
+-- 這兩個常常不一樣，貼框架的話邊線會落在空的地方。首領框最明顯：框是 220×32，
+-- 但血條與能量條都從 x = 36 起（左邊那 36 是留給 3D 頭像與團標的空白）⇒ 左邊憑空
+-- 多一條直線；而框底 -32 落在施法條（-22..-36）中間 ⇒ 底線從施法條上橫劃過去。
+-- 玩家／目標框則是反過來：魔力條刻意往側邊與下方各露 8（見 notes 的「視覺框體」），
+-- 那一截整個被框在高亮外面。
+--
+-- **只收血條與能量條** —— 這兩條是「框顯示著就一定看得到」的部分，取它們的聯集
+-- 等於視覺框體。其餘元件都不收，各有各的理由：
+--   * 施法條**沒在唱法時是隱藏的**（見 Elements/Castbar.lua）。把它保留的位置收進來，
+--     九成時間高亮底下就多出一條空的長條，反而變鬆。首領框的施法條緊貼在能量條下方，
+--     不收的結果是底線正好落在它上緣，唱法時它整條掛在高亮外面，讀起來仍然乾淨。
+--     （順帶一提，專注／目標的目標的施法條本來就在**框外上方**、寵物與專注的目標那條
+--     甚至比框還寬 —— 收進來會鬆掉一大塊。）
+--   * 3D 頭像是浮在框上的模型，首領框的頭像整個在框上方 50。
+--   * 文字的 FontString 矩形跟字面對不起來（首領名字 18pt 塞在 14 高的框裡），
+--     拿它當邊界一樣會從字上劃過。
+--   * 光環、團標、資源條本來就**故意**突出框體。
+------------------------------------------------------------
+local BODY_ELEMENTS = { "hpbar", "mpbar" }
+
+local function BodyBounds(uf)
+    local l, t, r, b
+    for _, name in ipairs(BODY_ELEMENTS) do
+        local e = uf.db.elements and uf.db.elements[name]
+        if e and e.enabled ~= false then
+            -- 元件座標語意：TOPLEFT 對框架 TOPLEFT，往下為負（見 ApplyElementBase）
+            local x1, y1 = e.x or 0, e.y or 0
+            local x2, y2 = x1 + (e.w or 0), y1 - (e.h or 0)
+            if not l or x1 < l then l = x1 end
+            if not t or y1 > t then t = y1 end
+            if not r or x2 > r then r = x2 end
+            if not b or y2 < b then b = y2 end
+        end
+    end
+    -- 兩條都關掉就退回框架矩形，至少還有東西可以貼
+    if not l then return 0, 0, uf.db.frame.w or 0, -(uf.db.frame.h or 0) end
+    return l, t, r, b
+end
 
 function ns.ApplyHighlight(uf)
     local on = uf.db.frame.highlight ~= false
@@ -353,11 +395,16 @@ function ns.ApplyHighlight(uf)
     local hl = uf.highlight
     if not hl then
         hl = CreateFrame("Frame", nil, uf, "BackdropTemplate")
-        hl:SetAllPoints(uf)
         hl:SetFrameLevel(HIGHLIGHT_LEVEL)
         hl:EnableMouse(false)
         uf.highlight = hl
     end
+    -- ⚠ 錨點每次都要重下，不能只在建立時做一次：改了任何一條 bar 的位置／尺寸，
+    -- 視覺框體就跟著變了
+    local l, t, r, b = BodyBounds(uf)
+    hl:ClearAllPoints()
+    hl:SetPoint("TOPLEFT", uf, "TOPLEFT", Scale(l), Scale(t))
+    hl:SetPoint("BOTTOMRIGHT", uf, "TOPLEFT", Scale(r), Scale(b))
     local g = ns.db.global
     local c = g.highlightColor or { r = 1, g = 1, b = 1, a = 0.7 }
     hl:SetBackdrop({ edgeFile = Media.WHITE8X8, edgeSize = Media.BorderInset(g.highlightSize or 1) })
