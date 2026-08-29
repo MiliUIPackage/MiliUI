@@ -20,6 +20,8 @@ L["MENU_NO_LOADOUTS"] = "（沒有已儲存的配置）"
 L["MENU_LOOT_TITLE"] = "擲骰天賦"
 L["MENU_LOOT_FOLLOW"] = "依目前專精（%s）"
 L["MSG_COMBAT_LOADOUT"] = "戰鬥中無法切換天賦配置。"
+L["MENU_OPEN_SETTINGS"] = "開啟設定"
+L["MENU_HIDE_BUTTON"] = "隱藏「%s」按鈕"
 
 -- Tabs
 L["TAB_GENERAL"] = "一般"
@@ -75,7 +77,7 @@ L["ICON_STYLE_DESC"] = "單色＝把官方圖示去飽和，滑過時染上職�
 L["HIDE_BLIZZARD"] = "隱藏暴雪微型選單"
 L["HIDE_BLIZZARD_DESC"] = "用安全機制隱藏原廠那排（不會造成污染）。編輯模式中它可能暫時出現，離開時會自動再藏起來。"
 L["SECTION_MICRO_BUTTONS"] = "按鈕"
-L["MICRO_BUTTONS_DESC"] = "選擇要在資訊列上顯示哪些按鈕。"
+L["MICRO_BUTTONS_DESC"] = "選擇要在資訊列上顯示哪些按鈕。在資訊列上右鍵任一顆按鈕，也能開啟這頁或隱藏那顆按鈕。"
 
 -- About
 L["SETTINGS_MAIN_DESC"] = "純色方底的資訊列，整合微型選單：裝等、耐久、天賦、擲骰天賦、效能等等。"

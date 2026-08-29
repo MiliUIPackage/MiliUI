@@ -24,6 +24,7 @@
 local _, ns = ...
 
 local L = ns.L
+local W = ns.W
 
 ns.MicroMenu = {}
 local MM = ns.MicroMenu
@@ -156,6 +157,31 @@ local function ShowTooltip(tile)
 end
 
 ------------------------------------------------------------
+-- 右鍵選單（共用層 W.Menu）：進設定的捷徑＋隱藏這一顆。
+-- 「隱藏」跟一般項目用分隔線隔開、不放第一個（選單設計標準）；
+-- 藏掉之後的救回路徑就是上面那條「開啟設定」。
+------------------------------------------------------------
+local function ShowButtonMenu(tile)
+    GameTooltip:Hide()
+    local def = tile.def
+    W.Menu.Show({
+        { isTitle = true, text = L["ADDON_NAME"] },
+        {
+            text = L["MENU_OPEN_SETTINGS"],
+            onClick = function() ns.OpenSettings("micro") end,
+        },
+        { isSeparator = true },
+        {
+            text = L["MENU_HIDE_BUTTON"]:format(def.label or def.key),
+            onClick = function()
+                ns.GetDB().micro[def.key] = false
+                ns.ApplyAll()
+            end,
+        },
+    }, tile)
+end
+
+------------------------------------------------------------
 -- 區塊實例
 ------------------------------------------------------------
 ns.Blocks = ns.Blocks or {}
@@ -203,6 +229,11 @@ function ns.Blocks.micromenu.create()
                 fs:SetText(label:sub(1, (label:byte(1) or 0) > 127 and 3 or 1))
                 tile.letter = fs
             end
+
+            -- 右鍵＝選單（secure 只綁了 *type1，右鍵沒有 secure 動作，hook 接手）
+            tile:HookScript("OnClick", function(self, button)
+                if button == "RightButton" then ShowButtonMenu(self) end
+            end)
 
             tile:HookScript("OnEnter", function(self)
                 if ns.GetDB().iconStyle ~= "blizzard" and self.icon:IsShown() then

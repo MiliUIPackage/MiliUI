@@ -19,6 +19,8 @@ L["MENU_NO_LOADOUTS"] = "(no saved loadouts)"
 L["MENU_LOOT_TITLE"] = "Loot specialization"
 L["MENU_LOOT_FOLLOW"] = "Current specialization (%s)"
 L["MSG_COMBAT_LOADOUT"] = "Can't switch talent loadouts in combat."
+L["MENU_OPEN_SETTINGS"] = "Open settings"
+L["MENU_HIDE_BUTTON"] = "Hide the %s button"
 
 -- Tabs
 L["TAB_GENERAL"] = "General"
@@ -74,7 +76,7 @@ L["ICON_STYLE_DESC"] = "Monochrome desaturates Blizzard's icons and tints them o
 L["HIDE_BLIZZARD"] = "Hide Blizzard's micro menu"
 L["HIDE_BLIZZARD_DESC"] = "Hides the default row via a secure handler (safe against taint). It may reappear inside Edit Mode and is re-hidden on exit."
 L["SECTION_MICRO_BUTTONS"] = "Buttons"
-L["MICRO_BUTTONS_DESC"] = "Choose which buttons appear on the bar."
+L["MICRO_BUTTONS_DESC"] = "Choose which buttons appear on the bar. Right-clicking a button on the bar opens this page or hides that button."
 
 -- About
 L["SETTINGS_MAIN_DESC"] = "A flat info bar that replaces the micro menu: item level, durability, talents, loot spec, performance and more."

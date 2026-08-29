@@ -20,6 +20,8 @@ L["MENU_NO_LOADOUTS"] = "（没有已保存的配置）"
 L["MENU_LOOT_TITLE"] = "拾取专精"
 L["MENU_LOOT_FOLLOW"] = "按当前专精（%s）"
 L["MSG_COMBAT_LOADOUT"] = "战斗中无法切换天赋配置。"
+L["MENU_OPEN_SETTINGS"] = "打开设置"
+L["MENU_HIDE_BUTTON"] = "隐藏「%s」按钮"
 
 -- Tabs
 L["TAB_GENERAL"] = "常规"
@@ -75,7 +77,7 @@ L["ICON_STYLE_DESC"] = "单色＝把官方图标去饱和，划过时染上职�
 L["HIDE_BLIZZARD"] = "隐藏暴雪微型菜单"
 L["HIDE_BLIZZARD_DESC"] = "用安全机制隐藏原厂那排（不会造成污染）。编辑模式中它可能暂时出现，离开时会自动再藏起来。"
 L["SECTION_MICRO_BUTTONS"] = "按钮"
-L["MICRO_BUTTONS_DESC"] = "选择要在信息栏上显示哪些按钮。"
+L["MICRO_BUTTONS_DESC"] = "选择要在信息栏上显示哪些按钮。在信息栏上右键任一颗按钮，也能打开这页或隐藏那颗按钮。"
 
 -- About
 L["SETTINGS_MAIN_DESC"] = "纯色方底的信息栏，整合微型菜单：装等、耐久、天赋、拾取专精、性能等等。"
