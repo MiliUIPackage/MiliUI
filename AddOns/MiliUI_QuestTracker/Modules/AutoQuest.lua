@@ -22,6 +22,7 @@ local _, ns = ...
 ns.AutoQuest = {}
 local AQ = ns.AutoQuest
 
+local L = ns.L
 local function Cfg() return ns.db and ns.db.automation end
 
 
@@ -254,12 +255,15 @@ local WAIT_STEP = 0.1
 local MAX_WAIT  = 2.0
 AQ.MIN_WAIT, AQ.MAX_WAIT = BASE_WAIT, MAX_WAIT
 
--- 按下去之後多久查勤「到底接到了沒有」。從**按下去**起算，跟前面等多久無關。
+-- 按下去之後多久宣告「沒接到」。從**按下去**起算，跟前面等多久無關。
 --
--- ⚠ 要比伺服器來回久很多。trace 裡成功的那次，按下去到 QUEST_ACCEPTED 之間
---   跨了一個整秒 —— 查太早會把「還在路上」誤判成失敗，然後無謂地把等待往上加。
---   查晚一點沒有任何代價：這只影響「什麼時候學到」，不影響接任務本身。
-local VERIFY_AFTER = 2.0
+-- 判定本身不看計時器，看任務日誌：時間到了還不在日誌裡才算失敗。所以這個值
+-- 只決定「多久之後告訴玩家」，不會因為調短就把成功誤判成失敗 —— 除非伺服器
+-- 真的慢到超過這個時間，而那種情況本來就該把等待往上加，所以誤判的後果也是對的。
+--
+-- 0.5 秒是為了讓玩家**還站在 NPC 面前**的時候就知道要再點一次。訊息來得太晚，
+-- 人已經走開了，那則提示就等於沒有。
+local VERIFY_AFTER = 0.5
 
 local pending   -- 等待中的 questID，用來擋掉過期的計時器
 
@@ -354,9 +358,21 @@ local function ClickAccept(questID, why)
         AcceptQuest()
     end
 
+    -- 任務視窗在按下去之後就會關掉，所以名字要**現在**拿 —— 查勤的時候已經沒有了。
+    -- 秘密字串不能進 format，先擋一次
+    local title = GetTitleText and GetTitleText()
+    if type(title) ~= "string" or title == "" or ns.Secret.IsSecret(title) then
+        title = nil
+    end
+
     -- 查勤。這是整個機制的核心：我們沒辦法事先知道哪條要等，但按完看一眼就知道了
     C_Timer.After(VERIFY_AFTER, function()
-        if not InLog(questID) then Escalate(questID) end
+        if InLog(questID) then return end      -- 接到了，沒事
+        Escalate(questID)
+        -- ⚠ 一定要講。任務視窗已經關掉、任務也沒進日誌，玩家如果不知道就這樣走了。
+        --   帶上任務名稱才有意義 —— 只給一個編號等於要他自己去查
+        ns.Print("|cffff9900" .. L["Couldn't accept \"%s\" — talk to the quest giver again. It will wait %.2fs before accepting next time."]
+            :format(title or ("#" .. tostring(questID)), Wait()) .. "|r")
     end)
 end
 

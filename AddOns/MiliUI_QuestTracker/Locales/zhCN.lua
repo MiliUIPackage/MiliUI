@@ -154,3 +154,6 @@ L["Remove"] = "移除"
 L["Clear the list"] = "清空列表"
 L["Forget every quest in the list? They will be learned again the next time they fail."] = "把列表里的任务全部忘掉？下次它们再失败时会重新学回来。"
 L["Nothing yet — every quest is accepted instantly."] = "目前是空的——所有任务都是秒接。"
+
+-- 接失败时的提示
+L["Couldn't accept \"%s\" — talk to the quest giver again. It will wait %.2fs before accepting next time."] = "没接到「%s」，请再跟任务发布者对话一次。已记住这条，下次会先等 %.2f 秒再接。"
