@@ -20,6 +20,24 @@ end
 local width, height, padding = 25, 8, 5
 local texture = "Interface\\Buttons\\WHITE8X8"
 
+------------------------------------------------------------
+-- 套組標準底色
+--
+-- Chattynator 的暗色 skin：`skins.dark.chat_transparency = 0.2` → alpha 0.8。
+-- 聊天列就貼在聊天視窗下面，跟統計視窗、資訊列並排時全部必須是**同一個灰**，
+-- 各填一個很接近的數字日後會悄悄分岔。
+-- 改這個值的時候記得同步 MiliUI_DamageMeters/Core/DB.lua 與
+-- MiliUI_InfoBar/Config.lua 的同名常數。
+--
+-- 這個值沒有進 SavedVariables（一直都是寫死的），所以不需要遷移：
+-- 舊玩家 /reload 之後直接就是新的顏色。
+--
+-- ⚠ 宣告位置要在 CreateSD 之前：Lua 的區域變數只對「宣告之後」的程式碼可見，
+--   放在檔案後半的話 CreateSD 裡讀到的會是全域 nil。
+------------------------------------------------------------
+local DARK_BG = 0x1A / 255   -- 0.102
+local DARK_BG_ALPHA = 0.8
+
 --------
 -- SavedVariables
 --------
@@ -50,14 +68,19 @@ end
 --------
 -- Utilities
 --------
+-- 按鈕底。跟聊天列本身、傷害統計、資訊列同一個灰（見上面的 DARK_BG）。
+--
+-- 框線刻意設成**全透明**而不是「跟底色同色」：backdrop 的邊是畫在底色**之上**
+-- 的，兩層都是 0.8 的話邊緣會疊成 0.96，看起來就是一圈比中間更深的框——
+-- 那正是我們不想要的東西。要無框就讓它真的不畫。
 local function CreateSD(parent)
     parent:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8X8",
         edgeFile = "Interface\\Buttons\\WHITE8X8",
         edgeSize = 2,
     })
-    parent:SetBackdropColor(0, 0, 0, 0.5)
-    parent:SetBackdropBorderColor(0, 0, 0, 1)
+    parent:SetBackdropColor(DARK_BG, DARK_BG, DARK_BG, DARK_BG_ALPHA)
+    parent:SetBackdropBorderColor(0, 0, 0, 0)
 end
 
 -- 全部重置：SavedVariables 整張丟掉再重載。SetUserPlaced(false) 一定要在重載前做，
@@ -724,21 +747,12 @@ end
 UpdateLayout()
 
 ------------------------------------------------------------
--- 底色：跟 MiliUI_DamageMeters 的視窗底色同一個灰
---
--- 出處是 Chattynator 自己的預設值 —— 分頁底色 `#1a1a1a` 配
--- `skins.dark.chat_transparency = 0.2` → alpha 0.8。聊天列就貼在聊天視窗下面，
--- 跟統計視窗並排時三個東西必須是**同一個灰**，各填一個很接近的數字日後會悄悄分岔。
--- 改這個值的時候記得同步 MiliUI_DamageMeters/Core/DB.lua 的 DARK_BG。
---
--- 這個值沒有進 SavedVariables（一直都是寫死的），所以不需要遷移：
--- 舊玩家 /reload 之後直接就是新的顏色。
+-- 條的底色。常數與出處在檔案開頭的 DARK_BG（按鈕底也共用同一個），
+-- 這裡不要再宣告一份——兩份會在改值時悄悄分岔。
 ------------------------------------------------------------
-local DARK_BG = 0x1A / 255   -- 0.102
-
 local grad = bgFrame:CreateTexture(nil, "BACKGROUND")
 grad:SetAllPoints()
-grad:SetColorTexture(DARK_BG, DARK_BG, DARK_BG, 0.8)
+grad:SetColorTexture(DARK_BG, DARK_BG, DARK_BG, DARK_BG_ALPHA)
 
 ------------------------------------------------------------
 -- 右鍵選單

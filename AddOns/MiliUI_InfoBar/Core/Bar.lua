@@ -244,6 +244,11 @@ local function ApplyEdgeColor(tile, hover)
         for _, e in ipairs(edges) do e:SetVertexColor(r, g, b, 1) end
     else
         local r, g, b, a = EdgeColor()
+        -- 框線跟底色同色時**不要畫**（alpha 歸零），不是照樣畫一遍同色的。
+        -- 邊是疊在底色之上的：半透明時兩層 0.8 會疊成 0.96，邊緣就浮出一圈
+        -- 比中間更深的框——正好是「同色＝看不出有框」想避免的東西。
+        local br, bg_, bb = BgColor()
+        if r == br and g == bg_ and b == bb then a = 0 end
         for _, e in ipairs(edges) do e:SetVertexColor(r, g, b, a) end
     end
 end
