@@ -135,10 +135,22 @@ L["Quest automation trace off."] = "任務自動化追蹤：已關閉。"
 L["Commands: |cffffd200/mquest|r opens the options, |cffffd200/mquest fold|r folds or unfolds the list, |cffffd200/mquest trace|r logs the quest automation, |cffffd200/mquest reset|r restores the defaults, |cffffd200/mquest debug|r reports recent errors"] = "指令：|cffffd200/mquest|r 開啟設定，|cffffd200/mquest fold|r 摺疊或展開清單，|cffffd200/mquest trace|r 追蹤任務自動化，|cffffd200/mquest reset|r 還原預設值，|cffffd200/mquest debug|r 顯示最近的錯誤"
 
 -- 診斷用的延遲調整
-L["Accept delay set to %.2fs (this session only)."] = "接受任務前的等待改成 %.2f 秒（僅本次登入有效）。"
+L["Wait before accepting set to %.2fs."] = "接受任務前的等待改成 %.2f 秒。"
 L["Usage: /mquest delay <seconds 0-10>"] = "用法：/mquest delay <秒數 0-10>"
 
 
 -- 學到的任務等待清單
 L["Cleared the learned quest delays."] = "已清除學到的任務等待清單。"
-L["Quests that need a wait: %s"] = "需要先等一下的任務：%s"
+L["Quests that need a wait (%.2fs each): %s"] = "需要先等一下的任務（每條都等 %.2f 秒）：%s"
+
+-- 需要稍等一下的任務清單（設定頁）
+L["Quests that need a moment"] = "需要稍等一下的任務"
+L["A few quests — weekly ones especially — refuse to be accepted the instant their window opens: the window flashes and nothing happens. Nothing in the game tells us in advance which ones, so quests are accepted immediately by default; when one doesn't go through it is remembered here and gets a short wait next time."] = "少數任務（尤其是週任）在視窗一跳出來的瞬間接不起來：視窗閃一下就關，什麼也沒發生。遊戲沒有提供任何方法可以事先知道是哪幾條，所以預設一律秒接；某一條沒接成功時就會被記在這裡，下次先等一下再接。"
+L["The list is shared by every character on the account, so a quest only has to fail once."] = "這張清單是整個帳號共用的，所以同一條任務只會失敗一次。"
+L["Wait first"] = "先等多久"
+L["Seconds, and only for the quests listed below — everything else is still accepted the moment it appears. If a listed quest fails even after waiting, this goes up by 0.1 on its own."] = "單位是秒，而且只套用在下面清單裡的任務——其餘任務仍然是一跳出來就接。清單裡的任務如果等了還是沒接到，這個值會自己加 0.1。"
+L["Remembered"] = "已記住"
+L["Remove"] = "移除"
+L["Clear the list"] = "清空清單"
+L["Forget every quest in the list? They will be learned again the next time they fail."] = "把清單裡的任務全部忘掉？下次它們再失敗時會重新學回來。"
+L["Nothing yet — every quest is accepted instantly."] = "目前是空的——所有任務都是秒接。"

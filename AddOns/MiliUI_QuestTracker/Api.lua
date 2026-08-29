@@ -48,20 +48,18 @@ SlashCmdList.MILIUIQUEST = function(msg)
     elseif msg:match("^slow") then
         -- 學到的「要先等一下」清單。清空是為了能重測 —— 同一條任務學會之後就不會
         -- 再失敗，不清就再也量不到了
-        local db = ns.db.slowQuests
+        local db = ns.db.automation.slowQuests
         if msg:match("clear") then
             wipe(db)
             ns.Print(L["Cleared the learned quest delays."])
         else
-            local rows = {}
-            for id, delay in pairs(db) do
-                -- 清單在載入時就正規化成秒數了，這裡不再 `or 0` ——
-                -- 那種寫法會把「值壞掉」顯示成「0.00 秒」，反而掩蓋問題
-                rows[#rows + 1] = ("%d=%.2fs"):format(id, delay)
-            end
-            table.sort(rows)
-            ns.Print(L["Quests that need a wait: %s"]
-                :format(#rows > 0 and table.concat(rows, "  ") or "—"))
+            local ids = {}
+            for id in pairs(db) do ids[#ids + 1] = id end
+            table.sort(ids)
+            -- 秒數是所有任務共用的，印一次就好，不要逐條列
+            ns.Print(L["Quests that need a wait (%.2fs each): %s"]:format(
+                ns.AutoQuest.Wait(),
+                #ids > 0 and table.concat(ids, ", ") or "—"))
         end
 
     elseif msg:match("^delay") then
@@ -69,11 +67,13 @@ SlashCmdList.MILIUIQUEST = function(msg)
         -- session 內有效、不存檔
         local secs = tonumber(msg:match("^delay%s+([%d%.]+)$"))
         if secs and secs >= 0 and secs <= 10 then
-            ns.AutoQuest.acceptDelay = secs
-            ns.Print(L["Accept delay set to %.2fs (this session only)."]:format(secs))
+            -- 這個值平常是自己學出來的；手動設是給「想直接跳到某個值」用的。
+            -- 存檔（不再是 session 內有效）—— 它現在跟學到的是同一個值
+            ns.db.automation.acceptWait = secs
+            ns.Print(L["Wait before accepting set to %.2fs."]:format(ns.AutoQuest.Wait()))
         else
             ns.Print(L["Usage: /mquest delay <seconds 0-10>"]
-                .. "  (" .. ("%.2f"):format(ns.AutoQuest.acceptDelay) .. ")")
+                .. "  (" .. ("%.2f"):format(ns.AutoQuest.Wait()) .. ")")
         end
 
     elseif msg == "debug" then

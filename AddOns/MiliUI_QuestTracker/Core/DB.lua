@@ -28,16 +28,6 @@ local function BuildDefaults()
         -- 座標是 TOPLEFT 相對 UIParent TOPLEFT 的位移（y 為負），跟
         -- MiliUI_DamageMeters 的視窗同一套 —— 追蹤器的內容往下長，
         -- 用 CENTER 位移的話內容一多整條就會自己往上飄。
-        -- 「立刻接會失敗、要先等一下」的任務：questID → 該等幾秒。
-        -- 不是設定，是**量出來的** —— 客戶端沒有任何訊號可以事先判斷哪條任務要等
-        -- （六種都試過，記在 Modules/AutoQuest.lua），所以接不到就記起來、下次先等，
-        -- 還是不行就每次加 0.1 秒往上收斂。
-        --
-        -- ⚠ 存在帳號層級（TOC 是 SavedVariables 不是 PerCharacter）是刻意的：
-        --   週任每隻分身都要跑，一隻角色踩過一次，其他分身直接就是對的。
-        -- ⚠ 也不能寫死一張清單 —— 週任的 questID 每週都不一樣。
-        slowQuests = {},
-
         position = { set = false, x = 0, y = 0 },
 
         -- 玩家自己按標題列摺起來的狀態。存檔的理由：摺疊是一個明確的意圖
@@ -120,6 +110,24 @@ local function BuildDefaults()
             -- 要花金幣／貨幣才能交的任務不自動交（誤交會直接扣錢）
             skipCostQuests = true,
             -- 標題列上的開關 chip
+            -- 自動接任務時要先等一下的那幾條，以及共用的等待秒數。
+            --
+            -- ⚠ 兩件事刻意分開：**哪些任務要等**逐條記（絕大多數不用，秒接秒交），
+            --   **要等多久**全部共用一個值 —— 延遲的成因是伺服器暖機／連線來回，
+            --   那是玩家連線的性質、不是某條任務的性質，針對單一任務調整沒有意義。
+            --   共用還讓任何一條任務學到的教訓其他任務直接受惠，收斂快得多。
+            --
+            -- 不是設定，是**量出來的**：客戶端沒有任何訊號可以事先判斷哪條任務要等
+            -- （六種都試過，記在 Modules/AutoQuest.lua），所以接不到就記起來、下次先等，
+            -- 還是不行就每次加 0.1 秒往上收斂（上限 2 秒）。
+            acceptWait = 0.5,
+
+            -- questID → true
+            -- ⚠ 存在帳號層級（TOC 是 SavedVariables 不是 PerCharacter）是刻意的：
+            --   週任每隻分身都要跑，一隻角色踩過一次，其他分身直接就是對的。
+            -- ⚠ 也不能寫死一張清單 —— 週任的 questID 每週都不一樣。
+            slowQuests = {},
+
             showTurnInToggle = true,
             showAcceptToggle = true,
         },

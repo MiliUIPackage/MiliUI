@@ -241,13 +241,18 @@ end
 --   為什麼記在帳號層級：SavedVariables（不是 PerCharacter），所以一隻角色踩過
 --   一次，同帳號其他分身直接就是對的 —— 而週任正好是每隻分身都要跑的東西。
 ------------------------------------------------------------
--- 起始等待。第一次接不到就用這個值，之後每失敗一次加 DELAY_STEP，直到 MAX_DELAY。
+-- 等待秒數的收斂範圍。
 --
--- ⚠ 0.5 是在**開發者這條連線上**量出來的，不是普世常數 —— 別人的延遲不一樣，
---   所以不能寫死一個值了事。逐步加碼讓每個玩家、每條任務各自收斂到自己的數字。
-AQ.acceptDelay = 0.5
-local DELAY_STEP = 0.1
-local MAX_DELAY  = 2.0
+-- ⚠ **秒數是所有任務共用的，只有「哪些任務需要等」是逐條記的。**
+--   延遲的成因是伺服器暖機／連線來回 —— 那是**玩家連線的性質**，不是某條任務的
+--   性質，所以針對單一任務調整沒有意義。共用還有一個好處：任何一條任務學到的
+--   教訓其他任務直接受惠，收斂快得多。
+--
+-- ⚠ 0.5 是在某一條連線上量出來的，不是普世常數，所以它只是起點與下限。
+local BASE_WAIT = 0.5
+local WAIT_STEP = 0.1
+local MAX_WAIT  = 2.0
+AQ.MIN_WAIT, AQ.MAX_WAIT = BASE_WAIT, MAX_WAIT
 
 -- 按下去之後多久查勤「到底接到了沒有」。從**按下去**起算，跟前面等多久無關。
 --
@@ -264,60 +269,67 @@ local function InLog(questID)
 end
 
 local function SlowList()
-    return ns.db and ns.db.slowQuests
+    local c = Cfg(); return c and c.slowQuests
 end
 
--- 這條任務要等多久；nil = 不在清單裡，秒接
-local function DelayFor(questID)
+-- 目前共用的等待秒數
+local function Wait()
+    local v = tonumber(Cfg() and Cfg().acceptWait) or BASE_WAIT
+    return math.min(math.max(v, BASE_WAIT), MAX_WAIT)
+end
+AQ.Wait = Wait
+
+local function NeedsWait(questID)
     local db = SlowList()
-    local v = db and db[questID]
-    if v == nil then return nil end
-    return math.min(math.max(tonumber(v) or AQ.acceptDelay, AQ.acceptDelay), MAX_DELAY)
+    return (db and db[questID]) and true or false
 end
 
 ------------------------------------------------------------
 -- 載入時把清單正規化一次
 --
--- ⚠ 這個欄位的格式改過兩次（true → 時間戳 → 秒數），玩家的存檔裡可能是任何一種。
---   讀的時候臨時換算是不夠的：值永遠不會被寫回去，所以 /mquest slow 會一直顯示
---   舊格式換算出來的怪數字（實際回報就是「98232=0.00s」）。
---   在入口正規化一次，之後全部程式碼都可以假設它是秒數。
+-- ⚠ 這個欄位的格式改過三次（true → 時間戳 → 逐條秒數 → 現在只存「要不要等」）。
+--   玩家的存檔裡可能是任何一種，而只在讀取時臨時換算是不夠的：值永遠不會被寫回去，
+--   /mquest slow 就會一直顯示舊格式換算出來的怪數字（實際回報過「98232=0.00s」）。
+--   在入口正規化一次，之後全部程式碼都可以假設它就是 true。
+--   舊的逐條秒數不丟掉 —— 取最大值併進共用的那個，之前學到的東西就不用重學。
 ------------------------------------------------------------
 local function NormalizeSlowList()
     local db = SlowList()
     if not db then return end
+    local learned = Wait()
     for questID, v in pairs(db) do
         if type(questID) ~= "number" then
             db[questID] = nil
         else
             local secs = tonumber(v)
-            -- 非數字（舊的 true）或超出合理範圍（舊的時間戳）⇒ 退回起始值重新收斂
-            if not secs or secs < AQ.acceptDelay or secs > MAX_DELAY then
-                secs = AQ.acceptDelay
-            end
-            db[questID] = secs
+            if secs and secs > learned and secs <= MAX_WAIT then learned = secs end
+            db[questID] = true
         end
     end
+    Cfg().acceptWait = learned
 end
 
--- 沒接到就把這條任務的等待往上加一階
+-- 沒接到就往上加一階。加的是**共用的**秒數，不是這條任務專屬的
 local function Escalate(questID)
     local db = SlowList()
     if not db then return end
-    local cur = DelayFor(questID)
-    if not cur then
-        db[questID] = AQ.acceptDelay
-        Trace("   %s 沒接到 ⇒ 記進清單，下次等 %.2fs", Safe(questID), AQ.acceptDelay)
+
+    if not db[questID] then
+        db[questID] = true
+        Trace("   %s 沒接到 ⇒ 記進清單，下次先等 %.2fs", Safe(questID), Wait())
         return
     end
-    if cur >= MAX_DELAY then
+
+    -- 已經在清單裡、等過了還是沒接到 ⇒ 是等待時間不夠
+    local cur = Wait()
+    if cur >= MAX_WAIT then
         -- 加到上限還是不行，代表成因不是等待時間。再加下去只是讓玩家更慢
-        Trace("   %s 等到上限 %.2fs 還是沒接到 ⇒ 不再往上加", Safe(questID), MAX_DELAY)
+        Trace("   %s 等到上限 %.2fs 還是沒接到 ⇒ 不再往上加", Safe(questID), MAX_WAIT)
         return
     end
-    local nextDelay = math.min(MAX_DELAY, cur + DELAY_STEP)
-    db[questID] = nextDelay
-    Trace("   %s 等了 %.2fs 還是沒接到 ⇒ 下次改等 %.2fs", Safe(questID), cur, nextDelay)
+    Cfg().acceptWait = math.min(MAX_WAIT, cur + WAIT_STEP)
+    Trace("   %s 等了 %.2fs 還是沒接到 ⇒ 所有需要等的任務改成 %.2fs",
+        Safe(questID), cur, Cfg().acceptWait)
 end
 
 local function ClickAccept(questID, why)
@@ -349,11 +361,11 @@ local function ClickAccept(questID, why)
 end
 
 local function AcceptWhenReady(questID)
-    local delay = DelayFor(questID)
-    if not delay then
+    if not NeedsWait(questID) then
         ClickAccept(questID, "立刻")
         return
     end
+    local delay = Wait()
     Trace("   %s 在清單裡 ⇒ 先等 %.2fs", Safe(questID), delay)
     pending = questID
     C_Timer.After(delay, function()
