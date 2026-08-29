@@ -38,9 +38,8 @@ frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "NAME_PLATE_UNIT_ADDED" then
         local unitTarget = ... 
-        -- DisplayNameplateText(unitTarget, "图\n腾")
-        -- 分支 1：动荡图腾 / 熔岩图腾 (纳洛拉克的洞穴)
-        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget)
+        
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 动荡图腾 / 熔岩图腾
             and select(8, GetInstanceInfo()) == 2825 -- 副本ID
             and (C_Map.GetBestMapForUnit("player") or 0) == 2513 -- 地图ID
             and IsIndoors() == false -- 在室外
@@ -69,8 +68,18 @@ frame:SetScript("OnEvent", function(self, event, ...)
             end
         end
 
-        -- 分支 2：治疗之潮图腾 (诸王之眠)
-        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget)
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 熔岩图腾
+            and select(8, GetInstanceInfo()) == 2923 -- 副本ID (虚空之痕竞技场)
+            and UnitLevel(unitTarget) == UnitLevel("player")
+            and UnitPowerType(unitTarget) == 1
+            and UnitClassification(unitTarget) == "normal" -- 普通怪
+            and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
+            and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
+            then            
+            DisplayNameplateText(unitTarget, "图\n腾")
+        end
+        
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 治疗之潮图腾
             and select(8, GetInstanceInfo()) == 1762 -- 副本ID
             and (C_Map.GetBestMapForUnit("player") or 0) == 1004 -- 地图ID
             and IsIndoors() == true -- 在室内

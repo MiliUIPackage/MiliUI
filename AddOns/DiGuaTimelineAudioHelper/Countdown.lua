@@ -5,23 +5,6 @@ addonTable.Countdown = Countdown -- 挂载到插件表，方便别的文件调�
 
 local ticker = nil
 
-local function GetMediaPath()
-    -- 按优先级从上往下检索，匹配到第一个已加载的就直接返回对应路径
-    local addons = {
-        "DiGua-WYJJ",
-        "DiGua-Ranran",
-        "DiGuaTimelineAudioHelper"
-    }
-
-    for _, addonName in ipairs(addons) do
-        if C_AddOns.IsAddOnLoaded(addonName) then
-            return string.format("Interface\\AddOns\\%s\\Media\\", addonName)
-        end
-    end
-
-    return "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Media\\"
-end
-
 function Countdown:Stop()
     if ticker then
         ticker:Cancel()
@@ -39,7 +22,7 @@ function Countdown:PlayReadyCheckVoice()
     end
     -- [优化] 动态获取声道配置
     local channel = DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.audioChannel or "Master"
-    local path = GetMediaPath() .. "JiuWeiQueRen.ogg"
+    local path = addonTable.GetMediaPath() .. "JiuWeiQueRen.ogg"
     PlaySoundFile(path, channel)
 end
 
@@ -49,7 +32,7 @@ function Countdown:Start(timeRemaining)
         return 
     end
 
-    local currentMediaPath = GetMediaPath()
+    local currentMediaPath = addonTable.GetMediaPath()
     self:Stop() 
 
     -- 向上取整

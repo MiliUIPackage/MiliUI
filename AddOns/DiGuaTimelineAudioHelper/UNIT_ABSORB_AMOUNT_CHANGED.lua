@@ -24,7 +24,7 @@ frame:SetScript("OnEvent", function(self, event, unitTarget)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
             and not addonTable.UnitAbsorbAmountChanged[unitTarget]
-            then addonTable.CustomEncounterBar(4632783, 32.7, "护盾快打")
+            then addonTable.CustomEncounterBar(4632783, 32.7, "护盾快打", unitTarget)
             PlaySoundFile(addonTable.GetMediaPath() .. "HuDunKuaiDa.ogg", DiGuaTimelineAudioHelper.audioChannel)
             addonTable.UnitAbsorbAmountChanged[unitTarget] = true 
             C_Timer.After(10, function() addonTable.UnitAbsorbAmountChanged[unitTarget] = nil end) end
@@ -36,7 +36,7 @@ frame:SetScript("OnEvent", function(self, event, unitTarget)
             and UnitClassification(unitTarget) == "elite" -- 精英怪
             and UnitAffectingCombat(unitTarget) == true -- 在战斗中
             and not addonTable.UnitAbsorbAmountChanged[unitTarget]
-            then addonTable.CustomEncounterBar(132340, 34, "护盾快打")
+            then addonTable.CustomEncounterBar(132340, 34, "护盾快打", unitTarget)
             PlaySoundFile(addonTable.GetMediaPath() .. "HuDunKuaiDa.ogg", DiGuaTimelineAudioHelper.audioChannel)
             addonTable.UnitAbsorbAmountChanged[unitTarget] = true 
             C_Timer.After(31, function() addonTable.UnitAbsorbAmountChanged[unitTarget] = nil end) end

@@ -91,7 +91,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
             and UnitSpellTargetName(unitTarget) -- 法术有目标
             and UnitGroupRolesAssigned("player") == "HEALER"
-            then addonTable.CustomEncounterBar(132887, 6.5, "驱散魔法")
+            then addonTable.CustomEncounterBar(132887, 6.5, "驱散魔法", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "QuSanMoFa.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 厄运诅咒
@@ -106,13 +106,13 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and UnitSpellTargetName(unitTarget) -- 法术有目标
-            then                
+            then
                 addonTable.SpellCastStartTime[unitTarget] = GetTime() - addonTable.SpellCastStartTime[unitTarget]
                 if addonTable.SpellCastStartTime[unitTarget] <= 1.6 then
                     -- 播放前检查职业：德鲁伊、唤魔师、法师、萨满
                     local class = UnitClassBase("player")
                     if class == "DRUID" or class == "EVOKER" or class == "MAGE" or class == "SHAMAN" then
-                        addonTable.CustomEncounterBar(136122, 25.5, "驱散诅咒")
+                        addonTable.CustomEncounterBar(136122, 25.5, "驱散诅咒", unitTarget)
                         PlaySoundFile(MEDIA_PATH .. "QuSanZuZhou.ogg", DiGuaTimelineAudioHelper.audioChannel)
                     end
                 end
@@ -156,7 +156,32 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitSpellTargetName(unitTarget) -- 法术没目标
             then addonTable.SpellCastSuccessTriggered[unitTarget] = true -- 标记施法成功事件触发
             C_Timer.After(0.5, function() addonTable.SpellCastSuccessTriggered[unitTarget] = nil end) end -- 0.5秒后清除标记
-        
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 妖术
+            and select(8, GetInstanceInfo()) == 1762 -- 副本ID (诸王之眠)
+            and (C_Map.GetBestMapForUnit("player") or 0) == 1004 -- 地图ID
+            and IsIndoors() == true -- 在室内
+            and UnitLevel(unitTarget) == UnitLevel("player")
+            and UnitPowerType(unitTarget) == 0
+            and UnitClassification(unitTarget) == "elite" -- 精英怪
+            and UnitAffectingCombat(unitTarget) == true -- 在战斗中
+            and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
+            and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
+            and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
+            and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
+            and UnitSpellTargetName(unitTarget) -- 法术没目标
+            then 
+                local startTime = addonTable.SpellCastStartTime and addonTable.SpellCastStartTime[unitTarget]
+                if startTime then
+                    addonTable.SpellCastDuration[unitTarget] = GetTime() - startTime
+                    if addonTable.SpellCastDuration[unitTarget] >= 3.4 and addonTable.SpellCastDuration[unitTarget] <= 3.6 then
+                        -- 播放前检查职业：德鲁伊、唤魔师、法师、萨满
+                        local class = UnitClassBase("player")
+                        if class == "DRUID" or class == "EVOKER" or class == "MAGE" or class == "SHAMAN" then
+                            PlaySoundFile(MEDIA_PATH .. "QuSanZuZhou.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                        end                        
+                    end
+                end
+            end
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 地震岩层（工具） -- 暴怒猛击（工具）
             and select(8, GetInstanceInfo()) == 1762 -- 副本ID (诸王之眠)
             and (C_Map.GetBestMapForUnit("player") or 0) == 1004 -- 地图ID

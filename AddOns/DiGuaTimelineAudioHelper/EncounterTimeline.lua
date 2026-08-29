@@ -5,30 +5,6 @@ local addonName, addonTable = ...
 
 addonTable.AudioTimeline = {
 
-    -- [2124] = { -- 阿德里斯和阿斯匹克斯
-    --     interval = 999, 
-    --     startOffset = 0, 
-    --     alerts = {
-    --         [40] = "DaoShu3.ogg",
-    --         [110] = "DaoShu2.ogg",
-
-    --     }
-    -- },
-
-
-    -- [2126] = { -- 加瓦兹特
-    --     interval = 27, 
-    --     startOffset = 0, 
-    --     alerts = {
-    --         [18] = "DaoShu3.ogg",
-    --         [19] = "DaoShu2.ogg",
-    --         [20] = "DaoShu1.ogg",
-    --         [21] = "AnQuan.ogg",
-    --         [25] = "DaoShu2.ogg",
-    --         [26] = "DaoShu1.ogg",
-    --     }
-    -- },
-
     [2139] = { -- 黄金风蛇
         interval = 65, 
         startOffset = 0, 
@@ -53,18 +29,6 @@ addonTable.AudioTimeline = {
         }
     },
 
-    [2609] = { -- 梅莉杜莎·寒妆
-        interval = 999, 
-        startOffset = 0, 
-        alerts = {
-            -- [0]  = "ZhuYiDangXian.ogg",
-            -- [8]  = "DaoShu5.ogg",
-            -- [9]  = "DaoShu4.ogg",
-            -- [10]  = "DaoShu3.ogg",
-            -- [11]  = "DaoShu2.ogg",
-            -- [12]  = "DaoShu1.ogg",
-        }
-    },
     [2606] = { -- 柯姬雅·焰蹄
         interval = 40, 
         startOffset = 0, 
@@ -77,19 +41,6 @@ addonTable.AudioTimeline = {
             -- [12]  = "DaoShu1.ogg",
         }
     },
-    [2623] = { -- 基拉卡与厄克哈特·风脉
-        interval = 999, 
-        startOffset = 0, 
-        alerts = {
-            [8]  = { file = "QuSanTanKe.ogg", role = "HEALER" },
-            [33]  = { file = "QuSanTanKe.ogg", role = "HEALER" },
-            [57]  = { file = "QuSanTanKe.ogg", role = "HEALER" },
-            -- [10]  = "DaoShu3.ogg",
-            -- [11]  = "DaoShu2.ogg",
-            -- [12]  = "DaoShu1.ogg",
-        }
-    },
-
 
     [3103] = { -- 歼灭者萨祖克斯
         interval = 57, 
@@ -114,15 +65,6 @@ addonTable.AudioTimeline = {
         }
     },
 
-    [3208] = { -- 寒冬哨兵
-        interval = 63, 
-        startOffset = 0, 
-        alerts = {
-            [7]  = { file = "QuSanMoFa.ogg", role = "HEALER" },
-        }
-    },
-
-
     [3209] = { -- 纳洛拉克
         interval = 65, 
         startOffset = 0, 
@@ -131,17 +73,17 @@ addonTable.AudioTimeline = {
             [17]  = "DaoShu3.ogg",
             [18]  = "DaoShu2.ogg",
             [19]  = "DaoShu1.ogg",
-            [20]  = "DaoShu3.ogg",
-            [21]  = "DaoShu2.ogg",
-            [22]  = "DaoShu1.ogg",
+            [20]  = "XiaoXinJiTui.ogg",
+            -- [21]  = "DaoShu2.ogg",
+            -- [22]  = "DaoShu1.ogg",
             [23]  = "TanKeJieQuan.ogg",
             [40]  = "WuMiaoHouAOE.ogg",
             [42]  = "DaoShu3.ogg",
             [43]  = "DaoShu2.ogg",
             [44]  = "DaoShu1.ogg",
-            [45]  = "DaoShu3.ogg",
-            [46]  = "DaoShu2.ogg",
-            [47]  = "DaoShu1.ogg",
+            [45]  = "XiaoXinJiTui.ogg",
+            -- [46]  = "DaoShu2.ogg",
+            -- [47]  = "DaoShu1.ogg",
             [48]  = "TanKeJieQuan.ogg",
         }
     },
@@ -154,15 +96,6 @@ addonTable.AudioTimeline = {
             [51]  = "DuoQuan.ogg",
         }
     },
-
-
-    -- [3286] = { -- 阿特洛苏斯
-    --     interval = 50, 
-    --     startOffset = 0, 
-    --     alerts = {
-    --         [41]  = "ZhuanHuoDaGuai.ogg",
-    --     }
-    -- },
 
     [3287] = { -- 煞戎努斯
         interval = 53, 
@@ -182,33 +115,6 @@ addonTable.AudioTimeline = {
             [28] = "ZhuYiJieQuan.ogg",
         }
     },
-
-    [3457] = { -- 扭缠盘蛇
-        interval = 999, 
-        startOffset = 0, 
-        alerts = {
-            -- [24]  = "LaDuanLianXian.ogg",
-            -- [30]  = "XiaoGuaiDingNi.ogg",
-            -- [52]  = "DuoKaiChongFeng.ogg",
-            -- [57]  = "DuoKaiTouQian.ogg",
-        }
-    },
-
-    [3458] = { -- 祖尔加
-        interval = 65, 
-        startOffset = 0, 
-        alerts = {
-            -- [3]  = "ZhuYiDangXian.ogg",
-            -- [12] = "DaoShu5.ogg",
-            -- [13] = "DaoShu4.ogg",
-            -- [14] = "DaoShu3.ogg",
-            -- [15] = "DaoShu2.ogg",
-            -- [16] = "DaoShu1.ogg",
-            -- [17] = "AnQuan.ogg",
-        }
-    },
-
-
 
     [3470] = { -- 盘魂者内克扎莉
         interval = 999, 

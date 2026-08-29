@@ -7,10 +7,12 @@
 ## Author: 神秘地瓜
 ## Category: Raid
 ## Category-zhTW: 副本
-## Version: 1.7.8
+## Version: 1.8.3
 ## SavedVariables: DiGuaTimelineAudioHelper
 
 Utils.lua
+UpdateUiWidgetTracker.lua
+EncounterEventsCenterCountdown.lua
 PlayerSpellCooldown.lua
 CoTankPrivateAuras.lua
 NormalAuraSound.lua
@@ -30,5 +32,6 @@ FeastEmoteSound.lua
 NAME_PLATE_UNIT_ADDED.lua
 AutoGossip.lua
 BOSS_KILL.lua
+LFG_PROPOSAL_SHOW.lua
 NAME_PLATE_UNIT_REMOVED.lua
 UNIT_ABSORB_AMOUNT_CHANGED.lua

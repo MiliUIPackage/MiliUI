@@ -11,6 +11,9 @@ f:SetScript("OnEvent", function(self, event, unit)
         if addonTable.SpellCastSuccessTriggered then addonTable.SpellCastSuccessTriggered[unit] = nil end
         if addonTable.SpellChannelCounter then addonTable.SpellChannelCounter[unit] = nil end
         if addonTable.UnitAbsorbAmountChanged then addonTable.UnitAbsorbAmountChanged[unit] = nil end
-        
+        -- 取消该姓名板关联的时间轴倒计时（怪物死亡/离开视野时提前消失）
+        if addonTable.CancelCustomEncounterBar then
+            addonTable.CancelCustomEncounterBar(unit)
+        end
     end
 end)

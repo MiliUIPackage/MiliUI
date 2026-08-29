@@ -58,7 +58,7 @@ addonTable.EventSoundData = {
     [88] = { {"ZhunBeiAOE.ogg", 1} }, -- 贪婪咆哮 (1235118)
 
     -- 寒冬哨兵
-    [67] = { {"ZhuYiDianMing.ogg", 1} }, -- 冰川折磨 (1235548)
+    [67] = { {"QuSanMoFa.ogg", 1, {HEALER = true}}, {"ZhuYiDianMing.ogg", 1, {DAMAGER = true}} }, -- 冰川折磨 (1235548) 治疗=驱散 / DPS=注意点名
     [70] = { {"KaoJinZhongChang.ogg", 1} }, -- 寒冰暴雨 (1235656)
     [68] = { {"ZhuYiDuoFeng.ogg", 1} }, -- 狂怒的飑风 (1235623)
     [69] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 粉碎冰刺 (1235783)
@@ -122,7 +122,7 @@ addonTable.EventSoundData = {
 
     -- 柯姬雅·焰蹄
     [882] = { {"ZhunBeiDaGuai.ogg", 1} }, -- 缚焰仪式 (372864)
-    [883] = { {"DuoKaiTouQian.ogg", 1} }, -- 熔火巨石 (372110)
+    [883] = { {"DuoKaiTouQian.ogg", 1}, {"YinTouQian.ogg", 2}}, -- 熔火巨石 (372110)
     [884] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 灼热打击 (372858)
 
     -- 基拉卡与厄克哈特·风脉
@@ -204,7 +204,7 @@ addonTable.EventSoundData = {
     [639] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 强化猛击 (1284458)
     [640] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 鲜血毒液注射 (1284487)
     [641] = { {"ZhunBeiQuSan.ogg", 1, {HEALER = true}} }, -- 凋零之血 (1284483)
-    [643] = { {"HeBingXingZuo.ogg", 0} }, -- 强酸静滞 (1284588)
+    [643] = { {"HeBingXingZuo.ogg", 0}, {"QuanTuanFenSan.ogg", 2} }, -- 强酸静滞 (1284588)
     [668] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
     [673] = { {"FenTanShangHai.ogg", 1} }, -- 不稳定的瘴气 (1288232)
     [788] = { {"QuanTuanFenSan.ogg", 1} }, -- 变幻的原型毒液 (1296878)
@@ -212,8 +212,8 @@ addonTable.EventSoundData = {
     -- 迷失的探险者
     [721] = { {"ZhunBeiAOE.ogg", 0} }, -- 灾变祈求 (1291390)
     [722] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 冰封烈焰 (1286921)
-    [723] = { {"ZhuYiDianMing.ogg", 1, {HEALER = true, DAMAGER = true}}, {"YiMiaoMuBiaoShiNi.ogg", 0} }, -- 闪现新星 (1296025)
-    [724] = { {"ZhuYiDianMing.ogg", 1}, {"YiMiaoMuBiaoShiNi.ogg", 0} }, -- 闪现新星 (1290742)
+    -- [723] = { {"ZhuYiDianMing.ogg", 1, {HEALER = true, DAMAGER = true}}, {"YiMiaoMuBiaoShiNi.ogg", 0} }, -- 闪现新星 (1296025)
+    -- [724] = { {"ZhuYiDianMing.ogg", 1}, {"YiMiaoMuBiaoShiNi.ogg", 0} }, -- 闪现新星 (1290742)
     [725] = { {"FenTanShangHai.ogg", 1} }, -- 巨力重击 (1296092)
     [726] = { {"DuoBiGuiKe.ogg", 1} }, -- 旋壳 (1296061)
     -- [727] = { {"ZhuYiDuoQuan.ogg", 1} }, -- 投掷垃圾 (1291933)
@@ -222,7 +222,7 @@ addonTable.EventSoundData = {
     [768] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 撕裂碎片 (1295854)
     [776] = { {"BaMaFenSan.ogg", 1} }, -- 霜火连射 (1295886)
     [777] = { {"BaMaFenSan.ogg", 1} }, -- 霜火连射 (1295935)
-    [781] = { {"ZhaDanDianMing.ogg", 1} }, -- 爆炸惊喜 (1297625)
+    [781] = { {"WuMiaoHouDianMing.ogg", 2} }, -- 爆炸惊喜 (1297625)
     [783] = { {"JieDuanZhuanHuan.ogg", 1} }, -- 强化晋升 (1292779)  
 
     -- 万毒邪祟者瓦什尼克
@@ -240,9 +240,9 @@ addonTable.EventSoundData = {
 
     -- 斯索拉克
     -- [652] = { {"XiaoXinJiFei.ogg", 1} }, -- 狂怒侧风 (1285425)
-    [653] = { {"ZhunBeiDianMing.ogg", 1} }, -- 剧毒涌动 (1305959)
+    [653] = { {"ZhunBeiDianMing.ogg", 1}, {"KuaiZhaoGuangZhu.ogg", 0} }, -- 剧毒涌动 (1305959)
     [664] = { {"TanKeLianJi.ogg", 1} }, -- 顶级掠食者 (1277025)
-    [665] = { {"ZhunBeiChuiFeng.ogg", 1} }, -- 呼啸旋涡 (1285732)
+    [665] = { {"KaoJinZhongChang.ogg", 2}, {"YiShangJieDuan.ogg", 1} }, -- 呼啸旋涡 (1285732)
     -- [851] = { {".ogg", 1} }, -- 腐蚀利爪 (1296310)
     [863] = { {"ShouLingKuangBao.ogg", 0} }, -- 怒不可遏 (1296898)
 
@@ -305,7 +305,7 @@ addonTable.EventSoundData = {
     [370] = { {"ZhunBeiAOE.ogg", 1} }, -- 深渊之雨 (1260837)
     [745] = { {"ShouLingKuangBao.ogg", 1} }, -- 无尽潮汐 (1294867)
     [976] = { {"ZhuYiDianMing.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 刺骨寒霜 (1313393)
-    [977] = { {"ZhuanHuoXiaoGuai.ogg", 0} }, -- 诱人水泡 (1257717)
+    -- [977] = { {"ZhuanHuoXiaoGuai.ogg", 0} }, -- 诱人水泡 (1257717)
 
     -- 小怪
     [474] = { {"KongDuanXiaoGuai.ogg", 0} }, -- 翻捡 (1239352)
@@ -344,19 +344,6 @@ addonTable.EventSoundData = {
 }
 local frame = CreateFrame("Frame")
 
--- 获取玩家职责（优先通过专精获取，无专精时兜底队伍职责）
-local function GetPlayerRole()
-    local spec = GetSpecialization()
-    local role = spec and GetSpecializationRole(spec)
-    
-    if role and role ~= "NONE" then
-        return role
-    end
-    
-    -- 兜底：未选择专精时回退至队伍职责
-    return UnitGroupRolesAssigned("player")
-end
-
 -- 清空声音的函数
 function addonTable.ClearTimelineSounds(dataTable)
     if not dataTable then return end
@@ -374,7 +361,7 @@ function addonTable.registerTable(dataTable)
     if not dataTable then return end
     
     -- 获取当前推理出的职责 (TANK / HEALER / DAMAGER)
-    local currentRole = GetPlayerRole()
+    local currentRole = addonTable.GetPlayerRole()
     
     for eventID, configs in pairs(dataTable) do
         -- 遍历该 ID 下的所有配置
@@ -418,7 +405,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
         -- 延迟 1 秒执行，确保专精与职责数据完全更新
         C_Timer.After(1, function()
             addonTable.ClearTimelineSounds(addonTable.EventSoundData)
-            addonTable.registerTable(addonTable.EventSoundData)
+            -- 受"首领语音警报"开关控制：关闭时不注册任何 EncounterEvents 声音
+            if DiGuaTimelineAudioHelper.bossVoiceEnabled then
+                addonTable.registerTable(addonTable.EventSoundData)
+            end
         end)
     end
 end)

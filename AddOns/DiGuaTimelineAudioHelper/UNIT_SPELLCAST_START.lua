@@ -1,170 +1,5 @@
 -- UNIT_SPELLCAST_START.lua
 -- 处理怪物开始施法事件的独立分支
-local function GenerateAllSpecsCodeBlock(unitTarget)
-    if not UnitExists(unitTarget) then return end
-    
-    local spellName, _, _, _, _, _, _, _, spellID = UnitCastingInfo(unitTarget)
-    if not spellName then
-        spellName, _, _, _, _, _, _, _, spellID = UnitChannelInfo(unitTarget)
-    end
-    spellName = spellName or "未知法术"
-    local spellComment = spellName .. (spellID and (" (" .. spellID .. ")") or "")
-
-    C_Timer.After(0.5, function()
-        if not UnitExists(unitTarget) then print("❌ [错误] 0.5秒后怪物血条已消失") return end
-
-        print("🎯 [开始抓取快照] 技能 => " .. spellComment)
-        print("--------------------------------------------------")
-
-        local canAttack = UnitCanAttack("player", unitTarget)
-        print(" -> 是否可攻击:", canAttack)
-
-        local currentMapID = C_Map.GetBestMapForUnit("player") or 0  
-        print(" -> 当前地图ID:", currentMapID)
-
-        local subZoneText = GetSubZoneText() or ""
-        print(" -> 当前子区域名字:", subZoneText ~= "" and subZoneText or "无")
-
-        local name = UnitName(unitTarget) or "未知"
-        print(" -> 怪物名字:", name)
-
-        local actualLevel = UnitLevel(unitTarget) or 0
-        print(" -> 实际等级:", actualLevel)
-
-        local classification = UnitClassification(unitTarget) or "normal"
-        print(" -> 分类(精英/普通):", classification)
-
-        local unitPowerType = UnitPowerType(unitTarget) or 0   
-        print(" -> 能量类型代码:", unitPowerType)
-
-        -- local sex = UnitSex(unitTarget) or 1
-        -- print(" -> 性别代码:", sex)
-
-        local isInside = IsIndoors()
-        print(" -> 是否在室内:", isInside)
-
-        -- -- 严格获取大写英文职业名
-        -- local className = select(2, UnitClass(unitTarget)) or "NONE"
-        -- print(" -> 职业名称:", className)
-
-        -- local auraData = C_UnitAuras.GetAuraDataByIndex(unitTarget, 1, "HELPFUL") 
-        -- print(" -> 1号位增益光环(SpellID):", auraData and auraData.spellId or "无")
-
-        local inCombat = UnitAffectingCombat(unitTarget)
-        print(" -> 是否在战斗中:", inCombat)
-
-        local keyLevel = C_ChallengeMode.GetActiveKeystoneInfo() or 0
-        print(" -> 大秘境层数:", keyLevel)
-
-        local creatureFamily, familyID = UnitCreatureFamily(unitTarget)
-        creatureFamily = creatureFamily or "无"
-        print(" -> 生物家族:", creatureFamily, "(家族ID:", familyID or "nil", ")")
-
-        local stepInfo = C_ScenarioInfo.GetScenarioStepInfo()
-        local stepName = (type(stepInfo) == "table" and stepInfo.title) or "无"
-        print(" -> 战役步骤名称:", stepName)
-
-        local actualValue, percentValue, percentValueString = C_ScenarioInfo.GetUnitCriteriaProgressValues("target")
-        print(" -> 战役条件进度(数值/百分比/文本):", actualValue, percentValue, percentValueString)
-
-        local currentPercentText = GetTrashProgressString and GetTrashProgressString() or "0%"
-        print(" -> 当前小怪进度%:", currentPercentText)
-
-        local hasTarget = UnitExists(unitTarget .. "target")
-        print(" -> 目标是否存在(是否有目标):", hasTarget)
-
-        local rawTargetName = UnitSpellTargetName(unitTarget) 
-        print(" -> 法术指向目标名字:", rawTargetName)
-
-        local targetRole = UnitGroupRolesAssigned(unitTarget .. "target") or "NONE"
-        print(" -> 目标职责(TANK/HEALER/DAMAGER):", targetRole)
-
-        local instName, _, _, _, _, _, _, instanceID = GetInstanceInfo()
-        instanceID = instanceID or 0
-        print(" -> 副本信息(副本名/ID):", instName, instanceID)
-
-        local boss1Kill = C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false   
-        local boss2Kill = C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false
-        local boss3Kill = C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false 
-        local boss4Kill = C_ScenarioInfo.GetCriteriaInfo(4) and C_ScenarioInfo.GetCriteriaInfo(4).completed or false
-        print(" -> Boss击杀状态(1-4号):", boss1Kill, boss2Kill, boss3Kill, boss4Kill)
-
-        print("--------------------------------------------------")
-
-        -- 计算战斗文本注释
-        local combatComment = inCombat and "在战斗中" or "不在战斗中"
-        
-        -- 计算室内文本注释
-        local indoorComment = isInside and "在室内" or "在室外"
-
-        -- 计算性别文本注释
-        local sexComment = "无性别"
-        if sex == 2 then sexComment = "男性" elseif sex == 3 then sexComment = "女性" end
-
-        -- 计算分类注释
-        local classifcationComment = "普通怪"
-        if classification == "elite" then classifcationComment = "精英怪"
-        elseif classification == "rare" then classifcationComment = "稀有怪"
-        elseif classification == "rareelite" then classifcationComment = "稀有精英"
-        elseif classification == "worldboss" then classifcationComment = "世界Boss" end
-
-        -- 动态匹配客户端常量等级字符串
-        local levelCodeStr = tostring(actualLevel)
-        if actualLevel == 90 then
-            levelCodeStr = "PLAYER_LEVEL"
-        elseif actualLevel == 91 then
-            levelCodeStr = "NEXT_PLAYER_LEVEL"
-        elseif actualLevel == 92 then
-            levelCodeStr = "BOSS_LEVEL"
-        elseif actualLevel == -1 then
-            levelCodeStr = "-1"
-        end
-
-        local spellTargetCodeStr = rawTargetName and "            and UnitSpellTargetName(unitTarget) -- 法术有目标" or "            and not UnitSpellTargetName(unitTarget) -- 法术没目标"
-        local hasTargetStr = hasTarget and "UnitExists(unitTarget .. \"target\")" or "not UnitExists(unitTarget .. \"target\")"
-        -- local roleCheckStr = (hasTarget and targetRole ~= "NONE") and (" and UnitGroupRolesAssigned(unitTarget .. \"target\") == \"" .. targetRole .. "\"") or ""
-
-        -- 建立生物家族的判定行
-        local familyCodeStr = familyID and "            and select(2, UnitCreatureFamily(unitTarget)) -- 是生物家族" or "            and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族"
-
-        -- 纯净版运行代码块生成
-        print("        if unitTarget and unitTarget:find(\"nameplate\") and UnitCanAttack(\"player\", unitTarget)")
-        print("            and select(8, GetInstanceInfo()) == " .. instanceID .. " -- 副本ID (" .. (instName or "未知") .. ")")
-        print("            and (C_Map.GetBestMapForUnit(\"player\") or 0) == " .. currentMapID .. " -- 地图ID")
-        if subZoneText ~= "" then
-            print("            and GetSubZoneText() == \"" .. subZoneText .. "\" -- 子区域 (" .. subZoneText .. ")")
-        end
-        print("            and IsIndoors() == " .. tostring(isInside) .. " -- " .. indoorComment)
-        print("            and UnitLevel(unitTarget) == " .. levelCodeStr .. " -- 怪物等级: " .. actualLevel)
-        print("            and UnitPowerType(unitTarget) == " .. unitPowerType)
-        -- print("            and UnitSex(unitTarget) == " .. sex .. " -- " .. sexComment)
-        print("            and UnitClassification(unitTarget) == \"" .. classification .. "\" -- " .. classifcationComment)
-        print("            and UnitAffectingCombat(unitTarget) == " .. tostring(inCombat) .. " -- " .. combatComment)
-        
-        -- 生成代码块时，严格输出大写英文键，不夹带任何本地化文本
-        -- if className ~= "NONE" then
-        --     print("            and select(2, UnitClass(unitTarget)) == \"" .. className .. "\"")
-        -- end
-
-        -- 动态生成生物家族代码行
-        print(familyCodeStr)
-        
-        -- 4个Boss击杀状态判定条件生成
-        print("            and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == " .. tostring(boss1Kill) .. " -- Boss1")
-        print("            and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == " .. tostring(boss2Kill) .. " -- Boss2")
-        print("            and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == " .. tostring(boss3Kill) .. " -- Boss3")
-        print("            and (C_ScenarioInfo.GetCriteriaInfo(4) and C_ScenarioInfo.GetCriteriaInfo(4).completed or false) == " .. tostring(boss4Kill) .. " -- Boss4")
-
-        print(spellTargetCodeStr)
-        print("        then")
-        print("            C_Timer.After(0.5, function()")
-        -- print("                if UnitExists(unitTarget) and " .. hasTargetStr .. roleCheckStr .. " then")
-        print("                    PlaySoundFile(MEDIA_PATH .. \"音频文件名.ogg\", DiGuaTimelineAudioHelper.audioChannel)")
-        print("                end")
-        print("            end)")
-        print("        end")
-    end)
-end
 local addonName, addonTable = ...
 
 -- 注册事件监听的框架层代码（供主文件参考或直接使用）
@@ -173,6 +8,16 @@ addonTable.SpellCastCounter = addonTable.SpellCastCounter or {}
 addonTable.SpellCastStartTime = addonTable.SpellCastStartTime or {}
 addonTable.SpellCastAudioTriggered = nil
 addonTable.SpellCastDuration = addonTable.SpellCastDuration or {}
+
+-- 打断提醒是否忽略焦点目标：
+-- 控制台开关"有焦点也提醒打断"开启时 → 始终提醒打断；否则按原逻辑仅在无焦点时提醒
+local function ShouldWarnInterruptWithFocus()
+    if DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.interruptIgnoreFocus then
+        return true
+    end
+    return not UnitExists("focus")
+end
+
 frame:RegisterEvent("UNIT_SPELLCAST_START")
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "UNIT_SPELLCAST_START" then
@@ -250,10 +95,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
         local audioChannel = DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.audioChannel or "Master"
         
         -- if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
-        --     GenerateAllSpecsCodeBlock(unitTarget)
+        --     addonTable.GenerateAllSpecsCodeBlock(unitTarget)
         -- end
 
-
+        -- addonTable.CustomEncounterBar(132274, 10, "准备诱捕")
         -- ============================
         -- ==        毒牙祭坛        ==
         -- ============================
@@ -272,18 +117,18 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
             if currentCount % 2 == 1 then
                 if UnitGroupRolesAssigned("player") ~= "TANK" then
-                    -- addonTable.CustomEncounterBar(132274, 24, "准备诱捕")
+                    addonTable.CustomEncounterBar(132274, 24, "准备诱捕")
                     PlaySoundFile(MEDIA_PATH .. "ZhunBeiYouBu.ogg", DiGuaTimelineAudioHelper.audioChannel)
                 end               
                 -- 1.5秒后，如果是治疗则播放驱散魔法
-                C_Timer.After(3.2, function()
+                C_Timer.After(4.2, function()
                     if UnitGroupRolesAssigned("player") == "HEALER" and UnitExists(unitTarget) then                        
-                        PlaySoundFile(MEDIA_PATH .. "QuSanMoFa.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                        -- PlaySoundFile(MEDIA_PATH .. "QuSanMoFa.ogg", DiGuaTimelineAudioHelper.audioChannel)
                     end
                 end)
                 
             else
-                -- addonTable.CustomEncounterBar(135798, 23, "躲开头前")
+                addonTable.CustomEncounterBar(135798, 23.5, "躲开头前")
                 PlaySoundFile(MEDIA_PATH .. "DuoKaiTouQian.ogg", audioChannel)
             end
             
@@ -304,7 +149,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and addonTable.SpellCastAudioTriggered == nil
             then
                 addonTable.SpellCastAudioTriggered = true
-                addonTable.CustomEncounterBar(132109, 23, "坦克尖刺")
+                addonTable.CustomEncounterBar(132109, 23, "坦克尖刺", unitTarget)
                 PlaySoundFile(MEDIA_PATH .. "TanKeJianCi.ogg", DiGuaTimelineAudioHelper.audioChannel)
                 C_Timer.After(1, function() addonTable.SpellCastAudioTriggered = nil end)
             end
@@ -318,7 +163,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitAffectingCombat(unitTarget) == true -- 在战斗中
             and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
             and not UnitSpellTargetName(unitTarget)            
-            then addonTable.CustomEncounterBar(132334, 23, "准备吸奶盾")
+            then addonTable.CustomEncounterBar(132334, 23, "准备吸奶盾", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "ZhunBeiXiNaiDun.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 腐蚀之牙
@@ -335,7 +180,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
             and UnitSpellTargetName(unitTarget) -- 法术有目标
             and UnitGroupRolesAssigned("player") ~= "DAMAGER"
-            then addonTable.CustomEncounterBar(136067, 28, "坦克尖刺")
+            then addonTable.CustomEncounterBar(136067, 28, "坦克尖刺", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "TanKeJianCi.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 振响
@@ -349,7 +194,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
             and not UnitSpellTargetName(unitTarget) 
-            then addonTable.CustomEncounterBar(6238561, 28, "准备AOE")
+            then addonTable.CustomEncounterBar(6238561, 28, "准备AOE", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "ZhunBeiAOE.ogg", DiGuaTimelineAudioHelper.audioChannel) end
         
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 群体毒伤
@@ -388,10 +233,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
             local currentCount = addonTable.SpellCastCounter[unitTarget]
 
             if currentCount % 2 == 1 then
-                addonTable.CustomEncounterBar(132211, 36, "准备小怪")
+                addonTable.CustomEncounterBar(132211, 36, "准备小怪", unitTarget)
                 PlaySoundFile(MEDIA_PATH .. "ZhunBeiXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel)
             else
-                addonTable.CustomEncounterBar(5764921, 36.9, "注意躲圈")
+                addonTable.CustomEncounterBar(5764921, 36.9, "注意躲圈", unitTarget)
                 C_Timer.After(1.1, function() PlaySoundFile(MEDIA_PATH .. "ZhuYiDuoQuan.ogg", DiGuaTimelineAudioHelper.audioChannel) end)                
             end
             
@@ -410,7 +255,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and UnitSpellTargetName(unitTarget) 
-            then addonTable.CustomEncounterBar(5764918, 36.6, "坦克头前")
+            then addonTable.CustomEncounterBar(5764918, 36.6, "坦克头前", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "TanKeTouQian.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 剧毒弹幕
@@ -474,7 +319,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             then 
                 C_Timer.After(0.1, function() 
                     if UnitExists(unitTarget) and UnitExists(unitTarget .. "target") then
-                        addonTable.CustomEncounterBar(136025, 28, "准备AOE")
+                        addonTable.CustomEncounterBar(136025, 28, "准备AOE", unitTarget)
                         PlaySoundFile(MEDIA_PATH .. "ZhunBeiAOE.ogg", DiGuaTimelineAudioHelper.audioChannel)
                         C_Timer.After(3.3, function() 
                             if UnitExists(unitTarget) then
@@ -499,7 +344,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and addonTable.SpellCastAudioTriggered == nil
             then C_Timer.After(0.1, function() if UnitExists(unitTarget) and not UnitExists(unitTarget .. "target") 
             then addonTable.SpellCastAudioTriggered = true
-            addonTable.CustomEncounterBar(237517, 21, "躲开冲锋")
+            addonTable.CustomEncounterBar(237517, 21, "躲开冲锋", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "DuoKaiChongFeng.ogg", DiGuaTimelineAudioHelper.audioChannel)
             C_Timer.After(10, function() addonTable.SpellCastAudioTriggered = nil end) end end) end
 
@@ -513,7 +358,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
-            then addonTable.CustomEncounterBar(136050, 35.2, "准备点名")
+            then addonTable.CustomEncounterBar(136050, 35.2, "准备点名", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "ZhunBeiDianMing.ogg", DiGuaTimelineAudioHelper.audioChannel)
             C_Timer.After(1.4, function() if UnitExists(unitTarget) and UnitGroupRolesAssigned("player") == "HEALER" 
             then PlaySoundFile(MEDIA_PATH .. "QuSanMoFa.ogg", DiGuaTimelineAudioHelper.audioChannel) end end) end
@@ -562,7 +407,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             then 
                 C_Timer.After(0.2, function()
                     if UnitExists(unitTarget) and UnitExists(unitTarget .. "target") then
-                        addonTable.CustomEncounterBar(460698, 25.5, "准备AOE")
+                        addonTable.CustomEncounterBar(460698, 25.5, "准备AOE", unitTarget)
                         PlaySoundFile(MEDIA_PATH .. "ZhunBeiAOE.ogg", DiGuaTimelineAudioHelper.audioChannel)                    
                         addonTable.SpellCastAudioTriggered = true
                         C_Timer.After(25.5, function() addonTable.SpellCastAudioTriggered = nil end)
@@ -623,6 +468,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 雷霆冲击
+            and ShouldWarnInterruptWithFocus()
             and select(8, GetInstanceInfo()) == 2521 -- 副本ID (红玉新生法池)
             and (C_Map.GetBestMapForUnit("player") or 0) == 2094 -- 地图ID
             and IsIndoors() == false -- 在室外
@@ -652,7 +498,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
             and UnitSpellTargetName(unitTarget) -- 法术有目标
             and UnitGroupRolesAssigned("player") ~= "DAMAGER"
-            then addonTable.CustomEncounterBar(132318, 21.9, "坦克尖刺")
+            then addonTable.CustomEncounterBar(132318, 21.9, "坦克尖刺", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "TanKeJianCi.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
 
@@ -668,7 +514,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             then 
-                addonTable.CustomEncounterBar(132358, 31.5, "小心击退")
+                addonTable.CustomEncounterBar(132358, 31.5, "小心击退", unitTarget)
                 PlaySoundFile(MEDIA_PATH .. "XiaoXinJiTui.ogg", DiGuaTimelineAudioHelper.audioChannel) 
                 C_Timer.After(1, function()
                     if UnitExists(unitTarget) then
@@ -832,7 +678,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == true -- Boss3
             and UnitSpellTargetName(unitTarget) -- 法术有目标
             and UnitGroupRolesAssigned("player") ~= "DAMAGER"
-            then addonTable.CustomEncounterBar(132287, 24, "坦克尖刺")
+            then addonTable.CustomEncounterBar(132287, 24, "坦克尖刺", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "TanKeJianCi.ogg", DiGuaTimelineAudioHelper.audioChannel) end
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 蚀骨践踏
             and select(8, GetInstanceInfo()) == 1877 -- 副本ID (塞塔里斯神庙)
@@ -848,7 +694,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == true -- Boss3
             and not UnitSpellTargetName(unitTarget) -- 法术无目标
             then
-                addonTable.CustomEncounterBar(5764923, 26.7, "准备AOE")
+                addonTable.CustomEncounterBar(5764923, 26.7, "准备AOE", unitTarget)
                 PlaySoundFile(MEDIA_PATH .. "ZhunBeiAOE.ogg", DiGuaTimelineAudioHelper.audioChannel) 
                 C_Timer.After(0.5, function()
                     if UnitExists(unitTarget) then
@@ -897,7 +743,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and not UnitSpellTargetName(unitTarget) -- 法术无目标
             then C_Timer.After(2, function() if UnitExists(unitTarget)
             then PlaySoundFile(MEDIA_PATH .. "BaMaFenSan.ogg", DiGuaTimelineAudioHelper.audioChannel) 
-            addonTable.CustomEncounterBar(7264184, 20.1, "八码分散") end end) end
+            addonTable.CustomEncounterBar(7264184, 20.1, "八码分散", unitTarget) end end) end
 
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 撞头
@@ -919,6 +765,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         -- ==     虚空之痕竞技场     ==
         -- ============================
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 暗影箭雨
+            and ShouldWarnInterruptWithFocus()
             and select(8, GetInstanceInfo()) == 2923 -- 副本ID (虚空之痕竞技场)
             and UnitLevel(unitTarget) == UnitLevel("player") + 1
             and UnitPowerType(unitTarget) == 0
@@ -965,12 +812,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
                 C_Timer.After(1.1, function() 
                     if UnitExists(unitTarget) then
-                        addonTable.CustomEncounterBar(613397, 32.2, "转火宝珠")
+                        addonTable.CustomEncounterBar(613397, 32.2, "转火宝珠", unitTarget)
                         PlaySoundFile(MEDIA_PATH .. "ZhuanHuoBaoZhu.ogg", DiGuaTimelineAudioHelper.audioChannel) 
                     end
                 end)
             else
-                addonTable.CustomEncounterBar(237589, 32.1, "注意躲圈")
+                addonTable.CustomEncounterBar(237589, 32.1, "注意躲圈", unitTarget)
                 PlaySoundFile(MEDIA_PATH .. "ZhunBeiAOE.ogg", audioChannel)
                 C_Timer.After(2.8, function() 
                     if UnitExists(unitTarget) then                        
@@ -1039,7 +886,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             then addonTable.SpellCastStartTime[unitTarget] = GetTime() end
 
-        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 狂暴之沙 
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 狂暴之沙
+            and ShouldWarnInterruptWithFocus()
             and select(8, GetInstanceInfo()) == 2923 -- 副本ID (虚空之痕竞技场)
             and (C_Map.GetBestMapForUnit("player") or 0) == 2572 -- 地图ID
             and IsIndoors() == false -- 在室外
@@ -1064,7 +912,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitAffectingCombat(unitTarget) == true -- 在战斗中
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
-            then addonTable.CustomEncounterBar(1127958, 22, "躲开冲锋")
+            then addonTable.CustomEncounterBar(1127958, 22, "躲开冲锋", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "DuoKaiChongFeng.ogg", DiGuaTimelineAudioHelper.audioChannel) return end
 
 
@@ -1079,11 +927,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
             and UnitSpellTargetName(unitTarget) -- 法术有目标
             and UnitGroupRolesAssigned("player") ~= "DAMAGER"
-            then addonTable.CustomEncounterBar(1127958, 23, "坦克击退")
+            then addonTable.CustomEncounterBar(1127958, 23, "坦克击退", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "TanKeJiTui.ogg", DiGuaTimelineAudioHelper.audioChannel) return end
 
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 疯狂尖啸
+            and ShouldWarnInterruptWithFocus()
             and select(8, GetInstanceInfo()) == 2923 -- 副本ID (虚空之痕竞技场)
             and (C_Map.GetBestMapForUnit("player") or 0) == 2572 -- 地图ID
             and IsIndoors() == false -- 在室外
@@ -1113,7 +962,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 addonTable.SpellCastCounter[unitTarget] = (addonTable.SpellCastCounter[unitTarget] or 0) + 1
                 local currentCount = addonTable.SpellCastCounter[unitTarget]                
                 if currentCount % 2 == 1 then
-                    addonTable.CustomEncounterBar(4622488, 25.6, "分摊伤害")
+                    addonTable.CustomEncounterBar(4622488, 25.6, "分摊伤害", unitTarget)
                     PlaySoundFile(MEDIA_PATH .. "FenTanShangHai.ogg", DiGuaTimelineAudioHelper.audioChannel)
                     C_Timer.After(4.9, function() 
                         if UnitExists(unitTarget) then
@@ -1121,7 +970,9 @@ frame:SetScript("OnEvent", function(self, event, ...)
                         end
                     end)
                 else
-                    PlaySoundFile(MEDIA_PATH .. "ZhuYiDianMing.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                    if UnitGroupRolesAssigned("player") ~= "TANK" then
+                        PlaySoundFile(MEDIA_PATH .. "ZhuYiDianMing.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                    end
                 end         
             return
             end
@@ -1170,7 +1021,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             then
                 C_Timer.After(0.5, function()
                     if not UnitExists(unitTarget .. "target") then
-                        addonTable.CustomEncounterBar(136185, 30.3, "准备击退")
+                        addonTable.CustomEncounterBar(136185, 30.3, "准备击退", unitTarget)
                         PlaySoundFile(MEDIA_PATH .. "ZhunBeiJiTui.ogg", DiGuaTimelineAudioHelper.audioChannel)
                         C_Timer.After(1, function()
                             if UnitExists(unitTarget) then
@@ -1235,7 +1086,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitSpellTargetName(unitTarget) -- 法术有目标
             and not addonTable.SpellCastAudioTriggered
             then
-                addonTable.CustomEncounterBar(132154, 24, "躲开头前")
+                addonTable.CustomEncounterBar(132154, 24, "躲开头前", unitTarget)
                 PlaySoundFile(MEDIA_PATH .. "DuoKaiTouQian.ogg", DiGuaTimelineAudioHelper.audioChannel) 
                 addonTable.SpellCastAudioTriggered = true
                 C_Timer.After(1, function()
@@ -1255,7 +1106,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             and UnitExists(unitTarget .. "target")
             then
-                addonTable.CustomEncounterBar(2576091, 24, "准备AOE")
+                addonTable.CustomEncounterBar(2576091, 24, "准备AOE", unitTarget)
                 PlaySoundFile(MEDIA_PATH .. "ZhuYiJiaoXia.ogg", DiGuaTimelineAudioHelper.audioChannel)
                 C_Timer.After(1, function()
                     if UnitExists(unitTarget) then
@@ -1280,6 +1131,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 妖术齐射
+            and ShouldWarnInterruptWithFocus()
             and select(8, GetInstanceInfo()) == 1762 -- 副本ID (诸王之眠)
             and (C_Map.GetBestMapForUnit("player") or 0) == 1004 -- 地图ID
             and UnitLevel(unitTarget) == UnitLevel("player") + 1
@@ -1289,7 +1141,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             and UnitGroupRolesAssigned("player") ~= "HEALER"
-            then addonTable.CustomEncounterBar(615099, 24, "打断大怪")
+            then addonTable.CustomEncounterBar(615099, 24, "打断大怪", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "DaDuanDaGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
 
@@ -1305,7 +1157,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
-            and not UnitSpellTargetName(unitTarget) -- 法术无目标
+            and not UnitSpellTargetName(unitTarget) -- 法术无目标            
             then PlaySoundFile(MEDIA_PATH .. "DaDuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) return end
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 过载
             and select(8, GetInstanceInfo()) == 1762 -- 副本ID (诸王之眠)
@@ -1338,7 +1190,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             and not UnitIsDeadOrGhost(unitTarget) -- 初始触发时必须存活
             then
-            addonTable.CustomEncounterBar(451169, 11, "准备AOE")
+            addonTable.CustomEncounterBar(451169, 11, "准备AOE", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "zhunbeiAOE.ogg", DiGuaTimelineAudioHelper.audioChannel)
             
             C_Timer.After(8, function()
@@ -1385,7 +1237,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
             and UnitSpellTargetName(unitTarget) -- 法术有目标
             and addonTable.GetEncounterID() == 0
-            then addonTable.CustomEncounterBar(236399, 23.1, "准备救人")
+            then addonTable.CustomEncounterBar(236399, 23.1, "准备救人", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "ZhunBeiJiuRen.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
 
@@ -1404,6 +1256,20 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and addonTable.GetEncounterID() == 2142 -- 在首领战
             then PlaySoundFile(MEDIA_PATH .. "DaDuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 妖术（工具）
+            and select(8, GetInstanceInfo()) == 1762 -- 副本ID (诸王之眠)
+            and (C_Map.GetBestMapForUnit("player") or 0) == 1004 -- 地图ID
+            and IsIndoors() == true -- 在室内
+            and UnitLevel(unitTarget) == UnitLevel("player")
+            and UnitPowerType(unitTarget) == 0
+            and UnitClassification(unitTarget) == "elite" -- 精英怪
+            and UnitAffectingCombat(unitTarget) == true -- 在战斗中
+            and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
+            and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
+            and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
+            and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
+            and UnitSpellTargetName(unitTarget) -- 法术没目标
+            then addonTable.SpellCastStartTime[unitTarget] = GetTime() end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 地震岩层 -- 暴怒猛击
             and select(8, GetInstanceInfo()) == 1762 -- 副本ID (诸王之眠)
@@ -1457,7 +1323,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == true -- Boss3
             and (C_ScenarioInfo.GetCriteriaInfo(4) and C_ScenarioInfo.GetCriteriaInfo(4).completed or false) == false -- Boss4
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
-            then addonTable.CustomEncounterBar(1022945, 22, "注意点名")
+            then addonTable.CustomEncounterBar(1022945, 22, "注意点名", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "ZhuYiDianMing.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 灵魂碾压
@@ -1476,7 +1342,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             then 
                 if addonTable.SpellCastCounter[unitTarget] == true then
                     if UnitGroupRolesAssigned("player") ~= "DAMAGER" then
-                        addonTable.CustomEncounterBar(6035321, 24.3, "坦克尖刺")
+                        addonTable.CustomEncounterBar(6035321, 24.3, "坦克尖刺", unitTarget)
                         PlaySoundFile(MEDIA_PATH .. "TanKeJianCi.ogg", DiGuaTimelineAudioHelper.audioChannel)
                     end
                 else
@@ -1484,7 +1350,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                         if UnitExists(unitTarget) then
                             if addonTable.SpellCastSuccessTriggered[unitTarget] == nil then 
                                 if UnitGroupRolesAssigned("player") ~= "DAMAGER" then
-                                    addonTable.CustomEncounterBar(6035321, 24.3, "坦克尖刺")
+                                    addonTable.CustomEncounterBar(6035321, 24.3, "坦克尖刺", unitTarget)
                                     PlaySoundFile(MEDIA_PATH .. "TanKeJianCi.ogg", DiGuaTimelineAudioHelper.audioChannel)
                                 end
                             end
@@ -1510,10 +1376,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 C_Timer.After(2.1, function()
                     if addonTable.SpellCastSuccessTriggered[unitTarget] == true then
                         C_Timer.After(0.4, function()
-                            if UnitExists(unitTarget) then
+                            if UnitExists(unitTarget) and addonTable.ShiXueFeiFuAudioLock == nil then
                                 if UnitGroupRolesAssigned("player") == "HEALER" then
-                                    addonTable.CustomEncounterBar(1033474, 17, "单刷流血")
+                                    addonTable.ShiXueFeiFuAudioLock = true
+                                    addonTable.CustomEncounterBar(1033474, 17, "单刷流血", unitTarget)
                                     PlaySoundFile(MEDIA_PATH .. "DanShuaLiuXue.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                                    C_Timer.After(1, function() addonTable.ShiXueFeiFuAudioLock = nil end)
                                 end
                             end
                         end)
@@ -1525,6 +1393,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         -- ==         夺目谷         ==
         -- ============================
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 光箭雨
+            and ShouldWarnInterruptWithFocus()
             and select(8, GetInstanceInfo()) == 2859 -- 副本ID (夺目谷)
             and (C_Map.GetBestMapForUnit("player") or 0) == 2500 -- 地图ID
             and IsIndoors() == false -- 在室外
@@ -1534,6 +1403,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitAffectingCombat(unitTarget) == true -- 在战斗中
             and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
             and not UnitSpellTargetName(unitTarget) -- 法术有目标
+            and UnitGroupRolesAssigned("player") ~= "HEALER"
             then PlaySoundFile(MEDIA_PATH .. "DaDuanJianYu.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
 
@@ -1605,7 +1475,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 
                 if exists then
                     if addonTable.SpellCastCounter[unitTarget] == true then
-                        addonTable.CustomEncounterBar(7291441, 33.9, "小心击退")
+                        addonTable.CustomEncounterBar(7291441, 33.9, "小心击退", unitTarget)
                         PlaySoundFile(MEDIA_PATH .. "XiaoXinJiTui.ogg", DiGuaTimelineAudioHelper.audioChannel)
                         C_Timer.After(0.5, function()
                             if UnitExists(unitTarget) then
@@ -1622,6 +1492,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                         end)
                         addonTable.SpellCastCounter[unitTarget] = nil
                     else
+                        addonTable.CustomEncounterBar(132862, 32.1, "准备AOE", unitTarget)
                         PlaySoundFile(MEDIA_PATH .. "ZhunBeiAOE.ogg", DiGuaTimelineAudioHelper.audioChannel)
                     end
                 end
@@ -1643,6 +1514,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             then addonTable.SpellCastStartTime[unitTarget] = GetTime() end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 迷乱尖叫
+            and ShouldWarnInterruptWithFocus()
             and select(8, GetInstanceInfo()) == 2859 -- 副本ID (夺目谷)
             and (C_Map.GetBestMapForUnit("player") or 0) == 2500 -- 地图ID
             and IsIndoors() == false -- 在室外
@@ -1683,7 +1555,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             then                
                 addonTable.SpellCastStartTime[unitTarget] = true
                 if UnitGroupRolesAssigned("player") ~= "DAMAGER" then
-                    addonTable.CustomEncounterBar(252175, 27.9, "坦克击飞")
+                    addonTable.CustomEncounterBar(252175, 27.9, "坦克击飞", unitTarget)
                     PlaySoundFile(MEDIA_PATH .. "TanKeJiFei.ogg", DiGuaTimelineAudioHelper.audioChannel)
                 end
             end
@@ -1701,7 +1573,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(4) and C_ScenarioInfo.GetCriteriaInfo(4).completed or false) == false -- Boss4
             and not UnitSpellTargetName(unitTarget) -- 法术无目标
             and addonTable.SpellCastStartTime[unitTarget]
-            then addonTable.CustomEncounterBar(236999, 27.9, "召唤小怪")
+            then addonTable.CustomEncounterBar(236999, 27.9, "召唤小怪", unitTarget)
             C_Timer.After(0.1, function() PlaySoundFile(MEDIA_PATH .. "ZhaoHuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) end)
             addonTable.SpellCastStartTime[unitTarget] = nil return end
 
@@ -1718,7 +1590,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(4) and C_ScenarioInfo.GetCriteriaInfo(4).completed or false) == false -- Boss4
             and not UnitSpellTargetName(unitTarget) -- 法术无目标
             and not addonTable.SpellCastStartTime[unitTarget]
-            then addonTable.CustomEncounterBar(136016, 26.7, "准备AOE")
+            then addonTable.CustomEncounterBar(136016, 26.7, "准备AOE", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "ZhunBeiAOE.ogg", DiGuaTimelineAudioHelper.audioChannel) return end
         
         -- ============================
@@ -1744,7 +1616,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 -- addonTable.CustomEncounterBar(132330, 24, "坦克流血")
                 -- PlaySoundFile(MEDIA_PATH .. "TanKeLiuXue.ogg", DiGuaTimelineAudioHelper.audioChannel)
             else
-                addonTable.CustomEncounterBar(132357, 24, "坦克尖刺")
+                addonTable.CustomEncounterBar(132357, 24, "坦克尖刺", unitTarget)
                 PlaySoundFile(MEDIA_PATH .. "TanKeJianCi.ogg", audioChannel)
             end
             
@@ -1765,6 +1637,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
             and not UnitSpellTargetName(unitTarget) -- 法术无目标
             and addonTable.PoHuaiMoChengFaZhe == 2
+            and UnitIsLieutenant(unitTarget)
             then C_Timer.After(0.4, function() if UnitExists(unitTarget) and UnitExists(unitTarget .. "target")
             then PlaySoundFile(MEDIA_PATH .. "ZhunBeiAOE.ogg", DiGuaTimelineAudioHelper.audioChannel) return end end) end
 
@@ -1867,6 +1740,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
             and UnitSpellTargetName(unitTarget) -- 法术有目标
+            and UnitIsLieutenant(unitTarget)
             then PlaySoundFile(MEDIA_PATH .. "ZhuYiSheXian.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         -- ============================
@@ -1889,18 +1763,19 @@ frame:SetScript("OnEvent", function(self, event, ...)
             if currentCount % 2 == 1 then
                 C_Timer.After(1.6, function() 
                     if UnitExists(unitTarget) and UnitGroupRolesAssigned("player") ~= "HEALER" then
-                        addonTable.CustomEncounterBar(2101983, 24.2, "转火图腾")
+                        addonTable.CustomEncounterBar(2101983, 24.2, "转火图腾", unitTarget)
                         PlaySoundFile(MEDIA_PATH .. "ZhuanHuoTuTeng.ogg", DiGuaTimelineAudioHelper.audioChannel)
                     end
                 end)       
             else
-                addonTable.CustomEncounterBar(3154546, 25.5, "准备AOE")
+                addonTable.CustomEncounterBar(3154546, 25.5, "准备AOE", unitTarget)
                 PlaySoundFile(MEDIA_PATH .. "ZhunBeiAOE.ogg", audioChannel)
             end            
             return
             end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 冰冷咆哮
+            and ShouldWarnInterruptWithFocus()
             and select(8, GetInstanceInfo()) == 2825 -- 副本ID (纳洛拉克的洞穴)
             and (C_Map.GetBestMapForUnit("player") or 0) == 2514 -- 地图ID
             and IsIndoors() == false -- 在室外
@@ -1912,6 +1787,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
+            and UnitGroupRolesAssigned("player") ~= "HEALER"
             then PlaySoundFile(MEDIA_PATH .. "DaDuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 冰川之墓
@@ -1926,7 +1802,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             then C_Timer.After(0.5, function() if UnitExists(unitTarget) and UnitExists(unitTarget .. "target")
-            then addonTable.CustomEncounterBar(236209, 19, "准备定身")
+            then addonTable.CustomEncounterBar(236209, 18, "准备定身", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "ZhunBeiDingShen.ogg", DiGuaTimelineAudioHelper.audioChannel) end end) end
 
 
@@ -1944,7 +1820,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             then C_Timer.After(0.5, function() if UnitExists(unitTarget) and not UnitExists(unitTarget .. "target")
-            then addonTable.CustomEncounterBar(132318, 28.7, "近战大圈")
+            then addonTable.CustomEncounterBar(132318, 28.7, "近战大圈", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "JinZhanDaQuan.ogg", DiGuaTimelineAudioHelper.audioChannel) end end) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 原始回响 (工具) -- 毒矛乱射 (工具)
@@ -1973,7 +1849,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             and addonTable.SpellCastSuccessTriggered[unitTarget] == nil
-            then addonTable.CustomEncounterBar(463283, 23.5, "准备AOE")
+            then addonTable.CustomEncounterBar(463283, 23.5, "准备AOE", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "ZhunBeiAOE.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 毒矛乱射
@@ -1988,9 +1864,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             and addonTable.SpellCastSuccessTriggered[unitTarget] == true
-            then addonTable.CustomEncounterBar(135125, 21.8, "注意躲圈")
-            PlaySoundFile(MEDIA_PATH .. "ZhuYiDuoQuan.ogg", DiGuaTimelineAudioHelper.audioChannel) end
-
+            then PlaySoundFile(MEDIA_PATH .. "ZhuYiDuoQuan.ogg", DiGuaTimelineAudioHelper.audioChannel) end
+            -- addonTable.CustomEncounterBar(135125, 21.8, "注意躲圈", unitTarget)
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 地震术 -- 动荡图腾
             and select(8, GetInstanceInfo()) == 2825 -- 副本ID (纳洛拉克的洞穴)
             and (C_Map.GetBestMapForUnit("player") or 0) == 2513 -- 地图ID
@@ -2013,10 +1888,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
             
             -- 1 和 3(即模为0) 轮播放 BaMaFenSan.ogg，2 轮播放 ZhaoHuanXiaoGuai.ogg
             if currentRound == 1 or currentRound == 0 then
-                addonTable.CustomEncounterBar(451165, 15.8, "注意点名")
+                addonTable.CustomEncounterBar(451165, 15.8, "注意点名", unitTarget)
                 PlaySoundFile(MEDIA_PATH .. "ZhuYiDianMing.ogg", DiGuaTimelineAudioHelper.audioChannel)
             elseif currentRound == 2 then
-                addonTable.CustomEncounterBar(135829, 32, "动荡图腾")
+                addonTable.CustomEncounterBar(135829, 32, "准备小怪", unitTarget)
                 PlaySoundFile(MEDIA_PATH .. "ZhunBeiXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel)
             end
             

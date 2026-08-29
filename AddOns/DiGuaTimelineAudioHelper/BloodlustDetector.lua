@@ -64,8 +64,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
             -- 只有在真正获得 Debuff 的瞬间，才去获取并绑定副本唯一 ID
             local _, _, _, _, _, _, _, currentInstanceID = GetInstanceInfo()
             savedInstanceID = currentInstanceID
-            -- 开启提示音（需要可自行取消注释）
-            -- PlaySoundFile(MEDIA_PATH .. "ShiXueKaiQi.ogg", audioChannel)
+            -- 开启提示音（受控制台"嗜血开启提示音"开关控制，默认关闭）
+            if DiGuaTimelineAudioHelper.bloodlustOpenSound then
+                PlaySoundFile(MEDIA_PATH .. "ShiXueKaiQi.ogg", audioChannel)
+            end
             
         -- 【功能2】嗜血结束：延迟 0.4 秒，用来吃掉插钥匙或切地图带来的瞬间清除
         elseif not hasDebuffRightNow and isBloodlustActive then

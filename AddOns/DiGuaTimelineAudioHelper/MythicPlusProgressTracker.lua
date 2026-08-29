@@ -28,6 +28,24 @@ frame:SetScript("OnEvent", function(self, event, criteriaID)
         if criteriaID == 113962 then -- 破坏魔惩罚者
             addonTable.PoHuaiMoChengFaZhe = addonTable.PoHuaiMoChengFaZhe + 1
 
+        elseif criteriaID == 115538 then -- 神灵代言人纳尼亚
+                addonTable.CustomEncounterBar(460693, 26, "首领激活")
+                -- 首领激活前 5 秒语音倒数：5 → 4 → 3 → 2 → 1（26 秒倒计时的最后 5 秒）
+                C_Timer.After(21, function()
+                    PlaySoundFile(addonTable.GetMediaPath() .. "DaoShu5.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                end)
+                C_Timer.After(22, function()
+                    PlaySoundFile(addonTable.GetMediaPath() .. "DaoShu4.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                end)
+                C_Timer.After(23, function()
+                    PlaySoundFile(addonTable.GetMediaPath() .. "DaoShu3.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                end)
+                C_Timer.After(24, function()
+                    PlaySoundFile(addonTable.GetMediaPath() .. "DaoShu2.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                end)
+                C_Timer.After(25, function()
+                    PlaySoundFile(addonTable.GetMediaPath() .. "DaoShu1.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                end)
         elseif criteriaID == 116483 then -- 活体毒液
             if not addonTable.isAudioDebounced then
                 addonTable.isAudioDebounced = true

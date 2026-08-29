@@ -96,6 +96,11 @@ end
 function addonTable.RefreshAnchorState(isConsoleShown)
     if not DiGuaTimelineAudioHelper then return end
 
+    -- 中央倒计时拖拽状态与控制台联动（打开控制台即可拖动，仿本文件模式）
+    if addonTable.SetCenterCountdownDragEnabled then
+        addonTable.SetCenterCountdownDragEnabled(isConsoleShown)
+    end
+
     -- 只有当控制台打开 且 用户开启了副坦监控时，绿框才具有实体
     if isConsoleShown and DiGuaTimelineAudioHelper.coTankAuraEnabled then
         HostFrame.bg:Show()          -- 显示绿色背景

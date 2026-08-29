@@ -7,171 +7,6 @@ local frame = CreateFrame("Frame")
 addonTable.SpellChannelStart = addonTable.SpellChannelStart or {}
 addonTable.SpellChannelCounter = addonTable.SpellChannelCounter or {}
 -- addonTable.UNIT_SPELLCAST_CHANNEL_STOP_Triggered = addonTable.UNIT_SPELLCAST_CHANNEL_STOP_Triggered or {}
-local function GenerateAllSpecsCodeBlock(unitTarget)
-    if not UnitExists(unitTarget) then return end
-    
-    local spellName, _, _, _, _, _, _, _, spellID = UnitCastingInfo(unitTarget)
-    if not spellName then
-        spellName, _, _, _, _, _, _, _, spellID = UnitChannelInfo(unitTarget)
-    end
-    spellName = spellName or "未知法术"
-    local spellComment = spellName .. (spellID and (" (" .. spellID .. ")") or "")
-
-    C_Timer.After(0.5, function()
-        if not UnitExists(unitTarget) then print("❌ [错误] 0.5秒后怪物血条已消失") return end
-
-        print("🎯 [开始抓取快照] 技能 => " .. spellComment)
-        print("--------------------------------------------------")
-
-        local canAttack = UnitCanAttack("player", unitTarget)
-        print(" -> 是否可攻击:", canAttack)
-
-        local currentMapID = C_Map.GetBestMapForUnit("player") or 0  
-        print(" -> 当前地图ID:", currentMapID)
-
-        local subZoneText = GetSubZoneText() or ""
-        print(" -> 当前子区域名字:", subZoneText ~= "" and subZoneText or "无")
-
-        local name = UnitName(unitTarget) or "未知"
-        print(" -> 怪物名字:", name)
-
-        local actualLevel = UnitLevel(unitTarget) or 0
-        print(" -> 实际等级:", actualLevel)
-
-        local classification = UnitClassification(unitTarget) or "normal"
-        print(" -> 分类(精英/普通):", classification)
-
-        local unitPowerType = UnitPowerType(unitTarget) or 0   
-        print(" -> 能量类型代码:", unitPowerType)
-
-        -- local sex = UnitSex(unitTarget) or 1
-        -- print(" -> 性别代码:", sex)
-
-        local isInside = IsIndoors()
-        print(" -> 是否在室内:", isInside)
-
-        -- -- 严格获取大写英文职业名
-        -- local className = select(2, UnitClass(unitTarget)) or "NONE"
-        -- print(" -> 职业名称:", className)
-
-        -- local auraData = C_UnitAuras.GetAuraDataByIndex(unitTarget, 1, "HELPFUL") 
-        -- print(" -> 1号位增益光环(SpellID):", auraData and auraData.spellId or "无")
-
-        local inCombat = UnitAffectingCombat(unitTarget)
-        print(" -> 是否在战斗中:", inCombat)
-
-        local keyLevel = C_ChallengeMode.GetActiveKeystoneInfo() or 0
-        print(" -> 大秘境层数:", keyLevel)
-
-        local creatureFamily, familyID = UnitCreatureFamily(unitTarget)
-        creatureFamily = creatureFamily or "无"
-        print(" -> 生物家族:", creatureFamily, "(家族ID:", familyID or "nil", ")")
-
-        local stepInfo = C_ScenarioInfo.GetScenarioStepInfo()
-        local stepName = (type(stepInfo) == "table" and stepInfo.title) or "无"
-        print(" -> 战役步骤名称:", stepName)
-
-        local actualValue, percentValue, percentValueString = C_ScenarioInfo.GetUnitCriteriaProgressValues("target")
-        print(" -> 战役条件进度(数值/百分比/文本):", actualValue, percentValue, percentValueString)
-
-        local currentPercentText = GetTrashProgressString and GetTrashProgressString() or "0%"
-        print(" -> 当前小怪进度%:", currentPercentText)
-
-        local hasTarget = UnitExists(unitTarget .. "target")
-        print(" -> 目标是否存在(是否有目标):", hasTarget)
-
-        local rawTargetName = UnitSpellTargetName(unitTarget) 
-        print(" -> 法术指向目标名字:", rawTargetName)
-
-        local targetRole = UnitGroupRolesAssigned(unitTarget .. "target") or "NONE"
-        print(" -> 目标职责(TANK/HEALER/DAMAGER):", targetRole)
-
-        local instName, _, _, _, _, _, _, instanceID = GetInstanceInfo()
-        instanceID = instanceID or 0
-        print(" -> 副本信息(副本名/ID):", instName, instanceID)
-
-        local boss1Kill = C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false   
-        local boss2Kill = C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false
-        local boss3Kill = C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false 
-        local boss4Kill = C_ScenarioInfo.GetCriteriaInfo(4) and C_ScenarioInfo.GetCriteriaInfo(4).completed or false
-        print(" -> Boss击杀状态(1-4号):", boss1Kill, boss2Kill, boss3Kill, boss4Kill)
-
-        print("--------------------------------------------------")
-
-        -- 计算战斗文本注释
-        local combatComment = inCombat and "在战斗中" or "不在战斗中"
-        
-        -- 计算室内文本注释
-        local indoorComment = isInside and "在室内" or "在室外"
-
-        -- 计算性别文本注释
-        local sexComment = "无性别"
-        if sex == 2 then sexComment = "男性" elseif sex == 3 then sexComment = "女性" end
-
-        -- 计算分类注释
-        local classifcationComment = "普通怪"
-        if classification == "elite" then classifcationComment = "精英怪"
-        elseif classification == "rare" then classifcationComment = "稀有怪"
-        elseif classification == "rareelite" then classifcationComment = "稀有精英"
-        elseif classification == "worldboss" then classifcationComment = "世界Boss" end
-
-        -- 动态匹配客户端常量等级字符串
-        local levelCodeStr = tostring(actualLevel)
-        if actualLevel == 90 then
-            levelCodeStr = "PLAYER_LEVEL"
-        elseif actualLevel == 91 then
-            levelCodeStr = "NEXT_PLAYER_LEVEL"
-        elseif actualLevel == 92 then
-            levelCodeStr = "BOSS_LEVEL"
-        elseif actualLevel == -1 then
-            levelCodeStr = "-1"
-        end
-
-        local spellTargetCodeStr = rawTargetName and "            and UnitSpellTargetName(unitTarget) -- 法术有目标" or "            and not UnitSpellTargetName(unitTarget) -- 法术没目标"
-        local hasTargetStr = hasTarget and "UnitExists(unitTarget .. \"target\")" or "not UnitExists(unitTarget .. \"target\")"
-        -- local roleCheckStr = (hasTarget and targetRole ~= "NONE") and (" and UnitGroupRolesAssigned(unitTarget .. \"target\") == \"" .. targetRole .. "\"") or ""
-
-        -- 建立生物家族的判定行
-        local familyCodeStr = familyID and "            and select(2, UnitCreatureFamily(unitTarget)) -- 是生物家族" or "            and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族"
-
-        -- 纯净版运行代码块生成
-        print("        if unitTarget and unitTarget:find(\"nameplate\") and UnitCanAttack(\"player\", unitTarget)")
-        print("            and select(8, GetInstanceInfo()) == " .. instanceID .. " -- 副本ID (" .. (instName or "未知") .. ")")
-        print("            and (C_Map.GetBestMapForUnit(\"player\") or 0) == " .. currentMapID .. " -- 地图ID")
-        if subZoneText ~= "" then
-            print("            and GetSubZoneText() == \"" .. subZoneText .. "\" -- 子区域 (" .. subZoneText .. ")")
-        end
-        print("            and IsIndoors() == " .. tostring(isInside) .. " -- " .. indoorComment)
-        print("            and UnitLevel(unitTarget) == " .. levelCodeStr .. " -- 怪物等级: " .. actualLevel)
-        print("            and UnitPowerType(unitTarget) == " .. unitPowerType)
-        -- print("            and UnitSex(unitTarget) == " .. sex .. " -- " .. sexComment)
-        print("            and UnitClassification(unitTarget) == \"" .. classification .. "\" -- " .. classifcationComment)
-        print("            and UnitAffectingCombat(unitTarget) == " .. tostring(inCombat) .. " -- " .. combatComment)
-        
-        -- 生成代码块时，严格输出大写英文键，不夹带任何本地化文本
-        -- if className ~= "NONE" then
-        --     print("            and select(2, UnitClass(unitTarget)) == \"" .. className .. "\"")
-        -- end
-
-        -- 动态生成生物家族代码行
-        print(familyCodeStr)
-        
-        -- 4个Boss击杀状态判定条件生成
-        print("            and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == " .. tostring(boss1Kill) .. " -- Boss1")
-        print("            and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == " .. tostring(boss2Kill) .. " -- Boss2")
-        print("            and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == " .. tostring(boss3Kill) .. " -- Boss3")
-        print("            and (C_ScenarioInfo.GetCriteriaInfo(4) and C_ScenarioInfo.GetCriteriaInfo(4).completed or false) == " .. tostring(boss4Kill) .. " -- Boss4")
-
-        print(spellTargetCodeStr)
-        print("        then")
-        print("            C_Timer.After(0.5, function()")
-        -- print("                if UnitExists(unitTarget) and " .. hasTargetStr .. roleCheckStr .. " then")
-        print("                    PlaySoundFile(MEDIA_PATH .. \"音频文件名.ogg\", DiGuaTimelineAudioHelper.audioChannel)")
-        print("                end")
-        print("            end)")
-        print("        end")
-    end)
-end
 frame:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
 frame:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
 frame:SetScript("OnEvent", function(self, event, ...)
@@ -179,7 +14,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         local unitTarget = ...
 
         -- if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) then
-        --     GenerateAllSpecsCodeBlock(unitTarget)
+        --     addonTable.GenerateAllSpecsCodeBlock(unitTarget)
         -- end
         -- ============================
         -- ==        毒牙祭坛        ==
@@ -268,7 +103,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
             and not UnitSpellTargetName(unitTarget)
-            then addonTable.CustomEncounterBar(5764925, 23.1, "注意射线")
+            then addonTable.CustomEncounterBar(5764925, 23.1, "注意射线", unitTarget)
             PlaySoundFile(addonTable.GetMediaPath() .. "ZhuYiSheXian.ogg", DiGuaTimelineAudioHelper.audioChannel) end
         -- ============================
         -- ==      红玉新生法地      ==
@@ -284,12 +119,13 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
             and UnitSpellTargetName(unitTarget) -- 法术有目标
             and addonTable.SpellChannelCounter[unitTarget] == nil
-            then addonTable.CustomEncounterBar(535414, 20, "注意躲圈")
+            then addonTable.CustomEncounterBar(535414, 20, "注意躲圈", unitTarget)
             addonTable.SpellChannelCounter[unitTarget] = true
             PlaySoundFile(addonTable.GetMediaPath() .. "ZhuYiDuoQuan.ogg", DiGuaTimelineAudioHelper.audioChannel)
             C_Timer.After(10, function() addonTable.SpellChannelCounter[unitTarget] = nil end) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 寒冰壁垒
+            and not UnitExists("focus")
             and select(8, GetInstanceInfo()) == 2521 -- 副本ID (红玉新生法池)
             and (C_Map.GetBestMapForUnit("player") or 0) == 2095 -- 地图ID
             and IsIndoors() == true -- 在室内
@@ -491,7 +327,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitAffectingCombat(unitTarget) == true -- 在战斗中
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
-            then addonTable.CustomEncounterBar(840194, 20.6, "准备AOE")
+            then addonTable.CustomEncounterBar(840194, 20.6, "准备AOE", unitTarget)
             PlaySoundFile(addonTable.GetMediaPath() .. "ZhunBeiAOE.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 甲壳守护
@@ -549,7 +385,13 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == true -- Boss1
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
-            then PlaySoundFile(addonTable.GetMediaPath() .. "DuoKaiTouQian.ogg", DiGuaTimelineAudioHelper.audioChannel) return end
+            and addonTable.ShouLieYueJiAudioLock == nil
+            then
+                addonTable.ShouLieYueJiAudioLock = true
+                PlaySoundFile(addonTable.GetMediaPath() .. "DuoKaiTouQian.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                C_Timer.After(1, function() addonTable.ShouLieYueJiAudioLock = nil end)
+                return
+            end
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 狩猎跃击
             and select(8, GetInstanceInfo()) == 1762 -- 副本ID (诸王之眠)
             and (C_Map.GetBestMapForUnit("player") or 0) == 1004 -- 地图ID
@@ -577,7 +419,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
-            then PlaySoundFile(addonTable.GetMediaPath() .. "DuoKaiTouQian.ogg", DiGuaTimelineAudioHelper.audioChannel) end
+            and addonTable.ShouLieYueJiAudioLock == nil
+            then
+                addonTable.ShouLieYueJiAudioLock = true
+                PlaySoundFile(addonTable.GetMediaPath() .. "DuoKaiTouQian.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                C_Timer.After(1, function() addonTable.ShouLieYueJiAudioLock = nil end)
+            end
 
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 哀痛恸哭
@@ -608,7 +455,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == true -- Boss3
             and (C_ScenarioInfo.GetCriteriaInfo(4) and C_ScenarioInfo.GetCriteriaInfo(4).completed or false) == false -- Boss4
             and UnitSpellTargetName(unitTarget) -- 法术有目标
-            then PlaySoundFile(addonTable.GetMediaPath() .. "ZhuYiCaiQuan.ogg", DiGuaTimelineAudioHelper.audioChannel) end
+            then addonTable.CustomEncounterBar(1386548, 23, "注意踩圈", unitTarget)
+            PlaySoundFile(addonTable.GetMediaPath() .. "ZhuYiCaiQuan.ogg", DiGuaTimelineAudioHelper.audioChannel) end
         -- ============================
         -- ==         夺目谷         ==
         -- ============================
@@ -625,7 +473,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 -- print(addonTable.SpellCastDuration[unitTarget])
             if (addonTable.SpellCastDuration[unitTarget] or 0) > 1.75 then 
                 addonTable.SpellCastStartTime[unitTarget] = nil
-                addonTable.CustomEncounterBar(5764902, 26.7, "五码分散")
+                addonTable.CustomEncounterBar(5764902, 26.7, "五码分散", unitTarget)
                 if UnitGroupRolesAssigned("player") ~= "TANK" and addonTable.PlayerSpellStatus.spells[58984] == true then
                     PlaySoundFile(addonTable.GetMediaPath() .. "YingDun.ogg", DiGuaTimelineAudioHelper.audioChannel)
                 else
@@ -643,9 +491,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitPowerType(unitTarget) == 1
             and UnitClassification(unitTarget) == "elite" -- 分类
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
+            and UnitAffectingCombat(unitTarget) == true -- 在战斗中
             and addonTable.SpellCastStartTime[unitTarget]
             then
-                addonTable.CustomEncounterBar(136016, 31.6, "注意躲圈")
+                addonTable.CustomEncounterBar(136016, 31.6, "注意躲圈", unitTarget)
                 addonTable.SpellCastDuration[unitTarget] = GetTime() - addonTable.SpellCastStartTime[unitTarget]
                 -- print(addonTable.SpellCastDuration[unitTarget])
                 if addonTable.SpellCastDuration[unitTarget] <= 1.75 then
@@ -718,7 +567,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitAffectingCombat(unitTarget) == true -- 是否在战斗中
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
             and UnitSpellTargetName(unitTarget) -- 法术有目标
-            then addonTable.CustomEncounterBar(7301939, 24.4, "召唤小怪")
+            then addonTable.CustomEncounterBar(7301939, 24.4, "召唤小怪", unitTarget)
             PlaySoundFile(addonTable.GetMediaPath() .. "ZhaoHuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
 

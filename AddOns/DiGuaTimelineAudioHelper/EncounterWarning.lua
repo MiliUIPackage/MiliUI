@@ -67,7 +67,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     -- 实时从小函数里捞取主文件内部最新的隐身 local 变量
     local currentEncounterID = addonTable.GetEncounterID()
     local startTime = addonTable.GetStartTime()
-    local MEDIA_PATH = addonTable.GetMediaPath() or "Interface\\AddOns\\DiGuaTimelineAudioHelper\\Media\\"
+    local MEDIA_PATH = addonTable.GetMediaPath() or addonTable.GetDefaultMediaPath()
     local currentMap = C_Map.GetBestMapForUnit("player")
 
 
@@ -79,6 +79,24 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     local targetName = encounterWarningInfo.targetName
 
 
+    -- 技能：狂怒侧风
+    if currentEncounterID == 3420 and severity == 1 then 
+            addonTable.StartCircleTimerBySeconds(7.9)
+        return
+    end
+
+    -- 技能：剧毒涌动
+    if currentEncounterID == 3420 and severity == 2 then 
+            addonTable.StartCircleTimerBySeconds(9.9)
+        return
+    end
+
+
+    -- 技能：盘卷脓液
+    if currentEncounterID == 3421 and severity == 1 and duration == 3.5 and targetName then 
+            addonTable.StartCircleTimerBySeconds(11.9)
+        return
+    end
 
     -- 技能：强风
     if currentMap == 2514 and currentEncounterID == 0 and severity == 2 and duration == 5 and not targetName 
@@ -88,7 +106,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     then
         addonTable.CustomEncounterBar(135857, 50, "强风")
         PlaySoundFile(MEDIA_PATH .. "KuaiZhaoYanTi.ogg", DiGuaTimelineAudioHelper.audioChannel)
-        C_Timer.After(14, function()
+        C_Timer.After(14.5, function()
             if currentEncounterID == 0 then
                 PlaySoundFile(MEDIA_PATH .. "ChuiFengJieShu.ogg", DiGuaTimelineAudioHelper.audioChannel)
             end
@@ -96,11 +114,13 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
         return
     end
 
+
     -- 技能：幽暗炸弹
-    if currentEncounterID == 3429 and severity == 1 then 
+    if currentEncounterID == 3429 and severity == 1 and targetName then 
             addonTable.StartCircleTimerBySeconds(4.9)
         return
     end
+
 
     -- 技能：剧毒萎缩
     -- if currentEncounterID == 3457 and severity == 1 then
@@ -162,14 +182,6 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
         end
         return
     end
-
-    -- -- 技能：荆棘之韧
-    -- if currentEncounterID == 3199 and severity == 0 then
-    --     C_Timer.After(2, function()
-    --         PlaySoundFile(MEDIA_PATH .. "KuaiKaiJianShang.ogg", DiGuaTimelineAudioHelper.audioChannel)
-    --     end) 
-    --     return
-    -- end
 
     -- 技能：空灵冲刺
     if currentEncounterID == 2923 and severity == 0 then
@@ -274,7 +286,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
             C_Timer.After(10.4, function()
                 SafePlay("AnQuan.ogg")
             end)
-            C_Timer.After(15.4, function()
+            C_Timer.After(15.3, function()
                 SafeCircle()
                 SafePlay("ZhunBeiChenMo.ogg")
             end)
