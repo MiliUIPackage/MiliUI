@@ -185,9 +185,8 @@ end
 ------------------------------------------------------------
 local function OnEvent(_, event)
     if not ns.db then return end
-    if AQ.trace and event ~= "GOSSIP_SHOW" then
-        Trace("%s  autoAccept=%s autoTurnIn=%s paused=%s",
-            event, Safe(Cfg().autoAccept), Safe(Cfg().autoTurnIn), Safe(Paused()))
+    if AQ.trace and event ~= "GOSSIP_SHOW" and event ~= "QUEST_DETAIL" then
+        Trace("%s  currentQuestID=%s", event, Safe(GetQuestID and GetQuestID()))
     end
 
     if event == "GOSSIP_SHOW" then
@@ -215,15 +214,41 @@ local function OnEvent(_, event)
         local alreadyInLog = questID ~= 0
             and C_QuestLog and C_QuestLog.GetLogIndexForQuestID
             and C_QuestLog.GetLogIndexForQuestID(questID)
-        Trace("QUEST_DETAIL id=%s 標題=%s 日誌索引=%s autoAcceptFlag=%s ⇒ %s",
-            Safe(questID), Safe(GetTitleText and GetTitleText()),
-            Safe(alreadyInLog), Safe(QuestGetAutoAccept and QuestGetAutoAccept()),
-            alreadyInLog and "CloseQuest" or "AcceptQuest")
+        local qf = _G.QuestFrame
+        local accept = _G.QuestFrameAcceptButton
+        Trace("QUEST_DETAIL id=%s 標題=%s 日誌索引=%s QuestFrame顯示=%s 接受鈕顯示=%s/可按=%s ⇒ %s",
+            Safe(questID), Safe(GetTitleText and GetTitleText()), Safe(alreadyInLog),
+            Safe(qf and qf:IsShown()),
+            Safe(accept and accept:IsShown()), Safe(accept and accept:IsEnabled()),
+            alreadyInLog and "CloseQuest" or "AcceptQuest(延後一幀)")
+
         if alreadyInLog then
             CloseQuest()
-        else
-            AcceptQuest()
+            return
         end
+
+        -- ⚠ 延後一幀才接。
+        --
+        -- 追蹤證據（四選一週任「第一次必定失敗、第二次成功」）：兩次的 QUEST_DETAIL
+        -- 狀態**一模一樣**（同 questID、日誌索引都是 nil、旗標都是 false），我們兩次
+        -- 都呼叫了 AcceptQuest()，但只有第二次收得到 QUEST_ACCEPTED。狀態相同而結果
+        -- 不同 ⇒ 是時序，不是狀態。
+        --
+        -- 我們跟暴雪的 QuestFrame 都在聽 QUEST_DETAIL，而事件派送的先後沒有保證。
+        -- 排在它前面時，AcceptQuest() 落在一個詳情頁還沒建好的狀態上就被丟掉。
+        -- 讓出一幀，暴雪那邊一定已經處理完。
+        --
+        -- 換任務就不接：延後期間玩家可能自己按了、或點到另一條任務
+        C_Timer.After(0, function()
+            local now = GetQuestID and GetQuestID() or 0
+            if now ~= questID then
+                Trace("   延後後 questID 變成 %s（原本 %s）⇒ 放棄，不亂接",
+                    Safe(now), Safe(questID))
+                return
+            end
+            Trace("   延後後仍是 %s ⇒ AcceptQuest()", Safe(questID))
+            AcceptQuest()
+        end)
 
     elseif event == "QUEST_ACCEPT_CONFIRM" then
         -- 隊友分享的護送任務會多問一次
