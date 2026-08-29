@@ -1,0 +1,60 @@
+## Interface: 120007, 120100, 120105
+## Title: MiliUI Quest Tracker
+## Title-zhTW: |cff7FD65A[任務]|r 米利的任務追蹤器
+## Title-zhCN: |cff7FD65A[任务]|r 米利的任务追踪器
+## Notes: Restyles Blizzard's objective tracker to match the MiliUI package: flat background, hairline dividers, your own fonts and colours. Adds a MiliUI title bar you can fold the whole list into, rules that fold it away on their own (raid boss fights and more), and an auto turn-in switch that sits on that bar.|n|nBlizzard still renders the tracker — this addon only skins it, so nothing about your quests changes.|n|n|cffffd200Usage: |r/mquest opens settings.
+## Notes-zhTW: MiliUI Quest Tracker|n|n米利的任務追蹤器。|n|n把暴雪的任務追蹤器改成套組的樣子：純色底、1px 分隔線、自己的字型與顏色。|n|n另外加了一條可以把整份清單摺起來的標題列、自動摺疊的條件（團本首領戰等等），以及掛在那條列上的自動交任務開關。|n|n追蹤器本體仍然由暴雪渲染，這支只負責外觀，不動任何任務資料。|n|n|cffffd200使用方法: |r/mquest 開啟設定。
+## Notes-zhCN: MiliUI Quest Tracker|n|n米利的任务追踪器。|n|n把暴雪的任务追踪器改成套组的样子：纯色底、1px 分隔线、自己的字体与颜色。|n|n另外加了一条可以把整份列表折起来的标题栏、自动折叠的条件（团本首领战等等），以及挂在那条栏上的自动交任务开关。|n|n追踪器本体仍然由暴雪渲染，这支只负责外观，不动任何任务数据。|n|n|cffffd200使用方法: |r/mquest 打开设置。
+## Category: Quests
+## Category-zhTW: 任務
+## Category-zhCN: 任务
+## Author: Mili
+## Version: 1.0.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\INV_Misc_Book_09
+## SavedVariables: MiliUI_QuestTracker_DB
+## AddonCompartmentFunc: MiliUIQuestTracker_OnAddonCompartmentClick
+## OptionalDeps: LibSharedMedia-3.0
+
+# 像素工具單獨排最前面：其他模組也吃 ns.P
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
+Libs\Callbacks.lua
+
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+
+# Init 要在 Media 之前：Media 在檔案層就用 ns.playerClass 算強調色
+Core\Init.lua
+Core\Media.lua
+Core\DB.lua
+Core\Tracker.lua
+
+# Chrome 要在 Skin 之前：Skin 的分隔線與標題列位置都問 Chrome 要
+Modules\Chrome.lua
+Modules\Skin.lua
+Modules\Visibility.lua
+Modules\Position.lua
+Modules\AutoQuest.lua
+
+# 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
+Libs\MiliUIWidgets\Controls.lua
+
+# 右鍵選單的內容：檔案層只用 ns.L，但執行時要 ns.W.Menu，所以排在共用層之後
+Modules\Menu.lua
+
+Options\Panel.lua
+Options\Tab_Appearance.lua
+Options\Tab_Visibility.lua
+Options\Tab_Automation.lua
+Options\Tab_About.lua
+
+Libs\MiliUIWidgets\BlizzOptions.lua
+Options\Blizzard.lua
+Api.lua
