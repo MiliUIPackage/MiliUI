@@ -114,13 +114,14 @@ local SORTS = { cpu = true, mem = true, name = true }
 
 local tab, list, warnBox, lagCB, graph, folderFS
 local cpuPage, ramPage
-local subButtons = {}           -- id -> 子分頁鈕，還原選取狀態用
-local subHighlight              -- W.CreateButtonGroup 回傳的高亮函式
+-- 子分頁鈕與它的高亮函式。收成一張表同樣是為了省 upvalue（見下面 growth 的註解）
+local subTab = { buttons = {} } -- buttons[id] / Highlight
 local memList                   -- 記憶體子頁的清單
-local growthFS                  -- 成長記錄的狀態列
-local clearGrowthBtn            -- 「清除成長記錄」
-local memGrowthHead             -- 「累計成長」表頭（是排序欄時染強調色）
-local trendRangeFS, trendVerdictFS
+-- 成長記錄的三個控件與它的重繪函式收在一張表裡。
+-- ⚠ 不是為了整齊：Init 那支函式的 upvalue 已經頂到 Lua 的 60 上限，
+--    每多一個 file-scope local 就多吃一格。同一組東西一律用一張表帶走。
+local growth = {}               -- statusFS / clearBtn / head / Refresh
+local trend = {}                -- rangeFS / verdictFS
 local cards = {}
 local headerCells = {}
 local valueFont
@@ -134,9 +135,9 @@ local memTotalKB = 0
 local memStamp                  -- 上次測量的 GetTime()，nil = 這次開窗還沒量過
 -- ⚠ 前置宣告：MeasureMemory 在上面就會呼叫它們。local 宣告在讀取點下面的話，
 --    讀取點那個名字會靜默解析成全域 nil（本檔已經踩過一次，見 SetBar）
-local RebuildMemEntries, RefreshMemPanel, RefreshMemList, RefreshGrowthStatus
+local RebuildMemEntries, RefreshMemPanel, RefreshMemList
 local maxCPU, maxMem = 0, 0
-local totalFolders, loadedFolders = 0, 0
+local folderCount = { total = 0, loaded = 0 }
 local hasProfiler = false
 local rendered = 0              -- 上次真的重排過的列數（見 Refresh）
 local valueAcc, sortAcc, memAcc = 0, 0, 0
@@ -223,20 +224,20 @@ end
 
 -- 狀態列：記錄從什麼時候開始、量了幾次，以及清單現在是照什麼排的。
 -- 排序會隨著有沒有記錄而變，不講的話玩家會覺得清單自己亂跳。
-function RefreshGrowthStatus()
-    if not growthFS then return end
+function growth.Refresh()
+    if not growth.statusFS then return end
     local g = GrowthDB()
     if not HasGrowthData() then
-        growthFS:SetText("|cff666666勾選自動測量後開始記錄各插件的累計成長|r")
-        if clearGrowthBtn then clearGrowthBtn:SetEnabled(false) end
-        if memGrowthHead then memGrowthHead:SetTextColor(0.6, 0.6, 0.6) end
+        growth.statusFS:SetText("|cff666666勾選自動測量後開始記錄各插件的累計成長|r")
+        if growth.clearBtn then growth.clearBtn:SetEnabled(false) end
+        if growth.head then growth.head:SetTextColor(0.6, 0.6, 0.6) end
         return
     end
-    growthFS:SetText(("|cff999999記錄自 %s ・ %d 次測量 ・ 清單依成長排序|r")
+    growth.statusFS:SetText(("|cff999999記錄自 %s ・ %d 次測量 ・ 清單依成長排序|r")
         :format(g.since or "?", g.samples))
-    if clearGrowthBtn then clearGrowthBtn:SetEnabled(true) end
+    if growth.clearBtn then growth.clearBtn:SetEnabled(true) end
     -- 表頭染色＝「現在是照這一欄排的」，跟 CPU 頁的排序表頭同一個語彙
-    if memGrowthHead then memGrowthHead:SetTextColor(W.Accent()) end
+    if growth.head then growth.head:SetTextColor(W.Accent()) end
 end
 
 local function CurrentMetric()
@@ -337,7 +338,7 @@ local function MeasureMemory()
         if ramPage and ramPage:IsShown() then
             RefreshMemPanel()
             RefreshMemList()
-            if RefreshGrowthStatus then RefreshGrowthStatus() end
+            growth.Refresh()
         end
     end
 end
@@ -381,10 +382,10 @@ local function RebuildEntries()
     local A = ns.AddonInfo
     local installed = A.GetInstalled()
 
-    totalFolders, loadedFolders = 0, 0
+    folderCount.total, folderCount.loaded = 0, 0
     for name in pairs(installed) do
-        totalFolders = totalFolders + 1
-        if C_AddOns.IsAddOnLoaded(name) then loadedFolders = loadedFolders + 1 end
+        folderCount.total = folderCount.total + 1
+        if C_AddOns.IsAddOnLoaded(name) then folderCount.loaded = folderCount.loaded + 1 end
     end
 
     local covered = {}
@@ -574,7 +575,7 @@ local function RefreshCpuPanel()
 
     if folderFS then
         folderFS:SetText(("|cff777777已載入 %d ／ 共 %d 個插件資料夾|r"):format(
-            loadedFolders, totalFolders))
+            folderCount.loaded, folderCount.total))
     end
 end
 
@@ -995,8 +996,8 @@ local function RefreshGraph()
         for _, col in ipairs(graph.cols) do col:Hide() end
         graph.emptyFS:SetText(("|cff666666趨勢累積中…每分鐘一點，已有 %d 點|r"):format(n))
         graph.emptyFS:Show()
-        trendRangeFS:SetText("")
-        trendVerdictFS:SetText("")
+        trend.rangeFS:SetText("")
+        trend.verdictFS:SetText("")
         return
     end
     graph.emptyFS:Hide()
@@ -1026,12 +1027,12 @@ local function RefreshGraph()
     for i = n + 1, #graph.cols do graph.cols[i]:Hide() end
 
     -- 標籤列左邊講「看到的是什麼範圍」，右邊講「結論」——視線掃右緣就有答案
-    trendRangeFS:SetText(("|cff888888%.0f – %.0f MB／%d 分鐘|r"):format(
+    trend.rangeFS:SetText(("|cff888888%.0f – %.0f MB／%d 分鐘|r"):format(
         t.loMB, t.hiMB, math.floor(t.spanMin + 0.5)))
     local colour = (t.level == "bad" and "|cffff5555")
         or (t.level == "warn" and "|cffff9900")
         or (t.level == "good" and "|cff33ff66") or "|cff888888"
-    trendVerdictFS:SetText(colour .. t.text .. "|r")
+    trend.verdictFS:SetText(colour .. t.text .. "|r")
 end
 
 ------------------------------------------------------------
@@ -1106,14 +1107,14 @@ local function ShowPage(id)
     DB().page = id
     cpuPage:SetShown(id == "cpu")
     ramPage:SetShown(id == "ram")
-    if subHighlight and subButtons[id] then subHighlight(subButtons[id]) end
+    if subTab.Highlight and subTab.buttons[id] then subTab.Highlight(subTab.buttons[id]) end
     if id == "cpu" then
         sortAcc = 0
         Refresh(true)
     else
         RefreshMemPanel()
         RefreshMemList()
-        RefreshGrowthStatus()
+        growth.Refresh()
         graphRev = -1           -- 進頁立刻重畫，不等下一個取樣點
         RefreshGraph()
     end
@@ -1152,11 +1153,11 @@ local function Init()
         else
             b:SetPoint("TOPLEFT", SIDE, SUB_Y)
         end
-        subButtons[d.id] = b
+        subTab.buttons[d.id] = b
         groupList[#groupList + 1] = b
         prev = b
     end
-    subHighlight = W.CreateButtonGroup(groupList, ShowPage)
+    subTab.Highlight = W.CreateButtonGroup(groupList, ShowPage)
 
     cpuPage = CreateFrame("Frame", nil, tab)
     cpuPage:SetPoint("TOPLEFT", 0, PAGE_TOP)
@@ -1310,14 +1311,14 @@ local function Init()
     trendLbl:SetPoint("TOPLEFT", SIDE, RAM_TRENDLBL_Y)
     trendLbl:SetText("記憶體趨勢")
 
-    trendRangeFS = ramPage:CreateFontString(nil, "OVERLAY")
-    trendRangeFS:SetFontObject(W.fontSmall)
-    trendRangeFS:SetPoint("LEFT", trendLbl, "RIGHT", 8, 0)
+    trend.rangeFS = ramPage:CreateFontString(nil, "OVERLAY")
+    trend.rangeFS:SetFontObject(W.fontSmall)
+    trend.rangeFS:SetPoint("LEFT", trendLbl, "RIGHT", 8, 0)
 
-    trendVerdictFS = ramPage:CreateFontString(nil, "OVERLAY")
-    trendVerdictFS:SetFontObject(W.fontSmall)
-    trendVerdictFS:SetPoint("TOPRIGHT", ramPage, "TOPRIGHT", -SIDE, RAM_TRENDLBL_Y)
-    trendVerdictFS:SetJustifyH("RIGHT")
+    trend.verdictFS = ramPage:CreateFontString(nil, "OVERLAY")
+    trend.verdictFS:SetFontObject(W.fontSmall)
+    trend.verdictFS:SetPoint("TOPRIGHT", ramPage, "TOPRIGHT", -SIDE, RAM_TRENDLBL_Y)
+    trend.verdictFS:SetJustifyH("RIGHT")
 
     graph = { cols = {} }
     graph.plot = W.CreateFrame(nil, ramPage)
@@ -1386,27 +1387,27 @@ local function Init()
     -- 記錄本身跨登入留著（存在 SavedVariables），所以一定要給一個「從什麼時候
     -- 開始算的」——不然玩家看到一筆 300MB 的成長，不知道那是十分鐘還是三天。
     ------------------------------------------------------------
-    clearGrowthBtn = W.CreateButton(ramPage, "清除成長記錄", "red", 110, 22)
-    clearGrowthBtn:SetPoint("LEFT", autoCB, "RIGHT", 150, 0)
-    clearGrowthBtn:SetScript("OnClick", function()
+    growth.clearBtn = W.CreateButton(ramPage, "清除成長記錄", "red", 110, 22)
+    growth.clearBtn:SetPoint("LEFT", autoCB, "RIGHT", 150, 0)
+    growth.clearBtn:SetScript("OnClick", function()
         ClearGrowth()
         RebuildMemEntries()     -- 清掉之後排序要回到 MB 由大到小
         RefreshMemList()
-        RefreshGrowthStatus()
+        growth.Refresh()
     end)
-    clearGrowthBtn:SetScript("OnEnter", function()
-        GameTooltip:SetOwner(clearGrowthBtn, "ANCHOR_TOPLEFT", 0, 4)
+    growth.clearBtn:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(growth.clearBtn, "ANCHOR_TOPLEFT", 0, 4)
         GameTooltip:AddLine("清除成長記錄", 1, 1, 1)
         GameTooltip:AddLine("把「累計成長」歸零、重新開始算。記錄會跨登入留著，"
             .. "所以要換一個觀察區間就得自己清一次。", 0.8, 0.8, 0.8, true)
         GameTooltip:Show()
     end)
-    clearGrowthBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    growth.clearBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    growthFS = ramPage:CreateFontString(nil, "OVERLAY")
-    growthFS:SetFontObject(W.fontSmall)
-    growthFS:SetPoint("LEFT", clearGrowthBtn, "RIGHT", 10, 0)
-    growthFS:SetJustifyH("LEFT")
+    growth.statusFS = ramPage:CreateFontString(nil, "OVERLAY")
+    growth.statusFS:SetFontObject(W.fontSmall)
+    growth.statusFS:SetPoint("LEFT", growth.clearBtn, "RIGHT", 10, 0)
+    growth.statusFS:SetJustifyH("LEFT")
 
     -- 記憶體清單：固定 MB 由大到小，只在測量後才變，所以表頭是靜態標籤不是按鈕
     local memHeader = CreateFrame("Frame", nil, ramPage)
@@ -1429,7 +1430,7 @@ local function Init()
     MemHeadLabel("名稱", COL2.NAME_L, "LEFT")
     MemHeadLabel("記憶體 MB", COL2.MEM_R)
     MemHeadLabel("變化", COL2.DELTA_R)
-    memGrowthHead = MemHeadLabel("累計成長", COL2.GROWTH_R)
+    growth.head = MemHeadLabel("累計成長", COL2.GROWTH_R)
     MemHeadLabel("佔插件", COL2.SHARE_R)
 
     local memHeadLine = memHeader:CreateTexture(nil, "ARTWORK")

@@ -118,3 +118,20 @@ grep -A4 'local function <Helper>' <檔>     # 確認函式體沒有呼叫自己
 
 同一類的還有：`sed 's/foo/bar/'` 把註解裡的說明文字也改掉、把 helper 名稱本身改掉。
 **每次機械式取代之後，diff 一定要逐段看過，不能只看 `luac -p` 的結果。**
+
+## 第三道：upvalue 超過 60
+
+Lua 一個函式最多 **60 個 upvalue**。超過在遊戲裡只跳一行
+`LUA_WARNING: function at line N has more than 60 upvalues`，很容易被忽略，
+而且踩到的那天多半**跟當下改的東西沒關係**——是檔案層的 local 一路長，某支
+大函式（通常是 `Init`）把它們全捕捉進去，最後一根稻草剛好是你。
+
+2026-08-30 在 `MiliUI/Options/Tab_Perf.lua` 踩到：原本正好卡在 60，加四個
+file-scope local 就變 64。
+
+修法是**把同一組的 local 收進一張表**——一張表只吃一格
+（`growth.statusFS/clearBtn/head/Refresh`、`trend.rangeFS/verdictFS`、
+`subTab.buttons/Highlight`、`folderCount.total/loaded`）。
+
+量法：`luac -l -l -p 檔案` 的每個 `function <檔:行,行>` 下一行就有
+`N upvalues`。`check_lua.py` 已經自動掃這個，超過就讓提交前檢查失敗。

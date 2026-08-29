@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""自製插件的 Lua 靜態檢查：語法 ＋ 「該是 local 卻寫成全域」。
+"""自製插件的 Lua 靜態檢查：語法 ＋ 「該是 local 卻寫成全域」＋ upvalue 上限。
 
     python3 .claude/scripts/check_lua.py
 
 `luac -p` 只驗語法，抓不到未宣告的全域。第二道檢查把每個檔編成位元組碼、掃它對
 `_ENV` 的**寫入**（`SETTABUP`），扣掉白名單之後剩下的幾乎一定是漏了 `local`
 ——那種錯誤是靜默的，會到遊戲裡才變成一個指不到成因的崩潰。
+
+第三道檢查抓「某支函式的 upvalue 超過 Lua 的 60 上限」——那在遊戲裡只跳一行
+LUA_WARNING，很容易被忽略，而且踩到的那天多半跟當下改的東西沒關係。
 
 原理與兩次實際抓到的東西見 .claude/notes/wow-luac-global-scan.md。
 
@@ -80,12 +83,39 @@ def global_writes(path):
     return set(re.findall(r'SETTABUP.*_ENV "([^"]+)"', out))
 
 
+# Lua 一個函式最多 60 個 upvalue。超過在遊戲裡只跳一行 LUA_WARNING
+# （「function at line N has more than 60 upvalues」），很容易被忽略，
+# 而且是「檔案越長越容易踩、踩到那天跟當下改的東西沒關係」的那種。
+#
+# 常見成因：檔案層一路加 local，而某支大函式（通常是 Init）把它們全捕捉進去。
+# 修法是把同一組的 local 收進一張表——一張表只吃一格。
+UPVALUE_LIMIT = 60
+
+FUNC_RE = re.compile(r"^function <([^:]+):(\d+),\d+>", re.M)
+UPVAL_RE = re.compile(r"(\d+) upvalues")
+
+
+def upvalue_overflows(path):
+    out = subprocess.run(["luac", "-l", "-l", "-p", path],
+                         capture_output=True, text=True).stdout
+    hits = []
+    lines = out.splitlines()
+    for i, line in enumerate(lines):
+        m = FUNC_RE.match(line)
+        if not m or i + 1 >= len(lines):
+            continue
+        n = UPVAL_RE.search(lines[i + 1])
+        if n and int(n.group(1)) > UPVALUE_LIMIT:
+            hits.append((int(m.group(2)), int(n.group(1))))
+    return hits
+
+
 def main():
     if subprocess.run(["luac", "-v"], capture_output=True).returncode != 0:
         print("找不到 luac —— 這台機器沒裝 Lua，跳過檢查")
         return 1
 
-    syntax, leaks = [], []
+    syntax, leaks, upvals = [], [], []
     count = 0
     for path in lua_files():
         count += 1
@@ -98,6 +128,8 @@ def main():
             if name in ALLOWED_GLOBAL_WRITES or SLASH_RE.match(name):
                 continue
             leaks.append((rel, name))
+        for line, n in upvalue_overflows(path):
+            upvals.append((rel, line, n))
 
     print(f"掃了 {count} 個 .lua（自製插件本體，不含 Libs/）")
 
@@ -116,12 +148,20 @@ def main():
     else:
         print("全域寫入：沒有名單外的")
 
+    if upvals:
+        print(f"\nupvalue 超過 {UPVALUE_LIMIT} 的函式 {len(upvals)}：")
+        for rel, line, n in upvals:
+            print(f"  {rel}:{line}  →  {n} 個")
+        print("把同一組的 file-scope local 收進一張表，一張表只吃一格。")
+    else:
+        print(f"upvalue：沒有超過 {UPVALUE_LIMIT} 的函式")
+
     # luac -l 會在工作目錄留下 luac.out（.gitignore 擋著，但不要留垃圾）
     for junk in (os.path.join(os.getcwd(), "luac.out"), os.path.join(REPO, "luac.out")):
         if os.path.exists(junk):
             os.remove(junk)
 
-    return 1 if (syntax or leaks) else 0
+    return 1 if (syntax or leaks or upvals) else 0
 
 
 if __name__ == "__main__":
