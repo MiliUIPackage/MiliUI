@@ -39,6 +39,7 @@ ns.AddonRoster = {
         { key = "MiliUI_DamageMeters", folders = { "MiliUI_DamageMeters" }, menuKey = "damagemeters" },
         { key = "MiliUI_AuraEnhance", folders = { "MiliUI_AuraEnhance" }, menuKey = "auraenhance" },
         { key = "MiliUI_CharacterNotes", folders = { "MiliUI_CharacterNotes" }, menuKey = "characternotes" },
+        { key = "MiliUI_Minimap", folders = { "MiliUI_Minimap" }, menuKey = "minimap" },
         { key = "MiliUI_AdventureGuideSpecCompare", folders = { "MiliUI_AdventureGuideSpecCompare" }, slash = "/agsc" },
 
         -- ===== 介面與外觀 =====
@@ -94,7 +95,6 @@ ns.AddonRoster = {
           desc = "在地圖上標註寶箱、稀有怪與各種地點。這一筆連同全部地圖資料包一起開關。" },
         { key = "Mapster", folders = { "Mapster" }, slash = "/mapster" },
         { key = "TeleportMenu", folders = { "TeleportMenu" }, slash = "/tpm" },
-        { key = "MBB", folders = { "MBB" }, slash = "/mbb" },
         { key = "ParagonReputation", folders = { "ParagonReputation" }, settings = true },
         { key = "MplusAdventureGuide", folders = { "MplusAdventureGuide" }, settings = true },
 

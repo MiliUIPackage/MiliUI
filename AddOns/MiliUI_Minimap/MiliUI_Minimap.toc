@@ -1,0 +1,57 @@
+## Interface: 120100, 120105
+## Title: MiliUI Minimap
+## Title-zhTW: |cff33E0FF[地圖]|r 米利的小地圖
+## Title-zhCN: |cff33E0FF[地图]|r 米利的小地图
+## Notes: A square minimap in the MiliUI house style — black translucent panel, 1px border in your class colour — plus an info bar underneath showing guild and friends online.|n|n|cffffd200Usage: |r/mmap opens settings.
+## Notes-zhTW: MiliUI Minimap|n|n米利的小地圖。|n|n方形小地圖，套組統一的黑色半透明底＋1px 職業色框線；區域名、座標與時鐘收進上下兩條資訊帶。|n|n地圖下方一條資訊列：左邊公會在線、右邊好友在線，滑過去看名單、點下去開面板、右鍵密語或邀請。|n|n|cffffd200使用方法: |r/mmap 開啟設定。
+## Notes-zhCN: MiliUI Minimap|n|n米利的小地图。|n|n方形小地图，套组统一的黑色半透明底＋1px 职业色框线；区域名、坐标与时钟收进上下两条信息带。|n|n地图下方一条信息栏：左边公会在线、右边好友在线，滑过去看名单、点下去开面板、右键密语或邀请。|n|n|cffffd200使用方法: |r/mmap 打开设置。
+## Category: Interface
+## Category-zhTW: 介面
+## Category-zhCN: 界面
+## Author: Mili
+## Version: 1.0.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\INV_Misc_Map_01
+## SavedVariables: MiliUI_Minimap_DB
+## AddonCompartmentFunc: MiliUIMinimap_OnAddonCompartmentClick
+## OptionalDeps: LibSharedMedia-3.0
+
+# 像素工具單獨排最前面：Core\Style.lua 在檔案層就吃 ns.P
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
+
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+
+Libs\Callbacks.lua
+
+# Style 要在 Env 之前：Env.Font／Env.Accent 是直接轉手給它的
+Core\Style.lua
+Core\DB.lua
+Core\Init.lua
+
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
+Libs\MiliUIWidgets\Controls.lua
+
+Map\Skin.lua
+Map\Buttons.lua
+
+Panel\Data.lua
+Panel\Tip.lua
+Panel\Bar.lua
+
+Options\Specs.lua
+Options\Panel.lua
+Options\Tab_Map.lua
+Options\Tab_Buttons.lua
+Options\Tab_Info.lua
+Options\Tab_About.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
+Options\Blizzard.lua
+
+Api.lua

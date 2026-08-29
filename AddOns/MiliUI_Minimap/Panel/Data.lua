@@ -1,0 +1,236 @@
+------------------------------------------------------------
+-- 公會／好友的線上名單
+--
+-- **零背景工作。** 這裡沒有任何常駐的名單快取，兩支 Gather 只在「玩家把滑鼠移到
+-- 資訊列上」的那一刻才跑一次。理由是成本結構：
+--   * 數字（人數）本來就有現成的 API，不必掃名單 —— `GetNumGuildMembers()` 的
+--     第二／第三個回傳就是線上人數，好友那邊有 `C_FriendList.GetNumOnlineFriends()`。
+--   * 名單只有提示打開的那幾秒需要，而那幾秒玩家不在打副本。
+-- 反過來做（登入就建表、每個事件維護增量）在 500 人公會是每次
+-- GUILD_ROSTER_UPDATE 掃一遍五百筆，換來的只是提示早 3ms 出現。
+--
+-- ⚠ 12.1 秘密值：名字／區域／備註在受限內容中可能是秘密字串，而秘密字串
+--   **不能串接、不能比較、不能當 table key**。所以每一個欄位進來就先過
+--   `ns.Secret.PlainText`；洗不出明文的就當作沒有那個欄位，不要讓它流到
+--   後面的 format 去（見 .claude/notes/wow-secret-key-table-lookup.md）。
+------------------------------------------------------------
+local _, ns = ...
+
+ns.Data = {}
+local D = ns.Data
+local Sec = ns.Secret
+
+local PlainText = Sec.PlainText
+local PlainNumber = Sec.PlainNumber
+
+------------------------------------------------------------
+-- 人數：只給數字，不掃名單
+------------------------------------------------------------
+function D.GuildOnline()
+    if not IsInGuild() then return nil end
+    -- GetNumGuildMembers() → total, online, onlineAndMobile
+    -- 10.2 之後中間那個參數的語意變過，兩個都取、擇一有值的用。
+    local total, online, onlineMobile = GetNumGuildMembers()
+    online = PlainNumber(online) or PlainNumber(onlineMobile) or 0
+    return online, PlainNumber(total) or 0
+end
+
+function D.FriendsOnline()
+    local n = 0
+    -- 角色好友
+    local numChar = C_FriendList.GetNumOnlineFriends and C_FriendList.GetNumOnlineFriends() or 0
+    n = n + (PlainNumber(numChar) or 0)
+    -- BNet：只算正在玩 WoW 的。算上所有掛在暴雪戰網的人會讓數字跟「能不能找他
+    -- 一起打」脫鉤 —— 那才是玩家看這個數字的理由。
+    local numBNet = BNGetNumFriends and BNGetNumFriends() or 0
+    for i = 1, (PlainNumber(numBNet) or 0) do
+        local acct = C_BattleNet.GetFriendAccountInfo(i)
+        local game = acct and acct.gameAccountInfo
+        if game and game.isOnline and game.clientProgram == BNET_CLIENT_WOW then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+------------------------------------------------------------
+-- 公會名單
+--
+-- 回傳一個陣列，每筆 { name, level, class, zone, rank, status, mobile }。
+-- 排序：先依區域分組（同一張地圖的人排在一起 —— 玩家看這張表多半是在找
+-- 「誰在附近／誰在打同一個東西」），區域內依名字。沒有區域的排最後。
+------------------------------------------------------------
+local STATUS_AFK = 1
+local STATUS_DND = 2
+
+function D.GuildRoster()
+    local out = {}
+    if not IsInGuild() then return out end
+
+    local total = PlainNumber(GetNumGuildMembers()) or 0
+    for i = 1, total do
+        local name, rank, _, level, _, zone, _, _, online, status, classFile,
+              _, _, isMobile = GetGuildRosterInfo(i)
+        name = PlainText(name)
+        if name == "" then name = nil end
+        if name and (online or isMobile) then
+            -- 名字是 "角色-伺服器"，同伺服器的把後綴拿掉。跨伺服器公會才留。
+            local short = name:match("^([^%-]+)") or name
+            if short ~= ns.playerName then
+                out[#out + 1] = {
+                    name   = short,
+                    full   = name,
+                    level  = (PlainNumber(level) or 0) > 0 and PlainNumber(level) or nil,
+                    class  = PlainText(classFile),
+                    canInvite = true,
+                    zone   = (isMobile and not online) and REMOTE_CHAT or (PlainText(zone) or ""),
+                    rank   = PlainText(rank),
+                    status = PlainNumber(status) or 0,
+                    mobile = isMobile and true or false,
+                }
+            end
+        end
+    end
+
+    table.sort(out, function(a, b)
+        local az, bz = a.zone, b.zone
+        if (az == "") ~= (bz == "") then return az ~= "" end
+        if az ~= bz then return az < bz end
+        return a.name < b.name
+    end)
+    return out
+end
+
+------------------------------------------------------------
+-- 好友名單
+--
+-- 兩個來源合成一張表：戰網好友（只列在玩 WoW 的）＋ 角色好友。
+-- 同一個人可能兩邊都在（加了戰網又加了角色好友），以角色名去重。
+--
+-- 分兩段回傳：favorites（星號好友）與其餘。星號是玩家自己標的「這幾個人比較重要」，
+-- 把它平鋪進同一張 A-Z 清單等於把那個資訊丟掉。
+------------------------------------------------------------
+function D.FriendsRoster()
+    local favorites, others = {}, {}
+    local seen = {}
+
+    local numBNet = PlainNumber(BNGetNumFriends and BNGetNumFriends()) or 0
+    for i = 1, numBNet do
+        local acct = C_BattleNet.GetFriendAccountInfo(i)
+        local game = acct and acct.gameAccountInfo
+        if game and game.isOnline and game.clientProgram == BNET_CLIENT_WOW then
+            ------------------------------------------------------------
+            -- ⚠ 「在玩 WoW」不等於「有角色名可用」。
+            --
+            --   剛登入還停在選角畫面、或正在讀取的人，`clientProgram` 已經是 WoW
+            --   了但 `characterName` 是**空字串**、`characterLevel` 是 **0**。
+            --   照單全收的後果就是名單與右鍵選單裡出現一排「0 」開頭的空白列
+            --   —— 那幾筆既點不了密語也邀不到人。
+            --
+            --   空字串不是 nil：`charName or tag` 這種寫法擋不住它（空字串是真值），
+            --   要明確判掉。等級同理，0 在 Lua 也是真值。
+            ------------------------------------------------------------
+            local charName = PlainText(game.characterName)
+            if charName == "" then charName = nil end
+            local level = PlainNumber(game.characterLevel)
+            if not level or level <= 0 then level = nil end
+            -- 跨版本的好友（經典服／PTR）在 clientProgram 上一樣是 "WoW"，
+            -- 但邀不進隊伍。標出來、而且不進邀請清單。
+            local sameProject = (game.wowProjectID == nil)
+                or (game.wowProjectID == WOW_PROJECT_ID)
+            -- classFile 優先走 classID 查官方表：className 是**在地化顯示名**
+            -- （中文客戶端會拿到「聖騎士」），拿它去查 RAID_CLASS_COLORS 永遠是 nil。
+            local classFile
+            if game.classID and C_CreatureInfo and C_CreatureInfo.GetClassInfo then
+                local ci = C_CreatureInfo.GetClassInfo(game.classID)
+                classFile = ci and PlainText(ci.classFile)
+            end
+            local rawTag = PlainText(acct.battleTag) or PlainText(acct.accountName)
+            local tag = rawTag and (rawTag:match("^([^#]+)") or rawTag)
+            -- ⚠ 密語與邀請的目標要帶伺服器。跨服好友只給角色名的話，密語會發給
+            --   「本服同名的那個人」（沒有的話就靜默失敗），邀請則直接落空。
+            local realm = PlainText(game.realmName)
+            local full = charName
+            if charName and realm and realm ~= "" then
+                full = charName .. "-" .. realm
+            end
+            -- 名字撲空就退戰網暱稱；連暱稱都沒有的那一筆**整個丟掉** ——
+            -- 一列沒有名字的東西對玩家毫無用處，寧可少一列。
+            local display = charName or tag
+            local entry = display and {
+                name  = display,
+                full  = full,
+                tag   = tag,
+                -- 沒有角色名／跨版本 ⇒ 邀請無效，右鍵選單的邀請清單會跳過
+                canInvite = (charName ~= nil) and sameProject,
+                otherProject = not sameProject,
+                -- accountName 是**戰網密語**的目標（BNSendWhisper 走它，不是角色名）。
+                -- 對方在別的角色上、或人不在 WoW 裡時，這是唯一還打得到的路。
+                bnetName = PlainText(acct.accountName),
+                bnetID   = acct.bnetAccountID,
+                level = level,
+                class = classFile,
+                zone  = PlainText(game.areaName) or "",
+                bnet  = true,
+            }
+            if entry then
+                if charName then seen[charName] = true end
+                if acct.isFavorite then
+                    favorites[#favorites + 1] = entry
+                else
+                    others[#others + 1] = entry
+                end
+            end
+        end
+    end
+
+    local numChar = PlainNumber(C_FriendList.GetNumFriends and C_FriendList.GetNumFriends()) or 0
+    for i = 1, numChar do
+        local info = C_FriendList.GetFriendInfoByIndex(i)
+        if info and info.connected then
+            local charName = PlainText(info.name)
+            if charName == "" then charName = nil end
+            local lvl = PlainNumber(info.level)
+            if not lvl or lvl <= 0 then lvl = nil end
+            if charName and not seen[charName] then
+                others[#others + 1] = {
+                    name  = charName:match("^([^%-]+)") or charName,
+                    full  = charName,
+                    level = lvl,
+                    canInvite = true,
+                    -- ⚠ C_FriendList 只給在地化的職業名，沒有 classFile。
+                    --   拿不到就不上色（Style.ClassColor 會回 nil），
+                    --   **不要**猜一個 token 去查表 —— 猜錯是靜默的錯色。
+                    class = nil,
+                    zone  = PlainText(info.area) or "",
+                }
+            end
+        end
+    end
+
+    local byName = function(a, b) return (a.tag or a.name):lower() < (b.tag or b.name):lower() end
+    table.sort(favorites, byName)
+    table.sort(others, byName)
+    return favorites, others
+end
+
+------------------------------------------------------------
+-- 狀態標記（AFK／忙碌／手機版）
+------------------------------------------------------------
+function D.StatusTag(entry)
+    -- 經典服／PTR 的好友：邀請對他們無效，先講清楚免得玩家一直點
+    if entry.otherProject then return "|cff888888" .. (ns.L["Other version"]) .. "|r" end
+    if entry.mobile then return "|cff77bb77" .. (ns.L["Mobile"]) .. "|r" end
+    if entry.status == STATUS_AFK then return "|cffff9900" .. CHAT_FLAG_AFK:gsub("[<>]", "") .. "|r" end
+    if entry.status == STATUS_DND then return "|cffff3333" .. CHAT_FLAG_DND:gsub("[<>]", "") .. "|r" end
+    return nil
+end
+
+------------------------------------------------------------
+-- 目前所在區域：提示裡「跟我同一區」的人要標出來
+--
+-- 直接比字串就好 —— GetRealZoneText 與名冊的 zone 欄位是同一組字串。
+------------------------------------------------------------
+function D.CurrentZone()
+    return PlainText(GetRealZoneText()) or ""
+end

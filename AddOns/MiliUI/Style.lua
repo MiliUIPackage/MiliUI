@@ -10,7 +10,7 @@
 --   Hover  = 底色加亮、邊框加深、文字保持金色
 ------------------------------------------------------------
 
-local _, _ = ...
+local _, ns = ...
 
 MiliUI = MiliUI or {}
 MiliUI.Style = MiliUI.Style or {}
@@ -136,6 +136,85 @@ S.Dark = {
     text      = { 1, 1, 1, 1 },
     textDim   = { 0.8, 0.8, 0.8, 1 },
 }
+
+------------------------------------------------------------
+-- HUD 皮：**常駐在遊戲畫面上**的東西共用的一套外觀
+--
+-- 一句話：黑色半透明底 ＋ 1px 職業色硬邊 ＋ 白字 ＋ 直角。
+--
+-- 這是套組第三套皮，跟上面兩套的判準只有一句：
+--
+--   這個東西的背後會不會有地形在動？
+--     會 → HUD 皮（半透明底、職業色邊，讓它「浮」在世界之上）
+--     不會 → S.Dark（不透明底、純黑邊，讓它像一個獨立視窗）
+--
+--   小地圖、資訊列、傷害統計視窗、單位框都是前者；
+--   設定面板、選單、彈窗、ESC 選單那顆按鈕是後者。
+--
+-- ⚠ 這裡准許半透明，跟 `miliui-color-states` 技能的「底色要不透明」不衝突 ——
+--   那條規則管的是**帶身分色的小元件**（一排標籤、一排按鈕），它們的底色本身在
+--   傳達「這是誰」，飄了就讀不出來。HUD 面板的底色不傳達任何資訊，它只是
+--   「把世界壓暗好讓白字讀得出來」的一層紗。身分色在 HUD 這裡由**邊框**承擔，
+--   跟那條規則的第二點（底色壓暗、邊框保飽和）是同一個結論。
+--
+-- 灰階 0x1A/255 是套組的既有值（MiliUI_DamageMeters 的視窗底、Chattynator 的
+-- Dark 皮都是它）。拉成常數而不是各寫各的：兩個框並排時要是**同一個灰**，
+-- 各填一個很接近的數字，日後改一邊就會悄悄分岔。
+--
+-- 完整說明與由來：.claude/notes/project-miliui-hud-skin.md
+-- 可執行的獨立版本（給單體發佈的插件複製）：
+--   AddOns/MiliUI_Minimap/Core/Style.lua
+------------------------------------------------------------
+-- 提示框皮的灰階。**唯一真相來源是 `MiliUI_Tooltip` 的 `general.background`**
+-- （0.133、alpha 1、白貼圖純色）—— 套組裡任何「彈出來給人讀內容」的表面都用它，
+-- 這樣滑鼠提示、滑過去的名單、未來的彈出面板才會是同一個底。
+--
+-- ⚠ 它比 HUD 面板底（0x1A = 0.102）**亮一階**，而且**不透明**，這兩點都是刻意的：
+--   面板底色不承載資訊所以可以透、可以更暗；提示底色承載的是「讓字讀得出來」。
+-- ⚠ 數字寫死不去讀 MiliUI_Tooltip 的 SavedVariables：插件是單體發佈的，
+--   玩家可能只裝其中一支，跨插件讀設定會在對方缺席時退回不一樣的顏色。改要兩邊一起改。
+S.TIP_BG = 0.133
+
+function S.ApplyTooltipPanel(frame)
+    if not frame then return end
+    local px = ns.P and ns.P.Scale(1) or 1
+    frame:SetBackdrop({
+        bgFile   = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = px,
+    })
+    frame:SetBackdropColor(S.TIP_BG, S.TIP_BG, S.TIP_BG, 1)
+    frame:SetBackdropBorderColor(S.Accent(1))
+    return frame
+end
+
+S.HUD = {
+    bg       = { 0x1A / 255, 0x1A / 255, 0x1A / 255, 0.80 },  -- 面板底
+    bgSolid  = { 0x1A / 255, 0x1A / 255, 0x1A / 255, 1 },     -- 標題列那種實心橫條
+    text     = { 1, 1, 1, 1 },
+    textDim  = { 0.65, 0.65, 0.65, 1 },
+    -- 邊框沒有固定色：它一律是 S.Accent()（玩家職業色）。
+    borderAlpha = 1,
+    -- 狀態階梯：閒置／滑過／按下只換明暗，色相不動
+    stateAlpha  = { idle = 0.55, hover = 1.00, down = 0.80 },
+}
+
+-- 套用 HUD 皮到一個框。`opaque` = 用實心底（標題列、需要跟內容區分開的橫條）。
+-- ⚠ 邊寬走 P.Scale(1) 而不是寫死 1：UI 縮放不是 1 的時候寫死會畫出 1.3 個實體
+--   像素，那條邊會有一側糊掉，而且四條邊糊的方向還不一樣
+--   （見 .claude/notes/project-miliui-pixel-snapping.md）。
+function S.ApplyHUD(frame, opaque)
+    if not frame then return end
+    local px = ns.P and ns.P.Scale(1) or 1
+    frame:SetBackdrop({
+        bgFile   = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = px,
+    })
+    frame:SetBackdropColor(unpack(opaque and S.HUD.bgSolid or S.HUD.bg))
+    frame:SetBackdropBorderColor(S.Accent(S.HUD.borderAlpha))
+    return frame
+end
 
 ------------------------------------------------------------
 -- 強調色 = 玩家職業色
