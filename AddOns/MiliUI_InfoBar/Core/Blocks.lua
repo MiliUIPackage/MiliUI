@@ -90,24 +90,120 @@ MakeTextBlock("ilvl", {
 
 ------------------------------------------------------------
 -- 耐久：全身裝備的**最低**百分比（要爆的永遠是最低的那件）
+--
+-- 滑過列出逐部位、右鍵開修裝設定。部位名稱走暴雪的全域字串，各語系免費。
 ------------------------------------------------------------
+local DURABILITY_SLOTS = {
+    { 1,  HEADSLOT },      { 3,  SHOULDERSLOT }, { 5,  CHESTSLOT },
+    { 6,  WAISTSLOT },     { 7,  LEGSSLOT },     { 8,  FEETSLOT },
+    { 9,  WRISTSLOT },     { 10, HANDSSLOT },
+    { 16, MAINHANDSLOT },  { 17, SECONDARYHANDSLOT },
+}
+
+local function SlotDurability(slotId)
+    local cur, mx = GetInventoryItemDurability(slotId)
+    cur, mx = S.SafeValue(cur, nil), S.SafeValue(mx, nil)
+    if not (cur and mx) or mx <= 0 then return nil end
+    return cur / mx * 100
+end
+
+-- 只有低耐久才上色：整排都白的時候，眼睛才會被剩下那幾個有顏色的抓住
+local function DurabilityColor(pct)
+    if pct < 20 then return 1, 0.3, 0.3 end
+    if pct < 50 then return 1, 0.82, 0 end
+    return 1, 1, 1
+end
+
+local function AnchorTooltip(tile)
+    local _, cy = tile:GetCenter()
+    local anchor = (cy and cy > UIParent:GetHeight() / 2) and "ANCHOR_BOTTOM" or "ANCHOR_TOP"
+    GameTooltip:SetOwner(tile, anchor)
+end
+
+-- 修裝設定住在 MiliUI 本體（Enhance/Merchant_Automation.lua）——那是行為不是
+-- 顯示，跟資訊列的職責不同，而且本體必裝所以設定永遠找得到。這裡只是入口，
+-- 跟 CPU／記憶體方塊直達效能監控同一個模式：沒裝本體就整組不提供，
+-- 提示裡也不會出現講不通的「右鍵」那一行。
+local function MerchantAPI()
+    return _G.MiliUI_MerchantAutomation
+end
+
+local function ShowRepairMenu(tile)
+    local api = MerchantAPI()
+    if not api then return end
+    GameTooltip:Hide()
+    local items = {
+        { isTitle = true, text = L["MENU_REPAIR_TITLE"] },
+        {
+            text = L["MENU_AUTO_REPAIR"],
+            isActive = api.IsAutoRepair(),
+            keepOpen = true,
+            onClick = function()
+                api.SetAutoRepair(not api.IsAutoRepair())
+                ShowRepairMenu(tile)          -- 原地重畫，打勾才會即時更新
+            end,
+        },
+        {
+            text = L["MENU_GUILD_REPAIR"],
+            isActive = api.IsGuildRepair(),
+            keepOpen = true,
+            onClick = function()
+                api.SetGuildRepair(not api.IsGuildRepair())
+                ShowRepairMenu(tile)
+            end,
+        },
+    }
+    -- 撞車警告只在真的會撞的時候出現（Leatrix 沒裝／沒開就不佔位置）
+    if api.LeatrixConflict() and api.IsAutoRepair() then
+        items[#items + 1] = { isSeparator = true }
+        items[#items + 1] = { isTitle = true, text = L["MENU_LEATRIX_CONFLICT"] }
+    end
+    -- keepAnchor：重畫時沿用上次解出來的位置，選單才不會跳走
+    W.Menu.Show(items, tile, true)
+end
+
 MakeTextBlock("durability", {
     clickable = true,
     events = { "UPDATE_INVENTORY_DURABILITY", "UPDATE_INVENTORY_ALERTS", "PLAYER_ENTERING_WORLD" },
     init = function(_, tile)
-        tile:SetScript("OnClick", function()
-            pcall(ToggleCharacter, "PaperDollFrame")
+        tile:SetScript("OnClick", function(self, button)
+            if button == "RightButton" then
+                ShowRepairMenu(self)
+            else
+                pcall(ToggleCharacter, "PaperDollFrame")
+            end
         end)
+        tile:HookScript("OnEnter", function(self)
+            AnchorTooltip(self)
+            GameTooltip:SetText(L["BLOCK_DURABILITY"], 1, 1, 1)
+            local any = false
+            for _, slot in ipairs(DURABILITY_SLOTS) do
+                local pct = SlotDurability(slot[1])
+                if pct then
+                    any = true
+                    GameTooltip:AddDoubleLine(slot[2], string.format("%d%%", math.floor(pct)),
+                        0.7, 0.7, 0.7, DurabilityColor(pct))
+                end
+            end
+            if not any then
+                GameTooltip:AddLine(L["DURABILITY_NONE"], 0.7, 0.7, 0.7)
+            end
+            -- 按鍵說明一行一條，不用「|」串成一長條
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(L["HINT_LEFT_CHARACTER"], 0.5, 0.5, 0.5)
+            if MerchantAPI() then
+                GameTooltip:AddLine(L["HINT_RIGHT_REPAIR"], 0.5, 0.5, 0.5)
+                GameTooltip:AddLine(L["HINT_SHIFT_SKIP"], 0.5, 0.5, 0.5)
+            end
+            GameTooltip:Show()
+        end)
+        tile:HookScript("OnLeave", function() GameTooltip:Hide() end)
     end,
     getText = function()
         local lowest = 100
-        for slotId = 1, 18 do
-            local cur, mx = GetInventoryItemDurability(slotId)
-            cur, mx = S.SafeValue(cur, nil), S.SafeValue(mx, nil)
-            if cur and mx and mx > 0 then
-                local pct = cur / mx * 100
-                if pct < lowest then lowest = pct end
-            end
+        for _, slot in ipairs(DURABILITY_SLOTS) do
+            local pct = SlotDurability(slot[1])
+            if pct and pct < lowest then lowest = pct end
         end
         return Dim(L["LABEL_DURABILITY"]) .. " " .. math.floor(lowest) .. "%"
     end,

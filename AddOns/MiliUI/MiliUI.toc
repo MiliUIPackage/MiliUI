@@ -73,6 +73,7 @@ Enhance\ItemUpgrade_PreviewIcon.lua
 Enhance\MplusAdventureGuide_Masque.lua
 Enhance\BonusRoll_Filter.lua
 Enhance\LegacyAddons.lua
+Enhance\Merchant_Automation.lua
 
 Fix\DeprecatedGlobals.lua
 Fix\TooltipTaintFix.lua

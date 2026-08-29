@@ -188,6 +188,37 @@ if GetLocale() == "zhTW" then
         end })
 end
 
+-- 商人自動化。撞車警告只在真的會撞的時候長出來（Leatrix 沒裝／沒開就不佔位置），
+-- 而且它是登入當下讀到的狀態，文案要講清楚。
+tinsert(CONTROLS, { type = "header", label = "商人" })
+tinsert(CONTROLS, { type = "toggle", label = "在商人處自動修裝",
+    get = function() return MiliUI_MerchantAutomation and MiliUI_MerchantAutomation.IsAutoRepair() end,
+    set = function(v) if MiliUI_MerchantAutomation then MiliUI_MerchantAutomation.SetAutoRepair(v) end end })
+tinsert(CONTROLS, { type = "text", label = "開商人視窗時自動修理全部裝備。"
+    .. "在商人處按住 Shift 可以略過這一次（花錢的動作留一個當下能取消的閘）。" })
+tinsert(CONTROLS, { type = "toggle", label = "優先使用公會金庫",
+    get = function() return MiliUI_MerchantAutomation and MiliUI_MerchantAutomation.IsGuildRepair() end,
+    set = function(v) if MiliUI_MerchantAutomation then MiliUI_MerchantAutomation.SetGuildRepair(v) end end })
+tinsert(CONTROLS, { type = "text", label = "有公會修理權限時先扣公會金庫，額度用完的部分再用自己的錢補完。"
+    .. "預設關閉——花的是公會的錢，要不要用由你決定。" })
+-- ⚠ 撞車警告不能寫成檔案層的 if：本檔在 TOC 排在 Enhance\ 那一批**之前**，
+-- 這個時間點 MiliUI_MerchantAutomation 還不存在（Leatrix 的 SavedVariables 也
+-- 不一定載了）。走 custom spec，build 在「第一次打開分頁」時才跑，那時都齊了。
+tinsert(CONTROLS, { type = "custom", h = 0, build = function(parent, x, y, width)
+    local conflict = MiliUI_MerchantAutomation and MiliUI_MerchantAutomation.LeatrixConflict()
+    if not conflict then return 0 end
+    local fs = parent:CreateFontString(nil, "OVERLAY")
+    fs:SetFontObject(W.fontNormal)
+    fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
+    fs:SetWidth(width)
+    fs:SetJustifyH("LEFT")
+    fs:SetSpacing(3)
+    fs:SetText("|cffff9900登入時 Leatrix Plus 也開著自動修裝。兩邊都開會各修一次，"
+        .. "「優先使用公會金庫」不一定是勝出的那邊——請關掉其中一邊。"
+        .. "這則提醒會在下次重載介面後重新判斷。|r")
+    return math.ceil(fs:GetStringHeight()) + 8
+end })
+
 -- spec 自帶 get/set，ctx 只是轉接
 local ctx = {
     get = function(spec) if spec.get then return spec.get() end end,
