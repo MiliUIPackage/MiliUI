@@ -66,11 +66,11 @@ local STR_SQUARE = "Square"
 local TYPE_STRING = "string"
 local TYPE_TABLE = "table"
 
+-- Internal Settings
+
 -- Default Masque Textures
 -- Size: 512 x 512
 -- Grid: 6 Rows, 5 Columns, 30 Frames
-
--- Internal Settings
 local SIZE_ALTGLOW = 49
 local SIZE_CLASSIC = 64
 local SIZE_MODERN = 84
@@ -504,7 +504,6 @@ local function Update_SpellActivationAlert(Button, Region)
 		ActionButtonSpellAlertManager:HideAlert(Button)
 		return
 	end
-
 end
 
 ----------------------------------------
@@ -522,27 +521,9 @@ local function Hook_ShowAlert(Frame, Button)
 	Update_SpellActivationAlert(Button, Region)
 end
 
--- Hook for classic spell alerts.
-local function Hook_ShowOverlayGlow(Button)
-	if not Button._MSQ_CFG then return end
-
-	local Region = Button.overlay
-
-	if not Region then return end
-
-	Update_Overlay(Button, Region)
-end
-
--- Retail
 if ActionButtonSpellAlertManager then
 	-- @ Interface\AddOns\Blizzard_ActionBar\Mainline\ActionButton.lua
 	hooksecurefunc(ActionButtonSpellAlertManager, "ShowAlert", Hook_ShowAlert)
-end
-
--- Classic
-if ActionButton_ShowOverlayGlow then
-	-- @ Interface\AddOns\Blizzard_ActionBar\Classic\ActionButton.lua
-	hooksecurefunc("ActionButton_ShowOverlayGlow", Hook_ShowOverlayGlow)
 end
 
 ----------------------------------------

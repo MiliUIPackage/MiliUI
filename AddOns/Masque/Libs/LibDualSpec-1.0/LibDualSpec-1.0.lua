@@ -31,10 +31,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --]]
 
--- Only load in Classic Era on Season of Discovery and Anniversary realms
-if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC and C_Seasons.GetActiveSeason() ~= 2 and C_Seasons.GetActiveSeason() ~= 11 and C_Seasons.GetActiveSeason() ~= 12 then return end
-
-local MAJOR, MINOR = "LibDualSpec-1.0", 27
+local MAJOR, MINOR = "LibDualSpec-1.0", 30
 assert(LibStub, MAJOR.." requires LibStub")
 local lib, minor = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
@@ -72,10 +69,10 @@ local AceDB3 = LibStub('AceDB-3.0', true)
 local AceDBOptions3 = LibStub('AceDBOptions-3.0', true)
 local AceConfigRegistry3 = LibStub('AceConfigRegistry-3.0', true)
 
-local isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
-local numSpecs = 2
-local specNames = {TALENT_SPEC_PRIMARY, TALENT_SPEC_SECONDARY}
-if isRetail then
+local isSpecBased = ClassicExpansionAtLeast(LE_EXPANSION_MISTS_OF_PANDARIA)
+local numSpecs
+local specNames = {}
+if isSpecBased then
 	-- class id specialization functions don't require player data to be loaded
 	local _, classId = UnitClassBase("player")
 	numSpecs = C_SpecializationInfo.GetNumSpecializationsForClassID(classId)
@@ -83,9 +80,13 @@ if isRetail then
 		local _, name = GetSpecializationInfoForClassID(classId, i)
 		specNames[i] = name
 	end
+else -- Primary/secondary system
+	numSpecs = 2
+	specNames[1] = TALENT_SPEC_PRIMARY
+	specNames[2] = TALENT_SPEC_SECONDARY
 end
 
-local GetSpecialization = isRetail and GetSpecialization or GetActiveTalentGroup or C_SpecializationInfo.GetActiveSpecGroup
+local GetSpecialization = isSpecBased and GetSpecialization or C_SpecializationInfo.GetActiveSpecGroup
 local CanPlayerUseTalentSpecUI = C_SpecializationInfo.CanPlayerUseTalentSpecUI or function()
 	return true, HELPFRAME_CHARACTER_BULLET5
 end
@@ -319,8 +320,8 @@ options.enabled = {
 		local desc = L_ENABLED_DESC
 		if lib.currentSpec == 0 then
 			local _, reason = CanPlayerUseTalentSpecUI()
-			if not reason or reason == "" then
-				reason = TALENT_MICRO_BUTTON_NO_SPEC
+			if not reason or reason == "" or reason == "LEVEL_TOO_LOW" then
+				reason = isSpecBased and _G["TALENT_MICRO_BUTTON_NO_SPEC"] or _G["INSTANCE_UNAVAILABLE_SELF_LEVEL_TOO_LOW"]
 			end
 			desc = desc .. "\n\n" .. RED_FONT_COLOR:WrapTextInColorCode(reason)
 		end
@@ -342,7 +343,10 @@ for i = 1, numSpecs do
 			local specIndex = tonumber(info[#info]:sub(-1))
 			return lib.currentSpec == specIndex and L_CURRENT:format(specNames[specIndex]) or specNames[specIndex]
 		end,
-		desc = not isRetail and function(info)
+		desc = ClassicExpansionAtMost(LE_EXPANSION_SHADOWLANDS) and function(info)
+			if lib.currentSpec == 0 then
+				return nil
+			end
 			if ClassicExpansionAtMost(LE_EXPANSION_CATACLYSM) then -- Pre-5.0
 				local specIndex = tonumber(info[#info]:sub(-1))
 				local highPointsSpentIndex = nil
@@ -471,7 +475,7 @@ local function eventHandler(self, event)
 	if event == "PLAYER_LOGIN" then
 		self:UnregisterEvent(event)
 		self:RegisterEvent("PLAYER_ENTERING_WORLD")
-		if isRetail then
+		if isSpecBased then
 			self:RegisterUnitEvent("PLAYER_SPECIALIZATION_CHANGED", "player")
 			self:RegisterEvent("PLAYER_LEVEL_CHANGED")
 		else

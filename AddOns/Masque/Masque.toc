@@ -1,8 +1,8 @@
-## Interface: 11508, 20504, 20505, 30405, 38000, 40402, 50503, 120007, 120100
+## Interface: 11509, 20506, 30405, 38002, 40402, 50504, 120100
 
 ## Author: StormFX, JJSheets
 ## Title: Masque
-## Version: 11.2.10
+## Version: 12.1.0
 
 ## Category: Masque
 ## IconTexture: Interface\AddOns\Masque\Textures\Icon
@@ -15,6 +15,7 @@
 ## Notes-deDE: Eine Engine, um das Erscheinungsbild von schaltflächenbasierte Add-ons anzupassen.
 ## Notes-esMX: Un sistema de cambio de apariencia para los add-ons de botones.
 ## Notes-esES: Un sistema de cambio de apariencia para los add-ons de botones.
+## Notes-itIT: Un sistema di gestione skin per add-on basati sui pulsanti.
 ## Notes-koKR: 버튼 기반 애드온을 위한 스킨 엔진입니다.
 ## Notes-ptBR: Um motor de aparências para addons baseados em botões.
 ## Notes-ruRU: Основа для аддонов, изменяющих внешний вид кнопок.
