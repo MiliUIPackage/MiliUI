@@ -573,7 +573,7 @@ local function CreateResourcesTab(page, tabId)
             function(name) ddBgTexture:SetDefaultText(name) end)
         yOff = yOff - 60
 
-        local SMOOTH_ELIGIBLE = {Mana=1,Rage=1,Energy=1,Focus=1,RunicPower=1,LunarPower=1,Maelstrom=1,Insanity=1,Fury=1}
+        local SMOOTH_ELIGIBLE = {Mana=1,Rage=1,Energy=1,Focus=1,RunicPower=1,LunarPower=1,Maelstrom=1,Insanity=1,Fury=1,SoulShards=1}
         if SMOOTH_ELIGIBLE[barKey] then
             local smoothCB = UI.CreateModernCheckbox(rc, L["Smooth Fill"],
                 CDM:GetBarSettingForClass(classKey, barKey, "smoothBars") ~= false,

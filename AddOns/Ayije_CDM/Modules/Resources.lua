@@ -116,6 +116,7 @@ CDM.CLASS_BARS = CLASS_BARS
 local SMOOTH_ELIGIBLE_BARS = {
     Mana=true, Rage=true, Energy=true, Focus=true, RunicPower=true,
     LunarPower=true, Maelstrom=true, Insanity=true, Fury=true,
+    SoulShards=true, -- 毀滅術碎片填充（其他專精整顆跳動，仍走立即）
 }
 
 local isInitialized = false
@@ -1380,18 +1381,25 @@ local function ApplySoulShardStates(bar)
     local readyColor = cachedSoulShardReadyColor or GetPowerColor(POWER_TYPES.SoulShards)
     local rechargingColor = cachedSoulShardRechargingColor or readyColor
 
+    -- 毀滅術的裂片是碎片制（一格 10 碎片），填充比例會連續變化，跟法力條一樣走
+    -- C 端原生插值（SetValue 第二參數，吃秘密值，見 MiliUI 單位框架的做法）。
+    -- 其他專精只有整顆跳動，維持立即更新。
+    local interp = (bar._smoothBars and specID == 267)
+        and Enum.StatusBarInterpolation.ExponentialEaseOut
+        or Enum.StatusBarInterpolation.Immediate
+
     for i, pip in ipairs(bar.pips) do
         if not pip:IsShown() then break end
         if i <= wholePart then
-            pip:SetValue(1, Enum.StatusBarInterpolation.Immediate)
+            pip:SetValue(1, interp)
             SetStatusBarColorIfChanged(pip, readyColor)
             RememberPipBaseColor(bar, i, readyColor)
         elseif i == wholePart + 1 and fractionalPart > 0 then
-            pip:SetValue(fractionalPart, Enum.StatusBarInterpolation.Immediate)
+            pip:SetValue(fractionalPart, interp)
             SetStatusBarColorIfChanged(pip, rechargingColor)
             RememberPipBaseColor(bar, i, rechargingColor)
         else
-            pip:SetValue(0, Enum.StatusBarInterpolation.Immediate)
+            pip:SetValue(0, interp)
             SetStatusBarColorIfChanged(pip, rechargingColor)
             RememberPipBaseColor(bar, i, rechargingColor)
         end

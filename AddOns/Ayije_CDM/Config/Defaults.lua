@@ -55,6 +55,7 @@ local RESOURCE_BAR_PER_KEY = {
     SoulShards      = {
         color = { r = 0.58, g = 0.51, b = 0.79, a = 1 },
         rechargingColor = { r = 0.35, g = 0.30, b = 0.50, a = 1 },
+        smoothBars = true,
         anchorTo = "Mana",
         offsetY = 1,
     },
