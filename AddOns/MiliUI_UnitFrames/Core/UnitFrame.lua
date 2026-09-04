@@ -680,9 +680,11 @@ function ns.SpawnUnitFrame(unit)
     -- 所以戰鬥中也有效）。顯示面由 ns.EvalActiveUnit 跟上，見那裡的說明。
     uf:SetAttribute("toggleForVehicle", true)
     -- secure 端搬動 unit 屬性時同步顯示面
+    -- ⚠ 這個掛勾也會被 RegisterUnitWatch 的 SetAttribute("statehidden") 從安全端
+    --   叫到，工作一律丟到下一幀（同 OnShow 的 QueueShowRefresh）
     uf:HookScript("OnAttributeChanged", function(self, attr)
         if attr == "unit" or attr == "toggleForVehicle" then
-            ns.EvalActiveUnit(self)
+            ns.Defer(ns.EvalActiveUnit, self)
         end
     end)
 

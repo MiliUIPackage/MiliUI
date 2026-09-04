@@ -179,15 +179,19 @@ local SCOPED        -- 前置宣告：UnitReg 的處理器要查它，實體定�
 --
 -- 同一個 token 的所有事件共用一顆 frame。處理器同時服務兩種來源：
 -- SCOPED 的內部邏輯（有定義才跑）與外部訂閱者的 callback。
+local function DispatchScoped(ev, unit, ...)
+    local def = SCOPED[ev]
+    if def then def.fn(unit) end
+    ns.Fire(FIRE_KEY[ev], unit, ...)
+end
+
 local function UnitReg(event, token, token2)
     local f = unitFrames[token]
     if not f then
         f = CreateFrame("Frame")
-        f:SetScript("OnEvent", function(_, ev, unit, ...)
-            local def = SCOPED[ev]
-            if def then def.fn(unit) end
-            ns.Fire(FIRE_KEY[ev], unit, ...)
-        end)
+        -- 只記帳，工作延到下一幀（UNIT_TARGET 會在 TargetUnit 的 secure 流程裡
+        -- 同步派送）—— 見下面 ns.Defer 的說明
+        f:SetScript("OnEvent", function(_, ...) ns.Defer(DispatchScoped, ...) end)
         unitFrames[token] = f
     end
     ns.trace = "RegisterUnitEvent(" .. tostring(event) .. ")"
@@ -342,6 +346,47 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     end
 end)
 
+------------------------------------------------------------
+-- 通用「丟到下一幀」
+--
+-- 給那些**不走全域 eventFrame**、但一樣可能在暴雪的 secure 流程裡被同步呼叫的入口用：
+--   * unit 範圍的事件 frame（UnitReg）：UNIT_TARGET 在 TargetUnit 流程裡同步派送
+--   * 施法條的事件 frame（Elements/Castbar.lua）：UNIT_SPELLCAST_FAILED 在 UseAction
+--     裡同步派送（技能按不出去的那一下）、UNIT_TARGET 在按 Tab 選目標時同步派送
+--   * OnAttributeChanged／OnShow／OnHide 掛在 secure 單位框上的 HookScript：
+--     RegisterUnitWatch 的 Show()／SetAttribute("statehidden") 從安全端呼叫
+-- 2026-09-05：8/30 只把全域 frame 延了，這幾個入口漏掉，戰鬥中快捷列按鈕的
+-- SetAttribute 照樣被封鎖、記在我們頭上。
+--
+-- 規矩同上面那段：不去重、參數整包留著、雙緩衝。每筆各自 xpcall 隔離，
+-- 一筆炸掉不能拖垮同一幀後面的。
+------------------------------------------------------------
+local dA, dB = {}, {}
+local dq, dqN, dqQueued = dA, 0, false
+
+local function FlushDeferred()
+    dqQueued = false
+    local run, n = dq, dqN
+    dq = (run == dA) and dB or dA
+    dqN = 0
+    for i = 1, n do
+        local a = run[i]
+        run[i] = nil
+        xpcall(a.fn, ns.ReportError, unpack(a, 1, a.n))
+    end
+end
+
+function ns.Defer(fn, ...)
+    local a = { n = select("#", ...), ... }
+    a.fn = fn
+    dqN = dqN + 1
+    dq[dqN] = a
+    if not dqQueued then
+        dqQueued = true
+        C_Timer.After(0, FlushDeferred)
+    end
+end
+
 function ns.Events.Start()
     -- UNIT_EVENT_BUCKET 的事件**不在這裡註冊**：它們走 ns.Events.AttachUnit 的
     -- per-token tracker。同時上全域會被送兩次。
@@ -463,8 +508,9 @@ function ns.Metro.Bind(uf, key, interval, fn)
         local function syncAll()
             for _, s in pairs(uf.metroBound) do s() end
         end
-        uf:HookScript("OnShow", syncAll)
-        uf:HookScript("OnHide", syncAll)
+        -- Show()/Hide() 是 RegisterUnitWatch 從安全端呼叫的，掛勾裡不做事，丟到下一幀
+        uf:HookScript("OnShow", function() ns.Defer(syncAll) end)
+        uf:HookScript("OnHide", function() ns.Defer(syncAll) end)
     end
     sync()
 end

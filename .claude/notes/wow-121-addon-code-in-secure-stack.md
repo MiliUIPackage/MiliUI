@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: a46e5c58-e427-4f26-b413-59eb1b1965fa
-  modified: 2026-08-29T16:53:48.995Z
+  modified: 2026-09-05T00:00:00.000Z
 ---
 
 **指紋**：錯誤堆疊**整條都是暴雪的檔案**，一行插件程式都沒有，但訊息點名某支插件；
@@ -51,6 +51,24 @@ MULTIACTIONBAR4BUTTON9:2 → UseAction()            ─┘
 跑在 `Blizzard_AuraContainerFrameProviders` 的 `CreateFrame`（`securecallfunction` 內）。
 這條**不能延**——AuraButton 在初始化之後就 forbidden，樣式只能在那裡做。
 見 [[wow-121-aura-containers]]。
+
+**4. 8/30 漏掉的同類入口（2026-09-05 補）**
+
+8/30 只把**全域 eventFrame** 延了一幀，這幾個一樣會在 secure 流程裡被同步呼叫的
+入口沒動，症狀原封不動地回來：戰鬥中 `ActionButton3:SetAttribute()` 等五顆快捷列
+按鈕同一秒被封鎖、記在 MiliUI_UnitFrames 頭上。
+
+- 施法條自己的事件 frame（`Elements/Castbar.lua`）：player 框收
+  `UNIT_SPELLCAST_FAILED`（UseAction 裡技能按不出去那一下**同步**派送）與
+  `UNIT_TARGET`（按 Tab 的 TargetUnit 流程同步派送）——正好是入口 2 的那兩條按鍵。
+- unit 範圍的事件 frame（`Core/Events.lua` 的 UnitReg）：`UNIT_TARGET`。
+- 掛在 secure 單位框上的 HookScript：`OnAttributeChanged`（RegisterUnitWatch 的
+  `SetAttribute("statehidden")` 會叫到）、Metro.Bind 的 OnShow/OnHide、
+  光環 holder 的 OnShow。
+
+全部改成 `ns.Defer(fn, ...)`（通用雙緩衝佇列，在 Core/Events.lua）。
+**教訓：找入口要列「所有」會被暴雪呼叫的 script 與事件 frame，不是只看 OnEvent
+主幹；`grep SetScript\|HookScript` 一次掃完。** 是否真的歸零待遊戲內驗證。
 
 ## 解法
 

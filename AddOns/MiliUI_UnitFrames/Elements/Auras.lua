@@ -648,7 +648,7 @@ local function CreateContainer(uf, elementName, edb, filter, cand, style)
     end
     if not holder.__kickHooked then
         holder.__kickHooked = true
-        holder:HookScript("OnShow", function()
+        local function OnHolderShow()
             -- 容器建立時框架若還沒可見，SetEnabled 註冊不到光環事件，
             -- 之後就永遠空白 → 真的顯示出來時補踢一次。
             -- ⚠ 一定要走 Bounce 不能直接 Kick：這個 OnShow 是 RegisterUnitWatch 從
@@ -668,7 +668,9 @@ local function CreateContainer(uf, elementName, edb, filter, cand, style)
                     end
                 end
             end
-        end)
+        end
+        -- 掛勾裡只記帳：OnShow 是從安全端來的，工作丟到下一幀（ns.Defer）
+        holder:HookScript("OnShow", function() ns.Defer(OnHolderShow) end)
     end
     return container
 end

@@ -741,7 +741,12 @@ local function Build(uf, edb)
         local ev = not uf.isPreview and CreateFrame("Frame")
         if ev then
         f.evFrame = ev
-        ev:SetScript("OnEvent", function(_, event, evUnit, arg2, arg3, arg4, arg5)
+        -- ⚠ 工作一律延到下一幀（ns.Defer）。UNIT_SPELLCAST_FAILED 在 UseAction 裡
+        --   同步派送（技能按不出去那一下）、UNIT_TARGET 在按 Tab 的 TargetUnit 流程裡
+        --   同步派送——在這裡同步跑等於把 taint 灌進那條按鍵的 secure 流程，之後
+        --   暴雪自己重畫快捷列按鈕的 SetAttribute 就被封鎖、記在我們頭上。
+        --   延一幀對顯示沒有影響：START 讀的是當下的 UnitCastingInfo，STOP 走事件參數。
+        local function OnCastEvent(event, evUnit, arg2, arg3, arg4, arg5)
             if not AcceptCastEvent(uf, f, event, evUnit) then return end
             if not uf:IsVisible() then return end
             if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_CHANNEL_START"
@@ -786,7 +791,8 @@ local function Build(uf, edb)
                 if f.castState ~= 1 then return end
                 EndFade(f, f.showCompleteFlash and Colors().complete or nil)
             end
-        end)
+        end
+        ev:SetScript("OnEvent", function(_, ...) ns.Defer(OnCastEvent, ...) end)
         end   -- if ev（預覽孿生跳過事件註冊）
 
         uf.elements.castbar = f
