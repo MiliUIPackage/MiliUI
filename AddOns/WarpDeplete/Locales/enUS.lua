@@ -92,6 +92,7 @@ L["Frequency"] = true
 L["General"] = true
 L["However, this field will be hidden when there is no current pull."] = true
 L["Insert keystone automatically"] = true
+L["Hide the objective tracker while the timer is shown"] = true
 L["Install MDT to enable this functionality."] = true
 L["Install MDT Legacy to enable this functionality."] = true
 L["Key Details"] = true

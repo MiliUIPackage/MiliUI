@@ -83,6 +83,7 @@ L["Frequency"] = "频率"
 L["General"] = "通用"
 L["However, this field will be hidden when there is no current pull."] = "若无当前波次怪物，该字段将被隐藏。"
 L["Insert keystone automatically"] = "自动插入钥石"
+L["Hide the objective tracker while the timer is shown"] = "计时器显示时隐藏任务追踪器"
 L["Install MDT to enable this functionality."] = "安装 MDT 以启用此功能。"
 L["Install MDT Legacy to enable this functionality."] = true
 L["Key Details"] = "钥石详情"

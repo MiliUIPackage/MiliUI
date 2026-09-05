@@ -131,6 +131,11 @@ local defaults = {
     -- Utility options
     insertKeystoneAutomatically = true,
     showMillisecondsWhenDungeonCompleted = true,
+    -- fix from MiliUI: 藏任務追蹤器改成選項，預設關。套組裡 M+ 藏追蹤器
+    -- 交給 MiliUI_QuestTracker（它的 visibility.mythicPlus 預設開），兩邊不搶。
+    -- 上游本來是無條件藏（Show() 就 alpha 0），舊存檔沒有這個鍵，nil-merge
+    -- 後就是 false —— 等於「原本開著的一律改成關」，不用另外遷移。
+    hideObjectiveTracker = false,
 
     -- Splits
     splitsEnabled = true,

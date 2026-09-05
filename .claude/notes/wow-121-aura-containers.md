@@ -269,3 +269,26 @@ callback 裡只查表。2026-08-30 在 MiliUI_UnitFrames `Elements/Auras.lua` �
 而且**不能用延一幀解決**——AuraButton 初始化完就 forbidden。
 
 相關：[[wow-121-secret-values]]、[[wow-121-coolinator-reference]]、[[project-121-addon-migration]]、[[wow-121-addon-code-in-secure-stack]]
+
+
+## 2026-09-05 對照正式服原始碼（Blizzard_AuraContainer，live 分支）核對出的四件事
+
+1. **`UpdateAllAuras()` 從插件端呼叫是有用的**：`ManagedAuraContainerSharedMixin:UpdateAllAuras` →
+   `MarkDirty(FullAuraRebuild)` → `OnDirtyChanged` → `SetOnUpdateMode(RunWhenVisibleOnce)` →
+   下一幀 `OnUpdate` → `ProcessDirtyFlags` → `ParseAllAuras`（`GetUnitAuraInstanceIDs` 在安全端重掃）。
+   `SetUnit`／`SetEnabled` 內部走的就是同一條。前提只有一個：容器**看得見**（`RunWhenVisibleOnce`），
+   藏著的要等 OnShow（`OnShow_Intrinsic` 自己會 UpdateAllAuras）。之前筆記寫的「插件端只設得到髒旗標、
+   推不動處理器」是舊 build 的觀察，正式服原始碼不支持，要重新實測（Cell 的 `SETTLE_CHEAP` 開關就是拿來驗這個）。
+2. **事件註冊 = `IsVisible() and IsEnabled()`**（`ShouldRegisterForDynamicEvents`），`UNIT_AURA` 用
+   `RegisterUnitEvent` 綁在 `GetUnit()` 上；OnShow／OnHide／SetUnit／SetEnabled 四處都重做註冊。
+   所以藏過的容器不會漏事件——它重新顯示時整個重掃。
+3. **增量更新有處理移除**：`ProcessUnitAuraUpdate` 逐一吃 `addedAuras`／`updatedAuraInstanceIDs`／
+   `removedAuraInstanceIDs`，移除 → `RemoveAura` → `MarkDirty(AuraFrameAssignments)` → 下一幀
+   `RefreshAuraGroup` 釋放框 → `ReleaseFrame` 直接 `auraFrame:Hide()`。`isFullUpdate` 走整掃。
+   從原始碼看不出「在秘密視窗內掉落的光環會留著」的路徑；若實測還是卡，先用 `/fstack` 確認卡著的
+   到底是不是容器的 AuraButton，再懷疑引擎。
+4. **`CanApplyIdentityCandidateFilters` 正式服版本**：`auraData.isHelpful and
+   UnitIsPlayerControlledOrGroupMember(unit)` 直接回 true——**隊友身上的增益用 spellID 過濾永遠允許**，
+   不再看 `UnitCanAssist`。身分閘（cinematic／跨陣營／不可見→白名單失效）對團隊框的 HELPFUL 列已經不成立；
+   只剩 NeverSecret 例外與「非隊員」那條。Cell 的 `GATE_FAIL_CLOSED` 現在只會把離線／不可見隊友的減傷列
+   藏起來，不再防到任何 fail-open。

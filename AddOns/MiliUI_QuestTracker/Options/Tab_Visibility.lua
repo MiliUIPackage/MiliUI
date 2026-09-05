@@ -15,8 +15,9 @@ local function Apply()
     ns.Fire("Apply")
 end
 
--- WarpDeplete 在 M+ 開跑時會自己把追蹤器的 alpha 壓成 0。它跟我們搶的是同一個
--- 值，兩邊都動就會出現「跑一半自己冒出來」。裝了就把那一條標成別人的地盤。
+-- 套組裡的 WarpDeplete 把「藏追蹤器」改成了選項且預設關，M+ 藏清單由這裡負責。
+-- 玩家若在那邊開回來，兩邊搶的是同一個 alpha，會出現「跑一半自己冒出來」，
+-- 所以裝了就提醒一句。
 local function WarpDepleteLoaded()
     return C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("WarpDeplete")
 end
@@ -36,7 +37,7 @@ local function BuildControls()
 
     if WarpDepleteLoaded() then
         controls[#controls + 1] = { type = "text",
-            label = L["WarpDeplete already hides the tracker during a Mythic+ run. Leave this off unless you turn that off in WarpDeplete, or the two will fight over the same fade."] }
+            label = L["This is the switch that hides the tracker during a Mythic+ run. WarpDeplete has its own \"hide the objective tracker\" option, off by default in this package — keep only one of the two on, or they will fight over the same fade."] }
     end
 
     controls[#controls + 1] = { type = "header", label = L["While folded"] }

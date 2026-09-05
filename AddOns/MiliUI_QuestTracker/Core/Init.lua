@@ -16,7 +16,7 @@ local ADDON, ns = ...
 
 ns.ADDON_NAME = ADDON
 ns.VERSION    = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
-ns.DB_VERSION = 1
+ns.DB_VERSION = 2   -- 2：visibility.mythicPlus 預設改開（見 DB.lua 的 Migrate）
 
 -- player token 不受 12.1 身分限制，讀職業是安全的
 ns.playerClass = select(2, UnitClass("player"))
