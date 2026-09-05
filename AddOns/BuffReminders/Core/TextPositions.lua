@@ -4,18 +4,20 @@ local _, BR = ...
 -- TEXT POSITIONS
 -- ============================================================================
 -- Resolves per-text-item placement on buff icons. A "zone" is one of fifteen
--- semantic positions (3 vertical bands x 3 horizontal columns + INSIDE_C),
--- plus an optional pixel nudge. Display sites call Apply() instead of writing
--- raw SetPoint anchors so users can re-arrange overlapping text via Options.
+-- semantic positions (5 vertical bands x 3 horizontal columns), plus an
+-- optional pixel nudge. Display sites must call Apply() instead of SetPoint,
+-- so the user can re-arrange overlapping text from Options.
 --
--- Storage is global only: defaults.textPositions[item] where item is one of
--- count, stackCount, statLabel, badge, buffReminder. Per-category storage was
--- considered but dropped - each item has exactly one realistic consumer.
+-- Icon-overlay items also carry an optional size, stored as a percentage of the
+-- icon size in defaults.textSizes[item].
+--
+-- Storage is global only. Each item has exactly one realistic consumer, so
+-- there is no per-category override.
 
 BR.TextPositions = {}
 
--- Each zone holds the SetPoint args + a baseline nudge so text doesn't kiss
--- the icon edge. Users add their own fine offset on top.
+-- Each zone holds the SetPoint args plus a baseline nudge that keeps the text
+-- off the icon edge. The user offset adds to that nudge.
 local ZONES = {
     -- INSIDE: anchored to a point of the icon itself (inset by a few pixels)
     INSIDE_TL = { point = "TOPLEFT", relPoint = "TOPLEFT", dx = 2, dy = -2 },
@@ -38,23 +40,22 @@ local ZONES = {
 }
 BR.TextPositions.Zones = ZONES
 
--- Repositionable text items the UI exposes, in display order. `count` is a
--- historical key name: the region carries group counts, countdowns AND the
--- "NO FLASK"-style labels, so the UI calls it "Main text".
+-- Repositionable text items the UI exposes, in display order. The `count` key
+-- name is too narrow: the region also carries countdowns and "NO FLASK"-style
+-- labels. The UI calls it "Main text".
 BR.TextPositions.Items = {
-    "count", -- defaults page (Pages/Defaults)
-    "buffReminder", -- raid page (Sections/RaidIcons)
-    "statLabel", -- consumable page (Sections/ItemDisplay)
+    "count",
+    "buffReminder",
+    "statLabel",
     "badge",
     "stackCount",
-    "petLabel", -- pet page (Sections/PetDisplay); anchors pet name, family/extra stack below
+    "petLabel", -- anchors the pet name; the family and extra stack sit below it
 }
 
--- Two-axis decomposition of zone names so the UI can present "Vertical" +
--- "Align" dropdowns instead of a custom 5x3 picker widget. Two dropdowns map
--- to the same 15 zones, cost zero custom code, and shrink each row from ~90px
--- to ~26px. The naming asymmetry in zone strings ("INSIDE_T" = top-center,
--- "INSIDE_TL" = top-left) is handled here so callers only see the clean axes.
+-- Two-axis decomposition of zone names. The UI presents "Vertical" and
+-- "Align" dropdowns instead of a 5x3 picker widget. The zone strings are
+-- asymmetric ("INSIDE_T" = top-center, "INSIDE_TL" = top-left); the maps below
+-- hide that from callers.
 
 BR.TextPositions.VERTICAL_OPTIONS = {
     { value = "ABOVE", labelKey = "Options.TextPositions.Vertical.Above" },
@@ -105,9 +106,6 @@ function BR.TextPositions.FromVA(vertical, align)
     return row[align] or row.C or "INSIDE_C"
 end
 
--- Defaults preserve current hard-coded behavior so the upgrade is invisible
--- until users change something. statLabel/badge/stackCount weren't user-
--- positionable before; their defaults match the prior anchor points.
 local DEFAULT_ZONES = {
     count = "INSIDE_C",
     stackCount = "INSIDE_BR",
@@ -118,6 +116,39 @@ local DEFAULT_ZONES = {
 }
 BR.TextPositions.DefaultZones = DEFAULT_ZONES
 
+-- Icon-overlay text items that carry an independent size. The stored value is a
+-- percentage of the icon size. An absent value follows consumableTextScale.
+local SIZED_ITEMS = {
+    statLabel = true,
+    badge = true,
+    stackCount = true,
+}
+BR.TextPositions.SizedItems = SIZED_ITEMS
+
+---Stored size override for an item, or nil while the item follows the base.
+---@param item string? A key from BR.TextPositions.SizedItems
+---@return number?
+function BR.TextPositions.GetSizeOverride(item)
+    if not item or not SIZED_ITEMS[item] then
+        return nil
+    end
+    local defaults = BR.profile and BR.profile.defaults
+    local sizes = defaults and defaults.textSizes
+    return sizes and sizes[item]
+end
+
+---Effective size percentage for an icon-overlay text item.
+---@param item string? nil returns the shared base
+---@return number percent
+function BR.TextPositions.GetSizePercent(item)
+    local own = BR.TextPositions.GetSizeOverride(item)
+    if own then
+        return own
+    end
+    local defaults = BR.profile and BR.profile.defaults
+    return (defaults and defaults.consumableTextScale) or BR.defaults.defaults.consumableTextScale
+end
+
 ---Resolve a zone name to its SetPoint descriptor. Falls back to INSIDE_C.
 ---@param zone string?
 ---@return table {point, relPoint, dx, dy}
@@ -125,10 +156,8 @@ function BR.TextPositions.Resolve(zone)
     return ZONES[zone] or ZONES.INSIDE_C
 end
 
----Look up the effective text-position config for an item. Resolves from
----defaults.textPositions only (per-category overrides were considered but
----dropped: each repositionable item has exactly one realistic consumer).
----@param item string One of count, stackCount, statLabel, badge, buffReminder
+---Look up the effective text-position config for an item.
+---@param item string A key from BR.TextPositions.Items
 ---@return string zone
 ---@return number offsetX
 ---@return number offsetY

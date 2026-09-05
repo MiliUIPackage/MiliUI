@@ -4,14 +4,12 @@ local _, BR = ...
 -- RUNEFORGE EDITOR (inline section)
 -- ============================================================================
 -- A 4-tab strip (Blood / Frost 2H / Frost Dual-Wield / Unholy) of accepted
--- runeforge checkboxes, stored per spec. Formerly a standalone dialog opened by
--- a button inside the buff panel; now rendered INLINE at the top of the
--- Runeforge buff panel so the choice is one click away, not two windows deep.
+-- runeforge checkboxes, stored per spec.
 --
 -- BuildInline(parent, opts) draws the editor into `parent` at (opts.x, opts.y)
 -- within opts.width and returns the vertical space it consumed. The buff panel
--- rebuilds its body (and this editor) on every open, so no persistent-dialog
--- caching is needed. Checkbox holders are handed to opts.registerHolder so the
+-- rebuilds its body (and this editor) on every open, so the editor holds no
+-- widget state between builds. Checkbox holders go to opts.registerHolder, so the
 -- panel can unregister them on teardown.
 
 local L = BR.L
@@ -52,8 +50,8 @@ local function EnsureSpecPrefs(specId)
     return db.dkRunePreferences[specId]
 end
 
--- Which tab to open on first show: the player's current spec (dual-wield vs
--- two-handed for Frost), so a DK lands on the runes that matter right now.
+-- Tab to open on each build: the player's current spec. Frost splits into
+-- dual-wield and two-handed.
 local function DefaultTabKey()
     local specId = BR.StateHelpers.GetPlayerSpecId()
     if specId == 251 then
@@ -107,7 +105,6 @@ local function BuildInline(parent, opts)
         return cy
     end
 
-    -- Tab definitions (spec + storage slot per column).
     local _, bloodName = GetSpecializationInfoByID(250)
     local _, frostName = GetSpecializationInfoByID(251)
     local _, unholyName = GetSpecializationInfoByID(252)
@@ -129,7 +126,6 @@ local function BuildInline(parent, opts)
         end
     end
 
-    -- Tab strip, evenly distributed across the width.
     local numTabs = #DK_TABS
     local tabWidth = (width - (numTabs - 1) * TAB_GAP) / numTabs
     local prevTab, firstTab
@@ -150,8 +146,8 @@ local function BuildInline(parent, opts)
     end
     Components.TabBaseline(parent, firstTab, width)
 
-    -- Content height fits the tallest tab (Frost Dual-Wield adds a column-label
-    -- row above its checkboxes); shorter tabs simply leave slack below.
+    -- Content height fits the tallest tab. Frost Dual-Wield adds a column-label
+    -- row above its checkboxes. Shorter tabs leave slack below.
     local contentTop = y - TAB_HEIGHT - TABS_TO_CONTENT_GAP
     local contentH = DW_LABEL_HEIGHT + numRunes * (CHECKBOX_HEIGHT + CHECKBOX_GAP)
 
@@ -185,4 +181,8 @@ local function BuildInline(parent, opts)
     return y - finalY
 end
 
-BR.Options.Dialogs.Runeforge = { BuildInline = BuildInline }
+BR.Options.Dialogs.Runeforge = {
+    BuildInline = BuildInline,
+    Name = L["BuffRow.Option.Runeforge"],
+    Width = 504,
+}

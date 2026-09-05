@@ -30,7 +30,6 @@ BR.BuffBeneficiaries = {
 -- Specs that benefit from each buff (used when spec ID is known via LibSpecialization)
 -- nil = everyone benefits (same as BuffBeneficiaries)
 -- When a unit's spec is known, this takes priority over the class-based BuffBeneficiaries table.
--- When spec is unknown (LibSpecialization data not yet received), falls back to BuffBeneficiaries.
 BR.SpecBeneficiaries = {
     intellect = {
         [62] = true,

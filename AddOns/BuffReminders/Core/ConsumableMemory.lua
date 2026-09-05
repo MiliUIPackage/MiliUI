@@ -3,26 +3,17 @@ local _, BR = ...
 -- ============================================================================
 -- CONSUMABLE MEMORY
 -- ============================================================================
--- Tracks which consumable the player last used per spec, so the display layer
--- can sort the preferred item first. Three detection paths feed into this module:
---
--- 1. State.lua (ShouldShowConsumableBuff) - spell-based consumables (flasks, runes, tea)
---    Calls ConsumableMemory.Remember() with updateOnly=true (refreshes existing preference,
---    never creates new entries - prevents leaking preferences across spec switches).
---
--- 2. PostClick handlers (SecureButtons.lua) - addon click-to-cast
---    Calls ConsumableMemory.RememberChoice() when a consumable button is clicked.
---
--- 3. Count-delta tracking - food and weapon enchants used outside the addon
---    ConsumableMemory.DetectConsumedItems() compares item counts between bag refreshes.
+-- Tracks which consumable the player last used per spec. The display layer sorts
+-- the preferred item first. Items used outside the addon have no event, so the
+-- module detects them from item count deltas between bag refreshes.
 
 local GetItemSpell = GetItemSpell
 
 -- ============================================================================
 -- FLEETING FLASK DETECTION
 -- ============================================================================
--- Fleeting/cauldron flasks sort first by numeric priority and should NOT be
--- remembered - they would overwrite the user's regular flask preference.
+-- Fleeting and cauldron flasks sort first by numeric priority. The module must
+-- not remember them, because they overwrite the regular flask preference.
 
 ---Check if an item is a fleeting flask.
 ---@param itemID number
@@ -31,7 +22,6 @@ local function IsFleetingItem(itemID)
     return BR.FLEETING_FLASK_ITEMS and BR.FLEETING_FLASK_ITEMS[itemID] or false
 end
 
--- Lazily-built set of spell IDs that fleeting flask items cast.
 local fleetingSpellIDs = nil
 
 ---Check if a spell ID corresponds to a fleeting flask.
@@ -65,12 +55,10 @@ local function Remember(specId, category, spellID, updateOnly)
     end
     local db = BR.profile
     local mem = db.rememberedConsumables
-    -- Fast path: already remembered (common case during steady-state)
     if mem and mem[specId] and mem[specId][category] == spellID then
         return
     end
-    -- In updateOnly mode, only overwrite an existing entry (don't create new spec/category memory).
-    -- This prevents passive buff detection from leaking preferences across spec switches.
+    -- Passive buff detection must not leak preferences across spec switches.
     if updateOnly and not (mem and mem[specId] and mem[specId][category]) then
         return
     end
@@ -101,7 +89,6 @@ end
 -- ============================================================================
 
 ---Remember a consumable that was clicked via the addon's action buttons.
----Resolves item -> spell via GetItemSpell, skips fleeting flasks.
 ---@param itemID number? The item that was clicked
 ---@param buffFrame table? The buff frame the click originated from
 local function RememberChoice(itemID, buffFrame)
@@ -128,13 +115,13 @@ end
 -- COUNT-DELTA TRACKING (food and weapon enchants used outside addon)
 -- ============================================================================
 
--- Previous item counts per category, for detecting which item was consumed.
--- Structure: previousCounts[category][itemID] = { count = N, useSpellID = S }
+-- Detects which item was consumed by comparing counts between bag scans.
+---@type table<string, table<number, { count: number, useSpellID: number? }>>
 local previousCounts = {}
 
 ---Detect consumed food/weapon items by comparing current buckets with previous counts.
----Automatically remembers the consumed item's spell for the current spec.
----Only runs for "food" and "weapon" categories (spell-based consumables are handled by State.lua).
+---Remembers the consumed item's spell for the current spec.
+---Only "food" and "weapon" apply. State.lua handles the spell-based consumables.
 ---@param buckets table Current bag scan buckets: category -> { [itemID] = { count, useSpellID, ... } }
 ---@param specId number? Player's current specialization ID
 local function DetectConsumedItems(buckets, specId)
@@ -164,7 +151,6 @@ end
 ---Reuses existing tables to reduce GC pressure.
 ---@param buckets table Current bag scan buckets: category -> { [itemID] = { count, useSpellID, ... } }
 local function SnapshotCounts(buckets)
-    -- Remove categories no longer in buckets, wipe existing ones for reuse
     for category, catTable in pairs(previousCounts) do
         if not buckets[category] then
             previousCounts[category] = nil
@@ -172,7 +158,6 @@ local function SnapshotCounts(buckets)
             wipe(catTable)
         end
     end
-    -- Populate from current buckets, reuse per-item tables when possible
     for category, entries in pairs(buckets) do
         if not previousCounts[category] then
             previousCounts[category] = {}

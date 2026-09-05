@@ -4,17 +4,13 @@ local _, BR = ...
 -- ICON / TEXTURE RESOLUTION
 -- ============================================================================
 -- Single source of truth for "given a buff def, what texture(s) represent it".
--- Consumed by the display layer (frame textures) and the options panel (menu
--- rows, previews). Pure resolution + caching; no frames. Frame-side cache
--- invalidation (re-texturing live frames) lives in Display.lua.
+-- Pure resolution + caching; no frames. Frame-side cache invalidation
+-- (re-texturing live frames) lives in Display.lua.
 
 local tinsert = table.insert
 
 local GetPlayerRole = BR.BuffState.GetPlayerRole
 
--- Spell texture cache (mirrors spellNameCache in Core.lua).
--- Wiped after deferred init to pick up cosmetic overrides (e.g. warlock green fire)
--- that aren't available yet at login time.
 local spellTextureCache = {}
 
 -- Reusable single-element buffer to avoid { spellID } allocations in hot loops.
@@ -28,7 +24,7 @@ local function AsSpellList(val)
     return singleSpellBuf
 end
 
----Resolve a spell ID to its texture, with caching. Returns nil if the API can't resolve it yet.
+---Resolve a spell ID to its texture, with caching. Returns nil if the API cannot resolve it yet.
 ---@param id number
 ---@return number? textureID
 local function GetSpellTextureCached(id)
@@ -44,9 +40,8 @@ local function GetSpellTextureCached(id)
     return texture
 end
 
----Get spell texture from a single spell ID (kept for the few raw-id callers: custom-buff
----icon refresh, Glow preview). For buff defs use GetBuffIcons(buff)[1] instead so authoring
----fields like buff.icon take priority over a raw spellID lookup.
+---Get spell texture from a single spell ID. For a buff def use GetBuffIcons(buff)[1]
+---instead, so that buff.icons takes priority over the raw spellID lookup.
 ---@param spellID number
 ---@return number? textureID
 local function GetBuffTexture(spellID)
@@ -59,8 +54,8 @@ local function GetBuffTexture(spellID)
     return GetSpellTextureCached(spellID)
 end
 
----Resolve the static portion of an `icons` spec ({textures = ...} or {spells = ...}) into
----a list of texture IDs. Caller owns dedup.
+---Resolve the static portion of an `icons` spec into a list of texture IDs.
+---Caller owns dedup.
 ---@param icons IconSpec?
 ---@param add fun(t: number?)
 local function ResolveStaticIcons(icons, add)
@@ -78,13 +73,9 @@ local function ResolveStaticIcons(icons, add)
     end
 end
 
----Resolve the static icon list for a buff. Single source of truth for menus, list rows,
----and the in-game frame's initial texture. Cached lazily on the buff (spell textures
----sometimes return nil during early load before spell data settles, so empty results stay
----uncached and retry on next read).
----
----Resolution: `buff.icons.textures` / `buff.icons.spells` if set; else `buff.spellID`
----resolved to texture(s) as the free fallback for ordinary aura-detected buffs.
+---Resolve the static icon list for a buff. Cached lazily on the buff: spell textures
+---can return nil during early load, before spell data settles. An empty result stays
+---uncached and the next read resolves it again.
 ---@param buff table Any buff def (RaidBuff, SelfBuff, ConsumableBuff, CustomBuff, ...)
 ---@return number[] textures (may be empty)
 local function GetBuffIcons(buff)
@@ -117,8 +108,8 @@ local function GetBuffIcons(buff)
     return out
 end
 
----Apply a buff's dynamic icon spec to a state entry. Called by State.lua when an entry
----becomes visible. Function variant is computed now; byRole is applied at render time.
+---Apply a buff's dynamic icon spec to a state entry. The `dynamic` function runs at
+---call time. `byRole` resolves at render time.
 ---@param entry table
 ---@param buff table
 local function ApplyDynamicIcon(entry, buff)
@@ -133,10 +124,8 @@ local function ApplyDynamicIcon(entry, buff)
     end
 end
 
----Pre-fill `_iconsCache` for every static buff after spell data has settled. Eliminates
----the first-render resolve latency on the user's first interaction; callers afterwards
----hit the cached path. Buffs whose first resolve still returns empty (cosmetic overrides
----like warlock green fire) stay uncached and retry naturally.
+---Pre-fill `_iconsCache` for every static buff. The caller must wait until spell data
+---settles.
 local function PreFillIconCaches()
     for _, buffArray in pairs(BR.BUFF_TABLES) do
         for _, buff in ipairs(buffArray) do

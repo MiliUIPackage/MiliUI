@@ -6,9 +6,9 @@ local L = BR.L
 -- ADDON BOOTSTRAP
 -- ============================================================================
 -- Runs once on ADDON_LOADED: SavedVariables/AceDB setup, versioned migrations,
--- default seeding, and options/minimap registration. Owns its own event frame -
--- each module owns the events it consumes (cf. Display.lua, State.lua). Loads
--- after Display.lua so the BR.Display.* builder/registration helpers exist.
+-- default seeding, and options/minimap registration. Owns its own event frame,
+-- because each module owns the events it consumes. Loads after Display.lua, so
+-- the BR.Display.* builder and registration helpers exist.
 
 local defaults = BR.defaults
 local CATEGORIES = BR.CATEGORY_ORDER
@@ -30,11 +30,10 @@ bootstrapFrame:SetScript("OnEvent", function(_, event, arg1)
     -- ====================================================================
     -- Pre-AceDB migration: wrap the old flat SavedVariables layout (root-level
     -- iconSize/categorySettings/etc., no profiles) into the AceDB structure so
-    -- AceDB:New() adopts the existing data instead of seeing a fresh install.
-    -- Also runs on first install (empty table), seeding an empty profile.
+    -- AceDB:New() adopts the existing data and does not report a fresh install.
+    -- On first install the table is empty, so this block seeds an empty profile.
     -- ====================================================================
     if not rawget(BuffRemindersDB, "profiles") then
-        -- Old flat format -> AceDB format
         local profileData, globalData = {}, {}
         for k, v in pairs(BuffRemindersDB) do
             if k == "minimap" then
@@ -49,7 +48,6 @@ bootstrapFrame:SetScript("OnEvent", function(_, event, arg1)
         rawset(BuffRemindersDB, "global", globalData)
     end
 
-    -- Build AceDB defaults (minimap is global, everything else is per-profile)
     local aceDefaults = {
         profile = {},
         global = { minimap = defaults.minimap },
@@ -60,56 +58,48 @@ bootstrapFrame:SetScript("OnEvent", function(_, event, arg1)
         end
     end
 
-    -- Initialize AceDB + profile proxy
     BR.Profiles.Initialize(aceDefaults)
 
     local db = BR.profile
 
     -- ====================================================================
-    -- Versioned migrations - each runs exactly once, tracked by dbVersion.
-    -- Migration functions live in Core/Migrations.lua (append-only; never
-    -- delete or renumber - old profiles can return from any version).
+    -- Versioned migrations - dbVersion makes each migration run exactly once.
+    -- Core/Migrations.lua is append-only. Never delete or renumber a migration:
+    -- an old profile can return from any version.
     -- ====================================================================
     BR.Migrations.Run(db, defaults, { CATEGORIES = CATEGORIES })
 
-    -- Deep copy defaults for non-defaults tables
     BR.Profiles.DeepCopyDefault(defaults, db)
 
-    -- Initialize custom buffs storage and populate BUFF_TABLES.custom
     if not db.customBuffs then
         db.customBuffs = {}
     end
     BR.Display.BuildCustomBuffArray()
 
-    -- Initialize loadout reminders storage and populate BUFF_TABLES.loadout
     if not db.loadoutReminders then
         db.loadoutReminders = {}
     end
     BR.Display.BuildLoadoutRulesArray()
 
-    -- What's-new notification dots: `BR.aceDB.global.seenVersions` tracks which
-    -- feature cohorts the user has acknowledged. Fresh installs pre-acknowledge
-    -- every current cohort (nothing is "new" to a brand-new user); upgraders
-    -- start empty so this release's additions light up. Additive global,
-    -- nil-safe for every prior DB.
+    -- A fresh install acknowledges every current what's-new cohort, because
+    -- nothing is new to a new user. An upgrade starts with an empty set, so the
+    -- additions of this release light up.
     if isFirstInstall then
         BR.Options.WhatsNew.MarkSeen()
     end
 
-    -- Register custom buffs in glow fallback lookup (so they work in M+/combat)
+    -- The glow fallback lookup keeps custom buffs usable in M+ and in combat.
     for _, customBuff in ipairs(BR.BUFF_TABLES.custom) do
         if customBuff.glowMode ~= "disabled" then
             BR.Display.RegisterGlowBuff(customBuff, "custom")
         end
     end
 
-    -- Set up metatable so db.defaults inherits from code defaults
     if not db.defaults then
         db.defaults = {}
     end
     setmetatable(db.defaults, { __index = defaults.defaults })
 
-    -- Initialize categoryVisibility with defaults for each category
     if not db.categoryVisibility then
         db.categoryVisibility = {}
     end
@@ -128,7 +118,6 @@ bootstrapFrame:SetScript("OnEvent", function(_, event, arg1)
         end
     end
 
-    -- Register with WoW's Interface Options
     local settingsPanel = CreateFrame("Frame")
     settingsPanel.name = "BuffReminders"
 
@@ -146,7 +135,7 @@ bootstrapFrame:SetScript("OnEvent", function(_, event, arg1)
     openBtn:SetText(L["Display.OpenOptions"])
     openBtn:SetScript("OnClick", function()
         BR.Options.Toggle()
-        -- Close the WoW settings panel properly (HideUIPanel handles keyboard focus cleanup)
+        -- HideUIPanel also cleans up the keyboard focus of the settings panel.
         if SettingsPanel then
             HideUIPanel(SettingsPanel)
         end
@@ -159,7 +148,6 @@ bootstrapFrame:SetScript("OnEvent", function(_, event, arg1)
     local category = Settings.RegisterCanvasLayoutCategory(settingsPanel, settingsPanel.name)
     Settings.RegisterAddOnCategory(category)
 
-    -- Minimap button (LibDBIcon)
     local LDB = LibStub("LibDataBroker-1.1", true)
     local LDBIcon = LDB and LibStub("LibDBIcon-1.0", true)
     if LDB and LDBIcon then
@@ -189,17 +177,16 @@ bootstrapFrame:SetScript("OnEvent", function(_, event, arg1)
         BR.MinimapButton = { Icon = LDBIcon, DataObj = dataObj }
     end
 
-    -- Login messages
     C_Timer.After(5, function()
         local glob = BR.aceDB.global
         if isFirstInstall then
-            -- Fresh installs never knew the old dismiss button; skip the transition notice.
+            -- A fresh install never had the dismiss button. Skip the transition notice.
             glob.snoozeNoticeShown = true
             print("|cff00ccffBuffReminders:|r " .. L["Display.LoginFirstInstall"])
             return
         end
-        -- The consumable dismiss button was replaced by right-click / /br snooze. Tell existing
-        -- users once (a normal login message, so it respects showLoginMessages), then never again.
+        -- Right-click and /br snooze replace the consumable dismiss button.
+        -- An existing user gets this notice one time only.
         if BR.profile.showLoginMessages ~= false and not glob.snoozeNoticeShown then
             glob.snoozeNoticeShown = true
             print("|cff00ccffBuffReminders:|r " .. L["Display.LoginSnooze"])

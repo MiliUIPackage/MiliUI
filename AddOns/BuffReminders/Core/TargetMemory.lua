@@ -5,30 +5,14 @@ local _, BR = ...
 -- ============================================================================
 -- Remembers who the player's cast-on-others buffs are on (buffKey -> name/class)
 -- so click macros can re-target the same person and tooltips can show them.
--- Runtime-only (not saved): the aura itself is the source of truth and the
--- memory is rebuilt from a live scan whenever the aura API allows querying.
---
--- Three detection paths feed into this module (all in State.lua's refresh):
---
--- 1. casterBuffId buffs (Symbiotic Relationship, Weyrnstone) - the caster-side
---    aura confirms the link is active, then a group scan finds the recipient.
--- 2. Targeted buffs (Earth Shield, Blistering Scales, ...) - the group scan
---    for the player's own cast doubles as target detection.
--- 3. Presence castOnOthers buffs (Soulstone) - the presence scan filtered to
---    player-cast auras finds the stoned group member.
---
--- All three apply the same tri-state rule via Observe():
--- - buff active on another group member -> remember them
--- - buff active but not on others (e.g. only on the player) -> forget
--- - buff not active at all -> keep the old memory, so the click macro can
---   re-target the same person after the buff falls off
+-- Runtime-only (not saved): the aura is the source of truth. A live scan
+-- rebuilds the memory when the aura API allows the query.
 
--- Runtime store: buffKey -> { name, class }. Entries are mutated in place to
--- avoid per-refresh allocations.
+-- Observe() mutates entries in place to avoid per-refresh allocations.
 ---@type table<string, {name: string, class: string?}>
 local memory = {}
 
----Apply one observation of a buff's state to the memory (see tri-state rule above).
+---Apply one observation of a buff's state to the memory.
 ---@param buffKey string
 ---@param isActive boolean? Whether the buff is currently active anywhere
 ---@param name string? Character name (with realm) of the non-player target carrying it

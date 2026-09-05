@@ -5,7 +5,6 @@ local L = BR.L
 -- PET HELPERS MODULE
 -- ============================================================================
 -- Builds per-class lists of pet summon actions for expanded pet icons.
--- Each action has a spellID, icon, label, and sortOrder for display.
 
 -- ============================================================================
 -- TYPE DEFINITIONS
@@ -28,7 +27,6 @@ local L = BR.L
 -- Hunter Call Pet spell IDs (Call Pet 1 through Call Pet 5)
 local CALL_PET_SPELLS = { 883, 83242, 83243, 83244, 83245 }
 
--- Revive Pet spell ID
 local REVIVE_PET = 982
 
 -- Hunter pet spec -> ability icon texture
@@ -38,7 +36,6 @@ local PET_SPEC_ICONS = {
     Tenacity = 571585,
 }
 
--- Warlock Summon Demon flyout ID
 local SUMMON_DEMON_FLYOUT = 10
 
 -- Warlock summon spell ID -> short pet name (fallback: full spell name)
@@ -56,7 +53,7 @@ local SPIRIT_BEAST_FAMILY = (C_CreatureInfo.GetCreatureFamilyInfo(46) or {}).nam
 ---Build hunter pet actions from stable info
 ---@return PetAction[]?
 local function BuildHunterActions()
-    -- MM Hunters don't use pets unless they have Unbreakable Bond
+    -- Marksmanship hunters have no pet without Unbreakable Bond.
     if BR.StateHelpers.GetPlayerSpecId() == 254 and not IsPlayerSpell(1223323) then
         return nil
     end
@@ -85,7 +82,6 @@ local function BuildHunterActions()
         end
     end
 
-    -- Add Revive Pet at the end if the player knows it and has callable pets
     if #actions > 0 and IsPlayerSpell(REVIVE_PET) then
         order = order + 1
         local icon = C_Spell.GetSpellTexture(REVIVE_PET)
@@ -155,11 +151,17 @@ local function BuildWarlockActions()
     return actions
 end
 
--- Single-action pet spell ID -> short pet name (fallback: full spell name)
-local SINGLE_PET_NAMES = {
-    [46584] = "Ghoul", -- Raise Dead (DK)
-    [31687] = "Water Elemental", -- Summon Water Elemental (Mage)
+-- These classes summon one pet with one spell. The name is the short name a
+-- player uses. The full spell name is the fallback.
+local SINGLE_PET = {
+    DEATHKNIGHT = { spellID = 46584, name = "Ghoul" }, -- Raise Dead
+    MAGE = { spellID = 31687, name = "Water Elemental" }, -- Summon Water Elemental
 }
+
+local SINGLE_PET_NAMES = {}
+for _, pet in pairs(SINGLE_PET) do
+    SINGLE_PET_NAMES[pet.spellID] = pet.name
+end
 
 ---Build a single-action list for a given spell
 ---@param spellID number
@@ -207,21 +209,18 @@ local function BuildFelguardAction()
     }
 end
 
--- Cached pet actions (rebuilt on spec/talent/stable changes, not every refresh)
 local cachedActions = nil
 local cacheValid = false
 
--- Maps pet class to its action-list builder function
 local CLASS_PET_BUILDERS = {
     HUNTER = BuildHunterActions,
     WARLOCK = BuildWarlockActions,
-    DEATHKNIGHT = function()
-        return BuildSingleAction(46584)
-    end, -- Raise Dead
-    MAGE = function()
-        return BuildSingleAction(31687)
-    end, -- Summon Water Elemental
 }
+for class, pet in pairs(SINGLE_PET) do
+    CLASS_PET_BUILDERS[class] = function()
+        return BuildSingleAction(pet.spellID)
+    end
+end
 
 ---Build and cache the list of pet summon actions for the given class.
 ---Returns cached result on subsequent calls until invalidated.

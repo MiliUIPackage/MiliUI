@@ -3,18 +3,13 @@ local _, BR = ...
 -- ============================================================================
 -- PROFILE SYSTEM (AceDB-3.0 + LibDualSpec-1.0)
 -- ============================================================================
--- Thin wrapper around AceDB-3.0 for profile management.
--- BR.profile is a proxy table that always routes reads/writes to the active
--- AceDB profile, so closures capturing `local db = BR.profile` stay valid
--- across profile switches.
 
 BR.Profiles = {}
 
 -- Queue for combat-deferred profile switch
 local pendingSwitch = nil
 
--- When true, OnProfileEvent skips RefreshAfterProfileChange (used to batch
--- SetProfile + CopyProfile into a single refresh).
+-- When true, OnProfileEvent skips RefreshAfterProfileChange.
 local suppressRefresh = false
 
 -- ============================================================================
@@ -26,9 +21,8 @@ local suppressRefresh = false
 function BR.Profiles.Initialize(aceDefaults)
     BR.aceDB = LibStub("AceDB-3.0"):New("BuffRemindersDB", aceDefaults, true)
 
-    -- Profile proxy: closure-safe access to active profile.
-    -- All code uses `local db = BR.profile` and reads/writes go through here
-    -- to the current AceDB profile, even after profile switches.
+    -- The proxy routes each read and write to the active AceDB profile. A closure
+    -- that captures `local db = BR.profile` stays valid across profile switches.
     BR.profile = setmetatable({}, {
         __index = function(_, key)
             return BR.aceDB.profile[key]
@@ -38,13 +32,11 @@ function BR.Profiles.Initialize(aceDefaults)
         end,
     })
 
-    -- LibDualSpec enhancement (per-spec profile switching)
     local LibDualSpec = LibStub("LibDualSpec-1.0", true)
     if LibDualSpec then
         LibDualSpec:EnhanceDatabase(BR.aceDB, "BuffReminders")
     end
 
-    -- Register AceDB callbacks for profile changes
     BR.aceDB.RegisterCallback(BR.Profiles, "OnProfileChanged", "OnProfileEvent")
     BR.aceDB.RegisterCallback(BR.Profiles, "OnProfileCopied", "OnProfileEvent")
     BR.aceDB.RegisterCallback(BR.Profiles, "OnProfileReset", "OnProfileEvent")
@@ -63,8 +55,6 @@ function BR.Profiles.OnProfileEvent()
 end
 
 ---Suppress refresh callbacks for the duration of fn(), then fire one refresh.
----Used to batch several profile mutations (e.g. SetProfile + import writes)
----into a single refresh cycle.
 ---@param fn function
 function BR.Profiles.BatchOperation(fn)
     suppressRefresh = true
@@ -73,7 +63,7 @@ function BR.Profiles.BatchOperation(fn)
     if ok then
         BR.Profiles.RefreshAfterProfileChange()
     else
-        -- Still refresh to ensure consistent state, then propagate the error
+        -- Refresh also on failure to keep the state consistent, then propagate the error
         BR.Profiles.RefreshAfterProfileChange()
         error(err, 2)
     end
@@ -189,18 +179,16 @@ end
 -- REFRESH AFTER PROFILE CHANGE
 -- ============================================================================
 
----Fill missing keys in `target` from code `source`, recursively. Skips `minimap`
----(lives in AceDB global, not per-profile) and the `defaults` sub-table (served by
----the metatable __index - only ensures the table exists). Used by the bootstrap on
----login and on every profile switch/copy/reset.
+---Fill missing keys in `target` from code `source`, recursively.
+---Skips `minimap` and the `defaults` sub-table.
 ---@param source table code defaults (BR.defaults)
 ---@param target table profile table to fill
 local function DeepCopyDefault(source, target)
     for k, v in pairs(source) do
         if k == "minimap" then -- luacheck: ignore 542
-            -- Skip: lives in AceDB global, not per-profile
+            -- minimap lives in the AceDB global, not in the profile
         elseif k == "defaults" then
-            -- Skip value copy (served by metatable __index), but ensure the table exists
+            -- The metatable __index serves the values, so only the table must exist
             if target[k] == nil then
                 target[k] = {}
             end
@@ -212,7 +200,6 @@ local function DeepCopyDefault(source, target)
                 target[k] = v
             end
         elseif type(v) == "table" and type(target[k]) == "table" then
-            -- Recursively fill in missing nested keys
             DeepCopyDefault(v, target[k])
         end
     end
@@ -233,67 +220,59 @@ function BR.Profiles.ReapplyDefaultsMetatable()
 end
 
 ---Full display refresh after profile data changes (switch, copy, reset).
----Re-applies defaults metatable, rebuilds custom buffs, fires all refresh
----callbacks, recomputes state, and repositions frames.
 function BR.Profiles.RefreshAfterProfileChange()
-    -- Re-apply defaults metatable for the active profile's defaults table
     BR.Profiles.ReapplyDefaultsMetatable()
 
-    -- Deep copy defaults into the new profile (materializes keys for pairs() iteration)
+    -- The copy materializes the default keys, so pairs() iteration finds them.
     if BR.defaults then
         DeepCopyDefault(BR.defaults, BR.profile)
     end
 
-    -- Rebuild custom buffs if present
     if BR.Display and BR.Display.BuildCustomBuffArray then
         BR.Display.BuildCustomBuffArray()
     end
 
-    -- Rebuild loadout reminders if present
     if BR.Display and BR.Display.BuildLoadoutRulesArray then
         BR.Display.BuildLoadoutRulesArray()
     end
 
-    -- The category-settings memo may still hold the PREVIOUS profile's values
-    -- (nothing has fired a refresh event yet); wipe it before SyncDirectionCache
-    -- reads grow directions through it, or the LayoutRefresh below would see a
-    -- spurious direction change and convert (corrupt) the new profile's positions.
+    -- No refresh event fired yet, so the category-settings memo can still hold the
+    -- PREVIOUS profile's values. Wipe it before SyncDirectionCache reads the grow
+    -- directions through it. If not, the LayoutRefresh below sees a spurious
+    -- direction change and corrupts the new profile's positions.
     if BR.Display and BR.Display.InvalidateCategorySettingsCache then
         BR.Display.InvalidateCategorySettingsCache()
     end
 
-    -- Sync direction cache before firing LayoutRefresh to prevent spurious position conversions
+    -- SyncDirectionCache must run before LayoutRefresh.
     if BR.Movers and BR.Movers.SyncDirectionCache then
         BR.Movers.SyncDirectionCache()
     end
 
-    -- Fire all refresh callbacks in the correct order
     local registry = BR.CallbackRegistry
     registry:TriggerEvent("FramesReparent")
     registry:TriggerEvent("VisualsRefresh")
     registry:TriggerEvent("LayoutRefresh")
     registry:TriggerEvent("DisplayRefresh")
-    -- Explicit rather than relying on the externals display's VisualsRefresh
-    -- subscription (which exists only to propagate font changes): its enabled flag,
-    -- entry set, position and sizing are all per-profile.
+    -- ExternalsRefresh is explicit here. The externals VisualsRefresh subscription
+    -- only propagates font changes, but the enabled flag, entry set, position and
+    -- sizing are all per-profile.
     registry:TriggerEvent("ExternalsRefresh")
 
-    -- Re-sort consumable cache (remembered items and legacy filter may differ between profiles)
+    -- The remembered items and the legacy filter can differ between profiles.
     if BR.SecureButtons and BR.SecureButtons.InvalidateConsumableCache then
         BR.SecureButtons.InvalidateConsumableCache()
     end
 
-    -- Refresh chat-request macrotext: per-profile chatRequestMessages may differ.
+    -- chatRequestMessages can differ between profiles.
     if BR.SecureButtons and BR.SecureButtons.RefreshChatRequestMacros then
         BR.SecureButtons.RefreshChatRequestMacros()
     end
 
-    -- Recompute buff state
     if BR.BuffState then
         BR.BuffState.Refresh()
     end
 
-    -- Reposition container frames from profile's saved positions
     if BR.Movers then
         if BR.Movers.RepositionAllFrames then
             BR.Movers.RepositionAllFrames()
@@ -303,7 +282,6 @@ function BR.Profiles.RefreshAfterProfileChange()
         end
     end
 
-    -- Refresh UI components (dropdowns, checkboxes, etc.)
     if BR.Components and BR.Components.RefreshAll then
         BR.Components.RefreshAll()
     end

@@ -3,22 +3,15 @@ local _, BR = ...
 -- ============================================================================
 -- CUSTOM BUFFS PAGE
 -- ============================================================================
--- Wide list of user-defined custom buffs (one row per buff with: enabled
--- checkbox, icon, name, restrictions summary, edit + delete buttons). Click
--- edit / Add New opens BR.Options.Dialogs.CustomBuff.Show - the dialog is
--- intentionally kept as the editor since it's a self-contained 700-line form
--- that doesn't simplify when inlined.
+-- List of user-defined custom buffs, one row per buff. Add and edit open
+-- BR.Options.Dialogs.CustomBuff.Show.
 --
--- Built on the shared BR.Options.Helpers.ListEditor skeleton (same as the
--- Loadout Reminders and Sound Alerts pages): rows flow directly in the page's
--- own scroll container (no nested scroll box) and the Add button sits above the
--- list so it stays reachable no matter how long the list grows. This page
--- supplies only what varies - the data source (getItems) and row content
--- (fillRow).
+-- Built on the shared BR.Options.Helpers.ListEditor skeleton: rows flow in the
+-- page's own scroll container, with no nested scroll box. This page supplies
+-- only the data source (getItems) and the row content (fillRow).
 --
--- Display styling for the custom category (layout / appearance / glow) lives
--- on the Categories page's Custom tab; this page is purely the entry-list
--- editor. Sound alerts live on the global Sounds sidebar page.
+-- Display styling for the custom category lives on the Categories page's Custom
+-- tab. This page is only the entry-list editor.
 
 local L = BR.L
 local Components = BR.Components
@@ -32,7 +25,6 @@ local GetBuffIcons = BR.Helpers.GetBuffIcons
 local TEXCOORD_INSET = BR.TEXCOORD_INSET
 
 local tinsert = table.insert
-local tsort = table.sort
 
 local ROW_HEIGHT = 28
 local ICON_SIZE = 20
@@ -59,12 +51,12 @@ local function FormatRestrictions(buff)
     return table.concat(parts, " · ")
 end
 
--- Fill the body of one row with the per-buff widgets. Right-side controls
--- are chained: delete anchors to body.RIGHT, edit anchors to delete.LEFT, so
--- adjusting widths/gaps doesn't require recomputing absolute offsets.
+-- Fills one row with the per-buff widgets. The right-side controls are chained:
+-- delete anchors to body.RIGHT and edit anchors to delete.LEFT. A change to a
+-- width or a gap then needs no new absolute offsets.
 local function FillRowBody(body, key, buff, onEdit, onDelete)
-    -- Checkbox (holderWidth=18 since the label is empty; default 200 would
-    -- push everything 200px to the right).
+    -- The label is empty, so holderWidth is 18. The default of 200 pushes every
+    -- following widget 200px to the right.
     local checkbox = Components.Checkbox(body, {
         label = "",
         holderWidth = 18,
@@ -78,7 +70,6 @@ local function FillRowBody(body, key, buff, onEdit, onDelete)
     })
     checkbox:SetPoint("LEFT", 0, 0)
 
-    -- Buff icon
     local iconTex = body:CreateTexture(nil, "ARTWORK")
     iconTex:SetSize(ICON_SIZE, ICON_SIZE)
     iconTex:SetPoint("LEFT", checkbox, "RIGHT", 6, 0)
@@ -90,7 +81,6 @@ local function FillRowBody(body, key, buff, onEdit, onDelete)
         iconTex:SetTexture(DEFAULT_ICON_TEXTURE)
     end
 
-    -- Right-side action chain: delete -> edit
     local deleteBtn = CreateButton(body, L["Options.Delete"], onDelete)
     deleteBtn:SetSize(ACTION_BUTTON_WIDTH, ACTION_BUTTON_HEIGHT)
     deleteBtn:SetPoint("RIGHT", 0, 0)
@@ -130,7 +120,7 @@ local function GetSortedBuffs()
     for key, buff in pairs(buffs) do
         tinsert(items, { key = key, buff = buff })
     end
-    tsort(items, function(a, b)
+    table.sort(items, function(a, b)
         return (a.buff.name or a.key) < (b.buff.name or b.key)
     end)
     return items
@@ -152,8 +142,7 @@ local function Build(content, scrollFrame)
         fillRow = function(row, item, render)
             local key, buff = item.key, item.buff
 
-            -- Discard the previous body so we rebuild widgets from scratch
-            -- (cheaper than tracking and updating each widget per render).
+            -- Discard the previous body. Each render builds the row widgets again.
             if row.body then
                 row.body:Hide()
                 row.body:SetParent(nil)

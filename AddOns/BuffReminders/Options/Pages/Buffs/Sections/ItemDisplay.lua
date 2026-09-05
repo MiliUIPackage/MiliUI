@@ -19,10 +19,6 @@ local MakeCategorySetter = Helpers.MakeCategorySetter
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local SECTION_GAP = BR.Options.Constants.SECTION_GAP
 
-local tinsert = table.insert
-
-BR.Options.BuffSections = BR.Options.BuffSections or {}
-
 local function Build(ctx, layout)
     local category = ctx.category
     local parent = ctx.content
@@ -66,7 +62,8 @@ local function Build(ctx, layout)
             if updateSubIconSideVisibility then
                 updateSubIconSideVisibility(val)
             end
-            -- Badge-on-sub-icons toggle is only relevant in sub_icons mode.
+            -- The badge-on-sub-icons toggle is enabled only in sub_icons mode,
+            -- so its gate must re-evaluate.
             Components.RefreshAll()
         end,
     })
@@ -192,7 +189,7 @@ local function Build(ctx, layout)
     function previewHolder:Refresh()
         updateDisplayModePreview(BR.Config.Get("defaults.consumableDisplayMode"))
     end
-    tinsert(BR.RefreshableComponents, previewHolder)
+    table.insert(BR.RefreshableComponents, previewHolder)
 
     local subIconSideHolder = Components.Dropdown(parent, {
         label = L["Options.SubIconSide"],
@@ -214,11 +211,8 @@ local function Build(ctx, layout)
     end
     updateSubIconSideVisibility(BR.Config.Get("defaults.consumableDisplayMode"))
 
-    -- Text subsection: everything about consumable-icon text in one place -
-    -- size, the hide-stat-labels toggle, and per-item positions. Hide-stat-
-    -- labels sits directly above the Stat label position row and gates its
-    -- enabled state, so users see at a glance that hiding the label disables
-    -- positioning it.
+    -- The hide-stat-labels checkbox gates the Stat label position row. Keep the
+    -- checkbox directly above that row, so the dependency stays visible.
     layout:Space(SECTION_GAP)
     Helpers.LayoutSubsectionHeader(layout, parent, L["Options.TextPositions"])
 
@@ -256,7 +250,7 @@ local function Build(ctx, layout)
         },
         onChange = function(checked)
             BR.Config.Set("defaults.hideConsumableLabels", checked)
-            -- Re-evaluate the stat label position row's enabled gate.
+            -- Re-evaluate the stat label row's enabled gate.
             Components.RefreshAll()
         end,
     })
@@ -281,14 +275,33 @@ local function Build(ctx, layout)
     })
     layout:Add(badgeOnSubIconsHolder, nil, COMPONENT_GAP)
 
-    local function buildPositionRow(item, label, enabled)
+    -- One row per text item: name, placement, then size in a fixed right-hand
+    -- column. The four controls only fit the page at these widths, so trim the
+    -- zone dropdowns and the offset tracks before adding anything to the row.
+    local ROW_ITEM_LABEL_W = 78
+    local ROW_ZONE_VERTICAL_W = 92
+    local ROW_ZONE_ALIGN_W = 66
+    local ROW_OFFSET_TRACK_W = 48
+    local ROW_SIZE_LABEL_W = 30
+
+    local function FormatSize(val)
+        return val == 0 and L["Options.Auto"] or (val .. "%")
+    end
+
+    local function buildTextItemRow(item, label, enabled)
         local row = CreateFrame("Frame", nil, parent)
         row:SetSize(parent:GetWidth(), 26)
 
+        -- Only the stat label row is gated, so only it carries a reason.
+        local reason = enabled and L["DisabledReason.StatLabelsHidden"] or nil
+
         local picker = Components.ZonePicker(row, {
             label = label,
-            labelWidth = 80,
+            labelWidth = ROW_ITEM_LABEL_W,
+            verticalWidth = ROW_ZONE_VERTICAL_W,
+            alignWidth = ROW_ZONE_ALIGN_W,
             enabled = enabled,
+            disabledReason = reason,
             get = function()
                 return select(1, BR.TextPositions.Get(item))
             end,
@@ -301,10 +314,11 @@ local function Build(ctx, layout)
         local offsetX = Components.Slider(row, {
             label = L["Options.TextPositions.OffsetX.Short"],
             labelWidth = 12,
-            sliderWidth = 60,
+            sliderWidth = ROW_OFFSET_TRACK_W,
             min = -40,
             max = 40,
             enabled = enabled,
+            disabledReason = reason,
             get = function()
                 local _, x = BR.TextPositions.Get(item)
                 return x
@@ -313,15 +327,16 @@ local function Build(ctx, layout)
                 BR.Config.Set("defaults.textPositions." .. item .. ".offsetX", val)
             end,
         })
-        offsetX:SetPoint("LEFT", picker, "RIGHT", 12, 0)
+        offsetX:SetPoint("LEFT", picker, "RIGHT", 10, 0)
 
         local offsetY = Components.Slider(row, {
             label = L["Options.TextPositions.OffsetY.Short"],
             labelWidth = 12,
-            sliderWidth = 60,
+            sliderWidth = ROW_OFFSET_TRACK_W,
             min = -40,
             max = 40,
             enabled = enabled,
+            disabledReason = reason,
             get = function()
                 local _, _, y = BR.TextPositions.Get(item)
                 return y
@@ -332,16 +347,35 @@ local function Build(ctx, layout)
         })
         offsetY:SetPoint("LEFT", offsetX, "RIGHT", 8, 0)
 
+        -- 0 is the inherit sentinel: it stores nil, so the item follows the base size.
+        local size = Components.NumericStepper(row, {
+            label = L["Options.TextPositions.Size"],
+            labelWidth = ROW_SIZE_LABEL_W,
+            min = 0,
+            max = 80,
+            step = 1,
+            formatValue = FormatSize,
+            enabled = enabled,
+            disabledReason = reason,
+            get = function()
+                return BR.TextPositions.GetSizeOverride(item) or 0
+            end,
+            onChange = function(val)
+                BR.Config.Set("defaults.textSizes." .. item, val > 0 and val or nil)
+            end,
+        })
+        size:SetPoint("LEFT", offsetY, "RIGHT", 10, 0)
+
         layout:Add(row, 26, COMPONENT_GAP)
     end
 
-    buildPositionRow("statLabel", L["Options.TextPositions.StatLabel"], statLabelsShown)
-    buildPositionRow("badge", L["Options.TextPositions.Badge"])
-    buildPositionRow("stackCount", L["Options.TextPositions.StackCount"])
+    buildTextItemRow("statLabel", L["Options.TextPositions.StatLabel"], statLabelsShown)
+    buildTextItemRow("badge", L["Options.TextPositions.Badge"])
+    buildTextItemRow("stackCount", L["Options.TextPositions.StackCount"])
+    Helpers.LayoutSubsectionNote(layout, parent, L["Options.TextSizes.Note"])
 
-    -- Behavior controls visibility/filtering (which consumables show at all),
-    -- which is a different concern from Item Display (how each icon looks).
-    -- Promoted to its own section header for that visual separation.
+    -- Behavior holds the visibility and filter controls (which consumables show).
+    -- Item Display holds the appearance controls (how each icon looks).
     LayoutSectionHeader(layout, parent, L["Options.Behavior"])
 
     local showWithoutItemsHolder = Components.Checkbox(parent, {

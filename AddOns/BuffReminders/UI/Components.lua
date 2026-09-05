@@ -9,7 +9,6 @@ local ACCENT_R, ACCENT_G, ACCENT_B = unpack(BR.Colors.Accent)
 -- UI COMPONENT FACTORY
 -- ============================================================================
 -- Reusable UI components for the options panel
--- These reduce code duplication and provide consistent styling.
 
 -- ============================================================================
 -- TYPE DEFINITIONS
@@ -44,10 +43,7 @@ local ACCENT_R, ACCENT_G, ACCENT_B = unpack(BR.Colors.Accent)
 
 -- Lua stdlib locals (avoid repeated global lookups in hot paths)
 local floor, ceil, max, min = math.floor, math.ceil, math.max, math.min
-local format = string.format
-local rad = math.rad
 local tinsert = table.insert
-local tremove = table.remove
 
 local L = BR.L
 local Components = BR.Components
@@ -95,8 +91,6 @@ local function MeasureTextHeight(text, fontObject)
     return ceil(_measureFS:GetStringHeight())
 end
 
--- Wrapped height for a known bounded width. Used by widgets (e.g. Banner)
--- that allow text to flow to multiple lines and need to grow vertically.
 local function MeasureWrappedHeight(text, fontObject, width)
     if not text or text == "" or not width or width <= 0 then
         return 0
@@ -204,7 +198,6 @@ end
 -- BUTTON
 -- ============================================================================
 
--- Modern button color constants
 local ButtonColors = {
     bg = { 0.15, 0.15, 0.15, 1 },
     bgHover = { 0.22, 0.22, 0.22, 1 },
@@ -239,17 +232,14 @@ function BR.CreateButton(parent, text, onClick, tooltip, colorOverrides)
         edgeFile = "Interface\\Buttons\\WHITE8x8",
         edgeSize = 1,
     })
-    -- Text
     local btnText = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     btnText:SetPoint("CENTER", 0, 0)
     btnText:SetText(text)
     btn.text = btnText
 
-    -- Auto-size based on text with padding
     local textWidth = btnText:GetStringWidth()
     btn:SetSize(max(textWidth + 16, 60), 22)
 
-    -- Visual state tracking
     local isEnabled = true
     local isPressed = false
     local isHovered = false
@@ -318,7 +308,6 @@ function BR.CreateButton(parent, text, onClick, tooltip, colorOverrides)
         end
     end)
 
-    -- Public methods
     function btn:SetText(newText)
         btnText:SetText(newText)
         local newWidth = btnText:GetStringWidth()
@@ -394,22 +383,19 @@ end
 ---@field width? number Dropdown width (default 90)
 ---@field labelWidth? number Label width (default 70)
 
--- Panel EditBoxes tracking (populated by CreateOptionsPanel, used by Components)
 local panelEditBoxes = nil ---@type table[]?
 
--- Modern slider color constants
 local SliderColors = {
     track = { 0.2, 0.2, 0.2, 1 },
-    trackFill = { 0.6, 0.5, 0.1, 1 }, -- Subtle gold fill
+    trackFill = { 0.6, 0.5, 0.1, 1 },
     trackDisabled = { 0.15, 0.15, 0.15, 1 },
     thumb = { 0.4, 0.4, 0.4, 1 },
-    thumbHover = BR.Colors.Accent, -- Golden on hover
+    thumbHover = BR.Colors.Accent,
     thumbDisabled = { 0.25, 0.25, 0.25, 1 },
     text = { 1, 1, 1, 1 },
     textDisabled = { 0.5, 0.5, 0.5, 1 },
 }
 
--- TextInput color constants (shared with StyleEditBox and TextArea)
 local TextInputColors = {
     bg = { 0.08, 0.08, 0.08, 0.9 },
     bgFocused = { 0.1, 0.1, 0.1, 0.95 },
@@ -418,7 +404,7 @@ local TextInputColors = {
 }
 
 ---Style any EditBox with dark flat UI (dark bg, gray border, gold focus highlight).
----Wraps the EditBox in a BackdropTemplate container. Caller should set size/position on the returned container.
+---Wraps the EditBox in a BackdropTemplate container. Caller must set size and position on the returned container.
 ---@param editBox table The EditBox to style
 ---@return table container The backdrop container frame
 local function StyleEditBox(editBox)
@@ -499,11 +485,9 @@ function Components.Slider(parent, config)
     local maxValW = MeasureTextWidth(displayText(config.max or 0), "GameFontHighlightSmall")
     local valueWidth = max(40, max(minValW, maxValW) + 8)
 
-    -- Container frame
     local holder = CreateFrame("Frame", nil, parent)
     holder:SetSize(labelWidth + sliderWidth + valueWidth + 12, 20)
 
-    -- Label
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
@@ -514,13 +498,11 @@ function Components.Slider(parent, config)
     end
     holder.label = label
 
-    -- Slider track container
     local sliderFrame = CreateFrame("Frame", nil, holder)
     sliderFrame:SetPoint("LEFT", label, "RIGHT", 5, 0)
     sliderFrame:SetSize(sliderWidth, 16)
     holder.slider = sliderFrame
 
-    -- Track background
     local trackBg = sliderFrame:CreateTexture(nil, "BACKGROUND")
     trackBg:SetHeight(TRACK_HEIGHT)
     trackBg:SetPoint("LEFT", 0, 0)
@@ -528,14 +510,12 @@ function Components.Slider(parent, config)
     trackBg:SetColorTexture(unpack(colors.track))
     sliderFrame.trackBg = trackBg
 
-    -- Track fill (shows value progress)
     local trackFill = sliderFrame:CreateTexture(nil, "ARTWORK")
     trackFill:SetHeight(TRACK_HEIGHT)
     trackFill:SetPoint("LEFT", trackBg, "LEFT", 0, 0)
     trackFill:SetColorTexture(unpack(colors.trackFill))
     sliderFrame.trackFill = trackFill
 
-    -- Thumb
     local thumb = CreateFrame("Button", nil, sliderFrame)
     thumb:SetSize(THUMB_WIDTH, THUMB_HEIGHT)
     thumb:SetPoint("CENTER", trackBg, "LEFT", 0, 0)
@@ -545,7 +525,6 @@ function Components.Slider(parent, config)
     thumbTex:SetColorTexture(unpack(colors.thumb))
     thumb.tex = thumbTex
 
-    -- State
     local currentValue = config.get and config.get() or config.value or config.min
     local isEnabled = true
     local isDragging = false
@@ -591,7 +570,7 @@ function Components.Slider(parent, config)
         if not isEnabled then
             thumbTex:SetColorTexture(unpack(colors.thumbDisabled))
             trackBg:SetColorTexture(unpack(colors.trackDisabled))
-            trackFill:SetColorTexture(0.3, 0.25, 0.05, 1) -- Dimmed fill
+            trackFill:SetColorTexture(0.3, 0.25, 0.05, 1)
         elseif isThumbHovered or isDragging then
             thumbTex:SetColorTexture(unpack(colors.thumbHover))
             trackBg:SetColorTexture(unpack(colors.track))
@@ -626,7 +605,6 @@ function Components.Slider(parent, config)
         UpdateVisual()
     end)
 
-    -- Dragging logic
     sliderFrame:SetScript("OnUpdate", function()
         if isDragging and isEnabled then
             local mouseX = GetCursorPosition()
@@ -643,7 +621,6 @@ function Components.Slider(parent, config)
         end
     end)
 
-    -- Click on track to jump
     sliderFrame:EnableMouse(true)
     sliderFrame:SetScript("OnMouseDown", function(_, button)
         if button == "LeftButton" and isEnabled then
@@ -665,7 +642,6 @@ function Components.Slider(parent, config)
         UpdateVisual()
     end)
 
-    -- Edit box (hidden by default)
     local editBox = CreateFrame("EditBox", nil, holder)
     editBox:SetFontObject("GameFontHighlightSmall")
     editBox:SetAutoFocus(false)
@@ -742,10 +718,8 @@ function Components.Slider(parent, config)
         sliderFrame:SetScript("OnLeave", HideTooltip)
     end
 
-    -- Initial visual
     UpdateVisual()
 
-    -- Public methods
     function holder:SetValue(val)
         currentValue = val
         valueText:SetText(displayText(currentValue))
@@ -764,11 +738,6 @@ function Components.Slider(parent, config)
         UpdateVisual()
     end
 
-    -- For compatibility with old code checking slider:IsEnabled()
-    function sliderFrame:IsEnabled()
-        return isEnabled
-    end
-
     -- Refresh method for OnShow pattern (re-reads value and enabled state from DB)
     function holder:Refresh()
         if config.get then
@@ -781,12 +750,10 @@ function Components.Slider(parent, config)
         end
     end
 
-    -- Auto-register if refreshable
     if config.get or config.enabled then
         tinsert(RefreshableComponents, holder)
     end
 
-    -- Disabled controls explain themselves on hover
     if config.disabledReason and config.enabled then
         Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
     end
@@ -794,16 +761,15 @@ function Components.Slider(parent, config)
     return holder
 end
 
--- Modern checkbox color constants
 local CheckboxColors = {
     bg = { 0.12, 0.12, 0.12, 1 },
     bgHover = { 0.16, 0.16, 0.16, 1 },
-    bgChecked = { 0.15, 0.13, 0.08, 1 }, -- Subtle warm tint when checked
+    bgChecked = { 0.15, 0.13, 0.08, 1 },
     border = BR.Colors.Border,
     borderHover = { 0.45, 0.45, 0.45, 1 },
-    borderChecked = { 0.6, 0.5, 0.2, 1 }, -- Subtle golden border when checked
+    borderChecked = { 0.6, 0.5, 0.2, 1 },
     borderDisabled = { 0.2, 0.2, 0.2, 1 },
-    checkmark = BR.Colors.AccentMuted, -- Softer golden checkmark
+    checkmark = BR.Colors.AccentMuted,
     checkmarkDisabled = { 0.5, 0.42, 0.1, 1 },
     text = { 1, 1, 1, 1 },
     textDisabled = { 0.5, 0.5, 0.5, 1 },
@@ -828,16 +794,14 @@ local function CreateCheckboxCore(parent, initialChecked, onChange)
     cb:SetBackdropColor(unpack(colors.bg))
     cb:SetBackdropBorderColor(unpack(colors.border))
 
-    -- Checkmark texture (sized to fit within checkbox)
     local checkmark = cb:CreateTexture(nil, "ARTWORK")
     checkmark:SetPoint("CENTER", 0, 0)
-    checkmark:SetSize(CHECKBOX_SIZE + 4, CHECKBOX_SIZE + 4) -- Slightly larger for visual punch
+    checkmark:SetSize(CHECKBOX_SIZE + 4, CHECKBOX_SIZE + 4)
     checkmark:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
     checkmark:SetVertexColor(unpack(colors.checkmark))
     checkmark:Hide()
     cb.checkmark = checkmark
 
-    -- State
     local isChecked = initialChecked or false
     local isEnabled = true
     local isHovered = false
@@ -890,7 +854,6 @@ local function CreateCheckboxCore(parent, initialChecked, onChange)
         end
     end)
 
-    -- Public methods
     function cb:SetChecked(checked)
         isChecked = checked
         UpdateVisual()
@@ -943,25 +906,22 @@ function Components.Checkbox(parent, config)
 
     local CHECKBOX_W = 16
     local ICON_SIZE = 16 -- Match checkbox size
-    local ICON_SPACING = 4 -- Consistent spacing
+    local ICON_SPACING = 4
     local LABEL_LEAD = ICON_SPACING + 1 -- gap between last icon (or checkbox) and label
     local INFO_ICON_W = 14 -- info/warning icon shown after the label
     local INFO_ICON_GAP = 4
     local labelFont = config.labelFont or "GameFontHighlightSmall"
 
-    -- Container frame. Holder is intentionally a fixed size: callers like the
-    -- Buffs tab anchor gear/detach icons to holder.right and rely on a
-    -- consistent column boundary across rows. Pass holderWidth to override.
+    -- Holder keeps a fixed size: callers anchor trailing icons to holder.right
+    -- and need a constant column boundary across rows. Pass holderWidth to override.
     local holderWidth = config.holderWidth or 200
     local holder = CreateFrame("Frame", nil, parent)
     holder:SetSize(holderWidth, 20)
 
-    -- Create checkbox using shared core
     local cb = CreateCheckboxCore(holder, initialChecked, config.onChange)
     cb:SetPoint("LEFT", 0, 0)
     holder.checkbox = cb
 
-    -- Build icon chain (optional)
     local lastAnchor = cb
     local iconCount = 0
     if config.icons then
@@ -977,7 +937,7 @@ function Components.Checkbox(parent, config)
     -- Label. Free-flowing by default; pass labelWidth to cap (truncate) it
     -- when the caller needs predictable label/holder alignment in a list.
     local label = holder:CreateFontString(nil, "OVERLAY", labelFont)
-    label:SetPoint("LEFT", lastAnchor, "RIGHT", LABEL_LEAD, 0) -- Slightly more space before text
+    label:SetPoint("LEFT", lastAnchor, "RIGHT", LABEL_LEAD, 0)
     label:SetWordWrap(false)
     local labelLeftX = CHECKBOX_W + iconCount * (ICON_SPACING + ICON_SIZE) + LABEL_LEAD
     holder.labelOffset = labelLeftX -- exposed so callers can clamp against widgets anchored at holder.right
@@ -986,8 +946,8 @@ function Components.Checkbox(parent, config)
     -- which drifts right with 3-4 icon buffs.
     holder.iconOffset = CHECKBOX_W + ICON_SPACING
     if config.labelWidth ~= nil then
-        -- Clamp so the label can't extend past holder.right and overlap
-        -- whatever the caller is anchoring there (gear/detach icons, etc.).
+        -- Clamp so the label cannot extend past holder.right and overlap
+        -- whatever the caller anchors there.
         local hasInfoIcon = config.infoTooltip or config.warningTooltip
         local trailing = hasInfoIcon and (INFO_ICON_GAP + INFO_ICON_W) or 0
         local maxLabelW = holderWidth - labelLeftX - trailing
@@ -1016,7 +976,6 @@ function Components.Checkbox(parent, config)
         cb:HookScript("OnLeave", hideTip)
     end
 
-    -- Info / warning tooltip icon (optional, shown after label)
     local tooltipData = config.infoTooltip or config.warningTooltip
     if tooltipData then
         local infoIcon = holder:CreateTexture(nil, "ARTWORK")
@@ -1052,7 +1011,6 @@ function Components.Checkbox(parent, config)
         cb:HookScript("OnMouseUp", handleRightClick)
     end
 
-    -- Public methods
     function holder:SetChecked(checked)
         cb:SetChecked(checked)
     end
@@ -1080,12 +1038,10 @@ function Components.Checkbox(parent, config)
         end
     end
 
-    -- Auto-register if refreshable
     if config.get or config.enabled then
         tinsert(RefreshableComponents, holder)
     end
 
-    -- Disabled controls explain themselves on hover
     if config.disabledReason and config.enabled then
         Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
     end
@@ -1098,9 +1054,9 @@ end
 -- ============================================================================
 
 local DimensionLinkColors = {
-    linked = BR.Colors.AccentMuted, -- gold when linked
-    unlinked = { 0.35, 0.35, 0.35, 1 }, -- dim when unlinked
-    hover = BR.Colors.Accent, -- bright gold on hover
+    linked = BR.Colors.AccentMuted,
+    unlinked = { 0.35, 0.35, 0.35, 1 },
+    hover = BR.Colors.Accent,
     disabled = { 0.2, 0.2, 0.2, 1 },
 }
 
@@ -1148,13 +1104,11 @@ function Components.DimensionLink(parent, config)
         topBridge:ClearAllPoints()
         bottomBridge:ClearAllPoints()
         if linked then
-            -- Aligned bars with bridges
             leftBar:SetPoint("LEFT", holder, "CENTER", -BRIDGE_W / 2, 0)
             rightBar:SetPoint("RIGHT", holder, "CENTER", BRIDGE_W / 2, 0)
             topBridge:SetPoint("TOP", holder, "CENTER", 0, BAR_H / 2 - 1)
             bottomBridge:SetPoint("BOTTOM", holder, "CENTER", 0, -(BAR_H / 2 - 1))
         else
-            -- Offset bars: left shifts up, right shifts down (broken chain)
             leftBar:SetPoint("LEFT", holder, "CENTER", -BRIDGE_W / 2, BREAK_OFFSET)
             rightBar:SetPoint("RIGHT", holder, "CENTER", BRIDGE_W / 2, -BREAK_OFFSET)
             topBridge:SetPoint("TOP", holder, "CENTER", 0, BAR_H / 2 - 1)
@@ -1219,7 +1173,6 @@ function Components.DimensionLink(parent, config)
     return holder
 end
 
--- Toggle (pill/switch) component colors
 local ToggleColors = {
     trackOff = { 0.12, 0.12, 0.12, 1 },
     trackOn = { 0.15, 0.13, 0.08, 1 },
@@ -1251,7 +1204,6 @@ function Components.Toggle(parent, config)
     local holder = CreateFrame("Frame", nil, parent)
     holder:SetSize(holderWidth, 20)
 
-    -- Track (the pill background)
     local track = CreateFrame("Button", nil, holder, "BackdropTemplate")
     track:SetSize(TRACK_W, 16)
     track:SetPoint("LEFT", 0, 0)
@@ -1261,17 +1213,15 @@ function Components.Toggle(parent, config)
         edgeSize = 1,
     })
 
-    -- Thumb (the sliding circle)
     local thumb = track:CreateTexture(nil, "OVERLAY")
     thumb:SetSize(12, 12)
     thumb:SetColorTexture(1, 1, 1, 1)
 
-    -- Label
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", track, "RIGHT", LABEL_GAP, 0)
     label:SetWordWrap(false)
     if config.labelWidth ~= nil then
-        -- Clamp so label can't extend past holder.right and overlap
+        -- Clamp so the label cannot extend past holder.right and overlap
         -- anything the caller anchors there.
         local maxLabelW = holderWidth - TRACK_W - LABEL_GAP
         label:SetWidth(max(0, min(config.labelWidth, maxLabelW)))
@@ -1302,9 +1252,9 @@ function Components.Toggle(parent, config)
 
         thumb:ClearAllPoints()
         if checked then
-            thumb:SetPoint("LEFT", track, "LEFT", 18, 0) -- on position
+            thumb:SetPoint("LEFT", track, "LEFT", 18, 0)
         else
-            thumb:SetPoint("LEFT", track, "LEFT", 2, 0) -- off position
+            thumb:SetPoint("LEFT", track, "LEFT", 2, 0)
         end
     end
 
@@ -1337,7 +1287,6 @@ function Components.Toggle(parent, config)
         UpdateVisual()
     end)
 
-    -- Tooltip support (same pattern as Checkbox)
     if config.tooltip then
         local title = config.tooltip.title
         local desc = config.tooltip.desc
@@ -1354,7 +1303,6 @@ function Components.Toggle(parent, config)
         track:HookScript("OnLeave", hideTip)
     end
 
-    -- Public methods
     function holder:SetChecked(value)
         checked = value and true or false
         UpdateVisual()
@@ -1380,12 +1328,10 @@ function Components.Toggle(parent, config)
         UpdateVisual()
     end
 
-    -- Auto-register if refreshable
     if config.get or config.enabled then
         tinsert(RefreshableComponents, holder)
     end
 
-    -- Disabled controls explain themselves on hover
     if config.disabledReason and config.enabled then
         Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
     end
@@ -1408,7 +1354,6 @@ local DropdownColors = {
     arrowDisabled = { 0.4, 0.4, 0.4, 1 },
     text = { 1, 1, 1, 1 },
     textDisabled = { 0.5, 0.5, 0.5, 1 },
-    -- Menu colors
     menuBg = { 0.12, 0.12, 0.12, 0.98 },
     menuBorder = BR.Colors.Border,
     itemBgHover = { 0.25, 0.22, 0.1, 1 },
@@ -1436,7 +1381,6 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     local LABEL_LEFT = CHECK_LEFT + CHECK_SIZE + 4 -- room for checkmark
     local LABEL_RIGHT_PAD = 8
 
-    -- Find initial label
     local currentValue = initialValue
     local currentLabel = ""
     for _, opt in ipairs(options) do
@@ -1457,7 +1401,6 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     end
     local menuWidth = max(width, longestItemW + LABEL_LEFT + LABEL_RIGHT_PAD + 2)
 
-    -- State
     local isEnabled = true
     local isOpen = false
     local isHovered = false
@@ -1482,14 +1425,14 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     arrow:SetSize(12, 12)
     arrow:SetPoint("RIGHT", -6, 0)
     arrow:SetTexture("Interface\\ChatFrame\\ChatFrameExpandArrow")
-    arrow:SetRotation(rad(-90)) -- points down
+    arrow:SetRotation(math.rad(-90)) -- points down
 
     -- ==================== MENU ====================
-    -- Parent to dropdown parent so it scrolls with container.
-    -- When maxItems is set we ALWAYS build the scroll infrastructure (even if the
-    -- current option count fits) so the dropdown can be re-populated later via
-    -- :SetOptions with any count - the scroll child just resizes. visibleCount is
-    -- mutable so SetOptions can recompute the capped menu height.
+    -- Parent to the dropdown parent so the menu scrolls with the container.
+    -- If maxItems is set, always build the scroll infrastructure, even when the
+    -- current option count fits: :SetOptions can repopulate with any count and
+    -- the scroll child resizes. visibleCount stays mutable so SetOptions can
+    -- recompute the capped menu height.
     local hasScroll = maxItems ~= nil
     local visibleCount = hasScroll and min(#options, maxItems) or #options
     local menuHeight = visibleCount * ITEM_HEIGHT + MENU_PADDING_V * 2
@@ -1525,7 +1468,6 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
         end)
     end
 
-    -- Position menu below button (updated when shown)
     local function PositionMenu()
         menu:ClearAllPoints()
         menu:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, 0)
@@ -1567,7 +1509,7 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
         -- The menu sits on FULLSCREEN_DIALOG so it floats over the main options
         -- panel (DIALOG strata). But dialogs also live on FULLSCREEN_DIALOG, so
         -- inside a dialog the strata ties and draw order falls back to frame
-        -- level - the dialog's own widgets would then paint over the open menu.
+        -- level - the dialog's own widgets then paint over the open menu.
         -- Raise the menu well above the button's level (recomputed each open so
         -- it tracks a reparented/relevelled dropdown) so it always reads on top.
         menu:SetFrameLevel((button:GetFrameLevel() or 0) + 50)
@@ -1583,9 +1525,7 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
     menu:SetScript("OnUpdate", function()
         local isMouseDown = IsMouseButtonDown("LeftButton") or IsMouseButtonDown("RightButton")
 
-        -- Detect click (mouse just pressed)
         if isMouseDown and not wasMouseDown then
-            -- Check if click is outside menu and button
             if not menu:IsMouseOver() and not button:IsMouseOver() then
                 CloseMenu()
             end
@@ -1600,8 +1540,7 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
 
     -- (Re)build menu items from the current `options`. Items are pooled across
     -- :SetOptions calls (created on demand, surplus hidden), and each item reads
-    -- its option through `item.opt` so reused items pick up the new entry. This is
-    -- the single source of truth for both the initial build and SetOptions.
+    -- its option through `item.opt` so reused items pick up the new entry.
     local function renderItems()
         -- Auto-grow the menu to the widest current label, recomputed here so a
         -- later :SetOptions with longer labels still fits (the button keeps its
@@ -1728,7 +1667,6 @@ local function CreateDropdownCore(parent, width, options, initialValue, onChange
         end
     end)
 
-    -- Initialize visual
     UpdateButtonVisual()
 
     -- ==================== PUBLIC API ====================
@@ -1817,17 +1755,14 @@ function Components.DirectionButtons(parent, config)
         labelWidth = max(70, MeasureTextWidth(labelText, "GameFontHighlightSmall") + 4)
     end
 
-    -- Build options array
     local options = {}
     for _, dir in ipairs(directions) do
         tinsert(options, { label = dirLabels[dir], value = dir })
     end
 
-    -- Container frame
     local holder = CreateFrame("Frame", nil, parent)
     holder:SetSize(labelWidth + width + 10, 26)
 
-    -- Label
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
@@ -1836,22 +1771,18 @@ function Components.DirectionButtons(parent, config)
     label:SetText(labelText)
     holder.label = label
 
-    -- Initial value
     local initialValue = config.get and config.get() or config.selected
 
-    -- Create dropdown core
     local dropdown = CreateDropdownCore(holder, width, options, initialValue, function(value)
         config.onChange(value)
     end)
     dropdown.button:SetPoint("LEFT", label, "RIGHT", 5, 0)
     holder.dropdown = dropdown
 
-    -- Public method to update selection (backwards compatible)
     function holder:SetDirection(dir)
         dropdown:SetValue(dir)
     end
 
-    -- SetEnabled method for toggling interactivity
     function holder:SetEnabled(enabled)
         dropdown:SetEnabled(enabled)
         local color = enabled and 1 or 0.5
@@ -1868,18 +1799,13 @@ function Components.DirectionButtons(parent, config)
         end
     end
 
-    -- Auto-register if refreshable
     if config.get or config.enabled then
         tinsert(RefreshableComponents, holder)
     end
 
-    -- Disabled controls explain themselves on hover
     if config.disabledReason and config.enabled then
         Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
     end
-
-    -- Backwards compatibility: empty buttons table (no longer used)
-    holder.buttons = {}
 
     return holder
 end
@@ -1887,12 +1813,9 @@ end
 -- ============================================================================
 -- ZONE PICKER (vertical + alignment dropdowns)
 -- ============================================================================
--- Two compact dropdowns covering the same 15 zones as the old spatial picker:
--- Vertical (Above / Inside top / Inside middle / Inside bottom / Below) +
--- Align (Left / Center / Right). Decomposition is handled by
--- BR.TextPositions.ToVA / FromVA so the widget speaks zone strings to its
--- callers. Reuses Components.Dropdown for both axes - no custom widget code,
--- ~26px per row vs the old picker's 90px.
+-- Vertical (Above / Inside top / Inside middle / Inside bottom / Below) and
+-- Align (Left / Center / Right) dropdowns. BR.TextPositions.ToVA / FromVA
+-- convert between the two axes and the zone strings the callers use.
 
 ---@class ZonePickerConfig
 ---@field label string Item name shown to the left of the dropdowns
@@ -1901,6 +1824,7 @@ end
 ---@field alignWidth? number Width of the Align dropdown (default 85)
 ---@field get fun(): string Returns current zone name
 ---@field enabled? fun(): boolean
+---@field disabledReason? string|fun(): string Hover text while `enabled` returns false
 ---@field onChange fun(zone: string)
 
 -- Each Dropdown holder reserves an extra 10px past its `width` for the
@@ -1911,9 +1835,8 @@ local ZONE_PICKER_DD_PADDING = 10
 local ZONE_PICKER_LABEL_COLOR = { 1, 1, 1, 1 }
 local ZONE_PICKER_LABEL_DISABLED_COLOR = { 0.5, 0.5, 0.5, 1 }
 
--- Localized option lists, built once at file load (locale strings are stable
--- per session). Lifted out of Components.ZonePicker so each call doesn't
--- re-allocate the option tables.
+-- Localized option lists, built once at file load. Locale strings stay stable
+-- for the session.
 local ZONE_PICKER_VERTICAL_OPTIONS = {}
 for _, opt in ipairs(BR.TextPositions.VERTICAL_OPTIONS) do
     ZONE_PICKER_VERTICAL_OPTIONS[#ZONE_PICKER_VERTICAL_OPTIONS + 1] = {
@@ -2016,6 +1939,10 @@ function Components.ZonePicker(parent, config)
         tinsert(RefreshableComponents, holder)
     end
 
+    if config.disabledReason and config.enabled then
+        Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
+    end
+
     holder:Refresh()
     return holder
 end
@@ -2092,9 +2019,7 @@ local CONTENT_TOGGLE_DEFS = {
     },
 }
 
--- Lookup: contentKey -> toggle def (for data-driven submenu access)
 local contentToggleByKey = {}
--- Content toggles that have a difficulty submenu, with their button index
 local DIFF_MAPPINGS = {}
 for i, toggle in ipairs(CONTENT_TOGGLE_DEFS) do
     contentToggleByKey[toggle.key] = toggle
@@ -2167,14 +2092,13 @@ local function CreateSegmentedBar(parent, barConfig)
                 btnLabel:SetTextColor(0.25, 0.25, 0.25, 1)
                 return
             end
-            -- Tri-state visual: getVisualState returns "on"/"partial"/"off"
             local visualState
             if barConfig.getVisualState then
                 visualState = barConfig.getVisualState(toggle.key)
             else
                 visualState = barConfig.getState(toggle.key) and "on" or "off"
             end
-            local c = toggle.color -- optional per-toggle {r, g, b}
+            local c = toggle.color
             if visualState == "on" then
                 if c then
                     bg:SetColorTexture(c[1] * 0.25, c[2] * 0.25, c[3] * 0.25, 1)
@@ -2357,7 +2281,6 @@ function Components.VisibilityToggles(parent, config)
     contentLabel:SetPoint("LEFT", 0, 0)
     contentLabel:SetText(L["Content.ShowIn"])
 
-    -- Content bar
     local contentBar, contentButtons = CreateSegmentedBar(holder, {
         toggleDefs = CONTENT_TOGGLE_DEFS,
         segmentWidth = DEFAULT_SEGMENT_W,
@@ -2382,11 +2305,9 @@ function Components.VisibilityToggles(parent, config)
         allToggleButtons[#allToggleButtons + 1] = btn
     end
 
-    -- Difficulty bar state
     local diffBars = {} -- keyed by contentKey ("dungeon", "raid")
     local activeDiffKey = nil -- which difficulty bar is currently shown
 
-    -- Arrow indicator between content bar and difficulty bar (hidden when no diff bar is open)
     local expandArrow = CreateFrame("Frame", nil, holder)
     expandArrow:SetSize(10, BAR_H)
     expandArrow:SetPoint("LEFT", contentBar, "RIGHT", 2, 0)
@@ -2417,7 +2338,7 @@ function Components.VisibilityToggles(parent, config)
                 -- Auto-manage content type toggle
                 if wasEnabled then
                     -- Turned off: check if ALL toggleable subs are now off -> disable content type
-                    -- Skip force-disabled keys (e.g. arena for consumables) so they don't
+                    -- Skip force-disabled keys (e.g. arena for consumables) so they do not
                     -- cause the parent to auto-disable when the only interactive sub is turned off.
                     local anyStillOn = false
                     for _, def in ipairs(mapping.diffDefs) do
@@ -2441,7 +2362,7 @@ function Components.VisibilityToggles(parent, config)
                 end
             end,
             onChange = function()
-                -- Auto-manage may change multiple states; refresh everything
+                -- Auto-manage can change multiple states; refresh everything
                 refreshAll()
                 config.onChange()
             end,
@@ -2483,11 +2404,9 @@ function Components.VisibilityToggles(parent, config)
 
     local function showDiffBar(contentKey)
         if activeDiffKey == contentKey then
-            -- Toggle off: clicking same button again hides it
             closeDiffBar()
             return
         end
-        -- Hide previous bar if any
         if activeDiffKey then
             diffBars[activeDiffKey]:Hide()
         end
@@ -2503,10 +2422,14 @@ function Components.VisibilityToggles(parent, config)
             showDiffBar(mapping.contentKey)
         end)
         local toggle = CONTENT_TOGGLE_DEFS[mapping.btnIndex]
-        SetupTooltip(btn, toggle.tooltip.title, format(L["Content.ClickToFilter"], toggle.tooltip.title), "ANCHOR_TOP")
+        SetupTooltip(
+            btn,
+            toggle.tooltip.title,
+            string.format(L["Content.ClickToFilter"], toggle.tooltip.title),
+            "ANCHOR_TOP"
+        )
     end
 
-    -- refreshAll: update all button visuals (used by onChange and Refresh)
     refreshAll = function()
         for _, btn in ipairs(allToggleButtons) do
             btn.UpdateVisual()
@@ -2516,10 +2439,8 @@ function Components.VisibilityToggles(parent, config)
     holder.toggleButtons = contentButtons
     holder.allToggleButtons = allToggleButtons
 
-    -- Close difficulty bar when holder is hidden (e.g. options panel closes)
     holder:SetScript("OnHide", closeDiffBar)
 
-    -- Refresh method: update all buttons (content bar + both difficulty bars)
     function holder:Refresh()
         refreshAll()
     end
@@ -2565,11 +2486,9 @@ function Components.Dropdown(parent, config, _)
         labelWidth = max(70, MeasureTextWidth(config.label or "", "GameFontHighlightSmall") + 4)
     end
 
-    -- Container frame
     local holder = CreateFrame("Frame", nil, parent)
     holder:SetSize(labelWidth + width + 10, 26)
 
-    -- Label
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
@@ -2578,17 +2497,14 @@ function Components.Dropdown(parent, config, _)
     label:SetText(config.label)
     holder.label = label
 
-    -- Initial value
     local initialValue = config.get and config.get() or config.selected
 
-    -- Create dropdown core
     local dropdown = CreateDropdownCore(holder, width, config.options, initialValue, function(value)
         config.onChange(value)
     end, config.maxItems, config.itemInit)
     dropdown.button:SetPoint("LEFT", label, "RIGHT", 5, 0)
     holder.dropdown = dropdown
 
-    -- Public methods (delegate to core)
     function holder:SetValue(value)
         dropdown:SetValue(value)
     end
@@ -2625,12 +2541,10 @@ function Components.Dropdown(parent, config, _)
         end
     end
 
-    -- Auto-register if refreshable
     if config.get or config.enabled then
         tinsert(RefreshableComponents, holder)
     end
 
-    -- Disabled controls explain themselves on hover
     if config.disabledReason and config.enabled then
         Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
     end
@@ -2651,26 +2565,21 @@ end
 function Components.Tab(parent, config)
     -- NOTE: config.width is treated as a MINIMUM, not a target. The tab grows
     -- past it to fit a wider label. This is safe for callers that chain tabs
-    -- via `LEFT, prev, RIGHT, gap, 0` (Options.lua does this); callers that
-    -- place tabs at fixed X coordinates must compute final widths themselves.
+    -- via `LEFT, prev, RIGHT, gap, 0`. Callers that place tabs at fixed X
+    -- coordinates must compute final widths themselves.
     local minWidth = config.width or 90
     local height = config.height or 22
 
     -- Auto-grow tab width to fit text + side padding so labels never clip.
-    -- Both active (GameFontHighlightSmall) and inactive (GameFontNormalSmall)
-    -- variants render at the same width so we can measure either.
+    -- The active (GameFontHighlightSmall) and inactive (GameFontNormalSmall)
+    -- variants render at the same width, so either font gives the measurement.
     local textW = MeasureTextWidth(config.label or "", "GameFontNormalSmall")
     local width = max(minWidth, textW + 16)
 
-    -- Minimal underline tab, styled to match the main options panel: no boxes or
-    -- fills - the active tab is marked by gold text + a gold underline accent
-    -- (the panel reserves gold for active/selected cues), inactive tabs are a
-    -- muted gray. Keeps dialogs in the panel's restrained, elegant family.
     local tab = CreateFrame("Button", nil, parent)
     tab:SetSize(width, height)
     tab.tabName = config.name
 
-    -- Underline accent, gold like the panel's active-nav bar; only shown active.
     local underline = tab:CreateTexture(nil, "ARTWORK")
     underline:SetHeight(2)
     underline:SetPoint("BOTTOMLEFT", 1, 0)
@@ -2678,7 +2587,6 @@ function Components.Tab(parent, config)
     underline:SetColorTexture(ACCENT_R, ACCENT_G, ACCENT_B, 0)
     tab.underline = underline
 
-    -- Text
     local text = tab:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     text:SetPoint("CENTER", 0, 1)
     text:SetWordWrap(false)
@@ -2689,8 +2597,6 @@ function Components.Tab(parent, config)
     local IDLE_TEXT = { 0.6, 0.6, 0.62 }
     local HOVER_TEXT = { 0.85, 0.85, 0.85 }
 
-    -- Hover only affects the idle (non-active) state: brighten the label and hint
-    -- the underline so the tab reads as clickable without competing with active.
     tab:SetScript("OnEnter", function(self)
         if not self.isActive then
             self.text:SetTextColor(unpack(HOVER_TEXT))
@@ -2704,7 +2610,6 @@ function Components.Tab(parent, config)
         end
     end)
 
-    -- Public method to set active state
     function tab:SetActive(active)
         self.isActive = active
         if active then
@@ -2723,12 +2628,9 @@ function Components.Tab(parent, config)
     return tab
 end
 
----Grounding hairline for a tab strip: a faint full-width line sitting on the
----tabs' bottom edge. Each tab's gold underline (ARTWORK) rides on top of it, so
----the active tab reads as a bold segment of a continuous line - a modern,
----grounded tab bar rather than a lone floating accent. Drawn on the BORDER layer
----so the active tab's underline always covers it. Anchor to the strip's left-most
----tab and pass the strip's total width.
+---Hairline under a tab strip. Drawn on the BORDER layer, so each tab's ARTWORK
+---underline covers it. Anchor to the strip's left-most tab and pass the total
+---strip width.
 ---@param parent table Frame owning the strip
 ---@param anchorTab table The left-most tab in the strip
 ---@param width number Total strip width the line should span
@@ -2771,7 +2673,6 @@ function Components.TextInput(parent, config)
     local holder = CreateFrame("Frame", nil, parent)
     holder:SetSize(labelWidth + width + 5, 20)
 
-    -- Label
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
@@ -2780,7 +2681,6 @@ function Components.TextInput(parent, config)
     label:SetText(config.label)
     holder.label = label
 
-    -- Edit box
     local editBox = CreateFrame("EditBox", nil, holder)
     editBox:SetFontObject("GameFontHighlightSmall")
     editBox:SetAutoFocus(false)
@@ -2801,8 +2701,8 @@ function Components.TextInput(parent, config)
         tinsert(panelEditBoxes, editBox)
     end
 
-    -- Callbacks. Use HookScript on OnEditFocusLost so we don't clobber
-    -- StyleEditBox's focus-color reset (SetScript would replace its hook).
+    -- OnEditFocusLost uses HookScript: SetScript replaces StyleEditBox's
+    -- focus-color reset.
     if config.onChange then
         editBox:SetScript("OnEnterPressed", function(self)
             self:ClearFocus()
@@ -2817,7 +2717,6 @@ function Components.TextInput(parent, config)
         end)
     end
 
-    -- Public methods
     function holder:SetValue(text)
         editBox:SetText(text or "")
     end
@@ -2844,12 +2743,10 @@ function Components.TextInput(parent, config)
         end
     end
 
-    -- Auto-register if refreshable
     if config.get or config.enabled then
         tinsert(RefreshableComponents, holder)
     end
 
-    -- Disabled controls explain themselves on hover
     if config.disabledReason and config.enabled then
         Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
     end
@@ -2863,7 +2760,7 @@ end
 
 ---Create a compact numeric stepper with [-] value [+] buttons
 ---@param parent table Parent frame
----@param config table Configuration: label, min, max, step?, labelWidth?, get?, enabled?, onChange?
+---@param config table Configuration: label, min, max, step?, labelWidth?, get?, enabled?, onChange?, formatValue?
 ---@return table holder Frame with .SetValue(n), .GetValue(), .SetEnabled(bool), .Refresh()
 function Components.NumericStepper(parent, config)
     local step = config.step or 1
@@ -2878,20 +2775,20 @@ function Components.NumericStepper(parent, config)
         labelWidth = 70
     end
 
-    -- Auto-grow value box: at default font 4-digit numbers fit in 26px, at
-    -- bigger fonts they don't. Measure the actual extents of min and max.
-    local minTxt = tostring(config.min or 0)
-    local maxTxt = tostring(config.max or 100)
+    local displayText = config.formatValue or tostring
+
+    -- Auto-grow value box: at the default font 4-digit numbers fit in 26px, at
+    -- bigger fonts they do not. Measure the actual extents of min and max.
+    local minTxt = displayText(config.min or 0)
+    local maxTxt = displayText(config.max or 100)
     local VALUE_WIDTH = max(
         26,
         max(MeasureTextWidth(minTxt, "GameFontHighlightSmall"), MeasureTextWidth(maxTxt, "GameFontHighlightSmall")) + 8
     )
 
-    -- Container frame
     local holder = CreateFrame("Frame", nil, parent)
     holder:SetSize(labelWidth + BTN_SIZE * 2 + VALUE_WIDTH + 16, 20)
 
-    -- Label
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
@@ -2900,14 +2797,12 @@ function Components.NumericStepper(parent, config)
     label:SetText(config.label)
     holder.label = label
 
-    -- State
     local currentValue = config.min or 0
     if config.get then
         currentValue = config.get()
     end
     local isEnabled = true
 
-    -- Clickable value display button
     local valueBtn = CreateFrame("Button", nil, holder)
     valueBtn:SetSize(VALUE_WIDTH, BTN_SIZE)
 
@@ -2920,7 +2815,7 @@ function Components.NumericStepper(parent, config)
     local UpdateButtonStates
 
     local function UpdateValueText()
-        valueText:SetText(tostring(currentValue))
+        valueText:SetText(displayText(currentValue))
         if UpdateButtonStates then
             UpdateButtonStates()
         end
@@ -2940,7 +2835,6 @@ function Components.NumericStepper(parent, config)
         end
     end
 
-    -- Minus button
     local minusBtn = CreateFrame("Button", nil, holder, "BackdropTemplate")
     minusBtn:SetSize(BTN_SIZE, BTN_SIZE)
     minusBtn:SetPoint("LEFT", label, "RIGHT", 5, 0)
@@ -2956,10 +2850,8 @@ function Components.NumericStepper(parent, config)
     minusLabel:SetPoint("CENTER", 0, 0)
     minusLabel:SetText("-")
 
-    -- Value positioned between buttons
     valueBtn:SetPoint("LEFT", minusBtn, "RIGHT", 2, 0)
 
-    -- Plus button
     local plusBtn = CreateFrame("Button", nil, holder, "BackdropTemplate")
     plusBtn:SetSize(BTN_SIZE, BTN_SIZE)
     plusBtn:SetPoint("LEFT", valueBtn, "RIGHT", 2, 0)
@@ -2975,7 +2867,6 @@ function Components.NumericStepper(parent, config)
     plusLabel:SetPoint("CENTER", 0, 0)
     plusLabel:SetText("+")
 
-    -- Update button appearance based on whether value is at min/max
     UpdateButtonStates = function()
         if not isEnabled then
             return
@@ -3002,7 +2893,6 @@ function Components.NumericStepper(parent, config)
         end
     end
 
-    -- Edit box (hidden by default, shown on value click)
     local editBox = CreateFrame("EditBox", nil, holder)
     editBox:SetFontObject("GameFontHighlightSmall")
     editBox:SetAutoFocus(false)
@@ -3047,7 +2937,6 @@ function Components.NumericStepper(parent, config)
     end)
     SetupTooltip(valueBtn, L["Component.AdjustValue"], L["Component.AdjustValue.Desc"], "ANCHOR_TOP")
 
-    -- Hover effects (skip if button is at its limit)
     local function IsBtnAtLimit(btn)
         if btn == minusBtn then
             return currentValue <= (config.min or 0)
@@ -3078,7 +2967,6 @@ function Components.NumericStepper(parent, config)
         end
     end)
 
-    -- Mouse wheel on entire holder
     holder:EnableMouseWheel(true)
     holder:SetScript("OnMouseWheel", function(_, delta)
         if isEnabled then
@@ -3088,7 +2976,6 @@ function Components.NumericStepper(parent, config)
 
     UpdateValueText()
 
-    -- Public methods
     function holder:SetValue(val)
         currentValue = max(config.min or 0, min(config.max or 100, val))
         UpdateValueText()
@@ -3106,7 +2993,6 @@ function Components.NumericStepper(parent, config)
         if enabled then
             UpdateButtonStates()
         else
-            -- Close edit box if open when disabling
             editContainer:Hide()
             valueBtn:Show()
             minusBtn:SetBackdropColor(0.15, 0.15, 0.15, 1)
@@ -3129,12 +3015,10 @@ function Components.NumericStepper(parent, config)
         end
     end
 
-    -- Auto-register if refreshable
     if config.get or config.enabled then
         tinsert(RefreshableComponents, holder)
     end
 
-    -- Disabled controls explain themselves on hover
     if config.disabledReason and config.enabled then
         Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
     end
@@ -3171,15 +3055,13 @@ function Components.ColorSwatch(parent, config)
     local SWATCH_SIZE = 16
 
     -- Reserve room after the swatch for "100%" alpha text (when present); a
-    -- bigger font makes "100%" wider than the original 50px allowance.
+    -- bigger font makes "100%" wider than the 50px floor.
     local alphaW = config.hasOpacity and (4 + MeasureTextWidth("100%", "GameFontHighlightSmall") + 4) or 0
     local trailingW = max(50, alphaW)
 
-    -- Container frame
     local holder = CreateFrame("Frame", nil, parent)
     holder:SetSize(labelWidth + 5 + SWATCH_SIZE + trailingW, 20)
 
-    -- Label
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("LEFT", 0, 0)
     label:SetWidth(labelWidth)
@@ -3190,7 +3072,6 @@ function Components.ColorSwatch(parent, config)
     end
     holder.label = label
 
-    -- Swatch button
     local swatchBtn = CreateFrame("Button", nil, holder, "BackdropTemplate")
     swatchBtn:SetSize(SWATCH_SIZE, SWATCH_SIZE)
     swatchBtn:SetPoint("LEFT", label, "RIGHT", 5, 0)
@@ -3201,7 +3082,6 @@ function Components.ColorSwatch(parent, config)
     })
     swatchBtn:SetBackdropBorderColor(BORDER_R, BORDER_G, BORDER_B, 1)
 
-    -- State
     local currentR, currentG, currentB, currentA = 1, 1, 1, 1
     if config.get then
         local r, g, b, a = config.get()
@@ -3210,7 +3090,6 @@ function Components.ColorSwatch(parent, config)
     end
     local isEnabled = true
 
-    -- Alpha value text (shown when hasOpacity is true)
     local alphaText
     if config.hasOpacity then
         alphaText = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -3227,7 +3106,6 @@ function Components.ColorSwatch(parent, config)
     end
     UpdateSwatchColor()
 
-    -- Hover effect
     swatchBtn:SetScript("OnEnter", function()
         if isEnabled then
             swatchBtn:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
@@ -3239,7 +3117,6 @@ function Components.ColorSwatch(parent, config)
         end
     end)
 
-    -- Click opens color picker
     swatchBtn:SetScript("OnClick", function()
         if not isEnabled then
             return
@@ -3269,7 +3146,6 @@ function Components.ColorSwatch(parent, config)
         ColorPickerFrame:SetupColorPickerAndShow(info)
     end)
 
-    -- Public methods
     function holder:SetColor(r, g, b, a)
         currentR, currentG, currentB = r, g, b
         if a then
@@ -3311,12 +3187,10 @@ function Components.ColorSwatch(parent, config)
         end
     end
 
-    -- Auto-register if refreshable
     if config.get or config.enabled then
         tinsert(RefreshableComponents, holder)
     end
 
-    -- Disabled controls explain themselves on hover
     if config.disabledReason and config.enabled then
         Components.AttachDisabledReason(holder, config.enabled, config.disabledReason)
     end
@@ -3324,23 +3198,18 @@ function Components.ColorSwatch(parent, config)
     return holder
 end
 
--- Modern scrollbar colors (defined early for use by TextArea and ScrollableContainer)
 local ScrollbarColors = {
-    -- Faint recessed rail instead of an opaque boxed track, so it reads as a
-    -- subtle groove rather than a second bordered frame competing with the panel.
     track = { 0.1, 0.1, 0.11, 0.5 },
     thumb = { 0.3, 0.3, 0.3, 1 },
     thumbHover = { 0.45, 0.45, 0.45, 1 },
 }
 
--- Helper to apply modern styling to a scrollbar (used by ScrollableContainer)
 local function ApplyModernScrollbarStyle(scrollBar)
     if not scrollBar then
         return
     end
     local colors = ScrollbarColors
 
-    -- Hide default textures
     local trackBg = scrollBar.trackBg or scrollBar.Track
     if trackBg then
         trackBg:SetAlpha(0)
@@ -3356,7 +3225,6 @@ local function ApplyModernScrollbarStyle(scrollBar)
         end
     end
 
-    -- Faint recessed rail (no hard border) - a thin groove, not a boxed frame.
     local track = scrollBar:CreateTexture(nil, "BACKGROUND")
     track:SetColorTexture(unpack(colors.track))
     track:SetPoint("TOPLEFT", 5, 0)
@@ -3368,7 +3236,6 @@ local function ApplyModernScrollbarStyle(scrollBar)
         thumb:SetColorTexture(unpack(colors.thumb))
         thumb:SetSize(6, 40)
 
-        -- Try to set up hover/press effects
         local thumbParent = thumb:GetParent()
         if thumbParent and thumbParent.SetScript then
             thumbParent:HookScript("OnEnter", function()
@@ -3380,7 +3247,6 @@ local function ApplyModernScrollbarStyle(scrollBar)
         end
     end
 
-    -- Hide scroll up/down buttons
     local scrollUp = scrollBar.ScrollUpButton or scrollBar.scrollUp or _G[scrollBar:GetName() .. "ScrollUpButton"]
     local scrollDown = scrollBar.ScrollDownButton
         or scrollBar.scrollDown
@@ -3408,7 +3274,6 @@ local function SetupProportionalScrollbar(scrollFrame, scrollBar)
         local viewH = scrollFrame:GetHeight() or 0
         local range = scrollFrame:GetVerticalScrollRange() or 0
         if range <= 1 or viewH <= 0 then
-            -- Nothing to scroll: retire the bar entirely.
             scrollBar:Hide()
             return
         end
@@ -3427,7 +3292,6 @@ local function SetupProportionalScrollbar(scrollFrame, scrollBar)
     Update() -- sync initial state before any event fires
 end
 
--- TextArea color constants
 local TextAreaColors = {
     bg = { 0.08, 0.08, 0.08, 0.9 },
     bgFocused = { 0.1, 0.1, 0.1, 0.95 },
@@ -3451,7 +3315,6 @@ local TextAreaColors = {
 function Components.TextArea(parent, config)
     local colors = TextAreaColors
 
-    -- Container frame with backdrop
     local holder = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     holder:SetSize(config.width, config.height)
     holder:SetBackdrop({
@@ -3462,7 +3325,6 @@ function Components.TextArea(parent, config)
     holder:SetBackdropColor(unpack(colors.bg))
     holder:SetBackdropBorderColor(unpack(colors.border))
 
-    -- Scroll frame (basic, no scrollbar)
     local scrollFrame = CreateFrame("ScrollFrame", nil, holder)
     scrollFrame:SetPoint("TOPLEFT", 1, -1)
     scrollFrame:SetPoint("BOTTOMRIGHT", -1, 1)
@@ -3475,7 +3337,6 @@ function Components.TextArea(parent, config)
         self:SetVerticalScroll(newScroll)
     end)
 
-    -- Edit box
     local editBox = CreateFrame("EditBox", nil, scrollFrame)
     editBox:SetMultiLine(true)
     editBox:SetFontObject("GameFontHighlightSmall")
@@ -3494,7 +3355,6 @@ function Components.TextArea(parent, config)
     holder.editBox = editBox
     holder.scrollFrame = scrollFrame
 
-    -- Focus visual state
     local function UpdateFocusVisual(focused)
         if focused then
             holder:SetBackdropColor(unpack(colors.bgFocused))
@@ -3523,7 +3383,6 @@ function Components.TextArea(parent, config)
         self:ClearFocus()
     end)
 
-    -- Auto-resize content height based on text
     editBox:SetScript("OnTextChanged", function(self)
         local text = self:GetText()
         local _, fontHeight = self:GetFont()
@@ -3541,7 +3400,6 @@ function Components.TextArea(parent, config)
         tinsert(panelEditBoxes, editBox)
     end
 
-    -- Public methods
     function holder:SetText(text)
         editBox:SetText(text or "")
     end
@@ -3568,11 +3426,10 @@ end
 -- ============================================================================
 -- APPEARANCE GRID
 -- ============================================================================
--- Declarative 2-column, 4-row grid of appearance controls:
+-- Declarative 2-column, 3-row grid of appearance controls:
 --   Row 1: Width [link] Height
 --   Row 2: Zoom         Border
 --   Row 3: Spacing      Alpha
---   Row 4: Text [+-] [color]
 
 ---@class AppearanceGridConfig
 ---@field get fun(key: string, default: any): any  Read setting value
@@ -3584,9 +3441,8 @@ end
 ---@field enabled? fun(): boolean                   Wraps all controls (nil = always enabled)
 ---@field masqueCheck? fun(): boolean               Returns true when Masque is active (disables zoom/border)
 
----Text size stepper + color swatch on one row. Extracted from AppearanceGrid so
----the Defaults page and the per-category override section render the identical
----pair of controls without duplicating the textColor/textAlpha write pairing.
+---Text size stepper + color swatch on one row. The swatch writes textColor and
+---textAlpha as a pair.
 ---@param parent Frame
 ---@param config AppearanceGridConfig Same get/set/setMulti/enabled contract as AppearanceGrid
 ---@param labelWidth number?
@@ -3636,8 +3492,7 @@ end
 function Components.AppearanceGrid(parent, config)
     -- Compute label width from the longest row label so columns align
     -- regardless of locale or font replacement. The grid is icon geometry only;
-    -- text size/color live with the other text controls (Components.TextStyleRow)
-    -- because users look for them under "Text", not under icon dimensions.
+    -- text size and color live in Components.TextStyleRow.
     local labels = {
         L["Appearance.Width"],
         L["Appearance.Height"],
@@ -3673,7 +3528,6 @@ function Components.AppearanceGrid(parent, config)
     local enabled = config.enabled
     local masqueCheck = config.masqueCheck
 
-    -- Enabled helpers
     local function baseEnabled()
         return not enabled or enabled()
     end
@@ -3684,7 +3538,6 @@ function Components.AppearanceGrid(parent, config)
     -- Forward declarations for cross-refresh
     local widthHolder, heightHolder
 
-    -- Row 1: Width [link] Height
     widthHolder = Components.Slider(frame, {
         label = L["Appearance.Width"],
         min = 16,
@@ -3734,7 +3587,6 @@ function Components.AppearanceGrid(parent, config)
     })
     heightHolder:SetPoint("TOPLEFT", COL2, 0)
 
-    -- Row 2: Zoom, Border
     local zoomHolder = Components.Slider(frame, {
         label = L["Appearance.Zoom"],
         min = 0,
@@ -3767,7 +3619,6 @@ function Components.AppearanceGrid(parent, config)
     })
     borderHolder:SetPoint("TOPLEFT", COL2, -ROW_H)
 
-    -- Row 3: Spacing, Alpha
     local spacingHolder = Components.Slider(frame, {
         label = L["Appearance.Spacing"],
         min = 0,
@@ -3829,7 +3680,7 @@ end
 ---SetParent(nil)'d (the teardown signal for a transient widget in a dialog or
 ---re-rendered list) is dropped from the registry instead of refreshed. This is
 ---a safety net behind explicit Components.Unregister calls -- a call site that
----forgets to unregister no longer leaks a holder that fires :Refresh() forever
+---forgets to unregister does not leak a holder that fires :Refresh() forever
 ---and pins its dead dialog alive. Plain refresh hooks (tables without a frame)
 ---have no GetParent and are never pruned, so persistent page hooks survive.
 ---Iterate in reverse so table.remove during the walk is safe.
@@ -3837,7 +3688,7 @@ function Components.RefreshAll()
     for i = #RefreshableComponents, 1, -1 do
         local component = RefreshableComponents[i]
         if component.GetParent and component:GetParent() == nil then
-            tremove(RefreshableComponents, i)
+            table.remove(RefreshableComponents, i)
         elseif component.Refresh then
             component:Refresh()
         end
@@ -3853,7 +3704,7 @@ end
 
 ---Unregister a single holder from the refresh registry.
 ---Use when tearing down dynamic components whose parent frame is being destroyed,
----so Components.RefreshAll() doesn't keep invoking their :Refresh() on stale state.
+---so Components.RefreshAll() does not keep invoking their :Refresh() on stale state.
 ---@param holder table Component holder previously added via a factory
 function Components.Unregister(holder)
     if not holder then
@@ -3861,7 +3712,7 @@ function Components.Unregister(holder)
     end
     for i = #RefreshableComponents, 1, -1 do
         if RefreshableComponents[i] == holder then
-            tremove(RefreshableComponents, i)
+            table.remove(RefreshableComponents, i)
             return
         end
     end
@@ -3876,22 +3727,18 @@ function Components.ScrollableContainer(parent, config)
     local contentHeight = config.contentHeight or 600
     local scrollbarWidth = config.scrollbarWidth or 24
     -- Explicit width is required when this container is nested inside a
-    -- larger parent (e.g. a sub-list inside a page). Without it we'd derive
-    -- contentWidth from parent:GetWidth(), which overflows the visible
-    -- scroll area (the scroll frame itself is sized smaller than the parent
-    -- by the caller, but the inner content child wouldn't know that).
+    -- larger parent (e.g. a sub-list inside a page). Without it, contentWidth
+    -- comes from parent:GetWidth() and overflows the visible scroll area: the
+    -- caller sizes the scroll frame smaller than the parent, but the inner
+    -- content child cannot know that.
     local explicitWidth = config.width
 
-    -- Holder frame (the scroll frame itself)
     local scrollFrame = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
     scrollFrame:SetClipsChildren(true)
     if explicitWidth then
         scrollFrame:SetWidth(explicitWidth)
     end
 
-    -- Scrollbar: hand-styled legacy slider (faint rail + neutral thumb, matching
-    -- the panel's square thin-edge chrome), with a proportional thumb that reflects
-    -- page length and auto-hides when the page fits.
     local scrollBar = scrollFrame.ScrollBar
     if scrollBar then
         scrollBar:ClearAllPoints()
@@ -3920,11 +3767,9 @@ function Components.ScrollableContainer(parent, config)
     content:SetSize(contentWidth, contentHeight)
     scrollFrame:SetScrollChild(content)
 
-    -- Edge fades: ambient "there's more" affordance (a scroll shadow). A short
-    -- gradient hugging each edge, shown only when content extends past it - the
-    -- top fade once scrolled down, the bottom fade while more remains below - so
-    -- the content reads as fading under the chrome. Live on a mouse-transparent
-    -- overlay above the scrolling child; stop short of the scrollbar column.
+    -- Edge fades show that content continues past an edge. They live on a
+    -- mouse-transparent overlay above the scrolling child and stop short of the
+    -- scrollbar column.
     local fadeOverlay = CreateFrame("Frame", nil, scrollFrame)
     fadeOverlay:SetAllPoints(scrollFrame)
     fadeOverlay:SetFrameLevel(scrollFrame:GetFrameLevel() + 20)
@@ -3959,7 +3804,6 @@ function Components.ScrollableContainer(parent, config)
     scrollFrame:HookScript("OnShow", UpdateFades)
     UpdateFades()
 
-    -- Public methods
     function scrollFrame:GetContentFrame()
         return content
     end
@@ -3990,8 +3834,8 @@ function Components.VerticalLayout(parent, config)
     local currentY = y
 
     local layout = {}
-    -- Tracks every anchored frame as { frame, x, y } so the whole stack can be
-    -- nudged after layout (see :ShiftAllBy, used to vertically center dialogs).
+    -- Every frame anchored through :Add/:AddText/:AddRow, so :ShiftAllBy can
+    -- re-anchor the whole stack.
     local items = {}
 
     ---Add a component at the current Y position and advance
@@ -4001,8 +3845,8 @@ function Components.VerticalLayout(parent, config)
     function layout:Add(component, height, spacing)
         component:SetPoint("TOPLEFT", parent, "TOPLEFT", x, currentY)
         tinsert(items, { frame = component, x = x, y = currentY })
-        -- Components with dynamic height (e.g. Banner) need to recompute now
-        -- that they're anchored, before we read their height.
+        -- A component with dynamic height (e.g. Banner) must recompute after it
+        -- is anchored, before :Add reads the height.
         if not height and component.FitHeight then
             component:FitHeight()
         end
@@ -4084,13 +3928,12 @@ end
 ---@param config CollapsibleSectionConfig Configuration table
 ---@return table holder Frame with :SetCollapsed(bool), :IsCollapsed(), :GetContentFrame(), :GetContentHeight(), :SetContentHeight(h)
 function Components.CollapsibleSection(parent, config)
-    -- Header height grows with font so big-font users don't see clipped titles.
+    -- Header height grows with font, so a big font does not clip the title.
     local HEADER_HEIGHT = max(24, MeasureTextHeight("Wg", "GameFontNormal") + 10)
     local CONTENT_PADDING = 10
     local BORDER_COLOR = { 0.25, 0.25, 0.25, 1 }
     local CONTENT_BG_COLOR = { 0.08, 0.08, 0.08, 0.95 }
 
-    -- Container frame with backdrop for border
     local holder = CreateFrame("Frame", nil, parent, "BackdropTemplate")
 
     -- Calculate width: explicit > parent-based with scrollbar offset > parent > default
@@ -4109,24 +3952,20 @@ function Components.CollapsibleSection(parent, config)
     holder:SetBackdropColor(0, 0, 0, 0) -- Transparent bg (header/content have their own)
     holder:SetBackdropBorderColor(unpack(BORDER_COLOR))
 
-    -- Header button (clickable)
     local header = CreateFrame("Button", nil, holder)
     header:SetSize(holder:GetWidth() - 2, HEADER_HEIGHT - 1) -- Account for border
     header:SetPoint("TOPLEFT", 1, -1)
 
-    -- Header background
     local headerBg = header:CreateTexture(nil, "BACKGROUND")
     headerBg:SetAllPoints()
     headerBg:SetColorTexture(0.18, 0.18, 0.18, 1)
 
-    -- Collapse indicator (chevron style)
     local indicator = header:CreateTexture(nil, "OVERLAY")
     indicator:SetSize(12, 12)
     indicator:SetPoint("LEFT", 10, 0)
     indicator:SetTexture("Interface\\ChatFrame\\ChatFrameExpandArrow")
     indicator:SetVertexColor(0.6, 0.6, 0.6)
 
-    -- Title
     local title = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("LEFT", indicator, "RIGHT", 8, 0)
     title:SetPoint("RIGHT", header, "RIGHT", -8, 0)
@@ -4134,43 +3973,37 @@ function Components.CollapsibleSection(parent, config)
     title:SetJustifyH("LEFT")
     title:SetText(config.title)
 
-    -- Content container (has background)
     local contentBg = CreateFrame("Frame", nil, holder)
     contentBg:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, 0)
     contentBg:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", 0, 0)
     contentBg:SetHeight(100)
     contentBg:Hide()
 
-    -- Content background texture
     local contentBgTex = contentBg:CreateTexture(nil, "BACKGROUND")
     contentBgTex:SetAllPoints()
     contentBgTex:SetColorTexture(unpack(CONTENT_BG_COLOR))
 
-    -- Separator line between header and content
     local separator = contentBg:CreateTexture(nil, "ARTWORK")
     separator:SetHeight(1)
     separator:SetPoint("TOPLEFT", 0, 0)
     separator:SetPoint("TOPRIGHT", 0, 0)
     separator:SetColorTexture(0.25, 0.25, 0.25, 1)
 
-    -- Content frame (where children go, with padding)
     local content = CreateFrame("Frame", nil, contentBg)
     content:SetPoint("TOPLEFT", CONTENT_PADDING, -CONTENT_PADDING)
     content:SetPoint("TOPRIGHT", -CONTENT_PADDING, -CONTENT_PADDING)
     content:SetHeight(100) -- Default height, will be set by caller
 
-    -- State
     local isCollapsed = config.defaultCollapsed ~= false -- Default to collapsed
     local contentHeight = 100
 
-    -- Update visual state
     local function UpdateVisual()
         if isCollapsed then
             indicator:SetRotation(0) -- points right (native orientation)
             contentBg:Hide()
             holder:SetHeight(HEADER_HEIGHT)
         else
-            indicator:SetRotation(rad(-90)) -- points down
+            indicator:SetRotation(math.rad(-90)) -- points down
             contentBg:Show()
             holder:SetHeight(HEADER_HEIGHT + contentHeight + CONTENT_PADDING * 2)
         end
@@ -4180,7 +4013,6 @@ function Components.CollapsibleSection(parent, config)
         end
     end
 
-    -- Hover effect
     header:SetScript("OnEnter", function()
         headerBg:SetColorTexture(0.22, 0.22, 0.22, 1)
         indicator:SetVertexColor(0.8, 0.8, 0.8)
@@ -4190,13 +4022,11 @@ function Components.CollapsibleSection(parent, config)
         indicator:SetVertexColor(0.6, 0.6, 0.6)
     end)
 
-    -- Click to toggle
     header:SetScript("OnClick", function()
         isCollapsed = not isCollapsed
         UpdateVisual()
     end)
 
-    -- Public methods
     function holder:SetCollapsed(collapsed)
         isCollapsed = collapsed
         UpdateVisual()
@@ -4227,12 +4057,10 @@ function Components.CollapsibleSection(parent, config)
         title:SetText(newTitle)
     end
 
-    -- Refresh method (re-apply collapsed state)
     function holder:Refresh()
         UpdateVisual()
     end
 
-    -- Initialize
     UpdateVisual()
 
     return holder
@@ -4251,13 +4079,13 @@ function Components.Banner(parent, config)
     local ICON_LEFT = 10
     local ICON_GAP = 6
     local TEXT_RIGHT_PAD = 8
-    local TEXT_VERT_PAD = 12 -- breathing room above + below the text
-    local TEXT_NONFLOW_W = ICON_LEFT + ICON_SIZE + ICON_GAP + TEXT_RIGHT_PAD -- everything that's NOT text
+    local TEXT_VERT_PAD = 12 -- padding above and below the text
+    local TEXT_NONFLOW_W = ICON_LEFT + ICON_SIZE + ICON_GAP + TEXT_RIGHT_PAD -- the width that is not text
 
     local hasExplicitHeight = config.height ~= nil
     local BANNER_MIN = 26
-    -- Initial height is single-line + padding. Refined once the holder gets
-    -- a width (via OnSizeChanged) and we can measure wrapped text height.
+    -- Initial height is one line plus padding. FitHeight refines it once the
+    -- holder has a width.
     local BANNER_HEIGHT = config.height
         or max(BANNER_MIN, MeasureTextHeight("Wg", "GameFontHighlightSmall") + TEXT_VERT_PAD)
 
@@ -4271,7 +4099,6 @@ function Components.Banner(parent, config)
     local holder = CreateFrame("Frame", nil, parent)
     holder:SetHeight(BANNER_HEIGHT)
 
-    -- Subtle translucent background
     local bg = holder:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
     local bgColor = { unpack(c.bg) }
@@ -4280,7 +4107,6 @@ function Components.Banner(parent, config)
     end
     bg:SetColorTexture(unpack(bgColor))
 
-    -- Thin accent line at the bottom
     local accent = holder:CreateTexture(nil, "ARTWORK")
     accent:SetPoint("BOTTOMLEFT")
     accent:SetPoint("BOTTOMRIGHT")
@@ -4312,7 +4138,7 @@ function Components.Banner(parent, config)
     -- Skipped when caller pinned an explicit height.
     -- IMPORTANT: callers using auto-fit must set BOTH anchors (TOPLEFT/LEFT
     -- and RIGHT) before calling :FitHeight(); the OnSizeChanged hook is a
-    -- defensive backup for parent resizes, but the initial layout should
+    -- defensive backup for parent resizes, but the initial layout must
     -- call FitHeight synchronously so siblings positioned afterward see the
     -- final height. VerticalLayout:Add does this automatically.
     local lastWidth
@@ -4339,7 +4165,7 @@ function Components.Banner(parent, config)
     end
 
     holder:SetScript("OnSizeChanged", function(_, w)
-        -- Only respond to width changes; setting our own height re-fires this.
+        -- Respond to width changes only: a height change re-fires OnSizeChanged.
         if w == lastWidth then
             return
         end

@@ -18,8 +18,6 @@ local SECTION_GAP = BR.Options.Constants.SECTION_GAP
 local COL_PADDING = BR.Options.Constants.COL_PADDING
 local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 
-local abs = math.abs
-
 local function Build(content, scrollFrame)
     local contentWidth = scrollFrame:GetContentWidth()
     local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
@@ -134,7 +132,6 @@ local function Build(content, scrollFrame)
         deleteDropdown:SetValue("")
     end
 
-    -- Per-spec profiles section (LibDualSpec)
     LayoutSectionHeader(layout, content, L["Options.PerSpecProfiles"])
     LayoutSectionNote(layout, content, L["Options.PerSpecProfiles.Desc"])
 
@@ -188,7 +185,6 @@ local function Build(content, scrollFrame)
         RefreshProfileDropdown()
     end
 
-    -- Export section
     LayoutSectionHeader(layout, content, L["Options.ExportSettings"])
     LayoutSectionNote(layout, content, L["Options.ExportSettings.Desc"])
 
@@ -210,7 +206,6 @@ local function Build(content, scrollFrame)
     end)
     layout:Add(exportButton, 22, SECTION_GAP)
 
-    -- Import section
     LayoutSectionHeader(layout, content, L["Options.ImportSettings"])
     LayoutSectionNote(
         layout,
@@ -244,7 +239,7 @@ local function Build(content, scrollFrame)
     layout:Add(importButton, 22)
     importStatus:SetPoint("LEFT", importButton, "RIGHT", 10, 0)
 
-    content:SetHeight(abs(layout:GetY()) + 50)
+    content:SetHeight(math.abs(layout:GetY()) + 50)
 end
 
 BR.Options.Pages.profiles = {

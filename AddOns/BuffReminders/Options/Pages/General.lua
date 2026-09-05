@@ -3,9 +3,8 @@ local _, BR = ...
 -- ============================================================================
 -- GENERAL PAGE
 -- ============================================================================
--- Addon-meta toggles that aren't tied to any buff or category: login messages
--- and the minimap launcher icon. Kept small intentionally - Chat Requests
--- and Anchor Frames live on their own dedicated pages.
+-- Addon-meta toggles that are not tied to a buff or a category: login messages
+-- and the minimap launcher icon.
 
 local L = BR.L
 local Components = BR.Components
@@ -13,8 +12,6 @@ local Components = BR.Components
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local COL_PADDING = BR.Options.Constants.COL_PADDING
 local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
-
-local abs = math.abs
 
 local function Build(content)
     local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
@@ -48,7 +45,7 @@ local function Build(content)
     })
     layout:Add(minimapHolder, nil, COMPONENT_GAP)
 
-    content:SetHeight(abs(layout:GetY()) + 20)
+    content:SetHeight(math.abs(layout:GetY()) + 20)
 end
 
 BR.Options.Pages.general = {

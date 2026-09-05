@@ -5,13 +5,12 @@ local _, BR = ...
 --
 -- Each entry runs exactly once, gated by db.dbVersion: on login the runner
 -- executes every migration with an index in (db.dbVersion, DB_VERSION] in
--- order, then stamps db.dbVersion = DB_VERSION. An up-to-date profile runs
--- zero migrations.
+-- order, then stamps db.dbVersion = DB_VERSION.
 --
 -- NEVER delete or renumber an existing migration: WoW has no forced upgrade,
--- so a profile can return from any historical dbVersion. Removing one would
--- let an old profile skip the schema reshaping it still needs. Append new
--- migrations at the end and bump DB_VERSION.
+-- so a profile can return from any historical dbVersion. An old profile then
+-- skips the schema reshaping it still needs. Append new migrations at the end
+-- and bump DB_VERSION.
 --
 -- The pre-AceDB format conversion (old flat layout -> AceDB) is NOT here:
 -- it must run before AceDB:New(), so it lives inline in Display/Display.lua's
@@ -23,43 +22,38 @@ local max = math.max
 
 BR.Migrations = {}
 
-BR.Migrations.DB_VERSION = 49
+BR.Migrations.DB_VERSION = 54
 
 -- Run pending migrations against the profile `db`, using code `defaults` for
--- fallbacks. `ctx` carries the few Display.lua file-scope deps the
--- migrations reference (CATEGORIES).
+-- fallbacks. `ctx` carries the Display.lua file-scope values the migrations
+-- read (CATEGORIES).
 function BR.Migrations.Run(db, defaults, ctx)
     local CATEGORIES = ctx.CATEGORIES
 
     local migrations = {
         -- [1] Consolidate all pre-versioning migrations (v2.8 -> v3.x)
         [1] = function()
-            -- Ensure db.defaults exists (DeepCopyDefault hasn't run yet)
+            -- DeepCopyDefault runs later, so db.defaults can be absent here.
             if not db.defaults then
                 db.defaults = {}
             end
 
-            -- Migrate from old schema to new schema (v3.0 migration)
             local isOldSchema = db.iconSize ~= nil
                 or db.spacing ~= nil
                 or db.growDirection ~= nil
                 or db.showExpirationGlow ~= nil
             if isOldSchema then
-                -- Migrate global appearance settings to defaults
                 db.defaults.iconSize = db.iconSize or defaults.defaults.iconSize
                 db.defaults.spacing = db.spacing or defaults.defaults.spacing
                 db.defaults.growDirection = db.growDirection or defaults.defaults.growDirection
-                -- Migrate global behavior settings to defaults
                 db.defaults.showExpirationGlow = db.showExpirationGlow ~= false
                 db.defaults.expirationThreshold = db.expirationThreshold or defaults.defaults.expirationThreshold
                 db.defaults.glowStyle = db.glowStyle or 1
-                -- Clean up old root-level keys
                 db.iconSize = nil
                 db.spacing = nil
                 db.growDirection = nil
             end
 
-            -- Migrate splitCategories to categorySettings.{cat}.split
             if db.splitCategories then
                 for cat, isSplit in pairs(db.splitCategories) do
                     if not db.categorySettings then
@@ -73,7 +67,6 @@ function BR.Migrations.Run(db, defaults, ctx)
                 db.splitCategories = nil
             end
 
-            -- Migrate old categorySettings with appearance values to use useCustomAppearance
             if isOldSchema and db.categorySettings then
                 for cat, catSettings in pairs(db.categorySettings) do
                     if cat ~= "main" and catSettings.iconSize then
@@ -89,7 +82,6 @@ function BR.Migrations.Run(db, defaults, ctx)
                 end
             end
 
-            -- Migrate: remove useCustomBehavior, per-category glow, consolidate showBuffReminder
             if db.categorySettings then
                 for cat, catSettings in pairs(db.categorySettings) do
                     if cat ~= "main" then
@@ -108,7 +100,6 @@ function BR.Migrations.Run(db, defaults, ctx)
                 end
             end
 
-            -- Migrate legacy root-level glow settings to defaults
             if db.showExpirationGlow ~= nil then
                 db.defaults.showExpirationGlow = db.showExpirationGlow
                 db.showExpirationGlow = nil
@@ -131,7 +122,6 @@ function BR.Migrations.Run(db, defaults, ctx)
             -- Remove showOnlyInInstance (replaced by per-category W/S/D/R visibility toggles)
             db.showOnlyInInstance = nil
 
-            -- Ensure categorySettings.main exists
             if not db.categorySettings then
                 db.categorySettings = {}
             end
@@ -139,7 +129,6 @@ function BR.Migrations.Run(db, defaults, ctx)
                 db.categorySettings.main = {}
             end
 
-            -- Migrate old position to categorySettings.main.position
             if db.position and not db.categorySettings.main.position then
                 db.categorySettings.main.position = {
                     point = db.position.point,
@@ -162,14 +151,12 @@ function BR.Migrations.Run(db, defaults, ctx)
 
         -- [3] Add pet category (new first-class category for pet summon reminders)
         [3] = function()
-            -- Ensure categorySettings.pet exists with defaults
             if not db.categorySettings then
                 db.categorySettings = {}
             end
             if not db.categorySettings.pet then
                 db.categorySettings.pet = {}
             end
-            -- Ensure categoryVisibility.pet exists
             if not db.categoryVisibility then
                 db.categoryVisibility = {}
             end
@@ -207,7 +194,7 @@ function BR.Migrations.Run(db, defaults, ctx)
             end
         end,
 
-        -- [6] Add sensible difficulty defaults for consumables (mythic only, no LFR)
+        -- [6] Add difficulty defaults for consumables (mythic only, no LFR)
         [6] = function()
             if not db.categoryVisibility then
                 return
@@ -216,7 +203,6 @@ function BR.Migrations.Run(db, defaults, ctx)
             if not vis then
                 return
             end
-            -- Add dungeon difficulty defaults (mythic only) if not already set
             if not vis.dungeonDifficulty then
                 vis.dungeonDifficulty = {
                     normal = false,
@@ -227,7 +213,6 @@ function BR.Migrations.Run(db, defaults, ctx)
                     follower = false,
                 }
             end
-            -- Add raid difficulty defaults (no LFR) if not already set
             if not vis.raidDifficulty then
                 vis.raidDifficulty = {
                     lfr = false,
@@ -288,7 +273,7 @@ function BR.Migrations.Run(db, defaults, ctx)
             end
         end,
 
-        -- [10] Clean up consumableItems (no longer user-configured; bag scanning replaces manual config)
+        -- [10] Clean up consumableItems: the bag scan replaces the manual config
         [10] = function()
             db.consumableItems = nil
         end,
@@ -304,7 +289,6 @@ function BR.Migrations.Run(db, defaults, ctx)
             else
                 db.buffTrackingMode = "all"
             end
-            -- Clean up old keys
             db.showOnlyPlayerClassBuff = nil
             db.showOnlyPlayerMissing = nil
         end,
@@ -323,7 +307,7 @@ function BR.Migrations.Run(db, defaults, ctx)
                     [4] = { 0.9, 0.9, 0.9, 1 }, -- White
                     [5] = { 1, 0.2, 0.2, 1 }, -- Red
                 }
-                db.defaults.glowType = 1 -- Pixel (closest to old atlas pulsing)
+                db.defaults.glowType = 1 -- Pixel
                 db.defaults.glowColor = colorMap[oldStyle] or { 0.95, 0.57, 0.07, 1 }
                 db.defaults.glowStyle = nil
             end
@@ -336,7 +320,6 @@ function BR.Migrations.Run(db, defaults, ctx)
             local defs = db.defaults
             local globalThreshold = defs.expirationThreshold or 15
 
-            -- Migrate consumableRebuffWarning = false -> per-category override
             if defs.consumableRebuffWarning == false then
                 if not db.categorySettings then
                     db.categorySettings = {}
@@ -348,7 +331,6 @@ function BR.Migrations.Run(db, defaults, ctx)
                 db.categorySettings.consumable.showExpirationGlow = false
             end
 
-            -- Migrate consumableRebuffThreshold if different from global
             if defs.consumableRebuffThreshold ~= nil and defs.consumableRebuffThreshold ~= globalThreshold then
                 if not db.categorySettings then
                     db.categorySettings = {}
@@ -360,7 +342,6 @@ function BR.Migrations.Run(db, defaults, ctx)
                 db.categorySettings.consumable.expirationThreshold = defs.consumableRebuffThreshold
             end
 
-            -- Clean up old keys
             defs.consumableRebuffWarning = nil
             defs.consumableRebuffThreshold = nil
             defs.consumableRebuffColor = nil
@@ -372,11 +353,11 @@ function BR.Migrations.Run(db, defaults, ctx)
             end
             local gd = db.defaults or {}
             for _, catSettings in pairs(db.categorySettings) do
-                -- Users who had split + custom direction but no custom appearance
-                -- would lose their direction setting without this migration
+                -- Split plus a custom direction, but no custom appearance, loses
+                -- the direction setting without this migration.
                 if catSettings.split and catSettings.growDirection ~= nil and not catSettings.useCustomAppearance then
                     catSettings.useCustomAppearance = true
-                    -- Snapshot current global defaults so the category is fully independent
+                    -- Snapshot the global defaults so the category is independent.
                     if catSettings.iconSize == nil then
                         catSettings.iconSize = gd.iconSize or 64
                     end
@@ -473,7 +454,6 @@ function BR.Migrations.Run(db, defaults, ctx)
 
         -- [19] Custom buffs now use per-buff loadConditions; migrate category-level custom visibility
         [19] = function()
-            -- Carry over old category-level settings to each existing custom buff
             local oldVis = db.categoryVisibility and db.categoryVisibility.custom
             local oldReadyCheck = db.categorySettings
                 and db.categorySettings.custom
@@ -481,10 +461,8 @@ function BR.Migrations.Run(db, defaults, ctx)
             if db.customBuffs then
                 for _, buff in pairs(db.customBuffs) do
                     if not buff.loadConditions then
-                        -- Migrate from category visibility or use old defaults
                         local lc = {}
                         if oldVis then
-                            -- Preserve user's per-content-type choices
                             for _, key in ipairs({ "openWorld", "scenario", "dungeon", "raid", "housing" }) do
                                 if oldVis[key] == false then
                                     lc[key] = false
@@ -516,7 +494,6 @@ function BR.Migrations.Run(db, defaults, ctx)
                     end
                 end
             end
-            -- Clean up category-level keys
             if db.categoryVisibility then
                 db.categoryVisibility.custom = nil
             end
@@ -598,7 +575,6 @@ function BR.Migrations.Run(db, defaults, ctx)
             local globalDefaults = db.defaults or {}
             for _, catSettings in pairs(db.categorySettings or {}) do
                 catSettings.useCustomGlowColor = nil
-                -- Check if category had any glow overrides that differ from defaults
                 local hasOverride = false
                 if catSettings.glowType ~= nil and catSettings.glowType ~= globalDefaults.glowType then
                     hasOverride = true
@@ -610,10 +586,8 @@ function BR.Migrations.Run(db, defaults, ctx)
                     hasOverride = true
                 end
                 if hasOverride then
-                    -- Port old overrides into useCustomGlow system
                     catSettings.useCustomGlow = true
                 else
-                    -- No meaningful overrides - clean up stale keys
                     catSettings.glowType = nil
                     catSettings.glowSize = nil
                     catSettings.glowColor = nil
@@ -626,15 +600,12 @@ function BR.Migrations.Run(db, defaults, ctx)
             if db.categoryVisibility then
                 for cat, vis in pairs(db.categoryVisibility) do
                     if type(vis) == "table" then
-                        -- Add pvp toggle, derive from dungeon setting
                         if vis.pvp == nil then
                             vis.pvp = vis.dungeon ~= false
                         end
-                        -- Add pvpType sub-table for consumable (arena off)
                         if cat == "consumable" and not vis.pvpType then
                             vis.pvpType = { arena = false, bg = true }
                         end
-                        -- Default hideInPvPMatch on for all categories except pet
                         if vis.hideInPvPMatch == nil then
                             vis.hideInPvPMatch = cat ~= "pet"
                         end
@@ -643,7 +614,7 @@ function BR.Migrations.Run(db, defaults, ctx)
             end
         end,
         -- [29] Default free consumables (healthstones, permanent runes) to ready-check-only
-        -- so they don't show the entire instance.
+        -- so they do not show for the full instance.
         [29] = function()
             if db.defaults and db.defaults.freeConsumableReadyCheckOnly == false then
                 db.defaults.freeConsumableReadyCheckOnly = true
@@ -688,7 +659,7 @@ function BR.Migrations.Run(db, defaults, ctx)
             end
         end,
 
-        -- [33] Clean up stale keys that were previously removed after DeepCopyDefault
+        -- [33] Clean up stale keys
         [33] = function()
             db.hidePetWhileMounted = nil
             if db.defaults and db.defaults.textSize == 12 then
@@ -696,8 +667,8 @@ function BR.Migrations.Run(db, defaults, ctx)
             end
         end,
         [34] = function()
-            -- Split glow: existing showExpirationGlow controlled both missing + expiring glows.
-            -- Copy its value to the new showMissingGlow so users keep their current behavior.
+            -- Split glow: showExpirationGlow controlled both the missing and the
+            -- expiring glow.
             if db.defaults and db.defaults.showExpirationGlow ~= nil then
                 db.defaults.showMissingGlow = db.defaults.showExpirationGlow
             end
@@ -710,8 +681,7 @@ function BR.Migrations.Run(db, defaults, ctx)
             end
         end,
         [35] = function()
-            -- Change expiring glow default from Pixel (1) to AutoCast (2).
-            -- Migrate users who had the old default so they get the new one.
+            -- Expiring glow default: Pixel (1) -> AutoCast (2).
             if db.defaults then
                 if db.defaults.glowType == nil or db.defaults.glowType == 1 then
                     db.defaults.glowType = 2
@@ -719,9 +689,9 @@ function BR.Migrations.Run(db, defaults, ctx)
             end
         end,
         [36] = function()
-            -- textSize is now an explicit default (20) instead of auto-derived from iconSize.
-            -- Materialize the computed value for users who had a non-default iconSize,
-            -- so their text size doesn't jump to 20.
+            -- textSize is now an explicit default (20), not derived from iconSize.
+            -- Materialize the derived value for a non-default iconSize, so the
+            -- text size does not jump to 20.
             if db.defaults and db.defaults.textSize == nil then
                 local iconSize = db.defaults.iconSize or 64
                 if iconSize ~= 64 then
@@ -740,11 +710,11 @@ function BR.Migrations.Run(db, defaults, ctx)
             end
         end,
         [37] = function()
-            -- Move Burning Rush from seeded custom buff to proper self-buff
+            -- Move Burning Rush from a seeded custom buff to a self-buff.
             if db.customBuffs and db.customBuffs.burningRush then
                 db.customBuffs.burningRush = nil
             end
-            -- enabledBuffs.burningRush is preserved as-is (same key)
+            -- enabledBuffs.burningRush keeps the same key, so it needs no change.
 
             -- Migrate soulstone readyCheckOnlyOverrides to soulstoneVisibility
             local overrides = db.readyCheckOnlyOverrides
@@ -777,11 +747,10 @@ function BR.Migrations.Run(db, defaults, ctx)
                 if catCustom.expirationThreshold ~= nil then
                     catThreshold = catCustom.expirationThreshold
                 end
-                -- Clean up category-level expiration keys (no longer used for custom)
+                -- Custom buffs no longer read the category-level expiration keys.
                 catCustom.expirationThreshold = nil
                 catCustom.showExpirationGlow = nil
             end
-            -- Copy threshold to each existing custom buff that doesn't have one
             if db.customBuffs then
                 for _, buff in pairs(db.customBuffs) do
                     if buff.expirationThreshold == nil then
@@ -791,11 +760,10 @@ function BR.Migrations.Run(db, defaults, ctx)
             end
         end,
 
-        -- [40] Disable druidWrongForm by default (off-by-default new buff;
-        -- nested defaults don't reliably merge once a profile has its own
-        -- enabledBuffs table, so write the value directly). Also drops the
-        -- now-unused legacyConsumablesNoticeShown global flag (replaced by
-        -- selfOnlyOutsideNoticeShown).
+        -- [40] Disable druidWrongForm by default. Nested defaults do not
+        -- reliably merge once a profile has its own enabledBuffs table, so the
+        -- migration writes the value directly. It also drops the retired
+        -- legacyConsumablesNoticeShown global flag.
         [40] = function()
             if not db.enabledBuffs then
                 db.enabledBuffs = {}
@@ -813,12 +781,10 @@ function BR.Migrations.Run(db, defaults, ctx)
         -- (BUFF! reminder) into defaults.textPositions. Text positions are
         -- global only: each repositionable item has one realistic consumer
         -- (buffReminder = raid; statLabel/badge/stackCount = consumable;
-        -- count is visually identical across categories), so per-category
-        -- granularity was theatre.
-        -- BUFF! reminder Y nudge: previously the display added a -6 base
-        -- offset on top of buffTextOffsetY. The new BELOW_C zone bakes in
-        -- -4, so we preserve total Y by shifting any stored buffTextOffsetY
-        -- by -2 during migration.
+        -- count is visually identical across categories).
+        -- BUFF! reminder Y nudge: the old display added a -6 base offset on
+        -- top of buffTextOffsetY. The BELOW_C zone bakes in -4, so the
+        -- migration shifts a stored buffTextOffsetY by -2 to keep the total Y.
         [41] = function()
             local function ensurePos(item, zoneFallback)
                 if not db.defaults then
@@ -863,8 +829,8 @@ function BR.Migrations.Run(db, defaults, ctx)
             end
 
             -- Drop any per-category text-offset / textPositions data: the
-            -- resolver no longer reads from there. Users with custom
-            -- appearance overrides lose their per-category nudge (rare).
+            -- resolver no longer reads from there. A profile with custom
+            -- appearance overrides loses its per-category nudge (rare).
             if db.categorySettings then
                 for _, cs in pairs(db.categorySettings) do
                     if type(cs) == "table" then
@@ -877,21 +843,21 @@ function BR.Migrations.Run(db, defaults, ctx)
         end,
 
         -- [42] Enable click-to-cast for targeted buffs by default.
-        -- Previous default was false, so existing users inherited "off" without
-        -- ever choosing it. Flip to true once; users who turn it back off after
-        -- this migration are respected (migrations run once per dbVersion).
+        -- The previous default was false, so existing profiles inherited "off"
+        -- without a choice. The flip to true happens once, so a user who turns
+        -- it back off keeps that setting.
         [42] = function()
             if db.categorySettings and db.categorySettings.targeted then
                 db.categorySettings.targeted.clickable = true
             end
         end,
 
-        -- [43] Materialize defaults.textPositions.petLabel for users who
-        -- already have a saved textPositions table. The new BELOW_C zone
-        -- baseline is dy=-4, but the prior hard-coded anchor was dy=-2, so
-        -- we bake +2 into offsetY to preserve the exact visual. Skip if
-        -- the user has no saved textPositions yet - AceDB will serve the
-        -- code-default directly on first access.
+        -- [43] Materialize defaults.textPositions.petLabel for a profile that
+        -- already has a saved textPositions table. The BELOW_C zone baseline
+        -- is dy=-4, but the prior hard-coded anchor was dy=-2, so offsetY
+        -- bakes in +2 to keep the exact visual. A profile with no saved
+        -- textPositions is skipped: AceDB serves the code default on first
+        -- access.
         [43] = function()
             if db.defaults and type(db.defaults.textPositions) == "table" then
                 if db.defaults.textPositions.petLabel == nil then
@@ -902,14 +868,14 @@ function BR.Migrations.Run(db, defaults, ctx)
 
         -- [44] Tracking overrides: convert the three boolean overrides into
         -- per-context mode enums (value = a tracking mode, or "default" for no
-        -- override). Map each old boolean to the mode it used to force so every
-        -- user keeps their current effective behavior, then clear the old keys.
+        -- override). Map each old boolean to the mode it used to force, so every
+        -- profile keeps the current effective behavior, then clear the old keys.
         -- Guard on the OLD key's presence, not the new one: the new root keys
-        -- live in the AceDB profile defaults, so copyDefaults has already
-        -- rawset them before migrations run (`db.outsideInstancesMode == nil`
-        -- is never true here). A missing old key means the user kept its
-        -- historical default (which AceDB stripped on logout), so we leave the
-        -- eagerly-copied new default in place - it matches the old behavior.
+        -- live in the AceDB profile defaults, so copyDefaults already rawset
+        -- them before the migrations run (`db.outsideInstancesMode == nil` is
+        -- never true here). A missing old key means the profile kept its
+        -- historical default (which AceDB stripped on logout), so the
+        -- eagerly-copied new default stays - it matches the old behavior.
         [44] = function()
             if db.selfOnlyOutsideInstances ~= nil then
                 db.outsideInstancesMode = db.selfOnlyOutsideInstances and "self_only" or "default"
@@ -926,7 +892,7 @@ function BR.Migrations.Run(db, defaults, ctx)
         end,
 
         -- [45] Drop the retired selfOnlyOutsideNoticeShown global flag. The
-        -- one-time login notice it gated has been removed (shipped 2+ months).
+        -- one-time login notice it gated no longer exists.
         [45] = function()
             if BR.aceDB and BR.aceDB.global then
                 BR.aceDB.global.selfOnlyOutsideNoticeShown = nil
@@ -935,9 +901,9 @@ function BR.Migrations.Run(db, defaults, ctx)
 
         -- [46] expirationThreshold is no longer an appearance key: it now uses
         -- the standard per-key fallback regardless of useCustomAppearance.
-        -- Categories could hold a stale stored threshold from an earlier
-        -- custom-appearance stint that has been silently ignored while the
-        -- flag was off; without cleanup it would suddenly become active.
+        -- A category can hold a stale threshold from an earlier
+        -- custom-appearance stint. The flag hid that value while it was off;
+        -- without cleanup the value becomes active.
         -- Drop it wherever custom appearance is currently disabled.
         [46] = function()
             if db.categorySettings then
@@ -953,23 +919,20 @@ function BR.Migrations.Run(db, defaults, ctx)
         -- is now an independent override switch, and the per-kind glow ENABLE
         -- flags (showExpirationGlow/showMissingGlow) moved from the appearance
         -- gate to the glow gate. Two behavior-preserving fixups:
-        -- a) useCustomGlow stored while custom appearance was off used to be
-        --    ineffective - drop it so it doesn't suddenly activate stale style
-        --    values.
+        -- a) useCustomGlow stored while custom appearance was off had no
+        --    effect - drop it so it does not activate stale style values.
         -- b) Categories whose enable-flag overrides were live through the
-        --    appearance gate (custom appearance on, custom glow off) keep them
-        --    live by enabling useCustomGlow, with the currently-effective
-        --    global glow STYLE mirrored in (overwriting any stale stored
-        --    style keys - the old two-flag gate meant style always came from
-        --    defaults, so resurrecting dormant category values would change
-        --    visuals).
+        --    appearance gate (custom appearance on, custom glow off) stay
+        --    live through useCustomGlow, with the currently-effective global
+        --    glow STYLE mirrored in. This overwrites stale stored style keys:
+        --    the old two-flag gate always took style from the defaults, so a
+        --    dormant category value changes the visuals if it comes back.
         --
         -- Deliberately NOT preserved: categories with custom appearance on
-        -- and NO stored enable flags used to render glow unconditionally (raw
-        -- nil passed the consumers' `~= false` checks) while every checkbox
+        -- and NO stored enable flags rendered glow unconditionally (raw nil
+        -- passed the consumers' `~= false` checks) while every checkbox
         -- displayed glow as off. That UI/runtime contradiction is resolved
-        -- toward what the UI always claimed: such categories now inherit the
-        -- global enable flags.
+        -- toward the UI: such categories now inherit the global enable flags.
         [47] = function()
             local GLOW_STYLE_KEYS = {
                 "glowType",
@@ -1039,11 +1002,95 @@ function BR.Migrations.Run(db, defaults, ctx)
                 BR.aceDB.global.glowDefaultNoticeCount = nil
             end
         end,
+
+        -- [50] The entry set is the externals switch: a ticked buff is a tracked
+        -- buff, so the separate enable flag is gone. A profile that kept ticks
+        -- while that flag was off starts drawing them, which is what the ticks
+        -- always asked for.
+        [50] = function()
+            if db.externals then
+                db.externals.enabled = nil
+            end
+        end,
+        -- [51] Guardian of the Forgotten Queen leaves the curated externals list:
+        -- it is a PvP talent, too niche to offer everyone. A player who already
+        -- tracks it keeps it as an entry of their own, sound override included.
+        -- labelSpellID rather than a stored name: aura 228050 reads as "Divine
+        -- Shield", and the ability that grants it localizes on every client.
+        [51] = function()
+            local externals = db.externals
+            local entries = externals and externals.entries
+            if not entries or not entries.forgottenQueen then
+                return
+            end
+
+            externals.custom = externals.custom or {}
+            local key = BR.NewExternalKey(228050)
+            externals.custom[key] = { spellIDs = { 228050 }, labelSpellID = 228049 }
+            entries[key] = true
+            entries.forgottenQueen = nil
+
+            local sounds = externals.sounds
+            if sounds and sounds.forgottenQueen ~= nil then
+                sounds[key] = sounds.forgottenQueen
+                sounds.forgottenQueen = nil
+            end
+        end,
+        -- [52] The options panel zoom replaces a raw frame scale that held
+        -- PANEL_DENSITY at 100%. This pass covers every profile, not only `db`:
+        -- migrations never run against an inactive profile, so a stale profile
+        -- keeps the dead key and falls back to 100%.
+        [52] = function()
+            local profiles = BR.aceDB and BR.aceDB.sv and BR.aceDB.sv.profiles
+            if not profiles then
+                return
+            end
+            for _, profile in pairs(profiles) do
+                if type(profile) == "table" then
+                    if type(profile.optionsPanelScale) == "number" then
+                        profile.optionsPanelZoom = BR.ZoomFromLegacyScale(profile.optionsPanelScale)
+                    end
+                    profile.optionsPanelScale = nil
+                end
+            end
+        end,
+        -- [53] Aura Mastery leaves the curated externals list: aura 31821 lands on
+        -- the paladin who casts it, not on the group, so the entry can never fire
+        -- for the player it was offered to. Nothing walks a tracked key without a
+        -- matching entry, so this pass only clears the dead saved keys.
+        [53] = function()
+            local externals = db.externals
+            if not externals then
+                return
+            end
+            if externals.entries then
+                externals.entries.auraMastery = nil
+            end
+            if externals.sounds then
+                externals.sounds.auraMastery = nil
+            end
+        end,
+        -- [54] Luminous Barrier and Earthen Wall Totem leave the curated externals
+        -- list: the game removed both abilities, so auras 271466 and 201633 can never
+        -- apply. Nothing walks a tracked key without a matching entry, so this pass
+        -- only clears the dead saved keys.
+        [54] = function()
+            local externals = db.externals
+            if not externals then
+                return
+            end
+            if externals.entries then
+                externals.entries.luminousBarrier = nil
+                externals.entries.earthenWall = nil
+            end
+            if externals.sounds then
+                externals.sounds.luminousBarrier = nil
+                externals.sounds.earthenWall = nil
+            end
+        end,
     }
 
-    -- Run pending migrations
-    local currentVersion = db.dbVersion or 0
-    for version = currentVersion + 1, BR.Migrations.DB_VERSION do
+    for version = (db.dbVersion or 0) + 1, BR.Migrations.DB_VERSION do
         if migrations[version] then
             migrations[version]()
         end

@@ -4,7 +4,7 @@ local _, BR = ...
 -- BUFF PAGE SECTION: Pet Display (pet category only)
 -- ============================================================================
 -- Display mode (generic vs expanded), pet labels (toggle + scale + per-class
--- segmented bar). Includes the live preview that follows the dropdown.
+-- segmented bar).
 
 local L = BR.L
 local Components = BR.Components
@@ -17,10 +17,6 @@ local LayoutSectionHeader = BR.Options.Helpers.LayoutSectionHeader
 
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local SECTION_GAP = BR.Options.Constants.SECTION_GAP
-
-local tinsert = table.insert
-
-BR.Options.BuffSections = BR.Options.BuffSections or {}
 
 local function Build(ctx, layout)
     local parent = ctx.content
@@ -133,7 +129,7 @@ local function Build(ctx, layout)
     function petPreviewHolder:Refresh()
         updatePetDisplayModePreview(BR.Config.Get("defaults.petDisplayMode"))
     end
-    tinsert(BR.RefreshableComponents, petPreviewHolder)
+    table.insert(BR.RefreshableComponents, petPreviewHolder)
 
     local petLabelsHolder = Components.Checkbox(parent, {
         label = L["Options.PetLabels"],
@@ -233,11 +229,10 @@ local function Build(ctx, layout)
             btn.UpdateVisual()
         end
     end
-    tinsert(BR.RefreshableComponents, petClassBarRefreshHolder)
+    table.insert(BR.RefreshableComponents, petClassBarRefreshHolder)
 
-    -- Position row for pet labels: zone picker + X/Y nudge sliders. Anchors
-    -- the pet *name* text; family/spirit-beast lines continue to stack below
-    -- the name (existing relative anchoring).
+    -- The zone and the offsets move the pet *name* text only. The family and
+    -- spirit-beast lines keep their relative anchors below the name.
     local petLabelPosRow = CreateFrame("Frame", nil, parent)
     petLabelPosRow:SetSize(parent:GetWidth(), 26)
 

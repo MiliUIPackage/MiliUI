@@ -3,22 +3,18 @@ local _, BR = ...
 -- ============================================================================
 -- OPTIONS PANEL SHELL
 -- ============================================================================
--- Builds the panel chrome (title, version, Discord link, scale stepper, close
--- button, lock + test bar, banners) and a sidebar nav that lazily builds and
--- swaps page content.
+-- Builds the panel chrome and a sidebar nav that lazily builds and swaps page
+-- content.
 --
 -- Each page is registered as BR.Options.Pages.<id> = { title, Build = fn(content), showMasqueBanner = bool }.
--- BR.Options.Groups (in Context.lua) declares sidebar order.
 
-local floor, max, min = math.floor, math.max, math.min
-local tinsert = table.insert
+local max, min = math.max, math.min
 
 local L = BR.L
 local Components = BR.Components
-local CreateButton = BR.CreateButton
 local CreatePanel = BR.CreatePanel
 
-local OPTIONS_BASE_SCALE = BR.OPTIONS_BASE_SCALE
+local PANEL_ZOOM = BR.PANEL_ZOOM
 
 local ToggleTestMode = BR.Display.ToggleTestMode
 
@@ -169,11 +165,9 @@ local function CreateSidebarGroupHeader(parent, text)
     return header
 end
 
--- A small red notification dot pinned just to the right of a sidebar label
--- (page button or group header), hidden until there are unacknowledged new
--- features. Mirrors the mobile "there's something new here" affordance. Flat
--- bundled circle tinted red, so it reads as a clean badge against the thin-edge
--- chrome (the stock Indicator textures are glossy/beveled and look dated here).
+-- A small red notification dot pinned to the right of a sidebar label (page
+-- button or group header). It stays hidden until unacknowledged new features
+-- exist.
 local NOTIFY_DOT_TEXTURE = "Interface\\AddOns\\BuffReminders\\Media\\dot.tga"
 local NOTIFY_DOT_COLOR = { 0.88, 0.42, 0.40 }
 local function AttachNotificationDot(anchorLabel)
@@ -186,10 +180,9 @@ local function AttachNotificationDot(anchorLabel)
     return dot
 end
 
--- A state-expressive toggle for the sidebar footer (Lock / Test). Bordered so it
--- reads as a tool, not a nav row; when ACTIVE its fill + border + text take the
--- given accent, so the current mode (unlocked / testing) is glanceable from any
--- page. opts: { accent = {r,g,b}, tooltip = {title, desc}, onClick = fn(self) }.
+-- A toggle for the sidebar footer (Lock / Test). When active, its fill, border
+-- and text take the given accent.
+-- opts: { accent = {r,g,b}, tooltip = {title, desc}, onClick = fn(self) }.
 local function CreateFooterToggle(parent, opts)
     local accent = opts.accent
     local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
@@ -314,9 +307,8 @@ local function CreateOptionsPanel()
         for _, editBox in ipairs(panelEditBoxes) do
             editBox:ClearFocus()
         end
-        -- Closing the panel acknowledges this release's additions: the user had
-        -- the cascade (sidebar + rows) in front of them this session. Persist,
-        -- then recompute the snapshot so the next open opens clean.
+        -- A panel close acknowledges this release's additions. Persist first,
+        -- then recompute the snapshot, so the next open shows no dots.
         BR.Options.WhatsNew.MarkSeen()
         BR.Options.WhatsNew.Refresh()
     end)
@@ -380,18 +372,9 @@ local function CreateOptionsPanel()
     -- ====================================================================
     -- TOP BAR: scale stepper + close button
     -- ====================================================================
-    local BASE_SCALE = OPTIONS_BASE_SCALE
-    local MIN_PCT, MAX_PCT = 80, 150
+    local MIN_PCT, MAX_PCT = PANEL_ZOOM.MIN, PANEL_ZOOM.MAX
 
-    local function GetScalePct()
-        return floor((BR.profile.optionsPanelScale or BASE_SCALE) / BASE_SCALE * 100 + 0.5)
-    end
-
-    local closeBtn = CreateButton(panel, "x", function()
-        panel:Hide()
-    end)
-    closeBtn:SetSize(22, 22)
-    closeBtn:SetPoint("TOPRIGHT", -5, -5)
+    local closeBtn = BR.Options.Helpers.AddCloseButton(panel)
 
     local scaleHolder = CreateFrame("Frame", nil, panel)
     scaleHolder:SetPoint("RIGHT", closeBtn, "LEFT", -8, 0)
@@ -403,34 +386,33 @@ local function CreateOptionsPanel()
 
     local scaleValue = scaleHolder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     scaleValue:SetPoint("LEFT", scaleDown, "RIGHT", 4, 0)
-    scaleValue:SetText(GetScalePct() .. "%")
+    scaleValue:SetText(BR.GetPanelZoom() .. "%")
 
     local scaleUp = scaleHolder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     scaleUp:SetPoint("LEFT", scaleValue, "RIGHT", 4, 0)
     scaleUp:SetText(">")
 
     local function UpdateScaleText()
-        local pct = GetScalePct()
+        local pct = BR.GetPanelZoom()
         scaleValue:SetText(pct .. "%")
         scaleDown:SetTextColor(pct > MIN_PCT and 1 or 0.4, pct > MIN_PCT and 1 or 0.4, pct > MIN_PCT and 1 or 0.4)
         scaleUp:SetTextColor(pct < MAX_PCT and 1 or 0.4, pct < MAX_PCT and 1 or 0.4, pct < MAX_PCT and 1 or 0.4)
     end
 
     local function UpdateScale(delta)
-        local newPct = max(MIN_PCT, min(MAX_PCT, GetScalePct() + delta))
-        local newScale = newPct / 100 * BASE_SCALE
-        BR.profile.optionsPanelScale = newScale
-        panel:SetScale(newScale)
+        BR.profile.optionsPanelZoom = max(MIN_PCT, min(MAX_PCT, BR.GetPanelZoom() + delta))
+        panel:SetScale(BR.PanelScale())
+        BR.RefreshDialogScales()
         UpdateScaleText()
     end
 
     local downBtn = CreateFrame("Button", nil, scaleHolder)
     downBtn:SetAllPoints(scaleDown)
     downBtn:SetScript("OnClick", function()
-        UpdateScale(-10)
+        UpdateScale(-PANEL_ZOOM.STEP)
     end)
     downBtn:SetScript("OnEnter", function()
-        if GetScalePct() > MIN_PCT then
+        if BR.GetPanelZoom() > MIN_PCT then
             scaleDown:SetTextColor(ACCENT_R, ACCENT_G, ACCENT_B)
         end
     end)
@@ -441,10 +423,10 @@ local function CreateOptionsPanel()
     local upBtn = CreateFrame("Button", nil, scaleHolder)
     upBtn:SetAllPoints(scaleUp)
     upBtn:SetScript("OnClick", function()
-        UpdateScale(10)
+        UpdateScale(PANEL_ZOOM.STEP)
     end)
     upBtn:SetScript("OnEnter", function()
-        if GetScalePct() < MAX_PCT then
+        if BR.GetPanelZoom() < MAX_PCT then
             scaleUp:SetTextColor(ACCENT_R, ACCENT_G, ACCENT_B)
         end
     end)
@@ -454,14 +436,10 @@ local function CreateOptionsPanel()
 
     UpdateScaleText()
 
-    if BR.profile.optionsPanelScale then
-        panel:SetScale(BR.profile.optionsPanelScale)
-    end
+    panel:SetScale(BR.PanelScale())
 
-    -- The header divider is the top layout primitive: the sidebar and content
-    -- area hang from it and run to the panel's bottom margin. Global tools
-    -- (Lock / Test) live in the sidebar footer rather than a bottom bar, so no
-    -- horizontal strip steals height from every page.
+    -- The header divider is the top layout primitive: the sidebar and the
+    -- content area hang from it and run to the panel's bottom margin.
     local headerSep = panel:CreateTexture(nil, "ARTWORK")
     headerSep:SetHeight(1)
     headerSep:SetPoint("TOPLEFT", SIDEBAR_X, -CONTENT_TOP_OFFSET + 4)
@@ -489,8 +467,8 @@ local function CreateOptionsPanel()
     -- ====================================================================
     -- CONTENT AREA
     -- ====================================================================
-    -- Each page registers via BR.Options.Pages.<id>. We create a parent frame
-    -- per page (a ScrollableContainer), build its content lazily on first nav.
+    -- Each page gets its own ScrollableContainer. The page content is built
+    -- lazily, on the first navigation to that page.
     local contentArea = CreateFrame("Frame", nil, panel)
     contentArea:SetPoint("TOPLEFT", headerSep, "BOTTOMLEFT", SIDEBAR_WIDTH + 6, 0)
     contentArea:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -COL_PADDING + 4, PANEL_BOTTOM_MARGIN)
@@ -657,10 +635,7 @@ local function CreateOptionsPanel()
     -- ====================================================================
     -- SIDEBAR FOOTER (global tools: Lock + Test)
     -- ====================================================================
-    -- Pinned to the bottom of the nav rail behind a divider. Both are global
-    -- mode toggles whose effect is on-screen, so they stay always at hand from
-    -- every page and surface their active state via the accent fill - no bottom
-    -- bar stealing height from the content.
+    -- Both are global mode toggles, so they stay reachable from every page.
     local FOOTER_WIDTH = SIDEBAR_WIDTH - 24
     local FOOTER_PAD = 10 -- symmetric gap above the cluster (below the divider) and below it (to the sidebar edge)
     local UNLOCK_ACCENT = { 0.95, 0.55, 0.2 } -- orange = "edit mode", matching the anchor hint banner
@@ -681,7 +656,7 @@ local function CreateOptionsPanel()
         self:SetActive(on)
     end
     testToggle:Refresh()
-    tinsert(BR.RefreshableComponents, testToggle)
+    table.insert(BR.RefreshableComponents, testToggle)
     panel.testToggle = testToggle
 
     local lockToggle = CreateFooterToggle(sidebar, {
@@ -700,7 +675,7 @@ local function CreateOptionsPanel()
         self:SetActive(not locked)
     end
     lockToggle:Refresh()
-    tinsert(BR.RefreshableComponents, lockToggle)
+    table.insert(BR.RefreshableComponents, lockToggle)
 
     local footerSep = sidebar:CreateTexture(nil, "ARTWORK")
     footerSep:SetHeight(1)
@@ -708,7 +683,6 @@ local function CreateOptionsPanel()
     footerSep:SetPoint("BOTTOMRIGHT", lockToggle, "TOPRIGHT", 0, FOOTER_PAD)
     footerSep:SetColorTexture(BORDER_R, BORDER_G, BORDER_B, 0.7)
 
-    -- Anchor-unlock hint: hangs just below the panel while frames are unlocked.
     local unlockBanner = Components.Banner(panel, {
         text = L["Options.AnchorHint"],
         color = "orange",
@@ -721,11 +695,10 @@ local function CreateOptionsPanel()
     unlockBanner:SetPoint("TOPLEFT", panel, "BOTTOMLEFT", 0, 0)
     unlockBanner:SetPoint("TOPRIGHT", panel, "BOTTOMRIGHT", 0, 0)
 
-    -- Snapshot unacknowledged what's-new entries before the first page builds,
-    -- so rows light their dots and the sidebar bubble-up reflects them.
+    -- Snapshot the unacknowledged what's-new entries before the first page
+    -- builds. The row dots and the sidebar bubble-up read that snapshot.
     BR.Options.WhatsNew.Refresh()
 
-    -- Activate first available page.
     if firstPageId then
         ActivatePage(firstPageId)
     end
@@ -745,8 +718,8 @@ local function ShowOptions()
         optionsPanel = CreateOptionsPanel()
     end
     if not optionsPanel:IsShown() then
-        -- The Lock/Test footer toggles re-sync via Components.RefreshAll() on the
-        -- panel's OnShow, so their labels/active state are always current.
+        -- The panel's OnShow calls Components.RefreshAll(), which re-syncs the
+        -- Lock and Test footer toggles. No explicit refresh is needed here.
         optionsPanel:Show()
     end
 end

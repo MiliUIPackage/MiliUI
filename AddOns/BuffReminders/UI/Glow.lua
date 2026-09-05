@@ -22,15 +22,15 @@ local GlowType = BR.Glow.Type
 -- Default glow color (yellow, matches LibCustomGlow default)
 BR.Glow.DEFAULT_COLOR = { 0.95, 0.95, 0.32, 1 }
 
--- Forward-declared so the OnSizeChanged retry below (defined before SetExpiration)
--- can sync the high-level expiration-glow state once a deferred dispatch finally fires.
+-- Forward-declared so the OnSizeChanged retry below can sync the high-level
+-- expiration-glow state when a deferred dispatch fires.
 local EXPIRATION_KEY = "BR_expiration"
 local GLOW_STATE_KEY = "_brGlowState"
 
 -- All LCG and pulsing-border state lives on a dedicated child frame whose parent
 -- never changes. LCG's FramePoolResetter clears parent[frame.name] via GetParent()
--- on release; giving it a stable parent avoids the "doesn't belong to this pool"
--- class of errors seen when target frames get reparented between Start and Stop.
+-- on release. A stable parent prevents "doesn't belong to this pool" errors when
+-- a target frame changes parent between Start and Stop.
 local function GetHost(frame)
     local host = frame._brGlowHost
     if not host then
@@ -45,8 +45,6 @@ end
 -- PULSING BORDER (shared primitive)
 -- ============================================================================
 -- Creates a 4-edge colored border with a bounce alpha animation.
--- Multiple independent borders per frame are supported via the `key` parameter,
--- which namespaces the state stored on the frame.
 
 ---@param frame table
 ---@param key string Unique key to namespace this border's state on the frame
@@ -158,83 +156,86 @@ function BR.Glow.PulsingBorderStop(frame, key)
 end
 
 -- ============================================================================
--- GLOW TYPES (Pixel, AutoCast, Border)
+-- GLOW TYPES (Pixel, AutoCast, Border, Proc)
 -- ============================================================================
+-- One record per type, keyed by the BR.Glow.Type value the profile stores.
+--
+-- Start and Stop both look LCG up at call time. A direct reference binds at
+-- file-load time. If another addon loads a higher-minor LCG copy, LibStub
+-- mutates the shared lib table in place. Then LCG.PixelGlow_Start (call-time
+-- lookup) uses the new pool, but a load-time LCG.PixelGlow_Stop still holds the
+-- old pool's upvalue. The glow comes from one pool and goes back to another
+-- ("doesn't belong to this pool" error). A call-time lookup keeps Start and
+-- Stop on the same lib.
+--
+-- lcgFrameKey is where LCG stores the acquired pool frame on the parent, as
+-- this prefix plus the caller's key. Border draws its own frames and has none.
 
 local L = BR.L
 
-BR.Glow.Types = {
-    { name = L["Glow.Pixel"] },
-    { name = L["Glow.AutoCast"] },
-    { name = L["Glow.Border"] },
-    { name = L["Glow.Proc"] },
-}
-
--- Shared read-only fallback so a nil params doesn't allocate a throwaway table
+-- Shared read-only fallback so a nil params does not allocate a throwaway table
 local EMPTY_PARAMS = {}
 
-local GLOW_START = {
-    function(f, color, key, size, xOff, yOff, params)
-        local p = params or EMPTY_PARAMS
-        LCG.PixelGlow_Start(f, color, p.lines, p.frequency, p.length or 10, size, xOff, yOff, false, key)
-    end,
-    function(f, color, key, size, xOff, yOff, params)
-        local p = params or EMPTY_PARAMS
-        LCG.AutoCastGlow_Start(f, color, p.particles, p.frequency, p.scale or (size / 2), xOff, yOff, key)
-    end,
-    function(f, color, key, size, xOff, yOff, params)
-        local p = params or EMPTY_PARAMS
-        BR.Glow.PulsingBorderStart(f, key, color, size, xOff, yOff, p.frequency)
-    end,
-    function(f, color, key, _, xOff, yOff, params)
-        local p = params or EMPTY_PARAMS
-        LCG.ProcGlow_Start(f, {
-            color = color,
-            key = key,
-            duration = p.duration or 1,
-            startAnim = p.startAnim or false,
-            xOffset = xOff,
-            yOffset = yOff,
-        })
-    end,
+local Types = {
+    [GlowType.Pixel] = {
+        name = L["Glow.Pixel"],
+        lcgFrameKey = "_PixelGlow",
+        Start = function(f, color, key, size, xOff, yOff, params)
+            local p = params or EMPTY_PARAMS
+            LCG.PixelGlow_Start(f, color, p.lines, p.frequency, p.length or 10, size, xOff, yOff, false, key)
+        end,
+        Stop = function(f, key)
+            LCG.PixelGlow_Stop(f, key)
+        end,
+    },
+    [GlowType.AutoCast] = {
+        name = L["Glow.AutoCast"],
+        lcgFrameKey = "_AutoCastGlow",
+        Start = function(f, color, key, size, xOff, yOff, params)
+            local p = params or EMPTY_PARAMS
+            LCG.AutoCastGlow_Start(f, color, p.particles, p.frequency, p.scale or (size / 2), xOff, yOff, key)
+        end,
+        Stop = function(f, key)
+            LCG.AutoCastGlow_Stop(f, key)
+        end,
+    },
+    [GlowType.Border] = {
+        name = L["Glow.Border"],
+        Start = function(f, color, key, size, xOff, yOff, params)
+            local p = params or EMPTY_PARAMS
+            BR.Glow.PulsingBorderStart(f, key, color, size, xOff, yOff, p.frequency)
+        end,
+        Stop = function(f, key)
+            BR.Glow.PulsingBorderStop(f, key)
+        end,
+    },
+    [GlowType.Proc] = {
+        name = L["Glow.Proc"],
+        lcgFrameKey = "_ProcGlow",
+        Start = function(f, color, key, _, xOff, yOff, params)
+            local p = params or EMPTY_PARAMS
+            LCG.ProcGlow_Start(f, {
+                color = color,
+                key = key,
+                duration = p.duration or 1,
+                startAnim = p.startAnim or false,
+                xOffset = xOff,
+                yOffset = yOff,
+            })
+        end,
+        Stop = function(f, key)
+            LCG.ProcGlow_Stop(f, key)
+        end,
+    },
 }
 
--- Resolve LCG stop functions at call time (matches GLOW_START's closure pattern).
--- Direct references would be captured at file-load time; if another addon later
--- loads a higher-minor LCG copy, LibStub mutates the shared lib table in place -
--- LCG.PixelGlow_Start (call-time lookup) jumps to the new pool's function while
--- a load-time-cached LCG.PixelGlow_Stop still references the old pool's upvalue,
--- so we'd acquire from one pool and release to another ("doesn't belong to this
--- pool" pool error). Looking up at call time keeps Start/Stop on the same lib.
-local GLOW_STOP = {
-    function(f, key)
-        LCG.PixelGlow_Stop(f, key)
-    end,
-    function(f, key)
-        LCG.AutoCastGlow_Stop(f, key)
-    end,
-    BR.Glow.PulsingBorderStop,
-    function(f, key)
-        LCG.ProcGlow_Stop(f, key)
-    end,
-}
+BR.Glow.Types = Types
 
--- LCG stores the acquired pool frame on its parent at this key prefix + caller's
--- key. If a Stop call fails (e.g. surviving cross-version pool mismatch via
--- pcall, or the frame was reclaimed externally), nil out the stored reference so
--- the next Start treats the slot as empty and re-acquires from the live pool.
-local LCG_FRAME_KEYS = {
-    [GlowType.Pixel] = "_PixelGlow",
-    [GlowType.AutoCast] = "_AutoCastGlow",
-    [GlowType.Proc] = "_ProcGlow",
-}
-
--- Deferred-dispatch retry: when Glow.Start is called before the host's rect has
--- resolved (frame shown but not yet anchored by PositionMainContainer), LCG would
--- size all glow textures to 0×0. We stash the requested args on the host and let
--- WoW's OnSizeChanged event fire the dispatch the moment the layout pass settles -
--- without waiting on the addon's throttled UpdateDisplay tick. Mirrors the
--- WeakAuras Glow sub-region pattern (UpdateSize -> SetVisible(true)).
+-- Deferred-dispatch retry: if Glow.Start runs before the host's rect resolves
+-- (the frame is shown, but PositionMainContainer did not anchor it yet), LCG
+-- sizes all glow textures to 0×0. Glow.Start stashes the request on the host.
+-- OnSizeChanged then dispatches it when the layout pass settles, with no wait
+-- for the throttled UpdateDisplay tick.
 local function FlushPending(host)
     if host:GetWidth() < 1 or host:GetHeight() < 1 then
         return
@@ -244,12 +245,12 @@ local function FlushPending(host)
         return
     end
     for key, req in pairs(pending) do
-        local fn = GLOW_START[req.typeIndex]
-        if fn then
-            fn(host, req.color, key, req.size, req.xOff, req.yOff, req.params)
-            -- Sync caller state for the high-level expiration glow; SetExpiration
-            -- gates on state.started so without this flip it would re-dispatch
-            -- on the next render (harmless but wasteful).
+        local def = Types[req.typeIndex]
+        if def then
+            def.Start(host, req.color, key, req.size, req.xOff, req.yOff, req.params)
+            -- Sync caller state for the high-level expiration glow. SetExpiration
+            -- gates on state.started. Without this flip it dispatches again on
+            -- the next render.
             if key == EXPIRATION_KEY then
                 local owner = host:GetParent()
                 local state = owner and owner[GLOW_STATE_KEY]
@@ -284,8 +285,8 @@ function BR.Glow.Start(frame, typeIndex, color, key, size, xOffset, yOffset, par
     size = size or 2
     xOffset = xOffset or 0
     yOffset = yOffset or 0
-    local fn = GLOW_START[typeIndex]
-    if not fn then
+    local def = Types[typeIndex]
+    if not def then
         return false
     end
     local host = GetHost(frame)
@@ -294,7 +295,6 @@ function BR.Glow.Start(frame, typeIndex, color, key, size, xOffset, yOffset, par
         host:GetWidth()
     end
     if host:GetWidth() < 1 or host:GetHeight() < 1 then
-        -- Defer: stash the request and let OnSizeChanged dispatch when the rect resolves.
         local pending = host._brGlowPending
         if not pending then
             pending = {}
@@ -314,7 +314,7 @@ function BR.Glow.Start(frame, typeIndex, color, key, size, xOffset, yOffset, par
     if host._brGlowPending then
         host._brGlowPending[key] = nil
     end
-    fn(host, color, key, size, xOffset, yOffset, params)
+    def.Start(host, color, key, size, xOffset, yOffset, params)
     return true
 end
 
@@ -330,15 +330,13 @@ function BR.Glow.Stop(frame, typeIndex, key)
     if host._brGlowPending then
         host._brGlowPending[key] = nil
     end
-    local fn = GLOW_STOP[typeIndex]
-    if fn then
+    local def = Types[typeIndex]
+    if def then
         -- pcall: a stale pool reference (cross-version LCG load) or an externally
-        -- reclaimed frame would otherwise raise "doesn't belong to this pool" out
-        -- of Blizzard's ObjectPoolMixin:Release. Swallow the error.
-        pcall(fn, host, key)
-        -- Belt and suspenders: clear the per-frame slot so the next Start re-acquires
-        -- from the live pool instead of reusing a now-orphaned glow frame.
-        local lcgKey = LCG_FRAME_KEYS[typeIndex]
+        -- reclaimed frame raises "doesn't belong to this pool" from Blizzard's
+        -- ObjectPoolMixin:Release. Swallow that error.
+        pcall(def.Stop, host, key)
+        local lcgKey = def.lcgFrameKey
         if lcgKey then
             host[lcgKey .. (key or "")] = nil
         end
@@ -349,7 +347,7 @@ end
 ---@param frame table
 ---@param key string Must match the key used in Start
 function BR.Glow.StopAll(frame, key)
-    for typeIndex = 1, 4 do
+    for typeIndex in pairs(Types) do
         BR.Glow.Stop(frame, typeIndex, key)
     end
 end
@@ -357,8 +355,6 @@ end
 -- ============================================================================
 -- HIGH-LEVEL GLOW FUNCTIONS
 -- ============================================================================
--- EXPIRATION_KEY and GLOW_STATE_KEY are declared near the top of this file so
--- the deferred-dispatch retry above can sync state.started cross-cuttingly.
 
 ---Compare two color tables {r, g, b, a} for equality
 ---@param a number[]|nil
@@ -477,9 +473,9 @@ function BR.Glow.SetExpiration(frame, show, category, cachedSettings)
         local xOff = borderOffset + glowXOff
         local yOff = borderOffset + glowYOff
 
-        -- Already glowing with the same type, size, color, and offsets - don't restart (preserves animation state).
-        -- state.started gates the short-circuit: a deferred-but-not-yet-dispatched
-        -- request keeps started=false so the host's OnSizeChanged retry owns the dispatch.
+        -- Do not restart an identical glow: a restart resets the animation state.
+        -- state.started gates the short-circuit. A deferred request keeps
+        -- started=false, so the host's OnSizeChanged retry owns the dispatch.
         if
             state
             and state.showing
@@ -499,8 +495,6 @@ function BR.Glow.SetExpiration(frame, show, category, cachedSettings)
             BR.Glow.Stop(frame, state.typeIndex, EXPIRATION_KEY)
         end
 
-        -- Always commit intent. started=false means dispatch was deferred to OnSizeChanged;
-        -- the retry hook flips state.started to true once the host's rect resolves.
         local started = BR.Glow.Start(frame, typeIndex, color, EXPIRATION_KEY, size, xOff, yOff, params)
         frame[GLOW_STATE_KEY] = {
             showing = true,

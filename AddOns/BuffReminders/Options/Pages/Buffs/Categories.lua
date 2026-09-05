@@ -3,14 +3,12 @@ local _, BR = ...
 -- ============================================================================
 -- CATEGORIES PAGE (tab strip)
 -- ============================================================================
--- One surface for per-category display configuration, replacing seven
--- near-identical sidebar pages. A tab per category hosts the same section
--- composition the old pages used (via _Template.lua); Custom and Loadout tabs
--- carry only the styling sections - their list editors live on their own
--- sidebar pages under the Buffs group.
+-- One surface for per-category display configuration. Each tab composes its
+-- sections through _Template.lua. The Custom and Loadout tabs carry only the
+-- styling sections, because their list editors are separate sidebar pages.
 --
--- Tab content is built lazily on first activation and cached; switching tabs
--- toggles visibility and re-syncs components via RefreshAll.
+-- A tab body is built on first activation and then cached. A tab switch toggles
+-- visibility and re-syncs the components with RefreshAll.
 
 local L = BR.L
 local Components = BR.Components
@@ -70,9 +68,8 @@ local function Build(content, scrollFrame)
         frame:SetPoint("TOPLEFT", 0, -(STRIP_TOP + TAB_STRIP_H))
         frame:SetSize(contentWidth, 400)
 
-        -- Externals are not a category, so the shared template has nothing to
-        -- compose for them: this section IS the tab body, and it honours the same
-        -- terminal-section contract (sizes the tab frame, then notifies the page).
+        -- This section IS the tab body. It keeps the same terminal-section
+        -- contract: it sizes the tab frame, then it notifies the page.
         if cat == EXTERNALS_TAB then
             local layout = Components.VerticalLayout(frame, { x = COL_PADDING, y = PAGE_TOP_PADDING })
             BR.Options.BuffSections.ExternalsAppearance({
@@ -85,9 +82,7 @@ local function Build(content, scrollFrame)
             return frame
         end
 
-        -- Every category tab is built by the same template - it decides which
-        -- sections the category gets (custom/loadout collapse to styling only). The
-        -- resize hooks let CustomAppearance size the tab frame and grow the page.
+        -- The resize hooks let CustomAppearance size the tab frame and grow the page.
         BR.Options.Pages.BuffTemplate.Build(frame, scrollFrame, cat, {
             appearancePadding = APPEARANCE_PADDING,
             onAppearanceResize = UpdatePageHeight,
@@ -114,15 +109,14 @@ local function Build(content, scrollFrame)
         UpdatePageHeight()
     end
 
-    -- Sticky tab strip. Parented to the scroll viewport (not the scrolling
-    -- content child) so it stays pinned to the top while the tab body scrolls
-    -- underneath. An opaque mask matching the panel body hides content sliding
-    -- behind the tabs; the strip is lifted above the scroll child so it paints
-    -- on top. The content child still reserves STRIP_TOP + TAB_STRIP_H of top
-    -- padding (see BuildTabContent) so nothing starts hidden under the strip.
-    -- Right edge stops short by the scrollbar column (content is inset the same
-    -- amount) so the sticky mask never paints over the scrollbar or blocks its
-    -- clicks when the tab body overflows.
+    -- Sticky tab strip. The parent is the scroll viewport, not the scrolling
+    -- content child, so the strip stays pinned to the top while the tab body
+    -- scrolls under it. An opaque mask that matches the panel body hides the
+    -- content behind the tabs, and the strip sits above the scroll child so it
+    -- paints on top. The content child reserves STRIP_TOP + TAB_STRIP_H of top
+    -- padding, so no content starts hidden under the strip. The right edge stops
+    -- short by the scrollbar column, which the content is inset by, so the mask
+    -- never paints over the scrollbar and never blocks its clicks.
     local strip = CreateFrame("Frame", nil, scrollFrame)
     strip:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, 0)
     strip:SetPoint("TOPRIGHT", scrollFrame, "TOPRIGHT", -SCROLLBAR_WIDTH, 0)
@@ -153,8 +147,6 @@ local function Build(content, scrollFrame)
         prev = tab
     end
 
-    -- Grounding baseline spanning the full strip width; the active tab's gold
-    -- underline rides on top of it (see Components.TabBaseline).
     Components.TabBaseline(strip, firstTab, contentWidth - COL_PADDING * 2)
 
     Activate("raid")

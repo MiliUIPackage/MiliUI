@@ -3,8 +3,7 @@ local _, BR = ...
 -- ============================================================================
 -- BUFF PAGE SECTION: Click-to-Cast
 -- ============================================================================
--- Click-to-cast + hover highlight. Pet-only adds the spec icon hover toggle;
--- Consumable-only adds the item-tooltips toggle.
+-- Click-to-cast + hover highlight, plus the per-category extras.
 
 local L = BR.L
 local Components = BR.Components
@@ -16,8 +15,6 @@ local MakeCategoryGetter = Helpers.MakeCategoryGetter
 
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local COL_PADDING = BR.Options.Constants.COL_PADDING
-
-BR.Options.BuffSections = BR.Options.BuffSections or {}
 
 local function Build(ctx, layout)
     local category = ctx.category
@@ -95,12 +92,29 @@ local function Build(ctx, layout)
         })
         layout:Add(showTooltipsHolder, nil, COMPONENT_GAP)
 
+        local snoozeHolder = Components.Checkbox(parent, {
+            label = L["Options.RightClickSnooze"],
+            get = function()
+                return BR.Config.Get("defaults.rightClickSnooze") ~= false
+            end,
+            enabled = isClickable,
+            disabledReason = L["DisabledReason.ClickToCast"],
+            tooltip = {
+                title = L["Options.RightClickSnooze"],
+                desc = L["Options.RightClickSnooze.Desc"],
+            },
+            onChange = function(checked)
+                BR.Config.Set("defaults.rightClickSnooze", checked)
+            end,
+        })
+        layout:Add(snoozeHolder, nil, COMPONENT_GAP)
+
         Helpers.LayoutSubsectionNote(layout, parent, L["Options.ClickToCast.SnoozeNote"])
     end
 
     if category == "raid" or category == "presence" then
-        -- Hover tooltip works on the icon frame itself (not the click overlay),
-        -- so it's intentionally not gated by isClickable.
+        -- The hover tooltip works on the icon frame itself, not on the click
+        -- overlay. Thus isClickable does not gate it.
         local showBuffTooltipsHolder = Components.Checkbox(parent, {
             label = L["Options.ShowBuffTooltips"],
             get = function()
@@ -114,7 +128,7 @@ local function Build(ctx, layout)
                 BR.Config.Set("defaults.showBuffTooltips", checked)
             end,
         })
-        -- One key shared by the raid AND presence pages: flag the blast radius.
+        -- The raid and presence pages write the same key, so the tag marks it global.
         BR.Options.Helpers.AttachGlobalTag(showBuffTooltipsHolder)
         layout:Add(showBuffTooltipsHolder, nil, COMPONENT_GAP)
     end

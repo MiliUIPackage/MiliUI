@@ -6,6 +6,8 @@ BR.Options = BR.Options or {}
 BR.Options.Dialogs = BR.Options.Dialogs or {}
 BR.Options.Pages = BR.Options.Pages or {}
 BR.Options.Helpers = BR.Options.Helpers or {}
+BR.Options.BuffSections = {}
+BR.Options.BuffRow = {}
 
 -- ============================================================================
 -- SHARED CONSTANTS
@@ -24,6 +26,7 @@ BR.Options.Constants = {
     COL_PADDING = 28,
     SECTION_SPACING = 12,
     ITEM_HEIGHT = 22,
+    ROW_HOVER_ALPHA = 0.04, -- white tint a list row paints under the pointer
     SCROLLBAR_WIDTH = 24,
     COMPONENT_GAP = 6, -- standard gap between components
     SECTION_GAP = 8, -- gap before/after section boundaries
@@ -49,6 +52,33 @@ BR.Options.Constants = {
 }
 
 -- ============================================================================
+-- LOADOUT SCOPES
+-- ============================================================================
+
+-- Where a loadout rule applies, in the order the scope dropdown lists them.
+-- These are player-facing content tiers. A key insert or a match start locks
+-- gear and talents, so per-difficulty granularity adds nothing. Arena and
+-- Battleground are separate tiers because their setups differ. Dungeon covers
+-- every difficulty, including M+. Open World and Delve allow free swaps, so a
+-- reminder to restore the everyday build stays usable there.
+---@type { value: string, labelKey: string }[]
+BR.Options.LoadoutScopes = {
+    { value = "openWorld", labelKey = "Loadout.Scope.OpenWorld" },
+    { value = "dungeon", labelKey = "Loadout.Scope.Dungeon" },
+    { value = "delve", labelKey = "Loadout.Scope.Delve" },
+    { value = "raid", labelKey = "Loadout.Scope.Raid" },
+    { value = "arena", labelKey = "Loadout.Scope.Arena" },
+    { value = "battleground", labelKey = "Loadout.Scope.Battleground" },
+}
+
+-- Scope to locale key, for a summary line that names one scope.
+---@type table<string, string>
+BR.Options.LoadoutScopeLabel = {}
+for _, scope in ipairs(BR.Options.LoadoutScopes) do
+    BR.Options.LoadoutScopeLabel[scope.value] = scope.labelKey
+end
+
+-- ============================================================================
 -- SIDEBAR GROUPS / PAGE ORDER
 -- ============================================================================
 -- Declarative sidebar layout. Each entry: { id, titleKey, pages }.
@@ -66,9 +96,8 @@ BR.Options.Groups = {
     {
         id = "buffs",
         titleKey = "Sidebar.Buffs",
-        -- Externals last: the three pages before it configure reminders (what's
-        -- MISSING), and it is the inverse (what you RECEIVE). Keeping the reminder
-        -- pages contiguous is what makes the two functionalities read as distinct.
+        -- Externals last: the pages before it configure reminders for MISSING
+        -- buffs. Externals is the inverse - the buffs the player RECEIVES.
         pages = { "allBuffs", "custom", "loadout", "externals" },
     },
     {
@@ -93,10 +122,6 @@ BR.Options.Groups = {
     },
 }
 
--- Ordered list of the built-in (non-virtual) categories that have entries in
--- BR.BUFF_TABLES. Iterating this is the right way to walk every static buff
--- without hardcoding the category set in each consumer.
--- Custom buffs live in db.customBuffs and must be iterated separately.
 BR.Options.StaticCategories = BR.STATIC_CATEGORIES
 
 -- ============================================================================
@@ -104,9 +129,8 @@ BR.Options.StaticCategories = BR.STATIC_CATEGORIES
 -- ============================================================================
 
 local ceil = math.ceil
-local abs = math.abs
-local tinsert = table.insert
 local L = BR.L
+local Components = BR.Components
 local Helpers = BR.Options.Helpers
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local COL_PADDING = BR.Options.Constants.COL_PADDING
@@ -114,18 +138,17 @@ local SECTION_GAP = BR.Options.Constants.SECTION_GAP
 local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 
 -- Section header: gold text + thin gold accent line beneath, spanning the
--- content area's width. Mirrors the sidebar group header style so page
--- sections and sidebar groups read as the same visual language.
+-- content area's width.
 --
--- The helper also takes care of vertical rhythm so callers don't have to:
---   * Auto-insert BEFORE_HEADER_GAP before each section beyond the first.
---   * Reset layout x to COL_PADDING so the header + underline always span
---     the full content width even after the prior section indented content.
---   * Bump layout x to COL_PADDING + CONTENT_INDENT after rendering, so the
---     content that follows visually nests under the section's underline.
--- The first call on a layout skips the before-gap; the page's top margin
--- (the negative y the caller set when constructing VerticalLayout) provides
--- enough breathing room above the first section.
+-- The helper owns the vertical rhythm:
+--   * It adds BEFORE_HEADER_GAP before each section after the first.
+--   * It resets layout x to COL_PADDING, so the header and the accent line
+--     span the full content width after a prior section indented content.
+--   * It sets layout x to COL_PADDING + CONTENT_INDENT after the header, so
+--     later content nests under the accent line. A caller can override this
+--     with layout:SetX.
+-- The first call on a layout skips the before-gap. The negative y the caller
+-- gave to VerticalLayout supplies the space above the first section.
 local BORDER_R, BORDER_G, BORDER_B = unpack(BR.Colors.Border)
 local SEP_OFFSET = 4
 local SEP_HEIGHT = 1
@@ -134,8 +157,6 @@ local BEFORE_HEADER_GAP = 16 -- between the previous section's last item and thi
 local CONTENT_INDENT = 10 -- how far content nests under each section header
 
 function Helpers.LayoutSectionHeader(layout, parent, text)
-    -- Reset x first so the header + underline span the full content width,
-    -- regardless of any indent the previous section applied.
     layout:SetX(COL_PADDING)
 
     layout._sectionCount = layout._sectionCount or 0
@@ -171,20 +192,14 @@ function Helpers.LayoutSectionHeader(layout, parent, text)
 
     layout:Add(container, headerH + SEP_OFFSET + SEP_HEIGHT, AFTER_HEADER_GAP)
 
-    -- Indent content beneath this section so it visually hangs under the
-    -- accent line. Callers may override by calling layout:SetX themselves
-    -- after the header.
     layout:SetX(COL_PADDING + CONTENT_INDENT)
 
-    local _ = COMPONENT_GAP
     return header
 end
 
 -- Compact gold subsection header: smaller than LayoutSectionHeader, no accent
--- line, intended for nested sub-blocks under an existing section header (e.g.
--- "Free Consumables" inside the consumable Visibility section, or "Behavior"
--- inside ItemDisplay). Pinned at the layout's current x, so the caller's
--- existing indent is preserved.
+-- line, for a nested sub-block under an existing section header. Pinned at the
+-- layout's current x, so the caller's indent stays.
 function Helpers.LayoutSubsectionHeader(layout, parent, text)
     local header = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     header:SetText("|cffffcc00" .. text .. "|r")
@@ -196,9 +211,9 @@ function Helpers.LayoutSubsectionHeader(layout, parent, text)
     return header
 end
 
--- Subsection note: like LayoutSectionNote but anchors at the layout's current
--- x and right-margins to COL_PADDING from the parent edge so wrapped text
--- doesn't run past the panel. Use under a LayoutSubsectionHeader.
+-- Subsection note: like LayoutSectionNote, but it anchors at the layout's
+-- current x. The right margin is COL_PADDING from the parent edge, so wrapped
+-- text stays inside the panel. Use it under a LayoutSubsectionHeader.
 function Helpers.LayoutSubsectionNote(layout, parent, text)
     local note = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     note:SetJustifyH("LEFT")
@@ -218,11 +233,9 @@ function Helpers.LayoutSubsectionNote(layout, parent, text)
 end
 
 -- Section / page description text. Renders gray italic GameFontDisableSmall.
--- Anchored at COL_PADDING (full content width) so the note aligns with the
--- section header above it instead of nesting under the accent line - the
--- description reads as part of the header block, not as indented child
--- content. The layout's x cursor is preserved so subsequent controls stay
--- nested under the section.
+-- Anchored at COL_PADDING (full content width), so the note aligns with the
+-- section header above it and does not nest under the accent line. The helper
+-- keeps the layout x cursor, so later controls stay nested under the section.
 function Helpers.LayoutSectionNote(layout, parent, text)
     local note = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     note:SetJustifyH("LEFT")
@@ -240,8 +253,6 @@ function Helpers.LayoutSectionNote(layout, parent, text)
         h = 12
     end
 
-    -- Pin to COL_PADDING regardless of the layout's current indent; restore
-    -- the cursor afterwards so the next component continues at its prior x.
     local prevX = layout:GetX()
     layout:SetX(COL_PADDING)
     layout:AddText(note, h, COMPONENT_GAP)
@@ -250,23 +261,86 @@ function Helpers.LayoutSectionNote(layout, parent, text)
 end
 
 -- ============================================================================
+-- SHARED ROWS
+-- ============================================================================
+
+---Override checkbox plus a live inheritance state label, added to the layout.
+---The wording is generic, so every override in the panel reads the same way.
+---@param parent table
+---@param layout table
+---@param opts table Fields: get (fun(): boolean), desc (string tooltip text), onChange (fun(checked: boolean))
+---@return table holder
+function Helpers.AddOverrideRow(parent, layout, opts)
+    local holder = Components.Checkbox(parent, {
+        label = L["Options.Override"],
+        get = opts.get,
+        tooltip = { title = L["Options.Override"], desc = opts.desc },
+        onChange = opts.onChange,
+    })
+
+    local stateText = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    stateText:SetPoint("LEFT", holder.infoIcon or holder.label, "RIGHT", 10, 0)
+    local function refreshState()
+        if opts.get() then
+            stateText:SetText(L["Options.Override.Overriding"])
+            stateText:SetTextColor(1, 0.82, 0)
+        else
+            stateText:SetText(L["Options.Override.Inherited"])
+            stateText:SetTextColor(0.55, 0.55, 0.55)
+        end
+    end
+    refreshState()
+    table.insert(BR.RefreshableComponents, { Refresh = refreshState })
+
+    layout:Add(holder, nil, COMPONENT_GAP)
+    return holder
+end
+
+---A small speaker button that plays the current sound.
+---@param parent table
+---@param getValue fun(): string? Stored sound value
+---@return table button
+function Helpers.SoundPreviewButton(parent, getValue)
+    local button = CreateFrame("Button", nil, parent)
+    button:SetSize(16, 16)
+
+    local icon = button:CreateTexture(nil, "ARTWORK")
+    icon:SetAllPoints()
+    icon:SetAtlas("chatframe-button-icon-voicechat")
+    icon:SetVertexColor(0.72, 0.72, 0.76)
+
+    button:SetScript("OnEnter", function(self)
+        icon:SetVertexColor(1, 1, 1)
+        BR.ShowTooltip(self, L["Options.Sound.Preview"], nil, "ANCHOR_RIGHT")
+    end)
+    button:SetScript("OnLeave", function()
+        icon:SetVertexColor(0.72, 0.72, 0.76)
+        BR.HideTooltip()
+    end)
+    button:SetScript("OnClick", function()
+        local file = BR.Sounds.Resolve(getValue())
+        if file then
+            PlaySoundFile(file, "Master")
+        end
+    end)
+
+    return button
+end
+
+-- ============================================================================
 -- LIST EDITOR
 -- ============================================================================
--- Shared skeleton for the entry-list editor pages (Custom Buffs, Loadout
--- Reminders, Sound Alerts). Each is the same shape - an optional section header
--- + note, an Add button, then a flowing, pooled list of rows with an
--- empty-state placeholder - differing only in row content and data source.
--- This helper owns the skeleton (layout, Add button pinned above the list, row
--- pool, render loop, empty state, page content-height, refresh-on-show hook) so
--- the pages declare only what varies. Rows flow directly in the page's own
--- scroll container (no nested scroll box); the Add button sits at the top so it
--- stays reachable no matter how long the list grows.
+-- Shared skeleton for the entry-list editor pages. Each page declares only its
+-- row content and its data source.
+-- Rows flow directly in the page's own scroll container. Do not nest a scroll
+-- box inside a page. The Add button sits at the top, so it stays reachable when
+-- the list grows.
 
 local LIST_ADD_BUTTON_HEIGHT = 22
-local LIST_ROW_HOVER_ALPHA = 0.04
+local LIST_ROW_HOVER_ALPHA = BR.Options.Constants.ROW_HOVER_ALPHA
 
--- Default row frame: a plain, full-width hover strip. Pages that need a richer
--- row (persistent child widgets) pass their own config.createRow instead.
+-- Default row frame: a plain, full-width hover strip. A page that needs
+-- persistent child widgets passes its own config.createRow.
 local function DefaultListRow(parent)
     local row = CreateFrame("Frame", nil, parent)
 
@@ -305,7 +379,6 @@ end
 --- }
 ---@return function render
 function Helpers.ListEditor(content, scrollFrame, config)
-    local Components = BR.Components
     local contentWidth = scrollFrame:GetContentWidth()
     local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
 
@@ -330,8 +403,6 @@ function Helpers.ListEditor(content, scrollFrame, config)
     addBtn:SetSize(config.addWidth or 160, LIST_ADD_BUTTON_HEIGHT)
     layout:Add(addBtn, LIST_ADD_BUTTON_HEIGHT, SECTION_GAP)
 
-    -- Rows flow directly in the page content; the container's height tracks the
-    -- row count and UpdateContentHeight resizes the page scroll accordingly.
     local listX = layout:GetX()
     local listWidth = contentWidth - listX - COL_PADDING
     local listTopY = layout:GetY()
@@ -350,7 +421,7 @@ function Helpers.ListEditor(content, scrollFrame, config)
     emptyText:Hide()
 
     local function UpdateContentHeight()
-        content:SetHeight(abs(listTopY) + listContainer:GetHeight() + 30)
+        content:SetHeight(math.abs(listTopY) + listContainer:GetHeight() + 30)
     end
 
     local function AcquireRow(index)
@@ -397,14 +468,14 @@ function Helpers.ListEditor(content, scrollFrame, config)
 
     Render()
 
-    -- Re-render when the page becomes active so changes made elsewhere (slash
-    -- command, dialog opened from another page) are reflected on show.
+    -- Re-render when the page becomes active. A slash command or a dialog on
+    -- another page can change the list while the page is hidden.
     local refreshHook = CreateFrame("Frame", nil, listContainer)
     refreshHook:SetSize(1, 1)
     function refreshHook:Refresh()
         Render()
     end
-    tinsert(BR.RefreshableComponents, refreshHook)
+    table.insert(BR.RefreshableComponents, refreshHook)
 
     return Render
 end
@@ -412,10 +483,9 @@ end
 -- ============================================================================
 -- SCOPE TAG
 -- ============================================================================
--- Category pages host a few controls whose storage is genuinely global
--- (defaults.* or profile-root) even though they sit among per-category
--- widgets. A small "GLOBAL" tag next to the control's label makes that blast
--- radius visible without relocating the setting.
+-- Category pages host a few controls whose storage is global (defaults.* or
+-- profile-root) even though they sit among per-category widgets. A "GLOBAL" tag
+-- next to the control's label makes that scope visible.
 
 local GLOBAL_TAG_COLOR = { 0.45, 0.7, 0.95 }
 
@@ -443,19 +513,17 @@ end
 -- CATEGORY SETTINGS HELPERS
 -- ============================================================================
 --
--- Sections constantly read `categorySettings[category].X` with nil-safe
--- fallbacks and write back through `BR.Config.Set("categorySettings." ..
--- category .. ".X", val)`. The helpers below collapse those idioms.
+-- Sections read `categorySettings[category].X` with nil-safe fallbacks and write
+-- back through `BR.Config.Set("categorySettings." .. category .. ".X", val)`.
+-- The helpers below collapse those idioms.
 --
--- Important: `BR.Config.Set` already auto-creates intermediate tables on its
--- path, so the legacy `if not db.categorySettings then ... end / if not
--- db.categorySettings[category] then ... end` ensure-blocks before a Set call
--- are redundant and have been removed in favour of these helpers.
+-- `BR.Config.Set` auto-creates the intermediate tables on its path. A Set call
+-- needs no ensure-block for db.categorySettings or db.categorySettings[category].
 --
--- For inheritance-aware reads (where a category falls back to db.defaults
--- when useCustomAppearance is off), use `BR.Config.GetCategorySetting`
--- instead - these helpers are deliberately non-inheriting since most option
--- widgets want the literal category value.
+-- These helpers do not inherit, because most option widgets want the literal
+-- category value. For an inheritance-aware read (a category falls back to
+-- db.defaults when useCustomAppearance is off), use
+-- `BR.Config.GetCategorySetting`.
 
 ---Read categorySettings[category][key] with a nil-safe fallback.
 function Helpers.GetCategorySetting(category, key, default)
@@ -494,15 +562,12 @@ end
 -- ============================================================================
 --
 -- Two more flavors of the same idiom for the other two flat-key namespaces:
---   * Profile keys live at BR.profile.<key> (e.g. hideInCombat, showOnlyInGroup).
---   * Defaults keys live at BR.profile.defaults.<key> (e.g. textOutline).
+--   * Profile keys live at BR.profile.<key>.
+--   * Defaults keys live at BR.profile.defaults.<key>.
 --
--- These are the right tool for the common case `get = function() return
--- BR.profile.X == true end / onChange = function(v) BR.Config.Set("X", v)
--- end` - but only when the read is a plain truthy/equality check. If the
--- onChange has side effects (UpdateDisplay, RefreshAll, custom multi-key
--- writes) keep the explicit closure so the side effects stay visible at the
--- call site.
+-- Use them only when the read is a plain truthy or equality check. If the
+-- onChange has side effects, keep the explicit closure, so the side effects stay
+-- visible at the call site.
 
 ---Read a root profile key (BR.profile[key]) with a fallback default.
 function Helpers.GetProfileSetting(key, default)
@@ -550,6 +615,21 @@ function Helpers.MakeDefaultsSetter(key)
     end
 end
 
+-- AddCloseButton draws the flat close-x every panel and dialog shares. Blizzard's
+-- UIPanelCloseButton does not match the addon chrome, so no frame uses it.
+---@param parent table
+---@param onClick? function defaults to parent:Hide()
+---@return table button
+function Helpers.AddCloseButton(parent, onClick)
+    local C = BR.Options.Constants
+    local btn = BR.CreateButton(parent, "x", onClick or function()
+        parent:Hide()
+    end)
+    btn:SetSize(C.DIALOG_CLOSE_SIZE, C.DIALOG_CLOSE_SIZE)
+    btn:SetPoint("TOPRIGHT", C.DIALOG_CLOSE_INSET, C.DIALOG_CLOSE_INSET)
+    return btn
+end
+
 -- ============================================================================
 -- DIALOG SHELL HELPERS
 -- ============================================================================
@@ -559,12 +639,11 @@ end
 -- starts beneath the title. Callers add their content via the returned layout
 -- and call shell:Finalize() to size the dialog.
 --
--- opts.titleText overrides the localized title (used by Glow which appends
--- the targeted category). opts.titleColor wraps the title in a color escape.
--- opts.width defaults to DIALOG_WIDTH_NARROW; pass a Constants.DIALOG_WIDTH_*
--- to opt into a wider bucket. opts.icon (a texture path / fileID) shows a small
--- icon at the left of the header and left-aligns the title next to it, so the
--- dialog reads as a titled card; without it the title stays centered.
+-- opts.titleText overrides the localized title. opts.titleColor wraps the title
+-- in a color escape. opts.width defaults to DIALOG_WIDTH_NARROW; pass a
+-- Constants.DIALOG_WIDTH_* for a wider bucket. opts.icon (a texture path or
+-- fileID) adds a small icon at the left of the header and left-aligns the title
+-- next to it. Without opts.icon the title stays centered.
 ---@class DialogShell
 ---@field dialog table panel frame (also returned as the first table value)
 ---@field layout table VerticalLayout anchored under the title
@@ -575,7 +654,6 @@ function Helpers.CreateDialogShell(name, titleKey, opts)
     opts = opts or {}
     local C = BR.Options.Constants
     local CreatePanel = BR.CreatePanel
-    local CreateButton = BR.CreateButton
 
     local dialog = CreatePanel(name, opts.width or C.DIALOG_WIDTH_NARROW, 1, {
         level = opts.level or C.DIALOG_LEVEL,
@@ -591,13 +669,11 @@ function Helpers.CreateDialogShell(name, titleKey, opts)
     title:SetText(titleText)
 
     if opts.icon then
-        -- Header icon + left-aligned title: the icon sits in the header strip and
-        -- the title hangs off its right edge, so the dialog reads as a titled card.
         local icon = dialog:CreateTexture(nil, "OVERLAY")
         icon:SetSize(C.DIALOG_ICON_SIZE, C.DIALOG_ICON_SIZE)
-        -- LEFT anchor = vertical center; pin it to the 30px header strip's midpoint
-        -- (top inset 2 + 15) so both the icon and the title that hangs off it sit
-        -- centered in the header band.
+        -- LEFT anchor = vertical center. Pin it to the midpoint of the 30px
+        -- header strip (top inset 2 + 15), so the icon and the title that hangs
+        -- off it stay centered in the header band.
         icon:SetPoint("LEFT", dialog, "TOPLEFT", C.DIALOG_MARGIN, -17)
         icon:SetTexture(opts.icon)
         icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- trim the default icon border
@@ -606,11 +682,7 @@ function Helpers.CreateDialogShell(name, titleKey, opts)
         title:SetPoint("TOP", 0, C.DIALOG_TITLE_TOP)
     end
 
-    local closeBtn = CreateButton(dialog, "x", function()
-        dialog:Hide()
-    end)
-    closeBtn:SetSize(C.DIALOG_CLOSE_SIZE, C.DIALOG_CLOSE_SIZE)
-    closeBtn:SetPoint("TOPRIGHT", C.DIALOG_CLOSE_INSET, C.DIALOG_CLOSE_INSET)
+    local closeBtn = Helpers.AddCloseButton(dialog)
 
     local layoutTop = opts.layoutY or C.DIALOG_LAYOUT_TOP
     local layout = BR.Components.VerticalLayout(dialog, {
@@ -629,11 +701,11 @@ function Helpers.CreateDialogShell(name, titleKey, opts)
         local contentBottom = layout:GetY()
         local height = math.max(-contentBottom + pad, C.DIALOG_MIN_HEIGHT)
         dialog:SetHeight(height)
+        BR.ApplyDialogScale(dialog)
 
-        -- Vertically center the content within the body region (below the title
-        -- separator down to the bottom edge). For a single short control this
-        -- centers it in the min-height body instead of pinning it to the top;
-        -- for taller content it just balances the top/bottom gaps.
+        -- Center the content in the body region: from the title separator down
+        -- to the bottom edge. A single short control then sits in the middle of
+        -- the min-height body, not at its top.
         local bodyCenter = (-C.DIALOG_ACCENT_OFFSET - height) / 2
         local contentCenter = (layoutTop + contentBottom) / 2
         layout:ShiftAllBy(bodyCenter - contentCenter)
@@ -642,13 +714,11 @@ function Helpers.CreateDialogShell(name, titleKey, opts)
 end
 
 -- SingletonDialog wraps a builder so the dialog frame is created on first show
--- and reused on subsequent shows (with Components.RefreshAll() to resync).
--- The builder receives any args passed to Show and must return the dialog frame.
+-- and reused after that, with Components.RefreshAll() to resync. The builder
+-- receives the args passed to Show and must return the dialog frame.
 --
--- Use this for dialogs whose contents only depend on profile data - they can
--- be cached and refreshed in place. Dialogs whose body varies per invocation
--- (BuffPanel, CustomBuff, LoadoutReminder) rebuild their body on each Show
--- instead.
+-- Use it only for a dialog whose content depends on profile data alone. A
+-- dialog whose body varies per invocation must rebuild its body on each Show.
 function Helpers.SingletonDialog(builder)
     local cached
     return {
@@ -665,7 +735,6 @@ function Helpers.SingletonDialog(builder)
     }
 end
 
--- Thin horizontal divider used to break up unrelated blocks within a single page.
 function Helpers.LayoutSeparator(layout, parent)
     local sep = parent:CreateTexture(nil, "ARTWORK")
     sep:SetHeight(1)

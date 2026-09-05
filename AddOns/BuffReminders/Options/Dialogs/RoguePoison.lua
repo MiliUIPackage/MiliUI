@@ -3,16 +3,14 @@ local _, BR = ...
 -- ============================================================================
 -- ROGUE POISON EDITOR (inline section)
 -- ============================================================================
--- Two reorderable columns (Lethal | Non-lethal) of poison checkboxes, top =
--- highest priority. Formerly a standalone dialog opened by a button inside the
--- buff panel; now rendered INLINE at the top of the Rogue Poisons buff panel so
--- the buff's defining choice is one click away, not two windows deep.
+-- Two reorderable columns (Lethal | Non-lethal) of poison checkboxes. The top
+-- row is the highest priority.
 --
 -- BuildInline(parent, opts) draws the editor into `parent` at (opts.x, opts.y)
 -- within opts.width and returns the vertical space it consumed. The buff panel
--- rebuilds its body (and this editor) on every open, so no persistent-dialog
--- caching is needed - each build is fresh. Checkbox holders are handed to
--- opts.registerHolder so the panel can unregister them on teardown.
+-- rebuilds its body (and this editor) on every open, so the editor holds no
+-- widget state between builds. Checkbox holders go to opts.registerHolder, so the
+-- panel can unregister them on teardown.
 
 local L = BR.L
 local Components = BR.Components
@@ -21,10 +19,6 @@ local CreateButton = BR.CreateButton
 local UpdateDisplay = BR.Display.Update
 
 local tinsert = table.insert
-local tsort = table.sort
-local ceil = math.ceil
-local max = math.max
-local huge = math.huge
 
 local ROW_HEIGHT = 24
 local NOTE_TO_LABEL_GAP = 8
@@ -103,15 +97,13 @@ local function BuildInline(parent, opts)
     local prefs = EnsureRoguePoisonPrefs()
     local rows = { lethal = {}, nonLethal = {} }
 
-    -- Intro note (wrap-aware).
     local note = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     note:SetPoint("TOPLEFT", x, y)
     note:SetWidth(width)
     note:SetJustifyH("LEFT")
     note:SetText(L["Options.RoguePoisonNote"])
-    local noteH = max(ceil(note:GetStringHeight()), 12)
+    local noteH = math.max(math.ceil(note:GetStringHeight()), 12)
 
-    -- Column headers.
     local labelY = y - noteH - NOTE_TO_LABEL_GAP
     local lethalLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     lethalLabel:SetPoint("TOPLEFT", colX.lethal, labelY)
@@ -163,9 +155,9 @@ local function BuildInline(parent, opts)
         local row = CreateFrame("Frame", nil, parent)
         row:SetSize(colWidth - 8, ROW_HEIGHT - 2)
 
-        -- Assign to a local first: C_Spell.GetSpellTexture may return multiple
-        -- values, and `{ f() }` as the final table-constructor expression expands
-        -- ALL of them - that would render one icon per returned value.
+        -- Assign to a local first: C_Spell.GetSpellTexture can return more than
+        -- one value. `{ f() }` as the final table-constructor expression expands
+        -- ALL of them, and each value renders one icon.
         local spellIcon = C_Spell.GetSpellTexture(entry.spellID)
         local holder = Components.Checkbox(row, {
             label = BR.GetSpellName(entry.spellID) or tostring(entry.spellID),
@@ -215,9 +207,8 @@ local function BuildInline(parent, opts)
         Reposition(category)
     end
 
-    -- Reset: reorder prefs to defaults + re-enable all, then reorder the live
-    -- row frames to match (rows are bound to entry tables by closure; entry
-    -- identity survives tsort).
+    -- Rows bind to their entry table by closure, and entry identity survives
+    -- table.sort. The row frames reorder to match the sorted prefs.
     local function ResetToDefaults()
         for _, category in ipairs({ "lethal", "nonLethal" }) do
             local catDefaults = BR.DEFAULT_POISON_PREFERENCES[category]
@@ -225,8 +216,8 @@ local function BuildInline(parent, opts)
             for i, e in ipairs(catDefaults) do
                 defaultIndex[e.spellID] = i
             end
-            tsort(prefs[category], function(a, b)
-                return (defaultIndex[a.spellID] or huge) < (defaultIndex[b.spellID] or huge)
+            table.sort(prefs[category], function(a, b)
+                return (defaultIndex[a.spellID] or math.huge) < (defaultIndex[b.spellID] or math.huge)
             end)
             for _, entry in ipairs(prefs[category]) do
                 entry.enabled = true
@@ -249,7 +240,7 @@ local function BuildInline(parent, opts)
         ApplyChange()
     end
 
-    local maxRows = max(#prefs.lethal, #prefs.nonLethal)
+    local maxRows = math.max(#prefs.lethal, #prefs.nonLethal)
     local rowsBottom = rowsTop - maxRows * ROW_HEIGHT
 
     -- CreateButton auto-sizes to its text (height 22); just anchor it.
@@ -260,4 +251,8 @@ local function BuildInline(parent, opts)
     return y - finalY
 end
 
-BR.Options.Dialogs.RoguePoison = { BuildInline = BuildInline }
+BR.Options.Dialogs.RoguePoison = {
+    BuildInline = BuildInline,
+    Name = L["BuffRow.Option.Poisons"],
+    Width = 468,
+}

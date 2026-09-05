@@ -4,9 +4,7 @@ local _, BR = ...
 -- CHAT REQUESTS PAGE
 -- ============================================================================
 -- Owns the chat-request feature end-to-end: the master toggle, the per-buff
--- message table, and the reset-all action. Replaces the old toggle + dialog
--- combo (Dialogs/ChatRequest) - inline editing makes the customization
--- discoverable instead of buried behind a "Customize..." button.
+-- message table, and the reset-all action.
 
 local L = BR.L
 local Components = BR.Components
@@ -23,7 +21,6 @@ local COL_PADDING = BR.Options.Constants.COL_PADDING
 local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 
 local strtrim = strtrim
-local abs = math.abs
 
 local ICON_SIZE = 20
 local ICON_GAP = 6
@@ -31,12 +28,8 @@ local LABEL_WIDTH = 150
 local ROW_GAP = 6
 local MAX_INPUT_WIDTH = 320
 
--- The requestable buff list and the categories to refresh are derived from the
--- `chatRequestable` flag by Core/ChatRequest.lua - the single source of truth
--- shared with the runtime overlay wiring (SecureButtons).
 local ChatRequest = BR.ChatRequest
 
--- Re-evaluate click overlays for every category that hosts a chat-requestable buff.
 local function RefreshChatActions()
     for _, cat in ipairs(ChatRequest.Categories()) do
         BR.Display.UpdateActionButtons(cat)
@@ -47,10 +40,8 @@ local function Build(content, scrollFrame)
     local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
     local contentWidth = scrollFrame:GetContentWidth()
 
-    -- Description
     LayoutSectionNote(layout, content, L["Options.RequestBuffInChat.Desc"])
 
-    -- Master toggle
     local requestBuffHolder = Components.Checkbox(content, {
         label = L["Options.RequestBuffInChat"],
         get = function()
@@ -68,7 +59,6 @@ local function Build(content, scrollFrame)
     })
     layout:Add(requestBuffHolder, nil, COMPONENT_GAP)
 
-    -- Per-buff message table
     LayoutSectionHeader(layout, content, L["ChatRequests.PerBuffMessages"])
 
     local function isToggleOn()
@@ -124,7 +114,6 @@ local function Build(content, scrollFrame)
     rowsHost:SetHeight(rowY)
     layout:Add(rowsHost, rowY, COMPONENT_GAP)
 
-    -- Reset all
     layout:Space(4)
     local resetBtn = CreateButton(content, L["Options.ChatRequest.ResetAll"], function()
         BR.profile.chatRequestMessages = {}
@@ -133,13 +122,11 @@ local function Build(content, scrollFrame)
         end
         RefreshChatActions()
     end)
+    resetBtn:BindEnabled(isToggleOn)
     layout:Add(resetBtn, nil, COMPONENT_GAP)
 
-    -- Anti-spam cooldown between chat requests. Straightforward polarity:
-    -- checked = cooldown on (the default). Disabling it is the workaround for a
-    -- client bug that silently drops chat dispatch for some players - the yellow
-    -- hint below points at the fix without inverting the checkbox into a
-    -- confusing "attempt to fix" toggle.
+    -- Checked = cooldown on, which is the default. A client bug drops the chat
+    -- dispatch for some players. For those players, the cooldown off is the fix.
     layout:Space(12)
     local cooldownHolder = Components.Checkbox(content, {
         label = L["Options.ChatRequest.Cooldown"],
@@ -157,11 +144,10 @@ local function Build(content, scrollFrame)
     })
     layout:Add(cooldownHolder, nil, COMPONENT_GAP)
 
-    -- Yellow troubleshooting hint sitting directly under the checkbox.
     local cooldownHint = LayoutSubsectionNote(layout, content, L["Options.ChatRequest.Cooldown.Hint"])
     cooldownHint:SetTextColor(1, 0.82, 0)
 
-    content:SetHeight(abs(layout:GetY()) + 20)
+    content:SetHeight(math.abs(layout:GetY()) + 20)
 end
 
 BR.Options.Pages.chatRequests = {

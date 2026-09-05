@@ -3,47 +3,38 @@ local _, BR = ...
 -- ============================================================================
 -- WHAT'S-NEW NOTIFICATION DOTS
 -- ============================================================================
--- A mobile-style "there's something new here" badge that guides the user to
--- addon features shipped in a release they haven't acknowledged yet. Fully
--- dynamic and generic: it tracks opaque `cohort` labels (a version string,
--- set once and never removed), and `BR.aceDB.global.seenVersions` is the set of
--- cohorts the user has acknowledged. Something is "new" purely by set
--- membership - no version comparison, so it is robust against the
--- v6.5.1 package token and prerelease suffixes.
+-- Dots that point the user at features from a release that the user did not
+-- acknowledge yet. A `cohort` is an opaque label. `BR.aceDB.global.seenVersions`
+-- is the set of acknowledged cohorts. A cohort is new only when that set does
+-- not hold it. No code compares versions, so the v6.8.0 package token
+-- and prerelease suffixes stay safe.
 --
--- Sources declare what's new by registering entries:
---   { cohort = "6.4.0", pageId = "visibility", key? = "someControl" }
--- `pageId` drives the sidebar bubble-up (page button + its group header);
--- optional `key` drives a dot on a specific row/control. Static entries go
--- through Register(); dynamic sources (e.g. the buff list, whose tables finish
--- populating at ADDON_LOADED) register a provider whose function is evaluated
--- fresh on every Refresh.
---
--- This module owns only state/lifecycle. Dots are drawn where their UI lives:
--- the sidebar in Options/Frame.lua, per-row dots in the buff row factory. The
--- panel acknowledges the current cohorts when it closes; fresh-install seeding
--- is in Core/Bootstrap.lua.
+-- This module owns state and lifecycle only. Each dot is drawn where its UI lives.
 
-BR.Options = BR.Options or {}
 BR.Options.WhatsNew = {}
 local WhatsNew = BR.Options.WhatsNew
 
-local staticEntries = {} -- registered { cohort, pageId, key? } literals
-local providers = {} -- functions returning entry lists, evaluated per Refresh
+---@class WhatsNewEntry
+---@field cohort string Opaque release label; membership in the seen-set decides "new"
+---@field pageId? string Sidebar page that gets a dot, and its group header
+---@field key? string Row or control that gets a dot
 
--- Session snapshot, recomputed from the persisted seen-set on panel build/hide.
+---@type WhatsNewEntry[]
+local staticEntries = {}
+local providers = {}
+
 local unseenItems = {} -- key -> true
 local unseenPages = {} -- pageId -> true
 local pending = false
 
----Register a static what's-new entry. `cohort` is required; `pageId` enables
----the sidebar bubble-up; `key` enables a per-row/control dot.
+---Register a static what's-new entry.
+---@param entry WhatsNewEntry
 function WhatsNew.Register(entry)
     staticEntries[#staticEntries + 1] = entry
 end
 
----Register a source whose entries are computed lazily (called on each Refresh),
----for data that isn't final at load time.
+---Register a source of entries. Refresh calls the function each time, for data
+---that is not final at load time.
 function WhatsNew.RegisterProvider(fn)
     providers[#providers + 1] = fn
 end
@@ -62,8 +53,8 @@ local function ForEachEntry(fn)
     end
 end
 
--- Recompute the session snapshot from the persisted seen-set. Called at panel
--- build and on hide, so each open reflects the latest acknowledged cohorts.
+-- Recompute the session snapshot from the persisted seen-set. Call it at panel
+-- build and at panel hide, so each open shows the latest acknowledged cohorts.
 function WhatsNew.Refresh()
     wipe(unseenItems)
     wipe(unseenPages)
@@ -90,7 +81,7 @@ function WhatsNew.IsPageNew(pageId)
     return unseenPages[pageId] == true
 end
 
----True if any page in the given sidebar group (`{ pages = { id, ... } }`) is new.
+---True if any page in the given sidebar group is new.
 function WhatsNew.IsGroupNew(group)
     for _, pageId in ipairs(group.pages) do
         if unseenPages[pageId] then
@@ -104,9 +95,9 @@ function WhatsNew.HasPending()
     return pending
 end
 
--- Acknowledge every cohort currently present across all sources. Writes to the
--- persisted set so the dots don't return next open, but leaves the session
--- snapshot intact so anything the user is looking at right now keeps its dot.
+-- Acknowledge every cohort that the sources report now. The write to the
+-- persisted set stops the dots at the next open. The session snapshot stays
+-- intact, so a dot that the user sees now stays.
 function WhatsNew.MarkSeen()
     if not (BR.aceDB and BR.aceDB.global) then
         return
@@ -119,9 +110,9 @@ function WhatsNew.MarkSeen()
     pending = false
 end
 
--- Testing helper (see /br shownew). Cohort labels accumulate across releases and
--- never leave the data, so clearing the whole seen-set would resurface every
--- cohort at once; Unsee targets a single one so re-testing stays clean forever.
+-- Testing helper for /br shownew. Cohort labels stay in the data forever. A
+-- clear of the full seen-set brings back every cohort at once, so Unsee removes
+-- one cohort only.
 function WhatsNew.GetCohorts()
     local counts = {}
     ForEachEntry(function(entry)

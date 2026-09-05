@@ -4,37 +4,35 @@ local L = BR.L
 -- ============================================================================
 -- CHAT REQUEST (definition + resolution)
 -- ============================================================================
--- Single source of truth for "request this buff in chat": a buff is requestable
--- iff its definition in BR.BUFF_TABLES carries `chatRequestable = true`. This
--- module derives the editable buff list (Chat Requests options page) and the set
--- of categories to refresh (SecureButtons overlay wiring) from that flag, and
--- owns the pure prefix/message resolution shared by overlay setup and refresh.
--- Adding a requestable buff is then a one-line change in Data/Buffs.lua.
+-- Single source of truth for "request this buff in chat". A buff is requestable
+-- only when its definition in BR.BUFF_TABLES carries `chatRequestable = true`.
+-- To add a requestable buff, set that flag in Data/Buffs.lua.
 
 local ChatRequest = {}
 
--- Categories scanned for requestable buffs, in display order. The virtual
--- categories (custom/loadout) are excluded by construction: there is no UI to
--- flag them and they never carry chatRequestable.
+-- The scan order fixes the order of the results. The virtual categories
+-- (custom/loadout) are absent: no UI can flag them, so they never carry
+-- `chatRequestable`.
 local CATEGORY_ORDER = BR.STATIC_CATEGORIES
 
-local buffList -- ordered list of requestable buff defs (lazily built, cached)
-local categoryList -- ordered list of categories hosting one (lazily built, cached)
+local buffList
+local categoryList
+local categorySet
 
--- BR.BUFF_TABLES is static after load (custom buffs aren't scanned), so a single
+-- BR.BUFF_TABLES is static after load (custom buffs are not scanned), so one
 -- build is safe to cache for the session.
 local function build()
     buffList = {}
     categoryList = {}
-    local seenCat = {}
+    categorySet = {}
     for _, cat in ipairs(CATEGORY_ORDER) do
         local tbl = BR.BUFF_TABLES[cat]
         if tbl then
             for _, def in ipairs(tbl) do
                 if def.chatRequestable then
                     buffList[#buffList + 1] = def
-                    if not seenCat[cat] then
-                        seenCat[cat] = true
+                    if not categorySet[cat] then
+                        categorySet[cat] = true
                         categoryList[#categoryList + 1] = cat
                     end
                 end
@@ -59,6 +57,22 @@ function ChatRequest.Categories()
         build()
     end
     return categoryList
+end
+
+--- True when the category can produce a chat request for the current profile.
+--- The click-to-cast setting of the category does not gate a request: the player
+--- asked for one on the Chat Requests page, so the wiring paths that skip a
+--- non-clickable category must still visit this one.
+---@param category string
+---@return boolean
+function ChatRequest.WantsCategory(category)
+    if BR.profile.requestBuffInChat ~= true then
+        return false
+    end
+    if not categorySet then
+        build()
+    end
+    return categorySet[category] == true
 end
 
 --- Slash-command prefix for the current group context (instance > raid > party > say).

@@ -14,7 +14,6 @@ local COMPRESSED_PREFIX = "!BR_C_"
 local TAG_PATTERN = "^!BR_(%a+)_(.*)$"
 local DEFLATE_CONFIG = { level = 9 }
 
--- Deep copy a table
 local function DeepCopy(orig)
     local copy
     if type(orig) == "table" then
@@ -56,7 +55,7 @@ local function SerializeTable(tbl)
 end
 
 -- Deserialize a prefixed import string back to a Lua table.
--- Accepts both the legacy !BR_<base64(cbor)> and the new !BR_C_<print(deflate(cbor))> formats.
+-- Accepts both the legacy !BR_<base64(cbor)> and the compressed !BR_C_<print(deflate(cbor))> formats.
 local function DeserializeTable(str)
     if not str or str:trim() == "" then
         return nil, "Empty input"
@@ -96,26 +95,22 @@ local function DeserializeTable(str)
     return data
 end
 
--- Export settings to a serialized string (only includes valid settings from defaults + customBuffs)
 -- If sourceProfile is provided, exports from that table instead of the active profile.
 local function ExportSettings(sourceProfile)
     local defaults = BR.defaults
     local prof = sourceProfile or BR.profile
     local export = {}
 
-    -- Only export fields that exist in defaults
     for key in pairs(defaults) do
         if prof[key] ~= nil then
             export[key] = DeepCopy(prof[key])
         end
     end
 
-    -- Also include custom buffs
     if prof.customBuffs then
         export.customBuffs = DeepCopy(prof.customBuffs)
     end
 
-    -- Also include detached icon positions
     if prof.detachedIcons then
         export.detachedIcons = DeepCopy(prof.detachedIcons)
     end
@@ -127,7 +122,6 @@ local function ExportSettings(sourceProfile)
     return COMPRESSED_PREFIX .. result
 end
 
--- Import settings from a prefixed import string (full replacement of exported keys)
 local function ImportSettings(prefixedStr)
     local defaults = BR.defaults
     local data, err = DeserializeTable(prefixedStr)
@@ -146,17 +140,16 @@ local function ImportSettings(prefixedStr)
     BR.profile.customBuffs = nil
     BR.profile.detachedIcons = nil
 
-    -- Apply imported data
     for k, v in pairs(data) do
         BR.profile[k] = DeepCopy(v)
     end
 
     -- Back-compat: pre-v44 export strings carry the legacy boolean tracking
-    -- overrides instead of the per-context mode enums. Migrations don't re-run on
+    -- overrides instead of the per-context mode enums. Migrations do not re-run on
     -- import, so map them here (mirrors migration [44]) and clear the stale keys.
     -- Guard on the OLD key only: the new mode keys already hold a value in the
-    -- profile (AceDB defaults), so a `p.outsideInstancesMode == nil` check would
-    -- never fire and the legacy boolean would be dropped without converting.
+    -- profile (AceDB defaults), so a `p.outsideInstancesMode == nil` check never
+    -- fires and drops the legacy boolean without conversion.
     local p = BR.profile
     if p.selfOnlyOutsideInstances ~= nil then
         p.outsideInstancesMode = p.selfOnlyOutsideInstances and "self_only" or "default"
@@ -171,8 +164,14 @@ local function ImportSettings(prefixedStr)
     p.hideOthersInCombat = nil
     p.myBuffsOnlyWhileLeveling = nil
 
+    -- Pre-v52 strings carry the panel zoom as a raw frame scale (migration [52]).
+    if type(p.optionsPanelScale) == "number" then
+        p.optionsPanelZoom = BR.ZoomFromLegacyScale(p.optionsPanelScale)
+    end
+    p.optionsPanelScale = nil
+
     -- Ensure defaults sub-table exists and has the metatable (DeepCopy produces
-    -- a plain table, and old export strings may not include a defaults key at all).
+    -- a plain table, and old export strings can omit the defaults key).
     if not BR.profile.defaults then
         BR.profile.defaults = {}
     end
@@ -232,17 +231,17 @@ function BuffReminders:Import(importString, profileKey)
         return false, "Invalid import string"
     end
 
-    -- Validate prefix before any profile mutation so a malformed string can't
+    -- Validate prefix before any profile mutation so a malformed string cannot
     -- create or switch profiles as a side effect.
     if not StripPrefix(importString) then
         return false, "Invalid import string (missing prefix)"
     end
 
-    -- Use BatchOperation to suppress the intermediate refresh from SetProfile
-    -- so we get a single RefreshAfterProfileChange after data is applied.
+    -- BatchOperation suppresses the intermediate refresh from SetProfile, so one
+    -- RefreshAfterProfileChange runs after the data is applied.
     local importSuccess, importErr
     BR.Profiles.BatchOperation(function()
-        -- Switch to the target profile if specified (creates it if needed)
+        -- AceDB:SetProfile creates the profile if it does not exist.
         if profileKey and type(profileKey) == "string" and BR.aceDB then
             BR.aceDB:SetProfile(profileKey)
         end
@@ -314,7 +313,6 @@ end
 
 BuffRemindersAPI = BuffReminders
 
--- Export module
 BR.ImportExport = {
     DeepCopy = DeepCopy,
     Export = ExportSettings,

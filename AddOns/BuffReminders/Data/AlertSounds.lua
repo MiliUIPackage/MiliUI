@@ -1,0 +1,125 @@
+local _, BR = ...
+
+-- ============================================================================
+-- ALERT SOUNDS (GENERATED)
+-- ============================================================================
+-- The sound library of the client's own alert menu. Regenerate with
+-- scripts/generate-alert-sounds.py; do not edit by hand.
+--
+-- The client offers these as sound kits, and C_UnitAuras.AddAuraSound takes a
+-- file, with nothing in between: a kit id registers and then plays silence. So
+-- the file id is baked and a kit id is never stored.
+--
+-- Names are not baked. Core/Sounds.lua derives each global string from the key,
+-- so the picker reads in the game language and a sound the client dropped
+-- disappears from the list on its own.
+
+BR.ALERT_SOUNDS = {
+    { category = "Animals", sounds = {
+        { key = "AnimalsCat", file = 7466002 },
+        { key = "AnimalsChicken", file = 7466004 },
+        { key = "AnimalsCow", file = 7466006 },
+        { key = "AnimalsGnoll", file = 7466010 },
+        { key = "AnimalsGoat", file = 7466951 },
+        { key = "AnimalsLion", file = 7466012 },
+        { key = "AnimalsPanther", file = 7466014 },
+        { key = "AnimalsRattlesnake", file = 7466016 },
+        { key = "AnimalsSheep", file = 7466018 },
+        { key = "AnimalsWolf", file = 7466020 },
+    } },
+    { category = "Devices", sounds = {
+        { key = "DevicesBoatHorn", file = 7466062 },
+        { key = "DevicesAirHorn", file = 7466054 },
+        { key = "DevicesBikeHorn", file = 7466947 },
+        { key = "DevicesCashRegister", file = 7466070 },
+        { key = "DevicesJackpotBell", file = 7466955 },
+        { key = "DevicesJackpotCoins", file = 7466957 },
+        { key = "DevicesJackpotFail", file = 7466959 },
+        { key = "DevicesRotaryPhoneDial", file = 7466048 },
+        { key = "DevicesRotaryPhoneRing", file = 7466124 },
+        { key = "DevicesStovePipe", file = 7466036 },
+        { key = "DevicesTrashcanLid", file = 7466046 },
+    } },
+    { category = "Impacts", sounds = {
+        { key = "ImpactsAnvilStrike", file = 7466899 },
+        { key = "ImpactsBubbleSmash", file = 7466026 },
+        { key = "ImpactsLowThud", file = 7466901 },
+        { key = "ImpactsMetalClanks", file = 7466903 },
+        { key = "ImpactsMetalRattle", file = 7466116 },
+        { key = "ImpactsMetalScrape", file = 7466112 },
+        { key = "ImpactsMetalWarble", file = 7466913 },
+        { key = "ImpactsPopClick", file = 7466050 },
+        { key = "ImpactsStrangeClang", file = 7466082 },
+        { key = "ImpactsSwordScrape", file = 7466911 },
+    } },
+    { category = "Instruments", sounds = {
+        { key = "InstrumentsBellRing", file = 7466126 },
+        { key = "InstrumentsBellTrill", file = 7466945 },
+        { key = "InstrumentsBrass", file = 7466965 },
+        { key = "InstrumentsChimeAscending", file = 7466072 },
+        { key = "InstrumentsGuitarChug", file = 7466098 },
+        { key = "InstrumentsGuitarPinch", file = 7466108 },
+        { key = "InstrumentsPitchPipeDistressed", file = 7466148 },
+        { key = "InstrumentsPitchPipeNote", file = 7466138 },
+        { key = "InstrumentsSynthBig", file = 7466915 },
+        { key = "InstrumentsSynthBuzz", file = 7466096 },
+        { key = "InstrumentsSynthHigh", file = 7466092 },
+        { key = "InstrumentsWarhorn", file = 7466967 },
+    } },
+    { category = "Short", sounds = {
+        { key = "ShortBellStrike", file = 7962218 },
+        { key = "ShortBellTree", file = 7962208 },
+        { key = "ShortBigPot", file = 7962210 },
+        { key = "ShortBlades", file = 7962212 },
+        { key = "ShortCoffeeMug", file = 7962220 },
+        { key = "ShortCowBell", file = 7962222 },
+        { key = "ShortFingerSnap", file = 7962224 },
+        { key = "ShortGuitar", file = 7962236 },
+        { key = "ShortKalimba", file = 7962238 },
+        { key = "ShortMetalBladeDrop", file = 7962240 },
+        { key = "ShortMetalBladeOnRod", file = 7962242 },
+        { key = "ShortMetalImpact", file = 7962244 },
+        { key = "ShortMiniWoodXylophone", file = 7962246 },
+        { key = "ShortPaperCup", file = 7962248 },
+        { key = "ShortSheetMetal", file = 7962256 },
+        { key = "ShortStovePipe", file = 7962258 },
+        { key = "ShortStovePipeBlade", file = 7962260 },
+        { key = "ShortSwordShing", file = 7962262 },
+        { key = "ShortSynthBleep", file = 7962234 },
+        { key = "ShortSynthBlurp", file = 7962232 },
+        { key = "ShortSynthError", file = 7962228 },
+        { key = "ShortSynthHigh", file = 7962230 },
+        { key = "ShortTriangle", file = 7962266 },
+        { key = "ShortWaterDrop", file = 7962268 },
+        { key = "ShortWineBottle", file = 7962270 },
+        { key = "ShortWoodXylophone", file = 7962272 },
+    } },
+    { category = "War2", sounds = {
+        { key = "War2AbstractWhoosh", file = 7467017 },
+        { key = "War2Choir", file = 7467021 },
+        { key = "War2Construction", file = 7467023 },
+        { key = "War2MagicChimes", file = 7467025 },
+        { key = "War2PigSqueal", file = 7464792 },
+        { key = "War2Saws", file = 7467029 },
+        { key = "War2Seal", file = 7464794 },
+        { key = "War2Slow", file = 7464798 },
+        { key = "War2Smith", file = 7464800 },
+        { key = "War2SynthStinger", file = 7467031 },
+        { key = "War2TrumpetRally", file = 7467033 },
+        { key = "War2ZippyMagic", file = 7467027 },
+    } },
+    { category = "War3", sounds = {
+        { key = "War3Bell", file = 7467088 },
+        { key = "War3CrunchyBell", file = 7467090 },
+        { key = "War3DrumSplash", file = 7467080 },
+        { key = "War3Error", file = 7467092 },
+        { key = "War3Fanfare", file = 7467082 },
+        { key = "War3GateOpen", file = 7467094 },
+        { key = "War3Gold", file = 7467072 },
+        { key = "War3MagicShimmer", file = 7467098 },
+        { key = "War3Ringout", file = 7467084 },
+        { key = "War3Rooster", file = 7467074 },
+        { key = "War3ShimmerBell", file = 7467100 },
+        { key = "War3WolfHowl", file = 7467076 },
+    } },
+}

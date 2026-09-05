@@ -3,29 +3,12 @@ local _, BR = ...
 -- ============================================================================
 -- BUFF ROW FACTORY (shared)
 -- ============================================================================
--- One row per tracked buff, single fixed height:
+-- One row per tracked buff, at a single fixed height (ITEM_HEIGHT):
 --
 --   [x] icon(s)  Buff Name .............. [sound][pin]  <trailing link>
 --
--- Left: an enable checkbox with the buff's icon(s) + name. Right: a right-
--- aligned trailing link that opens the per-buff panel (Dialogs/BuffPanel), with
--- small state glyphs just to its left.
---
--- The trailing link is CONTEXTUAL:
---   * buffs with their own options show a gold "Extras" link (orange when that
---     option still needs setup, e.g. a rogue with no poison picked) - so the
---     page advertises *which* buffs have buff-specific config, on one line.
---   * every other buff shows a muted "Settings" link.
--- The specific option is named inside the drawer (and, for the two rich editors,
--- on its "Edit X" door), not on the row.
---
--- State glyphs light up only when active, turning the list into a status board:
---   * sound  - a sound alert is assigned to this buff
---   * pin    - the buff's icon is detached (placed freely on screen)
---
--- Group dedup: buffs sharing a `groupId` collapse into a single row whose spell
--- list / icon set is the union of the group members. Non-grouped buffs get one
--- row keyed by `buff.key`.
+-- Buffs that share a `groupId` collapse into one row. Its spell list and icon
+-- set are the union of the group members.
 
 local L = BR.L
 local Components = BR.Components
@@ -40,18 +23,15 @@ local UpdateDisplay = BR.Display.Update
 local ITEM_HEIGHT = BR.Options.Constants.ITEM_HEIGHT
 
 local tinsert = table.insert
-local min = math.min
 
-BR.Options.BuffRow = BR.Options.BuffRow or {}
-
--- Trailing "clickable link" affordance appended to the trailing link. Plain
--- ASCII ">" so it renders in every client font - the fancier U+203A chevron is
--- tofu in the CJK/Cyrillic bundled fonts. Kept in code (not the locale strings)
--- so translators never carry a stray marker.
+-- Clickable-link affordance on the trailing link. Plain ASCII ">" renders in
+-- every client font - the U+203A chevron is tofu in the CJK/Cyrillic bundled
+-- fonts. It stays in code, not in the locale strings, so translators never
+-- carry a stray marker.
 local CHEVRON = " >"
 
--- Trailing link colors by state. Gold when it names a configurable option,
--- orange when that option still needs setup, gray for the generic "Settings".
+-- Trailing link colors by state. Gold when the buff has its own options, orange
+-- when that option still needs setup, gray for the generic "Settings".
 local LINK_IDLE = { 0.55, 0.55, 0.58 }
 local LINK_HOVER = BR.Colors.Accent
 local GOLD_IDLE = { 0.82, 0.68, 0.24 }
@@ -59,8 +39,6 @@ local GOLD_HOVER = BR.Colors.Accent
 local WARN_IDLE = { 0.95, 0.48, 0.32 }
 local WARN_HOVER = { 1, 0.6, 0.42 }
 
--- Slate tint for the state glyphs - a cool, quiet hue distinct from the gold
--- "special option" language so the two classes of marker never read as one.
 local GLYPH_IDLE = { 0.62, 0.70, 0.75 }
 local GLYPH_HOVER = { 0.85, 0.92, 0.97 }
 
@@ -70,21 +48,17 @@ local INFO_ICON_TRAILING = 18
 local LINK_GAP = 8
 local GLYPH_SIZE = 13
 local GLYPH_GAP = 5
--- Gap between the trailing link and the first glyph to its left.
 local GLYPH_TO_LINK_GAP = 7
 -- Space the label clamp reserves for glyphs so a row with every glyph shown can
 -- never overlap the buff name, regardless of how glyph visibility changes later.
 -- Three slots: new-buff dot, detached pin, sound.
 local GLYPH_RESERVE = 3 * (GLYPH_SIZE + GLYPH_GAP)
 
--- New-feature notification dot: flat bundled circle, tinted red at runtime.
--- Shared look with the sidebar bubble-up dots in Frame.lua.
+-- The bundled dot and pin textures are white. The vertex color sets the hue.
 local NOTIFY_DOT_TEXTURE = "Interface\\AddOns\\BuffReminders\\Media\\dot.tga"
 local NOTIFY_DOT_COLOR = { 0.88, 0.42, 0.40 }
 
 local SOUND_ATLAS = "chatframe-button-icon-voicechat"
--- Bundled white "pop-out" glyph (64x64 TGA), tinted slate at runtime. Reads as
--- "detached into its own frame" - see Media/detach.tga.
 local PIN_TEXTURE = "Interface\\AddOns\\BuffReminders\\Media\\detach.tga"
 
 local function OpenPanel(key, displayName, icons, readyCheckOnly, freeConsumable, anchor)
@@ -97,8 +71,7 @@ local function OpenPanel(key, displayName, icons, readyCheckOnly, freeConsumable
     }, anchor)
 end
 
--- A small state glyph (sound / pin) anchored into the trailing cluster. Hidden
--- until shown by the row's sync pass; carries a tooltip describing the state.
+-- One state glyph in the trailing cluster. It starts hidden; the sync pass shows it.
 local function CreateGlyph(parent, applyTexture, tooltipTitle, tooltipDesc)
     local btn = CreateFrame("Button", nil, parent)
     btn:SetSize(GLYPH_SIZE, GLYPH_SIZE)
@@ -150,13 +123,10 @@ local function CreateBuffRow(
     })
     holder:SetPoint("TOPLEFT", x, y)
 
-    -- Trailing link, right-aligned at the holder edge so every row's link sits
-    -- in the same column (scannable, and the label clamp below makes overlap
-    -- structurally impossible). Declared before openPanel so the drawer can
-    -- anchor to it.
+    -- Right-aligned at the holder edge, so every row's link sits in one column.
+    -- Declared before openPanel, because the drawer anchors to it.
     local settingsBtn = CreateFrame("Button", nil, holder)
 
-    -- The drawer anchors beside the link that opened it.
     local function openPanel()
         OpenPanel(key, displayName, icons, readyCheckOnly, freeConsumable, settingsBtn)
     end
@@ -166,7 +136,6 @@ local function CreateBuffRow(
     settingsText:SetPoint("RIGHT", 0, 0)
     settingsBtn:SetPoint("RIGHT", holder, "RIGHT", 0, 0)
 
-    -- State glyphs, laid out right-to-left just left of the link during sync.
     local pinGlyph = CreateGlyph(holder, function(t)
         t:SetTexture(PIN_TEXTURE)
     end, L["BuffRow.Glyph.Detached"], L["BuffRow.Glyph.Detached.Desc"])
@@ -174,10 +143,6 @@ local function CreateBuffRow(
         t:SetAtlas(SOUND_ATLAS)
     end, L["BuffRow.Glyph.Sound"], nil)
 
-    -- New-buff notification dot. Not a slate glyph: a flat red badge (bundled
-    -- circle, tinted) so it reads as "unseen, look here" rather than a status
-    -- marker. Inset a touch inside the glyph slot so it sits smaller than the
-    -- sound/pin icons.
     local newDot = CreateFrame("Button", nil, holder)
     newDot:SetSize(GLYPH_SIZE, GLYPH_SIZE)
     newDot:SetFrameLevel(holder:GetFrameLevel() + 5)
@@ -194,13 +159,9 @@ local function CreateBuffRow(
     end)
     newDot:Hide()
 
-    -- Re-reads the buff's live state (has-options + warn, sound, detach) and
-    -- repaints the trailing cluster. Registered below so it re-runs on every
-    -- RefreshAll (the panel edits these values and calls RefreshAll on change).
+    -- Repaints the trailing cluster from the buff's live state. Registered as a
+    -- refreshable below, because the drawer edits these values and calls RefreshAll.
     local function syncTrailing()
-        -- Gold "Extras" for buffs with their own options (orange when that option
-        -- still needs setup), gray "Settings" for the rest. The specific option is
-        -- named inside the drawer, not on the row.
         local isSpecial, warn = BR.Options.Dialogs.BuffPanel.GetSpecialState(key)
         local idle, hover
         if isSpecial then
@@ -222,7 +183,7 @@ local function CreateBuffRow(
         local hasSound = sounds and sounds[key] ~= nil
         local hasPin = IsIconDetached(key)
         local isRowNew = BR.Options.WhatsNew.IsItemNew(key)
-        soundGlyph.dynamicDesc = hasSound and sounds[key] or nil
+        soundGlyph.dynamicDesc = hasSound and BR.Sounds.Label(sounds[key]) or nil
 
         local anchor, anchorGap = settingsBtn, GLYPH_TO_LINK_GAP
         for _, g in ipairs({ { newDot, isRowNew }, { pinGlyph, hasPin }, { soundGlyph, hasSound } }) do
@@ -250,7 +211,7 @@ local function CreateBuffRow(
         - GLYPH_RESERVE
         - LINK_GAP
     if holder.label:GetStringWidth() > maxLabelW then
-        holder.label:SetWidth(min(maxLabelW, holder.label:GetStringWidth()))
+        holder.label:SetWidth(math.min(maxLabelW, holder.label:GetStringWidth()))
         holder.label:SetJustifyH("LEFT")
     end
 

@@ -4,23 +4,17 @@ local _, BR = ...
 -- BUFF PAGE TEMPLATE (orchestrator)
 -- ============================================================================
 -- Builds a per-category page by composing display sections in a fixed order.
--- This is the SINGLE builder for every category tab (Pages/Buffs/Categories.lua
--- calls it for all of them), so the layout is identical everywhere: same top
--- padding, same section rhythm, same CustomAppearance-owns-the-height contract.
--- The caller declares a category and optional resize hooks; the template
--- decides which sections that category gets. Per-category branches inside
--- sections (raid-only / pet-only / consumable-only widgets) live within each
--- section file, not here.
+-- This is the only builder for a category tab, so every tab gets the same top
+-- padding and the same section rhythm. The caller declares a category and
+-- optional resize hooks; the template decides which sections that category gets.
+-- Per-category branches inside a section (raid-only / pet-only / consumable-only
+-- widgets) live in that section file, not here.
 --
--- Per-buff toggling lives on the All Buffs page (Pages/Buffs/AllBuffs.lua) -
--- this template renders only "how this category displays" (visibility, icons,
--- click-to-cast, layout, etc.). Sound alerts are a cross-cutting notification
--- feature and live on their own sidebar page (Pages/Sounds.lua).
+-- The template renders only "how this category displays". Per-buff toggling
+-- lives on the All Buffs page.
 --
--- The user-authored categories (custom / loadout) keep their entry list +
--- per-entry config on their own sidebar pages and dialogs, so their tab carries
--- styling only (Layout + CustomAppearance) - declared as one branch below
--- rather than hand-rolled by the caller.
+-- Each section is a separate file because Lua 5.1 caps a closure at 60 upvalues.
+-- One combined builder crosses that ceiling.
 
 local Components = BR.Components
 
@@ -49,17 +43,17 @@ function Template.Build(content, scrollFrame, category, opts)
 
     local Sections = BR.Options.BuffSections
 
-    -- Styling-only categories: only Layout + CustomAppearance.
+    -- The user-authored categories carry styling only. Their entry lists and
+    -- per-entry config live on their own sidebar pages and dialogs.
     if category == "custom" or category == "loadout" then
         Sections.Layout(ctx, layout)
         Sections.CustomAppearance(ctx, layout)
         return
     end
 
-    -- Standalone category-specific sections lead the tab, so the controls
-    -- unique to this category sit above the shared backbone. Sub-extensions
-    -- that merely continue a shared section (FreeConsumables under Visibility,
-    -- RaidIcons under Icons) stay nested with their parent below.
+    -- Standalone category-specific sections lead the tab, so the controls unique
+    -- to this category sit above the shared backbone. A section that continues a
+    -- shared section stays next to its parent below.
     if category == "pet" then
         Sections.PetDisplay(ctx, layout)
     end
@@ -76,8 +70,8 @@ function Template.Build(content, scrollFrame, category, opts)
         Sections.RaidIcons(ctx, layout)
     end
     Sections.ClickToCast(ctx, layout)
-    -- Pet and utility reminders have no expiration concept (a pet is present or
-    -- missing; utility items are chores, not auras), so Timing is skipped there.
+    -- Pet and utility reminders have no expiration. A pet is present or missing,
+    -- and a utility item is a chore, not an aura. Timing does not apply to them.
     if category ~= "pet" and category ~= "utility" then
         Sections.Timing(ctx, layout)
     end

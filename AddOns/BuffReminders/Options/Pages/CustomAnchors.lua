@@ -19,18 +19,15 @@ local COL_PADDING = BR.Options.Constants.COL_PADDING
 local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 
 local strtrim = strtrim
-local tinsert = table.insert
-local tremove = table.remove
-local mmax = math.max
-local abs = math.abs
 local wipe = wipe
 
----Build the tab body. The frame's height is set on every rebuild; onResize
----notifies the page so it can grow or shrink the scroll content.
+---Build the tab body. Every rebuild sets the frame height. BuildTab then calls
+---onResize, so the page can grow or shrink the scroll content.
 local function BuildTab(frame, contentWidth, onResize)
     local layout = Components.VerticalLayout(frame, { x = COL_PADDING, y = PAGE_TOP_PADDING })
 
     LayoutSectionNote(layout, frame, L["Options.CustomAnchorFrames.Desc"])
+    LayoutSectionNote(layout, frame, L["Options.CustomAnchorFrames.PickNote"])
 
     local rowWidth = contentWidth - COL_PADDING * 2
 
@@ -80,8 +77,8 @@ local function BuildTab(frame, contentWidth, onResize)
             if exists then
                 text:SetText(name)
             else
-                -- Flag unresolvable names instead of letting them silently
-                -- never show up in the anchor dropdowns.
+                -- An unresolvable name never appears in the anchor dropdowns.
+                -- The marker makes that visible.
                 text:SetText(name .. " |cffe0b34d!|r")
                 row:EnableMouse(true)
                 row:SetScript("OnEnter", function()
@@ -96,19 +93,19 @@ local function BuildTab(frame, contentWidth, onResize)
             removeBtn:SetNormalFontObject("GameFontRedSmall")
             removeBtn:SetText("x")
             removeBtn:SetScript("OnClick", function()
-                tremove(names, i)
+                table.remove(names, i)
                 if #names == 0 then
                     db.customAnchorFrames = nil
                 end
-                Rebuild()
+                BR.CallbackRegistry:TriggerEvent("CustomAnchorsChanged")
             end)
 
-            tinsert(entries, row)
+            table.insert(entries, row)
             entryY = entryY + 22
         end
 
-        list:SetHeight(mmax(1, entryY))
-        frame:SetHeight(abs(layout:GetY()) + entryY + 16)
+        list:SetHeight(math.max(1, entryY))
+        frame:SetHeight(math.abs(layout:GetY()) + entryY + 16)
         onResize()
     end
 
@@ -117,22 +114,25 @@ local function BuildTab(frame, contentWidth, onResize)
         if name == "" then
             return
         end
-        local db = BR.profile
-        if not db.customAnchorFrames then
-            db.customAnchorFrames = {}
-        end
-        for _, existing in ipairs(db.customAnchorFrames) do
-            if existing == name then
-                addBox:SetText("")
-                return
-            end
-        end
-        tinsert(db.customAnchorFrames, name)
         addBox:SetText("")
-        Rebuild()
+        BR.Movers.RememberAnchorFrame(name)
     end)
     addBtn:SetSize(50, 22)
     addBtn:SetPoint("LEFT", addInput, "RIGHT", 6, 0)
+
+    -- The panel hides for the pick. It covers the middle of the screen, where the
+    -- target frames are.
+    local pickBtn = CreateButton(addRow, L["Mover.PickFrame"], function()
+        BR.Options.Hide()
+        BR.Movers.PickFrame(function(name)
+            BR.Options.Show()
+            if name then
+                BR.Movers.RememberAnchorFrame(name)
+            end
+        end)
+    end)
+    pickBtn:SetSize(50, 22)
+    pickBtn:SetPoint("LEFT", addBtn, "RIGHT", 6, 0)
 
     addBox:SetScript("OnEnterPressed", function(self)
         self:ClearFocus()
@@ -144,9 +144,12 @@ local function BuildTab(frame, contentWidth, onResize)
 
     Rebuild()
 
-    -- Re-render on show so a profile switch is reflected the next time the
-    -- tab is visible.
-    tinsert(BR.RefreshableComponents, {
+    -- A name can arrive from the mover popup as well as from this tab. The list
+    -- follows the data, not the button that changed it.
+    BR.CallbackRegistry:RegisterCallback("CustomAnchorsChanged", Rebuild)
+
+    -- A profile switch replaces the list, so the tab renders again on show.
+    table.insert(BR.RefreshableComponents, {
         Refresh = function()
             if frame:IsVisible() then
                 Rebuild()

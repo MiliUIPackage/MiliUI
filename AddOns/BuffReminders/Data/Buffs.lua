@@ -7,21 +7,23 @@ local min = math.min
 local floor = math.floor
 
 -- Only the word is translated; the number and "%" are appended in code so a locale
--- can't break the icon text with a malformed format specifier.
+-- cannot break the icon text with a malformed format specifier.
 local REPAIR_LABEL = L["Overlay.RepairLabel"]
 
 -- WoW API locals
 local GetSpellTexture = C_Spell.GetSpellTexture
 local _, playerClass = UnitClass("player")
 
--- Secret-safe read helpers (see Core.lua / docs/SecretValues.md)
+-- Secret-safe read helpers (see Core.lua)
 local AuraField = BR.Secret.AuraField
 local Plain = BR.Secret.Plain
+
+-- Restriction predicate for the cooldown domain (see Core/Restrictions.lua)
+local CooldownsRestricted = BR.Restrictions.CooldownsRestricted
 
 -- ============================================================================
 -- BUFF DATA TABLES
 -- ============================================================================
--- This file contains all buff definition tables.
 -- Loaded after Core.lua so BR namespace is available.
 
 -- ============================================================================
@@ -52,7 +54,9 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 -- ============================================================================
 
 ---Buff icons spec. Sibling-keyed: pick exactly one of `textures`/`spells` for the static
----side, and at most one of `dynamic`/`byRole` for the runtime side.
+---side, and at most one of `dynamic`/`byRole` for the runtime side. The static side shows
+---in menus and as the default texture of the frame. The runtime side replaces that texture
+---at render time. When `icons` is absent, `spellID` is the fallback texture.
 ---@class IconSpec
 ---@field textures? number[]                       Static texture IDs (raw artwork).
 ---@field spells?   number[]                       Static spell IDs resolved to textures.
@@ -78,7 +82,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field overlayText string
 ---@field groupId? string
 ---@field excludeSpellID? number
----@field icons? IconSpec See "Icon fields" comment at end of self[]
+---@field icons? IconSpec
 ---@field infoTooltip? TooltipText
 ---@field noExpirationGlow? boolean
 ---@field readyCheckOnly? boolean Only show during ready checks
@@ -99,7 +103,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field groupId? string
 ---@field beneficiaryRole? RoleType
 ---@field excludeSpellID? number
----@field icons? IconSpec See "Icon fields" comment at end of self[]
+---@field icons? IconSpec
 ---@field requireSpecId? number
 ---@field infoTooltip? TooltipText
 ---@field defaultEnabled? boolean Ships disabled when false (opt-in); enabled otherwise. Resolved at read time by IsBuffEnabled.
@@ -123,7 +127,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field requireSpecId? number        -- Only show if player's current spec matches (WoW spec ID)
 ---@field requiresSpellID? number
 ---@field excludeSpellID? number
----@field icons? IconSpec See "Icon fields" comment at end of self[]
+---@field icons? IconSpec
 ---@field infoTooltip? TooltipText
 ---@field customCheck? fun(isRestricted?: boolean): boolean?
 ---@field getPetActions? fun(): PetAction[]?  -- Override pet actions (e.g., wrong pet -> Felguard only)
@@ -143,9 +147,11 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field checkWeaponEnchant? boolean Check if any weapon enchant exists (oils, stones, imbues)
 ---@field checkWeaponEnchantOH? boolean Check if off-hand weapon enchant exists
 ---@field excludeIfSpellKnown? number[] Don't show if player knows any of these spells
----@field buffIconID? number Detection-only: any aura whose icon matches counts as the buff (e.g., 136000 for food). Does not affect displayed icon.
----@field icons? IconSpec See "Icon fields" comment at end of self[]
+---@field buffIconID? number Detection-only: any aura whose icon matches counts as the buff (e.g., 136000 for food). Does not affect the displayed icon: a buff that detects by icon still needs icons.textures to show it.
+---@field icons? IconSpec
 ---@field itemID? number|number[] Check if player has this item in inventory
+---@field itemHasCharges? boolean Count charges live: charges change with no bag event to invalidate a cache
+---@field itemMaxCharges? number Charges on a full item, for the low-stock count text
 ---@field readyCheckOnly? boolean Only show during ready checks
 ---@field casterClass? ClassName Require this class in group, but show reminder to everyone
 ---@field infoTooltip? TooltipText
@@ -153,7 +159,6 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field glowDetectable? boolean Use action bar glow as fallback detection when aura API is restricted
 ---@field consumableCategory? string Category key in BR.CONSUMABLE_ITEMS for bag scanning (only set when items exist)
 ---@field freeConsumable? boolean Bypass content gates (always show when enabled)
----@field permanentRuneItemIDs? number[] Item IDs that, if in bags, make this a free consumable (bypass content gates)
 ---@field showOnInstanceEntry? boolean Only show briefly when entering an instance
 ---@field disabledInCompetitivePvP? boolean Unusable in arenas and rated BGs
 ---@field ignoresReadyCheckFilter? boolean Ignore the consumable category ready-check-only filter (still respects content gates)
@@ -181,7 +186,7 @@ BR.DK_RUNEFORGES = DK_RUNEFORGES
 ---@field expirationThreshold? number  -- Per-buff expiration threshold in minutes (0 = off)
 ---@field loadConditions? LoadConditions  -- Per-buff content visibility (nil = show everywhere)
 
----User-defined loadout reminder: shows when the player's setup doesn't match the
+---User-defined loadout reminder: shows when the player's setup does not match the
 ---rule's expectation for the current content. Stored in BR.profile.loadoutReminders
 ---and mirrored into BR.BUFF_TABLES.loadout at runtime.
 ---@class LoadoutRule
@@ -255,11 +260,8 @@ local function TargetedClickMacro(buffKey)
     end
 end
 
--- Rogue poison state: unified cache for customCheck, icon, clickMacro, and expiration.
--- Scans all poisons once per frame and stores active/missing/expiration/required counts.
--- Priority comes from BR.profile.roguePoisonPreferences (ordered, per-entry enabled flag).
--- The table below is the single source of truth for default poison ordering and is also
--- referenced by Display/Display.lua (defaults table) and Options/Options.lua (reset).
+-- The single source of truth for the default poison order.
+-- BR.profile.roguePoisonPreferences overrides it, with a per-entry enabled flag.
 BR.DEFAULT_POISON_PREFERENCES = {
     lethal = {
         { spellID = 381664, enabled = true }, -- Amplifying
@@ -274,7 +276,6 @@ BR.DEFAULT_POISON_PREFERENCES = {
     },
 }
 
--- Cached poison state (refreshed once per frame via GetTime)
 local poisonCache = {
     time = -1,
     activeL = 0,
@@ -359,11 +360,8 @@ local function RefreshPoisonCache()
     end
     poisonCache.time = now
 
-    local lethalList = GetEnabledPoisons("lethal")
-    local nonLethalList = GetEnabledPoisons("nonLethal")
-
-    local activeL, knownL, missingL, minRemL, expIDL = ScanPoisonCategory(lethalList, now)
-    local activeNL, knownNL, missingNL, minRemNL, expIDNL = ScanPoisonCategory(nonLethalList, now)
+    local activeL, knownL, missingL, minRemL, expIDL = ScanPoisonCategory(GetEnabledPoisons("lethal"), now)
+    local activeNL, knownNL, missingNL, minRemNL, expIDNL = ScanPoisonCategory(GetEnabledPoisons("nonLethal"), now)
 
     poisonCache.activeL = activeL
     poisonCache.activeNL = activeNL
@@ -377,7 +375,6 @@ local function RefreshPoisonCache()
     poisonCache.requiredL = min(knownL, hasDTB and 2 or 1)
     poisonCache.requiredNL = min(knownNL, hasDTB and 2 or 1)
 
-    -- Min remaining across both categories
     if minRemL and minRemNL then
         if minRemL <= minRemNL then
             poisonCache.minRemaining = minRemL
@@ -397,7 +394,6 @@ local function RefreshPoisonCache()
         poisonCache.expiringID = nil
     end
 
-    -- Next poison to cast: only when active count is genuinely below required
     local needL = missingL and activeL < poisonCache.requiredL
     local needNL = missingNL and activeNL < poisonCache.requiredNL
 
@@ -432,7 +428,7 @@ end
 
 -- Repair sources for the repair reminder's click action, in preference order.
 -- Mounts summon a vendor who repairs - the Tundra Mammoth's vendors only buy and
--- sell, so it's deliberately absent. Items repair on the spot and are the path
+-- sell, so it is deliberately absent. Items repair on the spot and are the path
 -- where mounting is blocked. Legacy engineering items can lose their use effect
 -- across expansions, so State.lua gates them on usability, not just ownership.
 BR.REPAIR_SOURCES = {
@@ -538,9 +534,9 @@ BR.BUFF_TABLES = {
     ---@type PresenceBuff[]
     presence = {
         {
-            -- Intentionally ignores per-rogue BR.profile.roguePoisonPreferences: this is the
-            -- raid-wide slow-coverage signal, not a personal-apply reminder. Even rogues who
-            -- disabled atrophic/numbing locally should see this when the group lacks coverage.
+            -- Ignores per-rogue BR.profile.roguePoisonPreferences on purpose: this is the
+            -- raid-wide slow-coverage signal, not a personal-apply reminder. A rogue who
+            -- disables atrophic or numbing locally still sees this when the group has no slow.
             spellID = { 381637, 5761 },
             key = "atrophicNumbingPoison",
             name = L["Buff.AtrophicNumbingPoison"],
@@ -571,8 +567,7 @@ BR.BUFF_TABLES = {
             readyCheckOnly = true,
             castOnOthers = true,
             noExpirationGlow = true,
-            customCheck = function(isRestricted)
-                -- CD tracking for warlocks only, gated by setting
+            customCheck = function()
                 if playerClass ~= "WARLOCK" then
                     return nil
                 end
@@ -580,14 +575,16 @@ BR.BUFF_TABLES = {
                 if not (db.defaults and db.defaults.soulstoneHideCooldown) then
                     return nil -- Setting off: no opinion, rely on aura presence
                 end
-                if isRestricted then
+                -- C_Spell.GetSpellCooldown returns secret values when cooldowns are restricted
+                if CooldownsRestricted() then
                     return false
                 end
-                local ok, result = pcall(function()
-                    local info = C_Spell.GetSpellCooldown(20707)
-                    return not info or info.duration == 0
-                end)
-                return not ok or result
+                local info = C_Spell.GetSpellCooldown(20707)
+                if not info then
+                    return true
+                end
+                local duration = Plain(info.duration)
+                return duration == nil or duration == 0
             end,
             pinnedTarget = function()
                 local db = BR.profile
@@ -625,7 +622,7 @@ BR.BUFF_TABLES = {
                         local unitId = prefix .. i
                         if UnitExists(unitId) and not UnitIsDeadOrGhost(unitId) then
                             -- Runs inside the secure button's PreClick, i.e. in combat,
-                            -- where a secret role would throw on compare
+                            -- where a compare against a secret role can throw
                             if Plain(UnitGroupRolesAssigned(unitId)) == "HEALER" then
                                 local healerName = GetUnitName(unitId, true)
                                 if healerName then
@@ -644,7 +641,6 @@ BR.BUFF_TABLES = {
     },
     ---@type TargetedBuff[]
     targeted = {
-        -- Beacons
         {
             spellID = 53563,
             key = "beaconOfLight",
@@ -667,6 +663,7 @@ BR.BUFF_TABLES = {
             groupId = "beacons",
             requireSpecId = 65, -- Holy only
             glowDetectable = true,
+            excludeSpellID = 200025, -- Hide when Beacon of Virtue is known
             clickMacro = TargetedClickMacro("beaconOfFaith"),
         },
         {
@@ -735,7 +732,6 @@ BR.BUFF_TABLES = {
     },
     ---@type SelfBuff[]
     self = {
-        -- Mage Arcane Familiar
         {
             spellID = 205022,
             buffIdOverride = 210126,
@@ -755,7 +751,6 @@ BR.BUFF_TABLES = {
             requireSpecId = 1473, -- Augmentation
             requiresSpellID = 403208, -- Attunements talent
         },
-        -- Warlock Burning Rush
         {
             spellID = 111400,
             key = "burningRush",
@@ -794,7 +789,6 @@ BR.BUFF_TABLES = {
                 return "/cast " .. name
             end,
         },
-        -- Warlock Grimoire of Sacrifice
         {
             spellID = 108503,
             buffIdOverride = 196099,
@@ -803,9 +797,9 @@ BR.BUFF_TABLES = {
             class = "WARLOCK",
             overlayText = L["Overlay.NoGrim"],
         },
-        -- Paladin weapon rites (alphabetical: Adjuration, Sanctification)
-        -- NOTE: Due to a Blizzard bug, when changing talents the buff drops but enchant remains.
-        -- The effect doesn't work without the buff, so we check for BOTH enchant AND buff.
+        -- Paladin weapon rites, in alphabetical order.
+        -- A Blizzard bug drops the buff but keeps the enchant when the player changes talents.
+        -- The effect does not work without the buff, so requiresBuffWithEnchant checks both.
         {
             spellID = 433583,
             key = "riteOfAdjuration",
@@ -834,9 +828,6 @@ BR.BUFF_TABLES = {
             end,
             groupId = "paladinRites",
         },
-        -- Rogue poisons: lethal (Instant, Wound, Deadly, Amplifying) and non-lethal (Numbing, Atrophic, Crippling)
-        -- With Dragon-Tempered Blades (381801): need 2 lethal + 2 non-lethal
-        -- Without talent: need 1 lethal + 1 non-lethal
         {
             icons = {
                 textures = { 136242 }, -- Deadly Poison (menu fallback)
@@ -852,7 +843,7 @@ BR.BUFF_TABLES = {
             overlayText = L["Overlay.ApplyPoison"],
             customCheck = function()
                 RefreshPoisonCache()
-                -- Don't show if the player hasn't learned any poisons yet (e.g. low-level rogue)
+                -- Show nothing when the player knows no poison yet (e.g. low-level rogue)
                 if poisonCache.knownL == 0 and poisonCache.knownNL == 0 then
                     return nil
                 end
@@ -872,7 +863,7 @@ BR.BUFF_TABLES = {
                 return ""
             end,
         },
-        -- DK Runeforge (Main Hand) - reminder when MH enchant doesn't match configured preference
+        -- DK Runeforge (Main Hand) - reminder when MH enchant does not match the configured preference
         {
             icons = {
                 textures = { 237523 }, -- Runeforging icon (menu fallback)
@@ -973,12 +964,12 @@ BR.BUFF_TABLES = {
             icons = { textures = { 136200 } }, -- spell_shadow_shadowform
             requiresSpellID = 232698,
             castSpellID = 232698,
-            noExpirationGlow = true, -- Voidform (short duration) replaces Shadowform; don't warn
+            noExpirationGlow = true, -- Voidform (short duration) replaces Shadowform; do not warn
             customCheck = function()
                 return not BR.BuffState.IsShadowFormActive()
             end,
         },
-        -- Shaman weapon imbues (alphabetical: Earthliving, Flametongue, Tidecaller's Guard, Windfury)
+        -- Shaman weapon imbues, in alphabetical order.
         {
             spellID = 382021,
             key = "earthlivingWeapon",
@@ -1010,7 +1001,6 @@ BR.BUFF_TABLES = {
                 if not IsPlayerSpell(457481) then
                     return nil
                 end
-                -- Only relevant when a shield is equipped
                 if not BR.BuffState.HasShield() then
                     return nil
                 end
@@ -1026,25 +1016,7 @@ BR.BUFF_TABLES = {
             enchantID = 5401,
             groupId = "shamanImbues",
         },
-        -- Icon fields (sibling keys under `icons`; pick what fits):
-        --   Static side -- shown in menus + the frame's default texture (one of):
-        --     icons.textures = { tex, ... }   -- raw texture IDs
-        --     icons.spells   = { id, ... }    -- spell IDs resolved to textures
-        --   Runtime side -- replaces the frame icon at render time (at most one of):
-        --     icons.dynamic  = function() return tex end   -- computed each render (forms,
-        --                                                     runes, soonest-expiring poison)
-        --     icons.byRole   = { HEALER = id, DAMAGER = id, TANK = id }
-        --                                                  -- role-keyed spell IDs; also drives
-        --                                                     click-to-cast spell selection
-        --
-        -- If `icons` is omitted entirely, `spellID` is the free fallback (resolved via
-        -- C_Spell.GetSpellTexture).
-        --
-        -- buffIconID is NOT an icon field. It's detection-only (counts any aura whose icon
-        -- matches). Buffs that detect by icon still need icons.textures if they want that
-        -- icon shown.
-        --
-        -- Shaman shields (alphabetical: Earth, Lightning, Water)
+        -- Shaman shields, in alphabetical order.
         -- With Elemental Orbit: need Earth Shield (passive self-buff)
         {
             spellID = 974, -- Earth Shield (icon comes free from spellID fallback)
@@ -1128,7 +1100,7 @@ BR.BUFF_TABLES = {
             icons = { textures = { 132311 } },
             customCheck = IsPetOnPassive,
         },
-        -- Pet reminders (alphabetical: Hunter, Unholy DK, Warlock Demon, Water Elemental, Wrong Demon)
+        -- Pet reminders, in alphabetical order.
         {
             key = "hunterPet",
             name = L["Buff.HunterPet"],
@@ -1137,7 +1109,7 @@ BR.BUFF_TABLES = {
             icons = { textures = { 132161 } },
             groupId = "pets",
             customCheck = function()
-                -- MM Hunters don't use pets unless they have Unbreakable Bond
+                -- MM Hunters do not use pets without Unbreakable Bond
                 if BR.StateHelpers.GetPlayerSpecId() == 254 and not IsPlayerSpell(1223323) then
                     return nil
                 end
@@ -1201,12 +1173,8 @@ BR.BUFF_TABLES = {
     },
     ---@type CustomBuff[]
     custom = {},
-    -- User-defined loadout reminders (talent / loadout / equipment set mismatch).
-    -- Populated at runtime from BR.profile.loadoutReminders (see Display BuildLoadoutRulesArray).
     ---@type LoadoutRule[]
     loadout = {},
-    -- Consumables are disabled in arenas and rated BGs (disabledInCompetitivePvP = true)
-    -- unless explicitly allowed (e.g. healthstone). See IsInCompetitivePvP() in State.lua.
     ---@type ConsumableBuff[]
     consumable = {
         -- Augment Rune (The War Within + Midnight)
@@ -1224,7 +1192,6 @@ BR.BUFF_TABLES = {
             key = "rune",
             name = L["Buff.AugmentRune"],
             overlayText = L["Overlay.NoRune"],
-            permanentRuneItemIDs = { 243191, 259085 }, -- Ethereal (TWW), Void-Touched (Midnight)
             groupId = "rune",
             consumableCategory = "rune",
             disabledInCompetitivePvP = true,
@@ -1291,6 +1258,10 @@ BR.BUFF_TABLES = {
         -- Healthstone (checks inventory, free consumable for warlocks)
         {
             itemID = { 5512, 224464 }, -- Healthstone, Demonic Healthstone
+            -- Both stones hold 3 charges and are unique: a new cast refills the
+            -- stone in place, so the tracked number is charges, not stones.
+            itemHasCharges = true,
+            itemMaxCharges = 3,
             castSpellID = 29893, -- Create Soulwell
             key = "healthstone",
             name = L["Buff.Healthstone"],
@@ -1307,13 +1278,12 @@ BR.BUFF_TABLES = {
                 return "/cast " .. (name or "")
             end,
         },
-        -- Mage food (healers only): remind to grab conjured food when a mage is in
-        -- the group and you're inside an instance without any in your bags. Click
-        -- asks the mage in chat (healers can't conjure their own). Its own per-buff
-        -- ready-check gate (readyCheckOnly, on by default; the drawer's Show toggle
-        -- switches it to Always) - so it opts out of the shared consumable category
-        -- ready-check filter (ignoresReadyCheckFilter) to keep that toggle the sole
-        -- control. `mageFoodContent` narrows it to dungeons or raids only.
+        -- Mage food for healers: a mage in the group can conjure it, a healer cannot.
+        -- The click asks the mage in chat. The entry has its own ready-check gate
+        -- (readyCheckOnly, on by default; the drawer's Show toggle switches it to
+        -- Always). It therefore opts out of the shared consumable ready-check filter,
+        -- so that toggle stays the only control. `mageFoodContent` narrows it to
+        -- dungeons or raids.
         {
             itemID = { 113509 }, -- Conjured Mana Bun
             key = "mageFood",
@@ -1393,7 +1363,6 @@ BR.BUFF_TABLES = {
     },
     ---@type UtilityBuff[]
     utility = {
-        -- Soulwell reminder (warlock only, instance entry only)
         {
             spellID = 29893, -- Create Soulwell (used for icon resolution)
             castSpellID = 29893, -- Click-to-cast: Create Soulwell
@@ -1407,16 +1376,17 @@ BR.BUFF_TABLES = {
                 desc = L["Tooltip.InstanceEntryReminder.Desc"],
                 atlas = "auctionhouse-icon-clock", -- clock reads "timed reminder", not the generic "!" info icon
             },
-            customCheck = function(isRestricted)
-                -- Cooldown API returns tainted values during combat/encounters/M+
-                if isRestricted then
+            customCheck = function()
+                -- C_Spell.GetSpellCooldown returns secret values when cooldowns are restricted
+                if CooldownsRestricted() then
                     return false
                 end
-                local ok, result = pcall(function()
-                    local info = C_Spell.GetSpellCooldown(29893)
-                    return not info or info.duration == 0
-                end)
-                return not ok or result
+                local info = C_Spell.GetSpellCooldown(29893)
+                if not info then
+                    return true
+                end
+                local duration = Plain(info.duration)
+                return duration == nil or duration == 0
             end,
         },
         -- Refreshment table reminder (mage only, instance entry only). Spell 190336
@@ -1437,23 +1407,26 @@ BR.BUFF_TABLES = {
                 atlas = "auctionhouse-icon-clock", -- clock reads "timed reminder", not the generic "!" info icon
             },
             customCheck = function(isRestricted)
-                -- Cooldown API returns tainted values during combat/encounters/M+
+                -- Role reads stay plain only outside aura-restricted contexts, so
+                -- this gate must come before HasHealerInGroup.
                 if isRestricted then
                     return false
                 end
-                -- Only nag the mage when someone actually drinks: a healer in the
-                -- party. Mirrors the mage-food reminder that only nags healers when
-                -- a mage is present. Scanned here (post-isRestricted) so the role
-                -- read is always plain. Soulwell has no such gate - everyone wants a
-                -- healthstone, but only mana users want a table.
+                -- Only mana users drink from the table, so the reminder needs a healer
+                -- in the party.
                 if not BR.BuffState.HasHealerInGroup() then
                     return false
                 end
-                local ok, result = pcall(function()
-                    local info = C_Spell.GetSpellCooldown(190336)
-                    return not info or info.duration == 0
-                end)
-                return not ok or result
+                -- C_Spell.GetSpellCooldown returns secret values when cooldowns are restricted
+                if CooldownsRestricted() then
+                    return false
+                end
+                local info = C_Spell.GetSpellCooldown(190336)
+                if not info then
+                    return true
+                end
+                local duration = Plain(info.duration)
+                return duration == nil or duration == 0
             end,
         },
         -- Repair reminder: shows when any equipped item drops below the configured
@@ -1466,7 +1439,6 @@ BR.BUFF_TABLES = {
             name = L["Buff.RepairGear"],
             icons = { textures = { 1405803 } },
             overlayText = L["Overlay.Repair"], -- fallback only: overlayTextFn always wins
-            -- Live durability so the icon says how bad it is, not just that it's bad.
             -- floor, not round: 84.9% must never read as the 85% threshold it crossed.
             overlayTextFn = function()
                 return REPAIR_LABEL .. "\n" .. floor(BR.BuffState.GetLowestDurability() * 100) .. "%"
@@ -1478,7 +1450,6 @@ BR.BUFF_TABLES = {
     },
 }
 
--- Derive buff key -> consumable category mapping from data
 local buffKeyToCategory = {}
 for _, buff in ipairs(BR.BUFF_TABLES.consumable) do
     if buff.consumableCategory then

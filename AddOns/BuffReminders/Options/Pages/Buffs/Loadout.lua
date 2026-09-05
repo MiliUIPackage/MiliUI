@@ -3,17 +3,15 @@ local _, BR = ...
 -- ============================================================================
 -- LOADOUT REMINDERS PAGE
 -- ============================================================================
--- List of user-defined loadout reminders (one row per rule: enabled checkbox,
--- icon, name, summary, edit + delete). Add / edit open
+-- List of user-defined loadout reminders, one row per rule. Add and edit open
 -- BR.Options.Dialogs.LoadoutReminder.Show.
 --
--- Built on the shared BR.Options.Helpers.ListEditor skeleton (same as the
--- Custom Buffs and Sound Alerts pages): rows flow directly in the page's own
--- scroll container (no nested scroll box) and the Add button sits above the list
--- so it stays reachable no matter how long the list grows. This page supplies
--- only what varies - the data source (getItems) and row content (fillRow).
+-- Built on the shared BR.Options.Helpers.ListEditor skeleton: rows flow in the
+-- page's own scroll container, with no nested scroll box. This page supplies
+-- only the data source (getItems) and the row content (fillRow).
+--
 -- Display styling for the loadout category lives on the Categories page's
--- Loadout tab; this page is purely the rule-list editor.
+-- Loadout tab. This page is only the rule-list editor.
 
 local L = BR.L
 local Components = BR.Components
@@ -24,8 +22,6 @@ local UpdateDisplay = BR.Display.Update
 
 local TEXCOORD_INSET = BR.TEXCOORD_INSET
 
-local tinsert = table.insert
-local tsort = table.sort
 local C_ClassColor = C_ClassColor
 
 local ROW_HEIGHT = 28
@@ -40,14 +36,7 @@ local REQUIRE_LABELS = {
     loadout = "Loadout.Require.Loadout",
 }
 
-local SCOPE_LABELS = {
-    openWorld = "Loadout.Scope.OpenWorld",
-    raid = "Loadout.Scope.Raid",
-    dungeon = "Loadout.Scope.Dungeon",
-    delve = "Loadout.Scope.Delve",
-    arena = "Loadout.Scope.Arena",
-    battleground = "Loadout.Scope.Battleground",
-}
+local SCOPE_LABELS = BR.Options.LoadoutScopeLabel
 
 ---One-line summary of a rule: requirement target + where it applies.
 local function FormatSummary(rule)
@@ -79,9 +68,7 @@ local function FormatSummary(rule)
     return summary
 end
 
----What this rule was saved on (spec / character it's bound to), class-colored.
----Rendered right-aligned on the name line, separate from the summary, so the
----long "Name - Realm · Spec" string doesn't compete with the requirement text.
+---What this rule was saved on (the bound spec or character), class-colored.
 local function FormatBinding(rule)
     local binding, classToken = BR.Loadouts.GetBindingLabel(rule)
     if not binding then
@@ -111,8 +98,6 @@ local function FillRowBody(body, key, rule, onEdit, onDelete)
     local iconTex = body:CreateTexture(nil, "ARTWORK")
     iconTex:SetSize(ICON_SIZE, ICON_SIZE)
     iconTex:SetPoint("LEFT", checkbox, "RIGHT", 6, 0)
-    -- Resolve live (set/spec may have been re-iconed since save); GetRuleIcon
-    -- always returns a usable texture, falling back through its per-type defaults.
     iconTex:SetTexture(BR.Loadouts.GetRuleIcon(rule))
     iconTex:SetTexCoord(TEXCOORD_INSET, 1 - TEXCOORD_INSET, TEXCOORD_INSET, 1 - TEXCOORD_INSET)
 
@@ -128,8 +113,8 @@ local function FillRowBody(body, key, rule, onEdit, onDelete)
     local hasSummary = summaryLine ~= ""
     local nameY = hasSummary and 6 or 0
 
-    -- Class-colored binding, right-aligned on the name line. Sizes to its own
-    -- text (single right anchor), so the name truncates against its left edge.
+    -- A single right anchor sizes the binding to its own text, so the name
+    -- truncates against the binding's left edge.
     local bindingLine = FormatBinding(rule)
     local nameRightAnchor, nameRightY = editBtn, nameY
     if bindingLine then
@@ -164,19 +149,19 @@ local function GetSortedRules()
     local rules = BR.profile.loadoutReminders or {}
     local items = {}
     for key, rule in pairs(rules) do
-        tinsert(items, { key = key, rule = rule })
+        table.insert(items, { key = key, rule = rule })
     end
-    tsort(items, function(a, b)
+    table.sort(items, function(a, b)
         return (a.rule.name or a.key) < (b.rule.name or b.key)
     end)
     return items
 end
 
 local function Build(content, scrollFrame)
-    -- Advertise Talent Loadout Ex support only when it's actually installed, so
-    -- non-users see no mention of a third-party addon they don't have.
+    -- Name Talent Loadout Ex only when it is installed. Other users must see no
+    -- mention of an addon they do not have.
     local note = L["Category.LoadoutNote"]
-    if BR.Loadouts.IsTLXAvailable() then
+    if BR.TalentLoadoutEx.IsAvailable() then
         note = note .. "\n" .. L["Category.LoadoutTLXNote"]
     end
 

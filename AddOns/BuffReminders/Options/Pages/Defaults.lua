@@ -3,18 +3,15 @@ local _, BR = ...
 -- ============================================================================
 -- DEFAULTS PAGE
 -- ============================================================================
--- Global appearance/behavior defaults inherited by every category unless
--- explicitly overridden. Also hosts the "Display Order" section: a single
--- ordered list across all non-split categories that drives the priority
--- field. Lives here because priority is a global decision, not a
--- per-category setting. (Detached Icons is its own sidebar page.)
+-- Global appearance and behavior defaults. Every category inherits them, but
+-- a category can override them.
 
 local L = BR.L
 local Components = BR.Components
 local CreateButton = BR.CreateButton
 local Helpers = BR.Options.Helpers
 
-local LSM = BR.LSM
+local LSM = LibStub("LibSharedMedia-3.0")
 local IsFontPathValid = BR.DisplayFonts.IsFontPathValid
 local IsMasqueActive = BR.Masque and BR.Masque.IsActive or function()
     return false
@@ -31,12 +28,11 @@ local COL_PADDING = BR.Options.Constants.COL_PADDING
 local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 
 local tinsert = table.insert
-local abs = math.abs
 
--- Every control in the Text section ends on the same right edge. Font/Outline
--- are single dropdowns of TEXT_DD_W; the zone pair has to fit the same span
--- minus what its internal offsets eat: each nested dropdown holder insets its
--- box by 5 (Components.Dropdown), plus 8 between the two.
+-- Every control in the Text section ends on the same right edge. Font and
+-- Outline are single dropdowns of TEXT_DD_W. The zone pair must fit the same
+-- span minus its internal offsets: each nested dropdown holder insets its box
+-- by 5 (Components.Dropdown), plus 8 between the two.
 local TEXT_DD_W = 200
 local ZONE_INTERNAL_W = 5 + 8 + 5
 local ZONE_VERTICAL_W = 102
@@ -56,7 +52,6 @@ end
 local function Build(content)
     local layout = Components.VerticalLayout(content, { x = COL_PADDING, y = PAGE_TOP_PADDING })
 
-    -- Global Defaults
     LayoutSectionHeader(layout, content, L["Options.GlobalDefaults"])
     LayoutSectionNote(layout, content, L["Options.GlobalDefaults.Note"])
 
@@ -65,7 +60,6 @@ local function Build(content)
         return not db or db.iconWidth == nil
     end
 
-    -- Shared by the geometry grid and the Text section's size/color row.
     local defAccess = {
         get = function(key, default)
             local d = BR.profile.defaults
@@ -108,11 +102,8 @@ local function Build(content)
     })
     layout:Add(defDirHolder, nil, COMPONENT_GAP + DROPDOWN_EXTRA)
 
-    -- Glow: one independent row per glow kind (expiring / missing), each with
-    -- its own enable checkbox, a live style summary, and a Customize button
-    -- opening the Glow dialog on that kind. One control = one setting: the
-    -- old single checkbox wrote both enable keys at once and read "on" when
-    -- either was on, which made mixed states impossible to see or set here.
+    -- One row per glow kind, because each kind has its own enable key. A single
+    -- control for both keys hides a mixed state.
     local GLOW_ROWS = {
         {
             label = L["Options.ExpiringGlow"],
@@ -132,9 +123,9 @@ local function Build(content)
         },
     }
     -- Fixed column boundaries so the style summary and Customize button line up
-    -- across rows regardless of label / glow-name length. Both label and glow
-    -- name vary in width, so chaining button -> summary -> label would scatter
-    -- the buttons; anchor them to the holder's LEFT at precomputed offsets.
+    -- across rows. The label and the glow name vary in width, so a chained
+    -- anchor (button -> summary -> label) scatters the buttons. Anchor both to
+    -- the holder's LEFT at precomputed offsets.
     local GLOW_COL_GAP = 8
     -- Reserve the trailing warning icon (4px gap + 14px icon) that these rows
     -- render after the label, so the summary column clears it on the widest row.
@@ -189,10 +180,9 @@ local function Build(content)
         layout:Add(rowGlowHolder, nil, COMPONENT_GAP)
     end
 
-    -- Text: everything about the text drawn on icons, in one place. Users look
-    -- for these under "Text", not inside a grid of icon dimensions - so size and
-    -- color live here even though (unlike font/outline/position) they can also
-    -- be overridden per category.
+    -- Text size and color stay in this section, not in the geometry grid, even
+    -- though a category can override them. Font, outline and position have no
+    -- per-category override.
     LayoutSectionHeader(layout, content, L["Options.Text"])
     LayoutSectionNote(layout, content, L["Options.Text.Note"])
 
@@ -242,8 +232,6 @@ local function Build(content)
     })
     layout:Add(defOutlineHolder, nil, COMPONENT_GAP)
 
-    -- ZonePicker + compact X/Y nudges on one 26px row, matching the position
-    -- rows on the raid and consumable tabs.
     local mainTextPosRow = CreateFrame("Frame", nil, content)
     mainTextPosRow:SetSize(content:GetWidth(), 26)
 
@@ -296,7 +284,6 @@ local function Build(content)
     layout:Add(mainTextPosRow, 26, COMPONENT_GAP)
     LayoutSectionNote(layout, content, L["Options.TextPositions.MainText.Note"])
 
-    -- Expiration Reminder
     LayoutSectionHeader(layout, content, L["Options.ExpirationReminder"])
 
     local thresholdLW = Components.MeasureSharedLabelWidth({
@@ -333,7 +320,7 @@ local function Build(content)
     })
     layout:Add(preKeyThresholdHolder, nil, COMPONENT_GAP)
 
-    content:SetHeight(abs(layout:GetY()) + 20)
+    content:SetHeight(math.abs(layout:GetY()) + 20)
 end
 
 BR.Options.Pages.defaults = {

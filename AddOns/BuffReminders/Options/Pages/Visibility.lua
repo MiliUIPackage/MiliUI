@@ -8,9 +8,8 @@ local _, BR = ...
 -- content visibility (W/S/D/R) lives on each category's own tab (Categories
 -- page), not here.
 --
--- The Hide When list folds the legacy "Show only in group" toggle in as a
--- "When alone" entry. The DB key (showOnlyInGroup) is reused as-is - checked
--- ⇔ "show only in group" ⇔ "hide when alone", semantically identical.
+-- The Hide When list shows the showOnlyInGroup key as a "When alone" entry.
+-- The key keeps its meaning: checked = show only in group = hide when alone.
 
 local L = BR.L
 local Components = BR.Components
@@ -27,13 +26,9 @@ local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local COL_PADDING = BR.Options.Constants.COL_PADDING
 local PAGE_TOP_PADDING = BR.Options.Constants.PAGE_TOP_PADDING
 
-local abs = math.abs
-
--- One declarative row per HideWhen toggle. `default` is the fallback value the
--- getter returns when the key is unset - chosen so each toggle's checked-state
--- semantics match its current DB convention (some keys default-on, some off).
--- Only the rows with extra interactivity (`enabled` predicate, `extraOnChange`
--- side effect like RefreshAll) carry those fields.
+-- One declarative row per HideWhen toggle. `default` is the value the getter
+-- returns when the key is unset. Some keys default on and some default off, so
+-- each row carries its own value.
 local HIDE_WHEN_ROWS = {
     {
         key = "showOnlyInGroup",
@@ -177,9 +172,8 @@ local function BuildTrackingSection(content, layout)
     layout:Add(trackingModeHolder, nil, COMPONENT_GAP)
 end
 
--- Per-context override dropdowns share one option list: "Default" (no override)
--- plus the narrowing modes. Overrides only ever narrow the base mode, so wider
--- modes ("all"/"smart") are intentionally omitted.
+-- An override only narrows the base mode, so the wider modes ("all"/"smart")
+-- are absent from this list.
 local function OverrideOptions()
     return {
         { value = "default", label = L["Options.BuffTracking.Override.Default"] },
@@ -205,7 +199,6 @@ local function BuildTrackingOverridesSection(content, layout)
     LayoutSectionHeader(layout, content, L["Section.TrackingOverrides"])
     LayoutSectionNote(layout, content, L["Section.TrackingOverrides.Desc"])
 
-    -- Shared label column so all three override dropdowns line up vertically.
     local overrideLW = Components.MeasureSharedLabelWidth({
         L["Options.BuffTracking.Override.OutsideInstances"],
         L["Options.BuffTracking.Override.Combat"],
@@ -247,7 +240,7 @@ local function BuildTrackingOverridesSection(content, layout)
             title = L["Options.BuffTracking.Override.Combat"],
             desc = L["Options.BuffTracking.Override.Combat.Desc"],
         },
-        -- Narrowing in combat is moot if the whole display already hides in combat.
+        -- Narrowing in combat has no effect if the display already hides in combat.
         enabled = function()
             return BR.profile.hideInCombat ~= true
         end,
@@ -261,7 +254,7 @@ local function BuildTrackingOverridesSection(content, layout)
             title = L["Options.BuffTracking.Override.Leveling"],
             desc = L["Options.BuffTracking.Override.Leveling.Desc"],
         },
-        -- Likewise moot if the display already hides entirely while leveling.
+        -- The same applies while leveling: the display already hides.
         enabled = function()
             return BR.profile.hideWhileLeveling ~= true
         end,
@@ -276,7 +269,7 @@ local function Build(content)
     BuildTrackingSection(content, layout)
     BuildTrackingOverridesSection(content, layout)
 
-    content:SetHeight(abs(layout:GetY()) + 20)
+    content:SetHeight(math.abs(layout:GetY()) + 20)
 end
 
 BR.Options.Pages.visibility = {

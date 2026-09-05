@@ -4,18 +4,19 @@ local _, BR = ...
 -- BUFF PAGE SECTION: Externals Appearance
 -- ============================================================================
 -- The whole body of the Externals tab on the Categories page. Externals are not a
--- real category (no categorySettings entry, no State entries), so they get this
--- standalone section instead of the _Template composition - none of the shared
--- sections apply: visibility is Blizzard's call, click-to-cast is impossible on a
--- forbidden button, and growth is container-level flow-layout state with LEFT/RIGHT
--- only (the flow layout has no centered growth).
+-- real category: they have no categorySettings entry and no State entries. Thus
+-- this section is standalone, not a _Template composition. No shared section
+-- applies: Blizzard controls the visibility, click-to-cast is impossible on a
+-- forbidden button, and growth is container-level flow-layout state with four
+-- directions only (the flow layout has no centered growth).
 --
--- Appearance keys follow the category convention: an Override checkbox gates them,
--- and while it is off they inherit from the global defaults (BR.GetExternalSetting
--- resolves the gate) and render dimmed with the live inherited values. Countdown
--- size and direction have no `defaults` counterpart, so they ignore the override.
+-- Appearance keys follow the category convention: an Override checkbox gates them.
+-- While the override is off, the keys inherit from the global defaults
+-- (BR.GetExternalSetting resolves the gate) and render dimmed with the live
+-- inherited values. Countdown size, direction, the swipe and the tooltip toggle
+-- have no `defaults` counterpart, so they ignore the override.
 --
--- Like CustomAppearance, this section is terminal: it owns the tab frame's height.
+-- This section is terminal: it owns the tab frame's height.
 
 local L = BR.L
 local Components = BR.Components
@@ -25,11 +26,6 @@ local LayoutSectionNote = BR.Options.Helpers.LayoutSectionNote
 
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local DROPDOWN_EXTRA = BR.Options.Constants.DROPDOWN_EXTRA
-
-local abs = math.abs
-local tinsert = table.insert
-
-BR.Options.BuffSections = BR.Options.BuffSections or {}
 
 local SLIDERS = {
     { key = "iconZoom", labelKey = "Appearance.Zoom", min = 0, max = 40, suffix = "%", default = 0, inherited = true },
@@ -71,7 +67,7 @@ end
 
 local function InheritedDisabledReason()
     if not IsEnabled() then
-        return L["Externals.EnableElsewhere"]
+        return L["Externals.NoneTracked"]
     end
     return L["DisabledReason.OverrideSection"]
 end
@@ -83,7 +79,7 @@ local function AddOverrideRow(parent, layout)
         get = IsOverriding,
         tooltip = { title = L["Options.Override"], desc = L["Options.Override.Externals.Desc"] },
         enabled = IsEnabled,
-        disabledReason = L["Externals.EnableElsewhere"],
+        disabledReason = L["Externals.NoneTracked"],
         onChange = function(checked)
             if checked then
                 -- Snapshot the effective values before the flag flips, so the
@@ -120,7 +116,7 @@ local function AddOverrideRow(parent, layout)
         end
     end
     refreshState()
-    tinsert(BR.RefreshableComponents, { Refresh = refreshState })
+    table.insert(BR.RefreshableComponents, { Refresh = refreshState })
 
     layout:Add(holder, nil, COMPONENT_GAP)
 end
@@ -203,7 +199,7 @@ local function Build(ctx, layout)
     AddOverrideRow(parent, layout)
 
     -- One shared label column so the tracks line up: "Countdown size" is far wider
-    -- than "Zoom", and each slider would otherwise size its own label to fit.
+    -- than "Zoom". Without the shared width, each slider fits its label to its text.
     local labels = { L["Appearance.Width"] }
     for _, spec in ipairs(SLIDERS) do
         labels[#labels + 1] = L[spec.labelKey]
@@ -222,7 +218,7 @@ local function Build(ctx, layout)
             step = 1,
             suffix = spec.suffix,
             enabled = spec.inherited and InheritedEnabled or IsEnabled,
-            disabledReason = spec.inherited and InheritedDisabledReason or L["Externals.EnableElsewhere"],
+            disabledReason = spec.inherited and InheritedDisabledReason or L["Externals.NoneTracked"],
             get = function()
                 return Setting(key) or default
             end,
@@ -239,9 +235,11 @@ local function Build(ctx, layout)
         options = {
             { label = L["Direction.Right"], value = "RIGHT" },
             { label = L["Direction.Left"], value = "LEFT" },
+            { label = L["Direction.Up"], value = "UP" },
+            { label = L["Direction.Down"], value = "DOWN" },
         },
         enabled = IsEnabled,
-        disabledReason = L["Externals.EnableElsewhere"],
+        disabledReason = L["Externals.NoneTracked"],
         get = function()
             return Setting("growDirection") or "RIGHT"
         end,
@@ -251,9 +249,35 @@ local function Build(ctx, layout)
     })
     layout:Add(dirHolder, nil, COMPONENT_GAP + DROPDOWN_EXTRA)
 
-    LayoutSectionNote(layout, parent, L["Externals.MasqueNote"])
+    local swipeHolder = Components.Checkbox(parent, {
+        label = L["Externals.ShowSwipe"],
+        tooltip = { title = L["Externals.ShowSwipe"], desc = L["Externals.ShowSwipe.Desc"] },
+        enabled = IsEnabled,
+        disabledReason = L["Externals.NoneTracked"],
+        get = function()
+            return Setting("showSwipe") ~= false
+        end,
+        onChange = function(checked)
+            BR.Config.Set("externals.showSwipe", checked)
+        end,
+    })
+    layout:Add(swipeHolder, nil, COMPONENT_GAP)
 
-    parent:SetHeight(abs(layout:GetY()) + (ctx.appearancePadding or 30))
+    local tooltipHolder = Components.Checkbox(parent, {
+        label = L["Externals.ShowTooltips"],
+        tooltip = { title = L["Externals.ShowTooltips"], desc = L["Externals.ShowTooltips.Desc"] },
+        enabled = IsEnabled,
+        disabledReason = L["Externals.NoneTracked"],
+        get = function()
+            return Setting("showTooltips") == true
+        end,
+        onChange = function(checked)
+            BR.Config.Set("externals.showTooltips", checked)
+        end,
+    })
+    layout:Add(tooltipHolder, nil, COMPONENT_GAP)
+
+    parent:SetHeight(math.abs(layout:GetY()) + (ctx.appearancePadding or 30))
     if ctx.onAppearanceResize then
         ctx.onAppearanceResize()
     end

@@ -5,11 +5,7 @@ local _, BR = ...
 -- ============================================================================
 -- Continues the Icons section for the raid category only: missing-count-only
 -- toggle, plus the BUFF! reminder text controls (toggle, size, X/Y offsets).
--- Composed by _Template.lua right after Sections.Icons when category=="raid".
---
--- Lives in its own file (rather than as an `if category == "raid"` branch
--- inside Icons.lua) so the cross-category Icons section stays focused on its
--- shared concern.
+-- _Template.lua composes it right after Sections.Icons when category=="raid".
 
 local L = BR.L
 local Components = BR.Components
@@ -22,11 +18,8 @@ local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 
 local mfloor, mmax = math.floor, math.max
 
-BR.Options.BuffSections = BR.Options.BuffSections or {}
-
--- "BUFF!" reminder is raid-only, so its toggle/size/position controls all live
--- here. Position writes to defaults.textPositions.buffReminder (global, since
--- only raid renders the buffReminder item).
+-- The position writes to defaults.textPositions.buffReminder. That key is
+-- global because only the raid category renders the buffReminder item.
 local function Build(ctx, layout)
     local parent = ctx.content
     local defaults = BR.defaults
@@ -84,8 +77,6 @@ local function Build(ctx, layout)
     })
     buffTextSizeHolder:SetPoint("LEFT", reminderHolder, "LEFT", 210, 0)
 
-    -- Position controls for the BUFF! reminder text: ZonePicker + compact
-    -- X/Y nudge sliders, all on one row. ~26px tall.
     local reminderPosRow = CreateFrame("Frame", nil, parent)
     reminderPosRow:SetSize(parent:GetWidth(), 26)
 

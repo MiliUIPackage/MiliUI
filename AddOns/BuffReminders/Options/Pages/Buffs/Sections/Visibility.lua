@@ -5,10 +5,8 @@ local _, BR = ...
 -- ============================================================================
 -- Per-category content visibility (W/S/D/R + difficulty filters), the
 -- hide-on-PvP-match-start toggle, and the ready-check-only toggle. Each
--- category configures its own visibility right here on its tab, rather than in
--- a separate matrix. The consumable-only "Free Consumables" sub-section lives
--- in its own file (Sections/FreeConsumables.lua) and is composed conditionally
--- by _Template.lua.
+-- category configures its own visibility on its own tab. The consumable-only
+-- "Free Consumables" sub-section lives in Sections/FreeConsumables.lua.
 
 local L = BR.L
 local Components = BR.Components
@@ -21,8 +19,6 @@ local MakeCategoryGetter = Helpers.MakeCategoryGetter
 
 local COMPONENT_GAP = BR.Options.Constants.COMPONENT_GAP
 local SECTION_GAP = BR.Options.Constants.SECTION_GAP
-
-BR.Options.BuffSections = BR.Options.BuffSections or {}
 
 local function Build(ctx, layout)
     local category = ctx.category

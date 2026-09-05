@@ -1,14 +1,13 @@
 ---@class BR
 local _, BR = ...
 
--- Fonts for the display layer: reminder icons, movers, secure overlays, and
--- the externals tracker. The options panel typeface is a separate system
--- (UI/Fonts.lua).
+-- Fonts for the display layer. The options panel typeface is a separate
+-- system (UI/Fonts.lua).
 --
 -- At login the client can report a successful SetFont without a real apply,
 -- and can revert a verified apply when the async load of the font file
--- completes. Every apply is therefore verified with a GetFont read-back,
--- and the shared Font objects are re-verified for a while after login.
+-- completes. TrySetFont therefore verifies every apply with a GetFont
+-- read-back. A ticker re-verifies the shared Font objects after login.
 
 local LSM = LibStub("LibSharedMedia-3.0")
 local abs = math.abs
@@ -53,7 +52,7 @@ local objectOutline = {} ---@type table<string, string>
 local objectHealthy = {} ---@type table<string, boolean>
 local objectCount = 0
 
-local ScheduleReassert -- defined below
+local ScheduleReassert
 
 ---Apply the configured face to one Font object, with fallbacks. The object
 ---must always carry a font: SetText on a fontstring linked to a font-less
@@ -130,10 +129,9 @@ local fontProbe = UIParent:CreateFontString(nil, "BACKGROUND")
 fontProbe:Hide()
 local fontPathValidCache = {}
 
----Report whether the WoW client can load a font file path (the options font
----picker filters the LSM list through this). The cache keeps successes
----only: a failure can be a first-use transient, so the next call probes the
----path again.
+---Report whether the WoW client can load a font file path. The cache keeps
+---successes only: a failure can be a first-use transient, so the next call
+---probes the path again.
 ---@param path string? LSM-resolved font file path
 ---@return boolean valid true if path is non-nil and SetFont succeeds
 local function IsFontPathValid(path)
@@ -166,7 +164,6 @@ local function Resolve()
     end
 
     if path ~= fontPath then
-        -- A new face gets a fresh retry budget.
         reassertCount = 0
     end
     fontPath = path
