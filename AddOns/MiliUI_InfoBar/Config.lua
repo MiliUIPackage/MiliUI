@@ -97,6 +97,7 @@ ns.DB_DEFAULTS = {
     -- 錨在那個邊的所有東西自動讓開；關掉就只是蓋在上面。
     dock         = "none",
     dockPush     = true,
+    dockAlign    = "center",    -- 停靠時內容靠哪邊："center" | "left" | "right"
     blockGap     = 0,           -- 區塊間距；0 = 整條融成一長條（無間距也無隔線）
     -- 底色與框線色。預設＝上面 COLOR_PRESETS 的 pack，兩者同色＝看不出有框。
     -- 這兩格才是真正的設定值；「配色」下拉是從它們**推導**出來的，不另外存。

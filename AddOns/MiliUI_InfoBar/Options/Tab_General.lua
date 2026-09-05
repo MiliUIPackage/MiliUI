@@ -50,6 +50,11 @@ local CONTROLS = {
         { value = "top",    text = L["DOCK_TOP"] },
         { value = "bottom", text = L["DOCK_BOTTOM"] },
     } },
+    { type = "dropdown", key = "dockAlign", label = L["DOCK_ALIGN"], items = {
+        { value = "center", text = L["DOCK_ALIGN_CENTER"] },
+        { value = "left",   text = L["DOCK_ALIGN_LEFT"] },
+        { value = "right",  text = L["DOCK_ALIGN_RIGHT"] },
+    } },
     { type = "toggle", key = "dockPush", label = L["DOCK_PUSH"] },
     { type = "text",   label = L["DOCK_DESC"] },
     { type = "text",   label = L["DRAG_HINT"] },

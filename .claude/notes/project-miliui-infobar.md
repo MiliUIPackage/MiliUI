@@ -184,4 +184,4 @@ metadata:
 拖曳關掉（`BeginBarDrag` 早退、搬家遮罩改顯示「已停靠」）。「推開」走 [[wow-uiparent-inset-dock]]：
 `ApplyInset` 把 UIParent 往內縮一條（只在需要改變時才動它），資訊列錨在縮出來的那條上；
 關掉資訊列或停靠都會把 UIParent 放回去。UI_SCALE_CHANGED／DISPLAY_SIZE_CHANGED 再貼一次。
-左右停靠沒做：tile 是橫向鏈式錨定，直向要另寫排版。填滿後區塊全部靠左，分左中右三組是下一步。
+停靠時底與框線由**整條 bar** 畫（`bar.bg`／`bar.edges`，`ApplyBarChrome`），tile 自己的底與框線 alpha 歸零——兩層半透明疊在一起 tile 區會比空白區深一階；滑過的職業色框線照舊。`db.dockAlign` = center（預設）|left|right：先量總寬再定第一顆的起點，捨到像素格；bar 寬由兩角錨定算出、第一次可能是 0，`OnSizeChanged` 寬一變就 RequestLayout。左右停靠沒做：tile 是橫向鏈式錨定，直向要另寫排版。

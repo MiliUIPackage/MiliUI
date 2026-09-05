@@ -237,32 +237,63 @@ local bar
 local allTiles = {}
 local layoutQueued = false
 
+local function Docked()
+    return db and db.dock and db.dock ~= "none" and db.dock or nil
+end
+
+-- 框線色，「跟底色同色就不畫」的規則在這裡：邊是疊在底色之上的，半透明時
+-- 兩層 0.8 會疊成 0.96，邊緣就浮出一圈比中間更深的框——正好是「同色＝看不出
+-- 有框」想避免的東西。
+local function EdgeColorOrHidden()
+    local r, g, b, a = EdgeColor()
+    local br, bg_, bb = BgColor()
+    if r == br and g == bg_ and b == bb then a = 0 end
+    return r, g, b, a
+end
+
 local function ApplyEdgeColor(tile, hover)
     local edges = tile.edges
     if hover then
         local r, g, b = ns.W.Accent(1)
         for _, e in ipairs(edges) do e:SetVertexColor(r, g, b, 1) end
+    elseif Docked() then
+        -- 停靠時底與框線由整條 bar 畫（見 ApplyBarChrome），tile 自己的不畫，
+        -- 否則兩層半透明疊在一起、tile 的區域會比空白區深一階
+        for _, e in ipairs(edges) do e:SetVertexColor(0, 0, 0, 0) end
     else
-        local r, g, b, a = EdgeColor()
-        -- 框線跟底色同色時**不要畫**（alpha 歸零），不是照樣畫一遍同色的。
-        -- 邊是疊在底色之上的：半透明時兩層 0.8 會疊成 0.96，邊緣就浮出一圈
-        -- 比中間更深的框——正好是「同色＝看不出有框」想避免的東西。
-        local br, bg_, bb = BgColor()
-        if r == br and g == bg_ and b == bb then a = 0 end
-        for _, e in ipairs(edges) do e:SetVertexColor(r, g, b, a) end
+        for _, e in ipairs(edges) do e:SetVertexColor(EdgeColorOrHidden()) end
     end
 end
 
 ns.ApplyEdgeColor = ApplyEdgeColor
 
+-- 停靠時整條 bar 的底與上下框線（tile 之間的空白也要有底）。
+-- 不停靠就藏起來，底由每顆 tile 自己畫（原本的樣子）。
+local function ApplyBarChrome()
+    if not (bar and bar.bg) then return end
+    local docked = Docked() ~= nil
+    bar.bg:SetShown(docked)
+    if docked then bar.bg:SetVertexColor(BgColor()) end
+    local r, g, b, a = EdgeColorOrHidden()
+    for _, e in ipairs(bar.edges) do
+        e:SetShown(docked)
+        e:SetVertexColor(r, g, b, a)
+    end
+end
+
 -- 換過底色／框線色之後重新套到每一顆 tile（含已經建好、現在沒顯示的）。
 -- 滑鼠正停在上面的那顆維持職業色，不然拖著色票調色時焦點那顆會被抹掉。
 local function ApplyColors()
+    local docked = Docked() ~= nil
     for _, tile in ipairs(allTiles) do
-        if tile.bg then tile.bg:SetVertexColor(BgColor()) end
+        if tile.bg then
+            local r, g, b, a = BgColor()
+            tile.bg:SetVertexColor(r, g, b, docked and 0 or a)
+        end
         if tile.edges then ApplyEdgeColor(tile, tile:IsMouseMotionFocus()) end
         if tile.text then tile.text:SetTextColor(TextColor()) end
     end
+    ApplyBarChrome()
 end
 
 function ns.CreateTile(name, opts)
@@ -415,19 +446,39 @@ local function Layout()
     -- 累加式定位會把這個誤差一路疊上去，跨過一個像素就在某兩塊之間露出一條縫
     -- （間距 0 卻有空隙的成因，2026-08-29 實測）。錨在右緣就由引擎保證貼齊，
     -- 誤差不會累積。
+    -- 先量總寬（尺寸要先設好，GetWidth 才是捨入後的實際值），停靠時的對齊要用它
     local total = 0
     for i, tile in ipairs(shownList) do
         P.Size(tile, tile.desiredW, h)
+        total = total + P.Scale(gapBefore[i]) + tile:GetWidth()
+    end
+
+    -- 停靠時內容在整寬的 bar 裡置中／靠左／靠右；起點偏移捨到像素格，
+    -- 不然第一顆從半個像素開始，整條都糊
+    local startX = 0
+    local docked = db.dock and db.dock ~= "none"
+    if docked then
+        local barW = bar:GetWidth() or 0
+        local align = db.dockAlign or "center"
+        if align == "center" then
+            startX = (barW - total) / 2
+        elseif align == "right" then
+            startX = barW - total
+        end
+        if startX < 0 then startX = 0 end
+        local px = P.Scale(1)
+        startX = math.floor(startX / px + 0.5) * px
+    end
+
+    for i, tile in ipairs(shownList) do
         local gap = P.Scale(gapBefore[i])
         tile:ClearAllPoints()
         if i == 1 then
-            tile:SetPoint("LEFT", bar, "LEFT", 0, 0)
+            tile:SetPoint("LEFT", bar, "LEFT", startX, 0)
         else
             tile:SetPoint("LEFT", shownList[i - 1], "RIGHT", gap, 0)
         end
         tile:Show()
-        -- 總寬用**實際**（已捨入）的寬度加總，bar 的外框才會剛好包住內容
-        total = total + gap + tile:GetWidth()
     end
 
     -- 間距 0 ＝整條融成一長條：tile 貼死之後左右隔線會疊成雙線，
@@ -438,12 +489,13 @@ local function Layout()
     end
 
     if total < 1 then total = 1 end
-    if db.dock and db.dock ~= "none" then
+    if docked then
         -- 停靠時寬度由兩角錨定決定（填滿整邊），SetSize 會把它打回去
         bar:SetHeight(P.Scale(h))
     else
         bar:SetSize(total, P.Scale(h))
     end
+    ApplyBarChrome()
 end
 
 function ns.RequestLayout()
@@ -519,10 +571,6 @@ local function ApplyInset(force)
     end
 end
 ns.ApplyInset = ApplyInset
-
-local function Docked()
-    return db and db.dock and db.dock ~= "none" and db.dock or nil
-end
 
 local function ApplyPosition()
     if not bar or InCombatLockdown() then return end
@@ -794,6 +842,34 @@ local function EnsureBar()
     bar:SetClampedToScreen(true)
     P.Size(bar, 100, db.height)
     ns.BarFrame = bar
+
+    -- 整條的底與上下左右 1px 框線：只在停靠時顯示（ApplyBarChrome）
+    bar.bg = bar:CreateTexture(nil, "BACKGROUND")
+    bar.bg:SetAllPoints()
+    bar.bg:SetTexture(WHITE)
+    bar.bg:Hide()
+    bar.edges = {}
+    for i = 1, 4 do
+        local e = bar:CreateTexture(nil, "BORDER")
+        e:SetTexture(WHITE)
+        e:Hide()
+        bar.edges[i] = e
+    end
+    bar.edges[1]:SetPoint("TOPLEFT");    bar.edges[1]:SetPoint("TOPRIGHT")
+    bar.edges[2]:SetPoint("BOTTOMLEFT"); bar.edges[2]:SetPoint("BOTTOMRIGHT")
+    bar.edges[3]:SetPoint("TOPLEFT");    bar.edges[3]:SetPoint("BOTTOMLEFT")
+    bar.edges[4]:SetPoint("TOPRIGHT");   bar.edges[4]:SetPoint("BOTTOMRIGHT")
+    local px = P.Scale(1)
+    bar.edges[1]:SetHeight(px); bar.edges[2]:SetHeight(px)
+    bar.edges[3]:SetWidth(px);  bar.edges[4]:SetWidth(px)
+
+    -- 停靠時寬度是兩角錨定算出來的，第一次排版時可能還是 0；寬一變就重排
+    bar:SetScript("OnSizeChanged", function(self, w)
+        if self._lastW == w then return end
+        self._lastW = w
+        if db and db.dock and db.dock ~= "none" then ns.RequestLayout() end
+    end)
+
     ApplyPosition()
     EnsureEditSelection()
     EnsureSettingsOverlay()
