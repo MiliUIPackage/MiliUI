@@ -337,13 +337,14 @@ L["Blizzard combat icon (native 16x16, ignores the size below)"] = "Blizzards Ka
 -- Inspect button
 L["Inspect"] = "Besichtigen"
 L["Opens the inspect window."] = "Öffnet das Besichtigungsfenster."
+L["Can't inspect during combat."] = "Im Kampf kann nicht begutachtet werden."
 L["A small button on the frame that opens the inspect window. Only players can be inspected, so it only shows up on them."] = "Ein kleiner Knopf am Fenster, der das Besichtigungsfenster öffnet. Nur Spieler lassen sich besichtigen, deshalb erscheint er auch nur bei ihnen."
 L["Inspector"] = "Besichtiger"
 L["Magnifier"] = "Lupe"
 L["Round question mark"] = "Rundes Fragezeichen"
 L["Icon padding"] = "Symbolabstand"
 L["Opacity"] = "Deckkraft"
-L["It has to sit above the health bar to stay clickable; 8 is the default."] = "Er muss über der Lebensleiste liegen, um anklickbar zu bleiben; 8 ist der Standard."
+L["It has to sit above the health bar and the cast bar to stay clickable; 17 is the default."] = "Er muss über der Lebensleiste und der Zauberleiste liegen, um anklickbar zu bleiben; 17 ist der Standard."
 
 L["Content"] = "Inhalt"
 L["Vertical align"] = "Vertikale Ausrichtung"

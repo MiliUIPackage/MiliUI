@@ -561,6 +561,7 @@ local function InspectSpecs()
     return {
         { type = "toggle", sub = "inspect", key = "enabled", label = L["Show"] },
         { type = "text", label = L["A small button on the frame that opens the inspect window. Only players can be inspected, so it only shows up on them."] },
+        { type = "toggle", sub = "inspect", key = "hideInCombat", label = L["Hide during combat"] },
         { type = "header", label = L["Position and size"] },
         PosSize("inspect"),
         { type = "header", label = L["Appearance"] },
@@ -570,8 +571,8 @@ local function InspectSpecs()
         { type = "slider", sub = "inspect", key = "alpha", label = L["Opacity"], min = 0.1, max = 1, step = 0.05 },
         { type = "slider", sub = "inspect", key = "iconPadding", label = L["Icon padding"], min = 0, max = 6, step = 1 },
         { type = "header", label = L["Layer"] },
-        { type = "slider", sub = "inspect", key = "level", label = L["Layer"], min = 0, max = 15, step = 1 },
-        { type = "text", label = L["It has to sit above the health bar to stay clickable; 8 is the default."] },
+        { type = "slider", sub = "inspect", key = "level", label = L["Layer"], min = 0, max = 20, step = 1 },
+        { type = "text", label = L["It has to sit above the health bar and the cast bar to stay clickable; 17 is the default."] },
     }
 end
 

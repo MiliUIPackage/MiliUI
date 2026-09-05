@@ -337,13 +337,14 @@ L["Blizzard combat icon (native 16x16, ignores the size below)"] = "블리자드
 -- Inspect button
 L["Inspect"] = "살펴보기"
 L["Opens the inspect window."] = "살펴보기 창을 엽니다."
+L["Can't inspect during combat."] = "전투 중에는 살펴보기를 사용할 수 없습니다."
 L["A small button on the frame that opens the inspect window. Only players can be inspected, so it only shows up on them."] = "살펴보기 창을 여는 작은 버튼입니다. 살펴보기는 플레이어에게만 쓸 수 있으므로 플레이어에게만 나타납니다."
 L["Inspector"] = "관찰자"
 L["Magnifier"] = "돋보기"
 L["Round question mark"] = "둥근 물음표"
 L["Icon padding"] = "아이콘 여백"
 L["Opacity"] = "투명도"
-L["It has to sit above the health bar to stay clickable; 8 is the default."] = "클릭이 되려면 생명력 바보다 위에 있어야 합니다. 기본값은 8입니다."
+L["It has to sit above the health bar and the cast bar to stay clickable; 17 is the default."] = "클릭이 되려면 생명력 바와 시전 바보다 위에 있어야 합니다. 기본값은 17입니다."
 
 L["Content"] = "내용"
 L["Vertical align"] = "세로 정렬"

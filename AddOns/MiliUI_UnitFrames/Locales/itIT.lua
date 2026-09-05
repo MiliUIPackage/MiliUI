@@ -337,13 +337,14 @@ L["Blizzard combat icon (native 16x16, ignores the size below)"] = "Icona di com
 -- Inspect button
 L["Inspect"] = "Esamina"
 L["Opens the inspect window."] = "Apre la finestra di esame."
+L["Can't inspect during combat."] = "Non è possibile ispezionare durante il combattimento."
 L["A small button on the frame that opens the inspect window. Only players can be inspected, so it only shows up on them."] = "Un piccolo pulsante sul riquadro che apre la finestra di esame. Si possono esaminare solo i giocatori, perciò compare solo su di loro."
 L["Inspector"] = "Ispettore"
 L["Magnifier"] = "Lente"
 L["Round question mark"] = "Punto interrogativo tondo"
 L["Icon padding"] = "Margine dell'icona"
 L["Opacity"] = "Opacità"
-L["It has to sit above the health bar to stay clickable; 8 is the default."] = "Deve stare sopra la barra della salute per restare cliccabile; 8 è il valore predefinito."
+L["It has to sit above the health bar and the cast bar to stay clickable; 17 is the default."] = "Deve stare sopra la barra della salute e la barra di lancio per restare cliccabile; 17 è il valore predefinito."
 
 L["Content"] = "Contenuto"
 L["Vertical align"] = "Allineamento verticale"

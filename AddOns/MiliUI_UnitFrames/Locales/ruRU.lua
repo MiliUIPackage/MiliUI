@@ -337,13 +337,14 @@ L["Blizzard combat icon (native 16x16, ignores the size below)"] = "Значок
 -- Inspect button
 L["Inspect"] = "Осмотр"
 L["Opens the inspect window."] = "Открывает окно осмотра."
+L["Can't inspect during combat."] = "Во время боя осмотр недоступен."
 L["A small button on the frame that opens the inspect window. Only players can be inspected, so it only shows up on them."] = "Небольшая кнопка на портрете, открывающая окно осмотра. Осматривать можно только игроков, поэтому она появляется лишь на них."
 L["Inspector"] = "Инспектор"
 L["Magnifier"] = "Лупа"
 L["Round question mark"] = "Круглый знак вопроса"
 L["Icon padding"] = "Отступ значка"
 L["Opacity"] = "Непрозрачность"
-L["It has to sit above the health bar to stay clickable; 8 is the default."] = "Кнопка должна быть выше полосы здоровья, иначе по ней не нажать; по умолчанию 8."
+L["It has to sit above the health bar and the cast bar to stay clickable; 17 is the default."] = "Кнопка должна быть выше полосы здоровья и полосы применения, иначе по ней нельзя будет нажать; по умолчанию 17."
 
 L["Content"] = "Содержимое"
 L["Vertical align"] = "Выравнивание по вертикали"

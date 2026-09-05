@@ -79,7 +79,10 @@ end
 --     戰鬥中 Show/Hide 合法。遮擋框把點擊往父層傳，對 NPC 目標時那個角落
 --     就跟框的其他地方一樣是選取目標。
 ------------------------------------------------------------
-local INSPECT_MACRO = "/inspect"
+-- 戰鬥中不觀察：巨集第一行就用內建條件式擋掉。觀察視窗開起來要走 ShowUIPanel，
+-- 戰鬥中那條路有機會被判成插件動作而封鎖（「介面功能因插件而失效」），乾脆不做。
+-- 條件式由 secure 巨集引擎判定，不經過我們的 Lua。
+local INSPECT_MACRO = "/stopmacro [combat]\n/inspect"
 
 local function ArmSecure(btn)
     if btn.secureArmed or InCombatLockdown() then return end
@@ -123,16 +126,38 @@ local function SetHighlight(btn, kind, texture)
     return hl
 end
 
+-- alpha 的單一出口：顯示與否 × 超出距離淡出係數。
+-- 兩個來源各自 SetAlpha 會互相蓋掉（Core/Visibility.lua 的 ApplyScrim 每輪都會寫），
+-- 所以 Visibility 只透過 SetOORAlpha 交係數進來，最後一律由這裡合成。
+local function ApplyAlpha(btn)
+    local a = btn.visible and (btn.baseAlpha or 1) * (btn.oorAlpha or 1) or 0
+    btn:SetAlpha(a)
+end
+
+local function SetOORAlpha(btn, a)
+    btn.oorAlpha = a
+    ApplyAlpha(btn)
+end
+
 local function Build(uf, edb)
     local btn = uf.elements.inspect
     if not btn then
         btn = ns.CreateElementBase(uf, "inspect", "Button", "SecureActionButtonTemplate, BackdropTemplate")
+        btn.SetOORAlpha = SetOORAlpha
+        btn.visible = true
         btn.bg = btn:CreateTexture(nil, "BACKGROUND")
         btn.bg:SetTexture(Media.WHITE8X8)
         btn.icon = btn:CreateTexture(nil, "ARTWORK")
         -- ⚠ 不要 SetScript("OnClick")：那會蓋掉模板的 SecureActionButton_OnClick
         btn:SetScript("OnEnter", OnEnter)
         btn:SetScript("OnLeave", OnLeave)
+        -- 戰鬥中點下去：巨集已經被 [combat] 擋掉了，這裡只負責告訴玩家為什麼沒反應。
+        -- PostClick 在 secure 的 OnClick 跑完之後才執行，不會污染前面那段。
+        btn:HookScript("PostClick", function()
+            if InCombatLockdown() then
+                UIErrorsFrame:AddMessage(L["Can't inspect during combat."], 1, 0.1, 0.1)
+            end
+        end)
         -- 遮擋框：普通 Frame，掛在單位框下（不是按鈕的父層），吃掉非玩家時的滑鼠
         local shield = CreateFrame("Frame", nil, uf)
         shield:EnableMouse(true)
@@ -195,10 +220,25 @@ local function Update(uf, edb)
     if not btn then return end
     -- 預覽一律畫出來：對著空氣調位置很痛苦
     -- 只有玩家觀察得了 → 其他單位一律不畫，不然就是一顆按不動的按鈕
+    -- 戰鬥中不顯示（可選）：走的是同一套 alpha ＋ 遮擋框，secure 框戰鬥中照樣能藏
     local shown = uf.isPreview or (uf.cache.isPlayer and true or false)
-    btn:SetAlpha(shown and (btn.baseAlpha or 1) or 0)
+    if shown and not uf.isPreview and edb.hideInCombat and InCombatLockdown() then
+        shown = false
+    end
+    btn.visible = shown
+    ApplyAlpha(btn)
     btn.shield:SetShown(not shown)
 end
+
+-- 進出戰鬥時重算一次（只有這裡會讀 InCombatLockdown，事件本身低頻）
+local function UpdateAllForCombat()
+    for _, uf in pairs(ns.frames) do
+        local edb = uf.elements.inspect and uf.db and uf.db.elements and uf.db.elements.inspect
+        if edb then Update(uf, edb) end
+    end
+end
+ns.Events.Register("PLAYER_REGEN_DISABLED", "inspect_combat", UpdateAllForCombat)
+ns.Events.Register("PLAYER_REGEN_ENABLED", "inspect_combat2", UpdateAllForCombat)
 
 ns.RegisterElement{
     name = "inspect",

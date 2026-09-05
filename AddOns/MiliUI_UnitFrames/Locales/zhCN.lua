@@ -335,13 +335,14 @@ L["Blizzard combat icon (native 16x16, ignores the size below)"] = "战斗用内
 -- 观察按钮
 L["Inspect"] = "观察"
 L["Opens the inspect window."] = "打开观察窗口。"
+L["Can't inspect during combat."] = "战斗中无法使用观察功能。"
 L["A small button on the frame that opens the inspect window. Only players can be inspected, so it only shows up on them."] = "贴在框上的小按钮，点下去打开观察窗口。只有玩家能观察，所以也只会在玩家身上出现。"
 L["Inspector"] = "观察者"
 L["Magnifier"] = "放大镜"
 L["Round question mark"] = "圆底问号"
 L["Icon padding"] = "图标内缩"
 L["Opacity"] = "透明度"
-L["It has to sit above the health bar to stay clickable; 8 is the default."] = "图层要压在血条之上才点得到，默认 8。"
+L["It has to sit above the health bar and the cast bar to stay clickable; 17 is the default."] = "图层要压在血条和施法条之上才点得到，默认 17。"
 
 L["Content"] = "内容"
 L["Vertical align"] = "垂直对齐"

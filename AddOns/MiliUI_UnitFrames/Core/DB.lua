@@ -368,9 +368,14 @@ function DB.BuildDefaults()
                     -- （框右上角外側，往上凸出 5）。
                     -- 預設是「圖示直接浮在框上」——不畫邊框也不畫底色（使用者定案）；
                     -- 圖本身帶描邊與投影，亮背景上也撐得住
-                    inspect = { enabled = true, x = 180, y = 5, w = 25, h = 25, level = 8, alpha = 1,
+                    -- ⚠ 層級要在施法條**之上**：施法條本體 12，內部子框（條／圖示／文字／盾）
+                    -- 疊到 12+4=16，按鈕壓不過去的話唱法時就點不到。17 剛好在它上面、
+                    -- 又在小圖示（ICON_LEVEL 21）下面。
+                    inspect = { enabled = true, x = 180, y = 5, w = 25, h = 25, level = 17, alpha = 1,
                                 style = "glass", border = false, bgColor = black(0),
-                                iconPadding = 0 },
+                                iconPadding = 0,
+                                -- 戰鬥中不顯示（使用者定案）：打架時那顆按鈕沒用，還會擋到框的角落
+                                hideInCombat = true },
                 },
             },
 
@@ -1118,6 +1123,24 @@ local PROFILE_MIGRATIONS = {
                     local move = type(t) == "table" and MOVES[t.pattern]
                     if move and t.y == move.old then t.y = move.new end
                 end
+            end
+        end
+    end,
+
+    -- v18：觀察按鈕的層級提到施法條之上。舊預設 8 在施法條（12，子框到 16）底下，
+    -- 唱法時整顆被蓋住點不到。
+    -- 條件閘用「壓不壓得過那個單位的施法條」判斷，不是只比舊預設：自己調過但仍在
+    -- 施法條底下的一樣是點不到，一起抬；已經在上面的不碰。
+    [18] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        for _, udb in pairs(units) do
+            local els = type(udb) == "table" and udb.elements
+            local e = type(els) == "table" and els.inspect
+            if type(e) == "table" then
+                local cb = type(els.castbar) == "table" and els.castbar.level
+                local top = (tonumber(cb) or 12) + 4
+                if type(e.level) ~= "number" or e.level <= top then e.level = top + 1 end
             end
         end
     end,

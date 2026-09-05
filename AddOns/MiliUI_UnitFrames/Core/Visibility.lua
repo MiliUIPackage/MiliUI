@@ -163,6 +163,14 @@ local SCRIM_ALPHA_ELEMENTS = {
     inspect = 0.8,
 }
 
+-- ⚠ 走 alpha 的元件不可以直接 SetAlpha：元件自己也用 alpha 表達「顯示與否」
+-- （觀察按鈕是 secure 框，戰鬥中不能 Show/Hide，非玩家／戰鬥中都是 alpha 0）。
+-- 這裡直接寫 1 會在每一輪輪詢把它蓋回來 —— 2026-09-05 實測就是「戰鬥中隱藏失敗、
+-- alpha 永遠是 1」。所以交給元件的 SetOORAlpha 合成，元件沒提供才退回 SetAlpha。
+local function SetElementAlpha(ef, a)
+    if ef.SetOORAlpha then ef:SetOORAlpha(a) else ef:SetAlpha(a) end
+end
+
 -- **完全不處理**的元件（既不遮也不淡）。
 -- 3D 頭像是使用者定案要保持原樣：模型是這個框最有辨識度的東西，蓋暗或淡掉都會
 -- 讓「他是誰」變難認，而超出距離要傳達的是「打不到」不是「看不清」。
@@ -267,7 +275,7 @@ local function ApplyScrim(uf)
         if list then for _, sc in pairs(list) do sc:Hide() end end
         for name in pairs(SCRIM_ALPHA_ELEMENTS) do
             local ef = uf.elements and uf.elements[name]
-            if ef and ef.SetAlpha then ef:SetAlpha(1) end
+            if ef and ef.SetAlpha then SetElementAlpha(ef, 1) end
         end
         return
     end
@@ -284,7 +292,7 @@ local function ApplyScrim(uf)
                and type(edb.level) == "number" and ef.SetPoint then
                 local fade = SCRIM_ALPHA_ELEMENTS[name]
                 if fade then
-                    ef:SetAlpha(fade)        -- 不規則圖示：走 alpha，不蓋方塊
+                    SetElementAlpha(ef, fade)   -- 不規則圖示：走 alpha，不蓋方塊
                 else
                     seen[name] = true
                     local sc = ScrimFor(uf, name, ef,
