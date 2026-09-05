@@ -2,14 +2,14 @@
 -- Masque Blizzard Bars
 -- Enables Masque to skin the built-in WoW action bars
 --
--- Copyright 2022 - 2024 SimGuy
+-- Copyright 2022 - 2026 SimGuy
 --
 -- Use of this source code is governed by an MIT-style
 -- license that can be found in the LICENSE file or at
 -- https://opensource.org/licenses/MIT.
 --
 
-local _, Shared = ...
+local AddonName, Shared = ...
 
 -- From Locales/Locales.lua
 -- Not used yet
@@ -27,6 +27,10 @@ local Core = Shared.Core
 -- Push us into shared object
 local Addon = {}
 Shared.Addon = Addon
+
+local SkinnedKey = "_"..AddonName.."Skinned"
+
+local AddonRestrictions = false
 
 -- Handle events for buttons that get created dynamically by Blizzard
 function Addon:HandleEvent(event)
@@ -82,16 +86,6 @@ function Addon:HandleEvent(event)
 	end
 end
 
--- ReSkin any action bars that are defined if needed
-function Addon:ReSkinBars()
-	for _, bar in ipairs({ "ActionBar", "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarLeft",
-	                       "MultiBarRight", "MultiBar5", "MultiBar6", "MultiBar7" }) do
-		if Groups[bar] and Groups[bar].Group then
-			Groups[bar].Group:ReSkin()
-		end
-	end
-end
-
 -- Spell Flyout buttons are created as needed when a flyout is opened, so
 -- check for any new buttons any time that happens
 function Addon:SpellFlyout_Toggle(_, flyoutID)
@@ -113,26 +107,121 @@ function Addon:SpellFlyout_Toggle(_, flyoutID)
 	end
 end
 
-function Addon:CooldownViewer_RefreshLayout()
+-- This helper gets attached to BuffBarCooldownViewer to return a table of icon frames
+-- This is needed because we can't give Masque the top level frame or it will stretch
+-- the icon across the whole thing.
+function Addon:Helper_BuffBar_GetItemIconFrames()
+	if not self.itemFramePool then return end
+	local icons = {}
+	for frame in self.itemFramePool:EnumerateActive() do
+		table.insert(icons, frame.Icon)
+	end
+	return icons
+end
+
+-- This is called as a PreHookFunction from the HookFunction to set up the frame so Masque understands it.
+-- We also set up some hooks we will need for later, especially one to handle the dispel coloring, and for
+-- masking the out of range overlay to fit the icon.
+function Addon:PreHook_CooldownViewer()
 	local frameName = self:GetName()
-	if frameName and Groups.CooldownViewer.Buttons[frameName] then
-		-- Map the Mask to a key and hide the overlay
-		for _, frame in ipairs(self:GetItemFrames()) do
-			if not frame.Mask then
-				frame.Mask = frame.Icon:GetMaskTexture(1)
+	if frameName and Groups[frameName] and Groups[frameName].Buttons[frameName] then
+		for frame in self.itemFramePool:EnumerateActive() do
+			-- Assume the iconParent is the same as the frame to start
+			-- We're going to put all elements that Masque needs to see in iconParent directly
+			local iconParent = frame
+
+			-- Buff Bars - Icon is nested on Icon, so map iconParent to frame.Icon,
+			--             then Map Count to Applications
+			if frame.Icon.Icon then
+				iconParent = frame.Icon
+				if not iconParent.Count then
+					iconParent.Count = iconParent.Applications
+				end
 			end
-			if not frame.IconOverlay then
+
+			-- Cooldowns - Map Count to ChargeCount.Current
+			if frame.ChargeCount and frame.ChargeCount.Current and not frame.Count then
+				frame.Count = frame.ChargeCount.Current
+			end
+
+			-- Buff Icons - Map Count to Applications.Applications
+			if frame.Applications and frame.Applications.Applications and not frame.Count then
+				frame.Count = frame.Applications.Applications
+			end
+
+			-- Cooldowns - Handle masking the Out of Range frame
+			if frame.OutOfRange and not iconParent[SkinnedKey] then
+				frame.OutOfRange:SetDrawLayer('ARTWORK', -1)
+				hooksecurefunc(frame, "RefreshIconColor",
+				               Addon.CooldownViewerItem_RefreshIconColor)
+			end
+
+			-- All - Map IconMask to the Icon's mask texture which helps Masque find it
+			if not iconParent.IconMask then
+				iconParent.IconMask = iconParent.Icon:GetMaskTexture(1)
+			end
+
+			-- All - Map the IconOverlay to a key for easy access to hide or show it later
+			if not iconParent.IconOverlay then
 				-- There should be one region left that isn't mapped
-				for i = 1, select("#", frame:GetRegions()) do
-					local texture = select(i, frame:GetRegions())
+				for i = 1, select("#", iconParent:GetRegions()) do
+					local texture = select(i, iconParent:GetRegions())
 					if texture.GetAtlas and texture:GetAtlas() == "UI-HUD-CoolDownManager-IconOverlay" then
-						frame.IconOverlay = texture
+						iconParent.IconOverlay = texture
 					end
 				end
 			end
-			frame.IconOverlay:Hide()
+
+			-- Some CDM addons like BCDM change the size of the icons, let's reskin the icons when this happens
+			if not iconParent[SkinnedKey] then
+				hooksecurefunc(iconParent, "SetSize", Addon.CooldownViewerItem_SetSize)
+			end
+
+			local groupDisabled = Groups[frameName].Group.db.Disabled
+
+			-- Show the IconOverlay only if this group isn't enabled
+			if iconParent.IconOverlay then
+				iconParent.IconOverlay:SetShown(groupDisabled)
+			end
 		end
-		Core:Skin(Groups.CooldownViewer.Buttons[frameName], Groups.CooldownViewer.Group, nil, nil, self, frameName)
+
+	end
+end
+
+-- If something calls SetSize() on a CDM button we need to call ReSkin() or the button won't look right
+function Addon:CooldownViewerItem_SetSize()
+	if AddonRestrictions or InCombatLockdown() then return end
+	local parent = self:GetParent()
+	if parent then
+		local frameName = parent:GetName()
+		if Groups[frameName] then
+			Groups[frameName].Group:ReSkin(self)
+		end
+	end
+end
+
+-- Handle the out of range texture if it exists
+function Addon:CooldownViewerItem_RefreshIconColor()
+	local frame = self
+	if frame and frame.OutOfRange then
+		local frameName = frame:GetParent():GetName()
+		if frameName and Groups[frameName] then
+			local groupDisabled = Groups[frameName].Group.db.Disabled
+			local iconMask = frame.Icon:GetMaskTexture(1)
+			if frame._MBB_OOR_Mask then
+				local OORMask = frame.OutOfRange:GetMaskTexture(frame._MBB_OOR_Mask)
+				if groupDisabled or iconMask ~= OORMask then
+					frame.OutOfRange:RemoveMaskTexture(OORMask)
+					frame._MBB_OOR_Mask = nil
+				end
+			end
+			if not groupDisabled and not frame._MBB_OOR_Mask then
+				if iconMask then
+					frame.OutOfRange:AddMaskTexture(iconMask)
+					frame._MBB_OOR_Mask = frame.OutOfRange:GetNumMaskTextures()
+				end
+			end
+		end
 	end
 end
 
@@ -173,28 +262,39 @@ function Addon:ZoneAbilityFrame_UpdateDisplayedZoneAbilities()
 	end
 end
 
+function Addon:HandleEvent(event, _, state)
+	if event == "ADDON_RESTRICTION_STATE_CHANGED" then
+		if state == 0 then
+			AddonRestrictions = false
+		else
+			AddonRestrictions = true
+		end
+	end
+end
+
 -- These are init steps specific to this addon
 -- This should be run before Core:Init()
 function Addon:Init()
+	-- Hook for Addon Restrictions
+	if Core:CheckVersion({ 120000, nil }) then
+		Addon.Events = CreateFrame("Frame")
+		Addon.Events:RegisterEvent("ADDON_RESTRICTION_STATE_CHANGED")
+		Addon.Events:SetScript("OnEvent", Addon.HandleEvent)
+	end
+
 	-- Spell Flyout
 	if Core:CheckVersion({ 70003, nil }) then
 		hooksecurefunc(SpellFlyout, "Toggle",
 		               Addon.SpellFlyout_Toggle)
 	end
 
-	-- Cooldown Viewer
+	-- Cooldown Manager hook setup
 	if Core:CheckVersion({ 110105, nil }) then
-		hooksecurefunc(BuffIconCooldownViewer, "RefreshLayout",
-		               Addon.CooldownViewer_RefreshLayout)
-		hooksecurefunc(EssentialCooldownViewer, "RefreshLayout",
-		               Addon.CooldownViewer_RefreshLayout)
-		hooksecurefunc(UtilityCooldownViewer, "RefreshLayout",
-		               Addon.CooldownViewer_RefreshLayout)
-	end
-
-        -- Check if MoveAny is installed and handle the bar modifications it makes
-	if UpdateActionBarBackground then
-		hooksecurefunc("UpdateActionBarBackground", Addon.ReSkinBars)
+		Groups.BuffBarCooldownViewer.PreHookFunction   = Addon.PreHook_CooldownViewer
+		Groups.BuffIconCooldownViewer.PreHookFunction  = Addon.PreHook_CooldownViewer
+		Groups.EssentialCooldownViewer.PreHookFunction = Addon.PreHook_CooldownViewer
+		Groups.UtilityCooldownViewer.PreHookFunction   = Addon.PreHook_CooldownViewer
+		BuffBarCooldownViewer.GetItemIconFrames = Addon.Helper_BuffBar_GetItemIconFrames
 	end
 
 	-- Zone Ability Buttons
