@@ -6,6 +6,7 @@ local addonName, addonTable = ...
 local frame = CreateFrame("Frame")
 addonTable.SpellChannelStart = addonTable.SpellChannelStart or {}
 addonTable.SpellChannelCounter = addonTable.SpellChannelCounter or {}
+addonTable.JinHuaAudioLock = nil -- 进化控断音频防抖锁
 -- addonTable.UNIT_SPELLCAST_CHANNEL_STOP_Triggered = addonTable.UNIT_SPELLCAST_CHANNEL_STOP_Triggered or {}
 frame:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
 frame:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
@@ -62,8 +63,13 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitAffectingCombat(unitTarget) == true -- 在战斗中
             and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
             and UnitSpellTargetName(unitTarget) -- 法术有目标
-            then PlaySoundFile(addonTable.GetMediaPath() .. "KongDuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) 
-            addonTable.SpellChannelStart[unitTarget] = GetTime() end
+            then
+                if not addonTable.JinHuaAudioLock then
+                    addonTable.JinHuaAudioLock = true
+                    PlaySoundFile(addonTable.GetMediaPath() .. "KongDuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                    C_Timer.After(1.5, function() addonTable.JinHuaAudioLock = nil end)
+                end
+                addonTable.SpellChannelStart[unitTarget] = GetTime() end
 
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 剧毒喷雾 (重置计数)
@@ -103,7 +109,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
             and not UnitSpellTargetName(unitTarget)
-            then addonTable.CustomEncounterBar(5764925, 23.1, "注意射线", unitTarget)
+            then addonTable.CustomEncounterBar(5764925, 23.5, "注意射线", unitTarget)
             PlaySoundFile(addonTable.GetMediaPath() .. "ZhuYiSheXian.ogg", DiGuaTimelineAudioHelper.audioChannel) end
         -- ============================
         -- ==      红玉新生法地      ==
@@ -125,7 +131,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             C_Timer.After(10, function() addonTable.SpellChannelCounter[unitTarget] = nil end) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 寒冰壁垒
-            and not UnitExists("focus")
+            and addonTable.ShouldWarnInterruptWithFocus(unitTarget)
             and select(8, GetInstanceInfo()) == 2521 -- 副本ID (红玉新生法池)
             and (C_Map.GetBestMapForUnit("player") or 0) == 2095 -- 地图ID
             and IsIndoors() == true -- 在室内
@@ -269,29 +275,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
             
             return end
 
-        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 钉锤风暴 -- 残暴猛击
-            and select(8, GetInstanceInfo()) == 2923 -- 副本ID (虚空之痕竞技场)
-            and ((C_Map.GetBestMapForUnit("player") or 0) == 2572 or (C_Map.GetBestMapForUnit("player") or 0) == 2573 or (C_Map.GetBestMapForUnit("player") or 0) == 2574)
-            and IsIndoors() == true -- 在室内
-            and UnitLevel(unitTarget) == UnitLevel("player") + 1
-            and UnitPowerType(unitTarget) == 1
-            and UnitClassification(unitTarget) == "elite" -- 精英怪
-            and UnitAffectingCombat(unitTarget) == true -- 在战斗中
-            and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
-            and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
-            and not UnitSpellTargetName(unitTarget) -- 法术没目标
-            then
-            -- 【核心修正】在这里统一累加，每次施法事件触发且满足条件，必然且只累加 1 次
-            addonTable.SpellChannelStart[unitTarget] = (addonTable.SpellChannelStart[unitTarget] or 0) + 1
-            local currentCount = addonTable.SpellChannelStart[unitTarget]
-
-            if currentCount % 2 == 1 then
-                -- PlaySoundFile(addonTable.GetMediaPath() .. "HuDunKuaiDa.ogg", DiGuaTimelineAudioHelper.audioChannel)
-            else
-                -- PlaySoundFile(addonTable.GetMediaPath() .. "JianRenFengBao.ogg", DiGuaTimelineAudioHelper.audioChannel)
-            end            
-            return
-            end
 
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 雷鸣风暴 (工具)
@@ -501,9 +484,32 @@ frame:SetScript("OnEvent", function(self, event, ...)
                     PlaySoundFile(addonTable.GetMediaPath() .. "ZhuYiDuoQuan.ogg", DiGuaTimelineAudioHelper.audioChannel)
                 end
             end
+        if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 狩猎跃击
+            and select(8, GetInstanceInfo()) == 2859 -- 副本ID (夺目谷)
+            and (C_Map.GetBestMapForUnit("player") or 0) == 2500 -- 地图ID
+            and IsIndoors() == false -- 在室外
+            and UnitLevel(unitTarget) == UnitLevel("player")
+            and UnitPowerType(unitTarget) == 1
+            and UnitClassification(unitTarget) == "elite" -- 精英怪
+            and UnitIsLieutenant(unitTarget) == false -- 是否为中尉
+            and UnitAffectingCombat(unitTarget) == true -- 在战斗中
+            and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
+            and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
+            and not UnitSpellTargetName(unitTarget) -- 法术没目标
+            then PlaySoundFile(addonTable.GetMediaPath() .. "DuoKaiTouQian.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
-
-
+        if unitTarget == "boss2" and UnitCanAttack("player", unitTarget) -- 光芒箭 (3199 Boss2)
+            and addonTable.GetEncounterID() == 3199
+            and UnitExists("focus") -- 有焦点才执行（UnitIsUnit 对 Boss 令牌在战斗中不可靠，改为判断“已设置焦点”）
+            and select(8, GetInstanceInfo()) == 2859 -- 副本ID (夺目谷)
+            and (C_Map.GetBestMapForUnit("player") or 0) == 2500 -- 地图ID
+            and IsIndoors() == false -- 在室外
+            and UnitPowerType(unitTarget) == 1
+            and UnitClassification(unitTarget) == "elite" -- 精英怪
+            and UnitIsLieutenant(unitTarget) == false -- 是否为中尉
+            and not UnitSpellTargetName(unitTarget) -- 法术没目标
+            and UnitGroupRolesAssigned("player") ~= "HEALER"
+            then addonTable.GuangMangJianCounter = 0 end
         -- ============================
         -- ==     纳洛拉克的洞穴     ==
         -- ============================

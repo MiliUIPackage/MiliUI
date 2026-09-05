@@ -8,6 +8,11 @@ local nameplateTexts = {}
 
 -- 核心：在姓名板下方创建并更新文字
 local function DisplayNameplateText(u, textToDisplay)
+    -- 开关关闭时（默认开启）不显示"图腾"文字；语音播报不受此开关控制
+    if not (DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.nameplateTotemTextEnabled) then
+        return
+    end
+
     local plate = C_NamePlate.GetNamePlateForUnit(u)
     if not plate then return end
 
@@ -27,6 +32,14 @@ local function DisplayNameplateText(u, textToDisplay)
     local textObj = nameplateTexts[plate]
     textObj:SetText(textToDisplay or "")
     textObj:Show()
+end
+
+-- 开关回调辅助：关闭时清掉已显示的"图腾"文字
+function addonTable.SetNameplateTotemTextEnabled(enabled)
+    if enabled then return end
+    for plate, textObj in pairs(nameplateTexts) do
+        if textObj and textObj.Hide then textObj:Hide() end
+    end
 end
 
 -- 注册事件监听的框架层代码
@@ -75,8 +88,24 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitClassification(unitTarget) == "normal" -- 普通怪
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
             and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
-            then            
+            then
+            
+            -- 在姓名板下方显示竖排“图腾”
             DisplayNameplateText(unitTarget, "图\n腾")
+
+            -- 检查并触发防抖锁
+            if not addonTable.isAudioDebounced then
+                addonTable.isAudioDebounced = true
+                
+                PlaySoundFile(addonTable.GetMediaPath() .. "ZhuanHuoTuTeng.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                
+                -- 使用当前片段内的临时防抖间隔变量（单位：秒）
+                local debounceInterval = 2.0 
+                C_Timer.After(debounceInterval, function()
+                    addonTable.isAudioDebounced = false
+                end)
+            end
+
         end
         
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 治疗之潮图腾

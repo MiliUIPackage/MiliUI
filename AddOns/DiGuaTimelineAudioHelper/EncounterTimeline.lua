@@ -52,18 +52,18 @@ addonTable.AudioTimeline = {
 
 
     
-    [3200] = { -- 圣光猎手伊库兹
-        interval = 65, 
-        startOffset = 0, 
-        alerts = {
-            -- [7]  = "DaoShu3.ogg",
-            -- [8]  = "DaoShu2.ogg",
-            -- [9]  = "DaoShu1.ogg",
-            -- [9]  = "JiHeFangQuan.ogg",
-            [24]  = "ZhuYiDuoQuan.ogg",
-            [25]  = "KuaiKaiJianShang.ogg",
-        }
-    },
+    -- [3200] = { -- 圣光猎手伊库兹
+    --     interval = 65, 
+    --     startOffset = 0, 
+    --     alerts = {
+    --         -- [7]  = "DaoShu3.ogg",
+    --         -- [8]  = "DaoShu2.ogg",
+    --         -- [9]  = "DaoShu1.ogg",
+    --         -- [9]  = "JiHeFangQuan.ogg",
+    --         -- [24]  = "ZhuYiDuoQuan.ogg",
+    --         -- [25]  = "KuaiKaiJianShang.ogg",
+    --     }
+    -- },
 
     [3209] = { -- 纳洛拉克
         interval = 65, 
@@ -124,7 +124,87 @@ addonTable.AudioTimeline = {
             [22] = { file = "QuSanMoFa.ogg", role = "HEALER" },
         }
     },
+
+
+
+    -- [1810] = { --测试
+    --     -- 子表 key = 副本难度ID（数字）：2=5人英雄、16=史诗团本
+    --     [23] = { 
+    --         interval = 999, 
+    --         startOffset = 0, 
+    --         alerts = {
+    --             [5]  = "FenTanShangHai.ogg", -- 27秒 分担伤害
+
+    --         }
+    --     },
+    -- },
+
+
+
+    [3492] = { -- 乌拉特克：按难度区分（5人英雄 difficultyID=2 / 史诗团本 difficultyID=16）
+        -- 子表 key = 副本难度ID（数字）：5人英雄填2、史诗团本填16
+        [15] = { -- 英雄难度 (difficultyID=2)
+            interval = 999, 
+            startOffset = 0, 
+            alerts = {
+                [27]  = "FenTanShangHai.ogg", -- 27秒 分担伤害
+                [122] = "FenTanShangHai.ogg", -- 2分02秒 分担伤害
+                [151] = "DaoShu5.ogg", -- 2分31秒 倒计时5
+                [152] = "DaoShu4.ogg", -- 2分32秒 倒计时4
+                [153] = "DaoShu3.ogg", -- 2分33秒 倒计时3
+                [154] = "DaoShu2.ogg", -- 2分34秒 倒计时2
+                [155] = "DaoShu1.ogg", -- 2分35秒 倒计时1
+                [156] = "YiShangJieShu.ogg", -- 2分36秒 倒数结束
+                [188] = "ZhunBeiLaXian.ogg", -- 3分08秒 准备拉线
+                [300] = "DaoShu5.ogg", -- 5分钟整 倒计时5
+                [301] = "DaoShu4.ogg", -- 5分01秒 倒计时4
+                [302] = "DaoShu3.ogg", -- 5分02秒 倒计时3
+                [303] = "DaoShu2.ogg", -- 5分03秒 倒计时2
+                [304] = "DaoShu1.ogg", -- 5分04秒 倒计时1
+                [305] = "YiShangJieShu.ogg", -- 5分05秒 倒数结束
+                [412] = "ZhuYiDuoBo.ogg", -- 6:52.2 腐蚀浪潮
+                [451] = "ZhuanHuoDaGuai.ogg", -- 7分32秒 转火大怪
+                [467] = "ZhuYiDuoBo.ogg", -- 7:47.2 腐蚀浪潮
+                [511] = "ZhuanHuoDaGuai.ogg", -- 8分31秒 转火大怪
+                [517] = "ZhuYiDuoBo.ogg", -- 8:37.2 腐蚀浪潮
+                [561] = "ZhuYiDuoBo.ogg", -- 9:21.2 腐蚀浪潮
+                [589] = "DaoShu5.ogg", -- 9分49秒 倒计时5
+                [590] = "DaoShu4.ogg", -- 9分50秒 倒计时4
+                [591] = "DaoShu3.ogg", -- 9分51秒 倒计时3
+                [592] = "DaoShu2.ogg", -- 9分52秒 倒计时2
+                [593] = "DaoShu1.ogg", -- 9分53秒 倒计时1
+                [594] = "YiShangJieShu.ogg", -- 9分54秒 倒数结束
+            }
+        },
+
+        -- [16] = { -- 史诗团本难度 (difficultyID=16)
+        --     interval = 999, 
+        --     startOffset = 0, 
+        --     alerts = {
+        --     }
+        -- },
+    },
+
 }
+
+-- ===== 按副本难度区分时间轴配置 =====
+-- AudioTimeline 每个首领的数据支持两种写法：
+--   旧格式（不区分难度）：{ interval = ..., startOffset = ..., alerts = ... }
+--   新格式（按难度区分）：{ [难度ID数字] = {...}, ... }
+--     子表 key 直接填副本难度 ID（数字），如 2=5人英雄、8=5人史诗/大秘境、
+--     14=团本普通、15=团本英雄、16=史诗团本；当前难度匹配不到就返回 nil 不播
+local function ResolveDifficultyData(bossData)
+    -- 旧格式：直接含 interval 字段，无需区分难度
+    if bossData.interval ~= nil then return bossData end
+
+    -- GetInstanceInfo 现代返回：name, instanceType, difficultyID, difficultyName, ...
+    -- 难度ID 在第3位（数字），用它去匹配数字 key 子表
+    local _, _, difficultyID = GetInstanceInfo()
+
+    -- 新格式：只返回当前难度对应的子表；匹配不到返回 nil（不播）。
+    -- ⚠️ 不要回退到任意子表，否则设了 8 还会在普通难度误播
+    return difficultyID and bossData[difficultyID] or nil
+end
 
 local startTime = 0
 local currentEncounterID = 0
@@ -141,6 +221,10 @@ local function OnUpdate(self, elapsed)
     lastPlayedSecond = currentSecond
 
     local bossData = addonTable.AudioTimeline[currentEncounterID]
+    if not bossData then return end
+
+    -- 按当前副本难度解析配置（旧格式直接返回；新格式匹配不到当前难度返回 nil，不播）
+    bossData = ResolveDifficultyData(bossData)
     if not bossData then return end
 
     local relativeTime = now - startTime - bossData.startOffset

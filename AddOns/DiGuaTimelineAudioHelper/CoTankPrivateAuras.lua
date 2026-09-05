@@ -34,8 +34,25 @@ HostFrame:SetClampedToScreen(true)
 -- 存储暴雪返回的 AnchorID
 local ActiveAnchors = {}
 
+-- 战斗锁定防御：Add/RemovePrivateAuraAnchor 是保护接口，锁定中调用会触发 ADDON_ACTION_BLOCKED
+local pendingCoTankRefresh = false
+local CoTankRegenFrame = CreateFrame("Frame")
+CoTankRegenFrame:SetScript("OnEvent", function()
+    CoTankRegenFrame:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    if pendingCoTankRefresh then
+        pendingCoTankRefresh = false
+        addonTable.UpdateRaidTankAuras()
+    end
+end)
+
 -- 2. 核心团队扫描与绑定功能（挂载到私有表上）
 function addonTable.UpdateRaidTankAuras()
+    -- 战斗锁定防御：若在战斗中，挂 PLAYER_REGEN_ENABLED 等脱战后刷新
+    if InCombatLockdown() then
+        pendingCoTankRefresh = true
+        CoTankRegenFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
     for _, anchorID in ipairs(ActiveAnchors) do
         C_UnitAuras.RemovePrivateAuraAnchor(anchorID)
     end

@@ -9,7 +9,9 @@ addonTable.CenterCountdownEvents = addonTable.CenterCountdownEvents or {}  -- �
 addonTable.CenterEventInfoCache = addonTable.CenterEventInfoCache or {}  -- 缓存事件详细信息 (EventInfo)
 
 local THRESHOLD, INTERVAL, ROW_HEIGHT, ROW_GAP, MAX_ROWS = 5, 0.1, 26, 6, 5 -- 显示阈值(秒), 刷新间隔, 行高, 行间距, 最大显示行数
-local ICON_SIZE = 22                                                         -- 技能图标大小 (像素)
+local BASE_ICON_SIZE = 22                                                    -- 技能图标默认大小 (像素)，档位 0（最小值）时的尺寸
+local BASE_FONT_SIZE = 19                                                    -- 倒计时文字默认字号，档位 0（最小值）时的字号
+local MAX_SIZE_STEP = 9                                                      -- 大小档位上界（0~9 共 10 档）
 
 -- API 枚举值兼容性处理（防止不同版本客户端报错）
 local ENCOUNTER_SOURCE = Enum.EncounterTimelineEventSource and Enum.EncounterTimelineEventSource.Encounter or 0
@@ -17,6 +19,26 @@ local HIDDEN = Enum.EncounterTimelineTrackType and Enum.EncounterTimelineTrackTy
 local INDETERMINATE = Enum.EncounterTimelineTrack and Enum.EncounterTimelineTrack.Indeterminate
 
 local cache = addonTable.CenterEventInfoCache
+
+------------------------------------------------------------
+-- 中央倒计时大小档位（0~9）
+-- 档位 0 为当前代码默认尺寸（最小值）；每 +1 档，图标与文字各放大 2 像素。
+------------------------------------------------------------
+-- 读取当前档位（越界自动收敛到 0~9）
+local function GetSizeStep()
+    local db = DiGuaTimelineAudioHelper
+    local step = tonumber(db and db.centerCountdownSize)
+    if not step or step < 0 then return 0 end
+    return math.min(MAX_SIZE_STEP, step)
+end
+
+-- 当前档位下的图标边长 / 文字字号（每档 +2px）
+local function CurrentIconSize()
+    return BASE_ICON_SIZE + GetSizeStep() * 2
+end
+local function CurrentFontSize()
+    return BASE_FONT_SIZE + GetSizeStep() * 2
+end
 
 ------------------------------------------------------------
 -- 工具与辅助函数
@@ -96,8 +118,8 @@ end
 local function IsHidden(id)
     local track = Safe(C_EncounterTimeline.GetEventTrack, id)
     if not track then return false end
+    if issecretvalue and issecretvalue(track) then return false end -- secret 判断必须在比较之前
     if INDETERMINATE and track == INDETERMINATE then return true end
-    if issecretvalue and issecretvalue(track) then return false end
     local trackType = Safe(C_EncounterTimeline.GetTrackType, track)
     return HIDDEN and trackType and trackType == HIDDEN
 end
@@ -114,7 +136,7 @@ end
 ------------------------------------------------------------
 -- 创建屏幕中央的核心锚点容器框架
 local Base = CreateFrame("Frame", "DiGuaCenterCountdownBase", UIParent)
-Base:SetSize(260, 80)
+Base:SetSize(240, 80)
 Base:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
 Base:SetFrameStrata("HIGH")
 Base:SetClampedToScreen(true)
@@ -128,7 +150,7 @@ Base.bg:Hide()
 -- 拖拽时的中心文字提示
 Base.txt = Base:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 Base.txt:SetPoint("CENTER")
-Base.txt:SetText("中央\n倒计时")
+Base.txt:SetText("剩餘5秒\n倒計時")
 Base.txt:SetTextColor(1, 1, 1, 0.9)
 Base.txt:Hide()
 
@@ -157,12 +179,25 @@ Base:SetScript("OnMouseUp", function(self)
     local _, _, _, x, y = self:GetPoint()
     DiGuaTimelineAudioHelper = DiGuaTimelineAudioHelper or {}
     DiGuaTimelineAudioHelper.centerCountdownX, DiGuaTimelineAudioHelper.centerCountdownY = x, y
+    print(string.format("|cff00ff00[DiGua]|r 剩餘5秒倒計時新位置已保存 (X: %d, Y: %d)", x, y))
 end)
 
 ------------------------------------------------------------
 -- 行 UI 对象管理
 ------------------------------------------------------------
 local rows = {} -- 存储创建的倒计时文本行对象池
+
+-- 按当前大小档位布局单行（图标尺寸、字号、整体居中偏移同步更新）
+local function ApplyRowSize(row)
+    local icon = CurrentIconSize()
+    row.Icon:SetSize(icon, icon)
+    row.Text:SetFont(STANDARD_TEXT_FONT, CurrentFontSize(), "OUTLINE")
+    -- 文本右移量随图标变大而变大，保证“图标+文字”整体保持居中
+    row.Text:ClearAllPoints()
+    row.Text:SetPoint("CENTER", row, "CENTER", (icon + 4) / 2, 0)
+    row.Icon:ClearAllPoints()
+    row.Icon:SetPoint("RIGHT", row.Text, "LEFT", -4, 0)
+end
 
 -- 工厂函数：创建一个新的计时显示行
 local function CreateRow()
@@ -171,26 +206,32 @@ local function CreateRow()
 
     -- 图标控件
     row.Icon = row:CreateTexture(nil, "ARTWORK")
-    row.Icon:SetSize(ICON_SIZE, ICON_SIZE)
     row.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- 裁切图标外边框使外观更加精美
 
     -- 倒计时文本控件
     row.Text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    row.Text:SetFont(STANDARD_TEXT_FONT, 18, "OUTLINE")
     -- row.Text:SetShadowColor(0, 0, 0, 0) -- 关闭投影阴影，保留描边
     row.Text:SetWordWrap(false)
-    -- 文本稍微右移，为左侧图标腾出 space，确保“图标+文字”整体居中显示
-    row.Text:SetPoint("CENTER", row, "CENTER", (ICON_SIZE + 4) / 2, 0)
 
-    -- 将图标锚定在文本的左侧
-    row.Icon:SetPoint("RIGHT", row.Text, "LEFT", -4, 0)
-
+    ApplyRowSize(row)
     return row
 end
 
 -- 隐藏指定下标之后的所有行
 local function HideRows(from)
     for i = from, #rows do rows[i]:Hide() end
+end
+
+-- 设置中央倒计时的整体大小档位（0~9：档位 0 = 默认最小，图标与文字各 +2px/档）
+function addonTable.SetCenterCountdownSize(step)
+    DiGuaTimelineAudioHelper = DiGuaTimelineAudioHelper or {}
+    step = tonumber(step) or 0
+    if step < 0 then step = 0 elseif step > MAX_SIZE_STEP then step = MAX_SIZE_STEP end
+    DiGuaTimelineAudioHelper.centerCountdownSize = step
+    -- 用新档位即时重排已存在的显示行
+    for i = 1, #rows do
+        if rows[i] then ApplyRowSize(rows[i]) end
+    end
 end
 
 -- 模块功能开启/关闭开关
@@ -286,10 +327,17 @@ monitor:SetScript("OnUpdate", function(_, delta)
     end
 
     --------------------------------------------------------
-    -- 3. 排序 (按剩余时间升序排列，即最急迫的排在最前)
+    -- 3. 排序 (按剩余时间升序排列：剩余越短越靠前/越靠下)
+    --    ⚠️ 旧写法 a.time ~= b.time and a.time < b.time or a.id < b.id 有坑：
+    --    当 a 剩余时间更长但 a.id 更小时，"(a.time<b.time) or (a.id<b.id)"
+    --    会错误返回 true，把时间长的排到前面，导致剩余时间少的被挤上去。
+    --    必须"时间相等才用 id 做次级比较"。
     --------------------------------------------------------
     table.sort(active, function(a, b)
-        return a.time ~= b.time and a.time < b.time or a.id < b.id
+        if a.time == b.time then
+            return a.id < b.id
+        end
+        return a.time < b.time
     end)
 
     --------------------------------------------------------

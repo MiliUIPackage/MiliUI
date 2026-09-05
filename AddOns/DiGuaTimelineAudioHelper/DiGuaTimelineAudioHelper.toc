@@ -7,7 +7,7 @@
 ## Author: 神秘地瓜
 ## Category: Raid
 ## Category-zhTW: 副本
-## Version: 1.8.3
+## Version: 1.9.0
 ## SavedVariables: DiGuaTimelineAudioHelper
 
 Utils.lua
@@ -25,13 +25,16 @@ BloodlustDetector.lua
 UNIT_SPELLCAST_START.lua
 UNIT_SPELLCAST_CHANNEL.lua
 UNIT_SPELLCAST_SUCCEEDED.lua
+FocusInterrupt.lua
 ENCOUNTER_TIMELINE_EVENT.lua
 MythicPlusProgressTracker.lua
 INSTANCE_ENCOUNTER_ENGAGE_UNIT.lua
-FeastEmoteSound.lua
+GroupFoodHelper.lua
 NAME_PLATE_UNIT_ADDED.lua
 AutoGossip.lua
 BOSS_KILL.lua
 LFG_PROPOSAL_SHOW.lua
 NAME_PLATE_UNIT_REMOVED.lua
 UNIT_ABSORB_AMOUNT_CHANGED.lua
+NamePlateEnterCombat.lua
+PlayerDebuffDisplay.lua

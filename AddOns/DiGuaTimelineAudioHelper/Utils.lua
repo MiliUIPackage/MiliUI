@@ -3,6 +3,40 @@
 
 local addonName, addonTable = ...
 
+-- 判断 unit 与“我的焦点”是否为同一类机制怪。
+-- 只比较各打断块用到的公开筛选特征（等级/能量/分类/副官/生物家族/施法目标有无），
+-- 副本/地图/室内外/Boss进度/职责 是同帧全局上下文，无需比较。不用 UnitIsUnit。
+local function IsFocusLikeUnit(unit)
+    if not unit or unit == "" then return false end
+    if not (UnitExists("focus") and UnitCanAttack("player", "focus")) then return false end
+
+    if UnitLevel(unit) ~= UnitLevel("focus") then return false end
+    if UnitPowerType(unit) ~= UnitPowerType("focus") then return false end
+    if UnitClassification(unit) ~= UnitClassification("focus") then return false end
+    if (not not UnitIsLieutenant(unit)) ~= (not not UnitIsLieutenant("focus")) then return false end
+    if (not not select(2, UnitCreatureFamily(unit))) ~= (not not select(2, UnitCreatureFamily("focus"))) then return false end
+    -- 施法目标存在性一致（二者当前都在施法中）
+    if (not not UnitSpellTargetName(unit)) ~= (not not UnitSpellTargetName("focus")) then return false end
+    return true
+end
+
+-- 打断提醒是否忽略焦点目标：
+-- 控制台开关“有焦点也提醒打断”开启时 → 始终提醒打断；否则按原逻辑仅在无焦点时提醒
+-- 供 UNIT_SPELLCAST_START / UNIT_SPELLCAST_CHANNEL 等共用
+-- 传入本次施法单位 unit（nameplateN），用于判定“是否让位给焦点播报”：
+-- 当“有焦点也提醒打断”与“焦点特定技能施法条”同时开启，且施法单位与焦点特征完全一致
+-- （说明焦点走 FocusInterrupt 播报），这里返回 false，避免同一施法播报两次。
+function addonTable.ShouldWarnInterruptWithFocus(unit)
+    local db = DiGuaTimelineAudioHelper
+    if db and db.interruptIgnoreFocus then
+        if db.focusCastBarEnabled and IsFocusLikeUnit(unit) then
+            return false
+        end
+        return true
+    end
+    return not UnitExists("focus")
+end
+
 function addonTable.FindBestVoice()
     local ttsVoices = C_VoiceChat.GetTtsVoices()
     
@@ -39,6 +73,77 @@ function addonTable.GetPlayerRole()
 
     -- 兜底：未选择专精时回退至队伍职责
     return UnitGroupRolesAssigned("player")
+end
+
+-- ==================== 专精 近战/远程 分类 ====================
+-- specID -> 战斗定位（"MELEE" 近战 / "RANGED" 远程）
+addonTable.SpecPosition = {
+    melee = {
+        -- 近战输出
+        70, -- 圣骑士-惩戒
+        71, -- 战士-武器
+        72, -- 战士-狂暴
+        103, -- 德鲁伊-野性
+        251, -- 死亡骑士-冰霜
+        252, -- 死亡骑士-邪恶
+        259, -- 潜行者-刺杀
+        260, -- 潜行者-狂徒
+        261, -- 潜行者-敏锐
+        263, -- 萨满-增强
+        269, -- 武僧-踏风
+        577, -- 恶魔猎手-浩劫
+        255, -- 猎人-生存
+        -- 坦克
+        66, -- 圣骑士-防护
+        73, -- 战士-防护
+        104, -- 德鲁伊-守护
+        250, -- 死亡骑士-鲜血
+        268, -- 武僧-酒仙
+        581, -- 恶魔猎手-复仇
+        -- 治疗
+        65, -- 圣骑士-神圣
+        270, -- 武僧-织雾
+    },
+    ranged = {
+        -- 远程输出
+        62, -- 法师-奥术
+        63, -- 法师-火焰
+        64, -- 法师-冰霜
+        102, -- 德鲁伊-平衡
+        253, -- 猎人-兽王
+        254, -- 猎人-射击
+        258, -- 牧师-暗影
+        262, -- 萨满-元素
+        265, -- 术士-痛苦
+        266, -- 术士-恶魔学识
+        267, -- 术士-毁灭
+        1467, -- 唤魔师-湮灭
+        1473, -- 唤魔师-增辉
+        1480, -- 恶魔猎手-噬灭（远程施法者）
+        -- 治疗
+        105, -- 德鲁伊-恢复
+        256, -- 牧师-戒律
+        257, -- 牧师-神圣
+        264, -- 萨满-恢复
+        1468, -- 唤魔师-恩护
+    },
+}
+
+-- 根据专精 ID 返回 "MELEE" / "RANGED"，未知专精返回 nil
+-- 不传参数（或传 nil）时，自动使用玩家当前专精
+function addonTable.GetSpecPosition(specID)
+    if not specID then
+        local specIndex = GetSpecialization()
+        if not specIndex then return nil end
+        specID = select(1, GetSpecializationInfo(specIndex))
+    end
+    for _, id in ipairs(addonTable.SpecPosition.melee) do
+        if id == specID then return "MELEE" end
+    end
+    for _, id in ipairs(addonTable.SpecPosition.ranged) do
+        if id == specID then return "RANGED" end
+    end
+    return nil
 end
 
 --- 连续顺序播放音频函数

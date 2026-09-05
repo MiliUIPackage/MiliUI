@@ -19,6 +19,7 @@ local BLOODLUST_DEBUFFS = {
 -- ==================== 核心控制变量 ====================
 local isBloodlustActive = false 
 local savedInstanceID = nil -- 记录开启嗜血时，玩家所在的那个绝对唯一的副本ID
+local lastBloodlustOpenSoundTime = 0 -- 嗜血开启音防抖：上次播放时间(秒)
 
 -- ==================== 核心检测逻辑 ====================
 local function CheckPlayerHasDebuff()
@@ -41,7 +42,9 @@ frame:SetScript("OnEvent", function(self, event, ...)
     -- 【防御核心】如果是团本，直接拦截，且如果在团本里，必须保持状态清空
     local _, instanceType = GetInstanceInfo()
     if instanceType == "raid" then
-        if isBloodlustActive or savedInstanceID then
+        -- 根本修复：仅当身上没有嗜血 Debuff 时才清空状态，
+        -- 避免带着 Debuff 进出团本导致状态被误清零后重播"嗜血开启"
+        if not CheckPlayerHasDebuff() then
             isBloodlustActive = false
             savedInstanceID = nil
         end
@@ -65,7 +68,13 @@ frame:SetScript("OnEvent", function(self, event, ...)
             local _, _, _, _, _, _, _, currentInstanceID = GetInstanceInfo()
             savedInstanceID = currentInstanceID
             -- 开启提示音（受控制台"嗜血开启提示音"开关控制，默认关闭）
-            if DiGuaTimelineAudioHelper.bloodlustOpenSound then
+            -- 防抖：9.5 分钟(570秒) CD，防止 UNIT_AURA 反复触发导致重复播放
+            -- 【精准播报】同样只在大秘境中开启触发：当前副本ID 与 开启时的副本ID 一致
+            if DiGuaTimelineAudioHelper.bloodlustOpenSound
+                and (GetTime() - lastBloodlustOpenSoundTime) >= 570
+                and savedInstanceID == currentInstanceID
+                and C_ChallengeMode.GetActiveKeystoneInfo() and C_ChallengeMode.GetActiveKeystoneInfo() >= 2 then
+                lastBloodlustOpenSoundTime = GetTime()
                 PlaySoundFile(MEDIA_PATH .. "ShiXueKaiQi.ogg", audioChannel)
             end
             
@@ -95,8 +104,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
     -- 大秘境插钥匙的瞬间，或者由于各种意外触发了重置机制
     elseif event == "CHALLENGE_MODE_START" or event == "PLAYER_DIFFICULTY_CHANGED" then
-        isBloodlustActive = false
-        savedInstanceID = nil
+        -- 根本修复：仅当身上确实没有嗜血 Debuff 时才重置状态，
+        -- 避免插钥匙/切难度瞬间（Debuff 仍在）误清零后 UNIT_AURA 再次判定为"开启"导致重复播报
+        if not CheckPlayerHasDebuff() then
+            isBloodlustActive = false
+            savedInstanceID = nil
+        end
         
     elseif event == "ADDON_LOADED" then
         local loadedAddon = ...

@@ -10,6 +10,7 @@ addonTable.EventSoundData = {
     -- [176] = { {"ZhunBeiLiuXue.ogg", 0} }, -- 荆棘之刃 (1261276)
 
     -- 圣光猎手伊库兹
+    -- [178] = { {"HuDunKuaiDa.ogg", 1}, {"ZhunBeiPoDun.ogg", 2} }, -- 永恒夜幕 (1286918) 枚举1=护盾快打+1秒快开减伤（同响）
     [179] = { {"ZhunBeiAOE.ogg", 1} }, -- 唤棘者咆哮 (1236709)
     [180] = { {"MuBiaoShiNi.ogg", 0} }, -- 嗜血注视 (1237090)
     [178] = { {"XiaoXinJiTui.ogg", 1} }, -- 青翠践踏 (1236746)
@@ -58,7 +59,7 @@ addonTable.EventSoundData = {
     [88] = { {"ZhunBeiAOE.ogg", 1} }, -- 贪婪咆哮 (1235118)
 
     -- 寒冬哨兵
-    [67] = { {"QuSanMoFa.ogg", 1, {HEALER = true}}, {"ZhuYiDianMing.ogg", 1, {DAMAGER = true}} }, -- 冰川折磨 (1235548) 治疗=驱散 / DPS=注意点名
+    [67] = { {"QuSanMoFa.ogg", 1, {HEALER = true}}, {"ZhuYiDianMing.ogg", 1, {DAMAGER = true}}, {"WuMiaoHouDianMing.ogg", 2, {DAMAGER = true, HEALER = true}} }, -- 冰川折磨 (1235548) 治疗=驱散 / DPS=注意点名
     [70] = { {"KaoJinZhongChang.ogg", 1} }, -- 寒冰暴雨 (1235656)
     [68] = { {"ZhuYiDuoFeng.ogg", 1} }, -- 狂怒的飑风 (1235623)
     [69] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 粉碎冰刺 (1235783)
@@ -80,7 +81,6 @@ addonTable.EventSoundData = {
     [47] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 巨型爪击 (1222642)
     [54] = { {"DuoKaiTouQian.ogg", 1} }, -- 毒性吐息 (1222721)
     [55] = { {"ZhuYiDuoQuan.ogg", 1} }, -- 毒液喷溅 (1226120)
-    [46] = { {"ZhuanHuoDaGuai.ogg", 0} }, -- 激怒蠕行者 (1222371)
 
     -- 煞戎努斯
     [56] = { {"ZhuYiDuoQuan.ogg", 1} }, -- 不稳定的奇点 (1282770)
@@ -137,7 +137,7 @@ addonTable.EventSoundData = {
     [689] = { {"FenTanShangHaiSanErYiDuoKaiDaQuan.ogg", 1} }, -- 电闪雷鸣 (1288049)
     [690] = { {"ShouLingQiangHua.ogg", 1, {TANK = true, HEALER = true}} }, -- 过载 (1311804)
     [691] = { {"ZhunBeiDianMing.ogg", 1} }, -- 暴风 (1311805)
-    [713] = { {"TieBianFangShuiLiangMiaoSanErYi.ogg", 0} }, -- 暴风 (1289754)
+    -- [713] = { {"TieBianFangShui.ogg", 0} }, -- 暴风 (1289754)
     [692] = { {"XiaoXinJiTui.ogg", 1}, {"LingDianWuMiaoSanErYi.ogg", 0} }, -- 狂风之力 (1289059)
 
     -- 米利克萨
@@ -211,7 +211,7 @@ addonTable.EventSoundData = {
 
     -- 迷失的探险者
     [721] = { {"ZhunBeiAOE.ogg", 0} }, -- 灾变祈求 (1291390)
-    [722] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 冰封烈焰 (1286921)
+    -- [722] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 冰封烈焰 (1286921)
     -- [723] = { {"ZhuYiDianMing.ogg", 1, {HEALER = true, DAMAGER = true}}, {"YiMiaoMuBiaoShiNi.ogg", 0} }, -- 闪现新星 (1296025)
     -- [724] = { {"ZhuYiDianMing.ogg", 1}, {"YiMiaoMuBiaoShiNi.ogg", 0} }, -- 闪现新星 (1290742)
     [725] = { {"FenTanShangHai.ogg", 1} }, -- 巨力重击 (1296092)
@@ -264,19 +264,19 @@ addonTable.EventSoundData = {
     -- 盘卷祭坛
     [667] = { {"XiaoGuaiDingNi.ogg", 0} }, -- 令人不安的凝视 (1285911)
     [677] = { {"WuMiaoHouAOE.ogg", 2, {HEALER = true}} }, -- 盘卷祭坛之牙 (1282487)
-    [678] = { {"YiMiaoMuBiaoShiNi.ogg", 0}, {"FenTanShangHai.ogg", 1} }, -- 处斩 (1283485)
+    [678] = { {"FenTanShangHai.ogg", 1}, {"WuMiaoHouFenTanShangHai.ogg", 2}}, -- 处斩 (1283485)
     [679] = { {"ZhunBeiZhongDu.ogg", 1, {HEALER = true}} }, -- 毒牙 (1282281)
     -- [669] = { {".ogg", 1} }, -- 凋零毒素 (1287227)
     [680] = { {"ZhuYiDuoQuan.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 碎斧 (1283832)
     -- [681] = { {".ogg", 1} }, -- 凋零毒素 (1287200)
-    [682] = { {"HuDunKuaiDa.ogg", 1} }, -- 永恒夜幕 (1286918)
+    [682] = { {"HuDunKuaiDa.ogg", 1}, {"ZhunBeiPoDun.ogg", 2} }, -- 永恒夜幕 (1286918) 枚举1=护盾快打+1秒快开减伤（同响）
     -- [683] = { {".ogg", 1} }, -- 影牙 (1286308)
-    [684] = { {"ZhunBeiDianMing.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 幽暗炸弹 (1310882)  {"PaoKaiRenQun.ogg", 0}, 
+    [684] = { {"ZhuYiDianMing.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 幽暗炸弹 (1310882)  {"PaoKaiRenQun.ogg", 0}, 
     [685] = { {"XinKongDianNi.ogg", 0}, {"ZhunBeiXinKong.ogg", 1}, {"WuMiaoHouXinKong.ogg", 2} }, -- 恐惧行军 (1289900)
     [686] = { {"TanKeTouQian.ogg", 1}, {"WuMiaoHouTanKeJianCiSanErYi.ogg", 2, {TANK = true}} }, -- 灵魂撕裂 (1286573)
-    [687] = { {"ZhaoHuanXiaoGuai.ogg", 1} }, -- 精魂狂笑 (1286441)
+    [687] = { {"ZhuanHuoDaGuai.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 精魂狂笑 (1286441)
     [794] = { {"WuMiaoHouAOE.ogg", 2, {HEALER = true}} }, -- 盘卷祭坛亵渎 (1298381)
-    [803] = { {"FenTanShangHai.ogg", 1} }, -- 冷酷处斩 (1299266)
+    [803] = { {"FenTanShangHai.ogg", 1}, {"WuMiaoHouFenTanShangHai.ogg", 2} }, -- 冷酷处斩 (1299266)
     [811] = { {"TanKeTouQian.ogg", 1}, {"WuMiaoHouTanKeJianCiSanErYi.ogg", 2, {TANK = true}} }, -- 撕裂 (1299680)
     [812] = { {"KaiShiYunQiu.ogg", 0, {HEALER = true, DAMAGER = true}} }, -- 剧毒洪流 (1299960)
     [898] = { {"TanKeTouQian.ogg", 1}, {"WuMiaoHouTanKeJianCiSanErYi.ogg", 2, {TANK = true}} }, -- 凋零撕裂 (1307279)
@@ -288,13 +288,14 @@ addonTable.EventSoundData = {
     [912] = { {"DuoKaiDaQuan.ogg", 1}, {"WuMiaoHouAOE.ogg", 2, {HEALER = true}} }, -- 恶臭痛击 (1296301)
     [719] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 腐蚀浪潮 (1292188)
     [825] = { {"ZhuYiDuoQuan.ogg", 1} }, -- 毒蛇呼唤 (1300751)
-    [700] = { {"ZhunBeiYiShang.ogg", 1} }, -- 被缚之怒 (1286860)
+    [700] = { {"ZhunBeiYiShang.ogg", 1}, {"YiShangJieDuan.ogg", 0} }, -- 被缚之怒 (1286860)
     [800] = { {"ZhunBeiXiQiu.ogg", 1} }, -- 毒蛇之咬 (1295905)
     [826] = { {"ChangDiQieHuan.ogg", 1} }, -- 盘绕猎物 (1301510)
     [810] = { {"ShouLingKuangBao.ogg", 1} }, -- 怒火释放 (1286905)  
     [746] = { {"ShouLingKuangBao.ogg", 1} }, -- 怒火释放 (1286905)
     [806] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 剧毒孵化 (1299757)
-  
+    [949] = { {"ChangDiQieHuan.ogg", 2} }, -- 下潜 (1292999)
+    
     -- [830] = { {"ZhuYiDuoQuan.ogg", 1} }, -- 剧毒喷吐 (1302982)
 
     -- 潮缚石窟
@@ -326,7 +327,7 @@ addonTable.EventSoundData = {
 
     -- 通用
     [937] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
-    [668] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
+    -- [668] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
     [633] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (64238)
 
     -- 毒瀑深渊
@@ -398,6 +399,33 @@ function addonTable.registerTable(dataTable)
 end
 
 frame:RegisterEvent("PLAYER_LOGIN")
+
+-- 战斗安全的“重新登记”接口：频道切换等场景下调用，让已登记的
+-- SetEventSound 立即按最新的 audioChannel 刷新。
+-- 说明：SetEventSound 是“登记即存储”，登录后改勾选若不再调用，
+-- 旧的声道会一直生效（这正是“未勾选却走环境音”的根因）。
+local reloadPending = false
+local reloadFrame = CreateFrame("Frame")
+reloadFrame:SetScript("OnEvent", function(self, event)
+    self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    if reloadPending then
+        reloadPending = false
+        addonTable.ReloadTimelineSounds()
+    end
+end)
+
+function addonTable.ReloadTimelineSounds()
+    if InCombatLockdown() then
+        reloadPending = true
+        reloadFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
+    reloadPending = false
+    addonTable.ClearTimelineSounds(addonTable.EventSoundData)
+    if DiGuaTimelineAudioHelper.bossVoiceEnabled then
+        addonTable.registerTable(addonTable.EventSoundData)
+    end
+end
 frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 
 frame:SetScript("OnEvent", function(self, event, ...)

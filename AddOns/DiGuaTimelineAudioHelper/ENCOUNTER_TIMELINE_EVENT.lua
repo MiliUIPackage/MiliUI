@@ -29,7 +29,7 @@ local function OpenJuDuWeiSuo()
     -- print("[剧毒萎缩] 时间轴触发 → 打开开关，重置计数")
     addonTable.JuDuWeiSuo = true
     addonTable.JuDuWeiSuoCounter = 0
-    C_Timer.After(14, function()
+    C_Timer.After(13, function()
         -- print("[剧毒萎缩] 18秒超时 → 关闭开关")
         addonTable.JuDuWeiSuo = false
     end)
