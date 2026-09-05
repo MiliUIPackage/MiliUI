@@ -91,7 +91,12 @@ local function FreezeCombat(ts)
     C_Timer.After(SMART_OVERALL_DELAY, function()
         if gen ~= _combatGen then return end
         if _inCombat or _needsFinalRefresh then return end
-        if ns.Windows and ns.Windows.SmartApply then ns.Windows.SmartApply(false) end
+        -- 滑鼠還停在任一視窗上就先不切，離開才切（Manager 那邊輪詢，世代守衛同這裡）
+        if ns.Windows and ns.Windows.SmartApplyWhenMouseLeaves then
+            ns.Windows.SmartApplyWhenMouseLeaves(gen)
+        elseif ns.Windows and ns.Windows.SmartApply then
+            ns.Windows.SmartApply(false)
+        end
     end)
 end
 
