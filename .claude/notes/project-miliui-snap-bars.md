@@ -5,9 +5,9 @@ metadata:
   type: project
 ---
 
-2026-09-05：`Libs/MiliUISnap.lua`，**vendor 複製**在 `MiliUI_Focus` 與 `MiliUI_BurstPotionHelper` 各一份，
+2026-09-05：**唯一 source 在 `AddOns/MiliUI/Libs/MiliUISnap/MiliUISnap.lua`**（本體只放不載入，同 MiliUIGlow），`Libs/MiliUISnap.lua` **vendor 複製**在 `MiliUI_Focus` 與 `MiliUI_BurstPotionHelper` 各一份，
 全域 `MiliUI_Snap` 先到先贏、版本高的蓋掉舊的（`bars` 註冊表保留）。跟 `MiliUI_MenuEntries` 同一個理由：
-插件之間沒有相依宣告，玩家可能只裝一支。**改這支要每份都改**（沒有進 sync-widgets.py）。
+插件之間沒有相依宣告，玩家可能只裝一支。改本體那份再跑 `python3 .claude/scripts/sync-widgets.py`（它現在也同步單檔 vendor：MiliUIGlow、MiliUISnap；check-all 的漂移檢查一併涵蓋）。
 
 **機制**：拖過去貼上的那條是跟隨者，`db.snapTo = { target = key, side = RIGHT|LEFT|TOP|BOTTOM }`，
 放手時在 **2px** 內、同軸有重疊就吸，貼上後**貼死（0px）**、對齊上緣（左右）或左緣（上下）——使用者指定，「相差 2px 才吸，吸上就 0」。

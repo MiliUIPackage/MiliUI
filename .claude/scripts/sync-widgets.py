@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把 MiliUIWidgets 共用層從本體同步到各消費插件。
+"""把 MiliUIWidgets 共用層（以及單檔 vendor：MiliUIGlow、MiliUISnap）從本體同步到各消費插件。
 
     python3 .claude/scripts/sync-widgets.py           同步，並列出改了哪幾份
     python3 .claude/scripts/sync-widgets.py --check   只檢查有沒有漂移（有就回傳 1）
@@ -39,6 +39,13 @@ VERBATIM = [
 
 NEVER = {"Env.lua"}
 
+# 單檔 vendor：本體 Libs 底下的 source → 消費端相對插件根目錄的路徑。
+# 本體只放 source 不載入（見各自的 README）。消費端沒有那個檔就不塞。
+VENDOR_FILES = [
+    (os.path.join("MiliUIGlow", "MiliUIGlow.lua"), os.path.join("Libs", "MiliUIGlow", "MiliUIGlow.lua")),
+    (os.path.join("MiliUISnap", "MiliUISnap.lua"), os.path.join("Libs", "MiliUISnap.lua")),
+]
+
 
 def consumers():
     for name in sorted(os.listdir(ADDONS)):
@@ -74,6 +81,20 @@ def main():
                     shutil.copy2(src, dst)
         for name in sorted(have - set(VERBATIM) - NEVER):
             extra.append(f"{addon}/{name}")
+
+    # 單檔 vendor：掃所有插件（Cell 也帶 MiliUIGlow，不限 MiliUI 前綴）
+    for src_rel, dst_rel in VENDOR_FILES:
+        src = os.path.join(ADDONS, "MiliUI", "Libs", src_rel)
+        if not os.path.exists(src):
+            continue
+        for name in sorted(os.listdir(ADDONS)):
+            if name == "MiliUI":
+                continue
+            dst = os.path.join(ADDONS, name, dst_rel)
+            if os.path.exists(dst) and not filecmp.cmp(src, dst, shallow=False):
+                drift.append(f"{name}/{dst_rel}")
+                if not check:
+                    shutil.copy2(src, dst)
 
     if drift:
         print(("落後" if check else "已更新") + f" {len(drift)} 份：")
