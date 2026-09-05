@@ -1260,17 +1260,49 @@ end
 -- 有同樣的閘，但 active 期間每幀 OnUpdate 都會再試一次，所以會自己補回來；
 -- 名字沒有這個補救，撲空一次就空到下一次上 buff。
 -- 所以我們自己把文字框從隱藏切回顯示之後，要補叫一次 RefreshName()。
+--
+-- ⚠ 補叫是在我們（污染）的執行路徑上跑暴雪的函式。securecallfunction 擋的是
+--   被呼叫端把污染帶回來，擋不住執行本身已經是污染的：GetNameText() 裡面
+--   `totemData.name` 那一步，遇到 12.1 把整張 totemData 給成秘密表的召喚
+--   （惡魔類，例如 265187 召喚惡魔暴君）就直接拋
+--   "attempt to index local 'totemData' (a secret table value)"，名字留空。
+--   拿參考可以、取值不行，所以進去之前先問「是不是秘密」，是就退回法術名字
+--   自己寫，不進暴雪那條路。
 local function BarNameIsEmpty(nameText)
     local text = nameText:GetText()
     if IsSecretValue(text) then return false end   -- 秘密字串＝有字，而且不能比較
     return text == nil or text == ""
 end
 
+-- GetNameText() 會去取值的兩張表；任一張是秘密表就不能走暴雪的 RefreshName
+local function BlizzardNameDataIsSecret(frame)
+    local totemData = frame.GetTotemData and frame:GetTotemData()
+    if totemData ~= nil and IsSecretValue(totemData) then return true end
+    local auraData = frame.GetAuraDataCached and frame:GetAuraDataCached()
+    if auraData ~= nil and IsSecretValue(auraData) then return true end
+    return false
+end
+
+local function GetSafeSpellID(frame)
+    local spellID = frame.GetSpellID and frame:GetSpellID()
+    if type(spellID) == "number" and not IsSecretValue(spellID) then
+        return spellID
+    end
+    return nil
+end
+
 local function RefreshBarNameText(frame, nameText, allowRetry)
     if type(frame.RefreshName) ~= "function" or not nameText:IsShown() then return end
 
-    -- 走 securecallfunction，不要把污染帶進 RefreshName 內部的光環讀取
-    if securecallfunction then
+    if BlizzardNameDataIsSecret(frame) then
+        -- 拿不到召喚物的名字，退回法術名字（召喚惡魔暴君 vs 惡魔暴君，可接受）。
+        -- 這裡不 return：法術資料沒載入時 GetSpellName 回 nil，讓下面的重試接手。
+        local spellID = GetSafeSpellID(frame)
+        local spellName = spellID and C_Spell.GetSpellName(spellID)
+        if spellName and spellName ~= "" then
+            nameText:SetText(spellName)
+        end
+    elseif securecallfunction then
         securecallfunction(frame.RefreshName, frame)
     else
         frame:RefreshName()
@@ -1280,8 +1312,8 @@ local function RefreshBarNameText(frame, nameText, allowRetry)
 
     -- 補寫還是空的：法術資料還沒載入時 C_Spell.GetSpellName 回 nil，
     -- 當場重試沒有意義，請求載入之後隔一個 tick 再試最後一次。
-    local spellID = frame.GetSpellID and frame:GetSpellID()
-    if type(spellID) == "number" and not IsSecretValue(spellID) then
+    local spellID = GetSafeSpellID(frame)
+    if spellID then
         C_Spell.RequestLoadSpellData(spellID)
     end
 
@@ -1401,6 +1433,16 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
         frame.cdmBarContentHooked = true
         hooksecurefunc(frame, "SetBarContent", function()
             frame.cdmBarStyled = false
+            -- 編輯模式「條列內容」設成僅圖示時，暴雪在這裡 Hide 名字文字框；
+            -- 框從池子取出時就會經過這條（OnAcquireItemFrame → SetBarContent），
+            -- 緊接著的 RefreshData → RefreshName 看到藏著就不寫字。馬上顯示回來，
+            -- 讓暴雪那次安全的寫字成立，免得之後要靠上面那條污染的補寫
+            -- （召喚物的名字在秘密 totemData 裡，補寫根本拿不到）。
+            -- 要不要看得到由 ApplyBarStyle 用 alpha 決定，這裡只管 IsShown。
+            local nameText = frame.Bar and frame.Bar.Name
+            if nameText and not nameText:IsShown() then
+                nameText:Show()
+            end
             if frame.cdmLastBarIconPosition == "HIDDEN" then
                 if frame.Icon then frame.Icon:Hide() end
                 local bar = frame.Bar

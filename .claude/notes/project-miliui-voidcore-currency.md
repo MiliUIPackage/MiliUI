@@ -8,7 +8,7 @@ metadata:
   modified: 2026-08-12T12:11:53.211Z
 ---
 
-`MiliUI/Enhance/CharacterKeystones.lua` 的「虛無之核」欄位（分身列表，資料來自 Syndicator）不再寫死貨幣代碼。
+`MiliUI_InfoBar/Core/Warband.lua` 的「虛無之核」欄位（戰隊資訊表格，資料來自 Syndicator；2026-09-05 從 MiliUI/Enhance/CharacterKeystones.lua 搬進資訊列）不再寫死貨幣代碼。
 
 - 候選清單 `SPARK_CURRENCY_IDS = { 3418 }`
 - `ScanCurrencyListForSpark()` 走一遍角色貨幣面板，取第一個落在候選裡的 ID，快取在 `resolvedSparkID`

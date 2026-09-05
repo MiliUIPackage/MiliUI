@@ -1,6 +1,6 @@
 ---
 name: wow-cooldownviewer-buffbar-text-gate
-description: 暴雪增益長條只在文字框「正在顯示」的那一刻寫字——名字撲空一次就空到下一次上 buff，倒數卻會自己補回來
+description: 暴雪增益長條只在文字框「正在顯示」的那一刻寫字——名字撲空一次就空到下一次上 buff，倒數卻會自己補回來；補寫不能從污染路徑叫 RefreshName（召喚物的 totemData 是秘密表）
 metadata: 
   node_type: memory
   type: reference
@@ -41,9 +41,16 @@ end
    回 nil），寫進去的是空字串。這種當場重試沒用，要 `C_Spell.RequestLoadSpellData`
    之後隔一個 tick 再試。
 
-**補寫的正確做法**：自己重新顯示文字框之後就呼叫一次
-`securecallfunction(frame.RefreshName, frame)`（別把污染帶進 `GetNameText()` 內部的
-光環讀取）。判斷「有沒有字」不能直接比較 —— `GetNameText()` 在 `UsesDynamicAppearance`
+**補寫不能無條件叫暴雪的 `RefreshName`**（2026-09-05 實測）：那是在插件（污染）的執行路徑上跑，
+`securecallfunction` 擋的是被呼叫端把污染帶回來、擋不住執行本身已經是污染的。`GetNameText()`
+第一步就是 `totemData.name`，而 12.1 惡魔類召喚（265187 召喚惡魔暴君這種）的 `totemData` 是
+**整張秘密表**，一取值就拋 "attempt to index local 'totemData' (a secret table value)"，名字留空。
+拿參考可以、取值不行：進去之前先 `issecretvalue(frame:GetTotemData())`／`GetAuraDataCached()`，
+是秘密就退回 `C_Spell.GetSpellName(spellID)` 自己 `SetText`。
+
+**更好的是根本不要走到補寫**：把「暴雪自己藏名字」的那次（`SetBarContent` 僅圖示）用後掛勾
+當場 `Show()` 回來 —— 框從池子取出時 `OnAcquireItemFrame → SetBarContent` 就先過這條，緊接著的
+`RefreshData → RefreshName` 看到顯示著就安全地寫了字。判斷「有沒有字」不能直接比較 —— `GetNameText()` 在 `UsesDynamicAppearance`
 為真時回的是 `auraData.name`，受限光環下是秘密字串，要先過 [[wow-121-secret-values]]
 的 `issecretvalue`。
 
@@ -55,5 +62,6 @@ end
 要自己補叫一次 `RefreshName`。
 
 套組裡的實作在 `Ayije_CDM/Core/Style.lua`（就地改，見 [[project-local-addon-forks]]）：
-名字改成 alpha-only、可見度掛勾只留給倒數與層數，`ApplyBarStyle` 尾端在
-「剛從隱藏切回來或字是空的」時補叫 `RefreshBarNameText`。
+名字改成 alpha-only、可見度掛勾只留給倒數與層數，`SetBarContent` 後掛勾把名字文字框 `Show()`
+回來，`ApplyBarStyle` 尾端在「剛從隱藏切回來或字是空的」時補叫 `RefreshBarNameText`，
+補叫前先過 `BlizzardNameDataIsSecret` 閘。

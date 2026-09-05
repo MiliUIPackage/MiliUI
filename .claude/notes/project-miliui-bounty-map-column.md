@@ -8,7 +8,7 @@ metadata:
   modified: 2026-08-25T00:00:00.000Z
 ---
 
-`MiliUI/Enhance/CharacterKeystones.lua` 的「懸賞圖」「儲物箱」欄（2026-08-23 加入）。懸賞圖三態：沒掉＝灰點、掉了未用＝金色圖示＋「未用」、用掉＝綠勾；鍍金儲物箱顯示 x/y（滿＝綠、進行中＝金）。
+`MiliUI_InfoBar/Core/Warband.lua`（資料）＋`Core/WarbandPopup.lua`（表格）的「懸賞圖」「儲物箱」欄（2026-08-23 加入；2026-09-05 從 MiliUI/Enhance/CharacterKeystones.lua 搬進資訊列）。懸賞圖三態：沒掉＝灰點、掉了未用＝金色圖示＋「未用」、用掉＝綠勾；鍍金儲物箱顯示 x/y（滿＝綠、進行中＝金）。
 
 - **「拿過」看隱藏追蹤任務 `BOUNTY_FLAG_QUEST = 86371`**（`C_QuestLog.IsQuestFlaggedCompleted`，每週重置）。換季換的是物品，**這個任務 ID 不變**——TWW 到 Midnight S2 都沿用，Plumber 也是這樣做。
 - **「用了」沒有 API 旗標**，用「拿過＋`C_Item.GetItemCount` 為 0」推論。每隻角色在線上時存自己的數量進 `MiliUI_DB.characterKeystones[*].vault.bounty`，所以沒有「圖在別隻身上」的跨角色誤判。

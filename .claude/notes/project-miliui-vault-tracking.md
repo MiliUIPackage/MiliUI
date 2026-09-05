@@ -6,7 +6,7 @@ metadata:
   type: project
 ---
 
-`MiliUI/Enhance/CharacterKeystones.lua` 的分身寶庫欄位。2026-08-13 修掉「打了 8 場 M0、寶庫三格卻整排暗著」。
+`MiliUI_InfoBar/Core/WarbandPopup.lua` 的分身寶庫欄位（2026-09-05 從 MiliUI/Enhance/CharacterKeystones.lua 搬進資訊列）。2026-08-13 修掉「打了 8 場 M0、寶庫三格卻整排暗著」。
 
 **根因不是 API 變動。** `C_WeeklyRewards.GetActivities` 一切正常，回的是 `progress=8 / threshold=1,4,8 / level=0`——M0 場次照樣計入寶庫，但**沒有鑰石等級，所以 level 是 0**。面板兩處判斷都寫成 `level > 0 and progress >= threshold`，於是整排判定成未解鎖。
 
