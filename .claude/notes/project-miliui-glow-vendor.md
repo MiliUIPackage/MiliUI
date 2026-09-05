@@ -61,3 +61,6 @@ LibCustomGlow 出新版**不要直接覆蓋**：拿新版對 v25 做 diff，把�
 保持不變，然後 `ls -d AddOns/*/Libs/MiliUIGlow` 同步全部 copy，`md5` 對過。
 
 相關：[[project-miliui-widgets-vendor]]、[[wow-unitframe-event-dispatch-cost]]、[[project-local-addon-forks]]
+
+
+2026-09-05：`sync-widgets.py` 現在也同步這個單檔 vendor（`VENDOR_FILES`），改本體那份再跑腳本即可，不必手抄到 Cell。
