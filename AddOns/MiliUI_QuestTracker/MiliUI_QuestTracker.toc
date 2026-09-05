@@ -37,6 +37,8 @@ Core\Tracker.lua
 Modules\Chrome.lua
 Modules\Skin.lua
 Modules\Visibility.lua
+# 傳奇鑰石面板要在 Visibility 之後：摺疊條件會問它
+Modules\MythicPlus.lua
 Modules\Position.lua
 Modules\AutoQuest.lua
 
@@ -52,6 +54,7 @@ Modules\Menu.lua
 Options\Panel.lua
 Options\Tab_Appearance.lua
 Options\Tab_Visibility.lua
+Options\Tab_MythicPlus.lua
 Options\Tab_Automation.lua
 Options\Tab_About.lua
 

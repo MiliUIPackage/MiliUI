@@ -301,6 +301,9 @@ end
 ------------------------------------------------------------
 -- 排版：每次追蹤器重排、設定變更、摺疊狀態改變都跑一次
 ------------------------------------------------------------
+-- 傳奇鑰石面板錨在標題列底下（Modules/MythicPlus.lua）
+function Chrome.GetBar() return bar end
+
 Chrome.layoutCount = 0
 
 function Chrome.Layout()

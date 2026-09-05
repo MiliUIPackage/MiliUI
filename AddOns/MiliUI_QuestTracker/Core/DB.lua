@@ -102,6 +102,18 @@ local function BuildDefaults()
             mythicPlus = true,
         },
 
+        -- 傳奇鑰石計時面板（Modules/MythicPlus.lua）：鑰石中清單摺起來的位置放它。
+        -- 尺寸照 WarpDeplete 的預設版面，字型與描邊跟著 appearance 走
+        mythicPlus = {
+            enabled      = true,
+            tooltipCount = true,
+            timerSize    = 34,
+            keySize      = 20,
+            textSize     = 16,
+            objectiveSize = 18,
+            barHeight    = 10,
+        },
+
         automation = {
             -- 預設開。安全網是底下那三個閘：有多個獎勵可選一律留給玩家、
             -- 要花金幣／貨幣／材料的不自動交、同一個 NPC 有多條可接就不亂挑。

@@ -39,9 +39,14 @@ local function ComputeAuto()
     if v.raid and instanceType == "raid" then return true end
     if v.raidBoss and instanceType == "raid" and inEncounter then return true end
     if v.dungeon and instanceType == "party" then return true end
-    if v.mythicPlus and C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive
-       and C_ChallengeMode.IsChallengeModeActive() then
-        return true
+    if v.mythicPlus then
+        -- 面板模組用副本資訊判斷（打完鑰石到出副本之前都算），跟面板同一個口徑；
+        -- 它還沒載入時退回 IsChallengeModeActive
+        if ns.MythicPlus and ns.MythicPlus.IsInChallenge() then return true end
+        if C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive
+           and C_ChallengeMode.IsChallengeModeActive() then
+            return true
+        end
     end
     return false
 end
