@@ -152,8 +152,12 @@ UIParent，換父層會連位置一起跑掉，我們錨在它身上的標題列
   `_G.LeaPlusDB`（他的 SavedVariable，是登入當下的值），偵測到就在設定頁與聊天視窗警告。
   文案要講清楚「這是登入時的狀態，改完要 /reload 才會重判」，不然看起來像壞掉。
   使用者的 Leatrix 自動任務目前是**全開**的。
-- **WarpDeplete** 在 M+ 已經把追蹤器 alpha 0（那個 alpha 隱藏就是我們幫它改的）。
-  我們的 `visibility.mythicPlus` 預設關，設定頁偵測到它就標注是誰的地盤。
+- **WarpDeplete**（2026-09-05 換手）：M+ 藏清單**由我們負責**，`visibility.mythicPlus` 預設**開**；
+  WarpDeplete 那邊改成選項 `hideObjectiveTracker` 預設關（見 [[project-local-addon-forks]]）。
+  設定頁偵測到它就提醒「兩邊只能開一邊」。
+  **改預設值的遷移範本**：`ns.DB_VERSION` 1→2，`DB.lua` 的 `Migrate(db)` 在 `MergeDefaults` **之前**
+  看 `schemaVersion`（merge 之後會被補成最新，舊新存檔就分不出來；全新存檔沒有版本號直接跳過），
+  `from < 2` 就把 `visibility.mythicPlus` 設成 true。之後再改任何預設值都照這個形狀加一段。
 - 我們的自動交任務比 Elles 完整：他缺 `QUEST_PROGRESS → CompleteQuest()`（中間的「繼續」
   要手點）、`QUEST_GREETING`、`QUEST_ACCEPT_CONFIRM`。**但 `QUEST_AUTOCOMPLETE → ShowQuestComplete()`
   要跟他一樣刻意不做** —— 那會跑暴雪的完成面板流程（`ShowUIPanel` ＋ 往世界地圖寫

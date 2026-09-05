@@ -178,14 +178,25 @@ function WarpDeplete:Show()
 	self.frames.root:Show()
 	self:RenderLayout()
 
-	self:HideObjectiveTracker()
+	self:UpdateObjectiveTrackerVisibility()
 end
 
 function WarpDeplete:Hide()
 	self.isShown = false
 	self.frames.root:Hide()
 
+	-- 一律放回來：就算選項關著，也可能是上一次還開著時藏的
 	self:ShowObjectiveTracker()
+end
+
+-- fix from MiliUI: 藏不藏追蹤器看選項（DB.lua 的 hideObjectiveTracker，預設關）。
+-- 選項在計時器顯示中被切換時也走這裡，當場生效。
+function WarpDeplete:UpdateObjectiveTrackerVisibility()
+	if self.isShown and self.db.profile.hideObjectiveTracker then
+		self:HideObjectiveTracker()
+	else
+		self:ShowObjectiveTracker()
+	end
 end
 
 function WarpDeplete:ResetState()

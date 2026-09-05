@@ -236,6 +236,14 @@ function WarpDeplete:InitOptions()
 					"RenderLayout"
 				),
 				lineBreak(),
+				-- fix from MiliUI: 藏任務追蹤器改成選項，預設關（見 DB.lua）
+				toggle(
+					L["Hide the objective tracker while the timer is shown"],
+					"hideObjectiveTracker",
+					"UpdateObjectiveTrackerVisibility",
+					{ width = "full" }
+				),
+				lineBreak(),
 
 				group(L["Forces Display"], true, {
 					{

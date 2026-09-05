@@ -95,9 +95,11 @@ local function BuildDefaults()
             battleground = false,
             dungeon    = false,
             combat     = false,
-            -- M+：WarpDeplete 已經自己把追蹤器藏起來了，兩邊搶同一個 alpha 會打架。
-            -- 預設關，設定頁那條有標注誰接管
-            mythicPlus = false,
+            -- M+：預設開。套組裡的 WarpDeplete 已改成「藏追蹤器」是選項且預設關
+            -- （它那邊的 hideObjectiveTracker），M+ 藏清單由我們負責。
+            -- 兩邊都開會搶同一個 alpha，設定頁那條有提醒。
+            -- ⚠ 從 false 改成 true 是改預設值 ⇒ 配 DB_VERSION 2 的遷移（見 Migrate）
+            mythicPlus = true,
         },
 
         automation = {
@@ -215,9 +217,29 @@ local function Normalize(db)
     Clamp(a, "bgAlpha",       DB.LIMITS.bgAlpha)
 end
 
+------------------------------------------------------------
+-- 預設值改動的遷移：版本閘＋值閘。
+-- ⚠ 一定要在 MergeDefaults **之前**判版本：merge 之後 schemaVersion 會被補成最新，
+--   舊存檔跟新存檔就分不出來了。全新存檔沒有 schemaVersion，直接跳過。
+------------------------------------------------------------
+local function Migrate(db)
+    local from = db.schemaVersion
+    if type(from) ~= "number" then return end
+
+    -- v2（2026-09-05）：M+ 自動摺疊從預設關改成預設開。
+    -- 藏追蹤器這件事同一天從 WarpDeplete 收回來（它那邊改成選項、預設關），
+    -- 舊玩家如果沒動過這條就跟著新預設走；主動關過的（值是 false 但版本已是 2）不會再碰。
+    if from < 2 then
+        if type(db.visibility) == "table" then
+            db.visibility.mythicPlus = true
+        end
+    end
+end
+
 function DB.Init()
     MiliUI_QuestTracker_DB = MiliUI_QuestTracker_DB or {}
     local db = MiliUI_QuestTracker_DB
+    Migrate(db)
     MergeDefaults(db, BuildDefaults())
     db.schemaVersion = ns.DB_VERSION
     Normalize(db)
