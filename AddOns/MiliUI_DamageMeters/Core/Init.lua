@@ -19,7 +19,7 @@ ns.playerClass = select(2, UnitClass("player"))
 ns.playerGUID  = UnitGUID("player")
 
 -- 聊天前綴與設定視窗標題共用這一個色，跟 TOC 的 [統計] 標籤同色。
--- 00FFFF 是套組的既有用色（Focus 的 [焦點]、BurstPotionHelper 的 [巨集]、
+-- 00FFFF 是套組的既有用色（Focus 的 [專注]、BurstPotionHelper 的 [巨集]、
 -- DamageMeterTools 的 [統計] 都是它）—— 兩支統計插件在列表裡相鄰，同色才像一組。
 ns.PREFIX_COLOR = "|cff00FFFF"
 

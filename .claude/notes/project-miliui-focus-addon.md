@@ -1,6 +1,6 @@
 ---
 name: project-miliui-focus-addon
-description: MiliUI_Focus「米利的焦點助手」——從套組拆出來的獨立插件，含一次性 SV 遷移的設計
+description: MiliUI_Focus「米利的專注目標助手」——從套組拆出來的獨立插件，含一次性 SV 遷移的設計
 metadata: 
   node_type: memory
   type: project
@@ -9,10 +9,22 @@ metadata:
 ---
 
 2026-08-22 把 MiliUI 套組裡「焦點目標」那一整組功能拆成獨立插件
-`AddOns/MiliUI_Focus`（Title-zhTW `|cff00FFFF[焦點]|r 米利的焦點助手`、
+`AddOns/MiliUI_Focus`（Title-zhTW `|cff00FFFF[專注]|r 米利的專注目標助手`、
 SV `MiliUI_Focus_DB`、指令 `/mfocus`、NAMESPACE `MiliUIFocus`）。
 **MiliUI 那邊的四支 `Enhance/Focuser*.lua` 與 Settings.lua 的「焦點目標」子分類已整個刪除**
 （同時跑會有兩顆巨集按鈕、兩條標記列、宣告送兩次）。`MiliUI/Media/announce.tga` 也搬過來了。
+
+## zhTW 正名（2026-09-05）
+
+整支語系從「焦點」改成官方譯名「**專注目標**」（宣告句 =「我的專注打斷目標是{icon}！」），
+TOC 標籤 `[焦點]` → `[專注]`。規則見 [[feedback-zhtw-blizzard-terms]]。
+
+宣告內容 `db.bar.announceText` 是**發佈後才改的預設值**：v1 的 `MergeDefaults` 已經把舊句
+寫進每個人的 SV（從舊套組搬過來的也是同一句），只改語系檔一個既有玩家都改不到。
+`ns.DB_VERSION` 因此升到 2，`DB.Init` 加一條版本閘＋值閘的遷移：`schemaVersion < 2`
+且內容剛好等於舊預設字串才換，玩家自己打過的字不動。位置要在 Init 收尾
+`db.schemaVersion = ns.DB_VERSION` 之前，也要在 `MigrateFromMiliUI` 之後（那條會把舊套組
+的同一句搬進來）。
 
 ## 檔案對照
 

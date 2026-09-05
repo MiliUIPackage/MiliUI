@@ -1,10 +1,10 @@
 ------------------------------------------------------------
 -- 標記切換列
 -- 兩顆按鈕：
---   1. 標記圖示：點擊彈出 8 格選單自行點選，切換焦點自動標記的圖示，
---      並立即重標目前焦點（走 raidtarget 安全動作，戰鬥中可用）
---   2. 宣告：把「我的焦點自動標記圖示是哪個」送到 副本/團隊/隊伍 頻道
---      （{icon} → {rtN}；宣告的是設定的圖示，不讀焦點單位，避開秘密值）
+--   1. 標記圖示：點擊彈出 8 格選單自行點選，切換專注目標自動標記的圖示，
+--      並立即重標目前的專注目標（走 raidtarget 安全動作，戰鬥中可用）
+--   2. 宣告：把「我的專注目標自動標記圖示是哪個」送到 副本/團隊/隊伍 頻道
+--      （{icon} → {rtN}；宣告的是設定的圖示，不讀專注目標單位，避開秘密值）
 -- 整條工具列本身是非安全框架，但選單格子是保護按鈕（標記只能走安全動作），
 -- 所以開關與建立都要 InCombatLockdown 守衛。
 ------------------------------------------------------------
@@ -242,7 +242,7 @@ local function GetPeerLists()
 end
 
 -- 組出宣告訊息。宣告的是「設定的自動標記圖示」（告訴隊友：這個標記就是
--- 我的焦點打斷目標），不讀焦點身上的標記，所以不需要焦點存在。
+-- 我的專注打斷目標），不讀專注目標身上的標記，所以不需要專注目標存在。
 -- forChat = true 用 {rtN}（送進頻道由客戶端轉圖示）；
 -- false 用 |T...|t 材質跳脫（print / tooltip 本地顯示用，{rtN} 在本地不會轉）
 local function BuildAnnounceMessage(forChat)
@@ -422,7 +422,7 @@ local function CreateBar()
     end)
     grip:SetScript("OnLeave", GameTooltip_Hide)
 
-    -- 按鈕 1：焦點標記圖示（點擊彈出選單自行點選）。
+    -- 按鈕 1：專注標記圖示（點擊彈出選單自行點選）。
     -- 選單含保護按鈕，開關必須在安全環境執行（戰鬥中才不會被擋），
     -- 所以這顆是 SecureHandlerClickTemplate，用 _onclick 快照切換
     markBtn = CreateBarButton(bar, "SecureHandlerClickTemplate")
@@ -474,7 +474,7 @@ local function CreateBar()
     end)
     markBtn:SetScript("OnLeave", GameTooltip_Hide)
 
-    -- 按鈕 2：宣告焦點目標
+    -- 按鈕 2：宣告專注標記
     announceBtn = CreateBarButton(bar)
     announceBtn:SetPoint("LEFT", markBtn, "RIGHT", ICON_SPACE, 0)
     -- 線條風自製圖示，保留 4px 留白（不像技能圖示要填滿裁邊）

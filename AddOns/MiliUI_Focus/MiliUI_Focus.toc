@@ -1,9 +1,9 @@
 ## Interface: 120100, 120105
 ## Title: MiliUI Focus
-## Title-zhTW: |cff00FFFF[焦點]|r 米利的焦點助手
+## Title-zhTW: |cff00FFFF[專注]|r 米利的專注目標助手
 ## Title-zhCN: |cff4488FF[MiliUI]|r 米利的焦点助手
 ## Notes: Focus target helper: shift-click focus with auto raid marker, focus cast bar with interrupt colors.|n|n|cffffd200Usage: |r/mfocus opens settings.
-## Notes-zhTW: MiliUI Focus|n|n米利的焦點助手。|n|nShift+點擊設焦點並自動上團隊標記、焦點施法條依斷法狀態變色。|n|n|cffffd200使用方法: |r/mfocus 開啟設定。
+## Notes-zhTW: MiliUI Focus|n|n米利的專注目標助手。|n|nShift+點擊設專注目標並自動上團隊標記、專注目標施法條依斷法狀態變色。|n|n|cffffd200使用方法: |r/mfocus 開啟設定。
 ## Notes-zhCN: MiliUI Focus|n|n米利的焦点助手。|n|nShift+点击设焦点并自动上团队标记、焦点施法条依打断状态变色。|n|n|cffffd200使用方法: |r/mfocus 打开设置。
 ## Category: Combat
 ## Category-zhTW: 戰鬥

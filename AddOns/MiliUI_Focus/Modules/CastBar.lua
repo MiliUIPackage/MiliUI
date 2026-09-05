@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 焦點目標施法監控
+-- 專注目標施法監控
 --   * 施法條可在編輯模式拖曳
 --   * 三種斷法狀態顏色（可斷／斷法冷卻中／不可中斷）
 --   * 開始唱法時播一次音效
@@ -60,7 +60,7 @@ local HideBar   -- forward declaration（供 ticker / OnUpdate 引用）
 local INTERRUPTED_COLOR = { 1, 0.2039215862751007, 0.1450980454683304 }
 local INTERRUPT_HOLD    = 1.0
 
-local active               = false   -- 目前是否有焦點施法在跑
+local active               = false   -- 目前是否有專注目標施法在跑
 local displayToken         = 0       -- 顯示世代：讓過期的「打斷停留」計時器失效
 local castSecret           = false   -- 本次施法是否走秘密模式
 local castStart, castEnd   = 0, 0    -- 一般模式：GetTime 起訖（秒）
@@ -217,7 +217,7 @@ end
 ----------------------------------------------------------------------
 -- 音效（獨立於施法監控開關）
 --
--- 不看斷法狀態，焦點一開始讀條就播一次。
+-- 不看斷法狀態，專注目標一開始讀條就播一次。
 --
 -- 為什麼不能像顏色那樣分三態：上色從頭到尾沒經過 Lua —— 秘密布林交給
 -- C_CurveUtil.EvaluateColorValueFromBoolean，引擎挑完直接塗到貼圖上，插件
@@ -450,7 +450,7 @@ local function TimerDir(isChannel, isEmpowered)
     return Enum.StatusBarTimerDirection.ElapsedTime
 end
 
--- 開始顯示焦點施法條（不放音效）。castTbl/chanTbl 可由呼叫端預讀後傳入，避免重複讀取。
+-- 開始顯示專注目標施法條（不放音效）。castTbl/chanTbl 可由呼叫端預讀後傳入，避免重複讀取。
 local function StartDisplay(castTbl, chanTbl)
     if not DB().monitor then return end
 
@@ -572,7 +572,7 @@ local function ResyncTiming()
     end
 end
 
--- 焦點切換 / 重新整理：若焦點正在施法就顯示（不放音效）
+-- 專注目標切換 / 重新整理：若專注目標正在施法就顯示（不放音效）
 local function RefreshFromFocus()
     if not DB().monitor then HideBar(); return end
     StartDisplay()   -- 內部自行判斷是否在施法，未施法會收條

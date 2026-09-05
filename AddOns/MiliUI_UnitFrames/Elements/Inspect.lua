@@ -69,7 +69,7 @@ end
 --
 -- ⚠ `/inspect` 寫死觀察 target（SlashCommands.lua：InspectUnit("target")），沒有
 --   單位參數。這顆按鈕目前只掛在目標框（DB.lua 的 target 區塊），所以剛好夠用；
---   將來要在焦點框加觀察鈕的話，那顆沒有 secure 入口，只能走舊路。
+--   將來要在專注目標框加觀察鈕的話，那顆沒有 secure 入口，只能走舊路。
 --
 -- ⚠ 變成 secure 框之後，戰鬥中 Show/Hide/EnableMouse/SetPoint/SetAttribute 全部
 --   被擋（EnableMouse 也在保護清單裡）。所以：

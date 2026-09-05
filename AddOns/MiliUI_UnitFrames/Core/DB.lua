@@ -770,7 +770,7 @@ local PROFILE_MIGRATIONS = {
     -- v13：滑鼠移過的高亮邊框（frame level 20）壓在團隊標記等小圖示上頭 —— 那些圖示
     -- 故意突出框體上緣，邊框的頂線就從圖示中間劃過去。小圖示是浮在框上的徽章，本來
     -- 就該蓋過邊框，所以一律提到 ICON_LEVEL（21）。
-    -- 首領框不在這步：使用者點名的是玩家／目標／目標的目標／焦點／焦點的目標。
+    -- 首領框不在這步：使用者點名的是玩家／目標／目標的目標／專注目標／專注目標的目標。
     --
     -- ⚠ 版本號**跳過 12**，不是打錯。開發期間有一版把 DB_VERSION 推到 12 之後整包
     -- 丟掉，本機 SV 的 schemaVersionSeen 已經記著 12。DB.Migrate 的起點取
@@ -782,7 +782,7 @@ local PROFILE_MIGRATIONS = {
     [13] = function(profile)
         local units = profile.units
         if type(units) ~= "table" then return end
-        -- 舊預設：團標 5（焦點兩隻是 6）、其餘 10
+        -- 舊預設：團標 5（專注目標兩隻是 6）、其餘 10
         local OLD = {
             raidtarget = { [5] = true, [6] = true },
             status     = { [10] = true },

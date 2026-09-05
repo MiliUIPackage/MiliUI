@@ -39,6 +39,6 @@ function Env.PopupParent()
     return ns.Options and ns.Options.panel
 end
 
--- 標籤欄寬：本插件的 zhTW 標籤偏長（「設定焦點目標時自動上團隊標記」），
+-- 標籤欄寬：本插件的 zhTW 標籤偏長（「設定專注目標時自動上團隊標記」），
 -- 預設 128 會換行
 Env.LABEL_W = 210

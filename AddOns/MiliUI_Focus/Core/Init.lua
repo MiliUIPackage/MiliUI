@@ -1,8 +1,8 @@
 ------------------------------------------------------------
 -- MiliUI_Focus 命名空間與啟動流程
 --
--- 這是原本 MiliUI 套組裡「焦點目標」那一整組功能（Shift+點擊設焦點／自動團隊標記／
--- 標記切換列／隊友標記同步／焦點施法條）拆出來的獨立插件。
+-- 這是原本 MiliUI 套組裡「專注目標」那一整組功能（Shift+點擊設專注目標／自動團隊標記／
+-- 標記切換列／隊友標記同步／專注目標施法條）拆出來的獨立插件。
 --
 -- 啟動一律等到 PLAYER_LOGIN：
 --   * 自己的 SavedVariables 那時已經載入；
@@ -13,7 +13,7 @@ local ADDON, ns = ...
 
 ns.ADDON_NAME = ADDON
 ns.VERSION    = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
-ns.DB_VERSION = 1
+ns.DB_VERSION = 2   -- v2：zhTW 宣告內容的「焦點」正名為「專注目標」（見 Core/DB.lua）
 
 ns.playerClass = select(2, UnitClass("player"))   -- player token 不受 12.1 身分限制，安全
 

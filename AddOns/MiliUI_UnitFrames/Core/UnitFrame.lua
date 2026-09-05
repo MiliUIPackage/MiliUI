@@ -440,7 +440,7 @@ end
 --
 -- ⚠⚠ **不要自己開整份選單，已試過兩次都失敗。**
 -- 自己算出選單類型再呼叫 UnitPopup_OpenMenu 會開出正確的選單，但整份選單帶著
--- 我們的 taint ⇒ 保護項目（設為焦點 FocusUnit…）按下去跳「嘗試進行 Blizzard UI
+-- 我們的 taint ⇒ 保護項目（設為專注目標 FocusUnit…）按下去跳「嘗試進行 Blizzard UI
 -- 專屬動作，遭到封鎖」的強制彈窗，還會建議玩家關掉插件；包 securecallfunction
 -- 也救不回來（2026-08-26 實測）。安全開啟是保護項目能動的唯一路。
 --
@@ -487,13 +487,13 @@ end
 
 ------------------------------------------------------------
 -- 重開的那份選單帶著 taint，有幾個項目**一定**壞，開著只會炸或污染：
---   設為焦點／跟隨   保護函式，點了跳 FORBIDDEN（前一版實測）
---   標記目標圖示     子選單每顆勾選都比較 GetRaidTargetIndex —— 12.1 是秘密數字，
---                    tainted 執行一比就炸（LUA_WARNING UnitPopupSharedButtonMixins
---                    2489 ＋ fontString nil 連鎖，整片子選單壞掉、警告刷屏）；
---                    就算畫得出來，SetRaidTarget 也是保護函式
---   檢視房屋         tainted 跑 HouseListFrame:InitWithContextData 會把房屋清單
---                    污染到底：之後連安全選單開的「拜訪房屋」都被擋，直到重登
+--   設為專注目標／跟隨   保護函式，點了跳 FORBIDDEN（前一版實測）
+--   標記目標圖示         子選單每顆勾選都比較 GetRaidTargetIndex —— 12.1 是秘密數字，
+--                        tainted 執行一比就炸（LUA_WARNING UnitPopupSharedButtonMixins
+--                        2489 ＋ fontString nil 連鎖，整片子選單壞掉、警告刷屏）；
+--                        就算畫得出來，SetRaidTarget 也是保護函式
+--   檢視房屋             tainted 跑 HouseListFrame:InitWithContextData 會把房屋清單
+--                        污染到底：之後連安全選單開的「拜訪房屋」都被擋，直到重登
 -- 全部灰掉。reopenUnit 閘保證只動我們重開的那一份，正常的安全選單一個不碰。
 -- （ModifyMenu 的回呼是在 UnitPopup_OpenMenu **裡面**同步跑的，旗標包住呼叫就夠。）
 ------------------------------------------------------------

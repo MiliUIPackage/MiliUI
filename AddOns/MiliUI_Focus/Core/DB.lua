@@ -24,6 +24,12 @@ local DEFAULT_COLORS = {
 }
 DB.DEFAULT_COLORS = DEFAULT_COLORS
 
+-- v1 時期的 zhTW 宣告預設值。zhTW 的 focus 官方譯名是「專注目標」，不是「焦點」，
+-- 但這句在 v1 就被 MergeDefaults 寫進每個人的 SV 了（連舊套組搬過來的也是同一句），
+-- 所以只改語系檔一個既有玩家都改不到。DB.Init 的版本閘會把「還停在舊預設值」的那份
+-- 換掉；玩家自己打過的字不比對就不動。
+local LEGACY_ANNOUNCE_ZHTW = "我的焦點打斷目標是{icon}！"
+
 ------------------------------------------------------------
 -- 預設標記編號：隨機挑一個
 --
@@ -201,6 +207,12 @@ function DB.Init()
                     .. " (" .. moved .. ")")
             end)
         end
+    end
+
+    -- v1 → v2：宣告內容的舊 zhTW 預設值換成正名後的那句（只換沒動過的那份）。
+    -- 讀 schemaVersion 要趁 Init 收尾把它蓋成新版之前。
+    if (db.schemaVersion or 0) < 2 and db.bar.announceText == LEGACY_ANNOUNCE_ZHTW then
+        db.bar.announceText = ns.L["My focus interrupt target is {icon}!"]
     end
 
     -- 標記編號一定要落在 1~8。設定頁的下拉與標記列的選單都只給 1~8，玩家選不出 0，

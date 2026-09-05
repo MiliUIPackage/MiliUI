@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- Shift+點擊（或自訂快捷鍵）設定焦點目標 ＋ 自動上團隊標記
+-- Shift+點擊（或自訂快捷鍵）設定專注目標 ＋ 自動上團隊標記
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -24,7 +24,7 @@ local function GetActiveMacro(markOverride)
     local db = DB()
     local index = markOverride or db.markIndex
     local lines = {}
-    -- 這裡曾經有一行 `/tm [@focus,exists] 0`（換焦點時清掉舊焦點的標記）。
+    -- 這裡曾經有一行 `/tm [@focus,exists] 0`（換專注目標時清掉舊目標的標記）。
     -- 拿掉了：巨集只能「無條件」清 —— 條件式沒有「已被標記」這種判斷，安全
     -- 動作也只有 set / set-unmarked / clear / clear-all / toggle，沒有「等於 N
     -- 才清」；而 12.1 的 GetRaidTargetIndex 回傳秘密值，Lua 端也比不了編號。
