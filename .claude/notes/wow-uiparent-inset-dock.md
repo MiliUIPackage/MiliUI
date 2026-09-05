@@ -1,6 +1,6 @@
 ---
 name: wow-uiparent-inset-dock
-description: 把 UIParent 往內縮一條就能讓整個介面替停靠的資訊列讓位——實測進出戰鬥／編輯模式都不會被打回；代價是錨在中央的東西移半條
+description: 把 UIParent 往內縮一條就能讓整個介面替停靠的資訊列讓位——但上緣是暴雪 UpdateUIParentPosition（瀏海／除錯列）在管，要疊在它的偏移上並掛勾它；代價是錨在中央的東西移半條
 metadata:
   type: reference
 ---
@@ -31,3 +31,17 @@ UIParent:ClearAllPoints(); UIParent:SetAllPoints(nil)
 只在需要改變時才動 UIParent：每次 ClearAllPoints 會讓所有錨在它身上的框重新結算版面。
 
 實作在 `MiliUI_InfoBar/Core/Bar.lua` 的 `ApplyInset`／`Docked` 分支（[[project-miliui-infobar]]）。
+
+
+## 根本原因（2026-09-05 找到）：上緣是暴雪在管的
+
+`Blizzard_UIParentUtil/UIParentUtil.lua` 的全域 `UpdateUIParentPosition()`：
+`topOffset = max(DebugBarManager 高度, Mac 瀏海高度)` → `UIParent:SetPoint("TOPLEFT", 0, -topOffset)`。
+鑰石開始等時機會重跑，`GetPoint` 看到的 `-0` 就是它寫的。所以：
+
+- **不要跟它搶**：我們的上緣＝它算的 top ＋ 自己那一條；還原也是交還它的值，不是貼 0
+  （Mac 有瀏海的人貼 0 會把介面塞進瀏海）。
+- **掛勾它**（`hooksecurefunc("UpdateUIParentPosition", ...)`）：跑完記下它的值、停靠中就把自己的
+  那一條疊回去。登入當下它已經跑過，掛勾接不到那次，PLAYER_LOGIN 直接讀 TOPLEFT 當基準。
+- UIParent 方法掛勾（ClearAllPoints／SetAllPoints／SetPoint 下一幀重貼）留著當保險。
+- 下緣它不碰，bottom 停靠只有我們在寫。

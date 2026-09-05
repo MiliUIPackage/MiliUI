@@ -546,6 +546,390 @@ end
 -- ⚠ 只在需要改變時才動 UIParent：每次 ApplyAll 都 ClearAllPoints 會讓
 --   所有錨在它身上的框重新結算版面，沒事別碰。
 ----------------------------------------------------------------------
+----------------------------------------------------------------------
+-- UIParent 的上緣不是我們一個人的：暴雪 Blizzard_UIParentUtil 的
+-- UpdateUIParentPosition() 會把它往下推「Mac 瀏海高度」與「除錯列高度」的最大值
+-- （`UIParent:SetPoint("TOPLEFT", 0, -topOffset)`），而且會在鑰石開始等時機重跑
+-- ——2026-09-05 使用者實測，跑完 GetPoint 看到的就是它寫的 `-0`。
+-- 所以停靠的內縮要**疊在它的偏移上**：它算出 top，我們寫 top + 一條；還原時也不是
+-- 貼回 0，而是交還它算的那個值。掛勾它：它一跑完我們就補上自己的那一條。
+--
+-- ⚠ 只在需要改變時才動 UIParent：每次 ClearAllPoints 會讓所有錨在它身上的框
+--   重新結算版面，沒事別碰。自己貼的時候 applyingInset 擋住方法掛勾，免得追著自己跑。
+----------------------------------------------------------------------
+local appliedDock, appliedInset = "none", 0
+local applyingInset = false
+local blizzTopOffset = 0      -- 暴雪最近一次算出來的上緣偏移（正值＝往下推多少）
+
+-- 讀 UIParent 現在的 TOPLEFT 偏移（找點不用假設順序）
+local function CurrentTopOffset()
+    for i = 1, UIParent:GetNumPoints() do
+        local point, _, _, _, y = UIParent:GetPoint(i)
+        if point == "TOPLEFT" then return -(y or 0) end
+    end
+    return 0
+end
+
+local function DockInset()
+    if not (db and db.enabled and db.dock and db.dock ~= "none" and db.dockPush) then
+        return "none", 0
+    end
+    return db.dock, P.Scale(db.height)
+end
+
+local function ApplyInset(force)
+    local side, h = DockInset()
+    if not force and side == appliedDock and h == appliedInset then return end
+    appliedDock, appliedInset = side, h
+    applyingInset = true
+    UIParent:ClearAllPoints()
+    local top = blizzTopOffset + ((side == "top") and h or 0)
+    local bottom = (side == "bottom") and h or 0
+    UIParent:SetPoint("TOPLEFT",     nil, "TOPLEFT",     0, -top)
+    UIParent:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, bottom)
+    applyingInset = false
+end
+ns.ApplyInset = ApplyInset
+
+-- 暴雪那支跑完：記下它的值，停靠中就把自己的那一條疊回去。
+-- 這是主力；下面的方法掛勾只是保險（給沒走這支函式的重設）。
+if type(UpdateUIParentPosition) == "function" then
+    hooksecurefunc("UpdateUIParentPosition", function()
+        if applyingInset then return end
+        blizzTopOffset = CurrentTopOffset()
+        if appliedDock ~= "none" and db and not InCombatLockdown() then
+            ApplyInset(true)
+            if ns.ApplyBarPosition then ns.ApplyBarPosition() end
+        end
+    end)
+end
+
+local insetRepairQueued = false
+local function QueueInsetRepair()
+    if applyingInset or insetRepairQueued then return end
+    if appliedDock == "none" then return end   -- 沒停靠就沒什麼好修
+    insetRepairQueued = true
+    C_Timer.After(0, function()
+        insetRepairQueued = false
+        if db and not InCombatLockdown() then
+            ApplyInset(true)
+            ns.ApplyBarPosition()
+        end
+    end)
+end
+hooksecurefunc(UIParent, "ClearAllPoints", QueueInsetRepair)
+hooksecurefunc(UIParent, "SetAllPoints",   QueueInsetRepair)
+hooksecurefunc(UIParent, "SetPoint",       QueueInsetRepair)
+
+local function Docked()
+    return db and db.dock and db.dock ~= "none" and db.dock or nil
+end
+
+-- 框線色，「跟底色同色就不畫」的規則在這裡：邊是疊在底色之上的，半透明時
+-- 兩層 0.8 會疊成 0.96，邊緣就浮出一圈比中間更深的框——正好是「同色＝看不出
+-- 有框」想避免的東西。
+local function EdgeColorOrHidden()
+    local r, g, b, a = EdgeColor()
+    local br, bg_, bb = BgColor()
+    if r == br and g == bg_ and b == bb then a = 0 end
+    return r, g, b, a
+end
+
+local function ApplyEdgeColor(tile, hover)
+    local edges = tile.edges
+    if hover then
+        local r, g, b = ns.W.Accent(1)
+        for _, e in ipairs(edges) do e:SetVertexColor(r, g, b, 1) end
+    elseif Docked() then
+        -- 停靠時底與框線由整條 bar 畫（見 ApplyBarChrome），tile 自己的不畫，
+        -- 否則兩層半透明疊在一起、tile 的區域會比空白區深一階
+        for _, e in ipairs(edges) do e:SetVertexColor(0, 0, 0, 0) end
+    else
+        for _, e in ipairs(edges) do e:SetVertexColor(EdgeColorOrHidden()) end
+    end
+end
+
+ns.ApplyEdgeColor = ApplyEdgeColor
+
+-- 停靠時整條 bar 的底與上下框線（tile 之間的空白也要有底）。
+-- 不停靠就藏起來，底由每顆 tile 自己畫（原本的樣子）。
+local function ApplyBarChrome()
+    if not (bar and bar.bg) then return end
+    local docked = Docked() ~= nil
+    bar.bg:SetShown(docked)
+    if docked then bar.bg:SetVertexColor(BgColor()) end
+    local r, g, b, a = EdgeColorOrHidden()
+    for _, e in ipairs(bar.edges) do
+        e:SetShown(docked)
+        e:SetVertexColor(r, g, b, a)
+    end
+end
+
+-- 換過底色／框線色之後重新套到每一顆 tile（含已經建好、現在沒顯示的）。
+-- 滑鼠正停在上面的那顆維持職業色，不然拖著色票調色時焦點那顆會被抹掉。
+local function ApplyColors()
+    local docked = Docked() ~= nil
+    for _, tile in ipairs(allTiles) do
+        if tile.bg then
+            local r, g, b, a = BgColor()
+            tile.bg:SetVertexColor(r, g, b, docked and 0 or a)
+        end
+        if tile.edges then ApplyEdgeColor(tile, tile:IsMouseMotionFocus()) end
+        if tile.text then tile.text:SetTextColor(TextColor()) end
+    end
+    ApplyBarChrome()
+end
+
+function ns.CreateTile(name, opts)
+    opts = opts or {}
+    local tile = CreateFrame("Button", name, bar, opts.template)
+    tile.desiredW = ns.GetDB().height
+
+    local bg = tile:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetTexture(WHITE)
+    bg:SetVertexColor(BgColor())
+    tile.bg = bg
+
+    local edges = {}
+    for i = 1, 4 do
+        local e = tile:CreateTexture(nil, "BORDER")
+        e:SetTexture(WHITE)
+        edges[i] = e
+    end
+    edges[1]:SetPoint("TOPLEFT");    edges[1]:SetPoint("TOPRIGHT")
+    edges[2]:SetPoint("BOTTOMLEFT"); edges[2]:SetPoint("BOTTOMRIGHT")
+    edges[3]:SetPoint("TOPLEFT");    edges[3]:SetPoint("BOTTOMLEFT")
+    edges[4]:SetPoint("TOPRIGHT");   edges[4]:SetPoint("BOTTOMRIGHT")
+    local px = P.Scale(1)
+    edges[1]:SetHeight(px); edges[2]:SetHeight(px)
+    edges[3]:SetWidth(px);  edges[4]:SetWidth(px)
+    tile.edges = edges
+    ApplyEdgeColor(tile, false)
+
+    if opts.text then
+        local fs = tile:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(ns.LOCALE_FONT, ns.GetDB().fontSize, "")
+        fs:SetPoint("CENTER")
+        fs:SetJustifyH("CENTER")
+        fs:SetWordWrap(false)
+        fs:SetTextColor(TextColor())
+        tile.text = fs
+    end
+
+    if opts.clickable then
+        tile:EnableMouse(true)
+        tile:RegisterForClicks("AnyUp")
+        -- 底色的滑過亮階交給引擎的 highlight 貼圖（白 0.13 疊 0.115 ≈ 0.23），
+        -- 職業色那半（1px 邊）走 OnEnter/OnLeave —— 跟 Chattynator 按鈕同一句話：
+        -- 明暗說「它現在怎麼了」，職業色說「焦點在這」。
+        tile:SetHighlightTexture(WHITE)
+        local hl = tile:GetHighlightTexture()
+        hl:SetVertexColor(HIGHLIGHT[1], HIGHLIGHT[2], HIGHLIGHT[3], HIGHLIGHT[4])
+        tile:SetPushedTextOffset(0, 0)
+        tile:HookScript("OnEnter", function(self) ApplyEdgeColor(self, true) end)
+        tile:HookScript("OnLeave", function(self) ApplyEdgeColor(self, false) end)
+        tile:HookScript("OnMouseDown", function(self)
+            self.bg:SetVertexColor(PushedColor())
+        end)
+        tile:HookScript("OnMouseUp", function(self)
+            self.bg:SetVertexColor(BgColor())
+        end)
+    else
+        -- 純顯示的 tile 不吃滑鼠：資訊列不該擋住底下的遊戲畫面點擊
+        tile:EnableMouse(false)
+    end
+
+    -- 文字變了才量寬、寬變了才要求重排 —— 每秒輪詢的區塊大多數 tick
+    -- 在這裡就短路掉了
+    function tile:SetTileText(str)
+        if not self.text or self._lastText == str then return end
+        self._lastText = str
+        self.text:SetText(str)
+        local w = math.ceil(self.text:GetStringWidth()) + PAD_X * 2
+        if w ~= self.desiredW then
+            self.desiredW = w
+            ns.RequestLayout()
+        end
+    end
+
+    function tile:ApplyFont(size)
+        if self.text then
+            self.text:SetFont(ns.LOCALE_FONT, size, "")
+            -- 字級變了寬度也會變，重量一次
+            local str = self._lastText
+            self._lastText = nil
+            if str then self:SetTileText(str) end
+        end
+    end
+
+    allTiles[#allTiles + 1] = tile
+    tile:Hide()
+    return tile
+end
+
+----------------------------------------------------------------------
+-- 版面：啟用中的區塊照 order 排成一列，bar 自動縮放成內容寬
+----------------------------------------------------------------------
+local instances = {}      -- key -> 區塊實例
+ns.Instances = instances
+
+local function EnabledInstancesInOrder()
+    local list = {}
+    for _, def in ipairs(ns.BLOCK_DEFS) do
+        local cfg = db.blocks[def.key]
+        local inst = instances[def.key]
+        if cfg and cfg.enabled and inst then
+            list[#list + 1] = { inst = inst, order = cfg.order or 0 }
+        end
+    end
+    table.sort(list, function(a, b)
+        if a.order ~= b.order then return a.order < b.order end
+        return a.inst.key < b.inst.key   -- 同序號用 key 決勝，重排才不會抖
+    end)
+    return list
+end
+
+local function Layout()
+    if not bar then return end
+    -- bar 是 secure 按鈕的祖先＝隱式保護框，戰鬥中的幾何變更會被封鎖；
+    -- 凍結現狀，脫戰一次補齊
+    if InCombatLockdown() then
+        ns.Defer("layout", Layout)
+        return
+    end
+
+    local h = db.height
+    local blockGap = db.blockGap or BLOCK_GAP
+    -- 區塊間距縮到比預設 tile 間距還小時，同區塊內的間距跟著收——
+    -- 不然「區塊之間 0、按鈕之間 2」會讀成反過來的群組
+    local tileGap = math.min(TILE_GAP, blockGap)
+    local merged = (blockGap == 0)
+
+    -- 先收集「要顯示的 tile ＋ 它前面該留多少間距」，再一次排出去。
+    -- 分兩段是為了知道每個 tile 的前一顆是誰——鏈式錨定要用（見下）。
+    local shownList, gapBefore = {}, {}
+    local list = EnabledInstancesInOrder()
+    for i, entry in ipairs(list) do
+        local first = true
+        for _, tile in ipairs(entry.inst.tiles) do
+            if not tile._blockHidden then
+                shownList[#shownList + 1] = tile
+                -- 同區塊內用 tileGap，跨區塊用 blockGap；整條第一顆沒有前間距
+                gapBefore[#shownList] = (#shownList == 1) and 0
+                    or (first and blockGap or tileGap)
+                first = false
+            else
+                tile:Hide()
+            end
+        end
+    end
+
+    -- ⚠ 位置**鏈式錨定**在前一顆的右緣，不是從 bar 左緣累加算出來的絕對 x。
+    -- P.Size 會把寬度捨到像素格，跟我們累加用的 desiredW 差那麼一點點；
+    -- 累加式定位會把這個誤差一路疊上去，跨過一個像素就在某兩塊之間露出一條縫
+    -- （間距 0 卻有空隙的成因，2026-08-29 實測）。錨在右緣就由引擎保證貼齊，
+    -- 誤差不會累積。
+    -- 先量總寬（尺寸要先設好，GetWidth 才是捨入後的實際值），停靠時的對齊要用它
+    local total = 0
+    for i, tile in ipairs(shownList) do
+        P.Size(tile, tile.desiredW, h)
+        total = total + P.Scale(gapBefore[i]) + tile:GetWidth()
+    end
+
+    -- 停靠時內容在整寬的 bar 裡置中／靠左／靠右；起點偏移捨到像素格，
+    -- 不然第一顆從半個像素開始，整條都糊
+    local startX = 0
+    local docked = db.dock and db.dock ~= "none"
+    if docked then
+        local barW = bar:GetWidth() or 0
+        local align = db.dockAlign or "center"
+        if align == "center" then
+            startX = (barW - total) / 2
+        elseif align == "right" then
+            startX = barW - total
+        end
+        if startX < 0 then startX = 0 end
+        local px = P.Scale(1)
+        startX = math.floor(startX / px + 0.5) * px
+    end
+
+    for i, tile in ipairs(shownList) do
+        local gap = P.Scale(gapBefore[i])
+        tile:ClearAllPoints()
+        if i == 1 then
+            tile:SetPoint("LEFT", bar, "LEFT", startX, 0)
+        else
+            tile:SetPoint("LEFT", shownList[i - 1], "RIGHT", gap, 0)
+        end
+        tile:Show()
+    end
+
+    -- 間距 0 ＝整條融成一長條：tile 貼死之後左右隔線會疊成雙線，
+    -- 中間的直向邊全部收掉、只留最外緣那兩條；上下邊本來就會連成連續線
+    for i, tile in ipairs(shownList) do
+        tile.edges[3]:SetShown(not merged or i == 1)
+        tile.edges[4]:SetShown(not merged or i == #shownList)
+    end
+
+    if total < 1 then total = 1 end
+    if docked then
+        -- 停靠時寬度由兩角錨定決定（填滿整邊），SetSize 會把它打回去
+        bar:SetHeight(P.Scale(h))
+    else
+        bar:SetSize(total, P.Scale(h))
+    end
+    ApplyBarChrome()
+end
+
+function ns.RequestLayout()
+    if layoutQueued then return end
+    layoutQueued = true
+    C_Timer.After(0, function()
+        layoutQueued = false
+        Layout()
+    end)
+end
+
+----------------------------------------------------------------------
+-- 位置：CENTER 偏移存 SavedVariables（跟解析度/UI 縮放脫鉤），
+-- 編輯模式拖曳來改。做法照 wow-editmode-draggable 技能。
+--
+-- 玩家沒拖過（db.x/db.y 為 nil）時，預設位置**跟隨官方微型選單那排**——
+-- 讀 MicroMenuContainer 的中心（讀取不污染；被我們藏起來也還有 rect，
+-- 錨點都在）。GetCenter 回的是框自己座標系的值，要用有效縮放換到
+-- UIParent 座標才能當 CENTER 偏移。
+----------------------------------------------------------------------
+local function DefaultPosition()
+    local c = _G.MicroMenuContainer
+    if c and c.GetCenter then
+        local cx, cy = c:GetCenter()
+        if cx and cy then
+            local scale = (c.GetEffectiveScale and c:GetEffectiveScale() or 1)
+                        / UIParent:GetEffectiveScale()
+            local ux, uy = UIParent:GetCenter()
+            return math.floor(cx * scale - ux + 0.5), math.floor(cy * scale - uy + 0.5)
+        end
+    end
+    return 0, -420
+end
+
+----------------------------------------------------------------------
+-- 停靠：把 UIParent 往內縮一條
+--
+-- 整個介面（暴雪的、插件的）都錨在 UIParent 上，UIParent 自己錨在螢幕。
+-- 把它的上緣往下拉一條的高度，錨在上緣的東西全部自動讓開、錨在中間的下來
+-- 一半、錨在下緣的不動；編輯模式的版面是相對 UIParent 存的，會一起位移。
+-- 資訊列自己則錨在 UIParent 那個邊的**外面**（父層不裁切，畫得出來）。
+-- 關掉停靠就把 UIParent 放回螢幕四角，所有東西一步到位回原位，不必記任何
+-- 框的原始位置。
+--
+-- 2026-09-05 使用者實測：進出戰鬥、進出編輯模式都不會被打回去。
+-- 換解析度／改 UI 縮放沒驗證過，那兩個事件保險起見再貼一次。
+--
+-- ⚠ 只在需要改變時才動 UIParent：每次 ApplyAll 都 ClearAllPoints 會讓
+--   所有錨在它身上的框重新結算版面，沒事別碰。
+----------------------------------------------------------------------
 local appliedDock, appliedInset = "none", 0
 local applyingInset = false
 
@@ -993,6 +1377,9 @@ ns.Events.Register("PLAYER_REGEN_ENABLED", "defer", FlushDeferred)
 ns.Events.Register("PLAYER_LOGIN", "boot", function()
     ns.InitDB()
     HookEditMode()
+    -- 登入時暴雪的 UpdateUIParentPosition 早就跑過了，掛勾接不到那次：
+    -- 現在的 TOPLEFT 偏移就是它的值（我們還沒動過 UIParent）
+    blizzTopOffset = CurrentTopOffset()
     ns.ApplyAll()
 end)
 -- 載入畫面會重置一些外部狀態（暴雪那排的可見度），進世界後強制重推一次。
