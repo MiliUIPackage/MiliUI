@@ -298,6 +298,10 @@ end
 ----------------------------------------------------------------------
 -- 位置（BOTTOMLEFT 錨定，拖完存左/下緣座標）
 ----------------------------------------------------------------------
+-- 磁吸註冊表裡的名字（Libs/MiliUISnap.lua）。別條插件的 db.snapTo.target 記的就是它，
+-- 改了名字等於把玩家吸好的組合拆掉
+local SNAP_KEY = "focusMarkBar"
+
 local function PositionBar()
     if not bar then return end
     local db = DB()
@@ -309,6 +313,8 @@ local function PositionBar()
     end
     bar:ClearAllPoints()
     bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", db.x, db.y)
+    -- 吸在別條上的話改錨到它身上（Libs/MiliUISnap.lua）；目標不在就維持上面的絕對座標
+    if ns.Snap then ns.Snap.Restore(SNAP_KEY) end
 end
 
 local function SavePosition()
@@ -316,6 +322,9 @@ local function SavePosition()
     if not (x and y) then return end
     local db = DB()
     db.x, db.y = x, y
+    -- 吸著的時候錨點在別條身上，不能改回 UIParent（那會把「跟著走」拆掉）；
+    -- x/y 照存，當作它哪天不在時的退路
+    if ns.Snap and ns.Snap.IsAttached(SNAP_KEY) then return end
     bar:ClearAllPoints()
     bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
 end
@@ -372,6 +381,7 @@ local function CreateBar()
     bar:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
     bar:SetBackdropBorderColor(0, 0, 0, 1)
     bar:Hide()
+    if ns.Snap then ns.Snap.Register(SNAP_KEY, bar, { db = DB }) end
 
     -- 拖曳握把（左側）：左鍵拖曳移動、右鍵開啟設定
     local grip = CreateFrame("Frame", nil, bar)
@@ -391,10 +401,13 @@ local function CreateBar()
 
     -- 列上有保護子框架（標記選單），戰鬥中不能移動
     grip:SetScript("OnDragStart", function()
-        if not InCombatLockdown() then bar:StartMoving() end
+        if InCombatLockdown() then return end
+        if ns.Snap then ns.Snap.OnDragStart(SNAP_KEY) end   -- 拖自己＝先脫離
+        bar:StartMoving()
     end)
     grip:SetScript("OnDragStop", function()
         bar:StopMovingOrSizing()
+        if ns.Snap then ns.Snap.OnDragStop(SNAP_KEY) end    -- 放手離得近就吸上去
         SavePosition()
     end)
     grip:SetScript("OnMouseUp", function(_, mouseButton)

@@ -132,6 +132,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-perf-tab.md](project-miliui-perf-tab.md) | 設定視窗的「效能監控」分頁 —— 插件 CPU／記憶體儀表板；成本紀律、戰鬥遮罩例外、待驗證清單 |
 | [project-miliui-questtracker.md](project-miliui-questtracker.md) | 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker 的獨立插件；**六條 taint 規矩**、摺疊走 `IsProtected()` 分流、Leatrix 衝突偵測、待驗證清單 |
 | [project-miliui-characternotes.md](project-miliui-characternotes.md) | 米利的角色筆記 MiliUI_CharacterNotes —— 從套組拆出的獨立插件；副本／首領筆記（難度分層、本季名單）、聊天連結分享 |
+| [project-miliui-snap-bars.md](project-miliui-snap-bars.md) | 焦點標記列 × 爆發藥水列互相磁吸：vendor 複製的 MiliUISnap，後面那條直接錨在前面那條上 |
 | [project-miliui-auraenhance.md](project-miliui-auraenhance.md) | 米利的光環美化 MiliUI_AuraEnhance —— 兩條遷移來源、字型存路徑還是 LSM 名稱、鏡射圖示在 12.1 變紅問號 |
 | [project-miliui-chatbar-snap.md](project-miliui-chatbar-snap.md) | 快捷聊天列的磁吸與自適應寬度 —— 位置從 `SetUserPlaced` 收回自己存 |
 | [project-miliui-esc-menu-window-migration.md](project-miliui-esc-menu-window-migration.md) | 三支小插件改自製設定視窗（爆發藥水／嗜血音樂／快捷聊天列）；踩過的點 |

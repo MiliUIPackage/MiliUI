@@ -17,6 +17,7 @@ Libs\MiliUIWidgets\PixelPerfect.lua
 Libs\MiliUIWidgets\Secret.lua
 Libs\MiliUIWidgets\Errors.lua
 Libs\MiliUIWidgets\Metro.lua
+Libs\MiliUISnap.lua
 embeds.xml
 Locales\Locales.xml
 
