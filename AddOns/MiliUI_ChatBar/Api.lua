@@ -28,6 +28,8 @@ SlashCmdList["MILIUICHATBAR"] = function(msg)
     msg = strtrim((msg or ""):lower())
     if msg == "reset" then
         ns.ResetPosition()
+    elseif msg == "debug" then
+        if ns.Anchor then ns.Anchor.Debug() end
     else
         ns.OpenSettings()
     end

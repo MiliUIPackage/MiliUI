@@ -14,7 +14,7 @@ local _, ns = ...
 local Anchor = {}
 ns.Anchor = Anchor
 
-local SNAP_DIST = 14   -- 吸附判定距離（螢幕像素）
+local SNAP_DIST = 2    -- 吸附判定距離（螢幕像素）：離 2px 以內才吸（使用者指定）
 local SNAP_GAP  = 2    -- 吸上去之後留的縫
 
 local function DB()
@@ -79,6 +79,50 @@ local function ScreenRect(f)
 end
 
 ------------------------------------------------------------
+-- 聊天視窗「內容」的底在哪
+--
+-- Chattynator 把輸入列（ChatFrame1EditBox）錨在視窗框的下緣、但往下伸出框外
+-- 一截（Display/Main.lua 的 UpdateEditBox：偏移量是 clamp inset 算出來的）。
+-- 拿框的下緣當吸附基準，聊天列就會蓋在輸入列上（2026-09-05 使用者回報）。
+-- 所以「底」要取框下緣與輸入列下緣兩者較低的那個。輸入列沒錨在這顆視窗上
+-- （輸入列在上方、或不是 Chattynator）就只看框。回傳螢幕座標。
+------------------------------------------------------------
+local function ContentBottom(chat)
+    local _, _, _, cbm = ScreenRect(chat)
+    if not cbm then return nil end
+    local eb = ChatFrame1EditBox
+    if eb and eb.GetPoint then
+        local _, rel = eb:GetPoint(1)
+        if rel == chat then
+            local _, _, _, ebb = ScreenRect(eb)
+            if ebb and ebb < cbm then return ebb, cbm - ebb end
+        end
+    end
+    return cbm, 0
+end
+
+-- UIParent 現在在螢幕上的上下緣（螢幕座標）。資訊列停靠會把 UIParent 往內縮，
+-- 聊天列的夾限與「下面還有沒有空間」都要看它，不是看螢幕。
+local function ParentBounds()
+    local s = UIParent:GetEffectiveScale()
+    local t, b = UIParent:GetTop(), UIParent:GetBottom()
+    if not t or not b then return nil end
+    return t * s, b * s
+end
+
+-- 夾限跟著 UIParent 走：UIParent 被資訊列內縮時，聊天列不准掉進縮出來的那條
+local function ApplyClamp(bar)
+    local pt, pb = ParentBounds()
+    if not pt then return end
+    local screenTop = GetScreenHeight() * UIParent:GetEffectiveScale()
+    local scale = bar:GetEffectiveScale()
+    local topInset = math.max(0, screenTop - pt) / scale
+    local bottomInset = math.max(0, pb) / scale
+    -- 正值＝把夾限邊往內推（上緣是往下、下緣是往上），跟 ClampRectInsets 的方向一致
+    bar:SetClampRectInsets(0, 0, -topInset, bottomInset)
+end
+
+------------------------------------------------------------
 -- 套用位置
 ------------------------------------------------------------
 local applyRetry
@@ -110,8 +154,28 @@ function Anchor.Apply()
     end
 
     bar:ClearAllPoints()
+    ApplyClamp(bar)
     if pos and pos.attached and chat then
-        bar:SetPoint(pos.point, chat, pos.relPoint, pos.x or 0, pos.y or 0)
+        local point, relPoint, y = pos.point, pos.relPoint, pos.y or 0
+        if relPoint:find("^BOTTOM") then
+            -- 吸在下方：從框下緣再往下讓出輸入列伸出來的那截
+            local _, hang = ContentBottom(chat)
+            local scale = bar:GetEffectiveScale()
+            y = y - (hang or 0) / scale
+            -- 下面放不下（會被夾限推回來蓋在聊天上）就改吸在上方。
+            -- 只在套用時判斷、不寫回 DB：聊天視窗往上搬之後它就自己回到下面
+            local _, cbm = ScreenRect(chat)
+            local _, pb = ParentBounds()
+            if cbm and pb then
+                local barBottom = cbm - (hang or 0) + (pos.y or 0) * scale - bar:GetHeight() * scale
+                if barBottom < pb then
+                    point = point:gsub("^TOP", "BOTTOM")
+                    relPoint = relPoint:gsub("^BOTTOM", "TOP")
+                    y = SNAP_GAP
+                end
+            end
+        end
+        bar:SetPoint(point, chat, relPoint, pos.x or 0, y)
     elseif pos and not pos.attached then
         bar:SetPoint(pos.point or "BOTTOMLEFT", UIParent, pos.relPoint or "BOTTOMLEFT",
                      pos.x or 0, pos.y or 0)
@@ -157,7 +221,14 @@ function Anchor.Watch(chat)
     chat:HookScript("OnSizeChanged", function()
         if ns.UpdateLayout then ns.UpdateLayout() end
     end)
+    -- 視窗被拖過之後「下面還放不放得下」要重算（Apply 裡的上下翻面）
+    chat:HookScript("OnDragStop", function() Anchor.Apply() end)
 end
+
+-- UIParent 尺寸一變（資訊列停靠推開、換解析度）夾限與翻面都要重算
+UIParent:HookScript("OnSizeChanged", function()
+    if ns.Chatbar then Anchor.Apply() end
+end)
 
 ------------------------------------------------------------
 -- 存位置
@@ -188,8 +259,9 @@ local function ComputeSnap()
     if not chat then return nil end
 
     local bl, br, bt, bb = ScreenRect(bar)
-    local cl, cr, ct, cbm = ScreenRect(chat)
-    if not bl or not cl then return nil end
+    local cl, cr, ct = ScreenRect(chat)
+    local cbm = ContentBottom(chat)   -- 含輸入列伸出來的那截
+    if not bl or not cl or not cbm then return nil end
 
     -- 整條跑到聊天視窗左邊或右邊去了就不算「貼著」
     if br < cl - SNAP_DIST or bl > cr + SNAP_DIST then return nil end
@@ -296,4 +368,32 @@ function Anchor.Init()
     lastGrouped = cb.GroupWithChat and true or false
     applyRetry = 0
     Anchor.Apply()
+end
+
+------------------------------------------------------------
+-- /mcb debug：幾何現況（吸錯位置時先看這個，再猜）
+------------------------------------------------------------
+function Anchor.Debug()
+    local bar = ns.Chatbar
+    local chat = Anchor.GetChatFrame()
+    local cb = DB()
+    local function rect(f)
+        local l, r, t, b = ScreenRect(f)
+        if not l then return "nil" end
+        return ("L%.0f R%.0f T%.0f B%.0f"):format(l, r, t, b)
+    end
+    print("|cff00ff00MiliUI ChatBar debug|r")
+    print("  bar   " .. rect(bar))
+    print("  chat  " .. (chat and rect(chat) or "nil") .. (chat and ("  contentBottom=%.0f hang=%.0f"):format(ContentBottom(chat)) or ""))
+    if ChatFrame1EditBox then
+        local _, rel = ChatFrame1EditBox:GetPoint(1)
+        print("  edit  " .. rect(ChatFrame1EditBox) .. "  anchoredToChat=" .. tostring(rel == chat) .. " shown=" .. tostring(ChatFrame1EditBox:IsShown()))
+    end
+    local pt, pb = ParentBounds()
+    print(("  UIParent top=%.0f bottom=%.0f screenTop=%.0f"):format(pt or -1, pb or -1, GetScreenHeight() * UIParent:GetEffectiveScale()))
+    local p = cb.Position
+    print("  Position " .. (p and ("attached=%s %s->%s x=%s y=%s"):format(tostring(p.attached), tostring(p.point), tostring(p.relPoint), tostring(p.x), tostring(p.y)) or "nil")
+        .. "  group=" .. tostring(cb.GroupWithChat))
+    local a1, a2, a3, a4, a5 = bar:GetPoint(1)
+    print("  live point " .. tostring(a1) .. " -> " .. tostring(a2 and a2.GetName and a2:GetName() or (a2 == chat and "chat" or a2)) .. "." .. tostring(a3) .. " " .. tostring(a4) .. "," .. tostring(a5))
 end

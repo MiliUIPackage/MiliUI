@@ -48,4 +48,16 @@ metadata:
 自畫標籤才灰得掉整列；停用＝**變灰 ＋ 關掉滑鼠**，只變灰不關滑鼠是最糟的一種
 （看起來停用、拉下去卻真的會改到 DB）。
 
+**2026-09-05 三個修正**（使用者回報：拉很遠也吸回去、吸上去蓋住最下一行）：
+- **吸附基準是「內容底」不是框底**：Chattynator 把 `ChatFrame1EditBox` 錨在視窗框下緣、往下伸出框外
+  一截（`Display/Main.lua` `UpdateEditBox`，偏移由 clamp inset 算）。`ContentBottom(chat)` 取框下緣與
+  輸入列下緣較低者；`ComputeSnap` 與 `Apply` 都用它（Apply 把伸出的那截加進 y 偏移，DB 不變）。
+- **下面放不下就改吸上面**：資訊列停靠推開 UIParent 之後，錨在 UIParent 底的聊天視窗下面沒空間，
+  `SetClampedToScreen` 會把聊天列推回來蓋在聊天上。Apply 算「吸在下方的 bar 底 < UIParent 底」就把
+  TOP→BOTTOM／BOTTOM→TOP 翻面，**只在套用時判斷、不寫回 DB**，視窗搬上去就自己回到下面。
+  視窗 `OnDragStop`、`UIParent` 的 `OnSizeChanged` 都掛勾重套。
+- **夾限跟著 UIParent**：`SetClampRectInsets` 依 UIParent 與螢幕的差算上下 inset，聊天列不會掉進
+  資訊列停靠縮出來的那條（見 [[wow-uiparent-inset-dock]]）。
+- `/mcb debug` 印 bar／chat／輸入列的螢幕矩形、UIParent 邊界、Position 與現行錨點——吸錯先看這個。
+
 相關：[[project-miliui-esc-menu-window-migration]]
