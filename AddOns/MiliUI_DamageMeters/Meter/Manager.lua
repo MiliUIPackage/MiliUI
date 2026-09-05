@@ -184,6 +184,58 @@ function Windows.SmartApply(inCombat)
     Windows.ForEach(function(W) SmartApplyFor(W, inCombat, false) end)
 end
 
+------------------------------------------------------------
+-- 脫戰切總計，但滑鼠還在任何一個視窗上就先不切（使用者要求）
+--
+-- 玩家打完正在看數字（游標停在視窗裡、可能還在翻展開頁），這時把畫面換成總計
+-- 等於把他正在看的東西抽走。所以緩衝過後先看游標：在**任何一個**視窗的矩形內
+-- 就等，離開所有視窗的那一刻才切。視窗之間本來就是連動的一組，看的是同一場，
+-- 所以判的是「有沒有在任一個上面」，不是各視窗各判。
+--
+-- 用輪詢不用 OnLeave：跟 Window.lua 標題列圖示同一個理由 —— 子按鈕、列、展開頁
+-- 都會搶走滑鼠焦點，OnLeave 收不齊；`IsMouseOver()` 是矩形判斷，一次涵蓋整棵子樹。
+-- ticker 只在「等游標離開」期間存在，平時零成本。
+--
+-- 世代守衛跟 Combat.lua 的緩衝一樣：等的期間又開打（gen 變了）就整個放棄，
+-- BeginSegment 已經把畫面切到「目前」，不能再排一次切總計。
+------------------------------------------------------------
+local hoverHoldTicker
+
+local function AnyWindowHovered()
+    local hovered = false
+    Windows.ForEach(function(W)
+        if hovered then return end
+        local f = W.frame
+        if f and f:IsShown() and f:IsMouseOver() then hovered = true end
+    end)
+    return hovered
+end
+
+function Windows.SmartApplyWhenMouseLeaves(gen)
+    if hoverHoldTicker then
+        hoverHoldTicker:Cancel()
+        hoverHoldTicker = nil
+    end
+    local function StillWanted()
+        if ns.Combat.Generation() ~= gen then return false end
+        if ns.Combat.IsInCombat() then return false end
+        return true
+    end
+    if not AnyWindowHovered() then
+        Windows.SmartApply(false)
+        return
+    end
+    hoverHoldTicker = C_Timer.NewTicker(0.2, function(t)
+        if not StillWanted() then
+            t:Cancel(); hoverHoldTicker = nil
+            return
+        end
+        if AnyWindowHovered() then return end
+        t:Cancel(); hoverHoldTicker = nil
+        Windows.SmartApply(false)
+    end)
+end
+
 -- 開關的唯一入口（右鍵選單與設定頁都走這裡）。
 -- 打開的那一刻立刻恢復主動切換 —— 連「正在看特定分段」的豁免都拿掉（規格）。
 ------------------------------------------------------------
