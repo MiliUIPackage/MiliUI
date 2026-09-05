@@ -575,8 +575,9 @@ local function ApplyInset(force)
 end
 ns.ApplyInset = ApplyInset
 
--- ⚠ 載入畫面（進出副本）會把 UIParent 的錨點放回螢幕四角——2026-09-05 進副本實測，
--- 資訊列還錨在縮出來的那條上，被夾回螢幕頂端壓在小地圖上。戰鬥與編輯模式不會。
+-- ⚠ 鑰石開始（CHALLENGE_MODE_START）那一刻 UIParent 的錨點會被放回螢幕四角——
+-- 2026-09-05 使用者實測；資訊列還錨在縮出來的那條上，被夾回螢幕頂端壓在小地圖上。
+-- 戰鬥與編輯模式不會。誰重設的沒查到，所以不猜事件，直接掛在 UIParent 的錨點方法上。
 -- 兩道保險：(1) 進世界強制重貼；(2) 掛勾 UIParent 的錨點重設，不管是誰放回去的，
 -- 下一幀再貼一次。自己貼的時候用 applyingInset 擋住，免得掛勾追著自己跑。
 local insetRepairQueued = false
@@ -997,18 +998,24 @@ end)
 -- 載入畫面會重置一些外部狀態（暴雪那排的可見度），進世界後強制重推一次。
 -- 沒拖過的預設位置也在這裡重算：登入那一刻 MicroMenuContainer 的 rect
 -- 不一定就緒，進世界後 Edit Mode 版面已套完，讀得到正確位置。
+-- 外力把 UIParent 的錨點重設之後把內縮貼回去：當下一次、0.5 秒後再一次保險
+-- （暴雪套版面的時機不保證在我們之前）。使用者實測會重設的時機：鑰石開始
+--（CHALLENGE_MODE_START）；載入畫面保險起見一起接。
+local function RepairInset()
+    if not (db and db.dock and db.dock ~= "none") then return end
+    if not InCombatLockdown() then ApplyInset(true); ApplyPosition() end
+    C_Timer.After(0.5, function()
+        if db and not InCombatLockdown() then ApplyInset(true); ApplyPosition() end
+    end)
+end
+
 ns.Events.Register("PLAYER_ENTERING_WORLD", "bar-repair", function()
     if ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden(true) end
     if db and (db.x == nil or db.y == nil) then ApplyPosition() end
-    -- 載入畫面會把 UIParent 的錨點重設（見 ApplyInset 上方），停靠的內縮要重貼；
-    -- 當下貼一次，0.5 秒後再貼一次保險（暴雪套版面的時機不保證在我們之前）
-    if db and db.dock and db.dock ~= "none" and not InCombatLockdown() then
-        ApplyInset(true); ApplyPosition()
-        C_Timer.After(0.5, function()
-            if db and not InCombatLockdown() then ApplyInset(true); ApplyPosition() end
-        end)
-    end
+    RepairInset()
 end)
+ns.Events.Register("CHALLENGE_MODE_START", "dock-inset", RepairInset)
+ns.Events.Register("ZONE_CHANGED_NEW_AREA", "dock-inset", RepairInset)
 -- 停靠的內縮量是像素換算的，縮放或解析度一變就要重貼（順便防暴雪重設 UIParent）
 ns.Events.Register("UI_SCALE_CHANGED",    "dock-inset", function() if db then ApplyInset(true); ApplyPosition() end end)
 ns.Events.Register("DISPLAY_SIZE_CHANGED", "dock-inset", function() if db then ApplyInset(true); ApplyPosition() end end)

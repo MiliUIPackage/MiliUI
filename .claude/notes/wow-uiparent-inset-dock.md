@@ -21,7 +21,7 @@ UIParent:ClearAllPoints(); UIParent:SetAllPoints(nil)
 編輯模式的版面（相對 UIParent 存）一起位移；停靠列自己錨在 UIParent 那個邊的**外面**
 （父層不裁切）。h 用 UI 單位（`P.Scale(高度)`），跟 UIParent 的座標空間一致。
 
-**2026-09-05 使用者實測**：進出戰鬥、進出編輯模式都不會被打回去；**載入畫面（進出副本）會把 UIParent 的錨點放回四角**——資訊列還錨在縮出來的那條上，就被夾回螢幕頂端壓在小地圖上。所以要 (1) PLAYER_ENTERING_WORLD 強制重貼（當下＋0.5 秒後各一次）、(2) `hooksecurefunc(UIParent, "ClearAllPoints"/"SetAllPoints"/"SetPoint")` 下一幀重貼，自己貼的時候用旗標擋住掛勾。UIParent 不是保護框，
+**2026-09-05 使用者實測**：進出戰鬥、進出編輯模式都不會被打回去；**鑰石開始（CHALLENGE_MODE_START）那一刻 UIParent 的錨點會被放回四角**（誰重設的沒查到；載入畫面保險起見一起接）——資訊列還錨在縮出來的那條上，就被夾回螢幕頂端壓在小地圖上。所以要 (1) PLAYER_ENTERING_WORLD／CHALLENGE_MODE_START／ZONE_CHANGED_NEW_AREA 強制重貼（當下＋0.5 秒後各一次）、(2) `hooksecurefunc(UIParent, "ClearAllPoints"/"SetAllPoints"/"SetPoint")` 下一幀重貼，自己貼的時候用旗標擋住掛勾。UIParent 不是保護框，
 但套組裡還是脫戰再套（跟資訊列其他幾何一起走 ApplyAll 的 Defer）。
 
 **幾何上必然的代價**：錨在 CENTER 的框（頭像、Cell、CDM）會移半條，錨在對面那邊的不動。
