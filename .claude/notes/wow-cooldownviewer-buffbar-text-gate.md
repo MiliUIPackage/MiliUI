@@ -48,6 +48,12 @@ end
 拿參考可以、取值不行：進去之前先 `issecretvalue(frame:GetTotemData())`／`GetAuraDataCached()`，
 是秘密就退回 `C_Spell.GetSpellName(spellID)` 自己 `SetText`。
 
+**召喚物還有第三個空窗（探針實測 2026-09-05）**：召喚的第一拍 `totemData` 已經是秘密表但 `name` 還是
+nil，暴雪的 `GetNameText()` 直接回 nil → `SetText(nil)`；同一幀還會再來一次 PLAYER_TOTEM_UPDATE 再寫一次
+nil，真正的名字（秘密字串）要等將近一秒才寫進來。只在套樣式時補一次會被第二次 nil 蓋掉，畫面空白一秒。
+正確做法是掛在 `Bar.Name` 的 `SetText` 後面：寫進來的是 nil／非秘密的空字串就當場退回
+`C_Spell.GetSpellName(spellID)`，秘密字串不動（那就是真名）。
+
 **更好的是根本不要走到補寫**：把「暴雪自己藏名字」的那次（`SetBarContent` 僅圖示）用後掛勾
 當場 `Show()` 回來 —— 框從池子取出時 `OnAcquireItemFrame → SetBarContent` 就先過這條，緊接著的
 `RefreshData → RefreshName` 看到顯示著就安全地寫了字。判斷「有沒有字」不能直接比較 —— `GetNameText()` 在 `UsesDynamicAppearance`

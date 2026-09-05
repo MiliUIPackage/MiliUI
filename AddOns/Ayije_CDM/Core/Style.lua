@@ -1236,20 +1236,51 @@ local function IsSecretValue(v)
     return issecretvalue(v) and true or false
 end
 
+local function GetSafeSpellID(frame)
+    local spellID = frame.GetSpellID and frame:GetSpellID()
+    if type(spellID) == "number" and not IsSecretValue(spellID) then
+        return spellID
+    end
+    return nil
+end
+
+-- 名字的最後退路：法術名字（召喚惡魔暴君 vs 惡魔暴君，可接受）
+local function GetFallbackBarName(frame)
+    local spellID = GetSafeSpellID(frame)
+    local name = spellID and C_Spell.GetSpellName(spellID)
+    if name and name ~= "" then return name end
+    return nil
+end
+
 local function InstallBarNameTextHook(frame, nameText)
     if not nameText or frame.cdmNameTextHooked then return end
     frame.cdmNameTextHooked = true
     hooksecurefunc(nameText, "SetText", function(self, text)
         if frame.cdmNameTextApplyGuard then return end
         local custom = frame.cdmResolvedCustomName
-        if not custom or custom == "" then return end
-        -- fix from MiliUI: 12.1 的 GetNameText() 在 UsesDynamicAppearance 為真時
-        -- 回的是 auraData.name，受限光環下是秘密字串，拿去比較會直接拋錯。
-        -- 是秘密就當作「不是自訂名字」往下走，讓自訂名字蓋上去（安全的方向）。
-        if not IsSecretValue(text) and text == custom then return end
-        frame.cdmNameTextApplyGuard = true
-        self:SetText(custom)
-        frame.cdmNameTextApplyGuard = false
+        if custom and custom ~= "" then
+            -- fix from MiliUI: 12.1 的 GetNameText() 在 UsesDynamicAppearance 為真時
+            -- 回的是 auraData.name，受限光環下是秘密字串，拿去比較會直接拋錯。
+            -- 是秘密就當作「不是自訂名字」往下走，讓自訂名字蓋上去（安全的方向）。
+            if not IsSecretValue(text) and text == custom then return end
+            frame.cdmNameTextApplyGuard = true
+            self:SetText(custom)
+            frame.cdmNameTextApplyGuard = false
+            return
+        end
+        -- fix from MiliUI: 暴雪寫進 nil／空字串就當場退回法術名字。
+        -- 召喚物（惡魔類）的 totemData 在召喚的第一拍就已經是秘密表、但 name 還是空的，
+        -- GetNameText() 直接回 nil；同一幀還會再來一次 PLAYER_TOTEM_UPDATE 再寫一次 nil，
+        -- 只在套樣式時補一次會被蓋掉。真正的名字（秘密字串）要等將近一秒後才寫進來，
+        -- 那時這條掛勾看到的是秘密字串、不會動它。
+        if text == nil or (not IsSecretValue(text) and text == "") then
+            local fallback = GetFallbackBarName(frame)
+            if fallback then
+                frame.cdmNameTextApplyGuard = true
+                self:SetText(fallback)
+                frame.cdmNameTextApplyGuard = false
+            end
+        end
     end)
 end
 
@@ -1283,24 +1314,15 @@ local function BlizzardNameDataIsSecret(frame)
     return false
 end
 
-local function GetSafeSpellID(frame)
-    local spellID = frame.GetSpellID and frame:GetSpellID()
-    if type(spellID) == "number" and not IsSecretValue(spellID) then
-        return spellID
-    end
-    return nil
-end
-
 local function RefreshBarNameText(frame, nameText, allowRetry)
     if type(frame.RefreshName) ~= "function" or not nameText:IsShown() then return end
 
     if BlizzardNameDataIsSecret(frame) then
         -- 拿不到召喚物的名字，退回法術名字（召喚惡魔暴君 vs 惡魔暴君，可接受）。
         -- 這裡不 return：法術資料沒載入時 GetSpellName 回 nil，讓下面的重試接手。
-        local spellID = GetSafeSpellID(frame)
-        local spellName = spellID and C_Spell.GetSpellName(spellID)
-        if spellName and spellName ~= "" then
-            nameText:SetText(spellName)
+        local fallback = GetFallbackBarName(frame)
+        if fallback then
+            nameText:SetText(fallback)
         end
     elseif securecallfunction then
         securecallfunction(frame.RefreshName, frame)
