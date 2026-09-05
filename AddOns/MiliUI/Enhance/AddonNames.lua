@@ -43,7 +43,6 @@ local addonNames = {
     ["Method Raid Tools"]                                   = "團隊工具箱",
     ["Premade Groups Filter"]                               = "預組隊伍過濾",
     ["RaiderIO"]                                            = "Raider.IO 分數查詢",
-    ["WarpDeplete"]                                         = "M+ 計時介面",
     ["MplusAdventureGuide"]                                 = "冒險指南強化",
     ["Keystone Polaris"]                                     = "M+ 進度助手",
 

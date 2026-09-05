@@ -123,7 +123,7 @@ LibCustomGlow 對**每一個**發光各掛一個沒有節流的 OnUpdate，所�
 
 - **自己的插件** → `MiliUIGlow`（vendor 複製，共用 driver ＋ 60fps 閘），見
   [[project-miliui-glow-vendor]]。Cell 已改用。
-- **別人的插件**（Ayije_CDM / BuffReminders / WarpDeplete / MRT）→ 掛勾版
+- **別人的插件**（Ayije_CDM / BuffReminders / MRT）→ 掛勾版
   `MiliUI/Enhance/LibCustomGlow_FpsGate.lua`：在 `*_Start` 後 `GetScript("OnUpdate")` 拿到
   它剛設好的更新函式，包一層再設回去。池化重用自然銜接（回收時 lib 自己 `SetScript(nil)`，
   下次 Start 再設，掛勾再包）。**兩邊的閘值要一起改。**

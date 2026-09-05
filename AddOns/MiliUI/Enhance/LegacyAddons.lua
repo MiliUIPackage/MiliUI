@@ -11,7 +11,7 @@
 --             真的有在跑的前提下自動停用，並跳視窗說明。每次登入都檢查，
 --             玩家手動重開也會再被關掉 —— 除非在設定面板取消勾選。
 --
---   REMOVED   單純從套組移除、沒有取代者的。不去碰它的啟用狀態，
+--   REMOVED   從套組移除、但不打算替玩家決定去留的。不去碰它的啟用狀態，
 --             只在聊天視窗提醒一次可以刪掉。
 --
 -- 停用狀態寫在 WTF 的 AddOns.txt，跟 SavedVariables 無關；因此額外把
@@ -40,9 +40,12 @@ local REPLACED = {
     },
 }
 
--- 已從套組移除、沒有取代者 → 只提醒刪除
+-- 已從套組移除 → 不動它的啟用狀態，只提醒可以刪掉
+-- WarpDeplete 的計時面板已由米利的任務追蹤器內建（Modules/MythicPlus.lua），
+-- 但停用與否交給玩家決定，所以放這裡而不是 REPLACED。
 local REMOVED = {
-    { label = "MiniCC", folders = { "MiniCC" } },
+    { label = "MiniCC",      folders = { "MiniCC" } },
+    { label = "WarpDeplete", folders = { "WarpDeplete" } },
 }
 
 ------------------------------------------------------------

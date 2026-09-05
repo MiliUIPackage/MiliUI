@@ -62,7 +62,6 @@ ns.AddonRoster = {
         { key = "MRT", folders = { "MRT" }, slash = "/exrt" },
         { key = "BuffReminders", folders = { "BuffReminders" }, slash = "/br" },
         { key = "DamageMeterTools", folders = { "DamageMeterTools" }, slash = "/dmt" },
-        { key = "WarpDeplete", folders = { "WarpDeplete" }, slash = "/warp" },
         { key = "DiGuaTimelineAudioHelper", folders = { "DiGuaTimelineAudioHelper" }, slash = "/dg" },
         { key = "VoidChimes", folders = { "VoidChimes" }, slash = "/vc settings" },
         { key = "PremadeGroupsFilter", folders = { "PremadeGroupsFilter" }, slash = "/pgf" },

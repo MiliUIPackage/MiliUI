@@ -95,15 +95,13 @@ local function BuildDefaults()
             battleground = false,
             dungeon    = false,
             combat     = false,
-            -- M+：預設開。套組裡的 WarpDeplete 已改成「藏追蹤器」是選項且預設關
-            -- （它那邊的 hideObjectiveTracker），M+ 藏清單由我們負責。
-            -- 兩邊都開會搶同一個 alpha，設定頁那條有提醒。
+            -- M+：預設開。鑰石中清單摺起來，原位讓給下面那塊計時面板。
             -- ⚠ 從 false 改成 true 是改預設值 ⇒ 配 DB_VERSION 2 的遷移（見 Migrate）
             mythicPlus = true,
         },
 
         -- 傳奇鑰石計時面板（Modules/MythicPlus.lua）：鑰石中清單摺起來的位置放它。
-        -- 尺寸照 WarpDeplete 的預設版面，字型與描邊跟著 appearance 走
+        -- 尺寸是照著慣見的 M+ 計時面板抓的，字型與描邊跟著 appearance 走
         mythicPlus = {
             enabled      = true,
             tooltipCount = true,
@@ -238,8 +236,8 @@ local function Migrate(db)
     local from = db.schemaVersion
     if type(from) ~= "number" then return end
 
-    -- v2（2026-09-05）：M+ 自動摺疊從預設關改成預設開。
-    -- 藏追蹤器這件事同一天從 WarpDeplete 收回來（它那邊改成選項、預設關），
+    -- v2（2026-09-05）：M+ 自動摺疊從預設關改成預設開 —— 內建計時面板上線後，
+    -- 鑰石中要藏清單這件事由自己負責。
     -- 舊玩家如果沒動過這條就跟著新預設走；主動關過的（值是 false 但版本已是 2）不會再碰。
     if from < 2 then
         if type(db.visibility) == "table" then

@@ -114,7 +114,7 @@ attempt to perform string conversion on a secret string value (execution tainted
 
 - 怪罪對象是「載入了那份 ChatThrottleLib 的插件」，不是它做錯什麼；錯誤訊息裡的插件名會誤導。
 - 修法：`SafeStrLen()` 包一層 `issecretvalue`，秘密值回固定長度估值。
-- **四份 v31 副本要一起改**（MiliUI／Cell／WarpDeplete／BugSack），誰先載入誰贏。
+- **每一份 v31 副本都要一起改**（目前三份：MiliUI／Cell／BugSack；WarpDeplete 那份隨插件在 2026-09-05 移出套組），誰先載入誰贏。
 - **不要改成從 MiliUI 覆寫 `ChatThrottleLib.Hook_SendChatMessage`**：那只是把污染來源從
   Cell 換成 MiliUI，而且污染會落在「玩家按 Enter 送出訊息」這條執行路徑上，得不償失。
   這種在函式庫內部、後面沒有保護呼叫的地方，就地補 guard 比掛勾乾淨。

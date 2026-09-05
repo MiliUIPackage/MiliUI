@@ -1,6 +1,6 @@
 ---
 name: project-miliui-questtracker
-description: 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker 的獨立插件；六條 taint 規矩、摺疊機制走 IsProtected 分流、內建傳奇鑰石計時面板（取代 WarpDeplete）、Leatrix 衝突偵測、待驗證清單
+description: 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker 的獨立插件；六條 taint 規矩、摺疊機制走 IsProtected 分流、內建傳奇鑰石計時面板（取代 WarpDeplete，該插件已於 2026-09-05 移出套組）、Leatrix 衝突偵測、待驗證清單
 metadata: 
   node_type: memory
   type: project
@@ -146,11 +146,11 @@ UIParent，換父層會連位置一起跑掉，我們錨在它身上的標題列
 管著追蹤器保護狀態的系統上開污染入口、自動摺疊的七個條件在共用層的子選單裡
 沒辦法原地重畫（多選型勾選按下去會整個關掉）。
 
-## 傳奇鑰石計時面板（2026-09-05，`Modules/MythicPlus.lua`，取代 WarpDeplete）
+## 傳奇鑰石計時面板（2026-09-05，`Modules/MythicPlus.lua`）
 
 鑰石中清單摺起來（`visibility.mythicPlus`），面板錨在標題列底下（`Chrome.GetBar()`）補進原位；
 三個條件都成立才顯示：選項開、`MP.IsInChallenge()`、`T.IsHidden()`（玩家偷看展開就讓位）。
-版面照 WarpDeplete 預設（文字靠右、死亡／計時／[等級] 詞綴／三段計時條 +3|+2|+1／敵軍條／首領），
+版面是慣見的那一種（文字靠右、死亡／計時／[等級] 詞綴／三段計時條 +3|+2|+1／敵軍條／首領），
 皮是純色 1px，字型描邊跟 appearance 走，尺寸在 `db.mythicPlus`、設定分頁「傳奇鑰石」。
 
 **不碰暴雪追蹤器**：暴雪自己的 M+ 區塊在共用池的場景模組裡（規矩 3），我們讀同一組 API 畫自己的框。
@@ -171,9 +171,11 @@ criteria description 就是名字）、分段紀錄、自動放鑰石（套組�
   `_G.LeaPlusDB`（他的 SavedVariable，是登入當下的值），偵測到就在設定頁與聊天視窗警告。
   文案要講清楚「這是登入時的狀態，改完要 /reload 才會重判」，不然看起來像壞掉。
   使用者的 Leatrix 自動任務目前是**全開**的。
-- **WarpDeplete**（2026-09-05 換手）：M+ 藏清單**由我們負責**，`visibility.mythicPlus` 預設**開**；
-  WarpDeplete 那邊改成選項 `hideObjectiveTracker` 預設關（見 [[project-local-addon-forks]]）。
-  設定頁偵測到它就提醒「兩邊只能開一邊」。
+- **WarpDeplete**（2026-09-05 **整支移出套組**）：M+ 藏清單改由我們負責，`visibility.mythicPlus`
+  預設**開**。原本它是本地改版（藏追蹤器改成選項）＋設定頁互相提醒，這一輪把那些全部拆掉：
+  程式、註解、語系條目都不再提到它，`MiliUI/Options/Roster.lua`／`Enhance/AddonNames.lua` 的
+  條目移除，`MiliUI/Enhance/LegacyAddons.lua` 的 `REMOVED` 加一筆讓還留著資料夾的玩家
+  收到一次刪除提醒（**不自動停用** —— 使用者要的是提醒不是代勞）。
   **改預設值的遷移範本**：`ns.DB_VERSION` 1→2，`DB.lua` 的 `Migrate(db)` 在 `MergeDefaults` **之前**
   看 `schemaVersion`（merge 之後會被補成最新，舊新存檔就分不出來；全新存檔沒有版本號直接跳過），
   `from < 2` 就把 `visibility.mythicPlus` 設成 true。之後再改任何預設值都照這個形狀加一段。

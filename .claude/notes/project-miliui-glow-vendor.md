@@ -51,7 +51,7 @@ metadata:
 ## 兩個閘要一起改
 
 `MiliUI/Enhance/LibCustomGlow_FpsGate.lua` 還留著，管的是**別人的** LibCustomGlow ——
-套組裡還在用它的是 Ayije_CDM、BuffReminders、WarpDeplete、MRT。那支是掛勾版（在 `*_Start`
+套組裡還在用它的是 Ayije_CDM、BuffReminders、MRT。那支是掛勾版（在 `*_Start`
 之後 `GetScript("OnUpdate")` 拿到更新函式再包一層），只有閘沒有共用 driver。
 **兩邊的 GATE 值要一起改。**
 

@@ -3,7 +3,7 @@
 --
 -- 鑰石開跑時清單摺起來（Visibility 的 mythicPlus 規則），原位放這一塊：
 -- 計時（含 +2／+3）、鑰石等級與詞綴、死亡數與損失時間、首領清單與擊殺時間、
--- 敵軍條。形狀照 WarpDeplete 的預設版面（文字靠右、三段計時條、敵軍條在下），
+-- 敵軍條。版面是慣見的那一種（文字靠右、三段計時條、敵軍條在下），
 -- 皮是套組的：純色、直角、1px 邊、跟標題列同一套字型。
 --
 -- 這一塊**完全不碰暴雪的追蹤器**：暴雪自己的 M+ 區塊住在共用 widget pool 的
@@ -15,8 +15,8 @@
 --   * 「挑戰者的危機」（詞綴 152）把時限加 90 秒，但 +2／+3 要用扣掉那 90 秒的
 --     時限去算再加回來 —— 賽季詞綴換了就對這兩段。
 --
--- 刻意不做的（WarpDeplete 有、這裡沒有）：
---   * 當前拉怪的敵軍預估 —— 靠戰鬥記錄與 MDT 的怪物表，12.x 上它自己也關掉了；
+-- 刻意不做的：
+--   * 當前拉怪的敵軍預估 —— 要靠戰鬥記錄配一份自己維護的怪物表，12.x 上那條路已經不準；
 --   * 死亡名單 —— 12.1 的 GUID 常是秘密值，名單會缺；死亡數走官方 API 沒問題；
 --   * 首領名字去翻 Encounter Journal —— 那要開／藏暴雪面板，會污染；criteria 的
 --     description 本來就是名字；
@@ -46,7 +46,7 @@ local TEXT_INSET = 2    -- 條上文字離條緣
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
--- 顏色照 WarpDeplete 預設值（使用者說喜歡它清楚），只是換成純色貼圖
+-- 顏色是使用者挑的（要一眼看得出誰是誰），貼圖一律純色
 local C_TEXT      = { 1, 1, 1 }
 local C_DIM       = { 0.694, 0.694, 0.694 }   -- B1B1B1：鑰石詞綴
 local C_BAR       = { 0.592, 0.592, 0.592 }   -- 979797：計時條
@@ -617,7 +617,7 @@ local function Complete()
 end
 
 -- 難度 8 = 傳奇鑰石。IsChallengeModeActive 在打完之後就回 false，
--- 但面板要留到離開副本，所以照 WarpDeplete 用副本資訊判斷
+-- 但面板要留到離開副本，所以改用副本資訊判斷
 local function Check()
     local _, itype, difficulty = GetInstanceInfo()
     local now = (difficulty == 8 and itype == "party") and true or false

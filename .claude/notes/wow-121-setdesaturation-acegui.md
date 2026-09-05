@@ -42,7 +42,7 @@ end
 中招的是 **LibCustomGlow-1.0 的「按鈕發光」（`ButtonGlow_Start`）**：它在 OnUpdate
 裡用這個函式跑爬行螞蟻動畫，所以只要把發光類型選成按鈕發光，就會**每幀**噴
 `LibCustomGlow-1.0.lua:548: attempt to call a nil value`。本機有五份副本，
-Ayije_CDM／Cell／WarpDeplete 是 v24、MRT 是 v19，都直接呼叫全域；只有
+Ayije_CDM／Cell 是 v24、MRT 是 v19，都直接呼叫全域；只有
 BuffReminders 的 v25 已經自己改成 `(TextureUtil and TextureUtil.AnimateTexCoords) or _G.AnimateTexCoords`。
 
 一樣補全域就好（同樣在 `Fix/DeprecatedGlobals.lua`）：
