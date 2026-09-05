@@ -176,3 +176,12 @@ metadata:
 待驗證（沒進過遊戲）：遷移訊息與筆數、面板在 bar 貼頂／貼底／靠右三種位置的翻面、
 右鍵寶庫格會不會經 `SetPropagateMouseClicks` 傳到列、ESC 關面板後 OnHide 的清理、
 戰鬥中點方塊開面板、「分身key」關鍵字在 zhTW／enUS 客戶端各自的觸發。
+
+
+## 停靠模式（2026-09-05）
+
+`db.dock` = none|top|bottom、`db.dockPush`。停靠＝兩角錨在 UIParent 那個邊（Layout 只設高、不 SetSize），
+拖曳關掉（`BeginBarDrag` 早退、搬家遮罩改顯示「已停靠」）。「推開」走 [[wow-uiparent-inset-dock]]：
+`ApplyInset` 把 UIParent 往內縮一條（只在需要改變時才動它），資訊列錨在縮出來的那條上；
+關掉資訊列或停靠都會把 UIParent 放回去。UI_SCALE_CHANGED／DISPLAY_SIZE_CHANGED 再貼一次。
+左右停靠沒做：tile 是橫向鏈式錨定，直向要另寫排版。填滿後區塊全部靠左，分左中右三組是下一步。

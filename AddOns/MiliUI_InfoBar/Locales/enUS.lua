@@ -61,6 +61,13 @@ L["TEXT_COLOR_DESC"] = "Colors the values (308.8, 100%). Labels stay gray. The c
 L["SECTION_POSITION"] = "Position"
 L["DRAG_HINT"] = "While this window is open, drag the overlay on the bar to move it (right-click resets). Edit Mode dragging works too."
 L["DRAG_LABEL"] = "Drag to move"
+L["DOCK"] = "Dock to a screen edge"
+L["DOCK_NONE"] = "Not docked (free placement)"
+L["DOCK_TOP"] = "Top edge, full width"
+L["DOCK_BOTTOM"] = "Bottom edge, full width"
+L["DOCK_PUSH"] = "Push other elements away from that edge"
+L["DOCK_DESC"] = "Docking fills the whole edge and turns off dragging. "Push" shrinks the UI by one bar height so everything anchored to that edge moves aside on its own; things anchored to the centre shift by half a bar. Turning docking off or switching edges puts everything straight back."
+L["DOCKED_LABEL"] = "Docked (change it under Position)"
 L["RESET_POSITION"] = "Reset position"
 L["MSG_POSITION_RESET"] = "Bar position has been reset."
 

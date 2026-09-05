@@ -45,6 +45,13 @@ local CONTROLS = {
     { type = "text",   label = L["TEXT_COLOR_DESC"] },
 
     { type = "header", label = L["SECTION_POSITION"] },
+    { type = "dropdown", key = "dock", label = L["DOCK"], items = {
+        { value = "none",   text = L["DOCK_NONE"] },
+        { value = "top",    text = L["DOCK_TOP"] },
+        { value = "bottom", text = L["DOCK_BOTTOM"] },
+    } },
+    { type = "toggle", key = "dockPush", label = L["DOCK_PUSH"] },
+    { type = "text",   label = L["DOCK_DESC"] },
     { type = "text",   label = L["DRAG_HINT"] },
     { type = "button", label = "", text = L["RESET_POSITION"], width = 150,
       onClick = function()

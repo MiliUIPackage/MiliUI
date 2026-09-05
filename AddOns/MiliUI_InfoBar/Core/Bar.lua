@@ -438,7 +438,12 @@ local function Layout()
     end
 
     if total < 1 then total = 1 end
-    bar:SetSize(total, P.Scale(h))
+    if db.dock and db.dock ~= "none" then
+        -- 停靠時寬度由兩角錨定決定（填滿整邊），SetSize 會把它打回去
+        bar:SetHeight(P.Scale(h))
+    else
+        bar:SetSize(total, P.Scale(h))
+    end
 end
 
 function ns.RequestLayout()
@@ -473,8 +478,68 @@ local function DefaultPosition()
     return 0, -420
 end
 
+----------------------------------------------------------------------
+-- 停靠：把 UIParent 往內縮一條
+--
+-- 整個介面（暴雪的、插件的）都錨在 UIParent 上，UIParent 自己錨在螢幕。
+-- 把它的上緣往下拉一條的高度，錨在上緣的東西全部自動讓開、錨在中間的下來
+-- 一半、錨在下緣的不動；編輯模式的版面是相對 UIParent 存的，會一起位移。
+-- 資訊列自己則錨在 UIParent 那個邊的**外面**（父層不裁切，畫得出來）。
+-- 關掉停靠就把 UIParent 放回螢幕四角，所有東西一步到位回原位，不必記任何
+-- 框的原始位置。
+--
+-- 2026-09-05 使用者實測：進出戰鬥、進出編輯模式都不會被打回去。
+-- 換解析度／改 UI 縮放沒驗證過，那兩個事件保險起見再貼一次。
+--
+-- ⚠ 只在需要改變時才動 UIParent：每次 ApplyAll 都 ClearAllPoints 會讓
+--   所有錨在它身上的框重新結算版面，沒事別碰。
+----------------------------------------------------------------------
+local appliedDock, appliedInset = "none", 0
+
+local function DockInset()
+    if not (db and db.enabled and db.dock and db.dock ~= "none" and db.dockPush) then
+        return "none", 0
+    end
+    return db.dock, P.Scale(db.height)
+end
+
+local function ApplyInset(force)
+    local side, h = DockInset()
+    if not force and side == appliedDock and h == appliedInset then return end
+    appliedDock, appliedInset = side, h
+    UIParent:ClearAllPoints()
+    if side == "top" then
+        UIParent:SetPoint("TOPLEFT",     nil, "TOPLEFT",     0, -h)
+        UIParent:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, 0)
+    elseif side == "bottom" then
+        UIParent:SetPoint("TOPLEFT",     nil, "TOPLEFT",     0, 0)
+        UIParent:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, h)
+    else
+        UIParent:SetAllPoints(nil)
+    end
+end
+ns.ApplyInset = ApplyInset
+
+local function Docked()
+    return db and db.dock and db.dock ~= "none" and db.dock or nil
+end
+
 local function ApplyPosition()
     if not bar or InCombatLockdown() then return end
+    local side = Docked()
+    if side then
+        -- 有推開（UIParent 已內縮）就錨在它外面那一條；沒推開就貼在它裡面的邊上
+        local h = db.dockPush and P.Scale(db.height) or 0
+        bar:ClearAllPoints()
+        if side == "top" then
+            bar:SetPoint("TOPLEFT",  UIParent, "TOPLEFT",  0, h)
+            bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, h)
+        else
+            bar:SetPoint("BOTTOMLEFT",  UIParent, "BOTTOMLEFT",  0, -h)
+            bar:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, -h)
+        end
+        return
+    end
     local x, y = db.x, db.y
     if x == nil or y == nil then
         x, y = DefaultPosition()
@@ -533,6 +598,7 @@ end
 
 local function BeginBarDrag()
     if not bar or InCombatLockdown() then return end
+    if Docked() then return end   -- 停靠中位置由邊決定，拖了也會被貼回去
     local left, top = bar:GetLeft(), bar:GetTop()
     if not (left and top) then return end
     local scale = UIParent:GetEffectiveScale()
@@ -621,7 +687,10 @@ function ns.SetBarMoveOverlayShown(shown)
     ns.Defer("move-overlay", function()
         if shown and bar then
             EnsureSettingsOverlay()
-            if settingsOverlay then settingsOverlay:Show() end
+            if settingsOverlay then
+                settingsOverlay.label:SetText(Docked() and L["DOCKED_LABEL"] or L["DRAG_LABEL"])
+                settingsOverlay:Show()
+            end
         elseif settingsOverlay then
             EndBarDrag()
             settingsOverlay:Hide()
@@ -754,6 +823,7 @@ function ns.ApplyAll()
         end
         ns.Poll.SetEnabled(false)
         if ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden() end
+        ApplyInset()          -- 關掉資訊列就把 UIParent 放回去
         UpdateEditModeState()
         return
     end
@@ -787,9 +857,13 @@ function ns.ApplyAll()
 
     if ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden() end
     ApplyColors()
+    ApplyInset()              -- 先縮 UIParent，資訊列再錨到縮出來的那條上
     ApplyPosition()
     Layout()
     bar:Show()
+    if settingsOverlay and settingsOverlay:IsShown() then
+        settingsOverlay.label:SetText(Docked() and L["DOCKED_LABEL"] or L["DRAG_LABEL"])
+    end
     UpdateEditModeState()
 end
 
@@ -827,3 +901,6 @@ ns.Events.Register("PLAYER_ENTERING_WORLD", "bar-repair", function()
     if ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden(true) end
     if db and (db.x == nil or db.y == nil) then ApplyPosition() end
 end)
+-- 停靠的內縮量是像素換算的，縮放或解析度一變就要重貼（順便防暴雪重設 UIParent）
+ns.Events.Register("UI_SCALE_CHANGED",    "dock-inset", function() if db then ApplyInset(true); ApplyPosition() end end)
+ns.Events.Register("DISPLAY_SIZE_CHANGED", "dock-inset", function() if db then ApplyInset(true); ApplyPosition() end end)

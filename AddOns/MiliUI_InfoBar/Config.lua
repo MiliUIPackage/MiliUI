@@ -92,6 +92,11 @@ ns.DB_DEFAULTS = {
     -- 放了預設值反而把「沒拖過」這個狀態蓋掉。
     height       = 26,
     fontSize     = 12,
+    -- 停靠：貼在畫面上緣／下緣並填滿整寬（Core/Bar.lua 的 ApplyInset）。
+    -- "none" = 自由擺放（預設）。dockPush = 停靠時把 UIParent 往內縮一條，
+    -- 錨在那個邊的所有東西自動讓開；關掉就只是蓋在上面。
+    dock         = "none",
+    dockPush     = true,
     blockGap     = 0,           -- 區塊間距；0 = 整條融成一長條（無間距也無隔線）
     -- 底色與框線色。預設＝上面 COLOR_PRESETS 的 pack，兩者同色＝看不出有框。
     -- 這兩格才是真正的設定值；「配色」下拉是從它們**推導**出來的，不另外存。
