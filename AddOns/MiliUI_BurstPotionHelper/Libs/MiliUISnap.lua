@@ -24,8 +24,8 @@
 local _, ns = ...
 
 local VERSION = 1
-local GAP     = 2   -- 貼上之後的間距（像素，UIParent 座標）
-local THRESH  = 8   -- 放手時離多近會吸
+local GAP     = 0   -- 貼上之後貼死，沒有間距（使用者指定）
+local THRESH  = 2   -- 放手時離 2px 以內才吸（使用者指定）；同軸重疊的容差也用它
 
 local S = _G.MiliUI_Snap
 if not S or (S.version or 0) < VERSION then
