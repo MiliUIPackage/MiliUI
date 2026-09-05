@@ -175,3 +175,4 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-cell-libgroupinfo-secret-guid.md](project-cell-libgroupinfo-secret-guid.md) | Cell LibGroupInfo 秘密 GUID |
 | [project-appearancetooltip-secret-rect.md](project-appearancetooltip-secret-rect.md) | AppearanceTooltip IsRectValid guard |
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
+| [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 對冷卻管理器（含增益長條圖示）套皮出現偏移方框 —— MiliUI/Fix 用它的 `_MasqueBlizzBarsSkinned` 印記讓它跳過 |
