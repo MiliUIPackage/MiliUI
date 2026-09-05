@@ -1252,27 +1252,36 @@ local function GetFallbackBarName(frame)
     return nil
 end
 
+-- fix from MiliUI: 名字讓暴雪寫，我們只管樣式與位置（12.1 的正確分工，跟光環一樣）。
+--   CooldownViewerBuffBarItemMixin:RefreshName() 開頭是 `if not nameFontString:IsShown()
+--   then return end`，所以名字文字框一律保持顯示、不想看到就只熄 alpha（下面 ApplyBarStyle）；
+--   編輯模式「條列內容」設成僅圖示時暴雪自己會 Hide 它，SetBarContent 的後掛勾當場 Show 回來。
+--   這樣暴雪每一次 RefreshName 都寫得進去，我們永遠不用替它讀名字——召喚物的 totemData、
+--   受限光環的 auraData 都是秘密的，插件的執行路徑一取值就炸。
+--
+--   這條 SetText 後掛勾只做兩件不用讀秘密的事：
+--   1. 自訂名字：蓋上去，同時把暴雪寫的那份留著（秘密字串也只是拿著、不讀），自訂名字
+--      清掉時原樣放回去，不必再叫暴雪重寫。
+--   2. 暴雪寫進 nil／空字串：召喚的第一拍 totemData 已是秘密表但 name 還是 nil，
+--      GetNameText() 直接回 nil，真名（秘密字串）約一秒後才到。這一秒用法術名字頂著
+--      （召喚惡魔暴君 → 惡魔暴君），秘密字串進來就自然換掉。這段純屬好看，不是 taint 需要。
 local function InstallBarNameTextHook(frame, nameText)
     if not nameText or frame.cdmNameTextHooked then return end
     frame.cdmNameTextHooked = true
     hooksecurefunc(nameText, "SetText", function(self, text)
         if frame.cdmNameTextApplyGuard then return end
+        frame.cdmBlizzardNameText = text
         local custom = frame.cdmResolvedCustomName
         if custom and custom ~= "" then
-            -- fix from MiliUI: 12.1 的 GetNameText() 在 UsesDynamicAppearance 為真時
-            -- 回的是 auraData.name，受限光環下是秘密字串，拿去比較會直接拋錯。
-            -- 是秘密就當作「不是自訂名字」往下走，讓自訂名字蓋上去（安全的方向）。
+            -- 12.1 的 GetNameText() 在 UsesDynamicAppearance 為真時回的是 auraData.name，
+            -- 受限光環下是秘密字串，拿去比較會直接拋錯。是秘密就當作「不是自訂名字」
+            -- 往下走，讓自訂名字蓋上去（安全的方向）。
             if not IsSecretValue(text) and text == custom then return end
             frame.cdmNameTextApplyGuard = true
             self:SetText(custom)
             frame.cdmNameTextApplyGuard = false
             return
         end
-        -- fix from MiliUI: 暴雪寫進 nil／空字串就當場退回法術名字。
-        -- 召喚物（惡魔類）的 totemData 在召喚的第一拍就已經是秘密表、但 name 還是空的，
-        -- GetNameText() 直接回 nil；同一幀還會再來一次 PLAYER_TOTEM_UPDATE 再寫一次 nil，
-        -- 只在套樣式時補一次會被蓋掉。真正的名字（秘密字串）要等將近一秒後才寫進來，
-        -- 那時這條掛勾看到的是秘密字串、不會動它。
         if text == nil or (not IsSecretValue(text) and text == "") then
             local fallback = GetFallbackBarName(frame)
             if fallback then
@@ -1284,69 +1293,14 @@ local function InstallBarNameTextHook(frame, nameText)
     end)
 end
 
--- fix from MiliUI: 暴雪只在名字文字框「正在顯示」的那一刻寫字
---   CooldownViewerBuffBarItemMixin:RefreshName()
---       if not nameFontString:IsShown() then return end
--- 而且只有 RefreshData() 與剛變成 active 時各寫一次。倒數那行（RefreshCooldownInfo）
--- 有同樣的閘，但 active 期間每幀 OnUpdate 都會再試一次，所以會自己補回來；
--- 名字沒有這個補救，撲空一次就空到下一次上 buff。
--- 所以我們自己把文字框從隱藏切回顯示之後，要補叫一次 RefreshName()。
---
--- ⚠ 補叫是在我們（污染）的執行路徑上跑暴雪的函式。securecallfunction 擋的是
---   被呼叫端把污染帶回來，擋不住執行本身已經是污染的：GetNameText() 裡面
---   `totemData.name` 那一步，遇到 12.1 把整張 totemData 給成秘密表的召喚
---   （惡魔類，例如 265187 召喚惡魔暴君）就直接拋
---   "attempt to index local 'totemData' (a secret table value)"，名字留空。
---   拿參考可以、取值不行，所以進去之前先問「是不是秘密」，是就退回法術名字
---   自己寫，不進暴雪那條路。
-local function BarNameIsEmpty(nameText)
-    local text = nameText:GetText()
-    if IsSecretValue(text) then return false end   -- 秘密字串＝有字，而且不能比較
-    return text == nil or text == ""
-end
-
--- GetNameText() 會去取值的兩張表；任一張是秘密表就不能走暴雪的 RefreshName
-local function BlizzardNameDataIsSecret(frame)
-    local totemData = frame.GetTotemData and frame:GetTotemData()
-    if totemData ~= nil and IsSecretValue(totemData) then return true end
-    local auraData = frame.GetAuraDataCached and frame:GetAuraDataCached()
-    if auraData ~= nil and IsSecretValue(auraData) then return true end
-    return false
-end
-
-local function RefreshBarNameText(frame, nameText, allowRetry)
-    if type(frame.RefreshName) ~= "function" or not nameText:IsShown() then return end
-
-    if BlizzardNameDataIsSecret(frame) then
-        -- 拿不到召喚物的名字，退回法術名字（召喚惡魔暴君 vs 惡魔暴君，可接受）。
-        -- 這裡不 return：法術資料沒載入時 GetSpellName 回 nil，讓下面的重試接手。
-        local fallback = GetFallbackBarName(frame)
-        if fallback then
-            nameText:SetText(fallback)
-        end
-    elseif securecallfunction then
-        securecallfunction(frame.RefreshName, frame)
-    else
-        frame:RefreshName()
-    end
-
-    if not allowRetry or not BarNameIsEmpty(nameText) then return end
-
-    -- 補寫還是空的：法術資料還沒載入時 C_Spell.GetSpellName 回 nil，
-    -- 當場重試沒有意義，請求載入之後隔一個 tick 再試最後一次。
-    local spellID = GetSafeSpellID(frame)
-    if spellID then
-        C_Spell.RequestLoadSpellData(spellID)
-    end
-
-    if frame.cdmNameRetryPending then return end
-    frame.cdmNameRetryPending = true
-    C_Timer.After(0.15, function()
-        frame.cdmNameRetryPending = nil
-        if nameText:IsShown() and BarNameIsEmpty(nameText) then
-            RefreshBarNameText(frame, nameText, false)
-        end
-    end)
+-- 自訂名字設定變了：有就蓋、沒有就把暴雪最後寫的那份放回去
+local function ApplyCustomBarName(frame, nameText)
+    local custom = frame.cdmResolvedCustomName
+    local text = (custom and custom ~= "") and custom or frame.cdmBlizzardNameText
+    if text == nil then return end
+    frame.cdmNameTextApplyGuard = true
+    nameText:SetText(text)
+    frame.cdmNameTextApplyGuard = false
 end
 
 local function ResolveBarSpellOverride(frame, groupData)
@@ -1578,8 +1532,6 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
         end
     end
 
-    local nameNeedsRefill = false
-
     if bar then
         bar:ClearAllPoints()
         bar:SetHeight(barHeight)
@@ -1628,8 +1580,6 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
                 InstallBarNameTextHook(frame, nameText)
                 nameText:SetParent(frame.cdmBarTextContainer)
                 if showName then
-                    -- 文字框如果剛從隱藏切回來，暴雪那一輪已經跳過寫字了，稍後補叫 RefreshName()
-                    nameNeedsRefill = not nameText:IsShown() or BarNameIsEmpty(nameText)
                     nameText:SetAlpha(1)
                     nameText:Show()
                     nameText:SetIgnoreParentScale(true)
@@ -1734,8 +1684,8 @@ function CDM:ApplyBarStyle(frame, vName, iconPositionOverride, frameWidthOverrid
     frame.cdmBarStyled = true
 
     local nameFS = bar and bar.Name
-    if nameFS and (customNameChanged or nameNeedsRefill) then
-        RefreshBarNameText(frame, nameFS, nameNeedsRefill)
+    if nameFS and customNameChanged then
+        ApplyCustomBarName(frame, nameFS)
     end
 
     RemoveRogueBlackShadow(frame)
@@ -1767,5 +1717,6 @@ function CDM:InstallStyleAcquireResetHook(v)
         itemFrame.cdmResolvedShowDuration = nil
         itemFrame.cdmResolvedShowApplications = nil
         itemFrame.cdmResolvedCustomName = nil
+        itemFrame.cdmBlizzardNameText = nil
     end)
 end
