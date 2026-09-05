@@ -20,6 +20,7 @@ Libs\MiliUIWidgets\Secret.lua
 Libs\MiliUIWidgets\Errors.lua
 Libs\MiliUIWidgets\Metro.lua
 Libs\Callbacks.lua
+Libs\MiliUISnap.lua
 Locales\Locale.lua
 Locales\zhTW.lua
 Locales\zhCN.lua

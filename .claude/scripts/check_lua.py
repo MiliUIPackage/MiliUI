@@ -41,7 +41,7 @@ ALLOWED_GLOBAL_WRITES = {
     # 內建預設值資料（Config/ 底下那幾支就是一整包全域表）
     "MiliUI_PlatynatorProfile", "MiliUI_AyijeCDM_Profile",
     # 對外 API 與跨插件註冊表
-    "MiliUI", "MiliUI_MenuEntries",
+    "MiliUI", "MiliUI_MenuEntries", "MiliUI_Snap",
     "MiliUI_OpenUnitFrameSettings", "MiliUIUF_OnAddonCompartmentClick",
     "MiliUICrafterTableCellRewardsMixin",
     # 各 Enhance 模組的對外開關（設定面板要叫得到）

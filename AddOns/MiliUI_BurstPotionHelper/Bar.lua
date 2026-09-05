@@ -102,6 +102,11 @@ end
 -- stays put on the left. Auto-place waits until items are scanned (so the
 -- centering uses the real expanded width).
 local DEFAULT_Y_FRACTION = 0.10
+
+-- 磁吸註冊表裡的名字（Libs/MiliUISnap.lua）。別條插件的 db.snapTo.target 記的就是它
+local SNAP_KEY = "burstPotionBar"
+local function SnapDB() return ns.GetDB().bar end
+
 local function PositionBar()
     if not ns.bar then return end
     local db = ns.GetDB()
@@ -115,6 +120,8 @@ local function PositionBar()
     end
     ns.bar:ClearAllPoints()
     ns.bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", db.bar.x or 0, db.bar.y or 220)
+    -- 吸在別條上的話改錨到它身上（Libs/MiliUISnap.lua）；目標不在就維持絕對座標
+    if ns.Snap then ns.Snap.Restore(SNAP_KEY) end
 end
 ns.Bar_Position = PositionBar
 
@@ -125,6 +132,8 @@ local function SavePosition(bar)
     if not (x and y) then return end
     local db = ns.GetDB()
     db.bar.x, db.bar.y = x, y
+    -- 吸著的時候錨點在別條身上，不能改回 UIParent；x/y 照存當退路
+    if ns.Snap and ns.Snap.IsAttached(SNAP_KEY) then return end
     bar:ClearAllPoints()
     bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
 end
@@ -277,6 +286,7 @@ function ns.CreateBar()
     bar:SetBackdrop(MILIUI_BACKDROP)
     bar:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
     bar:SetBackdropBorderColor(0, 0, 0, 1)
+    if ns.Snap then ns.Snap.Register(SNAP_KEY, bar, { db = SnapDB }) end
 
     -- Drag grip (left). Left-drag to move, right-click for settings.
     local grip = CreateFrame("Frame", nil, bar)
@@ -305,11 +315,13 @@ function ns.CreateBar()
     grip:SetScript("OnDragStart", function()
         if not ns.GetDB().lockBar then
             grip._moved = true
+            if ns.Snap then ns.Snap.OnDragStart(SNAP_KEY) end   -- 拖自己＝先脫離
             bar:StartMoving()
         end
     end)
     grip:SetScript("OnDragStop", function()
         bar:StopMovingOrSizing()
+        if ns.Snap then ns.Snap.OnDragStop(SNAP_KEY) end        -- 放手離得近就吸上去
         SavePosition(bar)
     end)
     grip:SetScript("OnMouseUp", function(_, mouseButton)
