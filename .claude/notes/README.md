@@ -163,6 +163,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-find-season-currency-id.md](wow-find-season-currency-id.md) | 查新賽季貨幣代碼的兩行巨集 |
 | [wow-find-creature-displayid.md](wow-find-creature-displayid.md) | 查生物 displayID（wago.tools CSV 端點） |
 | [wow-delve-detection.md](wow-delve-detection.md) | 探究的三種偵測：在不在裡面／探究等級（是聲望軌道）／詞綴法術 ID |
+| [wow-mplus-enemy-forces-fields.md](wow-mplus-enemy-forces-fields.md) | M+ 敵軍進度的欄位語意：`quantity` 已經是百分比、`quantityString` 才是絕對數量 |
 | [project-platynator-preset.md](project-platynator-preset.md) | Platynator 內建預設值怎麼更新 |
 | [project-toc-interface-bump.md](project-toc-interface-bump.md) | 一鍵更新 `## Interface:`（工具在 wow-toc-interface-bump 技能） |
 | [project-toc-title-tag-style.md](project-toc-title-tag-style.md) | Title-zhTW 兩字標籤與漸層上色法、排序剝色碼、Notes `\|n\|n` 換行慣例 |

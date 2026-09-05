@@ -163,7 +163,11 @@ SCENARIO_CRITERIA_UPDATE/POI_UPDATE。在不在鑰石用 `GetInstanceInfo` 難�
 **每季要看**：+2／+3 比例 0.8／0.6、挑戰者的危機（詞綴 152）+90 秒的扣法（`PLUS_FRACTIONS`／`PERIL_*` 常數）。
 **刻意不做**：拉怪預估（MDT／戰鬥記錄，12.x 已死）、死亡名單（GUID 秘密）、EJ 首領名（開面板會污染，
 criteria description 就是名字）、分段紀錄、自動放鑰石（套組已有）。
-**尚未在遊戲內驗證**：版面、秘密值路徑、面板在標題列藏著時的錨點。
+**敵軍百分比**：`quantity` 已經是百分比、`quantityString` 才是絕對數量（帶假的 % 號），
+拿 `quantity / totalQuantity` 會得到「滿了顯示 14.58%」—— 2026-09-05 修掉，
+完整欄位表見 [[wow-mplus-enemy-forces-fields]]。
+
+**尚未在遊戲內驗證**：版面、秘密值路徑、面板在標題列藏著時的錨點、修好後的敵軍百分比。
 
 ## 跟別的插件的關係
 

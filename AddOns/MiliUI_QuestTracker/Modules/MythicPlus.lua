@@ -114,8 +114,9 @@ local function ResetState()
         affixes = {},
         deaths = 0,
         timeLost = 0,
-        forcesCurrent = 0,        -- number 或 nil（秘密）
-        forcesTotal = 0,
+        forcesCurrent = nil,      -- 絕對數量；nil = 還沒讀到（或是秘密值），別當成 0
+        forcesTotal = 0,          -- 絕對總量
+        forcesPercent = nil,      -- 暴雪直接給的百分比（0–100），絕對數量拿不到時的備援
         forcesText = nil,         -- 暴雪給的字串，可能是秘密，只拿去 SetText
         forcesDone = false,
         forcesDoneTime = nil,
@@ -388,8 +389,16 @@ end
 local function RenderForces()
     if not panel then return end
     local cur, total = state.forcesCurrent, state.forcesTotal
+    -- 絕對數量優先（有小數點兩位的精度）；拿不到就退回暴雪給的整數百分比
+    local pct
     if cur and total and total > 0 then
-        local pct = math.min(1, cur / total)
+        pct = cur / total
+    elseif state.forcesPercent then
+        pct = state.forcesPercent / 100
+    end
+    if state.forcesDone then pct = 1 end
+    if pct then
+        pct = math.min(1, pct)
         forcesBar.fill:SetMinMaxValues(0, 1)
         forcesBar.fill:SetValue(pct)
         local s = ("%.2f%%"):format(pct * 100)
@@ -494,18 +503,33 @@ local function UpdateObjectives()
                 -- 敵軍
                 if state.objectives[i] then structureChanged = true end
                 state.objectives[i] = nil
+                -- ⚠ 這三個欄位的語意是反直覺的，別「順手改回去」：
+                --   totalQuantity  絕對總量（例：686）
+                --   quantityString 目前的絕對數量，但後面帶一個**假的**百分比符號（"686%"）
+                --   quantity       已經是百分比（0–100）—— 暴雪自己的追蹤器就是把它
+                --                  直接當百分比畫（ScenarioTrackerProgressBarMixin:SetValue）
+                -- 所以 quantity / totalQuantity 是「百分比 ÷ 絕對總量」，沒有意義：
+                -- 敵軍滿了會算成 100/686 = 14.58%，而且永遠碰不到完成判定。
                 local total = Num(info.totalQuantity)
-                local cur = Num(info.quantity)
-                if cur == nil and type(info.quantityString) == "string" and not IsSecret(info.quantityString) then
+                local cur                                   -- 絕對數量
+                if type(info.quantityString) == "string" and not IsSecret(info.quantityString) then
                     cur = tonumber(info.quantityString:match("%d+"))
                 end
+                local pct = Num(info.quantity)              -- 百分比（備援，只有整數精度）
                 state.forcesText = info.quantityString
                 if total then state.forcesTotal = total end
                 -- 只准往上：結束前 API 會短暫回 0
                 if cur and (cur >= (state.forcesCurrent or 0)) then state.forcesCurrent = cur end
-                if cur and total and total > 0 and cur >= total and not state.forcesDone then
-                    state.forcesDone = true
-                    state.forcesDoneTime = ElapsedNow() - (Num(info.elapsed) or 0)
+                if pct and (pct >= (state.forcesPercent or 0)) then state.forcesPercent = pct end
+                if not state.forcesDone then
+                    -- 完成走 completed 旗標（暴雪自己也是看這個決定要不要收起進度條），
+                    -- 數量比對只是它拿不到時的備援
+                    local done = Bool(info.completed)
+                    if done == nil then done = (cur and total and total > 0 and cur >= total) or false end
+                    if done then
+                        state.forcesDone = true
+                        state.forcesDoneTime = ElapsedNow() - (Num(info.elapsed) or 0)
+                    end
                 end
             else
                 local name = info.description
