@@ -141,3 +141,38 @@ metadata:
 - MENU（右鍵配置／擲骰選單）在戰鬥中的行為。
 
 相關：[[project-miliui-widgets-vendor]]、[[wow-121-secret-values]]、[[project-agent-dir-convention]]
+
+## 戰隊資訊區塊（2026-09-05）
+
+把本體 `MiliUI/Enhance/CharacterKeystones.lua`（掛在 KeystoneLoot 視窗旁的
+「角色鑰石記錄」面板）整組搬進資訊列並從本體刪除：`Core/Warband.lua`（資料層：
+鑰石／寶庫快照／懸賞圖／儲物箱追蹤、隊伍回報、「分身key」關鍵字）＋
+`Core/WarbandPopup.lua`（表格面板、寶庫提示、列選單）＋ Blocks.lua 的 `warband` 方塊
+（字讀即時 `GetOwnedKeystone*`，左鍵開關面板、右鍵選單）。行為逐條照搬，相關判準
+仍在 [[project-miliui-vault-tracking]]、[[project-miliui-bounty-map-column]]、
+[[project-miliui-voidcore-currency]]（路徑已更新）。
+
+- **記錄存 `MiliUI_InfoBar_DB.warband.characters`**（key「角色名-伺服器」，結構同舊的
+  `MiliUI_DB.characterKeystones`）。它是資料不是設定：`ns.ResetDB` 整包留著，
+  遷移印記 `warband.migration`（nil／"migrated"／"none"）也在裡面 —— 清了下次登入
+  又會從 MiliUI_DB 搬一次舊記錄回來。遷移照 [[project-miliui-focus-addon]] 的規矩：
+  PLAYER_LOGIN 才跑、唯讀 MiliUI_DB、沒東西可搬也蓋印記、只搬 key 不存在的。
+- **追蹤永遠在跑，不看方塊有沒有啟用**：要看的是其他角色的資料，只能在登入那隻時記。
+  全部走 `ns.Events`（有 pcall，`ACTIVE_DELVE_DATA_UPDATE` 那種可能不存在的事件名不會炸）。
+- **面板掛 UIParent 不掛 bar**：bar 是隱式保護框，掛底下戰鬥中開不了。皮走提示皮
+  （0.133 不透明＋1px 職業色邊，[[project-miliui-hud-skin]]）；strata DIALOG，
+  寶庫提示 TOOLTIP，列選單走共用層 W.Menu（FULLSCREEN_DIALOG）。
+- **定位＝先翻面再平移**（使用者點名：bar 在最上面時面板往上會撞，要往下）。
+  預設往下長、下緣塞不下才翻成往上；水平貼齊方塊離畫面中線近的那一邊；翻完還出界
+  才 `W.PlaceClamped` 推回。寶庫提示同理（預設右邊、右緣撞到翻左邊）。
+  資料變了（listener）重畫後要**再定位一次**——高度變了翻面結果可能不同。
+- 表頭欄寬取「最小寬」與「表頭字寬＋6」的大者，語系換了不會擠爆。
+  Syndicator 那欄在第一次 Build 時決定要不要有（非 LoD 插件都在 PLAYER_LOGIN 前載完）。
+- 方塊 OnEnter 在面板開著時**不彈提示**（同錨點會疊，hud-skin 那條）。
+- 秘密值：`UnitGUID("npc") or UnitGUID("target")` 那種「對原始回傳做真值判斷」改成
+  兩邊先 `S.PlainText` 再 or；widget tooltip、地城名也都過 PlainText。
+- 指令：`/mib keydebug` 開追蹤輸出、`/mib stash` 探測儲物箱 widget（取代舊的 `/milikeydbg`）。
+
+待驗證（沒進過遊戲）：遷移訊息與筆數、面板在 bar 貼頂／貼底／靠右三種位置的翻面、
+右鍵寶庫格會不會經 `SetPropagateMouseClicks` 傳到列、ESC 關面板後 OnHide 的清理、
+戰鬥中點方塊開面板、「分身key」關鍵字在 zhTW／enUS 客戶端各自的觸發。

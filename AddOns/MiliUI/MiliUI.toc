@@ -54,7 +54,6 @@ Enhance\ChallengesUI_LootTable.lua
 Enhance\LibCustomGlow_FpsGate.lua
 Enhance\CraftingOrders_RewardColumn.xml
 Enhance\CraftingOrders_RewardColumn.lua
-Enhance\CharacterKeystones.lua
 Enhance\AutoStoryStroll.lua
 Enhance\TeleportMenu_Spacing.lua
 Enhance\AuctionHouseFilter.lua

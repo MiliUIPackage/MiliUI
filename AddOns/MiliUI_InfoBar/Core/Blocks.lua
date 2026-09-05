@@ -50,6 +50,7 @@ local function MakeTextBlock(key, opts)
             if opts.poll then
                 ns.Poll.Add("blk-" .. key, opts.poll, function() inst:Update() end)
             end
+            if opts.onEnable then opts.onEnable(inst) end
         end
 
         function inst:Disable()
@@ -59,6 +60,7 @@ local function MakeTextBlock(key, opts)
             if opts.poll then
                 ns.Poll.Remove("blk-" .. key)
             end
+            if opts.onDisable then opts.onDisable(inst) end
         end
 
         return inst
@@ -349,6 +351,71 @@ MakeTextBlock("lootspec", {
             name = select(2, GetSpecializationInfoByID(lootID))
         end
         return Dim(L["LABEL_LOOTSPEC"]) .. " " .. (name or "—")
+    end,
+})
+
+------------------------------------------------------------
+-- 戰隊資訊：方塊上顯示目前角色的鑰石，左鍵展開所有角色的表格
+-- （Core/WarbandPopup.lua），右鍵選單。資料層在 Core/Warband.lua。
+--
+-- 方塊的字讀的是即時 API（GetOwnedKeystone 永遠最新），不是記錄；
+-- 資料層在鑰石／寶庫有變時通知，這裡只要重讀一次。
+------------------------------------------------------------
+local function ShowWarbandMenu(tile)
+    GameTooltip:Hide()
+    local items = { { isTitle = true, text = L["BLOCK_WARBAND"] } }
+    if ns.Warband.PartyChannel() then
+        items[#items + 1] = {
+            text = L["MENU_WARBAND_SEND_ALL"],
+            onClick = function()
+                local ch = ns.Warband.PartyChannel()
+                if ch then ns.Warband.SendReport(ch) end
+            end,
+        }
+        items[#items + 1] = { isSeparator = true }
+    end
+    items[#items + 1] = {
+        text = L["MENU_OPEN_SETTINGS"],
+        onClick = function() ns.OpenSettings("blocks") end,
+    }
+    W.Menu.Show(items, tile)
+end
+
+MakeTextBlock("warband", {
+    clickable = true,
+    events = { "PLAYER_ENTERING_WORLD" },
+    init = function(_, tile)
+        tile:SetScript("OnClick", function(self, button)
+            GameTooltip:Hide()
+            if button == "RightButton" then
+                ShowWarbandMenu(self)
+            else
+                ns.WarbandPopup.Toggle(self)
+            end
+        end)
+        tile:HookScript("OnEnter", function(self)
+            -- 面板開著就不彈提示：兩者從同一個錨點長出來會疊在一起
+            -- （.claude/notes/project-miliui-hud-skin.md）
+            if ns.WarbandPopup.IsOpenFor(self) then return end
+            AnchorTooltip(self)
+            GameTooltip:SetText(L["BLOCK_WARBAND"], 1, 1, 1)
+            GameTooltip:AddLine(L["WARBAND_TIP_COUNT"]:format(ns.Warband.Count()), 0.7, 0.7, 0.7)
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(L["HINT_LEFT_WARBAND"], 0.5, 0.5, 0.5)
+            GameTooltip:AddLine(L["HINT_RIGHT_WARBAND"], 0.5, 0.5, 0.5)
+            GameTooltip:Show()
+        end)
+        tile:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    end,
+    onEnable = function(inst)
+        ns.Warband.AddListener("blk-warband", function() inst:Update() end)
+    end,
+    onDisable = function()
+        ns.Warband.RemoveListener("blk-warband")
+        ns.WarbandPopup.Hide()
+    end,
+    getText = function()
+        return Dim(L["LABEL_WARBAND"]) .. " " .. ns.Warband.OwnKeystoneText()
     end,
 })
 

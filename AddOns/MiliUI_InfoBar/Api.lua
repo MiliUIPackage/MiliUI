@@ -12,11 +12,19 @@ end
 SLASH_MILIUI_INFOBAR1 = "/mib"
 SLASH_MILIUI_INFOBAR2 = "/miliinfobar"
 SlashCmdList.MILIUI_INFOBAR = function(msg)
-    if type(msg) == "string" and msg:lower():match("^%s*debug%s*$") then
+    local cmd = type(msg) == "string" and msg:lower():match("^%s*(%S+)") or nil
+    if cmd == "debug" then
         ns.PrintDebug()
-        return
+    elseif cmd == "keydebug" then
+        -- 戰隊資訊資料層的追蹤輸出（鑰石／寶庫快照什麼時候存、為什麼存）
+        local on = ns.Warband.ToggleDebug()
+        print(ns.PREFIX_COLOR .. L["ADDON_NAME"] .. "|r warband debug: " .. (on and "ON" or "OFF"))
+    elseif cmd == "stash" then
+        -- 探測鍍金儲物箱的 widget（改版後 ID 換了要靠這個找）
+        ns.Warband.ProbeStash()
+    else
+        ns.OpenSettings()
     end
-    ns.OpenSettings()
 end
 
 -- 米利UI選單（ESC 選單「米利UI設定」滑過展開）的項目。

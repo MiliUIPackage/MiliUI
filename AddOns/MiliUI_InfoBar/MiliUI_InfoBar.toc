@@ -1,10 +1,10 @@
 ## Interface: 120007, 120100, 120105
 ## Title: MiliUI InfoBar
-## Notes: Flat info bar with micro menu replacement: item level, durability, spec, loot spec, performance.|n|n|cffffd200Usage: |rEsc>Options>AddOns>MiliUI InfoBar or type /mib to configure.
+## Notes: Flat info bar with micro menu replacement: item level, durability, spec, loot spec, warband keystones, performance.|n|n|cffffd200Usage: |rEsc>Options>AddOns>MiliUI InfoBar or type /mib to configure.
 ## Title-zhTW: |cff00FFFF[資訊]|r 米利的資訊列
-## Notes-zhTW: MiliUI InfoBar |n|n方形深底的資訊列，整合微型選單：裝等、耐久、天賦、擲骰天賦、效能。|n|n|cffffd200使用方法: |rEsc>選項>插件>米利的資訊列或輸入指令 /mib 設定。
+## Notes-zhTW: MiliUI InfoBar |n|n方形深底的資訊列，整合微型選單：裝等、耐久、天賦、擲骰天賦、戰隊鑰石、效能。|n|n|cffffd200使用方法: |rEsc>選項>插件>米利的資訊列或輸入指令 /mib 設定。
 ## Title-zhCN: |cff4488FF[MiliUI]|r 米利的信息栏
-## Notes-zhCN: 方形深底的信息栏，整合微型菜单：装等、耐久、天赋、拾取专精、性能。|n|n|cffffd200使用方法: |rEsc>选项>插件>米利的信息栏或输入指令 /mib 设置。
+## Notes-zhCN: 方形深底的信息栏，整合微型菜单：装等、耐久、天赋、拾取专精、战团钥石、性能。|n|n|cffffd200使用方法: |rEsc>选项>插件>米利的信息栏或输入指令 /mib 设置。
 ## IconTexture: Interface\Icons\INV_Misc_Note_06
 ## Category: Interface
 ## Category-zhTW: 介面
@@ -28,6 +28,8 @@ Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 
 Core\Bar.lua
+Core\Warband.lua
+Core\WarbandPopup.lua
 Core\MicroMenu.lua
 Core\Blocks.lua
 

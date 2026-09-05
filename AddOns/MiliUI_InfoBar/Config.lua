@@ -45,6 +45,7 @@ ns.BLOCK_DEFS = {
     { key = "micromenu",  order = 30,  enabled = true  },
     { key = "spec",       order = 40,  enabled = true  },
     { key = "lootspec",   order = 50,  enabled = true  },
+    { key = "warband",    order = 55,  enabled = true  },
     { key = "gold",       order = 60,  enabled = false },
     { key = "clock",      order = 70,  enabled = false, poll = true },
     { key = "fps",        order = 80,  enabled = false, poll = true },
@@ -109,5 +110,10 @@ ns.DB_DEFAULTS = {
         char = true, prof = true, spell = true, ach = true, quest = true,
         guild = true, lfg = true, housing = true, pet = true, journal = true,
         menu = true, shop = false, help = false,
+    },
+    -- 戰隊資訊的記錄（Core/Warband.lua）。這是**資料**不是設定：
+    -- ResetDB 會整包留著，migration 印記也在這裡（nil = 還沒查過 MiliUI_DB）。
+    warband = {
+        characters = {},
     },
 }

@@ -801,8 +801,12 @@ end
 ----------------------------------------------------------------------
 function ns.ResetDB()
     ns.InitDB()
+    -- 戰隊資訊的角色記錄是資料不是設定，還原預設值不該把它清掉；
+    -- 遷移印記也在同一張表裡，清了下次登入又會從 MiliUI_DB 搬一次舊記錄回來
+    local warband = db.warband
     wipe(db)
     CopyDefaults(ns.DB_DEFAULTS, db)
+    if type(warband) == "table" then db.warband = warband end
     db.posVersion = 2       -- 位置遷移已經是最新格式，別讓它再跑一次
     ns.ApplyAll()
 end
