@@ -547,6 +547,7 @@ end
 --   所有錨在它身上的框重新結算版面，沒事別碰。
 ----------------------------------------------------------------------
 local appliedDock, appliedInset = "none", 0
+local applyingInset = false
 
 local function DockInset()
     if not (db and db.enabled and db.dock and db.dock ~= "none" and db.dockPush) then
@@ -559,6 +560,7 @@ local function ApplyInset(force)
     local side, h = DockInset()
     if not force and side == appliedDock and h == appliedInset then return end
     appliedDock, appliedInset = side, h
+    applyingInset = true
     UIParent:ClearAllPoints()
     if side == "top" then
         UIParent:SetPoint("TOPLEFT",     nil, "TOPLEFT",     0, -h)
@@ -569,8 +571,30 @@ local function ApplyInset(force)
     else
         UIParent:SetAllPoints(nil)
     end
+    applyingInset = false
 end
 ns.ApplyInset = ApplyInset
+
+-- ⚠ 載入畫面（進出副本）會把 UIParent 的錨點放回螢幕四角——2026-09-05 進副本實測，
+-- 資訊列還錨在縮出來的那條上，被夾回螢幕頂端壓在小地圖上。戰鬥與編輯模式不會。
+-- 兩道保險：(1) 進世界強制重貼；(2) 掛勾 UIParent 的錨點重設，不管是誰放回去的，
+-- 下一幀再貼一次。自己貼的時候用 applyingInset 擋住，免得掛勾追著自己跑。
+local insetRepairQueued = false
+local function QueueInsetRepair()
+    if applyingInset or insetRepairQueued then return end
+    if appliedDock == "none" then return end   -- 沒停靠就沒什麼好修
+    insetRepairQueued = true
+    C_Timer.After(0, function()
+        insetRepairQueued = false
+        if db and not InCombatLockdown() then
+            ApplyInset(true)
+            ns.ApplyBarPosition()
+        end
+    end)
+end
+hooksecurefunc(UIParent, "ClearAllPoints", QueueInsetRepair)
+hooksecurefunc(UIParent, "SetAllPoints",   QueueInsetRepair)
+hooksecurefunc(UIParent, "SetPoint",       QueueInsetRepair)
 
 local function ApplyPosition()
     if not bar or InCombatLockdown() then return end
@@ -976,6 +1000,14 @@ end)
 ns.Events.Register("PLAYER_ENTERING_WORLD", "bar-repair", function()
     if ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden(true) end
     if db and (db.x == nil or db.y == nil) then ApplyPosition() end
+    -- 載入畫面會把 UIParent 的錨點重設（見 ApplyInset 上方），停靠的內縮要重貼；
+    -- 當下貼一次，0.5 秒後再貼一次保險（暴雪套版面的時機不保證在我們之前）
+    if db and db.dock and db.dock ~= "none" and not InCombatLockdown() then
+        ApplyInset(true); ApplyPosition()
+        C_Timer.After(0.5, function()
+            if db and not InCombatLockdown() then ApplyInset(true); ApplyPosition() end
+        end)
+    end
 end)
 -- 停靠的內縮量是像素換算的，縮放或解析度一變就要重貼（順便防暴雪重設 UIParent）
 ns.Events.Register("UI_SCALE_CHANGED",    "dock-inset", function() if db then ApplyInset(true); ApplyPosition() end end)
