@@ -33,6 +33,7 @@ Options\Roster.lua
 Options\Panel.lua
 Options\Tab_Addons.lua
 Options\Tab_Enhance.lua
+Options\Tab_QoL.lua
 Options\HeapTrack.lua
 Options\Tab_Perf.lua
 Options\LagWatch.lua

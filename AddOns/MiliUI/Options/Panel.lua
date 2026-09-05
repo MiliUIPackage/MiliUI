@@ -31,6 +31,7 @@ local bannerVersion, bannerNewest
 
 local TABS = {
     { id = "addons",  label = "插件總覽" },
+    { id = "qol",     label = "便利功能" },
     { id = "enhance", label = "插件強化" },
     { id = "perf",    label = "效能監控" },
     { id = "import",  label = "預設值匯入" },
@@ -300,6 +301,7 @@ local function CreatePanel()
         "",
         ns.PREFIX_COLOR .. "快速導覽|r",
         "|cff8888cc•|r  |cffffd200插件總覽|r — 檢視套組收錄的插件、開啟各插件設定、勾選啟用或停用",
+        "|cff8888cc•|r  |cffffd200便利功能|r — 商人自動修裝賣垃圾、骰裝提示過濾、遊戲行為等省事的設定",
         "|cff8888cc•|r  |cffffd200插件強化|r — 施法條美化、拍賣行篩選、鑰石發光等注入式功能",
         "|cff8888cc•|r  |cffffd200效能監控|r — 看每個插件吃掉多少 CPU 與記憶體，揪出拖慢遊戲的那一個",
         "|cff8888cc•|r  |cffffd200預設值匯入|r — 一鍵匯入 MiliUI 精心調校的插件設定",
