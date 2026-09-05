@@ -27,6 +27,7 @@ local closeBtn
 local TABS = {
     { id = "appearance", label = L["Appearance"] },
     { id = "visibility", label = L["Folding"] },
+    { id = "mythicPlus", label = L["Mythic+"] },
     { id = "automation", label = L["Automation"] },
     { id = "about",      label = L["About"] },
 }

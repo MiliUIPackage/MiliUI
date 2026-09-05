@@ -157,3 +157,19 @@ L["Nothing yet — every quest is accepted instantly."] = "目前是空的——
 
 -- 接失败时的提示
 L["Couldn't accept \"%s\" — talk to the quest giver again. It will wait %.2fs before accepting next time."] = "没接到「%s」，请再跟任务发布者对话一次。已记住这条，下次会先等 %.2f 秒再接。"
+
+-- 傳奇鑰石面板（Modules/MythicPlus.lua、Options/Tab_MythicPlus.lua）
+L["Mythic+"] = "史诗钥石"
+L["Mythic+ timer"] = "史诗钥石计时"
+L["While a keystone is running the list folds away and this panel takes its place under the title bar: timer with +2/+3 splits, key level and affixes, deaths, bosses with kill times, and the enemy forces bar. It needs \"During a Mythic+ run\" on the Folding tab to be on."] = "钥石进行中列表会折起来，这块面板接在标题栏底下取代它：计时（含 +2／+3 分段）、钥石等级与词缀、死亡数、首领与击杀时间、敌军条。需要“自动折叠”分页的“史诗钥石中”开着。"
+L["Show the panel"] = "显示面板"
+L["Enemy forces in unit tooltips"] = "单位提示显示敌军数"
+L["Sizes"] = "尺寸"
+L["Timer size"] = "计时字号"
+L["Key level size"] = "钥石等级字号"
+L["Text size"] = "文字字号"
+L["Boss list size"] = "首领列表字号"
+L["Bar height"] = "条的高度"
+L["Font and outline follow the Appearance tab. Colours are fixed: white text, grey timer bars, gold forces bar, green for completed."] = "字体与描边跟着“外观”分页走。颜色固定：白字、灰色计时条、金色敌军条、完成绿色。"
+L["%d deaths"] = "%d 次死亡"
+L["Enemy forces"] = "敌军"

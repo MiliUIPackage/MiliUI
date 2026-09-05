@@ -1,6 +1,6 @@
 ---
 name: project-miliui-questtracker
-description: 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker 的獨立插件；六條 taint 規矩、摺疊機制走 IsProtected 分流、Leatrix 衝突偵測、待驗證清單
+description: 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker 的獨立插件；六條 taint 規矩、摺疊機制走 IsProtected 分流、內建傳奇鑰石計時面板（取代 WarpDeplete）、Leatrix 衝突偵測、待驗證清單
 metadata: 
   node_type: memory
   type: project
@@ -145,6 +145,25 @@ UIParent，換父層會連位置一起跑掉，我們錨在它身上的標題列
 「顯示標題列」是自殺選項（關掉就沒東西可以右鍵）、「在編輯模式中移動」等於在
 管著追蹤器保護狀態的系統上開污染入口、自動摺疊的七個條件在共用層的子選單裡
 沒辦法原地重畫（多選型勾選按下去會整個關掉）。
+
+## 傳奇鑰石計時面板（2026-09-05，`Modules/MythicPlus.lua`，取代 WarpDeplete）
+
+鑰石中清單摺起來（`visibility.mythicPlus`），面板錨在標題列底下（`Chrome.GetBar()`）補進原位；
+三個條件都成立才顯示：選項開、`MP.IsInChallenge()`、`T.IsHidden()`（玩家偷看展開就讓位）。
+版面照 WarpDeplete 預設（文字靠右、死亡／計時／[等級] 詞綴／三段計時條 +3|+2|+1／敵軍條／首領），
+皮是純色 1px，字型描邊跟 appearance 走，尺寸在 `db.mythicPlus`、設定分頁「傳奇鑰石」。
+
+**不碰暴雪追蹤器**：暴雪自己的 M+ 區塊在共用池的場景模組裡（規矩 3），我們讀同一組 API 畫自己的框。
+API：`C_ChallengeMode.{GetActiveChallengeMapID,GetActiveKeystoneInfo,GetAffixInfo,GetMapUIInfo,GetDeathCount,
+GetChallengeCompletionInfo}`、`C_Scenario.GetStepInfo`、`C_ScenarioInfo.{GetCriteriaInfo,GetUnitCriteriaProgressValues}`、
+`GetWorldElapsedTime(1)`；事件 CHALLENGE_MODE_START/COMPLETED/DEATH_COUNT_UPDATED、WORLD_STATE_TIMER_START、
+SCENARIO_CRITERIA_UPDATE/POI_UPDATE。在不在鑰石用 `GetInstanceInfo` 難度 8＋party（打完到出副本都算，
+`IsChallengeModeActive` 打完就 false）。所有數字先過 `Num()`／`Bool()` 秘密閘，秘密就退化（敵軍字串原樣 SetText）。
+
+**每季要看**：+2／+3 比例 0.8／0.6、挑戰者的危機（詞綴 152）+90 秒的扣法（`PLUS_FRACTIONS`／`PERIL_*` 常數）。
+**刻意不做**：拉怪預估（MDT／戰鬥記錄，12.x 已死）、死亡名單（GUID 秘密）、EJ 首領名（開面板會污染，
+criteria description 就是名字）、分段紀錄、自動放鑰石（套組已有）。
+**尚未在遊戲內驗證**：版面、秘密值路徑、面板在標題列藏著時的錨點。
 
 ## 跟別的插件的關係
 
