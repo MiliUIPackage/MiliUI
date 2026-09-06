@@ -131,16 +131,49 @@ function V.CreateGate(uf)
     return gate
 end
 
--- ⚠ 這一行會在**戰鬥中**跑（進戰鬥、換目標、隊伍變動都會推它）。
--- 依據是「保護只管對受保護物件本身做 Show/Hide/移動/換父層」，藏一個我們自己建的
--- 普通父層不在那張清單裡 —— 這也是很多動作條插件放 secure 按鈕的做法。
--- 萬一這個判斷錯了，失敗方式是可見的：Core/Init.lua 的 ADDON_ACTION_FORBIDDEN
--- 攔截器會印出「封鎖動作」並指名函式，不會靜默壞掉。首次進副本值得留意一下。
+-- ⚠⚠ **原本以為「藏我們自己建的普通父層」在戰鬥中合法 —— 2026-09-06 實測是錯的。**
+-- taint.log：`An action was blocked in combat because of taint from MiliUI_UnitFrames
+-- - Frame:SetShown()`，11 筆，全部從這裡出去。**隱式保護會往上傳**：閘框底下掛著
+-- SecureUnitButton，藏父層等於藏那顆受保護的子物件，引擎照樣擋。
+-- （同一條規則在拖曳那邊也踩過，見 .claude/notes/wow-combat-drag-release.md。）
+--
+-- 所以這裡分兩段：
+--   1. **狀態沒變就一個 API 都不叫。** 那 11 筆全是 PLAYER_ENTERING_WORLD 打進
+--      V.Refresh() ⇒ 11 個框各重套一次「本來就已經是這樣」的狀態，一次載入畫面
+--      就是 11 行紅字。這一段本身就把絕大多數呼叫消掉。
+--   2. **戰鬥中真的要改，就記下來、脫戰再做**（V.FlushPending）。
+--
+-- ⚠ 代價要講清楚：戰鬥中條件不會生效。`inCombat` 這個模式因此形同「戰鬥結束才出現」。
+-- 要在戰鬥中換顯示狀態，唯一的路是把判斷交給安全端（巨集條件 ＋ RegisterStateDriver），
+-- 污染過的 Lua 沒有任何寫法做得到 —— 那正是保護機制要擋的事。
 function V.Apply(uf)
     local gate = uf and uf.visGate
     if not gate then return end
-    if uf.isPreview then gate:Show(); return end
-    gate:SetShown(V.Eval(uf))
+
+    local want = uf.isPreview and true or (V.Eval(uf) and true or false)
+
+    -- 沒變就不要碰。SetShown 對已經是那個狀態的框仍然算一次保護動作，照樣被擋。
+    if gate:IsShown() == want then
+        uf.visPending = nil
+        return
+    end
+
+    if InCombatLockdown() then
+        uf.visPending = true    -- 只記「有帳要還」，值等脫戰再算，那時候比較新
+        return
+    end
+
+    uf.visPending = nil
+    gate:SetShown(want)
+end
+
+-- 脫戰把戰鬥中擋下來的補做。自己帶鎖定閘，所以放在哪裡呼叫都安全
+-- （OnCombat 進戰／脫戰共用同一支）。
+function V.FlushPending()
+    if InCombatLockdown() then return end
+    for _, uf in pairs(ns.frames) do
+        if uf.visPending then V.Apply(uf) end
+    end
 end
 
 ------------------------------------------------------------
@@ -375,6 +408,7 @@ end
 -- 只有 ZONE_CHANGED_NEW_AREA 與 PLAYER_MOUNT_DISPLAY_CHANGED 是新的，兩個都很罕見。
 ------------------------------------------------------------
 local function OnCombat()
+    V.FlushPending()         -- 脫戰補做戰鬥中擋下來的；進戰時自己的鎖定閘會擋掉
     ApplyAllIfNeeded()
     ApplyAllAlpha()          -- 脫戰淡出吃的就是這個
 end
