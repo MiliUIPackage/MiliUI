@@ -23,10 +23,9 @@ local UnitIsVisible, UnitAffectingCombat = UnitIsVisible, UnitAffectingCombat
 local UnitHealthPercent, UnitPowerPercent = UnitHealthPercent, UnitPowerPercent
 
 -- ⚠ pcall 的第一個參數一定要是「已經存在的函式」，不要現寫 function() end：
--- 這兩個函式落在每個血量／能量事件上，每次呼叫都新建一顆 closure 就是白配記憶體。
+-- 這支落在每個陣營更新上，每次呼叫都新建一顆 closure 就是白配記憶體。
 -- 值改用參數傳進去，語意跟原本抓 upvalue 完全一樣。
 local function Eq(a, b) return a == b end
-local function Hundredth(v) return v * 0.01 end
 
 -- UnitReaction 在受限單位上可能回秘密值：用 pcall 逐一比對抽出明文
 -- （比較錯誤可被 pcall 捕捉；布林測試的 taint error 不行，所以不能用別的寫法）
@@ -41,13 +40,24 @@ local function PlainReaction(unit)
     return nil
 end
 
--- pcall 抽百分比（rawpct 可能是秘密值，* 0.01 需要逃逸）
+-- 抽百分比：ScaleTo100 曲線在**沒受限**的單位上回明文 0-100，受限單位（副本／競技場
+-- 裡的敵對玩家等）仍然是秘密數字，乘 0.01 會被擋下來。
+--
+-- ⚠ 這裡**先問再算**，不要用 pcall 去試乘法。被封鎖的算術是一顆真的 Lua error：
+-- 它落在血量／能量事件的熱路徑上（受限單位每次更新丟一顆），而且會在 taint.log
+-- 裡刷出「An attempt to perform arithmetic on a secret value was blocked because of
+-- taint from MiliUI_UnitFrames」—— 看起來像我們污染了什麼，其實是自己故意撞的。
+-- issecretvalue 是免費的查詢，語意跟原本完全一樣（上面 PlainReaction 就是這個寫法）。
+--
 -- 第三個參數是 curve 物件（health 是第 3、power 是第 4 位）。備援不能是 `or true` ——
 -- 那會把布林塞進 curve 的位置。拿不到就傳 nil，讓引擎回未經曲線的百分比。
 local _scale = CurveConstants and CurveConstants.ScaleTo100
 local function PlainFrac(rawpct, old)
-    local ok, frac = pcall(Hundredth, rawpct)
-    if ok and type(frac) == "number" then return frac end
+    if type(rawpct) == "number" and not IsSecret(rawpct) then
+        return rawpct * 0.01
+    end
+    -- 問不到就沿用上一次的值（開場沒有舊值就當滿）。這裡只餵漸層上色，
+    -- 玩家看到的 [perchp] 文字走 Core/Tags.lua 的曲線路徑，不受影響。
     return old or 1
 end
 
