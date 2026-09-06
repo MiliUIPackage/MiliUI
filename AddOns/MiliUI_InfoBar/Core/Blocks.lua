@@ -15,6 +15,7 @@ local _, ns = ...
 local L = ns.L
 local S = ns.Secret
 local W = ns.W
+local Perf = ns.Perf
 
 ns.Blocks = ns.Blocks or {}
 
@@ -48,7 +49,12 @@ local function MakeTextBlock(key, opts)
                 ns.Events.Register(ev, "blk-" .. key, function() inst:Update() end)
             end
             if opts.poll then
-                ns.Poll.Add("blk-" .. key, opts.poll, function() inst:Update() end)
+                local label = "poll " .. key
+                ns.Poll.Add("blk-" .. key, opts.poll, function()
+                    local t0 = Perf.Begin()
+                    inst:Update()
+                    Perf.End(label, t0)
+                end)
             end
             if opts.onEnable then opts.onEnable(inst) end
         end

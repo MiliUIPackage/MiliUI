@@ -207,3 +207,7 @@ OnClick 裡，分析器整段算給資訊列；「近期平均（最近 60 幀�
 不是資訊列的問題，點官方那排一樣要花。另一個真的修掉的：停靠中每次換區強制重貼 UIParent
 （見 [[wow-uiparent-inset-dock]]）。
 
+第三個（最大宗、每 5 秒 90 ms）：CPU／記憶體方塊點開本體的效能分頁，分頁的 frame 在資訊列的
+點擊裡建出來，之後它 OnUpdate 裡的 UpdateAddOnMemoryUsage 整場記給資訊列。修在本體那邊
+（MiliUI/Api.lua 的 perfRelay 中繼框），規則見 [[wow-addon-profiler-cost]]。
+

@@ -9,9 +9,25 @@ end
 
 -- 跨插件入口：MiliUI_InfoBar 的 CPU／記憶體方塊點擊直達效能監控的對應子分頁
 -- （sub = "cpu"／"ram"）。走全域不走相依宣告——那支插件沒裝本體也要能載入。
+--
+-- ⚠ 不直接在呼叫者的堆疊裡開窗，先經過一個**本體自己建的**中繼框、下一幀再開。
+--   官方分析器的記帳是「誰建的框／計時器，之後它的 OnUpdate、callback 都算誰的」：
+--   如果效能分頁的 frame 是在資訊列的點擊裡第一次建出來的，分頁每 5 秒那一下
+--   UpdateAddOnMemoryUsage（全堆掃描，~90 毫秒）從此整場都記在資訊列頭上
+--   （2026-09-06 實測：資訊列自己的 Lua 是 0.0 毫秒，官方卻每 5 秒算它 90 毫秒）。
+--   中繼框在本體載入時建好，它的 OnUpdate 是本體的堆疊，在裡面建的東西才歸本體。
 MiliUI = MiliUI or {}
-function MiliUI.OpenPerf(sub)
+local perfRelay = CreateFrame("Frame")
+perfRelay:Hide()
+perfRelay:SetScript("OnUpdate", function(self)
+    self:Hide()
+    local sub = self.pendingSub
+    self.pendingSub = nil
     ns.OpenPerfPage(sub)
+end)
+function MiliUI.OpenPerf(sub)
+    perfRelay.pendingSub = sub
+    perfRelay:Show()
 end
 
 -- 刻意不往 MiliUI_MenuEntries 塞「套組」項目：ESC 那顆「米利UI設定」按鈕

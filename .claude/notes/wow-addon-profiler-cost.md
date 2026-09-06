@@ -1,6 +1,6 @@
 ---
 name: wow-addon-profiler-cost
-description: 插件效能數據的官方來源——C_AddOnProfiler 讀值免費，UpdateAddOnMemoryUsage 是全堆掃描；兩者的成本差了好幾個數量級
+description: 插件效能數據的官方來源——C_AddOnProfiler 讀值免費，UpdateAddOnMemoryUsage 是全堆掃描；兩者的成本差了好幾個數量級。**記帳規則是「誰建的框／計時器就算誰的」**，跨插件開窗會把整場的 OnUpdate 記到呼叫者頭上
 metadata: 
   node_type: memory
   type: reference
@@ -67,3 +67,19 @@ session 算在**母插件**頭上。EUI 為此在主 chunk 預建一池 frame �
 
 實作在 [[project-miliui-perf-tab]]。相關：[[wow-frame-lifecycle-costs]]、
 [[wow-unitframe-event-dispatch-cost]]。
+
+## 官方分析器把帳記給誰（2026-09-06 實測）
+
+不是「哪支檔案的程式碼在跑」，是**執行的進入點屬於誰**：
+
+- 框的 script（OnClick／OnUpdate／OnEvent…）算**建那個框**的插件；C_Timer 的 callback 算建計時器的；
+  hooksecurefunc 的掛勾算掛的人。進入點一旦是你的，之後同步呼叫的一切（暴雪的、別的插件的）
+  全部算你的——資訊列 secure 轉發點天賦，暴雪開天賦視窗的 68 ms 記在資訊列頭上。
+- **跨插件開窗是地雷**：A 的點擊裡呼叫 B 的 OpenXxx，B 第一次 CreateFrame 出來的視窗從此
+  屬於 A，視窗的 OnUpdate（例如效能分頁每 5 秒的 UpdateAddOnMemoryUsage，~90 ms）整場都記給 A。
+  症狀：A 自己量到 0.0 ms、堆沒動、官方卻週期性算它幾十毫秒。
+  解法在**被呼叫的那邊**：對外入口先經過自己載入時建好的中繼框，下一幀在自己的 OnUpdate 裡再開
+  （MiliUI/Api.lua 的 perfRelay）。呼叫端用 C_Timer 延後沒用，計時器也是呼叫端建的。
+- 自己對帳的方法：每個進入點包 debugprofilestop 差值，再每幀讀 GetAddOnMetric(LastTime) 比對
+  （MiliUI_InfoBar/Core/Perf.lua，/mib perf watch）。「官方有、自己量到 0」就是這條規則在作怪。
+

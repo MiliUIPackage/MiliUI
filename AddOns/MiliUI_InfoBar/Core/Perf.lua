@@ -54,8 +54,9 @@ end
 -- **沒被包到的入口**（或根本不是我們的 Lua，例如 GC 步驟落在我們的配置上）。
 -- 這是唯一會每幀進 Lua 的東西，所以預設關、只在查問題時開，而且不存檔。
 ------------------------------------------------------------
-local spikes = {}          -- 最近 10 筆 { at, ms, measured }
+local spikes = {}          -- 最近 10 筆 { at, ms, measured, heapDelta }
 local prevMeasured = 0
+local prevHeapKB = 0       -- 上一幀的 collectgarbage("count")；一幀掉幾十 MB 就是 GC 收尾
 local watcher
 
 local function LastTime()
@@ -72,14 +73,19 @@ function Perf.SetWatch(on)
             watcher = CreateFrame("Frame")
             watcher:SetScript("OnUpdate", function()
                 local last = LastTime()
+                local heapKB = collectgarbage("count")
                 -- LastTime 是上一幀的帳；上一幀的事件在上一個 OnUpdate 之前派送、
                 -- 計時器在之後，兩個窗口取大的那個當「我們量到的」
                 local measured = math.max(prevMeasured, frameMeasured)
                 if last >= BIG_MS then
-                    spikes[#spikes + 1] = { at = date("%H:%M:%S"), ms = last, measured = measured }
+                    spikes[#spikes + 1] = {
+                        at = date("%H:%M:%S"), ms = last, measured = measured,
+                        heapDelta = (heapKB - prevHeapKB) / 1024,
+                    }
                     if #spikes > 10 then table.remove(spikes, 1) end
                 end
                 prevMeasured, frameMeasured = frameMeasured, 0
+                prevHeapKB = heapKB
             end)
         end
         watcher:Show()
@@ -128,7 +134,11 @@ function Perf.Report(limit)
         for _, sp in ipairs(spikes) do
             local verdict = sp.measured >= sp.ms * 0.5 and "在包到的入口裡"
                 or sp.measured >= 1 and "只包到一部分" or "|cffff5555沒包到的入口／不是我們的 Lua|r"
-            print(string.format("    %s  官方 %6.1f ms  量到 %5.1f ms  %s", sp.at, sp.ms, sp.measured, verdict))
+            if (sp.heapDelta or 0) <= -5 then
+                verdict = verdict .. string.format("，堆掉了 %.0f MB → GC 收尾落在我們頭上", -sp.heapDelta)
+            end
+            print(string.format("    %s  官方 %6.1f ms  量到 %5.1f ms  堆 %+.1f MB  %s",
+                sp.at, sp.ms, sp.measured, sp.heapDelta or 0, verdict))
         end
     else
         print("  （/mib perf watch 可開啟逐幀對帳，找沒包到的入口）")
