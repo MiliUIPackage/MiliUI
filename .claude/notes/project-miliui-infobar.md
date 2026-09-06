@@ -189,6 +189,21 @@ metadata:
 
 `db.dock` = none|top|bottom、`db.dockPush`。停靠＝兩角錨在 UIParent 那個邊（Layout 只設高、不 SetSize），
 拖曳關掉（`BeginBarDrag` 早退、搬家遮罩改顯示「已停靠」）。「推開」走 [[wow-uiparent-inset-dock]]：
-`ApplyInset` 把 UIParent 往內縮一條（只在需要改變時才動它），資訊列錨在縮出來的那條上；
+`ApplyInset` 把 UIParent 往內縮一條，資訊列錨在縮出來的那條上。**碰 UIParent 之前先用
+`InsetMatches` 比對它現在的錨點**（2026-09-06：之前每次換區都強制重貼，一次就是 100 毫秒以上的尖峰）；
 關掉資訊列或停靠都會把 UIParent 放回去。UI_SCALE_CHANGED／DISPLAY_SIZE_CHANGED 再貼一次。
 停靠時底與框線由**整條 bar** 畫（`bar.bg`／`bar.edges`，`ApplyBarChrome`），tile 自己的底與框線 alpha 歸零——兩層半透明疊在一起 tile 區會比空白區深一階；滑過的職業色框線照舊。`db.dockAlign` = center（預設）|left|right：先量總寬再定第一顆的起點，捨到像素格；bar 寬由兩角錨定算出、第一次可能是 0，`OnSizeChanged` 寬一變就 RequestLayout。左右停靠沒做：tile 是橫向鏈式錨定，直向要另寫排版。
+
+## 效能帳怎麼看（2026-09-06）
+
+效能監控分頁把資訊列標紅（近期平均 1.7 ms、佔遊戲 9%）時，**先用 `/mib perf` 對帳再動手**：
+`Core/Perf.lua` 常駐把所有 Lua 入口（事件派送、脫戰佇列、版面、計時器、UIParent 重貼、
+掛勾、按鈕 PreClick→PostClick）各記最大一次／次數／≥10ms 次數；`/mib perf watch` 再逐幀
+拿官方 LastTime 跟自己量到的對帳，量到≈0 才是沒包到的入口。
+
+實測結論：資訊列自己的程式碼整場只跑十幾毫秒（登入初始化 ~11 ms 一次）。紅的是
+**secure 轉發的點擊**——點天賦方塊 68 ms、那是暴雪開天賦視窗的成本，因為跑在我們按鈕的
+OnClick 裡，分析器整段算給資訊列；「近期平均（最近 60 幀）」= 那一下 ÷ 60，所以會紅一陣子。
+不是資訊列的問題，點官方那排一樣要花。另一個真的修掉的：停靠中每次換區強制重貼 UIParent
+（見 [[wow-uiparent-inset-dock]]）。
+

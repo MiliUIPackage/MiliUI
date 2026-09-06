@@ -211,10 +211,14 @@ local function EnsurePulseHooks()
     if not (_G.MicroButtonPulse and _G.MicroButtonPulseStop) then return end
     pulseHooked = true
     hooksecurefunc("MicroButtonPulse", function(btn)
+        local t0 = ns.Perf.Begin()
         SetTilePulsing(refToTile[btn], true)
+        ns.Perf.End("hook MicroButtonPulse", t0)
     end)
     hooksecurefunc("MicroButtonPulseStop", function(btn)
+        local t0 = ns.Perf.Begin()
         SetTilePulsing(refToTile[btn], false)
+        ns.Perf.End("hook MicroButtonPulseStop", t0)
     end)
 end
 
@@ -329,7 +333,9 @@ local function EnsureHelpTipHook()
     hooksecurefunc(HelpTip, "Show", function(_, _, _, relativeRegion)
         -- 沒在藏原廠那排的話，提示本來就錨在看得見的原鈕上，不要多事
         if not ns.GetDB().hideBlizzard then return end
+        local t0 = ns.Perf.Begin()
         ReanchorTo(relativeRegion)
+        ns.Perf.End("hook HelpTip.Show", t0)
     end)
 end
 
@@ -488,7 +494,11 @@ function ns.Blocks.micromenu.create()
             ApplyIconStyle(tile)
         end
         -- 方塊排完位置才有效的錨點：延到下一幀補掃現役提示
-        C_Timer.After(0, ReanchorExisting)
+        C_Timer.After(0, function()
+            local t0 = ns.Perf.Begin()
+            ReanchorExisting()
+            ns.Perf.End("micromenu reanchor helptips", t0)
+        end)
     end
 
     function inst:Enable()

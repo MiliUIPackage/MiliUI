@@ -15,6 +15,7 @@ local _, ns = ...
 local L = ns.L
 local P = ns.P
 local S = ns.Secret
+local Perf = ns.Perf
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
@@ -164,6 +165,9 @@ end
 -- 脫戰延遲佇列：同 key 只留最後一筆，PLAYER_REGEN_ENABLED 統一沖掉
 ----------------------------------------------------------------------
 local deferred = {}
+local deferLabels = setmetatable({}, { __index = function(t, k)
+    local v = "defer " .. k; t[k] = v; return v
+end })
 
 function ns.Defer(key, fn)
     if not InCombatLockdown() then
@@ -177,8 +181,10 @@ local function FlushDeferred()
     if not next(deferred) then return end
     local batch = deferred
     deferred = {}
-    for _, fn in pairs(batch) do
+    for key, fn in pairs(batch) do
+        local t0 = Perf.Begin()
         xpcall(fn, ns.ReportError)
+        Perf.End(deferLabels[key], t0)
     end
 end
 
@@ -188,6 +194,7 @@ end
 ----------------------------------------------------------------------
 local eventFrame = CreateFrame("Frame")
 local subs = {}
+local labels = {}     -- event -> key -> "EVENT key"（註冊時算好，派送不拼字串）
 
 ns.Events = {}
 
@@ -200,6 +207,8 @@ function ns.Events.Register(event, key, fn)
         pcall(eventFrame.RegisterEvent, eventFrame, event)
     end
     t[key] = fn
+    labels[event] = labels[event] or {}
+    labels[event][key] = event .. " " .. key
 end
 
 function ns.Events.Unregister(event, key)
@@ -215,8 +224,11 @@ end
 eventFrame:SetScript("OnEvent", function(_, event, ...)
     local t = subs[event]
     if not t then return end
-    for _, fn in pairs(t) do
+    local lb = labels[event]
+    for key, fn in pairs(t) do
+        local t0 = Perf.Begin()
         xpcall(fn, ns.ReportError, ...)
+        Perf.End(lb[key], t0)
     end
 end)
 
@@ -350,6 +362,13 @@ function ns.CreateTile(name, opts)
         end)
         tile:HookScript("OnMouseUp", function(self)
             self.bg:SetVertexColor(BgColor())
+        end)
+        -- 耗時計：PreClick→PostClick 夾住整個點擊，**含 secure 轉發之後暴雪開視窗
+        -- 的全部成本**——那段是在我們按鈕的 OnClick 裡跑的，效能監控算在資訊列頭上
+        tile._perfLabel = "click " .. name
+        tile:HookScript("PreClick", function(self) self._perfT0 = Perf.Begin() end)
+        tile:HookScript("PostClick", function(self)
+            if self._perfT0 then Perf.End(self._perfLabel, self._perfT0); self._perfT0 = nil end
         end)
     else
         -- 純顯示的 tile 不吃滑鼠：資訊列不該擋住底下的遊戲畫面點擊
@@ -503,7 +522,9 @@ function ns.RequestLayout()
     layoutQueued = true
     C_Timer.After(0, function()
         layoutQueued = false
+        local t0 = Perf.Begin()
         Layout()
+        Perf.End("layout (queued)", t0)
     end)
 end
 
@@ -554,8 +575,13 @@ end
 -- 所以停靠的內縮要**疊在它的偏移上**：它算出 top，我們寫 top + 一條；還原時也不是
 -- 貼回 0，而是交還它算的那個值。掛勾它：它一跑完我們就補上自己的那一條。
 --
--- ⚠ 只在需要改變時才動 UIParent：每次 ClearAllPoints 會讓所有錨在它身上的框
---   重新結算版面，沒事別碰。自己貼的時候 applyingInset 擋住方法掛勾，免得追著自己跑。
+-- ⚠⚠ 只在需要改變時才動 UIParent：ClearAllPoints／SetPoint 會讓**整個介面**（暴雪的、
+--   插件的，幾萬個框）重新結算版面，一下就是效能監控裡「單幀 100 毫秒以上」那種尖峰。
+--   2026-09-06 使用者的效能數據：停靠中每次換區／載入畫面都強制重貼兩次，錨點其實
+--   根本沒被動過——所以 ApplyInset 不看「我上次貼了什麼」，看的是 **UIParent 現在的
+--   錨點跟想要的一不一樣**（InsetMatches），一樣就一根手指都不碰。各路「保險重貼」
+--   （換區、鑰石開始、方法掛勾、0.5 秒後再一次）因此在沒事的時候都是免費的讀取。
+--   自己貼的時候 applyingInset 擋住方法掛勾，免得追著自己跑。
 ----------------------------------------------------------------------
 local appliedDock, appliedInset = "none", 0
 local applyingInset = false
@@ -577,16 +603,52 @@ local function DockInset()
     return db.dock, P.Scale(db.height)
 end
 
+-- 想要的兩個錨點（螢幕座標，relativeTo 是 nil＝螢幕）
+local function DesiredInset(side, h)
+    local top = blizzTopOffset + ((side == "top") and h or 0)
+    local bottom = (side == "bottom") and h or 0
+    return -top, bottom
+end
+
+-- UIParent 現在的錨點是不是就已經是想要的樣子。讀不出來（點數不對、值是秘密的、
+-- 錨在別的框上）一律當「不一樣」→ 走原本的重貼，行為只會比以前更保守不會更鬆。
+local EPS = 0.01
+local function InsetMatches(side, h)
+    if UIParent:GetNumPoints() ~= 2 then return false end
+    local wantTopY, wantBottomY = DesiredInset(side, h)
+    local topOK, bottomOK = false, false
+    for i = 1, 2 do
+        local point, rel, relPoint, x, y = UIParent:GetPoint(i)
+        x, y = S.PlainNumber(x), S.PlainNumber(y)
+        if rel ~= nil or not (x and y) or math.abs(x) > EPS then return false end
+        if point == "TOPLEFT" and relPoint == "TOPLEFT" and math.abs(y - wantTopY) <= EPS then
+            topOK = true
+        elseif point == "BOTTOMRIGHT" and relPoint == "BOTTOMRIGHT" and math.abs(y - wantBottomY) <= EPS then
+            bottomOK = true
+        end
+    end
+    return topOK and bottomOK
+end
+
+-- force：跳過「上次貼了什麼」的記憶，但**還是**先看 UIParent 現況，一樣就不動。
+-- 沒停靠過（appliedDock 從來是 "none"、想要的也是 "none"）就連讀都不讀：
+-- 那時 UIParent 是暴雪的，我們沒有立場去比對它。
 local function ApplyInset(force)
     local side, h = DockInset()
     if not force and side == appliedDock and h == appliedInset then return end
+    if side == "none" and appliedDock == "none" then
+        appliedInset = 0
+        return
+    end
     appliedDock, appliedInset = side, h
+    if InsetMatches(side, h) then return end
     applyingInset = true
+    local t0 = Perf.Begin()
+    local topY, bottomY = DesiredInset(side, h)
     UIParent:ClearAllPoints()
-    local top = blizzTopOffset + ((side == "top") and h or 0)
-    local bottom = (side == "bottom") and h or 0
-    UIParent:SetPoint("TOPLEFT",     nil, "TOPLEFT",     0, -top)
-    UIParent:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, bottom)
+    UIParent:SetPoint("TOPLEFT",     nil, "TOPLEFT",     0, topY)
+    UIParent:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, bottomY)
+    Perf.End("UIParent reanchor", t0)
     applyingInset = false
 end
 ns.ApplyInset = ApplyInset
@@ -596,11 +658,13 @@ ns.ApplyInset = ApplyInset
 if type(UpdateUIParentPosition) == "function" then
     hooksecurefunc("UpdateUIParentPosition", function()
         if applyingInset then return end
+        local t0 = Perf.Begin()
         blizzTopOffset = CurrentTopOffset()
         if appliedDock ~= "none" and db and not InCombatLockdown() then
             ApplyInset(true)
             if ns.ApplyBarPosition then ns.ApplyBarPosition() end
         end
+        Perf.End("hook UpdateUIParentPosition", t0)
     end)
 end
 
@@ -612,8 +676,10 @@ local function QueueInsetRepair()
     C_Timer.After(0, function()
         insetRepairQueued = false
         if db and not InCombatLockdown() then
+            local t0 = Perf.Begin()
             ApplyInset(true)
             ns.ApplyBarPosition()
+            Perf.End("inset repair (hook)", t0)
         end
     end)
 end
@@ -813,15 +879,19 @@ end
 -- 三層掛勾：檔案層 → Blizzard_EditMode 載入時 → PLAYER_LOGIN 保底
 local editModeHooked = false
 local function OnEditModeEnter()
+    local t0 = Perf.Begin()
     isInEditMode = true
     UpdateEditModeState()
+    Perf.End("editmode enter", t0)
 end
 local function OnEditModeExit()
+    local t0 = Perf.Begin()
     isInEditMode = false
     UpdateEditModeState()
     -- 編輯模式會把被我們藏起來的暴雪微型選單重新 Show 出來，
     -- 離開時強制重推一次 hider 修回去
     if ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden(true) end
+    Perf.End("editmode exit", t0)
 end
 
 local function HookEditMode()
@@ -1037,7 +1107,11 @@ local function RepairInset()
     if not (db and db.dock and db.dock ~= "none") then return end
     if not InCombatLockdown() then ApplyInset(true); ApplyPosition() end
     C_Timer.After(0.5, function()
-        if db and not InCombatLockdown() then ApplyInset(true); ApplyPosition() end
+        if db and not InCombatLockdown() then
+            local t0 = Perf.Begin()
+            ApplyInset(true); ApplyPosition()
+            Perf.End("inset repair (+0.5s)", t0)
+        end
     end)
 end
 

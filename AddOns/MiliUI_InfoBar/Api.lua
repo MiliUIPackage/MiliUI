@@ -19,6 +19,19 @@ SlashCmdList.MILIUI_INFOBAR = function(msg)
         -- 戰隊資訊資料層的追蹤輸出（鑰石／寶庫快照什麼時候存、為什麼存）
         local on = ns.Warband.ToggleDebug()
         print(ns.PREFIX_COLOR .. L["ADDON_NAME"] .. "|r warband debug: " .. (on and "ON" or "OFF"))
+    elseif cmd == "perf" then
+        -- 自家耗時計：哪個進入點花了最多（Core/Perf.lua）
+        local sub = msg:lower():match("^%s*%S+%s+(%S+)")
+        if sub == "clear" then
+            ns.Perf.Reset()
+            print(ns.PREFIX_COLOR .. L["ADDON_NAME"] .. "|r perf 記錄已清空")
+        elseif sub == "watch" then
+            local on = not ns.Perf.IsWatching()
+            ns.Perf.SetWatch(on)
+            print(ns.PREFIX_COLOR .. L["ADDON_NAME"] .. "|r perf 逐幀對帳：" .. (on and "開" or "關"))
+        else
+            ns.Perf.Report()
+        end
     elseif cmd == "stash" then
         -- 探測鍍金儲物箱的 widget（改版後 ID 換了要靠這個找）
         ns.Warband.ProbeStash()

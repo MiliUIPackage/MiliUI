@@ -28,7 +28,13 @@ UIParent:ClearAllPoints(); UIParent:SetAllPoints(nil)
 不是 bug，要先讓使用者看過。不會動的：名條（WorldFrame）、跟游標走的提示。
 
 **還沒驗證**：換解析度／改 UI 縮放暴雪會不會重設 UIParent 的錨點——實作上那兩個事件保險再貼一次。
-只在需要改變時才動 UIParent：每次 ClearAllPoints 會讓所有錨在它身上的框重新結算版面。
+**動 UIParent 的錨點是「單幀 100 毫秒以上」等級的成本**（2026-09-06 效能監控實測：資訊列
+停靠中一場登入 14 次超過 100 毫秒，每次都是換區／載入畫面的強制重貼）：ClearAllPoints／SetPoint
+會讓錨在它身上的**整個介面**（幾萬個框）重新結算版面，而且算在呼叫者的帳上。
+所以「保險重貼」不能無條件做——**先讀 UIParent 現在的兩個 GetPoint，跟想要的一樣就不碰**，
+各路重貼（換區、鑰石開始、方法掛勾、0.5 秒後再一次）在沒事的時候就都是免費的讀取；
+只有暴雪真的把錨點放回去那一次才重貼。「記住上次貼了什麼」不夠，因為外力改的是 UIParent
+不是我們的記憶。
 
 實作在 `MiliUI_InfoBar/Core/Bar.lua` 的 `ApplyInset`／`Docked` 分支（[[project-miliui-infobar]]）。
 

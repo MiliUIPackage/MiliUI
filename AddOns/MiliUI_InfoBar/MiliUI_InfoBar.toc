@@ -28,6 +28,7 @@ Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 
+Core\Perf.lua
 Core\Bar.lua
 Core\Warband.lua
 Core\WarbandPopup.lua

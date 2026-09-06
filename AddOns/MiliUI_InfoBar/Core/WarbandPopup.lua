@@ -720,12 +720,14 @@ function Popup.Hide()
 end
 
 function Popup.Show(tile)
+    local t0 = ns.Perf.Begin()
     Build()
     anchorTile = tile
     Warband.RefreshOwn("popup open")
     Populate()
     frame:Show()
     Place()
+    ns.Perf.End("warband popup open", t0)
 
     -- 開著的期間：資料變了就重畫（尺寸會變，重新定位一次），組隊狀態變了刷「全部發送」
     Warband.AddListener("popup", function()

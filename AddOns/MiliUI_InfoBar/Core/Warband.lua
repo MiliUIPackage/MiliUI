@@ -21,6 +21,7 @@ local _, ns = ...
 
 local L = ns.L
 local S = ns.Secret
+local Perf = ns.Perf
 
 ns.Warband = {}
 local Warband = ns.Warband
@@ -71,8 +72,10 @@ function Warband.RemoveListener(key)
 end
 
 local function Notify()
-    for _, fn in pairs(listeners) do
+    for key, fn in pairs(listeners) do
+        local t0 = Perf.Begin()
         xpcall(fn, ns.ReportError)
+        Perf.End("warband notify " .. key, t0)
     end
 end
 
@@ -399,7 +402,9 @@ local function SnapshotAndRefresh(reason)
     if snapshotDebounceTimer then snapshotDebounceTimer:Cancel() end
     snapshotDebounceTimer = C_Timer.NewTimer(0.3, function()
         snapshotDebounceTimer = nil
+        local t0 = Perf.Begin()
         SaveVaultSnapshot()
+        Perf.End("warband snapshot", t0)
         Debug("SnapshotAndRefresh: %s", tostring(reason))
         Notify()
     end)
@@ -421,7 +426,9 @@ local function ScheduleKeystoneCheck(retry)
     if keyCheckTimer then return end
     keyCheckTimer = C_Timer.NewTimer(KEY_CHECK_DELAY, function()
         keyCheckTimer = nil
+        local t0 = Perf.Begin()
         local mapID, level = ReadOwnKeystoneState()
+        Perf.End("warband keycheck read", t0)
         Debug("KeyCheck#%d: map=%d lv=%d (last %d/%d)", retry or 0, mapID, level, lastOwnMapID, lastOwnLevel)
 
         if not baselineSet then
@@ -671,18 +678,21 @@ local function HookChatEditbox(editbox)
         local msg = self._miliWbLastText
         self._miliWbLastText = nil
         if not msg or msg == "" then return end
+        local t0 = Perf.Begin()
         local channel = SEND_CHAT_TYPES[self:GetAttribute("chatType") or ""]
-        if not channel then return end
-        if not MatchSelfKeyword(msg) then return end
-        MaybeSendReport(channel)
+        if channel and MatchSelfKeyword(msg) then
+            MaybeSendReport(channel)
+        end
+        Perf.End("chat OnEnterPressed", t0)
     end)
 end
 
 hooksecurefunc("SendChatMessage", function(msg, chatType)
     local channel = SEND_CHAT_TYPES[chatType or ""]
     if not channel then return end
-    if not MatchSelfKeyword(msg) then return end
-    MaybeSendReport(channel)
+    local t0 = Perf.Begin()
+    if MatchSelfKeyword(msg) then MaybeSendReport(channel) end
+    Perf.End("hook SendChatMessage", t0)
 end)
 
 ------------------------------------------------------------
@@ -825,6 +835,7 @@ ns.Events.Register("PLAYER_LOGIN", "warband", function()
 
     C_Timer.After(BASELINE_DELAY, function()
         if baselineSet then return end
+        local t0 = Perf.Begin()
         local mapID, level = ReadOwnKeystoneState()
         lastOwnMapID, lastOwnLevel = mapID, level
         baselineSet = true
@@ -834,6 +845,7 @@ ns.Events.Register("PLAYER_LOGIN", "warband", function()
         end
         SaveVaultSnapshot()
         RequestVaultData("login baseline")
+        Perf.End("warband baseline", t0)
         Notify()
     end)
 end)
