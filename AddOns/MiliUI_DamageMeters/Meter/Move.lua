@@ -147,6 +147,9 @@ function Move.ApplyPosition(W)
     frame:ClearAllPoints()
     frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", wdb.x, wdb.y)
     frame:SetUserPlaced(false)
+    -- 吸在別的框上的話改錨到它身上（Libs/MiliUISnap.lua）；主體不在就維持上面的絕對座標。
+    -- x/y 照存，當作主體哪天不在時的退路。
+    if ns.Snap and W.snapKey then ns.Snap.Restore(W.snapKey) end
 end
 
 local function SavePosition(W)
@@ -175,11 +178,14 @@ local function SnapEnabled(W)
     return true, s.snapThreshold or 6
 end
 
--- 其他「可以被吸」的視窗：自己不算，隱藏的不算，單獨關掉磁吸的也不算
+-- 其他「可以被吸」的視窗：自己不算，隱藏的不算，單獨關掉磁吸的也不算，
+-- 吸在自己身上的跟隨者也不算——它們跟著自己走，距離永遠是 0，會把真正的目標擠掉
 local function OtherFrames(W)
     local out = {}
     ns.Windows.ForEach(function(other)
-        if other ~= W and other.frame and other.frame:IsShown() and not other.wdb.snapDisabled then
+        if other ~= W and other.frame and other.frame:IsShown() and not other.wdb.snapDisabled
+           and not (ns.Snap and W.snapKey and other.snapKey
+                    and ns.Snap.HangsUnder(W.snapKey, other.snapKey)) then
             out[#out + 1] = other.frame
         end
     end)
@@ -267,7 +273,12 @@ local function EndDrag(W)
     if not d then return false end
     W._drag = nil
     W.dragFrame:Hide()
-    if d.moved then SavePosition(W) end
+    if d.moved then
+        -- 放手：2px 內先試貼附（後吸上去的當跟隨者，錨在主體上、拉主體一起動），
+        -- 不是可貼附的框就對齊（Libs/MiliUISnap.lua）。存座標不動錨點，所以貼附留得住。
+        if ns.Snap and W.snapKey and SnapEnabled(W) then ns.Snap.OnDragStop(W.snapKey) end
+        SavePosition(W)
+    end
     return d.moved == true
 end
 
@@ -282,8 +293,12 @@ local function DragTick(W)
     local scale = UIScale()
     local cx, cy = GetCursorPosition()
     local dx, dy = cx / scale - d.cx, cy / scale - d.cy
-    if not d.moved and (math.abs(dx) > DRAG_SLOP or math.abs(dy) > DRAG_SLOP) then
+    if not d.moved then
+        if math.abs(dx) <= DRAG_SLOP and math.abs(dy) <= DRAG_SLOP then return end
         d.moved = true
+        -- 真的開始拖了才脫離主體（Libs/MiliUISnap.lua）。點一下標題（切統計類型）
+        -- 走不到這裡，錨點與連動都不動——不然每點一次就把吸好的組合拆掉。
+        if ns.Snap and W.snapKey then ns.Snap.OnDragStart(W.snapKey) end
     end
     local left = d.left + dx
     local top  = d.top  + dy
@@ -352,7 +367,9 @@ local function ResizeTick(W)
     -- 框的錨點永遠是 TOPLEFT，所以改尺寸不會動到左上角。
     -- 但反轉時拖的是**上緣**，該不動的是下緣 —— 左上角得往上補一樣的高度差，
     -- 否則視窗會從標題列那一端整個往下長出去。
-    if W.wdb.reverse and type(r.y) == "number" then
+    -- 吸在別的框上時錨點歸主體管（哪條邊釘住由 snapTo.align 決定），這裡不碰。
+    if W.wdb.reverse and type(r.y) == "number"
+       and not (ns.Snap and W.snapKey and ns.Snap.IsAttached(W.snapKey)) then
         W.wdb.y = (r.y - r.h) + newH
         W.frame:ClearAllPoints()
         W.frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", W.wdb.x, W.wdb.y)
@@ -431,13 +448,16 @@ function Move.Setup(W)
     end)
     W.dragFrame = drag
 
-    -- 套組磁吸註冊表（Libs/MiliUISnap.lua）：讓別的插件的框對齊到這個視窗，
-    -- 也讓拖曳中的 ApplySnap 找得到它們。同 group ＝ 自家視窗彼此不經 lib
-    -- （上面自己那套已經處理、而且門檻不同）。「這個視窗不磁吸」時也不當別人的目標。
+    -- 套組磁吸註冊表（Libs/MiliUISnap.lua）。attach：視窗跟視窗、視窗跟條吸上去之後
+    -- 後者錨在前者身上，拉前者一起動（snapTo 存在 wdb）。group ＝ 自家視窗彼此不經
+    -- lib 的「對齊」（上面自己那套拖曳中即時吸、門檻可設；放手時的貼附還是走 lib）。
+    -- 「這個視窗不磁吸」時也不當別人的目標。
     W.snapKey = "damageMeter" .. W.idx
     if ns.Snap then
         ns.Snap.Register(W.snapKey, frame, {
             group   = "damageMeters",
+            attach  = true,
+            db      = function() return W.wdb end,
             enabled = function() return SnapEnabled(W) == true end,
         })
     end

@@ -3,20 +3,21 @@
 --
 -- 兩種磁吸，放手時在 2 **螢幕像素**內才發生（使用者指定「相差 2px 才吸」）：
 --
---   1. 貼附（attach）——「條跟條」：專注目標助手的標記列 × 爆發藥水列。
---      拖過去貼上的那條是「跟隨者」（db.snapTo 記著吸在誰的哪一邊），做法不是
---      每幀搬它，而是**直接錨在前面那條上**：引擎自己會帶著走，零成本、零時序。
---      拖前面那條 → 兩條一起動；拖跟隨者 → 先脫離（StartMoving 本來就會把錨點
---      改回 UIParent），放手時離得近就再吸回去。貼上後貼死（0px）。
---      只在**兩邊都** Register 時給 attach = true 才會貼附。
+--   1. 貼附（attach）——標記列、爆發藥水列、傷害統計視窗（使用者指定：後吸上去的
+--      以前者為主體，拉動主體一起動）。拖過去貼上的是「跟隨者」（db.snapTo 記著吸在
+--      誰的哪一邊），做法不是每幀搬它，而是**直接錨在主體上**：引擎自己會帶著走，
+--      零成本、零時序。拖主體 → 整串一起動；拖跟隨者 → 先脫離（StartMoving 本來就會
+--      把錨點改回 UIParent），放手時離得近就再吸回去。貼上後貼死（0px）。
+--      接觸邊以外的那一軸：上緣（或左緣）2px 內就對齊上緣，下緣（右緣）2px 內就對齊
+--      下緣，都不是就**保留放手時的錯位**（snapTo.align / offset）——主體縮放時，
+--      對齊的那條邊跟著不動。只在**兩邊都** Register 時給 attach = true 才會貼附。
 --
---   2. 對齊（align）——其他所有框：資訊列、傷害統計視窗、小地圖、任務追蹤器、
---      聊天列，以及它們跟條之間。放手時找最近的邊（左貼左／右貼右／左貼右／
---      右貼左，上下同理；兩軸各自獨立，所以「只對齊 X」的上下堆疊也吸得到），
---      把框**挪過去貼齊**就結束——不改錨點、不跟隨、不存任何東西，呼叫端照常
---      讀框的現況存座標。
---      為什麼不讓視窗也貼附：這些框的尺寸會變（追蹤器隨任務數長高、統計視窗可縮放、
---      資訊列的寬跟著文字走、小地圖可縮放），錨在它們身上的東西會跟著漂。
+--   2. 對齊（align）——其他框：資訊列、小地圖、任務追蹤器、聊天列，以及它們跟可貼附
+--      的框之間。放手時找最近的邊（左貼左／右貼右／左貼右／右貼左，上下同理；
+--      兩軸各自獨立，所以「只對齊 X」的上下堆疊也吸得到），把框**挪過去貼齊**就
+--      結束——不改錨點、不跟隨、不存任何東西，呼叫端照常讀框的現況存座標。
+--      為什麼這幾個不貼附：尺寸會自己變（追蹤器隨任務數長高、資訊列的寬跟著文字走、
+--      小地圖可縮放），錨在它們身上的東西會跟著漂。
 --
 -- 這是 vendor 複製：每支插件帶一份，全域 MiliUI_Snap 先到先贏、版本高的蓋掉舊的
 -- （bars 註冊表保留）。跟 MiliUI_MenuEntries 同一個理由——插件之間沒有相依宣告，
@@ -29,18 +30,20 @@
 --       attach  = true  這是一條可貼附的條（兩邊都要 true 才貼附）
 --       group   = "…"   同組的框互不對齊（自己插件內部已經有錨點或自家磁吸的）
 --       enabled = fn    回 false 時暫時不當別人的對齊目標
---   OnDragStart(key)             StartMoving 之前（貼附的條要先脫離）
+--   OnDragStart(key)             真的開始拖之前（貼附的要先脫離；點一下不算拖）
 --   OnDragStop(key)              StopMovingOrSizing 之後、存座標之前：先試貼附，再試對齊
---   Restore(key)                 每次照存檔擺位置之後（貼附的條重新錨回目標）；
+--   Restore(key)                 每次照存檔擺位置之後（貼附的重新錨回主體）；
 --                                IsAttached(key) 為真時存座標不要再把錨點改回 UIParent
 --   AlignRect(key, l, r, t, b)   拖曳中就想吸的（傷害統計）自己丟螢幕座標進來，
 --                                回 (dx, dy) 螢幕像素；沒得吸回 0, 0
+--   HangsUnder(key, other)       other 是不是（直接或間接）吸在 key 身上——拖曳中自家
+--                                的磁吸要把跟隨者排除，它們跟著主體走、距離永遠是 0
 --
 -- key 是存檔內容（貼附的 db.snapTo.target），改名等於把玩家吸好的組合拆掉。
 ------------------------------------------------------------
 local _, ns = ...
 
-local VERSION = 2
+local VERSION = 3
 local GAP     = 0   -- 貼上之後貼死，沒有間距（使用者指定）
 local THRESH  = 2   -- 放手時離 2 螢幕像素以內才吸（使用者指定）；同軸重疊的容差也用它
 
@@ -67,7 +70,7 @@ if not S or (S.version or 0) < VERSION then
 
     -- `target` 是不是（直接或間接）吸在 `key` 身上：避免 A 吸 B、B 又吸 A；
     -- 對齊時也要排除——跟隨者永遠貼死在我身上（距離 0），會把真正的目標擠掉
-    local function HangsUnder(key, target)
+    function S.HangsUnder(key, target)
         local seen, cur = {}, target
         while cur and not seen[cur] do
             seen[cur] = true
@@ -78,6 +81,7 @@ if not S or (S.version or 0) < VERSION then
         end
         return false
     end
+    local HangsUnder = S.HangsUnder
 
     -- 能不能當 `key` 的目標（貼附與對齊共用的門檻）
     local function Eligible(key, k, other)
@@ -99,15 +103,25 @@ if not S or (S.version or 0) < VERSION then
         -- 受保護的框（有 secure 子按鈕的）戰鬥中動不了錨點；讓呼叫端下次再試
         if InCombatLockdown() and f:IsProtected() then return false end
         local g = info.gap or GAP
+        local side = st.side
+        -- 另一軸的對齊：v1 的存檔沒有 align，等於上緣／左緣；FREE 用 offset
+        -- （單位是跟隨者自己的 scale，SetPoint 偏移就是這個單位）
+        local align = st.align or ((side == "RIGHT" or side == "LEFT") and "TOP" or "LEFT")
+        local off = (align == "FREE") and (st.offset or 0) or 0
+        local tf = t.frame
         f:ClearAllPoints()
-        if st.side == "RIGHT" then
-            f:SetPoint("TOPLEFT", t.frame, "TOPRIGHT", g, 0)
-        elseif st.side == "LEFT" then
-            f:SetPoint("TOPRIGHT", t.frame, "TOPLEFT", -g, 0)
-        elseif st.side == "BOTTOM" then
-            f:SetPoint("TOPLEFT", t.frame, "BOTTOMLEFT", 0, -g)
-        elseif st.side == "TOP" then
-            f:SetPoint("BOTTOMLEFT", t.frame, "TOPLEFT", 0, g)
+        if side == "RIGHT" then
+            if align == "BOTTOM" then f:SetPoint("BOTTOMLEFT", tf, "BOTTOMRIGHT", g, 0)
+            else                      f:SetPoint("TOPLEFT",    tf, "TOPRIGHT",    g, off) end
+        elseif side == "LEFT" then
+            if align == "BOTTOM" then f:SetPoint("BOTTOMRIGHT", tf, "BOTTOMLEFT", -g, 0)
+            else                      f:SetPoint("TOPRIGHT",    tf, "TOPLEFT",    -g, off) end
+        elseif side == "BOTTOM" then
+            if align == "RIGHT" then  f:SetPoint("TOPRIGHT", tf, "BOTTOMRIGHT", 0,   -g)
+            else                      f:SetPoint("TOPLEFT",  tf, "BOTTOMLEFT",  off, -g) end
+        elseif side == "TOP" then
+            if align == "RIGHT" then  f:SetPoint("BOTTOMRIGHT", tf, "TOPRIGHT", 0,   g)
+            else                      f:SetPoint("BOTTOMLEFT",  tf, "TOPLEFT",  off, g) end
         else
             return false
         end
@@ -174,6 +188,20 @@ if not S or (S.version or 0) < VERSION then
                     end
                 end
             end
+        end
+        if not best then return nil end
+
+        -- 接觸邊以外那一軸怎麼對齊：哪條邊在 2px 內就對哪條，都不是就保留錯位
+        local ol, orr, ot, ob = Edges(S.bars[best.target].frame)
+        local s = info.frame:GetEffectiveScale()
+        if best.side == "RIGHT" or best.side == "LEFT" then
+            if math.abs(t - ot) <= THRESH then best.align = "TOP"
+            elseif math.abs(b - ob) <= THRESH then best.align = "BOTTOM"
+            else best.align, best.offset = "FREE", (t - ot) / s end
+        else
+            if math.abs(l - ol) <= THRESH then best.align = "LEFT"
+            elseif math.abs(r - orr) <= THRESH then best.align = "RIGHT"
+            else best.align, best.offset = "FREE", (l - ol) / s end
         end
         return best
     end
