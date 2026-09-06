@@ -109,7 +109,10 @@ end
 -- kept instead of leaked, a reuse is one taken back instead of created. builds+reuses is
 -- the total demand; builds alone is what the client actually had to allocate.
 AD.stats = {builds = 0, discards = 0, repoints = 0, parks = 0, reuses = 0,
-    settles = 0, settleBounced = 0, settleSkipped = 0}
+    settles = 0, settleBounced = 0, settleSkipped = 0,
+    -- regen queue: who queued (reason -> count), and how long the queue was when the
+    -- last / the longest drain started. The producer hunt behind the time-sliced flush.
+    deferWhy = {}, flushLast = 0, flushPeak = 0}
 
 local function BuildRecordsRaw(opts)
     opts = opts or {}
@@ -1398,11 +1401,11 @@ end
 -- BUILD  (create -> SetUnit -> AddAuraGroup* -> SetEnabled LAST)
 -- ============================================================
 
-local function Build(handle)
+local function Build(handle, why)
     if handle._destroyed then return end
     if InCombatLockdown() then
         handle._pendingBuild = true
-        if AD._defer then AD._defer(handle) end
+        if AD._defer then AD._defer(handle, why or "build") end
         return
     end
     handle._pendingBuild = nil
@@ -1609,12 +1612,39 @@ local function Build(handle)
 end
 
 -- regen flush
+--
+-- ⚠ TIME-SLICED. This used to drain the whole queue inside the PLAYER_REGEN_ENABLED
+-- handler, and every Build in it is a CreateFrame("AuraContainer") + N AddAuraGroup + a
+-- pre-allocated batch of AuraButtons. A layout switch, a spec change, boss frames binding
+-- on ENCOUNTER_START, a raid joined mid-pull -- each of those queues a build on EVERY
+-- container of EVERY affected button, and 40 buttons x ~8 containers all coming due in
+-- one script execution is what tripped Blizzard's per-script limit:
+--     AuraDisplay.lua:1334: script ran too long   (2026-09-06, unit=boss5 was just where
+--     the budget happened to run out -- the stack was regen -> Build -> ParkOrDiscard)
+-- Same recipe as the post-fight settle: a few ms per frame, then yield. The queue is
+-- consumed with next(), so a Build that re-defers itself (re-pulled mid-drain) or a
+-- Destroy that pulls its handle out are both fine, and whatever is left when combat
+-- starts again simply waits for the next regen.
 do
     local regen = CreateFrame("Frame")
     regen:RegisterEvent("PLAYER_REGEN_ENABLED")
     AD._pending = {}
-    regen:SetScript("OnEvent", function()
-        for h in pairs(AD._pending) do
+    AD.FLUSH_BUDGET_MS = 8      -- per-frame build budget; /run Cell.AuraDisplay.FLUSH_BUDGET_MS = n
+    -- Chat line when a regen queue is at least this long. Persisted in CellDB and OFF by
+    -- default: this is a producer-hunt diagnostic, players must never see it. /cab report <n>
+    local function ReportMin()
+        local v = CellDB and tonumber(CellDB["auraQueueReportMin"])
+        return v or 0
+    end
+    local flushTicker
+    local restyleList           -- snapshot, taken once the build queue is empty
+
+    -- One queued item. Builds first (a restyle on a handle that is about to be rebuilt
+    -- would be wasted), then the restyles refused during combat -- without the replay the
+    -- buttons keep whatever state they had when the option was changed.
+    local function Step()
+        local h = next(AD._pending)
+        if h then
             AD._pending[h] = nil
             if h._pendingBuild then
                 Build(h)
@@ -1624,14 +1654,74 @@ do
                 h._pendingGateKick = nil
                 h:GateRefresh()
             end
+            return true
         end
-        -- a Restyle refused during combat has to be replayed, or the buttons keep whatever
-        -- state they had when the option was changed
-        for h in pairs(AD._instances or {}) do
-            if h._restylePending then h:Restyle() end
+        if not restyleList then
+            restyleList = {}
+            for inst in pairs(AD._instances or {}) do
+                if inst._restylePending then restyleList[#restyleList + 1] = inst end
+            end
         end
+        local r = table.remove(restyleList)
+        if r then
+            if r._restylePending and not r._destroyed then r:Restyle() end
+            return true
+        end
+        return false
+    end
+
+    local function Stop(t)
+        t:Cancel()
+        if flushTicker == t then flushTicker = nil end
+        restyleList = nil
+    end
+
+    local function Tick(t)
+        -- re-pulled: Build/Restyle would only re-defer themselves; the next regen restarts
+        if InCombatLockdown() then Stop(t); return end
+        local start = debugprofilestop()
+        repeat
+            if not Step() then Stop(t); return end
+        until debugprofilestop() - start >= AD.FLUSH_BUDGET_MS
+    end
+
+    regen:SetScript("OnEvent", function()
+        if flushTicker then return end
+        local n, whys = 0, {}
+        for h in pairs(AD._pending) do
+            n = n + 1
+            local why = h._deferWhy or "?"
+            whys[why] = (whys[why] or 0) + 1
+        end
+        AD.stats.flushLast = n
+        if n > AD.stats.flushPeak then AD.stats.flushPeak = n end
+        -- A long queue is the symptom being hunted (see AD._defer). Say so right after the
+        -- fight that produced it, with the breakdown of THIS queue, so nobody has to remember
+        -- which pull it was.
+        local reportMin = ReportMin()
+        if reportMin > 0 and n >= reportMin then
+            local list = {}
+            for why, c in pairs(whys) do list[#list + 1] = {why, c} end
+            table.sort(list, function(a, b) return a[2] > b[2] end)
+            for i, e in ipairs(list) do list[i] = e[1] .. " " .. e[2] end
+            print(("|cff33ff99[Cell 光環]|r 脫戰時佇列 %d 筆：%s"):format(n, table.concat(list, "、")))
+        end
+        restyleList = nil
+        flushTicker = C_Timer.NewTicker(0, Tick)
+        Tick(flushTicker)   -- first slice right now: the usual one-or-two-item queue lands as before
     end)
-    function AD._defer(h) AD._pending[h] = true end
+
+    -- `why` names the producer. The flush is sliced so a long queue cannot error any more,
+    -- but a long queue is still a symptom -- something is queueing work per unit button
+    -- during combat -- and the counts in /cab stats (and the tag on each PENDING-BUILD
+    -- line of /cab ghosts) are how that something gets a name.
+    function AD._defer(h, why)
+        why = why or "?"
+        if not AD._pending[h] then AD._pending[h] = true end
+        h._deferWhy = why
+        local w = AD.stats.deferWhy
+        w[why] = (w[why] or 0) + 1
+    end
 end
 
 -- ============================================================
@@ -1655,7 +1745,7 @@ function Handle:SetContainerLevel(lvl)
     if self.host then
         pcall(function() self.host:SetFrameLevel(lvl) end)
         if self.container then pcall(function() self.container:SetFrameLevel(lvl) end) end
-        self:Rebuild()
+        self:Rebuild("level")
     end
 end
 function Handle:ClearAllPoints() self.frame:ClearAllPoints() end
@@ -1688,7 +1778,7 @@ function Handle:SetNum(n)
     end
 
     self.records = nil
-    self:Rebuild()
+    self:Rebuild("num")
 end
 
 -- keys that only affect per-button cosmetics: restyle the cached buttons instead of
@@ -1725,7 +1815,7 @@ function Handle:Restyle()
     -- from initializeFrame -- and out of combat it costs one rebuild and applies NOW.
     if C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then
         self._restylePending = nil
-        self:Rebuild()
+        self:Rebuild("restyle-secret")
         return
     end
 
@@ -1819,13 +1909,13 @@ function Handle:SetOptions(opts)
     if structural then
         if newNum ~= nil then self.config.num = newNum end -- fold into the rebuild
         self.records = nil
-        self:Rebuild()
+        self:Rebuild("options")
         return
     end
     if newNum ~= nil then self:SetNum(newNum) end
     if layout and not self:ApplyLiveLayout() then
         self.records = nil
-        self:Rebuild()
+        self:Rebuild("options-layout")
         return
     end
     if cosmetic or layout then self:Restyle() end
@@ -1856,14 +1946,14 @@ function Handle:SetUnit(unit)
     -- Nothing built yet, disabled, or unbinding entirely: those are Build's paths (a nil
     -- unit is how a container gets torn down, and there is nothing to re-point without one).
     if not self.container or not unit then
-        self:Rebuild()
+        self:Rebuild(unit and "setunit-nocontainer" or "setunit-nil")
         return
     end
 
     -- Refused: fall back to the old behaviour rather than leave the container rendering the
     -- PREVIOUS unit's auras, which is the one failure mode worse than the cost of a rebuild.
     if not pcall(function() self.container:SetUnit(unit) end) then
-        self:Rebuild()
+        self:Rebuild("setunit-refused")
         return
     end
     AD.stats.repoints = AD.stats.repoints + 1
@@ -1907,23 +1997,41 @@ function Handle:SetEnabled(enabled)
     -- Build, so the initial creation still goes through.
     if self.enabled == enabled and self.container then return end
     self.enabled = enabled
-    self:Rebuild()
+    self:Rebuild(enabled and "enable" or "disable")
 end
 
-function Handle:Rebuild()
+-- `why` is a short tag naming the caller (see AD._defer): it is what /cab ghosts and
+-- /cab stats show for a build that had to wait for combat to end.
+function Handle:Rebuild(why)
     if InCombatLockdown() then
         self._pendingBuild = true
-        AD._defer(self)
+        AD._defer(self, why or "rebuild")
         return
     end
-    Build(self)
+    Build(self, why)
 end
 
 -- Re-assert enable while the frame is actually VISIBLE. SetEnabled gates aura-event
 -- registration on IsVisible(); if Build ran while the button was hidden, the container
 -- enabled-but-never-registered and stays empty. Call this when the button becomes shown.
+-- EXPERIMENT (2026-09-06): bounce the host DURING combat instead of queueing a gate kick.
+-- The combat gates on ReassertEnable/GateRefresh date from when the bounce was a Hide() on
+-- the container itself, which Blizzard refuses in combat. The bounce moved to the host --
+-- a plain frame we own, Hide/Show on it is never restricted, and the container's intrinsic
+-- OnShow runs secure-side. If that holds, a repoint re-parses on the spot and the regen
+-- queue of "gatekick" entries (50 in one open-world fight, 2026-09-06 -- the load behind
+-- the script-ran-too-long) stops existing. Handles without a host keep the old gate.
+-- Test with /console taintLog 2 in open-world fights and an instance; then flip the default.
+--   /run Cell.AuraDisplay.BOUNCE_IN_COMBAT = true
+AD.BOUNCE_IN_COMBAT = false
+AD.stats.combatBounces = 0
+
+local function CombatGateOpen(self)
+    return not InCombatLockdown() or (AD.BOUNCE_IN_COMBAT and self.host ~= nil)
+end
+
 function Handle:ReassertEnable()
-    if InCombatLockdown() then return end
+    if not CombatGateOpen(self) then return end
     local c = self.container
     if not c then return end
     if not self.frame:IsVisible() then return end
@@ -1934,6 +2042,7 @@ function Handle:ReassertEnable()
     -- a Hide() on the container itself can be refused and the pcall would eat the refusal.
     local host = self.host
     if host then
+        if InCombatLockdown() then AD.stats.combatBounces = AD.stats.combatBounces + 1 end
         pcall(function() host:Hide(); host:Show() end)
     else
         pcall(function() c:Hide(); c:Show() end)
@@ -1952,9 +2061,9 @@ end
 function Handle:GateRefresh()
     local c = self.container
     if not c then return end
-    if InCombatLockdown() then
+    if not CombatGateOpen(self) then
         self._pendingGateKick = true
-        AD._defer(self)
+        AD._defer(self, "gatekick")
         if type(c.UpdateAllAuras) == "function" then pcall(function() c:UpdateAllAuras() end) end
         return
     end
@@ -1969,6 +2078,7 @@ function Handle:GateRefresh()
     -- the host existed.
     local host = self.host
     if host then
+        if InCombatLockdown() then AD.stats.combatBounces = AD.stats.combatBounces + 1 end
         pcall(function() host:Hide(); host:Show() end)
     else
         pcall(function() c:Hide(); c:Show() end)
@@ -2150,7 +2260,7 @@ function AD.RefreshDispelPalette()
         paletteTimer = nil
         if InCombatLockdown() then return end -- Rebuild would just defer each one anyway
         for h in pairs(AD._instances or {}) do
-            h:Rebuild()
+            h:Rebuild("palette")
         end
     end)
 end
@@ -2513,7 +2623,7 @@ function AD.Test(filter, cf, minimal)
             else
                 h.records = nil -- restore: BuildRecords runs again on rebuild
             end
-            h:Rebuild()
+            h:Rebuild("test")
             n = n + 1
         end
     end
@@ -2714,8 +2824,8 @@ function AD.Ghosts()
                 :format(h._disposeFailed, tostring(h.unit), mode))
         end
         if h._pendingBuild then
-            p(("PENDING-BUILD unit=%s mode=%s -- config change is queued until combat ends")
-                :format(tostring(h.unit), mode))
+            p(("PENDING-BUILD unit=%s mode=%s why=%s -- queued until combat ends")
+                :format(tostring(h.unit), mode, tostring(h._deferWhy)))
         end
 
         local btn = FindOwnerButton(h.frame)
@@ -2949,6 +3059,17 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         else
             p("C_Secrets.ShouldSpellAuraBeSecret 不存在")
         end
+    elseif cmd == "report" then
+        -- /cab report 40  -> print the queue breakdown after any fight that queued >= 40
+        -- /cab report 0   -> off (default). Saved in CellDB, so it survives /reload.
+        local n = tonumber(arg and strtrim(arg))
+        if not n then
+            local cur = CellDB and tonumber(CellDB["auraQueueReportMin"]) or 0
+            p(("脫戰佇列自動回報：%s。用法：/cab report <筆數>，0 關閉"):format(cur > 0 and ("≥ " .. cur .. " 筆時印") or "關"))
+            return
+        end
+        if CellDB then CellDB["auraQueueReportMin"] = n > 0 and n or nil end
+        p(n > 0 and ("脫戰時佇列 ≥ %d 筆就印一行來源分佈（已存檔）"):format(n) or "脫戰佇列自動回報已關閉")
     elseif cmd == "stats" then
         -- The measurement behind the roster-stutter fix. Zero it, make people join/leave the
         -- group, read it again: `repoints` should climb and `builds`/`discards` should not.
@@ -2958,6 +3079,8 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
             AD.stats.builds, AD.stats.discards, AD.stats.repoints = 0, 0, 0
             AD.stats.parks, AD.stats.reuses = 0, 0
             AD.stats.settles, AD.stats.settleBounced, AD.stats.settleSkipped = 0, 0, 0
+            AD.stats.deferWhy, AD.stats.flushLast, AD.stats.flushPeak = {}, 0, 0
+            AD.stats.combatBounces = 0
             p("計數歸零")
             return
         end
@@ -2974,6 +3097,19 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         p(("戰後補彈 %d 次／共彈 %d 個容器／跳過 %d 次（光環沒進過秘密狀態）%s")
             :format(AD.stats.settles, AD.stats.settleBounced, AD.stats.settleSkipped,
                 AD.SETTLE_ENABLED and "" or " ｜已關閉"))
+        local pending = 0
+        for _ in pairs(AD._pending or {}) do pending = pending + 1 end
+        local whys = {}
+        for why, n in pairs(AD.stats.deferWhy) do whys[#whys + 1] = {why, n} end
+        table.sort(whys, function(a, b) return a[2] > b[2] end)
+        local parts = {}
+        for _, e in ipairs(whys) do parts[#parts + 1] = e[1] .. " " .. e[2] end
+        p(("戰鬥中排隊：目前 %d ／ 上次脫戰時 %d ／ 最長 %d ｜來源：%s")
+            :format(pending, AD.stats.flushLast, AD.stats.flushPeak,
+                #parts > 0 and table.concat(parts, "、") or "無"))
+        p(("戰鬥中直接彈跳：%s，已彈 %d 次")
+            :format(AD.BOUNCE_IN_COMBAT and "開" or "關（/run Cell.AuraDisplay.BOUNCE_IN_COMBAT = true）",
+                AD.stats.combatBounces))
         p("進出隊伍時 repoints 該漲、builds/discards 不該漲。歸零：/cab stats reset")
         p("換版面（副本↔團隊↔野外）來回一次：第二次該是 reuses 漲、builds 不漲。")
 
@@ -2998,7 +3134,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
     else
         p("supported =", tostring(AD.IsSupported()), "|", tostring(ACC.Failure() or "OK"))
         AD.Debug()
-        p("其他：/cab list | stats | ghosts | inspect [unit] | overdraw [unit] | spell <id> | gate | test")
+        p("其他：/cab list | stats | ghosts | report [n] | inspect [unit] | overdraw [unit] | spell <id> | gate | test")
     end
 end
 

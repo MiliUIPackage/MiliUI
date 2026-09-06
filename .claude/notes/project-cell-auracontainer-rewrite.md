@@ -182,6 +182,38 @@ no-op——容器時代它救不了任何容器病。BounceAll 彈**全部**存�
 
 **尚未在遊戲內驗證**：settle 自動清掉卡圖示（看戰後補彈計數＋圖示自消）；SETTLE_CHEAP。
 
+## regen 補建要分幀（2026-09-06，script ran too long）
+
+**病理**：`PLAYER_REGEN_ENABLED` 的補建迴圈原本同步把 `AD._pending` 整包 `Build()` 完
+（再把 `_restylePending` 全部 `Restyle()`）。每個 Build 都是 CreateFrame AuraContainer ＋
+N 個 AddAuraGroup ＋ 預配一批 AuraButton；戰鬥中換版面／換專精／首領框在 ENCOUNTER_START
+綁定／中途進團，都會讓每顆按鈕的每個容器排隊，40 顆 × ~8 個容器在同一次腳本執行裡到期
+→ 暴雪單次腳本時間上限 `AuraDisplay.lua:1334: script ran too long`（堆疊 regen → Build →
+ParkOrDiscard；Locals 的 `unit="boss5"` 只是預算剛好在那裡用完，不是首領框的錯）。
+
+**解法**：補建改成跟戰後補彈同一套的分幀：`C_Timer.NewTicker(0)`，每幀用 `debugprofilestop`
+量 `AD.FLUSH_BUDGET_MS`（預設 8ms）就讓出；佇列用 `next()` 逐筆取，先 build 再 restyle
+（restyle 快照成清單）；中途再開戰就停 ticker，剩下的留在 `_pending` 等下一次 regen。
+第一片在事件裡同步跑，平常一兩筆的情況跟以前一樣立刻生效。
+
+**通則**：任何「戰鬥中累積、regen 一次還清」的佇列都要分幀——戰鬥中累積量跟人數與容器數
+成正比，regen 那一幀沒有理由能一口氣吃完。
+
+**分幀只是保險，治本要找生產者**。佇列已加來源標籤：`Handle:Rebuild(why)`／`AD._defer(h, why)`，
+tag 有 level／num／restyle-secret／options／options-layout／setunit-nil／setunit-nocontainer／
+setunit-refused／enable／disable／palette／test／gatekick。`/cab stats` 印「戰鬥中排隊：目前／上次
+脫戰時／最長｜來源：tag 計數」，`/cab ghosts` 每筆 PENDING-BUILD 帶 why。下次再長就能點名。
+
+**Build 的戰鬥閘可能是誤傳（待實測）**：閘是 8/10 第一版寫的保守預設，沒有理由。
+「戰鬥中建 live 容器會不可攔截地報錯」那句來自暖機探測，而探測最後一步是 `pcall(f.Hide, f)`
+——被擋的是對 intrinsic 下 Hide，不是建立。Platynator 的名牌容器在 NAME_PLATE_UNIT_ADDED
+時從 pool 建出來（戰鬥中必然發生），CreateFrame／AddAuraGroup／SetUnit／SetEnabled 全無戰鬥閘。
+Build 全程不對容器 Hide/Show（拆的是 host），forbidden 的真正條件是 secret 不是戰鬥，secret 下
+Rebuild 已是既定合法路徑。若實測（`/console taintLog 2`，野外戰鬥＋副本）通過，閘拿掉、regen
+佇列只剩 gatekick，「一次還清」的結構就消失。要盯的一點：`_ApplyVisibility` 對容器 SetShown 在
+戰鬥中是否跳封鎖視窗（MiliUI_UnitFrames 的註解說會，Cell 實跑沒見過）。
+同型風險：`RefreshDispelPalette`、`SetContainerLevel` 也是一幀內全部 Rebuild。
+
 ## 移除一個內建指示物的正確做法（2026-08-24，AoE 治療）
 
 `Cell.defaults.indicatorIndices` 的數字**就是** `layout["indicators"]` 的陣列位置，
