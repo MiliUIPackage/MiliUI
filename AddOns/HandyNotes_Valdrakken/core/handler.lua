@@ -412,10 +412,14 @@ end
 function addon:OnInitialize()
     self.db = AceDB:New(FOLDER_NAME.."DB", private.constants.defaults)
 
-    profile = self.db.profile
+    -- fix from MiliUI: 補上漏掉的 local。原本這兩行寫進全域 `profile` / `global`，
+    -- 洩了兩個極常見的名字出去，也是 taint.log 裡
+    -- 「Tainted value written to global profile by HandyNotes_Valdrakken」的來源。
+    -- 兩者都是寫完下一行就讀回 private 的暫存變數，套組內外都沒有別處讀它。
+    local profile = self.db.profile
     private.db = profile
 
-    global = self.db.global
+    local global = self.db.global
     private.global = global
 
     private.hidden = self.db.char.hidden
