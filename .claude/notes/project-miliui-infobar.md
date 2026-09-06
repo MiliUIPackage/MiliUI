@@ -172,6 +172,13 @@ metadata:
 - 秘密值：`UnitGUID("npc") or UnitGUID("target")` 那種「對原始回傳做真值判斷」改成
   兩邊先 `S.PlainText` 再 or；widget tooltip、地城名也都過 PlainText。
 - 指令：`/mib keydebug` 開追蹤輸出、`/mib stash` 探測儲物箱 widget（取代舊的 `/milikeydbg`）。
+- **鑰石追蹤聽包包，不猜活動**（2026-09-06）：觸發點只有 `BAG_UPDATE_DELAYED`／`ITEM_CHANGED`
+  → `ScheduleKeystoneCheck`。舊版（本體時期就這樣，搬過來時一條沒漏）掛在
+  CHALLENGE_MODE_COMPLETED／鑰石 NPC 的 GOSSIP_CLOSED／WEEKLY_REWARDS_UPDATE，寶庫那條
+  抓不到：WEEKLY_REWARDS_UPDATE 是「開寶庫」時發，挑獎勵超過 7 秒重試窗口才按領取，
+  鑰石進包包時已經沒人在看。鑰石不管哪裡來最後都是一件物品進包包／原地改寫，
+  聽這個就是超集（LibOpenRaid／LibKeystone 也都這樣做）。KEYSTONE_NPC_IDS 表已刪。
+  下次領寶庫可開 `/mib keydebug` 看 `KeyCheck#n` 那行確認 API 有跟上物品。
 
 待驗證（沒進過遊戲）：遷移訊息與筆數、面板在 bar 貼頂／貼底／靠右三種位置的翻面、
 右鍵寶庫格會不會經 `SetPropagateMouseClicks` 傳到列、ESC 關面板後 OnHide 的清理、

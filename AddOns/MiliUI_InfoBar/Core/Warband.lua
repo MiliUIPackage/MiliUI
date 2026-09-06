@@ -119,11 +119,6 @@ local KEY_CHECK_DELAY     = 1
 local KEY_CHECK_MAX_RETRY = 6
 local BASELINE_DELAY      = 10
 
-local KEYSTONE_NPC_IDS = {
-    [197711] = true,
-    [197915] = true,
-}
-
 -- 寶庫類型：Activities=M+, Raid=團本, RankedPvP=競技場, World=世界/深淵（與 PvP 互斥）
 local VAULT_TYPES = {
     mplus = 1,
@@ -413,13 +408,21 @@ end
 -- 團本難度（給 ENCOUNTER_END 過濾用）：14 普通, 15 英雄, 16 傳奇, 17 團搜
 local RAID_DIFFICULTY_IDS = { [14] = true, [15] = true, [16] = true, [17] = true }
 
--- 只負責追蹤鑰石（GetOwnedKeystone 永遠是最新的，不需請求伺服器）。
+-- 只負責追蹤鑰石（GetOwnedKeystone 讀的是包包裡那顆鑰石的物品修飾值，不需請求伺服器）。
+-- 觸發點是包包變化（BAG_UPDATE_DELAYED／ITEM_CHANGED）：鑰石不管從副本寶箱、寶庫、
+-- 還是 NPC 換來，最後都是「一件物品進包包／被改寫」——聽這個就不必逐一猜是哪個
+-- 活動給的。之前掛在 CHALLENGE_MODE_COMPLETED／鑰石 NPC 的 GOSSIP_CLOSED／
+-- WEEKLY_REWARDS_UPDATE 上，寶庫那條抓不到：WEEKLY_REWARDS_UPDATE 是「開寶庫」時
+-- 就發，玩家挑獎勵挑超過重試窗口才按領取，鑰石進包包時已經沒人在看了。
+-- 延遲＋重試是因為物品剛進包包時修飾值可能還沒到（LibKeystone 也等 1 秒），
+-- 修飾值補上時包包會再發一次事件，所以就算窗口過了也會再被叫醒。
 -- 寶庫/M+場次的刷新走 RequestVaultData → update 事件 → SnapshotAndRefresh。
 local function ScheduleKeystoneCheck(retry)
     if keyCheckTimer then return end
     keyCheckTimer = C_Timer.NewTimer(KEY_CHECK_DELAY, function()
         keyCheckTimer = nil
         local mapID, level = ReadOwnKeystoneState()
+        Debug("KeyCheck#%d: map=%d lv=%d (last %d/%d)", retry or 0, mapID, level, lastOwnMapID, lastOwnLevel)
 
         if not baselineSet then
             lastOwnMapID, lastOwnLevel = mapID, level
@@ -444,16 +447,6 @@ local function ScheduleKeystoneCheck(retry)
         -- 記錄有沒有變都通知：方塊上的字讀的是即時 API，不是記錄
         Notify()
     end)
-end
-
-local function IsKeystoneNpcGossip()
-    -- 兩個都先洗成明文再 or：對可能是秘密值的原始回傳做真值判斷不安全
-    local guid = S.PlainText(UnitGUID("npc")) or S.PlainText(UnitGUID("target"))
-    if not guid then return false end
-    local ok, part = pcall(function() return select(6, strsplit("-", guid)) end)
-    if not ok then return false end
-    local id = tonumber(part)
-    return id ~= nil and KEYSTONE_NPC_IDS[id] == true
 end
 
 -- 開面板時：先用當前快取即時顯示（鑰石永遠最新；寶庫可能稍舊），
@@ -720,15 +713,12 @@ end
 ------------------------------------------------------------
 local function OnEvent(event, ...)
     if event == "CHALLENGE_MODE_COMPLETED" then
-        ScheduleKeystoneCheck(0)
         RequestVaultData(event)
-    elseif event == "GOSSIP_CLOSED" then
-        if IsKeystoneNpcGossip() then
-            ScheduleKeystoneCheck(0)
-        end
+    elseif event == "ITEM_CHANGED" then
+        -- 鑰石在 NPC 那邊降級／換地城是原地改寫同一格，走這個事件
+        ScheduleKeystoneCheck(0)
     elseif event == "PLAYER_LOGOUT" then
-        -- 剛從寶庫領到本週鑰石後馬上登出，這之間沒有任何既有事件會重讀鑰石，
-        -- 而 ScheduleKeystoneCheck 走 C_Timer 在登出瞬間不會執行 → 這裡同步補抓。
+        -- 拿到鑰石後馬上登出：ScheduleKeystoneCheck 走 C_Timer 在登出瞬間不會執行 → 這裡同步補抓。
         -- 懸賞圖入手/用掉也常發生在最後一次快照之後，一併補存；讀的是快取，同步呼叫沒問題。
         local mapID, level = ReadOwnKeystoneState()
         if mapID > 0 and level > 0 then
@@ -737,8 +727,6 @@ local function OnEvent(event, ...)
         SaveVaultSnapshot()
     -- 「資料已刷新」事件 → 直接存檔（此刻 GetActivities/GetRunHistory 才是新的）
     elseif event == "WEEKLY_REWARDS_UPDATE" then
-        -- 領寶庫會給本週鑰石，但不觸發 CHALLENGE_MODE_COMPLETED / 鑰石 NPC gossip
-        ScheduleKeystoneCheck(0)
         SnapshotAndRefresh(event)
     elseif event == "CHALLENGE_MODE_MAPS_UPDATE" then
         SnapshotAndRefresh(event)
@@ -752,6 +740,8 @@ local function OnEvent(event, ...)
         or event == "QUEST_TURNED_IN" then
         RequestVaultData(event)
     elseif event == "BAG_UPDATE_DELAYED" then
+        -- 鑰石進包包（副本寶箱、寶庫、NPC）／被刪掉：都在這裡（見 ScheduleKeystoneCheck）
+        ScheduleKeystoneCheck(0)
         -- 撿到／用掉懸賞圖不會觸發上面任何寶庫事件，這裡便宜地比對一下，
         -- 狀態真的變了才走完整快照（SnapshotAndRefresh 自帶 debounce）
         local rec = Store().characters[GetCharacterKey()]
@@ -788,10 +778,10 @@ local function OnEvent(event, ...)
 end
 
 local TRACK_EVENTS = {
-    "CHALLENGE_MODE_COMPLETED", "GOSSIP_CLOSED", "PLAYER_LOGOUT",
+    "CHALLENGE_MODE_COMPLETED", "PLAYER_LOGOUT",
     "WEEKLY_REWARDS_UPDATE", "CHALLENGE_MODE_MAPS_UPDATE",
     "ENCOUNTER_END", "PVP_MATCH_COMPLETE", "LFG_COMPLETION_REWARD", "QUEST_TURNED_IN",
-    "BAG_UPDATE_DELAYED", "UPDATE_UI_WIDGET",
+    "BAG_UPDATE_DELAYED", "ITEM_CHANGED", "UPDATE_UI_WIDGET",
     -- 只有 Plumber 在用這個事件名，萬一哪版被移除，ns.Events 內部的 pcall 會接住
     "ACTIVE_DELVE_DATA_UPDATE", "ZONE_CHANGED_NEW_AREA",
 }
