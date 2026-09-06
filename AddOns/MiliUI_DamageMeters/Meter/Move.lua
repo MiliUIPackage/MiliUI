@@ -221,6 +221,16 @@ local function ApplySnap(W, left, top, width, height)
 
     if bestXd <= thresh then left = bestX end
     if bestYd <= thresh then top = bestY end
+
+    -- 跨插件（資訊列、小地圖、聊天列、追蹤器…）：Libs/MiliUISnap.lua，固定 2 螢幕像素。
+    -- 自家視窗優先（上面那段、門檻可設），已經吸到的軸不再動。lib 收螢幕座標。
+    if ns.Snap and W.snapKey then
+        local s = W.frame:GetEffectiveScale()
+        local dx, dy = ns.Snap.AlignRect(W.snapKey,
+            left * s, (left + width) * s, top * s, (top - height) * s)
+        if bestXd > thresh and dx ~= 0 then left = left + dx / s end
+        if bestYd > thresh and dy ~= 0 then top = top + dy / s end
+    end
     return left, top
 end
 
@@ -420,6 +430,17 @@ function Move.Setup(W)
         if W._resize then ResizeTick(W) end
     end)
     W.dragFrame = drag
+
+    -- 套組磁吸註冊表（Libs/MiliUISnap.lua）：讓別的插件的框對齊到這個視窗，
+    -- 也讓拖曳中的 ApplySnap 找得到它們。同 group ＝ 自家視窗彼此不經 lib
+    -- （上面自己那套已經處理、而且門檻不同）。「這個視窗不磁吸」時也不當別人的目標。
+    W.snapKey = "damageMeter" .. W.idx
+    if ns.Snap then
+        ns.Snap.Register(W.snapKey, frame, {
+            group   = "damageMeters",
+            enabled = function() return SnapEnabled(W) == true end,
+        })
+    end
 
     header:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     header:HookScript("OnMouseDown", function(_, button)

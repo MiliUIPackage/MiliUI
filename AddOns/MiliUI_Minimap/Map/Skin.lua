@@ -328,6 +328,8 @@ local function Build()
     holder:SetClampedToScreen(true)
     holder:SetMovable(true)
     ns.holder = holder
+    -- 套組磁吸（Libs/MiliUISnap.lua）：地圖跟底下的資訊列同 group，它們本來就錨在一起
+    if ns.Snap then ns.Snap.Register("minimap", holder, { group = "minimap" }) end
 
     overlay = CreateFrame("Frame", nil, Minimap)
     overlay:SetAllPoints(holder)
@@ -511,6 +513,8 @@ local function Build()
     dragOverlay:SetScript("OnDragStart", function() holder:StartMoving() end)
     dragOverlay:SetScript("OnDragStop", function()
         holder:StopMovingOrSizing()
+        -- 放手離套組其他框 2px 內就貼齊（Libs/MiliUISnap.lua），再照現況存座標
+        if ns.Snap then ns.Snap.OnDragStop("minimap") end
         Skin.SavePosition()
     end)
     -- 右鍵叫回右上角。拖到看不見是必然會發生的意外，而位置有存檔，

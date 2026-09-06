@@ -381,7 +381,7 @@ local function CreateBar()
     bar:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
     bar:SetBackdropBorderColor(0, 0, 0, 1)
     bar:Hide()
-    if ns.Snap then ns.Snap.Register(SNAP_KEY, bar, { db = DB }) end
+    if ns.Snap then ns.Snap.Register(SNAP_KEY, bar, { db = DB, attach = true }) end
 
     -- 拖曳握把（左側）：左鍵拖曳移動、右鍵開啟設定
     local grip = CreateFrame("Frame", nil, bar)

@@ -297,6 +297,10 @@ function Anchor.OnDragStop()
     if snapped then
         cb.Position = snapped
     else
+        -- 沒吸到聊天視窗：再看套組其他框（資訊列、統計視窗、小地圖…），2px 內貼齊
+        -- （Libs/MiliUISnap.lua）。這條不看 GroupWithChat——那個開關只管聊天視窗；
+        -- 按住 Shift 一樣不吸。
+        if ns.Snap and not IsShiftKeyDown() then ns.Snap.OnDragStop("chatBar") end
         SaveAbsolute()
     end
     Anchor.Apply()
@@ -365,6 +369,8 @@ function Anchor.Init()
     end
 
     bar:SetUserPlaced(false)
+    -- 套組磁吸的目標（Libs/MiliUISnap.lua）：吸在聊天視窗上時它跟著視窗走，一樣能被對齊
+    if ns.Snap then ns.Snap.Register("chatBar", bar) end
     lastGrouped = cb.GroupWithChat and true or false
     applyRetry = 0
     Anchor.Apply()

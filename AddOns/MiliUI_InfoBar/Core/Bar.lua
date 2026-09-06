@@ -668,11 +668,14 @@ local editSelection
 local isInEditMode = false
 local dragState
 local dragDriver
+local SNAP_KEY = "infoBar"   -- 磁吸註冊表裡的名字（Libs/MiliUISnap.lua）
 
 local function EndBarDrag()
     if not dragState then return end
     dragState = nil
     if dragDriver then dragDriver:Hide() end
+    -- 放手離套組其他框 2px 內就貼齊（Libs/MiliUISnap.lua），再照現況存座標
+    if ns.Snap then ns.Snap.OnDragStop(SNAP_KEY) end
     SavePosition()
     ApplyPosition()
 end
@@ -891,6 +894,8 @@ local function EnsureBar()
     bar:SetClampedToScreen(true)
     P.Size(bar, 100, db.height)
     ns.BarFrame = bar
+    -- 套組其他框放手時可以對齊到這條；停靠中它就是整個邊，一樣可以當目標
+    if ns.Snap then ns.Snap.Register(SNAP_KEY, bar) end
 
     -- 整條的底與上下左右 1px 框線：只在停靠時顯示（ApplyBarChrome）
     bar.bg = bar:CreateTexture(nil, "BACKGROUND")

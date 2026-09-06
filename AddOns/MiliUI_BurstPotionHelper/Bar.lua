@@ -286,7 +286,7 @@ function ns.CreateBar()
     bar:SetBackdrop(MILIUI_BACKDROP)
     bar:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
     bar:SetBackdropBorderColor(0, 0, 0, 1)
-    if ns.Snap then ns.Snap.Register(SNAP_KEY, bar, { db = SnapDB }) end
+    if ns.Snap then ns.Snap.Register(SNAP_KEY, bar, { db = SnapDB, attach = true }) end
 
     -- Drag grip (left). Left-drag to move, right-click for settings.
     local grip = CreateFrame("Frame", nil, bar)

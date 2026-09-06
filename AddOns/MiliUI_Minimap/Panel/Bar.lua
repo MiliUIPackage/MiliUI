@@ -452,6 +452,8 @@ local function Build()
     bar:SetMovable(true)
     S.ApplyPanel(bar)
     ns.infoBar = bar
+    -- 套組磁吸的目標（Libs/MiliUISnap.lua）：貼著地圖時整組的下緣就是它
+    if ns.Snap then ns.Snap.Register("minimapInfoBar", bar, { group = "minimap" }) end
 
     for i = 1, NUM_SLOTS do
         BuildSlot(i)

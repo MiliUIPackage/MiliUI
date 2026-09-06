@@ -98,6 +98,8 @@ local function EndDrag()
     if not dragState then return end
     dragState = nil
     if dragDriver then dragDriver:Hide() end
+    -- 放手離套組其他框 2px 內就貼齊（Libs/MiliUISnap.lua）；追蹤器受保護時 lib 自己略過
+    if ns.Snap then ns.Snap.OnDragStop("questTracker") end
 
     local otf = T.OTF()
     local c = Cfg()
@@ -161,6 +163,9 @@ end
 -- 當場貼會被它接著蓋掉。
 ------------------------------------------------------------
 ns.RegisterCallback("Init", "position", function()
+    -- 套組磁吸（Libs/MiliUISnap.lua）：註冊的是暴雪的追蹤器框本身——別的框對齊到它的邊，
+    -- 它自己放手時也對齊別人。沒拖過（position.set 為 false）一樣可以當目標。
+    if ns.Snap and T.OTF() then ns.Snap.Register("questTracker", T.OTF()) end
     Pos.Apply()
 
     local evt = CreateFrame("Frame")
