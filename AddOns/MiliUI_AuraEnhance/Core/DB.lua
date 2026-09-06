@@ -37,11 +37,14 @@ local function BuildDefaults()
             yOffset  = 6,
         },
         count = {
-            enabled = true,
-            font    = "",
-            anchor  = "TOP",
-            x       = 0,
-            y       = 0,
+            enabled  = true,
+            font     = "",
+            -- 預設＝暴雪自己那支的大小（依語系不同），更新完層數不會突然縮放
+            fontSize = ns.Media.BLIZZ_COUNT_SIZE,
+            outline  = true,
+            anchor   = "TOP",
+            x        = 0,
+            y        = 4,
         },
         -- 圖示外觀樣式。預設開：套組本來就內建一支專做這件事的插件，
         -- 這裡接手它的位置，預設關掉的話玩家更新完會覺得功能不見了。
@@ -146,6 +149,25 @@ function DB.RunMigration(db)
 end
 
 ------------------------------------------------------------
+-- 結構版本遷移（跟上面那段「從前身搬設定」是兩回事，兩段都要跑）
+--
+-- MergeDefaults 只補 nil ⇒ 改預設值對「已經有那個鍵」的玩家完全沒作用。
+-- 要讓舊玩家跟著動就在這裡補一條，而且兩道閘缺一不可：
+--   版本閘：schemaVersion 前進之後就不再跑（否則玩家改回去又被蓋回來）
+--   值閘  ：只動還停在**舊預設值**的人，自己調過的一律不碰
+--
+-- ⚠ 排在 RunMigration 之後：從前身搬過來的值也要吃到同一條規則
+--   （舊版沒有這個設定，搬過來就是舊預設值 0）。
+------------------------------------------------------------
+local function MigrateSchema(db, from)
+    -- v2：層數往上抬 4。貼齊圖示角落時數字會壓在邊框跟旁邊那顆圖示中間，
+    -- 抬出圖示外面才看得清楚。
+    if from < 2 and db.count.y == 0 then
+        db.count.y = 4
+    end
+end
+
+------------------------------------------------------------
 -- 正規化：SavedVariables 是玩家（或舊版本）寫進來的，不保證還在範圍內
 ------------------------------------------------------------
 local function Clamp(v, range, fallback)
@@ -157,6 +179,7 @@ local function Normalize(db)
     local d, c, def = db.duration, db.count, BuildDefaults()
     d.fontSize = Clamp(d.fontSize, DB.LIMITS.fontSize, def.duration.fontSize)
     d.yOffset  = Clamp(d.yOffset,  DB.LIMITS.yOffset,  def.duration.yOffset)
+    c.fontSize = Clamp(c.fontSize, DB.LIMITS.fontSize, def.count.fontSize)
     c.x = Clamp(c.x, DB.LIMITS.countX, def.count.x)
     c.y = Clamp(c.y, DB.LIMITS.countY, def.count.y)
     -- 錨點寫錯的話 SetPoint 會直接拋錯，退回預設比讓它炸掉好
@@ -171,6 +194,11 @@ function DB.Init()
         MiliUI_AuraEnhance_DB = {}
     end
     local db = MiliUI_AuraEnhance_DB
+
+    -- ⚠ 版本要在 MergeDefaults **之前**讀：BuildDefaults 帶著 schemaVersion，
+    --   補完之後舊存檔看起來就已經是最新版了，版本閘會整條失效。
+    --   全新存檔讀到 nil ⇒ 0，但預設值本來就是新的，值閘會擋下來。
+    local fromVersion = tonumber(db.schemaVersion) or 0
 
     -- 順序很重要：先補齊預設值（遷移要寫進 db.duration / db.count 這兩張子表），
     -- 再看要不要遷移。
@@ -190,6 +218,7 @@ function DB.Init()
         end
     end
 
+    MigrateSchema(db, fromVersion)
     Normalize(db)
     db.schemaVersion = ns.DB_VERSION
     ns.db = db

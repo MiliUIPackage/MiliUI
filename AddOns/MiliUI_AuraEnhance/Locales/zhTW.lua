@@ -27,11 +27,10 @@ L["How far the text sits from the bottom edge of the icon."] = "文字離圖示�
 
 -- 堆疊層數分頁
 L["Move the stack count"] = "啟用層數位置調整"
-L["Sets where the stack number sits on the icon, and optionally its font."] = "設定層數文字要放在圖示的哪個位置，也可以另外指定字型。"
+L["Sets where the stack number sits on the icon, and how the text looks."] = "設定層數文字要放在圖示的哪個位置，以及文字的樣式。"
 L["Position"] = "位置"
 L["Horizontal offset"] = "水平位移"
 L["The offset is measured from the corner you picked above."] = "位移量是從上面選的那個方位算起。"
-L["Only the typeface changes — the stack number keeps Blizzard's own size."] = "只換字體，層數文字的大小維持暴雪原本的設定。"
 L["Use Blizzard's font"] = "沿用暴雪字型"
 
 -- 圖示樣式分頁

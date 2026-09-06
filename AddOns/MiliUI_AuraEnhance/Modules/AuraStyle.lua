@@ -30,6 +30,16 @@ local function SetFontSafe(fs, path, size, flags)
     return fs:SetFont(Media.DEFAULT_FONT, size, flags)
 end
 
+-- 記下暴雪原本的字型。選「沿用暴雪字型」時要拿它當來源，停用時要拿它還原。
+local function RememberOrigFont(fs)
+    local orig = fs.MiliUIAura_origFont
+    if not orig then
+        orig = { fs:GetFont() }
+        fs.MiliUIAura_origFont = orig
+    end
+    return orig
+end
+
 -- 時間文字的字型路徑：沒選自訂字型就沿用暴雪的。
 --
 -- ⚠ 「暴雪的」要讀**當下**那支，不能用第一次掛勾時記下來的那份：暴雪會依剩餘時間
@@ -42,13 +52,28 @@ local function DurationFontPath(dur)
     return (dur:GetFont()) or Media.DEFAULT_FONT
 end
 
--- 套用層數的自訂字型（保留暴雪原本的大小與旗標，只換字體）
+-- 層數文字的字型路徑：沒選自訂字型就沿用暴雪的。
+--
+-- ⚠ 這裡跟時間文字不一樣，**不能**讀當下的 GetFont()：層數的字型是樣板
+--   （NumberFontNormal）給的，暴雪跑起來不會再 SetFontObject 一次 ⇒ 我們自己套過
+--   之後 GetFont() 回的就是我們套進去的那支。拿它當「暴雪的」，玩家把字型選回
+--   「沿用暴雪字型」時就換不回來了。記在 MiliUIAura_origFont 的那份才是原字型。
+local function CountFontPath(cnt)
+    local custom = Media.OptionalFont(CNT.font)
+    if custom then return custom end
+    return RememberOrigFont(cnt)[1] or Media.DEFAULT_FONT
+end
+
+-- 套用層數的字型、大小與描邊
 local function ApplyCountFont(cnt)
-    local path = Media.OptionalFont(CNT.font)
-    if not path then return false end
-    local _, size, flags = cnt:GetFont()
-    SetFontSafe(cnt, path, size or 14, flags or "")
-    return true
+    SetFontSafe(cnt, CountFontPath(cnt), CNT.fontSize, CNT.outline and "OUTLINE" or "")
+    cnt.MiliUIAura_fontApplied = true
+    if CNT.outline then
+        cnt:SetShadowOffset(1, -1)
+        cnt:SetShadowColor(0, 0, 0, 0.6)
+    else
+        cnt:SetShadowOffset(0, 0)
+    end
 end
 
 -- 還原成記下來的暴雪原字型
@@ -88,8 +113,7 @@ local function HookDuration(btn)
     local dur = btn.Duration
     if not dur or hookedDurations[dur] then return end
 
-    -- 記下暴雪原本的字型，選「沿用暴雪字型」時才有東西可以還原
-    dur.MiliUIAura_origFont = dur.MiliUIAura_origFont or { dur:GetFont() }
+    RememberOrigFont(dur)
 
     -- SetPoint：暴雪每次重設位置時我們立刻覆寫
     hooksecurefunc(dur, "SetPoint", function(self)
@@ -126,7 +150,7 @@ local function HookCount(btn)
     local cnt = btn.Count
     if not cnt or hookedCounts[cnt] then return end
 
-    cnt.MiliUIAura_origFont = cnt.MiliUIAura_origFont or { cnt:GetFont() }
+    RememberOrigFont(cnt)
 
     -- SetPoint 與 SetText 做同一件事（層數變動時位置不能跑掉）——共用 closure
     local function reapply(self)
@@ -137,7 +161,7 @@ local function HookCount(btn)
         self:SetWidth(0)
         self:ClearAllPoints()
         self:SetPoint(CNT.anchor, btn.Icon, CNT.anchor, CNT.x, CNT.y)
-        if ApplyCountFont(self) then self.MiliUIAura_fontApplied = true end
+        ApplyCountFont(self)
         overriding = false
     end
 
@@ -148,7 +172,7 @@ local function HookCount(btn)
         if overriding or not CNT or not CNT.enabled then return end
 
         overriding = true
-        if ApplyCountFont(self) then self.MiliUIAura_fontApplied = true end
+        ApplyCountFont(self)
         overriding = false
     end)
 
@@ -164,6 +188,7 @@ local function ApplyDurationStyle(btn)
 
     overriding = true
 
+    RememberOrigFont(dur)
     dur:SetParent(EnsureOverlay(btn))
     SetFontSafe(dur, DurationFontPath(dur), DUR.fontSize, DUR.outline and "OUTLINE" or "")
     dur.MiliUIAura_fontApplied = true
@@ -207,16 +232,12 @@ local function ApplyCountStyle(btn)
     if not cnt or not cnt:IsShown() then return end
 
     overriding = true
+    RememberOrigFont(cnt)
     cnt:SetParent(EnsureOverlay(btn))
     cnt:SetWidth(0)
     cnt:ClearAllPoints()
     cnt:SetPoint(CNT.anchor, btn.Icon, CNT.anchor, CNT.x, CNT.y)
-    -- 字型：有自訂就套用，選回「沿用暴雪字型」則還原
-    if ApplyCountFont(cnt) then
-        cnt.MiliUIAura_fontApplied = true
-    else
-        RestoreOrigFont(cnt)
-    end
+    ApplyCountFont(cnt)
     overriding = false
 end
 
@@ -229,6 +250,8 @@ local function RestoreCountStyle(btn)
     cnt:SetWidth(0)
     cnt:ClearAllPoints()
     cnt:SetPoint("BOTTOMRIGHT", btn.Icon, "BOTTOMRIGHT", -2, 2)
+    cnt:SetShadowOffset(0, 0)
+    cnt:SetShadowColor(0, 0, 0, 1)
     RestoreOrigFont(cnt)
     overriding = false
 end

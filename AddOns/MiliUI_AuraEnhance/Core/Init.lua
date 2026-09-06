@@ -15,7 +15,7 @@ local ADDON, ns = ...
 
 ns.ADDON_NAME = ADDON
 ns.VERSION    = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
-ns.DB_VERSION = 1
+ns.DB_VERSION = 2   -- 2：層數預設垂直位移 0 → 4（見 Core/DB.lua 的 MigrateSchema）
 
 -- player token 不受 12.1 身分限制，讀職業是安全的
 ns.playerClass = select(2, UnitClass("player"))

@@ -20,7 +20,7 @@ end
 local CONTROLS = {
     { type = "header", label = L["Stacks"] },
     { type = "toggle", key = "enabled", label = L["Move the stack count"] },
-    { type = "text",   label = L["Sets where the stack number sits on the icon, and optionally its font."] },
+    { type = "text",   label = L["Sets where the stack number sits on the icon, and how the text looks."] },
 
     { type = "dropdown", key = "anchor", label = L["Position"], items = ns.Specs.ANCHORS },
     { type = "slider", key = "x", label = L["Horizontal offset"],
@@ -31,7 +31,11 @@ local CONTROLS = {
 
     { type = "dropdown", key = "font", label = L["Font"],
       items = function() return ns.Specs.FontItems() end },
-    { type = "text",   label = L["Only the typeface changes — the stack number keeps Blizzard's own size."] },
+    { type = "text",   label = L["Install LibSharedMedia (or an addon that bundles it) to get more fonts here."] },
+    { type = "slider", key = "fontSize", label = L["Font size"],
+      min = LIMITS.fontSize[1], max = LIMITS.fontSize[2], step = 1 },
+    { type = "toggle", key = "outline", label = L["Outline"] },
+    { type = "text",   label = L["Adds a 1px black outline so the numbers stay readable over bright icons."] },
 }
 
 local function Init()

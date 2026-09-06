@@ -18,6 +18,12 @@ local LOCALE_FONTS = {
 local DEFAULT_FONT = LOCALE_FONTS[GetLocale()] or "Fonts\\FRIZQT__.TTF"
 M.DEFAULT_FONT = DEFAULT_FONT
 
+-- 暴雪層數文字的原始大小。層數繼承 NumberFontNormal → NumberFont_Outline_Med，
+-- 而那是一個 FontFamily：每種字母系統各給一個高度，**不是固定 14**。
+-- 拿來當「文字大小」的預設值，玩家更新完看到的層數才跟更新前一樣大。
+local BLIZZ_COUNT_SIZE = { zhTW = 12, zhCN = 12, koKR = 13 }
+M.BLIZZ_COUNT_SIZE = BLIZZ_COUNT_SIZE[GetLocale()] or 14
+
 local function LSM()
     return LibStub and LibStub("LibSharedMedia-3.0", true)
 end
