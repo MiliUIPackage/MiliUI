@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 2975a2fc-396d-4e73-9da2-295e55bee8db
-  modified: 2026-08-28T09:22:00.858Z
+  modified: 2026-09-06T00:00:00.000Z
 ---
 
 按 REPLY（預設 R）回覆密語，噴 `Lua Taint: <插件>` + `ChatFrameEditBox.lua:49 SetTellTarget`
@@ -190,5 +190,43 @@ end
 
 `[1]` 非空就直接 return，後面幾格根本比不到（空格一律被 `SetLastTellTarget` 的搬移
 擠到尾巴）。⇒ **只有 `[1]` 的秘密性會害人**，跟鏡射的 `target[1]` 一對一，不必掃整張表。
+
+## 2026-09-06：第四條路 —— 輸入框連**幾何**都跟著髒
+
+症狀跟聊天完全無關：**離開戰鬥時**噴 35 次
+
+```
+MiliUI_ChatBar/Anchor.lua:78: attempt to perform arithmetic on local 'l'
+                             (a secret number value, while execution tainted by 'MiliUI_ChatBar')
+locals: f=ChatFrame1EditBox, l=<secret number>, r/t/b=<secret number>, s=0.64
+```
+
+`ChatFrame1EditBox:GetLeft()／GetRight()／GetTop()／GetBottom()` **全部**回秘密數字。
+成因在 `ChatFrameEditBoxMixin:UpdateHeader` 的最後一行：
+
+```lua
+header:SetFormattedText(CHAT_WHISPER_SEND, tellTarget)   -- 秘密名字 → 標頭幾何變秘密
+...
+self:SetTextInsets(15 + header:GetWidth() + ..., 13, 0, 0)   -- 秘密寬度餵回輸入框
+```
+
+**秘密值餵進任何一項版面輸入，整顆框的 rect 就跟著變秘密**（不只被寫的那一項），
+而且一路髒到 /reload —— 跟已知的「聊天狀態髒了只能 /reload」同一個結論。
+暴雪自己跑這段是乾淨執行所以不炸，插件去量那顆框才炸。
+
+⇒ **量暴雪的框之前先問「這顆框有沒有可能吃過秘密值」。** 聊天輸入框、有名字的
+標頭、單位名字做的 FontString 都算。修法（`MiliUI_ChatBar/Anchor.lua`）：
+
+- `ScreenRect()` 讀完四個邊先 `issecret()` 篩一遍，髒的回 `nil`，備援交給呼叫端；
+  `GetEffectiveScale()` 也一起篩。
+- 量得到的時候把「輸入列伸出框外那截」記進 `hangCache`，讀不到就沿用 ——
+  那截是 Chattynator 的邊距設定算出來的、不會自己變，沿用比整個放棄準。
+- `eb:GetPoint(1)` 的 `relativeTo` 也可能是秘密值，`not issecret(rel)` 排在
+  `rel == chat` 前面（`==` 碰到秘密值一樣炸）。
+
+⚠ **順手學到的更貴一課：算到一半崩，框會停在沒有錨點的狀態。** 原本 `Apply()` 是
+`bar:ClearAllPoints()` → 一路算 → `bar:SetPoint()`，崩在中間 ⇒ 聊天列一個錨點都沒有
+⇒ 畫不出來，玩家看到的是「整支插件掛了」，跟錯誤訊息裡的算術完全連不起來。
+**版面函式一律先把 point/relTo/x/y 算完，最後才 ClearAllPoints ＋ SetPoint 連著跑。**
 
 相關：[[wow-121-secret-values]]、[[wow-121-unit-api-secrets]]、[[project-miliui-chatbar-snap]]

@@ -11,6 +11,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local issecret = ns.Secret.IsSecret
+
 local Anchor = {}
 ns.Anchor = Anchor
 
@@ -71,10 +73,18 @@ end
 ------------------------------------------------------------
 -- 絕對螢幕座標。GetLeft() 這些回的是「框自己座標系」的值，兩個 scale 不同的框
 -- 不能直接比大小，一律乘上 effective scale 拉到同一把尺上。
+--
+-- ⚠ 12.1：讀得出來不代表能算。玩家密語過秘密名字（跨服／被遮蔽的）之後，暴雪的
+-- `ChatFrameEditBoxMixin:UpdateHeader` 會拿秘密的標頭寬度去餵
+-- `editBox:SetTextInsets()` —— 那一刻起 `ChatFrame1EditBox:GetLeft()` 這些
+-- 全部回秘密數字，一路髒到 /reload。乘上 scale 就當場崩。
+-- 所以這裡只回「算得動」的值，讀不到一律 nil，備援交給呼叫端。
 local function ScreenRect(f)
     local l, r, t, b = f:GetLeft(), f:GetRight(), f:GetTop(), f:GetBottom()
     if not l or not r or not t or not b then return nil end
+    if issecret(l) or issecret(r) or issecret(t) or issecret(b) then return nil end
     local s = f:GetEffectiveScale()
+    if issecret(s) then return nil end
     return l * s, r * s, t * s, b * s
 end
 
@@ -87,17 +97,31 @@ end
 -- 所以「底」要取框下緣與輸入列下緣兩者較低的那個。輸入列沒錨在這顆視窗上
 -- （輸入列在上方、或不是 Chattynator）就只看框。回傳螢幕座標。
 ------------------------------------------------------------
+-- 伸出量量得到的時候記下來：輸入列的幾何一旦變成秘密值就再也讀不回來（見
+-- ScreenRect 的說明），但那截長度是 Chattynator 的邊距設定算出來的、不會自己變，
+-- 沿用上一次量到的值，比整個放棄讓聊天列蓋回輸入列上準。
+local hangCache = 0
+
 local function ContentBottom(chat)
     local _, _, _, cbm = ScreenRect(chat)
     if not cbm then return nil end
+
     local eb = ChatFrame1EditBox
+    local anchored = false
     if eb and eb.GetPoint then
         local _, rel = eb:GetPoint(1)
-        if rel == chat then
-            local _, _, _, ebb = ScreenRect(eb)
-            if ebb and ebb < cbm then return ebb, cbm - ebb end
-        end
+        -- rel 也可能是秘密值（GetPoint 原樣回傳存進去的東西），先擋掉再比
+        anchored = not issecret(rel) and rel ~= nil and rel == chat
     end
+
+    if anchored then
+        local _, _, _, ebb = ScreenRect(eb)
+        if ebb then hangCache = (ebb < cbm) and (cbm - ebb) or 0 end
+    else
+        hangCache = 0
+    end
+
+    if hangCache > 0 then return cbm - hangCache, hangCache end
     return cbm, 0
 end
 
@@ -153,10 +177,15 @@ function Anchor.Apply()
         cb.Position = pos
     end
 
-    bar:ClearAllPoints()
     ApplyClamp(bar)
+
+    -- 錨點先算完，最後才 ClearAllPoints ＋ SetPoint 一氣呵成。
+    -- 中間出錯（12.1 的秘密幾何就出過一次）而 ClearAllPoints 已經跑掉的話，
+    -- 聊天列會停在「一個錨點都沒有」的狀態 —— 畫不出來，看起來就是整支插件掛了。
+    local point, relTo, relPoint, x, y
     if pos and pos.attached and chat then
-        local point, relPoint, y = pos.point, pos.relPoint, pos.y or 0
+        point, relTo, relPoint = pos.point, chat, pos.relPoint
+        x, y = pos.x or 0, pos.y or 0
         if relPoint:find("^BOTTOM") then
             -- 吸在下方：從框下緣再往下讓出輸入列伸出來的那截
             local _, hang = ContentBottom(chat)
@@ -175,14 +204,16 @@ function Anchor.Apply()
                 end
             end
         end
-        bar:SetPoint(point, chat, relPoint, pos.x or 0, y)
     elseif pos and not pos.attached then
-        bar:SetPoint(pos.point or "BOTTOMLEFT", UIParent, pos.relPoint or "BOTTOMLEFT",
-                     pos.x or 0, pos.y or 0)
+        point, relTo, relPoint = pos.point or "BOTTOMLEFT", UIParent, pos.relPoint or "BOTTOMLEFT"
+        x, y = pos.x or 0, pos.y or 0
     else
         -- 想吸但沒得吸：先擺左下角，等聊天視窗出現再吸回去
-        bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
+        point, relTo, relPoint, x, y = "BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0
     end
+
+    bar:ClearAllPoints()
+    bar:SetPoint(point, relTo, relPoint, x, y)
 end
 
 -- 聊天視窗晚一步才生出來（Chattynator 的視窗是登入之後才建的）。
