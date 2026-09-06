@@ -12,7 +12,7 @@ L["Drag to move"] = "拖曳移動"
 -- 插件名稱與分頁
 L["MiliUI Minimap"] = "米利的小地圖"
 L["Minimap"] = "小地圖"
-L["Info bar"] = "資訊列"
+L["Social bar"] = "社交列"
 L["About"] = "關於"
 L["Settings"] = "設定"
 
@@ -28,8 +28,8 @@ L["Circle"] = "圓形"
 L["Map size"] = "地圖尺寸"
 L["Scale"] = "整體縮放"
 L["Lock in place"] = "鎖定位置"
-L["Position is set by dragging: uncheck \"Lock in place\" below (opening this window unlocks it for you), then drag the map. Right-click the drag overlay to send it back to the top-right corner."] =
-    "位置用拖曳的：把下面的「鎖定位置」取消勾選（開著這個視窗時本來就是解鎖的），然後拖動地圖。在拖曳遮罩上按右鍵可以把它送回右上角。"
+L["Position is set by dragging: enter Edit Mode, or uncheck \"Lock in place\" below (opening this window unlocks it for you), then drag the map. Right-click the drag overlay to send it back to the top-right corner."] =
+    "位置用拖曳的：進入編輯模式，或把下面的「鎖定位置」取消勾選（開著這個視窗時本來就是解鎖的），然後拖動地圖。在拖曳遮罩上按右鍵可以把它送回右上角。"
 
 -- 外觀
 L["Appearance"] = "外觀"
@@ -79,8 +79,8 @@ L["All settings"] = "全部設定"
 L["Restore defaults"] = "還原預設值"
 L["Restore every MiliUI Minimap setting to its default?"] = "把米利的小地圖所有設定還原成預設值？"
 
--- 資訊列
-L["Show the info bar"] = "顯示資訊列"
+-- 社交列
+L["Show the social bar"] = "顯示社交列"
 L["A single strip under the map, split in two. Left-click a half to open that panel, right-click for a whisper / invite menu, hover for the full list."] =
     "地圖下方一條橫條，切成左右兩半。左鍵開對應的面板，右鍵開密語／邀請選單，滑鼠移過去看完整名單。"
 L["Contents"] = "內容"
@@ -90,7 +90,7 @@ L["Guild"] = "公會"
 L["Friends"] = "好友"
 L["Nothing"] = "不顯示"
 L["Stick to the bottom of the map"] = "貼在地圖下緣"
-L["Unstick it to place the bar somewhere else; it keeps the map's width."] = "取消貼齊就可以把資訊列放到別的地方，寬度仍然跟著地圖走。"
+L["Unstick it to place the bar somewhere else; it keeps the map's width."] = "取消貼齊就可以把社交列放到別的地方，寬度仍然跟著地圖走。"
 L["Position"] = "位置"
 L["X"] = "X"
 L["Y"] = "Y"
@@ -135,11 +135,11 @@ L["Open options"] = "開啟設定"
 
 -- 關於
 L["A square minimap in the MiliUI house style, plus one strip of who is online."] =
-    "套組風格的方形小地圖，外加一條「誰在線上」的資訊列。"
+    "套組風格的方形小地圖，外加一條「誰在線上」的社交列。"
 L["Black translucent panel, 1px border in your class colour, white text, square corners — the same look as the damage meter windows and the unit frames."] =
     "黑色半透明底、1px 職業色框線、白字、直角——跟傷害統計視窗與單位框架是同一套視覺語言。"
-L["The info bar reads nothing in the background: the guild and friend lists are only walked while the tooltip is actually open."] =
-    "資訊列在背景完全不做事：公會與好友名單只有在提示真的打開的那幾秒才會被走過一遍。"
+L["The social bar reads nothing in the background: the guild and friend lists are only walked while the tooltip is actually open."] =
+    "社交列在背景完全不做事：公會與好友名單只有在提示真的打開的那幾秒才會被走過一遍。"
 L["Commands: |cffffd200/mmap|r opens the options, |cffffd200/mmap lock|r and |cffffd200/mmap unlock|r toggle dragging, |cffffd200/mmap reset|r restores defaults, |cffffd200/mmap debug|r reports recent errors"] =
     "指令：|cffffd200/mmap|r 開啟設定，|cffffd200/mmap lock|r 與 |cffffd200/mmap unlock|r 切換拖曳，|cffffd200/mmap reset|r 還原預設值，|cffffd200/mmap debug|r 印出最近的錯誤"
 L["Author: Mili (MiliUI package)"] = "作者：Mili（米利UI套組）"
@@ -160,8 +160,13 @@ L["Left"] = "左側"
 L["Right"] = "右側"
 L["Pinned buttons sit in a single row that is always visible. \"Top\" continues the row from the bag button, so they read as one strip. The row deliberately does not wrap — if it runs past the map's edge, you have pinned too many."] =
     "釘住的按鈕會排成永遠看得見的一排。選「上方」會接在收納袋按鈕右邊，連成同一條。這排刻意不折行——超出地圖邊界就是在告訴你釘太多了。"
-L["Which buttons stay on the map"] = "哪些按鈕留在地圖上"
-L["Keep on the map"] = "留在地圖上"
+-- 釘選的說法跟著「常駐排位置」走（Map/Buttons.lua 的 Buttons.PinLabel）
+L["Pin buttons below the social bar"] = "釘選按鈕到社交列下方"
+L["Pin buttons below the minimap"] = "釘選按鈕到小地圖下方"
+L["Pin buttons above the minimap"] = "釘選按鈕到小地圖上方"
+L["Pin buttons left of the minimap"] = "釘選按鈕到小地圖左側"
+L["Pin buttons right of the minimap"] = "釘選按鈕到小地圖右側"
+L["Pinned"] = "釘選"
 L["No addon buttons found yet. Addons that load on demand only register theirs once you open them."] =
     "目前還沒收到任何插件按鈕。需要時才載入的插件，要開過一次才會註冊自己的圖示。"
 L["%d in the bag, %d pinned"] = "收納袋 %d 顆，釘住 %d 顆"
@@ -169,7 +174,6 @@ L["Left-click: open the bag"] = "左鍵：打開收納袋"
 L["Right-click: settings"] = "右鍵：設定"
 L["MiliUI settings"] = "米利UI設定"
 L["Minimap settings"] = "小地圖設定"
-L["Pin buttons to the map"] = "釘選按鈕到地圖上"
 L["Other version"] = "其他版本"
 L["Show Blizzard's addon compartment"] = "顯示暴雪的「插件」按鈕"
 L["Blizzard's own addon list button. Off by default: it is a text label sitting next to a skinned map, and what it does overlaps with the button bag above."] =
@@ -178,7 +182,7 @@ L["Drag the bottom-left corner to resize"] = "拉左下角調整大小"
 L["The map canvas has to stay square: the terrain projection and the player arrow both depend on it, so a rectangle would need a fixed-aspect crop mask. Drag the corner for size, or use Scale above to shrink everything including the text."] =
     "地圖畫布必須是正方形——地形投影與玩家箭頭都吃這個前提，長方形得另外做一張固定比例的裁切遮罩。要改大小拉角落，要連文字一起縮放用上面的「整體縮放」。"
 
--- 資訊列三格
+-- 社交列三格
 L["Slot 1"] = "第一格"
 L["Slot 2"] = "第二格"
 L["Slot 3"] = "第三格"
@@ -192,8 +196,8 @@ L["Commands: |cffffd200/mmap|r opens the options, |cffffd200/mmap bag|r opens th
     "指令：|cffffd200/mmap|r 開啟設定，|cffffd200/mmap bag|r 打開插件按鈕收納袋，|cffffd200/mmap lock|r 與 |cffffd200/mmap unlock|r 切換拖曳，|cffffd200/mmap reset|r 還原預設值，|cffffd200/mmap debug|r 印出最近的錯誤"
 L["Drag to resize"] = "拉這裡調整大小"
 L["Bag icon uses your class colour"] = "收納袋圖示用職業色"
-L["Third-party minimap buttons are moved into a bag that opens from the grid slot in the info bar. Turning this off only hides the bag — buttons already collected stay collected until you /reload."] =
-    "第三方插件的小地圖按鈕會被搬進一個收納袋，從資訊列那格九宮格打開。關掉這個選項只是把收納袋藏起來，已經收進來的按鈕要 /reload 才會回到地圖上。"
+L["Third-party minimap buttons are moved into a bag that opens from the grid slot in the social bar. Turning this off only hides the bag — buttons already collected stay collected until you /reload."] =
+    "第三方插件的小地圖按鈕會被搬進一個收納袋，從社交列那格九宮格打開。關掉這個選項只是把收納袋藏起來，已經收進來的按鈕要 /reload 才會回到地圖上。"
 L["A single strip under the map, split into three slots. Left-click a slot for its whisper / invite menu, right-click to open the full panel, hover for the list."] =
     "地圖下方一條橫條，切成三格。左鍵開該格的密語／邀請選單，右鍵開完整面板，滑鼠移過去看名單。"
 L["A single strip under the map, split into three slots. Hover a slot for its list; the list stays open while the cursor is on it. Left-click a name to whisper, right-click to invite; the button at the bottom opens the full panel. The addon-button bag opens on hover too."] =

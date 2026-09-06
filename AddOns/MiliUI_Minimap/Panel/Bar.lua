@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 資訊列：地圖正下方一條，切成三格
+-- 社交列：地圖正下方一條，切成三格
 --
 --   ┌──────────────┬────┬──────────────┐
 --   │     公會 12  │ ▦  │    好友 4    │
@@ -431,7 +431,7 @@ local function BuildSlot(index)
         if not src then return end
         if src.popup then src.popup(self); return end
         if not src.tooltip then return end
-        -- 名單往**下**長（資訊列貼在畫面上緣，往上開會被切掉），
+        -- 名單往**下**長（社交列貼在畫面上緣，往上開會被切掉），
         -- 左右對齊跟著格子在螢幕的哪一半走，才不會橫跨整個畫面。
         local left = (self:GetCenter() or 0) < (GetScreenWidth() or 1920) / 2
         local tip = ns.Tip.Open(self,
@@ -721,7 +721,7 @@ end
 ------------------------------------------------------------
 -- ⚠ 這裡**故意不叫 Bar.Apply()**。
 --   ns.Fire 的派送順序是 pairs()，不保證 Skin 的 Init 先跑 —— 先跑到這裡的話
---   ns.holder 還是 nil，「貼在地圖下緣」那條路走不到，資訊列會用絕對座標貼出去，
+--   ns.holder 還是 nil，「貼在地圖下緣」那條路走不到，社交列會用絕對座標貼出去，
 --   要到下一次設定變動才修正。改由 Skin.Apply 結尾的 SkinApplied 驅動，
 --   順序就由呼叫鏈保證而不是靠運氣。
 ns.RegisterCallback("Init", "Bar", function()

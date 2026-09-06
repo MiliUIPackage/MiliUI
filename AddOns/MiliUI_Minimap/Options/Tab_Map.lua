@@ -28,7 +28,7 @@ local CONTROLS = {
     --   不出那個值了（滑桿會顯示成上限，看起來像設定被改掉）。
     { type = "slider",   key = "size",  label = L["Map size"], min = 100, max = 400, step = 2 },
     { type = "slider",   key = "scale", label = L["Scale"], min = 0.5, max = 2, step = 0.05 },
-    { type = "text",     label = L["Position is set by dragging: uncheck \"Lock in place\" below (opening this window unlocks it for you), then drag the map. Right-click the drag overlay to send it back to the top-right corner."] },
+    { type = "text",     label = L["Position is set by dragging: enter Edit Mode, or uncheck \"Lock in place\" below (opening this window unlocks it for you), then drag the map. Right-click the drag overlay to send it back to the top-right corner."] },
     { type = "text",     label = L["Drag the bottom-left corner to resize"] },
     { type = "text",     label = L["The map canvas has to stay square: the terrain projection and the player arrow both depend on it, so a rectangle would need a fixed-aspect crop mask. Drag the corner for size, or use Scale above to shrink everything including the text."] },
     { type = "toggle",   key = "locked", label = L["Lock in place"] },

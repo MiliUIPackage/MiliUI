@@ -16,7 +16,7 @@ local L = ns.L
 local W = ns.W
 local Specs = ns.Specs
 
-local tab, refreshers, list
+local tab, refreshers, list, listTitle
 
 -- ⚠ 上半的高度**不能寫死**：那個說明文字會依語系換行成三行或四行，
 --   寫死一個數字的後果是某個語系下說明會壓到下半的清單標題上。
@@ -24,6 +24,12 @@ local tab, refreshers, list
 local PANEL_H  = 470        -- 跟 Options/Panel.lua 的 PANEL_H 一致
 local LIST_MIN = 110        -- 清單再矮就只剩三列，不如把設定往上擠
 local ROW_H    = 24
+
+-- 釘選欄的三個數字。欄頭要對齊勾選框，就不能各寫各的 ——
+-- SCROLLBAR_W 是 MiliUIWidgets 的 CreateScrollFrame 給捲軸留的寬（內容右緣往內縮）。
+local CHECK_INSET = 10
+local CHECK_SIZE  = 18
+local SCROLLBAR_W = 20
 
 local function RefreshAll()
     if not refreshers then return end
@@ -37,7 +43,7 @@ local CONTROLS = {
     { type = "slider",   key = "btnColumns", label = L["Columns in the bag"], min = 2, max = 12, step = 1 },
     { type = "toggle",   key = "btnAccentIcon", label = L["Bag icon uses your class colour"] },
     { type = "dropdown", key = "pinSide", label = L["Pinned row side"], items = Specs.PIN_SIDES },
-    { type = "text",     label = L["Third-party minimap buttons are moved into a bag that opens from the grid slot in the info bar. Turning this off only hides the bag — buttons already collected stay collected until you /reload."] },
+    { type = "text",     label = L["Third-party minimap buttons are moved into a bag that opens from the grid slot in the social bar. Turning this off only hides the bag — buttons already collected stay collected until you /reload."] },
 }
 
 ------------------------------------------------------------
@@ -66,7 +72,7 @@ local function BuildRow(row)
     row.check = W.CreateCheckButton(row, "", function(checked)
         ns.Buttons.SetPinned(row.btnName, checked)
     end)
-    row.check:SetPoint("RIGHT", row, "RIGHT", -10, 0)
+    row.check:SetPoint("RIGHT", row, "RIGHT", -CHECK_INSET, 0)
 end
 
 local function UpdateRow(row, btn)
@@ -125,7 +131,7 @@ local function Init()
     if tab then return end
     tab = ns.Options.NewTabFrame()
 
-    local title = W.CreateSectionTitle(tab, L["Addon buttons"], 588)
+    local title = W.CreateSectionTitle(tab, L["Addon buttons"], ns.Options.CONTENT_W)
     title:SetPoint("TOPLEFT", 16, -14)
 
     ------------------------------------------------------------
@@ -143,22 +149,30 @@ local function Init()
     ------------------------------------------------------------
     -- 下半：釘選清單（自己捲）
     ------------------------------------------------------------
-    local listTitle = W.CreateSectionTitle(tab, L["Which buttons stay on the map"], 588)
+    -- 標題就是這一頁在做的事，而且**跟著常駐排的位置改字**
+    -- （ns.Buttons.PinLabel：「釘選按鈕到社交列下方／到小地圖上方…」）。
+    listTitle = W.CreateSectionTitle(tab, ns.Buttons.PinLabel(), ns.Options.CONTENT_W)
     listTitle:SetPoint("TOPLEFT", form, "BOTTOMLEFT", 0, -4)
 
-    -- 欄頭：勾選框自己沒有文字（理由見 BuildRow），意思寫在這裡
+    -- 清單跟標題線同寬：清單原本用 FORM_W（560），標題線是 588，
+    -- 右邊界差 28px —— 那就是「文字左右間隔不一樣」的來源。
+    list = W.CreateRowList(tab, ns.Options.CONTENT_W, listH, ROW_H, BuildRow)
+    list:SetPoint("TOPLEFT", listTitle, "BOTTOMLEFT", 0, -18)
+
+    -- 欄頭：勾選框自己沒有文字（理由見 BuildRow），意思寫在這裡。
+    -- ⚠ 它是**那一欄的頭**，中心要對齊勾選框的中心，不是靠著標題線的右端貼齊：
+    --   靠右對齊的版本文字離線尾 8px，勾選框卻縮在捲軸內側 28px 處，
+    --   兩者差了快 60px，讀起來就是右邊那塊字浮在欄位外面。
     local head = tab:CreateFontString(nil, "OVERLAY")
     head:SetFontObject(W.fontSmall)
-    head:SetPoint("TOPRIGHT", listTitle, "BOTTOMRIGHT", -8, -3)
-    head:SetText(L["Keep on the map"])
-
-    list = W.CreateRowList(tab, ns.Options.FORM_W, listH, ROW_H, BuildRow)
-    list:SetPoint("TOPLEFT", listTitle, "BOTTOMLEFT", 0, -18)
+    head:SetPoint("BOTTOM", list, "TOPRIGHT",
+        -(SCROLLBAR_W + CHECK_INSET + CHECK_SIZE / 2), 3)
+    head:SetText(L["Pinned"])
 
     list.empty = list:CreateFontString(nil, "OVERLAY")
     list.empty:SetFontObject(W.fontSmall)
     list.empty:SetPoint("TOPLEFT", 8, -8)
-    list.empty:SetWidth(ns.Options.FORM_W - 30)
+    list.empty:SetWidth(ns.Options.CONTENT_W - 30)
     list.empty:SetJustifyH("LEFT")
     list.empty:SetText(L["No addon buttons found yet. Addons that load on demand only register theirs once you open them."])
 end
@@ -172,6 +186,11 @@ ns.RegisterCallback("ShowOptionsTab", "buttonsTab", function(id)
     RefreshAll()
     RefreshList()
     tab:Show()
+end)
+
+-- 常駐排位置改了，標題那句「釘選按鈕到○○」要跟著換 —— 那正是玩家剛剛改的東西
+ns.RegisterCallback("ConfigChanged", "buttonsTab", function()
+    if listTitle then listTitle.text:SetText(ns.Buttons.PinLabel()) end
 end)
 
 -- 掃到新按鈕時，如果分頁正開著就重畫清單（LoadOnDemand 的插件會在玩家

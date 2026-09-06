@@ -2,7 +2,7 @@
 -- 公會／好友的線上名單
 --
 -- **零背景工作。** 這裡沒有任何常駐的名單快取，兩支 Gather 只在「玩家把滑鼠移到
--- 資訊列上」的那一刻才跑一次。理由是成本結構：
+-- 社交列上」的那一刻才跑一次。理由是成本結構：
 --   * 數字（人數）本來就有現成的 API，不必掃名單 —— `GetNumGuildMembers()` 的
 --     第二／第三個回傳就是線上人數，好友那邊有 `C_FriendList.GetNumOnlineFriends()`。
 --   * 名單只有提示打開的那幾秒需要，而那幾秒玩家不在打副本。
@@ -161,7 +161,7 @@ function D.FriendsRoster()
     for i = 1, (PlainNumber(numOnline) or 0) do
         local acct = C_BattleNet.GetFriendAccountInfo(i)
         local game = acct and acct.gameAccountInfo
-        -- ⚠ **不再只收 WoW。** 資訊列的數字現在是「在線好友」（免費 API 給的），
+        -- ⚠ **不再只收 WoW。** 社交列的數字現在是「在線好友」（免費 API 給的），
         --   清單只收 WoW 的話兩者就對不上 —— 而「數字跟底下列數不一樣」是使用者
         --   最容易當成 bug 的一種畫面。非 WoW 的照樣列，右欄改顯示他在玩什麼。
         if game and game.isOnline then

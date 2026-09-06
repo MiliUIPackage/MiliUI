@@ -457,8 +457,8 @@ function Buttons.Layout()
     SizeContainer(pin, nPin, 0, size, gap, horizontal)
     pin:ClearAllPoints()
     if db.pinSide == "bottom" and ns.infoBar and ns.infoBar:IsShown() then
-        -- ⚠ 地圖正下方是**資訊列**的位置，直接貼 holder 的底會疊在它上面。
-        --   有資訊列就接在它下面，沒有才貼地圖。
+        -- ⚠ 地圖正下方是**社交列**的位置，直接貼 holder 的底會疊在它上面。
+        --   有社交列就接在它下面，沒有才貼地圖。
         pin:SetPoint("TOPLEFT", ns.infoBar, "BOTTOMLEFT", 0, -P.Scale(3))
     else
         pin:SetPoint(side[1], ns.holder, side[2], P.Scale(side[3] * 3), P.Scale(side[4] * 3))
@@ -484,20 +484,44 @@ function Buttons.GetPinned(name)
 end
 
 ------------------------------------------------------------
+-- 釘選這件事怎麼講：「釘選按鈕到○○」
+--
+-- ⚠ 這句話**必須跟著 pinSide 走**，不能寫死。原本的說法是「留在地圖上」，
+--   而釘住的按鈕從來就不是留在原地不動 —— 它們被排進常駐排，那排在哪一邊
+--   是設定出來的。位置講錯的文案比沒有文案更糟：玩家勾完會去錯的地方找按鈕。
+--   bottom 還要再分一次，因為常駐排有社交列時是接在它下面，沒有才貼地圖底緣
+--   （見 Buttons.Layout 裡那段錨點）。
+------------------------------------------------------------
+function Buttons.PinLabel()
+    local db = ns.DB.Get()
+    local side = db.pinSide or "bottom"
+    if side == "top" then
+        return ns.L["Pin buttons above the minimap"]
+    elseif side == "left" then
+        return ns.L["Pin buttons left of the minimap"]
+    elseif side == "right" then
+        return ns.L["Pin buttons right of the minimap"]
+    elseif db.infoBar then
+        return ns.L["Pin buttons below the social bar"]
+    end
+    return ns.L["Pin buttons below the minimap"]
+end
+
+------------------------------------------------------------
 -- 收納袋的開啟方向
 --
 -- 小地圖預設在畫面右上角，面板往左下長才不會出畫面。但地圖是可以搬的，
 -- 所以方向**每次開啟時算**：地圖在螢幕右半就往左開，左半就往右開。
 -- 寫死方向的話，把地圖搬到左邊的人會看到面板一半在畫面外。
 ------------------------------------------------------------
--- anchor = 資訊列裡那一格（沒有的話退回整條資訊列，再退回地圖）
+-- anchor = 社交列裡那一格（沒有的話退回整條社交列，再退回地圖）
 local function PlaceBag(anchor)
     anchor = anchor or ns.infoBar or ns.holder
     if not anchor then return end
     bag:ClearAllPoints()
     local cx = anchor:GetCenter()
     local mid = (GetScreenWidth() or 1920) / 2
-    -- 往下開（資訊列在地圖下面，往上開會蓋住地圖），左右靠螢幕的哪一半決定：
+    -- 往下開（社交列在地圖下面，往上開會蓋住地圖），左右靠螢幕的哪一半決定：
     -- 寫死方向的話，把地圖搬到左邊的人會看到袋子一半在畫面外。
     if cx and cx > mid then
         bag:SetPoint("TOPRIGHT", anchor, "BOTTOMRIGHT", 0, -P.Scale(3))
@@ -510,7 +534,7 @@ function Buttons.IsOpen()
     return bag and bag:IsShown() or false
 end
 
--- 開（已經開著就只是重新定位）。資訊列滑過那一格時走這支；
+-- 開（已經開著就只是重新定位）。社交列滑過那一格時走這支；
 -- 「游標離開就關」的判定在 Panel/Bar.lua 的 Hover 段，不在這裡。
 function Buttons.Open(anchor)
     if not bag then return end
@@ -573,7 +597,7 @@ end
 function Buttons.TintIcon(btn, alpha)
     if not btn.dots then return end
     -- 關掉職業色就用白 —— **跟「公會」「好友」那兩個標籤同一個色**（S.TEXT）。
-    -- 這裡不另外開一個自訂色：整條資訊列只有兩種身分（標籤色與強調色），
+    -- 這裡不另外開一個自訂色：整條社交列只有兩種身分（標籤色與強調色），
     -- 多一個顏色來源就是多一個會跟其他兩格對不起來的地方。
     local r, g, b
     if ns.DB.Get().btnAccentIcon == false then
@@ -600,7 +624,7 @@ local function ShowMenu(anchor)
         items[#items + 1] = { isSeparator = true }
     end
     items[#items + 1] = {
-        text = ns.L["Pin buttons to the map"],
+        text = Buttons.PinLabel(),
         onClick = function() ns.Options.Open("buttons") end,
     }
     items[#items + 1] = {
@@ -647,10 +671,10 @@ local function Build()
 end
 
 ------------------------------------------------------------
--- 開關鈕住在**資訊列**（Panel/Bar.lua 的一格），不是這裡。
+-- 開關鈕住在**社交列**（Panel/Bar.lua 的一格），不是這裡。
 --
 -- 理由是版面：這顆鈕本來擺在地圖上方外側，於是地圖上下各長出一條東西
--- —— 上面一顆孤零零的鈕、下面一條資訊列。收進資訊列之後地圖只有下方一條，
+-- —— 上面一顆孤零零的鈕、下面一條社交列。收進社交列之後地圖只有下方一條，
 -- 而那條本來就是「地圖旁邊的一排小東西」該待的地方。
 --
 -- 這裡只負責把「怎麼畫那顆鈕」與「按下去要做什麼」開放出去：

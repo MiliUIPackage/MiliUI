@@ -41,7 +41,7 @@ SlashCmdList.MILIUIMINIMAP = function(msg)
         ns.Print(L["Minimap unlocked — drag it, right-click to send it back to the corner."])
 
     elseif cmd == "bag" then
-        -- 資訊列沒放收納袋那一格時，這是袋子唯一的入口
+        -- 社交列沒放收納袋那一格時，這是袋子唯一的入口
         ns.Buttons.Toggle(ns.infoBar)
 
     elseif cmd == "reset" then

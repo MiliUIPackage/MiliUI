@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 資訊列的彈出名單：一個**可以把滑鼠移上去**的列表面板
+-- 社交列的彈出名單：一個**可以把滑鼠移上去**的列表面板
 --
 -- 第一版是自己開一個 GameTooltip（GameTooltipTemplate ＋ 換皮）。它的問題只有一個，
 -- 但那一個是決定性的：**提示框碰不到**。GameTooltip 是「跟著游標、游標一離開來源就
@@ -23,7 +23,7 @@
 --   所以 secure 鈕掛 UIParent、用**絕對座標**擺到按鈕列的位置，面板跟它之間沒有任何
 --   父子或錨點關係。戰鬥中名單照開照用；只有那顆鈕不動（進戰鬥時先藏起來，
 --   字變灰表示暫時不能按），出戰鬥再擺回來。
--- 「游標在面板上就留著、離開才關」的判定不在這裡 —— 那是資訊列（Panel/Bar.lua
+-- 「游標在面板上就留著、離開才關」的判定不在這裡 —— 那是社交列（Panel/Bar.lua
 -- 的 Hover 段）的事，這支只負責畫與排。
 --
 -- 對外的介面刻意長得像 GameTooltip（AddLine / AddDoubleLine / Show）：
@@ -42,7 +42,7 @@ local P = ns.P
 local panel
 local rows = {}
 local used = 0             -- 這一輪用到第幾列
-local owner                -- 是誰開的（資訊列的哪一格）
+local owner                -- 是誰開的（社交列的哪一格）
 local buttonRow, buttonKind   -- 這一輪的底部按鈕列與它要開的面板（guild / friends）
 
 local SyncOpeners, RefreshButtonRow   -- 定義在下面的 Openers 段，Show() 會用到
@@ -82,7 +82,7 @@ local function EnsureRow(i)
     row.fill:Hide()
 
     -- 滑過的回饋走**底色明暗**，不換色（miliui-color-states）。
-    -- 跟資訊列格子的那塊一樣淡：這裡是清單，不是選單，亮太多會像每一列都被選中。
+    -- 跟社交列格子的那塊一樣淡：這裡是清單，不是選單，亮太多會像每一列都被選中。
     row.hl = row:CreateTexture(nil, "BACKGROUND")
     row.hl:SetAllPoints(row)
     row.hl:SetColorTexture(1, 1, 1, 0.10)
@@ -246,7 +246,7 @@ end
 ------------------------------------------------------------
 -- 開啟：一律錨在來源按鈕上
 --
--- anchor 由呼叫端決定貼哪一邊 —— 資訊列在畫面右上角，提示往左下長才不會出畫面。
+-- anchor 由呼叫端決定貼哪一邊 —— 社交列在畫面右上角，提示往左下長才不會出畫面。
 -- 回傳面板本身，呼叫端接著 AddLine… 最後 Show()。
 ------------------------------------------------------------
 function Tip.Open(who, anchorPoint, relPoint, x, y)

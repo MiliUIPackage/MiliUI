@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 「資訊列」分頁：左右兩格放什麼、外觀、提示內容
+-- 「社交列」分頁：左右兩格放什麼、外觀、提示內容
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -14,7 +14,7 @@ local function RefreshAll()
 end
 
 local CONTROLS = {
-    { type = "toggle",   key = "infoBar", label = L["Show the info bar"] },
+    { type = "toggle",   key = "infoBar", label = L["Show the social bar"] },
     { type = "text",     label = L["A single strip under the map, split into three slots. Hover a slot for its list; the list stays open while the cursor is on it. Left-click a name to whisper, right-click to invite; the button at the bottom opens the full panel. The addon-button bag opens on hover too."] },
 
     { type = "header",   label = L["Contents"] },
@@ -47,7 +47,7 @@ local CONTROLS = {
 
 local function Init()
     if tab then return end
-    tab, scroll = ns.Options.MakeFormTab(L["Info bar"])
+    tab, scroll = ns.Options.MakeFormTab(L["Social bar"])
     local ctx = ns.Options.MakeCtx()
     local _
     _, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx)

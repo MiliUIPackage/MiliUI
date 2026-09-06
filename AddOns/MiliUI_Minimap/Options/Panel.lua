@@ -27,7 +27,7 @@ local closeBtn
 local TABS = {
     { id = "map",     label = L["Minimap"] },
     { id = "buttons", label = L["Addon buttons"] },
-    { id = "info",    label = L["Info bar"] },
+    { id = "info",    label = L["Social bar"] },
     { id = "about", label = L["About"] },
 }
 
@@ -60,6 +60,10 @@ function Options.BuildScrollBody(scroll, controls, ctx, width)
 end
 
 Options.FORM_W = FORM_W
+-- 頁面內容的寬度：左右各留 16，跟頁首那條標題線一樣長。表單控件用的是比較窄的
+-- FORM_W（滑桿右邊要留手感空間），但**佔滿一行的東西**——標題線、清單——
+-- 一律用這個，否則右邊界會有兩套，看起來就是「右邊沒對齊」。
+Options.CONTENT_W = PANEL_W - 32
 
 -- 每個分頁都長一樣的 ctx：讀寫都在 db 最上層，套用就是「重跑一次外觀」。
 function Options.MakeCtx()

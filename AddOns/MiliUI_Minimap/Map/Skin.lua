@@ -328,7 +328,7 @@ local function Build()
     holder:SetClampedToScreen(true)
     holder:SetMovable(true)
     ns.holder = holder
-    -- 套組磁吸（Libs/MiliUISnap.lua）：地圖跟底下的資訊列同 group，它們本來就錨在一起
+    -- 套組磁吸（Libs/MiliUISnap.lua）：地圖跟底下的社交列同 group，它們本來就錨在一起
     if ns.Snap then ns.Snap.Register("minimap", holder, { group = "minimap" }) end
 
     overlay = CreateFrame("Frame", nil, Minimap)
@@ -695,12 +695,75 @@ end
 ------------------------------------------------------------
 function Skin.RefreshDrag()
     if not dragOverlay then return end
-    dragOverlay:SetShown(ns._optionsOpen or not ns.DB.Get().locked)
+    dragOverlay:SetShown(Skin.InEditMode() or ns._optionsOpen or not ns.DB.Get().locked)
 end
 
 function Skin.SetLocked(locked)
     ns.DB.Get().locked = locked
     Skin.RefreshDrag()
+end
+
+------------------------------------------------------------
+-- 編輯模式：進去就等於解鎖
+--
+-- 玩家在編輯模式裡搬畫面上所有東西，沒道理只有小地圖得先回設定裡把
+-- 「固定位置」取消。這裡**不註冊真的 Edit Mode 系統**（那要碰暴雪內部、
+-- 會污染整個編輯模式），只搭進出的訊號順風車，顯示的還是我們自己那層
+-- 拖曳遮罩 —— 它比暴雪的藍色選取框多了左下角的拉把手（改大小）與右鍵歸位，
+-- 而且跟設定視窗打開時看到的是同一層，玩家不必學兩套。
+--
+-- ⚠ 進出都要重推一次 Apply：編輯模式跑版面會把 MinimapCluster 的 alpha 與
+--   暴雪那幾顆按鈕的位置還原（＝空的原版小地圖現形、疊在我們的位置上）。
+--   既有的 EDIT_MODE_LAYOUTS_UPDATED 只在版面**真的被改存**時才發，
+--   純進出補不到這一刀。延一幀是接管的通則（理由見 TakeOver 的註解）。
+------------------------------------------------------------
+local isInEditMode = false
+
+function Skin.InEditMode() return isInEditMode end
+
+local function OnEditModeEnter()
+    -- 三路訊號誰先到都一樣，去重是為了不要一次進場跑三遍 Apply
+    if isInEditMode then return end
+    isInEditMode = true
+    Skin.RefreshDrag()
+    C_Timer.After(0, function() ns.Safe(Skin.Apply) end)
+end
+
+local function OnEditModeExit()
+    if not isInEditMode then return end
+    isInEditMode = false
+    Skin.RefreshDrag()
+    C_Timer.After(0, function() ns.Safe(Skin.Apply) end)
+end
+
+-- 三重訊號，全部冪等（同 MiliUI_InfoBar/Core/Bar.lua，那支踩掉了時序的坑）：
+--   ① 管理視窗的 Show/Hide  ② EnterEditMode/ExitEditMode 方法本體
+--   ③ 官方的 EventRegistry 事件
+-- 只掛 ① 實測會漏接。
+local editModeHooked = false
+local function HookEditMode()
+    if editModeHooked or not EditModeManagerFrame then return end
+    editModeHooked = true
+    EditModeManagerFrame:HookScript("OnShow", OnEditModeEnter)
+    EditModeManagerFrame:HookScript("OnHide", OnEditModeExit)
+    if EditModeManagerFrame.EnterEditMode then
+        hooksecurefunc(EditModeManagerFrame, "EnterEditMode", OnEditModeEnter)
+    end
+    if EditModeManagerFrame.ExitEditMode then
+        hooksecurefunc(EditModeManagerFrame, "ExitEditMode", OnEditModeExit)
+    end
+    if EditModeManagerFrame:IsShown() then OnEditModeEnter() end
+end
+Skin.HookEditMode = HookEditMode
+
+-- Blizzard_EditMode 是需求載入的，開檔時通常還不在
+HookEditMode()
+if not editModeHooked and EventUtil and EventUtil.ContinueOnAddOnLoaded then
+    EventUtil.ContinueOnAddOnLoaded("Blizzard_EditMode", HookEditMode)
+end
+if EventRegistry and EventRegistry.RegisterCallback then
+    EventRegistry:RegisterCallback("EditMode.Enter", OnEditModeEnter, "MiliUIMinimap")
+    EventRegistry:RegisterCallback("EditMode.Exit", OnEditModeExit, "MiliUIMinimap")
 end
 
 ------------------------------------------------------------
@@ -714,6 +777,7 @@ local ZONE_EVENTS = {
 ns.RegisterCallback("Init", "Skin", function()
     Build()
     Skin.Apply()
+    HookEditMode()   -- 保底：開檔時 Blizzard_EditMode 沒載入、也沒走到 ContinueOnAddOnLoaded
 
     local ev = CreateFrame("Frame")
     for _, e in ipairs(ZONE_EVENTS) do ev:RegisterEvent(e) end
