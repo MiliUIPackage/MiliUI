@@ -28,6 +28,7 @@ local BLOCK_NOTES = {
     spec       = "BLOCK_SPEC_DESC",
     lootspec   = "BLOCK_LOOTSPEC_DESC",
     warband    = "BLOCK_WARBAND_DESC",
+    ms         = "BLOCK_MS_DESC",
     cpu        = "BLOCK_CPU_DESC",
     mem        = "BLOCK_MEM_DESC",
 }

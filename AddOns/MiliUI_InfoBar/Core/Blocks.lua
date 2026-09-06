@@ -451,13 +451,77 @@ MakeTextBlock("fps", {
 })
 
 ------------------------------------------------------------
--- 延遲（世界延遲；家園那個數字對玩家沒有行為意義）
+-- 延遲：資訊列上只放一個數字，滑過同時看到本地／世界兩個，右鍵選要放哪個。
+--
+-- 預設世界：戰鬥、施法、移動的反應都看它；本地那條只管聊天／拍賣／公會，
+-- 對打副本的人沒有行為意義。選擇存在 db.blocks.ms.source（"world" | "home"）。
+--
+-- 提示開著時輪詢會順手重畫（跟條上的數字同節奏），滑過去盯著看才不是死數字。
 ------------------------------------------------------------
+local function LatencySource()
+    local cfg = ns.GetDB().blocks.ms
+    return cfg and cfg.source == "home" and "home" or "world"
+end
+
+local function SetLatencySource(src)
+    ns.GetDB().blocks.ms.source = src
+end
+
+local function ShowLatencyTooltip(tile)
+    local _, _, home, world = GetNetStats()
+    local src = LatencySource()
+    AnchorTooltip(tile)
+    GameTooltip:SetText(L["BLOCK_MS"], 1, 1, 1)
+    -- 條上顯示中的那條標籤白、另一條灰：跟右鍵選單的打勾對得上
+    local hw = (src == "home") and 1 or 0.7
+    local ww = (src == "world") and 1 or 0.7
+    GameTooltip:AddDoubleLine(L["LATENCY_HOME"],  (home or 0) .. " ms",  hw, hw, hw, 1, 1, 1)
+    GameTooltip:AddDoubleLine(L["LATENCY_WORLD"], (world or 0) .. " ms", ww, ww, ww, 1, 1, 1)
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine(L["LATENCY_HOME_DESC"], 0.7, 0.7, 0.7, true)
+    GameTooltip:AddLine(L["LATENCY_WORLD_DESC"], 0.7, 0.7, 0.7, true)
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine(L["HINT_RIGHT_LATENCY"], 0.5, 0.5, 0.5)
+    GameTooltip:Show()
+end
+
+local function ShowLatencyMenu(tile)
+    GameTooltip:Hide()
+    local src = LatencySource()
+    local function pick(which)
+        return function()
+            SetLatencySource(which)
+            local inst = tile.blockInst
+            if inst then inst:Update() end
+            ShowLatencyMenu(tile)          -- 原地重畫，打勾才會即時更新
+        end
+    end
+    local items = {
+        { isTitle = true, text = L["MENU_LATENCY_TITLE"] },
+        { text = L["MENU_LATENCY_WORLD"], isActive = (src == "world"), keepOpen = true, onClick = pick("world") },
+        { text = L["MENU_LATENCY_HOME"],  isActive = (src == "home"),  keepOpen = true, onClick = pick("home") },
+    }
+    W.Menu.Show(items, tile, true)
+end
+
 MakeTextBlock("ms", {
     poll = 2,
-    getText = function()
-        local _, _, _, world = GetNetStats()
-        return (world or 0) .. " " .. Dim("ms")
+    clickable = true,
+    init = function(inst, tile)
+        tile.blockInst = inst
+        tile:SetScript("OnClick", function(self, button)
+            if button == "RightButton" then
+                ShowLatencyMenu(self)
+            end
+        end)
+        tile:HookScript("OnEnter", function(self) ShowLatencyTooltip(self) end)
+        tile:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    end,
+    getText = function(inst)
+        local _, _, home, world = GetNetStats()
+        local v = (LatencySource() == "home") and home or world
+        if GameTooltip:IsOwned(inst.tile) then ShowLatencyTooltip(inst.tile) end
+        return (v or 0) .. " " .. Dim("ms")
     end,
 })
 

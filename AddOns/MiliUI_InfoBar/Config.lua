@@ -84,6 +84,8 @@ local blockDefaults = {}
 for _, def in ipairs(ns.BLOCK_DEFS) do
     blockDefaults[def.key] = { enabled = def.enabled, order = def.order }
 end
+-- 延遲區塊放哪一條："world"（戰鬥／施法看這個）| "home"（聊天／拍賣）
+blockDefaults.ms.source = "world"
 
 ns.DB_DEFAULTS = {
     enabled      = true,
