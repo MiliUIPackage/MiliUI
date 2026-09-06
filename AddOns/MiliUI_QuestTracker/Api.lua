@@ -78,22 +78,20 @@ SlashCmdList.MILIUIQUEST = function(msg)
                 .. "  (" .. ("%.2f"):format(ns.AutoQuest.Wait()) .. ")")
         end
 
-    elseif msg == "debug" then
-        ns.Print("v" .. ns.VERSION
-            .. "  folded=" .. tostring(ns.Visibility.IsFolded())
-            .. "  protected=" .. tostring(ns.Tracker.OTF() and ns.Tracker.OTF():IsProtected()))
-        for _, line in ipairs(ns.Chrome.Diagnose()) do print("  " .. line) end
+    elseif msg:match("^debug") then
+        -- 完整報告開在可以整段複製的視窗裡；聊天視窗只留判定那一句。
+        -- `/mquest debug chat` 全部印進聊天視窗（視窗開不了的時候用）
+        local lines, _, verdict = ns.Diag.Report()
         local conflict = ns.AutoQuest.LeatrixConflict()
         if conflict then
-            print("  Leatrix Plus: accept=" .. tostring(conflict.accept)
-                .. " turnIn=" .. tostring(conflict.turnIn))
+            lines[#lines + 1] = ("  Leatrix Plus: accept=%s turnIn=%s"):format(
+                tostring(conflict.accept), tostring(conflict.turnIn))
         end
-        if #ns.errors == 0 then
-            print("  " .. L["No errors recorded"])
+        ns.Print(verdict)
+        if msg:match("chat") or not ns.Diag.ShowWindow(lines) then
+            for _, line in ipairs(lines) do print(line) end
         else
-            for i, err in ipairs(ns.errors) do
-                print(("  %d. %s"):format(i, err))
-            end
+            ns.Print(L["Diagnostic report is open — copy the whole window and paste it to the author."])
         end
 
     else

@@ -169,6 +169,40 @@ criteria description 就是名字）、分段紀錄、自動放鑰石（套組�
 
 **尚未在遊戲內驗證**：版面、秘密值路徑、面板在標題列藏著時的錨點、修好後的敵軍百分比。
 
+## `/mquest debug` 診斷報告（2026-09-06，`Core/Diag.lua`）
+
+起因：玩家回報「詛咒浪潮：圍攻低語沼澤沒顯示任務進度和開始前倒數，重新登入就好」。
+這種症狀有三種病因，畫面一模一樣，所以報告分三段對照再給一句判定（A／B／C）：
+
+- **A. API 端**：`C_Scenario.IsInScenario`、`C_ScenarioInfo.GetScenarioInfo/GetScenarioStepInfo/GetCriteriaInfo`、
+  `C_UIWidgetManager.GetObjectiveTrackerWidgetSetID`＋`GetAllWidgetsBySetID`、`GetWorldElapsedTimers`
+  （開始前倒數是 world timer）。API 說不在場景裡 ⇒ 暴雪端問題。
+- **B. 模組端**：每個子追蹤器的 `state`（`ObjectiveTrackerModuleState` 列舉：Skipped／NoObjectives／NotShown／
+  ShownPartially／ShownFully）、`hasContents`、`contentsHeight`、`isCollapsed`、`hasSkippedBlocks`、
+  Update 次數與上次時間（Skin 的 hook 往 `Diag.NoteUpdate` 報到）、`otf.modules` 有沒有它。
+  **對照 Blizzard_ObjectiveTrackerContainer.lua：容器的 Update 派送迴圈沒有 pcall，一個模組拋錯、
+  後面的全部跳過**；場景模組的 LayoutContents 在污染的執行下讀到秘密值就是這樣消失的。
+  「重新登入就好」＝taint 指紋（taint 只有重登會清）。
+- **C. 我們這端**：`T.DiagState()`（wantHidden／parentedAway／mouseBlocker）、位置換算成 UIParent 座標
+  比螢幕、Position 接管、Chrome.Diagnose。
+
+另外兩段：**taint** 走 `issecurevariable(tbl, key)`（會直接點名弄髒的插件；查 `_G` 的四個全域、
+OTF 的 modules、每個模組的八個欄位、UIWidgetManager 的三張表）；**錯誤** 合併 `ns.errors`、
+其他插件的 ADDON_ACTION_BLOCKED/FORBIDDEN（共用層只記自己的，Diag 另記別人的、去重計數）、
+BugGrabber 本 session 提到 ObjectiveTracker/Scenario/UIWidget/WorldState 的錯誤；沒裝 BugGrabber 就報
+`scriptErrors` 並提示開啟。被動記錄 SCENARIO_*／WORLD_STATE_TIMER_*／PLAYER_ENTERING_WORLD 的時間戳。
+
+報告開在可整段複製的視窗（`W.CreateScrollEditBox` ＋ userInput 還原；**不用 `CreateCopyBox`**，
+那支把捲軸藏掉了，幾十行的報告捲不動），聊天視窗只印判定那一句；`/mquest debug chat` 全印聊天。
+所有值過 `Str()`（秘密值印 `<secret>`），每段各自 pcall。共用池的兩支只讀模組框欄位，不進子區塊。
+
+**2026-09-06 已在遊戲內驗證**（盤蛇島的詛咒浪潮「逼近的突變巨獸」，scenarioID 3288）：欄位名全對、
+判定正確。兩個實測事實：**開始前的倒數是 step 的 widgetSetID 裡的 `ScenarioHeaderTimer` widget**
+（不是 world timer）；`GetWorldElapsedTimers()` 是多回傳值，沒計時器時回一個空佔位（印成
+`world timer : elapsed=0 type=0`），只認正整數 ID。判定 A 的措辭要分「人在事件裡」與「不在」——
+不在事件裡打報告本來就是 A，不能說成暴雪的問題。
+下次玩家再遇到就叫他**在症狀出現的當下**打 `/mquest debug` 把視窗內容貼過來。
+
 ## 跟別的插件的關係
 
 - **Leatrix Plus**：`LeaPlusLC` 是檔案內 local，**遙控不了也同步不了**。只能讀

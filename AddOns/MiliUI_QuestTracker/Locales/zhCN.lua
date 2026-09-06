@@ -131,7 +131,7 @@ L["\"Navigating\" is the one the map arrow is pointing at right now — not \"in
 -- 追蹤指令
 L["Quest automation trace ON — reproduce the problem, then paste the lines here."] = "任务自动化追踪：已开启。重现一次问题，然后把打印出来的行贴给我。"
 L["Quest automation trace off."] = "任务自动化追踪：已关闭。"
-L["Commands: |cffffd200/mquest|r opens the options, |cffffd200/mquest fold|r folds or unfolds the list, |cffffd200/mquest trace|r logs the quest automation, |cffffd200/mquest reset|r restores the defaults, |cffffd200/mquest debug|r reports recent errors"] = "命令：|cffffd200/mquest|r 打开设置，|cffffd200/mquest fold|r 折叠或展开列表，|cffffd200/mquest trace|r 追踪任务自动化，|cffffd200/mquest reset|r 还原默认值，|cffffd200/mquest debug|r 显示最近的报错"
+L["Commands: |cffffd200/mquest|r opens the options, |cffffd200/mquest fold|r folds or unfolds the list, |cffffd200/mquest trace|r logs the quest automation, |cffffd200/mquest reset|r restores the defaults, |cffffd200/mquest debug|r opens the diagnostic report"] = "命令：|cffffd200/mquest|r 打开设置，|cffffd200/mquest fold|r 折叠或展开列表，|cffffd200/mquest trace|r 追踪任务自动化，|cffffd200/mquest reset|r 还原默认值，|cffffd200/mquest debug|r 打开诊断报告"
 
 -- 診斷用的延遲調整
 L["Wait before accepting set to %.2fs."] = "接受任务前的等待改成 %.2f 秒。"
@@ -172,3 +172,15 @@ L["Bar height"] = "条的高度"
 L["Font and outline follow the Appearance tab. Colours are fixed: white text, grey timer bars, gold forces bar, green for completed."] = "字体与描边跟着“外观”分页走。颜色固定：白字、灰色计时条、金色敌军条、完成绿色。"
 L["%d deaths"] = "%d 次死亡"
 L["Enemy forces"] = "敌军"
+
+-- /mquest debug 的诊断报告
+L["Diagnostic report"] = "诊断报告"
+L["Select all"] = "全选"
+L["Select all, copy (Ctrl+C), and paste the whole thing to the author."] = "全选、复制（Ctrl+C），把整段贴给作者。"
+L["Diagnostic report is open — copy the whole window and paste it to the author."] = "诊断报告已打开，把窗口里的内容整段复制贴给作者。"
+L["Verdict A: the game API reports no scenario right now, so the tracker has nothing to draw. If you are inside the event while reading this, that is Blizzard's side; otherwise run /mquest debug again while the problem is on screen."] = "判定 A：游戏 API 说现在不在场景里，追踪器本来就没东西可画。如果你人正在事件里看到这句，那是暴雪那边的问题；否则请在症状出现的当下再打一次 /mquest debug。"
+L["Verdict B: the scenario module never received an Update — the tracker's dispatch loop is broken. Look at the taint list and errors."] = "判定 B：场景模块从头到尾没收到 Update，追踪器的派发循环坏了。看报告里的 taint 列表与报错。"
+L["Verdict B: the API has scenario data but Blizzard's scenario module is not displayed (state=%s, hasContents=%s). Look at the taint list and errors — re-login clearing it fits taint."] = "判定 B：API 有场景数据，但暴雪的场景模块没有显示（state=%s，hasContents=%s）。看报告里的 taint 列表与报错；重新登录就好正是 taint 的指纹。"
+L["Verdict C: the scenario module rendered but the tracker is hidden by this addon (folded / alpha / parent). This is our bug."] = "判定 C：场景模块有画出来，但追踪器被这个插件藏起来了（折叠／alpha／父层）。这是我们的 bug。"
+L["Verdict C: the tracker rendered but sits off-screen. This is our position override."] = "判定 C：追踪器有画出来，但位置在屏幕外。这是我们的位置接管出了问题。"
+L["Verdict: API, module and tracker all agree it is visible. If the screen still looks wrong, take a screenshot."] = "判定：API、模块、追踪器三方都说看得见。画面还是不对的话请截图。"

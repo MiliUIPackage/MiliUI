@@ -314,6 +314,16 @@ end
 
 function T.IsHidden() return wantHidden end
 
+-- /mquest debug 用：把隱藏機制走到哪一步攤開來。三個值分別對應上面三條路
+function T.DiagState()
+    local otf = T.OTF()
+    return {
+        wantHidden   = wantHidden,
+        parentedAway = (otf and otf:GetParent() == hiddenParent) or false,
+        blockerShown = mouseBlocker:IsShown(),
+    }
+end
+
 -- 追蹤器現在是不是真的看得見。畫背景／標題列的模組要問這個，不要各自
 -- 用 IsShown() 再拼一套 —— 那樣戰鬥中走 alpha 那條路時就會判斷錯
 function T.IsVisible()

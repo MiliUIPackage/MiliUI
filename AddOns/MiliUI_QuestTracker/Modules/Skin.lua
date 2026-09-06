@@ -581,6 +581,7 @@ local function HookTracker(tracker)
     if T.SharesWidgetPool(tracker) then
         if tracker.Update then
             hooksecurefunc(tracker, "Update", function(self)
+                ns.Diag.NoteUpdate(self)
                 -- ⚠ 一定要延後。這個 hook 是在容器的排版途中觸發的，在裡面直接
                 -- 建貼圖／改錨點會讓那一輪剩下的排版都在我們的環境裡跑完
                 T.Defer("poolHeader", function()
@@ -603,6 +604,7 @@ local function HookTracker(tracker)
         -- hook 裡只設旗標。在這裡直接做事的話，暴雪整輪排版的成本都會被記到
         -- 我們頭上（收合一次會連開十幾輪）
         hooksecurefunc(tracker, "Update", function()
+            ns.Diag.NoteUpdate(tracker)
             T.Defer("trackerUpdate", function()
                 if tracker.Header then ApplyHeaderLine(tracker.Header) end
                 T.EachBlock(tracker, SuppressPOI)

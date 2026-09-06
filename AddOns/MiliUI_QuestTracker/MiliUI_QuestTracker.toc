@@ -32,6 +32,8 @@ Core\Init.lua
 Core\Media.lua
 Core\DB.lua
 Core\Tracker.lua
+# 診斷要在 Skin 之前：Skin 的 Update hook 會往它報到
+Core\Diag.lua
 
 # Chrome 要在 Skin 之前：Skin 的分隔線與標題列位置都問 Chrome 要
 Modules\Chrome.lua
