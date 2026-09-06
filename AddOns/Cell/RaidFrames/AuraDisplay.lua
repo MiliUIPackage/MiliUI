@@ -2022,12 +2022,18 @@ end
 -- queue of "gatekick" entries (50 in one open-world fight, 2026-09-06 -- the load behind
 -- the script-ran-too-long) stops existing. Handles without a host keep the old gate.
 -- Test with /console taintLog 2 in open-world fights and an instance; then flip the default.
---   /run Cell.AuraDisplay.BOUNCE_IN_COMBAT = true
+--   /cab bounce on|off   (saved in CellDB, survives /reload)
+--   /run Cell.AuraDisplay.BOUNCE_IN_COMBAT = true   (this session only)
 AD.BOUNCE_IN_COMBAT = false
 AD.stats.combatBounces = 0
 
+local function BounceInCombat()
+    return AD.BOUNCE_IN_COMBAT == true or (CellDB ~= nil and CellDB["auraBounceInCombat"] == true)
+end
+AD.BounceInCombat = BounceInCombat
+
 local function CombatGateOpen(self)
-    return not InCombatLockdown() or (AD.BOUNCE_IN_COMBAT and self.host ~= nil)
+    return not InCombatLockdown() or (BounceInCombat() and self.host ~= nil)
 end
 
 function Handle:ReassertEnable()
@@ -3059,6 +3065,15 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         else
             p("C_Secrets.ShouldSpellAuraBeSecret 不存在")
         end
+    elseif cmd == "bounce" then
+        -- /cab bounce on|off  -> the BOUNCE_IN_COMBAT experiment, saved in CellDB
+        local v = arg and strtrim(arg):lower() or ""
+        if v == "on" or v == "off" then
+            if CellDB then CellDB["auraBounceInCombat"] = (v == "on") or nil end
+            p(v == "on" and "戰鬥中直接彈跳：開（已存檔）" or "戰鬥中直接彈跳：關（已存檔）")
+        else
+            p(("戰鬥中直接彈跳：%s。用法：/cab bounce on|off"):format(AD.BounceInCombat() and "開" or "關"))
+        end
     elseif cmd == "report" then
         -- /cab report 40  -> print the queue breakdown after any fight that queued >= 40
         -- /cab report 0   -> off (default). Saved in CellDB, so it survives /reload.
@@ -3108,8 +3123,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
             :format(pending, AD.stats.flushLast, AD.stats.flushPeak,
                 #parts > 0 and table.concat(parts, "、") or "無"))
         p(("戰鬥中直接彈跳：%s，已彈 %d 次")
-            :format(AD.BOUNCE_IN_COMBAT and "開" or "關（/run Cell.AuraDisplay.BOUNCE_IN_COMBAT = true）",
-                AD.stats.combatBounces))
+            :format(AD.BounceInCombat() and "開" or "關（/cab bounce on）", AD.stats.combatBounces))
         p("進出隊伍時 repoints 該漲、builds/discards 不該漲。歸零：/cab stats reset")
         p("換版面（副本↔團隊↔野外）來回一次：第二次該是 reuses 漲、builds 不漲。")
 
@@ -3134,7 +3148,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
     else
         p("supported =", tostring(AD.IsSupported()), "|", tostring(ACC.Failure() or "OK"))
         AD.Debug()
-        p("其他：/cab list | stats | ghosts | report [n] | inspect [unit] | overdraw [unit] | spell <id> | gate | test")
+        p("其他：/cab list | stats | ghosts | report [n] | bounce on|off | inspect [unit] | overdraw [unit] | spell <id> | gate | test")
     end
 end
 
