@@ -42,6 +42,118 @@ local function MaxRows()
 end
 
 ------------------------------------------------------------
+-- 跟著游標活著的彈出物
+--
+-- 名單與收納袋都是同一種東西：**滑過格子就開、游標在格子或面板上就留著、
+-- 離開兩者才關。** 這是「滑鼠可以移上去點」的前提 —— 第一版的名單是 GameTooltip，
+-- 游標一離開格子就消失，人名再怎麼排得漂亮都只能看不能點。
+--
+-- ⚠ 關閉不能掛在格子的 OnLeave 上立刻做。游標從格子移到面板要跨過中間那幾 px 的縫，
+--   那一瞬間兩邊都不在 —— 立刻關等於永遠移不進面板。所以離開只是**開始計時**，
+--   寬限期內回到任一邊就取消；判定在到期時做、不在離開時做
+--   （同 ContextMenu 子選單的關閉延遲，那邊踩過一次）。
+--
+-- 用 OnUpdate 輪詢而不是事件：游標從面板離開沒有可靠的事件可掛 —— 面板的 OnLeave
+-- 在游標移到它自己的子列上時也會觸發。只在面板開著時跑，每幀兩次 IsMouseOver，
+-- 關掉就停，不是常駐成本。
+--
+-- 格子上開著選單（右鍵設定、左鍵密語選單）也算「還在」：選單是從格子長出來的，
+-- 游標在選單上時把面板收掉會連帶把選單的錨點藏掉。
+------------------------------------------------------------
+local Hover = {}
+local GRACE = 0.35
+
+local watcher = CreateFrame("Frame")
+watcher:Hide()
+local hoverOwner, hoverFrame, hoverClose, away
+
+-- 格子回到閒置外觀（亮塊收掉、收納袋圖示變暗）。跟 OnLeave 做的事一樣，
+-- 但 OnLeave 在「游標移到面板上」時要留著亮塊，所以拆出來由關閉那一刻叫。
+local function SlotIdle(btn)
+    btn.hl:Hide()
+    if btn.dots and btn.sourceKey == "bag" then
+        ns.Buttons.TintIcon(btn, S.STATE_ALPHA.idle)
+    end
+end
+
+local function StopHover()
+    watcher:Hide()
+    local o = hoverOwner
+    hoverOwner, hoverFrame, hoverClose, away = nil, nil, nil, nil
+    if o then SlotIdle(o) end
+end
+
+-- 關掉目前開著的那一個。換格子、按下會開別的東西的鍵之前都先叫這個。
+function Hover.Close()
+    local close = hoverClose
+    StopHover()
+    if close then ns.Safe(close) end
+end
+
+function Hover.Start(slot, frame, close)
+    -- 同一格重畫（名單刷新）不重來：計時器照舊，不然每次刷新都把離開的時間歸零
+    if hoverOwner == slot and hoverFrame == frame then
+        hoverClose = close
+        return
+    end
+    Hover.Close()
+    hoverOwner, hoverFrame, hoverClose, away = slot, frame, close, nil
+    watcher:Show()
+end
+
+function Hover.IsOpenFor(slot)
+    return hoverOwner == slot and hoverFrame ~= nil and hoverFrame:IsShown()
+end
+
+watcher:SetScript("OnUpdate", function(_, elapsed)
+    -- 被 ESC 或別的路徑關掉了（收納袋在 UISpecialFrames 裡）：跟著收工
+    if not hoverFrame or not hoverFrame:IsShown() then StopHover(); return end
+    if hoverOwner:IsMouseOver() or hoverFrame:IsMouseOver()
+        or W.Menu.IsOpenFor(hoverOwner) then
+        away = nil
+        return
+    end
+    away = (away or 0) + elapsed
+    if away >= GRACE then Hover.Close() end
+end)
+
+------------------------------------------------------------
+-- 名單列上的兩個動作
+--
+--   左鍵  密語（戰網好友優先走戰網暱稱 —— 對方換角色、離開 WoW 之後那條路還通）
+--   右鍵  邀請組隊（邀不到的人 —— 沒角色名、跨版本 —— 什麼都不做）
+--
+-- 開完整面板（公會名冊／好友清單）是名單最底下的一顆按鈕，不綁在任何一鍵上 ——
+-- 第一版綁中鍵，使用者的回饋是不直覺。
+-- ⚠ 那顆按鈕是 **secure 點擊轉發**（Panel/Tip.lua 的 Openers 段），這裡沒有
+--   ToggleGuildFrame / ToggleFriendsFrame 的呼叫，也**不要加回來** —— 12.1 從插件
+--   Lua 直接開會被封鎖（「介面功能因插件而失效」，實測）。
+--
+-- ⚠ 密語與邀請的目標名字**必須是明文**。秘密字串餵進 SendChatMessage 或
+--   `SetAttribute("macrotext", ...)` 都會被拒（見 wow-121-chat-reply-secret-taint）。
+--   Data.lua 已經把每個 name 過了 PlainText，撈不出明文的那幾筆在那邊就被丟掉了。
+--
+-- 邀請完名單**留著**：連拉幾個人進隊是常態，每邀一個就關一次等於要重新滑過去三次。
+-- 密語與開面板則把名單收掉 —— 那兩個動作的下一步都不在名單上了。
+------------------------------------------------------------
+local function MemberAction(entry, button)
+    local target = entry.full or entry.name
+    if button == "RightButton" then
+        if entry.canInvite then C_PartyInfo.InviteUnit(target) end
+        return
+    end
+    Hover.Close()
+    if entry.bnetName and ChatFrame_SendBNetTell then
+        ChatFrame_SendBNetTell(entry.bnetName)
+    else
+        ChatFrame_SendTell(target)
+    end
+end
+
+-- secure 鈕點下去（面板已經在 secure 環境裡開了）之後把名單收掉
+ns.Tip.afterOpen = function() Hover.Close() end
+
+------------------------------------------------------------
 -- 兩種讀數的定義
 --
 -- 做成表而不是兩段 if：左右哪一格放什麼是設定，加第三種讀數（例如「隊伍」）
@@ -86,22 +198,19 @@ SOURCES.guild = {
                     tip:AddLine(ns.L["...and %d more"]:format(#roster - cap), S.TEXT_DIM[1], S.TEXT_DIM[2], S.TEXT_DIM[3])
                     break
                 end
-                ns.Tip.AddMember(entry, zone, showZone)
+                ns.Tip.AddMember(entry, zone, showZone, MemberAction)
             end
         end
-        ns.Tip.AddHint(ns.L["Left-click: whisper / invite"], ns.L["Right-click: guild roster"])
+        ns.Tip.AddHint(ns.L["Left-click: whisper"], ns.L["Right-click: invite"])
+        ns.Tip.AddButton(ns.L["Guild roster"], "guild")
     end,
 
-    -- ⚠ 左鍵＝密語／邀請，右鍵＝開面板。**跟一般的「右鍵開選單」相反**，是刻意的：
-    --   從小地圖上的人數點下去，十次有九次是想找某個人講話或拉他進隊，
-    --   開整個公會面板反而是偶爾才做的事。常用的動作給比較好按的那顆鍵。
-    --   （收納袋那格不對調 —— 它的左鍵本來就是主要動作。）
-    click = function(btn, slot)
-        if btn == "RightButton" then
-            ToggleGuildFrame()
-        else
-            Bar.ShowMemberMenu("guild", slot)
-        end
+    -- 格子本身：任一鍵＝密語／邀請選單。名單現在自己就點得動（上面兩個動作），
+    -- 選單留著當備援 —— 名單有列數上限，超過的人只能從選單找。
+    -- 開公會面板只走名單底部那顆 secure 鈕，格子上不另外綁（理由見 MemberAction 上方）。
+    click = function(_, slot)
+        Hover.Close()
+        Bar.ShowMemberMenu("guild", slot)
     end,
 }
 
@@ -129,7 +238,7 @@ SOURCES.friends = {
                 ns.Tip.AddSection(ns.L["Favorites"])
                 for _, entry in ipairs(favorites) do
                     if shown >= cap then break end
-                    ns.Tip.AddMember(entry, zone, showZone)
+                    ns.Tip.AddMember(entry, zone, showZone, MemberAction)
                     shown = shown + 1
                 end
             end
@@ -144,21 +253,19 @@ SOURCES.friends = {
                         tip:AddLine(ns.L["...and %d more"]:format(total - shown), S.TEXT_DIM[1], S.TEXT_DIM[2], S.TEXT_DIM[3])
                         break
                     end
-                    ns.Tip.AddMember(entry, zone, showZone)
+                    ns.Tip.AddMember(entry, zone, showZone, MemberAction)
                     shown = shown + 1
                 end
             end
         end
-        ns.Tip.AddHint(ns.L["Left-click: whisper / invite"], ns.L["Right-click: friends list"])
+        ns.Tip.AddHint(ns.L["Left-click: whisper"], ns.L["Right-click: invite"])
+        ns.Tip.AddButton(ns.L["Friends list"], "friends")
     end,
 
-    -- 同公會那格：左鍵密語／邀請，右鍵開好友清單（理由見上面）
-    click = function(btn, slot)
-        if btn == "RightButton" then
-            ToggleFriendsFrame()
-        else
-            Bar.ShowMemberMenu("friends", slot)
-        end
+    -- 同公會那格：任一鍵開選單（理由見上面）
+    click = function(_, slot)
+        Hover.Close()
+        Bar.ShowMemberMenu("friends", slot)
     end,
 }
 
@@ -171,26 +278,43 @@ SOURCES.friends = {
 SOURCES.bag = {
     icon = true,
 
-    -- ⚠ 袋子開著的時候**不要再彈提示**。兩者從同一格的下緣往下長 ＝ 完全重疊，
-    --   而提示在 TOOLTIP 層、袋子在 HIGH 層，提示永遠壓在上面 ——
-    --   使用者看到的是「整排圖示被蓋了一層遮罩」，完全看不出跟提示有關。
-    --   而且袋子已經開著的時候，提示那兩行（幾顆、左鍵打開）本來就沒用了。
-    suppress = function() return ns.Buttons.IsOpen() end,
-
-    tooltip = function(tip)
+    -- 滑過去就開袋子，不彈提示 —— 袋子本身就是「這格裡有什麼」的答案，
+    -- 再彈一張寫著「收納袋 12 顆」的提示只是在說明一件已經看得到的事。
+    -- ⚠ 提示與袋子從同一格的下緣往下長 ＝ 完全重疊，而提示在 TOOLTIP 層、
+    --   袋子在 HIGH 層 —— 兩個都開的話提示的不透明底會整片蓋在圖示上。
+    --   所以是二選一：袋子裡有東西就開袋子，空的才用提示說「0 顆」。
+    popup = function(slot)
         local inBag, pinned = ns.Buttons.Counts()
+        if inBag > 0 then
+            ns.Buttons.Open(slot)
+            Hover.Start(slot, ns.buttonBag, ns.Buttons.Close)
+            return
+        end
+        local left = (slot:GetCenter() or 0) < (GetScreenWidth() or 1920) / 2
+        local tip = ns.Tip.Open(slot,
+            left and "TOPLEFT" or "TOPRIGHT",
+            left and "BOTTOMLEFT" or "BOTTOMRIGHT", 0, -4)
         -- ⚠ 不能直接展開 S.Accent()（回四個值，第四個會被 AddLine 當成 wrapText）
         local ar, ag, ab = S.Accent()
         tip:AddLine(ns.L["Addon buttons"], ar, ag, ab)
         tip:AddLine(ns.L["%d in the bag, %d pinned"]:format(inBag, pinned), 1, 1, 1)
-        ns.Tip.AddHint(ns.L["Left-click: open the bag"], ns.L["Right-click: settings"])
+        ns.Tip.AddHint(ns.L["Right-click: settings"])
+        tip:Show()
+        Hover.Start(slot, tip, ns.Tip.Close)
     end,
 
+    -- 左鍵：袋子開著就收、收著就開（滑過已經會開，這只是給「想先收起來」的人）。
+    -- 右鍵：設定選單 —— 先把袋子收掉，選單從同一格往下長，疊在袋子上會蓋住圖示。
     click = function(btnName, slot)
         if btnName == "RightButton" then
+            Hover.Close()
             ns.Buttons.ShowMenu(slot)
-        else
-            ns.Buttons.Toggle(slot)
+        elseif btnName == "LeftButton" then
+            if Hover.IsOpenFor(slot) then
+                Hover.Close()
+            else
+                SOURCES.bag.popup(slot)
+            end
         end
     end,
 }
@@ -301,9 +425,10 @@ local function BuildSlot(index)
             ns.Buttons.TintIcon(self, 1)
         end
         local src = SOURCES[self.sourceKey]
-        if not src or not src.tooltip then return end
-        if src.suppress and src.suppress() then ns.Tip.Close(); return end
-        -- 提示往**下**長（資訊列貼在畫面上緣，往上開會被切掉），
+        if not src then return end
+        if src.popup then src.popup(self); return end
+        if not src.tooltip then return end
+        -- 名單往**下**長（資訊列貼在畫面上緣，往上開會被切掉），
         -- 左右對齊跟著格子在螢幕的哪一半走，才不會橫跨整個畫面。
         local left = (self:GetCenter() or 0) < (GetScreenWidth() or 1920) / 2
         local tip = ns.Tip.Open(self,
@@ -311,14 +436,14 @@ local function BuildSlot(index)
             left and "BOTTOMLEFT" or "BOTTOMRIGHT", 0, -4)
         ns.Safe(src.tooltip, tip)
         tip:Show()
+        Hover.Start(self, tip, ns.Tip.Close)
     end)
 
+    -- ⚠ 這裡**不關**名單／袋子，也不把格子變暗：游標可能正要移到面板上。
+    --   關閉由 Hover 的計時器決定，格子的亮塊留到面板真的關掉那一刻（SlotIdle）。
     btn:SetScript("OnLeave", function(self)
-        self.hl:Hide()
-        if self.dots and self.sourceKey == "bag" then
-            ns.Buttons.TintIcon(self, S.STATE_ALPHA.idle)
-        end
-        ns.Tip.Close()
+        if Hover.IsOpenFor(self) then return end
+        SlotIdle(self)
     end)
 
     btn:SetScript("OnClick", function(self, mouseBtn)

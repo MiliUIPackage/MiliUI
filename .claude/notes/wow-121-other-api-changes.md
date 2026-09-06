@@ -79,3 +79,35 @@ CHANGELOG 寫「AoEHealing: disabled on Midnight (CLEU unavailable)」、
 **影響**:任何「靠戰鬥紀錄補資料」的設計在 12.x 都要放棄,改用單位事件。
 例:施法條的斷法者只能吃 `UNIT_SPELLCAST_INTERRUPTED` 事件自己帶的 GUID
 (第 4 個參數;EMPOWER_STOP 是第 5 個),拿不到就不顯示。
+
+## 從插件 Lua 開暴雪面板會被封鎖：走 secure 點擊轉發
+
+**症狀**：插件按鈕呼叫 `ToggleGuildFrame()` / `ToggleFriendsFrame()`，玩家看到
+「介面功能因插件而失效」的封鎖彈窗，面板打不開（2026-09-06 MiliUI_Minimap 實測；
+MiliUI_InfoBar 更早在天賦／法術書上踩到同一個，見 [[project-miliui-infobar]]）。
+
+**正解**：一顆 `SecureActionButtonTemplate`，`*type1="click"`、`*clickbutton1` 指向
+暴雪自己的按鈕、`useOnKeyDown=false`（少這行 ActionButtonUseKeyDown CVar 會把 AnyUp
+點擊丟掉）。點我們的鈕＝在 secure 環境裡點暴雪的鈕。對應表：
+
+| 要開的面板 | 轉發目標 | 注意 |
+|---|---|---|
+| 公會／社群 | `GuildMicroButton` | InfoBar 的 hider 藏著也照樣能轉發 |
+| 好友清單 | `QuickJoinToastButton` | 有快速加入通知時會改開快速加入面板（暴雪原行為） |
+| 天賦／法術書 | `PlayerSpellsMicroButton` | InfoBar 已驗證 |
+| 遊戲選單 | ✗ | `MainMenuMicroButtonMixin:OnClick` 第一行是 `IsMouseOver()` 閘，轉發會空轉 |
+
+⚠ **不要用 `/friends` 巨集**：不帶參數是開好友清單沒錯，但它前面有一行
+「目標是玩家就把目標名字當參數」—— 選著人按下去會變成**加他好友**。
+
+**代價是戰鬥紀律**（實作見 MiliUI_Minimap `Panel/Tip.lua` 的 Openers 段）：
+- ⚠⚠ **彈出面板一個 secure 的東西都不能沾**：secure 鈕不能是面板的子框，也
+  **不能 SetPoint 錨在面板上** —— 被 secure 框錨定的目標框戰鬥中一樣被當保護框
+  （[[wow-combat-drag-release]] 早就寫著）。第一版錨在面板上，結果戰鬥中每次滑過去、
+  每秒刷新名單都在 SetPoint/Show 被封鎖，使用者看到「很多 Block」。
+  正解：secure 鈕掛 UIParent，用面板的 GetLeft/GetBottom **絕對座標**擺過去，
+  兩者之間沒有任何父子或錨點關係。讀 rect 要延一幀（ClampedToScreen 之後才是終值）。
+- 它自己的 Show/Hide/SetPoint/建立/SetAttribute 戰鬥中全違禁：PLAYER_LOGIN 就建好；
+  **PLAYER_REGEN_DISABLED 時先藏掉**（lockdown 前的最後窗口，不藏的話面板在戰鬥中
+  關掉後它會留在原地變成看不見的點擊區）；戰鬥中面板照開照用、只是那顆鈕不動
+  （字變灰表示暫時按不了）；PLAYER_REGEN_ENABLED 再擺回來。

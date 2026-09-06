@@ -136,6 +136,9 @@ local DEFAULTS = {
     tipMaxRows       = 30,
     -- 提示裡顯示所在區域
     tipShowZone      = true,
+    -- 名單的字級。名單是自己畫的列表（不是 GameTooltip），字級不再從提示框繼承，
+    -- 得自己有一個。跟資訊列同 12 —— 它是資訊列長出來的東西。
+    tipFontSize      = 12,
 }
 
 DB.DEFAULTS = DEFAULTS

@@ -154,6 +154,51 @@ local function Normalize(btn)
 end
 
 ------------------------------------------------------------
+-- 找出一顆按鈕的「圖示」貼圖（給設定頁的清單用）
+--
+-- 四條路，一條比一條寬：
+--   1. `.icon` / `.Icon` 欄位（LibDBIcon 與多數插件）
+--   2. normal texture，而且不是我們認得的暴雪圓框
+--   3. 按鈕自己的 region 裡第一張「顯示中、有圖、不是圓框」的貼圖
+--      （MiliUI_CharacterNotes 那種匿名 CreateTexture 的寫法）
+--   4. 再往下一層子框找同樣的東西（Plumber 的資料片按鈕把貼圖全放在 VisualContainer 裡）
+-- 找不到就回 nil，清單那列不畫圖示 —— 不要猜。
+--
+-- ⚠ 這支跟 Normalize 的判定**刻意不共用**：Normalize 會把找到的貼圖重錨、裁 8%，
+--   對第 3、4 條路找到的貼圖（自訂圖集切片、住在子框裡）那樣做會把畫面弄壞；
+--   清單只是**抄一份**來顯示，寬鬆一點沒有代價。
+------------------------------------------------------------
+local function HasImage(tex)
+    if not tex or not tex.IsObjectType or not tex:IsObjectType("Texture") then return false end
+    if IsJunk(tex) or not tex:IsShown() then return false end
+    local atlas = tex.GetAtlas and tex:GetAtlas()
+    if atlas and atlas ~= "" then return true end
+    local file = tex:GetTexture()
+    return file ~= nil and file ~= ""
+end
+
+local function FirstImageIn(frame)
+    for _, region in ipairs({ frame:GetRegions() }) do
+        if HasImage(region) then return region end
+    end
+end
+
+function Buttons.FindIcon(btn)
+    local icon = btn.icon or btn.Icon
+    if HasImage(icon) then return icon end
+    if btn.GetNormalTexture then
+        local nt = btn:GetNormalTexture()
+        if HasImage(nt) then return nt end
+    end
+    icon = FirstImageIn(btn)
+    if icon then return icon end
+    for _, child in ipairs({ btn:GetChildren() }) do
+        icon = FirstImageIn(child)
+        if icon then return icon end
+    end
+end
+
+------------------------------------------------------------
 -- 名字與標籤
 --
 -- 名字是**設定的鍵**（存進 SavedVariables 的 pinned 表），所以一定要用 frame
@@ -465,10 +510,16 @@ function Buttons.IsOpen()
     return bag and bag:IsShown() or false
 end
 
-function Buttons.Toggle(anchor)
+-- 開（已經開著就只是重新定位）。資訊列滑過那一格時走這支；
+-- 「游標離開就關」的判定在 Panel/Bar.lua 的 Hover 段，不在這裡。
+function Buttons.Open(anchor)
     if not bag then return end
-    if bag:IsShown() then bag:Hide(); return end
-    Buttons.Scan()          -- 開的那一刻補掃一次：晚載入的插件才收得到
+    -- 收進來的按鈕裡若有 secure 的（有些插件的小地圖鈕是 SecureActionButton），
+    -- 袋子就連坐成保護框，戰鬥中 Show/SetPoint 都會被封鎖 —— 那就不開，出戰鬥再說。
+    if InCombatLockdown() and bag:IsProtected() then return end
+    if not bag:IsShown() then
+        Buttons.Scan()      -- 開的那一刻補掃一次：晚載入的插件才收得到
+    end
     PlaceBag(anchor)
     bag:Show()
     -- ⚠ 提示跟袋子**開在同一個位置**（都是從那一格的下緣往下長），而提示是
@@ -477,8 +528,17 @@ function Buttons.Toggle(anchor)
     ns.Tip.Close()
 end
 
+-- 開關（/mmap bag 用：沒有格子可以滑的時候，袋子要能用指令開、再用指令關）
+function Buttons.Toggle(anchor)
+    if not bag then return end
+    if bag:IsShown() then bag:Hide(); return end
+    Buttons.Open(anchor)
+end
+
 function Buttons.Close()
-    if bag then bag:Hide() end
+    if not bag then return end
+    if InCombatLockdown() and bag:IsProtected() then return end
+    bag:Hide()
 end
 
 ------------------------------------------------------------
@@ -559,6 +619,9 @@ local function Build()
     bag = CreateFrame("Frame", "MiliUIMinimapButtonBag", UIParent, "BackdropTemplate")
     bag:SetFrameStrata("HIGH")
     bag:SetClampedToScreen(true)
+    -- 吃滑鼠：袋子是滑過去就開、游標停在上面操作的面板，點到圖示之間的縫
+    -- 不該穿到世界去（會變成點地面／取消選取）。
+    bag:EnableMouse(true)
     bag:Hide()
     -- ⚠ 收納袋用**提示皮**（不透明 0.133），不是 HUD 面板皮（半透明 0.8）。
     --   它是「彈出來給人看內容」的表面，判準跟滑過去的名單同一條
@@ -591,7 +654,7 @@ end
 -- 而那條本來就是「地圖旁邊的一排小東西」該待的地方。
 --
 -- 這裡只負責把「怎麼畫那顆鈕」與「按下去要做什麼」開放出去：
---   Buttons.BuildIcon / Buttons.TintIcon / Buttons.Toggle / Buttons.ShowMenu
+--   Buttons.BuildIcon / Buttons.TintIcon / Buttons.Open / Buttons.Close / Buttons.ShowMenu
 ------------------------------------------------------------
 Buttons.ShowMenu = ShowMenu
 

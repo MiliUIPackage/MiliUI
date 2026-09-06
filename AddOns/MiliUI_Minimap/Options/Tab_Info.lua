@@ -15,7 +15,7 @@ end
 
 local CONTROLS = {
     { type = "toggle",   key = "infoBar", label = L["Show the info bar"] },
-    { type = "text",     label = L["A single strip under the map, split into three slots. Left-click a slot for its whisper / invite menu, right-click to open the full panel, hover for the list."] },
+    { type = "text",     label = L["A single strip under the map, split into three slots. Hover a slot for its list; the list stays open while the cursor is on it. Left-click a name to whisper, right-click to invite; the button at the bottom opens the full panel. The addon-button bag opens on hover too."] },
 
     { type = "header",   label = L["Contents"] },
     { type = "dropdown", key = "infoSlot1", label = L["Slot 1"], items = Specs.INFO_SOURCES },
@@ -40,6 +40,7 @@ local CONTROLS = {
     { type = "header",   label = L["Hover list"] },
     { type = "toggle",   key = "tipShowZone", label = L["Show each player's zone"] },
     { type = "text",     label = L["People in your current zone are marked green."] },
+    { type = "slider",   key = "tipFontSize", label = L["Font size"], min = 8, max = 18, step = 1 },
     { type = "slider",   key = "tipMaxRows", label = L["Maximum rows"], min = 5, max = 60, step = 5 },
     { type = "text",     label = L["The list is read live when you hover, so nothing is tracked in the background. Past about thirty rows you are searching rather than glancing — that is what the guild panel is for."] },
 }

@@ -75,20 +75,48 @@ local function UpdateRow(row, btn)
     row.label:SetText(ns.Buttons.Label(btn))
     row.check:SetChecked(ns.Buttons.GetPinned(name))
 
-    -- 把那顆按鈕自己的圖示搬一份到清單上，玩家才對得起來「這是哪一顆」
-    local icon = btn.icon or btn.Icon or (btn.GetNormalTexture and btn:GetNormalTexture())
-    local tex = icon and icon.GetTexture and icon:GetTexture()
-    if tex then
-        row.icon:SetTexture(tex)
-        row.icon:SetShown(true)
+    -- 把那顆按鈕自己的圖示抄一份到清單上，玩家才對得起來「這是哪一顆」。
+    -- 圖集（atlas）與檔案兩種都要接；座標也要抄 —— 有些插件的圖示是一張大圖裡的
+    -- 一小塊（Plumber），套我們的 8% 裁切會切到別的東西。整張圖（0..1）的才裁。
+    local icon = ns.Buttons.FindIcon(btn)
+    local atlas = icon and icon.GetAtlas and icon:GetAtlas()
+    if atlas and atlas ~= "" then
+        row.icon:SetTexCoord(0, 1, 0, 1)
+        row.icon:SetAtlas(atlas)
+        row.icon:Show()
+    elseif icon then
+        local ulx, uly, llx, lly, urx, ury, lrx, lry = icon:GetTexCoord()
+        local whole = ulx == 0 and uly == 0 and llx == 0 and lly == 1
+            and urx == 1 and ury == 0 and lrx == 1 and lry == 1
+        row.icon:SetTexture(icon:GetTexture())
+        if whole then
+            row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        else
+            row.icon:SetTexCoord(ulx, uly, llx, lly, urx, ury, lrx, lry)
+        end
+        row.icon:Show()
     else
         row.icon:Hide()
     end
 end
 
+------------------------------------------------------------
+-- 清單只列**現在顯示中**的按鈕（釘住的例外，藏著也要能取消釘選）。
+--
+-- 收納那邊是「掃到就收、藏著的也收」—— 那是保險，插件之後 Show 回來時格子才有位置。
+-- 但這張清單的問題是「哪些按鈕留在地圖上」，藏著的按鈕本來就不在地圖上，列出來
+-- 只會出現同一個插件兩列：有些插件（KeystoneLoot）自己建一顆鈕、又向 LibDBIcon
+-- 註冊一顆，發現有 LibDBIcon 就把自己那顆藏掉 —— 兩顆的標籤一模一樣，
+-- 玩家分不出勾哪一顆才有用。
+------------------------------------------------------------
 local function RefreshList()
     if not list then return end
-    local items = ns.Buttons.List()
+    local items = {}
+    for _, btn in ipairs(ns.Buttons.List()) do
+        if btn:IsShown() or ns.Buttons.GetPinned(btn:GetName()) then
+            items[#items + 1] = btn
+        end
+    end
     list:Update(items, UpdateRow)
     list.empty:SetShown(#items == 0)
 end
@@ -149,5 +177,9 @@ end)
 -- 掃到新按鈕時，如果分頁正開著就重畫清單（LoadOnDemand 的插件會在玩家
 -- 開著設定的時候才註冊圖示 —— 那時清單不更新就會看起來像壞掉）
 ns.RegisterCallback("ButtonsChanged", "buttonsTab", function()
+    if tab and tab:IsShown() then ns.Safe(RefreshList) end
+end)
+-- 顯示狀態變了（插件開關自己的圖示）清單也要跟：現在只列顯示中的
+ns.RegisterCallback("BagCountChanged", "buttonsTab", function()
     if tab and tab:IsShown() then ns.Safe(RefreshList) end
 end)

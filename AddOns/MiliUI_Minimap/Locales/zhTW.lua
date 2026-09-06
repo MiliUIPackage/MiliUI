@@ -117,6 +117,10 @@ L["Invite"] = "邀請"
 L["Left-click: whisper / invite"] = "左鍵：密語／邀請"
 L["Right-click: guild roster"] = "右鍵：公會名冊"
 L["Right-click: friends list"] = "右鍵：好友清單"
+L["Left-click: whisper"] = "左鍵：密語"
+L["Right-click: invite"] = "右鍵：邀請組隊"
+L["Guild roster"] = "公會名冊"
+L["Friends list"] = "好友清單"
 
 -- 指令回覆
 L["Minimap locked."] = "小地圖已鎖定。"
@@ -192,3 +196,5 @@ L["Third-party minimap buttons are moved into a bag that opens from the grid slo
     "第三方插件的小地圖按鈕會被搬進一個收納袋，從資訊列那格九宮格打開。關掉這個選項只是把收納袋藏起來，已經收進來的按鈕要 /reload 才會回到地圖上。"
 L["A single strip under the map, split into three slots. Left-click a slot for its whisper / invite menu, right-click to open the full panel, hover for the list."] =
     "地圖下方一條橫條，切成三格。左鍵開該格的密語／邀請選單，右鍵開完整面板，滑鼠移過去看名單。"
+L["A single strip under the map, split into three slots. Hover a slot for its list; the list stays open while the cursor is on it. Left-click a name to whisper, right-click to invite; the button at the bottom opens the full panel. The addon-button bag opens on hover too."] =
+    "地圖下方一條橫條，切成三格。滑鼠移過去看名單，游標移到名單上它會留著：左鍵人名密語、右鍵邀請組隊，最底下的按鈕開完整面板。插件按鈕收納袋也是滑過去就開。"
