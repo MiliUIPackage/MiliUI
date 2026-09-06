@@ -192,7 +192,10 @@ SOURCES.guild = {
         if #roster == 0 then
             ns.Tip.AddSection(ns.L["Nobody else online."])
         else
-            tip:AddLine(" ")
+            -- 標題與名單之間**半列**就夠。整列空白是 GameTooltip 時代的寫法
+            -- （那時只有 AddLine(" ") 可用），在自己畫的面板上那一列會讀成「少了一行」，
+            -- 而好友那邊因為有「我的最愛」小標填在同一個位置，兩張表的節奏才對不上。
+            tip:AddGap()
             for i, entry in ipairs(roster) do
                 if i > cap then
                     tip:AddLine(ns.L["...and %d more"]:format(#roster - cap), S.TEXT_DIM[1], S.TEXT_DIM[2], S.TEXT_DIM[3])
@@ -246,7 +249,7 @@ SOURCES.friends = {
                 if #favorites > 0 then
                     ns.Tip.AddSection(ns.L["Friends"])
                 else
-                    tip:AddLine(" ")
+                    tip:AddGap()      -- 同公會那張：標題下半列
                 end
                 for _, entry in ipairs(others) do
                     if shown >= cap then
