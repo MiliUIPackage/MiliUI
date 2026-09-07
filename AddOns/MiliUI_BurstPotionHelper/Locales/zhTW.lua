@@ -42,6 +42,15 @@ L["TIP_CONTEXT"]         = "目前記憶：|cff33ff33%s|r"
 L["MACRO_HELP"]          = "把這一行放進你的爆發巨集即可。"
 L["BTN_RESET_POS"]       = "重置切換列位置"
 
+-- 滑鼠淡出
+L["BAR_NAME"]            = "爆發藥水切換列"
+L["SECTION_FADE"]        = "滑鼠淡出"
+L["OPT_FADE"]            = "滑鼠不在上面時淡出"
+L["OPT_FADE_ALPHA"]      = "淡出後的不透明度 (%)"
+L["OPT_FADE_DESC"]       = "設 0 就是「滑鼠移過去才看得到」——列會完全透明，但仍然接得到滑鼠。"
+L["FADE_SNAPPED"]        = "目前吸在 %s 上：淡出以那一條的設定為準，兩條會一起淡出、一起亮起。"
+L["FADE_NOT_SNAPPED"]    = "目前沒有吸在其他列上，這裡的設定只影響這一條。"
+
 L["COPY_HINT"]           = "按 Ctrl+C 複製，再用 Ctrl+V 貼進巨集裡。"
 
 L["LABEL_FLEETING"]      = "大鍋"

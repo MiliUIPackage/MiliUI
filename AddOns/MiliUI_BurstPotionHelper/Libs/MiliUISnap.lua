@@ -30,6 +30,21 @@
 --       attach  = true  這是一條可貼附的條（兩邊都要 true 才貼附）
 --       group   = "…"   同組的框互不對齊（自己插件內部已經有錨點或自家磁吸的）
 --       enabled = fn    回 false 時暫時不當別人的對齊目標
+--       label   = "…"   給玩家看的名字（設定頁要說「跟著誰」時用）
+--       fade    = { db = fn, active = fn }   見下面「滑鼠淡出」
+--   ApplyFade(key) / RefreshFade()  淡出設定改過之後叫一次（立刻重算，不必等輪詢）
+--   FadeMaster(key)              回 (主體 key, 主體 label)；沒吸在別人身上就是自己
+--
+-- 滑鼠淡出（fade）
+--   滑鼠不在上面就把整條淡到玩家設定的透明度。opts.fade：
+--       db     = fn → 回一張有 `fadeEnabled`（布林）與 `fadeAlpha`（0~1）的表
+--       active = fn → 回 true 代表「現在不准淡」（例如選單正開著）
+--   ⚠ **吸在一起的條算同一群**：設定一律讀鏈的**根**（也就是被吸的那個主體，
+--     跟拖動時「主體帶著跟隨者走」是同一個主從關係），而且滑鼠碰到群裡任何一條，
+--     整群一起亮起／一起淡出。使用者指定：淡出與顯示兩件事都要同步。
+--   ⚠ 用 `IsMouseOver()` 輪詢，不用 OnEnter/OnLeave：條上面鋪滿了握把與按鈕，
+--     子框會把滑鼠事件吃掉，父框的 OnEnter/OnLeave 根本不對稱（移動快就卡住）。
+--     IsMouseOver 問的是幾何矩形，跟誰吃掉事件無關。
 --   OnDragStart(key)             真的開始拖之前（貼附的要先脫離；點一下不算拖）
 --   OnDragStop(key)              StopMovingOrSizing 之後、存座標之前：先試貼附，再試對齊
 --   Restore(key)                 每次照存檔擺位置之後（貼附的重新錨回主體）；
@@ -43,7 +58,7 @@
 ------------------------------------------------------------
 local _, ns = ...
 
-local VERSION = 3
+local VERSION = 4
 local GAP     = 0   -- 貼上之後貼死，沒有間距（使用者指定）
 local THRESH  = 2   -- 放手時離 2 螢幕像素以內才吸（使用者指定）；同軸重疊的容差也用它
 
@@ -137,12 +152,15 @@ if not S or (S.version or 0) < VERSION then
             attach  = opts.attach,
             group   = opts.group,
             enabled = opts.enabled,
+            label   = opts.label,
+            fade    = opts.fade,
         }
         -- 別條可能早就記著要吸在我身上，只是我那時還沒載入
         for k in pairs(S.bars) do
             local st = SnapOf(k)
             if k ~= key and st and st.target == key then Apply(k) end
         end
+        if opts.fade then S.RefreshFade() end
     end
 
     function S.IsAttached(key)
@@ -287,6 +305,151 @@ if not S or (S.version or 0) < VERSION then
     function S.Restore(key)
         return Apply(key)
     end
+
+    ------------------------------------------------------------
+    -- 滑鼠淡出
+    --
+    -- 一「群」＝一條磁吸鏈。鏈的根（也就是被吸的主體）握著設定，群裡任何一條被
+    -- 滑鼠碰到，**整群一起亮起**；都沒碰到就整群一起淡下去。使用者指定：
+    -- 有磁吸時以主體的設定為準，而且淡出與顯示兩件事一起同步。
+    --
+    -- ⚠ 靠 IsMouseOver 輪詢，不靠 OnEnter/OnLeave —— 條上鋪滿握把與按鈕，
+    --   子框會把滑鼠事件吃掉，父框收不到對稱的進出（見 notes 的
+    --   wow-child-frame-steals-mouse-focus）。IsMouseOver 問的是幾何矩形。
+    -- ⚠ SetAlpha 不是保護動作，戰鬥中照樣可以叫 —— 這也是這個功能只用 alpha、
+    --   不用 Show/Hide 的原因（條上掛著保護子按鈕，戰鬥中藏不掉）。
+    ------------------------------------------------------------
+    local FADE_POLL = 0.1     -- 滑鼠位置沒有事件可訂閱，只能輪詢
+    local FADE_TIME = 0.15    -- 淡入／淡出走完的秒數；直接跳 alpha 是「閃一下」不是淡出
+    local FADE_DEFAULT = 0.3  -- db 沒給 fadeAlpha 時的退路
+
+    -- 群的頭：一路往「我吸在誰身上」爬。
+    -- ⚠ 目標沒註冊（那支插件沒裝）**或它自己不支援淡出**就停在這裡 —— 再往上爬
+    --   也讀不到設定，而一個沒有淡出設定的框不該當群主。seen 防環（存檔裡殘留
+    --   A 吸 B、B 又吸 A 的殘局）。
+    local function FadeRoot(key)
+        local seen, cur = {}, key
+        while not seen[cur] do
+            seen[cur] = true
+            local st = SnapOf(cur)
+            local t = st and st.target
+            local ti = t and S.bars[t]
+            if not ti or not ti.fade then return cur end
+            cur = t
+        end
+        return cur
+    end
+
+    -- 設定頁要顯示「淡出跟著誰」用：回 (主體 key, 主體的顯示名)
+    function S.FadeMaster(key)
+        local root = FadeRoot(key)
+        local info = S.bars[root]
+        return root, (info and info.label) or root
+    end
+
+    -- 設定一律讀群主那份（FadeRoot 保證它一定有 fade 註冊）
+    local function FadeSettings(root)
+        local info = S.bars[root]
+        local fade = info and info.fade
+        local db = fade and fade.db and fade.db()
+        if not db then return false, 1 end
+        local a = tonumber(db.fadeAlpha) or FADE_DEFAULT
+        if a < 0 then a = 0 elseif a > 1 then a = 1 end
+        return db.fadeEnabled == true, a
+    end
+
+    -- ⚠ 這四張表放檔案層級、每輪 wipe 重用：輪詢一秒十次，寫成 `{}` 就是一秒
+    --   四十張垃圾表。
+    local rootOf, onByRoot, alphaByRoot, hoverByRoot = {}, {}, {}, {}
+    local fadeAcc, fadeMoving = 0, false
+
+    -- 一輪輪詢：算出每一群現在該是什麼透明度，寫進各條的 fadeTarget
+    local function FadePoll()
+        wipe(rootOf); wipe(onByRoot); wipe(alphaByRoot); wipe(hoverByRoot)
+        -- 分群，順便把群主的設定讀出來（每群只讀一次）
+        for key, info in pairs(S.bars) do
+            if info.fade and info.frame then
+                local root = FadeRoot(key)
+                rootOf[key] = root
+                if onByRoot[root] == nil then
+                    onByRoot[root], alphaByRoot[root] = FadeSettings(root)
+                    hoverByRoot[root] = false
+                end
+            end
+        end
+        -- 問滑鼠。只問「真的會淡」的群 —— 沒開淡出的群答案用不到
+        for key, root in pairs(rootOf) do
+            if onByRoot[root] and not hoverByRoot[root] then
+                local info = S.bars[key]
+                local hit = info.frame:IsShown() and info.frame:IsMouseOver()
+                -- active：條自己說「現在不准淡」（例如標記選單正開著，它彈在條的
+                -- 上方、不在條的矩形裡）
+                if not hit and info.fade.active then hit = info.fade.active() and true or false end
+                if hit then hoverByRoot[root] = true end
+            end
+        end
+        -- 寫目標值。群裡每一條拿到的是同一個數字 ⇒ 淡出與亮起天然同步
+        for key, root in pairs(rootOf) do
+            local info = S.bars[key]
+            local target = (not onByRoot[root] or hoverByRoot[root]) and 1 or alphaByRoot[root]
+            if info.fadeTarget ~= target then
+                info.fadeTarget = target
+                fadeMoving = true
+            end
+        end
+    end
+
+    -- 每幀往目標推一格；全部到位就把 fadeMoving 放掉，OnUpdate 回到只輪詢滑鼠
+    local function FadeStep(elapsed)
+        local moving = false
+        for _, info in pairs(S.bars) do
+            local target = info.fadeTarget
+            if target and info.fade and info.frame then
+                local cur = info.fadeCur or info.frame:GetAlpha() or 1
+                if cur ~= target then
+                    local step = elapsed / FADE_TIME
+                    if cur < target then
+                        cur = math.min(target, cur + step)
+                    else
+                        cur = math.max(target, cur - step)
+                    end
+                    if cur ~= target then moving = true end
+                    info.fadeCur = cur
+                    info.frame:SetAlpha(cur)
+                end
+            end
+        end
+        fadeMoving = moving
+    end
+
+    -- ⚠ ticker 跨版本沿用同一顆：WoW 的 frame 刪不掉，每次版本蓋版新建一顆就是
+    --   永久多一顆在跑（腳本改指到新的閉包，舊的那顆才會停）。
+    S.fadeTicker = S.fadeTicker or CreateFrame("Frame")
+    S.fadeTicker:Hide()        -- 先關著，等 RefreshFade 看有沒有人註冊淡出
+    S.fadeTicker:SetScript("OnUpdate", function(_, elapsed)
+        fadeAcc = fadeAcc + elapsed
+        if fadeAcc >= FADE_POLL then
+            fadeAcc = 0
+            FadePoll()
+        end
+        -- 到位之後 fadeMoving 會被放掉 ⇒ 平常每幀只有上面那個加法
+        if fadeMoving then FadeStep(elapsed) end
+    end)
+
+    -- 設定改過（或有新的條註冊進來）就叫一次：立刻重算，不必等下一次輪詢。
+    -- 沒有任何一條註冊淡出時整顆 ticker 收掉（隱藏的框不跑 OnUpdate），成本歸零。
+    function S.RefreshFade()
+        local any = false
+        for _, info in pairs(S.bars) do
+            if info.fade then any = true break end
+        end
+        S.fadeTicker:SetShown(any)
+        if any then
+            fadeAcc = 0
+            FadePoll()
+        end
+    end
+    S.ApplyFade = S.RefreshFade
 
     _G.MiliUI_Snap = S
 end

@@ -22,6 +22,7 @@ local function Apply()
     ns.Bar_SetShown(db.showBar)
     ns.Bar_UpdateCooldowns()
     ns.Bar_UpdateGripArrow()
+    ns.Bar_ApplyFade()
     ns.RebuildState()          -- 分環境記憶被切換時要換一份記憶回來
     RefreshAll()
 end
@@ -44,6 +45,29 @@ local function BuildContextRow(parent, x, y, width)
     end
 end
 
+------------------------------------------------------------
+-- 「淡出跟著誰」：吸在別條上的時候，設定以被吸的那條（主體）為準，而且兩條會
+-- 一起淡出／一起亮起（Libs/MiliUISnap.lua 的 fade 群組）。這一行會隨磁吸狀態變，
+-- 所以走 custom 而不是靜態的 text。
+------------------------------------------------------------
+local function BuildFadeMasterRow(parent, x, y, width)
+    local fs = parent:CreateFontString(nil, "OVERLAY")
+    fs:SetFontObject(W.fontSmall)
+    fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
+    fs:SetWidth(width)
+    fs:SetJustifyH("LEFT")
+    return 30, function()
+        local text
+        if ns.Snap and ns.Snap.FadeMaster then
+            local root, label = ns.Snap.FadeMaster("burstPotionBar")
+            if root ~= "burstPotionBar" then
+                text = L["FADE_SNAPPED"]:format("|cffffd200" .. label .. "|r")
+            end
+        end
+        fs:SetText("|cff808080" .. (text or L["FADE_NOT_SNAPPED"]) .. "|r")
+    end
+end
+
 local CONTROLS = {
     { type = "header", label = L["SECTION_GENERAL"] },
     { type = "toggle", key = "showBar",         label = L["OPT_SHOW_BAR"] },
@@ -54,6 +78,13 @@ local CONTROLS = {
     { type = "toggle", key = "printOnSwitch",   label = L["OPT_PRINT"] },
     { type = "button", label = "", text = L["BTN_RESET_POS"], width = 180,
       onClick = function() ns.Bar_ResetPosition() end },
+
+    { type = "header", label = L["SECTION_FADE"] },
+    { type = "toggle", key = "fadeEnabled", label = L["OPT_FADE"] },
+    { type = "slider", key = "fadeAlpha", label = L["OPT_FADE_ALPHA"],
+      min = 0, max = 100, step = 5, scale = 100 },
+    { type = "text",   label = L["OPT_FADE_DESC"] },
+    { type = "custom", label = "", build = BuildFadeMasterRow },
 
     { type = "header", label = L["SECTION_CONTEXT"] },
     { type = "toggle", key = "splitByContext", label = L["OPT_SPLIT_CONTEXT"] },

@@ -47,6 +47,14 @@ L["{icon} is replaced with your marker icon."] = "{icon} 會替換成你的標�
 L["Preview"] = "預覽"
 L["Restore default text"] = "還原預設內容"
 
+-- 滑鼠淡出
+L["Mouseover fade"] = "滑鼠淡出"
+L["Fade out when the mouse is away"] = "滑鼠不在上面時淡出"
+L["Faded transparency (%)"] = "淡出後的不透明度 (%)"
+L["0 makes the bar invisible until you move the mouse over it; it still reacts to the mouse."] = "設 0 就是「滑鼠移過去才看得到」——列會完全透明，但仍然接得到滑鼠。"
+L["Snapped onto %s: that bar's fade settings apply to both, and they fade out and light up together."] = "目前吸在 %s 上：淡出以那一條的設定為準，兩條會一起淡出、一起亮起。"
+L["Not snapped onto another bar, so these settings only affect this one."] = "目前沒有吸在其他列上，這裡的設定只影響這一條。"
+
 -- 標記列本體
 L["Focus marker bar"] = "專注標記切換列"
 L["Left-drag to move"] = "左鍵拖曳移動"

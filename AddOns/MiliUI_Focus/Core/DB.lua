@@ -66,6 +66,11 @@ local function BuildDefaults()
             announceText = ns.L["My focus interrupt target is {icon}!"],
             -- x / y = nil：第一次顯示時算出畫面中央偏下的位置（見 Modules/MarkBar.lua）
             x = nil, y = nil,
+            -- 滑鼠不在上面就淡出（引擎在 Libs/MiliUISnap.lua）。預設關：既有玩家
+            -- 的列不該因為升級就自己變半透明。
+            -- ⚠ 吸在別條上時這兩個值不生效，改讀主體那條的（使用者指定）。
+            fadeEnabled = false,
+            fadeAlpha = 0.3,
         },
         cast = {
             monitor = true,

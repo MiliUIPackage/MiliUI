@@ -381,7 +381,17 @@ local function CreateBar()
     bar:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
     bar:SetBackdropBorderColor(0, 0, 0, 1)
     bar:Hide()
-    if ns.Snap then ns.Snap.Register(SNAP_KEY, bar, { db = DB, attach = true }) end
+    if ns.Snap then
+        ns.Snap.Register(SNAP_KEY, bar, {
+            db = DB, attach = true, label = L["Focus marker bar"],
+            -- 滑鼠淡出。active：標記選單彈在列的**上方**、不在列的矩形裡，
+            -- 開著的時候整條不准淡（不然選標記的當下列自己糊掉）
+            fade = {
+                db = DB,
+                active = function() return picker and picker:IsShown() end,
+            },
+        })
+    end
 
     -- 拖曳握把（左側）：左鍵拖曳移動、右鍵開啟設定
     local grip = CreateFrame("Frame", nil, bar)
@@ -552,6 +562,11 @@ function MarkBar.SyncCellMacros()
     for i, cell in ipairs(pickerCells) do
         cell:SetAttribute("focusermacro", ns.Focuser.GetMacroForMarkIndex(i))
     end
+end
+
+-- 淡出設定改過：立刻重算，不必等下一次輪詢（設定頁的 Apply 會叫）
+function MarkBar.ApplyFade()
+    if ns.Snap and ns.Snap.RefreshFade then ns.Snap.RefreshFade() end
 end
 
 function MarkBar.ResetPosition()

@@ -44,6 +44,15 @@ L["TIP_CONTEXT"]         = "Memory: |cff33ff33%s|r"
 L["MACRO_HELP"]          = "Put this one line in your burst macro."
 L["BTN_RESET_POS"]       = "Reset bar position"
 
+-- Mouseover fade
+L["BAR_NAME"]            = "Burst potion bar"
+L["SECTION_FADE"]        = "Mouseover fade"
+L["OPT_FADE"]            = "Fade out when the mouse is away"
+L["OPT_FADE_ALPHA"]      = "Faded transparency (%)"
+L["OPT_FADE_DESC"]       = "0 makes the bar invisible until you move the mouse over it; it still reacts to the mouse."
+L["FADE_SNAPPED"]        = "Snapped onto %s: that bar's fade settings apply to both, and they fade out and light up together."
+L["FADE_NOT_SNAPPED"]    = "Not snapped onto another bar, so these settings only affect this one."
+
 L["COPY_HINT"]           = "Press Ctrl+C to copy, then Ctrl+V into your macro."
 
 -- Quality / variant labels

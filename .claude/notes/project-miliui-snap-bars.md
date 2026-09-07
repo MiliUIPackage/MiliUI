@@ -1,11 +1,11 @@
 ---
 name: project-miliui-snap-bars
-description: 套組各插件的框互相磁吸（MiliUISnap v3）——標記列／藥水列／傷害統計視窗貼附跟隨、其他框放手對齊；vendor 複製、七支插件的接點、為什麼有些框不貼附
+description: 套組各插件的框互相磁吸（MiliUISnap v4）——標記列／藥水列／傷害統計視窗貼附跟隨、其他框放手對齊、滑鼠淡出群組；vendor 複製、七支插件的接點、為什麼有些框不貼附
 metadata: 
   node_type: memory
   type: project
   originSessionId: 5a458ee0-a068-4cf4-9cf1-234b1a8e57c4
-  modified: 2026-09-06T07:40:27.727Z
+  modified: 2026-09-07T00:00:00.000Z
 ---
 
 2026-09-06 升到 **v3**：從「焦點標記列 × 爆發藥水列」擴到套組全部框體（資訊列、傷害統計視窗、
@@ -46,3 +46,31 @@ metadata:
 **尚未在遊戲內驗證**：2px 手感、各框存座標時會不會把對齊吃回去（資訊列 SavePosition 會四捨五入到整數）、
 `AdjustPointsOffset` 對 StopMovingOrSizing 留下的錨點是否如預期、追蹤器當目標時下緣是編輯模式設的高度不是
 可見內容、統計視窗吸在條上之後 Rebuild／換視窗數會不會讓 `damageMeter<idx>` 對錯人。
+
+
+## v4（2026-09-07）：滑鼠淡出群組
+
+「滑鼠不在上面就淡出、可調 %」做在 **lib 裡**而不是各插件各寫一份 —— 因為使用者要的是
+**吸在一起的條共用一份設定、而且一起淡出／一起亮起**，那件事只有 lib 知道磁吸關係。
+
+- `Register` 多收 `label`（給玩家看的名字）與 `fade = { db = fn, active = fn }`。
+  `db()` 要回一張有 `fadeEnabled`（布林）＋ `fadeAlpha`（0~1）的表。
+  `active()` 回 true ＝「現在不准淡」——標記列用它擋住「選單開著但滑鼠不在列的矩形裡」。
+- **群 = 一條磁吸鏈**。`FadeRoot` 往 `snapTo.target` 爬，**目標沒註冊或它自己沒有 fade 就停**
+  （再爬也讀不到設定，沒有淡出設定的框不該當群主）。設定只讀群主那份，群裡每條拿到同一個
+  目標 alpha ⇒ 同步是結構帶來的，不是另外對齊出來的。`S.FadeMaster(key)` 回 (群主 key, label)，
+  設定頁拿去顯示「目前吸在 X 上，以它的設定為準」。
+- **用 `IsMouseOver()` 輪詢 0.1 秒一次，不用 OnEnter/OnLeave**：條上鋪滿握把與按鈕，子框吃掉
+  滑鼠事件，父框的進出不對稱（見 [[wow-child-frame-steals-mouse-focus]]）。IsMouseOver 問幾何矩形。
+- **只用 SetAlpha，不用 Show/Hide**：條上掛著保護子按鈕，戰鬥中藏不掉；SetAlpha 不是保護動作。
+  代價是 alpha 0 的條**還是接得到滑鼠**（這正是「移過去才看得到」要的行為，設定頁有寫）。
+- 淡入淡出走 0.15 秒線性斜坡（直接跳 alpha 是「閃一下」不是淡出）。ticker 一顆、跨版本沿用
+  （frame 刪不掉），沒人註冊 fade 就 `Hide()` ⇒ OnUpdate 不跑；到位後 `fadeMoving` 放掉，
+  平常每幀只剩一個加法。分群的四張暫存表放檔案層級 wipe 重用（一秒十輪，`{}` 會生垃圾）。
+- 接點：設定改完叫 `S.RefreshFade()`（`S.ApplyFade` 是同一支）。目前只有
+  `focusMarkBar`（MiliUI_Focus，設定在 `db.bar.fadeEnabled/fadeAlpha`）與
+  `burstPotionBar`（MiliUI_BurstPotionHelper，設定在 **db 頂層**——`db.bar` 會因為
+  `BAR_POS_VERSION` 改版被整張重置，淡出設定不是位置資料，不能放那裡）。
+
+**尚未在遊戲內驗證**：0.1 秒輪詢的手感、標記選單開著時的 `active` 閘、兩條吸在一起時
+設定頁那行「跟著誰」的文字、alpha 0 時還點得到會不會反而困擾。

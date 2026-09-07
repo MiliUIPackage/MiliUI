@@ -48,6 +48,14 @@ local DEFAULTS = {
     rightClickUse  = false,   -- right-click an icon to drink that potion directly
     showCooldown   = true,    -- show the potion cooldown swirl on the icons
     showItemTooltip = true,   -- show the normal item tooltip on hover
+    -- Mouseover fade (engine lives in Libs/MiliUISnap.lua). Off by default so
+    -- an upgrade never makes an existing player's bar go half-transparent.
+    -- Kept at the TOP level, not inside `bar`: InitDB wipes `bar` whenever the
+    -- position format version changes, and these are not position data.
+    -- NOTE: while the bar is snapped onto another one, the master bar's fade
+    -- settings win and both bars fade/light up together (user's call).
+    fadeEnabled    = false,
+    fadeAlpha      = 0.3,
     collapsed      = false,   -- bar shrunk to only the selected cell
     disabled       = false,   -- true = "don't use a potion" selected
     selectedItemID = nil,

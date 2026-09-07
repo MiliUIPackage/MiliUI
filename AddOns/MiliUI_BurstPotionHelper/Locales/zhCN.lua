@@ -42,6 +42,15 @@ L["TIP_CONTEXT"]         = "当前记忆：|cff33ff33%s|r"
 L["MACRO_HELP"]          = "把这一行放进你的爆发宏即可。"
 L["BTN_RESET_POS"]       = "重置切换条位置"
 
+-- 鼠标淡出
+L["BAR_NAME"]            = "爆发药水切换栏"
+L["SECTION_FADE"]        = "鼠标淡出"
+L["OPT_FADE"]            = "鼠标不在上面时淡出"
+L["OPT_FADE_ALPHA"]      = "淡出后的不透明度 (%)"
+L["OPT_FADE_DESC"]       = "设 0 就是“鼠标移过去才看得到”——栏会完全透明，但仍然能接到鼠标。"
+L["FADE_SNAPPED"]        = "目前吸附在 %s 上：淡出以那一条的设置为准，两条会一起淡出、一起亮起。"
+L["FADE_NOT_SNAPPED"]    = "目前没有吸附在其他栏上，这里的设置只影响这一条。"
+
 L["COPY_HINT"]           = "按 Ctrl+C 复制，再用 Ctrl+V 粘进宏里。"
 
 L["LABEL_FLEETING"]      = "飞逝"

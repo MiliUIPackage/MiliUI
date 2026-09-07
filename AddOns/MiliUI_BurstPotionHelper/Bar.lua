@@ -286,7 +286,13 @@ function ns.CreateBar()
     bar:SetBackdrop(MILIUI_BACKDROP)
     bar:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
     bar:SetBackdropBorderColor(0, 0, 0, 1)
-    if ns.Snap then ns.Snap.Register(SNAP_KEY, bar, { db = SnapDB, attach = true }) end
+    if ns.Snap then
+        ns.Snap.Register(SNAP_KEY, bar, {
+            db = SnapDB, attach = true, label = L.BAR_NAME,
+            -- Mouseover fade reads the top-level db (see DEFAULTS in Core.lua).
+            fade = { db = function() return ns.GetDB() end },
+        })
+    end
 
     -- Drag grip (left). Left-drag to move, right-click for settings.
     local grip = CreateFrame("Frame", nil, bar)
@@ -548,6 +554,11 @@ function ns.SetRightClickUse(enabled)
     else
         ns.Bar_Refresh()
     end
+end
+
+-- Fade settings changed: recompute now instead of waiting for the next poll.
+function ns.Bar_ApplyFade()
+    if ns.Snap and ns.Snap.RefreshFade then ns.Snap.RefreshFade() end
 end
 
 function ns.Bar_ResetPosition()
