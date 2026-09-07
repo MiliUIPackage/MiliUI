@@ -109,7 +109,7 @@ local function GetAutomaticColors(rootParent, lockedElements, addAlpha)
   local inset = CreateFrame("Frame", nil, colorsListContainer, "InsetFrameTemplate")
   inset:SetPoint("TOPLEFT")
   inset:SetPoint("BOTTOMRIGHT", -15, 0)
-  --addonTable.Skins.AddFrame("InsetFrame", inset)
+  addonTable.Skins.AddFrame("InsetFrame", inset)
   colorsListContainer.ScrollBox = CreateFrame("Frame", nil, colorsListContainer, "WowScrollBoxList")
   colorsListContainer.ScrollBox:SetPoint("TOPLEFT", 1, -3)
   colorsListContainer.ScrollBox:SetPoint("BOTTOMRIGHT", -15, 3)
@@ -221,12 +221,13 @@ local function GetAutomaticColors(rootParent, lockedElements, addAlpha)
     end
   end)
   colorsDropdown:SetDefaultText(addonTable.Locales.ADD_COLORS)
+  addonTable.Skins.AddFrame("Dropdown", colorsDropdown)
 
   colorsListContainer.ScrollBar = CreateFrame("EventFrame", nil, colorsListContainer, "MinimalScrollBar")
   colorsListContainer.ScrollBar:SetPoint("TOPRIGHT")
   colorsListContainer.ScrollBar:SetPoint("BOTTOMRIGHT")
   ScrollUtil.InitScrollBoxListWithScrollBar(colorsListContainer.ScrollBox, colorsListContainer.ScrollBar, scrollView)
-  --addonTable.Skins.AddFrame("TrimScrollBar", colorsListContainer.ScrollBar)
+  addonTable.Skins.AddFrame("TrimScrollBar", colorsListContainer.ScrollBar)
 
   colorsListContainer:SetPoint("TOPLEFT", 20, 0)
   colorsListContainer:SetSize(200, 350)
@@ -329,6 +330,7 @@ local function GetAurasTextPositioning(rootParent, iconID)
   local previewInset = CreateFrame("Frame", nil, container, "InsetFrameTemplate")
   previewInset:SetSize(160, 120)
   previewInset:SetPoint("TOP")
+  addonTable.Skins.AddFrame("InsetFrame", previewInset)
 
   local preview = CreateFrame("Frame", nil, previewInset)
 
@@ -684,6 +686,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
   local previewInset = CreateFrame("Frame", nil, container, "InsetFrameTemplate")
   previewInset:EnableMouse(true)
   previewInset:SetFrameStrata("HIGH")
+  addonTable.Skins.AddFrame("InsetFrame", previewInset)
   local maximizeButton = CreateFrame("Frame", nil, previewInset, "MaximizeMinimizeButtonFrameTemplate")
   local isMaximized = false
 
@@ -717,6 +720,8 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       UpdateSelection()
     end
   end
+
+  addonTable.Skins.AddFrame("MinMaxFrame", maximizeButton)
 
   maximizeButton:SetPoint("BOTTOMRIGHT", previewInset)
   function maximizeButton.maximizedCallback()
@@ -1000,6 +1005,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
     end
     rootDescription:SetScrollMode(30 * 20)
   end)
+  addonTable.Skins.AddFrame("Button", addButton)
 
   local deleteButton = CreateFrame("Button", nil, previewInset, "UIPanelDynamicResizeButtonTemplate")
   deleteButton:SetText(addonTable.Locales.DELETE)
@@ -1008,6 +1014,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
   deleteButton:SetScript("OnClick", function()
     DeleteCurrentWidget()
   end)
+  addonTable.Skins.AddFrame("Button", deleteButton)
 
   local showAllButton = CreateFrame("Button", nil, previewInset, "UIPanelDynamicResizeButtonTemplate")
   showAllButton:SetText(addonTable.Locales.SHOW_ALL)
@@ -1017,6 +1024,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
     hiddenIndexes = {}
     UpdateHiding()
   end)
+  addonTable.Skins.AddFrame("Button", showAllButton)
 
   local showRegionsButton = CreateFrame("Button", nil, previewInset, "UIPanelDynamicResizeButtonTemplate")
   showRegionsButton:SetText(addonTable.Locales.REGIONS)
@@ -1032,6 +1040,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "click", addonTable.CustomiseDialog.GetCurrentDesign().regions.click.autoSized)
     end
   end)
+  addonTable.Skins.AddFrame("Button", showRegionsButton)
   if not addonTable.Constants.IsHitTestPointsAvailable then
     showRegionsButton:Hide()
   end
@@ -1070,6 +1079,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       w.Wrapper = CreateFrame("Frame", nil, w)
       w.Wrapper:SetSize(10, 20)
       w.Wrapper:SetPoint("BOTTOMLEFT")
+      w:SetFrameStrata("MEDIUM")
       w.count = #textures[kind]
       w.auras = {}
       for index, tex in ipairs(textures[kind]) do
@@ -1257,7 +1267,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
             display = addonTable.Locales.NO_VALUE_UPPER
           end
         elseif w.details.kind == "damageAbsorb" then
-          w.text:SetText("+" .. AbbreviateNumbers(10290))
+          display = "+" .. AbbreviateNumbers(10290)
         elseif w.details.kind == "creatureName" or w.details.kind == "guild" or w.details.kind == "target" or w.details.kind == "castTarget" or w.details.kind == "castInterrupter" then
           if w.details.kind == "guild" then
             display = "Surge of Awesome"
@@ -1325,7 +1335,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
 
       elseif w.kind == "specialBars" and w.details.kind == "power" then
         local points = {}
-        local color = CreateColor(234/255, 61/255, 247/255)
+        local color = w.details.useSpecColors and CreateColor(234/255, 61/255, 247/255) or w.details.fixedColor
         for i = 1, 6 do
           table.insert(points, {set = i <= 4, color = color})
         end

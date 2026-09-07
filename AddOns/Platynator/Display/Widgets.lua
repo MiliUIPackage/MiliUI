@@ -879,9 +879,9 @@ function addonTable.Display.GetHealthFillText(frame, parent)
 end
 
 local livePools = {
-  healthBars = CreateFramePool("StatusBar", UIParent, nil, nil, false, addonTable.Display.GetHealthBar),
+  healthBars = CreateFramePool("Frame", UIParent, nil, nil, false, addonTable.Display.GetHealthBar),
   healthFillTextSpecialBars = CreateFramePool("Frame", UIParent, nil, nil, false, addonTable.Display.GetHealthFillText),
-  castBars = CreateFramePool("StatusBar", UIParent, nil, nil, false, addonTable.Display.GetCastBar),
+  castBars = CreateFramePool("Frame", UIParent, nil, nil, false, addonTable.Display.GetCastBar),
   energyBars = CreateFramePool("Frame", UIParent, nil, nil, false, addonTable.Display.GetEnergyBar),
   texts = CreateFramePool("Frame", UIParent, nil, nil, false, addonTable.Display.GetText),
   powerSpecialBars = CreateFramePool("Frame", UIParent, nil, nil, false, addonTable.Display.GetPower),
@@ -891,9 +891,9 @@ local livePools = {
 }
 
 local editorPools = {
-  healthBars = CreateFramePool("StatusBar", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetHealthBar),
+  healthBars = CreateFramePool("Frame", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetHealthBar),
   healthFillTextSpecialBars = CreateFramePool("Frame", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetHealthFillText),
-  castBars = CreateFramePool("StatusBar", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetCastBar),
+  castBars = CreateFramePool("Frame", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetCastBar),
   energyBars = CreateFramePool("Frame", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetEnergyBar),
   texts = CreateFramePool("Frame", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetText),
   powerSpecialBars = CreateFramePool("Frame", UIParent, "PlatynatorPropagateMouseTemplate", nil, false, addonTable.Display.GetPower),

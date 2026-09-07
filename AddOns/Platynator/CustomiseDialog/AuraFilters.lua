@@ -6,7 +6,11 @@ local function Announce()
 end
 
 local function GetSettings(kind)
-  return addonTable.Config.Get(addonTable.Config.Options.AURA_FILTERS)[addonTable.Display.Utilities.GetSpecializationID()][kind]
+  if kind == "crowdControl" then
+    return addonTable.Config.Get(addonTable.Config.Options.AURA_FILTERS).crowdControl
+  else
+    return addonTable.Config.Get(addonTable.Config.Options.AURA_FILTERS)[addonTable.Display.Utilities.GetSpecializationID()][kind]
+  end
 end
 
 local function IsExcludedSpell(kind, spellID)
@@ -28,6 +32,7 @@ local function GetAuraOptions(parent, kind)
     editBox:SetPoint("TOP", -90, 0)
     editBox:SetAutoFocus(false)
     editBox:SetSize(90, 22)
+    addonTable.Skins.AddFrame("EditBox", editBox)
     local includeButton = CreateFrame("Button", nil, container, "UIPanelDynamicResizeButtonTemplate")
     includeButton:SetText(addonTable.Locales.INCLUDE)
     DynamicResizeButton_Resize(includeButton)
@@ -36,6 +41,8 @@ local function GetAuraOptions(parent, kind)
     DynamicResizeButton_Resize(excludeButton)
     includeButton:SetPoint("LEFT", editBox, "RIGHT", 5, 0)
     excludeButton:SetPoint("LEFT", includeButton, "RIGHT", 5, 0)
+    addonTable.Skins.AddFrame("Button", includeButton)
+    addonTable.Skins.AddFrame("Button", excludeButton)
 
     editBox:SetScript("OnTextChanged", function()
       local spellID = tonumber(editBox:GetText()) or 0
@@ -64,6 +71,15 @@ local function GetAuraOptions(parent, kind)
       GetSettings(kind).exclude[spellID] = true
       Announce()
       Refresh()
+    end)
+
+    local tooltipsCheckbox = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.ID_IN_TOOLTIPS, -30, function(value)
+      C_CVar.SetCVar("tooltipShowAuraSpellIDs", value and 1 or 0)
+    end)
+    tooltipsCheckbox:SetPoint("LEFT", excludeButton, "RIGHT", 10, 0)
+    tooltipsCheckbox:SetPoint("RIGHT")
+    tooltipsCheckbox:SetScript("OnShow", function()
+      tooltipsCheckbox:SetValue(C_CVar.GetCVarBool("tooltipShowAuraSpellIDs"))
     end)
   end
 
@@ -96,6 +112,7 @@ local function GetAuraOptions(parent, kind)
     frame.Dropdown = CreateFrame("DropdownButton", nil, frame, "WowStyle1DropdownTemplate")
     frame.Dropdown:SetWidth(100)
     frame.Dropdown:SetPoint("LEFT", frame.Label, "RIGHT", 10, 0)
+    addonTable.Skins.AddFrame("Dropdown", frame.Dropdown)
 
     frame.Dropdown:SetupMenu(function(_, rootDescription)
       rootDescription:CreateRadio(addonTable.Locales.INCLUDE, function()
@@ -148,6 +165,7 @@ local function GetAuraOptions(parent, kind)
       Announce()
       Refresh()
     end)
+    addonTable.Skins.AddFrame("IconButton", frame.removeEntryButton, {"delete"})
 
     function frame:Set(spellID)
       frame.spellID = spellID
@@ -201,6 +219,151 @@ local function GetAuraOptions(parent, kind)
   return container
 end
 
+local function GetDeduplicateOptions(parent)
+  local container = CreateFrame("Frame", nil, parent)
+  local _, class = UnitClass("player")
+
+  local Refresh
+
+  do
+    local editBox = CreateFrame("EditBox", nil, container, "InputBoxTemplate")
+    editBox:SetNumeric(true)
+    editBox:SetPoint("TOP", -90, 0)
+    editBox:SetAutoFocus(false)
+    editBox:SetSize(90, 22)
+    addonTable.Skins.AddFrame("EditBox", editBox)
+    local deduplicateButton = CreateFrame("Button", nil, container, "UIPanelDynamicResizeButtonTemplate")
+    deduplicateButton:SetText(addonTable.Locales.DEDUPLICATE)
+    DynamicResizeButton_Resize(deduplicateButton)
+    deduplicateButton:SetPoint("LEFT", editBox, "RIGHT", 5, 0)
+    addonTable.Skins.AddFrame("Button", deduplicateButton)
+
+    editBox:SetScript("OnTextChanged", function()
+      local spellID = tonumber(editBox:GetText()) or 0
+      local allClasses = addonTable.Config.Get(addonTable.Config.Options.AURA_DEDUPLICATE)
+      if not allClasses[class] then
+        allClasses[class] = {}
+      end
+      deduplicateButton:SetEnabled(C_Spell.DoesSpellExist(spellID) and not tIndexOf(allClasses[class], spellID))
+    end)
+
+    editBox:SetScript("OnEnterPressed", function()
+      deduplicateButton:Click()
+    end)
+
+    deduplicateButton:SetScript("OnClick", function()
+      local spellID = tonumber(editBox:GetText()) or 0
+      if not C_Spell.DoesSpellExist(spellID) then
+        addonTable.Dialogs.ShowAcknowledge(addonTable.Locales.THAT_SPELL_DOESNT_EXIST)
+        return
+      end
+      local allClasses = addonTable.Config.Get(addonTable.Config.Options.AURA_DEDUPLICATE)
+      if not allClasses[class] then
+        allClasses[class] = {}
+      end
+      if tIndexOf(allClasses[class], spellID) ~= nil then
+        return
+      end
+      table.insert(allClasses[class], spellID)
+      table.sort(allClasses[class])
+      Announce()
+      Refresh()
+    end)
+
+    local tooltipsCheckbox = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.ID_IN_TOOLTIPS, -30, function(value)
+      C_CVar.SetCVar("tooltipShowAuraSpellIDs", value and 1 or 0)
+    end)
+    tooltipsCheckbox:SetPoint("LEFT", deduplicateButton, "RIGHT", 10, 0)
+    tooltipsCheckbox:SetPoint("RIGHT")
+    tooltipsCheckbox:SetScript("OnShow", function()
+      tooltipsCheckbox:SetValue(C_CVar.GetCVarBool("tooltipShowAuraSpellIDs"))
+    end)
+  end
+
+  local ScrollBox = CreateFrame("Frame", nil, container, "WowScrollBox")
+  ScrollBox:SetPoint("TOPLEFT", 0, -35)
+  ScrollBox:SetPoint("BOTTOMRIGHT", 0, 10)
+  local ScrollBar = CreateFrame("EventFrame", nil, container, "MinimalScrollBar")
+  ScrollBar:SetPoint("TOPRIGHT", -10, -35)
+  ScrollBar:SetPoint("BOTTOMRIGHT", -10, 10)
+  --addonTable.Skins.AddFrame("TrimScrollBar", ScrollBar)
+  local ScrollChild = CreateFrame("Frame", nil, ScrollBox)
+  ScrollChild.scrollable = true
+  ScrollUtil.InitScrollBoxWithScrollBar(ScrollBox, ScrollBar, CreateScrollBoxLinearView())
+  ScrollUtil.AddManagedScrollBarVisibilityBehavior(ScrollBox, ScrollBar)
+  ScrollBox:SetPanExtent(100)
+
+  local pool = CreateFramePool("Frame", ScrollChild, nil,  nil, false, function(frame)
+    frame:SetHeight(40)
+
+    frame.Icon = frame:CreateTexture()
+    frame.Icon:SetSize(25, 25)
+    frame.Icon:SetPoint("LEFT", 10, 0)
+
+    frame.Label = frame:CreateFontString(nil, nil, "GameFontHighlight")
+    frame.Label:SetPoint("LEFT", frame.Icon, "RIGHT", 5, 0)
+    frame.Label:SetWidth(160)
+    frame.Label:SetJustifyH("LEFT")
+    frame.Label:SetWordWrap(false)
+
+    frame.removeEntryButton = CreateFrame("Button", nil, frame)
+    frame.removeEntryButton:SetSize(30, 30)
+    frame.removeEntryButton:SetNormalAtlas("128-RedButton-Delete")
+    frame.removeEntryButton:SetPushedAtlas("128-RedButton-Delete-Pressed")
+    frame.removeEntryButton:SetHighlightAtlas("128-RedButton-Delete-Highlight")
+    frame.removeEntryButton:SetPoint("RIGHT", -25, 0)
+    frame.removeEntryButton:SetScript("OnClick", function()
+      local allClasses = addonTable.Config.Get(addonTable.Config.Options.AURA_DEDUPLICATE)
+      table.remove(allClasses[class], tIndexOf(allClasses[class], frame.spellID))
+      Announce()
+      Refresh()
+    end)
+    addonTable.Skins.AddFrame("IconButton", frame.removeEntryButton, {"delete"})
+
+    function frame:Set(spellID)
+      frame.spellID = spellID
+
+      frame.Icon:SetTexture(C_Spell.GetSpellTexture(spellID))
+      if C_Spell.IsSpellDataCached(spellID) then
+        frame.Label:SetText(LIGHTGRAY_FONT_COLOR:WrapTextInColorCode(spellID) .. " " .. C_Spell.GetSpellName(spellID))
+      elseif C_Spell.DoesSpellExist(spellID) then
+        Spell:CreateFromSpellID(spellID):ContinueOnSpellLoad(function()
+          frame.Label:SetText(LIGHTGRAY_FONT_COLOR:WrapTextInColorCode(spellID) .. " " .. C_Spell.GetSpellName(spellID))
+        end)
+      else
+        frame.Label:SetText(LIGHTGRAY_FONT_COLOR:WrapTextInColorCode(spellID) .. " " .. NONE)
+      end
+    end
+  end)
+
+  Refresh = function()
+    local allClasses = addonTable.Config.Get(addonTable.Config.Options.AURA_DEDUPLICATE)
+    if not allClasses[class] then
+      allClasses[class] = {}
+    end
+
+    local list = allClasses[class]
+
+    pool:ReleaseAll()
+    local offsetY = 0
+    for _, spellID in ipairs(list) do
+      local frame = pool:Acquire()
+      frame:Set(spellID)
+      frame:SetPoint("TOP", 0, offsetY)
+      offsetY = offsetY - frame:GetHeight()
+      frame:SetPoint("LEFT")
+      frame:SetPoint("RIGHT")
+      frame:Show()
+    end
+    ScrollChild:SetHeight(-offsetY)
+    ScrollBox:FullUpdate(ScrollBoxConstants.UpdateImmediately)
+  end
+
+  container:SetScript("OnShow", Refresh)
+
+  return container
+end
+
 function addonTable.CustomiseDialog.GetAuraFilters(parent)
   local container = CreateFrame("Frame", nil, parent)
 
@@ -209,6 +372,13 @@ function addonTable.CustomiseDialog.GetAuraFilters(parent)
     {name = addonTable.Locales.BUFFS_FRIENDLY, container = GetAuraOptions(container, "buffs")},
     {name = addonTable.Locales.CROWD_CONTROL_ENEMY, container = GetAuraOptions(container, "crowdControl")},
   }
+
+  if addonTable.Constants.IsRetail then
+    table.insert(
+      tabContainers,
+      {name = addonTable.Locales.UNIQUE_DEBUFFS, container = GetDeduplicateOptions(container)}
+    )
+  end
 
   local Tabs = {}
   local lastTab

@@ -5,7 +5,7 @@ local LSM = LibStub("LibSharedMedia-3.0")
 
 local auraFormatter, auraPlainFormatter = addonTable.Display.Utilities.GetAuraNumericFormatter()
 
-local function StyleAura(auraFrame, details)
+local function StyleAura(auraFrame, details, container)
   auraFrame.kind = details.kind
 
   auraFrame:EnableMouseMotion(details.showTooltips)
@@ -54,9 +54,11 @@ local function StyleAura(auraFrame, details)
   auraFrame.Cooldown:SetDrawEdge(details.showSwipe)
   auraFrame.Cooldown:SetDrawSwipe(details.showSwipe)
 
-  PixelUtil.SetSize(auraFrame, 20, 20 * details.height)
-  PixelUtil.SetSize(auraFrame.Border, 20, 20 * details.height)
-  PixelUtil.SetSize(auraFrame.Icon, 20, 20 * details.height)
+  local width = PixelUtil.ConvertPixelsToUIForRegion(20, container)
+  local height = PixelUtil.ConvertPixelsToUIForRegion(20 * details.height, container)
+  auraFrame:SetSize(width, height)
+  auraFrame.Border:SetSize(width, height)
+  auraFrame.Icon:SetSize(width, height)
   local texBase = 0.95 * (1 - details.height) / 2
   auraFrame.Icon:SetTexCoord(0.05, 0.95, 0.05 + texBase, 0.95 - texBase)
 
@@ -69,9 +71,7 @@ local function GetAurasInitializerModern(container)
   return function(frame)
     table.insert(container.frames, frame)
     frame:SetFlattensRenderLayers(true)
-    frame:SetSize(20, 20)
     frame.Icon = frame:CreateTexture(nil, "ARTWORK")
-    frame.Icon:SetSize(20, 20)
     frame.Icon:SetPoint("CENTER")
     frame.Cooldown = CreateFrame("Cooldown", nil, frame, "CooldownFrameTemplate")
     frame.Cooldown:SetDrawBling(false)
@@ -108,10 +108,10 @@ local function GetAurasInitializerModern(container)
     frame:SetApplicationCount(frame.TextsContainer.Applications, {})
     frame:SetIcon(frame.Icon)
     frame:SetDurationCooldown(frame.Cooldown)
-    frame:SetAuraBorder(frame.Dispel.Border, {showIcon = false, showWhenHarmful = true, showWhenHelpful = true, style = Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset})
+    frame:AddDispelTypeTexture(frame.Dispel.Border, {showIcon = false, showWhenHarmful = true, showWhenHelpful = true, style = Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset})
 
     if container.details then
-      StyleAura(frame, container.details)
+      StyleAura(frame, container.details, container)
     end
   end
 end
@@ -132,6 +132,15 @@ function addonTable.Display.AurasManagerNextMixin:OnLoad()
   self.crowdControl.frames = {}
   self.buffs.frames = {}
   self.debuffs.frames = {}
+
+  addonTable.CallbackRegistry:RegisterCallback("SpecializationChanged", function()
+    if not self.initialSetup then
+      self:InitializeWidgets(self.parent, self.auraDetails, true)
+      if self.unit then
+        self:SetUnit(self.unit)
+      end
+    end
+  end, self)
 end
 
 local directionMap = {
@@ -147,7 +156,12 @@ local anchorMap = {
 }
 
 local function ProcessSpells(kind)
-  local settings = addonTable.Config.Get(addonTable.Config.Options.AURA_FILTERS)[addonTable.Display.Utilities.GetSpecializationID()][kind]
+  local settings
+  if kind == "crowdControl" then
+    settings = addonTable.Config.Get(addonTable.Config.Options.AURA_FILTERS).crowdControl
+  else
+    settings = addonTable.Config.Get(addonTable.Config.Options.AURA_FILTERS)[addonTable.Display.Utilities.GetSpecializationID()][kind]
+  end
 
   local include = {}
   local exclude = {}
@@ -167,18 +181,20 @@ local function ProcessSpells(kind)
   return include, exclude
 end
 
+local _, class = UnitClass("player")
+
 function addonTable.Display.AurasManagerNextMixin:GetFilters(kind, settings)
   local output = table.create(6)
   local include, exclude = ProcessSpells(kind)
   local includeFilter
   if kind == "buffs" then
-    includeFilter = "HELPFUL|PLAYER"
+    includeFilter = settings.filters.playerFromYou and "HELPFUL|PLAYER" or "HELPFUL"
   elseif kind == "debuffs" then
-    includeFilter = settings.fromYou and "HARMFUL|PLAYER" or "HARMFUL"
+    includeFilter = settings.filters.fromYou and "HARMFUL|PLAYER" or "HARMFUL"
   elseif kind == "crowdControl" then
-    includeFilter = settings.fromYou and "HARMFUL|PLAYER" or "HARMFUL"
+    includeFilter = settings.filters.fromYou and "HARMFUL|PLAYER" or "HARMFUL"
   end
-  local start, tail = 0, 0
+  local start, tail, deduplicate = 0, 0, 0
   for i = 1, 2 do
     if include[i] then
       start = start + 1
@@ -186,32 +202,49 @@ function addonTable.Display.AurasManagerNextMixin:GetFilters(kind, settings)
     end
   end
 
+  local deduplicateAllClasses = addonTable.Config.Get(addonTable.Config.Options.AURA_DEDUPLICATE)
+  if kind == "debuffs" and deduplicateAllClasses[class] then
+    for _, spellID in ipairs(deduplicateAllClasses[class]) do
+      if not exclude[spellID] then
+        deduplicate = deduplicate + 1
+        exclude[spellID] = true
+        table.insert(output, {includeFilter, {includeSpellIDs = {[spellID] = true}}})
+      end
+    end
+  end
+
   if kind == "buffs" then
     table.insert(output, {"HELPFUL|PLAYER", {excludeSpellIDs = exclude}})
     if settings.filters.defensive then
       table.insert(output, {"HELPFUL|BIG_DEFENSIVE|!PLAYER", {excludeSpellIDs = exclude}})
-      table.insert(output, {"HELPFUL|EXTERNAL_DEFENSIVE|!PLAYER", {excludeSpellIDs = exclude}})
-      table.insert(output, {"HELPFUL|RAID_IN_COMBAT|!PLAYER", {excludeSpellIDs = exclude}})
+      table.insert(output, {"HELPFUL|EXTERNAL_DEFENSIVE|!BIG_DEFENSIVE|!PLAYER", {excludeSpellIDs = exclude}})
+      table.insert(output, {"HELPFUL|RAID_IN_COMBAT|!EXTERNAL_DEFENSIVE|!BIG_DEFENSIVE|!PLAYER", {excludeSpellIDs = exclude}})
     elseif settings.filters.important then
       if settings.filters.enrage then
-        table.insert(output, {"HELPFUL|IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, excludeDispelTypes = {[""] = true}}})
-        table.insert(output, {"HELPFUL|!PLAYER", {
-          includeDispelTypes = {[""] = true},
+        table.insert(output, {"HELPFUL|!PLAYER", {isBossOrRoleAura = true, isFromPlayerOrPlayerPet = false}})
+        table.insert(output, {"HELPFUL|IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, isBossOrRoleAura = false}})
+        table.insert(output, {"HELPFUL|!IMPORTANT|!PLAYER", {
+          includeDispelTypes = {["Enrage"] = true},
           excludeSpellIDs = exclude,
+          isBossOrRoleAura = false,
         }})
-        if settings.filters.dispelable then
-          table.insert(output, {"HELPFUL|!IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, excludeDispelTypes = {[""] = true}, isStealable = true}})
+        if settings.filters.dispellable then
+          table.insert(output, {"HELPFUL|!IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, excludeDispelTypes = {["Enrage"] = true}, isStealable = true}})
         end
       else
-        table.insert(output, {"HELPFUL|IMPORTANT|!PLAYER", {excludeSpellIDs = exclude}})
-        if settings.filters.dispelable then
-          table.insert(output, {"HELPFUL|!IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, isStealable = true}})
+        table.insert(output, {"HELPFUL|!PLAYER", {isBossOrRoleAura = true, isFromPlayerOrPlayerPet = false}})
+        table.insert(output, {"HELPFUL|IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, isBossOrRoleAura = false}})
+        if settings.filters.dispellable then
+          table.insert(output, {"HELPFUL|!IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, isStealable = true, isBossOrRoleAura = false}})
         end
       end
     else
       if settings.filters.enrage then
-        table.insert(output, {"HELPFUL|!PLAYER", {includeDispelTypes = {[""] = true}}})
-      elseif settings.filters.dispelable then
+        table.insert(output, {"HELPFUL|!PLAYER", {includeDispelTypes = {["Enrage"] = true}}})
+        if settings.filters.dispellable then
+          table.insert(output, {"HELPFUL|!PLAYER", {excludeSpellIDs = exclude, isStealable = true, excludeDispelTypes = {["Enrage"] = true}}})
+        end
+      elseif settings.filters.dispellable then
         table.insert(output, {"HELPFUL|!PLAYER", {excludeSpellIDs = exclude, isStealable = true}})
       else
         table.insert(output, {"HELPFUL|!PLAYER", {excludeSpellIDs = exclude}})
@@ -246,10 +279,13 @@ function addonTable.Display.AurasManagerNextMixin:GetFilters(kind, settings)
     tail = tail + 1
   end
 
-  return output, start, tail
+  return output, start, tail, deduplicate
 end
 
-function addonTable.Display.AurasManagerNextMixin:InitializeWidgets(parent, auraDetails)
+function addonTable.Display.AurasManagerNextMixin:InitializeWidgets(parent, auraDetails, doNotSize)
+  self.auraDetails = auraDetails
+  self.parent = parent
+
   self.buffs:ClearAllPoints()
   self.debuffs:ClearAllPoints()
   self.crowdControl:ClearAllPoints()
@@ -270,11 +306,16 @@ function addonTable.Display.AurasManagerNextMixin:InitializeWidgets(parent, aura
   self.crowdControl:SetEnabled(false)
 
   for kind, details in pairs(auraDetails) do
-    local groups, start, tail = self:GetFilters(kind, details)
+    local groups, start, tail, deduplicate = self:GetFilters(kind, details)
 
     self[kind].groupLiveCount = #groups
     self[kind].manualStart = start
     self[kind].manualTail = tail
+    self[kind].manualDeduplicate = deduplicate
+
+    self[kind]:SetScale(details.scale)
+    self[kind]:SetPoint(directionMap[details.direction])
+    self[kind]:SetFlowLayoutAnchorPoint(anchorMap[details.direction])
 
     if not self[kind].groupsCount or self[kind].groupsCount < #groups then
       for i = self[kind].groupsCount and self[kind].groupsCount + 1 or 1, #groups do
@@ -282,10 +323,6 @@ function addonTable.Display.AurasManagerNextMixin:InitializeWidgets(parent, aura
       end
       self[kind].groupsCount = #groups
     end
-
-    self[kind]:SetScale(details.scale)
-    self[kind]:SetPoint(directionMap[details.direction])
-    self[kind]:SetFlowLayoutAnchorPoint(anchorMap[details.direction])
 
     local padding = PixelUtil.ConvertPixelsToUIForRegion(20 * details.padding, self[kind])
 
@@ -303,9 +340,9 @@ function addonTable.Display.AurasManagerNextMixin:InitializeWidgets(parent, aura
       end
     end
 
-    if not addonTable.Utilities.IsChangesRestricted() and not self.initialSetup then
+    if not addonTable.Utilities.IsChangesRestricted() and not self.initialSetup and not doNotSize then
       for _, f in ipairs(self[kind].frames) do
-        StyleAura(f, details)
+        StyleAura(f, details, self[kind])
       end
     end
 
@@ -332,9 +369,15 @@ local function ApplyStartTailCount(auras, count)
       auras:SetAuraGroupMaxFrameCount(tostring(i), count)
     end
   end
+  if auras.manualDeduplicate > 0 then
+    for i = auras.manualStart + 1, auras.manualStart + auras.manualDeduplicate do
+      auras:SetAuraGroupMaxFrameCount(tostring(i), count > 0 and 1 or 0)
+    end
+  end
 end
 
-function addonTable.Display.AurasManagerNextMixin:SetUnit(unit, parent, auraDetails)
+function addonTable.Display.AurasManagerNextMixin:SetUnit(unit)
+  self.unit = unit
   if not unit then
     self.buffs:SetEnabled(false)
     self.debuffs:SetEnabled(false)
@@ -372,13 +415,11 @@ function addonTable.Display.AurasManagerNextMixin:SetUnit(unit, parent, auraDeta
     end
   end
 
-  self.buffs:SetEnabled(self.debuffs.details ~= nil and (not UnitTreatAsPlayerForDisplay(unit) or not addonTable.Display.Utilities.IsInRelevantInstance({delve = true})))
-  self.debuffs:SetEnabled(self.buffs.details ~= nil)
-  self.crowdControl:SetEnabled(self.crowdControl.details ~= nil)
-
-  self.auraDetails = auraDetails
-
   self.buffs:SetUnit(unit)
   self.debuffs:SetUnit(unit)
   self.crowdControl:SetUnit(unit)
+
+  self.buffs:SetEnabled(self.buffs.details ~= nil and (not UnitTreatAsPlayerForDisplay(unit) or not addonTable.Display.Utilities.IsInRelevantInstance({delve = true})))
+  self.debuffs:SetEnabled(self.debuffs.details ~= nil)
+  self.crowdControl:SetEnabled(self.crowdControl.details ~= nil)
 end

@@ -16,12 +16,15 @@ function addonTable.Display.NameplateMixin:OnLoad()
 
   self.BuffDisplay = CreateFrame("Frame", nil, self)
   self.BuffDisplay:SetSize(10, 10)
+  self.BuffDisplay:SetFrameStrata("MEDIUM")
   self.BuffDisplay:SetFlattensRenderLayers(true)
   self.DebuffDisplay = CreateFrame("Frame", nil, self)
   self.DebuffDisplay:SetSize(10, 10)
+  self.DebuffDisplay:SetFrameStrata("MEDIUM")
   self.DebuffDisplay:SetFlattensRenderLayers(true)
   self.CrowdControlDisplay = CreateFrame("Frame", nil, self)
   self.CrowdControlDisplay:SetSize(10, 10)
+  self.CrowdControlDisplay:SetFrameStrata("MEDIUM")
   self.CrowdControlDisplay:SetFlattensRenderLayers(true)
 
   self:SetSize(10, 10)
@@ -63,19 +66,34 @@ end
 
 function addonTable.Display.NameplateMixin:LayerWidgets()
   addonTable.Display.LayerWidgets(self.widgets)
+  if self.aurasInfo then
+    if self.aurasInfo.debuffs then
+      self.DebuffDisplay:SetFrameLevel(addonTable.Constants.LayerFrameLevelStep * self.aurasInfo.debuffs.layer + 450)
+    end
+    if self.aurasInfo.buffs then
+      self.BuffDisplay:SetFrameLevel(addonTable.Constants.LayerFrameLevelStep * self.aurasInfo.buffs.layer + 460)
+    end
+    if self.aurasInfo.crowdControl then
+      self.CrowdControlDisplay:SetFrameLevel(addonTable.Constants.LayerFrameLevelStep * self.aurasInfo.buffs.layer + 470)
+    end
+  end
 end
 
-function addonTable.Display.NameplateMixin:ApplyPixelPerfectSizing()
-  if self:ShouldNotSize() then
+function addonTable.Display.NameplateMixin:ApplyPixelPerfectSizing(force)
+  if self:ShouldNotSize() and not force then
     return
   end
   for _, w in ipairs(self.widgets) do
     if w:IsShown() then
+      w.pixelPerfectRequired = nil
       w:ApplyAnchor()
       w:ApplySize()
     else
       w.pixelPerfectRequired = true
     end
+  end
+  if self.aurasInfo then
+    self:AnchorAuras(self.aurasInfo)
   end
   self.lastScale = self:GetEffectiveScale()
 end
@@ -100,6 +118,7 @@ function addonTable.Display.NameplateMixin:InitializeWidgets(design, scaleOffset
   for _, a in ipairs(auras) do
     designInfo[a.kind] = a
   end
+  self.aurasInfo = designInfo
   self:AnchorAuras(designInfo)
   if not addonTable.Constants.IsRetail then
     addonTable.Display.InitializeWidgetsLegacyAuras(self, designInfo)
@@ -114,17 +133,22 @@ function addonTable.Display.NameplateMixin:InitializeWidgets(design, scaleOffset
 end
 
 function addonTable.Display.NameplateMixin:Install(nameplate, offsetY)
-  self:Show()
   self:SetFrameStrata("BACKGROUND")
   self:SetPoint("CENTER", nameplate, "CENTER", 0, offsetY)
   self:SetSize(10, 10)
 
+  if not self.unit then
+    for _, w in ipairs(self.widgets) do
+      w.pixelPerfectRequired = nil
+      w:Show()
+    end
+  end
+
   -- We force a sizing immediately to avoid 0 size widgets breaking the textures from the Blizz animations
   self:ApplyPixelPerfectSizing()
-  if self.widgets then
-    addonTable.Display.LayerWidgets(self.widgets)
-  end
+  addonTable.Display.LayerWidgets(self.widgets)
   self:SetScript("OnUpdate", nil)
+  self:Show()
 end
 
 function addonTable.Display.NameplateMixin:SetUnit(unit)
@@ -158,14 +182,10 @@ function addonTable.Display.NameplateMixin:SetUnit(unit)
     end
 
     for _, w in ipairs(self.widgets) do
-      w:Show()
       w:SetUnit(self.unit)
     end
 
-    addonTable.Cache:Get(unit, "target")
-    addonTable.Cache:Get(unit, "softTarget")
     addonTable.Cache:Get(unit, "mouseover")
-    addonTable.Cache:Get(unit, "focus")
 
     addonTable.Cache:RegisterCallback(unit, "target", function()
       self:UpdateVisual()
@@ -176,10 +196,6 @@ function addonTable.Display.NameplateMixin:SetUnit(unit)
     end)
 
     addonTable.Cache:RegisterCallback(unit, "mouseover", function()
-      self:UpdateVisual()
-    end)
-
-    addonTable.Cache:RegisterCallback(unit, "focus", function()
       self:UpdateVisual()
     end)
 
@@ -240,7 +256,6 @@ function addonTable.Display.NameplateMixin:AnchorAuras(designInfo)
   if designInfo.debuffs then
     self.DebuffDisplay.enabled = true
     self.DebuffDisplay:ClearAllPoints()
-    self.DebuffDisplay:SetFrameStrata("MEDIUM")
     self.DebuffDisplay:SetFrameLevel(addonTable.Constants.LayerFrameLevelStep * designInfo.debuffs.layer + 450)
     self.DebuffDisplay.details = designInfo.debuffs
     PixelUtil.SetSize(self.DebuffDisplay, defaultSize * designInfo.debuffs.scale, defaultSize * designInfo.debuffs.scale * designInfo.debuffs.height)
@@ -249,7 +264,6 @@ function addonTable.Display.NameplateMixin:AnchorAuras(designInfo)
   if designInfo.buffs then
     self.BuffDisplay.enabled = true
     self.BuffDisplay:ClearAllPoints()
-    self.BuffDisplay:SetFrameStrata("MEDIUM")
     self.BuffDisplay:SetFrameLevel(addonTable.Constants.LayerFrameLevelStep * designInfo.buffs.layer + 450 + 10)
     self.BuffDisplay.details = designInfo.buffs
     PixelUtil.SetSize(self.BuffDisplay, defaultSize * designInfo.buffs.scale, defaultSize * designInfo.buffs.scale * designInfo.buffs.height)
@@ -258,7 +272,6 @@ function addonTable.Display.NameplateMixin:AnchorAuras(designInfo)
   if designInfo.crowdControl then
     self.CrowdControlDisplay.enabled = true
     self.CrowdControlDisplay:ClearAllPoints()
-    self.CrowdControlDisplay:SetFrameStrata("MEDIUM")
     self.CrowdControlDisplay:SetFrameLevel(addonTable.Constants.LayerFrameLevelStep * designInfo.crowdControl.layer + 450 + 20)
     self.CrowdControlDisplay.details = designInfo.crowdControl
     PixelUtil.SetSize(self.CrowdControlDisplay, defaultSize * designInfo.crowdControl.scale, defaultSize * designInfo.crowdControl.scale * designInfo.crowdControl.height)
@@ -284,11 +297,11 @@ function addonTable.Display.NameplateMixin:UpdateVisual()
 
   local scale = 1
   local alpha = 0
-  local isTarget = UnitIsUnit("target", self.unit) or UnitIsUnit("softenemy", self.unit) or UnitIsUnit("softfriend", self.unit)
+  local isTarget = addonTable.Cache:Get(self.unit, "target") or addonTable.Cache:Get(self.unit, "softTarget")
   if isTarget then
     alpha = 1
   else
-    local isMouseover = UnitIsUnit("mouseover", self.unit)
+    local isMouseover = addonTable.Cache:Get(self.unit, "mouseover")
     if isMouseover then
       alpha = math.max(alpha, addonTable.Config.Get(addonTable.Config.Options.MOUSEOVER_ALPHA))
     end

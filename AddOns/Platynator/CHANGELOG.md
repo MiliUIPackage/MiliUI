@@ -1,6 +1,9 @@
 # Platynator
 
-## [463](https://github.com/TheMouseNest/Platynator/tree/463) (2026-08-14)
-[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/462...463) 
+## [484](https://github.com/TheMouseNest/Platynator/tree/484) (2026-09-06)
+[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/483...484) 
 
-- Fix importing a profile on a spec it hasn't been used on before  
+- Add ElvUI skin for customise dialog  
+- Move deduplicating debuffs into explicit options  
+- Fix auras limit on CC  
+- Revert behaviour change with nameplateShowAll cvar  

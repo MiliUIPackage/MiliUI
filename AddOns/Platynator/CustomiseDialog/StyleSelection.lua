@@ -285,6 +285,7 @@ local function GetCustomOptions(container)
         Refresh()
       end
     end)
+    addonTable.Skins.AddFrame("IconButton", frame.removeEntryButton, {"delete"})
 
     frame.shiftUp = CreateFrame("Button", nil, frame)
     frame.shiftUp:SetSize(16, 20)
@@ -355,6 +356,7 @@ local function GetCustomOptions(container)
         end
       )
     end)
+    addonTable.Skins.AddFrame("Dropdown", frame.criteriaDropdown)
     local criteriaLabel = frame:CreateFontString(nil, nil, "GameFontHighlight")
     criteriaLabel:SetText(addonTable.Locales.ACTIVATION)
     criteriaLabel:SetPoint("RIGHT", frame.criteriaDropdown, "LEFT", -10, 0)
@@ -379,6 +381,7 @@ local function GetCustomOptions(container)
         end
       )
     end)
+    addonTable.Skins.AddFrame("Dropdown", frame.styleDropdown)
     local styleLabel = frame:CreateFontString(nil, nil, "GameFontHighlight")
     styleLabel:SetText(addonTable.Locales.STYLE)
     styleLabel:SetPoint("RIGHT", frame.styleDropdown, "LEFT", -10, 0)

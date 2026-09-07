@@ -22,15 +22,13 @@ function addonTable.Display.AbsorbTextMixin:OnEvent()
   self:UpdateText()
 end
 
-local AbbreviateNumbersAlt = addonTable.Display.Utilities.AbbreviateNumbersAlt
-
 function addonTable.Display.AbsorbTextMixin:UpdateText()
   if UnitIsDeadOrGhost(self.unit) then
     self.text:SetText("0")
     self.text:SetAlpha(0)
   else
     local raw = UnitGetTotalAbsorbs(self.unit)
-    local absolute = (AbbreviateNumbersAlt or AbbreviateNumbers)(raw)
+    local absolute = AbbreviateNumbers(raw)
     self.text:SetText("+" .. absolute)
     if issecretvalue and issecretvalue(raw) then
       self.text:SetAlpha(raw)

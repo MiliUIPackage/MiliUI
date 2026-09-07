@@ -8,5 +8,6 @@ addonTable.Display = {}
 addonTable.Assets = {}
 addonTable.Design = {}
 addonTable.CustomiseDialog = {}
+addonTable.Skins = {}
 
 Platynator = {}

@@ -14,7 +14,7 @@ local function SetupGeneral(parent)
     infoInset:SetPoint("LEFT", 20, 0)
     infoInset:SetPoint("RIGHT", -20, 0)
     infoInset:SetHeight(75)
-    --addonTable.Skins.AddFrame("InsetFrame", infoInset)
+    addonTable.Skins.AddFrame("InsetFrame", infoInset)
 
     local logo = infoInset:CreateTexture(nil, "ARTWORK")
     logo:SetTexture("Interface\\AddOns\\Platynator\\Assets\\logo.png")
@@ -36,7 +36,7 @@ local function SetupGeneral(parent)
     discordButton:SetScript("OnClick", function()
       addonTable.Dialogs.ShowCopy("https://discord.gg/cUvDQT9JqK")
     end)
-    --addonTable.Skins.AddFrame("Button", discordButton)
+    addonTable.Skins.AddFrame("Button", discordButton)
     local discordText = infoInset:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     discordText:SetPoint("LEFT", discordButton, "RIGHT", 10, 0)
     discordText:SetText(addonTable.Locales.DISCORD_DESCRIPTION)
@@ -64,7 +64,7 @@ local function SetupGeneral(parent)
     button:SetScript("OnClick", function()
       addonTable.Dialogs.ShowCopy("https://linktr.ee/plusmouse")
     end)
-    --addonTable.Skins.AddFrame("Button", button)
+    addonTable.Skins.AddFrame("Button", button)
     table.insert(allFrames, donateFrame)
   end
 
@@ -175,7 +175,7 @@ local function SetupGeneral(parent)
         end
       )
     end)
-    --addonTable.Skins.AddFrame("Button", exportButton)
+    addonTable.Skins.AddFrame("Button", exportButton)
 
     local importButton = CreateFrame("Button", nil, container, "UIPanelDynamicResizeButtonTemplate")
     importButton:SetPoint("TOPRIGHT", allFrames[#allFrames], "BOTTOM", -45, -10)
@@ -243,7 +243,7 @@ local function SetupGeneral(parent)
         end
       end)
     end)
-    --addonTable.Skins.AddFrame("Button", importButton)
+    addonTable.Skins.AddFrame("Button", importButton)
   end
 
   local blizzardWidgetScale = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.BLIZZARD_EXTRA_WIDGETS_SCALE, 1, 300, function(val) return ("%d%%"):format(val) end, function(value)
@@ -652,5 +652,5 @@ function addonTable.CustomiseDialog.Toggle()
 
   frame:Show()
 
-  --addonTable.Skins.AddFrame("ButtonFrame", frame, {"customise"})
+  addonTable.Skins.AddFrame("ButtonFrame", frame, {"customise"})
 end

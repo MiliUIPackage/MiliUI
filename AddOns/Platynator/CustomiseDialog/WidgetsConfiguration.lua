@@ -110,11 +110,15 @@ local function GetLabelsValuesBorders()
 
   for _, key in ipairs(assets) do
     if not addonTable.Assets.BarBordersSliced[key] then
-      local file = LSM:Fetch("nineslice", LSM:Fetch("ninesliceborder", key).nineslice).file
-      local text = "|T".. file .. ":" .. (height - 1) .. ":" .. (height - 1) .. "|t [Custom] " .. key
+      local border = LSM:Fetch("ninesliceborder", key)
+      local slice = LSM:Fetch("nineslice", border.nineslice)
+      if slice then
+        local file = slice.file
+        local text = "|T".. file .. ":" .. (height - 1) .. ":" .. (height - 1) .. "|t [Custom] " .. key
 
-      table.insert(labels, text)
-      table.insert(values, key)
+        table.insert(labels, text)
+        table.insert(values, key)
+      end
     end
   end
 
@@ -1366,7 +1370,28 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             end,
           },
           {
-            label = addonTable.Locales.DEFENSIVE,
+            label = addonTable.Locales.ENRAGE,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.filters.enrage = value
+            end,
+            getter = function(details)
+              return details.filters.enrage
+            end,
+          },
+          {
+            label = addonTable.Locales.DISPELLABLE,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.filters.dispellable = value
+            end,
+            getter = function(details)
+              return details.filters.dispellable
+            end,
+          },
+          { kind = "spacer" },
+          {
+            label = addonTable.Locales.DEFENSIVE_ONLY,
             kind = "checkbox",
             setter = function(details, value)
               details.filters.defensive = value
@@ -1376,25 +1401,17 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             end,
             hide = addonTable.Constants.IsClassic,
           },
+          { kind = "spacer" },
           {
-            label = addonTable.Locales.DISPELLABLE,
+            label = addonTable.Locales.FILTER_FRIENDLY_ONLY_FROM_YOU,
             kind = "checkbox",
             setter = function(details, value)
-              details.filters.dispelable = value
+              details.filters.friendlyFromYou = value
             end,
             getter = function(details)
-              return details.filters.dispelable
+              return details.filters.friendlyFromYou
             end,
-          },
-          {
-            label = addonTable.Locales.ENRAGE,
-            kind = "checkbox",
-            setter = function(details, value)
-              details.filters.enrage = value
-            end,
-            getter = function(details)
-              return details.filters.enrage
-            end,
+            hide = addonTable.Constants.IsClassic,
           },
         }
       },
@@ -1831,7 +1848,7 @@ addonTable.CustomiseDialog.AurasTextsConfig = {
     {
       label = addonTable.Locales.SCALE,
       kind = "slider",
-      min = 1, max = 300,
+      min = 25, max = 300,
       valuePattern = "%d%%",
       setter = function(details, value)
         details.scale = value / 100
@@ -1877,7 +1894,7 @@ addonTable.CustomiseDialog.AurasTextsConfig = {
     {
       label = addonTable.Locales.SCALE,
       kind = "slider",
-      min = 1, max = 300,
+      min = 25, max = 300,
       valuePattern = "%d%%",
       setter = function(details, value)
         details.scale = value / 100

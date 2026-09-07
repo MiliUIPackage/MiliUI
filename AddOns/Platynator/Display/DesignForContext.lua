@@ -249,11 +249,11 @@ function addonTable.Display.DesignForContextMixin:GetDesignFromState(state)
     end
 
     if hit and (addonTable.Constants.IsSimplifiedAvailable or not settings.simplified) then
-      return settings.style, settings.scale, settings.simplified or false, index
+      return settings.style, settings.scale, settings.simplified or false, settings
     end
   end
 
-  return "_deer", 1, false, 0
+  return "_deer", 1, false, nil
 end
 
 function addonTable.Display.DesignForContextMixin:GetClickRegion(unit)

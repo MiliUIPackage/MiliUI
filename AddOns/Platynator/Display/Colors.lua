@@ -328,24 +328,9 @@ function addonTable.Display.GetColor(settings, state, unit)
         end
         local interruptSpells = GetInterruptSpells()
         state.frequentUpdater.interruptReady = true
-        if C_Spell.GetSpellCooldownDuration then
-          for _, spellID in ipairs(interruptSpells) do
-            local duration = C_Spell.GetSpellCooldownDuration(spellID)
-            table.insert(colorQueue, {state = {{value = duration:IsZero()}, {value = notInterruptible, invert = true}}, color = s.colors.ready})
-          end
-        elseif notInterruptible ~= true then
-          local any = false
-          for _, spellID in ipairs(interruptSpells) do
-            local cooldownInfo = C_Spell.GetSpellCooldown(spellID)
-            if cooldownInfo.startTime == 0 then
-              any = true
-              table.insert(colorQueue, {color = s.colors.ready})
-              break
-            end
-          end
-          if any then
-            break
-          end
+        for _, spellID in ipairs(interruptSpells) do
+          local duration = C_Spell.GetSpellCooldownDuration(spellID, true)
+          table.insert(colorQueue, {state = {{value = duration:IsZero()}, {value = notInterruptible, invert = true}}, color = s.colors.ready})
         end
       end
     elseif s.kind == "interruptNotReady" then
@@ -364,27 +349,12 @@ function addonTable.Display.GetColor(settings, state, unit)
         local spells = GetInterruptSpells()
         if #spells > 0 then
           state.frequentUpdater.interruptNotReady = true
-          if C_Spell.GetSpellCooldownDuration then
-            local conditions = {{value = notInterruptible, invert = true}}
-            for _, spellID in ipairs(spells) do
-              local duration = C_Spell.GetSpellCooldownDuration(spellID)
-              table.insert(conditions, {value = duration:IsZero(), invert = true})
-            end
-            table.insert(colorQueue, {state = conditions, color = s.colors.notReady})
-          elseif notInterruptible ~= true then
-            local any = false
-            for _, spellID in ipairs(spells) do
-              local cooldownInfo = C_Spell.GetSpellCooldown(spellID)
-              if cooldownInfo.startTime == 0 then
-                any = true
-                break
-              end
-            end
-            if not any then
-              table.insert(colorQueue, {color = s.colors.notReady})
-              break
-            end
+          local conditions = {{value = notInterruptible, invert = true}}
+          for _, spellID in ipairs(spells) do
+            local duration = C_Spell.GetSpellCooldownDuration(spellID, true)
+            table.insert(conditions, {value = duration:IsZero(), invert = true})
           end
+          table.insert(colorQueue, {state = conditions, color = s.colors.notReady})
         end
       end
     elseif s.kind == "castTargetsYou" then
@@ -474,23 +444,13 @@ function addonTable.Display.GetColor(settings, state, unit)
     elseif s.kind == "execute" then
       local executeRange = addonTable.Display.Utilities.GetExecuteRange()
       if executeRange > 0 and IsInCombatWith(unit) then
-        if UnitHealthPercent then
-          local curve = addonTable.Display.Utilities.GetExecuteCurve()
-          curve:ClearPoints()
-          curve:AddPoint(0, CreateColor(s.colors.execute.r ,s.colors.execute.g, s.colors.execute.b, s.colors.execute.a))
-          curve:AddPoint(executeRange, CreateColor(s.colors.inCombat.r ,s.colors.inCombat.g, s.colors.inCombat.b, s.colors.inCombat.a))
-          local color = UnitHealthPercent(unit, nil, curve)
-          table.insert(colorQueue, {color = color})
-          break
-        else
-          local percent = UnitHealth(unit) / UnitHealthMax(unit)
-          if percent <= executeRange then
-            table.insert(colorQueue, {color = s.colors.execute})
-            break
-          else
-            table.insert(colorQueue, {color = s.colors.inCombat})
-          end
-        end
+        local curve = addonTable.Display.Utilities.GetExecuteCurve()
+        curve:ClearPoints()
+        curve:AddPoint(0, CreateColor(s.colors.execute.r ,s.colors.execute.g, s.colors.execute.b, s.colors.execute.a))
+        curve:AddPoint(executeRange, CreateColor(s.colors.inCombat.r ,s.colors.inCombat.g, s.colors.inCombat.b, s.colors.inCombat.a))
+        local color = UnitHealthPercent(unit, nil, curve)
+        table.insert(colorQueue, {color = color})
+        break
       end
     elseif s.kind == "inCombat" then
       if IsInCombatWith(unit) then
@@ -540,45 +500,23 @@ function addonTable.Display.GetColor(settings, state, unit)
   end
 
   local defaultColor = state.defaultColor
-  if C_CurveUtil then
-    local r, g, b, a = defaultColor.r, defaultColor.g, defaultColor.b, defaultColor.a or 1
-    for index = #colorQueue, 1, -1 do
-      local details = colorQueue[index]
-      local c = details.color
-      if details.state == nil then
-        r, g, b, a = c.r, c.g, c.b, c.a or 1
-      else
-        local r0, g0, b0, a0 = c.r, c.g, c.b, c.a
-        for _, s in ipairs(details.state) do
-          if s.invert then
-            r0, g0, b0, a0 = SplitEvaluate(s.value, r, g, b, a, r0, g0, b0, a0)
-          else
-            r0, g0, b0, a0 = SplitEvaluate(s.value, r0, g0, b0, a0, r, g, b, a)
-          end
+  local r, g, b, a = defaultColor.r, defaultColor.g, defaultColor.b, defaultColor.a or 1
+  for index = #colorQueue, 1, -1 do
+    local details = colorQueue[index]
+    local c = details.color
+    if details.state == nil then
+      r, g, b, a = c.r, c.g, c.b, c.a or 1
+    else
+      local r0, g0, b0, a0 = c.r, c.g, c.b, c.a
+      for _, s in ipairs(details.state) do
+        if s.invert then
+          r0, g0, b0, a0 = SplitEvaluate(s.value, r, g, b, a, r0, g0, b0, a0)
+        else
+          r0, g0, b0, a0 = SplitEvaluate(s.value, r0, g0, b0, a0, r, g, b, a)
         end
-        r, g, b, a = r0, g0, b0, a0
       end
+      r, g, b, a = r0, g0, b0, a0
     end
-    return r, g, b, a
-  else
-    local color = defaultColor
-    for index = #colorQueue, 1, -1 do
-      local details = colorQueue[index]
-      if details.state == nil then
-        color = details.color
-      else
-        local color0 = details.color
-        for _, s in ipairs(details.state) do
-          if s.invert then
-            color0 = s.value and color or color0
-          else
-            color0 = s.value and color0 or color
-          end
-        end
-        color = color0
-      end
-    end
-
-    return color.r, color.g, color.b, color.a or 1
   end
+  return r, g, b, a
 end

@@ -109,7 +109,7 @@ if addonTable.Constants.IsClassic then
     ["MONK"] = {116705},
     ["MAGE"] = {2139},
     ["HUNTER"] = {187707, 147362},
-    ["DRUID"] = {38675, 78675, 106839},
+    ["DRUID"] = {78675, 106839},
   }
 else
   interruptMap = {
@@ -124,7 +124,7 @@ else
     ["MAGE"] = {2139},
     ["HUNTER"] = {147362, 187707},
     ["EVOKER"] = {351338},
-    ["DRUID"] = {38675, 78675, 106839},
+    ["DRUID"] = {78675, 106839},
     ["DEMONHUNTER"] = {183752},
   }
 end
@@ -184,11 +184,8 @@ local sootheSpells = {
   28730, 25046, 202719, 129597, 80483, 69179, 155145, 50613, 232633
 }
 
-local executeCurve
-if C_CurveUtil then
-  executeCurve = C_CurveUtil.CreateColorCurve()
-  executeCurve:SetType(Enum.LuaCurveType.Step)
-end
+local executeCurve = C_CurveUtil.CreateColorCurve()
+executeCurve:SetType(Enum.LuaCurveType.Step)
 
 local currentInterrupt = {}
 local currentExecute = 0
@@ -229,20 +226,16 @@ function addonTable.Display.Utilities.GetInterruptSpells()
   return currentInterrupt
 end
 
-if C_Spell.GetSpellCooldownDuration then
+do
   local duration
   local lastDurationTime = 0
   function addonTable.Display.Utilities.GetInterruptSpellPriority()
     local interrupt = currentInterrupt[1]
     if interrupt and lastDurationTime ~= GetTime() then
-      duration = C_Spell.GetSpellCooldownDuration(interrupt)
+      duration = C_Spell.GetSpellCooldownDuration(interrupt, true)
       lastDurationTime = GetTime()
     end
     return interrupt, duration
-  end
-else
-  function addonTable.Display.Utilities.GetInterruptSpellPriority()
-    return currentInterrupt[1]
   end
 end
 
@@ -256,31 +249,6 @@ end
 
 function addonTable.Display.Utilities.GetSootheAvailable()
   return isSootheAvailable
-end
-
-local ignoredLocales = {
-  "zhTW",
-  "zhCN",
-  "koKR",
-  "ruRU",
-}
-if addonTable.Constants.IsMists and tIndexOf(ignoredLocales, GetLocale()) == nil then
-  local NUMBER_ABBREVIATION_DATA_ALT = {
-    { breakpoint = 10000000,	abbreviation = SECOND_NUMBER_CAP_NO_SPACE,	significandDivisor = 1000000,	fractionDivisor = 1 },
-    { breakpoint = 1000000,		abbreviation = SECOND_NUMBER_CAP_NO_SPACE,	significandDivisor = 100000,		fractionDivisor = 10 },
-    { breakpoint = 10000,		abbreviation = FIRST_NUMBER_CAP_NO_SPACE,	significandDivisor = 1000,		fractionDivisor = 1 },
-    { breakpoint = 1000,		abbreviation = FIRST_NUMBER_CAP_NO_SPACE,	significandDivisor = 100,		fractionDivisor = 10 },
-  }
-
-  addonTable.Display.Utilities.AbbreviateNumbersAlt = function(value)
-    for i, data in ipairs(NUMBER_ABBREVIATION_DATA_ALT) do
-      if value >= data.breakpoint then
-        local finalValue = math.floor(value / data.significandDivisor) / data.fractionDivisor;
-        return finalValue .. data.abbreviation;
-      end
-    end
-    return tostring(value);
-  end
 end
 
 if addonTable.Constants.IsRetail then
@@ -494,7 +462,6 @@ do
       allFilters[specializationID] = {
         buffs = { include = {}, exclude = {} },
         debuffs = { include = {}, exclude = {} },
-        crowdControl = { include = {}, exclude = {} },
       }
     end
   end
@@ -521,14 +488,12 @@ do
     specializationMonitor:RegisterEvent("SPELLS_CHANGED")
 
     specializationMonitor:SetScript("OnEvent", function(_, e)
+      local triggerEvent = false
       if not (addonTable.Constants.IsEra or addonTable.Constants.IsBC or addonTable.Constants.IsWrath) then
         local specIndex = C_SpecializationInfo.GetSpecialization() or lastSpecializationIndex
-        local hasChanged = specIndex ~= lastSpecializationIndex
+        triggerEvent = specIndex ~= lastSpecializationIndex
         lastSpecializationIndex = specIndex
         specializationID = C_SpecializationInfo.GetSpecializationInfo(specIndex)
-        if hasChanged then
-          addonTable.CallbackRegistry:TriggerEvent("SpecializationChanged")
-        end
       end
 
       AssignRange()
@@ -541,6 +506,10 @@ do
           isTank = role == roleType.Tank
           addonTable.CallbackRegistry:TriggerEvent("RoleChange")
         end
+      end
+
+      if triggerEvent then
+        addonTable.CallbackRegistry:TriggerEvent("SpecializationChanged")
       end
     end)
   end

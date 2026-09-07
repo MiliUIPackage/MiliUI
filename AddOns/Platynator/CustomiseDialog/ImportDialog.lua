@@ -93,10 +93,10 @@ function addonTable.CustomiseDialog.ShowImportDialog(callback)
       PlaySound(SOUNDKIT.IG_MAINMENU_CLOSE)
     end)
 
-    --addonTable.Skins.AddFrame("Dialog", dialog)
-    --addonTable.Skins.AddFrame("EditBox", editBox)
-    --addonTable.Skins.AddFrame("Button", acceptButton)
-    --addonTable.Skins.AddFrame("Button", cancelButton)
+    addonTable.Skins.AddFrame("Dialog", dialog)
+    addonTable.Skins.AddFrame("EditBox", editBox)
+    addonTable.Skins.AddFrame("Button", acceptButton)
+    addonTable.Skins.AddFrame("Button", cancelButton)
 
     dialog.editBox = editBox
     dialogsBySkin[currentSkinKey] = dialog

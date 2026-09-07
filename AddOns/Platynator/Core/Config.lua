@@ -3,7 +3,7 @@ local addonTable = select(2, ...)
 addonTable.Config = {}
 
 local settings = {
-  MIGRATION = {key = "migration", default = 1, new = 4},
+  MIGRATION = {key = "migration", default = 1, new = 9},
 
   STYLE = {key = "style", default = "_deer"},
   CURRENT_SKIN = {key = "current_skin", default = "blizzard", refresh = {addonTable.Constants.RefreshReason.Skin}},
@@ -25,7 +25,8 @@ local settings = {
   }, refresh = {addonTable.Constants.RefreshReason.DesignSelection, addonTable.Constants.RefreshReason.Design}},
   SIMPLIFIED_ASSIGNED_FALLBACK = {key = "simplified_assigned_fallback", default = "_hare_simplified"},
 
-  AURA_FILTERS = {key = "aura_filters", default = {}},
+  AURA_FILTERS = {key = "aura_filters", default = {crowdControl = {include = {}, exclude = {}}}},
+  AURA_DEDUPLICATE = {key = "aura_deduplicate", default = {["DEATHKNIGHT"] = {55078}}},
 
   TARGET_SCALE = {key = "target_scale", default = 1.2, refresh = {addonTable.Constants.RefreshReason.TargetBehaviour}},
   CAST_SCALE = {key = "cast_scale", default = 1, refresh = {addonTable.Constants.RefreshReason.TargetBehaviour}},
@@ -315,7 +316,7 @@ function addonTable.Config.Get(name)
   -- This is ONLY if a config is asked for before variables are loaded
   if addonTable.Config.CurrentProfile == nil then
     return addonTable.Config.Defaults[name]
-  elseif name:find("%.") == nil then
+  elseif name:find("%.", nil, true) == nil then
     return addonTable.Config.CurrentProfile[name]
   else
     local tree = {strsplit(".", name)}
