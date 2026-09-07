@@ -211,8 +211,6 @@ function addonTable.MessagesMonitorMixin:OnLoad()
   hooksecurefunc(DEFAULT_CHAT_FRAME, "AddMessage", function(_, ...)
     local fullTrace = debugstack()
     if issecretvalue(fullTrace) then
-      self:SetIncomingType({type = "SYSTEM", event = "NONE", source = nil})
-      self:AddMessage(...)
       return
     end
     if fullTrace:find("ChatFrame_OnEvent") or fullTrace:find("Blizzard_Channels") or fullTrace:find("MessageEventHandler") then
@@ -341,6 +339,7 @@ function addonTable.MessagesMonitorMixin:InvalidateProcessedMessage(id)
       addonTable.CallbackRegistry:TriggerEvent("ResetOneMessageCache", id)
       if self:GetScript("OnUpdate") == nil and self.playerLoginFired then
         self:SetScript("OnUpdate", function()
+          self:SetScript("OnUpdate", nil)
           addonTable.CallbackRegistry:TriggerEvent("Render")
         end)
       end
@@ -483,6 +482,7 @@ function addonTable.MessagesMonitorMixin:OnEvent(eventName, ...)
 
     if self:GetScript("OnUpdate") == nil then
       self:SetScript("OnUpdate", function()
+        self:SetScript("OnUpdate", nil)
         addonTable.CallbackRegistry:TriggerEvent("Render")
       end)
     end

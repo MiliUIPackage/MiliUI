@@ -215,6 +215,7 @@ function addonTable.Display.ScrollingMessagesMixin:Render(newMessages)
       end
       self.pool:Release(fs)
     end
+    local showBar = addonTable.Config.Get(addonTable.Config.Options.SHOW_TIMESTAMP_SEPARATOR)
     for i = start + math.min(#messages, lines) - 1, start, -1 do
       local m = messages[i]
       if m then
@@ -225,10 +226,12 @@ function addonTable.Display.ScrollingMessagesMixin:Render(newMessages)
         fs:SetPoint("LEFT", self, addonTable.Messages.inset + 3, 0)
         fs:SetPoint("RIGHT", self, -1, 0)
         fs:SetPoint("BOTTOM", self, 0, 2)
+        fs:SetText("")
         fs:SetText(m.text)
         fs:SetTextColor(m.color.r, m.color.g, m.color.b)
         fs:SetTextScale(addonTable.Messages.scalingFactor)
         fs:SetNonSpaceWrap(true)
+        fs:SetIndentedWordWrap(not showBar)
         fs:SetAlpha(1)
         fs.animationTime = nil
         fs.animationStart = nil
@@ -251,7 +254,7 @@ function addonTable.Display.ScrollingMessagesMixin:Render(newMessages)
         timestamp:SetAlpha(1)
         fs.timestampValue = m.timestamp
         fs.timestamp = timestamp
-        if addonTable.Config.Get(addonTable.Config.Options.SHOW_TIMESTAMP_SEPARATOR) then
+        if showBar then
           local bar = self.barPool:Acquire()
           bar:Show()
           bar:SetTexture("Interface/AddOns/Chattynator/Assets/Fade.png")

@@ -1,6 +1,7 @@
 # Chattynator
 
-## [221](https://github.com/TheMouseNest/Chattynator/tree/221) (2026-08-14)
-[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/220...221) 
+## [223](https://github.com/TheMouseNest/Chattynator/tree/223) (2026-09-06)
+[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/222...223) 
 
-- Retail: Fix name on ping messages  
+- ElvUI skin improvements  
+- Fix invalidating messages breaking hyperlinks and frame interactivity  
