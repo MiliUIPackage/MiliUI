@@ -189,6 +189,38 @@ local function FlushDeferred()
 end
 
 ----------------------------------------------------------------------
+-- 下一幀：把工作丟出「現在這條堆疊」
+--
+-- ⚠ 跟上面的 ns.Defer 是兩回事。ns.Defer 是**脫戰**延遲——沒在戰鬥就當場執行，
+-- 所以它擋不住「我們的碼跑在暴雪的執行流程裡」這件事：暴雪 ExitEditMode 裡發的
+-- EventRegistry 事件、UpdateUIParentPosition 的掛勾……脫戰時照樣同步跑在人家
+-- 堆疊裡，整條流程就染成 InfoBar 的。要離開那條堆疊只有 C_Timer.After(0)。
+-- 同 key 一幀只跑最後一筆（這些處理器全部冪等，重複觸發只是浪費）。
+-- 見 .claude/notes/wow-121-addon-code-in-secure-stack.md
+----------------------------------------------------------------------
+local nextFrame = {}
+local nextFrameQueued = false
+
+local function FlushNextFrame()
+    nextFrameQueued = false
+    local batch = nextFrame
+    nextFrame = {}
+    for key, fn in pairs(batch) do
+        local t0 = Perf.Begin()
+        xpcall(fn, ns.ReportError)
+        Perf.End(deferLabels[key], t0)
+    end
+end
+
+function ns.NextFrame(key, fn)
+    nextFrame[key] = fn
+    if not nextFrameQueued then
+        nextFrameQueued = true
+        C_Timer.After(0, FlushNextFrame)
+    end
+end
+
+----------------------------------------------------------------------
 -- 事件樞紐：一個 frame 服務所有區塊，逐項 xpcall 隔離
 -- （一支區塊拋錯不能讓同事件的其他區塊跟著啞掉）
 --
@@ -367,6 +399,9 @@ local function ApplyColors()
             local r, g, b, a = BgColor()
             tile.bg:SetVertexColor(r, g, b, docked and 0 or a)
         end
+        -- 按下的底色是引擎的 PushedTexture（見 CreateTile），換色時一起補
+        local pushed = tile.GetPushedTexture and tile:GetPushedTexture()
+        if pushed then pushed:SetVertexColor(PushedColor()) end
         if tile.edges then ApplyEdgeColor(tile, tile:IsMouseMotionFocus()) end
         if tile.text then tile.text:SetTextColor(TextColor()) end
     end
@@ -422,19 +457,22 @@ function ns.CreateTile(name, opts)
         tile:SetPushedTextOffset(0, 0)
         tile:HookScript("OnEnter", function(self) ApplyEdgeColor(self, true) end)
         tile:HookScript("OnLeave", function(self) ApplyEdgeColor(self, false) end)
-        tile:HookScript("OnMouseDown", function(self)
-            self.bg:SetVertexColor(PushedColor())
-        end)
-        tile:HookScript("OnMouseUp", function(self)
-            self.bg:SetVertexColor(BgColor())
-        end)
-        -- 耗時計：PreClick→PostClick 夾住整個點擊，**含 secure 轉發之後暴雪開視窗
-        -- 的全部成本**——那段是在我們按鈕的 OnClick 裡跑的，效能監控算在資訊列頭上
-        tile._perfLabel = "click " .. name
-        tile:HookScript("PreClick", function(self) self._perfT0 = Perf.Begin() end)
-        tile:HookScript("PostClick", function(self)
-            if self._perfT0 then Perf.End(self._perfLabel, self._perfT0); self._perfT0 = nil end
-        end)
+        -- 按下的底色交給引擎：PushedTexture 在按住期間自動蓋在上面、放開自動收。
+        -- 不用 OnMouseDown/OnMouseUp 掛 Lua——放開那次派送裡 OnMouseUp 排在 OnClick
+        -- 前面，跟 PreClick 一樣會把 secure 轉發整個染髒（見下面的說明）。
+        tile:SetPushedTexture(WHITE)
+        tile:GetPushedTexture():SetVertexColor(PushedColor())
+        -- ⚠⚠ 這裡**不能**掛 PreClick（2026-09-06 曾掛來量點擊耗時，9/07 拆掉）。
+        -- PreClick 跑在 secure OnClick **之前、同一次點擊派送裡**，taint 會延續到
+        -- OnClick：secure 轉發 clickbutton:Click() → 暴雪微型按鈕 → 開天賦視窗，整段
+        -- 就變成在 InfoBar 的執行流程裡跑。天賦樹的節點欄位從此帶 InfoBar 的 taint，
+        -- 之後滑過節點寫 ON_BAR_HIGHLIGHT_MARKS、暴雪全面刷新快捷列（每顆按鈕的
+        -- .action／feedback_action、輔助輸出的旋轉框）全部染髒 ⇒ 戰鬥中
+        -- SetShown 被擋、UpdateCooldown 的 SetCooldown 吃到秘密值就炸。
+        -- 2026-09-07 taint.log ＋ /cdprobe scan 實測，見
+        -- .claude/notes/wow-121-addon-code-in-secure-stack.md。
+        -- 同理 OnMouseUp 也在放開那次派送裡、排在 OnClick 前面——所以按下／放開的底色
+        -- 交給引擎的 PushedTexture，不掛任何 Lua。
     else
         -- 純顯示的 tile 不吃滑鼠：資訊列不該擋住底下的遊戲畫面點擊
         tile:EnableMouse(false)
@@ -698,6 +736,56 @@ end
 -- force：跳過「上次貼了什麼」的記憶，但**還是**先看 UIParent 現況，一樣就不動。
 -- 沒停靠過（appliedDock 從來是 "none"、想要的也是 "none"）就連讀都不讀：
 -- 那時 UIParent 是暴雪的，我們沒有立場去比對它。
+----------------------------------------------------------------------
+-- ⚠⚠ 動 UIParent 一定要從 secure 端動，不能直接 UIParent:SetPoint
+--
+-- UIParent 的錨點一改，引擎**同步**發 OnSizeChanged → 編輯模式把整個介面重排 →
+-- 每排快捷列 UpdateShownButtons（12 顆按鈕＋12 個容器的 SetShown）、按鈕
+-- UpdateAction → Update → UpdateCooldown……這整條瀑布跑在「呼叫 SetPoint 的人」的
+-- 執行流程裡。從插件端呼叫，整條就是 InfoBar 的：戰鬥中 SetShown／SetAttribute 被擋
+-- （2026-09-07 引擎點名：MultiBarLeftButton1~12 與 Container1~12 的 SetShown 各 14 次、
+-- Button1 的 SetAttribute 28 次，全記在 MiliUI_InfoBar 頭上），脫戰時不被擋但一樣
+-- 是污染的——UpdateCooldown 吃到秘密值就是「ActionButton.lua:847 SetCooldown」那串。
+-- 延一幀沒用：timer 回呼還是我們的碼。
+--
+-- 解法：把那三行搬進 SecureHandler 的 snippet 用 SecureHandlerExecute 跑。受限環境
+-- 的執行是 secure 的，snippet 裡 p:SetPoint 觸發的整條重排也就是 secure 的。
+-- 規則（Blizzard_RestrictedAddOnEnvironment/RestrictedFrames.lua）：
+--   · relframe 用 "$screen"（＝插件端的 nil）；handle 用 SetFrameRef 給
+--   · UIParent 不是保護框 ⇒ GetHandleFrame 只在**脫戰**放行，戰鬥中 snippet 會拋
+--     「Invalid frame handle」。所以照舊只在脫戰貼，戰鬥中交給 ns.Defer 等 regen
+--   · snippet 走的是 LOCAL_CHECK_Frame.SetPoint（載入時複製的原始方法），
+--     不會撞到下面掛在 UIParent.SetPoint 上的方法掛勾，applyingInset 只是雙保險
+-- 微型選單的 hider（Core/MicroMenu.lua）是同一套，先例在同一支插件裡。
+----------------------------------------------------------------------
+local insetHandler
+local INSET_SNIPPET = [[
+    local p = self:GetFrameRef("uiparent")
+    p:ClearAllPoints()
+    p:SetPoint("TOPLEFT",     "$screen", "TOPLEFT",     0, self:GetAttribute("insetTop"))
+    p:SetPoint("BOTTOMRIGHT", "$screen", "BOTTOMRIGHT", 0, self:GetAttribute("insetBottom"))
+]]
+
+local function GetInsetHandler()
+    if insetHandler then return insetHandler end
+    if InCombatLockdown() or not SecureHandlerExecute then return nil end
+    local h = CreateFrame("Frame", nil, nil, "SecureHandlerStateTemplate")
+    h:SetFrameRef("uiparent", UIParent)
+    insetHandler = h
+    return h
+end
+
+-- 回傳是否真的貼了。戰鬥中／建不出 handler 一律 false，呼叫端自己決定要不要等 regen
+local function SecureReanchorUIParent(topY, bottomY)
+    local h = GetInsetHandler()
+    if not h then return false end
+    h:SetAttribute("insetTop", topY)
+    h:SetAttribute("insetBottom", bottomY)
+    local ok, err = pcall(SecureHandlerExecute, h, INSET_SNIPPET)
+    if not ok then ns.ReportError(err) end
+    return ok
+end
+
 local function ApplyInset(force)
     local side, h = DockInset()
     if not force and side == appliedDock and h == appliedInset then return end
@@ -707,29 +795,37 @@ local function ApplyInset(force)
     end
     appliedDock, appliedInset = side, h
     if InsetMatches(side, h) then return end
+    -- 戰鬥中 secure 端也動不了 UIParent（見上），等脫戰再貼一次
+    if InCombatLockdown() then
+        ns.Defer("inset-apply", function() ApplyInset(true) end)
+        return
+    end
     applyingInset = true
     local t0 = Perf.Begin()
     local topY, bottomY = DesiredInset(side, h)
-    UIParent:ClearAllPoints()
-    UIParent:SetPoint("TOPLEFT",     nil, "TOPLEFT",     0, topY)
-    UIParent:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, bottomY)
-    Perf.End("UIParent reanchor", t0)
+    SecureReanchorUIParent(topY, bottomY)
+    Perf.End("UIParent reanchor (secure)", t0)
     applyingInset = false
 end
 ns.ApplyInset = ApplyInset
 
 -- 暴雪那支跑完：記下它的值，停靠中就把自己的那一條疊回去。
 -- 這是主力；下面的方法掛勾只是保險（給沒走這支函式的重設）。
+-- ⚠ 掛勾裡只**讀**。真正的重貼丟到下一幀——這個掛勾跑在暴雪 UIParent 工具的
+--   執行流程裡（鑰石開始等時機），在裡面動 UIParent 等於把整條重排染成我們的。
 if type(UpdateUIParentPosition) == "function" then
     hooksecurefunc("UpdateUIParentPosition", function()
         if applyingInset then return end
-        local t0 = Perf.Begin()
         blizzTopOffset = CurrentTopOffset()
-        if appliedDock ~= "none" and db and not InCombatLockdown() then
-            ApplyInset(true)
-            if ns.ApplyBarPosition then ns.ApplyBarPosition() end
+        if appliedDock ~= "none" and db then
+            ns.NextFrame("inset-blizz", function()
+                if not db or InCombatLockdown() then return end
+                local t0 = Perf.Begin()
+                ApplyInset(true)
+                if ns.ApplyBarPosition then ns.ApplyBarPosition() end
+                Perf.End("inset repair (UpdateUIParentPosition)", t0)
+            end)
         end
-        Perf.End("hook UpdateUIParentPosition", t0)
     end)
 end
 
@@ -942,21 +1038,30 @@ local function UpdateEditModeState()
 end
 
 -- 三層掛勾：檔案層 → Blizzard_EditMode 載入時 → PLAYER_LOGIN 保底
+--
+-- ⚠⚠ 處理器裡只改旗標，工作一律丟到下一幀。這幾個入口全部跑在暴雪的
+-- EnterEditMode／ExitEditMode **裡面**（EventRegistry 的 TriggerEvent 不走
+-- securecall；HookScript 的 OnHide 是在 ExitEditMode 呼叫 self:Hide() 時同步觸發），
+-- 而 ExitEditMode 有一種觸發方式是**戰鬥開始時被暴雪強制呼叫**——那時我們的
+-- 處理器在它裡面跑完，它接下來重套整個版面（每排快捷列 UpdateShownButtons）就
+-- 染成 InfoBar 的、在戰鬥中被擋。2026-09-07 引擎點名的那 24 個 SetShown 就是這個
+-- 形狀。三層掛勾都冪等，同一幀只跑最後一次。
 local editModeHooked = false
-local function OnEditModeEnter()
+local function ApplyEditModeState()
     local t0 = Perf.Begin()
-    isInEditMode = true
-    UpdateEditModeState()
-    Perf.End("editmode enter", t0)
-end
-local function OnEditModeExit()
-    local t0 = Perf.Begin()
-    isInEditMode = false
     UpdateEditModeState()
     -- 編輯模式會把被我們藏起來的暴雪微型選單重新 Show 出來，
     -- 離開時強制重推一次 hider 修回去
-    if ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden(true) end
-    Perf.End("editmode exit", t0)
+    if not isInEditMode and ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden(true) end
+    Perf.End(isInEditMode and "editmode enter" or "editmode exit", t0)
+end
+local function OnEditModeEnter()
+    isInEditMode = true
+    ns.NextFrame("editmode", ApplyEditModeState)
+end
+local function OnEditModeExit()
+    isInEditMode = false
+    ns.NextFrame("editmode", ApplyEditModeState)
 end
 
 local function HookEditMode()
