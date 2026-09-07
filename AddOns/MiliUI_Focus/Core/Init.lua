@@ -24,6 +24,55 @@ function ns.Print(...)
 end
 
 ------------------------------------------------------------
+-- 12.x 的插件對外通訊限制閘
+--
+-- Midnight 起遊戲會在特定情境把插件的「對外送訊息」整組關掉。⚠ 被擋的時候
+-- **不是回傳失敗碼，是直接彈「介面功能因插件而失效」那個紅字對話框**，所以每一次
+-- 送之前都要先問過，不要賭。兩條路各有各的閘：
+--
+--   聊天訊息 SendChatMessage   → ns.IsChatRestricted()
+--   插件訊息 SendAddonMessage  → ns.IsCommRestricted()
+--
+-- 情境由 Enum.AddOnRestrictionType 定義（12.0 新增，12.0.5 補上 Chat）：
+-- Combat / Encounter / ChallengeMode / PvPMatch / Map / Chat。
+-- ⚠ **ChallengeMode 是「整趟鑰石」都算，不是只有戰鬥中** —— 這就是「M+ 隊伍裡
+--   宣告一直送不出去」的成因，跟有沒有在打怪無關。
+-- ⚠ 封鎖期間連「把字填進聊天輸入框」都不准（ChatFrameUtil.InsertLink 一樣被擋，
+--   Auctionator／Baganator／Chattynator 都是這樣擋的），所以沒有「幫玩家填好、
+--   他自己按 Enter」這條降級路，只能把內容印在本地讓他自己打。
+------------------------------------------------------------
+local function RestrictionActive(name)
+    local t = Enum and Enum.AddOnRestrictionType and Enum.AddOnRestrictionType[name]
+    if t == nil then return false end
+    if not (C_RestrictedActions and C_RestrictedActions.IsAddOnRestrictionActive) then return false end
+    return C_RestrictedActions.IsAddOnRestrictionActive(t) and true or false
+end
+
+-- 插件現在能不能送聊天訊息。InChatMessagingLockdown 就是暴雪給這題的正解
+-- （MRT／Chattynator／Auctionator 都只問它），API 不在才退回情境判斷。
+function ns.IsChatRestricted()
+    if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown then
+        return C_ChatInfo.InChatMessagingLockdown() and true or false
+    end
+    return RestrictionActive("Chat") or RestrictionActive("Encounter")
+        or RestrictionActive("ChallengeMode") or RestrictionActive("PvPMatch")
+end
+
+-- 插件現在能不能送 addon message。注意這只擋「送」，**不清掉已經收到的資料** ——
+-- M+ 開始前在隊伍裡收到的隊友設定，整趟鑰石都還用得上，正是最需要它的場合。
+function ns.IsCommRestricted()
+    if RestrictionActive("Encounter") or RestrictionActive("ChallengeMode")
+       or RestrictionActive("PvPMatch") then
+        return true
+    end
+    -- C_RestrictedActions 不在時的等價判斷
+    if IsEncounterInProgress and IsEncounterInProgress() then return true end
+    if C_MythicPlus and C_MythicPlus.IsRunActive and C_MythicPlus.IsRunActive() then return true end
+    if C_PvP and C_PvP.IsActiveBattlefield and C_PvP.IsActiveBattlefield() then return true end
+    return false
+end
+
+------------------------------------------------------------
 -- 錯誤收集與封鎖動作攔截 —— 共用層 Libs/MiliUIWidgets/Errors.lua
 --
 --   ns.ReportError  xpcall 的訊息處理器（三道守衛：防遞迴、err 本身可能是秘密

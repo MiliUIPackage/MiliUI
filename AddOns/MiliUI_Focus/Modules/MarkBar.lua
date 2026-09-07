@@ -275,6 +275,14 @@ local function BuildAnnounceMessage(forChat)
     return msg
 end
 
+-- 宣告鈕的可用狀態：被封鎖時把圖示壓暗（套組慣例，狀態只換明暗不換色）。
+-- 只碰材質顏色，戰鬥中隨時能做。
+local function UpdateAnnounceState()
+    if not announceBtn then return end
+    local g = ns.IsChatRestricted() and 0.42 or 1
+    announceBtn.icon:SetVertexColor(g, g, g)
+end
+
 local lastAnnounce = 0
 local function Announce()
     -- 防連點洗頻
@@ -286,13 +294,22 @@ local function Announce()
     end
     lastAnnounce = GetTime()
     local channel = GetAnnounceChannel()
-    if channel then
-        SendChatMessage(msg, channel)
-    else
+    if not channel then
         -- 本地預覽：{rtN} 不會被聊天框轉換，改用材質跳脫顯示
         ns.Print(ns.L["Not in a group; the announcement would read:"]
             .. " " .. BuildAnnounceMessage(false))
+        return
     end
+    -- 12.x：M+ 計時中／首領戰／戰場，插件送聊天訊息會被暴雪擋下（見
+    -- Core/Init.lua 的限制閘）。不先問就送＝吃一個封鎖對話框，而且訊息還是沒出去。
+    -- 沒有替代路可走（連填進聊天輸入框都被擋），只能把**可以照打的原文**印出來。
+    if ns.IsChatRestricted() then
+        ns.Print("|cffff5555" .. ns.L["Blizzard blocks addon chat messages during Mythic+ runs, boss fights and battlegrounds. Type it yourself:"] .. "|r")
+        print("   " .. msg)
+        UpdateAnnounceState()   -- 鈕還亮著表示漏接了狀態事件，順手補上
+        return
+    end
+    SendChatMessage(msg, channel)
 end
 
 ----------------------------------------------------------------------
@@ -507,10 +524,15 @@ local function CreateBar()
         local channel = GetAnnounceChannel()
         GameTooltip:AddLine(L["Sends to:"] .. " "
             .. (channelNames[channel] or L["(not in a group, shown to you only)"]), 0.8, 0.8, 0.8)
+        if ns.IsChatRestricted() then
+            GameTooltip:AddLine(L["Blizzard blocks addon chat messages during Mythic+ runs, boss fights and battlegrounds — right now this can only be printed to you."],
+                1, 0.3, 0.3, true)
+        end
         GameTooltip:AddLine(L["The announcement text can be changed in the settings"], 0.5, 0.8, 1)
         GameTooltip:Show()
     end)
     announceBtn:SetScript("OnLeave", GameTooltip_Hide)
+    UpdateAnnounceState()
 
     UpdateMarkIcon()
     PositionBar()
@@ -538,6 +560,7 @@ function MarkBar.Refresh()
     if ShouldShow() then
         CreateBar()
         UpdateMarkIcon()
+        UpdateAnnounceState()
         PositionBar()
         bar:Show()
     elseif bar then
@@ -598,11 +621,32 @@ ev:SetScript("OnEvent", function(_, event)
             pendingRefresh = false
             MarkBar.Refresh()
         end
+        UpdateAnnounceState()
+    else
+        -- 限制狀態變了 → 重算宣告鈕的明暗。
+        -- ⚠ ADDON_RESTRICTION_STATE_CHANGED 派送的當下，
+        --   C_RestrictedActions.IsAddOnRestrictionActive 對「正在變的那個型別」
+        --   一律回 false（官方文件明寫），所以要延一幀才讀得到終值。
+        C_Timer.After(0, UpdateAnnounceState)
     end
 end)
 
 ns.RegisterCallback("Init", "markbar", function()
     ev:RegisterEvent("PLAYER_REGEN_ENABLED")
     ev:RegisterEvent("GLOBAL_MOUSE_DOWN")
+    -- 限制狀態變動。有 ADDON_RESTRICTION_STATE_CHANGED 就只要它一個
+    -- （Combat／Encounter／ChallengeMode／PvPMatch／Map／Chat 全包），
+    -- 沒有才退回逐個情境事件
+    if C_EventUtils and C_EventUtils.IsEventValid
+       and C_EventUtils.IsEventValid("ADDON_RESTRICTION_STATE_CHANGED") then
+        ev:RegisterEvent("ADDON_RESTRICTION_STATE_CHANGED")
+    else
+        ev:RegisterEvent("CHALLENGE_MODE_START")
+        ev:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+        ev:RegisterEvent("CHALLENGE_MODE_RESET")
+        ev:RegisterEvent("ENCOUNTER_START")
+        ev:RegisterEvent("ENCOUNTER_END")
+    end
+    ev:RegisterEvent("PLAYER_ENTERING_WORLD")   -- 進副本／重載後對一次狀態
     MarkBar.Refresh()
 end)

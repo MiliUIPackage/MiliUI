@@ -28,6 +28,7 @@ Warcraft Wiki: https://warcraft.wiki.gg/wiki/Patch_12.1.0/API_changes （TOC `12
 - `SetTableSecurityOption` 移除，改用 `settablesecurity`（見 [[wow-121-secret-values]]）。
 
 **插件通訊被封鎖的情境（12.1 新增，實測自 Cell）**
+完整的限制系統（六個 `AddOnRestrictionType`、聊天那條連填輸入框都被擋）見 [[wow-12x-addon-restrictions]]。
 遊戲會在**首領戰進行中／M+ 計時中／PvP 戰場中**封鎖 addon message。任何 `SendAddonMessage` 都要先擋一次，不要去賭受限時是回傳失敗碼還是直接報錯：
 
 ```lua

@@ -32,14 +32,10 @@ local lastSend = 0
 ----------------------------------------------------------------------
 -- 通訊
 ----------------------------------------------------------------------
--- 12.1：首領戰進行中／M+ 計時中／PvP 戰場中會封鎖 addon message。注意這只擋
--- 「送」，**不清掉已經收到的資料** —— M+ 開始前在隊伍裡收到的設定，整趟鑰石都
--- 還用得上，正是最需要它的場合。
+-- 12.x：首領戰進行中／M+ 計時中／PvP 戰場中會封鎖 addon message。判斷收在
+-- Core/Init.lua（那裡也放了聊天訊息那一條的閘，兩者的情境不完全一樣）。
 local function IsCommRestricted()
-    if IsEncounterInProgress and IsEncounterInProgress() then return true end
-    if C_MythicPlus and C_MythicPlus.IsRunActive and C_MythicPlus.IsRunActive() then return true end
-    if C_PvP and C_PvP.IsActiveBattlefield and C_PvP.IsActiveBattlefield() then return true end
-    return false
+    return ns.IsCommRestricted()
 end
 
 local function GroupChannel()
