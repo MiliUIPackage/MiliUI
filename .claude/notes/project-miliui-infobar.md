@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: c0d1056b-afe5-4f0b-a0d1-24a0f3f4c05d
-  modified: 2026-08-29T15:28:31.411Z
+  modified: 2026-09-07T13:15:59.401Z
 ---
 
 `AddOns/MiliUI_InfoBar/`（2026-08-29 新增）。純色方底一長條：資訊區塊（裝等／耐久／
@@ -210,4 +210,26 @@ OnClick 裡，分析器整段算給資訊列；「近期平均（最近 60 幀�
 第三個（最大宗、每 5 秒 90 ms）：CPU／記憶體方塊點開本體的效能分頁，分頁的 frame 在資訊列的
 點擊裡建出來，之後它 OnUpdate 裡的 UpdateAddOnMemoryUsage 整場記給資訊列。修在本體那邊
 （MiliUI/Api.lua 的 perfRelay 中繼框），規則見 [[wow-addon-profiler-cost]]。
+
+## taint 紀律（2026-09-07 破案，整包快捷列 SetCooldown 秘密值的根）
+
+四條入口全部收掉，改任何一條之前先看 [[wow-121-addon-code-in-secure-stack]]：
+
+- **教學提示改鏡射不改錨**（`Core/MicroMenu.lua`）：暴雪 HelpTip 框的欄位一個都不寫、
+  HelpTip 的 API 一個都不叫。文字讀出來畫自己的泡泡（每顆方塊一顆），暴雪那顆
+  `SetAlpha(0)`＋關滑鼠隱形、`Release` 後置勾還原，叉叉走 `SetCVarBitfield`。方塊被
+  使用者藏掉的那顆不動。第一版改 `relativeRegion` 的寫法就是根因：天賦視窗一開
+  `EvaluateAlertVisibility` 收提示、`HelpTip OnHide` 讀回我們寫的欄位，整條開窗流程
+  染成資訊列的——戰鬥中天賦打不開、ESC 關窗把所有快捷列格子收起來、每顆按鈕永久髒。
+- **UIParent 內縮從 secure 端動**：`SecureHandlerExecute` snippet 裡 `SetPoint("$screen")`；
+  延一幀沒用。戰鬥中 snippet 動不了 UIParent（不是保護框），照舊只在脫戰貼。
+- **點擊派送裡 OnClick 前面沒有任何 Lua**：PreClick 耗時計拆掉、按下底色改引擎的
+  `PushedTexture`；轉發用 `*macrotext1 = "/click <名字>"` 不用 `*clickbutton1 = 框`；
+  右鍵選單走 `ns.SecureRightClick`（`SecureHandlerWrapScript` ＋ `control:CallMethod`）。
+- **編輯模式進出、`UpdateUIParentPosition` 掛勾只改旗標／只讀**，工作丟 `ns.NextFrame`
+  （跟脫戰延遲的 `ns.Defer` 是兩回事，那個沒在戰鬥就當場執行、擋不住這種）。
+
+診斷靠 `_CDProbe`（隨套組發佈中）：`/cdprobe` 看引擎點名的封鎖、`/cdprobe scan` 掃
+變數污染、`/cdprobe ui` 倒跨場次記錄。EUI 的對照：同樣的 clickbutton 轉發但戰鬥中用
+state driver 把點擊拔掉、完全不碰 HelpTip——它沒踩坑是因為沒做這兩個功能。
 

@@ -1,11 +1,11 @@
 ---
 name: wow-121-addon-code-in-secure-stack
-description: 自己的 Lua 跑在暴雪的 secure 堆疊裡就會污染它——三個已知入口、延一幀的解法、taintLog 看不到這一類的原因
+description: 自己的 Lua 跑在暴雪的 secure 堆疊裡、或在暴雪的框上寫了一個欄位，就會污染它——七個實測過的入口、延一幀／secure snippet／只讀不寫三種解法、探針怎麼做才不會假陰性
 metadata: 
   node_type: memory
   type: reference
   originSessionId: a46e5c58-e427-4f26-b413-59eb1b1965fa
-  modified: 2026-09-05T00:00:00.000Z
+  modified: 2026-09-07T13:15:41.463Z
 ---
 
 **指紋**：錯誤堆疊**整條都是暴雪的檔案**，一行插件程式都沒有，但訊息點名某支插件；
@@ -70,6 +70,41 @@ MULTIACTIONBAR4BUTTON9:2 → UseAction()            ─┘
 **教訓：找入口要列「所有」會被暴雪呼叫的 script 與事件 frame，不是只看 OnEvent
 主幹；`grep SetScript\|HookScript` 一次掃完。** 是否真的歸零待遊戲內驗證。
 
+**5. 暴雪框上的欄位——一個都不能寫（2026-09-07 破案，追了九天的那條）**
+
+不是「跑在堆疊裡」，是**寫了一個欄位、暴雪之後在自己的流程裡讀回去**。
+MiliUI_InfoBar 把「尚未選用的天賦」那顆暴雪 HelpTip 的 `relativeRegion` 改成指向
+自己的方塊；天賦視窗一開，`PlayerSpellsFrame:OnShow → EvaluateAlertVisibility` 收掉
+那顆提示，`HelpTip.lua:408 OnHide → local relativeRegion = self.relativeRegion` 讀到
+我們寫的值，**從那一行起整條開視窗的流程都是 InfoBar 的**：SetTab 的 SetShown 戰鬥中
+被擋、ESC 關窗 `MultiActionBar_HideAllGrids` 把所有快捷列的格子收起來、每顆按鈕的
+`.action`／輔助輸出旋轉框永久染髒、之後每個 tick `UpdateCooldown` 吃到秘密值就炸。
+只在「有未用天賦點、提示正顯示」時發生 ⇒ 隨機。改錨、改 `info.targetPoint`、
+`SetScript("OnUpdate", nil)`、呼叫 `HelpTip:Show/Hide/Acknowledge`（會寫它的 pool 與
+FrameWatcher）通通算「寫」。
+
+規則：**對暴雪的框只讀。** 要改外觀就自己畫一顆（讀 `info.text` 畫自己的泡泡）；
+要讓它消失只能用純 C 端狀態（`SetAlpha(0)`、`EnableMouse(false)`——taint 不追蹤
+widget 屬性），而且要在 `Release` 後置勾還原；要記「已看過」直接 `SetCVarBitfield`
+（暴雪自己的 HandleAcknowledge 也是這行）。
+
+**6. 自己動 UIParent 的錨點**
+
+UIParent 一動，引擎**同步**發 OnSizeChanged → 編輯模式重排整個介面 → 每排快捷列
+`UpdateShownButtons`／`UpdateAction`——整條瀑布跑在「呼叫 SetPoint 的人」的執行流程裡。
+**延一幀沒用**（timer 回呼還是我們的碼）。只能從 secure 端動：`SecureHandlerExecute`
+的 snippet 裡 `p:ClearAllPoints(); p:SetPoint("TOPLEFT", "$screen", ...)`（relframe 用
+`"$screen"`；UIParent 不是保護框，snippet 只在脫戰放行）。
+
+**7. secure 按鈕的點擊派送**
+
+同一次點擊派送裡排在 secure OnClick **前面**的插件 Lua（`PreClick`、`OnMouseUp`）會把
+secure 動作一起染髒；右鍵選單不能 `HookScript("OnClick")`，走
+`SecureHandlerWrapScript` ＋ `control:CallMethod`；轉發到暴雪按鈕用
+`*macrotext1 = "/click <名字>"`，不要 `*clickbutton1 = 框`（框參照型的屬性讀回來是髒的，
+字串型引擎會複製成乾淨的值）。EUI 的做法是乾脆 `[combat] combat; nocombat` 把戰鬥中的
+點擊拔掉、也完全不碰 HelpTip。
+
 ## 解法
 
 **能延就延一幀。** `C_Timer.After(0, ...)` 把工作丟出那條堆疊，taint 就注不進去。
@@ -98,6 +133,21 @@ variable Y**」——要有被寫髒的**變數**被讀到才留紀錄。執行�
    就是一條管道；底下是自己的檔案就無害。這比看訊息本身有用得多。
 2. `issecurevariable(t, k)` / `issecurevariable("全域名")` 逐一掃出事路徑上的欄位。
    **全部乾淨**就代表污染是執行層級的，別再往變數方向找。
+   ⚠ 但要在 bug **發作之後**掃，而且要掃「每個 key」不是挑欄位——變數污染是永久的，
+   發作前掃永遠乾淨（8/30、9/07 12:49 兩次都被這樣騙）。掃的範圍要含**插件可能寫過的
+   暴雪框**（微型按鈕、HelpTip 現役框、快捷列本體、UIParent），不只出事的那條路徑。
+   `_CDProbe` 的 `/cdprobe scan` 就是這個。
+3. **`ADDON_ACTION_BLOCKED` 事件帶插件名字**——引擎自己點名，比 taintLog 好用。
+   `!BugGrabber` 對這兩個事件是註解掉的（BugGrabber.lua:507），BugSack 裡永遠看不到，
+   要自己 `RegisterEvent` 接。同一條路徑再往下走的封鎖（SetShown／SetAttribute）
+   會替不寫名字的 SetCooldown 錯誤把名字補上。
+4. **不要用 `seterrorhandler` 做探針**：`!BugGrabber` 把它換成空函式（BugGrabber.lua:527），
+   接不到但也不報錯，計數永遠 0——跟「沒有錯誤」長得一模一樣，2026-09-07 整輪二分法
+   因此全是假陰性。讀 `BugGrabber:GetDB()` 算 counter 差量；而且它的洗版保護
+   （`BUGGRABBER_ERRORS_PER_SEC_BEFORE_THROTTLE = 10`）會把每 tick 炸的風暴整批丟掉，
+   要先把那個全域調高。
+5. taint.log **在 /reload 時可能被客戶端重建**（19:00、21:04 兩次都清空了）。重現完
+   不要 reload：等一分鐘讓它自己 flush，或登出到角色選擇畫面。
 
 ⚠ **BugSack 的錯誤是寫進 SavedVariables 跨場次留著的。** 做插件二分法的時候，
 看到「某支根本沒載入的插件」被點名就是舊紀錄。測之前先 Clear，不然會追鬼——
