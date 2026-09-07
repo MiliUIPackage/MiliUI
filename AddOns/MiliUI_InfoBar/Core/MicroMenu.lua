@@ -3,11 +3,15 @@
 --
 -- 做法照 EllesmereUI DataBars 的 micromenu 區塊（tmp/ 裡研究過的那份）：
 --
--- 1. 每顆自製按鈕是 SecureActionButtonTemplate，*clickbutton1 指向暴雪的
---    MicroButton、*type1 = "click"。點我們的按鈕＝在 secure 環境裡點暴雪按鈕，
---    戰鬥中的行為跟原廠一模一樣（天賦、角色資訊照樣打得開）。
---    ⚠ 12.1 起天賦／法術書**必須**走這條路：addon Lua 直接開視窗會污染框架，
---    之後 Blizzard_SpellBookItem 的 SetCooldown 吃到秘密值就崩。
+-- 1. 每顆自製按鈕是 SecureActionButtonTemplate，*type1 = "macro"、
+--    *macrotext1 = "/click <暴雪 MicroButton 的名字>"。點我們的按鈕＝secure 的巨集
+--    處理器去按暴雪按鈕，戰鬥中的行為跟原廠一模一樣（天賦、角色資訊照樣打得開）。
+--    ⚠ 12.1 起天賦／法術書**必須**走 secure 轉發：addon Lua 直接開視窗會污染框架，
+--    之後 SetCooldown 吃到秘密值就崩。
+--    ⚠⚠ 而且**不能用 `*clickbutton1 = 框`**（第一版就是這樣寫的）：框參照型的屬性
+--    引擎沒辦法像字串那樣複製成乾淨的值，讀回來就是髒的，轉發出去的點擊整段帶
+--    InfoBar 的 taint —— 效果跟 addon Lua 直接開視窗一樣糟，只是堆疊上看不到我們。
+--    2026-09-07 taint.log 抓到的，見方塊建立處的說明。
 --    跟 EUI 不同的刻意決定：不掛戰鬥鎖（他們戰鬥中把 *type1 卸掉），
 --    因為「戰鬥中能點開天賦／換擲骰」正是這條資訊列要解的需求。
 --
@@ -223,119 +227,184 @@ local function EnsurePulseHooks()
 end
 
 ------------------------------------------------------------
--- 教學提示重錨（「你有可用的 PvP 天賦欄位」那種黃色泡泡）
+-- 教學提示鏡射（「你還有尚未選用的天賦」那種黃色泡泡）
 --
 -- 暴雪把提示錨在**原鈕**上：MainMenuMicroButton_ShowAlert 裡是
 -- `HelpTip:Show(UIParent, info, microButton)`（MainMenuBarMicroButtons.lua）。
 -- 原鈕被藏起來但位置還在畫面右下角，提示就飛到那裡，跟資訊列完全對不上。
 --
--- **不搬暴雪的按鈕**：它們是 GridLayoutFrame 的子物件，那個容器一重排就把我們
--- 的 SetPoint 蓋掉；而且按鈕顆數會隨設定變、尺寸也會變，硬對位置是撐不住的。
--- 改成提示**建出來之後**把它的 relativeRegion 換成對應的方塊、再讓暴雪自己重錨
--- 一次。查表走 refToTile，所以顆數與尺寸怎麼變都自動對得上。
+-- ⚠⚠ 第一版（2026-08-29 ~ 09-07）是把暴雪那顆提示的 `relativeRegion`／
+-- `info.targetPoint` 改成指向我們的方塊，再讓它自己重錨。**這就是整個套組
+-- 「快捷列 SetCooldown 秘密值／戰鬥中 SetShown 被擋、全記在 InfoBar 頭上」的根**：
 --
--- `AnchorAndRotate()` 不帶參數就是 Init 收尾的那一下（HelpTip.lua:530），
--- 箭頭方向與偏移全部照暴雪自己的算法重算，我們不自己算座標。
+--   Blizzard_PlayerSpells/Blizzard_PlayerSpellsFrame.lua:41
+--     OnShow → PlayerSpellsMicroButton:EvaluateAlertVisibility()   收掉那顆提示
+--   Blizzard_SharedXML/HelpTip.lua:408
+--     OnHide → local relativeRegion = self.relativeRegion            ← 我們寫的欄位
+--
+-- 天賦視窗一開，暴雪在同一條執行流程裡讀到我們寫的欄位，從那一行起整條都是
+-- InfoBar 的：SetTab 的 SetShown（戰鬥中打不開）、之後 ESC 關窗把所有快捷列的
+-- 格子收起來、每顆按鈕永久染髒。只在「有未用天賦點、提示正顯示」時發生 ⇒ 隨機。
+-- 2026-09-07 taint.log ＋ /cdprobe scan 抓到的。
+--
+-- 所以現在的規則：**對暴雪的提示框只讀不寫，也不呼叫 HelpTip 的任何 API**
+-- （Show／Hide／Acknowledge 都會在我們的執行流程裡寫它的 pool 與 FrameWatcher）。
+--   · 文字從 `frame.info.text` 讀出來，畫在自己的泡泡上、錨在自己的方塊上
+--   · 暴雪那顆用 SetAlpha(0) ＋ EnableMouse(false) 讓它隱形——純 C 端的 widget
+--     狀態，taint 不追蹤；Release 掛勾把它還原，pool 重用時才不會看不見
+--   · 泡泡的叉叉走 SetCVarBitfield 直接記「已看過」（HelpTip 自己的
+--     HandleAcknowledge 也是這一行），暴雪那顆留給它自己的生命週期收
+-- 掛勾全是 hooksecurefunc 的後置勾，本體只做讀取、自己的框、C 端呼叫。
 ------------------------------------------------------------
 local helpTipHooked = false
+local dimmed = setmetatable({}, { __mode = "k" })   -- 被我們隱形的暴雪提示框
+local acked = {}                                    -- 已按過叉叉的提示文字（本場）
+-- 自己的泡泡：每顆方塊各一顆（暴雪的微型按鈕提示本來一次只顯示一顆，但判準是
+-- 「錨在哪顆原鈕」，不是列舉提示種類——專業／天賦／PvP 點數／成就／收藏／公會／地城
+-- 都走同一支 MainMenuMicroButton_ShowAlert，兩顆同時在也各自接得住）
+local bubbles = {}                                  -- tile → 泡泡框
 
--- 把一個還在顯示中的提示改錨到對應的方塊上。
--- 比對用 **relativeRegion**（錨定對象）而不是 info 表的參照：
--- `MainMenuMicroButton_ShowAlert` 每次呼叫都新建一張 helpTipInfo，而
--- `HelpTip:Show` 在「同樣的文字已經在顯示中」時會**提前 return、不重建 frame**
--- （HelpTip.lua:181）——那條路上舊 frame 的 info 跟這次傳進來的根本不是同一張表，
--- 拿 info 比對就永遠對不上。
--- 泡泡有沒有真的黏過來（只看水平距離就夠了：錯位時是整個飛到畫面另一邊）
-local function TipFollowed(frame, tile)
-    if not (frame.IsRectValid and frame:IsRectValid() and tile:IsRectValid()) then
-        return false
-    end
-    local fx = frame:GetCenter()
-    local tx = tile:GetCenter()
-    if not (fx and tx) then return false end
-    return math.abs(fx - tx) < 250
+-- 這顆暴雪提示對應到我們哪一顆方塊（只讀）
+local function TileForTip(frame)
+    local rr = frame.relativeRegion
+    return rr and refToTile[rr] or nil
 end
 
--- ⚠⚠ 只換 `relativeRegion` 再叫 `AnchorAndRotate()` **不會有任何反應**，而且不報錯。
--- 原因是那支開頭有一道快取閘（HelpTip.lua:552）：
---     if targetPoint == self.appliedTargetPoint and alignment == self.appliedAlignment then
---         return;
--- 我們動的是錨定「對象」，targetPoint／alignment 都沒變，所以它直接 return——
--- 連每幀跑的 OnUpdate 也是同一道閘擋掉。**清掉那兩個快取欄位**它才會真的重算。
---
--- 箭頭方向也在同一支裡處理（RotateArrow ＋ AnchorArrow），所以只要讓它重算，
--- 位置與箭頭會一起對；我們唯一要決定的是泡泡該在方塊的哪一側：
---   方塊在畫面下半 → 泡泡放上方 → targetPoint = TopEdgeCenter（箭頭朝下）
---   方塊在畫面上半 → 泡泡放下方 → targetPoint = BottomEdgeCenter（箭頭朝上）
--- 寫進 `info.targetPoint` 而不是用 AnchorAndRotate 的 override 參數：OnUpdate
--- 每幀都會拿 `info.targetPoint` 重算一次，只傳 override 的話下一幀就被翻回去。
-local function ApplyAnchor(frame, tile)
-    frame.relativeRegion = tile
+local function Dim(frame)
+    if dimmed[frame] then return end
+    dimmed[frame] = true
+    frame:SetAlpha(0)
+    frame:EnableMouse(false)
+    if frame.CloseButton then frame.CloseButton:EnableMouse(false) end
+end
 
+local function Undim(frame)
+    if not dimmed[frame] then return end
+    dimmed[frame] = nil
+    frame:SetAlpha(1)
+    frame:EnableMouse(true)
+    if frame.CloseButton then frame.CloseButton:EnableMouse(true) end
+end
+
+local function AcknowledgeInfo(info)
+    if info and info.cvarBitfield and info.bitfieldFlag then
+        SetCVarBitfield(info.cvarBitfield, info.bitfieldFlag, true)
+    end
+end
+
+local BUBBLE_W, BUBBLE_PAD = 260, 8
+
+local function EnsureBubble(tile)
+    local b = bubbles[tile]
+    if b then return b end
+    b = W.CreateFrame(nil, UIParent)
+    b:SetFrameStrata("DIALOG")
+    b:SetClampedToScreen(true)
+    W.Stylize(b, { 0, 0, 0, 0.85 }, { W.Accent(1) })
+
+    local text = b:CreateFontString(nil, "OVERLAY")
+    text:SetFont(ns.LOCALE_FONT, 12, "")
+    text:SetTextColor(1, 1, 1)
+    text:SetJustifyH("LEFT")
+    text:SetWordWrap(true)
+    text:SetWidth(BUBBLE_W - BUBBLE_PAD * 2 - 18)
+    text:SetPoint("TOPLEFT", b, "TOPLEFT", BUBBLE_PAD, -BUBBLE_PAD)
+    b.text = text
+
+    local close = CreateFrame("Button", nil, b)
+    close:SetSize(16, 16)
+    close:SetPoint("TOPRIGHT", b, "TOPRIGHT", -4, -4)
+    local x = close:CreateFontString(nil, "OVERLAY")
+    x:SetFont(ns.LOCALE_FONT, 14, "")
+    x:SetPoint("CENTER")
+    x:SetText("×")
+    x:SetTextColor(1, 0.82, 0)
+    close:SetScript("OnEnter", function() x:SetTextColor(1, 1, 1) end)
+    close:SetScript("OnLeave", function() x:SetTextColor(1, 0.82, 0) end)
+    close:SetScript("OnClick", function()
+        if b.info then
+            AcknowledgeInfo(b.info)
+            if b.info.text then acked[b.info.text] = true end
+        end
+        b:Hide()
+    end)
+    b.close = close
+    b:Hide()
+    bubbles[tile] = b
+    return b
+end
+
+local function ShowBubbleFor(tile, info)
+    local b = EnsureBubble(tile)
+    b.info = info
+    b.text:SetText(info.text or "")
+    b:SetSize(BUBBLE_W, math.ceil(b.text:GetStringHeight() + BUBBLE_PAD * 2))
+    b:ClearAllPoints()
     local _, cy = tile:GetCenter()
     if cy and cy > UIParent:GetHeight() / 2 then
-        frame.info.targetPoint = HelpTip.Point.BottomEdgeCenter
+        b:SetPoint("TOP", tile, "BOTTOM", 0, -6)
     else
-        frame.info.targetPoint = HelpTip.Point.TopEdgeCenter
+        b:SetPoint("BOTTOM", tile, "TOP", 0, 6)
     end
-
-    frame.appliedTargetPoint = nil
-    frame.appliedAlignment = nil
-    pcall(frame.AnchorAndRotate, frame)
-    if TipFollowed(frame, tile) then return "官方" end
-
-    -- 保險絲：官方那條路萬一又變了，至少位置要對（箭頭方向就只能將就）。
-    -- 自己接手時要把 OnUpdate 拿掉，不然 autoHorizontalSlide 每幀會跟我們搶。
-    frame:SetScript("OnUpdate", nil)
-    frame:ClearAllPoints()
-    if cy and cy > UIParent:GetHeight() / 2 then
-        frame:SetPoint("TOP", tile, "BOTTOM", 0, -14)
-    else
-        frame:SetPoint("BOTTOM", tile, "TOP", 0, 14)
-    end
-    return "自己接手"
+    b:Show()
 end
 
-local function ReanchorTo(relativeRegion)
-    local tile = relativeRegion and refToTile[relativeRegion]
-    if not (tile and tile:IsShown()) then return end
+local function HideAllBubbles()
+    for _, b in pairs(bubbles) do b:Hide() end
+end
+
+-- 把現況對齊。只讀暴雪的 pool，不寫它任何東西。
+--   · 不藏原廠那排：全部還原、泡泡收掉
+--   · 藏著：每一顆錨在「我們有顯示的方塊」對應原鈕上的暴雪提示 → 原泡泡隱形、
+--     方塊上開自己的泡泡。方塊被使用者藏掉的那顆**不動**：留著暴雪的原泡泡
+--     （位置會對不上，但總比整顆提示消失好），也不隱形它。
+local function SyncBubble()
     local pool = HelpTip and HelpTip.framePool
     if not (pool and pool.EnumerateActive) then return end
+    if not ns.GetDB().hideBlizzard then
+        for frame in pairs(dimmed) do Undim(frame) end
+        HideAllBubbles()
+        return
+    end
+    local shown = {}                       -- tile → 這一輪有鏡射到
     for frame in pool:EnumerateActive() do
-        if frame.relativeRegion == relativeRegion then
-            ApplyAnchor(frame, tile)
+        local tile = TileForTip(frame)
+        if tile then
+            local info = frame.info
+            if tile:IsShown() and info and info.text then
+                Dim(frame)
+                if not acked[info.text] and not shown[tile] then
+                    ShowBubbleFor(tile, info)
+                    shown[tile] = true
+                end
+            else
+                Undim(frame)               -- 方塊藏著就把原泡泡還給暴雪
+            end
         end
     end
-end
-
--- 補掃：掛勾只接得到「之後」的 Show。登入當下就已經掛著的提示（PvP 天賦欄位
--- 那種一直留到玩家按叉叉為止的）在我們掛勾之前就顯示完了，之後也不會再有
--- Show 呼叫，所以要主動掃一次現役的提示。
-local function ReanchorExisting()
-    if not ns.GetDB().hideBlizzard then return end
-    local pool = HelpTip and HelpTip.framePool
-    if not (pool and pool.EnumerateActive) then return end
-    for frame in pool:EnumerateActive() do
-        local rr = frame.relativeRegion
-        -- 兩種都要補：還錨在暴雪原鈕上的，以及錨點換過來了但位置沒跟上的
-        local tile = rr and (refToTile[rr] or (ourTiles[rr] and rr))
-        if tile and tile:IsShown() and not TipFollowed(frame, tile) then
-            ApplyAnchor(frame, tile)
-        end
+    for tile, b in pairs(bubbles) do
+        if not shown[tile] then b:Hide() end
     end
 end
+MM.SyncHelpBubble = SyncBubble
 
 local function EnsureHelpTipHook()
     if helpTipHooked then return end
     local pool = HelpTip and HelpTip.framePool
     if not (HelpTip and HelpTip.Show and pool and pool.EnumerateActive) then return end
     helpTipHooked = true
-    hooksecurefunc(HelpTip, "Show", function(_, _, _, relativeRegion)
-        -- 沒在藏原廠那排的話，提示本來就錨在看得見的原鈕上，不要多事
-        if not ns.GetDB().hideBlizzard then return end
-        local t0 = ns.Perf.Begin()
-        ReanchorTo(relativeRegion)
-        ns.Perf.End("hook HelpTip.Show", t0)
+    -- 後置勾：暴雪做完、taint 已還原，我們的本體丟到下一幀再同步
+    -- （方塊排完位置錨點才有效；也順便完全脫離觸發那次 Show 的暴雪堆疊）
+    local function Resync() ns.NextFrame("helptip-sync", SyncBubble) end
+    hooksecurefunc(HelpTip, "Show", Resync)
+    hooksecurefunc(HelpTip, "Hide", Resync)
+    hooksecurefunc(HelpTip, "HideAllSystem", Resync)
+    hooksecurefunc(HelpTip, "Acknowledge", Resync)
+    hooksecurefunc(HelpTip, "AcknowledgeSystem", Resync)
+    -- 回 pool 前立刻還原隱形：同一幀就可能被別的系統 Acquire 回去用
+    hooksecurefunc(HelpTip, "Release", function(_, frame)
+        if frame then Undim(frame) end
+        Resync()
     end)
 end
 
@@ -370,10 +439,9 @@ function MM.DebugInfo()
         any = true
         local rr = frame.relativeRegion
         local state
-        if rr and ourTiles[rr] then
-            state = "|cff33ff66已重錨到資訊列|r"
-        elseif rr and refToTile[rr] then
-            state = "|cffff9900還錨在暴雪原鈕上（待重錨）|r"
+        if rr and refToTile[rr] then
+            state = dimmed[frame] and "|cff33ff66已鏡射到資訊列（原泡泡隱形）|r"
+                                   or "|cffff9900錨在暴雪原鈕上，尚未鏡射|r"
         else
             state = "跟資訊列無關，不動它"
         end
@@ -381,9 +449,17 @@ function MM.DebugInfo()
         if #text > 18 then text = text:sub(1, 18) .. "…" end
         print("  提示「" .. text .. "」" .. state)
         print("      錨在 " .. FrameName(rr) .. "（" .. Pos(rr) .. "）")
-        print("      泡泡本身 " .. Pos(frame))
+        print("      暴雪泡泡 " .. Pos(frame))
     end
     if not any then print("  現役提示：沒有") end
+    local shownBubbles = 0
+    for tile, b in pairs(bubbles) do
+        if b:IsShown() then
+            shownBubbles = shownBubbles + 1
+            print("  自己的泡泡（" .. FrameName(tile) .. "）" .. Pos(b))
+        end
+    end
+    if shownBubbles == 0 then print("  自己的泡泡：沒顯示") end
 end
 
 ------------------------------------------------------------
@@ -438,12 +514,21 @@ function ns.Blocks.micromenu.create()
                     end
                 end)
             else
-                -- secure 點擊轉發（機制逐字照 EUI）：
+                -- secure 點擊轉發：走 **macrotext 的 /click <名字>**，不是 clickbutton。
+                --
+                -- ⚠⚠ 2026-09-07 taint.log 實測：`*clickbutton1 = 框` 這條轉發出來的點擊
+                -- 是**髒的**（SecureTemplates.lua:565 handler → clickbutton:Click() 整段
+                -- 帶 MiliUI_InfoBar 的 taint，天賦視窗在裡面開啟就整個染髒，之後 ESC 關窗
+                -- 那趟把所有快捷列格子收起來，每顆按鈕永久帶 taint ⇒ 戰鬥中 SetShown 被擋、
+                -- UpdateCooldown 的 SetCooldown 吃秘密值就炸）。原因：字串型屬性引擎會複製成
+                -- 乾淨的值，**框物件參照沒辦法複製**，插件端 SetAttribute 寫進去的參照讀回來
+                -- 就是髒的。/click 吃的是名字字串，屬性乾淨、由 secure 的巨集處理器去按。
+                -- MiliUI_UnitFrames 的右鍵選單 proxy 同一招（Core/UnitFrame.lua，12.1 實測）。
                 -- useOnKeyDown=false —— 沒有這行，ActionButtonUseKeyDown 這個 CVar
                 -- 會讓 secure handler 只認 key-down，把我們的 AnyUp 點擊丟掉
-                tile:SetAttribute("*clickbutton1", ref)
+                tile:SetAttribute("*type1", "macro")
+                tile:SetAttribute("*macrotext1", "/click " .. ref:GetName())
                 tile:SetAttribute("useOnKeyDown", false)
-                tile:SetAttribute("*type1", "click")
             end
 
             local icon = tile:CreateTexture(nil, "OVERLAY")
@@ -460,10 +545,16 @@ function ns.Blocks.micromenu.create()
                 tile.letter = fs
             end
 
-            -- 右鍵＝選單（secure 只綁了 *type1，右鍵沒有 secure 動作，hook 接手）
-            tile:HookScript("OnClick", function(self, button)
-                if button == "RightButton" then ShowButtonMenu(self) end
-            end)
+            -- 右鍵＝選單。secure 方塊不能在 OnClick 上直接掛 Lua（會把左鍵的 secure 轉發
+            -- 一起染髒），走 Core/Bar.lua 的 ns.SecureRightClick（WrapScript ＋ CallMethod）；
+            -- 遊戲選單那顆是 plain 按鈕，OnClick 本來就是我們的，直接 hook 即可
+            if def.plain then
+                tile:HookScript("OnClick", function(self, button)
+                    if button == "RightButton" then ShowButtonMenu(self) end
+                end)
+            else
+                ns.SecureRightClick(tile, ShowButtonMenu)
+            end
 
             tile:HookScript("OnEnter", function(self)
                 if ns.GetDB().iconStyle ~= "blizzard" and self.icon:IsShown() then
@@ -493,12 +584,9 @@ function ns.Blocks.micromenu.create()
             tile.desiredW = db.height          -- 正方形
             ApplyIconStyle(tile)
         end
-        -- 方塊排完位置才有效的錨點：延到下一幀補掃現役提示
-        C_Timer.After(0, function()
-            local t0 = ns.Perf.Begin()
-            ReanchorExisting()
-            ns.Perf.End("micromenu reanchor helptips", t0)
-        end)
+        -- 方塊排完位置才有效的錨點：延到下一幀同步鏡射的泡泡
+        -- （登入當下就掛著的提示不會再有 Show 呼叫，也靠這一趟接住）
+        ns.NextFrame("helptip-sync", SyncBubble)
     end
 
     function inst:Enable()

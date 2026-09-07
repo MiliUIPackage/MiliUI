@@ -408,6 +408,38 @@ local function ApplyColors()
     ApplyBarChrome()
 end
 
+----------------------------------------------------------------------
+-- secure 方塊的右鍵：走 SecureHandlerWrapScript ＋ control:CallMethod
+--
+-- ⚠⚠ secure 按鈕（SecureActionButtonTemplate）的 OnClick 上**不能**直接
+-- HookScript／SetScript 我們的 Lua：那個處理器跟 secure 動作在同一次點擊派送裡，
+-- 執行流程就染成 InfoBar 的，轉發出去的暴雪按鈕（開天賦視窗）整段帶 taint。
+-- 暴雪為此提供的正規路：SecureHandlerWrapScript 讓 snippet 在 OnClick 前後跑
+-- （restricted 環境，secure），要叫回插件端的 Lua 用 control:CallMethod ——
+-- 引擎在那個呼叫外面隔離 taint。snippet 裡回 nil 代表原本的 OnClick 照跑。
+-- 2026-09-07 taint.log：SecureTemplates.lua:821 的點擊本身帶 InfoBar taint 才改的。
+----------------------------------------------------------------------
+local clickHeader
+local rightClickHandlers = {}      -- tile 名字 → 處理函式
+
+function ns.SecureRightClick(tile, fn)
+    local tileName = tile:GetName()
+    if not tileName then return end
+    if not clickHeader then
+        clickHeader = CreateFrame("Frame", nil, nil, "SecureHandlerBaseTemplate")
+        function clickHeader:OnTileRightClick(name)
+            local handler = rightClickHandlers[name]
+            if handler then xpcall(handler, ns.ReportError, _G[name]) end
+        end
+    end
+    rightClickHandlers[tileName] = fn
+    SecureHandlerWrapScript(tile, "OnClick", clickHeader, [[
+        if button == "RightButton" then
+            control:CallMethod("OnTileRightClick", self:GetName())
+        end
+    ]])
+end
+
 function ns.CreateTile(name, opts)
     opts = opts or {}
     local tile = CreateFrame("Button", name, bar, opts.template)

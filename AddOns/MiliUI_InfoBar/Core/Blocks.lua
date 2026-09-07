@@ -291,12 +291,13 @@ do
                    "CONFIG_COMMIT_FAILED", "PLAYER_ENTERING_WORLD" },
         init = function(_, tile)
             if ref then
-                tile:SetAttribute("*clickbutton1", ref)
+                -- /click <名字> 而不是 clickbutton：框參照型的屬性讀回來是髒的，轉發出去的
+                -- 點擊整段帶 InfoBar 的 taint（詳見 Core/MicroMenu.lua 方塊建立處的說明）
+                tile:SetAttribute("*type1", "macro")
+                tile:SetAttribute("*macrotext1", "/click " .. ref:GetName())
                 tile:SetAttribute("useOnKeyDown", false)
-                tile:SetAttribute("*type1", "click")
-                tile:HookScript("OnClick", function(self, button)
-                    if button == "RightButton" then ShowLoadoutMenu(self) end
-                end)
+                -- 右鍵選單不能直接 HookScript 在 secure 按鈕的 OnClick 上，見 Core/Bar.lua
+                ns.SecureRightClick(tile, ShowLoadoutMenu)
             else
                 tile:SetScript("OnClick", function(self, button)
                     if button == "RightButton" then
