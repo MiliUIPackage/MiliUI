@@ -191,10 +191,24 @@ end
 ----------------------------------------------------------------------
 -- 事件樞紐：一個 frame 服務所有區塊，逐項 xpcall 隔離
 -- （一支區塊拋錯不能讓同事件的其他區塊跟著啞掉）
+--
+-- ⚠ 派送**一律延一幀**。暴雪的 secure 程式碼會在自己的執行流程裡「同步」派送
+-- 事件——按巨集／技能的 UseAction（`/use` 的 ITEM_CHANGED、`/equipset` 的
+-- PLAYER_EQUIPMENT_CHANGED、`/cast` 的 SPELLS_CHANGED…）就是最常走到的一條。
+-- 我們的處理器在那條流程裡跑完，整條就被染成資訊列的，**而且函式返回後還留著**，
+-- 之後暴雪自己做的每一件事都算在資訊列頭上：症狀是「按巨集跳出 MiliUI_InfoBar
+-- 遭到封鎖」，堆疊裡卻一行資訊列的程式碼都沒有。C_Timer.After(0) 把工作丟出那條
+-- 堆疊，taint 就注不進去（同款修法在 MiliUI_UnitFrames 實測 60→0、119→0）。
+-- 見 .claude/notes/wow-121-addon-code-in-secure-stack.md
 ----------------------------------------------------------------------
 local eventFrame = CreateFrame("Frame")
 local subs = {}
 local labels = {}     -- event -> key -> "EVENT key"（註冊時算好，派送不拼字串）
+
+-- 延一幀＝不會執行的事件，只有這兩個：PLAYER_LOGOUT 之後沒有下一幀
+-- （戰隊記錄的存檔在那裡），PLAYER_LOGIN 是整包的初始化起點。兩個都不可能
+-- 從 secure 流程裡發出來，同步跑沒有污染問題。
+local IMMEDIATE = { PLAYER_LOGIN = true, PLAYER_LOGOUT = true }
 
 ns.Events = {}
 
@@ -221,14 +235,65 @@ function ns.Events.Unregister(event, key)
     end
 end
 
-eventFrame:SetScript("OnEvent", function(_, event, ...)
+local function Dispatch(event, ...)
     local t = subs[event]
-    if not t then return end
+    if not t then return end          -- 排隊期間退訂了就不派
     local lb = labels[event]
     for key, fn in pairs(t) do
         local t0 = Perf.Begin()
         xpcall(fn, ns.ReportError, ...)
         Perf.End(lb[key], t0)
+    end
+end
+
+-- 一幀一次 flush。三條規矩（都是 UnitFrames 那輪換來的）：
+--   · 參數整包留著（select("#") ＋ unpack）——只存 arg1 的話，開放註冊的事件表
+--     哪天有人要第二個參數就會**靜默**壞掉
+--   · 不去重——unit token 的事件同一幀來兩次多半是不同單位
+--   · 雙緩衝——flush 途中又進來的事件排到下一批，不會蓋掉正在跑的這批
+local qA, qB = {}, {}
+local queue, queueN = qA, 0
+local recycle, recycleN = {}, 0      -- 記錄表回收，高頻事件不必每次配置
+local flushQueued = false
+
+local function FlushEvents()
+    flushQueued = false
+    local batch, n = queue, queueN
+    queue, queueN = (batch == qA) and qB or qA, 0
+    for i = 1, n do
+        local rec = batch[i]
+        batch[i] = nil
+        Dispatch(rec.event, unpack(rec, 1, rec.n))
+        -- 清乾淨再回收：參數可能是秘密值或框架參照，不要讓佇列抓著不放
+        for j = 1, rec.n do rec[j] = nil end
+        rec.event, rec.n = nil, 0
+        recycleN = recycleN + 1
+        recycle[recycleN] = rec
+    end
+end
+
+eventFrame:SetScript("OnEvent", function(_, event, ...)
+    if not subs[event] then return end
+    if IMMEDIATE[event] then
+        Dispatch(event, ...)
+        return
+    end
+    local rec
+    if recycleN > 0 then
+        rec = recycle[recycleN]
+        recycle[recycleN] = nil
+        recycleN = recycleN - 1
+    else
+        rec = {}
+    end
+    rec.event = event
+    rec.n = select("#", ...)
+    for i = 1, rec.n do rec[i] = (select(i, ...)) end
+    queueN = queueN + 1
+    queue[queueN] = rec
+    if not flushQueued then
+        flushQueued = true
+        C_Timer.After(0, FlushEvents)
     end
 end)
 
