@@ -110,6 +110,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-cell-fork-comm.md](wow-cell-fork-comm.md) | Cell 改版的 comm 處理 |
 | [wow-cell-neergy-fork.md](wow-cell-neergy-fork.md) | NeeRgY/Cell 平行 fork：可參考什麼、不要抄什麼；秘密光環指紋技巧 |
 | [project-miliui-release-version.md](project-miliui-release-version.md) | MiliUI 發佈版本號（TOC `## Version` 是 YYYYMMDD，版本廣播靠它） |
+| [project-miliui-uf-refresh-journal.md](project-miliui-uf-refresh-journal.md) | 單位框「換目標後名字停在上一個」的診斷（重畫時間線、看門狗只記不修）與 EUI 頭像引擎對照 |
 | [project-miliui-unit-frame.md](project-miliui-unit-frame.md) | MiliUI_UnitFrames：取代 Stuf 的自製頭像框架，架構／決策／待驗證 |
 | [project-miliui-tooltip.md](project-miliui-tooltip.md) | MiliUI_Tooltip：取代 TinyTooltip 的自製滑鼠提示，taint 接觸面清單／待驗證 |
 | [project-miliui-uf-visibility-gate.md](project-miliui-uf-visibility-gate.md) | 顯示條件走「閘框」而不是 `RegisterStateDriver`：藏普通父層等於藏 secure 子框 |

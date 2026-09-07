@@ -47,12 +47,42 @@ ns.playerClass = select(2, UnitClass("player"))   -- player token 不受 12.1 �
 -- 聊天前綴與暴雪設定頁標題共用，跟 TOC 的 [頭像] 標籤同色
 ns.PREFIX_COLOR = "|cff4DD2FF"
 
+-- 環狀 log：只留最近 max 筆，每筆帶 GetTime 戳記（%1000 讓數字短一點）。
+-- ⚠ 參數裡可能有秘密值：string.format 遇到秘密值會拋錯，所以包 pcall，
+--   炸了就退回印 fmt 本身，log 函式自己絕對不能拋錯。
+local function RingLog(list, max, fmt, ...)
+    local ok, line = pcall(string.format, fmt, ...)
+    tinsert(list, ("[%.2f] %s"):format(GetTime() % 1000, ok and line or fmt))
+    if #list > max then tremove(list, 1) end
+end
+
 -- 點擊／開窗流程 log（抓「點小地圖鈕沒開起來」用），/muf debug 印出
 ns.clickLog = {}
 function ns.LogClick(fmt, ...)
-    local ok, line = pcall(string.format, fmt, ...)
-    tinsert(ns.clickLog, ("[%.2f] %s"):format(GetTime() % 1000, ok and line or fmt))
-    if #ns.clickLog > 40 then tremove(ns.clickLog, 1) end
+    RingLog(ns.clickLog, 40, fmt, ...)
+end
+
+------------------------------------------------------------
+-- 重畫時間線
+--
+-- 抓「換目標之後名字／頭像停在上一個單位」這類問題用。那類症狀的本質是
+-- 「unitchanged 那次全量重畫沒有跑」，而它可能在三個地方被吃掉：
+-- RefreshUnit 的可見度閘、同幀戳記去重、延到下一幀的事件 flush。三處各自
+-- 記一行，加上「重畫當下看到的是誰」，事後就能對出是哪一道閘。
+--
+-- 只記 unitchanged 相關（換目標／顯示／閘框／輪詢／事件排程），數值桶不記——
+-- 那些每秒幾十次，記了只會把有用的行擠掉。
+------------------------------------------------------------
+ns.refreshLog = {}
+function ns.LogRefresh(fmt, ...)
+    RingLog(ns.refreshLog, 60, fmt, ...)
+end
+
+-- 秘密值印不出來，記 log 時一律先過這層：秘密 → "<secret>"，nil → "nil"
+function ns.LogStr(v)
+    if v == nil then return "nil" end
+    if ns.IsSecret(v) then return "<secret>" end
+    return tostring(v)
 end
 
 ------------------------------------------------------------

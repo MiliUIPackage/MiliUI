@@ -123,7 +123,7 @@ function V.CreateGate(uf)
     gate:HookScript("OnShow", function()
         -- 父層重新顯示時子物件的 OnShow 不會觸發（它一路都是 Shown）→ 這裡補一次，
         -- 否則會看到藏起來之前的舊資料
-        ns.Refresh(uf, "unitchanged")
+        ns.Refresh(uf, "unitchanged", nil, "gate")
         V.ApplyAlpha(uf)
     end)
     uf:SetParent(gate)

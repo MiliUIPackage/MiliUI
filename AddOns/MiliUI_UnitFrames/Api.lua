@@ -506,14 +506,55 @@ local function Debug()
                     -- 後面那三欄是「畫這行字的當下看的是誰」：
                     -- 畫面上的字跟現在的目標對不起來時，看 u= 與 isPlayer=
                     -- 就知道是渲染時讀錯單位，還是那次刷新根本沒發生（bucket 停在舊的）
-                    Probe(("target text#%d [u=%s isPlayer=%s bucket=%s]"):format(
-                        i, tostring(f.lastUnit), tostring(f.lastIsPlayer), tostring(f.lastBucket)),
+                    Probe(("target text#%d [u=%s isPlayer=%s bucket=%s t=%s gen=%s]"):format(
+                        i, tostring(f.lastUnit), tostring(f.lastIsPlayer), tostring(f.lastBucket),
+                        f.lastT and ("%.2f"):format(f.lastT % 1000) or "?", tostring(f.lastGen)),
                         f.fontstring:GetText())
                 end
             end
         end
     else
         p("  目標取值：沒有目標（選一個敵人再打一次）")
+    end
+
+    ------------------------------------------------------------
+    -- 換單位的帳：最後一次 unitchanged 畫的是誰、被閘掉幾次、看門狗抓到幾次
+    --
+    -- 「名字停在上一個單位」時看這裡：
+    --   lastUC 的 guid ≠ 現在的 guid  ⇒ 換人之後那次全量重畫沒跑（看時間線找哪道閘）
+    --   lastUC 的 guid ＝ 現在的 guid  ⇒ 重畫跑了但畫錯，問題在元件本身
+    ------------------------------------------------------------
+    p("  換單位的帳（unitchanged）：")
+    for _, key in ipairs({ "target", "focus", "targettarget", "focustarget" }) do
+        local xf = ns.frames[key]
+        if xf then
+            local j = xf.lastUC
+            local nowGuid = UnitExists(key) and ns.LogStr(UnitGUID(key)) or "nil"
+            local mark = (j and j.guid ~= nowGuid) and " |cffff5555← 跟現在的 guid 對不上|r" or ""
+            p(("   %-13s 現在 guid=%s 名字=%s"):format(key, nowGuid,
+                UnitExists(key) and ns.LogStr(UnitName(key)) or "nil"))
+            if j then
+                p(("     最後 UC t=%.2f gen=%s src=%s name=%s guid=%s 次數=%d%s"):format(
+                    j.t % 1000, tostring(j.gen), tostring(j.src), tostring(j.name),
+                    tostring(j.guid), j.n or 0, mark))
+            else
+                p("     最後 UC：|cffff5555從來沒跑過|r")
+            end
+            p(("     略過：不可見×%d 同幀去重×%d　看門狗抓到×%d%s"):format(
+                xf.ucSkipHidden or 0, xf.ucSkipStamp or 0, xf.wdMiss or 0,
+                xf.wdLastT and ("（最後 t=%.2f）"):format(xf.wdLastT % 1000) or ""))
+        end
+    end
+    p(("   現在 t=%.2f gen=%d（跟上面的 t／gen 對時用）"):format(GetTime() % 1000, ns.PaintGen()))
+
+    -- 重畫時間線：事件收到／flush、OnShow、閘框、輪詢、每次 unitchanged 與被略過的
+    if ns.refreshLog and #ns.refreshLog > 0 then
+        p("  重畫時間線（新→舊，最多 30 行；完整 60 行在 MiliUIUF.refreshLog）：")
+        for i = #ns.refreshLog, math.max(1, #ns.refreshLog - 29), -1 do
+            p("   " .. ns.refreshLog[i])
+        end
+    else
+        p("  重畫時間線：（還沒有記錄）")
     end
 
     ------------------------------------------------------------

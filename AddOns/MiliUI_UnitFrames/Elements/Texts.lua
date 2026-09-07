@@ -103,6 +103,9 @@ local function Update(uf, edb, bucket)
                 f.lastUnit = uf.unit
                 f.lastIsPlayer = uf.cache.isPlayer
                 f.lastBucket = bucket
+                -- 跟 uf.lastUC（最後一次 unitchanged）與 evt 時間線對時用
+                f.lastT = GetTime()
+                f.lastGen = ns.PaintGen()
             end
         end
     end

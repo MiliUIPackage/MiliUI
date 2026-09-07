@@ -77,8 +77,31 @@ local function Gen()
     return paintGen
 end
 
+-- 給 /muf debug 的時間線用：同一個 gen 就是同一幀
+function ns.PaintGen() return paintGen end
+
+-- unitchanged 的重畫日誌：記「畫的當下看到的是誰」。事後畫面上的字跟現在的目標
+-- 對不起來時，拿這筆跟現在的 GUID 比，就分得出「畫的時候就是舊單位」與
+-- 「換人之後根本沒畫」。只在 unitchanged 才跑，成本可忽略。
+local function JournalUnitChanged(uf, src, gen)
+    local unit = uf.unit
+    local guid, name
+    if uf.isPreview then
+        guid, name = "preview", "preview"
+    else
+        guid = ns.LogStr(UnitGUID(unit))
+        name = ns.LogStr(UnitName(unit))
+    end
+    local j = uf.lastUC
+    if not j then j = {}; uf.lastUC = j end
+    j.t, j.gen, j.src, j.guid, j.name = GetTime(), gen, src, guid, name
+    j.n = (j.n or 0) + 1
+    ns.LogRefresh("UC %s src=%s gen=%d name=%s guid=%s", uf.baseUnit or unit, src, gen, name, guid)
+end
+
 -- force = 跳過去重（設定套用要保證畫下去，不能被同幀稍早的刷新吃掉）
-function ns.Refresh(uf, bucket, force)
+-- src   = 這次重畫是誰觸發的（只給 unitchanged 的時間線用，見 ns.LogRefresh）
+function ns.Refresh(uf, bucket, force, src)
     do
         local stamps = uf.paintStamps
         if not stamps then stamps = {}; uf.paintStamps = stamps end
@@ -87,9 +110,18 @@ function ns.Refresh(uf, bucket, force)
         -- 以前整段包在 `if not force` 裡，於是強制重畫既不清戳記也不留戳記：
         -- 同幀稍早畫過的 health／info 戳記還在 ⇒ 換人之後那幾個桶當幀都被擋掉，
         -- 血條與文字停在**上一個單位**的值。
-        if not force and stamps[bucket] == gen then return end
+        if not force and stamps[bucket] == gen then
+            if bucket == "unitchanged" then
+                uf.ucSkipStamp = (uf.ucSkipStamp or 0) + 1
+                ns.LogRefresh("UC-skip(同幀去重) %s src=%s gen=%d", uf.baseUnit or uf.unit, src or "?", gen)
+            end
+            return
+        end
         -- 換人是全量重畫，不能被同幀稍早的數值重畫蓋掉 → 先清掉所有戳記
-        if bucket == "unitchanged" then wipe(stamps) end
+        if bucket == "unitchanged" then
+            wipe(stamps)
+            JournalUnitChanged(uf, src or "?", gen)
+        end
         stamps[bucket] = gen
     end
 
@@ -164,13 +196,13 @@ function ns.EvalActiveUnit(uf)
     -- ⇒ uf.unit 已經是 "vehicle"，cache 卻還是上一個單位的（載具期間玩家框顯示
     -- 自己的名字／職業色，而頭像已經換成載具 —— 那個「有時候好有時候壞」就是這裡）。
     -- 換單位是新資訊，同幀稍早的任何一次重畫都不可能已經涵蓋它。
-    ns.Refresh(uf, "unitchanged", true)
+    ns.Refresh(uf, "unitchanged", true, "vehicle")
 end
 
-function ns.RefreshAll(bucket)
+function ns.RefreshAll(bucket, src)
     for _, uf in pairs(ns.frames) do
         if uf:IsVisible() then
-            ns.Refresh(uf, bucket or "unitchanged")
+            ns.Refresh(uf, bucket or "unitchanged", nil, src or "all")
         end
     end
 end
@@ -216,11 +248,19 @@ local function FlushShowRefresh()
         showWork[i] = nil
         -- 這一幀之內可能又被藏回去（快速切目標、或顯示閘關起來）：藏了就不用畫，
         -- 閘框重新顯示時它自己的 OnShow 會補一次全量重畫
-        if uf:IsVisible() then ns.Refresh(uf, "unitchanged") end
+        if uf:IsVisible() then
+            ns.Refresh(uf, "unitchanged", nil, "show")
+        else
+            uf.ucSkipHidden = (uf.ucSkipHidden or 0) + 1
+            ns.LogRefresh("UC-skip(show 時已不可見) %s", uf.baseUnit or uf.unit)
+        end
     end
 end
 
 local function QueueShowRefresh(uf)
+    -- 時間線：OnShow 是暴雪從安全端叫的，跟 PLAYER_TARGET_CHANGED 的 flush 可能差一幀。
+    -- 換目標後名字停在舊單位時，看這一行跟 evt 那幾行的先後就知道是哪條路漏了。
+    ns.LogRefresh("show-queued %s", uf.baseUnit or uf.unit)
     showDirty[uf] = true
     if not showFlushQueued then
         showFlushQueued = true
@@ -734,7 +774,7 @@ function ns.SpawnUnitFrame(unit)
 
     if unit == "player" then
         uf:Show()
-        ns.Refresh(uf, "unitchanged")
+        ns.Refresh(uf, "unitchanged", nil, "spawn")
     else
         uf:Hide()
         RegisterUnitWatch(uf, false)
@@ -827,7 +867,7 @@ function ns.ApplySettings(unitKey)
                     -- 一律重畫（不再只在可見時）：顏色、文字內容這些是在 update 才套用的，
                     -- 只 build 不 refresh 會出現「改了下拉選單沒反應、動別的設定才一起生效」
                     -- force：設定套用必須畫下去，不能被同幀稍早的刷新去重掉
-                    ns.Refresh(uf, "unitchanged", true)
+                    ns.Refresh(uf, "unitchanged", true, "settings")
                 end
             elseif uf then
                 UnregisterUnitWatch(uf)

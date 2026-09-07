@@ -47,22 +47,65 @@ local function WatchIndirect()
     for _, unit in ipairs(INDIRECT_UNITS) do
         local uf = ns.frames[unit]
         if uf and uf:IsVisible() and UnitChanged(uf, unit) then
-            ns.Refresh(uf, "unitchanged")
+            ns.Refresh(uf, "unitchanged", nil, "poll")
         end
     end
 end
 
--- 兩個框都沒顯示就把輪詢卸掉，ticker 才停得下來
-local function SyncIndirectWatch()
-    for _, unit in ipairs(INDIRECT_UNITS) do
+------------------------------------------------------------
+-- 看門狗（**只記錄、不修**）：目標／專注框
+--
+-- 「換目標之後名字／頭像停在上一個單位、血條卻是新的」這個症狀，本質是那次
+-- unitchanged 重畫被漏掉。事件路徑上有三個可能的漏點（見 Core/Init.lua 的
+-- ns.LogRefresh 說明），從程式碼推不出是哪一個，要靠實際發作時的時間線。
+--
+-- 這裡每 0.5 秒拿現在的 GUID 跟「最後一次 unitchanged 畫的是誰」比，對不上而且
+-- **連續兩次**都對不上（排掉事件還在下一幀路上的那半秒）就記一筆 WATCHDOG，
+-- 帶上畫的是誰、現在是誰。玩家回報時 /muf debug 貼出來，這一行就是鐵證。
+--
+-- ⚠ 刻意不在這裡補畫。補了症狀就消失、根因永遠找不到（見 feedback：治本不治標）。
+--   哪天確定根因修掉了，這段可以整個拿掉。
+-- ⚠ GUID 是秘密值時比不出來（受限身分單位），只能放過；那種情況時間線上會
+--   看到 UC 那行的 guid=<secret>。
+------------------------------------------------------------
+local DIRECT_UNITS = { "target", "focus" }
+local DIRECT_KEY = "watch_direct"
+
+local function WatchDirect()
+    for _, unit in ipairs(DIRECT_UNITS) do
+        local uf = ns.frames[unit]
+        local j = uf and uf.lastUC
+        if uf and j and uf:IsVisible() and UnitExists(unit) then
+            local now = ns.LogStr(UnitGUID(unit))
+            if now ~= "<secret>" and j.guid ~= "<secret>" and now ~= j.guid then
+                uf.wdStrikes = (uf.wdStrikes or 0) + 1
+                if uf.wdStrikes == 2 then
+                    uf.wdMiss = (uf.wdMiss or 0) + 1
+                    uf.wdLastT = GetTime()
+                    ns.LogRefresh("|cffff5555WATCHDOG|r %s 換了單位但沒重畫：畫的是 %s(%s)，現在 guid=%s 名字=%s",
+                        unit, j.name, j.guid, now, ns.LogStr(UnitName(unit)))
+                end
+            else
+                uf.wdStrikes = 0
+            end
+        end
+    end
+end
+
+-- 沒有任何一個框顯示就把輪詢卸掉，ticker 才停得下來
+local function SyncWatch(units, key, fn)
+    for _, unit in ipairs(units) do
         local uf = ns.frames[unit]
         if uf and uf:IsShown() then
-            ns.Metro.Add(INDIRECT_KEY, 0.5, WatchIndirect)
+            ns.Metro.Add(key, 0.5, fn)
             return
         end
     end
-    ns.Metro.Remove(INDIRECT_KEY)
+    ns.Metro.Remove(key)
 end
+
+local function SyncIndirectWatch() SyncWatch(INDIRECT_UNITS, INDIRECT_KEY, WatchIndirect) end
+local function SyncDirectWatch() SyncWatch(DIRECT_UNITS, DIRECT_KEY, WatchDirect) end
 
 -- 框可能是登入後才被啟用（設定裡打開）才生出來的，所以掛勾要能重跑；
 -- 每個框自己記一個旗標避免疊上去
@@ -81,6 +124,19 @@ local function HookIndirectWatch()
         end
     end
     SyncIndirectWatch()
+
+    for _, unit in ipairs(DIRECT_UNITS) do
+        local uf = ns.frames[unit]
+        if uf and not uf.directHooked then
+            uf.directHooked = true
+            uf:HookScript("OnShow", function(self)
+                self.wdStrikes = 0
+                SyncDirectWatch()
+            end)
+            uf:HookScript("OnHide", SyncDirectWatch)
+        end
+    end
+    SyncDirectWatch()
 end
 
 ns.RegisterCallback("SettingsApplied", "watch_indirect", HookIndirectWatch)
