@@ -182,7 +182,9 @@ criteria description 就是名字）、分段紀錄、自動放鑰石（套組�
   Update 次數與上次時間（Skin 的 hook 往 `Diag.NoteUpdate` 報到）、`otf.modules` 有沒有它。
   **對照 Blizzard_ObjectiveTrackerContainer.lua：容器的 Update 派送迴圈沒有 pcall，一個模組拋錯、
   後面的全部跳過**；場景模組的 LayoutContents 在污染的執行下讀到秘密值就是這樣消失的。
-  「重新登入就好」＝taint 指紋（taint 只有重登會清）。
+  ⚠ **「重新登入就好」不是 taint 的指紋** —— 2026-09-08 改掉的假設。用戶端資料庫跟伺服器
+  失去同步也是只有重登會好（`/reload` 只重跑 Lua，不重新跟伺服器要場景狀態）。兩者的分辨
+  方式是叫玩家做一次 `/reload`：好了＝Lua 端，非得重登＝同步問題。
 - **C. 我們這端**：`T.DiagState()`（wantHidden／parentedAway／mouseBlocker）、位置換算成 UIParent 座標
   比螢幕、Position 接管、Chrome.Diagnose。
 
@@ -215,6 +217,29 @@ visualization info getter，而名字有兩種拼法（`TextureAndText` →
 連帶修掉判定的一個結構性錯誤：**場景與 widget 是兩條獨立的路**（widget set 由伺服器指派，
 跟 `C_Scenario` 無關，開始前倒數那類就是 widget），原本 `not ctx.apiScenario` 一律先返回 A，
 會把 widget 那條的 B 型故障吃掉。現在 A 之前先問一次「有 widget 顯示中但 UIWidget 模組是空的嗎」。
+widget 的狀態是**四態**不是兩態：`shown`／`hidden`（有 visualization info）／`noinfo`
+（getter 有、問不到資料，等於畫不出來）／`?`（型別沒有對得上的 getter，**不能當成沒顯示**）。
+實測 `SpellDisplay`、`IconAndText` 這兩型會落在 `noinfo`。
+
+## 2026-09-08 症狀當下的報告：病因是同步，不是 taint 也不是我們
+
+玩家在盤蛇島／灼蝕露臺看到事件已經開始，當下打的報告：
+
+- `IsInScenario=false`、`GetScenarioInfo/GetScenarioStepInfo → nil`（都是**明值**不是秘密值，
+  所以不是 12.1 的秘密值遮蔽）
+- `tracker widget set: setID=240 widgets=3 shown=0` —— widget 那條也是空的
+- **`SCENARIO_UPDATE` 只有登入時的 2 次（uptime 1429s，上一次 1375.8s 前），
+  `SCENARIO_CRITERIA_UPDATE` 從來沒有過**
+- taint 96 個欄位 0 髒、自己 0 錯、別的插件 0 封鎖、BugGrabber 0
+- 模組 `updates=51`，派送迴圈是活的
+
+**決定性的是事件計數：用戶端連通知都沒收到。** taint 與排版故障都是「資料有、畫不出來」，
+這裡是資料根本沒到 —— 插件這端無能為力。所以判定 A 現在會印出
+「上一次收到場景事件是 %s」＋ widget shown 數，並要玩家做一次 `/reload` 來分辨 Lua 端／同步端。
+
+（順帶：同一份報告裡 `Quest: state=ShownPartially skipped=true`，
+CampaignQuest 153.91 ＋ Quest 485.31 塞在 700 高的框裡，有任務區塊被截掉。
+追蹤器沒有捲動是既定限制，不是這個症狀的一部分。）
 
 ## 跟別的插件的關係
 

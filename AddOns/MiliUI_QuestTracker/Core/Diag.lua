@@ -167,15 +167,21 @@ local function VisGetter(widgetType)
     return visGetter[widgetType]
 end
 
--- 回 true／false／nil（問不出來）
-local function WidgetShown(w)
+-- 四態，因為它們代表四件不同的事：
+--   shown/hidden  widget 有 visualization info，其中的 shownState 說了算
+--   noinfo        getter 有，但這個 widget 現在問不到資料 —— 等於畫不出來
+--   ?             這個型別沒有對得上的 getter，我們不知道（不能當成「沒顯示」）
+local function WidgetState(w)
     local getter = VisGetter(w.widgetType)
-    if not getter then return nil end
+    if not getter then return "?" end
     local ok, info = pcall(getter, w.widgetID)
-    if not ok or type(info) ~= "table" then return nil end
+    if not ok or type(info) ~= "table" then return "noinfo" end
     local state = info.shownState
-    if state == nil or IsSecret(state) then return nil end
-    return state == (Enum and Enum.WidgetShownState and Enum.WidgetShownState.Shown or 1)
+    if state == nil or IsSecret(state) then return "?" end
+    if state == (Enum and Enum.WidgetShownState and Enum.WidgetShownState.Shown or 1) then
+        return "shown"
+    end
+    return "hidden"
 end
 
 -- ⚠ GetAllWidgetsBySetID **連隱藏的 widget 也一起回**（2026-09-08 的基準報告裡
@@ -194,30 +200,29 @@ local function WidgetSetLine(add, label, setID)
     local widgets = C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID
         and C_UIWidgetManager.GetAllWidgetsBySetID(setID)
     local n = type(widgets) == "table" and #widgets or 0
-    local live, unknown = 0, 0
-    local state = {}
+    local state, count = {}, { shown = 0, hidden = 0, noinfo = 0, ["?"] = 0 }
     for i = 1, n do
-        state[i] = WidgetShown(widgets[i])
-        if state[i] == true then live = live + 1
-        elseif state[i] == nil then unknown = unknown + 1 end
+        state[i] = WidgetState(widgets[i])
+        count[state[i]] = count[state[i]] + 1
     end
     -- 只列 8 個，但**顯示中的先排**：隱藏的 widget 在 set 裡通常佔多數，
     -- 照順序截前 8 個很容易 8 個全是隱藏的，真正有用的那幾個反而不見
     local kinds = {}
-    local function Collect(want)
+    for _, want in ipairs({ "shown", "?", "noinfo", "hidden" }) do
         for i = 1, n do
-            if #kinds >= 8 then return end
+            if #kinds >= 8 then break end
             if state[i] == want then
                 kinds[#kinds + 1] = ("%s:%s(%s)"):format(Str(widgets[i].widgetID),
-                    EnumName(Enum and Enum.UIWidgetVisualizationType, widgets[i].widgetType),
-                    want == nil and "?" or (want and "shown" or "hidden"))
+                    EnumName(Enum and Enum.UIWidgetVisualizationType, widgets[i].widgetType), want)
             end
         end
     end
-    Collect(true); Collect(nil); Collect(false)
-    add("%s: setID=%s widgets=%d shown=%d%s %s", label, Str(setID), n, live,
-        unknown > 0 and (" unknown=" .. unknown) or "", table.concat(kinds, " "))
-    return live
+    local extra = ""
+    if count.noinfo > 0 then extra = extra .. (" noinfo=%d"):format(count.noinfo) end
+    if count["?"] > 0 then extra = extra .. (" unknown=%d"):format(count["?"]) end
+    add("%s: setID=%s widgets=%d shown=%d hidden=%d%s %s", label, Str(setID), n,
+        count.shown, count.hidden, extra, table.concat(kinds, " "))
+    return count.shown
 end
 
 local function SecApi(add, ctx)
@@ -484,7 +489,19 @@ local function Verdict(ctx)
 
     if not ctx.apiScenario then
         if widgetBroken then return WidgetVerdict() end
-        return "A", L["Verdict A: the game API reports no scenario right now, so the tracker has nothing to draw. If you are inside the event while reading this, that is Blizzard's side; otherwise run /mquest debug again while the problem is on screen."]
+        -- 「人在事件裡卻判 A」要能再往下分，不然玩家只會得到一句「暴雪的問題」。
+        -- 決定性的證據是**上一次收到場景事件是什麼時候** —— 用戶端連通知都沒收到，
+        -- 就不可能是排版或 taint 的問題（那兩種是「資料有、畫不出來」）。
+        -- 分辨方式交給玩家做一次 /reload：Lua 端的髒東西 /reload 就清掉，
+        -- 用戶端資料庫的同步問題非得重登不可 —— 這一步以前一直被「重新登入就好
+        -- ＝taint 指紋」的假設跳過了，其實兩者都是重登才好，分不出來
+        local last = nil
+        for _, e in ipairs({ "SCENARIO_UPDATE", "SCENARIO_CRITERIA_UPDATE", "SCENARIO_COMPLETED" }) do
+            local t = eventLast[e]
+            if t and (not last or t > last) then last = t end
+        end
+        return "A", L["Verdict A: the game API reports no scenario (IsInScenario=false, GetScenarioInfo=nil, %d tracker widgets shown); last scenario event %s. If you are not in the event this is expected — run /mquest debug again while the problem is on screen. If you are in the event, the client was never told: try /reload — if that fixes it the problem is Lua-side (tell us), if only a full re-login does it is a client/server sync problem (tell Blizzard)."]
+            :format(ctx.trackerWidgetsShown or 0, Ago(last))
     end
     if not ctx.scenarioShown then
         if (ctx.scenarioUpdates or 0) == 0 then
