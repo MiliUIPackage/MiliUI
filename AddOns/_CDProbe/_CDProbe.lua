@@ -548,6 +548,43 @@ local function Scan()
     ScanTable("ActionBarActionButtonMixin", ActionBarActionButtonMixin, out, seen)
     ScanTable("ActionBarButtonAssistedCombatRotationFrameMixin", ActionBarButtonAssistedCombatRotationFrameMixin, out, seen)
 
+    -- 2026-09-07 20:55：換成 macrotext /click 之後點擊還是髒的、天賦視窗戰鬥中打不開。
+    -- 剩下的可能是「插件寫在暴雪框上的欄位」被點擊路徑讀到：微型按鈕本體
+    -- （/click 的目標，它的 OnClick 讀自己的欄位）、天賦視窗、HelpTip 的框、
+    -- 快捷列本體（UpdateShownButtons／GetEndCapsFrameLevel 讀的是列的欄位）、UIParent。
+    -- 全部掃每個 key。
+    for _, name in ipairs({
+        "CharacterMicroButton", "ProfessionMicroButton", "ProfessionsMicroButton",
+        "PlayerSpellsMicroButton", "SpellbookMicroButton", "TalentMicroButton",
+        "AchievementMicroButton", "QuestLogMicroButton", "GuildMicroButton", "LFDMicroButton",
+        "HousingMicroButton", "CollectionsMicroButton", "EJMicroButton", "StoreMicroButton",
+        "HelpMicroButton", "MainMenuMicroButton",
+        "MicroMenu", "MicroMenuContainer", "MicroButtonAndBagsBar",
+        "PlayerSpellsFrame", "SpellBookFrame", "GameMenuFrame", "UIParent", "HelpTip",
+        "MainActionBar", "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarLeft", "MultiBarRight",
+        "MultiBar5", "MultiBar6", "MultiBar7", "StanceBar", "PetActionBar",
+        "MainMenuBar", "StatusTrackingBarManager", "ExtraAbilityContainer", "ExtraActionBarFrame",
+    }) do
+        local f = _G[name]
+        ScanTable(name, f, out, seen)
+        if type(f) == "table" then
+            ScanTable(name .. ".actionButtons", f.actionButtons, out, seen)
+            ScanTable(name .. ".TalentsFrame", f.TalentsFrame, out, seen)
+        end
+    end
+    -- HelpTip 現役的提示框：InfoBar 的掛勾會改它們的 relativeRegion／info
+    if HelpTip and HelpTip.framePool and HelpTip.framePool.EnumerateActive then
+        local ok, iter, state = pcall(HelpTip.framePool.EnumerateActive, HelpTip.framePool)
+        if ok and type(iter) == "function" then
+            local i = 0
+            for tip in iter, state do
+                i = i + 1
+                ScanTable(("HelpTip[%d]"):format(i), tip, out, seen)
+                ScanTable(("HelpTip[%d].info"):format(i), tip.info, out, seen)
+            end
+        end
+    end
+
     -- 編輯模式的登記表：每次套版面都會 pairs() 走一遍，裡面有一筆髒的就整趟髒
     -- （包含所有快捷列的 UpdateShownButtons）。這張表比 UIParent 內縮更早就存在。
     ScanTable("EditModeManagerFrame", EditModeManagerFrame, out, seen)
