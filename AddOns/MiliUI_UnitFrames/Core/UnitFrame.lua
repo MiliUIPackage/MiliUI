@@ -503,6 +503,9 @@ local PET_MENUS = { PET = true, OTHERPET = true, OTHERBATTLEPET = true }
 -- （focus 其實早退出、不會誤判，留著是防其他分類路徑。）
 local MENU_FIX_TOKENS = {
     target = true, targettarget = true, focus = true, focustarget = true,
+    -- pettarget 跟 targettarget 同一類：指向不固定，字串分類比不中就會掉進
+    -- UnitIsUnit 鏈被誤判。（"pet" 本身不在這裡——它開寵物選單是對的。）
+    pettarget = true,
 }
 
 -- 該重開哪一種選單。raidN / partyN 直接從 token 推；target 這類指向不固定的

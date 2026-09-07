@@ -3,9 +3,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
--- tot / focustarget 沒有自己的單位事件，UNIT_TARGET 之外加輪詢當保險。
+-- tot / focustarget / pettarget 沒有自己的單位事件，UNIT_TARGET 之外加輪詢當保險。
 -- ⚠ 常數表放檔案層級：這個回呼一秒跑兩次，寫成 ipairs({...}) 等於每次現配一張表
-local INDIRECT_UNITS = { "targettarget", "focustarget" }
+local INDIRECT_UNITS = { "targettarget", "focustarget", "pettarget" }
 local INDIRECT_KEY = "watch_indirect"
 
 -- 換人偵測用 GUID，不要用名字：
@@ -166,7 +166,7 @@ loader:SetScript("OnEvent", function()
     -- 圖騰那一段永遠不執行，也會讓 spawn 失敗的單位被藏掉暴雪框而空一格。
     ns.HideBlizzardFrames()
 
-    -- tot / focustarget 的輪詢保險：掛在兩個框的顯示狀態上
+    -- tot / focustarget / pettarget 的輪詢保險：掛在這幾個框的顯示狀態上
     HookIndirectWatch()
 end)
 

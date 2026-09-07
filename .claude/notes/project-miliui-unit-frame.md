@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 7687a40a-9665-4a80-8ab5-d8ddb9ec65ee
-  modified: 2026-08-29T16:54:41.863Z
+  modified: 2026-09-07T00:00:00.000Z
 ---
 
 **MiliUI_UnitFrames**（2026-08-15 一次寫完五階段，約 5400 行；2026-08-17 從 `MiliUI_Unit_Frame`
@@ -276,3 +276,28 @@ force。常態幀的刷新次數不變。細節見 [[wow-gettime-stamp-multipack
 taint.log 裡那條堆疊的**底部**是誰。
 
 相關：[[project-121-addon-migration]]、[[wow-121-aura-containers]]、[[project-focuser-castbar]]、[[wow-121-addon-code-in-secure-stack]]
+
+
+## 寵物的目標（pettarget，2026-09-07）
+
+第八個單位框。**預設不啟用**（使用者指定），設定在「單位 → 寵物的目標」。
+全域名 `MiliUIUF_PetTarget`，DB key `pettarget`（新鍵，MergeDefaults 自己補，不用遷移）。
+
+- **樣式參考寵物框**（使用者指定）：120 寬、條寬 119、同一組底色與 alpha。但魔力條走
+  `power` 不走 `class`（寵物框的 class 上色是「主人的職業色」，套到隨便一隻怪沒有意義），
+  沒有 3D 頭像與施法條（跟 targettarget／focustarget 對齊），高 30 不是 50。
+- **預設位置堆在寵物框上方**：寵物中心 y = -225、高 50 ⇒ 上緣 -200，而**寵物自己的減益列
+  從上緣往上長**（19 高）佔到 -180，所以這個框下緣放 -178、中心 y = -163。x 同欄 -470。
+  它自己的增益列（y = -31，往下長）預設關著就是因為會跟那排撞。
+- **事件**：`pettarget` 沒有自己的單位事件，跟 tot／focustarget 同一套。
+  `SCOPED.UNIT_TARGET` 的 token 加 `"pet"`，但 **`RegisterUnitEvent` 一次最多兩個 token** ⇒
+  `Events.Start` 改成兩個一組分批註冊（各組一顆 frame、過濾範圍不重疊，不會雙送）。
+  另外 `UNIT_PET` 也要推它（換寵物＝換單位，但那隻寵物沒換目標）。Auras 那邊同樣兩條都補。
+  `Units.lua` 的 `INDIRECT_UNITS` 加一筆當輪詢保險。
+- **右鍵選單**：`MENU_FIX_TOKENS` 要加 `pettarget`（跟 targettarget 同類：指向不固定，
+  字串分類比不中就掉進 UnitIsUnit 鏈被誤判成寵物選單）。`"pet"` 本身**不能**加——它開寵物選單是對的。
+- 暴雪沒有寵物目標框，`HideBlizzard` 不用動。
+- 語系 key `Pet Target`，九個語系都補了。
+
+**尚未在遊戲內驗證**：預設位置跟寵物減益列的實際間距、`UNIT_TARGET` 對 `"pet"` 到底發不發
+（發不發都有 0.5 秒輪詢兜底）、三 token 分批註冊後 Auras 的外部訂閱有沒有漏。

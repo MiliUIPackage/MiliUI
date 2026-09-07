@@ -33,6 +33,9 @@ local FAKE_BASE = {
     -- 以前 isPlayer 直接等於 pc，預覽顯示職業色、真實框卻是白的 —— bug 就這樣被藏住。
     pet          = { name = L["Pet"],     pc = true,  isPlayer = false,
                      reaction = 5, level = 80, creaturetype = L["Beast"] },
+    -- 寵物的目標：通常是寵物正在打的怪，所以套目標框那組假資料（敵對、非玩家）
+    pettarget    = { name = L["Training Dummy"], pc = false, reaction = 2, level = 80,
+                     creaturetype = L["Mechanical"] },
     boss         = { name = L["Boss"],     pc = false, reaction = 2, level = 83,
                      classificationKey = "worldboss" },
 }

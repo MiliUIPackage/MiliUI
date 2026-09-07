@@ -525,7 +525,7 @@ local function Debug()
     --   lastUC 的 guid ＝ 現在的 guid  ⇒ 重畫跑了但畫錯，問題在元件本身
     ------------------------------------------------------------
     p("  換單位的帳（unitchanged）：")
-    for _, key in ipairs({ "target", "focus", "targettarget", "focustarget" }) do
+    for _, key in ipairs({ "target", "focus", "targettarget", "focustarget", "pettarget" }) do
         local xf = ns.frames[key]
         if xf then
             local j = xf.lastUC

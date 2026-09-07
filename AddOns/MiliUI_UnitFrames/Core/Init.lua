@@ -13,14 +13,15 @@ ns.DB_VERSION  = 18          -- schemaVersion，遷移鏈用（DB.Migrate 加條
 
 -- 支援的單位（spawn 順序）
 ns.UNITS = {
-    "player", "target", "targettarget", "focus", "focustarget", "pet",
+    "player", "target", "targettarget", "focus", "focustarget", "pet", "pettarget",
     "boss1", "boss2", "boss3", "boss4", "boss5",
 }
 
 -- unit token → DB key（boss1-5 共用一份設定）
 ns.UNIT_KEYS = {
     player = "player", target = "target", targettarget = "targettarget",
-    focus = "focus", focustarget = "focustarget", pet = "pet",
+    focus = "focus", focustarget = "focustarget",
+    pet = "pet", pettarget = "pettarget",
     boss1 = "boss", boss2 = "boss", boss3 = "boss", boss4 = "boss", boss5 = "boss",
 }
 
@@ -29,7 +30,7 @@ ns.GLOBAL_NAMES = {
     player = "MiliUIUF_Player", target = "MiliUIUF_Target",
     targettarget = "MiliUIUF_TargetTarget",
     focus = "MiliUIUF_Focus", focustarget = "MiliUIUF_FocusTarget",
-    pet = "MiliUIUF_Pet",
+    pet = "MiliUIUF_Pet", pettarget = "MiliUIUF_PetTarget",
     boss1 = "MiliUIUF_Boss1", boss2 = "MiliUIUF_Boss2", boss3 = "MiliUIUF_Boss3",
     boss4 = "MiliUIUF_Boss4", boss5 = "MiliUIUF_Boss5",
 }
@@ -37,7 +38,8 @@ ns.GLOBAL_NAMES = {
 -- 單位顯示名（設定介面用）
 ns.UNIT_LABELS = {
     player = L["Player"], target = L["Target"], targettarget = L["Target of Target"],
-    focus = L["Focus"], focustarget = L["Focus Target"], pet = L["Pet"],
+    focus = L["Focus"], focustarget = L["Focus Target"],
+    pet = L["Pet"], pettarget = L["Pet Target"],
     boss = L["Boss"], totem = L["Summons"],
 }
 

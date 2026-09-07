@@ -24,6 +24,7 @@ local UNIT_LIST = {
     { key = "focus",        label = L["Focus"] },
     { key = "focustarget",  label = L["Focus Target"] },
     { key = "pet",          label = L["Pet"] },
+    { key = "pettarget",    label = L["Pet Target"] },
     { key = "boss",         label = L["Boss"] },
 }
 

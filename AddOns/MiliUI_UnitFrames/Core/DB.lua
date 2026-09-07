@@ -605,6 +605,76 @@ function DB.BuildDefaults()
             },
 
             ------------------------------------------------------------
+            -- 寵物的目標（pettarget）
+            --
+            -- 「我的寵物在打誰／在扛誰」。跟 targettarget／focustarget 同一種角色，
+            -- 但**樣式跟著寵物框走**（使用者指定）：同樣 120 寬、條寬 119、同一組
+            -- 底色與 alpha，擺在寵物框正上方時看起來就是同一組東西的上下兩截。
+            --
+            -- 幾個跟寵物框不一樣的地方，都是「這個單位不是我們的」造成的：
+            --   * 魔力條走 power 不走 class：寵物框的 class 上色是「主人的職業色」，
+            --     套到一隻隨便的怪身上沒有意義（見 Core/Cache.lua 的 pet 分支）。
+            --   * 沒有 3D 頭像與施法條：跟另外兩個 <unit>target 框對齊，那兩個也沒有。
+            --   * 高度 30（血條 20 ＋ 魔力條 10），不是寵物框的 50。
+            --
+            -- 預設位置：寵物框正上方。寵物框中心 y = -225、高 50 ⇒ 上緣在 -200，
+            -- 而**寵物自己的減益列從上緣往上長**（elements.debuffs y = 1，19 高）
+            -- ⇒ 那一排佔到 -180。所以這個框的下緣放 -178（留 2px），
+            -- 中心 = -178 + 15 = -163。x 跟寵物框同一欄。
+            --
+            -- 預設不啟用（使用者指定）：需要的人自己去「單位 → 寵物的目標」打開。
+            pettarget = {
+                enabled = false,
+                frame = frameDef{ x = -470, y = -163, w = 120, h = 30, fadeOutOfRange = false },
+                elements = {
+                    -- 條寬 119 不是 120：跟寵物框同一個理由——底下那排光環
+                    -- 6 顆 × 19 ＋ 5 個 1px 間距 = 119，條跟光環整排等寬
+                    hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 20, level = 4, lossAlpha = 0.9,
+                              colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
+                              barAlpha = 0.5, bgAlpha = 1, border = true,
+                              showHealPrediction = false,
+                              healPredictionAlpha = 0.35,   -- 沒有預設值時滑桿顯示 min(0.1)，實際卻是 0.35
+                              -- 護盾：全部單位一致（疊加層只對 cache.assist 的單位畫，
+                              -- 敵人身上本來就不會出現，開著不會多花什麼）
+                              showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,
+                              showOvershield = true, overshieldGlowReverse = false,
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
+                    mpbar = { enabled = true, x = 0, y = -20, w = 119, h = 10, level = 0,
+                              colorMethod = "power", bgColorMethod = "powerdark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
+                              barAlpha = 1, bgAlpha = 1, border = true },
+                    texts = {
+                        textDef{ pattern = "[name]", x = 3, y = 0, w = 90, h = 20, size = 11,
+                                 justifyH = "LEFT", justifyV = "MIDDLE" },
+                        textDef{ pattern = "[perchp]%", x = 0, y = 0, w = 116, h = 20, size = 11,
+                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
+                    },
+                    -- 光環預設關（列表在這裡是為了讓設定面板長出那兩個切換鈕）。
+                    -- ⚠ 增益列往下長（y = -31），開起來會跟**寵物框自己的減益列**
+                    --   疊在一起——兩排都在這兩個框中間那段空白。要開的話把其中一邊
+                    --   的 y 挪開，或把這個框往上搬。
+                    buffs  = { enabled = false, x = 0, y = -31, w = 19, h = 19,
+                               maxCount = 12, perRow = 6, growth = "LRTB", spacing = 1,
+                               showStack = true, stackSize = 10,
+                               stackAnchor = "TOP", stackX = 0, stackY = 4,
+                               durationText = false, durationThreshold = 60, filterMode = "all" },
+                    debuffs = { enabled = false, x = 0, y = 1, w = 19, h = 19,
+                                maxCount = 12, perRow = 6, growth = "LRBT", spacing = 1,
+                                onlyMine = false, filterMode = "all",
+                                showStack = true, stackSize = 10,
+                                stackAnchor = "TOP", stackX = 0, stackY = 4,
+                                durationText = false, durationThreshold = 60 },
+                    icons = { enabled = true,
+                              raidtarget = { enabled = true, x = 54, y = 10, w = 15, h = 15, level = ICON_LEVEL } },
+                },
+            },
+
+            ------------------------------------------------------------
             boss = {   -- boss1-5 共用；boss1 在 frame.x/y，其餘依 growth/spacing 排
                 -- 使用者實地調好的版面（2026-08-16 從 SavedVariables 原樣收進來，含位置）。
                 -- 我們自己畫首領框、暴雪的已隱藏，所以位置與暴雪首領框無關。

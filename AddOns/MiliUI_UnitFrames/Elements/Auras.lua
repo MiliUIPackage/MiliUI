@@ -767,6 +767,11 @@ local function MakeElement(elementName, baseFilter)
     ns.Events.Register("UNIT_TARGET", "auras_" .. elementName .. "_ut", function(unit)
         if unit == "target" and ns.frames.targettarget then Repoke(ns.frames.targettarget) end
         if unit == "focus" and ns.frames.focustarget then Repoke(ns.frames.focustarget) end
+        if unit == "pet" and ns.frames.pettarget then Repoke(ns.frames.pettarget) end
+    end)
+    -- 換寵物＝ "pettarget" 換人，但 UNIT_TARGET 不會發（那隻寵物沒換目標）
+    ns.Events.Register("UNIT_PET", "auras_" .. elementName .. "_up", function(unit)
+        if unit == "player" and ns.frames.pettarget then Repoke(ns.frames.pettarget) end
     end)
     ns.Events.Register("INSTANCE_ENCOUNTER_ENGAGE_UNIT", "auras_" .. elementName .. "_b", function()
         for i = 1, 5 do

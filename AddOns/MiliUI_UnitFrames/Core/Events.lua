@@ -264,9 +264,14 @@ local SPECIAL = {
     PLAYER_FLAGS_CHANGED = function(unit)
         RefreshUnit(unit, "reaction")
     end,
-    -- UNIT_PET：寵物換了（arg 是主人）
+    -- UNIT_PET：寵物換了（arg 是主人）。
+    -- 寵物的目標框也要跟著重畫：換了一隻寵物，"pettarget" 指向的當然是另一個單位，
+    -- 而 UNIT_TARGET 只在**寵物自己換目標**時才發。
     UNIT_PET = function(unit)
-        if unit == "player" then RefreshUnit("pet", "unitchanged", nil, "unit_pet") end
+        if unit == "player" then
+            RefreshUnit("pet", "unitchanged", nil, "unit_pet")
+            RefreshUnit("pettarget", "unitchanged", nil, "unit_pet")
+        end
     end,
 }
 
@@ -281,15 +286,18 @@ local SPECIAL = {
 -- 所以 ns.Events.Register("UNIT_TARGET", …) 不可以再把它掛上全域 —— 由下面
 -- unitScoped 的守衛擋掉。
 ------------------------------------------------------------
+-- ⚠ tokens 可以超過兩個：`RegisterUnitEvent` 一次最多吃兩個 token，所以 Start()
+-- 是**兩個一組**分批註冊的（見那裡）。每一組自成一顆 frame，不會重複派送。
+local TARGET_FRAME_OF = {
+    target = "targettarget", focus = "focustarget", pet = "pettarget",
+}
+
 SCOPED = {
     UNIT_TARGET = {
-        tokens = { "target", "focus" },
+        tokens = { "target", "focus", "pet" },
         fn = function(unit)
-            if unit == "target" then
-                RefreshUnit("targettarget", "unitchanged", nil, "unit_target")
-            elseif unit == "focus" then
-                RefreshUnit("focustarget", "unitchanged", nil, "unit_target")
-            end
+            local key = TARGET_FRAME_OF[unit]
+            if key then RefreshUnit(key, "unitchanged", nil, "unit_target") end
         end,
     },
 }
@@ -429,9 +437,14 @@ function ns.Events.Start()
     -- per-token tracker。同時上全域會被送兩次。
     for event in pairs(SPECIAL) do Reg(event) end
 
-    -- unit 範圍的內部事件：C 端就把不相干的單位過濾掉
+    -- unit 範圍的內部事件：C 端就把不相干的單位過濾掉。
+    -- ⚠ RegisterUnitEvent 一次最多兩個 token，所以兩個一組分批註冊。UnitReg 的
+    --   frame 是拿**該組第一個** token 當鍵，各組一顆 frame、過濾範圍不重疊 ⇒
+    --   不會有同一個事件被送兩次的問題。
     for event, def in pairs(SCOPED) do
-        UnitReg(event, def.tokens[1], def.tokens[2])
+        for i = 1, #def.tokens, 2 do
+            UnitReg(event, def.tokens[i], def.tokens[i + 1])
+        end
         unitScoped[event] = true
         for _, token in ipairs(def.tokens) do
             unitRegistered[event .. "/" .. token] = true
