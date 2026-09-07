@@ -2923,9 +2923,12 @@ end
 --   * UNIT_THREAT_LIST_UPDATE -- also handled in the OTHER branch, where it drives the threat
 --     BAR from the payload of units this button is NOT bound to. Scoping it would silently
 --     freeze that bar, with nothing to point at.
---   * PLAYER_FLAGS_CHANGED / READY_CHECK_CONFIRM / INCOMING_SUMMON_CHANGED -- they carry a
---     unit argument but are not unit events, so RegisterUnitEvent does not filter them.
---     They stay broadcast and Lua-filtered; all three are rare.
+--   * PLAYER_FLAGS_CHANGED / INCOMING_SUMMON_CHANGED -- they carry a unit argument but are
+--     not unit events, so RegisterUnitEvent does not filter them. They stay broadcast and
+--     Lua-filtered; both are rare.
+--   * READY_CHECK / READY_CHECK_CONFIRM / READY_CHECK_FINISHED -- broadcast, and no longer
+--     Lua-filtered either: their unit argument can be SECRET in 12.1, and each button reads
+--     its own status anyway. See the head of UnitButton_OnEvent.
 -------------------------------------------------
 local UNIT_SCOPED_EVENTS = {
     "UNIT_HEALTH", "UNIT_MAXHEALTH",
@@ -3444,6 +3447,26 @@ local function UnitButton_OnEvent(self, event, unit, arg)
         return
     end
 
+    -- Ready check, ahead of the filter as well -- and here it is not a preference. 12.1 hands
+    -- READY_CHECK / READY_CHECK_CONFIRM a SECRET unit token whenever the initiator (or the
+    -- player confirming) is someone we may not identify, and the filter below COMPARES that
+    -- token against ours. Comparing a secret from tainted code is a hard error:
+    --   attempt to compare local 'unit' (a secret string value, while execution tainted by 'Cell')
+    --
+    -- Nothing here ever wanted arg1. All three handlers re-read GetReadyCheckStatus for their
+    -- OWN unit, so the token that arrives with the event carries no information -- routing by
+    -- it only ever skipped the buttons that would have painted an unchanged status. Dropping
+    -- the routing costs one status read per button per confirm and removes the comparison.
+    -- It also fixes a long-standing miss: READY_CHECK sat in the non-matching branch, so the
+    -- initiator's own button never heard the start of a ready check.
+    if event == "READY_CHECK" or event == "READY_CHECK_CONFIRM" then
+        UnitButton_UpdateReadyCheck(self)
+        return
+    elseif event == "READY_CHECK_FINISHED" then
+        UnitButton_FinishReadyCheck(self)
+        return
+    end
+
     if unit and (self.states.displayedUnit == unit or self.states.unit == unit) then
         if  event == "UNIT_ENTERED_VEHICLE" or event == "UNIT_EXITED_VEHICLE" or event == "UNIT_CONNECTION" then
             self._updateRequired = 1
@@ -3537,9 +3560,6 @@ local function UnitButton_OnEvent(self, event, unit, arg)
         -- elseif event == "INCOMING_RESURRECT_CHANGED" or event == "UNIT_PHASE" or event == "PARTY_MEMBER_DISABLE" or event == "PARTY_MEMBER_ENABLE" then
             -- UnitButton_UpdateStatusIcon(self)
 
-        elseif event == "READY_CHECK_CONFIRM" then
-            UnitButton_UpdateReadyCheck(self)
-
         elseif event == "UNIT_PORTRAIT_UPDATE" then -- pet summoned far away
             if self.states.healthMax == 0 then
                 self._updateRequired = 1
@@ -3577,12 +3597,6 @@ local function UnitButton_OnEvent(self, event, unit, arg)
         elseif event == "RAID_TARGET_UPDATE" then
             UnitButton_UpdatePlayerRaidIcon(self)
             UnitButton_UpdateTargetRaidIcon(self)
-
-        elseif event == "READY_CHECK" then
-            UnitButton_UpdateReadyCheck(self)
-
-        elseif event == "READY_CHECK_FINISHED" then
-            UnitButton_FinishReadyCheck(self)
 
         elseif event == "ZONE_CHANGED_NEW_AREA" then
             -- F.Debug("|cffbbbbbb=== ZONE_CHANGED_NEW_AREA ===")
