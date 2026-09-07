@@ -1,0 +1,7 @@
+## Interface: 120007, 120100, 120105
+## Title: |cffff4411[診斷]|r 快捷列冷卻錯誤探針
+## Notes: 幫米利抓「ActionButton.lua:847 SetCooldown 秘密值」這個隨機錯誤。|n|n背景自己計數，不用設定。錯誤跳出來之後打 |cffffd200/cdprobe|r，把整段輸出貼給米利，最下面「本場被封鎖的動作（引擎點名）」那段最重要。|n|n/cdprobe report 跨場次記錄|n/cdprobe scan 掃快捷列變數污染|n/cdprobe taint on / off 手動開關 taintLog（預設不開）|n|n抓到並修掉之後這支就會從套組拿掉。
+## Version: 3
+## SavedVariables: CDProbeDB
+
+_CDProbe.lua
