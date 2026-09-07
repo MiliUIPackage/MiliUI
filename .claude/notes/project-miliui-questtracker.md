@@ -203,6 +203,19 @@ BugGrabber 本 session 提到 ObjectiveTracker/Scenario/UIWidget/WorldState 的�
 不在事件裡打報告本來就是 A，不能說成暴雪的問題。
 下次玩家再遇到就叫他**在症狀出現的當下**打 `/mquest debug` 把視窗內容貼過來。
 
+**2026-09-08 第二份報告（事件結束 8 分鐘後打的，判定 A，對症狀沒有證據力）暴露一個盲點：
+`C_UIWidgetManager.GetAllWidgetsBySetID` 連 `shownState = Hidden` 的 widget 也一起回。**
+證據就在同一份報告裡 —— `top-center widget set: setID=1 widgets=33`，螢幕上從來不會同時
+掛 33 個 widget。所以「set 裡有幾個」不等於「畫得出來幾個」，原本只印總數的那一行
+**在症狀正好是「widget 該出來卻沒出來」的時候完全沒有證據能力**。
+`shownState` 不在 `GetAllWidgetsBySetID` 回的輕量結構裡，要走各型別自己的
+visualization info getter，而名字有兩種拼法（`TextureAndText` →
+`GetTextureAndTextWidgetVisualizationInfo`，`SpellDisplay` → `GetSpellDisplayVisualizationInfo`）
+—— 不要手寫清單，照 `Enum.UIWidgetVisualizationType` 的名字兩種都試一次。
+連帶修掉判定的一個結構性錯誤：**場景與 widget 是兩條獨立的路**（widget set 由伺服器指派，
+跟 `C_Scenario` 無關，開始前倒數那類就是 widget），原本 `not ctx.apiScenario` 一律先返回 A，
+會把 widget 那條的 B 型故障吃掉。現在 A 之前先問一次「有 widget 顯示中但 UIWidget 模組是空的嗎」。
+
 ## 跟別的插件的關係
 
 - **Leatrix Plus**：`LeaPlusLC` 是檔案內 local，**遙控不了也同步不了**。只能讀

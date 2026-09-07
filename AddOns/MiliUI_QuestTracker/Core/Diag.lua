@@ -11,6 +11,8 @@
 --      弄髒，暴雪的排版在污染的執行下讀到秘密值就炸；而容器的派送迴圈**沒有 pcall**
 --      （對照 Blizzard_ObjectiveTrackerContainer.lua 的 Update），一個模組炸掉、
 --      後面的全部跳過。「重新登入就好」正是這一型的指紋 —— taint 只有重登會清。
+--      同一型還有 widget 那條路：追蹤器的 widget set 是伺服器指派的，跟 C_Scenario 無關，
+--      所以「不在場景裡」不代表 widget 就該是空的（開始前倒數那類就是 widget）。
 --   C. 模組有渲染，但被我們藏掉 —— 摺疊、alpha、換父層、位置飄到螢幕外。我們的 bug。
 --
 -- 所以報告分成 API 端／容器與模組端／我們這端三段對照，再加 taint 檢查（issecurevariable
@@ -146,25 +148,76 @@ local function SecEnv(add)
     add("scriptErrors=%s  BugGrabber=%s", Str(GetCVar("scriptErrors")), tostring(_G.BugGrabber ~= nil))
 end
 
+-- widget 的 shownState 不在 GetAllWidgetsBySetID 回的輕量結構裡，要走各型別自己的
+-- visualization info getter。名字有兩種拼法（TextureAndText →
+-- GetTextureAndTextWidgetVisualizationInfo，SpellDisplay → GetSpellDisplayVisualizationInfo），
+-- 所以不要手寫清單，照 Enum 名字兩種都試一次，配不到的印 shown=?
+local visGetter
+local function VisGetter(widgetType)
+    if not visGetter then
+        visGetter = {}
+        local e = Enum and Enum.UIWidgetVisualizationType
+        if type(e) == "table" and C_UIWidgetManager then
+            for name, value in pairs(e) do
+                visGetter[value] = C_UIWidgetManager["Get" .. name .. "VisualizationInfo"]
+                    or C_UIWidgetManager["Get" .. name .. "WidgetVisualizationInfo"]
+            end
+        end
+    end
+    return visGetter[widgetType]
+end
+
+-- 回 true／false／nil（問不出來）
+local function WidgetShown(w)
+    local getter = VisGetter(w.widgetType)
+    if not getter then return nil end
+    local ok, info = pcall(getter, w.widgetID)
+    if not ok or type(info) ~= "table" then return nil end
+    local state = info.shownState
+    if state == nil or IsSecret(state) then return nil end
+    return state == (Enum and Enum.WidgetShownState and Enum.WidgetShownState.Shown or 1)
+end
+
+-- ⚠ GetAllWidgetsBySetID **連隱藏的 widget 也一起回**（2026-09-08 的基準報告裡
+-- 「top-center widget set: setID=1 widgets=33」就是證據 —— 螢幕上從來不會同時掛 33 個）。
+-- 所以「set 裡有幾個」不等於「畫得出來幾個」，只印總數的話這一行沒有證據能力 ——
+-- 而症狀正好就是「widget 該出來卻沒出來」。要印的是 shown 的數量。
 local function WidgetSetLine(add, label, setID)
     if setID == nil then
         add("%s: nil", label)
-        return
+        return 0
     end
     if IsSecret(setID) then
         add("%s: <secret>", label)
-        return
+        return nil
     end
     local widgets = C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID
         and C_UIWidgetManager.GetAllWidgetsBySetID(setID)
     local n = type(widgets) == "table" and #widgets or 0
-    local kinds = {}
-    for i = 1, math.min(n, 8) do
-        local w = widgets[i]
-        kinds[#kinds + 1] = Str(w.widgetID) .. ":"
-            .. EnumName(Enum and Enum.UIWidgetVisualizationType, w.widgetType)
+    local live, unknown = 0, 0
+    local state = {}
+    for i = 1, n do
+        state[i] = WidgetShown(widgets[i])
+        if state[i] == true then live = live + 1
+        elseif state[i] == nil then unknown = unknown + 1 end
     end
-    add("%s: setID=%s widgets=%d %s", label, Str(setID), n, table.concat(kinds, " "))
+    -- 只列 8 個，但**顯示中的先排**：隱藏的 widget 在 set 裡通常佔多數，
+    -- 照順序截前 8 個很容易 8 個全是隱藏的，真正有用的那幾個反而不見
+    local kinds = {}
+    local function Collect(want)
+        for i = 1, n do
+            if #kinds >= 8 then return end
+            if state[i] == want then
+                kinds[#kinds + 1] = ("%s:%s(%s)"):format(Str(widgets[i].widgetID),
+                    EnumName(Enum and Enum.UIWidgetVisualizationType, widgets[i].widgetType),
+                    want == nil and "?" or (want and "shown" or "hidden"))
+            end
+        end
+    end
+    Collect(true); Collect(nil); Collect(false)
+    add("%s: setID=%s widgets=%d shown=%d%s %s", label, Str(setID), n, live,
+        unknown > 0 and (" unknown=" .. unknown) or "", table.concat(kinds, " "))
+    return live
 end
 
 local function SecApi(add, ctx)
@@ -206,7 +259,7 @@ local function SecApi(add, ctx)
     end
 
     if C_UIWidgetManager then
-        WidgetSetLine(add, "tracker widget set",
+        ctx.trackerWidgetsShown = WidgetSetLine(add, "tracker widget set",
             C_UIWidgetManager.GetObjectiveTrackerWidgetSetID and C_UIWidgetManager.GetObjectiveTrackerWidgetSetID())
         if ctx.stepWidgetSetID ~= nil then
             WidgetSetLine(add, "step widget set", ctx.stepWidgetSetID)
@@ -300,6 +353,11 @@ local function SecModules(add, ctx)
             ctx.scenarioState   = EnumName(StateEnum, m.state)
             ctx.scenarioContent = Str(m.hasContents)
             ctx.scenarioUpdates = updateCount[m] or 0
+        end
+        if m == _G.UIWidgetObjectiveTracker then
+            ctx.widgetShown   = shown and (m.hasContents == true)
+            ctx.widgetState   = EnumName(StateEnum, m.state)
+            ctx.widgetContent = Str(m.hasContents)
         end
     end)
 end
@@ -415,7 +473,17 @@ end
 ------------------------------------------------------------
 local function Verdict(ctx)
     local L = ns.L
+    -- 場景與 widget 是**兩條獨立的路**：不在場景裡不代表 widget 那條也該是空的
+    -- （追蹤器的 widget set 由伺服器指派，跟 C_Scenario 無關）。少了這一段的話，
+    -- 「widget 該出來卻沒出來」會被前面的 apiScenario 閘一律判成 A
+    local widgetBroken = (ctx.trackerWidgetsShown or 0) > 0 and not ctx.widgetShown
+    local function WidgetVerdict()
+        return "B", L["Verdict B: the game reports %d objective-tracker widget(s) shown, but Blizzard's UIWidget module is empty (state=%s, hasContents=%s). Look at the taint list and errors — re-login clearing it fits taint."]
+            :format(ctx.trackerWidgetsShown or 0, tostring(ctx.widgetState), tostring(ctx.widgetContent))
+    end
+
     if not ctx.apiScenario then
+        if widgetBroken then return WidgetVerdict() end
         return "A", L["Verdict A: the game API reports no scenario right now, so the tracker has nothing to draw. If you are inside the event while reading this, that is Blizzard's side; otherwise run /mquest debug again while the problem is on screen."]
     end
     if not ctx.scenarioShown then
@@ -431,6 +499,7 @@ local function Verdict(ctx)
     if ctx.offscreen then
         return "C", L["Verdict C: the tracker rendered but sits off-screen. This is our position override."]
     end
+    if widgetBroken then return WidgetVerdict() end
     return "OK", L["Verdict: API, module and tracker all agree it is visible. If the screen still looks wrong, take a screenshot."]
 end
 
