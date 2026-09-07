@@ -1,5 +1,8 @@
 ## Interface: 120007, 120100, 120105
-## Title: |cffff4411[診斷]|r 增益長條名字探針
+## Title: |cffffffff[診斷]|r 增益長條名字探針
+## Category: Other
+## Category-zhTW: 其他
+## Category-zhCN: 其他
 ## Notes: 幫米利抓「Ayije_CDM 增益長條偶爾沒有名字」這個問題。|n|n背景自己記錄，不用設定。看到某條長條沒名字的時候打 |cffffd200/bnp|r，再打 |cffffd200/bnp log|r，把兩段輸出貼給米利。|n|n/bnp clear 清掉記錄。|n|n抓到並修掉之後這支就會從套組拿掉。
 ## Version: 2
 ## Dependencies: Ayije_CDM
