@@ -48,7 +48,7 @@ local function BuildControls()
         { type = "color",  key = "titleColor",     label = L["Quest title"],  hasAlpha = false },
         { type = "color",  key = "completedColor", label = L["Completed"],    hasAlpha = false },
         { type = "color",  key = "focusColor",     label = L["Navigating"],   hasAlpha = false },
-        { type = "text",   label = L["\"Navigating\" is the one the map arrow is pointing at right now — not \"in the list\", which is all of them. Only one quest can hold it, and the game moves it to whatever you accept next."] },
+        { type = "text",   label = L["\"Navigating\" is the quest the map arrow points at — only one at a time, and it moves to whatever you accept next."] },
         { type = "color",  key = "objectiveColor", label = L["Objective text"], hasAlpha = false },
         { type = "toggle", key = "headerUseClass", label = L["Section headers use your class colour"] },
         { type = "color",  key = "headerColor",    label = L["Section header colour"], hasAlpha = false },
