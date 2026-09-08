@@ -3182,12 +3182,21 @@ local function ReactionColor(unit)
         return REACTION_COLORS["tapped"]
     end
 
-    -- UnitSelectionType is the nameplate's own classifier: 1 unfriendly, 2 neutral.
-    -- Everything else splits on "can I hit it", exactly as Platynator's reaction rule does.
-    local selection = UnitSelectionType(unit)
-    if selection == 2 then
+    -- UnitSelectionType is the nameplate's own classifier: 1 unfriendly, 2 neutral. Cell
+    -- also ships for Classic, where the function may not exist -- same fallback Platynator
+    -- carries, and UnitReaction's numbering is the mirror of it (3 unfriendly, 4 neutral).
+    local neutral, unfriendly
+    if UnitSelectionType then
+        local selection = UnitSelectionType(unit)
+        neutral, unfriendly = selection == 2, selection == 1
+    else
+        local reaction = UnitReaction(unit, "player")
+        neutral, unfriendly = reaction == 4, reaction == 3
+    end
+
+    if neutral then
         return REACTION_COLORS["neutral"]
-    elseif selection == 1 then
+    elseif unfriendly then
         return REACTION_COLORS["unfriendly"]
     elseif UnitIsFriend("player", unit) and not UnitCanAttack("player", unit) then
         return REACTION_COLORS["friendly"]
