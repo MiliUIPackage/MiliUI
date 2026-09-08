@@ -13,4 +13,5 @@
     <Script file="QuickAssist_ImportExport.lua"/>
     <Script file="QuickCast.lua"/>
     <Script file="ClickCastingHints.lua"/>
+    <Script file="PartyTargets.lua"/>
 </Ui>

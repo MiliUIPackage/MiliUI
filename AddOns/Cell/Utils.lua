@@ -925,6 +925,15 @@ function F.IterateAllUnitButtons(func, updateCurrentGroupOnly, updateQuickAssist
                 func(b)
             end
         end
+
+        -- fix from MiliUI: party targets. Same condition as the party buttons they hang off
+        -- -- they only exist while the party frame does -- so indicators, click-castings and
+        -- appearance updates reach them like any other Cell unit button.
+        -- NOT in F.IterateSharedUnitButtons: that one is for buttons which outlive the group
+        -- (npc, spotlight), and these do not.
+        for _, b in pairs(Cell.unitButtons.partyTarget) do
+            func(b)
+        end
     end
 
     -- raid

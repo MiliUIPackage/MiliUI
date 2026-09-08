@@ -109,6 +109,13 @@ select(2, ...).L = setmetatable({
     ["SHOW_KEYBIND_TIPS"] = "Draw the key combination on each icon",
     ["KEY_LABEL_TIPS"] = "Leave a mouse button empty to draw its icon. Only Click-Castings of the Spell type are shown.",
     ["Snapped"] = "[snapped]",
+
+    ["Party Targets"] = "Party Targets",
+    ["Side"] = "Side",
+    ["PARTY_TARGETS_TIPS"] = "Show each party member's target next to their frame.",
+    ["PARTY_TARGETS_SIDE_TIPS"] = "Which side of the party button the target sits on. It rotates with the party frame: when the frame runs horizontally, Left means above and Right means below.",
+    ["PARTY_TARGETS_WIDTH_TIPS"] = "0 = as wide as the main button. The height always follows the main button.",
+    ["PARTY_TARGETS_PANE_TIPS"] = "The target buttons follow the party frame: same order, same role sorting, same appearance and indicators. Left-click targets the unit, as on any other Cell frame. A member with no target has no button.",
     ["SNAP_TO_CELL_TIPS"] = "Drop the bar next to the raid frames and it remembers where it sits relative to Cell, then follows whenever Cell is moved. Drop it further away to detach.",
 
     ["RAID_DEBUFFS_TIPS"] = "Tips: [Drag & Drop] to change debuff order. [Double-Click] on instance name to open Encounter Journal. [Shift+Left Click] on instance/boss name to share debuffs. [Alt+Left Click] on instance/boss name to reset debuffs. The priority of General Debuffs is higher than Boss Debuffs.",

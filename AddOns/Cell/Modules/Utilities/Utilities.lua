@@ -73,8 +73,14 @@ function F.CreateUtilityList(anchor)
     buttons["clickCastingHints"]:SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT")
     buttons["clickCastingHints"]:SetPoint("TOPRIGHT", lastButton, "BOTTOMRIGHT")
 
+    -- fix from MiliUI: party targets
+    buttons["partyTargets"] = Cell.CreateButton(listFrame, L["Party Targets"], "transparent-accent", {20, 20}, true)
+    buttons["partyTargets"].id = "partyTargets"
+    buttons["partyTargets"]:SetPoint("TOPLEFT", buttons["clickCastingHints"], "BOTTOMLEFT")
+    buttons["partyTargets"]:SetPoint("TOPRIGHT", buttons["clickCastingHints"], "BOTTOMRIGHT")
+
     local listWidth = ceil(max(dumbFS1:GetStringWidth(), dumbFS3:GetStringWidth())) + 13
-    P.Size(listFrame, listWidth, 20 * (Cell.isRetail and 4 or 2))
+    P.Size(listFrame, listWidth, 20 * (Cell.isRetail and 5 or 3))
 
     local highlight = Cell.CreateButtonGroup(buttons, function(id)
         lastShown = id
@@ -106,6 +112,7 @@ local utilityHeight = {
     ["quickAssist"] = 510,
     ["quickCast"] = 510,
     ["clickCastingHints"] = 450,
+    ["partyTargets"] = 220,
 }
 
 local init

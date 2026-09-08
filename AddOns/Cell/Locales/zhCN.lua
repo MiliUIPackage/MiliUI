@@ -216,6 +216,16 @@ L["CLICK_CASTING_HINTS_TIPS"] = "把鼠标点击施法设置的法术排成一�
 L["CLICK_CASTING_HINTS_JUMP_TIPS"] = "点一下前往「工具 > 鼠标施法提示」，可以把下面这些设置显示成画面上的一列图标。"
 L["My Anchor Point"] = "我的锚点"
 L["MY_ANCHOR_POINT_TIPS"] = "提示列的哪一个角固定在 Cell 上。列的宽度会随这个角色的快捷数量变，把面向框架的那一角钉住，换角色时间距才不会跑掉。"
+
+-------------------------------------------------
+-- party targets
+-------------------------------------------------
+L["Party Targets"] = "队伍目标"
+L["Side"] = "位置"
+L["PARTY_TARGETS_TIPS"] = "在每位队友的框架旁边，显示那个人正在打的目标。"
+L["PARTY_TARGETS_SIDE_TIPS"] = "目标按钮贴在队伍按钮的哪一边。会跟着队伍框转向：队伍框排成横的时候，「左」＝上方、「右」＝下方。"
+L["PARTY_TARGETS_WIDTH_TIPS"] = "0 ＝ 跟主框一样宽。高度一律跟着主框。"
+L["PARTY_TARGETS_PANE_TIPS"] = "目标按钮完全跟着队伍框走：顺序、职责排序、外观与指示器都一样。左键点一下就选中那个单位。队友没有目标时那一颗不会出现。"
 L["Profiles"] = "配置"
 L["Use common profile"] = "使用通用配置"
 L["Use separate profile for each spec"] = "为每个专精使用独立配置"

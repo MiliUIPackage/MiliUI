@@ -82,6 +82,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-actionbar-taint-blame.md](wow-actionbar-taint-blame.md) | MultiBar SetAttribute 被封鎖卻牽拖到不碰快捷列的插件 —— 共用表汙染的指紋與 taintLog 診斷法 |
 | [wow-frame-vs-texture-layering.md](wow-frame-vs-texture-layering.md) | 子 frame 永遠畫在父層貼圖之上，**跟 DrawLayer 無關** —— 貼圖被蓋住時調 layer 是白費工 |
 | [wow-frame-lifecycle-costs.md](wow-frame-lifecycle-costs.md) | frame 刪不掉的三條設計後果：簽章重建＝洩漏、連續控件是放大器、池化格子不要丟棄 |
+| [wow-securegroupheader-refresh-snippet.md](wow-securegroupheader-refresh-snippet.md) | 給 SecureGroupHeader 的格子掛次要按鈕（寵物／目標）：unit 只能在 `refreshUnitChange` snippet 裡派，動 header 任一屬性就會讓整排重跑 |
 | [wow-editmode-blizzard-grid.md](wow-editmode-blizzard-grid.md) | 編輯模式的格線是內建的，別自己畫；吸附讀 `IsSnapEnabled`／`GridSpacing` |
 | [wow-editmode-custom-setting-row.md](wow-editmode-custom-setting-row.md) | 編輯模式設定視窗掛自己的設定列：值自己存、別重用 `EditModeSettingSliderTemplate`、選取框要 `SetIgnoreParentAlpha` |
 | [wow-damagemeter-c-api-design.md](wow-damagemeter-c-api-design.md) | 走 `C_DamageMeter` 的輕量統計：當渲染器不當統計引擎；省資源手法、分段判定、秘密值紀律 |
@@ -153,6 +154,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | 檔案 | 內容 |
 |---|---|
 | [wow-luac-global-scan.md](wow-luac-global-scan.md) | `luac -p` 抓不到未宣告全域；要用 `luac -l` 掃 `_ENV` 讀取 |
+| [wow-git-tag-push-rejected.md](wow-git-tag-push-rejected.md) | push 被拒「tag already exists」：同名標籤兩顆不同物件，採用遠端那顆別 force push |
 | [wow-locale-key-access-patterns.md](wow-locale-key-access-patterns.md) | 語系 key 的四種取法（含前綴拼接）；**不要自動刪沒人用的語系條目** —— 為此翻車兩次 |
 | [wow-ui-source-lookup（技能）](../skills/wow-ui-source-lookup/SKILL.md) | 查暴雪原生 UI 原始碼與 API 簽章 |
 | [wow-png-shrink（技能）](../skills/wow-png-shrink/SKILL.md) | 壓縮插件 PNG —— 三個量測過的手段、縮圖要拿顯示尺寸驗證、索引色為何否決 |

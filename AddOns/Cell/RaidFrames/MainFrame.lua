@@ -9,6 +9,11 @@ Cell.unitButtons = {
     ["party"] = {
         ["units"] = {}, -- NOTE: update in PartyFrame _initialAttribute-refreshUnitChange
     },
+    -- fix from MiliUI: the "party targets" tool. One button per party slot, showing that
+    -- member's target. Kept OUT of unitButtons.party because everything that walks that
+    -- table treats its entries as group members -- these are not, they follow whatever the
+    -- member happens to be looking at. Created in PartyFrame.lua next to the pet buttons.
+    ["partyTarget"] = {},
     ["raid"] = {
         ["units"] = {}, -- NOTE: update in UnitButton_OnAttributeChanged
     },

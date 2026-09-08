@@ -296,6 +296,18 @@ function eventFrame:ADDON_LOADED(arg1)
             end
         end
 
+        -- fix from MiliUI: party targets, topped up per key for the same reason as above.
+        -- The VALUES live with the tool (Utilities/PartyTargets.lua).
+        do
+            if type(CellDB["tools"]["partyTargets"]) ~= "table" then
+                CellDB["tools"]["partyTargets"] = {}
+            end
+            local t = CellDB["tools"]["partyTargets"]
+            for key, value in pairs(Cell.defaults.partyTargets) do
+                if type(t[key]) ~= type(value) then t[key] = value end
+            end
+        end
+
         -- spellRequest ---------------------------------------------------------------------------
         if type(CellDB["spellRequest"]) ~= "table" then
             local POWER_INFUSION, POWER_INFUSION_ICON = F.GetSpellInfo(10060)
@@ -671,9 +683,11 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
         -- update Cell.unitButtons.party.units
         Cell.unitButtons.party.units["player"] = nil
         Cell.unitButtons.party.units["pet"] = nil
+        Cell.unitButtons.party.units["target"] = nil -- fix from MiliUI: party targets
         for i = 1, 4 do
             Cell.unitButtons.party.units["party"..i] = nil
             Cell.unitButtons.party.units["partypet"..i] = nil
+            Cell.unitButtons.party.units["party"..i.."target"] = nil -- fix from MiliUI
         end
 
     elseif IsInGroup() then
@@ -693,6 +707,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
         for i = GetNumGroupMembers(), 4 do
             Cell.unitButtons.party.units["party"..i] = nil
             Cell.unitButtons.party.units["partypet"..i] = nil
+            Cell.unitButtons.party.units["party"..i.."target"] = nil -- fix from MiliUI
         end
 
     else
@@ -711,9 +726,11 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
         -- update Cell.unitButtons.party.units
         Cell.unitButtons.party.units["player"] = nil
         Cell.unitButtons.party.units["pet"] = nil
+        Cell.unitButtons.party.units["target"] = nil -- fix from MiliUI: party targets
         for i = 1, 4 do
             Cell.unitButtons.party.units["party"..i] = nil
             Cell.unitButtons.party.units["partypet"..i] = nil
+            Cell.unitButtons.party.units["party"..i.."target"] = nil -- fix from MiliUI
         end
     end
 
