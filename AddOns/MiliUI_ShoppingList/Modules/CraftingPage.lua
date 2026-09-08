@@ -1,7 +1,8 @@
 ------------------------------------------------------------
 -- 製作頁的「加入清單」按鈕
 --
--- 掛在 ProfessionsFrame.CraftingPage.SchematicForm 上，錨在製作鈕左側。
+-- 掛在 ProfessionsFrame.CraftingPage.SchematicForm 上，貼在底部那排製作鈕的
+-- 最左邊（位置怎麼挑見下面 PlaceButton 的註解）。
 --
 -- ⚠ taint 紀律：
 --   * 按鈕是我們自己的子框，**不寫任何欄位到暴雪的框上**（不用 parentKey）
@@ -56,10 +57,43 @@ local function CurrentRecipe()
 end
 
 ------------------------------------------------------------
+-- 按鈕位置
+--
+-- 製作頁底部那一排由右往左是：製造(CreateButton) ← 數量框(CreateMultipleInputBox)
+-- ← 全部製造(CreateAllButton)，暴雪的錨點各留 30px 的間隔給數量框的左右箭頭
+-- （箭頭是**突出到框外**的，所以那 30px 不是空白）。
+-- 一開始錨在 CreateButton 左邊，結果整顆蓋在數量框上。改成貼在整排的最左邊。
+--
+-- ⚠ 「最左邊是誰」會變：不能批量製作的配方（附魔那類）沒有全部製造鈕與數量框。
+--   所以每次 Refresh 重挑一次，不要在 Attach 時挑死。
+------------------------------------------------------------
+local function PlaceButton()
+    local page = ProfessionsFrame and ProfessionsFrame.CraftingPage
+    if not button or not page then return end
+
+    local anchor, gap
+    if page.CreateAllButton and page.CreateAllButton:IsShown() then
+        anchor, gap = page.CreateAllButton, 10
+    elseif page.CreateMultipleInputBox and page.CreateMultipleInputBox:IsShown() then
+        anchor, gap = page.CreateMultipleInputBox, 26   -- 讓開左箭頭
+    elseif page.CreateButton then
+        anchor, gap = page.CreateButton, 10
+    end
+
+    button:ClearAllPoints()
+    if anchor then
+        button:SetPoint("RIGHT", anchor, "LEFT", -gap, 0)
+    else
+        button:SetPoint("BOTTOMRIGHT", page.SchematicForm, "BOTTOMRIGHT", -8, 8)
+    end
+end
+
+------------------------------------------------------------
 -- 按鈕狀態
 ------------------------------------------------------------
 local function Refresh()
     if not button then return end
+    PlaceButton()
     local form, info = CurrentRecipe()
     if not form then
         button:SetEnabled(false)
@@ -124,14 +158,8 @@ local function Attach()
     attached = true
 
     button = W.CreateButton(form, L["Add to list"], "accent-hover", 110, 22)
-    -- 錨在製作鈕左邊。CreateButton 是 CraftingPage 的子框（我們的按鈕掛在
-    -- SchematicForm 上），跨框錨點是合法的；那顆藏起來時退回 SchematicForm 右下。
-    if page.CreateButton then
-        button:SetPoint("BOTTOMRIGHT", page.CreateButton, "BOTTOMLEFT", -6, 0)
-    else
-        button:SetPoint("BOTTOMRIGHT", form, "BOTTOMRIGHT", -8, 8)
-    end
     P.Size(button, 110, 22)
+    PlaceButton()
     ns.AttachTooltip(button, FillTooltip)
     button:SetScript("OnClick", OnClick)
 
