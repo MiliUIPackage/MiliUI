@@ -285,7 +285,7 @@ function F.UpdatePartyTargets()
     --! and if the pets now belong on the other side, re-run the arrangement that places
     --! them. Gated on a real change for the same reason as the attribute above: this is a
     --! full re-anchor of every button and the width slider must not pay for it.
-    if PartyFrame_UpdateLayout and WantPetFlip(layout) ~= petFlipApplied then
+    if Cell.vars.groupType == "party" and WantPetFlip(layout) ~= petFlipApplied then
         PartyFrame_UpdateLayout(Cell.vars.currentLayout, "pet-arrangement")
     end
 end
