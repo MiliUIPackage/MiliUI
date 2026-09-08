@@ -162,7 +162,8 @@ function Rows.Update(row, data)
     if buy > 0 then
         row.cols.toBuy:SetText("|cffff7777" .. buy .. "|r")
     else
-        row.cols.toBuy:SetText("|cff55ff55✓|r")
+        -- ⚠ 不要寫 ✓：zhTW 的內建字型沒有那個碼位，會變成空心方框
+        row.cols.toBuy:SetText("|cff55ff55" .. L["ready"] .. "|r")
     end
 
     row.cols.price:SetText(data.unitPrice and ns.List.MoneyShort(data.unitPrice) or "|cff666666—|r")

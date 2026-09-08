@@ -17,7 +17,7 @@ local _, ns = ...
 
 local L, W, P = ns.L, ns.W, ns.P
 
-local button
+local button, caption
 local attached = false
 local dirty = false
 
@@ -78,7 +78,7 @@ local function FillTooltip(_, tip)
     end
 
     local rows = ns.Schematic.OrderReagents(form)
-    tip:AddLine(L["Reagents you have to provide yourself:"], 0.8, 0.8, 0.8, true)
+    tip:AddLine(L["Reagents you can provide for this order:"], 0.8, 0.8, 0.8, true)
     tip:AddLine(" ")
     local any = false
     for _, r in ipairs(rows or {}) do
@@ -100,6 +100,8 @@ local function FillTooltip(_, tip)
     end
     tip:AddLine(" ")
     tip:AddLine(L["Click to put the missing reagents on the shopping list."], 0.6, 0.6, 0.6, true)
+    tip:AddLine(L["Then open the auction house: the list searches for them and buys them, one confirmation each."],
+        0.6, 0.6, 0.6, true)
 end
 
 local function OnClick()
@@ -131,18 +133,28 @@ local function Attach()
     attached = true
 
     button = W.CreateButton(form, L["Add to list"], "accent-hover", 150, 22)
-    -- 錨在「下單」鈕左邊。
-    -- ⚠ 不錨 ReagentContainer 底下：Auctionator 的材料價格框已經貼在
-    --   ReagentContainer.Reagents 的下緣（frameLevel 520），會疊在一起。
-    local listBtn = form.PaymentContainer and form.PaymentContainer.ListOrderButton
-    if listBtn then
-        button:SetPoint("RIGHT", listBtn, "LEFT", -8, 0)
+    P.Size(button, 150, 22)
+    -- 貼在「提供施法材料：」那一列的右端（ReagentContainer 的右上角）。
+    -- 那是這顆按鈕該站的地方：它講的就是下面那排材料。
+    -- ⚠ 不要錨 ReagentContainer 的**下緣**：Auctionator 的材料價格框已經貼在
+    --   ReagentContainer.Reagents 底下（frameLevel 520），會疊在一起。右上角是空的。
+    if form.ReagentContainer then
+        button:SetPoint("TOPRIGHT", form.ReagentContainer, "TOPRIGHT", -6, -6)
+    elseif form.ListOrderButton or (form.PaymentContainer and form.PaymentContainer.ListOrderButton) then
+        button:SetPoint("RIGHT", form.ListOrderButton or form.PaymentContainer.ListOrderButton, "LEFT", -8, 0)
     else
         button:SetPoint("BOTTOMLEFT", form, "BOTTOMLEFT", 12, 12)
     end
-    P.Size(button, 150, 22)
     ns.AttachTooltip(button, FillTooltip)
     button:SetScript("OnClick", OnClick)
+
+    -- 按鈕底下一行小字：不解釋的話，「加入清單」看起來只是個記事本。
+    -- 真正的賣點是「清單會幫你把缺的材料在拍賣場一次買齊」。
+    caption = button:CreateFontString(nil, "OVERLAY")
+    caption:SetFontObject(GameFontDisableSmall)
+    caption:SetPoint("TOPRIGHT", button, "BOTTOMRIGHT", 0, -2)
+    caption:SetJustifyH("RIGHT")
+    caption:SetText(L["Missing reagents can be bought at the auction house in one go"])
 
     -- hook **實體**不 hook mixin
     if form.Init then hooksecurefunc(form, "Init", Schedule) end

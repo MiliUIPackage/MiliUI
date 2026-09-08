@@ -54,9 +54,15 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
   兩邊算法不同就會出現「插件說齊了、下單鈕卻是灰的」。
   allocations 物件的形狀（Auctionator 的 CraftingInfo/Main.lua 證實）：
   `:Accumulate()` 取總數、`:FindAllocationByReagent(reagent)` → allocation `:GetQuantity()`。
-- **「顧客必須提供」的判準**（暴雪 `AreRequiredReagentsProvided` 原文）：
-  `slot.required and (orderSource == Customer or (orderSource == Any and order.orderType == Public))`。
-  非公開訂單（公會／個人）而來源是 Any 的欄位是「顧客**可以**提供」，不是必須。
+- **「必須提供」與「可以提供」是兩條不同的判準，採購清單要的是後者。**
+  暴雪 `AreRequiredReagentsProvided`（決定「下訂單」鈕亮不亮）：
+  `required and (orderSource == Customer or (orderSource == Any and orderType == Public))`。
+  暴雪 `UpdateReagentSlots`（決定那格有沒有勾選框）：先把「公開訂單的 Any」正規化成
+  Customer，然後 `canProvide = orderSource ~= Crafter`。
+  ⚠ 只看前者的話，**個人／公會訂單一條材料都不會進清單** —— 那種訂單的欄位大多是
+  Any，必須提供的一個都沒有。實測症狀：畫面上明明五排 `0/N`，插件回報
+  「材料背包裡都有了」（2026-09-08）。現在照 canProvide 收，`must` 只用來分
+  必備／可選。
 
 ## taint 紀律
 
@@ -88,6 +94,16 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
   `x="-30"` 的間隔給數量框**突出到框外**的左右箭頭 —— 那 30px 不是空白。
   錨製造鈕左邊會整顆蓋在數量框上。改成每次 Refresh 重挑「最左邊那顆」
   （不能批量製作的配方沒有全部製造鈕與數量框，誰在最左邊會變）。
+- **中文字型沒有 ▸ ▾ ✓。** zhTW 內建的 `blei00d` 是 Big5 年代的字集，這些碼位畫出來
+  是空心方框（實測擷圖）。展開箭頭改用暴雪設定面板的 `Options_ListExpand_Right` /
+  `_Expanded` 圖集（取不到就退回 AceGUI 樹狀圖那組加減號 FileDataID 130838/130821），
+  打勾直接改成文字「已齊」。共用層的勾選框早就記過同一件事，這是同一個坑的別的入口。
+- **視窗要 DIALOG 不能 HIGH。** `ProfessionsFrame` 是 `toplevel="true"`，被點一下就把
+  自己拉到 HIGH 的最上層，結果插在我們的底色與文字之間 —— 視窗看起來變成半透明。
+- **下單頁的按鈕貼 `ReagentContainer` 的右上角**（「提供施法材料：」那一列的右端），
+  不是「下訂單」鈕旁邊：按鈕講的就是下面那排材料，站在那裡才讀得懂。
+  底下再掛一行小字說明「缺的材料可以到拍賣場一次買齊」—— 不解釋的話「加入清單」
+  看起來只是個記事本。
 - **事件名要照抄自真的在用它的插件。** `PLAYERREAGENTBANKSLOTS_CHANGED` 在 11.2
   的銀行改版就沒了（材料銀行併成銀行分頁，Syndicator 只在舊版版面才註冊它）。
   `RegisterEvent` 收到不存在的名字會**丟 Lua error**，而那是檔案層的錯 ——
@@ -98,8 +114,7 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 ## 待驗證（進遊戲才知道）
 
 - [x] ~~製作頁的按鈕位置~~ —— 已實測修掉，見上面「踩過的點」。
-- [ ] 下單頁的按鈕錨 `PaymentContainer.ListOrderButton` 左側，實際有沒有空間、
-      Auctionator 的資訊框開著時會不會疊到。
+- [x] ~~下單頁的按鈕位置~~ —— 改貼 `ReagentContainer` 右上角，見上面「踩過的點」。
 - [ ] `CraftingPage.CreateMultipleInputBox` 的取值方法名（程式三條路都試：
       `GetNumber` / `GetValue` / `GetText`，pcall 包住）。
 - [ ] 藥水配方的 `recipeSchematic.quantityMin` 是不是「每次產出瓶數」

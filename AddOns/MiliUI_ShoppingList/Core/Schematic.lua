@@ -161,15 +161,28 @@ end
 local REAGENT_SOURCE = Enum.CraftingOrderReagentSource
 local ORDER_TYPE     = Enum.CraftingOrderType
 
-local function MustProvide(slot, order)
-    if not slot.required then return false end
+-- 暴雪 UpdateReagentSlots 開頭做的正規化：公開訂單的 Any 一律當成 Customer
+local function SlotSource(slot, order)
     local src = slot.orderSource
-    if src == nil or not REAGENT_SOURCE then return false end
-    if src == REAGENT_SOURCE.Customer then return true end
-    if src == REAGENT_SOURCE.Any and ORDER_TYPE and order and order.orderType == ORDER_TYPE.Public then
-        return true
+    if src == REAGENT_SOURCE.Any and order and order.orderType == ORDER_TYPE.Public then
+        return REAGENT_SOURCE.Customer
     end
-    return false
+    return src
+end
+
+-- 顧客**必須**提供（AreRequiredReagentsProvided 的判準，決定「下訂單」鈕會不會亮）
+local function MustProvide(slot, order)
+    return slot.required and SlotSource(slot, order) == REAGENT_SOURCE.Customer
+end
+
+-- 顧客**可以**提供（UpdateReagentSlots 的 canProvide，決定那格有沒有勾選框）
+--
+-- ⚠ 採購清單要的是這一條，不是 MustProvide。個人／公會訂單的欄位大多是 Any，
+--   必須提供的一個都沒有 —— 只看 MustProvide 的話，畫面上明明五排 0/N，
+--   插件卻回報「材料背包裡都有了」（實測 2026-09-08）。
+--   玩家會打開下單頁就是打算自己出材料，能出的都該進清單。
+local function CanProvide(slot, order)
+    return slot.required and SlotSource(slot, order) ~= REAGENT_SOURCE.Crafter
 end
 
 -- 下單頁的每個材料槽一筆（含備齊與否），給按鈕的徽章與工具提示用。
@@ -190,19 +203,23 @@ function Schematic.OrderReagents(form)
             local must        = MustProvide(slot, order)
             local isBasic     = slot.reagentType == BASIC
 
-            local itemID, alts, perCraft, optional
+            local itemID, alts, perCraft, optional, include
             if isBasic then
                 itemID, alts = SlotItems(slot)
                 perCraft = slot.quantityRequired or 1
+                optional = not must          -- 可以提供但不強制＝清單上的「可選」
+                include  = CanProvide(slot, order)
             else
+                -- 裝飾／加成槽：玩家放了東西才算他的
                 itemID, perCraft = SelectedOptional(slot, allocations)
                 perCraft = (perCraft and perCraft > 0) and perCraft or (slot.quantityRequired or 1)
                 optional = true
+                include  = allocated > 0
             end
 
-            if itemID and (must or (optional and allocated > 0)) then
+            if itemID and include then
                 local buy = math.max(0, (slot.quantityRequired or 1) - allocated)
-                if must then missing = missing + buy end
+                missing = missing + buy
                 rows[#rows + 1] = {
                     itemID    = itemID,
                     alts      = alts,

@@ -39,6 +39,30 @@ local expanded = {}
 local Refresh   -- 前向宣告：工具列的 OnClick 在它之前就寫好了
 
 ------------------------------------------------------------
+-- 展開／收合的箭頭
+--
+-- ⚠ 不要用 ▸ ▾ 這種字元。zhTW 的內建字型（blei00d，Big5 年代的字集）沒有這些
+--   碼位，畫出來是空心方框。共用層的勾選框早就記過同一件事（「勾用材質不用字元：
+--   中文字型沒有 ✓」），這裡是同一個坑的另一個入口。
+--   用暴雪設定面板的分類展開圖示；真的取不到就退回 AceGUI 樹狀圖那組加減號
+--   （FileDataID 直接寫死，那兩張圖從古早版本活到現在）。
+------------------------------------------------------------
+local HAS_EXPAND_ATLAS = C_Texture.GetAtlasInfo("Options_ListExpand_Right") ~= nil
+
+local function SetArrow(tex, isExpanded)
+    if HAS_EXPAND_ATLAS then
+        tex:SetAtlas(isExpanded and "Options_ListExpand_Right_Expanded" or "Options_ListExpand_Right")
+        tex:SetSize(10, 10)
+        tex:SetVertexColor(0.75, 0.75, 0.75)
+    else
+        tex:SetTexture(isExpanded and 130821 or 130838)   -- UI-MinusButton-UP / UI-PlusButton-UP
+        tex:SetSize(12, 12)
+        tex:SetVertexColor(1, 1, 1)
+    end
+    tex:Show()
+end
+
+------------------------------------------------------------
 -- 位置
 ------------------------------------------------------------
 local function SavePos()
@@ -90,9 +114,12 @@ local function BuildRecipeRow(row)
     main:SetAllPoints()
     row.main = main
 
+    row.arrow = main:CreateTexture(nil, "ARTWORK")
+    row.arrow:SetPoint("LEFT", 4, 0)
+
     row.icon = main:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(18, 18)
-    row.icon:SetPoint("LEFT", 4, 0)
+    row.icon:SetPoint("LEFT", 18, 0)
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     row.remove = W.CreateButton(main, "×", "red", 20, 18)
@@ -203,7 +230,7 @@ local function UpdateRecipeRow(row, item)
         elseif line.buy > 0 then
             row.dBuy:SetText("|cffff7777" .. line.buy .. "|r")
         else
-            row.dBuy:SetText("|cff55ff55✓|r")
+            row.dBuy:SetText("|cff55ff55" .. L["ready"] .. "|r")
         end
 
         local itemID = line.itemID
@@ -221,6 +248,7 @@ local function UpdateRecipeRow(row, item)
     if item.kind == "extra" then
         local extra = item.extra
         local info = ns.List.ItemInfo(extra.itemID)
+        row.arrow:Hide()
         row.icon:SetTexture(info and info.icon or 134400)
         local color = ITEM_QUALITY_COLORS[(info and info.quality) or 1]
         row.name:SetText(((color and color.hex) or "|cffffffff") .. (info and info.name or "?") .. "|r")
@@ -251,8 +279,8 @@ local function UpdateRecipeRow(row, item)
 
     local entry = item.entry
     row.icon:SetTexture(entry.icon or 134400)
-    local arrow = expanded[entry.key] and "|cff808080▾|r " or "|cff808080▸|r "
-    row.name:SetText(arrow .. (entry.name or "?"))
+    SetArrow(row.arrow, expanded[entry.key])
+    row.name:SetText(entry.name or "?")
     local label = SOURCE_LABEL[entry.source]
     row.tag:SetText("|cff808080" .. (label and label() or entry.source or "") .. "|r")
 
@@ -453,7 +481,10 @@ local function Build()
 
     frame = W.CreateFrame("MiliUIShop_Window", UIParent, WINDOW_W, WINDOW_H)
     frame:Hide()
-    frame:SetFrameStrata("HIGH")
+    -- ⚠ DIALOG 不是 HIGH：ProfessionsFrame 是 toplevel="true"，被點一下就會把自己
+    --   拉到 HIGH 的最上層，結果它插在我們的底色與文字之間 —— 視窗看起來變成半透明
+    --   （實測 2026-09-08 的擷圖）。跟設定視窗同一層才不會被插隊。
+    frame:SetFrameStrata("DIALOG")
     frame:SetFrameLevel(50)
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
