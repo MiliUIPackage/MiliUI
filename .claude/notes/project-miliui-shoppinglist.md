@@ -83,11 +83,23 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
   `ChatEdit_InsertLink`（後者只在聊天輸入框開著時才會被呼叫）。
 - 代工按鈕不能錨在 `ReagentContainer.Reagents` 下緣：Auctionator 的材料價格框
   已經貼在那裡（frameLevel 520）。改錨「下單」鈕左側。
+- **製作頁底部那排不能錨「製造」鈕的左邊**（實測，2026-09-08）。由右往左是
+  `CreateButton` ← `CreateMultipleInputBox` ← `CreateAllButton`，暴雪的 XML 各留
+  `x="-30"` 的間隔給數量框**突出到框外**的左右箭頭 —— 那 30px 不是空白。
+  錨製造鈕左邊會整顆蓋在數量框上。改成每次 Refresh 重挑「最左邊那顆」
+  （不能批量製作的配方沒有全部製造鈕與數量框，誰在最左邊會變）。
+- **事件名要照抄自真的在用它的插件。** `PLAYERREAGENTBANKSLOTS_CHANGED` 在 11.2
+  的銀行改版就沒了（材料銀行併成銀行分頁，Syndicator 只在舊版版面才註冊它）。
+  `RegisterEvent` 收到不存在的名字會**丟 Lua error**，而那是檔案層的錯 ——
+  整支 `Core/List.lua` 從那一行起停掉，`ImportTracked` 與追蹤配方的監聽一起沒掛上，
+  症狀跟「事件沒收到」完全不一樣。現在用
+  `BANK_TABS_CHANGED` ＋ `PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED`。
 
 ## 待驗證（進遊戲才知道）
 
-- [ ] 按鈕位置：製作頁錨 `CraftingPage.CreateButton` 左側、下單頁錨
-      `PaymentContainer.ListOrderButton` 左側，實際有沒有空間、會不會被裁。
+- [x] ~~製作頁的按鈕位置~~ —— 已實測修掉，見上面「踩過的點」。
+- [ ] 下單頁的按鈕錨 `PaymentContainer.ListOrderButton` 左側，實際有沒有空間、
+      Auctionator 的資訊框開著時會不會疊到。
 - [ ] `CraftingPage.CreateMultipleInputBox` 的取值方法名（程式三條路都試：
       `GetNumber` / `GetValue` / `GetText`，pcall 包住）。
 - [ ] 藥水配方的 `recipeSchematic.quantityMin` 是不是「每次產出瓶數」
