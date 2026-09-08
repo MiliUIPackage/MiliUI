@@ -28,6 +28,26 @@ Secret aspects：把 secret 丟給 widget API 會在該物件上留下 aspect（
 
 **踩過的坑：`StatusBar:SetValue(secret)` 會污染整個 frame 的幾何資料。** 它「接受 secret 但沒有對應的 aspect」，所以不是只標記某個面向，而是把**整個物件**標成 has-secret-values → 之後 `GetWidth()` / `GetHeight()` / 錨點資料全部回 secret，而且會往下傳染給錨在它身上的子區域，只有 `SetToDefaults()` 能清。
 
+## 秘密錨點會沿著錨定鏈往下傳染，而且「尺寸自己設」擋不住
+
+把自己的框 `SetParent`／`SetPoint` 到暴雪的框上，只要那個框帶秘密幾何，**我們的框、以及
+錨在我們框上的每一個子框，全部變成 anchoring secret**（wiki: "If child frame B is anchored
+to parent frame A, and A has secret anchoring data, B implicitly has secret anchors too"）。
+`GetWidth` / `GetHeight` / `GetSize` / `GetLeft` / `GetTop` / `GetCenter` / `GetRect` /
+`GetPoint` 在生成的 API 文件裡都標著 `SecretWhenAnchoringSecret = true`
+（`Blizzard_APIDocumentationGenerated/SimpleScriptRegionAPIDocumentation.lua`，可以直接查
+哪支 API 帶什麼秘密旗標），所以**「我自己 SetSize 過所以讀得回來」是錯的**——旗標看的是
+region 的錨定狀態，不是尺寸怎麼來的。解法只有兩個方向：`ClearAllPoints()` 脫離那條鏈，
+或者接受在那個情境下不顯示。危險的是**暴雪自己的每幀程式**（相機、版面）會去讀我們框的
+幾何，錯誤全部算在插件頭上，例如 ModelScene 掛進 GameTooltip 之後
+`OrbitCameraMixin:UpdateCameraOrientationAndPosition` 每幀報 `attempt to compare local
+'width'`（見 [[project-appearancetooltip-secret-rect]]）。
+
+**偵測 API 自己也會回秘密布林**：`IsAnchoringSecret()`／`HasSecretAspect()`／
+`HasSecretValues()` 都標著 `SecretReturnsForAspect = { ObjectSecrets }`，對著一個帶
+ObjectSecrets 的物件問，拿回來的是**秘密布林**，`if frame:IsAnchoringSecret() then` 當場報錯。
+一律寫成先落地再 `issecretvalue()` 檢查，「看不出來」當作秘密。
+
 **暴雪自己的光環按鈕（BuffFrame / DebuffFrame 的 AuraContainer 子按鈕）也是這個狀態。**
 `btn.Icon:GetSize()` 回的是秘密數字，拿去比大小就是
 `attempt to compare local 'iw' (a secret number value, while execution tainted by '<你的插件>')`，

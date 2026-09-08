@@ -153,3 +153,10 @@ L["+%d from a vendor"] = "另有 %d 樣商店買得到"
 L["Hide what a vendor sells"] = "隱藏商店買得到的材料"
 L["Leave out reagents you can just buy from a merchant"] = "商人那裡就買得到的材料不列進採購清單"
 L["There is no API for \"a vendor sells this\" — the game only ever tells an addon what a vendor would pay you. So this is learned: every merchant window you open records what it stocks without limit. Until then, right-click a row to drop it yourself."] = "遊戲沒有「這件東西商店有沒有在賣」的介面可以問——它只告訴插件商店願意用多少錢跟你收。所以這是逛出來的：你每開一次商人視窗，就把那裡無限供應的貨記下來。還沒逛到之前，右鍵那一列可以自己把它丟掉。"
+
+-- 品質切換與忽略的提示
+L["Quality %d"] = "%d 星品質"
+L["This is the quality being bought."] = "目前買的就是這個品質。"
+L["Click to buy this quality instead."] = "點一下改買這個品質。"
+L["Click the quality marks to switch which one you buy."] = "點名字左邊的星數可以換要買哪個品質。"
+L["Ignored reagents stay out of the list and out of \"buy everything\"."] = "忽略的材料不會出現在清單裡，「全部購買」也會跳過。"

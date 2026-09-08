@@ -36,7 +36,7 @@ metadata:
 | **TinyInspect-Remake** | 12.1 secret guard：`InspectCore.lua` 的 `SafeUnitGUID`／血量新鮮度檢查、`ItemLevel.lua`／`InspectUnit.lua` 的 `IsInspectFrameData` | [[project-tinyinspect-secret-guid]]。全部有 `fix from MiliUI` 標記；`MiliUI/Fix/InspectTaintFix.lua` 是後備 |
 | **Ayije_CDM** | 12.1 secret guard、zhTW 翻譯修正、Externals 光環閘、**四條 dispatch 迴圈改 xpcall 隔離**、內附 LibCustomGlow 換成 v25、**編輯模式改成可拖曳**（[[project-ayije-cdm-editmode-drag]]）、**併入原本掛在 MiliUI 的三支**（法力數字縮寫選項→`Modules/Tags.lua` ＋ `/acdm` 資源頁下拉；米利頭像錨定→`Core/TrackerUtils.lua` 候選清單首位、可見性判斷一律 `IsVisible`；黑底清除→`Core/Style.lua` 的 `ApplyStyle`／`ApplyBarStyle` 尾端 ＋ `/cdmhide`）、**增益長條的名字補寫**（`Core/Style.lua`：名字文字框改成只熄 alpha 不 Hide、可見度掛勾只留給倒數與層數，`ApplyBarStyle` 尾端在字是空的時候補叫 `RefreshName`，另補上自訂名字掛勾的秘密字串閘；**名字讓暴雪寫、插件不再叫 RefreshName**：`SetBarContent` 後掛勾把名字 Show 回來，`SetText` 後掛勾只處理自訂名字與 nil 那一秒的法術名字退路，見 [[wow-cooldownviewer-buffbar-text-gate]]） | TOC 有 `## OptionalDeps: MiliUI`。換函式庫時**別刪 `LibCustomGlow-1.0.xml`** —— 它是靠 `Libs/embeds.xml` Include 這個 xml 才載入的，BuffReminders 那份是 TOC 直接列 .lua 所以沒有 xml，整包蓋過去會讓函式庫完全不載入，見 [[wow-121-setdesaturation-acegui]] |
 | **Platynator** | `Core/Initialize.lua` 讀 MiliUI 內建 profile 並自動切換 | [[project-platynator-preset]] |
-| **AppearanceTooltip** | `addon.lua` 的 `IsRectValid` guard | [[project-appearancetooltip-secret-rect]] |
+| **AppearanceTooltip** | **整包 zhTW 中文化**（`config.lua` 32 行、`overlays.lua` 4 行、`addon.lua` 的職業警告 1 行，上游沒有語系檔，翻譯是就地改字串）＋兩處秘密值修補：`GetCenter` 的 `IsRectValid` guard（上游 `bf84c3cb1` 之後已同文，不再是分歧）、**秘密錨點下不顯示預覽**（2026-09-08，`ShowTooltip`＋positioner 每幀檢查＋`issecretframe` helper 補秘密布林判斷，解 `OrbitCameraMixin.lua:546` 每幀報錯） | [[project-appearancetooltip-secret-rect]]。秘密值那三處有 `fix from MiliUI` 標記；中文化沒有（量太大），更新前先留一份舊檔對照 |
 | **DamageMeterTools** | 錯誤處理器改成鏈式（原本會吃掉 BugSack 的錯誤）、登入卡頓修補 | 見 [[project-121-addon-migration]] |
 | **BuffReminders** | `Core/Bootstrap.lua` 註解掉每次登入的 external buffs 提示 | 一行 |
 | **DiGuaTimelineAudioHelper** | `Core.lua` 註解掉每次登入的「愛發電」贊助提示 print | 一行，有 `fix from MiliUI` 標記。這支會定期 `update:` 同步上游 |
@@ -50,5 +50,5 @@ metadata:
 
 **How to apply:**
 - 同步上游後，用 `git diff` 看那次 commit 有沒有把上面提到的檔案改回原樣。
-- **本地修改一律留 `MiliUI` 字樣的註解**（例：`-- fix from MiliUI: ...`）。這樣 `grep -rn "MiliUI" AddOns/<插件>` 就能認出來。目前 DamageMeterTools、BuffReminders、AppearanceTooltip 的改動**沒有**這個標記，下次動到時順手補上。
+- **本地修改一律留 `MiliUI` 字樣的註解**（例：`-- fix from MiliUI: ...`）。這樣 `grep -rn "MiliUI" AddOns/<插件>` 就能認出來。目前 DamageMeterTools、BuffReminders 的改動**沒有**這個標記，下次動到時順手補上；AppearanceTooltip 的秘密值修補已補上標記，中文化的部分則刻意不標。
 - 沒有上游 remote 可以 diff，git 歷史 + 這張表就是唯一的紀錄。

@@ -22,10 +22,19 @@ local isanyvaluesecret = function(...)
 end
 local issecretframe = function(frame, aspect)
     if frame.IsAnchoringSecret then
+        local secret
         if aspect then
-            return frame:HasSecretAspect(aspect)
+            secret = frame:HasSecretAspect(aspect)
+        else
+            secret = frame:IsAnchoringSecret()
         end
-        return frame:IsAnchoringSecret()
+        -- fix from MiliUI: both of those return a *secret* boolean once the frame
+        -- itself carries ObjectSecrets, and testing a secret boolean is an error.
+        -- "Can't tell" has to count as secret.
+        if issecretvalue(secret) then
+            return true
+        end
+        return secret
     end
     return false
 end
@@ -249,6 +258,19 @@ positioner:SetScript("OnShow", function(self)
     self.elapsed = TOOLTIP_UPDATE_TIME
 end)
 positioner:SetScript("OnUpdate", function(self, elapsed)
+    -- fix from MiliUI: checked every frame, ahead of the throttle. The preview hangs
+    -- off the game tooltip's frame chain, so as soon as that chain turns secret
+    -- (delves, encounters, anything that restricts tooltip data) GetWidth/GetHeight
+    -- on our ModelScene return secret numbers, and Blizzard's
+    -- OrbitCameraMixin:UpdateCameraOrientationAndPosition errors on every frame the
+    -- model is visible, blaming us. Nothing can be positioned against a secret rect
+    -- anyway, so drop the anchor and stay hidden until the next ShowItem.
+    -- Blizzard bug: Stanzilla/WoWUIBugs#812, upstream issue #35.
+    if issecretframe(tooltip) then
+        tooltip:ClearAllPoints()
+        tooltip:Hide()
+        return
+    end
     self.elapsed = self.elapsed + elapsed
     if self.elapsed < TOOLTIP_UPDATE_TIME then
         return
@@ -722,8 +744,19 @@ function ns:ShowItem(link, for_tooltip)
 end
 function ns:ShowTooltip(for_tooltip)
     tooltip:SetParent(for_tooltip)
-    tooltip:Show()
     tooltip.owner = for_tooltip
+    -- fix from MiliUI: re-parenting is what puts us into the tooltip's frame chain, so
+    -- this is the earliest point at which we can tell that the preview would be
+    -- rendering a model with secret geometry. Checking here keeps the model from being
+    -- visible for the frame or two before the positioner gets to run. See the positioner.
+    if issecretframe(tooltip) then
+        -- no GetName() here: that is secret too on a frame with the ObjectName aspect
+        ns.Debug("Suppressed display because of secret")
+        tooltip:ClearAllPoints()
+        tooltip:Hide()
+        return
+    end
+    tooltip:Show()
 
     positioner:Show()
     spinner:SetShown(db.spin)

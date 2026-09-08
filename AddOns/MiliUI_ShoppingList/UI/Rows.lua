@@ -20,10 +20,11 @@ Rows.ROW_H = 22
 
 -- 右側固定欄的寬度（由右往左排）
 local COL = {
+    omit   = 22,
     buy    = 46,
     search = 46,
-    listed = 44,
-    price  = 104,
+    listed = 42,
+    price  = 98,
     toBuy  = 46,
     need   = 40,
     have   = 78,
@@ -35,7 +36,7 @@ local CHIP = 18
 local MAX_TIERS = 3
 
 -- 表頭與列共用同一套座標，不然標題一定跟欄位對不齊
-local ORDER = { "tag", "have", "need", "toBuy", "price", "listed", "search", "buy" }
+local ORDER = { "tag", "have", "need", "toBuy", "price", "listed", "search", "buy", "omit" }
 
 local function PlaceColumns(parent, make)
     local out, x = {}, -GAP
@@ -77,6 +78,7 @@ function Rows.CreateHeader(parent, width)
         listed = L["Listed"],
         search = "",
         buy    = "",
+        omit   = "",
     }
     local cols = PlaceColumns(header, function(key, w)
         local fs = Label(header, key == "tag" and "LEFT" or "RIGHT", ns.Media.fontDim)
@@ -131,17 +133,24 @@ end
 ------------------------------------------------------------
 -- 品質小按鈕
 ------------------------------------------------------------
-local CHIP_IDLE = { 0.115, 0.115, 0.115, 1 }
+-- 選中／沒選中要一眼分得出來。三個訊號一起上，不只換底色：
+--   底色（accent ↔ 近黑）、邊框（accent ↔ 黑）、圖示亮度（全亮 ↔ 壓到 0.35）。
+-- 只換底色的話，職業色偏暗的人（暗紫、深綠）根本看不出來哪個是選中的
+-- —— 實測回報就是「我不知道怎麼切換星數」。
+local CHIP_IDLE = { 0.08, 0.08, 0.08, 1 }
 
 local function SetChipSelected(chip, on)
+    local r, g, b = W.Accent()
     if on then
-        local r, g, b = W.Accent()
-        chip._colors = { { r, g, b, 0.6 }, { r, g, b, 0.6 } }
+        chip._colors = { { r, g, b, 0.55 }, { r, g, b, 0.8 } }
+        chip:SetBackdropBorderColor(r, g, b, 1)
     else
-        local r, g, b = W.Accent()
-        chip._colors = { CHIP_IDLE, { r, g, b, 0.4 } }
+        chip._colors = { CHIP_IDLE, { r, g, b, 0.35 } }
+        chip:SetBackdropBorderColor(0, 0, 0, 1)
     end
     chip:SetBackdropColor(unpack(chip._colors[1]))
+    local fs = chip:GetFontString()
+    if fs then fs:SetAlpha(on and 1 or 0.35) end
 end
 
 ------------------------------------------------------------
@@ -165,6 +174,17 @@ function Rows.Build(row)
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     local cols = PlaceColumns(row, function(key, w)
+        if key == "omit" then
+            -- 「不再列出這個材料」。右鍵整列也可以，但那是捷徑不是提示 ——
+            -- 沒有一顆看得見的按鈕，玩家不會知道有這件事（實測回報）。
+            local b = W.CreateButton(row, "", "normal", w, Rows.ROW_H - 6)
+            P.Size(b, w, Rows.ROW_H - 6)
+            b.icon = b:CreateTexture(nil, "OVERLAY")
+            b.icon:SetTexture("Interface\\Buttons\\UI-StopButton")
+            b.icon:SetSize(10, 10)
+            b.icon:SetPoint("CENTER")
+            return b
+        end
         if key == "search" or key == "buy" then
             local b = W.CreateButton(row, "", "normal", w, Rows.ROW_H - 6)
             P.Size(b, w, Rows.ROW_H - 6)
@@ -189,7 +209,22 @@ function Rows.Build(row)
             chip:SetPoint("LEFT", row.icon, "RIGHT", GAP, 0)
         end
         chip:Hide()
-        Rows.KeepHighlight(chip, row)
+        -- 自己接 OnEnter：要同時做「列高亮」與「這顆按鈕的提示」，
+        -- 走 KeepHighlight ＋ AttachTooltip 會互相蓋掉
+        chip:SetScript("OnEnter", function(self)
+            if self._colors then self:SetBackdropColor(unpack(self._colors[2])) end
+            row.highlight:Show()
+            if self._tip then
+                GameTooltip:SetOwner(self, "ANCHOR_TOP")
+                self._tip(GameTooltip)
+                GameTooltip:Show()
+            end
+        end)
+        chip:SetScript("OnLeave", function(self)
+            if self._colors then self:SetBackdropColor(unpack(self._colors[1])) end
+            GameTooltip:Hide()
+            if not row:IsMouseOver() then row.highlight:Hide() end
+        end)
         row.chips[i] = chip
         prev = chip
     end
@@ -198,6 +233,24 @@ function Rows.Build(row)
 
     Rows.KeepHighlight(cols.search, row)
     Rows.KeepHighlight(cols.buy, row)
+
+    -- ⚠ 提示要在**這裡**掛一次，不能在 Update 裡掛：Update 每 0.2 秒就會跑一次，
+    --   而 KeepHighlight / AttachTooltip 都是「包住舊的 handler」，
+    --   在 Update 裡包等於每次刷新都多疊一層 closure。
+    cols.omit:SetScript("OnEnter", function(self)
+        if self._colors then self:SetBackdropColor(unpack(self._colors[2])) end
+        row.highlight:Show()
+        if self._tip then
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            self._tip(GameTooltip)
+            GameTooltip:Show()
+        end
+    end)
+    cols.omit:SetScript("OnLeave", function(self)
+        if self._colors then self:SetBackdropColor(unpack(self._colors[1])) end
+        GameTooltip:Hide()
+        if not row:IsMouseOver() then row.highlight:Hide() end
+    end)
 
     cols.search:SetText(L["Find"])
     cols.buy:SetText(L["Buy"])
@@ -222,14 +275,27 @@ function Rows.Update(row, data)
         local tier = tiers[i]
         -- 只有一種品質的材料不用挑，那顆按鈕就別長出來
         if tier and #tiers > 1 then
-            chip:SetText(ns.List.QualityMarkup(data.starIDs[tier]))
+            local tierID = data.starIDs[tier]
+            chip:SetText(ns.List.QualityMarkup(tierID))
             SetChipSelected(chip, tier == data.tier)
             local key = data.key
             chip:SetScript("OnClick", function() ns.List.SetTier(key, tier) end)
+            chip._tip = function(tip)
+                tip:SetText(L["Quality %d"]:format(tier))
+                local q = ns.Auction.Quote(tierID)
+                if q and q.unitPrice then
+                    tip:AddDoubleLine(L["Unit price"], ns.List.MoneyShort(q.unitPrice),
+                        0.7, 0.7, 0.7, 1, 1, 1)
+                end
+                tip:AddLine(tier == data.tier
+                    and L["This is the quality being bought."]
+                    or  L["Click to buy this quality instead."], 0.8, 0.8, 0.8, true)
+            end
             chip:Show()
             last = chip
         else
             chip:SetScript("OnClick", nil)
+            chip._tip = nil
             chip:Hide()
         end
     end
@@ -285,6 +351,16 @@ function Rows.Update(row, data)
     row.cols.search:SetScript("OnClick", function() ns.Auction.SearchItem(itemID) end)
     row.cols.buy:SetScript("OnClick", function() ns.Auction.StartBuy(itemID, buy) end)
 
+    row.cols.omit:SetScript("OnClick", function() ns.List.ToggleIgnore(key) end)
+    row.cols.omit.icon:SetVertexColor(data.ignored and 0.5 or 1, data.ignored and 1 or 0.7,
+                                      data.ignored and 0.5 or 0.7)
+    row.cols.omit._tip = function(tip)
+        tip:SetText(data.ignored and L["Right-click: list it again"]
+                                 or  L["Right-click: stop listing this reagent"])
+        tip:AddLine(L["Ignored reagents stay out of the list and out of \"buy everything\"."],
+            0.8, 0.8, 0.8, true)
+    end
+
     -- 右鍵：不再列出這個材料（商店貨認不出來時的逃生門），再按一次放回來
     row.hover:SetScript("OnClick", function() ns.List.ToggleIgnore(key) end)
     row.hover:SetScript("OnEnter", function(self)
@@ -306,6 +382,9 @@ function Rows.Update(row, data)
             end
         end
         GameTooltip:AddLine(" ")
+        if (data.tiers and #data.tiers > 1) then
+            GameTooltip:AddLine("|cff808080" .. L["Click the quality marks to switch which one you buy."] .. "|r")
+        end
         GameTooltip:AddLine("|cff808080" ..
             (data.ignored and L["Right-click: list it again"] or L["Right-click: stop listing this reagent"]) .. "|r")
         GameTooltip:Show()
