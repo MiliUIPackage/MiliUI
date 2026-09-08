@@ -98,6 +98,45 @@ function List.Counts(itemID)
 end
 
 ------------------------------------------------------------
+-- 已經買了、但還在信箱裡的量
+--
+-- 拍賣場買到的東西是**寄信**過來的，收信前 `GetItemCount` 一個都看不到 ——
+-- 清單會一直說「還缺 10 個」，玩家就會再買一次。
+--
+-- 沒有辦法在不開信箱的情況下讀信箱內容（`GetInboxNumItems` 只有站在信箱前才有值），
+-- 所以改記自己買了什麼：買下當時的背包量存一份，之後 `背包量 − 當時的量` 就是
+-- 已經領到的部分，剩下的還在路上。東西一收進背包這筆就自己歸零，不用手動清。
+--
+-- ⚠ 只留在記憶體裡，不進 SavedVariables。信可能被退回、被刪、過期，存下去就會
+--   留一筆永遠減不掉的幻影持有量 —— 那比多買一次糟糕得多。
+------------------------------------------------------------
+local inTransit = {}   -- [itemID] = { qty = 買了幾個, bags = 買下當時的背包量 }
+
+function List.NoteBought(itemID, quantity)
+    if not itemID or not quantity or quantity <= 0 then return end
+    local rec = inTransit[itemID]
+    if rec then
+        rec.qty = rec.qty + quantity
+    else
+        local bags = List.Counts(itemID)
+        inTransit[itemID] = { qty = quantity, bags = bags }
+    end
+end
+
+function List.InTransit(itemID)
+    local rec = itemID and inTransit[itemID]
+    if not rec then return 0 end
+    local bags = List.Counts(itemID)
+    local arrived = math.max(0, bags - rec.bags)
+    local left = rec.qty - arrived
+    if left <= 0 then
+        inTransit[itemID] = nil
+        return 0
+    end
+    return left
+end
+
+------------------------------------------------------------
 -- 品質（★）
 --
 -- 一個材料槽的 reagents 陣列就是它的各個品質。用 1★ 的 itemID 當整組的 key：
@@ -272,26 +311,27 @@ local function IncludeBank()
     return ns.db.settings.includeBank and true or false
 end
 
--- 一組（＝同一材料的所有品質）的持有量
+-- 一組（＝同一材料的所有品質）的持有量：背包／銀行／還在信箱
 local function GroupCounts(starIDs)
-    local bags, bank = 0, 0
+    local bags, bank, transit = 0, 0, 0
     local seen = {}
     for _, id in pairs(starIDs) do
         if id and not seen[id] then
             seen[id] = true
             local b, k = List.Counts(id)
             bags, bank = bags + b, bank + k
+            transit = transit + List.InTransit(id)
         end
     end
-    return bags, bank
+    return bags, bank, transit
 end
 
 function List.RecipeDetail(entry)
     local lines, missing = {}, 0
     for _, r in ipairs(entry.reagents or {}) do
         local starIDs = List.StarIDs(r.itemID, r.alts)
-        local bags, bank = GroupCounts(starIDs)
-        local have = bags + (IncludeBank() and bank or 0)
+        local bags, bank, transit = GroupCounts(starIDs)
+        local have = bags + transit + (IncludeBank() and bank or 0)
         local need = (r.perCraft or 1) * (entry.quantity or 1)
         local buy  = math.max(0, need - have)
         if buy > 0 and not List.IsSpark(r.itemID) then
@@ -304,6 +344,7 @@ function List.RecipeDetail(entry)
             need     = need,
             bags     = bags,
             bank     = bank,
+            transit  = transit,
             buy      = buy,
             noTrade  = List.IsSpark(r.itemID),
         }
@@ -321,8 +362,8 @@ function List.MissingTotal()
     end
     for _, extra in ipairs(Extras()) do
         local starIDs = List.StarIDs(extra.itemID, nil)
-        local bags, bank = GroupCounts(starIDs)
-        local have = bags + (IncludeBank() and bank or 0)
+        local bags, bank, transit = GroupCounts(starIDs)
+        local have = bags + transit + (IncludeBank() and bank or 0)
         total = total + math.max(0, (extra.quantity or 1) - have)
     end
     return total
@@ -366,8 +407,8 @@ function List.Shopping(opts)
     local rows, missingRows, estimate = {}, 0, 0
     local onlyMissing = ns.db.settings.onlyMissing and not (opts and opts.includeReady)
     for _, g in ipairs(order) do
-        local bags, bank = GroupCounts(g.starIDs)
-        local have = bags + (IncludeBank() and bank or 0)
+        local bags, bank, transit = GroupCounts(g.starIDs)
+        local have = bags + transit + (IncludeBank() and bank or 0)
         local buy  = math.max(0, g.need - have)
         if buy > 0 then missingRows = missingRows + 1 end
 
@@ -392,7 +433,7 @@ function List.Shopping(opts)
             if first and buy > 0 and quote and quote.unitPrice then
                 estimate = estimate + quote.unitPrice * buy
             end
-            if not onlyMissing or buy > 0 then
+            if not onlyMissing or buy > 0 or transit > 0 then
                 rows[#rows + 1] = {
                     key       = g.key,
                     itemID    = itemID,
@@ -404,6 +445,7 @@ function List.Shopping(opts)
                     need      = g.need,
                     bags      = bags,
                     bank      = bank,
+                    transit   = transit,
                     buy       = buy,
                     unitPrice = quote and quote.unitPrice,
                     listed    = quote and quote.quantity,

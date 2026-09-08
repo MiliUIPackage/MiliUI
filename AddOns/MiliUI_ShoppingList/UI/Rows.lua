@@ -98,7 +98,44 @@ end
 ------------------------------------------------------------
 -- 一列
 ------------------------------------------------------------
+-- 滑過的高亮
+--
+-- 一列 22px、十個欄位，沒有高亮的話玩家分不出自己在第幾列 —— 回報是「容易誤點」。
+--
+-- ⚠ 感應區要**先建**：之後才建的搜尋／購買鈕會疊在它上面，點擊照樣進按鈕。
+--   兩層都要在 OnLeave 問一次 row:IsMouseOver()，不然從空白處移到按鈕上的那一瞬間
+--   高亮會閃掉（OnLeave 先於按鈕的 OnEnter）。
+function Rows.KeepHighlight(btn, row)
+    local onEnter, onLeave = btn:GetScript("OnEnter"), btn:GetScript("OnLeave")
+    btn:SetScript("OnEnter", function(self)
+        if onEnter then onEnter(self) end
+        row.highlight:Show()
+    end)
+    btn:SetScript("OnLeave", function(self)
+        if onLeave then onLeave(self) end
+        if not row:IsMouseOver() then row.highlight:Hide() end
+    end)
+end
+
+function Rows.AddHighlight(row)
+    row.highlight = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+    row.highlight:SetAllPoints()
+    row.highlight:SetColorTexture(W.Accent(0.16))
+    row.highlight:Hide()
+    return row.highlight
+end
+
 function Rows.Build(row)
+    Rows.AddHighlight(row)
+
+    row.hover = CreateFrame("Frame", nil, row)
+    row.hover:SetAllPoints()
+    row.hover:EnableMouse(true)
+    row.hover:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+        if not row:IsMouseOver() then row.highlight:Hide() end
+    end)
+
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(ICON, ICON)
     row.icon:SetPoint("LEFT", GAP, 0)
@@ -121,12 +158,8 @@ function Rows.Build(row)
     row.name:SetPoint("LEFT", row.icon, "RIGHT", GAP, 0)
     row.name:SetPoint("RIGHT", row, "RIGHT", cols._leftEdge, 0)
 
-    -- 滑過整列就出物品提示：圖示只有 18px，要求玩家精準對準它太苛
-    row.hover = CreateFrame("Frame", nil, row)
-    row.hover:SetPoint("TOPLEFT")
-    row.hover:SetPoint("BOTTOMRIGHT", cols._leftEdge, 0)
-    row.hover:EnableMouse(true)
-    row.hover:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    Rows.KeepHighlight(cols.search, row)
+    Rows.KeepHighlight(cols.buy, row)
 
     cols.search:SetText(L["Find"])
     cols.buy:SetText(L["Buy"])
@@ -158,13 +191,21 @@ function Rows.Update(row, data)
 
     row.cols.need:SetText(tostring(data.need or 0))
 
+    -- 買到的東西走郵件，收信前背包裡看不到。買過的那一列反灰並標「郵件 N」，
+    -- 否則清單會繼續喊「還缺 N 個」，玩家就再買一次。
     local buy = data.buy or 0
+    local transit = data.transit or 0
     if buy > 0 then
         row.cols.toBuy:SetText("|cffff7777" .. buy .. "|r")
+    elseif transit > 0 then
+        row.cols.toBuy:SetText("|cffffd200" .. L["mail %d"]:format(transit) .. "|r")
     else
         -- ⚠ 不要寫 ✓：zhTW 的內建字型沒有那個碼位，會變成空心方框
         row.cols.toBuy:SetText("|cff55ff55" .. L["ready"] .. "|r")
     end
+    row:SetAlpha((buy == 0 and transit > 0) and 0.55 or 1)
+    -- 重畫時高亮跟著滑鼠實際位置走（列會回收，硬留著會黏在錯的列上）
+    row.highlight:SetShown(row:IsMouseOver())
 
     row.cols.price:SetText(data.unitPrice and ns.List.MoneyShort(data.unitPrice) or "|cff666666—|r")
     row.cols.listed:SetText(data.listed and BreakUpLargeNumbers(data.listed) or "|cff666666—|r")
@@ -178,6 +219,7 @@ function Rows.Update(row, data)
     row.cols.buy:SetScript("OnClick", function() ns.Auction.StartBuy(itemID, buy) end)
 
     row.hover:SetScript("OnEnter", function(self)
+        row.highlight:Show()
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetItemByID(itemID)
         if data.sources and #data.sources > 0 then
@@ -213,11 +255,13 @@ function Rows.CreateConfirmBar(parent, width, height)
     cancel:SetPoint("RIGHT", -6, 0)
     cancel:SetScript("OnClick", function() ns.Auction.Cancel() end)
 
-    local ok = W.CreateButton(bar, L["Confirm"], "green", 64, 20)
-    ok:SetPoint("RIGHT", cancel, "LEFT", -4, 0)
-    ok:SetScript("OnClick", function() ns.Auction.Confirm() end)
+    -- 「跳過」只在批次購買時出現：不想買這一筆，但不該因此中斷整批
+    local skip = W.CreateButton(bar, L["Skip"], "normal", 64, 20)
+    skip:SetPoint("RIGHT", cancel, "LEFT", -4, 0)
+    skip:SetScript("OnClick", function() ns.Auction.Skip() end)
 
-    text:SetPoint("RIGHT", ok, "LEFT", -8, 0)
+    local ok = W.CreateButton(bar, L["Confirm"], "green", 64, 20)
+    ok:SetScript("OnClick", function() ns.Auction.Confirm() end)
 
     function bar:Refresh()
         local p = ns.Auction.Pending()
@@ -230,8 +274,20 @@ function Rows.CreateConfirmBar(parent, width, height)
         if p.overpriced then
             total = "|cffff3333" .. total .. "|r"
         end
-        text:SetText(L["Buy %s x%d for %s"]:format(
-            (info and info.name) or "?", p.quantity or 1, total))
+        local line = L["Buy %s x%d for %s"]:format(
+            (info and info.name) or "?", p.quantity or 1, total)
+        local at, count = ns.Auction.QueueInfo()
+        if at then
+            line = ("|cff808080(%d/%d)|r  "):format(at, count) .. line
+        end
+        text:SetText(line)
+
+        skip:SetShown(at ~= nil)
+        ok:ClearAllPoints()
+        ok:SetPoint("RIGHT", at and skip or cancel, "LEFT", -4, 0)
+        text:ClearAllPoints()
+        text:SetPoint("LEFT", 8, 0)
+        text:SetPoint("RIGHT", ok, "LEFT", -8, 0)
         self:Show()
     end
 

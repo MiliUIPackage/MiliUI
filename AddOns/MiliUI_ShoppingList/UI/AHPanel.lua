@@ -88,8 +88,17 @@ local function Build()
     searchAll:SetPoint("TOPLEFT", PAD, -(HEADER_H + 2))
     searchAll:SetScript("OnClick", function() ns.Auction.SearchAll() end)
 
+    local buyAll = W.CreateButton(panel, L["Buy everything"], "accent-hover", 100, TOOLBAR_H - 4)
+    buyAll:SetPoint("LEFT", searchAll, "RIGHT", 6, 0)
+    buyAll:SetScript("OnClick", function() ns.Auction.BuyAll() end)
+    ns.AttachTooltip(buyAll, function(_, tip)
+        tip:SetText(L["Buy everything"])
+        tip:AddLine(L["Walks the whole list one item at a time. Every purchase still stops at the confirmation bar — nothing is bought behind your back."],
+            0.8, 0.8, 0.8, true)
+    end)
+
     local openList = W.CreateButton(panel, L["Open the full list"], "normal", 120, TOOLBAR_H - 4)
-    openList:SetPoint("LEFT", searchAll, "RIGHT", 6, 0)
+    openList:SetPoint("LEFT", buyAll, "RIGHT", 6, 0)
     openList:SetScript("OnClick", function() ns.Window.ShowTab("shop") end)
 
     local bankCheck = W.CreateCheckButton(panel, L["Count the bank"], function(on)

@@ -109,6 +109,8 @@ local SOURCE_LABEL = {
 }
 
 local function BuildRecipeRow(row)
+    ns.Rows.AddHighlight(row)
+
     -- 配方／額外物品那一列
     local main = CreateFrame("Frame", nil, row)
     main:SetAllPoints()
@@ -166,6 +168,19 @@ local function BuildRecipeRow(row)
     row.hit = CreateFrame("Button", nil, main)
     row.hit:SetPoint("TOPLEFT")
     row.hit:SetPoint("BOTTOMRIGHT", row.tag, "BOTTOMLEFT", 0, 0)
+    -- 高亮固定掛在這裡，每列的內容（提示、展開）另外走 row._onEnter，
+    -- 免得 UpdateRecipeRow 每次重設 OnEnter 時把高亮弄丟
+    row.hit:SetScript("OnEnter", function(self)
+        row.highlight:Show()
+        if row._onEnter then row._onEnter(self) end
+    end)
+    row.hit:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+        if not row:IsMouseOver() then row.highlight:Hide() end
+    end)
+    for _, b in ipairs({ row.remove, row.plus, row.minus, row.qty }) do
+        ns.Rows.KeepHighlight(b, row)
+    end
 
     -- 材料明細那一列（同一個 row 兩種面貌，show/hide 切換）
     local detail = CreateFrame("Frame", nil, row)
@@ -204,7 +219,14 @@ local function BuildRecipeRow(row)
     row.dHit:SetPoint("TOPLEFT")
     row.dHit:SetPoint("BOTTOMRIGHT", row.dHave, "BOTTOMLEFT", 0, 0)
     row.dHit:EnableMouse(true)
-    row.dHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    row.dHit:SetScript("OnEnter", function(self)
+        row.highlight:Show()
+        if row._onEnter then row._onEnter(self) end
+    end)
+    row.dHit:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+        if not row:IsMouseOver() then row.highlight:Hide() end
+    end)
 end
 
 local function UpdateRecipeRow(row, item)
@@ -225,20 +247,25 @@ local function UpdateRecipeRow(row, item)
         local bankColor = bankOn and "|cffaaaaaa" or "|cff666666"
         row.dHave:SetText(("%d %s/ %d|r"):format(line.bags, bankColor, line.bank))
         row.dNeed:SetText(tostring(line.need))
+        local transit = line.transit or 0
         if line.noTrade then
             row.dBuy:SetText("|cff808080" .. L["n/a"] .. "|r")
         elseif line.buy > 0 then
             row.dBuy:SetText("|cffff7777" .. line.buy .. "|r")
+        elseif transit > 0 then
+            row.dBuy:SetText("|cffffd200" .. L["mail %d"]:format(transit) .. "|r")
         else
             row.dBuy:SetText("|cff55ff55" .. L["ready"] .. "|r")
         end
 
         local itemID = line.itemID
-        row.dHit:SetScript("OnEnter", function(self)
+        row._onEnter = function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetItemByID(itemID)
             GameTooltip:Show()
-        end)
+        end
+        row:SetAlpha(1)
+        row.highlight:SetShown(row:IsMouseOver())
         return
     end
 
@@ -267,13 +294,14 @@ local function UpdateRecipeRow(row, item)
         end)
         row.remove:SetScript("OnClick", function() ns.List.RemoveExtra(itemID) end)
         row.hit:SetScript("OnClick", nil)
-        row.hit:SetScript("OnEnter", function(self)
+        row._onEnter = function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetItemByID(itemID)
             GameTooltip:Show()
-        end)
-        row.hit:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        end
         row._commit = function(v) ns.List.SetExtraQuantity(itemID, v) end
+        row:SetAlpha(1)
+        row.highlight:SetShown(row:IsMouseOver())
         return
     end
 
@@ -308,13 +336,14 @@ local function UpdateRecipeRow(row, item)
         ns.List.SetQuantity(key, (entry.quantity or 1) + 1)
     end)
     row.remove:SetScript("OnClick", function() ns.List.Remove(key) end)
-    row.hit:SetScript("OnEnter", nil)
-    row.hit:SetScript("OnLeave", nil)
+    row._onEnter = nil
     row.hit:SetScript("OnClick", function()
         expanded[key] = not expanded[key] or nil
         Refresh()
     end)
     row._commit = function(v) ns.List.SetQuantity(key, v) end
+    row:SetAlpha(1)
+    row.highlight:SetShown(row:IsMouseOver())
 end
 
 ------------------------------------------------------------
@@ -385,12 +414,21 @@ local function BuildToolbar(parent)
             0.8, 0.8, 0.8, true)
     end)
 
+    local buyAll = W.CreateButton(shopTools, L["Buy everything"], "accent-hover", 100, TOOLBAR_H - 4)
+    buyAll:SetPoint("LEFT", searchAll, "RIGHT", 6, 0)
+    buyAll:SetScript("OnClick", function() ns.Auction.BuyAll() end)
+    ns.AttachTooltip(buyAll, function(_, tip)
+        tip:SetText(L["Buy everything"])
+        tip:AddLine(L["Walks the whole list one item at a time. Every purchase still stops at the confirmation bar — nothing is bought behind your back."],
+            0.8, 0.8, 0.8, true)
+    end)
+
     local bankCheck = W.CreateCheckButton(shopTools, L["Count the bank"], function(on)
         ns.db.settings.includeBank = on
         ns.List.Invalidate()
         ns.Fire("ListChanged")
     end)
-    bankCheck:SetPoint("LEFT", searchAll, "RIGHT", 12, 0)
+    bankCheck:SetPoint("LEFT", buyAll, "RIGHT", 12, 0)
     shopTools.bankCheck = bankCheck
 
     local missingCheck = W.CreateCheckButton(shopTools, L["Only what I still need"], function(on)
