@@ -36,6 +36,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_InfoBar_DB",
     "MiliUI_Minimap_DB",
     "MiliUI_QuestTracker_DB",
+    "MiliUI_ShoppingList_DB", "MiliUI_ShoppingList_CharDB",
     "MiliUI_Tooltip_DB", "MiliUI_UnitFrames_DB",
     "AGSCDB",
     # 內建預設值資料（Config/ 底下那幾支就是一整包全域表）

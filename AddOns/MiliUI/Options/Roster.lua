@@ -40,6 +40,7 @@ ns.AddonRoster = {
         { key = "MiliUI_AuraEnhance", folders = { "MiliUI_AuraEnhance" }, menuKey = "auraenhance" },
         { key = "MiliUI_CharacterNotes", folders = { "MiliUI_CharacterNotes" }, menuKey = "characternotes" },
         { key = "MiliUI_Minimap", folders = { "MiliUI_Minimap" }, menuKey = "minimap" },
+        { key = "MiliUI_ShoppingList", folders = { "MiliUI_ShoppingList" }, menuKey = "shoppinglist" },
         { key = "MiliUI_AdventureGuideSpecCompare", folders = { "MiliUI_AdventureGuideSpecCompare" }, slash = "/agsc" },
 
         -- ===== 介面與外觀 =====

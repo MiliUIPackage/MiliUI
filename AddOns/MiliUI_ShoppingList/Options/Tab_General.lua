@@ -1,0 +1,60 @@
+------------------------------------------------------------
+-- 「一般」分頁：外觀 ＋ 清單行為 ＋ 拍賣場
+------------------------------------------------------------
+local _, ns = ...
+
+local L = ns.L
+local LIMITS = ns.DB.LIMITS
+
+local tab, scroll, refreshers
+
+local function Apply()
+    ns.Media.UpdateFonts()
+    ns.List.Invalidate()
+    ns.Fire("SettingsChanged")
+    ns.Fire("ListChanged")
+end
+
+local CONTROLS = {
+    { type = "header", label = L["Appearance"] },
+    { type = "dropdown", key = "font", label = L["Font"],
+      items = function() return ns.Media.FontItems() end },
+    { type = "slider", key = "fontSize", label = L["Font size"],
+      min = LIMITS.fontSize[1], max = LIMITS.fontSize[2], step = 1 },
+
+    { type = "header", label = L["The list"] },
+    { type = "toggle", key = "includeBank", label = L["Count the bank"],
+      hint = L["Count the bank, the reagent bank and the warband bank as things you already have"] },
+    { type = "text", label = L["Off by default: most of the time you are buying reagents to craft right now, and only what is in your bags counts for that. The bank column is always shown either way, so you can see the stack sitting in there."] },
+    { type = "toggle", key = "onlyMissing", label = L["Only what I still need"],
+      hint = L["Hide the reagents you already have enough of"] },
+    { type = "toggle", key = "syncTracked", label = L["Follow the game's tracked recipes"],
+      hint = L["Add recipes you track in the profession window to this list"] },
+    { type = "text", label = L["Off by default: the game's tracker tends to hold on to \"maybe some day\" recipes, and those would flood the shopping list."] },
+
+    { type = "header", label = L["Auction house"] },
+    { type = "toggle", key = "ahPanel", label = L["Panel at the auction house"],
+      hint = L["Show the shopping list under the auction house window"] },
+    { type = "toggle", key = "ahAutoSearch", label = L["Search on opening"],
+      hint = L["Ask for prices on the whole list as soon as the panel appears"] },
+    { type = "slider", key = "priceGuard", label = L["Overprice warning"],
+      min = LIMITS.priceGuard[1], max = LIMITS.priceGuard[2], step = 1 },
+    { type = "text", label = L["When the quoted unit price is this many times the cheapest one seen since you logged in, the total turns red on the confirmation bar. It never blocks the purchase — it only makes you look twice."] },
+}
+
+local function Init()
+    if tab then return end
+    tab, scroll = ns.Options.MakeFormTab(L["General"])
+    local ctx = ns.Controls.MakeCtx(function() return ns.db.settings end, Apply)
+    _, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx)
+end
+
+ns.RegisterCallback("ShowOptionsTab", "generalTab", function(id)
+    if id ~= "general" then
+        if tab then tab:Hide() end
+        return
+    end
+    Init()
+    for _, fn in ipairs(refreshers) do fn() end
+    tab:Show()
+end)

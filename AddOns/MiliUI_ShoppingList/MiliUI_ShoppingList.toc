@@ -1,0 +1,59 @@
+## Interface: 120007, 120100, 120105
+## Title: MiliUI Shopping List
+## Title-zhTW: |cffFFFF99[清單]|r 米利的採購清單
+## Title-zhCN: |cffFFFF99[清单]|r 米利的采购清单
+## Notes: A shopping list for professions. Add a recipe from the profession window or from a crafting order, say how many you want to make, and the reagents multiply along with it.|n|nThe list shows what is still missing — bags and bank counted separately — and at the auction house it searches for those reagents and buys them, always behind an explicit confirmation.|n|n|cffffd200Usage: |r/mlist opens the list, /mlist config opens the settings.
+## Notes-zhTW: MiliUI Shopping List|n|n米利的採購清單。|n|n專業用的採購清單：從製作頁或代工下單頁把配方加進清單，指定要做幾份，材料需求跟著相乘。|n|n清單會算出還缺什麼（背包與銀行分開列），到拍賣場可以直接搜尋、確認後購買——花錢一律要按確認。|n|n|cffffd200使用方法: |r/mlist 開啟清單，/mlist config 開啟設定。
+## Notes-zhCN: MiliUI Shopping List|n|n米利的采购清单。|n|n专业用的采购清单：从制作页或代工下单页把配方加进清单，指定要做几份，材料需求跟着相乘。|n|n清单会算出还缺什么（背包与银行分开列），到拍卖行可以直接搜索、确认后购买——花钱一律要按确认。|n|n|cffffd200使用方法: |r/mlist 打开清单，/mlist config 打开设置。
+## Category: Auction House
+## Category-zhTW: 拍賣
+## Category-zhCN: 拍卖
+## Author: Mili
+## Version: 1.0.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\INV_Misc_Bag_10_Green
+## SavedVariables: MiliUI_ShoppingList_DB
+## SavedVariablesPerCharacter: MiliUI_ShoppingList_CharDB
+## AddonCompartmentFunc: MiliUIShoppingList_OnAddonCompartmentClick
+
+# 無相依的基礎設施排最前面：Core\*.lua 在檔案層就會用到 ns.P / ns.Errors
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
+Libs\Callbacks.lua
+
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+
+# Init 要在 Media 之前：Media 在檔案層就用 ns.playerClass 算強調色
+Core\Init.lua
+Core\Media.lua
+Core\DB.lua
+
+# 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
+Libs\MiliUIWidgets\Controls.lua
+
+Core\Schematic.lua
+Core\List.lua
+Core\Auction.lua
+
+Modules\CraftingPage.lua
+Modules\CustomerOrders.lua
+Modules\ChatLink.lua
+
+UI\Rows.lua
+UI\Window.lua
+UI\AHPanel.lua
+
+Options\Panel.lua
+Options\Tab_General.lua
+Options\Tab_About.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
+Options\Blizzard.lua
+
+Api.lua
