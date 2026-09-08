@@ -443,7 +443,8 @@ function eventFrame:ADDON_LOADED(arg1)
 
         if type(CellDB["clickCastings"][Cell.vars.playerClass]) ~= "table" then
             CellDB["clickCastings"][Cell.vars.playerClass] = {
-                ["useCommon"] = true,
+                -- fix from MiliUI: default to a profile per spec, not a shared one
+                ["useCommon"] = false,
                 ["smartResurrection"] = "disabled",
                 ["alwaysTargeting"] = {
                     ["common"] = "disabled",
