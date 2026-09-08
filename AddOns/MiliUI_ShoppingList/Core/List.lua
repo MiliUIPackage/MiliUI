@@ -450,11 +450,18 @@ local function Schedule()
     end)
 end
 
+-- ⚠ 事件名要照抄自真的在用它的插件，不要憑印象寫：RegisterEvent 收到不存在的
+--   名字會**丟 Lua error**，而錯誤發生在檔案層 —— 整支 List.lua 從那一行起
+--   就不再執行（ImportTracked、追蹤配方的監聽全部沒掛上），症狀跟「事件沒收到」
+--   完全不一樣。
+--   11.2 的銀行改版把材料銀行併成銀行分頁，`PLAYERREAGENTBANKSLOTS_CHANGED`
+--   與 `REAGENTBANK_UPDATE` 隨之消失（Syndicator 只在舊版銀行版面才註冊它們）。
+--   分頁本身是容器，所以 BAG_UPDATE_DELAYED 已經涵蓋大部分變動。
 local watcher = CreateFrame("Frame")
 watcher:RegisterEvent("BAG_UPDATE_DELAYED")
 watcher:RegisterEvent("PLAYERBANKSLOTS_CHANGED")
-watcher:RegisterEvent("PLAYERREAGENTBANKSLOTS_CHANGED")
-watcher:RegisterEvent("ACCOUNT_BANK_TABS_CHANGED")
+watcher:RegisterEvent("BANK_TABS_CHANGED")
+watcher:RegisterEvent("PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED")
 watcher:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 watcher:SetScript("OnEvent", function(_, event)
     if not ns.db then return end
