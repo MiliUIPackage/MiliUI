@@ -83,6 +83,7 @@ end
 -- 這個單位在遊戲裡的 token（設定用的 key 跟 token 只有首領不一樣）
 local function UnitToken(unitKey)
     if unitKey == "boss" then return "boss1" end
+    if unitKey == "bosstarget" then return "boss1target" end
     return unitKey
 end
 

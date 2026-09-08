@@ -15,15 +15,23 @@ ns.DB_VERSION  = 18          -- schemaVersion，遷移鏈用（DB.Migrate 加條
 ns.UNITS = {
     "player", "target", "targettarget", "focus", "focustarget", "pet", "pettarget",
     "boss1", "boss2", "boss3", "boss4", "boss5",
+    "boss1target", "boss2target", "boss3target", "boss4target", "boss5target",
 }
 
--- unit token → DB key（boss1-5 共用一份設定）
+-- unit token → DB key（boss1-5 共用一份設定，boss1-5target 也是）
 ns.UNIT_KEYS = {
     player = "player", target = "target", targettarget = "targettarget",
     focus = "focus", focustarget = "focustarget",
     pet = "pet", pettarget = "pettarget",
     boss1 = "boss", boss2 = "boss", boss3 = "boss", boss4 = "boss", boss5 = "boss",
+    boss1target = "bosstarget", boss2target = "bosstarget", boss3target = "bosstarget",
+    boss4target = "bosstarget", boss5target = "bosstarget",
 }
+
+-- 一份設定對應多個框的單位（框自己帶 bossIndex，第 2 格起依 growth/spacing 排）。
+-- 設定面板的「多個首領的排列」那一節、預覽的三顆孿生、SpawnUnitFrame 的 bossIndex
+-- 都問這張表 —— 以前是三處各寫一次 `unitKey == "boss"`，加第二個就得三處都記得改。
+ns.MULTI_UNIT_KEYS = { boss = true, bosstarget = true }
 
 -- 全域框架名（其他插件靠這些名字整合，例如 MiliUI Focuser）
 ns.GLOBAL_NAMES = {
@@ -33,6 +41,9 @@ ns.GLOBAL_NAMES = {
     pet = "MiliUIUF_Pet", pettarget = "MiliUIUF_PetTarget",
     boss1 = "MiliUIUF_Boss1", boss2 = "MiliUIUF_Boss2", boss3 = "MiliUIUF_Boss3",
     boss4 = "MiliUIUF_Boss4", boss5 = "MiliUIUF_Boss5",
+    boss1target = "MiliUIUF_Boss1Target", boss2target = "MiliUIUF_Boss2Target",
+    boss3target = "MiliUIUF_Boss3Target", boss4target = "MiliUIUF_Boss4Target",
+    boss5target = "MiliUIUF_Boss5Target",
 }
 
 -- 單位顯示名（設定介面用）
@@ -40,7 +51,7 @@ ns.UNIT_LABELS = {
     player = L["Player"], target = L["Target"], targettarget = L["Target of Target"],
     focus = L["Focus"], focustarget = L["Focus Target"],
     pet = L["Pet"], pettarget = L["Pet Target"],
-    boss = L["Boss"], totem = L["Summons"],
+    boss = L["Boss"], bosstarget = L["Boss Target"], totem = L["Summons"],
 }
 
 ns.frames = {}          -- [unitToken] = uf

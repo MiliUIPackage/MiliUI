@@ -768,6 +768,10 @@ local function MakeElement(elementName, baseFilter)
         if unit == "target" and ns.frames.targettarget then Repoke(ns.frames.targettarget) end
         if unit == "focus" and ns.frames.focustarget then Repoke(ns.frames.focustarget) end
         if unit == "pet" and ns.frames.pettarget then Repoke(ns.frames.pettarget) end
+        if unit and unit:match("^boss%d$") then
+            local bt = ns.frames[unit .. "target"]
+            if bt then Repoke(bt) end
+        end
     end)
     -- 換寵物＝ "pettarget" 換人，但 UNIT_TARGET 不會發（那隻寵物沒換目標）
     ns.Events.Register("UNIT_PET", "auras_" .. elementName .. "_up", function(unit)
@@ -777,6 +781,8 @@ local function MakeElement(elementName, baseFilter)
         for i = 1, 5 do
             local uf = ns.frames["boss" .. i]
             if uf then Repoke(uf) end
+            local bt = ns.frames["boss" .. i .. "target"]
+            if bt then Repoke(bt) end
         end
     end)
 

@@ -214,7 +214,7 @@ function DB.BuildDefaults()
                     -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
                     portrait = { enabled = true, x = 0, y = 0, w = 200, h = 50, mode = "3d",
                                  bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3,
-                                 zoom = 1, rotation = 0,       -- 正面朝鏡頭（度）
+                                 modelAlpha = 1, zoom = 1, rotation = 0,       -- 正面朝鏡頭（度）
                                  modelOffsetX = 0, modelOffsetY = 0,      -- 設定面板顯示 ×100
                                  fallback2D = false },
                     hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.9,
@@ -301,7 +301,7 @@ function DB.BuildDefaults()
                     -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
                     portrait = { enabled = true, x = 0, y = 0, w = 200, h = 50, mode = "3d",
                                  bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3,
-                                 zoom = 1, rotation = 0,       -- 正面朝鏡頭（度）
+                                 modelAlpha = 1, zoom = 1, rotation = 0,       -- 正面朝鏡頭（度）
                                  modelOffsetX = 0, modelOffsetY = 0,      -- 設定面板顯示 ×100
                                  fallback2D = false },   -- 副本小怪 3D 取不到時是否退 2D
                     hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.9,
@@ -537,7 +537,7 @@ function DB.BuildDefaults()
                     -- 頭像夾在血條裡，寬度跟著條走。
                     portrait = { enabled = true, x = 0, y = 0, w = 119, h = 40, mode = "3d",
                                  bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3,
-                                 zoom = 1, rotation = 0,
+                                 modelAlpha = 1, zoom = 1, rotation = 0,
                                  modelOffsetX = 0, modelOffsetY = 0,
                                  fallback2D = false },
                     hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 40, level = 4, bgLevel = 2, lossAlpha = 0.9,
@@ -684,7 +684,7 @@ function DB.BuildDefaults()
                 elements = {
                     portrait = { enabled = true, x = 37, y = 50, w = 66, h = 66, mode = "3d",
                                  bg = { r = 0, g = 0, b = 0, a = 0 },
-                                 zoom = 1, rotation = 0, level = 0, fallback2D = false },
+                                 modelAlpha = 1, zoom = 1, rotation = 0, level = 0, fallback2D = false },
                     hpbar = { enabled = true, x = 36, y = 0, w = 184, h = 14, level = 4,
                               colorMethod = "classreaction", bgColorMethod = "solid",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
@@ -757,6 +757,89 @@ function DB.BuildDefaults()
                     },
                     icons = { enabled = true,
                               raidtarget = { enabled = true, x = 14, y = 10, w = 24, h = 24, level = 10 } },
+                },
+            },
+
+            ------------------------------------------------------------
+            -- 首領的目標（boss1-5target 共用一份設定，同 boss）
+            --
+            -- 「這隻首領正在打誰」——實戰上就是「坦有沒有接住」。跟 boss 一樣一份設定
+            -- 帶五個框，第 2 格起依 growth/spacing 排（見 ns.MULTI_UNIT_KEYS）。
+            --
+            -- **樣式參考首領框，但沒有 3D 頭像**（使用者指定）。另一個跟著來的差別：
+            -- 首領框的版面是「左邊 36 讓給頭像、名字擺在血條**上方**的表頭」，那整套
+            -- 排法存在的理由就是那顆頭像；頭像拿掉之後照抄只會留下一片空白，所以這裡
+            -- 改用其他 <unit>target 框那種「名字與血量都壓在條上」的緊湊版。
+            -- 留下來的是首領框的**數值**：血條 14 高、能量條 10 高、同一組顏色與 alpha。
+            --
+            -- 位置：首領框右手邊（使用者指定）。首領框中心 x = 499、寬 220 ⇒ 右緣 609，
+            -- 留 2px ⇒ 這個框左緣 611、中心 x = 671。垂直對齊上緣：首領框中心 y = 319、
+            -- 高 32 ⇒ 上緣 335，本框高 24 ⇒ 中心 y = 323。spacing 跟首領框同樣是 80，
+            -- 兩排才會一列對一列。
+            -- ⚠ 首領框那組座標本來就是照 16:9 ＋ 較低 UI 縮放的畫面調的（右緣 609 已經
+            --   很靠邊），再往右擺 120 寬在「UI 縮放 1.0 的 16:9」上會出畫面。預設關著，
+            --   而且設定頁與編輯模式都拖得動，需要的人自己挪。
+            --
+            -- 預設不啟用（使用者指定）。
+            bosstarget = {
+                enabled = false,
+                frame = frameDef{ x = 671, y = 323, w = 120, h = 24, growth = "DOWN", spacing = 80,
+                                  fadeOutOfRange = true },
+                elements = {
+                    -- 條寬 119 不是 120：底下那排光環 6 顆 × 19 ＋ 5 個 1px 間距 = 119
+                    hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 14, level = 4,
+                              colorMethod = "classreaction", bgColorMethod = "solid",
+                              bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
+                              barAlpha = 0.4, bgAlpha = 1, border = true,
+                              showHealPrediction = false,
+                              healPredictionAlpha = 0.35,   -- 沒有預設值時滑桿顯示 min(0.1)，實際卻是 0.35
+                              -- 護盾：全部單位一致（疊加層只對 cache.assist 的單位畫）。
+                              -- 首領的目標多半是自己人，這條特別有用。
+                              showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,
+                              showOvershield = true, overshieldGlowReverse = false,
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
+                    mpbar = { enabled = true, x = 0, y = -14, w = 119, h = 10, level = 0,
+                              colorMethod = "power", bgColorMethod = "powerdark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
+                              barAlpha = 1, bgAlpha = 1, border = true },
+                    texts = {
+                        textDef{ pattern = "[name]", x = 3, y = 0, w = 80, h = 14, size = 11,
+                                 justifyH = "LEFT", justifyV = "MIDDLE" },
+                        textDef{ pattern = "[perchp]%", x = 0, y = 0, w = 116, h = 14, size = 11,
+                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
+                        textDef{ pattern = "[percmp]%", x = 0, y = -14, w = 116, h = 10, size = 9,
+                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
+                        -- 狀態（超出距離／已標記／離線／死亡／靈魂）。跟首領框同一條 key，
+                        -- 九個語系早就有翻譯了
+                        textDef{ pattern = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"],
+                                 x = 0, y = 0, w = 119, h = 14, size = 10,
+                                 justifyH = "CENTER", justifyV = "MIDDLE", level = 11 },
+                    },
+                    -- 光環：上下各一排，**預設都關**（使用者指定）。
+                    -- 打開之後預設只顯示「副本裡重大的那些」，不是全部（使用者指定）：
+                    --   增益 bigdef  ＝ BIG_DEFENSIVE，坦身上的大型防禦技能
+                    --   減益 bossrole＝ isBossOrRoleAura，首領技能與職責相關的減益
+                    -- 12.1 的過濾一律交給引擎，插件讀不到光環內容（見 Elements/Auras.lua）。
+                    -- ⚠ 這兩排連同框體一共占 24 ＋ 19 ＋ 19 ＝ 62 高，比 spacing 80 小，
+                    --   所以五格排下來不會互相壓到。改 spacing 時要一起看。
+                    buffs  = { enabled = false, x = 0, y = -25, w = 19, h = 19,
+                               maxCount = 12, perRow = 6, growth = "LRTB", spacing = 1,
+                               showStack = true, stackSize = 10,
+                               stackAnchor = "TOP", stackX = 0, stackY = 4,
+                               durationText = false, durationThreshold = 60, filterMode = "bigdef" },
+                    debuffs = { enabled = false, x = 0, y = 1, w = 19, h = 19,
+                                maxCount = 12, perRow = 6, growth = "LRBT", spacing = 1,
+                                onlyMine = false, filterMode = "bossrole",
+                                showStack = true, stackSize = 10,
+                                stackAnchor = "TOP", stackX = 0, stackY = 4,
+                                durationText = false, durationThreshold = 60 },
+                    icons = { enabled = true,
+                              raidtarget = { enabled = true, x = 54, y = 8, w = 16, h = 16, level = ICON_LEVEL } },
                 },
             },
 

@@ -225,10 +225,13 @@ local function IsCovered(f)
     return false
 end
 
+-- ⚠ 這裡是 model alpha 的**唯一寫入點**，使用者設的模型透明度也一定要從這裡出去。
+-- 在 Build 裡另外 SetAlpha 一次是行不通的：任何一次遮擋重算都會把它蓋回 1
+-- （開一次背包、關一次設定面板就還原），而症狀是「滑桿有時候有效有時候沒效」。
 local function ApplyOcclusion(uf)
     local f = uf.elements and uf.elements.portrait
     if f and f.model then
-        f.model:SetAlpha(IsCovered(f) and 0 or 1)
+        f.model:SetAlpha(IsCovered(f) and 0 or (f.modelAlpha or 1))
     end
 end
 
@@ -292,6 +295,12 @@ local function Build(uf, edb)
         f.model:SetAllPoints(f)
     end
     f.model:SetFrameLevel(edb.level or 2)
+    -- 模型自己的透明度：這裡只存值，實際寫入在 ApplyOcclusion（見那支上方的說明），
+    -- Build 結尾的 ScheduleOcclusion 會把它套下去。
+    -- 跟血條的 barAlpha 是兩件事 —— 淡掉的是模型本身，血條顏色完全不受影響。
+    -- 有了它，「血條要亮」跟「看得到模型」才不必搶同一個滑桿：填充拉到不透明、
+    -- 缺血暗化調低，模型改用這個壓下去就好。
+    f.modelAlpha = edb.modelAlpha or 1
     f.zoom = edb.zoom or 1                    -- 1 = 特寫臉，0 = 全身
     -- 旋轉存「度」（設定面板直觀），套用時轉弧度。
     -- 0 = 正面朝鏡頭；±25 左右是側身 3/4 視角；180 會看到背面

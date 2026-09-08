@@ -672,24 +672,34 @@ function UnitInfo.GetUnitData(unit, elements, raw)
 end
 
 ------------------------------------------------------------
--- 一列 → 一個字串（值可能是秘密 → 逐一 pcall、串接合法）
+-- 一列的欄位串成一行。
+--
+-- ⚠ **不可用 table.concat**：秘密字串（12.1 的 UnitClass／UnitName／GetGuildInfo…）
+--   餵進 C 函式會失敗，而原本整包只有一個 pcall ⇒ 任何一個欄位是秘密值就
+--   **整列回 ""**，畫面上「職業 等級 陣營 性別 種族」一起消失，且完全不報錯
+--   （2026-09-06 玩家回報「職業有時候不見」的候選成因）。
+--   秘密值可以串接、可以 format，只是不能讀（當傳遞者不當讀取者），所以逐段串、
+--   逐段 pcall —— 失效的粒度就從「整列」縮到「那一個欄位」。
+--   同理 `tostring` 對秘密數字是禁止的，數字也一律走 format。
 ------------------------------------------------------------
 function UnitInfo.JoinRow(list, sep)
     if type(list) ~= "table" then return "" end
-    local out = {}
+    sep = sep or " "
+    local res
     for i = 1, #list do
         local v = list[i]
-        if v ~= nil then
-            local ok, s = pcall(function()
-                if type(v) == "string" then return v end
-                if type(v) == "number" then return tostring(v) end
-            end)
-            if ok and type(s) == "string" then
-                out[#out + 1] = s
+        local vt = type(v)          -- type() 對秘密值合法
+        if vt == "string" or vt == "number" then
+            local ok, piece = pcall(format, "%s", v)
+            if ok and piece ~= nil then
+                if res == nil then
+                    res = piece
+                else
+                    local ok2, joined = pcall(format, "%s%s%s", res, sep, piece)
+                    if ok2 and joined ~= nil then res = joined end
+                end
             end
         end
     end
-    local ok, res = pcall(table.concat, out, sep or " ")
-    if ok and type(res) == "string" then return res end
-    return ""
+    return res or ""
 end

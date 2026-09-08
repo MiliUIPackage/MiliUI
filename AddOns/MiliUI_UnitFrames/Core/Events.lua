@@ -226,8 +226,13 @@ local SPECIAL = {
         RefreshUnit("focus", "unitchanged", nil, "pfc")
         RefreshUnit("focustarget", "unitchanged", nil, "pfc")
     end,
+    -- 首領上場／換階段。首領的目標框也要推：bossNtarget 指到誰完全跟著 bossN 走，
+    -- 而它自己沒有任何事件。
     INSTANCE_ENCOUNTER_ENGAGE_UNIT = function()
-        for i = 1, 5 do RefreshUnit("boss" .. i, "unitchanged", nil, "engage") end
+        for i = 1, 5 do
+            RefreshUnit("boss" .. i, "unitchanged", nil, "engage")
+            RefreshUnit("boss" .. i .. "target", "unitchanged", nil, "engage")
+        end
     end,
     -- 隊伍組成變了：影響的是隊長圖示與陣營色，不是「換人」。
     -- ⚠ 要刷**所有**框不是只刷玩家：隊長圖示畫在每個框上（目標、目標的目標、寵物都可能
@@ -291,10 +296,13 @@ local SPECIAL = {
 local TARGET_FRAME_OF = {
     target = "targettarget", focus = "focustarget", pet = "pettarget",
 }
+for i = 1, 5 do TARGET_FRAME_OF["boss" .. i] = "boss" .. i .. "target" end
 
 SCOPED = {
     UNIT_TARGET = {
-        tokens = { "target", "focus", "pet" },
+        -- ⚠ 這裡的順序決定下面怎麼兩個一組分批註冊，但**分組本身沒有意義** ——
+        -- 純粹是 RegisterUnitEvent 一次只吃兩個 token 的產物，派送時只看 unit 參數。
+        tokens = { "target", "focus", "pet", "boss1", "boss2", "boss3", "boss4", "boss5" },
         fn = function(unit)
             local key = TARGET_FRAME_OF[unit]
             if key then RefreshUnit(key, "unitchanged", nil, "unit_target") end

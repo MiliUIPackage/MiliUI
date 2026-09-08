@@ -38,6 +38,8 @@ local FAKE_BASE = {
                      creaturetype = L["Mechanical"] },
     boss         = { name = L["Boss"],     pc = false, reaction = 2, level = 83,
                      classificationKey = "worldboss" },
+    -- 首領的目標：實戰上幾乎都是坦，所以套玩家那組假資料
+    bosstarget   = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
 }
 
 local function BuildFakeCache(unitKey)
@@ -518,7 +520,7 @@ local function OpenTwinsFor(unitKey)
         end
     end
     if not twins[unitKey] then
-        if unitKey == "boss" then
+        if ns.MULTI_UNIT_KEYS[unitKey] then
             twins[unitKey] = { SpawnTwin(unitKey, 1), SpawnTwin(unitKey, 2), SpawnTwin(unitKey, 3) }
         else
             twins[unitKey] = { SpawnTwin(unitKey) }

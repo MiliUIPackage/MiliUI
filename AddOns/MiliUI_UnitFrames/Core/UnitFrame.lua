@@ -642,7 +642,10 @@ local function InstallMenuClassifierFix()
         --   ns.UNIT_KEYS），這兩條是為了別人的團隊框（沒有 Cell 的安裝、或暴雪原生框）。
         --   raidN 在 SECURE_ACTIONS.togglemenu 沒有早退出分支，跟 target 一樣會走完整條
         --   UnitIsUnit 鏈而被誤判成寵物。
-        if not (MENU_FIX_TOKENS[lu] or lu:match("^raid%d+$") or lu:match("^party%d+$")) then
+        -- bossNtarget 跟 targettarget 同一類（指向不固定）。bossN **本身**不在裡面：
+        -- 它在字串分類那段就早退出了，而且首領也不會是玩家。
+        if not (MENU_FIX_TOKENS[lu] or lu:match("^raid%d+$") or lu:match("^party%d+$")
+                or lu:match("^boss%dtarget$")) then
             return
         end
         local guid = UnitGUID(unit)
@@ -680,7 +683,8 @@ function ns.SpawnUnitFrame(unit)
     uf.db = udb
     uf.cache = { unit = unit }
     uf.elements = {}
-    if unitKey == "boss" then
+    if ns.MULTI_UNIT_KEYS[unitKey] then
+        -- "boss3" 與 "boss3target" 都取得到 3
         uf.bossIndex = tonumber(unit:match("boss(%d)"))
     end
 

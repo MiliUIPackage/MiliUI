@@ -3,9 +3,14 @@
 ------------------------------------------------------------
 local _, ns = ...
 
--- tot / focustarget / pettarget 沒有自己的單位事件，UNIT_TARGET 之外加輪詢當保險。
+-- 各種 <unit>target 都沒有自己的單位事件，UNIT_TARGET 之外加輪詢當保險。
 -- ⚠ 常數表放檔案層級：這個回呼一秒跑兩次，寫成 ipairs({...}) 等於每次現配一張表
-local INDIRECT_UNITS = { "targettarget", "focustarget", "pettarget" }
+-- ⚠ 迴圈只在「這些框至少有一個顯示中」時才掛上（SyncWatch），所以首領的目標框
+--   預設關著時這五筆完全不花錢。
+local INDIRECT_UNITS = {
+    "targettarget", "focustarget", "pettarget",
+    "boss1target", "boss2target", "boss3target", "boss4target", "boss5target",
+}
 local INDIRECT_KEY = "watch_indirect"
 
 -- 換人偵測用 GUID，不要用名字：

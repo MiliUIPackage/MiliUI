@@ -44,7 +44,7 @@ local OVERSIZE = { restanim = 1.5, combat = 1.35 }
 -- 預覽用的假團隊標記：每個單位給不同號碼，一眼分得出是哪一格
 local PREVIEW_MARK = {
     player = 1, target = 8, targettarget = 2, focus = 7,
-    focustarget = 3, pet = 6, pettarget = 4, boss = 8,
+    focustarget = 3, pet = 6, pettarget = 4, boss = 8, bosstarget = 5,
 }
 
 local atlasCache = {}

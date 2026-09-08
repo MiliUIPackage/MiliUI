@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 7687a40a-9665-4a80-8ab5-d8ddb9ec65ee
-  modified: 2026-09-07T00:00:00.000Z
+  modified: 2026-09-08T00:00:00.000Z
 ---
 
 **MiliUI_UnitFrames**（2026-08-15 一次寫完五階段，約 5400 行；2026-08-17 從 `MiliUI_Unit_Frame`
@@ -301,3 +301,35 @@ taint.log 裡那條堆疊的**底部**是誰。
 
 **尚未在遊戲內驗證**：預設位置跟寵物減益列的實際間距、`UNIT_TARGET` 對 `"pet"` 到底發不發
 （發不發都有 0.5 秒輪詢兜底）、三 token 分批註冊後 Auras 的外部訂閱有沒有漏。
+
+
+## 首領的目標（bosstarget，2026-09-08）
+
+第九、也是第二個「一份設定帶多個框」的單位：`boss1target`–`boss5target` → DB key `bosstarget`，
+全域名 `MiliUIUF_Boss1Target`…。**預設不啟用**，光環上下各一排也**預設關**（都是使用者指定）。
+
+- 為此加了 **`ns.MULTI_UNIT_KEYS = { boss = true, bosstarget = true }`**。以前
+  `unitKey == "boss"` 這個判斷散在三處（`SpawnUnitFrame` 的 bossIndex、Preview 的三顆孿生、
+  Tab_Unit 的「多個首領的排列」那節），加第二個就得三處都記得改 ⇒ 收成一張表。
+  `unit:match("boss(%d)")` 對 `"boss3target"` 一樣取得到 3，bossIndex 不用改。
+- **樣式參考首領但沒有 3D 頭像**（使用者指定）。跟著來的第二個差別要記住：首領框的版面
+  （左邊 36 讓給頭像、名字擺在血條**上方**的表頭）存在的理由就是那顆頭像，拿掉之後照抄
+  只會留一片空白 ⇒ 改用其他 `<unit>target` 的緊湊版（名字與血量都壓在條上）。
+  留下來的是首領框的**數值**：血條 14、能量條 10、同一組顏色與 alpha。
+- **位置在首領框右手邊**：首領右緣 609 ＋ 2 ⇒ 中心 x = 671，垂直對齊上緣 ⇒ y = 323，
+  spacing 跟首領同樣 80（一列對一列）。
+  ⚠ 首領那組座標本來就是照使用者的畫面調的（UIParent 半寬約 1050，Config.wtf 4914×2764），
+  **在 UI 縮放 1.0 的 16:9（半寬約 683）上會出畫面**。預設關著、拖得動，接受。
+- **光環預設過濾＝「副本裡重大的那些」**（使用者指定）：增益 `bigdef`（BIG_DEFENSIVE，
+  坦的大型防禦技能）、減益 `bossrole`（`isBossOrRoleAura`）。可選值只有
+  `MODE_ORDER`（Elements/Auras.lua）那兩排，buffs 沒有 priority／bossrole。
+  框體 24 ＋ 上下兩排 19 ＝ 62 < spacing 80，五格排下來不會互相壓到。
+- **事件**：`SCOPED.UNIT_TARGET` 的 token 變成 8 個（target/focus/pet/boss1-5），
+  兩個一組分批註冊；分組**沒有意義**，純粹是 RegisterUnitEvent 一次吃兩個的產物。
+  `INSTANCE_ENCOUNTER_ENGAGE_UNIT` 要同時推 bossN 與 bossNtarget（Auras 那邊也是）。
+  `INDIRECT_UNITS` 的輪詢保險加了五筆（`SyncWatch` 只在有框顯示時才掛，預設關＝零成本）。
+  右鍵選單誤判白名單改用 `lu:match("^boss%dtarget$")`；`bossN` 本身不加（早退出、也不是玩家）。
+- `Options/AuraBlacklist.lua` 的 `UnitToken` 要加 `bosstarget → "boss1target"`。
+
+**尚未在遊戲內驗證**：`UNIT_TARGET` 對 `bossN` 到底發不發（不發就全靠 0.5 秒輪詢）、
+預設 x=671 在自己畫面上的實際觀感、bigdef／bossrole 在首領戰裡真的濾出東西沒有。
