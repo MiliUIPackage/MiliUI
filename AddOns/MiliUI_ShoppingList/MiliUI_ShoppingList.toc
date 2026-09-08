@@ -48,7 +48,6 @@ Modules\ChatLink.lua
 
 UI\Rows.lua
 UI\Window.lua
-UI\AHPanel.lua
 
 Options\Panel.lua
 Options\Tab_General.lua

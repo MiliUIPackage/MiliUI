@@ -2232,6 +2232,16 @@ UnitButton_UpdateRole = function(self)
     local unit = self.states.unit
     if not unit then return end
 
+    -- fix from MiliUI: a party-target button never shows a role. What it draws is whatever
+    -- its member is looking at -- usually a mob, which has no role -- and on the rare pass
+    -- where that IS a group member, the role already sits on that member's own frame.
+    -- Bails before the lookup, not just before the icon: the fallback chain below costs a
+    -- LibGroupInfo query per button per pass, four times a second.
+    if self.isPartyTarget then
+        self.indicators.roleIcon:Hide()
+        return
+    end
+
     -- 12.1: secret for identity-restricted units (boss frames); roleIcon:SetRole compares it
     local role = F.Desecret(UnitGroupRolesAssigned(unit))
     self.states.role = role
@@ -2305,7 +2315,10 @@ local function UnitButton_UpdatePlayerRaidIcon(self)
     local index = GetRaidTargetIndex(unit)
     if not F.IsValueNonSecret(index) then index = nil end
 
-    if enabledIndicators["playerRaidIcon"] then
+    -- fix from MiliUI: party-target buttons always draw the marker, whatever the layout
+    -- says. Knowing WHICH skull the tank is on is the whole reason to look at that row, and
+    -- the layout switch is about the member frames.
+    if enabledIndicators["playerRaidIcon"] or self.isPartyTarget then
         if index then
             SetRaidTargetIconTexture(playerRaidIcon.tex, index)
             playerRaidIcon:Show()
@@ -3136,6 +3149,53 @@ UnitButton_UpdateHealthTextColor = function(self)
     end
 end
 
+-- fix from MiliUI: reaction colours for the party-target buttons.
+--
+-- Cell paints every non-player unit the same green, which is right for a raid frame (the
+-- only NPCs it draws are friendly) and wrong for a row of "what is my group hitting":
+-- everything an enemy, an enemy of someone else's, and a friendly quest giver came out the
+-- same shade. These are Platynator's, lifted from the Luxthos design's health-bar
+-- autoColors chain (MiliUI/Config/Luxthos_Platynator.lua) so the target row reads like the
+-- nameplate over the same mob.
+--
+-- ⚠ Only the two layers that mean something on a five-slot strip: `tapped` and `reaction`.
+-- The rest of Platynator's chain (quest, eliteType, threat) needs its instance detection
+-- and its per-unit cache, and answers questions a nameplate is for.
+--
+-- ⚠ None of the APIs below is secret in 12.1 -- checked against
+-- Blizzard_APIDocumentationGenerated/UnitDocumentation.lua: UnitSelectionType,
+-- UnitIsTapDenied, UnitPlayerControlled, UnitIsFriend and UnitCanAttack carry no
+-- `SecretWhenUnitIdentityRestricted`, unlike UnitClassBase and UnitGroupRolesAssigned two
+-- functions up. So these are plain booleans and numbers even for a boss, and the branches
+-- are real branches. Do NOT extend this with UnitClass/UnitGroupRoles-style lookups.
+local REACTION_COLORS = {
+    ["friendly"]   = {0.2745098, 0.8862746, 0.3372549},
+    ["neutral"]    = {0.8588236, 0.7176471, 0.3176471},
+    ["unfriendly"] = {1, 0.5058824, 0},
+    ["hostile"]    = {0.7294118, 0.1411765, 0.1686275},
+    -- somebody else's kill: no loot, no credit, and it should not read as a target
+    ["tapped"]     = {0.4313725, 0.4313725, 0.4313725},
+}
+
+local function ReactionColor(unit)
+    if not UnitPlayerControlled(unit) and UnitIsTapDenied(unit) then
+        return REACTION_COLORS["tapped"]
+    end
+
+    -- UnitSelectionType is the nameplate's own classifier: 1 unfriendly, 2 neutral.
+    -- Everything else splits on "can I hit it", exactly as Platynator's reaction rule does.
+    local selection = UnitSelectionType(unit)
+    if selection == 2 then
+        return REACTION_COLORS["neutral"]
+    elseif selection == 1 then
+        return REACTION_COLORS["unfriendly"]
+    elseif UnitIsFriend("player", unit) and not UnitCanAttack("player", unit) then
+        return REACTION_COLORS["friendly"]
+    else
+        return REACTION_COLORS["hostile"]
+    end
+end
+
 UnitButton_UpdateHealthColor = function(self)
     local unit = self.states.unit
     if not unit then return end
@@ -3170,6 +3230,9 @@ UnitButton_UpdateHealthColor = function(self)
         end
     elseif F.IsPet(self.states.guid, self.states.unit) then -- pet
         barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, 0.5, 0.5, 1)
+    elseif self.isPartyTarget then -- fix from MiliUI: npc on a party-target button
+        local c = ReactionColor(unit)
+        barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, c[1], c[2], c[3])
     else -- npc
         barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, 0, 1, 0.2)
     end
@@ -3339,7 +3402,7 @@ local function UnitButton_RegisterEvents(self)
     self:RegisterEvent("PLAYER_TARGET_CHANGED")
 
     if Cell.loaded then
-        if enabledIndicators["playerRaidIcon"] then
+        if enabledIndicators["playerRaidIcon"] or self.isPartyTarget then -- fix from MiliUI
             self:RegisterEvent("RAID_TARGET_UPDATE")
         end
         -- UNIT_TARGET is scoped; RegisterUnitScopedEvents below reads the same flag
@@ -4424,7 +4487,7 @@ end
 function B.UpdatePlayerRaidIcon(button, enabled)
     if not button:IsShown() then return end
     UnitButton_UpdatePlayerRaidIcon(button)
-    if enabled then
+    if enabled or button.isPartyTarget then -- fix from MiliUI: see UnitButton_UpdatePlayerRaidIcon
         button:RegisterEvent("RAID_TARGET_UPDATE")
     else
         button:UnregisterEvent("RAID_TARGET_UPDATE")

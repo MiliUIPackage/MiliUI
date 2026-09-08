@@ -34,9 +34,6 @@ SlashCmdList.MILIUISHOP = function(msg)
     if msg == "config" or msg == "options" or msg == "設定" then
         ns.OpenOptions()
 
-    elseif msg == "shop" or msg == "採購" then
-        ns.Window.ShowTab("shop")
-
     elseif msg == "search" or msg == "搜尋" then
         ns.Auction.SearchAll()
 

@@ -128,6 +128,9 @@ for i, playerButton in ipairs(header) do
     --! guid->unit map at "party2target" the moment somebody targets a party member, and
     --! every guid-routed update (CLEU health, comms, nicknames) would follow it there.
     targetButton.isSpotlight = true
+    --! read in UnitButton.lua: no role icon, raid marker always on, health bar coloured by
+    --! reaction instead of Cell's flat "friendly NPC" green
+    targetButton.isPartyTarget = true
 
     playerButton.targetButton = targetButton
     SecureHandlerSetFrameRef(playerButton, "targetButton", targetButton)
@@ -183,6 +186,44 @@ local function SetPartyTargetPoint(b, playerButton, orientation)
         end
     end
 end
+
+--! The pet button and the target button both hang off the side of a member, so with both
+--! shown they have to take opposite sides or they land on top of each other. The player
+--! picks the TARGET's side; the pet takes whatever is left, overriding the side Cell
+--! derives from the layout anchor. Returns true when that override is needed.
+local function WantPetFlip(layout)
+    local db = GetPartyTargetsDB()
+    if not (db and db["enabled"]) then return false end
+    if not (layout["pet"]["partyEnabled"] and not layout["pet"]["partyDetached"]) then return false end
+
+    local anchor = layout["main"]["anchor"]
+    local side = db["side"] or "right"
+    if layout["main"]["orientation"] == "vertical" then
+        -- an anchor ending in LEFT puts the pet on the member's right (see the table below)
+        return (strfind(anchor, "LEFT$") ~= nil) == (side == "right")
+    else
+        -- an anchor starting with BOTTOM puts the pet above the member
+        return (strfind(anchor, "^BOTTOM") ~= nil) == (side == "left")
+    end
+end
+
+--! Mirror an anchor point across the axis the pet is offset on: LEFT<->RIGHT when the party
+--! frame runs down the screen, TOP<->BOTTOM when it runs across. Safe on the compound names
+--! ("BOTTOMLEFT" contains neither "TOP" nor, after the LEFT swap, a second match).
+local function FlipPetPoint(p, orientation)
+    if orientation == "vertical" then
+        if strfind(p, "RIGHT") then return (gsub(p, "RIGHT", "LEFT")) end
+        return (gsub(p, "LEFT", "RIGHT"))
+    end
+    if strfind(p, "TOP") then return (gsub(p, "TOP", "BOTTOM")) end
+    return (gsub(p, "BOTTOM", "TOP"))
+end
+
+--! what the last arrangement pass actually applied, so the tool knows when the pets need
+--! moving and can leave them alone the rest of the time
+local petFlipApplied = false
+
+local PartyFrame_UpdateLayout
 
 local partyTargetsDelay = CreateFrame("Frame")
 partyTargetsDelay:SetScript("OnEvent", function(self)
@@ -240,9 +281,16 @@ function F.UpdatePartyTargets()
     if header:GetAttribute("showPartyTargets") ~= enabled then
         header:SetAttribute("showPartyTargets", enabled)
     end
+
+    --! and if the pets now belong on the other side, re-run the arrangement that places
+    --! them. Gated on a real change for the same reason as the attribute above: this is a
+    --! full re-anchor of every button and the width slider must not pay for it.
+    if PartyFrame_UpdateLayout and WantPetFlip(layout) ~= petFlipApplied then
+        PartyFrame_UpdateLayout(Cell.vars.currentLayout, "pet-arrangement")
+    end
 end
 
-local function PartyFrame_UpdateLayout(layout, which)
+function PartyFrame_UpdateLayout(layout, which)
     -- visibility
     if Cell.vars.groupType ~= "party" or Cell.vars.isHidden then
         UnregisterAttributeDriver(partyFrame, "state-visibility")
@@ -323,14 +371,23 @@ local function PartyFrame_UpdateLayout(layout, which)
         header:SetAttribute("point", headerPoint)
 
         --! force update unitbutton's point
+        -- fix from MiliUI: push the pets to the side the target buttons are not using
+        petFlipApplied = WantPetFlip(layout)
+        local petPoint, petRelPoint = point, petAnchorPoint
+        if petFlipApplied then
+            petPoint = FlipPetPoint(point, orientation)
+            petRelPoint = FlipPetPoint(petAnchorPoint, orientation)
+            petSpacing = -petSpacing
+        end
+
         for j = 1, 5 do
             header[j]:ClearAllPoints()
             -- update petButton's point
             header[j].petButton:ClearAllPoints()
             if orientation == "vertical" then
-                header[j].petButton:SetPoint(point, header[j], petAnchorPoint, P.Scale(petSpacing), 0)
+                header[j].petButton:SetPoint(petPoint, header[j], petRelPoint, P.Scale(petSpacing), 0)
             else
-                header[j].petButton:SetPoint(point, header[j], petAnchorPoint, 0, P.Scale(petSpacing))
+                header[j].petButton:SetPoint(petPoint, header[j], petRelPoint, 0, P.Scale(petSpacing))
             end
             -- fix from MiliUI: the target button rides the main orientation, not the pet anchor
             SetPartyTargetPoint(header[j].targetButton, header[j], orientation)

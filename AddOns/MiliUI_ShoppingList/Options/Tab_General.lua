@@ -33,10 +33,10 @@ local CONTROLS = {
     { type = "text", label = L["Off by default: the game's tracker tends to hold on to \"maybe some day\" recipes, and those would flood the shopping list."] },
 
     { type = "header", label = L["Auction house"] },
-    { type = "toggle", key = "ahPanel", label = L["Panel at the auction house"],
-      hint = L["Show the shopping list under the auction house window"] },
+    { type = "toggle", key = "ahPanel", label = L["Open at the auction house"],
+      hint = L["Bring the list up beside the auction house window"] },
     { type = "toggle", key = "ahAutoSearch", label = L["Search on opening"],
-      hint = L["Ask for prices on the whole list as soon as the panel appears"] },
+      hint = L["Ask for prices on the whole list as soon as the list comes up"] },
     { type = "slider", key = "priceGuard", label = L["Overprice warning"],
       min = LIMITS.priceGuard[1], max = LIMITS.priceGuard[2], step = 1 },
     { type = "text", label = L["When the quoted unit price is this many times the cheapest one seen since you logged in, the total turns red on the confirmation bar. It never blocks the purchase — it only makes you look twice."] },
