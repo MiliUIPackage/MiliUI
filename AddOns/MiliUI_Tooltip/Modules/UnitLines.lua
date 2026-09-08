@@ -342,9 +342,13 @@ function UnitLines.Apply(tip, state, unit, relayout)
 
     if ns.logEnabled then
         local okN, n = pcall(tip.NumLines, tip)
-        ns.Log("Apply unit=%s isPlayer=%s name=%s guid=%s numlines_pre=%d relayout=%s",
+        -- className 這裡還是 UnitClass 的原值（ApplyPlayer 才會拿暴雪專精行的明文換掉），
+        -- 跟「Apply 完成」那條比對就知道 GetOriginalSpecLine 偷到明文沒有。
+        ns.Log("Apply unit=%s isPlayer=%s name=%s class=%s guid=%s numlines_pre=%d relayout=%s",
             ns.Describe(unit), tostring(isPlayer), ns.Describe(raw.name),
-            ns.Describe(state.unitGuid), okN and n or -1, tostring(relayout))
+            ns.Describe(raw.className), ns.Describe(state.unitGuid),
+            okN and n or -1, tostring(relayout))
+        ns.LogLines("pre", tip)      -- 插件動手前：暴雪剛重填完的狀態
     end
 
     if isPlayer then
@@ -356,9 +360,10 @@ function UnitLines.Apply(tip, state, unit, relayout)
         local okN, n = pcall(tip.NumLines, tip)
         local line1 = _G[tip:GetName() .. "TextLeft1"]
         local okT, text = pcall(function() return line1 and line1:GetText() end)
-        ns.Log("Apply 完成 branch=%s numlines=%d line1=%s",
+        ns.Log("Apply 完成 branch=%s numlines=%d line1=%s class=%s",
             isPlayer and "player" or "npc", okN and n or -1,
-            okT and ns.Describe(text) or "?")
+            okT and ns.Describe(text) or "?", ns.Describe(raw.className))
+        ns.LogLines("post", tip)     -- 插件寫完之後：哪幾行被我們蓋上 aspect
     end
 
     ColorBorder(tip, config, raw)
