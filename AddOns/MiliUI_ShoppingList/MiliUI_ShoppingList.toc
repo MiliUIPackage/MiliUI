@@ -45,6 +45,7 @@ Core\Auction.lua
 Modules\CraftingPage.lua
 Modules\CustomerOrders.lua
 Modules\ChatLink.lua
+Modules\Vendor.lua
 
 UI\Rows.lua
 UI\Window.lua

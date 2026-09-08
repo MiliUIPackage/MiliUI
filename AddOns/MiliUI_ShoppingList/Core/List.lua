@@ -161,6 +161,83 @@ function List.StarIDs(itemID, alts)
     return { [1] = ids[1] }
 end
 
+------------------------------------------------------------
+-- 商店買得到的材料
+--
+-- ⚠ **沒有 API 可以問「哪個商人賣這件東西」。** 客戶端只知道商店的**收購**價
+--   （GetItemInfo 的 sellPrice），永遠不知道你沒去過的商人開價多少。
+--   所以只能自己逛到才算數：Modules/Vendor.lua 在你開任何商人視窗時，
+--   把「無限供應」（numAvailable == -1）的貨記進帳號層的 vendorItems。
+--   認不出來的時候玩家可以右鍵那一列自己忽略掉。
+------------------------------------------------------------
+function List.VendorPrice(itemID)
+    return itemID and ns.db.vendorItems[itemID] or nil
+end
+
+-- 一組裡面**任何一個品質**買得到就算：需求本來就可以用那個品質補滿
+function List.IsVendorItem(starIDs)
+    for _, id in pairs(starIDs) do
+        if List.VendorPrice(id) then return true end
+    end
+    return false
+end
+
+------------------------------------------------------------
+-- 玩家選了哪個品質
+--
+-- 同一個材料的 1★／2★ 是**同一筆需求**，不是兩筆 —— 玩家要挑一個買。
+-- 一開始沒挑就給「有報價之中最便宜的」，挑過就記住（角色層）。
+------------------------------------------------------------
+function List.Tiers(starIDs)
+    local out = {}
+    for tier = 1, 3 do
+        if starIDs[tier] then out[#out + 1] = tier end
+    end
+    return out
+end
+
+function List.ChosenTier(key, starIDs)
+    local tiers = List.Tiers(starIDs)
+    local picked = ns.cdb.quality[key]
+    for _, tier in ipairs(tiers) do
+        if tier == picked then return tier end
+    end
+    -- 沒挑過：有報價的挑最便宜，都沒報價就挑最低品質
+    local best, bestPrice
+    for _, tier in ipairs(tiers) do
+        local q = ns.Auction and ns.Auction.Quote(starIDs[tier])
+        if q and q.unitPrice and (not bestPrice or q.unitPrice < bestPrice) then
+            best, bestPrice = tier, q.unitPrice
+        end
+    end
+    return best or tiers[1]
+end
+
+function List.SetTier(key, tier)
+    ns.cdb.quality[key] = tier
+    ns.Fire("ListChanged")
+end
+
+------------------------------------------------------------
+-- 手動忽略
+--
+-- 「這個材料不用列給我看」。玩家自己按的，所以不需要猜對 —— 也是商店材料
+-- 判斷失準時的逃生門。
+------------------------------------------------------------
+function List.IsIgnored(key)
+    return ns.cdb.ignored[key] and true or false
+end
+
+function List.ToggleIgnore(key)
+    ns.cdb.ignored[key] = (not ns.cdb.ignored[key]) or nil
+    ns.Fire("ListChanged")
+end
+
+function List.ClearIgnored()
+    wipe(ns.cdb.ignored)
+    ns.Fire("ListChanged")
+end
+
 function List.QualityMarkup(itemID)
     if not itemID then return "" end
     local info = C_TradeSkillUI.GetItemReagentQualityInfo(itemID)
@@ -352,19 +429,13 @@ function List.RecipeDetail(entry)
     return lines, missing
 end
 
--- 整張清單還缺幾樣（視窗的總計吃這個）。額外物品也要算 ——
--- 那是玩家自己指名要買的東西，漏掉的話「材料都齊了」會說謊。
+-- 整張清單「還要去拍賣場買幾個」。走 Shopping 而不是自己加總 —— 商店貨與
+-- 手動忽略的那幾筆不能算進來，不然畫面上明明沒有那幾列，數字卻對不起來。
 function List.MissingTotal()
+    local rows = List.Shopping({ includeReady = true })
     local total = 0
-    for _, entry in ipairs(Recipes()) do
-        local _, missing = List.RecipeDetail(entry)
-        total = total + missing
-    end
-    for _, extra in ipairs(Extras()) do
-        local starIDs = List.StarIDs(extra.itemID, nil)
-        local bags, bank, transit = GroupCounts(starIDs)
-        local have = bags + transit + (IncludeBank() and bank or 0)
-        total = total + math.max(0, (extra.quantity or 1) - have)
+    for _, r in ipairs(rows) do
+        if not r.vendor and not r.ignored then total = total + (r.buy or 0) end
     end
     return total
 end
@@ -403,58 +474,53 @@ function List.Shopping(opts)
         Add(e.itemID, nil, e.quantity or 1, false, L["Extra items"])
     end
 
-    -- 一組展開成每個品質一列
-    local rows, missingRows, estimate = {}, 0, 0
+    -- 一組**一列**：品質是玩家在那一列上挑的，不是兩筆需求
+    local rows, missingRows, estimate, vendorHidden = {}, 0, 0, 0
     local onlyMissing = ns.db.settings.onlyMissing and not (opts and opts.includeReady)
+    local hideVendor  = ns.db.settings.hideVendor and not (opts and opts.includeReady)
     for _, g in ipairs(order) do
         local bags, bank, transit = GroupCounts(g.starIDs)
         local have = bags + transit + (IncludeBank() and bank or 0)
         local buy  = math.max(0, g.need - have)
         if buy > 0 then missingRows = missingRows + 1 end
 
-        local tiers = {}
-        for tier = 1, 3 do
-            if g.starIDs[tier] then tiers[#tiers + 1] = tier end
-        end
-        -- 3★ 只有在它是唯一品質時才列：沒有人為了省錢去買 3★ 材料，
-        -- 列出來只是把清單拉長。
-        if #tiers > 1 then
-            local trimmed = {}
-            for _, tier in ipairs(tiers) do
-                if tier ~= 3 then trimmed[#trimmed + 1] = tier end
-            end
-            if #trimmed > 0 then tiers = trimmed end
+        local tier   = List.ChosenTier(g.key, g.starIDs)
+        local itemID = g.starIDs[tier]
+        local quote  = ns.Auction and ns.Auction.Quote(itemID)
+        local vendor = List.IsVendorItem(g.starIDs)
+        local ignored = List.IsIgnored(g.key)
+
+        if buy > 0 and quote and quote.unitPrice and not vendor and not ignored then
+            estimate = estimate + quote.unitPrice * buy
         end
 
-        local first = true
-        for _, tier in ipairs(tiers) do
-            local itemID = g.starIDs[tier]
-            local quote  = ns.Auction and ns.Auction.Quote(itemID)
-            if first and buy > 0 and quote and quote.unitPrice then
-                estimate = estimate + quote.unitPrice * buy
-            end
-            if not onlyMissing or buy > 0 or transit > 0 then
-                rows[#rows + 1] = {
-                    key       = g.key,
-                    itemID    = itemID,
-                    star      = tier,
-                    multiTier = #tiers > 1,
-                    firstTier = first,
-                    optional  = g.optional,
-                    sources   = g.sources,
-                    need      = g.need,
-                    bags      = bags,
-                    bank      = bank,
-                    transit   = transit,
-                    buy       = buy,
-                    unitPrice = quote and quote.unitPrice,
-                    listed    = quote and quote.quantity,
-                }
-            end
-            first = false
+        local hide = (onlyMissing and buy <= 0 and transit <= 0)
+                  or (hideVendor and vendor)
+                  or (ignored and onlyMissing)
+        if hideVendor and vendor and buy > 0 then vendorHidden = vendorHidden + 1 end
+
+        if not hide then
+            rows[#rows + 1] = {
+                key       = g.key,
+                starIDs   = g.starIDs,
+                tiers     = List.Tiers(g.starIDs),
+                tier      = tier,
+                itemID    = itemID,
+                optional  = g.optional,
+                sources   = g.sources,
+                need      = g.need,
+                bags      = bags,
+                bank      = bank,
+                transit   = transit,
+                buy       = buy,
+                vendor    = vendor,
+                ignored   = ignored,
+                unitPrice = quote and quote.unitPrice,
+                listed    = quote and quote.quantity,
+            }
         end
     end
-    return rows, missingRows, estimate
+    return rows, missingRows, estimate, vendorHidden
 end
 
 -- 已經買齊的配方整筆移除（清單愈長愈難看出還有什麼要做）

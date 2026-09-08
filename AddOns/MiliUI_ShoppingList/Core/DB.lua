@@ -30,8 +30,13 @@ local function BuildDefaults()
             -- 預設關：多數人買材料是為了「現在就做」，而現在能用的只有背包裡的。
             includeBank = false,
 
-            -- 只列還缺的材料（採購分頁的預設視角）
+            -- 只列還缺的材料
             onlyMissing = true,
+
+            -- 商店買得到的材料不列進採購清單（拍賣場上那幾筆掛單通常是天價，
+            -- 而且列了也只會讓「還缺什麼」看起來比實際多）。認得哪些是商店貨
+            -- 靠自己逛商店時記下來的，見 Modules/Vendor.lua。
+            hideVendor = true,
 
             -- 同步遊戲內的追蹤配方。預設關 —— 遊戲的追蹤清單常常塞著一堆
             -- 「以後想做」的東西，一開就把採購清單淹掉。
@@ -48,6 +53,10 @@ local function BuildDefaults()
 
         -- 視窗位置：main / options
         windows = {},
+
+        -- 逛過的商店賣些什麼（帳號層：A 角色逛到的 B 角色也算數）
+        -- [itemID] = 商店賣價
+        vendorItems = {},
     }
 end
 DB.BuildDefaults = BuildDefaults
@@ -60,6 +69,10 @@ local function BuildCharDefaults()
         recipes = {},
         -- 額外物品（Shift 點連結加進來的）。每筆：{ itemID, quantity }
         extras  = {},
+        -- [材料組 key] = 玩家挑的品質階級（1/2/3）
+        quality = {},
+        -- [材料組 key] = true，玩家手動叫它不要再列出來的
+        ignored = {},
     }
 end
 DB.BuildCharDefaults = BuildCharDefaults
@@ -106,6 +119,9 @@ function DB.Init()
     -- 都是 ipairs(list)，型別錯的話錯誤會落在很遠的地方。
     if type(ns.cdb.recipes) ~= "table" then ns.cdb.recipes = {} end
     if type(ns.cdb.extras)  ~= "table" then ns.cdb.extras  = {} end
+    if type(ns.cdb.quality) ~= "table" then ns.cdb.quality = {} end
+    if type(ns.cdb.ignored) ~= "table" then ns.cdb.ignored = {} end
+    if type(ns.db.vendorItems) ~= "table" then ns.db.vendorItems = {} end
 end
 
 function DB.ResetSettings()

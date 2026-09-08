@@ -89,6 +89,25 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 
 `UpdateListOrderButton` 在打小費時每個按鍵都會跑一次，所以徽章重算塌成一幀一次。
 
+## 品質、商店貨、手動忽略（2026-09-08 第二輪回報）
+
+- **一個材料一列，品質是列上挑的。** 原本 1★／2★ 各一列，看起來像「兩樣都要買
+  10 個」，而且真的兩列都按就會**買成兩倍**。改成一列上排一排品質小按鈕，
+  挑中的那個才決定單價／在售／購買；選擇存角色層（`cdb.quality[key]`），
+  沒挑過的預設是「有報價之中最便宜的」。
+- **⚠ 沒有 API 可以問「哪個商人賣這件東西」。** `GetItemInfo` 的 `sellPrice` 是
+  商店**收購**你的價格，跟「商店有沒有在賣」是兩回事；Auctionator 之類的插件
+  也是自己掃商人掃出來的（而且它的快取是用**物品名稱**當 key，
+  `GetVendorPriceByItemID` 未必查得到，不要依賴）。
+  → 自己掃：`Modules/Vendor.lua` 在 MERCHANT_SHOW 記下 `numAvailable == -1`
+  （無限供應）且用金幣買的貨，存帳號層。限量貨不算。
+  預設把商店貨從採購清單藏起來，但**在總計旁邊寫一句「另有 N 樣商店買得到」**——
+  藏了不講，玩家會以為材料齊了結果少了瓶子。
+- **右鍵一列＝不再列出這個材料**（再按一次放回來）。這是商店貨判斷失準時的逃生門，
+  也是「這個我自己有辦法」的通用出口。
+- `GetMerchantItemInfo` 在某些客戶端已換成 `C_MerchantFrame.GetItemInfo`，
+  照 Auctionator 的寫法帶一組退路。
+
 ## 踩過／繞過的點
 
 - **捲軸的 20px 要從表頭扣，不是往清單加。** `W.CreateScrollFrame` 把內容右緣內縮

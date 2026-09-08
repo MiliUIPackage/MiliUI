@@ -91,7 +91,9 @@ end
 -- 收報價
 ------------------------------------------------------------
 local function Remember(itemID, unitPrice, quantity, isCommodity, itemKey, auctionID)
-    if not itemID or not unitPrice then return end
+    -- ⚠ 0 不是價格：整批瀏覽對沒有掛單的物品會回 0，記下去清單上就會出現
+    --   「單價 0 金、在售 0」那種看起來像免費的列。
+    if not itemID or not unitPrice or unitPrice <= 0 then return end
     quotes[itemID] = {
         unitPrice   = unitPrice,
         quantity    = quantity or 0,
@@ -164,7 +166,8 @@ function Auction.SearchAll()
     local rows = ns.List.Shopping({ includeReady = true })
     local keys, seen = {}, {}
     for _, row in ipairs(rows) do
-        if row.itemID and not seen[row.itemID] then
+        -- 商店貨與玩家手動忽略的不問價：問了也是白問，還占掉 100 筆的額度
+        if row.itemID and not row.vendor and not row.ignored and not seen[row.itemID] then
             seen[row.itemID] = true
             keys[#keys + 1] = C_AuctionHouse.MakeItemKey(row.itemID)
             if #keys >= MAX_KEYS then break end
@@ -296,8 +299,9 @@ end
 ------------------------------------------------------------
 -- 批次購買
 --
--- 同一種材料的 1★／2★ 是**兩列同一筆需求**，不能兩列都買（會買兩倍）。
--- 每組只挑一件：有報價的挑最便宜的，都沒報價就挑 1★。
+-- 一組一列、品質由玩家在列上挑（見 UI/Rows.lua），所以這裡直接照 row.itemID 買。
+-- 保險起見還是照 row.key 去重一次 —— 資料層要是哪天又變成一個品質一列，
+-- 這裡不去重就會買成兩倍。
 ------------------------------------------------------------
 function Auction.BuyAll()
     if not Auction.IsOpen() then
@@ -307,7 +311,7 @@ function Auction.BuyAll()
     local rows = ns.List.Shopping({ includeReady = true })
     local pick, order = {}, {}
     for _, row in ipairs(rows) do
-        if (row.buy or 0) > 0 and row.itemID then
+        if (row.buy or 0) > 0 and row.itemID and not row.vendor and not row.ignored then
             local chosen = pick[row.key]
             if not chosen then
                 pick[row.key] = row

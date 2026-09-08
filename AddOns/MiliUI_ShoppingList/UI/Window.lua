@@ -22,7 +22,9 @@ local Window = ns.Window
 
 local W, P, L = ns.W, ns.P, ns.L
 
-local WINDOW_W, WINDOW_H = 720, 520
+-- 視窗高度：不需要很高。清單捲得動，而高視窗貼到拍賣場下面就會掉出畫面。
+local WINDOW_W, WINDOW_H = 720, 420
+local MIN_DOCK_H = 240   -- 貼在拍賣場下面時，低於這個高度就改貼右邊
 local HEADER_H   = 24
 local SECTION_H  = 22
 local TOOL_H     = 22
@@ -40,7 +42,7 @@ local recipeSection, shopSection
 local statusLabel, estimateLabel, emptyLabel, extraBox
 local docked = false
 
-local Refresh   -- 前向宣告：工具列的 OnClick 在它之前就寫好了
+local Refresh, Layout   -- 前向宣告：上面的 Dock 與工具列的 OnClick 都比定義早
 
 ------------------------------------------------------------
 -- 位置
@@ -55,6 +57,7 @@ end
 
 local function RestorePos()
     docked = false
+    P.Size(frame, WINDOW_W, WINDOW_H)
     local p = ns.db.windows.main
     frame:ClearAllPoints()
     if type(p) == "table" and p.point then
@@ -64,13 +67,33 @@ local function RestorePos()
     end
 end
 
--- 開拍賣場時把視窗貼到拍賣場右邊。**先 Show 才量得到矩形**，再由 W.PlaceClamped
--- 把超出畫面的部分推回來（共用層 README 的「貼齊螢幕」那一節）。
+-- 開拍賣場時把視窗貼到拍賣場**下面**（那裡讀起來最順：拍賣場在上、清單在下，
+-- 視線是往下走的；貼右邊會被推到畫面邊緣去，跟背包之類的東西搶位置）。
+--
+-- ⚠ 拍賣場視窗的下緣離畫面底部有多遠不一定（暴雪的面板配置會隨解析度與其他
+--   開著的視窗移動）。硬貼一個固定高度下去，遇到視窗擺得低的時候確認列會被推出
+--   畫面 —— 那不是難看，是**按不到**。所以先量剩多少空間：
+--     夠   → 貼下面，高度收到剩餘空間（清單自己會捲）
+--     不夠 → 才退回貼右邊
+-- **先 Show 才量得到矩形**，再由 W.PlaceClamped 把超出畫面的部分推回來
+-- （共用層 README 的「貼齊螢幕」那一節）。
 local function DockToAuctionHouse()
-    if not AuctionHouseFrame or not AuctionHouseFrame:GetRight() then return false end
+    if not AuctionHouseFrame then return false end
+    local ahBottom = AuctionHouseFrame:GetBottom()
+    if not ahBottom then return false end
     docked = true
-    local pts = { "TOPLEFT", AuctionHouseFrame, "TOPRIGHT", 6, 0 }
-    W.PlaceClamped(frame, pts)
+
+    local avail = ahBottom - 12
+    if avail >= MIN_DOCK_H then
+        P.Size(frame, WINDOW_W, math.min(WINDOW_H, avail))
+        local pts = { "TOPLEFT", AuctionHouseFrame, "BOTTOMLEFT", 0, -4 }
+        W.PlaceClamped(frame, pts)
+    else
+        P.Size(frame, WINDOW_W, WINDOW_H)
+        local pts = { "TOPLEFT", AuctionHouseFrame, "TOPRIGHT", 6, 0 }
+        W.PlaceClamped(frame, pts)
+    end
+    Layout()
     return true
 end
 
@@ -231,12 +254,17 @@ end
 ------------------------------------------------------------
 -- 版面：配方區的高度隨列數變，採購區吃掉剩下的
 ------------------------------------------------------------
-local function Layout()
-    local n = math.max(1, math.min(MAX_RECIPE_ROWS, #BuildRecipeItems()))
-    recipeList:SetHeight(P.Scale(n * ROW_H + 2))
-
+function Layout()
     local bottom = PAD
     if confirmBar:IsShown() then bottom = PAD + CONFIRM_H + 4 end
+
+    -- 配方區最多吃掉三分之一的可用高度：視窗貼到拍賣場下面時會被壓矮，
+    -- 固定五列的話採購區會只剩一兩列 —— 而採購區才是要動手的地方。
+    local avail = frame:GetHeight()
+        - (HEADER_H + 6 + SECTION_H + 2 + 8 + SECTION_H + 2 + HEAD_H + 4 + bottom)
+    local maxRows = math.max(1, math.min(MAX_RECIPE_ROWS, math.floor(avail / 3 / ROW_H)))
+    local n = math.max(1, math.min(maxRows, #BuildRecipeItems()))
+    recipeList:SetHeight(P.Scale(n * ROW_H + 2))
     shopList:ClearAllPoints()
     shopList:SetPoint("TOPLEFT", shopSection, "BOTTOMLEFT", 0, -(HEAD_H + 4))
     shopList:SetPoint("TOPRIGHT", shopSection, "BOTTOMRIGHT", 0, -(HEAD_H + 4))
@@ -254,21 +282,27 @@ function Refresh()
 
     recipeList:Update(BuildRecipeItems(), UpdateRecipeRow)
 
-    local rows, _, estimate = ns.List.Shopping()
+    local rows, _, estimate, vendorHidden = ns.List.Shopping()
     shopList:Update(rows, ns.Rows.Update)
 
     shopSection.bankCheck:SetChecked(ns.db.settings.includeBank)
     shopSection.missingCheck:SetChecked(ns.db.settings.onlyMissing)
 
     -- 有報價就報預估總價；沒有就報還缺幾樣（兩者都沒有就是買齊了）
+    local summary
     if estimate > 0 then
-        estimateLabel:SetText(L["Estimate"] .. " " .. ns.List.MoneyShort(estimate))
+        summary = L["Estimate"] .. " " .. ns.List.MoneyShort(estimate)
     else
         local missing = ns.List.MissingTotal()
-        estimateLabel:SetText(missing > 0
+        summary = missing > 0
             and ("|cffff7777" .. L["%d reagents still to buy"]:format(missing) .. "|r")
-            or  ("|cff55ff55" .. L["Everything is ready."] .. "|r"))
+            or  ("|cff55ff55" .. L["Everything is ready."] .. "|r")
     end
+    -- 藏起來的商店貨要講一聲。不講的話玩家會以為材料齊了，結果少了瓶子。
+    if (vendorHidden or 0) > 0 then
+        summary = summary .. "   |cff88bbff" .. L["+%d from a vendor"]:format(vendorHidden) .. "|r"
+    end
+    estimateLabel:SetText(summary)
 
     if ns.List.IsEmpty() then
         emptyLabel:SetText(L["Nothing here yet. Open a profession window or a crafting order and press \"Add to list\"."])
