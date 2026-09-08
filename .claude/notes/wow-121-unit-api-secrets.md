@@ -25,6 +25,29 @@ metadata:
 - `GetGuildInfo` 不再接受 compound unit token（如 `boss1target`）。
 - `UnitName` 在 active PvP match 中**不再**回 secret（放寬）。
 
+## 怎麼確定一支 Unit API 到底是不是秘密值（別憑印象）
+
+去抓 `Blizzard_APIDocumentationGenerated/UnitDocumentation.lua`（本機沒有，走 Gethe 鏡像）
+看那支函式有沒有 **`SecretWhen*` 標記**：
+
+```
+curl -sL https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua
+```
+
+`SecretArguments = "AllowedWhenUntainted"` 幾乎每支都有，那講的是**能不能把秘密值當參數傳進去**，
+跟回傳值無關 —— 看錯這行會把整份 API 判成秘密。真正決定回傳的是
+`SecretWhenUnitIdentityRestricted` / `SecretWhenUnitComparisonRestricted` / `SecretWhenUnitPossessionRestricted`。
+
+2026-09-08 為了 Cell 的隊伍目標上色查過，**沒有**任何 `SecretWhen*` 標記（回傳是明文，分支可以照寫）：
+`UnitSelectionType`、`UnitSelectionColor`、`UnitIsTapDenied`、`UnitPlayerControlled`、
+`UnitIsPlayer`、`UnitIsFriend`、`UnitReaction`、`UnitCanAttack`、`UnitIsTrivial`。
+
+⚠ 這修正了一個舊印象：[[project-121-addon-migration]] 把 TinyTooltip 的
+`GameTooltip_UnitColor()` 崩潰同時歸給 `UnitIsPVP` 與 `UnitCanAttack`。有標記的只有
+**`UnitIsPVP`**，`UnitCanAttack` 是清白的。所以「照姓名板那樣依敵我上色」在 12.1 是
+一般的 Lua 分支，不必動用曲線 —— 拿 `UnitSelectionType` 分類就好（Platynator
+`Display/Utilities.lua` 就是這樣寫的，經典版沒有這支時退回 `UnitReaction`：3 敵對陣營、4 中立）。
+
 `SecretWhenUnitIdentityRestricted` 的定義：unit 不是 player-controlled、也不在隊伍/團隊裡時就是 restricted。compound token 只要鏈上任一 unit 不符就整串 secret。
 
 實務衝擊：所有靠 `UnitClass()` 取 class token 去查 `RAID_CLASS_COLORS` / `CLASS_ICON_TCOORDS` / `CLASS_BUTTONS` 的職業染色與職業圖示，在戰鬥中都會炸。見 [[wow-secret-key-table-lookup]]。
