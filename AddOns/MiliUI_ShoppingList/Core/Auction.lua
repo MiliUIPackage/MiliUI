@@ -30,8 +30,12 @@ local PRICE_SORTS = {
 -- 整批 SearchForItemKeys 的上限（暴雪端的硬限制）
 local MAX_KEYS = 100
 -- 瀏覽完之後在背景逐筆補查幾樣。整批瀏覽的資料只夠顯示、不夠買（見 detailed），
--- 不先補的話按「全部購買」第一下一定卡在「正在問價」。只補真的要買的那幾樣。
-local MAX_PREFETCH = 25
+-- 不先補的話按「全部購買」第一下一定卡在「正在問價」。
+--
+-- ⚠ 只補**現在選著的那個配方**要買的東西，數量也壓低：每送一次查詢，拍賣場的
+--   結果清單就重畫一次，而重畫會拖著所有掛在那張清單上的插件一起跑。
+--   查詢本身是免費的，別人的重畫不是（實測看到另一支拍賣插件單一幀吃掉 5 秒）。
+local MAX_PREFETCH = 10
 
 ------------------------------------------------------------
 -- 本次登入的狀態。**一律不進 SavedVariables**：報價幾分鐘就過期，
@@ -175,7 +179,8 @@ end
 -- 背景補查：把「還要買、而且還沒逐筆查過」的那幾樣排進節流佇列。
 -- 每一筆的結果回來會 Pump 下一筆，所以這裡只管排隊、不管節奏。
 local function PrefetchDetails()
-    local rows = ns.List.Shopping({ includeReady = true, allRecipes = true })
+    -- 跟「全部購買」同一個範圍（只有選著的那個配方），不要整張清單都去查
+    local rows = ns.List.Shopping({ includeReady = true })
     local n = 0
     for _, row in ipairs(rows) do
         local id = row.itemID
