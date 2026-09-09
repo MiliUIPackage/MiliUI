@@ -109,7 +109,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == true -- Boss2
             and (C_ScenarioInfo.GetCriteriaInfo(3) and C_ScenarioInfo.GetCriteriaInfo(3).completed or false) == false -- Boss3
             and not UnitSpellTargetName(unitTarget)
-            then addonTable.CustomEncounterBar(5764925, 23.5, "注意射线", unitTarget)
+            then addonTable.CustomEncounterBar(5764925, 23.5, "注意射線", unitTarget)
             PlaySoundFile(addonTable.GetMediaPath() .. "ZhuYiSheXian.ogg", DiGuaTimelineAudioHelper.audioChannel) end
         -- ============================
         -- ==      红玉新生法地      ==
@@ -180,6 +180,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             and addonTable.SpellChannelCounter[unitTarget] == nil
             then addonTable.SpellChannelCounter[unitTarget] = true
+            addonTable.CustomEncounterBar(460952, 26.6, "控斷小怪", unitTarget)
             PlaySoundFile(addonTable.GetMediaPath() .. "KongDuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) 
             C_Timer.After(26, function() addonTable.SpellChannelCounter[unitTarget] = nil end) end
 
@@ -309,8 +310,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitClassification(unitTarget) == "elite" -- 精英怪
             and UnitAffectingCombat(unitTarget) == true -- 在战斗中
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
-            and not UnitSpellTargetName(unitTarget) -- 法术没目标
-            then addonTable.CustomEncounterBar(840194, 20.6, "准备AOE", unitTarget)
+            and not UnitSpellTargetName(unitTarget) -- 法術沒目標
+            then addonTable.CustomEncounterBar(840194, 20.6, "準備AOE", unitTarget)
             PlaySoundFile(addonTable.GetMediaPath() .. "ZhunBeiAOE.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 甲壳守护
@@ -456,7 +457,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 -- print(addonTable.SpellCastDuration[unitTarget])
             if (addonTable.SpellCastDuration[unitTarget] or 0) > 1.75 then 
                 addonTable.SpellCastStartTime[unitTarget] = nil
-                addonTable.CustomEncounterBar(5764902, 26.7, "五码分散", unitTarget)
+                addonTable.CustomEncounterBar(5764902, 26.7, "五碼分散", unitTarget)
                 if UnitGroupRolesAssigned("player") ~= "TANK" and addonTable.PlayerSpellStatus.spells[58984] == true then
                     PlaySoundFile(addonTable.GetMediaPath() .. "YingDun.ogg", DiGuaTimelineAudioHelper.audioChannel)
                 else
@@ -545,7 +546,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitAffectingCombat(unitTarget) == true -- 在战斗中
             and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
-            then PlaySoundFile(addonTable.GetMediaPath() .. "KongDuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) return end
+            then addonTable.CustomEncounterBar(133580, 25.5, "控斷小怪", unitTarget)
+            PlaySoundFile(addonTable.GetMediaPath() .. "KongDuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) return end
 
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 净化瓦解
@@ -572,8 +574,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitClassification(unitTarget) == "elite" -- 分类
             and UnitAffectingCombat(unitTarget) == true -- 是否在战斗中
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
-            and UnitSpellTargetName(unitTarget) -- 法术有目标
-            then addonTable.CustomEncounterBar(7301939, 24.4, "召唤小怪", unitTarget)
+            and UnitSpellTargetName(unitTarget) -- 法術有目標
+            then addonTable.CustomEncounterBar(7301939, 24.4, "召喚小怪", unitTarget)
             PlaySoundFile(addonTable.GetMediaPath() .. "ZhaoHuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
 

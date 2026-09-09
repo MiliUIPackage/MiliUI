@@ -27,7 +27,7 @@ frame:SetScript("OnEvent", function(self, event, unitTarget)
             then addonTable.CustomEncounterBar(4632783, 32.7, "护盾快打", unitTarget)
             PlaySoundFile(addonTable.GetMediaPath() .. "HuDunKuaiDa.ogg", DiGuaTimelineAudioHelper.audioChannel)
             addonTable.UnitAbsorbAmountChanged[unitTarget] = true 
-            C_Timer.After(10, function() addonTable.UnitAbsorbAmountChanged[unitTarget] = nil end) end
+            C_Timer.After(20, function() addonTable.UnitAbsorbAmountChanged[unitTarget] = nil end) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 残暴猛击
             and select(8, GetInstanceInfo()) == 2923 -- 副本ID (虚空之痕竞技场)

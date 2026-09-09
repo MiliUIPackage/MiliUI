@@ -22,7 +22,7 @@ HostFrame.bg:Hide() -- 默认隐藏
 -- ============================================================================
 HostFrame.text = HostFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 HostFrame.text:SetPoint("CENTER", HostFrame, "CENTER", 0, 0)
-HostFrame.text:SetText("副坦\n私有\n光环") -- 使用 \n 强制两字一换行
+HostFrame.text:SetText("副坦\n私有\n光環") -- 使用 \n 强制两字一换行
 HostFrame.text:SetTextColor(1, 1, 1, 0.9)   -- 白色微透明
 HostFrame.text:SetJustifyH("CENTER")          -- 文字水平居中
 HostFrame.text:SetSpacing(2)                  -- [可选] 微调行间距，让排版更紧凑好看
@@ -155,7 +155,7 @@ HostFrame:SetScript("OnMouseUp", function(self, button)
         if DiGuaTimelineAudioHelper then
             DiGuaTimelineAudioHelper.coTankX = xOfs
             DiGuaTimelineAudioHelper.coTankY = yOfs
-            print(string.format("|cff00ff00[DiGua]|r 副坦光环新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
+            print(string.format("|cff00ff00[DiGua]|r 副坦光環新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
         end
     end
 end)

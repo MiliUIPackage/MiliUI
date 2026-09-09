@@ -311,6 +311,72 @@ cd:SetSwipeColor(unpack(RING_COLOR_NORMAL))
 cd:SetHideCountdownNumbers(true)
 cd:SetBlingTexture("")
 
+-- ============================================================
+-- 倒计时圆环：可移动半透明定位框（控制台 /digua 打开且勾选"显示倒计时圆环"时显示）
+-- 拖动定位框即可调整圆环出现在屏幕上的位置，松开后自动保存（同其它模块模式）
+-- ============================================================
+local RingEditFrame = CreateFrame("Frame", nil, UIParent)
+RingEditFrame:SetSize(150, 150)
+RingEditFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+RingEditFrame:SetClampedToScreen(true)
+RingEditFrame:EnableMouse(false)
+RingEditFrame:SetMovable(false)
+RingEditFrame:Hide()
+
+RingEditFrame.bg = RingEditFrame:CreateTexture(nil, "BACKGROUND")
+RingEditFrame.bg:SetAllPoints()
+RingEditFrame.bg:SetColorTexture(0.4, 1, 0.8, 0.25) -- 与圆环同主题的青色半透明底
+
+RingEditFrame.text = RingEditFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+RingEditFrame.text:SetPoint("CENTER")
+RingEditFrame.text:SetText("倒计时\n圆环")
+RingEditFrame.text:SetTextColor(1, 1, 1, 0.9)
+RingEditFrame.text:SetJustifyH("CENTER")
+RingEditFrame.text:SetSpacing(2)
+
+-- 把圆环与定位框一起对齐到已保存的位置（未保存过则默认屏幕居中）
+local function ApplyRingPosition()
+    local db = DiGuaTimelineAudioHelper
+    local x = db and db.ringX or 0
+    local y = db and db.ringY or 0
+    RingFrame:ClearAllPoints()
+    RingFrame:SetPoint("CENTER", UIParent, "CENTER", x, y)
+    RingEditFrame:ClearAllPoints()
+    RingEditFrame:SetPoint("CENTER", UIParent, "CENTER", x, y)
+end
+
+-- 拖动定位框：仅当控制台打开且勾选"显示倒计时圆环"（可移动）时生效
+RingEditFrame:SetScript("OnMouseDown", function(self, button)
+    if button == "LeftButton" and self:IsMovable() then
+        self:StartMoving()
+        self.moving = true
+    end
+end)
+RingEditFrame:SetScript("OnMouseUp", function(self)
+    if not self.moving then return end
+    self:StopMovingOrSizing()
+    self.moving = false
+    local _, _, _, x, y = self:GetPoint()
+    DiGuaTimelineAudioHelper = DiGuaTimelineAudioHelper or {}
+    DiGuaTimelineAudioHelper.ringX, DiGuaTimelineAudioHelper.ringY = x, y
+    ApplyRingPosition() -- 让真正显示的圆环也立刻同步到新位置
+    print(string.format("|cff00ff00[DiGua]|r 倒计时圆环新位置已保存 (X: %d, Y: %d)", x, y))
+end)
+
+-- 控制台打开 + 勾选"显示倒计时圆环" → 显示半透明可拖动定位框；否则隐藏并释放鼠标
+function addonTable.RefreshRingAnchor(isConsoleShown)
+    if not DiGuaTimelineAudioHelper then return end
+    local edit = isConsoleShown and DiGuaTimelineAudioHelper.ringEnabled == true
+    if edit then
+        ApplyRingPosition() -- 让定位框出现在圆环的当前位置
+        RingEditFrame:Show()
+    else
+        RingEditFrame:Hide()
+    end
+    RingEditFrame:EnableMouse(edit)
+    RingEditFrame:SetMovable(edit)
+end
+
 -- 更新光圈颜色与音效
 local function UpdateRingColor(isAlarm)
     if isAlarm then
@@ -346,6 +412,7 @@ function addonTable.StartCircleTimerBySeconds(seconds, checkCast, PlayerIsSpellT
 
     if DiGuaTimelineAudioHelper.ringEnabled then
         cd:SetCooldown(startTime, duration)
+        ApplyRingPosition() -- 应用用户拖拽保存的位置（默认屏幕居中）
         RingFrame:Show()
     else
         RingFrame:Hide()

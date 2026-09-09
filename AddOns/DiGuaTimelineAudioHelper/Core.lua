@@ -54,15 +54,19 @@ frame:SetScript("OnEvent", function(self, event, ...)
             local db = DiGuaTimelineAudioHelper
             if db.enabled == nil then db.enabled = true end
             if db.ringEnabled == nil then db.ringEnabled = true end
+            if db.ringX == nil then db.ringX = 0 end -- 倒计时圆环定位框 X（默认居中，拖动后保存）
+            if db.ringY == nil then db.ringY = 0 end -- 倒计时圆环定位框 Y
             if db.tenSecCountDown == nil then db.tenSecCountDown = false end
             if db.coTankAuraEnabled == nil then db.coTankAuraEnabled = false end
             if db.playerDebuffEnabled == nil then db.playerDebuffEnabled = false end -- 玩家减益图标（默认关）
+            if db.playerDebuffSize == nil then db.playerDebuffSize = 0 end -- 玩家减益图标大小档位（0~9，0=默认小）
             if db.bossVoiceEnabled == nil then db.bossVoiceEnabled = true end
             if db.forceEncounterWarnings == nil then db.forceEncounterWarnings = true end
             if db.bloodlustOpenSound == nil then db.bloodlustOpenSound = false end
             if db.lfgProposalSound == nil then db.lfgProposalSound = false end
             if db.centerCountdownEnabled == nil then db.centerCountdownEnabled = false end -- 屏幕中央倒计时（默认关）
             if db.centerCountdownSize == nil then db.centerCountdownSize = 0 end -- 中央倒计时大小档位（0~9，默认 0=最小）
+            if db.bossHealthCenterEnabled == nil then db.bossHealthCenterEnabled = false end -- 首领转阶段血量百分比（默认关）
             if db.interruptIgnoreFocus == nil then db.interruptIgnoreFocus = false end -- 有焦点也提醒打断（默认关）
             if db.audioChannel == nil then db.audioChannel = "Master" end
             if db.coTankX == nil then db.coTankX = -400 end
@@ -116,6 +120,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             DiGuaTimelineFocusCastBarCheck:SetChecked(DiGuaTimelineAudioHelper.focusCastBarEnabled) -- 同步焦点施法条
             DiGuaTimelineTotemTextCheck:SetChecked(DiGuaTimelineAudioHelper.nameplateTotemTextEnabled) -- 同步姓名板"图腾"文字
             DiGuaTimelineAuraSoundCheck:SetChecked(not DiGuaTimelineAudioHelper.normalAuraSoundEnabled) -- 同步“关闭光环音效”（勾选=关）
+            DiGuaTimelineBossHealthPctCheck:SetChecked(DiGuaTimelineAudioHelper.bossHealthCenterEnabled) -- 同步首领转阶段血量百分比
         end
 
         elseif event == "PLAYER_ENTERING_WORLD" then
@@ -240,6 +245,8 @@ end)
 local cbRing = CreateCheckButton("DiGuaTimelineRingCheck", "顯示倒計時圓環", 250, -55, function(self)
     DiGuaTimelineAudioHelper.ringEnabled = self:GetChecked()
     print("|cffffd100[DiGua]|r 倒計時圓環圖示狀態: " .. (DiGuaTimelineAudioHelper.ringEnabled and "|cff00ff00已顯示|r" or "|cffff0000已隱藏|r"))
+    -- 同步半透明拖动定位框（勾选且控制台打开时显示，供拖动调整圆环位置）
+    if addonTable.RefreshRingAnchor then addonTable.RefreshRingAnchor(f:IsShown()) end
 end)
 
 local cbCoTank = CreateCheckButton("DiGuaTimelineCoTankCheck", "副坦私有光環監控(暫時無法使用)", 250, -80, function(self)
@@ -274,7 +281,45 @@ local cbPlayerDebuff = CreateCheckButton("DiGuaTimelinePlayerDebuffCheck", "顯�
     if addonTable.SetPlayerDebuffEnabled then addonTable.SetPlayerDebuffEnabled(self:GetChecked()) end
 end)
 
-local cbFocusCastBar = CreateCheckButton("DiGuaTimelineFocusCastBarCheck", "焦點特定技能施法條(測試版)", 250, -240, function(self)
+-- 玩家减益图标大小滑块（0~9 档，0 = 100%，每档整体放大 10%；图标/间距/名字一起缩放）
+-- 放在“显示玩家减益图标”勾选项正下方
+local playerDebuffSizeSlider = CreateFrame("Slider", "DiGuaTimelinePlayerDebuffSizeSlider", f, "OptionsSliderTemplate")
+playerDebuffSizeSlider:SetPoint("TOPLEFT", 250, -260)
+playerDebuffSizeSlider:SetMinMaxValues(0, 9)
+playerDebuffSizeSlider:SetValueStep(1)
+playerDebuffSizeSlider:SetObeyStepOnDrag(true)
+playerDebuffSizeSlider:SetWidth(170)
+local playerDebuffSizeText = _G["DiGuaTimelinePlayerDebuffSizeSliderText"]
+if playerDebuffSizeText then
+    playerDebuffSizeText:SetText("玩家減益圖示大小")
+    playerDebuffSizeText:SetTextColor(1, 0.82, 0)
+end
+local playerDebuffSizeValue = _G["DiGuaTimelinePlayerDebuffSizeSliderValue"]
+local playerDebuffSizeLow = _G["DiGuaTimelinePlayerDebuffSizeSliderLow"]
+local playerDebuffSizeHigh = _G["DiGuaTimelinePlayerDebuffSizeSliderHigh"]
+if playerDebuffSizeLow then playerDebuffSizeLow:SetText("小") end
+if playerDebuffSizeHigh then playerDebuffSizeHigh:SetText("大") end
+local playerDebuffSizeUpdating = false
+local function UpdatePlayerDebuffSizeLabel(value)
+    if playerDebuffSizeValue then
+        -- 档位 0~9 对应显示为 1~10 档
+        playerDebuffSizeValue:SetText(format("%d档", math.floor((value or 0) + 0.5) + 1))
+    end
+end
+playerDebuffSizeSlider:SetScript("OnValueChanged", function(self, value)
+    if playerDebuffSizeUpdating then return end
+    value = math.floor(value + 0.5)
+    DiGuaTimelineAudioHelper.playerDebuffSize = value
+    if addonTable.SetPlayerDebuffSize then addonTable.SetPlayerDebuffSize(value) end
+    UpdatePlayerDebuffSizeLabel(value)
+end)
+-- 初始同步当前已保存档位
+playerDebuffSizeUpdating = true
+playerDebuffSizeSlider:SetValue(tonumber((DiGuaTimelineAudioHelper or {}).playerDebuffSize) or 0)
+playerDebuffSizeUpdating = false
+UpdatePlayerDebuffSizeLabel(playerDebuffSizeSlider:GetValue())
+
+local cbFocusCastBar = CreateCheckButton("DiGuaTimelineFocusCastBarCheck", "焦点特定技能施法条(测试版)", 250, -285, function(self)
     DiGuaTimelineAudioHelper.focusCastBarEnabled = self:GetChecked()
     print("|cffffd100[DiGua]|r 焦點特定技能施法條(測試版): " .. (DiGuaTimelineAudioHelper.focusCastBarEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
     if addonTable.RefreshFocusCastBarState then addonTable.RefreshFocusCastBarState(f:IsShown()) end
@@ -284,6 +329,14 @@ local cbTotemText = CreateCheckButton("DiGuaTimelineTotemTextCheck", "姓名板�
     DiGuaTimelineAudioHelper.nameplateTotemTextEnabled = self:GetChecked()
     if addonTable.SetNameplateTotemTextEnabled then addonTable.SetNameplateTotemTextEnabled(self:GetChecked()) end
     print("|cffffd100[DiGua]|r 姓名板顯示\"圖騰\"文字: " .. (DiGuaTimelineAudioHelper.nameplateTotemTextEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
+end)
+
+-- 首領轉階段血量百分比（默認關閉）
+local cbBossHealthPct = CreateCheckButton("DiGuaTimelineBossHealthPctCheck", "首領轉階段血量百分比", 250, -290, function(self)
+    local isEnabled = self:GetChecked()
+    DiGuaTimelineAudioHelper.bossHealthCenterEnabled = isEnabled
+    if addonTable.SetBossHealthEnabled then addonTable.SetBossHealthEnabled(isEnabled) end
+    print("|cffffd100[DiGua]|r 首領轉階段血量百分比: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
 -- 主音量滑块（映射魔兽系统主音量 Sound_MasterVolume，范围 0-1，显示 0%-100%）
@@ -363,6 +416,8 @@ f:SetScript("OnShow", function()
     if addonTable.RefreshAnchorState then addonTable.RefreshAnchorState(true) end
     if addonTable.RefreshFocusCastBarState then addonTable.RefreshFocusCastBarState(true) end
     if addonTable.RefreshPlayerDebuffAnchor then addonTable.RefreshPlayerDebuffAnchor(true) end
+    if addonTable.RefreshBossHealthPctAnchor then addonTable.RefreshBossHealthPctAnchor(true) end
+    if addonTable.RefreshRingAnchor then addonTable.RefreshRingAnchor(true) end
     -- 打开控制台时同步系统主音量（防止在系统设置里改过）
     if masterVolumeSlider then
         masterVolumeUpdating = true
@@ -377,11 +432,20 @@ f:SetScript("OnShow", function()
         centerSizeUpdating = false
         UpdateCenterSizeLabel(centerSizeSlider:GetValue())
     end
+    -- 同步玩家减益图标大小档位滑块
+    if playerDebuffSizeSlider then
+        playerDebuffSizeUpdating = true
+        playerDebuffSizeSlider:SetValue(tonumber((DiGuaTimelineAudioHelper or {}).playerDebuffSize) or 0)
+        playerDebuffSizeUpdating = false
+        UpdatePlayerDebuffSizeLabel(playerDebuffSizeSlider:GetValue())
+    end
 end)
 f:SetScript("OnHide", function()
     if addonTable.RefreshAnchorState then addonTable.RefreshAnchorState(false) end
     if addonTable.RefreshFocusCastBarState then addonTable.RefreshFocusCastBarState(false) end
     if addonTable.RefreshPlayerDebuffAnchor then addonTable.RefreshPlayerDebuffAnchor(false) end
+    if addonTable.RefreshBossHealthPctAnchor then addonTable.RefreshBossHealthPctAnchor(false) end
+    if addonTable.RefreshRingAnchor then addonTable.RefreshRingAnchor(false) end
 end)
 
 SLASH_DIGUA1 = "/digua"

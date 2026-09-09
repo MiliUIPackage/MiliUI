@@ -6,10 +6,23 @@
 local addonName, addonTable = ...
 
 local container
+local HostFrame -- 前向声明(见下方创建)
+local HOST_BASE_SIZE = 55 -- 移动定位框基础边长，随大小档位等比放大
+-- 玩家减益图标大小档位（0~9，控制台滑块调节）：整体等比缩放(图标+间距+名字等)
+local sizeStep = 0
+local function SizeFactor()
+    return 1 + sizeStep * 0.1 -- 档0=100% … 档9=190%
+end
+local function ApplyDebuffSize()
+    local factor = SizeFactor()
+    if container then container:SetScale(factor) end
+    -- 移动定位框(含 bg/文字)随档位实时等比变化，拖拽范围贴合放大的图标
+    if HostFrame then HostFrame:SetSize(HOST_BASE_SIZE * factor, HOST_BASE_SIZE * factor) end
+end
 
 -- 可移动宿主框（控制台打开且开关开启时可拖动，否则点击穿透）
-local HostFrame = CreateFrame("Frame", nil, UIParent)
-HostFrame:SetSize(55, 55)
+HostFrame = CreateFrame("Frame", nil, UIParent)
+HostFrame:SetSize(HOST_BASE_SIZE, HOST_BASE_SIZE)
 HostFrame:SetPoint("CENTER", UIParent, "CENTER", 150, 60)
 HostFrame:EnableMouse(false)
 HostFrame:SetMovable(false)
@@ -22,7 +35,7 @@ HostFrame.bg:Hide()
 
 HostFrame.text = HostFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 HostFrame.text:SetPoint("CENTER", HostFrame, "CENTER", 0, 0)
-HostFrame.text:SetText("玩家减益\n图标")
+HostFrame.text:SetText("玩家減益\n圖示")
 HostFrame.text:SetTextColor(1, 1, 1, 0.9)
 HostFrame.text:SetJustifyH("CENTER")
 HostFrame.text:SetSpacing(2)
@@ -128,6 +141,7 @@ local function BuildContainer()
     pcall(c.SetAuraGroupLayout, c, "debuffs", { elementSpacing = 9, lineSpacing = 9 })
 
     container = c
+    c:SetScale(SizeFactor()) -- 应用玩家设定的大小档位(整体等比)
     return c
 end
 
@@ -184,6 +198,15 @@ function addonTable.SetPlayerDebuffEnabled(enabled)
     addonTable.RefreshPlayerDebuffAnchor(shown)
 end
 
+-- 设置玩家减益图标大小档位（0~9，0=默认小；越大整体放大，图标/间距/名字等比缩放）
+function addonTable.SetPlayerDebuffSize(step)
+    step = tonumber(step) or 0
+    if step < 0 then step = 0 elseif step > 9 then step = 9 end
+    if DiGuaTimelineAudioHelper then DiGuaTimelineAudioHelper.playerDebuffSize = step end
+    sizeStep = step
+    ApplyDebuffSize()
+end
+
 -- PLAYER_LOGIN 读取位置并按开关显示；UNIT_AURA(player) 兜底刷新
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
@@ -196,6 +219,11 @@ f:SetScript("OnEvent", function(self, event, unit)
             HostFrame:ClearAllPoints()
             HostFrame:SetPoint("CENTER", UIParent, "CENTER",
                 DiGuaTimelineAudioHelper.playerDebuffX, DiGuaTimelineAudioHelper.playerDebuffY)
+        end
+        -- 读取玩家设定的大小档位(0~9)
+        if DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.playerDebuffSize then
+            sizeStep = tonumber(DiGuaTimelineAudioHelper.playerDebuffSize) or 0
+            if sizeStep < 0 then sizeStep = 0 elseif sizeStep > 9 then sizeStep = 9 end
         end
         -- 默认关闭，按开关显示/隐藏并同步拖动框状态
         addonTable.SetPlayerDebuffEnabled(DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.playerDebuffEnabled)

@@ -67,7 +67,6 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     local currentEncounterID = addonTable.GetEncounterID()
     -- 首领语音开关：仅当关闭且正处首领战(encounterID≠0)时拦截；encounterID==0 的小怪机制(如强风)不受影响
     if not DiGuaTimelineAudioHelper.bossVoiceEnabled and currentEncounterID ~= 0 then return end
-    local startTime = addonTable.GetStartTime()
     local MEDIA_PATH = addonTable.GetMediaPath() or addonTable.GetDefaultMediaPath()
     local currentMap = C_Map.GetBestMapForUnit("player")
 
@@ -112,7 +111,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2   
     and (GetSubZoneText() == "漫长寒冬" or GetSubZoneText() == "恆常凜冬") -- 子区域 (漫长寒冬)
     then
-        addonTable.CustomEncounterBar(135857, 50, "強風")
+        addonTable.CustomEncounterBar(135857, 50, "强风")
         PlaySoundFile(MEDIA_PATH .. "KuaiZhaoYanTi.ogg", DiGuaTimelineAudioHelper.audioChannel)
         C_Timer.After(14.5, function()
             if currentEncounterID == 0 then
@@ -158,6 +157,28 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
         return
     end
 
+
+
+
+
+
+
+    -- 技能：烈焰喷吐（点名）：出圈提醒 + 授权方向箭头显示 6 秒
+    if currentEncounterID == 2623 and severity == 1 and targetName then
+        -- 出圈仅 战士/盗贼/死骑/猎人 才生效
+        local class = UnitClassBase("player")
+        if class == "WARRIOR" or class == "ROGUE" or class == "DEATHKNIGHT" or class == "HUNTER" or class == "PALADIN" then
+            addonTable.StartCircleTimerBySeconds(5.9)
+        end
+        -- 授权方向箭头，并立即按“当前该轮”方向(2623 时间表)显示 6 秒
+        addonTable.FacingArrowAllowed = true
+        if addonTable.TriggerFacingArrow then
+            addonTable.TriggerFacingArrow(6)
+        end
+        return
+    end
+
+
     -- 技能：阻断暴雨（非 战士/盗贼/死骑/猎人 且 非坦克职责 才生效）
     if currentEncounterID == 2623 and severity == 1 and not targetName then 
         local class = UnitClassBase("player")
@@ -178,15 +199,6 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
             C_Timer.After(4.9, function()
                 PlaySoundFile(MEDIA_PATH .. "AnQuan.ogg", DiGuaTimelineAudioHelper.audioChannel)
             end)
-        end
-        return
-    end
-
-    -- 技能：烈焰喷吐（仅 战士/盗贼/死骑/猎人 才生效）
-    if currentEncounterID == 2623 and severity == 1 and targetName then
-        local class = UnitClassBase("player")
-        if class == "WARRIOR" or class == "ROGUE" or class == "DEATHKNIGHT" or class == "HUNTER" or class == "PALADIN" then
-            addonTable.StartCircleTimerBySeconds(5.9)
         end
         return
     end
@@ -220,7 +232,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     if currentEncounterID == 2139 and severity == 1 then
         local function SafePlay(soundFile)
             if addonTable.GetEncounterID() == 2139 then
-                PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+                PlaySoundFile(MEDIA_PATH .. soundFile, DiGuaTimelineAudioHelper.audioChannel)
             end
         end
         C_Timer.After(4.9, function()
@@ -243,7 +255,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
         addonTable.StartCircleTimerBySeconds(3.9)
         local function SafePlay(soundFile)
             if addonTable.GetEncounterID() == 2142 then
-                PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+                PlaySoundFile(MEDIA_PATH .. soundFile, DiGuaTimelineAudioHelper.audioChannel)
             end
         end
         C_Timer.After(0.9, function()
@@ -269,7 +281,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
         if role ~= "TANK" and class ~= "WARRIOR" and class ~= "ROGUE" and class ~= "DEATHKNIGHT" and class ~= "HUNTER" and class ~= "PALADIN" then
             local function SafePlay(soundFile)
                 if addonTable.GetEncounterID() == 2140 then
-                    PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+                    PlaySoundFile(MEDIA_PATH .. soundFile, DiGuaTimelineAudioHelper.audioChannel)
                 end
             end
             -- 跟 SafePlay 一样：只有仍在 2140 战斗中才显示圆环
@@ -318,7 +330,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     if currentEncounterID == 2143 and severity == 1 and not targetName then
         local function SafePlay(soundFile)
             if addonTable.GetEncounterID() == 2143 then
-                PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+                PlaySoundFile(MEDIA_PATH .. soundFile, DiGuaTimelineAudioHelper.audioChannel)
             end
         end
         C_Timer.After(3, function()
@@ -337,7 +349,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     if currentEncounterID == 3208 and severity == 2 then
         local function SafePlay(soundFile)
             if addonTable.GetEncounterID() == 3208 then
-                PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+                PlaySoundFile(MEDIA_PATH .. soundFile, DiGuaTimelineAudioHelper.audioChannel)
             end
         end
 
@@ -365,7 +377,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
         -- 核心防御局部函数：只有当前依然在3103号Boss战斗中，才允许播放指定音频
         local function SafePlay(soundFile)
             if addonTable.GetEncounterID() == 3103 then
-                PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+                PlaySoundFile(MEDIA_PATH .. soundFile, DiGuaTimelineAudioHelper.audioChannel)
             end
         end
         C_Timer.After(3.9, function()
@@ -393,10 +405,12 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
 
     -- 技能：光明灌注
     if currentEncounterID == 3101 and severity == 1 then
+        -- 联动：光明灌注命中起 5 秒内，中央首领血量百分比暂停显示
+        if addonTable.SuppressBossHealthDisplay then addonTable.SuppressBossHealthDisplay(5) end
         -- 核心防御局部函数：只有当前依然在3101号Boss战斗中，才允许播放指定音频
         local function SafePlay(soundFile)
             if addonTable.GetEncounterID() == 3101 then
-                PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+                PlaySoundFile(MEDIA_PATH .. soundFile, DiGuaTimelineAudioHelper.audioChannel)
             end
         end
 
@@ -438,7 +452,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
         -- 核心防御局部函数：只有当前依然在3200号Boss战斗中，才允许播放指定音频
         local function SafePlay(soundFile)
             if addonTable.GetEncounterID() == 3200 then
-                PlaySoundFile(MEDIA_PATH .. soundFile, audioChannel or DiGuaTimelineAudioHelper.audioChannel)
+                PlaySoundFile(MEDIA_PATH .. soundFile, DiGuaTimelineAudioHelper.audioChannel)
             end
         end
 

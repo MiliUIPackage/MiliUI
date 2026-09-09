@@ -95,6 +95,13 @@ local function GetFocusCastInfo()
     return nil, nil, nil
 end
 
+-- ===== 结束/隐藏施法条（local，先于 UpdateFocusCastBar 定义供其调用，避免污染全局）=====
+local function EndFocusCastDisplay()
+    castingActive = false
+    CastBar:Hide()
+    if placeholderActive then MoveFrame:Show() else MoveFrame:Hide() end
+end
+
 -- ===== 刷新施法条 =====
 local function UpdateFocusCastBar()
     if not castingActive then return end
@@ -126,12 +133,6 @@ local function ShowFocusCastBar()
     MoveFrame:Hide()
     CastBar:Show()
     UpdateFocusCastBar()
-end
-
-function EndFocusCastDisplay()
-    castingActive = false
-    CastBar:Hide()
-    if placeholderActive then MoveFrame:Show() else MoveFrame:Hide() end
 end
 
 local function HideFocusCastBar()

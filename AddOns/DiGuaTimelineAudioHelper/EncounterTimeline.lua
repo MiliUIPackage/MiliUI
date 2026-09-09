@@ -50,7 +50,16 @@ addonTable.AudioTimeline = {
         }
     },
 
-
+    [3105] = { -- 利希尔·烬怒
+        interval = 999, 
+        startOffset = 0, 
+        alerts = {
+            [35]  = "DianMen.ogg",
+            [92]  = "DianMen.ogg",
+            [147]  = "DianMen.ogg",
+            [205]  = "DianMen.ogg",
+        }
+    },
     
     -- [3200] = { -- 圣光猎手伊库兹
     --     interval = 65, 
@@ -156,6 +165,7 @@ addonTable.AudioTimeline = {
                 [155] = "DaoShu1.ogg", -- 2分35秒 倒计时1
                 [156] = "YiShangJieShu.ogg", -- 2分36秒 倒数结束
                 [188] = "ZhunBeiLaXian.ogg", -- 3分08秒 准备拉线
+                [195] = "GeRenJianShang.ogg", 
                 [300] = "DaoShu5.ogg", -- 5分钟整 倒计时5
                 [301] = "DaoShu4.ogg", -- 5分01秒 倒计时4
                 [302] = "DaoShu3.ogg", -- 5分02秒 倒计时3
@@ -165,6 +175,7 @@ addonTable.AudioTimeline = {
                 [412] = "ZhuYiDuoBo.ogg", -- 6:52.2 腐蚀浪潮
                 [451] = "ZhuanHuoDaGuai.ogg", -- 7分32秒 转火大怪
                 [467] = "ZhuYiDuoBo.ogg", -- 7:47.2 腐蚀浪潮
+                [473] = "ChangDiQieHuan.ogg", -- 7:47.2 腐蚀浪潮
                 [511] = "ZhuanHuoDaGuai.ogg", -- 8分31秒 转火大怪
                 [517] = "ZhuYiDuoBo.ogg", -- 8:37.2 腐蚀浪潮
                 [561] = "ZhuYiDuoBo.ogg", -- 9:21.2 腐蚀浪潮

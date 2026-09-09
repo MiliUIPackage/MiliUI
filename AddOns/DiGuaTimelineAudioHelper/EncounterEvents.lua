@@ -227,7 +227,7 @@ addonTable.EventSoundData = {
 
     -- 万毒邪祟者瓦什尼克
     [754] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 滴毒之牙 (1280935)
-    [755] = { {"ZhuYiDianMing.ogg", 1} }, -- 适应性感染 (1282114)
+    [755] = { {"ZhuYiDianMing.ogg", 1, {HEALER = true}} }, -- 适应性感染 (1282114)
     [756] = { {"ZhunBeiJieQuan.ogg", 1} }, -- 恶性催化剂 (1282509)
     [757] = { {"ZhuYiFenSan.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 瘟疫泡沫 (1281907)
     [759] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 痛饮 (1283164)

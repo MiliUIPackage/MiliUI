@@ -2,8 +2,12 @@
 
 local addonName, addonTable = ...
 
+-- 2623：记录本场 INSTANCE_ENCOUNTER_ENGAGE_UNIT 触发次数（addonTable 共享变量，供 BossHealthCenterDisplay 第 3 次后停显血量）
+addonTable.Boss2623EngageCount = 0
+
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+frame:RegisterEvent("ENCOUNTER_START")
 frame:RegisterEvent("ENCOUNTER_END")
 
 -- 分别记录 boss2 和 boss3 的上一次存在状态
@@ -13,14 +17,40 @@ local wasActive = {
 }
 
 frame:SetScript("OnEvent", function(self, event, ...)
-    -- 脱战/战斗结束时重置状态
+    -- 2623 开战：计数归零（顺带重置 3208 的 boss 状态）
+    if event == "ENCOUNTER_START" then
+        local encounterID = ...
+        wasActive.boss2 = false
+        wasActive.boss3 = false
+        if encounterID == 2623 then
+            addonTable.Boss2623EngageCount = 0
+            -- print("|cffffd100[DiGua]|r 2623 开战，Boss2623EngageCount 已重置为 0")
+        end
+        return
+    end
+
+    -- 脱战/战斗结束：重置 3208 状态与 2623 计数
     if event == "ENCOUNTER_END" then
         wasActive.boss2 = false
         wasActive.boss3 = false
+        addonTable.Boss2623EngageCount = 0
         return
     end
 
     if event == "INSTANCE_ENCOUNTER_ENGAGE_UNIT" then
+        -- print("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+
+        -- 2623：每次触发都 +1（addonTable 共享变量）
+        if addonTable.GetEncounterID and addonTable.GetEncounterID() == 2623 then
+            addonTable.Boss2623EngageCount = (addonTable.Boss2623EngageCount or 0) + 1
+            -- print(string.format("|cff00ffff[DiGua]|r 2623 INSTANCE_ENCOUNTER_ENGAGE_UNIT 第 %d 次", addonTable.Boss2623EngageCount))
+            -- 第 3 次触发 → 播放阶段转换语音（事件驱动，恰好只播一次）
+            if addonTable.Boss2623EngageCount == 3 then
+                PlaySoundFile(addonTable.GetMediaPath() .. "JieDuanZhuanHuan.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                -- print("|cff00ff00[DiGua]|r 2623 第 3 次触发 → 播放 JieDuanZhuanHuan")
+            end
+        end
+
         -- 限制特定的 EncounterID
         if addonTable.GetEncounterID() ~= 3208 then return end
 

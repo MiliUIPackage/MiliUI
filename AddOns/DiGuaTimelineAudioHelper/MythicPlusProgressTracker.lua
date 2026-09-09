@@ -3,7 +3,6 @@ local addonName, addonTable = ...
 
 addonTable.XuChuFaShi = false
 addonTable.LuMangJianDuZhe = false
-addonTable.PoHuaiMoChengFaZhe = 0
 -- 1. 将防抖锁挂载到 addonTable，供其他 Lua 文件共享
 addonTable.isAudioDebounced = false
 
@@ -25,10 +24,7 @@ frame:SetScript("OnEvent", function(self, event, criteriaID)
 
         -- 2. 机制判断
 
-        if criteriaID == 113962 then -- 破坏魔惩罚者
-            addonTable.PoHuaiMoChengFaZhe = addonTable.PoHuaiMoChengFaZhe + 1
-
-        elseif criteriaID == 115538 then -- 神灵代言人纳尼亚
+        if criteriaID == 115538 then -- 神灵代言人纳尼亚
                 addonTable.CustomEncounterBar(460693, 26, "首领激活")
                 -- 首领激活前 5 秒语音倒数：5 → 4 → 3 → 2 → 1（26 秒倒计时的最后 5 秒）
                 C_Timer.After(21, function()
@@ -80,6 +76,5 @@ frame:SetScript("OnEvent", function(self, event, criteriaID)
         addonTable.XuChuFaShi = false
         addonTable.LuMangJianDuZhe = false
         addonTable.isAudioDebounced = false
-        addonTable.PoHuaiMoChengFaZhe = 0
     end
 end)
