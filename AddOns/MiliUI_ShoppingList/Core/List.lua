@@ -174,12 +174,11 @@ function List.VendorPrice(itemID)
     return itemID and ns.db.vendorItems[itemID] or nil
 end
 
--- 一組裡面**任何一個品質**買得到就算：需求本來就可以用那個品質補滿
-function List.IsVendorItem(starIDs)
-    for _, id in pairs(starIDs) do
-        if List.VendorPrice(id) then return true end
-    end
-    return false
+-- ⚠ 只看**玩家挑的那個品質**，不是整組。
+--   瓶子那種東西商店只賣低星，高星要去拍賣場買 —— 整組一起判定的話，玩家想買
+--   高星也會被藏起來（實測回報）。挑 1★ 就是商店貨、挑 2★ 就是拍賣場貨。
+function List.IsVendorItem(itemID)
+    return List.VendorPrice(itemID) ~= nil
 end
 
 ------------------------------------------------------------
@@ -216,6 +215,25 @@ end
 function List.SetTier(key, tier)
     ns.cdb.quality[key] = tier
     ns.Fire("ListChanged")
+end
+
+------------------------------------------------------------
+-- 只看某一個配方
+--
+-- 點配方區的某一列，下面的採購表就只算那個配方的材料，「搜尋全部／全部購買」
+-- 也跟著只做那一份。**不進存檔**：這是「我現在在弄哪一個」，不是設定。
+------------------------------------------------------------
+local filterKey
+
+function List.Filter() return filterKey end
+
+function List.SetFilter(key)
+    filterKey = key
+    ns.Fire("ListChanged")
+end
+
+function List.ToggleFilter(key)
+    List.SetFilter(filterKey == key and nil or key)
 end
 
 ------------------------------------------------------------
@@ -337,6 +355,7 @@ function List.Remove(key)
     local entry, i = List.Find(key)
     if not entry then return end
     table.remove(Recipes(), i)
+    if filterKey == key then filterKey = nil end
     ns.Fire("ListChanged")
     return entry
 end
@@ -378,6 +397,7 @@ end
 function List.ClearAll()
     wipe(Recipes())
     wipe(Extras())
+    filterKey = nil
     ns.Fire("ListChanged")
 end
 
@@ -465,19 +485,29 @@ function List.Shopping(opts)
         if sourceName then g.sources[#g.sources + 1] = sourceName end
     end
 
+    -- 只看某一個配方時，額外物品也不算 —— 它們不屬於任何配方
+    local only = filterKey
     for _, entry in ipairs(Recipes()) do
-        for _, r in ipairs(entry.reagents or {}) do
-            Add(r.itemID, r.alts, (r.perCraft or 1) * (entry.quantity or 1), r.optional, entry.name)
+        if not only or entry.key == only then
+            for _, r in ipairs(entry.reagents or {}) do
+                Add(r.itemID, r.alts, (r.perCraft or 1) * (entry.quantity or 1), r.optional, entry.name)
+            end
         end
     end
-    for _, e in ipairs(Extras()) do
-        Add(e.itemID, nil, e.quantity or 1, false, L["Extra items"])
+    if not only then
+        for _, e in ipairs(Extras()) do
+            Add(e.itemID, nil, e.quantity or 1, false, L["Extra items"])
+        end
     end
 
     -- 一組**一列**：品質是玩家在那一列上挑的，不是兩筆需求
     local rows, missingRows, estimate, vendorHidden = {}, 0, 0, 0
     local onlyMissing = ns.db.settings.onlyMissing and not (opts and opts.includeReady)
-    local hideVendor  = ns.db.settings.hideVendor and not (opts and opts.includeReady)
+    -- 「顯示已隱藏」打開時，商店貨與手動忽略的那幾列照樣列出來（變暗），
+    -- 玩家才有機會在上面改品質、或把忽略取消掉
+    local showHidden  = ns.db.settings.showHidden
+    local hideVendor  = ns.db.settings.hideVendor and not showHidden
+                        and not (opts and opts.includeReady)
     for _, g in ipairs(order) do
         local bags, bank, transit = GroupCounts(g.starIDs)
         local have = bags + transit + (IncludeBank() and bank or 0)
@@ -487,7 +517,7 @@ function List.Shopping(opts)
         local tier   = List.ChosenTier(g.key, g.starIDs)
         local itemID = g.starIDs[tier]
         local quote  = ns.Auction and ns.Auction.Quote(itemID)
-        local vendor = List.IsVendorItem(g.starIDs)
+        local vendor = List.IsVendorItem(itemID)
         local ignored = List.IsIgnored(g.key)
 
         if buy > 0 and quote and quote.unitPrice and not vendor and not ignored then
@@ -496,7 +526,7 @@ function List.Shopping(opts)
 
         local hide = (onlyMissing and buy <= 0 and transit <= 0)
                   or (hideVendor and vendor)
-                  or (ignored and onlyMissing)
+                  or (ignored and not showHidden)
         if hideVendor and vendor and buy > 0 then vendorHidden = vendorHidden + 1 end
 
         if not hide then

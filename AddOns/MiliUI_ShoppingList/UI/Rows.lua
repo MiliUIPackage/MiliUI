@@ -160,8 +160,14 @@ function Rows.Build(row)
     Rows.AddHighlight(row)
 
     -- 整列的感應區。是 Button 不是 Frame：右鍵要能收得到（右鍵＝不再列出這個材料）
+    --
+    -- ⚠ **層級要自己指定，不能靠建立順序。** 這一片蓋滿整列，而它是 Button
+    --   ——同層的話它會把星數／搜尋／購買的點擊整個吃掉（實測：點星數沒有反應）。
+    --   感應區壓在 +1，真正要點的東西一律 +3。
+    local base = row:GetFrameLevel()
     row.hover = CreateFrame("Button", nil, row)
     row.hover:SetAllPoints()
+    row.hover:SetFrameLevel(base + 1)
     row.hover:RegisterForClicks("RightButtonUp")
     row.hover:SetScript("OnLeave", function()
         GameTooltip:Hide()
@@ -175,6 +181,7 @@ function Rows.Build(row)
 
     local cols = PlaceColumns(row, function(key, w)
         if key == "omit" then
+            -- （層級見上面 row.hover 的警語）
             -- 「不再列出這個材料」。右鍵整列也可以，但那是捷徑不是提示 ——
             -- 沒有一顆看得見的按鈕，玩家不會知道有這件事（實測回報）。
             local b = W.CreateButton(row, "", "normal", w, Rows.ROW_H - 6)
@@ -183,11 +190,13 @@ function Rows.Build(row)
             b.icon:SetTexture("Interface\\Buttons\\UI-StopButton")
             b.icon:SetSize(10, 10)
             b.icon:SetPoint("CENTER")
+            b:SetFrameLevel(base + 3)
             return b
         end
         if key == "search" or key == "buy" then
             local b = W.CreateButton(row, "", "normal", w, Rows.ROW_H - 6)
             P.Size(b, w, Rows.ROW_H - 6)
+            b:SetFrameLevel(base + 3)
             return b
         end
         local fs = Label(row, key == "tag" and "LEFT" or "RIGHT",
@@ -203,6 +212,7 @@ function Rows.Build(row)
     for i = 1, MAX_TIERS do
         local chip = W.CreateButton(row, "", "normal", CHIP, Rows.ROW_H - 6)
         P.Size(chip, CHIP, Rows.ROW_H - 6)
+        chip:SetFrameLevel(base + 3)
         if prev then
             chip:SetPoint("LEFT", prev, "RIGHT", 2, 0)
         else
@@ -370,6 +380,9 @@ function Rows.Update(row, data)
         if data.vendor then
             GameTooltip:AddLine(" ")
             GameTooltip:AddLine("|cff88bbff" .. L["A vendor sells this — no need to buy it here."] .. "|r")
+            if (data.tiers and #data.tiers > 1) then
+                GameTooltip:AddLine("|cff88bbff" .. L["Only this quality. Pick another one to buy it at the auction house."] .. "|r")
+            end
         end
         if data.sources and #data.sources > 0 then
             GameTooltip:AddLine(" ")

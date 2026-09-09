@@ -160,3 +160,13 @@ L["This is the quality being bought."] = "目前買的就是這個品質。"
 L["Click to buy this quality instead."] = "點一下改買這個品質。"
 L["Click the quality marks to switch which one you buy."] = "點名字左邊的星數可以換要買哪個品質。"
 L["Ignored reagents stay out of the list and out of \"buy everything\"."] = "忽略的材料不會出現在清單裡，「全部購買」也會跳過。"
+
+-- 只看某個配方／顯示已隱藏
+L["Show hidden"] = "顯示已隱藏"
+L["Selected recipe only"] = "只看選取的配方"
+L["Click: show only this recipe's reagents."] = "點一下：只看這個配方的材料。"
+L["Showing only this recipe. Click again to show everything."] = "目前只看這個配方。再點一下看全部。"
+L["Only this quality. Pick another one to buy it at the auction house."] = "商店只賣這個品質；想買別的品質就改挑星數，會走拍賣場。"
+
+L["no reagents"] = "沒有材料"
+L["This one was added before the reagent list worked. Remove it and add it again."] = "這筆是舊版本加進來的，材料沒讀到。移除後重新加入一次就好。"

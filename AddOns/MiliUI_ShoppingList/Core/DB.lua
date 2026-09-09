@@ -33,6 +33,9 @@ local function BuildDefaults()
             -- 只列還缺的材料
             onlyMissing = true,
 
+            -- 連商店貨與手動忽略的那幾列一起列出來（變暗）。預設關。
+            showHidden = false,
+
             -- 商店買得到的材料不列進採購清單（拍賣場上那幾筆掛單通常是天價，
             -- 而且列了也只會讓「還缺什麼」看起來比實際多）。認得哪些是商店貨
             -- 靠自己逛商店時記下來的，見 Modules/Vendor.lua。

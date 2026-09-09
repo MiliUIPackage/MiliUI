@@ -107,6 +107,12 @@ end
 local function BuildRecipeRow(row)
     ns.Rows.AddHighlight(row)
 
+    -- 選中的那一列（＝下面的採購表只算它）。比滑過的高亮再亮一階，而且常駐。
+    row.selected = row:CreateTexture(nil, "BACKGROUND", nil, 2)
+    row.selected:SetAllPoints()
+    row.selected:SetColorTexture(W.Accent(0.3))
+    row.selected:Hide()
+
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(18, 18)
     row.icon:SetPoint("LEFT", 4, 0)
@@ -140,10 +146,14 @@ local function BuildRecipeRow(row)
     row.name:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
     row.name:SetPoint("RIGHT", row.minus, "LEFT", -8, 0)
 
-    row.hover = CreateFrame("Frame", nil, row)
+    -- 感應區是 Button：點一下＝只看這個配方的材料。
+    -- ⚠ 層級要自己指定（同 UI/Rows.lua 的警語）：這片蓋掉名字那一段，
+    --   而 −／數量／＋／X 都在它右邊、不重疊，所以只要保證它不壓過那幾顆即可。
+    local base = row:GetFrameLevel()
+    row.hover = CreateFrame("Button", nil, row)
     row.hover:SetPoint("TOPLEFT")
     row.hover:SetPoint("BOTTOMRIGHT", row.minus, "BOTTOMLEFT", 0, 0)
-    row.hover:EnableMouse(true)
+    row.hover:SetFrameLevel(base + 1)
     row.hover:SetScript("OnEnter", function(self)
         row.highlight:Show()
         if row._onEnter then row._onEnter(self) end
@@ -152,8 +162,12 @@ local function BuildRecipeRow(row)
         GameTooltip:Hide()
         if not row:IsMouseOver() then row.highlight:Hide() end
     end)
+    row.hover:SetScript("OnClick", function()
+        if row._onClick then row._onClick() end
+    end)
 
     for _, b in ipairs({ row.remove, row.plus, row.minus, row.qty }) do
+        b:SetFrameLevel(base + 3)
         ns.Rows.KeepHighlight(b, row)
     end
 end
@@ -166,6 +180,7 @@ local function UpdateRecipeRow(row, item)
         local info = ns.List.ItemInfo(extra.itemID)
         row.icon:SetTexture(info and info.icon or 134400)
         local color = ITEM_QUALITY_COLORS[(info and info.quality) or 1]
+        row.name:SetTextColor(0.92, 0.92, 0.92)
         row.name:SetText(((color and color.hex) or "|cffffffff") .. (info and info.name or "?") .. "|r")
         row.yield:SetText("|cff808080" .. L["Extra"] .. "|r")
         row.qty:SetValue(extra.quantity or 1)
@@ -179,6 +194,8 @@ local function UpdateRecipeRow(row, item)
         end)
         row.remove:SetScript("OnClick", function() ns.List.RemoveExtra(itemID) end)
         row._commit = function(v) ns.List.SetExtraQuantity(itemID, v) end
+        row._onClick = nil
+        row.selected:Hide()
         row._onEnter = function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetItemByID(itemID)
@@ -189,15 +206,30 @@ local function UpdateRecipeRow(row, item)
 
     local entry = item.entry
     row.icon:SetTexture(entry.icon or 134400)
-    row.name:SetText(entry.name or "?")
     row.qty:SetValue(entry.quantity or 1)
 
-    -- 一次做五瓶的配方，「份數」跟「瓶數」不是同一個數字，兩個都給
-    local made = (entry.yield or 1) * (entry.quantity or 1)
-    if (entry.yield or 1) > 1 then
-        row.yield:SetText("|cff808080= " .. made .. " " .. L["units"] .. "|r")
+    -- 選中＝下面的採購表只算這個配方
+    local picked = ns.List.Filter() == entry.key
+    row.selected:SetShown(picked)
+    row.name:SetText(entry.name or "?")
+    if picked then
+        row.name:SetTextColor(W.Accent(1))
     else
-        row.yield:SetText("")
+        row.name:SetTextColor(0.92, 0.92, 0.92)
+    end
+
+    -- 材料是空的：多半是舊版本加進來的（那時代工訂單的材料判準還是錯的），
+    -- 不講一聲的話玩家只會看到採購表少了一半、卻不知道為什麼
+    if #(entry.reagents or {}) == 0 then
+        row.yield:SetText("|cffff7777" .. L["no reagents"] .. "|r")
+    else
+        -- 一次做五瓶的配方，「份數」跟「瓶數」不是同一個數字，兩個都給
+        local made = (entry.yield or 1) * (entry.quantity or 1)
+        if (entry.yield or 1) > 1 then
+            row.yield:SetText("|cff808080= " .. made .. " " .. L["units"] .. "|r")
+        else
+            row.yield:SetText("")
+        end
     end
 
     local key = entry.key
@@ -209,7 +241,19 @@ local function UpdateRecipeRow(row, item)
     end)
     row.remove:SetScript("OnClick", function() ns.List.Remove(key) end)
     row._commit = function(v) ns.List.SetQuantity(key, v) end
-    row._onEnter = nil
+    row._onClick = function() ns.List.ToggleFilter(key) end
+    row._onEnter = function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(entry.name or "?")
+        if #(entry.reagents or {}) == 0 then
+            GameTooltip:AddLine(L["This one was added before the reagent list worked. Remove it and add it again."],
+                1, 0.4, 0.4, true)
+        end
+        GameTooltip:AddLine(picked and L["Showing only this recipe. Click again to show everything."]
+                                   or  L["Click: show only this recipe's reagents."],
+            0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end
 end
 
 local function BuildRecipeItems()
@@ -287,6 +331,12 @@ function Refresh()
 
     shopSection.bankCheck:SetChecked(ns.db.settings.includeBank)
     shopSection.missingCheck:SetChecked(ns.db.settings.onlyMissing)
+    shopSection.hiddenCheck:SetChecked(ns.db.settings.showHidden)
+
+    -- 標題講一聲「現在只算選取的那個配方」。
+    -- ⚠ 不要把配方名接進標題：名字長度不定，接上去會推到旁邊的按鈕
+    --   （而且中文字串沒有安全的截斷方式）。是哪一個看上面那列的高亮就知道。
+    shopSection.text:SetText(ns.List.Filter() and L["Selected recipe only"] or L["Shopping"])
 
     -- 有報價就報預估總價；沒有就報還缺幾樣（兩者都沒有就是買齊了）
     local summary
@@ -429,8 +479,9 @@ local function Build()
     shopSection:SetPoint("TOPLEFT", recipeList, "BOTTOMLEFT", 0, -8)
     shopSection:SetPoint("TOPRIGHT", recipeList, "BOTTOMRIGHT", 0, -8)
 
+    -- ⚠ 起點寫死不錨標題：標題會隨「只看某個配方」變長，錨上去整排按鈕會跟著跑
     local searchAll = W.CreateButton(shopSection, L["Search all"], "normal", 88, TOOL_H - 4)
-    searchAll:SetPoint("BOTTOMLEFT", shopSection.text, "BOTTOMRIGHT", 16, -1)
+    searchAll:SetPoint("BOTTOMLEFT", shopSection, "BOTTOMLEFT", 132, 3)
     searchAll:SetScript("OnClick", function() ns.Auction.SearchAll() end)
     ns.AttachTooltip(searchAll, function(_, tip)
         tip:SetText(L["Search all"])
@@ -461,6 +512,16 @@ local function Build()
     end)
     missingCheck:SetPoint("LEFT", bankCheck, "RIGHT", 106, 0)
     shopSection.missingCheck = missingCheck
+
+    -- 商店貨與手動忽略的那幾列平常收起來，這顆把它們叫回來（變暗顯示）。
+    -- 需要它是因為隱藏的判斷不一定對：瓶子商店只賣低星，玩家想買高星就得
+    -- 先看得到那一列，才有辦法在上面改品質。
+    local hiddenCheck = W.CreateCheckButton(shopSection, L["Show hidden"], function(on)
+        ns.db.settings.showHidden = on
+        ns.Fire("ListChanged")
+    end)
+    hiddenCheck:SetPoint("LEFT", missingCheck, "RIGHT", 82, 0)
+    shopSection.hiddenCheck = hiddenCheck
 
     estimateLabel = shopSection:CreateFontString(nil, "OVERLAY")
     estimateLabel:SetFontObject(ns.Media.fontRow)
