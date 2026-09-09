@@ -28,29 +28,17 @@ end
 ------------------------------------------------------------
 -- 按鈕狀態
 ------------------------------------------------------------
+-- ⚠ 按鈕字用內嵌色碼，不用 SetTextColor：W.CreateButton 在 SetEnabled 時會自己
+--   重上白／灰，SetTextColor 設完下一次 Refresh 就被蓋掉。
+local LABEL = "|cffffd200" .. L["Add to list"] .. "|r"
+
 local function Refresh()
     if not button then return end
     local form = Form()
     local order = form and form.order
-    if not order or not form.transaction then
-        button:SetEnabled(false)
-        button:SetText(L["Add to list"])
-        return
-    end
+    button:SetText(LABEL)
     -- 重製訂單 v1 不做：材料槽是「原本那件裝備上的」，跟一般下單的語意不同
-    if order.isRecraft then
-        button:SetEnabled(false)
-        button:SetText(L["Add to list"])
-        return
-    end
-
-    button:SetEnabled(true)
-    local _, missing = ns.Schematic.OrderReagents(form)
-    if missing and missing > 0 then
-        button:SetText(L["Add to list"] .. "  |cffff5555" .. L["short %d"]:format(missing) .. "|r")
-    else
-        button:SetText(L["Add to list"] .. "  |cff55ff55" .. L["ready"] .. "|r")
-    end
+    button:SetEnabled((order and form.transaction and not order.isRecraft) and true or false)
 end
 
 -- UpdateListOrderButton 在打小費時每個按鍵都會跑一次，直接重算會白算幾十遍。
@@ -134,14 +122,16 @@ local function Attach()
 
     button = W.CreateButton(form, L["Add to list"], "accent-hover", 150, 22)
     P.Size(button, 150, 22)
-    -- 貼在「提供施法材料：」那一列的右端（ReagentContainer 的右上角）。
-    -- 那是這顆按鈕該站的地方：它講的就是下面那排材料。
-    -- ⚠ 不要錨 ReagentContainer 的**下緣**：Auctionator 的材料價格框已經貼在
-    --   ReagentContainer.Reagents 底下（frameLevel 520），會疊在一起。右上角是空的。
-    if form.ReagentContainer then
+    -- 貼在配方標題那一塊（RecipeHeader）的右上角，收藏星星的左邊 —— 那片是空的，
+    -- 而且視線一進面板就會經過。
+    -- ⚠ RecipeHeader 是 **Texture** 不是 Frame，但錨點吃得到。星星（FavoriteButton）
+    --   平常是 hidden 的，不要拿它當錨；留 32px 給它就好。
+    -- ⚠ 也不要錨 ReagentContainer 的下緣：Auctionator 的材料價格框已經貼在
+    --   ReagentContainer.Reagents 底下（frameLevel 520），會疊在一起。
+    if form.RecipeHeader then
+        button:SetPoint("TOPRIGHT", form.RecipeHeader, "TOPRIGHT", -32, -6)
+    elseif form.ReagentContainer then
         button:SetPoint("TOPRIGHT", form.ReagentContainer, "TOPRIGHT", -6, -6)
-    elseif form.ListOrderButton or (form.PaymentContainer and form.PaymentContainer.ListOrderButton) then
-        button:SetPoint("RIGHT", form.ListOrderButton or form.PaymentContainer.ListOrderButton, "LEFT", -8, 0)
     else
         button:SetPoint("BOTTOMLEFT", form, "BOTTOMLEFT", 12, 12)
     end
@@ -151,7 +141,7 @@ local function Attach()
     -- 按鈕底下一行小字：不解釋的話，「加入清單」看起來只是個記事本。
     -- 真正的賣點是「清單會幫你把缺的材料在拍賣場一次買齊」。
     caption = button:CreateFontString(nil, "OVERLAY")
-    caption:SetFontObject(GameFontDisableSmall)
+    caption:SetFontObject(GameFontHighlightSmall)   -- 白字：灰字在深色面板上讀不到
     caption:SetPoint("TOPRIGHT", button, "BOTTOMRIGHT", 0, -2)
     caption:SetJustifyH("RIGHT")
     caption:SetText(L["Missing reagents can be bought at the auction house in one go"])
