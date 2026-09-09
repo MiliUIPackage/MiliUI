@@ -34,13 +34,24 @@ metadata:
 curl -sL https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua
 ```
 
-`SecretArguments = "AllowedWhenUntainted"` 幾乎每支都有，那講的是**能不能把秘密值當參數傳進去**，
-跟回傳值無關 —— 看錯這行會把整份 API 判成秘密。真正決定回傳的是
-`SecretWhenUnitIdentityRestricted` / `SecretWhenUnitComparisonRestricted` / `SecretWhenUnitPossessionRestricted`。
+那份檔案裡有**兩組意義完全不同**的標記，看錯一個就會做出錯誤的結論：
+
+| 標記 | 講的是 | 值 |
+|---|---|---|
+| `SecretWhenUnitIdentityRestricted`（及 `…Comparison…`／`…Possession…`） | **回傳**會不會是秘密值 | 有／沒有 |
+| `SecretReturns = true` | **回傳無條件是秘密值**（不看單位受不受限） | 有／沒有 |
+| `SecretArguments` | **我能不能把秘密值當參數傳進去** | `AllowedWhenTainted`／`AllowedWhenUntainted` |
+
+⚠ `SecretArguments = "AllowedWhenUntainted"` 幾乎每支都有，那**不是**「回傳是秘密值」的意思；
+它是說「只有未污染的程式可以傳秘密值進來」——**對插件等於不行**。
+反過來 `AllowedWhenTainted` 才是插件可以當傳遞者的那些函式（見 [[wow-121-secret-values]] 的「秘密值當貨物」）。
 
 2026-09-08 為了 Cell 的隊伍目標上色查過，**沒有**任何 `SecretWhen*` 標記（回傳是明文，分支可以照寫）：
 `UnitSelectionType`、`UnitSelectionColor`、`UnitIsTapDenied`、`UnitPlayerControlled`、
 `UnitIsPlayer`、`UnitIsFriend`、`UnitReaction`、`UnitCanAttack`、`UnitIsTrivial`。
+
+**無條件秘密**（`SecretReturns = true`，連在開放世界對普通怪都讀不到）已知的一支：
+`GetRaidTargetIndex`（RaidMarkersDocumentation.lua）。團隊標記編號插件永遠讀不出來。
 
 ⚠ 這修正了一個舊印象：[[project-121-addon-migration]] 把 TinyTooltip 的
 `GameTooltip_UnitColor()` 崩潰同時歸給 `UnitIsPVP` 與 `UnitCanAttack`。有標記的只有

@@ -37,7 +37,6 @@ local UnitPowerType = UnitPowerType
 local UnitPowerMax = UnitPowerMax
 -- local UnitInRange = UnitInRange
 local UnitIsVisible = UnitIsVisible -- UnitButton_UpdateInRange, on the event path
-local SetRaidTargetIconTexture = SetRaidTargetIconTexture
 local GetTime = GetTime
 local GetRaidTargetIndex = GetRaidTargetIndex
 local GetReadyCheckStatus = GetReadyCheckStatus
@@ -2368,29 +2367,44 @@ UnitButton_UpdateLeader = function(self, event)
     end
 end
 
+--! fix from MiliUI: the eight markers as SEPARATE files, so no texcoords are involved.
+--!
+--! ⚠ GetRaidTargetIndex is `SecretReturns = true` -- UNCONDITIONALLY secret, not merely
+--! "when the unit is identity restricted" (Blizzard_APIDocumentationGenerated/
+--! RaidMarkersDocumentation.lua). A tainted addon can therefore NEVER read the number.
+--! The old path handed it to SetRaidTargetIconTexture, which is FrameXML Lua doing
+--! `index - 1` and a modulo to pick a texcoord out of the 4x2 sheet -- arithmetic on a
+--! secret, a hard error -- so it was guarded with IsValueNonSecret, and the guard quietly
+--! meant the marker never appeared on ANY Cell frame.
+--!
+--! Be the courier, not the reader: concatenating a secret into a string is legal, and
+--! Texture:SetTexture accepts a secret asset name from tainted code
+--! (SecretArguments = "AllowedWhenTainted"; SetAtlas and SetTexCoord do too -- it is only
+--! SetRaidTargetIconTexture's arithmetic that was in the way). The result works whether the
+--! index arrives secret or plain, so there is no branch to get wrong.
+--!
+--! ⚠ Only ever SET on this texture. It may pick up a secret aspect, and a widget carrying
+--! one hands back secrets from its own getters. Nothing reads it: the frame around it owns
+--! the geometry (the texture is SetAllPoints to it) and the size comes from the layout.
+local RAID_TARGET_ICON = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_"
+
 local function UnitButton_UpdatePlayerRaidIcon(self)
     local unit = self.states.displayedUnit
     if not unit then return end
 
     local playerRaidIcon = self.indicators.playerRaidIcon
 
-    -- 12.1: GetRaidTargetIndex answers with a SECRET number for a restricted unit, and a
-    -- secret is truthy -- so `if index then` passes and SetRaidTargetIconTexture does
-    -- arithmetic on it (raidTargetIndex - 1, mod, * 0.25) and throws. Group members are
-    -- normally readable; a charmed ally is not.
-    local index = GetRaidTargetIndex(unit)
-    if not F.IsValueNonSecret(index) then index = nil end
+    if not IsEnabled(self, "playerRaidIcon") then
+        playerRaidIcon:Hide()
+        return
+    end
 
-    -- fix from MiliUI: party-target buttons always draw the marker, whatever the layout
-    -- says. Knowing WHICH skull the tank is on is the whole reason to look at that row, and
-    -- the layout switch is about the member frames.
-    if IsEnabled(self, "playerRaidIcon") then
-        if index then
-            SetRaidTargetIconTexture(playerRaidIcon.tex, index)
-            playerRaidIcon:Show()
-        else
-            playerRaidIcon:Hide()
-        end
+    --! a truthiness test on a NON-boolean secret is legal (unlike on a secret boolean),
+    --! and an unmarked unit answers with a plain nil
+    local index = GetRaidTargetIndex(unit)
+    if index then
+        playerRaidIcon.tex:SetTexture(RAID_TARGET_ICON .. index)
+        playerRaidIcon:Show()
     else
         playerRaidIcon:Hide()
     end
@@ -2403,24 +2417,17 @@ local function UnitButton_UpdateTargetRaidIcon(self)
     local targetRaidIcon = self.indicators.targetRaidIcon
 
     -- fix from MiliUI: cheapest test first -- see UnitButton_UpdateReadyCheck. This one also
-    -- saved a string allocation per pass: the token below is built, not a constant.
+    -- saves a string allocation per pass: the token below is built, not a constant.
     if not IsEnabled(self, "targetRaidIcon") then
         targetRaidIcon:Hide()
         return
     end
 
-    -- Same secret gate as the player icon above, and this one hits it constantly: the
-    -- unit's target is usually a mob, which is exactly what "identity restricted" covers.
+    -- same courier trick as the player icon above
     local index = GetRaidTargetIndex(unit.."target")
-    if not F.IsValueNonSecret(index) then index = nil end
-
-    if IsEnabled(self, "targetRaidIcon") then
-        if index then
-            SetRaidTargetIconTexture(targetRaidIcon.tex, index)
-            targetRaidIcon:Show()
-        else
-            targetRaidIcon:Hide()
-        end
+    if index then
+        targetRaidIcon.tex:SetTexture(RAID_TARGET_ICON .. index)
+        targetRaidIcon:Show()
     else
         targetRaidIcon:Hide()
     end

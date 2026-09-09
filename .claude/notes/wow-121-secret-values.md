@@ -103,6 +103,38 @@ Platynator 的 `Display/Colors.lua` 就是這樣做的，而且**它沒有維護
 ⚠ 這條的界線在 [[wow-121-duration-objects]]：圖騰槽做不到，是因為**沒有**一支
 「吃 secret spellID 回你要的東西」的 API，不是因為身分是秘密。差別在有沒有那支 API。
 
+## 秘密值當貨物：拿它組字串，餵給吃得下的 setter
+
+「當傳遞者不當讀取者」還有一條比曲線更好用的路：**字串串接對秘密值是合法的**，而
+`Texture:SetTexture` / `SetAtlas` / `SetTexCoord` 的 `SecretArguments` 都是
+**`AllowedWhenTainted`** —— 插件可以直接把秘密值餵進去。
+
+所以「秘密的編號 → 畫出對應的圖」不需要讀那個編號：
+
+```lua
+local index = GetRaidTargetIndex(unit)   -- SecretReturns：永遠讀不到
+if index then                            -- 非 boolean 的秘密值做真假測試是合法的
+    tex:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_" .. index)
+end
+```
+
+關鍵是找到**一組分開的檔案**（或分開的圖集名），這樣就不必算貼圖座標。
+八個團隊標記剛好有 `UI-RaidTargetingIcon_1` … `_8`；只有合成表
+`UI-RaidTargetingIcons`（複數）才需要 `index - 1` 那種算術。
+暴雪的 `SetRaidTargetIconTexture()` 走的是合成表，所以那支**在插件裡永遠會炸**，
+不是可以 guard 的東西 —— guard 起來就等於標記永遠不顯示。
+
+⚠ 這招會在那個 widget 上留下 secret aspect，之後它自己的 getter 會回秘密值。
+用法規則：**那個 widget 只能被設定、不能被讀**。實作上把幾何交給外層的 frame
+（貼圖 `SetAllPoints` 上去），尺寸來自設定檔，就沒有東西會去讀它。
+
+⚠ **曲線不能拿來吃秘密數字。** `LuaCurveObject:Evaluate(x)` 的 `SecretArguments` 是
+`AllowedWhenUntainted` —— 污染的程式傳秘密值進去不會過。插件手上真正能吃秘密值的
+只有 `EvaluateColorFromBoolean` / `EvaluateColorValueFromBoolean`（`AllowedWhenTainted`，
+但要秘密**布林**）以及 `UnitHealPredictionCalculator` 自己的 `Evaluate*`（它評估的是
+自己內部的秘密血量）。所以下面那節「一個區間一條曲線」成立的前提是**計算器**替你評估，
+換成任意的秘密數字就沒有對應的入口。
+
 ## 曲線可以**串接**
 
 `C_CurveUtil.EvaluateColorValueFromBoolean` 的回傳（秘密數字）可以直接當**下一次**
