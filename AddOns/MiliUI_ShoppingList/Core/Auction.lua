@@ -85,7 +85,7 @@ function Auction.DebugInfo(itemID)
         detailed  = detailed[itemID] and true or false,
         searched  = searchedFor[itemID] and true or false,
         hasQuote  = q ~= nil,
-        commodity = q and q.isCommodity,
+        commodity = ResolveCommodity(itemID, q),
         unitPrice = q and q.unitPrice,
         listed    = q and q.quantity,
         results   = listings,
@@ -142,12 +142,19 @@ local function Remember(itemID, unitPrice, quantity, isCommodity, itemKey, aucti
     -- ⚠ 0 不是價格：整批瀏覽對沒有掛單的物品會回 0，記下去清單上就會出現
     --   「單價 0 金、在售 0」那種看起來像免費的列。
     if not itemID or not unitPrice or unitPrice <= 0 then return end
+    -- ⚠⚠ 整批瀏覽**不知道**這件東西是不是商品（isCommodity 傳 nil 進來）。
+    --   直接整包覆寫的話，先前單筆查詢查出來的 isCommodity 會被抹掉，
+    --   接著購買就會走錯分支（商品被當成非商品，GetItemSearchResultInfo 讀不到
+    --   東西）→ 回報「拍賣場上沒有人賣」，而列上明明有價格與在售數量。
+    --   實測 2026-09-09：三樣材料全中，probe 顯示 commodity=nil / results=0。
+    --   → 新值是 nil 就保留舊的，不要降級。
+    local prev = quotes[itemID]
     quotes[itemID] = {
         unitPrice   = unitPrice,
         quantity    = quantity or 0,
-        isCommodity = isCommodity,
-        itemKey     = itemKey,
-        auctionID   = auctionID,
+        isCommodity = (isCommodity ~= nil) and isCommodity or (prev and prev.isCommodity),
+        itemKey     = itemKey or (prev and prev.itemKey),
+        auctionID   = auctionID or (prev and prev.auctionID),
     }
     if not lowest[itemID] or unitPrice < lowest[itemID] then
         lowest[itemID] = unitPrice
@@ -242,6 +249,18 @@ local function StoreItem(itemKey)
         listed = C_AuctionHouse.GetItemSearchResultsQuantity(itemKey) or count
     end
     Remember(itemKey.itemID, first.buyoutAmount, listed, false, itemKey, first.auctionID)
+end
+
+-- 這件東西是商品還是一件一單的物品。
+-- quote 不知道的時候問拍賣場自己的 item key 快取（GetItemKeyInfo），
+-- 兩邊都不知道就回 nil，由呼叫端去跑一次單筆查詢問出來。
+local function ResolveCommodity(itemID, quote)
+    if quote and quote.isCommodity ~= nil then return quote.isCommodity end
+    if not C_AuctionHouse.GetItemKeyInfo then return nil end
+    local key = (quote and quote.itemKey) or C_AuctionHouse.MakeItemKey(itemID)
+    local info = key and C_AuctionHouse.GetItemKeyInfo(key)
+    if info and info.isCommodity ~= nil then return info.isCommodity end
+    return nil
 end
 
 ------------------------------------------------------------
@@ -377,7 +396,21 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
         return
     end
 
-    if quote.isCommodity then
+    -- 走哪條路要看它是不是商品。查不出來就當成「還沒查過」再問一次，
+    -- 別硬猜 —— 猜錯的代價是「明明有人賣卻說沒人賣」。
+    local isCommodity = ResolveCommodity(itemID, quote)
+    if isCommodity == nil then
+        detailed[itemID] = nil
+        searchedFor[itemID] = nil
+        awaitSearch = { itemID = itemID, quantity = quantity, fromQueue = fromQueue }
+        Auction.SearchItem(itemID)
+        SetStatus(fromQueue and L["Asking the price — press Next when it comes back."]
+                            or  L["Asking the price — press buy again when it comes back."], true)
+        if fromQueue then queueWaiting = true; queueAt = queueAt - 1 end
+        return
+    end
+
+    if isCommodity then
         if quote.quantity and quote.quantity > 0 then
             quantity = math.min(quantity, quote.quantity)
         end
@@ -497,6 +530,22 @@ end
 -- 確認列的「跳過」：這一筆不買，直接換下一筆
 function Auction.Skip()
     if queueTotal == 0 then return end
+
+    -- 停在「下一筆」的狀態也要能跳過：那一樣買不到（或就是不想買）的時候，
+    -- 沒有跳過就只能一直按「下一筆」看它再失敗一次。
+    if queueWaiting then
+        queueAt = queueAt + 1
+        queueSkipped = queueSkipped + 1
+        if not buyQueue[queueAt + 1] then
+            local skipped = queueSkipped
+            StopQueue(skipped > 0 and L["Done — %d could not be bought."]:format(skipped)
+                                  or  L["The list is bought."], true)
+        else
+            ns.Fire("AuctionChanged")
+        end
+        return
+    end
+
     if pendingQuote or (pendingConfirm and not pendingConfirm.auctionID) then
         pcall(C_AuctionHouse.CancelCommoditiesPurchase)
     end

@@ -452,7 +452,10 @@ function Rows.CreateConfirmBar(parent, width, height)
             local info = ns.List.ItemInfo(nextID)
             text:SetText(("|cff808080(%d/%d)|r  "):format(at, count)
                 .. L["Next: %s"]:format((info and info.name) or "?"))
-            ok:Hide(); skip:Hide()
+            ok:Hide()
+            -- 等「下一筆」的狀態一樣要能跳過：買不到的那一樣沒有跳過的話，
+            -- 玩家只能一直按下一筆看它再失敗一次
+            skip:Show()
             nextBtn:Show()
             nextBtn:ClearAllPoints()
             -- 64（跳過鈕）＋ 4 ＋ 4：跟有待確認時「確認」鈕的位置完全重疊
