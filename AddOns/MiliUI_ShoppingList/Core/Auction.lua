@@ -187,7 +187,7 @@ function Auction.SearchAll()
         SetStatus(L["Open the auction house to search and buy."], true)
         return
     end
-    local rows = ns.List.Shopping({ includeReady = true })
+    local rows = ns.List.Shopping({ includeReady = true, allRecipes = true })
     local keys, seen = {}, {}
     for _, row in ipairs(rows) do
         -- 商店貨與玩家手動忽略的不問價：問了也是白問，還占掉 100 筆的額度

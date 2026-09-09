@@ -575,6 +575,7 @@ function Window.Show()
     frame:Show()
     frame:Raise()
     Refresh()
+    Window.AutoSearch()
 end
 
 function Window.Hide()
@@ -607,6 +608,21 @@ end
 -- 拍賣場：把視窗貼過去，關閉時放回原位
 ------------------------------------------------------------
 local openedByAH = false
+local searchedThisVisit = false
+
+-- 開清單就把整張表的價問一次（每趟拍賣場只問一次）。
+-- ⚠ 不管視窗是自己彈出來的還是玩家 /mlist 叫出來的，都要問 —— 「先看價格再決定
+--   買哪個品質」是這個清單的用法，價格空著等於什麼都做不了。
+function Window.AutoSearch()
+    if searchedThisVisit then return end
+    if not ns.db.settings.ahAutoSearch then return end
+    if not ns.Auction.IsOpen() or ns.List.IsEmpty() then return end
+    searchedThisVisit = true
+    -- 慢半拍：拍賣場自己剛開，先讓它把自己的查詢送完，我們再排隊
+    C_Timer.After(0.35, function()
+        if Window.IsShown() then ns.Auction.SearchAll() end
+    end)
+end
 
 ns.RegisterCallback("AuctionOpened", "window", function()
     if not ns.db.settings.ahPanel then return end
@@ -617,16 +633,12 @@ ns.RegisterCallback("AuctionOpened", "window", function()
             openedByAH = not Window.IsShown()
             Window.Show()
             DockToAuctionHouse()
-            if ns.db.settings.ahAutoSearch then
-                C_Timer.After(0.35, function()
-                    if Window.IsShown() then ns.Auction.SearchAll() end
-                end)
-            end
         end)
     end)
 end)
 
 ns.RegisterCallback("AuctionClosed", "window", function()
+    searchedThisVisit = false
     if not frame then return end
     if openedByAH then Window.Hide() end
     openedByAH = false

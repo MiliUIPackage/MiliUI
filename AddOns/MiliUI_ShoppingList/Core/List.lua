@@ -522,7 +522,9 @@ function List.Shopping(opts)
     end
 
     List.NormalizeFilter()
-    local only = filterKey
+    -- allRecipes：不套配方篩選。「搜尋全部」要問的是整張清單的價，
+    -- 不是只有現在選著的那個配方 —— 不然一換配方又是一片沒有價格。
+    local only = not (opts and opts.allRecipes) and filterKey or nil
     local onlyExtra = ExtraID(only)
     for _, entry in ipairs(Recipes()) do
         if not onlyExtra and (not only or entry.key == only) then
