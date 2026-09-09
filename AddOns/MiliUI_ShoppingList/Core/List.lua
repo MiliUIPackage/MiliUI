@@ -23,6 +23,12 @@ local L = ns.L
 ------------------------------------------------------------
 local UNKNOWN_ICON = 134400   -- INV_Misc_QuestionMark
 
+-- ⚠ 這兩支要排在檔案最前面：底下**每一節**都在用它們，而 Lua 的 local 只對
+--   宣告之後的程式碼可見。排在後面的話，前面那些節會靜靜地讀到全域的 nil，
+--   `luac -p` 完全看不出來，要到執行期才炸（NormalizeFilter 就是這樣中的）。
+local function Recipes() return ns.cdb.recipes end
+local function Extras()  return ns.cdb.extras end
+
 function List.Money(copper)
     copper = tonumber(copper)
     if not copper then return "—" end
@@ -330,9 +336,6 @@ end
 ------------------------------------------------------------
 -- 配方清單
 ------------------------------------------------------------
-local function Recipes() return ns.cdb.recipes end
-local function Extras()  return ns.cdb.extras end
-
 function List.Find(key)
     for i, r in ipairs(Recipes()) do
         if r.key == key then return r, i end

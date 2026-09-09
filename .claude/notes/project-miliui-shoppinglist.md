@@ -181,6 +181,16 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 ⚠ 工具列的勾選框間距要按 `label:GetStringWidth()` 實際算，不能用固定值：
 猜的數字在 zhTW 剛好，字一長就跟右邊的預估總價疊在一起（實測疊到了）。
 
+## ⚠ 改完一定要跑 `luac -l` 的全域掃描
+
+`Recipes()` / `Extras()` 這兩支 helper 原本排在檔案中段，後來在它們**前面**新增了
+`NormalizeFilter`，於是那支讀到的是全域的 nil ——
+`31x attempt to call a nil value ... in function 'NormalizeFilter'`。
+`luac -p` 完全看不出來（語法沒錯），[[wow-luac-global-scan]] 那條掃描才抓得到。
+這次是「改完沒重跑掃描」漏掉的。
+→ 檔案層的 helper local 一律排在最前面；新增函式時如果用到 local helper，
+  跑一次掃描確認沒有變成全域讀取。
+
 ## 踩過／繞過的點
 
 - **捲軸的 20px 要從表頭扣，不是往清單加。** `W.CreateScrollFrame` 把內容右緣內縮
