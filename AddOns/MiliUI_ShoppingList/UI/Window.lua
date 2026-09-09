@@ -31,7 +31,7 @@ local TOOL_H     = 22
 local ROW_H      = 24
 local HEAD_H     = 18
 local CONFIRM_H  = 30
-local BOTTOM_H   = 26      -- 最下面那條工具列（搜尋全部／全部購買／預估）
+local BOTTOM_H   = 46      -- 最下面那條工具列：上排預估總價、下排動作鈕
 local PAD        = 8
 local SCROLLBAR  = 20
 
@@ -528,8 +528,12 @@ local function Build()
     bottomBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PAD, PAD)
     bottomBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PAD, PAD)
 
-    local searchAll = W.CreateButton(bottomBar, L["Search all"], "normal", 96, BOTTOM_H - 4)
-    searchAll:SetPoint("LEFT", 2, 0)
+    -- 靠右擺：動作鈕跟清單每一列右端的「搜尋／購買」對齊，是同一類東西
+    local buyAll = W.CreateButton(bottomBar, L["Buy everything"], "accent-hover", 96, 20)
+    buyAll:SetPoint("BOTTOMRIGHT", -4, 2)
+
+    local searchAll = W.CreateButton(bottomBar, L["Search all"], "normal", 96, 20)
+    searchAll:SetPoint("RIGHT", buyAll, "LEFT", -6, 0)
     searchAll:SetScript("OnClick", function() ns.Auction.SearchAll() end)
     ns.AttachTooltip(searchAll, function(_, tip)
         tip:SetText(L["Search all"])
@@ -537,8 +541,6 @@ local function Build()
             0.8, 0.8, 0.8, true)
     end)
 
-    local buyAll = W.CreateButton(bottomBar, L["Buy everything"], "accent-hover", 96, BOTTOM_H - 4)
-    buyAll:SetPoint("LEFT", searchAll, "RIGHT", 6, 0)
     buyAll:SetScript("OnClick", function() ns.Auction.BuyAll() end)
     ns.AttachTooltip(buyAll, function(_, tip)
         tip:SetText(L["Buy everything"])
@@ -546,10 +548,10 @@ local function Build()
             0.8, 0.8, 0.8, true)
     end)
 
+    -- 總價擺在「全部購買」正上方：那是按下去要付的錢，兩者要在同一條視線上
     estimateLabel = bottomBar:CreateFontString(nil, "OVERLAY")
     estimateLabel:SetFontObject(ns.Media.fontRow)
-    estimateLabel:SetPoint("RIGHT", -4, 0)
-    estimateLabel:SetPoint("LEFT", buyAll, "RIGHT", 16, 0)
+    estimateLabel:SetPoint("BOTTOMRIGHT", buyAll, "TOPRIGHT", 0, 3)
     estimateLabel:SetJustifyH("RIGHT")
     estimateLabel:SetWordWrap(false)
 

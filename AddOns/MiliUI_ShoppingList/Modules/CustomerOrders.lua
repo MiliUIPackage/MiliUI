@@ -90,6 +90,10 @@ local function FillTooltip(_, tip)
         tip:AddLine(L["The crafter provides everything for this order."], 0.6, 0.6, 0.6, true)
     end
     tip:AddLine(" ")
+    if ns.List.Find("order:" .. tostring(order.spellID)) then
+        -- 按鈕不發光的時候要講得出理由，不然看起來像壞掉
+        tip:AddLine(L["Already in the list"], 0.4, 1, 0.4)
+    end
     tip:AddLine(L["Click to put the missing reagents on the shopping list."], 0.6, 0.6, 0.6, true)
     tip:AddLine(L["Then open the auction house: the list searches for them and buys them, one confirmation each."],
         0.6, 0.6, 0.6, true)
