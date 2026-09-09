@@ -142,7 +142,9 @@ local function CreatePane()
     --! label in any group is three characters, so the last swatch still lands inside the
     --! pane. Widen a label and check this before shipping -- there is no wrapping, the
     --! fifth one just walks off the edge.
-    local anchor, yOffset = spacingSlider, -55
+    --! ⚠ anchored to sideDD, the LEFT column of the row above -- spacingSlider sits 146pt
+    --! in, and anchoring to it indented the whole block by that much
+    local anchor, yOffset = sideDD, -55
     for _, group in ipairs(Cell.partyTargetColorGroups) do
         local text = ptPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
         text:SetText(L[group["heading"]])
