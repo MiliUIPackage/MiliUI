@@ -172,6 +172,11 @@ local indicatorNums, indicatorBooleans, indicatorColors, indicatorCustoms = {}, 
 -- raid debuffs, tank mitigation, missing buffs, private auras) are covered twice over --
 -- HandleBuff/HandleDebuff never file anything for these buttons, and the containers
 -- themselves are hidden by UpdateIndicatorParentVisibility below.
+--! the health % sits directly under the name on a target button and the two crowd each
+--! other: a member frame has a role icon and a leader icon holding that row open, this one
+--! has neither. One number, nudged down from whatever the layout says.
+local PARTY_TARGET_HEALTH_TEXT_DROP = 4
+
 local PARTY_TARGET_INDICATORS = {
     ["nameText"] = true,
     ["healthText"] = true,
@@ -312,7 +317,11 @@ local function HandleIndicators(b)
             else
                 P.ClearPoints(indicator)
                 local relativeTo = t["position"][2] == "healthBar" and b.widgets.healthBar or b
-                P.Point(indicator, t["position"][1], relativeTo, t["position"][3], t["position"][4], t["position"][5])
+                local y = t["position"][5]
+                if b.isPartyTarget and t["indicatorName"] == "healthText" then -- fix from MiliUI
+                    y = (y or 0) - PARTY_TARGET_HEALTH_TEXT_DROP
+                end
+                P.Point(indicator, t["position"][1], relativeTo, t["position"][3], t["position"][4], y)
             end
         end
         -- update anchor
@@ -3242,37 +3251,58 @@ UnitButton_UpdateHealthTextColor = function(self)
     end
 end
 
--- fix from MiliUI: reaction colours for the party-target buttons.
+-- fix from MiliUI: health bar colours for the party-target buttons.
 --
 -- Cell paints every non-player unit the same green, which is right for a raid frame (the
 -- only NPCs it draws are friendly) and wrong for a row of "what is my group hitting":
 -- everything an enemy, an enemy of someone else's, and a friendly quest giver came out the
--- same shade. These are Platynator's, lifted from the Luxthos design's health-bar
--- autoColors chain (MiliUI/Config/Luxthos_Platynator.lua) so the target row reads like the
--- nameplate over the same mob.
+-- same shade. Two layers, the same two a nameplate uses -- reaction anywhere, and kind
+-- inside a dungeon or raid, where everything is hostile and "is it a caster" is the
+-- question worth a colour.
 --
--- ⚠ Only the two layers that mean something on a five-slot strip: `tapped` and `reaction`.
--- The rest of Platynator's chain (quest, eliteType, threat) needs its instance detection
--- and its per-unit cache, and answers questions a nameplate is for.
+-- The palette is a SETTING (CellDB.tools.partyTargets.colors, shipped with the pack's
+-- nameplate colours). Cached here rather than read through the database on every pass:
+-- this runs four times a second per button.
 --
 -- ⚠ None of the APIs below is secret in 12.1 -- checked against
 -- Blizzard_APIDocumentationGenerated/UnitDocumentation.lua: UnitSelectionType,
--- UnitIsTapDenied, UnitPlayerControlled, UnitIsFriend and UnitCanAttack carry no
--- `SecretWhenUnitIdentityRestricted`, unlike UnitClassBase and UnitGroupRolesAssigned two
--- functions up. So these are plain booleans and numbers even for a boss, and the branches
--- are real branches. Do NOT extend this with UnitClass/UnitGroupRoles-style lookups.
-local REACTION_COLORS = {
-    ["friendly"]   = {0.2745098, 0.8862746, 0.3372549},
-    ["neutral"]    = {0.8588236, 0.7176471, 0.3176471},
-    ["unfriendly"] = {1, 0.5058824, 0},
-    ["hostile"]    = {0.7294118, 0.1411765, 0.1686275},
-    -- somebody else's kill: no loot, no credit, and it should not read as a target
-    ["tapped"]     = {0.4313725, 0.4313725, 0.4313725},
-}
+-- UnitIsTapDenied, UnitPlayerControlled, UnitIsFriend, UnitCanAttack, UnitClassification,
+-- UnitEffectiveLevel, UnitIsLieutenant and UnitPowerType carry no
+-- `SecretWhenUnitIdentityRestricted`, unlike UnitClassBase and UnitGroupRolesAssigned. So
+-- these are plain values even for a boss and the branches are real branches. UnitPowerMax
+-- DOES carry one, which is why "has mana" is asked by power TYPE.
+--! what Cell paints a friendly NPC, and the fallback when a palette key is missing
+local CELL_NPC_GREEN = {0, 1, 0.2}
+local partyTargetColors = {}
+
+local function RefreshPartyTargetColors(which)
+    if which and which ~= "partyTargets" then return end
+    local db = CellDB and CellDB["tools"] and CellDB["tools"]["partyTargets"]
+    partyTargetColors = db and db["colors"] or (Cell.defaults.partyTargets or {})["colors"] or {}
+end
+Cell.RegisterCallback("UpdateTools", "UnitButton_PartyTargetColors", RefreshPartyTargetColors)
+
+local function EliteType(unit)
+    local classification = UnitClassification(unit)
+
+    if classification == "elite" then
+        --! lieutenant first, same order as the nameplate rule: a lieutenant is the thing
+        --! worth spending a cooldown on and it must not be lost to the boss test
+        if UnitIsLieutenant and UnitIsLieutenant(unit) then return "miniboss" end
+        if UnitEffectiveLevel(unit) == -1 then return "boss" end
+        local hasMana = UnitHasPowerType and UnitHasPowerType(unit, Enum.PowerType.Mana)
+            or UnitPowerType(unit) == Enum.PowerType.Mana
+        return hasMana and "caster" or "melee"
+    elseif classification == "normal" or classification == "trivial" or classification == "minus" then
+        return "trivial"
+    end
+    --! rare / rareelite fall through to reaction on purpose: the nameplate rule has its own
+    --! layer for those and this row is not where you go looking for a rare
+end
 
 local function ReactionColor(unit)
     if not UnitPlayerControlled(unit) and UnitIsTapDenied(unit) then
-        return REACTION_COLORS["tapped"]
+        return partyTargetColors["tapped"]
     end
 
     -- UnitSelectionType is the nameplate's own classifier: 1 unfriendly, 2 neutral. Cell
@@ -3287,14 +3317,21 @@ local function ReactionColor(unit)
         neutral, unfriendly = reaction == 4, reaction == 3
     end
 
+    --! instances only, and never over a neutral -- both straight from the nameplate rule
+    --! (`instancesOnly = true`, and the neutral test guarding it)
+    if not neutral and (Cell.vars.instanceType == "party" or Cell.vars.instanceType == "raid") then
+        local t = EliteType(unit)
+        if t and partyTargetColors[t] then return partyTargetColors[t] end
+    end
+
     if neutral then
-        return REACTION_COLORS["neutral"]
+        return partyTargetColors["neutral"]
     elseif unfriendly then
-        return REACTION_COLORS["unfriendly"]
+        return partyTargetColors["unfriendly"]
     elseif UnitIsFriend("player", unit) and not UnitCanAttack("player", unit) then
-        return REACTION_COLORS["friendly"]
+        return partyTargetColors["friendly"]
     else
-        return REACTION_COLORS["hostile"]
+        return partyTargetColors["hostile"]
     end
 end
 
@@ -3333,7 +3370,9 @@ UnitButton_UpdateHealthColor = function(self)
     elseif F.IsPet(self.states.guid, self.states.unit) then -- pet
         barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, 0.5, 0.5, 1)
     elseif self.isPartyTarget then -- fix from MiliUI: npc on a party-target button
-        local c = ReactionColor(unit)
+        --! `or` the stock green, not an assert: a palette key can be missing for one frame
+        --! after a profile swap, and a wrong shade beats a Lua error on a health update
+        local c = ReactionColor(unit) or CELL_NPC_GREEN
         barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, c[1], c[2], c[3])
     else -- npc
         barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, 0, 1, 0.2)

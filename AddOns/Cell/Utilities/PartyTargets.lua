@@ -34,7 +34,33 @@ Cell.defaults.partyTargets = {
     -- 0 = as wide as the main button. The HEIGHT always follows the main button, so a target
     -- stays level with the member it belongs to no matter what this is set to.
     ["width"] = 0,
+    --! Health bar colours. The shipped values are the pack's nameplate palette (they are the
+    --! reaction + eliteType layers of MiliUI/Config/Luxthos_Platynator.lua), so a target on
+    --! this row reads the same as the nameplate over the same mob -- but they are SETTINGS,
+    --! not constants: the nameplate addon keeps its copy in its own saved variables and
+    --! offers no way to ask, so the two can only be kept together by hand.
+    --! Read in RaidFrames/UnitButton.lua; the two lists there decide which one wins.
+    ["colors"] = {
+        -- by reaction, anywhere
+        ["tapped"]     = {0.4313725, 0.4313725, 0.4313725}, -- someone else's kill
+        ["hostile"]    = {0.7294118, 0.1411765, 0.1686275},
+        ["unfriendly"] = {1, 0.5058824, 0},
+        ["neutral"]    = {0.8588236, 0.7176471, 0.3176471},
+        ["friendly"]   = {0.2745098, 0.8862746, 0.3372549},
+        -- by kind, inside dungeons and raids only, and never over a neutral. Wins over the
+        -- reaction colours above: in there everything is hostile, so "what kind is it" is
+        -- the question worth a colour.
+        ["boss"]       = {0.7372549, 0.1098039, 0},
+        ["miniboss"]   = {0.5647059, 0, 0.7372549},
+        ["caster"]     = {0, 0.6431373, 1},
+        ["melee"]      = {0.7803922, 0.6196079, 0.3686275},
+        ["trivial"]    = {0.4705883, 0.4039216, 0.3254902},
+    },
 }
+
+--! the two groups, in the order the settings pane draws them
+Cell.partyTargetReactionKeys = {"tapped", "hostile", "unfriendly", "neutral", "friendly"}
+Cell.partyTargetEliteKeys = {"boss", "miniboss", "caster", "melee", "trivial"}
 
 -------------------------------------------------
 -- callbacks
@@ -53,6 +79,7 @@ Cell.RegisterCallback("UpdateTools", "PartyTargets_UpdateTools", UpdateTools)
 -- settings pane
 -------------------------------------------------
 local ptPane, enabledCB, sideDD, spacingSlider, widthSlider
+local colorPickers = {}
 --! forward declaration: CreatePane's reset button closes over it, and a GLOBAL here would
 --! be shared with every other utility that has a reset button -- last file loaded wins
 local RestoreDefaults
@@ -70,6 +97,7 @@ local function CreatePane()
     -- enabled --------------------------------------------------------------------------
     enabledCB = Cell.CreateCheckButton(ptPane, L["Party Targets"], function(checked)
         Cell.SetEnabled(checked, sideDD, spacingSlider, widthSlider)
+        for _, cp in pairs(colorPickers) do cp:SetEnabled(checked) end
         Save("enabled", checked)
     end, L["Party Targets"], L["PARTY_TARGETS_TIPS"])
     P.Point(enabledCB, "TOPLEFT", ptPane, "TOPLEFT", 5, -27)
@@ -102,6 +130,31 @@ local function CreatePane()
     end, nil, nil, L["Width"], L["PARTY_TARGETS_WIDTH_TIPS"])
     P.Point(widthSlider, "TOPLEFT", spacingSlider, "TOPLEFT", 146, 0)
 
+    -- colours ---------------------------------------------------------------------------
+    --! Two rows, in the order they are consulted: kind first (it wins inside instances),
+    --! reaction underneath. Five to a row because that is what 422pt holds without the
+    --! labels running into each other.
+    local function CreateColorRow(keys, heading, anchor, yOffset)
+        local text = ptPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+        text:SetText(heading)
+        P.Point(text, "TOPLEFT", anchor, "TOPLEFT", 0, yOffset)
+
+        for i, key in ipairs(keys) do
+            local cp = Cell.CreateColorPicker(ptPane, L[key], false, function(r, g, b)
+                local c = CellDB["tools"]["partyTargets"]["colors"][key]
+                c[1], c[2], c[3] = r, g, b
+                --! not Save(): the table is edited in place, so there is nothing to assign
+                Cell.Fire("UpdateTools", "partyTargets")
+            end)
+            colorPickers[key] = cp
+            P.Point(cp, "TOPLEFT", text, "BOTTOMLEFT", (i - 1) * 84, -4)
+        end
+        return text
+    end
+
+    local eliteText = CreateColorRow(Cell.partyTargetEliteKeys, L["IN_INSTANCES"], spacingSlider, -55)
+    CreateColorRow(Cell.partyTargetReactionKeys, L["Reaction"], eliteText, -46)
+
     -- restore defaults -----------------------------------------------------------------
     local tips = ptPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     tips:SetText("|cffababab" .. L["PARTY_TARGETS_PANE_TIPS"])
@@ -126,6 +179,10 @@ local function LoadDB()
     sideDD:SetSelectedValue(db["side"])
     spacingSlider:SetValue(db["spacing"])
     widthSlider:SetValue(db["width"])
+    for key, cp in pairs(colorPickers) do
+        cp:SetColor(db["colors"][key])
+        cp:SetEnabled(db["enabled"])
+    end
     Cell.SetEnabled(db["enabled"], sideDD, spacingSlider, widthSlider)
 end
 

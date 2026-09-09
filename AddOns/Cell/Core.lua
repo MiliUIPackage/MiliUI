@@ -303,8 +303,16 @@ function eventFrame:ADDON_LOADED(arg1)
                 CellDB["tools"]["partyTargets"] = {}
             end
             local t = CellDB["tools"]["partyTargets"]
-            for key, value in pairs(Cell.defaults.partyTargets) do
-                if type(t[key]) ~= type(value) then t[key] = value end
+            local d = Cell.defaults.partyTargets
+            for key, value in pairs(d) do
+                if type(value) ~= "table" and type(t[key]) ~= type(value) then t[key] = value end
+            end
+
+            -- colours are a nested table: top up PER COLOUR, so a palette added after the
+            -- tool shipped still reaches a database that already has the others
+            if type(t["colors"]) ~= "table" then t["colors"] = {} end
+            for key, value in pairs(d["colors"]) do
+                if type(t["colors"][key]) ~= "table" then t["colors"][key] = F.Copy(value) end
             end
         end
 

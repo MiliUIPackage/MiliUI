@@ -220,6 +220,18 @@ L["MY_ANCHOR_POINT_TIPS"] = "提示列的哪一个角固定在 Cell 上。列的
 -------------------------------------------------
 -- party targets
 -------------------------------------------------
+L["Reaction"] = "阵营"
+L["IN_INSTANCES"] = "在地下城与团队副本里"
+L["tapped"] = "别人的怪"
+L["hostile"] = "敌对"
+L["unfriendly"] = "敌对阵营"
+L["neutral"] = "中立"
+L["friendly"] = "友方"
+L["boss"] = "首领"
+L["miniboss"] = "重要目标"
+L["caster"] = "施法者"
+L["melee"] = "近战"
+L["trivial"] = "一般"
 L["Party Targets"] = "队伍目标"
 L["Side"] = "位置"
 L["PARTY_TARGETS_TIPS"] = "在每位队友的框架旁边，显示那个人正在打的目标。"
