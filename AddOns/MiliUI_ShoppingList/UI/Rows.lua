@@ -436,7 +436,10 @@ function Rows.CreateConfirmBar(parent, width, height)
     -- 「下一筆」：批次購買買完一筆之後停在這裡等玩家按。
     -- ⚠ 這一下點擊是必要的，不是懶得自動化：StartCommoditiesPurchase 有硬體事件閘，
     --   從「買到了」那個事件裡自動接下一筆會被擋（見 Core/Auction.lua 檔頭）。
-    local nextBtn = W.CreateButton(bar, L["Next"], "green", 76, 20)
+    --
+    -- 既然省不掉，就讓它**落在跟「確認」一模一樣的位置**（同寬同錨點，跳過鈕那一格
+    -- 留空）。滑鼠不用移動，一直按同一個地方就能走完整批。
+    local nextBtn = W.CreateButton(bar, L["Next"], "green", 64, 20)
     nextBtn:SetScript("OnClick", function() ns.Auction.Next() end)
 
     local function Layout(rightOf)
@@ -460,7 +463,8 @@ function Rows.CreateConfirmBar(parent, width, height)
             ok:Hide(); skip:Hide()
             nextBtn:Show()
             nextBtn:ClearAllPoints()
-            nextBtn:SetPoint("RIGHT", cancel, "LEFT", -4, 0)
+            -- 64（跳過鈕）＋ 4 ＋ 4：跟有待確認時「確認」鈕的位置完全重疊
+            nextBtn:SetPoint("RIGHT", cancel, "LEFT", -72, 0)
             Layout(nextBtn)
             self:Show()
             return
