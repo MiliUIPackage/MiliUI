@@ -173,3 +173,6 @@ L["Next"] = "下一筆"
 L["Next: %s"] = "下一筆：%s"
 L["Price is in — press buy again."] = "報價回來了，再按一次購買。"
 L["Asking the price — press buy again when it comes back."] = "正在問價，回來之後再按一次購買。"
+
+L["Asking the price — press Next when it comes back."] = "正在問價，回來之後按「下一筆」。"
+L["Price is in — press Next."] = "報價回來了，按「下一筆」。"

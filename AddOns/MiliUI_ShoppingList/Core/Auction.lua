@@ -29,6 +29,9 @@ local PRICE_SORTS = {
 
 -- 整批 SearchForItemKeys 的上限（暴雪端的硬限制）
 local MAX_KEYS = 100
+-- 瀏覽完之後在背景逐筆補查幾樣。整批瀏覽的資料只夠顯示、不夠買（見 detailed），
+-- 不先補的話按「全部購買」第一下一定卡在「正在問價」。只補真的要買的那幾樣。
+local MAX_PREFETCH = 25
 
 ------------------------------------------------------------
 -- 本次登入的狀態。**一律不進 SavedVariables**：報價幾分鐘就過期，
@@ -40,6 +43,7 @@ local quotes  = {}   -- [itemID] = { unitPrice, quantity, isCommodity, itemKey, 
 --   是不是商品（isCommodity），GetItemSearchResultInfo 也讀不到東西 ——
 --   直接照那份資料走非商品路徑，會得到「拍賣場上沒有人賣」的假結論（實測）。
 local detailed = {}
+local prefetched = {}   -- 已經排進補查佇列的，別重複排（瀏覽結果會來好幾波）
 local lowest  = {}   -- [itemID] = 本次登入看過的最低單價（天價保險的基準）
 local queue   = {}
 local busy    = false
@@ -133,6 +137,25 @@ local function StoreBrowseResults()
         local itemID = r.itemKey and r.itemKey.itemID
         if itemID then
             Remember(itemID, r.minPrice, r.totalQuantity, nil, r.itemKey)
+        end
+    end
+end
+
+-- 背景補查：把「還要買、而且還沒逐筆查過」的那幾樣排進節流佇列。
+-- 每一筆的結果回來會 Pump 下一筆，所以這裡只管排隊、不管節奏。
+local function PrefetchDetails()
+    local rows = ns.List.Shopping({ includeReady = true, allRecipes = true })
+    local n = 0
+    for _, row in ipairs(rows) do
+        local id = row.itemID
+        if id and (row.buy or 0) > 0 and not row.vendor and not row.ignored
+           and not detailed[id] and not prefetched[id] then
+            prefetched[id] = true
+            n = n + 1
+            if n > MAX_PREFETCH then break end
+            Run(function()
+                C_AuctionHouse.SendSearchQuery(C_AuctionHouse.MakeItemKey(id), PRICE_SORTS, false)
+            end)
         end
     end
 end
@@ -276,7 +299,15 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
         searchedFor[itemID] = true
         awaitSearch = { itemID = itemID, quantity = quantity, fromQueue = fromQueue }
         Auction.SearchItem(itemID)
-        SetStatus(L["Asking the price — press buy again when it comes back."], true)
+        if fromQueue then
+            -- ⚠ 批次走到這裡不能就這樣停住，不然確認列消失、整批默默斷掉。
+            --   把游標退一格並轉成「等玩家按」，按下去就是重試同一筆（那時已經查完）。
+            queueAt = queueAt - 1
+            queueWaiting = true
+            SetStatus(L["Asking the price — press Next when it comes back."], true)
+        else
+            SetStatus(L["Asking the price — press buy again when it comes back."], true)
+        end
         return
     end
     searchedFor[itemID] = nil
@@ -326,7 +357,8 @@ local function ResumeAfterSearch(itemID)
     if not a or a.itemID ~= itemID then return end
     awaitSearch = nil
     if quotes[itemID] then
-        SetStatus(L["Price is in — press buy again."], true)
+        SetStatus(a.fromQueue and L["Price is in — press Next."]
+                              or  L["Price is in — press buy again."], true)
     else
         SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name), true)
         if a.fromQueue then StepQueue() end
@@ -493,6 +525,7 @@ f:SetScript("OnEvent", function(_, event, a1, a2)
         StopQueue()
         wipe(queue)
         wipe(detailed)
+        wipe(prefetched)
         busy, pendingSearch = false, nil
         SetStatus(L["Open the auction house to search and buy."])
         ns.Fire("AuctionClosed")
@@ -506,6 +539,7 @@ f:SetScript("OnEvent", function(_, event, a1, a2)
         StoreBrowseResults()
         Pump()
         SetStatus(L["Prices updated."])
+        PrefetchDetails()
 
     elseif event == "AUCTION_HOUSE_BROWSE_FAILURE" then
         Pump()
