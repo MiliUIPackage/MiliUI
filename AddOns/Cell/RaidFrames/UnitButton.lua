@@ -172,10 +172,15 @@ local indicatorNums, indicatorBooleans, indicatorColors, indicatorCustoms = {}, 
 -- raid debuffs, tank mitigation, missing buffs, private auras) are covered twice over --
 -- HandleBuff/HandleDebuff never file anything for these buttons, and the containers
 -- themselves are hidden by UpdateIndicatorParentVisibility below.
---! the health % sits directly under the name on a target button and the two crowd each
---! other: a member frame has a role icon and a leader icon holding that row open, this one
---! has neither. One number, nudged down from whatever the layout says.
-local PARTY_TARGET_HEALTH_TEXT_DROP = 4
+--! HEALTH_TEXT_DROP: the health % sits directly under the name on a target button and the
+--! two crowd each other -- a member frame has a role icon and a leader icon holding that row
+--! open, this one has neither. NPC_GREEN is what Cell paints a friendly NPC, used as the
+--! fallback when a palette key is missing.
+--! (One table rather than two locals: this file's main chunk is near Lua's 200-local ceiling.)
+local PARTY_TARGET = {
+    HEALTH_TEXT_DROP = 4,
+    NPC_GREEN = {0, 1, 0.2},
+}
 
 local PARTY_TARGET_INDICATORS = {
     ["nameText"] = true,
@@ -319,7 +324,7 @@ local function HandleIndicators(b)
                 local relativeTo = t["position"][2] == "healthBar" and b.widgets.healthBar or b
                 local y = t["position"][5]
                 if b.isPartyTarget and t["indicatorName"] == "healthText" then -- fix from MiliUI
-                    y = (y or 0) - PARTY_TARGET_HEALTH_TEXT_DROP
+                    y = (y or 0) - PARTY_TARGET.HEALTH_TEXT_DROP
                 end
                 P.Point(indicator, t["position"][1], relativeTo, t["position"][3], t["position"][4], y)
             end
@@ -3271,16 +3276,75 @@ end
 -- `SecretWhenUnitIdentityRestricted`, unlike UnitClassBase and UnitGroupRolesAssigned. So
 -- these are plain values even for a boss and the branches are real branches. UnitPowerMax
 -- DOES carry one, which is why "has mana" is asked by power TYPE.
---! what Cell paints a friendly NPC, and the fallback when a palette key is missing
-local CELL_NPC_GREEN = {0, 1, 0.2}
 local partyTargetColors = {}
 
-local function RefreshPartyTargetColors(which)
+Cell.RegisterCallback("UpdateTools", "UnitButton_PartyTargetColors", function(which)
     if which and which ~= "partyTargets" then return end
     local db = CellDB and CellDB["tools"] and CellDB["tools"]["partyTargets"]
     partyTargetColors = db and db["colors"] or (Cell.defaults.partyTargets or {})["colors"] or {}
+end)
+
+--! The `quest` layer, top of the nameplate chain: a mob that still owes you an objective.
+--!
+--! ⚠ Open world only, and that is the nameplate rule's own gate, not a shortcut -- it bails
+--! inside dungeons, raids and battlegrounds, and whenever the unit identity is secret. Both
+--! come to the same thing here: the answer lives in the unit's TOOLTIP, and there is no
+--! readable tooltip for a unit you are not allowed to identify.
+--!
+--! Cached by GUID, which is readable exactly where this layer runs. Scanning a tooltip four
+--! times a second per button would be the most expensive thing on the row by a wide margin;
+--! this way it is one scan per creature, ever.
+--!
+--! ⚠ Wrapped in do...end on purpose: UnitButton.lua's main chunk is close to Lua's
+--! 200-local ceiling, and a block's locals give their registers back at its end.
+local IsQuestUnit
+do
+    local questCache = {}
+
+    local questCacheReset = CreateFrame("Frame")
+    questCacheReset:RegisterEvent("PLAYER_ENTERING_WORLD")
+    questCacheReset:RegisterEvent("QUEST_ACCEPTED")
+    questCacheReset:RegisterEvent("QUEST_REMOVED")
+--! ⚠ deliberately NOT QUEST_LOG_UPDATE: it fires on every objective tick, and each wipe
+--! costs a fresh tooltip scan for every unit on the row. The cost of leaving it out is that
+--! a mob whose objective you just finished keeps the colour until you accept or drop
+--! something, or change zone -- a wrong shade for a while, against a scan storm mid-fight.
+    questCacheReset:SetScript("OnEvent", function() wipe(questCache) end)
+
+    local function ScanQuestUnit(unit)
+    if not (C_TooltipInfo and C_TooltipInfo.GetUnit and Enum.TooltipDataLineType) then return false end
+    local info = C_TooltipInfo.GetUnit(unit)
+    if not info or not info.lines then return false end
+
+    local playerName = UnitName("player")
+    local skip = false
+    for _, line in ipairs(info.lines) do
+        local t = line.type
+        if t == Enum.TooltipDataLineType.QuestPlayer then
+            --! a NAME here means the objectives under it belong to that group member
+            skip = line.leftText ~= playerName
+        elseif t == Enum.TooltipDataLineType.QuestTitle then
+            skip = false
+        elseif not skip and t == Enum.TooltipDataLineType.QuestObjective and line.leftText then
+            local have, need = strmatch(line.leftText, "(%d+)/(%d+)")
+            if have and have ~= need then return true end
+            local percent = strmatch(line.leftText, "(%d+)%%")
+            if percent and percent ~= "100" then return true end
+        end
+    end
+    return false
+    end
+
+    function IsQuestUnit(unit, guid)
+    if not guid then return false end
+    local cached = questCache[guid]
+    if cached == nil then
+        cached = ScanQuestUnit(unit)
+        questCache[guid] = cached
+    end
+    return cached
+    end
 end
-Cell.RegisterCallback("UpdateTools", "UnitButton_PartyTargetColors", RefreshPartyTargetColors)
 
 local function EliteType(unit)
     local classification = UnitClassification(unit)
@@ -3300,7 +3364,18 @@ local function EliteType(unit)
     --! layer for those and this row is not where you go looking for a rare
 end
 
-local function ReactionColor(unit)
+--! guid: the button's cached, known-readable GUID (nil inside instances, where the quest
+--! layer does not run anyway)
+local function ReactionColor(unit, guid)
+    --! quest sits above everything the nameplate chain does except class colours, and Cell
+    --! already colours players by class before this is ever called
+    if partyTargetColors["quest"]
+        and Cell.vars.instanceType ~= "party" and Cell.vars.instanceType ~= "raid"
+        and Cell.vars.instanceType ~= "pvp" and Cell.vars.instanceType ~= "arena"
+        and IsQuestUnit(unit, guid) then
+        return partyTargetColors["quest"]
+    end
+
     if not UnitPlayerControlled(unit) and UnitIsTapDenied(unit) then
         return partyTargetColors["tapped"]
     end
@@ -3372,7 +3447,7 @@ UnitButton_UpdateHealthColor = function(self)
     elseif self.isPartyTarget then -- fix from MiliUI: npc on a party-target button
         --! `or` the stock green, not an assert: a palette key can be missing for one frame
         --! after a profile swap, and a wrong shade beats a Lua error on a health update
-        local c = ReactionColor(unit) or CELL_NPC_GREEN
+        local c = ReactionColor(unit, self.__displayedGuid) or PARTY_TARGET.NPC_GREEN
         barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, c[1], c[2], c[3])
     else -- npc
         barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, 0, 1, 0.2)

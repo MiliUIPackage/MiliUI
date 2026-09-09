@@ -41,6 +41,9 @@ Cell.defaults.partyTargets = {
     --! offers no way to ask, so the two can only be kept together by hand.
     --! Read in RaidFrames/UnitButton.lua; the two lists there decide which one wins.
     ["colors"] = {
+        -- a mob that still owes you an objective. Open world only: the tooltip it is read
+        -- from does not exist for a unit you may not identify, which is everything indoors.
+        ["quest"]      = {1, 0.5882353, 0.1607843},
         -- by reaction, anywhere
         ["tapped"]     = {0.4313725, 0.4313725, 0.4313725}, -- someone else's kill
         ["hostile"]    = {0.7294118, 0.1411765, 0.1686275},
@@ -58,9 +61,13 @@ Cell.defaults.partyTargets = {
     },
 }
 
---! the two groups, in the order the settings pane draws them
-Cell.partyTargetReactionKeys = {"tapped", "hostile", "unfriendly", "neutral", "friendly"}
-Cell.partyTargetEliteKeys = {"boss", "miniboss", "caster", "melee", "trivial"}
+--! The palette, grouped the way the settings pane draws it and in the order the colours are
+--! consulted: quest wins over kind, kind wins over reaction.
+Cell.partyTargetColorGroups = {
+    {["heading"] = "Quest", ["keys"] = {"quest"}},
+    {["heading"] = "Elite Type", ["keys"] = {"boss", "miniboss", "caster", "melee", "trivial"}},
+    {["heading"] = "Reaction", ["keys"] = {"tapped", "hostile", "unfriendly", "neutral", "friendly"}},
+}
 
 -------------------------------------------------
 -- callbacks
@@ -131,15 +138,17 @@ local function CreatePane()
     P.Point(widthSlider, "TOPLEFT", spacingSlider, "TOPLEFT", 146, 0)
 
     -- colours ---------------------------------------------------------------------------
-    --! Two rows, in the order they are consulted: kind first (it wins inside instances),
-    --! reaction underneath. Five to a row because that is what 422pt holds without the
-    --! labels running into each other.
-    local function CreateColorRow(keys, heading, anchor, yOffset)
+    --! One row per group, headed by the group's name. Five to a row at 80pt: the widest
+    --! label in any group is three characters, so the last swatch still lands inside the
+    --! pane. Widen a label and check this before shipping -- there is no wrapping, the
+    --! fifth one just walks off the edge.
+    local anchor, yOffset = spacingSlider, -55
+    for _, group in ipairs(Cell.partyTargetColorGroups) do
         local text = ptPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-        text:SetText(heading)
+        text:SetText(L[group["heading"]])
         P.Point(text, "TOPLEFT", anchor, "TOPLEFT", 0, yOffset)
 
-        for i, key in ipairs(keys) do
+        for i, key in ipairs(group["keys"]) do
             local cp = Cell.CreateColorPicker(ptPane, L[key], false, function(r, g, b)
                 local c = CellDB["tools"]["partyTargets"]["colors"][key]
                 c[1], c[2], c[3] = r, g, b
@@ -147,13 +156,11 @@ local function CreatePane()
                 Cell.Fire("UpdateTools", "partyTargets")
             end)
             colorPickers[key] = cp
-            P.Point(cp, "TOPLEFT", text, "BOTTOMLEFT", (i - 1) * 84, -4)
+            P.Point(cp, "TOPLEFT", text, "BOTTOMLEFT", (i - 1) * 80, -4)
         end
-        return text
-    end
 
-    local eliteText = CreateColorRow(Cell.partyTargetEliteKeys, L["IN_INSTANCES"], spacingSlider, -55)
-    CreateColorRow(Cell.partyTargetReactionKeys, L["Reaction"], eliteText, -46)
+        anchor, yOffset = text, -42
+    end
 
     -- restore defaults -----------------------------------------------------------------
     local tips = ptPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")

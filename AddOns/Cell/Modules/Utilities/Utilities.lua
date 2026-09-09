@@ -112,7 +112,7 @@ local utilityHeight = {
     ["quickAssist"] = 510,
     ["quickCast"] = 510,
     ["clickCastingHints"] = 450,
-    ["partyTargets"] = 310,
+    ["partyTargets"] = 330,
 }
 
 local init
