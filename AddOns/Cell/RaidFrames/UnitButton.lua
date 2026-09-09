@@ -175,10 +175,12 @@ local indicatorNums, indicatorBooleans, indicatorColors, indicatorCustoms = {}, 
 local PARTY_TARGET_INDICATORS = {
     ["nameText"] = true,
     ["healthText"] = true,
-    ["healthThresholds"] = true,
     ["shieldBar"] = true,
     ["playerRaidIcon"] = true,
 }
+--! ⚠ healthThresholds (the execute line) is NOT here, even though it is drawn from health.
+--! It answers "can I finish this off", which is a question about the player's own target --
+--! on a row of five other people's targets it is five vertical lines that mean nothing.
 
 -- Per-button view of enabledIndicators. Everything that asks "is this indicator on" goes
 -- through here; the plain table is only written, never read directly.
@@ -491,7 +493,21 @@ local function HandleIndicators(b)
         -- so the dispatch is on the method, not on a hardcoded name list -- the debuff row,
         -- the three cooldown rows and custom buff-icon indicators all arrive here too.
         if indicator.ConfigureContainer then
-            indicator:ConfigureContainer(t)
+            -- fix from MiliUI: a party-target button configures every container it is not
+            -- allowed as DISABLED.
+            --! ⚠ Hiding the indicator frame is NOT enough for these. A container-backed
+            --! indicator is drawn by Blizzard, not by us, and the dispel one owns a SECOND
+            --! container for the type wash across the health bar (Built-in.lua's
+            --! highlightContainer) -- a texture on midLevelFrame that never sees the
+            --! indicator's OnHide. That wash is what put a poison tint on this row.
+            if b.isPartyTarget and not PARTY_TARGET_INDICATORS[t["indicatorName"]] then
+                local off = {}
+                for k, v in pairs(t) do off[k] = v end
+                off["enabled"] = false
+                indicator:ConfigureContainer(off)
+            else
+                indicator:ConfigureContainer(t)
+            end
         end
 
         -- init
