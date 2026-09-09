@@ -2,7 +2,7 @@
 --
 -- Blizzard:    bags, bank, character frame, inspect, equipment flyout, loot frame
 -- Bag addons:  Bagnon, Bagnonium, Inventorian, ArkInventory, BetterBags,
---              Baggins, LiteBag, EllesmereUI Bags, Baganator
+--              Baggins, LiteBag, EllesmereUI Bags, Baud Bag, Baganator
 
 local AddonName, KeystoneLoot = ...;
 
@@ -69,7 +69,7 @@ end
 
 local function UpdateContainer(Frame)
     for _, ItemButton in Frame:EnumerateValidItems() do
-        UpdateByContainerSlot(ItemButton, ItemButton:GetBagID(), ItemButton:GetID());
+        UpdateByContainerSlot(ItemButton, ItemButton:GetBagID(), ItemButton:GetID(), nil, "BOTTOMLEFT");
     end
 end
 
@@ -298,7 +298,7 @@ EventUtil.ContinueOnAddOnLoaded("Baganator", function()
 
             return Texture;
         end,
-        { corner = "top_left", priority = 1 }
+        { corner = "bottom_left", priority = 1 }
     );
 end);
 
@@ -319,6 +319,12 @@ for _, addon in ipairs({ "EllesmereUIBags", "EUIStandaloneBags" }) do
         hooksecurefunc(EUI_BankFrame, "RefreshBank", UpdateSlots);
     end);
 end
+
+EventUtil.ContinueOnAddOnLoaded("BaudBag", function()
+    hooksecurefunc(BaudBag, "ItemSlot_Updated", function(_, bagSet, containerId, subContainerId, slotId, Button)
+        UpdateByContainerSlot(Button, subContainerId, slotId);
+    end);
+end);
 
 EventUtil.ContinueOnAddOnLoaded("BetterBags", function()
     local betterBags = LibStub("AceAddon-3.0", true):GetAddon("BetterBags", true);

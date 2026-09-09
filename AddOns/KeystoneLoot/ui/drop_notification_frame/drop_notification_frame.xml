@@ -117,6 +117,12 @@
                         <Anchor point="TOPRIGHT" x="-14" y="-21"/>
                     </Anchors>
                 </FontString>
+                <FontString parentKey="AddonLabel" inherits="GameFontDarkGraySmall" JustifyH="RIGHT">
+                    <Anchors>
+                        <Anchor point="BOTTOMRIGHT" x="-7" y="5"/>
+                    </Anchors>
+                    <Color r="0.4" g="0.4" b="0.4"/>
+                </FontString>
             </Layer>
         </Layers>
         <Frames>

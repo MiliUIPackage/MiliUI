@@ -23,6 +23,7 @@ function KeystoneLootDungeonsFrameMixin:Init()
 
     DB:AddObserver("filters.specId", OnChanged);
     DB:AddObserver("filters.slotId", OnChanged);
+    DB:AddObserver("filters.weaponTypes", OnChanged);
     DB:AddObserver("ui.selectedCharacterKey", OnChanged);
     DB:AddObserver("ui.selectedTab", OnChanged);
     DB:AddObserver("settings.highlighting.*", OnChanged);
@@ -39,6 +40,14 @@ function KeystoneLootDungeonsFrameMixin:Init()
     end);
 
     self:Refresh();
+end
+
+function KeystoneLootDungeonsFrameMixin:RefreshOwnedIcons()
+    for Frame in self.entryPool:EnumerateActive() do
+        for _, Button in Frame.IconScrollBox:EnumerateFrames() do
+            Button:UpdateOwnedIcon();
+        end
+    end
 end
 
 function KeystoneLootDungeonsFrameMixin:RefreshSize()

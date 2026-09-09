@@ -1,0 +1,135 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\..\..\..\WoW\Data\Interface\AddOns\Blizzard_SharedXML\UI.xsd">
+    <Frame name="KeystoneLootMythicPlusNotificationFrameTemplate" mixin="KeystoneLootMythicPlusNotificationFrameMixin" inherits="SimplePanelTemplate" frameStrata="DIALOG" toplevel="true" movable="true" enableMouse="true" clampedToScreen="true" hidden="true" virtual="true">
+        <Size x="280" y="119"/>
+        <Anchors>
+            <Anchor point="CENTER" y="150"/>
+        </Anchors>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="HeadlineBg" file="Interface\QuestFrame\UI-QuestLogTitleHighlight" alphaMode="ADD">
+                    <Size y="26"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="40" y="-21"/>
+                        <Anchor point="TOPRIGHT" x="-40" y="-21"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="ARTWORK">
+                <FontString parentKey="Title" inherits="GameFontNormal" JustifyH="CENTER">
+                    <Size y="26"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="12" y="-21"/>
+                        <Anchor point="TOPRIGHT" x="-14" y="-21"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="AddonLabel" inherits="GameFontDarkGraySmall" JustifyH="RIGHT">
+                    <Anchors>
+                        <Anchor point="BOTTOMRIGHT" x="-7" y="5"/>
+                    </Anchors>
+                    <Color r="0.4" g="0.4" b="0.4"/>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Button parentKey="Card" inherits="InsecureActionButtonTemplate" mixin="KeystoneLootMythicPlusNotificationCardMixin">
+                <Size y="40"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="28" y="-60"/>
+                    <Anchor point="TOPRIGHT" x="-32" y="-60"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <Texture atlas="looting_itemcard_bg">
+                            <Anchors>
+                                <Anchor point="TOPLEFT"/>
+                                <Anchor point="BOTTOMRIGHT"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                    <Layer level="BORDER">
+                        <Texture atlas="looting_itemcard_stroke_normal">
+                            <Anchors>
+                                <Anchor point="TOPLEFT"/>
+                                <Anchor point="BOTTOMRIGHT"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                    <Layer level="ARTWORK" textureSubLevel="1">
+                        <Texture parentKey="Icon">
+                            <Size x="28" y="28"/>
+                            <Anchors>
+                                <Anchor point="LEFT" x="7"/>
+                            </Anchors>
+                            <TexCoords left="0.08" right="0.92" top="0.08" bottom="0.92"/>
+                        </Texture>
+                    </Layer>
+                    <Layer level="ARTWORK" textureSubLevel="2">
+                        <Texture parentKey="IconBorder" file="Interface/Buttons/UI-Quickslot2">
+                            <Size x="52" y="52"/>
+                            <Anchors>
+                                <Anchor point="CENTER" relativeKey="$parent.Icon"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                    <Layer level="ARTWORK" textureSubLevel="3">
+                        <FontString parentKey="DungeonName" inherits="GameFontHighlight" maxLines="1" JustifyH="LEFT" JustifyV="TOP">
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="40" y="-7"/>
+                            </Anchors>
+                        </FontString>
+                        <Texture parentKey="RoleIcon">
+                            <Size x="16" y="16"/>
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="38" y="-21"/>
+                            </Anchors>
+                        </Texture>
+                        <FontString parentKey="RoleText" inherits="GameFontDisableSmall" maxLines="1" JustifyH="LEFT" JustifyV="MIDDLE">
+                            <Anchors>
+                                <Anchor point="LEFT" relativeKey="$parent.RoleIcon" relativePoint="RIGHT"/>
+                                <Anchor point="RIGHT" relativeKey="$parent" x="-2"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                    <Layer level="OVERLAY">
+                        <Texture parentKey="HighlightTexture" alphaMode="ADD" atlas="looting_itemcard_stroke_clickstate" alpha="0.7" hidden="true">
+                            <Anchors>
+                                <Anchor point="TOPLEFT"/>
+                                <Anchor point="BOTTOMRIGHT"/>
+                            </Anchors>
+                        </Texture>
+                        <Texture parentKey="Error" atlas="icons_16x16_important" hidden="true">
+                            <Size x="16" y="16"/>
+                            <Anchors>
+                                <Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" x="4" y="-4"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                </Layers>
+                <Frames>
+                    <Cooldown parentKey="Cooldown" inherits="CooldownFrameTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativeKey="$parent.Icon"/>
+                            <Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon"/>
+                        </Anchors>
+                    </Cooldown>
+                </Frames>
+                <Scripts>
+                    <OnLoad method="OnLoad"/>
+                    <OnEnter method="OnEnter"/>
+                    <OnLeave method="OnLeave"/>
+                    <PreClick method="PreClick"/>
+                    <OnEvent method="OnEvent"/>
+                </Scripts>
+            </Button>
+            <Button parentKey="CloseButton" inherits="UIPanelCloseButtonDefaultAnchors"/>
+        </Frames>
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+            <OnShow method="OnShow"/>
+            <OnHide method="OnHide"/>
+            <OnDragStart method="OnDragStart"/>
+            <OnDragStop method="OnDragStop"/>
+            <OnEvent method="OnEvent"/>
+        </Scripts>
+    </Frame>
+</Ui>

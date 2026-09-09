@@ -13,6 +13,14 @@ local DIFFICULTY_MAP = {
     mythic = DifficultyUtil.ID.PrimaryRaidMythic
 };
 
+local WEAPON_SLOT = Enum.ItemSlotFilterType.MainHand;
+
+local RANGED_WEAPON_SUBCLASSES = {
+    [Enum.ItemWeaponSubclass.Bows] = true,
+    [Enum.ItemWeaponSubclass.Guns] = true,
+    [Enum.ItemWeaponSubclass.Crossbow] = true,
+};
+
 local function GetTierSortIndex(tier)
     return KeystoneLoot.Favorites.TIER_SORT_INDEX[tier] or 99;
 end
@@ -126,6 +134,38 @@ local function ItemMatchesSlot(item, slotId, slotIds, hideOtherItems)
     return item.slotId == slotId;
 end
 
+local function GetWeaponTypeFilter()
+    local weaponTypes = DB:Get("filters.weaponTypes");
+
+    if (type(weaponTypes) == "table" and next(weaponTypes)) then
+        return weaponTypes;
+    end
+
+    return nil;
+end
+
+local function ItemMatchesWeaponType(itemId, item, weaponTypes)
+    return not weaponTypes or item.slotId ~= WEAPON_SLOT or weaponTypes[Query:GetWeaponType(itemId)] == true;
+end
+
+local function ItemMatchesSpec(item, classId, specId)
+    if (not item.classes[classId]) then
+        return false;
+    end
+
+    if (specId == 0) then
+        return true;
+    end
+
+    for _, itemSpecId in ipairs(item.classes[classId]) do
+        if (itemSpecId == specId) then
+            return true;
+        end
+    end
+
+    return false;
+end
+
 function Query:GetDungeons()
     return KeystoneLoot.DungeonDatabase;
 end
@@ -143,6 +183,7 @@ function Query:GetDungeonItems(challengeModeId)
     local specId = DB:Get("filters.specId");
     local classId = DB:Get("filters.classId");
     local hideOtherItems = DB:Get("settings.hideOtherItems");
+    local weaponTypes = GetWeaponTypeFilter();
     local results = {};
 
     for _, dungeon in ipairs(self:GetDungeons()) do
@@ -150,7 +191,7 @@ function Query:GetDungeonItems(challengeModeId)
             for _, itemId in ipairs(dungeon.lootTable) do
                 local item = self:GetItemInfo(itemId);
 
-                if (item and ItemMatchesSlot(item, slotId, slotIds, hideOtherItems) and item.classes[classId]) then
+                if (item and ItemMatchesSlot(item, slotId, slotIds, hideOtherItems) and item.classes[classId] and ItemMatchesWeaponType(itemId, item, weaponTypes)) then
                     if (specId == 0) then
                         table.insert(results, { itemId = itemId, icon = item.icon });
                     else
@@ -201,6 +242,24 @@ function Query:HasDungeonSlotItems(slotId)
     return false;
 end
 
+function Query:GetDungeonWeaponTypes()
+    local specId = DB:Get("filters.specId");
+    local classId = DB:Get("filters.classId");
+    local weaponTypes = {};
+
+    for _, dungeon in ipairs(self:GetDungeons()) do
+        for _, itemId in ipairs(dungeon.lootTable) do
+            local item = self:GetItemInfo(itemId);
+
+            if (item and item.slotId == WEAPON_SLOT and ItemMatchesSpec(item, classId, specId)) then
+                weaponTypes[self:GetWeaponType(itemId)] = true;
+            end
+        end
+    end
+
+    return weaponTypes;
+end
+
 function Query:GetRaids()
     return KeystoneLoot.RaidDatabase;
 end
@@ -219,6 +278,7 @@ function Query:GetRaidItems(bossId)
     local difficultyId = self:GetRaidDifficultyId();
     local classId = DB:Get("filters.classId");
     local hideOtherItems = DB:Get("settings.hideOtherItems");
+    local weaponTypes = GetWeaponTypeFilter();
     local results = {};
 
     for _, raid in ipairs(self:GetRaids()) do
@@ -229,7 +289,7 @@ function Query:GetRaidItems(bossId)
                 for _, itemId in ipairs(loot) do
                     local item = self:GetItemInfo(itemId)
 
-                    if (item and ItemMatchesSlot(item, slotId, slotIds, hideOtherItems) and item.classes[classId]) then
+                    if (item and ItemMatchesSlot(item, slotId, slotIds, hideOtherItems) and item.classes[classId] and ItemMatchesWeaponType(itemId, item, weaponTypes)) then
                         if (specId == 0) then
                             table.insert(results, { itemId = itemId, icon = item.icon });
                         else
@@ -294,6 +354,30 @@ function Query:HasRaidSlotItems(slotId)
     return false;
 end
 
+function Query:GetRaidWeaponTypes()
+    local specId = DB:Get("filters.specId");
+    local classId = DB:Get("filters.classId");
+    local difficultyId = self:GetRaidDifficultyId();
+    local journalInstanceId = self:GetTotalRaidBosses() > 10 and DB:Get("ui.selectedRaidTab");
+    local weaponTypes = {};
+
+    for _, raid in ipairs(self:GetRaids()) do
+        if (not journalInstanceId or raid.journalInstanceId == journalInstanceId) then
+            for _, boss in ipairs(raid.bossList) do
+                for _, itemId in ipairs(boss.lootTable[difficultyId] or {}) do
+                    local item = self:GetItemInfo(itemId);
+
+                    if (item and item.slotId == WEAPON_SLOT and ItemMatchesSpec(item, classId, specId)) then
+                        weaponTypes[self:GetWeaponType(itemId)] = true;
+                    end
+                end
+            end
+        end
+    end
+
+    return weaponTypes;
+end
+
 function Query:GetRaidDifficultyId()
     return DIFFICULTY_MAP[DB:Get("filters.raid.difficulty")] or DIFFICULTY_MAP.lfr;
 end
@@ -354,6 +438,20 @@ end
 function Query:GetItemIcon(itemId)
     local _, _, _, _, icon = C_Item.GetItemInfoInstant(itemId);
     return icon;
+end
+
+function Query:GetWeaponType(itemId)
+    local _, _, _, equipLoc, _, _, subclassId = C_Item.GetItemInfoInstant(itemId);
+
+    if (subclassId == Enum.ItemWeaponSubclass.Dagger) then
+        return "dagger";
+    end
+
+    if (equipLoc == "INVTYPE_2HWEAPON" or RANGED_WEAPON_SUBCLASSES[subclassId]) then
+        return "twoHand";
+    end
+
+    return "oneHand";
 end
 
 function Query:GetItemSource(itemId)

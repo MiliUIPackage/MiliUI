@@ -9,9 +9,17 @@ local Character = KeystoneLoot.Character;
 local Query     = KeystoneLoot.Query;
 
 local SPECIAL_BONUS_IDS = {
-    [178708] = 6917, -- Unbändiger Wechselbalg
-    [178715] = 6923, -- Okarina der Nebelruferin
-    [243308] = 13503,-- Kettenstiefel des Eindringlings
+    [178708] = 6917,  -- Unbändiger Wechselbalg
+    [178715] = 6923,  -- Okarina der Nebelruferin
+    [243308] = 13503, -- Kettenstiefel des Eindringlings
+    [268215] = 13846, -- Bartaxt des abyssischen Brutunholds
+    [268202] = 13847, -- Kiefer der gefesselten Göttin
+    [268207] = 13708, -- Großbogen der ätzenden Rast
+    [271875] = 13847, -- Blick des gewundenen Wächters
+    [271874] = 13846, -- Scheußliche Gugel des Gifthüters
+    [268265] = 13987, -- Reliquiar des Aqirfluches
+    [271876] = 13846, -- Schreckenszahnkürass der Erwachten
+    [271878] = 13708, -- Beinlinge des ungebundenen Grolls
 };
 
 local ITEM_LEVEL_BONUS_IDS = {
@@ -28,13 +36,13 @@ local ITEM_LEVEL_BONUS_IDS = {
 };
 
 local BLACKLIST_ITEMS = {
-    [268280] = true
+    --[268280] = true
 };
 
 function Upgrade:IsUpgradeable(itemId)
-    local _, _, _, _, _, classId, subClassId = C_Item.GetItemInfoInstant(itemId);
+    local _, _, _, _, _, classId = C_Item.GetItemInfoInstant(itemId);
 
-    if (not classId or BLACKLIST_ITEMS[itemId] or (classId == Enum.ItemClass.Armor and subClassId == Enum.ItemArmorSubclass.Cosmetic)) then
+    if (not classId or BLACKLIST_ITEMS[itemId] or C_Item.IsCosmeticItem(itemId)) then
         return false;
     end
 

@@ -341,6 +341,10 @@ function Favorites:GetTiers(itemId)
     return tiers;
 end
 
+function Favorites:GetTierName(tier)
+    return self.TIER_NAME[tier];
+end
+
 function Favorites:GetTierIcon(tier)
     return self.TIER_TEXTURE[tier];
 end
@@ -464,6 +468,22 @@ function Favorites:Remove(itemId, specId, characterKey)
     end
 
     return removed;
+end
+
+function Favorites:Reset(characterKey)
+    characterKey = characterKey or Character:GetSelectedKey();
+    local favorites = DB:Get("favorites");
+
+    if (not favorites or not favorites[characterKey]) then
+        return false;
+    end
+
+    favorites[characterKey] = {};
+    DB:Set("favorites", favorites);
+
+    FireEvent("FAVORITES_CHANGED", characterKey);
+
+    return true;
 end
 
 function Favorites:GetTier(itemId, specId)
@@ -683,8 +703,29 @@ function Favorites:GetItemSpecs(itemId, useCurrentChar)
     return specs;
 end
 
-function Favorites:GetList(sourceId, specId)
-    local characterKey = Character:GetSelectedKey();
+function Favorites:GetItemSpecTiers(itemId, useCurrentChar)
+    local characterKey = useCurrentChar and Character:GetKey() or Character:GetSelectedKey();
+    local favorites = DB:Get("favorites");
+
+    if (not favorites or not favorites[characterKey]) then
+        return {};
+    end
+
+    local specTiers = {};
+
+    for _, sourceData in pairs(favorites[characterKey]) do
+        for specId, specData in pairs(sourceData) do
+            if (specData[itemId]) then
+                specTiers[specId] = specData[itemId].tier or self.TIER_MUST;
+            end
+        end
+    end
+
+    return specTiers;
+end
+
+function Favorites:GetList(sourceId, specId, useCurrentChar)
+    local characterKey = useCurrentChar and Character:GetKey() or Character:GetSelectedKey();
     local favorites = DB:Get("favorites");
 
     if (not favorites or not favorites[characterKey] or not favorites[characterKey][sourceId]) then
@@ -844,6 +885,7 @@ function Favorites:Import(importStr, overwrite, characterKey)
     local skippedSpecs    = false;
     local totalImported   = 0;
     local skippedExisting = 0;
+    local importedSpecId;
 
     -- Import items
     for specId, itemList in pairs(importedItems) do
@@ -865,6 +907,12 @@ function Favorites:Import(importStr, overwrite, characterKey)
 
                         self:Add(sourceId, specId, itemData.itemId, tier, itemData.bonusIds, itemData.gems, itemData.enchant, characterKey);
                         totalImported = totalImported + 1;
+
+                        if (importedSpecId == nil) then
+                            importedSpecId = specId;
+                        elseif (importedSpecId ~= specId) then
+                            importedSpecId = 0;
+                        end
                     else
                         skippedExisting = skippedExisting + 1;
                     end
@@ -878,7 +926,7 @@ function Favorites:Import(importStr, overwrite, characterKey)
     if (totalImported > 0) then
         FireEvent("FAVORITES_IMPORTED", characterKey, totalImported);
 
-        return true, totalImported, skippedSpecs;
+        return true, totalImported, skippedSpecs, importedSpecId;
     end
 
     if (skippedExisting > 0) then

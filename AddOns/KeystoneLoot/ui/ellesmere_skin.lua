@@ -64,7 +64,7 @@ local function SkinIconHolder(Holder)
 
     Holder.IconBorder:SetAlpha(0);
 
-    for _, key in ipairs({ "FavoriteIcon", "VoidcoreIcon" }) do
+    for _, key in ipairs({ "FavoriteIcon", "VoidcoreIcon", "OwnedIcon" }) do
         if (Holder[key]) then
             Holder[key]:SetDrawLayer("OVERLAY", 1);
         end
@@ -105,6 +105,7 @@ local function Apply()
     end
 
     hooksecurefunc(KeystoneLootReminderFrame, "Open", SkinWidgets);
+    SkinWidgets(KeystoneLootMythicPlusNotificationFrame);
 
     hooksecurefunc(KSLMenuStyle1Mixin, "Generate", function(Menu)
         RunNextFrame(function()
@@ -114,6 +115,7 @@ local function Apply()
 
     SkinPopupFrame(KeystoneLootReminderFrame);
     SkinPopupFrame(KeystoneLootDropNotificationFrame);
+    SkinPopupFrame(KeystoneLootMythicPlusNotificationFrame);
 end
 
 EllesmereUI.RegisterSkin(AddonName, function(S)

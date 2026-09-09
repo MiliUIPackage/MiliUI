@@ -118,7 +118,7 @@ end
 local function ToTier(tier)
     tier = tonumber(tier);
 
-    if (not tier or not Favorites.TIER_NAME[tier]) then
+    if (not tier or not Favorites:GetTierName(tier)) then
         return nil;
     end
 
@@ -155,7 +155,7 @@ local function BuildEntry(sourceId, specId, itemId, itemInfo)
         specId   = specId,
         sourceId = sourceId,
         tier     = tier,
-        tierName = Favorites.TIER_NAME[tier],
+        tierName = Favorites:GetTierName(tier),
         bonusIds = CopyTableSafe(itemInfo.bonusIds, true),
         gems     = CopyTableSafe(itemInfo.gems, true),
         enchant  = itemInfo.enchant,
@@ -177,6 +177,10 @@ function Internal.SetReady()
 
     isReady = true;
     Dispatch(API.Event.READY);
+end
+
+function Internal.RefreshUI()
+    RefreshUI();
 end
 
 function Internal.Fire(event, ...)
@@ -206,7 +210,7 @@ function API:GetTierName(tier)
         return nil;
     end
 
-    return Favorites.TIER_NAME[tier];
+    return Favorites:GetTierName(tier);
 end
 
 -- Texture path of the tier icon
@@ -248,7 +252,7 @@ function API:GetTiers(itemId)
     for _, tier in ipairs(Favorites:GetTiers(itemId)) do
         table.insert(tiers, {
             tier    = tier,
-            name    = Favorites.TIER_NAME[tier],
+            name    = Favorites:GetTierName(tier),
             texture = Favorites:GetTierIcon(tier),
         });
     end
@@ -633,7 +637,7 @@ function API:Export(characterKey)
     return exportString;
 end
 
--- Returns: success, importedCount or error message, skippedSpecs
+-- Returns: success, importedCount or error message, skippedSpecs, importedSpecId
 function API:Import(importString, overwrite, characterKey)
     characterKey = ToCharacterKey(characterKey);
 
@@ -645,13 +649,13 @@ function API:Import(importString, overwrite, characterKey)
         return false, "KeystoneLoot is not ready yet.", false;
     end
 
-    local success, result, skippedSpecs = Favorites:Import(importString, overwrite and true or false, characterKey);
+    local success, result, skippedSpecs, importedSpecId = Favorites:Import(importString, overwrite and true or false, characterKey);
 
     if (success) then
         RefreshUI();
     end
 
-    return success, result, skippedSpecs;
+    return success, result, skippedSpecs, importedSpecId;
 end
 
 -- callback(event, ...) - owner is the handle to unregister with, defaults to the callback

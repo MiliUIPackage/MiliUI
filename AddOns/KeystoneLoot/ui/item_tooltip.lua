@@ -87,23 +87,19 @@ local function OnTooltipSetItem(Tooltip)
         return;
     end
 
-    -- Get specs for item
-    local specs = Favorites:GetItemSpecs(itemId, true);
-    local classId = Character:GetCurrentClassId();
-    local totalSpecs = C_SpecializationInfo.GetNumSpecializationsForClassID(classId);
-    local specText, sourceName;
+    local specTiers = Favorites:GetItemSpecTiers(itemId, true);
+    local allSpecs = Character:GetAllSpecs();
+    local tierSpecNames = {};
+    local sourceName;
 
-    if (#specs >= totalSpecs) then
-        specText = ALL_SPECS;
-    else
-        local specNames = {};
-        for _, specId in ipairs(specs) do
-            local name = Character:GetSpecName(specId);
-            if (name ~= "") then
-                table.insert(specNames, name);
+    for _, spec in ipairs(allSpecs) do
+        local specTier = specTiers[spec.specId];
+        if (specTier) then
+            if (not tierSpecNames[specTier]) then
+                tierSpecNames[specTier] = {};
             end
+            table.insert(tierSpecNames[specTier], spec.name);
         end
-        specText = table.concat(specNames, " / ");
     end
 
     if (sourceInfo.type == "dungeon") then
@@ -118,7 +114,13 @@ local function OnTooltipSetItem(Tooltip)
 
     Tooltip:AddLine(" ");
     Tooltip:AddLine("|cff9d5db8KeystoneLoot|r");
-    Tooltip:AddLine(string.format("|T%s:16:16|t %s (%s)", Favorites:GetTierIcon(tier), Favorites.TIER_NAME[tier], specText));
+    for _, currentTier in ipairs(Favorites.TIER_ORDER) do
+        local specNames = tierSpecNames[currentTier];
+        if (specNames) then
+            local specText = #specNames >= #allSpecs and ALL_SPECS or table.concat(specNames, " / ");
+            Tooltip:AddLine(string.format("|T%s:16:16|t %s (%s)", Favorites:GetTierIcon(currentTier), Favorites:GetTierName(currentTier), specText));
+        end
+    end
 
     if (not inCorrectInstance) then
         Tooltip:AddLine(sourceName);

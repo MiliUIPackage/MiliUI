@@ -27,11 +27,18 @@ L["Item level in keystone tooltip"] = "在傳奇鑰石顯示對應等級";
 L["Favorite in item tooltip"] = "在物品提示中顯示最愛";
 L["Favorite on item icons"] = "在物品圖示上顯示最愛";
 L["Slot name on item icons"] = "在物品圖示上顯示部位";
+L["Owned in item tooltip"] = "在物品提示中顯示擁有情況";
+L["Shows in the item tooltip where the item is: equipped, bags or bank."] = "在物品提示中顯示該物品的位置：已裝備、背包或銀行。";
+L["Already shown by another addon."] = "已由其他插件顯示。";
 L['Hide "Other" in All Slots'] = "在「所有欄位」中隱藏「其他」物品";
 L["Loot reminder (dungeons)"] = "戰利品提醒（地城）";
+L["Own favorites"] = "自己的最愛";
+L["Group favorites"] = "隊伍最愛";
+L["Share favorites with group"] = "與隊伍共享最愛";
 L["Highlighting"] = "高亮顯示";
 L["No stats"] = "無屬性";
 L["Combination mode"] = "組合模式";
+L["Highlights an item only if its stats match a combination of your selection. Otherwise one matching stat is enough."] = "僅當物品的屬性與你所選屬性的組合相符時才高亮顯示。否則只需一項相符的屬性。";
 L["Export..."] = "匯出...";
 L["Import..."] = "匯入...";
 L["Export favorites of %s"] = "匯出 %s 的最愛";
@@ -48,12 +55,20 @@ L["Manage characters"] = "管理角色";
 L["Hidden"] = "已隱藏";
 L["Delete..."] = "刪除...";
 L["Delete all data for %s?"] = "刪除 %s 的所有資料？";
+L["Reset..."] = "重置...";
+L["Reset all favorites of %s?"] = "重置 %s 的所有最愛？";
+L["Removes all favorites of the selected character."] = "移除所選角色的所有最愛。";
+L["Removes the selected character and all of its data."] = "移除所選角色及其所有資料。";
 L["Cannot delete the currently logged in character."] = "無法刪除目前登入的角色。";
 L["This character is hidden."] = "此角色已被隱藏。";
 L["Wide mode"] = "寬屏模式";
-L["Drop alert (favorites)"] = "掉落提醒（最愛）";
+L["Drop notification (favorites)"] = "掉落提醒（最愛）";
 L["Reminds you on dungeon entry if your loot spec doesn't match your favorites, or if switching it could increase your chances of getting them."] = "進入地城時，若拾取專精與最愛不符或切換專精可提高獲得機率，則發出提醒。";
+L["If you have no favorites in a dungeon, shows you the loot spec that lets items drop for you which your group members have marked as favorites. Only works if other group members also have this addon."] = "當你在某地城沒有最愛時，顯示可以讓隊伍成員標記為最愛的物品掉落給你的拾取專精。僅當其他隊伍成員也安裝了此插件時才有效。";
+L["Shares your favorites with your group members so they can choose their loot spec in a way that lets your favorites drop for them."] = "與隊伍成員共享你的最愛，讓他們可以選擇能讓你的最愛物品掉落給他們的拾取專精。";
 L["Shows a notification when another player loots an item you have marked as a favorite."] = "當其他玩家拾取你標記為最愛的物品時顯示通知。";
+L["Teleport notification (Mythic+)"] = "傳送通知（傳奇+）";
+L["Shows the dungeon and your role with a teleport button when you join a Mythic+ group or the group becomes full."] = "當你加入傳奇+隊伍或隊伍滿員時，顯示地城和你的職責，並提供傳送按鈕。";
 L["Whisper message..."] = "悄悄話訊息...";
 L["Whisper message\n{item} will be replaced with the item link."] = "悄悄話訊息\n{item} 將被替換為物品連結。";
 L["Multiple slot filtering"] = "多欄位篩選";
@@ -64,7 +79,7 @@ L["Automatically responds with your current Mythic+ keystone when someone types 
 
 -- custom_item_icon.lua
 L["Custom Items"] = "自訂物品";
-L["Import items from external sources like www.keystoneloot.io"] = "從 www.keystoneloot.io 等外部來源匯入的物品";
+L["Import items from external sources like keystoneloot.io"] = "從 keystoneloot.io 等外部來源匯入的物品";
 
 -- favorites.lua
 L["No favorites found"] = "未找到最愛";
@@ -102,6 +117,11 @@ L["Ranged"] = "遠程";
 L["Ring"] = "戒指";
 L["Trinket"] = "飾品";
 
+-- owned.lua
+L["Already equipped"] = "已裝備";
+L["In your bags"] = "在背包中";
+L["In your bank"] = "在銀行中";
+
 -- copy_popup.lua
 L["Press CTRL+C to copy"] = "按 CTRL+C 複製";
 
@@ -110,6 +130,8 @@ L["Correct loot specialization set?"] = "戰利品專精的設定是否正確？
 L["+1 item dropping for all specs."] = "+1 件物品對所有專精掉落。";
 L["+%d items dropping for all specs."] = "+%d 件物品對所有專精掉落。";
 L["%s has a smaller loot pool than %s"] = "%s的戰利品池比%s更小。";
+L["Your group needs loot from here"] = "你的隊伍需要這裡的戰利品";
+L["Wanted by %s"] = "%s想要";
 
 -- minimap_button.lua
 L["Left click: Open overview"] = "左鍵點擊：開啟概覽";
@@ -118,6 +140,10 @@ L["Left click: Open overview"] = "左鍵點擊：開啟概覽";
 L["Voidcore used"] = "已用虛無之核骰出";
 -- drop_notification_frame.lua
 L["Favorite dropped!"] = "最愛物品已掉落！";
+
+-- mythicplus_notification_frame.lua
+L["Mythic+ group joined!"] = "已加入傳奇+隊伍！";
+L["Group is full!"] = "隊伍已滿員！";
 
 -- whisper_button.lua
 L["Text can be modified in the settings."] = "可在設定中修改文字。";
@@ -128,3 +154,6 @@ L["Rescan bonus rolls"] = "重新掃描額外擲骰";
 L["Checking for past bonus rolls (one time)..."] = "正在檢查過去的額外擲骰（單次）...";
 L["%d past |4bonus roll:bonus rolls; detected."] = "偵測到 %d 次過去的額外擲骰。";
 L["No untracked bonus rolls found."] = "未發現未記錄的額外擲骰。";
+
+-- bindings.lua
+L["Toggle Window"] = "開啟/關閉視窗";

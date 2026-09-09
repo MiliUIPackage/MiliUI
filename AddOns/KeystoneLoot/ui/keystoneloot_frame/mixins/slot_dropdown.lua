@@ -21,6 +21,15 @@ local SLOTS = {
     EJ_LOOT_SLOT_FILTER_OTHER
 };
 
+local WEAPON_SLOT = Enum.ItemSlotFilterType.MainHand;
+
+local WEAPON_TYPES = { "dagger", "oneHand", "twoHand" };
+local WEAPON_TYPE_NAME = {
+    dagger  = C_Item.GetItemSubClassInfo(Enum.ItemClass.Weapon, Enum.ItemWeaponSubclass.Dagger),
+    oneHand = INVTYPE_WEAPON,
+    twoHand = INVTYPE_2HWEAPON,
+};
+
 KeystoneLootSlotDropdownMixin = {};
 
 local function GetSelectedSlots()
@@ -80,6 +89,30 @@ local function GetSelectedSlotCount(selectedSlots)
     return count;
 end
 
+local function GetSelectedWeaponTypes()
+    local weaponTypes = DB:Get("filters.weaponTypes");
+
+    if (type(weaponTypes) == "table") then
+        return weaponTypes;
+    end
+
+    return {};
+end
+
+local function GetSlotName(slotId)
+    if (slotId == WEAPON_SLOT) then
+        local selectedWeaponTypes = GetSelectedWeaponTypes();
+
+        for _, weaponType in ipairs(WEAPON_TYPES) do
+            if (selectedWeaponTypes[weaponType]) then
+                return WEAPON_TYPE_NAME[weaponType];
+            end
+        end
+    end
+
+    return SLOTS[slotId + 1];
+end
+
 function KeystoneLootSlotDropdownMixin:Init()
     self:SetSelectionText(function(selections)
         local slotId = DB:Get("filters.slotId");
@@ -93,7 +126,7 @@ function KeystoneLootSlotDropdownMixin:Init()
         end
 
         if (not DB:Get("settings.multiSlotFilter")) then
-            return SLOTS[slotId + 1];
+            return GetSlotName(slotId);
         end
 
         local selectedSlots = GetSelectedSlots();
@@ -121,11 +154,13 @@ function KeystoneLootSlotDropdownMixin:Init()
 
         local function SetSpecialSelected(data)
             DB:Set("filters.slotIds", {});
+            DB:Set("filters.weaponTypes", {});
             DB:Set("filters.slotId", data.slotId);
         end
 
         local function SetSlotSelected(data)
             DB:Set("filters.slotIds", {});
+            DB:Set("filters.weaponTypes", {});
             DB:Set("filters.slotId", data.slotId);
         end
 
@@ -142,6 +177,10 @@ function KeystoneLootSlotDropdownMixin:Init()
             local selectedSlots = GetSelectedSlots();
             selectedSlots[data.slotId] = not selectedSlots[data.slotId] or nil;
 
+            if (data.slotId == WEAPON_SLOT) then
+                DB:Set("filters.weaponTypes", {});
+            end
+
             if (HasSelectedSlot(selectedSlots)) then
                 DB:Set("filters.slotIds", selectedSlots);
                 DB:Set("filters.slotId", GetFirstSelectedSlot(selectedSlots));
@@ -151,9 +190,33 @@ function KeystoneLootSlotDropdownMixin:Init()
             end
         end
 
+        local function IsWeaponTypeSelected(weaponType)
+            return IsSlotSelected({ slotId = WEAPON_SLOT }) and GetSelectedWeaponTypes()[weaponType] == true;
+        end
+
+        local function SetWeaponTypeSelected(weaponType)
+            DB:Set("filters.slotIds", {});
+            DB:Set("filters.weaponTypes", { [weaponType] = true });
+            DB:Set("filters.slotId", WEAPON_SLOT);
+        end
+
+        local function ToggleWeaponType(weaponType)
+            local selectedSlots = GetSelectedSlots();
+            selectedSlots[WEAPON_SLOT] = true;
+
+            local selectedWeaponTypes = GetSelectedWeaponTypes();
+            selectedWeaponTypes[weaponType] = not selectedWeaponTypes[weaponType] or nil;
+
+            DB:Set("filters.slotIds", selectedSlots);
+            DB:Set("filters.weaponTypes", selectedWeaponTypes);
+            DB:Set("filters.slotId", GetFirstSelectedSlot(selectedSlots));
+        end
+
         rootDescription:CreateRadio(FAVORITES, IsSpecialSelected, SetSpecialSelected, { slotId = -1 });
         rootDescription:CreateDivider();
         rootDescription:CreateRadio(ALL_INVENTORY_SLOTS, IsSpecialSelected, SetSpecialSelected, { slotId = -2 });
+
+        local weaponTypes = self:GetWeaponTypes();
 
         for index, slotName in ipairs(SLOTS) do
             local slotId = index - 1; -- 0-based
@@ -170,11 +233,38 @@ function KeystoneLootSlotDropdownMixin:Init()
                 checkbox:SetTooltip(function(Tooltip, elementDescription)
                     GameTooltip_AddColoredLine(Tooltip, BROWSE_NO_RESULTS, RED_FONT_COLOR);
                 end);
+            elseif (slotId == WEAPON_SLOT and next(weaponTypes)) then
+                checkbox:SetShouldRespondIfSubmenu(true);
+
+                for _, weaponType in ipairs(WEAPON_TYPES) do
+                    if (weaponTypes[weaponType]) then
+                        if (DB:Get("settings.multiSlotFilter")) then
+                            checkbox:CreateCheckbox(WEAPON_TYPE_NAME[weaponType], IsWeaponTypeSelected, ToggleWeaponType, weaponType);
+                        else
+                            checkbox:CreateRadio(WEAPON_TYPE_NAME[weaponType], IsWeaponTypeSelected, SetWeaponTypeSelected, weaponType);
+                        end
+                    end
+                end
             end
         end
     end);
 
     local function OnChanged()
+        local weaponTypes = self:GetWeaponTypes();
+        local selectedWeaponTypes = GetSelectedWeaponTypes();
+        local removedWeaponType = false;
+
+        for weaponType in pairs(selectedWeaponTypes) do
+            if (not weaponTypes[weaponType]) then
+                selectedWeaponTypes[weaponType] = nil;
+                removedWeaponType = true;
+            end
+        end
+
+        if (removedWeaponType) then
+            DB:Set("filters.weaponTypes", selectedWeaponTypes);
+        end
+
         -- Check if current slot still has items
         local currentSlot = DB:Get("filters.slotId");
 
@@ -215,6 +305,11 @@ function KeystoneLootSlotDropdownMixin:Init()
     DB:AddObserver("ui.selectedRaidTab", OnChanged);
     DB:AddObserver("filters.specId", OnChanged);
     DB:AddObserver("settings.multiSlotFilter", OnChanged);
+    DB:AddObserver("filters.slotId", function()
+        if (not self:IsMenuOpen()) then
+            self:GenerateMenu();
+        end
+    end);
 end
 
 function KeystoneLootSlotDropdownMixin:SlotHasItems(slotId)
@@ -225,4 +320,26 @@ function KeystoneLootSlotDropdownMixin:SlotHasItems(slotId)
     end
 
     return Query:HasRaidSlotItems(slotId);
+end
+
+function KeystoneLootSlotDropdownMixin:GetWeaponTypes()
+    local selectedTab = DB:Get("ui.selectedTab");
+    local weaponTypes;
+
+    if (selectedTab == "dungeons") then
+        weaponTypes = Query:GetDungeonWeaponTypes();
+    else
+        weaponTypes = Query:GetRaidWeaponTypes();
+    end
+
+    local count = 0;
+    for _ in pairs(weaponTypes) do
+        count = count + 1;
+    end
+
+    if (count < 2) then
+        return {};
+    end
+
+    return weaponTypes;
 end

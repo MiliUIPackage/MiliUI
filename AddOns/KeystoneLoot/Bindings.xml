@@ -1,0 +1,5 @@
+<Bindings>
+    <Binding name="KEYSTONELOOT_TOGGLE" category="BINDING_HEADER_KEYSTONELOOT">
+        KeystoneLootFrame:SetShown(not KeystoneLootFrame:IsShown());
+    </Binding>
+</Bindings>

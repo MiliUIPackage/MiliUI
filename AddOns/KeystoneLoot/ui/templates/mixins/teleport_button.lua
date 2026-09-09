@@ -77,6 +77,8 @@ function KeystoneLootTeleportButtonMixin:OnEvent()
     self:UnregisterAllEvents();
     self:SetAttribute("type", "spell");
     self:SetAttribute("spell", self.teleportSpellId);
+    self:Enable();
+    self:UpdateCooldown();
 end
 
 function KeystoneLootTeleportButtonMixin:UpdateCooldown()

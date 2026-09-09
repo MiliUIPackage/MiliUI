@@ -8,7 +8,7 @@ local Keystone = KeystoneLoot.Keystone;
 local CopyPopup = KeystoneLoot.CopyPopup;
 local L = KeystoneLoot.L;
 
-local WEBSITE_URL = "www.keystoneloot.io";
+local WEBSITE_URL = "keystoneloot.io";
 
 local isResponsePaused = false;
 
@@ -30,7 +30,7 @@ function KeystoneLootFrameMixin:OnLoad()
     self.FooterText:SetText("Made with LOVE in Germany - " .. website);
 
     self.FooterButton:SetScript("OnClick", function()
-        CopyPopup:Show(WEBSITE_URL);
+        CopyPopup:Show("https://" .. WEBSITE_URL);
     end);
 
     table.insert(UISpecialFrames, self:GetName());
@@ -53,6 +53,9 @@ end
 function KeystoneLootFrameMixin:OnEvent(event, ...)
     if (event == "ACTIVE_TALENT_GROUP_CHANGED") then
         self:SyncSpecFilter();
+        return;
+    elseif (event == "BAG_UPDATE_DELAYED" or event == "PLAYER_EQUIPMENT_CHANGED") then
+        self:RefreshOwnedIcons();
         return;
     elseif (event == "BONUS_ROLL_RESULT") then
         local rewardType, rewardLink = ...;
@@ -153,12 +156,26 @@ function KeystoneLootFrameMixin:SetTab(tabId)
     self:RefreshSize(tabId);
 end
 
+function KeystoneLootFrameMixin:RefreshOwnedIcons()
+    for _, Frame in ipairs({ self.DungeonsFrame, self.RaidsFrame, self.CatalystFrame, self.CustomItemFrame }) do
+        Frame:RefreshOwnedIcons();
+    end
+end
+
 function KeystoneLootFrameMixin:OnShow()
     PlaySound(SOUNDKIT.IG_QUEST_LIST_OPEN);
+
+    self:RegisterEvent("BAG_UPDATE_DELAYED");
+    self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED");
+
+    self:RefreshOwnedIcons();
 end
 
 function KeystoneLootFrameMixin:OnHide()
     PlaySound(SOUNDKIT.IG_QUEST_LOG_CLOSE);
+
+    self:UnregisterEvent("BAG_UPDATE_DELAYED");
+    self:UnregisterEvent("PLAYER_EQUIPMENT_CHANGED");
 end
 
 function KeystoneLootFrameMixin:OnDragStart()

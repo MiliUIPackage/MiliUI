@@ -20,6 +20,7 @@ function KeystoneLootDropNotificationFrameMixin:OnLoad()
     self.Bg:SetPoint("BOTTOMRIGHT", -4, 3);
     self.HeadlineBg:SetVertexColor(0.1, 0.1, 0.1, 1);
     self.Title:SetText(L["Favorite dropped!"]);
+    self.AddonLabel:SetText(AddonName);
 
     self.drops   = {};
     self.rowPool = CreateFramePool("Button", self, "KeystoneLootDropNotificationRowTemplate");

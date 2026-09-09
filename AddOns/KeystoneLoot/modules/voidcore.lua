@@ -23,7 +23,11 @@ local MIRROR_ITEMS = {
 
 local EXCLUDED_ITEMS = {
     [151299] = true, -- Not in the bonus roll chest - Blizzard bug?
-    [260235] = true  -- Umbralfeder
+    [260235] = true, -- Umbralfeder
+    [258045] = true, -- Dämmerklinges Gleven
+    [281227] = true, -- Rush'kah des Seelenwinders
+    [275937] = true, -- Antlitz des Hexlords
+    [275938] = true, -- Blick des Hexfürsten
 };
 
 local function MatchesSpec(item, classId, specId)
@@ -64,6 +68,10 @@ end
 function Voidcore:IsEligible(itemId)
     local item = Query:GetItemInfo(itemId);
     if (not item) then
+        return false;
+    end
+
+    if (EXCLUDED_ITEMS[itemId]) then
         return false;
     end
 
@@ -136,7 +144,7 @@ function Voidcore:GetSourceItems(chestItemId, specId)
     local results = {};
 
     for _, itemId in ipairs(lootTable) do
-        if (not EXCLUDED_ITEMS[itemId] and self:IsEligible(itemId)) then
+        if (self:IsEligible(itemId)) then
             local item = Query:GetItemInfo(itemId);
             if (item and MatchesSpec(item, classId, specId)) then
                 table.insert(results, itemId);

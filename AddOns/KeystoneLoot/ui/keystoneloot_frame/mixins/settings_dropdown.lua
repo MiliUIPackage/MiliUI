@@ -5,6 +5,9 @@ local Favorites = KeystoneLoot.Favorites;
 local Character = KeystoneLoot.Character;
 local L = KeystoneLoot.L;
 local Voidcore = KeystoneLoot.Voidcore;
+local Owned = KeystoneLoot.Owned;
+
+local NORMAL_R, NORMAL_G, NORMAL_B = NORMAL_FONT_COLOR:GetRGB();
 
 local HIGHLIGHTS = {
     { key = "settings.highlighting.crit",        label = ITEM_MOD_CRIT_RATING_SHORT },
@@ -30,7 +33,21 @@ local function GetColoredCharacterLabel(data)
     return classColor:WrapTextInColorCode(data.name);
 end
 
-local function HandleImportResult(success, result, skippedSpecs, overwrite)
+local function SetTooltip(description, text)
+    description:SetTooltip(function(Tooltip)
+        Tooltip:AddLine(text, NORMAL_R, NORMAL_G, NORMAL_B, true);
+    end);
+end
+
+local function CreateSettingCheckbox(description, label, key)
+    return description:CreateCheckbox(
+        label,
+        function() return DB:Get(key); end,
+        function() DB:Set(key, not DB:Get(key)); end
+    );
+end
+
+local function HandleImportResult(success, result, skippedSpecs, overwrite, importedSpecId)
     if (skippedSpecs) then
         print(RED_FONT_COLOR:WrapTextInColorCode(L["Some specs were skipped - import string belongs to a different class."]));
     end
@@ -39,6 +56,13 @@ local function HandleImportResult(success, result, skippedSpecs, overwrite)
         if (result > 0) then
             local suffix = overwrite and L[" (overwritten)"] or "";
             print(YELLOW_FONT_COLOR:WrapTextInColorCode(string.format(L["%d |4favorite:favorites; imported%s."], result, suffix)));
+
+            local info = Character:ParseKey(Character:GetSelectedKey());
+            if (info) then
+                DB:Set("filters.classId", info.classId);
+            end
+
+            DB:Set("filters.specId", importedSpecId);
             DB:Set("filters.slotId", -1);
         else
             print(YELLOW_FONT_COLOR:WrapTextInColorCode(L["All items are already in your favorites."]));
@@ -72,6 +96,20 @@ StaticPopupDialogs.KEYSTONELOOT_DELETE_CHARACTER = {
     hideOnEscape = true
 };
 
+StaticPopupDialogs.KEYSTONELOOT_RESET_CHARACTER = {
+    text = L["Reset all favorites of %s?"],
+    button1 = RESET,
+    button2 = CANCEL,
+    OnAccept = function(self, data)
+        if (Favorites:Reset(data.key)) then
+            KeystoneLoot.APIInternal.RefreshUI();
+        end
+    end,
+    timeout = 0,
+    exclusive = true,
+    whileDead = true,
+    hideOnEscape = true
+};
 
 StaticPopupDialogs.KEYSTONELOOT_EXPORT = {
     text = L["Export favorites of %s"],
@@ -104,13 +142,13 @@ StaticPopupDialogs.KEYSTONELOOT_IMPORT = {
     maxLetters = 0,
     OnAccept = function(self)
         local text = self:GetEditBox():GetText();
-        local success, result, skippedSpecs = Favorites:Import(text, false);
-        HandleImportResult(success, result, skippedSpecs, false);
+        local success, result, skippedSpecs, importedSpecId = Favorites:Import(text, false);
+        HandleImportResult(success, result, skippedSpecs, false, importedSpecId);
     end,
     OnCancel = function(self)
         local text = self:GetEditBox():GetText();
-        local success, result, skippedSpecs = Favorites:Import(text, true);
-        HandleImportResult(success, result, skippedSpecs, true);
+        local success, result, skippedSpecs, importedSpecId = Favorites:Import(text, true);
+        HandleImportResult(success, result, skippedSpecs, true, importedSpecId);
     end,
     OnHide = function(self, data)
         ChatFrameUtil.FocusActiveWindow();
@@ -155,12 +193,11 @@ function KeystoneLootSettingsDropdownMixin:Init()
     self:SetupMenu(function(dropdown, rootDescription)
         rootDescription:SetTag("MENU_KEYSTONELOOT_SETTINGS_DROPDOWN");
 
-        -- General
-        rootDescription:CreateTitle(GENERAL);
+        local generalMenu = rootDescription:CreateButton(GENERAL);
 
         local LDBIcon = LibStub and LibStub('LibDBIcon-1.0', true);
         if (LDBIcon) then
-            rootDescription:CreateCheckbox(
+            generalMenu:CreateCheckbox(
                 L["Minimap button"],
                 function() return not DB:Get("settings.minimap.hide"); end,
                 function()
@@ -174,58 +211,64 @@ function KeystoneLootSettingsDropdownMixin:Init()
                 end
             );
         else
-            rootDescription:CreateCheckbox(
-                L["Minimap button"],
-                function() return DB:Get("settings.minimap.enabled"); end,
-                function() DB:Set("settings.minimap.enabled", not DB:Get("settings.minimap.enabled")); end
-            );
+            CreateSettingCheckbox(generalMenu, L["Minimap button"], "settings.minimap.enabled");
         end
 
-        rootDescription:CreateCheckbox(
-            L["Item level in keystone tooltip"],
-            function() return DB:Get("settings.keystoneTooltip"); end,
-            function() DB:Set("settings.keystoneTooltip", not DB:Get("settings.keystoneTooltip")); end
-        );
-        rootDescription:CreateCheckbox(
-            L["Favorite in item tooltip"],
-            function() return DB:Get("settings.favoriteTooltip"); end,
-            function() DB:Set("settings.favoriteTooltip", not DB:Get("settings.favoriteTooltip")); end
-        );
-        rootDescription:CreateCheckbox(
-            L["Favorite on item icons"],
-            function() return DB:Get("settings.favoriteIcon"); end,
-            function() DB:Set("settings.favoriteIcon", not DB:Get("settings.favoriteIcon")); end
-        );
-        rootDescription:CreateCheckbox(
-            L["Slot name on item icons"],
-            function() return DB:Get("settings.slotName"); end,
-            function() DB:Set("settings.slotName", not DB:Get("settings.slotName")); end
-        );
-        rootDescription:CreateCheckbox(
-            L['Hide "Other" in All Slots'],
-            function() return DB:Get("settings.hideOtherItems"); end,
-            function() DB:Set("settings.hideOtherItems", not DB:Get("settings.hideOtherItems")); end
-        );
-        rootDescription:CreateCheckbox(
-            L["Multiple slot filtering"],
-            function() return DB:Get("settings.multiSlotFilter"); end,
-            function() DB:Set("settings.multiSlotFilter", not DB:Get("settings.multiSlotFilter")); end
-        );
-        rootDescription:CreateCheckbox(
-            L["Wide mode"],
-            function() return DB:Get("settings.wideMode"); end,
-            function() DB:Set("settings.wideMode", not DB:Get("settings.wideMode")); end
+        generalMenu:CreateDivider();
+        CreateSettingCheckbox(generalMenu, L["Item level in keystone tooltip"], "settings.keystoneTooltip");
+        CreateSettingCheckbox(generalMenu, L["Favorite in item tooltip"], "settings.favoriteTooltip");
+        CreateSettingCheckbox(generalMenu, L["Favorite on item icons"], "settings.favoriteIcon");
+        CreateSettingCheckbox(generalMenu, L["Slot name on item icons"], "settings.slotName");
+
+        local ownedTooltipCheckbox = generalMenu:CreateCheckbox(
+            L["Owned in item tooltip"],
+            function() return not Owned:IsBagSyncLoaded() and DB:Get("settings.ownedTooltip"); end,
+            function() DB:Set("settings.ownedTooltip", not DB:Get("settings.ownedTooltip")); end
         );
 
-        local rescanButton = rootDescription:CreateButton(L["Rescan bonus rolls"], function()
+        if (Owned:IsBagSyncLoaded()) then
+            ownedTooltipCheckbox:SetEnabled(false);
+            SetTooltip(ownedTooltipCheckbox, L["Already shown by another addon."]);
+        else
+            SetTooltip(ownedTooltipCheckbox, L["Shows in the item tooltip where the item is: equipped, bags or bank."]);
+        end
+
+        generalMenu:CreateDivider();
+        CreateSettingCheckbox(generalMenu, L['Hide "Other" in All Slots'], "settings.hideOtherItems");
+        CreateSettingCheckbox(generalMenu, L["Multiple slot filtering"], "settings.multiSlotFilter");
+        CreateSettingCheckbox(generalMenu, L["Wide mode"], "settings.wideMode");
+
+        generalMenu:CreateDivider();
+        local rescanButton = generalMenu:CreateButton(L["Rescan bonus rolls"], function()
             Voidcore:CheckAll(true);
         end);
         rescanButton:SetEnabled(UnitLevel("player") == 90);
 
-        local responseButton = rootDescription:CreateButton(L["Auto Keystone response"]);
-        responseButton:SetTooltip(function(Tooltip)
-            GameTooltip_AddNormalLine(Tooltip, L["Automatically responds with your current Mythic+ keystone when someone types \"!keys\" in the selected chat channels. Only works if other group members also have this addon."], true);
+        local notificationMenu = rootDescription:CreateButton(COMMUNITIES_NOTIFICATION_SETTINGS);
+
+        local lootReminderMenu = notificationMenu:CreateButton(L["Loot reminder (dungeons)"]);
+
+        local ownReminderCheckbox = CreateSettingCheckbox(lootReminderMenu, L["Own favorites"], "settings.lootReminder.dungeons");
+        SetTooltip(ownReminderCheckbox, L["Reminds you on dungeon entry if your loot spec doesn't match your favorites, or if switching it could increase your chances of getting them."]);
+
+        local partyReminderCheckbox = CreateSettingCheckbox(lootReminderMenu, L["Group favorites"], "settings.lootReminder.party");
+        SetTooltip(partyReminderCheckbox, L["If you have no favorites in a dungeon, shows you the loot spec that lets items drop for you which your group members have marked as favorites. Only works if other group members also have this addon."]);
+
+        local shareFavoritesCheckbox = CreateSettingCheckbox(lootReminderMenu, L["Share favorites with group"], "settings.lootReminder.share");
+        SetTooltip(shareFavoritesCheckbox, L["Shares your favorites with your group members so they can choose their loot spec in a way that lets your favorites drop for them."]);
+
+        local mythicPlusNotificationCheckbox = CreateSettingCheckbox(notificationMenu, L["Teleport notification (Mythic+)"], "settings.mythicPlusNotification");
+        SetTooltip(mythicPlusNotificationCheckbox, L["Shows the dungeon and your role with a teleport button when you join a Mythic+ group or the group becomes full."]);
+
+        local dropAlertCheckbox = CreateSettingCheckbox(notificationMenu, L["Drop notification (favorites)"], "settings.lootReminder.dropAlert");
+        SetTooltip(dropAlertCheckbox, L["Shows a notification when another player loots an item you have marked as a favorite."]);
+
+        notificationMenu:CreateButton(L["Whisper message..."], function()
+            StaticPopup_Show("KEYSTONELOOT_WHISPER_MESSAGE");
         end);
+
+        local responseButton = rootDescription:CreateButton(L["Auto Keystone response"]);
+        SetTooltip(responseButton, L["Automatically responds with your current Mythic+ keystone when someone types \"!keys\" in the selected chat channels. Only works if other group members also have this addon."]);
 
         responseButton:CreateCheckbox(
             L["Enable party chat"],
@@ -236,12 +279,7 @@ function KeystoneLootSettingsDropdownMixin:Init()
                 DB:Set("settings.keyCommand.CHAT_MSG_PARTY_LEADER", responseToggle);
             end
         );
-
-        responseButton:CreateCheckbox(
-            L["Enable guild chat"],
-            function() return DB:Get("settings.keyCommand.CHAT_MSG_GUILD"); end,
-            function() DB:Set("settings.keyCommand.CHAT_MSG_GUILD", not DB:Get("settings.keyCommand.CHAT_MSG_GUILD")); end
-        );
+        CreateSettingCheckbox(responseButton, L["Enable guild chat"], "settings.keyCommand.CHAT_MSG_GUILD");
 
         local manageButton = rootDescription:CreateButton(L["Manage characters"]);
         local extent = 20;
@@ -251,7 +289,13 @@ function KeystoneLootSettingsDropdownMixin:Init()
 
         for _, data in ipairs(Character:GetAllCharacters(true)) do
             local isLoggedInChar = data.key == Character:GetKey();
-            local charLabel = string.format(LFG_LIST_TOOLTIP_CLASS_ROLE, GetColoredCharacterLabel(data), data.realm);
+            local charLabel;
+            if (data.isHidden) then
+                charLabel = DISABLED_FONT_COLOR:WrapTextInColorCode(string.format(LFG_LIST_TOOLTIP_CLASS_ROLE, data.name, data.realm));
+            else
+                charLabel = string.format(LFG_LIST_TOOLTIP_CLASS_ROLE, GetColoredCharacterLabel(data), data.realm);
+            end
+
             local charSubmenu = manageButton:CreateButton(charLabel);
 
             charSubmenu:CreateCheckbox(
@@ -273,59 +317,33 @@ function KeystoneLootSettingsDropdownMixin:Init()
 
             if (isLoggedInChar) then
                 deleteButton:SetEnabled(false);
-                deleteButton:SetTooltip(function(Tooltip, elementDescription)
-                    Tooltip:SetText(L["Cannot delete the currently logged in character."]);
-                end);
+                SetTooltip(deleteButton, L["Cannot delete the currently logged in character."]);
+            else
+                SetTooltip(deleteButton, L["Removes the selected character and all of its data."]);
             end
         end
 
-        -- Notifications
-        rootDescription:CreateTitle(COMMUNITIES_NOTIFICATION_SETTINGS);
-        local lootReminderCheckbox = rootDescription:CreateCheckbox(
-            L["Loot reminder (dungeons)"],
-            function() return DB:Get("settings.lootReminder.dungeons"); end,
-            function() DB:Set("settings.lootReminder.dungeons", not DB:Get("settings.lootReminder.dungeons")); end
-        );
-        lootReminderCheckbox:SetTooltip(function(Tooltip, elementDescription)
-            GameTooltip_AddNormalLine(Tooltip, L["Reminds you on dungeon entry if your loot spec doesn't match your favorites, or if switching it could increase your chances of getting them."], true);
-        end);
+        rootDescription:CreateDivider();
 
-        local dropAlertCheckbox = rootDescription:CreateCheckbox(
-            L["Drop alert (favorites)"],
-            function() return DB:Get("settings.lootReminder.dropAlert"); end,
-            function() DB:Set("settings.lootReminder.dropAlert", not DB:Get("settings.lootReminder.dropAlert")); end
-        );
-        dropAlertCheckbox:SetTooltip(function(Tooltip, elementDescription)
-            GameTooltip_AddNormalLine(Tooltip, L["Shows a notification when another player loots an item you have marked as a favorite."], true);
-        end);
-
-        rootDescription:CreateButton(L["Whisper message..."], function()
-            StaticPopup_Show("KEYSTONELOOT_WHISPER_MESSAGE");
-        end);
-
-        -- Highlights
         rootDescription:CreateTitle(L["Highlighting"]);
         for _, entry in ipairs(HIGHLIGHTS) do
-            local key = entry.key;
-            local checkbox = rootDescription:CreateCheckbox(
-                entry.label,
-                function() return DB:Get(key); end,
-                function() DB:Set(key, not DB:Get(key)); end
-            );
+            local checkbox = CreateSettingCheckbox(rootDescription, entry.label, entry.key);
 
-            if (key == "settings.highlighting.noStats") then
+            if (entry.key == "settings.highlighting.noStats") then
                 checkbox:SetEnabled(not DB:Get("settings.highlighting.comboMode"));
             end
         end
-        rootDescription:CreateCheckbox(
+
+        local comboModeCheckbox = rootDescription:CreateCheckbox(
             L["Combination mode"],
             function() return DB:Get("settings.highlighting.comboMode"); end,
             function()
-                DB:Set("settings.highlighting.comboMode", not DB:Get("settings.highlighting.comboMode")); self:GenerateMenu();
+                DB:Set("settings.highlighting.comboMode", not DB:Get("settings.highlighting.comboMode"));
+                self:GenerateMenu();
             end
         );
+        SetTooltip(comboModeCheckbox, L["Highlights an item only if its stats match a combination of your selection. Otherwise one matching stat is enough."]);
 
-        -- Favorites
         rootDescription:CreateTitle(FAVORITES);
         rootDescription:CreateButton(L["Export..."], function()
             StaticPopup_Show("KEYSTONELOOT_EXPORT", GetColoredCharacterName());
@@ -333,5 +351,10 @@ function KeystoneLootSettingsDropdownMixin:Init()
         rootDescription:CreateButton(L["Import..."], function()
             StaticPopup_Show("KEYSTONELOOT_IMPORT", GetColoredCharacterName());
         end);
+
+        local resetButton = rootDescription:CreateButton(L["Reset..."], function()
+            StaticPopup_Show("KEYSTONELOOT_RESET_CHARACTER", GetColoredCharacterName(), nil, { key = Character:GetSelectedKey() });
+        end);
+        SetTooltip(resetButton, L["Removes all favorites of the selected character."]);
     end);
 end
