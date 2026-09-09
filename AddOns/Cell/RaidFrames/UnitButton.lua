@@ -172,13 +172,11 @@ local indicatorNums, indicatorBooleans, indicatorColors, indicatorCustoms = {}, 
 -- raid debuffs, tank mitigation, missing buffs, private auras) are covered twice over --
 -- HandleBuff/HandleDebuff never file anything for these buttons, and the containers
 -- themselves are hidden by UpdateIndicatorParentVisibility below.
---! HEALTH_TEXT_DROP: the health % sits directly under the name on a target button and the
---! two crowd each other -- a member frame has a role icon and a leader icon holding that row
---! open, this one has neither. NPC_GREEN is what Cell paints a friendly NPC, used as the
---! fallback when a palette key is missing.
+--! HEALTH_TEXT_GAP: how far the health % floats above the name. NPC_GREEN is what Cell
+--! paints a friendly NPC, used as the fallback when a palette key is missing.
 --! (One table rather than two locals: this file's main chunk is near Lua's 200-local ceiling.)
 local PARTY_TARGET = {
-    HEALTH_TEXT_DROP = 4,
+    HEALTH_TEXT_GAP = 2,
     NPC_GREEN = {0, 1, 0.2},
 }
 
@@ -322,11 +320,7 @@ local function HandleIndicators(b)
             else
                 P.ClearPoints(indicator)
                 local relativeTo = t["position"][2] == "healthBar" and b.widgets.healthBar or b
-                local y = t["position"][5]
-                if b.isPartyTarget and t["indicatorName"] == "healthText" then -- fix from MiliUI
-                    y = (y or 0) - PARTY_TARGET.HEALTH_TEXT_DROP
-                end
-                P.Point(indicator, t["position"][1], relativeTo, t["position"][3], t["position"][4], y)
+                P.Point(indicator, t["position"][1], relativeTo, t["position"][3], t["position"][4], t["position"][5])
             end
         end
         -- update anchor
@@ -563,6 +557,18 @@ local function HandleIndicators(b)
             if not PARTY_TARGET_INDICATORS[name] and indicator.Hide then
                 indicator:Hide()
             end
+        end
+
+        --! The health % goes ABOVE the name, and is anchored to the NAME rather than to the
+        --! button: wherever the layout puts the name, the pair travels together and stays
+        --! centred on it. Anchored to the FONT STRING, not to the frame around it, so the
+        --! gap is measured from the drawn text rather than from whatever box holds it.
+        --! Done here, after the config loop, because that loop walks b._config in hash order
+        --! -- nameText may not exist yet while healthText is being placed.
+        local healthText, nameText = b.indicators.healthText, b.indicators.nameText
+        if healthText and nameText and nameText.name then
+            P.ClearPoints(healthText)
+            P.Point(healthText, "BOTTOM", nameText.name, "TOP", 0, PARTY_TARGET.HEALTH_TEXT_GAP)
         end
     end
 
