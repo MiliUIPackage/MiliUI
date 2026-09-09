@@ -135,6 +135,26 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 - 配方的 `reagents` 是空的要在列上明講（「沒有材料」＋提示重加）。這種資料是
   舊版本的 bug 留下來的，不講的話玩家只看到採購表少一半、無從查起。
 
+## ⚠ 拍賣場的購買 API 有硬體事件閘（2026-09-09 實測）
+
+`C_AuctionHouse.StartCommoditiesPurchase` / `ConfirmCommoditiesPurchase` 是保護函式，
+**只有在玩家「這一下點擊」的執行流裡呼叫才放行**。從事件處理器裡呼叫會被擋下，
+聊天列跳 `ADDON_ACTION_BLOCKED: StartCommoditiesPurchase() (combat=false)`。
+
+症狀很容易誤判成「有時候會成功」：直接按購買那次是有點擊的，所以成交；
+被擋的是插件自己接下去的那一步。兩條都中招過：
+
+- 搜尋結果回來 → 自動接著問價（`COMMODITY_SEARCH_RESULTS_UPDATED` 處理器內）
+- 上一筆買完 → 自動買下一筆（`COMMODITY_PURCHASE_SUCCEEDED` 處理器內）
+
+**所以「一鍵買完整張清單」做不到，這是規則不是偷懶。** 現在的設計是照這個限制長的：
+插件不代按，只負責把「下一步該按哪裡」端到同一個位置 ——
+沒報價就搜完停下說「再按一次購買」；批次買完一筆就把確認列換成「下一筆」等玩家按。
+每一筆兩下（報價一下、確認一下），跟手動買一樣，但不用在清單裡找按鈕。
+
+⚠ 連帶的 Lua 陷阱：`Auction.Next()` 要放在 `StepQueue` 這個 forward-declared local
+**定義之後**，放前面會抓到全域的 nil（`luac -l` 掃 `_ENV "StepQueue"` 才看得出來）。
+
 ## 踩過／繞過的點
 
 - **捲軸的 20px 要從表頭扣，不是往清單加。** `W.CreateScrollFrame` 把內容右緣內縮

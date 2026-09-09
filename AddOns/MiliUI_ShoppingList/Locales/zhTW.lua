@@ -131,7 +131,7 @@ L["The list itself is never cleared by this button."] = "這顆按鈕不會清�
 
 -- 批次購買
 L["Buy everything"] = "全部購買"
-L["Walks the whole list one item at a time. Every purchase still stops at the confirmation bar — nothing is bought behind your back."] = "一筆一筆走完整張清單。每一筆還是會停在確認列——沒有任何東西是背著你買的。"
+L["Walks the list one item at a time. Each one still needs your confirm, then your press on Next — the game does not let an addon chain purchases on its own."] = "一筆一筆走完清單。每一筆還是要你按確認，買完再按「下一筆」——遊戲不允許插件自己連續代按購買。"
 L["Skip"] = "跳過"
 L["The list is bought."] = "清單買完了。"
 L["No one is selling %s."] = "拍賣場上沒有人賣 %s。"
@@ -169,3 +169,9 @@ L["Only this quality. Pick another one to buy it at the auction house."] = "商�
 
 L["no reagents"] = "沒有材料"
 L["This one was added before the reagent list worked. Remove it and add it again."] = "這筆是舊版本加進來的，材料沒讀到。移除後重新加入一次就好。"
+
+-- 批次購買的「下一筆」
+L["Next"] = "下一筆"
+L["Next: %s"] = "下一筆：%s"
+L["Price is in — press buy again."] = "報價回來了，再按一次購買。"
+L["Asking the price — press buy again when it comes back."] = "正在問價，回來之後再按一次購買。"

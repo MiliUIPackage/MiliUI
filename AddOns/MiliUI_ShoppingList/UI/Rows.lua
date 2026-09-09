@@ -433,12 +433,40 @@ function Rows.CreateConfirmBar(parent, width, height)
     local ok = W.CreateButton(bar, L["Confirm"], "green", 64, 20)
     ok:SetScript("OnClick", function() ns.Auction.Confirm() end)
 
+    -- 「下一筆」：批次購買買完一筆之後停在這裡等玩家按。
+    -- ⚠ 這一下點擊是必要的，不是懶得自動化：StartCommoditiesPurchase 有硬體事件閘，
+    --   從「買到了」那個事件裡自動接下一筆會被擋（見 Core/Auction.lua 檔頭）。
+    local nextBtn = W.CreateButton(bar, L["Next"], "green", 76, 20)
+    nextBtn:SetScript("OnClick", function() ns.Auction.Next() end)
+
+    local function Layout(rightOf)
+        text:ClearAllPoints()
+        text:SetPoint("LEFT", 8, 0)
+        text:SetPoint("RIGHT", rightOf, "LEFT", -8, 0)
+    end
+
     function bar:Refresh()
         local p = ns.Auction.Pending()
         if not p then
-            self:Hide()
+            -- 沒有待確認的，但批次還沒走完 → 換成「下一筆」
+            local nextID, at, count = ns.Auction.QueueWaiting()
+            if not nextID then
+                self:Hide()
+                return
+            end
+            local info = ns.List.ItemInfo(nextID)
+            text:SetText(("|cff808080(%d/%d)|r  "):format(at, count)
+                .. L["Next: %s"]:format((info and info.name) or "?"))
+            ok:Hide(); skip:Hide()
+            nextBtn:Show()
+            nextBtn:ClearAllPoints()
+            nextBtn:SetPoint("RIGHT", cancel, "LEFT", -4, 0)
+            Layout(nextBtn)
+            self:Show()
             return
         end
+        nextBtn:Hide()
+        ok:Show()
         local info = ns.List.ItemInfo(p.itemID)
         local total = ns.List.Money(p.totalPrice)
         if p.overpriced then
@@ -455,9 +483,7 @@ function Rows.CreateConfirmBar(parent, width, height)
         skip:SetShown(at ~= nil)
         ok:ClearAllPoints()
         ok:SetPoint("RIGHT", at and skip or cancel, "LEFT", -4, 0)
-        text:ClearAllPoints()
-        text:SetPoint("LEFT", 8, 0)
-        text:SetPoint("RIGHT", ok, "LEFT", -8, 0)
+        Layout(ok)
         self:Show()
     end
 

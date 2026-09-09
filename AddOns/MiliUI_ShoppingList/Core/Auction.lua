@@ -4,6 +4,13 @@
 -- 節流：拍賣場的查詢有伺服器節流，沒準備好就送會被丟掉。所有查詢都排進佇列，
 -- 由 AUCTION_HOUSE_THROTTLED_SYSTEM_READY 放行。
 --
+-- ⚠⚠ `StartCommoditiesPurchase` / `ConfirmCommoditiesPurchase` 是**硬體事件閘**
+--     底下的保護函式：只有在玩家「這一下點擊」的執行流裡呼叫才會放行，從事件
+--     處理器（搜尋結果回來、上一筆買完）裡呼叫會直接被擋下，聊天列跳
+--     `ADDON_ACTION_BLOCKED: StartCommoditiesPurchase()`（實測 2026-09-09）。
+--     所以**買東西不可能全自動串接**，每一筆都要玩家自己按一下。這支的設計就是
+--     照這個限制長的：插件負責把「下一步該按哪裡」端到同一個位置，不代按。
+--
 -- ⚠ 這支跟原作最大的差別：**沒有自動確認**。
 --   商品：StartCommoditiesPurchase → COMMODITY_PRICE_UPDATED 拿到單價與總價
 --         → 顯示確認列 → 玩家按確認才 ConfirmCommoditiesPurchase。
@@ -37,6 +44,7 @@ local pendingSearch       -- 單筆搜尋中的 itemID
 local awaitSearch         -- 搜尋結果回來要接著買的 { itemID, quantity, fromQueue }
 local searchedFor = {}    -- [itemID] = 這次購買已經為了它搜過一輪了（防止一直繞回去搜）
 local buyQueue, queueAt, queueTotal = {}, 0, 0
+local queueWaiting = false   -- 上一筆買完了，等玩家按「下一筆」
 local status  = ""
 
 local function SetStatus(text)
@@ -53,6 +61,7 @@ function Auction.QueueInfo()
     if queueTotal == 0 then return nil end
     return queueAt, queueTotal
 end
+
 function Auction.IsBusy()   return busy or #queue > 0 end
 
 function Auction.IsOpen()
@@ -219,6 +228,7 @@ local StepQueue   -- 前向宣告：StartBuy 失敗時要跳下一筆
 
 local function StopQueue(text)
     buyQueue, queueAt, queueTotal = {}, 0, 0
+    queueWaiting = false
     awaitSearch = nil
     wipe(searchedFor)
     if text then SetStatus(text) end
@@ -254,6 +264,7 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
         searchedFor[itemID] = true
         awaitSearch = { itemID = itemID, quantity = quantity, fromQueue = fromQueue }
         Auction.SearchItem(itemID)
+        SetStatus(L["Asking the price — press buy again when it comes back."])
         return
     end
     searchedFor[itemID] = nil
@@ -288,12 +299,19 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
     SetStatus(L["Check the price, then confirm."])
 end
 
--- 搜尋結果回來了：如果是我們在等的那一件，接著問價
+-- 搜尋結果回來了。
+-- ⚠ **不能接著自動買**：StartCommoditiesPurchase 過不了硬體事件閘（見檔頭）。
+--   只能把價格填上去、告訴玩家可以按了。
 local function ResumeAfterSearch(itemID)
     local a = awaitSearch
     if not a or a.itemID ~= itemID then return end
     awaitSearch = nil
-    Auction.StartBuy(a.itemID, a.quantity, a.fromQueue)
+    if quotes[itemID] then
+        SetStatus(L["Price is in — press buy again."])
+    else
+        SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name))
+        if a.fromQueue then StepQueue() end
+    end
 end
 
 ------------------------------------------------------------
@@ -345,6 +363,21 @@ function StepQueue()
     end
     Auction.StartBuy(item.itemID, item.quantity, true)
 end
+-- 等玩家按「下一筆」的狀態：回傳下一筆的 itemID 與進度
+function Auction.QueueWaiting()
+    if not queueWaiting then return nil end
+    local nextItem = buyQueue[queueAt + 1]
+    if not nextItem then return nil end
+    return nextItem.itemID, queueAt + 1, queueTotal
+end
+
+-- 確認列的「下一筆」。**一定要從點擊呼叫**（見檔頭的硬體事件閘）
+function Auction.Next()
+    if not queueWaiting then return end
+    queueWaiting = false
+    StepQueue()
+end
+
 
 -- 確認列的「跳過」：這一筆不買，直接換下一筆
 function Auction.Skip()
@@ -417,8 +450,10 @@ local function Finish(success)
         --   清單會繼續說「還缺 N 個」，玩家就再買一次。見 List.NoteBought。
         if p and p.itemID then ns.List.NoteBought(p.itemID, p.quantity or 1) end
         SetStatus(L["Bought %s x%d."]:format(name, (p and p.quantity) or 1))
+        -- ⚠ 不能直接 StepQueue()：那會從事件處理器裡呼叫 StartCommoditiesPurchase，
+        --   過不了硬體事件閘（見檔頭）。停在這裡，確認列會換成「下一筆」等玩家按。
+        if queueTotal > 0 then queueWaiting = true end
         ns.Fire("ListChanged")
-        if queueTotal > 0 then StepQueue() end
         return
     end
     -- 失敗就停下整批：可能是金幣不夠、掛單被搶走，繼續往下買只會連環出錯
