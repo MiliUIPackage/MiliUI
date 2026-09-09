@@ -309,9 +309,11 @@ local function HandleIndicators(b)
     -- NOTE: Remove old
     I.RemoveAllCustomIndicators(b)
 
+    local nameConfig --! fix from MiliUI: kept for the party-target re-anchor below
     for _, t in next, b._config do
         local indicator = b.indicators[t["indicatorName"]] or I.CreateIndicator(b, t)
         indicator.configs = t
+        if t["indicatorName"] == "nameText" then nameConfig = t end
 
         -- update position
         if t["position"] then
@@ -570,6 +572,21 @@ local function HandleIndicators(b)
         if healthText and nameText and nameText.name then
             P.ClearPoints(healthText)
             P.Point(healthText, "TOP", nameText.name, "BOTTOM", 0, -PARTY_TARGET.HEALTH_TEXT_GAP)
+
+            --! ...and lift the NAME by half of what the % costs, so the pair ends up centred
+            --! on the button instead of hanging off the name's own centre. Without this the
+            --! block is bottom-heavy by exactly the height of the % plus the gap: empty band
+            --! above the name, none under the number.
+            --! The layout's own point and offsets are kept -- only Y moves -- so moving the
+            --! name in the layout still moves it here.
+            local _, fontSize = healthText.text:GetFont()
+            if nameConfig and nameConfig["position"] and fontSize then
+                local pos = nameConfig["position"]
+                local relativeTo = pos[2] == "healthBar" and b.widgets.healthBar or b
+                P.ClearPoints(nameText)
+                P.Point(nameText, pos[1], relativeTo, pos[3], pos[4],
+                    (pos[5] or 0) + (fontSize + PARTY_TARGET.HEALTH_TEXT_GAP) / 2)
+            end
         end
     end
 
