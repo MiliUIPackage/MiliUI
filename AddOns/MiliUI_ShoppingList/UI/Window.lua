@@ -194,8 +194,9 @@ local function UpdateRecipeRow(row, item)
         end)
         row.remove:SetScript("OnClick", function() ns.List.RemoveExtra(itemID) end)
         row._commit = function(v) ns.List.SetExtraQuantity(itemID, v) end
-        row._onClick = nil
-        row.selected:Hide()
+        local fkey = ns.List.ExtraKey(itemID)
+        row._onClick = function() ns.List.SetFilter(fkey) end
+        row.selected:SetShown(ns.List.Filter() == fkey)
         row._onEnter = function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetItemByID(itemID)
@@ -241,7 +242,7 @@ local function UpdateRecipeRow(row, item)
     end)
     row.remove:SetScript("OnClick", function() ns.List.Remove(key) end)
     row._commit = function(v) ns.List.SetQuantity(key, v) end
-    row._onClick = function() ns.List.ToggleFilter(key) end
+    row._onClick = function() ns.List.SetFilter(key) end
     row._onEnter = function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText(entry.name or "?")
@@ -249,9 +250,9 @@ local function UpdateRecipeRow(row, item)
             GameTooltip:AddLine(L["This one was added before the reagent list worked. Remove it and add it again."],
                 1, 0.4, 0.4, true)
         end
-        GameTooltip:AddLine(picked and L["Showing only this recipe. Click again to show everything."]
-                                   or  L["Click: show only this recipe's reagents."],
-            0.8, 0.8, 0.8, true)
+        if not picked then
+            GameTooltip:AddLine(L["Click: show only this recipe's reagents."], 0.8, 0.8, 0.8, true)
+        end
         GameTooltip:Show()
     end
 end
@@ -324,6 +325,8 @@ function Refresh()
     confirmBar:Refresh()
     Layout()
 
+    -- 配方列比下面的採購表早畫，選取要先定下來才畫得對
+    ns.List.NormalizeFilter()
     recipeList:Update(BuildRecipeItems(), UpdateRecipeRow)
 
     local rows, _, estimate, vendorHidden = ns.List.Shopping()
@@ -333,10 +336,8 @@ function Refresh()
     shopSection.missingCheck:SetChecked(ns.db.settings.onlyMissing)
     shopSection.hiddenCheck:SetChecked(ns.db.settings.showHidden)
 
-    -- 標題講一聲「現在只算選取的那個配方」。
-    -- ⚠ 不要把配方名接進標題：名字長度不定，接上去會推到旁邊的按鈕
-    --   （而且中文字串沒有安全的截斷方式）。是哪一個看上面那列的高亮就知道。
-    shopSection.text:SetText(ns.List.Filter() and L["Selected recipe only"] or L["Shopping"])
+    -- 標題固定是「採購」：一定有一個配方被選著（高亮那列就是），
+    -- 再寫「只看選取的」等於廢話，而且字一長就把旁邊的按鈕推走。
 
     -- 有報價就報預估總價；沒有就報還缺幾樣（兩者都沒有就是買齊了）
     local summary
@@ -364,7 +365,13 @@ function Refresh()
         emptyLabel:Hide()
     end
 
-    statusLabel:SetText(ns.Auction.Status())
+    local statusText, statusAlert = ns.Auction.Status()
+    statusLabel:SetText(statusText)
+    if statusAlert then
+        statusLabel:SetTextColor(1, 0.4, 0.4)
+    else
+        statusLabel:SetTextColor(0.6, 0.6, 0.6)
+    end
 end
 
 ------------------------------------------------------------
@@ -424,7 +431,7 @@ local function Build()
     ns.AttachTooltip(settings, function(_, tip) tip:SetText(L["Settings"]) end)
 
     statusLabel = header:CreateFontString(nil, "OVERLAY")
-    statusLabel:SetFontObject(ns.Media.fontDim)
+    statusLabel:SetFontObject(ns.Media.fontRow)
     statusLabel:SetPoint("LEFT", title, "RIGHT", 16, 0)
     statusLabel:SetPoint("RIGHT", settings, "LEFT", -8, 0)
     statusLabel:SetJustifyH("LEFT")
@@ -481,7 +488,7 @@ local function Build()
 
     -- ⚠ 起點寫死不錨標題：標題會隨「只看某個配方」變長，錨上去整排按鈕會跟著跑
     local searchAll = W.CreateButton(shopSection, L["Search all"], "normal", 88, TOOL_H - 4)
-    searchAll:SetPoint("BOTTOMLEFT", shopSection, "BOTTOMLEFT", 132, 3)
+    searchAll:SetPoint("BOTTOMLEFT", shopSection, "BOTTOMLEFT", 90, 3)
     searchAll:SetScript("OnClick", function() ns.Auction.SearchAll() end)
     ns.AttachTooltip(searchAll, function(_, tip)
         tip:SetText(L["Search all"])
@@ -510,7 +517,10 @@ local function Build()
         ns.db.settings.onlyMissing = on
         ns.Fire("ListChanged")
     end)
-    missingCheck:SetPoint("LEFT", bankCheck, "RIGHT", 106, 0)
+    -- ⚠ 間距要按標籤的**實際寬度**算，不能用固定值：勾選框的文字是翻譯過的，
+    --   猜一個 106 在 zhTW 剛好，換個語言就疊到右邊的預估總價（實測疊到了）。
+    missingCheck:SetPoint("LEFT", bankCheck, "RIGHT",
+        math.ceil(bankCheck.label:GetStringWidth()) + 22, 0)
     shopSection.missingCheck = missingCheck
 
     -- 商店貨與手動忽略的那幾列平常收起來，這顆把它們叫回來（變暗顯示）。
@@ -520,13 +530,16 @@ local function Build()
         ns.db.settings.showHidden = on
         ns.Fire("ListChanged")
     end)
-    hiddenCheck:SetPoint("LEFT", missingCheck, "RIGHT", 82, 0)
+    hiddenCheck:SetPoint("LEFT", missingCheck, "RIGHT",
+        math.ceil(missingCheck.label:GetStringWidth()) + 22, 0)
     shopSection.hiddenCheck = hiddenCheck
 
     estimateLabel = shopSection:CreateFontString(nil, "OVERLAY")
     estimateLabel:SetFontObject(ns.Media.fontRow)
     estimateLabel:SetPoint("BOTTOMRIGHT", 0, 4)
+    estimateLabel:SetPoint("BOTTOMLEFT", hiddenCheck.label, "BOTTOMRIGHT", 12, 0)
     estimateLabel:SetJustifyH("RIGHT")
+    estimateLabel:SetWordWrap(false)
 
     -- 表頭比清單窄一個捲軸，欄位才對得齊（見檔頭的警語）
     shopHeader = ns.Rows.CreateHeader(frame)

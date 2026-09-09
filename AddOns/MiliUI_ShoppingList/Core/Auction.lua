@@ -35,6 +35,11 @@ local MAX_KEYS = 100
 -- 存下來只會讓玩家照著昨天的價格做決定。
 ------------------------------------------------------------
 local quotes  = {}   -- [itemID] = { unitPrice, quantity, isCommodity, itemKey, auctionID }
+-- ⚠ [itemID] = true 代表「跑過**單筆**查詢、拿到逐筆掛單資料」。
+--   整批瀏覽（SearchForItemKeys）只給均價與總量，**不夠買**：它不告訴你這件東西
+--   是不是商品（isCommodity），GetItemSearchResultInfo 也讀不到東西 ——
+--   直接照那份資料走非商品路徑，會得到「拍賣場上沒有人賣」的假結論（實測）。
+local detailed = {}
 local lowest  = {}   -- [itemID] = 本次登入看過的最低單價（天價保險的基準）
 local queue   = {}
 local busy    = false
@@ -47,12 +52,18 @@ local buyQueue, queueAt, queueTotal = {}, 0, 0
 local queueWaiting = false   -- 上一筆買完了，等玩家按「下一筆」
 local status  = ""
 
-local function SetStatus(text)
+-- alert = true：這一條是「玩家要知道才動得下去」的（沒人賣、錢不夠、再按一次），
+-- 除了狀態列還直接印到聊天列。狀態列那行字小又在角落，實測回報看不到。
+local statusAlert = false
+
+local function SetStatus(text, alert)
     status = text or ""
+    statusAlert = alert and true or false
+    if alert and text and text ~= "" then ns.Print(text) end
     ns.Fire("AuctionChanged")
 end
 
-function Auction.Status()   return status end
+function Auction.Status()   return status, statusAlert end
 function Auction.Quote(itemID) return itemID and quotes[itemID] or nil end
 function Auction.Pending()  return pendingConfirm end
 
@@ -131,6 +142,7 @@ local function StoreCommodity(itemID)
     local count = C_AuctionHouse.GetNumCommoditySearchResults(itemID) or 0
     if count <= 0 then
         quotes[itemID] = nil
+        detailed[itemID] = nil
         return
     end
     local first = C_AuctionHouse.GetCommoditySearchResultInfo(itemID, 1)
@@ -146,6 +158,7 @@ local function StoreCommodity(itemID)
         end
     end
     Remember(itemID, first.unitPrice, listed, true, C_AuctionHouse.MakeItemKey(itemID))
+    detailed[itemID] = true
 end
 
 local function StoreItem(itemKey)
@@ -153,6 +166,7 @@ local function StoreItem(itemKey)
     local count = C_AuctionHouse.GetNumItemSearchResults(itemKey) or 0
     if count <= 0 then
         quotes[itemKey.itemID] = nil
+        detailed[itemKey.itemID] = nil
         return
     end
     local first = C_AuctionHouse.GetItemSearchResultInfo(itemKey, 1)
@@ -162,6 +176,7 @@ local function StoreItem(itemKey)
         listed = C_AuctionHouse.GetItemSearchResultsQuantity(itemKey) or count
     end
     Remember(itemKey.itemID, first.buyoutAmount, listed, false, itemKey, first.auctionID)
+    detailed[itemKey.itemID] = true
 end
 
 ------------------------------------------------------------
@@ -169,7 +184,7 @@ end
 ------------------------------------------------------------
 function Auction.SearchAll()
     if not Auction.IsOpen() then
-        SetStatus(L["Open the auction house to search and buy."])
+        SetStatus(L["Open the auction house to search and buy."], true)
         return
     end
     local rows = ns.List.Shopping({ includeReady = true })
@@ -183,7 +198,7 @@ function Auction.SearchAll()
         end
     end
     if #keys == 0 then
-        SetStatus(L["Nothing to buy yet."])
+        SetStatus(L["Nothing to buy yet."], true)
         return
     end
     SetStatus(L["Searching the auction house..."])
@@ -193,7 +208,7 @@ end
 function Auction.SearchItem(itemID)
     if not itemID then return false end
     if not Auction.IsOpen() then
-        SetStatus(L["Open the auction house to search and buy."])
+        SetStatus(L["Open the auction house to search and buy."], true)
         return false
     end
     pendingSearch = itemID
@@ -226,48 +241,52 @@ end
 
 local StepQueue   -- 前向宣告：StartBuy 失敗時要跳下一筆
 
-local function StopQueue(text)
+local function StopQueue(text, alert)
     buyQueue, queueAt, queueTotal = {}, 0, 0
     queueWaiting = false
     awaitSearch = nil
     wipe(searchedFor)
-    if text then SetStatus(text) end
+    if text then SetStatus(text, alert) end
 end
 
 function Auction.StartBuy(itemID, quantity, fromQueue)
     if not Auction.IsOpen() then
-        SetStatus(L["Open the auction house to search and buy."])
+        SetStatus(L["Open the auction house to search and buy."], true)
         return
     end
     if pendingConfirm or pendingQuote then
-        SetStatus(L["Finish the purchase in front of you first."])
+        SetStatus(L["Finish the purchase in front of you first."], true)
         return
     end
     quantity = math.max(1, math.floor(tonumber(quantity) or 1))
     if not fromQueue then StopQueue() end
 
-    local quote = quotes[itemID]
-    local listings = quote and quote.isCommodity
-        and (C_AuctionHouse.GetNumCommoditySearchResults(itemID) or 0) or nil
-
-    -- 還沒有報價（或報價是整批瀏覽來的、沒有逐筆掛單資料）：先搜，結果回來自己接下去
-    if not quote or (quote.isCommodity and listings <= 0) then
+    -- ⚠ 判準是「有沒有跑過單筆查詢」，不是「有沒有報價」。整批瀏覽來的報價
+    --   夠顯示、不夠買（見 detailed 的註解）。
+    if not detailed[itemID] then
         -- ⚠ 一定要記「搜過了」：不記的話搜完回來還是沒有掛單，就會再搜一次，
         --   兩支函式互相呼叫變成無限迴圈。
         if searchedFor[itemID] then
             searchedFor[itemID] = nil
             awaitSearch = nil
-            SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name))
+            SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name), true)
             if fromQueue then StepQueue() end
             return
         end
         searchedFor[itemID] = true
         awaitSearch = { itemID = itemID, quantity = quantity, fromQueue = fromQueue }
         Auction.SearchItem(itemID)
-        SetStatus(L["Asking the price — press buy again when it comes back."])
+        SetStatus(L["Asking the price — press buy again when it comes back."], true)
         return
     end
     searchedFor[itemID] = nil
+
+    local quote = quotes[itemID]
+    if not quote then
+        SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name), true)
+        if fromQueue then StepQueue() end
+        return
+    end
 
     if quote.isCommodity then
         if quote.quantity and quote.quantity > 0 then
@@ -307,9 +326,9 @@ local function ResumeAfterSearch(itemID)
     if not a or a.itemID ~= itemID then return end
     awaitSearch = nil
     if quotes[itemID] then
-        SetStatus(L["Price is in — press buy again."])
+        SetStatus(L["Price is in — press buy again."], true)
     else
-        SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name))
+        SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name), true)
         if a.fromQueue then StepQueue() end
     end
 end
@@ -357,7 +376,7 @@ function StepQueue()
     queueAt = queueAt + 1
     local item = buyQueue[queueAt]
     if not item then
-        StopQueue(L["The list is bought."])
+        StopQueue(L["The list is bought."], true)
         ns.Fire("ListChanged")
         return
     end
@@ -393,7 +412,7 @@ function Auction.Confirm()
     local p = pendingConfirm
     if not p then return end
     if GetMoney() < (p.totalPrice or 0) then
-        SetStatus(L["Not enough gold."])
+        SetStatus(L["Not enough gold."], true)
         return
     end
     if p.auctionID then
@@ -449,7 +468,7 @@ local function Finish(success)
         -- ⚠ 買到的東西是**寄信**過來的，收信前 GetItemCount 看不到 —— 不記一筆的話
         --   清單會繼續說「還缺 N 個」，玩家就再買一次。見 List.NoteBought。
         if p and p.itemID then ns.List.NoteBought(p.itemID, p.quantity or 1) end
-        SetStatus(L["Bought %s x%d."]:format(name, (p and p.quantity) or 1))
+        SetStatus(L["Bought %s x%d."]:format(name, (p and p.quantity) or 1), true)
         -- ⚠ 不能直接 StepQueue()：那會從事件處理器裡呼叫 StartCommoditiesPurchase，
         --   過不了硬體事件閘（見檔頭）。停在這裡，確認列會換成「下一筆」等玩家按。
         if queueTotal > 0 then queueWaiting = true end
@@ -458,7 +477,7 @@ local function Finish(success)
     end
     -- 失敗就停下整批：可能是金幣不夠、掛單被搶走，繼續往下買只會連環出錯
     StopQueue()
-    SetStatus(L["The purchase did not go through."])
+    SetStatus(L["The purchase did not go through."], true)
     ns.Fire("ListChanged")
 end
 
@@ -473,6 +492,7 @@ f:SetScript("OnEvent", function(_, event, a1, a2)
         ClearPending()
         StopQueue()
         wipe(queue)
+        wipe(detailed)
         busy, pendingSearch = false, nil
         SetStatus(L["Open the auction house to search and buy."])
         ns.Fire("AuctionClosed")
@@ -489,7 +509,7 @@ f:SetScript("OnEvent", function(_, event, a1, a2)
 
     elseif event == "AUCTION_HOUSE_BROWSE_FAILURE" then
         Pump()
-        SetStatus(L["The auction house did not answer. Try again."])
+        SetStatus(L["The auction house did not answer. Try again."], true)
 
     elseif event == "COMMODITY_SEARCH_RESULTS_UPDATED" then
         StoreCommodity(a1)
@@ -522,7 +542,7 @@ f:SetScript("OnEvent", function(_, event, a1, a2)
     elseif event == "COMMODITY_PRICE_UNAVAILABLE" then
         ClearPending()
         StopQueue()
-        SetStatus(L["That listing is gone. Search again."])
+        SetStatus(L["That listing is gone. Search again."], true)
 
     elseif event == "COMMODITY_PURCHASE_SUCCEEDED" or event == "ITEM_PURCHASED" then
         Finish(true)

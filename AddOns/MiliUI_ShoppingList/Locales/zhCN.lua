@@ -162,9 +162,7 @@ L["Ignored reagents stay out of the list and out of \"buy everything\"."] = "忽
 
 -- 只看某個配方／顯示已隱藏
 L["Show hidden"] = "显示已隐藏"
-L["Selected recipe only"] = "只看选取的配方"
 L["Click: show only this recipe's reagents."] = "点一下：只看这个配方的材料。"
-L["Showing only this recipe. Click again to show everything."] = "目前只看这个配方。再点一下看全部。"
 L["Only this quality. Pick another one to buy it at the auction house."] = "商店只卖这个品质；想买别的品质就改挑星数，会走拍卖行。"
 
 L["no reagents"] = "没有材料"

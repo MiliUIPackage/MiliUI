@@ -229,17 +229,44 @@ end
 -- 點配方區的某一列，下面的採購表就只算那個配方的材料，「搜尋全部／全部購買」
 -- 也跟著只做那一份。**不進存檔**：這是「我現在在弄哪一個」，不是設定。
 ------------------------------------------------------------
+-- key 是配方的 key，或額外物品的 "extra:<itemID>"
 local filterKey
 
 function List.Filter() return filterKey end
+
+function List.ExtraKey(itemID) return "extra:" .. tostring(itemID) end
+
+local function ExtraID(key)
+    local id = key and key:match("^extra:(%d+)$")
+    return id and tonumber(id) or nil
+end
 
 function List.SetFilter(key)
     filterKey = key
     ns.Fire("ListChanged")
 end
 
-function List.ToggleFilter(key)
-    List.SetFilter(filterKey == key and nil or key)
+-- **永遠有一個選取對象**（清單非空的話）。開視窗就看到第一個配方的材料，
+-- 而不是所有配方混在一起 —— 混在一起沒辦法「先把這一樣買齊」。
+-- 選到的東西被刪掉時也是靠這支自動退回第一個。
+function List.NormalizeFilter()
+    local key = filterKey
+    if key then
+        local id = ExtraID(key)
+        if id then
+            if List.FindExtra(id) then return end
+        elseif List.Find(key) then
+            return
+        end
+    end
+    local recipes, extras = Recipes(), Extras()
+    if recipes[1] then
+        filterKey = recipes[1].key
+    elseif extras[1] then
+        filterKey = List.ExtraKey(extras[1].itemID)
+    else
+        filterKey = nil
+    end
 end
 
 ------------------------------------------------------------
@@ -491,17 +518,22 @@ function List.Shopping(opts)
         if sourceName then g.sources[#g.sources + 1] = sourceName end
     end
 
-    -- 只看某一個配方時，額外物品也不算 —— 它們不屬於任何配方
+    List.NormalizeFilter()
     local only = filterKey
+    local onlyExtra = ExtraID(only)
     for _, entry in ipairs(Recipes()) do
-        if not only or entry.key == only then
+        if not onlyExtra and (not only or entry.key == only) then
             for _, r in ipairs(entry.reagents or {}) do
                 Add(r.itemID, r.alts, (r.perCraft or 1) * (entry.quantity or 1), r.optional, entry.name)
             end
         end
     end
-    if not only then
-        for _, e in ipairs(Extras()) do
+    for _, e in ipairs(Extras()) do
+        if onlyExtra then
+            if e.itemID == onlyExtra then
+                Add(e.itemID, nil, e.quantity or 1, false, L["Extra items"])
+            end
+        elseif not only then
             Add(e.itemID, nil, e.quantity or 1, false, L["Extra items"])
         end
     end
