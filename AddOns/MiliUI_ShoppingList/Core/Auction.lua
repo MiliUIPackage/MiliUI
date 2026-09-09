@@ -328,6 +328,17 @@ end
 --   插件自己還沒去搜，不是玩家該處理的事；現在自動接上。剩下的一下確認是
 --   刻意留的 —— 花錢的動作永遠隔著一次明確的點擊。
 ------------------------------------------------------------
+-- 這一筆要不要停下來讓玩家按確認。
+--
+-- ⚠ 天價保險擋下來的**一律要確認**，跟設定無關：那道保險存在的理由就是
+--   「自動買下去會出事」的那種情況，被開關關掉就沒有意義了。
+local function NeedsConfirm(totalPrice, overpriced)
+    if overpriced then return true end
+    if not ns.db.settings.confirmBuys then return false end
+    local above = (ns.db.settings.confirmAbove or 0) * 10000
+    return (totalPrice or 0) >= above
+end
+
 local function Overpriced(itemID, unitPrice)
     local base = lowest[itemID]
     if not base or base <= 0 or not unitPrice then return false end
@@ -437,14 +448,20 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
         if fromQueue then SkipInQueue() end
         return
     end
+    local over = Overpriced(itemID, info.buyoutAmount)
     pendingConfirm = {
         itemID     = itemID,
         quantity   = info.quantity or 1,
         unitPrice  = info.buyoutAmount,
         totalPrice = info.buyoutAmount,
         auctionID  = info.auctionID,
-        overpriced = Overpriced(itemID, info.buyoutAmount),
+        overpriced = over,
     }
+    if not NeedsConfirm(info.buyoutAmount, over) then
+        pendingConfirm.auto = true
+        Auction.Confirm()
+        return
+    end
     SetStatus(L["Check the price, then confirm."])
 end
 
@@ -563,6 +580,13 @@ function Auction.Confirm()
     if not p then return end
     if GetMoney() < (p.totalPrice or 0) then
         SetStatus(L["Not enough gold."], true)
+        -- 自動成交那條路沒有確認列可以停，錢不夠就得自己收拾：清掉這一筆，
+        -- 批次的話往下走，不然整批會卡在一個看不見的待確認上
+        if p.auto then
+            pendingQuote, pendingConfirm = nil, nil
+            if queueTotal > 0 then SkipInQueue() end
+            ns.Fire("AuctionChanged")
+        end
         return
     end
     if p.auctionID then
@@ -699,13 +723,21 @@ f:SetScript("OnEvent", function(_, event, a1, a2)
         local p = pendingQuote
         pendingQuote = nil
         if not p then return end
+        local over = Overpriced(p.itemID, unitPrice)
         pendingConfirm = {
             itemID     = p.itemID,
             quantity   = p.quantity,
             unitPrice  = unitPrice,
             totalPrice = totalPrice,
-            overpriced = Overpriced(p.itemID, unitPrice),
+            overpriced = over,
         }
+        -- 不需要確認就直接成交。ConfirmCommoditiesPurchase 沒有硬體事件閘
+        -- （StartCommoditiesPurchase 才有），從事件處理器裡呼叫是可以的。
+        if not NeedsConfirm(totalPrice, over) then
+            pendingConfirm.auto = true
+            Auction.Confirm()
+            return
+        end
         SetStatus(L["Check the price, then confirm."])
 
     elseif event == "COMMODITY_PRICE_UNAVAILABLE" then

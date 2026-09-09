@@ -40,9 +40,15 @@ local CONTROLS = {
       hint = L["Bring the list up beside the auction house window"] },
     { type = "toggle", key = "ahAutoSearch", label = L["Search on opening"],
       hint = L["Ask for prices on the whole list as soon as the list comes up"] },
+    { type = "toggle", key = "confirmBuys", label = L["Ask me before buying"],
+      hint = L["Show the price and wait for a click before any gold leaves your bags"] },
+    { type = "text", label = L["Off by default: most of what a shopping list buys is a few dozen gold of reagents, and a second click on every one of them gets old fast. Turn it on if you would rather see each price."] },
+    { type = "slider", key = "confirmAbove", label = L["Only ask above this much gold"],
+      min = LIMITS.confirmAbove[1], max = LIMITS.confirmAbove[2], step = 500 },
+    { type = "text", label = L["0 asks on every purchase. Set it higher and only the expensive ones stop for a confirmation."] },
     { type = "slider", key = "priceGuard", label = L["Overprice warning"],
       min = LIMITS.priceGuard[1], max = LIMITS.priceGuard[2], step = 1 },
-    { type = "text", label = L["When the quoted unit price is this many times the cheapest one seen since you logged in, the total turns red on the confirmation bar. It never blocks the purchase — it only makes you look twice."] },
+    { type = "text", label = L["When the quoted unit price is this many times the cheapest one seen since you logged in, the purchase always stops for a confirmation and the total turns red — even with the setting above turned off. That is the one brake this addon will not let you remove."] },
 }
 
 local function Init()

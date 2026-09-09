@@ -544,7 +544,7 @@ local function Build()
     buyAll:SetScript("OnClick", function() ns.Auction.BuyAll() end)
     ns.AttachTooltip(buyAll, function(_, tip)
         tip:SetText(L["Buy everything"])
-        tip:AddLine(L["Walks the list one item at a time. Each one still needs your confirm, then your press on Next — the game does not let an addon chain purchases on its own."],
+        tip:AddLine(L["Walks the list one item at a time. Each purchase needs one press from you — the game does not let an addon chain purchases on its own."],
             0.8, 0.8, 0.8, true)
     end)
 

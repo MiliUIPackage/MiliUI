@@ -442,6 +442,8 @@ function Rows.CreateConfirmBar(parent, width, height)
 
     function bar:Refresh()
         local p = ns.Auction.Pending()
+        -- 自動成交的那一筆只是暫存狀態，不要讓確認列閃一下
+        if p and p.auto then p = nil end
         if not p then
             -- 沒有待確認的，但批次還沒走完 → 換成「下一筆」
             local nextID, at, count = ns.Auction.QueueWaiting()

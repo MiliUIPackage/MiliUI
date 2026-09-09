@@ -14,8 +14,9 @@ local DB = ns.DB
 
 -- 滑桿範圍：設定頁與正規化共用，改一處兩邊一起動
 DB.LIMITS = {
-    fontSize   = { 9, 20 },
-    priceGuard = { 2, 10 },
+    fontSize     = { 9, 20 },
+    priceGuard   = { 2, 10 },
+    confirmAbove = { 0, 20000 },   -- 金
 }
 
 local function BuildDefaults()
@@ -50,7 +51,15 @@ local function BuildDefaults()
             -- 面板出現後自動搜尋一次全部
             ahAutoSearch = true,
 
-            -- 天價保險：報價單價高於本次登入看過的最低價幾倍，就把總價標紅
+            -- 購買前要不要停下來讓玩家看價格。
+            -- **預設關**：多數時候買的是幾十金的材料，每一筆都要按第二下很煩。
+            -- ⚠ 關著也不是完全沒有煞車：天價保險（priceGuard）攔下來的那幾筆
+            --   一律強制確認，那是這個開關關不掉的最後一道。
+            confirmBuys = false,
+            -- 開了確認之後，只有總價超過這個金額（金）才問。0 ＝ 每一筆都問。
+            confirmAbove = 0,
+
+            -- 天價保險：報價單價高於本次登入看過的最低價幾倍，就強制要你確認
             priceGuard = 3,
         },
 
@@ -105,6 +114,10 @@ local function Normalize(db)
     lo, hi = DB.LIMITS.priceGuard[1], DB.LIMITS.priceGuard[2]
     if type(s.priceGuard) ~= "number" then s.priceGuard = 3 end
     s.priceGuard = math.min(hi, math.max(lo, math.floor(s.priceGuard)))
+
+    lo, hi = DB.LIMITS.confirmAbove[1], DB.LIMITS.confirmAbove[2]
+    if type(s.confirmAbove) ~= "number" then s.confirmAbove = 0 end
+    s.confirmAbove = math.min(hi, math.max(lo, math.floor(s.confirmAbove)))
 end
 
 function DB.Init()

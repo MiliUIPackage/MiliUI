@@ -113,11 +113,9 @@ L["Add recipes you track in the profession window to this list"] = "把你在專
 L["Off by default: the game's tracker tends to hold on to \"maybe some day\" recipes, and those would flood the shopping list."] = "預設關閉：遊戲的追蹤清單常常留著一堆「以後再說」的配方，一開就會把採購清單淹掉。"
 L["Search on opening"] = "開啟時自動搜尋"
 L["Overprice warning"] = "天價警告"
-L["When the quoted unit price is this many times the cheapest one seen since you logged in, the total turns red on the confirmation bar. It never blocks the purchase — it only makes you look twice."] = "報價單價超過本次登入看過的最低價這麼多倍時，確認列的總價會變紅。它不會擋下購買，只是讓你多看一眼。"
 
 -- 關於分頁
 L["A shopping list for professions: add a recipe from the profession window or from a crafting order, say how many you want to make, and the reagents multiply along with it."] = "專業用的採購清單：從製作頁或製作訂單把配方加進清單，指定要做幾份，材料需求跟著相乘。"
-L["The list tells you what is still missing, and at the auction house it searches for those reagents and buys them — always behind an explicit confirmation."] = "清單會列出還缺什麼；到了拍賣場可以直接搜尋這些材料並購買——每一筆都要按確認才會成交。"
 L["Commands: |cffffd200/mlist|r opens the list, |cffffd200/mlist config|r opens the settings"] = "指令：|cffffd200/mlist|r 開啟清單，|cffffd200/mlist config|r 開啟設定"
 L["Author: Mili (MiliUI package)"] = "作者：Mili（米利UI套組）"
 L["Inspired by Profession Shop."] = "靈感來自 Profession Shop。"
@@ -127,7 +125,6 @@ L["The list itself is never cleared by this button."] = "這顆按鈕不會清�
 
 -- 批次購買
 L["Buy everything"] = "全部購買"
-L["Walks the list one item at a time. Each one still needs your confirm, then your press on Next — the game does not let an addon chain purchases on its own."] = "一筆一筆走完清單。每一筆還是要你按確認，買完再按「下一筆」——遊戲不允許插件自己連續代按購買。"
 L["Skip"] = "跳過"
 L["The list is bought."] = "清單買完了。"
 L["No one is selling %s."] = "拍賣場上沒有人賣 %s。"
@@ -176,3 +173,13 @@ L["Price is in — press Next."] = "報價回來了，按「下一筆」。"
 L["Done — %d could not be bought."] = "清單走完了，其中 %d 樣買不到。"
 
 L["%s only has bids, no buyout price."] = "%s 目前只有競標、沒有一口價，買不了。"
+
+-- 購買確認（選項）
+L["Ask me before buying"] = "購買前要我確認"
+L["Show the price and wait for a click before any gold leaves your bags"] = "花錢之前先把價格顯示出來，等你按一下"
+L["Off by default: most of what a shopping list buys is a few dozen gold of reagents, and a second click on every one of them gets old fast. Turn it on if you would rather see each price."] = "預設關閉：採購清單買的多半是幾十金的材料，每一筆都要再按第二下很快就煩了。想每一筆都先看價格再開。"
+L["Only ask above this much gold"] = "只有超過這個金額才問"
+L["0 asks on every purchase. Set it higher and only the expensive ones stop for a confirmation."] = "0 ＝ 每一筆都問。調高之後只有貴的那幾筆會停下來要你確認。"
+L["When the quoted unit price is this many times the cheapest one seen since you logged in, the purchase always stops for a confirmation and the total turns red — even with the setting above turned off. That is the one brake this addon will not let you remove."] = "報價單價超過本次登入看過的最低價這麼多倍時，這一筆一定會停下來要你確認、總價標紅——就算上面那個開關是關的也一樣。這是唯一一道關不掉的煞車。"
+L["Walks the list one item at a time. Each purchase needs one press from you — the game does not let an addon chain purchases on its own."] = "一筆一筆走完清單。每一筆都要你按一下——遊戲不允許插件自己連續代按購買。"
+L["The list tells you what is still missing, and at the auction house it searches for those reagents and buys them. Every purchase takes one press from you; turn on the confirmation step in the settings if you would rather see each price first."] = "清單會列出還缺什麼；到了拍賣場可以直接搜尋這些材料並購買。每一筆都要你按一下；想在花錢前先看到價格，到設定裡把確認那一步打開。"

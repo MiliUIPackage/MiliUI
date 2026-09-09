@@ -22,7 +22,7 @@ local function Init()
         ns.PREFIX_COLOR .. L["MiliUI Shopping List"] .. "|r v" .. ns.VERSION,
         "",
         L["A shopping list for professions: add a recipe from the profession window or from a crafting order, say how many you want to make, and the reagents multiply along with it."],
-        L["The list tells you what is still missing, and at the auction house it searches for those reagents and buys them — always behind an explicit confirmation."],
+        L["The list tells you what is still missing, and at the auction house it searches for those reagents and buys them. Every purchase takes one press from you; turn on the confirmation step in the settings if you would rather see each price first."],
         "",
         L["Commands: |cffffd200/mlist|r opens the list, |cffffd200/mlist config|r opens the settings"],
         "",
