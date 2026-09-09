@@ -2,7 +2,6 @@ local _, ns = ...
 if GetLocale() ~= "zhCN" then return end
 local L = ns.L
 
-
 -- 共用層（MiliUIWidgets）
 L["Apply"] = "应用"
 L["Okay"] = "确定"
@@ -161,14 +160,10 @@ L["Only this quality. Pick another one to buy it at the auction house."] = "商�
 L["no reagents"] = "没有材料"
 L["This one was added before the reagent list worked. Remove it and add it again."] = "这条是旧版本加进来的，材料没读到。移除后重新加入一次就好。"
 
--- 批次購買的「下一筆」
-L["Next"] = "下一笔"
+-- 批次購買：確認列上的下一筆（按鈕本身寫「購買」）
 L["Next: %s"] = "下一笔：%s"
 L["Price is in — press buy again."] = "报价回来了，再按一次购买。"
 L["Asking the price — press buy again when it comes back."] = "正在询价，回来之后再按一次购买。"
-
-L["Asking the price — press Next when it comes back."] = "正在询价，回来之后按「下一笔」。"
-L["Price is in — press Next."] = "报价回来了，按「下一笔」。"
 
 L["Done — %d could not be bought."] = "清单走完了，其中 %d 样买不到。"
 

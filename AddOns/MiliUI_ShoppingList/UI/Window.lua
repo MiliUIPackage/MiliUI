@@ -521,7 +521,7 @@ local function Build()
     shopSection.hiddenCheck = hiddenCheck
 
     ---- 底部工具列：動作與總價 ----
-    -- 動作放最下面：整個流程（全部購買 → 確認 → 下一筆）都在這一帶發生，
+    -- 動作放最下面：整個流程（全部購買 → 一筆一筆按購買）都在這一帶發生，
     -- 眼睛與滑鼠不用在視窗上下兩端來回跑。
     bottomBar = CreateFrame("Frame", nil, frame)
     bottomBar:SetHeight(P.Scale(BOTTOM_H))

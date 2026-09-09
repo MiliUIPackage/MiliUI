@@ -58,7 +58,7 @@ local pendingSearch       -- 單筆搜尋中的 itemID
 local awaitSearch         -- 搜尋結果回來要接著買的 { itemID, quantity, fromQueue }
 local searchedFor = {}    -- [itemID] = 這次購買已經為了它搜過一輪了（防止一直繞回去搜）
 local buyQueue, queueAt, queueTotal = {}, 0, 0
-local queueWaiting = false   -- 上一筆買完了，等玩家按「下一筆」
+local queueWaiting = false   -- 上一筆買完了，等玩家按確認列上的「購買」
 local queueSkipped = 0       -- 這批裡買不到而自動跳掉的樣數
 local status  = ""
 
@@ -348,7 +348,7 @@ end
 
 local StepQueue   -- 前向宣告：StartBuy 失敗時要跳下一筆
 
--- 批次裡這一樣買不到 —— 記一筆，然後**停下來等玩家按「下一筆」**，
+-- 批次裡這一樣買不到 —— 記一筆，然後**停下來等玩家按「購買」**，
 -- 不要自己一路衝到底。原本是直接 StepQueue()，結果一按「全部購買」就
 -- 連跳兩樣直接停在第三樣，玩家只看到 (3/3)，完全不知道前面發生了什麼。
 local function SkipInQueue()
@@ -397,10 +397,8 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
             --   把游標退一格並轉成「等玩家按」，按下去就是重試同一筆（那時已經查完）。
             queueAt = queueAt - 1
             queueWaiting = true
-            SetStatus(L["Asking the price — press Next when it comes back."], true)
-        else
-            SetStatus(L["Asking the price — press buy again when it comes back."], true)
         end
+        SetStatus(L["Asking the price — press buy again when it comes back."], true)
         return
     end
     searchedFor[itemID] = nil
@@ -420,8 +418,7 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
         searchedFor[itemID] = nil
         awaitSearch = { itemID = itemID, quantity = quantity, fromQueue = fromQueue }
         Auction.SearchItem(itemID)
-        SetStatus(fromQueue and L["Asking the price — press Next when it comes back."]
-                            or  L["Asking the price — press buy again when it comes back."], true)
+        SetStatus(L["Asking the price — press buy again when it comes back."], true)
         if fromQueue then queueWaiting = true; queueAt = queueAt - 1 end
         return
     end
@@ -473,8 +470,7 @@ local function ResumeAfterSearch(itemID)
     if not a or a.itemID ~= itemID then return end
     awaitSearch = nil
     if quotes[itemID] then
-        SetStatus(a.fromQueue and L["Price is in — press Next."]
-                              or  L["Price is in — press buy again."], true)
+        SetStatus(L["Price is in — press buy again."], true)
     else
         SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name), true)
         if a.fromQueue then SkipInQueue() end
@@ -533,7 +529,7 @@ function StepQueue()
     end
     Auction.StartBuy(item.itemID, item.quantity, true)
 end
--- 等玩家按「下一筆」的狀態：回傳下一筆的 itemID 與進度
+-- 等玩家按「購買」的狀態：回傳下一筆的 itemID 與進度
 function Auction.QueueWaiting()
     if not queueWaiting then return nil end
     local nextItem = buyQueue[queueAt + 1]
@@ -541,7 +537,7 @@ function Auction.QueueWaiting()
     return nextItem.itemID, queueAt + 1, queueTotal
 end
 
--- 確認列的「下一筆」。**一定要從點擊呼叫**（見檔頭的硬體事件閘）
+-- 確認列上那顆「購買」（批次的下一筆）。**一定要從點擊呼叫**（見檔頭的硬體事件閘）
 function Auction.Next()
     if not queueWaiting then return end
     queueWaiting = false
@@ -553,8 +549,8 @@ end
 function Auction.Skip()
     if queueTotal == 0 then return end
 
-    -- 停在「下一筆」的狀態也要能跳過：那一樣買不到（或就是不想買）的時候，
-    -- 沒有跳過就只能一直按「下一筆」看它再失敗一次。
+    -- 停在「等玩家按購買」的狀態也要能跳過：那一樣買不到（或就是不想買）的時候，
+    -- 沒有跳過就只能一直按購買看它再失敗一次。
     if queueWaiting then
         queueAt = queueAt + 1
         queueSkipped = queueSkipped + 1
@@ -653,7 +649,7 @@ local function Finish(success)
         if p and p.itemID then ns.List.NoteBought(p.itemID, p.quantity or 1) end
         SetStatus(L["Bought %s x%d."]:format(name, (p and p.quantity) or 1), true)
         -- ⚠ 不能直接 StepQueue()：那會從事件處理器裡呼叫 StartCommoditiesPurchase，
-        --   過不了硬體事件閘（見檔頭）。停在這裡，確認列會換成「下一筆」等玩家按。
+        --   過不了硬體事件閘（見檔頭）。停在這裡，確認列會換成「下一筆：某某」等玩家按購買。
         if queueTotal > 0 then queueWaiting = true end
         ns.Fire("ListChanged")
         return

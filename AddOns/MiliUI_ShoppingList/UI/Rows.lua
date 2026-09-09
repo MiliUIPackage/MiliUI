@@ -425,13 +425,16 @@ function Rows.CreateConfirmBar(parent, width, height)
     local ok = W.CreateButton(bar, L["Confirm"], "green", 64, 20)
     ok:SetScript("OnClick", function() ns.Auction.Confirm() end)
 
-    -- 「下一筆」：批次購買買完一筆之後停在這裡等玩家按。
+    -- 批次購買買完一筆之後停在這裡等玩家按下一筆。
     -- ⚠ 這一下點擊是必要的，不是懶得自動化：StartCommoditiesPurchase 有硬體事件閘，
     --   從「買到了」那個事件裡自動接下一筆會被擋（見 Core/Auction.lua 檔頭）。
     --
+    -- 字寫「購買」不寫「下一筆」：預設不用明確確認，按下去就是成交，說「下一筆」
+    -- 會讓人以為只是翻頁。要買哪一樣由左邊那行「下一筆：某某」講。
+    --
     -- 既然省不掉，就讓它**落在跟「確認」一模一樣的位置**（同寬同錨點，跳過鈕那一格
     -- 留空）。滑鼠不用移動，一直按同一個地方就能走完整批。
-    local nextBtn = W.CreateButton(bar, L["Next"], "green", 64, 20)
+    local nextBtn = W.CreateButton(bar, L["Buy"], "green", 64, 20)
     nextBtn:SetScript("OnClick", function() ns.Auction.Next() end)
 
     local function Layout(rightOf)
@@ -445,7 +448,7 @@ function Rows.CreateConfirmBar(parent, width, height)
         -- 自動成交的那一筆只是暫存狀態，不要讓確認列閃一下
         if p and p.auto then p = nil end
         if not p then
-            -- 沒有待確認的，但批次還沒走完 → 換成「下一筆」
+            -- 沒有待確認的，但批次還沒走完 → 換成「下一筆：某某」＋購買鈕
             local nextID, at, count = ns.Auction.QueueWaiting()
             if not nextID then
                 self:Hide()
@@ -455,8 +458,8 @@ function Rows.CreateConfirmBar(parent, width, height)
             text:SetText(("|cff808080(%d/%d)|r  "):format(at, count)
                 .. L["Next: %s"]:format((info and info.name) or "?"))
             ok:Hide()
-            -- 等「下一筆」的狀態一樣要能跳過：買不到的那一樣沒有跳過的話，
-            -- 玩家只能一直按下一筆看它再失敗一次
+            -- 等玩家按購買的狀態一樣要能跳過：買不到的那一樣沒有跳過的話，
+            -- 玩家只能一直按購買看它再失敗一次
             skip:Show()
             nextBtn:Show()
             nextBtn:ClearAllPoints()
