@@ -39,6 +39,7 @@ local UnitPowerMax = UnitPowerMax
 local UnitIsVisible = UnitIsVisible -- UnitButton_UpdateInRange, on the event path
 local GetTime = GetTime
 local GetRaidTargetIndex = GetRaidTargetIndex
+local SetRaidTargetIconTexture = SetRaidTargetIconTexture
 local GetReadyCheckStatus = GetReadyCheckStatus
 local UnitHasVehicleUI = UnitHasVehicleUI
 -- local UnitInVehicle = UnitInVehicle
@@ -2367,26 +2368,42 @@ UnitButton_UpdateLeader = function(self, event)
     end
 end
 
---! fix from MiliUI: the eight markers as SEPARATE files, so no texcoords are involved.
+--! fix from MiliUI: draw the marker WITHOUT ever reading its number.
 --!
 --! ⚠ GetRaidTargetIndex is `SecretReturns = true` -- UNCONDITIONALLY secret, not merely
 --! "when the unit is identity restricted" (Blizzard_APIDocumentationGenerated/
---! RaidMarkersDocumentation.lua). A tainted addon can therefore NEVER read the number.
---! The old path handed it to SetRaidTargetIconTexture, which is FrameXML Lua doing
---! `index - 1` and a modulo to pick a texcoord out of the 4x2 sheet -- arithmetic on a
---! secret, a hard error -- so it was guarded with IsValueNonSecret, and the guard quietly
---! meant the marker never appeared on ANY Cell frame.
+--! RaidMarkersDocumentation.lua). A tainted addon can NEVER read the number. The old path
+--! handed it to SetRaidTargetIconTexture, which is FrameXML Lua doing `index - 1` and a
+--! modulo to pick a texcoord out of the 4x2 sheet -- arithmetic on a secret, a hard error --
+--! so it was guarded with IsValueNonSecret, and that guard quietly meant the marker never
+--! appeared on ANY Cell frame.
 --!
---! Be the courier, not the reader: concatenating a secret into a string is legal, and
---! Texture:SetTexture accepts a secret asset name from tainted code
---! (SecretArguments = "AllowedWhenTainted"; SetAtlas and SetTexCoord do too -- it is only
---! SetRaidTargetIconTexture's arithmetic that was in the way). The result works whether the
---! index arrives secret or plain, so there is no branch to get wrong.
+--! SetSpriteSheetCell is the sanctioned way through: the engine picks the cell, so nobody
+--! has to compute a texcoord. The sheet is already on the texture from I.CreatePlayerRaidIcon.
 --!
---! ⚠ Only ever SET on this texture. It may pick up a secret aspect, and a widget carrying
---! one hands back secrets from its own getters. Nothing reads it: the frame around it owns
---! the geometry (the texture is SetAllPoints to it) and the size comes from the layout.
-local RAID_TARGET_ICON = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_"
+--! ⚠⚠ The tell for "this argument takes a secret" is `ConditionalSecret = true` on the
+--! ARGUMENT -- `cell` has it -- **not** `SecretArguments = "AllowedWhenTainted"` on the
+--! function. Texture:SetTexture carries that same function-level flag and still answers
+--! "Cannot set texture to a secret string value", so an asset name built by concatenating
+--! the index is a dead end (measured 2026-09-09, not deduced). Functions that really do
+--! take a secret also declare what it taints: SetSpriteSheetCell and SetTexCoord both carry
+--! SecretArgumentsAddAspect = { Enum.SecretAspect.TexCoords }; SetTexture declares nothing.
+--!
+--! ⚠ That aspect means this texture's own getters answer with secrets afterwards. Only ever
+--! SET on it: the frame around it owns the geometry (the texture is SetAllPoints to it) and
+--! the size comes from the layout.
+local RAID_TARGET_ROWS, RAID_TARGET_COLUMNS = 2, 4
+
+--! cell 1..8 reading across then down: star, circle, diamond, triangle / moon, square,
+--! cross, skull -- the same order SetRaidTargetIconTexture walks the sheet in.
+local function SetRaidTargetCell(tex, index)
+    if tex.SetSpriteSheetCell then
+        tex:SetSpriteSheetCell(index, RAID_TARGET_ROWS, RAID_TARGET_COLUMNS)
+    else
+        --! Classic has neither the API nor secret values, so the arithmetic is safe there
+        SetRaidTargetIconTexture(tex, index)
+    end
+end
 
 local function UnitButton_UpdatePlayerRaidIcon(self)
     local unit = self.states.displayedUnit
@@ -2403,7 +2420,7 @@ local function UnitButton_UpdatePlayerRaidIcon(self)
     --! and an unmarked unit answers with a plain nil
     local index = GetRaidTargetIndex(unit)
     if index then
-        playerRaidIcon.tex:SetTexture(RAID_TARGET_ICON .. index)
+        SetRaidTargetCell(playerRaidIcon.tex, index)
         playerRaidIcon:Show()
     else
         playerRaidIcon:Hide()
@@ -2426,7 +2443,7 @@ local function UnitButton_UpdateTargetRaidIcon(self)
     -- same courier trick as the player icon above
     local index = GetRaidTargetIndex(unit.."target")
     if index then
-        targetRaidIcon.tex:SetTexture(RAID_TARGET_ICON .. index)
+        SetRaidTargetCell(targetRaidIcon.tex, index)
         targetRaidIcon:Show()
     else
         targetRaidIcon:Hide()

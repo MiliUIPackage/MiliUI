@@ -103,37 +103,48 @@ Platynator 的 `Display/Colors.lua` 就是這樣做的，而且**它沒有維護
 ⚠ 這條的界線在 [[wow-121-duration-objects]]：圖騰槽做不到，是因為**沒有**一支
 「吃 secret spellID 回你要的東西」的 API，不是因為身分是秘密。差別在有沒有那支 API。
 
-## 秘密值當貨物：拿它組字串，餵給吃得下的 setter
+## 怎麼確定「這個參數吃不吃得下秘密值」（2026-09-09 實測修正）
 
-「當傳遞者不當讀取者」還有一條比曲線更好用的路：**字串串接對秘密值是合法的**，而
-`Texture:SetTexture` / `SetAtlas` / `SetTexCoord` 的 `SecretArguments` 都是
-**`AllowedWhenTainted`** —— 插件可以直接把秘密值餵進去。
+⚠ **不是看函式上的 `SecretArguments`。** 那個欄位幾乎每支都有，`AllowedWhenTainted`
+只表示「污染的程式呼叫這支時，傳秘密值不會被當成違規呼叫擋下來」，**不代表某個參數收得下**。
 
-所以「秘密的編號 → 畫出對應的圖」不需要讀那個編號：
+真正的判準有兩個，兩個都在同一份 `Blizzard_APIDocumentationGenerated/` 裡：
+
+1. **參數自己標著 `ConditionalSecret = true`** —— 那個位置才是為秘密值開的。
+2. **函式標著 `SecretArgumentsAddAspect = { ... }`** —— 會吃秘密值的函式必須宣告它會污染
+   哪個面向；宣告不出來的就是不吃。
+
+反例（**實測**，不是推論）：`Texture:SetTexture` 有 `SecretArguments = "AllowedWhenTainted"`，
+沒有任何參數標 `ConditionalSecret`，也沒有 `SecretArgumentsAddAspect`。把秘密字串餵進去
+得到 `Texture:SetTexture(): Cannot set texture to a secret string value.`
+—— 所以「把秘密編號串進檔名再 SetTexture」這條路是死的，`SetAtlas` 同型別同下場。
+
+## 秘密的「編號」要畫成圖：`SetSpriteSheetCell`
 
 ```lua
-local index = GetRaidTargetIndex(unit)   -- SecretReturns：永遠讀不到
-if index then                            -- 非 boolean 的秘密值做真假測試是合法的
-    tex:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_" .. index)
-end
+tex:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")  -- 合成表，明文路徑
+tex:SetSpriteSheetCell(index, 2, 4)   -- index 可以是秘密值（ConditionalSecret）
 ```
 
-關鍵是找到**一組分開的檔案**（或分開的圖集名），這樣就不必算貼圖座標。
-八個團隊標記剛好有 `UI-RaidTargetingIcon_1` … `_8`；只有合成表
-`UI-RaidTargetingIcons`（複數）才需要 `index - 1` 那種算術。
-暴雪的 `SetRaidTargetIconTexture()` 走的是合成表，所以那支**在插件裡永遠會炸**，
-不是可以 guard 的東西 —— guard 起來就等於標記永遠不顯示。
+`SetSpriteSheetCell(cell, numRows, numColumns[, cellWidth, cellHeight])`：**引擎替你挑格子**，
+所以完全不需要算貼圖座標。`cell` 標著 `ConditionalSecret`，其餘參數 `NeverSecret`（我們自己給明文）。
 
-⚠ 這招會在那個 widget 上留下 secret aspect，之後它自己的 getter 會回秘密值。
-用法規則：**那個 widget 只能被設定、不能被讀**。實作上把幾何交給外層的 frame
-（貼圖 `SetAllPoints` 上去），尺寸來自設定檔，就沒有東西會去讀它。
+這是「秘密編號 → 對應的圖」在 12.1 唯一走得通的路。團隊標記就是這個形狀
+（`GetRaidTargetIndex` 是 `SecretReturns`，永遠讀不到），暴雪自己的
+`SetRaidTargetIconTexture()` 走的是 `index - 1` ＋ 取模挑座標，**在插件裡永遠會炸**，
+而且那不是可以 guard 的東西 —— guard 起來就等於標記永遠不顯示。
+
+⚠ 副作用：那張貼圖之後帶著 `SecretAspect.TexCoords`，自己的 getter 會回秘密值。
+規則照舊：**只設定、不回讀**；幾何交給外層 frame（貼圖 `SetAllPoints` 上去），尺寸來自設定檔。
+
+⚠ `tostring(secret)` 是禁止的（`attempt to perform string conversion`），但**字串串接是允許的** ——
+串接產出的是秘密字串，`tostring` 要產出的是明文，差別在這裡。串得出來不代表有地方收（見上面那條）。
 
 ⚠ **曲線不能拿來吃秘密數字。** `LuaCurveObject:Evaluate(x)` 的 `SecretArguments` 是
 `AllowedWhenUntainted` —— 污染的程式傳秘密值進去不會過。插件手上真正能吃秘密值的
-只有 `EvaluateColorFromBoolean` / `EvaluateColorValueFromBoolean`（`AllowedWhenTainted`，
-但要秘密**布林**）以及 `UnitHealPredictionCalculator` 自己的 `Evaluate*`（它評估的是
-自己內部的秘密血量）。所以下面那節「一個區間一條曲線」成立的前提是**計算器**替你評估，
-換成任意的秘密數字就沒有對應的入口。
+只有 `EvaluateColorFromBoolean` / `EvaluateColorValueFromBoolean`（要秘密**布林**）
+以及 `UnitHealPredictionCalculator` 自己的 `Evaluate*`（它評估的是自己內部的秘密血量）。
+所以下面那節「一個區間一條曲線」成立的前提是**計算器**替你評估。
 
 ## 曲線可以**串接**
 
