@@ -207,7 +207,11 @@ function Schematic.OrderReagents(form)
             if isBasic then
                 itemID, alts = SlotItems(slot)
                 perCraft = slot.quantityRequired or 1
-                optional = not must          -- 可以提供但不強制＝清單上的「可選」
+                -- ⚠ 「可選」講的是**配方需不需要這樣材料**，不是「誰來出」。
+                --   基礎材料一律是必備 —— 個人／公會訂單的欄位大多是 Any，
+                --   拿 must（誰必須提供）當可選與否，整張單會全部標成「可選」，
+                --   而畫面上那幾樣明明每一樣都得備齊（實測回報）。
+                optional = false
                 include  = CanProvide(slot, order)
             else
                 -- 裝飾／加成槽：玩家放了東西才算他的

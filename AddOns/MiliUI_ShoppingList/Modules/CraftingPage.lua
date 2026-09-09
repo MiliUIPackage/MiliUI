@@ -1,8 +1,8 @@
 ------------------------------------------------------------
 -- 製作頁的「加入清單」按鈕
 --
--- 掛在 ProfessionsFrame.CraftingPage.SchematicForm 上，貼在底部那排製作鈕的
--- 最左邊（位置怎麼挑見下面 PlaceButton 的註解）。
+-- 掛在 ProfessionsFrame.CraftingPage.SchematicForm 上，貼在配方標題那一列的
+-- 右端（「追蹤配方」左邊）；為什麼不放底下那排製作鈕見 PlaceButton 的註解。
 --
 -- ⚠ taint 紀律：
 --   * 按鈕是我們自己的子框，**不寫任何欄位到暴雪的框上**（不用 parentKey）
@@ -13,8 +13,12 @@ local _, ns = ...
 
 local L, W, P = ns.L, ns.W, ns.P
 
-local button
+local button, caption
 local attached = false
+
+-- ⚠ 按鈕字用內嵌色碼，不用 SetTextColor：W.CreateButton 在 SetEnabled 時會自己
+--   重上白／灰，SetTextColor 設完下一次 Refresh 就被蓋掉。
+local LABEL = "|cffffd200" .. ns.L["Add to list"] .. "|r"
 
 ------------------------------------------------------------
 -- 製作數量輸入框
@@ -57,34 +61,23 @@ local function CurrentRecipe()
 end
 
 ------------------------------------------------------------
--- 按鈕位置
+-- 按鈕位置：配方標題那一列的右端，「追蹤配方」勾選框左邊
 --
--- 製作頁底部那一排由右往左是：製造(CreateButton) ← 數量框(CreateMultipleInputBox)
--- ← 全部製造(CreateAllButton)，暴雪的錨點各留 30px 的間隔給數量框的左右箭頭
--- （箭頭是**突出到框外**的，所以那 30px 不是空白）。
--- 一開始錨在 CreateButton 左邊，結果整顆蓋在數量框上。改成貼在整排的最左邊。
---
--- ⚠ 「最左邊是誰」會變：不能批量製作的配方（附魔那類）沒有全部製造鈕與數量框。
---   所以每次 Refresh 重挑一次，不要在 Attach 時挑死。
+-- ⚠ 底下那排製作鈕不要碰。由右往左是 製造 ← 數量框 ← 全部製造，而暴雪的錨點
+--   各留 30px 給數量框**突出到框外**的左右箭頭 —— 那 30px 不是空白，貼上去就疊了。
+--   （試過兩個位置才搬到上面來。）
 ------------------------------------------------------------
 local function PlaceButton()
     local page = ProfessionsFrame and ProfessionsFrame.CraftingPage
-    if not button or not page then return end
-
-    local anchor, gap
-    if page.CreateAllButton and page.CreateAllButton:IsShown() then
-        anchor, gap = page.CreateAllButton, 10
-    elseif page.CreateMultipleInputBox and page.CreateMultipleInputBox:IsShown() then
-        anchor, gap = page.CreateMultipleInputBox, 26   -- 讓開左箭頭
-    elseif page.CreateButton then
-        anchor, gap = page.CreateButton, 10
-    end
+    local form = page and page.SchematicForm
+    if not button or not form then return end
 
     button:ClearAllPoints()
-    if anchor then
-        button:SetPoint("RIGHT", anchor, "LEFT", -gap, 0)
+    if form.TrackRecipeCheckbox then
+        -- 「追蹤配方」左邊那片是空的，而且視線一進面板就會經過那裡
+        button:SetPoint("RIGHT", form.TrackRecipeCheckbox, "LEFT", -12, 0)
     else
-        button:SetPoint("BOTTOMRIGHT", page.SchematicForm, "BOTTOMRIGHT", -8, 8)
+        button:SetPoint("TOPRIGHT", form, "TOPRIGHT", -12, -20)
     end
 end
 
@@ -95,18 +88,8 @@ local function Refresh()
     if not button then return end
     PlaceButton()
     local form, info = CurrentRecipe()
-    if not form then
-        button:SetEnabled(false)
-        button:SetText(L["Add to list"])
-        return
-    end
-    button:SetEnabled(true)
-    local entry = ns.List.Find("craft:" .. info.recipeID)
-    if entry then
-        button:SetText(L["In list (%d)"]:format(entry.quantity or 1))
-    else
-        button:SetText(L["Add to list"])
-    end
+    button:SetText(LABEL)
+    button:SetEnabled(form and true or false)
 end
 
 local function FillTooltip(_, tip)
@@ -157,11 +140,19 @@ local function Attach()
     if not form then return end
     attached = true
 
-    button = W.CreateButton(form, L["Add to list"], "accent-hover", 110, 22)
-    P.Size(button, 110, 22)
+    button = W.CreateButton(form, L["Add to list"], "accent-hover", 150, 22)
+    P.Size(button, 150, 22)
     PlaceButton()
     ns.AttachTooltip(button, FillTooltip)
     button:SetScript("OnClick", OnClick)
+
+    -- 按鈕底下一行小字：不解釋的話，「加入清單」看起來只是個記事本。
+    -- 真正的賣點是「清單會幫你把缺的材料在拍賣場一次買齊」。
+    caption = button:CreateFontString(nil, "OVERLAY")
+    caption:SetFontObject(GameFontHighlightSmall)   -- 白字：灰字在深色面板上讀不到
+    caption:SetPoint("TOPRIGHT", button, "BOTTOMRIGHT", 0, -2)
+    caption:SetJustifyH("RIGHT")
+    caption:SetText(L["Missing reagents can be bought at the auction house in one go"])
 
     -- 換配方就重算按鈕狀態。hook **實體**不 hook mixin：mixin 是所有製作頁共用的
     -- 那張表，掛上去等於替暴雪所有用到它的地方都加一段我們的程式。

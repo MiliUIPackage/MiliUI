@@ -40,7 +40,6 @@ L["Nothing left to buy."] = "没有要买的东西了。"
 
 -- 採購列
 L["Reagent"] = "材料"
-L["Kind"] = "类别"
 L["Bags / bank"] = "背包／银行"
 L["Need"] = "需要"
 L["Buy"] = "购买"
@@ -48,7 +47,6 @@ L["Find"] = "搜索"
 L["Unit price"] = "单价"
 L["Listed"] = "在售"
 L["optional"] = "可选"
-L["required"] = "必备"
 L["for"] = "用于"
 L["Estimate"] = "预估"
 
@@ -82,7 +80,6 @@ L["That listing is gone. Search again."] = "那笔挂单已经不在了，请重
 
 -- 製作頁與訂單頁的按鈕
 L["Add to list"] = "加入清单"
-L["In list (%d)"] = "清单中（%d）"
 L["Pick a recipe first."] = "请先选一个配方。"
 L["Adds this recipe to the shopping list. The count comes from the box next to the craft button."] = "把这个配方加进采购清单。份数取自制作按钮旁边那个数字框。"
 L["Craft count"] = "制作份数"

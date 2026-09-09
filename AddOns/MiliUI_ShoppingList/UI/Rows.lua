@@ -19,16 +19,18 @@ local L, W, P = ns.L, ns.W, ns.P
 Rows.ROW_H = 22
 
 -- 右側固定欄的寬度（由右往左排）
+-- ⚠ 沒有「類別」欄：實際上幾乎每一樣都是必備（配方要用的東西當然必備），
+--   一整欄寫滿「必備」等於沒有資訊。真的是可選的（裝飾／加成材料）改成在
+--   名字後面加一個灰字「(可選)」。
 local COL = {
     omit   = 22,
     buy    = 46,
     search = 46,
     listed = 42,
-    price  = 98,
+    price  = 146,   -- 完整金額（金銀銅）比只印金寬得多
     toBuy  = 46,
     need   = 40,
     have   = 78,
-    tag    = 44,
 }
 local GAP  = 4
 local ICON = 18
@@ -36,7 +38,7 @@ local CHIP = 18
 local MAX_TIERS = 3
 
 -- 表頭與列共用同一套座標，不然標題一定跟欄位對不齊
-local ORDER = { "tag", "have", "need", "toBuy", "price", "listed", "search", "buy", "omit" }
+local ORDER = { "have", "need", "toBuy", "price", "listed", "search", "buy", "omit" }
 
 local function PlaceColumns(parent, make)
     local out, x = {}, -GAP
@@ -70,7 +72,6 @@ function Rows.CreateHeader(parent, width)
     P.Size(header, width or 600, 18)
 
     local titles = {
-        tag    = L["Kind"],
         have   = L["Bags / bank"],
         need   = L["Need"],
         toBuy  = L["Buy"],
@@ -81,7 +82,7 @@ function Rows.CreateHeader(parent, width)
         omit   = "",
     }
     local cols = PlaceColumns(header, function(key, w)
-        local fs = Label(header, key == "tag" and "LEFT" or "RIGHT", ns.Media.fontDim)
+        local fs = Label(header, "RIGHT", ns.Media.fontDim)
         fs:SetWidth(w)
         fs:SetText(titles[key] or "")
         return fs
@@ -199,8 +200,7 @@ function Rows.Build(row)
             b:SetFrameLevel(base + 3)
             return b
         end
-        local fs = Label(row, key == "tag" and "LEFT" or "RIGHT",
-            (key == "tag") and ns.Media.fontDim or ns.Media.fontNum)
+        local fs = Label(row, "RIGHT", ns.Media.fontNum)
         fs:SetWidth(w)
         return fs
     end)
@@ -266,13 +266,6 @@ function Rows.Build(row)
     cols.buy:SetText(L["Buy"])
 end
 
-local function TagText(data)
-    if data.optional then
-        return "|cff808080" .. L["optional"] .. "|r"
-    end
-    return "|cffffd200" .. L["required"] .. "|r"
-end
-
 function Rows.Update(row, data)
     local info = ns.List.ItemInfo(data.itemID)
     row.icon:SetTexture(info and info.icon or 134400)
@@ -316,9 +309,11 @@ function Rows.Update(row, data)
 
     local color = ITEM_QUALITY_COLORS[(info and info.quality) or 1]
     local hex = (color and color.hex) or "|cffffffff"
-    row.name:SetText(hex .. (info and info.name or "?") .. "|r")
-
-    row.cols.tag:SetText(TagText(data))
+    local label = hex .. (info and info.name or "?") .. "|r"
+    if data.optional then
+        label = label .. " |cff808080(" .. L["optional"] .. ")|r"
+    end
+    row.name:SetText(label)
 
     -- 持有量拆成「背包 ／ 銀行」。設定關著時銀行那截變暗但**還是印出來** ——
     -- 玩家才知道東西其實在銀行、不用再買一份。
@@ -350,7 +345,8 @@ function Rows.Update(row, data)
     row:SetAlpha(dim and 0.55 or 1)
 
     local sellable = not data.vendor and not data.ignored
-    row.cols.price:SetText((sellable and data.unitPrice) and ns.List.MoneyShort(data.unitPrice) or "|cff666666-|r")
+    -- 完整金額：只印金的話 279 金 04 銅跟 279 金 99 銀看起來一樣貴
+    row.cols.price:SetText((sellable and data.unitPrice) and ns.List.Money(data.unitPrice) or "|cff666666-|r")
     row.cols.listed:SetText((sellable and data.listed) and BreakUpLargeNumbers(data.listed) or "|cff666666-|r")
 
     local ahOpen = ns.Auction.IsOpen()

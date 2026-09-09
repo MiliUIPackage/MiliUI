@@ -44,6 +44,7 @@ local quotes  = {}   -- [itemID] = { unitPrice, quantity, isCommodity, itemKey, 
 --   直接照那份資料走非商品路徑，會得到「拍賣場上沒有人賣」的假結論（實測）。
 local detailed = {}
 local prefetched = {}   -- 已經排進補查佇列的，別重複排（瀏覽結果會來好幾波）
+local ourBrowse = false -- 這波瀏覽結果是我們自己送的查詢帶回來的
 local lowest  = {}   -- [itemID] = 本次登入看過的最低單價（天價保險的基準）
 local queue   = {}
 local busy    = false
@@ -225,6 +226,7 @@ function Auction.SearchAll()
         return
     end
     SetStatus(L["Searching the auction house..."])
+    ourBrowse = true
     Run(function() C_AuctionHouse.SearchForItemKeys(keys, PRICE_SORTS) end)
 end
 
@@ -492,9 +494,18 @@ for _, event in ipairs({
     f:RegisterEvent(event)
 end
 
+-- ⚠ 拍賣場的事件是**全域**的：玩家自己在暴雪的介面買東西、自己按搜尋，
+--   我們一樣收得到。沒有經過我們的那些，一個字都不要報 —— 不然會出現
+--   「已購買 ？ ×1」「拍賣場沒有回應」這種跟玩家剛才做的事對不上的訊息
+--   （實測回報：人家買成功了，我們卻在旁邊喊失敗）。
 local function Finish(success)
     local p = pendingConfirm or pendingQuote
-    local name = p and p.itemID and ns.List.ItemInfo(p.itemID).name or "?"
+    if not p then
+        -- 這筆不是我們發動的。背包／信箱可能變了，重畫一次就好，不要出聲。
+        ns.Fire("ListChanged")
+        return
+    end
+    local name = p.itemID and ns.List.ItemInfo(p.itemID).name or "?"
     ClearPending()
     if success then
         -- ⚠ 買到的東西是**寄信**過來的，收信前 GetItemCount 看不到 —— 不記一筆的話
@@ -526,6 +537,7 @@ f:SetScript("OnEvent", function(_, event, a1, a2)
         wipe(queue)
         wipe(detailed)
         wipe(prefetched)
+        ourBrowse = false
         busy, pendingSearch = false, nil
         SetStatus(L["Open the auction house to search and buy."])
         ns.Fire("AuctionClosed")
@@ -536,14 +548,21 @@ f:SetScript("OnEvent", function(_, event, a1, a2)
     elseif event == "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED"
         or event == "AUCTION_HOUSE_BROWSE_RESULTS_ADDED"
         or event == "AUCTION_HOUSE_NEW_RESULTS_RECEIVED" then
+        -- 價格照收（玩家自己瀏覽帶回來的也是免費資料），但**只有我們自己送的
+        -- 查詢**才接著在背景補逐筆掛單，不然玩家隨便瀏覽都會被我們塞一串查詢
         StoreBrowseResults()
         Pump()
         SetStatus(L["Prices updated."])
-        PrefetchDetails()
+        if ourBrowse then
+            ourBrowse = false
+            PrefetchDetails()
+        end
 
     elseif event == "AUCTION_HOUSE_BROWSE_FAILURE" then
+        local ours = ourBrowse or busy
         Pump()
-        SetStatus(L["The auction house did not answer. Try again."], true)
+        if ours then SetStatus(L["The auction house did not answer. Try again."], true) end
+        ourBrowse = false
 
     elseif event == "COMMODITY_SEARCH_RESULTS_UPDATED" then
         StoreCommodity(a1)
@@ -574,6 +593,7 @@ f:SetScript("OnEvent", function(_, event, a1, a2)
         SetStatus(L["Check the price, then confirm."])
 
     elseif event == "COMMODITY_PRICE_UNAVAILABLE" then
+        if not (pendingQuote or pendingConfirm) then return end
         ClearPending()
         StopQueue()
         SetStatus(L["That listing is gone. Search again."], true)

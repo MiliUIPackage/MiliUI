@@ -23,7 +23,7 @@ local Window = ns.Window
 local W, P, L = ns.W, ns.P, ns.L
 
 -- 視窗高度：不需要很高。清單捲得動，而高視窗貼到拍賣場下面就會掉出畫面。
-local WINDOW_W, WINDOW_H = 720, 420
+local WINDOW_W, WINDOW_H = 800, 420
 local MIN_DOCK_H = 240   -- 貼在拍賣場下面時，低於這個高度就改貼右邊
 local HEADER_H   = 24
 local SECTION_H  = 22
@@ -31,13 +31,14 @@ local TOOL_H     = 22
 local ROW_H      = 24
 local HEAD_H     = 18
 local CONFIRM_H  = 30
+local BOTTOM_H   = 26      -- 最下面那條工具列（搜尋全部／全部購買／預估）
 local PAD        = 8
 local SCROLLBAR  = 20
 
 -- 配方區最多長到幾列才開始捲動。再高就把採購區擠掉了，而採購區才是要動手的地方。
 local MAX_RECIPE_ROWS = 5
 
-local frame, recipeList, shopList, shopHeader, confirmBar
+local frame, recipeList, shopList, shopHeader, confirmBar, bottomBar
 local recipeSection, shopSection
 local statusLabel, estimateLabel, emptyLabel, extraBox
 local docked = false
@@ -85,7 +86,10 @@ local function DockToAuctionHouse()
 
     local avail = ahBottom - 12
     if avail >= MIN_DOCK_H then
-        P.Size(frame, WINDOW_W, math.min(WINDOW_H, avail))
+        -- 跟拍賣場同寬：貼在它正下方，寬度不一樣會像兩個沒對齊的東西疊著。
+        -- 欄位都是靠右錨的，多出來的寬度自動給材料名稱那一欄。
+        local w = math.max(WINDOW_W, math.floor(AuctionHouseFrame:GetWidth() or 0))
+        P.Size(frame, w, math.min(WINDOW_H, avail))
         local pts = { "TOPLEFT", AuctionHouseFrame, "BOTTOMLEFT", 0, -4 }
         W.PlaceClamped(frame, pts)
     else
@@ -300,8 +304,9 @@ end
 -- 版面：配方區的高度隨列數變，採購區吃掉剩下的
 ------------------------------------------------------------
 function Layout()
-    local bottom = PAD
-    if confirmBar:IsShown() then bottom = PAD + CONFIRM_H + 4 end
+    -- 由下往上疊：工具列固定在最底，確認列出現時插在它上面，清單吃掉剩下的
+    local bottom = PAD + BOTTOM_H + 4
+    if confirmBar:IsShown() then bottom = bottom + CONFIRM_H + 4 end
 
     -- 配方區最多吃掉三分之一的可用高度：視窗貼到拍賣場下面時會被壓矮，
     -- 固定五列的話採購區會只剩一兩列 —— 而採購區才是要動手的地方。
@@ -486,31 +491,12 @@ local function Build()
     shopSection:SetPoint("TOPLEFT", recipeList, "BOTTOMLEFT", 0, -8)
     shopSection:SetPoint("TOPRIGHT", recipeList, "BOTTOMRIGHT", 0, -8)
 
-    -- ⚠ 起點寫死不錨標題：標題會隨「只看某個配方」變長，錨上去整排按鈕會跟著跑
-    local searchAll = W.CreateButton(shopSection, L["Search all"], "normal", 88, TOOL_H - 4)
-    searchAll:SetPoint("BOTTOMLEFT", shopSection, "BOTTOMLEFT", 90, 3)
-    searchAll:SetScript("OnClick", function() ns.Auction.SearchAll() end)
-    ns.AttachTooltip(searchAll, function(_, tip)
-        tip:SetText(L["Search all"])
-        tip:AddLine(L["Asks the auction house for a price on everything in the list. Needs the auction house open."],
-            0.8, 0.8, 0.8, true)
-    end)
-
-    local buyAll = W.CreateButton(shopSection, L["Buy everything"], "accent-hover", 88, TOOL_H - 4)
-    buyAll:SetPoint("LEFT", searchAll, "RIGHT", 4, 0)
-    buyAll:SetScript("OnClick", function() ns.Auction.BuyAll() end)
-    ns.AttachTooltip(buyAll, function(_, tip)
-        tip:SetText(L["Buy everything"])
-        tip:AddLine(L["Walks the list one item at a time. Each one still needs your confirm, then your press on Next — the game does not let an addon chain purchases on its own."],
-            0.8, 0.8, 0.8, true)
-    end)
-
     local bankCheck = W.CreateCheckButton(shopSection, L["Count the bank"], function(on)
         ns.db.settings.includeBank = on
         ns.List.Invalidate()
         ns.Fire("ListChanged")
     end)
-    bankCheck:SetPoint("LEFT", buyAll, "RIGHT", 12, 0)
+    bankCheck:SetPoint("BOTTOMLEFT", shopSection, "BOTTOMLEFT", 90, 3)
     shopSection.bankCheck = bankCheck
 
     local missingCheck = W.CreateCheckButton(shopSection, L["Only what I still need"], function(on)
@@ -534,10 +520,36 @@ local function Build()
         math.ceil(missingCheck.label:GetStringWidth()) + 22, 0)
     shopSection.hiddenCheck = hiddenCheck
 
-    estimateLabel = shopSection:CreateFontString(nil, "OVERLAY")
+    ---- 底部工具列：動作與總價 ----
+    -- 動作放最下面：整個流程（全部購買 → 確認 → 下一筆）都在這一帶發生，
+    -- 眼睛與滑鼠不用在視窗上下兩端來回跑。
+    bottomBar = CreateFrame("Frame", nil, frame)
+    bottomBar:SetHeight(P.Scale(BOTTOM_H))
+    bottomBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PAD, PAD)
+    bottomBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PAD, PAD)
+
+    local searchAll = W.CreateButton(bottomBar, L["Search all"], "normal", 96, BOTTOM_H - 4)
+    searchAll:SetPoint("LEFT", 2, 0)
+    searchAll:SetScript("OnClick", function() ns.Auction.SearchAll() end)
+    ns.AttachTooltip(searchAll, function(_, tip)
+        tip:SetText(L["Search all"])
+        tip:AddLine(L["Asks the auction house for a price on everything in the list. Needs the auction house open."],
+            0.8, 0.8, 0.8, true)
+    end)
+
+    local buyAll = W.CreateButton(bottomBar, L["Buy everything"], "accent-hover", 96, BOTTOM_H - 4)
+    buyAll:SetPoint("LEFT", searchAll, "RIGHT", 6, 0)
+    buyAll:SetScript("OnClick", function() ns.Auction.BuyAll() end)
+    ns.AttachTooltip(buyAll, function(_, tip)
+        tip:SetText(L["Buy everything"])
+        tip:AddLine(L["Walks the list one item at a time. Each one still needs your confirm, then your press on Next — the game does not let an addon chain purchases on its own."],
+            0.8, 0.8, 0.8, true)
+    end)
+
+    estimateLabel = bottomBar:CreateFontString(nil, "OVERLAY")
     estimateLabel:SetFontObject(ns.Media.fontRow)
-    estimateLabel:SetPoint("BOTTOMRIGHT", 0, 4)
-    estimateLabel:SetPoint("BOTTOMLEFT", hiddenCheck.label, "BOTTOMRIGHT", 12, 0)
+    estimateLabel:SetPoint("RIGHT", -4, 0)
+    estimateLabel:SetPoint("LEFT", buyAll, "RIGHT", 16, 0)
     estimateLabel:SetJustifyH("RIGHT")
     estimateLabel:SetWordWrap(false)
 
@@ -551,8 +563,8 @@ local function Build()
 
     ---- 確認列 ----
     confirmBar = ns.Rows.CreateConfirmBar(frame, WINDOW_W - PAD * 2, CONFIRM_H)
-    confirmBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PAD, PAD)
-    confirmBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PAD, PAD)
+    confirmBar:SetPoint("BOTTOMLEFT", bottomBar, "TOPLEFT", 0, 4)
+    confirmBar:SetPoint("BOTTOMRIGHT", bottomBar, "TOPRIGHT", 0, 4)
 
     emptyLabel = frame:CreateFontString(nil, "OVERLAY")
     emptyLabel:SetFontObject(ns.Media.fontDim)
