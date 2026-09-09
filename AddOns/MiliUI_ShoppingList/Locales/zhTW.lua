@@ -46,7 +46,6 @@ L["Buy"] = "購買"
 L["Find"] = "搜尋"
 L["Unit price"] = "單價"
 L["Listed"] = "在售"
-L["optional"] = "可選"
 L["for"] = "用於"
 L["Estimate"] = "預估"
 
@@ -173,3 +172,5 @@ L["Asking the price — press buy again when it comes back."] = "正在問價，
 
 L["Asking the price — press Next when it comes back."] = "正在問價，回來之後按「下一筆」。"
 L["Price is in — press Next."] = "報價回來了，按「下一筆」。"
+
+L["Done — %d could not be bought."] = "清單走完了，其中 %d 樣買不到。"

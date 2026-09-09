@@ -74,10 +74,9 @@ local function FillTooltip(_, tip)
     local any = false
     for _, r in ipairs(rows or {}) do
         local info = ns.List.ItemInfo(r.itemID)
+        -- ⚠ 不要標「可選」：這張單上每一樣都是配方要用的，標了只會誤導
+        --   （試過兩次，兩次都是錯的）。要不要自己出由玩家自己判斷。
         local label = ns.List.QualityMarkup(r.itemID) .. (info and info.name or "?")
-        if r.optional then
-            label = label .. " |cff808080(" .. L["optional"] .. ")|r"
-        end
         local right = ("%d / %d"):format(r.allocated or 0, r.need or 0)
         if (r.buy or 0) > 0 then
             tip:AddDoubleLine(label, right, 1, 1, 1, 1, 0.4, 0.4)

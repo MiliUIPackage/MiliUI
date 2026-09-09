@@ -46,7 +46,6 @@ L["Buy"] = "购买"
 L["Find"] = "搜索"
 L["Unit price"] = "单价"
 L["Listed"] = "在售"
-L["optional"] = "可选"
 L["for"] = "用于"
 L["Estimate"] = "预估"
 
@@ -173,3 +172,5 @@ L["Asking the price — press buy again when it comes back."] = "正在询价，
 
 L["Asking the price — press Next when it comes back."] = "正在询价，回来之后按「下一笔」。"
 L["Price is in — press Next."] = "报价回来了，按「下一笔」。"
+
+L["Done — %d could not be bought."] = "清单走完了，其中 %d 样买不到。"

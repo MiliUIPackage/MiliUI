@@ -55,6 +55,7 @@ local awaitSearch         -- 搜尋結果回來要接著買的 { itemID, quantit
 local searchedFor = {}    -- [itemID] = 這次購買已經為了它搜過一輪了（防止一直繞回去搜）
 local buyQueue, queueAt, queueTotal = {}, 0, 0
 local queueWaiting = false   -- 上一筆買完了，等玩家按「下一筆」
+local queueSkipped = 0       -- 這批裡買不到而自動跳掉的樣數
 local status  = ""
 
 -- alert = true：這一條是「玩家要知道才動得下去」的（沒人賣、錢不夠、再按一次），
@@ -154,8 +155,9 @@ local function PrefetchDetails()
             prefetched[id] = true
             n = n + 1
             if n > MAX_PREFETCH then break end
+            local itemKey = (quotes[id] and quotes[id].itemKey) or C_AuctionHouse.MakeItemKey(id)
             Run(function()
-                C_AuctionHouse.SendSearchQuery(C_AuctionHouse.MakeItemKey(id), PRICE_SORTS, false)
+                C_AuctionHouse.SendSearchQuery(itemKey, PRICE_SORTS, false)
             end)
         end
     end
@@ -236,10 +238,16 @@ function Auction.SearchItem(itemID)
         SetStatus(L["Open the auction house to search and buy."], true)
         return false
     end
+    -- ⚠ 用整批瀏覽帶回來的 itemKey，不要自己 MakeItemKey。
+    --   裝備類（非商品）的 item key 還帶著 itemLevel / itemSuffix，MakeItemKey
+    --   給的是 0，查出來一筆掛單都沒有 —— 症狀是「列上明明有價格與在售數量，
+    --   買的時候卻說沒有人賣」，而且批次購買會把那一樣默默跳掉（實測）。
+    local itemKey = (quotes[itemID] and quotes[itemID].itemKey)
+                    or C_AuctionHouse.MakeItemKey(itemID)
     pendingSearch = itemID
     SetStatus(L["Searching the auction house..."])
     Run(function()
-        C_AuctionHouse.SendSearchQuery(C_AuctionHouse.MakeItemKey(itemID), PRICE_SORTS, false)
+        C_AuctionHouse.SendSearchQuery(itemKey, PRICE_SORTS, false)
     end)
     return true
 end
@@ -269,6 +277,7 @@ local StepQueue   -- 前向宣告：StartBuy 失敗時要跳下一筆
 local function StopQueue(text, alert)
     buyQueue, queueAt, queueTotal = {}, 0, 0
     queueWaiting = false
+    queueSkipped = 0
     awaitSearch = nil
     wipe(searchedFor)
     if text then SetStatus(text, alert) end
@@ -295,7 +304,10 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
             searchedFor[itemID] = nil
             awaitSearch = nil
             SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name), true)
-            if fromQueue then StepQueue() end
+            if fromQueue then
+                queueSkipped = queueSkipped + 1
+                StepQueue()
+            end
             return
         end
         searchedFor[itemID] = true
@@ -317,7 +329,10 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
     local quote = quotes[itemID]
     if not quote then
         SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name), true)
-        if fromQueue then StepQueue() end
+        if fromQueue then
+            queueSkipped = queueSkipped + 1
+            StepQueue()
+        end
         return
     end
 
@@ -337,7 +352,10 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
     if not info or not info.buyoutAmount or not info.auctionID then
         local name = ns.List.ItemInfo(itemID).name
         SetStatus(L["No one is selling %s."]:format(name))
-        if fromQueue then StepQueue() end
+        if fromQueue then
+            queueSkipped = queueSkipped + 1
+            StepQueue()
+        end
         return
     end
     pendingConfirm = {
@@ -363,7 +381,10 @@ local function ResumeAfterSearch(itemID)
                               or  L["Price is in — press buy again."], true)
     else
         SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name), true)
-        if a.fromQueue then StepQueue() end
+        if a.fromQueue then
+            queueSkipped = queueSkipped + 1
+            StepQueue()
+        end
     end
 end
 
@@ -410,7 +431,10 @@ function StepQueue()
     queueAt = queueAt + 1
     local item = buyQueue[queueAt]
     if not item then
-        StopQueue(L["The list is bought."], true)
+        -- 買不到而跳掉的要講出來：不然「清單買完了」會讓玩家以為每一樣都到手
+        local skipped = queueSkipped
+        StopQueue(skipped > 0 and L["Done — %d could not be bought."]:format(skipped)
+                              or  L["The list is bought."], true)
         ns.Fire("ListChanged")
         return
     end

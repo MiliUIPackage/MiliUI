@@ -309,11 +309,7 @@ function Rows.Update(row, data)
 
     local color = ITEM_QUALITY_COLORS[(info and info.quality) or 1]
     local hex = (color and color.hex) or "|cffffffff"
-    local label = hex .. (info and info.name or "?") .. "|r"
-    if data.optional then
-        label = label .. " |cff808080(" .. L["optional"] .. ")|r"
-    end
-    row.name:SetText(label)
+    row.name:SetText(hex .. (info and info.name or "?") .. "|r")
 
     -- 持有量拆成「背包 ／ 銀行」。設定關著時銀行那截變暗但**還是印出來** ——
     -- 玩家才知道東西其實在銀行、不用再買一份。
