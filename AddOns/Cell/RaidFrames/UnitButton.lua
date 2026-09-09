@@ -2396,13 +2396,23 @@ local RAID_TARGET_ROWS, RAID_TARGET_COLUMNS = 2, 4
 
 --! cell 1..8 reading across then down: star, circle, diamond, triangle / moon, square,
 --! cross, skull -- the same order SetRaidTargetIconTexture walks the sheet in.
+--! Answers whether it managed to draw anything.
 local function SetRaidTargetCell(tex, index)
     if tex.SetSpriteSheetCell then
         tex:SetSpriteSheetCell(index, RAID_TARGET_ROWS, RAID_TARGET_COLUMNS)
-    else
-        --! Classic has neither the API nor secret values, so the arithmetic is safe there
-        SetRaidTargetIconTexture(tex, index)
+        return true
     end
+
+    --! No sprite-sheet API. The only other way onto the sheet is the arithmetic one, and
+    --! that needs a READABLE index -- Classic has that (no secret values there at all).
+    --! ⚠ Not an `else`: a client with secret values but without the API would throw on
+    --! every marked unit in range, several times a second. Drawing nothing is the honest
+    --! answer, and it is what Cell did before this was fixed.
+    if F.IsValueNonSecret(index) then
+        SetRaidTargetIconTexture(tex, index)
+        return true
+    end
+    return false
 end
 
 local function UnitButton_UpdatePlayerRaidIcon(self)
@@ -2419,8 +2429,7 @@ local function UnitButton_UpdatePlayerRaidIcon(self)
     --! a truthiness test on a NON-boolean secret is legal (unlike on a secret boolean),
     --! and an unmarked unit answers with a plain nil
     local index = GetRaidTargetIndex(unit)
-    if index then
-        SetRaidTargetCell(playerRaidIcon.tex, index)
+    if index and SetRaidTargetCell(playerRaidIcon.tex, index) then
         playerRaidIcon:Show()
     else
         playerRaidIcon:Hide()
@@ -2442,8 +2451,7 @@ local function UnitButton_UpdateTargetRaidIcon(self)
 
     -- same courier trick as the player icon above
     local index = GetRaidTargetIndex(unit.."target")
-    if index then
-        SetRaidTargetCell(targetRaidIcon.tex, index)
+    if index and SetRaidTargetCell(targetRaidIcon.tex, index) then
         targetRaidIcon:Show()
     else
         targetRaidIcon:Hide()
