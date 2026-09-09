@@ -212,8 +212,14 @@ function List.ChosenTier(key, starIDs)
     return best or tiers[1]
 end
 
-function List.SetTier(key, tier)
+-- itemID 是「換過去的那個品質」的 id。換品質就順手問一次價：新挑的那個多半
+-- 還沒報過價，而「單價 -、購買鈕灰的」那一列看起來就像切壞了 —— 玩家不會知道
+-- 那只是還沒搜。拍賣場沒開就什麼都不做（搜不了，也不該跳訊息洗版）。
+function List.SetTier(key, tier, itemID)
     ns.cdb.quality[key] = tier
+    if itemID and ns.Auction and ns.Auction.IsOpen() and not ns.Auction.Quote(itemID) then
+        ns.Auction.SearchItem(itemID)
+    end
     ns.Fire("ListChanged")
 end
 

@@ -289,7 +289,7 @@ function Rows.Update(row, data)
             chip:SetText(ns.List.QualityMarkup(tierID))
             SetChipSelected(chip, tier == data.tier)
             local key = data.key
-            chip:SetScript("OnClick", function() ns.List.SetTier(key, tier) end)
+            chip:SetScript("OnClick", function() ns.List.SetTier(key, tier, tierID) end)
             chip._tip = function(tip)
                 tip:SetText(L["Quality %d"]:format(tier))
                 local q = ns.Auction.Quote(tierID)
