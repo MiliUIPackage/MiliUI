@@ -70,6 +70,28 @@ local function SetStatus(text, alert)
 end
 
 function Auction.Status()   return status, statusAlert end
+
+-- /mlist debug 用：把「這一樣到底能不能買」的判斷材料攤出來。
+-- 批次購買會自動跳過買不到的，跳得對不對只能靠這幾個欄位對帳。
+function Auction.DebugInfo(itemID)
+    local q = quotes[itemID]
+    local listings
+    if q and q.isCommodity then
+        listings = C_AuctionHouse.GetNumCommoditySearchResults(itemID)
+    elseif q and q.itemKey then
+        listings = C_AuctionHouse.GetNumItemSearchResults(q.itemKey)
+    end
+    return {
+        detailed  = detailed[itemID] and true or false,
+        searched  = searchedFor[itemID] and true or false,
+        hasQuote  = q ~= nil,
+        commodity = q and q.isCommodity,
+        unitPrice = q and q.unitPrice,
+        listed    = q and q.quantity,
+        results   = listings,
+        auctionID = q and q.auctionID,
+    }
+end
 function Auction.Quote(itemID) return itemID and quotes[itemID] or nil end
 function Auction.Pending()  return pendingConfirm end
 
@@ -187,6 +209,19 @@ local function StoreCommodity(itemID)
     detailed[itemID] = true
 end
 
+-- 非商品的掛單：**第一筆不一定買得到**。拍賣場照價格排序，而只開競標
+-- （沒有一口價）的掛單排在最前面是常態 —— 只看第 1 筆的話 buyoutAmount 是 nil，
+-- 我們就會判成「沒有人賣」，而列上明明寫著在售 710（實測：珍獸獸皮）。
+-- 找第一筆**有一口價**的。
+local function FirstBuyout(itemKey, count)
+    for i = 1, count do
+        local r = C_AuctionHouse.GetItemSearchResultInfo(itemKey, i)
+        if r and r.auctionID and r.buyoutAmount and r.buyoutAmount > 0 then
+            return r
+        end
+    end
+end
+
 local function StoreItem(itemKey)
     if not itemKey or not itemKey.itemID then return end
     local count = C_AuctionHouse.GetNumItemSearchResults(itemKey) or 0
@@ -195,14 +230,18 @@ local function StoreItem(itemKey)
         detailed[itemKey.itemID] = nil
         return
     end
-    local first = C_AuctionHouse.GetItemSearchResultInfo(itemKey, 1)
-    if not first then return end
+    detailed[itemKey.itemID] = true
+    local first = FirstBuyout(itemKey, count)
+    if not first then
+        -- 有掛單但全部只開競標：價格欄留空，購買鈕就會是灰的
+        quotes[itemKey.itemID] = nil
+        return
+    end
     local listed = count
     if C_AuctionHouse.GetItemSearchResultsQuantity then
         listed = C_AuctionHouse.GetItemSearchResultsQuantity(itemKey) or count
     end
     Remember(itemKey.itemID, first.buyoutAmount, listed, false, itemKey, first.auctionID)
-    detailed[itemKey.itemID] = true
 end
 
 ------------------------------------------------------------
@@ -274,6 +313,14 @@ end
 
 local StepQueue   -- 前向宣告：StartBuy 失敗時要跳下一筆
 
+-- 批次裡這一樣買不到 —— 記一筆，然後**停下來等玩家按「下一筆」**，
+-- 不要自己一路衝到底。原本是直接 StepQueue()，結果一按「全部購買」就
+-- 連跳兩樣直接停在第三樣，玩家只看到 (3/3)，完全不知道前面發生了什麼。
+local function SkipInQueue()
+    queueSkipped = queueSkipped + 1
+    queueWaiting = true
+end
+
 local function StopQueue(text, alert)
     buyQueue, queueAt, queueTotal = {}, 0, 0
     queueWaiting = false
@@ -304,10 +351,7 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
             searchedFor[itemID] = nil
             awaitSearch = nil
             SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name), true)
-            if fromQueue then
-                queueSkipped = queueSkipped + 1
-                StepQueue()
-            end
+            if fromQueue then SkipInQueue() end
             return
         end
         searchedFor[itemID] = true
@@ -329,10 +373,7 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
     local quote = quotes[itemID]
     if not quote then
         SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name), true)
-        if fromQueue then
-            queueSkipped = queueSkipped + 1
-            StepQueue()
-        end
+        if fromQueue then SkipInQueue() end
         return
     end
 
@@ -346,16 +387,16 @@ function Auction.StartBuy(itemID, quantity, fromQueue)
         return
     end
 
-    -- 非商品：一件一單，價格就是那一筆的一口價，不用另外問
+    -- 非商品：一件一單，價格就是那一筆的一口價，不用另外問。
+    -- 一樣要找第一筆**有一口價**的，不能只看第 1 筆（見 FirstBuyout 的註解）。
     local itemKey = quote.itemKey or C_AuctionHouse.MakeItemKey(itemID)
-    local info = C_AuctionHouse.GetItemSearchResultInfo(itemKey, 1)
-    if not info or not info.buyoutAmount or not info.auctionID then
+    local count = C_AuctionHouse.GetNumItemSearchResults(itemKey) or 0
+    local info = FirstBuyout(itemKey, count)
+    if not info then
         local name = ns.List.ItemInfo(itemID).name
-        SetStatus(L["No one is selling %s."]:format(name))
-        if fromQueue then
-            queueSkipped = queueSkipped + 1
-            StepQueue()
-        end
+        SetStatus(count > 0 and L["%s only has bids, no buyout price."]:format(name)
+                            or  L["No one is selling %s."]:format(name), true)
+        if fromQueue then SkipInQueue() end
         return
     end
     pendingConfirm = {
@@ -381,10 +422,7 @@ local function ResumeAfterSearch(itemID)
                               or  L["Price is in — press buy again."], true)
     else
         SetStatus(L["No one is selling %s."]:format(ns.List.ItemInfo(itemID).name), true)
-        if a.fromQueue then
-            queueSkipped = queueSkipped + 1
-            StepQueue()
-        end
+        if a.fromQueue then SkipInQueue() end
     end
 end
 

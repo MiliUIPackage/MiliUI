@@ -174,3 +174,5 @@ L["Asking the price — press Next when it comes back."] = "正在询价，回�
 L["Price is in — press Next."] = "报价回来了，按「下一笔」。"
 
 L["Done — %d could not be bought."] = "清单走完了，其中 %d 样买不到。"
+
+L["%s only has bids, no buyout price."] = "%s 目前只有竞价、没有一口价，买不了。"

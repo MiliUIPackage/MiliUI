@@ -46,7 +46,16 @@ SlashCmdList.MILIUISHOP = function(msg)
         print(("  recipes=%d extras=%d missing=%d"):format(
             #ns.cdb.recipes, #ns.cdb.extras, ns.List.MissingTotal()))
         print(("  auctionHouse=%s status=%s"):format(
-            tostring(ns.Auction.IsOpen()), ns.Auction.Status()))
+            tostring(ns.Auction.IsOpen()), (ns.Auction.Status())))
+        for _, row in ipairs(ns.List.Shopping({ includeReady = true, allRecipes = true })) do
+            if (row.buy or 0) > 0 and row.itemID then
+                local d = ns.Auction.DebugInfo(row.itemID)
+                print(("  %s(%d) buy=%d detailed=%s searched=%s quote=%s commodity=%s results=%s price=%s"):format(
+                    ns.List.ItemInfo(row.itemID).name, row.itemID, row.buy,
+                    tostring(d.detailed), tostring(d.searched), tostring(d.hasQuote),
+                    tostring(d.commodity), tostring(d.results), tostring(d.unitPrice)))
+            end
+        end
         if #ns.errors == 0 then
             print("  " .. L["No errors recorded"])
         else
