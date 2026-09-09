@@ -119,32 +119,36 @@ Platynator 的 `Display/Colors.lua` 就是這樣做的，而且**它沒有維護
 得到 `Texture:SetTexture(): Cannot set texture to a secret string value.`
 —— 所以「把秘密編號串進檔名再 SetTexture」這條路是死的，`SetAtlas` 同型別同下場。
 
-## 秘密的「編號」要畫成圖：`SetSpriteSheetCell`
+## 秘密的「編號」要畫成圖
+
+**先找暴雪自己的 helper，那些多半已經吃得下秘密值了。** 團隊標記就是這樣：
 
 ```lua
-tex:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")  -- 合成表，明文路徑
-tex:SetSpriteSheetCell(index, 2, 4)   -- index 可以是秘密值（ConditionalSecret）
+local index = GetRaidTargetIndex(unit)   -- SecretReturns，永遠讀不到
+if index then                            -- 非 boolean 的秘密值做真假測試合法
+    SetRaidTargetIconTexture(tex, index) -- ✅ 吃得下秘密 index（MiliUI_UnitFrames 實測在跑）
+end
 ```
 
-`SetSpriteSheetCell(cell, numRows, numColumns[, cellWidth, cellHeight])`：**引擎替你挑格子**，
-所以完全不需要算貼圖座標。`cell` 標著 `ConditionalSecret`，其餘參數 `NeverSecret`（我們自己給明文）。
+⚠ **不要因為「值是秘密的」就自己重做一套。** 2026-09-09 我判斷
+`SetRaidTargetIconTexture` 是 FrameXML 的 Lua、內容是 `index - 1` 取模挑座標、所以
+「在插件裡永遠會炸」—— **錯的**。12.x 出貨的那支把算術放在引擎端，秘密 index 照吃。
+真正壞掉的是 Cell 在前面加的 `IsValueNonSecret` 閘：讀不到就把 index 設成 nil，
+於是標記在所有框架上都不顯示。**那個閘拿掉的是功能，不是 bug**（見 [[feedback-fix-root-cause-not-symptom]]）。
 
-這是「秘密編號 → 對應的圖」在 12.1 唯一走得通的路。團隊標記就是這個形狀
-（`GetRaidTargetIndex` 是 `SecretReturns`，永遠讀不到），暴雪自己的
-`SetRaidTargetIconTexture()` 走的是 `index - 1` ＋ 取模挑座標，**在插件裡永遠會炸**，
-而且那不是可以 guard 的東西 —— guard 起來就等於標記永遠不顯示。
+繞路的代價也實測過了：改用 `SetSpriteSheetCell(index, 2, 4)` 畫出來是**錯的圖示** ——
+`UI-RaidTargetingIcons` 是 **4×4** 的合成表、只用前八格（每格 0.25×0.25，下半是空的），
+猜成 2 列就整個對不上。helper 本來就知道版面，自己猜不會比它準。
 
-⚠ 副作用：那張貼圖之後帶著 `SecretAspect.TexCoords`，自己的 getter 會回秘密值。
-規則照舊：**只設定、不回讀**；幾何交給外層 frame（貼圖 `SetAllPoints` 上去），尺寸來自設定檔。
+### 真的沒有 helper 時：`SetSpriteSheetCell`
 
-⚠ `tostring(secret)` 是禁止的（`attempt to perform string conversion`），但**字串串接是允許的** ——
-串接產出的是秘密字串，`tostring` 要產出的是明文，差別在這裡。串得出來不代表有地方收（見上面那條）。
+```lua
+tex:SetTexture(sheetPath)                 -- 明文路徑
+tex:SetSpriteSheetCell(cell, rows, cols)  -- cell 可以是秘密值
+```
 
-⚠ **曲線不能拿來吃秘密數字。** `LuaCurveObject:Evaluate(x)` 的 `SecretArguments` 是
-`AllowedWhenUntainted` —— 污染的程式傳秘密值進去不會過。插件手上真正能吃秘密值的
-只有 `EvaluateColorFromBoolean` / `EvaluateColorValueFromBoolean`（要秘密**布林**）
-以及 `UnitHealPredictionCalculator` 自己的 `Evaluate*`（它評估的是自己內部的秘密血量）。
-所以下面那節「一個區間一條曲線」成立的前提是**計算器**替你評估。
+`cell` 標著 `ConditionalSecret`，其餘參數 `NeverSecret`。**引擎替你挑格子**，不必算座標。
+用之前先量清楚那張表真正的行列數（拿現成插件的 texcoord 反推最快）。
 
 ## 曲線可以**串接**
 

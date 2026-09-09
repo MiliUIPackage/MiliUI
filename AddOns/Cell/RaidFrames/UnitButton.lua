@@ -2368,53 +2368,21 @@ UnitButton_UpdateLeader = function(self, event)
     end
 end
 
---! fix from MiliUI: draw the marker WITHOUT ever reading its number.
+--! fix from MiliUI: hand the marker index straight to Blizzard's own helper.
 --!
---! ⚠ GetRaidTargetIndex is `SecretReturns = true` -- UNCONDITIONALLY secret, not merely
---! "when the unit is identity restricted" (Blizzard_APIDocumentationGenerated/
---! RaidMarkersDocumentation.lua). A tainted addon can NEVER read the number. The old path
---! handed it to SetRaidTargetIconTexture, which is FrameXML Lua doing `index - 1` and a
---! modulo to pick a texcoord out of the 4x2 sheet -- arithmetic on a secret, a hard error --
---! so it was guarded with IsValueNonSecret, and that guard quietly meant the marker never
---! appeared on ANY Cell frame.
+--! ⚠ GetRaidTargetIndex is `SecretReturns = true` -- UNCONDITIONALLY secret, so a tainted
+--! addon can never read the number. Cell guarded that with IsValueNonSecret and nil'd the
+--! index, and the guard quietly meant the marker never appeared on ANY Cell frame. Classic
+--! "the gate removed the feature, not the bug".
 --!
---! SetSpriteSheetCell is the sanctioned way through: the engine picks the cell, so nobody
---! has to compute a texcoord. The sheet is already on the texture from I.CreatePlayerRaidIcon.
+--! SetRaidTargetIconTexture ACCEPTS the secret index -- measured, not deduced: MiliUI's own
+--! unit frames have shipped on exactly this call since 12.1. Whatever the pre-12.x FrameXML
+--! body did with `index - 1`, the shipping one puts the arithmetic on the engine side.
 --!
---! ⚠⚠ The tell for "this argument takes a secret" is `ConditionalSecret = true` on the
---! ARGUMENT -- `cell` has it -- **not** `SecretArguments = "AllowedWhenTainted"` on the
---! function. Texture:SetTexture carries that same function-level flag and still answers
---! "Cannot set texture to a secret string value", so an asset name built by concatenating
---! the index is a dead end (measured 2026-09-09, not deduced). Functions that really do
---! take a secret also declare what it taints: SetSpriteSheetCell and SetTexCoord both carry
---! SecretArgumentsAddAspect = { Enum.SecretAspect.TexCoords }; SetTexture declares nothing.
---!
---! ⚠ That aspect means this texture's own getters answer with secrets afterwards. Only ever
---! SET on it: the frame around it owns the geometry (the texture is SetAllPoints to it) and
---! the size comes from the layout.
-local RAID_TARGET_ROWS, RAID_TARGET_COLUMNS = 2, 4
-
---! cell 1..8 reading across then down: star, circle, diamond, triangle / moon, square,
---! cross, skull -- the same order SetRaidTargetIconTexture walks the sheet in.
---! Answers whether it managed to draw anything.
-local function SetRaidTargetCell(tex, index)
-    if tex.SetSpriteSheetCell then
-        tex:SetSpriteSheetCell(index, RAID_TARGET_ROWS, RAID_TARGET_COLUMNS)
-        return true
-    end
-
-    --! No sprite-sheet API. The only other way onto the sheet is the arithmetic one, and
-    --! that needs a READABLE index -- Classic has that (no secret values there at all).
-    --! ⚠ Not an `else`: a client with secret values but without the API would throw on
-    --! every marked unit in range, several times a second. Drawing nothing is the honest
-    --! answer, and it is what Cell did before this was fixed.
-    if F.IsValueNonSecret(index) then
-        SetRaidTargetIconTexture(tex, index)
-        return true
-    end
-    return false
-end
-
+--! ⚠ Do NOT hand-roll this with SetSpriteSheetCell "because the index is secret". That API
+--! does take a secret cell, but UI-RaidTargetingIcons is a 4x4 sheet with only the first
+--! eight cells used (each cell is 0.25 x 0.25 -- the bottom half is empty), so guessing 2
+--! rows draws the wrong icon on every frame. The stock helper already knows the layout.
 local function UnitButton_UpdatePlayerRaidIcon(self)
     local unit = self.states.displayedUnit
     if not unit then return end
@@ -2429,7 +2397,8 @@ local function UnitButton_UpdatePlayerRaidIcon(self)
     --! a truthiness test on a NON-boolean secret is legal (unlike on a secret boolean),
     --! and an unmarked unit answers with a plain nil
     local index = GetRaidTargetIndex(unit)
-    if index and SetRaidTargetCell(playerRaidIcon.tex, index) then
+    if index then
+        SetRaidTargetIconTexture(playerRaidIcon.tex, index)
         playerRaidIcon:Show()
     else
         playerRaidIcon:Hide()
@@ -2451,7 +2420,8 @@ local function UnitButton_UpdateTargetRaidIcon(self)
 
     -- same courier trick as the player icon above
     local index = GetRaidTargetIndex(unit.."target")
-    if index and SetRaidTargetCell(targetRaidIcon.tex, index) then
+    if index then
+        SetRaidTargetIconTexture(targetRaidIcon.tex, index)
         targetRaidIcon:Show()
     else
         targetRaidIcon:Hide()
