@@ -172,7 +172,7 @@ local indicatorNums, indicatorBooleans, indicatorColors, indicatorCustoms = {}, 
 -- raid debuffs, tank mitigation, missing buffs, private auras) are covered twice over --
 -- HandleBuff/HandleDebuff never file anything for these buttons, and the containers
 -- themselves are hidden by UpdateIndicatorParentVisibility below.
---! HEALTH_TEXT_GAP: how far the health % floats above the name. NPC_GREEN is what Cell
+--! HEALTH_TEXT_GAP: the gap between the name and the health % under it. NPC_GREEN is what Cell
 --! paints a friendly NPC, used as the fallback when a palette key is missing.
 --! (One table rather than two locals: this file's main chunk is near Lua's 200-local ceiling.)
 local PARTY_TARGET = {
@@ -559,16 +559,17 @@ local function HandleIndicators(b)
             end
         end
 
-        --! The health % goes ABOVE the name, and is anchored to the NAME rather than to the
-        --! button: wherever the layout puts the name, the pair travels together and stays
-        --! centred on it. Anchored to the FONT STRING, not to the frame around it, so the
-        --! gap is measured from the drawn text rather than from whatever box holds it.
+        --! The health % sits under the name, anchored to the NAME rather than to the button:
+        --! wherever the layout puts the name, the pair travels together and stays centred on
+        --! it. Anchored to the FONT STRING, not to the frame around it, so the gap is
+        --! measured from the drawn text rather than from whatever box holds it -- which is
+        --! what the layout's own offset could not do, and why the two used to overlap.
         --! Done here, after the config loop, because that loop walks b._config in hash order
         --! -- nameText may not exist yet while healthText is being placed.
         local healthText, nameText = b.indicators.healthText, b.indicators.nameText
         if healthText and nameText and nameText.name then
             P.ClearPoints(healthText)
-            P.Point(healthText, "BOTTOM", nameText.name, "TOP", 0, PARTY_TARGET.HEALTH_TEXT_GAP)
+            P.Point(healthText, "TOP", nameText.name, "BOTTOM", 0, -PARTY_TARGET.HEALTH_TEXT_GAP)
         end
     end
 
