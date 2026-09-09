@@ -21,6 +21,7 @@ Libs\MiliUIWidgets\PixelPerfect.lua
 Libs\MiliUIWidgets\Secret.lua
 Libs\MiliUIWidgets\Errors.lua
 Libs\MiliUIWidgets\Metro.lua
+Libs\MiliUIGlow\MiliUIGlow.lua
 Libs\Callbacks.lua
 
 Locales\Locale.lua

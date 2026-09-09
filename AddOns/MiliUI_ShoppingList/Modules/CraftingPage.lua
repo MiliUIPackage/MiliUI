@@ -90,6 +90,8 @@ local function Refresh()
     local form, info = CurrentRecipe()
     button:SetText(LABEL)
     button:SetEnabled(form and true or false)
+    -- 還沒加進清單才發光；加過就熄掉（一直亮著的提示等於沒有提示）
+    ns.SetGlow(button, form and info and not ns.List.Find("craft:" .. info.recipeID) and true or false)
 end
 
 local function FillTooltip(_, tip)

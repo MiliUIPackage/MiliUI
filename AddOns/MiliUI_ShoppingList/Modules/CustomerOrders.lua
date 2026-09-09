@@ -38,7 +38,10 @@ local function Refresh()
     local order = form and form.order
     button:SetText(LABEL)
     -- 重製訂單 v1 不做：材料槽是「原本那件裝備上的」，跟一般下單的語意不同
-    button:SetEnabled((order and form.transaction and not order.isRecraft) and true or false)
+    local usable = (order and form.transaction and not order.isRecraft) and true or false
+    button:SetEnabled(usable)
+    -- 還沒加進清單才發光；加過就熄掉
+    ns.SetGlow(button, usable and not ns.List.Find("order:" .. tostring(order.spellID)) or false)
 end
 
 -- UpdateListOrderButton 在打小費時每個按鍵都會跑一次，直接重算會白算幾十遍。

@@ -57,6 +57,27 @@ function ns.AttachTooltip(button, fill)
 end
 
 ------------------------------------------------------------
+-- 按鈕發光（共用層 Libs/MiliUIGlow，取代 LibCustomGlow）
+--
+-- 用途只有一個：告訴玩家「這顆可以按」。所以**加進清單之後就熄掉** ——
+-- 一直亮著的提示等於沒有提示。
+--
+-- ⚠ 走 ns.MiliUIGlow 不走 LibStub：LibStub 先到先贏，別的插件先註冊
+--   LibCustomGlow 的話我們會拿到它的版本（見 project-miliui-glow-vendor）。
+------------------------------------------------------------
+function ns.SetGlow(frame, on)
+    if not frame or not ns.MiliUIGlow then return end
+    if on and not frame._miliuiGlowing then
+        frame._miliuiGlowing = true
+        local r, g, b = ns.Media.Accent()
+        ns.MiliUIGlow.PixelGlow_Start(frame, { r, g, b, 1 }, 8, 0.25, nil, 2, 1, 1, false, "MiliUIShop")
+    elseif not on and frame._miliuiGlowing then
+        frame._miliuiGlowing = nil
+        ns.MiliUIGlow.PixelGlow_Stop(frame, "MiliUIShop")
+    end
+end
+
+------------------------------------------------------------
 -- 啟動：初始化資料庫 → 通知各模組
 ------------------------------------------------------------
 local boot = CreateFrame("Frame")
