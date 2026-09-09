@@ -215,6 +215,21 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 → 這樣一改，整欄幾乎都是「必備」，那一欄就沒有存在價值了，直接拿掉，
   真的可選的改成在名字後面加灰字 `(可選)`。
 
+## ⚠ 整批瀏覽會抹掉 isCommodity（「明明有賣卻說沒人賣」的真正根因）
+
+`SearchForItemKeys`（搜尋全部）回來的資料**不知道東西是不是商品**。
+把它整包寫進報價快取，就會把先前單筆查詢查出來的 `isCommodity` 抹成 nil；
+接著購買走錯分支（商品被當成非商品去讀 `GetItemSearchResultInfo`，那邊當然空的），
+於是回報「拍賣場上沒有人賣」——而畫面上那一列明明有價格與在售數量。
+
+**這個 bug 我猜了三輪都沒中**（先怪 itemKey、再怪只看第一筆掛單），
+最後是把判斷材料印出來才看到：`detailed=true, quote=true, commodity=nil, results=0`。
+→ 教訓：**症狀是「資料看起來對、行為卻不對」時，先把判斷用的每一個欄位印出來**，
+  不要再猜下一個假設。`/mlist debug` 現在常駐這支探針。
+
+修法三道：`Remember` 收到 nil 不覆寫舊值；加 `ResolveCommodity` 去問
+`C_AuctionHouse.GetItemKeyInfo`；兩邊都不知道就退回跑一次單筆查詢，不硬猜。
+
 ## ⚠ 非商品的 itemKey 不能自己 MakeItemKey
 
 裝備類（非商品）的 item key 還帶著 `itemLevel` / `itemSuffix`，
