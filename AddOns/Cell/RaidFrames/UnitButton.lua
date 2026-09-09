@@ -161,7 +161,40 @@ local ScopeTokens
 local enabledIndicators = {}
 local indicatorNums, indicatorBooleans, indicatorColors, indicatorCustoms = {}, {}, {}, {}
 
+-- fix from MiliUI: what a party-target button is allowed to draw.
+--
+-- ⚠ An ALLOWLIST, not a list of things to switch off. Cell ships thirty indicators and the
+-- next one to arrive would otherwise turn up on this row uninvited -- which is how the row
+-- ended up wearing a threat border, a dispel drop and a debuff square in the first place.
+-- Everything here is health, or was asked for by name: the raid marker.
+--
+-- The aura-fed indicators (debuffs, dispels, the three cooldown rows, crowd controls,
+-- raid debuffs, tank mitigation, missing buffs, private auras) are covered twice over --
+-- HandleBuff/HandleDebuff never file anything for these buttons, and the containers
+-- themselves are hidden by UpdateIndicatorParentVisibility below.
+local PARTY_TARGET_INDICATORS = {
+    ["nameText"] = true,
+    ["healthText"] = true,
+    ["healthThresholds"] = true,
+    ["shieldBar"] = true,
+    ["playerRaidIcon"] = true,
+}
+
+-- Per-button view of enabledIndicators. Everything that asks "is this indicator on" goes
+-- through here; the plain table is only written, never read directly.
+local function IsEnabled(b, indicatorName)
+    if b.isPartyTarget then
+        return PARTY_TARGET_INDICATORS[indicatorName]
+    end
+    return enabledIndicators[indicatorName]
+end
+
 local function UpdateIndicatorParentVisibility(b, indicatorName, enabled)
+    -- fix from MiliUI: a party-target button hides every container it is not allowed
+    if b.isPartyTarget then
+        enabled = PARTY_TARGET_INDICATORS[indicatorName]
+    end
+
     if not (indicatorName == "debuffs" or
             indicatorName == "privateAuras" or
             indicatorName == "defensiveCooldowns" or
@@ -489,6 +522,19 @@ local function HandleIndicators(b)
 
     --! update pixel perfect for widgets
     B.UpdatePixelPerfect(b, true)
+
+    -- fix from MiliUI: safety net for the party-target buttons. The gates above cover every
+    -- indicator whose updater lives in this file; this catches the ones driven from
+    -- Indicators/*.lua (actions, targetCounter, targetedSpells), which route by GUID or by
+    -- name and so cannot reach a button that owns neither -- but "cannot reach" is a claim
+    -- about today's routing, and a hidden frame is not.
+    if b.isPartyTarget then
+        for name, indicator in pairs(b.indicators) do
+            if not PARTY_TARGET_INDICATORS[name] and indicator.Hide then
+                indicator:Hide()
+            end
+        end
+    end
 
     b._indicatorsReady = true
 end
@@ -1416,7 +1462,7 @@ local function HandleDebuff(self, auraInfo)
         if not order and secretIsRaidDebuff then
             order = 10000
         end
-        if enabledIndicators["raidDebuffs"] and order and cacheable then
+        if IsEnabled(self, "raidDebuffs") and order and cacheable then
             auraInfo.raidDebuffOrder = order
             tinsert(self._debuffs_raid, auraInstanceID)
 
@@ -1430,7 +1476,7 @@ local function HandleDebuff(self, auraInfo)
             end
         end
 
-        if enabledIndicators["dispels"] and debuffType and debuffType ~= "" then
+        if IsEnabled(self, "dispels") and debuffType and debuffType ~= "" then
             -- all dispels / only dispellableByMe
             if not indicatorBooleans ["dispels"]["dispellableByMe"] or I.CanDispel(debuffType) then
                 if indicatorBooleans["dispels"][debuffType] then
@@ -1445,7 +1491,7 @@ local function HandleDebuff(self, auraInfo)
         end
 
         -- crowdControls
-        if enabledIndicators["crowdControls"] and I.IsCrowdControls(name, spellId) and self._debuffs.crowdControlsFound < indicatorNums["crowdControls"] then
+        if IsEnabled(self, "crowdControls") and I.IsCrowdControls(name, spellId) and self._debuffs.crowdControlsFound < indicatorNums["crowdControls"] then
             self._debuffs.crowdControlsFound = self._debuffs.crowdControlsFound + 1
             self.indicators.crowdControls[self._debuffs.crowdControlsFound]:SetCooldown(start, duration, debuffType, icon, count, auraInfo.refreshing)
         end
@@ -1600,13 +1646,13 @@ local function HandleBuff(self, auraInfo)
         -- Removed: retail only, no fallback.
 
         -- tankActiveMitigation
-        if enabledIndicators["tankActiveMitigation"] and I.IsTankActiveMitigation(spellId) then
+        if IsEnabled(self, "tankActiveMitigation") and I.IsTankActiveMitigation(spellId) then
             self.indicators.tankActiveMitigation:SetCooldown(start, duration)
             self._buffs.tankActiveMitigationFound = true
         end
 
         -- drinking
-        if enabledIndicators["statusText"] and I.IsDrinking(name) then
+        if IsEnabled(self, "statusText") and I.IsDrinking(name) then
             if not self.indicators.statusText:GetStatus() then
                 self.indicators.statusText:SetStatus("DRINKING")
                 self.indicators.statusText:Show()
@@ -1938,7 +1984,7 @@ local function UnitButton_UpdateHealthStates(self, diff)
         self.states.isDeadOrGhost = UnitIsDeadOrGhost(unit) or false
 
         -- Health text: use calculator secret values
-        if enabledIndicators["healthText"] then
+        if IsEnabled(self, "healthText") then
             local calc = self.widgets.healthCalculator
             local health = calc:GetCurrentHealth()
             local maxHealth = calc:GetMaximumHealth()
@@ -1999,7 +2045,7 @@ local function UnitButton_UpdateHealthStates(self, diff)
             UnitButton_UpdateHealthColor(self)
         end
 
-        if enabledIndicators["healthText"] then -- and not self.states.isDeadOrGhost then
+        if IsEnabled(self, "healthText") then -- and not self.states.isDeadOrGhost then
             self.indicators.healthText:SetValue(health, healthMax, self.states.totalAbsorbs, self.states.healAbsorbs)
             self.indicators.healthText:Show()
         else
@@ -2034,7 +2080,7 @@ local function GetRole(b)
 end
 
 ShouldShowPowerText = function(b)
-    if not enabledIndicators["powerText"] then return end
+    if not IsEnabled(b, "powerText") then return end
     if not (b:IsVisible() or b.isPreview) then return end
 
     if not b.states.guid then
@@ -2264,7 +2310,7 @@ UnitButton_UpdateRole = function(self)
     end
 
     local roleIcon = self.indicators.roleIcon
-    if enabledIndicators["roleIcon"] then
+    if IsEnabled(self, "roleIcon") then
 
         roleIcon:SetRole(iconRole)
 
@@ -2284,7 +2330,7 @@ UnitButton_UpdateLeader = function(self, event)
 
     local leaderIcon = self.indicators.leaderIcon
 
-    if enabledIndicators["leaderIcon"] then
+    if IsEnabled(self, "leaderIcon") then
         if indicatorBooleans["leaderIcon"] and (InCombatLockdown() or event == "PLAYER_REGEN_DISABLED") then
             leaderIcon:Hide()
             return
@@ -2318,7 +2364,7 @@ local function UnitButton_UpdatePlayerRaidIcon(self)
     -- fix from MiliUI: party-target buttons always draw the marker, whatever the layout
     -- says. Knowing WHICH skull the tank is on is the whole reason to look at that row, and
     -- the layout switch is about the member frames.
-    if enabledIndicators["playerRaidIcon"] or self.isPartyTarget then
+    if IsEnabled(self, "playerRaidIcon") then
         if index then
             SetRaidTargetIconTexture(playerRaidIcon.tex, index)
             playerRaidIcon:Show()
@@ -2341,7 +2387,7 @@ local function UnitButton_UpdateTargetRaidIcon(self)
     local index = GetRaidTargetIndex(unit.."target")
     if not F.IsValueNonSecret(index) then index = nil end
 
-    if enabledIndicators["targetRaidIcon"] then
+    if IsEnabled(self, "targetRaidIcon") then
         if index then
             SetRaidTargetIconTexture(targetRaidIcon.tex, index)
             targetRaidIcon:Show()
@@ -2360,7 +2406,7 @@ local function UnitButton_UpdateReadyCheck(self)
     local status = GetReadyCheckStatus(unit)
     self.states.readyCheckStatus = status
 
-    if enabledIndicators["readyCheckIcon"] and status then
+    if IsEnabled(self, "readyCheckIcon") and status then
         -- self.widgets.readyCheckHighlight:SetVertexColor(unpack(READYCHECK_STATUS[status].c))
         -- self.widgets.readyCheckHighlight:Show()
         self.indicators.readyCheckIcon:SetStatus(status)
@@ -2371,7 +2417,7 @@ local function UnitButton_UpdateReadyCheck(self)
 end
 
 local function UnitButton_FinishReadyCheck(self)
-    if not enabledIndicators["readyCheckIcon"] then return end
+    if not IsEnabled(self, "readyCheckIcon") then return end
 
     if self.states.readyCheckStatus == "waiting" then
         -- self.widgets.readyCheckHighlight:SetVertexColor(unpack(READYCHECK_STATUS.notready.c))
@@ -2520,7 +2566,7 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
         end
 
         -- Health thresholds: use EvaluateCurrentHealthPercent with a curve
-        if enabledIndicators["healthThresholds"] and self.widgets.healthCalculator then
+        if IsEnabled(self, "healthThresholds") and self.widgets.healthCalculator then
             self.indicators.healthThresholds:CheckThresholdMidnight(self.widgets.healthCalculator)
         else
             self.indicators.healthThresholds:Hide()
@@ -2560,7 +2606,7 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
 
         self.states.healthPercentOld = healthPercent
 
-        if enabledIndicators["healthThresholds"] then
+        if IsEnabled(self, "healthThresholds") then
             self.indicators.healthThresholds:CheckThreshold(healthPercent)
         else
             self.indicators.healthThresholds:Hide()
@@ -2692,7 +2738,7 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
         end
 
         -- Update shield indicator (user-configurable indicator on top of health bar)
-        if enabledIndicators["shieldBar"] then
+        if IsEnabled(self, "shieldBar") then
             -- On Midnight the indicator is a StatusBar (see I.CreateShieldBar), so it takes the
             -- raw secret absorb + maxHealth and lets the native fill resolve the fraction --
             -- the pre-Midnight percent path can't touch secrets at all.
@@ -2718,7 +2764,7 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
     if self.states.totalAbsorbs > 0 then
         local shieldPercent = self.states.totalAbsorbs / self.states.healthMax
 
-        if enabledIndicators["shieldBar"] then
+        if IsEnabled(self, "shieldBar") then
             if indicatorBooleans["shieldBar"] then
                 -- onlyShowOvershields
                 local overshieldPercent = (self.states.totalAbsorbs + self.states.health - self.states.healthMax) / self.states.healthMax
@@ -2796,10 +2842,10 @@ local function UnitButton_UpdateThreat(self)
     -- number is a hard error, so the comparison has to be gated, not just the nil check.
     local status = UnitThreatSituation(unit)
     if F.IsValueNonSecret(status) and status and status >= 1 then
-        if enabledIndicators["aggroBlink"] then
+        if IsEnabled(self, "aggroBlink") then
             self.indicators.aggroBlink:ShowAggro(GetThreatStatusColor(status))
         end
-        if enabledIndicators["aggroBorder"] then
+        if IsEnabled(self, "aggroBorder") then
             self.indicators.aggroBorder:ShowAggro(GetThreatStatusColor(status))
         end
     else
@@ -2809,7 +2855,7 @@ local function UnitButton_UpdateThreat(self)
 end
 
 local function UnitButton_UpdateThreatBar(self)
-    if not enabledIndicators["aggroBar"] then
+    if not IsEnabled(self, "aggroBar") then
         self.indicators.aggroBar:Hide()
         return
     end
@@ -2838,7 +2884,7 @@ local function UnitButton_UpdateThreatBar(self)
 end
 
 local function UnitButton_UpdateCombatIcon(self)
-    if not enabledIndicators["combatIcon"] then return end
+    if not IsEnabled(self, "combatIcon") then return end
 
     local unit = self.states.displayedUnit
     if not unit then return end
@@ -2986,7 +3032,7 @@ local function RegisterUnitScopedEvents(b)
     end
     -- UNIT_TARGET rides the targetRaidIcon toggle (see B.UpdateTargetRaidIcon); before Cell
     -- has loaded its indicator config everything is registered, matching UnitButton_RegisterEvents.
-    if not Cell.loaded or enabledIndicators["targetRaidIcon"] then
+    if not Cell.loaded or IsEnabled(b, "targetRaidIcon") then
         b:RegisterUnitEvent("UNIT_TARGET", u, du)
     end
     CheckPowerEventRegistration(b)
@@ -3047,7 +3093,7 @@ end
 
 UnitButton_UpdateStatusText = function(self)
     local statusText = self.indicators.statusText
-    if not enabledIndicators["statusText"] then
+    if not IsEnabled(self, "statusText") then
         -- statusText:Hide()
         statusText:SetStatus()
         return
@@ -3128,7 +3174,7 @@ UnitButton_UpdateNameTextColor = function(self)
     local unit = self.states.unit
     if not unit then return end
 
-    if enabledIndicators["nameText"] then
+    if IsEnabled(self, "nameText") then
         -- 12.1: UnitIsCharmed returns a secret boolean whenever auras are secret (ie. in combat)
         -- for anything other than the player/pet/vehicle tokens
         if indicatorColors["nameText"][1] == "class_color" or not UnitIsConnected(unit)
@@ -3144,7 +3190,7 @@ UnitButton_UpdateHealthTextColor = function(self)
     local unit = self.states.unit
     if not unit then return end
 
-    if enabledIndicators["healthText"] then
+    if IsEnabled(self, "healthText") then
         self.indicators.healthText:SetColor(F.GetUnitClassColor(unit))
     end
 end
@@ -3411,11 +3457,11 @@ local function UnitButton_RegisterEvents(self)
     self:RegisterEvent("PLAYER_TARGET_CHANGED")
 
     if Cell.loaded then
-        if enabledIndicators["playerRaidIcon"] or self.isPartyTarget then -- fix from MiliUI
+        if IsEnabled(self, "playerRaidIcon") then
             self:RegisterEvent("RAID_TARGET_UPDATE")
         end
         -- UNIT_TARGET is scoped; RegisterUnitScopedEvents below reads the same flag
-        if enabledIndicators["readyCheckIcon"] then
+        if IsEnabled(self, "readyCheckIcon") then
             self:RegisterEvent("READY_CHECK")
             self:RegisterEvent("READY_CHECK_FINISHED")
             self:RegisterEvent("READY_CHECK_CONFIRM")
@@ -4496,7 +4542,7 @@ end
 function B.UpdatePlayerRaidIcon(button, enabled)
     if not button:IsShown() then return end
     UnitButton_UpdatePlayerRaidIcon(button)
-    if enabled or button.isPartyTarget then -- fix from MiliUI: see UnitButton_UpdatePlayerRaidIcon
+    if IsEnabled(button, "playerRaidIcon") then -- fix from MiliUI: party targets always show it
         button:RegisterEvent("RAID_TARGET_UPDATE")
     else
         button:UnregisterEvent("RAID_TARGET_UPDATE")
@@ -4506,7 +4552,7 @@ end
 function B.UpdateTargetRaidIcon(button, enabled)
     if not button:IsShown() then return end
     UnitButton_UpdateTargetRaidIcon(button)
-    if enabled then
+    if IsEnabled(button, "targetRaidIcon") then -- fix from MiliUI: never on a party target
         RegisterScopedEvent(button, "UNIT_TARGET")
     else
         button:UnregisterEvent("UNIT_TARGET")
@@ -4517,7 +4563,7 @@ end
 function B.UpdateReadyCheckIcon(button, enabled)
     if not button:IsShown() then return end
     UnitButton_UpdateReadyCheck(button)
-    if enabled then
+    if IsEnabled(button, "readyCheckIcon") then -- fix from MiliUI: never on a party target
         button:RegisterEvent("READY_CHECK")
         button:RegisterEvent("READY_CHECK_FINISHED")
         button:RegisterEvent("READY_CHECK_CONFIRM")

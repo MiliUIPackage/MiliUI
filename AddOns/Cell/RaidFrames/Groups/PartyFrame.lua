@@ -259,7 +259,10 @@ function F.UpdatePartyTargets()
         SetPartyTargetPoint(b, playerButton, orientation)
         -- NOTE: SetOrientation BEFORE SetPowerSize
         B.SetOrientation(b, layout["barOrientation"][1], layout["barOrientation"][2])
-        B.SetPowerSize(b, layout["main"]["powerSize"])
+        --! no power bar: this row is health and nothing else (see PARTY_TARGET_INDICATORS
+        --! in UnitButton.lua). Most of what a group hits has no power worth a bar, and the
+        --! strip is narrow enough that one more stripe costs more than it says.
+        B.SetPowerSize(b, 0)
 
         if not enabled then
             UnregisterUnitWatch(b)
@@ -429,7 +432,7 @@ function PartyFrame_UpdateLayout(layout, which)
                 else
                     B.SetPowerSize(petButton, layout["pet"]["powerSize"])
                 end
-                B.SetPowerSize(targetButton, layout["main"]["powerSize"])
+                B.SetPowerSize(targetButton, 0) -- fix from MiliUI: health only
             end
         end
     end

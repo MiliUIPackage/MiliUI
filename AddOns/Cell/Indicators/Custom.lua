@@ -319,6 +319,12 @@ local function Update(indicator, indicatorTable, unit, spell, start, duration, d
 end
 
 function I.UpdateCustomIndicators(unitButton, auraInfo)
+    -- fix from MiliUI: a party-target button draws health and nothing else, and every
+    -- custom indicator is an aura display by definition -- see PARTY_TARGET_INDICATORS in
+    -- RaidFrames/UnitButton.lua. Gated here as well as there because this path fills the
+    -- indicator from the aura scan and would put the icons back after HandleIndicators hid
+    -- the widget.
+    if unitButton.isPartyTarget then return end
     -- ⚠ A PER-AURA secrecy gate is required here, not just the content-level one.
     -- UnitButton_UpdateAuras bails on C_Secrets.ShouldAurasBeSecret(), but that answers for the
     -- CONTENT, not for one aura -- an individual aura on a raid member can still come back
@@ -406,6 +412,7 @@ end
 
 function I.ShowCustomIndicators(unitButton, auraType)
     if not unitButton._indicatorsReady then return end
+    if unitButton.isPartyTarget then return end -- fix from MiliUI: health only
 
     local unit = unitButton.states.displayedUnit
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do
