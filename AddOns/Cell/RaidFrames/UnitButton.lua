@@ -2058,6 +2058,10 @@ local function UnitButton_UpdatePowerStates(self)
     local unit = self.states.displayedUnit
     if not unit then return end
 
+    -- fix from MiliUI: a party-target button has no power bar and no power text, so these
+    -- two reads had no reader at all -- see PARTY_TARGET_INDICATORS
+    if self.isPartyTarget then return end
+
     self.states.power = UnitPower(unit)
     self.states.powerMax = UnitPowerMax(unit)
     -- powerMax can be secret on arena pets / enemy PvP; IsAuraRestricted misses this.
@@ -2382,6 +2386,13 @@ local function UnitButton_UpdateTargetRaidIcon(self)
 
     local targetRaidIcon = self.indicators.targetRaidIcon
 
+    -- fix from MiliUI: cheapest test first -- see UnitButton_UpdateReadyCheck. This one also
+    -- saved a string allocation per pass: the token below is built, not a constant.
+    if not IsEnabled(self, "targetRaidIcon") then
+        targetRaidIcon:Hide()
+        return
+    end
+
     -- Same secret gate as the player icon above, and this one hits it constantly: the
     -- unit's target is usually a mob, which is exactly what "identity restricted" covers.
     local index = GetRaidTargetIndex(unit.."target")
@@ -2402,6 +2413,16 @@ end
 local function UnitButton_UpdateReadyCheck(self)
     local unit = self.states.unit
     if not unit then return end
+
+    -- fix from MiliUI: cheapest test first. With the icon off this used to call
+    -- GetReadyCheckStatus and throw the answer away -- on the party-target buttons that is
+    -- four times a second forever, because they refresh on a ticker rather than on events.
+    -- states.readyCheckStatus goes stale with it, which is safe: the only other reader is
+    -- UnitButton_FinishReadyCheck, and that returns on the same test.
+    if not IsEnabled(self, "readyCheckIcon") then
+        self.indicators.readyCheckIcon:Hide()
+        return
+    end
 
     local status = GetReadyCheckStatus(unit)
     self.states.readyCheckStatus = status
@@ -2834,6 +2855,14 @@ local function UnitButton_UpdateHealAbsorbs(self, skipStateUpdates)
 end
 
 local function UnitButton_UpdateThreat(self)
+    -- fix from MiliUI: cheapest test first -- see UnitButton_UpdateReadyCheck
+    local blink, border = IsEnabled(self, "aggroBlink"), IsEnabled(self, "aggroBorder")
+    if not (blink or border) then
+        self.indicators.aggroBlink:Hide()
+        self.indicators.aggroBorder:Hide()
+        return
+    end
+
     local unit = self.states.displayedUnit
     if not unit or not UnitExists(unit) then return end
 
@@ -2842,10 +2871,10 @@ local function UnitButton_UpdateThreat(self)
     -- number is a hard error, so the comparison has to be gated, not just the nil check.
     local status = UnitThreatSituation(unit)
     if F.IsValueNonSecret(status) and status and status >= 1 then
-        if IsEnabled(self, "aggroBlink") then
+        if blink then
             self.indicators.aggroBlink:ShowAggro(GetThreatStatusColor(status))
         end
-        if IsEnabled(self, "aggroBorder") then
+        if border then
             self.indicators.aggroBorder:ShowAggro(GetThreatStatusColor(status))
         end
     else
