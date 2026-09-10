@@ -118,8 +118,10 @@ local ATTACH_RANGE = 40 -- how close the bar has to land before it sticks to Cel
 local EDGE_SNAP = 10    -- once it sticks, how close an edge has to be to align exactly
 
 -- The rectangle the player thinks of as "Cell": the menu block plus every unit button of
--- the CURRENT group type. skipShared leaves out the NPC and spotlight frames -- those have
--- their own movers and can sit anywhere, so counting them would make "near Cell" meaningless.
+-- the CURRENT group type, plus (in a party) the pet and target slots beside each member
+-- whether or not something is in them right now. skipShared leaves out the NPC and
+-- spotlight frames -- those have their own movers and can sit anywhere, so counting them
+-- would make "near Cell" meaningless.
 local function GetCellRect()
     local left, right, top, bottom
 
@@ -142,6 +144,25 @@ local function GetCellRect()
     --! frames themselves are hidden (solo, or a layout set to hide)
     if Cell.frames.anchorFrame then add(Cell.frames.anchorFrame) end
     F.IterateAllUnitButtons(addIfVisible, true, false, true)
+
+    --! In a party, the pet column and the party-target column count even while EMPTY. Both
+    --! are reserved slots beside every member -- a pet that is not out right now, a member
+    --! with nothing targeted -- and the magnet only runs when the bar is dropped, so going
+    --! by the visible buttons alone parked the bar exactly where the next pet appears.
+    --! Only beside members who are present: an empty party slot reserves nothing, the same
+    --! as the member buttons themselves. Hidden frames still answer GetLeft() once anchored.
+    if Cell.vars.groupType == "party" then
+        local layout = Cell.vars.currentLayoutTable
+        local petsOn = layout and layout["pet"]["partyEnabled"] and not layout["pet"]["partyDetached"]
+        local targetsOn = F.GetPartyTargetsSide and F.GetPartyTargetsSide() ~= nil
+        for i = 1, 5 do
+            local member = Cell.unitButtons.party["player"..i]
+            if member and member:IsVisible() then
+                if petsOn and member.petButton then add(member.petButton) end
+                if targetsOn and member.targetButton then add(member.targetButton) end
+            end
+        end
+    end
 
     return left, right, top, bottom
 end

@@ -155,6 +155,20 @@ local function GetPartyTargetsDB()
     return CellDB and CellDB["tools"] and CellDB["tools"]["partyTargets"]
 end
 
+--! Which side of a member the target column hangs on, in screen terms, or nil while the
+--! tool is off: "left" / "right" when the party frame runs down the screen, "top" /
+--! "bottom" when it runs across -- the setting rotated the way SetPartyTargetPoint rotates
+--! it. Read by the NPC frame, which has to step over the column when it shares the side.
+function F.GetPartyTargetsSide(layout)
+    local db = GetPartyTargetsDB()
+    if not (db and db["enabled"]) then return end
+    layout = layout or Cell.vars.currentLayoutTable
+    if not layout then return end
+    local side = db["side"] or "right"
+    if layout["main"]["orientation"] == "vertical" then return side end
+    return side == "left" and "top" or "bottom"
+end
+
 local function SetPartyTargetSize(b, layout)
     local db = GetPartyTargetsDB()
     local width, height = unpack(layout["main"]["size"])
@@ -187,41 +201,33 @@ local function SetPartyTargetPoint(b, playerButton, orientation)
     end
 end
 
---! The pet button and the target button both hang off the side of a member, so with both
---! shown they have to take opposite sides or they land on top of each other. The player
---! picks the TARGET's side; the pet takes whatever is left, overriding the side Cell
---! derives from the layout anchor. Returns true when that override is needed.
-local function WantPetFlip(layout)
-    local db = GetPartyTargetsDB()
-    if not (db and db["enabled"]) then return false end
+--! The pet button and the target button both hang off the side of a member. When the
+--! target column takes the side the layout anchor hands to the pets, the pets step
+--! OUTWARD and hang off the target instead: member | target | pet. The target stays next
+--! to the member it belongs to, and the other side of the party frame stays free.
+--!
+--! ⚠ Not the other way round -- the first version of this tool flipped the pets over to
+--! the free side, and that side is exactly where the click-casting hints park by default
+--! (ClickCastingHints.lua: to the left of the raid frames), so a hunter joining put a pet
+--! on top of the hints. The NPC frame chains behind the pets the same way (NPCFrame.lua).
+--! Returns true when the pets are to hang off the targets.
+local function WantPetChain(layout)
+    local side = F.GetPartyTargetsSide(layout)
+    if not side then return false end
     if not (layout["pet"]["partyEnabled"] and not layout["pet"]["partyDetached"]) then return false end
 
     local anchor = layout["main"]["anchor"]
-    local side = db["side"] or "right"
     if layout["main"]["orientation"] == "vertical" then
         -- an anchor ending in LEFT puts the pet on the member's right (see the table below)
-        return (strfind(anchor, "LEFT$") ~= nil) == (side == "right")
-    else
-        -- an anchor starting with BOTTOM puts the pet above the member
-        return (strfind(anchor, "^BOTTOM") ~= nil) == (side == "left")
+        return side == (strfind(anchor, "LEFT$") and "right" or "left")
     end
-end
-
---! Mirror an anchor point across the axis the pet is offset on: LEFT<->RIGHT when the party
---! frame runs down the screen, TOP<->BOTTOM when it runs across. Safe on the compound names
---! ("BOTTOMLEFT" contains neither "TOP" nor, after the LEFT swap, a second match).
-local function FlipPetPoint(p, orientation)
-    if orientation == "vertical" then
-        if strfind(p, "RIGHT") then return (gsub(p, "RIGHT", "LEFT")) end
-        return (gsub(p, "LEFT", "RIGHT"))
-    end
-    if strfind(p, "TOP") then return (gsub(p, "TOP", "BOTTOM")) end
-    return (gsub(p, "BOTTOM", "TOP"))
+    -- an anchor starting with BOTTOM puts the pet above the member
+    return side == (strfind(anchor, "^BOTTOM") and "top" or "bottom")
 end
 
 --! what the last arrangement pass actually applied, so the tool knows when the pets need
 --! moving and can leave them alone the rest of the time
-local petFlipApplied = false
+local petChainApplied = false
 
 local PartyFrame_UpdateLayout
 
@@ -285,12 +291,17 @@ function F.UpdatePartyTargets()
         header:SetAttribute("showPartyTargets", enabled)
     end
 
-    --! and if the pets now belong on the other side, re-run the arrangement that places
-    --! them. Gated on a real change for the same reason as the attribute above: this is a
-    --! full re-anchor of every button and the width slider must not pay for it.
-    if Cell.vars.groupType == "party" and WantPetFlip(layout) ~= petFlipApplied then
+    --! and if the pets now belong behind the targets (or back next to the member), re-run
+    --! the arrangement that places them. Gated on a real change for the same reason as
+    --! the attribute above: this is a full re-anchor of every button and the width slider
+    --! must not pay for it.
+    if Cell.vars.groupType == "party" and WantPetChain(layout) ~= petChainApplied then
         PartyFrame_UpdateLayout(Cell.vars.currentLayout, "pet-arrangement")
     end
+
+    --! and the friendly NPC frame, which hangs off the same side as the pets, steps over
+    --! the column (NPCFrame.lua). Gated on a real change in there for the same reason.
+    if F.UpdateNPCFrameAnchor then F.UpdateNPCFrameAnchor() end
 end
 
 function PartyFrame_UpdateLayout(layout, which)
@@ -374,23 +385,20 @@ function PartyFrame_UpdateLayout(layout, which)
         header:SetAttribute("point", headerPoint)
 
         --! force update unitbutton's point
-        -- fix from MiliUI: push the pets to the side the target buttons are not using
-        petFlipApplied = WantPetFlip(layout)
-        local petPoint, petRelPoint = point, petAnchorPoint
-        if petFlipApplied then
-            petPoint = FlipPetPoint(point, orientation)
-            petRelPoint = FlipPetPoint(petAnchorPoint, orientation)
-            petSpacing = -petSpacing
-        end
+        -- fix from MiliUI: when the target column took the pets' side, the pet hangs off
+        -- the TARGET button (member | target | pet) -- same point, same spacing, one frame
+        -- further out. See WantPetChain.
+        petChainApplied = WantPetChain(layout)
 
         for j = 1, 5 do
             header[j]:ClearAllPoints()
             -- update petButton's point
             header[j].petButton:ClearAllPoints()
+            local petRel = petChainApplied and header[j].targetButton or header[j]
             if orientation == "vertical" then
-                header[j].petButton:SetPoint(petPoint, header[j], petRelPoint, P.Scale(petSpacing), 0)
+                header[j].petButton:SetPoint(point, petRel, petAnchorPoint, P.Scale(petSpacing), 0)
             else
-                header[j].petButton:SetPoint(petPoint, header[j], petRelPoint, 0, P.Scale(petSpacing))
+                header[j].petButton:SetPoint(point, petRel, petAnchorPoint, 0, P.Scale(petSpacing))
             end
             -- fix from MiliUI: the target button rides the main orientation, not the pet anchor
             SetPartyTargetPoint(header[j].targetButton, header[j], orientation)

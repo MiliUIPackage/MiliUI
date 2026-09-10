@@ -13,6 +13,9 @@ local anchors = {
     ["solo"] = CellSoloFramePlayer,
     ["party"] = CellPartyFrameHeaderUnitButton1Pet,
     ["raid"] = CellNPCFrameAnchor,
+    -- fix from MiliUI: the first row's party-target button -- what this frame hangs off
+    -- when that column sits on this side and nobody has a pet (see PartyAnchor below)
+    ["partyTarget"] = CellPartyFrameHeaderUnitButton1Target,
 }
 
 for k, v in pairs(anchors) do
@@ -284,6 +287,16 @@ npcFrame:SetAttribute("_onstate-groupstate", [[
 
     local petstate = self:GetAttribute("pet")
     local anchor = self:GetFrameRef(newstate)
+
+    --! fix from MiliUI: with nobody riding a pet, hang off the party-target column when it
+    --! sits on this side rather than off the first member (which is where "solo" lands)
+    local partyAnchor
+    if petstate == "nopet" then
+        partyAnchor = self:GetAttribute("partyTargets") and self:GetFrameRef("partyTarget") or self:GetFrameRef("solo")
+    else
+        partyAnchor = self:GetFrameRef("party")
+    end
+
     local orientation = self:GetAttribute("orientation")
     local point = self:GetAttribute("point")
     local anchorPoint = self:GetAttribute("anchorPoint")
@@ -299,11 +312,7 @@ npcFrame:SetAttribute("_onstate-groupstate", [[
 
         elseif newstate == "party" then
             -- NOTE: at first time petstate == nil
-            if petstate == "nopet" then
-                self:SetPoint(point, self:GetFrameRef("solo"), groupAnchorPoint, groupSpacing, 0)
-            else
-                self:SetPoint(point, self:GetFrameRef("party"), groupAnchorPoint, groupSpacing, 0)
-            end
+            self:SetPoint(point, partyAnchor, groupAnchorPoint, groupSpacing, 0)
 
         else -- solo
             self:SetPoint(point, anchor, groupAnchorPoint, groupSpacing, 0)
@@ -314,11 +323,7 @@ npcFrame:SetAttribute("_onstate-groupstate", [[
 
         elseif newstate == "party" then
             -- NOTE: at first time petstate == nil
-            if petstate == "nopet" then
-                self:SetPoint(point, self:GetFrameRef("solo"), groupAnchorPoint, 0, groupSpacing)
-            else
-                self:SetPoint(point, self:GetFrameRef("party"), groupAnchorPoint, 0, groupSpacing)
-            end
+            self:SetPoint(point, partyAnchor, groupAnchorPoint, 0, groupSpacing)
 
         else -- solo
             self:SetPoint(point, anchor, groupAnchorPoint, 0, groupSpacing)
@@ -346,18 +351,18 @@ npcFrame:SetAttribute("_onstate-petstate", [[
 
         self:ClearAllPoints()
 
-        if orientation == "vertical" then
-            if newstate == "nopet" then
-                self:SetPoint(point, self:GetFrameRef("solo"), groupAnchorPoint, groupSpacing, 0)
-            else
-                self:SetPoint(point, self:GetFrameRef("party"), groupAnchorPoint, groupSpacing, 0)
-            end
+        --! fix from MiliUI: same choice as the group-state handler above
+        local partyAnchor
+        if newstate == "nopet" then
+            partyAnchor = self:GetAttribute("partyTargets") and self:GetFrameRef("partyTarget") or self:GetFrameRef("solo")
         else
-            if newstate == "nopet" then
-                self:SetPoint(point, self:GetFrameRef("solo"), groupAnchorPoint, 0, groupSpacing)
-            else
-                self:SetPoint(point, self:GetFrameRef("party"), groupAnchorPoint, 0, groupSpacing)
-            end
+            partyAnchor = self:GetFrameRef("party")
+        end
+
+        if orientation == "vertical" then
+            self:SetPoint(point, partyAnchor, groupAnchorPoint, groupSpacing, 0)
+        else
+            self:SetPoint(point, partyAnchor, groupAnchorPoint, 0, groupSpacing)
         end
     end
 ]])
@@ -440,6 +445,53 @@ local function UpdateMenu(which)
 end
 Cell.RegisterCallback("UpdateMenu", "NPCFrame_UpdateMenu", UpdateMenu)
 
+-------------------------------------------------
+-- fix from MiliUI: party targets
+--
+-- The party-target tool (PartyFrame.lua) hangs a column of buttons off the side of every
+-- member. When that column takes the side this frame is offset towards, the frame has to
+-- step over it, or the friendly NPC lands exactly on the player's target -- two names, two
+-- health bars and the NPC's shield drawn over one another on the first row.
+--
+-- The column order on that side is member | target | pet | NPC: the pets already hang off
+-- the targets (WantPetChain in PartyFrame.lua), so the usual "behind the first pet" anchor
+-- is right whenever anyone has a pet. The two cases that used to land on the first member
+-- are the ones to catch: nobody has a pet ("nopet" -> the solo frame, which sits where
+-- the first member is), and pets switched off in the layout (the "party" ref is the first
+-- member itself). Both go to the first row's TARGET button instead.
+--
+-- The choice lives in the "partyTargets" attribute so the secure state handlers above --
+-- the only thing that re-anchors while in combat -- make the same one.
+-------------------------------------------------
+local function GetNPCArrangement(layout)
+    if layout["npc"]["sameArrangementAsMain"] then
+        return layout["main"]["orientation"], layout["main"]["anchor"], layout["main"]["spacingX"], layout["main"]["spacingY"]
+    end
+    return layout["npc"]["orientation"], layout["npc"]["anchor"], layout["npc"]["spacingX"], layout["npc"]["spacingY"]
+end
+
+--! the side of the first row this frame is offset towards, in screen terms -- the same
+--! reading of the anchor the point/groupAnchorPoint table below makes
+local function NPCSide(orientation, anchor)
+    if orientation == "vertical" then
+        return strfind(anchor, "LEFT$") and "right" or "left"
+    end
+    return strfind(anchor, "^TOP") and "bottom" or "top"
+end
+
+local function PartyTargetsOnNPCSide(orientation, anchor)
+    local side = F.GetPartyTargetsSide and F.GetPartyTargetsSide()
+    return side ~= nil and side == NPCSide(orientation, anchor)
+end
+
+--! what this frame hangs off in a party; mirrors the secure handlers
+local function PartyAnchor()
+    if npcFrame:GetAttribute("pet") == "nopet" then
+        return npcFrame:GetAttribute("partyTargets") and anchors["partyTarget"] or anchors["solo"]
+    end
+    return anchors["party"]
+end
+
 local function NPCFrame_UpdateLayout(layout, which)
     -- visibility
     if Cell.vars.isHidden then
@@ -484,32 +536,30 @@ local function NPCFrame_UpdateLayout(layout, which)
         end
     end
 
-    if not which or which == "pet" then
-        if not layout["pet"]["partyEnabled"] or layout["pet"]["partyDetached"] then
-            npcFrame:SetFrameRef("party", CellPartyFrameHeaderUnitButton1)
-            anchors["party"] = CellPartyFrameHeaderUnitButton1
-        else
-            npcFrame:SetFrameRef("party", CellPartyFrameHeaderUnitButton1Pet)
-            anchors["party"] = CellPartyFrameHeaderUnitButton1Pet
-        end
-    end
-
     if not which or strfind(which, "arrangement$") or which == "npc" or which == "pet" then
         local groupType = F.GetGroupType()
         npcFrame:ClearAllPoints()
 
-        local orientation, anchor, spacingX, spacingY
-        if layout["npc"]["sameArrangementAsMain"] then
-            orientation = layout["main"]["orientation"]
-            anchor = layout["main"]["anchor"]
-            spacingX = layout["main"]["spacingX"]
-            spacingY = layout["main"]["spacingY"]
+        local orientation, anchor, spacingX, spacingY = GetNPCArrangement(layout)
+        -- fix from MiliUI: decided here, read by PartyAnchor() below and by the secure
+        -- state handlers
+        local targetsOnSide = PartyTargetsOnNPCSide(orientation, anchor)
+        npcFrame:SetAttribute("partyTargets", targetsOnSide)
+
+        -- the "party" anchor: behind the first pet when pets are on, else the first member
+        -- -- or, with the target column on this side, the first target (the layout's own
+        -- `which == "pet"` block used to decide this; it moved here so the target case is
+        -- re-decided whenever the arrangement is)
+        local partyRef
+        if layout["pet"]["partyEnabled"] and not layout["pet"]["partyDetached"] then
+            partyRef = CellPartyFrameHeaderUnitButton1Pet
+        elseif targetsOnSide then
+            partyRef = CellPartyFrameHeaderUnitButton1Target
         else
-            orientation = layout["npc"]["orientation"]
-            anchor = layout["npc"]["anchor"]
-            spacingX = layout["npc"]["spacingX"]
-            spacingY = layout["npc"]["spacingY"]
+            partyRef = CellPartyFrameHeaderUnitButton1
         end
+        npcFrame:SetFrameRef("party", partyRef)
+        anchors["party"] = partyRef
 
         local point, anchorPoint, groupAnchorPoint, unitSpacing, groupSpacing
         if orientation == "vertical" then
@@ -537,11 +587,7 @@ local function NPCFrame_UpdateLayout(layout, which)
                     npcFrame:SetPoint(point, anchors["raid"])
 
                 elseif groupType == "party" then
-                    if npcFrame:GetAttribute("pet") == "nopet" then
-                        npcFrame:SetPoint(point, anchors["solo"], groupAnchorPoint, P.Scale(groupSpacing), 0)
-                    else
-                        npcFrame:SetPoint(point, anchors["party"], groupAnchorPoint, P.Scale(groupSpacing), 0)
-                    end
+                    npcFrame:SetPoint(point, PartyAnchor(), groupAnchorPoint, P.Scale(groupSpacing), 0)
 
                 else -- solo
                     npcFrame:SetPoint(point, anchors["solo"], groupAnchorPoint, P.Scale(groupSpacing), 0)
@@ -572,11 +618,7 @@ local function NPCFrame_UpdateLayout(layout, which)
                     npcFrame:SetPoint(point, anchors["raid"])
 
                 elseif groupType == "party" then
-                    if npcFrame:GetAttribute("pet") == "nopet" then
-                        npcFrame:SetPoint(point, anchors["solo"], groupAnchorPoint, 0, P.Scale(groupSpacing))
-                    else
-                        npcFrame:SetPoint(point, anchors["party"], groupAnchorPoint, 0, P.Scale(groupSpacing))
-                    end
+                    npcFrame:SetPoint(point, PartyAnchor(), groupAnchorPoint, 0, P.Scale(groupSpacing))
 
                 else -- solo
                     npcFrame:SetPoint(point, anchors["solo"], groupAnchorPoint, 0, P.Scale(groupSpacing))
@@ -648,6 +690,18 @@ local function NPCFrame_UpdateLayout(layout, which)
     end
 end
 Cell.RegisterCallback("UpdateLayout", "NPCFrame_UpdateLayout", NPCFrame_UpdateLayout)
+
+--! fix from MiliUI: the party-target tool calls this when it is switched on or off or
+--! moved to the other side. Re-anchors only when the answer actually changed: the tool's
+--! sliders fire once per step, and a full re-arrangement is not what dragging one should
+--! cost. Out of combat only -- the caller already defers, this is the backstop.
+function F.UpdateNPCFrameAnchor()
+    local layout = Cell.vars.currentLayoutTable
+    if not layout or not Cell.vars.currentLayout or InCombatLockdown() then return end
+    local want = PartyTargetsOnNPCSide(GetNPCArrangement(layout))
+    if (npcFrame:GetAttribute("partyTargets") and true or false) == want then return end
+    NPCFrame_UpdateLayout(Cell.vars.currentLayout, "pet-arrangement")
+end
 
 -- local function NPCFrame_UpdateVisibility(which)
 --     if not which or which == "solo" or which == "party" then

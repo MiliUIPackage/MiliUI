@@ -2651,7 +2651,8 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
 
         -- CELL_FADE_OUT_HEALTH_PERCENT: use EvaluateMissingHealthPercent with a Curve to fade
         -- frames that are above the health threshold (healthy enough to fade out)
-        if CELL_FADE_OUT_HEALTH_PERCENT and self.widgets.healthCalculator then
+        -- fix from MiliUI: not on a party-target button -- see UnitButton_UpdateInRange
+        if CELL_FADE_OUT_HEALTH_PERCENT and self.widgets.healthCalculator and not self.isPartyTarget then
             RebuildFadeOutHealthCurve()
             if fadeOutHealthCurve and self.states.inRange then
                 -- EvaluateCurrentHealthPercent feeds secret health% into the curve
@@ -2689,7 +2690,7 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
             self.indicators.healthThresholds:Hide()
         end
 
-        if CELL_FADE_OUT_HEALTH_PERCENT then
+        if CELL_FADE_OUT_HEALTH_PERCENT and not self.isPartyTarget then -- fix from MiliUI
             if self.states.inRange and healthPercent < CELL_FADE_OUT_HEALTH_PERCENT then
                 A.FrameFadeIn(self, 0.25, self:GetAlpha(), 1)
             else
@@ -2997,6 +2998,18 @@ local function UnitButton_UpdateInRange(self, ir)
     local unit = self.states.displayedUnit
     if not unit then return end
 
+    -- fix from MiliUI: a party-target button never fades for range. The row shows what a
+    -- member is hitting, and "can I reach it" is not a question that row answers. It was
+    -- not even answered consistently: for a hostile token the probe is a harmful-spell
+    -- range check that comes out differently from one partyNtarget token to the next, so
+    -- the same mob sat dimmed on one row and lit on the row below. The health fade reads
+    -- inRange too and is gated on its own in UnitButton_UpdateHealth.
+    if self.isPartyTarget then
+        self.states.inRange = true
+        self.states.wasInRange = true
+        return
+    end
+
     local inRange
     -- ⚠ secret test FIRST, then the nil test. `ir ~= nil` is still a comparison, and the
     -- payload for an identity-restricted teammate can arrive secret; F.IsValueNonSecret(nil)
@@ -3128,7 +3141,11 @@ local function UnitButton_UpdateVehicleStatus(self)
     if not unit then return end
 
     local displayedUnit
-    if UnitHasVehicleUI(unit) then -- or UnitInVehicle(unit) or UnitUsingVehicle(unit) then
+    -- fix from MiliUI: never on a party-target button. Its token is "<member>target", and
+    -- the pet derivation below would turn party2target into partypet2 the moment that
+    -- member targets someone riding a vehicle -- the pet's health and shield under the
+    -- target's name. The button shows the target itself, vehicle or not.
+    if not self.isPartyTarget and UnitHasVehicleUI(unit) then -- or UnitInVehicle(unit) or UnitUsingVehicle(unit) then
         if unit == "player" then
             displayedUnit = "vehicle"
         else
