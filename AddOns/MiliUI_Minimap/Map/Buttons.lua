@@ -566,6 +566,86 @@ function Buttons.Close()
 end
 
 ------------------------------------------------------------
+-- 「游標停在袋子開出來的東西上」
+--
+-- 袋子裡的第三方按鈕按下去大多會開自己的選單，而那些選單**不是袋子的子框**。
+-- 游標移過去，在「滑過就開、離開就關」的判定裡就等於離開了袋子 —— 袋子一收，
+-- 選單的錨點（那顆按鈕）跟著不見，選單也就沒了。**移過去點的那一下永遠點不到。**
+--
+-- 認不了名字：各家用的下拉函式庫不同（LibUIDropDownMenu、暴雪那套新選單、
+-- 自己畫的框都有人用），列白名單一定會漏。所以認**關係**：
+--
+--   1. 從游標所在的框往上走**父鏈與錨點鏈**，走得回袋子 ⇒ 是袋子裡的按鈕開的。
+--      （選單多半 `SetPoint(..., 那顆按鈕, ...)`，或乾脆掛在按鈕底下。）
+--   2. 走不回來 —— 錨在游標上的選單就是這種 —— 退到第二條：那個框**站在袋子
+--      之上**就算。袋子在 HIGH，選單一律 DIALOG 以上，一般的介面沒那麼高。
+--      多留住的那幾個誤判沒有代價：游標移開就照常關。
+--
+-- ⚠ 只在袋子開著、而且游標已經不在格子也不在袋子上的那幾幀才會被問到
+--   （Panel/Bar.lua 的 watcher 問完前兩題才問這題），不是每幀的常駐成本。
+------------------------------------------------------------
+local STRATA_RANK = {
+    BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4,
+    DIALOG = 5, FULLSCREEN = 6, FULLSCREEN_DIALOG = 7, TOOLTIP = 8,
+}
+local MAX_HOP = 8      -- 鏈走這麼多層還沒走回袋子就當它不是（也順便擋掉環）
+
+local function FromBag(frame, hop)
+    if type(frame) ~= "table" or not frame.GetParent then return false end
+    if frame == bag then return true end
+    -- 走到共同祖先就收工：再往上每一個框都「是 UIParent 的後代」，沒有分辨力
+    if frame == UIParent or frame == WorldFrame then return false end
+    hop = (hop or 0) + 1
+    if hop > MAX_HOP then return false end
+
+    if FromBag(frame:GetParent(), hop) then return true end
+
+    if frame.GetNumPoints then
+        for i = 1, frame:GetNumPoints() do
+            -- ⚠ pcall＋SafeValue：GetPoint 是有人覆寫過的函式（Cell 就有一支
+            --   回傳秘密字串的版本），而錨點在 12.1 可能是秘密值 —— 拿去比較會炸。
+            local ok, _, rel = pcall(frame.GetPoint, frame, i)
+            rel = ok and ns.Secret.SafeValue(rel, nil) or nil
+            if type(rel) == "table" and rel ~= frame and FromBag(rel, hop) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function AboveBag(frame)
+    if not frame.GetFrameStrata or not frame.GetFrameLevel then return false end
+    -- ⚠ 鋪滿螢幕的框不算。選單函式庫幾乎都會在選單底下鋪一張「點外面就關掉」的
+    --   透明大鈕（我們自己的 ContextMenu 也有一張），那種鈕站在最上層又蓋滿整個
+    --   畫面 —— 把它當成選單的話，游標不管移到哪裡都「還在選單上」，袋子就再也
+    --   關不掉了。選單本身不可能有那麼大。
+    local w, h = frame:GetWidth(), frame:GetHeight()
+    local sw, sh = UIParent:GetWidth(), UIParent:GetHeight()
+    if w and h and sw and sh and w >= sw * 0.9 and h >= sh * 0.9 then return false end
+    local a = STRATA_RANK[frame:GetFrameStrata()] or 0
+    local b = STRATA_RANK[bag:GetFrameStrata()] or 0
+    if a ~= b then return a > b end
+    return (frame:GetFrameLevel() or 0) > (bag:GetFrameLevel() or 0)
+end
+
+function Buttons.MouseInPopup()
+    if not bag or not bag:IsShown() then return false end
+    local foci = GetMouseFoci and GetMouseFoci()
+    if not foci then
+        local one = GetMouseFocus and GetMouseFocus()
+        foci = one and { one } or nil
+    end
+    if not foci then return false end
+    for _, f in ipairs(foci) do
+        if type(f) == "table" and f.GetParent and f ~= UIParent and f ~= WorldFrame then
+            if FromBag(f) or AboveBag(f) then return true end
+        end
+    end
+    return false
+end
+
+------------------------------------------------------------
 -- 開關鈕的圖示：3×3 的小方塊
 --
 -- 零資產、跟著職業色走，而且它長得就像「一袋按鈕」—— 比任何一張暴雪內建圖示

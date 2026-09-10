@@ -59,13 +59,18 @@ end
 --
 -- 格子上開著選單（右鍵設定、左鍵密語選單）也算「還在」：選單是從格子長出來的，
 -- 游標在選單上時把面板收掉會連帶把選單的錨點藏掉。
+--
+-- 同一個理由要再往下推一層：**面板自己也會長出東西。** 收納袋裡那些第三方按鈕
+-- 按下去會開各自的選單，那些選單不是袋子的子框，游標移過去在這裡就等於離開了。
+-- 面板哪些延伸物算數只有面板自己知道，所以由 Hover.Start 收一個 `alive` 述詞
+-- （袋子傳 ns.Buttons.MouseInPopup，判斷寫在 Map/Buttons.lua）。
 ------------------------------------------------------------
 local Hover = {}
 local GRACE = 0.35
 
 local watcher = CreateFrame("Frame")
 watcher:Hide()
-local hoverOwner, hoverFrame, hoverClose, away
+local hoverOwner, hoverFrame, hoverClose, hoverAlive, away
 
 -- 格子回到閒置外觀（亮塊收掉、收納袋圖示變暗）。跟 OnLeave 做的事一樣，
 -- 但 OnLeave 在「游標移到面板上」時要留著亮塊，所以拆出來由關閉那一刻叫。
@@ -79,7 +84,7 @@ end
 local function StopHover()
     watcher:Hide()
     local o = hoverOwner
-    hoverOwner, hoverFrame, hoverClose, away = nil, nil, nil, nil
+    hoverOwner, hoverFrame, hoverClose, hoverAlive, away = nil, nil, nil, nil, nil
     if o then SlotIdle(o) end
 end
 
@@ -90,14 +95,16 @@ function Hover.Close()
     if close then ns.Safe(close) end
 end
 
-function Hover.Start(slot, frame, close)
+-- alive：可選。回 true 就當作「游標還在這個彈出物的勢力範圍內」，
+-- 用來把面板自己開出來的東西（第三方選單）算進來。
+function Hover.Start(slot, frame, close, alive)
     -- 同一格重畫（名單刷新）不重來：計時器照舊，不然每次刷新都把離開的時間歸零
     if hoverOwner == slot and hoverFrame == frame then
-        hoverClose = close
+        hoverClose, hoverAlive = close, alive
         return
     end
     Hover.Close()
-    hoverOwner, hoverFrame, hoverClose, away = slot, frame, close, nil
+    hoverOwner, hoverFrame, hoverClose, hoverAlive, away = slot, frame, close, alive, nil
     watcher:Show()
 end
 
@@ -109,7 +116,8 @@ watcher:SetScript("OnUpdate", function(_, elapsed)
     -- 被 ESC 或別的路徑關掉了（收納袋在 UISpecialFrames 裡）：跟著收工
     if not hoverFrame or not hoverFrame:IsShown() then StopHover(); return end
     if hoverOwner:IsMouseOver() or hoverFrame:IsMouseOver()
-        or W.Menu.IsOpenFor(hoverOwner) then
+        or W.Menu.IsOpenFor(hoverOwner)
+        or (hoverAlive and hoverAlive()) then
         away = nil
         return
     end
@@ -290,7 +298,8 @@ SOURCES.bag = {
         local inBag, pinned = ns.Buttons.Counts()
         if inBag > 0 then
             ns.Buttons.Open(slot)
-            Hover.Start(slot, ns.buttonBag, ns.Buttons.Close)
+            -- 第四個參數：袋子裡的按鈕開出來的選單也算「游標還在袋子上」
+            Hover.Start(slot, ns.buttonBag, ns.Buttons.Close, ns.Buttons.MouseInPopup)
             return
         end
         local left = (slot:GetCenter() or 0) < (GetScreenWidth() or 1920) / 2
