@@ -43,9 +43,12 @@ local REPLACED = {
 -- 已從套組移除 → 不動它的啟用狀態，只提醒可以刪掉
 -- WarpDeplete 的計時面板已由米利的任務追蹤器內建（Modules/MythicPlus.lua），
 -- 但停用與否交給玩家決定，所以放這裡而不是 REPLACED。
+-- _CDProbe 是隨套組發給玩家的診斷探針（快捷列 SetCooldown 秘密值），
+-- 目標問題已修掉（資訊列的教學提示改鏡射不改錨），2026-09-10 從套組移除。
 local REMOVED = {
     { label = "MiniCC",      folders = { "MiniCC" } },
     { label = "WarpDeplete", folders = { "WarpDeplete" } },
+    { label = "冷卻錯誤探針", folders = { "_CDProbe" } },
 }
 
 ------------------------------------------------------------
