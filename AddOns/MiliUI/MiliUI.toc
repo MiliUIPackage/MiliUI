@@ -75,6 +75,7 @@ Enhance\BonusRoll_Filter.lua
 Enhance\LegacyAddons.lua
 Enhance\Merchant_Automation.lua
 Enhance\EditMode_BagsAlpha.lua
+Enhance\TaintLog.lua
 
 Fix\DeprecatedGlobals.lua
 Fix\TooltipTaintFix.lua
