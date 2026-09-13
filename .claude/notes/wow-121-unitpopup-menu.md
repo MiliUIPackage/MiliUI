@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: cf8cd3da-dcd0-4dd8-a660-28913874493c
-  modified: 2026-08-27T03:05:39.044Z
+  modified: 2026-09-13T02:03:21.604Z
 ---
 
 完整實作在 `MiliUI_UnitFrames/Core/UnitFrame.lua` 的「右鍵選單」區塊（2026-08-26 定案，
@@ -79,6 +79,25 @@ false，讀對方本質的（`UnitIsOtherPlayersBattlePet`/`UnitIsOtherPlayersPe
 | 複製角色名稱 | `CopyToClipboard` 是**保護函式**（插件從來寫不進剪貼簿）→ 灰掉＋自己補一顆開反白編輯框彈窗 |
 
 灰化走訪要**遞迴**——複製名稱藏在「其他選項」子選單裡，掃第一層碰不到。
+
+### 「密語」刻意不灰（使用者決定 2026-09-13）
+
+重開選單裡的密語會用 tainted 執行跑 `SendTell` → `ActivateChat` 把 `LAST_ACTIVE_CHAT_EDIT_BOX`
+染成 Cell 的，**一路髒到 /reload**（後果見 [[wow-121-chat-reply-secret-taint]]：按 R 對秘密
+名字要靠 MiliUI_ChatBar 填 `/r` 降級）。使用者會從頭像（MiliUI_UnitFrames 目標框）右鍵密語，
+覺得「戰鬥中不能密語很怪」，選擇保留功能、接受髒聊天狀態。**不要再主動提議灰掉它**，除非
+出現實際壞掉的回報。
+
+⚠ **怪罪 Cell 不代表是從 Cell 框開的**：使用者的 Cell 框右鍵已改成別的功能，根本不開選單。
+走的是頭像 —— Cell 的 hook 是全域的、豎了旗標之後 MiliUI 的 hook 讓位，所以目標框的
+`target` token 誤判（非隊友玩家身分受限 → 跳寵物選單）也由 Cell 重開，污染記在 Cell 頭上。
+
+證據是推論不是實測：2026-09-12 raid 的 taint.log 從第一筆（登入後一兩分鐘送出聊天）起
+聊天全域就已經是 Cell 的，前面沒有任何「讀到髒值」紀錄 ⇒ 那次輸入框是被 tainted 程式
+直接打開的；Cell 會開聊天框的只有這裡跟版面分享。要坐實就登入後 dump
+`issecurevariable("LAST_ACTIVE_CHAT_EDIT_BOX")`、右鍵別區團員密語、再 dump 一次。
+⚠ 讀 taint.log 的通則：`Execution tainted by X while reading Y` 只在**乾淨執行讀到髒值**時
+才記，**弄髒的那一次寫入不會留紀錄**，源頭要從「第一筆之前缺了什麼」反推。
 
 ## 零碎但會炸的
 
