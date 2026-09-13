@@ -340,12 +340,15 @@ taint.log 裡那條堆疊的**底部**是誰。
 有怪在打你（`UnitThreatSituation(uf.unit)` 不帶怪 ≥ 2）→ 血條填充換警示色＋整條閃。
 判斷與動畫在 `Elements/HealthThreat.lua`，換色在 `Elements/Health.lua` 的 `ApplyColors`
 （血條前景的顏色只有那一個出口，閾值上色也在裡面；仇恨蓋在閾值之上）。
-設定鍵只有玩家框的 hpbar 有：`threatWarn`／`threatScope`(always·group·instance)／
+設定鍵只有玩家框的 hpbar 有：`threatWarn`／`threatInInstance`·`threatInGroup`·`threatSolo`／
 `threatSkipTank`／`threatFlash`／`threatColor`（新鍵，MergeDefaults 補，沒有遷移）。
 
-- **1 刻意不算**（仇恨比坦克高但怪還沒轉）。預設「只在隊伍中」＋「坦克專精不亮」：
-  單人被打是常態、坦克被打是本分，兩個都會讓它閃個不停而失去警告意義。
-  「副本中」沿用 `Visibility.InInstance`（為此匯出成 `V.InInstance`）。
+- **1 刻意不算**（仇恨比坦克高但怪還沒轉）。坦克專精預設不亮（被打是本分）。
+- **何時提醒＝三個勾選、符合任一個就亮**（使用者定案）：副本中（單人也算）✓、隊伍中（野外組隊也算）✓、
+  單人在野外 ✗。三個剛好切滿所有情況，全勾＝任何時候。判斷在 `ScopeOK`，缺鍵時照預設方向
+  （`~= false`／`== true`）。「副本中」沿用 `Visibility.InInstance`（為此匯出成 `V.InInstance`）。
+  ⚠ 第一版是單選下拉（任何時候／隊伍中／副本中，預設隊伍中），單人打團本被擋掉；
+  使用者要的是「隊伍中和副本中都要」，單選表達不出來。`threatScope` 從未發佈，沒有遷移。
 - **閃的是 `f.bar` 整個 frame 的 alpha**（AnimationGroup BOUNCE 1↔0.25、0.4 秒），不是疊一層貼圖：
   扣血暗化層與護盾／預估疊加層都掛在 `f.clip` 上，不跟著閃 ⇒ 最暗那一刻血量前緣仍看得見。
   已在播就不要再 `Play()`（會從頭開始，每個仇恨事件抖一下）。
@@ -366,12 +369,12 @@ taint.log 裡那條堆疊的**底部**是誰。
 
 **2026-09-14 首次實測（聖騎懲戒、單人打阿米德拉希爾首領，遭遇戰 2709，`HasSecretRestrictions=true`、
 首領名字／血量全是秘密）**：`status=3` 明文、`秘密命中=0` ⇒ **首領戰中玩家自己的仇恨讀得到**，
-秘密閘至少在這個情境沒觸發。沒亮是被預設「只在隊伍中」擋掉 —— 但 debug 那行只印「亮=false」，
+秘密閘至少在這個情境沒觸發。沒亮是被當時的預設「只在隊伍中」擋掉 —— 但 debug 那行只印「亮=false」，
 使用者看不出原因（回了一個「???」）。修法：`IsActive` 多回傳原因碼（aggro/test/off/preview/scope/
 tank/nothreat/low/secret）存進 `f.threatWhy`，`/muf debug` 印判定、重算次數、仇恨事件次數，
 以及現場重問的隊伍中／副本中／坦克專精（`HT.Gates()`）。**做任何「條件式不顯示」的功能都要留原因碼**，
 不然「條件擋掉」和「事件沒來」在畫面上長得一模一樣。
-預設值要不要從「隊伍中」改掉（使用者的預期是單人團本也該亮）待使用者決定。
+之後依使用者決定改成上面那三個勾選。
 
 **尚未在遊戲內驗證**：五人本／M+ 裡 `秘密命中` 是否一直是 0、怪死或脫戰後會不會熄、
 閃爍速度與 0.8 的紅在 3D 頭像上的觀感、載具期間（uf.unit="vehicle"）的仇恨事件有沒有來。

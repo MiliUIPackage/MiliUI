@@ -647,8 +647,15 @@ local function Debug()
             nothreat = "不在任何仇恨表上", low = "在仇恨表上但沒被打（0/1）",
             secret = "|cffff5555仇恨是秘密值 → 不亮|r",
         }
-        p(("  仇恨提醒：開=%s 何時=%s 坦克不亮=%s ｜ 現在 status=%s 秘密命中=%d"):format(
-            tostring(edb and edb.threatWarn), tostring(edb and edb.threatScope),
+        -- 何時提醒的三個勾選：副本／隊伍／單人野外，符合任一個就亮
+        local function tick(v, def)
+            if v == nil then v = def end
+            return v and "|cff44ff44✓|r" or "✗"
+        end
+        p(("  仇恨提醒：開=%s 何時=副本%s隊伍%s單人野外%s 坦克不亮=%s ｜ 現在 status=%s 秘密命中=%d"):format(
+            tostring(edb and edb.threatWarn),
+            tick(edb and edb.threatInInstance, true), tick(edb and edb.threatInGroup, true),
+            tick(edb and edb.threatSolo, false),
             tostring(edb and edb.threatSkipTank), statusStr, ns.threatSecretHits or 0))
         local inGroup, inInst, isTank = ns.HealthThreat.Gates()
         p(("   上次判定=%s 亮=%s 閃爍中=%s ｜ 重算%s次（仇恨事件%s次）｜ 現在 隊伍中=%s 副本中=%s 坦克專精=%s"):format(

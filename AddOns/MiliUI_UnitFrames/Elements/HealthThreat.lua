@@ -51,12 +51,22 @@ local function PlayerIsTank()
     return role == "TANK"
 end
 
--- 單人時「有怪在打你」是常態，閃個不停只是噪音 ⇒ 預設只在隊伍中提醒
-local SCOPE = {
-    always   = function() return true end,
-    group    = function() return IsInGroup() end,
-    instance = function() return ns.Visibility.InInstance() end,
-}
+-- 何時提醒：三個勾選，**符合任一個勾選的情境就提醒**。
+--   threatInInstance  在副本中（地城／團本／事件／競技場／戰場；單人也算）  預設開
+--   threatInGroup     在隊伍中（野外組隊也算）                              預設開
+--   threatSolo        單人在野外（上面兩個都不成立的剩餘情況）              預設關
+-- 三個剛好切滿所有情況，全勾＝任何時候。單人在野外被打是常態，閃個不停只是噪音。
+--
+-- ⚠ 原本是單選下拉（任何時候／隊伍中／副本中，預設隊伍中），首次實測單人打團本
+-- 被擋掉 —— 使用者要的是「隊伍中和副本中都要」，單選表達不出來，所以拆成勾選。
+-- 預設值用 `~= false`／`== true` 寫死方向：缺鍵（MergeDefaults 之前）時照預設走。
+local function ScopeOK(edb)
+    local inInstance = ns.Visibility.InInstance()
+    if inInstance and edb.threatInInstance ~= false then return true end
+    local inGroup = IsInGroup()
+    if inGroup and edb.threatInGroup ~= false then return true end
+    return not inInstance and not inGroup and edb.threatSolo == true
+end
 
 -- 設定面板的「測試」鈕：指定單位（unitKey）亮到這個時間為止，所有條件都不看
 local testKey, testUntil = nil, 0
@@ -64,14 +74,13 @@ local testKey, testUntil = nil, 0
 -- 回傳 亮不亮, 為什麼。
 -- ⚠ 第二個值不是裝飾：「沒亮」有六種原因，只看亮不亮的話 /muf debug 分不出
 -- 「條件擋掉」和「事件沒來」—— 2026-09-14 第一次實測就卡在這裡（單人打團本，
--- status=3 讀得到，卻被「只在隊伍中」擋掉，畫面上只看得到「亮=false」）。
+-- status=3 讀得到，卻被當時的預設「只在隊伍中」擋掉，畫面上只看得到「亮=false」）。
 local function IsActive(uf, edb)
     if testKey and uf.unitKey == testKey and GetTime() < testUntil then return true, "test" end
     if not edb.threatWarn then return false, "off" end
     -- 預覽孿生的 unit 是借來的 "player"，真的去問會把自己的仇恨畫到每一格上
     if uf.isPreview then return false, "preview" end
-    local scopeOK = SCOPE[edb.threatScope] or SCOPE.group
-    if not scopeOK() then return false, "scope" end
+    if not ScopeOK(edb) then return false, "scope" end
     -- 坦克專精：被打是本分。只對「畫的是玩家自己」的框判斷 —— 載具期間 uf.unit 是
     -- "vehicle"，那台車被打跟你的專精無關
     if edb.threatSkipTank ~= false and uf.unit == "player" and PlayerIsTank() then
