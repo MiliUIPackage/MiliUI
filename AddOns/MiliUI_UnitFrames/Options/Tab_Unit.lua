@@ -15,7 +15,7 @@ local PosSize, Pos = Specs.PosSize, Specs.Pos
 -- ⚠ L 的 key 就是英文原文（Locales/Locale.lua 查不到就回傳 key），而且必須以**單一字面
 -- 字串**直接寫在 L[...] 裡：拆段串接或先存變數再查表，九個語系檔（和 locale_audit）都會
 -- 對不上而且不報錯（靜默退成英文）。
-local TAG_SYNTAX_HELP = L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification]; conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."]
+local TAG_SYNTAX_HELP = L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification], [group] [group_label] (raid group as a number / with the label, blank outside a raid); conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."]
 
 local UNIT_LIST = {
     { key = "player",       label = L["Player"] },
@@ -173,7 +173,8 @@ local function ThreatSpecs(name, unitKey)
         { type = "text", label = L["The warning color has its own opacity: the player frame's fill is translucent to show the 3D portrait, and red at that opacity gets lost in the model."] },
         { type = "custom", label = "", build = ThreatTestRow(unitKey) },
         -- 三個勾選切滿所有情況（判斷在 Elements/HealthThreat.lua 的 ScopeOK），全勾＝任何時候
-        { type = "header", label = L["When to warn"] },
+        -- 子標題靠右對齊標籤欄：它是「仇恨提醒」底下的一組，不這樣讀起來像另一個獨立的小節
+        { type = "header", label = L["When to warn"], nested = true },
         { type = "toggle", sub = name, key = "threatInInstance", label = L["In instances"] },
         { type = "toggle", sub = name, key = "threatInGroup", label = L["In a group"] },
         { type = "toggle", sub = name, key = "threatSolo", label = L["Solo in the open world"] },
@@ -587,11 +588,16 @@ local function IconSpecs(els)
         { key = "leader",     label = L["Leader"] },
         { key = "pvp",        label = "PvP" },
     }
+        -- 只有玩家／目標的預設值有 group 鍵，其他單位不會出現這一節
+        { key = "group",      label = L["Group number"] },
     for _, d in ipairs(defs) do
         if els.icons[d.key] then
             tinsert(list, { type = "header", label = d.label })
             tinsert(list, { type = "toggle", sub = "icons", sub2 = d.key, key = "enabled", label = L["Show"] })
             -- 只有玩家框的 status 有這兩個鍵，其他單位不會冒出無效選項
+            if d.key == "group" then
+                tinsert(list, { type = "text", label = L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] })
+            end
             if els.icons[d.key].restAnimated ~= nil then
                 tinsert(list, { type = "toggle", sub = "icons", sub2 = d.key, key = "restAnimated",
                                 label = L["Animated zzZ while resting"] })
@@ -600,6 +606,10 @@ local function IconSpecs(els)
             end
             tinsert(list, PosSize("icons", nil, d.key))
         end
+            if d.key == "group" then
+                tinsert(list, { type = "slider", sub = "icons", sub2 = d.key, key = "size",
+                                label = L["Font size"], min = 6, max = 24, step = 1 })
+            end
     end
     return list
 end

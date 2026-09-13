@@ -295,7 +295,10 @@ function DB.BuildDefaults()
                               status     = { enabled = true,  x = -8,  y = 10, w = 14, h = 14, level = ICON_LEVEL,
                                              restAnimated = true, combatBlizzard = false },
                               leader     = { enabled = true,  x = 7,   y = 10, w = 12, h = 12, level = ICON_LEVEL },
-                              pvp        = { enabled = false, x = -15, y = -12, w = 28, h = 28, level = ICON_LEVEL } },
+                              pvp        = { enabled = false, x = -15, y = -12, w = 28, h = 28, level = ICON_LEVEL },
+                              -- 小隊編號（只在團隊裡顯示）：框右上角外側，右緣對齊框體 200。
+                              -- 新鍵由 MergeDefaults 補、預設關，不必遷移
+                              group      = { enabled = false, x = 156, y = 24, w = 44, h = 18, size = 11, level = ICON_LEVEL } },
                 },
             },
 
@@ -370,7 +373,10 @@ function DB.BuildDefaults()
                               raidtarget = { enabled = true,  x = 84, y = 10, w = 20, h = 20, level = ICON_LEVEL },
                               status     = { enabled = true,  x = -8, y = 10, w = 14, h = 14, level = ICON_LEVEL },
                               leader     = { enabled = true,  x = 7,  y = 10, w = 12, h = 12, level = ICON_LEVEL },
-                              pvp        = { enabled = false, x = 176, y = -12, w = 28, h = 28, level = ICON_LEVEL } },
+                              pvp        = { enabled = false, x = 176, y = -12, w = 28, h = 28, level = ICON_LEVEL },
+                              -- 小隊編號：目標是團員時顯示**他的**小隊。位置同玩家框；
+                              -- 下緣在 +6，剛好讓開觀察按鈕（上緣 +5）。減益列超過 6 顆會被蓋住
+                              group      = { enabled = false, x = 156, y = 24, w = 44, h = 18, size = 11, level = ICON_LEVEL } },
                     -- 觀察按鈕：點下去開觀察視窗。座標是使用者在遊戲裡調定的
                     -- （框右上角外側，往上凸出 5）。
                     -- 預設是「圖示直接浮在框上」——不畫邊框也不畫底色（使用者定案）；

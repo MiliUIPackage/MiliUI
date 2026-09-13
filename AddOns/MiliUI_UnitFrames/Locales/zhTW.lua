@@ -333,6 +333,8 @@ L["Raid target marker"] = "團隊標記"
 L["Status (combat / resting)"] = "狀態（戰鬥／休息）"
 L["Leader"] = "隊長"
 L["Animated zzZ while resting"] = "休息用動畫 zzZ"
+L["Group number"] = "小隊編號"
+L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "顯示在團隊中的小隊編號。不在團隊裡、或這個單位不在你的團隊時不顯示。"
 L["Blizzard combat icon (native 16x16, ignores the size below)"] = "戰鬥用內建圖示（原尺寸 16×16，不吃下面的寬高）"
 
 -- 觀察按鈕
@@ -357,7 +359,7 @@ L["Export failed: "] = "匯出失敗："
 L["Import: "] = "匯入："
 L["Restore every setting for \"%s\" to its default?"] = "把「%s」的所有設定恢復成預設值？"
 L["Text %d"] = "文字 %d"
-L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification]; conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "語法：[name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs]（無盾時空白）、[shields_short] [healabsorbs_short]（縮寫）、[class] [race] [creaturetype] [classification]；條件上色 [gray_if_dead:死亡]、[class:name]、[difficulty:level]。"
+L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification], [group] [group_label] (raid group as a number / with the label, blank outside a raid); conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "語法：[name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs]（無盾時空白）、[shields_short] [healabsorbs_short]（縮寫）、[class] [race] [creaturetype] [classification]、[group] [group_label]（團隊小隊編號／帶「小隊」字樣，不在團隊時空白）；條件上色 [gray_if_dead:死亡]、[class:name]、[difficulty:level]。"
 L["Options UI failed to load."] = "設定介面載入失敗。"
 
 -- 設定檔系統

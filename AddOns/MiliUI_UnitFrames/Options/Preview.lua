@@ -65,6 +65,9 @@ local function BuildFakeCache(unitKey)
         dead = false, ghost = false, offline = false,
         afk = false, dnd = false, tapped = false,
         assist = base.pc, hostile = not base.pc, attackable = not base.pc,
+        -- [group] 走字串 tag 的預覽路徑（cache[tag] 直取）。不給值的話預覽一片空白，
+        -- 玩家沒辦法對位置 —— 真實框只有在團隊裡才畫得出來
+        group = "3", group_label = (GROUP or "Group") .. " 3",
         incombat = false,
         frachp = 0.75, perchp = 75, fracmp = 0.6, percmp = 60,
         previewHP = 75, previewMP = 60,

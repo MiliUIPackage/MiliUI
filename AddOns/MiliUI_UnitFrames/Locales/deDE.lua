@@ -338,6 +338,8 @@ L["Raid target marker"] = "Schlachtzugssymbol"
 L["Status (combat / resting)"] = "Status (Kampf / Erholung)"
 L["Leader"] = "Anführer"
 L["Animated zzZ while resting"] = "Animiertes zzZ beim Erholen"
+L["Group number"] = "Gruppennummer"
+L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "Zeigt die Nummer der Schlachtzugsgruppe. Ausgeblendet außerhalb eines Schlachtzugs oder wenn die Einheit nicht in deinem Schlachtzug ist."
 L["Blizzard combat icon (native 16x16, ignores the size below)"] = "Blizzards Kampfsymbol (nativ 16×16, ignoriert die Größe unten)"
 
 -- Inspect button
@@ -362,7 +364,7 @@ L["Export failed: "] = "Export fehlgeschlagen: "
 L["Import: "] = "Import: "
 L["Restore every setting for \"%s\" to its default?"] = "Alle Einstellungen für \"%s\" auf Standard zurücksetzen?"
 L["Text %d"] = "Text %d"
-L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification]; conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (leer, wenn kein Schild vorhanden), [shields_short] [healabsorbs_short] (gekürzt), [class] [race] [creaturetype] [classification]; bedingte Färbung [gray_if_dead:Tot], [class:name], [difficulty:level]."
+L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification], [group] [group_label] (raid group as a number / with the label, blank outside a raid); conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (leer, wenn kein Schild vorhanden), [shields_short] [healabsorbs_short] (gekürzt), [class] [race] [creaturetype] [classification], [group] [group_label] (Schlachtzugsgruppe als Zahl / mit Bezeichnung, leer außerhalb eines Schlachtzugs); bedingte Färbung [gray_if_dead:Tot], [class:name], [difficulty:level]."
 L["Options UI failed to load."] = "Die Optionsoberfläche konnte nicht geladen werden."
 
 -- Profile system

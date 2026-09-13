@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-09T16:35:40.626Z
+  modified: 2026-09-13T19:03:24.951Z
 ---
 
 12.1.0 PTR 7（2026-07-23, build 68914）起，**unit identity 為 secret 時**這些 API 全部回傳 secret：
@@ -52,6 +52,14 @@ curl -sL https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/Ad
 
 **無條件秘密**（`SecretReturns = true`，連在開放世界對普通怪都讀不到）已知的一支：
 `GetRaidTargetIndex`（RaidMarkersDocumentation.lua）。團隊標記編號插件永遠讀不出來。
+
+**查不到文件就只能實測**：`GetRaidRosterInfo` 是舊全域函式，612 份 API 文件裡**沒有條目**，
+沒有標記可看。2026-09-14 實測（MiliUI_UnitFrames 評估玩家框加小隊編號）：
+**副本內首領戰中**，`UnitInRaid("player")` 回明文索引、`select(3, GetRaidRosterInfo(i))`
+小隊號是**明文數字**（`issecretvalue` = false）。不在團隊時 `UnitInRaid` 回明文 nil、
+`IsInRaid()` 明文 false —— 那不是秘密值擋住。取自己小隊號走 `UnitInRaid("player")`，
+**不要照抄暴雪 PlayerFrame 的「逐一比名字」迴圈**（untainted 才比得了別人的秘密名字）。
+戰場（PvP 限制）與查別的團員尚未測。
 
 ⚠ 這修正了一個舊印象：[[project-121-addon-migration]] 把 TinyTooltip 的
 `GameTooltip_UnitColor()` 崩潰同時歸給 `UnitIsPVP` 與 `UnitCanAttack`。有標記的只有

@@ -36,6 +36,8 @@ local INFO_TAGS = {
     curhp = "health", maxhp = "health", curmp = "power", maxmp = "power",
     shields = "health", healabsorbs = "health",
     shields_short = "health", healabsorbs_short = "health",
+    -- 換小隊只會發 GROUP_ROSTER_UPDATE，那個事件推的是 reaction 桶（Core/Events.lua）
+    group = "reaction", group_label = "reaction",
 }
 
 -- 秘密值 tag：走「佔位符 → 最後串接」管線，值從不進 Lua 字串運算
@@ -95,6 +97,20 @@ local SECRET_TAGS = {
         return (UnitClass(u))
     end },
     creaturetype = { kind = "string", fn = function(u) return UnitCreatureType(u) end },
+    -- 團隊小隊編號，不在團隊時整個 token 不輸出。
+    -- ⚠ 一定要登記在這裡：不在任何一張表的 token 會掉進字面值路徑，印出「group」字樣。
+    group = { kind = "string", fn = function(u, uf)
+        local subgroup = ns.Cache.RaidGroup(uf)
+        if subgroup == nil then return nil end
+        return format("%d", subgroup)
+    end },
+    -- 帶字樣的版本（zhTW「小隊 3」），字樣是暴雪的 GROUP 全域字串，跟圖示元件的小框同一個詞。
+    -- 前綴一定要由 tag 輸出：玩家自己寫在 pattern 裡的字面值，不在團隊時照樣會露出來。
+    group_label = { kind = "string", fn = function(u, uf)
+        local subgroup = ns.Cache.RaidGroup(uf)
+        if subgroup == nil then return nil end
+        return format("%s %d", GROUP or "Group", subgroup)
+    end },
 }
 
 -- 條件（讀 cache 明文）

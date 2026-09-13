@@ -5,7 +5,10 @@
 -- 統一的垂直節奏是「精緻感」的來源——不要再用左右兩欄塞不同高度的東西。
 --
 -- spec.type：
---   header   { label }                                     小節標題（accent 小字）
+--   header   { label, nested }                             小節標題（accent 小字）；nested = true
+--                                                          是某一節底下的子標題：靠右對齊標籤欄，
+--                                                          跟底下那排標籤同一條右緣，不然讀起來
+--                                                          像另一個獨立的小節
 --   toggle   { key, label }
 --   slider   { key, label, min, max, step }
 --   number   { key, label, step }                          單一微調數字框
@@ -130,7 +133,13 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
         if spec.type == "header" then
             y = y - HEADER_GAP
             local fs = W.CreateGroupLabel(parent, spec.label)
-            fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x0 + 6, y - 6)
+            if spec.nested then
+                -- 右緣對齊標籤欄（同 MakeLabel），看起來是底下那排勾選的標題
+                fs:SetPoint("TOPRIGHT", parent, "TOPLEFT", x0 + LABEL_W, y - 6)
+                fs:SetJustifyH("RIGHT")
+            else
+                fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x0 + 6, y - 6)
+            end
             y = y - HEADER_H
 
         elseif spec.type == "space" then

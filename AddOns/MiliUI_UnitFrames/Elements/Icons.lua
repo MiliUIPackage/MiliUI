@@ -1,10 +1,12 @@
 ------------------------------------------------------------
--- 小圖示：團隊標記 / 狀態（戰鬥/休息）/ 隊長 / PvP
+-- 小圖示：團隊標記 / 狀態（戰鬥/休息）/ 隊長 / PvP / 小隊編號
 -- 團隊標記 index 可能是秘密值 → SetRaidTargetIconTexture 吃秘密值（C 端）
 ------------------------------------------------------------
 local _, ns = ...
 
 local ToBool = ns.ToBool
+local Media = ns.Media
+local format = string.format
 
 -- PvP 圖示的陣營貼圖。只有這幾張，路徑寫死成常數不必每次串接。
 -- ⚠ 中立（還沒選邊的熊貓人）UnitFactionGroup 回 "Neutral"，但暴雪沒有
@@ -46,6 +48,17 @@ local PREVIEW_MARK = {
     player = 1, target = 8, targettarget = 2, focus = 7,
     focustarget = 3, pet = 6, pettarget = 4, boss = 8, bosstarget = 5,
 }
+
+------------------------------------------------------------
+-- 小隊編號小框（只有玩家／目標的預設值有這組鍵）
+--
+-- 字樣用暴雪的 GROUP 全域字串（zhTW「小隊」），跟團隊面板、原生玩家框
+-- 同一個詞，十二個語系都是官方譯名，不必進我們的語系表。
+-- 外觀是 HUD 皮的底色（0x1A 灰、0.8）＋全域邊框色＋白字，跟框本身的邊框一致。
+------------------------------------------------------------
+local GROUP_BG = { r = 0.102, g = 0.102, b = 0.102, a = 0.8 }
+local GROUP_FORMAT = "%s %d"
+local PREVIEW_GROUP = 3
 
 local atlasCache = {}
 local function AtlasInfo(name)
@@ -148,6 +161,43 @@ local function SetupIcon(uf, key, idb, texture, extraGate)
     end
 end
 
+-- 小隊編號是「底框＋字」不是貼圖，holder 自己建，其餘（位置／層級／停用就藏）比照 SetupIcon
+local function SetupGroup(uf, idb)
+    local h = uf.iconTextures and uf.iconTextures.group
+    if not (idb and idb.enabled) then
+        if h then
+            h:Hide()
+            h.disabled = true
+        end
+        return
+    end
+    if not h then
+        uf.iconTextures = uf.iconTextures or {}
+        h = CreateFrame("Frame", nil, uf.elements.icons, "BackdropTemplate")
+        h.bg = h:CreateTexture(nil, "BACKGROUND")
+        h.bg:SetTexture(Media.WHITE8X8)
+        h.text = h:CreateFontString(nil, "OVERLAY")
+        h.text:SetAllPoints(h)
+        h.text:SetJustifyH("CENTER")
+        h.text:SetJustifyV("MIDDLE")
+        h.text:SetWordWrap(false)
+        h.text:SetTextColor(1, 1, 1, 1)
+        uf.iconTextures.group = h
+    end
+    PlaceIcon(uf, h, idb)
+    -- 邊框有畫就要內縮，內縮量一律問 BorderInset（直接寫 1 會在 Retina 露縫）
+    Media.ApplyBorder(h)
+    local inset = Media.BorderInset()
+    h.bg:ClearAllPoints()
+    h.bg:SetPoint("TOPLEFT", inset, -inset)
+    h.bg:SetPoint("BOTTOMRIGHT", -inset, inset)
+    h.bg:SetVertexColor(GROUP_BG.r, GROUP_BG.g, GROUP_BG.b, GROUP_BG.a)
+    -- ⚠ 字型一定要在 Update 的 SetText 之前設好（沒字型的 FontString SetText 是硬錯）
+    Media.SetFont(h.text, idb.size or 11, "", ns.db.global.font)
+    h:Hide()
+    h.disabled = nil
+end
+
 local function Build(uf, edb)
     -- ⚠ 登記 uf.elements.icons（Refresh 派發閘門），同 Texts 的教訓
     if not uf.elements.icons then
@@ -161,6 +211,7 @@ local function Build(uf, edb)
     SetupIcon(uf, "status", edb.status, nil, uf.unitKey == "player")
     SetupIcon(uf, "leader", edb.leader, "Interface\\GroupFrame\\UI-Group-LeaderIcon")
     SetupIcon(uf, "pvp", edb.pvp, nil)
+    SetupGroup(uf, edb.group)
 end
 
 local function Update(uf, edb, bucket)
@@ -228,13 +279,26 @@ local function Update(uf, edb, bucket)
             pvp:Hide()
         end
     end
+
+    -- 小隊編號：換小隊只發 GROUP_ROSTER_UPDATE，那個事件推 reaction 桶，所以不必另掛事件。
+    -- 取值與秘密值處理見 Core/Cache.lua 的 RaidGroup；秘密的小隊號照樣餵得進 format／SetText。
+    local gp = uf.iconTextures.group
+    if gp and not gp.disabled and edb.group and edb.group.enabled then
+        local subgroup = preview and PREVIEW_GROUP or ns.Cache.RaidGroup(uf)
+        if subgroup ~= nil then
+            gp.text:SetText(format(GROUP_FORMAT, GROUP or "Group", subgroup))
+            gp:Show()
+        else
+            gp:Hide()
+        end
+    end
 end
 
 ns.RegisterElement{
     name = "icons",
     order = 70,
-    -- reaction：隊長圖示吃 GROUP_ROSTER_UPDATE、PvP 圖示吃 UNIT_FACTION，
-    -- 兩個都在 reaction 桶。其餘（團標／戰鬥休息）自己掛事件
+    -- reaction：隊長圖示與小隊編號吃 GROUP_ROSTER_UPDATE、PvP 圖示吃 UNIT_FACTION，
+    -- 都在 reaction 桶。其餘（團標／戰鬥休息）自己掛事件
     buckets = { "reaction" },
     build = Build,
     update = Update,

@@ -338,6 +338,8 @@ L["Raid target marker"] = "Метка рейда"
 L["Status (combat / resting)"] = "Состояние (бой / отдых)"
 L["Leader"] = "Лидер"
 L["Animated zzZ while resting"] = "Анимированное zzZ при отдыхе"
+L["Group number"] = "Номер группы"
+L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "Показывает номер группы в рейде. Скрыто вне рейда или если юнит не в вашем рейде."
 L["Blizzard combat icon (native 16x16, ignores the size below)"] = "Значок боя от Blizzard (родной 16×16, размер ниже игнорируется)"
 
 -- Inspect button
@@ -362,7 +364,7 @@ L["Export failed: "] = "Ошибка экспорта: "
 L["Import: "] = "Импорт: "
 L["Restore every setting for \"%s\" to its default?"] = "Сбросить все настройки \"%s\"?"
 L["Text %d"] = "Текст %d"
-L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification]; conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "Синтаксис: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (пусто, если щита нет), [shields_short] [healabsorbs_short] (сокращенно), [class] [race] [creaturetype] [classification]; условная окраска [gray_if_dead:Мертв], [class:name], [difficulty:level]."
+L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification], [group] [group_label] (raid group as a number / with the label, blank outside a raid); conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "Синтаксис: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (пусто, если щита нет), [shields_short] [healabsorbs_short] (сокращенно), [class] [race] [creaturetype] [classification], [group] [group_label] (группа рейда числом / с подписью, пусто вне рейда); условная окраска [gray_if_dead:Мертв], [class:name], [difficulty:level]."
 L["Options UI failed to load."] = "Не удалось загрузить окно настроек."
 
 -- Profile system

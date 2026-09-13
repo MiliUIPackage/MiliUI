@@ -338,6 +338,8 @@ L["Raid target marker"] = "Symbole de raid"
 L["Status (combat / resting)"] = "Statut (combat / repos)"
 L["Leader"] = "Chef"
 L["Animated zzZ while resting"] = "zzZ animé au repos"
+L["Group number"] = "Numéro de groupe"
+L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "Affiche le numéro de groupe dans le raid. Masqué hors raid ou si l'unité n'est pas dans votre raid."
 L["Blizzard combat icon (native 16x16, ignores the size below)"] = "Icône de combat de Blizzard (16×16 natif, ignore la taille ci-dessous)"
 
 -- Inspect button
@@ -362,7 +364,7 @@ L["Export failed: "] = "Échec de l’export : "
 L["Import: "] = "Import : "
 L["Restore every setting for \"%s\" to its default?"] = "Réinitialiser tous les réglages de « %s » ?"
 L["Text %d"] = "Texte %d"
-L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification]; conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "Syntaxe : [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (vide sans bouclier), [shields_short] [healabsorbs_short] (abrégé), [class] [race] [creaturetype] [classification] ; coloration conditionnelle [gray_if_dead:Mort], [class:name], [difficulty:level]."
+L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification], [group] [group_label] (raid group as a number / with the label, blank outside a raid); conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "Syntaxe : [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (vide sans bouclier), [shields_short] [healabsorbs_short] (abrégé), [class] [race] [creaturetype] [classification], [group] [group_label] (groupe de raid en chiffre / avec libellé, vide hors raid) ; coloration conditionnelle [gray_if_dead:Mort], [class:name], [difficulty:level]."
 L["Options UI failed to load."] = "Le chargement de l’interface d’options a échoué."
 
 -- Profile system

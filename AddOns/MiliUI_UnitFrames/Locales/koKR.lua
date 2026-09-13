@@ -338,6 +338,8 @@ L["Raid target marker"] = "공격대 표적 아이콘"
 L["Status (combat / resting)"] = "상태 (전투 / 휴식)"
 L["Leader"] = "파티장"
 L["Animated zzZ while resting"] = "휴식 중 zzZ 애니메이션"
+L["Group number"] = "파티 번호"
+L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "공격대 파티 번호를 표시합니다. 공격대가 아니거나 해당 유닛이 내 공격대에 없으면 숨깁니다."
 L["Blizzard combat icon (native 16x16, ignores the size below)"] = "블리자드 전투 아이콘 (원본 16×16, 아래 크기 설정을 무시)"
 
 -- Inspect button
@@ -362,7 +364,7 @@ L["Export failed: "] = "내보내기 실패: "
 L["Import: "] = "가져오기: "
 L["Restore every setting for \"%s\" to its default?"] = "\"%s\"의 모든 설정을 기본값으로 되돌릴까요?"
 L["Text %d"] = "텍스트 %d"
-L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification]; conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "문법: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (보호막이 없으면 빈칸), [shields_short] [healabsorbs_short] (축약), [class] [race] [creaturetype] [classification]; 조건부 색상 [gray_if_dead:죽음], [class:name], [difficulty:level]."
+L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification], [group] [group_label] (raid group as a number / with the label, blank outside a raid); conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "문법: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (보호막이 없으면 빈칸), [shields_short] [healabsorbs_short] (축약), [class] [race] [creaturetype] [classification], [group] [group_label] (공격대 파티 번호 / 파티 N 형식, 공격대가 아니면 빈칸); 조건부 색상 [gray_if_dead:죽음], [class:name], [difficulty:level]."
 L["Options UI failed to load."] = "설정 창을 불러오지 못했습니다."
 
 -- Profile system

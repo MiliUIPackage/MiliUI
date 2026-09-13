@@ -211,6 +211,30 @@ function Cache.IsOOR(uf)
     return ns.Range.IsOut(unit)
 end
 
+------------------------------------------------------------
+-- 團隊小隊編號（Elements/Icons.lua 的小框與 Tags 的 [group] 共用）
+--
+-- 不進 cache：只有開了小框、或文字裡寫了 [group] 的框才需要。放進
+-- UpdateFlagFields 等於每次 reaction 更新都讓每個框多讀一次團隊名冊。
+--
+-- ⚠ 不照抄暴雪 PlayerFrame_UpdateGroupIndicator 的「逐一比名字」迴圈：那段是
+-- untainted 才比得動，插件拿別人的秘密名字去比會直接報錯。改用 UnitInRaid
+-- 直接拿團隊索引。
+-- 2026-09-14 實測副本首領戰中索引與小隊號都是明文；戰場（PvP 限制）還沒測，
+-- 所以秘密值照樣接得住：索引是秘密就放棄，小隊號是秘密就原樣回傳
+-- （呼叫端只拿去 format／SetText，兩者都吃秘密值）。
+--
+-- 回傳 nil ＝ 不顯示（不在團隊、這個單位不在你的團隊、或讀不到）。
+------------------------------------------------------------
+function Cache.RaidGroup(uf)
+    if not IsInRaid() then return nil end
+    -- 載具中玩家框的 uf.unit 是 "vehicle"，UnitInRaid("vehicle") 回 nil ⇒ 上車編號就消失
+    local unit = (uf.baseUnit == "player") and "player" or uf.unit
+    local index = UnitInRaid(unit)
+    if IsSecret(index) or index == nil then return nil end
+    return (select(3, GetRaidRosterInfo(index)))
+end
+
 function Cache.Update(uf, bucket)
     if bucket == "unitchanged" then
         -- 換人：全部重讀。⚠ name 一定要在 flag 之前（cache.pc 讀 cache.isPlayer）

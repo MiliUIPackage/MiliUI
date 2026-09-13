@@ -378,3 +378,32 @@ tank/nothreat/low/secret）存進 `f.threatWhy`，`/muf debug` 印判定、重�
 
 **尚未在遊戲內驗證**：五人本／M+ 裡 `秘密命中` 是否一直是 0、怪死或脫戰後會不會熄、
 閃爍速度與 0.8 的紅在 3D 頭像上的觀感、載具期間（uf.unit="vehicle"）的仇恨事件有沒有來。
+
+
+## 小隊編號（2026-09-14）
+
+暴雪原生玩家框在團隊裡有「小隊 N」，`HideBlizzard` 藏 PlayerFrame 時一起沒了，使用者要回來。
+兩個入口，**共用 `Core/Cache.lua` 的 `Cache.RaidGroup(uf)`**（不進 cache：只有用到的框才讀名冊）：
+
+- **圖示元件的 `icons.group` 小框**（使用者指定：玩家＋目標各一個勾選、可調位置、預設關）。
+  只有這兩個單位的預設值有這組鍵 ⇒ 設定頁只在這兩格出現；新鍵 MergeDefaults 補，不必遷移。
+  預設 44×18、字級 11、x=156 y=24（右緣對齊框體 200、下緣 +6 讓開目標框觀察按鈕的 +5）。
+  目標框的減益列（y=4 往上長）超過 6 顆會壓到它。外觀：HUD 皮底色 0.102/0.8 ＋全域邊框色＋白字。
+- **文字標籤 `[group]`（純數字）與 `[group_label]`（「小隊 3」）**，不在團隊時都整個不輸出。
+  字樣一定要由 tag 輸出：玩家寫在 pattern 裡的字面前綴在團隊外照樣露出來。
+  ⚠ 使用者在實作前就試打過 `[group]`，畫面印出「group米利」——
+  **沒登記在 INFO_TAGS/SECRET_TAGS 的 token 會掉進 `cache[tag] or specialchars[tag] or tag`
+  的字面值路徑**，不報錯、直接把 token 名字印出來。
+
+取法與理由：
+- `UnitInRaid(unit)` 拿索引 → `select(3, GetRaidRosterInfo(i))`。**不照抄暴雪 PlayerFrame 的
+  「逐一比名字」迴圈**（untainted 才比得動別人的秘密名字）。副本首領戰實測兩者明文，
+  見 [[wow-121-unit-api-secrets]]；仍照樣防秘密（索引秘密就放棄、小隊號秘密直接餵 format）。
+- 玩家框查 `"player"` 而不是 `uf.unit`：載具中 uf.unit 是 "vehicle"，`UnitInRaid("vehicle")` 回 nil。
+- 字樣用暴雪 `GROUP` 全域字串（wago.tools 查過 zhTW＝小隊、zhCN＝小队、koKR＝파티），跟團隊面板
+  同一個詞，不進語系表。暴雪自己的團隊面板也是 `GROUP.." "..id`。
+- 更新不掛新事件：換小隊只發 `GROUP_ROSTER_UPDATE` → 既有的 `RefreshAll("reaction")`，
+  Icons 與 `[group]`（INFO_TAGS 登記 reaction 桶）都吃這個桶。
+
+**尚未在遊戲內驗證**：戰場（PvP 限制）裡讀不讀得到、目標框選到團員時顯示的是不是他的小隊、
+換小隊當下有沒有即時更新、44 寬在歐語系（"Gruppe 8"）會不會被截成省略號。

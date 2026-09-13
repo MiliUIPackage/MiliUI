@@ -338,6 +338,8 @@ L["Raid target marker"] = "Simbolo di incursione"
 L["Status (combat / resting)"] = "Stato (combattimento / riposo)"
 L["Leader"] = "Capogruppo"
 L["Animated zzZ while resting"] = "zzZ animato durante il riposo"
+L["Group number"] = "Numero del gruppo"
+L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "Mostra il numero del gruppo nell'incursione. Nascosto fuori da un'incursione o se l'unità non è nella tua incursione."
 L["Blizzard combat icon (native 16x16, ignores the size below)"] = "Icona di combattimento di Blizzard (16×16 nativa, ignora la dimensione qui sotto)"
 
 -- Inspect button
@@ -362,7 +364,7 @@ L["Export failed: "] = "Esportazione fallita: "
 L["Import: "] = "Importazione: "
 L["Restore every setting for \"%s\" to its default?"] = "Ripristinare tutte le impostazioni di \"%s\"?"
 L["Text %d"] = "Testo %d"
-L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification]; conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "Sintassi: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (vuoto quando non c'è scudo), [shields_short] [healabsorbs_short] (abbreviato), [class] [race] [creaturetype] [classification]; colorazione condizionale [gray_if_dead:Morto], [class:name], [difficulty:level]."
+L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification], [group] [group_label] (raid group as a number / with the label, blank outside a raid); conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."] = "Sintassi: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (vuoto quando non c'è scudo), [shields_short] [healabsorbs_short] (abbreviato), [class] [race] [creaturetype] [classification], [group] [group_label] (gruppo dell'incursione come numero / con etichetta, vuoto fuori da un'incursione); colorazione condizionale [gray_if_dead:Morto], [class:name], [difficulty:level]."
 L["Options UI failed to load."] = "Caricamento dell'interfaccia delle opzioni non riuscito."
 
 -- Profile system
