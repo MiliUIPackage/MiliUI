@@ -403,25 +403,22 @@ end
 
 --! Should the cooldown number be hidden right now, and if so for how long?
 --!
---! ⚠ Every read, comparison and subtraction happens INSIDE the pcall. These are the
---! player's own spells, so start/duration are normally plain numbers -- but in restricted
---! content they can come back as secret values, and a secret cannot be compared, only
---! passed on. Doing the maths outside would throw on the first boss pull.
+--! ⚠ These are the player's own spells, so start/duration are normally plain numbers --
+--! but in restricted content (every raid boss) they come back as secret values, and a
+--! secret cannot be compared, only passed on. Ask BEFORE comparing: the old version let
+--! the compare throw inside a pcall, which still counts as a blocked action -- one per
+--! icon per cooldown update, 39k lines of taint.log over a single raid night.
 --! Failure is deliberately OPEN (show the number): a countdown that is wrongly visible is
 --! a cosmetic slip, one that is wrongly hidden looks like the addon is broken.
 local function CountdownGate(spellId, threshold)
     if threshold <= 0 then return false end
 
-    local ok, hide, delay = pcall(function()
-        local start, duration = F.GetSpellCooldown(spellId)
-        if not start or not duration or duration <= 0 then return false end
-        local remaining = start + duration - GetTime()
-        if remaining <= threshold then return false end
-        return true, remaining - threshold
-    end)
-
-    if not ok then return false end
-    return hide, delay
+    local start, duration = F.GetSpellCooldown(spellId)
+    if F.IsSecretValue(start) or F.IsSecretValue(duration) then return false end
+    if not start or not duration or duration <= 0 then return false end
+    local remaining = start + duration - GetTime()
+    if remaining <= threshold then return false end
+    return true, remaining - threshold
 end
 
 --! Blizzard's own countdown FontString, moved to where the player asked for it. It only

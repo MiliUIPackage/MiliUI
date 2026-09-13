@@ -327,7 +327,7 @@ function UnitLines.Apply(tip, state, unit, relayout)
         return
     end
 
-    -- 換了單位就丟掉上一個單位的專精快取（GUID 可能是秘密 → 用 pcall 比較）
+    -- 換了單位就丟掉上一個單位的專精快取（GUID 可能是秘密 → 走 GuidEquals）
     local guid = S.SafeCall(UnitGUID, unit)
     if state.unitGuid ~= nil and guid ~= nil and not UnitInfo.GuidEquals(state.unitGuid, guid) then
         state.specGuid, state.specLine = nil, nil

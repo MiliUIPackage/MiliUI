@@ -259,10 +259,11 @@ local function SafeGuid(unit)
 end
 
 -- 12.1：受限單位的 GUID 可能是秘密 → 不能當 table key、不能直接 ==
+-- 先問再比：讓 == 在 pcall 裡拋錯也照樣算一次封鎖、進 taint.log。看不出來就當作不同。
 local function GuidEquals(a, b)
     if a == nil or b == nil then return false end
-    local ok, same = pcall(function() return a == b end)
-    return ok and same == true
+    if S.IsSecret(a) or S.IsSecret(b) then return false end
+    return a == b
 end
 UnitInfo.GuidEquals = GuidEquals
 
