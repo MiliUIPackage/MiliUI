@@ -332,9 +332,9 @@ L["The countdown is drawn by the game (12.1 addons can't read the remaining seco
 L["Raid target marker"] = "團隊標記"
 L["Status (combat / resting)"] = "狀態（戰鬥／休息）"
 L["Leader"] = "隊長"
-L["Animated zzZ while resting"] = "休息用動畫 zzZ"
 L["Group number"] = "小隊編號"
 L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "顯示在團隊中的小隊編號。不在團隊裡、或這個單位不在你的團隊時不顯示。"
+L["Animated zzZ while resting"] = "休息用動畫 zzZ"
 L["Blizzard combat icon (native 16x16, ignores the size below)"] = "戰鬥用內建圖示（原尺寸 16×16，不吃下面的寬高）"
 
 -- 觀察按鈕

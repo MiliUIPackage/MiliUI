@@ -337,9 +337,9 @@ L["The countdown is drawn by the game (12.1 addons can't read the remaining seco
 L["Raid target marker"] = "Simbolo di incursione"
 L["Status (combat / resting)"] = "Stato (combattimento / riposo)"
 L["Leader"] = "Capogruppo"
-L["Animated zzZ while resting"] = "zzZ animato durante il riposo"
 L["Group number"] = "Numero del gruppo"
 L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "Mostra il numero del gruppo nell'incursione. Nascosto fuori da un'incursione o se l'unità non è nella tua incursione."
+L["Animated zzZ while resting"] = "zzZ animato durante il riposo"
 L["Blizzard combat icon (native 16x16, ignores the size below)"] = "Icona di combattimento di Blizzard (16×16 nativa, ignora la dimensione qui sotto)"
 
 -- Inspect button

@@ -337,9 +337,9 @@ L["The countdown is drawn by the game (12.1 addons can't read the remaining seco
 L["Raid target marker"] = "Symbole de raid"
 L["Status (combat / resting)"] = "Statut (combat / repos)"
 L["Leader"] = "Chef"
-L["Animated zzZ while resting"] = "zzZ animé au repos"
 L["Group number"] = "Numéro de groupe"
 L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "Affiche le numéro de groupe dans le raid. Masqué hors raid ou si l'unité n'est pas dans votre raid."
+L["Animated zzZ while resting"] = "zzZ animé au repos"
 L["Blizzard combat icon (native 16x16, ignores the size below)"] = "Icône de combat de Blizzard (16×16 natif, ignore la taille ci-dessous)"
 
 -- Inspect button

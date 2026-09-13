@@ -587,17 +587,17 @@ local function IconSpecs(els)
         { key = "status",     label = L["Status (combat / resting)"] },
         { key = "leader",     label = L["Leader"] },
         { key = "pvp",        label = "PvP" },
-    }
         -- 只有玩家／目標的預設值有 group 鍵，其他單位不會出現這一節
         { key = "group",      label = L["Group number"] },
+    }
     for _, d in ipairs(defs) do
         if els.icons[d.key] then
             tinsert(list, { type = "header", label = d.label })
             tinsert(list, { type = "toggle", sub = "icons", sub2 = d.key, key = "enabled", label = L["Show"] })
-            -- 只有玩家框的 status 有這兩個鍵，其他單位不會冒出無效選項
             if d.key == "group" then
                 tinsert(list, { type = "text", label = L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] })
             end
+            -- 只有玩家框的 status 有這兩個鍵，其他單位不會冒出無效選項
             if els.icons[d.key].restAnimated ~= nil then
                 tinsert(list, { type = "toggle", sub = "icons", sub2 = d.key, key = "restAnimated",
                                 label = L["Animated zzZ while resting"] })
@@ -605,11 +605,11 @@ local function IconSpecs(els)
                                 label = L["Blizzard combat icon (native 16x16, ignores the size below)"] })
             end
             tinsert(list, PosSize("icons", nil, d.key))
-        end
             if d.key == "group" then
                 tinsert(list, { type = "slider", sub = "icons", sub2 = d.key, key = "size",
                                 label = L["Font size"], min = 6, max = 24, step = 1 })
             end
+        end
     end
     return list
 end
