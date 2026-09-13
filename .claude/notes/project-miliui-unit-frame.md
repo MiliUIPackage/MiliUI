@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 7687a40a-9665-4a80-8ab5-d8ddb9ec65ee
-  modified: 2026-09-08T00:00:00.000Z
+  modified: 2026-09-13T18:48:19.655Z
 ---
 
 **MiliUI_UnitFrames**（2026-08-15 一次寫完五階段，約 5400 行；2026-08-17 從 `MiliUI_Unit_Frame`
@@ -333,3 +333,45 @@ taint.log 裡那條堆疊的**底部**是誰。
 
 **尚未在遊戲內驗證**：`UNIT_TARGET` 對 `bossN` 到底發不發（不發就全靠 0.5 秒輪詢）、
 預設 x=671 在自己畫面上的實際觀感、bigdef／bossrole 在首領戰裡真的濾出東西沒有。
+
+
+## 玩家框的仇恨提醒（2026-09-14）
+
+有怪在打你（`UnitThreatSituation(uf.unit)` 不帶怪 ≥ 2）→ 血條填充換警示色＋整條閃。
+判斷與動畫在 `Elements/HealthThreat.lua`，換色在 `Elements/Health.lua` 的 `ApplyColors`
+（血條前景的顏色只有那一個出口，閾值上色也在裡面；仇恨蓋在閾值之上）。
+設定鍵只有玩家框的 hpbar 有：`threatWarn`／`threatScope`(always·group·instance)／
+`threatSkipTank`／`threatFlash`／`threatColor`（新鍵，MergeDefaults 補，沒有遷移）。
+
+- **1 刻意不算**（仇恨比坦克高但怪還沒轉）。預設「只在隊伍中」＋「坦克專精不亮」：
+  單人被打是常態、坦克被打是本分，兩個都會讓它閃個不停而失去警告意義。
+  「副本中」沿用 `Visibility.InInstance`（為此匯出成 `V.InInstance`）。
+- **閃的是 `f.bar` 整個 frame 的 alpha**（AnimationGroup BOUNCE 1↔0.25、0.4 秒），不是疊一層貼圖：
+  扣血暗化層與護盾／預估疊加層都掛在 `f.clip` 上，不跟著閃 ⇒ 最暗那一刻血量前緣仍看得見。
+  已在播就不要再 `Play()`（會從頭開始，每個仇恨事件抖一下）。
+- **警示色有自己的 alpha（預設 0.8）**，不吃填充透明度：玩家框填充預設 0.5 要透 3D 頭像，
+  紅色用 0.5 會被模型吃掉。治療預估「跟隨血條色」跟的是原色，不跟紅。
+- **事件**：`UNIT_THREAT_SITUATION_UPDATE` 進 `UNIT_EVENT_BUCKET`（新 `threat` 桶）＋ `FORCE_EVENT`
+  （怪死那幀「3 → nil」兩波，第二波被去重吃掉就一直閃）。threat 桶只重算狀態，
+  **狀態沒變連顏色都不重套**；health／info 桶沿用上次狀態不重問。
+  保險：`PLAYER_REGEN_ENABLED`、`PLAYER_SPECIALIZATION_CHANGED` → `RefreshAll("threat")`。
+  隊伍組成走既有的 reaction 桶、進出副本走 PEW 的 unitchanged，都會順手重算。
+- **秘密值**：API 標 `SecretWhenUnitThreatStateRestricted`。判斷「實務上讀得到」的依據是
+  Platynator 名條直接 `UnitThreatSituation("player", 怪) == 3` 在副本裡照跑。仍照 Cell 先問
+  `IsSecret` 再比，秘密時**不亮**並累計 `ns.threatSecretHits`（`/muf debug` 的「仇恨提醒」那行）。
+  ⚠ 真的遇到秘密時**曲線救不了**：`LuaCurveObject:Evaluate` 是 `AllowedWhenUntainted`，
+  見 [[wow-121-secret-values]]。
+- 設定頁「測試 5 秒」鈕（`HT.Test(unitKey, 秒)`）：面板開著時真實框是藏的，亮在預覽孿生上；
+  只亮指定的 unitKey、所有條件都不看。預覽孿生平常一律不亮（它的 unit 是借來的 "player"）。
+
+**2026-09-14 首次實測（聖騎懲戒、單人打阿米德拉希爾首領，遭遇戰 2709，`HasSecretRestrictions=true`、
+首領名字／血量全是秘密）**：`status=3` 明文、`秘密命中=0` ⇒ **首領戰中玩家自己的仇恨讀得到**，
+秘密閘至少在這個情境沒觸發。沒亮是被預設「只在隊伍中」擋掉 —— 但 debug 那行只印「亮=false」，
+使用者看不出原因（回了一個「???」）。修法：`IsActive` 多回傳原因碼（aggro/test/off/preview/scope/
+tank/nothreat/low/secret）存進 `f.threatWhy`，`/muf debug` 印判定、重算次數、仇恨事件次數，
+以及現場重問的隊伍中／副本中／坦克專精（`HT.Gates()`）。**做任何「條件式不顯示」的功能都要留原因碼**，
+不然「條件擋掉」和「事件沒來」在畫面上長得一模一樣。
+預設值要不要從「隊伍中」改掉（使用者的預期是單人團本也該亮）待使用者決定。
+
+**尚未在遊戲內驗證**：五人本／M+ 裡 `秘密命中` 是否一直是 0、怪死或脫戰後會不會熄、
+閃爍速度與 0.8 的紅在 3D 頭像上的觀感、載具期間（uf.unit="vehicle"）的仇恨事件有沒有來。

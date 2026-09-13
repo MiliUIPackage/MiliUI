@@ -46,6 +46,7 @@ Core\Tags.lua
 Core\Registry.lua
 Core\UnitFrame.lua
 Core\HideBlizzard.lua
+Elements\HealthThreat.lua
 Elements\Health.lua
 Elements\Power.lua
 Elements\ClassPower.lua

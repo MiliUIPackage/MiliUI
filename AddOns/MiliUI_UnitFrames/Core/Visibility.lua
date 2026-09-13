@@ -65,6 +65,8 @@ local function InInstance()
     local _, iType = GetInstanceInfo()
     return INSTANCE_TYPES[iType] == true
 end
+-- 血條的仇恨提醒（Elements/HealthThreat.lua）「只在副本中」用同一套判準
+V.InInstance = InInstance
 
 -- 「騎乘中」要把德魯伊的旅行／水生／飛行型態算進去：IsMounted 看不到型態，
 -- 但玩家的體感是一樣的（在趕路，不想看單位框）。

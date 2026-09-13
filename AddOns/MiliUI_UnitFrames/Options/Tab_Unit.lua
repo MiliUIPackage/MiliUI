@@ -147,6 +147,41 @@ local function ThresholdRow(unitKey)
 end
 
 ------------------------------------------------------------
+-- 仇恨提醒的「測試」鈕：真的去拉怪才看得到效果太麻煩，而且設定面板開著時
+-- 真實框是藏著的 ⇒ 亮在預覽孿生上（Elements/HealthThreat.lua 的 HT.Test）
+local THREAT_TEST_SECONDS = 5
+local function ThreatTestRow(unitKey)
+    return function(parent, x, y)
+        local btn = W.CreateButton(parent, L["Test for %d seconds"]:format(THREAT_TEST_SECONDS), "normal", 200, 22)
+        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+        btn:SetScript("OnClick", function()
+            ns.HealthThreat.Test(unitKey, THREAT_TEST_SECONDS)
+        end)
+        return 30
+    end
+end
+
+-- 仇恨提醒那一節。只給玩家框：UnitThreatSituation 對敵人一律回 nil，
+-- 對友方目標雖然有意義，但「目標框在閃」讀起來像是目標出事，不是自己
+local function ThreatSpecs(name, unitKey)
+    return {
+        { type = "header", label = L["Aggro warning"] },
+        { type = "toggle", sub = name, key = "threatWarn", label = L["Warn when a mob is attacking you"] },
+        { type = "text", label = L["The health bar turns the warning color and flashes while any mob is attacking you. Only the fill changes, so your health stays readable."] },
+        { type = "dropdown", sub = name, key = "threatScope", label = L["When to warn"], items = {
+            { text = L["Anywhere"], value = "always" },
+            { text = L["In a group"], value = "group" },
+            { text = L["In instances"], value = "instance" },
+        } },
+        { type = "text", label = L["Solo, being attacked is normal, so by default it only warns in a group. Instances are dungeons, raids, scenarios, arenas and battlegrounds."] },
+        { type = "toggle", sub = name, key = "threatSkipTank", label = L["Not in a tank specialization"] },
+        { type = "toggle", sub = name, key = "threatFlash", label = L["Flash"] },
+        { type = "color", sub = name, key = "threatColor", label = L["Warning color"] },
+        { type = "text", label = L["The warning color has its own opacity: the player frame's fill is translucent to show the 3D portrait, and red at that opacity gets lost in the model."] },
+        { type = "custom", label = "", build = ThreatTestRow(unitKey) },
+    }
+end
+
 -- 上色方式的色塊列
 --
 -- 下拉的名字只講得出**範圍**（「所有玩家」「僅友方玩家」），講不出看起來會是什麼樣。
@@ -346,6 +381,12 @@ local function BarSpecs(name, isHP, unitKey)
                 tinsert(list, i + 2, { type = "text", label = L["Overrides whichever coloring method you picked above: once health drops below a threshold, the bar switches to that threshold's color. The game decides which side of the line the unit is on, so it also works on units whose health the addon can't read (dungeons, Mythic+, raids)."] })
                 tinsert(list, i + 3, { type = "custom", label = "", build = ThresholdRow(unitKey) })
             else
+                -- 仇恨提醒緊接在閾值上色後面：兩個都是「狀態蓋過原本的上色」
+                if unitKey == "player" then
+                    for k, spec in ipairs(ThreatSpecs(name, unitKey)) do
+                        tinsert(list, i + 3 + k, spec)
+                    end
+                end
                 tremove(list, i)
             end
         end

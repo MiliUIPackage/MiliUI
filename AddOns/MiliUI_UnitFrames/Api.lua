@@ -630,6 +630,35 @@ local function Debug()
         p("   " .. (#rows > 0 and table.concat(rows, "  ") or "（沒有框）"))
     end
 
+    -- 仇恨提醒（Elements/HealthThreat.lua）：「被打了卻沒亮／怪死了還在閃」先看這行。
+    -- 秘密命中 > 0 ＝ 玩家自己的仇恨在某個情境回了秘密值，那時一律不亮（fail closed）；
+    -- 目前的判斷是「實務上讀得到」，這個數字就是驗證它的地方。
+    do
+        local puf = ns.frames.player
+        local hp = puf and puf.elements and puf.elements.hpbar
+        local edb = puf and puf.db.elements and puf.db.elements.hpbar
+        local status = UnitThreatSituation(puf and puf.unit or "player")
+        local statusStr = ns.IsSecret(status) and "<secret>" or tostring(status)
+        -- 判定＝上一次重算停在哪一關（Elements/HealthThreat.lua 的 IsActive）
+        local WHY = {
+            aggro = "|cff44ff44怪在打你 → 亮|r", test = "測試中",
+            off = "|cffff8800功能關著|r", preview = "預覽孿生不亮",
+            scope = "|cffff8800擋在「何時提醒」|r", tank = "|cffff8800擋在「坦克專精不提醒」|r",
+            nothreat = "不在任何仇恨表上", low = "在仇恨表上但沒被打（0/1）",
+            secret = "|cffff5555仇恨是秘密值 → 不亮|r",
+        }
+        p(("  仇恨提醒：開=%s 何時=%s 坦克不亮=%s ｜ 現在 status=%s 秘密命中=%d"):format(
+            tostring(edb and edb.threatWarn), tostring(edb and edb.threatScope),
+            tostring(edb and edb.threatSkipTank), statusStr, ns.threatSecretHits or 0))
+        local inGroup, inInst, isTank = ns.HealthThreat.Gates()
+        p(("   上次判定=%s 亮=%s 閃爍中=%s ｜ 重算%s次（仇恨事件%s次）｜ 現在 隊伍中=%s 副本中=%s 坦克專精=%s"):format(
+            WHY[hp and hp.threatWhy] or tostring(hp and hp.threatWhy),
+            tostring(hp and hp.threatActive),
+            tostring(hp and hp.threatAnim and hp.threatAnim:IsPlaying()),
+            tostring(hp and hp.threatEvals or 0), tostring(hp and hp.threatBucketN or 0),
+            tostring(inGroup), tostring(inInst), tostring(isTank)))
+    end
+
     -- 血條上色：「顏色不對」要分得出是沒有職業（classFile nil）、主人解不出來
     -- （ownerClass nil）、還是被陣營色短路（reaction 2/4 走 reactish）。
     -- ⚠ 玩家框一起印，因為載具期間它讀的就是 vehicle ——「載具血條是什麼色」只能從這裡看。

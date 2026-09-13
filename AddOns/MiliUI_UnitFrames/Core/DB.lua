@@ -232,7 +232,12 @@ function DB.BuildDefaults()
                               absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
                               absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
                               overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
-                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 },
+                              -- 仇恨提醒（Elements/HealthThreat.lua）：怪在打你 → 血條變紅閃爍。
+                              -- 只有玩家框有這組鍵；新鍵由 MergeDefaults 補，不必遷移。
+                              -- 預設只在隊伍中、坦克專精不亮：單人被打是常態、坦克被打是本分
+                              threatWarn = true, threatScope = "group", threatSkipTank = true,
+                              threatFlash = true, threatColor = { r = 1, g = 0.1, b = 0.1, a = 0.8 } },
                     mpbar = { enabled = true, x = 8, y = -8, w = 200, h = 50, level = 0,
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },

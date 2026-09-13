@@ -44,6 +44,10 @@ local UNIT_EVENT_BUCKET = {
     --            這個事件在戰鬥中會反覆來，每次重載就是肉眼可見的閃爍
     UNIT_MODEL_CHANGED = "model",
     UNIT_PORTRAIT_UPDATE = "portrait",
+    -- 仇恨狀態（UnitThreatSituation 的 0-3/nil）變了 → 只有血條的仇恨提醒。
+    -- 帶的是自己這個 token（暴雪的 PlayerFrame 也是比對 unit == "player"），
+    -- 不是怪的 token —— 那是 UNIT_THREAT_LIST_UPDATE，這裡用不到。
+    UNIT_THREAT_SITUATION_UPDATE = "threat",
 }
 
 -- ⚠⚠ 這幾個事件**不吃同幀去重**（戳記照寫，只是不吃它跳過）。
@@ -59,12 +63,16 @@ local UNIT_EVENT_BUCKET = {
 -- 身分事件同理（EUI 的引擎把這組叫 IDENTITY_EVENTS，一樣繞過戳記）：名字／等級／
 -- 分類都是終點狀態，換人之後 UNIT_NAME_UPDATE 只會來一次，同幀被 info 戳記擋掉
 -- 就永遠停在舊名字。這三個事件一場戰鬥來不了幾次，多畫一次的成本可以忽略。
+--
+-- 仇恨也是：怪死掉那一幀常常連續來「3 → nil」兩波，第二波被擋掉就停在「亮」，
+-- 閃到下一個仇恨事件或脫戰才熄。一場戰鬥來沒幾次，同樣不值得去重。
 local FORCE_EVENT = {
     UNIT_HEALTH = true,
     UNIT_MAXHEALTH = true,
     UNIT_NAME_UPDATE = true,
     UNIT_LEVEL = true,
     UNIT_CLASSIFICATION_CHANGED = true,
+    UNIT_THREAT_SITUATION_UPDATE = true,
 }
 
 local function RefreshUnit(unitToken, bucket, force, src)

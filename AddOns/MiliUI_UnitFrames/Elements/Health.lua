@@ -188,6 +188,8 @@ local function Build(uf, edb)
     end
     f.bar:SetStatusBarTexture(texture)
     f.bar:SetFrameLevel(edb.level or 4)
+    -- 仇恨提醒的閃爍動畫掛在 f.bar 上（Elements/HealthThreat.lua）
+    ns.HealthThreat.Build(uf, f, edb)
 
     EnsureCalc(uf)
 
@@ -345,9 +347,61 @@ local function Build(uf, edb)
     f:Show()
 end
 
+local function ApplyColors(uf, f, edb)
+    -- 上色：cache.frachp 是明文，colormethod 全明文運算
+    local frac = uf.cache.frachp
+    local r, g, b, a = Colors.Get(edb.colorMethod, uf, edb, frac, "barColor", "barAlpha")
+    -- 閾值上色蓋在最後：不管上面選的是哪一種，血量低於門檻就換成門檻色。
+    -- 只套在血條前景 —— 背景／能量條／施法條跟著變只會讓畫面更吵。
+    r, g, b, a = Colors.Threshold(uf, edb, r, g, b, a)
+    -- 用貼圖的 SetVertexColor 而不是 SetStatusBarColor：職業色可能是秘密分量
+    -- （C_ClassColor 管道），貼圖 API 吃秘密值
+    local tex = f.bar:GetStatusBarTexture()
+    if f.threatActive then
+        -- 仇恨提醒比血量門檻更急，蓋在它上面。透明度用警示色自己的 ——
+        -- 玩家框的填充預設只有 0.5（要透出 3D 頭像），沿用的話紅色會被模型吃掉一半
+        local tc = edb.threatColor or { r = 1, g = 0.1, b = 0.1, a = 0.8 }
+        tex:SetVertexColor(tc.r, tc.g, tc.b, tc.a or 0.8)
+    else
+        tex:SetVertexColor(r, g, b, a)
+    end
+    -- 治療預估：預設白色 25% 的「幽靈層」——壓在暗化層上呈淡亮灰，跟真實血量（職業色）
+    -- 一眼可分；跟血條同色的話會像血條淡淡延伸，扣血區就看不出是扣的（實測被嫌）。
+    -- healPredictionFollowBar = true 可切回跟隨血條色（跟的是原本的色，不跟仇恨紅）
+    if edb.showHealPrediction and f.incbar then
+        if edb.healPredictionFollowBar == true then
+            f.incbar:GetStatusBarTexture():SetVertexColor(r, g, b, edb.healPredictionAlpha or 0.35)
+        else
+            local c = edb.healPredictionColor or { r = 1, g = 1, b = 1, a = 0.25 }
+            f.incbar:GetStatusBarTexture():SetVertexColor(c.r, c.g, c.b, c.a or 0.25)
+        end
+    end
+    r, g, b, a = Colors.Get(edb.bgColorMethod, uf, edb, frac, "bgColor", "bgAlpha")
+    f.bg:SetVertexColor(r, g, b, a)
+end
+
 local function Update(uf, edb, bucket)
     local f = uf.elements.hpbar
     if not f then return end
+
+    -- 仇恨事件只換顏色與閃爍，血量不必重讀（計算器那段是整支最貴的部分）
+    -- 狀態沒變就連顏色都不用重套：脫戰／換專精的保險會把**每個**框都推一次，
+    -- 而除了玩家框，其他框根本沒開這個功能
+    if bucket == "threat" then
+        -- 計數給 /muf debug：戰鬥中這個數字不動 ＝ 仇恨事件根本沒進來
+        f.threatBucketN = (f.threatBucketN or 0) + 1
+        local was = f.threatActive
+        if ns.HealthThreat.Update(uf, f, edb) ~= was then
+            ApplyColors(uf, f, edb)
+        end
+        return
+    end
+    -- health／info 桶沿用上次的仇恨狀態：它們一秒來很多次，而仇恨不會因為掉血改變。
+    -- 其餘（換人、陣營／隊伍、生死）都可能改變「該不該亮」，順手重算
+    if bucket ~= "health" and bucket ~= "info" then
+        ns.HealthThreat.Update(uf, f, edb)
+    end
+
     local unit = uf.unit
 
     -- 吸收盾細條的開關是「位置」不是布林（none / above / below）。
@@ -477,28 +531,7 @@ local function Update(uf, edb, bucket)
         end
     end
 
-    -- 上色：cache.frachp 是明文，colormethod 全明文運算
-    local frac = uf.cache.frachp
-    local r, g, b, a = Colors.Get(edb.colorMethod, uf, edb, frac, "barColor", "barAlpha")
-    -- 閾值上色蓋在最後：不管上面選的是哪一種，血量低於門檻就換成門檻色。
-    -- 只套在血條前景 —— 背景／能量條／施法條跟著變只會讓畫面更吵。
-    r, g, b, a = Colors.Threshold(uf, edb, r, g, b, a)
-    -- 用貼圖的 SetVertexColor 而不是 SetStatusBarColor：職業色可能是秘密分量
-    -- （C_ClassColor 管道），貼圖 API 吃秘密值
-    f.bar:GetStatusBarTexture():SetVertexColor(r, g, b, a)
-    -- 治療預估：預設白色 25% 的「幽靈層」——壓在暗化層上呈淡亮灰，跟真實血量（職業色）
-    -- 一眼可分；跟血條同色的話會像血條淡淡延伸，扣血區就看不出是扣的（實測被嫌）。
-    -- healPredictionFollowBar = true 可切回跟隨血條色
-    if edb.showHealPrediction and f.incbar then
-        if edb.healPredictionFollowBar == true then
-            f.incbar:GetStatusBarTexture():SetVertexColor(r, g, b, edb.healPredictionAlpha or 0.35)
-        else
-            local c = edb.healPredictionColor or { r = 1, g = 1, b = 1, a = 0.25 }
-            f.incbar:GetStatusBarTexture():SetVertexColor(c.r, c.g, c.b, c.a or 0.25)
-        end
-    end
-    r, g, b, a = Colors.Get(edb.bgColorMethod, uf, edb, frac, "bgColor", "bgAlpha")
-    f.bg:SetVertexColor(r, g, b, a)
+    ApplyColors(uf, f, edb)
 end
 
 ns.RegisterElement{
@@ -507,7 +540,8 @@ ns.RegisterElement{
     -- reaction：陣營／旗標會改上色法的結果（classreaction 讀 cache.reaction）
     -- info：難度色（methods.difficulty）讀的是 cache.level，只在 info 桶重讀 ——
     --       少了它，選「難度色」的人升級或目標變等級時顏色不會更新
-    buckets = { "health", "death", "reaction", "info" },
+    -- threat：仇恨提醒（Elements/HealthThreat.lua），只換色不重讀血量
+    buckets = { "health", "death", "reaction", "info", "threat" },
     build = Build,
     update = Update,
 }

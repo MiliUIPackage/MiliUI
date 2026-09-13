@@ -150,6 +150,16 @@ tex:SetSpriteSheetCell(cell, rows, cols)  -- cell 可以是秘密值
 `cell` 標著 `ConditionalSecret`，其餘參數 `NeverSecret`。**引擎替你挑格子**，不必算座標。
 用之前先量清楚那張表真正的行列數（拿現成插件的 texcoord 反推最快）。
 
+## 曲線物件的 `Evaluate` **不收**秘密的 x（2026-09-14，查文件）
+
+`LuaCurveObject:Evaluate(x)` 標的是 `SecretArguments = "AllowedWhenUntainted"` ——
+污染端傳秘密 x 會被擋。所以「拿到一個秘密數字，自己建條 Step 曲線 Evaluate 成 alpha」
+這條路**不存在**。曲線能用的前提是有一支 API **把曲線收進去、由引擎自己求值**
+（`UnitHealthPercent(unit, nil, curve)`、計算器的 `EvaluateCurrentHealthPercent`），
+或者輸入本來就是秘密**布林**（`EvaluateColorValueFromBoolean`，那支是 `AllowedWhenTainted`）。
+實例：`UnitThreatSituation` 回的是秘密**數字**、又沒有吃曲線的版本 ⇒ 受限時只能不顯示
+（MiliUI_UnitFrames 的仇恨提醒就是 fail closed，見 [[project-miliui-unit-frame]]）。
+
 ## 曲線可以**串接**
 
 `C_CurveUtil.EvaluateColorValueFromBoolean` 的回傳（秘密數字）可以直接當**下一次**
