@@ -525,13 +525,13 @@ local function Debug()
     --   lastUC 的 guid ＝ 現在的 guid  ⇒ 重畫跑了但畫錯，問題在元件本身
     ------------------------------------------------------------
     p("  換單位的帳（unitchanged）：")
-    for _, key in ipairs({ "target", "focus", "targettarget", "focustarget", "pettarget" }) do
+    for _, key in ipairs({ "target", "focus", "targettarget", "targettargettarget", "focustarget", "pettarget" }) do
         local xf = ns.frames[key]
         if xf then
             local j = xf.lastUC
             local nowGuid = UnitExists(key) and ns.LogStr(UnitGUID(key)) or "nil"
             local mark = (j and j.guid ~= nowGuid) and " |cffff5555← 跟現在的 guid 對不上|r" or ""
-            p(("   %-13s 現在 guid=%s 名字=%s"):format(key, nowGuid,
+            p(("   %-18s 現在 guid=%s 名字=%s"):format(key, nowGuid,
                 UnitExists(key) and ns.LogStr(UnitName(key)) or "nil"))
             if j then
                 p(("     最後 UC t=%.2f gen=%s src=%s name=%s guid=%s 次數=%d%s"):format(

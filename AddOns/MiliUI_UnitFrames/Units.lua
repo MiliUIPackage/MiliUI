@@ -7,8 +7,10 @@ local _, ns = ...
 -- ⚠ 常數表放檔案層級：這個回呼一秒跑兩次，寫成 ipairs({...}) 等於每次現配一張表
 -- ⚠ 迴圈只在「這些框至少有一個顯示中」時才掛上（SyncWatch），所以首領的目標框
 --   預設關著時這五筆完全不花錢。
+-- ⚠ targettargettarget 在這裡**不只是保險**：「目標的目標換目標」沒有任何事件，
+--   這個輪詢是那一半唯一的換人偵測（最多慢 0.5 秒）。
 local INDIRECT_UNITS = {
-    "targettarget", "focustarget", "pettarget",
+    "targettarget", "targettargettarget", "focustarget", "pettarget",
     "boss1target", "boss2target", "boss3target", "boss4target", "boss5target",
 }
 local INDIRECT_KEY = "watch_indirect"
@@ -171,7 +173,7 @@ loader:SetScript("OnEvent", function()
     -- 圖騰那一段永遠不執行，也會讓 spawn 失敗的單位被藏掉暴雪框而空一格。
     ns.HideBlizzardFrames()
 
-    -- tot / focustarget / pettarget 的輪詢保險：掛在這幾個框的顯示狀態上
+    -- 各種 <unit>target 的輪詢保險：掛在這幾個框的顯示狀態上
     HookIndirectWatch()
 end)
 

@@ -21,6 +21,7 @@ local UNIT_LIST = {
     { key = "player",       label = L["Player"] },
     { key = "target",       label = L["Target"] },
     { key = "targettarget", label = L["Target of Target"] },
+    { key = "targettargettarget", label = L["Target of Target of Target"] },
     { key = "focus",        label = L["Focus"] },
     { key = "focustarget",  label = L["Focus Target"] },
     { key = "pet",          label = L["Pet"] },

@@ -446,6 +446,68 @@ function DB.BuildDefaults()
             },
 
             ------------------------------------------------------------
+            -- 目標的目標的目標（targettargettarget）
+            --
+            -- 「目標的目標在看誰」——打首領時通常是：目標＝首領、目標的目標＝坦、
+            -- 這一格＝坦在打的那隻（看得出坦有沒有被拉走）。
+            -- **元件整組照抄 targettarget**（使用者指定）：尺寸、顏色、文字、光環過濾都一樣，
+            -- 疊在它正上方看起來就是同一疊。只有 frame 的 y 跟 enabled 不同。
+            --
+            -- 預設位置：兩個框的光環方向相同（減益從上緣往上長、增益從下緣往下長），
+            -- 各最多 12 顆／每排 6 ⇒ 兩排 = 19 × 2 ＋ 1 間距 = 39 高。
+            --   目標的目標：中心 y = -214、高 28 ⇒ 上緣 -200
+            --     它的減益列：底 -199，兩排滿載時頂到 -160
+            --   這個框的增益列：底放 -158（跟上面那排留 2px）⇒ 頂 = -158 + 39 = -119
+            --   增益列在框頂往下 31 ⇒ 框頂 = -119 + 31 = -88，中心 = -88 - 14 = -102
+            --     它自己的減益列：底 -87，兩排滿載時頂到 -48
+            -- ⇒ 兩個框中間夾著「目標的目標的減益」與「這個框的增益」各兩排，滿載也不重疊。
+            -- ⚠ 改了這裡或 targettarget 的 maxCount／perRow／光環尺寸／框的 y，這個 y 要重算。
+            --
+            -- 預設不啟用（使用者指定）。
+            targettargettarget = {
+                enabled = false,
+                frame = frameDef{ x = 470, y = -102, w = 120, h = 28, fadeOutOfRange = true },
+                elements = {
+                    hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 20, level = 4,
+                              colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
+                              barAlpha = 0.4, bgAlpha = 1, border = true,
+                              showHealPrediction = false,
+                              healPredictionAlpha = 0.35,   -- 沒有預設值時滑桿顯示 min(0.1)，實際卻是 0.35
+                              showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,
+                              showOvershield = true, overshieldGlowReverse = false,
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 } },
+                    mpbar = { enabled = true, x = 0, y = -20, w = 119, h = 10, level = 0,
+                              colorMethod = "power", bgColorMethod = "powerdark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
+                              barAlpha = 0.4, bgAlpha = 0.6, border = true },
+                    texts = {
+                        textDef{ pattern = "[name]", x = 0, y = 1, w = 120, h = 20,
+                                 justifyH = "CENTER", justifyV = "MIDDLE" },
+                        textDef{ pattern = "[perchp]%", x = 122, y = -2, w = 60, h = 10,
+                                 justifyH = "LEFT", justifyV = "TOP" },
+                    },
+                    buffs  = { enabled = true, x = 0, y = -31, w = 19, h = 19,
+                               maxCount = 12, perRow = 6, growth = "LRTB", spacing = 1,
+                               showStack = true, stackSize = 10,
+                               stackAnchor = "TOP", stackX = 0, stackY = 4,
+                               durationText = false, durationThreshold = 60, filterMode = "all" },
+                    debuffs = { enabled = true, x = 0, y = 1, w = 19, h = 19,
+                                maxCount = 12, perRow = 6, growth = "LRBT", spacing = 1,
+                                onlyMine = false, filterMode = "bossrole",
+                                showStack = true, stackSize = 10,
+                                stackAnchor = "TOP", stackX = 0, stackY = 4,
+                                durationText = false, durationThreshold = 60 },
+                    icons = { enabled = true,
+                              raidtarget = { enabled = true, x = 54, y = 10, w = 15, h = 15, level = ICON_LEVEL } },
+                },
+            },
+
+            ------------------------------------------------------------
             focus = {
                 enabled = true,
                 frame = frameDef{ x = 260, y = -115, w = 120, h = 30, fadeOutOfRange = true },

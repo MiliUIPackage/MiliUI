@@ -343,14 +343,14 @@ end
 -- 施法目標：「這個單位正在對誰施法」
 --
 -- `UnitCastingInfo` 沒有目標欄位，只能問「這個施法者的目標是誰」——
--- 也就是 <unit>target token（targettarget / focustarget / bossNtarget / pettarget）。
+-- 也就是 <unit>target token（targettarget / targettargettarget / focustarget / bossNtarget / pettarget）。
 --
 -- ⚠ 受限身分的單位 `UnitName` 回**秘密字串**。照 Tags 的規則：秘密字串可以直接
 -- 餵 SetText，就是不能拿去比較。所以這裡對名字本身什麼都不判斷，拿到就設進去；
 -- 「有沒有目標」改問 UnitExists（明文布林），沒有就清空。
 local TARGET_OF = {
     player = "target", pet = "pettarget",
-    target = "targettarget", focus = "focustarget",
+    target = "targettarget", targettarget = "targettargettarget", focus = "focustarget",
     boss1 = "boss1target", boss2 = "boss2target", boss3 = "boss3target",
     boss4 = "boss4target", boss5 = "boss5target",
 }

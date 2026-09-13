@@ -757,6 +757,8 @@ local function MakeElement(elementName, baseFilter)
         if uf then Repoke(uf) end
         local tot = ns.frames.targettarget
         if tot then Repoke(tot) end
+        local tott = ns.frames.targettargettarget
+        if tott then Repoke(tott) end
     end)
     ns.Events.Register("PLAYER_FOCUS_CHANGED", "auras_" .. elementName .. "_f", function()
         local uf = ns.frames.focus
@@ -766,6 +768,8 @@ local function MakeElement(elementName, baseFilter)
     end)
     ns.Events.Register("UNIT_TARGET", "auras_" .. elementName .. "_ut", function(unit)
         if unit == "target" and ns.frames.targettarget then Repoke(ns.frames.targettarget) end
+        -- 目標換目標，目標的目標的目標也跟著換人（反方向沒有事件，見 Core/Events.lua）
+        if unit == "target" and ns.frames.targettargettarget then Repoke(ns.frames.targettargettarget) end
         if unit == "focus" and ns.frames.focustarget then Repoke(ns.frames.focustarget) end
         if unit == "pet" and ns.frames.pettarget then Repoke(ns.frames.pettarget) end
         if unit and unit:match("^boss%d$") then

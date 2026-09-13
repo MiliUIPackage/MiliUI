@@ -229,6 +229,7 @@ local SPECIAL = {
     PLAYER_TARGET_CHANGED = function()
         RefreshUnit("target", "unitchanged", nil, "ptc")
         RefreshUnit("targettarget", "unitchanged", nil, "ptc")
+        RefreshUnit("targettargettarget", "unitchanged", nil, "ptc")
     end,
     PLAYER_FOCUS_CHANGED = function()
         RefreshUnit("focus", "unitchanged", nil, "pfc")
@@ -314,6 +315,12 @@ SCOPED = {
         fn = function(unit)
             local key = TARGET_FRAME_OF[unit]
             if key then RefreshUnit(key, "unitchanged", nil, "unit_target") end
+            -- 目標換目標＝目標的目標換人，它的目標（也就是這一格）當然跟著換。
+            -- ⚠ 反過來「目標的目標換目標」**沒有事件**（targettarget 不是引擎派送的
+            --   token），那一半全靠 Units.lua 的 INDIRECT_UNITS 輪詢。
+            if unit == "target" then
+                RefreshUnit("targettargettarget", "unitchanged", nil, "unit_target")
+            end
         end,
     },
 }

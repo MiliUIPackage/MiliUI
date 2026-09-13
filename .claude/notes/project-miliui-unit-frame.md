@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 7687a40a-9665-4a80-8ab5-d8ddb9ec65ee
-  modified: 2026-09-13T18:48:19.655Z
+  modified: 2026-09-13T19:46:13.353Z
 ---
 
 **MiliUI_UnitFrames**（2026-08-15 一次寫完五階段，約 5400 行；2026-08-17 從 `MiliUI_Unit_Frame`
@@ -333,6 +333,31 @@ taint.log 裡那條堆疊的**底部**是誰。
 
 **尚未在遊戲內驗證**：`UNIT_TARGET` 對 `bossN` 到底發不發（不發就全靠 0.5 秒輪詢）、
 預設 x=671 在自己畫面上的實際觀感、bigdef／bossrole 在首領戰裡真的濾出東西沒有。
+
+
+## 目標的目標的目標（targettargettarget，2026-09-14）
+
+第十個單位框。**預設不啟用、元件整組照抄 targettarget**（都是使用者指定），只有 frame 的
+y 不同。全域名 `MiliUIUF_TargetTargetTarget`，DB key 同 token（新鍵，不用遷移）。
+語系 key `Target of Target of Target`（zhTW「目標的目標的目標」剛好塞滿 106 寬的單位按鈕；
+西語等長譯名會溢出按鈕，跟既有的 `Objetivo de la mascota` 同一類，沒處理）。
+
+- **位置算法＝兩個框的光環滿載也不重疊**（使用者要求「buff／debuff 位置要算好」）：
+  兩框光環方向相同（減益從框頂往上長、增益從框底往下長），各兩排 = 39 高。
+  tot 頂 -200 → 它的減益頂到 -160 → 這框增益底放 -158（留 2px）、頂 -119 →
+  框頂 -88、中心 **y = -102** → 它自己的減益頂到 -48。
+  ⚠ 改 tot 的 y 或任一邊的 maxCount／perRow／光環尺寸，這個 y 要重算（DB.lua 註解有完整式子）。
+- **事件只涵蓋一半**：`PLAYER_TARGET_CHANGED` 與 `UNIT_TARGET(target)` 會推它（目標換人／
+  目標換目標，Events 與 Auras 都補了），但「**目標的目標換目標**」沒有任何事件 ——
+  `targettarget` 不是引擎派送的 token。那一半全靠 `Units.lua` 的 `INDIRECT_UNITS` 輪詢，
+  最多慢 0.5 秒（GUID 是秘密值時降到 2 秒）。對這一格而言輪詢**不是保險、是主要路徑**。
+- `MENU_FIX_TOKENS` 加了（同 targettarget 類）；`Castbar` 的 `TARGET_OF` 加
+  `targettarget → targettargettarget`（tot 開施法條＋施法目標時才用得到）。
+- 預覽假資料套敵對那組（打怪時的鏈是「首領 → 坦 → 坦打的那隻」），跟 tot 的玩家那組疊著分得出兩格。
+- 暴雪沒有這個框，`HideBlizzard` 不用動。`MiliUI_Focus` 的 Focuser 候選清單沒加
+  （pettarget／bosstarget 也都沒加，要加就三個一起）。
+
+**尚未在遊戲內驗證**：預設位置實際觀感、輪詢換人的延遲感受得到多少。
 
 
 ## 玩家框的仇恨提醒（2026-09-14）

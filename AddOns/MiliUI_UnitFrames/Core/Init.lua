@@ -13,7 +13,8 @@ ns.DB_VERSION  = 18          -- schemaVersion，遷移鏈用（DB.Migrate 加條
 
 -- 支援的單位（spawn 順序）
 ns.UNITS = {
-    "player", "target", "targettarget", "focus", "focustarget", "pet", "pettarget",
+    "player", "target", "targettarget", "targettargettarget",
+    "focus", "focustarget", "pet", "pettarget",
     "boss1", "boss2", "boss3", "boss4", "boss5",
     "boss1target", "boss2target", "boss3target", "boss4target", "boss5target",
 }
@@ -21,6 +22,7 @@ ns.UNITS = {
 -- unit token → DB key（boss1-5 共用一份設定，boss1-5target 也是）
 ns.UNIT_KEYS = {
     player = "player", target = "target", targettarget = "targettarget",
+    targettargettarget = "targettargettarget",
     focus = "focus", focustarget = "focustarget",
     pet = "pet", pettarget = "pettarget",
     boss1 = "boss", boss2 = "boss", boss3 = "boss", boss4 = "boss", boss5 = "boss",
@@ -36,7 +38,7 @@ ns.MULTI_UNIT_KEYS = { boss = true, bosstarget = true }
 -- 全域框架名（其他插件靠這些名字整合，例如 MiliUI Focuser）
 ns.GLOBAL_NAMES = {
     player = "MiliUIUF_Player", target = "MiliUIUF_Target",
-    targettarget = "MiliUIUF_TargetTarget",
+    targettarget = "MiliUIUF_TargetTarget", targettargettarget = "MiliUIUF_TargetTargetTarget",
     focus = "MiliUIUF_Focus", focustarget = "MiliUIUF_FocusTarget",
     pet = "MiliUIUF_Pet", pettarget = "MiliUIUF_PetTarget",
     boss1 = "MiliUIUF_Boss1", boss2 = "MiliUIUF_Boss2", boss3 = "MiliUIUF_Boss3",
@@ -49,6 +51,7 @@ ns.GLOBAL_NAMES = {
 -- 單位顯示名（設定介面用）
 ns.UNIT_LABELS = {
     player = L["Player"], target = L["Target"], targettarget = L["Target of Target"],
+    targettargettarget = L["Target of Target of Target"],
     focus = L["Focus"], focustarget = L["Focus Target"],
     pet = L["Pet"], pettarget = L["Pet Target"],
     boss = L["Boss"], bosstarget = L["Boss Target"], totem = L["Summons"],

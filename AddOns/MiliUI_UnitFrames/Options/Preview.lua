@@ -26,6 +26,10 @@ local FAKE_BASE = {
     target       = { name = L["Training Dummy"], pc = false, reaction = 2, level = 82,
                      creaturetype = L["Mechanical"], classificationKey = "elite" },
     targettarget = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
+    -- 目標的目標的目標：打怪時是「目標 → 坦 → 坦在打的那隻」，所以套回敵對那組，
+    -- 疊在目標的目標（玩家那組）上方剛好一眼分得出是兩格
+    targettargettarget = { name = L["Training Dummy"], pc = false, reaction = 2, level = 82,
+                           creaturetype = L["Mechanical"] },
     focus        = { name = L["Training Dummy"], pc = false, reaction = 2, level = 81 },
     focustarget  = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
     -- ⚠ 寵物是「玩家控制但**不是**玩家」：isPlayer 要明寫 false。
