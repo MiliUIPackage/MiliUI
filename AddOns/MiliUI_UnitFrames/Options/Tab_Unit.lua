@@ -102,7 +102,7 @@ local function FrameSpecs(unitKey)
     if unitKey == "player" then
         tinsert(list, { type = "toggle", root = "frame", key = "clickWhenHidden",
                         label = L["Clickable while hidden"],
-                        hint = L["While the frame is hidden, clicking where it would be still targets yourself. That spot keeps catching the mouse, so you can't click through it to the world."] })
+                        hint = L["Clicking its usual spot still targets you."] })
     end
 
     ------------------------------------------------------------
