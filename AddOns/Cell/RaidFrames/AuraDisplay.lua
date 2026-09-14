@@ -1403,6 +1403,16 @@ end
 
 local function Build(handle, why)
     if handle._destroyed then return end
+    -- ⚠ Decided BEFORE the combat gate: nothing to tear down, and the early return below
+    -- (disabled / no unit) would build nothing either. Queueing that is pure noise -- a full
+    -- indicator pass that lands in combat (a /reload mid-fight) put every never-shown NPC and
+    -- spotlight handle in the regen queue: 2026-09-14, 225 queued, 135 of them enable/disable
+    -- on buttons without a unit. SetUnit/SetEnabled bring the handle back here when it can build.
+    if not handle.host and not handle.container and not (handle.enabled and handle.unit) then
+        handle._pendingBuild = nil
+        AD._pending[handle] = nil
+        return
+    end
     if InCombatLockdown() then
         handle._pendingBuild = true
         if AD._defer then AD._defer(handle, why or "build") end
@@ -2002,13 +2012,9 @@ end
 
 -- `why` is a short tag naming the caller (see AD._defer): it is what /cab ghosts and
 -- /cab stats show for a build that had to wait for combat to end.
+-- Build owns the combat gate (and the no-op check that has to run before it).
 function Handle:Rebuild(why)
-    if InCombatLockdown() then
-        self._pendingBuild = true
-        AD._defer(self, why or "rebuild")
-        return
-    end
-    Build(self, why)
+    Build(self, why or "rebuild")
 end
 
 -- Re-assert enable while the frame is actually VISIBLE. SetEnabled gates aura-event

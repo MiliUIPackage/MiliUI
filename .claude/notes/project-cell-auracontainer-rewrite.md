@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 47adb948-8bd2-4804-9bff-d58a154ecf7c
-  modified: 2026-08-18T04:27:40.777Z
+  modified: 2026-09-14T09:40:40.314Z
 ---
 
 Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard AuraContainer（路線 A，見 [[wow-121-aura-containers]]），讓分類全走 Blizzard-side candidateFilters，照 DandersFrames v5 作法「一個都不少」。使用者 2026-08 選定路線 A。**已上線使用**（master，Cell r283-MiliUI）。
@@ -203,6 +203,19 @@ ParkOrDiscard；Locals 的 `unit="boss5"` 只是預算剛好在那裡用完，�
 tag 有 level／num／restyle-secret／options／options-layout／setunit-nil／setunit-nocontainer／
 setunit-refused／enable／disable／palette／test／gatekick。`/cab stats` 印「戰鬥中排隊：目前／上次
 脫戰時／最長｜來源：tag 計數」，`/cab ghosts` 每筆 PENDING-BUILD 帶 why。下次再長就能點名。
+
+**第一次點名（2026-09-14，單人）**：`脫戰時佇列 225 筆：enable 120、setunit-nocontainer 90、disable 15`。
+* **讀法**：佇列以 handle 為 key、why 只留最後一次。225 ＝ 單人版面 `IterateAllUnitButtons` 的
+  25 顆（solo 2 ＋ npc 8 ＋ spotlight 15）× 每顆 9 個 handle，**連自己框上後來建好的 8 個都在**
+  ⇒ 全是還沒容器的新 handle ⇒ reload／登入後的第一輪 `HandleIndicators` 在戰鬥鎖定中跑
+  （推測是戰鬥中 /reload：載入期間 `InCombatLockdown()` 為假，`F.UpdateLayout` 沒被延後，
+  佇列處理器每幀 2 顆時已經進鎖定）。同一輪裡 ConfigureContainer（SetEnabled）先、UpdateAuras
+  （SetUnit）後，所以「有單位的按鈕」收尾是 setunit-nocontainer，「沒單位的」停在 enable／disable。
+* **修掉的部分**：enable／disable 那 135 筆全是 no-op（沒單位或停用，Build 進去立刻 return）。
+  Build 的「沒東西可拆也沒東西可建」判斷移到戰鬥閘**前面**，`Handle:Rebuild` 改成直接交給 Build
+  （戰鬥閘只剩一份）。**未在遊戲內驗證**：同樣情境下佇列應只剩 setunit-nocontainer。
+* **剩下的 90 筆是真的首次建置**，副作用是那場戰鬥**自己框完全沒有光環**。治本就是上面
+  「Build 的戰鬥閘可能是誤傳」那個實驗，還沒做。
 
 **Build 的戰鬥閘可能是誤傳（待實測）**：閘是 8/10 第一版寫的保守預設，沒有理由。
 「戰鬥中建 live 容器會不可攔截地報錯」那句來自暖機探測，而探測最後一步是 `pcall(f.Hide, f)`
