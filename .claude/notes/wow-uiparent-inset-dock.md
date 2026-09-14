@@ -1,8 +1,11 @@
 ---
 name: wow-uiparent-inset-dock
 description: 把 UIParent 往內縮一條就能讓整個介面替停靠的資訊列讓位——但上緣是暴雪 UpdateUIParentPosition（瀏海／除錯列）在管，要疊在它的偏移上並掛勾它；代價是錨在中央的東西移半條
-metadata:
+metadata: 
+  node_type: memory
   type: reference
+  originSessionId: 5a267121-c96a-4841-b629-ac9e1aa05ef3
+  modified: 2026-09-14T10:06:49.795Z
 ---
 
 要做「貼在螢幕邊、把原本在那個邊的東西推開、關掉就全部回原位」的停靠列，**不要逐框推**
@@ -26,6 +29,14 @@ UIParent:ClearAllPoints(); UIParent:SetAllPoints(nil)
 
 **幾何上必然的代價**：錨在 CENTER 的框（頭像、Cell、CDM）會移半條，錨在對面那邊的不動。
 不是 bug，要先讓使用者看過。不會動的：名條（WorldFrame）、跟游標走的提示。
+
+⚠⚠ **「拿 UIParent 寬高換算錨點」的框不會自己跟著移**（2026-09-14 MiliUI_UnitFrames 踩到）：
+為了像素對齊改錨 BOTTOMLEFT、偏移量寫 `pw/2 + x`、`ph/2 + y` 的框，等於把**當下的** UIParent
+尺寸烘進去。內縮之後只有重跑過定位的框會移半條，其他停在舊中心上 ⇒ 同一支插件的框彼此錯開
+（上緣縮 26、差 13）。指紋：**只有垂直偏、水平完全不動**，而且「改過設定的那一格」位置跟別格不同。
+**`UI_SCALE_CHANGED`／`DISPLAY_SIZE_CHANGED` 抓不到這種變動**，要掛
+`UIParent:HookScript("OnSizeChanged")`，而且延一幀再重定位（這條派送跑在改錨點的那條流程裡，
+見 [[wow-121-addon-code-in-secure-stack]] 入口 6；一次內縮連發好幾次，用旗標併成一次）。
 
 **還沒驗證**：換解析度／改 UI 縮放暴雪會不會重設 UIParent 的錨點——實作上那兩個事件保險再貼一次。
 **動 UIParent 的錨點是「單幀 100 毫秒以上」等級的成本**（2026-09-06 效能監控實測：資訊列
