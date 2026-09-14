@@ -13,6 +13,11 @@
 --     斜著從方塊移到面板一定會經過空白，立刻關就永遠點不到裡面的東西。
 --     用世代 token 讓舊排程作廢——做法同共用層 ContextMenu.lua 的 SUB_CLOSE_DELAY。
 --   · 面板與方塊之間**不留縫**（偏移 2px 以內），游標不會掉進兩者中間。
+--
+-- 版面的兩條規矩（2026-09-14 使用者看截圖說「排列凌亂」「反白的上下差距不同」
+-- 之後定的，細節見下面兩段常數的註解）：
+--   1. 水平只有**一張三欄格線**，每一列都用同一組座標。
+--   2. 垂直只有**一個間距單位 G**，反白列碰到的線與邊距離一律相同。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -36,19 +41,40 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 local TIP_BG       = 0.133
 local ROW_H        = 28
 local TITLE_H      = 26
-local SEP_H        = 9
-local PAD          = 10      -- 面板內距
-local GUTTER       = 30      -- 圖示欄：22px 圖 ＋ 8px 空。**每一列都留**，文字才對齊
 local ICON         = 22
-local TAG_GAP      = 18      -- 名字與右側小標之間的最小間距
 local MIN_W        = 260
-local CAT_GAP      = 6       -- 分類與分類之間（第一個不用）：標題不要貼著上一段的最後一列
 local CLOSE_DELAY  = 0.35
+
+------------------------------------------------------------
+-- 水平：整張面板只有**一張三欄格線**
+--
+--   [圖示 @PAD_X] [名字 @PAD_X+GUTTER] …… [右側標 @-PAD_X]
+--
+-- 每一列（快捷、坐騎、標題、說明、設定入口）都用同一組座標，所以圖示永遠在
+-- 同一欄、名字永遠在同一條線上。⚠ 快捷列曾經自己多一個「左鍵」標籤欄，
+-- 於是它的圖示跟底下分類的圖示差了一整個標籤寬——使用者的回饋就是「排列凌亂」。
+-- 那一欄現在收進右側標了（跟分類列共用同一組 MOUNT_BIND_* 詞彙）。
+------------------------------------------------------------
+local PAD_X        = 10      -- 左右內距
+local GUTTER       = 30      -- 圖示欄：22px 圖 ＋ 8px 空。**每一列都留**，文字才對齊
+local TAG_GAP      = 18      -- 名字與右側小標之間的最小間距
+
+------------------------------------------------------------
+-- 垂直：所有「反白 ↔ 線／面板邊」的距離都是 G
+--
+-- 反白貼圖是整列寬、整列高的，所以一列的上下鄰居只要距離不一致，滑過去就會
+-- 看到反白框忽寬忽窄——使用者說的「上下差距不同，有點疙瘩」。
+-- 統一成一個常數之後，反白框碰到的不論是標題的髮絲線、分隔線還是面板邊緣，
+-- 距離一律 G。（相鄰兩個反白列之間仍然是 0：同一時間只有一列會反白。）
+------------------------------------------------------------
+local G            = 6
+local PAD_Y        = G       -- 面板上下內距
+local SEP_H        = G * 2 + 1   -- 分隔線列：1px 的線置中 ⇒ 上下各 G
 
 -- 字級相對 db.fontSize（條上的字）。內容比條上大兩級——面板有空間，而且它是
 -- 「停下來看」的表面；標題仍然比內容**小**一級（階層規則沒變：標題要退後）。
 -- ⚠ 相對值只寫在這裡，Populate 裡不要再出現任何字級數字。
-local SZ_TEXT      = 2       -- 坐騎名、快捷列的「左鍵／右鍵」標籤、說明列
+local SZ_TEXT      = 2       -- 坐騎名、說明列、設定入口列
 local SZ_TITLE     = 1       -- 分類標題
 local SZ_TAG       = 1       -- 右側小標（左／右）與「隨機」鈕
 -- 開啟也要一點意圖延遲：資訊列上這顆方塊夾在耐久與微型選單中間，游標橫掃過去
@@ -222,33 +248,34 @@ local function GetRow(index)
     row.hl:SetAlpha(0.25)
     row.hl:Hide()
 
+    -- 三欄格線的座標在這裡定死一次，Populate 不再逐列 SetPoint——
+    -- 那正是三種左緣混進來的縫隙
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(ICON, ICON)
     -- 圖示邊緣那圈留白裁掉，方形圖示才貼得住 1px 的視覺語彙
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-
-    row.prefix = MakeText(row, SZ_TEXT)
-    row.prefix:SetPoint("LEFT", row, "LEFT", PAD, 0)
+    row.icon:SetPoint("LEFT", row, "LEFT", PAD_X, 0)
 
     row.text = MakeText(row, SZ_TEXT)
     row.text:SetJustifyH("LEFT")
+    row.text:SetPoint("LEFT", row, "LEFT", PAD_X + GUTTER, 0)
 
     row.tag = MakeText(row, SZ_TAG)
-    row.tag:SetPoint("RIGHT", row, "RIGHT", -PAD, 0)
+    row.tag:SetPoint("RIGHT", row, "RIGHT", -PAD_X, 0)
     row.tag:SetJustifyH("RIGHT")
 
     -- 標題底下的髮絲線：標題與內容之間要一條**結構性**的分隔，
     -- 光靠顏色不同還是會被讀成「另一個選項」
     row.rule = row:CreateTexture(nil, "ARTWORK")
     row.rule:SetHeight(1)
-    row.rule:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", PAD, 0)
-    row.rule:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -PAD, 0)
+    row.rule:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", PAD_X, 0)
+    row.rule:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -PAD_X, 0)
     row.rule:SetColorTexture(1, 1, 1, 0.10)
 
     row.sep = row:CreateTexture(nil, "ARTWORK")
     row.sep:SetHeight(1)
-    row.sep:SetPoint("LEFT", row, "LEFT", PAD, 0)
-    row.sep:SetPoint("RIGHT", row, "RIGHT", -PAD, 0)
+    row.sep:SetPoint("LEFT", row, "LEFT", PAD_X, 0)
+    row.sep:SetPoint("RIGHT", row, "RIGHT", -PAD_X, 0)
     row.sep:SetColorTexture(1, 1, 1, 0.12)
 
     row.random = MakeFlatButton(row, L["MOUNT_RANDOM"], function(self)
@@ -258,7 +285,7 @@ local function GetRow(index)
             Mounts.RandomIn(i)
         end
     end)
-    row.random:SetPoint("RIGHT", row, "RIGHT", -PAD, 0)
+    row.random:SetPoint("RIGHT", row, "RIGHT", -PAD_X, 0)
     row.random:SetScript("OnEnter", RowEnter)
     row.random:SetScript("OnLeave", RowLeave)
 
@@ -274,7 +301,7 @@ end
 -- 建立時的 sizeDelta 裡，這裡只是把 db.fontSize 的變動套回去。
 local function ApplyRowFont(row, isTitle)
     local size = FontSize()
-    for _, fs in ipairs({ row.prefix, row.text, row.tag, row.random.text }) do
+    for _, fs in ipairs({ row.text, row.tag, row.random.text }) do
         fs:SetFont(ns.LOCALE_FONT, size + fs.sizeDelta, "")
     end
     if isTitle then
@@ -288,6 +315,10 @@ end
 local function BuildModel()
     local model = {}
 
+    -- 快捷區＝跟分類**一模一樣**的一個區段（標題 ＋ 兩列），差別只有沒有隨機鈕。
+    -- 區段之間靠「留白 ＋ 標題的髮絲線」就分得開了，所以這裡**不畫分隔線**——
+    -- 分隔線只留給「內容」與最底下那條功能列之間。
+    model[#model + 1] = { kind = "title", text = L["MOUNT_SECTION_SHORTCUTS"] }
     for _, side in ipairs({ "left", "right" }) do
         model[#model + 1] = {
             kind    = "shortcut",
@@ -296,7 +327,6 @@ local function BuildModel()
             auto    = Mounts.IsAuto(side),
         }
     end
-    model[#model + 1] = { kind = "sep" }
 
     local any = false
     for index, cat in ipairs(Mounts.Categories()) do
@@ -314,7 +344,7 @@ local function BuildModel()
                 text     = Mounts.CategoryName(cat),
                 catIndex = index,
                 random   = #list >= 2,       -- 只有一隻的話「隨機」沒有意義
-                gap      = any,              -- 第一個分類不用留，其餘跟上一段隔開
+                gap      = true,             -- 跟上一個區段（至少有快捷區）隔開
             }
             any = true
             for _, info in ipairs(list) do
@@ -324,7 +354,7 @@ local function BuildModel()
     end
 
     if not any then
-        model[#model + 1] = { kind = "note", text = L["MOUNT_EMPTY"] }
+        model[#model + 1] = { kind = "note", text = L["MOUNT_EMPTY"], gap = true }
         model[#model + 1] = { kind = "note", text = L["MOUNT_EMPTY_SUB"] }
     end
 
@@ -344,19 +374,11 @@ local BOUND_LABEL = {
 local function Populate()
     local model = BuildModel()
 
-    -- 兩列快捷的標籤欄寬：兩個標籤取大者，圖示與名字才對得齊
-    local probe = GetRow(1)
-    ApplyRowFont(probe)
-    probe.prefix:SetText(L["MOUNT_LEFT"])
-    local prefixW = math.ceil(probe.prefix:GetStringWidth())
-    probe.prefix:SetText(L["MOUNT_RIGHT"])
-    prefixW = math.max(prefixW, math.ceil(probe.prefix:GetStringWidth())) + 8
-
     local width = MIN_W
-    local y = PAD
+    local y = PAD_Y
 
     for i, item in ipairs(model) do
-        if item.gap then y = y + CAT_GAP end
+        if item.gap then y = y + G end        -- 區段之間
         local row = GetRow(i)
         ApplyRowFont(row, item.kind == "title")
         row.catIndex = item.catIndex
@@ -367,12 +389,9 @@ local function Populate()
         row.rule:Hide()
         row.sep:Hide()
         row.icon:Hide()
-        row.prefix:Hide()
         row.tag:Hide()
         row.random:Hide()
-        row.text:ClearAllPoints()
 
-        local indent = 0
         local h = ROW_H
         local need = 0
 
@@ -383,12 +402,10 @@ local function Populate()
             row:EnableMouse(false)
 
         elseif item.kind == "note" then
-            row.text:SetPoint("LEFT", row, "LEFT", PAD + GUTTER, 0)
             row.text:SetText(item.text)
             row.text:SetTextColor(TEXT_DIM[1], TEXT_DIM[2], TEXT_DIM[3])
-            row.text:SetWordWrap(false)
             row:EnableMouse(false)
-            need = PAD + GUTTER + row.text:GetStringWidth() + PAD
+            need = PAD_X + GUTTER + row.text:GetStringWidth() + PAD_X
 
         elseif item.kind == "settings" then
             -- 最底下的功能列：灰字、整列可點、滑過變白（同設定頁「＋ 新增坐騎…」）。
@@ -396,20 +413,18 @@ local function Populate()
             row:EnableMouse(true)
             row.clickable = true
             row.dimText = true
-            row.text:SetPoint("LEFT", row, "LEFT", PAD + GUTTER, 0)
             row.text:SetText(item.text)
             row.text:SetTextColor(TEXT_DIM[1], TEXT_DIM[2], TEXT_DIM[3])
-            need = PAD + GUTTER + row.text:GetStringWidth() + PAD
+            need = PAD_X + GUTTER + row.text:GetStringWidth() + PAD_X
 
         elseif item.kind == "title" then
             -- 標題比內容**弱**：灰、小一級、底下一條髮絲線（選單設計標準）
             h = TITLE_H
-            row.text:SetPoint("LEFT", row, "LEFT", PAD + GUTTER, 0)
             row.text:SetText(item.text)
             row.text:SetTextColor(TEXT_DIM[1], TEXT_DIM[2], TEXT_DIM[3])
             row.rule:Show()
             row:EnableMouse(false)
-            need = PAD + GUTTER + row.text:GetStringWidth() + PAD
+            need = PAD_X + GUTTER + row.text:GetStringWidth() + PAD_X
             if item.random then
                 SizeFlatButton(row.random)
                 row.random:Show()
@@ -417,46 +432,44 @@ local function Populate()
             end
 
         else
+            -- 快捷列與坐騎列走**同一段**排版：兩者的差別只有「名字從哪來」與
+            -- 右側標寫什麼，位置一個字都不用改
             row:EnableMouse(true)
             row.clickable = true
-            local info, name, iconTex
+            local info, name, iconTex, tag
 
             if item.kind == "shortcut" then
-                indent = prefixW
-                row.prefix:SetText(L[item.side == "left" and "MOUNT_LEFT" or "MOUNT_RIGHT"])
-                row.prefix:SetTextColor(TEXT_DIM[1], TEXT_DIM[2], TEXT_DIM[3])
-                row.prefix:Show()
                 info = item.spellID and Mounts.Info(item.spellID) or nil
                 if info then
-                    name = (info.name or "?") .. (item.auto and ("  " .. Dim(L["MOUNT_AUTO"])) or "")
+                    name = (info.name or "?") .. (item.auto and (" " .. Dim(L["MOUNT_AUTO"])) or "")
                     iconTex = info.icon
                 else
                     name = Dim(L["MOUNT_UNSET"])
                     iconTex = FALLBACK_ICON
                 end
+                tag = L[item.side == "left" and "MOUNT_BIND_LEFT" or "MOUNT_BIND_RIGHT"]
             else
                 info = item.info
                 name = info.name or "?"
                 iconTex = info.icon
                 local bound = Mounts.BoundSide(info.spellID)
-                if bound then
-                    -- 灰色：它是狀態讀數，不是「這一列被選中了」
-                    row.tag:SetText(L[BOUND_LABEL[bound]])
-                    row.tag:SetTextColor(TEXT_DIM[1], TEXT_DIM[2], TEXT_DIM[3])
-                    row.tag:Show()
-                end
+                if bound then tag = L[BOUND_LABEL[bound]] end
+            end
+
+            if tag then
+                -- 灰色：它是狀態讀數（這一列歸哪顆鍵），不是「這一列被選中了」
+                row.tag:SetText(tag)
+                row.tag:SetTextColor(TEXT_DIM[1], TEXT_DIM[2], TEXT_DIM[3])
+                row.tag:Show()
             end
 
             row.spellID = info and info.spellID or nil
             row.icon:SetTexture(iconTex or FALLBACK_ICON)
-            row.icon:ClearAllPoints()
-            row.icon:SetPoint("LEFT", row, "LEFT", PAD + indent, 0)
             row.icon:Show()
-            row.text:SetPoint("LEFT", row, "LEFT", PAD + indent + GUTTER, 0)
             row.text:SetText(name)
             row.text:SetTextColor(TEXT_MAIN[1], TEXT_MAIN[2], TEXT_MAIN[3])
 
-            need = PAD + indent + GUTTER + row.text:GetStringWidth() + PAD
+            need = PAD_X + GUTTER + row.text:GetStringWidth() + PAD_X
             if row.tag:IsShown() then
                 need = need + TAG_GAP + row.tag:GetStringWidth()
             end
@@ -468,12 +481,14 @@ local function Populate()
         row:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -1, -y)
         row:Show()
         y = y + h
+        -- 標題的髮絲線畫在它自己的下緣：線之後空 G，第一列的反白才不會貼著線
+        if item.kind == "title" then y = y + G end
         if need > width then width = math.ceil(need) end
     end
 
     for i = #model + 1, #rows do rows[i]:Hide() end
     -- +2 ＝ 列左右各內縮 1px 讓出邊框的那兩格
-    frame:SetSize(width + 2, y + PAD)
+    frame:SetSize(width + 2, y + PAD_Y)
 end
 
 ------------------------------------------------------------
