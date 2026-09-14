@@ -27,18 +27,30 @@ local Popup = ns.MountPopup
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 ------------------------------------------------------------
--- 版面常數（列高照共用層 ContextMenu.lua，兩種選單並存時節奏才一致）
+-- 版面常數
+--
+-- ⚠ 這裡刻意**不跟**共用層 ContextMenu.lua 的尺寸（22/21/7）：那是右鍵選單，
+-- 點完就走；這張面板是玩家自訂分類、停下來讀的東西，用選單的密度會擠。
+-- 2026-09-14 使用者回饋「面板要再大一點」之後整組放大一階。
 ------------------------------------------------------------
 local TIP_BG       = 0.133
-local ROW_H        = 22
-local TITLE_H      = 21
-local SEP_H        = 7
-local PAD          = 6       -- 面板內距
-local GUTTER       = 20      -- 圖示欄：16px 圖 ＋ 4px 空。**每一列都留**，文字才對齊
-local ICON         = 16
-local TAG_GAP      = 14      -- 名字與右側小標之間的最小間距
-local MIN_W        = 180
+local ROW_H        = 28
+local TITLE_H      = 26
+local SEP_H        = 9
+local PAD          = 10      -- 面板內距
+local GUTTER       = 30      -- 圖示欄：22px 圖 ＋ 8px 空。**每一列都留**，文字才對齊
+local ICON         = 22
+local TAG_GAP      = 18      -- 名字與右側小標之間的最小間距
+local MIN_W        = 260
+local CAT_GAP      = 6       -- 分類與分類之間（第一個不用）：標題不要貼著上一段的最後一列
 local CLOSE_DELAY  = 0.35
+
+-- 字級相對 db.fontSize（條上的字）。內容比條上大兩級——面板有空間，而且它是
+-- 「停下來看」的表面；標題仍然比內容**小**一級（階層規則沒變：標題要退後）。
+-- ⚠ 相對值只寫在這裡，Populate 裡不要再出現任何字級數字。
+local SZ_TEXT      = 2       -- 坐騎名、快捷列的「左鍵／右鍵」標籤、說明列
+local SZ_TITLE     = 1       -- 分類標題
+local SZ_TAG       = 1       -- 右側小標（左／右）與「隨機」鈕
 -- 開啟也要一點意圖延遲：資訊列上這顆方塊夾在耐久與微型選單中間，游標橫掃過去
 -- 找別顆按鈕時會經過它，立刻開的話面板會閃一下。0.15 秒對「停下來看」的人
 -- 感覺不到，對「路過」的人剛好躲掉。
@@ -91,7 +103,7 @@ local function MakeFlatButton(parent, text, onClick)
     bg:SetVertexColor(1, 1, 1, 0.08)
     b:SetHighlightTexture(WHITE)
     b:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.16)
-    local fs = MakeText(b, -1)
+    local fs = MakeText(b, SZ_TAG)
     fs:SetPoint("CENTER")
     fs:SetTextColor(TEXT_MAIN[1], TEXT_MAIN[2], TEXT_MAIN[3])
     fs:SetText(text)
@@ -143,11 +155,16 @@ end
 ------------------------------------------------------------
 local function RowEnter(self)
     Popup.CancelClose()
-    if self.hl and self.clickable then self.hl:Show() end
+    if not self.clickable then return end
+    if self.hl then self.hl:Show() end
+    -- 灰字的功能列（最底那條設定入口）滑過變白：它平常要退到背景，
+    -- 但滑上去必須看得出「這是可以點的」
+    if self.dimText then self.text:SetTextColor(1, 1, 1) end
 end
 
 local function RowLeave(self)
     if self.hl then self.hl:Hide() end
+    if self.dimText then self.text:SetTextColor(TEXT_DIM[1], TEXT_DIM[2], TEXT_DIM[3]) end
     Popup.ScheduleClose()
 end
 
@@ -210,13 +227,13 @@ local function GetRow(index)
     -- 圖示邊緣那圈留白裁掉，方形圖示才貼得住 1px 的視覺語彙
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    row.prefix = MakeText(row)
+    row.prefix = MakeText(row, SZ_TEXT)
     row.prefix:SetPoint("LEFT", row, "LEFT", PAD, 0)
 
-    row.text = MakeText(row)
+    row.text = MakeText(row, SZ_TEXT)
     row.text:SetJustifyH("LEFT")
 
-    row.tag = MakeText(row, -1)
+    row.tag = MakeText(row, SZ_TAG)
     row.tag:SetPoint("RIGHT", row, "RIGHT", -PAD, 0)
     row.tag:SetJustifyH("RIGHT")
 
@@ -253,10 +270,15 @@ local function GetRow(index)
     return row
 end
 
-local function ApplyRowFont(row)
+-- isTitle 是這一列唯一會換字級的地方（標題比內容小一級）。其餘的相對值都在
+-- 建立時的 sizeDelta 裡，這裡只是把 db.fontSize 的變動套回去。
+local function ApplyRowFont(row, isTitle)
     local size = FontSize()
     for _, fs in ipairs({ row.prefix, row.text, row.tag, row.random.text }) do
         fs:SetFont(ns.LOCALE_FONT, size + fs.sizeDelta, "")
+    end
+    if isTitle then
+        row.text:SetFont(ns.LOCALE_FONT, size + SZ_TITLE, "")
     end
 end
 
@@ -281,17 +303,20 @@ local function BuildModel()
         local list = {}
         for _, spellID in ipairs(cat.spells or {}) do
             local info = Mounts.Info(spellID)
-            -- 未收藏的不列：面板是拿來用的，不是拿來看目標的
-            if info and info.collected then list[#list + 1] = info end
+            -- 判準是 available 不是 collected：未收藏的不列（面板是拿來用的，
+            -- 不是拿來看目標的），另一個陣營的版本也不列——不然同一隻長毛象
+            -- 會在修裝分類裡出現兩次，而其中一隻點了只會跳訊息
+            if info and info.available then list[#list + 1] = info end
         end
         if #list > 0 then
-            any = true
             model[#model + 1] = {
                 kind     = "title",
                 text     = Mounts.CategoryName(cat),
                 catIndex = index,
                 random   = #list >= 2,       -- 只有一隻的話「隨機」沒有意義
+                gap      = any,              -- 第一個分類不用留，其餘跟上一段隔開
             }
+            any = true
             for _, info in ipairs(list) do
                 model[#model + 1] = { kind = "mount", info = info }
             end
@@ -302,6 +327,11 @@ local function BuildModel()
         model[#model + 1] = { kind = "note", text = L["MOUNT_EMPTY"] }
         model[#model + 1] = { kind = "note", text = L["MOUNT_EMPTY_SUB"] }
     end
+
+    -- 設定入口永遠在最底下。空清單時最需要它——「我的坐騎清單在哪裡改」
+    -- 正是使用者第一天就問的問題。
+    model[#model + 1] = { kind = "sep" }
+    model[#model + 1] = { kind = "settings", text = L["MOUNT_POPUP_SETTINGS"] }
     return model
 end
 
@@ -326,11 +356,13 @@ local function Populate()
     local y = PAD
 
     for i, item in ipairs(model) do
+        if item.gap then y = y + CAT_GAP end
         local row = GetRow(i)
-        ApplyRowFont(row)
+        ApplyRowFont(row, item.kind == "title")
         row.catIndex = item.catIndex
         row.spellID = nil
         row.clickable = false
+        row.dimText = nil
         row.hl:Hide()
         row.rule:Hide()
         row.sep:Hide()
@@ -358,11 +390,21 @@ local function Populate()
             row:EnableMouse(false)
             need = PAD + GUTTER + row.text:GetStringWidth() + PAD
 
+        elseif item.kind == "settings" then
+            -- 最底下的功能列：灰字、整列可點、滑過變白（同設定頁「＋ 新增坐騎…」）。
+            -- spellID 留 nil，RowClick 就會走「開設定」那條路
+            row:EnableMouse(true)
+            row.clickable = true
+            row.dimText = true
+            row.text:SetPoint("LEFT", row, "LEFT", PAD + GUTTER, 0)
+            row.text:SetText(item.text)
+            row.text:SetTextColor(TEXT_DIM[1], TEXT_DIM[2], TEXT_DIM[3])
+            need = PAD + GUTTER + row.text:GetStringWidth() + PAD
+
         elseif item.kind == "title" then
             -- 標題比內容**弱**：灰、小一級、底下一條髮絲線（選單設計標準）
             h = TITLE_H
             row.text:SetPoint("LEFT", row, "LEFT", PAD + GUTTER, 0)
-            row.text:SetFont(ns.LOCALE_FONT, FontSize() - 1, "")
             row.text:SetText(item.text)
             row.text:SetTextColor(TEXT_DIM[1], TEXT_DIM[2], TEXT_DIM[3])
             row.rule:Show()

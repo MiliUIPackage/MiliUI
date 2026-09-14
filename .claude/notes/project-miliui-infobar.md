@@ -249,6 +249,11 @@ state driver 把點擊拔掉、完全不碰 HelpTip——它沒踩坑是因為�
 - **種子的 categories 陣列不能放進 DB_DEFAULTS**：CopyDefaults 遞迴合併會按索引補洞，玩家刪掉的分類
   每次登入又冒出來。DB_DEFAULTS 只有 `mounts = { shared = {}, chars = {} }`，種子用 `profile.version`
   印記在 Mounts.lua 種。角色專屬＝`chars[角色key]` 深拷貝 shared 一份、`enabled` 開關（關掉資料留著）。
+- **收藏了不等於能騎**：陣營限定坐騎（猛獁象聯盟／部落版）兩隻 isCollected 都 true，修裝分類會出現兩次。
+  判準是 `info.available = collected and factionOK and not shouldHideOnChar`（faction 0 部落／1 聯盟對
+  UnitFactionGroup；中立或讀不到＝不過濾）。面板／自動挑選／隨機／選擇器／下拉全看 available，
+  設定編輯器照列、灰標「其他陣營」。PLAYER_ENTERING_WORLD 作廢快取（換角色陣營不同）。
+- 面板尺寸刻意不跟共用層右鍵選單（22/21/7）：列 28、圖 22、字級 +2、最小寬 260，最底固定一列「設定分類與坐騎…」入口。
 - 左右鍵預設 nil＝自動（左：修裝優先序、右：拍賣優先序，每次點擊現算不存 DB）。
 - 滑過開面板有 0.15 秒意圖延遲（游標橫掃資訊列會路過它）、離開 0.35 秒寬限（世代 token，判斷放到期時）。
   面板掛 UIParent、戰鬥中不開、PLAYER_REGEN_DISABLED 直接 Hide。

@@ -151,7 +151,7 @@ L["MSG_WARBAND_MIGRATED"] = "已從 MiliUI 套組匯入角色鑰石記錄（%d �
 
 -- Mounts block
 L["BLOCK_MOUNTS"] = "坐騎"
-L["BLOCK_MOUNTS_DESC"] = "一顆圖示按鈕：左鍵召喚「左鍵坐騎」、右鍵召喚「右鍵坐騎」；滑過會列出各分類底下已收藏的功能型坐騎（修裝、塑形、拍賣、信箱），點一列就召喚。分類與坐騎可以自己編輯。"
+L["BLOCK_MOUNTS_DESC"] = "一顆圖示按鈕：左鍵召喚「左鍵坐騎」、右鍵召喚「右鍵坐騎」；滑過會列出各分類底下已收藏的功能型坐騎（修裝、塑形、拍賣、信箱），點一列就召喚。分類與坐騎在設定視窗的「坐騎」分頁編輯。"
 L["MOUNT_CAT_REPAIR"] = "修裝"
 L["MOUNT_CAT_XMOG"] = "塑形"
 L["MOUNT_CAT_AUCTION"] = "拍賣"
@@ -173,6 +173,9 @@ L["MSG_COMBAT_MOUNT"] = "戰鬥中無法召喚坐騎。"
 L["MSG_NO_USABLE_MOUNT"] = "這個分類裡沒有現在能召喚的坐騎。"
 L["MSG_MOUNT_NOT_COLLECTED"] = "你還沒有收藏這隻坐騎。"
 L["MSG_MOUNT_UNUSABLE"] = "現在不能召喚這隻坐騎。"
+L["MSG_MOUNT_OTHER_FACTION"] = "這隻坐騎是另一個陣營的。"
+L["MOUNT_OTHER_FACTION"] = "其他陣營"
+L["MOUNT_POPUP_SETTINGS"] = "設定分類與坐騎…"
 
 -- Mounts tab
 L["TAB_MOUNTS"] = "坐騎"

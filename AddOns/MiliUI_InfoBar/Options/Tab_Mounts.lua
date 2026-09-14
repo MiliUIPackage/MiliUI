@@ -51,7 +51,8 @@ local function BuildSideItems(side)
             if not seen[spellID] then
                 seen[spellID] = true
                 local info = M.Info(spellID)
-                if info and info.collected and info.name then
+                -- available：別的陣營的版本不進下拉（選了也召喚不出來）
+                if info and info.available and info.name then
                     list[#list + 1] = { value = spellID, text = info.name }
                 end
             end
@@ -60,6 +61,17 @@ local function BuildSideItems(side)
     table.sort(list, function(a, b) return a.text < b.text end)
     for i, item in ipairs(list) do dst[i + 1] = item end
     return dst
+end
+
+-- 分類編輯器的灰標：這一頁**全部列出**（它是在編目標），所以要說清楚哪幾隻
+-- 在這隻角色身上是灰的、為什麼。回 nil ＝ 正常可用，不標。
+local function StateTag(info)
+    if not info then return L["MOUNT_NOT_COLLECTED"] end
+    -- 陣營排在收藏前面：兩個版本都算收藏，說成「未收藏」是錯的訊息
+    if not info.factionOK then return L["MOUNT_OTHER_FACTION"] end
+    if not info.collected then return L["MOUNT_NOT_COLLECTED"] end
+    if info.hidden then return L["MOUNT_NOT_COLLECTED"] end
+    return nil
 end
 
 local function RefreshAll()
@@ -330,12 +342,12 @@ local function CreateEditor(parent, x, y, width)
         row.name:SetJustifyH("LEFT")
         row.name:SetWordWrap(false)
 
+        -- 三態灰標：未收藏／其他陣營／空白（見 Update 裡的 StateTag）
         row.tag = row:CreateFontString(nil, "OVERLAY")
         row.tag:SetFontObject(W.fontSmall)
         row.tag:SetTextColor(0.55, 0.55, 0.55)
         row.tag:SetPoint("RIGHT", row, "RIGHT", -32, 0)
         row.tag:SetJustifyH("RIGHT")
-        row.tag:SetText(L["MOUNT_NOT_COLLECTED"])
 
         row.remove = W.CreateButton(row, "×", "normal", 20, BTN_H)
         row.remove:SetPoint("RIGHT", row, "RIGHT", -2, 0)
@@ -440,13 +452,17 @@ local function CreateEditor(parent, x, y, width)
                 -- 夾住寬度：長名字沒有右緣的話會蓋過「未收藏」與移除鈕
                 mr.name:SetWidth(math.max(60, ed:GetWidth() - (12 + GUTTER) - 120))
                 mr.name:SetText((info and info.name) or ("spell " .. spellID))
-                local collected = info and info.collected
-                if collected then
-                    mr.name:SetTextColor(0.92, 0.92, 0.92)
-                else
+                -- 灰標三態。「其他陣營」排在「未收藏」前面：陣營限定的坐騎兩個版本
+                -- 都算收藏，只是這隻角色騎不了——說成「未收藏」是錯的訊息。
+                local tag = StateTag(info)
+                if tag then
                     mr.name:SetTextColor(0.5, 0.5, 0.5)
+                    mr.tag:SetText(tag)
+                    mr.tag:Show()
+                else
+                    mr.name:SetTextColor(0.92, 0.92, 0.92)
+                    mr.tag:Hide()
                 end
-                mr.tag:SetShown(not collected)
                 mr.remove:SetScript("OnClick", function()
                     M.RemoveMount(index, spellID)
                     RefreshAll()

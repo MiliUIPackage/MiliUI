@@ -174,23 +174,55 @@ function M.Resolve(spellID)
     return id
 end
 
+-- 玩家陣營：0 ＝ 部落、1 ＝ 聯盟（對上 GetMountInfoByID 的 faction 編碼）。
+-- 讀不到或中立（還沒選邊的熊貓人）回 nil ＝ **不過濾**：寧可多列一隻，
+-- 也不要因為讀不到就把整份清單砍掉。
+local function PlayerFactionID()
+    local group = S.PlainText(UnitFactionGroup("player"))
+    if group == "Alliance" then return 1 end
+    if group == "Horde" then return 0 end
+    return nil
+end
+
 -- 讀回來的東西全部洗過一次：名字要 SetText、圖示要 SetTexture、
 -- collected/usable 要進 if。
 --
 -- ⚠ collected 讀不到（秘密布林）時當成**已收藏**：坐騎冊不在 12.1 的秘密值
 -- 清單裡，這是防禦性的一道。fail-open 的後果是面板多列幾隻召喚不出來的；
 -- fail-closed 的後果是整個面板空掉，玩家不知道發生什麼事。
+--
+-- ⚠ **收藏了不等於這隻角色能騎**：陣營限定的坐騎（旅者的凍原長毛象聯盟版
+-- 61425／部落版 61447）兩隻的 isCollected 都是 true，於是修裝分類裡同一隻
+-- 長毛象出現兩次、其中一隻點了沒反應。判準是 available，不是 collected。
 local function ReadInfo(mountID)
-    local name, spellID, icon, _, isUsable, _, _, _, _, _, isCollected =
+    local name, spellID, icon, _, isUsable, _, _,
+          isFactionSpecific, faction, shouldHideOnChar, isCollected =
         C_MountJournal.GetMountInfoByID(mountID)
+
     local collected = S.ToBool(isCollected)
     if collected == nil then collected = true end
+
+    -- 陣營：只有「限定陣營」而且兩邊的編號都讀得到時才比對
+    local factionOK = true
+    if S.ToBool(isFactionSpecific) == true then
+        local mountFaction, playerFaction = S.PlainNumber(faction), PlayerFactionID()
+        if mountFaction and playerFaction then
+            factionOK = (mountFaction == playerFaction)
+        end
+    end
+    -- 暴雪自己的「這隻角色的收藏冊要藏起來」旗標（職業／種族限定那類）
+    local hidden = S.ToBool(shouldHideOnChar) == true
+
     return {
         mountID   = mountID,
         spellID   = S.PlainNumber(spellID),
         name      = S.PlainText(name),
         icon      = S.PlainNumber(icon) or S.PlainText(icon),
         collected = collected,
+        factionOK = factionOK,
+        hidden    = hidden,
+        -- 「這隻角色現在真的能召喚它」——面板、自動挑選、隨機、選擇器一律看這個
+        available = collected and factionOK and not hidden,
         usable    = S.ToBool(isUsable) ~= false,
     }
 end
@@ -212,7 +244,10 @@ function M.Name(spellID)
 end
 
 ------------------------------------------------------------
--- 收藏清單（設定視窗的選擇器用）
+-- 可用清單（設定視窗的選擇器用）
+--
+-- 名字留著 CollectedMounts，但判準是 **available**：把別的陣營／這隻角色用不了
+-- 的坐騎列進選擇器，只會讓玩家加一筆自己永遠看不到的東西進分類。
 --
 -- ⚠ GetMountIDs() 是上千筆，**只在設定視窗真的打開時才掃**，而且掃完快取。
 -- 登入與方塊建立時一律不碰（效能紀律）。
@@ -223,7 +258,7 @@ function M.CollectedMounts()
     if C_MountJournal and C_MountJournal.GetMountIDs then
         for _, mountID in ipairs(C_MountJournal.GetMountIDs() or {}) do
             local ok, info = pcall(ReadInfo, mountID)
-            if ok and info.collected and info.name and info.spellID then
+            if ok and info.available and info.name and info.spellID then
                 idCache[info.spellID] = mountID
                 out[#out + 1] = info
             end
@@ -325,7 +360,8 @@ end
 function M.AutoPick(side)
     for _, spellID in ipairs(M.PRIORITY[side] or {}) do
         local info = M.Info(spellID)
-        if info and info.collected then return spellID end
+        -- available 不是 collected：兩隻長毛象都在優先序裡，挑的要是這隻角色騎得動的那隻
+        if info and info.available then return spellID end
     end
     return nil
 end
@@ -366,9 +402,22 @@ function M.Summon(spellID)
         return false, "combat"
     end
     local info = M.Info(spellID)
-    if not (info and info.collected) then
+    if not info then
         Msg(L["MSG_MOUNT_NOT_COLLECTED"])
         return false, "missing"
+    end
+    -- 收藏了但是另一個陣營的版本：講清楚為什麼，不要跟「沒收藏」混為一談
+    if info.collected and not info.factionOK then
+        Msg(L["MSG_MOUNT_OTHER_FACTION"])
+        return false, "faction"
+    end
+    if not info.collected then
+        Msg(L["MSG_MOUNT_NOT_COLLECTED"])
+        return false, "missing"
+    end
+    if info.hidden then
+        Msg(L["MSG_MOUNT_UNUSABLE"])
+        return false, "hidden"
     end
     if C_MountJournal.GetMountUsabilityByID then
         -- MayReturnNothing：兩個回傳都可能沒有，先落地再判斷
@@ -382,14 +431,14 @@ function M.Summon(spellID)
     return true
 end
 
--- 某個分類裡隨機一隻（只從「已收藏而且現在能用」的裡面挑）
+-- 某個分類裡隨機一隻（只從「這隻角色能召喚而且現在能用」的裡面挑）
 function M.RandomIn(index)
     local cat = M.Categories()[index]
     if not cat then return false end
     local pool = {}
     for _, spellID in ipairs(cat.spells) do
         local info = M.Info(spellID)
-        if info and info.collected and info.usable then
+        if info and info.available and info.usable then
             pool[#pool + 1] = spellID
         end
     end
@@ -400,12 +449,12 @@ function M.RandomIn(index)
     return M.Summon(pool[math.random(#pool)])
 end
 
--- 某個分類裡「已收藏」的隻數（面板決定要不要畫這一段、要不要給隨機鈕）
+-- 某個分類裡「這隻角色能召喚」的隻數（面板決定要不要畫這一段、要不要給隨機鈕）
 function M.CollectedCountIn(cat)
     local n = 0
     for _, spellID in ipairs(cat.spells or {}) do
         local info = M.Info(spellID)
-        if info and info.collected then n = n + 1 end
+        if info and info.available then n = n + 1 end
     end
     return n
 end
@@ -415,6 +464,8 @@ end
 --
 -- 學到新坐騎：兩層快取都作廢（新的那隻可能就是優先序裡的第一名）。
 -- 可用性變了（進副本、變形、水下）：只要通知重畫。
+-- 進世界：收藏清單快取裡的 available 是**當時那隻角色**算出來的，換角色（或熊貓人
+-- 選了陣營）之後陣營就不一樣了。丟掉重算——反正只有選擇器打開時才會真的去掃。
 ------------------------------------------------------------
 local inited = false
 
@@ -426,6 +477,7 @@ function M.Init()
         M.Fire()
     end)
     ns.Events.Register("MOUNT_JOURNAL_USABILITY_CHANGED", "mounts", M.Fire)
+    ns.Events.Register("PLAYER_ENTERING_WORLD", "mounts", InvalidateCaches)
 end
 
 ns.Events.Register("PLAYER_LOGIN", "mounts-init", M.Init)

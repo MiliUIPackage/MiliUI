@@ -150,7 +150,7 @@ L["MSG_WARBAND_MIGRATED"] = "Imported character keystone records from the MiliUI
 
 -- Mounts block
 L["BLOCK_MOUNTS"] = "Mounts"
-L["BLOCK_MOUNTS_DESC"] = "An icon button: left-click summons your left-click mount, right-click summons your right-click mount. Hovering lists the collected utility mounts in each category (repair, transmog, auction, mail) — click a row to summon. Categories and mounts are fully editable."
+L["BLOCK_MOUNTS_DESC"] = "An icon button: left-click summons your left-click mount, right-click summons your right-click mount. Hovering lists the collected utility mounts in each category (repair, transmog, auction, mail) — click a row to summon. Categories and mounts are edited on the Mounts tab of the settings window."
 L["MOUNT_CAT_REPAIR"] = "Repair"
 L["MOUNT_CAT_XMOG"] = "Transmog"
 L["MOUNT_CAT_AUCTION"] = "Auction"
@@ -172,6 +172,9 @@ L["MSG_COMBAT_MOUNT"] = "You can't summon a mount in combat."
 L["MSG_NO_USABLE_MOUNT"] = "No usable mount in that category right now."
 L["MSG_MOUNT_NOT_COLLECTED"] = "You haven't collected that mount."
 L["MSG_MOUNT_UNUSABLE"] = "You can't summon that mount right now."
+L["MSG_MOUNT_OTHER_FACTION"] = "That mount belongs to the other faction."
+L["MOUNT_OTHER_FACTION"] = "Other faction"
+L["MOUNT_POPUP_SETTINGS"] = "Edit categories and mounts..."
 
 -- Mounts tab
 L["TAB_MOUNTS"] = "Mounts"

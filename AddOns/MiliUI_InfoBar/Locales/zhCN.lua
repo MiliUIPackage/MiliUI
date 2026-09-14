@@ -151,7 +151,7 @@ L["MSG_WARBAND_MIGRATED"] = "已从 MiliUI 套装导入角色钥石记录（%d �
 
 -- Mounts block
 L["BLOCK_MOUNTS"] = "坐骑"
-L["BLOCK_MOUNTS_DESC"] = "一颗图标按钮：左键召唤「左键坐骑」、右键召唤「右键坐骑」；滑过会列出各分类下已收藏的功能型坐骑（修装、幻化、拍卖、邮箱），点一行就召唤。分类与坐骑可以自己编辑。"
+L["BLOCK_MOUNTS_DESC"] = "一颗图标按钮：左键召唤「左键坐骑」、右键召唤「右键坐骑」；滑过会列出各分类下已收藏的功能型坐骑（修装、幻化、拍卖、邮箱），点一行就召唤。分类与坐骑在设置窗口的「坐骑」页编辑。"
 L["MOUNT_CAT_REPAIR"] = "修装"
 L["MOUNT_CAT_XMOG"] = "幻化"
 L["MOUNT_CAT_AUCTION"] = "拍卖"
@@ -173,6 +173,9 @@ L["MSG_COMBAT_MOUNT"] = "战斗中无法召唤坐骑。"
 L["MSG_NO_USABLE_MOUNT"] = "这个分类里没有现在能召唤的坐骑。"
 L["MSG_MOUNT_NOT_COLLECTED"] = "你还没有收藏这只坐骑。"
 L["MSG_MOUNT_UNUSABLE"] = "现在不能召唤这只坐骑。"
+L["MSG_MOUNT_OTHER_FACTION"] = "这只坐骑是另一个阵营的。"
+L["MOUNT_OTHER_FACTION"] = "另一个阵营"
+L["MOUNT_POPUP_SETTINGS"] = "设置分类与坐骑…"
 
 -- Mounts tab
 L["TAB_MOUNTS"] = "坐骑"
