@@ -162,6 +162,17 @@ function ns.GetDB()
 end
 
 ----------------------------------------------------------------------
+-- 角色 key：「角色名-伺服器」
+--
+-- 戰隊記錄（Core/Warband.lua）與坐騎的角色專屬設定（Core/Mounts.lua）共用
+-- 同一種格式——兩邊各寫一份的話，哪天有人加了伺服器名正規化就對不起來了。
+-- 讀不到（秘密字串）時給問號：這個值會拿去當 table key，不能讓秘密值進去。
+----------------------------------------------------------------------
+function ns.CharKey()
+    return (S.PlainText(UnitName("player")) or "?") .. "-" .. (S.PlainText(GetRealmName()) or "?")
+end
+
+----------------------------------------------------------------------
 -- 脫戰延遲佇列：同 key 只留最後一筆，PLAYER_REGEN_ENABLED 統一沖掉
 ----------------------------------------------------------------------
 local deferred = {}
@@ -536,6 +547,75 @@ function ns.CreateTile(name, opts)
     allTiles[#allTiles + 1] = tile
     tile:Hide()
     return tile
+end
+
+----------------------------------------------------------------------
+-- 圖示 tile 的貼圖與上色（微型選單按鈕與坐騎方塊共用）
+--
+-- tile.iconInfo 說這顆圖從哪來：
+--   { mode = "atlas", atlas = }  暴雪的圖集（微型按鈕就是這種，直式要按比例縮）
+--   { mode = "file",  file =  }  檔案路徑或 fileID（坐騎圖示）
+--   { mode = "portrait" }        玩家頭像
+--   { mode = "letter" }          什麼都讀不到時退回字母（tile.letter）
+--
+-- 風格跟著 db.iconStyle：mono ＝去飽和＋閒置灰、滑過職業色；blizzard ＝原色。
+-- ⚠ 兩支區塊各抄一份的話，之後多一種風格就會只改到一邊。
+----------------------------------------------------------------------
+local ICON_TINT_IDLE = 0.82   -- 單色風格的閒置亮度（照 Chattynator 按鈕的灰階）
+
+local function SizeTileIcon(tile)
+    local h = db.height - 6
+    local info = tile.iconInfo
+    local w = h
+    -- 微型按鈕的 atlas 是直式（約 32x41），塞正方形會壓扁；照原始比例縮
+    if info and info.mode == "atlas" and C_Texture and C_Texture.GetAtlasInfo then
+        local ai = C_Texture.GetAtlasInfo(info.atlas)
+        if ai and ai.width and ai.height and ai.height > 0 then
+            w = h * (ai.width / ai.height)
+        end
+    end
+    tile.icon:SetSize(w, h)
+end
+
+-- 只換顏色（滑過／離開），不重新貼圖
+function ns.TintTileIcon(tile, hover)
+    local icon = tile.icon
+    if not (icon and icon:IsShown()) then return end
+    if db.iconStyle == "blizzard" then
+        icon:SetDesaturated(false)
+        icon:SetVertexColor(1, 1, 1, 1)
+        return
+    end
+    icon:SetDesaturated(true)
+    if hover then
+        icon:SetVertexColor(ns.W.Accent(1))
+    else
+        icon:SetVertexColor(ICON_TINT_IDLE, ICON_TINT_IDLE, ICON_TINT_IDLE, 1)
+    end
+end
+
+function ns.ApplyTileIcon(tile)
+    local info = tile.iconInfo
+    if not info then return end
+    local icon = tile.icon
+
+    if info.mode == "letter" then
+        icon:Hide()
+        if tile.letter then tile.letter:Show() end
+        return
+    end
+    if tile.letter then tile.letter:Hide() end
+    icon:Show()
+
+    if info.mode == "portrait" then
+        SetPortraitTexture(icon, "player")
+    elseif info.mode == "atlas" then
+        icon:SetAtlas(info.atlas)
+    else
+        icon:SetTexture(info.file)
+    end
+    SizeTileIcon(tile)
+    ns.TintTileIcon(tile, tile:IsMouseMotionFocus())
 end
 
 ----------------------------------------------------------------------

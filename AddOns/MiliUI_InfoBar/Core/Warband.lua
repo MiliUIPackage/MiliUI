@@ -206,7 +206,7 @@ local baselineSet = false
 local keyCheckTimer
 
 local function GetCharacterKey()
-    return UnitName("player") .. "-" .. GetRealmName()
+    return ns.CharKey()          -- 「角色名-伺服器」，定義在 Core/Bar.lua
 end
 
 local function ReadOwnKeystoneState()

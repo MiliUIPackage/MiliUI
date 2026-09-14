@@ -233,3 +233,29 @@ OnClick 裡，分析器整段算給資訊列；「近期平均（最近 60 幀�
 變數污染、`/cdprobe ui` 倒跨場次記錄。EUI 的對照：同樣的 clickbutton 轉發但戰鬥中用
 state driver 把點擊拔掉、完全不碰 HelpTip——它沒踩坑是因為沒做這兩個功能。
 
+
+## 坐騎區塊（2026-09-14）
+
+`Core/Mounts.lua`（資料層）＋ `Core/MountPopup.lua`（滑過面板）＋ `Options/Tab_Mounts.lua`（設定分頁）
+＋ Blocks.lua 的 `mounts` 圖示方塊（order 25，預設開，在微型選單左邊）。左鍵／右鍵各召喚一隻快捷坐騎，
+滑過列出各分類（修裝／塑形／拍賣／信箱）已收藏的功能型坐騎，分類旁有「隨機」。
+
+- **沒有 API 能判斷功能型坐騎**（GetMountInfoByID／Extra 只有取得方式、陸飛水、isSelfMount），
+  清單只能硬編 ＋ 讓玩家自己加。硬編用 **spellID**，執行期 `GetMountFromSpell` 換 mountID
+  （**只快取查到的**，登入那刻收藏冊不一定就緒）。種子：雷龍 264058、鍍金雷龍 465235、犛牛 122708、
+  馱獸 457485、猛獁象 61425／61447（猛獁象修裝待遊戲內確認）。
+- `C_MountJournal.SummonByID` 的 `SecretArguments = AllowedWhenUntainted` 是「秘密值參數只有未污染
+  程式能傳」，傳明文 mountID 從插件 Lua 直呼合法 ⇒ 方塊是普通 Button，**不需要 secure 轉發**。
+- **種子的 categories 陣列不能放進 DB_DEFAULTS**：CopyDefaults 遞迴合併會按索引補洞，玩家刪掉的分類
+  每次登入又冒出來。DB_DEFAULTS 只有 `mounts = { shared = {}, chars = {} }`，種子用 `profile.version`
+  印記在 Mounts.lua 種。角色專屬＝`chars[角色key]` 深拷貝 shared 一份、`enabled` 開關（關掉資料留著）。
+- 左右鍵預設 nil＝自動（左：修裝優先序、右：拍賣優先序，每次點擊現算不存 DB）。
+- 滑過開面板有 0.15 秒意圖延遲（游標橫掃資訊列會路過它）、離開 0.35 秒寬限（世代 token，判斷放到期時）。
+  面板掛 UIParent、戰鬥中不開、PLAYER_REGEN_DISABLED 直接 Hide。
+- 圖示 tile 的貼圖／單色上色抽成 `ns.ApplyTileIcon`／`ns.TintTileIcon`（Bar.lua），微型選單改用同一支；
+  角色 key 抽成 `ns.CharKey()`，Warband 與坐騎共用。
+- 收藏冊上千筆的掃描只在選擇器打開時做一次並快取（NEW_MOUNT_ADDED 作廢）。拖放：`GetCursorInfo()`
+  回 `"mount", mountID`，換得回 mountID 才收。
+
+待驗證（沒進過遊戲）：猛獁象修裝、GetCursorInfo 的 mount 格式、isCollected 會不會是秘密布林（現在
+fail-open 當已收藏）、面板翻面（停靠上／下緣）、編輯器高度變動後的捲軸範圍、五顆分頁鈕在 zhTW 的寬度。

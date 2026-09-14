@@ -28,6 +28,7 @@ local TABS = {
     { id = "general", label = L["TAB_GENERAL"] },
     { id = "blocks",  label = L["TAB_BLOCKS"] },
     { id = "micro",   label = L["TAB_MICRO"] },
+    { id = "mounts",  label = L["TAB_MOUNTS"] },
     { id = "about",   label = L["TAB_ABOUT"] },
 }
 

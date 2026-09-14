@@ -427,6 +427,100 @@ MakeTextBlock("warband", {
 })
 
 ------------------------------------------------------------
+-- 坐騎：一顆圖示方塊，左鍵召喚「左鍵坐騎」、右鍵召喚「右鍵坐騎」，
+-- 滑過展開分類面板（Core/MountPopup.lua）。資料層在 Core/Mounts.lua。
+--
+-- 不走 MakeTextBlock（那是文字方塊）：這顆是正方形的圖示 tile，做法照
+-- Core/MicroMenu.lua 的按鈕——貼圖與單色／彩色都交給共用的 ns.ApplyTileIcon。
+--
+-- 圖示＝左鍵坐騎的圖示（一眼看得出現在按下去會騎什麼）；沒有左鍵坐騎就用
+-- 通用的騎乘圖示。
+--
+-- ⚠ 這顆是普通 Button（SummonByID 不需要 secure 轉發），但 OnClick 前面一樣
+--   不掛 PreClick／OnMouseDown／OnMouseUp——理由見 Core/Bar.lua 的 CreateTile。
+------------------------------------------------------------
+ns.Blocks.mounts = {}
+function ns.Blocks.mounts.create()
+    local inst = { tiles = {} }
+    local tile = ns.CreateTile("MiliUIInfoBar_mounts", { clickable = true })
+    inst.tile = tile
+    inst.tiles[1] = tile
+
+    local icon = tile:CreateTexture(nil, "OVERLAY")
+    icon:SetPoint("CENTER")
+    -- 圖示邊緣那圈留白裁掉，方形圖示才貼得住 1px 的視覺語彙
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    tile.icon = icon
+    tile.iconInfo = { mode = "file", file = ns.MountPopup.FALLBACK_ICON }
+
+    tile:SetScript("OnClick", function(self, button)
+        local side = (button == "RightButton") and "right" or "left"
+        local spellID = ns.Mounts.Assigned(side)
+        if spellID then
+            ns.MountPopup.Hide()
+            ns.Mounts.Summon(spellID)
+        else
+            -- 那顆鍵沒有坐騎：帶玩家去設定，而不是安靜地什麼都沒發生
+            ns.MountPopup.Hide()
+            ns.OpenSettings("mounts")
+        end
+    end)
+
+    tile:HookScript("OnEnter", function(self)
+        ns.TintTileIcon(self, true)
+        if InCombatLockdown() then
+            -- 戰鬥中不開面板（召喚不了，開了只是擋畫面）；改用提示說明現況
+            AnchorTooltip(self)
+            GameTooltip:SetText(L["BLOCK_MOUNTS"], 1, 1, 1)
+            GameTooltip:AddLine(L["MSG_COMBAT_MOUNT"], 1, 0.3, 0.3)
+            GameTooltip:AddLine(" ")
+            for _, side in ipairs({ "left", "right" }) do
+                local spellID = ns.Mounts.Assigned(side)
+                GameTooltip:AddDoubleLine(
+                    L[side == "left" and "MOUNT_LEFT" or "MOUNT_RIGHT"],
+                    spellID and ns.Mounts.Name(spellID) or L["MOUNT_UNSET"],
+                    0.7, 0.7, 0.7, 1, 1, 1)
+            end
+            GameTooltip:Show()
+            return
+        end
+        ns.MountPopup.ScheduleOpen(self)
+    end)
+    tile:HookScript("OnLeave", function(self)
+        ns.TintTileIcon(self, false)
+        GameTooltip:Hide()
+        ns.MountPopup.CancelOpen()
+        ns.MountPopup.ScheduleClose()
+    end)
+
+    -- 圖示跟著「左鍵坐騎」走。圖示風格／高度變動也走這支（ApplyAll 會叫）
+    function inst:Update()
+        local spellID = ns.Mounts.Assigned("left")
+        local info = spellID and ns.Mounts.Info(spellID) or nil
+        tile.iconInfo.file = (info and info.icon) or ns.MountPopup.FALLBACK_ICON
+        tile.desiredW = ns.GetDB().height        -- 正方形
+        ns.ApplyTileIcon(tile)
+    end
+
+    function inst:Enable()
+        ns.Mounts.Init()
+        ns.Mounts.AddListener("blk-mounts", function() inst:Update() end)
+        -- 學到新坐騎／進世界之後左鍵坐騎可能就換人了，圖示要跟著重算
+        ns.Events.Register("NEW_MOUNT_ADDED", "blk-mounts", function() inst:Update() end)
+        ns.Events.Register("PLAYER_ENTERING_WORLD", "blk-mounts", function() inst:Update() end)
+    end
+
+    function inst:Disable()
+        ns.Mounts.RemoveListener("blk-mounts")
+        ns.Events.Unregister("NEW_MOUNT_ADDED", "blk-mounts")
+        ns.Events.Unregister("PLAYER_ENTERING_WORLD", "blk-mounts")
+        ns.MountPopup.Hide()
+    end
+
+    return inst
+end
+
+------------------------------------------------------------
 -- 金幣：只顯示金，銀銅是雜訊
 ------------------------------------------------------------
 MakeTextBlock("gold", {

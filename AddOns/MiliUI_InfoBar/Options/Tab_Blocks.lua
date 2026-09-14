@@ -24,6 +24,7 @@ local BOARD_W = 620
 local BLOCK_NOTES = {
     ilvl       = "BLOCK_ILVL_DESC",
     durability = "BLOCK_DURABILITY_DESC",
+    mounts     = "BLOCK_MOUNTS_DESC",
     micromenu  = "BLOCK_MICROMENU_DESC",
     spec       = "BLOCK_SPEC_DESC",
     lootspec   = "BLOCK_LOOTSPEC_DESC",

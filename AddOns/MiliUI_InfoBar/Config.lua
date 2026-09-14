@@ -42,6 +42,7 @@ end
 ns.BLOCK_DEFS = {
     { key = "ilvl",       order = 10,  enabled = true  },
     { key = "durability", order = 20,  enabled = true  },
+    { key = "mounts",     order = 25,  enabled = true  },
     { key = "micromenu",  order = 30,  enabled = true  },
     { key = "spec",       order = 40,  enabled = true  },
     { key = "lootspec",   order = 50,  enabled = true  },
@@ -123,5 +124,13 @@ ns.DB_DEFAULTS = {
     -- ResetDB 會整包留著，migration 印記也在這裡（nil = 還沒查過 MiliUI_DB）。
     warband = {
         characters = {},
+    },
+    -- 坐騎（Core/Mounts.lua）。⚠ **只能有這兩格空表**：分類是有序陣列，
+    -- 而 CopyDefaults 是遞迴合併、會按索引把陣列補回來——種子放這裡的話，
+    -- 玩家刪掉第 2 個分類之後每次登入又會冒出來。種子改在 Mounts.lua 裡種，
+    -- 用 profile.version 當印記。
+    mounts = {
+        shared = {},
+        chars  = {},
     },
 }

@@ -33,8 +33,6 @@ local W = ns.W
 ns.MicroMenu = {}
 local MM = ns.MicroMenu
 
-local ICON_TINT_IDLE = 0.82   -- 單色風格的閒置圖示亮度（照 Chattynator 按鈕的灰階）
-
 ------------------------------------------------------------
 -- 按鈕定義（順序即顯示順序）
 --
@@ -87,55 +85,8 @@ local function DiscoverIcon(def, ref)
     return { mode = "letter" }
 end
 
-local function SizeIcon(tile)
-    local h = ns.GetDB().height - 6
-    local info = tile.iconInfo
-    local w = h
-    -- 微型按鈕的 atlas 是直式（約 32x41），塞正方形會壓扁；照原始比例縮
-    if info and info.mode == "atlas" and C_Texture and C_Texture.GetAtlasInfo then
-        local ai = C_Texture.GetAtlasInfo(info.atlas)
-        if ai and ai.width and ai.height and ai.height > 0 then
-            w = h * (ai.width / ai.height)
-        end
-    end
-    tile.icon:SetSize(w, h)
-end
-
-local function ApplyIconStyle(tile)
-    local style = ns.GetDB().iconStyle
-    local info = tile.iconInfo
-    local icon = tile.icon
-
-    if info.mode == "letter" then
-        icon:Hide()
-        if tile.letter then tile.letter:Show() end
-        return
-    end
-    if tile.letter then tile.letter:Hide() end
-    icon:Show()
-
-    if info.mode == "portrait" then
-        SetPortraitTexture(icon, "player")
-    elseif info.mode == "atlas" then
-        icon:SetAtlas(info.atlas)
-    else
-        icon:SetTexture(info.file)
-    end
-    SizeIcon(tile)
-
-    if style == "blizzard" then
-        icon:SetDesaturated(false)
-        icon:SetVertexColor(1, 1, 1, 1)
-    else
-        icon:SetDesaturated(true)
-        if tile:IsMouseMotionFocus() then
-            local r, g, b = ns.W.Accent(1)
-            icon:SetVertexColor(r, g, b, 1)
-        else
-            icon:SetVertexColor(ICON_TINT_IDLE, ICON_TINT_IDLE, ICON_TINT_IDLE, 1)
-        end
-    end
-end
+-- 貼圖、尺寸、單色／彩色都在 Core/Bar.lua 的 ns.ApplyTileIcon（坐騎方塊共用同一支）
+local ApplyIconStyle = ns.ApplyTileIcon
 
 ------------------------------------------------------------
 -- 工具提示：只寫我們自己的字串（名稱＋快捷鍵），沒有讀受限資料，
@@ -557,16 +508,11 @@ function ns.Blocks.micromenu.create()
             end
 
             tile:HookScript("OnEnter", function(self)
-                if ns.GetDB().iconStyle ~= "blizzard" and self.icon:IsShown() then
-                    local r, g, b = ns.W.Accent(1)
-                    self.icon:SetVertexColor(r, g, b, 1)
-                end
+                ns.TintTileIcon(self, true)
                 ShowTooltip(self)
             end)
             tile:HookScript("OnLeave", function(self)
-                if ns.GetDB().iconStyle ~= "blizzard" and self.icon:IsShown() then
-                    self.icon:SetVertexColor(ICON_TINT_IDLE, ICON_TINT_IDLE, ICON_TINT_IDLE, 1)
-                end
+                ns.TintTileIcon(self, false)
                 GameTooltip:Hide()
             end)
 
