@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 115994b3-d41f-4e67-b636-6c325885e05b
-  modified: 2026-09-14T09:10:44.503Z
+  modified: 2026-09-14T09:14:19.698Z
 ---
 
 2026-08-29 開的獨立插件（`AddOns/MiliUI_QuestTracker/`），骨架照
@@ -279,7 +279,8 @@ CampaignQuest 153.91 ＋ Quest 485.31 塞在 700 高的框裡，有任務區塊�
 場景行另列一組 `Scenario objectives`（不掃孤兒行，那要對區塊呼叫 GetChildren）。
 不參與判定，但判定下面會補一行 `also:` 指過來。`Skin.FontRole`／`Skin.TitleFS` 是給這段讀的。
 
-**尚未在遊戲內驗證**：場景行套上之後的行距、秘密值閘在 M+ 的表現。
+**2026-09-14 已在遊戲內驗證**（探究「納爾多島」）：場景兩行跟戰役行同字級、同描邊，玩家確認正常。
+**尚未驗證**：秘密值閘在 M+ 的表現（鑰石中清單預設摺起來，平常看不到）。
 
 ## 跟別的插件的關係
 
