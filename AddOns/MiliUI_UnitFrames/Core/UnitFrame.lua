@@ -340,6 +340,8 @@ function ns.ApplyFramePosition(uf)
                 ns.P.Scale(pw / 2 + x - vw / 2) / s,
                 ns.P.Scale(ph / 2 + y - vh / 2) / s)
     uf:SetFrameStrata(ns.db.global.strata or "LOW")
+    -- 「隱藏時仍可點擊」的墊底按鈕照抄這裡算出來的位置（沒開過選項就沒有這顆）
+    if uf.visCatcher then ns.Visibility.PlaceCatcher(uf) end
 end
 
 ------------------------------------------------------------

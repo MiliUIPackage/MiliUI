@@ -97,6 +97,13 @@ local function FrameSpecs(unitKey)
     tinsert(list, { type = "toggle", root = "frame", key = "visHideNoEnemy",
                     label = L["Hide without a hostile target"] })
     tinsert(list, { type = "text", label = L["These stack on top of the choice above: any one of them hides the frame."] })
+    -- 只開放玩家框：墊底按鈕的 unit 固定是框自己的 token，其他框（目標、首領…）藏著時
+    -- 點下去選的是「現在的目標」之類的東西，沒有意義；寵物框單位可能不存在。
+    if unitKey == "player" then
+        tinsert(list, { type = "toggle", root = "frame", key = "clickWhenHidden",
+                        label = L["Clickable while hidden"],
+                        hint = L["While the frame is hidden, clicking where it would be still targets yourself. That spot keeps catching the mouse, so you can't click through it to the world."] })
+    end
 
     ------------------------------------------------------------
     -- 淡出與高亮

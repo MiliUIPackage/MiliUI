@@ -42,6 +42,7 @@ local ICON_LEVEL = 21
 --   scale             整框縮放，百分比（100 = 原始大小）
 --   visibility        主模式，見 Core/Visibility.lua 的 DRIVER_MODES
 --   vis*              附加條件，任一成立就藏
+--   clickWhenHidden   被顯示條件藏起來時仍可點擊選取（目前只有玩家框的設定頁有這個選項）
 --   fadeOutOfRange    超出距離淡出（輪詢）
 --   fadeOutOfCombat   脫戰淡出（吃事件）
 --   highlight         滑鼠移過時畫一圈高亮邊框
@@ -53,6 +54,7 @@ local function frameDef(o)
     if o.visHideMounted == nil then o.visHideMounted = false end
     if o.visHideNoTarget == nil then o.visHideNoTarget = false end
     if o.visHideNoEnemy == nil then o.visHideNoEnemy = false end
+    if o.clickWhenHidden == nil then o.clickWhenHidden = false end
     if o.fadeOutOfRange == nil then o.fadeOutOfRange = false end
     if o.fadeOutOfCombat == nil then o.fadeOutOfCombat = false end
     if o.highlight == nil then o.highlight = true end

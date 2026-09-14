@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: de450f90-cdd7-4e1f-8c62-1e9716828626
-  modified: 2026-09-14T09:25:46.289Z
+  modified: 2026-09-14T09:42:14.067Z
 ---
 
 **MiliUI_UnitFrames 的顯示條件（`Core/Visibility.lua`）走兩層閘框**（2026-09-14 從一層改成兩層）：
@@ -52,6 +52,12 @@ tainted Lua `SetShown` 閘框一樣被擋（2026-09-06 taint.log 實測 ×11）�
 - `SetParent` 對 secure 框在戰鬥中不合法 → 兩層都只在 spawn 建，且要排在 `ApplyFramePosition` 之前。
 - 整框 alpha 收成單一出口 `V.ApplyAlpha`：超出距離淡出（輪詢）與脫戰淡出（吃事件）
   **不可以各自 SetAlpha**，後設的會蓋掉前設的。取兩者最低。
+- **隱藏時仍可點擊**（`frame.clickWhenHidden`，只開放玩家框，預設關，2026-09-14）：藏起來的框收不到滑鼠，
+  所以在單位框**底下**墊一顆透明 SecureUnitButton（`uf.visCatcher`，父層 UIParent、同 strata、level 0、
+  `*type1=target`）。框顯示時單位框蓋在上面照舊接點擊；被閘框藏起來時滑鼠落到墊底按鈕。
+  ⚠ 墊底按鈕**不跟顯示條件切換**（secure 框戰鬥中切不動）——只看 `clickWhenHidden AND uf:IsShown()`，
+  閘框只改 IsVisible 不改 IsShown，會變的只有停用／預覽接管，都在脫戰。位置**照抄**單位框的錨點／尺寸／縮放
+  （`V.PlaceCatcher`，ns.ApplyFramePosition 結尾呼叫），不錨到父層藏著的框上。代價：那塊一直吃滑鼠。
 - 診斷：`/muf debug` 的「顯示條件」列出每框 `外開/關 內開/關`、`!外待補`，以及實際註冊的巨集字串
   （字串錯了暴雪不報錯，只會一直判 hide）。
 - **待遊戲內驗證**（2026-09-14 只做了離線窮舉比對語意）：戰鬥中選怪框立刻出現、只在戰鬥中進戰出現、

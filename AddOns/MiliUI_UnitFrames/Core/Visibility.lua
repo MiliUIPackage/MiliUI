@@ -123,6 +123,10 @@ end
 ------------------------------------------------------------
 -- 閘框
 ------------------------------------------------------------
+-- 「隱藏時仍可點擊」開放給哪些單位（見下面「隱藏時仍可點擊」一節）。
+-- ⚠ 要排在 V.CreateGate 之前宣告：它在建閘框時就要讀。
+local CATCHER_UNITS = { player = true }
+
 -- 閘框重新顯示時補一次全量重畫與透明度。
 -- ⚠⚠ 一定要 ns.Defer，不能同步做：外層是暴雪的 SecureStateDriverManager 在它的
 -- OnUpdate 迴圈裡 `frame:Show(); frame:SetAttribute("statehidden", nil)` 顯示的，
@@ -153,6 +157,16 @@ function V.CreateGate(uf)
     local function OnShow() ns.Defer(OnGateShown, uf) end
     driver:HookScript("OnShow", OnShow)
     gate:HookScript("OnShow", OnShow)
+
+    -- 墊底按鈕跟著單位框自己的 Show/Hide（停用、預覽接管）走。
+    -- ⚠ 一樣只能 Defer：閘框被狀態驅動切換時，子物件的 OnShow/OnHide 可能也在那條迴圈裡跑。
+    -- ⚠ 單位框的 OnShow 是 SetScript 設的（UnitFrame.lua），這裡是 HookScript ⇒ spawn 時
+    --   CreateGate 必須排在 SetScript 之後，否則會被蓋掉（目前的順序是對的）。
+    if CATCHER_UNITS[uf.baseUnit] then
+        local function SyncCatcher() ns.Defer(V.ApplyCatcher, uf) end
+        uf:HookScript("OnShow", SyncCatcher)
+        uf:HookScript("OnHide", SyncCatcher)
+    end
 
     uf:SetParent(gate)
     uf.visDriver, uf.visGate = driver, gate
@@ -225,6 +239,71 @@ function V.Apply(uf)
     gate:SetShown(want)
 end
 
+------------------------------------------------------------
+-- 隱藏時仍可點擊（目前只開放玩家框）
+------------------------------------------------------------
+-- 藏起來的框收不到滑鼠。做法是在單位框**底下**墊一顆透明的 secure 按鈕：
+-- 同位置、同 strata、level 0。
+--   * 框顯示時單位框蓋在它上面，點擊照舊由單位框接（右鍵選單、點擊施法都不受影響）
+--   * 框被閘框藏起來時滑鼠落到墊底按鈕上 ⇒ 左鍵選取自己
+--
+-- ⚠⚠ 墊底按鈕**不跟著顯示條件切換**。它是 secure 框，戰鬥中不能 Show/Hide，
+--   而條件在戰鬥中會變（兩層閘框就是為了這個）。一直墊著就不必知道「現在藏著沒」，
+--   也就沒有戰鬥中切不動的問題。會切它的只有：選項開關、框本身被停用、預覽接管真實框
+--   —— 三個都在脫戰，而且都反映在 `uf:IsShown()` 上（閘框只改 IsVisible，不改 IsShown）。
+-- ⚠ 父層是 UIParent，不能掛在閘框底下（會跟著藏）。位置不錨在單位框上，而是照抄它的
+--   錨點／尺寸／縮放（V.PlaceCatcher，由 ns.ApplyFramePosition 每次呼叫）：
+--   不必去賭「錨到一個父層藏著的框，版面算不算得出來」。
+-- 代價：那塊區域一直接住滑鼠，框藏著時點不到後面的世界 ⇒ 選項預設關閉。
+-- 哪些單位開放在檔案前面的 CATCHER_UNITS（V.CreateGate 也要讀）。
+
+function V.PlaceCatcher(uf)
+    local c = uf and uf.visCatcher
+    if not c or InCombatLockdown() then return end
+    c:SetScale(uf:GetScale())
+    c:SetSize(uf:GetSize())
+    c:ClearAllPoints()
+    for i = 1, uf:GetNumPoints() do c:SetPoint(uf:GetPoint(i)) end
+    -- level 0：同 strata 裡任何東西（包括單位框自己）都蓋在它上面
+    c:SetFrameStrata(uf:GetFrameStrata())
+    c:SetFrameLevel(0)
+end
+
+local function CreateCatcher(uf)
+    local c = CreateFrame("Button", nil, UIParent, "SecureUnitButtonTemplate")
+    c:RegisterForClicks("AnyUp")
+    c:SetAttribute("unit", uf.baseUnit)
+    c:SetAttribute("toggleForVehicle", true)     -- 跟單位框一致：載具中點下去選的是載具
+    c:SetAttribute("*type1", "target")
+    c:EnableMouse(true)
+    c:Hide()
+    uf.visCatcher = c
+    V.PlaceCatcher(uf)
+    return c
+end
+
+-- 同樣是「狀態沒變就不叫、戰鬥中記帳」。按鈕只在第一次需要時才建（frame 刪不掉）。
+function V.ApplyCatcher(uf)
+    if not uf or not CATCHER_UNITS[uf.baseUnit] then return end
+    local fdb = uf.db and uf.db.frame
+    local want = (fdb and fdb.clickWhenHidden and uf:IsShown()) and true or false
+
+    local c = uf.visCatcher
+    if (c and c:IsShown() or false) == want then
+        uf.visCatcherPending = nil
+        return
+    end
+
+    if InCombatLockdown() then
+        uf.visCatcherPending = true
+        return
+    end
+
+    uf.visCatcherPending = nil
+    c = c or CreateCatcher(uf)
+    c:SetShown(want)
+end
+
 -- 脫戰把戰鬥中擋下來的補做。自己帶鎖定閘，所以放在哪裡呼叫都安全
 -- （OnCombat 進戰／脫戰共用同一支）。
 function V.FlushPending()
@@ -232,6 +311,7 @@ function V.FlushPending()
     for _, uf in pairs(ns.frames) do
         if uf.visDriverPending then V.ApplyDriver(uf) end
         if uf.visPending then V.Apply(uf) end
+        if uf.visCatcherPending then V.ApplyCatcher(uf) end
     end
 end
 
@@ -451,6 +531,7 @@ function V.Refresh()
         end
         V.ApplyDriver(uf)
         V.Apply(uf)
+        V.ApplyCatcher(uf)
         uf.appliedAlpha = nil       -- 設定可能剛改過 oorAlpha／oocAlpha，強迫重設
         uf.appliedScrim = nil       -- 同理：強度或元件位置可能變了，遮罩要重算外擴量
         V.ApplyAlpha(uf)
@@ -513,12 +594,15 @@ function V.Debug()
             if fdb.visHideNoTarget then extra[#extra + 1] = "無目標藏" end
             if fdb.visHideNoEnemy then extra[#extra + 1] = "無敵目標藏" end
             local pending = (uf.visDriverPending and "!外待補" or "") .. (uf.visPending and "!內待補" or "")
-            rows[#rows + 1] = ("%s=%s/外%s內%s%s%s alpha=%.2f"):format(
+                         .. (uf.visCatcherPending and "!墊底待補" or "")
+            -- 墊底：隱藏時仍可點擊的那顆按鈕（沒建過就不列）
+            local catcher = uf.visCatcher and (" 墊底" .. (uf.visCatcher:IsShown() and "開" or "關")) or ""
+            rows[#rows + 1] = ("%s=%s/外%s內%s%s%s%s alpha=%.2f"):format(
                 unit, fdb.visibility or "always",
                 uf.visDriver:IsShown() and "開" or "關",
                 uf.visGate:IsShown() and "開" or "關",
                 #extra > 0 and ("(" .. table.concat(extra, ",") .. ")") or "",
-                pending,
+                pending, catcher,
                 uf.appliedAlpha or 1)
             if uf.visDriverSpec then
                 specs[#specs + 1] = ("%s：%s"):format(unit, uf.visDriverSpec)
