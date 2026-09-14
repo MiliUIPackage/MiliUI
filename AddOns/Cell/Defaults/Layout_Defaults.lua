@@ -363,19 +363,18 @@ Cell.defaults.layout = {
             ["indicatorName"] = "defensiveCooldowns",
             ["type"] = "built-in",
             ["enabled"] = true,
-            -- ⚠ Pinned by OUR RIGHT edge to the button's LEFT edge, not left-to-left. This row
-            -- hangs off the side of the frame and its width follows how many icons are actually
-            -- up, which differs per class/spec -- so with a left-to-left pin the edge FACING the
-            -- frame is width away from the anchor and the gap jumps every time you swap
-            -- characters. Pinning the facing edge keeps the gap at x and lets the row grow
-            -- outward, which is also why the orientation below flows away from the frame.
-            ["position"] = {"RIGHT", "button", "LEFT", -2, 5},
+            -- ⚠ This row sits INSIDE the frame, mirroring External Cooldowns on the right: its
+            -- left edge pokes 2px past the button's left edge and it grows rightward, inward.
+            -- LEFT-to-LEFT is already the edge that faces the frame, so the row doesn't move
+            -- when the icon count changes. Do not re-pin it RIGHT-to-LEFT: that throws the whole
+            -- row outside the frame, on top of the neighbouring cell (see Revise.lua).
+            ["position"] = {"LEFT", "button", "LEFT", -2, 5},
             ["frameLevel"] = 10,
             ["size"] = {12, 20},
             ["showDuration"] = 60, -- only under 60s
             ["showAnimation"] = true,
             ["num"] = 2,
-            ["orientation"] = "right-to-left",  -- flows away from the frame
+            ["orientation"] = "left-to-right",
             ["font"] = {
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
@@ -387,14 +386,14 @@ Cell.defaults.layout = {
             ["indicatorName"] = "allCooldowns",
             ["type"] = "built-in",
             ["enabled"] = false,
-            -- same side, same reasoning as Defensive Cooldowns above
-            ["position"] = {"RIGHT", "button", "LEFT", -2, 5},
+            -- same place, same reasoning as Defensive Cooldowns above
+            ["position"] = {"LEFT", "button", "LEFT", -2, 5},
             ["frameLevel"] = 10,
             ["size"] = {12, 20},
             ["showDuration"] = false,
             ["showAnimation"] = true,
             ["num"] = 2,
-            ["orientation"] = "right-to-left",  -- flows away from the frame
+            ["orientation"] = "left-to-right",
             ["font"] = {
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},

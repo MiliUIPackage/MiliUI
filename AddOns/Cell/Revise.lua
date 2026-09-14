@@ -3795,30 +3795,27 @@ function F.Revise()
         CellDB["aoeHealings"] = nil
     end
 
-    --! fix from MiliUI: the two LEFT-side cooldown rows (Defensive Cooldowns, Externals +
-    --! Defensives) were pinned LEFT-to-LEFT. Those rows hang off the side of the frame and
-    --! their width follows how many icons are actually up, which is class/spec dependent --
-    --! so the edge FACING the frame sat one row-width away from the anchor and the gap moved
-    --! every time you logged onto a different character. Re-pin them by their own RIGHT edge
-    --! to the button's LEFT edge (facing edge = anchor, gap = x) and flow them outward.
+    --! fix from MiliUI: undo "miliuiLeftCooldownAnchor" (2026-08-24). That pass re-pinned the
+    --! two left-side cooldown rows (Defensive Cooldowns, Externals + Defensives) from
+    --! LEFT/LEFT to RIGHT/LEFT, assuming they hung off the side of the frame. They don't: the
+    --! stock -2 puts the row INSIDE the frame, and LEFT/LEFT was already the stable pin. The
+    --! re-pin threw every default row outside, onto the neighbouring cell, and clamped any
+    --! x below -2 to -2.
+    --! ⚠ Only the exact result of that pass is reverted (RIGHT/button/LEFT with x == -2). An x
+    --! the player moved afterwards is their own fix and stays. Clamped values are gone for good.
     --! ⚠ One-shot marker, same reason as above: dbRevision needs the TOC version bumped.
-    --! Only the old LEFT/LEFT pair is touched -- anything the user re-anchored is left alone.
-    if not CellDB["miliuiLeftCooldownAnchor"] then
-        CellDB["miliuiLeftCooldownAnchor"] = true
+    if not CellDB["miliuiLeftCooldownAnchorReverted"] then
+        CellDB["miliuiLeftCooldownAnchorReverted"] = true
+        CellDB["miliuiLeftCooldownAnchor"] = nil
         local LEFT_ROWS = { defensiveCooldowns = true, allCooldowns = true }
         for _, layout in pairs(CellDB["layouts"] or {}) do
             for _, t in pairs(layout["indicators"] or {}) do
                 if type(t) == "table" and LEFT_ROWS[t["indicatorName"]] then
                     local p = t["position"]
-                    if type(p) == "table" and p[1] == "LEFT" and p[3] == "LEFT" then
-                        p[1] = "RIGHT"
-                        -- x used to have to cover the row's own width to clear the frame; now
-                        -- it is just the gap, so a value tuned for the old pin would fling the
-                        -- row out into the raid. Anything further out than the default gap
-                        -- collapses back to it; a value the user pulled INWARD is kept.
-                        if type(p[4]) == "number" and p[4] < -2 then p[4] = -2 end
-                        if t["orientation"] == "left-to-right" then
-                            t["orientation"] = "right-to-left"
+                    if type(p) == "table" and p[1] == "RIGHT" and p[2] == "button" and p[3] == "LEFT" and p[4] == -2 then
+                        p[1] = "LEFT"
+                        if t["orientation"] == "right-to-left" then
+                            t["orientation"] = "left-to-right"
                         end
                     end
                 end
