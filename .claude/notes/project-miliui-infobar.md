@@ -319,3 +319,29 @@ fail-open 當已收藏）、面板翻面（停靠上／下緣）、編輯器高�
 待驗證（沒進過遊戲）：戰鬥中面板有沒有被 state driver 準時收掉（以及脫戰後不會自己冒出來）、
 secure 按鈕實點道具與玩具（ActionButtonUseKeyDown 兩種設定各試）、圖示排換行的寬度、
 冷卻扇形、提示錨在面板上下會不會擋到、`Item:ContinueOnItemLoad` 把沒看過的道具名字補上的時機。
+
+
+## 確認倒數區塊（2026-09-14）
+
+`Core/ReadyCheck.lua`（資料層）＋ `Core/ReadyCheckPopup.lua`（滑過面板）＋ `Options/Tab_ReadyCheck.lua`
+＋ Blocks.lua 的 `readycheck` 圖示方塊（order 57，預設開，圖 `Interface\RaidFrame\ReadyCheck-Ready`）。
+設定 `db.readycheck = { onlyInGroup = true, left/middle/right = { action, seconds } }`，
+action = none｜readycheck｜countdown｜cancel；預設照快捷聊天列開怪鈕（左確認、中 5 秒、右 10 秒）。
+
+- **動作走 secure 巨集跑暴雪原生指令**：`/readycheck`、`/cd N`、`/cd 0`（取消）。方塊是
+  SecureActionButton，`*typeN`／`*macrotextN`（左 1、右 2、中 3）＋ `useOnKeyDown=false`。
+  理由見 [[wow-12x-addon-restrictions]] 的 PartyInfo 那段：DoReadyCheck／DoCountdown 是
+  HasRestrictions，插件端直呼會在首領戰／鑰石被擋。快捷聊天列那顆的倒數是自訂斜線指令再從 Lua
+  呼叫 DoCountdown，**這半不要抄**。
+- 「在隊伍／團隊內啟用」＝不在 `IsInGroup()` 時 `_blockHidden`，GROUP_ROSTER_UPDATE 只在可見度
+  真的變了才 RequestLayout（戰鬥中 Layout 延到脫戰）。
+- 滑過面板照 MountPopup 那套（提示皮、0.15 開／0.35 關、先翻面再平移），戰鬥中不開、改彈
+  GameTooltip。內容：三顆鍵 → 沒反應的原因（不在隊伍／沒隊長助理權限，暴雪指令這兩種都安靜失敗）→
+  Cell 標記工具列開關 → 設定入口。
+- **Cell 標記工具列開關不另存值**：讀寫 `CellDB.tools.marks[1]`（Cell 勾選框背後的欄位）＋
+  `Cell.Fire("UpdateTools", "marks")`；Cell 的 `frames.utilitiesTab` 可見時再
+  `Cell.Fire("ShowOptionsTab", "utilities")` 讓它重讀勾選框（其他分頁的 ShowTab 非自己時只 Hide，
+  重發無副作用）。`C_AddOns.IsAddOnLoaded("Cell")` 否或結構對不上就不顯示那列；戰鬥中不切。
+
+待驗證（沒進過遊戲）：`/cd` 在 zhTW 客戶端的巨集裡有效（同路線的先例在繁中客戶端可用）、中鍵實點、
+Cell 設定視窗開著時勾選框是否即時同步、面板在停靠上／下緣的翻面。

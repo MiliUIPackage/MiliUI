@@ -23,12 +23,18 @@ local Popup = ns.ReadyCheckPopup
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 ------------------------------------------------------------
--- 版面常數（字級、列高跟坐騎面板一致：兩張面板在同一條資訊列上，密度不該不同）
+-- 版面常數（字級、列高、間距單位跟坐騎面板一致：兩張面板在同一條資訊列上，密度不該不同）
+--
+-- 水平只有一張兩欄格線：[鍵名／打勾 @PAD_X] [動作／開關／設定入口 @textX]，
+-- textX 由鍵名欄與打勾欄取大者算出來，每一列都用同一個值。
+-- 垂直所有「反白 ↔ 線／面板邊」的距離都是 G（理由見 MountPopup.lua 的同名段落）。
 ------------------------------------------------------------
 local TIP_BG       = 0.133
 local ROW_H        = 28
-local SEP_H        = 9
-local PAD          = 10
+local PAD_X        = 10
+local G            = 6
+local PAD_Y        = G           -- 面板上下內距
+local SEP_H        = G * 2 + 1   -- 分隔線列：1px 的線置中 ⇒ 上下各 G
 local CHECK        = 13      -- 打勾圖邊長
 local CHECK_GUTTER = 22      -- 打勾欄寬。**每一列的文字都從同一條線起**，沒勾的列一樣留
 local LABEL_GAP    = 12      -- 鍵名與動作之間
@@ -128,7 +134,7 @@ local function GetRow(index)
     -- 做法同共用層 ContextMenu.lua。
     row.check = row:CreateTexture(nil, "OVERLAY")
     row.check:SetSize(CHECK, CHECK)
-    row.check:SetPoint("LEFT", row, "LEFT", PAD, 0)
+    row.check:SetPoint("LEFT", row, "LEFT", PAD_X, 0)
     if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("checkmark-minimal") then
         row.check:SetTexture(WHITE)
         local mask = row:CreateMaskTexture()
@@ -142,7 +148,7 @@ local function GetRow(index)
 
     row.prefix = row:CreateFontString(nil, "OVERLAY")
     row.prefix:SetWordWrap(false)
-    row.prefix:SetPoint("LEFT", row, "LEFT", PAD, 0)
+    row.prefix:SetPoint("LEFT", row, "LEFT", PAD_X, 0)
 
     row.text = row:CreateFontString(nil, "OVERLAY")
     row.text:SetWordWrap(false)
@@ -150,8 +156,8 @@ local function GetRow(index)
 
     row.sep = row:CreateTexture(nil, "ARTWORK")
     row.sep:SetHeight(1)
-    row.sep:SetPoint("LEFT", row, "LEFT", PAD, 0)
-    row.sep:SetPoint("RIGHT", row, "RIGHT", -PAD, 0)
+    row.sep:SetPoint("LEFT", row, "LEFT", PAD_X, 0)
+    row.sep:SetPoint("RIGHT", row, "RIGHT", -PAD_X, 0)
     row.sep:SetColorTexture(1, 1, 1, 0.12)
 
     row:SetScript("OnEnter", RowEnter)
@@ -209,10 +215,10 @@ function Populate()
             labelW = math.max(labelW, math.ceil(probe.prefix:GetStringWidth()))
         end
     end
-    local textX = PAD + math.max(labelW + LABEL_GAP, CHECK_GUTTER)
+    local textX = PAD_X + math.max(labelW + LABEL_GAP, CHECK_GUTTER)
 
     local width = MIN_W
-    local y = PAD
+    local y = PAD_Y
 
     for i, item in ipairs(model) do
         local row = GetRow(i)
@@ -244,12 +250,12 @@ function Populate()
             row.text:SetText(item.text)
             local c = item.dim and TEXT_DIM or TEXT_MAIN
             row.text:SetTextColor(c[1], c[2], c[3])
-            need = textX + row.text:GetStringWidth() + PAD
+            need = textX + row.text:GetStringWidth() + PAD_X
 
         elseif item.kind == "note" then
             row.text:SetText(item.text)
             row.text:SetTextColor(TEXT_DIM[1], TEXT_DIM[2], TEXT_DIM[3])
-            need = textX + row.text:GetStringWidth() + PAD
+            need = textX + row.text:GetStringWidth() + PAD_X
 
         elseif item.kind == "cellmarks" then
             -- 開著＝強調色字＋打勾（顏色以外還有圖示這第二個訊號）；關著＝一般白字、勾欄空著
@@ -263,7 +269,7 @@ function Populate()
             else
                 row.text:SetTextColor(TEXT_MAIN[1], TEXT_MAIN[2], TEXT_MAIN[3])
             end
-            need = textX + row.text:GetStringWidth() + PAD
+            need = textX + row.text:GetStringWidth() + PAD_X
 
         elseif item.kind == "settings" then
             row:EnableMouse(true)
@@ -271,7 +277,7 @@ function Populate()
             row.dimText = true
             row.text:SetText(item.text)
             row.text:SetTextColor(TEXT_DIM[1], TEXT_DIM[2], TEXT_DIM[3])
-            need = textX + row.text:GetStringWidth() + PAD
+            need = textX + row.text:GetStringWidth() + PAD_X
         end
 
         -- 游標正停在這列上時重畫（點了開關），滑過狀態要接回來
@@ -288,7 +294,7 @@ function Populate()
 
     for i = #model + 1, #rows do rows[i]:Hide() end
     -- +2 ＝ 列左右各內縮 1px 讓出邊框的那兩格
-    frame:SetSize(width + 2, y + PAD)
+    frame:SetSize(width + 2, y + PAD_Y)
 end
 
 ------------------------------------------------------------

@@ -47,6 +47,15 @@ Baganator `Core/Utilities.lua`、Chattynator `Display/Buttons.lua` ＋
 見 [[wow-121-chat-reply-secret-taint]]，但在聊天封鎖下不成立）。唯一能做的是把原文
 `print` 在本地讓玩家自己打。
 
+## 就位確認／開怪倒數：走巨集，不要直呼
+
+`C_PartyInfo.DoReadyCheck`、`C_PartyInfo.DoCountdown` 在 API 文件上都是 `HasRestrictions = true`
+（DoCountdown 另有 `SecretArguments = AllowedWhenUntainted`）。按鈕要在首領戰前、鑰石裡照樣能用，
+就讓 SecureActionButton 跑暴雪自己的斜線指令：`/readycheck`、`/cd N`（`/cd 0` 取消）——巨集處理器
+是暴雪的碼，從 secure 按鈕點下去是乾淨執行。自訂斜線指令再從 Lua 呼叫 DoCountdown 仍是插件端執行，
+等於沒繞過。暴雪 `/readycheck` 本身還有一道閘：不是隊長或助理就安靜地什麼都不做。
+實作：[[project-miliui-infobar]] 的確認倒數區塊。
+
 ## 症狀長什麼樣
 
 不會回傳失敗碼，是**直接彈紅字封鎖對話框**（ADDON_ACTION_FORBIDDEN 那個），訊息還附上
