@@ -62,6 +62,8 @@ local function BuildFakeCache(unitKey)
         isPlayer = isPlayer,
         -- 玩家控制但不是玩家 → 吃主人的職業色，跟真實框同一條路（見 Core/Cache.lua）
         ownerClass = (not isPlayer) and base.pc and ns.playerClass or nil,
+        -- 寵物專精色：用玩家真的寵物專精（非獵人是 nil → 退主人職業色，同真實框）
+        petSpec = (unitKey == "pet") and ns.Cache.PlayerPetSpec() or nil,
         reaction = base.reaction,
         level = base.level,
         classification = base.classificationKey and cls[base.classificationKey] or "",

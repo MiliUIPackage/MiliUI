@@ -288,6 +288,13 @@ local SPECIAL = {
             RefreshUnit("pettarget", "unitchanged", nil, "unit_pet")
         end
     end,
+    -- 寵物專精（寵物專精色）。叫出寵物時專精資料不保證比 UNIT_PET 早到，這個是補救點。
+    -- 只換顏色 ⇒ reaction 桶（專精在 Cache 的 flag 組重讀，血條與能量條都訂閱它），
+    -- 不走 unitchanged：那會重載 3D 頭像，叫寵物時連閃兩次。
+    -- force：同一次 flush 裡稍早若有別的事件推過 reaction，那次讀的是舊專精。
+    PET_SPECIALIZATION_CHANGED = function()
+        RefreshUnit("pet", "reaction", true, "petspec")
+    end,
 }
 
 ------------------------------------------------------------

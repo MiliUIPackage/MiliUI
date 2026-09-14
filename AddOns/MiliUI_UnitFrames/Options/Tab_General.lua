@@ -72,6 +72,13 @@ local CONTROLS = {
     { type = "color", sub = "colors", key = "hpRed",   label = L["Critical"] },
     { type = "color", sub = "colors", key = "gray",    label = L["Gray"] },
 
+    -- 標籤用暴雪的專精名（官方譯名），不進語系表
+    { type = "header", label = L["Pet specialization colors"] },
+    { type = "text",   label = L["Used by the \"Pet specialization color\" coloring method, which only the pet frame's bars offer. Only hunter pets have a specialization; any other pet gets your class color instead."] },
+    { type = "color", sub = "colors", key = "petFerocity", label = Specs.PetSpecName(74, "Ferocity"), hasAlpha = false },
+    { type = "color", sub = "colors", key = "petTenacity", label = Specs.PetSpecName(81, "Tenacity"), hasAlpha = false },
+    { type = "color", sub = "colors", key = "petCunning",  label = Specs.PetSpecName(79, "Cunning"),  hasAlpha = false },
+
 
     { type = "header", label = L["Cast bar colors"] },
     { type = "text",   label = L["Every cast bar shares these colors; whether \"non-interruptible\" applies is set per unit. The defaults match the Platynator nameplate preset that ships with MiliUI, so the same cast state reads the same on both."] },

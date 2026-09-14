@@ -434,3 +434,26 @@ tank/nothreat/low/secret）存進 `f.threatWhy`，`/muf debug` 印判定、重�
 
 **尚未在遊戲內驗證**：戰場（PvP 限制）裡讀不讀得到、目標框選到團員時顯示的是不是他的小隊、
 換小隊當下有沒有即時更新、44 寬在歐語系（"Gruppe 8"）會不會被截成省略號。
+
+
+## 寵物專精色（petspec，2026-09-14）
+
+新上色方式 `petspec`／`petspecdark`：獵人寵物依專精（狂野 74／狡詐 79／堅韌 81）上色。
+**只出現在寵物框的下拉**（`Specs.ColorMethodItems(unitKey)`，插在職業色階梯之後）；
+**預設值沒改**（寵物框血條仍是 classreaction），要當預設得配一條值閘遷移。
+色票在全域 `colors.petFerocity／petTenacity／petCunning`（新鍵，MergeDefaults 補），
+一般分頁「寵物專精顏色」可調，標籤用 `GetSpecializationInfoByID` 的官方譯名不進語系表。
+
+- **取值**：`C_SpecializationInfo.GetSpecialization(false, true)` → `GetSpecializationInfo(idx, false, true)`
+  的 specID（`Cache.PlayerPetSpec()`）。專精 API 問的是**玩家的寵物欄**、跟 unit token 無關 ⇒
+  `PetSpecOf` 先確認框畫的真的是自己的寵物（ownerClass 閘＋`unit == "pet"` 或明文 `UnitIsUnit`），
+  再排除載具（`uf.unit == "vehicle"`、`UnitHasVehicleUI("player")`：載具坐在寵物欄）。
+- **放 flag 組（reaction 桶）不放 name 組**：能量條不訂閱 info 桶。`PET_SPECIALIZATION_CHANGED`
+  → `RefreshUnit("pet", "reaction", force)`；不走 unitchanged（會重載 3D 頭像，叫寵物時連閃兩次）。
+- **沒專精就退 classreaction**＝自己寵物的主人職業色，跟原本預設一樣 ⇒ 非獵人選了不變色。
+  配色刻意避開綠（獵人職業色是綠，狡詐用綠會分不出「生效」與「退回」）：紅／藍／紫。
+- `/muf debug` 的寵物框上色那行多印 `petSpec=`（cache）與「現問=」（直接問 API），分得出是閘擋掉還是 API 回不出來。
+- 預覽孿生與設定頁色塊的「自己的寵物」用**真的**寵物專精（非獵人 nil → 演職業色）。
+
+**尚未在遊戲內驗證**：叫出寵物當下 `UNIT_PET` 時專精讀不讀得到（讀不到就靠 PET_SPECIALIZATION_CHANGED，
+那個事件在叫寵物時會不會發也沒測）、載具期間有沒有誤塗、`GetSpecializationInfoByID` 在載入期回不回得出名字（回不出就是英文標籤）。

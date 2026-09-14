@@ -138,6 +138,46 @@ local function OwnerClassOf(uf)
     return nil
 end
 
+------------------------------------------------------------
+-- 自己寵物的專精 specID（狂野 74／狡詐 79／堅韌 81），給 methods.petspec 用
+--
+-- 只有獵人寵物有專精；術士惡魔、死騎食屍鬼等問下去是 nil／0 ⇒ 回 nil，
+-- 上色那邊退主人職業色。專精 API 讀的是玩家自己的資料，不是秘密值，
+-- 但照樣防：pcall ＋ IsSecret，拿不到就當沒有。
+------------------------------------------------------------
+local CSI = C_SpecializationInfo
+local GetSpecIndex = (CSI and CSI.GetSpecialization) or GetSpecialization
+local GetSpecInfo  = (CSI and CSI.GetSpecializationInfo) or GetSpecializationInfo
+
+local function PlainPositive(ok, v)
+    if not ok or IsSecret(v) or type(v) ~= "number" or v < 1 then return nil end
+    return v
+end
+
+function Cache.PlayerPetSpec()
+    if not (GetSpecIndex and GetSpecInfo) then return nil end
+    -- (isInspect, isPet)。GetSpecializationInfo 的 isInspect 不可為 nil，要明寫 false
+    local idx = PlainPositive(pcall(GetSpecIndex, false, true))
+    if not idx then return nil end
+    return PlainPositive(pcall(GetSpecInfo, idx, false, true))
+end
+
+-- ⚠ 專精 API 問的是「玩家的寵物欄」，跟 unit token 無關 —— 所以要先確定這個框畫的
+-- 真的是那隻寵物，不然目標框選到隨便一隻怪也會被塗上你寵物的專精色。
+-- 呼叫端已經用 ownerClass 閘過（主人是自己），這裡再排除載具：
+-- 載具坐在寵物欄（見 Core/UnitFrame.lua 的 ResolveUnit），有載具介面時 "pet" 指的是
+-- 載具，專精 API 卻可能還回獵人寵物那份。
+local function PetSpecOf(uf)
+    local unit = uf.unit
+    if unit == "vehicle" then return nil end
+    if unit ~= "pet" then
+        local same = UnitIsUnit(unit, "pet")
+        if IsSecret(same) or not same then return nil end
+    end
+    if UnitHasVehicleUI and ToBool(UnitHasVehicleUI("player")) then return nil end
+    return Cache.PlayerPetSpec()
+end
+
 local function UpdateNameFields(uf)
     local cache, unit = uf.cache, uf.unit
     cache.name      = Desecret(UnitName(unit), "")
@@ -197,6 +237,10 @@ local function UpdateFlagFields(uf)
     cache.attackable = ToBool(UnitCanAttack("player", unit)) or false
     cache.hostile   = ToBool(UnitIsEnemy("player", unit)) or false
     cache.incombat  = ToBool(UnitAffectingCombat(unit)) or false
+    -- 寵物專精放 flag 組而不是 name 組：它決定的是**顏色**，而血條與能量條都訂閱
+    -- reaction 桶（info 桶沒有能量條），PET_SPECIALIZATION_CHANGED 推這一個桶就兩條一起
+    -- 重算。ownerClass 是 name 組填的；unitchanged 時 name 組先跑，讀得到當下的值。
+    cache.petSpec   = cache.ownerClass and PetSpecOf(uf) or nil
 end
 
 -- 超出距離。以前只看 UnitIsVisible（那其實是「有沒有載入」，不是距離），

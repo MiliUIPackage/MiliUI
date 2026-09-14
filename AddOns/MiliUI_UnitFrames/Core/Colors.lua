@@ -174,6 +174,31 @@ end
 methods.reactionnpc = ClassOrReaction
 methods.reactionnpcdark = methods.classfirstdark
 
+------------------------------------------------------------
+-- 寵物專精色：獵人寵物依專精（狂野／堅韌／狡詐）上色
+--
+-- cache.petSpec 是 specID，只有「這個框畫的是自己的寵物」才填（Cache.lua 的 PetSpecOf）。
+-- 沒有專精 → 退 classreaction：對自己的寵物那就是主人職業色，跟寵物框原本的預設
+-- 完全一樣 ⇒ 術士／死騎選了這個不會變色，獵人寵物資料還沒到的那一瞬間也不會閃白。
+------------------------------------------------------------
+local PET_SPEC_COLOR_KEY = { [74] = "petFerocity", [79] = "petCunning", [81] = "petTenacity" }
+
+local function PetSpecColor(uf)
+    local key = PET_SPEC_COLOR_KEY[uf.cache.petSpec or 0]
+    return key and G()[key]
+end
+
+methods.petspec = function(uf, edb, value, choice, alphaKey)
+    local c = PetSpecColor(uf)
+    if c then return c.r, c.g, c.b, alphaOf(edb, alphaKey, 1) end
+    return methods.classreaction(uf, edb, value, choice, alphaKey)
+end
+methods.petspecdark = function(uf, edb, value, choice, alphaKey)
+    local c = PetSpecColor(uf)
+    if c then return Dim(c.r, c.g, c.b, alphaOf(edb, alphaKey, 1)) end
+    return methods.classreactiondark(uf, edb, value, choice, alphaKey)
+end
+
 local GetDifficultyColor = GetQuestDifficultyColor or function() return WHITE end
 methods.difficulty = function(uf, edb, value, choice, alphaKey)
     local lvl = uf.cache.level

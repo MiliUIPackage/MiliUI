@@ -239,7 +239,10 @@ local function SwatchUnits()
               reaction = 2, assist = false, hostile = true, attackable = true }) },
         { label = L["Enemy NPC"], cache = cache({ isPlayer = false, pc = false, classFile = "WARRIOR",
               reaction = 2, assist = false, hostile = true, attackable = true }) },
+        -- petSpec 用玩家**真的**寵物專精：不是獵人（或沒叫寵物）就是 nil，
+        -- 色塊演的是退回主人職業色 —— 跟真實框會畫出來的一樣
         { label = L["Your pet"], cache = cache({ isPlayer = false, pc = true, ownerClass = cls,
+              petSpec = ns.Cache.PlayerPetSpec(),
               reaction = 5, assist = true, hostile = false, attackable = false }) },
     }
 end
@@ -329,11 +332,11 @@ local function BarSpecs(name, isHP, unitKey)
         PosSize(name),
         { type = "header", label = L["Color"] },
         { type = "text", label = L["The four class-color methods form a ladder: each step down, fewer units get class color and the rest fall back to reaction color. Mobs get a class from Blizzard's own creature data (melee = warrior, casters = mage), not a real one."] },
-        { type = "dropdown", sub = name, key = "colorMethod", label = L["Foreground"], items = Specs.COLOR_METHOD_ITEMS },
+        { type = "dropdown", sub = name, key = "colorMethod", label = L["Foreground"], items = Specs.ColorMethodItems(unitKey) },
         { type = "custom", label = "", build = ColorSwatchRow(unitKey, name, "colorMethod", "barColor") },
         { type = "slider", sub = name, key = "barAlpha", label = L["Foreground opacity"], min = 0, max = 1, step = 0.05 },
         { type = "text", label = L["The fill is blended over whatever sits below it — the background, and the 3D portrait when it is sandwiched in between — so anything under 1 darkens the color. This is the slider to raise if the bar looks dull; to keep seeing the model, fade it under Portrait > Model opacity rather than paying for it here."] },
-        { type = "dropdown", sub = name, key = "bgColorMethod", label = L["Background"], items = Specs.COLOR_METHOD_ITEMS },
+        { type = "dropdown", sub = name, key = "bgColorMethod", label = L["Background"], items = Specs.ColorMethodItems(unitKey) },
         { type = "custom", label = "", build = ColorSwatchRow(unitKey, name, "bgColorMethod", "bgColor") },
         { type = "slider", sub = name, key = "bgAlpha", label = L["Background opacity"], min = 0, max = 1, step = 0.05 },
         { type = "color", sub = name, key = "barColor", label = L["Custom foreground color"], hasAlpha = false },

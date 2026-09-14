@@ -679,10 +679,13 @@ local function Debug()
         if c then
             local hp = cuf.db and cuf.db.elements and cuf.db.elements.hpbar
             local r, g, b = ns.Colors.Get(hp and hp.colorMethod, cuf, hp, c.frachp, "barColor", "barAlpha")
-            p(("  %s框上色（現在讀=%s）：classFile=%s ownerClass=%s reaction=%s pc=%s isPlayer=%s"):format(
+            -- petSpec：寵物專精色沒生效時，分得出是 cache 沒填（框不是自己的寵物／載具中）
+            -- 還是 API 本身就回不出來（「現問」那格也是 nil ＝ 不是獵人寵物或資料沒到）
+            p(("  %s框上色（現在讀=%s）：classFile=%s ownerClass=%s reaction=%s pc=%s isPlayer=%s petSpec=%s（現問=%s）"):format(
                 ckey, SafeStr(cuf.unit),
                 SafeStr(c.classFile), SafeStr(c.ownerClass), SafeStr(c.reaction),
-                tostring(c.pc), tostring(c.isPlayer)))
+                tostring(c.pc), tostring(c.isPlayer),
+                SafeStr(c.petSpec), SafeStr(ns.Cache.PlayerPetSpec())))
             p(("   法=%s → rgb=%s,%s,%s%s"):format(
                 SafeStr(hp and hp.colorMethod),
                 SafeStr(r and math.floor(r * 255)), SafeStr(g and math.floor(g * 255)),
