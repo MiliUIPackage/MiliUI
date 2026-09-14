@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: c0d1056b-afe5-4f0b-a0d1-24a0f3f4c05d
-  modified: 2026-09-07T13:15:59.401Z
+  modified: 2026-09-14T00:00:00.000Z
 ---
 
 `AddOns/MiliUI_InfoBar/`（2026-08-29 新增）。純色方底一長條：資訊區塊（裝等／耐久／
@@ -264,3 +264,58 @@ state driver 把點擊拔掉、完全不碰 HelpTip——它沒踩坑是因為�
 
 待驗證（沒進過遊戲）：猛獁象修裝、GetCursorInfo 的 mount 格式、isCollected 會不會是秘密布林（現在
 fail-open 當已收藏）、面板翻面（停靠上／下緣）、編輯器高度變動後的捲軸範圍、五顆分頁鈕在 zhTW 的寬度。
+
+
+## 修裝按鈕（2026-09-14）
+
+耐久方塊滑過的 GameTooltip 改成自製面板：`Core/Repair.lua`（資料層）＋
+`Core/RepairPopup.lua`（面板）＋ `Options/Tab_Repair.lua`（「修裝」分頁）。
+內容是逐部位耐久 ＋ 三排方形圖示按鈕（道具／玩具／坐騎），只列**擁有且沒被關掉**的。
+開關節奏、提示皮、先翻面再平移整套照 MountPopup，那邊的註解不重抄。
+
+- **⚠ 這張面板是保護框，坐騎面板不是。** 道具與玩具只能由 secure 按鈕的硬體點擊
+  觸發（`UseToy` 是 `#protected`），所以裡面有 `SecureActionButtonTemplate` 的按鈕，
+  整張面板連祖先都被保護 ⇒ 戰鬥中 Show/Hide/SetPoint/SetSize 全部被封鎖。
+  收面板**不能**靠 `ns.Events` 的 PLAYER_REGEN_DISABLED（延一幀派送，輪到我們時已經
+  鎖了）。走 `SecureHandlerStateTemplate` ＋ `RegisterStateDriver(f,"combat","[combat] 1; 0")`
+  ＋ `_onstate-combat` snippet 裡 `self:Hide()` —— snippet 跑在引擎那一側，不受封鎖。
+  Lua 這邊每個會動到框的入口（Hide／Place／Populate／ScheduleClose 的到期）都要先問
+  `InCombatLockdown()`。方塊的 OnEnter 在戰鬥中退回**原本的 GameTooltip**（純顯示，
+  任何時候都合法；少的只有那幾顆按鈕，戰鬥中本來也用不了）。
+- **⚠⚠ 面板的 OnHide 要把工作丟到 `ns.NextFrame`。** 它可能是上面那個 secure snippet
+  在戰鬥開始那一刻叫出來的，整條執行流程是暴雪的 —— 在裡面碰 GameTooltip、退訂事件
+  就等於把 taint 注進去。跟 RegisterUnitWatch 的 Show() 觸發我們 OnShow 是同一類入口
+  （[[wow-121-addon-code-in-secure-stack]]）。
+- secure 按鈕上**只有** `*type1`／`*item1`／`*toy1`／`useOnKeyDown=false`，
+  以及 OnEnter／OnLeave。**不掛** PreClick／OnMouseDown／OnMouseUp／OnClick 的 Lua，
+  也不用 `*clickbutton1`（理由同 Core/Bar.lua 的 CreateTile）。道具用 `"item:ID"`
+  不用包包格。屬性**值沒變就不重寫**。按鈕池化，每個 kind 一個池。
+- **硬編 ID 每次大改版要重驗**，跟坐騎的功能型清單同一個維護點。2026-09-14 逐一對過
+  wowhead 的效果文字：道具 18232／34113／40769／49040／132514／221957／221956
+  （⚠ 11590 **不是** 74A，它是修機械寵物的「機械修理包」，repo 裡有插件標錯，別照抄；
+  132514 自動鐵錘是唯一沒有工程學需求的）。**玩具一個都沒有** —— 布靈登系列只發禮物、
+  沃特只賣爛食物、劫福斯要另裝維修模組（沒 API 問得出裝了哪個模組）⇒ `R.TOYS` 是空表，
+  而且那是查證結論不是待填。排除清單寫在 Repair.lua 的註解裡。
+- 坐騎**不硬編**：讀坐騎分頁裡 id == "repair" 的分類，玩家在那邊加的自動出現；
+  分類被刪掉就退回 `ns.Mounts.FUNCTIONAL` 的種子，設定頁加一行灰字說明。
+- **沒有「回 duration 物件」的物品冷卻 API**（查過 wiki 的 DurationObject 清單、
+  ItemDocumentation／ContainerDocumentation、12.0／12.1 的 API changes：duration 系列
+  只加了 Spell／SpellBook／ActionBar）。暴雪自己的 ActionButton 畫物品冷卻走的也還是
+  `C_ActionBar.GetActionCooldown` ＋ `SetCooldown`。唯一的 duration 路徑
+  `C_ActionBar.GetActionCooldownDuration` 吃的是快捷列**格子**，我們只有 itemID。
+  所以照舊讀 `C_Item.GetItemCooldown`（文件上沒有 SecretReturns，回傳是明文；
+  ⚠ 第三個回傳在 C_Item 這一支是 **bool**，C_Container 的同名函式才是 number —— 
+  用 PlainNumber 洗會把 false 洗成 nil 變成「一直在冷卻」）。
+- `C_ToyBox.IsToyUsable` 是**未文件化**的函式（不在 ToyBoxInfoDocumentation、wiki 沒頁面、
+  暴雪自己的玩具箱也沒用），秘密值旗標查不到 ⇒ SafeCall ＋ ToBool，問不到就當可用。
+- DB：`repair = { hidden = {} }`，key `"kind:id"`、值恆為 true。**存「關掉哪些」不存
+  「顯示哪些」** —— 反過來的話新增一個修裝道具不會自己出現。
+- 事件（BAG_UPDATE_DELAYED／BAG_UPDATE_COOLDOWN／TOYS_UPDATED／NEW_MOUNT_ADDED／
+  MOUNT_JOURNAL_USABILITY_CHANGED）**只在面板或設定頁開著時**註冊，`R.Watch(key, on)`
+  兩個消費者各自開關。
+- 逐部位耐久的表（`R.SLOTS`／`SlotDurability`／`DurabilityColor`／`Lowest`）從 Blocks.lua
+  搬進 Repair.lua —— 方塊與面板都要用，兩邊各留一份只會改到一邊。
+
+待驗證（沒進過遊戲）：戰鬥中面板有沒有被 state driver 準時收掉（以及脫戰後不會自己冒出來）、
+secure 按鈕實點道具與玩具（ActionButtonUseKeyDown 兩種設定各試）、圖示排換行的寬度、
+冷卻扇形、提示錨在面板上下會不會擋到、`Item:ContinueOnItemLoad` 把沒看過的道具名字補上的時機。

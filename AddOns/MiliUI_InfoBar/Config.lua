@@ -133,4 +133,10 @@ ns.DB_DEFAULTS = {
         shared = {},
         chars  = {},
     },
+    -- 修裝按鈕（Core/Repair.lua）。hidden 存的是「玩家把哪幾筆關掉了」，
+    -- key 是 "kind:id" 字串、值恆為 true —— **預設全開**，所以這裡只要一張空表。
+    -- 反過來存「要顯示哪些」的話，之後新增一個修裝道具就不會自己出現。
+    repair = {
+        hidden = {},
+    },
 }

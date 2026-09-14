@@ -16,6 +16,7 @@ local L = ns.L
 local S = ns.Secret
 local W = ns.W
 local Perf = ns.Perf
+local Repair = ns.Repair
 
 ns.Blocks = ns.Blocks or {}
 
@@ -99,42 +100,20 @@ MakeTextBlock("ilvl", {
 ------------------------------------------------------------
 -- 耐久：全身裝備的**最低**百分比（要爆的永遠是最低的那件）
 --
--- 滑過列出逐部位、右鍵開修裝設定。部位名稱走暴雪的全域字串，各語系免費。
+-- 滑過彈出自製面板（Core/RepairPopup.lua：逐部位 ＋ 修裝道具／玩具／坐騎的
+-- 按鈕），右鍵開修裝設定。
+--
+-- ⚠ 逐部位的表與配色住在 Core/Repair.lua —— 面板也要用，兩邊各留一份的話
+--   之後只會改到一邊。
 ------------------------------------------------------------
-local DURABILITY_SLOTS = {
-    { 1,  HEADSLOT },      { 3,  SHOULDERSLOT }, { 5,  CHESTSLOT },
-    { 6,  WAISTSLOT },     { 7,  LEGSSLOT },     { 8,  FEETSLOT },
-    { 9,  WRISTSLOT },     { 10, HANDSSLOT },
-    { 16, MAINHANDSLOT },  { 17, SECONDARYHANDSLOT },
-}
-
-local function SlotDurability(slotId)
-    local cur, mx = GetInventoryItemDurability(slotId)
-    cur, mx = S.SafeValue(cur, nil), S.SafeValue(mx, nil)
-    if not (cur and mx) or mx <= 0 then return nil end
-    return cur / mx * 100
-end
-
--- 只有低耐久才上色：整排都白的時候，眼睛才會被剩下那幾個有顏色的抓住
-local function DurabilityColor(pct)
-    if pct < 20 then return 1, 0.3, 0.3 end
-    if pct < 50 then return 1, 0.82, 0 end
-    return 1, 1, 1
-end
-
 local function AnchorTooltip(tile)
     local _, cy = tile:GetCenter()
     local anchor = (cy and cy > UIParent:GetHeight() / 2) and "ANCHOR_BOTTOM" or "ANCHOR_TOP"
     GameTooltip:SetOwner(tile, anchor)
 end
 
--- 修裝設定住在 MiliUI 本體（Enhance/Merchant_Automation.lua）——那是行為不是
--- 顯示，跟資訊列的職責不同，而且本體必裝所以設定永遠找得到。這裡只是入口，
--- 跟 CPU／記憶體方塊直達效能監控同一個模式：沒裝本體就整組不提供，
--- 提示裡也不會出現講不通的「右鍵」那一行。
-local function MerchantAPI()
-    return _G.MiliUI_MerchantAutomation
-end
+-- 自動修裝設定的入口在 Core/Repair.lua（面板的說明行也要問同一件事）
+local MerchantAPI = Repair.MerchantAPI
 
 local function ShowRepairMenu(tile)
     local api = MerchantAPI()
@@ -176,21 +155,30 @@ MakeTextBlock("durability", {
     init = function(_, tile)
         tile:SetScript("OnClick", function(self, button)
             if button == "RightButton" then
+                -- 選單跟面板從同一個錨點長出來，兩個一起開會疊在一起
+                ns.RepairPopup.Hide()
                 ShowRepairMenu(self)
             else
                 pcall(ToggleCharacter, "PaperDollFrame")
             end
         end)
         tile:HookScript("OnEnter", function(self)
+            -- ⚠ 戰鬥中走**舊的 GameTooltip**：面板裡有 secure 按鈕＝隱式保護框，
+            --   戰鬥中根本 Show 不出來。提示是純顯示，任何時候都合法。
+            --   （少的只有那幾顆按鈕——戰鬥中本來也用不了修裝道具。）
+            if not InCombatLockdown() then
+                ns.RepairPopup.ScheduleOpen(self)
+                return
+            end
             AnchorTooltip(self)
             GameTooltip:SetText(L["BLOCK_DURABILITY"], 1, 1, 1)
             local any = false
-            for _, slot in ipairs(DURABILITY_SLOTS) do
-                local pct = SlotDurability(slot[1])
+            for _, slot in ipairs(Repair.SLOTS) do
+                local pct = Repair.SlotDurability(slot[1])
                 if pct then
                     any = true
                     GameTooltip:AddDoubleLine(slot[2], string.format("%d%%", math.floor(pct)),
-                        0.7, 0.7, 0.7, DurabilityColor(pct))
+                        0.7, 0.7, 0.7, Repair.DurabilityColor(pct))
                 end
             end
             if not any then
@@ -205,15 +193,17 @@ MakeTextBlock("durability", {
             end
             GameTooltip:Show()
         end)
-        tile:HookScript("OnLeave", function() GameTooltip:Hide() end)
+        tile:HookScript("OnLeave", function()
+            GameTooltip:Hide()
+            ns.RepairPopup.CancelOpen()
+            ns.RepairPopup.ScheduleClose()
+        end)
+    end,
+    onDisable = function()
+        ns.RepairPopup.Hide()
     end,
     getText = function()
-        local lowest = 100
-        for _, slot in ipairs(DURABILITY_SLOTS) do
-            local pct = SlotDurability(slot[1])
-            if pct and pct < lowest then lowest = pct end
-        end
-        return Dim(L["LABEL_DURABILITY"]) .. " " .. math.floor(lowest) .. "%"
+        return Dim(L["LABEL_DURABILITY"]) .. " " .. math.floor(Repair.Lowest()) .. "%"
     end,
 })
 

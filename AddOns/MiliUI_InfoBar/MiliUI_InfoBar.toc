@@ -35,6 +35,8 @@ Core\WarbandPopup.lua
 Core\MicroMenu.lua
 Core\Mounts.lua
 Core\MountPopup.lua
+Core\Repair.lua
+Core\RepairPopup.lua
 Core\Blocks.lua
 
 Options\Panel.lua
@@ -42,6 +44,7 @@ Options\Tab_General.lua
 Options\Tab_Blocks.lua
 Options\Tab_Micro.lua
 Options\Tab_Mounts.lua
+Options\Tab_Repair.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Api.lua

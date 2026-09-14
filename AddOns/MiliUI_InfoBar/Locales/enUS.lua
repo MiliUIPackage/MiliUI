@@ -29,6 +29,7 @@ L["DURABILITY_NONE"] = "Nothing equipped that wears down."
 L["HINT_LEFT_CHARACTER"] = "Left-click: character panel"
 L["HINT_RIGHT_REPAIR"] = "Right-click: repair settings"
 L["HINT_SHIFT_SKIP"] = "Hold Shift at a vendor to skip that repair"
+L["REPAIR_POPUP_SETTINGS"] = "Edit repair buttons..."
 
 -- Tabs
 L["TAB_GENERAL"] = "General"
@@ -82,7 +83,7 @@ L["BOARD_HIDDEN"] = "Hidden"
 L["BLOCK_ILVL"] = "Item level"
 L["BLOCK_ILVL_DESC"] = "Average equipped item level. Click to open the character panel."
 L["BLOCK_DURABILITY"] = "Durability"
-L["BLOCK_DURABILITY_DESC"] = "Lowest durability percentage across equipped items. Click to open the character panel."
+L["BLOCK_DURABILITY_DESC"] = "Lowest durability percentage across equipped items. Click to open the character panel. Hovering it lists every slot plus buttons for the repair items, toys and mounts you own."
 L["BLOCK_MICROMENU"] = "Micro menu"
 L["BLOCK_MICROMENU_DESC"] = "Replacement micro menu buttons. Clicks pass through to Blizzard's own buttons, so combat behavior is identical to the default UI."
 L["BLOCK_SPEC"] = "Talents"
@@ -205,6 +206,16 @@ L["MOUNT_RESET_CONFIRM"] = "Reset the categories and mount lists to defaults?"
 L["MOUNT_PICKER_TITLE"] = "Add mounts - %s"
 L["MOUNT_PICKER_DRAG"] = "Or drag a mount here straight from the Mount Journal"
 L["MOUNT_PICKER_EMPTY"] = "No matching mounts"
+
+-- Repair tab
+L["TAB_REPAIR"] = "Repair"
+L["SECTION_REPAIR"] = "Repair buttons"
+L["REPAIR_DESC"] = "Hovering the durability block on the info bar lists the repair items, toys and mounts you own. Uncheck one to keep it off the panel. The mount list comes from the \"Repair\" category on the Mounts tab."
+L["REPAIR_CAT_ITEM"] = "Items"
+L["REPAIR_CAT_TOY"] = "Toys"
+L["REPAIR_CAT_MOUNT"] = "Mounts"
+L["REPAIR_NOT_OWNED"] = "Not owned"
+L["REPAIR_MOUNT_CAT_MISSING"] = "There is no Repair category on the Mounts tab, so the built-in list is used here."
 
 -- Micro Menu tab
 L["SECTION_MICRO_STYLE"] = "Style"

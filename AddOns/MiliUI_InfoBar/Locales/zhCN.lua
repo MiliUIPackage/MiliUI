@@ -30,6 +30,7 @@ L["DURABILITY_NONE"] = "身上没有会损耗的装备。"
 L["HINT_LEFT_CHARACTER"] = "左键：角色窗口"
 L["HINT_RIGHT_REPAIR"] = "右键：修理设置"
 L["HINT_SHIFT_SKIP"] = "在商人处按住 Shift 可跳过那次自动修理"
+L["REPAIR_POPUP_SETTINGS"] = "设置修装按钮…"
 
 -- Tabs
 L["TAB_GENERAL"] = "常规"
@@ -83,7 +84,7 @@ L["BOARD_HIDDEN"] = "不显示"
 L["BLOCK_ILVL"] = "装备等级"
 L["BLOCK_ILVL_DESC"] = "装备中的平均装等。点击打开角色窗口。"
 L["BLOCK_DURABILITY"] = "耐久度"
-L["BLOCK_DURABILITY_DESC"] = "全身装备的最低耐久百分比。点击打开角色窗口。"
+L["BLOCK_DURABILITY_DESC"] = "全身装备的最低耐久百分比。点击打开角色窗口。滑过会列出逐部位耐久，以及你拥有的修装道具／玩具／坐骑按钮。"
 L["BLOCK_MICROMENU"] = "微型菜单"
 L["BLOCK_MICROMENU_DESC"] = "取代原厂那排的按钮。点击会安全转发给暴雪自己的按钮，战斗中的行为跟原厂完全一致。"
 L["BLOCK_SPEC"] = "天赋"
@@ -206,6 +207,16 @@ L["MOUNT_RESET_CONFIRM"] = "把分类与坐骑清单还原成默认？"
 L["MOUNT_PICKER_TITLE"] = "加入坐骑 - %s"
 L["MOUNT_PICKER_DRAG"] = "或直接从收藏册把坐骑拖到这个窗口"
 L["MOUNT_PICKER_EMPTY"] = "找不到符合的坐骑"
+
+-- Repair tab
+L["TAB_REPAIR"] = "修装"
+L["SECTION_REPAIR"] = "修装按钮"
+L["REPAIR_DESC"] = "滑过信息栏的耐久方块，会列出你拥有的修装道具、玩具与坐骑。取消勾选就不显示。坐骑清单来自“坐骑”分页的修装分类。"
+L["REPAIR_CAT_ITEM"] = "道具"
+L["REPAIR_CAT_TOY"] = "玩具"
+L["REPAIR_CAT_MOUNT"] = "坐骑"
+L["REPAIR_NOT_OWNED"] = "未拥有"
+L["REPAIR_MOUNT_CAT_MISSING"] = "坐骑分页里没有修装分类，这里用内置清单。"
 
 -- Micro Menu tab
 L["SECTION_MICRO_STYLE"] = "风格"
