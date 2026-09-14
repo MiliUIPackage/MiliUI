@@ -30,6 +30,7 @@ Libs\MiliUIWidgets\Controls.lua
 
 Core\Perf.lua
 Core\Bar.lua
+Core\HoverPanel.lua
 Core\Warband.lua
 Core\WarbandPopup.lua
 Core\MicroMenu.lua

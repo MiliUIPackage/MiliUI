@@ -345,3 +345,25 @@ action = none｜readycheck｜countdown｜cancel；預設照快捷聊天列開怪
 
 待驗證（沒進過遊戲）：`/cd` 在 zhTW 客戶端的巨集裡有效（同路線的先例在繁中客戶端可用）、中鍵實點、
 Cell 設定視窗開著時勾選框是否即時同步、面板在停靠上／下緣的翻面。
+
+
+## 滑過面板共用層 HoverPanel（2026-09-14）
+
+`Core/HoverPanel.lua`（`ns.HoverPanel`）：坐騎／修裝／確認倒數三張滑過面板共用的**唯一**皮與節奏來源；
+戰隊表格只共用皮、扁平鈕與定位 `HP.PlaceBelow`。面板檔只剩「有哪些列」（BuildModel）＋自己私有的東西
+（修裝的 secure 圖示按鈕）。**版面數字不准搬回面板檔**——三張面板長得一樣是需求，複製一份就是下次分岔的起點。
+
+- 常數：G=6（所有「反白 ↔ 線／邊」距離）、PAD_X 10、ROW_H 28、TITLE_H 26（線後再空 G）、SEP_H 2G+1、
+  ICON 22、GUTTER 30（每列都留）、MIN_W 220、MAX_W 380；字級相對 db.fontSize：內容 +2、標題／說明／右側標 +1；
+  開啟意圖延遲 0.15、離開寬限 0.35（世代 token，判斷放到期時）。
+- 列層 `rows:Render(model)` 兩趟排版（先量寬再擺），kind：title（可帶右側扁平鈕 action）／item（icon 或 check、
+  text、suffix、tag＋tagColor、dim、onClick／onRightClick、data）／sep／note／settings（tab）／custom（measure＋layout，
+  給修裝的 secure 圖示排）。列池化。
+- 控制器 `HP.New{ name, secure, build, populate, onOpen, onHide }`：`secure=true`（修裝）＝ SecureHandlerStateTemplate
+  ＋ `_onstate-combat` 收面板、每個入口先問 InCombatLockdown、onHide 延一幀；非 secure 走 PLAYER_REGEN_DISABLED。
+  列層的列是普通 Button；secure 按鈕由面板在 custom.layout 裡自建自池，控制器碰不到（不掛 PreClick／OnClick Lua）。
+- 對外名字（`ns.XxxPopup.Hide/ScheduleOpen/ScheduleClose/CancelOpen/…`）保留，Blocks.lua 不用改。
+- 確認倒數的三顆鍵列改成跟坐騎快捷列同款：主文字＝動作、右側灰標＝鍵名（原本鍵名在左）。
+
+待遊戲驗證：修裝面板進戰鬥由 state driver 收、secure 按鈕實點、三張面板同字級下一致、確認倒數打勾欄對齊、
+修裝圖示排換行、四張面板貼頂／貼底翻面一致。

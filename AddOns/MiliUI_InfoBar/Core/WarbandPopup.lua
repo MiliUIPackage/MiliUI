@@ -1,6 +1,11 @@
 ------------------------------------------------------------
 -- 戰隊資訊：彈出面板（角色表格）＋寶庫提示＋列選單
 --
+-- ⚠ 它是**點開的表格**，不是滑過長出來的清單，所以不走 Core/HoverPanel.lua 的
+--   控制器與列層（那套是「一列一個選項」的節奏，套在表格上只會把欄位擠壞）。
+--   共用的只有**皮與定位**：同一條資訊列上長出來的東西，邊框、底色、從哪一邊
+--   翻面必須是同一句話。表格自己的列高／欄寬留在這支。
+--
 -- 皮走「提示皮」（.claude/notes/project-miliui-hud-skin.md 的第二種變體）：
 -- 0.133 不透明底 ＋ 1px 職業色硬邊 ＋ 白字 ＋ 直角。它是「彈出來給人讀內容」的
 -- 表面，底色承載的是「讓字讀得出來」，所以不能透。
@@ -8,18 +13,16 @@
 -- ⚠ 面板掛 UIParent、**不掛 bar**：bar 是 secure 按鈕的祖先＝隱式保護框，
 --   掛在它底下戰鬥中就 Show/Hide 不了。掛 UIParent 之後點方塊在戰鬥中照樣能開。
 --
--- 位置（使用者點名的需求）：貼著方塊開，**先翻面再平移**，順序照 Widgets.lua
--- 的 W.PlaceClamped 那段：
---   1. 預設往下長；下緣塞不下就翻成往上長（資訊列在畫面最上面時往上一定撞）。
---   2. 水平貼齊方塊離畫面中線近的那一邊（左半邊靠左對齊、右半邊靠右對齊）。
---   3. 翻完還是出界（面板太高、或水平還是超出）才由 W.PlaceClamped 推回畫面內。
--- 寶庫提示同理：預設開在寶庫欄右邊，右邊塞不下就翻到左邊。
+-- 位置（使用者點名的需求）：貼著方塊開，**先翻面再平移**，四張面板共用一支
+-- HP.PlaceBelow（規則與理由寫在 Core/HoverPanel.lua）。
+-- 寶庫提示的錨點是欄位不是方塊，翻面方向也不同（預設開在寶庫欄右邊，右邊塞不下
+-- 就翻到左邊），所以那段留在這支自己算。
 ------------------------------------------------------------
 local _, ns = ...
 
 local L = ns.L
 local W = ns.W
-local P = ns.P
+local HP = ns.HoverPanel
 local Warband = ns.Warband
 
 ns.WarbandPopup = {}
@@ -29,20 +32,21 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 ------------------------------------------------------------
 -- 視覺常數
+--
+-- 內距與文字色跟另外三張面板共用（Core/HoverPanel.lua）；表格自己的列高、欄距、
+-- 表頭高留在這裡——那是這張表的排版，不是面板的節奏。
 ------------------------------------------------------------
-local TIP_BG    = 0.133     -- 提示皮的底（唯一真相來源是 MiliUI_Tooltip 的 general.background）
 local FONT_SZ   = 12
 local TITLE_SZ  = 13
-local PAD       = 10        -- 面板內距
+local PAD       = HP.PAD_X  -- 面板內距
 local TITLE_H   = 24
 local HEADER_H  = 22
 local ROW_H     = 24
 local FOOTER_H  = 18
 local COL_GAP   = 6
-local BTN_H     = 20
 
-local TEXT_MAIN = { 0.92, 0.92, 0.92 }
-local TEXT_DIM  = { 0.65, 0.65, 0.65 }
+local TEXT_MAIN = HP.TEXT_MAIN
+local TEXT_DIM  = HP.TEXT_DIM
 local LOCKED    = { 0.40, 0.40, 0.40 }
 local GOLD      = { 1.00, 0.84, 0.00 }
 local GREEN     = { 0.25, 0.75, 0.25 }
@@ -79,32 +83,10 @@ local function SetColor(fs, c)
     fs:SetTextColor(c[1], c[2], c[3])
 end
 
-local function ApplyTipSkin(f)
-    f:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Scale(1) })
-    f:SetBackdropColor(TIP_BG, TIP_BG, TIP_BG, 1)
-    local r, g, b = W.Accent()
-    f:SetBackdropBorderColor(r, g, b, 1)
-end
-
--- 面板上的扁平按鈕：狀態只換明暗（HUD 皮的規則），沒有職業色
-local function MakeFlatButton(parent, text, onClick)
-    local b = CreateFrame("Button", nil, parent)
-    b:SetHeight(BTN_H)
-    local bg = b:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    bg:SetTexture(WHITE)
-    bg:SetVertexColor(1, 1, 1, 0.08)
-    b:SetHighlightTexture(WHITE)
-    b:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.13)
-    b:SetPushedTextOffset(0, 0)
-    local fs = MakeText(b)
-    fs:SetPoint("CENTER")
-    fs:SetText(text)
-    b.text = fs
-    b:SetWidth(math.ceil(fs:GetStringWidth()) + 16)
-    b:SetScript("OnClick", onClick)
-    return b
-end
+-- 皮與扁平按鈕都走共用的那份（Core/HoverPanel.lua）：四張面板的邊框、底色、
+-- 按鈕明暗要是同一句話，各自留一份就是下一次分岔的起點
+local ApplyTipSkin   = HP.ApplyTipSkin
+local MakeFlatButton = HP.MakeFlatButton
 
 ------------------------------------------------------------
 -- 寶庫顯示規則（跟原本 MiliUI 本體那份一致）
@@ -618,7 +600,8 @@ local function Build()
         local ch = Warband.PartyChannel()
         if ch then Warband.SendReport(ch) end
     end)
-    frame.sendAll:SetPoint("TOPRIGHT", -PAD, -(PAD + (TITLE_H - BTN_H) / 2))
+    -- 按鈕高度由共用的扁平鈕決定，這裡讀回來對齊標題列的垂直中線
+    frame.sendAll:SetPoint("TOPRIGHT", -PAD, -(PAD + (TITLE_H - frame.sendAll:GetHeight()) / 2))
     frame.sendAll:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetText(L["WARBAND_SEND_ALL"], 1, 1, 1)
@@ -680,32 +663,10 @@ local function Build()
 end
 
 ------------------------------------------------------------
--- 定位：先翻面、再平移（理由見檔頭）
+-- 定位：先翻面、再平移（四張面板共用同一支，理由見 Core/HoverPanel.lua）
 ------------------------------------------------------------
 local function Place()
-    local tile = anchorTile
-    if not (frame and tile) then return end
-    local cx = tile:GetCenter()
-    local ux = UIParent:GetCenter()
-    local leftAlign = (cx or 0) <= (ux or 0)
-
-    -- 第一段：預設往下長
-    local pts = leftAlign
-        and { "TOPLEFT",  tile, "BOTTOMLEFT",  0, -2 }
-        or  { "TOPRIGHT", tile, "BOTTOMRIGHT", 0, -2 }
-    frame:ClearAllPoints()
-    frame:SetPoint(unpack(pts))
-
-    -- 下緣塞不下就翻成往上長（資訊列在畫面最上面時的情況正好相反：往下長才對）
-    local b, pb = frame:GetBottom(), UIParent:GetBottom()
-    if b and pb and b < pb + W.SCREEN_PAD then
-        pts = leftAlign
-            and { "BOTTOMLEFT",  tile, "TOPLEFT",  0, 2 }
-            or  { "BOTTOMRIGHT", tile, "TOPRIGHT", 0, 2 }
-    end
-
-    -- 第二段：翻完還是出界（上下都塞不下、或水平超出）才推回畫面內
-    W.PlaceClamped(frame, pts)
+    HP.PlaceBelow(frame, anchorTile)
 end
 
 ------------------------------------------------------------
