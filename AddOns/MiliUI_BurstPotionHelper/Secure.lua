@@ -25,17 +25,15 @@ function ns.CreateSecureButton()
     return b
 end
 
--- "bag slot" reference targets the exact stack = the exact quality tier.
--- Falls back to item:itemID if the slot can't be resolved.
+-- "item:ID" names the potion by identity, not by where it sits. Every quality
+-- tier is its own itemID, so this is exactly as precise as a bag slot.
+--
+-- Not "bag slot": the attribute is written out of combat and locked in combat.
+-- Drain that stack mid-fight and the ref points at an empty slot until combat
+-- ends — Blizzard's item handler then resolves the name from the empty slot
+-- (nil) and C_Item.IsEquippableItem(nil) throws, so the press does nothing even
+-- when another stack of the same potion is still in the bags.
 function ns.GetItemRef(itemID)
-    local entry = ns.byID and ns.byID[itemID]
-    if entry and entry.bag and entry.slot then
-        return entry.bag .. " " .. entry.slot
-    end
-    local bag, slot = ns.FindBagSlot(itemID)
-    if bag and slot then
-        return bag .. " " .. slot
-    end
     return "item:" .. itemID
 end
 

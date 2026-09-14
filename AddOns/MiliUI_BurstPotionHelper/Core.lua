@@ -18,8 +18,7 @@ end
   * Tainted (addon) Lua never calls a protected function (SetAttribute on
     a secure frame) while InCombatLockdown() is true. The addon never edits
     macros at all — your macro's #showtooltip line and icon are left alone.
-  * We never read bag/item data (GetItemCount, GetContainerItemInfo)
-    during combat. All availability/quantity is scanned ONLY out of
+  * We never read bag/item data (GetItemCount) during combat. All availability/quantity is scanned ONLY out of
     combat and cached in ns.available / ns.byID, so no arithmetic or
     comparison ever touches a value the game might mark "secret" in a
     combat-restricted context. (This addon never calls unit/aura APIs,
@@ -27,7 +26,7 @@ end
   * IN-COMBAT SWITCHING is done entirely inside the restricted (secure)
     environment: each bar selector is a SecureActionButton whose OnClick is
     wrapped (SecureHandlerWrapScript) with a snippet that, on left-click,
-    copies a pre-stored "bag slot" reference into the shared use button.
+    copies a pre-stored "item:ID" reference into the shared use button.
     Right-click (optional) is the selector's own type2 "item" action, which
     drinks that potion directly. Both run in the secure environment, so they
     are legal in combat without taint; the insecure click hook only updates
@@ -119,36 +118,6 @@ end
 ns.available = ns.available or {}
 ns.byID      = ns.byID or {}
 
--- Carried bags (backpack + 4 + reagent bag), built once instead of per call.
-local BAG_INDICES = { 0, 1, 2, 3, 4 }
-if Enum and Enum.BagIndex and Enum.BagIndex.ReagentBag then
-    BAG_INDICES[#BAG_INDICES + 1] = Enum.BagIndex.ReagentBag
-end
-
-local function ForEachBagSlot(callback)
-    for _, bag in ipairs(BAG_INDICES) do
-        local numSlots = C_Container.GetContainerNumSlots(bag) or 0
-        for slot = 1, numSlots do
-            if callback(bag, slot) then
-                return
-            end
-        end
-    end
-end
-ns.ForEachBagSlot = ForEachBagSlot
-
-function ns.FindBagSlot(itemID)
-    local foundBag, foundSlot
-    ForEachBagSlot(function(bag, slot)
-        local info = C_Container.GetContainerItemInfo(bag, slot)
-        if info and info.itemID == itemID and (info.stackCount or 0) > 0 then
-            foundBag, foundSlot = bag, slot
-            return true
-        end
-    end)
-    return foundBag, foundSlot
-end
-
 function ns.GetItemCount(itemID)
     if not itemID then return 0 end
     return C_Item.GetItemCount(itemID, false, false, false, false) or 0
@@ -215,38 +184,16 @@ function ns.RebuildItemList()
     return list
 end
 
--- Rebuild ns.available (in-bags + enabled, ordered) + ns.byID (lookup) from bags.
--- One bag walk that records the first slot (in bag order, identical to
--- FindBagSlot) of each wanted itemID. Replaces N separate FindBagSlot walks.
-local function BuildBagSlotMap(wanted)
-    local map = {}
-    ForEachBagSlot(function(bag, slot)
-        local info = C_Container.GetContainerItemInfo(bag, slot)
-        if info and info.itemID and (info.stackCount or 0) > 0 then
-            local id = info.itemID
-            if wanted[id] and not map[id] then
-                map[id] = { bag = bag, slot = slot }
-            end
-        end
-    end)
-    return map
-end
-
+-- Rebuild ns.available (in-bags + enabled, ordered) + ns.byID (lookup).
+-- No bag walk: the secure refs are "item:ID" (see ns.GetItemRef), so the only
+-- thing a scan needs is the count.
 function ns.ScanAvailable()
     local available, byID = {}, {}
-    -- Collect the itemIDs we care about, then resolve all their slots in a
-    -- single bag pass (instead of one full bag walk per item).
-    local wanted = {}
-    for _, e in ipairs(ns.itemList) do
-        if e.enabled then wanted[e.id] = true end
-    end
-    local slotMap = BuildBagSlotMap(wanted)
     for _, e in ipairs(ns.itemList) do
         if e.enabled then
             local count = ns.GetItemCount(e.id)
             if count > 0 then
-                local s = slotMap[e.id]
-                local entry = { id = e.id, count = count, bag = s and s.bag, slot = s and s.slot }
+                local entry = { id = e.id, count = count }
                 available[#available + 1] = entry
                 byID[e.id] = entry
             end
