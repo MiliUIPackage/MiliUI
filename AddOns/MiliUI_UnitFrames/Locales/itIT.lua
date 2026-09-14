@@ -530,3 +530,17 @@ L["Flash"] = "Lampeggia"
 L["Warning color"] = "Colore di avviso"
 L["The warning color has its own opacity: the player frame's fill is translucent to show the 3D portrait, and red at that opacity gets lost in the model."] = "Il colore di avviso ha una propria opacità: il riempimento del riquadro del giocatore è traslucido per mostrare il ritratto 3D, e il rosso con quell'opacità si perde nel modello."
 L["Test for %d seconds"] = "Prova per %d secondi"
+
+------------------------------------------------------------
+-- 驅散類型高亮（Elements/DispelHighlight.lua）
+------------------------------------------------------------
+L["Debuff type highlight"] = "Evidenziazione per tipo di malefico"
+L["Highlight by debuff type"] = "Colora il bordo in base al tipo di malefico"
+L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] = "Se l'unità ha un malefico di tipo Magia, Maledizione, Malattia, Veleno o Sanguinamento, il bordo assume il colore di quel tipo, sopra l'evidenziazione del cursore. Le unità ostili mostrano invece Furia. Colori e spessore si impostano globalmente in «Generale»."
+L["Friendly units show their debuff types; hostile units show Enrage instead, so your own poisons and bleeds on a target don't keep it lit. With several types at once only one color shows. Which frames get it is set per unit, under Units > Frame; color changes take effect once the settings window closes."] = "Le unità amiche mostrano i propri tipi di malefico; quelle ostili mostrano invece Furia, così i tuoi veleni e sanguinamenti su un bersaglio non lo tengono sempre acceso. Con più tipi insieme si vede un solo colore. Quali riquadri lo ricevono si imposta per unità in «Unità > Riquadro»; le modifiche ai colori si applicano alla chiusura della finestra delle impostazioni."
+L["Magic"] = "Magia"
+L["Curse"] = "Maledizione"
+L["Disease"] = "Malattia"
+L["Poison"] = "Veleno"
+L["Bleed"] = "Sanguinamento"
+L["Enrage"] = "Furia"

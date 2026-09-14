@@ -530,3 +530,17 @@ L["Flash"] = "Blinken"
 L["Warning color"] = "Warnfarbe"
 L["The warning color has its own opacity: the player frame's fill is translucent to show the 3D portrait, and red at that opacity gets lost in the model."] = "Die Warnfarbe hat ihre eigene Deckkraft: Die Füllung des Spielerrahmens ist durchscheinend, damit das 3D-Porträt sichtbar bleibt, und Rot geht bei dieser Deckkraft im Modell unter."
 L["Test for %d seconds"] = "%d Sekunden testen"
+
+------------------------------------------------------------
+-- 驅散類型高亮（Elements/DispelHighlight.lua）
+------------------------------------------------------------
+L["Debuff type highlight"] = "Hervorhebung nach Schwächungstyp"
+L["Highlight by debuff type"] = "Rahmen nach Schwächungstyp einfärben"
+L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] = "Hat die Einheit einen Magie-, Fluch-, Krankheits-, Gift- oder Blutungseffekt, nimmt der Rahmen die Farbe dieses Typs an – über der Mauszeiger-Hervorhebung. Feindliche Einheiten zeigen stattdessen Wutanfall. Farben und Stärke werden global unter „Allgemein“ eingestellt."
+L["Friendly units show their debuff types; hostile units show Enrage instead, so your own poisons and bleeds on a target don't keep it lit. With several types at once only one color shows. Which frames get it is set per unit, under Units > Frame; color changes take effect once the settings window closes."] = "Freundliche Einheiten zeigen ihre Schwächungstypen, feindliche stattdessen Wutanfall – so bleibt ein Ziel nicht wegen deiner eigenen Gifte und Blutungen dauerhaft markiert. Bei mehreren Typen gleichzeitig wird nur eine Farbe angezeigt. Welche Fenster es erhalten, wird pro Einheit unter „Einheiten > Fenster“ festgelegt; Farbänderungen greifen, sobald das Einstellungsfenster geschlossen ist."
+L["Magic"] = "Magie"
+L["Curse"] = "Fluch"
+L["Disease"] = "Krankheit"
+L["Poison"] = "Gift"
+L["Bleed"] = "Blutung"
+L["Enrage"] = "Wutanfall"

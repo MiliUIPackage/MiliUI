@@ -530,3 +530,17 @@ L["Flash"] = "Piscar"
 L["Warning color"] = "Cor de aviso"
 L["The warning color has its own opacity: the player frame's fill is translucent to show the 3D portrait, and red at that opacity gets lost in the model."] = "A cor de aviso tem sua própria opacidade: o preenchimento do quadro do jogador é translúcido para mostrar o retrato 3D, e o vermelho nessa opacidade se perde no modelo."
 L["Test for %d seconds"] = "Testar por %d segundos"
+
+------------------------------------------------------------
+-- 驅散類型高亮（Elements/DispelHighlight.lua）
+------------------------------------------------------------
+L["Debuff type highlight"] = "Destaque por tipo de prejuízo"
+L["Highlight by debuff type"] = "Colorir a borda pelo tipo de prejuízo"
+L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] = "Se a unidade tiver um prejuízo de Magia, Maldição, Doença, Veneno ou Sangramento, a borda assume a cor desse tipo, por cima do destaque do cursor. Unidades hostis mostram Enfurecer no lugar. As cores e a espessura são definidas globalmente em «Geral»."
+L["Friendly units show their debuff types; hostile units show Enrage instead, so your own poisons and bleeds on a target don't keep it lit. With several types at once only one color shows. Which frames get it is set per unit, under Units > Frame; color changes take effect once the settings window closes."] = "Unidades amistosas mostram seus tipos de prejuízo; unidades hostis mostram Enfurecer no lugar, para que seus próprios venenos e sangramentos num alvo não o deixem aceso o tempo todo. Com vários tipos ao mesmo tempo, só uma cor aparece. Quais quadros o recebem é definido por unidade em «Unidades > Quadro»; mudanças de cor valem depois que a janela de configurações é fechada."
+L["Magic"] = "Magia"
+L["Curse"] = "Maldição"
+L["Disease"] = "Doença"
+L["Poison"] = "Veneno"
+L["Bleed"] = "Sangramento"
+L["Enrage"] = "Enfurecer"

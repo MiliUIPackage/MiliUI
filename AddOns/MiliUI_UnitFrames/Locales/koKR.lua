@@ -530,3 +530,17 @@ L["Flash"] = "깜박임"
 L["Warning color"] = "경고 색"
 L["The warning color has its own opacity: the player frame's fill is translucent to show the 3D portrait, and red at that opacity gets lost in the model."] = "경고 색에는 별도의 불투명도가 있습니다. 플레이어 프레임의 채움은 3D 초상화가 보이도록 반투명한데, 그 불투명도로는 빨간색이 모델에 묻혀 버립니다."
 L["Test for %d seconds"] = "%d초 동안 테스트"
+
+------------------------------------------------------------
+-- 驅散類型高亮（Elements/DispelHighlight.lua）
+------------------------------------------------------------
+L["Debuff type highlight"] = "해로운 효과 유형 강조"
+L["Highlight by debuff type"] = "해로운 효과 유형별 테두리 강조"
+L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] = "마법, 저주, 질병, 독, 출혈 해로운 효과가 걸려 있으면 테두리가 해당 유형의 색으로 바뀌며, 마우스 올림 강조 위에 표시됩니다. 적대적 유닛은 대신 격노를 표시합니다. 색과 두께는 일반 탭에서 한 번에 설정합니다."
+L["Friendly units show their debuff types; hostile units show Enrage instead, so your own poisons and bleeds on a target don't keep it lit. With several types at once only one color shows. Which frames get it is set per unit, under Units > Frame; color changes take effect once the settings window closes."] = "우호적 유닛은 걸려 있는 해로운 효과 유형을, 적대적 유닛은 대신 격노를 표시합니다. 그래서 대상에게 직접 건 독이나 출혈 때문에 계속 켜져 있지 않습니다. 여러 유형이 동시에 걸려 있으면 한 가지 색만 표시됩니다. 어떤 프레임에 적용할지는 유닛 > 프레임에서 유닛별로 설정하며, 색을 바꾸면 설정 창을 닫은 뒤에 적용됩니다."
+L["Magic"] = "마법"
+L["Curse"] = "저주"
+L["Disease"] = "질병"
+L["Poison"] = "독"
+L["Bleed"] = "출혈"
+L["Enrage"] = "격노"

@@ -530,3 +530,17 @@ L["Flash"] = "Parpadear"
 L["Warning color"] = "Color de aviso"
 L["The warning color has its own opacity: the player frame's fill is translucent to show the 3D portrait, and red at that opacity gets lost in the model."] = "El color de aviso tiene su propia opacidad: el relleno del marco del jugador es translúcido para mostrar el retrato 3D, y el rojo con esa opacidad se pierde en el modelo."
 L["Test for %d seconds"] = "Probar %d segundos"
+
+------------------------------------------------------------
+-- 驅散類型高亮（Elements/DispelHighlight.lua）
+------------------------------------------------------------
+L["Debuff type highlight"] = "Resalte por tipo de perjuicio"
+L["Highlight by debuff type"] = "Colorear el borde según el tipo de perjuicio"
+L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] = "Si la unidad tiene un perjuicio de Magia, Maldición, Enfermedad, Veneno o Sangrado, el borde toma el color de ese tipo, por encima del resalte del cursor. Las unidades hostiles muestran Enfurecimiento en su lugar. Los colores y el grosor se ajustan de forma global en «General»."
+L["Friendly units show their debuff types; hostile units show Enrage instead, so your own poisons and bleeds on a target don't keep it lit. With several types at once only one color shows. Which frames get it is set per unit, under Units > Frame; color changes take effect once the settings window closes."] = "Las unidades amistosas muestran sus tipos de perjuicio; las hostiles muestran Enfurecimiento en su lugar, para que tus propios venenos y sangrados sobre un objetivo no lo mantengan iluminado. Con varios tipos a la vez solo se muestra un color. Qué marcos lo reciben se ajusta por unidad en «Unidades > Marco»; los cambios de color se aplican al cerrar la ventana de ajustes."
+L["Magic"] = "Magia"
+L["Curse"] = "Maldición"
+L["Disease"] = "Enfermedad"
+L["Poison"] = "Veneno"
+L["Bleed"] = "Sangrado"
+L["Enrage"] = "Enfurecimiento"

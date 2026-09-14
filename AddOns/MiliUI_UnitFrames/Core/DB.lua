@@ -28,7 +28,8 @@ local function black(a) return { r = 0, g = 0, b = 0, a = a or 1 } end
 local function white(a) return { r = 1, g = 1, b = 1, a = a or 1 } end
 
 -- 小圖示（團標／隊長／休息戰鬥／PvP）的框架層級。
--- 必須高於滑鼠移過的高亮邊框（Core/UnitFrame.lua 的 HIGHLIGHT_LEVEL = 20）：
+-- 必須高於滑鼠移過的高亮邊框（Core/UnitFrame.lua 的 HIGHLIGHT_LEVEL = 19）與
+-- 驅散類型高亮（ns.DISPEL_HIGHLIGHT_LEVEL = 20）：
 -- 這些圖示故意突出框體上緣，邊框壓在上面的話頂線會從圖示中間劃過去。它們是浮在
 -- 框上的徽章，本來就該蓋過邊框。改這個數字要連 UnitFrame.lua 那個常數一起看。
 local ICON_LEVEL = 21
@@ -46,6 +47,8 @@ local ICON_LEVEL = 21
 --   fadeOutOfRange    超出距離淡出（輪詢）
 --   fadeOutOfCombat   脫戰淡出（吃事件）
 --   highlight         滑鼠移過時畫一圈高亮邊框
+--   dispelHighlight   身上有魔法／詛咒／疾病／中毒／流血減益（敵方：激怒）時，
+--                     框體畫一圈該類型顏色的邊框（Elements/DispelHighlight.lua）
 ------------------------------------------------------------
 local function frameDef(o)
     if o.scale == nil then o.scale = 100 end
@@ -58,6 +61,7 @@ local function frameDef(o)
     if o.fadeOutOfRange == nil then o.fadeOutOfRange = false end
     if o.fadeOutOfCombat == nil then o.fadeOutOfCombat = false end
     if o.highlight == nil then o.highlight = true end
+    if o.dispelHighlight == nil then o.dispelHighlight = true end
     return o
 end
 
@@ -150,6 +154,22 @@ function DB.BuildDefaults()
             -- 滑鼠移過的高亮邊框（開關在每單位的 frame.highlight）
             highlightColor = white(0.7),
             highlightSize  = 1,
+            -- 驅散類型高亮（開關在每單位的 frame.dispelHighlight）。
+            -- 預設比滑鼠高亮粗一格：它是警示，1px 的深藍／紫壓在黑邊框上不容易看到。
+            dispelHighlightSize = 2,
+            -- 五種減益是團隊框常見的那組經典減益類型色（流血另補一個洋紅）；
+            -- 激怒跟名條沿用暴雪預設的那個紅：暴雪的 DEBUFF_DISPLAY_INFO 沒有 Enrage
+            -- 那一格，退到 None ＝ DEBUFF_TYPE_NONE_COLOR（#CC0000，wago.tools GlobalColor 查的）。
+            -- ⚠ key 就是引擎的 dispelName，Elements/DispelHighlight.lua 直接拿去當
+            --   includeDispelTypes，不要翻譯或改大小寫。
+            dispelColors = {
+                Magic   = { r = 0.2, g = 0.6, b = 1,   a = 1 },
+                Curse   = { r = 0.6, g = 0,   b = 1,   a = 1 },
+                Disease = { r = 0.6, g = 0.4, b = 0,   a = 1 },
+                Poison  = { r = 0,   g = 0.6, b = 0,   a = 1 },
+                Bleed   = { r = 1,   g = 0.2, b = 0.6, a = 1 },
+                Enrage  = { r = 0.8, g = 0,   b = 0,   a = 1 },
+            },
             -- 編輯模式拖曳時吸附到格線。預設關：沒開過設定的人不該看到框自己跳格
             snapToGrid  = false,
             strata      = "LOW",

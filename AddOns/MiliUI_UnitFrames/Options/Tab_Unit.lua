@@ -54,6 +54,21 @@ local panels = {}          -- [unitKey .. "/" .. elementKey] = { frame, refreshe
 ------------------------------------------------------------
 -- 各元件的表單 spec
 ------------------------------------------------------------
+-- 驅散類型高亮的「測試」鈕：真的去中減益才看得到太麻煩，而且設定面板開著時真實框
+-- 是藏著的 ⇒ 在預覽孿生上把六種顏色輪播一遍（Elements/DispelHighlight.lua 的 DH.Test）。
+-- ⚠ 要宣告在 FrameSpecs 之前：local 寫在後面的話，FrameSpecs 裡抓到的是同名全域 nil
+local DISPEL_TEST_SECONDS = 5
+local function DispelTestRow(unitKey)
+    return function(parent, x, y)
+        local btn = W.CreateButton(parent, L["Test for %d seconds"]:format(DISPEL_TEST_SECONDS), "normal", 200, 22)
+        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+        btn:SetScript("OnClick", function()
+            ns.DispelHighlight.Test(unitKey, DISPEL_TEST_SECONDS)
+        end)
+        return 30
+    end
+end
+
 local function FrameSpecs(unitKey)
     local list = {
         { type = "toggle", root = "unit", key = "enabled", label = L["Enable this unit frame"],
@@ -121,6 +136,14 @@ local function FrameSpecs(unitKey)
     tinsert(list, { type = "toggle", root = "frame", key = "highlight",
                     label = L["Highlight border"],
                     hint = L["Draws a border around the frame while the cursor is over it. Color and thickness are set globally under General."] })
+
+    -- 驅散類型高亮（Elements/DispelHighlight.lua）。跟滑鼠高亮是同一圈邊框、壓在它上面，
+    -- 所以緊接在它後面
+    tinsert(list, { type = "header", label = L["Debuff type highlight"] })
+    tinsert(list, { type = "toggle", root = "frame", key = "dispelHighlight",
+                    label = L["Highlight by debuff type"],
+                    hint = L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] })
+    tinsert(list, { type = "custom", label = "", build = DispelTestRow(unitKey) })
 
     tinsert(list, { type = "header", label = L["Reset"] })
     tinsert(list, { type = "button", label = L["Restore defaults"], text = L["Restore everything for this unit"], color = "red",

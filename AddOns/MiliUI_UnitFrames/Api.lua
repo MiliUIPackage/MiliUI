@@ -852,6 +852,33 @@ local function Debug()
         end
     end
 
+    -- 驅散類型高亮（Elements/DispelHighlight.lua）。沒亮的時候要分得出是：開關關著、
+    -- 還沒建（設定面板開著／戰鬥中會延後）、被敵我分流擋掉（敵方只看激怒），
+    -- 還是容器根本不可見（沒收到光環事件）
+    do
+        local any = false
+        for _, unitKey in ipairs(ns.UNITS or {}) do
+            local uf = ns.frames[unitKey]
+            local st = uf and uf.dispelHL
+            if st then
+                if not any then p("  驅散類型高亮："); any = true end
+                local function cstate(e)
+                    if not e then return "未建" end
+                    return ("visible=%s 重掃=%s"):format(tostring(e.container:IsVisible()),
+                        (ns.auraPokeLog and ns.auraPokeLog[e.tag]) or "—")
+                end
+                p(("   %-10s 開=%s 建過%d次 待建=%s 分流=%s ｜ 減益 %s ｜ 激怒 %s"):format(
+                    unitKey, tostring(uf.db.frame.dispelHighlight ~= false), st.builds or 0,
+                    tostring(st.dirty),
+                    st.hostile == nil and "—" or (st.hostile and "敵方→只看激怒" or "友方→只看減益"),
+                    cstate(st.entries.debuff), cstate(st.entries.enrage)))
+            end
+        end
+        if ns.DispelHighlight and ns.DispelHighlight.lastError then
+            p("   |cffff5555建立失敗：|r" .. ns.DispelHighlight.lastError)
+        end
+    end
+
     -- 資源條：這個專精/型態/天賦下，每個資源為什麼在或不在
     if ns.ResourceCandidates then
         local list, specID = ns.ResourceCandidates()

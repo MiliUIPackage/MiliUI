@@ -576,6 +576,65 @@ ns.Events.Register("PLAYER_REGEN_ENABLED", "auras_bounce_replay", function()
     end
 end)
 
+------------------------------------------------------------
+-- 換人重掃：哪個事件換掉了哪幾個框
+--
+-- 動態 token 的框保持顯示時換人，容器不會自己重掃（見 Bounce 上面的說明），
+-- 所以要直接掛事件主動彈。「事件 → 受影響的框」這張對照只寫這一份：
+-- 光環列（下面 MakeElement）與驅散類型高亮（Elements/DispelHighlight.lua）都掛
+-- 在這裡，加新的單位框只要改一處。
+------------------------------------------------------------
+local repokers = {}
+
+local function RepokeFrame(uf)
+    if not uf then return end
+    for i = 1, #repokers do repokers[i](uf) end
+end
+
+-- 直接掛事件，不只靠 identity 桶派發（框架剛顯示那一瞬間 IsVisible 可能還是 false，
+-- 派發會被閘門擋掉，光環就停在上一個單位）
+ns.Events.Register("PLAYER_TARGET_CHANGED", "auras_repoke_t", function()
+    RepokeFrame(ns.frames.target)
+    RepokeFrame(ns.frames.targettarget)
+    RepokeFrame(ns.frames.targettargettarget)
+end)
+ns.Events.Register("PLAYER_FOCUS_CHANGED", "auras_repoke_f", function()
+    RepokeFrame(ns.frames.focus)
+    RepokeFrame(ns.frames.focustarget)
+end)
+ns.Events.Register("UNIT_TARGET", "auras_repoke_ut", function(unit)
+    if unit == "target" then
+        RepokeFrame(ns.frames.targettarget)
+        -- 目標換目標，目標的目標的目標也跟著換人（反方向沒有事件，見 Core/Events.lua）
+        RepokeFrame(ns.frames.targettargettarget)
+    elseif unit == "focus" then
+        RepokeFrame(ns.frames.focustarget)
+    elseif unit == "pet" then
+        RepokeFrame(ns.frames.pettarget)
+    elseif unit and unit:match("^boss%d$") then
+        RepokeFrame(ns.frames[unit .. "target"])
+    end
+end)
+-- 換寵物＝ "pettarget" 換人，但 UNIT_TARGET 不會發（那隻寵物沒換目標）
+ns.Events.Register("UNIT_PET", "auras_repoke_up", function(unit)
+    if unit == "player" then RepokeFrame(ns.frames.pettarget) end
+end)
+ns.Events.Register("INSTANCE_ENCOUNTER_ENGAGE_UNIT", "auras_repoke_b", function()
+    for i = 1, 5 do
+        RepokeFrame(ns.frames["boss" .. i])
+        RepokeFrame(ns.frames["boss" .. i .. "target"])
+    end
+end)
+
+-- 給同樣用 AuraContainer 的其他模組（Elements/DispelHighlight.lua）。
+-- 戰鬥閘與延後重播只有這一套，別在別處另寫一份 Hide/Show。
+ns.AuraKit = {
+    Detect = Detect,
+    Bounce = Bounce,
+    Quiet  = Quiet,
+    AddRepoker = function(fn) repokers[#repokers + 1] = fn end,
+}
+
 -- 容器定位：錨點角依生長方向（往上長要用 BOTTOM 邊釘原點）。
 -- 建立時與「簽章相符但位置變了」時共用同一支，兩邊算法不會走鐘。
 local function AnchorContainer(container, uf, edb)
@@ -750,45 +809,8 @@ local function MakeElement(elementName, baseFilter)
         Repoke(uf)
     end
 
-    -- 直接掛事件，不只靠 identity 桶派發（框架剛顯示那一瞬間 IsVisible 可能還是 false，
-    -- 派發會被閘門擋掉，光環就停在上一個單位）
-    ns.Events.Register("PLAYER_TARGET_CHANGED", "auras_" .. elementName .. "_t", function()
-        local uf = ns.frames.target
-        if uf then Repoke(uf) end
-        local tot = ns.frames.targettarget
-        if tot then Repoke(tot) end
-        local tott = ns.frames.targettargettarget
-        if tott then Repoke(tott) end
-    end)
-    ns.Events.Register("PLAYER_FOCUS_CHANGED", "auras_" .. elementName .. "_f", function()
-        local uf = ns.frames.focus
-        if uf then Repoke(uf) end
-        local ft = ns.frames.focustarget
-        if ft then Repoke(ft) end
-    end)
-    ns.Events.Register("UNIT_TARGET", "auras_" .. elementName .. "_ut", function(unit)
-        if unit == "target" and ns.frames.targettarget then Repoke(ns.frames.targettarget) end
-        -- 目標換目標，目標的目標的目標也跟著換人（反方向沒有事件，見 Core/Events.lua）
-        if unit == "target" and ns.frames.targettargettarget then Repoke(ns.frames.targettargettarget) end
-        if unit == "focus" and ns.frames.focustarget then Repoke(ns.frames.focustarget) end
-        if unit == "pet" and ns.frames.pettarget then Repoke(ns.frames.pettarget) end
-        if unit and unit:match("^boss%d$") then
-            local bt = ns.frames[unit .. "target"]
-            if bt then Repoke(bt) end
-        end
-    end)
-    -- 換寵物＝ "pettarget" 換人，但 UNIT_TARGET 不會發（那隻寵物沒換目標）
-    ns.Events.Register("UNIT_PET", "auras_" .. elementName .. "_up", function(unit)
-        if unit == "player" and ns.frames.pettarget then Repoke(ns.frames.pettarget) end
-    end)
-    ns.Events.Register("INSTANCE_ENCOUNTER_ENGAGE_UNIT", "auras_" .. elementName .. "_b", function()
-        for i = 1, 5 do
-            local uf = ns.frames["boss" .. i]
-            if uf then Repoke(uf) end
-            local bt = ns.frames["boss" .. i .. "target"]
-            if bt then Repoke(bt) end
-        end
-    end)
+    -- 換人時的事件在上面那張共用對照表（RepokeFrame）
+    repokers[#repokers + 1] = Repoke
 
     local function Disable(uf)
         local entry = uf.auraContainers and uf.auraContainers[elementName]

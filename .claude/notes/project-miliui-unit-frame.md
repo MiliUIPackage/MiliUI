@@ -457,3 +457,42 @@ tank/nothreat/low/secret）存進 `f.threatWhy`，`/muf debug` 印判定、重�
 
 **尚未在遊戲內驗證**：叫出寵物當下 `UNIT_PET` 時專精讀不讀得到（讀不到就靠 PET_SPECIALIZATION_CHANGED，
 那個事件在叫寵物時會不會發也沒測）、載具期間有沒有誤塗、`GetSpecializationInfoByID` 在載入期回不回得出名字（回不出就是英文標籤）。
+
+
+## 驅散類型高亮（dispelHighlight，2026-09-15）
+
+友方單位身上有魔法／詛咒／疾病／中毒／流血減益 → 框體畫一圈該類型色的邊框；敵方單位改看激怒。
+長相照滑鼠高亮（同一個 `ns.BodyBounds` 視覺框體），**要蓋過滑鼠高亮**（使用者指定）。
+開關 `frame.dispelHighlight`（每單位、預設開，在「單位 → 框架」滑鼠移過那節下面，附「測試 5 秒」）；
+全域 `dispelHighlightSize`（預設 2）＋ `dispelColors`（key＝引擎 dispelName），在「一般」分頁。
+新鍵都走 MergeDefaults，沒有遷移。實作在 `Elements/DispelHighlight.lua`。
+
+- **顏色來源（使用者指定）**：五種減益＝經典減益類型色（Magic 0.2/0.6/1、Curse 0.6/0/1、
+  Disease 0.6/0.4/0、Poison 0/0.6/0、Bleed 1/0.2/0.6）；激怒＝名條那邊用的暴雪預設色。
+  ⚠ 光環容器路線不給色表時吃暴雪 `AuraUtil.SetAuraBorderColor`，而 `DEBUFF_DISPLAY_INFO`
+  沒有 Enrage 那格 → 退 None ＝ `DEBUFF_TYPE_NONE_COLOR` #CC0000。
+  那些 `DEBUFF_TYPE_*_COLOR` 是引擎表 GlobalColor 定義的（Lua 原始碼裡找不到），查
+  `https://wago.tools/db2/GlobalColor/csv`，Color 欄是有號 ARGB 整數。
+- **做法＝每種類型一個 `AddAuraSlot`**（`candidateFilters.includeDispelTypes` 只放那一種），邊框用四條
+  `SetColorTexture` 貼圖直接畫在 slot 按鈕上。有沒有光環由引擎 `SetShown` 按鈕（建立當下
+  `UpdateAuraDisplay` 就會藏起來，不會常駐），顏色建立時就知道 ⇒ 不用 `AddDispelTypeTexture`、
+  不用色表、`initializeFrame` 裡零 `CreateColor`。`includeDispelTypes` 不在身分閘裡。
+  不用 BackdropTemplate：按鈕子樹的腳本不跑，九宮格排不起來。
+- **敵我分流**：兩顆容器（HARMFUL 五個 slot／HELPFUL 一個 Enrage slot）各掛一個 holder，
+  依 `cache.attackable`（UnitCanAttack 明文）切 **alpha**。不用 Hide：holder 底下有受保護的
+  intrinsic，戰鬥中藏它會跳封鎖。理由：敵人身上的毒／流血多半是自己上的；友方的激怒是狂怒戰士自己的增益。
+- **層級**：滑鼠高亮從 20 降到 **19**，驅散 **20**，小圖示 21 不動（`ns.DISPEL_HIGHLIGHT_LEVEL`）。
+  19 仍高於光環按鈕文字層 17、施法條內部 16、觀察鈕 17。三層之間沒有空位 ⇒ **多種類型同時在身上
+  時誰畫在上面不保證**（五個 slot 同層），要固定優先權得另外找層級。
+- **重建時機**：顏色與邊寬烘進按鈕，簽章變了只能換容器（舊的刪不掉）。色票拖曳每一格都 ApplySettings，
+  所以 **`Preview.IsOpen()` 時只標 dirty 不建**；`Preview.Close` 先把 isOpen 設 false 再 RestoreReal
+  → Refresh unitchanged → `DH.Update` → 補建。戰鬥中也延到 REGEN。
+- **接線不是元件**（開關在 frame 區塊，跟 ApplyHighlight 同類）：`ns.Refresh` 在 cache 更新後對
+  unitchanged／reaction 桶叫 `DH.Update`；`EvalActiveUnit` 叫 `DH.SetUnit`；spawn／ApplySettings 叫 `DH.Apply`。
+- **換人重掃的事件對照表抽成共用**：`Elements/Auras.lua` 的 `RepokeFrame` ＋ `ns.AuraKit`
+  （Detect／Bounce／Quiet／AddRepoker）。加新單位框只改那一處，光環列與驅散高亮一起吃到。
+- `/muf debug` 多一節「驅散類型高亮」：開關、建過次數、待建、敵我分流、兩顆容器 visible 與重掃方式。
+
+**尚未在遊戲內驗證**：slot 按鈕 `SetAllPoints(container)` 的邊框位置、首領戰中是否照亮、
+激怒在敵方目標上的 dispelName 是否真的是 "Enrage"（依據是本機一支名條插件出貨的篩選）、
+流血類型是否每一種都有標、`SetFrameLevel` 在 initializeFrame 內是否被接受（失敗也會落在容器+1＝20）。

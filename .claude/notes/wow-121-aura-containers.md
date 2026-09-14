@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-29T16:54:26.191Z
+  modified: 2026-09-14T15:12:39.123Z
 ---
 
 12.1.0 最大的改動：光環（buff/debuff）。官方 blue post: https://us.forums.blizzard.com/en/wow/t/addons-and-auras-in-curse-of-ula%E2%80%99tek/2317456
@@ -240,6 +240,22 @@ handler 掛失敗會讓**整個容器建立失敗**,對外只表現成「光環�
    可以搭便車。
 4. `AddDispelTypeTexture`（把調色盤交給引擎、引擎替你的貼圖上色；Cell 在用）——
    只存在於路線 A 的 intrinsic AuraButton，舊路徑沒這接口。`SetIcon` 同理。
+
+⚠ **這個「做不到」只限舊路徑**，別外推到單位框／團隊框。路線 A 上「整個框依類型高亮」
+是可行的（2026-09-14 對 live 原始碼 `Blizzard_CustomAuraButton.lua` 核對）：一個
+`AddAuraSlot` 鋪滿框架（slot 按鈕本身就是高亮），`initializeFrame` 裡建貼圖 →
+`AddDispelTypeTexture(tex, { style = PreserveAsset, showWhenHarmful, showWhenHelpful,
+customDispelColorMap })`。引擎在安全端 `colorMap[auraData.dispelName or "None"]` 查色、
+`SetVertexColor`、`Show/Hide`，插件零讀取。本機的團隊框插件（血量條驅散高亮的 overlay 模式）
+就是這條、已出貨。鍵值：減益 `Magic/Curse/Disease/Poison/Bleed`、增益
+`Enrage`（名條插件拿 `HELPFUL`＋`includeDispelTypes={Enrage=true}` 篩激怒）、
+無類型 `"None"`（要配 `showWithoutDispelType`）。另有 `stealableFilter`。
+限制：一個 slot 一種色（多類型優先權要分 slot 疊層）、色表綁定時複製（改色要重建）、
+按鈕子樹不 tick（不能閃爍）、讀不到「現在亮不亮」（不能跟其他高亮做 Lua 互斥）。
+⚠ 更簡單的變形（MiliUI_UnitFrames 採用）：**一種類型一個 slot**，顏色建立時直接
+`SetColorTexture`，完全不用 `AddDispelTypeTexture`／色表 —— 見 [[project-miliui-unit-frame]]
+「驅散類型高亮」。slot 按鈕建立當下暴雪就 `UpdateAuraDisplay` → `SetShown(auraData ~= nil)`，
+所以一開始是藏著的，不會常駐。
 
 唯一可靠的色彩載體＝暴雪自己的 `DebuffBorder`（安全端畫的，哪裡都正常）。
 要改它外面的視覺就疊自己的區塊，別想取代它。

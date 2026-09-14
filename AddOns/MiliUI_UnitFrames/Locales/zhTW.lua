@@ -528,3 +528,17 @@ L["Flash"] = "閃爍"
 L["Warning color"] = "警示色"
 L["The warning color has its own opacity: the player frame's fill is translucent to show the 3D portrait, and red at that opacity gets lost in the model."] = "警示色有自己的透明度：玩家框的填充是半透明的（要透出 3D 頭像），紅色用那個透明度會被模型吃掉。"
 L["Test for %d seconds"] = "測試 %d 秒"
+
+------------------------------------------------------------
+-- 驅散類型高亮（Elements/DispelHighlight.lua）
+------------------------------------------------------------
+L["Debuff type highlight"] = "減益類型高亮"
+L["Highlight by debuff type"] = "依減益類型高亮邊框"
+L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] = "身上有魔法、詛咒、疾病、中毒或流血減益時，邊框變成該類型的顏色，蓋在滑鼠移過的高亮之上。敵對單位改為顯示激怒。顏色與粗細在「一般」分頁統一設定。"
+L["Friendly units show their debuff types; hostile units show Enrage instead, so your own poisons and bleeds on a target don't keep it lit. With several types at once only one color shows. Which frames get it is set per unit, under Units > Frame; color changes take effect once the settings window closes."] = "友方單位顯示身上的減益類型；敵對單位改為顯示激怒，免得你自己上在目標身上的毒與流血讓框一直亮著。同時有好幾種類型時只會顯示其中一種顏色。哪些框要顯示是逐單位設定的，在「單位」分頁 → 框架；改了顏色要關掉設定視窗才會套用到框上。"
+L["Magic"] = "魔法"
+L["Curse"] = "詛咒"
+L["Disease"] = "疾病"
+L["Poison"] = "中毒"
+L["Bleed"] = "流血"
+L["Enrage"] = "激怒"

@@ -530,3 +530,17 @@ L["Flash"] = "Clignoter"
 L["Warning color"] = "Couleur d'alerte"
 L["The warning color has its own opacity: the player frame's fill is translucent to show the 3D portrait, and red at that opacity gets lost in the model."] = "La couleur d'alerte a sa propre opacité : le remplissage du cadre du joueur est translucide pour laisser voir le portrait 3D, et le rouge à cette opacité se perd dans le modèle."
 L["Test for %d seconds"] = "Tester %d secondes"
+
+------------------------------------------------------------
+-- 驅散類型高亮（Elements/DispelHighlight.lua）
+------------------------------------------------------------
+L["Debuff type highlight"] = "Surbrillance par type d'affaiblissement"
+L["Highlight by debuff type"] = "Colorer la bordure selon le type d'affaiblissement"
+L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] = "Quand l'unité subit un affaiblissement de type Magie, Malédiction, Maladie, Poison ou Saignement, la bordure prend la couleur de ce type, par-dessus la surbrillance de survol. Les unités hostiles affichent Enrager à la place. Les couleurs et l'épaisseur se règlent globalement dans « Général »."
+L["Friendly units show their debuff types; hostile units show Enrage instead, so your own poisons and bleeds on a target don't keep it lit. With several types at once only one color shows. Which frames get it is set per unit, under Units > Frame; color changes take effect once the settings window closes."] = "Les unités amicales affichent leurs types d'affaiblissement ; les unités hostiles affichent Enrager à la place, pour que vos propres poisons et saignements sur une cible ne la laissent pas allumée en permanence. Avec plusieurs types à la fois, une seule couleur s'affiche. Quels cadres en bénéficient se règle par unité dans « Unités > Cadre » ; les changements de couleur s'appliquent à la fermeture de la fenêtre des réglages."
+L["Magic"] = "Magie"
+L["Curse"] = "Malédiction"
+L["Disease"] = "Maladie"
+L["Poison"] = "Poison"
+L["Bleed"] = "Saignement"
+L["Enrage"] = "Enrager"

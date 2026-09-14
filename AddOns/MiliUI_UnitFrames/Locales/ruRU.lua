@@ -530,3 +530,17 @@ L["Flash"] = "Мигание"
 L["Warning color"] = "Цвет предупреждения"
 L["The warning color has its own opacity: the player frame's fill is translucent to show the 3D portrait, and red at that opacity gets lost in the model."] = "У цвета предупреждения своя непрозрачность: заливка рамки игрока полупрозрачна, чтобы был виден 3D-портрет, и красный с такой непрозрачностью теряется на фоне модели."
 L["Test for %d seconds"] = "Тест на %d с"
+
+------------------------------------------------------------
+-- 驅散類型高亮（Elements/DispelHighlight.lua）
+------------------------------------------------------------
+L["Debuff type highlight"] = "Подсветка по типу отрицательного эффекта"
+L["Highlight by debuff type"] = "Цвет рамки по типу эффекта"
+L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] = "Если на единице есть эффект типа «Магия», «Проклятие», «Болезнь», «Яд» или «Кровотечение», рамка окрашивается в цвет этого типа поверх подсветки при наведении. Для враждебных единиц вместо этого показывается «Исступление». Цвета и толщина задаются глобально в разделе «Общее»."
+L["Friendly units show their debuff types; hostile units show Enrage instead, so your own poisons and bleeds on a target don't keep it lit. With several types at once only one color shows. Which frames get it is set per unit, under Units > Frame; color changes take effect once the settings window closes."] = "Дружественные единицы показывают типы своих отрицательных эффектов, враждебные — «Исступление», чтобы ваши собственные яды и кровотечения на цели не держали рамку подсвеченной. Если типов несколько, показывается только один цвет. Каким окнам это включено, задаётся для каждой единицы в «Единицы > Рамка»; изменения цвета применяются после закрытия окна настроек."
+L["Magic"] = "Магия"
+L["Curse"] = "Проклятие"
+L["Disease"] = "Болезнь"
+L["Poison"] = "Яд"
+L["Bleed"] = "Кровотечение"
+L["Enrage"] = "Исступление"

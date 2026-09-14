@@ -54,6 +54,7 @@ Elements\Portrait.lua
 Elements\Texts.lua
 Elements\Castbar.lua
 Elements\Auras.lua
+Elements\DispelHighlight.lua
 Elements\Icons.lua
 Elements\Inspect.lua
 Elements\Totems.lua
