@@ -42,7 +42,7 @@ end
 ns.BLOCK_DEFS = {
     { key = "ilvl",       order = 10,  enabled = true  },
     { key = "durability", order = 20,  enabled = true  },
-    { key = "mounts",     order = 25,  enabled = true  },
+    { key = "mounts",     order = 25,  enabled = false },
     { key = "micromenu",  order = 30,  enabled = true  },
     { key = "spec",       order = 40,  enabled = true  },
     { key = "lootspec",   order = 50,  enabled = true  },
