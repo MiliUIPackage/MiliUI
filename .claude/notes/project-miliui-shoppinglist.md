@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: b6cf2e7a-6cf4-437c-8084-ffad48cb5a46
-  modified: 2026-09-08T12:27:13.858Z
+  modified: 2026-09-14T06:29:37.047Z
 ---
 
 **2026-09-08 新建的獨立插件**（第十二支自製插件、MiliUIWidgets 的第十二個消費者，
@@ -23,6 +23,7 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 | `Core/Schematic.lua` | 讀暴雪的 recipeSchematic／transaction → 我們的格式 |
 | `Core/List.lua` | 配方清單 → 採購清單的彙總、持有量、節流刷新 |
 | `Core/Auction.lua` | 搜尋報價 ＋ 購買狀態機（節流佇列） |
+| `Modules/AddButton.lua` | 兩頁共用的按鈕外觀／狀態／位置 |
 | `Modules/CraftingPage.lua`／`CustomerOrders.lua` | 只掛按鈕，不讀資料 |
 | `UI/Rows.lua` | 採購列（表頭／列／確認列） |
 | `UI/Window.lua` | **整個插件唯一的視窗** |
@@ -205,6 +206,25 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 **沒有經過我們的事件一個字都不要報**：`Finish()` 沒有 pending 就只重畫不出聲，
 瀏覽失敗只在自己送過查詢時才報，背景補查也只在自己的查詢之後才跑。
 
+## 重新製作（2026-09-14 起支援，製作頁與下單頁都是）
+
+原本重製訂單直接停用按鈕（「材料槽是原本那件裝備上的」）。讀暴雪原始碼後確認
+**重製讀的一樣是 schematic ＋ transaction**（`GetRecipeSchematic(spellID, isRecraft=true)`，
+基礎材料的數量已經是重製的減量版），真正不同的只有一件事：
+
+- **原裝備上的附加材料（火花、裝飾…）會先放進槽裡、顯示成已備齊。**
+  那是裝備身上帶著的，照一般配方收的話清單拿背包量去比，會喊「還缺 1」要玩家再買。
+  → `Schematic.lua` 的 `KeepsOriginalModification` 用暴雪自己的
+  `transaction:IsModificationUnchangedAtSlotIndex(slotIndex)` 排除；玩家換成別的才算。
+- ⚠ **訂單頁的 transaction 從來不 `SetRecraft`**（`IsRecraft()` 回 nil），重製與否要看
+  `order.isRecraft`；製作頁才看 `transaction:IsRecraft()`。
+- ⚠ **重製訂單放入物品走 `SetRecraftItemGUID` → `InitSchematic`，不會再跑 `Init`**。
+  靠 `InitSchematic` 結尾的 `UpdateListOrderButton` hook 接到。
+- 清單 key 分開：`recraft:<id>`（製作頁）、`recraftOrder:<id>`（下單頁），名字前綴
+  「重新製作：」。同一配方的一般製作與重製材料量不同，同 key 會互相蓋掉。
+- 製作頁重製固定 1 份：數量框在重製時是藏起來的，裡面殘留的數字不能用。
+- 已送出的訂單（`form.committed`）按鈕整顆藏起來：材料已經交出去了。
+
 ## 「可選」這個標記整個拿掉了
 
 兩次都標錯（先是拿「誰必須提供」當判準，改成「配方需不需要」之後，清單與提示
@@ -259,7 +279,20 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
   Shift 點任何東西都會被吞進清單。掛 `HandleModifiedItemClick` 不掛
   `ChatEdit_InsertLink`（後者只在聊天輸入框開著時才會被呼叫）。
 - 代工按鈕不能錨在 `ReagentContainer.Reagents` 下緣：Auctionator 的材料價格框
-  已經貼在那裡（frameLevel 520）。改錨「下單」鈕左側。
+  已經貼在那裡（frameLevel 520）。
+- **⚠ 按鈕現在的位置（2026-09-14 定案）：材料區標題右邊、同一列**，兩頁共用
+  `Modules/AddButton.lua`。錨點＝`section.Label` 的 LEFT ＋ 字寬（`GetUnboundedStringWidth`，
+  上限是標題框的 180 寬）＋ 10。按鈕高 20 ＝ 標題列高度（暴雪的材料格從容器頂下 20 開始排），
+  寬度跟著字走。依序試 `Reagents` → `OptionalReagents`，都沒顯示就整顆 Hide。
+  之前試過、都被打掉的位置：
+  - 配方標題右上角 —— **重製訂單的標題「重新製作：xxx」很長**，按鈕整顆蓋在標題上（實測擷圖）
+  - 製作頁「追蹤配方」左邊 —— 回收類配方沒有追蹤勾選框，按鈕浮在面板中間
+  - 材料區右端 —— 製作頁的詳細資訊面板貼在右上（TOPRIGHT -20, -125）
+  - 按鈕底下常駐一行說明 —— 使用者要求**說明只在滑過時出現**，改成工具提示第一行
+- **⚠ 按鈕字的金色碼只在啟用時加。** W.CreateButton 停用時把字轉灰，但內嵌色碼
+  蓋得過 SetTextColor —— 原本一律帶金色，停用的按鈕看起來跟能按的一樣，
+  回報就變成「按鈕不能按」（其實是被停用，只是看不出來）。停用時也要
+  `SetMotionScriptsWhileDisabled(true)`，滑過才講得出原因。
 - **製作頁底部那排不能錨「製造」鈕的左邊**（實測，2026-09-08）。由右往左是
   `CreateButton` ← `CreateMultipleInputBox` ← `CreateAllButton`，暴雪的 XML 各留
   `x="-30"` 的間隔給數量框**突出到框外**的左右箭頭 —— 那 30px 不是空白。
@@ -271,10 +304,8 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
   （展開箭頭連同展開功能一起在收斂視窗時拿掉了。）
 - **視窗要 DIALOG 不能 HIGH。** `ProfessionsFrame` 是 `toplevel="true"`，被點一下就把
   自己拉到 HIGH 的最上層，結果插在我們的底色與文字之間 —— 視窗看起來變成半透明。
-- **下單頁的按鈕貼 `ReagentContainer` 的右上角**（「提供施法材料：」那一列的右端），
-  不是「下訂單」鈕旁邊：按鈕講的就是下面那排材料，站在那裡才讀得懂。
-  底下再掛一行小字說明「缺的材料可以到拍賣場一次買齊」—— 不解釋的話「加入清單」
-  看起來只是個記事本。
+- 按鈕名稱是「加入一鍵購買清單」（2026-09-14 使用者指定；原本「加入清單」看起來
+  只是個記事本）。「缺的材料可以到拍賣場一次買齊」這行說明收進工具提示。
 - **拍賣場買到的東西走郵件，收信前 `GetItemCount` 一個都看不到。** 不處理的話清單
   會繼續喊「還缺 N 個」，玩家就再買一次（實測回報）。沒有辦法在不開信箱的情況下
   讀信箱（`GetInboxNumItems` 只有站在信箱前才有值），所以改記自己買了什麼：
@@ -302,7 +333,11 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 ## 待驗證（進遊戲才知道）
 
 - [x] ~~製作頁的按鈕位置~~ —— 已實測修掉，見上面「踩過的點」。
-- [x] ~~下單頁的按鈕位置~~ —— 改貼 `ReagentContainer` 右上角，見上面「踩過的點」。
+- [x] ~~下單頁的按鈕位置~~ —— 見上面「踩過的點」。
+- [ ] 2026-09-14 改到材料區標題右邊：四種畫面（製作／重製 × 製作頁／下單頁）
+      與縮小版製作頁都要看一次有沒有壓到第一排材料、字寬量得準不準。
+- [ ] 重製時原裝備的火花／裝飾是否真的被 `IsModificationUnchangedAtSlotIndex` 排除
+      （工具提示那張材料表不該出現它們）。
 - [ ] `CraftingPage.CreateMultipleInputBox` 的取值方法名（程式三條路都試：
       `GetNumber` / `GetValue` / `GetText`，pcall 包住）。
 - [ ] 藥水配方的 `recipeSchematic.quantityMin` 是不是「每次產出瓶數」

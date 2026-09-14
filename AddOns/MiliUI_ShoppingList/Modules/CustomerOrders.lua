@@ -1,10 +1,11 @@
 ------------------------------------------------------------
--- 代工下單頁的「加入清單」按鈕
+-- 代工下單頁的「加入一鍵購買清單」按鈕（一般訂單與重製訂單都走這支）
 --
 -- 下單頁（ProfessionsCustomerOrdersFrame.Form）是這個插件最主要的入口：
 -- 想找人代工，材料多半要自己準備，而「還缺什麼」正是採購清單要回答的問題。
+-- 按鈕貼在「提供施法材料：」標題右邊；外觀、位置的理由都在 Modules/AddButton.lua。
 --
--- 按鈕上帶「缺 N」徽章，N 跟暴雪自己的「下單」鈕看同一個真相 ——
+-- 工具提示裡的「已分配 / 需要」跟暴雪自己的「下單」鈕看同一個真相 ——
 -- 都是 transaction 的分配結果，不是 GetItemCount。兩邊算法不同就會出現
 -- 「插件說齊了、下單鈕卻是灰的」。
 --
@@ -15,9 +16,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
-local L, W, P = ns.L, ns.W, ns.P
+local L = ns.L
 
-local button, caption
+local button
 local attached = false
 local dirty = false
 
@@ -25,27 +26,37 @@ local function Form()
     return ProfessionsCustomerOrdersFrame and ProfessionsCustomerOrdersFrame.Form
 end
 
+local function EntryKey(order)
+    return ns.Schematic.OrderSource(order) .. ":" .. tostring(order.spellID)
+end
+
 ------------------------------------------------------------
 -- 按鈕狀態
+--
+-- 重製訂單以前是直接停用的（理由是「材料槽是原本那件裝備上的」）—— 但暴雪的
+-- 重製訂單讀的一樣是 schematic ＋ transaction，真正不同的只有「原裝備帶著的
+-- 附加材料會先放進槽裡」，那幾格在 Schematic.lua 排除掉就好，不需要整頁擋掉。
 ------------------------------------------------------------
--- ⚠ 按鈕字用內嵌色碼，不用 SetTextColor：W.CreateButton 在 SetEnabled 時會自己
---   重上白／灰，SetTextColor 設完下一次 Refresh 就被蓋掉。
-local LABEL = "|cffffd200" .. L["Add to list"] .. "|r"
-
 local function Refresh()
     if not button then return end
     local form = Form()
     local order = form and form.order
-    button:SetText(LABEL)
-    -- 重製訂單 v1 不做：材料槽是「原本那件裝備上的」，跟一般下單的語意不同
-    local usable = (order and form.transaction and not order.isRecraft) and true or false
-    button:SetEnabled(usable)
-    -- 還沒加進清單才發光；加過就熄掉
-    ns.SetGlow(button, usable and not ns.List.Find("order:" .. tostring(order.spellID)) or false)
+    -- 已送出的訂單：材料已經交出去了，沒有東西要買
+    if not order or form.committed then
+        button:Hide()
+        return
+    end
+    -- 重製訂單還沒放入物品時暴雪會把材料區藏起來，Place 會把按鈕一起收起來
+    local container = form.ReagentContainer
+    if not ns.AddButton.Place(button, container and container.Reagents, container and container.OptionalReagents) then
+        return
+    end
+    local usable = (order.spellID and form.transaction) and true or false
+    ns.AddButton.SetState(button, usable, usable and not ns.List.Find(EntryKey(order)))
 end
 
 -- UpdateListOrderButton 在打小費時每個按鍵都會跑一次，直接重算會白算幾十遍。
--- 塌成一幀一次。
+-- 塌成一幀一次。延一幀也剛好等 Init 把材料區標題的字換成下單頁的版本。
 local function Schedule()
     if dirty then return end
     dirty = true
@@ -56,15 +67,12 @@ local function Schedule()
 end
 
 local function FillTooltip(_, tip)
+    ns.AddButton.TooltipHeader(tip)
     local form = Form()
-    tip:SetText(ns.PREFIX_COLOR .. L["MiliUI Shopping List"] .. "|r")
     local order = form and form.order
-    if not order or not form.transaction then
+    tip:AddLine(" ")
+    if not order or not order.spellID or not form.transaction then
         tip:AddLine(L["Pick a recipe first."], 0.8, 0.8, 0.8, true)
-        return
-    end
-    if order.isRecraft then
-        tip:AddLine(L["Recrafting orders are not supported yet."], 1, 0.4, 0.4, true)
         return
     end
 
@@ -89,7 +97,10 @@ local function FillTooltip(_, tip)
         tip:AddLine(L["The crafter provides everything for this order."], 0.6, 0.6, 0.6, true)
     end
     tip:AddLine(" ")
-    if ns.List.Find("order:" .. tostring(order.spellID)) then
+    if order.isRecraft then
+        tip:AddLine(L["Reagents the item already carries (sparks, embellishments) are left out."], 0.6, 0.6, 0.6, true)
+    end
+    if ns.List.Find(EntryKey(order)) then
         -- 按鈕不發光的時候要講得出理由，不然看起來像壞掉
         tip:AddLine(L["Already in the list"], 0.4, 1, 0.4)
     end
@@ -106,7 +117,7 @@ local function OnClick()
         ns.Print(L["Could not read that recipe."])
         return
     end
-    local entry = ns.List.AddRecipe(data, 1, "order")
+    local entry = ns.List.AddRecipe(data, 1)
     if not entry then return end
     local _, missing = ns.List.RecipeDetail(entry)
     if missing > 0 then
@@ -126,33 +137,11 @@ local function Attach()
     if not form then return end
     attached = true
 
-    button = W.CreateButton(form, L["Add to list"], "accent-hover", 150, 22)
-    P.Size(button, 150, 22)
-    -- 貼在配方標題那一塊（RecipeHeader）的右上角，收藏星星的左邊 —— 那片是空的，
-    -- 而且視線一進面板就會經過。
-    -- ⚠ RecipeHeader 是 **Texture** 不是 Frame，但錨點吃得到。星星（FavoriteButton）
-    --   平常是 hidden 的，不要拿它當錨；留 32px 給它就好。
-    -- ⚠ 也不要錨 ReagentContainer 的下緣：Auctionator 的材料價格框已經貼在
-    --   ReagentContainer.Reagents 底下（frameLevel 520），會疊在一起。
-    if form.RecipeHeader then
-        button:SetPoint("TOPRIGHT", form.RecipeHeader, "TOPRIGHT", -32, -6)
-    elseif form.ReagentContainer then
-        button:SetPoint("TOPRIGHT", form.ReagentContainer, "TOPRIGHT", -6, -6)
-    else
-        button:SetPoint("BOTTOMLEFT", form, "BOTTOMLEFT", 12, 12)
-    end
-    ns.AttachTooltip(button, FillTooltip)
-    button:SetScript("OnClick", OnClick)
+    button = ns.AddButton.Create(form, OnClick, FillTooltip)
 
-    -- 按鈕底下一行小字：不解釋的話，「加入清單」看起來只是個記事本。
-    -- 真正的賣點是「清單會幫你把缺的材料在拍賣場一次買齊」。
-    caption = button:CreateFontString(nil, "OVERLAY")
-    caption:SetFontObject(GameFontHighlightSmall)   -- 白字：灰字在深色面板上讀不到
-    caption:SetPoint("TOPRIGHT", button, "BOTTOMRIGHT", 0, -2)
-    caption:SetJustifyH("RIGHT")
-    caption:SetText(L["Missing reagents can be bought at the auction house in one go"])
-
-    -- hook **實體**不 hook mixin
+    -- hook **實體**不 hook mixin。
+    -- ⚠ 重製訂單放入物品走的是 SetRecraftItemGUID → InitSchematic，**不會**再跑 Init；
+    --   InitSchematic 最後會呼叫 UpdateListOrderButton，靠那一條接到。
     if form.Init then hooksecurefunc(form, "Init", Schedule) end
     if form.UpdateListOrderButton then hooksecurefunc(form, "UpdateListOrderButton", Schedule) end
     form:HookScript("OnShow", Schedule)

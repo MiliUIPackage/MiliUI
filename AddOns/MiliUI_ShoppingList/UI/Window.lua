@@ -361,7 +361,7 @@ function Refresh()
     estimateLabel:SetText(summary)
 
     if ns.List.IsEmpty() then
-        emptyLabel:SetText(L["Nothing here yet. Open a profession window or a crafting order and press \"Add to list\"."])
+        emptyLabel:SetText(L["Nothing here yet. Open a profession window or a crafting order and press \"Add to one-click buy list\"."])
         emptyLabel:Show()
     elseif #rows == 0 then
         emptyLabel:SetText(L["Nothing left to buy."])

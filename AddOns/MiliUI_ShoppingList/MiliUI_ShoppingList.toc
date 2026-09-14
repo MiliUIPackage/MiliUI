@@ -43,6 +43,8 @@ Core\Schematic.lua
 Core\List.lua
 Core\Auction.lua
 
+# AddButton 是兩頁共用的按鈕，要排在 CraftingPage／CustomerOrders 之前
+Modules\AddButton.lua
 Modules\CraftingPage.lua
 Modules\CustomerOrders.lua
 Modules\ChatLink.lua

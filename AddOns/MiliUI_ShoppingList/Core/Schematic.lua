@@ -10,6 +10,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
+
 ns.Schematic = {}
 local Schematic = ns.Schematic
 
@@ -73,6 +75,43 @@ local function SelectedOptional(slot, allocations)
 end
 
 ------------------------------------------------------------
+-- 重新製作：這一格放的還是裝備身上原本那個附加材料嗎
+--
+-- 重新製作時暴雪會先把原裝備上的火花、裝飾之類放進對應的槽（顯示成已備齊），
+-- 那是「裝備身上帶著的」，不是要去買的 —— 照一般配方收的話，清單會拿背包量去比，
+-- 喊「還缺 1 個」要玩家再買一份。玩家換成別的材料才算他要出的。
+-- 判準用暴雪自己的 IsModificationUnchangedAtSlotIndex（「重製後有沒有改東西」
+-- 也是看這個）。不是重製的 transaction 沒有 modification 表，這支自然回 false，
+-- 所以不另外看 isRecraft 旗標（訂單頁的 transaction 從來不設那個旗標）。
+------------------------------------------------------------
+local function KeepsOriginalModification(transaction, slotIndex)
+    if not transaction or not transaction.IsModificationUnchangedAtSlotIndex then return false end
+    local ok, unchanged = pcall(transaction.IsModificationUnchangedAtSlotIndex, transaction, slotIndex)
+    return ok and unchanged and true or false
+end
+
+------------------------------------------------------------
+-- 清單裡的來源標籤（也是配方 key 的前綴）
+--
+-- 重新製作要跟一般製作分開記：同一個配方的重製只要一部分材料，放在同一個 key
+-- 底下會互相蓋掉份數與材料。
+------------------------------------------------------------
+function Schematic.IsCraftingRecraft(form)
+    local transaction = form and form.GetTransaction and form:GetTransaction()
+    if not transaction or not transaction.IsRecraft then return false end
+    local ok, recraft = pcall(transaction.IsRecraft, transaction)
+    return ok and recraft and true or false
+end
+
+function Schematic.CraftingSource(form)
+    return Schematic.IsCraftingRecraft(form) and "recraft" or "craft"
+end
+
+function Schematic.OrderSource(order)
+    return (order and order.isRecraft) and "recraftOrder" or "order"
+end
+
+------------------------------------------------------------
 -- 製作頁／追蹤配方：一份要什麼材料
 --
 -- transaction 給了就照玩家目前選的可選材料算；沒給（同步追蹤配方那條路）
@@ -91,7 +130,7 @@ function Schematic.Reagents(recipeSchematic, transaction)
                         perCraft = slot.quantityRequired or 1,
                     }
                 end
-            else
+            elseif not KeepsOriginalModification(transaction, slotIndex) then
                 -- 可選／裝飾／加成槽：玩家放了東西才算，而且只算他放的那一個
                 local allocations = SlotAllocations(transaction, slotIndex)
                 local itemID, q = SelectedOptional(slot, allocations)
@@ -139,12 +178,16 @@ function Schematic.FromCraftingForm(form)
     if not ok or type(recipeSchematic) ~= "table" then
         return Schematic.FromRecipeID(info.recipeID)
     end
+    local source = Schematic.CraftingSource(form)
+    local name = recipeSchematic.name or info.name
     return {
         recipeID = info.recipeID,
-        name     = recipeSchematic.name or info.name,
+        -- 清單裡要分得出是重製：同一個配方可能一般製作、重新製作各一筆
+        name     = (source == "recraft" and name) and L["Recraft: %s"]:format(name) or name,
         icon     = info.icon or recipeSchematic.icon,
-        yield    = recipeSchematic.quantityMin or 1,
-        source   = "craft",
+        -- 重新製作就是把那一件重做一次，沒有「一次產出幾個」
+        yield    = source == "recraft" and 1 or (recipeSchematic.quantityMin or 1),
+        source   = source,
         reagents = Schematic.Reagents(recipeSchematic, transaction),
     }
 end
@@ -204,7 +247,9 @@ function Schematic.OrderReagents(form)
             local isBasic     = slot.reagentType == BASIC
 
             local itemID, alts, perCraft, optional, include
-            if isBasic then
+            if KeepsOriginalModification(transaction, slotIndex) then
+                include = false     -- 重製：原裝備上帶著的，不用買
+            elseif isBasic then
                 itemID, alts = SlotItems(slot)
                 perCraft = slot.quantityRequired or 1
                 -- ⚠ 「可選」講的是**配方需不需要這樣材料**，不是「誰來出」。
@@ -259,12 +304,14 @@ function Schematic.FromOrderForm(form)
     end
     -- 訂單物件不保證帶圖示，退回配方本身的
     local recipeInfo = order.spellID and C_TradeSkillUI.GetRecipeInfo(order.spellID)
+    local source = Schematic.OrderSource(order)
+    local name = recipeSchematic.name or order.itemName
     return {
         recipeID  = order.spellID,
-        name      = recipeSchematic.name or order.itemName,
+        name      = (source == "recraftOrder" and name) and L["Recraft: %s"]:format(name) or name,
         icon      = order.icon or (recipeInfo and recipeInfo.icon) or recipeSchematic.icon,
         yield     = 1,                -- 代工一單就是一份
-        source    = "order",
+        source    = source,
         orderType = order.orderType,
         reagents  = reagents,
     }
