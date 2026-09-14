@@ -63,6 +63,16 @@ end
 --
 -- 各自的坑（順序、多回傳值、clamp）寫在呼叫點上方，動之前先讀那段。
 ------------------------------------------------------------
+-- 溢盾光暈：開關的語意是「換到另一端」。預設在滿血那端（從左到右＝右緣），
+-- 條反向時兩邊一起對調，兩張貼圖本來就是左右各一張、方向已經畫好。
+-- isClamped 是秘密布林（真實框）或明文 true（預覽示範）
+local function ApplyGlow(f, edb, isClamped)
+    local glowOn = edb.showOvershield ~= false
+    local gR = (edb.overshieldGlowReverse and true or false) ~= ns.FillReversed(edb)
+    ns.SetOvershieldGlow(f.overShieldGlow,  glowOn and not gR, isClamped)
+    ns.SetOvershieldGlow(f.overShieldGlowR, glowOn and gR,     isClamped)
+end
+
 local function ApplyAbsorb(f, edb, calc, unit, maxHP)
     local _, isClamped = calc:GetDamageAbsorbs()
     local total = UnitGetTotalAbsorbs(unit)
@@ -73,12 +83,7 @@ local function ApplyAbsorb(f, edb, calc, unit, maxHP)
     shown:SetMinMaxValues(0, maxHP)
     shown:SetValue(total)
     shown:Show()
-    -- 溢盾光暈：開關的語意是「放在條的起點那端」。預設在血量長過去的那端（從左到右＝
-    -- 右緣），條反向時兩邊一起對調，兩張貼圖本來就是左右各一張、方向已經畫好
-    local glowOn = edb.showOvershield ~= false
-    local gR = (edb.overshieldGlowReverse and true or false) ~= ns.FillReversed(edb)
-    ns.SetOvershieldGlow(f.overShieldGlow,  glowOn and not gR, isClamped)
-    ns.SetOvershieldGlow(f.overShieldGlowR, glowOn and gR,     isClamped)
+    ApplyGlow(f, edb, isClamped)
 end
 
 -- 吸收盾獨立細條（C6）：跟上面那條疊加層互不相干，貼在血條上／下緣外側。
@@ -444,6 +449,13 @@ local function Update(uf, edb, bucket)
             local hidden = reverse and f.shieldbar or f.shieldbarR
             if hidden then hidden:Hide() end
             shown:SetMinMaxValues(0, 100); shown:SetValue(12); shown:Show()
+            -- 溢盾光暈：假資料（血 75%＋盾 12%）永遠不會溢出，照真實條件的話預覽裡
+            -- 一次都不亮，玩家切「光暈換到另一端」看不到任何變化（實際被這樣回報過）。
+            -- 預覽一律點亮，示範的是「亮在哪一端」，跟上面的盾、底下的治療吸收一樣是展示用。
+            ApplyGlow(f, edb, true)
+        elseif f.overShieldGlow then
+            f.overShieldGlow:Hide()
+            f.overShieldGlowR:Hide()
         end
         if edb.showHealAbsorb and f.healAbsorbBar then
             f.healAbsorbBar:SetMinMaxValues(0, 100); f.healAbsorbBar:SetValue(8); f.healAbsorbBar:Show()
