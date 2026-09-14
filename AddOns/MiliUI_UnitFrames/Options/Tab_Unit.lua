@@ -30,6 +30,13 @@ local UNIT_LIST = {
     { key = "bosstarget",   label = L["Boss Target"] },
 }
 
+-- 填充方向下拉（血條／能量條／施法條共用，值見 ns.FillReversed）。
+-- 刻意用下拉而不是「反轉」勾選：勾選要先知道「正常」是哪個方向，下拉直接寫出方向
+local FILL_DIRECTION_ITEMS = {
+    { text = L["Left to right"], value = "ltr" },
+    { text = L["Right to left"], value = "rtl" },
+}
+
 -- 元件切換列（依 DB 有沒有該元件決定要不要出現）
 local ELEMENT_LIST = {
     { key = "frame",      label = L["Frame"] },
@@ -353,6 +360,7 @@ local function BarSpecs(name, isHP, unitKey)
         { type = "toggle", sub = name, key = "enabled", label = L["Show"] },
         { type = "header", label = L["Position and size"] },
         PosSize(name),
+        { type = "dropdown", sub = name, key = "fillDirection", label = L["Fill direction"], items = FILL_DIRECTION_ITEMS },
         { type = "header", label = L["Color"] },
         { type = "text", label = L["The four class-color methods form a ladder: each step down, fewer units get class color and the rest fall back to reaction color. Mobs get a class from Blizzard's own creature data (melee = warrior, casters = mage), not a real one."] },
         { type = "dropdown", sub = name, key = "colorMethod", label = L["Foreground"], items = Specs.ColorMethodItems(unitKey) },
@@ -374,6 +382,13 @@ local function BarSpecs(name, isHP, unitKey)
         { type = "toggle", sub = name, key = "border", label = L["Show border"] },
     }
     if isHP then
+        -- 說明緊接在填充方向下拉後面（PosSize 之後那一格，見上面的清單）
+        for i, spec in ipairs(list) do
+            if spec.key == "fillDirection" then
+                tinsert(list, i + 1, { type = "text", label = L["Missing-health darkening, heal prediction, absorb shield, heal absorb and the overshield glow all flip to the other side with it."] })
+                break
+            end
+        end
         tinsert(list, { type = "header", label = L["Missing health"] })
         tinsert(list, { type = "slider", sub = name, key = "lossAlpha", label = L["Missing health darkening"], min = 0, max = 1, step = 0.05 })
         tinsert(list, { type = "text", label = L["Lays translucent black over the missing-health area. Without it, frames with a 3D portrait give no visible health edge. 0 = no darkening."] })
@@ -382,15 +397,15 @@ local function BarSpecs(name, isHP, unitKey)
         tinsert(list, { type = "color", sub = name, key = "healPredictionColor", label = L["Prediction color"] })
         tinsert(list, { type = "toggle", sub = name, key = "healPredictionFollowBar", label = L["Prediction follows bar color"] })
         tinsert(list, { type = "slider", sub = name, key = "healPredictionAlpha", label = L["Opacity when following"], min = 0.1, max = 1, step = 0.05 })
-        tinsert(list, { type = "text", label = L["Grows rightward from the leading edge of the health."] })
+        tinsert(list, { type = "text", label = L["Grows from the leading edge of the health into the missing part."] })
         tinsert(list, { type = "toggle", sub = name, key = "showAbsorb", label = L["Absorb shield"] })
         tinsert(list, { type = "color", sub = name, key = "absorbColor", label = L["Absorb shield color"] })
         tinsert(list, { type = "toggle", sub = name, key = "absorbReverseFill", label = L["Absorb shield reverse fill"] })
-        tinsert(list, { type = "text", label = L["Reverse means it grows **from the right end leftward**, reading like extra health (the default). Turn it off and it overlays the health from the left instead."] })
+        tinsert(list, { type = "text", label = L["Reverse means it grows back **from the empty end of the bar**, reading like extra health (the default). Turn it off and it overlays the health from the end the bar starts at instead."] })
         tinsert(list, { type = "toggle", sub = name, key = "showOvershield", label = L["Overshield glow"] })
         tinsert(list, { type = "color", sub = name, key = "overshieldColor", label = L["Overshield glow color"] })
-        tinsert(list, { type = "toggle", sub = name, key = "overshieldGlowReverse", label = L["Put the overshield glow on the left"] })
-        tinsert(list, { type = "text", label = L["When the absorb exceeds full health the edge of the bar lights up. This side is an independent toggle, unrelated to the fill direction above."] })
+        tinsert(list, { type = "toggle", sub = name, key = "overshieldGlowReverse", label = L["Put the overshield glow at the start of the bar"] })
+        tinsert(list, { type = "text", label = L["When the absorb exceeds full health the edge of the bar lights up, by default at the end the health fills toward. Everything in this section mirrors with the fill direction under Position and size."] })
         tinsert(list, { type = "header", label = L["Standalone absorb bar"] })
         tinsert(list, { type = "dropdown", sub = name, key = "absorbBarPosition", label = L["Position"], items = {
             { text = L["Off"], value = "none" },
@@ -496,6 +511,7 @@ local function CastbarSpecs()
           hint = L["Blizzard's own frame does not come back on its own after disabling; /reload is needed"] },
         { type = "header", label = L["Position and size"] },
         PosSize("castbar"),
+        { type = "dropdown", sub = "castbar", key = "fillDirection", label = L["Fill direction"], items = FILL_DIRECTION_ITEMS },
         { type = "header", label = L["Appearance"] },
         { type = "color", sub = "castbar", key = "bg", label = L["Background color"] },
         { type = "text", label = L["Only the background is per unit. The fill color is shared by every cast bar and lives under General > Cast bar colors, where casting, channeling and empowered each get their own — that is the one to change if the fill and the background read too much alike."] },

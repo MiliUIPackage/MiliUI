@@ -126,8 +126,12 @@ end
 ------------------------------------------------------------
 -- 預設值本體
 ------------------------------------------------------------
+-- 有「填充方向」選項的條（見 ns.FillReversed）。預設全部從左到右，由 BuildDefaults 最後
+-- 一次補上，不必在十個單位的字面表裡各寫一次
+local FILL_DIRECTION_ELEMENTS = { "hpbar", "mpbar", "castbar" }
+
 function DB.BuildDefaults()
-    return {
+    local defaults = {
         schemaVersion = ns.DB_VERSION,
 
         global = {
@@ -965,6 +969,24 @@ function DB.BuildDefaults()
         minimap = { hide = false, angle = 200 },
         optionsWindow = { x = 0, y = 0 },
     }
+    for _, udb in pairs(defaults.units) do
+        local els = type(udb) == "table" and udb.elements
+        if type(els) == "table" then
+            for _, name in ipairs(FILL_DIRECTION_ELEMENTS) do
+                local e = els[name]
+                if type(e) == "table" and e.fillDirection == nil then
+                    e.fillDirection = "ltr"
+                end
+            end
+        end
+    end
+    return defaults
+end
+
+-- 條要不要反向填充（fillDirection：ltr 從左到右／rtl 從右到左）。
+-- 缺鍵或不認得的值一律當從左到右 —— 那是加這個選項之前的樣子。
+function ns.FillReversed(edb)
+    return edb ~= nil and edb.fillDirection == "rtl"
 end
 
 ------------------------------------------------------------

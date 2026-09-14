@@ -73,9 +73,10 @@ local function ApplyAbsorb(f, edb, calc, unit, maxHP)
     shown:SetMinMaxValues(0, maxHP)
     shown:SetValue(total)
     shown:Show()
-    -- 溢盾光暈：方向自己一個開關，跟條的填充方向無關
+    -- 溢盾光暈：開關的語意是「放在條的起點那端」。預設在血量長過去的那端（從左到右＝
+    -- 右緣），條反向時兩邊一起對調，兩張貼圖本來就是左右各一張、方向已經畫好
     local glowOn = edb.showOvershield ~= false
-    local gR = edb.overshieldGlowReverse
+    local gR = (edb.overshieldGlowReverse and true or false) ~= ns.FillReversed(edb)
     ns.SetOvershieldGlow(f.overShieldGlow,  glowOn and not gR, isClamped)
     ns.SetOvershieldGlow(f.overShieldGlowR, glowOn and gR,     isClamped)
 end
@@ -125,13 +126,18 @@ local function ApplyHealPrediction(f, hcalc, unit)
     f.incbar:Show()
 end
 
--- 疊加層一律「錨在血量前緣、往右延伸」，超出的部分由 clip 容器裁掉。
+-- 疊加層一律「錨在血量前緣、往扣血那側延伸」，超出的部分由 clip 容器裁掉。
+-- 從左到右時前緣是填充貼圖的右緣、往右長；反向時是左緣、往左長。
 -- ⚠ 只收斂這一行，不要把整段版面收進來：兩個呼叫點的**第二個錨點**本來就不一樣
--- （lossbar 撐到容器右下角、治療預估對齊條高之後給固定寬），硬塞進同一支
+-- （lossbar 撐到容器另一端的下角、治療預估對齊條高之後給固定寬），硬塞進同一支
 -- helper 會改掉它們的行為。這裡統一的是「錨在哪」這個共通決定。
-local function AnchorToFillEdge(obj, hpTex)
+local function AnchorToFillEdge(obj, hpTex, reversed)
     obj:ClearAllPoints()
-    obj:SetPoint("TOPLEFT", hpTex, "TOPRIGHT", 0, 0)
+    if reversed then
+        obj:SetPoint("TOPRIGHT", hpTex, "TOPLEFT", 0, 0)
+    else
+        obj:SetPoint("TOPLEFT", hpTex, "TOPRIGHT", 0, 0)
+    end
 end
 
 local function Build(uf, edb)
@@ -188,6 +194,11 @@ local function Build(uf, edb)
     end
     f.bar:SetStatusBarTexture(texture)
     f.bar:SetFrameLevel(edb.level or 4)
+    -- 填充方向。⚠ 下面所有「貼著血量前緣」或「從條的某一端長」的疊加層都要跟著翻，
+    -- 漏一個就會長在錯的那端：扣血暗化、治療預估、兩條吸收盾、治療吸收、
+    -- 溢盾光暈（在 ApplyAbsorb）、吸收盾獨立細條
+    local reversed = ns.FillReversed(edb)
+    f.bar:SetReverseFill(reversed)
     -- 仇恨提醒的閃爍動畫掛在 f.bar 上（Elements/HealthThreat.lua）
     ns.HealthThreat.Build(uf, f, edb)
 
@@ -198,7 +209,7 @@ local function Build(uf, edb)
     local innerH = ns.P.Scale(edb.h or 10) - inset * 2
     local hpTex = f.bar:GetStatusBarTexture()
 
-    -- 扣血暗化層：從填充右緣鋪到條右緣的半透明黑（貼在 clip 框上，位於頭像之上、
+    -- 扣血暗化層：從填充前緣鋪到條的另一端的半透明黑（貼在 clip 框上，位於頭像之上、
     -- overlay 條之下）。三明治版面裡 3D 模型太搶眼，沒這層「模型」和「模型＋40% 職業色」
     -- 幾乎看不出差別；蓋暗扣血區之後分界才明顯
     if not f.loss then
@@ -207,8 +218,12 @@ local function Build(uf, edb)
     end
     local lossA = edb.lossAlpha or 0
     if lossA > 0 then
-        AnchorToFillEdge(f.loss, hpTex)
-        f.loss:SetPoint("BOTTOMRIGHT", f.clip, "BOTTOMRIGHT", 0, 0)
+        AnchorToFillEdge(f.loss, hpTex, reversed)
+        if reversed then
+            f.loss:SetPoint("BOTTOMLEFT", f.clip, "BOTTOMLEFT", 0, 0)
+        else
+            f.loss:SetPoint("BOTTOMRIGHT", f.clip, "BOTTOMRIGHT", 0, 0)
+        end
         local lc = edb.lossColor or { r = 0, g = 0, b = 0 }
         f.loss:SetVertexColor(lc.r or 0, lc.g or 0, lc.b or 0, lossA)
         f.loss:Show()
@@ -220,8 +235,9 @@ local function Build(uf, edb)
     -- 三條疊加層（治療預估／吸收盾／治療吸收）的結構、材質與方向
     --
     -- 吸收盾有兩條，一次只顯示一條：
-    --   shieldbar   正向填充，從血條左端往右蓋在血量上
-    --   shieldbarR  反向填充，從**右端**往左長 —— 讀起來像「額外的血」，預設用這條
+    --   shieldbar   跟血量同向，從條的起點蓋在血量上
+    --   shieldbarR  跟血量反向，從條的**空的那一端**長回來 —— 讀起來像「額外的血」，預設用這條
+    -- （從左到右時就是「左端往右」與「右端往左」；條反向時兩者的實際方向一起對調）
     -- 兩條都 SetAllPoints 整條血條（不是錨在血量前緣），值直接餵未裁切的總吸收量。
     -- 溢盾光暈是獨立貼圖，貼在條的左右邊緣，靠 isClamped 秘密布林驅動。
     ------------------------------------------------------------
@@ -233,7 +249,7 @@ local function Build(uf, edb)
             sb:ClearAllPoints()
             sb:SetAllPoints(f.clip)
             sb:SetStatusBarTexture(Media.SHIELD_TEXTURE)
-            sb:SetReverseFill(key == "shieldbarR")
+            sb:SetReverseFill((key == "shieldbarR") ~= reversed)
             sb:SetStatusBarColor(shieldC.r, shieldC.g, shieldC.b, shieldC.a or 0.4)
             sb:Hide()
         end
@@ -271,13 +287,13 @@ local function Build(uf, edb)
     f.overShieldGlow:Hide()
     f.overShieldGlowR:Hide()
 
-    -- 治療吸收：反向填充、蓋在最上層（預設紅 1/0.1/0.1）
+    -- 治療吸收：跟血量反向填充、蓋在最上層（預設紅 1/0.1/0.1）
     if edb.showHealAbsorb then
         local hab = EnsureOverlayBar(f.clip, "healAbsorbBar", (edb.level or 4) + 3)
         f.healAbsorbBar = hab
         hab:ClearAllPoints()
         hab:SetAllPoints(f.clip)
-        hab:SetReverseFill(true)
+        hab:SetReverseFill(not reversed)
         hab:SetStatusBarTexture(Media.SHIELD_TEXTURE)
         local c = edb.healAbsorbColor or { r = 1, g = 0.1, b = 0.1, a = 1 }
         hab:SetStatusBarColor(c.r, c.g, c.b, c.a or 1)
@@ -285,13 +301,19 @@ local function Build(uf, edb)
         f.healAbsorbBar:Hide()
     end
 
-    -- 治療預估：錨在血量前緣往右長（用血條材質不用條紋）
+    -- 治療預估：錨在血量前緣往扣血那側長（用血條材質不用條紋）。
+    -- 反向時它自己也要反向填充，值才會從貼著前緣的那一端長出去
     if edb.showHealPrediction then
         local ib = EnsureOverlayBar(f.clip, "incbar", (edb.level or 4) + 2)
         f.incbar = ib
-        AnchorToFillEdge(ib, hpTex)
-        ib:SetPoint("BOTTOMLEFT", hpTex, "BOTTOMRIGHT", 0, 0)
+        AnchorToFillEdge(ib, hpTex, reversed)
+        if reversed then
+            ib:SetPoint("BOTTOMRIGHT", hpTex, "BOTTOMLEFT", 0, 0)
+        else
+            ib:SetPoint("BOTTOMLEFT", hpTex, "BOTTOMRIGHT", 0, 0)
+        end
         ib:SetWidth(innerW)
+        ib:SetReverseFill(reversed)
         ib:SetStatusBarTexture(texture)
     elseif f.incbar then
         f.incbar:Hide()
@@ -314,6 +336,7 @@ local function Build(uf, edb)
         local sb = f.absorbStrip
         sb:SetFrameLevel((edb.level or 4) + 1)
         sb:SetStatusBarTexture(texture)
+        sb:SetReverseFill(reversed)          -- 跟血條同向，上下兩條讀起來才是同一把尺
         sb:SetHeight(ns.P.Scale(edb.absorbBarHeight or 4))
         local gap = ns.P.Scale(edb.absorbBarGap or 1)
         sb:ClearAllPoints()

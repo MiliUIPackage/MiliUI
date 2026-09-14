@@ -496,3 +496,26 @@ tank/nothreat/low/secret）存進 `f.threatWhy`，`/muf debug` 印判定、重�
 **尚未在遊戲內驗證**：slot 按鈕 `SetAllPoints(container)` 的邊框位置、首領戰中是否照亮、
 激怒在敵方目標上的 dispelName 是否真的是 "Enrage"（依據是本機一支名條插件出貨的篩選）、
 流血類型是否每一種都有標、`SetFrameLevel` 在 initializeFrame 內是否被接受（失敗也會落在容器+1＝20）。
+
+
+## 填充方向（fillDirection，2026-09-15）
+
+血條／能量條／施法條各一個「填充方向」下拉（`ltr` 從左到右／`rtl` 從右到左），在各自的
+「位置與大小」那節，每單位獨立。**直向不做**（使用者定案：疊加層全用寬度算，直向等於重寫）。
+型態外魔力小條（manabar）與職業資源條沒加。預設 `ltr` 由 `DB.BuildDefaults` 最後的
+post-pass 補（`FILL_DIRECTION_ELEMENTS`），不在十個單位的字面表裡各寫；判斷一律走
+`ns.FillReversed(edb)`（缺鍵／怪值＝從左到右）。刻意用下拉不用「反轉」勾選。
+
+- **血條要一起翻的六樣**（`Elements/Health.lua` 的 Build，漏一個就長在錯的那端）：
+  扣血暗化（錨前緣＋撐到另一端下角）、治療預估（錨前緣＋自己也 SetReverseFill）、
+  shieldbar／shieldbarR（`(key == "shieldbarR") ~= reversed`）、治療吸收（`not reversed`）、
+  吸收盾獨立細條（同向）、溢盾光暈（在 ApplyAbsorb 用 XOR 選邊）。
+  `AnchorToFillEdge(obj, hpTex, reversed)`：反向時前緣是填充貼圖的**左緣**。
+- **兩個舊選項的語意改成相對的**：「吸收盾反向填充」＝從條的空的那端長回來；
+  「溢盾光暈」開關從「放左邊」改成「放在條的起點那端」（L key 換了，九語系原地替換）。
+  ⇒ 從左到右時行為跟以前一模一樣，存檔不用遷移。
+- **施法條**：`f.bar:SetReverseFill` ＋ 火花錨 `LEFT`／`RIGHT` 跟著換。引導照樣是倒退，
+  相對關係不變。
+
+**尚未在遊戲內驗證**：`SetTimerDuration` 驅動的施法條吃不吃 ReverseFill（預期是條的屬性、
+跟計時器無關）、治療預估反向時的起點是否貼齊前緣、溢盾光暈反向時的位置、預覽孿生的假施法方向。
