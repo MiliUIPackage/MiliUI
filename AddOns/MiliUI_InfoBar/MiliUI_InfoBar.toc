@@ -38,6 +38,7 @@ Core\MountPopup.lua
 Core\Repair.lua
 Core\RepairPopup.lua
 Core\ReadyCheck.lua
+Core\ReadyCheckPopup.lua
 Core\Blocks.lua
 
 Options\Panel.lua

@@ -97,6 +97,49 @@ function RC.CanReadyCheck()
     return (UnitIsGroupLeader("player") or UnitIsGroupAssistant("player")) and true or false
 end
 
+------------------------------------------------------------
+-- Cell 標記工具列的快速開關（滑過面板裡那一列）
+--
+-- 讀寫的就是 Cell 自己設定頁「工具 > 標記工具列」那個勾選框背後的欄位
+-- （CellDB.tools.marks[1]），寫完照它自己勾選框的做法發 UpdateTools，所以兩邊永遠
+-- 是同一個值，不另外存。Cell 沒載入、或存檔結構對不上就當作沒有，面板不顯示這列。
+------------------------------------------------------------
+local function CellMarks()
+    if not (C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("Cell")) then return nil end
+    local cell, cdb = _G.Cell, _G.CellDB
+    if type(cell) ~= "table" or type(cell.Fire) ~= "function" then return nil end
+    local tools = type(cdb) == "table" and cdb.tools
+    local marks = type(tools) == "table" and tools.marks
+    if type(marks) ~= "table" then return nil end
+    return marks, cell
+end
+
+function RC.HasCellMarks()
+    return CellMarks() ~= nil
+end
+
+function RC.CellMarksEnabled()
+    local marks = CellMarks()
+    return marks and marks[1] and true or false
+end
+
+-- 回傳是否真的切換了。戰鬥中不動：Cell 那排裡有 secure 按鈕（世界標記），
+-- 它自己的更新在戰鬥中也是延到脫戰，這裡乾脆不收這一下
+function RC.SetCellMarksEnabled(on)
+    local marks, cell = CellMarks()
+    if not marks or InCombatLockdown() then return false end
+    marks[1] = on and true or false
+    cell.Fire("UpdateTools", "marks")
+    -- Cell 的設定視窗正開在「工具」分頁的話，勾選框要跟著變：重發它自己的分頁切換，
+    -- 讓它照目前的子頁重讀一次存檔（其他分頁的處理器在非自己分頁時都只做 Hide，重發無副作用）。
+    -- 沒開著就不碰——下次開頁它本來就會重讀
+    local tab = type(cell.frames) == "table" and cell.frames.utilitiesTab
+    if tab and tab.IsVisible and tab:IsVisible() then
+        cell.Fire("ShowOptionsTab", "utilities")
+    end
+    return true
+end
+
 -- 把三顆鍵的巨集寫進 secure 方塊。SetAttribute 在戰鬥中對 secure 按鈕是違禁品，
 -- 延到脫戰（實際上只有 ApplyAll 會叫，ApplyAll 本身已經延過了）
 function RC.ApplyBindings(tile)

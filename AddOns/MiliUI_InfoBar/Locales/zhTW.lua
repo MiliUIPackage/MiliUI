@@ -221,7 +221,7 @@ L["REPAIR_MOUNT_CAT_MISSING"] = "坐騎分頁裡沒有修裝分類，這裡用�
 
 -- Ready check / countdown
 L["BLOCK_READYCHECK"] = "確認倒數"
-L["BLOCK_READYCHECK_DESC"] = "就位確認與開怪倒數的按鈕。左／中／右鍵各自指定動作與秒數（設定視窗的「確認倒數」分頁）；預設只在隊伍或團隊裡出現。"
+L["BLOCK_READYCHECK_DESC"] = "就位確認與開怪倒數的按鈕。左／中／右鍵各自指定動作與秒數（設定視窗的「確認倒數」分頁）；預設只在隊伍或團隊裡出現。滑過會列出三顆鍵的功能，裝了 Cell 時還能在那裡快速開關 Cell 的標記工具列。"
 L["RC_ACTION_NONE"] = "無"
 L["RC_ACTION_READYCHECK"] = "就位確認"
 L["RC_ACTION_COUNTDOWN"] = "開怪倒數"
@@ -229,6 +229,8 @@ L["RC_ACTION_CANCEL"] = "取消倒數"
 L["RC_COUNTDOWN_FMT"] = "開怪倒數 %d 秒"
 L["RC_TIP_SOLO"] = "目前不在隊伍中，按下去不會有反應。"
 L["RC_TIP_NEED_LEAD"] = "就位確認需要隊長或助理權限。"
+L["RC_CELL_MARKS"] = "Cell 標記工具列"
+L["RC_POPUP_SETTINGS"] = "設定按鍵功能…"
 L["TAB_READYCHECK"] = "確認倒數"
 L["SECTION_READYCHECK"] = "確認倒數"
 L["READYCHECK_ONLY_IN_GROUP"] = "在隊伍／團隊內啟用"

@@ -512,7 +512,8 @@ end
 
 ------------------------------------------------------------
 -- 確認倒數：一顆圖示方塊，左／中／右鍵各自一個動作（就位確認／開怪倒數 N 秒／
--- 取消倒數／無），在設定視窗的「確認倒數」分頁指定。資料層在 Core/ReadyCheck.lua。
+-- 取消倒數／無），在設定視窗的「確認倒數」分頁指定。資料層在 Core/ReadyCheck.lua，
+-- 滑過面板在 Core/ReadyCheckPopup.lua。
 --
 -- 方塊是 SecureActionButton，三顆鍵的巨集由 ReadyCheck.ApplyBindings 寫進屬性
 -- （為什麼一定要走巨集，見那支檔案開頭）。「在隊伍／團隊內啟用」勾著時，不在隊伍裡
@@ -560,13 +561,21 @@ function ns.Blocks.readycheck.create()
     tile.icon = icon
     tile.iconInfo = { mode = "file", file = RC.ICON }
 
+    -- 滑過展開面板（三顆鍵的功能、Cell 標記工具列開關、設定入口，Core/ReadyCheckPopup.lua）。
+    -- 戰鬥中不開面板，改用提示說明三顆鍵——倒數正是戰鬥前後在按的東西，資訊還是要看得到
     tile:HookScript("OnEnter", function(self)
         ns.TintTileIcon(self, true)
-        ShowReadyCheckTooltip(self)
+        if InCombatLockdown() then
+            ShowReadyCheckTooltip(self)
+            return
+        end
+        ns.ReadyCheckPopup.ScheduleOpen(self)
     end)
     tile:HookScript("OnLeave", function(self)
         ns.TintTileIcon(self, false)
         GameTooltip:Hide()
+        ns.ReadyCheckPopup.CancelOpen()
+        ns.ReadyCheckPopup.ScheduleClose()
     end)
 
     -- 顯示條件變了才要求重排（組隊事件一場團會來很多次，大部分沒有改變可見度）
@@ -574,7 +583,10 @@ function ns.Blocks.readycheck.create()
         local hidden = not RC.ShouldShow()
         if tile._blockHidden == hidden then return end
         tile._blockHidden = hidden
-        if hidden and GameTooltip:IsOwned(tile) then GameTooltip:Hide() end
+        if hidden then
+            if GameTooltip:IsOwned(tile) then GameTooltip:Hide() end
+            ns.ReadyCheckPopup.Hide()
+        end
         ns.RequestLayout()
     end
 
@@ -594,6 +606,7 @@ function ns.Blocks.readycheck.create()
     function inst:Disable()
         ns.Events.Unregister("GROUP_ROSTER_UPDATE", "blk-readycheck")
         ns.Events.Unregister("PLAYER_ENTERING_WORLD", "blk-readycheck")
+        ns.ReadyCheckPopup.Hide()
     end
 
     return inst

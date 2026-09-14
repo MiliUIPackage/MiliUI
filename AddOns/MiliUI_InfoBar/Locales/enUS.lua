@@ -220,7 +220,7 @@ L["REPAIR_MOUNT_CAT_MISSING"] = "There is no Repair category on the Mounts tab, 
 
 -- Ready check / countdown
 L["BLOCK_READYCHECK"] = "Ready / Pull"
-L["BLOCK_READYCHECK_DESC"] = "A ready check and pull countdown button. Left, middle and right click each get their own action and seconds (the Ready / Pull tab in the options window). By default it only shows while you are in a party or raid."
+L["BLOCK_READYCHECK_DESC"] = "A ready check and pull countdown button. Left, middle and right click each get their own action and seconds (the Ready / Pull tab in the options window). By default it only shows while you are in a party or raid. Hover it to see what each button does; with Cell loaded you can also toggle Cell's marks bar from there."
 L["RC_ACTION_NONE"] = "None"
 L["RC_ACTION_READYCHECK"] = "Ready check"
 L["RC_ACTION_COUNTDOWN"] = "Pull countdown"
@@ -228,6 +228,8 @@ L["RC_ACTION_CANCEL"] = "Cancel countdown"
 L["RC_COUNTDOWN_FMT"] = "Pull countdown %ds"
 L["RC_TIP_SOLO"] = "You are not in a group, so clicking does nothing."
 L["RC_TIP_NEED_LEAD"] = "Ready checks need group leader or assistant."
+L["RC_CELL_MARKS"] = "Cell marks bar"
+L["RC_POPUP_SETTINGS"] = "Set up buttons…"
 L["TAB_READYCHECK"] = "Ready / Pull"
 L["SECTION_READYCHECK"] = "Ready / Pull"
 L["READYCHECK_ONLY_IN_GROUP"] = "Only in a party / raid"
