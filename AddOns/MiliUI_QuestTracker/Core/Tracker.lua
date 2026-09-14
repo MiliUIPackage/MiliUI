@@ -21,6 +21,7 @@
 --    連 GetBottom() 都算碰。它們的內容是從暴雪的共用 widget pool 借出來畫的，
 --    而那個池子同時服務工具提示與地圖圖釘 —— 沾過的元件被回收去畫提示時就會在
 --    版面計算裡炸秘密值。它們的 Header 是安全的（不從池子來），可以照樣美化。
+--    唯一的例外是場景 ObjectivesBlock 上的目標行，理由與界線寫在 T.EachScenarioLine。
 --
 -- 4. 藏貼圖只准 SetTexture("")。SetTexture(nil) 與 SetAlpha(0) 都會沾到暴雪的貼圖。
 --
@@ -172,6 +173,34 @@ function T.EachLine(block, fn)
     if type(lines) ~= "table" then return end
     for _, line in pairs(lines) do
         if type(line) == "table" then fn(line) end
+    end
+end
+
+-- 走場景（探究、事件、副本場景）的目標行 —— 規矩 3 的唯一例外。
+--
+-- 那些行**不是**從共用 widget pool 借的，是 ObjectiveTrackerManager 的行池。池子的鍵
+-- 只看模板名稱（Blizzard_SharedXMLBase/Pools.lua 的 GetPoolKey，父層不算），而場景用的
+-- ObjectiveTrackerAnimLineTemplate 跟戰役、額外目標、成就、每月活動是**同一池**：同一個框
+-- 這一輪在戰役底下、下一輪就被場景拿去用（GetLine 會 SetParent 過去）。
+-- 所以「不美化場景的行」從來不成立 —— 結果是看運氣：從戰役回收過來的行帶著我們的字型，
+-- 新建的沒有。2026-09-14 玩家回報的就是這個：同一個場景底下一行小一行大，/reload 之後
+-- 池子是新的，變成全部沒套到。
+--
+-- 界線（其餘照舊不碰）：
+--   * 只讀 ObjectivesBlock.usedLines 這張表、只把行交出去；不呼叫區塊的任何方法
+--     （場景的區塊裡還掛著 widget、法術框、進度條，那些才是規矩 3 真正在擋的）
+--   * 行上的文字是秘密值就跳過 —— 對秘密字串 SetFont 會把引擎回填弄掉（□% 那次）
+function T.EachScenarioLine(fn)
+    local tracker = _G.ScenarioObjectiveTracker
+    local block = tracker and tracker.ObjectivesBlock
+    local lines = block and block.usedLines
+    if type(lines) ~= "table" then return end
+    local IsSecret = ns.Secret.IsSecret
+    for _, line in pairs(lines) do
+        local text = type(line) == "table" and line.Text
+        if text and text.GetText and not IsSecret(text:GetText()) then
+            fn(line)
+        end
     end
 end
 

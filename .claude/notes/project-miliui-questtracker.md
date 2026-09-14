@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 115994b3-d41f-4e67-b636-6c325885e05b
-  modified: 2026-08-29T07:28:27.382Z
+  modified: 2026-09-14T09:10:44.503Z
 ---
 
 2026-08-29 開的獨立插件（`AddOns/MiliUI_QuestTracker/`），骨架照
@@ -28,6 +28,7 @@ metadata:
    區塊還在用）。走 `T.Flags()` 弱鍵表。
 3. **`ScenarioObjectiveTracker` / `UIWidgetObjectiveTracker` 的子區塊連 `GetBottom()` 都不能叫。**
    它們的 Header 安全（不從池子來），可以照樣美化。`T.EachBlock` 把這道閘擋在裡面。
+   **唯一例外：場景 `ObjectivesBlock.usedLines` 的目標行**（`T.EachScenarioLine`，2026-09-14），理由見下方「目標行字級不一致」。
 4. 藏貼圖只准 `SetTexture("")`；`SetTexture(nil)` 與 `SetAlpha(0)` 都會沾到暴雪的貼圖。
 5. `block.poiButton` 不准 `Hide()` 也不准掛它的 `Show()` —— 那顆的 OnShow/OnHide 會動
    `EventRegistry` 上 `"Supertracking.OnChanged"` 的共用訂閱表。要藏走 alpha ＋ `EnableMouse(false)`。
@@ -240,6 +241,45 @@ widget 的狀態是**四態**不是兩態：`shown`／`hidden`（有 visualizati
 （順帶：同一份報告裡 `Quest: state=ShownPartially skipped=true`，
 CampaignQuest 153.91 ＋ Quest 485.31 塞在 700 高的框裡，有任務區塊被截掉。
 追蹤器沒有捲動是既定限制，不是這個症狀的一部分。）
+
+## 目標行字級不一致：場景行跟戰役行同一個行池（2026-09-14）
+
+症狀：探究／墓窖場景底下，一行是我們的字（小、描邊），其他行是暴雪原樣（大、陰影、0.80 灰）；
+`/reload` 之後變成**全部**沒套到。玩家的直覺是「變糟了」，其實是池子被重置。
+
+**根因：行池的鍵只看模板名稱**（`Blizzard_SharedXMLBase/Pools.lua` 的 `GetPoolKey(template, specialization)`，
+父層不算；`GetLine` 借出來再 `SetParent` 過去）。場景用 `ObjectiveTrackerAnimLineTemplate`，
+**戰役、額外目標／世界任務、成就、冒險、每月活動、倡議、專業配方都是同一個模板**（只有一般任務是
+`QuestObjectiveLineTemplate`）。所以規矩 3 原本的「場景的行不美化」從來不成立 —— 我們 SetFont 過的戰役行
+被回收給場景就帶著我們的字型，新建的沒有 ⇒ 看運氣。
+**修法：把場景的目標行也納入美化**，界線收在 `T.EachScenarioLine`：只讀 `ObjectivesBlock.usedLines`、
+不呼叫區塊方法（widget／法術框／進度條才是規矩 3 真正在擋的）、行文字是秘密值就跳過（□% 那條）。
+掛在場景 Update hook 的 `T.Defer("scenarioLines")` —— **不能跟 `"poolHeader"` 共用 key**，Defer 是先到先贏，
+同一幀 widget 模組的那次會被吃掉（反過來也一樣）。新借的行第一輪行高是暴雪字型算的，規矩 1 同一種代價。
+
+**反過來的路（場景保持原樣、在釋放時把字型還原）被否決**：玩家要的是一致有套到；而且要 hook 釋放，
+在場景的 FreeLine 路徑上動手才真的是規矩 3 的禁區。
+**字型物件路線（直接改 `ObjectiveTrackerLineFont`）也沒走**：編輯模式的文字大小（`SetTextSize`）會跟它拉鋸，
+而且每行的 SetTextColor 照樣會隨池子外洩。
+
+`/mquest debug` 原本完全不記字型（判定 A 講的是場景同步，跟這個症狀無關），所以加了「objective line fonts」段。
+**⚠ 玩家兩份「變糟」的報告都沒有這一段 ⇒ 遊戲讀的還是主資料夾的舊程式**（改動在 worktree）。
+看到報告缺段，先懷疑沒部署，別先懷疑修法。
+
+**機制（對過暴雪原始碼）**：目標行的 `Text` 繼承 `ObjectiveTrackerLineFont`，編輯模式的「文字大小」
+改的是那個字型物件（`ObjectiveTrackerManager:SetTextSize`；繁中的 12 實際是 15）。我們 `SetFont` 過的行
+才會是設定頁的字級 ⇒ **字級對不上的那行，就是 SkinLine 在某個時間點沒碰到的行**。
+行池是**每個區塊一個**（`AcquireFrame(block, template)`），`GetLine` 模板不同才換新行；完成的目標沿用同模板。
+顏色是第二個指紋：暴雪一般色 0.80、完成色 0.60，而 `SetStringText` **只在色系換掉時才 SetTextColor**，
+我們的目標行預設 0.72 —— 完成那行印 0.60 就代表完成之後 SkinLine 沒再跑過。
+
+報告每行印 `字級/描邊 字型檔 role=（StyleFS 碰過沒）c=顏色 state=動畫狀態`，對不上標 `!!`；
+另列「顯示中、卻不在 usedLines 裡」的孤兒行（SkinLine 只走 usedLines）；區塊照 `firstBlock→nextBlock`
+排序並印「skinned N 秒前」（`Diag.NoteSkin`，SkinBlock 開頭報到）。全部對得上的區塊只留一行。
+場景行另列一組 `Scenario objectives`（不掃孤兒行，那要對區塊呼叫 GetChildren）。
+不參與判定，但判定下面會補一行 `also:` 指過來。`Skin.FontRole`／`Skin.TitleFS` 是給這段讀的。
+
+**尚未在遊戲內驗證**：場景行套上之後的行距、秘密值閘在 M+ 的表現。
 
 ## 跟別的插件的關係
 

@@ -57,6 +57,11 @@ function Skin.RefreshFonts()
     end
 end
 
+-- 給診斷報告讀：這個 FontString 有沒有被 StyleFS 碰過（nil ＝從來沒有）
+function Skin.FontRole(fs)
+    return fontRoles[fs]
+end
+
 ------------------------------------------------------------
 -- 顏色
 ------------------------------------------------------------
@@ -363,6 +368,7 @@ local function TitleFS(block)
     end
     return nil
 end
+Skin.TitleFS = TitleFS   -- 診斷報告要比對的是我們實際美化的那一個，不是猜 HeaderText
 
 local function ApplyTitleColor(block)
     local fs = TitleFS(block)
@@ -502,6 +508,7 @@ end
 
 local function SkinBlock(block)
     if not block then return end
+    ns.Diag.NoteSkin(block)
 
     -- 每次都要跑的：池子可能剛換一顆新的圖釘按鈕給這個區塊，右緣也可能
     -- 長出新按鈕（任務變成可組隊、拿到任務物品）
@@ -556,10 +563,17 @@ end
 ------------------------------------------------------------
 -- 掛勾一個子追蹤器
 ------------------------------------------------------------
+-- 場景的目標行跟戰役、額外目標的行是同一池，不套就是看運氣（見 T.EachScenarioLine）
+local function SkinScenarioLines()
+    ns.Diag.NoteSkin(_G.ScenarioObjectiveTracker)
+    T.EachScenarioLine(SkinLine)
+end
+
 local function SkinExisting(tracker)
     if not tracker then return end
     if tracker.Header then ApplyHeaderLine(tracker.Header) end
     T.EachBlock(tracker, SkinBlock)
+    if tracker == _G.ScenarioObjectiveTracker then SkinScenarioLines() end
 end
 
 local function HookTracker(tracker)
@@ -588,6 +602,11 @@ local function HookTracker(tracker)
                     if self.Header then ApplyHeaderLine(self.Header) end
                     ns.Chrome.Layout()
                 end)
+                -- 自己一個 key：Defer 是先到先贏，跟上面共用的話會被同一幀的 widget 模組吃掉。
+                -- 新借出來的行會先以暴雪字型排一次版，下一輪排版行高才會對上 —— 規矩 1 的同一種代價
+                if self == _G.ScenarioObjectiveTracker then
+                    T.Defer("scenarioLines", SkinScenarioLines)
+                end
             end)
         end
         return

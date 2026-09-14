@@ -18,6 +18,9 @@
 -- 所以報告分成 API 端／容器與模組端／我們這端三段對照，再加 taint 檢查（issecurevariable
 -- 會直接點名是哪個插件弄髒的）與錯誤記錄，最後給一句判定。
 --
+-- 「目標行字型」那段對付的是另一個症狀（同一個任務底下有幾行字級不一樣），
+-- 不參與判定，理由寫在 SecLines 上面。
+--
 -- 全程唯讀。共用 widget pool 的兩支（場景／UI widget）只讀**模組框本身**的欄位，
 -- 不進子區塊（Core/Tracker.lua 規矩 3）。每一段都各自 pcall：某段拋錯不能讓整份報告
 -- 消失 —— 報告最需要的時候，正是有東西壞掉的時候。
@@ -45,6 +48,14 @@ function D.NoteUpdate(tracker)
     if not tracker then return end
     updateCount[tracker] = (updateCount[tracker] or 0) + 1
     updateLast[tracker]  = GetTime()
+end
+
+-- 區塊上一次被 SkinBlock 走過是什麼時候。「字級不一致的那行」要分辨是從來沒套到、
+-- 還是套過之後被換掉，看的就是這個時間跟行的狀態對不對得起來
+local skinLast = T.Flags()
+
+function D.NoteSkin(block)
+    skinLast[block] = GetTime()
 end
 
 -- 跟場景有關的事件什麼時候來過。「API 事件來了、模組卻沒 Update」跟
@@ -101,8 +112,16 @@ end
 
 local function Trunc(s, n)
     if type(s) ~= "string" or IsSecret(s) then return Str(s) end
-    if #s > n then return s:sub(1, n) .. "…" end
-    return s
+    if #s <= n then return s end
+    -- 位元組截斷會把中文字切成半個，剩下的殘缺位元組在編輯框裡顯示成亂碼。
+    -- 切點落在延續位元組（10xxxxxx）上就往前退到那個字的開頭
+    local cut = n
+    while cut > 0 do
+        local byte = s:byte(cut + 1)
+        if not byte or byte < 0x80 or byte >= 0xC0 then break end
+        cut = cut - 1
+    end
+    return s:sub(1, cut) .. "…"
 end
 
 local function Ago(t)
@@ -416,6 +435,202 @@ local function SecOurs(add)
     end
 end
 
+------------------------------------------------------------
+-- 目標行的字型
+--
+-- 針對「同一個任務底下，有幾行字級／描邊跟別行不一樣」。暴雪的目標行都繼承
+-- ObjectiveTrackerLineFont（編輯模式的「文字大小」改的就是那個字型物件；繁中的 12
+-- 實際是 15），SetFont 過的行才是我們的字級 —— 所以對不上的那行，就是 SkinLine 在
+-- 某個時間點沒碰到的行。每行對照四樣：
+--   字級/描邊  GetFont 的實際值 vs 設定頁要的值，對不上的行標 !!
+--   role       StyleFS 有沒有碰過這個 FontString（"-" ＝從來沒有）
+--   state      暴雪的動畫狀態（目標完成那行走 Completing → Completed）
+--   c          文字顏色。暴雪的一般色 0.80、完成色 0.60（SetStringText 只在色系換掉時
+--              才重設），我們的目標行預設 0.72 —— 完成那行印 0.60 就是那之後 SkinLine
+--              沒再跑過
+-- 另外列「顯示中、卻不在 usedLines 裡」的行：SkinLine 只走 usedLines，那之外的行
+-- 我們永遠套不到。
+--
+-- 共用 widget pool 的兩支只列場景目標行那一組（規矩 3 的例外，走 T.EachScenarioLine），
+-- 區塊與 widget 不碰。全程只讀。
+------------------------------------------------------------
+local function Basename(path)
+    if type(path) ~= "string" or IsSecret(path) then return nil end
+    return (path:match("([^\\/]+)$") or path):lower()
+end
+
+local function FontInfo(fs)
+    local path, size, flags = fs:GetFont()
+    local plainFlags = type(flags) == "string" and not IsSecret(flags) and flags or ""
+    return size, plainFlags, Basename(path) or Str(path)
+end
+
+local function FontDesc(fs, role)
+    local size, flags, file = FontInfo(fs)
+    local sizeText = (type(size) == "number" and not IsSecret(size))
+        and ("%g"):format(math.floor(size * 10 + 0.5) / 10) or Str(size)
+    local color = "?"
+    if fs.GetTextColor then
+        local r, g, b = fs:GetTextColor()
+        if type(r) == "number" and type(g) == "number" and type(b) == "number"
+           and not (IsSecret(r) or IsSecret(g) or IsSecret(b)) then
+            local rs, gs, bs = ("%.2f"):format(r), ("%.2f"):format(g), ("%.2f"):format(b)
+            color = (rs == gs and gs == bs) and rs or (rs .. "/" .. gs .. "/" .. bs)
+        end
+    end
+    return ("%s/%s %s role=%s c=%s"):format(sizeText, flags ~= "" and flags or "-", file,
+        role or "-", color)
+end
+
+-- 對不上的項目（"size+outline"），一致回 nil
+local function FontMismatch(fs, want)
+    local size, flags, file = FontInfo(fs)
+    local why = {}
+    if type(size) ~= "number" or IsSecret(size) or math.abs(size - want.size) > 0.5 then
+        why[#why + 1] = "size"
+    end
+    if (flags:find("OUTLINE", 1, true) ~= nil) ~= want.outline then
+        why[#why + 1] = "outline"
+    end
+    if want.file and file ~= want.file then why[#why + 1] = "font" end
+    return #why > 0 and table.concat(why, "+") or nil
+end
+
+-- 照螢幕上的順序排：先走暴雪排版串起來的 firstBlock → nextBlock，
+-- 再補 usedBlocks 裡沒排上去的。兩邊對不起來本身就是線索，所以各自標出來
+local function BlocksInOrder(tracker)
+    local inPool = {}
+    T.EachBlock(tracker, function(block) inPool[block] = true end)
+    local list, seen = {}, {}
+    local block = tracker.firstBlock
+    while type(block) == "table" and not seen[block] do
+        seen[block] = true
+        list[#list + 1] = { block = block, note = inPool[block] and "" or "  (not in usedBlocks)" }
+        block = block.nextBlock
+    end
+    for b in pairs(inPool) do
+        if not seen[b] then list[#list + 1] = { block = b, note = "  (not laid out)" } end
+    end
+    return list
+end
+
+-- 數字鍵（第幾個目標）照順序在前，字串鍵（QuestComplete、Waypoint…）在後。
+-- 傳區塊就走它的 usedLines；傳陣列（場景那組）就直接排
+local function SortedLines(source)
+    local list = {}
+    if source.usedLines or source.lines then
+        T.EachLine(source, function(line) list[#list + 1] = line end)
+    else
+        for i = 1, #source do list[i] = source[i] end
+    end
+    table.sort(list, function(x, y)
+        local a, b = x.objectiveKey, y.objectiveKey
+        local na, nb = type(a) == "number", type(b) == "number"
+        if na ~= nb then return na end
+        if na then return a < b end
+        return tostring(a) < tostring(b)
+    end)
+    return list
+end
+
+local function SecLines(add, ctx)
+    local a = ns.db and ns.db.appearance
+    if not a then
+        add("no saved settings yet")
+        return
+    end
+    local want = {
+        size    = a.objectiveSize,
+        outline = a.outline and true or false,
+        file    = Basename(ns.Media.OptionalFont(a.font)),
+    }
+    local wantTitle = { size = a.titleSize, outline = want.outline, file = want.file }
+    local base = _G.ObjectiveTrackerLineFont
+    add("want objective=%s title=%s outline=%s font=%s | Blizzard ObjectiveTrackerLineFont=%s",
+        Str(a.objectiveSize), Str(a.titleSize), tostring(want.outline), want.file or "keep",
+        (base and base.GetFont) and FontDesc(base) or "nil")
+
+    local Role = ns.Skin and ns.Skin.FontRole or function() return nil end
+    local StateEnum = _G.ObjectiveTrackerAnimLineState
+    local total, bad, never, orphans = 0, 0, 0, 0
+
+    -- 一組行逐行比對，回傳明細與這組有幾行對不上
+    local function Describe(lines)
+        local details, groupBad = {}, 0
+        for _, line in ipairs(lines) do
+            local fs = line.Text
+            if fs and fs.GetFont then
+                total = total + 1
+                local role = Role(fs)
+                local why = FontMismatch(fs, want)
+                if why then bad, groupBad = bad + 1, groupBad + 1 end
+                if not role then never = never + 1 end
+                details[#details + 1] = ("  %s [%s] %s state=%s  %s"):format(
+                    why and ("!! " .. why) or "ok", Str(line.objectiveKey), FontDesc(fs, role),
+                    EnumName(StateEnum, line.state), Trunc(fs:GetText(), 40))
+            end
+        end
+        return details, groupBad
+    end
+
+    -- 場景的目標行（規矩 3 的例外，見 T.EachScenarioLine）。區塊本身不碰，
+    -- 所以沒有標題、也不掃孤兒行（那要對區塊呼叫 GetChildren）；秘密文字的行本來就不套，這裡也不列
+    local sLines = {}
+    T.EachScenarioLine(function(line) sLines[#sLines + 1] = line end)
+    if #sLines > 0 then
+        local details, groupBad = Describe(SortedLines(sLines))
+        add("%sScenario objectives  lines=%d bad=%d  skinned %s", groupBad > 0 and "!! " or "",
+            #sLines, groupBad, Ago(skinLast[_G.ScenarioObjectiveTracker]))
+        if groupBad > 0 then
+            for _, d in ipairs(details) do add("%s", d) end
+        end
+    end
+
+    T.EachTracker(function(tracker)
+        if T.SharesWidgetPool(tracker) then return end
+        for _, entry in ipairs(BlocksInOrder(tracker)) do
+            local block = entry.block
+            local lines = SortedLines(block)
+            local details, blockBad = Describe(lines)
+            local used = {}
+            for _, line in ipairs(lines) do used[line] = true end
+
+            if block.GetChildren then
+                for _, child in ipairs({ block:GetChildren() }) do
+                    if not used[child] and child.objectiveKey ~= nil and child.Text
+                       and child.Text.GetFont and child:IsShown() then
+                        orphans, blockBad = orphans + 1, blockBad + 1
+                        details[#details + 1] = ("  !! orphan [%s] %s state=%s  %s"):format(
+                            Str(child.objectiveKey), FontDesc(child.Text, Role(child.Text)),
+                            EnumName(StateEnum, child.state), Trunc(child.Text:GetText(), 40))
+                    end
+                end
+            end
+
+            local title = (ns.Skin and ns.Skin.TitleFS and ns.Skin.TitleFS(block)) or block.HeaderText
+            local titleDesc, titleWhy = "-", nil
+            if title and title.GetFont then
+                titleDesc = FontDesc(title, Role(title))
+                titleWhy = FontMismatch(title, wantTitle)
+            end
+            local note = entry.note
+            if block.HeaderText and title ~= block.HeaderText then
+                note = note .. "  (styled title is not HeaderText)"
+            end
+            add("%s%s #%s %s  title=%s  lines=%d bad=%d  skinned %s%s",
+                (blockBad > 0 or titleWhy) and "!! " or "", ShortName(tracker), Str(block.id),
+                Trunc(title and title.GetText and title:GetText(), 40), titleDesc,
+                #lines, blockBad, Ago(skinLast[block]), note)
+            -- 全部對得上的區塊只留上面那一行，免得幾十行的「ok」把要看的那幾行淹掉
+            if blockBad > 0 then
+                for _, d in ipairs(details) do add("%s", d) end
+            end
+        end
+    end)
+    add("lines=%d  mismatched=%d  neverStyled=%d  orphans=%d", total, bad, never, orphans)
+    ctx.lineMismatch = bad + orphans
+end
+
 local function SecEvents(add)
     for _, e in ipairs(WATCH_EVENTS) do
         add("%s: %d×  last %s", e, eventCount[e] or 0, Ago(eventLast[e]))
@@ -532,11 +747,18 @@ function D.Report()
     Section(out, "tracker modules", SecModules, ctx)
     Section(out, "taint", SecTaint, ctx)
     Section(out, "this addon", SecOurs, ctx)
+    Section(out, "objective line fonts", SecLines, ctx)
     Section(out, "events", SecEvents, ctx)
     Section(out, "errors", SecErrors, ctx)
     local code, text = Verdict(ctx)
     out[#out + 1] = "== verdict " .. code
     out[#out + 1] = "  " .. text
+    -- 判定只管「追蹤器少了一段」那三型；字型對不上是另一回事，不併進判定，
+    -- 但要在這裡點出來，不然讀報告的人只看判定會以為這份跟症狀無關
+    if (ctx.lineMismatch or 0) > 0 then
+        out[#out + 1] = ("  also: %d objective line(s) don't match the font settings — see \"objective line fonts\"")
+            :format(ctx.lineMismatch)
+    end
     return out, code, text
 end
 
