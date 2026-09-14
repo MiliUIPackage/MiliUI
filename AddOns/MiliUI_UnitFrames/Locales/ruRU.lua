@@ -270,11 +270,11 @@ L["Grows from the leading edge of the health into the missing part."] = "Рас�
 L["Absorb shield"] = "Поглощающий щит"
 L["Absorb shield color"] = "Цвет поглощающего щита"
 L["Absorb shield reverse fill"] = "Обратная заливка щита"
-L["Reverse means it grows back **from the empty end of the bar**, reading like extra health (the default). Turn it off and it overlays the health from the end the bar starts at instead."] = "Обратная заливка означает, что щит растет **от пустого края полосы**, читаясь как дополнительное здоровье (по умолчанию). Если отключить, он накладывается на здоровье от начала полосы."
+L["On: grows back from the empty end, reading like extra health (default). Off: overlays the health from the start of the bar."] = "Вкл.: растет от пустого края, как дополнительное здоровье (по умолчанию). Выкл.: накладывается на здоровье от начала полосы."
 L["Overshield glow"] = "Свечение сверхщита"
 L["Overshield glow color"] = "Цвет свечения сверхщита"
-L["Put the overshield glow at the start of the bar"] = "Разместить свечение сверхщита в начале полосы"
-L["When the absorb exceeds full health the edge of the bar lights up, by default at the end the health fills toward. Everything in this section mirrors with the fill direction under Position and size."] = "Когда поглощение превышает полное здоровье, край полосы подсвечивается — по умолчанию с той стороны, куда заполняется здоровье. Всё в этом разделе зеркально следует направлению заливки из «Положение и размер»."
+L["Glow on other end"] = "С другой стороны"
+L["When the absorb exceeds full health, the bar edge lights up, by default at the full-health end. Tick to move it to the other end."] = "Когда поглощение превышает полное здоровье, край полосы светится — по умолчанию со стороны полного здоровья. Отметьте, чтобы перенести на другой край."
 L["Heal absorb"] = "Поглощение исцеления"
 L["Heal absorb color"] = "Цвет поглощения исцеления"
 L["Debuffs that eat healing, such as Necrotic. Reverse-filled and drawn on top."] = "Отрицательные эффекты, съедающие исцеление, например Некротическая рана. Обратная заливка, рисуется поверх."
@@ -535,7 +535,7 @@ L["Test for %d seconds"] = "Тест на %d с"
 -- 驅散類型高亮（Elements/DispelHighlight.lua）
 ------------------------------------------------------------
 L["Debuff type highlight"] = "Подсветка по типу отрицательного эффекта"
-L["Highlight by debuff type"] = "Цвет рамки по типу эффекта"
+L["Color by type"] = "Цвет по типу"
 L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] = "Если на единице есть эффект типа «Магия», «Проклятие», «Болезнь», «Яд» или «Кровотечение», рамка окрашивается в цвет этого типа поверх подсветки при наведении. Для враждебных единиц вместо этого показывается «Исступление». Цвета и толщина задаются глобально в разделе «Общее»."
 L["Friendly units show their debuff types; hostile units show Enrage instead, so your own poisons and bleeds on a target don't keep it lit. With several types at once only one color shows. Which frames get it is set per unit, under Units > Frame; color changes take effect once the settings window closes."] = "Дружественные единицы показывают типы своих отрицательных эффектов, враждебные — «Исступление», чтобы ваши собственные яды и кровотечения на цели не держали рамку подсвеченной. Если типов несколько, показывается только один цвет. Каким окнам это включено, задаётся для каждой единицы в «Единицы > Рамка»; изменения цвета применяются после закрытия окна настроек."
 L["Magic"] = "Магия"
@@ -548,7 +548,7 @@ L["Enrage"] = "Исступление"
 ------------------------------------------------------------
 -- 填充方向（血條／能量條／施法條）
 ------------------------------------------------------------
-L["Fill direction"] = "Направление заливки"
+L["Fill direction"] = "Направление"
 L["Left to right"] = "Слева направо"
 L["Right to left"] = "Справа налево"
 L["Right to left also lights point-style resources from the right: the first point is the rightmost segment."] = "Справа налево ресурсы-очки тоже загораются справа: первое очко — крайний правый сегмент."

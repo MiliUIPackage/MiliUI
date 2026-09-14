@@ -270,11 +270,11 @@ L["Grows from the leading edge of the health into the missing part."] = "Crece d
 L["Absorb shield"] = "Escudo de absorción"
 L["Absorb shield color"] = "Color del escudo de absorción"
 L["Absorb shield reverse fill"] = "Relleno invertido del escudo"
-L["Reverse means it grows back **from the empty end of the bar**, reading like extra health (the default). Turn it off and it overlays the health from the end the bar starts at instead."] = "Invertido significa que crece **desde el extremo vacío de la barra**, lo que se lee como salud adicional (por defecto). Si lo desactivas, se superpone a la salud desde el inicio de la barra."
+L["On: grows back from the empty end, reading like extra health (default). Off: overlays the health from the start of the bar."] = "Activado: crece desde el extremo vacío, como salud extra (por defecto). Desactivado: se superpone a la salud desde el inicio de la barra."
 L["Overshield glow"] = "Brillo de sobreescudo"
 L["Overshield glow color"] = "Color del brillo de sobreescudo"
-L["Put the overshield glow at the start of the bar"] = "Poner el brillo de sobreescudo al inicio de la barra"
-L["When the absorb exceeds full health the edge of the bar lights up, by default at the end the health fills toward. Everything in this section mirrors with the fill direction under Position and size."] = "Cuando la absorción supera la salud máxima, el extremo de la barra se ilumina; por defecto, en el extremo hacia el que se llena la salud. Todo lo de esta sección se refleja junto con la dirección de relleno de «Posición y tamaño»."
+L["Glow on other end"] = "Brillo al otro lado"
+L["When the absorb exceeds full health, the bar edge lights up, by default at the full-health end. Tick to move it to the other end."] = "Cuando la absorción supera la salud máxima, se ilumina el borde de la barra, por defecto en el extremo de salud llena. Márcalo para pasarlo al otro extremo."
 L["Heal absorb"] = "Absorción de sanación"
 L["Heal absorb color"] = "Color de la absorción de sanación"
 L["Debuffs that eat healing, such as Necrotic. Reverse-filled and drawn on top."] = "Perjuicios que se comen la sanación, como Necrótico. Relleno invertido y dibujado por encima."
@@ -535,7 +535,7 @@ L["Test for %d seconds"] = "Probar %d segundos"
 -- 驅散類型高亮（Elements/DispelHighlight.lua）
 ------------------------------------------------------------
 L["Debuff type highlight"] = "Resalte por tipo de perjuicio"
-L["Highlight by debuff type"] = "Colorear el borde según el tipo de perjuicio"
+L["Color by type"] = "Color por tipo"
 L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] = "Si la unidad tiene un perjuicio de Magia, Maldición, Enfermedad, Veneno o Sangrado, el borde toma el color de ese tipo, por encima del resalte del cursor. Las unidades hostiles muestran Enfurecimiento en su lugar. Los colores y el grosor se ajustan de forma global en «General»."
 L["Friendly units show their debuff types; hostile units show Enrage instead, so your own poisons and bleeds on a target don't keep it lit. With several types at once only one color shows. Which frames get it is set per unit, under Units > Frame; color changes take effect once the settings window closes."] = "Las unidades amistosas muestran sus tipos de perjuicio; las hostiles muestran Enfurecimiento en su lugar, para que tus propios venenos y sangrados sobre un objetivo no lo mantengan iluminado. Con varios tipos a la vez solo se muestra un color. Qué marcos lo reciben se ajusta por unidad en «Unidades > Marco»; los cambios de color se aplican al cerrar la ventana de ajustes."
 L["Magic"] = "Magia"
@@ -548,7 +548,7 @@ L["Enrage"] = "Enfurecimiento"
 ------------------------------------------------------------
 -- 填充方向（血條／能量條／施法條）
 ------------------------------------------------------------
-L["Fill direction"] = "Dirección de relleno"
+L["Fill direction"] = "Dirección"
 L["Left to right"] = "De izquierda a derecha"
 L["Right to left"] = "De derecha a izquierda"
 L["Right to left also lights point-style resources from the right: the first point is the rightmost segment."] = "De derecha a izquierda, los recursos por puntos también se encienden desde la derecha: el primer punto es el segmento más a la derecha."

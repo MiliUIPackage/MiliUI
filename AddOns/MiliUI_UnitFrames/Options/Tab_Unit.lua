@@ -143,7 +143,7 @@ local function FrameSpecs(unitKey)
     -- 所以緊接在它後面
     tinsert(list, { type = "header", label = L["Debuff type highlight"] })
     tinsert(list, { type = "toggle", root = "frame", key = "dispelHighlight",
-                    label = L["Highlight by debuff type"],
+                    label = L["Color by type"],
                     hint = L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] })
     tinsert(list, { type = "custom", label = "", build = DispelTestRow(unitKey) })
 
@@ -396,11 +396,11 @@ local function BarSpecs(name, isHP, unitKey)
         tinsert(list, { type = "toggle", sub = name, key = "showAbsorb", label = L["Absorb shield"] })
         tinsert(list, { type = "color", sub = name, key = "absorbColor", label = L["Absorb shield color"] })
         tinsert(list, { type = "toggle", sub = name, key = "absorbReverseFill", label = L["Absorb shield reverse fill"] })
-        tinsert(list, { type = "text", label = L["Reverse means it grows back **from the empty end of the bar**, reading like extra health (the default). Turn it off and it overlays the health from the end the bar starts at instead."] })
+        tinsert(list, { type = "text", label = L["On: grows back from the empty end, reading like extra health (default). Off: overlays the health from the start of the bar."] })
         tinsert(list, { type = "toggle", sub = name, key = "showOvershield", label = L["Overshield glow"] })
         tinsert(list, { type = "color", sub = name, key = "overshieldColor", label = L["Overshield glow color"] })
-        tinsert(list, { type = "toggle", sub = name, key = "overshieldGlowReverse", label = L["Put the overshield glow at the start of the bar"] })
-        tinsert(list, { type = "text", label = L["When the absorb exceeds full health the edge of the bar lights up, by default at the end the health fills toward. Everything in this section mirrors with the fill direction under Position and size."] })
+        tinsert(list, { type = "toggle", sub = name, key = "overshieldGlowReverse", label = L["Glow on other end"] })
+        tinsert(list, { type = "text", label = L["When the absorb exceeds full health, the bar edge lights up, by default at the full-health end. Tick to move it to the other end."] })
         tinsert(list, { type = "header", label = L["Standalone absorb bar"] })
         tinsert(list, { type = "dropdown", sub = name, key = "absorbBarPosition", label = L["Position"], items = {
             { text = L["Off"], value = "none" },

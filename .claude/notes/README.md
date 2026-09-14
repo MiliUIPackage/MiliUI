@@ -117,6 +117,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-tooltip.md](project-miliui-tooltip.md) | MiliUI_Tooltip：取代 TinyTooltip 的自製滑鼠提示，taint 接觸面清單／待驗證 |
 | [project-miliui-uf-visibility-gate.md](project-miliui-uf-visibility-gate.md) | 顯示條件走「閘框」而不是 `RegisterStateDriver`：藏普通父層等於藏 secure 子框 |
 | [project-miliui-uf-comment-attribution.md](project-miliui-uf-comment-attribution.md) | 頭像框架註解不點名第三方插件，但複製來的檔案與致謝要留出處 |
+| [project-miliui-options-label-width.md](project-miliui-options-label-width.md) | 設定表單左欄標籤 128px／13 字級一行：繁中約 9 字、歐語約 17 字，超過截成「…」；怎麼量、怎麼縮 |
 | [project-miliui-pixel-snapping.md](project-miliui-pixel-snapping.md) | 單位框像素對齊：邊框露縫的成因，內縮量必須走 `Media.BorderInset()` |
 | [project-miliui-hide-blizzard-taint.md](project-miliui-hide-blizzard-taint.md) | 隱藏暴雪框的 taint 規則：Edit Mode 管的框只能解事件 |
 | [feedback-no-cell-version-bump.md](feedback-no-cell-version-bump.md) | 不要主動 bump Cell 的 `## Version` —— 那是釋出訊號，由使用者決定 |

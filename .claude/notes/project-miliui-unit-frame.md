@@ -513,7 +513,8 @@ post-pass 補（`FILL_DIRECTION_ELEMENTS`），不在十個單位的字面表裡
   吸收盾獨立細條（同向）、溢盾光暈（在 ApplyAbsorb 用 XOR 選邊）。
   `AnchorToFillEdge(obj, hpTex, reversed)`：反向時前緣是填充貼圖的**左緣**。
 - **兩個舊選項的語意改成相對的**：「吸收盾反向填充」＝從條的空的那端長回來；
-  「溢盾光暈」開關從「放左邊」改成「放在條的起點那端」（L key 換了，九語系原地替換）。
+  「溢盾光暈」開關從「放左邊」改成「光暈換到另一端」（預設在滿血那端；L key 換了，九語系原地替換。
+  第一版叫「溢盾光暈改放條的起點那端」被標籤欄截斷，見 [[project-miliui-options-label-width]]）。
   ⇒ 從左到右時行為跟以前一模一樣，存檔不用遷移。
 - **施法條**：`f.bar:SetReverseFill` ＋ 火花錨 `LEFT`／`RIGHT` 跟著換。引導照樣是倒退，
   相對關係不變。
