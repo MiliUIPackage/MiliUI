@@ -517,7 +517,7 @@ function ns.CreateTile(name, opts)
         -- 同理 OnMouseUp 也在放開那次派送裡、排在 OnClick 前面——所以按下／放開的底色
         -- 交給引擎的 PushedTexture，不掛任何 Lua。
     else
-        -- 純顯示的 tile 不吃滑鼠：資訊列不該擋住底下的遊戲畫面點擊
+        -- 純顯示的 tile 不吃滑鼠：點擊落到底下的 bar，算空白處（右鍵開設定，見 EnsureBar）
         tile:EnableMouse(false)
     end
 
@@ -1276,15 +1276,34 @@ local function EnsureBar()
         if db and db.dock and db.dock ~= "none" then ns.RequestLayout() end
     end)
 
+    -- 空白處右鍵開設定。空白＝tile 之間的間距、純顯示的方塊（不吃滑鼠，點擊落到
+    -- bar）、停靠時整條沒有方塊的地方；有自己點擊行為的方塊吃掉自己的點擊，到不了這裡。
+    -- bar 不是 secure 按鈕，secure 方塊的點擊派送也不經過它，所以這裡掛 Lua 沒有
+    -- CreateTile 那段 PreClick／OnMouseUp 的污染問題。
+    -- 放開時游標還在 bar 上才算：按下去拖出條外再放開不觸發。
+    bar:EnableMouse(true)
+    bar:SetScript("OnMouseUp", function(self, button)
+        if button == "RightButton" and self:IsMouseOver() then
+            ns.OpenSettings()
+        end
+    end)
+
     ApplyPosition()
     EnsureEditSelection()
     EnsureSettingsOverlay()
 
     -- 寵物對戰接管畫面時只降 alpha：bar 是保護框，戰鬥中 Hide 會被封鎖，
     -- SetAlpha 永遠合法。OVER 與 CLOSE 都要接（誰後到依勝負而定，處理冪等）。
-    ns.Events.Register("PET_BATTLE_OPENING_START", "bar", function() bar:SetAlpha(0) end)
-    ns.Events.Register("PET_BATTLE_OVER",  "bar", function() bar:SetAlpha(1) end)
-    ns.Events.Register("PET_BATTLE_CLOSE", "bar", function() bar:SetAlpha(1) end)
+    -- 空白處的滑鼠跟著收：停靠在底邊又沒推開時，整條看不見的橫帶會蓋在寵物對戰的
+    -- 技能列上吃掉點擊。EnableMouse 對保護框是戰鬥違禁品，走 ns.Defer（寵物對戰
+    -- 本來就不在 lockdown，當場執行）。
+    local function PetBattle(active)
+        bar:SetAlpha(active and 0 or 1)
+        ns.Defer("bar-mouse", function() bar:EnableMouse(not active) end)
+    end
+    ns.Events.Register("PET_BATTLE_OPENING_START", "bar", function() PetBattle(true) end)
+    ns.Events.Register("PET_BATTLE_OVER",  "bar", function() PetBattle(false) end)
+    ns.Events.Register("PET_BATTLE_CLOSE", "bar", function() PetBattle(false) end)
 end
 
 ----------------------------------------------------------------------
