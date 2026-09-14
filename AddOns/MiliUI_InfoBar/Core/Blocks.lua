@@ -511,6 +511,95 @@ function ns.Blocks.mounts.create()
 end
 
 ------------------------------------------------------------
+-- 確認倒數：一顆圖示方塊，左／中／右鍵各自一個動作（就位確認／開怪倒數 N 秒／
+-- 取消倒數／無），在設定視窗的「確認倒數」分頁指定。資料層在 Core/ReadyCheck.lua。
+--
+-- 方塊是 SecureActionButton，三顆鍵的巨集由 ReadyCheck.ApplyBindings 寫進屬性
+-- （為什麼一定要走巨集，見那支檔案開頭）。「在隊伍／團隊內啟用」勾著時，不在隊伍裡
+-- 就用 _blockHidden 把整顆收掉，版面照常由 Layout 處理（戰鬥中延到脫戰）。
+--
+-- ⚠ OnClick 前面不掛任何 Lua（理由見 Core/Bar.lua 的 CreateTile），提示只掛
+--   OnEnter／OnLeave。
+------------------------------------------------------------
+local function ShowReadyCheckTooltip(tile)
+    local RC = ns.ReadyCheck
+    AnchorTooltip(tile)
+    GameTooltip:SetText(L["BLOCK_READYCHECK"], 1, 1, 1)
+    for _, b in ipairs(RC.BUTTONS) do
+        local action, seconds = RC.Binding(b.key)
+        local v = (action == "none") and 0.5 or 1
+        GameTooltip:AddDoubleLine(L[b.label], RC.Describe(action, seconds), 0.7, 0.7, 0.7, v, v, v)
+    end
+    -- 按下去沒反應的兩種情況要說出來：暴雪的斜線指令在這兩種情況都是安靜地什麼都不做
+    if not IsInGroup() then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(L["RC_TIP_SOLO"], 1, 0.82, 0, true)
+    elseif RC.UsesAction("readycheck") and not RC.CanReadyCheck() then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(L["RC_TIP_NEED_LEAD"], 1, 0.82, 0, true)
+    end
+    GameTooltip:Show()
+end
+
+ns.Blocks.readycheck = {}
+function ns.Blocks.readycheck.create()
+    local RC = ns.ReadyCheck
+    local inst = { tiles = {} }
+    local tile = ns.CreateTile("MiliUIInfoBar_readycheck", {
+        clickable = true,
+        template  = "SecureActionButtonTemplate",
+    })
+    inst.tile = tile
+    inst.tiles[1] = tile
+    -- 沒有這行，ActionButtonUseKeyDown 這個 CVar 會讓 secure handler 只認 key-down，
+    -- 把我們的 AnyUp 點擊丟掉（同 Core/MicroMenu.lua）
+    tile:SetAttribute("useOnKeyDown", false)
+
+    local icon = tile:CreateTexture(nil, "OVERLAY")
+    icon:SetPoint("CENTER")
+    tile.icon = icon
+    tile.iconInfo = { mode = "file", file = RC.ICON }
+
+    tile:HookScript("OnEnter", function(self)
+        ns.TintTileIcon(self, true)
+        ShowReadyCheckTooltip(self)
+    end)
+    tile:HookScript("OnLeave", function(self)
+        ns.TintTileIcon(self, false)
+        GameTooltip:Hide()
+    end)
+
+    -- 顯示條件變了才要求重排（組隊事件一場團會來很多次，大部分沒有改變可見度）
+    local function RefreshShown()
+        local hidden = not RC.ShouldShow()
+        if tile._blockHidden == hidden then return end
+        tile._blockHidden = hidden
+        if hidden and GameTooltip:IsOwned(tile) then GameTooltip:Hide() end
+        ns.RequestLayout()
+    end
+
+    -- 設定變動（ApplyAll）走這支：圖示、巨集、可見度一起重套
+    function inst:Update()
+        tile.desiredW = ns.GetDB().height        -- 正方形
+        ns.ApplyTileIcon(tile)
+        RC.ApplyBindings(tile)
+        RefreshShown()
+    end
+
+    function inst:Enable()
+        ns.Events.Register("GROUP_ROSTER_UPDATE", "blk-readycheck", RefreshShown)
+        ns.Events.Register("PLAYER_ENTERING_WORLD", "blk-readycheck", RefreshShown)
+    end
+
+    function inst:Disable()
+        ns.Events.Unregister("GROUP_ROSTER_UPDATE", "blk-readycheck")
+        ns.Events.Unregister("PLAYER_ENTERING_WORLD", "blk-readycheck")
+    end
+
+    return inst
+end
+
+------------------------------------------------------------
 -- 金幣：只顯示金，銀銅是雜訊
 ------------------------------------------------------------
 MakeTextBlock("gold", {

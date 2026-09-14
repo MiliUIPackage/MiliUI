@@ -30,6 +30,7 @@ local TABS = {
     { id = "micro",   label = L["TAB_MICRO"] },
     { id = "mounts",  label = L["TAB_MOUNTS"] },
     { id = "repair",  label = L["TAB_REPAIR"] },
+    { id = "readycheck", label = L["TAB_READYCHECK"] },
     { id = "about",   label = L["TAB_ABOUT"] },
 }
 

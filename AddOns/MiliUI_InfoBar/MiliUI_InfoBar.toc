@@ -37,6 +37,7 @@ Core\Mounts.lua
 Core\MountPopup.lua
 Core\Repair.lua
 Core\RepairPopup.lua
+Core\ReadyCheck.lua
 Core\Blocks.lua
 
 Options\Panel.lua
@@ -45,6 +46,7 @@ Options\Tab_Blocks.lua
 Options\Tab_Micro.lua
 Options\Tab_Mounts.lua
 Options\Tab_Repair.lua
+Options\Tab_ReadyCheck.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Api.lua

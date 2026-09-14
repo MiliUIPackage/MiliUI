@@ -47,6 +47,7 @@ ns.BLOCK_DEFS = {
     { key = "spec",       order = 40,  enabled = true  },
     { key = "lootspec",   order = 50,  enabled = true  },
     { key = "warband",    order = 55,  enabled = true  },
+    { key = "readycheck", order = 57,  enabled = true  },
     { key = "gold",       order = 60,  enabled = false },
     { key = "clock",      order = 70,  enabled = false, poll = true },
     { key = "fps",        order = 80,  enabled = false, poll = true },
@@ -138,5 +139,15 @@ ns.DB_DEFAULTS = {
     -- 反過來存「要顯示哪些」的話，之後新增一個修裝道具就不會自己出現。
     repair = {
         hidden = {},
+    },
+    -- 確認倒數（Core/ReadyCheck.lua）。三顆鍵各自一個動作＋自己的倒數秒數，
+    -- 預設沿用快捷聊天列那顆開怪鈕的配置（左：就位確認、中：5 秒、右：10 秒）。
+    -- action = "none" | "readycheck" | "countdown" | "cancel"
+    -- onlyInGroup = 平常不顯示，在隊伍／團隊裡才出現
+    readycheck = {
+        onlyInGroup = true,
+        left   = { action = "readycheck", seconds = 10 },
+        middle = { action = "countdown",  seconds = 5  },
+        right  = { action = "countdown",  seconds = 10 },
     },
 }
