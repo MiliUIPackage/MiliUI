@@ -38,8 +38,9 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 --
 -- 水平只有**一張三欄格線**，每一列（標題、項目、說明、設定入口）都用同一組座標：
 --   [圖示／打勾 @PAD_X] [文字 @PAD_X+GUTTER] …… [右側標 @-PAD_X]
--- 圖示欄**每一列都留**，沒有圖示的列文字照樣落在同一條線上——只有有圖的列才縮排
--- 是業餘感最明顯的破綻。
+-- 圖示欄的規則是**整張面板一起決定**：只要有任何一列用到圖示或打勾，每一列都留
+-- （只有有圖的列才縮排是業餘感最明顯的破綻）；整張都沒有就一列都不留——
+-- 修裝面板全是文字列，替它們空一欄只會讓文字離左緣一截、跟下面的圖示排對不上。
 --
 -- 垂直只有**一個間距單位 G**：反白貼圖是整列寬高的，它碰到的不論是標題的髮絲線、
 -- 分隔線還是面板邊緣，距離一律 G，滑過去才不會看到反白框忽寬忽窄。
@@ -260,7 +261,7 @@ function Rows:Get(index)
 
     row.text = HP.MakeText(row, SZ_TEXT)
     row.text:SetJustifyH("LEFT")
-    row.text:SetPoint("LEFT", row, "LEFT", PAD_X + GUTTER, 0)
+    -- 文字的 x 由 Fill 依「這張面板有沒有圖示欄」決定（row.textX），這裡不錨
 
     row.tag = HP.MakeText(row, SZ_TAG)
     row.tag:SetJustifyH("RIGHT")
@@ -300,10 +301,19 @@ function Rows:Get(index)
 end
 
 -- 填一列並回傳它「要多寬」。高度記在列身上，第二趟才不用再判斷一次 kind。
-function Rows:Fill(row, item)
+-- gutter 是這張面板這一次的圖示欄寬（GUTTER 或 0），文字起點跟著它走。
+function Rows:Fill(row, item, gutter)
     HP.ApplyFont(row.text)
     HP.ApplyFont(row.tag)
     HP.ApplyFont(row.action.text)
+
+    -- 欄寬沒變就不重錨：SetPoint 不便宜，而重畫很頻繁
+    local textX = PAD_X + gutter
+    if row.textX ~= textX then
+        row.text:ClearAllPoints()
+        row.text:SetPoint("LEFT", row, "LEFT", textX, 0)
+        row.textX = textX
+    end
 
     row.data = item.data
     row.onClick = item.onClick
@@ -337,7 +347,7 @@ function Rows:Fill(row, item)
         row.text:SetText(item.text)
         SetColor(row.text, TEXT_DIM)
         row.rule:Show()
-        need = PAD_X + GUTTER + row.text:GetStringWidth() + PAD_X
+        need = textX + row.text:GetStringWidth() + PAD_X
         if item.action then
             row.action.text:SetText(item.action.text)
             HP.SizeFlatButton(row.action)
@@ -350,7 +360,7 @@ function Rows:Fill(row, item)
         row.text:SetFont(ns.LOCALE_FONT, HP.FontSize() + SZ_NOTE, "")
         row.text:SetText(item.text)
         SetColor(row.text, TEXT_DIM)
-        need = PAD_X + GUTTER + row.text:GetStringWidth() + PAD_X
+        need = textX + row.text:GetStringWidth() + PAD_X
 
     elseif kind == "settings" then
         -- 最底下的功能列：灰字、整列可點、滑過變白。
@@ -361,7 +371,7 @@ function Rows:Fill(row, item)
         row.settingsTab = item.tab
         row.text:SetText(item.text)
         SetColor(row.text, TEXT_DIM)
-        need = PAD_X + GUTTER + row.text:GetStringWidth() + PAD_X
+        need = textX + row.text:GetStringWidth() + PAD_X
 
     else   -- item
         if item.onClick or item.onRightClick then
@@ -389,7 +399,7 @@ function Rows:Fill(row, item)
             SetColor(row.text, TEXT_MAIN)
         end
 
-        need = PAD_X + GUTTER + row.text:GetStringWidth() + PAD_X
+        need = textX + row.text:GetStringWidth() + PAD_X
         if item.tag then
             -- 右側標預設灰色：它是**狀態讀數**（這一列歸哪顆鍵、剩多少耐久），
             -- 不是「這一列被選中了」。要換顏色的（耐久百分比）自己帶 tagColor
@@ -427,6 +437,15 @@ function Rows:Render(model)
     local width = MIN_W
     local used = 0
 
+    -- 圖示欄整張一起決定：有任何一列帶圖示或打勾（含沒勾的開關列）才留
+    local gutter = 0
+    for _, item in ipairs(model) do
+        if item.kind == "item" and (item.icon or item.check ~= nil) then
+            gutter = GUTTER
+            break
+        end
+    end
+
     for _, item in ipairs(model) do
         if item.kind == "custom" then
             -- custom 自己決定要多寬（該夾 MAX_W 的在它自己的 measure 裡夾）
@@ -436,7 +455,7 @@ function Rows:Render(model)
             used = used + 1
             local row = self:Get(used)
             item.row = row
-            local need = self:Fill(row, item)
+            local need = self:Fill(row, item, gutter)
             if need > MAX_W then need = MAX_W end
             if need > width then width = math.ceil(need) end
         end
