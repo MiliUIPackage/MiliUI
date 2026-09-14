@@ -40,7 +40,7 @@ local ICON_LEVEL = 21
 -- 不覆蓋（例如 target 的 fadeOutOfRange 是 true），這裡只補「維持現狀」的預設。
 --
 --   scale             整框縮放，百分比（100 = 原始大小）
---   visibility        主模式，見 Core/Visibility.lua 的 MODES
+--   visibility        主模式，見 Core/Visibility.lua 的 DRIVER_MODES
 --   vis*              附加條件，任一成立就藏
 --   fadeOutOfRange    超出距離淡出（輪詢）
 --   fadeOutOfCombat   脫戰淡出（吃事件）

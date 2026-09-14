@@ -1,23 +1,36 @@
 ------------------------------------------------------------
 -- 顯示條件與整框透明度
 --
--- ⚠⚠ 為什麼要多插一層「閘框」，不直接 uf:Hide()：
+-- ⚠⚠ 為什麼要多插「閘框」，不直接 uf:Hide()：
 --
 -- 單位框是 SecureUnitButton，顯示權已經交給 `RegisterUnitWatch` —— 它會從**安全端**
--- Show/Hide 那個框。我們再自己 Show/Hide 就是兩個人搶同一個開關：不是被安全端立刻
--- 蓋回去，就是在戰鬥中踩到保護。
+-- Show/Hide 那個框。我們再自己 Show/Hide 就是兩個人搶同一個開關。
 --
--- 對策：在單位框**上面**插一層我們自己的普通 Frame（gate），單位框當它的子物件。
---   * 藏父層 = 子物件跟著看不見，而普通 frame 的 Show/Hide 戰鬥中完全合法
---   * 「看得到」＝ 閘框顯示 AND 單位存在（unit watch）—— 兩個條件天然 AND，
---     不需要任何 secure snippet、不碰 RegisterStateDriver、不動保護屬性
---   * unit watch 完全不受影響，它照樣管它那半邊
+-- 對策：在單位框**上面**插我們自己的普通 Frame，單位框當子物件。
+-- 「看得到」＝ 每一層閘框都顯示 AND 單位存在（unit watch）—— 巢狀天然就是 AND，
+-- unit watch 完全不受影響，它照樣管它那半邊。
 --
--- ⚠ 兩個跟著來的細節：
---   1. 閘框藏起來時子物件的 `IsVisible()` 是 false，`ns.Refresh` 的閘門會擋掉更新。
---      這正是我們要的（藏起來就不該付重畫成本）。
---   2. 但閘框**重新顯示時單位框的 OnShow 不會觸發**（它一路都是 Shown，只是父層藏著），
---      所以要在閘框的 OnShow 補一次全量重畫，否則會看到上一次藏起來前的舊資料。
+-- ⚠⚠ 為什麼是**兩層**（2026-09-14）：
+--
+-- 閘框底下掛著 secure 框，**隱式保護會往上傳** ⇒ 戰鬥中從我們的 Lua 藏／顯示閘框
+-- 一樣被擋（9/6 taint.log 實測）。只有一層 Lua 閘框時，戰鬥中要換的狀態只能記帳、
+-- 脫戰才補做，結果玩家回報：
+--   * 「沒有目標時隱藏」：沒目標進戰鬥，戰鬥中選了怪，框要等打完才出來
+--   * 「只在戰鬥中」：**永遠不會出現** —— PLAYER_REGEN_DISABLED 發火時鎖定還沒生效、
+--     InCombatLockdown() 還是 false，判定不顯示；之後整場沒有事件再判；脫戰又是 false
+-- 這在污染過的 Lua 裡沒有任何寫法做得到，所以判斷要交給安全端：
+--
+--   UIParent
+--    └ visDriver  外層：RegisterStateDriver 驅動（巨集條件，暴雪從安全端切，戰鬥中照樣動）
+--       └ visGate  內層：我們的 Lua 判斷，只剩巨集條件表達不出來的（副本類型）
+--          └ uf    unit watch
+--
+-- 能寫成巨集條件的一律放外層，**不要**兩層都判同一件事：內層也判騎乘的話，
+-- 「騎著坐騎被打下來」內層在戰鬥中開不了，外層再怎麼對都沒用。
+--
+-- ⚠ 閘框藏起來時子物件的 `IsVisible()` 是 false，`ns.Refresh` 的閘門會擋掉更新。
+-- 這正是我們要的（藏起來就不該付重畫成本），但閘框重新顯示時要補一次全量重畫，
+-- 否則會看到上一次藏起來前的舊資料。
 --
 -- 透明度只有一個出口 `V.ApplyAlpha`：超出距離淡出與脫戰淡出是兩個獨立來源，
 -- 各自 SetAlpha 會互相蓋掉（先設淡出、後設不淡 ⇒ 永遠不淡）。一律算完再設一次，取最低。
@@ -28,34 +41,64 @@ ns.Visibility = {}
 local V = ns.Visibility
 
 ------------------------------------------------------------
--- 明文守衛
+-- 外層：巨集條件（安全端判斷）
 ------------------------------------------------------------
--- 這個檔問的東西幾乎都是玩家自己的狀態（明文），只有 UnitCanAttack 對受限單位
--- 可能回秘密布林。秘密與 nil 一律回 nil ＝「判不出來」，呼叫端當作不擋（fail open）：
--- 把該看到的框藏掉，比偶爾多顯示一次糟糕得多。
-local function PlainBool(v)
-    if v == nil or ns.IsSecret(v) then return nil end
-    return v and true or false
+-- 主模式（單選）→ 一段巨集條件，**自帶結尾的預設值**。always 不需要條件。
+-- ⚠ `[group:party]` 在團隊裡也成立，所以「只在小隊」要先把團隊擋掉再判 group。
+local DRIVER_MODES = {
+    inCombat    = "[combat] show; hide",
+    outOfCombat = "[nocombat] show; hide",
+    inGroup     = "[group] show; hide",
+    inParty     = "[group:raid] hide; [group] show; hide",
+    inRaid      = "[group:raid] show; hide",
+    solo        = "[nogroup] show; hide",
+}
+V.DRIVER_MODES = DRIVER_MODES
+
+-- 「騎乘中」要把德魯伊的旅行型態算進去：玩家的體感是一樣的（在趕路，不想看單位框）。
+-- 巨集的 [form:N] 吃的是**姿態列上的第幾格**，不是 GetShapeshiftFormID 那個型態代碼，
+-- 而格數會隨學到哪些型態變 ⇒ 不能寫死，要掃姿態列找旅行型態在第幾格。
+-- 水生／飛行型態在正式服都是旅行型態（783）自動切換的樣子，姿態列上只有這一格。
+local TRAVEL_FORM_SPELLS = { [783] = true }
+
+local function TravelFormSlots()
+    local n = GetNumShapeshiftForms and GetNumShapeshiftForms() or 0
+    local slots
+    for i = 1, n do
+        local _, _, _, spellID = GetShapeshiftFormInfo(i)
+        if spellID and not ns.IsSecret(spellID) and TRAVEL_FORM_SPELLS[spellID] then
+            slots = slots and (slots .. "/" .. i) or tostring(i)
+        end
+    end
+    return slots
+end
+
+-- 設定 → 狀態驅動的巨集字串；沒有任何外層條件回 nil（不註冊，省掉每 0.2 秒一次解析）。
+-- 「藏」的條件排在前面、主模式排在後面：巨集條件取**第一個成立的子句**，
+-- 所以前面任一條藏成立就藏，都不成立才輪到主模式判 show/hide ⇒ 就是 AND。
+function V.DriverSpec(fdb)
+    if not fdb then return nil end
+    local parts = {}
+    if fdb.visHideMounted then
+        parts[#parts + 1] = "[mounted] hide"
+        local slots = TravelFormSlots()
+        if slots then parts[#parts + 1] = "[form:" .. slots .. "] hide" end
+    end
+    -- 目標是不是敵對交給巨集的 harm 判：那是安全端讀的，受限內容裡也沒有秘密值問題
+    -- （以前 Lua 版 UnitCanAttack 會回秘密布林，只能判不出來就放行）。
+    if fdb.visHideNoEnemy then
+        parts[#parts + 1] = "[@target,noexists] hide; [@target,noharm] hide"
+    elseif fdb.visHideNoTarget then
+        parts[#parts + 1] = "[@target,noexists] hide"
+    end
+    local mode = DRIVER_MODES[fdb.visibility or "always"]
+    if #parts == 0 and not mode then return nil end
+    parts[#parts + 1] = mode or "show"
+    return table.concat(parts, "; ")
 end
 
 ------------------------------------------------------------
--- 主模式（單選）
-------------------------------------------------------------
--- 回 true = 這個條件允許顯示。全部走明文 API：
--- InCombatLockdown / IsInGroup / IsInRaid 都不受 12.1 秘密值影響。
-local MODES = {
-    always      = function() return true end,
-    inCombat    = function() return InCombatLockdown() and true or false end,
-    outOfCombat = function() return not InCombatLockdown() end,
-    inGroup     = function() return IsInGroup() and true or false end,
-    inParty     = function() return IsInGroup() and not IsInRaid() end,
-    inRaid      = function() return IsInRaid() and true or false end,
-    solo        = function() return not IsInGroup() end,
-}
-V.MODES = MODES
-
-------------------------------------------------------------
--- 附加條件（各自獨立的勾選，任一成立就藏）
+-- 內層：Lua 判斷（只剩巨集條件表達不出來的）
 ------------------------------------------------------------
 -- 副本＝有難度的實例地圖。要排除要塞／庭園那種「技術上是實例但感覺是開放世界」的地方，
 -- 所以看 instanceType 而不是只看 IsInInstance()。
@@ -68,71 +111,87 @@ end
 -- 血條的仇恨提醒（Elements/HealthThreat.lua）「只在副本中」用同一套判準
 V.InInstance = InInstance
 
--- 「騎乘中」要把德魯伊的旅行／水生／飛行型態算進去：IsMounted 看不到型態，
--- 但玩家的體感是一樣的（在趕路，不想看單位框）。
-local TRAVEL_FORMS = { [3] = true, [4] = true, [27] = true, [29] = true }
-
-local function MountedLike()
-    if IsMounted and IsMounted() then return true end
-    local form = GetShapeshiftFormID and GetShapeshiftFormID()
-    return form ~= nil and TRAVEL_FORMS[form] == true
-end
-
-------------------------------------------------------------
--- 判定
-------------------------------------------------------------
+-- ⚠ 這層在戰鬥中切不動（見下面 V.Apply），所以**只放戰鬥中幾乎不會變的條件**。
+-- 副本類型要換只能靠傳送／過場，戰鬥中不會發生。新增條件前先查巨集條件寫不寫得出來。
 function V.Eval(uf)
     local fdb = uf.db and uf.db.frame
     if not fdb then return true end
-
-    local mode = MODES[fdb.visibility or "always"] or MODES.always
-    if not mode() then return false end
-
     if fdb.visOnlyInstances and not InInstance() then return false end
-    if fdb.visHideMounted and MountedLike() then return false end
-
-    -- UnitExists 回明文布林（受限身分改的是「內容」，不是「存不存在」）
-    if fdb.visHideNoTarget and not UnitExists("target") then return false end
-    if fdb.visHideNoEnemy then
-        if not UnitExists("target") then return false end
-        -- 只有「明文確定打不到」才擋；秘密值判不出來就放行
-        if PlainBool(UnitCanAttack("player", "target")) == false then return false end
-    end
-
     return true
-end
-
--- 這個框有沒有用到任何條件？沒有的話事件處理可以整個早退。
-local function HasConditions(uf)
-    local fdb = uf.db and uf.db.frame
-    if not fdb then return false end
-    return (fdb.visibility or "always") ~= "always"
-        or fdb.visOnlyInstances or fdb.visHideMounted
-        or fdb.visHideNoTarget or fdb.visHideNoEnemy
 end
 
 ------------------------------------------------------------
 -- 閘框
 ------------------------------------------------------------
+-- 閘框重新顯示時補一次全量重畫與透明度。
+-- ⚠⚠ 一定要 ns.Defer，不能同步做：外層是暴雪的 SecureStateDriverManager 在它的
+-- OnUpdate 迴圈裡 `frame:Show(); frame:SetAttribute("statehidden", nil)` 顯示的，
+-- 跟 RegisterUnitWatch 是同一個檔、同一種迴圈（見 Core/UnitFrame.lua 的
+-- QueueShowRefresh 說明）。在 OnShow 裡同步重畫會把 taint 灌進那條執行流程，
+-- 下一行 SetAttribute 當場被擋，迴圈後面別的插件的框也跟著壞。
+-- 內層只會被我們自己的 Lua 顯示，本來可以同步，但兩層共用一條路比較不會漏。
+local function OnGateShown(uf)
+    -- 延到下一幀的途中可能又被藏了，或單位根本不存在 ⇒ 等真的看得到那次再畫
+    if uf:IsVisible() then
+        ns.Refresh(uf, "unitchanged", nil, "gate")
+    end
+    V.ApplyAlpha(uf)
+end
+
 -- spawn 時建一次。⚠ SetParent 對 secure 框在戰鬥中不合法，所以只在這裡做
 -- （spawn 走 PLAYER_LOGIN 與設定套用，兩邊都保證不在戰鬥）。
+-- 兩層都一律建好：之後設定改來改去只換巨集字串，不必再換父層。
 function V.CreateGate(uf)
     if uf.visGate then return uf.visGate end
-    local gate = CreateFrame("Frame", nil, UIParent)
     -- 純粹當顯示開關，不管版面：單位框自己錨在 UIParent 上（錨點跟父子關係無關），
     -- 所以閘框的尺寸與位置對畫面沒有影響。鋪滿只是為了不要留一個零尺寸的怪東西。
-    gate:SetAllPoints(UIParent)
-    gate:HookScript("OnShow", function()
-        -- 父層重新顯示時子物件的 OnShow 不會觸發（它一路都是 Shown）→ 這裡補一次，
-        -- 否則會看到藏起來之前的舊資料
-        ns.Refresh(uf, "unitchanged", nil, "gate")
-        V.ApplyAlpha(uf)
-    end)
+    local driver = CreateFrame("Frame", nil, UIParent)
+    driver:SetAllPoints(UIParent)
+    local gate = CreateFrame("Frame", nil, driver)
+    gate:SetAllPoints(driver)
+
+    local function OnShow() ns.Defer(OnGateShown, uf) end
+    driver:HookScript("OnShow", OnShow)
+    gate:HookScript("OnShow", OnShow)
+
     uf:SetParent(gate)
-    uf.visGate = gate
+    uf.visDriver, uf.visGate = driver, gate
     return gate
 end
 
+-- 外層：換巨集字串。
+-- ⚠ RegisterStateDriver 本身是對 SecureStateDriverManager 做 SetAttribute，戰鬥中被擋
+--   ⇒ 跟內層一樣記帳、脫戰補做。會走到這裡的只有設定套用（本來就延到脫戰）與
+--   PLAYER_ENTERING_WORLD／姿態列變動，字串沒變就一個 API 都不叫，實際上戰鬥中不會真的擋。
+-- ⚠ 註冊當下暴雪就會 resolve 一次（立刻 Show/Hide），不必自己補。
+function V.ApplyDriver(uf)
+    local driver = uf and uf.visDriver
+    if not driver then return end
+
+    local spec = V.DriverSpec(uf.db and uf.db.frame)
+    if spec == uf.visDriverSpec then
+        uf.visDriverPending = nil
+        return
+    end
+
+    if InCombatLockdown() then
+        uf.visDriverPending = true
+        return
+    end
+
+    uf.visDriverPending = nil
+    uf.visDriverSpec = spec
+    if spec then
+        RegisterStateDriver(driver, "visibility", spec)
+    else
+        -- 取消註冊不會動框的顯示狀態，停在最後一次判定的樣子 ⇒ 自己放回來
+        UnregisterStateDriver(driver, "visibility")
+        driver:SetAttribute("statehidden", nil)
+        driver:Show()
+    end
+end
+
+-- 內層。
 -- ⚠⚠ **原本以為「藏我們自己建的普通父層」在戰鬥中合法 —— 2026-09-06 實測是錯的。**
 -- taint.log：`An action was blocked in combat because of taint from MiliUI_UnitFrames
 -- - Frame:SetShown()`，11 筆，全部從這裡出去。**隱式保護會往上傳**：閘框底下掛著
@@ -144,15 +203,12 @@ end
 --      V.Refresh() ⇒ 11 個框各重套一次「本來就已經是這樣」的狀態，一次載入畫面
 --      就是 11 行紅字。這一段本身就把絕大多數呼叫消掉。
 --   2. **戰鬥中真的要改，就記下來、脫戰再做**（V.FlushPending）。
---
--- ⚠ 代價要講清楚：戰鬥中條件不會生效。`inCombat` 這個模式因此形同「戰鬥結束才出現」。
--- 要在戰鬥中換顯示狀態，唯一的路是把判斷交給安全端（巨集條件 ＋ RegisterStateDriver），
--- 污染過的 Lua 沒有任何寫法做得到 —— 那正是保護機制要擋的事。
+-- 戰鬥中要生效的條件都已經搬到外層，這層只剩戰鬥中不會變的東西，記帳只是保險。
 function V.Apply(uf)
     local gate = uf and uf.visGate
     if not gate then return end
 
-    local want = uf.isPreview and true or (V.Eval(uf) and true or false)
+    local want = V.Eval(uf) and true or false
 
     -- 沒變就不要碰。SetShown 對已經是那個狀態的框仍然算一次保護動作，照樣被擋。
     if gate:IsShown() == want then
@@ -174,6 +230,7 @@ end
 function V.FlushPending()
     if InCombatLockdown() then return end
     for _, uf in pairs(ns.frames) do
+        if uf.visDriverPending then V.ApplyDriver(uf) end
         if uf.visPending then V.Apply(uf) end
     end
 end
@@ -374,22 +431,31 @@ end
 ------------------------------------------------------------
 -- 全部重算
 ------------------------------------------------------------
--- anyConditions / anyOocFade 是快取旗標：沒有任何框用到的時候，事件處理連迴圈都不跑。
--- 由 SettingsApplied 重算（設定是唯一會改這件事的入口）。
+-- 快取旗標：沒有任何框用到的時候，事件處理連迴圈都不跑。
+-- 由 SettingsApplied／PLAYER_ENTERING_WORLD 重算（設定是唯一會改這件事的入口）。
+--   anyConditions   有框用到**內層**條件。外層由暴雪自己每 0.2 秒輪詢，不需要我們收事件。
+--   anyMountedHide  有框用到「騎乘中隱藏」：姿態列變動時要重掃旅行型態在第幾格。
+--   anyOocFade      有框用到脫戰淡出。
 V.anyConditions = false
+V.anyMountedHide = false
 V.anyOocFade = false
 
 function V.Refresh()
-    local conds, ooc = false, false
+    local conds, mounted, ooc = false, false, false
     for _, uf in pairs(ns.frames) do
-        if HasConditions(uf) then conds = true end
-        if uf.db and uf.db.frame and uf.db.frame.fadeOutOfCombat then ooc = true end
+        local fdb = uf.db and uf.db.frame
+        if fdb then
+            if fdb.visOnlyInstances then conds = true end
+            if fdb.visHideMounted then mounted = true end
+            if fdb.fadeOutOfCombat then ooc = true end
+        end
+        V.ApplyDriver(uf)
         V.Apply(uf)
         uf.appliedAlpha = nil       -- 設定可能剛改過 oorAlpha／oocAlpha，強迫重設
         uf.appliedScrim = nil       -- 同理：強度或元件位置可能變了，遮罩要重算外擴量
         V.ApplyAlpha(uf)
     end
-    V.anyConditions, V.anyOocFade = conds, ooc
+    V.anyConditions, V.anyMountedHide, V.anyOocFade = conds, mounted, ooc
 end
 
 local function ApplyAllIfNeeded()
@@ -402,27 +468,28 @@ local function ApplyAllAlpha()
     for _, uf in pairs(ns.frames) do V.ApplyAlpha(uf) end
 end
 
+-- 學會／忘掉型態（換專精、天賦、升級）會讓旅行型態換格。字串沒變 ApplyDriver 自己會早退。
+local function ApplyAllDriversIfMounted()
+    if not V.anyMountedHide then return end
+    for _, uf in pairs(ns.frames) do V.ApplyDriver(uf) end
+end
+
 ------------------------------------------------------------
 -- 事件
 --
--- PLAYER_REGEN_*／GROUP_ROSTER_UPDATE／PLAYER_ENTERING_WORLD／PLAYER_TARGET_CHANGED／
--- UPDATE_SHAPESHIFT_FORM 其他模組已經在收了，多掛一個 callback 不增加註冊成本。
--- 只有 ZONE_CHANGED_NEW_AREA 與 PLAYER_MOUNT_DISPLAY_CHANGED 是新的，兩個都很罕見。
+-- 戰鬥、隊伍、目標、騎乘都在外層，暴雪的 SecureStateDriverManager 自己收事件＋輪詢，
+-- 這裡不必再聽 GROUP_ROSTER_UPDATE／PLAYER_TARGET_CHANGED／PLAYER_MOUNT_DISPLAY_CHANGED。
 ------------------------------------------------------------
 local function OnCombat()
     V.FlushPending()         -- 脫戰補做戰鬥中擋下來的；進戰時自己的鎖定閘會擋掉
-    ApplyAllIfNeeded()
     ApplyAllAlpha()          -- 脫戰淡出吃的就是這個
 end
 
 ns.Events.Register("PLAYER_REGEN_DISABLED", "visibility_combat_in", OnCombat)
 ns.Events.Register("PLAYER_REGEN_ENABLED", "visibility_combat_out", OnCombat)
-ns.Events.Register("GROUP_ROSTER_UPDATE", "visibility_group", ApplyAllIfNeeded)
-ns.Events.Register("PLAYER_TARGET_CHANGED", "visibility_target", ApplyAllIfNeeded)
 ns.Events.Register("ZONE_CHANGED_NEW_AREA", "visibility_zone", ApplyAllIfNeeded)
-ns.Events.Register("UPDATE_SHAPESHIFT_FORM", "visibility_form", ApplyAllIfNeeded)
-ns.Events.Register("PLAYER_MOUNT_DISPLAY_CHANGED", "visibility_mount", ApplyAllIfNeeded)
--- 進世界：副本判定與載具都可能變，而且旗標本身要重算（設定檔可能剛換）
+ns.Events.Register("UPDATE_SHAPESHIFT_FORMS", "visibility_forms", ApplyAllDriversIfMounted)
+-- 進世界：副本判定可能變、登入當下姿態列可能還沒就緒，而且旗標本身要重算（設定檔可能剛換）
 ns.Events.Register("PLAYER_ENTERING_WORLD", "visibility_pew", function() V.Refresh() end)
 
 -- 設定套用完重算旗標並重跑一次
@@ -431,8 +498,11 @@ ns.RegisterCallback("SettingsApplied", "visibility", function() V.Refresh() end)
 ------------------------------------------------------------
 -- /muf debug
 ------------------------------------------------------------
+-- 回兩張表：rows 是每框一格的摘要（外層／內層各自開關、還有沒有待補的帳），
+-- specs 是實際註冊的巨集字串（很長，只列有註冊的框）。
+-- 「條件看起來對但框不出來」先對 specs：字串錯了暴雪不會報錯，只會一直判 hide。
 function V.Debug()
-    local out = { ("anyConditions=%s"):format(tostring(V.anyConditions)) }
+    local rows, specs = {}, {}
     for _, unit in ipairs(ns.UNITS) do
         local uf = ns.frames[unit]
         if uf and uf.visGate then
@@ -442,12 +512,18 @@ function V.Debug()
             if fdb.visHideMounted then extra[#extra + 1] = "騎乘藏" end
             if fdb.visHideNoTarget then extra[#extra + 1] = "無目標藏" end
             if fdb.visHideNoEnemy then extra[#extra + 1] = "無敵目標藏" end
-            out[#out + 1] = ("%s=%s/%s%s alpha=%.2f"):format(
+            local pending = (uf.visDriverPending and "!外待補" or "") .. (uf.visPending and "!內待補" or "")
+            rows[#rows + 1] = ("%s=%s/外%s內%s%s%s alpha=%.2f"):format(
                 unit, fdb.visibility or "always",
+                uf.visDriver:IsShown() and "開" or "關",
                 uf.visGate:IsShown() and "開" or "關",
                 #extra > 0 and ("(" .. table.concat(extra, ",") .. ")") or "",
+                pending,
                 uf.appliedAlpha or 1)
+            if uf.visDriverSpec then
+                specs[#specs + 1] = ("%s：%s"):format(unit, uf.visDriverSpec)
+            end
         end
     end
-    return out
+    return rows, specs
 end

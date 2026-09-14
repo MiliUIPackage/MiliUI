@@ -769,7 +769,8 @@ function ns.SpawnUnitFrame(unit)
         GameTooltip:Hide()
     end)
 
-    -- 顯示閘：單位框改當它的子物件（藏父層 = 藏單位框，戰鬥中合法且不跟 unit watch 搶）。
+    -- 顯示閘（兩層，見 Core/Visibility.lua）：單位框改當它的子物件
+    -- （藏父層 = 藏單位框，不跟 unit watch 搶）。
     -- ⚠ 一定要在 ApplyFramePosition 之前換好父層，位置才是換完之後才下的
     -- （SetParent 對錨點的影響不必去賭）。SetParent 對 secure 框在戰鬥中不合法，
     -- 而 spawn 只會發生在 PLAYER_LOGIN 與設定套用，兩邊都保證不在戰鬥。

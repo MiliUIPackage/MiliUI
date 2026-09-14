@@ -622,12 +622,14 @@ local function Debug()
     end
 
     -- 顯示閘：「框不見了」要分得出是條件擋掉、unit watch 判定不存在，還是元件沒建起來。
-    -- 格式 單位=模式/閘門(附加條件) alpha
+    -- 格式 單位=模式/外層內層(附加條件)待補 alpha；外層是巨集條件驅動、內層是 Lua 判斷
     if ns.Visibility then
-        local rows = ns.Visibility.Debug()
-        p(("  顯示條件（有條件的框=%s，脫戰淡出=%s）：")
-            :format(tostring(ns.Visibility.anyConditions), tostring(ns.Visibility.anyOocFade)))
+        local rows, specs = ns.Visibility.Debug()
+        p(("  顯示條件（內層條件=%s，騎乘藏=%s，脫戰淡出=%s）：")
+            :format(tostring(ns.Visibility.anyConditions), tostring(ns.Visibility.anyMountedHide),
+                    tostring(ns.Visibility.anyOocFade)))
         p("   " .. (#rows > 0 and table.concat(rows, "  ") or "（沒有框）"))
+        for _, line in ipairs(specs) do p("   外層 " .. line) end
     end
 
     -- 仇恨提醒（Elements/HealthThreat.lua）：「被打了卻沒亮／怪死了還在閃」先看這行。

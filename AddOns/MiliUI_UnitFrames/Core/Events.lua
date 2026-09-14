@@ -85,8 +85,9 @@ local function RefreshUnit(unitToken, bucket, force, src)
         -- 處理時框剛好不可見（unit watch 的顯示最多慢 0.2 秒）就整次略過，
         -- 之後全靠 OnShow 補畫。記下來，時間線上就看得到有沒有補到。
         uf.ucSkipHidden = (uf.ucSkipHidden or 0) + 1
-        ns.LogRefresh("UC-skip(不可見) %s src=%s shown=%s gate=%s", unitToken, src or "?",
-            tostring(uf:IsShown()), tostring(uf.visGate and uf.visGate:IsShown()))
+        ns.LogRefresh("UC-skip(不可見) %s src=%s shown=%s gate=%s/%s", unitToken, src or "?",
+            tostring(uf:IsShown()), tostring(uf.visDriver and uf.visDriver:IsShown()),
+            tostring(uf.visGate and uf.visGate:IsShown()))
     end
 end
 
