@@ -337,6 +337,10 @@ local function LayoutRow(row, key, edb, numSeg)
     row:SetSize(totalW, h)
 
     local isPip = def.mode == "pip" and numSeg and numSeg > 0
+    -- 填充方向：連續條翻 StatusBar；點數型把格子從右邊排起（第 1 格在最右），
+    -- 「亮到第幾格」的順序就跟著從右往左，PaintPip／符文那段完全不必知道方向。
+    -- 改了方向要重排才會生效 —— Build 會清 f.sigKeys 逼下一次 Update 重排
+    local reversed = ns.FillReversed(edb)
     for _, e in ipairs(row.barEdges) do e:SetShown(not isPip) end
     row.barBG:SetShown(not isPip)
     row.bar:SetShown(not isPip)
@@ -351,6 +355,7 @@ local function LayoutRow(row, key, edb, numSeg)
     if not isPip then
         for i = 1, MAX_SEGMENTS do row.segs[i]:Hide() end
         row.bar:SetStatusBarTexture(Media.BarTexture(ns.db.global.barTexture))
+        row.bar:SetReverseFill(reversed)
         return
     end
 
@@ -363,7 +368,13 @@ local function LayoutRow(row, key, edb, numSeg)
         seg:SetSize(segW, h)
         seg:ClearAllPoints()
         if i == 1 then
-            seg:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+            if reversed then
+                seg:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, 0)
+            else
+                seg:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+            end
+        elseif reversed then
+            seg:SetPoint("RIGHT", row.segs[i - 1], "LEFT", -spacing, 0)
         else
             seg:SetPoint("LEFT", row.segs[i - 1], "RIGHT", spacing, 0)
         end
@@ -702,6 +713,7 @@ local function Build(uf, edb)
 
     f.bar:SetStatusBarTexture(Media.BarTexture(ns.db.global.barTexture))
     f.bar:SetFrameLevel(edb.level or 6)
+    f.bar:SetReverseFill(ns.FillReversed(edb))
     -- 預設吃全域的「法力藍」，跟能量條的法力同一個顏色
     local c = edb.color or (ns.db.global.colors.power and ns.db.global.colors.power[0])
               or { r = 0.2, g = 0.5, b = 1, a = 1 }

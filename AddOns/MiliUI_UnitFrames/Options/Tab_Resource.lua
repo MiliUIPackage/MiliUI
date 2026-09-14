@@ -31,6 +31,8 @@ local function BuildControls()
         { type = "slider", key = "rowSpacing", label = L["Row spacing"],   min = 0,  max = 12,  step = 1 },
         { type = "slider", key = "spacing",    label = L["Segment spacing"], min = 0, max = 8,  step = 1 },
         { type = "text",   label = L["Segment spacing only affects point-style resources (Holy Power, combo points and the like)."] },
+        { type = "dropdown", key = "fillDirection", label = L["Fill direction"], items = ns.Specs.FILL_DIRECTION_ITEMS },
+        { type = "text",   label = L["Right to left also lights point-style resources from the right: the first point is the rightmost segment."] },
         { type = "slider", key = "level",      label = L["Layer"],   min = 0,  max = 15,  step = 1 },
         { type = "header", label = L["Appearance"] },
         { type = "slider", key = "barAlpha", label = L["Fill opacity"], min = 0.1, max = 1, step = 0.05 },

@@ -502,7 +502,8 @@ tank/nothreat/low/secret）存進 `f.threatWhy`，`/muf debug` 印判定、重�
 
 血條／能量條／施法條各一個「填充方向」下拉（`ltr` 從左到右／`rtl` 從右到左），在各自的
 「位置與大小」那節，每單位獨立。**直向不做**（使用者定案：疊加層全用寬度算，直向等於重寫）。
-型態外魔力小條（manabar）與職業資源條沒加。預設 `ltr` 由 `DB.BuildDefaults` 最後的
+同日使用者追加：型態外魔力小條（manabar，單位分頁）與資源條（classpower，資源分頁）也有。
+選項清單在 `Specs.FILL_DIRECTION_ITEMS`（五處共用）。預設 `ltr` 由 `DB.BuildDefaults` 最後的
 post-pass 補（`FILL_DIRECTION_ELEMENTS`），不在十個單位的字面表裡各寫；判斷一律走
 `ns.FillReversed(edb)`（缺鍵／怪值＝從左到右）。刻意用下拉不用「反轉」勾選。
 
@@ -516,6 +517,9 @@ post-pass 補（`FILL_DIRECTION_ELEMENTS`），不在十個單位的字面表裡
   ⇒ 從左到右時行為跟以前一模一樣，存檔不用遷移。
 - **施法條**：`f.bar:SetReverseFill` ＋ 火花錨 `LEFT`／`RIGHT` 跟著換。引導照樣是倒退，
   相對關係不變。
+- **資源條**：連續條翻 StatusBar；**點數型改排版不改上色**——第 1 格錨 `TOPRIGHT`、之後每格錨在
+  前一格的左邊，`PaintPip`／符文那段「亮到第幾格」完全不必知道方向。方向改了要重排才生效，
+  靠 Build 清 `f.sigKeys`（ApplySettings 必經）。
 
 **尚未在遊戲內驗證**：`SetTimerDuration` 驅動的施法條吃不吃 ReverseFill（預期是條的屬性、
 跟計時器無關）、治療預估反向時的起點是否貼齊前緣、溢盾光暈反向時的位置、預覽孿生的假施法方向。

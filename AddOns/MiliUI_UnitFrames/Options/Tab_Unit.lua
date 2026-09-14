@@ -30,12 +30,7 @@ local UNIT_LIST = {
     { key = "bosstarget",   label = L["Boss Target"] },
 }
 
--- 填充方向下拉（血條／能量條／施法條共用，值見 ns.FillReversed）。
--- 刻意用下拉而不是「反轉」勾選：勾選要先知道「正常」是哪個方向，下拉直接寫出方向
-local FILL_DIRECTION_ITEMS = {
-    { text = L["Left to right"], value = "ltr" },
-    { text = L["Right to left"], value = "rtl" },
-}
+local FILL_DIRECTION_ITEMS = Specs.FILL_DIRECTION_ITEMS
 
 -- 元件切換列（依 DB 有沒有該元件決定要不要出現）
 local ELEMENT_LIST = {
@@ -477,6 +472,7 @@ local function ManaBarSpecs()
         { type = "text", label = L["A small mana bar that only appears when mana isn't the main resource (cat, bear, elemental, shadow priest)."] },
         { type = "header", label = L["Position and size"] },
         PosSize("manabar"),
+        { type = "dropdown", sub = "manabar", key = "fillDirection", label = L["Fill direction"], items = FILL_DIRECTION_ITEMS },
         { type = "text", label = L["Same coordinate meaning as the resource bars: Y starts at the bottom edge of the frame, negative goes down."] ..
                                  L["By default it sits just above the resource bars (frame bottom > 6 > mana bar > 2 > resource bars) so the two never overlap."] },
         { type = "header", label = L["Color and appearance"] },

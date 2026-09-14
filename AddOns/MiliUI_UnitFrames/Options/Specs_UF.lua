@@ -14,6 +14,13 @@ local L = ns.WidgetsEnv.L
 ns.Specs = {}
 local Specs = ns.Specs
 
+-- 填充方向下拉（血條／能量條／施法條／魔力小條／資源條共用，值見 ns.FillReversed）。
+-- 刻意用下拉而不是「反轉」勾選：勾選要先知道「正常」是哪個方向，下拉直接寫出方向
+Specs.FILL_DIRECTION_ITEMS = {
+    { text = L["Left to right"], value = "ltr" },
+    { text = L["Right to left"], value = "rtl" },
+}
+
 -- 超出距離的表現方式（見 Core/Visibility.lua）
 Specs.OOR_STYLE_ITEMS = {
     { text = L["Dim"],  value = "dim" },

@@ -128,7 +128,7 @@ end
 ------------------------------------------------------------
 -- 有「填充方向」選項的條（見 ns.FillReversed）。預設全部從左到右，由 BuildDefaults 最後
 -- 一次補上，不必在十個單位的字面表裡各寫一次
-local FILL_DIRECTION_ELEMENTS = { "hpbar", "mpbar", "castbar" }
+local FILL_DIRECTION_ELEMENTS = { "hpbar", "mpbar", "castbar", "manabar", "classpower" }
 
 function DB.BuildDefaults()
     local defaults = {
