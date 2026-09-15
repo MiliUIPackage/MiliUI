@@ -740,6 +740,33 @@ function ns.SpawnUnitFrame(unit)
     uf:SetAttribute("*macrotext2", "/click " .. proxyName)
     InstallMenuClassifierFix()                 -- 只裝一次，第一個框生成時順便
     uf:SetAttribute("unit", unit)
+    -- Ping 系統：登記成 ping 接收器，滑鼠在框上按 ping 會 ping 這個單位，不會穿過去打地面。
+    -- 暴雪的 C_PingSecure.GetTargetPingReceiver 掃游標下的 frame stack 找第一個帶
+    -- ping-receiver 屬性的框，然後用 securecallfunction 叫框上的 GetTargetInfo，
+    -- 回傳值經 securecopy 拷回安全端再 SendUnitPing —— 本來就是給插件框走的路。
+    -- mixin 讀 self.unit，載具切換時 EvalActiveUnit 會把它換掉，所以載具期間也對。
+    -- ⚠ GetTargetPingGUID 是 10.1 的舊介面，現在沒人呼叫，別用。
+    if PingableType_UnitFrameMixin then
+        Mixin(uf, PingableType_UnitFrameMixin)
+        uf:SetAttribute("ping-receiver", true)
+        if unitKey == "player" then
+            -- 對齊暴雪玩家框：滑鼠在血條/資源條上 ⇒ 不開輪盤、送「我的血量」那種資源 ping；
+            -- 只有在頭像上才是一般單位 ping（可開輪盤）。沒開頭像元件就整個框都算資源區。
+            local function OverPortrait(self)
+                local p = self.elements and self.elements.portrait
+                return p and p:IsShown() and p:IsMouseOver() or false
+            end
+            function uf:GetAllowRadialWheel()
+                return OverPortrait(self)
+            end
+            function uf:GetTargetInfo()
+                return {
+                    guid = UnitGUID("player"),
+                    isPlayerResource = not OverPortrait(self),
+                }
+            end
+        end
+    end
     -- 載具：讓 secure 端在點擊時自己把 player ↔ pet 對調（讀取時計算，不寫屬性，
     -- 所以戰鬥中也有效）。顯示面由 ns.EvalActiveUnit 跟上，見那裡的說明。
     uf:SetAttribute("toggleForVehicle", true)

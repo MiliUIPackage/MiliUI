@@ -527,3 +527,31 @@ post-pass 補（`FILL_DIRECTION_ELEMENTS`），不在十個單位的字面表裡
 
 **尚未在遊戲內驗證**：`SetTimerDuration` 驅動的施法條吃不吃 ReverseFill（預期是條的屬性、
 跟計時器無關）、治療預估反向時的起點是否貼齊前緣、溢盾光暈反向時的位置、預覽孿生的假施法方向。
+
+
+## 單位框接收 ping（2026-09-16）
+
+滑鼠在血條上按 ping 原本會穿過去標在地面：暴雪 ping 系統
+（`Blizzard_PingUI/Blizzard_PingManager.lua`）按下時呼叫 `C_PingSecure.GetTargetPingReceiver(x, y)`
+掃游標下的 frame stack，只認**設有 `ping-receiver` 屬性**的框，找不到就退回世界命中測試。
+`Core/UnitFrame.lua` 的 `ns.SpawnUnitFrame` 在 `SetAttribute("unit", unit)` 之後
+`Mixin(uf, PingableType_UnitFrameMixin)` ＋ `SetAttribute("ping-receiver", true)`
+（跟 Cell `RaidFrames/UnitButton.lua` 同一招）。
+
+- **建框時寫死一次**：SecureUnitButton 戰鬥中不能 SetAttribute，不能放進 ApplySettings／Update
+  那類會重跑的路徑。
+- 找到框後暴雪用 `securecallfunction` 叫框上的 `GetIsPingable`／`GetAllowRadialWheel`／
+  `GetTargetInfo`，回傳值經 `securecopy` 拷回安全端 —— 這條路本來就是給插件框走的。
+- mixin 的 `GetTargetInfo` 讀 `self.unit`，載具切換由 `ns.EvalActiveUnit` 換掉，所以載具期間
+  也指到對的單位，不用另外處理。
+- **玩家框覆寫兩個方法**照抄暴雪 `PingableType_PlayerUnitFrameMixin` 的分界：滑鼠在血條／資源條上
+  ⇒ 不開輪盤、`isPlayerResource = true`（播報血量那種）；在頭像上才是一般單位 ping。頭像元件
+  沒開（`uf.elements.portrait` 不存在）就整個框都算資源區。GUID 寫死 `UnitGUID("player")`，
+  跟暴雪一樣 —— 載具期間玩家框畫的是載具，但 ping 的仍是玩家本人。
+- ⚠ `GetTargetPingGUID` 是 10.1 的舊介面，現在沒人呼叫（Cell 還留著覆寫，是死碼），**不要用**。
+- 光環按鈕雖然開了 SetMouseMotionEnabled，但沒有 `ping-receiver` 屬性，掃描會略過，不用動。
+
+**尚未在遊戲內驗證**：滑鼠在目標／專注／首領框上按 ping 會 ping 該單位（含輪盤）；副本內敵對
+單位的 GUID 是秘密字串，`SendUnitPing` 標 AllowedWhenUntainted，推論 `securecopy` 會洗成安全端
+taint 所以收得下，要實測。玩家框：血條上按 ping 是資源 ping（播報血量、不開輪盤），頭像上是
+一般單位 ping。載具期間玩家框 ping 的是玩家本人（跟暴雪一致），寵物框 ping 到載具／寵物。
