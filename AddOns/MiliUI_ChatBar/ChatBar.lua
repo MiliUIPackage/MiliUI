@@ -361,8 +361,11 @@ end
 --                               (execution tainted by 'MiliUI_ChatBar')
 --
 -- UpdateHeader 繞不過去：ChatFrame_OpenChat → ActivateChat 一定會呼叫它，而且是在我們的
--- 文字（`/i `）被解析成新頻道**之前** —— 那段解析其實排到下一幀的 OnUpdate 才跑
--- （`editBox.setText = 1`），是乾淨的執行，輪不到它救。
+-- 文字（`/i `）被解析成新頻道**之前** —— 那段解析排到下一幀的 OnUpdate 才跑
+-- （`editBox.setText = 1`），輪不到它救。
+-- ⚠ 那段 OnUpdate 也**不是**乾淨的執行：`setText`／`text` 是在我們的堆疊上寫的，
+--   OnUpdate 一讀就跟著髒，而且它用 `ParseText(0, true)` 不看空格。
+--   `/i `、`/p ` 碰不到秘密值所以無所謂；要填 `/r` 的話見 Fix_ReplyTell.lua 的 PrefillReply。
 -- 所以只要「上一次是密語秘密對象」，聊天列**隨便哪一顆**按鈕按下去都會炸，跟被按的那顆
 -- 是什麼頻道無關；錯誤行號指向暴雪的減法，不會指向真正的原因。
 --

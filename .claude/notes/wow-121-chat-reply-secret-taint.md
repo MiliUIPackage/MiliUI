@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 2975a2fc-396d-4e73-9da2-295e55bee8db
-  modified: 2026-09-06T00:00:00.000Z
+  modified: 2026-09-15T16:44:11.705Z
 ---
 
 按 REPLY（預設 R）回覆密語，噴 `Lua Taint: <插件>` + `ChatFrameEditBox.lua:49 SetTellTarget`
@@ -41,6 +41,10 @@ hooksecurefunc 不會污染欄位，而且新的一定放在 `[1]`，一個變�
 **結尾不能有空格。** `ChatEdit_ParseText` 只要看到空白就當場解析 REPLY，那次解析跑在插件
 自己的髒堆疊上，一樣撞 `SetAttribute`。填 `/r`（無空格）→ ParseText 提早 return；玩家自己
 打空格＋訊息那一下是引擎發動的**乾淨執行**，暴雪就填得進秘密名字了。
+
+⚠⚠ **而且字不能經過 `OpenChat(text)` 的 text 參數**（2026-09-16 實際炸過，見文末）——
+那條會排到下一幀用 `ParseText(0, true)` 解析，**不看空格**。要 `OpenChat(nil, chatFrame)`
+只開框，再自己 `editBox:SetText("/r")`。
 
 同理，`GetUnitName("target", true)` 對非隊友是秘密字串，插件不能代填 `/w 名字 `，
 只能開 `/w ` 讓玩家自己打（Tab 補完還在）。
@@ -87,7 +91,8 @@ hooksecurefunc 不會污染欄位，而且新的一定放在 `[1]`，一個變�
   （`return original(chatFrame)`）。
 - 秘密名字就填 `/r` 降級。⚠ `ParseText` 的早退條件已逐字確認：
   `if ( send ~= 1 and not parseIfNoSpaces and not strfind(text, "%s") ) then return end`
-  —— 所以**結尾不能有空格**。
+  —— 所以**結尾不能有空格**。⚠ 這道早退只保護 `SetText` 那條；`OpenChat(text)` 那條的
+  `parseIfNoSpaces` 是 true，擋不住（這一版原本寫 `open("/r", chatFrame)`，2026-09-16 炸了）。
 - **完全不再覆寫 `GetLastTellTarget`。**（接手之後 `ReplyTell` 根本走不到它；
   明文那條由原函式處理，比較安全。）
 
@@ -228,5 +233,48 @@ self:SetTextInsets(15 + header:GetWidth() + ..., 13, 0, 0)   -- 秘密寬度餵�
 `bar:ClearAllPoints()` → 一路算 → `bar:SetPoint()`，崩在中間 ⇒ 聊天列一個錨點都沒有
 ⇒ 畫不出來，玩家看到的是「整支插件掛了」，跟錯誤訊息裡的算術完全連不起來。
 **版面函式一律先把 point/relTo/x/y 算完，最後才 ClearAllPoints ＋ SetPoint 連著跑。**
+
+## 2026-09-16：第五條路 —— `/r` 降級本身就是炸點
+
+症狀（堆疊裡**一行插件都沒有**）：
+
+```
+ChatFrameUtil.lua:556: attempt to compare local 'value' (a secret string value,
+                       while execution tainted by 'MiliUI_ChatBar')
+GetLastTellTarget ← ProcessChatType(135) ← ParseText(250) ← ChatFrameEditBoxMixin:OnUpdate(360→364)
+locals: chatEditLastTell[1]=<secret string>, chatEditLastTellType[1]="BN_WHISPER"
+```
+
+行號對過 Gethe 鏡像逐行吻合。`OpenChat(text, chatFrame)` **不是當場寫字**：
+
+```lua
+-- ChatFrameUtil.OpenChat
+if text then editBox.text = text; editBox.setText = 1; end
+-- ChatFrameEditBoxMixin:OnUpdate（下一幀）
+if ( self.setText == 1) then
+    self:SetText(self.text); self.setText = 0;
+    self:ParseText(0, true);          -- ← parseIfNoSpaces = true
+```
+
+兩件事湊起來：
+1. `parseIfNoSpaces = true` ⇒ 「沒空格就不解析」那道早退**在這條路上不存在**，`/r` 照樣解析成 REPLY。
+2. `setText`／`text` 是暴雪在**我們的**堆疊上寫的 ⇒ OnUpdate 一讀就整段變髒。
+
+**通則：延到下一幀洗不掉污染。** 交接若是走「髒堆疊寫欄位 → 暴雪的 OnUpdate 讀欄位」，
+污染跟著欄位走，錯誤堆疊裡只剩暴雪自己，怪罪的插件看起來完全無關。
+（`ChatBar.lua` 舊註解寫「那段 OnUpdate 是乾淨的執行」—— 錯的，已改。`/p `、`/i ` 碰不到
+秘密值所以一直沒事。）
+
+修法（`Fix_ReplyTell.lua` 的 `PrefillReply`）：`OpenChat(nil, chatFrame)` 只開框 ——
+**暴雪的 Enter 鍵 OPENCHAT 綁定就是 `OpenChat(nil)`** —— 再自己 `editBox:SetText("/r")`，
+只走 `OnTextSet → ParseText(0)` 那條有空格早退的路。
+- ⚠ text 也不能傳 `""`：會排一個下一幀的 `SetText("")`，把填好的 `/r` 洗掉。
+- 按鍵 R 的綁定是 `ChatFrameUtil.ReplyTell()`，**不傳 chatFrame**；此時若有
+  `CHAT_FOCUS_OVERRIDE`，`OpenChat(nil)` 只交焦點、回傳 nil，就不填。
+
+玩家打空格那一下（`OnSpacePressed`／`OnTextChanged` → `ParseText(0)`）在 REPLY 比對之前
+讀的東西已逐一核對：`GetText` 是 C、`ImportAllListsToHash` 走 `secureexecuterange`、
+`AutoCompleteEditBox_SetAutoCompleteSource` 只寫不讀 —— 沒有讀到我們寫過的欄位，靜態上是乾淨的。
+⚠ **仍待實測**：這條「降級真的能回覆到秘密對象」到目前為止沒有成功跑過一次（前一版在填字就炸了）。
 
 相關：[[wow-121-secret-values]]、[[wow-121-unit-api-secrets]]、[[project-miliui-chatbar-snap]]

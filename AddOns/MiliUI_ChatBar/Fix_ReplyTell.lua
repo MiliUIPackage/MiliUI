@@ -98,11 +98,25 @@ end)
 ------------------------------------------------------------
 -- 降級：幫玩家把 `/r` 填進輸入框
 --
--- ⚠⚠ **結尾不能有空格。** 暴雪的 `ChatFrameEditBoxBaseMixin:ParseText` 有這道早退：
---     if ( send ~= 1 and not parseIfNoSpaces and not strfind(text, "%s") ) then return end
---   —— 沒有空白就不解析，所以 REPLY 不會在**我們的**髒堆疊上被處理。
---   玩家自己打空格＋訊息按 Enter 那一下是引擎發動的**乾淨執行**，
---   暴雪就填得進秘密名字了。
+-- 目標是讓 REPLY 的解析**不要**跑在我們的髒執行上，留給玩家自己打空格那一下 ——
+-- 那是引擎發動的**乾淨執行**，暴雪就填得進秘密名字了。
+-- 暴雪有兩條路會解析我們填的字，兩條都要躲開：
+--
+--   ① SetText → OnTextSet／OnTextChanged → `ParseText(0)`，有這道早退：
+--        if ( send ~= 1 and not parseIfNoSpaces and not strfind(text, "%s") ) then return end
+--      ⇒ **結尾不能有空格**，沒有空白就不解析。
+--
+--   ② `OpenChat(text)` **不是當場寫字**，而是 `editBox.text = text; editBox.setText = 1`，
+--      下一幀 OnUpdate 才 `SetText(self.text)` ＋ **`ParseText(0, true)`**
+--      ⇒ parseIfNoSpaces 是 true，**有沒有空格都解析**。而那兩個欄位是暴雪在**我們的**
+--        堆疊上寫的，OnUpdate 一讀就整段變髒 → GetLastTellTarget 比秘密字串崩潰。
+--        延到下一幀洗不掉污染：交接走的是欄位，污染跟著欄位走。
+--      （2026-09-16 實際炸過：堆疊只有暴雪的 OnUpdate → ParseText → ProcessChatType，
+--        怪罪 MiliUI_ChatBar。舊版就是 `open("/r", chatFrame)`，以為沒空格就安全。）
+--
+-- 所以字**不能經過 OpenChat 的 text 參數**：text 傳 nil 只開框（暴雪的 Enter 鍵
+-- OPENCHAT 就是 `OpenChat(nil)`），字由我們自己 SetText，只走 ①。
+-- ⚠ text 也不能傳 ""：那會排一個下一幀的 SetText("")，把填好的 `/r` 洗掉。
 ------------------------------------------------------------
 local warned = false
 
@@ -113,7 +127,14 @@ local function PrefillReply(chatFrame)
     --   open() 裡的 ActivateChat → UpdateHeader 會拿秘密標頭去量寬度再相減而崩
     --   （ChatFrameEditBox.lua:679）。成因詳見 ChatBar.lua 的 ClearSecretTellTarget。
     if ns.ClearSecretTellTarget then ns.ClearSecretTellTarget(chatFrame) end
-    open("/r", chatFrame)       -- ⚠ 不要加空格
+
+    -- ⚠ text 必須是 nil（見上面 ②）
+    local editBox = open(nil, chatFrame)
+    -- 按鍵 R 不傳 chatFrame；聊天焦點被接管（CHAT_FOCUS_OVERRIDE，例如社群視窗的輸入框）時
+    -- OpenChat 只把焦點交過去、不回傳輸入框 —— 跟按 Enter 一樣。那個框不見得吃斜線指令，不填。
+    if not editBox then return end
+    editBox:SetText("/r")       -- ⚠ 不要加空格（見上面 ①）
+
     if not warned then
         warned = true
         print(ns.PREFIX_COLOR .. "[" .. ns.L["ADDON_NAME"] .. "]|r " .. ns.L["REPLY_FALLBACK_HINT"])
