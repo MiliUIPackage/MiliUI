@@ -112,3 +112,24 @@ false 早退，敵方整個套不到文法。**存在性判斷要 fail-open**：
 **spellId 在 `tooltipData.id`，戰鬥中是秘密數字**。顯示走 format 傳遞（AddIdLine 不可
 tostring，秘密值會炸）；要明文的（坐騎查表、圖示 ID 解析）下游各自把關，戰鬥中沒有
 那兩項是正常的。`C_UnitAuras` 的 setter 解析（AurasAreSecret 閘）只剩脫戰時的補充。
+
+## 玩家回報「職業欄有時候不見」（2026-09-08～15，玩家 log 破案）
+
+**成因在玩家端：另一個提示插件在我們寫完之後就地覆寫第 1–3 行。** 本機套組重現不了。
+現場指紋（`/mtip log` 的 pre/post 行掃描）：
+- 多一條 `選取目標: [名字]` —— **不是我們的**（我們的是 `目標: 名字`，Target.lua），套組裡也沒有任何插件產生它
+- 覆寫後的格式既不是暴雪也不是我們：L1 `名字 - 伺服器|c…`、L2 公會名不帶 `<>`、L3 `等級 90 種族`（有空格）
+- 第一輪 post 之後 0.06–0.15s 就被改，中間**沒有 OnUnit/Apply**（暴雪 ProcessInfo 一定先 ClearLines 再觸發 post-call，所以不是暴雪重建）
+- 只有觀察／成就資料到貨的 relayout 會把我們的行寫回去 ⇒ **快取過的玩家永遠壞**，
+  也就是玩家描述的「只出現一次」「滑回第一個人也沒了」
+處理：請玩家停用那支插件的提示功能；知道是哪支再考慮做衝突提示。
+
+**順帶修掉的自家 bug**：relayout 時行已經是自己寫的，`GetOriginalSpecLine` 找「含職業名
+的最短一行」會抓到自己的職業列 ⇒ 整列塞回職業欄、畫面上重複一次
+（log：`class="復仇 惡魔獵人 90 聯盟 女性 夜精靈"`）。規則：**relayout 不可從 FontString
+文字推斷任何東西**，只吃第一輪（post-call）存下的快取。
+
+**被否證的假設**：secret aspect（`SetText(秘密)` 讓行的 GetText 永久回秘密）—— 玩家 log
+全行 `aspect=false`，脫戰同陣營時 name/class/guid 全明文。`HasSecretAspect("Text")`／
+`HasSecretValues()` 在 FontString 上回明文布林，探針可用。
+`UnitInfo.JoinRow` 不可用 `table.concat`（秘密字串進去整列回 ""），已改逐段 format。
