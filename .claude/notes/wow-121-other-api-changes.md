@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-16T21:31:06.714Z
+  modified: 2026-09-15T11:33:29.624Z
 ---
 
 Warcraft Wiki: https://warcraft.wiki.gg/wiki/Patch_12.1.0/API_changes （TOC `120100`，正式版 build 69189, 2026-08-06）
@@ -73,9 +73,22 @@ bar:SetValue(secretHealth, Enum.StatusBarInterpolation.ExponentialEaseOut)
 彈窗——**pcall 攔不掉**(不是 Lua error),而且發生在載入時、非戰鬥,跟改動的時間點對不上,
 很難靠回想抓。
 
-在地佐證:`Cell/Indicators/AoEHealing.lua` 每個註冊點都包 `if Cell.isMidnight then return end`,
-CHANGELOG 寫「AoEHealing: disabled on Midnight (CLEU unavailable)」、
-「UnitButton: removed CombatLogGetCurrentEventInfo dependency」。
+**不分戰鬥中／戰鬥外、不分野外／副本，一律不行**(2026-09-15 對 Gethe/wow-ui-source 查證):
+- 讀取函式(`GetCurrentEventInfo`、`GetCurrentEntryInfo`、`GetEntryCount`、`SeekTo*Entry`)
+  整批搬進 `C_CombatLogSecure`,文件標 `Environment = "SecureOnly"`——插件環境裡根本沒有這個
+  命名空間,不是「戰鬥中回秘密值」。`Deprecated_CombatLog.lua` 註解明說搬進 secure 環境的
+  函式「刻意不提供」相容層。
+- 暴雪自己的 `Blizzard_CombatLogProcessor` 開頭是 `local _ENV = GetCurrentEnvironment()`,
+  用 `Event.RegisterCallback("COMBAT_LOG_EVENT")` 收——跑在 secure 環境。
+- 事件本身在文件是 `CallbackEvent = true` ＋ `HasRestrictions = true`,沒有任何戰鬥狀態條件。
+- `C_CombatLog.IsCombatLogRestricted()` 插件叫得到,但暴雪 UI 沒有任何地方用它,語意沒文件,
+  別拿它當「現在可以讀」的開關。
+- `C_CombatLogInternal`(含 `COMBAT_LOG_EVENT_INTERNAL_UNFILTERED`)文件標 `All` 且無限制,
+  但 Internal 系統通常只存在暴雪內部版本,正式服沒驗證過,別當退路寫進程式。
+
+在地佐證:`MiliUI_UnitFrames/Elements/Castbar.lua` 斷法者段的註解(一載入就跳禁止動作)、
+Cell CHANGELOG「AoEHealing: disabled on Midnight (CLEU unavailable)」、
+RaiderIO 註解「This didn't error on beta, but started to upon 12.0 release」——**beta 能用不代表正式服能用**。
 
 **影響**:任何「靠戰鬥紀錄補資料」的設計在 12.x 都要放棄,改用單位事件。
 例:施法條的斷法者只能吃 `UNIT_SPELLCAST_INTERRUPTED` 事件自己帶的 GUID
