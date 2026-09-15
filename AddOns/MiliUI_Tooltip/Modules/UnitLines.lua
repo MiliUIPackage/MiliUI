@@ -213,9 +213,16 @@ local function ResolveSpecIcon(unit, raw, config)
     end
 end
 
-local function ApplyPlayer(tip, state, unit, config, raw)
+local function ApplyPlayer(tip, state, unit, config, raw, relayout)
     local unitGuid = S.SafeValue(S.SafeCall(UnitGUID, unit))
-    local specLine = GetOriginalSpecLine(tip, raw.className)
+    -- ⚠ 專精行只准在第一輪（post-call，行保證是暴雪剛填好的）去掃。
+    -- 重畫（relayout：觀察／成就資料到貨）時提示框上已經是我們寫過的行，暴雪那行
+    -- 專精第一輪就清掉了 —— 這時再找「含職業名的最短一行」，找到的是自己排的
+    -- 職業列，整列被當成專精名塞回職業欄，畫面上那一列重複一次
+    -- （玩家 log 實錄：class="復仇 惡魔獵人 90 聯盟 女性 夜精靈"）。
+    -- 快取的生命週期本來就跟著提示內容走（OnTooltipCleared → ClearTransient 清掉），
+    -- 重畫一律吃第一輪存下來的。
+    local specLine = not relayout and GetOriginalSpecLine(tip, raw.className) or nil
     if specLine then
         raw.className = specLine
         HideOriginalSpecLine(tip, specLine)
@@ -224,7 +231,6 @@ local function ApplyPlayer(tip, state, unit, config, raw)
             state.specLine = specLine
         end
     elseif unitGuid and state.specGuid == unitGuid and type(state.specLine) == "string" then
-        -- 非同步觀察刷新時保住專精文字
         raw.className = state.specLine
     end
     ResolveSpecIcon(unit, raw, config)
@@ -352,7 +358,7 @@ function UnitLines.Apply(tip, state, unit, relayout)
     end
 
     if isPlayer then
-        ApplyPlayer(tip, state, unit, config, raw)
+        ApplyPlayer(tip, state, unit, config, raw, relayout)
     else
         ApplyNpc(tip, state, unit, config, raw)
     end
