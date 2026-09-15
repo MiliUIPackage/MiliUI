@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: bc14d1ba-6f88-47b5-925d-02454b87ba76
-  modified: 2026-09-15T03:40:59.321Z
+  modified: 2026-09-15T04:33:06.086Z
 ---
 
 `AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，v1.0.0）。SavedVariables=`MiliUI_DamageMeters_DB`，
@@ -190,6 +190,21 @@ zhTW 的 Current 譯名同時從「本場」改成「目前」（使用者點名
 - 舊的 `autoCurrentOnCombat` 整個移除。它「失效」的原因：guard 是
   `if not W.curSessionID then return end` —— 只救「正在看歷史分段」的視窗，
   玩家最常見的 Overall（無 ID）反而完全不動。
+
+## 標題列：類型 ＋ 狀態標籤 ＋ 右側計時器（2026-09-15，使用者從提案裡選的）
+
+`▮ 傷害輸出  總計 ▾ …… 1:23 [圖示]`。舊的 `總計 X`／`X`／`分段 - X` 三種格式、「目前」沒有字、
+前綴跟類型同色同字重（讀成「總計傷害輸出」一個名字）→ 使用者覺得不直覺。
+
+- **狀態一律寫出來**（目前／總計／歷史分段的名字＝首領名，秘密就退「分段 N」），放類型名**後面**，
+  同色相往標題列底色混暗（k=0.55，滑過 1）。文字來源 `Win.SegmentLabel`，右鍵選單讀數共用。
+- **狀態標籤可點**（`W.segBtn`）開分段選單——右側分段鈕預設滑過才出現，等於看不到。一樣可拖、右鍵開視窗選單。
+- **計時器獨立貼右邊**（使用者否決跟狀態併在一起），圖示出現時退到圖示左邊；錨點在 `FitTitle` 裡設，
+  寬度保留量「00:00」。有字／沒字切換才重排（`W._timerHasText`，不看會被分段更新清掉的 `_timerSec`）。
+- 截斷順序：先砍狀態（至少留約三字寬），再砍類型名。
+- **智慧顯示自動切換時狀態標籤亮一下**（`Win.PulseStatus`，只有 Combat 邊界 `SmartApply(_, true)` 會閃，
+  登入／重建不閃）；滑過提示寫智慧顯示現在的規則（`Windows.SmartDisplayNote`）。
+- 使用者**不要**「連動的一組只標一次」。
 
 ## 反轉顯示（每視窗 `wdb.reverse`，2026-08-28）
 

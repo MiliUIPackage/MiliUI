@@ -137,6 +137,14 @@ ns.RegisterCallback("SettingsChanged", "eachTab", function()
     if tab and tab:IsShown() then RefreshAll() end
 end)
 
+-- 分頁開著時直接點畫面上的視窗（識別覆蓋層）：跟下拉選單選它是同一件事
+ns.RegisterCallback("SelectWindowInOptions", "eachTab", function(idx)
+    if not (tab and tab:IsShown()) then return end
+    if idx < 1 or idx > ns.DB.WindowCount() then return end
+    selected = idx
+    Apply()
+end)
+
 ns.RegisterCallback("ShowOptionsTab", "eachTab", function(id)
     if id ~= "each" then
         if tab then tab:Hide() end

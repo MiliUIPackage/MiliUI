@@ -160,7 +160,7 @@ local function PinCurrent()
     return iType ~= "pvp" and iType ~= "arena"
 end
 
-local function SmartApplyFor(W, inCombat, force)
+local function SmartApplyFor(W, inCombat, force, pulse)
     if not W.wdb.smartDisplay then return end
     if W.curSessionID ~= nil and not force then return end
     -- ⚠ 只在戰鬥邊界求值，所以「出了團隊之後還沒再打過」會停在「目前」。
@@ -178,10 +178,29 @@ local function SmartApplyFor(W, inCombat, force)
     ns.Breakdown.Close(W)
     Win.UpdateTitle(W)
     W.Refresh()
+    -- 標題上的狀態標籤亮一下：畫面是自己換的，玩家沒動任何東西
+    if pulse then Win.PulseStatus(W) end
 end
 
-function Windows.SmartApply(inCombat)
-    Windows.ForEach(function(W) SmartApplyFor(W, inCombat, false) end)
+-- pulse：這次是戰鬥邊界的自動切換（Combat.lua 叫的）。登入／重建時擺對視圖不閃。
+function Windows.SmartApply(inCombat, pulse)
+    Windows.ForEach(function(W) SmartApplyFor(W, inCombat, false, pulse) end)
+end
+
+------------------------------------------------------------
+-- 狀態標籤提示裡的那一行：智慧顯示現在會怎麼做（沒開就 nil）
+-- 規則跟 SmartApplyFor 同一套，寫在這裡才不會兩邊各說各話。
+------------------------------------------------------------
+function Windows.SmartDisplayNote(W)
+    if not W.wdb.smartDisplay then return nil end
+    local L = ns.L
+    if W.curSessionID ~= nil then
+        return L["Smart display is paused while you look at a past segment. Switch back to Current or Overall to resume."]
+    end
+    if PinCurrent() then
+        return L["Smart display: stays on Current in a raid."]
+    end
+    return L["Smart display: Current in combat, Overall a few seconds after combat ends."]
 end
 
 ------------------------------------------------------------
@@ -222,7 +241,7 @@ function Windows.SmartApplyWhenMouseLeaves(gen)
         return true
     end
     if not AnyWindowHovered() then
-        Windows.SmartApply(false)
+        Windows.SmartApply(false, true)
         return
     end
     hoverHoldTicker = C_Timer.NewTicker(0.2, function(t)
@@ -232,7 +251,7 @@ function Windows.SmartApplyWhenMouseLeaves(gen)
         end
         if AnyWindowHovered() then return end
         t:Cancel(); hoverHoldTicker = nil
-        Windows.SmartApply(false)
+        Windows.SmartApply(false, true)
     end)
 end
 
@@ -277,13 +296,27 @@ function Windows.Label(idx)
     return ns.L["Window"] .. " " .. idx
 end
 
+-- 選中＝強調色；沒選中的滑過時變亮（只換明暗不換色，見 miliui-color-states），
+-- 告訴玩家「這個點得下去」
+local function PaintIdentify(f)
+    if f.selected then
+        f:SetBackdropBorderColor(ns.Media.Accent())
+        f.label:SetTextColor(ns.Media.Accent())
+    elseif f.hover then
+        f:SetBackdropBorderColor(0.6, 0.6, 0.6, 1)
+        f.label:SetTextColor(0.9, 0.9, 0.9)
+    else
+        f:SetBackdropBorderColor(0.35, 0.35, 0.35, 1)
+        f.label:SetTextColor(0.65, 0.65, 0.65)
+    end
+end
+
 local function EnsureIdentify(W)
     if W.identify then return W.identify end
     local f = CreateFrame("Frame", nil, W.frame, "BackdropTemplate")
     f:SetAllPoints(W.frame)
     -- 蓋在展開頁（+30）與首頁（+25）之上；不改 strata，免得跨視窗互相遮住
     f:SetFrameLevel(W.frame:GetFrameLevel() + 60)
-    f:EnableMouse(false)          -- 純標示，不能吃掉點擊與拖曳
     f:SetBackdrop({ edgeFile = ns.Media.WHITE8X8, edgeSize = 2 })
 
     f.bg = f:CreateTexture(nil, "BACKGROUND")
@@ -291,6 +324,32 @@ local function EnsureIdentify(W)
 
     f.label = f:CreateFontString(nil, "OVERLAY")
     f.label:SetPoint("CENTER")
+
+    ------------------------------------------------------------
+    -- 點一下就把「各視窗」分頁切到這個視窗（使用者要求）——畫面上直接點比回去開下拉快。
+    --
+    -- 覆蓋層因此要吃滑鼠，但**拖曳不能被吃掉**：設定頁開著時照樣要能搬視窗
+    -- （位置欄位會跟著即時更新）。做法跟標題列的類型區塊一樣：按下轉發給拖曳，
+    -- 放開時問它「剛剛有沒有真的拖過」，沒有才當成點一下。
+    -- 縮放把手墊在這層之上（見 Move.Setup），所以縮放也不受影響。
+    ------------------------------------------------------------
+    f:EnableMouse(true)
+    f:SetScript("OnMouseDown", function(_, button)
+        if button == "LeftButton" then ns.Move.BeginHeaderDrag(W) end
+    end)
+    f:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" then
+            ns.Windows.ShowContextMenu(W)
+            return
+        end
+        if button ~= "LeftButton" then return end
+        if not ns.Move.EndHeaderDrag(W) and not f.selected then
+            ns.Fire("SelectWindowInOptions", W.idx)
+        end
+    end)
+    f:SetScript("OnEnter", function() f.hover = true; PaintIdentify(f) end)
+    f:SetScript("OnLeave", function() f.hover = false; PaintIdentify(f) end)
+
     f:Hide()
     W.identify = f
     return f
@@ -301,15 +360,10 @@ function Windows.ShowIdentify(selectedIdx)
     Windows.ForEach(function(W)
         local f = EnsureIdentify(W)
         local on = (W.idx == selectedIdx)
+        f.selected = on
         -- 兩者都鋪一層暗底：編號要讀得出來，而且「現在處於設定狀態」本身就該有感
         f.bg:SetColorTexture(0, 0, 0, on and 0.35 or 0.6)
-        if on then
-            f:SetBackdropBorderColor(ns.Media.Accent())
-            f.label:SetTextColor(ns.Media.Accent())
-        else
-            f:SetBackdropBorderColor(0.35, 0.35, 0.35, 1)
-            f.label:SetTextColor(0.65, 0.65, 0.65)
-        end
+        PaintIdentify(f)
         f.label:SetFont(ns.Media.Font(), on and 22 or 18, "OUTLINE")
         f.label:SetText(Windows.Label(W.idx))
         f:Show()
@@ -318,7 +372,9 @@ end
 
 function Windows.HideIdentify()
     Windows.ForEach(function(W)
-        if W.identify then W.identify:Hide() end
+        -- hover 一起清：藏起來的當下游標可能正停在上面，收不到 OnLeave，
+        -- 下次打開那個分頁時會帶著「滑過」的亮色出現
+        if W.identify then W.identify.hover = false; W.identify:Hide() end
     end)
 end
 
@@ -387,25 +443,6 @@ local function CurrentTypeLabel(W)
     return D.TYPE_NAMES[W.curDMType] or "?"
 end
 
-local function CurrentSegmentLabel(W)
-    local L = ns.L
-    if not W.curSessionID then
-        return (W.curSession == D.S.Overall) and L["Overall"] or L["Current"]
-    end
-    local list = D.GetAvailableSessions()
-    if list then
-        for i, sess in ipairs(list) do
-            if sess.sessionID == W.curSessionID then
-                -- 分段名稱可能是秘密字串：不能串接，只能整個拿去顯示或退回編號
-                local label = sess.name
-                if label and not D.IsSecret(label) then return label end
-                return L["Segment"] .. " " .. i
-            end
-        end
-    end
-    return L["Segment"]
-end
-
 function Windows.ShowSegmentMenu(W, btn)
     ns.W.Menu.Show(SegmentItems(W), btn)
 end
@@ -419,7 +456,7 @@ function Windows.ShowContextMenu(W, btn, redraw)
     local items = {
         { text = L["MiliUI Damage Meters"] .. " " .. W.idx, isTitle = true },
         { text = L["Meter type"], value = CurrentTypeLabel(W),    submenu = TypeItems(W) },
-        { text = L["Segments"],   value = CurrentSegmentLabel(W), submenu = SegmentItems(W) },
+        { text = L["Segments"],   value = Win.SegmentLabel(W), submenu = SegmentItems(W) },
         { isSeparator = true },
         {
             text = L["Hide the timer"], isActive = wdb.hideTimer, keepOpen = true,
@@ -428,6 +465,7 @@ function Windows.ShowContextMenu(W, btn, redraw)
                 W.timerText:SetShown(not wdb.hideTimer)
                 W._timerSec = nil
                 Win.UpdateTimerText(W)
+                Win.FitTitle(W)   -- 計時器佔的寬度讓出來／收回去
                 Windows.ShowContextMenu(W, btn, true)
             end,
         },

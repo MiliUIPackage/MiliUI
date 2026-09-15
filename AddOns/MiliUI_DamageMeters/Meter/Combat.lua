@@ -95,7 +95,7 @@ local function FreezeCombat(ts)
         if ns.Windows and ns.Windows.SmartApplyWhenMouseLeaves then
             ns.Windows.SmartApplyWhenMouseLeaves(gen)
         elseif ns.Windows and ns.Windows.SmartApply then
-            ns.Windows.SmartApply(false)
+            ns.Windows.SmartApply(false, true)
         end
     end)
 end
@@ -244,7 +244,7 @@ local function BeginSegment()
     _needsFinalRefresh = false
     if ns.Windows and ns.Windows.InvalidateAll then ns.Windows.InvalidateAll() end
     if not _sharedTicker then C.StartTicker() end
-    if ns.Windows and ns.Windows.SmartApply then ns.Windows.SmartApply(true) end
+    if ns.Windows and ns.Windows.SmartApply then ns.Windows.SmartApply(true, true) end
 end
 
 ------------------------------------------------------------

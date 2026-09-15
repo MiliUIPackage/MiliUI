@@ -538,7 +538,9 @@ function Move.Setup(W)
     ------------------------------------------------------------
     local grip = CreateFrame("Button", nil, frame)
     grip:SetSize(GRIP_SIZE, GRIP_SIZE)
-    grip:SetFrameLevel(frame:GetFrameLevel() + 15)
+    -- 墊在「各視窗」分頁的識別覆蓋層（+60，會吃滑鼠，見 Manager.lua 的 EnsureIdentify）之上：
+    -- 那一頁開著時照樣縮放得動。順帶也在首頁（+25）、展開頁（+30）之上
+    grip:SetFrameLevel(frame:GetFrameLevel() + 61)
     grip:RegisterForClicks("LeftButtonUp")
     local gripTex = grip:CreateTexture(nil, "OVERLAY")
     gripTex:SetAllPoints()

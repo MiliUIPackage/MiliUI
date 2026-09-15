@@ -30,6 +30,15 @@ local ICON_HOVER_ALPHA = 1.00
 local BTN_GAP = 2
 local TYPE_PAD = 5     -- 左側類型圖示離視窗左緣
 local TYPE_GAP = 4     -- 類型圖示與標題之間
+local STATUS_GAP = 6   -- 標題與狀態標籤（目前／總計／首領名）之間
+local TIMER_PAD = 6    -- 計時器離右緣（沒有圖示時）
+local TIMER_GAP = 4    -- 計時器與圖示、與左邊標題之間
+
+-- 狀態標籤的明暗：跟標題**同一個色相**，往標題列底色混暗（miliui-color-states）。
+-- 閒置暗一階，滑過亮到跟標題一樣，智慧顯示自動切換時亮一下再暗回去。
+local STATUS_K       = 0.55
+local STATUS_HOVER_K = 1
+local PULSE_TIME     = 0.9
 
 ------------------------------------------------------------
 -- 標題列按鈕的貼圖
@@ -299,6 +308,24 @@ local function AnchorButtonTooltip(btn)
 end
 
 ------------------------------------------------------------
+-- 狀態標籤的提示：現在看的是哪一段、怎麼換，以及智慧顯示在做什麼。
+-- 最後那段是為了「標題自己變了」—— 脫戰幾秒後自動切到總計，玩家沒動任何東西，
+-- 滑過來就要看得到為什麼。
+------------------------------------------------------------
+local function ShowStatusTooltip(W, btn)
+    local L = ns.L
+    AnchorButtonTooltip(btn)
+    GameTooltip:SetText(W._fullStatus or L["Segments"], 1, 1, 1)
+    GameTooltip:AddLine(L["Click to switch segments"], 0.7, 0.7, 0.7)
+    local note = ns.Windows.SmartDisplayNote(W)
+    if note then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(note, 0.7, 0.7, 0.7, true)
+    end
+    GameTooltip:Show()
+end
+
+------------------------------------------------------------
 -- 標題列按鈕
 ------------------------------------------------------------
 local function MakeHeaderButton(W, key, tooltip, onClick)
@@ -441,27 +468,22 @@ function Win.ApplyHeaderHoverIcons(W)
 end
 
 ------------------------------------------------------------
--- 標題文字：放不下就截斷加省略號
+-- 標題列的文字排版：類型名 ＋ 狀態標籤（左），計時器（右）
+--
+--   ▮ 傷害輸出  總計 ▾                         1:23  [圖示…]
+--
+-- 以前是「總計 傷害輸出」／「傷害輸出」／「分段 - 傷害輸出」三種格式，而且「目前」
+-- 沒有字 —— 要靠「有沒有前綴」判斷狀態，前綴又跟類型名同色同字重，讀起來像一個名字。
+-- 現在狀態一律寫出來、放在類型名**後面**（類型名在每個視窗都對齊）、調暗一階。
+--
+-- 放不下時的截斷順序：先砍狀態（首領名可以很長），但至少留約三個字寬 ——
+-- 「目前／總計」一定完整；還是放不下才砍類型名。
 ------------------------------------------------------------
-function Win.FitTitle(W)
-    local fs = W.titleText
-    local full = W._fullTitle
-    if not fs or not full then return end
+-- 放不下就截斷加省略號
+local function Truncate(fs, full, avail)
     fs:SetText(full)
-
-    local s = ns.DB.Style()
-    local iconSz = s.hdrIconSize or 20
-    -- 藏起來的圖示不佔空間，標題就吃整條標題列（不要對著一個不存在的空隙截字）
-    local n = W._hdrIconsShown and (W._hdrButtonCount or 0) or 0
-    local headerW = W.frame:GetWidth() or (W.wdb.width or 300)
-    -- 右邊每顆佔 size + BTN_GAP，要跟 LayoutHeaderButtons 用同一套算法，
-    -- 不然標題會截在錯的地方（多留或少留一段）。
-    -- 左邊要另外扣掉類型圖示那一塊（TYPE_PAD + 圖示 + TYPE_GAP）。
-    local leftUsed = TYPE_PAD + iconSz + TYPE_GAP + (s.hdrTextOffX or 0)
-    local avail = headerW - ((iconSz + BTN_GAP) * n) - leftUsed - 8
     if avail < 1 then avail = 1 end
     if fs:GetStringWidth() <= avail then return end
-
     local str = full
     while #str > 1 do
         -- 一次砍一個「字元」不是一個 byte：在地化標題是 UTF-8，
@@ -478,20 +500,113 @@ function Win.FitTitle(W)
     end
 end
 
-------------------------------------------------------------
--- 標題／計時器
-------------------------------------------------------------
-function Win.UpdateTitle(W)
-    local L = ns.L
-    local typeName = D.TYPE_NAMES[W.curDMType] or L["Damage Done"]
-    if W.curSessionID then
-        W._fullTitle = L["Segment"] .. " - " .. typeName
-    elseif W.curSession == D.S.Overall then
-        W._fullTitle = L["Overall"] .. " " .. typeName
-    else
-        W._fullTitle = typeName
+function Win.FitTitle(W)
+    local fs, st = W.titleText, W.segText
+    local full = W._fullTitle
+    if not fs or not st or not full then return end
+    local status = W._fullStatus or ""
+
+    local s = ns.DB.Style()
+    local iconSz = s.hdrIconSize or 20
+    -- 藏起來的圖示不佔空間（不要對著一個不存在的空隙截字）
+    local n = W._hdrIconsShown and (W._hdrButtonCount or 0) or 0
+    local headerW = W.frame:GetWidth() or (W.wdb.width or 300)
+
+    -- 右側：圖示佔的寬度要跟 LayoutHeaderButtons 同一套算法（右緣留 BTN_GAP+1、
+    -- 每顆 size + BTN_GAP），不然計時器會壓到圖示或留一段空。
+    -- 計時器貼在最左那顆圖示左邊；圖示藏著就貼右緣。
+    local iconsW = (n > 0) and (1 + n * (iconSz + BTN_GAP)) or 0
+    local timerRight = (n > 0) and (iconsW + TIMER_GAP) or TIMER_PAD
+    local timer = W.timerText
+    timer:ClearAllPoints()
+    timer:SetPoint("RIGHT", W.header, "RIGHT", -timerRight, s.hdrTextOffY or 0)
+    local rightUsed = iconsW
+    if timer:IsShown() and W._timerHasText then
+        -- 量「00:00」不量現在的字：秒數一跳寬度就變，而這支不在每秒的迴圈裡
+        local cur = timer:GetText()
+        timer:SetText("00:00")
+        rightUsed = timerRight + timer:GetStringWidth() + TIMER_GAP
+        timer:SetText(cur)
     end
+
+    -- 左邊要扣掉類型圖示那一塊（TYPE_PAD + 圖示 + TYPE_GAP）
+    local leftUsed = TYPE_PAD + iconSz + TYPE_GAP + (s.hdrTextOffX or 0)
+    local avail = headerW - rightUsed - leftUsed - 8
+    local fixed = STATUS_GAP + (W.segArrow:GetWidth() or 0) + 1
+
+    fs:SetText(full)
+    st:SetText(status)
+    local typeW, statusW = fs:GetStringWidth(), st:GetStringWidth()
+    if typeW + fixed + statusW <= avail then return end
+
+    local keep = math.min(statusW, (s.hdrFontSize or 11) * 3)
+    local room = avail - typeW - fixed
+    if room >= keep then
+        Truncate(st, status, room)
+    else
+        Truncate(st, status, keep)
+        Truncate(fs, full, avail - fixed - st:GetStringWidth())
+    end
+end
+
+------------------------------------------------------------
+-- 狀態標籤的文字：目前／總計／歷史分段的名字（通常是首領名）
+-- 右鍵選單「分段」那一項的讀數也用這支，兩邊的字一定一致。
+------------------------------------------------------------
+function Win.SegmentLabel(W)
+    local L = ns.L
+    if not W.curSessionID then
+        return (W.curSession == D.S.Overall) and L["Overall"] or L["Current"]
+    end
+    local list = D.GetAvailableSessions()
+    if list then
+        for i, sess in ipairs(list) do
+            if sess.sessionID == W.curSessionID then
+                -- 分段名稱可能是秘密字串：不能串接、也不能量寬度截斷，秘密就退回編號
+                local label = sess.name
+                if label and not D.IsSecret(label) and label ~= "" then return label end
+                return L["Segment"] .. " " .. i
+            end
+        end
+    end
+    return L["Segment"]
+end
+
+function Win.UpdateTitle(W)
+    W._fullTitle = D.TYPE_NAMES[W.curDMType] or ns.L["Damage Done"]
+    W._fullStatus = Win.SegmentLabel(W)
     Win.FitTitle(W)
+end
+
+------------------------------------------------------------
+-- 狀態標籤上色：標題的顏色往標題列底色混，k = 1 就是標題本身的亮度。
+-- 混色不疊 alpha：標題列底色玩家可以調成半透明，疊 alpha 的觀感會跟著背景飄。
+------------------------------------------------------------
+local function TitleColor(s)
+    if s.hdrTextUseClassColor then return M.Accent() end
+    local c = s.hdrTextColor
+    return c and c.r or 1, c and c.g or 1, c and c.b or 1
+end
+
+function Win.ApplyStatusColor(W, k)
+    if not W.segText then return end
+    local s = ns.DB.Style()
+    local r, g, b = TitleColor(s)
+    local hb = s.hdrBgColor
+    local br, bg, bb = hb and hb.r or 0, hb and hb.g or 0, hb and hb.b or 0
+    local rest = 1 - k
+    r, g, b = r * k + br * rest, g * k + bg * rest, b * k + bb * rest
+    W.segText:SetTextColor(r, g, b)
+    W.segArrow:SetVertexColor(r, g, b)
+end
+
+-- 智慧顯示替玩家切了分段：狀態標籤亮一下再暗回去，讓「標題自己變了」有個交代。
+-- 只在戰鬥邊界的自動切換叫（見 Manager 的 SmartApply），玩家自己切的不閃。
+function Win.PulseStatus(W)
+    local ag = W.segPulse
+    if not ag or not W.frame or not W.frame:IsShown() then return end
+    ag:Stop()
+    ag:Play()
 end
 
 -- 用「顯示的整數秒」做備忘：0.5 秒的 ticker 敲進來時，同一秒內的重複呼叫是免費的
@@ -529,7 +644,16 @@ function Win.UpdateTimerText(W)
     end
     if W._timerSec == sec then return end
     W._timerSec = sec
-    W.timerText:SetText(sec >= 0 and ("(" .. D.FormatTimer(dur) .. ")") or "")
+    -- 獨立放在右側，不再用括號黏著標題
+    W.timerText:SetText(sec >= 0 and D.FormatTimer(dur) or "")
+    -- 有字／沒字切換時，左邊的標題可用寬度跟著變，要重排一次。
+    -- 另記一個布林而不是看 _timerSec：_timerSec 會被分段更新清成 nil，
+    -- 拿它判斷的話戰鬥中每次有人死就重排一次標題。
+    local has = sec >= 0
+    if has ~= W._timerHasText then
+        W._timerHasText = has
+        Win.FitTitle(W)
+    end
 end
 
 ------------------------------------------------------------
@@ -926,9 +1050,57 @@ function Win.Create(idx)
     W.titleText = header:CreateFontString(nil, "OVERLAY")
     W.titleText:SetPoint("LEFT", header, "LEFT", 6, 0)
 
+    ------------------------------------------------------------
+    -- 狀態標籤（目前／總計／首領名）＋ 下拉箭頭：點一下開分段選單
+    --
+    -- 標題列右側的分段鈕預設是「滑過才出現」，等於看不到；狀態就寫在標題旁邊，
+    -- 讓它本身當入口是最直覺的 —— 「點你看到的那個字就能換」。
+    -- 錨點與大小在 ApplyStyle 裡設（跟著字級走）。
+    ------------------------------------------------------------
+    W.segText = header:CreateFontString(nil, "OVERLAY")
+    W.segText:SetJustifyH("LEFT")
+    W.segText:SetWordWrap(false)
+    Win.SetFont(W.segText, s.hdrFontSize or 11)   -- 先給字型再 SetText
+
+    -- 箭頭跟設定頁下拉選單同一張圖（Widgets.lua 的 CreateDropdown），選擇器長得一樣
+    W.segArrow = header:CreateTexture(nil, "OVERLAY")
+    W.segArrow:SetTexture("Interface\\ChatFrame\\ChatFrameExpandArrow")
+    W.segArrow:SetRotation(math.rad(-90))
+    W.segArrow:SetDesaturated(true)
+
+    local segBtn = CreateFrame("Button", nil, header)
+    segBtn:SetFrameLevel(header:GetFrameLevel() + 2)
+    W.segBtn = segBtn
+
+    segBtn.hl = segBtn:CreateTexture(nil, "BACKGROUND")
+    segBtn.hl:SetAllPoints()
+    segBtn.hl:SetColorTexture(M.Accent())
+    segBtn.hl:SetAlpha(0.12)
+    segBtn.hl:Hide()
+
+    -- 亮一下再暗回去：純 Animation 只拿來當計時器，每幀自己算混色係數。
+    -- 只在播放期間有 OnUpdate，平時零成本。
+    local pulse = segBtn:CreateAnimationGroup()
+    local pulseAnim = pulse:CreateAnimation("Animation")
+    pulseAnim:SetDuration(PULSE_TIME)
+    local function RestStatusColor()
+        Win.ApplyStatusColor(W, W._segHover and STATUS_HOVER_K or STATUS_K)
+    end
+    pulseAnim:SetScript("OnUpdate", function(self)
+        local p = self:GetProgress() or 1
+        -- 前 1/4 亮起來、後 3/4 慢慢暗回去
+        local up = (p < 0.25) and (p / 0.25) or (1 - (p - 0.25) / 0.75)
+        local base = W._segHover and STATUS_HOVER_K or STATUS_K
+        Win.ApplyStatusColor(W, base + (1 - base) * up)
+    end)
+    pulse:SetScript("OnFinished", RestStatusColor)
+    pulse:SetScript("OnStop", RestStatusColor)
+    W.segPulse = pulse
+
     W.timerText = header:CreateFontString(nil, "OVERLAY")
-    W.timerText:SetPoint("LEFT", W.titleText, "RIGHT", 4, 0)
+    W.timerText:SetJustifyH("RIGHT")
     W.timerText:SetTextColor(1, 1, 1, 0.7)
+    Win.SetFont(W.timerText, s.hdrFontSize or 11)
     if wdb.hideTimer then W.timerText:Hide() end
 
     -- 邊框畫在獨立的覆蓋層上：這樣「邊框要不要含標題列」只是換個錨點，
@@ -1003,6 +1175,41 @@ function Win.Create(idx)
         end
         if button ~= "LeftButton" then return end
         if not ns.Move.EndHeaderDrag(W) then ns.Home.Toggle(W) end
+    end)
+
+    ------------------------------------------------------------
+    -- 狀態標籤：左鍵開分段選單、右鍵開視窗選單，一樣拖得動視窗（同上面的類型區塊）
+    ------------------------------------------------------------
+    segBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    segBtn:SetScript("OnEnter", function(self)
+        self.hl:Show()
+        W._segHover = true
+        if not W.segPulse:IsPlaying() then Win.ApplyStatusColor(W, STATUS_HOVER_K) end
+        SetHeaderIconsShown(W, true)
+        if ns.W.Menu.IsOpenFor(self) then return end   -- 選單開著時不要再疊提示
+        ShowStatusTooltip(W, self)
+    end)
+    segBtn:SetScript("OnLeave", function(self)
+        self.hl:Hide()
+        W._segHover = false
+        if not W.segPulse:IsPlaying() then Win.ApplyStatusColor(W, STATUS_K) end
+        GameTooltip:Hide()
+    end)
+    segBtn:SetScript("OnMouseDown", function(_, button)
+        if button ~= "LeftButton" then return end
+        ns.Move.BeginHeaderDrag(W)
+    end)
+    segBtn:SetScript("OnMouseUp", function(self, button)
+        if button == "RightButton" then
+            GameTooltip:Hide()
+            ns.Windows.ShowContextMenu(W)
+            return
+        end
+        if button ~= "LeftButton" then return end
+        if not ns.Move.EndHeaderDrag(W) then
+            GameTooltip:Hide()
+            ns.Windows.ShowSegmentMenu(W, self)
+        end
     end)
 
     -- 只需要 OnEnter：收合交給輪詢（見 SetHeaderIconsShown 上方的說明）
@@ -1114,18 +1321,32 @@ function Win.ApplyStyle(W)
     W.typeIcon:SetAlpha(ICON_ALPHA)
 
     -- 標題文字
-    Win.SetFont(W.titleText, s.hdrFontSize or 11)
-    Win.SetFont(W.timerText, s.hdrFontSize or 11)
+    local hdrFS = s.hdrFontSize or 11
+    Win.SetFont(W.titleText, hdrFS)
+    Win.SetFont(W.segText, hdrFS)
+    Win.SetFont(W.timerText, hdrFS)
     W.titleText:ClearAllPoints()
     W.titleText:SetPoint("LEFT", W.typeIcon, "RIGHT", TYPE_GAP + (s.hdrTextOffX or 0), s.hdrTextOffY or 0)
-    -- 可點範圍蓋住「圖示 ＋ 標題」整塊，右緣跟著標題走
-    W.typeBtn:SetPoint("RIGHT", W.titleText, "RIGHT", TYPE_GAP, 0)
-    if s.hdrTextUseClassColor then
-        W.titleText:SetTextColor(M.Accent())
-    else
-        local c = s.hdrTextColor
-        W.titleText:SetTextColor(c and c.r or 1, c and c.g or 1, c and c.b or 1)
-    end
+    W.titleText:SetTextColor(TitleColor(s))
+
+    -- 狀態標籤接在標題後面，箭頭再接在它後面（計時器的錨點在 FitTitle，要看圖示顯示與否）
+    W.segText:ClearAllPoints()
+    W.segText:SetPoint("LEFT", W.titleText, "RIGHT", STATUS_GAP, 0)
+    local arrowSz = math.max(8, math.floor(hdrFS * 0.75 + 0.5))
+    W.segArrow:SetSize(arrowSz, arrowSz)
+    W.segArrow:ClearAllPoints()
+    W.segArrow:SetPoint("LEFT", W.segText, "RIGHT", 1, 0)
+    Win.ApplyStatusColor(W, W._segHover and STATUS_HOVER_K or STATUS_K)
+
+    -- 兩塊可點範圍：「圖示 ＋ 標題」與「狀態 ＋ 箭頭」，在兩者中間的縫對半分，不重疊
+    W.typeBtn:SetPoint("RIGHT", W.titleText, "RIGHT", STATUS_GAP / 2, 0)
+    W.segBtn:ClearAllPoints()
+    W.segBtn:SetPoint("TOPLEFT", W.typeBtn, "TOPRIGHT", 0, 0)
+    W.segBtn:SetPoint("BOTTOMLEFT", W.typeBtn, "BOTTOMRIGHT", 0, 0)
+    W.segBtn:SetPoint("RIGHT", W.segArrow, "RIGHT", 3, 0)
+    W.segBtn.hl:SetColorTexture(M.Accent())
+    W.segBtn.hl:SetAlpha(0.12)
+
     W.timerText:SetShown(not wdb.hideTimer)
 
     -- 視窗邊框

@@ -49,6 +49,10 @@ L["click to go back"] = "点击返回"
 L["Targets"] = "打了谁"
 L["Heal"] = "治疗"
 L["Melee"] = "近战"
+L["Click to switch segments"] = "点击切换分段"
+L["Smart display: Current in combat, Overall a few seconds after combat ends."] = "智能显示：战斗中看当前，脱战几秒后自动切到总计。"
+L["Smart display: stays on Current in a raid."] = "智能显示：团队里一直看当前。"
+L["Smart display is paused while you look at a past segment. Switch back to Current or Overall to resume."] = "正在看过去的分段，智能显示暂停；切回当前或总计就会恢复。"
 L["Unknown"] = "未知"
 
 -- 常规
