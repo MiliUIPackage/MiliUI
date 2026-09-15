@@ -829,15 +829,23 @@ end
 function F.UnitFullName(unit)
     if not unit or not UnitIsPlayer(unit) then return end
 
-    local name = GetUnitName(unit, true)
+    -- fix from MiliUI: read UnitName directly instead of going through GetUnitName. 12.1 hands
+    -- back a SECRET name and realm for players whose identity is restricted (eg. a target outside
+    -- the group), and GetUnitName tests `server ~= ""` -- Blizzard's code, but running on our
+    -- tainted stack, so the comparison is blamed on Cell.
+    -- A full name only exists to be a lookup key (nicknames, supporters, blacklist), and a secret
+    -- can never be a key, so an unreadable identity has no full name: return nil.
+    local name, server = UnitName(unit)
+    if not name or F.IsSecretValue(name) or F.IsSecretValue(server) then return end
 
-    --? name might be nil in some cases?
-    if name and not string.find(name, "-") then
-        local server = GetNormalizedRealmName()
-        --? server might be nil in some cases?
-        if server then
-            name = name.."-"..server
-        end
+    if server and server ~= "" then
+        return name.."-"..server
+    end
+
+    server = GetNormalizedRealmName()
+    --? server might be nil in some cases?
+    if server then
+        name = name.."-"..server
     end
 
     return name

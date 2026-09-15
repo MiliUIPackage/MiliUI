@@ -1766,8 +1766,14 @@ function I.CreateNameText(parent)
         --     end
         -- end
 
+        -- fix from MiliUI: a secret name (12.1, players outside the group) can be neither a
+        -- nickname key nor transliterated -- both read it. SetText takes it as is, so pass it
+        -- straight through; UpdateTextWidth already does the same.
+        if not F.IsValueNonSecret(parent.states.name) then
+            name = parent.states.name
+
         -- only check nickname for players
-        if parent.states.isPlayer then
+        elseif parent.states.isPlayer then
             if CELL_NICKTAG_ENABLED and Cell.NickTag then
                 name = Cell.NickTag:GetNickname(parent.states.name, nil, true)
             end
@@ -1776,7 +1782,7 @@ function I.CreateNameText(parent)
             name = parent.states.name
         end
 
-        if Cell.loaded and CellDB["general"]["translit"] then
+        if Cell.loaded and CellDB["general"]["translit"] and F.IsValueNonSecret(name) then
             name = LibTranslit:Transliterate(name)
         end
 

@@ -40,14 +40,19 @@ local function CreateTooltip(name, hasIcon)
         -- Only listen for TOOLTIP_DATA_UPDATE while the tooltip is visible.
         -- Prevents stale tainted data from causing RefreshData crashes in combat
         -- when the tooltip isn't even shown (Midnight secret value taint).
+        --! fix from MiliUI: the unregister used to be a HookScript("OnHide"), and the
+        --! SetScript("OnHide") further down replaced it -- so after the first show the event
+        --! stayed registered for good. It now lives in that OnHide.
         tooltip:HookScript("OnShow", function()
             tooltip:RegisterEvent("TOOLTIP_DATA_UPDATE")
         end)
-        tooltip:HookScript("OnHide", function()
-            tooltip:UnregisterEvent("TOOLTIP_DATA_UPDATE")
-        end)
-        tooltip:SetScript("OnEvent", function()
+        tooltip:SetScript("OnEvent", function(_, _, dataInstanceID)
             if Cell.isMidnight and InCombatLockdown() then return end
+            --! fix from MiliUI: this event fires for every tooltip in the game. Rebuild only when
+            --! the update is about what WE are showing -- the same test GameTooltipDataMixin:OnEvent
+            --! makes. Rebuilding on someone else's update re-queried our data from tainted code
+            --! (35x "attempt to index local 'color' (a secret table value)" in GameTooltip_AddColoredLine).
+            if dataInstanceID and not tooltip:HasDataInstanceID(dataInstanceID) then return end
             tooltip:RefreshData()
         end)
     end
@@ -63,6 +68,14 @@ local function CreateTooltip(name, hasIcon)
     -- end)
 
     tooltip:SetScript("OnHide", function()
+        if Cell.isRetail then
+            tooltip:UnregisterEvent("TOOLTIP_DATA_UPDATE")
+            --! fix from MiliUI: forget what was shown, as GameTooltip_OnHide does -- this template
+            --! does not inherit it. Otherwise infoList outlives the tooltip and RefreshData rebuilds
+            --! a spell nobody is looking at.
+            tooltip:ClearHandlerInfo()
+        end
+
         -- SetX with invalid data may or may not clear the tooltip's contents.
         tooltip:ClearLines()
 
