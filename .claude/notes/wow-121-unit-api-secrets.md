@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-09-13T19:03:24.951Z
+  modified: 2026-09-15T15:30:17.963Z
 ---
 
 12.1.0 PTR 7（2026-07-23, build 68914）起，**unit identity 為 secret 時**這些 API 全部回傳 secret：
@@ -24,6 +24,13 @@ metadata:
 - `UnitIsCharmed` / `UnitIsPossessed`：auras 為 secret 時回 secret，但 unit token 是 `player` / `pet` / `vehicle` 時不會（PTR 8 修正）。
 - `GetGuildInfo` 不再接受 compound unit token（如 `boss1target`）。
 - `UnitName` 在 active PvP match 中**不再**回 secret（放寬）。
+- **`UnitName` 對隊伍外的玩家回秘密的 name＋server**（2026-09-15 實測，Cell 目標按鈕選了跨服玩家，
+  `relationship=2`）。地雷不在 `UnitName` 本身，在**暴雪的包裝函式 `GetUnitName(unit, true)`**：
+  它內部 `server ~= ""` 是比較，跑在插件的 tainted 堆疊上就算插件的帳
+  （`UnitFrame.lua:1088: attempt to compare local 'server'`）。凡是暴雪 helper 內部會比較／查表的，
+  秘密輸入時都等於插件自己在比，**要嘛自己讀 `UnitName` 先擋，要嘛別叫它**。
+  「名字-伺服器」全名只拿來當查表 key（暱稱、黑名單），秘密值當不了 key，所以讀不到就回 nil，
+  顯示端把秘密名字直接餵 `SetText`、跳過暱稱與音譯。範本：Cell `Utils.lua` 的 `F.UnitFullName`。
 
 ## 怎麼確定一支 Unit API 到底是不是秘密值（別憑印象）
 
