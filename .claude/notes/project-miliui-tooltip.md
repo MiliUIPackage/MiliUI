@@ -115,14 +115,19 @@ tostring，秘密值會炸）；要明文的（坐騎查表、圖示 ID 解析�
 
 ## 玩家回報「職業欄有時候不見」（2026-09-08～15，玩家 log 破案）
 
-**成因在玩家端：另一個提示插件在我們寫完之後就地覆寫第 1–3 行。** 本機套組重現不了。
-現場指紋（`/mtip log` 的 pre/post 行掃描）：
-- 多一條 `選取目標: [名字]` —— **不是我們的**（我們的是 `目標: 名字`，Target.lua），套組裡也沒有任何插件產生它
-- 覆寫後的格式既不是暴雪也不是我們：L1 `名字 - 伺服器|c…`、L2 公會名不帶 `<>`、L3 `等級 90 種族`（有空格）
+**成因在玩家端：殘留的 Leatrix_Plus（「Manage tooltip」TipModEnable）在我們寫完之後
+按固定行號就地覆寫第 1–3 行。** 套組 2026-08-29 移除了 Leatrix_Plus，但**沒有列進
+`MiliUI/Enhance/LegacyAddons.lua`**，解壓縮覆蓋更新的玩家舊資料夾照樣載入。本機重現不了。
+現場指紋（`/mtip log` 的 pre/post 行掃描，對照 git 歷史裡的 Leatrix_Plus.lua 9407–9521 行）：
+- L1 `名字 - 伺服器|cffffffff|r`、L2 `|c00aaaaff公會名|cffffffff|r`（不帶 `<>`）、
+  L3 `等級 90 種族|cffffffff|r`（有空格）—— 每行尾巴的 `|cffffffff|r` 是它的簽名
+- 目標行有兩條：`選取目標: [名字]` 是**我們的**（暴雪 zhTW 的 `TARGET` 全域就是「選取目標」，
+  NPC 目標用 `[ ]`）；`目標: 名字` 是 Leatrix 的（`ttTarget` 寫死「目標」）。
+  ⚠ 別把「選取目標」當成外來插件的指紋，一開始就判反過
 - 第一輪 post 之後 0.06–0.15s 就被改，中間**沒有 OnUnit/Apply**（暴雪 ProcessInfo 一定先 ClearLines 再觸發 post-call，所以不是暴雪重建）
 - 只有觀察／成就資料到貨的 relayout 會把我們的行寫回去 ⇒ **快取過的玩家永遠壞**，
   也就是玩家描述的「只出現一次」「滑回第一個人也沒了」
-處理：請玩家停用那支插件的提示功能；知道是哪支再考慮做衝突提示。
+處理：請玩家停用或刪掉 Leatrix_Plus（或關掉它的 Manage tooltip）；套組端把 Leatrix_Plus 和 MBB（同一天移除、同樣漏列）加進 LegacyAddons 的 REPLACED（2026-09-15），取代者分別掛 MiliUI_Tooltip／MiliUI_Minimap。**從套組移除插件時要同步列進 LegacyAddons**，不然解壓縮覆蓋的玩家永遠留著。
 
 **順帶修掉的自家 bug**：relayout 時行已經是自己寫的，`GetOriginalSpecLine` 找「含職業名
 的最短一行」會抓到自己的職業列 ⇒ 整列塞回職業欄、畫面上重複一次

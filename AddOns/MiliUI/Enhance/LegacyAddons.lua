@@ -23,6 +23,7 @@ local C_AddOns = C_AddOns
 
 -- 被套組內建功能取代 → 自動停用
 -- folders 順序 = 停用順序，主插件放最後，避免相依插件先失去依賴
+-- ⚠ 加減組別時同步 Options/Tab_QoL.lua「舊插件相容」的說明文字（那邊是寫死的清單）
 local REPLACED = {
     {
         label   = "Stuf",
@@ -37,6 +38,22 @@ local REPLACED = {
         folders = { "TinyTooltip-Remake" },
         replacement      = "MiliUI_Tooltip",
         replacementLabel = "米利的滑鼠提示",
+    },
+    {
+        -- 2026-08-29 從套組移除，主要被用到的功能套組都已內建（商人自動化、任務自動化、
+        -- 小地圖按鈕收納、滑鼠提示）。取代者掛滑鼠提示，因為那是真的會壞的一條：
+        -- 它的提示增強按固定行號覆寫提示框第 1–3 行，職業列被蓋掉之後不會自己回來
+        -- （2026-09 玩家回報）。玩家若停用米利的滑鼠提示改用它的提示，就不多管。
+        label   = "Leatrix Plus",
+        folders = { "Leatrix_Plus" },
+        replacement      = "MiliUI_Tooltip",
+        replacementLabel = "米利的滑鼠提示",
+    },
+    {
+        label   = "MBB",
+        folders = { "MBB" },
+        replacement      = "MiliUI_Minimap",
+        replacementLabel = "米利的小地圖",
     },
 }
 
@@ -95,30 +112,35 @@ end
 ------------------------------------------------------------
 -- 停用 / 還原
 ------------------------------------------------------------
--- 回傳實際被停用的插件名稱清單（沒動到任何東西時回傳空表）
+-- 回傳實際停用的清單，一組一筆：{ { group = 組, names = { 插件名… } }, … }
+-- 沒動到任何東西時回傳空表
 local function DisableReplaced(installed)
     local db = GetDB()
     db.legacyAddonDisabled = db.legacyAddonDisabled or {}
 
-    local disabled = {}
+    local result = {}
     for _, group in ipairs(REPLACED) do
         if C_AddOns.IsAddOnLoaded(group.replacement) then
+            local names = {}
             for _, name in ipairs(group.folders) do
                 if installed[name] and IsEnabled(name) then
                     -- 不帶 character 參數 = 所有角色都停用，免得換小號又冒出來
                     C_AddOns.DisableAddOn(name)
                     db.legacyAddonDisabled[name] = true
-                    disabled[#disabled + 1] = name
+                    names[#names + 1] = name
                 end
             end
-            -- 視窗裡已經寫了刪除方式，就別再另外用聊天訊息念一次
-            if #disabled > 0 then
+            -- 視窗裡已經寫了刪除方式，就別再另外用聊天訊息念一次。
+            -- ⚠ 要看「這一組」有沒有停用東西 —— 以前看的是跨組累加的清單，
+            -- 前一組停用過，後面根本沒動到的組也會被標成已提醒，之後就不再念。
+            if #names > 0 then
                 db.legacyAddonHinted = db.legacyAddonHinted or {}
                 db.legacyAddonHinted[group.label] = true
+                result[#result + 1] = { group = group, names = names }
             end
         end
     end
-    return disabled
+    return result
 end
 
 -- 玩家選擇「保留」時，把我們關掉的重新打開
@@ -143,8 +165,8 @@ end
 -- 提示視窗
 ------------------------------------------------------------
 StaticPopupDialogs["MILIUI_LEGACY_ADDON_DISABLED"] = {
-    text = "偵測到 %s 同時啟用，兩套功能會互相重疊。\n\n"
-        .. "已自動停用（重新載入介面後生效）：\n|cffffd200%s|r\n\n"
+    text = "偵測到舊插件和米利UI內建的功能同時啟用，兩套會互相干擾。\n\n"
+        .. "已自動停用（重新載入介面後生效）：\n%s\n\n"
         .. "|cff999999若要徹底移除，請先離開遊戲，\n"
         .. "再刪掉 Interface\\AddOns 底下的同名資料夾。|r",
     button1 = "重新載入介面",
@@ -157,7 +179,7 @@ StaticPopupDialogs["MILIUI_LEGACY_ADDON_DISABLED"] = {
         local count = RestoreDisabled()
         GetDB().legacyAddonGuard = false
         Print("已保留舊插件，不再自動停用（重新啟用 " .. count .. " 個，需 /reload 生效）。"
-            .. "\n|cff999999可在「米利UI設定 → 插件強化 → 舊插件相容」重新開啟。|r")
+            .. "\n|cff999999可在「米利UI設定 → 便利功能 → 舊插件相容」重新開啟。|r")
     end,
     timeout = 0,
     whileDead = true,
@@ -165,11 +187,15 @@ StaticPopupDialogs["MILIUI_LEGACY_ADDON_DISABLED"] = {
     preferredIndex = 3,
 }
 
-local function ShowDisabledPopup(disabled)
-    -- 目前 REPLACED 只有 Stuf 一組，訊息用它的名稱；未來多組時再拆
-    local group = REPLACED[1]
-    local subject = ("|cffff8800%s|r 與 |cff33CCFF%s|r"):format(group.label, group.replacementLabel)
-    StaticPopup_Show("MILIUI_LEGACY_ADDON_DISABLED", subject, table.concat(disabled, "、"))
+-- 一組一行：「資料夾名（改用 取代者）」。列資料夾名而不是 label —— 玩家要照著刪的是資料夾。
+-- ⚠ 以前固定拿 REPLACED[1] 當標題，停用的明明是 TinyTooltip 也會寫成 Stuf。
+local function ShowDisabledPopup(result)
+    local lines = {}
+    for _, entry in ipairs(result) do
+        lines[#lines + 1] = ("|cffffd200%s|r（改用 |cff33CCFF%s|r）"):format(
+            table.concat(entry.names, "、"), entry.group.replacementLabel)
+    end
+    StaticPopup_Show("MILIUI_LEGACY_ADDON_DISABLED", table.concat(lines, "\n"))
 end
 
 ------------------------------------------------------------
