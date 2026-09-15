@@ -99,6 +99,8 @@ local function Populate(bar)
     local W = bar.W
     local src = bar._src
     if not W or not src then return false end
+    -- 這一列自己的類型：合併檢視時視窗的 curDMType 是合併類型本身，API 不認得
+    local dmType = bar._dmType or W.curDMType
 
     Ensure()
     local s = ns.DB.Style()
@@ -115,7 +117,7 @@ local function Populate(bar)
     local r, g, b = M.ClassColor(src.classFilename)
     _frame.title:SetTextColor(r or 1, g or 1, b or 1)
     _frame.title:SetText(D.StripRealm(src.name))
-    _frame.subtitle:SetText(D.TYPE_NAMES[W.curDMType] or ns.L["Damage Done"])
+    _frame.subtitle:SetText(D.TYPE_NAMES[dmType] or ns.L["Damage Done"])
 
     ------------------------------------------------------------
     -- 取資料
@@ -125,7 +127,7 @@ local function Populate(bar)
     -- 在預覽與展開頁會出現兩個不同的百分比。
     local total = nil
 
-    if D.IsDeathType(W.curDMType) then
+    if D.IsDeathType(dmType) then
         local recapID = src.deathRecapID
         if D.IsSecret(recapID) then recapID = nil end
         if recapID and recapID > 0 and C_DeathRecap and C_DeathRecap.GetRecapEvents then
@@ -146,7 +148,7 @@ local function Populate(bar)
             end
         end
     else
-        local srcData = D.GetSource(W.curSession, W.curSessionID, W.curDMType,
+        local srcData = D.GetSource(W.curSession, W.curSessionID, dmType,
             src.sourceGUID, src.sourceCreatureID)
         local spells = srcData and srcData.combatSpells
         if spells and #spells > 0 then
@@ -183,7 +185,7 @@ local function Populate(bar)
     ------------------------------------------------------------
     -- 畫
     ------------------------------------------------------------
-    local br, bg, bb = Win.BarColor(s, D.SafeClass(src.classFilename), W.curDMType)
+    local br, bg, bb = Win.BarColor(s, D.SafeClass(src.classFilename), dmType)
     local texPath = M.BarTexture(s.barTexture)
     local y = -(HDR_H + PAD)
     for i = 1, MAX_ROWS do

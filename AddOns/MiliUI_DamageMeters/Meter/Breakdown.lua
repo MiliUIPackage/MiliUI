@@ -237,7 +237,9 @@ function B.OpenFromBar(W, bar)
     local src = bar._src
     if not src then return end
 
-    local isDeaths = D.IsDeathType(W.curDMType)
+    -- 查這一列自己的類型：合併檢視時視窗的 curDMType 是合併類型本身，API 不認得
+    local dmType = bar._dmType or W.curDMType
+    local isDeaths = D.IsDeathType(dmType)
     if InCombatLockdown() and not isDeaths and not D.IsOwnRow(src) then return end
 
     -- 死亡列沒有 recap 資料就別開（開了也是空白頁）
@@ -252,6 +254,7 @@ function B.OpenFromBar(W, bar)
     if D.IsSecret(guid) and D.IsOwnRow(src) then guid = ns.playerGUID end
 
     B.Open(W, {
+        dmType     = dmType,
         guid       = guid,
         creatureID = src.sourceCreatureID,
         name       = src.name,
@@ -264,7 +267,7 @@ function B.OpenFromBar(W, bar)
     })
 end
 
--- info = { guid, creatureID, name, classFile, recapID, total, perSec }
+-- info = { dmType, guid, creatureID, name, classFile, recapID, total, perSec }
 -- 收成一張表而不是排八個參數：位置參數到第五個之後就沒人記得順序了
 function B.Open(W, info)
     if not info then return end
@@ -272,6 +275,8 @@ function B.Open(W, info)
     EnsureFrame(W)
 
     local name, classFile = info.name, info.classFile
+    -- 這一頁看的統計類型。整頁都讀它、不讀 W.curDMType（理由見 OpenFromBar）
+    W.srcDMType        = info.dmType or W.curDMType
     W.sourceGUID       = info.guid
     W.sourceCreatureID = info.creatureID
     W.sourceClass      = D.SafeClass(classFile)
@@ -292,8 +297,11 @@ function B.Open(W, info)
     -- 名字可能是秘密：FontString 顯示得出來，不要拿去串接
     W.srcTitle:SetText(D.StripRealm(name))
 
-    -- 死亡回顧沒有「總量」可言（那一頁是血量曲線），留白
-    if info.total ~= nil and not D.IsDeathType(W.curDMType) then
+    -- 死亡回顧沒有「總量」可言（那一頁是血量曲線），留白。
+    -- 次數型跟主清單一樣只印整數：打斷／驅散的「每秒」沒有意義，還會被夾成 (1)
+    if info.total ~= nil and D.IsCountType(W.srcDMType) then
+        W.srcTotal:SetText(D.Abbrev(info.total))
+    elseif info.total ~= nil and not D.IsDeathType(W.srcDMType) then
         W.srcTotal:SetText(D.FormatValue(info.total, info.perSec, s.numberFormat or 2))
     else
         W.srcTotal:SetText("")
@@ -307,6 +315,7 @@ end
 function B.Close(W)
     if not W.sourceOpen then return end
     W.sourceOpen = false
+    W.srcDMType = nil
     W.sourceGUID = nil
     W.sourceCreatureID = nil
     W.sourceRecapID = nil
@@ -489,7 +498,7 @@ end
 -- 敵方承受：誰打的
 ------------------------------------------------------------
 local function RefreshEnemyPlayers(W)
-    local srcData = D.GetSource(W.curSession, W.curSessionID, W.curDMType,
+    local srcData = D.GetSource(W.curSession, W.curSessionID, W.srcDMType,
         W.sourceGUID, W.sourceCreatureID)
     local players = AggregateEnemyPlayers(srcData, BreakdownDuration(W))
     if not players then HideFrom(W, 1); FinishHeight(W, 0); return end
@@ -516,7 +525,7 @@ local function RefreshEnemyPlayers(W)
         LayoutSpellBar(W, bar, -((i - 1) * stride), barH, texPath, leftFS, rightFS, offset)
         bar._target:SetMinMaxValues(0, maxAmt)
         bar._target:SetValue(p.total)
-        bar._target:SetStatusBarColor(Win.BarColor(s, D.SafeClass(p.class), W.curDMType))
+        bar._target:SetStatusBarColor(Win.BarColor(s, D.SafeClass(p.class), W.srcDMType))
         bar.label:SetText(D.StripRealm(p.name))
         bar.amount:SetText(D.FormatValue(p.total, p.amountPerSecond, s.numberFormat or 2))
         bar._spellID = nil
@@ -530,7 +539,7 @@ end
 -- 一般：法術明細（＋傷害輸出時附上打了哪些目標）
 ------------------------------------------------------------
 local function RefreshSpells(W)
-    local srcData = D.GetSource(W.curSession, W.curSessionID, W.curDMType,
+    local srcData = D.GetSource(W.curSession, W.curSessionID, W.srcDMType,
         W.sourceGUID, W.sourceCreatureID)
     if not srcData or not srcData.combatSpells then
         HideFrom(W, 1); FinishHeight(W, 0); return
@@ -539,6 +548,7 @@ local function RefreshSpells(W)
     local spells = srcData.combatSpells   -- API 已排序
     local s, barH, stride = BarGeometry()
     local numFmt = s.numberFormat or 2
+    local isCount = D.IsCountType(W.srcDMType)
     local texPath = M.BarTexture(s.barTexture)
     local leftFS, rightFS = s.leftFontSize or 11, s.rightFontSize or 11
 
@@ -554,7 +564,7 @@ local function RefreshSpells(W)
     end
 
     local count = math.min(#spells, POOL)
-    local r, g, b = Win.BarColor(s, W.sourceClass, W.curDMType)
+    local r, g, b = Win.BarColor(s, W.sourceClass, W.srcDMType)
 
     for i = 1, count do
         local spell = spells[i]
@@ -596,7 +606,9 @@ local function RefreshSpells(W)
         -- ——主清單顯示「總量 (每秒)」時這裡也是，選「只顯示總量」時這裡也只有總量。
         -- 同一個偏好只設定一次，兩處自動一致。
         ------------------------------------------------------------
-        local valueText = D.FormatValue(spell.totalAmount, spell.amountPerSecond, numFmt)
+        -- 次數型（打斷／驅散）例外：跟主清單一樣只印整數，「每秒幾次」沒有意義
+        local valueText = isCount and D.Abbrev(spell.totalAmount)
+            or D.FormatValue(spell.totalAmount, spell.amountPerSecond, numFmt)
         if canPercent and total > 0 then
             bar.amount:SetFormattedText("%s  %.1f%%", valueText, spell.totalAmount / total * 100)
         else
@@ -613,7 +625,7 @@ local function RefreshSpells(W)
     -- 「打了誰」：只在傷害輸出、而且**離開戰鬥**時才做。
     -- 它要跨 source 交叉比對並且比大小，秘密值撐不住。
     ------------------------------------------------------------
-    if W.curDMType == D.T.DamageDone and not InCombatLockdown() then
+    if W.srcDMType == D.T.DamageDone and not InCombatLockdown() then
         if W._cachedTargets == nil then
             local name = W.sourceName
             local list
@@ -680,9 +692,9 @@ function B.Refresh(W)
     if not W.sourceOpen or not W.srcFrame then return end
     if not ns.HAS_API then return end
 
-    if D.IsDeathType(W.curDMType) then
+    if D.IsDeathType(W.srcDMType) then
         RefreshDeathRecap(W)
-    elseif W.curDMType == D.T.EnemyDamageTaken then
+    elseif W.srcDMType == D.T.EnemyDamageTaken then
         RefreshEnemyPlayers(W)
     else
         RefreshSpells(W)

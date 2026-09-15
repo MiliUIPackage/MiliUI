@@ -39,6 +39,24 @@ local TYPE_DEFS = {
     { "Deaths",               L["Deaths"],                 "Interface\\Icons\\Ability_Rogue_FeignDeath" },
 }
 
+------------------------------------------------------------
+-- 合併檢視：一個視窗切成左右兩欄，各看一種統計類型
+--
+-- 它不是暴雪的統計類型，只是「左欄問 A、右欄問 B」的一個名字 —— 資料照舊是兩次
+-- 各自獨立的 GetCombatSession。**不去把兩份清單照人合併成一列兩個數字**：
+-- 那要拿 GUID／名字配對，而戰鬥中兩者都是秘密值（不能當 key、不能比較），
+-- 最需要看打斷的傳奇鑰石裡剛好整個做不出來。兩欄各自排行則完全不碰身分。
+--
+-- 值用字串：跟 Enum.DamageMeterType 的數字不可能撞號，暴雪以後加類型也一樣。
+-- 存進 wdb.curDMType 的就是這個字串，**改名等於把玩家的選擇洗掉**。
+------------------------------------------------------------
+local SPLIT_DEFS = {
+    -- after＝排在哪個類型後面（打斷、驅散之後緊接著就是它們的合併檢視）
+    { key = "InterruptsDispels", left = "Interrupts", right = "Dispels", after = "Dispels",
+      name = L["Interrupts & Dispels"], icon = "Interface\\Icons\\Spell_Frost_IceShock" },
+}
+local _split = {}   -- 合併類型的值 → { 左欄類型, 右欄類型 }
+
 D.TYPE_NAMES = {}
 D.TYPE_ICONS = {}
 D.TYPE_ORDER = {}   -- 首頁與選單的排序，也決定「有哪些類型可選」
@@ -49,6 +67,22 @@ for _, def in ipairs(TYPE_DEFS) do
         D.TYPE_ICONS[value] = def[3]
         D.TYPE_ORDER[#D.TYPE_ORDER + 1] = value
     end
+    for _, sp in ipairs(SPLIT_DEFS) do
+        -- 兩個成員都存在的客戶端才提供（舊客戶端少一種就整個不出現）
+        if sp.after == def[1] and T[sp.left] ~= nil and T[sp.right] ~= nil then
+            _split[sp.key] = { T[sp.left], T[sp.right] }
+            D.TYPE_NAMES[sp.key] = sp.name
+            D.TYPE_ICONS[sp.key] = sp.icon
+            D.TYPE_ORDER[#D.TYPE_ORDER + 1] = sp.key
+        end
+    end
+end
+
+-- 合併類型 → 左欄類型, 右欄類型；一般類型回 nil
+function D.SplitTypes(dmType)
+    local pair = dmType ~= nil and _split[dmType]
+    if not pair then return nil end
+    return pair[1], pair[2]
 end
 
 -- 「次數」型統計不顯示每秒值，直接印整數

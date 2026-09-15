@@ -148,8 +148,27 @@ function Win.ApplyBarTextOffsets(bar)
     local lx, ly = s.leftTextOffsetX or 0, s.leftTextOffsetY or 0
     local rx, ry = s.rightTextOffsetX or 0, s.rightTextOffsetY or 0
     bar.rank:SetPoint("LEFT", tf, "LEFT", 3 + lx, ly)
-    bar.label:SetPoint("RIGHT", tf, "RIGHT", -70, ly)
     bar.amount:SetPoint("RIGHT", tf, "RIGHT", -3 + rx, ry)
+    Win.AnchorBarLabel(bar, bar._compactLabel)
+end
+
+------------------------------------------------------------
+-- 名字的右緣
+--
+-- 一般清單固定留 70px 給數值。合併檢視的欄只有半寬，而右邊只是幾位數的次數 ——
+-- 照樣留 70px 名字會被砍掉一半，所以 compact 時改追**數值的左緣**
+-- （展開頁與滑過預覽同一招：數值只錨右緣跟著自己的字長，被截斷的永遠是名字）。
+-- SetPoint 同名錨點是覆寫，兩種模式之間來回切不必先清。
+-- y 要扣掉數值自己的偏移：錨點是貼在數值身上的，不扣的話名字會跟著右欄上下跑。
+------------------------------------------------------------
+function Win.AnchorBarLabel(bar, compact)
+    local s = ns.DB.Style()
+    local ly = s.leftTextOffsetY or 0
+    if compact then
+        bar.label:SetPoint("RIGHT", bar.amount, "LEFT", -4, ly - (s.rightTextOffsetY or 0))
+    else
+        bar.label:SetPoint("RIGHT", bar.textFrame, "RIGHT", -70, ly)
+    end
 end
 
 -- 軌道底色。classFile 可能是秘密 → M.ClassColor 已經擋過，拿不到就用自訂色。
@@ -500,9 +519,12 @@ function Win.UpdateTimerText(W)
     end
 
     local isOverall = (not W.curSessionID and W.curSession == D.S.Overall)
+    -- 合併檢視兩欄都要算：左欄沒人打斷、右欄有人驅散，這一場照樣是有資料的
+    local rows = (W.visibleCount or 0)
+    if W._splitOn and W.split then rows = rows + (W.split.visibleCount or 0) end
     local sec = -1
     if not isOverall and dur and not D.IsSecret(dur) and type(dur) == "number"
-        and dur > 0 and (W.visibleCount or 0) > 0 then
+        and dur > 0 and rows > 0 then
         sec = math.floor(dur)
     end
     if W._timerSec == sec then return end
@@ -612,17 +634,181 @@ end
 ------------------------------------------------------------
 local ORIENT_NORMAL = {
     v = 1,
-    topL = "TOPLEFT",    topR = "TOPRIGHT",
-    botL = "BOTTOMLEFT", botR = "BOTTOMRIGHT",
+    topL = "TOPLEFT",    topR = "TOPRIGHT",    top = "TOP",
+    botL = "BOTTOMLEFT", botR = "BOTTOMRIGHT", bot = "BOTTOM",
 }
 local ORIENT_FLIP = {
     v = -1,
-    topL = "BOTTOMLEFT", topR = "BOTTOMRIGHT",
-    botL = "TOPLEFT",    botR = "TOPRIGHT",
+    topL = "BOTTOMLEFT", topR = "BOTTOMRIGHT", top = "BOTTOM",
+    botL = "TOPLEFT",    botR = "TOPRIGHT",    bot = "TOP",
 }
 
 function Win.Orient(W)
     return W.wdb.reverse and ORIENT_FLIP or ORIENT_NORMAL
+end
+
+------------------------------------------------------------
+-- 一欄清單（pane）
+--
+-- 捲動區＋長條池＋釘住自己那列，再加一個不可見的 area 框定「這一欄佔哪一塊」。
+-- 清單裡的錨點一律貼 area，不直接貼標題列／視窗 —— 於是切成左右兩欄就只是
+-- 改 area 的兩個錨點，捲動區與釘住的列（不論有沒有正在釘）都自動跟著走。
+--
+-- 主欄就是 W 本身：這些欄位（W.viewport、W.rowPool…）早就長在 W 上、外部也在讀，
+-- 所以不另外包一層。合併檢視的右欄是 W.split，欄位名稱一模一樣 ——
+-- Rows 那邊一律寫 pane.xxx，兩欄走同一套程式碼。
+------------------------------------------------------------
+local SPLIT_GAP = 3   -- 兩欄與中間分隔線之間各留幾像素
+
+function Win.ForEachPane(W, fn)
+    fn(W)
+    if W.split then fn(W.split) end
+end
+
+function Win.ScrollPane(W, pane, delta)
+    local cfg = ns.DB.Style()
+    local step = D.Px(cfg.barHeight or 18) + D.Px(cfg.barSpacing or 2)
+    -- 邏輯捲動：0 永遠是第一名那端，所以滾輪的方向在正反兩種排列下一致
+    ns.Rows.SetScroll(W, ns.Rows.GetScroll(W, pane) - delta * step, pane)
+    -- 捲動會換可視範圍，要重畫（RefreshUI 只填可視列）
+    if W._lastSession or W._lastSession2 then
+        ns.Rows.Render(W, W._lastSession, W._lastSession2)
+    end
+end
+
+local function BuildPane(W, pane)
+    local frame = W.frame
+    pane.rowPool = {}
+
+    local area = CreateFrame("Frame", nil, frame)
+    area:SetFrameLevel(frame:GetFrameLevel() + 1)
+    pane.area = area
+    -- 沒資料的欄就是空白，不放「沒有資料」之類的提示（使用者要求，跟一般清單一致）
+
+    local viewport = CreateFrame("ScrollFrame", nil, frame)
+    viewport:SetFrameLevel(frame:GetFrameLevel() + 1)
+    pane.viewport = viewport
+
+    local content = CreateFrame("Frame", nil, viewport)
+    content:SetSize(1, 1)
+    viewport:SetScrollChild(content)
+    viewport:SetScript("OnSizeChanged", function(_, w) content:SetWidth(w) end)
+    pane.content = content
+
+    -- 沒有捲軸貼圖，只吃滾輪：40 列的清單畫一條捲軸只是佔寬度。兩欄各捲各的。
+    viewport:EnableMouseWheel(true)
+    viewport:SetScript("OnMouseWheel", function(_, delta) Win.ScrollPane(W, pane, delta) end)
+
+    local function HookBar(bar)
+        bar.row:SetScript("OnClick", function(_, button)
+            if button == "RightButton" then
+                ns.Windows.ShowContextMenu(W)
+            else
+                ns.Breakdown.OpenFromBar(W, bar)
+            end
+        end)
+        bar.row:SetScript("OnEnter", function() ns.Tooltip.OnBarEnter(bar) end)
+        bar.row:SetScript("OnLeave", function() ns.Tooltip.OnBarLeave(bar) end)
+    end
+
+    for i = 1, BAR_POOL_SIZE do
+        local bar = Win.MakeBar(content, W)
+        HookBar(bar)
+        pane.rowPool[i] = bar
+    end
+
+    -- 釘住自己那列：獨立於捲動區之外，所以它不會跟著捲走
+    local sticky = Win.MakeBar(frame, W)
+    sticky.row:SetFrameLevel(frame:GetFrameLevel() + 10)
+    sticky.fill:SetFrameLevel(sticky.row:GetFrameLevel() + 1)
+    sticky.textFrame:SetFrameLevel(sticky.row:GetFrameLevel() + 4)
+    HookBar(sticky)
+    pane.stickyBar = sticky
+
+    pane.stickySep = frame:CreateTexture(nil, "OVERLAY")
+    pane.stickySep:SetColorTexture(1, 1, 1, 0.25)
+    pane.stickySep:Hide()
+    return pane
+end
+
+-- 右欄是懶建的：從來沒選過合併檢視的視窗不必多養 41 條長條
+function Win.EnsureSplitPane(W)
+    if W.split then return W.split end
+    local P = BuildPane(W, {})
+    W.split = P
+
+    -- 畫在視窗本體的 BORDER 層：在背景之上、長條（子框）之下
+    local div = W.frame:CreateTexture(nil, "BORDER")
+    div:SetColorTexture(1, 1, 1, 0.04)   -- 只是分欄的暗示，不要搶過長條（使用者要求再淡）
+    div:Hide()
+    W.splitDivider = div
+
+    -- 建立當下的 ApplyStyle 早就跑過了，新的這一欄自己補套一次
+    local s = ns.DB.Style()
+    local texPath = M.BarTexture(s.barTexture)
+    for _, bar in ipairs(P.rowPool) do Win.StyleBar(bar, s, texPath) end
+    Win.StyleBar(P.stickyBar, s, texPath)
+    Win.AnchorPanes(W)
+    return P
+end
+
+------------------------------------------------------------
+-- 兩欄的位置
+--
+-- 一般：主欄的 area ＝ 標題列下緣到視窗另一端，跟以前捲動區的錨點一模一樣。
+-- 合併：以視窗中線切開，各退 SPLIT_GAP，中間一條 1px 分隔線。
+-- 「中線」直接用標題列／視窗的 TOP、BOTTOM 錨點，不去量寬度自己除二。
+------------------------------------------------------------
+function Win.AnchorPanes(W)
+    local O = Win.Orient(W)
+    local frame, header = W.frame, W.header
+    local split = W._splitOn
+    local gap = D.Px(SPLIT_GAP)
+
+    W.area:ClearAllPoints()
+    W.area:SetPoint(O.topL, header, O.botL, 0, 0)
+    if split then
+        W.area:SetPoint(O.botR, frame, O.bot, -gap, 0)
+    else
+        W.area:SetPoint(O.botR, frame, O.botR, 0, 0)
+    end
+
+    local P = W.split
+    if P then
+        P.area:ClearAllPoints()
+        P.area:SetPoint(O.topL, header, O.bot, gap, 0)
+        P.area:SetPoint(O.botR, frame, O.botR, 0, 0)
+
+        local div = W.splitDivider
+        div:ClearAllPoints()
+        div:SetPoint(O.top, header, O.bot, 0, 0)
+        div:SetPoint(O.bot, frame, O.bot, 0, 0)
+        div:SetWidth(D.Px(1))
+    end
+
+    -- 釘住自己那列的時候捲動區的錨點屬於那段邏輯（Rows.UpdateSticky），別在這裡搶。
+    -- 那段也是貼 area 的，所以欄位改了它照樣跟著走。
+    Win.ForEachPane(W, function(pane)
+        if pane.stickyPinned then return end
+        pane.viewport:ClearAllPoints()
+        pane.viewport:SetPoint(O.topL, pane.area, O.topL, 0, 0)
+        pane.viewport:SetPoint(O.botR, pane.area, O.botR, 0, 0)
+    end)
+end
+
+-- 首頁蓋上來時把清單區整個藏起來、關掉時放回來。
+-- 釘住的列不在這裡放回：要不要釘得看資料，交給接著的那次繪製決定。
+function Win.SetListShown(W, shown)
+    local split = (shown and W._splitOn) and true or false
+    W.viewport:SetShown(shown)
+    if W.split then W.split.viewport:SetShown(split) end
+    if W.splitDivider then W.splitDivider:SetShown(split) end
+    if not shown then
+        Win.ForEachPane(W, function(pane)
+            pane.stickyBar.row:Hide()
+            pane.stickySep:Hide()
+        end)
+    end
 end
 
 ------------------------------------------------------------
@@ -649,12 +835,7 @@ function Win.ApplyOrientation(W)
     header.bottomBorder:SetPoint(O.botL, header, O.botL, 0, 0)
     header.bottomBorder:SetPoint(O.botR, header, O.botR, 0, 0)
 
-    -- 釘住自己那列的時候捲動區的錨點屬於那段邏輯，別在這裡搶
-    if not W.stickyPinned then
-        W.viewport:ClearAllPoints()
-        W.viewport:SetPoint(O.topL, header, O.botL, 0, 0)
-        W.viewport:SetPoint(O.botR, frame, O.botR, 0, 0)
-    end
+    Win.AnchorPanes(W)
 
     -- 首頁與展開頁是**建一次就重用**的，翻面之後不重貼會留在舊方向。
     -- 兩者都是懶初始化，各自判存在 —— 不要放進一張表用 ipairs 走，
@@ -760,68 +941,17 @@ function Win.Create(idx)
     W.borderTarget = borderTarget
 
     ------------------------------------------------------------
-    -- 捲動區
+    -- 主欄：捲動區＋長條池＋釘住自己那列（見 BuildPane）
     ------------------------------------------------------------
-    local viewport = CreateFrame("ScrollFrame", nil, frame)
-    viewport:SetFrameLevel(frame:GetFrameLevel() + 1)
-    W.viewport = viewport
+    BuildPane(W, W)
 
-    local content = CreateFrame("Frame", nil, viewport)
-    content:SetSize(1, 1)
-    viewport:SetScrollChild(content)
-    viewport:SetScript("OnSizeChanged", function(_, w) content:SetWidth(w) end)
-    W.content = content
-
-    -- 沒有捲軸貼圖，只吃滾輪：40 列的清單畫一條捲軸只是佔寬度
-    local function Wheel(_, delta)
-        local cfg = ns.DB.Style()
-        local step = D.Px(cfg.barHeight or 18) + D.Px(cfg.barSpacing or 2)
-        -- 邏輯捲動：0 永遠是第一名那端，所以滾輪的方向在正反兩種排列下一致
-        ns.Rows.SetScroll(W, ns.Rows.GetScroll(W) - delta * step)
-        -- 捲動會換可視範圍，要重畫（RefreshUI 只填可視列）
-        if W._lastSession then ns.Rows.Render(W, W._lastSession) end
-    end
-    viewport:EnableMouseWheel(true)
-    viewport:SetScript("OnMouseWheel", Wheel)
+    -- 視窗層收到的滾輪（游標在釘住的列、或兩欄之間的縫上）：捲游標所在的那一欄
     frame:EnableMouseWheel(true)
-    frame:SetScript("OnMouseWheel", Wheel)
-
-    ------------------------------------------------------------
-    -- 長條池
-    ------------------------------------------------------------
-    for i = 1, BAR_POOL_SIZE do
-        local bar = Win.MakeBar(content, W)
-        bar.row:SetScript("OnClick", function(self, button)
-            if button == "RightButton" then
-                ns.Windows.ShowContextMenu(W)
-            else
-                ns.Breakdown.OpenFromBar(W, bar)
-            end
-        end)
-        bar.row:SetScript("OnEnter", function() ns.Tooltip.OnBarEnter(bar) end)
-        bar.row:SetScript("OnLeave", function() ns.Tooltip.OnBarLeave(bar) end)
-        W.rowPool[i] = bar
-    end
-
-    -- 釘住自己那列：獨立於捲動區之外，所以它不會跟著捲走
-    local sticky = Win.MakeBar(frame, W)
-    sticky.row:SetFrameLevel(frame:GetFrameLevel() + 10)
-    sticky.fill:SetFrameLevel(sticky.row:GetFrameLevel() + 1)
-    sticky.textFrame:SetFrameLevel(sticky.row:GetFrameLevel() + 4)
-    sticky.row:SetScript("OnClick", function(_, button)
-        if button == "RightButton" then
-            ns.Windows.ShowContextMenu(W)
-        else
-            ns.Breakdown.OpenFromBar(W, sticky)
-        end
+    frame:SetScript("OnMouseWheel", function(_, delta)
+        local P = W.split
+        local pane = (W._splitOn and P and P.area:IsMouseOver()) and P or W
+        Win.ScrollPane(W, pane, delta)
     end)
-    sticky.row:SetScript("OnEnter", function() ns.Tooltip.OnBarEnter(sticky) end)
-    sticky.row:SetScript("OnLeave", function() ns.Tooltip.OnBarLeave(sticky) end)
-    W.stickyBar = sticky
-
-    W.stickySep = frame:CreateTexture(nil, "OVERLAY")
-    W.stickySep:SetColorTexture(1, 1, 1, 0.25)
-    W.stickySep:Hide()
 
     ------------------------------------------------------------
     -- 標題列按鈕（由右到左：鎖定／設定／重置／分段／首頁）
@@ -901,15 +1031,18 @@ function Win.Create(idx)
         -- ⚠ 由隱藏轉顯示時 Win.UpdateVisibility 會作廢版面快取並補畫一次，
         --   所以不會看到「藏起來那一刻」的舊資料。
         if not W.frame:IsShown() then return end
+        -- 合併檢視：左欄問左邊那種、右欄另外問一次
+        local left, right = D.SplitTypes(W.curDMType)
         -- API 呼叫的耗時要量：偶爾會有尖峰（歷史分段、大團隊），
         -- 尖峰那一幀就把繪製推到下一幀，不要讓兩個尖峰疊在同一幀
         local t0 = debugprofilestop()
-        local session = D.GetSession(W.curSession, W.curSessionID, W.curDMType)
+        local session = D.GetSession(W.curSession, W.curSessionID, left or W.curDMType)
+        local session2 = right and D.GetSession(W.curSession, W.curSessionID, right) or nil
         local cost = debugprofilestop() - t0
         if cost > 1.5 then
-            C_Timer.After(0, function() ns.Rows.Render(W, session) end)
+            C_Timer.After(0, function() ns.Rows.Render(W, session, session2) end)
         else
-            ns.Rows.Render(W, session)
+            ns.Rows.Render(W, session, session2)
         end
     end
     W.UpdateTimerText = function() Win.UpdateTimerText(W) end
@@ -934,6 +1067,16 @@ function Win.UpdateLockIcon(W)
     W.lockBtn.key = W.wdb.locked and "locked" or "unlocked"
     W.lockBtn.icon:SetTexture(BTN_TEX[W.lockBtn.key])
     ns.Move.ApplyLock(W)
+end
+
+-- 一條長條的外觀（ApplyStyle 與懶建的右欄共用）
+function Win.StyleBar(bar, s, texPath)
+    Win.ApplyBarTextOffsets(bar)
+    Win.ApplyBarBorder(bar)
+    Win.ApplyBarBg(bar)
+    bar._target = Win.ApplyBarStyle(bar, s, texPath)
+    Win.AnchorBarFill(bar, 0)     -- 圖示寬度等 PaintBar 解出來再改
+    bar._colorClass = nil         -- 逼下一次 PaintBar 重上色
 end
 
 ------------------------------------------------------------
@@ -1011,16 +1154,10 @@ function Win.ApplyStyle(W)
     -- 那條路徑只走「有資料而且在可視範圍內」的列，換樣式的當下如果沒有資料
     -- （剛登入、剛重置），就會留在舊樣式直到下一場戰鬥。
     local texPath = M.BarTexture(s.barTexture)
-    local function styleBar(bar)
-        Win.ApplyBarTextOffsets(bar)
-        Win.ApplyBarBorder(bar)
-        Win.ApplyBarBg(bar)
-        bar._target = Win.ApplyBarStyle(bar, s, texPath)
-        Win.AnchorBarFill(bar, 0)     -- 圖示寬度等 PaintBar 解出來再改
-        bar._colorClass = nil         -- 逼下一次 PaintBar 重上色
-    end
-    for _, bar in ipairs(W.rowPool) do styleBar(bar) end
-    styleBar(W.stickyBar)
+    Win.ForEachPane(W, function(pane)
+        for _, bar in ipairs(pane.rowPool) do Win.StyleBar(bar, s, texPath) end
+        Win.StyleBar(pane.stickyBar, s, texPath)
+    end)
 
     -- 同理：縮放進行中不要把尺寸拉回設定值（玩家改別的設定剛好在拉的時候）
     if not W._resize then

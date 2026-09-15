@@ -247,10 +247,13 @@ end
 ------------------------------------------------------------
 function Windows.SetReverse(W, on)
     W.wdb.reverse = on and true or false
-    W.stickyPinned = false
+    -- 合併檢視的右欄也有自己的一列釘住的列與捲動區（見 Window.lua 的 BuildPane）
+    Win.ForEachPane(W, function(pane)
+        pane.stickyPinned = false
+        pane._stickyCacheKey = nil
+        pane._contentH = nil
+    end)
     W._barCacheKey = nil
-    W._stickyCacheKey = nil
-    W._contentH = nil
     Win.ApplyStyle(W)
     W.Refresh()
 end

@@ -132,17 +132,20 @@ local function PaintBar(W, bar, src, ctx, rank)
 
     bar._src  = src
     bar._guid = src.sourceGUID
+    -- 這一列是哪種統計：合併檢視的兩欄類型不同，展開頁與滑過預覽要照這個查，
+    -- 不能照視窗的 curDMType（那是合併類型本身，API 不認得）
+    bar._dmType = ctx.dmType
 end
 
 -- 整批重建一列的版面（只在 cacheKey 變或這一格換了排名時跑）
-local function RelayoutBar(W, bar, i, ctx)
+local function RelayoutBar(pane, bar, i, ctx)
     local s = ctx.s
     bar._slot = i
     bar.row:ClearAllPoints()
     local O = ctx.O
     local y = -((i - 1) * ctx.stride) * O.v
-    bar.row:SetPoint(O.topL, W.content, O.topL, 0, y)
-    bar.row:SetPoint(O.topR, W.content, O.topR, 0, y)
+    bar.row:SetPoint(O.topL, pane.content, O.topL, 0, y)
+    bar.row:SetPoint(O.topR, pane.content, O.topR, 0, y)
     bar.row:SetHeight(ctx.barH)
     bar.fill:SetHeight(ctx.barH)
     bar._target = Win.ApplyBarStyle(bar, s, ctx.texPath)
@@ -151,6 +154,8 @@ local function RelayoutBar(W, bar, i, ctx)
     Win.SetFont(bar.label,  ctx.leftFS)
     Win.SetFont(bar.amount, ctx.rightFS)
     bar.label:SetWidth(ctx.labelW)
+    bar._compactLabel = ctx.split
+    Win.AnchorBarLabel(bar, ctx.split)
     -- 版面重建 = 圖示與顏色的備忘全部失效
     bar._class = nil; bar._specIcon = nil; bar._colorClass = nil; bar._rank = nil
 end
@@ -159,19 +164,19 @@ local function ClearBar(bar)
     if bar.row:IsShown() then bar.row:Hide() end
     bar._src = nil; bar._guid = nil; bar._class = nil; bar._specIcon = nil
     bar._colorClass = nil; bar._name = nil; bar._amtText = nil
-    bar._slot = nil; bar._rank = nil
+    bar._slot = nil; bar._rank = nil; bar._dmType = nil
 end
 
 ------------------------------------------------------------
 -- 死亡列表：API 給的是「最近的在前」，反轉成時間順序，並濾掉假死
 ------------------------------------------------------------
-local function FilterDeaths(W, sources)
+local function FilterDeaths(pane, sources)
     ns.Combat.CleanupFeignCache()
     -- 緩衝重用：這支每 tick 都跑，每次配一張新表就是每秒四張垃圾。
     -- 安全性：回傳的表只在這一趟 Render 裡被讀完（PaintBar／UpdateSticky），
     -- 沒有任何地方跨 tick 抓著它。
-    local out = W._deathBuf
-    if not out then out = {}; W._deathBuf = out end
+    local out = pane._deathBuf
+    if not out then out = {}; pane._deathBuf = out end
     wipe(out)
     for i = #sources, 1, -1 do
         local src = sources[i]
@@ -196,32 +201,38 @@ end
 --
 -- 另一個好處：存的是邏輯位置，所以列數變多時（新的人打出傷害）第一名那端不會
 -- 被推走。反轉時這正是玩家盯著的地方。
+--
+-- pane 省略＝主欄（W 本身）。合併檢視的右欄傳 W.split，欄位名稱一模一樣
+-- （見 Window.lua 的 BuildPane）；反轉與否是整個視窗的設定，一律讀 W.wdb。
 ------------------------------------------------------------
-function Rows.GetScroll(W)
-    local raw = W.viewport:GetVerticalScroll() or 0
+function Rows.GetScroll(W, pane)
+    pane = pane or W
+    local raw = pane.viewport:GetVerticalScroll() or 0
     if not W.wdb.reverse then return raw end
-    return math.max(0, (W.scrollMax or 0) - raw)
+    return math.max(0, (pane.scrollMax or 0) - raw)
 end
 
-function Rows.SetScroll(W, v)
-    local maxv = W.scrollMax or 0
+function Rows.SetScroll(W, v, pane)
+    pane = pane or W
+    local maxv = pane.scrollMax or 0
     v = math.max(0, math.min(maxv, v))
-    W.viewport:SetVerticalScroll(W.wdb.reverse and (maxv - v) or v)
+    pane.viewport:SetVerticalScroll(W.wdb.reverse and (maxv - v) or v)
 end
 
 ------------------------------------------------------------
 -- 捲動範圍
 ------------------------------------------------------------
-function Rows.RecalcViewport(W, count)
+function Rows.RecalcViewport(W, count, pane)
+    pane = pane or W
     local s = ns.DB.Style()
     local stride = D.Px(s.barHeight or 18) + D.Px(s.barSpacing or 2)
     local totalH = count * stride
-    local viewH = W.viewport:GetHeight()
+    local viewH = pane.viewport:GetHeight()
     if viewH < 1 then viewH = 1 end
 
     -- 先用**舊的** scrollMax 把目前位置解成邏輯值，換完高度再用新的貼回去。
     -- 不這樣做的話，反轉時每次列數一變畫面就會自己跳。
-    local logical = Rows.GetScroll(W)
+    local logical = Rows.GetScroll(W, pane)
 
     -- 反轉時內容至少要有一個可視高：content 的底邊就是第一名的位置，
     -- 內容比視窗矮的話它會浮在半空中（ScrollFrame 把 content 貼在頂端）。
@@ -229,41 +240,42 @@ function Rows.RecalcViewport(W, count)
     if W.wdb.reverse and wantH < viewH then wantH = viewH end
     -- 高度沒變就不必再 SetHeight 一次。⚠ 反轉時 viewH 也是輸入（縮放視窗會變），
     -- 所以備忘存的是算完的 wantH 而不是 totalH。
-    if W._contentH ~= wantH then
-        W._contentH = wantH
-        W.content:SetHeight(math.max(10, wantH))
+    if pane._contentH ~= wantH then
+        pane._contentH = wantH
+        pane.content:SetHeight(math.max(10, wantH))
     end
 
-    W.scrollMax = math.max(0, totalH - viewH)
-    Rows.SetScroll(W, logical)
+    pane.scrollMax = math.max(0, totalH - viewH)
+    Rows.SetScroll(W, logical, pane)
 end
 
-local function ResetScrollAnchors(W)
+-- 貼 pane.area 而不是標題列／視窗：合併檢視時 area 只佔半邊（見 Win.AnchorPanes）
+local function ResetScrollAnchors(W, pane)
     local O = Win.Orient(W)
-    W.stickyGuard = true
-    W.viewport:ClearAllPoints()
-    W.viewport:SetPoint(O.topL, W.header, O.botL, 0, 0)
-    W.viewport:SetPoint(O.botR, W.frame, O.botR, 0, 0)
-    W.stickyGuard = false
+    pane.stickyGuard = true
+    pane.viewport:ClearAllPoints()
+    pane.viewport:SetPoint(O.topL, pane.area, O.topL, 0, 0)
+    pane.viewport:SetPoint(O.botR, pane.area, O.botR, 0, 0)
+    pane.stickyGuard = false
 end
 
 ------------------------------------------------------------
 -- 釘住自己那一列
 --
 -- 自己的排名捲出可視範圍時，把那一列複製到上緣（排名在上方）或下緣（在下方），
--- 並把捲動區縮掉一列高度，這樣兩者不會互相蓋住。
+-- 並把捲動區縮掉一列高度，這樣兩者不會互相蓋住。合併檢視時兩欄各釘各的。
 ------------------------------------------------------------
-function Rows.UpdateSticky(W, sources, ctx)
-    if W.stickyGuard then return end
-    local bar, sep = W.stickyBar, W.stickySep
+function Rows.UpdateSticky(W, pane, sources, ctx)
+    if pane.stickyGuard then return end
+    local bar, sep = pane.stickyBar, pane.stickySep
     if not bar or not sep then return end
 
     local function Off()
         bar.row:Hide(); sep:Hide()
-        if W.stickyPinned then
-            W.stickyPinned = false
-            ResetScrollAnchors(W)
-            Rows.RecalcViewport(W, W.visibleCount or 0)
+        if pane.stickyPinned then
+            pane.stickyPinned = false
+            ResetScrollAnchors(W, pane)
+            Rows.RecalcViewport(W, pane.visibleCount or 0, pane)
         end
     end
 
@@ -280,8 +292,8 @@ function Rows.UpdateSticky(W, sources, ctx)
 
     local barH  = ctx and ctx.barH or D.Px(s.barHeight or 18)
     local stride = ctx and ctx.stride or (barH + D.Px(s.barSpacing or 2))
-    local scroll = Rows.GetScroll(W)
-    local viewH  = W.frame:GetHeight() - D.Px(s.hdrHeight or 22)
+    local scroll = Rows.GetScroll(W, pane)
+    local viewH  = pane.area:GetHeight() or 0
     if viewH < 1 then viewH = 1 end
 
     local top = (idx - 1) * stride
@@ -294,45 +306,45 @@ function Rows.UpdateSticky(W, sources, ctx)
     local pinHeaderSide = (top < scroll)
     local pinnedH = barH + 1
     local O = Win.Orient(W)
+    local area = pane.area
 
     bar.row:ClearAllPoints(); sep:ClearAllPoints(); sep:SetHeight(1)
-    W.viewport:ClearAllPoints()
-    W.stickyGuard = true
+    pane.viewport:ClearAllPoints()
+    pane.stickyGuard = true
     if pinHeaderSide then
-        bar.row:SetPoint(O.topL, W.header, O.botL, 0, 0)
-        bar.row:SetPoint(O.topR, W.header, O.botR, 0, 0)
+        bar.row:SetPoint(O.topL, area, O.topL, 0, 0)
+        bar.row:SetPoint(O.topR, area, O.topR, 0, 0)
         sep:SetPoint(O.topL, bar.row, O.botL, 0, 0)
         sep:SetPoint(O.topR, bar.row, O.botR, 0, 0)
-        W.viewport:SetPoint(O.topL, W.header, O.botL, 0, -pinnedH * O.v)
-        W.viewport:SetPoint(O.botR, W.frame, O.botR, 0, 0)
+        pane.viewport:SetPoint(O.topL, area, O.topL, 0, -pinnedH * O.v)
+        pane.viewport:SetPoint(O.botR, area, O.botR, 0, 0)
     else
-        bar.row:SetPoint(O.botL, W.frame, O.botL, 0, 0)
-        bar.row:SetPoint(O.botR, W.frame, O.botR, 0, 0)
+        bar.row:SetPoint(O.botL, area, O.botL, 0, 0)
+        bar.row:SetPoint(O.botR, area, O.botR, 0, 0)
         sep:SetPoint(O.botL, bar.row, O.topL, 0, 0)
         sep:SetPoint(O.botR, bar.row, O.topR, 0, 0)
-        W.viewport:SetPoint(O.topL, W.header, O.botL, 0, 0)
-        W.viewport:SetPoint(O.botR, W.frame, O.botR, 0, pinnedH * O.v)
+        pane.viewport:SetPoint(O.topL, area, O.topL, 0, 0)
+        pane.viewport:SetPoint(O.botR, area, O.botR, 0, pinnedH * O.v)
     end
-    W.stickyGuard = false
-    W.stickyPinned = true
-    W.stickyAtTop = pinHeaderSide
+    pane.stickyGuard = false
+    pane.stickyPinned = true
 
     -- 捲動區變矮了，夾一次捲動位置
-    local newViewH = W.viewport:GetHeight()
+    local newViewH = pane.viewport:GetHeight()
     if newViewH and newViewH > 0 then
-        local logical = Rows.GetScroll(W)
-        W.scrollMax = math.max(0, #sources * stride - newViewH)
-        Rows.SetScroll(W, logical)
+        local logical = Rows.GetScroll(W, pane)
+        pane.scrollMax = math.max(0, #sources * stride - newViewH)
+        Rows.SetScroll(W, logical, pane)
     end
 
     -- 版面快取：釘住那列的字級／材質變了才重排
     local key = table.concat({
         ctx and ctx.leftFS or 11, ctx and ctx.rightFS or 11,
         ctx and ctx.texPath or "", barH, tostring(s.iconStyle), tostring(s.barFillAlpha),
-        tostring(s.barStyle), tostring(s.barLineHeight),
+        tostring(s.barStyle), tostring(s.barLineHeight), tostring(ctx and ctx.split),
     }, "|")
-    if key ~= W._stickyCacheKey then
-        W._stickyCacheKey = key
+    if key ~= pane._stickyCacheKey then
+        pane._stickyCacheKey = key
         bar.row:SetHeight(barH)
         bar.fill:SetHeight(barH)
         bar._target = Win.ApplyBarStyle(bar, s, ctx and ctx.texPath or M.WHITE8X8)
@@ -340,7 +352,9 @@ function Rows.UpdateSticky(W, sources, ctx)
         Win.SetFont(bar.rank,   ctx and ctx.leftFS or 11)
         Win.SetFont(bar.label,  ctx and ctx.leftFS or 11)
         Win.SetFont(bar.amount, ctx and ctx.rightFS or 11)
-        bar.label:SetWidth(math.max(20, (W.frame:GetWidth() or 200) * 0.60))
+        bar.label:SetWidth(math.max(20, (area:GetWidth() or 200) * 0.60))
+        bar._compactLabel = ctx and ctx.split or false
+        Win.AnchorBarLabel(bar, bar._compactLabel)
         bar._class = nil; bar._specIcon = nil; bar._colorClass = nil; bar._rank = nil
     end
 
@@ -350,27 +364,55 @@ function Rows.UpdateSticky(W, sources, ctx)
 end
 
 ------------------------------------------------------------
--- 主繪製
+-- 合併檢視的開關
+--
+-- 不需要每個「換類型」的入口各自記得叫：Render 每次都拿 curDMType 對一次
+-- （一個布林比較），不一樣才來這裡。右鍵選單、首頁卡片、設定頁下拉、
+-- 登入時從存檔還原，全部自動涵蓋。
 ------------------------------------------------------------
-function Rows.Render(W, session)
-    if not W.frame then return end
-    W._lastSession = session   -- 捲動時要重畫，不必再問一次 API
+local function SetSplit(W, on)
+    W._splitOn = on
+    if on then Win.EnsureSplitPane(W) end
+    Win.AnchorPanes(W)
 
-    local s = ns.DB.Style()
+    local P = W.split
+    if P then
+        local homeOpen = W.homeFrame and W.homeFrame:IsShown()
+        P.viewport:SetShown(on and not homeOpen)
+        W.splitDivider:SetShown(on and not homeOpen)
+        if not on then
+            -- 收起來的右欄不能留著上一次的 _src：滑過預覽／展開頁認的就是它
+            for i = 1, POOL do ClearBar(P.rowPool[i]) end
+            P.stickyBar.row:Hide(); P.stickySep:Hide()
+            P.visibleCount = 0
+        end
+    end
+    -- 欄寬與名字的錨點都變了，要整批重排 —— 不必在這裡清 _barCacheKey，
+    -- 分欄與否本身就在 cacheKey 裡（見 Rows.Render）。
+end
+
+------------------------------------------------------------
+-- 一欄的繪製
+--
+-- ctx 的共用欄位（字級、列高、cacheKey 的判決…）由 Render 算一次，
+-- 這裡只覆寫**跟這一欄的資料有關**的那幾個。
+------------------------------------------------------------
+local function RenderPane(W, pane, session, dmType, ctx)
+    local s = ctx.s
     local count = 0
 
-    if session and session.combatSources then
-        local sources = session.combatSources
-        local isDeaths = D.IsDeathType(W.curDMType)
-        if isDeaths then sources = FilterDeaths(W, sources) end
-        W._barSources = sources
+    -- 版面整批重排時，這一欄自己的版面備忘也一起作廢。主欄以前是由各個呼叫端
+    -- 順手清的，右欄沒人會記得清 —— 收斂到這裡，兩欄一視同仁。
+    if ctx.fullRebuild then
+        pane._stickyCacheKey = nil
+        pane._contentH = nil
+    end
 
-        local barH   = D.Px(s.barHeight or 18)
-        local barSp  = D.Px(s.barSpacing or 2)
-        local leftFS  = s.leftFontSize or 11
-        local rightFS = s.rightFontSize or 11
-        local texPath = M.BarTexture(s.barTexture)
-        local rowWidth = W.viewport:GetWidth() or 200
+    local sources = session and session.combatSources
+    if sources then
+        local isDeaths = D.IsDeathType(dmType)
+        if isDeaths then sources = FilterDeaths(pane, sources) end
+        pane._barSources = sources
 
         count = math.min(#sources, POOL)
 
@@ -386,60 +428,29 @@ function Rows.Render(W, session)
             if ok and sum > 0 then total = sum end
         end
 
-        -- ctx 每個視窗一張、重複使用：它只在這一趟 Render 裡流動
-        -- （PaintBar／RelayoutBar／UpdateSticky 都不會留著它），每 tick 配一張純浪費。
-        -- ⚠ **每個欄位都要無條件覆寫**（含可能是 nil 的 total），
-        --   漏一個就會把上一個 tick 的值帶進來。加欄位時這裡一起加。
-        local ctx = W._ctx
-        if not ctx then ctx = {}; W._ctx = ctx end
-        ctx.s = s
-        ctx.O = Win.Orient(W)
-        ctx.barH = barH
-        ctx.stride = barH + barSp
-        ctx.leftFS = leftFS
-        ctx.rightFS = rightFS
-        ctx.texPath = texPath
-        ctx.labelW = math.max(20, rowWidth * 0.60)
+        -- ⚠ 兩欄共用同一張 ctx，這幾個**每一欄都要無條件覆寫**（含可能是 nil 的 total），
+        --   漏一個右欄就會吃到左欄的值。加欄位時這裡一起加。
+        ctx.labelW = math.max(20, (pane.viewport:GetWidth() or 200) * 0.60)
         ctx.maxAmt = isDeaths and 1 or (sources[1] and sources[1].totalAmount or 1)
         ctx.isDeaths = isDeaths
-        ctx.isCount = D.IsCountType(W.curDMType)
-        ctx.isOverall = (not W.curSessionID and W.curSession == D.S.Overall)
-        ctx.iconStyle = s.iconStyle or "spec"
-        ctx.iconZoom = s.iconZoom or 0.06
-        ctx.numFmt = s.numberFormat or 2
-        ctx.dmType = W.curDMType
+        ctx.isCount = D.IsCountType(dmType)
+        ctx.dmType = dmType
         ctx.total = total
 
-        -- cacheKey：一條字串比較決定要不要整批重排版面
-        local key = table.concat({
-            leftFS, rightFS, texPath, ctx.iconStyle, tostring(ctx.iconZoom),
-            s.barColorMode, tostring(s.barFillAlpha), barH, barSp,
-            tostring(s.barStyle), tostring(s.barLineHeight),
-            tostring(s.hideRank), tostring(s.leftTextUseClassColor),
-            tostring(s.rightTextUseClassColor), tostring(s.font), tostring(s.fontOutline),
-            tostring(W.wdb.reverse),   -- 翻面＝每一列的錨點都要重貼
-        }, "|")
-        ctx.fullRebuild = (key ~= W._barCacheKey)
-        if ctx.fullRebuild then W._barCacheKey = key end
-
         -- 可視範圍：只有這個區間內的列會填內容
-        local scroll = Rows.GetScroll(W)
-        local viewH  = W.viewport:GetHeight() or 200
+        local scroll = Rows.GetScroll(W, pane)
+        local viewH  = pane.viewport:GetHeight() or 200
         local first  = math.floor(scroll / ctx.stride) + 1
         local last   = math.min(count, math.ceil((scroll + viewH) / ctx.stride))
 
-        -- 首頁／展開頁蓋在上面時長條根本看不到，填值是純浪費。版面照排
-        -- （關掉那一頁時才不會看到一幀舊版面），內容等它關掉再補。
-        local painting = not ((W.homeFrame and W.homeFrame:IsShown()) or W.sourceOpen)
-
         for i = 1, POOL do
-            local bar = W.rowPool[i]
+            local bar = pane.rowPool[i]
             if i <= count then
                 if not bar.row:IsShown() then bar.row:Show() end
                 if ctx.fullRebuild or bar._slot ~= i then
-                    RelayoutBar(W, bar, i, ctx)
+                    RelayoutBar(pane, bar, i, ctx)
                 end
-                if painting and i >= first and i <= last then
+                if ctx.painting and i >= first and i <= last then
                     PaintBar(W, bar, sources[i], ctx, i)
                 end
             else
@@ -447,15 +458,79 @@ function Rows.Render(W, session)
             end
         end
 
-        Rows.UpdateSticky(W, sources, ctx)
+        Rows.UpdateSticky(W, pane, sources, ctx)
     else
-        for i = 1, POOL do ClearBar(W.rowPool[i]) end
-        W._barSources = nil
-        Rows.UpdateSticky(W, nil, nil)
+        for i = 1, POOL do ClearBar(pane.rowPool[i]) end
+        pane._barSources = nil
+        Rows.UpdateSticky(W, pane, nil, nil)
     end
 
-    W.visibleCount = count
-    Rows.RecalcViewport(W, count)
+    pane.visibleCount = count
+    Rows.RecalcViewport(W, count, pane)
+end
+
+------------------------------------------------------------
+-- 主繪製
+--
+-- session2 只有合併檢視才有（右欄的資料）。
+------------------------------------------------------------
+function Rows.Render(W, session, session2)
+    if not W.frame then return end
+    -- 捲動時要重畫，不必再問一次 API
+    W._lastSession, W._lastSession2 = session, session2
+
+    local left, right = D.SplitTypes(W.curDMType)
+    local split = (left ~= nil)
+    if W._splitOn ~= split then SetSplit(W, split) end
+
+    local s = ns.DB.Style()
+    local barH   = D.Px(s.barHeight or 18)
+    local barSp  = D.Px(s.barSpacing or 2)
+    local leftFS  = s.leftFontSize or 11
+    local rightFS = s.rightFontSize or 11
+    local texPath = M.BarTexture(s.barTexture)
+
+    -- ctx 每個視窗一張、重複使用：它只在這一趟 Render 裡流動
+    -- （PaintBar／RelayoutBar／UpdateSticky 都不會留著它），每 tick 配一張純浪費。
+    -- ⚠ **每個欄位都要無條件覆寫**，漏一個就會把上一個 tick 的值帶進來。
+    --   加欄位時這裡（或 RenderPane 裡逐欄的那一組）一起加。
+    local ctx = W._ctx
+    if not ctx then ctx = {}; W._ctx = ctx end
+    ctx.s = s
+    ctx.O = Win.Orient(W)
+    ctx.barH = barH
+    ctx.stride = barH + barSp
+    ctx.leftFS = leftFS
+    ctx.rightFS = rightFS
+    ctx.texPath = texPath
+    ctx.isOverall = (not W.curSessionID and W.curSession == D.S.Overall)
+    ctx.iconStyle = s.iconStyle or "spec"
+    ctx.iconZoom = s.iconZoom or 0.06
+    ctx.numFmt = s.numberFormat or 2
+    ctx.split = split
+    -- 首頁／展開頁蓋在上面時長條根本看不到，填值是純浪費。版面照排
+    -- （關掉那一頁時才不會看到一幀舊版面），內容等它關掉再補。
+    ctx.painting = not ((W.homeFrame and W.homeFrame:IsShown()) or W.sourceOpen)
+
+    -- cacheKey：一條字串比較決定要不要整批重排版面。兩欄共用一個判決 ——
+    -- 外觀是整個視窗的，而且所有「作廢版面」的入口清的都是 W._barCacheKey。
+    -- 沒資料的 tick 也會把判決吃掉，這是安全的：沒資料時每一列都被 ClearBar
+    -- 清掉了 _slot，下次有資料那些列照樣會走 RelayoutBar。
+    local key = table.concat({
+        leftFS, rightFS, texPath, ctx.iconStyle, tostring(ctx.iconZoom),
+        s.barColorMode, tostring(s.barFillAlpha), barH, barSp,
+        tostring(s.barStyle), tostring(s.barLineHeight),
+        tostring(s.hideRank), tostring(s.leftTextUseClassColor),
+        tostring(s.rightTextUseClassColor), tostring(s.font), tostring(s.fontOutline),
+        tostring(W.wdb.reverse),   -- 翻面＝每一列的錨點都要重貼
+        tostring(split),           -- 分欄＝欄寬與名字的錨點都變了
+    }, "|")
+    ctx.fullRebuild = (key ~= W._barCacheKey)
+    if ctx.fullRebuild then W._barCacheKey = key end
+
+    RenderPane(W, W, session, left or W.curDMType, ctx)
+    if split then RenderPane(W, W.split, session2, right, ctx) end
+
     Win.UpdateTimerText(W)
 
     -- 標題刻意不在這裡更新：它只有在切類型／切分段／改尺寸時會變，那三個路徑

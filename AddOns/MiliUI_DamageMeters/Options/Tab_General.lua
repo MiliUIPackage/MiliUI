@@ -19,11 +19,37 @@ local function Apply()
     RefreshAll()
 end
 
+-- 視窗數量的唯一寫入口（滑桿與「新增視窗」都走這裡）
+local function SetWindowCount(n)
+    ns.db.windowCount = math.max(1, math.min(ns.DB.MAX_WINDOWS, math.floor(n + 0.5)))
+    ns.DB.EnsureWindows() -- 補齊新視窗的預設值
+    ns.Windows.Rebuild()
+end
+
+------------------------------------------------------------
+-- 「新增視窗」：點一下就多一個
+--
+-- 滑桿要拖、還要看數字才知道現在幾個；想要「再來一個」的人按鈕直覺得多。
+-- 走 custom 而不是 button：button 型別沒有 refresh，到上限時沒辦法把自己變灰。
+------------------------------------------------------------
+local function BuildAddWindow(parent, x, y)
+    local b = ns.W.CreateButton(parent, L["Add window"], "normal", 140, 22)
+    b:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+    b:SetScript("OnClick", function()
+        SetWindowCount(ns.DB.WindowCount() + 1)
+        RefreshAll()   -- 滑桿的數字跟著跳；到上限時這顆變灰
+    end)
+    return 30, function()
+        b:SetEnabled(ns.DB.WindowCount() < ns.DB.MAX_WINDOWS)
+    end
+end
+
 local CONTROLS = {
     { type = "header", label = L["Windows"] },
     { type = "slider", key = "windowCount", root = "db", label = L["Number of windows"],
-      min = 1, max = 5, step = 1 },
+      min = 1, max = ns.DB.MAX_WINDOWS, step = 1 },
     { type = "text",   label = L["Each window has its own meter type and segment. Set them up on the \"Per window\" tab, or right-click a window."] },
+    { type = "custom", build = BuildAddWindow, h = 30 },
 
     { type = "header", label = L["Update"] },
     { type = "slider", key = "refreshRate", label = L["Refresh rate (seconds)"],
@@ -74,9 +100,7 @@ local function Init()
         set = function(spec, v)
             if spec.root == "db" then
                 if spec.key == "windowCount" then
-                    ns.db.windowCount = math.floor(v + 0.5)
-                    ns.DB.EnsureWindows() -- 補齊新視窗的預設值
-                    ns.Windows.Rebuild()
+                    SetWindowCount(v)
                     return
                 end
                 ns.db[spec.key] = v

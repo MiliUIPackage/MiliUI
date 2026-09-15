@@ -46,23 +46,44 @@ B.CVAR = CVAR
 -- ⚠ 這件事跟「關掉內建統計」有先後：關掉之後那些視窗就不存在了，位置也就讀不到。
 --   所以 Enforce 一定要排在接手位置之後（見 Meter/Manager.lua 的呼叫點）。
 ------------------------------------------------------------
-function B.WindowOffset(idx)
+-- 第 i 個內建視窗的左緣、上緣、下緣（相對 UIParent 左上角；讀不到回 nil）
+local function WindowRect(i)
+    if not i or i < 1 or i > MAX then return nil end
+    local f = _G[NAME .. i]
+    if not f then return nil end
     local pl, pt = UIParent:GetLeft(), UIParent:GetTop()
-    if not (pl and pt) then return nil end
+    local l, t, b = f:GetLeft(), f:GetTop(), f:GetBottom()
+    if not (pl and pt and l and t and b) then return nil end
+    -- ⚠ 內建視窗會把秘密值餵給自己的長條，幾何有被污染的可能。
+    -- 讀到秘密就當作沒這個位置 —— 絕對不能拿去做算術。
+    if D.IsSecret(l) or D.IsSecret(t) or D.IsSecret(b) then return nil end
+    return l - pl, t - pt, b - pt
+end
+
+function B.WindowOffset(idx)
     for _, i in ipairs({ idx, 1 }) do
-        if i and i <= MAX then
-            local f = _G[NAME .. i]
-            if f then
-                local l, t = f:GetLeft(), f:GetTop()
-                -- ⚠ 內建視窗會把秘密值餵給自己的長條，幾何有被污染的可能。
-                -- 讀到秘密就當作沒這個位置 —— 絕對不能拿去做算術。
-                if l and t and not D.IsSecret(l) and not D.IsSecret(t) then
-                    return math.floor(l - pl + 0.5), math.floor(t - pt + 0.5), i
-                end
-            end
+        local l, t = WindowRect(i)
+        if l then
+            return math.floor(l + 0.5), math.floor(t + 0.5), i
         end
     end
     return nil
+end
+
+------------------------------------------------------------
+-- 內建的第 idx 個是不是疊在第 idx-1 個正下方（同一欄、上緣貼著或壓進前一個的下緣）
+--
+-- 是的話我們要照「疊在自己的前一個下面並吸上去」擺，**不能照抄它的上緣**：
+-- 內建視窗的高度跟我們的不一樣（實測兩個上緣相距 171，我們的視窗高 200），
+-- 兩個上緣分別照抄會疊出一截 —— 而且照抄出來的是兩個互不相干的框，拖一個另一個不跟。
+------------------------------------------------------------
+local STACK_TOL = 8   -- UI 單位：左緣差多少、上下留多少縫還算同一疊
+
+function B.StackedUnderPrevious(idx)
+    local l, t = WindowRect(idx)
+    local pl, pt, pb = WindowRect(idx - 1)
+    if not (l and pl) then return false end
+    return math.abs(l - pl) <= STACK_TOL and t < pt and t >= pb - STACK_TOL
 end
 
 ------------------------------------------------------------

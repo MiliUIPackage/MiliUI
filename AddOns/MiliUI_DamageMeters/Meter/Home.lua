@@ -109,6 +109,22 @@ end
 ------------------------------------------------------------
 -- 內容
 ------------------------------------------------------------
+-- 某個（次數型）類型的第一名：「名字 次數」，名字包職業色碼。
+-- 名字與次數都可能是秘密：format 與 SetFormattedText 吃得下，但不能拿去比較或量長度。
+-- 職業拿不到（秘密、NPC）就不包色碼，交給 FontString 本身的顏色。
+local function TopText(W, dmType)
+    local session = D.GetSession(W.curSession, W.curSessionID, dmType)
+    local top = session and session.combatSources and session.combatSources[1]
+    if not top then return nil end
+    local text = format("%s %s", D.StripRealm(top.name), D.Abbrev(top.totalAmount))
+    local r, g, b = M.ClassColor(top.classFilename)
+    if r then
+        text = format("|cff%02x%02x%02x%s|r",
+            math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5), text)
+    end
+    return text
+end
+
 local function Refresh(W)
     if not W.homeFrame or not W.homeFrame:IsShown() then return end
     local s = ns.DB.Style()
@@ -138,11 +154,24 @@ local function Refresh(W)
             card.bg:SetColorTexture(1, 1, 1, 0.04)
         end
 
-        -- 第一名預覽。這裡才是首頁真正的成本（八種類型各一次 API），
+        -- 第一名預覽。這裡才是首頁真正的成本（每種類型各一次 API，合併檢視兩次），
         -- 所以只在這一頁開著時跑。
-        local session = D.GetSession(W.curSession, W.curSessionID, dmType)
+        local left, right = D.SplitTypes(dmType)
+        local session = (not left) and D.GetSession(W.curSession, W.curSessionID, dmType)
         local top = session and session.combatSources and session.combatSources[1]
-        if top then
+        if left then
+            -- 合併檢視：兩欄的第一名並排，順序跟視窗裡的左右一致。
+            -- 其中一欄沒資料就放「—」佔位，不然只剩一個名字時看不出是哪一欄的
+            local a, b = TopText(W, left), TopText(W, right)
+            if a or b then
+                card.detail:SetFormattedText("%s  |cff737373/|r  %s", a or "—", b or "—")
+                -- 名字自己帶了職業色碼，這個顏色只管沒色碼的部分（佔位符、職業拿不到的名字）
+                card.detail:SetTextColor(0.6, 0.6, 0.6)
+            else
+                card.detail:SetText(L["No data"])
+                card.detail:SetTextColor(0.45, 0.45, 0.45)
+            end
+        elseif top then
             local r, g, b = M.ClassColor(top.classFilename)
             local value
             if D.IsDeathType(dmType) then
@@ -178,9 +207,7 @@ function H.Show(W)
     Ensure(W)
     ns.Breakdown.Close(W)
     ns.Tooltip.HideFor(W)
-    W.viewport:Hide()
-    W.stickyBar.row:Hide()
-    W.stickySep:Hide()
+    Win.SetListShown(W, false)
     W.frame.bg:Hide()
     W.homeFrame:Show()
     Refresh(W)
@@ -188,7 +215,7 @@ end
 
 function H.Hide(W)
     if W.homeFrame then W.homeFrame:Hide() end
-    if W.viewport then W.viewport:Show() end
+    if W.viewport then Win.SetListShown(W, true) end
     if W.frame then W.frame.bg:Show() end
     W.Refresh()
 end

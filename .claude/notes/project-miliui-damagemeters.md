@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: bc14d1ba-6f88-47b5-925d-02454b87ba76
-  modified: 2026-08-24T04:06:36.908Z
+  modified: 2026-09-15T03:40:59.321Z
 ---
 
 `AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，v1.0.0）。SavedVariables=`MiliUI_DamageMeters_DB`，
@@ -220,10 +220,45 @@ zhTW 的 Current 譯名同時從「本場」改成「目前」（使用者點名
   每一列的錨點，要 `stickyPinned = false` ＋ `_barCacheKey/_stickyCacheKey/_contentH`
   歸零。`_barCacheKey` 也把 `reverse` 算進去當自動安全網。
 
+## 合併檢視「打斷和驅散」（2026-09-15，使用者要求）
+
+統計類型多一項，選了之後清單區左右切兩欄：左打斷、右驅散，各自排行、各自捲動、各自釘住自己。
+
+- **兩欄各自排行，不做「一人一列、兩個數字」。** 合併要照人配對，戰鬥中 GUID／名字都是
+  秘密值（不能當 key、不能比較），最需要看打斷的 M+ 剛好整個做不出來。使用者再提要合併時先講這點。
+- 類型值是**字串** `"InterruptsDispels"`（`Data.lua` 的 `SPLIT_DEFS`），存進 `wdb.curDMType`。
+  不會跟 Enum 撞號；**改名＝洗掉玩家的選擇**。`D.SplitTypes(t)` 回左右兩個真類型。
+- **pane 抽象**：主欄就是 `W` 本身（欄位本來就長在 W 上），右欄 `W.split` 懶建、欄位同名。
+  清單內所有錨點改貼 `pane.area`（不直接貼標題列／視窗），切欄只改 area 兩個錨點。
+  Rows 的 `GetScroll/SetScroll/RecalcViewport/UpdateSticky` 都多了 pane 參數。
+  ⚠ **不要用 metatable `__index = W` 做右欄**：nil 欄位會穿透讀到主欄的 `_barCacheKey`、`scrollMax`，
+  右欄就永遠不重排。
+- 開關不靠各入口記得叫：`Rows.Render` 每次比 `W._splitOn`，不同才 `SetSplit`；`split` 也進 cacheKey。
+  兩欄共用一個版面判決，右欄自己的 `_stickyCacheKey/_contentH` 在 fullRebuild 時一起清。
+- **API 看列不看視窗**：`PaintBar` 記 `bar._dmType`，展開頁存 `W.srcDMType`、滑過預覽讀 `bar._dmType`
+  —— 視窗的 curDMType 是合併類型本身，丟給 `C_DamageMeter` 只會被 pcall 吃掉變空白。
+- 半寬欄的名字右緣改追數值左緣（`Win.AnchorBarLabel` compact），一般清單仍固定留 70px。
+- **沒資料的欄保持空白**（使用者否決了「打斷  沒有資料」的提示，跟一般清單一致）。別再加回來。
+- 順手：展開頁的次數型（打斷／驅散）只印整數，不再印「3 (1)」。
+
 ## 遷移鏈（2026-08-29 起真的有一條了）
 
-`ns.DB_VERSION = 2`。`PROFILE_MIGRATIONS[v]` 一條一版，**值閘**：只動還等於舊預設
-的欄位。目前唯一一條是 v2「懸停預覽 `breakdownAnchor` row → right」（使用者要求）。
+`ns.DB_VERSION = 3`。`PROFILE_MIGRATIONS[v]` 一條一版，**值閘**：只動還等於舊預設
+的欄位。v2「懸停預覽 `breakdownAnchor` row → right」（使用者要求）；
+v3「剛好貼在前一個正下方、沒有 snapTo 的視窗補吸上去」（幾何閘，見下）。
+
+### 預設擺放要真的吸上去（2026-09-15）
+使用者回報「預設 2 個，傷害輸出和治療沒有上下磁吸好」：`StackBelowPrevious` 以前只給座標，
+**看起來貼著、但沒有 `snapTo`** → 拖第一個時第二個留在原地。現在 `AttachDefault` 記一份跟玩家
+拖過去貼上時 MiliUISnap 會記的一模一樣的 `snapTo`（往下疊 BOTTOM/LEFT、另起一欄 RIGHT/TOP），
+由 `ApplyPosition` 的 `Snap.Restore` 錨定。`PlaceInitial` 開頭清 `snapTo`（會走到那裡的都是我們
+自己挑的位置）。key 收斂成 `DB.SnapKey(idx)`，**是存檔內容不能改名**。
+⚠ 第二個坑（刪 SV 實測才抓到，使用者一度以為是資訊列擠壓）：**內建統計本來就上下疊著兩個時，
+兩個上緣各自照抄** → 內建視窗比我們矮（上緣相距 171、我們高 200），第二個壓進第一個 29，
+而且錨在 UIParent 上不吸。現在 `Builtin.StackedUnderPrevious(idx)`（同一欄、上緣貼著或壓進前一號
+下緣，容差 8）為真就改走 StackBelowPrevious。資訊列內縮 UIParent 會把所有視窗一起推，不會造成錯位。
+診斷法：`/run` 印 `b:GetPoint()` —— relativeTo 是 UIParent 就是沒吸上。
+上限改 10 之後疊到超出畫面底部會另起一欄；3～7 號視窗有預設類型（只在第一次建立時生效）。
 
 - **`DB.Init` 現在真的會跑遷移**（以前只是把版本號蓋上去）。三個順序是硬的：
   1. 舊版本號要在蓋掉**之前**先讀進 `fromVersion` —— 蓋完就分不出這份 SV 從哪來。

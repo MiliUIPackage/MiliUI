@@ -38,22 +38,82 @@ local STAGGER     = 24     -- 多視窗錯開量，避免疊成一坨
 -- 第二個以後的視窗：貼在前一個的正下方（上緣＝前一個的下緣），
 -- 也就是磁吸會吸出來的那個位置。前一個一定先建好（Rebuild 是 1..n 跑的），
 -- 所以這裡讀得到它的座標。
+------------------------------------------------------------
+-- 預設擺出來的位置要**真的吸上去**，不能只是座標剛好貼齊
+--
+-- 只給座標的話看起來是貼著的，但拖第一個時第二個會留在原地（使用者回報
+-- 「傷害輸出和治療沒有上下磁吸好」）。玩家自己拖過去貼上時，MiliUISnap 會在
+-- 放手那一刻記下 snapTo 並把它錨在主體身上 —— 這裡就記一份一模一樣的，
+-- 之後 ApplyPosition 的 Snap.Restore 會照它錨定。
+-- 磁吸整個關掉、或任一邊單獨關掉時不吸（跟拖曳時的規則一樣）。
+------------------------------------------------------------
+local function AttachDefault(W, targetIdx, side)
+    local s = ns.DB.Style()
+    if not (s and s.snapEnabled) or W.wdb.snapDisabled then return end
+    local target = ns.DB.Win(targetIdx)
+    if not target or target.snapDisabled then return end
+    W.wdb.snapTo = {
+        target = ns.DB.SnapKey(targetIdx),
+        side   = side,
+        -- 另一軸對齊哪條邊：往下疊對左緣、往右排對上緣
+        align  = (side == "BOTTOM") and "LEFT" or "TOP",
+    }
+end
+
+-- idx 所在那一欄最上面的是第幾個（照座標往上找「剛好貼在上一個正下方」的鏈）
+local function ColumnHead(idx)
+    while idx > 1 do
+        local cur, up = ns.DB.Win(idx), ns.DB.Win(idx - 1)
+        if not (cur and up and type(cur.x) == "number" and type(cur.y) == "number"
+                and type(up.x) == "number" and type(up.y) == "number"
+                and math.abs(cur.x - up.x) <= 1
+                and math.abs(cur.y - (up.y - (up.height or 200))) <= 1) then
+            break
+        end
+        idx = idx - 1
+    end
+    return idx
+end
+
 local function StackBelowPrevious(W)
-    local prev = ns.DB.Win(W.idx - 1)
+    local prevIdx = W.idx - 1
+    local prev = ns.DB.Win(prevIdx)
     if not prev or type(prev.x) ~= "number" or type(prev.y) ~= "number" then return false end
-    W.wdb.x = prev.x
-    W.wdb.y = prev.y - (prev.height or 200)
+    local y = prev.y - (prev.height or 200)
+    -- 疊到超出畫面底部就另起一欄：貼在這一欄最上面那個的右邊。
+    -- 上限是十個，一路往下疊的話四、五個之後全部會被 ApplyPosition 夾在畫面底緣
+    -- 疊成一坨，只露出一條標題列。
+    local ph = UIParent:GetHeight()
+    if ph and ph > 0 and y - (W.wdb.height or 200) < -ph then
+        local headIdx = ColumnHead(prevIdx)
+        local head = ns.DB.Win(headIdx)
+        W.wdb.x = head.x + (head.width or 300)
+        W.wdb.y = head.y
+        AttachDefault(W, headIdx, "RIGHT")
+    else
+        W.wdb.x = prev.x
+        W.wdb.y = y
+        AttachDefault(W, prevIdx, "BOTTOM")
+    end
     W.wdb.autoPlaced = prev.autoPlaced   -- 前一個還在等接手，這一個也跟著等
     return true
 end
 
 local function PlaceInitial(W)
     local wdb = W.wdb
+    -- 會走到這裡的只有「還沒擺過」或「位置是我們挑的、玩家沒碰過」（autoPlaced）的視窗，
+    -- 吸在誰身上也是我們上次的決定 —— 清掉重新決定。接手到內建視窗的位置時就不吸。
+    wdb.snapTo = nil
     local x, y, matched = ns.Builtin.WindowOffset(W.idx)
 
     -- 只認「自己這一號」的內建視窗。第二個以後若只對到內建的第一個，
     -- 照抄就會疊在我們自己的第一個視窗上 —— 那種情況一律改成往下疊。
     if x and matched == W.idx then
+        -- 內建的這一號本來就疊在前一號下面：照「疊在前一個下面並吸上去」擺，
+        -- 不抄它的上緣（兩邊視窗高度不同，分別照抄會疊出一截，見 Builtin.StackedUnderPrevious）
+        if W.idx > 1 and ns.Builtin.StackedUnderPrevious(W.idx) and StackBelowPrevious(W) then
+            return
+        end
         wdb.x, wdb.y = x, y
         wdb.autoPlaced = nil
         return
@@ -452,7 +512,7 @@ function Move.Setup(W)
     -- 後者錨在前者身上，拉前者一起動（snapTo 存在 wdb）。group ＝ 自家視窗彼此不經
     -- lib 的「對齊」（上面自己那套拖曳中即時吸、門檻可設；放手時的貼附還是走 lib）。
     -- 「這個視窗不磁吸」時也不當別人的目標。
-    W.snapKey = "damageMeter" .. W.idx
+    W.snapKey = ns.DB.SnapKey(W.idx)
     if ns.Snap then
         ns.Snap.Register(W.snapKey, frame, {
             group   = "damageMeters",

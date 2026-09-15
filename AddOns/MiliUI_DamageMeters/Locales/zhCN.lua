@@ -25,6 +25,7 @@ L["Avoidable Damage Taken"] = "可规避伤害"
 L["Enemy Damage Taken"] = "敌方承受伤害"
 L["Interrupts"] = "打断"
 L["Dispels"] = "驱散"
+L["Interrupts & Dispels"] = "打断和驱散"
 L["Deaths"] = "死亡"
 
 -- 分段
@@ -53,6 +54,7 @@ L["Unknown"] = "未知"
 -- 常规
 L["Windows"] = "窗口"
 L["Number of windows"] = "窗口数量"
+L["Add window"] = "新增窗口"
 L["Each window has its own meter type and segment. Set them up on the \"Per window\" tab, or right-click a window."] =
     "每个窗口有自己的统计类型与分段。到“各窗口”标签页设置，或直接在窗口上点右键。"
 L["Update"] = "更新"

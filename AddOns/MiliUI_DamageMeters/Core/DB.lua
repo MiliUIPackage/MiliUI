@@ -14,7 +14,14 @@ local _, ns = ...
 ns.DB = {}
 local DB = ns.DB
 
-DB.MAX_WINDOWS = 5
+-- 視窗是池化的（見 Meter/Manager.lua）：上限只決定最多建幾個，沒開到的不花任何成本
+DB.MAX_WINDOWS = 10
+
+-- 視窗在套組磁吸（Libs/MiliUISnap.lua）裡的 key。⚠ 它是存檔內容（別的視窗、
+-- 別支插件的條的 snapTo.target 記的就是它），改名等於把玩家吸好的組合拆掉。
+function DB.SnapKey(idx)
+    return "damageMeter" .. idx
+end
 
 local function Color(r, g, b, a)
     return { r = r, g = g, b = b, a = a or 1 }
@@ -50,18 +57,40 @@ local DARK_BG = 0x1A / 255   -- 0.102
 -- 兩個都開**分段連動**：上下並排看的就是同一場戰鬥，切分段不同步反而是 bug 感。
 -- 第二個**不顯示計時器**：兩個框貼在一起，同一個秒數印兩次是重複的噪音。
 --
--- 第三個以後沒有 preset，就是一般的傷害輸出視窗。
+-- 玩家把數量往上加時，第三到第七個也各有預設類型（使用者指定），連動與計時器
+-- 照第二個的理由走（一樣是往下貼齊、看同一場）。第八個以後沒有 preset，
+-- 就是一般的傷害輸出視窗。
+--
+-- ⚠ preset **只在那一格第一次建立時**生效（DB.EnsureWindows 對已存在的視窗只補 nil），
+--   玩家以前調過的視窗 3 不會被改成打斷和驅散。
 ------------------------------------------------------------
 local WINDOW_PRESET = {
-    [1] = { dmType = "DamageDone",  syncSegments = true },
-    [2] = { dmType = "HealingDone", syncSegments = true, hideTimer = true },
+    [1] = { dmType = "DamageDone",           syncSegments = true },
+    [2] = { dmType = "HealingDone",          syncSegments = true, hideTimer = true },
+    [3] = { dmType = "InterruptsDispels",    syncSegments = true, hideTimer = true },
+    [4] = { dmType = "AvoidableDamageTaken", syncSegments = true, hideTimer = true },
+    [5] = { dmType = "DamageTaken",          syncSegments = true, hideTimer = true },
+    [6] = { dmType = "EnemyDamageTaken",     syncSegments = true, hideTimer = true },
+    [7] = { dmType = "Deaths",               syncSegments = true, hideTimer = true },
 }
+
+-- preset 的類型名稱 → 實際存進 wdb 的值。暴雪的類型是 Enum 數字；
+-- 合併檢視（打斷和驅散）不是 Enum，值就是那個字串本身（見 Meter/Data.lua 的 SPLIT_DEFS）。
+-- 這支客戶端沒有那種類型就回 nil，由呼叫端退回傷害輸出。
+local function PresetType(name)
+    if not name then return nil end
+    local T = Enum.DamageMeterType
+    if T and T[name] ~= nil then return T[name] end
+    -- 只在執行期被叫（DB.Init 之後），那時 Meter/Data.lua 早就載入了
+    if ns.Data and ns.Data.SplitTypes(name) then return name end
+    return nil
+end
 
 function DB.NewWindow(idx)
     local preset = WINDOW_PRESET[idx] or {}
     local T = Enum.DamageMeterType
     -- 注意 0 在 Lua 是 truthy，所以 DamageDone == 0 也走得通這串 or
-    local dmType = (T and preset.dmType and T[preset.dmType]) or (T and T.DamageDone) or 0
+    local dmType = PresetType(preset.dmType) or (T and T.DamageDone) or 0
     return {
         curDMType  = dmType,
         curSession = Enum.DamageMeterSessionType and Enum.DamageMeterSessionType.Current or 0,
@@ -421,6 +450,37 @@ local PROFILE_MIGRATIONS = {
         local st = p.style
         if st and st.breakdownAnchor == "row" then
             st.breakdownAnchor = "right"
+        end
+    end,
+
+    -- v3：預設往下疊的視窗補上「吸在前一個身上」（使用者回報傷害輸出與治療量
+    -- 沒有上下磁吸好）。舊的預設擺放有兩種壞法：
+    --   * 只給座標、剛好貼齊 —— 看起來貼著，拖第一個時第二個留在原地
+    --   * 內建統計本來就上下疊著兩個，兩個上緣分別照抄 —— 內建視窗比我們矮，
+    --     第二個壓進第一個的下緣一截（實測 29）
+    -- 閘是**幾何**：第 i 個跟第 i-1 個左緣對齊，上緣落在第 i-1 個的範圍內（貼著或壓進去），
+    -- 而且沒吸在任何東西上。玩家自己拖過去貼齊的，放手時 MiliUISnap 就已經記了 snapTo；
+    -- 也沒有人會刻意讓兩個統計視窗互相蓋住。所以這個形狀只會是當初預設擺出來的。
+    -- 已經被拖開的就不猜了。
+    [3] = function(p)
+        local st = p.style
+        if st and st.snapEnabled == false then return end
+        local wins = p.windows
+        if type(wins) ~= "table" then return end
+        for i = 2, DB.MAX_WINDOWS do
+            local w, up = wins[i], wins[i - 1]
+            if type(w) == "table" and type(up) == "table" and w.snapTo == nil
+               and not w.snapDisabled and not up.snapDisabled
+               and type(w.x) == "number" and type(w.y) == "number"
+               and type(up.x) == "number" and type(up.y) == "number"
+               and math.abs(w.x - up.x) <= 1 then
+                local upBottom = up.y - (up.height or 200)
+                if w.y < up.y and w.y >= upBottom - 1 then
+                    w.snapTo = { target = DB.SnapKey(i - 1), side = "BOTTOM", align = "LEFT" }
+                    -- 座標也改成貼齊的值：主體哪天不在時退回的就是它
+                    w.x, w.y = up.x, upBottom
+                end
+            end
         end
     end,
 }
