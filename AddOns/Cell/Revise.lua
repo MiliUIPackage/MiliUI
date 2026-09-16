@@ -3845,6 +3845,31 @@ function F.Revise()
         end
     end
 
+    --! fix from MiliUI: custom BUFF icons rows used to ignore their spacing setting in game --
+    --! the AuraContainer drew a hard-coded 2px gap no matter what was saved. r302 made the
+    --! setting work, and the untouched default {0, 0} would suddenly glue every existing row
+    --! together. Rows still on that default move to {2, 2}, i.e. exactly what they looked like.
+    --!
+    --! ⚠ BUFF only: a DEBUFF icons row never went through the container, so its 0 was always a
+    --!   real 0 on screen and changing it would move icons the player already sees.
+    --! ⚠ Exactly {0, 0} only: any other value is a choice the player made.
+    --! ⚠ One-shot marker, not dbRevision: that gate needs the TOC "## Version" bumped, and
+    --!   that number is a release signal the user owns. A layout imported later from an old
+    --!   export keeps {0, 0} -- the marker is already set by then.
+    if not CellDB["miliuiIconsSpacingDefault"] then
+        CellDB["miliuiIconsSpacingDefault"] = true
+        for _, layout in pairs(CellDB["layouts"] or {}) do
+            for _, t in pairs(layout["indicators"] or {}) do
+                if type(t) == "table" and t["type"] == "icons" and t["auraType"] == "buff" then
+                    local sp = t["spacing"]
+                    if type(sp) == "table" and sp[1] == 0 and sp[2] == 0 then
+                        t["spacing"] = {2, 2}
+                    end
+                end
+            end
+        end
+    end
+
     CellDB["revise"] = Cell.version
     if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version
