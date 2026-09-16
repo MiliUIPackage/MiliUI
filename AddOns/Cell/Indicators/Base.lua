@@ -46,6 +46,30 @@ CELL_COOLDOWN_STYLE = "VERTICAL"
 -- them meant the border countdown, so that is the fallback.
 local ANIMATION_STYLES = {border = true, clock = true, vertical = true, none = true}
 
+-------------------------------------------------
+-- icon ring colour (per indicator)
+-------------------------------------------------
+-- layout key "borderColor":
+--   absent / {"type", ...}         the ring follows the aura: dispel school, debuff red,
+--                                  buff green (AuraDisplay.StyleButton's three-way rule)
+--   {"custom", {r, g, b, a}}       one fixed colour for every aura, school ignored
+-- Returns the fixed colour table, or nil when the ring follows the aura.
+function I.GetFixedBorderColor(borderColor)
+    if type(borderColor) == "table" and borderColor[1] == "custom"
+        and type(borderColor[2]) == "table" and type(borderColor[2][1]) == "number" then
+        return borderColor[2]
+    end
+end
+
+-- "border" countdown is a BLACK sweep eating the coloured ring, so a dark fixed ring leaves
+-- nothing to see. The settings panel greys that style out when this says false.
+local BORDER_COUNTDOWN_MIN_BRIGHTNESS = 0.25
+function I.IsBorderCountdownUsable(borderColor)
+    local c = I.GetFixedBorderColor(borderColor)
+    if not c then return true end
+    return math.max(c[1] or 0, c[2] or 0, c[3] or 0) >= BORDER_COUNTDOWN_MIN_BRIGHTNESS
+end
+
 function I.ResolveAnimationStyle(t)
     local style = t and t.animationStyle
     if ANIMATION_STYLES[style] then return style end
@@ -621,7 +645,12 @@ local function BorderIcon_SetCooldownFromAura(frame, unit, auraInstanceID, textu
     else
         -- No cooldown animation — show static border
         frame.border:Show()
-        frame.border:SetColorTexture(0, 0, 0)
+        local fixed = frame.fixedBorderColor
+        if fixed then
+            frame.border:SetColorTexture(fixed[1], fixed[2], fixed[3])
+        else
+            frame.border:SetColorTexture(0, 0, 0)
+        end
         frame.cooldown:Hide()
         VerticalMask_Clear(frame.vMask)
     end
@@ -677,7 +706,12 @@ local function BarIcon_SetCooldownFromAura(frame, unit, auraInstanceID, texture,
 
     frame.cooldown:Hide()
     frame.duration:Hide()
-    frame:SetBackdropColor(0, 0, 0)
+    local fixed = frame.fixedBorderColor
+    if fixed then
+        frame:SetBackdropColor(fixed[1], fixed[2], fixed[3])
+    else
+        frame:SetBackdropColor(0, 0, 0)
+    end
     frame:Show()
 
     if refreshing then
@@ -690,7 +724,9 @@ end
 -------------------------------------------------
 local function BorderIcon_SetCooldown(frame, start, duration, debuffType, texture, count, refreshing, useElapsedTime)
     local r, g, b
-    if debuffType then
+    if frame.fixedBorderColor then
+        r, g, b = frame.fixedBorderColor[1], frame.fixedBorderColor[2], frame.fixedBorderColor[3]
+    elseif debuffType then
         r, g, b = I.GetDebuffTypeColor(debuffType)
     else
         r, g, b = 0, 0, 0
@@ -832,6 +868,12 @@ local function BorderIcon_ShowAnimation(frame, style)
     BorderIcon_ApplySweep(frame, frame.animationStyle)
 end
 
+-- value = the layout's "borderColor" entry (see I.GetFixedBorderColor). Takes effect on the
+-- next SetCooldown, which is where the ring gets painted.
+local function Icon_SetBorderColor(frame, borderColor)
+    frame.fixedBorderColor = I.GetFixedBorderColor(borderColor)
+end
+
 local function BorderIcon_ShowDuration(frame, show)
     frame.showDuration = show
     if Cell.isMidnight and frame.cooldown and frame.cooldown.SetHideCountdownNumbers then
@@ -932,6 +974,7 @@ function I.CreateAura_BorderIcon(name, parent, borderSize)
     frame.SetCooldownFromAura = BorderIcon_SetCooldownFromAura
     frame.ShowDuration = BorderIcon_ShowDuration
     frame.ShowAnimation = BorderIcon_ShowAnimation
+    frame.SetBorderColor = Icon_SetBorderColor
     -- BarIcon-compatible methods (no-ops for BorderIcon, needed when used as
     -- cooldown indicator child frames which call these on all children)
     frame.ShowStack = function() end
@@ -990,7 +1033,9 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
         end
     end
 
-    if debuffType then
+    if frame.fixedBorderColor then
+        frame:SetBackdropColor(frame.fixedBorderColor[1], frame.fixedBorderColor[2], frame.fixedBorderColor[3])
+    elseif debuffType then
         frame:SetBackdropColor(I.GetDebuffTypeColor(debuffType))
     else
         frame:SetBackdropColor(0, 0, 0)
@@ -1119,6 +1164,7 @@ function I.CreateAura_BarIcon(name, parent)
     frame.ShowDuration = Shared_ShowDuration
     frame.ShowStack = Shared_ShowStack
     frame.ShowAnimation = BarIcon_ShowAnimation
+    frame.SetBorderColor = Icon_SetBorderColor
     frame.SetupGlow = Shared_SetupGlow
     frame.UpdatePixelPerfect = BarIcon_UpdatePixelPerfect
 
@@ -1354,6 +1400,12 @@ local function Icons_ShowAnimation(icons, show)
     end
 end
 
+local function Icons_SetBorderColor(icons, borderColor)
+    for i = 1, icons.maxNum do
+        icons[i]:SetBorderColor(borderColor)
+    end
+end
+
 local function Icons_UpdatePixelPerfect(icons)
     P.Repoint(icons)
     P.Resize(icons)
@@ -1384,6 +1436,7 @@ function I.CreateAura_Icons(name, parent, num)
     icons.ShowDuration = Icons_ShowDuration
     icons.ShowStack = Icons_ShowStack
     icons.ShowAnimation = Icons_ShowAnimation
+    icons.SetBorderColor = Icons_SetBorderColor
     icons.SetupGlow = I.Glow_SetupForChildren
     icons.UpdatePixelPerfect = Icons_UpdatePixelPerfect
 

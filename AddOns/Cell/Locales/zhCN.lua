@@ -1016,5 +1016,12 @@ r3-alpha
 中文化基本完成，修复debuff刷新的bug
 ]]
 
+-- fix from MiliUI: per-indicator cooldown animation style / icon ring colour
+L["Cooldown Animation"] = "冷却动画"
+L["Border Countdown"] = "边框倒数"
+L["Clock Sweep"] = "时钟扫描"
+L["Falling Shadow"] = "阴影下落"
+L["By Aura Type"] = "按光环类型"
+
 -- fix from MiliUI: 分享按鈕不再自己開聊天輸入框
 L["Open the chat edit box first (press Enter), then click Share."] = "请先按 Enter 打开聊天输入框，再按分享。"

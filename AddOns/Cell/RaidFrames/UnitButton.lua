@@ -423,6 +423,11 @@ local function HandleIndicators(b)
                 indicator:ShowAnimation(t["showAnimation"])
             end
         end
+        -- update ring colour (per indicator; absent = follow the aura type). Always sent, so a
+        -- layout switch drops a fixed colour the previous layout set on the same widget.
+        if indicator.SetBorderColor then
+            indicator:SetBorderColor(t["borderColor"])
+        end
         -- update duration
         if type(t["showDuration"]) == "boolean" or type(t["showDuration"]) == "number" then
             indicator:ShowDuration(t["showDuration"])
@@ -1051,6 +1056,16 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     UnitButton_UpdateAuras(b)
                 end
             end, true)
+        elseif setting == "borderColor" then
+            -- Like animationStyle: only the legacy widgets need this (crowdControls, fallback
+            -- pools). Container-backed indicators pick it up in PushContainerConfig below.
+            F.IterateAllUnitButtons(function(b)
+                local ind = b.indicators[indicatorName]
+                if ind and ind.SetBorderColor then
+                    ind:SetBorderColor(value)
+                    UnitButton_UpdateAuras(b)
+                end
+            end, true)
         elseif setting == "privateAuraOptions" then
             F.IterateAllUnitButtons(function(b)
                 b.indicators[indicatorName]:UpdateOptions(value)
@@ -1236,6 +1251,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     elseif type(value["showAnimation"]) == "boolean" then
                         indicator:ShowAnimation(value["showAnimation"])
                     end
+                end
+                if indicator.SetBorderColor then
+                    indicator:SetBorderColor(value["borderColor"])
                 end
                 -- update showDuration
                 if type(value["showDuration"]) ~= "nil" then

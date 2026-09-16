@@ -215,6 +215,14 @@ end
 --
 -- Returns the anchor point the caller should pin the container with, so the
 -- container sits on the same side of the anchor frame the row flows from.
+--
+-- opts.numPerLine wraps before `num` (the icon grid); opts.anchor is the indicator's
+-- position point, which decides where the SECOND line goes. Without it every row wrapped
+-- down/right, and a BOTTOM-anchored row pushed its extra lines off the frame. With it the
+-- rule is the preview's (Indicators/Base.lua Icons_SetOrientation): a horizontal row
+-- anchored BOTTOM* stacks upward, a vertical one anchored *RIGHT stacks leftward, and the
+-- container is pinned by that corner. For one line the corner pin lands exactly where the
+-- edge pin did (the anchor frame is one icon big), so only wrapped rows move.
 -- ============================================================
 
 local ORIENTATIONS = {
@@ -226,7 +234,24 @@ local ORIENTATIONS = {
 
 function ACC.ApplyFlowLayout(container, opts)
     local o = ORIENTATIONS[opts.orientation or ""] or ORIENTATIONS["left-to-right"]
+    local point, h, v = o.point, o.h, o.v
+    local anchor = opts.anchor
+    if type(anchor) == "string" then
+        if o.axis == "Horizontal" then
+            local bottom = anchor:find("^BOTTOM") ~= nil
+            v = bottom and "Up" or "Down"
+            point = (bottom and "BOTTOM" or "TOP") .. o.point
+        else
+            local right = anchor:find("RIGHT$") ~= nil
+            h = right and "Left" or "Right"
+            point = o.point .. (right and "RIGHT" or "LEFT")
+        end
+    end
+
     local num = opts.num or 3
+    if type(opts.numPerLine) == "number" and opts.numPerLine >= 1 and opts.numPerLine < num then
+        num = opts.numPerLine
+    end
     local spacing = opts.spacing or 0
     -- the budget is measured along the MAIN axis, so a vertical flow spends height
     local main = (o.axis == "Vertical") and (opts.height or opts.width or 20) or (opts.width or 20)
@@ -240,7 +265,7 @@ function ACC.ApplyFlowLayout(container, opts)
     -- EnumUtil.IsValid internally, so one shared pcall would let a single bad call abort
     -- every setter after it -- e.g. the anchor point would silently never apply. Record
     -- what actually stuck (or "no-api") so /cab inspect can prove whether direction took.
-    local dbg = { orientation = opts.orientation, point = o.point, budget = budget }
+    local dbg = { orientation = opts.orientation, anchor = anchor, point = point, budget = budget }
     local function try(name, present, fn)
         if not present then dbg[name] = "no-api"; return end
         local ok, err = pcall(fn)
@@ -248,12 +273,12 @@ function ACC.ApplyFlowLayout(container, opts)
     end
 
     try("axis",   AX and container.SetFlowLayoutAxis,            function() container:SetFlowLayoutAxis(AX[o.axis]) end)
-    try("growth", FD and container.SetFlowLayoutGrowthDirection, function() container:SetFlowLayoutGrowthDirection(FD[o.h], FD[o.v]) end)
-    try("anchor", container.SetFlowLayoutAnchorPoint,            function() container:SetFlowLayoutAnchorPoint(o.point) end)
+    try("growth", FD and container.SetFlowLayoutGrowthDirection, function() container:SetFlowLayoutGrowthDirection(FD[h], FD[v]) end)
+    try("anchor", container.SetFlowLayoutAnchorPoint,            function() container:SetFlowLayoutAnchorPoint(point) end)
     try("maxline",container.SetFlowLayoutMaximumLineSize,        function() container:SetFlowLayoutMaximumLineSize(budget) end)
 
     container._acFlowDbg = dbg
-    return o.point
+    return point
 end
 
 -- ============================================================
