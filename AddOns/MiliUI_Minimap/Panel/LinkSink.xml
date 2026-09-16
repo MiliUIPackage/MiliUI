@@ -1,0 +1,21 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\Blizzard_SharedXML\UI.xsd">
+  <!--
+    名單面板的超連結收件框：名單列上的 |Hplayer:…|h／|HBNplayer:…|h 點擊一路 propagate 到這裡，
+    由模板接來的暴雪 OnHyperlinkClick（ChatFrameMixin）→ SetItemRef → SendTell 開密語，
+    整條沒有插件的 Lua，聊天狀態不會被污染（機制與理由見 Panel/Tip.lua 檔頭與
+    .claude/notes/wow-121-chat-reply-secret-taint.md；MiliUI_ChatBar/Sink.xml 同一寫法）。
+
+    ⚠ hyperlinksEnabled 一定要走 XML 屬性，不要在 Lua 呼叫 SetHyperlinksEnabled（protected）。
+    ⚠ 不要在這裡加 OnLoad／OnHyperlinkClick：任何自己的 script 都是插件的執行。
+      OnUpdate 留空是拿掉模板的淡出處理，這顆框不顯示訊息。
+    ⚠ 模板 OnLoad 註冊的聊天事件由 Panel/Tip.lua 在**檔案載入時**就 UnregisterAllEvents 拆掉，
+      不能等第一次開名單 —— 不然登入時 UPDATE_CHAT_WINDOWS 一到，暴雪的 ConfigEventHandler
+      對這顆 ID 0 的假聊天視窗讀 GetChatWindowInfo 就是 nil 比大小。
+  -->
+  <ScrollingMessageFrame name="MiliUI_Minimap_LinkSink" inherits="ChatFrameTemplate" parent="UIParent" hyperlinksEnabled="true">
+    <Scripts>
+      <OnUpdate></OnUpdate>
+    </Scripts>
+  </ScrollingMessageFrame>
+</Ui>

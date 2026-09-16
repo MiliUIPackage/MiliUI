@@ -10,6 +10,23 @@
 -- （左鍵密語／右鍵邀請），最底下一列是「開完整面板」的按鈕，標題與說明列只是
 -- 不吃滑鼠的文字。
 --
+-- ⚠⚠ **密語不能從插件的 Lua 開聊天輸入框。** 12.1 起密語對象可能是秘密名字，而插件從
+--   自己的 OnClick 呼叫 ChatFrame_SendTell → ActivateChat，暴雪就在**我們的**堆疊上寫了
+--   全域 LAST_ACTIVE_CHAT_EDIT_BOX；之後按 R 回覆都先讀它 → 執行變髒 → 碰到秘密名字就炸，
+--   一路髒到 /reload。唯一的乾淨路是**把名字做成聊天超連結**（|Hplayer:名字|h、
+--   |HBNplayer:暱稱:帳號ID|h —— 就是聊天訊息裡名字的那種連結）：引擎派送 →
+--   ChatFrameTemplate 的 OnHyperlinkClick（暴雪的 method）→ SetItemRef → SendTell，
+--   整條沒有插件的 Lua。Chattynator 與 MiliUI_ChatBar 同一招。
+--   所以：面板掛在 Panel/LinkSink.xml 那顆 ChatFrameTemplate 底下、一路
+--   SetHyperlinkPropagateToParent(true)；每一列的字放在列上一個**子框**（row.link）
+--   ——左鍵點到連結由暴雪開密語；右鍵穿透（SetPassThroughButtons）給列本身的 OnClick
+--   做邀請（暴雪的連結處理器右鍵是它的玩家選單，不要）。列的整寬另鋪一串空白的連結，
+--   讓點在名字與區域之間的空隙也算數。
+--   ⚠ 連結字框是引擎另一個滑鼠焦點：游標停在連結上時 row.link 收到的是 OnLeave，
+--   亮塊要靠 Sink 的 OnHyperlinkEnter/Leave 補（wow-hyperlink-region-steals-hover）。
+--   ⚠ 聊天樣式 im 時 ChooseBoxForSend 會讀 preferredChatFrame.editBox，Sink 沒有這個欄位
+--   也不要補（補了是插件寫的、暴雪讀了照樣髒）；classic（預設）完全不看 frame。
+--
 -- ⚠⚠ **「開公會名冊／好友清單」不能從插件 Lua 直接呼叫 ToggleGuildFrame /
 --   ToggleFriendsFrame。** 12.1 起那條路會污染暴雪的面板系統，玩家看到的是
 --   「介面功能因插件而失效」的封鎖彈窗、面板打不開（實測）。正解跟 MiliUI_InfoBar
@@ -46,6 +63,7 @@ local owner                -- 是誰開的（社交列的哪一格）
 local buttonRow, buttonKind   -- 這一輪的底部按鈕列與它要開的面板（guild / friends）
 
 local SyncOpeners, RefreshButtonRow   -- 定義在下面的 Openers 段，Show() 會用到
+local hoverRow                        -- 游標現在停在哪一列的連結上（Sink 的 Enter/Leave 用）
 
 local PAD_X   = 8          -- 左右內距
 local PAD_Y   = 5          -- 上下內距
@@ -88,26 +106,46 @@ local function EnsureRow(i)
     row.hl:SetColorTexture(1, 1, 1, 0.10)
     row.hl:Hide()
 
+    -- 字全部放在這個子框上（超連結的比對只看「收到滑鼠事件的那個 frame」自己的
+    -- FontString）。人名列才開它的滑鼠；右鍵穿透給列本身做邀請（見檔頭）。
+    local link = CreateFrame("Frame", nil, row)
+    link:SetAllPoints(row)
+    link:SetHyperlinkPropagateToParent(true)
+    link:SetPassThroughButtons("RightButton")
+    link:EnableMouse(false)
+    link.row = row
+    link:SetScript("OnEnter", function() row.hl:Show() end)
+    link:SetScript("OnLeave", function() row.hl:Hide() end)
+    row.link = link
+
     -- ⚠ 建出來就給字型（wow-fontstring-font-before-settext）。
     --   不描邊：面板底是不透明的，字不會壓在地形上，描邊只會讓小字糊掉。
-    row.left = row:CreateFontString(nil, "OVERLAY")
+    row.left = link:CreateFontString(nil, "OVERLAY")
     row.left:SetPoint("LEFT", row, "LEFT", PAD_X, 0)
     row.left:SetJustifyH("LEFT")
     row.left:SetWordWrap(false)
     S.SetFont(row.left, FontSize(), "")
 
-    row.right = row:CreateFontString(nil, "OVERLAY")
+    row.right = link:CreateFontString(nil, "OVERLAY")
     row.right:SetPoint("RIGHT", row, "RIGHT", -PAD_X, 0)
     row.right:SetJustifyH("RIGHT")
     row.right:SetWordWrap(false)
     S.SetFont(row.right, FontSize(), "")
 
     -- 置中的字只給按鈕列用
-    row.center = row:CreateFontString(nil, "OVERLAY")
+    row.center = link:CreateFontString(nil, "OVERLAY")
     row.center:SetPoint("CENTER", row, "CENTER", 0, 0)
     row.center:SetJustifyH("CENTER")
     row.center:SetWordWrap(false)
     S.SetFont(row.center, FontSize(), "")
+
+    -- 整寬的空白連結：讓名字與區域之間的空隙也點得到（Show 時依面板寬度鋪）。
+    -- 字級＝列高，一行的字框就是整列的高度；空白沒有墨水，字級多大都看不見。
+    row.hit = link:CreateFontString(nil, "ARTWORK")
+    row.hit:SetPoint("LEFT", row, "LEFT", 1, 0)
+    row.hit:SetJustifyH("LEFT")
+    row.hit:SetWordWrap(false)
+    S.SetFont(row.hit, RowHeight(), "")
 
     row:SetScript("OnEnter", function(self)
         if self.onClick then self.hl:Show() end
@@ -128,6 +166,9 @@ local function NextRow()
     row.height = RowHeight()
     row.onClick = nil
     row.entry = nil
+    row.hyperlink = nil
+    row.link:EnableMouse(false)
+    row.hit:SetText("")
     row.hl:Hide()
     row.fill:Hide()
     row:EnableMouse(false)
@@ -141,12 +182,54 @@ local function NextRow()
 end
 
 ------------------------------------------------------------
+-- 超連結收件框（LinkSink.xml 那顆 ChatFrameTemplate）
+--
+-- ⚠ 這段**必須在檔案載入時就跑，不能等 Build()**。模板的 OnLoad 在 XML 載入當下就
+--   註冊了一整批聊天事件（UPDATE_CHAT_WINDOWS、CHAT_MSG_*…），登入後暴雪的
+--   ChatFrame_ConfigEventHandler 會拿 GetChatWindowInfo(self:GetID()) 讀這顆框的設定 ——
+--   它不是真的聊天視窗、ID 是 0，回來全 nil，`fontSize > 0` 就在暴雪那邊炸
+--   （ChatFrameOverrides.lua:116「attempt to compare number with nil」，登入就報六次）。
+--   名單第一次打開之前這顆框就已經在收事件了，所以拆事件要跟 MiliUI_ChatBar 一樣放頂層。
+------------------------------------------------------------
+local sink = MiliUI_Minimap_LinkSink
+sink:SetPoint("TOPLEFT")
+sink:SetSize(1, 1)
+sink:Show()
+-- 這顆框只負責收超連結事件
+sink:UnregisterAllEvents()
+sink:SetScript("OnEvent", nil)
+if sink.ScrollBar then sink.ScrollBar:Hide() end
+-- ⚠ OnHyperlinkClick 不能碰（那是暴雪的 method，換掉就回到插件堆疊）。
+--   HookScript 是安全的後掛：暴雪的先跑完、乾淨地開了密語，我們再把名單收掉 ——
+--   密語的下一步不在名單上（同 secure 開面板鈕的 afterOpen）。
+sink:HookScript("OnHyperlinkClick", function()
+    if Tip.afterOpen then ns.Safe(Tip.afterOpen) end
+end)
+-- 連結字框是另一個滑鼠焦點，游標停在連結上時列的 OnEnter/OnLeave 不對稱，
+-- 亮塊在這裡補：region 是被滑到的 FontString，它的父框是 row.link。
+-- 模板原本的 Enter/Leave 只是廣播 ChatFrame.OnHyperlinkEnter 事件，不在點擊路上。
+sink:SetScript("OnHyperlinkEnter", function(_, _, _, region)
+    local link = region and region:GetParent()
+    local row = link and link.row
+    if hoverRow and hoverRow ~= row then hoverRow.hl:Hide() end
+    hoverRow = row
+    if row and row.onClick then row.hl:Show() end
+end)
+sink:SetScript("OnHyperlinkLeave", function()
+    if hoverRow then hoverRow.hl:Hide() end
+    hoverRow = nil
+end)
+
+------------------------------------------------------------
 -- 建面板
 ------------------------------------------------------------
 local function Build()
     if panel then return panel end
 
-    panel = CreateFrame("Frame", "MiliUIMinimapTooltip", UIParent, "BackdropTemplate")
+    -- 父框是上面那顆 Sink（見檔頭）；它跟 UIParent 同 scale，
+    -- 所以下面 PlaceOpener 讀面板 rect 當 UIParent 座標用的算法不變。
+    panel = CreateFrame("Frame", "MiliUIMinimapTooltip", sink, "BackdropTemplate")
+    panel:SetHyperlinkPropagateToParent(true)
     -- TOOLTIP 層：它是暫時彈出來的東西，要壓在任務追蹤框、收納袋、其他插件視窗之上；
     -- 選單（FULLSCREEN_DIALOG）仍然在它上面。
     panel:SetFrameStrata("TOOLTIP")
@@ -222,6 +305,22 @@ local function Build()
         end
         for i = used + 1, #rows do rows[i]:Hide() end
 
+        -- 人名列整寬鋪一串空白的連結（寬度現在才知道）。空白沒有墨水，只算點擊區；
+        -- 一個空白的寬度用同一個 FontString 量，字級跟列一樣。
+        local innerW = width + PAD_X * 2
+        for i = 1, used do
+            local row = rows[i]
+            if row.hyperlink then
+                local hit = row.hit
+                hit:SetText("x x")
+                local spaced = hit:GetStringWidth() or 0
+                hit:SetText("xx")
+                local adv = spaced - (hit:GetStringWidth() or 0)
+                local n = (adv > 0) and math.ceil(innerW / adv) or 1
+                hit:SetFormattedText("|H%s|h%s|h", row.hyperlink, string.rep(" ", n))
+            end
+        end
+
         -- 最後一列是按鈕的話貼著下緣（只留 1px 邊框），secure 鈕就是錨在那裡
         local bottom = (used > 0 and rows[used] == buttonRow) and 1 or PAD_Y
         self:SetSize(math.ceil(width + PAD_X * 2 + 2), math.ceil(-y + bottom))
@@ -289,17 +388,36 @@ end
 local ZONE_SAME = { 0.35, 0.85, 0.35 }
 local ZONE_OTHER = { 0.6, 0.6, 0.6 }
 
+-- 密語用的聊天連結：戰網好友優先走戰網暱稱（對方換角色、離開 WoW 之後那條路還通），
+-- 其餘走角色名。Data.lua 已經把名字過了 PlainText，撈不出明文的欄位在那邊就是 nil。
+-- 連結格式照暴雪聊天訊息裡名字的那種：處理器在 ItemRefHandlers（HandlePlayerLink /
+-- HandleBNPlayerLink），左鍵＝SendTell／SendBNetTell。
+local function WhisperLink(entry)
+    if entry.bnetName and entry.bnetID then
+        return "BNplayer:" .. entry.bnetName .. ":" .. entry.bnetID
+    end
+    local target = entry.full or entry.name
+    if target and target ~= "" then return "player:" .. target end
+    return nil
+end
+
 function Tip.AddMember(entry, currentZone, showZone, onClick)
     local row
+    local link = WhisperLink(entry)
+    -- 名字與區域都包進同一個連結：字本身就是點擊區，整寬的空白連結在 Show 時補
+    local function Linked(text)
+        if link and text and text ~= "" then return "|H" .. link .. "|h" .. text .. "|h" end
+        return text
+    end
     ------------------------------------------------------------
     -- 不在 WoW 的好友：整列壓成灰的，右欄顯示他在玩什麼。
     -- 不上職業色也不標等級 —— 那兩樣是「這個人現在能不能一起打」的訊號，
     -- 對不在遊戲裡的人套上去只會讓清單看起來每一列都一樣重要。
     ------------------------------------------------------------
     if entry.inWoW == false then
-        local left = "|cff888888" .. entry.name .. "|r"
+        local left = Linked("|cff888888" .. entry.name .. "|r")
         if entry.zone ~= "" then
-            row = panel:AddDoubleLine(left, entry.zone, 1, 1, 1, 0.45, 0.45, 0.45)
+            row = panel:AddDoubleLine(left, Linked(entry.zone), 1, 1, 1, 0.45, 0.45, 0.45)
         else
             row = panel:AddLine(left, 1, 1, 1)
         end
@@ -323,10 +441,10 @@ function Tip.AddMember(entry, currentZone, showZone, onClick)
         if tag then left = left .. " " .. tag end
 
         if not showZone or entry.zone == "" then
-            row = panel:AddLine(left, 1, 1, 1)
+            row = panel:AddLine(Linked(left), 1, 1, 1)
         else
             local zc = (entry.zone == currentZone) and ZONE_SAME or ZONE_OTHER
-            row = panel:AddDoubleLine(left, entry.zone, 1, 1, 1, zc[1], zc[2], zc[3])
+            row = panel:AddDoubleLine(Linked(left), Linked(entry.zone), 1, 1, 1, zc[1], zc[2], zc[3])
         end
     end
 
@@ -334,6 +452,11 @@ function Tip.AddMember(entry, currentZone, showZone, onClick)
         row.onClick = onClick
         row.entry = entry
         row:EnableMouse(true)
+    end
+    -- 有密語連結的列才開字框的滑鼠：左鍵給連結（暴雪開密語）、右鍵穿透回列做邀請
+    if link then
+        row.hyperlink = link
+        row.link:EnableMouse(true)
     end
     return row
 end
@@ -405,8 +528,8 @@ local OPENERS = {
 local openers = {}        -- kind → secure 鈕
 local combatWatcher       -- 進戰鬥藏、出戰鬥擺回來
 
--- ⚠ **絕對座標，不錨面板。** 面板是 UIParent 的直接子框、scale 1，GetLeft/GetBottom
---   就是 UIParent 座標空間裡的值，直接當位移用。
+-- ⚠ **絕對座標，不錨面板。** 面板掛在 LinkSink（UIParent 的直接子框）底下、scale 1，
+--   GetLeft/GetBottom 就是 UIParent 座標空間裡的值，直接當位移用。
 local function PlaceOpener(btn)
     local l, b, w = panel:GetLeft(), panel:GetBottom(), panel:GetWidth()
     if not l or not b or not w then return false end
@@ -520,6 +643,7 @@ local function Restyle()
         S.SetFont(row.left, size, "")
         S.SetFont(row.right, size, "")
         S.SetFont(row.center, size, "")
+        S.SetFont(row.hit, RowHeight(), "")
     end
     -- 列高變了 → secure 鈕的尺寸也要跟；面板開著的話下一次 Show 會重擺，
     -- 關著的話它本來就藏著。這裡只要確保沒有一顆還顯示著。

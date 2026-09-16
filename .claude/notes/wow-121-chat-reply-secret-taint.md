@@ -41,6 +41,11 @@ MiliUI_ChatBar 的做法（`ChatBar.lua` 的 Sink 段 ＋ `Sink.xml`）：
 - Sink 在 **XML** 宣告：`<ScrollingMessageFrame inherits="ChatFrameTemplate" hyperlinksEnabled="true">`
   ＋ 空的 `<OnUpdate>`（跟 Chattynator 的 `Core/HyperlinkHandler.xml` 一字不差），Lua 只
   `SetParent`／`UnregisterAllEvents`／OnEvent 設 nil。**OnHyperlinkClick 不能碰**。
+  ⚠ **`UnregisterAllEvents` 要在檔案載入時就跑，不能懶到第一次用才做**：模板的 OnLoad 在
+  XML 載入當下就註冊了 `UPDATE_CHAT_WINDOWS` 等一批事件，登入後暴雪的 `ChatFrame_ConfigEventHandler`
+  拿 `GetChatWindowInfo(self:GetID())` 讀它 —— Sink 不是真聊天視窗、ID 是 0，回全 nil，
+  `fontSize > 0` 在 `ChatFrameOverrides.lua:116` 炸「attempt to compare number with nil」
+  （MiliUI_Minimap 第一版放在懶載入的 Build() 裡，登入就報六次）。
 - 按鈕是 Sink 的子框、`SetHyperlinkPropagateToParent(true)`、**不用 SecureActionButtonTemplate**
   （只有骰／開怪／重置三顆保留）。點擊區用真的字：標籤 `|H<link>|h說|h` ＋
   `SetHitRectInsets(0,0,-標籤高,0)` 把按鈕矩形往上撐到蓋住標籤；條的部分另一個 FontString
@@ -61,9 +66,10 @@ MiliUI_ChatBar 的做法（`ChatBar.lua` 的 Sink 段 ＋ `Sink.xml`）：
   （classic 完全不看 frame），Sink 沒這欄位、也**不要補**（補了是插件寫的、暴雪讀了照樣髒）。
 
 ⚠ 通則：**任何會替玩家開聊天輸入框的插件（點名字密語、頻道按鈕、「回覆」鍵）都必須走這條，
-否則這次登入的 R 鍵就沒了。** 套組裡還在直呼 `ChatFrame_SendTell`／`OpenChat` 的：
-MiliUI_Minimap（好友／公會列點名字）、Cell Layouts、MRT、RaiderIO、TinyInspect、YUI —— 每一下
-都會把全域弄髒，錯誤會怪到「最後一個開框的插件」頭上。
+否則這次登入的 R 鍵就沒了。** 已改走這條的：MiliUI_ChatBar、MiliUI_Minimap（好友／公會列點名字，
+`Panel/LinkSink.xml`，見 [[project-miliui-minimap]]）；Cell 的分享鈕改成「輸入框開著才填字」
+（[[project-local-addon-forks]]）。套組裡**還在**直呼 `ChatFrame_SendTell`／`OpenChat` 的：
+MRT、RaiderIO、TinyInspect、YUI —— 每一下都會把全域弄髒，錯誤會怪到「最後一個開框的插件」頭上。
 
 以下為歷史紀錄。
 

@@ -261,6 +261,23 @@ N 是**雜訊路徑的兜底週期，不是更新延遲** —— 真的有人上
 **教訓六：回傳 table 的 C API 是配置點。** `GetFriendAccountInfo`、
 `C_Map.GetPlayerMapPosition`、`GetMouseFoci` 這類每次都給新物件，放進任何
 「可能被高頻呼叫」的路徑之前先想清楚誰會叫它。
+
+## 2026-09-16：名單的密語改走聊天超連結，選單不再有密語
+
+從插件的 OnClick 呼叫 `ChatFrame_SendTell` 會在自己的堆疊上寫 `LAST_ACTIVE_CHAT_EDIT_BOX`，
+之後玩家按 R 回覆秘密名字就炸（[[wow-121-chat-reply-secret-taint]]）。改法跟 MiliUI_ChatBar 同一套：
+- `Panel/LinkSink.xml`：一顆 `ChatFrameTemplate`（XML 開 `hyperlinksEnabled`），名單面板掛在它底下，
+  面板與每一列 `SetHyperlinkPropagateToParent(true)`。
+- 每一列的字放在列上一個子框 `row.link`（人名列才開它的滑鼠）：名字與區域包成
+  `|Hplayer:名字|h`／`|HBNplayer:暱稱:帳號ID|h`，左鍵由暴雪的 `SetItemRef → SendTell` 開密語；
+  右鍵 `SetPassThroughButtons` 穿透回列本身做邀請。列的整寬另鋪一串空白的連結（字級＝列高），
+  點在名字與區域之間的空隙也算數。
+- 亮塊：連結字框是另一個滑鼠焦點（[[wow-hyperlink-region-steals-hover]]），`row.link` 的
+  OnEnter/OnLeave 之外，Sink 的 `OnHyperlinkEnter/Leave` 用 `region:GetParent().row` 補。
+- 名單收掉：`sink:HookScript("OnHyperlinkClick", …)` 後掛 `Tip.afterOpen`（跟 secure 開面板鈕同一條）。
+  OnHyperlinkClick 本體不能碰。
+- 右鍵選單只剩「邀請」：選單項目是插件的 OnClick，放密語又會髒；超過列數上限的人去開完整面板。
+
 相關：[[wow-addon-profiler-cost]]。
 
 ## 尺寸

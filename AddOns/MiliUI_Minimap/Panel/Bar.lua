@@ -128,7 +128,8 @@ end)
 ------------------------------------------------------------
 -- 名單列上的兩個動作
 --
---   左鍵  密語（戰網好友優先走戰網暱稱 —— 對方換角色、離開 WoW 之後那條路還通）
+--   左鍵  密語 —— **不在這裡**。名字是聊天超連結，由暴雪開密語（Panel/Tip.lua 檔頭），
+--         這支的 Lua 一行都不能碰輸入框；左鍵被名字上的連結框接走，到不了 MemberAction。
 --   右鍵  邀請組隊（邀不到的人 —— 沒角色名、跨版本 —— 什麼都不做）
 --
 -- 開完整面板（公會名冊／好友清單）是名單最底下的一顆按鈕，不綁在任何一鍵上 ——
@@ -137,28 +138,19 @@ end)
 --   ToggleGuildFrame / ToggleFriendsFrame 的呼叫，也**不要加回來** —— 12.1 從插件
 --   Lua 直接開會被封鎖（「介面功能因插件而失效」，實測）。
 --
--- ⚠ 密語與邀請的目標名字**必須是明文**。秘密字串餵進 SendChatMessage 或
---   `SetAttribute("macrotext", ...)` 都會被拒（見 wow-121-chat-reply-secret-taint）。
+-- ⚠ 邀請的目標名字**必須是明文**（見 wow-121-chat-reply-secret-taint）。
 --   Data.lua 已經把每個 name 過了 PlainText，撈不出明文的那幾筆在那邊就被丟掉了。
 --
 -- 邀請完名單**留著**：連拉幾個人進隊是常態，每邀一個就關一次等於要重新滑過去三次。
--- 密語與開面板則把名單收掉 —— 那兩個動作的下一步都不在名單上了。
+-- 密語與開面板則把名單收掉 —— 那兩個動作的下一步都不在名單上了（兩條路都走 Tip.afterOpen）。
 ------------------------------------------------------------
 local function MemberAction(entry, button)
-    local target = entry.full or entry.name
-    if button == "RightButton" then
-        if entry.canInvite then C_PartyInfo.InviteUnit(target) end
-        return
-    end
-    Hover.Close()
-    if entry.bnetName and ChatFrame_SendBNetTell then
-        ChatFrame_SendBNetTell(entry.bnetName)
-    else
-        ChatFrame_SendTell(target)
-    end
+    if button ~= "RightButton" then return end
+    if entry.canInvite then C_PartyInfo.InviteUnit(entry.full or entry.name) end
 end
 
--- secure 鈕點下去（面板已經在 secure 環境裡開了）之後把名單收掉
+-- secure 鈕點下去（面板已經在 secure 環境裡開了）、名字連結點下去（暴雪開了密語）
+-- 之後把名單收掉
 ns.Tip.afterOpen = function() Hover.Close() end
 
 ------------------------------------------------------------
@@ -216,8 +208,9 @@ SOURCES.guild = {
         ns.Tip.AddButton(ns.L["Guild roster"], "guild")
     end,
 
-    -- 格子本身：任一鍵＝密語／邀請選單。名單現在自己就點得動（上面兩個動作），
-    -- 選單留著當備援 —— 名單有列數上限，超過的人只能從選單找。
+    -- 格子本身：任一鍵＝邀請選單。名單現在自己就點得動（上面兩個動作），
+    -- 選單留著當備援 —— 名單有列數上限，超過的人只能從選單邀；密語則只有名單上的
+    -- 名字（超過上限的人去開完整面板）。
     -- 開公會面板只走名單底部那顆 secure 鈕，格子上不另外綁（理由見 MemberAction 上方）。
     click = function(_, slot)
         Hover.Close()
@@ -332,44 +325,33 @@ SOURCES.bag = {
 }
 
 ------------------------------------------------------------
--- 右鍵選單：密語／邀請
+-- 右鍵選單：邀請
 --
--- ⚠ 密語與邀請的目標名字**必須是明文**。秘密字串餵進 SendChatMessage 或
---   `SetAttribute("macrotext", ...)` 都會被拒（見 wow-121-chat-reply-secret-taint）。
---   Data.lua 已經把每個 name 過了 PlainText，所以這裡拿到的都是明文；
---   撈不出明文的那幾筆在那邊就被丟掉了。
+-- 選單裡**沒有密語**：選單項目是插件的 OnClick，從那裡開聊天輸入框會污染聊天狀態
+--（Panel/Tip.lua 檔頭）。密語一律點名單上的名字，那是聊天超連結、由暴雪開。
+--
+-- ⚠ 邀請的目標名字**必須是明文**。Data.lua 已經把每個 name 過了 PlainText，
+--   所以這裡拿到的都是明文；撈不出明文的那幾筆在那邊就被丟掉了。
 ------------------------------------------------------------
 local MENU_CAP = 30
 
-local function MemberItems(list, action)
+local function InviteItems(list)
     local items = {}
     local n = 0
     for _, entry in ipairs(list) do
         if n >= MENU_CAP then break end
         -- ⚠ 兩道過濾，缺一個就會在選單裡看到空白列：
         --   ① 沒有名字的（戰網好友卡在選角畫面時 characterName 是空字串）
-        --   ② 邀請清單裡邀不到的人（沒角色名、或在經典服那種跨版本的帳號）
-        --      —— 密語照樣可以走戰網暱稱，所以只擋邀請。
-        local skip = (not entry.name) or entry.name == ""
-            or (action == "invite" and not entry.canInvite)
+        --   ② 邀不到的人（沒角色名、或在經典服那種跨版本的帳號）
+        local skip = (not entry.name) or entry.name == "" or not entry.canInvite
         if not skip then
         n = n + 1
         local hex = S.ClassHex(entry.class)
-        -- 邀請一律用「角色名-伺服器」；密語則優先走戰網暱稱 —— 對方換角色、
-        -- 甚至離開 WoW 之後那條路還通得到，角色名不行。
+        -- 邀請一律用「角色名-伺服器」
         local target = entry.full or entry.name
-        local bnetName = entry.bnetName
         items[#items + 1] = {
             text = string.format("|c%s%s|r", hex, entry.name),
-            onClick = function()
-                if action == "invite" then
-                    C_PartyInfo.InviteUnit(target)
-                elseif bnetName and ChatFrame_SendBNetTell then
-                    ChatFrame_SendBNetTell(bnetName)
-                else
-                    ChatFrame_SendTell(target)
-                end
-            end,
+            onClick = function() C_PartyInfo.InviteUnit(target) end,
         }
         end
     end
@@ -391,8 +373,7 @@ function Bar.ShowMemberMenu(kind, slot)
 
     local items = {
         { text = kind == "guild" and ns.L["Guild"] or ns.L["Friends"], isTitle = true },
-        { text = ns.L["Whisper"], submenu = MemberItems(list, "whisper") },
-        { text = ns.L["Invite"],  submenu = MemberItems(list, "invite") },
+        { text = ns.L["Invite"],  submenu = InviteItems(list) },
         { isSeparator = true },
         { text = ns.L["Settings"], onClick = function() ns.Options.Open() end },
     }

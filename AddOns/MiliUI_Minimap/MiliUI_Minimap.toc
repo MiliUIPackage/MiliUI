@@ -44,6 +44,7 @@ Map\Skin.lua
 Map\Buttons.lua
 
 Panel\Data.lua
+Panel\LinkSink.xml
 Panel\Tip.lua
 Panel\Bar.lua
 
