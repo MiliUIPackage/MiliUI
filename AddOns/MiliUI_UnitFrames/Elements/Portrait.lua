@@ -278,8 +278,8 @@ end
 local function Build(uf, edb)
     local f = uf.elements.portrait or ns.CreateElementBase(uf, "portrait", "Frame", "BackdropTemplate")
     ns.ApplyElementBase(uf, f, edb)
-    -- 頭像是一般單位 ping（可開輪盤），見 ArmPingReceiver
-    ns.ArmPingReceiver(uf, f, uf.unitKey == "player" and "player-portrait" or "unit")
+    -- 頭像也是資源 ping（玩家框只有名字字形是一般 ping），見 ArmPingReceiver
+    ns.ArmPingReceiver(uf, f, uf.unitKey == "player" and "player-resource" or "unit")
     f.modelKey = nil        -- 設定可能改了模式／示範 ID，下次 Update 一律重載
 
     if not f.bg then

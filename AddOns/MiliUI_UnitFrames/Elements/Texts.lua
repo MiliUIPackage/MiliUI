@@ -22,6 +22,18 @@ local function BuildOne(uf, entry, index)
     f:SetPoint("TOPLEFT", uf, "TOPLEFT", ns.P.Scale(entry.x or 0), ns.P.Scale(entry.y or 0))
     f:SetFrameLevel(entry.level or 5)
 
+    -- 玩家框：含 [name] 的文字條目掛「名字接收器」——字形範圍內一般 ping、其餘資源 ping。
+    -- 條目改了 pattern 之後不再含 [name] 就把接收器藏起來（藏起來的框不在 frame stack 裡）。
+    -- 層級每次 Build 都重設，接收器要跟著（它得在所有元件接收器之上才輪得到它答）。
+    if uf.unitKey == "player" and not uf.isPreview then
+        local isName = type(entry.pattern) == "string" and entry.pattern:find("[name]", 1, true) ~= nil
+        if isName then ns.ArmPingReceiver(uf, f, "player-name") end
+        if f.pingReceiver then
+            f.pingReceiver:SetShown(isName)
+            f.pingReceiver:SetFrameLevel(f:GetFrameLevel() + 1)
+        end
+    end
+
     local fs = f.fontstring
     Media.SetFont(fs, entry.size, entry.flags, ns.db.global.font)
     fs:SetJustifyH(entry.justifyH or "LEFT")

@@ -31,6 +31,24 @@ function ns.ApplyElementBase(uf, f, edb)
     f:SetAlpha(edb.alpha or 1)
 end
 
+-- 游標是否在 FontString 實際畫出來的字形範圍內（不是文字框的矩形——預設版面的名字框是
+-- 200×50 整片蓋住框體）。字形範圍用 GetStringWidth/GetStringHeight 依 justify 推回去，
+-- 上下左右各放 4 個版面單位當容錯。只給玩家框用，玩家框的錨定鏈沒有秘密值。
+local function CursorOverGlyphs(fs)
+    local l, b, w, h = fs:GetRect()
+    if not l then return false end
+    local sw, sh = fs:GetStringWidth(), fs:GetStringHeight()
+    if not sw or sw <= 0 then return false end
+    local jh, jv = fs:GetJustifyH(), fs:GetJustifyV()
+    local gl = (jh == "RIGHT" and (l + w - sw)) or (jh == "CENTER" and (l + (w - sw) / 2)) or l
+    local gb = (jv == "TOP" and (b + h - sh)) or (jv == "MIDDLE" and (b + (h - sh) / 2)) or b
+    local x, y = GetCursorPosition()
+    local s = fs:GetEffectiveScale()
+    x, y = x / s, y / s
+    local pad = 4
+    return x >= gl - pad and x <= gl + sw + pad and y >= gb - pad and y <= gb + sh + pad
+end
+
 -- Ping 接收器：一顆從 PingableUnitFrameTemplate 建出來的子框，蓋滿 host。
 --
 -- 為什麼是子框、為什麼不能 Mixin：暴雪 PingManager 用 securecallfunction 叫接收器的
@@ -49,12 +67,17 @@ end
 -- 疊在 uf 上的那部分 uf 照樣收到 OnEnter/OnLeave，高亮與提示不變。
 --
 -- role：
---   "unit"            模板原樣，一個方法都不碰（所有非玩家框、以及玩家框的頭像）
---   "player-resource" 玩家框的血條／資源條／框底：資源 ping（播報血量，治療者連法力），不開輪盤
---   "player-portrait" 玩家框的頭像：一般單位 ping、可開輪盤，但 GUID 固定是玩家本人（載具期間也是）
+--   "unit"            模板原樣，一個方法都不碰（所有非玩家框）
+--   "player-resource" 玩家框的血條／魔力條／頭像／資源列／框底：資源 ping（播報血量，治療者
+--                     連法力），不開輪盤。不照暴雪拿頭像當一般 ping 區：我們的頭像是 3D、
+--                     常常整片蓋住框體，那樣資源 ping 會很難點到。
+--   "player-name"     玩家框的名字文字框：游標在**字形範圍**內＝一般 ping、可開輪盤，GUID 固定
+--                     玩家本人；字形範圍外（文字框其餘那片，預設 200×50）＝資源 ping。這顆在
+--                     最上層，所以框內大部分 ping 其實都是它在答。
 -- ⚠ 後兩種會覆寫方法（污染執行），只因為玩家 GUID 永遠明文才安全。其他框絕對不能照抄。
 function ns.ArmPingReceiver(uf, host, role)
-    if host.pingReceiver or uf.isPreview then return end
+    if host.pingReceiver then return host.pingReceiver end
+    if uf.isPreview then return end
     local ok, r = pcall(CreateFrame, "Frame", nil, host, "PingableUnitFrameTemplate")
     if not ok or not r then return end
     r:SetAllPoints(host)
@@ -66,12 +89,21 @@ function ns.ArmPingReceiver(uf, host, role)
     if role == "player-resource" then
         function r:GetAllowRadialWheel() return false end
         function r:GetTargetInfo() return { guid = UnitGUID("player"), isPlayerResource = true } end
-    elseif role == "player-portrait" then
-        function r:GetTargetInfo() return { guid = UnitGUID("player") } end
+    elseif role == "player-name" then
+        local fs = host.fontstring
+        local function overName()
+            local ok, over = pcall(CursorOverGlyphs, fs)   -- 算錯不能把暴雪的 securecall 炸掉
+            return ok and over or false
+        end
+        function r:GetAllowRadialWheel() return overName() end
+        function r:GetTargetInfo()
+            return { guid = UnitGUID("player"), isPlayerResource = not overName() }
+        end
     end
     host.pingReceiver = r
     uf.pingReceivers = uf.pingReceivers or {}
     uf.pingReceivers[#uf.pingReceivers + 1] = r
+    return r
 end
 
 ------------------------------------------------------------
