@@ -87,7 +87,7 @@ C_NamePlate.GetNamePlateForUnit("target")
 - 掃 CDM 池子走事件 ＋ 共用層 `ns.Metro` 每 0.5 秒驗證一次，**不是每幀掃池子**。
 - 每幀的 `OnUpdate` 掛在一個獨立的 driver frame 上（不是條本身 —— 隱藏的 frame
   收不到 OnUpdate），而且只在「有追蹤到的長條 ∧ 已掛上名條」時才掛。
-- 條要不要顯示是 OnUpdate 自己問 `item:IsActive()`（明文布林），不靠輪詢 ——
+- 條要不要顯示是 OnUpdate 自己問 `item:IsVisible()`，不靠輪詢 ——
   1.5 秒的揮擊間隔配 0.5 秒輪詢會看得出延遲。
 
 ## 隱藏暴雪那條（2026-09-17 加）
@@ -99,6 +99,18 @@ OnUpdate 裡更新值，藏起來就收不到 OnUpdate，鏡射會凍住；alpha
 還回去；Ayije_CDM 的淡出也可能整批改 alpha）。編輯模式時還原，讓玩家看得到那條在哪。
 選項 `hideBlizzardBar` 預設開。圖示區（`BuffIconCooldownViewer`）**偵測不到**：它畫的是冷卻轉盤，
 暴雪往 `SetCooldown` 寫開始＋持續時間，秘密值算不出剩餘、餵自己的轉盤也被擋，沒有 duration 物件可拿。
+
+## 踩過的點：`item:IsActive()` 戰鬥中是秘密布林（2026-09-17 實機）
+
+症狀：一進戰鬥條出現 0.幾秒就消失。成因鏈：暴雪的 `isActive` 是從光環到期時間算來的，戰鬥中變秘密布林
+→ `SafeBool` 把秘密當 false → 0.5 秒輪詢一驗「沒亮」就重掃 → 重掃在戰鬥中比對不到秘密 cooldownID
+→ 追蹤掉了。三處一起改：
+1. 活性訊號改用 `item:IsVisible()`：暴雪對非 active 的 item 會 `SetShown(false)`，等價且永遠明文；
+   用 IsVisible 不用 IsShown 是為了連「整個 viewer 被藏、OnUpdate 不跑、值凍住」也一起擋掉。
+2. `StillCurrent()` 在 cooldownID 讀不到時**當作沒換**（框重發只在換天賦／專精，不在戰鬥中）。
+3. 輪詢只在「沒對象／對象換人」時重掃，item 沒亮不重掃 —— 否則戰鬥中目標死掉 buff 一掉就把追蹤丟了。
+通則：**「暴雪自己 `if` 得動」不代表插件也 if 得動**，暴雪是 untainted。任何從光環／冷卻資料推導的布林
+在戰鬥中都要假設是秘密，改找一個由顯示狀態承載的明文等價訊號。
 
 ## 待實機驗證
 

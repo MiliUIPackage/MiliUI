@@ -86,16 +86,14 @@ local function ItemMatches(item)
     return false
 end
 
--- item:IsActive() 回的是明文布林（暴雪自己就寫 `if self:IsActive()`），可以直接 if
+-- ⚠ 不要問 item:IsActive()：它是暴雪從光環的到期時間算出來的，**戰鬥中是秘密布林**
+--   （2026-09-17 實機：一進戰鬥條出現 0.幾秒就消失 —— 秘密布林被當成 false，0.5 秒輪詢
+--   一驗就把追蹤丟掉）。暴雪對非 active 的 item 會 SetShown(false)，所以「看得見」是等價
+--   而且永遠明文的訊號。用 IsVisible 而不是 IsShown：整個 viewer 被藏起來時 item 的
+--   OnUpdate 不跑、值會凍住，那時一樣不該鏡射。我們自己壓的 alpha 0 不影響 IsVisible。
 function Source.IsItemActive(item)
-    if not item then return false end
-    if item.IsActive then
-        return S.SafeBool(item.IsActive, item)
-    end
-    if item.IsShown then
-        return item:IsShown() and true or false
-    end
-    return false
+    if not item or not item.IsVisible then return false end
+    return item:IsVisible() and true or false
 end
 
 ------------------------------------------------------------
@@ -132,12 +130,15 @@ local function Scan()
     end
 end
 
--- 手上這個還算不算數：框架會被回收再發給別的法術，cooldownID 變了就是換人了
+-- 手上這個還算不算數：框架會被回收再發給別的法術，cooldownID 變了就是換人了。
+-- ⚠ 戰鬥中 cooldownID 可能讀不到（秘密）：那時**當作沒換**，不能當作換了 ——
+--   當作換了會去重掃，而重掃在戰鬥中什麼都比對不到，追蹤就這樣掉了。
+--   框被重發只發生在追蹤清單改變（換天賦／專精），不會在戰鬥中發生；能讀時輪詢會再驗。
 local function StillCurrent()
     if not trackedItem then return false end
     local id = trackedItem.cooldownID
-    if id == nil or S.IsSecret(id) then return false end
-    if trackedID == nil or S.IsSecret(trackedID) then return false end
+    if id == nil then return false end
+    if S.IsSecret(id) or S.IsSecret(trackedID) then return true end
     return id == trackedID
 end
 
@@ -187,7 +188,7 @@ end
 -- 事件與輪詢
 --
 -- 事件負責「清單可能變了」的時刻；輪詢只做便宜的驗證（框還在嗎、還亮著嗎），
--- 不在乎那 0.5 秒的延遲 —— 條要不要顯示是 Bar 每幀自己問 IsActive()，
+-- 不在乎那 0.5 秒的延遲 —— 條要不要顯示是 Bar 每幀自己問 IsItemActive()（IsVisible），
 -- 這裡只管「指到的是不是還是同一個框」。**不要用每幀 OnUpdate 掃池子。**
 ------------------------------------------------------------
 local driver = CreateFrame("Frame")
@@ -199,8 +200,11 @@ local EVENTS = {
     "COOLDOWN_VIEWER_TABLE_HOTFIXED",
 }
 
+-- ⚠ 只在「沒有追蹤對象」或「對象換人了」時重掃，**item 沒亮不重掃**：戰鬥中目標死掉、
+--   buff 掉了那一刻 item 會藏起來，這時重掃比對不到秘密 ID，等於自己把追蹤丟掉，
+--   下一個目標要等脫戰才有條。條亮不亮是 Bar 每幀自己看 IsItemActive，跟這裡無關。
 local function Validate()
-    if not StillCurrent() or not Source.IsItemActive(trackedItem) then
+    if not StillCurrent() then
         Scan()
     end
     Source.ApplyDim()
