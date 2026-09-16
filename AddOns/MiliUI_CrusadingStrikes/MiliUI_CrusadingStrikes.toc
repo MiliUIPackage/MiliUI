@@ -1,0 +1,44 @@
+## Interface: 120100, 120105
+## Title: MiliUI Crusading Strikes Helper
+## Title-zhTW: |cff00FFFF[職業]|r|cffF58CBA[聖騎]|r 德莫的征戰聖擊助手
+## Title-zhCN: |cff4488FF[MiliUI]|r 德莫的征战圣击助手
+## Notes: Crusading Strikes swing timer mirrored onto the Platynator target nameplate.|n|n|cffffd200Usage: |r/csaa opens settings.
+## Notes-zhTW: MiliUI Crusading Strikes Helper|n|n德莫的征戰聖擊助手。|n|n把征戰聖擊「距離下一刀還有多久」做成一條進度條，貼在目標名條的血條下方；施法條出現時自動讓位。|n|n需要暴雪「冷卻管理器」啟用，並把征戰聖擊加進「追蹤的增益」。|n|n|cffffd200使用方法: |r/csaa 開啟設定。
+## Notes-zhCN: MiliUI Crusading Strikes Helper|n|n德莫的征战圣击助手。|n|n把征战圣击「距离下一刀还有多久」做成一条进度条，贴在目标名条的血条下方；施法条出现时自动让位。|n|n需要暴雪「冷却管理器」启用，并把征战圣击加进「追踪的增益」。|n|n|cffffd200使用方法: |r/csaa 打开设置。
+## Category: Combat
+## Category-zhTW: 戰鬥
+## Category-zhCN: 战斗
+## Author: Mili
+## Version: 1.0.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\spell_holy_crusaderstrike
+## SavedVariables: MiliUI_CrusadingStrikes_DB
+## AddonCompartmentFunc: MiliUICrusadingStrikes_OnAddonCompartmentClick
+
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
+Libs\Callbacks.lua
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+
+Core\Init.lua
+Core\Media.lua
+Core\DB.lua
+
+Modules\Source.lua
+Modules\Anchor.lua
+Modules\Bar.lua
+
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
+Libs\MiliUIWidgets\Controls.lua
+Options\Panel.lua
+Options\Tab_General.lua
+Options\Tab_Appearance.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
+Options\Blizzard.lua
+Api.lua

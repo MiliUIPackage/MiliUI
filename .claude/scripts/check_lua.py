@@ -32,6 +32,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_AuraEnhance_DB", "MiliUI_AuraEnhanceDB",
     "MiliUI_BloodlustMusic_DB", "MiliUI_BurstPotionHelperDB",
     "MiliUI_CharacterNotes_DB", "MiliUI_ChatBar_DB",
+    "MiliUI_CrusadingStrikes_DB",
     "MiliUI_DamageMeters_DB", "MiliUI_Focus_DB",
     "MiliUI_InfoBar_DB",
     "MiliUI_Minimap_DB",

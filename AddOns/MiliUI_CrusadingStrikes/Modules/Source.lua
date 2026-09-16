@@ -1,0 +1,228 @@
+------------------------------------------------------------
+-- 來源：暴雪冷卻管理器「追蹤的增益」長條
+--
+-- 為什麼是這條路（其他四條都查證過走不通，別再試）：
+--   * 戰鬥記錄 SWING_DAMAGE —— 12.x 插件不能註冊 COMBAT_LOG_EVENT_UNFILTERED。
+--   * UNIT_SPELLCAST_SUCCEEDED —— 近戰普攻不派送。
+--   * GetPlayerAuraBySpellID → GetAuraDuration → SetTimerDuration —— GetAuraDuration 是
+--     AllowedWhenUntainted，光環受限時（戰鬥／首領戰／M+／PvP）污染端呼叫直接拋錯，
+--     而這個 buff 每揮一刀就刷新一次，等於每刀都要在戰鬥中重 arm。
+--   * 自建 duration 物件／自己算 expirationTime - GetTime() —— 前者餵不進秘密值，
+--     後者是對秘密值做算術。
+--
+-- 走得通的是：暴雪自己的 `BuffBarCooldownViewer` item frame 是 **untainted 程式**
+-- 在每幀往 `item.Bar` 餵 SetMinMaxValues / SetValue。那些值戰鬥中是秘密，但
+-- **原生 StatusBar 之間互傳是允許的**，我們只當傳遞者（見 Modules/Bar.lua）。
+--
+-- 這支的職責只有一件：找出「哪一個 item frame 是征戰聖擊」，並把它交出去。
+-- 前置條件在玩家端：冷卻管理器要啟用，且征戰聖擊要在「追蹤的增益」列裡
+-- （設定頁會把這個狀態亮出來，見 Options/Tab_General.lua）。
+------------------------------------------------------------
+local _, ns = ...
+
+local S = ns.Secret
+
+ns.Source = {}
+local Source = ns.Source
+
+-- 征戰聖擊在不同天賦／覆寫下用過的法術編號，全部視為同一件事。
+-- CDM 的 cooldownInfo 可能填其中任一個，所以是一張集合不是單一值。
+local CRUSADING_STRIKES_IDS = {
+    [404542]  = true,
+    [406833]  = true,
+    [408385]  = true,
+    [1226662] = true,
+    [1307499] = true,
+}
+Source.SPELL_IDS = CRUSADING_STRIKES_IDS
+
+local trackedItem, trackedID
+local lastScanFailed = false
+
+------------------------------------------------------------
+-- 比對
+--
+-- ⚠ 秘密值不能當 table 的 key —— 每個編號查表之前都要先過秘密閘，
+--   否則在戰鬥中就是一句 "cannot be indexed with secret keys"。
+------------------------------------------------------------
+local function IsKnownSpellID(value)
+    if value == nil or S.IsSecret(value) then return false end
+    return CRUSADING_STRIKES_IDS[value] == true
+end
+
+local function InfoMatches(info)
+    if type(info) ~= "table" then return false end
+    if S.IsSecret(info) then return false end
+    if IsKnownSpellID(info.spellID)
+        or IsKnownSpellID(info.overrideSpellID)
+        or IsKnownSpellID(info.overrideTooltipSpellID) then
+        return true
+    end
+    local linked = info.linkedSpellIDs
+    if type(linked) == "table" and not S.IsSecret(linked) then
+        for _, spellID in ipairs(linked) do
+            if IsKnownSpellID(spellID) then return true end
+        end
+    end
+    return false
+end
+
+local function ItemMatches(item)
+    if not item then return false end
+    local cooldownID = item.cooldownID
+    if cooldownID == nil or S.IsSecret(cooldownID) then return false end
+
+    local getInfo = C_CooldownViewer and C_CooldownViewer.GetCooldownViewerCooldownInfo
+    if getInfo then
+        local info = S.SafeCall(getInfo, cooldownID)
+        if InfoMatches(info) then return true end
+    end
+
+    -- 備援：有些版本的 item frame 自己給得出光環的法術編號
+    if item.GetAuraSpellID then
+        local spellID = S.SafeCall(item.GetAuraSpellID, item)
+        if IsKnownSpellID(spellID) then return true end
+    end
+    return false
+end
+
+-- item:IsActive() 回的是明文布林（暴雪自己就寫 `if self:IsActive()`），可以直接 if
+function Source.IsItemActive(item)
+    if not item then return false end
+    if item.IsActive then
+        return S.SafeBool(item.IsActive, item)
+    end
+    if item.IsShown then
+        return item:IsShown() and true or false
+    end
+    return false
+end
+
+------------------------------------------------------------
+-- 掃描
+------------------------------------------------------------
+local function Clear()
+    trackedItem, trackedID = nil, nil
+end
+
+local function Scan()
+    Clear()
+    local viewer = _G.BuffBarCooldownViewer
+    local pool = viewer and viewer.itemFramePool
+    if not pool or not pool.EnumerateActive then
+        lastScanFailed = true
+        return
+    end
+    lastScanFailed = false
+
+    -- 正在跑的那個優先；只是「在清單裡但沒亮」的留成備援，這樣玩家看設定頁時
+    -- 也能得到「有找到，只是現在沒上 buff」這個答案
+    local fallback
+    for item in pool:EnumerateActive() do
+        if ItemMatches(item) then
+            if Source.IsItemActive(item) then
+                trackedItem, trackedID = item, item.cooldownID
+                return
+            end
+            fallback = fallback or item
+        end
+    end
+    if fallback then
+        trackedItem, trackedID = fallback, fallback.cooldownID
+    end
+end
+
+-- 手上這個還算不算數：框架會被回收再發給別的法術，cooldownID 變了就是換人了
+local function StillCurrent()
+    if not trackedItem then return false end
+    local id = trackedItem.cooldownID
+    if id == nil or S.IsSecret(id) then return false end
+    if trackedID == nil or S.IsSecret(trackedID) then return false end
+    return id == trackedID
+end
+
+function Source.GetTrackedItem()
+    if not StillCurrent() then return nil end
+    return trackedItem
+end
+
+------------------------------------------------------------
+-- 事件與輪詢
+--
+-- 事件負責「清單可能變了」的時刻；輪詢只做便宜的驗證（框還在嗎、還亮著嗎），
+-- 不在乎那 0.5 秒的延遲 —— 條要不要顯示是 Bar 每幀自己問 IsActive()，
+-- 這裡只管「指到的是不是還是同一個框」。**不要用每幀 OnUpdate 掃池子。**
+------------------------------------------------------------
+local driver = CreateFrame("Frame")
+local EVENTS = {
+    "PLAYER_ENTERING_WORLD",
+    "SPELLS_CHANGED",
+    "PLAYER_SPECIALIZATION_CHANGED",
+    "TRAIT_CONFIG_UPDATED",
+    "COOLDOWN_VIEWER_TABLE_HOTFIXED",
+}
+
+local function Validate()
+    if not StillCurrent() or not Source.IsItemActive(trackedItem) then
+        Scan()
+    end
+end
+
+function Source.Start()
+    for _, e in ipairs(EVENTS) do
+        pcall(driver.RegisterEvent, driver, e)
+    end
+    driver:SetScript("OnEvent", function()
+        Clear()
+        Scan()
+    end)
+    ns.poll.Add("source", 0.5, Validate)
+    Scan()
+end
+
+function Source.Stop()
+    driver:UnregisterAllEvents()
+    driver:SetScript("OnEvent", nil)
+    ns.poll.Remove("source")
+    Clear()
+end
+
+function Source.Rescan()
+    Clear()
+    Scan()
+end
+
+------------------------------------------------------------
+-- 設定頁的狀態列用的診斷（全部明文，任何可能是秘密的值都只回「有／沒有」）
+------------------------------------------------------------
+-- 征戰聖擊有沒有被加進「追蹤的增益」。戰鬥中 cooldownInfo 的欄位可能是秘密值，
+-- 比對不了，所以那時候直接回 "combat" 讓設定頁說「戰鬥中無法檢查」。
+local function TrackedBuffListed()
+    if InCombatLockdown() then return "combat" end
+    local cv = C_CooldownViewer
+    local cat = Enum and Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.TrackedBuff
+    if not cv or not cv.GetCooldownViewerCategorySet or cat == nil then return "unknown" end
+    local ids = S.SafeCall(cv.GetCooldownViewerCategorySet, cat, true)
+    if type(ids) ~= "table" then return "unknown" end
+    for _, cooldownID in ipairs(ids) do
+        if not S.IsSecret(cooldownID) then
+            local info = S.SafeCall(cv.GetCooldownViewerCooldownInfo, cooldownID)
+            if InfoMatches(info) then return "yes" end
+        end
+    end
+    return "no"
+end
+
+function Source.Status()
+    local item = Source.GetTrackedItem()
+    return {
+        isPaladin  = ns.isPaladin,
+        platynator = C_AddOns.IsAddOnLoaded("Platynator") and true or false,
+        cdmEnabled = GetCVar("cooldownViewerEnabled") == "1",
+        viewer     = _G.BuffBarCooldownViewer ~= nil and not lastScanFailed,
+        listed     = TrackedBuffListed(),
+        item       = item ~= nil,
+        active     = Source.IsItemActive(item),
+        secretID   = trackedItem ~= nil and S.IsSecret(trackedItem.cooldownID),
+    }
+end

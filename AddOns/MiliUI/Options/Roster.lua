@@ -33,6 +33,7 @@ ns.AddonRoster = {
         { key = "MiliUI_UnitFrames", folders = { "MiliUI_UnitFrames" }, menuKey = "unitframes" },
         { key = "MiliUI_Tooltip", folders = { "MiliUI_Tooltip" }, menuKey = "tooltip" },
         { key = "MiliUI_Focus", folders = { "MiliUI_Focus" }, menuKey = "focus" },
+        { key = "MiliUI_CrusadingStrikes", folders = { "MiliUI_CrusadingStrikes" }, menuKey = "crusadingstrikes" },
         { key = "MiliUI_ChatBar", folders = { "MiliUI_ChatBar" }, menuKey = "chatbar" },
         { key = "MiliUI_BurstPotionHelper", folders = { "MiliUI_BurstPotionHelper" }, menuKey = "burstpotion" },
         { key = "MiliUI_BloodlustMusic", folders = { "MiliUI_BloodlustMusic" }, menuKey = "bloodlustmusic" },
