@@ -29,6 +29,11 @@ local UNIT_EVENT_BUCKET = {
     UNIT_HEAL_PREDICTION = "health",
     UNIT_ABSORB_AMOUNT_CHANGED = "health",
     UNIT_HEAL_ABSORB_AMOUNT_CHANGED = "health",
+    -- ⚠ 自然回復／衰減時 UNIT_POWER_UPDATE **兩秒才來一次**（只有花費與回滿會即時送），
+    -- 只掛它的症狀是「貓德／盜賊等能量時條和數字每兩秒跳一格」。平滑的那條是
+    -- FREQUENT；暴雪自己的玩家框更狠，是每幀輪詢 UnitPower。
+    -- UPDATE 不拿掉：它在 FORCE_EVENT 裡當「回滿」這個終點狀態的保底，理由見那裡。
+    UNIT_POWER_FREQUENT = "power",
     UNIT_POWER_UPDATE = "power",
     UNIT_MAXPOWER = "power",
     UNIT_DISPLAYPOWER = "powertype",
@@ -66,9 +71,17 @@ local UNIT_EVENT_BUCKET = {
 --
 -- 仇恨也是：怪死掉那一幀常常連續來「3 → nil」兩波，第二波被擋掉就停在「亮」，
 -- 閃到下一個仇恨事件或脫戰才熄。一場戰鬥來沒幾次，同樣不值得去重。
+--
+-- 能量刻意拆兩半：UNIT_POWER_FREQUENT **吃去重** —— 回能時低幀數下一幀來好幾次，
+-- 而且下一點能量馬上又會來，過期一幀自我修復。UNIT_POWER_UPDATE **不吃** —— 它只在
+-- 花費、回滿、以及回能中每兩秒才來，量很小，而「回滿」是終點狀態：之後不再有任何
+-- 能量事件，同幀最後那一波 FREQUENT 被擋掉的話條就停在 99。UPDATE 在回滿時必送，
+-- 放它繞過戳記就是那一格的保底。UNIT_MAXPOWER 比照 UNIT_MAXHEALTH。
 local FORCE_EVENT = {
     UNIT_HEALTH = true,
     UNIT_MAXHEALTH = true,
+    UNIT_POWER_UPDATE = true,
+    UNIT_MAXPOWER = true,
     UNIT_NAME_UPDATE = true,
     UNIT_LEVEL = true,
     UNIT_CLASSIFICATION_CHANGED = true,

@@ -240,7 +240,7 @@ function ns.ResourceInfo(key) return RESOURCES[key] end
 -- 實際要畫的清單（套上使用者開關）
 --
 -- ⚠ 用檔案層級的 scratch 表，不要每次現配一張：Update 掛在 power 桶上
--- （UNIT_POWER_UPDATE，盜賊／武僧的能量一秒好幾次），每次配一張表就是純粹的垃圾。
+-- （UNIT_POWER_FREQUENT，盜賊／武僧的能量一秒好幾次），每次配一張表就是純粹的垃圾。
 -- 回傳的表**呼叫端不可以留著**，下一次呼叫就被 wipe 了。
 local activeRows = {}
 
