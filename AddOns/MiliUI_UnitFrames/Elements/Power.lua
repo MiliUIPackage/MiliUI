@@ -11,7 +11,8 @@ local UnitPower, UnitPowerMax = UnitPower, UnitPowerMax
 local function Build(uf, edb)
     local f = uf.elements.mpbar or ns.CreateElementBase(uf, "mpbar", "Frame", "BackdropTemplate")
     ns.ApplyElementBase(uf, f, edb)
-    ns.ArmPingReceiver(uf, f)          -- 露出框外那截也要接 ping
+    -- 露出框外那截也要接 ping，見 ArmPingReceiver
+    ns.ArmPingReceiver(uf, f, uf.unitKey == "player" and "player-resource" or "unit")
 
     local texture = Media.BarTexture(ns.db.global.barTexture)
     local inset = (edb.border ~= false) and Media.BorderInset() or 0

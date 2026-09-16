@@ -27,27 +27,51 @@ function ns.ApplyElementBase(uf, f, edb)
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", uf, "TOPLEFT", Scale(edb.x or 0), Scale(edb.y or 0))
     f:SetFrameLevel(edb.level or 3)
+    if f.pingReceiver then f.pingReceiver:SetFrameLevel(f:GetFrameLevel() + 1) end   -- 跟著元件層級走
     f:SetAlpha(edb.alpha or 1)
 end
 
--- 讓元件框也接 ping，回答一律委派給單位框。
--- 魔力條、職業資源條會露出 uf 矩形之外（見 notes 的「視覺框體不等於框架」），游標在露出的
--- 那截時 frame stack 裡沒有 uf，ping 就穿過去打地面。元件框自己登記成 ping-receiver，
--- 三個 mixin 方法都轉問 uf（玩家框的資源 ping 判斷就只寫在 uf 那一份）。
--- 只開滑鼠移動、不開點擊：點擊照舊穿到底下的 uf（跟光環按鈕同一招，見 Auras.lua）；
--- 移動事件用 SetPropagateMouseMotion 往下傳，疊在 uf 上的那部分 uf 照樣收到
--- OnEnter/OnLeave，高亮與提示行為不變。露出框外的那截底下本來就沒有 uf，跟以前一樣不高亮。
--- 預覽孿生跳過：那裡的元件只是排版用，不該吃滑鼠。
-function ns.ArmPingReceiver(uf, f)
-    if f.pingArmed or uf.isPreview or not uf.GetTargetInfo then return end
-    f.pingArmed = true
-    f:SetMouseClickEnabled(false)
-    f:SetMouseMotionEnabled(true)
-    f:SetPropagateMouseMotion(true)
-    f:SetAttribute("ping-receiver", true)
-    function f:GetIsPingable() return uf:GetIsPingable() end
-    function f:GetAllowRadialWheel() return uf:GetAllowRadialWheel() end
-    function f:GetTargetInfo() return uf:GetTargetInfo() end
+-- Ping 接收器：一顆從 PingableUnitFrameTemplate 建出來的子框，蓋滿 host。
+--
+-- 為什麼是子框、為什麼不能 Mixin：暴雪 PingManager 用 securecallfunction 叫接收器的
+-- GetIsPingable / GetAllowRadialWheel / GetTargetInfo 再 securecopy 結果。那次執行只要讀到
+-- 插件寫的欄位（Mixin() 塞進去的方法、mixin 內部讀的 self.unit），就變成污染執行，UnitGUID
+-- 回的秘密 GUID 成了污染的秘密值，securecopy 當場硬錯、ping 監聽器卡死 —— 症狀是副本裡
+-- ping 敵對目標框直接報錯（友方與野外怪的 GUID 是明文，平常測不到）。EUI 實測三輪才定下來的
+-- 規矩：mixin 與 ping-receiver 屬性都要由 XML 模板在建框時裝上，框上不能有 unit 欄位（mixin
+-- 讀 self.unit or self:GetAttribute("unit")，欄位缺席就退到屬性，屬性是 C 端儲存不帶 taint），
+-- 三個方法不能覆寫。uf.unit 全插件都在用不能拿掉，所以接收器另開一顆乾淨的子框。
+--
+-- 為什麼每個元件各一顆：魔力條、職業資源條會露出 uf 矩形之外（見 notes「視覺框體不等於框架」），
+-- 游標在露出的那截時 frame stack 裡沒有 uf，只有元件。
+--
+-- 滑鼠：只開移動、不開點擊 —— 點擊照舊穿到底下的 uf；移動事件用 SetPropagateMouseMotion 往下傳，
+-- 疊在 uf 上的那部分 uf 照樣收到 OnEnter/OnLeave，高亮與提示不變。
+--
+-- role：
+--   "unit"            模板原樣，一個方法都不碰（所有非玩家框、以及玩家框的頭像）
+--   "player-resource" 玩家框的血條／資源條／框底：資源 ping（播報血量，治療者連法力），不開輪盤
+--   "player-portrait" 玩家框的頭像：一般單位 ping、可開輪盤，但 GUID 固定是玩家本人（載具期間也是）
+-- ⚠ 後兩種會覆寫方法（污染執行），只因為玩家 GUID 永遠明文才安全。其他框絕對不能照抄。
+function ns.ArmPingReceiver(uf, host, role)
+    if host.pingReceiver or uf.isPreview then return end
+    local ok, r = pcall(CreateFrame, "Frame", nil, host, "PingableUnitFrameTemplate")
+    if not ok or not r then return end
+    r:SetAllPoints(host)
+    r:SetFrameLevel(host:GetFrameLevel() + (host == uf and 0 or 1))
+    r:SetMouseClickEnabled(false)
+    r:SetMouseMotionEnabled(true)
+    r:SetPropagateMouseMotion(true)
+    r:SetAttribute("unit", uf.unit)
+    if role == "player-resource" then
+        function r:GetAllowRadialWheel() return false end
+        function r:GetTargetInfo() return { guid = UnitGUID("player"), isPlayerResource = true } end
+    elseif role == "player-portrait" then
+        function r:GetTargetInfo() return { guid = UnitGUID("player") } end
+    end
+    host.pingReceiver = r
+    uf.pingReceivers = uf.pingReceivers or {}
+    uf.pingReceivers[#uf.pingReceivers + 1] = r
 end
 
 ------------------------------------------------------------
@@ -210,6 +234,11 @@ function ns.EvalActiveUnit(uf)
 
     uf.unit = resolved
     uf.cache.unit = resolved
+    -- 接收器只認 unit 屬性（不能有欄位，見 ArmPingReceiver），載具切換要跟著改。
+    -- 子框不是 secure 框，戰鬥中 SetAttribute 不受保護。
+    if uf.pingReceivers then
+        for i = 1, #uf.pingReceivers do uf.pingReceivers[i]:SetAttribute("unit", resolved) end
+    end
     -- 有自己存一份 unit 的元件要跟著換（castbar、光環容器）
     for _, def in ipairs(ns.ElementOrder) do
         if def.setunit and uf.elements[def.name] then
@@ -763,33 +792,8 @@ function ns.SpawnUnitFrame(unit)
     uf:SetAttribute("*macrotext2", "/click " .. proxyName)
     InstallMenuClassifierFix()                 -- 只裝一次，第一個框生成時順便
     uf:SetAttribute("unit", unit)
-    -- Ping 系統：登記成 ping 接收器，滑鼠在框上按 ping 會 ping 這個單位，不會穿過去打地面。
-    -- 暴雪的 C_PingSecure.GetTargetPingReceiver 掃游標下的 frame stack 找第一個帶
-    -- ping-receiver 屬性的框，然後用 securecallfunction 叫框上的 GetTargetInfo，
-    -- 回傳值經 securecopy 拷回安全端再 SendUnitPing —— 本來就是給插件框走的路。
-    -- mixin 讀 self.unit，載具切換時 EvalActiveUnit 會把它換掉，所以載具期間也對。
-    -- ⚠ GetTargetPingGUID 是 10.1 的舊介面，現在沒人呼叫，別用。
-    if PingableType_UnitFrameMixin then
-        Mixin(uf, PingableType_UnitFrameMixin)
-        uf:SetAttribute("ping-receiver", true)
-        if unitKey == "player" then
-            -- 對齊暴雪玩家框：滑鼠在血條/資源條上 ⇒ 不開輪盤、送「我的血量」那種資源 ping；
-            -- 只有在頭像上才是一般單位 ping（可開輪盤）。沒開頭像元件就整個框都算資源區。
-            local function OverPortrait(self)
-                local p = self.elements and self.elements.portrait
-                return p and p:IsShown() and p:IsMouseOver() or false
-            end
-            function uf:GetAllowRadialWheel()
-                return OverPortrait(self)
-            end
-            function uf:GetTargetInfo()
-                return {
-                    guid = UnitGUID("player"),
-                    isPlayerResource = not OverPortrait(self),
-                }
-            end
-        end
-    end
+    -- Ping：uf 本體不掛 mixin 也不設 ping-receiver，接收器全是模板原樣的子框，見 ns.ArmPingReceiver
+    ns.ArmPingReceiver(uf, uf, unitKey == "player" and "player-resource" or "unit")
     -- 載具：讓 secure 端在點擊時自己把 player ↔ pet 對調（讀取時計算，不寫屬性，
     -- 所以戰鬥中也有效）。顯示面由 ns.EvalActiveUnit 跟上，見那裡的說明。
     uf:SetAttribute("toggleForVehicle", true)

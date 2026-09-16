@@ -529,49 +529,56 @@ post-pass 補（`FILL_DIRECTION_ELEMENTS`），不在十個單位的字面表裡
 跟計時器無關）、治療預估反向時的起點是否貼齊前緣、溢盾光暈反向時的位置、預覽孿生的假施法方向。
 
 
-## 單位框接收 ping（2026-09-16）
+## 單位框接收 ping（2026-09-16，2026-09-17 重做）
 
 滑鼠在血條上按 ping 原本會穿過去標在地面：暴雪 ping 系統
 （`Blizzard_PingUI/Blizzard_PingManager.lua`）按下時呼叫 `C_PingSecure.GetTargetPingReceiver(x, y)`
 掃游標下的 frame stack，只認**設有 `ping-receiver` 屬性**的框，找不到就退回世界命中測試。
-`Core/UnitFrame.lua` 的 `ns.SpawnUnitFrame` 在 `SetAttribute("unit", unit)` 之後
-`Mixin(uf, PingableType_UnitFrameMixin)` ＋ `SetAttribute("ping-receiver", true)`
-（跟 Cell `RaidFrames/UnitButton.lua` 同一招）。
 
-- **建框時寫死一次**：SecureUnitButton 戰鬥中不能 SetAttribute，不能放進 ApplySettings／Update
-  那類會重跑的路徑。
-- 找到框後暴雪用 `securecallfunction` 叫框上的 `GetIsPingable`／`GetAllowRadialWheel`／
-  `GetTargetInfo`，回傳值經 `securecopy` 拷回安全端 —— 這條路本來就是給插件框走的。
-- mixin 的 `GetTargetInfo` 讀 `self.unit`，載具切換由 `ns.EvalActiveUnit` 換掉，所以載具期間
-  也指到對的單位，不用另外處理。
-- **玩家框覆寫兩個方法**照抄暴雪 `PingableType_PlayerUnitFrameMixin` 的分界：滑鼠在血條／資源條上
-  ⇒ 不開輪盤、`isPlayerResource = true`（播報血量那種）；在頭像上才是一般單位 ping。頭像元件
-  沒開（`uf.elements.portrait` 不存在）就整個框都算資源區。GUID 寫死 `UnitGUID("player")`，
-  跟暴雪一樣 —— 載具期間玩家框畫的是載具，但 ping 的仍是玩家本人。
-- ⚠ `GetTargetPingGUID` 是 10.1 的舊介面，現在沒人呼叫（Cell 還留著覆寫，是死碼），**不要用**。
-- 光環按鈕雖然開了 SetMouseMotionEnabled，但沒有 `ping-receiver` 屬性，掃描會略過，不用動。
+**現況（第三輪定案）**：接收器是一顆顆從 XML 模板 `PingableUnitFrameTemplate` 建出來的
+**乾淨子框**，蓋滿 host、只設 `unit` 屬性。`Core/UnitFrame.lua` 的 `ns.ArmPingReceiver(uf, host, role)`
+建它，六個 host：uf 本體（元件沒蓋到的地方的備援）、hpbar、mpbar、classpower、manabar、portrait。
+`uf` 本體**不掛 mixin、不設 `ping-receiver`、不覆寫任何方法**。
 
-**⚠ 只登記 uf 本體不夠**（2026-09-16 玩家實測，第二輪修）：滑鼠在**魔力條**上按 ping 照樣穿到地面。
-元件框會露出 uf 的矩形之外（見 [[project-miliui-uf-visual-bounds]]：目標框的 mpbar 往左／下各露 8，
-玩家框的魔力條與職業資源列整條在框體下方），游標落在露出那截時 `GetTargetPingReceiver` 掃到的
-frame stack 裡**根本沒有 uf**——元件框是普通 `CreateFrame("Frame")`，滑鼠預設關閉又沒有屬性。
-`Core/UnitFrame.lua` 的 `ns.ArmPingReceiver(uf, f)`（接在 `ns.ApplyElementBase` 後面）讓元件框
-自己登記，三個 mixin 方法一律轉問 uf（玩家框的資源 ping 判斷只寫在 uf 那一份）。五個呼叫點：
-`Elements/Power.lua`（mpbar）、`Health.lua`（hpbar）、`Portrait.lua`（portrait）、
-`ClassPower.lua`（classpower、manabar），都放在建框區塊之後、每次 Build 必經的位置
-（`f.pingArmed` 守衛讓重複呼叫是 no-op）。
-
-- **只開滑鼠移動、不開點擊**：`SetMouseClickEnabled(false)` ＋ `SetMouseMotionEnabled(true)` ＋
-  `SetPropagateMouseMotion(true)`。點擊照舊穿到底下的 uf（跟光環按鈕同一招），移動事件往下傳
-  ⇒ 疊在 uf 上的那部分高亮與提示行為不變；露出框外的那截底下本來就沒有 uf，跟以前一樣不高亮。
-  編輯模式拖曳靠 `uf:EnableMouse(true)`（`EditMode.lua`），元件框沒開點擊所以擋不到。
+- **⚠ 絕對不能從插件端 `Mixin()`**（前兩輪 dc6337fc9／abdbd9967 就是這樣寫的，錯的）：
+  PingManager 用 `securecallfunction` 叫接收器的 `GetIsPingable`／`GetAllowRadialWheel`／
+  `GetTargetInfo`，再 `securecopy` 結果。那次執行**只要讀到任何插件寫的欄位**（`Mixin()` 塞進去的
+  三個方法、mixin 內部讀的 `self.unit` 欄位），執行就被污染 ⇒ `UnitGUID` 對身分受限單位回的秘密
+  GUID 成了「污染的秘密值」，`securecopy` 當場硬錯（inaccessible secret），ping 監聽器還會卡死。
+  **症狀：副本裡 ping 敵對目標框直接報錯**；友方玩家與野外怪的 GUID 是明文，所以平常完全測不到。
+  出處是 EUI 三輪實測（2026-08-20／08-24）的註解：`tmp/EUIStandaloneUnitFrames/EUI_UnitFrames_Engine.lua:703`
+  與 `EUIStandaloneUnitFrames.lua:11212`。
+- **三條硬規矩**：mixin 與 `ping-receiver` 屬性一律由 XML 模板在建框時裝上（C 端裝的不帶 taint）；
+  框上**不能有 `unit` 欄位**——`PingableType_UnitFrameMixin:GetTargetInfo` 讀
+  `self.unit or self:GetAttribute("unit")`，欄位缺席才會退到屬性，而屬性是 C 端儲存、不帶 Lua taint；
+  三個方法**不能覆寫**。EUI 為此把自己的 token 改名成 `_euiUnit`；我們的 `uf.unit` 全插件都在用、
+  不改名，所以接收器另開一顆乾淨子框，uf 本體一個 ping 相關欄位都不碰。
+- **載具**：`ns.EvalActiveUnit` 換掉 `uf.unit` 時順手把 `uf.pingReceivers` 每顆的 `unit` 屬性重設。
+  子框不是 secure 框，戰鬥中 `SetAttribute` 不受保護。
+- **玩家框是唯一例外**（`role`）：玩家自己的 GUID 永遠明文，污染執行拿到明文值 `securecopy` 沒問題，
+  所以玩家框的接收器可以覆寫方法——`"player-resource"`（血條／魔力條／資源條／框底）回
+  `isPlayerResource = true` 且 `GetAllowRadialWheel` 固定 false；`"player-portrait"`（頭像）是一般
+  單位 ping、可開輪盤，但 GUID 固定 `UnitGUID("player")`（跟暴雪一樣，載具期間 ping 的仍是玩家本人）。
+  其他框一律 `"unit"`＝模板原樣，一個方法都不碰。**這個例外絕對不能往別的框套。**
+- **法力播報**：Lua 介面只有 `isPlayerResource` 一個布林，**沒有**「哪一條資源」的參數。官方 12.1
+  說明是「ping 自己的框播報生命值，擔任治療角色者一併播報法力」——暴雪自己的 PlayerFrame 也是
+  整個框共用一個布林，所以我們也不必（也無法）分血條／法力條。
+- **層級**：`ns.ApplyElementBase` 每次套設定都重設元件層級，接收器跟著 `+1`，玩家框「頭像蓋在血條上
+  ⇒ 頭像那顆才是命中的接收器」的關係才成立。
+- **為什麼每個元件各一顆**：魔力條、職業資源條會露出 uf 矩形之外（見 [[project-miliui-uf-visual-bounds]]：
+  目標框的 mpbar 往左／下各露 8，玩家框的魔力條與職業資源列整條在框體下方），游標在露出那截時
+  frame stack 裡根本沒有 uf。
+- **滑鼠**：接收器只開移動不開點擊（`SetMouseClickEnabled(false)` ＋ `SetMouseMotionEnabled(true)` ＋
+  `SetPropagateMouseMotion(true)`）⇒ 點擊照舊穿到底下的 uf（選目標／開選單不變），移動事件往下傳
+  ⇒ 疊在 uf 上的部分高亮與提示照常。編輯模式拖曳靠 `uf:EnableMouse(true)`，沒開點擊所以擋不到。
 - **預覽孿生跳過**（`uf.isPreview`）：那裡的元件只是排版用，不該吃滑鼠。
 - **不登記的**：光環按鈕、施法條、圖騰、觀察按鈕、文字元件。施法條常被拉到離框很遠的地方，
   不該變成該單位的 ping 目標。
+- ⚠ `GetTargetPingGUID` 是 10.1 的舊介面，現在沒人呼叫（Cell 還留著覆寫，是死碼），**不要用**。
 
-**尚未在遊戲內驗證**：滑鼠在目標／專注／首領框上按 ping 會 ping 該單位（含輪盤）；副本內敵對
-單位的 GUID 是秘密字串，`SendUnitPing` 標 AllowedWhenUntainted，推論 `securecopy` 會洗成安全端
-taint 所以收得下，要實測。玩家框：血條上按 ping 是資源 ping（播報血量、不開輪盤），頭像上是
-一般單位 ping。載具期間玩家框 ping 的是玩家本人（跟暴雪一致），寵物框 ping 到載具／寵物。
-滑鼠在露出框外的魔力條／職業資源條／頭像上按 ping 會 ping 該單位，不再穿到地面。疊在框上的
-魔力條區域：滑過仍有高亮與提示（靠 SetPropagateMouseMotion），左右鍵點擊仍照舊選目標／開選單。
+**尚未在遊戲內驗證**：副本內 ping 敵對目標框／首領框不再報錯（這輪的重點）。玩家框：血條／
+魔力條／框底是資源 ping、不開輪盤；頭像是一般 ping、可開輪盤。治療者法力播報要在**隊伍裡、
+角色指派為治療**時測（「acting in a healing role」很可能看隊伍角色指派，單人時角色是 NONE），
+同場對照暴雪原版 PlayerFrame 的血條與法力條各 ping 一次，看原版有沒有分別。載具期間玩家框
+ping 的是玩家本人；其他框跟著 `unit` 屬性走。滑鼠在露出框外的魔力條／職業資源條／頭像上按
+ping 會 ping 該單位，不再穿到地面；疊在框上的區域滑過仍有高亮與提示、點擊仍照舊選目標／開選單。
