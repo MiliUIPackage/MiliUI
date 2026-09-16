@@ -44,9 +44,6 @@ L["Hide the bar"] = "隐藏这条"
 L["Leave it where it is"] = "不要动"
 L["Only applies when the nameplate design puts its cast bar below the health bar; designs that put it above are left alone."] = "只有在姓名板设计把施法条放在生命条下方时才会让位；施法条在生命条上方的设计不会动。"
 
-L["Stacks"] = "层数"
-L["Show the stack count"] = "显示层数"
-L["Mirrors the stack text from the Cooldown Manager bar (experimental — it turns itself off if the client refuses the value in combat)."] = "镜像冷却管理器长条上的层数文字（实验性功能，战斗中客户端不接受那个值时会自动关闭）。"
 
 -- 外观标签页
 L["Size and position"] = "尺寸与位置"
@@ -92,5 +89,4 @@ L["Health bar:"] = "生命条:"
 L["Cast bar:"] = "施法条:"
 L["cast bar sits below:"] = "施法条在生命条下方:"
 L["mirroring:"] = "镜像中:"
-L["Stack mirroring failed:"] = "层数镜像失败过:"
 L["Errors:"] = "错误记录:"

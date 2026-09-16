@@ -61,7 +61,6 @@ local function Report()
         .. "   " .. L["Cast bar:"] .. " " .. YesNo(b.cast)
         .. "   " .. L["cast bar sits below:"] .. " " .. YesNo(b.castBelow)
         .. "   " .. L["mirroring:"] .. " " .. YesNo(b.running))
-    print("  " .. L["Stack mirroring failed:"] .. " " .. YesNo(b.stacksFailed))
 
     if ns.errors and #ns.errors > 0 then
         print("  " .. L["Errors:"])

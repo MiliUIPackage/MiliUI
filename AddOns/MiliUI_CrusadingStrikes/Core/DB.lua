@@ -41,7 +41,6 @@ local function BuildDefaults()
             colorBack = CopyTable(DEFAULT_BACK),
             border    = true,       -- 1px 黑邊（套組 HUD 皮：黑底、直角）
             castMode  = "below",    -- 施法條顯示時："below" 移到施法條下方 / "hide" 隱藏 / "stay" 不動
-            showStacks = false,     -- 鏡射層數文字（實驗性，見 Modules/Bar.lua）
         },
     }
 end

@@ -19,7 +19,7 @@ local _, ns = ...
 ns.Bar = {}
 local Bar = ns.Bar
 
-local bar, fillTex, bgTex, stacksText
+local bar, fillTex, bgTex
 local borders = {}
 local driver
 
@@ -34,9 +34,6 @@ local shown = false
 local revealFrames = 0
 local castShowing = false
 local hiddenByCast = false
-
--- showStacks 在某個客戶端版本上傳不過去的話就整個關掉，並記進 /dermo check
-Bar.stacksFailed = false
 
 ------------------------------------------------------------
 -- 建立
@@ -79,14 +76,6 @@ local function Create()
     bgTex:SetAllPoints(bar)
 
     CreateBorder()
-
-    -- ⚠ FontString 要先有字型才能 SetText，否則是硬錯並中斷整支初始化
-    -- （見 .claude/notes/wow-fontstring-font-before-settext.md）
-    stacksText = bar:CreateFontString(nil, "OVERLAY")
-    stacksText:SetFont(ns.Media.Font(), 11, "OUTLINE")
-    stacksText:SetPoint("LEFT", bar, "RIGHT", 3, 0)
-    stacksText:SetJustifyH("LEFT")
-    stacksText:Hide()
 
     driver = CreateFrame("Frame")
 end
@@ -160,7 +149,6 @@ local function HideBar()
     shown = false
     revealFrames = 0
     bar:Hide()
-    stacksText:Hide()
 end
 
 local function ShowBar()
@@ -175,35 +163,6 @@ end
 ------------------------------------------------------------
 -- 每幀：鏡射
 ------------------------------------------------------------
-local function MirrorStacks(item)
-    if not ns.db.bar.showStacks or Bar.stacksFailed then
-        if stacksText:IsShown() then stacksText:Hide() end
-        return
-    end
-    local icon = item.Icon
-    local src = icon and icon.Applications
-    if not src or not src.GetText then
-        stacksText:Hide()
-        return
-    end
-    -- 層數文字在 12.1 可能是秘密字串：**原封不動轉手**，不 tostring、不比較、不串接。
-    -- 這條路沒有文件保證吃得下秘密字串，所以包 pcall；失敗就把功能關掉（不重試），
-    -- 並在 /dermo check 裡留下紀錄。
-    local ok, value = pcall(src.GetText, src)
-    if not ok then
-        Bar.stacksFailed = true
-        stacksText:Hide()
-        return
-    end
-    local wrote = pcall(stacksText.SetText, stacksText, value)
-    if not wrote then
-        Bar.stacksFailed = true
-        stacksText:Hide()
-        return
-    end
-    stacksText:Show()
-end
-
 local function OnUpdate()
     local item = ns.Source.GetTrackedItem()
     if not item or not ns.Source.IsItemActive(item) then
@@ -244,8 +203,6 @@ local function OnUpdate()
         revealFrames = revealFrames - 1
         if revealFrames == 0 then bar:SetAlpha(1) end
     end
-
-    MirrorStacks(item)
 end
 
 ------------------------------------------------------------
@@ -342,7 +299,6 @@ function Bar.ApplySettings()
     local path = ns.Media.BarTexture(b.texture)
     if fillTex then fillTex:SetTexture(path) end
     bgTex:SetTexture(path)
-    stacksText:SetFont(ns.Media.Font(), 11, "OUTLINE")
 
     Paint()
     ApplyPoints()
@@ -357,7 +313,6 @@ function Bar.GetDebugInfo()
         cast      = atCast ~= nil,
         castBelow = atCastBelow and true or false,
         running   = driver ~= nil and driver:GetScript("OnUpdate") ~= nil,
-        stacksFailed = Bar.stacksFailed,
     }
 end
 

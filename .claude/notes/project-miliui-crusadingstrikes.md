@@ -96,10 +96,8 @@ C_NamePlate.GetNamePlateForUnit("target")
 2. 首領戰／M+ 裡一樣（參考實作有實機證據，但我們的錨定鏈不同 —— 條掛在名條上）。
 3. 換目標、名條進出畫面、名條插件換設計時條會跟上，不殘留在舊名條。
 4. 施法條出現時讓位正確；施法條在血條上方的設計不會亂跳。
-5. `showStacks`：`Icon.Applications:GetText()` 的秘密字串能不能直接 `SetText` 轉手
-   （預設關、包 pcall，失敗就自己關掉並記進 `/dermo check`）。
-6. 寬度 match 模式在不同 `design.scale` 下對得齊血條。
-7. 「已揮的時間」模式的兩層角色互換（背景＝fill 色、條材質＝back 色＋反向填充）
+5. 寬度 match 模式在不同 `design.scale` 下對得齊血條。
+6. 「已揮的時間」模式的兩層角色互換（背景＝fill 色、條材質＝back 色＋反向填充）
    看起來對不對，尤其是 back 色半透明時疊出來的暗色。
 
 相關：[[wow-121-secret-values]]、[[wow-121-duration-objects]]、

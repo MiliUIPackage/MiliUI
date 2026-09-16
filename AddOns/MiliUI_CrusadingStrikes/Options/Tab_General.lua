@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 「一般」分頁：總開關、前置條件狀態、施法條讓位、層數
+-- 「一般」分頁：總開關、前置條件狀態、施法條讓位
 --
 -- 狀態列是這一頁的重點：這支插件依賴三件玩家端的事（是聖騎士、名條插件在跑、
 -- 征戰聖擊在冷卻管理器的「追蹤的增益」裡）。任何一項不成立時條就不會出現，
@@ -103,10 +103,6 @@ local CONTROLS = {
         { text = L["Leave it where it is"],    value = "stay" },
     } },
     { type = "text", label = L["Only applies when the nameplate design puts its cast bar below the health bar; designs that put it above are left alone."] },
-
-    { type = "header", label = L["Stacks"] },
-    { type = "toggle", sub = "bar", key = "showStacks", label = L["Show the stack count"] },
-    { type = "text",   label = L["Mirrors the stack text from the Cooldown Manager bar (experimental — it turns itself off if the client refuses the value in combat)."] },
 }
 
 local function Init()
