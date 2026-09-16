@@ -77,6 +77,7 @@ false，讀對方本質的（`UnitIsOtherPlayersBattlePet`/`UnitIsOtherPlayersPe
 | 標記目標圖示 | 子選單勾選比較 `GetRaidTargetIndex`（秘密數字）→ LUA_WARNING 刷屏＋fontString nil 連鎖 |
 | 檢視房屋 | tainted 初始化污染房屋清單**到重登**，之後連安全選單的拜訪都被擋 |
 | 複製角色名稱 | `CopyToClipboard` 是**保護函式**（插件從來寫不進剪貼簿）→ 灰掉＋自己補一顆開反白編輯框彈窗 |
+| 悄悄話 | tainted 的 `SendTell` → `ActivateChat` 在我們的堆疊上寫 `LAST_ACTIVE_CHAT_EDIT_BOX` → 之後按 R 回覆秘密名字就炸、髒到 /reload（[[wow-121-chat-reply-secret-taint]]）→ 灰掉（2026-09-16，兩份都改）。**安全選單裡的悄悄話沒事**：暴雪的 `UnitPopupWhisperButtonMixin:OnClick` 在乾淨執行下跑，`Menu.ModifyMenu` 的回呼又包在 `securecallfunction` 裡，RaiderIO／Plumber 加項目不會把它弄髒 |
 
 灰化走訪要**遞迴**——複製名稱藏在「其他選項」子選單裡，掃第一層碰不到。
 
