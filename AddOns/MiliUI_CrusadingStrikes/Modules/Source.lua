@@ -103,33 +103,6 @@ local function Clear()
     trackedItem, trackedID = nil, nil
 end
 
-local function Scan()
-    Clear()
-    local viewer = _G.BuffBarCooldownViewer
-    local pool = viewer and viewer.itemFramePool
-    if not pool or not pool.EnumerateActive then
-        lastScanFailed = true
-        return
-    end
-    lastScanFailed = false
-
-    -- 正在跑的那個優先；只是「在清單裡但沒亮」的留成備援，這樣玩家看設定頁時
-    -- 也能得到「有找到，只是現在沒上 buff」這個答案
-    local fallback
-    for item in pool:EnumerateActive() do
-        if ItemMatches(item) then
-            if Source.IsItemActive(item) then
-                trackedItem, trackedID = item, item.cooldownID
-                return
-            end
-            fallback = fallback or item
-        end
-    end
-    if fallback then
-        trackedItem, trackedID = fallback, fallback.cooldownID
-    end
-end
-
 -- 手上這個還算不算數：框架會被回收再發給別的法術，cooldownID 變了就是換人了。
 -- ⚠ 戰鬥中 cooldownID 可能讀不到（秘密）：那時**當作沒換**，不能當作換了 ——
 --   當作換了會去重掃，而重掃在戰鬥中什麼都比對不到，追蹤就這樣掉了。
@@ -145,6 +118,38 @@ end
 function Source.GetTrackedItem()
     if not StillCurrent() then return nil end
     return trackedItem
+end
+
+-- ⚠ 掃到才換、掃不到才看要不要清：戰鬥中 cooldownID 是秘密，整個池子都比對不到，
+--   這時如果先清再掃，任何一個事件（SPELLS_CHANGED 在戰鬥中也會來）都會把追蹤丟掉。
+--   手上那個還算數就留著，等能讀的時候下一次掃描自然會校正。
+local function Scan()
+    local viewer = _G.BuffBarCooldownViewer
+    local pool = viewer and viewer.itemFramePool
+    if not pool or not pool.EnumerateActive then
+        lastScanFailed = true
+        if not StillCurrent() then Clear() end
+        return
+    end
+    lastScanFailed = false
+
+    -- 正在跑的那個優先；只是「在清單裡但沒亮」的留成備援，這樣玩家看設定頁時
+    -- 也能得到「有找到，只是現在沒上 buff」這個答案
+    local found
+    for item in pool:EnumerateActive() do
+        if ItemMatches(item) then
+            if Source.IsItemActive(item) then
+                found = item
+                break
+            end
+            found = found or item
+        end
+    end
+    if found then
+        trackedItem, trackedID = found, found.cooldownID
+    elseif not StillCurrent() then
+        Clear()
+    end
 end
 
 ------------------------------------------------------------
@@ -215,7 +220,6 @@ function Source.Start()
         pcall(driver.RegisterEvent, driver, e)
     end
     driver:SetScript("OnEvent", function()
-        Clear()
         Scan()
         Source.ApplyDim()
     end)
@@ -233,7 +237,6 @@ function Source.Stop()
 end
 
 function Source.Rescan()
-    Clear()
     Scan()
     Source.ApplyDim()
 end
