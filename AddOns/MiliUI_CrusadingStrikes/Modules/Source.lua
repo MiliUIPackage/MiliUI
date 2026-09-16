@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 來源：暴雪冷卻管理器「追蹤的增益」長條
+-- 來源：暴雪冷卻管理器「追蹤的量條」長條
 --
 -- 為什麼是這條路（其他四條都查證過走不通，別再試）：
 --   * 戰鬥記錄 SWING_DAMAGE —— 12.x 插件不能註冊 COMBAT_LOG_EVENT_UNFILTERED。
@@ -15,7 +15,7 @@
 -- **原生 StatusBar 之間互傳是允許的**，我們只當傳遞者（見 Modules/Bar.lua）。
 --
 -- 這支的職責只有一件：找出「哪一個 item frame 是征戰聖擊」，並把它交出去。
--- 前置條件在玩家端：冷卻管理器要啟用，且征戰聖擊要在「追蹤的增益」列裡
+-- 前置條件在玩家端：冷卻管理器要啟用，且征戰聖擊要在「追蹤的量條」列裡
 -- （設定頁會把這個狀態亮出來，見 Options/Tab_General.lua）。
 ------------------------------------------------------------
 local _, ns = ...
@@ -195,12 +195,12 @@ end
 ------------------------------------------------------------
 -- 設定頁的狀態列用的診斷（全部明文，任何可能是秘密的值都只回「有／沒有」）
 ------------------------------------------------------------
--- 征戰聖擊有沒有被加進「追蹤的增益」。戰鬥中 cooldownInfo 的欄位可能是秘密值，
+-- 征戰聖擊有沒有被加進「追蹤的量條」。戰鬥中 cooldownInfo 的欄位可能是秘密值，
 -- 比對不了，所以那時候直接回 "combat" 讓設定頁說「戰鬥中無法檢查」。
-local function TrackedBuffListed()
+local function TrackedBarListed()
     if InCombatLockdown() then return "combat" end
     local cv = C_CooldownViewer
-    local cat = Enum and Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.TrackedBuff
+    local cat = Enum and Enum.CooldownViewerCategory and Enum.CooldownViewerCategory.TrackedBar
     if not cv or not cv.GetCooldownViewerCategorySet or cat == nil then return "unknown" end
     local ids = S.SafeCall(cv.GetCooldownViewerCategorySet, cat, true)
     if type(ids) ~= "table" then return "unknown" end
@@ -220,7 +220,7 @@ function Source.Status()
         platynator = C_AddOns.IsAddOnLoaded("Platynator") and true or false,
         cdmEnabled = GetCVar("cooldownViewerEnabled") == "1",
         viewer     = _G.BuffBarCooldownViewer ~= nil and not lastScanFailed,
-        listed     = TrackedBuffListed(),
+        listed     = TrackedBarListed(),
         item       = item ~= nil,
         active     = Source.IsItemActive(item),
         secretID   = trackedItem ~= nil and S.IsSecret(trackedItem.cooldownID),

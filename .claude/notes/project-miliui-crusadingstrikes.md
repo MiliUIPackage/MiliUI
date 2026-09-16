@@ -43,7 +43,7 @@ bar:SetValue(src:GetValue())
 「找到那個 item frame」三段（`ChildMatches` / `FindTrackedChild` / `MirrorTrackedProgress`），
 UI、OnUpdate 大雜燴與 EllesmereUI 相依都沒有抄。
 
-**前置條件在玩家端**：冷卻管理器要啟用，且征戰聖擊要在「追蹤的增益」列裡。
+**前置條件在玩家端**：冷卻管理器要啟用，且征戰聖擊要在「追蹤的量條」列裡。
 那一列可以縮到最小或移出畫面，但不能關 —— 關了就沒有東西在餵值。設定頁的狀態列
 （`ns.Source.Status()`，全明文）就是為了把這件事講清楚才做的。
 

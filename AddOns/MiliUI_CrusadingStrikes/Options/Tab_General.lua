@@ -2,7 +2,7 @@
 -- 「一般」分頁：總開關、前置條件狀態、施法條讓位
 --
 -- 狀態列是這一頁的重點：這支插件依賴三件玩家端的事（是聖騎士、名條插件在跑、
--- 征戰聖擊在冷卻管理器的「追蹤的增益」裡）。任何一項不成立時條就不會出現，
+-- 征戰聖擊在冷卻管理器的「追蹤的量條」裡）。任何一項不成立時條就不會出現，
 -- 而遊戲裡沒有任何提示 —— 把它們攤開來講，比在聊天視窗印錯誤有用。
 ------------------------------------------------------------
 local _, ns = ...
@@ -49,7 +49,7 @@ local function StatusLines()
 
     local listedText, listedOK
     if s.listed == "yes" then
-        listedText, listedOK = L["In the Tracked Buffs row"], true
+        listedText, listedOK = L["In the Tracked Bars row"], true
     elseif s.listed == "combat" then
         listedText, listedOK = L["Can't check during combat"], true
     elseif s.listed == "no" then
@@ -80,7 +80,7 @@ local function BuildStatus(parent, x, y, width)
     hint:SetWidth(width)
     hint:SetJustifyH("LEFT")
     hint:SetSpacing(3)
-    hint:SetText(WARN .. L["Open Blizzard's Cooldown Manager (Edit Mode → Cooldown Manager) and put Crusading Strikes into the Tracked Buffs row. That row can be shrunk or moved off screen, but it must not be turned off."] .. "|r")
+    hint:SetText(WARN .. L["Open Blizzard's Cooldown Manager (Edit Mode → Cooldown Manager) and put Crusading Strikes into the Tracked Bars row. That row can be shrunk or moved off screen, but it must not be turned off."] .. "|r")
     hint:Hide()
 
     return 118, function()

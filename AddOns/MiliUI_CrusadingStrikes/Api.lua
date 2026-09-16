@@ -37,7 +37,7 @@ local function YesNo(v)
 end
 
 local function ListedText(listed)
-    if listed == "yes" then return L["In the Tracked Buffs row"] end
+    if listed == "yes" then return L["In the Tracked Bars row"] end
     if listed == "no" then return L["Not found"] end
     if listed == "combat" then return L["Can't check during combat"] end
     return L["Unknown"]

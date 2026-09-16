@@ -6,7 +6,7 @@
 --
 -- 12.1 之後這個資訊**算不出來**：戰鬥記錄不給插件註冊、近戰普攻不派 SPELLCAST 事件、
 -- 光環的剩餘時間是秘密值。唯一還走得通的是「鏡射暴雪自己畫好的那條」——冷卻管理器
--- 的「追蹤的增益」長條是 untainted 程式在餵值，原生 StatusBar 之間互傳秘密值是允許的。
+-- 的「追蹤的量條」長條是 untainted 程式在餵值，原生 StatusBar 之間互傳秘密值是允許的。
 -- 完整的排除清單與理由見 .claude/notes/project-miliui-crusadingstrikes.md。
 --
 -- 啟動一律等到 PLAYER_LOGIN：自己的 SavedVariables 那時才載入，暴雪的冷卻管理器
@@ -52,7 +52,7 @@ ns.poll = ns.Metro.New(0.25, ns.ReportError)
 --
 -- 職業閘：非聖騎士只留設定視窗與指令（讓玩家看得到「這隻角色不是聖騎士，插件休眠」
 -- 的說明），Source / Anchor / Bar 一概不啟動。不做專精閘 —— 非懲戒沒有那條
--- 追蹤的增益，Source 自然找不到東西，多一道閘只是多一個會過期的判斷。
+-- 追蹤的量條，Source 自然找不到東西，多一道閘只是多一個會過期的判斷。
 ------------------------------------------------------------
 local boot = CreateFrame("Frame")
 boot:RegisterEvent("PLAYER_LOGIN")
