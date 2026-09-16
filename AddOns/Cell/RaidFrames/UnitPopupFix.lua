@@ -66,6 +66,9 @@ end
 --                    出來，SetRaidTarget 也是保護函式
 --   檢視房屋         tainted 初始化會把房屋清單污染到重登，之後連安全選單開的拜訪也被擋
 --   複製角色名稱     CopyToClipboard 是保護函式（插件從來寫不進剪貼簿）
+--   悄悄話             tainted 的 ChatFrameUtil.SendTell → ActivateChat 會在我們的堆疊上寫
+--                        LAST_ACTIVE_CHAT_EDIT_BOX，之後按 R 回覆秘密名字就炸、一路髒到
+--                        /reload（wow-121-chat-reply-secret-taint）；安全選單裡的那顆沒事
 -- 全部灰掉。reopenUnit 閘保證只動我們重開的那一份，正常的安全選單一個不碰。
 local reopenUnit
 
@@ -104,7 +107,7 @@ local function GreyBrokenItems(desc)
             local ok, text = pcall(MenuUtil.GetElementText, d)
             if ok and text and (text == SET_FOCUS or text == FOLLOW
                     or text == RAID_TARGET_ICON or text == UNIT_VIEW_HOUSES
-                    or text == COPY_CHARACTER_NAME) then
+                    or text == COPY_CHARACTER_NAME or text == WHISPER) then
                 d:SetEnabled(false)
             end
         end

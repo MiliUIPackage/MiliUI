@@ -1015,3 +1015,6 @@ r4-alpha
 r3-alpha
 中文化基本完成，修复debuff刷新的bug
 ]]
+
+-- fix from MiliUI: 分享按鈕不再自己開聊天輸入框
+L["Open the chat edit box first (press Enter), then click Share."] = "请先按 Enter 打开聊天输入框，再按分享。"

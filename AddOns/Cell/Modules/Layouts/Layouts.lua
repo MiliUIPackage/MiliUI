@@ -1596,10 +1596,20 @@ local function CreateLayoutPane()
     local shareBtn = Cell.CreateButton(layoutPane, nil, "accent-hover", {33, 20}, nil, nil, nil, nil, nil, L["Share"])
     shareBtn:SetPoint("TOPLEFT", exportBtn, "TOPRIGHT", P.Scale(-1), 0)
     shareBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\share", {16, 16}, {"CENTER", 0, 0})
+    -- fix from MiliUI: 不從插件開聊天輸入框。
+    -- 12.1 起插件呼叫 ChatEdit_ActivateChat 會在自己的堆疊上寫 LAST_ACTIVE_CHAT_EDIT_BOX，
+    -- 之後玩家按 R 回覆秘密名字就炸、一路髒到 /reload（見 MiliUI 的
+    -- .claude/notes/wow-121-chat-reply-secret-taint.md）。跟 RaidDebuffs 的分享一樣：
+    -- 輸入框已經開著就把字填進去，沒開就提示玩家先按 Enter。
+    -- 另外分享字串改成 [Cell:Layout: …]：Comm.lua 的接收端比對的是 "Cell:"，原本的
+    -- "Cell." 對方永遠認不出來（上游同樣不一致）。
     shareBtn:SetScript("OnClick", function()
-        local editbox = ChatEdit_ChooseBoxForSend()
-        ChatEdit_ActivateChat(editbox)
-        editbox:SetText("[Cell.Layout: "..selectedLayout.." - "..Cell.vars.playerNameFull.."]")
+        local editbox = ChatEdit_GetActiveWindow and ChatEdit_GetActiveWindow()
+        if not editbox then
+            F.Print(L["Open the chat edit box first (press Enter), then click Share."])
+            return
+        end
+        editbox:Insert("[Cell:Layout: "..selectedLayout.." - "..Cell.vars.playerNameFull.."]")
     end)
 end
 

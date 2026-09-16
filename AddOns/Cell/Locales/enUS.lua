@@ -136,6 +136,8 @@ select(2, ...).L = setmetatable({
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
     ["BACKUP_TIPS"] = "Backups are not always reliable, especially when they are too old. It is recommended to backup often. When sharing profiles, backups are not included.",
     ["BACKUP_TIPS2"] = "Note for Classic players: Backups do not include Click-Castings and Layout Auto Switch of other characters",
+    -- fix from MiliUI: 分享按鈕不再自己開聊天輸入框
+    ["Open the chat edit box first (press Enter), then click Share."] = "Open the chat edit box first (press Enter), then click Share.",
 
 
 }, {

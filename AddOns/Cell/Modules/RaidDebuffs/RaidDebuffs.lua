@@ -566,7 +566,7 @@ ShowInstances = function(eName)
             local editbox = GetCurrentKeyBoardFocus()
             if editbox then
                 local iId, iIndex = F.SplitToNumber("-", id)
-                editbox:SetText("[Cell.Debuffs: "..instanceIdToName[iId].." - "..Cell.vars.playerNameFull.."]")
+                editbox:SetText("[Cell:Debuffs: "..instanceIdToName[iId].." - "..Cell.vars.playerNameFull.."]")
             end
         elseif IsAltKeyDown() and b:IsMouseOver() then -- NOTE: reset
             local iId, iIndex = F.SplitToNumber("-", id)
@@ -690,10 +690,10 @@ ShowBosses = function(instanceId, forceRefresh)
             local editbox = GetCurrentKeyBoardFocus()
             if editbox then
                 if id == iId then -- general
-                    editbox:SetText("[Cell.Debuffs: "..bossIdToName[0].." ("..instanceIdToName[iId]..") - "..Cell.vars.playerNameFull.."]")
+                    editbox:SetText("[Cell:Debuffs: "..bossIdToName[0].." ("..instanceIdToName[iId]..") - "..Cell.vars.playerNameFull.."]")
                 else
                     local bId = F.SplitToNumber("-", id)
-                    editbox:SetText("[Cell.Debuffs: "..bossIdToName[bId].." ("..instanceIdToName[iId]..") - "..Cell.vars.playerNameFull.."]")
+                    editbox:SetText("[Cell:Debuffs: "..bossIdToName[bId].." ("..instanceIdToName[iId]..") - "..Cell.vars.playerNameFull.."]")
                 end
             end
         elseif IsAltKeyDown() and b:IsMouseOver() then -- NOTE: reset
