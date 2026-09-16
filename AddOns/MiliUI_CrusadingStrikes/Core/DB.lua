@@ -25,6 +25,9 @@ local function BuildDefaults()
         schemaVersion = ns.DB_VERSION,
         optionsWindow = { x = 0, y = 0 },
         enabled = true,
+        -- 冷卻管理器裡那條征戰聖擊量條跟我們的條是重複的，預設壓成透明（只這一條，
+        -- 其他量條不動）。做法與限制見 Modules/Source.lua 的 ApplyDim
+        hideBlizzardBar = true,
         bar = {
             -- 尺寸單位是「名條 display 的座標系」：我們把條掛在 Platynator 的
             -- display 底下，所以它會跟著那個名條的縮放一起縮，不必自己換算。
@@ -77,6 +80,7 @@ function DB.ResetBar()
     if not ns.db then return end
     ns.db.bar = CopyTable(BuildDefaults().bar)
     ns.db.enabled = true
+    ns.db.hideBlizzardBar = true
 end
 
 function DB.ResetAll()

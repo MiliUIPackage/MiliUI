@@ -93,6 +93,8 @@ end
 local CONTROLS = {
     { type = "header", label = L["Crusading Strikes helper"] },
     { type = "toggle", key = "enabled", label = L["Enable"] },
+    { type = "toggle", key = "hideBlizzardBar", label = L["Hide the Crusading Strikes bar in the Cooldown Manager"] },
+    { type = "text",   label = L["Only that one bar; the others stay. It is made transparent rather than turned off, because Blizzard only updates a bar while it is shown and this addon mirrors those updates."] },
     { type = "text",   label = L["Draws a bar under your target's nameplate health bar showing how long until the next Crusading Strikes swing."] },
     { type = "custom", label = L["Status"], build = BuildStatus },
 

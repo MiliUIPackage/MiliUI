@@ -90,3 +90,8 @@ L["Cast bar:"] = "施法條:"
 L["cast bar sits below:"] = "施法條在血條下方:"
 L["mirroring:"] = "鏡射中:"
 L["Errors:"] = "錯誤紀錄:"
+
+-- 隱藏暴雪那條
+L["Hide the Crusading Strikes bar in the Cooldown Manager"] = "隱藏冷卻管理器裡的征戰聖擊量條"
+L["Only that one bar; the others stay. It is made transparent rather than turned off, because Blizzard only updates a bar while it is shown and this addon mirrors those updates."] = "只隱藏這一條，其他量條照舊。做法是變透明而不是關閉：暴雪只在那條顯示中才更新它的值，本插件鏡射的就是那些值。"
+L["Blizzard bar hidden"] = "暴雪那條已隱藏"

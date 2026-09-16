@@ -303,6 +303,7 @@ function Bar.ApplySettings()
     Paint()
     ApplyPoints()
     Bar.Relocate()
+    ns.Source.ApplyDim()
 end
 
 function Bar.GetDebugInfo()

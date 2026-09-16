@@ -147,6 +147,43 @@ function Source.GetTrackedItem()
 end
 
 ------------------------------------------------------------
+-- 隱藏暴雪那一條（使用者要的：其他量條有用，只有這條是重複的）
+--
+-- ⚠ 只壓 alpha，**不能 Hide**：暴雪是在那條的 OnUpdate 裡更新值，藏起來的框
+--   收不到 OnUpdate，我們鏡射的就凍住了。alpha 0 的框照樣在跑。
+-- ⚠ 每次都重設而不是「設過就好」：這個框是從池子借來的，會被回收再發給別的法術
+--   （所以 cooldownID 變了要把 alpha 還回去），別的插件的淡出功能也可能整批改 alpha。
+--   0.5 秒的輪詢跟著重設一次就夠，這只是一個 setter。
+-- 編輯模式時還原：玩家在排版時要看得到那條在哪。
+------------------------------------------------------------
+local dimmedItem
+
+local function EditModeActive()
+    local f = EditModeManagerFrame
+    return f and f.IsEditModeActive and f:IsEditModeActive() and true or false
+end
+
+function Source.ApplyDim()
+    local want
+    if ns.db and ns.db.enabled and ns.db.hideBlizzardBar and ns.isPaladin
+        and not EditModeActive() and StillCurrent() then
+        want = trackedItem
+    end
+    if dimmedItem and dimmedItem ~= want then
+        dimmedItem:SetAlpha(1)
+        dimmedItem = nil
+    end
+    if want then
+        want:SetAlpha(0)
+        dimmedItem = want
+    end
+end
+
+function Source.IsDimmed()
+    return dimmedItem ~= nil
+end
+
+------------------------------------------------------------
 -- 事件與輪詢
 --
 -- 事件負責「清單可能變了」的時刻；輪詢只做便宜的驗證（框還在嗎、還亮著嗎），
@@ -166,6 +203,7 @@ local function Validate()
     if not StillCurrent() or not Source.IsItemActive(trackedItem) then
         Scan()
     end
+    Source.ApplyDim()
 end
 
 function Source.Start()
@@ -175,9 +213,11 @@ function Source.Start()
     driver:SetScript("OnEvent", function()
         Clear()
         Scan()
+        Source.ApplyDim()
     end)
     ns.poll.Add("source", 0.5, Validate)
     Scan()
+    Source.ApplyDim()
 end
 
 function Source.Stop()
@@ -185,11 +225,13 @@ function Source.Stop()
     driver:SetScript("OnEvent", nil)
     ns.poll.Remove("source")
     Clear()
+    Source.ApplyDim()   -- 沒有追蹤對象了 → 把暴雪那條的 alpha 還回去
 end
 
 function Source.Rescan()
     Clear()
     Scan()
+    Source.ApplyDim()
 end
 
 ------------------------------------------------------------
@@ -223,6 +265,7 @@ function Source.Status()
         listed     = TrackedBarListed(),
         item       = item ~= nil,
         active     = Source.IsItemActive(item),
+        dimmed     = Source.IsDimmed(),
         secretID   = trackedItem ~= nil and S.IsSecret(trackedItem.cooldownID),
     }
 end

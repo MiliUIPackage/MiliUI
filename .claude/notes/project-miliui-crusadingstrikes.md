@@ -90,6 +90,16 @@ C_NamePlate.GetNamePlateForUnit("target")
 - 條要不要顯示是 OnUpdate 自己問 `item:IsActive()`（明文布林），不靠輪詢 ——
   1.5 秒的揮擊間隔配 0.5 秒輪詢會看得出延遲。
 
+## 隱藏暴雪那條（2026-09-17 加）
+
+使用者的需求：冷卻管理器裡其他量條有用，只有征戰聖擊那條跟我們的重複。
+`Source.ApplyDim()`：只對追蹤到的那一個 item `SetAlpha(0)`，**不能 Hide** —— 暴雪在該 item 的
+OnUpdate 裡更新值，藏起來就收不到 OnUpdate，鏡射會凍住；alpha 0 的框照樣在跑。
+每 0.5 秒輪詢時重設一次（item 是池子借來的、會被回收發給別的法術，cooldownID 變了要把 alpha
+還回去；Ayije_CDM 的淡出也可能整批改 alpha）。編輯模式時還原，讓玩家看得到那條在哪。
+選項 `hideBlizzardBar` 預設開。圖示區（`BuffIconCooldownViewer`）**偵測不到**：它畫的是冷卻轉盤，
+暴雪往 `SetCooldown` 寫開始＋持續時間，秘密值算不出剩餘、餵自己的轉盤也被擋，沒有 duration 物件可拿。
+
 ## 待實機驗證
 
 1. 戰鬥中鏡射不報錯、條會動（`GetMinMaxValues` / `GetValue` 的轉手）。
@@ -99,6 +109,7 @@ C_NamePlate.GetNamePlateForUnit("target")
 5. 寬度 match 模式在不同 `design.scale` 下對得齊血條。
 6. 「已揮的時間」模式的兩層角色互換（背景＝fill 色、條材質＝back 色＋反向填充）
    看起來對不對，尤其是 back 色半透明時疊出來的暗色。
+7. 暴雪那條壓成透明後鏡射照樣更新；Ayije_CDM 淡出開著時不會互相打架；編輯模式會還原。
 
 相關：[[wow-121-secret-values]]、[[wow-121-duration-objects]]、
 [[wow-cooldownviewer-buffbar-text-gate]]、[[project-miliui-widgets-vendor]]、
