@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 47adb948-8bd2-4804-9bff-d58a154ecf7c
-  modified: 2026-09-14T09:40:40.314Z
+  modified: 2026-09-16T19:15:35.143Z
 ---
 
 Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard AuraContainer（路線 A，見 [[wow-121-aura-containers]]），讓分類全走 Blizzard-side candidateFilters，照 DandersFrames v5 作法「一個都不少」。使用者 2026-08 選定路線 A。**已上線使用**（master，Cell r283-MiliUI）。
@@ -36,11 +36,33 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
 ## 樣式規則（StyleButton）
 
 - 只有一種 icon 幾何（使用者定案）：Cooldown 蓋滿整顆 → 圖示在內縮子框架 level+2 蓋住中間 → 只露外圈環。**顏色反轉是被迫的不是風格**：`SetSwipeColor` 只吃字面 RGB、AuraButton 不告訴我們學派，所以顏色必須在靜態環上、swipe（灰/黑 + `SetReverse(true)`）是吃掉它的那個。
-- **動畫有三種，每個指示器各自選**（2026-08-24 加，DB key `animationStyle`）：`clock`（外環時鐘掃描，＝原本唯一那種）、`vertical`（黑色遮罩由上往下蓋住圖示，走 `SetDurationBar`，配方見 [[wow-121-aura-containers]]）、`none`。遮罩在 `base+3`（圖示 `base+2` 之上、秒數 `base+6` 之下），**只蓋圖示不蓋外環**，驅散色才讀得到。`animationStyle` 不在 COSMETIC/LAYOUT_KEYS 裡 ⇒ 改它會重建，這是必要的（bind 只在 `initializeFrame` 有效），park 簽章含 `TableSig(config)` 所以兩種樣式不會互相領錯。舊版面由 Revise 冪等補寫（`showAnimation == false → none`，其餘 `clock`），升級不會改變任何人現有的畫面。
+- **動畫有四種，每個指示器各自選**（DB key `animationStyle`）：`border`（外框倒數：黑色掃描吃掉彩色外環，預設）、`clock`（半透明掃描蓋在圖示上）、`vertical`（黑色遮罩由上往下蓋住圖示，走 `SetDurationBar`，配方見 [[wow-121-aura-containers]]）、`none`。遮罩在 `base+3`（圖示 `base+2` 之上、秒數 `base+6` 之下），**只蓋圖示不蓋外環**，驅散色才讀得到。`animationStyle` 不在 COSMETIC/LAYOUT_KEYS 裡 ⇒ 改它會重建，這是必要的（bind 只在 `initializeFrame` 有效），park 簽章含 `TableSig(config)` 所以兩種樣式不會互相領錯。舊版面由 Revise 冪等補寫（`showAnimation == false → none`，其餘 `clock`），升級不會改變任何人現有的畫面。
 - **環色三段規則**：有學派 → `CellDB.debuffTypeColor` 使用者調色盤；無學派且 HARMFUL → `debuffTypeColor["none"]`（Cell 可調項，預設 0.8/0/0）；無學派且 HELPFUL → 綠 `{0, 0.55, 0.15}`（刻意調暗，太亮會在小圖示上蓋過圖示本身）。`cfg.borderColor` 可覆寫後兩者。`ACC.GetNoDispelColor()` 回傳**共用表**，呼叫端只可讀不可留存。
 - ⚠ **兩層絕不能同色**：暴雪學派上色是 vertex colour，紅 tint 疊深綠底會相乘成近黑。職責分離 —— `dfBG`（BACKGROUND）自家 fallback 色恆亮；`dfDispelBorder`（BORDER）**純白**交給暴雪 tint、只在有學派時顯示。
 - 字體：依 `cfg.stackFont`/`cfg.durationFont` 套 Cell 字體表，倒數強制置中（對齊暴雪 `ApplyCountdownFont`，所以倒數字體選項沒有偏移欄位）。容器支援非正方形 `size`/`sizeH`（減傷 12×20）。
 - tooltip/滑鼠：`SetMouseClickEnabled(false)` + `SetMouseMotionEnabled(false)`（tooltip 尚未接，見待辦）。
+
+## 外框顏色選項與圖示格線（2026-09-17，玩家回報 R299，未在遊戲內驗證）
+
+**回報兩點**：自訂 icons 增益指示器「每行數量」「間距」在框上沒作用（預覽正常）；想把依類型上色的外框改回黑框。
+
+- **格線**：`ConfigureContainer` 以前只傳 `num`，換行預算用 num、間距寫死 2。現在 `GridOpts`（Built-in.lua）送
+  `numPerLine`／`spacingX`／`spacingY`／`anchor`（=position[1]），全進 `LAYOUT_KEYS`（就地重排不重建）。
+  `spacing` 是螢幕軸 {X,Y}，直排時主軸用 Y（`AuraDisplay.lua` 的 `Spacing()`）。暴雪 layout 驗證只要求數字，負間距合法。
+  **換行方向照預覽規則**（`Icons_SetOrientation`）：橫排錨 `BOTTOM*` 往上、直排錨 `*RIGHT` 往左，容器改用**角**釘在錨框同一角。
+  錨框一顆圖示大，所以單行時角釘＝原本的邊釘，只有換行的排會動。沒給 anchor（重要減益、驅散）維持舊行為。
+  只給圖示型（custom icon/icons、內建冷卻、左下減益），效果型不給——text 的元素 22 與錨框 20 不等大，角釘會位移 1px。
+- **外框顏色**：layout key `borderColor = {"type"|"custom", {r,g,b,a}}`，沒設＝type。`RingOpts` 拆兩半：
+  `fixedRing`（結構性→重建，因為不綁 `dfDispelBorder` 是 initializeFrame 才能決定的事）＋`borderColor`（外觀→restyle，拖色盤便宜）。
+  ⚠ 兩個都要送 `false` 不能送 nil，否則切回 type 時舊值留在 config。舊元件（BorderIcon/BarIcon/Icons/Cooldowns 群組）加 `SetBorderColor`，
+  顏色在 `SetCooldown` 上；預覽的綠環覆寫遇到 `fixedBorderColor` 跳過。
+- **外框倒數反灰**（使用者選的做法 b）：固定色最亮分量 < 0.25（`I.IsBorderCountdownUsable`）→ 動畫下拉的「外框倒數」disabled；
+  若當下正選著它，面板自動改成「陰影下落」並寫回 DB。渲染端不做保護（匯入的暗色＋外框倒數組合只是看不到動畫）。
+- 色盤拖曳：設定 handler 以 layout+指示器為 key 做 0.2 秒 debounce 再 Fire（每個 Fire 會 restyle 全部按鈕的容器）。
+- **通則 18：寄存 key 在 build 時取，restyle 之後要重算**。key 含 `TableSig(config)`，外觀鍵（字型、環色）走 restyle 不重建，
+  不重算的話容器會以「舊樣式」被寄存、再交給要舊樣式的 handle。修法：Build 存 `_parkRecords`，`Restyle` 成功跑完重算 `_parkKey`。
+- **待驗證**：每行 2 顆真的換行、錨在底部的排往上長、負間距、custom 色即時換色（非副本 restyle／副本內重建）、切回 type 恢復學派色、
+  反灰與自動改陰影下落、預覽即時更新。
 
 ## 選項套用路徑（追過整條）
 
