@@ -5,7 +5,6 @@ local L = LibStub("AceLocale-3.0"):NewLocale("MiliUI_ChatBar", "enUS", true)
 L["ADDON_NAME"] = "MiliUI ChatBar"
 
 -- 密語回覆降級（見 Fix_ReplyTell.lua）
-L["REPLY_FALLBACK_HINT"] = "The whisper target's name is protected data in 12.1, so addons cannot fill it in. |cffffd200/r|r is ready for you — type a space and your message to reply."
 L["ADDON_TITLE"] = "Quick Chat Bar"
 
 -- Settings Categories
@@ -62,6 +61,8 @@ L["SHORT_INSTANCE"] = "I"
 L["SHORT_RAID"] = "R"
 L["SHORT_GUILD"] = "G"
 L["SHORT_WHISPER"] = "W"
+L["SHORT_REPLY"] = "R"
+L["SHORT_OFFICER"] = "O"
 L["SHORT_ROLL"] = "Rl"
 L["SHORT_DBM"] = "Pl"
 L["SHORT_RESET"] = "Rs"

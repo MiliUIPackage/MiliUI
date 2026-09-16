@@ -23,9 +23,9 @@ Libs\MiliUISnap.lua
 embeds.xml
 Locales\Locales.xml
 
+Sink.xml
 ChatBar.lua
 Anchor.lua
-Fix_ReplyTell.lua
 
 Libs\Callbacks.lua
 Libs\MiliUIWidgets\Env.lua

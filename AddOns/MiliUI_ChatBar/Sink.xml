@@ -1,0 +1,18 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\Blizzard_SharedXML\UI.xsd">
+  <!--
+    超連結的收件框：按鈕上的 |Hchannel:…|h 點擊一路 propagate 到這裡，由模板接來的
+    暴雪 OnHyperlinkClick（ChatFrameMixin）→ SetItemRef 開聊天輸入框，整條沒有插件的 Lua。
+    機制與理由見 ChatBar.lua 的 Sink 段。
+
+    ⚠ 一定要用 XML 開 hyperlinksEnabled，不要在 Lua 呼叫 SetHyperlinksEnabled ——
+      那支是 protected function。Chattynator 的 Core/HyperlinkHandler.xml 同一寫法。
+    ⚠ 不要在這裡加 OnLoad／OnHyperlinkClick：任何自己的 script 都是插件的執行。
+      OnUpdate 留空是拿掉模板的淡出處理，這顆框不顯示訊息。
+  -->
+  <ScrollingMessageFrame name="MiliUI_ChatBar_LinkSink" inherits="ChatFrameTemplate" parent="UIParent" hyperlinksEnabled="true">
+    <Scripts>
+      <OnUpdate></OnUpdate>
+    </Scripts>
+  </ScrollingMessageFrame>
+</Ui>

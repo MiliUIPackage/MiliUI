@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 2975a2fc-396d-4e73-9da2-295e55bee8db
-  modified: 2026-09-15T16:44:11.705Z
+  modified: 2026-09-15T17:16:08.019Z
 ---
 
 按 REPLY（預設 R）回覆密語，噴 `Lua Taint: <插件>` + `ChatFrameEditBox.lua:49 SetTellTarget`
@@ -23,6 +23,49 @@ metadata:
 
 REPLY 走 `ChooseBoxForSend`，所以 3 一成立就必死；`ChatFrameUtil.SendTell`（點聊天視窗裡
 的名字）也走同一支，一起完蛋。
+
+## ✅ 根治（2026-09-16）：插件要開輸入框，就把按鈕做成聊天超連結
+
+下面那些鏡射／`/r` 降級／洗輸入框全部是**在錯誤路徑上治標**，已從 MiliUI_ChatBar 刪掉，
+留著是當歷史。真正的解法只有一條：**開輸入框的那一下，執行裡不能有插件的 Lua。**
+
+暴雪自己的聊天標頭 `[隊伍]` 就是 `|Hchannel:PARTY|h` 超連結。點下去的鏈是：引擎派送 →
+`ChatFrameTemplate` 的 `OnHyperlinkClick`（`ChatFrameMixin` 的 method，暴雪的）→
+`SetItemRef(link, text, button, self)` → `LinkTypes.Channel` 處理器 →
+`ChatFrameUtil.OpenChat("/"..chatType, self)`。全程乾淨，`LAST_ACTIVE_CHAT_EDIT_BOX` 不會髒。
+**Chattynator 就是這樣做的**（`Core/HyperlinkHandler.xml`：一個 `inherits="ChatFrameTemplate"`
+的 `ChattynatorHyperlinkHandler`，訊息框全部 `SetHyperlinkPropagateToParent(true)`），
+所以在它裡面點名字密語從來不炸。
+
+MiliUI_ChatBar 的做法（`ChatBar.lua` 的 Sink 段 ＋ `Sink.xml`）：
+- Sink 在 **XML** 宣告：`<ScrollingMessageFrame inherits="ChatFrameTemplate" hyperlinksEnabled="true">`
+  ＋ 空的 `<OnUpdate>`（跟 Chattynator 的 `Core/HyperlinkHandler.xml` 一字不差），Lua 只
+  `SetParent`／`UnregisterAllEvents`／OnEvent 設 nil。**OnHyperlinkClick 不能碰**。
+- 按鈕是 Sink 的子框、`SetHyperlinkPropagateToParent(true)`、**不用 SecureActionButtonTemplate**
+  （只有骰／開怪／重置三顆保留）。點擊區用真的字：標籤 `|H<link>|h說|h` ＋
+  `SetHitRectInsets(0,0,-標籤高,0)` 把按鈕矩形往上撐到蓋住標籤；條的部分另一個 FontString
+  放 `|H<link>|h<一串空白>|h`，字級＝條高、空白數＝條寬÷一個空白的寬度。`/mcb links` 把空白
+  換成底線看點擊區。**提示要從 Sink 的 `OnHyperlinkEnter` 顯示**（連結區是另一個滑鼠焦點，
+  按鈕自己的 OnEnter 只剩沒被連結蓋到的一小圈，見 [[wow-hyperlink-region-steals-hover]]）。
+- ⚠ **第一版全部點不動、沒有任何錯誤**（2026-09-16）：alpha 0 的 FontString 裡放 `|T` 貼圖當
+  點擊區 ＋ Lua 呼叫 `SetHyperlinksEnabled(true)`（IsProtectedFunction）＋ secure 按鈕，三個
+  沒驗證過的假設一起上。哪一個是元兇沒有分開驗，一次全換成 Chattynator 驗證過的寫法。
+- 連結：`channel:SAY`／`YELL`／`PARTY`／`RAID`／`INSTANCE_CHAT`／`GUILD`／`OFFICER`／
+  `WHISPER`／**`REPLY`**（`/REPLY` 由暴雪在乾淨執行下解析，秘密名字直接填進去，跟按 R 一樣）、
+  `channel:CHANNEL:<編號>`（暴雪自己的格式）。**沒有密語鍵**（使用者 2026-09-16：密語要先挑人，
+  從按鈕開空的 /w 沒意義；要密誰就點名字）。`player:<名字>` 連結的處理器走 `SendTell` →
+  `/w 名字 `，給名單型的東西（MiliUI_Minimap 的好友／公會列）用。
+- 限制都來自暴雪的處理器：**只有左鍵會開頻道**（右鍵是它的頻道選單）⇒ 右鍵切替代頻道
+  做不到，喊／回／幹拆成各自一顆，按鈕 `SetPassThroughButtons("RightButton")` 穿透給底下
+  的條開自己的選單；`chatStyle = "im"` 時 `ChooseBoxForSend` 會讀 `preferredChatFrame.editBox`
+  （classic 完全不看 frame），Sink 沒這欄位、也**不要補**（補了是插件寫的、暴雪讀了照樣髒）。
+
+⚠ 通則：**任何會替玩家開聊天輸入框的插件（點名字密語、頻道按鈕、「回覆」鍵）都必須走這條，
+否則這次登入的 R 鍵就沒了。** 套組裡還在直呼 `ChatFrame_SendTell`／`OpenChat` 的：
+MiliUI_Minimap（好友／公會列點名字）、Cell Layouts、MRT、RaiderIO、TinyInspect、YUI —— 每一下
+都會把全域弄髒，錯誤會怪到「最後一個開框的插件」頭上。
+
+以下為歷史紀錄。
 
 ## ⚠ 不要覆寫回覆路徑上的任何暴雪函式
 

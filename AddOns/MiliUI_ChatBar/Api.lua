@@ -30,6 +30,10 @@ SlashCmdList["MILIUICHATBAR"] = function(msg)
         ns.ResetPosition()
     elseif msg == "debug" then
         if ns.Anchor then ns.Anchor.Debug() end
+    elseif msg == "links" then
+        -- 把每顆按鈕的超連結點擊區畫成底線（再打一次關掉），並列出連結內容
+        ns.linkDebug = not ns.linkDebug
+        if ns.SetLinkDebug then ns.SetLinkDebug(ns.linkDebug) end
     else
         ns.OpenSettings()
     end

@@ -6,7 +6,6 @@ if not L then return end
 L["ADDON_NAME"] = "米利的快捷聊天列"
 
 -- 密語回覆降級（見 Fix_ReplyTell.lua）
-L["REPLY_FALLBACK_HINT"] = "密語對象的名字在 12.1 是受保護的資料，插件不能代填。已經幫你填好 |cffffd200/r|r，接著打空格和訊息就能回覆。"
 L["ADDON_TITLE"] = "快捷聊天列"
 
 -- Settings Categories
@@ -63,6 +62,8 @@ L["SHORT_INSTANCE"] = "副"
 L["SHORT_RAID"] = "團"
 L["SHORT_GUILD"] = "公"
 L["SHORT_WHISPER"] = "密"
+L["SHORT_REPLY"] = "回"
+L["SHORT_OFFICER"] = "幹"
 L["SHORT_ROLL"] = "骰"
 L["SHORT_DBM"] = "開"
 L["SHORT_RESET"] = "重"

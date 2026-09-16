@@ -7,8 +7,6 @@ ns.L = L
 ns.VERSION      = C_AddOns.GetAddOnMetadata(addonName, "Version") or "dev"
 ns.PREFIX_COLOR = "|cffFF9999"
 
-local issecretvalue = ns.Secret.IsSecret
-local plaintext     = ns.Secret.PlainText
 
 -- 設定分頁的 callback 派送用（Libs/Callbacks.lua 的 xpcall 處理器）。
 -- 訂閱者之間不能連坐，但也不能變成黑洞——照常轉給全域 errorhandler。
@@ -108,15 +106,21 @@ local function HexRGB(r, g, b)
     return string.format("|cff%02x%02x%02x", r*255, g*255, b*255)
 end
 
+local function ShowButtonTooltip(bu)
+    if not bu.tooltipText then return end
+    GameTooltip:SetOwner(bu, bu.tooltipAnchor or "ANCHOR_TOP")
+    GameTooltip:ClearLines()
+    local r, g, b = bu.Icon:GetVertexColor()
+    GameTooltip:AddLine(HexRGB(r, g, b)..bu.tooltipText)
+    GameTooltip:Show()
+end
+
+-- ⚠ 頻道按鈕整面都是超連結，而滑鼠停在連結區上時按鈕收到的是 OnLeave 不是 OnEnter
+--   （連結區是引擎另一個滑鼠焦點）。所以這裡的 OnEnter 只管沒被連結蓋到的那一小圈，
+--   連結上的提示由 Sink 的 OnHyperlinkEnter 顯示（見 Sink 段），兩邊都走 ShowButtonTooltip。
 local function AddTooltip(parent, anchor)
-    parent:SetScript("OnEnter", function(self)
-        if not self.tooltipText then return end
-        GameTooltip:SetOwner(self, anchor)
-        GameTooltip:ClearLines()
-        local r, g, b = self.Icon:GetVertexColor()
-        GameTooltip:AddLine(HexRGB(r, g, b)..self.tooltipText)
-        GameTooltip:Show()
-    end)
+    parent.tooltipAnchor = anchor
+    parent:SetScript("OnEnter", ShowButtonTooltip)
     parent:SetScript("OnLeave", function() GameTooltip:Hide() end)
 end
 
@@ -195,6 +199,120 @@ if EditModeManagerFrame then
     end)
 end
 
+------------------------------------------------------------
+-- ⚠⚠ 開聊天輸入框的那一下，執行裡不能有插件的程式碼
+--
+-- 12.1 之後密語對象的名字可能是秘密字串（跨服、戰網、不在隊伍裡的玩家）。
+-- 插件從自己的 OnClick 呼叫 ChatFrame_OpenChat → ActivateChat，暴雪就在**我們的**堆疊上
+-- 寫了全域 LAST_ACTIVE_CHAT_EDIT_BOX，那一筆寫入帶著 MiliUI_ChatBar 的污染。之後**任何**
+-- 開輸入框的路（按 R 回覆、點名字密語、Enter）都先讀這個全域 → 執行變髒 → 碰到秘密名字
+-- 就炸，而暴雪每一條寫回它的路都先讀它，所以髒了就一路髒到 /reload。
+-- 在錯誤路徑上做任何降級（鏡射對象、代填 /r、洗輸入框）都只是把炸點往後推。
+--
+-- 唯一的乾淨路：**讓按鈕變成聊天超連結**。聊天訊息裡的 [隊伍] 標頭本身就是
+-- |Hchannel:PARTY|h 超連結，點下去是引擎派送 → ChatFrameTemplate 的 OnHyperlinkClick
+--（暴雪的 method）→ SetItemRef → 暴雪的 channel 處理器 → OpenChat("/PARTY")。
+-- 整條鏈沒有插件的 Lua，全域保持乾淨。Chattynator 就是這樣做的：它的
+-- ChattynatorHyperlinkHandler 是一個 ChatFrameTemplate 框，訊息框用
+-- SetHyperlinkPropagateToParent(true) 把點擊往上交 —— 所以在它裡面點名字密語從來不炸。
+--
+-- 這裡照抄：Sink 是一個 ChatFrameTemplate 框（Sink.xml），每顆按鈕是它的子框、propagate 給它。
+-- 點擊區用**真的字**：標籤那個字本身就是連結（可見的字是最保險的點擊區，跟聊天訊息裡的
+-- 連結同一種東西），條的部分再放一串空白撐出跟條一樣大的連結。
+-- ⚠ 踩過的坑（2026-09-16）：alpha 0 的 FontString 裡放 |T 貼圖當點擊區、Lua 呼叫
+--   SetHyperlinksEnabled、按鈕用 SecureActionButtonTemplate —— 三個一起上，結果整條點不動，
+--   而且沒有任何錯誤。全部換成 Chattynator 驗證過的寫法之後才動。
+--   * 回覆 = |Hchannel:REPLY|h：/REPLY 由暴雪在乾淨執行下解析，秘密名字直接填進去，
+--     跟按 R 一模一樣。
+--   * 頻道 = |Hchannel:CHANNEL:編號|h，暴雪自己的格式。
+--
+-- 限制（都來自暴雪的處理器，不是我們選的）：
+--   * 只有**左鍵**會開頻道，右鍵是它的頻道選單 —— 所以「右鍵切替代頻道」做不到，
+--     喊話／回覆／幹部拆成各自一顆；按鈕的右鍵穿透給底下的條，開我們自己的選單。
+--   * chatStyle = "im" 時 ChooseBoxForSend 會讀 preferredChatFrame.editBox，Sink 沒有
+--     這個欄位；classic（預設）完全不看 frame 是誰。im 的玩家不補這個欄位 —— 補了是
+--     我們寫的、暴雪讀了照樣髒，跟以前一樣壞，但不會更壞。
+--
+-- 詳見 .claude/notes/wow-121-chat-reply-secret-taint.md
+------------------------------------------------------------
+-- 框本身在 Sink.xml（hyperlinksEnabled 要走 XML 屬性）；這裡只把它掛到聊天列底下。
+-- 模板預設 hidden；大小無所謂，子框的點擊區不受父框裁切。
+local Sink = MiliUI_ChatBar_LinkSink
+Sink:SetParent(Chatbar)
+Sink:SetPoint("TOPLEFT")
+Sink:SetSize(1, 1)
+Sink:Show()
+-- 模板的 OnLoad 註冊了一整批聊天事件；這顆框只負責收超連結點擊
+Sink:UnregisterAllEvents()
+Sink:SetScript("OnEvent", nil)
+-- 滑鼠停在連結區上時，按鈕自己收到的是 OnLeave 而不是 OnEnter —— 連結區是引擎另一個
+-- 滑鼠焦點（暴雪自己的聊天框也因此用游標輪詢管捲軸淡出，不用 OnEnter/OnLeave）。
+-- 按鈕整面都是連結，所以提示要從 propagate 的終點這裡顯示：region 是被滑到的 FontString，
+-- 它的父框就是按鈕。模板原本的 Enter/Leave 只是廣播 ChatFrame.OnHyperlinkEnter 事件，
+-- 不在點擊的路上，換掉沒有污染問題。
+Sink:SetScript("OnHyperlinkEnter", function(_, _, _, region)
+    local bu = region and region:GetParent()
+    if bu then ShowButtonTooltip(bu) end
+end)
+Sink:SetScript("OnHyperlinkLeave", function() GameTooltip:Hide() end)
+if Sink.ScrollBar then Sink.ScrollBar:Hide() end
+-- ⚠ OnHyperlinkClick 不要碰：那是模板從 ChatFrameMixin 接來的暴雪 method，
+--   換成自己的 SetScript 就等於把整條路又拉回插件的堆疊上。
+
+-- /mcb links：把空白換成底線，看得到每顆按鈕的點擊區有沒有蓋住條
+local LINK_DEBUG = false
+
+-- 把按鈕上的兩個連結重畫成按鈕現在的樣子。按鈕改大小、標籤改字級都要重畫。
+local function RenderLink(bu)
+    if not bu.hyperlink then return end
+
+    -- ① 標籤：字本身就是連結。標籤在條的上方、在按鈕矩形外，所以把按鈕的點擊矩形
+    --    往上撐到蓋住它 —— 滑鼠事件要先落在按鈕上，按鈕的 FontString 才輪得到比對連結。
+    local labelH = 0
+    if bu.fs and bu.labelText then
+        bu.fs:SetFormattedText("|H%s|h%s|h", bu.hyperlink, bu.labelText)
+        labelH = math.ceil(bu.fs:GetStringHeight() + 1)
+    end
+    bu:SetHitRectInsets(0, 0, -labelH, 0)
+
+    -- ② 條：一串空白撐出跟條一樣大的連結。字級＝條的高度（一行的高度就是條的高度），
+    --    寬度靠算出一個空白的寬度再除。空白沒有墨水，所以這個 FontString 不必藏。
+    local w, h = bu:GetWidth(), bu:GetHeight()
+    if w < 1 or h < 1 then return end
+    local link = bu.link
+    link:SetFont(STANDARD_TEXT_FONT, math.max(6, math.floor(h + 0.5)), "")
+    link:SetText("x x")
+    local spaced = link:GetStringWidth()
+    link:SetText("xx")
+    local adv = spaced - link:GetStringWidth()
+    local n = (adv and adv > 0) and math.ceil(w / adv) or 1
+    link:SetFormattedText("|H%s|h%s|h", bu.hyperlink, string.rep(LINK_DEBUG and "_" or " ", n))
+end
+
+function ns.SetLinkDebug(on)
+    LINK_DEBUG = on and true or false
+    for _, bu in ipairs(ns.buttonList or {}) do
+        RenderLink(bu)
+        if LINK_DEBUG and bu.hyperlink then
+            print(string.format("%s: %s  (%dx%d)", tostring(bu.configKey), bu.hyperlink,
+                math.floor(bu:GetWidth() + 0.5), math.floor(bu:GetHeight() + 0.5)))
+        end
+    end
+end
+
+-- 指定按鈕點下去要開的連結（"channel:PARTY"、"channel:CHANNEL:2"、"player:名字"）。
+-- 同一顆按鈕的連結會隨狀態換（隊伍→副本、目標換人），所以可以重複呼叫。
+local function SetChannelLink(bu, hyperlink)
+    if bu.hyperlink == nil then
+        -- 頻道按鈕的右鍵穿透給底下的條，開聊天列自己的選單（暴雪的處理器右鍵是它的頻道選單）。
+        -- 骰／開怪／重置那三顆不走這裡：它們的右鍵各有用途（type2 巨集、戰鬥記錄）。
+        bu:SetPassThroughButtons("RightButton")
+    end
+    if bu.hyperlink == hyperlink then return end
+    bu.hyperlink = hyperlink
+    RenderLink(bu)
+end
+
 local buttonList = {}
 
 local UpdateLayout
@@ -238,6 +356,7 @@ UpdateFontSize = function()
     for _, btn in ipairs(buttonList) do
         if btn.fs then
             btn.fs:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
+            RenderLink(btn)   -- 標籤高度變了，點擊矩形跟著撐
         end
     end
 end
@@ -282,17 +401,31 @@ local function GetChattynatorColor(configKey, colorKey)
     return nil
 end
 
+-- 骰／開怪／重置是 secure 動作鈕（巨集屬性、右鍵各有用途）。其餘全部是超連結按鈕：
+-- 不需要 secure 模板，也不能要 —— secure 按鈕的 OnClick 會先接走點擊，超連結輪不到。
+local FUNCTION_BUTTONS = { ROLL = true, DBM = true, RESET = true }
+
 -- Find-or-create a button by configKey. Pooled: existing buttons are reused.
 local function CreateOrRecycleButton(configKey)
     for _, btn in ipairs(buttonList) do
         if btn.configKey == configKey then return btn end
     end
-    local bu = CreateFrame("Button", nil, Chatbar, "SecureActionButtonTemplate, BackdropTemplate")
+    local template = FUNCTION_BUTTONS[configKey] and "SecureActionButtonTemplate, BackdropTemplate"
+                     or "BackdropTemplate"
+    local bu = CreateFrame("Button", nil, Sink, template)
     bu:SetSize(GetButtonWidth(), GetButtonHeight())
     bu:SetFrameLevel(Chatbar:GetFrameLevel() + 10) -- Above mover
     PixelIcon(bu, texture, true)
     CreateSD(bu)
     bu:RegisterForClicks("AnyUp")
+
+    -- 超連結點擊往上交給 Sink（見檔案前段）。條上那串空白連結鋪滿整顆按鈕。
+    bu:SetHyperlinkPropagateToParent(true)
+    local link = bu:CreateFontString(nil, "OVERLAY")
+    link:SetFont(STANDARD_TEXT_FONT, 12, "")   -- 沒字型 SetText 會硬錯；真正的字級在 RenderLink 裡設
+    link:SetPoint("CENTER")
+    link:SetWordWrap(false)
+    bu.link = link
 
     local fs = bu:CreateFontString(nil, "OVERLAY")
     local fSize = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.FontSize) or 9
@@ -313,6 +446,9 @@ local function ConfigureButton(bu, configKey, colorKey, r, g, b, text, labelText
     bu.tooltipText = text
     if text then AddTooltip(bu, "ANCHOR_TOP") end
 
+    -- 標籤原文另存一份：有連結的按鈕會把它包成 |H…|h 再畫（RenderLink），
+    -- 設定頁列名字也讀這個，不讀 GetText（那會拿到帶連結碼的字串）。
+    bu.labelText = labelText
     if labelText then
         bu.fs:SetText(labelText)
         bu.fs:SetTextColor(r, g, b)
@@ -320,6 +456,7 @@ local function ConfigureButton(bu, configKey, colorKey, r, g, b, text, labelText
     else
         bu.fs:Hide()
     end
+    RenderLink(bu)
 
     if func then bu:SetScript("OnClick", func) end
 end
@@ -348,139 +485,46 @@ AddRGBButton = function(configKey, r, g, b, text, labelText, func, order)
     return bu
 end
 
-------------------------------------------------------------
--- ⚠ 開輸入框之前，先把「秘密的密語對象」從輸入框上清掉
---
--- 輸入框的 chatType / tellTarget 關掉之後仍然留著。上一次密語的對象如果是秘密字串
--- （跨服／戰網／不在隊伍裡的玩家），暴雪的 `ChatFrameEditBoxMixin:UpdateHeader` 就會走到
---     header:SetFormattedText(CHAT_WHISPER_SEND, tellTarget)   -- 標頭字串變成秘密值
---     ...
---     local headerWidth = (header:GetRight() or 0) - (header:GetLeft() or 0)
--- **秘密字串量出來的寬度也是秘密數字**，那一行減法在我們的髒堆疊上直接崩：
---     ChatFrameEditBox.lua:679: attempt to perform arithmetic on a secret number value
---                               (execution tainted by 'MiliUI_ChatBar')
---
--- UpdateHeader 繞不過去：ChatFrame_OpenChat → ActivateChat 一定會呼叫它，而且是在我們的
--- 文字（`/i `）被解析成新頻道**之前** —— 那段解析排到下一幀的 OnUpdate 才跑
--- （`editBox.setText = 1`），輪不到它救。
--- ⚠ 那段 OnUpdate 也**不是**乾淨的執行：`setText`／`text` 是在我們的堆疊上寫的，
---   OnUpdate 一讀就跟著髒，而且它用 `ParseText(0, true)` 不看空格。
---   `/i `、`/p ` 碰不到秘密值所以無所謂；要填 `/r` 的話見 Fix_ReplyTell.lua 的 PrefillReply。
--- 所以只要「上一次是密語秘密對象」，聊天列**隨便哪一顆**按鈕按下去都會炸，跟被按的那顆
--- 是什麼頻道無關；錯誤行號指向暴雪的減法，不會指向真正的原因。
---
--- 洗法：對象清掉、頻道退回 SAY。每顆按鈕接著都會用自己的指令（`/p `、`/i `…）把頻道設成
--- 該設的，只有密語按鈕會停在 SAY —— 而那一刻本來就沒有對象可言。
---
--- 只在**對象是秘密值**的時候動手：污染的執行只對秘密值有意見，明文名字照樣跑得完，
--- 沒必要順手弄丟玩家的密語狀態。
---
--- 詳見 .claude/notes/wow-121-chat-reply-secret-taint.md
-------------------------------------------------------------
-local WHISPER_CHAT_TYPES = {
-    WHISPER       = true,
-    BN_WHISPER    = true,
-    SMART_WHISPER = true,
-}
-
--- 洗的必須是暴雪待會兒**真的會開的**那一個輸入框：classic 聊天樣式一律用預設視窗的，
--- 跟 chatFrame.editBox 不見得同一個。
-local function ClearSecretTellTarget(chatFrame)
-    local choose = ChatFrameUtil and ChatFrameUtil.ChooseBoxForSend
-    local editBox = (choose and choose(chatFrame)) or (chatFrame and chatFrame.editBox)
-    if not editBox then return end
-
-    -- chatType 一向是明碼，但秘密值不能當 table key —— 撲空也比崩潰好
-    if not WHISPER_CHAT_TYPES[plaintext(editBox:GetAttribute("chatType"))] then return end
-
-    local target = editBox:GetAttribute("tellTarget")
-    if target == nil or not issecretvalue(target) then return end
-
-    editBox:SetAttribute("tellTarget", nil)
-    editBox:SetAttribute("chatType", "SAY")
-end
-
--- Fix_ReplyTell.lua 的 `/r` 降級也要先洗（那條路的對象一定是秘密值）
-ns.ClearSecretTellTarget = ClearSecretTellTarget
-
-local function OpenChat(cmd)
-    local chatFrame = SELECTED_DOCK_FRAME or DEFAULT_CHAT_FRAME
-    local editBox = chatFrame.editBox
-    if not editBox:IsVisible() then
-        ClearSecretTellTarget(chatFrame)
-        ChatFrame_OpenChat(cmd, chatFrame)
-    else
-        -- 已經開著的話不必洗：ParseText 會先把 chatType 設成新頻道才更新標頭
-        editBox:SetText(cmd)
-    end
-    ChatEdit_ParseText(editBox, 0)
-end
-
 --------
 -- Buttons
 --------
+-- 每顆頻道按鈕只有一個超連結，左鍵點下去由暴雪開輸入框（機制見檔案前段的 Sink）。
+-- 右鍵穿透給底下的條 → 聊天列自己的右鍵選單。func 一律 nil：OnClick 上不能有任何
+-- 會碰輸入框的程式碼。
 
 -- SAY / YELL
-local sayBtn = AddColorKeyButton("SAY", "SAY", SAY.."/"..YELL, L["SHORT_SAY"], function(_, btn)
-    if btn == "RightButton" then
-        OpenChat("/y ")
-    else
-        OpenChat("/s ")
-    end
-end, 10)
+local sayBtn = AddColorKeyButton("SAY", "SAY", SAY, L["SHORT_SAY"], nil, 10)
+SetChannelLink(sayBtn, "channel:SAY")
 sayBtn.tabChat = function() return "SAY" end
 
--- WHISPER
--- 刻意不給 tabChat：密語需要對象，Tab 循環時直接跳過。
---
--- ⚠⚠ 名字是秘密值時**不能代填**，只能開一個空的 `/w `。
---   `GetUnitName("target", true)` 對「不在隊伍裡的玩家」回的是秘密字串（12.1 的受限身分）。
---   串接秘密字串本身合法，問題在下游：OpenChat 結尾會呼叫 ChatEdit_ParseText，而
---   `/w 名字 ` **結尾那個空格**會讓它當場解析成 WHISPER —— 那次解析跑在我們自己的髒堆疊上，
---   撞 `editBox:SetTellTarget()` 的 SetAttribute（AllowedWhenUntainted，收不下秘密值）。
---   換寫法沒有用，這條路本身就是死的。
---   退成空的 `/w ` 玩家並沒有損失什麼：Tab 補完照樣會把目標名字補上去，而那一下是
---   引擎發動的乾淨執行，暴雪自己填得進秘密名字。
---   詳見 .claude/notes/wow-121-chat-reply-secret-taint.md。
-AddColorKeyButton("WHISPER", "WHISPER", WHISPER, L["SHORT_WHISPER"], function(_, btn)
-    local chatFrame = SELECTED_DOCK_FRAME or DEFAULT_CHAT_FRAME
-    if btn == "RightButton" then
-        -- 回覆走 Fix_ReplyTell.lua 的入口：只有那支知道最後的密語對象是不是秘密值，
-        -- 是的話改成幫玩家填 `/r` 降級。**我們這一下的執行本來就是髒的**，
-        -- 所以不能等它那道「全域已髒才接手」的閘（那是給按鍵 R 用的）。
-        --
-        -- ⚠ 備援不要用 _G.ChatFrame_ReplyTell —— 那是載入期就抓好的**同一個函式物件**，
-        --   換掉 ChatFrameUtil.ReplyTell 這個 table 欄位對它沒有效果。
-        local reply = ns.ReplyTell or (ChatFrameUtil and ChatFrameUtil.ReplyTell)
-                      or _G.ChatFrame_ReplyTell
-        if reply then reply(chatFrame) end
-    else
-        local name
-        if UnitExists("target") and UnitIsPlayer("target") then
-            name = GetUnitName("target", true)
-            -- 非 boolean 的秘密值做布林測試是允許的，所以 `name and` 這樣寫安全
-            if name and (issecretvalue(name) or name == "") then name = nil end
-        end
-        OpenChat(name and ("/w " .. name .. " ") or "/w ")
-    end
-end, 11)
+-- 大喊不進 Tab 循環：循環是「打字時換個頻道」用的，喊話不該被輪到
+local yellBtn = AddColorKeyButton("YELL", "YELL", YELL, L["SHORT_YELL"], nil, 11)
+SetChannelLink(yellBtn, "channel:YELL")
+
+-- REPLY
+-- 密語不做按鈕：密語要先有對象，從一顆按鈕開一個空的 /w 沒有意義（要密誰就點名字）。
+-- 回覆不同，對象是「最後密我的人」，一顆鍵就成立。
+-- |Hchannel:REPLY|h → 暴雪在乾淨執行下解析 /REPLY，秘密名字直接填進去，跟按 R 一樣。
+-- 顏色跟密語同一組（ChatTypeInfo 的 REPLY 沒有自己的顏色）。刻意不給 tabChat。
+local replyBtn = AddColorKeyButton("REPLY", "WHISPER", REPLY_MESSAGE, L["SHORT_REPLY"], nil, 12)
+SetChannelLink(replyBtn, "channel:REPLY")
 
 -- PARTY
-local partyBtn = AddColorKeyButton("PARTY", "PARTY", PARTY, L["SHORT_PARTY"], function() OpenChat("/p ") end, 12)
+local partyBtn = AddColorKeyButton("PARTY", "PARTY", PARTY, L["SHORT_PARTY"], nil, 14)
+SetChannelLink(partyBtn, "channel:PARTY")
 partyBtn.isAvailable = function() return IsInGroup() end
 partyBtn.tabChat = function() return "PARTY" end
 
 -- INSTANCE / RAID
-local instanceBtn = AddColorKeyButton("INSTANCE", "INSTANCE_CHAT", INSTANCE.."/"..RAID, L["SHORT_RAID"], function()
-    if IsPartyLFG() or IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
-        OpenChat("/i ")
-    else
-        OpenChat("/raid ")
-    end
-end, 13)
 local function InInstanceChat()
     return IsPartyLFG() or IsInGroup(LE_PARTY_CATEGORY_INSTANCE)
 end
+local instanceBtn = AddColorKeyButton("INSTANCE", "INSTANCE_CHAT", INSTANCE.."/"..RAID, L["SHORT_RAID"], nil, 15)
+-- 副本隊伍與一般團隊是兩個頻道，連結隨隊伍狀態換（RefreshGroupLinks）
+local function RefreshGroupLinks()
+    SetChannelLink(instanceBtn, InInstanceChat() and "channel:INSTANCE_CHAT" or "channel:RAID")
+end
+RefreshGroupLinks()
 -- /raid 只在團隊裡有意義，小隊狀態下這顆沒用
 instanceBtn.isAvailable = function() return InInstanceChat() or IsInRaid() end
 instanceBtn.tabChat = function()
@@ -489,15 +533,15 @@ instanceBtn.tabChat = function()
 end
 
 -- GUILD / OFFICER
-local guildBtn = AddColorKeyButton("GUILD", "GUILD", GUILD.."/"..OFFICER, L["SHORT_GUILD"], function(_, btn)
-    if btn == "RightButton" and C_GuildInfo.CanEditOfficerNote() then -- Approximate check for officer
-        OpenChat("/o ")
-    else
-        OpenChat("/g ")
-    end
-end, 14)
+local guildBtn = AddColorKeyButton("GUILD", "GUILD", GUILD, L["SHORT_GUILD"], nil, 16)
+SetChannelLink(guildBtn, "channel:GUILD")
 guildBtn.isAvailable = function() return IsInGuild() end
 guildBtn.tabChat = function() return "GUILD" end
+
+local officerBtn = AddColorKeyButton("OFFICER", "OFFICER", OFFICER, L["SHORT_OFFICER"], nil, 17)
+SetChannelLink(officerBtn, "channel:OFFICER")
+-- 有幹部頻道權限的近似判斷（跟以前右鍵那條一樣）
+officerBtn.isAvailable = function() return IsInGuild() and C_GuildInfo.CanEditOfficerNote() end
 
 -- WORLD CHANNEL
 -- DYNAMIC CHANNELS
@@ -533,9 +577,8 @@ local function UpdateChannelButtons()
 
             -- UI index 'i' determines sort order (20+)
             local order = 20 + i
-            local btn = AddColorKeyButton(key, key, name, label, function(_, btn)
-                OpenChat("/"..channelNumber.." ")
-            end, order)
+            local btn = AddColorKeyButton(key, key, name, label, nil, order)
+            SetChannelLink(btn, "channel:CHANNEL:"..channelNumber)   -- 暴雪自己的頻道連結格式
             btn.tabChat = function() return "CHANNEL", channelNumber end
             btn.isAvailable = function() return channelActive[key] == true end
         end
@@ -735,6 +778,7 @@ UpdateLayout = function()
         for i, bu in ipairs(visibleButtons) do
             -- 直向沒有自適應寬度，但橫向可能剛把寬度算成別的值，這裡要收回來
             bu:SetSize(bw, bh)
+            RenderLink(bu)   -- 超連結的點擊區跟著按鈕大小走
             bu:ClearAllPoints()
             if i == 1 then
                 bu:SetPoint("TOP", Chatbar, "TOP", 0, -vTopPadding)
@@ -789,6 +833,7 @@ UpdateLayout = function()
 
         for i, bu in ipairs(visibleButtons) do
             bu:SetSize(bw, bh)
+            RenderLink(bu)   -- 超連結的點擊區跟著按鈕大小走
             bu:ClearAllPoints()
             if i == 1 then
                 bu:SetPoint("LEFT", Chatbar, "LEFT", startOffset, 0)
@@ -879,6 +924,7 @@ loader:SetScript("OnEvent", function(self, event)
         if event == "PLAYER_ENTERING_WORLD" then
              -- Force longer delay for map switch to ensure channels are ready
              RequestChannelUpdate(true)
+             RefreshGroupLinks()   -- 進副本／出副本會改變是不是副本隊伍
         else
              RequestChannelUpdate(false)
         end
@@ -893,6 +939,7 @@ loader:SetScript("OnEvent", function(self, event)
     end
 
     if event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_GUILD_UPDATE" then
+        RefreshGroupLinks()
         UpdateButtonVisibility()
         return
     end

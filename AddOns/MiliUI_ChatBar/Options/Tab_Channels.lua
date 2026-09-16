@@ -46,7 +46,7 @@ end
 
 local function UpdateRow(row, bu)
     row.bu = bu
-    row.name:SetText(bu.tooltipText or (bu.fs and bu.fs:GetText()) or bu.configKey)
+    row.name:SetText(bu.tooltipText or bu.labelText or bu.configKey)
 
     ns.InitDB()
     row.check:SetChecked(not MiliUI_ChatBar_DB.Chatbar.Hidden[bu.configKey])
