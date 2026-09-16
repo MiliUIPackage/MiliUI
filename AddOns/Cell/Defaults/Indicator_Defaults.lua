@@ -153,7 +153,7 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["num"] = 5,
             ["numPerLine"] = 5,
             ["orientation"] = "right-to-left",
-            ["spacing"] = {0, 0},
+            ["spacing"] = {2, 2},
             ["font"] = {
                 {"Cell " .. _G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell " .. _G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},

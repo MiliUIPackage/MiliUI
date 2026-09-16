@@ -1033,7 +1033,7 @@ function F.FirstRun()
             ["num"] = 5,
             ["numPerLine"] = 5,
             ["orientation"] = "right-to-left",
-            ["spacing"] = {0, 0},
+            ["spacing"] = {2, 2},
             ["font"] = {
                 -- stack: size 8, anchored TOP (+0, +5)
                 {"Cell ".._G.DEFAULT, 8, "Outline", false, "TOP", 0, 5, {1, 1, 1}},
