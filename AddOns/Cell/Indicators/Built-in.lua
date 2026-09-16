@@ -106,6 +106,12 @@ function I.Cooldowns_ShowAnimation(self, show)
     end
 end
 
+function I.Cooldowns_SetBorderColor(self, borderColor)
+    for i = 1, #self do
+        self[i]:SetBorderColor(borderColor)
+    end
+end
+
 function I.Cooldowns_UpdatePixelPerfect(self)
     P.Repoint(self)
     for i = 1, #self do
@@ -347,6 +353,28 @@ local function EffectSpellColors(t)
     return out
 end
 
+-- The icon grid the preview draws (Icons_SetOrientation): per-line wrap, the X/Y gaps and
+-- the anchor corner the row grows away from. Only the custom icons type has numPerLine and
+-- spacing settings; the rest send `false` and keep AuraDisplay's defaults.
+-- ⚠ `false`, never nil, for anything absent: SetOptions only walks the keys that are
+-- present, so a nil would leave the previous value standing.
+local function GridOpts(opts, t)
+    local sp, pos = t.spacing, t.position
+    opts.numPerLine = type(t.numPerLine) == "number" and t.numPerLine or false
+    opts.spacingX = type(sp) == "table" and type(sp[1]) == "number" and sp[1] or false
+    opts.spacingY = type(sp) == "table" and type(sp[2]) == "number" and sp[2] or false
+    opts.anchor = type(pos) == "table" and type(pos[1]) == "string" and pos[1] or false
+end
+
+-- The 邊框顏色 option. A fixed colour also drops the dispel-school tint, and that tint is a
+-- bind made while the button is being styled -- so fixedRing is the structural half (a
+-- rebuild) and borderColor the cosmetic half (a restyle, cheap while the picker drags).
+local function RingOpts(opts, t, fallback)
+    local fixed = I.GetFixedBorderColor(t.borderColor)
+    opts.fixedRing = fixed and true or false
+    opts.borderColor = fixed and { fixed[1], fixed[2] or 0, fixed[3] or 0, 1 } or fallback or false
+end
+
 -- useConfigColor: take the ring colour from the indicator's own 顏色 setting instead of
 -- the default green. Only custom indicators have such a setting; the three built-in
 -- cooldown rows keep the default.
@@ -405,6 +433,9 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
             onlyMine = (t.castBy == "me") or nil,
             orientation = t.orientation,
         }
+        -- icon rows only: an effect frame is positioned by AnchorEffectFrame / its own size,
+        -- and handing it an anchor corner would move a single block by the size mismatch
+        if not customStyle then GridOpts(opts, t) end
         -- EFFECT SLOTS (colour/border/rect/texture): the visual is built from the
         -- indicator's own settings, and everything time-based is dropped -- the fade-out and
         -- the percent/seconds colour bands all needed a countdown that is now secret.
@@ -463,8 +494,12 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
             -- icon only: single per-aura colour (block's colour comes from t.colors below).
             -- Typed check: the colour-per-aura types store colours inside t.auras, so t.color
             -- is then something else entirely.
-            if not customStyle and useConfigColor and type(t.color) == "table" and type(t.color[1]) == "number" then
-                opts.borderColor = { t.color[1], t.color[2] or 0, t.color[3] or 0, 1 }
+            if not customStyle then
+                local configColor
+                if useConfigColor and type(t.color) == "table" and type(t.color[1]) == "number" then
+                    configColor = { t.color[1], t.color[2] or 0, t.color[3] or 0, 1 }
+                end
+                RingOpts(opts, t, configColor)
             end
         end
         -- block & text carry a NORMALISED {base, sec} colours spec for the countdown colour
@@ -539,6 +574,7 @@ function I.CreateDefensiveCooldowns(parent)
     defensiveCooldowns.SetOrientation = I.Cooldowns_SetOrientation
     defensiveCooldowns.ShowDuration = I.Cooldowns_ShowDuration
     defensiveCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
+    defensiveCooldowns.SetBorderColor = I.Cooldowns_SetBorderColor
     defensiveCooldowns.SetupGlow = I.Glow_SetupForChildren
     defensiveCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
@@ -568,6 +604,7 @@ function I.CreateExternalCooldowns(parent)
     externalCooldowns.SetOrientation = I.Cooldowns_SetOrientation
     externalCooldowns.ShowDuration = I.Cooldowns_ShowDuration
     externalCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
+    externalCooldowns.SetBorderColor = I.Cooldowns_SetBorderColor
     externalCooldowns.SetupGlow = I.Glow_SetupForChildren
     externalCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
@@ -597,6 +634,7 @@ function I.CreateAllCooldowns(parent)
     allCooldowns.SetOrientation = I.Cooldowns_SetOrientation
     allCooldowns.ShowDuration = I.Cooldowns_ShowDuration
     allCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
+    allCooldowns.SetBorderColor = I.Cooldowns_SetBorderColor
     allCooldowns.SetupGlow = I.Glow_SetupForChildren
     allCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
@@ -626,6 +664,7 @@ function I.CreateOffensiveCooldowns(parent)
     offensiveCooldowns.SetOrientation = I.Cooldowns_SetOrientation
     offensiveCooldowns.ShowDuration = I.Cooldowns_ShowDuration
     offensiveCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
+    offensiveCooldowns.SetBorderColor = I.Cooldowns_SetBorderColor
     offensiveCooldowns.SetupGlow = I.Glow_SetupForChildren
     offensiveCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
@@ -882,6 +921,7 @@ function I.CreateDebuffs(parent)
 
     debuffs.ShowDuration = I.Cooldowns_ShowDuration
     debuffs.ShowAnimation = I.Cooldowns_ShowAnimation
+    debuffs.SetBorderColor = I.Cooldowns_SetBorderColor
     debuffs.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     debuffs.ShowTooltip = Debuffs_ShowTooltip
@@ -972,6 +1012,10 @@ function I.CreateDebuffs(parent)
             -- actually for -- the noisy always-on debuffs (Exhaustion/Sated and friends).
             excludeSpellIDs = Cell.vars.debuffBlacklist,
         }
+        -- the categories are separate groups, so a busy unit can still overflow `num` onto a
+        -- second line -- which has to grow away from the anchor, not off the frame
+        GridOpts(opts, t)
+        RingOpts(opts, t)
         if t.font then
             opts.stackFont = t.font[1]
             opts.durationFont = t.font[2]
@@ -1461,6 +1505,7 @@ function I.CreateRaidDebuffs(parent)
     raidDebuffs.UpdateSize = I.Cooldowns_UpdateSize_WithSpacing
     raidDebuffs.ShowDuration = I.Cooldowns_ShowDuration
     raidDebuffs.ShowAnimation = I.Cooldowns_ShowAnimation
+    raidDebuffs.SetBorderColor = I.Cooldowns_SetBorderColor
     raidDebuffs.SetOrientation = I.Cooldowns_SetOrientation_WithSpacing
     raidDebuffs.SetFont = I.Cooldowns_SetFont
     raidDebuffs.ShowGlow = RaidDebuffs_ShowGlow
@@ -1531,6 +1576,7 @@ function I.CreateRaidDebuffs(parent)
                     animationStyle      = t.animationStyle,
                     showAnimation       = t.showAnimation,
                 }
+                RingOpts(opts, t)
                 -- Cell font tables: [1] = stack, [2] = duration
                 if t.font then
                     opts.stackFont = t.font[1]
@@ -3268,6 +3314,7 @@ function I.CreateCrowdControls(parent)
     crowdControls.UpdateSize = I.Cooldowns_UpdateSize_WithSpacing
     crowdControls.ShowDuration = I.Cooldowns_ShowDuration
     crowdControls.ShowAnimation = I.Cooldowns_ShowAnimation
+    crowdControls.SetBorderColor = I.Cooldowns_SetBorderColor
     crowdControls.SetOrientation = I.Cooldowns_SetOrientation_WithSpacing
     crowdControls.SetFont = I.Cooldowns_SetFont
     crowdControls.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect

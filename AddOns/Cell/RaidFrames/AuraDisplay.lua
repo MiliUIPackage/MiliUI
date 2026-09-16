@@ -485,6 +485,8 @@ local BindDispelTexture = ACC.BindDispelTexture
 --   no school, HELPFUL    -> green
 -- cfg.borderColor overrides the last two (custom indicators with their own 顏色 setting),
 -- and the swipe grows over whatever it is in SPENT_COLOR as the aura runs out.
+-- cfg.fixedRing (the per-indicator 邊框顏色 = custom) overrides the first one as well: the
+-- school tint is never bound, so cfg.borderColor is the ring for every aura.
 -- ============================================================
 
 -- Deliberately dark. This started at {0, 0.9, 0.2} and was dialled down because a bright
@@ -995,7 +997,10 @@ local function StyleButton(handle, button)
 
     -- Skipped for buff containers: the binding is showWhenHarmful-only, so on a HELPFUL
     -- container it is a texture and a bind per button that can never draw anything.
-    if cfg.mode ~= "buff" then
+    -- Skipped for a fixed ring too. fixedRing is structural (not a COSMETIC_KEY), so a switch
+    -- rebuilds with fresh buttons -- a bind can never be undone on a live one -- and the park
+    -- key carries the config, so a parked school-tinted button is never handed back here.
+    if cfg.mode ~= "buff" and not cfg.fixedRing then
         if not button.dfDispelBorder then
             button.dfDispelBorder = button:CreateTexture(nil, "BORDER")
             button.dfDispelBorder:SetColorTexture(1, 1, 1, 1) -- white: the tint IS the colour
@@ -1196,20 +1201,41 @@ end
 -- Honour the indicator's orientation. The anchor frame is one icon big and sits at the
 -- configured position; the row must flow OUT of that point in the configured direction,
 -- or a TOPRIGHT/right-to-left indicator (Healers) spills icons rightward off the frame.
+-- The gap between icons on a line (main) and between lines (cross).
+--
+-- Cell's spacing setting is {X, Y} on SCREEN axes (Icons_SetOrientation: X is always the
+-- horizontal gap, Y the vertical one), while the flow layout thinks in main/cross, so a
+-- vertical row swaps them. Indicators without that setting fall back to the single
+-- cfg.spacing on both.
+local function Spacing(cfg)
+    local x, y = cfg.spacingX, cfg.spacingY
+    if type(x) ~= "number" or type(y) ~= "number" then
+        local s = cfg.spacing or 2
+        return s, s
+    end
+    if cfg.orientation == "top-to-bottom" or cfg.orientation == "bottom-to-top" then
+        return y, x
+    end
+    return x, y
+end
+
 local function ApplyLayout(handle)
     local c = handle.container
     if not c then return end
     local cfg = handle.config
+    local main = Spacing(cfg)
 
     local point = ACC.ApplyFlowLayout(c, {
         orientation = cfg.orientation,
         num = cfg.num or 3,
+        numPerLine = cfg.numPerLine,
+        anchor = cfg.anchor,
         width = cfg.size or 22,
         height = cfg.sizeH or cfg.size or 22,
-        spacing = cfg.spacing or 2,
+        spacing = main,
     })
 
-    -- pin the container to the SAME side of the anchor frame the row flows from
+    -- pin the container to the SAME side (or corner) of the anchor frame the row flows from
     pcall(function()
         c:ClearAllPoints()
         c:SetPoint(point, handle.frame, point, 0, 0)
@@ -1219,10 +1245,10 @@ end
 -- per-group cell size passed to AddAuraGroup
 local function GroupLayout(cfg)
     local size = cfg.size or 22
-    local spacing = cfg.spacing or 2
+    local main, cross = Spacing(cfg)
     return {
         elementWidth = size, elementHeight = cfg.sizeH or size,
-        elementSpacing = spacing, lineSpacing = spacing, groupSpacing = 0,
+        elementSpacing = main, lineSpacing = cross, groupSpacing = 0,
     }
 end
 
@@ -1464,6 +1490,7 @@ local function Build(handle, why)
 
     local key = ParkKey(handle, records, slotMode)
     handle._parkKey = key
+    handle._parkRecords = records -- Restyle re-keys against these (see the note there)
 
     local host, c = AcquireParked(key)
     local reused = host ~= nil
@@ -1804,7 +1831,11 @@ local COSMETIC_KEYS = {
 -- geometry keys: 12.1 has SetAuraGroupLayout as a LIVE setter and StyleButton already
 -- re-applies per-button size/border, so these never need a rebuild either. Keeping them
 -- off the rebuild path is what stops a size/border tweak from leaving a stale container.
-local LAYOUT_KEYS = { size = true, sizeH = true, border = true, spacing = true, orientation = true }
+local LAYOUT_KEYS = {
+    size = true, sizeH = true, border = true, spacing = true, orientation = true,
+    -- the icon grid: wrap budget, the two gaps, and the corner lines grow away from
+    numPerLine = true, spacingX = true, spacingY = true, anchor = true,
+}
 
 function Handle:Restyle()
     -- ⚠ Combat used to `return` outright, with no flag -- the restyle was simply lost, and
@@ -1836,6 +1867,14 @@ function Handle:Restyle()
     for i = 1, n do
         local b = self.buttons[i]
         if b then pcall(StyleButton, self, b) end
+    end
+
+    -- ⚠ Re-key. The park key was taken at BUILD time and carries TableSig(config); the
+    -- buttons now wear the current config instead. Left alone, a container restyled to a new
+    -- ring colour or font would be parked as its OLD look and handed to the next handle that
+    -- asks for that old look -- styled wrong, with no way to restyle it once auras are secret.
+    if self._parkKey and self._parkRecords then
+        self._parkKey = ParkKey(self, self._parkRecords, IsSlotMode(self.config))
     end
 end
 

@@ -36,6 +36,8 @@ select(2, ...).L = setmetatable({
     ["Border Countdown"] = "Border countdown",
     ["Clock Sweep"] = "Clock sweep",
     ["Falling Shadow"] = "Falling shadow",
+    -- fix from MiliUI: per-indicator icon ring colour
+    ["By Aura Type"] = "By aura type",
     ["showStack"] = "Show stack text",
     ["showTooltip"] = "Show aura tooltip",
     ["enableHighlight"] = "Highlight unit button",

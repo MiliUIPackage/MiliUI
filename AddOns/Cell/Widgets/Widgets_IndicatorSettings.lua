@@ -1647,6 +1647,99 @@ local function CreateSetting_Orientation(parent)
     return widget
 end
 
+-- icon ring colour: {"type"} follows the aura (dispel school / debuff red / buff green),
+-- {"custom", {r, g, b, a}} is one colour for every aura. Absent in the layout = "type".
+local BORDER_COLOR_DEFAULT = {0, 0, 0, 1}
+
+local function CreateSetting_BorderColor(parent)
+    local widget
+
+    if not settingWidgets["borderColor"] then
+        widget = Cell.CreateFrame("CellIndicatorSettings_BorderColor", parent, 240, 50)
+        settingWidgets["borderColor"] = widget
+
+        -- ⚠ Always a FRESH colour table. GetColor returns the picker's own table, which
+        -- SetDBValue overwrites in place for the next indicator shown -- storing it would tie
+        -- every indicator's saved colour to whichever one was opened last.
+        local function Value(mode)
+            local c = widget.colorPicker:GetColor()
+            return {mode, {c[1] or 0, c[2] or 0, c[3] or 0, 1}}
+        end
+
+        -- The animation widget below belongs to the same indicator; it has to learn about a
+        -- dark ring now, not the next time the pane is opened. If the ring just went dark
+        -- while "border countdown" is picked, move to the falling shadow -- a greyed-out item
+        -- that is still the selected one would be showing nothing with no way to tell why.
+        local function Apply(value)
+            widget.func(value)
+            local anim = settingWidgets["animationStyle"]
+            if not (anim and anim:IsShown()) then return end
+            anim:SetBorderColor(value)
+            if not I.IsBorderCountdownUsable(value) and anim.style:GetSelected() == "border" and anim.func then
+                anim.style:SetSelectedValue("vertical")
+                anim.func("vertical")
+            end
+        end
+
+        widget.colorDropdown = Cell.CreateDropdown(widget, 127)
+        widget.colorDropdown:SetPoint("TOPLEFT", 5, -20)
+        widget.colorDropdown:SetItems({
+            {
+                ["text"] = L["By Aura Type"],
+                ["value"] = "type",
+                ["onClick"] = function()
+                    -- an open picker would keep firing onChange and flip it back to custom
+                    Cell.HideColorPicker()
+                    widget.colorPicker:Hide()
+                    Apply(Value("type"))
+                end,
+            },
+            {
+                ["text"] = L["Custom Color"],
+                ["value"] = "custom",
+                ["onClick"] = function()
+                    widget.colorPicker:Show()
+                    Apply(Value("custom"))
+                end,
+            },
+        })
+
+        local text = widget:CreateFontString(nil, "OVERLAY", font_name)
+        text:SetPoint("BOTTOMLEFT", widget.colorDropdown, "TOPLEFT", 0, 1)
+        text:SetText(L["Border Color"])
+
+        widget.colorPicker = Cell.CreateColorPicker(widget, "", false, function()
+            Apply(Value("custom"))
+        end)
+        widget.colorPicker:SetPoint("LEFT", widget.colorDropdown, "RIGHT", 5, 0)
+
+        -- callback
+        function widget:SetFunc(func)
+            widget.func = func
+        end
+
+        -- show db value
+        function widget:SetDBValue(borderColor)
+            local fixed = I.GetFixedBorderColor(borderColor)
+            local c = fixed or (type(borderColor) == "table" and type(borderColor[2]) == "table"
+                and type(borderColor[2][1]) == "number" and borderColor[2]) or BORDER_COLOR_DEFAULT
+            widget.colorPicker:SetColor(c[1], c[2] or 0, c[3] or 0, 1)
+            if fixed then
+                widget.colorDropdown:SetSelectedValue("custom")
+                widget.colorPicker:Show()
+            else
+                widget.colorDropdown:SetSelectedValue("type")
+                widget.colorPicker:Hide()
+            end
+        end
+    else
+        widget = settingWidgets["borderColor"]
+    end
+
+    widget:Show()
+    return widget
+end
+
 -- Cooldown animation style. All three are the same idea -- something dark grows as the
 -- aura runs out -- and differ only in WHERE it grows: on the border ("border", Cell's
 -- long-standing look), over the icon in a clock sweep ("clock", how Blizzard draws a
@@ -1660,14 +1753,15 @@ local function CreateSetting_AnimationStyle(parent)
 
         widget.style = Cell.CreateDropdown(widget, 245)
         widget.style:SetPoint("TOPLEFT", 5, -20)
+        widget.borderItem = {
+            ["text"] = L["Border Countdown"],
+            ["value"] = "border",
+            ["onClick"] = function()
+                widget.func("border")
+            end,
+        }
         widget.style:SetItems({
-            {
-                ["text"] = L["Border Countdown"],
-                ["value"] = "border",
-                ["onClick"] = function()
-                    widget.func("border")
-                end,
-            },
+            widget.borderItem,
             {
                 ["text"] = L["Clock Sweep"],
                 ["value"] = "clock",
@@ -1700,12 +1794,23 @@ local function CreateSetting_AnimationStyle(parent)
             widget.func = func
         end
 
+        -- "border countdown" is a black sweep eating the coloured ring: on a dark fixed ring
+        -- there is nothing left to see, so the item is greyed out (see I.IsBorderCountdownUsable)
+        function widget:SetBorderColor(borderColor)
+            local disabled = not I.IsBorderCountdownUsable(borderColor)
+            if widget.borderItem.disabled ~= disabled then
+                widget.borderItem.disabled = disabled
+                widget.style.reloadRequired = true -- the list re-reads item.disabled on next open
+            end
+        end
+
         -- show db value
-        function widget:SetDBValue(style)
+        function widget:SetDBValue(style, borderColor)
             if style ~= "border" and style ~= "clock" and style ~= "vertical" and style ~= "none" then
                 style = "border"
             end
             widget.style:SetSelectedValue(style)
+            widget:SetBorderColor(borderColor)
         end
     else
         widget = settingWidgets["animationStyle"]
@@ -7176,6 +7281,7 @@ local builders = {
     ["durationVisibility"] = CreateSetting_DurationVisibility,
     ["durationVisibilitySimple"] = CreateSetting_DurationVisibilitySimple,
     ["orientation"] = CreateSetting_Orientation,
+    ["borderColor"] = CreateSetting_BorderColor,
     ["animationStyle"] = CreateSetting_AnimationStyle,
     ["barOrientation"] = CreateSetting_BarOrientation,
     ["font-noOffset"] = CreateSetting_FontNoOffset,

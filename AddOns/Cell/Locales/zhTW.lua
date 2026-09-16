@@ -640,6 +640,8 @@ L["Cooldown Animation"] = "冷卻動畫"
 L["Border Countdown"] = "外框倒數"
 L["Clock Sweep"] = "時鐘掃描"
 L["Falling Shadow"] = "陰影下落"
+-- fix from MiliUI: per-indicator icon ring colour
+L["By Aura Type"] = "依光環類型"
 L["showBackground"] = "顯示背景"
 L["showDuration"] = "顯示持續時間文字"
 L["showGroupNumber"] = "顯示隊伍編號"
