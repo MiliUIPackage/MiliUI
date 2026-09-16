@@ -10,7 +10,7 @@ metadata:
 
 2026-09-17 新增獨立插件 `AddOns/MiliUI_CrusadingStrikes`
 （Title-zhTW `|cff00FFFF[職業]|r|cffF58CBA[聖騎]|r 德莫的征戰聖擊助手`、
-SV `MiliUI_CrusadingStrikes_DB`、指令 `/csaa`、NAMESPACE `MiliUICSAA`、
+SV `MiliUI_CrusadingStrikes_DB`、指令 `/dermo`、NAMESPACE `MiliUICSAA`、
 選單 key `crusadingstrikes`、order 65）。
 
 做的事：把征戰聖擊（懲戒聖騎把普攻換成聖擊的天賦）「距離下一刀還有多久」畫成一條，
@@ -97,7 +97,7 @@ C_NamePlate.GetNamePlateForUnit("target")
 3. 換目標、名條進出畫面、名條插件換設計時條會跟上，不殘留在舊名條。
 4. 施法條出現時讓位正確；施法條在血條上方的設計不會亂跳。
 5. `showStacks`：`Icon.Applications:GetText()` 的秘密字串能不能直接 `SetText` 轉手
-   （預設關、包 pcall，失敗就自己關掉並記進 `/csaa check`）。
+   （預設關、包 pcall，失敗就自己關掉並記進 `/dermo check`）。
 6. 寬度 match 模式在不同 `design.scale` 下對得齊血條。
 7. 「已揮的時間」模式的兩層角色互換（背景＝fill 色、條材質＝back 色＋反向填充）
    看起來對不對，尤其是 back 色半透明時疊出來的暗色。

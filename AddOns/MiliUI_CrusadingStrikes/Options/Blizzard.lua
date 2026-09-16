@@ -11,7 +11,7 @@ local L = ns.L
 
 ns.BlizzCategory = ns.RegisterBlizzardCategory{
     title        = L["MiliUI Crusading Strikes"],
-    instructions = L["Use /csaa to open options"],
+    instructions = L["Use /dermo to open options"],
     versionText  = L["Version: %s"]:format(ns.VERSION),
     buttonText   = L["Open options"],
 }

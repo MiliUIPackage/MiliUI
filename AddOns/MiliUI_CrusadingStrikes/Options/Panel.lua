@@ -176,7 +176,7 @@ local function CreatePanel()
         L["Shows how long until your next Crusading Strikes swing, as a bar under your target's nameplate health bar."],
         L["The timing is mirrored straight from Blizzard's Cooldown Manager bar, so it stays accurate in raids and Mythic+."],
         "",
-        L["Commands: |cffffd200/csaa|r opens the options, |cffffd200/csaa check|r prints a diagnosis, |cffffd200/csaa reset|r restores the defaults"],
+        L["Commands: |cffffd200/dermo|r opens the options, |cffffd200/dermo check|r prints a diagnosis, |cffffd200/dermo reset|r restores the defaults"],
         "",
         L["Author: Mili (MiliUI package)"],
     }, "\n"))

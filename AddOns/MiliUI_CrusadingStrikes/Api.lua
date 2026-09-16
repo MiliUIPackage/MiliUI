@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 對外入口：/csaa 指令、插件選單按鈕
+-- 對外入口：/dermo 指令、插件選單按鈕
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -27,7 +27,7 @@ MiliUI_MenuEntries[#MiliUI_MenuEntries + 1] = {
 }
 
 ------------------------------------------------------------
--- /csaa check
+-- /dermo check
 --
 -- 「條沒出來」有六種成因，而且彼此看起來一模一樣。這裡把每一段都印成「有／沒有」。
 -- ⚠ 一個可能是秘密的值都不印（cooldownID 只回報「是不是秘密」），也不印單位名。
@@ -71,7 +71,7 @@ local function Report()
     end
 end
 
-SLASH_MILIUICSAA1 = "/csaa"
+SLASH_MILIUICSAA1 = "/dermo"
 SLASH_MILIUICSAA2 = "/crusadingstrikes"
 SlashCmdList.MILIUICSAA = function(msg)
     msg = strtrim(strlower(msg or ""))

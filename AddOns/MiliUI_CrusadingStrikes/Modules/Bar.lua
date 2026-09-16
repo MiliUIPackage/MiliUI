@@ -35,7 +35,7 @@ local revealFrames = 0
 local castShowing = false
 local hiddenByCast = false
 
--- showStacks 在某個客戶端版本上傳不過去的話就整個關掉，並記進 /csaa check
+-- showStacks 在某個客戶端版本上傳不過去的話就整個關掉，並記進 /dermo check
 Bar.stacksFailed = false
 
 ------------------------------------------------------------
@@ -188,7 +188,7 @@ local function MirrorStacks(item)
     end
     -- 層數文字在 12.1 可能是秘密字串：**原封不動轉手**，不 tostring、不比較、不串接。
     -- 這條路沒有文件保證吃得下秘密字串，所以包 pcall；失敗就把功能關掉（不重試），
-    -- 並在 /csaa check 裡留下紀錄。
+    -- 並在 /dermo check 裡留下紀錄。
     local ok, value = pcall(src.GetText, src)
     if not ok then
         Bar.stacksFailed = true

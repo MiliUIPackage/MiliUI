@@ -71,15 +71,15 @@ L["Restore every setting on this addon to its default?"] = "把这个插件的�
 -- 关于标签页
 L["Shows how long until your next Crusading Strikes swing, as a bar under your target's nameplate health bar."] = "把距离下一次征战圣击还有多久画成一条进度条，贴在目标姓名板的生命条下方。"
 L["The timing is mirrored straight from Blizzard's Cooldown Manager bar, so it stays accurate in raids and Mythic+."] = "计时直接镜像暴雪冷却管理器的长条，所以在团队首领战与史诗钥石地下城里一样准。"
-L["Commands: |cffffd200/csaa|r opens the options, |cffffd200/csaa check|r prints a diagnosis, |cffffd200/csaa reset|r restores the defaults"] = "命令: |cffffd200/csaa|r 打开设置、|cffffd200/csaa check|r 打印诊断、|cffffd200/csaa reset|r 还原默认值"
+L["Commands: |cffffd200/dermo|r opens the options, |cffffd200/dermo check|r prints a diagnosis, |cffffd200/dermo reset|r restores the defaults"] = "命令: |cffffd200/dermo|r 打开设置、|cffffd200/dermo check|r 打印诊断、|cffffd200/dermo reset|r 还原默认值"
 L["Author: Mili (MiliUI package)"] = "作者: Mili（米利UI套组）"
 
 -- 暴雪入口页
-L["Use /csaa to open options"] = "输入 /csaa 打开设置"
+L["Use /dermo to open options"] = "输入 /dermo 打开设置"
 L["Version: %s"] = "版本: %s"
 L["Open options"] = "打开设置"
 
--- /csaa check
+-- /dermo check
 L["yes"] = "有"
 L["no"] = "没有"
 L["active"] = "作用中"
