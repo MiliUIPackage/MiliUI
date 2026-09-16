@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 47adb948-8bd2-4804-9bff-d58a154ecf7c
-  modified: 2026-09-16T19:15:35.143Z
+  modified: 2026-09-16T20:35:52.084Z
 ---
 
 Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard AuraContainer（路線 A，見 [[wow-121-aura-containers]]），讓分類全走 Blizzard-side candidateFilters，照 DandersFrames v5 作法「一個都不少」。使用者 2026-08 選定路線 A。**已上線使用**（master，Cell r283-MiliUI）。
@@ -49,6 +49,9 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
 - **格線**：`ConfigureContainer` 以前只傳 `num`，換行預算用 num、間距寫死 2。現在 `GridOpts`（Built-in.lua）送
   `numPerLine`／`spacingX`／`spacingY`／`anchor`（=position[1]），全進 `LAYOUT_KEYS`（就地重排不重建）。
   `spacing` 是螢幕軸 {X,Y}，直排時主軸用 Y（`AuraDisplay.lua` 的 `Spacing()`）。暴雪 layout 驗證只要求數字，負間距合法。
+  自訂 icons 與首次建立的 Healers 預設間距從 {0,0} 改成 {2,2}（＝以前容器寫死的 2）。既有存檔走一次性旗標
+  `miliuiIconsSpacingDefault`（Revise.lua 最後）：只改 `type=="icons"`、`auraType=="buff"`、spacing 剛好 {0,0} 的 → {2,2}。
+  減益型不動（從沒走容器，0 一直是真的 0）；之後匯入的舊版面不會被改（旗標已設）。
   **換行方向照預覽規則**（`Icons_SetOrientation`）：橫排錨 `BOTTOM*` 往上、直排錨 `*RIGHT` 往左，容器改用**角**釘在錨框同一角。
   錨框一顆圖示大，所以單行時角釘＝原本的邊釘，只有換行的排會動。沒給 anchor（重要減益、驅散）維持舊行為。
   只給圖示型（custom icon/icons、內建冷卻、左下減益），效果型不給——text 的元素 22 與錨框 20 不等大，角釘會位移 1px。
