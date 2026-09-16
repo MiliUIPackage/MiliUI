@@ -2026,8 +2026,10 @@ local function UnitButton_UpdateHealthStates(self, diff)
         if F.IsValueNonSecret(hpPct) then
             self.states.healthPercent = hpPct
         else
-            -- Secret: default to 0 so F.GetHealthBarColor won't trigger fullColor (which checks == 1).
-            -- class_color / class_color_dark modes don't use percent, so they still work.
+            -- Secret: 讀不到就填 0。⚠ 這個 0 只是給還在讀明文百分比的地方一個不會爆的值
+            -- （pre-Midnight 的動畫、healthPercentOld…）, 它不是真的血量。
+            -- 顏色不再依賴它：會隨血量變的模式（閾值三色、滿血換色）已經改走 ColorCurve,
+            -- 由引擎在 C 端判斷落在哪一段, 見 UnitButton_ApplyHealthColorCurves。
             self.states.healthPercent = 0
         end
         -- Death detection uses non-secret boolean
@@ -3451,20 +3453,160 @@ local function ReactionColor(unit, guid)
     end
 end
 
+-- Forget what colour the widgets are wearing. Anything that replaces or repaints them from
+-- outside UnitButton_UpdateHealthColor must call this, or the stamp below will skip the
+-- repaint that puts the colour back.
+local function InvalidateHealthColor(b)
+    b.__hcBarR, b.__hcBarG, b.__hcBarB, b.__hcBarA = nil, nil, nil, nil
+    b.__hcLossR, b.__hcLossG, b.__hcLossB, b.__hcLossA = nil, nil, nil, nil
+    b.__hcIhR, b.__hcIhG, b.__hcIhB, b.__hcIhA = nil, nil, nil, nil
+    -- 曲線的簽章也要清：B.SetTexture 換掉了貼圖物件、B.UpdateColor 是使用者剛改完設定,
+    -- 兩種情形下舊曲線都不再代表畫面上的東西
+    b.__hcCurveSig, b.__hcLossCurveSig = nil, nil
+end
+
+-- fix from MiliUI: 血量顏色的曲線路徑
+--
+-- 12.x 受限單位（副本／M+／團隊／PvP）的血量百分比是秘密值, states.healthPercent 在那裡被
+-- 釘成 0（見 UnitButton_UpdateHealthStates）, 所以「閾值落在哪一段」「是不是滿血」這種判斷
+-- 不能在 Lua 裡做 —— 做了就是永遠第一色。改成把設定翻成一條 ColorCurve 交給引擎,
+-- EvaluateCurrentHealthPercent 在 C 端求值, 回來的 ColorMixin 分量可能是秘密值,
+-- 只能往貼圖的 SetVertexColor 餵, 不能讀、不能比較、不能印。
+--
+-- 曲線只在簽章（模式＋六欄設定＋職業色＋滿血色）變動時重建；求值則每次呼叫都做,
+-- 因為血量變了我們看不出來。
+local function HealthCurveSig(mode, c, r, g, b, fullColor)
+    local hasFull = fullColor and 1 or 0
+    local fr, fg, fb = 0, 0, 0
+    if fullColor then fr, fg, fb = fullColor[1] or 0, fullColor[2] or 0, fullColor[3] or 0 end
+    if not c then
+        return string.format("%s|%s|%s|%s|%s|%s|%s|%s", mode, r, g, b, hasFull, fr, fg, fb)
+    end
+    return string.format("%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s",
+        mode, r, g, b, hasFull, fr, fg, fb,
+        c[1][1] or 0, c[1][2] or 0, c[1][3] or 0,
+        c[2][1] or 0, c[2][2] or 0, c[2][3] or 0,
+        c[3][1] or 0, c[3][2] or 0, c[3][3] or 0,
+        c[4] or 0, c[5] or 1, tostring(c[6]))
+end
+
+-- 明文路徑用 SetStatusBarColor, 曲線路徑用貼圖的 SetVertexColor（那支吃得下秘密分量）。
+-- 兩者是同一份顏色, 所以切換路徑時把另一層重設成白色, 免得留下上一條路徑的殘值。
+-- viaTexture 為 true 時貼圖上不了色（還沒有貼圖物件）就回 false, 由呼叫端退回明文。
+local function SetBarColor(bar, r, g, b, a, viaTexture)
+    local tex = bar:GetStatusBarTexture()
+    if viaTexture then
+        if not tex then return false end
+        bar:SetStatusBarColor(1, 1, 1, 1)
+        tex:SetVertexColor(r, g, b, a)
+    else
+        if tex then tex:SetVertexColor(1, 1, 1, 1) end
+        bar:SetStatusBarColor(r, g, b, a)
+    end
+    return true
+end
+
+-- 回傳 barDone, lossDone：哪一條真的靠曲線上完色了。沒上到的由呼叫端的明文值補。
+local function UnitButton_ApplyHealthColorCurves(self, baseR, baseG, baseB, barA, lossA, ihCustom)
+    if not (Cell.loaded and Cell.isMidnight) then return end
+    if baseR == nil then return end --! 離線／被控：顏色跟血量無關, 不需要曲線
+    local calc = self.widgets.healthCalculator
+    if not (calc and C_CurveUtil and CreateColor and F.BuildHealthColorCurve) then return end
+    --! 職業色本身是秘密值的話（受限單位的 C_ClassColor 那條路）就組不出曲線, 退回明文
+    if not (F.IsValueNonSecret(baseR) and F.IsValueNonSecret(baseG) and F.IsValueNonSecret(baseB)) then return end
+
+    local appearance = CellDB["appearance"]
+    local barMode = appearance["barColor"][1]
+    local lossMode = appearance["lossColor"][1]
+    local fullColor = Cell.vars.useFullColor and appearance["fullColor"][2] or nil
+
+    local barDone, lossDone
+
+    -- bar：閾值模式要曲線；滿血換色也要, percent == 1 這個比較一樣做不了
+    if fullColor or strfind(barMode, "^threshold") then
+        local curve = self.widgets.healthColorCurve
+        if curve then
+            local c, cr, cg, cb
+            if strfind(barMode, "^threshold") then
+                c = appearance["colorThresholds"]
+                cr, cg, cb = baseR, baseG, baseB
+            elseif barMode == "class_color" then
+                cr, cg, cb = baseR, baseG, baseB
+            elseif barMode == "class_color_dark" then
+                cr, cg, cb = baseR * 0.2, baseG * 0.2, baseB * 0.2
+            else
+                local cc = appearance["barColor"][2]
+                cr, cg, cb = cc[1], cc[2], cc[3]
+            end
+
+            local sig = HealthCurveSig(barMode, c, cr, cg, cb, fullColor)
+            if self.__hcCurveSig ~= sig then
+                self.__hcCurveSig = F.BuildHealthColorCurve(curve, barMode, c, cr, cg, cb, false, fullColor) and sig or nil
+            end
+
+            if self.__hcCurveSig then
+                local ok, col = pcall(calc.EvaluateCurrentHealthPercent, calc, curve)
+                if ok and col and SetBarColor(self.widgets.healthBar, col.r, col.g, col.b, barA, true) then
+                    barDone = true
+                    --! 沒有自訂色的預估治療量沿用血條顏色的 40%
+                    if not ihCustom then
+                        SetBarColor(self.widgets.incomingHeal, col.r, col.g, col.b, 0.4, true)
+                    end
+                end
+            end
+        end
+    end
+
+    -- loss：死亡色優先（UnitIsDeadOrGhost 是明文）, 那條照舊走明文
+    if strfind(lossMode, "^threshold")
+        and not ((self.states.isDeadOrGhost or self.states.isDead) and Cell.vars.useDeathColor) then
+        local curve = self.widgets.healthLossColorCurve
+        if curve then
+            local c = appearance["colorThresholdsLoss"]
+            local sig = HealthCurveSig(lossMode, c, baseR, baseG, baseB, nil)
+            if self.__hcLossCurveSig ~= sig then
+                self.__hcLossCurveSig = F.BuildHealthColorCurve(curve, lossMode, c, baseR, baseG, baseB, true, nil) and sig or nil
+            end
+
+            if self.__hcLossCurveSig then
+                local ok, col = pcall(calc.EvaluateCurrentHealthPercent, calc, curve)
+                if ok and col then
+                    self.widgets.healthBarLoss:SetVertexColor(col.r, col.g, col.b, lossA)
+                    lossDone = true
+                end
+            end
+        end
+    end
+
+    if barDone or lossDone then
+        --! 明文那條的印記作廢：曲線路徑每次呼叫都重新求值上色, 而且秘密分量本來就不能拿去比。
+        --! 清掉之後, 哪天切回明文（改設定、離線、死亡色）才會確實重畫一次。
+        self.__hcBarR, self.__hcBarG, self.__hcBarB, self.__hcBarA = nil, nil, nil, nil
+        self.__hcLossR, self.__hcLossG, self.__hcLossB, self.__hcLossA = nil, nil, nil, nil
+        self.__hcIhR, self.__hcIhG, self.__hcIhB, self.__hcIhA = nil, nil, nil, nil
+    end
+
+    return barDone, lossDone
+end
+
 UnitButton_UpdateHealthColor = function(self)
     local unit = self.states.unit
     if not unit then return end
 
-    -- NOTE: Health bar coloring uses non-secret data (class, settings, UnitIsPlayer, etc.)
-    -- so the classic color logic below works on both Midnight and pre-Midnight.
-    -- TODO: implement proper ColorCurve coloring for threshold/gradient modes once
-    -- SetStatusBarColor secret color API is verified on PTR.
+    -- NOTE: 下面算的是「明文」顏色, 給 pre-Midnight, 以及 Midnight 上不隨血量變的那些情形
+    -- （class_color / custom / 離線 / 被控 / 死亡色）用 —— 那些的輸入全是明文資料
+    -- （職業、設定、UnitIsPlayer…）, 兩邊都算得對。
+    -- 會隨血量變的（閾值三色、滿血換色）在 Midnight 的受限單位上明文必然算錯, 走
+    -- UnitButton_ApplyHealthColorCurves 讓引擎判斷, 見下面。
 
     self.states.class = F.Desecret(UnitClassBase(unit)) --! update class
 
     local barR, barG, barB
     local lossR, lossG, lossB
     local barA, lossA = 1, 1
+    --! 這顆按鈕的「職業色」明文來源, 曲線要拿它當 threshold2/3 的其中一段。
+    --! nil ＝這條分支的顏色跟血量無關（離線／被控）, 不走曲線。
+    local baseR, baseG, baseB
 
     if Cell.loaded then
         barA =  CellDB["appearance"]["barAlpha"]
@@ -3479,29 +3621,38 @@ UnitButton_UpdateHealthColor = function(self)
             barR, barG, barB, barA = 0.5, 0, 1, 1
             lossR, lossG, lossB, lossA = barR*0.2, barG*0.2, barB*0.2, 1
         elseif self.states.inVehicle then
-            barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, 0, 1, 0.2)
+            baseR, baseG, baseB = 0, 1, 0.2
+            barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, baseR, baseG, baseB)
         else
-            barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, F.GetClassColor(self.states.class))
+            baseR, baseG, baseB = F.GetClassColor(self.states.class)
+            barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, baseR, baseG, baseB)
         end
     elseif F.IsPet(self.states.guid, self.states.unit) then -- pet
-        barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, 0.5, 0.5, 1)
+        baseR, baseG, baseB = 0.5, 0.5, 1
+        barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, baseR, baseG, baseB)
     elseif self.isPartyTarget then -- fix from MiliUI: npc on a party-target button
         --! `or` the stock green, not an assert: a palette key can be missing for one frame
         --! after a profile swap, and a wrong shade beats a Lua error on a health update
         local c = ReactionColor(unit, self.__displayedGuid) or PARTY_TARGET.NPC_GREEN
-        barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, c[1], c[2], c[3])
+        baseR, baseG, baseB = c[1], c[2], c[3]
+        barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, baseR, baseG, baseB)
     else -- npc
-        barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, 0, 1, 0.2)
+        baseR, baseG, baseB = 0, 1, 0.2
+        barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, baseR, baseG, baseB)
     end
 
     -- Incoming-heal tint: the configured colour, or the bar's own at 40%.
     local ihR, ihG, ihB, ihA
-    if Cell.loaded and CellDB["appearance"]["healPrediction"][2] then
+    local ihCustom = (Cell.loaded and CellDB["appearance"]["healPrediction"][2]) and true or false
+    if ihCustom then
         local hp = CellDB["appearance"]["healPrediction"][3]
         ihR, ihG, ihB, ihA = hp[1], hp[2], hp[3], hp[4]
     else
         ihR, ihG, ihB, ihA = barR, barG, barB, 0.4
     end
+
+    --! 會隨血量變的那些模式在這裡交給引擎。回傳說明哪一條已經上完色, 剩下的走下面的明文。
+    local barDone, lossDone = UnitButton_ApplyHealthColorCurves(self, baseR, baseG, baseB, barA, lossA, ihCustom)
 
     -- ⚠ APPLIED-COLOUR STAMP. With "colour by health" or "full-health colour" on, this whole
     -- function runs on EVERY UNIT_HEALTH -- and the colour it computes is usually the one
@@ -3513,47 +3664,40 @@ UnitButton_UpdateHealthColor = function(self)
     -- folded in above, so a settings change moves one of the twelve numbers and the skip
     -- lifts by itself. The two paths that replace the widgets underneath us -- B.SetTexture
     -- and B.UpdateColor -- clear the stamp explicitly.
-    if self.__hcBarR == barR and self.__hcBarG == barG and self.__hcBarB == barB and self.__hcBarA == barA
-        and self.__hcLossR == lossR and self.__hcLossG == lossG and self.__hcLossB == lossB and self.__hcLossA == lossA
-        and self.__hcIhR == ihR and self.__hcIhG == ihG and self.__hcIhB == ihB and self.__hcIhA == ihA then
-        return
+    --
+    -- ⚠ 曲線路徑不能用這個印記：顏色分量可能是秘密值, 那 12 個 == 比較會當場炸。曲線那條
+    -- 的印記是簽章（存在 __hcCurveSig / __hcLossCurveSig）, 只擋「重建曲線」, 求值＋上色
+    -- 每次呼叫都做 —— 引擎端一次 C 呼叫, 比原本的 Lua 上色還便宜。印記已經在
+    -- UnitButton_ApplyHealthColorCurves 裡清掉了, 這裡只管明文的部分。
+    if not (barDone or lossDone) then
+        if self.__hcBarR == barR and self.__hcBarG == barG and self.__hcBarB == barB and self.__hcBarA == barA
+            and self.__hcLossR == lossR and self.__hcLossG == lossG and self.__hcLossB == lossB and self.__hcLossA == lossA
+            and self.__hcIhR == ihR and self.__hcIhG == ihG and self.__hcIhB == ihB and self.__hcIhA == ihA then
+            return
+        end
+        self.__hcBarR, self.__hcBarG, self.__hcBarB, self.__hcBarA = barR, barG, barB, barA
+        self.__hcLossR, self.__hcLossG, self.__hcLossB, self.__hcLossA = lossR, lossG, lossB, lossA
+        self.__hcIhR, self.__hcIhG, self.__hcIhB, self.__hcIhA = ihR, ihG, ihB, ihA
     end
-    self.__hcBarR, self.__hcBarG, self.__hcBarB, self.__hcBarA = barR, barG, barB, barA
-    self.__hcLossR, self.__hcLossG, self.__hcLossB, self.__hcLossA = lossR, lossG, lossB, lossA
-    self.__hcIhR, self.__hcIhG, self.__hcIhB, self.__hcIhA = ihR, ihG, ihB, ihA
 
-    self.widgets.healthBar:SetStatusBarColor(barR, barG, barB, barA)
-    self.widgets.healthBarLoss:SetVertexColor(lossR, lossG, lossB, lossA)
-
-    if Cell.isMidnight then
-        -- StatusBar on Midnight: use SetStatusBarColor
-        self.widgets.incomingHeal:SetStatusBarColor(ihR, ihG, ihB, ihA)
-    else
-        -- Texture on pre-Midnight: use SetVertexColor
-        self.widgets.incomingHeal:SetVertexColor(ihR, ihG, ihB, ihA)
+    if not barDone then
+        SetBarColor(self.widgets.healthBar, barR, barG, barB, barA, false)
     end
-end
 
--- Forget what colour the widgets are wearing. Anything that replaces or repaints them from
--- outside UnitButton_UpdateHealthColor must call this, or the stamp above will skip the
--- repaint that puts the colour back.
-local function InvalidateHealthColor(b)
-    b.__hcBarR, b.__hcBarG, b.__hcBarB, b.__hcBarA = nil, nil, nil, nil
-    b.__hcLossR, b.__hcLossG, b.__hcLossB, b.__hcLossA = nil, nil, nil, nil
-    b.__hcIhR, b.__hcIhG, b.__hcIhB, b.__hcIhA = nil, nil, nil, nil
-end
+    if not lossDone then
+        self.widgets.healthBarLoss:SetVertexColor(lossR, lossG, lossB, lossA)
+    end
 
--- Configures the health color curve for a button (Midnight 12.0.0+)
--- Called when color settings change (e.g., class color, custom color toggled)
-function B.UpdateHealthColorCurve(button)
-    if not (Cell.isMidnight and button.widgets.healthColorCurve) then return end
-    local curve = button.widgets.healthColorCurve
-    curve:ClearPoints()
-    -- Default green gradient; overridden by class color / custom color settings
-    -- TODO: read from CellDB["appearance"] color settings and build proper curve
-    curve:AddPoint(0.0, {r=1,   g=0,   b=0,   a=1}) -- red at 0%
-    curve:AddPoint(0.5, {r=1,   g=1,   b=0,   a=1}) -- yellow at 50%
-    curve:AddPoint(1.0, {r=0,   g=0.9, b=0,   a=1}) -- green at 100%
+    --! bar 走曲線而且沒有自訂色時, incomingHeal 已經在曲線那邊跟著上完了
+    if not barDone or ihCustom then
+        if Cell.isMidnight then
+            -- StatusBar on Midnight: use SetStatusBarColor
+            SetBarColor(self.widgets.incomingHeal, ihR, ihG, ihB, ihA, false)
+        else
+            -- Texture on pre-Midnight: use SetVertexColor
+            self.widgets.incomingHeal:SetVertexColor(ihR, ihG, ihB, ihA)
+        end
+    end
 end
 
 -------------------------------------------------
@@ -4930,9 +5074,11 @@ function CellUnitButton_OnLoad(button)
         -- corrupt the shared healthCalculator used by health/absorb reads.
         button.widgets.healPredictionCalculator = CreateUnitHealPredictionCalculator()
     end
-    -- Color curve for health bar coloring (Patch 12.0.0+)
+    -- Color curves for health bar coloring (Patch 12.0.0+)
+    -- 兩條：血條本身一條, 損失血量一條 —— 兩邊的模式與三個顏色是各自設定的
     if Cell.isMidnight and C_CurveUtil then
         button.widgets.healthColorCurve = C_CurveUtil.CreateColorCurve()
+        button.widgets.healthLossColorCurve = C_CurveUtil.CreateColorCurve()
     end
 
     InitAuraTables(button)

@@ -1430,6 +1430,119 @@ function F.GetHealthBarColor(percent, isDeadOrGhost, r, g, b)
     return barR, barG, barB, lossR, lossG, lossB
 end
 
+-- fix from MiliUI: 12.x 受限單位（副本／M+／團隊／PvP）的血量百分比是秘密值，插件端讀不到,
+-- UnitButton 那邊只好把 states.healthPercent 釘成 0 —— 於是 F.GetHealthBarColor 的每一條
+-- 閾值分支都永遠落在同一段, 顏色不會變。解法是不要自己挑段：把整組設定翻成一條 ColorCurve,
+-- 交給 calc:EvaluateCurrentHealthPercent() 在引擎端求值, 回來的顏色直接餵給貼圖。
+--
+-- 參數：
+--   curve      既有的 ColorCurve 物件（會先 ClearPoints 再重填）
+--   mode       barColor[1] / lossColor[1]。threshold1/2/3 走三段, 其餘一律整條同色
+--   c          colorThresholds / colorThresholdsLoss：{c1, c2, c3, lowBound, highBound, gradient}
+--              （第 6 欄 true ＝漸層。F.ColorThreshold 的參數名 useThresholdColor 語意是反的）
+--   cr,cg,cb   threshold 模式下是該單位的職業色（明文）；其餘模式下就是整條的顏色
+--   isLoss     損失血量那條。threshold2/3 的職業色在 loss 是落在低段, 在 bar 是落在高段
+--   fullColor  滿血顏色 {r,g,b}, 只有 bar 會傳
+--
+-- 段的語意跟上面 F.GetHealthBarColor 的明文邏輯逐條對齊（設定頁的預覽還走那條路）。
+--
+-- ⚠ 曲線的 x 軸是 0~1 的血量比例, 不是 0~100。
+local CURVE_EPS = 0.0005
+local curveXs, curveCs, curveN = {}, {}, 0
+
+-- 點的 x 必須嚴格遞增。同一個 x 上「後來的點」才是對的（明文邏輯是由上往下第一個命中的分支
+-- 決勝, 疊到曲線上就是後寫的蓋前面的）, 所以推新點之前先把 x 不小於它的舊點退掉；
+-- 退掉的 x 比較大時連 x 一起沿用, 免得 lowBound == highBound 那種退化情形把換段點挪回去。
+local function CurvePush(x, color)
+    if x < 0 then x = 0 elseif x > 1 then x = 1 end
+    while curveN > 0 and curveXs[curveN] >= x do
+        if curveXs[curveN] > x then x = curveXs[curveN] end
+        curveN = curveN - 1
+    end
+    curveN = curveN + 1
+    curveXs[curveN], curveCs[curveN] = x, color
+end
+
+function F.BuildHealthColorCurve(curve, mode, c, cr, cg, cb, isLoss, fullColor)
+    if not (curve and CreateColor) then return false end
+
+    local isThreshold = mode == "threshold1" or mode == "threshold2" or mode == "threshold3"
+
+    -- 三段的顏色
+    local s1, s2, s3
+    if mode == "threshold1" then
+        s1, s2, s3 = c[1], c[2], c[3]
+    elseif mode == "threshold2" or mode == "threshold3" then
+        local m = mode == "threshold3" and 0.2 or 1
+        local class = {cr * m, cg * m, cb * m}
+        if isLoss then
+            s1, s2, s3 = class, c[2], c[3]
+        else
+            s1, s2, s3 = c[1], c[2], class
+        end
+    else
+        -- class_color / class_color_dark / custom：顏色不隨血量變, 呼叫端已經算好給我們。
+        -- 這裡還是要一條曲線, 因為 fullColor（滿血換色）同樣得由引擎判斷 percent 是不是 1。
+        s1 = {cr, cg, cb}
+        s2, s3 = s1, s1
+    end
+
+    local low, high, gradient = 0, 1, false
+    if isThreshold and c then
+        low = c[4] or 0
+        high = c[5] or 1
+        gradient = c[6] and true or false
+    end
+
+    curveN = 0
+    curve:ClearPoints()
+
+    -- loss 的 threshold2/3 明文是「percent <= lowBound → 段1（職業色）」, 是 <=；
+    -- 其餘每一條的換段點都是 >=。差這一個等號, 把換段點往上挪一個 eps 就對齊了。
+    local lowIsInclusive = isLoss and (mode == "threshold2" or mode == "threshold3")
+
+    if gradient then
+        -- 對應 F.ColorGradient：[0,low] 段1、(low,high) 兩段線性內插經過段2、[high,1] 段3
+        if curve.SetType and Enum and Enum.LuaCurveType and Enum.LuaCurveType.Linear then
+            curve:SetType(Enum.LuaCurveType.Linear)
+        end
+        local xHigh = high
+        -- fullColor 要獨佔 x=1, 段3的終點得讓一格出來
+        if fullColor and xHigh > 1 - CURVE_EPS then xHigh = 1 - CURVE_EPS end
+        if xHigh <= low then
+            -- 上下界重疊：明文那邊 perc >= highBound 與 perc <= lowBound 兩個檢查各自先攔截,
+            -- 中段根本不會出現, 整體退化成一個換段點
+            local xSwitch = lowIsInclusive and (xHigh + CURVE_EPS) or xHigh
+            CurvePush(0, s1)
+            CurvePush(xSwitch - CURVE_EPS, s1)
+            CurvePush(xSwitch, s3)
+        else
+            CurvePush(0, s1)
+            CurvePush(low, s1)
+            CurvePush((low + high) / 2, s2)
+            CurvePush(xHigh, s3)
+        end
+        CurvePush(fullColor and (1 - CURVE_EPS) or 1, s3)
+    else
+        -- 對應 F.ColorThreshold 的非漸層分支：>= high 段3、>= low 段2、其餘段1
+        if curve.SetType and Enum and Enum.LuaCurveType and Enum.LuaCurveType.Step then
+            curve:SetType(Enum.LuaCurveType.Step)
+        end
+        local xLow = lowIsInclusive and (low + CURVE_EPS) or low
+        CurvePush(0, s1)
+        CurvePush(xLow, s2)
+        CurvePush(high, s3)
+    end
+
+    if fullColor then CurvePush(1, fullColor) end
+
+    for i = 1, curveN do
+        local col = curveCs[i]
+        curve:AddPoint(curveXs[i], CreateColor(col[1], col[2], col[3], 1))
+    end
+    return true
+end
+
 -------------------------------------------------
 -- units
 -------------------------------------------------
