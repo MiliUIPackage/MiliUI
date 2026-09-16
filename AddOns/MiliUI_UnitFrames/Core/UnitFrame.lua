@@ -30,6 +30,26 @@ function ns.ApplyElementBase(uf, f, edb)
     f:SetAlpha(edb.alpha or 1)
 end
 
+-- 讓元件框也接 ping，回答一律委派給單位框。
+-- 魔力條、職業資源條會露出 uf 矩形之外（見 notes 的「視覺框體不等於框架」），游標在露出的
+-- 那截時 frame stack 裡沒有 uf，ping 就穿過去打地面。元件框自己登記成 ping-receiver，
+-- 三個 mixin 方法都轉問 uf（玩家框的資源 ping 判斷就只寫在 uf 那一份）。
+-- 只開滑鼠移動、不開點擊：點擊照舊穿到底下的 uf（跟光環按鈕同一招，見 Auras.lua）；
+-- 移動事件用 SetPropagateMouseMotion 往下傳，疊在 uf 上的那部分 uf 照樣收到
+-- OnEnter/OnLeave，高亮與提示行為不變。露出框外的那截底下本來就沒有 uf，跟以前一樣不高亮。
+-- 預覽孿生跳過：那裡的元件只是排版用，不該吃滑鼠。
+function ns.ArmPingReceiver(uf, f)
+    if f.pingArmed or uf.isPreview or not uf.GetTargetInfo then return end
+    f.pingArmed = true
+    f:SetMouseClickEnabled(false)
+    f:SetMouseMotionEnabled(true)
+    f:SetPropagateMouseMotion(true)
+    f:SetAttribute("ping-receiver", true)
+    function f:GetIsPingable() return uf:GetIsPingable() end
+    function f:GetAllowRadialWheel() return uf:GetAllowRadialWheel() end
+    function f:GetTargetInfo() return uf:GetTargetInfo() end
+end
+
 ------------------------------------------------------------
 -- 刷新
 ------------------------------------------------------------

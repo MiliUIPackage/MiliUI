@@ -436,6 +436,7 @@ local function Build(uf, edb)
         f.rows = {}
         uf.elements.classpower = f
     end
+    ns.ArmPingReceiver(uf, f)          -- 整條在框體下方，露出的那截也要接 ping
     f:ClearAllPoints()
     -- holybar 語意：錨在框架底邊下方
     f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", ns.P.Scale(edb.x or 0), ns.P.Scale(edb.y or 0))
@@ -701,6 +702,7 @@ local function Build(uf, edb)
         }
         uf.elements.manabar = f
     end
+    ns.ArmPingReceiver(uf, f)          -- 整條在框體下方，露出的那截也要接 ping
     -- 設定完全獨立（自己的 x/y/w/h/顏色）。跟資源條一致的只有兩件事：
     --   * 錨點語意：TOPLEFT 對單位框的 BOTTOMLEFT，也就是「掛在框下方、Y 往下為負」
     --   * 外觀：底色 + 四邊 1px 黑邊

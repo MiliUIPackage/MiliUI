@@ -148,6 +148,7 @@ end
 local function Build(uf, edb)
     local f = uf.elements.hpbar or ns.CreateElementBase(uf, "hpbar", "Frame", "BackdropTemplate")
     ns.ApplyElementBase(uf, f, edb)
+    ns.ArmPingReceiver(uf, f)          -- 露出框外那截也要接 ping
 
     local texture = Media.BarTexture(ns.db.global.barTexture)
     -- 內縮量必須等於邊框「實際畫出來」的厚度，見 Media.BorderInset 的說明

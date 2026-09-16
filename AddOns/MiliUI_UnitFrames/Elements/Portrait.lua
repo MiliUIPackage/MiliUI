@@ -278,6 +278,7 @@ end
 local function Build(uf, edb)
     local f = uf.elements.portrait or ns.CreateElementBase(uf, "portrait", "Frame", "BackdropTemplate")
     ns.ApplyElementBase(uf, f, edb)
+    ns.ArmPingReceiver(uf, f)          -- 露出框外那截也要接 ping
     f.modelKey = nil        -- 設定可能改了模式／示範 ID，下次 Update 一律重載
 
     if not f.bg then

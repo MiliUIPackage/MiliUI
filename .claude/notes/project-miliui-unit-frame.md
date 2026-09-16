@@ -551,7 +551,27 @@ post-pass 補（`FILL_DIRECTION_ELEMENTS`），不在十個單位的字面表裡
 - ⚠ `GetTargetPingGUID` 是 10.1 的舊介面，現在沒人呼叫（Cell 還留著覆寫，是死碼），**不要用**。
 - 光環按鈕雖然開了 SetMouseMotionEnabled，但沒有 `ping-receiver` 屬性，掃描會略過，不用動。
 
+**⚠ 只登記 uf 本體不夠**（2026-09-16 玩家實測，第二輪修）：滑鼠在**魔力條**上按 ping 照樣穿到地面。
+元件框會露出 uf 的矩形之外（見 [[project-miliui-uf-visual-bounds]]：目標框的 mpbar 往左／下各露 8，
+玩家框的魔力條與職業資源列整條在框體下方），游標落在露出那截時 `GetTargetPingReceiver` 掃到的
+frame stack 裡**根本沒有 uf**——元件框是普通 `CreateFrame("Frame")`，滑鼠預設關閉又沒有屬性。
+`Core/UnitFrame.lua` 的 `ns.ArmPingReceiver(uf, f)`（接在 `ns.ApplyElementBase` 後面）讓元件框
+自己登記，三個 mixin 方法一律轉問 uf（玩家框的資源 ping 判斷只寫在 uf 那一份）。五個呼叫點：
+`Elements/Power.lua`（mpbar）、`Health.lua`（hpbar）、`Portrait.lua`（portrait）、
+`ClassPower.lua`（classpower、manabar），都放在建框區塊之後、每次 Build 必經的位置
+（`f.pingArmed` 守衛讓重複呼叫是 no-op）。
+
+- **只開滑鼠移動、不開點擊**：`SetMouseClickEnabled(false)` ＋ `SetMouseMotionEnabled(true)` ＋
+  `SetPropagateMouseMotion(true)`。點擊照舊穿到底下的 uf（跟光環按鈕同一招），移動事件往下傳
+  ⇒ 疊在 uf 上的那部分高亮與提示行為不變；露出框外的那截底下本來就沒有 uf，跟以前一樣不高亮。
+  編輯模式拖曳靠 `uf:EnableMouse(true)`（`EditMode.lua`），元件框沒開點擊所以擋不到。
+- **預覽孿生跳過**（`uf.isPreview`）：那裡的元件只是排版用，不該吃滑鼠。
+- **不登記的**：光環按鈕、施法條、圖騰、觀察按鈕、文字元件。施法條常被拉到離框很遠的地方，
+  不該變成該單位的 ping 目標。
+
 **尚未在遊戲內驗證**：滑鼠在目標／專注／首領框上按 ping 會 ping 該單位（含輪盤）；副本內敵對
 單位的 GUID 是秘密字串，`SendUnitPing` 標 AllowedWhenUntainted，推論 `securecopy` 會洗成安全端
 taint 所以收得下，要實測。玩家框：血條上按 ping 是資源 ping（播報血量、不開輪盤），頭像上是
 一般單位 ping。載具期間玩家框 ping 的是玩家本人（跟暴雪一致），寵物框 ping 到載具／寵物。
+滑鼠在露出框外的魔力條／職業資源條／頭像上按 ping 會 ping 該單位，不再穿到地面。疊在框上的
+魔力條區域：滑過仍有高亮與提示（靠 SetPropagateMouseMotion），左右鍵點擊仍照舊選目標／開選單。
