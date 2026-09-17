@@ -161,57 +161,108 @@ end
 
 ------------------------------------------------------------
 -- 進出編輯模式
+--
+-- ⚠⚠ 這裡有戰鬥閘，因為**暴雪不會在進戰鬥時關掉編輯模式** —— 整場戰鬥都進得去
+--   （頭像右鍵選單 →「編輯模式」）也出得來（ESC／關閉鈕），EditModeManager 根本
+--   沒有 PLAYER_REGEN 的處理。所以下面這段一定會在戰鬥鎖定中被呼叫到。
+--   而預覽孿生雖然是普通 Button，底下卻帶著保護子物件 ⇒ **隱式保護**：戰鬥中從
+--   插件 Lua 對孿生（以及錨在孿生上的選取框）呼叫 EnableMouse／Hide／Show 一律被封鎖。
+--   2026-09-18 的 taint.log 記了 9 筆封鎖全算在本插件頭上（下面兩圈 EachTwin 的
+--   EnableMouse、Preview.Close 的 Hide、Preview.ApplyInteractive 的 EnableMouse），
+--   入口都是 UpdateEditModeState。
+--   → 戰鬥中不做事，改掛一張單，脫戰再照**當下**的 isInEditMode 重跑一次。
 ------------------------------------------------------------
-local function UpdateEditModeState()
+local UpdateEditModeState      -- 前置宣告：下面的 watcher 處理器要呼叫它
+
+-- 戰鬥事件的單一 watcher（frame 無法銷毀，不要在函式裡現配）。
+local combatWatcher = CreateFrame("Frame")
+
+local function EnterPreview()
+    ns.Preview.Open("editmode")
+    -- 孿生蓋選取框（boss 只有第一格可拖，拖了整組跟著走）
+    ns.Preview.EachTwin(function(uf, unitKey)
+        if uf.bossIndex and uf.bossIndex > 1 then return end
+        if not uf.db.enabled then return end
+        local label = ns.UNIT_LABELS[unitKey] or unitKey
+        local sel = AttachSelection(uf, L["MiliUI UF: "] .. label,
+            function() return uf.db.frame end, function()
+            ns.ApplySettings(unitKey)     -- 同步 boss2-5 與孿生
+        end)
+        uf:EnableMouse(true)
+        sel:ShowHighlighted()
+    end)
+    -- 圖騰（真實框本身就不是 secure，可直接拖；顯示假內容供瞄準）
+    local totem = ns.totemFrame
+    if totem and ns.db.units.totem.enabled then
+        local sel = AttachSelection(totem, L["MiliUI UF: Summons"],
+            function() return ns.db.units.totem.frame end, function()
+            if ns.TotemsApplySettings then ns.TotemsApplySettings() end
+        end, ns.TotemsAnchorTo)
+        totem:Show()      -- 框本身固定四格寬，選取框直接蓋得準
+        sel:ShowHighlighted()
+    end
+end
+
+-- ⚠ 這支要冪等：沒開預覽時也可能被叫到（脫戰重跑、進戰鬥的鬆手窗口）。
+--   Preview.Close 沒開就早退、EachTwin 只走已存在的孿生、圖騰那段有 editSelection 閘。
+local function ExitPreview()
+    ns.Preview.EachTwin(function(uf)
+        if uf.editSelection then uf.editSelection:Hide() end
+        uf:EnableMouse(false)
+    end)
+    -- 設定面板可能還開著（兩邊共用同一批孿生）：上面那圈把滑鼠一律關掉了，
+    -- 收尾時讓 Preview 依它自己的狀態決定要不要再打開。
+    -- ⚠ 要放在 Preview.Close 之後——Close 會重算那個狀態。
+    local totem = ns.totemFrame
+    if totem and totem.editSelection then
+        totem.editSelection:Hide()
+        -- ⚠ 不能只 Hide 就走。註解原本寫「有圖騰在場的話 Poll 會再拉起來」，但 Poll
+        -- 只由 PLAYER_TOTEM_UPDATE / PLAYER_ENTERING_WORLD / PLAYER_REGEN_ENABLED 推
+        -- ⇒ 地上已經有圖騰時進出編輯模式，框會消失到下次重放圖騰或進副本才回來。
+        -- TotemsApplySettings 結尾會 Poll()，讓它自己決定該顯示還是隱藏。
+        if ns.TotemsApplySettings then
+            ns.TotemsApplySettings()
+        else
+            totem:Hide()
+        end
+    end
+    ns.Preview.Close("editmode")
+    ns.Preview.ApplyInteractive()
+end
+
+combatWatcher:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_REGEN_DISABLED" then
+        -- 進戰鬥的**強制鬆手窗口**：這一刻 InCombatLockdown() 還是 false，動保護框
+        -- 還來得及。編輯模式開著就趁現在收掉預覽，讓玩家用真實單位框打這場架，
+        -- 而不是抱著一排假孿生。
+        -- ⚠ 一定要是自己這顆 frame 上的 SetScript("OnEvent")＋同步跑完，**不能**走
+        --   ns.Events／ns.Defer —— 那些會延一幀，落地時鎖定早就生效了，等於白做。
+        -- ⚠ 不動 isInEditMode：那個旗標要一直反映暴雪的真實狀態（人還在編輯模式裡）。
+        if not isInEditMode then return end
+        if not (ns.Preview and ns.Preview.IsOpen()) then return end
+        ExitPreview()
+        self:RegisterEvent("PLAYER_REGEN_ENABLED")    -- 脫戰若還在編輯模式就把預覽接回來
+    else
+        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+        UpdateEditModeState()
+    end
+end)
+combatWatcher:RegisterEvent("PLAYER_REGEN_DISABLED")
+
+function UpdateEditModeState()
     if not ns.db then return end
 
+    if InCombatLockdown() then
+        combatWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
+    -- 能走到這裡就表示這一輪已經真的套用了，取消還沒發作的重試（免得晚一步又翻一次）
+    combatWatcher:UnregisterEvent("PLAYER_REGEN_ENABLED")
+
     if isInEditMode then
-        ns.Preview.Open("editmode")
-        -- 孿生蓋選取框（boss 只有第一格可拖，拖了整組跟著走）
-        ns.Preview.EachTwin(function(uf, unitKey)
-            if uf.bossIndex and uf.bossIndex > 1 then return end
-            if not uf.db.enabled then return end
-            local label = ns.UNIT_LABELS[unitKey] or unitKey
-            local sel = AttachSelection(uf, L["MiliUI UF: "] .. label,
-                function() return uf.db.frame end, function()
-                ns.ApplySettings(unitKey)     -- 同步 boss2-5 與孿生
-            end)
-            uf:EnableMouse(true)
-            sel:ShowHighlighted()
-        end)
-        -- 圖騰（真實框本身就不是 secure，可直接拖；顯示假內容供瞄準）
-        local totem = ns.totemFrame
-        if totem and ns.db.units.totem.enabled then
-            local sel = AttachSelection(totem, L["MiliUI UF: Summons"],
-                function() return ns.db.units.totem.frame end, function()
-                if ns.TotemsApplySettings then ns.TotemsApplySettings() end
-            end, ns.TotemsAnchorTo)
-            totem:Show()      -- 框本身固定四格寬，選取框直接蓋得準
-            sel:ShowHighlighted()
-        end
+        EnterPreview()
     else
-        ns.Preview.EachTwin(function(uf)
-            if uf.editSelection then uf.editSelection:Hide() end
-            uf:EnableMouse(false)
-        end)
-        -- 設定面板可能還開著（兩邊共用同一批孿生）：上面那圈把滑鼠一律關掉了，
-        -- 收尾時讓 Preview 依它自己的狀態決定要不要再打開。
-        -- ⚠ 要放在 Preview.Close 之後——Close 會重算那個狀態。
-        local totem = ns.totemFrame
-        if totem and totem.editSelection then
-            totem.editSelection:Hide()
-            -- ⚠ 不能只 Hide 就走。註解原本寫「有圖騰在場的話 Poll 會再拉起來」，但 Poll
-            -- 只由 PLAYER_TOTEM_UPDATE / PLAYER_ENTERING_WORLD / PLAYER_REGEN_ENABLED 推
-            -- ⇒ 地上已經有圖騰時進出編輯模式，框會消失到下次重放圖騰或進副本才回來。
-            -- TotemsApplySettings 結尾會 Poll()，讓它自己決定該顯示還是隱藏。
-            if ns.TotemsApplySettings then
-                ns.TotemsApplySettings()
-            else
-                totem:Hide()
-            end
-        end
-        ns.Preview.Close("editmode")
-        ns.Preview.ApplyInteractive()
+        ExitPreview()
     end
 end
 
@@ -223,13 +274,12 @@ local function HookEditMode()
     if editModeHooked then return end
     if not EditModeManagerFrame then return end
     editModeHooked = true
-    -- ⚠⚠ 這兩個 hook 要**同步**跑，不要 ns.Defer。
-    --   進戰鬥時暴雪會強制關掉編輯模式，OnHide 那一刻戰鬥鎖定還沒生效，Preview.Close
-    --   來得及把真實單位框放回來；延一幀就落在鎖定之後，只能走「脫戰才還原」那條路
-    --   ⇒ 整場戰鬥沒有單位框。
-    --   HookScript 是後掛勾：跑到我們時暴雪的 EnterEditMode／ExitEditMode（動作條那段
-    --   也在內）已經做完，動作條被封鎖的那樁跟這裡無關 —— 真正的管道是
+    -- ⚠ HookScript 是後掛勾：跑到我們時暴雪的 EnterEditMode／ExitEditMode（動作條那段
+    --   也在內）已經做完 ⇒ 動作條被封鎖的那樁不是從這裡流出去的，真正的管道是
     --   AttachSelection 裡被 no-op 化的 OnMouseDown。
+    --   同步跑或延一幀在這裡沒有實質差別，維持同步單純因為現在這樣是實測過的行為。
+    --   編輯模式**戰鬥中照樣進得去也出得來**，所以真正的戰鬥防線在
+    --   UpdateEditModeState 的閘（見上面），不在這兩個 hook。
     EditModeManagerFrame:HookScript("OnShow", function()
         isInEditMode = true
         UpdateEditModeState()

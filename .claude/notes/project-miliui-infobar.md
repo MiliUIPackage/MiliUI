@@ -36,7 +36,8 @@ metadata:
    Show/Hide/SetPoint/SetSize 全被封鎖，只有 SetText/SetVertexColor/SetAlpha 合法。
    所以 ApplyAll 與 Layout 進戰鬥一律整包 `ns.Defer` 到脫戰；寵物對戰只降 alpha。
    編輯模式選取框掛在 bar 上；它連坐被保護，所以隱藏路徑走 `ns.Defer`——
-   戰鬥強制關閉編輯模式那條路的 Hide 不能直接執行。
+   戰鬥中離開編輯模式那條路的 Hide 不能直接執行（暴雪**不會**因為進戰鬥就關掉編輯模式，
+   戰鬥中照樣進得去也出得來，2026-09-18 taint.log 查證）。
    **拖曳不用 StartMoving**：掛 UIParent 的獨立框版本與掛 bar 的版本實測都
    拖不動（懷疑是保護框＋StartMoving 的組合），改照 MiliUI_DamageMeters
    `Meter/Move.lua` 的手動機制——記按下時的游標與框位、拖曳中每幀用游標
@@ -135,7 +136,7 @@ metadata:
 
 - secure 轉發在戰鬥中實點（天賦、角色、收藏）；ActionButtonUseKeyDown 兩種設定各試。
 - hider 開關與編輯模式進出後暴雪列的狀態；載入畫面後的 force 重推有沒有生效。
-- 編輯模式拖曳＋選取框標籤；戰鬥中被強制關閉編輯模式那條路。
+- 編輯模式拖曳＋選取框標籤；戰鬥中進／出編輯模式那條路。
 - 單色圖示的去飽和效果與職業色滑過；彩色 atlas 的比例；角色頭像更新（換裝）。
 - 字寬變化（fps 兩位↔三位）會不會抖動；戰鬥中凍結版面、脫戰補齊。
 - MENU（右鍵配置／擲骰選單）在戰鬥中的行為。

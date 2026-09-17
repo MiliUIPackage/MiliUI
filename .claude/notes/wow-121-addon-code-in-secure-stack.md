@@ -119,11 +119,22 @@ parent 是 UIParent）。症狀：戰鬥中 `MultiBar…Button:SetAttribute`／`
 解法：`sel:SetScript("OnMouseDown", function() end)`，套組六處已全補。驗證法：進編輯模式點一下
 選取框再離開，`/dump issecurevariable(MultiBarBottomRight, "isHighlighted")`。
 
-⚠ 同一份回報附的 patch 把 `EditModeManagerFrame` 的 OnShow/OnHide 勾改成 `ns.Defer`——**不要收**。
-後置勾跑到時暴雪那輪已做完，不是成因；而且進戰鬥強制關編輯模式時，OnHide 那一刻鎖定還沒
-生效，`Preview.Close` 只有這個窗口能把真實框放回來，延一幀就變成整場戰鬥沒有單位框。
-「能延就延」不適用於**收尾要動保護框、且觸發點緊貼戰鬥鎖定**的勾。
+⚠ 同一份回報附的 patch 把 `EditModeManagerFrame` 的 OnShow/OnHide 勾改成 `ns.Defer`——沒收，但**不是因為它有害**。
+後置勾跑到時暴雪那輪已做完，不是成因；同步或延一幀沒有實質差別，維持同步只因為那是測過的行為。
+（2026-09-17 我一度寫下「進戰鬥時暴雪會強制關掉編輯模式，延一幀會錯過還原真實框的窗口」——**這個前提是錯的**，
+沒查證就寫進註解、技能與這裡，隔天被 taint.log 打臉後全數更正。）
+**查證過的事實：編輯模式不會被戰鬥關掉**，戰鬥中進得去（頭像右鍵選單 →「編輯模式」）也出得來，
+`EditModeManager.lua` 沒有任何 PLAYER_REGEN 處理。所以進／出編輯模式的處理器只要碰保護框（或帶保護
+子物件的框，錨在上面的選取框也連坐），就要 `InCombatLockdown()` 閘＋`PLAYER_REGEN_ENABLED` 重試。
+MiliUI_UnitFrames 的預覽孿生就是這種框（2026-09-18 taint.log：戰鬥中進出編輯模式被擋 9 次
+EnableMouse／Hide）；現在 `UpdateEditModeState` 有閘，另外在 `PLAYER_REGEN_DISABLED`（鎖定還沒生效的
+鬆手窗口，處理器必須同步、不能走 ns.Defer）先收掉預覽把真實框放回來，脫戰若還在編輯模式再接回去。
 同一份 patch 的另一半（Units.lua 目標／專注看門狗的 OnShow/OnHide，入口 1 的漏網）是對的，已收。
+
+附帶：戰鬥中從選單進編輯模式，暴雪會用 `"player"` 當競技場預覽框的假單位；那次執行若被污染，
+`CompactUnitFrame` 比較秘密血量就炸、之後每幀 OnUpdate 再炸。2026-09-17 出現過一次點名 MiliUI_Tooltip，
+隔天同操作無法重現，污染入口**未找到**（不是全域變數——taintLog 2 沒記；「securecall 外洩、UISpecialFrames
+排最後的被點名」的假設已被否定）。未驗證的線索：出事那場可能開過 `/mtip` 設定視窗。
 
 ## 解法
 

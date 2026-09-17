@@ -1142,7 +1142,7 @@ local function UpdateEditModeState()
         EnsureEditSelection()
         editSelection:ShowHighlighted()
     elseif editSelection then
-        -- 編輯模式被戰鬥強制關閉時這裡可能已在 lockdown，Hide 保護子框會被封鎖
+        -- 戰鬥中離開編輯模式時這裡可能已在 lockdown，Hide 保護子框會被封鎖
         ns.Defer("editsel-hide", function()
             if not isInEditMode and editSelection then editSelection:Hide() end
         end)
@@ -1154,7 +1154,8 @@ end
 -- ⚠⚠ 處理器裡只改旗標，工作一律丟到下一幀。這幾個入口全部跑在暴雪的
 -- EnterEditMode／ExitEditMode **裡面**（EventRegistry 的 TriggerEvent 不走
 -- securecall；HookScript 的 OnHide 是在 ExitEditMode 呼叫 self:Hide() 時同步觸發），
--- 而 ExitEditMode 有一種觸發方式是**戰鬥開始時被暴雪強制呼叫**——那時我們的
+-- 而 ExitEditMode **可能在戰鬥中執行**（暴雪不會因為進戰鬥就關掉編輯模式，戰鬥中
+-- 照樣進得去也出得來）——那時我們的
 -- 處理器在它裡面跑完，它接下來重套整個版面（每排快捷列 UpdateShownButtons）就
 -- 染成 InfoBar 的、在戰鬥中被擋。2026-09-07 引擎點名的那 24 個 SetShown 就是這個
 -- 形狀。三層掛勾都冪等，同一幀只跑最後一次。
