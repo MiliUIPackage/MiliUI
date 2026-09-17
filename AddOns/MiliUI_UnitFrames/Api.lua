@@ -888,6 +888,16 @@ local function Debug()
             local info = ns.ResourceInfo and ns.ResourceInfo(key)
             p(("   %-16s %s  %s"):format(key, (info and info.name) or "?", why))
         end
+        -- 顏色從哪來 ＋ 現在哪幾格是充能格：玩家回報「顏色不對」「看不出充能」時
+        -- 這兩行就能分辨是設定問題、Ayije 的值、還是根本沒讀到充能索引
+        if ns.ResourceFollowsAyije then
+            local follow, avail = ns.ResourceFollowsAyije()
+            p(("   顏色來源：%s（Ayije_CDM %s）"):format(
+                follow and "Ayije_CDM" or "自己", avail and "已載入" or "未載入"))
+        end
+        if ns.ResourceChargedDebug then
+            p("   充能格：" .. (ns.ResourceChargedDebug() or "（無）"))
+        end
         if GetShapeshiftFormID then
             p("   目前型態 formID=" .. tostring(GetShapeshiftFormID()))
         end

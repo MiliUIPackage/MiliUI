@@ -13,7 +13,7 @@
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\inv_pet_riverotter_red
 ## SavedVariables: MiliUI_UnitFrames_DB
-## OptionalDeps: Clique
+## OptionalDeps: Clique, Ayije_CDM
 ## AddonCompartmentFunc: MiliUIUF_OnAddonCompartmentClick
 
 Libs\MiliUIWidgets\PixelPerfect.lua

@@ -11,15 +11,23 @@ local L = ns.L
 
 local W, Controls = ns.W, ns.Controls
 
-local tab, scroll, content, refreshers, specSig, rows
+-- ⚠ ctx 與 Rebuild 都要**前置宣告**：BuildControls 的「還原預設」按鈕要呼叫 ctx.apply，
+-- 而 ctx.apply 要呼叫 Rebuild —— 兩邊都是「用在定義之前」。不先宣告成 local 的話，
+-- 那兩個名字在函式體裡會編成全域查表、執行時抓到 nil 而靜默失效
+-- （這個 repo 已經踩過兩次，見 Elements/ClassPower.lua 的 LayoutMatches 那段）。
+local tab, scroll, content, refreshers, specSig, rows, ctx, Rebuild
+-- 上一次建表時「跟隨 Ayije」是不是生效中。切換之後控件清單會整個換掉 ⇒ 要重建
+local builtFollow
 
 local function EDB()
     local u = ns.db.units.player
     return u and u.elements and u.elements.classpower
 end
 
+-- 回傳 控件清單, 專精ID, 這次是不是「跟隨 Ayije」
 local function BuildControls()
     local cand, specID = ns.ResourceCandidates()
+    local followActive, ayijeAvail = ns.ResourceFollowsAyije(EDB())
     local list = {
         { type = "toggle", key = "enabled", label = L["Show resource bars"] },
         { type = "text",   label = L["Anchored below the player frame, stacking downward. Which resources appear follows your specialization and switches automatically."] },
@@ -37,8 +45,42 @@ local function BuildControls()
         { type = "header", label = L["Appearance"] },
         { type = "slider", key = "barAlpha", label = L["Fill opacity"], min = 0.1, max = 1, step = 0.05 },
         { type = "toggle", key = "showText", label = L["Show value on the bar"] },
-        { type = "header", label = L["Show for this specialization"] },
     }
+
+    ---------------------------------------------------------
+    -- 顏色
+    --
+    -- 兩個插件都裝的人本來就希望兩邊顏色一致，所以 Ayije_CDM 在的時候給一個
+    -- 「跟它一樣」的開關；勾著就不列色塊（列了也沒用，畫面上不會照它走），
+    -- 改放一行說明講清楚顏色現在由誰決定。
+    ---------------------------------------------------------
+    if ayijeAvail or #cand > 0 then
+        list[#list + 1] = { type = "header", label = L["Colors"] }
+    end
+    if ayijeAvail then
+        list[#list + 1] = { type = "toggle", key = "followAyije", label = L["Ayije_CDM colors"] }
+    end
+    if followActive then
+        list[#list + 1] = { type = "text",
+            label = L["Colors come from Ayije_CDM's own resource bar settings. Uncheck this to use your own colors here instead."] }
+    else
+        for _, key in ipairs(cand) do
+            local info = ns.ResourceInfo(key)
+            -- 色塊的標籤直接用資源名（暴雪的官方譯名，見 ClassPower.lua 的 PowerName）
+            list[#list + 1] = { type = "color", sub = "colors", sub2 = key, key = "color",
+                                label = info and info.name or key, hasAlpha = false }
+            if key == "ComboPoints" then
+                list[#list + 1] = { type = "color", sub = "colors", sub2 = key, key = "chargedColor",
+                                    label = L["Charged color"], hasAlpha = false }
+                list[#list + 1] = { type = "color", sub = "colors", sub2 = key, key = "chargedEmptyColor",
+                                    label = L["Charged (empty)"], hasAlpha = false }
+                list[#list + 1] = { type = "text",
+                    label = L["Some combo points become charged (the Rogue's Supercharger, the Feral druid's Overflowing Power). The dim shade marks a charged point you haven't filled yet."] }
+            end
+        end
+    end
+
+    list[#list + 1] = { type = "header", label = L["Show for this specialization"] }
 
     if #cand == 0 then
         list[#list + 1] = { type = "text",
@@ -62,16 +104,43 @@ local function BuildControls()
             local def = ns.DB.BuildDefaults().units.player.elements.classpower
             for k in pairs(edb) do edb[k] = nil end
             for k, v in pairs(def) do edb[k] = v end
-            ns.ApplySettings("player")
+            -- ⚠ 走 ctx.apply 不是直接 ApplySettings：還原之後 followAyije 回到 nil
+            -- （Ayije_CDM 有載入就等於重新跟隨）⇒ 色塊那幾列要跟著消失，
+            -- 而「該不該重建控件」的判斷在 apply 裡
+            ctx.apply()
         end }
 
-    return list, specID
+    return list, specID, followActive
 end
 
-local ctx = {
+ctx = {
     get = function(spec)
         local edb = EDB()
         if not edb then return nil end
+        -- ⚠ followAyije 是三態，nil ＝「玩家沒碰過 ⇒ Ayije 有載入就跟隨」。
+        -- 把原始的 nil 交給勾選框會顯示成「沒勾」，但畫面上其實正在跟隨 ⇒
+        -- 玩家看到的跟顏色對不起來。所以這個鍵回**生效值**。
+        if spec.key == "followAyije" and not spec.sub then
+            return (ns.ResourceFollowsAyije(edb))
+        end
+        -- ⚠⚠ 色塊的寫入是「ctx.get 拿到 table 就**原地改**」（見共用層
+        -- Controls.lua 的 color 分支）⇒ 這裡絕對不能回傳共用的預設表或 Ayije 的表，
+        -- 否則調一次顏色就默默改壞別人的資料。DB 預設已經保證
+        -- edb.colors[key][field] 存在；萬一不在（匯入了更舊的字串之類）
+        -- 就先在 edb 裡建一張自己的再回。
+        if spec.sub == "colors" and spec.sub2 then
+            local root = edb.colors
+            if not root then root = {}; edb.colors = root end
+            local t = root[spec.sub2]
+            if not t then t = {}; root[spec.sub2] = t end
+            local c = t[spec.key]
+            if type(c) ~= "table" then
+                local d = ns.ResourceDefaultColor and ns.ResourceDefaultColor(spec.sub2, spec.key)
+                c = { r = (d and d.r) or 1, g = (d and d.g) or 1, b = (d and d.b) or 1 }
+                t[spec.key] = c
+            end
+            return c
+        end
         local t = Controls.Resolve(edb, spec)
         if not t then return spec.default end
         local v = t[spec.key]
@@ -82,6 +151,9 @@ local ctx = {
         local edb = EDB()
         if not edb then return end
         if spec.sub and not edb[spec.sub] then edb[spec.sub] = {} end
+        if spec.sub and spec.sub2 and not edb[spec.sub][spec.sub2] then
+            edb[spec.sub][spec.sub2] = {}
+        end
         local t = Controls.Resolve(edb, spec)
         if t then t[spec.key] = v end
     end,
@@ -89,18 +161,43 @@ local ctx = {
         -- 資源清單／格數可能一起變 → 逼引擎重排，不只是重畫
         if ns.ResourceReevaluate then ns.ResourceReevaluate() end
         ns.ApplySettings("player")
+        -- 「跟隨 Ayije」切掉之後控件清單整個換掉（色塊出現／消失）⇒ 要重建。
+        -- ⚠ 不能在 toggle 自己的 OnClick 裡當場重建 —— 那是在按鈕的處理器裡把它的
+        -- 父框丟掉。延一幀讓這一輪點擊跑完再換。
+        -- ⚠ 共用層（Libs/MiliUIWidgets）沒有 onChange 也沒有 disabled 機制，
+        -- **不要為了這一個需求去改共用層** —— 那是十個插件共用的 vendor 複製。
+        -- 比對「上次建表時的跟隨狀態」就夠了。
+        local followNow = ns.ResourceFollowsAyije(EDB())
+        if tab and builtFollow ~= followNow then
+            C_Timer.After(0, function()
+                Rebuild(true)
+                for _, fn in ipairs(refreshers) do fn() end
+            end)
+        end
     end,
 }
 
 -- ⚠ 一定要放在卷軸裡：這一頁的長度跟著專精走（資源多的專精會多好幾列開關），
 -- 直接鋪在 tab 上的話，內容一長就會整段掉出面板外面
-local function Rebuild()
-    local controls, specID = BuildControls()
+--
+-- keepScroll：重建之後把捲動位置放回去。「跟隨 Ayije」那個勾選框在頁面中段，
+-- 每按一次就被彈回頂端的話等於把使用者踢走。
+function Rebuild(keepScroll)
+    local offset = (keepScroll and scroll) and scroll:GetVerticalScroll() or 0
+    local controls, specID, followActive = BuildControls()
     -- 舊的內容框留著（frame 刪不掉），藏起來就好
     if content then content:Hide() end
     content, rows, refreshers = ns.Options.BuildScrollBody(scroll, controls, ctx, 620)
     scroll:SetVerticalScroll(0)
     specSig = specID or 0
+    builtFollow = followActive
+    -- ⚠ 要延一幀才設得準：內容高度剛換過，這一幀 GetVerticalScrollRange 還是舊值，
+    -- 直接設會被舊的上限夾掉（新內容比較短時就會夾出一個看起來隨機的位置）
+    if offset > 0 then
+        C_Timer.After(0, function()
+            scroll:SetVerticalScroll(math.min(offset, scroll:GetVerticalScrollRange() or 0))
+        end)
+    end
 end
 
 local function Init()
@@ -115,6 +212,10 @@ end
 -- 所以停在這一頁換設定檔會看到顏色與滑桿全停在舊值，切走再切回來才對。
 ns.RegisterCallback("ProfileChanged", "resourceTabProfile", function()
     if tab and tab:IsShown() then
+        -- 別份設定檔的 followAyije 可能不一樣 ⇒ 控件清單也不一樣，只推值不夠
+        if builtFollow ~= ns.ResourceFollowsAyije(EDB()) then
+            Rebuild()
+        end
         for _, fn in ipairs(refreshers) do fn() end
     end
 end)
@@ -126,7 +227,10 @@ ns.RegisterCallback("ShowOptionsTab", "resourceTab", function(id)
     end
     Init()
     local _, specID = ns.ResourceCandidates()
-    if specSig ~= (specID or 0) then Rebuild() end
+    -- 跟隨狀態也要比：玩家可能在關著這一頁的時候才啟用／停用 Ayije_CDM
+    if specSig ~= (specID or 0) or builtFollow ~= ns.ResourceFollowsAyije(EDB()) then
+        Rebuild()
+    end
     for _, fn in ipairs(refreshers) do fn() end
     tab:Show()
 end)

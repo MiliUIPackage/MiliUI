@@ -46,27 +46,30 @@ local function PowerName(global, fallback)
     return (s:gsub("|4([^:;]*):[^;]*;", "%1"))
 end
 
+-- ⚠ **顏色不寫在這裡**：預設色的單一來源是 Core/DB.lua 的 RESOURCE_COLORS
+-- （那邊同時餵 classpower.colors 的預設值）。這裡寫第二份的話兩邊遲早漂掉。
+-- 取色一律走下面的 ResolveColor。
 local RESOURCES = {
-    Rage            = { name = PowerName("RAGE", "Rage"),     mode = "bar", power = PT.Rage,          color = { r = 0.78, g = 0.25, b = 0.25 } },
-    Energy          = { name = PowerName("ENERGY", "Energy"),     mode = "bar", power = PT.Energy,        color = { r = 1,    g = 0.96, b = 0.41 } },
-    Focus           = { name = PowerName("FOCUS", "Focus"),   mode = "bar", power = PT.Focus,         color = { r = 1,    g = 0.5,  b = 0.25 } },
-    RunicPower      = { name = PowerName("RUNIC_POWER", "Runic Power"), mode = "bar", power = PT.RunicPower,    color = { r = 0,    g = 0.82, b = 1    } },
-    LunarPower      = { name = PowerName("LUNAR_POWER", "Astral Power"),     mode = "bar", power = PT.LunarPower,    color = { r = 0.3,  g = 0.52, b = 0.9  } },
-    Maelstrom       = { name = PowerName("MAELSTROM", "Maelstrom"),     mode = "bar", power = PT.Maelstrom,     color = { r = 0,    g = 0.5,  b = 1    } },
-    Insanity        = { name = PowerName("INSANITY", "Insanity"),   mode = "bar", power = PT.Insanity,      color = { r = 0.4,  g = 0,    b = 0.8  } },
-    Fury            = { name = PowerName("FURY", "Fury"), mode = "bar", power = PT.Fury,          color = { r = 0.788,g = 0.259,b = 0.992} },
-    HolyPower       = { name = PowerName("HOLY_POWER", "Holy Power"),     mode = "pip", power = PT.HolyPower,     color = { r = 0.914,g = 0.678,b = 0.275} },
-    ComboPoints     = { name = PowerName("COMBO_POINTS", "Combo Points"), mode = "pip", power = PT.ComboPoints,   color = { r = 1,    g = 0.96, b = 0.41 } },
-    Chi             = { name = PowerName("CHI", "Chi"),     mode = "pip", power = PT.Chi,           color = { r = 0.71, g = 1,    b = 0.92 } },
-    SoulShards      = { name = PowerName("SOUL_SHARDS", "Soul Shards"), mode = "pip", power = PT.SoulShards,    color = { r = 0.58, g = 0.51, b = 0.79 } },
-    ArcaneCharges   = { name = PowerName("ARCANE_CHARGES", "Arcane Charges"), mode = "pip", power = PT.ArcaneCharges, color = { r = 0.25, g = 0.35, b = 0.98 } },
-    Essence         = { name = PowerName("ESSENCE", "Essence"),     mode = "pip", power = PT.Essence,       color = { r = 0.28, g = 0.73, b = 0.92 } },
-    Runes           = { name = PowerName("RUNES", "Runes"),     mode = "pip", power = PT.Runes,         color = { r = 0.77, g = 0.12, b = 0.23 }, fill = "rune" },
+    Rage            = { name = PowerName("RAGE", "Rage"),     mode = "bar", power = PT.Rage },
+    Energy          = { name = PowerName("ENERGY", "Energy"),     mode = "bar", power = PT.Energy },
+    Focus           = { name = PowerName("FOCUS", "Focus"),   mode = "bar", power = PT.Focus },
+    RunicPower      = { name = PowerName("RUNIC_POWER", "Runic Power"), mode = "bar", power = PT.RunicPower },
+    LunarPower      = { name = PowerName("LUNAR_POWER", "Astral Power"),     mode = "bar", power = PT.LunarPower },
+    Maelstrom       = { name = PowerName("MAELSTROM", "Maelstrom"),     mode = "bar", power = PT.Maelstrom },
+    Insanity        = { name = PowerName("INSANITY", "Insanity"),   mode = "bar", power = PT.Insanity },
+    Fury            = { name = PowerName("FURY", "Fury"), mode = "bar", power = PT.Fury },
+    HolyPower       = { name = PowerName("HOLY_POWER", "Holy Power"),     mode = "pip", power = PT.HolyPower },
+    ComboPoints     = { name = PowerName("COMBO_POINTS", "Combo Points"), mode = "pip", power = PT.ComboPoints },
+    Chi             = { name = PowerName("CHI", "Chi"),     mode = "pip", power = PT.Chi },
+    SoulShards      = { name = PowerName("SOUL_SHARDS", "Soul Shards"), mode = "pip", power = PT.SoulShards },
+    ArcaneCharges   = { name = PowerName("ARCANE_CHARGES", "Arcane Charges"), mode = "pip", power = PT.ArcaneCharges },
+    Essence         = { name = PowerName("ESSENCE", "Essence"),     mode = "pip", power = PT.Essence },
+    Runes           = { name = PowerName("RUNES", "Runes"),     mode = "pip", power = PT.Runes, fill = "rune" },
     -- 光環／技能次數型（Ayije_CDM 的 custom power，資料來源都是明文 API）
     -- 中文名一律取自 Ayije_CDM/Locales/zhTW.lua（使用者已對過官方譯名，別自己翻）
-    MaelstromWeapon = { name = L["Maelstrom Weapon"], mode = "pip", aura = 344179, max = 10,  passive = 187880, color = { r = 0.2,  g = 0.65, b = 1    } },
-    TipOfTheSpear   = { name = L["Tip of the Spear"], mode = "pip", aura = 260286, max = 3,   passive = 260285, color = { r = 1,    g = 0.6,  b = 0.2  } },
-    SoulFragments   = { name = L["Soul Fragments"], mode = "pip", cast = 228477, max = 6,   passive = 203981, color = { r = 0.64, g = 0.19, b = 0.79 } },
+    MaelstromWeapon = { name = L["Maelstrom Weapon"], mode = "pip", aura = 344179, max = 10,  passive = 187880 },
+    TipOfTheSpear   = { name = L["Tip of the Spear"], mode = "pip", aura = 260286, max = 3,   passive = 260285 },
+    SoulFragments   = { name = L["Soul Fragments"], mode = "pip", cast = 228477, max = 6,   passive = 203981 },
 }
 
 -- 專精 → 資源清單（照抄 Ayije_CDM/Modules/Resources.lua 的 SPEC_POWER_MAP）
@@ -129,6 +132,154 @@ local function GetValue(key)
     local cur = ns.Desecret(UnitPower("player", def.power), 0) or 0
     local max = ns.Desecret(UnitPowerMax("player", def.power), 0) or 0
     return cur, max
+end
+
+------------------------------------------------------------
+-- 顏色
+--
+-- 三層，由上而下：
+--   1. 跟隨 Ayije_CDM（同一台電腦上另一支資源條插件）的顏色
+--   2. 玩家在這裡自己調的 edb.colors[key][field]
+--   3. 寫死的預設（Core/DB.lua 的 RESOURCE_COLORS，跟 DB 預設值同一份）
+--
+-- ⚠ 效能：Update 掛在 UNIT_POWER_FREQUENT 上，戰鬥中一秒好幾次。所以
+--   * 顏色**每列每次 Update 解析一次**，解完當參數往下傳，不要每格解析
+--   * 回傳的一律是「既有的表」（Ayije 的／DB 的／預設那張），一次都不配新 table
+--   * 充能色只有在真的有充能格時才解析（多數時候一列只解析一次 color）
+--
+-- ⚠ 對 Ayije_CDM 是**軟依賴**：它的 GetBarSetting 是內部 API，不是公開契約。
+-- 任何一步失敗（沒載入、方法改名、CDM.db 還沒建好、回傳不是顏色表）都靜默退到
+-- 下一層，絕對不報錯 —— 上游改名的代價只能是「顏色退回自己的」。
+------------------------------------------------------------
+local FALLBACK_COLOR = { r = 1, g = 1, b = 1 }
+
+-- 我們的資源 key 跟 Ayije 的 barKey 一模一樣（兩邊都照暴雪的 PowerType 命名），
+-- 所以不需要對照表。要分兩套的只有充能那組欄位名：盜賊的「超級充能器」在 Ayije 叫
+-- charged，野德的「滿溢之力」叫 overflowing。職業不會變，所以表在載入時就選好。
+local AYIJE_FIELD = (CLASS == "DRUID")
+    and { color = "color", chargedColor = "overflowingColor", chargedEmptyColor = "overflowingEmptyColor" }
+    or  { color = "color", chargedColor = "chargedColor",     chargedEmptyColor = "chargedEmptyColor" }
+
+local function DefaultColor(key, field)
+    local t = ns.DB and ns.DB.RESOURCE_COLORS and ns.DB.RESOURCE_COLORS[key]
+    local c = t and t[field]
+    if type(c) == "table" and type(c.r) == "number" then return c end
+    -- 充能色缺了就退回主色，不要退成白色：白色在深底上比主色還亮，
+    -- 「哪幾格是充能」的判讀會整個反過來
+    if field ~= "color" then return DefaultColor(key, "color") end
+    return FALLBACK_COLOR
+end
+ns.ResourceDefaultColor = DefaultColor
+
+-- ⚠ **畫的時候現查，不要在檔案載入時快取。** 兩個插件的載入順序不保證
+-- （OptionalDeps 只排順序、不是硬相依），玩家也可能事後才啟用 Ayije_CDM ——
+-- 快取下來的話「有沒有跟隨」會永遠停在登入那一刻的答案。
+-- IsAddOnLoaded 是 C 端查表，現查的代價可以忽略。
+local function AyijeLoaded()
+    local fn = C_AddOns and C_AddOns.IsAddOnLoaded
+    if not fn then return false end
+    local ok, loaded = pcall(fn, "Ayije_CDM")
+    return (ok and loaded and _G.Ayije_CDM ~= nil) and true or false
+end
+
+-- 「跟隨 Ayije」現在生效嗎？回傳 (生效中, Ayije 可用)
+--
+-- edb.followAyije 是三態：
+--   nil    玩家沒碰過 ⇒ Ayije_CDM 有載入就跟隨（兩支都裝的人本來就希望顏色一致）
+--   true   跟隨（但 Ayije 沒載入時等同不跟隨）
+--   false  不跟隨，用自己的顏色
+function ns.ResourceFollowsAyije(edb)
+    if edb == nil then
+        local u = ns.db and ns.db.units and ns.db.units.player
+        edb = u and u.elements and u.elements.classpower
+    end
+    if not AyijeLoaded() then return false, false end
+    local pref = edb and edb.followAyije
+    if pref == nil then return true, true end
+    return pref and true or false, true
+end
+
+local function AyijeColor(key, field)
+    local cdm = _G.Ayije_CDM
+    local fn = cdm and cdm.GetBarSetting
+    if type(fn) ~= "function" then return nil end
+    local ok, c = pcall(fn, cdm, key, AYIJE_FIELD[field] or field)
+    if not ok or type(c) ~= "table" then return nil end
+    if type(c.r) ~= "number" or type(c.g) ~= "number" or type(c.b) ~= "number" then return nil end
+    return c
+end
+
+-- field ∈ "color" / "chargedColor" / "chargedEmptyColor"
+-- follow 由呼叫端算好一次往下傳（一列一次，不要每個欄位重算一遍 AyijeLoaded）
+local function ResolveColor(key, field, edb, follow)
+    if follow then
+        local c = AyijeColor(key, field)
+        if c then return c end
+    end
+    local own = edb and edb.colors and edb.colors[key]
+    local c = own and own[field]
+    if type(c) == "table" and type(c.r) == "number" then return c end
+    return DefaultColor(key, field)
+end
+
+------------------------------------------------------------
+-- 充能的連擊點
+--
+-- 盜賊天賦「超級充能器」會讓某幾格連擊點變成充能點（終結技吃到充能點時視同多花 2 點），
+-- 暴雪內建 UI 把那幾格畫成藍色。野性德魯伊的「滿溢之力」是同一個概念的另一套來源。
+--
+--   盜賊  GetUnitChargedPowerPoints("player") → 被充能的**索引**陣列（可能是 nil）
+--         事件 UNIT_POWER_POINT_CHARGE（綁 "player"）
+--   野德  光環 405189 的層數 n ⇒ 第 1..n 格算充能
+--
+-- ⚠ 查表用檔案層級的表 wipe 重用，跟 activeRows／segScratch 同一個理由
+-- （Update 掛在能量事件上，每次現配一張表就是純粹的垃圾）。盜賊那條再加一個
+-- dirty 旗標：沒有充能事件的那幾百次 Update 一次 API 都不用打。
+-- 盜賊與德魯伊共用同一張表沒問題 —— CLASS 在一場遊戲裡不會變，兩條路互斥。
+------------------------------------------------------------
+local FERAL_OVERFLOW_AURA = 405189
+local chargedLookup = {}
+local chargedDirty = true
+-- 預覽孿生固定假裝第 1、2 格是充能格（設定面板調充能色才看得到效果）。
+-- 獨立一張常數表，不會被 wipe 到
+local PREVIEW_CHARGED = { [1] = true, [2] = true }
+
+local function RefreshChargedLookup()
+    chargedDirty = false
+    wipe(chargedLookup)
+    local fn = GetUnitChargedPowerPoints
+    if type(fn) ~= "function" then return end
+    local ok, list = pcall(fn, "player")
+    if not ok or type(list) ~= "table" then return end
+    for i = 1, #list do
+        -- ⚠ 一律驗過型別才拿來當 table key／比大小。玩家自己的連擊點是明文，
+        -- 但來源換人（載具、被控）時不保證，而秘密值當 key 會當場崩潰
+        local idx = ns.Desecret(list[i], nil)
+        if type(idx) == "number" and idx > 0 then chargedLookup[idx] = true end
+    end
+end
+
+-- 這一輪哪幾格是充能格；沒有就回 nil（呼叫端據此整段跳過，含兩個充能色的解析）
+local function ChargedPoints(key, isPreview)
+    -- 只有連擊點數有這個概念
+    if key ~= "ComboPoints" then return nil end
+    if isPreview then return PREVIEW_CHARGED end
+    if CLASS == "ROGUE" then
+        if chargedDirty then RefreshChargedLookup() end
+        return next(chargedLookup) and chargedLookup or nil
+    end
+    if CLASS == "DRUID" then
+        -- ⚠ 走到這裡就表示「現在有 ComboPoints 這一列」，而德魯伊只有貓型態才有
+        -- （見 ResourceCandidates 的型態分支）⇒ 型態閘不必再寫一次。
+        -- 非野性專精讀這個光環一定是 0，多一次查詢換掉一次 CurrentSpecID()，划算。
+        -- AuraStacks 已經 Desecret 過
+        local n = AuraStacks(FERAL_OVERFLOW_AURA)
+        if not n or n <= 0 then return nil end
+        wipe(chargedLookup)
+        for i = 1, math.min(n, MAX_SEGMENTS) do chargedLookup[i] = true end
+        return chargedLookup
+    end
+    return nil
 end
 
 ------------------------------------------------------------
@@ -506,14 +657,23 @@ local function Relayout(f, edb, rows, newSegs)
     f:SetSize(ns.P.Scale(edb.totalw or 200), n > 0 and (n * h + (n - 1) * gap) or 1)
 end
 
-local function PaintPip(row, def, edb, numSeg, filled)
-    local cc = def.color
+-- charged/chargedCC/chargedEmptyCC 只有連擊點數會帶（見 ChargedPoints）；
+-- 沒有充能格時三個都是 nil，整段判斷退化成原本那兩條路
+local function PaintPip(row, edb, numSeg, filled, cc, charged, chargedCC, chargedEmptyCC)
     local dc = edb.dimColor or DIM
+    local alpha = edb.barAlpha or 1
     for i = 1, numSeg do
         local seg = row.segs[i]
+        local isCharged = charged and charged[i]
         if i <= filled then
-            seg.fg:SetVertexColor(cc.r, cc.g, cc.b, edb.barAlpha or 1)
-            seg.bg:SetVertexColor(cc.r * 0.3, cc.g * 0.3, cc.b * 0.3, 0.8)
+            local c = isCharged and chargedCC or cc
+            seg.fg:SetVertexColor(c.r, c.g, c.b, alpha)
+            seg.bg:SetVertexColor(c.r * 0.3, c.g * 0.3, c.b * 0.3, 0.8)
+        elseif isCharged then
+            -- 充能但還沒填到：畫在 fg 上、不透明度比照未填滿那條慣例（dc.a），
+            -- 這樣打滿之前就看得出「哪幾格是充能格」，又不會比填滿的那幾格搶眼
+            seg.fg:SetVertexColor(chargedEmptyCC.r, chargedEmptyCC.g, chargedEmptyCC.b, dc.a or 0.6)
+            seg.bg:SetVertexColor(0, 0, 0, 0.4)
         else
             seg.fg:SetVertexColor(dc.r, dc.g, dc.b, dc.a or 0.6)
             seg.bg:SetVertexColor(0, 0, 0, 0.4)
@@ -536,7 +696,9 @@ local function UpdateRow(row, edb, isPreview, numSeg)
     local key = row.key
     local def = RESOURCES[key]
     if not def then return end
-    local cc = def.color
+    -- 顏色一列解析一次（理由見 ResolveColor 上面的 ⚠ 效能那段）
+    local follow = ns.ResourceFollowsAyije(edb)
+    local cc = ResolveColor(key, "color", edb, follow)
 
     if def.mode == "pip" then
         numSeg = numSeg or SegmentsFor(key, isPreview)   -- 沒帶進來才自己算
@@ -564,7 +726,14 @@ local function UpdateRow(row, edb, isPreview, numSeg)
             return
         end
         local filled = isPreview and math.min(3, numSeg) or (GetValue(key) or 0)
-        PaintPip(row, def, edb, numSeg, filled)
+        -- 充能格：沒有的話兩個充能色連解析都不用（一般情況一列只解析一次顏色）
+        local charged = ChargedPoints(key, isPreview)
+        local chargedCC, chargedEmptyCC
+        if charged then
+            chargedCC = ResolveColor(key, "chargedColor", edb, follow)
+            chargedEmptyCC = ResolveColor(key, "chargedEmptyColor", edb, follow)
+        end
+        PaintPip(row, edb, numSeg, filled, cc, charged, chargedCC, chargedEmptyCC)
         SetPipText(row, def, edb, filled)
         return
     end
@@ -621,9 +790,28 @@ ns.RegisterElement{
     update = Update,
 }
 
+-- 只重畫「符合條件的那幾列」：不重排、不重推導候選清單。
+-- 給那些「值變了但資源種類沒變」的事件用（光環堆疊、連擊點充能）。
+-- ⚠ 述詞用檔案層級的函式，不要在事件處理器裡現包 closure —— 這些事件在團隊戰
+-- 很吵，每次派送配一個 closure 就是垃圾。
+local function RepaintRows(match)
+    local uf = ns.frames.player
+    local edb = uf and uf.db.elements.classpower
+    if not (uf and edb and edb.enabled ~= false and uf.elements.classpower) then return end
+    for _, row in ipairs(uf.elements.classpower.rows or {}) do
+        local def = row.key and RESOURCES[row.key]
+        if row:IsShown() and def and match(row.key, def) then
+            UpdateRow(row, edb, uf.isPreview)
+        end
+    end
+end
+
+local function IsComboRow(key) return key == "ComboPoints" end
+
 -- 型態／專精／符文／光環變動 → 重新評估（清單和格數都可能變）
 local function Reevaluate()
     ns.InvalidateResourceCandidates()
+    chargedDirty = true          -- 換專精／型態之後充能狀態一定要重讀
     local uf = ns.frames.player
     if uf and uf.elements.classpower then
         local edb = uf.db.elements.classpower
@@ -634,6 +822,17 @@ local function Reevaluate()
     end
 end
 ns.ResourceReevaluate = Reevaluate
+
+-- 給 /muf debug 用：現在哪幾格是充能格（玩家回報「看不出充能」時最需要的一行）
+function ns.ResourceChargedDebug()
+    local t = ChargedPoints("ComboPoints", false)
+    if not t then return nil end
+    local out = {}
+    for i = 1, MAX_SEGMENTS do
+        if t[i] then out[#out + 1] = i end
+    end
+    return table.concat(out, ", ")
+end
 
 ns.Events.Register("UPDATE_SHAPESHIFT_FORM", "classpower", Reevaluate)
 ns.Events.Register("PLAYER_SPECIALIZATION_CHANGED", "classpower", Reevaluate)
@@ -655,11 +854,31 @@ ns.Events.Register("TRAIT_CONFIG_UPDATED", "classpower_trait", Reevaluate)
 ns.Events.Register("UNIT_MAXPOWER", "classpower_maxpower", function(unit)
     if unit == "player" then Reevaluate() end
 end, "player")
+-- 連擊點的充能狀態（盜賊「超級充能器」）。只有盜賊有這個事件來源，
+-- 所以只有盜賊註冊 —— 其他職業連 UNIT_POWER_POINT_CHARGE 都不必進 Lua。
+-- 野德的「滿溢之力」走光環，見下面的 UNIT_AURA。
+if CLASS == "ROGUE" then
+ns.Events.Register("UNIT_POWER_POINT_CHARGE", "classpower_charge", function(unit)
+    if unit ~= "player" then return end
+    -- 只是「哪幾格變成充能」——資源種類、上限、格數全都沒變 ⇒ 重畫就好，
+    -- 不要走 Reevaluate（那會重推導一輪候選清單並強制重排，理由同上面的符文那段）
+    chargedDirty = true
+    RepaintRows(IsComboRow)
+end, "player")
+end
+
 -- 光環堆疊型資源（漩渦之武／矛尖／靈魂碎片）沒有 UNIT_POWER 可用，只能吃 UNIT_AURA。
 -- UNIT_AURA 在團隊戰是全場最吵的事件之一，所以兩道閘都要：
 --   1. 只有「這個職業真的有這種資源」才註冊
 --   2. 綁 "player" 走 RegisterUnitEvent，其他單位的光環在 C 端就被擋掉、不進 Lua
-local AURA_DRIVEN_CLASSES = { SHAMAN = true, HUNTER = true, DEMONHUNTER = true }
+--
+-- DRUID 在名單裡不是因為它有光環堆疊型資源，而是野性的「滿溢之力」(405189)：
+-- 那是連擊點的充能來源，同樣只能從光環讀層數。
+local AURA_DRIVEN_CLASSES = { SHAMAN = true, HUNTER = true, DEMONHUNTER = true, DRUID = true }
+-- 這個職業的 UNIT_AURA 除了 def.aura/def.cast 之外還要重畫哪一列。
+-- ⚠ 只有德魯伊有；其他職業是 nil，而 row.key 一定是字串 ⇒ 比對永遠不成立，
+-- 等於零成本（不要寫成 `CLASS == "DRUID" and ...` 塞進迴圈裡每列判斷一次）
+local AURA_EXTRA_ROW = (CLASS == "DRUID") and "ComboPoints" or nil
 if AURA_DRIVEN_CLASSES[CLASS] then
 ns.Events.Register("UNIT_AURA", "classpower_aura", function(unit)
     if unit ~= "player" then return end
@@ -668,7 +887,7 @@ ns.Events.Register("UNIT_AURA", "classpower_aura", function(unit)
     if not (uf and edb and edb.enabled ~= false and uf.elements.classpower) then return end
     for _, row in ipairs(uf.elements.classpower.rows or {}) do
         local def = row.key and RESOURCES[row.key]
-        if row:IsShown() and def and (def.aura or def.cast) then
+        if row:IsShown() and def and (def.aura or def.cast or row.key == AURA_EXTRA_ROW) then
             UpdateRow(row, edb, uf.isPreview)
         end
     end

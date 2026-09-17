@@ -130,6 +130,62 @@ end
 -- 一次補上，不必在十個單位的字面表裡各寫一次
 local FILL_DIRECTION_ELEMENTS = { "hpbar", "mpbar", "castbar", "manabar", "classpower" }
 
+------------------------------------------------------------
+-- 資源條的顏色：**單一來源**
+--
+-- Elements/ClassPower.lua 的 RESOURCES 不自己寫死顏色，一律從這裡取
+-- （TOC 裡 Core\DB.lua 排在 Elements\ClassPower.lua 之前，那邊讀得到）。
+-- 兩邊各寫一份的結果是：改了一邊忘了另一邊，「新玩家看到的預設色」跟
+-- 「老玩家被 MergeDefaults 補出來的預設色」會不一樣，而且完全不報錯。
+--
+-- ⚠ 這張表是**唯讀的共用表**：設定面板的色票是「ctx.get 拿到 table 就原地改」，
+-- 所以 classpower.colors 一定要拿 ResourceColors() 複製出來的那一份，
+-- 不可以直接指向這裡（否則調一次顏色就把預設值本身改掉了，還會跨設定檔傳染）。
+--
+-- ComboPoints 多兩個欄位：盜賊天賦「超級充能器」與野德的「滿溢之力」會讓某幾格
+-- 連擊點變成充能點，暴雪內建 UI 畫成藍色。值跟 Ayije_CDM 的
+-- chargedColor／chargedEmptyColor 一致（見 Ayije_CDM/Config/Defaults.lua），
+-- 這樣「跟隨 Ayije」勾掉之後顏色不會整個跳掉。
+------------------------------------------------------------
+local RESOURCE_COLORS = {
+    Rage            = { color = { r = 0.78,  g = 0.25,  b = 0.25  } },
+    Energy          = { color = { r = 1,     g = 0.96,  b = 0.41  } },
+    Focus           = { color = { r = 1,     g = 0.5,   b = 0.25  } },
+    RunicPower      = { color = { r = 0,     g = 0.82,  b = 1     } },
+    LunarPower      = { color = { r = 0.3,   g = 0.52,  b = 0.9   } },
+    Maelstrom       = { color = { r = 0,     g = 0.5,   b = 1     } },
+    Insanity        = { color = { r = 0.4,   g = 0,     b = 0.8   } },
+    Fury            = { color = { r = 0.788, g = 0.259, b = 0.992 } },
+    HolyPower       = { color = { r = 0.914, g = 0.678, b = 0.275 } },
+    ComboPoints     = { color             = { r = 1,    g = 0.96, b = 0.41 },
+                        -- 充能且已填滿
+                        chargedColor      = { r = 0.24, g = 0.60, b = 1.00 },
+                        -- 充能但還沒填到：暗色，讓人在打滿之前就看得出哪幾格是充能格
+                        chargedEmptyColor = { r = 0.12, g = 0.30, b = 0.50 } },
+    Chi             = { color = { r = 0.71, g = 1,    b = 0.92 } },
+    SoulShards      = { color = { r = 0.58, g = 0.51, b = 0.79 } },
+    ArcaneCharges   = { color = { r = 0.25, g = 0.35, b = 0.98 } },
+    Essence         = { color = { r = 0.28, g = 0.73, b = 0.92 } },
+    Runes           = { color = { r = 0.77, g = 0.12, b = 0.23 } },
+    MaelstromWeapon = { color = { r = 0.2,  g = 0.65, b = 1    } },
+    TipOfTheSpear   = { color = { r = 1,    g = 0.6,  b = 0.2  } },
+    SoulFragments   = { color = { r = 0.64, g = 0.19, b = 0.79 } },
+}
+DB.RESOURCE_COLORS = RESOURCE_COLORS
+
+-- 每次呼叫都是一份全新的深複製（理由見上面的 ⚠）
+local function ResourceColors()
+    local out = {}
+    for key, fields in pairs(RESOURCE_COLORS) do
+        local t = {}
+        for field, c in pairs(fields) do
+            t[field] = { r = c.r, g = c.g, b = c.b }
+        end
+        out[key] = t
+    end
+    return out
+end
+
 function DB.BuildDefaults()
     local defaults = {
         schemaVersion = ns.DB_VERSION,
@@ -280,7 +336,14 @@ function DB.BuildDefaults()
                     classpower = { enabled = true, x = 8, y = -14, totalw = 200, h = 6,
                                    spacing = 1, rowSpacing = 2, level = 5,
                                    barAlpha = 1, showText = false,
-                                   resources = {} },   -- [資源key] = false 表示關掉
+                                   resources = {},   -- [資源key] = false 表示關掉
+                                   -- 每一種資源自己的顏色（見上面的 RESOURCE_COLORS）。
+                                   -- 每個 key 都寫進來，設定面板的色票才有一張**自己的**
+                                   -- table 可以原地改；新鍵由 MergeDefaults 補給老玩家。
+                                   -- ⚠ followAyije（顏色跟 Ayije_CDM 走）**刻意沒有預設值**：
+                                   -- nil 是有意義的第三態「玩家還沒碰過 ⇒ Ayije 有載入就跟隨」，
+                                   -- 給了 true/false 就等於替玩家做了決定。
+                                   colors = ResourceColors() },
                     -- 小魔力條：設定完全獨立，但錨點語意與外觀比照資源條
                     -- （TOPLEFT 對框架 BOTTOMLEFT、底色＋1px 黑邊）。
                     -- 版面：框底 →6px→ 魔力條(6) →2px→ 資源條(y=-14, 6) 不重疊
