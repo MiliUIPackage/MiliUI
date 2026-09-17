@@ -361,6 +361,10 @@ local function CreateBarFrame()
 
     -- 編輯模式選取框
     local editSelection = CreateFrame("Frame", nil, barFrame, "EditModeSystemSelectionTemplate")
+    -- ⚠⚠ 模板的 XML 綁了 OnMouseDown → EditModeManagerFrame:SelectSystem(self.parent)。
+    --   我們不是真的 Edit Mode 系統，點一下不拖曳就讓暴雪帶著本插件的 taint 掃過
+    --   每一個已註冊系統（動作條也在內）；當下靜默，戰鬥中動作條被封鎖才爆出來。
+    editSelection:SetScript("OnMouseDown", function() end)
     editSelection:SetAllPoints()
     editSelection:Hide()
     editSelection:RegisterForDrag("LeftButton")

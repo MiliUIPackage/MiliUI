@@ -1,6 +1,6 @@
 ---
 name: wow-121-addon-code-in-secure-stack
-description: 自己的 Lua 跑在暴雪的 secure 堆疊裡、或在暴雪的框上寫了一個欄位，就會污染它——七個實測過的入口、延一幀／secure snippet／只讀不寫三種解法、探針怎麼做才不會假陰性
+description: 自己的 Lua 跑在暴雪的 secure 堆疊裡、或在暴雪的框上寫了一個欄位，就會污染它——八個入口（七個實測、第 8 個靜態推導）、延一幀／secure snippet／只讀不寫三種解法、探針怎麼做才不會假陰性
 metadata: 
   node_type: memory
   type: reference
@@ -104,6 +104,26 @@ secure 動作一起染髒；右鍵選單不能 `HookScript("OnClick")`，走
 `*macrotext1 = "/click <名字>"`，不要 `*clickbutton1 = 框`（框參照型的屬性讀回來是髒的，
 字串型引擎會複製成乾淨的值）。EUI 的做法是乾脆 `[combat] combat; nocombat` 把戰鬥中的
 點擊拔掉、也完全不碰 HelpTip。
+
+**8. 借用 `EditModeSystemSelectionTemplate` 沒中和 OnMouseDown（2026-09-17，靜態推導、待遊戲內驗證）**
+
+模板 XML 綁了 `OnMouseDown → EditModeManagerFrame:SelectSystem(self.parent)`。`self.parent` 是
+模板 OnLoad 在我們的 CreateFrame 裡寫的 ⇒ 暴雪一讀就染成我們的，`SelectSystem` 接著對
+**每一個**已亮起的系統（快捷列全在內）呼叫 `HighlightSystem()`，寫 `isHighlighted`／`isSelected`。
+離開編輯模式時 `ClearHighlight` 讀髒掉的 `isSelected` → 快捷列的 `UpdateVisibility` →
+`UpdateBottom/RightActionBarPositions` → `UpdateSpellFlyoutDirection` → 每顆按鈕 `UpdateFlyout()`
+全在污染下跑，欄位永久染髒。宿主是普通框時**點下去完全不報錯**（InfoBar 那次會報錯是因為
+parent 是 UIParent）。症狀：戰鬥中 `MultiBar…Button:SetAttribute`／`ButtonContainer:SetShown`／
+`ClearAttribute` 被擋、`SetCooldown` 秘密值每 tick 炸，點名被點過選取框的那支插件
+（玩家回報點名 MiliUI_UnitFrames——九個孿生框鋪滿畫面，最容易被點到）。
+解法：`sel:SetScript("OnMouseDown", function() end)`，套組六處已全補。驗證法：進編輯模式點一下
+選取框再離開，`/dump issecurevariable(MultiBarBottomRight, "isHighlighted")`。
+
+⚠ 同一份回報附的 patch 把 `EditModeManagerFrame` 的 OnShow/OnHide 勾改成 `ns.Defer`——**不要收**。
+後置勾跑到時暴雪那輪已做完，不是成因；而且進戰鬥強制關編輯模式時，OnHide 那一刻鎖定還沒
+生效，`Preview.Close` 只有這個窗口能把真實框放回來，延一幀就變成整場戰鬥沒有單位框。
+「能延就延」不適用於**收尾要動保護框、且觸發點緊貼戰鬥鎖定**的勾。
+同一份 patch 的另一半（Units.lua 目標／專注看門狗的 OnShow/OnHide，入口 1 的漏網）是對的，已收。
 
 ## 解法
 

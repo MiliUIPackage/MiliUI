@@ -158,6 +158,11 @@ local function CreateReminderFrame()
 
     -- EditMode selection highlight
     local editSelection = CreateFrame("Frame", nil, reminderFrame, "EditModeSystemSelectionTemplate")
+    -- The template's XML binds OnMouseDown -> EditModeManagerFrame:SelectSystem(self.parent).
+    -- We are not a real Edit Mode system: a click without a drag lets Blizzard run that
+    -- selection pass tainted by us across EVERY registered system (action bars included).
+    -- Silent at click time; it surfaces later as blocked action buttons in combat.
+    editSelection:SetScript("OnMouseDown", function() end)
     editSelection:SetAllPoints()
     editSelection:Hide()
     editSelection:RegisterForDrag("LeftButton")

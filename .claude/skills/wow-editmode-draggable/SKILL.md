@@ -37,8 +37,9 @@ local ok, sel = pcall(CreateFrame, "Frame", nil, frame, "EditModeSystemSelection
 if ok and sel then
     -- ⚠⚠ 模板的 XML 綁了 OnMouseDown → EditModeManagerFrame:SelectSystem(self.parent)
     --（Blizzard_EditMode/Shared/EditModeSystemTemplates.xml，源碼查證過）。
-    -- 我們不是真的系統，讓它跑下去＝把宿主框塞進暴雪選取流程（報錯＋污染）。
-    -- 點一下不拖曳必須 no-op 化：
+    -- 我們不是真的系統，讓它跑下去＝暴雪去讀我們寫的 self.parent，那條執行流程
+    -- 就帶著本插件的 taint 掃過每一個已註冊系統（動作條也在內）。宿主是普通框時
+    -- **當下完全不報錯**，戰鬥中動作條被封鎖才爆出來。點一下不拖曳必須 no-op 化：
     sel:SetScript("OnMouseDown", function() end)
     -- 標籤／工具提示都走 self.system:GetSystemName()，塞個 stub 就好
     sel.system = { GetSystemName = function() return "我的框架名" end }
@@ -169,10 +170,19 @@ end
 ## Gotchas / notes
 
 - **OnMouseDown 一定要 no-op 化。** 模板 XML 綁的 `OnMouseDown` 會呼叫
-  `EditModeManagerFrame:SelectSystem(self.parent)`——自訂框不是真系統，點一下不拖
-  就報錯＋污染編輯模式。（BLM／ChatBar 等舊實作都還沒補，有 task 待修。）
+  `EditModeManagerFrame:SelectSystem(self.parent)`——自訂框不是真系統，暴雪讀我們寫的
+  `self.parent`，整條選取流程就帶著本插件的 taint 對**每一個**已註冊系統呼叫
+  `HighlightSystem()`（動作條全在內），離開編輯模式時 `ClearHighlight` 再讀髒掉的
+  `isSelected`，把動作條的欄位永久弄髒。宿主是普通框時**當下靜默、不報錯**，症狀
+  要等戰鬥才出現：動作按鈕的 `SetAttribute`／`SetShown` 被封鎖、`SetCooldown` 每個
+  tick 丟秘密值錯誤，而且全部記在插件頭上（2026-09-17 玩家回報，指向
+  MiliUI_UnitFrames）。套組內所有借模板的實作已於 2026-09-17 全部補上。
 - **選取框開檔就建**，並且 `pcall(CreateFrame, ...)`＋自畫備援——模板建立失敗是
   靜默的，沒有備援就是「藍框永遠不出現」。
+- **`EditModeManagerFrame` 的 OnShow/OnHide 用 `HookScript` 是後掛勾**，跑到我們時
+  暴雪那一輪（含動作條那段）已經做完，同步做就好，**不要延一幀**。進戰鬥時暴雪會
+  強制關掉編輯模式，OnHide 那一刻戰鬥鎖定還沒生效，收尾要動保護框（把藏起來的
+  真實框放回來）只有這個窗口；延一幀就落在鎖定之後，要等脫戰才補得回來。
 - **不要用 `StartMoving()`**，用上面的手動拖曳——至少在保護框上它是死的，而
   手動機制兩種框都通吃。
 - **宿主是保護框**（帶 secure 子物件）時：選取框連坐被保護，戰鬥強制關閉編輯

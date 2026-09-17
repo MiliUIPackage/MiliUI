@@ -58,7 +58,7 @@ metadata:
 - **EditModeSystemSelectionTemplate 的 XML 綁了 OnMouseDown →
   EditModeManagerFrame:SelectSystem(self.parent)**。借用模板的自訂框不是真系統，
   點一下不拖就把 UIParent 塞進暴雪選取流程（報錯＋污染）。必須
-  `SetScript("OnMouseDown", function() end)` 中和。套組其他七處同病（已開 task 修）。
+  `SetScript("OnMouseDown", function() end)` 中和。套組其他六處同病，2026-09-17 全部補上（後果見 [[wow-121-addon-code-in-secure-stack]] 入口 8）。
 - 區域變數不要叫 `MicroMenu`——暴雪 DF 起有全域框就叫這名字，而 hider 現在就是
   拿它當目標，遮蔽掉會直接壞掉。
 - **教學提示（HelpTip）要重錨**：暴雪把黃色泡泡錨在**原鈕**上

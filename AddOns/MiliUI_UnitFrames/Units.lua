@@ -114,6 +114,20 @@ end
 local function SyncIndirectWatch() SyncWatch(INDIRECT_UNITS, INDIRECT_KEY, WatchIndirect) end
 local function SyncDirectWatch() SyncWatch(DIRECT_UNITS, DIRECT_KEY, WatchDirect) end
 
+-- 延後執行的本體寫成具名函式：換目標很頻繁，包在 HookScript 裡現做 closure
+-- 等於每次 OnShow 都生一個新物件。ns.Defer 收 (fn, ...)，框直接當參數傳。
+local function OnIndirectShown(uf)
+    -- OnShow 本身就會全量重畫，順手把比對基準歸零，
+    -- 免得第一次輪詢拿舊單位的 GUID 比出一次多餘的重畫
+    uf.lastGuid, uf.secretTicks = nil, 0
+    SyncIndirectWatch()
+end
+
+local function OnDirectShown(uf)
+    uf.wdStrikes = 0
+    SyncDirectWatch()
+end
+
 -- 框可能是登入後才被啟用（設定裡打開）才生出來的，所以掛勾要能重跑；
 -- 每個框自己記一個旗標避免疊上去
 local function HookIndirectWatch()
@@ -121,13 +135,10 @@ local function HookIndirectWatch()
         local uf = ns.frames[unit]
         if uf and not uf.indirectHooked then
             uf.indirectHooked = true
-            uf:HookScript("OnShow", function(self)
-                -- OnShow 本身就會全量重畫，順手把比對基準歸零，
-                -- 免得第一次輪詢拿舊單位的 GUID 比出一次多餘的重畫
-                self.lastGuid, self.secretTicks = nil, 0
-                SyncIndirectWatch()
-            end)
-            uf:HookScript("OnHide", SyncIndirectWatch)
+            -- ⚠ 單位框的 Show/Hide 由暴雪的 secure 端（RegisterUnitWatch／狀態驅動）呼叫，
+            --   這裡同步跑等於把 taint 灌進那條執行流程 → 一律丟到下一幀
+            uf:HookScript("OnShow", function(self) ns.Defer(OnIndirectShown, self) end)
+            uf:HookScript("OnHide", function() ns.Defer(SyncIndirectWatch) end)
         end
     end
     SyncIndirectWatch()
@@ -136,11 +147,8 @@ local function HookIndirectWatch()
         local uf = ns.frames[unit]
         if uf and not uf.directHooked then
             uf.directHooked = true
-            uf:HookScript("OnShow", function(self)
-                self.wdStrikes = 0
-                SyncDirectWatch()
-            end)
-            uf:HookScript("OnHide", SyncDirectWatch)
+            uf:HookScript("OnShow", function(self) ns.Defer(OnDirectShown, self) end)
+            uf:HookScript("OnHide", function() ns.Defer(SyncDirectWatch) end)
         end
     end
     SyncDirectWatch()

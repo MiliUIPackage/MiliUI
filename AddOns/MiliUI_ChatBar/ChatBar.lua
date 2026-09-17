@@ -158,6 +158,11 @@ local isInEditMode = false
 
 -- Create Edit Mode selection frame (visual highlight)
 local EditModeSelection = CreateFrame("Frame", nil, Chatbar, "EditModeSystemSelectionTemplate")
+-- The template's XML binds OnMouseDown -> EditModeManagerFrame:SelectSystem(self.parent).
+-- We are not a real Edit Mode system: a click without a drag lets Blizzard run that
+-- selection pass tainted by us across EVERY registered system (action bars included).
+-- Silent at click time; it surfaces later as blocked action buttons in combat.
+EditModeSelection:SetScript("OnMouseDown", function() end)
 EditModeSelection:SetAllPoints()
 EditModeSelection:Hide()
 

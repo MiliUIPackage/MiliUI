@@ -142,6 +142,12 @@ local function AttachSelection(frame, label, getFDB, onMoved, applyPoint)
     if frame.editSelection then return frame.editSelection end
 
     local sel = CreateFrame("Frame", nil, frame, "EditModeSystemSelectionTemplate")
+    -- ⚠⚠ 模板的 XML 綁了 OnMouseDown → EditModeManagerFrame:SelectSystem(self.parent)。
+    --   我們不是真的 Edit Mode 系統，讓它跑下去＝暴雪去讀我們寫的 self.parent，那條
+    --   執行流程就帶著本插件的 taint 掃過**每一個**已註冊系統（動作條也在內），
+    --   當下不報錯，等戰鬥中動作條按鈕 SetAttribute／SetShown 被封鎖才爆出來。
+    --   點一下不拖曳的行為改成 no-op。
+    sel:SetScript("OnMouseDown", function() end)
     sel:SetAllPoints()
     sel:Hide()
     sel.system = {
@@ -217,6 +223,13 @@ local function HookEditMode()
     if editModeHooked then return end
     if not EditModeManagerFrame then return end
     editModeHooked = true
+    -- ⚠⚠ 這兩個 hook 要**同步**跑，不要 ns.Defer。
+    --   進戰鬥時暴雪會強制關掉編輯模式，OnHide 那一刻戰鬥鎖定還沒生效，Preview.Close
+    --   來得及把真實單位框放回來；延一幀就落在鎖定之後，只能走「脫戰才還原」那條路
+    --   ⇒ 整場戰鬥沒有單位框。
+    --   HookScript 是後掛勾：跑到我們時暴雪的 EnterEditMode／ExitEditMode（動作條那段
+    --   也在內）已經做完，動作條被封鎖的那樁跟這裡無關 —— 真正的管道是
+    --   AttachSelection 裡被 no-op 化的 OnMouseDown。
     EditModeManagerFrame:HookScript("OnShow", function()
         isInEditMode = true
         UpdateEditModeState()

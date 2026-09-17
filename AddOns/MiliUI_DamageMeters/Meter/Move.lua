@@ -562,6 +562,10 @@ function Move.Setup(W)
     ------------------------------------------------------------
     local ok, selection = pcall(CreateFrame, "Frame", nil, frame, "EditModeSystemSelectionTemplate")
     if ok and selection then
+        -- ⚠⚠ 模板的 XML 綁了 OnMouseDown → EditModeManagerFrame:SelectSystem(self.parent)。
+        --   我們不是真的 Edit Mode 系統，點一下不拖曳就讓暴雪帶著本插件的 taint 掃過
+        --   每一個已註冊系統（動作條也在內）；當下靜默，戰鬥中動作條被封鎖才爆出來。
+        selection:SetScript("OnMouseDown", function() end)
         selection:SetAllPoints(frame)
         selection:Hide()
         selection:RegisterForDrag("LeftButton")
