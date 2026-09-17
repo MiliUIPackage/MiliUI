@@ -898,6 +898,15 @@ local function Debug()
         if ns.ResourceChargedDebug then
             p("   充能格：" .. (ns.ResourceChargedDebug() or "（無）"))
         end
+        -- 條件規則：有幾條、從哪來、現在命中第幾條。
+        -- 「規則沒成立」跟「根本沒讀到規則」在畫面上長得一模一樣，這一行是唯一分得出來的地方
+        if ns.ResourceConditionDebug then
+            for _, key in ipairs(list) do
+                local n, src, hit = ns.ResourceConditionDebug(key)
+                p(("   %-16s 條件 %d 條（來源：%s），目前命中%s"):format(
+                    key, n, src, hit and ("第 " .. hit .. " 條") or "無"))
+            end
+        end
         if GetShapeshiftFormID then
             p("   目前型態 formID=" .. tostring(GetShapeshiftFormID()))
         end

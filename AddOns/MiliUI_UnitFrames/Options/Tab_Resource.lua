@@ -48,22 +48,46 @@ local function BuildControls()
     }
 
     ---------------------------------------------------------
-    -- 顏色
+    -- 顏色與條件
     --
-    -- 兩個插件都裝的人本來就希望兩邊顏色一致，所以 Ayije_CDM 在的時候給一個
-    -- 「跟它一樣」的開關；勾著就不列色塊（列了也沒用，畫面上不會照它走），
-    -- 改放一行說明講清楚顏色現在由誰決定。
+    -- 兩個插件都裝的人本來就希望兩邊長得一致，所以 Ayije_CDM 在的時候給一個
+    -- 「跟它一樣」的開關；勾著就不列色塊也不列條件編輯器（列了也沒用，畫面上
+    -- 不會照它走），改放一行說明 ＋ 一行唯讀摘要講清楚現在由誰決定。
+    --
+    -- ⚠ **顏色與條件共用同一個開關**，不拆成兩個：條件的覆寫色跟基底色是一套的，
+    -- 拆開就會出現「自己的底色＋別人的條件色」這種沒人要的組合。
     ---------------------------------------------------------
     if ayijeAvail or #cand > 0 then
-        list[#list + 1] = { type = "header", label = L["Colors"] }
+        list[#list + 1] = { type = "header", label = L["Colors and conditions"] }
     end
     if ayijeAvail then
-        list[#list + 1] = { type = "toggle", key = "followAyije", label = L["Ayije_CDM colors"] }
+        list[#list + 1] = { type = "toggle", key = "followAyije", label = L["Same as Ayije_CDM"] }
     end
     if followActive then
         list[#list + 1] = { type = "text",
-            label = L["Colors come from Ayije_CDM's own resource bar settings. Uncheck this to use your own colors here instead."] }
+            label = L["Colors and condition rules both come from Ayije_CDM's own resource bar settings. Uncheck this to set your own here."] }
+        -- 條件沒成立時畫面跟「沒設條件」長得一模一樣 ⇒ 光看框看不出有沒有吃到。
+        -- 列一行「那邊各有幾條」讓玩家確認得了（那一列每次開分頁都會自己重算，
+        -- 玩家在關著這一頁的時候去 Ayije_CDM 改規則也不會停在舊數字）
+        local summary = ns.ResourceConditions.SummarySpec(cand)
+        if summary then list[#list + 1] = summary end
     else
+        if ayijeAvail then
+            list[#list + 1] = { type = "button", label = L["Copy"], text = L["Copy from Ayije_CDM"],
+                width = 180,
+                confirm = L["Replace the resource colors and condition rules here with Ayije_CDM's current ones?"],
+                onClick = function()
+                    local edb = EDB()
+                    if not edb then return end
+                    -- 深複製（見 ClassPower.lua 的 ResourceCopyFromAyije）：絕對不能
+                    -- 持有它的表，色票是原地改寫的，會改壞別人的存檔
+                    ns.ResourceCopyFromAyije(edb)
+                    ns.ResourceConditions.MarkRebuild()
+                    ctx.apply()
+                end }
+            list[#list + 1] = { type = "text",
+                label = L["Takes a one-off snapshot of Ayije_CDM's colors and rules. After that the two are independent — changes there no longer show up here."] }
+        end
         for _, key in ipairs(cand) do
             local info = ns.ResourceInfo(key)
             -- 色塊的標籤直接用資源名（暴雪的官方譯名，見 ClassPower.lua 的 PowerName）
@@ -77,6 +101,10 @@ local function BuildControls()
                 list[#list + 1] = { type = "text",
                     label = L["Some combo points become charged (the Rogue's Supercharger, the Feral druid's Overflowing Power). The dim shade marks a charged point you haven't filled yet."] }
             end
+        end
+        -- 條件編輯器（Options/ResourceConditions.lua）
+        if #cand > 0 then
+            ns.ResourceConditions.Append(list, cand, ctx)
         end
     end
 
@@ -106,7 +134,10 @@ local function BuildControls()
             for k, v in pairs(def) do edb[k] = v end
             -- ⚠ 走 ctx.apply 不是直接 ApplySettings：還原之後 followAyije 回到 nil
             -- （Ayije_CDM 有載入就等於重新跟隨）⇒ 色塊那幾列要跟著消失，
-            -- 而「該不該重建控件」的判斷在 apply 裡
+            -- 而「該不該重建控件」的判斷在 apply 裡。
+            -- 條件規則也被清光了，列數一定變 ⇒ 直接舉手要重建（Ayije 沒載入時
+            -- followAyije 前後都是 false，光靠它比不出來）
+            ns.ResourceConditions.MarkRebuild()
             ctx.apply()
         end }
 
@@ -161,14 +192,19 @@ ctx = {
         -- 資源清單／格數可能一起變 → 逼引擎重排，不只是重畫
         if ns.ResourceReevaluate then ns.ResourceReevaluate() end
         ns.ApplySettings("player")
-        -- 「跟隨 Ayije」切掉之後控件清單整個換掉（色塊出現／消失）⇒ 要重建。
+        -- 「跟隨 Ayije」切掉之後控件清單整個換掉（色塊與條件編輯器出現／消失）⇒ 要重建。
         -- ⚠ 不能在 toggle 自己的 OnClick 裡當場重建 —— 那是在按鈕的處理器裡把它的
         -- 父框丟掉。延一幀讓這一輪點擊跑完再換。
         -- ⚠ 共用層（Libs/MiliUIWidgets）沒有 onChange 也沒有 disabled 機制，
         -- **不要為了這一個需求去改共用層** —— 那是十個插件共用的 vendor 複製。
         -- 比對「上次建表時的跟隨狀態」就夠了。
+        --
+        -- 條件編輯器的列數也會變（增刪規則／檢查、上移、換編輯對象、換目標），
+        -- 那邊自己舉手（MarkRebuild）。⚠ 一定要無條件 Consume，不然旗標會留到下一次
+        -- 改滑桿時才被讀到，變成「拖個透明度整頁突然重建」。
+        local structural = ns.ResourceConditions.ConsumeRebuild()
         local followNow = ns.ResourceFollowsAyije(EDB())
-        if tab and builtFollow ~= followNow then
+        if tab and (structural or builtFollow ~= followNow) then
             C_Timer.After(0, function()
                 Rebuild(true)
                 for _, fn in ipairs(refreshers) do fn() end
@@ -212,11 +248,15 @@ end
 -- 所以停在這一頁換設定檔會看到顏色與滑桿全停在舊值，切走再切回來才對。
 ns.RegisterCallback("ProfileChanged", "resourceTabProfile", function()
     if tab and tab:IsShown() then
-        -- 別份設定檔的 followAyije 可能不一樣 ⇒ 控件清單也不一樣，只推值不夠
-        if builtFollow ~= ns.ResourceFollowsAyije(EDB()) then
-            Rebuild()
-        end
+        -- ⚠ 一律重建，不是只在 followAyije 變了的時候：別份設定檔的**條件規則**
+        -- 條數也不一樣，而規則的列數決定整頁的長相，只推值推不出來。
+        -- 換設定檔很罕見，一次重建的孤兒 frame 換掉「換檔之後這一頁是錯的」划算
+        Rebuild()
         for _, fn in ipairs(refreshers) do fn() end
+    elseif tab then
+        -- 這一頁關著的時候換設定檔：規則列數一樣可能不同，但現在重建沒人看。
+        -- 把專精簽章作廢，下次 ShowOptionsTab 比對不上就會重建
+        specSig = nil
     end
 end)
 

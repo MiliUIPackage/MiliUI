@@ -223,6 +223,296 @@ local function ResolveColor(key, field, edb, follow)
 end
 
 ------------------------------------------------------------
+-- 條件規則（依資源數值換顏色／透明度）
+--
+-- 資料模型跟 Ayije_CDM 的資源條條件**完全一致**。那不是為了長得像，而是
+-- 「跟隨」勾著的時候我們直接吃它那張表 —— 兩套 schema 就沒辦法共用同一份求值器。
+--
+--   conditions = { rule, rule, ... }   由上而下，**第一條成立的就用它**
+--   rule  = { target    = nil | 格子索引,          nil ＝整條，數字＝只作用在第 N 格
+--             check     = leaf | { op = "and", children = { leaf, ... } },
+--             overrides = { color, bgColor, alpha, tagColor } }   每一項都可缺
+--   leaf  = { var = "always" / "powerValue" / "powerPercent" / "powerFull"
+--                   / "spec" / "pipRecharging",
+--             cmp = ">=" / ">" / "<=" / "<" / "==" / "~=",  value = 數字 | 布林 }
+--
+-- ⚠ 跟隨時讀到的是**別人的內部結構**：玩家可能裝著舊版，上游也可能改 schema。
+-- 所以每一步都驗型別，壞掉的規則當作不成立，**絕對不報錯** —— 這段每秒跑好幾次，
+-- 在這裡拋一次例外就是整條資源條當場消失。遞迴另外設深度上限，防自我參照的壞資料。
+--
+-- ⚠ Ayije 對連續條是用 Curve 串接，那是因為它直接餵秘密值；**我們不需要**：
+-- 這個檔的值全部先過 ns.Desecret 變成明文（拿不到就是 0），純 Lua 比較即可。
+--
+-- ⚠ 效能：跟顏色同一套紀律 —— 條件**每列每次 Update 解析一次**，解完往下傳；
+-- 狀態寫在檔案層級的 scratch 表，熱路徑上一個 table／closure／字串都不配。
+-- 沒有條件的列走快路徑（一次取表、一次判空），成本接近零。
+------------------------------------------------------------
+-- 白名單：不在這張表裡的 cmp 一律當規則不成立。
+-- 順序給設定面板列下拉用（ns.RESOURCE_CMP_LIST），比較符只有這一份定義
+local CMP_OPS = {
+    [">="] = function(a, b) return a >= b end,
+    [">"]  = function(a, b) return a > b end,
+    ["<="] = function(a, b) return a <= b end,
+    ["<"]  = function(a, b) return a < b end,
+    ["=="] = function(a, b) return a == b end,
+    ["~="] = function(a, b) return a ~= b end,
+}
+ns.RESOURCE_CMP_LIST = { ">=", ">", "<=", "<", "==", "~=" }
+
+local MAX_CHECK_DEPTH = 4
+
+local function ValidColor(c)
+    if type(c) ~= "table" then return nil end
+    if type(c.r) ~= "number" or type(c.g) ~= "number" or type(c.b) ~= "number" then return nil end
+    return c
+end
+
+-- 這一列現在的狀態。檔案層級的 scratch，零配置（同 activeRows／segScratch）
+local condState = {}
+
+-- 專精：**不要每次 Update 都查**。ResourceCandidates 算候選清單時已經查過一次
+-- 並快取起來（換專精／型態／天賦都會走 Reevaluate 把它清掉），直接借用那一份，
+-- 就不必再開一個要記得失效的快取
+local function StateSpec()
+    local _, specID = ns.ResourceCandidates()
+    return specID or 0
+end
+
+-- cur/max 是這一列的「值」與「上限」：
+-- 連續條＝目前值／上限；點數型＝目前點數／格數；符文列＝**已經轉好的顆數**／格數
+local function BuildCondState(cur, max)
+    cur = cur or 0
+    condState.powerValue = cur
+    condState.powerPercent = (max and max > 0) and (cur / max * 100) or 0
+    condState.powerFull = (max and max > 0 and cur >= max) or false
+    condState.spec = StateSpec()
+    condState.pipRecharging = false
+    return condState
+end
+
+local function EvalLeaf(node, state)
+    local var = node.var
+    if var == "always" then return true end
+    if var == "powerFull" then
+        if type(node.value) ~= "boolean" then return false end
+        return state.powerFull == node.value
+    end
+    if var == "pipRecharging" then
+        if type(node.value) ~= "boolean" then return false end
+        return state.pipRecharging == node.value
+    end
+    local fn = CMP_OPS[node.cmp]
+    if not fn or type(node.value) ~= "number" then return false end
+    if var == "powerValue" then return fn(state.powerValue, node.value) end
+    if var == "powerPercent" then return fn(state.powerPercent, node.value) end
+    if var == "spec" then return fn(state.spec, node.value) end
+    return false
+end
+
+-- op 目前只有 and（Ayije 的設定介面會把 op 正規化成 AND），所以任何非 nil 的 op
+-- 都當 and 處理。空的 children 判成立 —— 那是它的語意，跟隨時照它走
+local function EvalCheck(node, state, depth)
+    if type(node) ~= "table" then return false end
+    if depth > MAX_CHECK_DEPTH then return false end
+    if node.op then
+        local children = node.children
+        if type(children) ~= "table" then return false end
+        local n = #children
+        if n == 0 then return true end
+        for i = 1, n do
+            if not EvalCheck(children[i], state, depth + 1) then return false end
+        end
+        return true
+    end
+    return EvalLeaf(node, state)
+end
+
+-- index = nil  只看「整條」的規則（target 沒設的那些）
+-- index = i    看「整條或指定第 i 格」的規則
+-- 回傳 overrides, 規則序號；都不成立就回 nil
+local function FirstMatch(conds, state, index)
+    for i = 1, #conds do
+        local rule = conds[i]
+        if type(rule) == "table" then
+            local t = rule.target
+            -- t 是壞值（字串之類）時兩個條件都不成立 ⇒ 整條規則被跳過，這是對的
+            if t == nil or (index ~= nil and t == index) then
+                local ov = rule.overrides
+                if type(ov) == "table" and rule.check ~= nil
+                   and EvalCheck(rule.check, state, 1) then
+                    return ov, i
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function AyijeConditions(key)
+    local cdm = _G.Ayije_CDM
+    local fn = cdm and cdm.GetBarSetting
+    if type(fn) ~= "function" then return nil end
+    local ok, c = pcall(fn, cdm, key, "conditions")
+    if not ok or type(c) ~= "table" or c[1] == nil then return nil end
+    return c
+end
+
+-- 回傳**既有的那張表**（Ayije 的或我們自己的），一次都不複製。
+--
+-- ⚠ 跟隨生效時就只看 Ayije：它那邊沒設條件，就是「沒有條件」，不退回自己的。
+-- 「跟隨」的意思就是照它；混著吃會出現「自己的規則配別人的底色」這種沒人要的組合。
+local function ResolveConditions(key, edb, follow)
+    if follow then return AyijeConditions(key) end
+    local root = edb and edb.conditions
+    local t = root and root[key]
+    if type(t) == "table" and t[1] ~= nil then return t end
+    return nil
+end
+
+------------------------------------------------------------
+-- 整條層級的覆寫（透明度與數值文字色）
+--
+-- ⚠ 列是**池化重用**的：Relayout 會把同一個 row 換成別的資源，殘留的透明度
+-- 與文字色就會跑到別的資源身上。所以規則不成立要還原、換列也要還原
+-- （換列那條在 LayoutRow，這裡負責「規則不再成立」那條）。
+-- row.condApplied 是我們自己的 frame 上的欄位（不是暴雪的框），可以寫。
+------------------------------------------------------------
+local function ClearRowOverrides(row)
+    if not row.condApplied then return end
+    row:SetAlpha(1)
+    row.text:SetTextColor(1, 1, 1, 1)
+    row.condApplied = nil
+    row.condAlpha = nil
+end
+
+local function ApplyRowOverrides(row, ov)
+    if not ov then
+        ClearRowOverrides(row)
+        return
+    end
+    local a = (type(ov.alpha) == "number") and ov.alpha or 1
+    if row.condAlpha ~= a then
+        row:SetAlpha(a)
+        row.condAlpha = a
+    end
+    local tc = ValidColor(ov.tagColor)
+    if tc then
+        row.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1)
+    else
+        row.text:SetTextColor(1, 1, 1, 1)
+    end
+    row.condApplied = true
+end
+
+------------------------------------------------------------
+-- 從 Ayije_CDM 複製一份顏色與條件過來（設定面板的「複製」按鈕）
+--
+-- ⚠ **深複製，而且只複製我們認得的欄位。** 絕對不能把它的表直接塞進我們的 DB：
+-- 色票是「ctx.get 拿到 table 就原地改」，留著參照的話玩家在這裡調一次顏色
+-- 就默默改壞它的存檔，而且那張表會被序列化進我們的 SavedVariables。
+-- 每個值都驗過型別 —— 它的 schema 不是公開契約。
+--
+-- 語意是「鏡射目前的 Ayije 設定」：它沒有條件的資源，我們這邊也清掉。
+-- 按鈕本來就帶確認彈窗。
+------------------------------------------------------------
+local COPY_COLOR_FIELDS = { "color", "chargedColor", "chargedEmptyColor" }
+local CHECK_VARS = {
+    always = true, powerValue = true, powerPercent = true,
+    powerFull = true, spec = true, pipRecharging = true,
+}
+
+local function CopyColor(c)
+    c = ValidColor(c)
+    if not c then return nil end
+    return { r = c.r, g = c.g, b = c.b, a = (type(c.a) == "number") and c.a or 1 }
+end
+
+local function CopyCheck(node, depth)
+    if type(node) ~= "table" or depth > MAX_CHECK_DEPTH then return nil end
+    if node.op then
+        local src = node.children
+        if type(src) ~= "table" then return nil end
+        local out = {}
+        for i = 1, #src do
+            local child = CopyCheck(src[i], depth + 1)
+            if child then out[#out + 1] = child end
+        end
+        if out[1] == nil then return nil end
+        if out[2] == nil then return out[1] end       -- 只剩一條就不必包 and
+        return { op = "and", children = out }
+    end
+    local var = node.var
+    if not CHECK_VARS[var] then return nil end
+    if var == "always" then return { var = "always" } end
+    if var == "powerFull" or var == "pipRecharging" then
+        if type(node.value) ~= "boolean" then return nil end
+        return { var = var, value = node.value }
+    end
+    if not CMP_OPS[node.cmp] or type(node.value) ~= "number" then return nil end
+    return { var = var, cmp = node.cmp, value = node.value }
+end
+
+local function CopyRule(rule)
+    if type(rule) ~= "table" then return nil end
+    local check = CopyCheck(rule.check, 1)
+    if not check then return nil end
+    if type(rule.overrides) ~= "table" then return nil end
+    local src = rule.overrides
+    local ov = {
+        color = CopyColor(src.color),
+        bgColor = CopyColor(src.bgColor),
+        tagColor = CopyColor(src.tagColor),
+    }
+    if type(src.alpha) == "number" then ov.alpha = src.alpha end
+    local out = { check = check, overrides = ov }
+    local t = rule.target
+    if type(t) == "number" and t >= 1 and t <= MAX_SEGMENTS then
+        out.target = math.floor(t)
+    end
+    return out
+end
+
+-- 回傳「複製到幾種資源的設定」
+function ns.ResourceCopyFromAyije(edb)
+    if not edb or not AyijeLoaded() then return 0 end
+    local colors = edb.colors
+    if not colors then colors = {}; edb.colors = colors end
+    local conds = edb.conditions
+    if not conds then conds = {}; edb.conditions = conds end
+    local n = 0
+    for key in pairs(RESOURCES) do
+        local touched = false
+        for _, field in ipairs(COPY_COLOR_FIELDS) do
+            -- 充能色只有連擊點數有，其餘資源查了也是空的
+            if field == "color" or key == "ComboPoints" then
+                local copy = CopyColor(AyijeColor(key, field))
+                if copy then
+                    local t = colors[key]
+                    if not t then t = {}; colors[key] = t end
+                    t[field] = copy
+                    touched = true
+                end
+            end
+        end
+        local src = AyijeConditions(key)
+        local out
+        if src then
+            out = {}
+            for i = 1, #src do
+                local r = CopyRule(src[i])
+                if r then out[#out + 1] = r end
+            end
+            if out[1] == nil then out = nil end
+        end
+        if out then touched = true end
+        if conds[key] ~= nil and not out then touched = true end
+        conds[key] = out
+        if touched then n = n + 1 end
+    end
+    return n
+end
+
+------------------------------------------------------------
 -- 充能的連擊點
 --
 -- 盜賊天賦「超級充能器」會讓某幾格連擊點變成充能點（終結技吃到充能點時視同多花 2 點），
@@ -487,6 +777,13 @@ local function LayoutRow(row, key, edb, numSeg)
     local h = ns.P.Scale(edb.h or 6)
     row:SetSize(totalW, h)
 
+    -- ⚠ 換列（列是池化重用的）：條件規則套上去的透明度與文字色一律先還原，
+    -- 不然上一個資源的殘留狀態會跑到這個資源身上（見 ApplyRowOverrides）
+    row:SetAlpha(1)
+    row.condAlpha = nil
+    row.condApplied = nil
+    row.text:SetTextColor(1, 1, 1, 1)
+
     local isPip = def.mode == "pip" and numSeg and numSeg > 0
     -- 填充方向：連續條翻 StatusBar；點數型把格子從右邊排起（第 1 格在最右），
     -- 「亮到第幾格」的順序就跟著從右往左，PaintPip／符文那段完全不必知道方向。
@@ -500,7 +797,6 @@ local function LayoutRow(row, key, edb, numSeg)
     row.text:SetShown(showText)
     if showText then
         Media.SetPixelFont(row.text, edb.textSize or 10, "OUTLINE", ns.db.global.font)
-        row.text:SetTextColor(1, 1, 1, 1)
     end
 
     if not isPip then
@@ -657,16 +953,39 @@ local function Relayout(f, edb, rows, newSegs)
     f:SetSize(ns.P.Scale(edb.totalw or 200), n > 0 and (n * h + (n - 1) * gap) or 1)
 end
 
+-- 「未填滿」那幾格的顏色：整條層級規則的 bgColor 命中時取代原本的暗色
+-- （alpha 缺就沿用暗色那一份，不要突然變成不透明）
+local function DimColor(edb, barOv)
+    local dc = edb.dimColor or DIM
+    local a = dc.a or 0.6
+    if barOv then
+        local bc = ValidColor(barOv.bgColor)
+        if bc then return bc, bc.a or a end
+    end
+    return dc, a
+end
+
 -- charged/chargedCC/chargedEmptyCC 只有連擊點數會帶（見 ChargedPoints）；
--- 沒有充能格時三個都是 nil，整段判斷退化成原本那兩條路
-local function PaintPip(row, edb, numSeg, filled, cc, charged, chargedCC, chargedEmptyCC)
+-- 沒有充能格時三個都是 nil，整段判斷退化成原本那兩條路。
+-- conds/barOv 只有這一列真的有條件規則時才會帶（見 ResolveConditions）；
+-- 都是 nil 時整段跟加這個功能之前一模一樣
+local function PaintPip(row, edb, numSeg, filled, cc, charged, chargedCC, chargedEmptyCC, conds, barOv)
     local dc = edb.dimColor or DIM
     local alpha = edb.barAlpha or 1
+    local dimC, dimA = DimColor(edb, barOv)
     for i = 1, numSeg do
         local seg = row.segs[i]
         local isCharged = charged and charged[i]
         if i <= filled then
             local c = isCharged and chargedCC or cc
+            -- ⚠ 充能且已填滿的格子**跳過條件**：充能色是「這一格值兩點」的訊號，
+            -- 被條件色蓋掉就讀不出來了，充能色優先
+            if conds and not isCharged then
+                condState.pipRecharging = false
+                local ov = FirstMatch(conds, condState, i)
+                local oc = ov and ValidColor(ov.color)
+                if oc then c = oc end
+            end
             seg.fg:SetVertexColor(c.r, c.g, c.b, alpha)
             seg.bg:SetVertexColor(c.r * 0.3, c.g * 0.3, c.b * 0.3, 0.8)
         elseif isCharged then
@@ -675,7 +994,7 @@ local function PaintPip(row, edb, numSeg, filled, cc, charged, chargedCC, charge
             seg.fg:SetVertexColor(chargedEmptyCC.r, chargedEmptyCC.g, chargedEmptyCC.b, dc.a or 0.6)
             seg.bg:SetVertexColor(0, 0, 0, 0.4)
         else
-            seg.fg:SetVertexColor(dc.r, dc.g, dc.b, dc.a or 0.6)
+            seg.fg:SetVertexColor(dimC.r, dimC.g, dimC.b, dimA)
             seg.bg:SetVertexColor(0, 0, 0, 0.4)
         end
     end
@@ -692,6 +1011,10 @@ local function SetPipText(row, def, edb, n)
     row.text:SetFormattedText("%d", n)
 end
 
+-- 符文那一趟要先數完才知道 powerValue（已轉好的顆數），所以分兩趟跑。
+-- 檔案層級的 scratch，同 segScratch —— 貴的是那 N 次 pcall，趟數不影響它
+local runeReady = {}
+
 local function UpdateRow(row, edb, isPreview, numSeg)
     local key = row.key
     local def = RESOURCES[key]
@@ -699,29 +1022,54 @@ local function UpdateRow(row, edb, isPreview, numSeg)
     -- 顏色一列解析一次（理由見 ResolveColor 上面的 ⚠ 效能那段）
     local follow = ns.ResourceFollowsAyije(edb)
     local cc = ResolveColor(key, "color", edb, follow)
+    -- 條件同理，一列解析一次；沒有條件時 conds 是 nil，底下整段退化成原本的路
+    local conds = ResolveConditions(key, edb, follow)
 
     if def.mode == "pip" then
         numSeg = numSeg or SegmentsFor(key, isPreview)   -- 沒帶進來才自己算
         if numSeg <= 0 then
             row.text:SetText("")
+            ClearRowOverrides(row)
             return
         end
         if def.fill == "rune" and not isPreview then
             -- 符文：每格看自己的冷卻，不是「有幾點」
-            local dc = edb.dimColor or DIM
             local readyCount = 0
             for i = 1, numSeg do
-                local seg = row.segs[i]
                 local ok, _, _, isReady = pcall(GetRuneCooldown, i)
-                if ok and isReady then
-                    readyCount = readyCount + 1
-                    seg.fg:SetVertexColor(cc.r, cc.g, cc.b, edb.barAlpha or 1)
-                    seg.bg:SetVertexColor(cc.r * 0.3, cc.g * 0.3, cc.b * 0.3, 0.8)
+                local ready = (ok and isReady) and true or false
+                runeReady[i] = ready
+                if ready then readyCount = readyCount + 1 end
+            end
+            local barOv
+            if conds then
+                BuildCondState(readyCount, numSeg)
+                barOv = FirstMatch(conds, condState, nil)
+            end
+            local dimC, dimA = DimColor(edb, barOv)
+            local alpha = edb.barAlpha or 1
+            for i = 1, numSeg do
+                local seg = row.segs[i]
+                local ready = runeReady[i]
+                local c, a
+                if ready then c, a = cc, alpha else c, a = dimC, dimA end
+                if conds then
+                    -- ⚠ 符文是唯一「沒轉好的格子也吃條件色」的列：pipRecharging
+                    -- 這個變數就是為它存在的，不讓它上色等於那個變數永遠沒用。
+                    -- 命中時用滿的不透明度，不然暗色上的條件色根本看不出來
+                    condState.pipRecharging = not ready
+                    local ov = FirstMatch(conds, condState, i)
+                    local oc = ov and ValidColor(ov.color)
+                    if oc then c, a = oc, alpha end
+                end
+                seg.fg:SetVertexColor(c.r, c.g, c.b, a)
+                if ready then
+                    seg.bg:SetVertexColor(c.r * 0.3, c.g * 0.3, c.b * 0.3, 0.8)
                 else
-                    seg.fg:SetVertexColor(dc.r, dc.g, dc.b, dc.a or 0.6)
                     seg.bg:SetVertexColor(0, 0, 0, 0.4)
                 end
             end
+            ApplyRowOverrides(row, barOv)
             SetPipText(row, def, edb, readyCount)
             return
         end
@@ -733,7 +1081,14 @@ local function UpdateRow(row, edb, isPreview, numSeg)
             chargedCC = ResolveColor(key, "chargedColor", edb, follow)
             chargedEmptyCC = ResolveColor(key, "chargedEmptyColor", edb, follow)
         end
-        PaintPip(row, edb, numSeg, filled, cc, charged, chargedCC, chargedEmptyCC)
+        -- 點數型的「值／上限」就是「幾格亮著／共幾格」
+        local barOv
+        if conds then
+            BuildCondState(filled, numSeg)
+            barOv = FirstMatch(conds, condState, nil)
+        end
+        PaintPip(row, edb, numSeg, filled, cc, charged, chargedCC, chargedEmptyCC, conds, barOv)
+        ApplyRowOverrides(row, barOv)
         SetPipText(row, def, edb, filled)
         return
     end
@@ -749,12 +1104,27 @@ local function UpdateRow(row, edb, isPreview, numSeg)
         row.bar:SetMinMaxValues(0, 1)
         row.bar:SetValue(0)
         row.text:SetText("")
+        ClearRowOverrides(row)
         return
     end
+    local barOv
+    if conds then
+        BuildCondState(cur or 0, max)
+        barOv = FirstMatch(conds, condState, nil)
+    end
+    -- 條件命中就換填充色；底色照既有規則取填充色的 25%（跟著一起換），
+    -- 除非規則自己指定了 bgColor
+    local fc = (barOv and ValidColor(barOv.color)) or cc
     row.bar:SetMinMaxValues(0, max)
     row.bar:SetValue(cur or 0)
-    row.bar:SetStatusBarColor(cc.r, cc.g, cc.b, edb.barAlpha or 1)
-    row.barBG:SetVertexColor(cc.r * 0.25, cc.g * 0.25, cc.b * 0.25, edb.bgAlpha or 0.8)
+    row.bar:SetStatusBarColor(fc.r, fc.g, fc.b, edb.barAlpha or 1)
+    local bgc = barOv and ValidColor(barOv.bgColor)
+    if bgc then
+        row.barBG:SetVertexColor(bgc.r, bgc.g, bgc.b, bgc.a or edb.bgAlpha or 0.8)
+    else
+        row.barBG:SetVertexColor(fc.r * 0.25, fc.g * 0.25, fc.b * 0.25, edb.bgAlpha or 0.8)
+    end
+    ApplyRowOverrides(row, barOv)
     if edb.showText then
         row.text:SetFormattedText("%d", cur or 0)
     end
@@ -822,6 +1192,48 @@ local function Reevaluate()
     end
 end
 ns.ResourceReevaluate = Reevaluate
+
+-- 給設定面板列「第 N 格」用（條件規則的目標下拉）。連續條回 0
+function ns.ResourceSegments(key)
+    if not RESOURCES[key] then return 0 end
+    return SegmentsFor(key, false)
+end
+
+-- 玩家框的資源條設定表（設定面板與 /muf debug 共用；框還沒建好時退回 DB）
+local function PlayerEDB()
+    local uf = ns.frames and ns.frames.player
+    local edb = uf and uf.db and uf.db.elements and uf.db.elements.classpower
+    if edb then return edb end
+    local u = ns.db and ns.db.units and ns.db.units.player
+    return u and u.elements and u.elements.classpower
+end
+
+-- 給 /muf debug 與設定面板用：這個資源現在有幾條條件、從哪來、目前命中第幾條。
+-- 回傳 條數, 來源（"Ayije_CDM" / "自己"）, 命中的序號或 nil
+function ns.ResourceConditionDebug(key)
+    local edb = PlayerEDB()
+    local follow = ns.ResourceFollowsAyije(edb)
+    local src = follow and "Ayije_CDM" or "自己"
+    local conds = ResolveConditions(key, edb, follow)
+    if not conds then return 0, src, nil end
+    local def = RESOURCES[key]
+    local cur, max
+    if def and def.fill == "rune" then
+        max = SegmentsFor(key, false)
+        cur = 0
+        for i = 1, max do
+            local ok, _, _, isReady = pcall(GetRuneCooldown, i)
+            if ok and isReady then cur = cur + 1 end
+        end
+    elseif def and def.mode == "pip" then
+        cur, max = GetValue(key) or 0, SegmentsFor(key, false)
+    else
+        cur, max = GetValue(key)
+    end
+    BuildCondState(cur or 0, max or 0)
+    local _, idx = FirstMatch(conds, condState, nil)
+    return #conds, src, idx
+end
 
 -- 給 /muf debug 用：現在哪幾格是充能格（玩家回報「看不出充能」時最需要的一行）
 function ns.ResourceChargedDebug()

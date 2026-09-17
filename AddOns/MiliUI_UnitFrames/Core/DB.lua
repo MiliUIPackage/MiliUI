@@ -337,6 +337,12 @@ function DB.BuildDefaults()
                                    spacing = 1, rowSpacing = 2, level = 5,
                                    barAlpha = 1, showText = false,
                                    resources = {},   -- [資源key] = false 表示關掉
+                                   -- 條件規則（見 Elements/ClassPower.lua 的「條件規則」）：
+                                   -- [資源key] = { rule, rule, ... }，由上而下第一條成立的就用它。
+                                   -- 跟 resources 一樣是**開放式鍵值表**、預設空的 ⇒ MergeDefaults
+                                   -- 走進來時沒有任何子鍵可補，不會替玩家生出規則；
+                                   -- 匯入（Options/Tab_Share.lua）只過濾頂層單位鍵，這張表原樣帶過去
+                                   conditions = {},
                                    -- 每一種資源自己的顏色（見上面的 RESOURCE_COLORS）。
                                    -- 每個 key 都寫進來，設定面板的色票才有一張**自己的**
                                    -- table 可以原地改；新鍵由 MergeDefaults 補給老玩家。
