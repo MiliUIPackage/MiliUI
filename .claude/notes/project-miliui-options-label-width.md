@@ -36,11 +36,25 @@ TOPRIGHT 錨點）換行並**回傳列高**，各型別用回傳值排版；單�
 - 中韓：`_retail_/Fonts/bLEI00D.ttf` 13px `getlength`（套組把這個檔換成思源黑體）。9 個中文字 117px。
 - 歐語：macOS 的 `Arial Unicode.ttf` 13px ×1.12 估 FRIZQT（本機沒有 Friz 字型檔，保守估計）。
 
-**還沒修的截斷點**（2026-09-18 列出）：`W.CreateDropdown` 選中文字超過約 209px 截成「…」；下拉選單項目只錨左緣、
-長項目衝出清單右界；`W.CreateCheckButton` 的 hint 不換行且點擊熱區跟著延伸；Controls 之外固定寬的 `W.CreateButton`
-（Tab_Unit 的 200px 測試鈕、180px 黑名單鈕）在長語系會溢出。
+**其他截斷點（2026-09-18 第二輪，commit 4ca867b61）——共用層四支 opt-in API，預設行為不變**：
+- `dd:SetMaxWidth(maxW)`：下拉照**最寬項目**（不是當下選的，免得選一次跳一次）撐到上限，`SetItems` 會重算；
+  仍被截的，滑鼠移上去 `IsTruncated()` 為真就用 GameTooltip 顯示全文（併進既有 OnEnter，OnLeave／OnHide 比對 owner 才收）。
+- `cb:SetLabelMaxWidth(maxW)`：勾選框右側文字夾寬換行、回傳多出的高度；點擊熱區改成 `min(字寬, maxW)`
+  （原本熱區跟著字寬延伸，看不見的那截照樣吃滑鼠）。
+- `W.FitButton(b, minW, h)`：字寬＋`W.BTN_TEXT_PAD`(20) > minW 才撐開，可重複呼叫，不 hook SetText。
+- `W.TextExtraHeight(fs, text)`：量換行多出的高度，MakeLabel 與勾選框提示共用。
+- 確認／多選彈窗在 OnShow 量訊息高度，撞到按鈕才加高（訊息是重用彈窗 Show 前才填的，建立時量不到）。
+- 表單引擎的 toggle／dropdown／button 分支已啟用；直接呼叫端要自己叫。
+- **為什麼 opt-in**：十五個插件約 135 處直接 `W.CreateButton`，很多是絕對座標排的；預設就撐寬會把「字溢出」換成
+  「蓋到隔壁控件」連點擊區一起蓋。要撐寬的地方先看右邊：相對錨定的直接 FitButton；絕對座標的先改成串接錨定
+  （三份 Tab_Share 的 New／Copy／Delete 就是這樣改的，字放得下時位置不變）。
+- 「下拉選單項目衝出邊界」是誤報：OnClick 每次重量 widest、重設每顆項目寬、最後 PlaceClamped。
+- 盤點結論：Tab_Unit 的 200／180px 測試鈕與黑名單鈕九語系都放得下（當初列為待修是估錯）。
+
+**還沒修（要重排版面，只記著）**：頭像左欄單位清單固定寬 106（可用 116），itIT「目標的目標的目標」233px、enUS 167px，
+字會畫過分隔線；元件切換 chip 整排單行鏈式錨定，11 顆展開 ruRU 1281px／zhTW 544px，可用約 540——要換成兩排或可捲動。
 
 **待遊戲內驗證**：歐語客戶端實際看換行後的列高與控件垂直置中、`SetNonSpaceWrap` 對一般歐語斷行有沒有副作用、
-按鈕撐寬後的樣子。
+按鈕撐寬後的樣子；下拉照最寬項目撐寬後整頁寬度不一的觀感（LSM 材質／字型名很長時中文也會撐）、`IsTruncated()` 提示、勾選框提示換行後的列高、歐語確認彈窗加高。
 
 相關：[[project-miliui-unit-frame]]、[[project-miliui-widgets-vendor]]
