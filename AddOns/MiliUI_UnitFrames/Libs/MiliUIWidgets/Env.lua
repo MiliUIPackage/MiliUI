@@ -17,6 +17,8 @@
 --   Font       function(token) → 字型路徑
 --   Accent     function() → r, g, b（介面強調色）
 --   PopupParent function() → 確認彈窗要掛在哪個框上（通常是設定視窗本體）
+--
+-- 另有選用的 LABEL_W（表單標籤欄寬，預設 128），寫在檔案最後面。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -54,3 +56,16 @@ end
 function Env.PopupParent()
     return ns.Options and ns.Options.panel
 end
+
+-- 表單左欄的標籤欄寬（選用，共用層預設 128）。
+--
+-- 中韓維持 128：一個字就 13px，九個字剛好塞滿一行，加寬只是把版面拉鬆。
+-- 其餘語系的譯文平均比英文長三到五成 ⇒ 128 下有一半的標籤要換兩三行，放寬到 148
+-- 之後絕大多數回到一到兩行，德文那幾個複合字（Hervorhebungsstärke…）也不必再斷在字中間。
+--
+-- 148 是量出來的上限，不是挑順眼的數字：最窄的表單是單位分頁（520），而那一頁最擠的
+-- 一列是「位置與尺寸」那種四個微調框的 numbers ——控件從 4 + LABEL_W + 12 起算，
+-- 義大利文的 Larghezza／Altezza 兩個小標最長，LABEL_W 再大幾格最後一個數字框就會被
+-- 擠出右界。改動這一列的版面或欄寬前重量一次。
+local COMPACT_LABEL_LOCALES = { zhTW = true, zhCN = true, koKR = true }
+Env.LABEL_W = COMPACT_LABEL_LOCALES[GetLocale()] and 128 or 148

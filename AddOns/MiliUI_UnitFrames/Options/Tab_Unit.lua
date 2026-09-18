@@ -681,7 +681,8 @@ local function IconSpecs(els)
                 tinsert(list, { type = "toggle", sub = "icons", sub2 = d.key, key = "restAnimated",
                                 label = L["Animated zzZ while resting"] })
                 tinsert(list, { type = "toggle", sub = "icons", sub2 = d.key, key = "combatBlizzard",
-                                label = L["Blizzard combat icon (native 16x16, ignores the size below)"] })
+                                label = L["Blizzard combat icon"] })
+                tinsert(list, { type = "text", label = L["Uses the game's own 16x16 icon; the size below has no effect."] })
             end
             tinsert(list, PosSize("icons", nil, d.key))
             if d.key == "group" then

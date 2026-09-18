@@ -343,7 +343,8 @@ L["Leader"] = "隊長"
 L["Group number"] = "小隊編號"
 L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "顯示在團隊中的小隊編號。不在團隊裡、或這個單位不在你的團隊時不顯示。"
 L["Animated zzZ while resting"] = "休息用動畫 zzZ"
-L["Blizzard combat icon (native 16x16, ignores the size below)"] = "戰鬥用內建圖示（原尺寸 16×16，不吃下面的寬高）"
+L["Blizzard combat icon"] = "內建戰鬥圖示"
+L["Uses the game's own 16x16 icon; the size below has no effect."] = "改用遊戲內建的 16×16 圖示，下面的寬高對它沒有作用。"
 
 -- 觀察按鈕
 L["Inspect"] = "觀察"

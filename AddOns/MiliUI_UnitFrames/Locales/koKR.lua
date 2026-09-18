@@ -348,7 +348,8 @@ L["Leader"] = "파티장"
 L["Group number"] = "파티 번호"
 L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "공격대 파티 번호를 표시합니다. 공격대가 아니거나 해당 유닛이 내 공격대에 없으면 숨깁니다."
 L["Animated zzZ while resting"] = "휴식 중 zzZ 애니메이션"
-L["Blizzard combat icon (native 16x16, ignores the size below)"] = "블리자드 전투 아이콘 (원본 16×16, 아래 크기 설정을 무시)"
+L["Blizzard combat icon"] = "블리자드 전투 아이콘"
+L["Uses the game's own 16x16 icon; the size below has no effect."] = "게임 기본 16×16 아이콘을 사용하며, 아래 크기 설정은 적용되지 않습니다."
 
 -- Inspect button
 L["Inspect"] = "살펴보기"

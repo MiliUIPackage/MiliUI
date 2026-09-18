@@ -348,7 +348,8 @@ L["Leader"] = "Chef"
 L["Group number"] = "Numéro de groupe"
 L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] = "Affiche le numéro de groupe dans le raid. Masqué hors raid ou si l'unité n'est pas dans votre raid."
 L["Animated zzZ while resting"] = "zzZ animé au repos"
-L["Blizzard combat icon (native 16x16, ignores the size below)"] = "Icône de combat de Blizzard (16×16 natif, ignore la taille ci-dessous)"
+L["Blizzard combat icon"] = "Icône de combat Blizzard"
+L["Uses the game's own 16x16 icon; the size below has no effect."] = "Utilise l'icône 16×16 du jeu ; la taille ci-dessous n'a aucun effet."
 
 -- Inspect button
 L["Inspect"] = "Inspecter"
@@ -454,7 +455,7 @@ L["Every cast bar shares these colors; whether \"non-interruptible\" applies is 
 L["Important spell"] = "Sort important"
 L["Tint important spells"] = "Colorer les sorts importants"
 L["Which spells count as important is decided by the game itself, not by a list this addon maintains — the same call the Platynator nameplates use. The color lives under General > Cast bar colors. Ranked below \"interrupt ready\" and \"non-interruptible\"."] = "C'est le jeu lui-même qui décide quels sorts sont importants, pas une liste maintenue par cet addon — c'est le même appel qu'utilisent les barres de nom Platynator. La couleur se trouve dans Général > Couleurs de la barre d'incantation. Classé sous \"interruption prête\" et \"non interruptible\"."
-L["Use the class color for the fill"] = "Utiliser la couleur de classe pour le remplissage"
+L["Use the class color for the fill"] = "Remplissage en couleur de classe"
 L["One color for casting, channeling and empowered alike, taken from the unit's class (pets use their owner's). On your own frame the cast bar sits on top of the portrait next to the health and power bars, and a single hue reads much calmer than three. The tints below still layer on top."] = "Une seule couleur pour l'incantation, le canalisation et l'amplification, prise sur la classe de l'unité (les familiers utilisent celle de leur maître). Sur votre propre cadre, la barre d'incantation se superpose au portrait à côté des barres de vie et de ressource : une seule teinte se lit bien plus calmement que trois. Les teintes ci-dessous se superposent toujours."
 L["Snap to the grid while dragging"] = "Aligner sur la grille en déplaçant"
 L["Spacing follows Edit Mode's own grid; hold Shift while dragging to invert this."] = "L'espacement suit la grille du mode Édition ; maintenez Maj en déplaçant pour inverser."
