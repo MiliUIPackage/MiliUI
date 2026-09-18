@@ -155,6 +155,8 @@ local function CreatePopup()
     list:SetPoint("TOPLEFT", 16, -68)
 
     local add = W.CreateButton(popup, L["Add threshold"], "accent", 120, 22)
+    -- 右邊到「確定」之間空著（彈窗 420 寬），長譯文撐開也碰不到它
+    W.FitButton(add, 120, 22)
     add:SetPoint("BOTTOMLEFT", 16, 12)
     add:SetScript("OnClick", function()
         local list_ = Thresholds()

@@ -529,10 +529,14 @@ local function Build()
     bottomBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PAD, PAD)
 
     -- 靠右擺：動作鈕跟清單每一列右端的「搜尋／購買」對齊，是同一類東西
+    -- 兩顆都往左長（一顆錨右緣、一顆錨在它左邊），左邊是總價讀數，撐開不會壓到誰。
+    -- 英文的「全部購買」比 96 長一點點，就那麼一點也會畫到邊框外面
     local buyAll = W.CreateButton(bottomBar, L["Buy everything"], "accent-hover", 96, 20)
+    W.FitButton(buyAll, 96, 20)
     buyAll:SetPoint("BOTTOMRIGHT", -4, 2)
 
     local searchAll = W.CreateButton(bottomBar, L["Search all"], "normal", 96, 20)
+    W.FitButton(searchAll, 96, 20)
     searchAll:SetPoint("RIGHT", buyAll, "LEFT", -6, 0)
     searchAll:SetScript("OnClick", function() ns.Auction.SearchAll() end)
     ns.AttachTooltip(searchAll, function(_, tip)

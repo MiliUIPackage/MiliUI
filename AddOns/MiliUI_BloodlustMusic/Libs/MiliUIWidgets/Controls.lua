@@ -33,7 +33,6 @@ local _, ns = ...
 
 local Env = ns.WidgetsEnv
 local L = Env.L
-local P = Env.P
 
 local W = ns.W
 
@@ -51,7 +50,7 @@ local HEADER_H   = 24
 local HEADER_GAP = 10      -- 小節上方留白
 local CONTROL_W  = 230     -- 滑桿 / 下拉 標準寬
 local BTN_H      = 22      -- button 型別的按鈕高
-local BTN_TEXT_PAD = 20    -- 按鈕字左右各留一半；字比固定寬長時用它把按鈕撐開
+local ROW_PAD_R  = 10      -- 控件欄右邊留白（控件最寬到 width - cx - ROW_PAD_R）
 
 ------------------------------------------------------------
 -- 連續型控件的 apply 合併
@@ -122,18 +121,9 @@ local function MakeLabel(parent, text, x, y, minH)
     -- 沒有空白可斷的超長單字（德文複合字那種）寧可斷在字中間，也不要被截成「…」
     fs:SetNonSpaceWrap(true)
 
-    -- 一行有多高得當場量：字型與字級是宿主給的（Env.Font），寫死一個數字的話，
-    -- 只要某個宿主的字型度量差一點，單行標籤就會算出 minH + 1，整頁版面跟著變鬆。
-    -- 量完再填真正的文字，多出來的那截就是「換行」的代價。
-    fs:SetText("A")
-    local lineH = fs:GetStringHeight()
-    fs:SetText(text or "")
-    -- 只有真的換了行（高度超過一行半）才加高；不然字型度量的零頭會把每一列都撐高 1px
-    local total = fs:GetStringHeight()
-    local rowH = minH
-    if lineH > 0 and total > lineH * 1.5 then
-        rowH = minH + math.ceil(total - lineH)
-    end
+    -- 換行多出來的高度由共用層量（同一套做法勾選框的提示文字也要用，
+    -- 兩份各量各的遲早會漂移）。順便把文字填進去。
+    local rowH = minH + W.TextExtraHeight(fs, text)
     fs:SetHeight(rowH)
     return rowH
 end
@@ -173,17 +163,23 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
             local fs = parent:CreateFontString(nil, "OVERLAY")
             fs:SetFontObject(W.fontSmall)
             fs:SetPoint("TOPLEFT", parent, "TOPLEFT", cx, y - 4)
-            fs:SetWidth(width - cx - 10)
+            fs:SetWidth(width - cx - ROW_PAD_R)
             fs:SetJustifyH("LEFT")
             fs:SetText(spec.label)
             y = y - math.max(ROW_H, fs:GetStringHeight() + 10)
 
         elseif spec.type == "toggle" then
-            local rowH = MakeLabel(parent, spec.label, x0, y, ROW_H)
+            -- 勾選框先建：右側 hint 的換行高度要先算出來，才決定得了這一列多高
+            -- （MakeLabel 會把標籤的高度設成整列的高度，之後再改列高就對不齊了）
             local cb = W.CreateCheckButton(parent, spec.hint, function(checked)
                 ctx.set(spec, checked)
                 ctx.apply()
             end)
+            -- hint 原本不換行也不截，長譯文一路衝出視窗右緣，連點擊熱區一起延伸出去。
+            -- 夾在這一列剩下的寬度裡（扣掉勾選框本身與它到文字的間距）換行。
+            local hintExtra = cb:SetLabelMaxWidth(
+                width - cx - ROW_PAD_R - (cb.width or 18) - (cb.labelGap or 6))
+            local rowH = MakeLabel(parent, spec.label, x0, y, ROW_H + hintExtra)
             cb:SetPoint("LEFT", parent, "TOPLEFT", cx, y - rowH / 2)
             tinsert(refreshers, function()
                 cb:SetChecked(ctx.get(spec) and true or false)
@@ -276,6 +272,10 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
                 ctx.set(spec, value)
                 ctx.apply()
             end)
+            -- 選中的文字超過下拉寬度就被截成「…」（材質名、字型名、角色名都很長）。
+            -- 表單是一列一個控件、右邊沒有別的東西，讓它在剩下的空間裡自己撐寬。
+            -- 還是放不下的話 CreateDropdown 的滑鼠提示會補上全文。
+            dd:SetMaxWidth(width - cx - ROW_PAD_R)
             dd:SetPoint("LEFT", parent, "TOPLEFT", cx, y - rowH / 2)
             tinsert(refreshers, function()
                 dd:SetSelectedValue(ctx.get(spec))
@@ -287,13 +287,9 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
             local rowH = MakeLabel(parent, spec.label, x0, y, ROW_H_TALL)
             local btnW = spec.width or 140
             local b = W.CreateButton(parent, spec.text or L["Apply"], spec.color or "normal", btnW, BTN_H)
-            -- 按鈕字不換行也不截，太長就直接溢出邊框（歐語譯文常常這樣）⇒ 量完字寬
-            -- 把按鈕撐開。短字維持原本的固定寬，一排按鈕的寬度才不會各長各的。
-            local fs = b:GetFontString()
-            if fs then
-                local need = math.ceil(fs:GetStringWidth()) + BTN_TEXT_PAD
-                if need > btnW then P.Size(b, need, BTN_H) end
-            end
+            -- 按鈕字不換行也不截，太長就直接溢出邊框（歐語譯文常常這樣）⇒ 撐開它。
+            -- 短字維持原本的固定寬，一排按鈕的寬度才不會各長各的。
+            W.FitButton(b, btnW, BTN_H)
             b:SetPoint("LEFT", parent, "TOPLEFT", cx, y - rowH / 2)
             b:SetScript("OnClick", function()
                 if spec.confirm then
@@ -313,7 +309,7 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
 
         elseif spec.type == "input" then
             local rowH = MakeLabel(parent, spec.label, x0, y, ROW_H_TALL)
-            local eb = W.CreateEditBox(parent, width - cx - 10, 20)
+            local eb = W.CreateEditBox(parent, width - cx - ROW_PAD_R, 20)
             eb:SetPoint("LEFT", parent, "TOPLEFT", cx, y - rowH / 2)
             eb:SetScript("OnEnterPressed", function(self)
                 ctx.set(spec, self:GetText())
@@ -354,7 +350,7 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
                 local h = MakeLabel(parent, spec.label, x0, y, minH)
                 if h > minH then labelH = h end
             end
-            local h, refresh = spec.build(parent, cx, y, width - cx - 10, ctx)
+            local h, refresh = spec.build(parent, cx, y, width - cx - ROW_PAD_R, ctx)
             if refresh then tinsert(refreshers, refresh) end
             y = y - math.max(h or spec.h or ROW_H_TALL, labelH)
         end

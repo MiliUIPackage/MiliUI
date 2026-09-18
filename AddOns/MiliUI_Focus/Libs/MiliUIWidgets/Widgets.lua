@@ -65,6 +65,29 @@ W.fontNormal, W.fontTitle, W.fontDisabled, W.fontSmall =
     fontNormal, fontTitle, fontDisabled, fontSmall
 
 ------------------------------------------------------------
+-- 文字量測
+------------------------------------------------------------
+
+-- 一段文字換行之後「多出來」的高度（沒換行回 0）。呼叫端拿它去墊列高。
+--
+-- 一行有多高得當場量：字型與字級是宿主給的（Env.Font），寫死一個數字的話，只要某個
+-- 宿主的字型度量差一點，單行的列就會算出 +1，整頁版面跟著變鬆。
+-- 只有真的換了行（高度超過一行半）才算數，不然度量的零頭會把每一列都撐高 1px。
+-- 版面還沒解析時 GetStringHeight() 回 0 —— 這時回 0＝維持舊行為，不會炸。
+--
+-- ⚠ 會把 fs 的文字設成 text（量的時候借用同一個 FontString），呼叫端不必再 SetText。
+function W.TextExtraHeight(fs, text)
+    fs:SetText("A")
+    local lineH = fs:GetStringHeight()
+    fs:SetText(text or "")
+    local total = fs:GetStringHeight()
+    if lineH > 0 and total > lineH * 1.5 then
+        return math.ceil(total - lineH)
+    end
+    return 0
+end
+
+------------------------------------------------------------
 -- 基礎樣式
 ------------------------------------------------------------
 
@@ -155,6 +178,30 @@ function W.CreateButton(parent, text, colorKey, width, height)
         self:SetBackdropColor(unpack(self._colors[1]))
     end)
     return b
+end
+
+-- 按鈕字左右各留一半。撐寬時用它，一排按鈕的內距才會一致
+W.BTN_TEXT_PAD = 20
+
+-- 字太長就把按鈕撐開（opt-in）。
+--
+-- 按鈕的字只錨 CENTER、不換行、也不截 —— 太長就直接溢出邊框，歐語譯文常常這樣。
+-- 但**預設不能撐**：呼叫端的版面有一半是絕對座標排的，撐寬會把「字溢出」換成
+-- 「蓋到隔壁控件」，連點擊區一起蓋，那更糟。所以由知道右邊還有沒有空間的人自己叫。
+--
+-- 放得下就一個位元都不動（尺寸、錨點、熱區全部維持原樣），一排按鈕才不會只有一顆特別寬。
+-- 回傳實際寬度，讓呼叫端接著排右邊的東西。
+--
+-- 可以重複呼叫：之後才 SetText 的（讀數型的按鈕）換完字再叫一次就好。
+-- 刻意不去 hook SetText —— 那會讓每次刷新讀數都偷偷改版面，而按鈕多半排在一列裡。
+function W.FitButton(b, minW, height)
+    minW = minW or b.width or b:GetWidth() or 0
+    local fs = b:GetFontString()
+    if not fs then return minW end
+    local need = math.ceil(fs:GetStringWidth() or 0) + W.BTN_TEXT_PAD
+    if need <= minW then return minW end
+    P.Size(b, need, height or b.height or b:GetHeight())
+    return need
 end
 
 -- 互斥高亮群組（分頁鈕用）
@@ -410,13 +457,41 @@ function W.CreateCheckButton(parent, label, onChange)
     P.Size(cb, 18, 18)
     W.Stylize(cb, CHECKBOX_FILL)
 
+    cb.labelGap = 6                -- 標籤離框幾 px（呼叫端算可用寬度時要扣掉）
     cb.label = cb:CreateFontString(nil, "OVERLAY")
     cb.label:SetFontObject(fontNormal)
-    cb.label:SetPoint("LEFT", cb, "RIGHT", 6, 0)
+    cb.label:SetPoint("LEFT", cb, "RIGHT", cb.labelGap, 0)
     cb.label:SetText(label or "")
     -- 點標籤也能勾（Platynator 手法：整列都是點擊區）
     if label and label ~= "" then
         cb:SetHitRectInsets(0, -(cb.label:GetStringWidth() + 8), 0, 0)
+    end
+
+    -- 把標籤夾在 maxW 裡換行（opt-in），回傳換行多出來的高度（沒換行回 0）。
+    --
+    -- 標籤預設沒設寬也不換行：短的「顯示邊框」沒問題，長的說明句就一路衝出視窗右緣，
+    -- **而且點擊熱區跟著字寬延伸**——看不見的那截照樣吃滑鼠，蓋到右邊的控件。
+    -- 只有知道「這一列右邊還剩多少」的呼叫端說得出 maxW，所以做成 opt-in。
+    --
+    -- 放得下就完全不動（不設寬、不換行、熱區與原本逐位元相同）；量字寬一定要在
+    -- SetWidth 之前，換行之後 GetStringWidth 的語意就不是「整串有多寬」了。
+    function cb:SetLabelMaxWidth(maxW)
+        local fs = cb.label
+        local text = fs:GetText()
+        if not maxW or maxW <= 0 or not text or text == "" then return 0 end
+        local textW = fs:GetStringWidth() or 0
+        if textW <= 0 then return 0 end          -- 量不到（版面未解析）就當沒這回事
+        -- 熱區只延伸到文字真正佔到的寬度：換行之後文字不會比 maxW 寬，
+        -- 再照原本的字寬算會在右邊留一塊看不見的點擊區
+        cb:SetHitRectInsets(0, -(math.min(textW, maxW) + 8), 0, 0)
+        if textW <= maxW then return 0 end
+        fs:SetWidth(maxW)
+        fs:SetJustifyH("LEFT")                   -- 定寬之後才輪得到對齊（預設是置中）
+        fs:SetWordWrap(true)
+        fs:SetNonSpaceWrap(true)                 -- 德文複合字沒空白可斷，寧可斷在字中
+        -- 整塊文字仍然垂直置中於勾選框（JustifyV 預設 MIDDLE），
+        -- 呼叫端把多出來的高度墊進列高就不會蓋到上下列
+        return W.TextExtraHeight(fs, text)
     end
 
     -- 勾＝職業色、刻意比框大一圈往外溢（暴雪原生勾選框的視覺語言，素材換成
@@ -874,20 +949,45 @@ function W.CloseDropdowns()
     if menuFrame then menuFrame:Hide() end
 end
 
+-- 選中的文字是被切掉的嗎。IsTruncated 是 FontString 自己的判斷（含「…」那種）；
+-- 拿不到就退回「整串字寬有沒有超過 FontString 的寬度」。兩個錨點夾出來的寬度在版面
+-- 解析前量到 0，那時一律當成沒截斷 —— 寧可少一次提示，也不要每顆下拉都跳提示。
+local function TextTruncated(fs)
+    if not fs then return false end
+    if fs.IsTruncated then return fs:IsTruncated() and true or false end
+    local avail = fs:GetWidth() or 0
+    return avail > 0 and (fs:GetStringWidth() or 0) > avail
+end
+
+-- 提示是借 GameTooltip 顯示的（共用框），收尾前先確認它還是我們掛上去的那一份，
+-- 免得把別人剛開的提示關掉
+local function HideDropdownTip(owner)
+    if GameTooltip:GetOwner() == owner then GameTooltip:Hide() end
+end
+
 function W.CreateDropdown(parent, width, items, onSelect)
     local dd = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    P.Size(dd, width or 120, 20)
+    local baseW = width or 120
+    P.Size(dd, baseW, 20)
     W.Stylize(dd, WIDGET_FILL)
     -- 框線平常深灰，hover 與展開中染職業色；展開中滑鼠移開不退色，
     -- 選單收起（OnHide）或換別的下拉當 owner 時才還原
     dd:SetBackdropBorderColor(unpack(DD_BORDER))
     dd:SetScript("OnEnter", function(self)
         self:SetBackdropBorderColor(W.Accent(1))
+        -- 保底：撐到上限還是放不下、或呼叫端根本沒 opt-in 撐寬的，
+        -- 這是玩家唯一看得到全文的地方（選單裡的項目本來就會撐開，但要點開才看得到）
+        if TextTruncated(self.text) then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(self.text:GetText() or "", 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end
     end)
     dd:SetScript("OnLeave", function(self)
         if not (menuFrame and menuFrame:IsShown() and menuFrame.owner == self) then
             self:SetBackdropBorderColor(unpack(DD_BORDER))
         end
+        HideDropdownTip(self)
     end)
 
     -- ⚠ 展開中的選單是掛在 UIParent 上的**共用框**，不是這顆下拉的子物件，所以
@@ -900,6 +1000,9 @@ function W.CreateDropdown(parent, width, items, onSelect)
         if menuFrame and menuFrame.owner == self then
             menuFrame:Hide()      -- 選單的 OnHide 會把 owner 的展開色還原
         end
+        -- 切分頁時滑鼠可能正停在某顆下拉上，OnLeave 不會來（框是直接被藏掉的），
+        -- 提示就會留在畫面上
+        HideDropdownTip(self)
     end)
 
     dd.text = dd:CreateFontString(nil, "OVERLAY")
@@ -922,7 +1025,39 @@ function W.CreateDropdown(parent, width, items, onSelect)
     dd.items = items or {}
     dd.selected = nil
 
-    function dd:SetItems(newItems) dd.items = newItems end
+    -- 選中的文字夾在左右錨點之間、又不換行（20px 高的按鈕塞不下第二行）⇒ 超過
+    -- 「寬度 − 21」就被截成「…」。opt-in 的自動撐寬：只有知道這一列右邊還剩多少的
+    -- 呼叫端說得出上限，預設就撐的話，跟別的控件並排在同一列的下拉會直接蓋過去。
+    --
+    -- 量的是**最寬的那一項**，不是當下選的那一項：寬度一次定好，選一次跳一次很難看。
+    -- 借 dd.text 自己量（同一個字型物件，才量得準），量完把原本的文字放回去。
+    local function FitWidth()
+        local maxW = dd.maxW
+        if not maxW or maxW <= baseW then return end
+        local keep = dd.text:GetText()
+        local widest = 0
+        for _, item in ipairs(dd.items or {}) do
+            dd.text:SetText(item.text or "")
+            local w = dd.text:GetStringWidth() or 0
+            if w > widest then widest = w end
+        end
+        dd.text:SetText(keep or "")
+        -- 21 = 左內縮 5 ＋ 右邊讓給箭頭的 16（同 dd.text 的兩個錨點）
+        local need = math.ceil(widest) + 21
+        if need < baseW then need = baseW elseif need > maxW then need = maxW end
+        if need ~= dd.width then P.Size(dd, need, 20) end
+    end
+
+    -- 撐寬的上限（不叫就永遠維持建立時的寬度）。之後每次 SetItems 會照新清單重算。
+    function dd:SetMaxWidth(maxW)
+        dd.maxW = maxW
+        FitWidth()
+    end
+
+    function dd:SetItems(newItems)
+        dd.items = newItems
+        FitWidth()
+    end
     function dd:SetSelectedValue(value)
         dd.selected = value
         for _, item in ipairs(dd.items) do
@@ -1113,6 +1248,21 @@ end
 -- 多選項彈窗：choices = { { text=, onClick= }, ... }，按鈕橫排、寬度平分。
 -- 跟 CreateConfirmPopup 同一套遮罩／層級，差別只在按鈕數量。
 -- 用途：問「這份新設定檔要拿什麼當底」這種沒有「是／否」語意的分岔。
+
+-- 訊息長到撞上按鈕時把彈窗加高。
+--
+-- 彈窗的高度原本是寫死的（84／96），只夠兩三行；歐語的確認訊息換完行有四行，
+-- 後面那兩行直接蓋在「確定／取消」上面 —— 而那正是玩家非按不可的地方。
+-- ⚠ 一定要在 OnShow 算：訊息是**重用的彈窗在 Show 之前才填的**（換設定檔要不要
+-- 重載那種），建立時算死等於量到空字串。
+-- 撞不到按鈕就一個位元都不動，中文那幾行的彈窗維持原本的高度。
+local function GrowPopupForText(popup, fs, baseH, btnH, btnPad, textTop)
+    local textH = fs:GetStringHeight() or 0
+    if textH <= 0 then return end                     -- 版面未解析，維持原高
+    local overlap = (textTop + textH) - (baseH - btnPad - btnH)
+    P.Height(popup, overlap > 0 and (baseH + overlap + 6) or baseH)
+end
+
 function W.CreateChoicePopup(parent, width, text, choices)
     width = width or 320
     local mask = CreateFrame("Frame", nil, parent, "BackdropTemplate")
@@ -1131,8 +1281,6 @@ function W.CreateChoicePopup(parent, width, text, choices)
     popup:SetBackdropBorderColor(W.Accent(1))
     popup:SetPoint("CENTER")
     popup.mask = mask
-    popup:SetScript("OnShow", function() mask:Show() end)
-    popup:SetScript("OnHide", function() mask:Hide() end)
 
     local fs = popup:CreateFontString(nil, "OVERLAY")
     fs:SetFontObject(fontNormal)
@@ -1141,6 +1289,12 @@ function W.CreateChoicePopup(parent, width, text, choices)
     fs:SetJustifyH("CENTER")
     fs:SetText(text)
     popup.text = fs
+
+    popup:SetScript("OnShow", function(self)
+        mask:Show()
+        GrowPopupForText(self, fs, 96, 22, 12, 12)
+    end)
+    popup:SetScript("OnHide", function() mask:Hide() end)
 
     local n = #choices
     local gap, edge = 6, 12
@@ -1176,8 +1330,6 @@ function W.CreateConfirmPopup(parent, width, text, onAccept)
     popup:SetBackdropBorderColor(W.Accent(1))
     popup:SetPoint("CENTER")
     popup.mask = mask
-    popup:SetScript("OnShow", function() mask:Show() end)
-    popup:SetScript("OnHide", function() mask:Hide() end)
 
     local fs = popup:CreateFontString(nil, "OVERLAY")
     fs:SetFontObject(fontNormal)
@@ -1188,6 +1340,12 @@ function W.CreateConfirmPopup(parent, width, text, onAccept)
     -- 開出來：有些確認訊息要看當下狀況才決定怎麼寫（例如換設定檔要不要重載），
     -- 而彈窗是建一次就重用的，不能把文字烘死在建立那一刻
     popup.text = fs
+
+    popup:SetScript("OnShow", function(self)
+        mask:Show()
+        GrowPopupForText(self, fs, 84, 22, 12, 14)
+    end)
+    popup:SetScript("OnHide", function() mask:Hide() end)
 
     local yes = W.CreateButton(popup, L["Okay"], "green", 80, 22)
     yes:SetPoint("BOTTOMLEFT", 26, 12)

@@ -258,11 +258,15 @@ local function CreatePopup()
     hintText:SetJustifyH("LEFT")
     hintText:SetSpacing(2)
 
+    -- 兩顆是串著錨的、右邊到「確定」之間還有一大段空白 ⇒ 譯文長的語系直接撐開
+    -- （葡文的「重新掃描」、俄文的「用法術 ID 新增」都比固定寬長；字放得下就不動）
     local rescan = W.CreateButton(popup, L["Rescan"], "normal", 100, 22)
+    W.FitButton(rescan, 100, 22)
     rescan:SetPoint("BOTTOMLEFT", 16, 12)
     rescan:SetScript("OnClick", Refresh)
 
     local byID = W.CreateButton(popup, L["Add by spell ID"], "normal", 150, 22)
+    W.FitButton(byID, 150, 22)
     byID:SetPoint("LEFT", rescan, "RIGHT", 8, 0)
     byID:SetScript("OnClick", OpenIDEntry)
 

@@ -244,17 +244,23 @@ local function Init()
         end
     end
 
+    -- 三顆鈕改成一顆接一顆（原本是絕對座標 408／476／544，間距同樣是 4）：
+    -- 譯文比 64 長的語系（法文 Supprimer、俄文 Копировать）會直接溢出邊框，撐開又
+    -- 會壓到隔壁那顆的點擊區。串起來之後撐一顆、後面跟著讓位，字放得下時位置不變。
     local newBtn = W.CreateButton(tab, L["New"], "accent", 64, 20)
+    W.FitButton(newBtn, 64, 20)
     newBtn:SetPoint("TOPLEFT", 408, -68)
     newBtn:SetScript("OnClick", function() Make(nil) end)
 
     local copyBtn = W.CreateButton(tab, L["Copy"], "accent", 64, 20)
-    copyBtn:SetPoint("TOPLEFT", 476, -68)
+    W.FitButton(copyBtn, 64, 20)
+    copyBtn:SetPoint("LEFT", newBtn, "RIGHT", 4, 0)
     copyBtn:SetScript("OnClick", function() Make(ns.profileName) end)
 
     local delConfirm
     local delBtn = W.CreateButton(tab, L["Delete"], "red", 64, 20)
-    delBtn:SetPoint("TOPLEFT", 544, -68)
+    W.FitButton(delBtn, 64, 20)
+    delBtn:SetPoint("LEFT", copyBtn, "RIGHT", 4, 0)
     delBtn:SetEnabled(ns.profileName ~= ns.DB.DEFAULT_PROFILE)
     tab.__delBtn = delBtn      -- 給 SyncProfileWidgets 用（它建立得比這裡早）
     delBtn:SetScript("OnClick", function()
@@ -289,6 +295,7 @@ local function Init()
     exportBox:SetPoint("TOPLEFT", 12, -154)
 
     local exportBtn = W.CreateButton(tab, L["Generate export string"], "accent", 130, 22)
+    W.FitButton(exportBtn, 130, 22)
     exportBtn:SetPoint("TOPLEFT", exportBox, "BOTTOMLEFT", 0, -8)
     exportBtn:SetScript("OnClick", function()
         local str, err = Share.Export()
@@ -336,6 +343,7 @@ local function Init()
         end
     end)
     importBox:SetPoint("TOPLEFT", 356, -154)
+    W.FitButton(importBtn, 130, 22)
     importBtn:SetPoint("TOPLEFT", importBox, "BOTTOMLEFT", 0, -8)
 
     local confirm
@@ -363,6 +371,9 @@ local function Init()
     local resetBtn = W.CreateButton(tab, L["Restore all defaults and reload"], "red", 150, 22)
     resetBtn:SetPoint("TOPLEFT", 12, -460)
 
+    -- 右邊只有說明文字，而且是錨在這顆鈕上的（撐寬會一起讓位）
+    W.FitButton(resetBtn, 150, 22)
+
     local resetConfirm
     resetBtn:SetScript("OnClick", function()
         if not resetConfirm then
@@ -376,6 +387,9 @@ local function Init()
     local resetNote = tab:CreateFontString(nil, "OVERLAY")
     resetNote:SetFontObject(W.fontSmall)
     resetNote:SetPoint("LEFT", resetBtn, "RIGHT", 10, 0)
+    -- 右緣夾在分頁邊上，不要寫死寬度：左邊那顆鈕會隨語系變寬（W.FitButton），
+    -- 固定寬的話說明文字就跟著被推出視窗右緣
+    resetNote:SetPoint("RIGHT", tab, "RIGHT", -12, 0)
     resetNote:SetJustifyH("LEFT")
     resetNote:SetText(L["Per-unit reset lives at the bottom of Units > Frame. The /muf reset command does the same thing as this button."])
 end

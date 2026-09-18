@@ -161,6 +161,8 @@ local function Build()
     }
     for _, t in ipairs(TYPES) do
         local b = W.CreateButton(blockBar, L[t.key], "accent-hover", 60, TOOLBAR_H - 4)
+        -- 一顆接一顆錨著，撐開會一路往右讓位（整排最寬的語系也還在編輯器寬度內）
+        W.FitButton(b, 60, TOOLBAR_H - 4)
         b:SetPoint("LEFT", prev, "RIGHT", 5, 0)
         local blockType = t.type
         b:SetScript("OnClick", function()
@@ -183,6 +185,7 @@ local function Build()
     -- 這一排全部都是選單，統一到沒有例外的時候，符號只是噪音。
     local function TagButton(labelKey, tooltipKey, builder)
         local b = W.CreateButton(tagBar, L[labelKey], "accent-hover", 58, TOOLBAR_H - 4)
+        W.FitButton(b, 58, TOOLBAR_H - 4)
         b:SetPoint("LEFT", prevTag or tagLabel, "RIGHT", 5, 0)
         b:SetScript("OnClick", function(self) W.Menu.Show(builder(), self) end)
         b:SetScript("OnEnter", function(self)
