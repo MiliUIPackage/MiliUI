@@ -41,8 +41,10 @@ local ICON_LEVEL = 21
 -- 不覆蓋（例如 target 的 fadeOutOfRange 是 true），這裡只補「維持現狀」的預設。
 --
 --   scale             整框縮放，百分比（100 = 原始大小）
---   visibility        主模式，見 Core/Visibility.lua 的 DRIVER_MODES
---   vis*              附加條件，任一成立就藏
+--   visShow*          顯示時機，**任一成立就顯示**；一個都沒開＝一直顯示
+--   visHide* / visGroup / visOnlyInstances
+--                     限制條件，任一不符就藏，而且**優先於**顯示時機
+--                     （完整規則與巨集字串見 Core/Visibility.lua 的 DriverSpec）
 --   clickWhenHidden   被顯示條件藏起來時仍可點擊選取（目前只有玩家框的設定頁有這個選項）
 --   fadeOutOfRange    超出距離淡出（輪詢）
 --   fadeOutOfCombat   脫戰淡出（吃事件）
@@ -52,11 +54,14 @@ local ICON_LEVEL = 21
 ------------------------------------------------------------
 local function frameDef(o)
     if o.scale == nil then o.scale = 100 end
-    if o.visibility == nil then o.visibility = "always" end
+    if o.visShowCombat == nil then o.visShowCombat = false end
+    if o.visShowTarget == nil then o.visShowTarget = false end
+    if o.visShowEnemy == nil then o.visShowEnemy = false end
+    if o.visShowFocus == nil then o.visShowFocus = false end
     if o.visOnlyInstances == nil then o.visOnlyInstances = false end
     if o.visHideMounted == nil then o.visHideMounted = false end
-    if o.visHideNoTarget == nil then o.visHideNoTarget = false end
-    if o.visHideNoEnemy == nil then o.visHideNoEnemy = false end
+    if o.visHideCombat == nil then o.visHideCombat = false end
+    if o.visGroup == nil then o.visGroup = "any" end
     if o.clickWhenHidden == nil then o.clickWhenHidden = false end
     if o.fadeOutOfRange == nil then o.fadeOutOfRange = false end
     if o.fadeOutOfCombat == nil then o.fadeOutOfCombat = false end
@@ -1490,6 +1495,56 @@ local PROFILE_MIGRATIONS = {
                 local cb = type(els.castbar) == "table" and els.castbar.level
                 local top = (tonumber(cb) or 12) + 4
                 if type(e.level) ~= "number" or e.level <= top then e.level = top + 1 end
+            end
+        end
+    end,
+
+    -- v19：顯示條件從「單選主模式 AND 每個隱藏開關」換成「顯示時機（OR）＋限制條件（優先）」。
+    --
+    -- 舊模型組不出最常見的那句需求：「戰鬥中**或**有目標時顯示」。玩家勾了
+    -- 「只在戰鬥中」＋「沒有目標時隱藏」，戰鬥中一丟目標框就整個不見。
+    --
+    -- ⚠ 這是**結構轉換**，不是換預設值 ⇒ 不套「只動舊預設值」的值閘：舊鍵這一版就
+    -- 不存在了，不搬過來就等於把使用者調好的條件全部清成「一直顯示」。
+    --
+    -- ⚠ **唯一的語意變化**：`inCombat` ＋「沒有目標／沒有敵對目標時隱藏」。
+    -- 舊的是「戰鬥 AND 目標」、新的是「戰鬥 OR 目標」——這正是這次要修的東西。
+    -- 其餘組合語意不變（例如 outOfCombat ＋ 無目標藏 ⇒
+    -- `[combat] hide; [@target,exists] show; hide`，還是「脫戰 AND 有目標」）。
+    [19] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        -- 這幾個框「存在」本身就代表你有目標（不然單位不存在、unit watch 早就把它藏了），
+        -- 對它們設「有目標才顯示」是純空轉的驅動 ⇒ 不搬過去。
+        -- 「有敵對目標」對它們仍然有意義（分得出友方目標與敵方目標），所以照搬。
+        local TARGET_DERIVED = {
+            target = true, targettarget = true, targettargettarget = true,
+        }
+        -- 需要單位名，所以走 pairs 拿 key
+        for unitKey, udb in pairs(units) do
+            local f = type(udb) == "table" and udb.frame
+            if type(f) == "table" then
+                local mode = f.visibility
+                if mode == "inCombat" then
+                    f.visShowCombat = true
+                elseif mode == "outOfCombat" then
+                    f.visHideCombat = true
+                elseif mode == "inGroup" then
+                    f.visGroup = "group"
+                elseif mode == "inParty" then
+                    f.visGroup = "party"
+                elseif mode == "inRaid" then
+                    f.visGroup = "raid"
+                elseif mode == "solo" then
+                    f.visGroup = "solo"
+                end
+                -- 舊的兩個開關互斥（DriverSpec 也是 elseif），敵對優先
+                if f.visHideNoEnemy then
+                    f.visShowEnemy = true
+                elseif f.visHideNoTarget and not TARGET_DERIVED[unitKey] then
+                    f.visShowTarget = true
+                end
+                f.visibility, f.visHideNoTarget, f.visHideNoEnemy = nil, nil, nil
             end
         end
     end,

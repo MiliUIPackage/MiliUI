@@ -28,6 +28,8 @@
 -- 能寫成巨集條件的一律放外層，**不要**兩層都判同一件事：內層也判騎乘的話，
 -- 「騎著坐騎被打下來」內層在戰鬥中開不了，外層再怎麼對都沒用。
 --
+-- 設定本身的模型（「顯示時機」取聯集、「限制條件」優先）寫在下面 DriverSpec 那一節。
+--
 -- ⚠ 閘框藏起來時子物件的 `IsVisible()` 是 false，`ns.Refresh` 的閘門會擋掉更新。
 -- 這正是我們要的（藏起來就不該付重畫成本），但閘框重新顯示時要補一次全量重畫，
 -- 否則會看到上一次藏起來前的舊資料。
@@ -42,18 +44,33 @@ local V = ns.Visibility
 
 ------------------------------------------------------------
 -- 外層：巨集條件（安全端判斷）
+--
+-- 設定分兩組，規則一句話：
+--   **任一「限制條件」不符 ⇒ 藏；否則任一「顯示時機」成立 ⇒ 顯示；
+--     顯示時機全不勾 ⇒ 一直顯示。**
+--
+-- ⚠⚠ 顯示時機之間是 **OR** ——這是 2026-09-18 從舊模型改過來的重點。
+-- 舊模型是「單選主模式 AND 每個隱藏開關」，最常見的需求
+-- 「戰鬥中**或**有目標時顯示」根本組不出來：勾了「只在戰鬥中」＋「沒有目標時隱藏」，
+-- 戰鬥中丟了目標框就整個不見。要湊出 OR 只能把兩件事都寫成「顯示時機」再取聯集。
+--
+-- 限制條件維持 AND，而且**優先於**顯示時機（在副本外、騎著坐騎時，「戰鬥中要顯示」
+-- 不該把框叫出來）。巨集條件取**第一個成立的子句** ⇒ 把 hide 子句全排在前面、
+-- show 子句排後面，自然就是「限制優先、時機取聯集」：
+--
+--   <限制的 hide 子句…>; <時機的 show 子句…>; hide
+--
+-- 結尾那個 hide 是「有時機但一個都不成立」的預設值。反過來，一個時機都沒勾時
+-- 結尾要換成 show（限制以外一律顯示）；兩組都空就不註冊驅動（回 nil）。
 ------------------------------------------------------------
--- 主模式（單選）→ 一段巨集條件，**自帶結尾的預設值**。always 不需要條件。
+-- 「隊伍」是單選（不限／單人／隊伍中／只在小隊／只在團隊），所以它只出一段 hide 子句。
 -- ⚠ `[group:party]` 在團隊裡也成立，所以「只在小隊」要先把團隊擋掉再判 group。
-local DRIVER_MODES = {
-    inCombat    = "[combat] show; hide",
-    outOfCombat = "[nocombat] show; hide",
-    inGroup     = "[group] show; hide",
-    inParty     = "[group:raid] hide; [group] show; hide",
-    inRaid      = "[group:raid] show; hide",
-    solo        = "[nogroup] show; hide",
+local GROUP_HIDE = {
+    solo  = "[group] hide",
+    group = "[nogroup] hide",
+    party = "[group:raid] hide; [nogroup] hide",
+    raid  = "[nogroup:raid] hide",
 }
-V.DRIVER_MODES = DRIVER_MODES
 
 -- 「騎乘中」要把德魯伊的旅行型態算進去：玩家的體感是一樣的（在趕路，不想看單位框）。
 -- 巨集的 [form:N] 吃的是**姿態列上的第幾格**，不是 GetShapeshiftFormID 那個型態代碼，
@@ -73,27 +90,34 @@ local function TravelFormSlots()
     return slots
 end
 
--- 設定 → 狀態驅動的巨集字串；沒有任何外層條件回 nil（不註冊，省掉每 0.2 秒一次解析）。
--- 「藏」的條件排在前面、主模式排在後面：巨集條件取**第一個成立的子句**，
--- 所以前面任一條藏成立就藏，都不成立才輪到主模式判 show/hide ⇒ 就是 AND。
+-- 設定 → 狀態驅動的巨集字串；兩組都空回 nil（不註冊，省掉每 0.2 秒一次解析）。
 function V.DriverSpec(fdb)
     if not fdb then return nil end
+
+    -- 限制條件（AND，排在前面）
     local parts = {}
     if fdb.visHideMounted then
         parts[#parts + 1] = "[mounted] hide"
         local slots = TravelFormSlots()
         if slots then parts[#parts + 1] = "[form:" .. slots .. "] hide" end
     end
+    if fdb.visHideCombat then parts[#parts + 1] = "[combat] hide" end
+    local group = GROUP_HIDE[fdb.visGroup or "any"]
+    if group then parts[#parts + 1] = group end
+    local nHide = #parts
+
+    -- 顯示時機（OR，排在後面）
     -- 目標是不是敵對交給巨集的 harm 判：那是安全端讀的，受限內容裡也沒有秘密值問題
     -- （以前 Lua 版 UnitCanAttack 會回秘密布林，只能判不出來就放行）。
-    if fdb.visHideNoEnemy then
-        parts[#parts + 1] = "[@target,noexists] hide; [@target,noharm] hide"
-    elseif fdb.visHideNoTarget then
-        parts[#parts + 1] = "[@target,noexists] hide"
-    end
-    local mode = DRIVER_MODES[fdb.visibility or "always"]
-    if #parts == 0 and not mode then return nil end
-    parts[#parts + 1] = mode or "show"
+    -- harm 本身就含「存在」，不必再補一段 exists。
+    if fdb.visShowCombat then parts[#parts + 1] = "[combat] show" end
+    if fdb.visShowTarget then parts[#parts + 1] = "[@target,exists] show" end
+    if fdb.visShowEnemy  then parts[#parts + 1] = "[@target,harm] show" end
+    if fdb.visShowFocus  then parts[#parts + 1] = "[@focus,exists] show" end
+
+    if #parts == 0 then return nil end
+    -- 有時機 ⇒ 沒中的就藏；一個時機都沒有 ⇒ 過了限制就顯示
+    parts[#parts + 1] = (#parts > nHide) and "hide" or "show"
     return table.concat(parts, "; ")
 end
 
@@ -588,17 +612,23 @@ function V.Debug()
         local uf = ns.frames[unit]
         if uf and uf.visGate then
             local fdb = uf.db.frame
+            -- 時機（OR）與限制（優先）分兩串列，跟設定頁的兩個小節對得上
+            local when = {}
+            if fdb.visShowCombat then when[#when + 1] = "戰鬥" end
+            if fdb.visShowTarget then when[#when + 1] = "目標" end
+            if fdb.visShowEnemy then when[#when + 1] = "敵對目標" end
+            if fdb.visShowFocus then when[#when + 1] = "專注目標" end
             local extra = {}
-            if fdb.visOnlyInstances then extra[#extra + 1] = "副本" end
             if fdb.visHideMounted then extra[#extra + 1] = "騎乘藏" end
-            if fdb.visHideNoTarget then extra[#extra + 1] = "無目標藏" end
-            if fdb.visHideNoEnemy then extra[#extra + 1] = "無敵目標藏" end
+            if fdb.visHideCombat then extra[#extra + 1] = "戰鬥藏" end
+            if (fdb.visGroup or "any") ~= "any" then extra[#extra + 1] = "隊伍:" .. fdb.visGroup end
+            if fdb.visOnlyInstances then extra[#extra + 1] = "副本" end
             local pending = (uf.visDriverPending and "!外待補" or "") .. (uf.visPending and "!內待補" or "")
                          .. (uf.visCatcherPending and "!墊底待補" or "")
             -- 墊底：隱藏時仍可點擊的那顆按鈕（沒建過就不列）
             local catcher = uf.visCatcher and (" 墊底" .. (uf.visCatcher:IsShown() and "開" or "關")) or ""
             rows[#rows + 1] = ("%s=%s/外%s內%s%s%s%s alpha=%.2f"):format(
-                unit, fdb.visibility or "always",
+                unit, #when > 0 and table.concat(when, "|") or "一直顯示",
                 uf.visDriver:IsShown() and "開" or "關",
                 uf.visGate:IsShown() and "開" or "關",
                 #extra > 0 and ("(" .. table.concat(extra, ",") .. ")") or "",

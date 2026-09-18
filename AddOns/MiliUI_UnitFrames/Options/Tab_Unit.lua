@@ -71,6 +71,31 @@ local function DispelTestRow(unitKey)
     end
 end
 
+------------------------------------------------------------
+-- 「顯示時機」開放給哪些單位
+--
+-- 這三個時機問的是「你手上有沒有那個東西」，所以只對**單位一直存在**的框有意義：
+-- 玩家框與寵物框不會因為沒目標而消失，需要一個條件來決定要不要出現。
+-- 目標／目標的目標這一串框則是「存在＝你已經有目標」（unit watch 管的），
+-- 再加一條「有目標才顯示」是純空轉的驅動 —— 但「有敵對目標」對它們仍然有意義
+-- （分得出友方目標與敵方目標），所以那條照開。
+--
+-- ⚠ 沒開放的單位若**現值是 true**（v19 遷移從舊設定帶過來的）照樣要列出來，
+-- 不然那個狀態就沒有介面關得掉。表單清單是開分頁時建一次、之後快取重用，
+-- 所以關掉之後那一列要換分頁才會消失 —— 可接受，不為它加重建邏輯。
+local SHOW_WHEN_UNITS = {
+    visShowTarget = { player = true, pet = true },
+    visShowEnemy  = { player = true, pet = true, target = true,
+                      targettarget = true, targettargettarget = true },
+    visShowFocus  = { player = true, pet = true },
+}
+
+local function ShowWhenToggle(list, unitKey, fdb, key, label)
+    if SHOW_WHEN_UNITS[key][unitKey] or (fdb and fdb[key]) then
+        tinsert(list, { type = "toggle", root = "frame", key = key, label = label })
+    end
+end
+
 local function FrameSpecs(unitKey)
     local list = {
         { type = "toggle", root = "unit", key = "enabled", label = L["Enable this unit frame"],
@@ -91,29 +116,37 @@ local function FrameSpecs(unitKey)
     end
     ------------------------------------------------------------
     -- 顯示條件
+    --
+    -- 一句話規則：任一「限制條件」不符 ⇒ 藏；否則任一「顯示時機」成立 ⇒ 顯示；
+    -- 顯示時機全不勾 ⇒ 一直顯示。（產生巨集字串的地方在 Core/Visibility.lua）
     ------------------------------------------------------------
+    local fdb = ns.GetUnitDB(unitKey).frame
     tinsert(list, { type = "header", label = L["When to show"] })
-    tinsert(list, { type = "dropdown", root = "frame", key = "visibility", label = L["Show"], items = {
-        { text = L["Always"],           value = "always" },
-        { text = L["In combat only"],   value = "inCombat" },
-        { text = L["Out of combat only"], value = "outOfCombat" },
-        { text = L["In a group"],       value = "inGroup" },
-        { text = L["In a party only"],  value = "inParty" },
-        { text = L["In a raid only"],   value = "inRaid" },
-        { text = L["Solo only"],        value = "solo" },
-    } })
-    tinsert(list, { type = "text", label = L["Hidden frames stop updating entirely, so conditions cost nothing while they hide the frame."] })
-    tinsert(list, { type = "toggle", root = "frame", key = "visOnlyInstances",
-                    label = L["Only in instances"],
-                    hint = L["Dungeons, raids, scenarios, arenas and battlegrounds."] })
+    tinsert(list, { type = "text", label = L["Any one of these is enough to show the frame; with none checked it always shows."] })
+    tinsert(list, { type = "toggle", root = "frame", key = "visShowCombat",
+                    label = L["In combat"] })
+    ShowWhenToggle(list, unitKey, fdb, "visShowTarget", L["With a target"])
+    ShowWhenToggle(list, unitKey, fdb, "visShowEnemy", L["With a hostile target"])
+    ShowWhenToggle(list, unitKey, fdb, "visShowFocus", L["With a focus target"])
+
+    tinsert(list, { type = "header", label = L["Restrictions"] })
+    tinsert(list, { type = "text", label = L["These take priority: if any one of them does not match, the frame is hidden."] })
     tinsert(list, { type = "toggle", root = "frame", key = "visHideMounted",
                     label = L["Hide while mounted"],
                     hint = L["Druid travel, aquatic and flight forms count as mounted."] })
-    tinsert(list, { type = "toggle", root = "frame", key = "visHideNoTarget",
-                    label = L["Hide without a target"] })
-    tinsert(list, { type = "toggle", root = "frame", key = "visHideNoEnemy",
-                    label = L["Hide without a hostile target"] })
-    tinsert(list, { type = "text", label = L["These stack on top of the choice above: any one of them hides the frame."] })
+    tinsert(list, { type = "toggle", root = "frame", key = "visHideCombat",
+                    label = L["Hide in combat"] })
+    tinsert(list, { type = "toggle", root = "frame", key = "visOnlyInstances",
+                    label = L["Only in instances"],
+                    hint = L["Dungeons, raids, scenarios, arenas and battlegrounds."] })
+    tinsert(list, { type = "dropdown", root = "frame", key = "visGroup", label = L["Group"], items = {
+        { text = L["Any"],              value = "any" },
+        { text = L["Solo only"],        value = "solo" },
+        { text = L["In a group"],       value = "group" },
+        { text = L["In a party only"],  value = "party" },
+        { text = L["In a raid only"],   value = "raid" },
+    } })
+    tinsert(list, { type = "text", label = L["Hidden frames stop updating entirely, so conditions cost nothing while they hide the frame."] })
     -- 只開放玩家框：墊底按鈕的 unit 固定是框自己的 token，其他框（目標、首領…）藏著時
     -- 點下去選的是「現在的目標」之類的東西，沒有意義；寵物框單位可能不存在。
     if unitKey == "player" then
