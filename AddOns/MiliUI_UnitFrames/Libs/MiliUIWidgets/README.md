@@ -117,13 +117,14 @@ ChatBar 與 DamageMeters 各帶一份幾乎一樣的引擎，結果同一個「E
 版面與互動的設計規則（打勾欄、標題階層、子選單寬限期）寫在
 [`miliui-menu-design`](../../../../.claude/skills/miliui-menu-design/SKILL.md) 技能。
 
-### 放不下的字（三支 opt-in 的工具）
+### 放不下的字（幾支 opt-in 的工具）
 
 共用層的按鈕字、勾選框標籤、下拉的選中文字**都不換行**，太長就溢出或被截成「…」，
-歐語譯文特別容易踩到。三支工具各對應一個位置，**全部是 opt-in**：
+歐語譯文特別容易踩到。每支工具各對應一個位置，**全部是 opt-in**：
 
 ```lua
 W.FitButton(b, minW, height)   -- 字 + 內距 > minW 才把按鈕撐開，回傳實際寬度
+W.WrapButton(b, width, minH)   -- 右邊撐不開時改成「字換行、按鈕往下長」，回傳實際高度
 cb:SetLabelMaxWidth(maxW)      -- 勾選框右側的標籤夾進 maxW 換行，回傳多出來的高度
 dd:SetMaxWidth(maxW)           -- 下拉照「最寬的項目」撐寬，上限 maxW
 W.TextExtraHeight(fs, text)    -- 底層：填字並回傳換行多出來的高度（沒換行回 0）
@@ -143,6 +144,33 @@ W.TextExtraHeight(fs, text)    -- 底層：填字並回傳換行多出來的高�
 
 `W.FitButton` 可以重複呼叫：之後才 `SetText` 的（讀數型按鈕）換完字再叫一次。
 刻意**不去 hook `SetText`** —— 那會讓每次刷新讀數都偷偷改版面。
+
+`W.WrapButton` 是 `FitButton` 的另一半：**右邊沒有空間可以撐寬**時（固定寬的直排
+清單，右邊緊接著分隔線）只剩「往下長」這條路。判準是「自然寬 ≤ width 就完全不動」，
+內距（`W.BTN_WRAP_PAD`）只有換行時才留 —— 拿內距當判準的話，原本貼著邊框但沒溢出的
+那幾顆（中韓譯名多半是這樣）會當場多長一行。呼叫端要拿回傳的高度**累加**著往下排，
+不能再用固定的 pitch。量不到高度（版面還沒解析）時會整個收手退回原樣：
+「換了行卻沒長高」會讓第二行畫到下一顆按鈕身上，比字溢出更糟。
+
+### 一排按鈕放不下就換排（`W.FlowLayout` / `W.FlowRows`）
+
+```lua
+local rows, h = W.FlowLayout(parent, buttons, maxW, gapX, gapY, rowH)  -- 排可見的那些
+local rows    = W.FlowRows(buttons, maxW, gapX)                        -- 只數排數，每顆都算
+```
+
+一排 chip 用「第一顆錨 parent 的 `TOPLEFT`、其餘一路 `LEFT`→`RIGHT` 串接」排成一行是
+最省事的寫法，但那排字是會被翻譯的：中文剛好卡邊的一排，俄文展開有兩倍半寬，直接衝出
+視窗右緣（溢出去的那截點得到、看不到）。`W.FlowLayout` 只排版、不建立東西，而且
+**單排時的錨點與原本的串接寫法逐位元相同**，放得下的語系一個像素都不會變。
+
+`maxW` 量不到（`GetWidth()` 回 0／nil）就當成無限寬＝維持單排的舊行為；退成「每顆
+一排」的話，版面解析前跑一次就會把整排炸開。呼叫端仍應自己備一個由視窗寬算出來的
+退路值。
+
+`W.FlowRows` **不管按鈕現在顯不顯示、每一顆都算**：清單內容會變的容器（不同對象有
+不同數量的 chip），高度應該一次留給「全部都出現」的排數。跟著內容跳的話，底下的東西
+每換一次對象就上下彈一次 —— 穩定比緊湊重要，chip 少的時候底下空一排可以接受。
 
 `W.CreateConfirmPopup` / `W.CreateChoicePopup` 的高度原本寫死（84／96，只夠兩三行），
 訊息換完行有四行的語系會讓後兩行**蓋在確定／取消上面**。現在兩者的 `OnShow` 會量文字、

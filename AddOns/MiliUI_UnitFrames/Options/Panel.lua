@@ -13,6 +13,10 @@ local Options = ns.Options
 
 local PANEL_W, PANEL_H = 700, 520
 
+-- 分頁自己算版面時要用到視窗寬（例如單位分頁的 chip 列：可用寬度 = 視窗寬 − 左右錨點）。
+-- 掛出來是為了不讓同一個 700 在別的檔案裡變成第二個魔術數字
+Options.PANEL_W, Options.PANEL_H = PANEL_W, PANEL_H
+
 -- 分頁鈕：74 是**下限**不是固定寬。
 -- ⚠ 按鈕的 label 只錨 CENTER、`SetWordWrap(false)`，太長不會被裁掉而是**往兩側溢出**
 -- （見 Widgets.lua 的 CreateButton 註解）。固定 74 的話德文的 "Beschwörungen"

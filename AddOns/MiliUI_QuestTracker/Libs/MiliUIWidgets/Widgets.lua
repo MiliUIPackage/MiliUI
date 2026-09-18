@@ -204,6 +204,111 @@ function W.FitButton(b, minW, height)
     return need
 end
 
+-- 字太長就讓按鈕的字換行、按鈕往下長高（opt-in）。
+--
+-- 這是 FitButton 的另一半：**右邊沒有空間可以撐寬**的時候（固定寬的直排清單，右邊
+-- 緊接著分隔線與表單），只剩「往下長」這條路可走。呼叫端拿回傳的高度去排下一顆。
+--
+-- 放得下就一個位元都不動 —— 判準是「自然寬 ≤ width」，貼著邊框但還沒溢出的那幾顆
+-- （中韓的譯名多半是這樣）不會因為多了這支而變成兩行。內距只有換行時才留：
+-- 拿來當判準的話那幾顆會當場多一行，等於偷偷改了中韓的版面。
+--
+-- ⚠ 一定要**先量自然寬再 SetWidth**：夾住之後 GetStringWidth() 量到的是夾過的寬度。
+--   CreateButton 的字刻意不夾寬（見上面的註解），就是為了讓呼叫端量得準。
+--   所以每次都先把上一輪的夾寬**拆掉**再量 —— 這也讓它可以重複呼叫（換了字、換了
+--   字型、或第一次是在還沒顯示的框上量的，再叫一次就好，結果不會累加）。
+--   ⚠ 重複呼叫時 width／minH 要傳跟第一次**一樣的值**：省略參數會去讀 b.width /
+--   b.height，而那已經是上一輪換行後的高度了。
+W.BTN_WRAP_PAD = 8      -- 換行時文字左右各留一半
+
+function W.WrapButton(b, width, minH, pad)
+    width = width or b.width or b:GetWidth() or 0
+    minH = minH or b.height or b:GetHeight() or 0
+    local fs = b:GetFontString()
+    if not fs or width <= 0 then return minH end
+    local text = b:GetText()
+    if not text or text == "" then return minH end
+
+    -- 退回 CreateButton 的原始狀態再量。SetWidth(0) 是 FontString 的「取消定寬」
+    -- 寫法（不是把它縮成 0 寬）
+    fs:SetWidth(0)
+    fs:SetWordWrap(false)
+    local textW = fs:GetStringWidth() or 0
+    if textW <= 0 or math.ceil(textW) <= width then
+        P.Size(b, width, minH)
+        return minH
+    end
+
+    fs:SetWidth(width - (pad or W.BTN_WRAP_PAD))
+    fs:SetWordWrap(true)
+    fs:SetNonSpaceWrap(true)        -- 沒有空白可斷的複合字寧可斷在字中，也不要橫著溢出
+    fs:SetJustifyH("CENTER")
+    local extra = W.TextExtraHeight(fs, text)
+    if extra <= 0 then
+        -- 量不到高度（版面還沒解析，GetStringHeight() 回 0）⇒ 整個收手退回原樣。
+        -- 「換了行卻沒長高」比字溢出更糟：第二行會畫到下一顆按鈕身上，而那一顆
+        -- 還在原來的位置（呼叫端拿到的是 minH）。
+        fs:SetWidth(0)
+        fs:SetWordWrap(false)
+        P.Size(b, width, minH)
+        return minH
+    end
+    P.Size(b, width, minH + extra)
+    return minH + extra
+end
+
+------------------------------------------------------------
+-- 一排按鈕的換排排版（opt-in）
+--
+-- 一排 chip 用「第一顆錨 parent 的 TOPLEFT、其餘一路 LEFT→RIGHT 串接」排成一行是
+-- 最省事的寫法，但那排字是會被翻譯的：中文剛好卡邊的一排，俄文展開有兩倍半寬，
+-- 直接衝出視窗右緣（而且溢出去的那截點得到、看不到）。
+--
+-- 這兩支只排版、不建立東西，而且**單排時的錨點與原本的串接寫法逐位元相同** ——
+-- 放得下的語系一個像素都不會變。
+------------------------------------------------------------
+
+-- place(b, rowIndex, prevInRow) 給 nil 就只數排數（不動版面）
+local function FlowWalk(buttons, maxW, gapX, place, includeHidden)
+    -- 量不到可用寬就當成無限寬＝維持單排的舊行為。退成「每顆一排」的話，
+    -- 版面解析前跑一次就會把整排炸開成十一排。
+    if type(maxW) ~= "number" or maxW <= 0 then maxW = math.huge end
+    local rows, x, prev = 1, 0, nil
+    for _, b in ipairs(buttons) do
+        if includeHidden or b:IsShown() then
+            local w = b:GetWidth() or 0
+            if prev and x + gapX + w > maxW then
+                rows, x, prev = rows + 1, 0, nil
+            end
+            if place then place(b, rows, prev) end
+            x = prev and (x + gapX + w) or w
+            prev = b
+        end
+    end
+    return rows
+end
+
+-- 把**可見的**按鈕從左排到右，超過 maxW 就換到下一排。回傳排數與總高度。
+function W.FlowLayout(parent, buttons, maxW, gapX, gapY, rowH)
+    gapX, gapY, rowH = gapX or 0, gapY or 0, rowH or 0
+    local rows = FlowWalk(buttons, maxW, gapX, function(b, row, prev)
+        b:ClearAllPoints()
+        if prev then
+            b:SetPoint("LEFT", prev, "RIGHT", gapX, 0)
+        else
+            b:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -(row - 1) * (rowH + gapY))
+        end
+    end)
+    return rows, rows * rowH + (rows - 1) * gapY
+end
+
+-- 只數排數、不動版面，而且**每一顆都算**（不管現在顯不顯示）。
+-- 給「容器高度要一次留給最壞情況」的呼叫端用：清單內容會變的那種列，高度跟著內容
+-- 跳的話，底下的東西每換一次就上下彈一次 —— 穩定比緊湊重要。
+function W.FlowRows(buttons, maxW, gapX)
+    return FlowWalk(buttons, maxW, gapX or 0, nil, true)
+end
+
 -- 互斥高亮群組（分頁鈕用）
 function W.CreateButtonGroup(buttons, onClick)
     local function HighlightOnly(selected)
