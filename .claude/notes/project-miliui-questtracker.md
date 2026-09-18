@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 115994b3-d41f-4e67-b636-6c325885e05b
-  modified: 2026-09-15T16:36:17.259Z
+  modified: 2026-09-18T16:05:14.993Z
 ---
 
 2026-08-29 開的獨立插件（`AddOns/MiliUI_QuestTracker/`），骨架照
@@ -52,6 +52,30 @@ metadata:
 
 `hiddenParent` 要 `SetAllPoints(UIParent)`：追蹤器的錨點如果是相對「父層」而不是具名
 UIParent，換父層會連位置一起跑掉，我們錨在它身上的標題列與背景會跟著飛。
+
+⚠ **parent 不是我們一個人的（2026-09-18，回報「進探究整個消失」）。** 暴雪有三處直接寫它、
+都不看現在掛在誰底下：`ManagedFrameContainerMixin:UpdateFrame`（`SetParent(RightManagedFrameContainer)`）、
+`EditModeSystemMixin:ApplySystemAnchor`（預設位置走前者；`AddManagedFrame` 的閘是 **`IsShown` 不是
+`IsVisible`**，掛在隱藏容器底下照樣通過）、`BreakFromFrameManager`（拖過位置的走 `SetParent(UIParent)`）。
+⇒ **每次編輯模式套用版面（過圖、換專精）都會把摺起來的清單拉回畫面**，標題列還顯示「已摺疊」；
+下一次 `PLAYER_REGEN_ENABLED` 的 Reconcile 又把它收走 —— 玩家看到的是「過圖有、打完第一波怪消失」。
+報告指紋：`wantHidden=true parentedAway=false mouseBlocker=false` 而 `OTF visible=true parent=RightManagedFrameContainer`。
+修法：`hooksecurefunc(otf, "SetParent")` 只排一次下一幀的 `Reconcile`（不在 hook 裡直接 SetParent，
+那會在 AddManagedFrame 跑到一半時重入 OnHide → RemoveManagedFrame）。報告多了 `parentReclaimed=N` 與
+`!! wantHidden=true but the tracker is on screen`。**還沒進遊戲驗證**；hook 會在 OTF 上多一個 `SetParent` 欄位，
+要看 taint 段有沒有變髒。原始碼在 `Blizzard_ManagedFrameSystem/Shared/ManagedFrameSystem.lua`
+（不在 UIParent.lua）。容器的 `Update` 也會自己 `Show()`／`Hide()` 追蹤器（有沒有任何模組有內容）。
+⚠ **但這不是那位玩家的症狀**（2026-09-19 補的照片：連「目標」標題列都不見、沒有錯誤）。被我們摺起來的話
+標題列會留著，所以上面那個 bug 是報告順手抓到的另一件事。「無錯誤、整份消失」在暴雪原始碼裡只有一條靜默路徑：
+`ObjectiveTrackerContainerMixin:Update` 走完沒有任何模組 `GetContentsHeight() > 0` 就 `self:Hide()`；
+**場景模組 `hasDisplayPriority=true`，它一被截斷（`isTruncated`），`availableHeight` 直接歸零，後面所有模組都
+Skipped** —— 所以只在場景／探究裡發作。我們的標題列跟著 `HasAnyContent()` 走，一起消失。
+追蹤器高度（預設位置）＝ `GetParent():GetHeight() + GetPoint(1) 的 offsetY`，最低 20。**誰讓高度變小還沒查到**
+（我們換 parent 只會讓它變大不會變小）；報告加了 `OTF height inputs` 一行、每個模組的 `avail=`、以及**判定 D**
+（有模組 NotShown、沒有任何模組排得進去、OTF 沒 shown）。要玩家**在探究裡清單消失的當下**打 `/mquest debug`。
+另一個對過的事實：`DirtiableMixin` 的 `self.dirty = nil` 寫在 `method(self)` **之後** —— Update 拋錯一次，
+dirty 就永遠卡在 true、追蹤器到 /reload 前不再更新（這次不是這條，BugGrabber 0 筆、updates 計數是活的）。
+連帶的 UX 風險：`db.folded` 是點標題列就寫入的，誤點一次就永久摺著，玩家不見得知道那條可以點開。
 
 **暴雪原生的收合（`Header:SetCollapsed`）不能拿來做自動摺疊** —— 那要跑它整串收合程式碼。
 所以「自動縮起」是我們自己藏，配一條自畫的標題列當把手（`Modules/Chrome.lua`）。
