@@ -14,6 +14,9 @@
 --      同一型還有 widget 那條路：追蹤器的 widget set 是伺服器指派的，跟 C_Scenario 無關，
 --      所以「不在場景裡」不代表 widget 就該是空的（開始前倒數那類就是 widget）。
 --   C. 模組有渲染，但被我們藏掉 —— 摺疊、alpha、換父層、位置飄到螢幕外。我們的 bug。
+--   D. 排不進去 —— 追蹤器的高度放不下任何區塊，容器的 Update 走到最後自己 Hide()。
+--      **不報錯**，而且連我們的標題列一起消失（標題列跟著「有沒有內容」走）。場景模組有
+--      顯示優先權，它一被截斷、後面所有模組的可用高度就歸零，所以只在場景／探究裡發作。
 --
 -- 所以報告分成 API 端／容器與模組端／我們這端三段對照，再加 taint 檢查（issecurevariable
 -- 會直接點名是哪個插件弄髒的）與錯誤記錄，最後給一句判定。
@@ -324,6 +327,18 @@ local function SecContainer(add, ctx)
         tostring(otf:IsProtected()), Str(collapsed), otf:GetWidth() or -1, otf:GetHeight() or -1,
         otf:GetEffectiveScale() or -1)
     ctx.otfVisible = otf:IsVisible() and (otf:GetAlpha() or 0) > 0
+    ctx.otfShown   = otf:IsShown() and true or false
+    ctx.otfHeight  = otf:GetHeight()
+
+    -- 追蹤器的高度是算出來的：預設位置時 ＝ 父層高度 ＋ 第一個錨點的 y 位移（最低 20），
+    -- 見 ObjectiveTrackerContainerMixin:UpdateHeight。高度不夠 ⇒ 模組排不進去 ⇒ 容器
+    -- 自己 Hide()，整份清單**不報錯地**消失。所以把算式的三個輸入都印出來
+    local point, rel, relPoint, ox, oy = otf:GetPoint(1)
+    add("OTF height inputs: parentHeight=%s point1=%s>%s.%s(%s, %s) numPoints=%s topPadding=%s defaultPosition=%s editModeHeight=%s",
+        Str(parent and parent.GetHeight and parent:GetHeight()), Str(point),
+        Str(rel and rel.GetName and rel:GetName() or (rel and "unnamed")), Str(relPoint), Str(ox), Str(oy),
+        Str(otf:GetNumPoints()), Str(otf.topModulePadding),
+        Str(otf.IsInDefaultPosition and otf:IsInDefaultPosition()), Str(otf.editModeHeight))
 
     -- 位置換算成 UIParent 座標再跟螢幕比，才看得出是不是飄到外面去了
     local s, us = otf:GetEffectiveScale() or 1, UIParent:GetEffectiveScale() or 1
@@ -365,11 +380,21 @@ local function SecModules(add, ctx)
             end
         end
         local shown = m.IsShown and m:IsShown()
-        add("%s: shown=%s alpha=%s inList=%s state=%s hasContents=%s h=%s collapsed=%s skipped=%s blocks=%d updates=%d last=%s",
+        add("%s: shown=%s alpha=%s inList=%s state=%s hasContents=%s h=%s avail=%s collapsed=%s skipped=%s blocks=%d updates=%d last=%s",
             ShortName(m), tostring(shown), Str(m.GetAlpha and m:GetAlpha()), tostring(inList),
-            EnumName(StateEnum, m.state), Str(m.hasContents), Str(m.contentsHeight),
+            EnumName(StateEnum, m.state), Str(m.hasContents), Str(m.contentsHeight), Str(m.availableHeight),
             Str(m.isCollapsed), Str(m.hasSkippedBlocks), blocks,
             updateCount[m] or 0, Ago(updateLast[m]))
+        -- 「排不進去」的兩個指紋：NotShown ＝ 試過區塊、一個都放不下；ShownPartially ＝ 放了一部分。
+        -- 場景模組有顯示優先權，它一被截斷，後面所有模組的可用高度就歸零（容器 Update 的第一圈）
+        if inList and StateEnum and not IsSecret(m.state) then
+            if m.state == StateEnum.NotShown then
+                ctx.notShown = ctx.notShown or {}
+                ctx.notShown[#ctx.notShown + 1] = ShortName(m)
+            elseif m.state == StateEnum.ShownPartially or m.state == StateEnum.ShownFully then
+                ctx.anyDisplayable = true
+            end
+        end
         if m == _G.ScenarioObjectiveTracker then
             add("  scenario module: scenarioID=%s currentStage=%s shouldShowCriteria=%s priority=%s",
                 Str(m.scenarioID), Str(m.currentStage), Str(m.shouldShowCriteria), Str(m.hasDisplayPriority))
@@ -419,12 +444,23 @@ local function SecTaint(add, ctx)
     ctx.tainted = tainted
 end
 
-local function SecOurs(add)
+local function SecOurs(add, ctx)
     local st = T.DiagState()
     add("folded=%s wantHidden=%s parentedAway=%s mouseBlocker=%s trackerVisible=%s canReposition=%s",
         tostring(ns.Visibility and ns.Visibility.IsFolded()), tostring(st.wantHidden),
         tostring(st.parentedAway), tostring(st.blockerShown), tostring(T.IsVisible()),
         tostring(T.CanReposition()))
+    -- 暴雪在我們摺著的時候把 parent 拿回去的次數（編輯模式套用版面就會），見 Core/Tracker.lua
+    add("parentReclaimed=%d last=%s", st.reclaimCount or 0, Ago(st.reclaimLast))
+    -- 「要藏」卻三條路都沒落地 ＝ 標題列說摺著、清單卻開著。收斂是下一幀的事，
+    -- 所以這行出現在報告裡就代表沒收斂到
+    local otf = T.OTF()
+    if st.wantHidden and not st.parentedAway and not st.blockerShown
+       and otf and otf:IsVisible() and (otf:GetAlpha() or 0) > 0 then
+        ctx.hideMismatch = true
+        add("!! wantHidden=true but the tracker is on screen (parent=%s)",
+            Str(otf:GetParent() and otf:GetParent().GetName and otf:GetParent():GetName() or "?"))
+    end
     local emm = _G.EditModeManagerFrame
     add("mythicPlus.inChallenge=%s positionOverridden=%s editMode=%s",
         tostring(ns.MythicPlus and ns.MythicPlus.IsInChallenge()),
@@ -702,6 +738,14 @@ local function Verdict(ctx)
             :format(ctx.trackerWidgetsShown or 0, tostring(ctx.widgetState), tostring(ctx.widgetContent))
     end
 
+    -- 容器自己把自己藏掉：有模組試過、一個區塊都放不下，而且沒有任何模組排得進去。
+    -- 這條路**不報錯**，而且跟場景 API 有沒有資料無關，所以排在最前面 ——
+    -- 不然「整份清單消失」會被下面判成 A（不在場景）或 B（taint），兩個都是錯的方向
+    if ctx.notShown and not ctx.anyDisplayable and not ctx.otfShown then
+        return "D", L["Verdict D: nothing fits — %s tried to lay out but no block fit in the tracker's height (%s), so Blizzard's tracker hid itself. No error is raised on this path. The height is computed from the parent frame — see \"OTF height inputs\" in the report."]
+            :format(table.concat(ctx.notShown, ", "), Str(ctx.otfHeight))
+    end
+
     if not ctx.apiScenario then
         if widgetBroken then return WidgetVerdict() end
         -- 「人在事件裡卻判 A」要能再往下分，不然玩家只會得到一句「暴雪的問題」。
@@ -755,6 +799,9 @@ function D.Report()
     out[#out + 1] = "  " .. text
     -- 判定只管「追蹤器少了一段」那三型；字型對不上是另一回事，不併進判定，
     -- 但要在這裡點出來，不然讀報告的人只看判定會以為這份跟症狀無關
+    if ctx.hideMismatch then
+        out[#out + 1] = "  also: the list is folded but still on screen — see \"this addon\""
+    end
     if (ctx.lineMismatch or 0) > 0 then
         out[#out + 1] = ("  also: %d objective line(s) don't match the font settings — see \"objective line fonts\"")
             :format(ctx.lineMismatch)

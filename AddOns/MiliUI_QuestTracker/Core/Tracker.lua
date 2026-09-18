@@ -343,13 +343,49 @@ end
 
 function T.IsHidden() return wantHidden end
 
--- /mquest debug 用：把隱藏機制走到哪一步攤開來。三個值分別對應上面三條路
+------------------------------------------------------------
+-- 追蹤器的 parent 不是我們一個人的
+--
+-- 暴雪有三個地方會直接寫它，而且都不看現在掛在誰底下：
+--   * ManagedFrameContainerMixin:UpdateFrame  —— SetParent(RightManagedFrameContainer)
+--   * EditModeSystemMixin:ApplySystemAnchor   —— 預設位置走上面那支（AddManagedFrame 的閘
+--     是 IsShown 不是 IsVisible，掛在隱藏容器底下照樣通過）
+--   * EditModeSystemMixin:BreakFromFrameManager —— 拖過位置的走 SetParent(UIParent)
+-- 也就是**每一次編輯模式套用版面**（過圖、換專精、改版面）都會把摺起來的清單拉回畫面上，
+-- 而我們還以為它摺著：標題列的箭頭是「已摺疊」、清單卻開著；等下一次脫離戰鬥
+-- Reconcile 才又把它收走。2026-09-18 玩家回報的「進探究整個消失」就是這一段 ——
+-- 過圖時清單彈出來、打完第一波怪又不見。
+--
+-- Reconcile 本來就是「問實際狀態再收斂」，缺的只是暴雪動手的那一刻沒有人叫它。
+-- 這裡補上那個觸發點，不另外記狀態、也不在 hook 裡直接 SetParent（那會在暴雪的
+-- AddManagedFrame 跑到一半時重入它的 OnHide → RemoveManagedFrame）。
+-- hook 裡只排一次下一幀的工作；我們自己的 SetParent 也會進來，但那時實際狀態
+-- 跟 wantHidden 一致，Reconcile 什麼都不會做，不會成迴圈。
+------------------------------------------------------------
+local reclaimCount, reclaimLast = 0, nil
+
+do
+    local otf = T.OTF()
+    if otf then
+        hooksecurefunc(otf, "SetParent", function(_, parent)
+            if not wantHidden or parent == hiddenParent then return end
+            reclaimCount = reclaimCount + 1
+            reclaimLast = GetTime()
+            T.Defer("reconcileParent", Reconcile)
+        end)
+    end
+end
+
+-- /mquest debug 用：把隱藏機制走到哪一步攤開來。前三個值分別對應上面三條路；
+-- reclaim 是暴雪在我們摺著的時候把 parent 拿回去的次數
 function T.DiagState()
     local otf = T.OTF()
     return {
         wantHidden   = wantHidden,
         parentedAway = (otf and otf:GetParent() == hiddenParent) or false,
         blockerShown = mouseBlocker:IsShown(),
+        reclaimCount = reclaimCount,
+        reclaimLast  = reclaimLast,
     }
 end
 
