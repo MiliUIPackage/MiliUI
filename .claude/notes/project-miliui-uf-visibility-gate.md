@@ -27,14 +27,21 @@ tainted Lua `SetShown` 閘框一樣被擋（2026-09-06 taint.log 實測 ×11）�
 污染過的 Lua 沒有任何寫法能戰鬥中切保護框的顯示，只能交給安全端。
 
 **How to apply**：
-- **能寫成巨集條件的一律放外層，不要兩層都判同一件事**：內層也判騎乘的話，
-  「騎著被打下來」內層戰鬥中開不了，外層再對都沒用。對照（`V.DriverSpec`）：
-  藏的子句排前面、主模式排後面、最後補預設值（巨集取第一個成立的子句 ⇒ AND）。
-  `[mounted] hide; [form:N] hide`（N 是**姿態列第幾格**，掃 `GetShapeshiftFormInfo`
-  找旅行型態 783，`UPDATE_SHAPESHIFT_FORMS` 重掃）、`[@target,noexists] hide; [@target,noharm] hide`、
-  `[combat]`／`[nocombat]`／`[group]`／`[group:raid] hide; [group] show`（`group:party` 在團隊裡也成立）／
-  `[group:raid]`／`[nogroup]`。沒有任何外層條件就**不註冊**（UnregisterStateDriver 後自己 Show 放回來，
-  取消註冊不會動框的狀態）。
+- **設定模型（2026-09-18，DB v19）：顯示時機 OR ＋ 限制條件優先。** 規則一句話：任一限制不符 ⇒ 藏；
+  否則任一時機成立 ⇒ 顯示；時機全不勾 ⇒ 一直顯示。字串＝`<限制的 hide 子句>; <時機的 show 子句>; hide`
+  （沒時機時結尾 `show`，兩組都空回 nil 不註冊）。巨集取第一個成立的子句，所以 hide 排前面就是「限制優先」。
+  - 時機：`visShowCombat [combat]`／`visShowTarget [@target,exists]`／`visShowEnemy [@target,harm]`／`visShowFocus [@focus,exists]`
+  - 限制：`visHideMounted [mounted]＋[form:N]`（N 是**姿態列第幾格**，掃 `GetShapeshiftFormInfo` 找旅行型態 783，
+    `UPDATE_SHAPESHIFT_FORMS` 重掃）／`visHideCombat [combat] hide`／`visGroup` solo `[group] hide`、group `[nogroup] hide`、
+    party `[group:raid] hide; [nogroup] hide`（`group:party` 在團隊裡也成立）、raid `[nogroup:raid] hide`／`visOnlyInstances`（內層 Lua）
+  - **為什麼改**：舊模型是「單選主模式 AND 每個隱藏開關」，組不出最常見的「戰鬥中**或**有目標」——玩家回報
+    「只在戰鬥中＋沒有目標時隱藏，戰鬥中丟目標框就不見」。動態事件（戰鬥／目標）玩家期待 OR，場合（副本／隊伍）期待 AND，
+    舊的單選下拉把兩種混在一起。遷移唯一的語意變化就是那個組合 AND→OR；`outOfCombat` 無損轉成 `visHideCombat`。
+  - 「有目標」「有專注目標」設定頁只開放 player／pet（目標系的框存在＝有目標，空轉）；「有敵對目標」多開放 target 三連。
+    沒開放的單位若現值為 true（遷移帶來的）照樣列出來讓人關——不留沒有介面的隱形狀態。
+  - **不要抄「一張大清單混放顯示與隱藏條件」的介面**（互斥成對、優先權看不出來）；滑鼠懸停屬於透明度那條路，不放進這組。
+  - 驗收腳本的做法：離線直接 loadfile 真的 Visibility.lua（HEAD 版與新版）＋DB.lua 的 MigrateProfile，窮舉舊設定×狀態比對。
+  能寫成巨集條件的一律放外層，**不要兩層都判同一件事**：內層也判騎乘的話，「騎著被打下來」內層戰鬥中開不了，外層再對都沒用。
 - 內層只放**戰鬥中不會變**的條件。新增條件前先查巨集條件寫不寫得出來。
 - 兩層都是「**狀態沒變就一個 API 都不叫**、戰鬥中真要改就記帳」：`uf.visDriverPending`／
   `uf.visPending`，`V.FlushPending()` 在 `PLAYER_REGEN_ENABLED` 補做。RegisterStateDriver 本身是對
@@ -61,6 +68,7 @@ tainted Lua `SetShown` 閘框一樣被擋（2026-09-06 taint.log 實測 ×11）�
 - 診斷：`/muf debug` 的「顯示條件」列出每框 `外開/關 內開/關`、`!外待補`，以及實際註冊的巨集字串
   （字串錯了暴雪不報錯，只會一直判 hide）。
 - **待遊戲內驗證**（2026-09-14 只做了離線窮舉比對語意）：戰鬥中選怪框立刻出現、只在戰鬥中進戰出現、
-  寵物框／寵物目標框、德魯伊旅行型態、`[@target,noharm]` 對中立怪、taint.log 沒有新的 statehidden 封鎖。
+  寵物框／寵物目標框、德魯伊旅行型態、`[@target,harm]` 對中立怪、taint.log 沒有新的 statehidden 封鎖；
+  2026-09-18 新增：**`[nogroup:raid]` 這個帶參數的否定式沒在遊戲內驗過**（無效的症狀＝「只在團隊」永遠不顯示）、戰鬥中丟目標玩家框不藏。
 
 相關：[[project-miliui-unit-frame]]、[[project-miliui-hide-blizzard-taint]]、[[wow-combat-drag-release]]
