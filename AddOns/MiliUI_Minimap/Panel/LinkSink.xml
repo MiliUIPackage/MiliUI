@@ -12,8 +12,11 @@
     ⚠ 模板 OnLoad 註冊的聊天事件由 Panel/Tip.lua 在**檔案載入時**就 UnregisterAllEvents 拆掉，
       不能等第一次開名單 —— 不然登入時 UPDATE_CHAT_WINDOWS 一到，暴雪的 ConfigEventHandler
       對這顆 ID 0 的假聊天視窗讀 GetChatWindowInfo 就是 nil 比大小。
+    ⚠ frameStrata 要設在**這顆框**上，名單面板自己 SetFrameStrata 沒用：ChatFrameTemplate 是
+      toplevel="true"，toplevel 會隱含開啟 render layer flattening —— 所有子孫的貼圖與字
+      都併進這顆框的那一層畫。模板預設 LOW，名單就被同在 LOW 的任務追蹤框蓋過去。
   -->
-  <ScrollingMessageFrame name="MiliUI_Minimap_LinkSink" inherits="ChatFrameTemplate" parent="UIParent" hyperlinksEnabled="true">
+  <ScrollingMessageFrame name="MiliUI_Minimap_LinkSink" inherits="ChatFrameTemplate" parent="UIParent" frameStrata="TOOLTIP" hyperlinksEnabled="true">
     <Scripts>
       <OnUpdate></OnUpdate>
     </Scripts>

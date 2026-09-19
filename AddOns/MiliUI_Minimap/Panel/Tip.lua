@@ -232,6 +232,9 @@ local function Build()
     panel:SetHyperlinkPropagateToParent(true)
     -- TOOLTIP 層：它是暫時彈出來的東西，要壓在任務追蹤框、收納袋、其他插件視窗之上；
     -- 選單（FULLSCREEN_DIALOG）仍然在它上面。
+    -- ⚠ **畫面上的層級看的是 Sink 的 strata，不是這一行**：Sink 是 toplevel（隱含
+    --   render layer flattening），子孫全併進它那一層畫，所以 TOOLTIP 設在 LinkSink.xml。
+    --   這一行只是讓面板自己的 strata 跟 Sink 對齊（secure 開面板鈕的 level 照面板算）。
     panel:SetFrameStrata("TOOLTIP")
     panel:SetClampedToScreen(true)
     -- 吃滑鼠：這是一塊可以停在上面操作的面板，點到列與列之間的縫不該穿到世界去。
