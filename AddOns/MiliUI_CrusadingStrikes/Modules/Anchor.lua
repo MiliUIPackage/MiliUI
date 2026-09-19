@@ -58,13 +58,17 @@ local function VerticalRange(widget)
     return y + h / 2, y - h / 2
 end
 
+-- ⚠ 比**中心點**，不比邊緣。設計檔常讓施法條的頂邊往上疊進血條底邊一點點，
+--   好讓兩條的邊框併成一條線 —— 套組預設的設計就疊了 1.29 單位
+--   （血條底 -8.79、施法條頂 -7.50）。原本「頂邊要低於底邊、容忍 0.5」的寫法
+--   會把這種設計判成「不在下方」，讓位就靜悄悄地不發生（2026-09-19 實機）。
+--   中心點對互疊不敏感，施法條擺在血條上方的設計一樣分得出來。
 local function CastIsBelowHealth(health, cast)
     if not cast then return false end
-    local _, healthBottom = VerticalRange(health)
-    local castTop = VerticalRange(cast)
-    if not healthBottom or not castTop then return false end
-    -- 0.5 的寬容：設計檔常把施法條的頂邊剛好對齊血條底邊
-    return castTop <= healthBottom + 0.5
+    local healthTop, healthBottom = VerticalRange(health)
+    local castTop, castBottom = VerticalRange(cast)
+    if not healthTop or not castTop then return false end
+    return (castTop + castBottom) / 2 < (healthTop + healthBottom) / 2
 end
 
 ------------------------------------------------------------
