@@ -37,6 +37,7 @@ Core\MicroMenu.lua
 Core\Mounts.lua
 Core\MountPopup.lua
 Core\Repair.lua
+Core\AutoRepair.lua
 Core\RepairPopup.lua
 Core\ReadyCheck.lua
 Core\ReadyCheckPopup.lua

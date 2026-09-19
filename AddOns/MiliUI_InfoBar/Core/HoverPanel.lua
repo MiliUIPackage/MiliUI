@@ -1,16 +1,17 @@
 ------------------------------------------------------------
 -- 滑過方塊彈出來的面板：共用的皮、開關節奏、定位、列層
 --
--- 資訊列上有三張「滑過方塊就長出來」的面板（坐騎／修裝／確認倒數）＋一張「點開
--- 的表格」（戰隊）。三張滑過面板原本各自複製了同一套東西，複製久了就開始分岔：
--- 列高 22 對 28、標題 24 對 26、字級 +1 對 +2、分隔線 8 對 13——同一條資訊列上
--- 的四張面板長得不一樣，使用者一眼就看出來了。
+-- 資訊列上有四張「滑過方塊就長出來」的面板（坐騎／修裝／確認倒數／戰隊）。
+-- 前三張原本各自複製了同一套東西，複製久了就開始分岔：列高 22 對 28、
+-- 標題 24 對 26、字級 +1 對 +2、分隔線 8 對 13——同一條資訊列上的面板長得
+-- 不一樣，使用者一眼就看出來了。
 --
 -- 所以**節奏與皮只能有一份**，就是這一支：
 --   · 常數（2.1）是唯一真相來源，面板自己的檔案裡一個數字都不留。
 --   · 控制器 HP.New（開關節奏、定位、戰鬥紀律）。
 --   · 列層 rows（模型驅動、池化、自動套間距、自動量寬）。
--- 戰隊面板是表格不是清單，只共用皮與定位（HP.PlaceBelow）。
+-- 戰隊面板是**表格**不是清單，所以它走控制器與定位、**不走列層**
+--（一列一個選項的排版套在多欄表格上只會把欄位擠壞）。
 --
 -- ⚠ 面板一律掛 UIParent、**不掛 bar**：bar 是 secure 按鈕的祖先＝隱式保護框，
 --   掛在它底下的框戰鬥中 Show/Hide 不了。
@@ -39,8 +40,9 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 -- 水平只有**一張三欄格線**，每一列（標題、項目、說明、設定入口）都用同一組座標：
 --   [圖示／打勾 @PAD_X] [文字 @PAD_X+GUTTER] …… [右側標 @-PAD_X]
 -- 圖示欄的規則是**整張面板一起決定**：只要有任何一列用到圖示或打勾，每一列都留
--- （只有有圖的列才縮排是業餘感最明顯的破綻）；整張都沒有就一列都不留——
--- 修裝面板全是文字列，替它們空一欄只會讓文字離左緣一截、跟下面的圖示排對不上。
+-- （只有有圖的列才縮排是業餘感最明顯的破綻）；整張都沒有就一列都不留，
+-- 免得文字平白離左緣一截。修裝面板最上面那兩個自動修裝開關就是這樣讓整張
+-- （含逐部位耐久那幾列）一起縮排的——那是規則生效，不是跑版。
 --
 -- 垂直只有**一個間距單位 G**：反白貼圖是整列寬高的，它碰到的不論是標題的髮絲線、
 -- 分隔線還是面板邊緣，距離一律 G，滑過去才不會看到反白框忽寬忽窄。
@@ -491,11 +493,18 @@ end
 ------------------------------------------------------------
 -- 2.3 面板控制器
 --
---   local panel = HP.New({ name = "…", secure = false,
---                          build = fn, populate = fn, onOpen = fn, onHide = fn })
+--   local panel = HP.New({ name = "…", secure = false, allowCombat = false,
+--                          build = fn, beforeOpen = fn, populate = fn,
+--                          onOpen = fn, onHide = fn, keepOpen = fn })
 --   panel:ScheduleOpen(tile) / CancelOpen() / Open(tile)
 --   panel:ScheduleClose()    / CancelClose() / Hide()
 --   panel:IsOpenFor(tile)    / Refresh()     / panel.frame
+--
+-- secure      = 面板裡有 secure 按鈕（修裝）⇒ state driver 收面板、每個入口先問
+--               InCombatLockdown、onHide 延一幀
+-- allowCombat = 戰鬥中照樣開得起來、也不自動收（戰隊表格：純讀的資料）
+-- beforeOpen  = Build 之後、Populate 之前跑一次（「開啟」這件事專屬的前置）
+-- keepOpen    = 回 true 就延後這一輪的關閉（面板上開著自己的選單時）
 ------------------------------------------------------------
 local Panel = {}
 Panel.__index = Panel
@@ -593,12 +602,18 @@ function Panel:Hide()
 end
 
 function Panel:Open(tile)
-    -- 戰鬥中一律不開：三張面板的內容（召喚、修裝、開怪倒數）戰鬥中不是用不了就是
-    -- 只會擋畫面，方塊那邊會退回純顯示的提示
-    if InCombatLockdown() then return end
+    -- 戰鬥中一律不開：三張滑過面板的內容（召喚、修裝、開怪倒數）戰鬥中不是用不了
+    -- 就是只會擋畫面，方塊那邊會退回純顯示的提示。
+    -- 例外 allowCombat：戰隊表格是純讀的資料（鑰石、寶庫進度），戰鬥中看它沒有
+    -- 任何壞處，而且它掛 UIParent、不是保護框，Show/Hide 都合法。
+    if not self.spec.allowCombat and InCombatLockdown() then return end
     self:Build()
     self:CancelClose()
     self.anchorTile = tile
+    -- beforeOpen 是「Populate 之前只做一次」的位置（戰隊面板在這裡刷新自己那筆
+    -- 記錄）。放進 populate 的話，開著期間每次 listener 重畫都會再刷一次，
+    -- 而刷新本身又會發通知——繞回來就是一圈。
+    if self.spec.beforeOpen then self.spec.beforeOpen(self.frame) end
     self:Populate()
     self.frame:Show()
     self:Place()
@@ -616,6 +631,13 @@ function Panel:ScheduleClose()
         -- 判斷放在**到期時**：游標中途繞進面板（或繞回方塊）也算數
         if f:IsMouseOver() then return end
         if self.anchorTile and self.anchorTile:IsMouseOver() then return end
+        -- keepOpen：面板上開著自己的選單時游標必然在面板**外**，而選單一關之後
+        -- 不會再有任何 OnLeave 把我們叫回來 ⇒ 不能只是「這次不關」，要自己再排
+        -- 一次，下一輪到期時選單已經關了就正常收掉
+        if self.spec.keepOpen and self.spec.keepOpen() then
+            self:ScheduleClose()
+            return
+        end
         f:Hide()
     end)
 end
@@ -642,7 +664,8 @@ function HP.New(spec)
     -- 非 secure 的面板進戰鬥直接收（它不是保護框，Hide 合法）。
     -- secure 的那張由 _onstate-combat snippet 收，不能走事件——事件延一幀派送，
     -- 輪到我們的時候已經鎖上了。
-    if not spec.secure then
+    -- allowCombat 的那張兩邊都不收：戰鬥中開著看資料是它既有的行為。
+    if not (spec.secure or spec.allowCombat) then
         ns.Events.Register("PLAYER_REGEN_DISABLED", spec.name, function() panel:Hide() end)
     end
     return panel

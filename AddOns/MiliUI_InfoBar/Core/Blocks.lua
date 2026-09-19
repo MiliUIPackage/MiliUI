@@ -100,53 +100,17 @@ MakeTextBlock("ilvl", {
 ------------------------------------------------------------
 -- 耐久：全身裝備的**最低**百分比（要爆的永遠是最低的那件）
 --
--- 滑過彈出自製面板（Core/RepairPopup.lua：逐部位 ＋ 修裝道具／玩具／坐騎的
--- 按鈕），右鍵開修裝設定。
+-- 滑過彈出自製面板（Core/RepairPopup.lua：自動修裝的兩個開關 ＋ 逐部位耐久 ＋
+-- 修裝道具／玩具／坐騎的按鈕），右鍵開「修裝」設定分頁。
 --
--- ⚠ 逐部位的表與配色住在 Core/Repair.lua —— 面板也要用，兩邊各留一份的話
---   之後只會改到一邊。
+-- ⚠ 逐部位的表與配色住在 Core/Repair.lua、自動修裝住在 Core/AutoRepair.lua ——
+--   方塊與面板都要用，兩邊各留一份的話之後只會改到一邊。
+--   （本檔在 TOC 排最後，這兩支一定都已經載完。）
 ------------------------------------------------------------
 local function AnchorTooltip(tile)
     local _, cy = tile:GetCenter()
     local anchor = (cy and cy > UIParent:GetHeight() / 2) and "ANCHOR_BOTTOM" or "ANCHOR_TOP"
     GameTooltip:SetOwner(tile, anchor)
-end
-
--- 自動修裝設定的入口在 Core/Repair.lua（面板的說明行也要問同一件事）
-local MerchantAPI = Repair.MerchantAPI
-
-local function ShowRepairMenu(tile)
-    local api = MerchantAPI()
-    if not api then return end
-    GameTooltip:Hide()
-    local items = {
-        { isTitle = true, text = L["MENU_REPAIR_TITLE"] },
-        {
-            text = L["MENU_AUTO_REPAIR"],
-            isActive = api.IsAutoRepair(),
-            keepOpen = true,
-            onClick = function()
-                api.SetAutoRepair(not api.IsAutoRepair())
-                ShowRepairMenu(tile)          -- 原地重畫，打勾才會即時更新
-            end,
-        },
-        {
-            text = L["MENU_GUILD_REPAIR"],
-            isActive = api.IsGuildRepair(),
-            keepOpen = true,
-            onClick = function()
-                api.SetGuildRepair(not api.IsGuildRepair())
-                ShowRepairMenu(tile)
-            end,
-        },
-    }
-    -- 撞車警告只在真的會撞的時候出現（Leatrix 沒裝／沒開就不佔位置）
-    if api.LeatrixConflict() and api.IsAutoRepair() then
-        items[#items + 1] = { isSeparator = true }
-        items[#items + 1] = { isTitle = true, text = L["MENU_LEATRIX_CONFLICT"] }
-    end
-    -- keepAnchor：重畫時沿用上次解出來的位置，選單才不會跳走
-    W.Menu.Show(items, tile, true)
 end
 
 MakeTextBlock("durability", {
@@ -155,9 +119,9 @@ MakeTextBlock("durability", {
     init = function(_, tile)
         tile:SetScript("OnClick", function(self, button)
             if button == "RightButton" then
-                -- 選單跟面板從同一個錨點長出來，兩個一起開會疊在一起
+                -- 設定視窗跟面板從同一個錨點長出來，兩個一起開會疊在一起
                 ns.RepairPopup.Hide()
-                ShowRepairMenu(self)
+                ns.OpenSettings("repair")
             else
                 pcall(ToggleCharacter, "PaperDollFrame")
             end
@@ -187,8 +151,9 @@ MakeTextBlock("durability", {
             -- 按鍵說明一行一條，不用「|」串成一長條
             GameTooltip:AddLine(" ")
             GameTooltip:AddLine(L["HINT_LEFT_CHARACTER"], 0.5, 0.5, 0.5)
-            if MerchantAPI() then
-                GameTooltip:AddLine(L["HINT_RIGHT_REPAIR"], 0.5, 0.5, 0.5)
+            GameTooltip:AddLine(L["HINT_RIGHT_REPAIR"], 0.5, 0.5, 0.5)
+            -- Shift 那條只在自動修裝開著時才成立（同面板的說明列）
+            if ns.AutoRepair.IsEnabled() then
                 GameTooltip:AddLine(L["HINT_SHIFT_SKIP"], 0.5, 0.5, 0.5)
             end
             GameTooltip:Show()
@@ -352,11 +317,14 @@ MakeTextBlock("lootspec", {
 })
 
 ------------------------------------------------------------
--- 戰隊資訊：方塊上顯示目前角色的鑰石，左鍵展開所有角色的表格
+-- 戰隊資訊：方塊上顯示目前角色的鑰石，**滑過**展開所有角色的表格
 -- （Core/WarbandPopup.lua），右鍵選單。資料層在 Core/Warband.lua。
 --
 -- 方塊的字讀的是即時 API（GetOwnedKeystone 永遠最新），不是記錄；
 -- 資料層在鑰石／寶庫有變時通知，這裡只要重讀一次。
+--
+-- 滑過就開之後**不再彈 GameTooltip**：提示跟面板從同一個錨點長出來會疊在一起，
+-- 而面板本來就把提示裡那幾行都講完了。
 ------------------------------------------------------------
 local function ShowWarbandMenu(tile)
     GameTooltip:Hide()
@@ -383,26 +351,25 @@ MakeTextBlock("warband", {
     events = { "PLAYER_ENTERING_WORLD" },
     init = function(_, tile)
         tile:SetScript("OnClick", function(self, button)
-            GameTooltip:Hide()
             if button == "RightButton" then
+                -- 選單跟面板從同一個錨點長出來，兩個一起開會疊在一起（同耐久方塊）。
+                -- CancelOpen：意圖延遲還沒到期就按了右鍵的話，別讓面板晚一步冒出來
+                ns.WarbandPopup.CancelOpen()
+                ns.WarbandPopup.Hide()
                 ShowWarbandMenu(self)
             else
-                ns.WarbandPopup.Toggle(self)
+                -- 左鍵**只開不關**（跳過意圖延遲）：滑過已經會開了，習慣性點一下
+                -- 的人不該剛好在 0.15 秒後把它點掉
+                ns.WarbandPopup.Open(self)
             end
         end)
         tile:HookScript("OnEnter", function(self)
-            -- 面板開著就不彈提示：兩者從同一個錨點長出來會疊在一起
-            -- （.claude/notes/project-miliui-hud-skin.md）
-            if ns.WarbandPopup.IsOpenFor(self) then return end
-            AnchorTooltip(self)
-            GameTooltip:SetText(L["BLOCK_WARBAND"], 1, 1, 1)
-            GameTooltip:AddLine(L["WARBAND_TIP_COUNT"]:format(ns.Warband.Count()), 0.7, 0.7, 0.7)
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(L["HINT_LEFT_WARBAND"], 0.5, 0.5, 0.5)
-            GameTooltip:AddLine(L["HINT_RIGHT_WARBAND"], 0.5, 0.5, 0.5)
-            GameTooltip:Show()
+            ns.WarbandPopup.ScheduleOpen(self)
         end)
-        tile:HookScript("OnLeave", function() GameTooltip:Hide() end)
+        tile:HookScript("OnLeave", function()
+            ns.WarbandPopup.CancelOpen()
+            ns.WarbandPopup.ScheduleClose()
+        end)
     end,
     onEnable = function(inst)
         ns.Warband.AddListener("blk-warband", function() inst:Update() end)

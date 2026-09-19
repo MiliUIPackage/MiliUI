@@ -23,6 +23,7 @@ local W = ns.W
 local P = ns.P
 local HP = ns.HoverPanel
 local Repair = ns.Repair
+local AR = ns.AutoRepair
 
 ns.RepairPopup = {}
 local Popup = ns.RepairPopup
@@ -251,6 +252,38 @@ end
 local function BuildModel()
     local model = {}
 
+    -- 自動修裝排最上面：它是這張面板裡唯一「會自己發生」的東西，其餘都是
+    -- 讀數與按鈕。開關型項目按下去**原地重畫**（同 Core/ReadyCheckPopup.lua 的
+    -- 標記工具列），不關面板——按一下就要重新滑過來才看得到打勾是很煩的。
+    --
+    -- ⚠ 這是 secure 面板，但 onClick 跑在列層那顆普通 Button 上、不在 secure
+    --   按鈕的點擊派送裡，寫 db ＋ Refresh 都合法；戰鬥中 Refresh 本來就被
+    --   控制器的 Locked 擋掉，不必另外加閘。
+    model[#model + 1] = { kind = "title", text = L["SECTION_AUTO_REPAIR"] }
+    model[#model + 1] = {
+        kind    = "item",
+        check   = AR.IsEnabled(),
+        text    = L["MENU_AUTO_REPAIR"],
+        onClick = function()
+            AR.SetEnabled(not AR.IsEnabled())
+            panel:Refresh()
+        end,
+    }
+    model[#model + 1] = {
+        kind    = "item",
+        check   = AR.IsGuild(),
+        text    = L["MENU_GUILD_REPAIR"],
+        onClick = function()
+            AR.SetGuild(not AR.IsGuild())
+            panel:Refresh()
+        end,
+    }
+    -- 撞車警告只在真的會撞的時候出現（Leatrix 沒裝／沒開就不佔位置）
+    if AR.IsEnabled() and AR.LeatrixConflict() then
+        model[#model + 1] = { kind = "note", text = L["MENU_LEATRIX_CONFLICT"] }
+    end
+
+    model[#model + 1] = { kind = "sep" }
     model[#model + 1] = { kind = "title", text = L["BLOCK_DURABILITY"] }
 
     local any = false
@@ -288,8 +321,9 @@ local function BuildModel()
     -- 按鍵說明：一行一條，不用「|」串成一長條
     model[#model + 1] = { kind = "sep" }
     model[#model + 1] = { kind = "note", text = L["HINT_LEFT_CHARACTER"] }
-    if Repair.MerchantAPI() then
-        model[#model + 1] = { kind = "note", text = L["HINT_RIGHT_REPAIR"] }
+    model[#model + 1] = { kind = "note", text = L["HINT_RIGHT_REPAIR"] }
+    -- Shift 那條只在自動修裝開著時才成立：關著的時候沒有「那一次」可以略過
+    if AR.IsEnabled() then
         model[#model + 1] = { kind = "note", text = L["HINT_SHIFT_SKIP"] }
     end
 

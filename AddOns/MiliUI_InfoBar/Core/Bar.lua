@@ -1384,6 +1384,9 @@ function ns.ResetDB()
     CopyDefaults(ns.DB_DEFAULTS, db)
     if type(warband) == "table" then db.warband = warband end
     db.posVersion = 2       -- 位置遷移已經是最新格式，別讓它再跑一次
+    -- 自動修裝的遷移印記也一樣：wipe 把它清掉的話，下次登入又會從 MiliUI_DB
+    -- 把舊的開關值搬回來，「還原預設值」就白按了（Core/AutoRepair.lua）
+    db.repair.migration = "reset"
     ns.ApplyAll()
 end
 

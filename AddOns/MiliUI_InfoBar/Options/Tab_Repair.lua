@@ -1,5 +1,8 @@
 ------------------------------------------------------------
--- 「修裝」分頁：耐久面板要顯示哪些修裝道具／玩具／坐騎
+-- 「修裝」分頁：自動修裝的兩個開關 ＋ 耐久面板要顯示哪些修裝道具／玩具／坐騎
+--
+-- 自動修裝（Core/AutoRepair.lua）在耐久方塊的面板最上面也有同樣兩列，兩邊讀寫
+-- 的是同一個 db.repair；面板每次滑過都現讀，所以在這裡切換不必去通知它。
 --
 -- 清單是這一頁專屬的控件，走共用層表單引擎的 `custom` 型別
 -- （Libs/MiliUIWidgets/Controls.lua 的逃生門）——不為了它在共用層長出新型別。
@@ -189,6 +192,27 @@ end
 -- 表單
 ------------------------------------------------------------
 local CONTROLS = {
+    -- 自動修裝擺最前面：它是會自己發生的行為，而且方塊被玩家收起來之後，
+    -- 這裡就是唯一的入口（面板要滑過耐久方塊才長得出來）。
+    { type = "header", label = L["SECTION_AUTO_REPAIR"] },
+    { type = "toggle", key = "auto",  sub = "repair", label = L["MENU_AUTO_REPAIR"] },
+    { type = "text",   label = L["AUTO_REPAIR_DESC"] },
+    { type = "toggle", key = "guild", sub = "repair", label = L["MENU_GUILD_REPAIR"] },
+    { type = "text",   label = L["GUILD_REPAIR_DESC"] },
+    -- ⚠ 撞車警告不能寫成檔案層的 if：LeaPlusDB 是 Leatrix 自己的 SavedVariables，
+    --   本檔載入時不保證已經在了。走 custom，build 在「第一次打開分頁」才跑。
+    { type = "custom", h = 0, build = function(parent, x, y, width)
+        if not ns.AutoRepair.LeatrixConflict() then return 0 end
+        local fs = parent:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontSmall)
+        fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
+        fs:SetWidth(width)
+        fs:SetJustifyH("LEFT")
+        fs:SetSpacing(3)
+        fs:SetText("|cffff9900" .. L["AUTO_REPAIR_LEATRIX_WARN"] .. "|r")
+        return math.ceil(fs:GetStringHeight()) + 8
+    end },
+
     { type = "header", label = L["SECTION_REPAIR"] },
     { type = "text",   label = L["REPAIR_DESC"] },
     -- 清單橫跨整張表單（不縮在控件欄裡）：它是一整塊清單，不是一列控件
