@@ -27,6 +27,7 @@ L["Blizzard's own window is 5 rows by 2 columns. Every slot is still drawn by th
 L["Already collected"] = "已收藏"
 L["Dim them"] = "变暗显示"
 L["Fade the slot and tick the icon instead of removing it, so every slot keeps the number the game gave it."] = "把那一格变暗并在图标上打勾，而不是整格隐藏——这样每一格的编号还是游戏给的那个。"
+L["Bought but not used yet counts too: anything still sitting in your bags or bank is dimmed the same way."] = "买了还没使用的也算：东西还在背包或银行里，同样会变暗。"
 L["Battle pets"] = "宠物"
 L["Mounts"] = "坐骑"
 L["Toys"] = "玩具"

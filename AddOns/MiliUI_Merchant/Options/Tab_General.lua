@@ -26,6 +26,7 @@ local function BuildSpecs()
         { type = "header", label = L["Already collected"] },
         { type = "toggle", sub = "dim", key = "enabled", label = L["Dim them"],
           hint = L["Fade the slot and tick the icon instead of removing it, so every slot keeps the number the game gave it."] },
+        { type = "text", label = L["Bought but not used yet counts too: anything still sitting in your bags or bank is dimmed the same way."] },
         { type = "toggle", sub = "dim", key = "pets",     label = L["Battle pets"] },
         { type = "toggle", sub = "dim", key = "mounts",   label = L["Mounts"] },
         { type = "toggle", sub = "dim", key = "toys",     label = L["Toys"] },
