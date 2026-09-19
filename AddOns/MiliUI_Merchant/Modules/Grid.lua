@@ -216,12 +216,16 @@ end
 ------------------------------------------------------------
 local function CreateGearButton()
     local b = CreateFrame("Button", nil, MerchantFrame)
-    b:SetSize(16, 16)
+    b:SetSize(18, 18)
 
     local icon = b:CreateTexture(nil, "ARTWORK")
     icon:SetAllPoints()
-    if C_Texture.GetAtlasInfo("worldquest-icon-engineering") then
-        icon:SetAtlas("worldquest-icon-engineering")
+    -- `questlog-icon-setting` 是暴雪自己的設定齒輪（任務日誌右上角那顆，
+    -- UIPanelIconDropdownButtonTemplate 用的就是它），放在暴雪的視窗裡最不突兀。
+    -- ⚠ 第一版用的是世界任務的工程學圖示：那顆是斜的金色齒輪，縮到 16px
+    --   看起來像一塊金礦，沒有人認得出那是設定。
+    if C_Texture.GetAtlasInfo("questlog-icon-setting") then
+        icon:SetAtlas("questlog-icon-setting")
     else
         icon:SetTexture("Interface\\Buttons\\UI-OptionsButton")
     end
