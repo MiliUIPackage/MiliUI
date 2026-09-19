@@ -38,6 +38,10 @@ metadata:
 - `C_HousingCatalog.GetCatalogEntryInfoByItem(itemInfo)` 回的 `HousingCatalogEntryInfo` **沒有 quantity**；
   持有數＝`totalNumStored + remainingRedeemable + totalNumPlaced`。
 - 衝突閘不點名插件：`MERCHANT_ITEMS_PER_PAGE ~= 10 or MerchantItem13` 存在 ⇒ 整支休眠。
+- **「關掉被取代的那支」不是單體插件的事**：Merchant 只休眠＋說一聲（對方可能是某支大 UI 裡的一個模組，關不得）；
+  Krowi_ExtendedVendorUI 的自動停用走套組層 `MiliUI/Enhance/LegacyAddons.lua` 的 `REPLACED`（取代者有載入才動手、
+  跳視窗、可還原、有總開關；加減組別要同步 `Options/Tab_QoL.lua` 寫死的清單）。**做「取代某支第三方插件」的功能時，
+  收尾一定要記得加這一筆** —— 這次是使用者提醒才補的。
 - taint 接觸面跟 Krowi 時代相同：全域被污染 ⇒ 商人更新路徑被污染（無保護函式、無秘密值）；
   13 格以後是插件建的框，點擊時暴雪處理器以污染狀態寫 `MerchantFrame.itemHover/extendedCost/highPrice`。
 
