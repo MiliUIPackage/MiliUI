@@ -55,6 +55,16 @@ local REPLACED = {
         replacement      = "MiliUI_Minimap",
         replacementLabel = "米利的小地圖",
     },
+    {
+        -- 兩支都是靠改寫 MERCHANT_ITEMS_PER_PAGE ＋ 補建 MerchantItem13… 來加大視窗，
+        -- 同時開著會互相覆蓋排版。米利的商人視窗偵測到對方先動手時會整支休眠
+        -- （它的判定不點名、也不替玩家關別人的插件），所以「把被取代的那支關掉」
+        -- 這一步由這裡負責 —— 少了它，解壓縮覆蓋更新的玩家會一直停在舊的那支上。
+        label   = "Krowi's Extended Vendor UI",
+        folders = { "Krowi_ExtendedVendorUI" },
+        replacement      = "MiliUI_Merchant",
+        replacementLabel = "米利的商人視窗",
+    },
 }
 
 -- 已從套組移除 → 不動它的啟用狀態，只提醒可以刪掉

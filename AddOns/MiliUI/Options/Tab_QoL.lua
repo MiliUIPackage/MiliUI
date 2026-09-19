@@ -88,7 +88,7 @@ local CONTROLS = {
     { type = "toggle", label = "自動停用被取代的舊插件",
       get = function() return MiliUI_LegacyAddons and MiliUI_LegacyAddons.IsEnabled() end,
       set = function(v) if MiliUI_LegacyAddons then MiliUI_LegacyAddons.SetEnabled(v) end end },
-    { type = "text", label = "AddOns 資料夾裡還留著已被套組內建功能取代的舊插件（Stuf、TinyTooltip、Leatrix Plus、MBB）時，"
+    { type = "text", label = "AddOns 資料夾裡還留著已被套組內建功能取代的舊插件（Stuf、TinyTooltip、Leatrix Plus、MBB、Krowi's Extended Vendor UI）時，"
         .. "登入自動停用它們，避免兩套功能互相干擾。取消勾選則不再自動處理，並把先前停用的重新啟用。" },
 }
 
