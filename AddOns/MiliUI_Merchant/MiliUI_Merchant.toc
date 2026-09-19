@@ -1,0 +1,49 @@
+## Interface: 120007, 120100, 120105
+## Title: MiliUI Merchant
+## Title-zhTW: |cff33B8FF[商人]|r 米利的商人視窗
+## Title-zhCN: |cff33B8FF[商人]|r 米利的商人窗口
+## Notes: Makes the merchant window bigger — pick how many rows and columns of goods you want to see at once, up to 60 per page. Pets, mounts, toys and recipes you already own are dimmed and marked with a tick, so you never buy the same thing twice.|n|nBlizzard still draws every slot, so tooltips, item levels and price add-ons keep working on the extra rows.|n|n|cffffd200Usage: |r/mmerchant opens settings, or click the cog next to the merchant's filter button.
+## Notes-zhTW: MiliUI Merchant|n|n米利的商人視窗。|n|n把商人的購買視窗加大：列數與欄數自己挑，一頁最多 60 格。|n|n已經收藏的寵物、坐騎、玩具與配方會變暗並打勾，不會再重複買一份。|n|n每一格仍然由暴雪負責繪製，所以工具提示、裝備等級與價格類插件在多出來的格子上照常運作。|n|n|cffffd200使用方法: |r/mmerchant 開啟設定，或點商人視窗篩選鈕旁邊的齒輪。
+## Notes-zhCN: MiliUI Merchant|n|n米利的商人窗口。|n|n把商人的购买窗口加大：行数与列数自己挑，一页最多 60 格。|n|n已经收藏的宠物、坐骑、玩具与配方会变暗并打勾，不会再重复买一份。|n|n每一格仍然由暴雪负责绘制，所以鼠标提示、装备等级与价格类插件在多出来的格子上照常运作。|n|n|cffffd200使用方法: |r/mmerchant 打开设置，或点商人窗口筛选按钮旁边的齿轮。
+## Category: Interface
+## Category-zhTW: 介面
+## Category-zhCN: 界面
+## Author: Mili
+## Version: 1.0.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\INV_Misc_Coin_02
+## SavedVariables: MiliUI_Merchant_DB
+## AddonCompartmentFunc: MiliUIMerchant_OnAddonCompartmentClick
+
+# 像素工具單獨排最前面：其他模組也吃 ns.P
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+
+# Init 要在 Media 之前：Media 在檔案層就用 ns.playerClass 算強調色
+Core\Init.lua
+Core\Media.lua
+Core\DB.lua
+
+# Collected 要在 Dim 之前：Dim 每格都問它
+Modules\Collected.lua
+# Grid 的掛勾要排在 Dim 前面：先排好版、再決定哪一格變暗
+Modules\Grid.lua
+Modules\Dim.lua
+
+# 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\Controls.lua
+
+Options\Panel.lua
+Options\Tab_General.lua
+Options\Tab_About.lua
+
+Libs\MiliUIWidgets\BlizzOptions.lua
+Options\Blizzard.lua
+Api.lua
