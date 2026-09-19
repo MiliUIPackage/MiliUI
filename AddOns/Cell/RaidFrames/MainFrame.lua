@@ -113,6 +113,7 @@ options:HookScript("OnLeave", function()
 end)
 
 local raid = Cell.CreateButton(menuFrame, "", "blue", {20, 10}, false, true)
+menuFrame.raidButton = raid -- fix from MiliUI: the click-casting hints bar steps around it
 P.Point(raid, "LEFT", options, "RIGHT", 1, 0)
 RegisterButtonEvents(raid)
 raid:SetScript("OnClick", function()

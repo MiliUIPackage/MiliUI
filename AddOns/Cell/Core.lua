@@ -278,6 +278,68 @@ function eventFrame:ADDON_LOADED(arg1)
             local t = CellDB["tools"]["clickCastingHints"]
             local d = Cell.defaults.clickCastingHints
 
+            -- fix from MiliUI: one-off migration off the old drag-and-magnet model. That one
+            -- stored `anchor` (an {x, y} offset from CellAnchorFrame, or false for "dragged
+            -- away"), `myAnchor` (which corner of the bar the offset described) and ONE
+            -- `orientation`. The new one stores a side + direction + gap PER GROUP TYPE and
+            -- computes the position from where the unit buttons actually are.
+            --
+            -- ⚠ The gate is "no `attach` key in a table that already has something in it".
+            -- A brand-new database is an empty table and gets the defaults from the loops
+            -- below, so it must not take this branch. Deliberately NOT a dbRevision bump:
+            -- this is one tool's own key, and Cell's revision carries migrations that have
+            -- nothing to do with it.
+            if t["attach"] == nil and next(t) ~= nil then
+                local a = t["anchor"]
+                local hasOffset = type(a) == "table" and type(a[1]) == "number" and type(a[2]) == "number"
+                local oldOrientation = type(t["orientation"]) == "string" and t["orientation"] or nil
+
+                -- Still on the shipped placement: there is nothing of the player's to carry
+                -- over, so take the new defaults. Both historical offsets count -- {-13, -17}
+                -- was the default with myAnchor TOPRIGHT, {-139, -17} the older one that
+                -- described the TOPLEFT corner.
+                local untouched = t["snap"] == true and hasOffset
+                    and (oldOrientation == nil or oldOrientation == "right-to-left")
+                    and a[2] == -17 and (a[1] == -13 or a[1] == -139)
+
+                if not untouched then
+                    -- They arranged this themselves. Keep the direction they picked in BOTH
+                    -- contexts -- there was only one setting, so there is no way to tell
+                    -- which group type they had in mind -- and let the new side and gap
+                    -- defaults fill in underneath (the per-key top-up below does that).
+                    if oldOrientation then
+                        t["attach"] = {
+                            ["party"] = {["orientation"] = oldOrientation},
+                            ["raid"] = {["orientation"] = oldOrientation},
+                        }
+                    end
+
+                    if t["snap"] ~= true or a == false then
+                        -- already free-standing (snap off, or anchor == false, which is what
+                        -- the old model wrote when the bar was dragged away): `position` is
+                        -- still a valid screen position, so leave it exactly as it is
+                        t["snap"] = false
+                    elseif hasOffset then
+                        -- Snapped to an offset of their own. It CANNOT be turned into a
+                        -- screen position here: the offset is relative to CellAnchorFrame
+                        -- and nothing has a resolvable rect at ADDON_LOADED. So hand the old
+                        -- numbers to the tool, which replays the SetPoint once it does have
+                        -- one, saves the result as an ordinary free position and drops this
+                        -- key (ClickCastingHints.lua's ConsumeLegacyAnchor). The bar stays
+                        -- put; it just stops following Cell until they tick the box again.
+                        t["legacyAnchor"] = {a[1], a[2], type(t["myAnchor"]) == "string" and t["myAnchor"] or "TOPLEFT"}
+                        t["snap"] = false
+                    end
+                    -- anything left (snap on, anchor unreadable) is not a state the old model
+                    -- could write. There is no position of theirs to preserve, so leave the
+                    -- attachment on and let the new defaults place the bar.
+                end
+
+                t["anchor"] = nil
+                t["myAnchor"] = nil
+                t["orientation"] = nil
+            end
+
             for key, value in pairs(d) do
                 if type(value) ~= "table" and type(t[key]) ~= type(value) then
                     t[key] = value
@@ -285,10 +347,20 @@ function eventFrame:ADDON_LOADED(arg1)
             end
 
             if type(t["position"]) ~= "table" then t["position"] = {} end
-            --! ⚠ anchor is topped up on nil ONLY. `false` is a real value there -- it means
-            --! "dragged away from Cell" -- so a type check would haul a detached bar back
-            --! onto the raid frames on every login.
-            if t["anchor"] == nil then t["anchor"] = F.Copy(d["anchor"]) end
+
+            -- attach is nested two deep: top up PER CONTEXT and then per key, so a context
+            -- or an option added after the tool shipped still reaches a database that
+            -- already has the other one -- and so the migration above can write just the
+            -- direction and let the rest arrive here.
+            if type(t["attach"]) ~= "table" then t["attach"] = {} end
+            for context, values in pairs(d["attach"]) do
+                if type(t["attach"][context]) ~= "table" then t["attach"][context] = {} end
+                for key, value in pairs(values) do
+                    if type(t["attach"][context][key]) ~= type(value) then
+                        t["attach"][context][key] = value
+                    end
+                end
+            end
 
             if type(t["keyLabels"]) ~= "table" then t["keyLabels"] = {} end
             for key, value in pairs(d["keyLabels"]) do
@@ -1037,11 +1109,16 @@ function SlashCmdList.CELL(msg, editbox)
             P.ClearPoints(Cell.frames.buffTrackerFrame)
             Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", CellParent, "CENTER")
             CellDB["tools"]["buffTracker"][4] = {}
-            -- fix from MiliUI: click-casting hints
-            P.ClearPoints(Cell.frames.clickCastingHintsFrame)
-            Cell.frames.clickCastingHintsFrame:SetPoint("TOPLEFT", CellParent, "CENTER")
+            -- fix from MiliUI: click-casting hints. Unlike the tools above, this one has no
+            -- position of its own until somebody unticks "attach" -- attached, it is
+            -- computed from where the unit buttons are. So "reset position" throws the
+            -- stored free position away AND turns the attachment back on: the alternative
+            -- is leaving the bar detached in the middle of the screen, which is the state a
+            -- reset is supposed to rescue the player from.
             CellDB["tools"]["clickCastingHints"]["position"] = {}
-            CellDB["tools"]["clickCastingHints"]["anchor"] = false
+            CellDB["tools"]["clickCastingHints"]["legacyAnchor"] = nil
+            CellDB["tools"]["clickCastingHints"]["snap"] = true
+            Cell.Fire("UpdateTools", "clickCastingHints")
 
         elseif rest == "all" then
             Cell.frames.anchorFrame:ClearAllPoints()

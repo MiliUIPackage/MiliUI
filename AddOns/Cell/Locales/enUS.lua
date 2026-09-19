@@ -66,6 +66,7 @@ select(2, ...).L = setmetatable({
     ["TOPLEFT"] = "Top Left",
     ["TOPRIGHT"] = "Top Right",
 
+    ["auto"] = "Auto",
     ["left-to-right"] = "Left to Right",
     ["right-to-left"] = "Right to Left",
     ["top-to-bottom"] = "Top to Bottom",
@@ -90,14 +91,15 @@ select(2, ...).L = setmetatable({
 
     -- fix from MiliUI: click-casting hints
     ["Click-Casting Hints"] = "Click-Casting Hints",
-    ["CLICK_CASTING_HINTS_TIPS"] = "Shows the spells bound in Click-Castings as an on-screen bar with their keys and cooldowns; unlock it to move it.",
+    ["CLICK_CASTING_HINTS_TIPS"] = "Shows the spells bound in Click-Castings as an on-screen bar with their keys and cooldowns. It attaches beside the unit frames by default; untick the attach box to place it freely.",
     ["CLICK_CASTING_HINTS_JUMP_TIPS"] = "Click to open Utilities > Click-Casting Hints, where the bindings below can be shown on screen as a bar.",
     ["Healers"] = "Healers",
     ["Show Spell Tooltip"] = "Show Spell Tooltip",
     ["SHOW_SPELL_TOOLTIP_TIPS"] = "Mouse over an icon for the spell's own tooltip. The icons take the mouse while this is on.",
-    ["My Anchor Point"] = "My Anchor Point",
-    ["MY_ANCHOR_POINT_TIPS"] = "Which corner of the bar is pinned to Cell. The bar is as wide as this character has bindings, so pin the corner that faces the frames and the gap stays put on every character.",
-    ["Snap to Cell"] = "Snap to Cell",
+    ["Snap to Cell"] = "Attach to Cell",
+    ["Settings For"] = "Settings for",
+    ["Frame Distance"] = "Frame distance",
+    ["ATTACH_SIDE_TIPS"] = "Which side of the unit frames the bar sits against. It starts from the corner the layout grows from, and steps past Cell's menu block and the battle res timer when they are in the way.",
     ["Show Keybind"] = "Show keybind",
     ["Duration Threshold"] = "Show under (s)",
     ["Keybind Position"] = "Keybind position",
@@ -110,7 +112,8 @@ select(2, ...).L = setmetatable({
     ["Middle Button"] = "Middle",
     ["SHOW_KEYBIND_TIPS"] = "Draw the key combination on each icon",
     ["KEY_LABEL_TIPS"] = "Leave a mouse button empty to draw its icon. Only Click-Castings of the Spell type are shown.",
-    ["Snapped"] = "[snapped]",
+    ["Snapped"] = "[attached]",
+    ["SNAP_TO_CELL_TIPS"] = "Keep the bar attached to Cell: its position is worked out from where the unit frames are, so it follows them. Untick it to put the bar wherever you like with the mover.",
 
     ["Party Targets"] = "Party Targets",
     ["Side"] = "Side",
@@ -132,7 +135,6 @@ select(2, ...).L = setmetatable({
     ["PARTY_TARGETS_SIDE_TIPS"] = "Which side of the party button the target sits on. Party pets, when shown, are moved to the other side, so this also decides which of the two gets the right. It rotates with the party frame: when the frame runs horizontally, Left means above and Right means below.",
     ["PARTY_TARGETS_WIDTH_TIPS"] = "0 = as wide as the main button. The height always follows the main button.",
     ["PARTY_TARGETS_PANE_TIPS"] = "Each member's target beside their frame: health and the raid marker only. Coloured by kind inside dungeons and raids, by reaction outside. No target, no button.",
-    ["SNAP_TO_CELL_TIPS"] = "Drop the bar next to the raid frames and it remembers where it sits relative to Cell, then follows whenever Cell is moved. Drop it further away to detach.",
 
     ["RAID_DEBUFFS_TIPS"] = "Tips: [Drag & Drop] to change debuff order. [Double-Click] on instance name to open Encounter Journal. [Shift+Left Click] on instance/boss name to share debuffs. [Alt+Left Click] on instance/boss name to reset debuffs. The priority of General Debuffs is higher than Boss Debuffs.",
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",

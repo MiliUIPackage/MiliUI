@@ -1203,3 +1203,9 @@ L["You can config debuffs in %s"] = "Puoi configurare i debuff in %s"
 L["You can move it in Preview mode"] = "Puoi spostarlo in modalità Anteprima"
 L["You can't do that while in combat."] = "Non puoi farlo durante il combattimento"
 L["You don't have permission to do this"] = "Non hai il permesso di farlo"
+
+-- fix from MiliUI: click-casting hints -- where the bar attaches to Cell
+L["auto"] = "Automatico"
+L["Settings For"] = "Impostazioni per"
+L["Frame Distance"] = "Dist. riquadri"
+L["ATTACH_SIDE_TIPS"] = "Su quale lato dei riquadri si posiziona la barra. Parte dall'angolo da cui cresce il layout ed evita il blocco menu di Cell e il timer della resurrezione."

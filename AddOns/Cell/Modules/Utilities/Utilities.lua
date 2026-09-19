@@ -111,7 +111,11 @@ local utilityHeight = {
     ["raidTools"] = 340,
     ["quickAssist"] = 510,
     ["quickCast"] = 510,
-    ["clickCastingHints"] = 450,
+    -- fix from MiliUI: 492, not 450. The attach settings cost two extra rows (the
+    -- party/raid switch, then side + direction + gap), which is 42 more than the single
+    -- "my anchor point" dropdown they replaced. The pane leaves 13 between its last edit
+    -- box and the "restore defaults" button; that is what this number keeps.
+    ["clickCastingHints"] = 492,
     ["partyTargets"] = 330,
 }
 

@@ -177,6 +177,14 @@ end
 -- resurrection
 -------------------------------------------------
 function I.UpdateStatusIcon_Resurrection(button, start, duration)
+    -- fix from MiliUI: never on a party-target button. UnitButton_UpdateAll calls this for
+    -- every button, and this is the one indicator updater that can Show() itself without
+    -- asking IsEnabled first -- so the allowlist in UnitButton.lua does not cover it.
+    if button.isPartyTarget then
+        button.indicators.resurrectionIcon:Hide()
+        return
+    end
+
     local guid = button.states.guid
     local unit = button.states.unit
     local resurrectionIcon = button.indicators.resurrectionIcon

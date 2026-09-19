@@ -720,3 +720,9 @@ L["You can config debuffs in %s"] = "Du kannst Schwächungszauber in %s konfigur
 L["You can move it in Preview mode"] = "Du kannst es im Vorschau-Modus verschieben"
 L["You can't do that while in combat."] = "Das kann man im Kampf nicht tun."
 L["You don't have permission to do this"] = "Du hasst keine Erlaubnis, das zu tun"
+
+-- fix from MiliUI: click-casting hints -- where the bar attaches to Cell
+L["auto"] = "Automatisch"
+L["Settings For"] = "Einstellungen für"
+L["Frame Distance"] = "Rahmenabstand"
+L["ATTACH_SIDE_TIPS"] = "An welcher Seite der Rahmen die Leiste sitzt. Sie beginnt an der Ecke, aus der das Layout wächst, und weicht Cells Menüblock und dem Kampfrezz-Timer aus."

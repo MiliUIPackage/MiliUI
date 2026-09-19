@@ -720,3 +720,9 @@ L["You can config debuffs in %s"] = "%s에서 디버프를 설정할 수 있습�
 L["You can move it in Preview mode"] = "미리보기 모드에서 이동할 수 있습니다."
 L["You can't do that while in combat."] = "전투 중에는 그렇게 할 수 없습니다."
 L["You don't have permission to do this"] = "이 작업을 할 권한이 없습니다."
+
+-- fix from MiliUI: click-casting hints -- where the bar attaches to Cell
+L["auto"] = "자동"
+L["Settings For"] = "설정 대상"
+L["Frame Distance"] = "프레임과의 거리"
+L["ATTACH_SIDE_TIPS"] = "바가 유닛 프레임의 어느 쪽에 붙을지 정합니다. 레이아웃이 자라나는 모서리에서 시작하며, Cell 메뉴 블록과 전투 부활 타이머는 피해서 배치됩니다."

@@ -183,12 +183,16 @@ local PARTY_TARGET = {
 local PARTY_TARGET_INDICATORS = {
     ["nameText"] = true,
     ["healthText"] = true,
-    ["shieldBar"] = true,
     ["playerRaidIcon"] = true,
 }
 --! ⚠ healthThresholds (the execute line) is NOT here, even though it is drawn from health.
 --! It answers "can I finish this off", which is a question about the player's own target --
 --! on a row of five other people's targets it is five vertical lines that mean nothing.
+--! ⚠ shieldBar is not here either, and neither are the built-in shield / heal-prediction /
+--! heal-absorb WIDGETS -- those are not indicators and this list cannot reach them, so they
+--! are switched off at the head of their own updaters instead (see
+--! UnitButton_UpdateShieldAbsorbs and the two below it). A row of enemy targets is health,
+--! name and the raid marker; an absorb on a mob is not a healing decision.
 
 -- Per-button view of enabledIndicators. Everything that asks "is this indicator on" goes
 -- through here; the plain table is only written, never read directly.
@@ -2303,6 +2307,18 @@ end
 -- unit button functions
 -------------------------------------------------
 local function UnitButton_UpdateTarget(self)
+    -- fix from MiliUI: the target border never lights up on a party-target button.
+    --
+    -- ⚠ Before the displayedUnit read, so B.UpdateHighlightSize's "0 -> !0, show it again"
+    -- call lands here too. The whole row IS targets -- lighting the one that happens to be
+    -- the player's as well says nothing, and on the player's own slot it would be lit
+    -- permanently. mouseoverHighlight is deliberately left alone: that one is click-casting's
+    -- pointer feedback, and these buttons take click-castings like any other button.
+    if self.isPartyTarget then
+        self.widgets.targetHighlight:Hide()
+        return
+    end
+
     local unit = self.states.displayedUnit
     if not unit then return end
 
@@ -2721,6 +2737,15 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
 end
 
 local function UnitButton_UpdateHealPrediction(self, skipStateUpdates)
+    -- fix from MiliUI: no heal prediction on a party-target button. Incoming heals on
+    -- somebody else's target are not a healing decision, and the bar is drawn from the health
+    -- fill edge -- on a narrow target row it reads as the health bar being wrong.
+    --! ⚠ Ahead of BOTH branches (Midnight and classic), because both of them draw.
+    if self.isPartyTarget then
+        self.widgets.incomingHeal:Hide()
+        return
+    end
+
     if Cell.isMidnight and self.widgets.healPredictionCalculator then
         -- MIDNIGHT PATH: use a DEDICATED calculator for heal prediction.
         -- This keeps clamp/overflow settings isolated from the shared
@@ -2791,6 +2816,25 @@ function B.SetOvershieldGlow(glow, enabled, isClamped)
 end
 
 UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
+    -- fix from MiliUI: no shield of any kind on a party-target button -- neither the built-in
+    -- widget (the white diagonal hatch on the right of the health bar) nor the shieldBar
+    -- indicator (the yellow stub in the corner). This row is health, name and the raid
+    -- marker; an absorb on a mob is not something the group acts on.
+    --! ⚠ Ahead of BOTH branches (Midnight and classic), because both of them draw. The
+    --! indicator is ALSO off the allowlist, so IsEnabled already answers false for it --
+    --! this hides it outright so a stale fill from before the tool was switched on cannot
+    --! survive on screen.
+    if self.isPartyTarget then
+        self.widgets.shieldBar:Hide()
+        self.widgets.shieldBarR:Hide()
+        self.widgets.overShieldGlow:Hide()
+        self.widgets.overShieldGlowR:Hide()
+        --! guarded: this runs from B.UpdateShields, which the appearance path calls before
+        --! the button has been handed its indicator config
+        if self.indicators.shieldBar then self.indicators.shieldBar:Hide() end
+        return
+    end
+
     if Cell.isMidnight and self.widgets.healthCalculator then
         -- MIDNIGHT PATH: use calculator secret values
         if not shieldEnabled then
@@ -2891,6 +2935,16 @@ UnitButton_UpdateShieldAbsorbs = function(self, skipStateUpdates)
 end
 
 local function UnitButton_UpdateHealAbsorbs(self, skipStateUpdates)
+    -- fix from MiliUI: no heal absorb on a party-target button, for the same reason as the
+    -- shield above -- and the glow sits on the health bar's own edge, where it reads as part
+    -- of the bar rather than as an overlay.
+    --! ⚠ Ahead of BOTH branches (Midnight and classic), because both of them draw.
+    if self.isPartyTarget then
+        self.widgets.absorbsBar:Hide()
+        self.widgets.overAbsorbGlow:Hide()
+        return
+    end
+
     if Cell.isMidnight and self.widgets.healthCalculator then
         -- MIDNIGHT PATH: use calculator secret values
         if not absorbEnabled then
@@ -3107,6 +3161,18 @@ end
 --     Lua-filtered either: their unit argument can be SECRET in 12.1, and each button reads
 --     its own status anyway. See the head of UnitButton_OnEvent.
 -------------------------------------------------
+-- fix from MiliUI: the three events whose ONLY job is to repaint the shield / heal-prediction
+-- / heal-absorb overlay. Their handler is MarkOverlayDirty and nothing else, and all three
+-- of those updaters now return immediately on a party-target button -- so registering them
+-- there buys a dirty flag, a frame of OnUpdate and three early returns per absorb tick on
+-- five buttons. UNIT_HEALTH is NOT in here: it marks the overlay too, but it also drives the
+-- health bar, which this row very much does draw.
+local OVERLAY_ONLY_EVENTS = {
+    ["UNIT_HEAL_PREDICTION"] = true,
+    ["UNIT_ABSORB_AMOUNT_CHANGED"] = true,
+    ["UNIT_HEAL_ABSORB_AMOUNT_CHANGED"] = true,
+}
+
 local UNIT_SCOPED_EVENTS = {
     "UNIT_HEALTH", "UNIT_MAXHEALTH",
     "UNIT_AURA",
@@ -3146,7 +3212,14 @@ local function RegisterUnitScopedEvents(b)
     local u, du = ScopeTokens(b)
     if not u then return end
     for i = 1, #UNIT_SCOPED_EVENTS do
-        b:RegisterUnitEvent(UNIT_SCOPED_EVENTS[i], u, du)
+        local event = UNIT_SCOPED_EVENTS[i]
+        -- fix from MiliUI: see OVERLAY_ONLY_EVENTS. PLAYER_TARGET_CHANGED is NOT dropped the
+        -- same way, even though UnitButton_UpdateTarget is a no-op here: the player's own
+        -- slot carries updateOnTargetChanged and re-reads the whole button from it
+        -- (PartyFrame.lua's refreshUnitChange snippet).
+        if not (b.isPartyTarget and OVERLAY_ONLY_EVENTS[event]) then
+            b:RegisterUnitEvent(event, u, du)
+        end
     end
     -- UNIT_TARGET rides the targetRaidIcon toggle (see B.UpdateTargetRaidIcon); before Cell
     -- has loaded its indicator config everything is registered, matching UnitButton_RegisterEvents.
@@ -4993,6 +5066,11 @@ end
 
 -- damageFlash
 function B.ShowFlash(button, lostPercent)
+    -- fix from MiliUI: a party-target button never flashes. Only the classic health path can
+    -- reach here today (Midnight cannot compute the drop from a secret health), but "cannot
+    -- reach" is a claim about one branch, and a white flash across a row of mobs every time
+    -- anything takes damage is exactly the kind of noise this row is being trimmed of.
+    if button.isPartyTarget then return end
     button.widgets.damageFlashTex:SetValue(lostPercent)
     button.widgets.damageFlashAG:Play()
 end

@@ -20,7 +20,7 @@ local P = Cell.pixelPerfectFuncs
 
 local GetSpellCooldownDuration = C_Spell and C_Spell.GetSpellCooldownDuration
 
-local ceil, floor, max, min, abs = math.ceil, math.floor, math.max, math.min, math.abs
+local ceil, floor, max, min = math.ceil, math.floor, math.max, math.min
 
 local MOVER_MIN_WIDTH, MOVER_MIN_HEIGHT = 60, 20
 
@@ -38,25 +38,21 @@ Cell.defaults.clickCastingHints = {
     ["size"] = 30,
     ["perRow"] = 5,
     ["spacing"] = 2,
-    -- grows AWAY from the frames: the bar is parked on Cell's left and pinned by its
-    -- top-right corner (see myAnchor), so a left-to-right row would run at the raid frames
-    -- and only the far end would move when the icon count changes.
-    ["orientation"] = "right-to-left",
+    -- where a FREE-STANDING bar sits. Only read while snap is off; attached, the position is
+    -- computed from where the unit buttons are and nothing is stored.
     ["position"] = {},
-    -- magnet: with snap on, anchor holds an {x, y} offset from CellAnchorFrame and
-    -- position is ignored. Snapped by default and parked to the left of the raid frames --
-    -- the pack's own placement, so enabling the tool puts it somewhere sensible rather
-    -- than in the middle of the screen.
+    -- attached to Cell, or free-standing? On by default: this is a reminder bar that belongs
+    -- next to the frames, and a tool that switches on in the middle of the screen reads as
+    -- broken. Off means the mover drags it and `position` is what is remembered.
     ["snap"] = true,
-    -- ⚠ myAnchor decides WHICH CORNER OF OURS the offset describes, and it is not cosmetic:
-    -- the bar is as wide as the character has bindings, so a bar parked to the LEFT of the
-    -- frames and pinned by its TOPLEFT has its facing edge float -- a 3-spell character sits
-    -- a spell and a half further from the frames than a 5-spell one. Pin the facing edge
-    -- instead. Default TOPRIGHT because the pack parks the bar on Cell's left.
-    ["myAnchor"] = "TOPRIGHT",
-    -- offset of THAT corner from CellAnchorFrame's TOPLEFT. -13 keeps the shipped placement
-    -- (the old TOPLEFT default was -139, which is where a 4-icon bar's right edge landed).
-    ["anchor"] = {-13, -17},
+    -- WHICH SIDE it attaches to, one setting per group type, because the frames are a
+    -- different shape in each. Five party rows down the screen leave a tall empty strip
+    -- beside them; a raid block is already wide and has nothing to spare there, so its bar
+    -- goes above. "auto" reads the direction off the side -- see ResolvedOrientation.
+    ["attach"] = {
+        ["party"] = {["side"] = "left", ["orientation"] = "auto", ["gap"] = 4},
+        ["raid"] = {["side"] = "top", ["orientation"] = "auto", ["gap"] = 4},
+    },
     -- mouse over an icon -> the spell's own tooltip. ⚠ The bar catches the mouse while this
     -- is on (each icon does, not the whole strip), which is why it is a setting at all.
     ["showTooltip"] = true,
@@ -100,35 +96,123 @@ hintsFrame.moverText:SetText(L["Mover"])
 hintsFrame.moverText:Hide()
 
 -------------------------------------------------
--- magnet
+-- attach
 -------------------------------------------------
---! With "snap" on, dropping the bar next to the raid frames stops storing a SCREEN
---! position and stores an offset from CellAnchorFrame instead -- the little menu block
---! that IS Cell's position handle. Everything else in Cell is laid out from that frame,
---! so anchoring to it means the bar simply comes along when Cell is dragged; there is
---! nothing to keep in sync and no hook on Cell's own drag.
+--! With "snap" on the bar stores no position at all: it is placed against one SIDE of the
+--! unit buttons and RECOMPUTED every time something that could have moved them happens. That
+--! is the whole difference from the drag-and-magnet model this replaces -- there, a bar
+--! dropped next to a three-spell character's frames was in the wrong place on a five-spell
+--! one, and every layout change meant picking it up and dropping it again.
 --!
---! ⚠ Distances are compared in raw UI coordinates, NOT through P.Scale. Every frame
---! involved lives under CellParent and therefore shares one effective scale, so GetLeft()
---! values are directly comparable -- and the offset that comes out of them is exactly what
---! SetPoint wants. Running them through P.Scale would scale an already-scaled number.
---! This is the same convention P.SavePosition / P.LoadPosition use.
+--! Three things decide where it lands:
+--!
+--!   * side -- which edge of the unit buttons it sits against, and therefore which of OUR
+--!     edges faces them. ⚠ That facing edge is what gets pinned, never the far one: the bar
+--!     is as wide as the character has bindings, so pinning the far edge lets the gap float
+--!     with the icon count -- a three-spell character would sit a spell and a half further
+--!     from the frames than a five-spell one.
+--!   * the layout's own anchor (TOPLEFT / TOPRIGHT / BOTTOMLEFT / BOTTOMRIGHT) -- Cell grows
+--!     its frames away from that corner, so the bar starts from the same end and the two
+--!     grow together instead of drifting apart.
+--!   * gap -- how far the facing edge sits from the buttons.
+--!
+--! ⚠ The rectangle we measure is the UNIT BUTTONS ONLY. The menu block (CellAnchorFrame) is
+--! deliberately NOT part of it: it is a 20x10 handle parked outside the frames, so folding it
+--! in would shift the whole bar by the handle's size and still leave the two overlapping. It
+--! is something to make room FOR, not something to line up with -- so it is an obstacle
+--! instead (see Obstacles), together with the battle-res box while that is docked to it.
+--! Anything in the way pushes the bar's STARTING end further along the edge; the side and the
+--! gap never change, so the bar stays where the player put it and merely begins later.
+--!
+--! ⚠ Distances are compared in raw UI coordinates, NOT through P.Scale. Every frame involved
+--! lives under CellParent and therefore shares one effective scale, so GetLeft() values are
+--! directly comparable -- and the offset that comes out of them is exactly what SetPoint
+--! wants. Running them through P.Scale would scale an already-scaled number. This is the
+--! same convention P.SavePosition / P.LoadPosition use.
 
-local ATTACH_RANGE = 40 -- how close the bar has to land before it sticks to Cell at all
-local EDGE_SNAP = 10    -- once it sticks, how close an edge has to be to align exactly
+--! How much slack the obstacle test gives on the VERTICAL axis. The battle-res box slides 14
+--! up or down while the menu fades in and out (BattleRes.lua's onShow / onHide offsets), and
+--! a strict overlap test would change its answer halfway through that slide -- the bar would
+--! step aside and back for the length of the animation. Reserving the whole travel makes both
+--! ends of it give the same answer. The cost is that a bar attached to the LEFT or RIGHT
+--! edge, where this is the axis it grows along, can start up to 14 further along than it
+--! strictly has to; that is a gap nobody can name, and a twitching bar is not.
+local OBSTACLE_PAD = 14
 
--- The rectangle the player thinks of as "Cell": the menu block plus every unit button of
--- the CURRENT group type, plus (in a party) the pet and target slots beside each member
--- whether or not something is in them right now. skipShared leaves out the NPC and
--- spotlight frames -- those have their own movers and can sit anywhere, so counting them
--- would make "near Cell" meaningless.
+local SIDES = {["left"] = true, ["right"] = true, ["top"] = true, ["bottom"] = true}
+local ORIENTATIONS = {
+    ["left-to-right"] = true, ["right-to-left"] = true,
+    ["top-to-bottom"] = true, ["bottom-to-top"] = true,
+}
+
+--! Raid, or everything else. Solo shares the party settings on purpose: solo IS the party
+--! layout with one row in it, so whatever fits beside a party fits beside that too, and a
+--! third copy of the settings would only ever be set to the same thing.
+local function Context()
+    return Cell.vars.groupType == "raid" and "raid" or "party"
+end
+
+-- The stored table for one context, repaired on the spot if a saved database is missing it.
+local function AttachTable(context)
+    local db = CellDB["tools"]["clickCastingHints"]
+    if type(db["attach"]) ~= "table" then db["attach"] = {} end
+    if type(db["attach"][context]) ~= "table" then
+        db["attach"][context] = F.Copy(Cell.defaults.clickCastingHints["attach"][context])
+    end
+    return db["attach"][context]
+end
+
+--! The three values for the group type we are in, each falling back to the shipped default on
+--! its own. Per key, not per table: a database can be any shape after a hand edit or a
+--! half-finished migration, and one unreadable value must not cost the other two.
+local function AttachDB()
+    local context = Context()
+    local t = AttachTable(context)
+    local d = Cell.defaults.clickCastingHints["attach"][context]
+
+    local side = SIDES[t["side"]] and t["side"] or d["side"]
+    local orientation = t["orientation"]
+    if orientation ~= "auto" and not ORIENTATIONS[orientation] then orientation = d["orientation"] end
+    local gap = type(t["gap"]) == "number" and t["gap"] or d["gap"]
+
+    return side, orientation, gap
+end
+
+local function IsAttached()
+    return CellDB["tools"]["clickCastingHints"]["snap"] and true or false
+end
+
+--! "auto" read off the side: a bar down the side of the frames runs vertically, one along the
+--! top or the bottom runs across. Free-standing there is no side to ask, so it reads
+--! left-to-right like any other row. Everything that draws the bar asks this, never the
+--! stored value -- see Layout and UpdatePerLineLabel.
+local function ResolvedOrientation()
+    local side, orientation = AttachDB()
+    if orientation ~= "auto" then return orientation end
+    if not IsAttached() then return "left-to-right" end
+    if side == "left" or side == "right" then return "top-to-bottom" end
+    return "left-to-right"
+end
+
+--! a resolvable rect is NOT implied by IsVisible() -- check the numbers
+local function RectOf(f)
+    if not f then return end
+    local l, r, t, b = f:GetLeft(), f:GetRight(), f:GetTop(), f:GetBottom()
+    if not (l and r and t and b) then return end
+    return l, r, t, b
+end
+
+-- The rectangle the unit buttons of the CURRENT group type occupy, plus (in a party) the pet
+-- and target slots beside each member who is present, whether or not something is in them
+-- right now. skipShared leaves out the NPC and spotlight frames -- those have their own movers
+-- and can sit anywhere, so counting them would park the bar next to something the player has
+-- deliberately put on the other side of the screen.
 local function GetCellRect()
     local left, right, top, bottom
 
     local function add(f)
-        --! a resolvable rect is NOT implied by IsVisible() -- check the numbers
-        local l, r, t, b = f:GetLeft(), f:GetRight(), f:GetTop(), f:GetBottom()
-        if not (l and r and t and b) then return end
+        local l, r, t, b = RectOf(f)
+        if not l then return end
         if not left or l < left then left = l end
         if not right or r > right then right = r end
         if not top or t > top then top = t end
@@ -139,18 +223,14 @@ local function GetCellRect()
         if f and f.IsVisible and f:IsVisible() then add(f) end
     end
 
-    --! unconditionally, even when the menu block is hidden: it is Cell's position handle
-    --! and always has a rect, so the magnet still has something to grab when the raid
-    --! frames themselves are hidden (solo, or a layout set to hide)
-    if Cell.frames.anchorFrame then add(Cell.frames.anchorFrame) end
     F.IterateAllUnitButtons(addIfVisible, true, false, true)
 
     --! In a party, the pet column and the party-target column count even while EMPTY. Both
     --! are reserved slots beside every member -- a pet that is not out right now, a member
-    --! with nothing targeted -- and the magnet only runs when the bar is dropped, so going
-    --! by the visible buttons alone parked the bar exactly where the next pet appears.
-    --! Only beside members who are present: an empty party slot reserves nothing, the same
-    --! as the member buttons themselves. Hidden frames still answer GetLeft() once anchored.
+    --! with nothing targeted -- and a bar that only measured the visible ones would sit
+    --! exactly where the next pet appears. Only beside members who are present: an empty
+    --! party slot reserves nothing, the same as the member buttons themselves. Hidden frames
+    --! still answer GetLeft() once anchored.
     if Cell.vars.groupType == "party" then
         local layout = Cell.vars.currentLayoutTable
         local petsOn = layout and layout["pet"]["partyEnabled"] and not layout["pet"]["partyDetached"]
@@ -164,92 +244,177 @@ local function GetCellRect()
         end
     end
 
+    --! Nothing to measure: solo with the frames hidden, a layout set to hide them, or the
+    --! very first pass before the secure headers have laid anything out. Fall back to the
+    --! frame that IS the group area, and only if even that has no rect yet to the menu block,
+    --! which always has one.
+    if not left then left, right, top, bottom = RectOf(Cell.frames.mainFrame) end
+    if not left then left, right, top, bottom = RectOf(Cell.frames.anchorFrame) end
+
     return left, right, top, bottom
 end
 
--- Align one axis: try putting our low edge, our high edge or our centre on each of the
--- target's edges/centre, and take whichever lands closest. Returns the new low edge.
-local function SnapEdge(lo, hi, t1, t2)
-    local size = hi - lo
-    local targets = {t1, t2, (t1 + t2) / 2}
-    local best, bestDist
+-- What the bar has to step around, in the order they stack up outward from the frames: the
+-- menu block first (always counted, hidden or not -- it is Cell's position handle and a hidden
+-- frame still answers GetLeft once it is anchored), then the battle-res box when it is on
+-- screen AND still docked to the menu block. Dragged out to a position of its own
+-- (battleResTimer[2]) it is somewhere else entirely and none of our business.
+local function Obstacles()
+    local t = {}
 
-    for _, target in ipairs(targets) do
-        for _, candidate in ipairs({target, target - size, target - size / 2}) do
-            local d = abs(candidate - lo)
-            if d <= EDGE_SNAP and (not bestDist or d < bestDist) then
-                best, bestDist = candidate, d
-            end
-        end
+    local l, r, tp, b = RectOf(Cell.frames.anchorFrame)
+    if l then tinsert(t, {l, r, tp, b}) end
+
+    --! In a raid the menu is TWO buttons: the raid-roster button sits beside the options
+    --! button, outside CellAnchorFrame's own 20x10 (MainFrame.lua). IsShown, not IsVisible --
+    --! the menu fades by alpha, and a faded button is still where the mouse brings it back.
+    local raidBtn = Cell.frames.menuFrame and Cell.frames.menuFrame.raidButton
+    if raidBtn and raidBtn:IsShown() then
+        l, r, tp, b = RectOf(raidBtn)
+        if l then tinsert(t, {l, r, tp, b}) end
     end
 
-    return best or lo
+    local brDB = CellDB["tools"]["battleResTimer"]
+    local br = Cell.frames.battleResFrame
+    if br and br:IsShown() and not (type(brDB) == "table" and brDB[2]) then
+        l, r, tp, b = RectOf(br)
+        if l then tinsert(t, {l, r, tp, b}) end
+    end
+
+    return t
 end
 
--- Which corner of ours the stored offset describes. Anything unexpected in the database
--- falls back to the shipped default.
-local MY_ANCHOR_POINTS = {"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT"}
-local MY_ANCHOR_VALID = {}
-for _, point in ipairs(MY_ANCHOR_POINTS) do MY_ANCHOR_VALID[point] = true end
+-- Where the bar's pinned corner belongs, in screen coordinates: the corner's name plus its
+-- x and y. Returns nothing when there is no rect to measure against yet.
+local function AttachPoint()
+    local bl, br, bt, bb = GetCellRect()
+    if not bl then return end
 
-local function MyAnchorPoint()
-    local p = CellDB["tools"]["clickCastingHints"]["myAnchor"]
-    return MY_ANCHOR_VALID[p] and p or Cell.defaults.clickCastingHints["myAnchor"]
+    local side, _, gap = AttachDB()
+    local w, h = hintsFrame:GetWidth(), hintsFrame:GetHeight()
+    local anchor = Cell.vars.currentLayoutTable and Cell.vars.currentLayoutTable["main"]["anchor"] or "TOPLEFT"
+
+    -- lay the bar against the chosen edge: this fixes the axis PERPENDICULAR to the one it
+    -- grows along, and it is the only place `gap` decides a distance from the buttons
+    local l, r, t, b
+    if side == "left" then
+        r = bl - gap
+        l = r - w
+    elseif side == "right" then
+        l = br + gap
+        r = l + w
+    elseif side == "top" then
+        b = bt + gap
+        t = b + h
+    else -- bottom
+        t = bb - gap
+        b = t - h
+    end
+
+    -- ...and start it at the end the layout grows from, which fixes the other axis
+    local vertical = side == "left" or side == "right"
+    local pinLow --! vertical: pinned by our BOTTOM edge. horizontal: pinned by our LEFT edge.
+    if vertical then
+        pinLow = not strfind(anchor, "^TOP")
+        if pinLow then b = bb; t = b + h else t = bt; b = t - h end
+    else
+        pinLow = strfind(anchor, "LEFT$") and true or false
+        if pinLow then l = bl; r = l + w else r = br; l = r - w end
+    end
+
+    --! Step over anything in the way, then look again: the two obstacles stack (the
+    --! battle-res box sits directly outside the menu block), so clearing one can walk the bar
+    --! straight into the other. Every push moves strictly away from the pinned end, so this
+    --! cannot oscillate; one pass per obstacle is the most it can ever need.
+    local obstacles = Obstacles()
+    for _ = 1, #obstacles do
+        local moved = false
+        for _, o in ipairs(obstacles) do
+            local ol, orr, ot, ob = o[1], o[2], o[3] + OBSTACLE_PAD, o[4] - OBSTACLE_PAD
+            if l < orr and r > ol and b < ot and t > ob then -- overlapping on BOTH axes
+                if vertical then
+                    if pinLow then b = ot + gap; t = b + h else t = ob - gap; b = t - h end
+                else
+                    if pinLow then l = orr + gap; r = l + w else r = ol - gap; l = r - w end
+                end
+                moved = true
+            end
+        end
+        if not moved then break end
+    end
+
+    -- Pin the corner where the facing edge meets the starting end. Both halves matter: the
+    -- facing edge holds the gap steady however many icons there are, the starting end keeps
+    -- the bar growing the same way the frames do.
+    local point
+    if vertical then
+        point = (pinLow and "BOTTOM" or "TOP") .. (side == "left" and "RIGHT" or "LEFT")
+    else
+        point = (side == "top" and "BOTTOM" or "TOP") .. (pinLow and "LEFT" or "RIGHT")
+    end
+
+    return point, (strfind(point, "RIGHT") and r or l), (strfind(point, "BOTTOM") and b or t)
 end
 
--- the screen coordinates of that corner of a rect
-local function CornerOf(point, l, r, t, b)
-    return (strfind(point, "RIGHT") and r or l), (strfind(point, "BOTTOM") and b or t)
-end
-
--- Returns true when the bar ended up attached.
-local function TryAttach()
+--! The one-off conversion of a database that was dragged to a custom offset under the old
+--! magnet model. Core.lua cannot finish that migration itself: the old value is an offset
+--! from CellAnchorFrame and turning it into a stored SCREEN position needs a resolved rect,
+--! which nothing has at ADDON_LOADED. So Core parks the old numbers here and the first
+--! placement that has a rect to work with replays the old SetPoint once, saves where that
+--! landed as an ordinary free position, and drops the key. Those players keep the bar exactly
+--! where it was; it simply stops following Cell until they tick the box again.
+--! Returns false only when it wants to be tried again later.
+local LEGACY_POINTS = {["TOPLEFT"] = true, ["TOPRIGHT"] = true, ["BOTTOMLEFT"] = true, ["BOTTOMRIGHT"] = true}
+local function ConsumeLegacyAnchor()
     local db = CellDB["tools"]["clickCastingHints"]
-    if not db["snap"] then return false end
+    local legacy = db["legacyAnchor"]
+    if type(legacy) ~= "table" then return true end
+
+    if not (type(legacy[1]) == "number" and type(legacy[2]) == "number") then
+        db["legacyAnchor"] = nil
+        return true
+    end
 
     local anchor = Cell.frames.anchorFrame
     if not (anchor and anchor:GetLeft()) then return false end
 
-    local cl, cr, ct, cb = GetCellRect()
-    if not cl then return false end
-
-    local l, r, t, b = hintsFrame:GetLeft(), hintsFrame:GetRight(), hintsFrame:GetTop(), hintsFrame:GetBottom()
-    if not (l and r and t and b) then return false end
-
-    -- gap between the two rectangles on each axis; 0 when they overlap
-    local gapX = max(cl - r, l - cr, 0)
-    local gapY = max(cb - t, b - ct, 0)
-    if gapX > ATTACH_RANGE or gapY > ATTACH_RANGE then return false end
-
-    local newL = SnapEdge(l, r, cl, cr)
-    local newB = SnapEdge(b, t, cb, ct)
-    local newT = newB + (t - b)
-    local newR = newL + (r - l)
-
-    -- store the offset of OUR CHOSEN corner, not always the top-left one
-    local x, y = CornerOf(MyAnchorPoint(), newL, newR, newT, newB)
-    db["anchor"] = {x - anchor:GetLeft(), y - anchor:GetTop()}
+    P.ClearPoints(hintsFrame)
+    hintsFrame:SetPoint(LEGACY_POINTS[legacy[3]] and legacy[3] or "TOPLEFT", anchor, "TOPLEFT", legacy[1], legacy[2])
+    if hintsFrame:GetLeft() then P.SavePosition(hintsFrame, db["position"]) end
+    db["legacyAnchor"] = nil
     return true
 end
 
-local function IsAttached()
-    local a = CellDB["tools"]["clickCastingHints"]["anchor"]
-    return CellDB["tools"]["clickCastingHints"]["snap"] and type(a) == "table"
-        and type(a[1]) == "number" and type(a[2]) == "number"
-end
-
 local function ApplyPosition()
-    local db = CellDB["tools"]["clickCastingHints"]
-    P.ClearPoints(hintsFrame)
+    local db = CellDB and CellDB["tools"] and CellDB["tools"]["clickCastingHints"]
+    if not db then return end
+    --! switched off: the callbacks below still fire for every layout change, and there is no
+    --! bar to place. Enabling goes through Build -> Layout, which schedules a pass of its own.
+    if not db["enabled"] then return end
 
     if IsAttached() then
+        local point, x, y = AttachPoint()
+        local anchor = Cell.frames.anchorFrame
+        --! nothing resolvable yet -- leave the bar where it is and wait for the next pass,
+        --! rather than clearing its points and dropping it on CellParent's centre
+        if not (point and anchor and anchor:GetLeft()) then return end
+
+        --! ticking "attach" on a database that still owes us the old-model conversion makes
+        --! that conversion pointless -- it only existed to keep a FREE bar where it was
+        db["legacyAnchor"] = nil
+
         --! ⚠ clamping OFF while attached: the clamp repositions the frame to keep it on
         --! screen, which silently overrides the anchor whenever Cell sits near an edge --
         --! the bar would look like it had stopped following.
         hintsFrame:SetClampedToScreen(false)
-        hintsFrame:SetPoint(MyAnchorPoint(), Cell.frames.anchorFrame, "TOPLEFT", db["anchor"][1], db["anchor"][2])
+        P.ClearPoints(hintsFrame)
+        --! anchored to the menu block rather than to the screen, so dragging Cell carries the
+        --! bar along with it -- nothing to keep in sync, and no hook on Cell's own drag
+        hintsFrame:SetPoint(point, anchor, "TOPLEFT", x - anchor:GetLeft(), y - anchor:GetTop())
     else
+        if not ConsumeLegacyAnchor() then return end
         hintsFrame:SetClampedToScreen(true)
+        P.ClearPoints(hintsFrame)
         if not P.LoadPosition(hintsFrame, db["position"]) then
             PixelUtil.SetPoint(hintsFrame, "TOPLEFT", CellParent, "CENTER", 1, -1)
         end
@@ -260,29 +425,52 @@ local function ApplyPosition()
     end
 end
 
--- Stop following Cell but stay exactly where the bar currently is.
-local function Detach()
-    local db = CellDB["tools"]["clickCastingHints"]
-    if db["anchor"] then
-        P.SavePosition(hintsFrame, db["position"])
-        db["anchor"] = false
-    end
-    ApplyPosition()
+--! Everything that can move the bar fires in bursts -- a roster change is three events, a
+--! slider drag is one call per step, an option pane repaint fires UpdateTools once per tool --
+--! and the placement reads half a dozen rects, so do it once, next frame. The delay is also
+--! what lets the secure headers finish laying the buttons out: GROUP_ROSTER_UPDATE arrives
+--! before the new row has a rect.
+local posPending
+local function SchedulePosition()
+    if posPending then return end
+    posPending = true
+    C_Timer.After(0.05, function()
+        posPending = nil
+        ApplyPosition()
+    end)
 end
 
 hintsFrame:SetScript("OnDragStart", function()
+    --! there is nothing to drag while the bar is attached -- its position is computed, so a
+    --! drag would be undone by the next roster change. Refusing to start is honest; the
+    --! mover's own label carries the "[snapped]" tag that says why.
+    if IsAttached() then return end
     hintsFrame:StartMoving()
     hintsFrame:SetUserPlaced(false)
 end)
 hintsFrame:SetScript("OnDragStop", function()
+    if IsAttached() then return end
     hintsFrame:StopMovingOrSizing()
-    local db = CellDB["tools"]["clickCastingHints"]
-    if not TryAttach() then
-        db["anchor"] = false
-        P.SavePosition(hintsFrame, db["position"])
-    end
+    P.SavePosition(hintsFrame, CellDB["tools"]["clickCastingHints"]["position"])
     ApplyPosition()
 end)
+
+--! The battle-res box comes and goes in the middle of a fight and the bar steps around it, so
+--! its own show and hide are placement triggers.
+--! ⚠ HookScript, and exactly once. BattleRes.lua owns those two scripts with SetScript at file
+--! scope, which would wipe a hook made before it ran. It loads BEFORE this file today
+--! (Utilities/LoadUtilities.xml), so a hook here would survive -- but this is put off until
+--! the first UpdateTools anyway, which runs after every file has, so re-ordering that xml
+--! cannot silently cost us the trigger.
+local battleResHooked
+local function HookBattleRes()
+    if battleResHooked then return end
+    local br = Cell.frames.battleResFrame
+    if not br then return end
+    battleResHooked = true
+    br:HookScript("OnShow", SchedulePosition)
+    br:HookScript("OnHide", SchedulePosition)
+end
 
 -------------------------------------------------
 -- key abbreviations
@@ -651,7 +839,8 @@ end
 Layout = function()
     local db = CellDB["tools"]["clickCastingHints"]
     local size, spacing, perLine = db["size"], db["spacing"], db["perRow"]
-    local orientation = db["orientation"]
+    --! never the stored value: it may be "auto", which only the attached side can answer
+    local orientation = ResolvedOrientation()
     local isHorizontal = orientation == "left-to-right" or orientation == "right-to-left"
 
     local point, stepX, stepY, lineX, lineY
@@ -708,6 +897,11 @@ Layout = function()
     end
 
     P.Size(hintsFrame, max(width, 1), max(height, 1))
+
+    --! the bar's SIZE just changed, and an attached bar is measured from its facing edge --
+    --! so the placement has to be redone. Coalesced, because this runs once per step while a
+    --! slider is being dragged.
+    SchedulePosition()
 end
 
 -------------------------------------------------
@@ -731,6 +925,12 @@ end
 hintsFrame:SetScript("OnEvent", function(self, event)
     if event == "SPELL_UPDATE_COOLDOWN" or event == "SPELL_UPDATE_CHARGES" then
         RefreshCooldowns()
+    elseif event == "GROUP_ROSTER_UPDATE" or event == "UNIT_PET" then
+        --! the roster decides how many unit buttons there are, and an attached bar is placed
+        --! against the rectangle they make. ⚠ UNIT_PET's unit argument is deliberately
+        --! ignored rather than filtered: in 12.1 a unit token can be a secret string, and
+        --! comparing one is a hard error -- the placement re-reads every rect anyway.
+        SchedulePosition()
     else -- PLAYER_ENTERING_WORLD: spell info may not have been cached at login
         Build()
     end
@@ -751,6 +951,10 @@ local function UpdateVisibility()
     hintsFrame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
     hintsFrame:RegisterEvent("SPELL_UPDATE_CHARGES")
     hintsFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    --! only while the tool is on, like everything above: an attached bar is measured from
+    --! the unit buttons, and these two are what change how many of those there are
+    hintsFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+    hintsFrame:RegisterEvent("UNIT_PET")
 
     Build()
 
@@ -765,7 +969,10 @@ end
 local function ShowMover(show)
     if show then
         if not CellDB["tools"]["clickCastingHints"]["enabled"] then return end
-        hintsFrame:EnableMouse(true)
+        --! ⚠ NOT while attached: the drag is refused there (see OnDragStart), and a strip
+        --! that eats the mouse without moving reads as a bug. The green box and the
+        --! "[snapped]" label still show, so unlocking still tells the player where it is.
+        hintsFrame:EnableMouse(not IsAttached())
         hintsFrame.moverText:SetText(IsAttached() and (L["Mover"] .. " |cff00ff00" .. L["Snapped"]) or L["Mover"])
         hintsFrame.moverText:Show()
         Cell.StylizeFrame(hintsFrame, {0, 1, 0, 0.4}, {0, 0, 0, 0})
@@ -785,16 +992,39 @@ Cell.RegisterCallback("ShowMover", "ClickCastingHints_ShowMover", ShowMover)
 -- callbacks
 -------------------------------------------------
 local function UpdateTools(which)
+    --! first thing that runs after every file has loaded -- see HookBattleRes
+    HookBattleRes()
+
     if not which or which == "clickCastingHints" then
         UpdateVisibility()
         ShowMover(Cell.vars.showMover and CellDB["tools"]["clickCastingHints"]["enabled"])
     end
 
-    if not which then -- position
-        ApplyPosition()
-    end
+    --! unconditionally, whichever tool this was about: the battle-res box docks beside the
+    --! menu block and the party-target column widens the unit-button rectangle, so another
+    --! tool's settings can move this bar without it hearing anything else
+    SchedulePosition()
 end
 Cell.RegisterCallback("UpdateTools", "ClickCastingHints_UpdateTools", UpdateTools)
+
+--! the frames were resized, re-anchored or re-arranged -- all of which move the rectangle the
+--! bar is measured against
+Cell.RegisterCallback("UpdateLayout", "ClickCastingHints_UpdateLayout", function()
+    SchedulePosition()
+end)
+
+--! the menu block changed shape (top_bottom is 20x10, left_right is 10x20) and with it what
+--! the bar has to step around
+Cell.RegisterCallback("UpdateMenu", "ClickCastingHints_UpdateMenu", function(which)
+    if which == "position" then SchedulePosition() end
+end)
+
+--! the context switched, so side / direction / gap now come out of the other table. Layout(),
+--! not just a reposition: "auto" resolves off the side, so the bar may have to be rebuilt the
+--! other way round before it can be placed.
+Cell.RegisterCallback("GroupTypeChanged", "ClickCastingHints_GroupTypeChanged", function()
+    Layout()
+end)
 
 Cell.RegisterCallback("UpdateClickCastings", "ClickCastingHints_UpdateClickCastings", function()
     if CellDB["tools"]["clickCastingHints"]["enabled"] then
@@ -824,10 +1054,14 @@ Cell.RegisterCallback("UpdatePixelPerfect", "ClickCastingHints_UpdatePixelPerfec
 local LCG = Cell.MiliUIGlow
 
 local cchPane, unlockBtn, enabledCB, snapCB, showKeysCB, showTooltipCB, sizeSlider, orientationDD,
-    perLineSlider, spacingSlider, myAnchorDD
+    perLineSlider, spacingSlider, sideDD, gapSlider, partyBtn, raidBtn, HighlightContext
 local labelBoxes = {}   -- keyLabels entries, free text
 local valueBoxes = {}   -- plain numeric settings (offsets, threshold)
 local anchorDropdowns = {}
+
+--! Which context the three attach controls are showing. NOT the group type the player is in:
+--! the point of the pair of buttons is to set up the other one before getting there.
+local editing = "party"
 
 --! Dragging a slider fires once per step, so only "enabled" takes the full
 --! rebuild path -- everything else is pure geometry and Layout() covers it.
@@ -840,12 +1074,38 @@ local function Save(key, value)
     end
 end
 
-local function UpdatePerLineLabel(orientation)
+--! One of the three per-context values. Always Layout(), even when the context being edited
+--! is not the one on screen: the values it reads come from Context(), so editing the other
+--! table is a no-op there, and the alternative is a branch that quietly goes stale.
+--! The placement rides Layout's own coalesced pass -- the gap slider fires once per step.
+local function SaveAttach(key, value)
+    AttachTable(editing)[key] = value
+    Layout()
+end
+
+--! What the perRow slider counts depends on which way the bar runs, so it follows the bar on
+--! SCREEN (ResolvedOrientation), not the context being edited -- picking a direction for the
+--! raid while standing in a party must not relabel the slider that is counting party columns.
+local function UpdatePerLineLabel()
+    local orientation = ResolvedOrientation()
     if strfind(orientation, "top") or strfind(orientation, "bottom") then
         perLineSlider:SetLabel(L["Rows"])
     else
         perLineSlider:SetLabel(L["Columns"])
     end
+end
+
+--! The three attach controls, reloaded from whichever context is being edited. Per key with
+--! the shipped default behind it, for the same reason AttachDB is.
+local function LoadAttachDB()
+    local t = AttachTable(editing)
+    local d = Cell.defaults.clickCastingHints["attach"][editing]
+    local orientation = t["orientation"]
+    if orientation ~= "auto" and not ORIENTATIONS[orientation] then orientation = d["orientation"] end
+
+    sideDD:SetSelectedValue(SIDES[t["side"]] and t["side"] or d["side"])
+    orientationDD:SetSelectedValue(orientation)
+    gapSlider:SetValue(type(t["gap"]) == "number" and t["gap"] or d["gap"])
 end
 
 --! ⚠ forward declaration -- the reset button's handler is written inside CreatePane,
@@ -884,9 +1144,14 @@ local function CreatePane()
 
     -- enabled --------------------------------------------------------------------------
     enabledCB = Cell.CreateCheckButton(cchPane, L["Click-Casting Hints"], function(checked)
-        Cell.SetEnabled(checked, snapCB, showKeysCB, showTooltipCB, sizeSlider, orientationDD, perLineSlider, spacingSlider, myAnchorDD)
+        local db = CellDB["tools"]["clickCastingHints"]
+        Cell.SetEnabled(checked, snapCB, showKeysCB, showTooltipCB, sizeSlider, orientationDD,
+            perLineSlider, spacingSlider, partyBtn, raidBtn)
+        --! side and gap describe an attachment, so they follow the snap box as well. The
+        --! DIRECTION does not: a free-standing bar is laid out too.
+        Cell.SetEnabled(checked and db["snap"] and true or false, sideDD, gapSlider)
         for _, eb in pairs(labelBoxes) do
-            eb:SetEnabled(checked and CellDB["tools"]["clickCastingHints"]["showKeys"])
+            eb:SetEnabled(checked and db["showKeys"])
         end
         for _, eb in pairs(valueBoxes) do eb:SetEnabled(checked) end
         for _, dd in pairs(anchorDropdowns) do dd:SetEnabled(checked) end
@@ -895,17 +1160,22 @@ local function CreatePane()
     P.Point(enabledCB, "TOPLEFT", cchPane, "TOPLEFT", 5, -27)
     Cell.RegisterForCloseDropdown(enabledCB)
 
-    -- magnet ---------------------------------------------------------------------------
+    -- attach ---------------------------------------------------------------------------
     snapCB = Cell.CreateCheckButton(cchPane, L["Snap to Cell"], function(checked)
-        CellDB["tools"]["clickCastingHints"]["snap"] = checked
-        if checked then
-            -- attach right away if the bar already sits next to the frames, instead of
-            -- making the player pick it up and drop it again to see anything happen
-            TryAttach()
-            ApplyPosition()
-        else
-            Detach()
+        local db = CellDB["tools"]["clickCastingHints"]
+        --! freeze the bar where it is BEFORE letting go of Cell, so unticking the box leaves
+        --! it under the player's eyes instead of teleporting it to some older stored spot
+        if not checked and hintsFrame:GetLeft() then
+            P.SavePosition(hintsFrame, db["position"])
         end
+        db["snap"] = checked
+        Cell.SetEnabled(db["enabled"] and checked and true or false, sideDD, gapSlider)
+        --! Layout(), not just a reposition: "auto" resolves off the side while attached and
+        --! to left-to-right while not, so the bar itself may change shape.
+        --! the mover only takes the mouse while the bar is free (see ShowMover), so an
+        --! unlocked bar has to be told when that changes -- ShowMover ends in Layout()
+        if Cell.vars.showMover then ShowMover(true) else Layout() end
+        UpdatePerLineLabel()
     end, L["Snap to Cell"], L["SNAP_TO_CELL_TIPS"])
     P.Point(snapCB, "TOPLEFT", enabledCB, "BOTTOMLEFT", 0, -8)
 
@@ -932,19 +1202,76 @@ local function CreatePane()
     end)
     P.Point(sizeSlider, "TOPLEFT", showKeysCB, "TOPLEFT", 0, -55)
 
+    -- icons per line -------------------------------------------------------------------
+    perLineSlider = Cell.CreateSlider(L["Columns"], cchPane, 1, 20, 120, 1, function(value)
+        Save("perRow", value)
+    end)
+    P.Point(perLineSlider, "TOPLEFT", sizeSlider, "TOPLEFT", 146, 0)
+
+    -- spacing --------------------------------------------------------------------------
+    spacingSlider = Cell.CreateSlider(L["Spacing"], cchPane, 0, 20, 120, 1, function(value)
+        Save("spacing", value)
+    end)
+    P.Point(spacingSlider, "TOPLEFT", sizeSlider, "TOPLEFT", 292, 0)
+
+    -- which context the three below are for ----------------------------------------------
+    --! A pair of buttons rather than a third dropdown: this is not a setting, it is which
+    --! copy of the next row you are looking at, and a dropdown reads as one more thing to
+    --! configure. They also keep both answers visible, which a dropdown does not.
+    partyBtn = Cell.CreateButton(cchPane, L["Party"], "accent-hover", {70, 20})
+    partyBtn.id = "party"
+    P.Point(partyBtn, "TOPLEFT", sizeSlider, "TOPLEFT", 0, -52)
+
+    raidBtn = Cell.CreateButton(cchPane, L["Raid"], "accent-hover", {70, 20})
+    raidBtn.id = "raid"
+    P.Point(raidBtn, "TOPLEFT", sizeSlider, "TOPLEFT", 71, -52)
+
+    local contextText = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    contextText:SetText(L["Settings For"])
+    P.Point(contextText, "BOTTOMLEFT", partyBtn, "TOPLEFT", 0, 1)
+
+    HighlightContext = Cell.CreateButtonGroup({partyBtn, raidBtn}, function(id)
+        editing = id
+        LoadAttachDB()
+    end)
+
+    -- attach side ------------------------------------------------------------------------
+    --! ⚠ L["LEFT"] / L["RIGHT"], not L["Left"] / L["Right"]: on zhCN the latter pair is
+    --! translated as the MOUSE buttons ("左键" / "右键"), not as directions.
+    sideDD = Cell.CreateDropdown(cchPane, 100)
+    P.Point(sideDD, "TOPLEFT", sizeSlider, "TOPLEFT", 0, -97)
+
+    local sideItems = {}
+    for _, side in ipairs({"left", "right", "top", "bottom"}) do
+        tinsert(sideItems, {
+            ["text"] = L[strupper(side)],
+            ["value"] = side,
+            ["onClick"] = function()
+                SaveAttach("side", side)
+                UpdatePerLineLabel() -- "auto" reads the direction off the side
+            end,
+        })
+    end
+    sideDD:SetItems(sideItems)
+
+    local sideText = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    sideText:SetText(L["Side"])
+    P.Point(sideText, "BOTTOMLEFT", sideDD, "TOPLEFT", 0, 1)
+    Cell.SetTooltips(sideDD, "ANCHOR_TOPLEFT", 0, 3, L["Side"], L["ATTACH_SIDE_TIPS"])
+
     -- orientation ----------------------------------------------------------------------
     orientationDD = Cell.CreateDropdown(cchPane, 120)
-    P.Point(orientationDD, "TOPLEFT", sizeSlider, "TOPLEFT", 146, 0)
+    P.Point(orientationDD, "TOPLEFT", sizeSlider, "TOPLEFT", 146, -97)
 
-    local orientations = {"left-to-right", "right-to-left", "top-to-bottom", "bottom-to-top"}
+    local orientations = {"auto", "left-to-right", "right-to-left", "top-to-bottom", "bottom-to-top"}
     local items = {}
     for _, orientation in ipairs(orientations) do
         tinsert(items, {
             ["text"] = L[orientation],
             ["value"] = orientation,
             ["onClick"] = function()
-                UpdatePerLineLabel(orientation)
-                Save("orientation", orientation)
+                SaveAttach("orientation", orientation)
+                UpdatePerLineLabel()
             end,
         })
     end
@@ -954,50 +1281,13 @@ local function CreatePane()
     orientationText:SetText(L["Orientation"])
     P.Point(orientationText, "BOTTOMLEFT", orientationDD, "TOPLEFT", 0, 1)
 
-    -- icons per line -------------------------------------------------------------------
-    perLineSlider = Cell.CreateSlider(L["Columns"], cchPane, 1, 20, 120, 1, function(value)
-        Save("perRow", value)
+    -- gap ---------------------------------------------------------------------------------
+    --! ⚠ NOT called "spacing": that word is taken two controls to the left, where it means
+    --! the distance between two icons. This one is the distance from the bar to the frames.
+    gapSlider = Cell.CreateSlider(L["Frame Distance"], cchPane, 0, 40, 120, 1, function(value)
+        SaveAttach("gap", value)
     end)
-    P.Point(perLineSlider, "TOPLEFT", orientationDD, "TOPLEFT", 146, 0)
-
-    -- spacing --------------------------------------------------------------------------
-    spacingSlider = Cell.CreateSlider(L["Spacing"], cchPane, 0, 20, 120, 1, function(value)
-        Save("spacing", value)
-    end)
-    P.Point(spacingSlider, "TOPLEFT", sizeSlider, "TOPLEFT", 0, -55)
-
-    -- my anchor point ------------------------------------------------------------------
-    --! Which corner of the BAR the stored offset describes. Switching it must never move the
-    --! bar, so the offset is re-expressed from the rect the bar occupies right now -- the
-    --! setting changes what is pinned, not where the thing sits.
-    myAnchorDD = Cell.CreateDropdown(cchPane, 120)
-    P.Point(myAnchorDD, "TOPLEFT", spacingSlider, "TOPLEFT", 146, 0)
-
-    local myAnchorItems = {}
-    for _, point in ipairs(MY_ANCHOR_POINTS) do
-        tinsert(myAnchorItems, {
-            ["text"] = L[point],
-            ["value"] = point,
-            ["onClick"] = function()
-                local db = CellDB["tools"]["clickCastingHints"]
-                if db["myAnchor"] == point then return end
-                local a = Cell.frames.anchorFrame
-                local l, r, t, b = hintsFrame:GetLeft(), hintsFrame:GetRight(), hintsFrame:GetTop(), hintsFrame:GetBottom()
-                db["myAnchor"] = point
-                if IsAttached() and a and a:GetLeft() and l then
-                    local x, y = CornerOf(point, l, r, t, b)
-                    db["anchor"] = {x - a:GetLeft(), y - a:GetTop()}
-                end
-                ApplyPosition()
-            end,
-        })
-    end
-    myAnchorDD:SetItems(myAnchorItems)
-
-    local myAnchorText = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    myAnchorText:SetText(L["My Anchor Point"])
-    P.Point(myAnchorText, "BOTTOMLEFT", myAnchorDD, "TOPLEFT", 0, 1)
-    Cell.SetTooltips(myAnchorDD, "ANCHOR_TOPLEFT", 0, 3, L["My Anchor Point"], L["MY_ANCHOR_POINT_TIPS"])
+    P.Point(gapSlider, "TOPLEFT", sizeSlider, "TOPLEFT", 292, -97)
 
     -- text positions -------------------------------------------------------------------
     --! Free text rather than sliders: an offset is a number the player already has in mind
@@ -1065,16 +1355,20 @@ local function CreatePane()
     --! pair rather than as two unrelated clumps of boxes.
     local COL = {0, 110, 168, 226, 319}
 
-    CreateAnchorDropdown("keyAnchor", L["Keybind Position"], spacingSlider, COL[1], -50)
-    CreateValueBox("keyX", 50, "X", spacingSlider, COL[2], -50)
-    CreateValueBox("keyY", 50, "Y", spacingSlider, COL[3], -50)
-    CreateValueBox("keyFontSize", 85, L["Font Size"], spacingSlider, COL[4], -50, 6, 32)
+    --! ⚠ Every row from here down hangs off sizeSlider, the top-left control of the block,
+    --! rather than off whatever happens to sit at the left of the row above. Two rows now
+    --! stand between them (the context buttons and the attach row) and an anchor chain
+    --! through those would have to be re-derived every time one of them moves.
+    CreateAnchorDropdown("keyAnchor", L["Keybind Position"], sizeSlider, COL[1], -147)
+    CreateValueBox("keyX", 50, "X", sizeSlider, COL[2], -147)
+    CreateValueBox("keyY", 50, "Y", sizeSlider, COL[3], -147)
+    CreateValueBox("keyFontSize", 85, L["Font Size"], sizeSlider, COL[4], -147, 6, 32)
 
-    CreateAnchorDropdown("durationAnchor", L["Duration Position"], spacingSlider, COL[1], -92)
-    CreateValueBox("durationX", 50, "X", spacingSlider, COL[2], -92)
-    CreateValueBox("durationY", 50, "Y", spacingSlider, COL[3], -92)
-    CreateValueBox("durationFontSize", 85, L["Font Size"], spacingSlider, COL[4], -92, 6, 32)
-    CreateValueBox("durationThreshold", 85, L["Duration Threshold"], spacingSlider, COL[5], -92, 0, 3600)
+    CreateAnchorDropdown("durationAnchor", L["Duration Position"], sizeSlider, COL[1], -189)
+    CreateValueBox("durationX", 50, "X", sizeSlider, COL[2], -189)
+    CreateValueBox("durationY", 50, "Y", sizeSlider, COL[3], -189)
+    CreateValueBox("durationFontSize", 85, L["Font Size"], sizeSlider, COL[4], -189, 6, 32)
+    CreateValueBox("durationThreshold", 85, L["Duration Threshold"], sizeSlider, COL[5], -189, 0, 3600)
 
     -- key labels -----------------------------------------------------------------------
     --! The mouse rows are labelled WITH the glyph, not just with a name. It is the only
@@ -1101,17 +1395,17 @@ local function CreatePane()
         return "|T" .. MOUSE_MEDIA .. file .. ":14:14|t "
     end
 
-    CreateLabelBox("left", 120, Glyph("mouse-left.png") .. L["Left Button"], spacingSlider, 0, -134)
-    CreateLabelBox("right", 120, Glyph("mouse-right.png") .. L["Right Button"], spacingSlider, 140, -134)
-    CreateLabelBox("middle", 120, Glyph("mouse-middle.png") .. L["Middle Button"], spacingSlider, 280, -134)
+    CreateLabelBox("left", 120, Glyph("mouse-left.png") .. L["Left Button"], sizeSlider, 0, -231)
+    CreateLabelBox("right", 120, Glyph("mouse-right.png") .. L["Right Button"], sizeSlider, 140, -231)
+    CreateLabelBox("middle", 120, Glyph("mouse-middle.png") .. L["Middle Button"], sizeSlider, 280, -231)
 
     --! plain "Alt" / "Ctrl" / "Shift" rather than ALT_KEY_TEXT and friends: the localised
     --! globals are a mix of cases and lengths ("Alt 鍵" next to "CTRL" next to "SHIFT"),
     --! and these four are read as names, not translated.
-    CreateLabelBox("alt", 95, "Alt", spacingSlider, 0, -176)
-    CreateLabelBox("ctrl", 95, "Ctrl", spacingSlider, 103, -176)
-    CreateLabelBox("shift", 95, "Shift", spacingSlider, 206, -176)
-    CreateLabelBox("meta", 95, "Cmd", spacingSlider, 309, -176)
+    CreateLabelBox("alt", 95, "Alt", sizeSlider, 0, -273)
+    CreateLabelBox("ctrl", 95, "Ctrl", sizeSlider, 103, -273)
+    CreateLabelBox("shift", 95, "Shift", sizeSlider, 206, -273)
+    CreateLabelBox("meta", 95, "Cmd", sizeSlider, 309, -273)
 
     -- restore defaults -----------------------------------------------------------------
     local tips = cchPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
@@ -1150,12 +1444,19 @@ local function LoadDB()
         dd:SetEnabled(db["enabled"])
     end
     sizeSlider:SetValue(db["size"])
-    myAnchorDD:SetSelectedValue(MyAnchorPoint())
-    orientationDD:SetSelectedValue(db["orientation"])
-    UpdatePerLineLabel(db["orientation"])
     perLineSlider:SetValue(db["perRow"])
     spacingSlider:SetValue(db["spacing"])
-    Cell.SetEnabled(db["enabled"], snapCB, showKeysCB, showTooltipCB, sizeSlider, orientationDD, perLineSlider, spacingSlider, myAnchorDD)
+
+    --! opening the pane starts on the context the player is standing in -- that is the bar
+    --! they can see, so it is the one they came here to move
+    editing = Context()
+    HighlightContext(editing)
+    LoadAttachDB()
+    UpdatePerLineLabel()
+
+    Cell.SetEnabled(db["enabled"], snapCB, showKeysCB, showTooltipCB, sizeSlider, orientationDD,
+        perLineSlider, spacingSlider, partyBtn, raidBtn)
+    Cell.SetEnabled(db["enabled"] and db["snap"] and true or false, sideDD, gapSlider)
 end
 
 --! Everything except `enabled`. The master switch is not part of "how it looks", and a
@@ -1166,12 +1467,15 @@ function RestoreDefaults()
 
     wipe(t)
     for key, value in pairs(Cell.defaults.clickCastingHints) do
+        --! F.Copy is deep, which `attach` needs -- it is a table of tables, and a shallow
+        --! copy would hand the saved database the DEFAULTS table's own party/raid entries
+        --! to edit in place
         t[key] = type(value) == "table" and F.Copy(value) or value
     end
     t["enabled"] = enabled
 
     Cell.Fire("UpdateTools", "clickCastingHints")
-    ApplyPosition() -- UpdateTools only reloads the position on a full refresh
+    Layout() -- the direction may have gone back to "auto"; the placement rides on that
     LoadDB()
 end
 

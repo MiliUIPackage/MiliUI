@@ -32,7 +32,7 @@ metadata:
    玩家回報的症狀是「位置怎麼變成 -2」—— 數字沒變，變的是「自己的」那一格。
    還原用一次性旗標 `miliuiLeftCooldownAnchorReverted`，只翻「右／button／左、x == -2」這種
    完全等於誤遷移產物的存檔；
-2. 滑鼠施法提示列（`Utilities/ClickCastingHints.lua`）—— 為此開了「我的錨點」設定，預設右上；
+2. 滑鼠施法提示列（`Utilities/ClickCastingHints.lua`）—— 先是開了「我的錨點」設定（預設右上）；2026-09-20 整個位置模型改成「附著在哪一邊」之後這個設定拿掉了，釘哪一角由程式從 side＋版面 anchor 推（永遠釘面向框架的那一邊＋版面生長的那一頭），見 [[project-local-addon-forks]] 的 Cell 列；
 3. 使用者自訂的 17×17 光環排 —— 在指示器面板把「自己的」改成右上就解決。
 
 排查順序：先看錨點的**第一個點**（那是「我們自己的哪一角」），不要一開始就懷疑
