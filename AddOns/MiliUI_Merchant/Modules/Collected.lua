@@ -2,7 +2,8 @@
 -- 已收藏判定
 --
 -- `Collected.Is(index, itemID)` 回三種值：
---   true   已經有了 —— Dim 會把那一格變暗並打勾
+--   true   已經有了 —— Dim 會把那一格變暗並打勾。「有了」包含兩種：收藏裡學會了，
+--          **或者東西已經躺在背包／銀行裡還沒用掉**（見 OwnsCopy）
 --   false  還沒有
 --   nil    **資料還沒到** —— 這一格維持原樣，等下一輪再問
 --
@@ -21,7 +22,13 @@ local C = ns.Collected
 
 local issecret = ns.Secret.IsSecret
 
--- itemID → true / false。**只記算得出來的**，算不出來（資料未到）不記
+-- itemID → true / false / UNLEARNED。**只記算得出來的**，算不出來（資料未到）不記
+--
+-- UNLEARNED＝「是收藏品、但收藏裡還沒有」。這種不能直接記成 false：剛買下來的
+-- 坐騎在**按下去學會之前**收藏裡查不到，但它就在背包裡 —— 這支功能存在的理由是
+-- 「不要重複買」，所以買了就該暗，不是學了才暗。背包內容隨時在變，所以這一段
+-- 不進快取、每一輪現場問（只有「還沒收藏的收藏品」會走到這裡，一頁沒幾格）。
+local UNLEARNED = "unlearned"
 local cache = {}
 local cacheCount = 0
 
@@ -95,6 +102,14 @@ local function IsHousingCollected(itemID)
     return owned > 0
 end
 
+-- 背包、銀行、戰隊銀行裡有沒有這件東西。
+-- ⚠ 不需要自己聽 BAG_UPDATE：暴雪的商人框本來就聽了，東西一進背包它就會重畫，
+--   我們的掛勾跟著跑，這裡現場問到的就是新的數量。
+local function OwnsCopy(itemID)
+    local count = C_Item.GetItemCount(itemID, true, false, true, true)
+    return (count or 0) > 0
+end
+
 local function HasTransmog(link)
     if not link or issecret(link) then return nil end
     return C_TransmogCollection.PlayerHasTransmogByItemInfo(link) and true or false
@@ -112,34 +127,38 @@ end
 local function Compute(index, itemID, dim)
     if dim.pets then
         local v = IsPetCollected(itemID)
-        if v ~= nil then return v end
+        if v ~= nil then return v or UNLEARNED end
     end
     if dim.mounts then
         local v = IsMountCollected(itemID)
-        if v ~= nil then return v end
+        if v ~= nil then return v or UNLEARNED end
     end
     if dim.toys then
         local v = IsToyCollected(itemID)
-        if v ~= nil then return v end
+        if v ~= nil then return v or UNLEARNED end
     end
 
     -- classID 拿不到＝物品資料還在路上，不是「不屬於任何類別」
     local classID = select(6, C_Item.GetItemInfoInstant(itemID))
     if classID == nil then return nil end
 
+    -- 這三類的 nil（資料未到）要原樣傳回去，false 才換成 UNLEARNED
+    local v
     if dim.recipes and classID == Enum.ItemClass.Recipe then
-        return IsRecipeKnown(index)
-    end
-    if dim.housing and classID == Enum.ItemClass.Housing then
-        return IsHousingCollected(itemID)
-    end
-    if dim.transmog
+        v = IsRecipeKnown(index)
+    elseif dim.housing and classID == Enum.ItemClass.Housing then
+        v = IsHousingCollected(itemID)
+    elseif dim.transmog
         and (classID == Enum.ItemClass.Weapon or classID == Enum.ItemClass.Armor) then
         -- 塑形要用 link 不用 itemID：外觀是掛在 item link 的修飾子上的
-        return HasTransmog(GetMerchantItemLink(index))
+        v = HasTransmog(GetMerchantItemLink(index))
+    else
+        -- 不屬於任何開著的類別：藥水、材料這種東西「背包裡有」不代表不用再買
+        return false
     end
 
-    return false
+    if v == false then return UNLEARNED end
+    return v
 end
 
 ------------------------------------------------------------
@@ -150,20 +169,22 @@ function C.Is(index, itemID)
     --   secret keys" 是硬錯，會中斷整支重畫）
     if not itemID or issecret(itemID) then return nil end
 
-    local hit = cache[itemID]
-    if hit ~= nil then return hit end
-
-    local dim = ns.db and ns.db.dim
-    if not dim then return nil end
-
-    local value = Compute(index, itemID, dim)
+    local value = cache[itemID]
     if value == nil then
-        sawUnknown = true
-        return nil
+        local dim = ns.db and ns.db.dim
+        if not dim then return nil end
+
+        value = Compute(index, itemID, dim)
+        if value == nil then
+            sawUnknown = true
+            return nil
+        end
+
+        cache[itemID] = value
+        cacheCount = cacheCount + 1
     end
 
-    cache[itemID] = value
-    cacheCount = cacheCount + 1
+    if value == UNLEARNED then return OwnsCopy(itemID) end
     return value
 end
 
