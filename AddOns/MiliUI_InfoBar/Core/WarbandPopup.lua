@@ -58,6 +58,7 @@ local TEXT_DIM  = HP.TEXT_DIM
 local LOCKED    = { 0.40, 0.40, 0.40 }
 local GOLD      = { 1.00, 0.84, 0.00 }
 local GREEN     = { 0.25, 0.75, 0.25 }
+local ORANGE    = { 1.00, 0.45, 0.20 }
 
 -- 欄位。label 是語系 key；width 是最小寬，實際寬取「最小寬」與「表頭文字寬＋內距」的大者，
 -- 語系換了表頭比較長也不會擠爆。spark 那欄只在裝有 Syndicator 時出現。
@@ -527,8 +528,11 @@ end
 -- 格數加起來——某一軌還沒有資料時（新角色、伺服器還沒回），寫死 9 會讓分母看起來
 -- 像「有三格永遠拿不到」。
 --
--- 顏色只有兩階：0 格＝灰、≥1＝白。**不要**再加綠／金之類的分級——這張表上
--- 顏色已經被「品質軌道」與「拿了沒」用掉了，狀態只換明暗。
+-- 顏色三階（使用者 2026-09-19 定案）：0～1 格＝橘紅、2 格＝黃、≥3 格＝綠。
+-- 門檻是 **3**：寶庫開滿三格，不想要的獎勵可以換成骰裝幣，所以「有沒有到 3」才是
+-- 玩家每週真正在看的那條線——這一欄的顏色承載的是「這隻還差多少」，不是裝飾。
+-- 黃與綠沿用儲物箱欄的那兩個（進行中／拿滿），同一張表上同一個語意同一個顏色。
+-- 沒資料仍然是灰點，跟「0 格」要分得出來（一個是不知道，一個是真的沒打）。
 ------------------------------------------------------------
 local function VaultTotals(vault)
     -- 世界與競技擇一，跟寶庫提示的 sequence 同一個規則
@@ -555,7 +559,7 @@ local function FillVaultCells(area, vault, mode)
             SetColor(area.total, LOCKED)
         else
             area.total:SetText(unlocked .. "/" .. total)
-            SetColor(area.total, unlocked > 0 and TEXT_MAIN or LOCKED)
+            SetColor(area.total, (unlocked >= 3 and GREEN) or (unlocked == 2 and GOLD) or ORANGE)
         end
         return
     end
