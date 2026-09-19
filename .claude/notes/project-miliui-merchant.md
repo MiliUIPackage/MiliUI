@@ -35,6 +35,9 @@ metadata:
 - **收藏快取兩個陷阱**（驗收時抓到的）：① 快取記的是「照當時開著的類別」算的結果，設定一變就要 `Collected.Wipe()`
   （放在 `Grid.Apply`），否則勾了類別沒反應；② 配方靠 `C_TooltipInfo.GetMerchantItem(index)` 找 `ITEM_SPELL_KNOWN`，
   提示還有 `RETRIEVING_ITEM_INFO` 那行時要回 nil 不快取。
+- **「已收藏」要包含「買了還沒用」**（使用者實測第一個回報）：剛買的坐騎在學會之前收藏查不到，但功能的目的是「別重複買」。
+  做法：快取第三態 `UNLEARNED`（是收藏品但沒收藏）→ 每輪現場問 `C_Item.GetItemCount(id, true, false, true, true)`（含銀行／戰隊銀行），
+  這段不快取。不用自己聽 BAG_UPDATE —— 暴雪的商人框本來就聽了會重畫。非收藏品（藥水材料）不套這條。
 - `C_HousingCatalog.GetCatalogEntryInfoByItem(itemInfo)` 回的 `HousingCatalogEntryInfo` **沒有 quantity**；
   持有數＝`totalNumStored + remainingRedeemable + totalNumPlaced`。
 - 衝突閘不點名插件：`MERCHANT_ITEMS_PER_PAGE ~= 10 or MerchantItem13` 存在 ⇒ 整支休眠。
