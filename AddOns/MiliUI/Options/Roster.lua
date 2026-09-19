@@ -85,7 +85,6 @@ ns.AddonRoster = {
         { key = "AppearanceTooltip", folders = { "AppearanceTooltip" }, slash = "/aptip" },
         { key = "TinyInspect-Remake", folders = { "TinyInspect-Remake" }, slash = "/ti" },
         { key = "KeystoneLoot", folders = { "KeystoneLoot" }, slash = "/ksl" },
-        { key = "Krowi_ExtendedVendorUI", folders = { "Krowi_ExtendedVendorUI" }, settings = true },
 
         -- ===== 地圖與導覽 =====
         { key = "HandyNotes",

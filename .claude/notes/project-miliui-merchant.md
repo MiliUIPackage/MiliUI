@@ -9,8 +9,7 @@ metadata:
 ---
 
 **MiliUI_Merchant（2026-09-19 建立，v1.0.0）**：加大商人視窗（列×欄可調，預設 5×4）＋已收藏的
-寵物／坐騎／玩具／配方**變暗打勾**。取代 Krowi_ExtendedVendorUI；**Krowi 的資料夾還沒從套組移除**，
-等使用者進遊戲驗過再另開一個 commit `git rm -r`。
+寵物／坐騎／玩具／配方**變暗打勾**。取代 Krowi_ExtendedVendorUI（使用者實機驗過後，同日已從套組 `git rm`，名冊條目與總覽頁擷圖一併換掉）。
 
 ## 為什麼沿用暴雪命名、不自己畫格子（使用者拍板）
 寫 `MERCHANT_ITEMS_PER_PAGE`、建 `MerchantItem13…N`，讓暴雪照畫。原因是**商品格是別的插件的掛勾點**：
@@ -48,10 +47,20 @@ metadata:
 - taint 接觸面跟 Krowi 時代相同：全域被污染 ⇒ 商人更新路徑被污染（無保護函式、無秘密值）；
   13 格以後是插件建的框，點擊時暴雪處理器以污染狀態寫 `MerchantFrame.itemHover/extendedCost/highPrice`。
 
-## 待驗證（使用者進遊戲）
-翻頁與滾輪、買回分頁尺寸還原、13 格以後的拿起／右鍵買／拆堆疊／確認窗、三支裝飾插件在 13 格以後照常、
-當場買寵物立刻變暗、>3 種貨幣的底部列、寬版底部空隙要不要補 inset、齒輪（atlas `worldquest-icon-engineering`）
-與打勾（`common-icon-checkmark` 14px）的觀感、房屋裝飾持有數語意、買過東西後戰鬥中用背包物品 taint.log 無封鎖。
+## 寬版底部列（實機擷圖對過）
+暴雪的底部元件有的錨左緣、有的錨右緣，原尺寸下剛好疊在一起，視窗一變寬就各自飄走：
+- 賣垃圾鈕：不能修裝的商人錨在**右緣** -148，每次 `UpdateRepairButtons` 重設 ⇒ post-hook 每次換回左緣 `336-148`。
+- 金錢錨右緣 -169（`UpdateCurrencies` 每次重設，搶不贏），裝它的框 `MerchantExtraCurrencyInset/Bg` 錨左緣 ⇒ 一次性把框改成跟右緣走。
+  `MerchantToken4`（>3 種貨幣才會建）原本錨左緣 89，出現時搬一次。
+- 美術圖 `MerchantFrameBottomLeftBorder` 固定 334 寬：右邊補一格 `InsetFrameTemplate`，實測左邊兩格落在 y=26～77（圖上緣 10 是透明留白），
+  底要 `Bg:SetColorTexture(0,0,0)` 才跟美術圖的純黑一致。買回分頁／2 欄時收掉。
+- 代幣數量「12…」：代幣鈕固定 50 寬、每次更新都被設回去；hook `MerchantFrame_UpdateCurrencyButton`，照 `GetUnboundedStringWidth` 加寬，
+  **整組（1–3、4–6 各一組）總寬 ≤152 才加**，否則會壓到隔壁的金錢。
+- 齒輪用 `questlog-icon-setting`（暴雪任務日誌那顆）；世界任務工程學圖示縮到 16px 像金礦。
+
+## 待驗證（剩下的）
+已驗過（2026-09-19 使用者實機）：翻頁、買回分頁、13 格以後的購買操作、裝飾插件、買了就變暗、戰鬥中用背包物品無封鎖。
+還沒驗：>3 種貨幣的商人（第 4 顆代幣搬家）、代幣加寬、房屋裝飾持有數語意、總覽頁擷圖裡的齒輪還是舊圖示（要重拍）。
 
 ## 沒做的
 搜尋框（階段 2，要變暗＋跳頁；使用者從沒用過 Krowi 的）。塑形套裝／幻象類別。
