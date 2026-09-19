@@ -173,8 +173,12 @@ local token4Moved = false
 local function GetFiller()
     if filler then return filler end
     filler = CreateFrame("Frame", nil, MerchantFrame, "InsetFrameTemplate")
-    filler:SetPoint("BOTTOMLEFT", MerchantFrame, "BOTTOMLEFT", STRIP_ART_W + 3, 28)
-    filler:SetPoint("TOPRIGHT", MerchantFrame, "BOTTOMRIGHT", -6, 78)
+    -- 上下緣是對著實機擷圖量的：左邊兩格（美術圖裡畫死的）實際落在 26～77，
+    -- 圖本身雖然是 26～87，但上面那 10 是透明留白
+    filler:SetPoint("BOTTOMLEFT", MerchantFrame, "BOTTOMLEFT", STRIP_ART_W + 3, 26)
+    filler:SetPoint("TOPRIGHT", MerchantFrame, "BOTTOMRIGHT", -6, 77)
+    -- 模板的底是帶紋理的深灰，左邊兩格是純黑 —— 擺在一起一眼就看得出不是同一套
+    if filler.Bg then filler.Bg:SetColorTexture(0, 0, 0, 1) end
     -- 純裝飾：壓在商人框自己的層級上，不要蓋到任何按鈕
     filler:SetFrameLevel(MerchantFrame:GetFrameLevel() + 1)
     filler:Hide()
