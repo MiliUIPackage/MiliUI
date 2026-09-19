@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: c0d1056b-afe5-4f0b-a0d1-24a0f3f4c05d
-  modified: 2026-09-14T00:00:00.000Z
+  modified: 2026-09-19T00:00:00.000Z
 ---
 
 `AddOns/MiliUI_InfoBar/`（2026-08-29 新增）。純色方底一長條：資訊區塊（裝等／耐久／
@@ -149,7 +149,7 @@ metadata:
 「角色鑰石記錄」面板）整組搬進資訊列並從本體刪除：`Core/Warband.lua`（資料層：
 鑰石／寶庫快照／懸賞圖／儲物箱追蹤、隊伍回報、「分身key」關鍵字）＋
 `Core/WarbandPopup.lua`（表格面板、寶庫提示、列選單）＋ Blocks.lua 的 `warband` 方塊
-（字讀即時 `GetOwnedKeystone*`，左鍵開關面板、右鍵選單）。行為逐條照搬，相關判準
+（字讀即時 `GetOwnedKeystone*`，**滑過開面板**（2026-09-19 起，原本是左鍵開關）、右鍵選單）。行為逐條照搬，相關判準
 仍在 [[project-miliui-vault-tracking]]、[[project-miliui-bounty-map-column]]、
 [[project-miliui-voidcore-currency]]（路徑已更新）。
 
@@ -351,7 +351,7 @@ Cell 設定視窗開著時勾選框是否即時同步、面板在停靠上／下
 ## 滑過面板共用層 HoverPanel（2026-09-14）
 
 `Core/HoverPanel.lua`（`ns.HoverPanel`）：坐騎／修裝／確認倒數三張滑過面板共用的**唯一**皮與節奏來源；
-戰隊表格只共用皮、扁平鈕與定位 `HP.PlaceBelow`。面板檔只剩「有哪些列」（BuildModel）＋自己私有的東西
+戰隊表格 2026-09-19 起也走控制器（節奏），但**不走列層**（多欄表格不是一列一個選項）。面板檔只剩「有哪些列」（BuildModel）＋自己私有的東西
 （修裝的 secure 圖示按鈕）。**版面數字不准搬回面板檔**——三張面板長得一樣是需求，複製一份就是下次分岔的起點。
 
 - 常數：G=6（所有「反白 ↔ 線／邊」距離）、PAD_X 10、ROW_H 28、TITLE_H 26（線後再空 G）、SEP_H 2G+1、
@@ -368,3 +368,34 @@ Cell 設定視窗開著時勾選框是否即時同步、面板在停靠上／下
 
 待遊戲驗證：修裝面板進戰鬥由 state driver 收、secure 按鈕實點、三張面板同字級下一致、確認倒數打勾欄對齊、
 修裝圖示排換行、四張面板貼頂／貼底翻面一致。
+
+
+## 自動修裝搬進資訊列／戰隊改滑過／寶庫欄切換（2026-09-19）
+
+- **自動修裝從本體搬到 `Core/AutoRepair.lua`**（`ns.AutoRepair`）。設定 `db.repair.auto`（預設開）／
+  `db.repair.guild`（預設關）；入口兩處：耐久面板**最上面**兩列勾選（按下原地重畫）＋「修裝」設定分頁最上面一節
+  （方塊被收掉時的唯一入口）。耐久方塊右鍵從 W.Menu 選單改成直接開「修裝」分頁。
+  事件永遠註冊、不看方塊啟用與否。`ns.Events` 的 MERCHANT_SHOW 延一幀派送，對 Shift 閘與修裝都沒影響。
+  本體 `Enhance/Merchant_Automation.lua` 只剩自動賣垃圾，Tab_QoL 留一行指路。
+- **遷移**：印記 `db.repair.migration`，PLAYER_LOGIN 唯讀 `MiliUI_DB.merchant`，只搬「跟預設不同」的布林
+  （autoRepair==false、guildRepair==true）。本體的 GetDB **不再補這兩格預設、也不刪舊值**。
+  `ns.ResetDB` 會 wipe 掉印記 ⇒ 還原後補 `migration = "reset"`，不然下次登入舊值又搬回來。
+- **舊版本體保險**：`MiliUI_MerchantAutomation.IsAutoRepair` 還在＝本體是舊版、自己會修 ⇒ 資訊列整組讓給它
+  （不做雙向同步）。**本體不要為了相容補空殼 API 回來**，補了兩邊都不修。
+- 加了 check 列之後整張修裝面板（含逐部位耐久）一起縮排 30px —— 那是列層 gutter 規則生效，不是跑版。
+- **控制器新增三個 spec 選項**：`allowCombat`（戰鬥中照開、不自動收；戰隊表格）、`beforeOpen`（Build 之後
+  Populate 之前跑一次；戰隊在這裡 RefreshOwn —— 放 populate 會跟 listener 繞成一圈）、`keepOpen`（回 true
+  就**續排**下一輪關閉而不是只跳過：列選單開著時游標在面板外，選單關掉後不會再有 OnLeave 來叫我們）。
+- **表格上每個吃滑鼠的子框都要接 CancelClose／ScheduleClose**（列、寶庫欄、全部發送、寶庫表頭鈕），
+  見 [[wow-child-frame-steals-mouse-focus]]；寫在原本的 SetScript 裡，不要 HookScript。
+  方塊左鍵**只開不關**（習慣性點一下的人不該在 0.15 秒後把它點掉）；右鍵開選單前先 CancelOpen＋Hide
+  （選單與面板同錨點會疊）。滑過就開之後方塊不再彈 GameTooltip。
+- **寶庫欄表頭是 Button**，左鍵循環 total → raid → mplus → world，存 `db.warbandVaultMode`（預設 total；
+  刻意不放 `db.warband`——那張是資料、ResetDB 會留）。標題：總計＝「寶庫」，其餘 `WARBAND_COL_VAULT_FMT`
+  拼「寶庫(M+)」。**欄寬在建框時用四種標題的最大值定死**（欄的 x 是建框時算的）。
+  總計＝整欄一個 `已解鎖/總格數`（分母是有資料的軌道格數加總，不寫死 9；world／pvp 擇一），
+  0 格灰、≥1 白，不分級上色。滑過的寶庫提示四種模式都一樣。
+
+待驗證（沒進過遊戲）：遷移後兩個開關的值、面板勾選原地重畫、keepOpen 續排（列選單關掉後面板有沒有收）、
+戰鬥中滑過方塊長出表格會不會太擋、enUS 下寶庫欄變寬的量、修裝分頁多一節之後清單的捲軸範圍。
+
