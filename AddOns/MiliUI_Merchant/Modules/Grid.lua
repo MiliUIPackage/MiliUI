@@ -133,6 +133,75 @@ local function ReanchorOnce()
         MerchantNextPageButton:ClearAllPoints()
         MerchantNextPageButton:SetPoint("CENTER", MerchantFrame, "BOTTOMRIGHT", -26, 96)
     end
+
+    -- 最底下那一列：暴雪把「金錢」錨在**右緣**往左 169（`MerchantFrame_UpdateCurrencies`
+    -- 每次都重設，搶不贏），但裝金錢的那個框（名字叫 ExtraCurrency，其實是左邊那格）
+    -- 錨在**左緣**。原尺寸下兩者剛好疊在一起；視窗一變寬，金錢就飄在中間沒有框，
+    -- 左下角留一個空盒子。把框改成也跟著右緣走，它就永遠墊在金錢底下。
+    if MerchantExtraCurrencyInset then
+        MerchantExtraCurrencyInset:ClearAllPoints()
+        MerchantExtraCurrencyInset:SetPoint("BOTTOMLEFT", MerchantFrame, "BOTTOMRIGHT", 4 - BASE_W, 4)
+        MerchantExtraCurrencyInset:SetPoint("TOPRIGHT", MerchantFrame, "BOTTOMRIGHT", 169 - BASE_W, 27)
+    end
+    if MerchantExtraCurrencyBg then
+        MerchantExtraCurrencyBg:ClearAllPoints()
+        MerchantExtraCurrencyBg:SetPoint("TOPRIGHT", MerchantFrame, "BOTTOMRIGHT", 166 - BASE_W, 25)
+        MerchantExtraCurrencyBg:SetPoint("BOTTOMLEFT", MerchantFrame, "BOTTOMRIGHT", 7 - BASE_W, 6)
+    end
+end
+
+------------------------------------------------------------
+-- 底部那一條（修裝鈕＋買回格）在寬版下的收尾
+--
+-- 那一條的美術圖（`MerchantFrameBottomLeftBorder`）是固定 334px 寬的一張圖，
+-- 不能拉長。視窗變寬之後右邊整段是空的，而且有兩樣東西會飄過去：
+--
+--   賣垃圾鈕   不能修裝的商人，暴雪把它錨在**右緣**往左 148（原尺寸下＝左邊那格的
+--              正中間）。每次 `MerchantFrame_UpdateRepairButtons` 都重設，所以我們
+--              也每次把它換回等價的左緣錨點。能修裝的商人它是跟著修裝鈕走的，不用管。
+--   第 4 顆貨幣 超過三種貨幣時，第 4～6 顆錨在左緣 89（原尺寸下落在左邊那個框裡）。
+--              框已經被我們搬去跟右緣走了，代幣也要跟上。暴雪只在**建立時**錨一次、
+--              而且是用到才建，所以等它出現再搬、搬一次就好。
+--
+-- 右邊空的那段補一格自己的 inset，跟最底下那列的框同一個模板，看起來就是
+-- 「第三格」而不是「圖沒畫完」。
+------------------------------------------------------------
+local STRIP_ART_W = 334     -- MerchantFrameBottomLeftBorder 的寬度（錨在左緣 +1）
+local filler
+local token4Moved = false
+
+local function GetFiller()
+    if filler then return filler end
+    filler = CreateFrame("Frame", nil, MerchantFrame, "InsetFrameTemplate")
+    filler:SetPoint("BOTTOMLEFT", MerchantFrame, "BOTTOMLEFT", STRIP_ART_W + 3, 28)
+    filler:SetPoint("TOPRIGHT", MerchantFrame, "BOTTOMRIGHT", -6, 78)
+    -- 純裝飾：壓在商人框自己的層級上，不要蓋到任何按鈕
+    filler:SetFrameLevel(MerchantFrame:GetFrameLevel() + 1)
+    filler:Hide()
+    return filler
+end
+
+local function FixBottomStrip(wide)
+    if MerchantSellAllJunkButton and not CanMerchantRepair() then
+        -- 336 - 148 = 188：原尺寸下跟暴雪設的是同一個點
+        MerchantSellAllJunkButton:SetPoint("BOTTOMRIGHT", MerchantFrame, "BOTTOMLEFT", BASE_W - 148, 33)
+    end
+
+    if not token4Moved then
+        local token = _G.MerchantToken4
+        if token then
+            token4Moved = true
+            local right = 89 + (token:GetWidth() or 0)      -- 原本的右緣（從左緣量）
+            token:ClearAllPoints()
+            token:SetPoint("BOTTOMRIGHT", MerchantFrame, "BOTTOMRIGHT", right - BASE_W, 8)
+        end
+    end
+
+    if wide then
+        GetFiller():Show()
+    elseif filler then
+        filler:Hide()
+    end
 end
 
 ------------------------------------------------------------
@@ -246,6 +315,7 @@ local function OnMerchantInfo()
     ApplySize(BASE_W + (db.cols - BASE_COLS) * COL_PITCH,
               BASE_H + (db.rows - BASE_ROWS) * ROW_PITCH)
     LayoutCells(perPage, db.cols, ROW_PITCH)
+    FixBottomStrip(db.cols > BASE_COLS)
 end
 
 ------------------------------------------------------------
@@ -263,6 +333,7 @@ local function OnBuybackInfo()
 
     ApplySize(BASE_W, BASE_H)
     LayoutCells(STOCK_CELLS, BUYBACK_COLS, BUYBACK_ROW_PITCH)
+    if filler then filler:Hide() end
 
     -- 買回的東西沒有「已收藏」的概念（是自己剛賣掉的），alpha 一律還原
     for i = 1, STOCK_CELLS do
