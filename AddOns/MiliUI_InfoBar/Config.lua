@@ -126,6 +126,11 @@ ns.DB_DEFAULTS = {
     warband = {
         characters = {},
     },
+    -- 戰隊表格的寶庫欄要看哪一軌（點那欄的表頭循環）：
+    -- "total"（預設，已解鎖/總格數）| "raid" | "mplus" | "world"。
+    -- ⚠ 刻意**不放進 db.warband**：那張表是資料、ResetDB 整包留著，模式是設定，
+    --   放進去會變成「還原預設值」還原不掉。
+    warbandVaultMode = "total",
     -- 坐騎（Core/Mounts.lua）。⚠ **只能有這兩格空表**：分類是有序陣列，
     -- 而 CopyDefaults 是遞迴合併、會按索引把陣列補回來——種子放這裡的話，
     -- 玩家刪掉第 2 個分類之後每次登入又會冒出來。種子改在 Mounts.lua 裡種，
@@ -134,11 +139,16 @@ ns.DB_DEFAULTS = {
         shared = {},
         chars  = {},
     },
-    -- 修裝按鈕（Core/Repair.lua）。hidden 存的是「玩家把哪幾筆關掉了」，
+    -- 修裝。hidden 是修裝按鈕（Core/Repair.lua）：存「玩家把哪幾筆關掉了」，
     -- key 是 "kind:id" 字串、值恆為 true —— **預設全開**，所以這裡只要一張空表。
     -- 反過來存「要顯示哪些」的話，之後新增一個修裝道具就不會自己出現。
+    -- auto／guild 是自動修裝（Core/AutoRepair.lua，2026-09-19 從本體搬過來）：
+    -- 預設開，公會金庫預設關——花的是公會的錢，要不要用得由玩家自己說。
+    -- 同一張表裡還會多一個 migration 印記（nil ＝ 還沒查過 MiliUI_DB）。
     repair = {
         hidden = {},
+        auto   = true,
+        guild  = false,
     },
     -- 確認倒數（Core/ReadyCheck.lua）。三顆鍵各自一個動作＋自己的倒數秒數，
     -- 預設沿用快捷聊天列那顆開怪鈕的配置（左：就位確認、中：5 秒、右：10 秒）。

@@ -23,7 +23,7 @@ metadata:
 原本記的修改內容（效能修補＋secret 版 UnitColor，[[project-tinytooltip-perf]]）已無對象。
 
 **已從表中移除**：`Leatrix_Plus`（2026-08-29）。整包從套組移除——套組已經自己做掉它主要
-被用到的那幾件事（商人自動修裝／自動賣垃圾在 `MiliUI/Enhance/Merchant_Automation.lua`、
+被用到的那幾件事（自動賣垃圾在 `MiliUI/Enhance/Merchant_Automation.lua`、自動修裝 2026-09-19 搬到 `MiliUI_InfoBar/Core/AutoRepair.lua`、
 任務自動接交在 `MiliUI_QuestTracker`、小地圖按鈕收納在 `MiliUI_Minimap`、提示在
 `MiliUI_Tooltip`、快速拾取由 Plumber 的 LootUI 提供）。原本記的修改（12.1 光環秘密值閘，
 `LeaPlusLC:AurasAreSecret()` ＋ 7 個呼叫點）已無對象。**沒有**加進 LegacyAddons 自動停用：

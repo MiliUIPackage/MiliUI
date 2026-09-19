@@ -1,10 +1,18 @@
 ------------------------------------------------------------
 -- 戰隊資訊：彈出面板（角色表格）＋寶庫提示＋列選單
 --
--- ⚠ 它是**點開的表格**，不是滑過長出來的清單，所以不走 Core/HoverPanel.lua 的
---   控制器與列層（那套是「一列一個選項」的節奏，套在表格上只會把欄位擠壞）。
---   共用的只有**皮與定位**：同一條資訊列上長出來的東西，邊框、底色、從哪一邊
---   翻面必須是同一句話。表格自己的列高／欄寬留在這支。
+-- ⚠ 它是**表格**不是「一列一個選項」的清單，所以走 Core/HoverPanel.lua 的
+--   控制器（開關節奏、皮、定位）但**不走列層**——那套排版套在多欄表格上只會把
+--   欄位擠壞。表格自己的列高／欄寬留在這支。
+--   2026-09-19 從「左鍵點開」改成「滑過就開」：同一條資訊列上四顆方塊，三顆
+--   滑過長面板、只有這顆要點，手會記錯。節奏（0.15 開／0.35 關）**只能有一份**，
+--   所以走控制器，不在這裡再複製一套世代 token。
+--
+-- ⚠ 面板上所有吃滑鼠的子框都要接上節奏（表格列、寶庫欄、「全部發送」、寶庫欄
+--   的表頭鈕）：游標進子框時父框收到的是 OnLeave，不接的話面板會在游標明明還在
+--   上面的時候自己關掉（.claude/notes/wow-child-frame-steals-mouse-focus.md）。
+--   已經有 OnEnter/OnLeave 的在原腳本裡加呼叫——**不要**用 HookScript 疊上去，
+--   之後誰再 SetScript 就把它蓋掉了。
 --
 -- 皮走「提示皮」（.claude/notes/project-miliui-hud-skin.md 的第二種變體）：
 -- 0.133 不透明底 ＋ 1px 職業色硬邊 ＋ 白字 ＋ 直角。它是「彈出來給人讀內容」的
@@ -63,10 +71,11 @@ local COL_DEFS = {
     { key = "date",   label = "WARBAND_COL_DATE",   width = 50,  align = "CENTER" },
 }
 
+local panel              -- 檔尾建立（Core/HoverPanel.lua 的控制器）
 local frame, vaultTip
 local cols = {}          -- 啟用中的欄位（含算好的 width / x）
 local rows = {}
-local anchorTile
+local menuRow            -- 列選單最後錨在哪一列（keepOpen 要問）
 
 ------------------------------------------------------------
 -- 小工具
@@ -171,6 +180,32 @@ local VAULT_TRACK_LABELS = {
     world = "WARBAND_TRACK_WORLD",
     pvp   = "WARBAND_TRACK_PVP",
 }
+
+------------------------------------------------------------
+-- 寶庫欄要看哪一軌：點表頭循環 總計 → 團本 → M+ → 世界 → 總計
+--
+-- 它是**設定**不是資料，所以放 db.warbandVaultMode（在 warband 那張表外面）——
+-- 那張表 ResetDB 會整包留著，模式跟著它留就變成「還原預設值也還原不掉」。
+-- 讀到不認得的值（舊存檔、手改壞了）一律當 "total"。
+--
+-- 「世界」軌在伺服器資料裡是 world 或 pvp **擇一**（跟寶庫提示同一個規則），
+-- 所以模式只有一個 world，實際讀到哪一軌由資料決定。
+------------------------------------------------------------
+local VAULT_MODES = { "total", "raid", "mplus", "world" }
+
+local function VaultMode()
+    local mode = ns.GetDB().warbandVaultMode
+    for _, m in ipairs(VAULT_MODES) do
+        if m == mode then return m end
+    end
+    return "total"
+end
+
+local function VaultHeaderText(mode)
+    if mode == "total" then return L["WARBAND_COL_VAULT"] end
+    return L["WARBAND_COL_VAULT_FMT"]:format(
+        L["WARBAND_COL_VAULT"], L[VAULT_TRACK_LABELS[mode]] or mode)
+end
 
 ------------------------------------------------------------
 -- 寶庫提示：絕對定位 ＋ 固定欄寬（不同寬度字元不會把欄位撐歪），高度依內容
@@ -371,9 +406,13 @@ end
 
 ------------------------------------------------------------
 -- 列選單（共用層 W.Menu，自己會翻面／貼齊畫面）
+--
+-- ⚠ 選單開著的期間游標在面板**外面**（選單是另一個框），面板的關閉排程照樣會
+--   到期。記住錨在哪一列，控制器的 keepOpen 才問得出「現在不能關」。
 ------------------------------------------------------------
 local function ShowRowMenu(row)
     if not (row.data and row.key) then return end
+    menuRow = row
     HideVaultTip()
     local items = { { isTitle = true, text = row.data.name or row.key } }
     if Warband.PartyChannel() and (row.data.level or 0) > 0 then
@@ -429,6 +468,9 @@ local function GetOrCreateRow(index)
     row:SetScript("OnClick", function(self, button)
         if button == "RightButton" then ShowRowMenu(self) end
     end)
+    -- 列吃滑鼠（有滑過反白、有右鍵選單），所以它得自己接回面板的開關節奏
+    row:SetScript("OnEnter", function() panel:CancelClose() end)
+    row:SetScript("OnLeave", function() panel:ScheduleClose() end)
 
     row.cells = {}
     for _, col in ipairs(cols) do
@@ -448,8 +490,21 @@ local function GetOrCreateRow(index)
                 fs:SetJustifyH("CENTER")
                 area.cells[i] = fs
             end
-            area:SetScript("OnEnter", function() ShowVaultTip(area, row.data) end)
-            area:SetScript("OnLeave", HideVaultTip)
+            -- 「總計」模式用的單一字串：橫跨整欄置中（三格會擠成 5 / 9 三段，
+            -- 讀起來像三個獨立的數字）
+            area.total = MakeText(area)
+            area.total:SetPoint("LEFT", 0, 0)
+            area.total:SetWidth(col.width)
+            area.total:SetJustifyH("CENTER")
+            area.total:Hide()
+            area:SetScript("OnEnter", function()
+                panel:CancelClose()
+                ShowVaultTip(area, row.data)
+            end)
+            area:SetScript("OnLeave", function()
+                HideVaultTip()
+                panel:ScheduleClose()
+            end)
             row.vaultArea = area
         else
             local fs = MakeText(row)
@@ -463,9 +518,74 @@ local function GetOrCreateRow(index)
 end
 
 ------------------------------------------------------------
+-- 寶庫欄的格子
+--
+-- raid／mplus／world 三種模式都是三格，解鎖判準一律 IsVaultSlotUnlocked、
+-- 顯示一律走 VaultCellDisplay（M+ 出 +15／M0、團本出難度名＋品質色、世界出勾）。
+--
+-- total 是**整欄一個** `已解鎖/總格數`：總格數不寫死 9，而是把有資料的軌道各自的
+-- 格數加起來——某一軌還沒有資料時（新角色、伺服器還沒回），寫死 9 會讓分母看起來
+-- 像「有三格永遠拿不到」。
+--
+-- 顏色只有兩階：0 格＝灰、≥1＝白。**不要**再加綠／金之類的分級——這張表上
+-- 顏色已經被「品質軌道」與「拿了沒」用掉了，狀態只換明暗。
+------------------------------------------------------------
+local function VaultTotals(vault)
+    -- 世界與競技擇一，跟寶庫提示的 sequence 同一個規則
+    local tracks = { "raid", "mplus", vault.world and "world" or (vault.pvp and "pvp" or nil) }
+    local unlocked, total = 0, 0
+    for _, key in ipairs(tracks) do
+        for _, slot in ipairs(vault[key] or {}) do
+            total = total + 1
+            if IsVaultSlotUnlocked(slot) then unlocked = unlocked + 1 end
+        end
+    end
+    return unlocked, total
+end
+
+local function FillVaultCells(area, vault, mode)
+    if mode == "total" then
+        for i = 1, 3 do area.cells[i]:Hide() end
+        area.total:Show()
+        local unlocked, total = 0, 0
+        if vault then unlocked, total = VaultTotals(vault) end
+        if total <= 0 then
+            -- 沒資料跟其他欄講同一句話（灰點）
+            area.total:SetText("·")
+            SetColor(area.total, LOCKED)
+        else
+            area.total:SetText(unlocked .. "/" .. total)
+            SetColor(area.total, unlocked > 0 and TEXT_MAIN or LOCKED)
+        end
+        return
+    end
+
+    area.total:Hide()
+    local trackKey, slots = mode, vault and vault[mode]
+    if mode == "world" then
+        -- world 與 pvp 互斥，實際拿到哪一軌決定顯示要用哪一個 trackKey
+        trackKey = (vault and vault.world) and "world" or "pvp"
+        slots = vault and (vault.world or vault.pvp)
+    end
+    for i = 1, 3 do
+        local slot = slots and slots[i]
+        local cell = area.cells[i]
+        cell:Show()
+        if IsVaultSlotUnlocked(slot) then
+            local text, r, g, b = VaultCellDisplay(trackKey, slot)
+            cell:SetText(text)
+            cell:SetTextColor(r, g, b)
+        else
+            cell:SetText("·")
+            SetColor(cell, LOCKED)
+        end
+    end
+end
+
+------------------------------------------------------------
 -- 填表
 ------------------------------------------------------------
-local function FillRow(row, entry, idx, sparkLookup)
+local function FillRow(row, entry, idx, sparkLookup, vaultMode)
     local data = entry.data
     row.key = entry.key
     row.data = data
@@ -488,20 +608,8 @@ local function FillRow(row, entry, idx, sparkLookup)
         c.key:SetText("—")
     end
 
-    -- 寶庫 M+ 三格：依該格鑰石等級對應寶庫物品稀有度上色
-    local mplus = data.vault and data.vault.mplus
-    for i = 1, 3 do
-        local slot = mplus and mplus[i]
-        local cell = row.vaultArea.cells[i]
-        if IsVaultSlotUnlocked(slot) then
-            local text, r, g, b = VaultMythicCell(slot.level)
-            cell:SetText(text)
-            cell:SetTextColor(r, g, b)
-        else
-            cell:SetText("·")
-            SetColor(cell, LOCKED)
-        end
-    end
+    -- 寶庫欄：畫哪一軌由表頭上選的模式決定（點表頭循環）
+    FillVaultCells(row.vaultArea, data.vault, vaultMode)
 
     -- 懸賞圖欄三態：本週沒掉＝灰點、掉了還沒用＝金色地圖提醒、用掉了＝勾
     local bounty = data.vault and data.vault.bounty
@@ -552,6 +660,7 @@ end
 local function Populate()
     local list = Warband.SortedRecords()
     local sparkLookup = ColByKey("spark") and Warband.SparkLookup() or nil
+    local vaultMode = VaultMode()
 
     frame.sendAll:SetShown(IsInGroup())
 
@@ -561,7 +670,7 @@ local function Populate()
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, -(rowTop + (idx - 1) * ROW_H))
         row:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PAD, -(rowTop + (idx - 1) * ROW_H))
-        FillRow(row, entry, idx, sparkLookup)
+        FillRow(row, entry, idx, sparkLookup, vaultMode)
         row:Show()
     end
     for i = #list + 1, #rows do rows[i]:Hide() end
@@ -578,18 +687,11 @@ local function Populate()
 end
 
 ------------------------------------------------------------
--- 建框
+-- 建框（控制器的 spec.build：框本身、皮、strata、ESC 都已經由它處理好了，
+-- 這裡只放這張表自己的東西）
 ------------------------------------------------------------
-local function Build()
-    if frame then return frame end
-
-    -- 啟用中的欄位與各自的 x：表頭文字寬先量，最小寬跟它取大者
-    frame = CreateFrame("Frame", "MiliUIInfoBar_WarbandPopup", UIParent, "BackdropTemplate")
-    frame:SetFrameStrata("DIALOG")
-    frame:EnableMouse(true)
-    ApplyTipSkin(frame)
-    W.CloseOnEscape(frame)
-    frame:Hide()
+local function BuildTable(f)
+    frame = f
 
     frame.title = MakeText(frame, TITLE_SZ)
     frame.title:SetPoint("TOPLEFT", PAD, -PAD)
@@ -603,32 +705,90 @@ local function Build()
     -- 按鈕高度由共用的扁平鈕決定，這裡讀回來對齊標題列的垂直中線
     frame.sendAll:SetPoint("TOPRIGHT", -PAD, -(PAD + (TITLE_H - frame.sendAll:GetHeight()) / 2))
     frame.sendAll:SetScript("OnEnter", function(self)
+        panel:CancelClose()
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetText(L["WARBAND_SEND_ALL"], 1, 1, 1)
         GameTooltip:AddLine(L["WARBAND_SEND_ALL_DESC"], 0.8, 0.8, 0.8)
         GameTooltip:Show()
     end)
-    frame.sendAll:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    frame.sendAll:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+        panel:ScheduleClose()
+    end)
 
     local hasSpark = Warband.HasSyndicator()
     local x = 0
     for _, def in ipairs(COL_DEFS) do
         if not def.syndicator or hasSpark then
-            local fs = MakeText(frame)
-            fs:SetText(L[def.label])
+            -- 寶庫那欄的表頭是可以點的（切換軌道），其餘是純文字
+            local isVault = (def.key == "vault")
+            local host = isVault and CreateFrame("Button", nil, frame) or frame
+            local fs = MakeText(host)
             SetColor(fs, GOLD)
-            local width = math.max(def.width, math.ceil(fs:GetStringWidth()) + 6)
+
+            local width = def.width
+            if isVault then
+                -- ⚠ 欄的 x 是建框時定死的，切換模式時**不能**變寬 ⇒ 欄寬一次用
+                --   四種標題的最大值算出來，之後換誰都塞得下
+                for _, mode in ipairs(VAULT_MODES) do
+                    fs:SetText(VaultHeaderText(mode))
+                    width = math.max(width, math.ceil(fs:GetStringWidth()) + 6)
+                end
+                fs:SetText(VaultHeaderText(VaultMode()))
+            else
+                fs:SetText(L[def.label])
+                width = math.max(width, math.ceil(fs:GetStringWidth()) + 6)
+            end
+
             local col = { key = def.key, align = def.align, width = width, x = x, header = fs }
-            fs:SetPoint("TOPLEFT", PAD + x, -(PAD + TITLE_H))
-            fs:SetSize(width, HEADER_H)
+            if isVault then
+                host:SetPoint("TOPLEFT", PAD + x, -(PAD + TITLE_H))
+                host:SetSize(width, HEADER_H)
+                host:RegisterForClicks("LeftButtonUp")
+                fs:SetAllPoints(host)
+                frame.vaultHeader = host
+            else
+                fs:SetPoint("TOPLEFT", PAD + x, -(PAD + TITLE_H))
+                fs:SetSize(width, HEADER_H)
+            end
             fs:SetJustifyH(def.align)
             fs:SetJustifyV("MIDDLE")
             cols[#cols + 1] = col
             x = x + width + COL_GAP
         end
     end
+
     local tableW = x - COL_GAP
     frame:SetWidth(PAD * 2 + tableW)
+
+    -- 表頭鈕的行為（欄位都建好、cols 齊了才掛）：滑過換白字＋一行說明，
+    -- 左鍵循環。狀態只換明暗、不換色——金色在這張表上的語意是「這是表頭」。
+    if frame.vaultHeader then
+        local btn = frame.vaultHeader
+        local fs = ColByKey("vault").header
+        btn:SetScript("OnEnter", function(self)
+            panel:CancelClose()
+            fs:SetTextColor(1, 1, 1)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(L["WARBAND_VAULT_HEADER_TIP"], 1, 1, 1)
+            GameTooltip:Show()
+        end)
+        btn:SetScript("OnLeave", function()
+            SetColor(fs, GOLD)
+            GameTooltip:Hide()
+            panel:ScheduleClose()
+        end)
+        btn:SetScript("OnClick", function()
+            local mode, idx = VaultMode(), 1
+            for i, m in ipairs(VAULT_MODES) do
+                if m == mode then idx = i end
+            end
+            ns.GetDB().warbandVaultMode = VAULT_MODES[idx % #VAULT_MODES + 1]
+            fs:SetText(VaultHeaderText(VaultMode()))
+            -- 只重填格子：欄寬（四種標題取最大）與列高都沒變，不必重新定位
+            panel:Populate()
+        end)
+    end
 
     -- 表頭底下的髮絲線：標題與內容之間要一條結構性的分隔
     local rule = frame:CreateTexture(nil, "ARTWORK")
@@ -651,60 +811,55 @@ local function Build()
     frame.footer:SetJustifyH("LEFT")
     SetColor(frame.footer, TEXT_DIM)
     frame.footer:SetText(L["WARBAND_TIP"]:format(Warband.Keyword()))
+end
 
-    frame:SetScript("OnHide", function()
+------------------------------------------------------------
+-- 面板
+--
+-- allowCombat：這張表是純讀的資料（鑰石、寶庫進度），戰鬥中看它沒有壞處；
+-- 它掛 UIParent、不是保護框，Show/Hide 都合法。
+------------------------------------------------------------
+local perfT0
+
+panel = HP.New({
+    name        = "MiliUIInfoBar_WarbandPopup",
+    allowCombat = true,
+    build       = BuildTable,
+    -- 自己這筆記錄在開面板時刷一次。⚠ 放進 populate 的話，開著期間每次 listener
+    -- 重畫都會再刷一次，而刷新自己又會發通知——那就是一圈回來了
+    beforeOpen  = function()
+        perfT0 = ns.Perf.Begin()
+        Warband.RefreshOwn("popup open")
+    end,
+    -- 表格不用列層，第一個參數（rows）用不到
+    populate    = function() Populate() end,
+    onOpen      = function()
+        ns.Perf.End("warband popup open", perfT0)
+        -- 開著的期間：資料變了就重畫（高度會變，翻面結果可能不同 ⇒ 走 Refresh
+        -- 讓它連定位一起重來），組隊狀態變了刷「全部發送」
+        Warband.AddListener("popup", function() panel:Refresh() end)
+        ns.Events.Register("GROUP_ROSTER_UPDATE", "warband-popup", function()
+            if frame:IsShown() then frame.sendAll:SetShown(IsInGroup()) end
+        end)
+    end,
+    onHide      = function()
         HideVaultTip()
-        anchorTile = nil
         ns.Events.Unregister("GROUP_ROSTER_UPDATE", "warband-popup")
         Warband.RemoveListener("popup")
-    end)
-
-    return frame
-end
-
-------------------------------------------------------------
--- 定位：先翻面、再平移（四張面板共用同一支，理由見 Core/HoverPanel.lua）
-------------------------------------------------------------
-local function Place()
-    HP.PlaceBelow(frame, anchorTile)
-end
+    end,
+    -- 列選單開著時游標在面板外，關閉排程照樣會到期 ⇒ 這時不能關（見 ShowRowMenu）
+    keepOpen    = function()
+        return (menuRow and W.Menu.IsOpenFor(menuRow)) and true or false
+    end,
+})
 
 ------------------------------------------------------------
--- 對外
+-- 對外（名字跟另外三張面板一致，Core/Blocks.lua 只要記一套）
 ------------------------------------------------------------
-function Popup.IsOpenFor(tile)
-    return frame and frame:IsShown() and anchorTile == tile
-end
-
-function Popup.Hide()
-    if frame then frame:Hide() end
-end
-
-function Popup.Show(tile)
-    local t0 = ns.Perf.Begin()
-    Build()
-    anchorTile = tile
-    Warband.RefreshOwn("popup open")
-    Populate()
-    frame:Show()
-    Place()
-    ns.Perf.End("warband popup open", t0)
-
-    -- 開著的期間：資料變了就重畫（尺寸會變，重新定位一次），組隊狀態變了刷「全部發送」
-    Warband.AddListener("popup", function()
-        if not frame:IsShown() then return end
-        Populate()
-        Place()
-    end)
-    ns.Events.Register("GROUP_ROSTER_UPDATE", "warband-popup", function()
-        if frame:IsShown() then frame.sendAll:SetShown(IsInGroup()) end
-    end)
-end
-
-function Popup.Toggle(tile)
-    if Popup.IsOpenFor(tile) then
-        Popup.Hide()
-    else
-        Popup.Show(tile)
-    end
-end
+function Popup.CancelClose()   panel:CancelClose() end
+function Popup.CancelOpen()    panel:CancelOpen() end
+function Popup.Hide()          panel:Hide() end
+function Popup.ScheduleClose() panel:ScheduleClose() end
+function Popup.Open(tile)         panel:Open(tile) end
+function Popup.ScheduleOpen(tile) panel:ScheduleOpen(tile) end
+function Popup.IsOpenFor(tile)    return panel:IsOpenFor(tile) end

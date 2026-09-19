@@ -114,17 +114,10 @@ end
 
 -- 商人自動化。撞車警告只在真的會撞的時候長出來（Leatrix 沒裝／沒開就不佔位置），
 -- 而且它是登入當下讀到的狀態，文案要講清楚。
+-- 自動修裝 2026-09-19 搬去資訊列了（設定跟行為同住一支），這裡只留一行指路。
 tinsert(CONTROLS, { type = "header", label = "商人" })
-tinsert(CONTROLS, { type = "toggle", label = "在商人處自動修裝",
-    get = function() return MiliUI_MerchantAutomation and MiliUI_MerchantAutomation.IsAutoRepair() end,
-    set = function(v) if MiliUI_MerchantAutomation then MiliUI_MerchantAutomation.SetAutoRepair(v) end end })
-tinsert(CONTROLS, { type = "text", label = "開商人視窗時自動修理全部裝備。"
-    .. "在商人處按住 Shift 可以略過這一次（花錢的動作留一個當下能取消的閘）。" })
-tinsert(CONTROLS, { type = "toggle", label = "優先使用公會金庫",
-    get = function() return MiliUI_MerchantAutomation and MiliUI_MerchantAutomation.IsGuildRepair() end,
-    set = function(v) if MiliUI_MerchantAutomation then MiliUI_MerchantAutomation.SetGuildRepair(v) end end })
-tinsert(CONTROLS, { type = "text", label = "有公會修理權限時先扣公會金庫，額度用完的部分再用自己的錢補完。"
-    .. "預設關閉——花的是公會的錢，要不要用由你決定。" })
+tinsert(CONTROLS, { type = "text", label = "自動修裝已移到資訊列：滑過「耐久」方塊，"
+    .. "面板最上面就能開關（或資訊列設定的「修裝」分頁）。" })
 tinsert(CONTROLS, { type = "toggle", label = "在商人處自動賣垃圾",
     get = function() return MiliUI_MerchantAutomation and MiliUI_MerchantAutomation.IsSellJunk() end,
     set = function(v) if MiliUI_MerchantAutomation then MiliUI_MerchantAutomation.SetSellJunk(v) end end })
@@ -136,20 +129,14 @@ tinsert(CONTROLS, { type = "text", label = "開商人視窗時把背包裡的灰
 -- 不一定載了）。走 custom spec，build 在「第一次打開分頁」時才跑，那時都齊了。
 tinsert(CONTROLS, { type = "custom", h = 0, build = function(parent, x, y, width)
     local api = MiliUI_MerchantAutomation
-    if not api then return 0 end
-    local repairClash = api.LeatrixConflict()
-    local junkClash = api.LeatrixJunkConflict()
-    if not (repairClash or junkClash) then return 0 end
+    if not (api and api.LeatrixJunkConflict()) then return 0 end
     local fs = parent:CreateFontString(nil, "OVERLAY")
     fs:SetFontObject(W.fontNormal)
     fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
     fs:SetWidth(width)
     fs:SetJustifyH("LEFT")
     fs:SetSpacing(3)
-    local what = repairClash and junkClash and "自動修裝與自動賣垃圾"
-        or (repairClash and "自動修裝" or "自動賣垃圾")
-    fs:SetText("|cffff9900登入時 Leatrix Plus 也開著" .. what .. "，兩邊都開會各做一次"
-        .. (repairClash and "，「優先使用公會金庫」不一定是勝出的那邊" or "")
+    fs:SetText("|cffff9900登入時 Leatrix Plus 也開著自動賣垃圾，兩邊都開會各做一次"
         .. "——請關掉其中一邊。這則提醒會在下次重載介面後重新判斷。|r")
     return math.ceil(fs:GetStringHeight()) + 8
 end })
