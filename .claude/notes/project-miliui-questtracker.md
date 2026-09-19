@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 115994b3-d41f-4e67-b636-6c325885e05b
-  modified: 2026-09-18T16:05:14.993Z
+  modified: 2026-09-19T02:32:59.623Z
 ---
 
 2026-08-29 開的獨立插件（`AddOns/MiliUI_QuestTracker/`），骨架照
@@ -348,6 +348,16 @@ CampaignQuest 153.91 ＋ Quest 485.31 塞在 700 高的框裡，有任務區塊�
 - 追蹤器**沒有捲動**：可見高度是編輯模式的「高度」設定，超出就截掉。
   Elles 也沒做（整包沒有任何 scroll/mousewheel）。要自己加就得每幀搬
   暴雪的 ContentsFrame 跟它的排版對打 —— 不做。
+  **2026-09-19 玩家許願滾輪捲動，對過原始碼再評估一次，結論不變，理由更硬：**
+  (1) 截斷發生在**排版階段**不是繪製階段（`CanFitBlock`：`contentsHeight + height <= availableHeight`，
+  排不進去的區塊根本沒被建出來）⇒ 沒有「藏在下面的內容」可以捲，要捲就得先把 OTF 撐得比可見區高；
+  (2) **`OTF:SetHeight()` 等於呼叫 `Update()`**：`ObjectiveTrackerContainerMixin:OnSizeChanged → MarkDirty()`，
+  在我們的執行裡寫 `self.dirty = true` ＋ `RunNextFrame(dirtyCallback)` ⇒ 下一幀整趟排版是髒的（規矩 1），
+  而且 `dirty` 欄位從此是髒的，之後暴雪自己的 MarkDirty 讀到它也跟著髒，到 /reload 為止；
+  (3) 裁切要 `SetClipsChildren` 的祖先 ⇒ OTF 得**常駐**掛在我們的框底下，09-18 那條 parent 拉鋸從
+  「只有摺起來時」變成全時段。編輯模式的「高度」滑桿是 400–1000（`EditModeSettingDisplayInfo.lua`），
+  非預設位置時 `UpdateHeight` 取 `max(editModeHeight or 800, mustFit 模組高度)`。
+  可做的替代：標題列讀模組的 `hasSkippedBlocks`（唯讀，Diag 已經在讀）標出「有被截掉」。
 
 相關：[[project-miliui-widgets-vendor]]、[[project-miliui-hide-blizzard-taint]]、
 [[wow-121-secret-values]]、[[project-local-addon-forks]]、[[feedback-ui-visual-style]]

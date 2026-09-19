@@ -82,6 +82,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-actionbar-text-overlay-level-500.md](wow-actionbar-text-overlay-level-500.md) | 快捷鍵文字層在 MEDIUM level 500 —— 自訂 HUD 被按鍵文字蓋住的成因；墊 level 不要改 strata |
 | [wow-actionbar-taint-blame.md](wow-actionbar-taint-blame.md) | MultiBar SetAttribute 被封鎖卻牽拖到不碰快捷列的插件 —— 共用表汙染的指紋與 taintLog 診斷法 |
 | [wow-frame-vs-texture-layering.md](wow-frame-vs-texture-layering.md) | 子 frame 永遠畫在父層貼圖之上，**跟 DrawLayer 無關** —— 貼圖被蓋住時調 layer 是白費工 |
+| [wow-toplevel-flattens-child-strata.md](wow-toplevel-flattens-child-strata.md) | toplevel 框隱含 render layer flattening，子孫的 SetFrameStrata 在繪製上無效、照祖先那層畫 —— strata 要設在祖先上 |
 | [wow-frame-lifecycle-costs.md](wow-frame-lifecycle-costs.md) | frame 刪不掉的三條設計後果：簽章重建＝洩漏、連續控件是放大器、池化格子不要丟棄 |
 | [wow-securegroupheader-refresh-snippet.md](wow-securegroupheader-refresh-snippet.md) | 給 SecureGroupHeader 的格子掛次要按鈕（寵物／目標）：unit 只能在 `refreshUnitChange` snippet 裡派，動 header 任一屬性就會讓整排重跑 |
 | [wow-editmode-blizzard-grid.md](wow-editmode-blizzard-grid.md) | 編輯模式的格線是內建的，別自己畫；吸附讀 `IsSnapEnabled`／`GridSpacing` |

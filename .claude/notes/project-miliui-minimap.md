@@ -268,6 +268,9 @@ N 是**雜訊路徑的兜底週期，不是更新延遲** —— 真的有人上
 之後玩家按 R 回覆秘密名字就炸（[[wow-121-chat-reply-secret-taint]]）。改法跟 MiliUI_ChatBar 同一套：
 - `Panel/LinkSink.xml`：一顆 `ChatFrameTemplate`（XML 開 `hyperlinksEnabled`），名單面板掛在它底下，
   面板與每一列 `SetHyperlinkPropagateToParent(true)`。
+  ⚠ 模板是 toplevel（隱含 render layer flattening），名單畫在 **Sink 的** strata —— 所以 `frameStrata="TOOLTIP"`
+  設在 LinkSink.xml 上，面板自己的 SetFrameStrata 在繪製上沒用（2026-09-19 名單被任務追蹤框蓋住，
+  [[wow-toplevel-flattens-child-strata]]）。
 - 每一列的字放在列上一個子框 `row.link`（人名列才開它的滑鼠）：名字與區域包成
   `|Hplayer:名字|h`／`|HBNplayer:暱稱:帳號ID|h`，左鍵由暴雪的 `SetItemRef → SendTell` 開密語；
   右鍵 `SetPassThroughButtons` 穿透回列本身做邀請。列的整寬另鋪一串空白的連結（字級＝列高），
