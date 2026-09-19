@@ -35,6 +35,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_CrusadingStrikes_DB",
     "MiliUI_DamageMeters_DB", "MiliUI_Focus_DB",
     "MiliUI_InfoBar_DB",
+    "MiliUI_Merchant_DB",
     "MiliUI_Minimap_DB",
     "MiliUI_QuestTracker_DB",
     "MiliUI_ShoppingList_DB", "MiliUI_ShoppingList_CharDB",
@@ -45,6 +46,7 @@ ALLOWED_GLOBAL_WRITES = {
     # 對外 API 與跨插件註冊表
     "MiliUI", "MiliUI_MenuEntries", "MiliUI_Snap",
     "MiliUI_OpenUnitFrameSettings", "MiliUIUF_OnAddonCompartmentClick",
+    "MiliUIMerchant_OnAddonCompartmentClick",
     "MiliUICrafterTableCellRewardsMixin",
     # 各 Enhance 模組的對外開關（設定面板要叫得到）
     "MiliUI_AHFilter", "MiliUI_BagsAlpha", "MiliUI_BaganatorKeystone",
@@ -58,6 +60,11 @@ ALLOWED_GLOBAL_WRITES = {
     "ChatEdit_CustomTabPressed",      # 暴雪留的官方覆寫點，有串回原本的
     "SetDesaturation", "AnimateTexCoords",   # Fix/DeprecatedGlobals.lua 的相容層
     "BugSackDB", "Ayije_CDMDB", "PLATYNATOR_CONFIG",   # 預設值匯入的目標
+    # MiliUI_Merchant 刻意寫的**唯一**一個暴雪全域：商人視窗一頁幾格。暴雪的
+    # MerchantFrame_Update 整條重畫迴圈都照這個數字跑，所以要讓它多畫幾格，
+    # 除了改這個沒有第二條路（自己畫格子會讓所有照
+    # `_G["MerchantItem"..i]` 裝飾商品格的插件全部失效）。
+    "MERCHANT_ITEMS_PER_PAGE",
     # Clique 的點擊施法註冊表：規格就是「自己的框往這張全域表塞」，Clique 沒載入時
     # 也要建得起來（`ClickCastFrames = ClickCastFrames or {}`）
     "ClickCastFrames",
