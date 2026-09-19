@@ -209,6 +209,49 @@ local function FixBottomStrip(wide)
 end
 
 ------------------------------------------------------------
+-- 貨幣數量被截成「12…」
+--
+-- 暴雪的代幣鈕固定 50 寬（`MerchantFrame_UpdateCurrencyButton` 每次更新都
+-- `SetWidth(50)`），數字的可用寬度是「鈕寬 − 8」。原廠字型下五位數剛好塞得進去，
+-- 字型一換大就被截掉 —— 而被截掉的正是「我還有多少可以花」那個數字。
+--
+-- 代幣是一顆接一顆由右往左錨的（3 2 1），所以把某一顆加寬，左邊的會自己讓位。
+-- 但它們住的那個框是固定寬度、放得下 3×50：整組加寬後超過這個量就會壓到隔壁的
+-- 金錢，所以**整組放得下才加寬，放不下就整組維持原廠寬度** —— 寧可截斷也不要疊字。
+-- 第 4～6 顆住在另一個框，同一條規則各算各的。
+------------------------------------------------------------
+local TOKEN_W       = 50    -- 原廠寬度
+local TOKEN_TEXT_PAD = 10   -- 圖示佔掉的 8 ＋ 2 的呼吸空間
+local TOKEN_GROUP_W = 152   -- 一個框放得下的總寬
+
+local function FitTokenGroup(first, last)
+    local tokens, total = {}, 0
+    for i = first, last do
+        local token = _G["MerchantToken" .. i]
+        if token and token:IsShown() and token.Count then
+            local need = math.ceil(token.Count:GetUnboundedStringWidth() or 0) + TOKEN_TEXT_PAD
+            -- 原廠自己加寬過的（只有一種貨幣、數量破十萬時它會給 100）不要縮回去
+            need = math.max(need, token:GetWidth() or TOKEN_W, TOKEN_W)
+            tokens[#tokens + 1] = { token = token, need = need }
+            total = total + need
+        end
+    end
+    if total > TOKEN_GROUP_W then return end
+    for _, entry in ipairs(tokens) do
+        if math.abs(entry.token:GetWidth() - entry.need) > 0.5 then
+            entry.token:SetWidth(entry.need)
+        end
+    end
+end
+
+local function OnCurrencyButton()
+    -- 同一個閘：BAG_UPDATE 在商人框關著的時候也會一路呼叫到這裡
+    if not MerchantFrame:IsShown() then return end
+    FitTokenGroup(1, 3)
+    FitTokenGroup(4, 6)
+end
+
+------------------------------------------------------------
 -- 齒輪鈕：設定入口長在用得到它的地方
 --
 -- 擺在商人視窗自己的篩選鈕左邊。要調「一頁幾格」的時刻幾乎一定是站在商人面前
@@ -364,6 +407,7 @@ function Grid.Init()
 
     hooksecurefunc("MerchantFrame_UpdateMerchantInfo", OnMerchantInfo)
     hooksecurefunc("MerchantFrame_UpdateBuybackInfo", OnBuybackInfo)
+    hooksecurefunc("MerchantFrame_UpdateCurrencyButton", OnCurrencyButton)
 end
 
 ------------------------------------------------------------
