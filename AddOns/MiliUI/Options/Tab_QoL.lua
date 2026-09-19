@@ -114,10 +114,8 @@ end
 
 -- 商人自動化。撞車警告只在真的會撞的時候長出來（Leatrix 沒裝／沒開就不佔位置），
 -- 而且它是登入當下讀到的狀態，文案要講清楚。
--- 自動修裝 2026-09-19 搬去資訊列了（設定跟行為同住一支），這裡只留一行指路。
+-- 自動修裝 2026-09-19 搬去資訊列了（設定跟行為同住一支），這裡不留指路文字。
 tinsert(CONTROLS, { type = "header", label = "商人" })
-tinsert(CONTROLS, { type = "text", label = "自動修裝已移到資訊列：滑過「耐久」方塊，"
-    .. "面板最上面就能開關（或資訊列設定的「修裝」分頁）。" })
 tinsert(CONTROLS, { type = "toggle", label = "在商人處自動賣垃圾",
     get = function() return MiliUI_MerchantAutomation and MiliUI_MerchantAutomation.IsSellJunk() end,
     set = function(v) if MiliUI_MerchantAutomation then MiliUI_MerchantAutomation.SetSellJunk(v) end end })

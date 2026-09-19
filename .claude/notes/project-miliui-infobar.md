@@ -376,7 +376,7 @@ Cell 設定視窗開著時勾選框是否即時同步、面板在停靠上／下
   `db.repair.guild`（預設關）；入口兩處：耐久面板**最上面**兩列勾選（按下原地重畫）＋「修裝」設定分頁最上面一節
   （方塊被收掉時的唯一入口）。耐久方塊右鍵從 W.Menu 選單改成直接開「修裝」分頁。
   事件永遠註冊、不看方塊啟用與否。`ns.Events` 的 MERCHANT_SHOW 延一幀派送，對 Shift 閘與修裝都沒影響。
-  本體 `Enhance/Merchant_Automation.lua` 只剩自動賣垃圾，Tab_QoL 留一行指路。
+  本體 `Enhance/Merchant_Automation.lua` 只剩自動賣垃圾，Tab_QoL **不留指路文字**（使用者點名不要）。
 - **遷移**：印記 `db.repair.migration`，PLAYER_LOGIN 唯讀 `MiliUI_DB.merchant`，只搬「跟預設不同」的布林
   （autoRepair==false、guildRepair==true）。本體的 GetDB **不再補這兩格預設、也不刪舊值**。
   `ns.ResetDB` 會 wipe 掉印記 ⇒ 還原後補 `migration = "reset"`，不然下次登入舊值又搬回來。
