@@ -363,6 +363,9 @@ Cell 設定視窗開著時勾選框是否即時同步、面板在停靠上／下
 - 控制器 `HP.New{ name, secure, build, populate, onOpen, onHide }`：`secure=true`（修裝）＝ SecureHandlerStateTemplate
   ＋ `_onstate-combat` 收面板、每個入口先問 InCombatLockdown、onHide 延一幀；非 secure 走 PLAYER_REGEN_DISABLED。
   列層的列是普通 Button；secure 按鈕由面板在 custom.layout 裡自建自池，控制器碰不到（不掛 PreClick／OnClick Lua）。
+- **模型裡 `sep` 後面不可以直接接 `title`**（2026-09-19 使用者點名）：標題底下已有髮絲線，前面再一條收尾線
+  就是兩條線夾一行灰字。小節靠標題＋留白分隔，sep 只給沒有標題的段落（底部說明、設定入口）。
+  規則在 [[feedback-ui-visual-style]] 與 miliui-menu-design 技能。
 - 對外名字（`ns.XxxPopup.Hide/ScheduleOpen/ScheduleClose/CancelOpen/…`）保留，Blocks.lua 不用改。
 - 確認倒數的三顆鍵列改成跟坐騎快捷列同款：主文字＝動作、右側灰標＝鍵名（原本鍵名在左）。
 
