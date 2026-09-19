@@ -13,6 +13,7 @@
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\spell_holy_crusaderstrike
 ## SavedVariables: MiliUI_CrusadingStrikes_DB
+## OptionalDeps: Platynator, Ayije_CDM
 ## AddonCompartmentFunc: MiliUICrusadingStrikes_OnAddonCompartmentClick
 
 Libs\MiliUIWidgets\PixelPerfect.lua

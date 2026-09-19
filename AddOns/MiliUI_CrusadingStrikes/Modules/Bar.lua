@@ -28,6 +28,8 @@ local driver
 -- display 還是同一個、`IsShown()` 也還是真，但表換了一張 —— 我們手上的血條參照就過期了。
 -- 比對表的身分是唯一便宜又抓得到這件事的辦法。
 local atDisplay, atHealth, atCast, atCastBelow, atWidgets
+-- 掛上去那一刻的宿主模式（名條／聖能條上方／下方）。設定改了要看得出「宿主換了」
+local atMode
 
 -- 我們自己記顯示狀態，不問 bar:IsShown()（見檔頭）
 local shown = false
@@ -130,12 +132,18 @@ local function ApplyPoints()
         -- "stay"，或施法條其實在血條上方 → 照舊掛在血條下
     end
 
+    -- 貼在宿主的上緣還是下緣：名條永遠是下緣；聖能條看設定。讀設定而不是 atMode ——
+    -- 上方↔下方是同一個宿主，不會重掛，只會走到這裡重設錨點。
+    local above = b.attach == "resourceAbove"
+    local mine, theirs, dy = "TOP", "BOTTOM", -b.gap
+    if above then mine, theirs, dy = "BOTTOM", "TOP", b.gap end
+
     bar:ClearAllPoints()
     if b.widthMode == "match" then
-        bar:SetPoint("TOPLEFT", anchorTo, "BOTTOMLEFT", b.offsetX, -b.gap)
-        bar:SetPoint("TOPRIGHT", anchorTo, "BOTTOMRIGHT", b.offsetX, -b.gap)
+        bar:SetPoint(mine .. "LEFT", anchorTo, theirs .. "LEFT", b.offsetX, dy)
+        bar:SetPoint(mine .. "RIGHT", anchorTo, theirs .. "RIGHT", b.offsetX, dy)
     else
-        bar:SetPoint("TOP", anchorTo, "BOTTOM", b.offsetX, -b.gap)
+        bar:SetPoint(mine, anchorTo, theirs, b.offsetX, dy)
         bar:SetWidth(math.max(1, b.width))
     end
     bar:SetHeight(math.max(1, b.height))
@@ -217,26 +225,33 @@ local function Detach()
         bar:SetParent(UIParent)
     end
     atDisplay, atHealth, atCast, atCastBelow, atWidgets = nil, nil, nil, nil, nil
+    atMode = nil
     castShowing, hiddenByCast = false, false
 end
 
-local function Attach(display, health, cast, castBelow)
-    if atDisplay == display and atHealth == health and atCast == cast then
+local function Attach(display, health, cast, castBelow, mode)
+    if atDisplay == display and atHealth == health and atCast == cast and atMode == mode then
         if not driver:GetScript("OnUpdate") then driver:SetScript("OnUpdate", OnUpdate) end
         return
     end
 
     HideBar()
     atDisplay, atHealth, atCast, atCastBelow = display, health, cast, castBelow
-    atWidgets = display.widgets
+    atWidgets = display.widgets     -- 聖能條沒有這個欄位，nil 對 nil 照樣比得出「沒換」
+    atMode = mode
     castShowing, hiddenByCast = false, false
 
-    -- parent 在 display 上就自動吃到名條的縮放、淡出與顯示狀態。
-    -- frame level 不是秘密值，可以讀。
+    -- parent 在宿主上就自動吃到它的縮放、淡出與顯示狀態。
+    -- strata / frame level 不是秘密值，可以讀。
     bar:SetParent(display)
-    bar:SetFrameStrata("MEDIUM")
     local level = health.GetFrameLevel and health:GetFrameLevel()
-    bar:SetFrameLevel((tonumber(level) or 0) + 5)
+    if ns.Anchor.IsResourceMode(mode) then
+        bar:SetFrameStrata(display:GetFrameStrata())
+        bar:SetFrameLevel((tonumber(level) or 0) + 1)
+    else
+        bar:SetFrameStrata("MEDIUM")
+        bar:SetFrameLevel((tonumber(level) or 0) + 5)
+    end
 
     ApplyPoints()
     driver:SetScript("OnUpdate", OnUpdate)
@@ -256,17 +271,23 @@ function Bar.Refresh()
         return
     end
 
+    local mode = ns.db.bar.attach
+
     -- 已經掛好而且還活著就不動（每 0.5 秒重掛一次等於每 0.5 秒 SetParent）
-    if atDisplay and ns.Anchor.StillValid(atDisplay) and atDisplay.widgets == atWidgets then
-        return
+    if atDisplay and atMode == mode then
+        if ns.Anchor.IsResourceMode(mode) then
+            if ns.Anchor.ResourceStillValid(atDisplay) then return end
+        elseif ns.Anchor.StillValid(atDisplay) and atDisplay.widgets == atWidgets then
+            return
+        end
     end
 
-    local display, health, cast, castBelow = ns.Anchor.Resolve()
+    local display, health, cast, castBelow = ns.Anchor.Resolve(mode)
     if not display or not health then
         Detach()
         return
     end
-    Attach(display, health, cast, castBelow)
+    Attach(display, health, cast, castBelow, mode)
 end
 
 -- 目標／名條變了：手上的 display 一定要重解析，不能走 Refresh 的「還活著就不動」快路。
@@ -279,17 +300,18 @@ function Bar.Relocate()
         Detach()
         return
     end
-    local display, health, cast, castBelow = ns.Anchor.Resolve()
+    local mode = ns.db.bar.attach
+    local display, health, cast, castBelow = ns.Anchor.Resolve(mode)
     if not display or not health then
         Detach()
         return
     end
     if display == atDisplay and health == atHealth and cast == atCast
-        and display.widgets == atWidgets then
+        and display.widgets == atWidgets and mode == atMode then
         return
     end
     Detach()
-    Attach(display, health, cast, castBelow)
+    Attach(display, health, cast, castBelow, mode)
 end
 
 function Bar.ApplySettings()

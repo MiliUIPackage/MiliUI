@@ -90,6 +90,18 @@ C_NamePlate.GetNamePlateForUnit("target")
 - 條要不要顯示是 OnUpdate 自己問 `item:IsVisible()`，不靠輪詢 ——
   1.5 秒的揮擊間隔配 0.5 秒輪詢會看得出延遲。
 
+## 第二個宿主：冷卻管理器插件的聖能條（2026-09-20 加）
+
+設定 `bar.attach`：`nameplate`（預設）／`resourceAbove`／`resourceBelow`。聖能條拿法：
+`_G.Ayije_CDM.resourceBars[Enum.PowerType.HolyPower]`（無名 StatusBar、parent 是 UIParent、
+不適用的專精會藏起來）。我們 parent 過去＋左右各錨一點取等寬，吃到它的縮放與淡出；
+**不寫它欄位、不掛勾、不讀幾何**。它不走訪子框（查過），parent 過去不會被當成它的格子。
+⚠ 方向性：我們依附它沒事；反過來讓別人的框錨到我們這條會被秘密幾何傳染。
+實作上把聖能條同時當 display 與 anchorWidget、cast = nil，於是 Bar.lua 幾乎不用分支；
+多記一個 `atMode`，因為上方↔下方是同一個宿主，不重掛、只重設錨點（ApplyPoints 讀設定不讀 atMode）。
+高度上限放寬到 30：名條與聖能條的縮放差很多，名條上 4 剛好、聖能條上 4 是細線。
+狀態列的宿主那一行跟著模式換——掛聖能條時不該把「名條插件沒載入」標紅。
+
 ## 隱藏暴雪那條（2026-09-17 加）
 
 使用者的需求：冷卻管理器裡其他量條有用，只有征戰聖擊那條跟我們的重複。
@@ -130,7 +142,8 @@ OnUpdate 裡更新值，藏起來就收不到 OnUpdate，鏡射會凍住；alpha
 5. 寬度 match 模式在不同 `design.scale` 下對得齊血條。
 6. 「已揮的時間」模式的兩層角色互換（背景＝fill 色、條材質＝back 色＋反向填充）
    看起來對不對，尤其是 back 色半透明時疊出來的暗色。
-7. 暴雪那條壓成透明後鏡射照樣更新；Ayije_CDM 淡出開著時不會互相打架；編輯模式會還原。
+7. 掛聖能條上方／下方：等寬、跟著淡出、換專精時條會收起來；與合併資源條（unified chain）同時開時下方會不會壓到下一條。
+8. 暴雪那條壓成透明後鏡射照樣更新；Ayije_CDM 淡出開著時不會互相打架；編輯模式會還原。
 
 相關：[[wow-121-secret-values]]、[[wow-121-duration-objects]]、
 [[wow-cooldownviewer-buffbar-text-gate]]、[[project-miliui-widgets-vendor]]、

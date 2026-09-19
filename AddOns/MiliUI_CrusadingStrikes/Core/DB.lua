@@ -31,6 +31,12 @@ local function BuildDefaults()
         bar = {
             -- 尺寸單位是「名條 display 的座標系」：我們把條掛在 Platynator 的
             -- display 底下，所以它會跟著那個名條的縮放一起縮，不必自己換算。
+            -- 掛在哪：
+            --   "nameplate"     目標名條的血條下方（預設）
+            --   "resourceAbove" 冷卻管理器插件的聖能條上方
+            --   "resourceBelow" 冷卻管理器插件的聖能條下方
+            -- 聖能條模式下 castMode 不適用（那邊沒有施法條要讓）。
+            attach    = "nameplate",
             height    = 4,
             widthMode = "match",    -- "match" = 兩端錨在血條上（跟血條同寬）；"custom" = 用 width
             width     = 120,

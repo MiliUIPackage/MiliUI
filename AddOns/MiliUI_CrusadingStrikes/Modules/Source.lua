@@ -273,6 +273,8 @@ function Source.Status()
         item       = item ~= nil,
         active     = Source.IsItemActive(item),
         dimmed     = Source.IsDimmed(),
+        attach     = ns.db and ns.db.bar and ns.db.bar.attach or "nameplate",
+        resource   = ns.Anchor.ResolveResource() ~= nil,
         secretID   = trackedItem ~= nil and S.IsSecret(trackedItem.cooldownID),
     }
 end

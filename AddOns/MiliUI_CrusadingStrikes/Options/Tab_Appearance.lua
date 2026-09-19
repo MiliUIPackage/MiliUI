@@ -1,8 +1,9 @@
 ------------------------------------------------------------
 -- 「外觀」分頁：尺寸、位置、填充方向、材質與顏色
 --
--- 尺寸的單位是名條 display 的座標系（我們的條掛在它底下），所以名條整體縮放時
--- 這裡的數字不用跟著改。
+-- 尺寸的單位是宿主的座標系（我們的條 parent 在它底下），所以宿主整體縮放時這裡的
+-- 數字不用跟著改。⚠ 名條與聖能條的縮放差很多：名條上 4 剛好，聖能條上 4 是一條細線，
+-- 所以高度上限放寬到 30。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -22,13 +23,13 @@ end
 
 local CONTROLS = {
     { type = "header", label = L["Size and position"] },
-    { type = "slider", sub = "bar", key = "height", label = L["Height"], min = 2, max = 12, step = 1 },
+    { type = "slider", sub = "bar", key = "height", label = L["Height"], min = 2, max = 30, step = 1 },
     { type = "dropdown", sub = "bar", key = "widthMode", label = L["Width"], items = {
-        { text = L["Match the health bar"], value = "match" },
+        { text = L["Match the bar it is attached to"], value = "match" },
         { text = L["Fixed width"],          value = "custom" },
     } },
     { type = "slider", sub = "bar", key = "width", label = L["Fixed width"], min = 40, max = 300, step = 1 },
-    { type = "slider", sub = "bar", key = "gap", label = L["Gap below the health bar"], min = 0, max = 10, step = 1 },
+    { type = "slider", sub = "bar", key = "gap", label = L["Gap from the bar it is attached to"], min = 0, max = 10, step = 1 },
     { type = "slider", sub = "bar", key = "offsetX", label = L["Horizontal offset"], min = -50, max = 50, step = 1 },
 
     { type = "header", label = L["Fill"] },

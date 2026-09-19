@@ -107,7 +107,7 @@ local function FindBars(display)
 end
 
 -- → display, healthWidget, castWidget, castIsBelow（都可能是 nil）
-function Anchor.Resolve()
+local function ResolveNameplate()
     if not C_NamePlate or not C_NamePlate.GetNamePlateForUnit then return end
     local nameplate = C_NamePlate.GetNamePlateForUnit("target")
     if not nameplate then return end
@@ -132,4 +132,44 @@ function Anchor.StillValid(display)
     if display.unit == nil then return false end
     if not display.IsShown or not display:IsShown() then return false end
     return type(display.widgets) == "table"
+end
+
+------------------------------------------------------------
+-- 另一個宿主：冷卻管理器插件的聖能條
+--
+-- 那支插件把每種資源的條放在一張公開的表裡，鍵是 Enum.PowerType。我們只拿那個框來
+-- 當錨點與 parent（吃到它的縮放、淡出與顯示狀態），**不寫它任何欄位、不掛勾它的腳本、
+-- 不讀它的幾何** —— 等寬用「左右各錨一個點」，跟名條那邊同一招。
+-- 它不走訪子框（查過），所以 parent 過去不會被當成它自己的格子處理。
+-- ⚠ 反方向不成立：別讓它的任何框錨到我們的條上 —— 我們的條餵過秘密值，
+--   秘密幾何會沿錨定鏈傳給依附它的框。我們依附別人沒事。
+------------------------------------------------------------
+local HOLY_POWER = Enum and Enum.PowerType and Enum.PowerType.HolyPower or 9
+
+function Anchor.ResolveResource()
+    local host = _G.Ayije_CDM
+    local bars = type(host) == "table" and host.resourceBars
+    local bar = type(bars) == "table" and bars[HOLY_POWER]
+    if type(bar) ~= "table" or not bar.IsShown then return end
+    if not bar:IsShown() then return end       -- 換專精／停用資源條時它是藏著的
+    return bar
+end
+
+function Anchor.ResourceStillValid(bar)
+    return type(bar) == "table" and bar.IsShown and bar:IsShown() and true or false
+end
+
+function Anchor.IsResourceMode(mode)
+    return mode == "resourceAbove" or mode == "resourceBelow"
+end
+
+-- → display, anchorWidget, castWidget, castIsBelow（都可能是 nil）
+-- 聖能條模式下 display 與 anchorWidget 是同一個框，沒有施法條。
+function Anchor.Resolve(mode)
+    if Anchor.IsResourceMode(mode) then
+        local bar = Anchor.ResolveResource()
+        if not bar then return end
+        return bar, bar, nil, false
+    end
+    return ResolveNameplate()
 end

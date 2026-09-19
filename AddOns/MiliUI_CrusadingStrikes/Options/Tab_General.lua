@@ -41,8 +41,15 @@ local function StatusLines()
     lines[#lines + 1] = L["Class:"] .. " "
         .. Mark(s.isPaladin, s.isPaladin and L["Paladin"] or L["Not a paladin — the addon is asleep on this character"])
 
-    lines[#lines + 1] = L["Nameplates:"] .. " "
-        .. Mark(s.platynator, s.platynator and L["Platynator is loaded"] or L["Platynator is not loaded — there is no nameplate to attach to"])
+    -- 宿主那一行跟著「掛載位置」換：掛聖能條時名條插件在不在根本無關，
+    -- 還把它標成紅字只會讓玩家去修一個沒壞的東西
+    if ns.Anchor.IsResourceMode(s.attach) then
+        lines[#lines + 1] = L["Holy Power bar:"] .. " "
+            .. Mark(s.resource, s.resource and L["Found (Ayije_CDM)"] or L["Not found — Ayije_CDM is not loaded, or its Holy Power bar is off for this spec"])
+    else
+        lines[#lines + 1] = L["Nameplates:"] .. " "
+            .. Mark(s.platynator, s.platynator and L["Platynator is loaded"] or L["Platynator is not loaded — there is no nameplate to attach to"])
+    end
 
     lines[#lines + 1] = L["Cooldown Manager:"] .. " "
         .. Mark(s.cdmEnabled and s.viewer, (s.cdmEnabled and s.viewer) and L["Enabled"] or L["Disabled"])
@@ -98,13 +105,21 @@ local CONTROLS = {
     { type = "text",   label = L["Draws a bar under your target's nameplate health bar showing how long until the next Crusading Strikes swing."] },
     { type = "custom", label = L["Status"], build = BuildStatus },
 
+    { type = "header", label = L["Where to attach"] },
+    { type = "dropdown", sub = "bar", key = "attach", label = L["Attach to"], items = {
+        { text = L["Target nameplate, below the health bar"], value = "nameplate" },
+        { text = L["Ayije_CDM Holy Power bar, above"],        value = "resourceAbove" },
+        { text = L["Ayije_CDM Holy Power bar, below"],        value = "resourceBelow" },
+    } },
+    { type = "text", label = L["Width follows whatever it is attached to (Appearance → Width). On the Holy Power bar it also follows that bar's fading and scale."] },
+
     { type = "header", label = L["Cast bar"] },
     { type = "dropdown", sub = "bar", key = "castMode", label = L["When a cast bar shows"], items = {
         { text = L["Move below the cast bar"], value = "below" },
         { text = L["Hide the bar"],            value = "hide" },
         { text = L["Leave it where it is"],    value = "stay" },
     } },
-    { type = "text", label = L["Only applies when the nameplate design puts its cast bar below the health bar; designs that put it above are left alone."] },
+    { type = "text", label = L["Nameplate only. Applies when the nameplate design puts its cast bar below the health bar; designs that put it above are left alone."] },
 }
 
 local function Init()
