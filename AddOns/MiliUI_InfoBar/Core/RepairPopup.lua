@@ -283,7 +283,9 @@ local function BuildModel()
         model[#model + 1] = { kind = "note", text = L["MENU_LEATRIX_CONFLICT"] }
     end
 
-    model[#model + 1] = { kind = "sep" }
+    -- ⚠ 小節之間**不放 sep**：標題自己底下就有一條髮絲線、前面也有留白，再補一條
+    --   收尾線就變成兩條線夾一行灰字，像多了一個框（坐騎面板的小節也是這樣接的）。
+    --   sep 只留給最底下的說明與設定入口——那兩段沒有標題。
     model[#model + 1] = { kind = "title", text = L["BLOCK_DURABILITY"] }
 
     local any = false
@@ -307,12 +309,9 @@ local function BuildModel()
 
     -- 三個分類：只畫有至少一筆「擁有且未隱藏」的
     local entries = Repair.Entries()
-    local anyCat = false
     for _, kind in ipairs(Repair.CATEGORIES) do
         local list = Repair.VisibleIn(entries[kind])
         if #list > 0 then
-            if not anyCat then model[#model + 1] = { kind = "sep" } end
-            anyCat = true
             model[#model + 1] = { kind = "title", text = L["REPAIR_CAT_" .. kind:upper()] }
             model[#model + 1] = IconSection(kind, list)
         end
