@@ -16,7 +16,7 @@ local ADDON, ns = ...
 
 ns.ADDON_NAME = ADDON
 ns.VERSION    = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
-ns.DB_VERSION = 1
+ns.DB_VERSION = 2   -- v2：掛載位置的預設從名條改成聖能條上方（見 Core/DB.lua 的遷移）
 
 -- player token 讀職業不受 12.1 身分限制，安全
 ns.playerClass = select(2, UnitClass("player"))

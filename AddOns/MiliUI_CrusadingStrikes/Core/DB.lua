@@ -2,7 +2,7 @@
 -- 設定資料：預設值 ＋ nil-merge
 --
 -- ⚠ MergeDefaults 只補 nil：發佈後要改任何預設值，都得配一條遷移（版本閘＋值閘）。
---   發佈前可以直接改。這支目前是 v1，還沒有遷移。
+--   發佈前可以直接改。遷移寫在 DB.Init 裡，一條一個版本閘。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -32,11 +32,11 @@ local function BuildDefaults()
             -- 尺寸單位是「名條 display 的座標系」：我們把條掛在 Platynator 的
             -- display 底下，所以它會跟著那個名條的縮放一起縮，不必自己換算。
             -- 掛在哪：
-            --   "nameplate"     目標名條的血條下方（預設）
-            --   "resourceAbove" 冷卻管理器插件的聖能條上方
+            --   "nameplate"     目標名條的血條下方
+            --   "resourceAbove" 冷卻管理器插件的聖能條上方（預設，v2 起）
             --   "resourceBelow" 冷卻管理器插件的聖能條下方
             -- 聖能條模式下 castMode 不適用（那邊沒有施法條要讓）。
-            attach    = "nameplate",
+            attach    = "resourceAbove",
             height    = 4,
             widthMode = "match",    -- "match" = 兩端錨在血條上（跟血條同寬）；"custom" = 用 width
             width     = 120,
@@ -75,7 +75,20 @@ function DB.Init()
         MiliUI_CrusadingStrikes_DB = {}
     end
     local db = MiliUI_CrusadingStrikes_DB
+    -- ⚠ 舊版本號要在 MergeDefaults **之前**讀：全新的存檔這裡是 nil，補完就變成現行版本，
+    --   之後就分不出「新裝的」跟「v1 升上來的」了。
+    local oldVersion = db.schemaVersion
     MergeDefaults(db, BuildDefaults())
+
+    -- v1 → v2：掛載位置的預設從名條改成聖能條上方。
+    -- MergeDefaults 只補 nil，而 v1 已經把 "nameplate" 寫進每個人的存檔了，光改預設值
+    -- 一個既有玩家都改不到。版本閘＋值閘：只動「v1 而且還停在舊預設值」的那份。
+    -- 代價要講清楚：v1 裡「特地選了名條」跟「沒動過」存起來是同一個值，分不出來，
+    -- 這條會把兩種都搬走。v1 只存在一天，使用者指定這樣遷。
+    if oldVersion ~= nil and oldVersion < 2 and db.bar.attach == "nameplate" then
+        db.bar.attach = "resourceAbove"
+    end
+
     db.schemaVersion = ns.DB_VERSION
     ns.db = db
     return db

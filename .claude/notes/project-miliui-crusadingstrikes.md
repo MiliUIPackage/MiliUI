@@ -92,7 +92,7 @@ C_NamePlate.GetNamePlateForUnit("target")
 
 ## 第二個宿主：冷卻管理器插件的聖能條（2026-09-20 加）
 
-設定 `bar.attach`：`nameplate`（預設）／`resourceAbove`／`resourceBelow`。聖能條拿法：
+設定 `bar.attach`：`nameplate`／`resourceAbove`（預設，DB v2 起；v1→v2 遷移把還停在 `nameplate` 的存檔搬過去，v1 分不出「特地選的」與「沒動過」所以兩種都搬）／`resourceBelow`。聖能條拿法：
 `_G.Ayije_CDM.resourceBars[Enum.PowerType.HolyPower]`（無名 StatusBar、parent 是 UIParent、
 不適用的專精會藏起來）。我們 parent 過去＋左右各錨一點取等寬，吃到它的縮放與淡出；
 **不寫它欄位、不掛勾、不讀幾何**。它不走訪子框（查過），parent 過去不會被當成它的格子。
