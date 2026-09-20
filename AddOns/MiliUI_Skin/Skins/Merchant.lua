@@ -185,25 +185,8 @@ local STOCK_CELLS = 12
 --
 -- ⚠ 狀態貼圖（Normal／Pushed／Disabled／Highlight）也是 `GetRegions()` 掃得到的
 --   region，所以要留的話一定要放進 keep-set，否則會被一起中和掉。
--- TODO(升格): 這支跟 Skins/Mail.lua、Skins/Character.lua 的 `KeepSet` 是同一件事，
---   差別只在多了「用 getter 取」那一半。三份都用上了就該升格進 Core/Engine.lua。
+-- （第五輪升格成 `Engine.KeepSet`，三份配方共用。）
 ------------------------------------------------------------
-local function KeepSet(owner, keys, getters)
-    local set = {}
-    for _, k in ipairs(keys or {}) do
-        local region
-        if pcall(function() region = owner[k] end) and type(region) == "table" then
-            set[region] = true
-        end
-    end
-    for _, getter in ipairs(getters or {}) do
-        if type(owner[getter]) == "function" then
-            local ok, tex = pcall(owner[getter], owner)
-            if ok and type(tex) == "table" then set[tex] = true end
-        end
-    end
-    return set
-end
 
 ------------------------------------------------------------
 -- 商人視窗開著沒有？
@@ -285,20 +268,8 @@ end
 -- 這支改成：無名底圖 ＋ Pushed 中和、Highlight 交給引擎、overlay 畫底與邊，
 -- **`Icon` 完全不碰** —— 暴雪拿它的去飽和表示「不能修裝／沒有垃圾」，那是狀態。
 --
--- TODO(升格): 「底圖無名、圖示是 parentKey」的圖示鈕不只商人視窗有，第二個用到的
---   地方出現時就把它升格成 `Skin.IconButton` 的一個 opts（例如 `opts.stripArt`）。
+-- （第五輪升格成 `Skin.SlotIconButton`，keep-set 與「Icon 不碰」的理由都搬進原語。）
 ------------------------------------------------------------
-local function SkinSlotIconButton(btn, key)
-    if not E.Usable(btn, key) then return end
-
-    -- keep-set：`Icon` 是內容要留；Highlight 要留給引擎換色（中和過就再也上不了色，
-    -- 見 Engine.ButtonStates 的註解）。其餘（無名底圖 ＋ Pushed）一律中和。
-    E.NeutralizeRegions(btn, key, KeepSet(btn, { "Icon" }, { "GetHighlightTexture" }))
-    E.ButtonStates(btn, key)
-
-    local ov = E.Overlay(btn, { key = key })
-    E.Paint(ov, T.fill, T.border)
-end
 
 local SLOT_ICON_BUTTONS = {
     "MerchantSellAllJunkButton",
@@ -327,7 +298,7 @@ local function SkinPageButton(name)
         E.Missing(name)
         return
     end
-    E.NeutralizeRegions(btn, name, KeepSet(btn, nil, PAGE_BUTTON_KEEP_GETTERS))
+    E.NeutralizeRegions(btn, name, E.KeepSet(btn, nil, PAGE_BUTTON_KEEP_GETTERS))
     Skin.IconButton(btn, name, { inset = 4, labelColor = T.text })
 end
 
@@ -350,7 +321,7 @@ local function SkinBottomStrip()
     for _, name in ipairs(SLOT_ICON_BUTTONS) do
         local btn = _G[name]
         if btn then
-            SkinSlotIconButton(btn, name)
+            Skin.SlotIconButton(btn, name)
         else
             E.Missing(name)
         end
@@ -473,16 +444,19 @@ local function Apply()
     -- 不重設顏色（.lua:273）⇒ 設一次就撐得住。
     E.TextColor(_G.MerchantPageText, T.text, "MerchantPageText")
 
-    -- 底部兩顆分頁（商人／買回），PanelTabButtonTemplate
+    -- 底部兩顆分頁（商人／買回），PanelTabButtonTemplate。
+    -- ⚠ 走 `Skin.TabGroup`：接縫錨在下一顆的左緣，相鄰兩顆共用一條 1px 黑線。
+    local tabs = {}
     for i = 1, 2 do
         local key = "MerchantFrameTab" .. i
         local tab = _G[key]
         if tab then
-            Skin.Tab(tab, key, "panel")
+            tabs[#tabs + 1] = { tab = tab, key = key }
         else
             E.Missing(key)
         end
     end
+    Skin.TabGroup(tabs, { kind = "panel", joined = "TOP" })
 
     local dd
     if pcall(function() dd = f.FilterDropdown end) and dd then

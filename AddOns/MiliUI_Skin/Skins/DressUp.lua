@@ -50,10 +50,14 @@
 --    的合成圖。但**不能照關閉鈕的辦法處理**：關閉鈕的 × 我們畫得出來（兩條線），
 --    「展開／收合」的箭頭畫不出來，而 `Engine.Overlay` 的 `glyph` 只有
 --    `kind = "cross"` 與「一張貼圖」兩種。
---    ⇒ 照 `Skin.IconButton` 的既有作法：圖不中和、先去飽和再染 `textDim`
---    （紅色烤在素材裡，乘法染不出中性灰），底與邊由 overlay 畫，滑過交給引擎。
---    TODO(升格): `Engine.Overlay` 的 `glyph` 需要第三種 kind（v 形），有了之後這兩顆
---    就能跟關閉鈕一樣變成「平面方塊 ＋ 白色圖記」。
+--    第四輪的作法是「圖不中和、先去飽和再染 textDim」，結果是一顆灰撲撲的
+--    紅底按鈕縮在我們的方框裡。
+--    **第五輪改掉**：`Engine.Overlay` 的 `glyph` 多了 `expand`／`collapse` 兩種
+--    線條圖記（＋／−），所以這兩顆跟關閉鈕一樣變成「平面方塊 ＋ 白色圖記」——
+--    三張紅底狀態圖整組中和，圖記我們自己畫。
+--    ⚠ 圖形選 ＋／− 不選「往外的箭頭」：`CreateLine` 只畫得出直線，箭頭在 9 點
+--    見方的方塊裡會糊成一團；而且套組裡「展開／收合」本來就已經是 ＋／− 的語彙
+--    （聲望／通貨頁的子分類鈕）。
 --
 -- 2. **`ClassBackground` 的 alpha 是 OnLoad 設一次的**（.lua:481，依職業 0.21~0.65），
 --    不是每次 Refresh 都重設 ⇒ 中和放 apply 就夠，不必 reapply。
@@ -131,24 +135,8 @@ local L = ns.L
 --
 -- ⚠ 狀態貼圖（Normal／Pushed／Disabled／Highlight）也是 `GetRegions()` 掃得到的
 --   region ⇒ 要留就一定要放進 keep-set。
--- TODO(升格): 跟 Skins/Merchant.lua 的同名函式是同一支，兩份都在了就該升格。
+-- （第五輪升格成 `Engine.KeepSet`。）
 ------------------------------------------------------------
-local function KeepSet(owner, keys, getters)
-    local set = {}
-    for _, k in ipairs(keys or {}) do
-        local region
-        if pcall(function() region = owner[k] end) and type(region) == "table" then
-            set[region] = true
-        end
-    end
-    for _, getter in ipairs(getters or {}) do
-        if type(owner[getter]) == "function" then
-            local ok, tex = pcall(owner[getter], owner)
-            if ok and type(tex) == "table" then set[tex] = true end
-        end
-    end
-    return set
-end
 
 local BUTTON_STATE_GETTERS = {
     "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture", "GetHighlightTexture",
@@ -174,12 +162,17 @@ end
 --
 -- 理由見檔頭第 1 點：圖記畫不出來，所以圖不中和、去飽和＋染暗，底與邊自己畫。
 ------------------------------------------------------------
+local MAXMIN_GLYPH = {
+    MaximizeButton = "expand",    -- ＋
+    MinimizeButton = "collapse",  -- −
+}
+
 local function SkinMaxMinFrame(frame, key)
     if not E.Usable(frame, key) then return end
-    for _, k in ipairs({ "MaximizeButton", "MinimizeButton" }) do
+    for k, glyph in pairs(MAXMIN_GLYPH) do
         local btn
         if pcall(function() btn = frame[k] end) and btn then
-            Skin.IconButton(btn, key .. "." .. k, { desaturate = true })
+            Skin.IconButton(btn, key .. "." .. k, { glyph = glyph })
         else
             E.Missing(key .. "." .. k)
         end
@@ -299,7 +292,7 @@ local function ApplySideDressUp()
     -- `$parentTop` 有全域名字、`-Bottom` 那張**無名無 parentKey** ⇒ 一起走 GetRegions。
     -- `BGTopLeft` / `BGBottomLeft` 是模型背後那張底圖（模型場景的背景）⇒ 留下。
     E.NeutralizeRegions(f, "SideDressUpFrame",
-        KeepSet(f, { "BGTopLeft", "BGBottomLeft" }))
+        E.KeepSet(f, { "BGTopLeft", "BGBottomLeft" }))
 
     local ov = E.Overlay(f, { key = "SideDressUpFrame" })
     E.Paint(ov, T.fill, T.border)
@@ -308,7 +301,7 @@ local function ApplySideDressUp()
     if close then
         -- 關閉鈕自己的 BACKGROUND 層裡還有一張**無名**的 -Corner 雕花（:116）
         E.NeutralizeRegions(close, "SideDressUpFrameCloseButton",
-            KeepSet(close, nil, BUTTON_STATE_GETTERS))
+            E.KeepSet(close, nil, BUTTON_STATE_GETTERS))
         Skin.CloseButton(close, "SideDressUpFrameCloseButton")
     else
         E.Missing("SideDressUpFrameCloseButton")

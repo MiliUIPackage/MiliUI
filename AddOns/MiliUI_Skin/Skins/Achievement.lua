@@ -792,8 +792,12 @@ local function SkinObjectives(objectivesFrame)
             -- 進度條的底與邊是**無名**貼圖（池子 Acquire 出來的框沒有名字，
             -- 模板裡的 `$parentBG` / `$parentBorder*` 因此連全域名字都沒有）
             -- ⇒ 只能走 GetRegions。填充貼圖會被排除，綠色進度保留。
+            -- ⚠ `pad = 2`：`AchievementProgressBarTemplate` 只有 **14** 高
+            --   （`<Size x="212" y="14"/>`），而它的 `$parentText` 是
+            --   `GameFontHighlightSmall` 置中 —— 中文字面比 14 高，不留內距的話
+            --   「3/10」的上下兩端會壓在邊線上（同聲望條）。
             Skin.StatusBar(bar, "AchievementObjectives.ProgressBar",
-                { stripArt = true, color = ACHIEVEMENT_BAR_GREEN })
+                { stripArt = true, color = ACHIEVEMENT_BAR_GREEN, pad = 2 })
         end
     end
 end
@@ -832,7 +836,15 @@ local function SkinSummaryBar(bar, key)
     --   1. 綠＝進度／完成，是全遊戲通用的語彙，換掉等於丟掉一個讀者已經會的訊號。
     --   2. 這個視窗裡職業色已經被「分類列選中態」用掉了 —— 一個視覺訊號只能有
     --      一個語意（miliui-menu-design 第一條）。進度條再用職業色就打架了。
-    Skin.StatusBar(bar, key, { stripArt = true, color = ACHIEVEMENT_BAR_GREEN })
+    -- ⚠ `pad = 2`：`AchievementFrameSummaryCategoryTemplate` 是 21 高，但它的
+    --   `Label` 錨在 `LEFT x=6 **y=4**`、`$parentText` 錨在 `RIGHT x=-5 **y=3**`
+    --   （Blizzard_AchievementUI.xml 的模板定義）—— 兩條字都比條的垂直中心高 3~4，
+    --   字的上緣因此正好壓在條的上緣。第三輪把邊畫在前景，那條 1px 黑線就橫切過
+    --   字的頂端（實機擷圖 23 的「已達成的成就」看得最清楚）。
+    --   第五輪邊已經改到條的**外面**，再往外推 2 之後字的上緣與邊之間有餘裕，
+    --   框的垂直中心也往字的中心靠了 2 ⇒ 看起來就是「字在框內」。
+    --   ⚠ 不推更多：總結頁的十二條上下只隔 6，推 3 以上相鄰兩條的邊會黏在一起。
+    Skin.StatusBar(bar, key, { stripArt = true, color = ACHIEVEMENT_BAR_GREEN, pad = 2 })
 
     -- Label / Title 是 GameFontNormal（暗金），換白
     for _, k in ipairs({ "Label", "Title" }) do
@@ -947,8 +959,9 @@ local function SkinComparison(f)
 
                 local bar
                 if pcall(function() bar = panel.StatusBar end) and bar then
+                    -- 跟總結頁那幾條同一個模板（標籤高過條的中心）⇒ 同樣 pad = 2
                     Skin.StatusBar(bar, label .. ".StatusBar",
-                        { stripArt = true, color = ACHIEVEMENT_BAR_GREEN })
+                        { stripArt = true, color = ACHIEVEMENT_BAR_GREEN, pad = 2 })
                 end
             end
         end
@@ -1129,18 +1142,21 @@ local function Apply()
     SkinComparison(f)
     SkinSearchResults(f)
 
+    -- ⚠ 成就視窗自己的分頁模板（AchievementFrameTabButtonTemplate）跟
+    --   PanelTabButtonTemplate 的 parentKey 名字一樣，但**沒有**
+    --   parentArray="TabTextures"，所以要逐一點名 ⇒ kind = "legacy"。
+    -- ⚠ 走 `Skin.TabGroup`：接縫由下一顆的左緣決定，相鄰兩顆共用一條 1px 黑線。
+    local tabs = {}
     for i = 1, 3 do
         local key = "AchievementFrameTab" .. i
         local tab = _G[key]
         if tab then
-            -- ⚠ 成就視窗自己的分頁模板（AchievementFrameTabButtonTemplate）跟
-            --   PanelTabButtonTemplate 的 parentKey 名字一樣，但**沒有**
-            --   parentArray="TabTextures"，所以要逐一點名 ⇒ kind = "legacy"。
-            Skin.Tab(tab, key, "legacy")
+            tabs[#tabs + 1] = { tab = tab, key = key }
         else
             E.Missing(key)
         end
     end
+    Skin.TabGroup(tabs, { kind = "legacy", joined = "TOP" })
 
     local close = _G.AchievementFrameCloseButton
     if close then

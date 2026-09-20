@@ -161,27 +161,8 @@ local NINE_SLICE_PIECES = {
     "TopEdge", "BottomEdge", "LeftEdge", "RightEdge", "Center",
 }
 
-------------------------------------------------------------
--- 三片式按鈕（`ThreeSliceButtonTemplate` 系）
---
--- 跟 `UIPanelButtonTemplate` 只差一個名字：中間那一片叫 **`Center`** 不是 `Middle`。
--- 其餘完全一樣 —— `UpdateButton` 每次狀態改變都重設三張的 atlas ⇒ 中和一定要用
--- alpha；文字走 `SetNormalFontObject`（註 ⓔ）；滑過交給引擎
--- （`InitButton` 只在 OnLoad 設一次 HighlightAtlas，白 8% 不會被打回）。
---
--- TODO(升格): 等第二個視窗也用到 `SharedButton*Template` 就把 `Center` 併進
---   `Skin.Button` 的中和清單（多一個找不到的 parentKey 只會多一筆 debug 紀錄，
---   但現在先不動原語）。
-------------------------------------------------------------
-local function SkinThreeSliceButton(btn, key)
-    if not E.Usable(btn, key) then return end
-    E.NeutralizeKeys(btn, { "Left", "Right", "Center" }, key)
-    E.ButtonStates(btn, key)
-    E.ButtonFonts(btn, GameFontHighlight, key)
-    local ov = E.Overlay(btn, { key = key })
-    E.Paint(ov, T.fill, T.border)
-    return ov
-end
+-- 三片式按鈕（`ThreeSliceButtonTemplate` 系）第五輪升格成 `Skin.ThreeSliceButton`，
+-- 模板名與「中間那一片叫 Center」的理由都搬進原語。
 
 ------------------------------------------------------------
 -- 池化列
@@ -395,7 +376,7 @@ local function Apply()
     for _, key in ipairs({ "CancelButton", "OkayButton", "EnableAllButton", "DisableAllButton" }) do
         local btn
         if pcall(function() btn = f[key] end) and btn then
-            SkinThreeSliceButton(btn, "AddonList." .. key)
+            Skin.ThreeSliceButton(btn, "AddonList." .. key)
         else
             E.Missing("AddonList." .. key)
         end

@@ -1090,15 +1090,21 @@ local function Apply()
     end
 
     -- 底部四顆分頁（好友／查詢／團隊／快速加入）。第三、四顆平常是隱藏的，照樣要套。
+    -- ⚠ 走 `Skin.TabGroup`：接縫錨在下一顆的左緣，相鄰兩顆共用一條 1px 黑線
+    --   （第四輪的「往右多畫 7」會在選中的那一顆右邊留兩條平行線）。
+    --   三、四兩顆排在**最後**，所以不必標 `hideable`：藏起來的框照樣有位置，
+    --   前一顆的右緣錨在它的左緣上不會留洞。
+    local tabs = {}
     for i = 1, 4 do
         local key = "FriendsFrameTab" .. i
         local tab = _G[key]
         if tab then
-            Skin.Tab(tab, key, "panel")
+            tabs[#tabs + 1] = { tab = tab, key = key }
         else
             E.Missing(key)
         end
     end
+    Skin.TabGroup(tabs, { kind = "panel", joined = "TOP" })
 
     SkinHeaderTabs(f)
 
