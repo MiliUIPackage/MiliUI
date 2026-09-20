@@ -92,7 +92,10 @@ C_NamePlate.GetNamePlateForUnit("target")
 
 ## 第二個宿主：冷卻管理器插件的聖能條（2026-09-20 加）
 
-設定 `bar.attach`：`nameplate`／`resourceAbove`（預設，DB v2 起；v1→v2 遷移把還停在 `nameplate` 的存檔搬過去，v1 光看 attach 分不出「特地選的」與「沒動過」，所以拿間距與水平位移當旁證：兩個都還是預設才搬，任一個調過就不遷）／`resourceBelow`。聖能條拿法：
+設定 `bar.attach`：`auto`（預設，DB v2 起）／`nameplate`／`resourceAbove`／`resourceBelow`。
+`auto` 由 `Anchor.EffectiveMode` 每次解析時換成實際宿主：那支插件**有載入**就聖能條上方，否則名條。不寫死是因為存檔帳號共用、插件啟用狀態卻可以每角色不同，而且玩家之後裝上／移除那支插件條會自己跟過去。
+⚠ 退路的條件是「沒載入」不是「找不到聖能條」—— 後者會讓條在換專精時跳到名條上。後三個選項是玩家明確選的，不做退路。
+（v1→v2 遷移把還停在 `nameplate` 的存檔搬到 `auto`，v1 光看 attach 分不出「特地選的」與「沒動過」，所以拿間距與水平位移當旁證：兩個都還是預設才搬，任一個調過就不遷）／`resourceBelow`。聖能條拿法：
 `_G.Ayije_CDM.resourceBars[Enum.PowerType.HolyPower]`（無名 StatusBar、parent 是 UIParent、
 不適用的專精會藏起來）。我們 parent 過去＋左右各錨一點取等寬，吃到它的縮放與淡出；
 **不寫它欄位、不掛勾、不讀幾何**。它不走訪子框（查過），parent 過去不會被當成它的格子。

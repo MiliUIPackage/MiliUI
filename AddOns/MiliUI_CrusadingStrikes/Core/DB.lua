@@ -32,11 +32,15 @@ local function BuildDefaults()
             -- 尺寸單位是「名條 display 的座標系」：我們把條掛在 Platynator 的
             -- display 底下，所以它會跟著那個名條的縮放一起縮，不必自己換算。
             -- 掛在哪：
+            --   "auto"          預設（v2 起）：冷卻管理器插件有載入就掛聖能條上方，沒有就掛名條。
+            --                   每次解析時判斷、不寫死 —— 存檔是帳號共用的，而插件啟用狀態可以
+            --                   每個角色不同；玩家之後裝上或移除那支插件，條也會自己跟過去。
             --   "nameplate"     目標名條的血條下方
-            --   "resourceAbove" 冷卻管理器插件的聖能條上方（預設，v2 起）
+            --   "resourceAbove" 冷卻管理器插件的聖能條上方
             --   "resourceBelow" 冷卻管理器插件的聖能條下方
+            -- 後三個是玩家明確選的，照他的，不做退路。
             -- 聖能條模式下 castMode 不適用（那邊沒有施法條要讓）。
-            attach    = "resourceAbove",
+            attach    = "auto",
             height    = 4,
             widthMode = "match",    -- "match" = 兩端錨在血條上（跟血條同寬）；"custom" = 用 width
             width     = 120,
@@ -80,7 +84,7 @@ function DB.Init()
     local oldVersion = db.schemaVersion
     MergeDefaults(db, BuildDefaults())
 
-    -- v1 → v2：掛載位置的預設從名條改成聖能條上方。
+    -- v1 → v2：掛載位置的預設從名條改成「自動」（有冷卻管理器插件就聖能條上方）。
     -- MergeDefaults 只補 nil，而 v1 已經把 "nameplate" 寫進每個人的存檔了，光改預設值
     -- 一個既有玩家都改不到。版本閘＋值閘：只動「v1 而且還停在舊預設值」的那份。
     -- v1 裡「特地選了名條」跟「沒動過」存起來是同一個值，光看 attach 分不出來，
@@ -89,7 +93,7 @@ function DB.Init()
     local defaults = BuildDefaults().bar
     if oldVersion ~= nil and oldVersion < 2 and db.bar.attach == "nameplate"
         and db.bar.gap == defaults.gap and db.bar.offsetX == defaults.offsetX then
-        db.bar.attach = "resourceAbove"
+        db.bar.attach = "auto"
     end
 
     db.schemaVersion = ns.DB_VERSION

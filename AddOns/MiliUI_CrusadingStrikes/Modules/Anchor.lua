@@ -163,6 +163,18 @@ function Anchor.IsResourceMode(mode)
     return mode == "resourceAbove" or mode == "resourceBelow"
 end
 
+-- 設定值 → 實際要掛的宿主。只有 "auto" 會被換掉，其餘三個是玩家明確選的，原樣回傳。
+-- ⚠ 退回名條的條件是「那支插件**沒載入**」，不是「找不到聖能條」：插件有載入但聖能條
+--   暫時藏著時（換到沒開資源條的專精），條應該跟著收起來，而不是跳到名條上 ——
+--   用「找不到」當條件的話，條會在兩個宿主之間跳來跳去。
+function Anchor.EffectiveMode(mode)
+    if mode ~= "auto" then return mode end
+    if C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("Ayije_CDM") then
+        return "resourceAbove"
+    end
+    return "nameplate"
+end
+
 -- → display, anchorWidget, castWidget, castIsBelow（都可能是 nil）
 -- 聖能條模式下 display 與 anchorWidget 是同一個框，沒有施法條。
 function Anchor.Resolve(mode)

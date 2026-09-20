@@ -134,7 +134,7 @@ local function ApplyPoints()
 
     -- 貼在宿主的上緣還是下緣：名條永遠是下緣；聖能條看設定。讀設定而不是 atMode ——
     -- 上方↔下方是同一個宿主，不會重掛，只會走到這裡重設錨點。
-    local above = b.attach == "resourceAbove"
+    local above = ns.Anchor.EffectiveMode(b.attach) == "resourceAbove"
     local mine, theirs, dy = "TOP", "BOTTOM", -b.gap
     if above then mine, theirs, dy = "BOTTOM", "TOP", b.gap end
 
@@ -271,7 +271,7 @@ function Bar.Refresh()
         return
     end
 
-    local mode = ns.db.bar.attach
+    local mode = ns.Anchor.EffectiveMode(ns.db.bar.attach)
 
     -- 已經掛好而且還活著就不動（每 0.5 秒重掛一次等於每 0.5 秒 SetParent）
     if atDisplay and atMode == mode then
@@ -300,7 +300,7 @@ function Bar.Relocate()
         Detach()
         return
     end
-    local mode = ns.db.bar.attach
+    local mode = ns.Anchor.EffectiveMode(ns.db.bar.attach)
     local display, health, cast, castBelow = ns.Anchor.Resolve(mode)
     if not display or not health then
         Detach()

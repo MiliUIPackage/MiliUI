@@ -106,3 +106,8 @@ L["Width follows whatever it is attached to (Appearance → Width). On the Holy 
 L["Holy Power bar:"] = "聖能條:"
 L["Found (Ayije_CDM)"] = "已找到（Ayije_CDM）"
 L["Not found — Ayije_CDM is not loaded, or its Holy Power bar is off for this spec"] = "找不到 —— Ayije_CDM 未載入，或這個專精沒開聖能條"
+
+-- 自動掛載
+L["Automatic"] = "自動"
+L["(automatic)"] = "（自動）"
+L["Automatic: above the Ayije_CDM Holy Power bar when that addon is loaded, otherwise below the target nameplate's health bar."] = "自動：有載入 Ayije_CDM 就掛在它的聖能條上方，沒有就掛在目標名條的血條下方。"
