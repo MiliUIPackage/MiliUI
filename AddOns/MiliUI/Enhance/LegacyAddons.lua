@@ -72,10 +72,13 @@ local REPLACED = {
 -- 但停用與否交給玩家決定，所以放這裡而不是 REPLACED。
 -- _CDProbe 是隨套組發給玩家的診斷探針（快捷列 SetCooldown 秘密值），
 -- 目標問題已修掉（資訊列的教學提示改鏡射不改錨），2026-09-10 從套組移除。
+-- _BarNameProbe 同樣是診斷探針（Ayije_CDM 增益長條偶爾沒名字），名字改成
+-- 完全讓暴雪寫之後就沒再發作過，2026-09-20 從套組移除。
 local REMOVED = {
     { label = "MiniCC",      folders = { "MiniCC" } },
     { label = "WarpDeplete", folders = { "WarpDeplete" } },
     { label = "冷卻錯誤探針", folders = { "_CDProbe" } },
+    { label = "長條名字探針", folders = { "_BarNameProbe" } },
 }
 
 ------------------------------------------------------------
