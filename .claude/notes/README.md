@@ -147,6 +147,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-characternotes.md](project-miliui-characternotes.md) | 米利的角色筆記 MiliUI_CharacterNotes —— 從套組拆出的獨立插件；副本／首領筆記（難度分層、本季名單）、聊天連結分享 |
 | [project-miliui-shoppinglist.md](project-miliui-shoppinglist.md) | 米利的採購清單 MiliUI_ShoppingList —— 專業採購清單；跟參考來源不同的六個決定、**代工下單頁的分配結果才是真相（不是 GetItemCount）**、taint 紀律、待驗證清單 |
 | [project-miliui-merchant.md](project-miliui-merchant.md) | 米利的商人視窗 MiliUI_Merchant —— 取代第三方商人視窗擴充的單體插件；**沿用暴雪命名是為了讓照格子名稱裝飾的插件照常生效**、post-hook 的 IsShown 閘、收藏快取兩個陷阱、待驗證清單 |
+| [project-miliui-mythicplus.md](project-miliui-mythicplus.md) | 米利的傳奇鑰石 MiliUI_MythicPlus —— M+ 結算面板＋場次歷史＋探針雛形；**範圍判準是「畫在哪個宿主」**（計時面板／戰隊鑰石刻意不搬）、分段加總／總計兩條統計策略、快照重試時機、三個待實機驗證的假設 |
 | [project-miliui-skin.md](project-miliui-skin.md) | 米利的介面外觀 MiliUI_Skin —— 暴雪視窗換皮 PoC（對話／角色面板／成就）；**只重畫不重排**的契約、overlay 三陷阱、驗收時抓到的坑、待實機驗證清單 |
 | [wow-blizzard-window-skin-strategies.md](wow-blizzard-window-skin-strategies.md) | 暴雪原生視窗換皮的通用策略：底直接建成目標框的貼圖、進度條邊與文字同框交錯、池化列掛法、物品格方框、一律不碰的區域與原因 |
 | [project-miliui-snap-bars.md](project-miliui-snap-bars.md) | 套組各插件的框互相磁吸（MiliUISnap v3）：標記列／藥水列／傷害統計視窗貼附跟隨、其他框放手對齊 2px；vendor 複製、七支插件的接點 |
