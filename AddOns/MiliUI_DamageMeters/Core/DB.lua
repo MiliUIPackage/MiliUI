@@ -35,11 +35,12 @@ end
 -- ⚠ 列舉一律走 DB.HDR_BUTTON_IDS，不要 pairs：看板與標題列都要有穩定的順序，
 --   而 pairs 每次的順序都可能不一樣。
 ------------------------------------------------------------
-DB.HDR_BUTTON_IDS = { "segments", "publish", "reset", "settings", "lock" }
+DB.HDR_BUTTON_IDS = { "publish", "segments", "reset", "settings", "lock" }
 
 local HDR_BUTTON_DEFAULTS = {
-    segments = { enabled = true,  order = 10 },
-    publish  = { enabled = true,  order = 20 },
+    -- 發佈排最左邊、分段第二（使用者指定）
+    publish  = { enabled = true,  order = 10 },
+    segments = { enabled = true,  order = 20 },
     -- 預設藏起來：重置是不可逆的動作，不該擺在一顆隨手就會點到的按鈕上。
     -- 右鍵選單與 /mdm reset 都還在。
     reset    = { enabled = false, order = 30 },
@@ -539,8 +540,8 @@ local PROFILE_MIGRATIONS = {
     -- ＝當時的預設＝藏）；只有明確的 false 才是「玩家把它叫出來過」。
     -- 分段鈕以前沒有開關、一直都在 ⇒ enabled；發佈是新的按鈕 ⇒ 預設開。
     --
-    -- order 10/30/40/50 保留舊版畫面上由左到右的「分段、重置、設定、鎖定」相對位置，
-    -- 所以老玩家升上來看到的排列一模一樣，只是中間多一顆發佈（20）。
+    -- order 20/30/40/50 保留舊版畫面上由左到右的「分段、重置、設定、鎖定」相對位置，
+    -- 所以老玩家升上來看到的排列一模一樣，只是最左邊多一顆發佈（10，跟新安裝的預設一致）。
     --
     -- ⚠ 遷移跑在 MergeDefaults **之前**（見 DB.Init 與 Tab_Share 的匯入），
     --   所以這時候舊 SV 還沒有 hdrButtons —— 有的話就是已經遷過了，早退。
@@ -549,8 +550,8 @@ local PROFILE_MIGRATIONS = {
         local st = p.style
         if type(st) ~= "table" or st.hdrButtons ~= nil then return end
         st.hdrButtons = {
-            segments = { enabled = true, order = 10 },
-            publish  = { enabled = true, order = 20 },
+            publish  = { enabled = true, order = 10 },
+            segments = { enabled = true, order = 20 },
             reset    = { enabled = st.hideResetButton    == false, order = 30 },
             settings = { enabled = st.hideSettingsButton == false, order = 40 },
             lock     = { enabled = st.hideLockButton     == false, order = 50 },
