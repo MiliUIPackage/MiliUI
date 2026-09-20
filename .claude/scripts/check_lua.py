@@ -39,6 +39,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_Minimap_DB",
     "MiliUI_QuestTracker_DB",
     "MiliUI_ShoppingList_DB", "MiliUI_ShoppingList_CharDB",
+    "MiliUI_Skin_DB",
     "MiliUI_Tooltip_DB", "MiliUI_UnitFrames_DB",
     "AGSCDB",
     # 內建預設值資料（Config/ 底下那幾支就是一整包全域表）
@@ -47,6 +48,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI", "MiliUI_MenuEntries", "MiliUI_Snap",
     "MiliUI_OpenUnitFrameSettings", "MiliUIUF_OnAddonCompartmentClick",
     "MiliUIMerchant_OnAddonCompartmentClick",
+    "MiliUISkin", "MiliUISkin_OnAddonCompartmentClick",
     "MiliUICrafterTableCellRewardsMixin",
     # 各 Enhance 模組的對外開關（設定面板要叫得到）
     "MiliUI_AHFilter", "MiliUI_BagsAlpha", "MiliUI_BaganatorKeystone",

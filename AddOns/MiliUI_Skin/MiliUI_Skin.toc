@@ -1,0 +1,52 @@
+## Interface: 120100, 120105
+## Title: MiliUI Skin
+## Title-zhTW: |cff33F5FF[外觀]|r 米利的介面外觀
+## Title-zhCN: |cff4488FF[MiliUI]|r 米利的界面外观
+## Notes: Repaints Blizzard's own windows in the MiliUI settings-window look: opaque grey fill, 1px black border, white text, square corners. Only repaints — never moves or rebuilds anything.|n|n|cffffd200Usage: |r/mskin opens settings.
+## Notes-zhTW: MiliUI Skin|n|n米利的介面外觀。|n|n把暴雪原生視窗換成米利UI的設定視窗皮：不透明灰底、1 像素純黑硬邊、白字、直角。只重畫，不搬動也不重組任何東西。|n|n|cffffd200使用方法: |r/mskin 開啟設定。
+## Notes-zhCN: MiliUI Skin|n|n米利的界面外观。|n|n把暴雪原生窗口换成米利UI的设置窗口皮肤：不透明灰底、1 像素纯黑硬边、白字、直角。只重绘，不搬动也不重组任何东西。|n|n|cffffd200使用方法: |r/mskin 打开设置。
+## Category: Interface
+## Category-zhTW: 介面
+## Category-zhCN: 界面
+## Author: Mili
+## Version: 0.1.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\INV_Misc_Gem_Variety_01
+## SavedVariables: MiliUI_Skin_DB
+## AddonCompartmentFunc: MiliUISkin_OnAddonCompartmentClick
+## DefaultState: disabled
+
+# 像素工具單獨排最前面：其他模組也吃 ns.P
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
+
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+
+# Tokens 要在 Init 之前：Init 的聊天前綴與 Env 的字型／強調色都從它拿
+Core\Tokens.lua
+Core\Init.lua
+Core\DB.lua
+Core\Engine.lua
+Core\Primitives.lua
+
+# 配方：每一份在檔案層只做 Engine.Register，真正套用要等 PLAYER_LOGIN
+Skins\Gossip.lua
+Skins\Character.lua
+Skins\Achievement.lua
+
+# 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
+Libs\MiliUIWidgets\Controls.lua
+
+Options\Panel.lua
+Options\Tab_General.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
+Options\Blizzard.lua
+
+Api.lua

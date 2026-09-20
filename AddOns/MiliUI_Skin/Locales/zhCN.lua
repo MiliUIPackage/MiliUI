@@ -1,0 +1,47 @@
+local _, ns = ...
+if GetLocale() ~= "zhCN" then return end
+local L = ns.L
+
+-- 共用层（MiliUIWidgets）
+L["Apply"] = "应用"
+L["Okay"] = "确定"
+L["Cancel"] = "取消"
+L["Can't change settings during combat"] = "战斗中无法调整设置"
+
+-- 插件名称与标签页
+L["MiliUI Skin"] = "米利的界面外观"
+L["General"] = "常规"
+
+-- 设置页
+L["Enable the skin"] = "启用界面外观"
+L["Repaints Blizzard's windows in the MiliUI settings-window look."] = "把暴雪原生窗口重绘成米利UI的设置窗口皮肤：不透明灰底、1 像素纯黑硬边、白字、直角。"
+L["This addon only repaints. It never moves, resizes or rebuilds anything Blizzard owns."] = "这个插件只重绘，不会移动、缩放或重组任何暴雪自己的东西。"
+L["Windows"] = "窗口"
+L["Changes take effect after a UI reload."] = "更改需要重新加载界面后才会生效。"
+L["Changes take effect after a UI reload. Reload now?"] = "更改需要重新加载界面后才会生效。现在重新加载吗？"
+L["Reload UI"] = "重新加载界面"
+L["Show status"] = "列出应用状态"
+
+-- 窗口名称（用暴雪官方词汇）
+L["Gossip"] = "对话"
+L["Character Info"] = "角色信息"
+L["Achievements"] = "成就"
+
+-- 暴雪「系统 > 插件」入口页
+L["Use /mskin to open options"] = "使用 /mskin 打开设置"
+L["Version: %s"] = "版本: %s"
+L["Open options"] = "打开设置"
+
+-- /mskin debug 的状态
+L["Applied"] = "已应用"
+L["Waiting for the Blizzard addon to load"] = "等待暴雪插件加载"
+L["Waiting to leave combat"] = "等待脱离战斗"
+L["Disabled"] = "已禁用"
+L["Error"] = "出错"
+L["Not applied yet"] = "尚未应用"
+L["Regions neutralized:"] = "已中和的区域:"
+L["Overlays:"] = "已创建的覆盖层:"
+L["Regions not found (Blizzard may have renamed them):"] = "找不到的区域（暴雪可能改名了）:"
+L["Skipped because the frame is protected:"] = "因为是保护框而跳过:"
+L["Skipped because the object is forbidden:"] = "因为对象被禁止访问而跳过:"
+L["No errors recorded"] = "没有记录到错误"
