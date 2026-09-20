@@ -8,9 +8,9 @@
 --   +14 副本名                          [ +14 副本名  9/21 01:14 ▾ ] [×]
 --   32:47 / 28:00   超時   19 死亡 (-4:45)              評分 3206 (+12)
 --
---       玩家          分數  戰利品      輸出      承傷   中斷  驅散  死亡
+--       玩家          分數  戰利品      輸出      承傷  可迴避傷害   中斷  驅散  死亡
 --   ─────────────────────────────────────────────────────────────────
---   [圖] 名字         3206  [圖][圖]   294.1K   52.10M     7     3     4
+--   [圖] 名字         3206  [圖][圖]   294.1K   52.10M      4.20M     7     3     4
 --
 -- ⚠ 顏色的分配（見 miliui-color-states）：
 --   * 數字一律白字。輸出最高的那一列不特別上色 —— 排序本身就說明了名次。
@@ -41,7 +41,7 @@ local Sec = ns.Secret
 ------------------------------------------------------------
 -- 版面常數：欄位的右緣（距面板左緣）集中在這裡，表頭與資料列共用同一組數字
 ------------------------------------------------------------
-local PANEL_W   = 600
+local PANEL_W   = 680
 local PAD       = 10
 local ROW_H     = 21
 local HEAD_H    = 52     -- 表頭兩行那一塊（同時是拖曳把手）
@@ -59,8 +59,9 @@ local COL = {
     lootL    = 268,
     dmgR     = 400,
     takenR   = 480,
-    intR     = 520,
-    dispR    = 556,
+    avoidR   = 568,
+    intR     = 608,
+    dispR    = 644,
     deathR   = PANEL_W - PAD,
 }
 
@@ -184,6 +185,7 @@ local function NewRow(parent, index)
     row.score  = RightText(COL.scoreR)
     row.dmg    = RightText(COL.dmgR)
     row.taken  = RightText(COL.takenR)
+    row.avoid  = RightText(COL.avoidR)
     row.inter  = RightText(COL.intR)
     row.disp   = RightText(COL.dispR)
     row.deaths = RightText(COL.deathR)
@@ -224,7 +226,6 @@ local function NewRow(parent, index)
         GameTooltip:AddDoubleLine(L["Total damage"], Abbrev(p.dmg), 0.8, 0.8, 0.8, 1, 1, 1)
         GameTooltip:AddDoubleLine(L["Total healing"],
             ("%s (%s)"):format(Abbrev(p.heal), Abbrev(p.hps)), 0.8, 0.8, 0.8, 1, 1, 1)
-        GameTooltip:AddDoubleLine(L["Avoidable damage taken"], Abbrev(p.avoidable), 0.8, 0.8, 0.8, 1, 1, 1)
         local run = currentRun
         if run and run.combatSec then
             GameTooltip:AddDoubleLine(L["Time in combat"], H.FormatSec(run.combatSec), 0.8, 0.8, 0.8, 1, 1, 1)
@@ -258,6 +259,7 @@ local function FillRow(row, player)
 
     row.dmg:SetText(Abbrev(player.dps))
     row.taken:SetText(Abbrev(player.taken))
+    row.avoid:SetText(Abbrev(player.avoidable))
     row.inter:SetText(("%d"):format(player.interrupts or 0))
     row.disp:SetText(("%d"):format(player.dispels or 0))
     row.deaths:SetText(("%d"):format(player.deaths or 0))
@@ -530,6 +532,7 @@ function Panel.EnsureFrame()
     hLoot:SetText(L["Loot"])
     HeadText(L["Damage"], COL.dmgR)
     HeadText(L["Damage taken"], COL.takenR)
+    HeadText(L["Avoidable damage taken"], COL.avoidR)
     HeadText(L["Interrupts"], COL.intR)
     HeadText(L["Dispels"], COL.dispR)
     HeadText(L["Deaths"], COL.deathR)
