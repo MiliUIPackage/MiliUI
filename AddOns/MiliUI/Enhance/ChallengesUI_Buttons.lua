@@ -5,20 +5,21 @@
 --   2. 倒數按鈕 + 秒數滑桿 — C_PartyInfo.DoCountdown(n)
 --      倒數進行中按鈕變成「停止倒數」，可隨時取消
 --
--- 設計風格：深色半透明面板 + 金色邊框 + 圓角按鈕，與 M+ 介面融合
+-- 外觀走套組的**設定視窗皮**（`MiliUI.Style` 的 `S.Dark`）：不透明 0.1／0.115 底、
+-- 1px 純黑邊、白字、直角，hover 時邊框換職業色。
+--
+-- 原本是這個檔案自己手寫的一套「深色半透明底 ＋ 金色邊框 ＋ 金字」，
+-- 跟同一個畫面上的 `MiliUI_Skin`（暴雪視窗的皮）與隊伍鑰石面板各長一個樣。
+-- 三支在 2026 年的第五輪一起改成同一套，色票全部從 `Style.lua` 拿。
+--
+-- ⚠ 只動外觀。事件、時機、按鈕行為（`DoReadyCheck` / `C_PartyInfo.DoCountdown`）
+--   一行都沒有改：那幾支掛在暴雪的視窗上，寫法有 taint 上的理由
+--   （見 .claude/notes/project-charframe-taint.md）。
 --------------------------------------------------------------------------------
 
--- Locale-aware font
-local barFont
-if LOCALE_koKR then
-    barFont = "Fonts\\2002.TTF"
-elseif LOCALE_zhCN then
-    barFont = "Fonts\\ARKai_T.ttf"
-elseif LOCALE_zhTW then
-    barFont = "Fonts\\blei00d.TTF"
-else
-    barFont = "Fonts\\FRIZQT__.TTF"
-end
+-- `Style.lua` 在 MiliUI.toc 排在所有 Enhance 之前（:26 對 :52-54），一定在。
+local S = MiliUI.Style
+local barFont = S.Font
 
 -- 倒數狀態
 local isCountingDown = false
@@ -39,58 +40,25 @@ local function SetupKeystoneButtons(keystoneFrame)
     panel:SetHeight(130)
     panel:SetPoint("TOPLEFT", keystoneFrame, "BOTTOMLEFT", 0, -8)
     panel:SetPoint("TOPRIGHT", keystoneFrame, "BOTTOMRIGHT", 0, -8)
-    panel:SetBackdrop({
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    panel:SetBackdropColor(0.08, 0.08, 0.12, 0.9)
-    panel:SetBackdropBorderColor(0.6, 0.5, 0.25, 0.8) -- 金色邊框
+    S.ApplyDarkPanel(panel)
 
-    -- 面板標題
+    -- 面板標題：白字（標題是身分不是值）
     local title = panel:CreateFontString(nil, "OVERLAY")
-    title:SetFont(barFont, 11, "OUTLINE")
+    title:SetFont(barFont, 11)
     title:SetPoint("TOP", panel, "TOP", 0, -6)
-    title:SetTextColor(1, 0.84, 0, 1)
+    title:SetTextColor(unpack(S.Dark.text))
     title:SetText("MiliUI")
 
     ---------------------------------------------------------------------------
     -- 自定義按鈕工廠
+    --
+    -- `S.ApplyDarkButton` 自己會建（或重用）`btn._miliText`、設好白字、並掛上
+    -- hover 的 OnEnter/OnLeave（只掛第一次，見 Style.lua 的註解）。
+    -- 呼叫端沿用 `btn.label` 這個名字，所以把回傳的 fontstring 接過來。
     ---------------------------------------------------------------------------
     local function CreateStyledButton(parent, width, height)
         local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
-        btn:SetSize(width, height)
-
-        btn:SetBackdrop({
-            bgFile   = "Interface\\Buttons\\WHITE8X8",
-            edgeFile = "Interface\\Buttons\\WHITE8X8",
-            edgeSize = 1,
-        })
-        btn:SetBackdropColor(0.15, 0.15, 0.22, 1)
-        btn:SetBackdropBorderColor(0.45, 0.40, 0.20, 1)
-
-        -- 文字
-        local text = btn:CreateFontString(nil, "OVERLAY")
-        text:SetFont(barFont, 13, "OUTLINE")
-        text:SetPoint("CENTER", 0, 0)
-        text:SetTextColor(1, 0.84, 0, 1)
-        btn.label = text
-
-        -- Hover 效果
-        btn:SetScript("OnEnter", function(self)
-            self:SetBackdropColor(0.25, 0.25, 0.35, 1)
-            self:SetBackdropBorderColor(0.8, 0.7, 0.3, 1)
-        end)
-        btn:SetScript("OnLeave", function(self)
-            if self._activeState then
-                self:SetBackdropColor(0.35, 0.12, 0.12, 1)
-                self:SetBackdropBorderColor(0.8, 0.2, 0.2, 1)
-            else
-                self:SetBackdropColor(0.15, 0.15, 0.22, 1)
-                self:SetBackdropBorderColor(0.45, 0.40, 0.20, 1)
-            end
-        end)
-
+        btn.label = S.ApplyDarkButton(btn, nil, { width, height }, 13)
         btn:EnableMouse(true)
         return btn
     end
@@ -128,8 +96,8 @@ local function SetupKeystoneButtons(keystoneFrame)
     -- 美化內建文字元素
     slider.Low:SetText("3秒")
     slider.High:SetText("30秒")
-    slider.Text:SetFont(barFont, 12, "OUTLINE")
-    slider.Text:SetTextColor(0.8, 0.8, 0.8, 1)
+    slider.Text:SetFont(barFont, 12)
+    slider.Text:SetTextColor(unpack(S.Dark.textDim))
     slider.Text:SetText(DEFAULT_COUNTDOWN .. " 秒")
 
     slider:SetScript("OnValueChanged", function(self, value)
@@ -140,21 +108,20 @@ local function SetupKeystoneButtons(keystoneFrame)
     ---------------------------------------------------------------------------
     -- 倒數控制邏輯
     ---------------------------------------------------------------------------
+    -- ⚠ 底色與邊框**不再跟著狀態換**：那是 hover 在用的兩階明暗（S.Dark 的
+    --   fill / fillHover ＋ 職業色邊），倒數中再塞一組紅底紅邊進去，同一顆按鈕
+    --   就有兩套互相打架的狀態語彙。「正在倒數」改成只由**文字**說
+    --   （「停止倒數」＋紅字）—— 紅色在這裡是值（會中斷別人的倒數），不是裝飾。
     local function SetCountdownActive(active)
         isCountingDown = active
-        countdownBtn._activeState = active
         if active then
             countdownBtn.label:SetText("停止倒數")
             countdownBtn.label:SetTextColor(1, 0.3, 0.3, 1)
-            countdownBtn:SetBackdropColor(0.35, 0.12, 0.12, 1)
-            countdownBtn:SetBackdropBorderColor(0.8, 0.2, 0.2, 1)
             slider:EnableMouse(false)
             slider:SetAlpha(0.4)
         else
             countdownBtn.label:SetText("開始倒數")
-            countdownBtn.label:SetTextColor(1, 0.84, 0, 1)
-            countdownBtn:SetBackdropColor(0.15, 0.15, 0.22, 1)
-            countdownBtn:SetBackdropBorderColor(0.45, 0.40, 0.20, 1)
+            countdownBtn.label:SetTextColor(unpack(S.Dark.text))
             slider:EnableMouse(true)
             slider:SetAlpha(1)
             if countdownTimer then

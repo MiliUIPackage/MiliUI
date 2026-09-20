@@ -9,19 +9,18 @@
 --   傳奇 (Mythic)   = 橘色（傳說品質）
 --
 -- 若偵測到 RaiderIO 的 GuildWeeklyFrame，將其移至本面板右側
+--
+-- 外觀走套組的**設定視窗皮**（`MiliUI.Style` 的 `S.Dark`）：不透明 0.1／0.115 底、
+-- 1px 純黑邊、白字、hover 換職業色邊。跟 Enhance/ChallengesUI_Buttons.lua 與
+-- Enhance/PartyKeystone.lua 是同一套（三支在第五輪一起從手寫的
+-- 「深色半透明底 ＋ 金色邊框 ＋ 金字」換過來）。
+--
+-- ⚠ 只動外觀。資料表、RaiderIO 重新定位、事件與開關行為一行都沒有改。
 --------------------------------------------------------------------------------
 
--- Locale-aware font
-local barFont
-if LOCALE_koKR then
-    barFont = "Fonts\\2002.TTF"
-elseif LOCALE_zhCN then
-    barFont = "Fonts\\ARKai_T.ttf"
-elseif LOCALE_zhTW then
-    barFont = "Fonts\\blei00d.TTF"
-else
-    barFont = "Fonts\\FRIZQT__.TTF"
-end
+-- `Style.lua` 在 MiliUI.toc 排在所有 Enhance 之前（:26 對 :52-54），一定在。
+local S = MiliUI.Style
+local barFont = S.Font
 
 --------------------------------------------------------------------------------
 -- 資料表：至暗之夜第2賽季 (Midnight Season 2)
@@ -93,10 +92,10 @@ local QUALITY_COLORS = {
     mythic   = { 1.00, 0.50, 0.00 },  -- 橘色（傳奇/傳說品質）
 }
 
--- 表頭顏色（金色）
-local HEADER_COLOR = { 1, 0.84, 0, 1 }
--- 數字文字顏色（淡灰）
-local VALUE_COLOR  = { 0.90, 0.90, 0.90, 1 }
+-- 表頭顏色：白（標題是身分不是值）
+local HEADER_COLOR = S.Dark.text
+-- 數字文字顏色：次要白（裝等數字本身不帶品質，軌道名稱才上色）
+local VALUE_COLOR  = S.Dark.textDim
 
 --------------------------------------------------------------------------------
 -- 建立表格 UI
@@ -116,20 +115,14 @@ local function SetupLootTable(challengesFrame)
     local panelHeight = (-TABLE_TOP) + HEADER_HEIGHT + 6 + (numRows * ROW_HEIGHT) + 24
     panel:SetSize(440, panelHeight)
     panel:SetPoint("TOPLEFT", challengesFrame, "TOPRIGHT", 8, 0)
-    panel:SetBackdrop({
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    panel:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
-    panel:SetBackdropBorderColor(0.6, 0.5, 0.25, 0.8)
+    S.ApplyDarkPanel(panel)
     panel:SetFrameStrata("DIALOG")
 
     ---------------------------------------------------------------------------
     -- 面板標題
     ---------------------------------------------------------------------------
     local title = panel:CreateFontString(nil, "OVERLAY")
-    title:SetFont(barFont, 14, "OUTLINE")
+    title:SetFont(barFont, 14)
     title:SetPoint("TOP", panel, "TOP", 0, -14)
     title:SetTextColor(unpack(HEADER_COLOR))
     title:SetText("傳奇鑰石掉落對照表")
@@ -138,35 +131,26 @@ local function SetupLootTable(challengesFrame)
     -- 開關按鈕（放在 ChallengesFrame 關閉鈕左邊）
     ---------------------------------------------------------------------------
     local toggleBtn = CreateFrame("Button", "MiliUI_LootTableToggle", challengesFrame, "BackdropTemplate")
-    toggleBtn:SetSize(80, 20)
     toggleBtn:SetPoint("BOTTOMRIGHT", challengesFrame, "TOPRIGHT", 0, 2)
-    toggleBtn:SetBackdrop({
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    toggleBtn:SetBackdropColor(0.15, 0.15, 0.22, 0.9)
-    toggleBtn:SetBackdropBorderColor(0.6, 0.5, 0.25, 0.8)
+    local toggleIcon = S.ApplyDarkButton(toggleBtn, "掉落對照表", { 80, 20 }, 11)
     toggleBtn:SetFrameStrata("DIALOG")
 
-    local toggleIcon = toggleBtn:CreateFontString(nil, "OVERLAY")
-    toggleIcon:SetFont(barFont, 11, "OUTLINE")
-    toggleIcon:SetPoint("CENTER", 0, 0)
-    toggleIcon:SetTextColor(1, 0.84, 0, 1)
-    toggleIcon:SetText("掉落對照表")
-
-    -- Hover 效果
+    -- ⚠ 這兩支是 `SetScript` 不是 `HookScript`，會蓋掉 `S.ApplyDarkButton` 掛的
+    --   hover —— 兩階明暗在這裡自己重做一次（色票照樣從 S.Dark 拿）。
     toggleBtn:SetScript("OnEnter", function(self)
-        self:SetBackdropColor(0.25, 0.25, 0.35, 1)
-        self:SetBackdropBorderColor(0.8, 0.7, 0.3, 1)
+        self:SetBackdropColor(unpack(S.Dark.fillHover))
+        self:SetBackdropBorderColor(S.Accent(1))
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("掉落對照表", 1, 0.84, 0)
-        GameTooltip:AddLine("點擊切換顯示/隱藏", 0.8, 0.8, 0.8)
+        -- ⚠ 不用 `unpack()`：這兩支的第四個參數不是 alpha
+        --   （`SetText` 是 alphaValue、`AddLine` 是 wrapText），整包展開會把
+        --   S.Dark 那個 `1` 當成「要換行」傳進去。
+        GameTooltip:SetText("掉落對照表", S.Dark.text[1], S.Dark.text[2], S.Dark.text[3])
+        GameTooltip:AddLine("點擊切換顯示/隱藏", S.Dark.textDim[1], S.Dark.textDim[2], S.Dark.textDim[3])
         GameTooltip:Show()
     end)
     toggleBtn:SetScript("OnLeave", function(self)
-        self:SetBackdropColor(0.15, 0.15, 0.22, 0.9)
-        self:SetBackdropBorderColor(0.6, 0.5, 0.25, 0.8)
+        self:SetBackdropColor(unpack(S.Dark.fill))
+        self:SetBackdropBorderColor(unpack(S.Dark.border))
         GameTooltip:Hide()
     end)
 
@@ -178,9 +162,10 @@ local function SetupLootTable(challengesFrame)
         panelVisible = not panelVisible
         if panelVisible then
             panel:Show()
-            toggleIcon:SetTextColor(1, 0.84, 0, 1)
+            toggleIcon:SetTextColor(unpack(S.Dark.text))
         else
             panel:Hide()
+            -- 收起來＝停用的明暗，不換色相
             toggleIcon:SetTextColor(0.4, 0.4, 0.4, 1)
         end
         UpdateRaiderIOPosition()
@@ -202,14 +187,15 @@ local function SetupLootTable(challengesFrame)
     ---------------------------------------------------------------------------
     -- 表頭
     ---------------------------------------------------------------------------
+    -- 表頭底：比面板底亮一階的中性灰（原本是暗金，跟金字一組）
     local headerBg = panel:CreateTexture(nil, "BACKGROUND", nil, 1)
-    headerBg:SetColorTexture(0.12, 0.10, 0.05, 0.6)
+    headerBg:SetColorTexture(unpack(S.Dark.fill))
 
     local xOffset = TABLE_LEFT
     local headerTexts = {}
     for i, col in ipairs(COL_DEFS) do
         local fs = panel:CreateFontString(nil, "OVERLAY")
-        fs:SetFont(barFont, 12, "OUTLINE")
+        fs:SetFont(barFont, 12)
         fs:SetPoint("TOPLEFT", panel, "TOPLEFT", xOffset, TABLE_TOP)
         fs:SetWidth(col.width)
         fs:SetJustifyH(col.align)
@@ -224,8 +210,9 @@ local function SetupLootTable(challengesFrame)
     headerBg:SetPoint("BOTTOMRIGHT", headerTexts[1], "BOTTOMLEFT", xOffset - TABLE_LEFT, -3)
 
     -- 表頭底線
+    -- 表頭底線：深底上的分隔線要比底**亮**才看得見（同設定面板的髮絲線）
     local headerLine = panel:CreateTexture(nil, "ARTWORK")
-    headerLine:SetColorTexture(0.6, 0.5, 0.25, 0.6)
+    headerLine:SetColorTexture(unpack(S.Dark.fillHover))
     headerLine:SetHeight(1)
     headerLine:SetPoint("TOPLEFT", panel, "TOPLEFT", TABLE_LEFT - 4, TABLE_TOP - HEADER_HEIGHT + 2)
     headerLine:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -TABLE_LEFT + 4, TABLE_TOP - HEADER_HEIGHT + 2)
@@ -259,13 +246,14 @@ local function SetupLootTable(challengesFrame)
         -- 交替列底色
         if rowIdx % 2 == 0 then
             local rowBg = rowFrame:CreateTexture(nil, "BACKGROUND", nil, 1)
-            rowBg:SetColorTexture(0.10, 0.10, 0.14, 0.15)
+            rowBg:SetColorTexture(1, 1, 1, 0.03)
             rowBg:SetAllPoints()
         end
 
         -- Hover 高亮
+        -- 滑過＝白 8% 疊加（跟 MiliUI_Skin 的按鈕滑過同一階）
         local highlight = rowFrame:CreateTexture(nil, "BACKGROUND", nil, 2)
-        highlight:SetColorTexture(1, 0.84, 0, 0.08)
+        highlight:SetColorTexture(1, 1, 1, 0.08)
         highlight:SetAllPoints()
         highlight:Hide()
 
@@ -277,7 +265,7 @@ local function SetupLootTable(challengesFrame)
 
         -- 欄 1：等級（不上色）
         local fsLevel = rowFrame:CreateFontString(nil, "OVERLAY")
-        fsLevel:SetFont(barFont, 12, "OUTLINE")
+        fsLevel:SetFont(barFont, 12)
         fsLevel:SetPoint("LEFT", rowFrame, "LEFT", xOff + TABLE_LEFT - (TABLE_LEFT - 4), 0)
         fsLevel:SetWidth(COL_DEFS[1].width)
         fsLevel:SetJustifyH("CENTER")
@@ -287,7 +275,7 @@ local function SetupLootTable(challengesFrame)
 
         -- 欄 2：拾取裝等 + 軌道資訊
         local fsLoot = rowFrame:CreateFontString(nil, "OVERLAY")
-        fsLoot:SetFont(barFont, 12, "OUTLINE")
+        fsLoot:SetFont(barFont, 12)
         fsLoot:SetPoint("LEFT", rowFrame, "LEFT", xOff + TABLE_LEFT - (TABLE_LEFT - 4), 0)
         fsLoot:SetWidth(COL_DEFS[2].width)
         fsLoot:SetJustifyH("CENTER")
@@ -297,7 +285,7 @@ local function SetupLootTable(challengesFrame)
 
         -- 欄 3：寶庫裝等 + 軌道資訊
         local fsVault = rowFrame:CreateFontString(nil, "OVERLAY")
-        fsVault:SetFont(barFont, 12, "OUTLINE")
+        fsVault:SetFont(barFont, 12)
         fsVault:SetPoint("LEFT", rowFrame, "LEFT", xOff + TABLE_LEFT - (TABLE_LEFT - 4), 0)
         fsVault:SetWidth(COL_DEFS[3].width)
         fsVault:SetJustifyH("CENTER")
@@ -307,7 +295,7 @@ local function SetupLootTable(challengesFrame)
 
         -- 欄 4：紋章掉落（使用品質顏色 + 數量）
         local fsCrest = rowFrame:CreateFontString(nil, "OVERLAY")
-        fsCrest:SetFont(barFont, 12, "OUTLINE")
+        fsCrest:SetFont(barFont, 12)
         fsCrest:SetPoint("LEFT", rowFrame, "LEFT", xOff + TABLE_LEFT - (TABLE_LEFT - 4), 0)
         fsCrest:SetWidth(COL_DEFS[4].width)
         fsCrest:SetJustifyH("CENTER")
@@ -319,7 +307,7 @@ local function SetupLootTable(challengesFrame)
     -- 底部備注
     ---------------------------------------------------------------------------
     local footerNote = panel:CreateFontString(nil, "OVERLAY")
-    footerNote:SetFont(barFont, 9, "OUTLINE")
+    footerNote:SetFont(barFont, 9)
     footerNote:SetPoint("BOTTOM", panel, "BOTTOM", 0, 8)
     footerNote:SetTextColor(0.5, 0.5, 0.5, 0.8)
     footerNote:SetText("至暗之夜 第2賽季")

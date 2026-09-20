@@ -24,6 +24,12 @@ local function BuildDefaults()
         optionsWindow = { x = 0, y = 0 },
         -- 總開關。關掉之後 /reload 就一份配方都不套。
         enabled = true,
+        -- 任務／對話走暴雪內建的「任務文字對比」深色檔（CVar `questTextContrast = 4`）。
+        -- 實作在 `Skins/Quest.lua` 的事件框，**不是**某一份配方的 apply ——
+        -- 它跟「任務視窗有沒有上皮」是兩件事，而且關掉時要有人把 CVar 還原。
+        questDarkText = true,
+        -- 記住玩家原本的 `questTextContrast`。`false` ＝ 還沒記過（只記第一次）。
+        questContrastSaved = false,
         -- 每個視窗一個開關。key 與 Engine.Register 的 key 一致。
         windows = {
             gossip      = true,

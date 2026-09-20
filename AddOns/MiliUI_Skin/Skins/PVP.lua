@@ -40,6 +40,15 @@
 --   Blizzard_PVPUI/Mainline/Blizzard_PVPUI.lua:2141,2158-2163
 --       `PVPConquestBarMixin:Update` **每次**都 `self.FillTexture:SetAtlas(...)`
 --       （黃／藍／停用三種）⇒ 換填充材質撐不過一次更新，而且那個顏色是**狀態**
+--   Blizzard_PVPUI/Mainline/Blizzard_PVPUI.lua:2186-2196
+--       `PVPConquestBarMixin:SetDisabled` —— **對 `Border` 與 `Background` 下
+--       `SetAlpha(0.6 或 1)`**，也就是會把我們的中和整個打回來
+--   Blizzard_PVPUI/Mainline/Blizzard_PVPUI.xml:519-522
+--       征服條的 `<OnShow method="OnShow"/>` / `<OnEvent method="OnEvent"/>`
+--       —— 是 **frame script**，`HookScript` 接得到（mixin 勾不到）
+--   Blizzard_PVPUI/Mainline/Blizzard_PVPUI.lua:415-419
+--       開了掠奪風暴的時候 `CategoryButtons` 的 `Icon`／`Ring` 會被 `SetSize`／
+--       `SetPoint` 縮小（66→46 / 95→67）⇒ 我們對 `Ring` 只染色，不量尺寸
 --
 -- 查證後跟計畫假設不一樣的三件事：
 --   1. **征服點數條的填充材質不能換。** `PVPConquestBarMixin:Update`（.lua:2158）
@@ -54,19 +63,31 @@
 --      `pvpqueue-button-casual-*` 的美術圖 ＋ 一張 `SelectedTexture`，
 --      中和掉會變成空方塊；那是「內容」不是「框」。保留。
 --
+-- 第五輪查證後多出來的一件事：
+--   4. **征服條的中和撐不過第一次 `Update`。** `PVPConquestBarMixin:SetDisabled`
+--      （.lua:2186-2196）對 `Border`／`Background` 下 `SetAlpha(0.6 或 1)` ——
+--      `self.disabled` 一開始是 `nil`，所以視窗第一次顯示時那一支一定會跑一遍，
+--      我們的 `SetAlpha(0)` 當場被打回 1（使用者擷圖裡那條「深色面板上的棕色
+--      雕花長條」就是這個）。
+--      mixin 勾不到（XML 的 frame 在 `ADDON_LOADED` 之前就建好，陷阱 4 第三層），
+--      但 `OnShow`／`OnEvent` 在模板裡是 **frame script**（.xml:519-522）
+--      ⇒ `HookScript` 接得到，而且只碰指名的那三條。
+--
 ------------------------------------------------------------
 -- ## taint 接觸面清單（暴雪物件）
 --
 -- | 物件 | 動作 |
 -- |---|---|
--- | PVPQueueFrame.CategoryButton1..5 的 Background / Ring | SetAlpha(0) |
+-- | PVPQueueFrame.CategoryButton1..5 的 Background | SetAlpha(0) |
+-- | 同五顆的 Ring | SetDesaturated(true)（Engine.Desaturate）＋ SetVertexColor |
 -- | 同五顆的 HighlightTexture | SetAlpha(0)（改由 overlay 自己畫滑過） |
 -- | 同五顆的 Name | SetTextColor |
 -- | PVPQueueFrame.HonorInset 的 Bg / NineSlice / Background | SetAlpha(0) |
 -- | 四個 InsetFrameTemplate（HonorInset ＋ 三頁的 Inset ＋ 鬥陣頁） | SetAlpha(0) |
 -- | 三條征服條的 Border / Background | SetAlpha(0)（**填充材質與顏色不碰**） |
+-- | 同三條 | HookScript("OnShow"/"OnEvent") 重申上面那一行的中和 |
 -- | 九顆角色鈕的 checkButton 的 Normal/Pushed/Disabled 貼圖 | SetAlpha(0) |
--- | 同九顆的 Checked / DisabledChecked 貼圖 | SetColorTexture（職業色） |
+-- | 同九顆的 Checked / DisabledChecked 貼圖 | SetVertexColor（職業色，保留勾的形狀） |
 -- | 兩顆 WowStyle1Dropdown 的 Background | SetAlpha(0)；Arrow | SetVertexColor |
 -- | 四顆 MagicButtonTemplate 的 Left/Right/Middle | SetAlpha(0) ＋ SetNormalFontObject |
 -- | 兩條 MinimalScrollBar 的 Track/Thumb 六張貼圖 | SetAlpha(0) |
@@ -78,6 +99,10 @@
 --      —— 左側五顆大類按鈕的選中態。hook 裡只做兩件事：型別檢查傳進來的 `index`
 --         （純數字參數），然後對**我們自己的** overlay 呼叫 `Engine.SetSelected`。
 --         不讀暴雪的任何欄位、不寫任何欄位。
+--   2. 三條征服條各一組 `HookScript("OnShow", fn)` ＋ `HookScript("OnEvent", fn)`
+--      （第五輪新增）—— hook 裡只做一件事：對 `Border`／`Background` 兩張**暴雪
+--         自己會把 alpha 設回來的**貼圖重下 `SetAlpha(0)`。不讀任何東西、不寫欄位、
+--         不呼叫暴雪的函式。理由見上面第 4 點。
 --   ＋ `Skin.Row` 的 `opts.ownHover` ⇒ 五顆按鈕各一組
 --     HookScript("OnEnter"/"OnLeave")（`Engine.TrackSelectable`，只碰自己的 overlay）。
 --
@@ -146,7 +171,9 @@ local function ApplyCategoryButtons(queue)
         local btn = Field(queue, "CategoryButton" .. i)
         if btn then
             -- `Icon` 不碰：被 CircleMask 遮成圓形，而且那是這一類的身分
-            Skin.Row(btn, key, { keys = { "Background", "Ring" }, ownHover = true })
+            -- `Ring` 不中和、壓深當一圈蓋住遮罩毛邊的深色框（同 PVE.lua 的大類鈕）
+            Skin.Row(btn, key, { keys = { "Background" }, ownHover = true })
+            X.SkinCategoryRing(Field(btn, "Ring"), key .. ".Ring")
             categoryButtons[i] = btn
             -- 這個模板一樣沒有 `<ButtonText>`，`Name` 是 Layer 裡的獨立 FontString
             -- （.xml:1097）⇒ 只能 SetTextColor，不能換 NormalFont
@@ -162,6 +189,27 @@ end
 ------------------------------------------------------------
 local ROLE_ICON_KEYS = { "TankIcon", "HealerIcon", "DPSIcon" }
 
+-- 征服條上兩張「暴雪會把 alpha 設回來」的裝飾（見檔頭第 4 點）
+local CONQUEST_ART = { "Border", "Background" }
+
+-- 已經掛過重申勾的條（弱鍵，不在暴雪的框上寫欄位）
+local conquestHooked = setmetatable({}, { __mode = "k" })
+
+-- ⚠ hook 內只做白名單動作（對兩張貼圖 `SetAlpha(0)`），不讀任何東西、
+--   不呼叫暴雪的函式、不寫欄位。`Engine.Neutralize` 的計數器只算第一次，
+--   所以每次事件重跑不會把 `/mskin debug` 的數字灌大。
+local function TrackConquestBar(bar, key)
+    if conquestHooked[bar] then return end
+    if type(bar.HookScript) ~= "function" then return end
+    conquestHooked[bar] = true
+
+    local function Reassert()
+        E.NeutralizeKeys(bar, CONQUEST_ART, key)
+    end
+    pcall(bar.HookScript, bar, "OnShow", Reassert)
+    pcall(bar.HookScript, bar, "OnEvent", Reassert)
+end
+
 local function ApplyPage(frame, key)
     if not frame then
         E.Missing(key)
@@ -175,8 +223,10 @@ local function ApplyPage(frame, key)
         -- ⚠ 不傳 `color`：同一個理由。
         Skin.StatusBar(bar, key .. ".ConquestBar", {
             texture = false,
-            keys = { "Border", "Background" },
+            keys = CONQUEST_ART,
         })
+        -- ⚠ 一定要接著掛重申勾：`SetDisabled` 會把那兩張的 alpha 設回 0.6／1。
+        TrackConquestBar(bar, key .. ".ConquestBar")
     else
         E.Missing(key .. ".ConquestBar")
     end
