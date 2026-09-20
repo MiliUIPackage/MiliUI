@@ -520,6 +520,15 @@ overlay 的層級一律是**目標層級 − 1**（`Engine.Overlay` 的 `levelOf
 | **`InboxPrev/NextPageButton`**<br>同檔 `:381,388,406,413` | 無（箭頭是內容） | Normal/Pushed 染 `textDim`、Disabled 染 `textDisabled` | IconButton overlay **內縮 4**（按鈕 32x32，箭頭素材四周一大圈留白）；「上頁」「繼續」是**無名無 parentKey** 的 layer FontString ⇒ `opts.labelColor` 走 `GetRegions()` 染白 | 未實測 |
 | **兩組信紙**<br>同檔 `:506,512,968,974`<br>`.lua:546,736-739,1065-1070` | `SendStationeryBackgroundLeft/Right`、`OpenStationeryBackgroundLeft/Right`（**alpha**：每次更新都重設材質／TexCoord／高度，alpha 是獨立屬性所以撐得住） | — | 換掉底材 ⇒ **連同上面所有文字一起接管**（內容底材規則）：寄信內文、`OpenMailBodyText`（SimpleHTML，**放 reapply**，`SetText` 會重排）、發票九條 ＋ 訂單收據六條 `InvoiceTextFontNormal`、金錢框裡的無名 `+`/`-`。金幣數字本身不碰（字型物件是白／紅／綠） | 未實測 |
 | `TabSystemButtonTemplate`（好友名單頂部分頁）<br>`Blizzard_SharedXML/Shared/TabSystem/TabSystemTemplates.xml:3` | 九張貼圖的 parentKey 名字跟 `PanelTabButtonTemplate` **一樣**，但 parentArray 叫 `RotatedTextures` | **做不到**：狀態走 `TabSystemButtonArtMixin:SetTabSelected`，不經過 `PanelTemplates_*` ⇒ Engine 的三個後置勾一次都不會觸發；而且是 `CreateFramePool` 生的（同檔 `.lua:209`） | **這一輪不做**，跟下拉與池化列同一批 | — |
+| **`GroupFinderGroupButtonTemplate`**（地城與團隊的左側大類鈕）<br>`Blizzard_GroupFinder/Mainline/PVEFrame.xml:3,49`<br>`…/PVEFrame.lua:382,387` | `bg`（bluemenu 切片）、`ring`（bluemenu-Ring）。⚠ `icon` **不碰**：被 `CircleMask` 遮成圓形 | **兩態都自己畫**（`Skin.Row` 的 `opts.ownHover`）。⚠ HighlightTexture 是 224x80 置中、按鈕矩形只有 203x60 ⇒ 交給引擎會在外圍多一圈光暈。選中態是 `bg:SetTexCoord`（不是 Show/Hide、也不走 `PanelTemplates_*`）⇒ 勾全域 `GroupFinderFrame_SelectGroupButton`，只讀它的 `index` 參數 | Row overlay；`name` 改白（模板沒有 `<ButtonText>`，只能 `SetTextColor`） | 未實測 |
+| **`PVPQueueFrameButtonTemplate`**（PvP 的左側大類鈕）<br>`Blizzard_PVPUI/Mainline/Blizzard_PVPUI.xml:591,631`<br>`…/Blizzard_PVPUI.lua:564` | 同上，但 parentKey 大寫：`Background`／`Ring`／`Icon` | 同上；選中態勾全域 `PVPQueueFrame_SelectButton` | 同上（`Name` 改白） | 未實測 |
+| **`LFGRoleButtonTemplate`** 系（職責勾選）<br>`Blizzard_GroupFinder/Shared/LFGFrame.xml:3,164`<br>`…/LFGFrame.lua:401,414,434,2236` | `background`（圓底，**只有 `WithBackground` 那一支才有** ⇒ 先問再中和）。⚠ 角色圖示是按鈕自己的 `NormalTexture`（`SetNormalAtlas(GetIconForRole(...))`）—— **不能中和** | `checkButton` 交給 `Skin.CheckBox`（`checkbox-minimal`／`checkmark-minimal`，**沒有 HighlightTexture**） | 無（按鈕本體就是圖示）；`lockedIndicator`／`alert`／`shortageBorder`／`incentiveIcon` 全部是資訊，留著 | 未實測 |
+| **`PVPConquestBarTemplate`**（征服點數條）<br>`Blizzard_PVPUI/Mainline/Blizzard_PVPUI.xml:466,513`<br>`…/Blizzard_PVPUI.lua:2158-2163` | `Border`（pvpqueue-conquestbar-frame）、`Background` | **填充材質與顏色都不碰**：`PVPConquestBarMixin:Update` 每次都 `FillTexture:SetAtlas(...)`，而黃／藍／灰三種是「進度／已達上限／停用」的**狀態** ⇒ `Skin.StatusBar` 傳 `texture = false` | StatusBar overlay（邊走前景） | 未實測 |
+| **`UIMenuButtonStretchTemplate`**（申請者列的邀請／拒絕鈕）<br>`Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:745`<br>`…/SharedUIPanelTemplates.lua:820,832,850,855` | 九片：`TopLeft`/`TopRight`/`BottomLeft`/`BottomRight`/`TopMiddle`/`MiddleLeft`/`MiddleRight`/`BottomMiddle`/`MiddleMiddle`。⚠ 一定要 alpha：`SetTextures` 在四個地方重設材質，但**不碰 alpha** | **引擎**：Highlight→白 8%；文字走 `SetNormalFontObject(GameFontHighlightSmall)` | Button overlay（配方檔裡的 local `SkinStretchButton`，標了 `TODO(升格)`） | 未實測 |
+| **`InputScrollFrameTemplate`**（建立隊伍的多行說明欄）<br>`Blizzard_SharedXML/Shared/InputBox/InputBoxTemplates.xml:72` | 九張 `*Tex`：`TopLeftTex`/`TopRightTex`/`TopTex`/`BottomLeftTex`/`BottomRightTex`/`BottomTex`/`LeftTex`/`RightTex`/`MiddleTex` | 無 | EditBox 風格的 overlay ＋ 它繼承來的 `.ScrollBar`（配方檔裡的 local `SkinInputScroll`，標了 `TODO(升格)`） | 未實測 |
+| **`LFGListColumnHeaderTemplate`**（申請者頁的四個欄位表頭）<br>`Blizzard_GroupFinder/Mainline/LFGList.xml:753,787,796` | `Left` / `Middle` / `Right`（WhoFrame-ColumnTabs） | **引擎**：Highlight→白 8%。⚠ `keepFont`：它們在 OnLoad 就 `self:Disable()`，換 NormalFont 沒有意義 | Button overlay | 未實測 |
+| **`LFGListSearchEntryTemplate`**（搜尋結果列）<br>`Blizzard_GroupFinder/Mainline/LFGList.xml:800,804,811,852`<br>`…/LFGList.lua:2866,3374-3382,3523,3530` | **一張都不中和**：`ResultBG` 本來就是白 4% 的平面矩形、`BackgroundTexture` 是申請狀態的紅／綠／黃（資訊） | `Highlight`（**HIGHLIGHT 層**，`groupfinder-highlightbar-blue`）→ `Engine.HighlightTexture`。暴雪只 Show/Hide 它、不重設材質 ⇒ **沒有 reapply** | 無 overlay。hook 走全域 `LFGListSearchPanel_InitButton`，**不讀 `elementData`** | 未實測 |
+| **`LFGListApplicantTemplate`**（申請者列）<br>`Blizzard_GroupFinder/Mainline/LFGList.xml:300,304`<br>`…/LFGList.lua:1888,1895` | 無：`Background` 的隔行明暗是暴雪自己在 `InitButton` 裡做的（alpha 0.1 / 0.05），中和就把層次抹掉了 | — | 列上三顆 `UIMenuButtonStretchTemplate`。hook 走全域 `LFGListApplicationViewer_InitButton`，**不讀 `elementData`／applicantID** | 未實測 |
 
 ### 註 ⓐ　分頁為什麼只能 hook
 
@@ -721,7 +730,7 @@ AchievementObjectives_DisplayProgressiveAchievement   同上
 對話、成就、角色面板、任務、郵件、好友名單、商人、公會、任務日誌、專業、收藏……
 都屬於這一類。
 
-**已經有配方的六個視窗**（`Skins/*.lua`）：
+**已經有配方的七個視窗**（`Skins/*.lua`）：
 
 | 視窗 | key | 現況 |
 |---|---|---|
@@ -731,12 +740,20 @@ AchievementObjectives_DisplayProgressiveAchievement   同上
 | 任務 `QuestFrame` | `quest` | chrome／關閉鈕／Inset／六顆面板按鈕／四條捲軸／`QuestModelScene` 的兩個外框。**羊皮紙與四張 `Material*` 不碰** |
 | 郵件 `MailFrame`＋`OpenMailFrame` | `mail` | **整頁重做**：兩個視窗的 chrome／兩顆分頁／收件匣七列（平面列＋隔行明暗、信件鈕走 `ItemButton`、翻頁鈕收緊）／**信紙深色化＋文字全接管**／附件格走 `ItemButton`／附件區兩條分隔線／收件人與主旨的矩形修正／金額欄／單選鈕（已勾＝職業色）／九顆按鈕／兩條捲軸／**伴隨元件** |
 | 好友名單 `FriendsFrame` | `friends` | chrome／底部四顆分頁／聯絡人頁兩顆按鈕／戰網廣播框（邊框＋輸入框＋兩顆按鈕）／查詢頁（搜尋框、Inset、四個欄位表頭、三顆按鈕）／忽略名單小視窗／三條捲軸 |
+| 地城與團隊 `PVEFrame` 家族 | `pve` | **三份配方共用一個開關**（`Skins/PVE.lua` ＋ `parts`：`Skins/PVP.lua`、`Skins/Challenges.lua`）。外框（十一張 bluemenu 切片＋陰影）／三顆分頁／左側四顆大類鈕（選中態勾 `GroupFinderFrame_SelectGroupButton`）／地城搜尋與團隊搜尋（Inset、職責勾選、下拉、尋找隊伍鈕、捲軸、遮罩上的按鈕）／預組隊伍五個面板（**純視覺**：Inset、搜尋框、篩選下拉、重新整理鈕、欄位表頭、建立隊伍的輸入框與勾選框、結果列的滑過帶、申請者列的三顆按鈕）／PvP（左側五顆大類鈕、三頁的征服條與 Inset 與職責勾選、兩個下拉、四顆排隊鈕）／傳奇鑰石（Inset、鑰石視窗的關閉鈕與開始鈕）。**兩頁的羊皮紙、鑰石視窗的 atlas、符文底圖全部保留** |
 
 **還沒做的**：任務／好友的 `WowStyle1DropdownTemplate` 系下拉與 `WowScrollBoxList`
 池化列（機制都有了：`Skin.Dropdown`、`Engine.HookRows`，只差套上去）、好友名單的
 `TabSystemButtonTemplate` 頂部分頁、團隊／快速加入／近期盟友／招募好友四個子框
 （它們的框不住在 `Blizzard_FriendsFrame` 裡）、郵件的 `ConsortiumMailFrame` 版面
 （只接管了文字顏色，沒有重排）。
+地城與團隊那一家還缺：**指定地城清單的池化列**與**獎勵物品格**（刻意不做 ——
+它們坐在保留下來的羊皮紙上，套深色皮會變成「亮羊皮紙上一排黑方塊」）、
+**`LFGListCategoryTemplate` 的分類按鈕**（整顆是美術圖，而且動態建立）、
+**PvP 的活動列**（同理）、**傳奇鑰石的地城圖示格**（`ChallengesFrameMixin:Update`
+動態建立，勾實例方法會寫暴雪欄位、勾 mixin 又追不上）、
+**`LFGListApplicationDialog`／`LFGListInviteDialog`／`LFDRoleCheckPopup`**
+（`frameStrata="DIALOG"` 的彈出視窗，離 StaticPopup 太近）。
 
 ### B 級：只做 overlay，而且要逐一驗收
 

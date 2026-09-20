@@ -29,6 +29,8 @@ L["Achievements"] = "成就"
 L["Quest"] = "任务"
 L["Mail"] = "邮件"
 L["Friends List"] = "好友列表"
+-- 暴雪的 GlobalStrings：GROUP_FINDER（PVEFrame 的标题与第一个标签页）
+L["Group Finder"] = "地下城和团队副本"
 
 -- 暴雪「系统 > 插件」入口页
 L["Use /mskin to open options"] = "使用 /mskin 打开设置"
