@@ -302,7 +302,9 @@ local function NormalizeSlowList()
     if not db then return end
     local learned = Wait()
     for questID, v in pairs(db) do
-        if type(questID) ~= "number" then
+        -- questID <= 0 是舊版查勤留下的垃圾（讀不到 ID 時退成 0，查勤必定判失敗
+        -- 就把 0 記了進來）。留著的話每一條讀不到 ID 的任務都要先白等一次。
+        if type(questID) ~= "number" or questID <= 0 then
             db[questID] = nil
         else
             local secs = tonumber(v)
@@ -369,6 +371,17 @@ local function ClickAccept(questID, why)
     local title = GetTitleText and GetTitleText()
     if type(title) ~= "string" or title == "" or ns.Secret.IsSecret(title) then
         title = nil
+    end
+
+    -- ⚠ **沒有 questID 就不查勤。**（實測過：玩家存檔裡出現過 `[0] = true`。）
+    --   查勤跟學習整套都是拿 questID 當鑰匙的：`InLog(0)` 永遠是 nil，所以 0 一定
+    --   被判成「沒接到」—— 接成功了照樣跳一則接失敗訊息罵玩家，還把 0 記進清單，
+    --   之後每一條讀不到 ID 的任務都要先白等一次。
+    --   上面 QUEST_DETAIL 讀不到 ID 時退成 0 是刻意的（照樣按下去接），但那是
+    --   「不知道這是哪一條」的意思 —— 不知道是哪一條，就沒有東西可以查、可以學。
+    if questID == 0 then
+        Trace("   沒有 questID ⇒ 接了但不查勤（沒有鑰匙可以查也可以學）")
+        return
     end
 
     -- 查勤。這是整個機制的核心：我們沒辦法事先知道哪條要等，但按完看一眼就知道了
