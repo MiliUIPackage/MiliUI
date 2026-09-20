@@ -40,6 +40,11 @@ L["Merchant"] = "商人"
 L["Dressing Room"] = "试衣间"
 L["Item Upgrade"] = "物品升级"
 L["AddOns"] = "插件"
+-- 第五轮的两个特许窗口。「游戏选项」是 ESC 菜单标题栏的官方字串（MAINMENU_BUTTON）
+L["Confirmation Popups"] = "确认窗口"
+L["Game Menu"] = "游戏选项"
+L["Turn this off first if a confirmation button stops responding or the UI reports a blocked action."] = "若确认窗口的按钮没反应、或弹出「界面操作被封锁」，先关掉这一项。"
+L["Turn this off first if an Esc menu button stops responding or the UI reports a blocked action."] = "若 ESC 菜单的按钮没反应、或弹出「界面操作被封锁」，先关掉这一项。"
 
 -- 暴雪「系统 > 插件」入口页
 L["Use /mskin to open options"] = "使用 /mskin 打开设置"

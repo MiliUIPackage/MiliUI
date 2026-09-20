@@ -54,6 +54,10 @@ Skins\Merchant.lua
 Skins\DressUp.lua
 Skins\ItemUpgrade.lua
 Skins\AddonList.lua
+# 這兩份是第五輪的特許（原本列在 STYLE.md ⑦ 的 B／C 級）：只做純視覺、
+# 零 hook 進點擊路徑。動它們之前先讀各自的檔頭。
+Skins\Popup.lua
+Skins\GameMenu.lua
 
 # 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
 Libs\MiliUIWidgets\Env.lua
