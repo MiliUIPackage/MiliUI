@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第四輪（12 個視窗）使用者實機看過、taint.log 零 blocked；第五輪（打磨＋確認彈窗／ESC 選單，共 14 個開關＋任務深色開關）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
+**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第四輪（12 個視窗）使用者實機看過、taint.log 零 blocked；第五輪使用者實機看過（收藏有底、條不壓字、分頁「好很多」）；第六輪（2026-09-21 凌晨，使用者睡覺時）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
 `## DefaultState: disabled`（PoC 期間 push 也不會讓整包玩家預設吃到），`/mskin` 開設定、
 `/mskin debug` 印每份配方的狀態＋找不到的區域＋因保護框跳過的清單。
 規範全文在 `AddOns/MiliUI_Skin/STYLE.md`（Tokens／契約／模板配方表／新增視窗 checklist／範圍分級），
@@ -175,6 +175,23 @@ metadata:
   待決：這兩個視窗照三套皮判準其實落在「提示皮」（職業色邊），目前用黑邊。
 - 本體 `Enhance/ChallengesUI_Buttons`／`PartyKeystone`／`ChallengesUI_LootTable` 已改走 `S.ApplyDarkPanel`／`S.ApplyDarkButton`。
 - 還沒收：`PVE.lua`／`PVP.lua`／`Challenges.lua` 的三支 local（StretchButton／SquareIconButton／InputScroll）正式原語已備好、尚未切換。
+
+## 第六輪（2026-09-21 凌晨；依 [[wow-blizzard-window-skin-strategies]] 調整，無人能實測 ⇒ 每項都留退路）
+
+- **`Engine.RegionBackdrop`**：Panel／Inset／StatusBar 的底與邊改成直接 `CreateTexture` 建在目標暴雪框上（BACKGROUND −8／−7），
+  回傳與 overlay 同形狀的表；四種情況自動退回子框（`db.regionBackdrop=false`、不是 Frame、layout host、pcall 不過），
+  `/mskin debug` 有一節列出哪些退回了。`opts.parent` 有給（彈窗／ESC 選單）一律走子框。`Engine.ownRegions` 弱鍵表讓
+  `NeutralizeRegions` 不會把自己畫的底中和掉。**整批關掉：`MiliUI_Skin_DB.regionBackdrop = false`＋/reload。**
+- **分頁**：`hideable` 跳過邏輯整個拿掉（它造成「玩具箱與傳家寶一起亮／hover 橫跨／傳家寶選中不亮」三個症狀）；
+  每顆永遠接緊鄰的下一顆、overlay 彼此零重疊。新語彙 `T.tabStyle="underline"`：未選字 `textDim`（`Engine.DimFont`＝繼承暴雪字型只改色的自有字型物件）、
+  hover 只提亮、選中＝`fillSelected`(0.16)＋朝外那邊 2px 職業色線；**分頁不用 hover 邊框**（共用邊線下永遠只亮三邊）。`"fill"` 可一行切回。
+- **商人每格底框**：`fillInset`＋1px 邊、內縮 2；空格暴雪 Hide 的是 `ItemButton` ⇒ 底的 parent 設成它（零讀取）；底部買回格反過來（Hide 的是格子）。
+- **撤掉通貨清單列的全部 hook**（5 支 mixin 勾＋SweepRows＋轉移鈕換皮）—— 那條列的更新路徑跟戰隊通貨轉移的受保護請求是同一條執行流。只留外框級。聲望頁不受影響。
+- **勾選框**：置中固定 18 的小方框（`T.checkBoxSize`，不再照按鈕矩形）＋`Engine.CheckedGlyph`（保留暴雪勾的形狀、去飽和＋染職業色；勾比框大自然外溢）。
+  `checkmark-minimal` 不是正方形、塞進 setAllPoints 的 Checked 貼圖會被拉扁 ⇒ 沒用 SetAtlas。插件列表的三態勾由 **local** 函式設定、分不出「部分啟用」⇒ `keepCheck`（只收小框、勾留暴雪的白色）。黑描邊做不到。
+- 標題帶（`PortraitChrome` 系，`fillInset` 高 22＋髮絲線，`opts.titleBar=false` 可關）、捲軸收成 6px 細條＋拇指 hover。
+- **`MiliUI_Skin_DB.lastReport`**：登出時存 `/mskin debug` 的內容（400 行上限）—— 之後直接讀 WTF 的 SavedVariables，不用等使用者貼。
+- 同日另修：好友狀態下拉顯示「...」不是 Skin 的鍋（暴雪寫死 51 寬 ≈ 8＋16＋箭頭 28，換字型後零頭放不下）⇒ `MiliUI/Fix/Blizzard_FriendsStatusDropdown.lua` 加寬到 63。
 
 ## 還沒實機確認的
 
