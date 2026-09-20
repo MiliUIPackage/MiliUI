@@ -34,6 +34,8 @@ L["Collections"] = "收藏"
 L["Collections: Toys & Heirlooms"] = "收藏：玩具箱與傳家寶"
 L["Collections: Pets"] = "收藏：寵物"
 L["Collections: Appearances"] = "收藏：外觀"
+-- 暴雪的 GlobalStrings：GROUP_FINDER（PVEFrame 的標題與第一顆分頁）
+L["Group Finder"] = "地城與團隊"
 
 -- 暴雪「選項 > 插件」入口頁
 L["Use /mskin to open options"] = "使用 /mskin 開啟設定"

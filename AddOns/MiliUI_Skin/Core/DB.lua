@@ -35,6 +35,9 @@ local function BuildDefaults()
             -- 收藏視窗有四份配方（外框＋坐騎／玩具箱＋傳家寶／寵物／外觀），
             -- 共用這一個 key —— 玩家看到的是一個視窗
             collections = true,
+            -- 地城與團隊：外框／地城搜尋／團隊搜尋／預組隊伍／玩家對玩家／傳奇鑰石
+            -- 全部共用這一個 key（後三塊住在隨需載入的暴雪插件裡，走 Register 的 parts）
+            pve         = true,
         },
     }
 end
