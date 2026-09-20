@@ -342,6 +342,7 @@ function Data:_CancelQueuedSource(source)
 
     source.queuedRefresh = false
     source.pendingReason = nil
+    source.pendingForceDispatch = nil
     local writeIndex = self.queueHead
     for readIndex = self.queueHead, self.queueTail do
         local queuedSource = self.queue[readIndex]
@@ -362,6 +363,7 @@ end
 function Data:_DestroySource(source)
     if not source or source.consumerCount > 0 then return false end
     self:_CancelQueuedSource(source)
+    if Monitor.CancelTasks then Monitor:CancelTasks(source) end
     local sourceType = source.sourceType
     self.sources[source.key] = nil
     sourceType.sources[source.key] = nil
@@ -477,6 +479,14 @@ function Data:ReleaseOwner(owner)
     return count
 end
 
+local function MergeRefreshReason(sourceType, pending, incoming)
+    if pending and incoming and pending ~= incoming then
+        local coalescedReason = sourceType.definition.coalescedReason
+        if coalescedReason then return coalescedReason end
+    end
+    return pending or incoming or "refresh"
+end
+
 function Data:QueueSource(sourceOrKey, reason, forceDispatch)
     local source = sourceOrKey
     if type(sourceOrKey) == "string" then
@@ -486,10 +496,14 @@ function Data:QueueSource(sourceOrKey, reason, forceDispatch)
 
     if not source.queuedRefresh
         and source.sourceType.queuedBroadcast == true then
-        reason = source.sourceType.pendingBroadcastReason or reason
+        reason = MergeRefreshReason(
+            source.sourceType, source.sourceType.pendingBroadcastReason, reason
+        )
     end
     self.stats.queueRequests = self.stats.queueRequests + 1
-    source.pendingReason = source.pendingReason or reason or "refresh"
+    source.pendingReason = MergeRefreshReason(
+        source.sourceType, source.pendingReason, reason
+    )
     if forceDispatch == true then source.pendingForceDispatch = true end
     if source.queuedRefresh then
         self.stats.coalescedRequests = self.stats.coalescedRequests + 1
@@ -506,8 +520,9 @@ end
 function Data:QueueSourceType(sourceType, reason)
     if not sourceType or sourceType.sourceCount <= 0 then return false end
     self.stats.broadcastRequests = self.stats.broadcastRequests + 1
-    sourceType.pendingBroadcastReason = sourceType.pendingBroadcastReason
-        or reason or "refresh"
+    sourceType.pendingBroadcastReason = MergeRefreshReason(
+        sourceType, sourceType.pendingBroadcastReason, reason
+    )
     if sourceType.queuedBroadcast == true then
         self.stats.coalescedBroadcasts = self.stats.coalescedBroadcasts + 1
         return true
@@ -553,7 +568,16 @@ function Data:_OnRouteEvent(route, event, ...)
 
     for sourceType, rule in pairs(route.activeTypes) do
         if rule.all == true then
-            self:QueueSourceType(sourceType, rule.reason or event)
+            if rule.synchronous == true or type(sourceType.definition.onEvent) == 'function' then
+                -- Discrete broadcast signals must retain their event payload;
+                -- ordinary state refreshes keep the coalesced broadcast path.
+                for _, source in pairs(sourceType.sources) do
+                    self.stats.candidateKeys = self.stats.candidateKeys + 1
+                    self:_RouteSource(source, rule, event, ...)
+                end
+            else
+                self:QueueSourceType(sourceType, rule.reason or event)
+            end
         else
             local identityArgs = rule.identityArgs
             local identityArg = rule.identityArg
@@ -572,7 +596,7 @@ function Data:_OnRouteEvent(route, event, ...)
                         if source and source ~= lastSource then
                             lastSource = source
                             self.stats.candidateKeys = self.stats.candidateKeys + 1
-                            self:QueueSource(source, rule.identityReason or rule.reason or event)
+                            self:_RouteSource(source, rule, event, ...)
                         end
                     end
                 end
@@ -586,7 +610,7 @@ function Data:_OnRouteEvent(route, event, ...)
                     local source = sourceType.identityIndex[identity]
                     if source then
                         self.stats.candidateKeys = self.stats.candidateKeys + 1
-                        self:QueueSource(source, rule.identityReason or rule.reason or event)
+                        self:_RouteSource(source, rule, event, ...)
                     end
                 end
             end
@@ -601,6 +625,13 @@ function Data:_OnRouteEvent(route, event, ...)
             end
 
             if queueAll then
+                -- Event-scoped evidence must be captured before deferred reads.
+                -- The ordinary refresh remains one coalesced broadcast.
+                if type(rule.capture) == 'function' then
+                    for _, source in pairs(sourceType.sources) do
+                        if source ~= lastSource then rule.capture(source, event, ...) end
+                    end
+                end
                 self:QueueSourceType(sourceType, allReason)
             end
         end
@@ -619,6 +650,78 @@ function Data:OnEvent(event, ...)
     for index = 1, #routes do
         self:_OnRouteEvent(routes[index], event, ...)
     end
+end
+
+function Data:_RouteSource(source, rule, event, ...)
+    if type(rule.capture) == 'function' then rule.capture(source, event, ...) end
+    local receive = source.definition.onEvent
+    if type(receive) == "function" then
+        if receive(source, source.state, event, ...) ~= true then return end
+    end
+    local reason = rule.identityReason or rule.reason or event
+    if rule.synchronous == true then
+        -- Discrete signals must not collapse two events into one frame read.
+        self:RefreshSourceNow(source, reason)
+    else
+        self:QueueSource(source, reason)
+    end
+end
+
+function Data:_ProcessSource(source, reason, forceDispatch)
+    if not source or source.consumerCount <= 0 then return false, false end
+
+    self.stats.apiReads = self.stats.apiReads + 1
+    self.stats.sourceStateBuilds = self.stats.sourceStateBuilds + 1
+    local changed = source.definition.read(source, source.state, reason) == true
+    if not source.initialized then
+        source.initialized = true
+        changed = true
+    end
+    if changed or forceDispatch then
+        if forceDispatch and not changed then
+            self.stats.forcedDispatches =
+                (self.stats.forcedDispatches or 0) + 1
+        end
+        self.stats.changedKeys = self.stats.changedKeys + 1
+        for index = 1, source.consumerCount do
+            InvokeConsumer(
+                source.consumers[index],
+                source.state,
+                source.key,
+                reason,
+                forceDispatch
+            )
+            self.stats.fanOutMonitors = self.stats.fanOutMonitors + 1
+        end
+    else
+        self.stats.noOpSkips = self.stats.noOpSkips + 1
+    end
+    if type(source.definition.afterDispatch) == "function" then
+        source.definition.afterDispatch(source, source.state, reason, changed)
+    end
+    return true, changed or forceDispatch
+end
+
+function Data:RefreshSourceNow(sourceOrKey, reason, forceDispatch)
+    local source = sourceOrKey
+    if type(sourceOrKey) == "string" then
+        source = self.sources[sourceOrKey]
+    end
+    if not source or source.consumerCount <= 0 then return false, false end
+
+    local pendingReason = source.pendingReason
+    local pendingForceDispatch = source.pendingForceDispatch == true
+    if source.queuedRefresh then self:_CancelQueuedSource(source) end
+    source.pendingReason = nil
+    source.pendingForceDispatch = nil
+
+    local processed, dispatched = self:_ProcessSource(
+        source,
+        reason or pendingReason or "refresh",
+        forceDispatch == true or pendingForceDispatch
+    )
+    Monitor:_StopDriver()
+    return processed, dispatched
 end
 
 function Data:Flush()
@@ -642,36 +745,9 @@ function Data:Flush()
             source.pendingReason = nil
             local forceDispatch = source.pendingForceDispatch == true
             source.pendingForceDispatch = nil
-            self.stats.apiReads = self.stats.apiReads + 1
-            self.stats.sourceStateBuilds = self.stats.sourceStateBuilds + 1
-            local changed = source.definition.read(source, source.state, reason) == true
-            if not source.initialized then
-                source.initialized = true
-                changed = true
+            if self:_ProcessSource(source, reason, forceDispatch) then
+                processed = processed + 1
             end
-            if changed or forceDispatch then
-                if forceDispatch and not changed then
-                    self.stats.forcedDispatches =
-                        (self.stats.forcedDispatches or 0) + 1
-                end
-                self.stats.changedKeys = self.stats.changedKeys + 1
-                for index = 1, source.consumerCount do
-                    InvokeConsumer(
-                        source.consumers[index],
-                        source.state,
-                        source.key,
-                        reason,
-                        forceDispatch
-                    )
-                    self.stats.fanOutMonitors = self.stats.fanOutMonitors + 1
-                end
-            else
-                self.stats.noOpSkips = self.stats.noOpSkips + 1
-            end
-            if type(source.definition.afterDispatch) == "function" then
-                source.definition.afterDispatch(source, source.state, reason, changed)
-            end
-            processed = processed + 1
         end
     end
 
@@ -740,6 +816,10 @@ end
 
 function Monitor:QueueSource(sourceOrKey, reason, forceDispatch)
     return Data:QueueSource(sourceOrKey, reason, forceDispatch)
+end
+
+function Monitor:RefreshSourceNow(sourceOrKey, reason, forceDispatch)
+    return Data:RefreshSourceNow(sourceOrKey, reason, forceDispatch)
 end
 
 function Monitor:GetDataStats(target)

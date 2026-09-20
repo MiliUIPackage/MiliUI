@@ -74,11 +74,18 @@ local function SafeCall(def, phase, ...)
         })
     end
 
+    local watchdog = YUI.CPUWatchdog
+    local cpuStartedAt = watchdog and watchdog.sceneCapture and watchdog:BeginProbeTiming()
     local ok, err = xpcall(function(...)
         return handler(target, ...)
     end, function(e)
         return e
     end, ...)
+
+    if cpuStartedAt then
+        watchdog:EndDynamicProbeTiming("module." .. tostring(def.id) .. "." .. phase,
+            "Module " .. tostring(def.id) .. ":" .. phase, nil, cpuStartedAt)
+    end
 
     if traceRecord and YUI.Trace and YUI.Trace.Finish then
         YUI.Trace:Finish(traceRecord, ok and "ok" or "error", ok and nil or err)

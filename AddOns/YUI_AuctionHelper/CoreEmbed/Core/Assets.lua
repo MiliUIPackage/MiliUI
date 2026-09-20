@@ -51,8 +51,7 @@ function Assets:RegisterBundleRoot(bundleId, root)
         return false
     end
     self.bundleRoots[bundleId] = root
-    self.availableBundles = self.availableBundles or {}
-    self.availableBundles[bundleId] = true
+    -- A carrier registration adds one bundle; it is not a complete manifest.
     return true
 end
 
@@ -73,6 +72,9 @@ end
 function Assets:IsBundleAvailable(bundleId)
     if type(bundleId) ~= "string" or bundleId == "" then
         return false
+    end
+    if self.bundleRoots[bundleId] then
+        return true
     end
     if self.availableBundles then
         return self.availableBundles[bundleId] == true

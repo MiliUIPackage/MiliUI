@@ -133,6 +133,9 @@ local function AddCommonTokens(tokens)
     tokens["color.badge.green"] = Color(0.12, 0.72, 0.34, 1)
     tokens["color.badge.purple"] = Color(0.56, 0.31, 0.92, 1)
     tokens["color.badge.text"] = Color(1, 1, 1, 1)
+    tokens["color.surface.rewardPopup"] = Color(0.090, 0.063, 0.169, 0.99)
+    tokens["color.border.rewardPopup"] = Color(0.906, 0.722, 0.290, 1)
+    tokens["color.text.rewardHeading"] = Color(1.000, 0.851, 0.471, 1)
 
     local interactionPaint = tokens["color.interaction.primary"]
     local interaction = interactionPaint and interactionPaint.value or { 0.00, 0.60, 1.00, 1 }
@@ -193,6 +196,8 @@ local function AddCommonTokens(tokens)
     tokens["color.settings.panel"] = WithAlpha(tokens["color.surface.panel"], 0.78)
     tokens["color.settings.raised"] = WithAlpha(tokens["color.surface.raised"], 0.84)
     tokens["color.settings.navItem"] = WithAlpha(tokens["color.surface.nav"], 0.56)
+    tokens["color.voice.textIcon"] = Color(0.025, 0.065, 0.115, 1)
+    tokens["color.voice.textIconText"] = Color(1, 0.78, 0.28, 1)
 
     tokens["border.width.hairline"] = 1
     tokens["shadow.panel.size"] = 3

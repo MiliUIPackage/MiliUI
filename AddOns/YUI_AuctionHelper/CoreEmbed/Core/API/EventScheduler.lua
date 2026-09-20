@@ -13,6 +13,8 @@ YUI.API = YUI.API or {}
 
 local EventScheduler = YUI.API.EventScheduler or {}
 YUI.API.EventScheduler = EventScheduler
+local WorldQuest = YUI.API.WorldQuest or {}
+YUI.API.WorldQuest = WorldQuest
 
 local Security = YUI.API.Security
 
@@ -33,6 +35,17 @@ local function SafeCall(fn, ...)
     local results = { pcall(fn, ...) }
     if not results[1] then return false end
     return true, unpack(results, 2)
+end
+
+local function SafeSecureCall(fn, ...)
+    if type(fn) ~= "function" then return false end
+    if Security and type(Security.SecureCallFunction) == "function" then
+        return SafeCall(Security.SecureCallFunction, fn, ...)
+    end
+    if type(securecallfunction) == "function" then
+        return SafeCall(securecallfunction, fn, ...)
+    end
+    return SafeCall(fn, ...)
 end
 
 local function SafeField(value, key)
@@ -161,6 +174,7 @@ function EventScheduler.GetSnapshot(reuse)
     snapshot.ongoing = type(snapshot.ongoing) == "table" and snapshot.ongoing or {}
     snapshot.scheduled = type(snapshot.scheduled) == "table" and snapshot.scheduled or {}
     snapshot.canShow = nil
+    snapshot.activeContinentName = nil
 
     if not EventScheduler.IsAvailable() then
         snapshot.status = "unsupported"
@@ -173,6 +187,9 @@ function EventScheduler.GetSnapshot(reuse)
     if canShowOk and not IsSecret(canShow) and type(canShow) == "boolean" then
         snapshot.canShow = canShow
     end
+
+    local continentOk, continentName = SafeCall(C_EventScheduler.GetActiveContinentName)
+    if continentOk then snapshot.activeContinentName = SafeString(continentName) end
 
     local hasDataOk, hasData = SafeCall(C_EventScheduler.HasData)
     local ongoingOk, ongoing = SafeCall(C_EventScheduler.GetOngoingEvents)
@@ -288,16 +305,16 @@ function EventScheduler.OpenEvent(areaPoiID, navigationLocation)
     if uiMapID and location.positionX and location.positionY then
         local opened = false
         if type(OpenWorldMap) == "function" then
-            opened = SafeCall(OpenWorldMap, uiMapID)
+            opened = SafeSecureCall(OpenWorldMap, uiMapID)
         elseif WorldMapFrame and type(WorldMapFrame.HandleUserActionOpenSelf) == "function" then
-            opened = SafeCall(WorldMapFrame.HandleUserActionOpenSelf, WorldMapFrame, uiMapID)
+            opened = SafeSecureCall(WorldMapFrame.HandleUserActionOpenSelf, WorldMapFrame, uiMapID)
         end
         if not opened then return false, "map_unavailable" end
         return true, nil, location
     end
 
     if type(OpenMapToEventPoi) == "function" then
-        local ok = SafeCall(OpenMapToEventPoi, areaPoiID)
+        local ok = SafeSecureCall(OpenMapToEventPoi, areaPoiID)
         if ok then return true, nil, location end
         return false, "api_error"
     end
@@ -390,6 +407,385 @@ function EventScheduler.ToggleEventWaypoint(areaPoiID, navigationLocation)
         SafeCall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
     end
     return true, true
+end
+
+local function NormalizeWorldQuestLocation(questID, raw)
+    if type(raw) ~= "table" or IsSecret(raw) then return nil, "invalid_location" end
+    local rawQuestID = SafeInteger(select(1, SafeField(raw, "questID")), 1)
+    if rawQuestID and rawQuestID ~= questID then return nil, "invalid_location" end
+
+    local uiMapID = SafeInteger(select(1, SafeField(raw, "uiMapID")), 1)
+        or SafeInteger(select(1, SafeField(raw, "linkedUiMapID")), 1)
+    local x = SafeNumber(select(1, SafeField(raw, "positionX")), 0)
+    local y = SafeNumber(select(1, SafeField(raw, "positionY")), 0)
+    if not uiMapID or not x or not y or x <= 0 or y <= 0 or x >= 1 or y >= 1 then
+        return nil, "invalid_location"
+    end
+    return {
+        questID = questID,
+        uiMapID = uiMapID,
+        positionX = x,
+        positionY = y,
+    }
+end
+
+local function IsWorldQuestAvailable()
+    return YUI.IsRetail == true
+        and type(C_Map) == "table"
+        and type(C_Map.GetMapInfo) == "function"
+        and type(C_Map.GetMapChildrenInfo) == "function"
+        and type(C_TaskQuest) == "table"
+        and type(C_TaskQuest.GetQuestsOnMap) == "function"
+        and type(C_QuestLog) == "table"
+        and type(C_QuestLog.GetQuestTagInfo) == "function"
+end
+
+local function GetMapInfo(mapID)
+    local ok, info = SafeCall(C_Map and C_Map.GetMapInfo, mapID)
+    if not ok or type(info) ~= "table" or IsSecret(info) then return nil end
+    local normalizedID = SafeInteger(select(1, SafeField(info, "mapID")), 1)
+    local mapType = SafeInteger(select(1, SafeField(info, "mapType")), 0)
+    if not normalizedID or not mapType then return nil end
+    return {
+        mapID = normalizedID,
+        mapType = mapType,
+        parentMapID = SafeInteger(select(1, SafeField(info, "parentMapID")), 0),
+        name = SafeString(select(1, SafeField(info, "name"))),
+    }
+end
+
+local function GetContinentMapInfo(mapID)
+    local continentType = Enum and Enum.UIMapType and Enum.UIMapType.Continent
+    if type(continentType) ~= "number" then return nil end
+    local info = GetMapInfo(mapID)
+    local iterations = 0
+    while info and iterations < 32 do
+        if info.mapType == continentType then return info end
+        if not info.parentMapID or info.parentMapID < 1 or info.parentMapID == info.mapID then return nil end
+        info = GetMapInfo(info.parentMapID)
+        iterations = iterations + 1
+    end
+end
+
+local function IsWorldBossTask(taskType, tagInfo)
+    local tagTypes = Enum and Enum.QuestTagType
+    if type(tagTypes) ~= "table" then return false end
+    local worldQuestType = SafeInteger(select(1, SafeField(tagInfo, "worldQuestType")), 0)
+    local effectiveType = taskType or worldQuestType
+    if effectiveType == tagTypes.WorldBoss then return true end
+
+    local quality = SafeInteger(select(1, SafeField(tagInfo, "quality")), 0)
+    local isElite = select(1, SafeField(tagInfo, "isElite")) == true
+    local epicQuality = Enum and Enum.WorldQuestQuality and Enum.WorldQuestQuality.Epic
+    return effectiveType == tagTypes.Normal and isElite and quality == epicQuality
+end
+
+local function NormalizeWorldBossTask(task, mapID, mapName, now, reuse)
+    if type(task) ~= "table" or IsSecret(task) then return nil end
+    local questID = SafeInteger(select(1, SafeField(task, "questID")), 1)
+    if not questID then return nil end
+
+    local tagTypes = Enum and Enum.QuestTagType
+    if type(tagTypes) ~= "table" then return nil end
+    local taskType = SafeInteger(select(1, SafeField(task, "questTagType")), 0)
+    if taskType and taskType ~= tagTypes.WorldBoss and taskType ~= tagTypes.Normal then return nil end
+    local tagInfo
+    if taskType ~= tagTypes.WorldBoss then
+        local tagOk, rawTagInfo = SafeCall(C_QuestLog.GetQuestTagInfo, questID)
+        if tagOk and type(rawTagInfo) == "table" and not IsSecret(rawTagInfo) then tagInfo = rawTagInfo end
+    end
+    if not IsWorldBossTask(taskType, tagInfo) then return nil end
+
+    local taskMapID = SafeInteger(select(1, SafeField(task, "mapID")), 1) or mapID
+    local taskMapInfo = GetMapInfo(taskMapID)
+    local x = SafeNumber(select(1, SafeField(task, "x")), 0)
+    local y = SafeNumber(select(1, SafeField(task, "y")), 0)
+    if not x or not y or x <= 0 or y <= 0 or x >= 1 or y >= 1 then x, y = nil, nil end
+
+    local titleOk, title = SafeCall(C_TaskQuest.GetQuestInfoByQuestID, questID)
+    title = titleOk and SafeString(title) or nil
+    if not title and type(C_QuestLog.RequestLoadQuestByID) == "function" then
+        SafeCall(C_QuestLog.RequestLoadQuestByID, questID)
+    end
+
+    local secondsLeft
+    if type(C_TaskQuest.GetQuestTimeLeftSeconds) == "function" then
+        local secondsOk, seconds = SafeCall(C_TaskQuest.GetQuestTimeLeftSeconds, questID)
+        secondsLeft = secondsOk and SafeNumber(seconds, 0) or nil
+    end
+    if not secondsLeft and type(C_TaskQuest.GetQuestTimeLeftMinutes) == "function" then
+        local minutesOk, minutes = SafeCall(C_TaskQuest.GetQuestTimeLeftMinutes, questID)
+        minutes = minutesOk and SafeNumber(minutes, 0) or nil
+        secondsLeft = minutes and minutes * 60 or nil
+    end
+
+    local completedOk, completed = SafeCall(C_QuestLog.IsQuestFlaggedCompleted, questID)
+    local boss = ResetTable(reuse)
+    boss.source = "worldBoss"
+    boss.kind = "ongoing"
+    boss.questID = questID
+    boss.rewardsClaimed = completedOk and not IsSecret(completed) and completed == true or false
+    boss.startTime = nil
+    boss.endTime = secondsLeft and now + secondsLeft or nil
+    boss.displayInfo = ResetTable(boss.displayInfo)
+    boss.displayInfo.overrideAtlas = "worldquest-icon-boss"
+    boss.displayInfo.hideTimeLeft = secondsLeft == nil
+    boss.displayInfo.hideDescription = true
+    boss.location = ResetTable(boss.location)
+    boss.location.questID = questID
+    boss.location.uiMapID = taskMapID
+    boss.location.positionX = x
+    boss.location.positionY = y
+    boss.location.name = title
+    boss.location.zoneName = taskMapInfo and taskMapInfo.name or mapName
+    boss.location.atlasName = "worldquest-icon-boss"
+    return boss
+end
+
+local function ResetWorldBossSnapshot(reuse)
+    local snapshot = type(reuse) == "table" and reuse or {}
+    snapshot.bosses = type(snapshot.bosses) == "table" and snapshot.bosses or {}
+    snapshot._seenQuestIDs = ResetTable(snapshot._seenQuestIDs)
+    snapshot._seenMapIDs = ResetTable(snapshot._seenMapIDs)
+    snapshot._seenScanMapIDs = type(snapshot._seenScanMapIDs) == "table" and snapshot._seenScanMapIDs or {}
+    snapshot._continentBySeedMapID = type(snapshot._continentBySeedMapID) == "table"
+        and snapshot._continentBySeedMapID or {}
+    snapshot._roots = type(snapshot._roots) == "table" and snapshot._roots or {}
+    snapshot._cachedRootIDs = type(snapshot._cachedRootIDs) == "table" and snapshot._cachedRootIDs or {}
+    snapshot._scanMaps = type(snapshot._scanMaps) == "table" and snapshot._scanMaps or {}
+    snapshot._rootCount = 0
+    snapshot.status = "unavailable"
+    return snapshot
+end
+
+local function GetContinentMapInfoCached(snapshot, mapID)
+    local cached = snapshot._continentBySeedMapID[mapID]
+    if type(cached) == "table" then return cached end
+    local continent = GetContinentMapInfo(mapID)
+    if continent then snapshot._continentBySeedMapID[mapID] = continent end
+    return continent
+end
+
+local function AcquireScanMap(snapshot, mapID, name)
+    local index = snapshot._scanMapCount + 1
+    snapshot._scanMapCount = index
+    local info = snapshot._scanMaps[index]
+    if type(info) ~= "table" then
+        info = {}
+        snapshot._scanMaps[index] = info
+    end
+    info.mapID = mapID
+    info.name = name
+end
+
+local function RefreshScanMaps(snapshot)
+    local rootsChanged = type(snapshot._scanMapCount) ~= "number"
+        or snapshot._rootCount ~= #snapshot._cachedRootIDs
+    if not rootsChanged then
+        for index = 1, snapshot._rootCount do
+            if snapshot._cachedRootIDs[index] ~= snapshot._roots[index].mapID then
+                rootsChanged = true
+                break
+            end
+        end
+    end
+    if not rootsChanged then return end
+
+    snapshot._scanMapCount = 0
+    ResetTable(snapshot._seenScanMapIDs)
+    local zoneType = Enum and Enum.UIMapType and Enum.UIMapType.Zone
+    for rootIndex = 1, snapshot._rootCount do
+        local root = snapshot._roots[rootIndex]
+        if not snapshot._seenScanMapIDs[root.mapID] then
+            snapshot._seenScanMapIDs[root.mapID] = true
+            AcquireScanMap(snapshot, root.mapID, root.name)
+        end
+        local childrenOk, children = SafeCall(C_Map.GetMapChildrenInfo, root.mapID, zoneType, true)
+        if childrenOk and type(children) == "table" and not IsSecret(children) then
+            for childIndex = 1, #children do
+                local child = children[childIndex]
+                local childID = SafeInteger(select(1, SafeField(child, "mapID")), 1)
+                if childID and not snapshot._seenScanMapIDs[childID] then
+                    snapshot._seenScanMapIDs[childID] = true
+                    AcquireScanMap(snapshot, childID, SafeString(select(1, SafeField(child, "name"))))
+                end
+            end
+        end
+    end
+    for index = snapshot._scanMapCount + 1, #snapshot._scanMaps do
+        local info = snapshot._scanMaps[index]
+        if type(info) == "table" then info.mapID, info.name = nil, nil end
+    end
+    for index = 1, snapshot._rootCount do snapshot._cachedRootIDs[index] = snapshot._roots[index].mapID end
+    for index = snapshot._rootCount + 1, #snapshot._cachedRootIDs do snapshot._cachedRootIDs[index] = nil end
+end
+
+function WorldQuest.IsAvailable()
+    return IsWorldQuestAvailable()
+end
+
+function WorldQuest.GetWorldBossSnapshot(seedMapIDs, activeContinentName, now, reuse)
+    local snapshot = ResetWorldBossSnapshot(reuse)
+    if not IsWorldQuestAvailable() then
+        for index = #snapshot.bosses, 1, -1 do snapshot.bosses[index] = nil end
+        snapshot.status = "unsupported"
+        return snapshot
+    end
+
+    now = SafeNumber(now, 0) or (type(GetServerTime) == "function" and GetServerTime() or 0)
+    activeContinentName = SafeString(activeContinentName)
+    local matchedActiveName = false
+    if type(seedMapIDs) == "table" and not IsSecret(seedMapIDs) then
+        for index = 1, #seedMapIDs do
+            local mapID = SafeInteger(seedMapIDs[index], 1)
+            local continent = mapID and GetContinentMapInfoCached(snapshot, mapID) or nil
+            if continent and not snapshot._seenMapIDs[continent.mapID] then
+                local nameMatches = activeContinentName and continent.name == activeContinentName
+                if not activeContinentName or nameMatches then
+                    snapshot._rootCount = snapshot._rootCount + 1
+                    snapshot._roots[snapshot._rootCount] = continent
+                    snapshot._seenMapIDs[continent.mapID] = true
+                    matchedActiveName = matchedActiveName or nameMatches == true
+                end
+            end
+        end
+    end
+
+    if activeContinentName and not matchedActiveName then
+        snapshot._rootCount = 0
+        ResetTable(snapshot._seenMapIDs)
+        if type(seedMapIDs) == "table" and not IsSecret(seedMapIDs) then
+            for index = 1, #seedMapIDs do
+                local mapID = SafeInteger(seedMapIDs[index], 1)
+                local continent = mapID and GetContinentMapInfoCached(snapshot, mapID) or nil
+                if continent and not snapshot._seenMapIDs[continent.mapID] then
+                    snapshot._rootCount = snapshot._rootCount + 1
+                    snapshot._roots[snapshot._rootCount] = continent
+                    snapshot._seenMapIDs[continent.mapID] = true
+                end
+            end
+        end
+    end
+    for index = snapshot._rootCount + 1, #snapshot._roots do snapshot._roots[index] = nil end
+
+    RefreshScanMaps(snapshot)
+    local bossCount = 0
+    for mapIndex = 1, snapshot._scanMapCount do
+        local mapInfo = snapshot._scanMaps[mapIndex]
+        local tasksOk, tasks = SafeCall(C_TaskQuest.GetQuestsOnMap, mapInfo.mapID)
+        if tasksOk and type(tasks) == "table" and not IsSecret(tasks) then
+            for taskIndex = 1, #tasks do
+                local questID = SafeInteger(select(1, SafeField(tasks[taskIndex], "questID")), 1)
+                if questID and not snapshot._seenQuestIDs[questID] then
+                    snapshot._seenQuestIDs[questID] = true
+                    local nextBoss = NormalizeWorldBossTask(
+                        tasks[taskIndex], mapInfo.mapID, mapInfo.name, now, snapshot.bosses[bossCount + 1]
+                    )
+                    if nextBoss then
+                        bossCount = bossCount + 1
+                        snapshot.bosses[bossCount] = nextBoss
+                    end
+                end
+            end
+        end
+    end
+    for index = bossCount + 1, #snapshot.bosses do snapshot.bosses[index] = nil end
+    snapshot.status = snapshot._rootCount > 0 and "ready" or "unavailable"
+    return snapshot
+end
+
+function WorldQuest.GetTrackedQuestID()
+    if type(C_SuperTrack) ~= "table" or type(C_SuperTrack.GetSuperTrackedQuestID) ~= "function" then
+        return nil, "unsupported"
+    end
+    local ok, questID = SafeCall(C_SuperTrack.GetSuperTrackedQuestID)
+    if not ok then return nil, "api_error" end
+    if IsSecret(questID) then return nil, "api_error" end
+    return SafeInteger(questID, 1)
+end
+
+function WorldQuest.ToggleTrackedQuest(questID)
+    questID = SafeInteger(questID, 1)
+    if not questID then return false, nil, "invalid_quest" end
+    if type(C_SuperTrack) ~= "table" or type(C_SuperTrack.SetSuperTrackedQuestID) ~= "function" then
+        return false, nil, "unsupported"
+    end
+    local tracked, reason = WorldQuest.GetTrackedQuestID()
+    if reason and reason ~= "unsupported" then return false, nil, reason end
+    if tracked == questID then
+        if not SafeCall(C_SuperTrack.SetSuperTrackedQuestID, 0) then return false, nil, "api_error" end
+        return true, false
+    end
+    if type(C_QuestLog) == "table" and type(C_QuestLog.AddWorldQuestWatch) == "function" then
+        local automatic = Enum and Enum.QuestWatchType and Enum.QuestWatchType.Automatic
+        SafeCall(C_QuestLog.AddWorldQuestWatch, questID, automatic)
+    end
+    if not SafeCall(C_SuperTrack.SetSuperTrackedQuestID, questID) then return false, nil, "api_error" end
+    return true, true
+end
+
+local function OpenWorldQuestLocation(location)
+    if type(OpenWorldMap) == "function" then
+        return SafeSecureCall(OpenWorldMap, location.uiMapID)
+    end
+    if WorldMapFrame and type(WorldMapFrame.HandleUserActionOpenSelf) == "function" then
+        return SafeSecureCall(WorldMapFrame.HandleUserActionOpenSelf, WorldMapFrame, location.uiMapID)
+    end
+    return false
+end
+
+function WorldQuest.OpenWorldBoss(questID, rawLocation)
+    questID = SafeInteger(questID, 1)
+    if not questID then return false, "invalid_quest" end
+    local location, reason = NormalizeWorldQuestLocation(questID, rawLocation)
+    if not location then return false, reason end
+    if not OpenWorldQuestLocation(location) then return false, "map_unavailable", location end
+    return true, nil, location
+end
+
+function WorldQuest.ToggleWorldBossWaypoint(questID, rawLocation)
+    questID = SafeInteger(questID, 1)
+    if not questID then return false, nil, "invalid_quest" end
+    local location, reason = NormalizeWorldQuestLocation(questID, rawLocation)
+    if not location then return false, nil, reason end
+    if type(C_Map) ~= "table"
+        or type(C_Map.CanSetUserWaypointOnMap) ~= "function"
+        or type(C_Map.SetUserWaypoint) ~= "function"
+        or type(C_Map.ClearUserWaypoint) ~= "function"
+        or type(UiMapPoint) ~= "table"
+        or type(UiMapPoint.CreateFromCoordinates) ~= "function"
+    then
+        return false, nil, "unsupported"
+    end
+
+    local current, currentReason = EventScheduler.GetUserWaypoint()
+    if currentReason then return false, nil, currentReason end
+    if current and current.uiMapID == location.uiMapID
+        and math.abs(current.positionX - location.positionX) <= 0.0001
+        and math.abs(current.positionY - location.positionY) <= 0.0001
+    then
+        if not SafeCall(C_Map.ClearUserWaypoint) then return false, nil, "api_error" end
+        if type(C_SuperTrack) == "table" and type(C_SuperTrack.SetSuperTrackedUserWaypoint) == "function" then
+            SafeCall(C_SuperTrack.SetSuperTrackedUserWaypoint, false)
+        end
+        return true, false, nil, location
+    end
+
+    local allowedOk, allowed = SafeCall(C_Map.CanSetUserWaypointOnMap, location.uiMapID)
+    if not allowedOk or IsSecret(allowed) then return false, nil, "api_error" end
+    if allowed ~= true then return false, nil, "waypoint_unavailable" end
+    local pointOk, point = SafeCall(
+        UiMapPoint.CreateFromCoordinates, location.uiMapID, location.positionX, location.positionY
+    )
+    if not pointOk or type(point) ~= "table" or IsSecret(point) then return false, nil, "api_error" end
+    local setOk, wasSet = SafeCall(C_Map.SetUserWaypoint, point)
+    if not setOk or IsSecret(wasSet) then return false, nil, "api_error" end
+    if wasSet ~= true then return false, nil, "waypoint_unavailable" end
+    if type(C_SuperTrack) == "table" and type(C_SuperTrack.SetSuperTrackedUserWaypoint) == "function" then
+        SafeCall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+    end
+
+    return true, true, nil, location
 end
 
 local function GetAreaPoiPinType()

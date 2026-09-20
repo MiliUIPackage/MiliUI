@@ -584,6 +584,17 @@ function Event:_Dispatch(event, source, sourceKey, ...)
         return
     end
 
+    local loginTrace
+    local trace = YUI.Trace
+    if event == "PLAYER_LOGIN" and trace and trace.enabled ~= false
+        and type(trace.Begin) == "function" then
+        loginTrace = trace:Begin("Login", "EventBus:PLAYER_LOGIN", nil, {
+            moduleId = "YUI.Event",
+            phase = "PLAYER_LOGIN",
+            durationKind = "sync",
+            blocking = true,
+        })
+    end
     local cpuWatchdog = self.cpuTimingWatchdog
     local cpuStartedAt = cpuWatchdog and cpuWatchdog:BeginProbeTiming()
     local stats = GetStatsTable(self, event)
@@ -593,6 +604,9 @@ function Event:_Dispatch(event, source, sourceKey, ...)
     local list = self.listeners[event]
     if not list or #list == 0 then
         if cpuStartedAt then cpuWatchdog:EndProbeTiming("core.eventbus", cpuStartedAt) end
+        if loginTrace and trace and type(trace.Finish) == "function" then
+            trace:Finish(loginTrace, "ok")
+        end
         return
     end
 
@@ -609,6 +623,9 @@ function Event:_Dispatch(event, source, sourceKey, ...)
         end
     end
     if cpuStartedAt then cpuWatchdog:EndProbeTiming("core.eventbus", cpuStartedAt) end
+    if loginTrace and trace and type(trace.Finish) == "function" then
+        trace:Finish(loginTrace, "ok")
+    end
 end
 
 function Event:On(event, handler, owner, options)

@@ -1067,8 +1067,10 @@ local function FinishDrag(entry)
         end
         return
     end
+    local snapEnabled=GetOptions().snap
+    if Layout.directDragEntry==entry and Layout.directDragSnap~=nil then snapEnabled=Layout.directDragSnap end
     if dragMoved
-        and GetOptions().snap
+        and snapEnabled
         and ResolveSpecValue(entry, "snap", true) ~= false then
         NativeApplyMagnetism(overlay)
         SnapOverlay(entry)
@@ -1106,7 +1108,7 @@ local function OverlayOnDragStart(self)
     local placementState = entry and Layout.GetPlacementState
         and Layout:GetPlacementState(entry.id)
     if not entry or Layout.anchorPickerEntryId or InCombat()
-        or GetOptions().locked
+        or (GetOptions().locked and Layout.directDragEntry~=entry)
         or (Layout.IsPlacementReady
             and placementState ~= PLACEMENT_FALLBACK
             and not Layout:IsPlacementReady(entry.id))
@@ -1142,6 +1144,7 @@ end
 
 local function OverlayOnDragStop(self)
     local entry = self.yuiLayoutEntry
+    if entry and Layout.directDragEntry==entry then Layout:EndDirectDrag();return end
     if entry then FinishDrag(entry) end
 end
 
@@ -1306,6 +1309,46 @@ function Layout:ReleaseOverlay(entry)
     return true
 end
 
+-- A product designer can reuse the native mover for one direct drag without
+-- opening the global editor or changing its saved grid/options.
+function Layout:BeginDirectDrag(id, options)
+    if self.editing or self.directDragEntry or InCombat() then return false,"unavailable" end
+    local entry=self.frames[id]
+    if not entry or ResolveSpecValue(entry,"isEnabled",true)==false
+        or ResolveSpecValue(entry,"movable",true)==false then return false,"unavailable" end
+    self:RefreshFrame(id)
+    local state=self:GetPlacementState(id)
+    if not self:IsPlacementReady(id) and state~=PLACEMENT_FALLBACK then return false,"placement-pending" end
+    self.directDragEntry=entry
+    self.directDragSnap=options and options.snap
+    self.directDragIdentity=P.GetPlacementStorageIdentity and P.GetPlacementStorageIdentity(id)
+    self:UpdateOverlay(entry)
+    local overlay=entry.overlay
+    if overlay then OverlayOnDragStart(overlay) end
+    if not overlay or not overlay.yuiLayoutDragging then
+        self:EndDirectDrag(true)
+        return false,"drag-unavailable"
+    end
+    return true
+end
+function Layout:EndDirectDrag(cancel)
+    local entry=self.directDragEntry
+    if not entry then return false end
+    local overlay=entry.overlay
+    local changed=P.GetPlacementStorageIdentity and self.directDragIdentity~=P.GetPlacementStorageIdentity(entry.id)
+    cancel=cancel or InCombat()
+    if overlay then
+        if cancel or changed or InCombat() then
+            overlay:SetScript("OnUpdate",nil);overlay:StopMovingOrSizing();overlay.yuiLayoutDragging=false
+            NativeClearSnapPreview();HideDragCoordinateInfo()
+            self:RefreshFrame(entry.id)
+        else FinishDrag(entry) end
+    end
+    self.directDragEntry,self.directDragIdentity,self.directDragSnap=nil,nil,nil
+    self:ReleaseOverlay(entry)
+    return not cancel and not changed
+end
+
 function Layout:HideMoverOverlay(id)
     local entry = id and self.frames[id]
     if not entry then return false end
@@ -1337,6 +1380,9 @@ function Layout:HideMoverOverlay(id)
 end
 
 function Layout:UpdateOverlay(entry, anchorTargetEntry)
+    local watchdog = YUI.CPUWatchdog
+    local perf = watchdog and watchdog.sceneCapture and watchdog.sceneCapture.layoutPerf
+    if perf then perf.overlayVisited = perf.overlayVisited + 1 end
     if type(entry) == "string" then entry = self.frames[entry] end
     if not entry then return end
 
@@ -1345,17 +1391,20 @@ function Layout:UpdateOverlay(entry, anchorTargetEntry)
     local enabled = ResolveSpecValue(entry, "isEnabled", true) ~= false
         and (not IsAnchorTargetAvailable
             or IsAnchorTargetAvailable(entry) ~= false)
+    local moverVisible = self.directDragEntry==entry or not self.IsEditMoverVisible
+        or self:IsEditMoverVisible(entry) ~= false
     local showOnlyInEditMode = ResolveSpecValue(entry, "showOnlyInEditMode", false) == true
     local frameShown = IsFrameShown(frame)
     if frame and showOnlyInEditMode then
-        if self.editing and placementState ~= PLACEMENT_PENDING and enabled then
+        if self.editing and placementState ~= PLACEMENT_PENDING
+            and enabled and moverVisible then
             frame:Show()
         else
             frame:Hide()
         end
         frameShown = IsFrameShown(frame)
     end
-    if self.hiddenMoverOverlayIds and self.hiddenMoverOverlayIds[entry.id] then
+    if self.directDragEntry~=entry and self.hiddenMoverOverlayIds and self.hiddenMoverOverlayIds[entry.id] then
         if self.hoveredId == entry.id then HideHoverInfo(entry) end
         if self.dragCoordinateEntryId == entry.id then HideDragCoordinateInfo() end
         if entry.overlay then entry.overlay:Hide() end
@@ -1370,7 +1419,10 @@ function Layout:UpdateOverlay(entry, anchorTargetEntry)
         end
         return
     end
-    if placementState == PLACEMENT_PENDING or not self.editing or not frame or not enabled or (not frameShown and placementState ~= PLACEMENT_SIMULATED) then
+    if not moverVisible
+        or placementState == PLACEMENT_PENDING
+        or (not self.editing and self.directDragEntry~=entry) or not frame or not enabled
+        or (not frameShown and placementState ~= PLACEMENT_SIMULATED) then
         if self.hoveredId == entry.id then HideHoverInfo(entry) end
         if self.dragCoordinateEntryId == entry.id then HideDragCoordinateInfo() end
         if entry.overlay then entry.overlay:Hide() end
@@ -1462,6 +1514,9 @@ function Layout:UpdateOverlay(entry, anchorTargetEntry)
 end
 
 function Layout:RefreshOverlays()
+    local watchdog = YUI.CPUWatchdog
+    local perf = watchdog and watchdog.sceneCapture and watchdog.sceneCapture.layoutPerf
+    if perf then perf.overlayBatches = perf.overlayBatches + 1 end
     local anchorTarget = GetSelectedAnchorEntry() or false
     if self.editing and self.editSessionEntries then
         for _, entry in ipairs(self.editSessionEntries) do

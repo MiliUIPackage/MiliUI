@@ -16,6 +16,7 @@ YUI.API.Frame = Frame
 local Legacy = YUI.WOW_API
 local isRetail = YUI.IsRetail
 local Unit = YUI.API and YUI.API.Unit
+local Security = YUI.API and YUI.API.Security
 
 local suppressedForbiddenNamePlateUnits = {}
 local platynatorFriendlyNamePlateSuppressionEnabled = false
@@ -514,36 +515,55 @@ function Frame.TogglePVPUI()
     return nil
 end
 
+local function IsGameMenuCombatLocked()
+    local checker = Security and Security.InCombatLockdown or InCombatLockdown
+    if type(checker) ~= "function" then return false end
+
+    local ok, locked = pcall(checker)
+    return ok and locked == true
+end
+
 function Frame.HideGameMenu()
-    if not GameMenuFrame or not GameMenuFrame:IsShown() then return nil end
+    if not GameMenuFrame then return false, "NO_FRAME" end
+    if not GameMenuFrame:IsShown() then return true, "ALREADY_HIDDEN" end
+    if IsGameMenuCombatLocked() then return false, "IN_COMBAT" end
 
     if type(HideUIPanel) == "function" then
-        local ok, result = pcall(HideUIPanel, GameMenuFrame)
-        if ok or not GameMenuFrame:IsShown() then
-            return result
-        end
+        local ok = pcall(HideUIPanel, GameMenuFrame)
+        if not GameMenuFrame:IsShown() then return true, "OK" end
+        if ok then return false, "HIDE_FAILED" end
     end
 
     local hide = GameMenuFrame.Hide
     if type(hide) == "function" then
-        return hide(GameMenuFrame)
+        pcall(hide, GameMenuFrame)
+        if not GameMenuFrame:IsShown() then return true, "FALLBACK" end
     end
 
-    return nil
+    return false, "HIDE_FAILED"
 end
 
 function Frame.ToggleGameMenu()
-    if not GameMenuFrame then return nil end
+    if not GameMenuFrame then return false, "NO_FRAME" end
+    if IsGameMenuCombatLocked() then return false, "IN_COMBAT" end
 
     if GameMenuFrame:IsShown() then
         return Frame.HideGameMenu()
     end
 
-    if ShowUIPanel then
-        return ShowUIPanel(GameMenuFrame)
+    if type(ShowUIPanel) == "function" then
+        pcall(ShowUIPanel, GameMenuFrame)
+        if GameMenuFrame:IsShown() then return true, "OK" end
+        return false, "SHOW_FAILED"
     end
 
-    return GameMenuFrame:Show()
+    local show = GameMenuFrame.Show
+    if type(show) == "function" then
+        pcall(show, GameMenuFrame)
+        if GameMenuFrame:IsShown() then return true, "FALLBACK" end
+    end
+
+    return false, "SHOW_FAILED"
 end
 
 function Frame.GetNamePlateForUnit(unit, includeForbidden)

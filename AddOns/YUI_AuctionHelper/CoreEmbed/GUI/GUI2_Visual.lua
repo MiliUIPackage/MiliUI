@@ -39,9 +39,66 @@ local PROC_START_FADE_DURATION = 0.08
 local PROC_LOOP_FADE_DELAY = 0.25
 local PROC_LOOP_FADE_DURATION = 0.10
 local PROC_TEMPLATE_SCALE = 1.4
+local PROC_SQUARE_TARGET_FIT_SCALE = 0.05
 local PROC_TEMPLATE_START_SCALE = 3.28
 local PROC_CIRCLE_START_SCALE = 3.75
 local PROC_CIRCLE_LOOP_SCALE = 1.58
+local PROC_APPEARANCE_OUTSET_SCALE = 0.20
+local PROC_APPEARANCE_AXIS_SCALE = 0.25
+
+local function IsSquareProcTarget(shape)
+    return shape == "square"
+        or shape == "flatSquare"
+        or shape == "wideSquare"
+end
+
+local function GetManagedProcTargetFit(frame, width, height, targetShape)
+    if not IsSquareProcTarget(targetShape) then return 0 end
+    local pixel = GUI2.GetPixelSize
+        and GUI2:GetPixelSize(frame, 1, 1)
+        or (GUI2.mult or 1)
+    local fit = math.min(width, height) * PROC_SQUARE_TARGET_FIT_SCALE
+    return math.floor(fit / pixel + 0.5) * pixel
+end
+
+local function SnapManagedProcValue(frame, value, pixel)
+    pixel = pixel or (GUI2.GetPixelSize
+        and GUI2:GetPixelSize(frame, 1, 1)) or (GUI2.mult or 1)
+    if not pixel or pixel <= 0 then return tonumber(value) or 0 end
+    return math.floor((tonumber(value) or 0) / pixel + 0.5) * pixel
+end
+
+local function GetManagedProcAppearanceSize(frame, width, height)
+    if frame.gui2ProcAppearanceCustom ~= true then
+        return width, height
+    end
+    local pixel = GUI2.GetPixelSize
+        and GUI2:GetPixelSize(frame, 1, 1) or (GUI2.mult or 1)
+    local base = math.min(width, height)
+    local size = frame.gui2ProcAppearanceSize or 1
+    local outset = SnapManagedProcValue(
+        frame,
+        base * PROC_APPEARANCE_OUTSET_SCALE * (size - 1),
+        pixel
+    )
+    local expandX = SnapManagedProcValue(
+        frame,
+        width * PROC_APPEARANCE_AXIS_SCALE
+            * (frame.gui2ProcAppearanceOffsetX or 0),
+        pixel
+    )
+    local expandY = SnapManagedProcValue(
+        frame,
+        height * PROC_APPEARANCE_AXIS_SCALE
+            * (frame.gui2ProcAppearanceOffsetY or 0),
+        pixel
+    )
+    local horizontalCompensation = pixel
+        * (frame.gui2ProcHorizontalCompensationPixels or 0)
+    return math.max(pixel, width + 2 * (
+        outset + expandX + horizontalCompensation
+    )), math.max(pixel, height + 2 * (outset + expandY))
+end
 
 local function Bundle(path)
     if Assets and Assets.Bundle then
@@ -68,6 +125,7 @@ local PROC_CIRCLE_BORDER =
     CoreMedia("gui2\\shapes\\circle-border-4.tga")
 local PROC_CIRCLE_SOFT =
     CoreMedia("gui2\\shapes\\circle-border-3.tga")
+local PROC_SQUARE_FALLBACK = "Interface\\Buttons\\UI-ActionButton-Border"
 
 local STATUS_BAR_TEXTURES = {
     solid = WHITE,
@@ -883,7 +941,43 @@ local function CreateCircleProcFallback(parent)
     fadeOut:SetDuration(0.42)
     fadeOut:SetOrder(2)
     frame.gui2ProcPulse = pulse
+    frame.gui2ProcPulseFadeIn = fadeIn
+    frame.gui2ProcPulseFadeOut = fadeOut
     frame.gui2ProcBackend = "circle-fallback"
+    return frame
+end
+
+local function CreateSquareProcFallback(parent)
+    local frame = CreateFrame("Frame", nil, parent)
+    frame.gui2ManagedProcGlow = true
+    frame.gui2ProcShape = "square"
+    frame.gui2ProcFallback = true
+    frame:EnableMouse(false)
+    frame:Hide()
+
+    local border = frame:CreateTexture(nil, "OVERLAY")
+    border:SetAllPoints(frame)
+    border:SetTexture(PROC_SQUARE_FALLBACK)
+    border:SetVertexColor(1, 0.78, 0.16, 1)
+    border:SetBlendMode("ADD")
+    frame.gui2ProcBorder = border
+
+    local pulse = frame:CreateAnimationGroup()
+    pulse:SetLooping("REPEAT")
+    local fadeIn = pulse:CreateAnimation("Alpha")
+    fadeIn:SetFromAlpha(0.65)
+    fadeIn:SetToAlpha(1)
+    fadeIn:SetDuration(0.42)
+    fadeIn:SetOrder(1)
+    local fadeOut = pulse:CreateAnimation("Alpha")
+    fadeOut:SetFromAlpha(1)
+    fadeOut:SetToAlpha(0.65)
+    fadeOut:SetDuration(0.42)
+    fadeOut:SetOrder(2)
+    frame.gui2ProcPulse = pulse
+    frame.gui2ProcPulseFadeIn = fadeIn
+    frame.gui2ProcPulseFadeOut = fadeOut
+    frame.gui2ProcBackend = "square-fallback"
     return frame
 end
 
@@ -930,13 +1024,16 @@ local function CreateCircleProcGlow(parent)
         2
     )
     frame.ProcStartAnim = startGroup
+    frame.gui2ProcStartAlphaAnimation = startAlpha
+    frame.gui2ProcStartFlipAnimation = startFlip
 
     local startFade = frame:CreateAnimationGroup()
     if startFade.SetToFinalAlpha then
         startFade:SetToFinalAlpha(true)
     end
+    local startFadeAnimation = CreateAnimation(startFade, "Alpha")
     valid = valid and ConfigureAlpha(
-        CreateAnimation(startFade, "Alpha"),
+        startFadeAnimation,
         startTexture,
         1,
         0,
@@ -951,23 +1048,27 @@ local function CreateCircleProcGlow(parent)
         end)
     end
     frame.ProcStartFadeOut = startFade
+    frame.gui2ProcStartFadeAnimation = startFadeAnimation
 
     local loopGroup = frame:CreateAnimationGroup()
     loopGroup:SetLooping("REPEAT")
+    local loopFlipAnimation = CreateAnimation(loopGroup, "FlipBook")
     valid = valid and ConfigureFlipbook(
-        CreateAnimation(loopGroup, "FlipBook"),
+        loopFlipAnimation,
         loopTexture,
         PROC_LOOP_DURATION,
         1
     )
     frame.ProcLoop = loopGroup
+    frame.gui2ProcLoopFlipAnimation = loopFlipAnimation
 
     local loopFade = frame:CreateAnimationGroup()
     if loopFade.SetToFinalAlpha then
         loopFade:SetToFinalAlpha(true)
     end
+    local loopFadeAnimation = CreateAnimation(loopFade, "Alpha")
     valid = valid and ConfigureAlpha(
-        CreateAnimation(loopFade, "Alpha"),
+        loopFadeAnimation,
         loopTexture,
         0,
         1,
@@ -976,6 +1077,7 @@ local function CreateCircleProcGlow(parent)
         PROC_LOOP_FADE_DELAY
     )
     frame.ProcLoopFadeIn = loopFade
+    frame.gui2ProcLoopFadeAnimation = loopFadeAnimation
 
     if not valid then
         StopProcAnimations(frame)
@@ -985,7 +1087,15 @@ local function CreateCircleProcGlow(parent)
     return frame
 end
 
-function GUI2:CreateManagedProcGlow(parent, shape)
+function GUI2:CreateManagedProcGlow(
+    parent,
+    shape,
+    width,
+    height,
+    frameLevel,
+    frameStrata,
+    targetShape
+)
     if not parent then return nil end
     shape = shape == "circle" and "circle" or "square"
     local frame
@@ -1009,35 +1119,76 @@ function GUI2:CreateManagedProcGlow(parent, shape)
             frame:SetAlpha(1)
             frame:Hide()
         end
+        frame = frame or CreateSquareProcFallback(parent)
     end
     if frame then
-        self:LayoutManagedProcGlow(frame, parent)
+        self:LayoutManagedProcGlow(
+            frame,
+            parent,
+            width,
+            height,
+            frameLevel,
+            frameStrata,
+            targetShape or shape
+        )
     end
     return frame
 end
 
-function GUI2:LayoutManagedProcGlow(frame, parent, width, height)
+function GUI2:LayoutManagedProcGlow(
+    frame,
+    parent,
+    width,
+    height,
+    frameLevel,
+    frameStrata,
+    targetShape
+)
     if not (frame and parent) then return false end
     width = tonumber(width)
         or (parent.GetWidth and parent:GetWidth()) or 36
     height = tonumber(height)
         or (parent.GetHeight and parent:GetHeight()) or 36
+    frame.gui2ProcLayoutParent = parent
+    frame.gui2ProcLayoutWidth = width
+    frame.gui2ProcLayoutHeight = height
+    frame.gui2ProcLayoutFrameLevel = frameLevel
+    frame.gui2ProcLayoutFrameStrata = frameStrata
+    targetShape = targetShape or frame.gui2ProcTargetShape
+        or frame.gui2ProcShape
+    frame.gui2ProcTargetShape = targetShape
+    local visualWidth, visualHeight = GetManagedProcAppearanceSize(
+        frame,
+        width,
+        height
+    )
     frame:ClearAllPoints()
     frame:SetPoint("CENTER", parent, "CENTER", 0, 0)
-    if frame.SetFrameLevel and parent.GetFrameLevel then
+    if type(frameStrata) == "string" and frame.SetFrameStrata then
+        frame:SetFrameStrata(frameStrata)
+    end
+    if type(frameLevel) == "number" and frame.SetFrameLevel then
+        frame:SetFrameLevel(frameLevel)
+    elseif frame.SetFrameLevel and parent.GetFrameLevel then
         frame:SetFrameLevel((parent:GetFrameLevel() or 0) + 8)
     end
     if frame.gui2ProcTemplate then
+        local targetFit = GetManagedProcTargetFit(
+            frame,
+            visualWidth,
+            visualHeight,
+            targetShape
+        )
         frame:SetSize(
-            width * PROC_TEMPLATE_SCALE,
-            height * PROC_TEMPLATE_SCALE
+            visualWidth * PROC_TEMPLATE_SCALE + targetFit * 2,
+            visualHeight * PROC_TEMPLATE_SCALE + targetFit * 2
         )
         if frame.ProcStartFlipbook then
             frame.ProcStartFlipbook:ClearAllPoints()
             frame.ProcStartFlipbook:SetPoint("CENTER", frame)
             frame.ProcStartFlipbook:SetSize(
-                width * PROC_TEMPLATE_START_SCALE,
-                height * PROC_TEMPLATE_START_SCALE
+                visualWidth * PROC_TEMPLATE_START_SCALE,
+                visualHeight * PROC_TEMPLATE_START_SCALE
             )
         end
         if frame.ProcLoopFlipbook then
@@ -1046,19 +1197,201 @@ function GUI2:LayoutManagedProcGlow(frame, parent, width, height)
         end
     elseif frame.gui2ProcFlipbook then
         frame:SetSize(
-            width * PROC_CIRCLE_START_SCALE,
-            height * PROC_CIRCLE_START_SCALE
+            visualWidth * PROC_CIRCLE_START_SCALE,
+            visualHeight * PROC_CIRCLE_START_SCALE
         )
         frame.ProcStartFlipbook:ClearAllPoints()
         frame.ProcStartFlipbook:SetAllPoints(frame)
         frame.ProcLoopFlipbook:ClearAllPoints()
         frame.ProcLoopFlipbook:SetPoint("CENTER", frame)
         frame.ProcLoopFlipbook:SetSize(
-            width * PROC_CIRCLE_LOOP_SCALE,
-            height * PROC_CIRCLE_LOOP_SCALE
+            visualWidth * PROC_CIRCLE_LOOP_SCALE,
+            visualHeight * PROC_CIRCLE_LOOP_SCALE
+        )
+    elseif frame.gui2ProcFallback then
+        local targetFit = GetManagedProcTargetFit(
+            frame,
+            visualWidth,
+            visualHeight,
+            targetShape
+        )
+        frame:SetSize(
+            visualWidth * PROC_TEMPLATE_SCALE + targetFit * 2,
+            visualHeight * PROC_TEMPLATE_SCALE + targetFit * 2
         )
     else
-        frame:SetSize(width + 6, height + 6)
+        frame:SetSize(visualWidth + 6, visualHeight + 6)
+    end
+    return true
+end
+
+local function SetManagedProcAnimationDuration(animation, duration)
+    if animation and animation.SetDuration then
+        pcall(animation.SetDuration, animation, duration)
+    end
+end
+
+local function SetManagedProcAnimationDelay(animation, delay)
+    if animation and animation.SetStartDelay then
+        pcall(animation.SetStartDelay, animation, delay)
+    end
+end
+
+local function SetManagedProcTextureAppearance(
+    texture,
+    hasCustomColor,
+    r,
+    g,
+    b,
+    alpha
+)
+    if not texture then return end
+    if texture.SetDesaturated then
+        texture:SetDesaturated(hasCustomColor)
+    end
+    if texture.SetVertexColor then
+        texture:SetVertexColor(r, g, b, alpha)
+    end
+end
+
+function GUI2:SetManagedProcGlowAppearance(frame, appearance)
+    if not frame then return false end
+    local custom = type(appearance) == "table"
+    appearance = custom and appearance or {}
+    local hasCustomColor = type(appearance.color) == "table"
+    local color = hasCustomColor and appearance.color or DEFAULT_COLOR
+    local r = ColorComponent(color, "r", 1, 1)
+    local g = ColorComponent(color, "g", 2, 1)
+    local b = ColorComponent(color, "b", 3, 1)
+    local colorAlpha = ColorComponent(color, "a", 4, 1)
+    local alpha = Clamp(appearance.alpha, 0, 1, 1) * colorAlpha
+    local size = Clamp(appearance.size, 0.25, 5, 1)
+    local speed = Clamp(appearance.speed, 0, 4, 1)
+    local effectiveSpeed = math.max(0.2, speed)
+    local offsetX = Clamp(
+        appearance.offsetX or appearance.xOffset,
+        -1,
+        1,
+        0
+    )
+    local offsetY = Clamp(
+        appearance.offsetY or appearance.yOffset,
+        -1,
+        1,
+        0
+    )
+    local horizontalCompensation = Clamp(
+        appearance.horizontalCompensationPixels,
+        0,
+        4,
+        0
+    )
+    local changed = frame.gui2ProcAppearanceCustom ~= custom
+        or frame.gui2ProcAppearanceHasCustomColor ~= hasCustomColor
+        or frame.gui2ProcAppearanceR ~= r
+        or frame.gui2ProcAppearanceG ~= g
+        or frame.gui2ProcAppearanceB ~= b
+        or frame.gui2ProcAppearanceAlpha ~= alpha
+        or frame.gui2ProcAppearanceSize ~= size
+        or frame.gui2ProcAppearanceSpeed ~= speed
+        or frame.gui2ProcAppearanceOffsetX ~= offsetX
+        or frame.gui2ProcAppearanceOffsetY ~= offsetY
+        or frame.gui2ProcHorizontalCompensationPixels
+            ~= horizontalCompensation
+    if not changed then return false end
+
+    frame.gui2ProcAppearanceCustom = custom
+    frame.gui2ProcAppearanceHasCustomColor = hasCustomColor
+    frame.gui2ProcAppearanceR = r
+    frame.gui2ProcAppearanceG = g
+    frame.gui2ProcAppearanceB = b
+    frame.gui2ProcAppearanceAlpha = alpha
+    frame.gui2ProcAppearanceSize = size
+    frame.gui2ProcAppearanceSpeed = speed
+    frame.gui2ProcAppearanceOffsetX = offsetX
+    frame.gui2ProcAppearanceOffsetY = offsetY
+    frame.gui2ProcHorizontalCompensationPixels = horizontalCompensation
+
+    SetManagedProcTextureAppearance(
+        frame.ProcStartFlipbook,
+        hasCustomColor,
+        r,
+        g,
+        b,
+        alpha
+    )
+    SetManagedProcTextureAppearance(
+        frame.ProcLoopFlipbook,
+        hasCustomColor,
+        r,
+        g,
+        b,
+        alpha
+    )
+    SetManagedProcTextureAppearance(
+        frame.gui2ProcBorder,
+        hasCustomColor,
+        r,
+        g,
+        b,
+        alpha
+    )
+    SetManagedProcTextureAppearance(
+        frame.gui2ProcSoft,
+        hasCustomColor,
+        r,
+        g,
+        b,
+        alpha * 0.72
+    )
+
+    SetManagedProcAnimationDuration(
+        frame.gui2ProcStartAlphaAnimation,
+        0.001 / effectiveSpeed
+    )
+    SetManagedProcAnimationDuration(
+        frame.gui2ProcStartFlipAnimation,
+        PROC_START_DURATION / effectiveSpeed
+    )
+    SetManagedProcAnimationDuration(
+        frame.gui2ProcStartFadeAnimation,
+        PROC_START_FADE_DURATION / effectiveSpeed
+    )
+    SetManagedProcAnimationDelay(
+        frame.gui2ProcStartFadeAnimation,
+        PROC_START_FADE_DELAY / effectiveSpeed
+    )
+    SetManagedProcAnimationDuration(
+        frame.gui2ProcLoopFlipAnimation,
+        PROC_LOOP_DURATION / effectiveSpeed
+    )
+    SetManagedProcAnimationDuration(
+        frame.gui2ProcLoopFadeAnimation,
+        PROC_LOOP_FADE_DURATION / effectiveSpeed
+    )
+    SetManagedProcAnimationDelay(
+        frame.gui2ProcLoopFadeAnimation,
+        PROC_LOOP_FADE_DELAY / effectiveSpeed
+    )
+    SetManagedProcAnimationDuration(
+        frame.gui2ProcPulseFadeIn,
+        0.42 / effectiveSpeed
+    )
+    SetManagedProcAnimationDuration(
+        frame.gui2ProcPulseFadeOut,
+        0.42 / effectiveSpeed
+    )
+
+    if frame.gui2ProcLayoutParent then
+        self:LayoutManagedProcGlow(
+            frame,
+            frame.gui2ProcLayoutParent,
+            frame.gui2ProcLayoutWidth,
+            frame.gui2ProcLayoutHeight,
+            frame.gui2ProcLayoutFrameLevel,
+            frame.gui2ProcLayoutFrameStrata,
+            frame.gui2ProcTargetShape
+        )
     end
     return true
 end
@@ -1103,6 +1436,15 @@ local function GetState(target, state)
         Visual.states[target] = state
     end
     return state
+end
+
+local function IsSecretValue(value)
+    local Security = YUI.API and YUI.API.Security
+    if not (Security and type(Security.IsSecretValue) == "function") then
+        return false
+    end
+    local ok, secret = pcall(Security.IsSecretValue, value)
+    return ok and secret == true
 end
 
 local function SetShown(region, shown, state, key)
@@ -1499,6 +1841,52 @@ function GUI2:ApplyCooldownChrome(target, snapshot, state)
     return writes
 end
 
+local countMeasureFrame, countMeasureText
+local countMeasureFont, countMeasureSize, countMeasureOutline
+local countMeasureWidth, countMeasureHeight
+
+function GUI2:SizeStatusBarCountText(fontString, appearance, state)
+    appearance = type(appearance) == "table" and appearance or {}
+    if state and state.numericRegion == fontString
+        and state.numericFont == appearance.font
+        and state.numericSize == appearance.size
+        and state.numericOutline == appearance.outline then return false end
+    if not countMeasureText then
+        -- 测量对象不进入 AuraFrame 子树，永远只接收公开数字样本。
+        countMeasureFrame = GUI2:CreateFrame(_G.UIParent, {
+            hidden = true, mouse = false,
+        })
+        countMeasureText = GUI2:CreateText(countMeasureFrame, "", 13)
+        countMeasureText:SetWordWrap(false)
+    end
+    appearance = type(appearance) == "table" and appearance or {}
+    GUI2:ApplyFontAppearance(countMeasureText, appearance)
+    local font, size, outline = countMeasureText:GetFont()
+    if countMeasureFont ~= font or countMeasureSize ~= size
+        or countMeasureOutline ~= outline then
+        local width, height = 0, 0
+        for digit = 0, 9 do
+            countMeasureText:SetText(string.rep(tostring(digit), 10))
+            width = math.max(width, countMeasureText:GetStringWidth())
+            height = math.max(height, countMeasureText:GetStringHeight())
+        end
+        countMeasureWidth = math.ceil(width) + 4
+        countMeasureHeight = math.ceil(math.max(height, size)) + 4
+        countMeasureFont, countMeasureSize, countMeasureOutline =
+            font, size, outline
+    end
+    fontString:SetWordWrap(false)
+    fontString:SetNonSpaceWrap(false)
+    fontString:SetMaxLines(1)
+    fontString:SetJustifyV("MIDDLE")
+    fontString:SetSize(countMeasureWidth, countMeasureHeight)
+    if state then
+        state.numericRegion, state.numericFont = fontString, appearance.font
+        state.numericSize, state.numericOutline = appearance.size, appearance.outline
+    end
+    return true
+end
+
 function GUI2:ApplyTextStyle(target, snapshot, state)
     if not (target and target.SetFont) then return 0 end
     snapshot = snapshot or {}
@@ -1540,7 +1928,7 @@ function GUI2:ApplyTextStyle(target, snapshot, state)
             "shown"
         )
     end
-    if target.ClearAllPoints and target.SetPoint then
+    if state.preserveAnchors ~= true and target.ClearAllPoints and target.SetPoint then
         local position = snapshot.position or "center"
         local point = "CENTER"
         local justify = "CENTER"
@@ -1607,16 +1995,32 @@ function GUI2:PositionStatusBarText(
     icon,
     showIcon,
     kind,
-    state
+    state,
+    preferPosition,
+    trustedWidth
 )
     if not (fontString and track
         and fontString.ClearAllPoints and fontString.SetPoint) then
         return false
     end
     appearance = type(appearance) == "table" and appearance or {}
+    state = GetState(fontString, state)
     local anchor = appearance.anchor
     if type(anchor) ~= "string" or anchor == "auto" then
-        if kind == "count" then
+        local position = appearance.position
+        if preferPosition == true
+            and (position == "center"
+                or position == "top"
+                or position == "bottom"
+                or position == "left"
+                or position == "right"
+                or position == "top-left"
+                or position == "bottom-left"
+                or position == "top-right"
+                or position == "bottom-right") then
+            anchor = position == "center"
+                and "bar-center" or "bar-" .. position
+        elseif kind == "count" then
             if orientation == "vertical" then
                 anchor = "bar-outside-top"
             else
@@ -1631,17 +2035,7 @@ function GUI2:PositionStatusBarText(
         end
     elseif anchor:find("icon-", 1, true) == 1
         and (showIcon == false or not icon) then
-        if anchor:find("left", 1, true) then
-            anchor = "bar-left"
-        elseif anchor:find("right", 1, true) then
-            anchor = "bar-right"
-        elseif anchor:find("top", 1, true) then
-            anchor = "bar-top"
-        elseif anchor:find("bottom", 1, true) then
-            anchor = "bar-bottom"
-        else
-            anchor = "bar-center"
-        end
+        anchor = "bar-" .. anchor:sub(6)
     end
 
     local target = anchor:find("icon-", 1, true) == 1
@@ -1692,7 +2086,7 @@ function GUI2:PositionStatusBarText(
     x = x + (tonumber(appearance.offsetX) or 0)
     y = y + (tonumber(appearance.offsetY) or 0)
 
-    local changed = not state or state.target ~= target
+    local changed = state.region ~= fontString or state.target ~= target
         or state.point ~= point or state.relativePoint ~= relativePoint
         or state.x ~= x or state.y ~= y or state.justify ~= justify
     if changed then
@@ -1702,11 +2096,36 @@ function GUI2:PositionStatusBarText(
             fontString:SetJustifyH(justify)
         end
         if state then
+            state.region = fontString
             state.target = target
             state.point = point
             state.relativePoint = relativePoint
             state.x, state.y = x, y
             state.justify = justify
+        end
+    end
+    if kind == "name" and fontString.SetWidth then
+        local layoutWidth
+        if type(trustedWidth) == "number"
+            and not IsSecretValue(trustedWidth) then
+            layoutWidth = trustedWidth
+        elseif track.GetWidth then
+            local ok, value = pcall(track.GetWidth, track)
+            if ok and type(value) == "number"
+                and not IsSecretValue(value) then
+                layoutWidth = value
+            end
+        end
+        if layoutWidth == nil then
+            state.nameWidth = nil
+            return true, anchor, changed
+        end
+        local width = math.max(1, layoutWidth - 8)
+        if state.nameWidth ~= width or state.nameWidthRegion ~= fontString then
+            fontString:SetWidth(width)
+            state.nameWidth = width
+            state.nameWidthRegion = fontString
+            changed = true
         end
     end
     return true, anchor, changed

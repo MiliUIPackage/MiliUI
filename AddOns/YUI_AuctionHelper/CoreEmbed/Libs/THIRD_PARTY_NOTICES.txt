@@ -1,0 +1,65 @@
+YUI CoreEmbed Third-Party Notices
+=================================
+
+The following third-party libraries are distributed as source code inside
+CoreEmbed/Libs. Their original copyright and license notices remain in the
+library sources and in the accompanying license files.
+
+Ace3 libraries
+--------------
+
+Files:
+- AceDB-3.0/AceDB-3.0.lua
+- AceSerializer-3.0/AceSerializer-3.0.lua
+- CallbackHandler-1.0/CallbackHandler-1.0.lua
+
+Copyright (c) 2007, Ace3 Development Team.
+License: Ace3 BSD-style license.
+License file: Ace3-LICENSE.txt
+Upstream: https://github.com/WoWUIDev/Ace3
+
+LibStub
+-------
+
+File: LibStub/LibStub.lua
+License: Public Domain, as declared in the source file.
+
+LibRangeCheck-3.0
+-----------------
+
+File: LibRangeCheck-3.0/LibRangeCheck-3.0.lua
+Copyright (c) 2023 The WoWUIDev Community.
+License: MIT.
+License file: LibRangeCheck-3.0/LICENSE
+Upstream: https://github.com/WeakAuras/LibRangeCheck-3.0
+
+LibDeflate
+----------
+
+File: LibDeflate/LibDeflate.lua
+Copyright (c) 2018-2021 Haoqian He.
+License: zlib License. The source retains its bundled third-party notices.
+License file: LibDeflate/LICENSE.txt
+Upstream: https://github.com/SafeteeWoW/LibDeflate
+
+LibSharedMedia-3.0
+------------------
+
+File: LibSharedMedia-3.0/LibSharedMedia-3.0.lua
+Author: Elkano.
+License: GNU Lesser General Public License version 2.1, as declared in the
+vendored source file.
+License file: LibSharedMedia-3.0/LICENSE-LGPL-2.1.txt
+Project: https://www.curseforge.com/wow/addons/libsharedmedia-3-0
+
+LibBlzSettings-1.0
+------------------
+
+Files:
+- LibBlzSettings-1.0/LibBlzSettings-1.0.lua
+- LibBlzSettings-1.0/ExtraControls.lua
+
+Author: Sanluli36li.
+License: MIT.
+License file: LibBlzSettings-1.0/LICENSE
+Upstream: https://github.com/Sanluli36li/LibBlzSettings

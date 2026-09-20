@@ -58,6 +58,12 @@ local BUILTIN_ANCHOR_TARGETS = P.BUILTIN_ANCHOR_TARGETS or {}
 local PARTY_ANCHOR_TARGET = BUILTIN_ANCHOR_TARGETS.PARTY or "@YUI.PartyFrame"
 local RAID_ANCHOR_TARGET = BUILTIN_ANCHOR_TARGETS.RAID or "@YUI.RaidFrame"
 
+-- Fixed counters only during explicit scene capture; no clock or allocation here.
+local function LayoutPerformance()
+    local watchdog = YUI.CPUWatchdog
+    return watchdog and watchdog.sceneCapture and watchdog.sceneCapture.layoutPerf
+end
+
 local function NormalizeAnchorTargetName(name)
     name = tostring(name or "")
     name = string_gsub(name, "^%s+", "")
@@ -402,14 +408,42 @@ local function GetOptions()
 end
 P.GetOptions = GetOptions
 
-local function SavePlacement(id, placement)
+-- Optional owner storage keeps a designer draft out of the shared profile.
+-- The ordinary Layout store remains the default for every existing consumer.
+local function OwnerPlacementStorage(id)
+    local entry = Layout.frames[id]
+    return entry and entry.spec and entry.spec.placementStorage
+end
+
+local function GetPlacementStorageIdentity(id)
+    local storage = OwnerPlacementStorage(id)
+    if storage then return storage:identity(id) end
     local db = EnsureDB()
-    if not db then return end
+    return db and db.frames
+end
+P.GetPlacementStorageIdentity = GetPlacementStorageIdentity
+
+local function SavePlacement(id, placement)
+    local storage = OwnerPlacementStorage(id)
+    if storage then
+        local ok,result,reason=pcall(storage.set,storage,id,CopyPlacement(placement))
+        if not ok then return false,"placement-storage-failed" end
+        return result,reason
+    end
+    local db = EnsureDB()
+    if not db then return false, "missing-profile" end
     db.frames[id] = CopyPlacement(placement)
+    return true
 end
 P.SavePlacement = SavePlacement
 
 local function ClearSavedPlacement(id)
+    local storage = OwnerPlacementStorage(id)
+    if storage then
+        local ok,result,reason=pcall(storage.clear,storage,id)
+        if not ok then return false,"placement-storage-failed" end
+        return result,reason
+    end
     local db = EnsureDB()
     if not db or type(db.frames) ~= "table" then return false end
     db.frames[id] = nil
@@ -418,6 +452,8 @@ end
 P.ClearSavedPlacement = ClearSavedPlacement
 
 local function GetSavedPlacement(id)
+    local storage = OwnerPlacementStorage(id)
+    if storage then return NormalizePlacement(storage:get(id)) end
     local db = EnsureDB()
     return db and NormalizePlacement(db.frames[id]) or nil
 end
@@ -448,6 +484,8 @@ local function BuildAnchorTargetOptions(entry)
 end
 P.BuildAnchorTargetOptions = BuildAnchorTargetOptions
 
+local NameIndex = {}
+
 local function ResolveEntryFrame(entry)
     if not entry then return nil end
     if entry.frame then return entry.frame end
@@ -463,6 +501,7 @@ local function ResolveEntryFrame(entry)
     end
     if frame then
         entry.frame = frame
+        if NameIndex.Update and entry.nameIndexOrder then NameIndex.Update(entry, frame) end
     end
     return entry.frame
 end
@@ -524,17 +563,90 @@ local function EntryFrameName(entry)
 end
 P.EntryFrameName = EntryFrameName
 
+-- Stable names are indexed. Only unresolved registrations retain ordered probing.
+NameIndex.buckets, NameIndex.unresolved, NameIndex.serial = {}, {}, 0
+function NameIndex.Remove(entry)
+    local list = entry.nameIndexName and NameIndex.buckets[entry.nameIndexName]
+    if list then
+        for i, candidate in ipairs(list) do if candidate == entry then tremove(list, i); break end end
+        if not next(list) then NameIndex.buckets[entry.nameIndexName] = nil end
+    end
+    if entry.nameIndexUnresolved then
+        for i, candidate in ipairs(NameIndex.unresolved) do
+            if candidate == entry then tremove(NameIndex.unresolved, i); break end
+        end
+    end
+    entry.nameIndexName, entry.nameIndexUnresolved = nil, nil
+    entry.nameIndexFrame, entry.nameIndexTracked = nil, nil
+end
+function NameIndex.Insert(list, entry)
+    local at = #list + 1
+    for i, candidate in ipairs(list) do
+        if candidate.nameIndexOrder > entry.nameIndexOrder then at = i; break end
+    end
+    table.insert(list, at, entry)
+end
+function NameIndex.Update(entry, frame)
+    -- Frame names are immutable; repeated refreshes need no bucket allocation.
+    if entry.nameIndexTracked and entry.nameIndexFrame == frame then return end
+    NameIndex.Remove(entry)
+    entry.nameIndexFrame, entry.nameIndexTracked = frame, true
+    local perf = LayoutPerformance()
+    if perf then perf.indexUpdates = (perf.indexUpdates or 0) + 1 end
+    if not frame then
+        entry.nameIndexUnresolved = true
+        NameIndex.Insert(NameIndex.unresolved, entry)
+        return
+    end
+    local name
+    if frame == UIParent then name = "UIParent"
+    elseif frame.GetName then name = frame:GetName() end
+    if not name or name == "" then return end
+    entry.nameIndexName = name
+    local list = NameIndex.buckets[name]
+    if not list then list = {}; NameIndex.buckets[name] = list end
+    NameIndex.Insert(list, entry)
+end
+function NameIndex.Ensure()
+    if NameIndex.registry == Layout.frames then return end
+    NameIndex.registry = Layout.frames
+    NameIndex.buckets, NameIndex.unresolved, NameIndex.serial = {}, {}, 0
+    for _, id in ipairs(Layout.order) do
+        local entry = Layout.frames[id]
+        if entry then
+            NameIndex.serial = NameIndex.serial + 1
+            entry.nameIndexOrder, entry.nameIndexName, entry.nameIndexUnresolved = NameIndex.serial, nil, nil
+            entry.nameIndexFrame, entry.nameIndexTracked = nil, nil
+            NameIndex.Update(entry, entry.frame or (type(entry.spec and entry.spec.frame) == "table" and entry.spec.frame))
+        end
+    end
+end
 local function FindEntryByFrameName(name)
     name = NormalizeAnchorTargetName(name)
     if name == "" or name == "UIParent" then return nil end
-    for _, id in ipairs(Layout.order) do
-        local entry = Layout.frames[id]
-        if entry and EntryFrameName(entry) == name then
-            return entry
-        end
+    NameIndex.Ensure()
+    local perf = LayoutPerformance()
+    if perf then perf.lookupCalls = perf.lookupCalls + 1 end
+    local list = NameIndex.buckets[name]
+    local found = list and list[1]
+    local i = 1
+    while NameIndex.unresolved[i] do
+        local entry = NameIndex.unresolved[i]
+        if found and entry.nameIndexOrder >= found.nameIndexOrder then break end
+        if perf then perf.lookupScanned = perf.lookupScanned + 1 end
+        ResolveEntryFrame(entry)
+        list = NameIndex.buckets[name]
+        found = list and list[1]
+        if NameIndex.unresolved[i] == entry then i = i + 1 end
     end
+    if found then
+        if perf then perf.indexHits = (perf.indexHits or 0) + 1 end
+        return found
+    end
+    if perf then perf.lookupMisses = perf.lookupMisses + 1 end
     return nil
 end
+P.NameIndexImplementation = "name-index-1"
 P.FindEntryByFrameName = FindEntryByFrameName
 
 local function IsAnchorTargetAvailable(entry)
@@ -543,6 +655,9 @@ end
 P.IsAnchorTargetAvailable = IsAnchorTargetAvailable
 
 local function WouldCreateAnchorCycle(sourceId, targetName)
+    local perf = LayoutPerformance()
+    if perf then perf.cycleChecks = perf.cycleChecks + 1 end
+    local steps = 0
     targetName = NormalizeAnchorTargetName(targetName)
     if targetName == "" or targetName == "UIParent" then return false end
 
@@ -554,6 +669,11 @@ local function WouldCreateAnchorCycle(sourceId, targetName)
     local seen = {}
     local currentName = targetName
     while currentName and currentName ~= "" and currentName ~= "UIParent" do
+        if perf then
+            steps = steps + 1
+            perf.chainSteps = perf.chainSteps + 1
+            if steps > perf.chainMax then perf.chainMax = steps end
+        end
         if sourceName and currentName == sourceName then return true end
         if seen[currentName] then return false end
         seen[currentName] = true
@@ -593,6 +713,10 @@ local function ResolveAnchorFrame(entry, ref, sourceFrame, allowPending)
         return UIParent, PLACEMENT_READY, "UIParent"
     end
 
+    if P.ResolveProvidedAnchor then
+        local provided, state, known = P.ResolveProvidedAnchor(name, sourceFrame)
+        if known then return provided, state, name end
+    end
     local targetEntry = FindEntryByFrameName(name)
     if targetEntry and not IsAnchorTargetAvailable(targetEntry) then
         return nil, PLACEMENT_UNAVAILABLE, name
@@ -616,7 +740,7 @@ local function ResolveAnchorFrame(entry, ref, sourceFrame, allowPending)
         return nil, "invalid", name
     end
 
-    local frame = _G[name]
+    local frame = targetEntry and ResolveEntryFrame(targetEntry) or _G[name]
     if IsUsableAnchorFrame(frame) then
         if frame == sourceFrame then return nil, "self", name end
         return frame, PLACEMENT_READY, name
@@ -1090,6 +1214,8 @@ local function IsCombatPlacementProtected(entry, frame)
 end
 
 local function SetPlacementCombatDeferred(entry, placement)
+    local perf = LayoutPerformance()
+    if perf then perf.combatDeferred = perf.combatDeferred + 1 end
     if not entry then return false end
     entry.combatDeferredPlacement = CopyPlacement(placement)
     if Layout.combatDeferredPlacements then Layout.combatDeferredPlacements[entry.id] = true end
@@ -1097,21 +1223,26 @@ local function SetPlacementCombatDeferred(entry, placement)
 end
 
 local function SetPlacementReady(entry, frame)
+    local perf = LayoutPerformance()
+    if perf and (entry.placementState == PLACEMENT_PENDING or entry.placementState == PLACEMENT_FALLBACK
+        or entry.placementState == PLACEMENT_SIMULATED) then perf.resolved = perf.resolved + 1 end
     local wasPending = entry.placementState == PLACEMENT_PENDING
     entry.placementState = PLACEMENT_READY
     entry.pendingAnchor = nil
     entry.pendingPlacement = nil
+    if wasPending then RestorePendingVisibility(entry, frame) end
     entry.pendingAnchorWasShown = nil
     entry.simulatedAnchorWasShown = nil
     entry.fallbackPlacement = nil
     ClearCombatDeferred(entry)
     if Layout.pendingAnchors then Layout.pendingAnchors[entry.id] = nil end
-    if wasPending then RestorePendingVisibility(entry, frame) end
     if RefreshBuiltinAnchorPlaceholderVisibility then RefreshBuiltinAnchorPlaceholderVisibility() end
 end
 
 local function SetPlacementPending(entry, frame, placement, anchorName, deferOverlay)
-    local isNewPending = entry.placementState ~= PLACEMENT_PENDING or entry.pendingAnchor ~= anchorName
+    local wasPending = entry.placementState == PLACEMENT_PENDING
+    local isNewPending = not wasPending or entry.pendingAnchor ~= anchorName
+        or not BasicPlacementsEqual(entry.pendingPlacement, placement)
     local wasSimulated = entry.placementState == PLACEMENT_SIMULATED
     local simulatedWasShown = entry.simulatedAnchorWasShown
     entry.placementState = PLACEMENT_PENDING
@@ -1121,7 +1252,7 @@ local function SetPlacementPending(entry, frame, placement, anchorName, deferOve
     ClearCombatDeferred(entry)
     if isNewPending and wasSimulated then
         entry.pendingAnchorWasShown = simulatedWasShown == true
-    elseif isNewPending and frame and frame.IsShown then
+    elseif isNewPending and not wasPending and frame and frame.IsShown then
         entry.pendingAnchorWasShown = frame:IsShown()
     end
     entry.simulatedAnchorWasShown = nil
@@ -1134,6 +1265,8 @@ local function SetPlacementPending(entry, frame, placement, anchorName, deferOve
 end
 
 local function SetPlacementFallback(entry, frame, fallbackPlacement, pendingPlacement, anchorName)
+    local perf = LayoutPerformance()
+    if perf then perf.fallbackApplied = perf.fallbackApplied + 1 end
     entry.placementState = PLACEMENT_FALLBACK
     entry.pendingAnchor = anchorName
     entry.pendingPlacement = CopyPlacement(pendingPlacement)
@@ -1142,6 +1275,7 @@ local function SetPlacementFallback(entry, frame, fallbackPlacement, pendingPlac
     ClearCombatDeferred(entry)
     if Layout.pendingAnchors then Layout.pendingAnchors[entry.id] = true end
     RestorePendingVisibility(entry, frame)
+    if P.NotifyMissingAnchor then P.NotifyMissingAnchor(entry, anchorName, frame) end
     if RefreshBuiltinAnchorPlaceholderVisibility then RefreshBuiltinAnchorPlaceholderVisibility() end
 end
 
@@ -1165,12 +1299,20 @@ local function SetPlacementSimulated(entry, frame, placement, anchorName)
 end
 
 local function ResolveFallbackPlacement(entry, frame, pendingPlacement)
-    local fallback = NormalizePlacement(pendingPlacement and pendingPlacement.fallback)
+    local saved = pendingPlacement and pendingPlacement.fallback
+    local offset = saved and saved.offset
+    local validHistory = saved and saved.anchor and saved.anchor.relative == "UIParent"
+        and offset and type(offset.x) == "number" and type(offset.y) == "number"
+        and offset.x == offset.x and offset.y == offset.y
+        and math.abs(offset.x) < math.huge and math.abs(offset.y) < math.huge
+    local fallback = validHistory and NormalizePlacement(saved)
         or NormalizePlacement(ResolveSpecValue(entry, "fallbackPlacement", nil))
         or ResolveDefaultPlacement(entry)
     local _, status = ResolveAnchorFrame(entry, fallback and fallback.anchor and fallback.anchor.relative, frame, false)
-    if status ~= PLACEMENT_READY then
-        fallback = DefaultPlacement()
+    if status ~= PLACEMENT_READY then fallback = DefaultPlacement() end
+    fallback = ClampPlacementToScreen(entry, fallback)
+    if EvaluatePlacementVisibility(entry, fallback) ~= true then
+        fallback = ClampPlacementToScreen(entry, DefaultPlacement())
     end
     return fallback
 end
@@ -1204,7 +1346,10 @@ local function ApplyPixelOriginAlignment(
     if available ~= true then return false end
     if correctionX == 0 and correctionY == 0 then return false end
 
+    local writePerf = LayoutPerformance()
+    if writePerf then writePerf.clearCalls = writePerf.clearCalls + 1 end
     frame:ClearAllPoints()
+    if writePerf then writePerf.pointCalls = writePerf.pointCalls + 1 end
     frame:SetPoint(
         anchor.point or "CENTER",
         relativeFrame,
@@ -1223,6 +1368,8 @@ local function ApplyPixelOriginAlignment(
 end
 
 local function ApplyPlacement(entry, placement, skipCallback, options)
+    local perf = LayoutPerformance()
+    if perf then perf.applyAttempts = perf.applyAttempts + 1 end
     if not entry then return false end
     options = type(options) == "table" and options or nil
 
@@ -1246,10 +1393,33 @@ local function ApplyPlacement(entry, placement, skipCallback, options)
         entry,
         options and options.fallback and options.pendingPlacement or placement
     )
+    if P.TrackAnchorDependency then
+        local requested = options and options.fallback and options.pendingPlacement or placement
+        P.TrackAnchorDependency(entry, requested.anchor.relative)
+    end
     local frame = ResolveEntryFrame(entry)
     if not frame then return false end
     if InCombat() and IsCombatPlacementProtected(entry, frame) then
         return SetPlacementCombatDeferred(entry, placement)
+    end
+    ClearCombatDeferred(entry)
+    local placementStore = GetPlacementStorageIdentity(entry.id)
+    if entry.placementStore ~= placementStore then
+        -- A profile replacement starts a new request, even with the same anchor.
+        entry.pendingPlacement = nil
+        entry.placementStore = placementStore
+    end
+    local sameFrame = entry.placementFrame == frame
+    if not sameFrame then
+        entry.placementState = nil
+        entry.pendingPlacement = nil
+        entry.pendingAnchor = nil
+        entry.pendingAnchorWasShown = nil
+        entry.simulatedAnchorWasShown = nil
+        entry.fallbackPlacement = nil
+        entry.resolvedPlacementAnchorFrame = nil
+        entry.placementFrame = frame
+        if Layout.pendingAnchors then Layout.pendingAnchors[entry.id] = nil end
     end
     local relativeFrame, status, resolvedName
     if options and options.resolvedAnchorProvided == true
@@ -1261,6 +1431,14 @@ local function ApplyPlacement(entry, placement, skipCallback, options)
         relativeFrame, status, resolvedName = ResolveAnchorFrame(entry, anchor.relative, frame, true)
     end
     if status == PLACEMENT_PENDING or status == PLACEMENT_UNAVAILABLE then
+        if sameFrame and entry.placementState == PLACEMENT_FALLBACK
+            and BasicPlacementsEqual(entry.pendingPlacement, placement) then
+            -- Cache updates do not invalidate the fallback already applied to this frame.
+            local fallback = entry.fallbackPlacement
+            local _, fallbackStatus = ResolveAnchorFrame(entry,
+                fallback and fallback.anchor and fallback.anchor.relative, frame, false)
+            if fallback and fallbackStatus == PLACEMENT_READY then return false end
+        end
         entry.resolvedPlacementAnchorFrame = nil
         if status == PLACEMENT_UNAVAILABLE
             or (options and options.allowFallback) then
@@ -1273,9 +1451,6 @@ local function ApplyPlacement(entry, placement, skipCallback, options)
             })
             return ok
         end
-        if options and options.preserveFallback and entry.placementState == PLACEMENT_FALLBACK then
-            return false
-        end
         return SetPlacementPending(entry, frame, placement, resolvedName, options and options.deferOverlay)
     end
     if status == "self" or relativeFrame == frame then
@@ -1287,8 +1462,20 @@ local function ApplyPlacement(entry, placement, skipCallback, options)
         relativeFrame = ResolveFrameRef(anchor.relative)
     end
     ClearPixelOriginCorrection(entry)
+    local writePerf = LayoutPerformance()
+    if writePerf then writePerf.clearCalls = writePerf.clearCalls + 1 end
     frame:ClearAllPoints()
+    if writePerf then writePerf.pointCalls = writePerf.pointCalls + 1 end
     frame:SetPoint(anchor.point or "CENTER", relativeFrame, anchor.relativePoint or anchor.point or "CENTER", placement.offset.x or 0, placement.offset.y or 0)
+    if perf then perf.positionApplied = perf.positionApplied + 1 end
+    local watchdog = YUI.CPUWatchdog
+    if entry.groupAnchorKind and watchdog and watchdog.autoCapture then
+        watchdog:CountAutoLayout("applies")
+    end
+    if watchdog and watchdog.sceneCapture then
+        local state = watchdog.sceneCapture
+        state.layoutWrites = (state.layoutWrites or 0) + 1
+    end
 
     if not (options and options.fallback) and status == PLACEMENT_READY and anchor.relative ~= "UIParent" then
         local absoluteFallback = CaptureGeneric(frame, entry)
@@ -1318,6 +1505,7 @@ local function ApplyPlacement(entry, placement, skipCallback, options)
         SetPlacementReady(entry, frame)
     end
     entry.resolvedPlacementAnchorFrame = relativeFrame
+    if P.CaptureAnchorDefinition then P.CaptureAnchorDefinition(entry) end
 
     if not skipCallback and type(entry.spec.onApply) == "function" then
         SafeCall("Layout:onApply:" .. tostring(entry.id), entry.spec.onApply, frame, CopyPlacement(placement), entry, Layout)
@@ -1386,6 +1574,13 @@ function Layout:SetAnchorTargetAvailable(targetId, available)
         end
     end
 
+    if P.HasAnchorDefinition and P.HasAnchorDefinition(targetEntry.id) then
+        if P.CaptureAnchorDefinition then P.CaptureAnchorDefinition(targetEntry) end
+        targetEntry.anchorTargetAvailable = available
+        Layout:InvalidateAnchorProvider(targetEntry.id)
+        RefreshAvailabilityChrome()
+        return true, 0
+    end
     local changed = 0
     if not available then
         local captureLiveFallback = targetEntry.anchorTargetAvailable == true
@@ -1454,6 +1649,8 @@ function Layout:SetAnchorTargetAvailable(targetId, available)
 end
 
 function Layout:RecoverOffscreenPlacements(reason)
+    local watchdog = YUI.CPUWatchdog
+    local startedAt = watchdog and watchdog.sceneCapture and watchdog:BeginProbeTiming()
     local recoveredCount = 0
     for _, id in ipairs(self.order) do
         local entry = self.frames[id]
@@ -1470,6 +1667,7 @@ function Layout:RecoverOffscreenPlacements(reason)
             end
         end
     end
+    if startedAt then watchdog:EndProbeTiming("layout.offscreen-recovery", startedAt) end
     return recoveredCount
 end
 
@@ -1486,7 +1684,12 @@ end
 
 function Layout:RefreshFrame(id)
     local entry = self.frames[id]
-    if not entry then return false end
+    if not entry then
+        if self.InvalidateAnchorProvider then self:InvalidateAnchorProvider(id) end
+        return false
+    end
+    NameIndex.Ensure()
+    NameIndex.Update(entry, ResolveEntryFrame(entry))
     local desiredAvailability = ResolveSpecValue(entry, "isEnabled", true)
         ~= false
     if not desiredAvailability
@@ -1773,7 +1976,8 @@ function Layout:SetPlacement(id, placement, applyNow)
         self.moverPanelLiveId = nil
         self.moverPanelLivePlacement = nil
     end
-    SavePlacement(id, placement)
+    local saved, saveReason = SavePlacement(id, placement)
+    if saved == false then return false, saveReason end
     if applyNow == false then UpdateGroupAnchorIndex(entry, placement) end
     if applyNow ~= false then
         ApplyPlacement(entry, placement)
@@ -1857,19 +2061,32 @@ function Layout:RegisterFrame(id, spec)
     if type(id) ~= "string" or id == "" or type(spec) ~= "table" then
         return false
     end
+    if spec.placementStorage ~= nil then
+        local storage = spec.placementStorage
+        if type(storage) ~= "table" or type(storage.get) ~= "function"
+            or type(storage.set) ~= "function" or type(storage.clear) ~= "function"
+            or type(storage.identity) ~= "function" then
+            return false, "invalid-placement-storage"
+        end
+    end
 
+    NameIndex.Ensure()
     local entry = self.frames[id]
     local isNewEntry = entry == nil
     if not entry then
         entry = { id = id }
         self.frames[id] = entry
         self.order[#self.order + 1] = id
+        NameIndex.serial = NameIndex.serial + 1
+        entry.nameIndexOrder = NameIndex.serial
     elseif entry.overlay then
         entry.overlay.yuiLayoutEntry = entry
     end
 
+    NameIndex.Remove(entry)
     entry.spec = spec
     entry.frame = nil
+    NameIndex.Update(entry, nil)
     entry.options = spec.options or self.pendingOptions[id] or entry.options
     self.pendingOptions[id] = nil
     ResolveEntryFrame(entry)
@@ -1904,6 +2121,9 @@ end
 function Layout:UnregisterFrame(id)
     local entry = self.frames[id]
     if not entry then return false end
+    if self.directDragEntry==entry and self.EndDirectDrag then self:EndDirectDrag(true) end
+    if P.CaptureAnchorDefinition then P.CaptureAnchorDefinition(entry) end
+    if P.TrackAnchorDependency then P.TrackAnchorDependency(entry, nil) end
     ClearPendingPlacementCommit(entry)
     ClearCombatDeferred(entry)
     RemoveGroupAnchorIndex(entry)
@@ -1915,7 +2135,11 @@ function Layout:UnregisterFrame(id)
         entry.overlay:Hide()
         entry.overlay:SetScript("OnUpdate", nil)
     end
+    NameIndex.Remove(entry)
     self.frames[id] = nil
+    if P.ForgetAnchorFrame then P.ForgetAnchorFrame(id) end
+    if self.InvalidateAnchorProvider then self:InvalidateAnchorProvider(id) end
+    if P.CollectAnchorProxies then P.CollectAnchorProxies() end
     for index, value in ipairs(self.order) do
         if value == id then
             tremove(self.order, index)

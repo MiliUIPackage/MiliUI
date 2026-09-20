@@ -132,6 +132,18 @@ local capabilities = {
     },
 }
 
+local capabilityKeysByAddon = {}
+for capabilityKey, candidates in pairs(capabilities) do
+    for _, candidate in ipairs(candidates) do
+        local addonCapabilities = capabilityKeysByAddon[candidate.addon]
+        if not addonCapabilities then
+            addonCapabilities = {}
+            capabilityKeysByAddon[candidate.addon] = addonCapabilities
+        end
+        addonCapabilities[capabilityKey] = true
+    end
+end
+
 local aliases = {}
 for key, definition in pairs(definitions) do
     aliases[string.lower(key)] = key
@@ -144,7 +156,6 @@ local loadedCache = {}
 local enabledCache = {}
 local moduleCache = {}
 local capabilityCache = {}
-local loadGeneration = 0
 local resolving = {}
 local stats = {
     hits = 0,
@@ -152,6 +163,45 @@ local stats = {
     errors = 0,
     invalidations = 0,
 }
+
+local function GetTraceCapabilityText(key)
+    if not key then return "*" end
+    local mapped = capabilityKeysByAddon[key]
+    if not mapped then return "none" end
+    local keys = {}
+    for capabilityKey in pairs(mapped) do
+        keys[#keys + 1] = capabilityKey
+    end
+    table.sort(keys)
+    return #keys > 0 and table.concat(keys, ",") or "none"
+end
+
+local function TraceExternalState(name, key, moduleKey, reason, emitted, status)
+    local trace = YUI.Trace
+    if not (trace and trace.enabled ~= false
+        and type(trace.Mark) == "function") then
+        return
+    end
+    local detail = "key=" .. tostring(key or "*")
+        .. ";module=" .. tostring(moduleKey or "*")
+        .. ";reason=" .. tostring(reason or "unspecified")
+        .. ";capabilities=" .. GetTraceCapabilityText(key)
+    if emitted ~= nil then
+        detail = detail .. ";emitted=" .. tostring(emitted == true)
+    end
+    pcall(
+        trace.Mark,
+        trace,
+        "External",
+        name,
+        detail,
+        status or "ok",
+        {
+            moduleId = "core.external",
+            phase = "External",
+        }
+    )
+end
 
 local function SafeField(object, key)
     if type(object) ~= "table" then return nil, false end
@@ -345,7 +395,7 @@ function External.IsLoaded(selfOrAddonKey, addonKeyOrOptions, maybeOptions)
     if not key then return nil, "UNKNOWN_ADDON" end
     options = type(options) == "table" and options or nil
     local cached = not (options and options.force) and loadedCache[key]
-    if cached and (cached.value == true or cached.generation == loadGeneration) then
+    if cached then
         stats.hits = stats.hits + 1
         return cached.value, cached.reason
     end
@@ -364,7 +414,7 @@ function External.IsLoaded(selfOrAddonKey, addonKeyOrOptions, maybeOptions)
     elseif value == nil then
         stats.errors = stats.errors + 1
     end
-    loadedCache[key] = { value = value, reason = reason, generation = loadGeneration }
+    loadedCache[key] = { value = value, reason = reason }
     return value, reason
 end
 
@@ -547,7 +597,6 @@ function External.Invalidate(selfOrAddonKey, addonKeyOrModuleKey, moduleKeyOrRea
     end
     local key = addonKey and ResolveKey(addonKey) or nil
     stats.invalidations = stats.invalidations + 1
-    loadGeneration = loadGeneration + 1
 
     if key then
         local loaded = loadedCache[key]
@@ -560,17 +609,36 @@ function External.Invalidate(selfOrAddonKey, addonKeyOrModuleKey, moduleKeyOrRea
                 if string.sub(cacheKey, 1, #key + 1) == key .. ":" then moduleCache[cacheKey] = nil end
             end
         end
+        for capabilityKey in pairs(capabilityKeysByAddon[key] or {}) do
+            capabilityCache[capabilityKey] = nil
+        end
     else
         for cacheKey, entry in pairs(loadedCache) do
             if entry.value ~= true then loadedCache[cacheKey] = nil end
         end
         for cacheKey in pairs(enabledCache) do enabledCache[cacheKey] = nil end
         for cacheKey in pairs(moduleCache) do moduleCache[cacheKey] = nil end
+        for cacheKey in pairs(capabilityCache) do capabilityCache[cacheKey] = nil end
     end
-    for cacheKey in pairs(capabilityCache) do capabilityCache[cacheKey] = nil end
 
+    TraceExternalState("External:Invalidate", key, moduleKey, reason)
     if YUI.Event and type(YUI.Event.Emit) == "function" then
-        pcall(YUI.Event.Emit, YUI.Event, "YUI_EXTERNAL_STATE_CHANGED", key, moduleKey, reason)
+        local emitted = pcall(
+            YUI.Event.Emit,
+            YUI.Event,
+            "YUI_EXTERNAL_STATE_CHANGED",
+            key,
+            moduleKey,
+            reason
+        )
+        TraceExternalState(
+            "External:Broadcast",
+            key,
+            moduleKey,
+            reason,
+            emitted,
+            emitted and "ok" or "error"
+        )
     end
 end
 
@@ -583,13 +651,30 @@ function External.GetStats()
     }
 end
 
+local pendingPostInvalidations = {}
+local postInvalidationScheduled = false
+
+local function FlushPostInvalidations()
+    postInvalidationScheduled = false
+    for key in pairs(pendingPostInvalidations) do
+        pendingPostInvalidations[key] = nil
+        External:Invalidate(key, nil, "ADDON_LOADED_POST")
+    end
+end
+
 if YUI.Event and type(YUI.Event.On) == "function" and not External._addonLoadedHandle then
     External._addonLoadedHandle = YUI.Event:On("ADDON_LOADED", function(_, addonName)
-        External:Invalidate(addonName, nil, "ADDON_LOADED")
-        if C_Timer and type(C_Timer.After) == "function" then
-            pcall(C_Timer.After, 0, function()
-                External:Invalidate(addonName, nil, "ADDON_LOADED_POST")
-            end)
+        local key = ResolveKey(addonName)
+        if not key then return end
+        External:Invalidate(key, nil, "ADDON_LOADED")
+        if C_Timer and type(C_Timer.After) == "function"
+            and not postInvalidationScheduled then
+            pendingPostInvalidations[key] = true
+            postInvalidationScheduled = true
+            local ok = pcall(C_Timer.After, 0, FlushPostInvalidations)
+            if not ok then postInvalidationScheduled = false end
+        elseif postInvalidationScheduled then
+            pendingPostInvalidations[key] = true
         end
     end, External, { priority = 9000 })
 end

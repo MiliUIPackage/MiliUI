@@ -29,6 +29,15 @@ function System.GetTime()
     return value and value >= 0 and value or nil
 end
 
+function System.GetTimePreciseSec()
+    if type(GetTimePreciseSec) == "function" then
+        local ok, value = pcall(GetTimePreciseSec)
+        if ok and not (issecretvalue and issecretvalue(value))
+            and type(value) == "number" and value == value and value >= 0 then return value end
+    end
+    return System.GetTime()
+end
+
 function System.FormatDate(pattern, epoch)
     if type(date) ~= "function" or type(pattern) ~= "string" then return nil end
     epoch = tonumber(epoch)
@@ -457,6 +466,7 @@ local PROFILER_THRESHOLD_METRICS = {
     [5] = "CountTimeOver5Ms",
     [10] = "CountTimeOver10Ms",
     [50] = "CountTimeOver50Ms",
+    [100] = "CountTimeOver100Ms",
 }
 
 local function GetProfilerMetric(metricName)

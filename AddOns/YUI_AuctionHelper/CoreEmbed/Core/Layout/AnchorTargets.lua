@@ -621,15 +621,28 @@ local GROUP_PROVIDERS = {
 -- tables for every GROUP_ROSTER_UPDATE burst.
 local RESOLVED_GROUP_ANCHORS = {}
 
-local function ResolveGroupAnchorTarget(value, kind)
+local function FindGroupAnchorTarget(value, kind)
+    local watchdog = YUI.CPUWatchdog
     local cached = RESOLVED_GROUP_ANCHORS[value]
     local left, bottom, width, height = ReadVisibleAnchorFrameGeometry(cached)
-    if left ~= nil then return cached, left, bottom, width, height end
+    if left ~= nil then
+        return cached, left, bottom, width, height
+    end
+    if watchdog and watchdog.CountAutoLayout then watchdog:CountAutoLayout("cacheMisses") end
 
     local frame = PickFromProviders(kind, GROUP_PROVIDERS, true)
     RESOLVED_GROUP_ANCHORS[value] = frame
     left, bottom, width, height = ReadVisibleAnchorFrameGeometry(frame)
+    if watchdog and watchdog.CountAutoLayout and left == nil then watchdog:CountAutoLayout("notReady") end
     return frame, left, bottom, width, height
+end
+
+local function ResolveGroupAnchorTarget(value, kind)
+    local watchdog = YUI.CPUWatchdog
+    if watchdog and watchdog.autoCapture then
+        return watchdog:MeasureTargetTask("layout.group-anchor", FindGroupAnchorTarget, value, kind)
+    end
+    return FindGroupAnchorTarget(value, kind)
 end
 
 local function ResolveBuiltinAnchorTarget(value)

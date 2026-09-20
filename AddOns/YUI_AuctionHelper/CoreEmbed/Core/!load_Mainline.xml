@@ -1,6 +1,18 @@
 <Ui xmlns='http://www.blizzard.com/wow/ui/'>
 	<Script file='Module.lua'/>
+	<Script file='AutoRepair.lua'/>
+	<Script file='TeleportData_Mainline.lua'/>
+	<Script file='TeleportAnnouncement.lua'/>
 	<Include file='Layout\!load.xml'/>
 	<Script file='Monitor.lua'/>
 	<Script file='MonitorData.lua'/>
+	<Script file='MonitorSources.lua'/>
+	<Script file='MonitorSignals.lua'/>
+	<Script file='MonitorTimers.lua'/>
+	<Script file='MonitorAuras.lua'/>
+	<Script file='MonitorNativeAuraSignals.lua'/>
+	<Script file='MonitorTotemSignals.lua'/>
+	<Script file='MonitorNativeCharges.lua'/>
+	<Script file='MonitorItemGroups.lua'/>
+	<Script file='MonitorCastPredictions.lua'/>
 </Ui>

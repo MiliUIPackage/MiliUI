@@ -109,7 +109,7 @@ function Watchdog:RecordTimingGroup(groupId, groupLabel, elapsed, finishedAt)
     if window.totalMs > record.maxMs then record.maxMs = window.totalMs end
 end
 
-function Watchdog:EndProbeTiming(id, startedAt, label, parentId, groupId, groupLabel)
+function Watchdog:EndProbeTiming(id, startedAt, label, parentId, groupId, groupLabel, sourceId)
     if self.timingActive ~= true or type(id) ~= "string" or type(startedAt) ~= "number" then return end
     local clock = self.profileClock
     if type(clock) ~= "function" then return end
@@ -120,6 +120,9 @@ function Watchdog:EndProbeTiming(id, startedAt, label, parentId, groupId, groupL
     local results = self.timingResults
     if type(results) ~= "table" then return end
     RecordTiming(results, id, elapsed, label, parentId)
+    if self.sceneCapture and self.RecordSceneTiming then
+        self:RecordSceneTiming(sourceId or id, elapsed, label, parentId, finishedAt)
+    end
     if groupId ~= id then
         self:RecordTimingGroup(groupId, groupLabel or groupId, elapsed, finishedAt)
     end
@@ -130,14 +133,102 @@ function Watchdog:EndDynamicProbeTiming(id, label, parentId, startedAt, groupId,
     if self.timingActive ~= true or type(startedAt) ~= "number" then return end
     local results = self.timingResults
     if type(results) ~= "table" then return end
+    local sourceId = id
     if results[id] == nil then
         if self.dynamicProbeCount >= MAX_DYNAMIC_PROBES then
+            if self.sceneCapture then self.sceneCapture.truncated = true end
             id, label, parentId = "event.other", L and L("cpu_watch.probe.event_other") or "EventBus other", "core.eventbus"
         else
             self.dynamicProbeCount = self.dynamicProbeCount + 1
         end
     end
-    self:EndProbeTiming(id, startedAt, label, parentId, groupId, groupLabel)
+    self:EndProbeTiming(id, startedAt, label, parentId, groupId, groupLabel, sourceId)
+end
+
+-- Fixed automatic boundaries; generic/manual probes never enter this table.
+local TARGET_POINTS = {
+    ["component.quick-focus.roster-batch"] = "focus_roster",
+    ["component.quick-focus.full-refresh"] = "focus_full",
+    ["layout.group-event"] = "layout_event",
+    ["layout.group-anchor"] = "layout_anchor",
+    ["appearance-summary.elvui.hook"] = "skin1_hook",
+    ["appearance-summary.elvui.delayed"] = "skin1_delayed",
+    ["appearance-summary.eqol.hook"] = "skin2_hook",
+    ["appearance-summary.eqol.delayed"] = "skin2_delayed",
+    ["appearance-summary.ndui.hook"] = "skin3_hook",
+    ["appearance-summary.ndui.delayed"] = "skin3_delayed",
+    ["yhud.context-timer"] = "context",
+}
+
+function Watchdog:BeginTargetTiming(id)
+    local state = self.autoCapture
+    if state then
+        if TARGET_POINTS[id] and state.clock then return state.clock() end
+        return nil
+    end
+    return self:BeginProbeTiming()
+end
+
+function Watchdog:EndTargetTiming(id, startedAt, ...)
+    local state = self.autoCapture
+    if state then
+        if not TARGET_POINTS[id] or not startedAt or not state.clock then return end
+        local elapsed = state.clock() - startedAt
+        if elapsed >= 0 then RecordTiming(state.timings, id, elapsed) end
+        return elapsed
+    end
+    return self:EndProbeTiming(id, startedAt, ...)
+end
+
+function Watchdog:CountAutoLayout(key, amount)
+    local state = self.autoCapture
+    if not state then return end
+    if key ~= "cacheMisses" and key ~= "notReady" and key ~= "applies" then return end
+    local counters = state.layoutPerf
+    counters[key] = (counters[key] or 0) + (amount or 1)
+end
+
+local function PackAppearance(...) return { n = select("#", ...), ... } end
+local appearanceUnpack = unpack or table.unpack
+
+-- Wrap only owned callbacks, never the external function being hooked.
+function Watchdog:WrapAppearanceCallback(adapter, kind, callback)
+    local id = "appearance-summary." .. adapter .. "." .. kind
+    return function(...)
+        if not self.timingActive and not self.autoCapture then return callback(...) end
+        local active = self.appearanceDepth
+        if not active then active = {}; self.appearanceDepth = active end
+        if active[adapter] then return callback(...) end
+        active[adapter] = true
+        local results = self.autoCapture or self.timingResults
+        local startedAt = self:BeginTargetTiming(id)
+        local result = PackAppearance(pcall(callback, ...))
+        active[adapter] = nil
+        if startedAt and (self.autoCapture or self.timingResults) == results then
+            self:EndTargetTiming(id, startedAt)
+        end
+        if not result[1] then
+            if self.autoCapture then self:FinishCapture("error") end
+            error(result[2], 0)
+        end
+        return appearanceUnpack(result, 2, result.n)
+    end
+end
+
+function Watchdog:MeasureTargetTask(id, callback, ...)
+    if not self.autoCapture then
+        if self.sceneCapture then return self:MeasureSceneTask(id, callback, ...) end
+        return callback(...)
+    end
+    local state = self.autoCapture
+    local startedAt = self:BeginTargetTiming(id)
+    local result = PackAppearance(pcall(callback, ...))
+    if self.autoCapture == state then self:EndTargetTiming(id, startedAt) end
+    if not result[1] then
+        if self.autoCapture then self:FinishCapture("error") end
+        error(result[2], 0)
+    end
+    return appearanceUnpack(result, 2, result.n)
 end
 
 function Watchdog:RegisterProbe(id, spec)
@@ -526,6 +617,24 @@ local function AddYHUDCandidate(candidates, before, after)
         Delta(before, after, "yhud_context_executions"), 0
     ), "product.yhud-context")
 
+    local resourcePreviewMs = Delta(
+        before,
+        after,
+        "yhud_resourcePreviewElapsedMS"
+    )
+    local resourcePreviewWrites = Delta(
+        before,
+        after,
+        "yhud_resourcePreviewWrites"
+    )
+    AddCandidate(candidates, resourcePreviewMs, 0, string.format(
+        L("cpu_watch.cause.probe"),
+        L("cpu_watch.probe.yhud_resource_preview"),
+        resourcePreviewMs,
+        resourcePreviewWrites,
+        0
+    ), "product.yhud-resource-preview", "core.animation")
+
     local nativeGroups = {
         { "itemFrameAcquire", "cpu_watch.probe.yhud_item_acquire" },
         { "staticCooldown", "cpu_watch.probe.yhud_static_cooldown" },
@@ -767,6 +876,69 @@ local function BuildReport(reason, triggerPercent, before, after, timings, captu
     }
 end
 
+local AUTO_REASONS = { "roster", "world", "addon", "created", "sorted", "enable", "settings", "postCombat", "preCapture" }
+local AUTO_FOCUS_COUNTS = { "requests", "merged", "executions", "scans", "candidates", "candidateMax" }
+local AUTO_LAYOUT_COUNTS = { "cacheMisses", "notReady", "applies" }
+local function AutoSnapshot()
+    return { slowFrames = Number(System.GetAddOnCPUThresholdCount
+        and System.GetAddOnCPUThresholdCount(YUI.AddonName or "YUI", 10)) }
+end
+
+local function AutoReasons(reasons)
+    local values = {}
+    for _, reason in ipairs(AUTO_REASONS) do
+        if Number(reasons and reasons[reason]) > 0 then
+            values[#values + 1] = L("cpu_auto.reason." .. reason)
+        end
+    end
+    return #values > 0 and string.format(L("cpu_auto.reasons"), table.concat(values, " / ")) or ""
+end
+
+local function BuildAutoReport(state, before, after, ending)
+    local entries, lines, best = {}, {}, nil
+    local elapsed = state.clock and math.max(0, (state.clock() - state.startedAt) / 1000)
+        or math.max(0, DevelopmentNow() - state.startedSeconds)
+    local slow = Delta(before, after, "slowFrames")
+    local version, class, spec, _, scene, map, _, group = ReadPlayerContext()
+    local context = string.format(L("cpu_auto.context"), version, class, spec, group, scene, map)
+    lines[1] = string.format(L("cpu_auto.header"), elapsed, L("cpu_auto.ending." .. (ending or "complete")), slow)
+    lines[2] = context
+    for id, record in pairs(state.timings) do
+        if record.calls > 0 then entries[#entries + 1] = { id = id, record = record } end
+    end
+    table.sort(entries, function(a, b)
+        if a.record.totalMs == b.record.totalMs then return a.id < b.id end
+        return a.record.totalMs > b.record.totalMs
+    end)
+    for _, entry in ipairs(entries) do
+        local record = entry.record
+        local text = string.format(L("cpu_auto.point"), L("cpu_auto.point." .. TARGET_POINTS[entry.id]),
+            record.calls, record.totalMs, record.maxMs)
+        if entry.id:find("component.quick-focus.", 1, true) == 1 then text = text .. AutoReasons(state.quickFocus and state.quickFocus.pointReasons and state.quickFocus.pointReasons[entry.id]) end
+        lines[#lines + 1] = text
+        if not best and (record.totalMs >= MIN_CANDIDATE_TOTAL_MS or record.maxMs >= MIN_CANDIDATE_MAX_MS) then best = text end
+    end
+    for _, kind in ipairs({ "focus", "layout" }) do
+        local counters = kind == "focus" and state.quickFocus or state.layoutPerf
+        local keys = kind == "focus" and AUTO_FOCUS_COUNTS or AUTO_LAYOUT_COUNTS
+        local values = {}
+        for _, key in ipairs(keys) do
+            local value = Number(counters and counters[key])
+            if value > 0 then values[#values + 1] = string.format(L("cpu_auto.count." .. key), value) end
+        end
+        if #values > 0 then lines[#lines + 1] = L("cpu_auto.work." .. kind) .. table.concat(values, " / ") end
+    end
+    if not best and slow > 0 then lines[#lines + 1] = L("cpu_auto.uncovered") end
+    local chat = {}
+    if best and not ending then
+        chat[1] = string.format(L("cpu_auto.chat"), best)
+        chat[2] = context .. L("cpu_auto.feedback")
+    end
+    return { reason = "auto", automatic = true, lines = chat, text = table.concat(lines, "\n"),
+        elapsed = elapsed, ending = ending or "complete", slowFrames = slow, timings = state.timings,
+        quickFocus = state.quickFocus, layoutPerf = state.layoutPerf }
+end
+
 IsInCombat = function()
     if type(_G.InCombatLockdown) ~= "function" then return false end
     local ok, result = pcall(_G.InCombatLockdown)
@@ -865,6 +1037,7 @@ local function CapturePeakTickerCallback()
     if not Watchdog.capturing or not System or type(System.GetAddOnCPULastTime) ~= "function" then return end
     local value = Number(System.GetAddOnCPULastTime(YUI.AddonName or "YUI"))
     if value > Number(Watchdog.capturePeakMs) then Watchdog.capturePeakMs = value end
+    if Watchdog.sceneCapture then Watchdog:SampleScene() end
 end
 
 function Watchdog:StartCapturePeakSampler()
@@ -892,6 +1065,8 @@ end
 function Watchdog:StopTiming()
     self.timingActive = false
     self.profileClock = nil
+    self.autoCapture = nil
+    self.appearanceDepth = nil
     if Event and Event.cpuTimingWatchdog == self then Event.cpuTimingWatchdog = nil end
     local results = self.timingResults or {}
     self.timingResults = nil
@@ -910,7 +1085,7 @@ local function CaptureTimerCallback()
     Watchdog:FinishCapture()
 end
 
-function Watchdog:StartCapture(reason, triggerPercent)
+function Watchdog:StartCapture(reason, triggerPercent, duration)
     if self.capturing then
         if reason == "manual" then Print(L("cpu_watch.busy")) end
         return false
@@ -927,12 +1102,19 @@ function Watchdog:StartCapture(reason, triggerPercent)
     self.capturing = true
     self.captureReason = reason or "manual"
     self.triggerPercent = triggerPercent or ReadCPUPercent() or 0
-    self:PrepareYActionBarDiagnostics()
-    self:PrepareYHUDDiagnostics()
-    self:StartTiming()
-    self.capturePeakMs = 0
-    self:StartCapturePeakSampler()
-    local snapshotOK, snapshot = pcall(CaptureSnapshot)
+    if self.captureReason == "auto" then
+        local clock = ResolveProfileClock()
+        self.autoCapture = { clock = clock, startedAt = clock and clock(), startedSeconds = DevelopmentNow(),
+            timings = {}, layoutPerf = {} }
+    else
+        self:PrepareYActionBarDiagnostics()
+        self:PrepareYHUDDiagnostics()
+        self:StartTiming()
+        self.capturePeakMs = 0
+        self:StartCapturePeakSampler()
+    end
+    local snapshotOK, snapshot = pcall(self.autoCapture and AutoSnapshot or CaptureSnapshot)
+    if self.sceneCapture and not self.capturePeakTicker then snapshotOK = false end
     if not snapshotOK then
         self.capturing = false
         self.captureReason = nil
@@ -962,7 +1144,7 @@ function Watchdog:StartCapture(reason, triggerPercent)
         return false
     end
 
-    local timerOK, timer = pcall(timerAPI.NewTimer, CAPTURE_SECONDS, CaptureTimerCallback)
+    local timerOK, timer = pcall(timerAPI.NewTimer, duration or CAPTURE_SECONDS, CaptureTimerCallback)
     if not timerOK or not timer then
         self.capturing = false
         self.captureBefore = nil
@@ -989,18 +1171,30 @@ function Watchdog:StartCapture(reason, triggerPercent)
     return true
 end
 
-function Watchdog:FinishCapture()
+function Watchdog:FinishCapture(ending)
     if not self.capturing then return false end
-    if IsInCombat() then return self:AbortCaptureForCombat() end
+    if IsInCombat() and not self.sceneCapture and not self.autoCapture then return self:AbortCaptureForCombat() end
+    if self.autoCapture and IsInCombat() then ending = "combat" end
+    CancelTimer(self.captureTimer)
+    self.captureTimer = nil
     self:StopCapturePeakSampler()
+    local automatic = self.autoCapture
     local timings = self:StopTiming()
-    local snapshotOK, after = pcall(CaptureSnapshot)
+    local snapshotOK, after = pcall(automatic and AutoSnapshot or CaptureSnapshot)
     local reportOK, report = false, nil
-    if snapshotOK then
+    if snapshotOK and automatic then
+        reportOK, report = pcall(BuildAutoReport, automatic, self.captureBefore or {}, after, ending)
+    elseif snapshotOK then
         reportOK, report = pcall(
             BuildReport, self.captureReason, self.triggerPercent, self.captureBefore or {}, after,
             timings, self.capturePeakMs
         )
+    end
+    if self.sceneCapture and self.FinishSceneReport then
+        local sceneOK, sceneReport = pcall(self.FinishSceneReport, self, reportOK and report or nil, timings, ending)
+        reportOK, report = sceneOK and sceneReport ~= nil, sceneReport
+        self.sceneCapture = nil
+        if self.StopSceneListeners then self:StopSceneListeners() end
     end
     self.capturing = false
     self.captureBefore = nil
@@ -1018,15 +1212,26 @@ function Watchdog:FinishCapture()
         self:UnregisterProbe(DEVELOPMENT_PROBE_ID)
     end
     if not reportOK then
-        Print(L("cpu_watch.unavailable"))
+        if not automatic then Print(L("cpu_watch.unavailable")) end
         return false
     end
-    self:QueueReport(report)
+    if report.automatic then
+        self.lastReport = report
+        self:PrintReport(report)
+        if self.RefreshPanel then self:RefreshPanel() end
+    elseif report.scene then
+        self.lastReport = report
+        self:PresentSceneReport()
+    else
+        self:QueueReport(report)
+        if self.RefreshPanel then self:RefreshPanel() end
+    end
     return true
 end
 
 function Watchdog:AbortCaptureForCombat()
     if not self.capturing then return false end
+    if self.sceneCapture or self.autoCapture then return self:FinishCapture("combat") end
     local reason = self.captureReason
     CancelTimer(self.captureTimer)
     self.captureTimer = nil
@@ -1057,6 +1262,7 @@ function Watchdog:IsAvailable()
 end
 
 function Watchdog:Check()
+    if self.sceneCapture then return end
     if self.developmentLoadRequest then self:ConsumeDevelopmentLoadRequest() end
     if self.autoCaptureUsed then
         CancelTimer(self.watchTicker)
@@ -1082,7 +1288,10 @@ function Watchdog:Check()
     self.aboveThreshold = 0
     if self.capturing then return end
     if IsInCombat() then
-        self:ScheduleCombatNotice()
+        self.combatSkipActive = true
+        if not self.pendingCombatListener and Event and type(Event.Once) == "function" then
+            self.pendingCombatListener = Event:Once("PLAYER_REGEN_ENABLED", OnCombatEnded, self)
+        end
         return
     end
     self:StartCapture("auto", percent)
@@ -1121,6 +1330,8 @@ CancelTimer = function(timer)
 end
 
 function Watchdog:Stop()
+    if self.sceneCapture or self.autoCapture then self:FinishCapture("stopped") end
+    if self.StopSceneListeners then self:StopSceneListeners(true) end
     self:StopDevelopmentLoad()
     CancelTimer(self.startupTimer)
     CancelTimer(self.watchTicker)
@@ -1152,7 +1363,7 @@ end
 function YUI:HandleSlashCommand(message)
     local command = type(message) == "string" and message:match("^%s*(.-)%s*$") or ""
     if command:lower() == "cpu" then
-        Watchdog:StartCapture("manual")
+        if Watchdog.OpenPanel then Watchdog:OpenPanel() end
         return true
     end
     if previousSlashHandler then return previousSlashHandler(self, message) end

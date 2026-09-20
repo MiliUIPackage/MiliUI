@@ -14,6 +14,7 @@ local Keystone = YUI.API.Keystone or {}
 YUI.API.Keystone = Keystone
 
 local Legacy = YUI.WOW_API
+local ChatInput = YUI.API.ChatInput
 
 local PREFIX = "LibKS"
 local SEND_MESSAGE_DELAY = 0.3
@@ -25,6 +26,7 @@ local active = false
 local partyKeystones = {}
 local lastRequestTime = 0
 local isReporting = false
+local rosterRevision = 0
 
 local function SafeCall(fn, ...)
     if type(fn) ~= "function" then return nil end
@@ -77,33 +79,51 @@ local function GetMapName(mapID)
     return SafeCall(C_ChallengeMode.GetMapUIInfo, mapID)
 end
 
-local function SendAddonMessage(message)
-    if not (IsSupported() and IsInGroup and IsInGroup()) then return false end
-    local ok = pcall(C_ChatInfo.SendAddonMessage, PREFIX, message, "PARTY")
+local function ResolveGroupChatType()
+    local resolver = ChatInput and ChatInput.ResolveGroupChatType
+    if type(resolver) ~= "function" then return nil end
+    return resolver()
+end
+
+local function IsGroupChatTypeAvailable(chatType)
+    local checker = ChatInput and ChatInput.IsGroupChatTypeAvailable
+    return type(checker) == "function" and checker(chatType) == true
+end
+
+local function SendAddonMessage(message, chatType)
+    if not IsSupported() then return false end
+    chatType = chatType or ResolveGroupChatType()
+    if not chatType or not IsGroupChatTypeAvailable(chatType) then return false end
+    local ok = pcall(C_ChatInfo.SendAddonMessage, PREFIX, message, chatType)
     return ok == true
 end
 
-local function SendPlayerKeystone()
+local function SendPlayerKeystone(chatType)
     local data = Keystone.GetPlayerKeystone()
     if data.level > 0 and data.mapID > 0 then
-        SendAddonMessage(string.format("%d,%d,%d", data.level, data.mapID, data.rating or 0))
+        SendAddonMessage(string.format("%d,%d,%d", data.level, data.mapID, data.rating or 0), chatType)
     end
 end
 
 local function OnKeystoneEvent(event, prefix, msg, channel, sender)
     if event == "GROUP_ROSTER_UPDATE" then
-        if not (IsInGroup and IsInGroup()) then
+        rosterRevision = rosterRevision + 1
+        if not ResolveGroupChatType() then
             wipe(partyKeystones)
             EmitUpdated()
         end
         return
     end
 
-    if event ~= "CHAT_MSG_ADDON" or prefix ~= PREFIX then return end
+    if event ~= "CHAT_MSG_ADDON" or prefix ~= PREFIX
+        or not IsGroupChatTypeAvailable(channel)
+    then
+        return
+    end
     if IsSecretValue(msg) then return end
 
     if msg == "R" then
-        SendPlayerKeystone()
+        SendPlayerKeystone(channel)
         return
     end
 
@@ -371,7 +391,7 @@ function Keystone.GetPartyKeystoneRows()
         status = (player.level > 0 and player.mapID > 0) and "ready" or "none",
     }
 
-    if IsInGroup and IsInGroup() then
+    if ResolveGroupChatType() then
         for i = 1, 4 do
             local unit = "party" .. i
             if UnitExists and UnitExists(unit) and IsDisplayablePartyUnit(unit) then
@@ -395,16 +415,22 @@ function Keystone.GetPartyKeystoneRows()
 end
 
 function Keystone.RequestPartyKeystones(force)
-    if not (IsSupported() and IsInGroup and IsInGroup()) then return false end
+    local chatType = ResolveGroupChatType()
+    if not (IsSupported() and chatType) then return false end
     local now = GetTimeSafe()
     if not force and now - lastRequestTime < REQUEST_COOLDOWN then return false end
+    if not SendAddonMessage("R", chatType) then return false end
     lastRequestTime = now
-    return SendAddonMessage("R")
+    return true
 end
 
 function Keystone.ReportPartyKeystones()
-    if isReporting or not (IsInGroup and IsInGroup()) then return false end
+    local chatType = ResolveGroupChatType()
+    local sendChatMessage = C_ChatInfo and C_ChatInfo.SendChatMessage
+    if isReporting or not chatType or type(sendChatMessage) ~= "function" then return false end
     isReporting = true
+    local reportRosterRevision = rosterRevision
+    local reportStopped = false
 
     local messages = {}
     messages[#messages + 1] = "----------"
@@ -424,10 +450,19 @@ function Keystone.ReportPartyKeystones()
     for index, message in ipairs(messages) do
         if C_Timer and C_Timer.After then
             C_Timer.After((index - 1) * SEND_MESSAGE_DELAY, function()
-                SendChatMessage(message, "PARTY")
+                if reportStopped or rosterRevision ~= reportRosterRevision
+                    or ResolveGroupChatType() ~= chatType
+                    or not IsGroupChatTypeAvailable(chatType)
+                then
+                    reportStopped = true
+                    return
+                end
+                local ok = pcall(sendChatMessage, message, chatType)
+                if not ok then reportStopped = true end
             end)
-        elseif SendChatMessage then
-            SendChatMessage(message, "PARTY")
+        elseif not reportStopped and IsGroupChatTypeAvailable(chatType) then
+            local ok = pcall(sendChatMessage, message, chatType)
+            if not ok then reportStopped = true end
         end
     end
 

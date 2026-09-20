@@ -28,7 +28,6 @@ local math_sin = math.sin
 local math_pi = math.pi
 local string_format = string.format
 local table_insert = table.insert
-local table_remove = table.remove
 local unpack = unpack
 local ipairs = ipairs
 local select = select
@@ -451,8 +450,20 @@ function GUI2:LayoutPixelBorder(
     return pixelSize
 end
 
+local function CanRefreshObject(object, method)
+    if method then
+        return method(object) == true
+    end
+    if not object then return false end
+    method = object.CanBeAccessedInContext
+    if type(method) ~= "function" then return true end
+
+    local ok, allowed = pcall(CanRefreshObject, object, method)
+    return ok and allowed == true
+end
+
 local function RefreshPixelObject(object)
-    if not object then return end
+    if not CanRefreshObject(object) then return end
     if object.UpdatePixelScale then
         object:UpdatePixelScale()
     end
@@ -827,8 +838,8 @@ function GUI2:RefreshThemeObjects()
     for index = #objects, 1, -1 do
         local object = objects[index]
         if not object then
-            table_remove(objects, index)
-        else
+            table.remove(objects, index)
+        elseif CanRefreshObject(object) then
             if object.RefreshTheme then
                 object:RefreshTheme()
             elseif object.SetTextColor and object.gui2ColorKey then
@@ -1043,6 +1054,12 @@ function GUI2:CreateScrollFrame(parent, opts)
     end
 
     self:SkinScrollBar(scroll)
+    if opts.autoHide and scroll.child then
+        local function fit() self:FitScrollContent(scroll) end
+        scroll:HookScript("OnScrollRangeChanged", fit)
+        scroll:HookScript("OnSizeChanged", fit)
+        scroll:HookScript("OnShow", fit)
+    end
     return scroll
 end
 
@@ -1369,7 +1386,7 @@ local GLOW_LEGACY_EXPAND_BASE = 24
 local GLOW_AXIS_EXPAND_SCALE = 0.25
 local GLOW_STYLE_OUTSET_SCALE = {
     soft = 0.09,
-    button = 0.20,
+    button = 0.05,
     autocast = 0,
     proc = 0.20,
     pulse = 0.12,
@@ -1456,6 +1473,11 @@ local function SnapGlowValue(glow, value, pixel)
 end
 
 local function GetGlowTargetSize(glow, target)
+    if glow and glow.gui2RestrictedParent == true then
+        local width = glow.gui2TrustedTargetWidth or 0
+        local height = glow.gui2TrustedTargetHeight or 0
+        return width, height, math_min(width, height)
+    end
     target = target or (glow and glow.gui2GlowTarget) or glow
     local width = target and target.GetWidth and (target:GetWidth() or 0) or 0
     local height = target and target.GetHeight and (target:GetHeight() or 0) or 0
@@ -1470,6 +1492,15 @@ local function GetGlowTargetSize(glow, target)
     return width, height, math_min(width, height)
 end
 
+function GUI2:_GetGlowLayoutSize(glow)
+    if glow and glow.gui2RestrictedParent == true then
+        return glow.gui2TrustedLayoutWidth or 0,
+            glow.gui2TrustedLayoutHeight or 0
+    end
+    return glow and glow.GetWidth and (glow:GetWidth() or 0) or 0,
+        glow and glow.GetHeight and (glow:GetHeight() or 0) or 0
+end
+
 local function GetGlowOffsetXY(glow, target, pixel)
     pixel = pixel or GUI2:GetPixelSize(glow, 1, 1)
     local width, height = GetGlowTargetSize(glow, target)
@@ -1482,6 +1513,9 @@ local function ResolveGlowOutset(glow, style)
     local _, _, base = GetGlowTargetSize(glow)
     local size = ClampGlowSize(glow and glow.gui2GlowSize)
     local scale = GLOW_STYLE_OUTSET_SCALE[style] or GLOW_STYLE_OUTSET_SCALE.soft
+    if style == "button" then
+        return base * scale * (size - 1)
+    end
     return math_max(0, base * scale * size)
 end
 
@@ -1492,15 +1526,40 @@ local function ResolveGlowEdgeSize(glow, style)
     return math_max(GUI2:GetPixelSize(glow, 1, 1), base * scale * size)
 end
 
-local function SetGlowTargetPoints(glow, target, outset)
+local function SetGlowTargetPoints(
+    glow,
+    target,
+    outset,
+    horizontalCompensationPixels
+)
     if not (glow and target) then return end
     local pixel = GUI2:GetPixelSize(glow, 1, 1)
+    local targetWidth, targetHeight = GetGlowTargetSize(glow, target)
+    if glow.gui2RestrictedParent == true
+        and (targetWidth <= 0 or targetHeight <= 0) then
+        glow.gui2TrustedLayoutWidth = nil
+        glow.gui2TrustedLayoutHeight = nil
+        return false
+    end
     local expandX, expandY = GetGlowOffsetXY(glow, target, pixel)
+    local targetShape = glow.gui2GlowTargetShape
+    if glow.gui2GlowStyle == "proc"
+        and (targetShape == "square"
+            or targetShape == "flatSquare"
+            or targetShape == "wideSquare") then
+        local _, _, base = GetGlowTargetSize(glow)
+        outset = (tonumber(outset) or 0)
+            + SnapGlowValue(glow, base * 0.05, pixel)
+    end
     outset = SnapGlowValue(glow, tonumber(outset) or 0, pixel)
-    local horizontal = SnapGlowValue(glow, outset + expandX, pixel)
+    local horizontalCompensation = pixel
+        * (tonumber(horizontalCompensationPixels) or 0)
+    local horizontal = SnapGlowValue(
+        glow,
+        outset + expandX + horizontalCompensation,
+        pixel
+    )
     local vertical = SnapGlowValue(glow, outset + expandY, pixel)
-    local targetWidth = target.GetWidth and (target:GetWidth() or 0) or 0
-    local targetHeight = target.GetHeight and (target:GetHeight() or 0) or 0
     if targetWidth > pixel * 2 then
         horizontal = math_max(horizontal, -(targetWidth / 2 - pixel))
     elseif horizontal < 0 then
@@ -1514,6 +1573,11 @@ local function SetGlowTargetPoints(glow, target, outset)
     glow:ClearAllPoints()
     glow:SetPoint("TOPLEFT", target, "TOPLEFT", -horizontal, vertical)
     glow:SetPoint("BOTTOMRIGHT", target, "BOTTOMRIGHT", horizontal, -vertical)
+    if glow.gui2RestrictedParent == true then
+        glow.gui2TrustedLayoutWidth = targetWidth + horizontal * 2
+        glow.gui2TrustedLayoutHeight = targetHeight + vertical * 2
+    end
+    return true
 end
 
 local function SetGlowTextureShown(texture, shown)
@@ -1528,12 +1592,73 @@ local function SetGlowTextureShown(texture, shown)
     end
 end
 
-local function CreatePixelGlowEdge(glow, texturePath)
-    local texture = glow:CreateTexture(nil, "OVERLAY")
+local function CreatePixelGlowEdge(glow, texturePath, restricted)
+    local texture = glow:CreateTexture(nil, "OVERLAY", nil, 7)
     PreparePixelTexture(texture)
     texture:SetTexture(texturePath, "REPEAT", "REPEAT")
     texture:SetBlendMode("BLEND")
-    return texture
+    if not restricted then return texture end
+
+    local mask = glow:CreateMaskTexture()
+    mask:SetTexture(
+        "Interface\\Buttons\\WHITE8X8",
+        "CLAMPTOBLACKADDITIVE",
+        "CLAMPTOBLACKADDITIVE"
+    )
+    texture:AddMaskTexture(mask)
+    local group = texture:CreateAnimationGroup()
+    group:SetLooping("REPEAT")
+    local translation = group:CreateAnimation("Translation")
+    translation:SetOrder(1)
+    translation:SetSmoothing("NONE")
+    texture.gui2RestrictedPixelAnimation = group
+    texture.gui2RestrictedPixelTranslation = translation
+    return texture, mask
+end
+
+function GUI2:_SetPixelTextureInterval(
+    texture,
+    startValue,
+    endValue,
+    vertical,
+    reverse
+)
+    if not texture then return end
+    texture.gui2PixelIntervalStart = startValue
+    texture.gui2PixelIntervalEnd = endValue
+    texture.gui2PixelIntervalVertical = vertical == true
+    texture.gui2PixelIntervalReverse = reverse == true
+    if vertical then
+        if reverse then
+            texture:SetTexCoord(
+                0, endValue,
+                0, startValue,
+                1, endValue,
+                1, startValue
+            )
+        else
+            texture:SetTexCoord(
+                0, startValue,
+                0, endValue,
+                1, startValue,
+                1, endValue
+            )
+        end
+    elseif reverse then
+        texture:SetTexCoord(
+            endValue, 0,
+            endValue, 1,
+            startValue, 0,
+            startValue, 1
+        )
+    else
+        texture:SetTexCoord(
+            startValue, 0,
+            startValue, 1,
+            endValue, 0,
+            endValue, 1
+        )
+    end
 end
 
 GUI2.PixelGlowHorizontalTexture = GUI2.PixelGlowHorizontalTexture
@@ -1542,22 +1667,63 @@ GUI2.PixelGlowVerticalTexture = GUI2.PixelGlowVerticalTexture
     or Assets:Core("gui2\\glow\\pixel-dash-v.tga")
 
 local function EnsurePixelGlowEdges(glow)
-    local edges = glow.gui2PixelEdges
-    if edges then return edges end
-    edges = {
-        top = CreatePixelGlowEdge(glow, GUI2.PixelGlowHorizontalTexture),
-        right = CreatePixelGlowEdge(glow, GUI2.PixelGlowVerticalTexture),
-        bottom = CreatePixelGlowEdge(glow, GUI2.PixelGlowHorizontalTexture),
-        left = CreatePixelGlowEdge(glow, GUI2.PixelGlowVerticalTexture),
-    }
-    edges.top:SetPoint("TOPLEFT", glow, "TOPLEFT")
-    edges.top:SetPoint("TOPRIGHT", glow, "TOPRIGHT")
-    edges.right:SetPoint("TOPRIGHT", glow, "TOPRIGHT")
-    edges.right:SetPoint("BOTTOMRIGHT", glow, "BOTTOMRIGHT")
-    edges.bottom:SetPoint("BOTTOMLEFT", glow, "BOTTOMLEFT")
-    edges.bottom:SetPoint("BOTTOMRIGHT", glow, "BOTTOMRIGHT")
-    edges.left:SetPoint("TOPLEFT", glow, "TOPLEFT")
-    edges.left:SetPoint("BOTTOMLEFT", glow, "BOTTOMLEFT")
+    local restricted = glow.gui2RestrictedParent == true
+    local cacheKey = restricted
+        and "gui2RestrictedPixelEdges"
+        or "gui2OrdinaryPixelEdges"
+    local edges = glow[cacheKey]
+    if edges then
+        if glow.gui2PixelEdges ~= edges then
+            local current = glow.gui2PixelEdges
+            if current then
+                SetGlowTextureShown(current.top, false)
+                SetGlowTextureShown(current.right, false)
+                SetGlowTextureShown(current.bottom, false)
+                SetGlowTextureShown(current.left, false)
+            end
+            glow.gui2PixelEdges = edges
+        end
+        return edges
+    end
+    local top, topMask = CreatePixelGlowEdge(
+        glow,
+        GUI2.PixelGlowHorizontalTexture,
+        restricted
+    )
+    local right, rightMask = CreatePixelGlowEdge(
+        glow,
+        GUI2.PixelGlowVerticalTexture,
+        restricted
+    )
+    local bottom, bottomMask = CreatePixelGlowEdge(
+        glow,
+        GUI2.PixelGlowHorizontalTexture,
+        restricted
+    )
+    local left, leftMask = CreatePixelGlowEdge(
+        glow,
+        GUI2.PixelGlowVerticalTexture,
+        restricted
+    )
+    edges = { top = top, right = right, bottom = bottom, left = left }
+    if restricted then
+        glow.gui2RestrictedPixelMasks = {
+            top = topMask,
+            right = rightMask,
+            bottom = bottomMask,
+            left = leftMask,
+        }
+    else
+        edges.top:SetPoint("TOPLEFT", glow, "TOPLEFT")
+        edges.top:SetPoint("TOPRIGHT", glow, "TOPRIGHT")
+        edges.right:SetPoint("TOPRIGHT", glow, "TOPRIGHT")
+        edges.right:SetPoint("BOTTOMRIGHT", glow, "BOTTOMRIGHT")
+        edges.bottom:SetPoint("BOTTOMLEFT", glow, "BOTTOMLEFT")
+        edges.bottom:SetPoint("BOTTOMRIGHT", glow, "BOTTOMRIGHT")
+        edges.left:SetPoint("TOPLEFT", glow, "TOPLEFT")
+        edges.left:SetPoint("BOTTOMLEFT", glow, "BOTTOMLEFT")
+    end
+    glow[cacheKey] = edges
     glow.gui2PixelEdges = edges
     return edges
 end
@@ -1587,6 +1753,23 @@ local function PlayAnimationGroup(group)
     end
 end
 
+GUI2._RestrictedGlowRuntime = GUI2._RestrictedGlowRuntime or {}
+
+function GUI2._RestrictedGlowRuntime:ConfigureLoopingAnimationGroup(group, looping)
+    if not group then return false end
+    if group.SetLooping and group.gui2Looping ~= looping then
+        group:SetLooping(looping)
+        group.gui2Looping = looping
+    end
+    return true
+end
+
+function GUI2._RestrictedGlowRuntime:SetAnimationSmoothing(animation, smoothing)
+    if animation and animation.SetSmoothing then
+        animation:SetSmoothing(smoothing)
+    end
+end
+
 local function SetTextureAtlasSafe(texture, atlas)
     if not (texture and texture.SetAtlas and atlas) then return false end
     local ok = pcall(texture.SetAtlas, texture, atlas, false)
@@ -1601,9 +1784,27 @@ local BUTTON_GLOW_COORDS = {
     innerGlowOver = { 0.00781250, 0.50781250, 0.53515625, 0.78515625 },
     outerGlow = { 0.00781250, 0.50781250, 0.27734375, 0.52734375 },
     outerGlowOver = { 0.00781250, 0.50781250, 0.53515625, 0.78515625 },
+    stableGlow = { 0.00781250, 0.50781250, 0.27734375, 0.52734375 },
 }
-local BUTTON_GLOW_TEXTURE_ORDER = { "spark", "innerGlow", "innerGlowOver", "outerGlow", "outerGlowOver", "ants" }
-local BUTTON_GLOW_ALPHA_SCALE = 1.12
+local BUTTON_GLOW_TEXTURE_ORDER = {
+    "spark",
+    "innerGlow",
+    "innerGlowOver",
+    "outerGlow",
+    "outerGlowOver",
+    "stableGlow",
+    "ants",
+}
+local BUTTON_GLOW_VISUAL = {
+    frames = 22,
+    speedSegments = 6,
+    stableAntsScale = 1.20,
+    stableGlowScale = 1.65,
+    stableAntsAlpha = 1,
+    stableGlowAlpha = 1,
+    stableAntsClipPixels = 2,
+    stableGlowClipPixels = 1,
+}
 GUI2._ButtonGlowAnimateTexCoords = TextureUtil
     and TextureUtil.AnimateTexCoords
     or AnimateTexCoords
@@ -1613,19 +1814,28 @@ local AUTOCAST_SHINE_COORDS = YUI.IsRetail
     and { 0.8115234375, 0.9169921875, 0.8798828125, 0.9853515625 }
     or { 0.3984375, 0.4453125, 0.40234375, 0.44921875 }
 local AUTOCAST_PARTICLE_SIZES = { 7, 6, 5, 4 }
+local PlaceAutoCastParticle
 
 local function ResolveButtonGlowAlpha(alpha)
     alpha = tonumber(alpha) or 1
     if alpha <= 0 then return 0 end
-    return math_min(1, alpha * BUTTON_GLOW_ALPHA_SCALE)
+    return math_min(1, alpha)
 end
 
-local function CreateButtonGlowTexture(frame, key, layer)
-    local texture = frame:CreateTexture(nil, layer or "ARTWORK")
-    texture:SetPoint("CENTER")
+local function CreateButtonGlowTexture(frame, key, layer, restricted)
+    local template = key == "ants" and restricted
+        and "YUI_AuctionHelper_YUIRestrictedButtonGlowAntsTemplate" or nil
+    local texture = frame:CreateTexture(
+        nil,
+        layer or "ARTWORK",
+        template
+    )
+    texture:ClearAllPoints()
+    texture:SetPoint("CENTER", frame, "CENTER", 0, 0)
     texture:SetBlendMode("ADD")
     if key == "ants" then
         texture:SetTexture(BUTTON_GLOW_ANTS_TEXTURE)
+        texture:SetTexCoord(0, 48 / 256, 0, 48 / 256)
     else
         texture:SetTexture(BUTTON_GLOW_TEXTURE)
         local coords = BUTTON_GLOW_COORDS[key]
@@ -1635,6 +1845,22 @@ local function CreateButtonGlowTexture(frame, key, layer)
     end
     texture:SetAlpha(0)
     return texture
+end
+
+function BUTTON_GLOW_VISUAL:CreateClipMask(frame, texture)
+    if not (frame and frame.CreateMaskTexture
+        and texture and texture.AddMaskTexture) then
+        return nil
+    end
+    local mask = frame:CreateMaskTexture()
+    mask:SetTexture(
+        "Interface\\Buttons\\WHITE8X8",
+        "CLAMPTOBLACKADDITIVE",
+        "CLAMPTOBLACKADDITIVE"
+    )
+    mask:SetPoint("CENTER", frame, "CENTER", 0, 0)
+    texture:AddMaskTexture(mask)
+    return mask
 end
 
 local function CreateButtonScaleAnim(group, target, order, duration, x, y, delay)
@@ -1678,8 +1904,10 @@ end
 
 local function ApplyButtonGlowStableState(frame)
     if not frame then return end
-    local width = frame.GetWidth and (frame:GetWidth() or 0) or 0
-    local height = frame.GetHeight and (frame:GetHeight() or 0) or 0
+    local width = frame.gui2TrustedLayoutWidth
+        or (frame.GetWidth and (frame:GetWidth() or 0) or 0)
+    local height = frame.gui2TrustedLayoutHeight
+        or (frame.GetHeight and (frame:GetHeight() or 0) or 0)
     if width <= 0 or height <= 0 then return end
     local alpha = frame.gui2ButtonGlowAlpha or 1
 
@@ -1688,17 +1916,43 @@ local function ApplyButtonGlowStableState(frame)
     frame.innerGlow:SetSize(width, height)
     frame.innerGlow:SetAlpha(0)
     frame.innerGlowOver:SetAlpha(0)
-    frame.outerGlow:SetSize(width, height)
-    frame.outerGlow:SetAlpha(alpha)
+    frame.outerGlow:SetAlpha(0)
     frame.outerGlowOver:SetAlpha(0)
-    frame.ants:SetSize(width * 0.85, height * 0.85)
-    frame.ants:SetAlpha(alpha)
+    frame.stableGlow:SetSize(
+        width * BUTTON_GLOW_VISUAL.stableGlowScale,
+        height * BUTTON_GLOW_VISUAL.stableGlowScale
+    )
+    frame.stableGlow:SetAlpha(
+        alpha * BUTTON_GLOW_VISUAL.stableGlowAlpha
+    )
+    frame.ants:SetSize(
+        width * BUTTON_GLOW_VISUAL.stableAntsScale,
+        height * BUTTON_GLOW_VISUAL.stableAntsScale
+    )
+    frame.ants:SetAlpha(alpha * BUTTON_GLOW_VISUAL.stableAntsAlpha)
+    local pixel = frame.gui2ButtonGlowPixel or (GUI2.mult or 1)
+    local stableGlowMask = frame.gui2ButtonGlowStableGlowClipMask
+    if stableGlowMask then
+        stableGlowMask:SetSize(
+            width + pixel * BUTTON_GLOW_VISUAL.stableGlowClipPixels * 2,
+            height + pixel * BUTTON_GLOW_VISUAL.stableGlowClipPixels * 2
+        )
+    end
+    local antsMask = frame.gui2ButtonGlowAntsClipMask
+    if antsMask then
+        antsMask:SetSize(
+            width + pixel * BUTTON_GLOW_VISUAL.stableAntsClipPixels * 2,
+            height + pixel * BUTTON_GLOW_VISUAL.stableAntsClipPixels * 2
+        )
+    end
 end
 
 local function ButtonGlowAnimInOnPlay(group)
     local frame = group:GetParent()
-    local width = frame.GetWidth and (frame:GetWidth() or 0) or 0
-    local height = frame.GetHeight and (frame:GetHeight() or 0) or 0
+    local width = frame.gui2TrustedLayoutWidth
+        or (frame.GetWidth and (frame:GetWidth() or 0) or 0)
+    local height = frame.gui2TrustedLayoutHeight
+        or (frame.GetHeight and (frame:GetHeight() or 0) or 0)
     if width <= 0 or height <= 0 then return end
     local alpha = frame.gui2ButtonGlowAlpha or 1
     local sparkAlpha = frame.gui2ButtonGlowTinted and alpha * 0.3 or alpha
@@ -1711,6 +1965,7 @@ local function ButtonGlowAnimInOnPlay(group)
     frame.outerGlow:SetSize(width * 2, height * 2)
     frame.outerGlow:SetAlpha(alpha)
     frame.outerGlowOver:SetAlpha(alpha)
+    frame.stableGlow:SetAlpha(0)
     frame.ants:SetSize(width * 0.85, height * 0.85)
     frame.ants:SetAlpha(0)
     frame:Show()
@@ -1795,33 +2050,142 @@ local function ApplyButtonGlowColor(frame, r, g2, b2, alpha)
     end
 end
 
+function GUI2:_ConfigureButtonGlowClock(frame, speed)
+    if not (frame and frame.ants) then return 0 end
+    speed = ClampGlowSpeed(speed)
+    local throttle = speed > 0 and 1 / (
+        BUTTON_GLOW_VISUAL.frames
+            * BUTTON_GLOW_VISUAL.speedSegments
+            * speed
+    ) or 0
+    if frame.ants.gui2ButtonGlowThrottle ~= throttle then
+        frame.ants.gui2ButtonGlowThrottle = throttle
+        frame.ants.frame = nil
+        frame.ants.throttle = nil
+        frame.ants:SetTexCoord(0, 48 / 256, 0, 48 / 256)
+    end
+    return throttle
+end
+
 local function EnsureButtonGlowFrame(glow)
-    if glow.gui2ButtonGlow then
+    local restricted = glow.gui2RestrictedParent == true
+    local cacheKey = restricted
+        and "gui2RestrictedButtonGlow"
+        or "gui2OrdinaryButtonGlow"
+    if glow[cacheKey] then
+        glow.gui2ButtonGlow = glow[cacheKey]
         return glow.gui2ButtonGlow
     end
 
     local frame = CreateFrame("Frame", nil, glow)
     frame:Hide()
     frame.textures = {}
-    frame.spark = CreateButtonGlowTexture(frame, "spark", "BACKGROUND")
-    frame.innerGlow = CreateButtonGlowTexture(frame, "innerGlow", "ARTWORK")
-    frame.innerGlowOver = CreateButtonGlowTexture(frame, "innerGlowOver", "ARTWORK")
-    frame.outerGlow = CreateButtonGlowTexture(frame, "outerGlow", "ARTWORK")
-    frame.outerGlowOver = CreateButtonGlowTexture(frame, "outerGlowOver", "ARTWORK")
+    frame.spark = CreateButtonGlowTexture(
+        frame,
+        "spark",
+        "BACKGROUND",
+        restricted
+    )
+    frame.innerGlow = CreateButtonGlowTexture(
+        frame,
+        "innerGlow",
+        "ARTWORK",
+        restricted
+    )
+    frame.innerGlowOver = CreateButtonGlowTexture(
+        frame,
+        "innerGlowOver",
+        "ARTWORK",
+        restricted
+    )
+    frame.outerGlow = CreateButtonGlowTexture(
+        frame,
+        "outerGlow",
+        "ARTWORK",
+        restricted
+    )
+    frame.outerGlowOver = CreateButtonGlowTexture(
+        frame,
+        "outerGlowOver",
+        "ARTWORK",
+        restricted
+    )
+    frame.stableGlow = CreateButtonGlowTexture(
+        frame,
+        "stableGlow",
+        "ARTWORK",
+        restricted
+    )
     frame.innerGlowOver:ClearAllPoints()
     frame.innerGlowOver:SetPoint("TOPLEFT", frame.innerGlow, "TOPLEFT")
     frame.innerGlowOver:SetPoint("BOTTOMRIGHT", frame.innerGlow, "BOTTOMRIGHT")
     frame.outerGlowOver:ClearAllPoints()
     frame.outerGlowOver:SetPoint("TOPLEFT", frame.outerGlow, "TOPLEFT")
     frame.outerGlowOver:SetPoint("BOTTOMRIGHT", frame.outerGlow, "BOTTOMRIGHT")
-    frame.ants = CreateButtonGlowTexture(frame, "ants", "OVERLAY")
+    frame.ants = CreateButtonGlowTexture(
+        frame,
+        "ants",
+        "OVERLAY",
+        restricted
+    )
+    frame.gui2ButtonGlowStableGlowClipMask =
+        BUTTON_GLOW_VISUAL:CreateClipMask(frame, frame.stableGlow)
+    frame.gui2ButtonGlowAntsClipMask =
+        BUTTON_GLOW_VISUAL:CreateClipMask(frame, frame.ants)
     for _, key in ipairs(BUTTON_GLOW_TEXTURE_ORDER) do
         frame.textures[#frame.textures + 1] = frame[key]
     end
     frame.gui2ButtonGlowAlpha = 1
-    EnsureButtonGlowAnimations(frame)
+    if not restricted then
+        EnsureButtonGlowAnimations(frame)
+    end
+    glow[cacheKey] = frame
     glow.gui2ButtonGlow = frame
     return frame
+end
+
+function GUI2._RestrictedGlowRuntime:StartButton(frame)
+    if not frame then return end
+    frame.gui2ButtonGlowStarted = true
+    ApplyButtonGlowStableState(frame)
+    frame:Show()
+end
+
+function GUI2._RestrictedGlowRuntime:ConfigureButton(glow, frame)
+    local texture = frame and frame.ants
+    local group = texture and texture.gui2RestrictedFlipbook
+    local animation = group and group.gui2RestrictedFlipbookAnimation
+    if not (glow and animation and animation.SetDuration) then return false end
+    local speed = ClampGlowSpeed(glow.gui2GlowSpeed)
+    local duration = speed > 0
+        and 1 / (BUTTON_GLOW_VISUAL.speedSegments * speed) or 0
+    if texture.gui2RestrictedFlipbookDuration ~= duration then
+        StopAnimationGroup(group)
+        texture.gui2RestrictedFlipbookPlaying = false
+        if duration > 0 then
+            animation:SetDuration(duration)
+        end
+    end
+    texture.gui2RestrictedFlipbookDuration = duration
+    if duration > 0 and texture.gui2RestrictedFlipbookPlaying ~= true then
+        group:Play()
+        texture.gui2RestrictedFlipbookPlaying = true
+    elseif duration <= 0 then
+        texture:SetTexCoord(0, 48 / 256, 0, 48 / 256)
+        texture.gui2RestrictedFlipbookPlaying = false
+    end
+    return true
+end
+
+function GUI2._RestrictedGlowRuntime:StopButton(glow)
+    local texture = glow and glow.gui2ButtonGlow
+        and glow.gui2ButtonGlow.ants
+    local group = texture and texture.gui2RestrictedFlipbook
+    if group then StopAnimationGroup(group) end
+    if texture then texture.gui2RestrictedFlipbookPlaying = false end
+    if glow and glow.gui2ButtonGlow then
+        ResetButtonGlowFrame(glow.gui2ButtonGlow)
+    end
 end
 
 local AutoCastGlow = {
@@ -1861,6 +2225,112 @@ function AutoCastGlow:EnsureParticles(frame)
     for index = 1, self.particleCount do
         self:EnsureParticle(frame, index)
     end
+end
+
+function AutoCastGlow:StopRestrictedAnimations(glow)
+    local frame = glow and glow.gui2AutoCastFrame
+    for index = 1, #(frame and frame.textures or {}) do
+        local texture = frame.textures[index]
+        if texture.gui2RestrictedAutoCastAnimation then
+            StopAnimationGroup(texture.gui2RestrictedAutoCastAnimation)
+            texture.gui2RestrictedAutoCastPlaying = false
+        end
+    end
+    if glow then glow.gui2RestrictedAutoCastSignature = nil end
+end
+
+function AutoCastGlow:EnsureRestrictedParticleAnimation(texture)
+    if texture.gui2RestrictedAutoCastAnimation then
+        return texture.gui2RestrictedAutoCastAnimation,
+            texture.gui2RestrictedAutoCastTranslations
+    end
+    if not texture.CreateAnimationGroup then return nil end
+    local group = texture:CreateAnimationGroup()
+    GUI2._RestrictedGlowRuntime:ConfigureLoopingAnimationGroup(
+        group,
+        "REPEAT"
+    )
+    local translations = {}
+    for order = 1, 4 do
+        local animation = group:CreateAnimation("Translation")
+        animation:SetOrder(order)
+        GUI2._RestrictedGlowRuntime:SetAnimationSmoothing(
+            animation,
+            "NONE"
+        )
+        translations[order] = animation
+    end
+    texture.gui2RestrictedAutoCastAnimation = group
+    texture.gui2RestrictedAutoCastTranslations = translations
+    return group, translations
+end
+
+function AutoCastGlow:ConfigureRestrictedAnimations(glow)
+    local frame = glow and glow.gui2AutoCastFrame
+    if not (frame and glow.gui2AutoCastGeometryReady == true) then
+        return false
+    end
+    local width = glow.gui2AutoCastWidth
+    local height = glow.gui2AutoCastHeight
+    local perimeter = glow.gui2AutoCastPerimeter
+    local speed = glow.gui2AutoCastResolvedSpeed or 0
+    local signature = tostring(width)
+        .. ":" .. tostring(height)
+        .. ":" .. tostring(speed)
+    if glow.gui2RestrictedAutoCastSignature == signature then
+        return true
+    end
+
+    for layer = 1, #AUTOCAST_PARTICLE_SIZES do
+        local period = speed > 0 and layer / speed or 0
+        local first = (layer - 1) * self.particlesPerLayer + 1
+        for particle = 1, self.particlesPerLayer do
+            local texture = frame.textures[first + particle - 1]
+            local group, translations =
+                self:EnsureRestrictedParticleAnimation(texture)
+            if group then StopAnimationGroup(group) end
+            texture:ClearAllPoints()
+            if speed > 0 and group and translations then
+                texture:SetPoint("CENTER", frame, "BOTTOMLEFT", 0, 0)
+                local sideDurations = {
+                    height / perimeter * period,
+                    width / perimeter * period,
+                    height / perimeter * period,
+                    width / perimeter * period,
+                }
+                local offsets = {
+                    { 0, height },
+                    { width, 0 },
+                    { 0, -height },
+                    { -width, 0 },
+                }
+                for order = 1, 4 do
+                    translations[order]:SetDuration(sideDurations[order])
+                    translations[order]:SetOffset(
+                        offsets[order][1],
+                        offsets[order][2]
+                    )
+                end
+                group:Play(
+                    false,
+                    (particle % self.particlesPerLayer)
+                        / self.particlesPerLayer * period
+                )
+                texture.gui2RestrictedAutoCastPlaying = true
+            else
+                PlaceAutoCastParticle(
+                    frame,
+                    texture,
+                    (particle / self.particlesPerLayer) * perimeter,
+                    width,
+                    height
+                )
+                texture.gui2RestrictedAutoCastPlaying = false
+            end
+        end
+    end
+    glow.gui2RestrictedAutoCastSignature = signature
+    return true
 end
 
 function AutoCastGlow:EnsureNative(glow)
@@ -1929,7 +2399,80 @@ local function EnsureShapeProcGlow(glow, family)
     return frame
 end
 
+function GUI2:_SyncManagedCircleProcAppearance(glow, frame)
+    if not (glow and frame and GUI2.SetManagedProcGlowAppearance) then
+        return false
+    end
+    local appearance = glow.gui2ManagedProcAppearance
+    if not appearance then
+        appearance = { color = {} }
+        glow.gui2ManagedProcAppearance = appearance
+    end
+    local color = appearance.color
+    color[1] = glow.gui2GlowResolvedR or glow.gui2ColorR or 1
+    color[2] = glow.gui2GlowResolvedG or glow.gui2ColorG or 1
+    color[3] = glow.gui2GlowResolvedB or glow.gui2ColorB or 1
+    color[4] = 1
+    appearance.alpha = glow.gui2GlowResolvedAlpha
+        or glow.gui2GlowAlpha or 1
+    appearance.size = glow.gui2GlowSize or 1
+    appearance.speed = glow.gui2GlowSpeed or 1
+    appearance.offsetX = glow.gui2GlowOffsetX or 0
+    appearance.offsetY = glow.gui2GlowOffsetY or 0
+    appearance.horizontalCompensationPixels = 1
+    return GUI2:SetManagedProcGlowAppearance(frame, appearance)
+end
+
+function GUI2:_EnsureManagedCircleProcGlow(glow)
+    if not (GUI2.CreateManagedProcGlow
+        and GUI2.LayoutManagedProcGlow) then
+        return nil
+    end
+    local width, height = GetGlowTargetSize(glow)
+    local frame = glow.gui2ManagedCircleProcGlow
+    if not frame then
+        frame = GUI2:CreateManagedProcGlow(
+            glow,
+            "circle",
+            width,
+            height,
+            nil,
+            nil,
+            "circle"
+        )
+        glow.gui2ManagedCircleProcGlow = frame
+    end
+    if not frame then return nil end
+    local appearanceChanged = self:_SyncManagedCircleProcAppearance(
+        glow,
+        frame
+    )
+    if not appearanceChanged
+        and (glow.gui2ManagedCircleProcWidth ~= width
+            or glow.gui2ManagedCircleProcHeight ~= height) then
+        GUI2:LayoutManagedProcGlow(
+            frame,
+            glow,
+            width,
+            height,
+            nil,
+            nil,
+            "circle"
+        )
+    end
+    glow.gui2ManagedCircleProcWidth = width
+    glow.gui2ManagedCircleProcHeight = height
+    return frame
+end
+
 local function EnsureProcGlow(glow)
+    if glow.gui2GlowShape == "circle" then
+        local managed = GUI2:_EnsureManagedCircleProcGlow(glow)
+        if managed then
+            glow.gui2ActiveShapeProcFrame = nil
+            return managed
+        end
+    end
     local family = GetProcGlowShapeFamily(glow.gui2GlowShape)
     if family then
         return EnsureShapeProcGlow(glow, family)
@@ -1962,21 +2505,519 @@ local function EnsureProcGlow(glow)
     return fallback
 end
 
+GUI2._RestrictedEdgeGlow = GUI2._RestrictedEdgeGlow or {}
+GUI2._RestrictedEdgeGlow.texture = Assets:Core("images\\GlowTex.tga")
+GUI2._RestrictedEdgeGlow.coordStart = 0.0625
+GUI2._RestrictedEdgeGlow.coordEnd = 0.9375
+GUI2._RestrictedEdgeGlow.keys = {
+    "TopLeftCorner",
+    "TopRightCorner",
+    "BottomLeftCorner",
+    "BottomRightCorner",
+    "TopEdge",
+    "BottomEdge",
+    "LeftEdge",
+    "RightEdge",
+}
+GUI2._RestrictedEdgeGlow.cornerCoords = {
+    TopLeftCorner = {
+        0.5078125, GUI2._RestrictedEdgeGlow.coordStart,
+        0.5078125, GUI2._RestrictedEdgeGlow.coordEnd,
+        0.6171875, GUI2._RestrictedEdgeGlow.coordStart,
+        0.6171875, GUI2._RestrictedEdgeGlow.coordEnd,
+    },
+    TopRightCorner = {
+        0.6328125, GUI2._RestrictedEdgeGlow.coordStart,
+        0.6328125, GUI2._RestrictedEdgeGlow.coordEnd,
+        0.7421875, GUI2._RestrictedEdgeGlow.coordStart,
+        0.7421875, GUI2._RestrictedEdgeGlow.coordEnd,
+    },
+    BottomLeftCorner = {
+        0.7578125, GUI2._RestrictedEdgeGlow.coordStart,
+        0.7578125, GUI2._RestrictedEdgeGlow.coordEnd,
+        0.8671875, GUI2._RestrictedEdgeGlow.coordStart,
+        0.8671875, GUI2._RestrictedEdgeGlow.coordEnd,
+    },
+    BottomRightCorner = {
+        0.8828125, GUI2._RestrictedEdgeGlow.coordStart,
+        0.8828125, GUI2._RestrictedEdgeGlow.coordEnd,
+        0.9921875, GUI2._RestrictedEdgeGlow.coordStart,
+        0.9921875, GUI2._RestrictedEdgeGlow.coordEnd,
+    },
+}
+
+function GUI2._RestrictedEdgeGlow:GetScale()
+    local factor = GetPixelToUIUnitFactor()
+    local pixel = GUI2.mult
+    if type(factor) == "number" and factor > 0
+        and type(pixel) == "number" and pixel > 0 then
+        return factor / pixel
+    end
+    return 1
+end
+
+function GUI2._RestrictedEdgeGlow:Ensure(glow)
+    if glow.gui2RestrictedEdgeGlow then
+        return glow.gui2RestrictedEdgeGlow
+    end
+
+    local frame = CreateFrame("Frame", nil, glow)
+    frame:Hide()
+    frame.gui2RestrictedEdgePieces = {}
+    for _, key in ipairs(self.keys) do
+        local texture = frame:CreateTexture(nil, "OVERLAY", nil, 6)
+        texture:SetTexture(
+            self.texture,
+            "REPEAT",
+            "REPEAT"
+        )
+        texture:SetBlendMode("ADD")
+        frame.gui2RestrictedEdgePieces[key] = texture
+    end
+    glow.gui2RestrictedEdgeGlow = frame
+    return frame
+end
+
+function GUI2._RestrictedEdgeGlow:SetColor(frame, r, g2, b2, alpha)
+    local pieces = frame and frame.gui2RestrictedEdgePieces
+    if not pieces then return end
+    for _, key in ipairs(self.keys) do
+        pieces[key]:SetVertexColor(r, g2, b2, alpha)
+    end
+end
+
+function GUI2._RestrictedEdgeGlow:SetCoordinates(
+    pieces,
+    width,
+    height,
+    edgeSize
+)
+    local scale = self:GetScale()
+    local coordStart = self.coordStart
+    local repeatX = math_max(
+        0,
+        width / edgeSize * scale - 2 - coordStart
+    )
+    local repeatY = math_max(
+        0,
+        height / edgeSize * scale - 2 - coordStart
+    )
+    for key, coords in pairs(self.cornerCoords) do
+        pieces[key]:SetTexCoord(
+            coords[1], coords[2], coords[3], coords[4],
+            coords[5], coords[6], coords[7], coords[8]
+        )
+    end
+    pieces.TopEdge:SetTexCoord(
+        0.2578125, repeatX,
+        0.3671875, repeatX,
+        0.2578125, coordStart,
+        0.3671875, coordStart
+    )
+    pieces.BottomEdge:SetTexCoord(
+        0.3828125, repeatX,
+        0.4921875, repeatX,
+        0.3828125, coordStart,
+        0.4921875, coordStart
+    )
+    pieces.LeftEdge:SetTexCoord(
+        0.0078125, coordStart,
+        0.0078125, repeatY,
+        0.1171875, coordStart,
+        0.1171875, repeatY
+    )
+    pieces.RightEdge:SetTexCoord(
+        0.1328125, coordStart,
+        0.1328125, repeatY,
+        0.2421875, coordStart,
+        0.2421875, repeatY
+    )
+    return scale
+end
+
+function GUI2._RestrictedEdgeGlow:Layout(glow, style)
+    if not (glow and glow.gui2RestrictedParent == true) then return nil end
+    local width, height = GUI2:_GetGlowLayoutSize(glow)
+    if width <= 0 or height <= 0 then return nil end
+    local edgeSize = ResolveGlowEdgeSize(glow, style)
+    local frame = self:Ensure(glow)
+    local pieces = frame.gui2RestrictedEdgePieces
+    local scale = self:GetScale()
+    local signature = tostring(width)
+        .. ":" .. tostring(height)
+        .. ":" .. tostring(edgeSize)
+        .. ":" .. tostring(scale)
+    if frame.gui2RestrictedEdgeSignature ~= signature then
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER", glow, "CENTER", 0, 0)
+        frame:SetSize(width, height)
+
+        for _, key in ipairs({
+            "TopLeftCorner",
+            "TopRightCorner",
+            "BottomLeftCorner",
+            "BottomRightCorner",
+        }) do
+            pieces[key]:ClearAllPoints()
+            pieces[key]:SetSize(edgeSize, edgeSize)
+        end
+        pieces.TopLeftCorner:SetPoint("TOPLEFT", frame, "TOPLEFT")
+        pieces.TopRightCorner:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
+        pieces.BottomLeftCorner:SetPoint(
+            "BOTTOMLEFT",
+            frame,
+            "BOTTOMLEFT"
+        )
+        pieces.BottomRightCorner:SetPoint(
+            "BOTTOMRIGHT",
+            frame,
+            "BOTTOMRIGHT"
+        )
+
+        pieces.TopEdge:ClearAllPoints()
+        pieces.TopEdge:SetPoint(
+            "TOPLEFT",
+            frame,
+            "TOPLEFT",
+            edgeSize,
+            0
+        )
+        pieces.TopEdge:SetPoint(
+            "TOPRIGHT",
+            frame,
+            "TOPRIGHT",
+            -edgeSize,
+            0
+        )
+        pieces.TopEdge:SetHeight(edgeSize)
+        pieces.BottomEdge:ClearAllPoints()
+        pieces.BottomEdge:SetPoint(
+            "BOTTOMLEFT",
+            frame,
+            "BOTTOMLEFT",
+            edgeSize,
+            0
+        )
+        pieces.BottomEdge:SetPoint(
+            "BOTTOMRIGHT",
+            frame,
+            "BOTTOMRIGHT",
+            -edgeSize,
+            0
+        )
+        pieces.BottomEdge:SetHeight(edgeSize)
+        pieces.LeftEdge:ClearAllPoints()
+        pieces.LeftEdge:SetPoint(
+            "TOPLEFT",
+            frame,
+            "TOPLEFT",
+            0,
+            -edgeSize
+        )
+        pieces.LeftEdge:SetPoint(
+            "BOTTOMLEFT",
+            frame,
+            "BOTTOMLEFT",
+            0,
+            edgeSize
+        )
+        pieces.LeftEdge:SetWidth(edgeSize)
+        pieces.RightEdge:ClearAllPoints()
+        pieces.RightEdge:SetPoint(
+            "TOPRIGHT",
+            frame,
+            "TOPRIGHT",
+            0,
+            -edgeSize
+        )
+        pieces.RightEdge:SetPoint(
+            "BOTTOMRIGHT",
+            frame,
+            "BOTTOMRIGHT",
+            0,
+            edgeSize
+        )
+        pieces.RightEdge:SetWidth(edgeSize)
+        self:SetCoordinates(
+            pieces,
+            width,
+            height,
+            edgeSize
+        )
+        frame.gui2RestrictedEdgeSignature = signature
+        frame.gui2TrustedLayoutWidth = width
+        frame.gui2TrustedLayoutHeight = height
+        frame.gui2RestrictedEdgeSize = edgeSize
+    end
+    return frame
+end
+
+function GUI2._RestrictedEdgeGlow:Hide(glow)
+    local frame = glow and glow.gui2RestrictedEdgeGlow
+    if frame then frame:Hide() end
+end
+
 local function EnsurePulseGlowFrame(glow)
-    if glow.gui2PulseFrame then
+    if glow.gui2RestrictedParent == true then
+        local frame = GUI2._RestrictedEdgeGlow:Ensure(glow)
+        glow.gui2PulseFrame = frame
+        return frame
+    end
+    if glow.gui2OrdinaryPulseFrame then
+        glow.gui2PulseFrame = glow.gui2OrdinaryPulseFrame
         return glow.gui2PulseFrame
     end
 
     local frame = CreateFrame("Frame", nil, glow, "BackdropTemplate")
     frame:SetPoint("CENTER", glow, "CENTER", 0, 0)
     frame:Hide()
+    glow.gui2OrdinaryPulseFrame = frame
     glow.gui2PulseFrame = frame
     return frame
+end
+
+function GUI2._RestrictedGlowRuntime:ConfigureAlphaPulse(
+    texture,
+    field,
+    lowAlpha,
+    highAlpha,
+    speed
+)
+    if not (texture and texture.CreateAnimationGroup) then return false end
+    speed = math_max(0.2, ClampGlowSpeed(speed))
+    local duration = 0.5 / speed
+    local group = texture[field]
+    local animationField = field .. "Animation"
+    local durationField = field .. "Duration"
+    local playingField = field .. "Playing"
+    if not group then
+        group = texture:CreateAnimationGroup()
+        self:ConfigureLoopingAnimationGroup(group, "BOUNCE")
+        local animation = group:CreateAnimation("Alpha")
+        animation:SetOrder(1)
+        animation:SetDuration(duration)
+        animation:SetFromAlpha(lowAlpha)
+        animation:SetToAlpha(highAlpha)
+        self:SetAnimationSmoothing(animation, "IN_OUT")
+        texture[field] = group
+        texture[animationField] = animation
+    elseif texture[durationField] ~= duration then
+        StopAnimationGroup(group)
+        texture[animationField]:SetDuration(duration)
+    end
+    texture[durationField] = duration
+    if texture[playingField] ~= true then
+        group:Play()
+        texture[playingField] = true
+    end
+    return true
+end
+
+function GUI2._RestrictedGlowRuntime:StopAlphaPulse(texture, field)
+    local group = texture and texture[field]
+    if group then StopAnimationGroup(group) end
+    if texture then texture[field .. "Playing"] = false end
+end
+
+function GUI2._RestrictedGlowRuntime:ConfigureProc(glow, frame)
+    if not (glow and frame) then return false end
+    if frame.ProcLoop then
+        if frame.gui2ProcFlipbook and frame.ProcLoopFlipbook then
+            if frame.ProcStartFlipbook then
+                frame.ProcStartFlipbook:SetAlpha(0)
+                frame.ProcStartFlipbook:Hide()
+            end
+            frame.ProcLoopFlipbook:SetAlpha(1)
+            frame.ProcLoopFlipbook:Show()
+        end
+        frame.gui2ProcPlaying = true
+        frame.animationPlaying = true
+        PlayAnimationGroup(frame.ProcLoop)
+        return true
+    end
+    local speed = glow.gui2GlowSpeed
+    if frame.Texture then
+        self:ConfigureAlphaPulse(
+            frame.Texture,
+            "gui2RestrictedProcPulse",
+            0.55,
+            1,
+            speed
+        )
+    end
+    if frame.InnerTexture then
+        self:ConfigureAlphaPulse(
+            frame.InnerTexture,
+            "gui2RestrictedProcPulse",
+            0.22,
+            0.5,
+            speed
+        )
+    end
+    return frame.Texture ~= nil
+end
+
+function GUI2._RestrictedGlowRuntime:StopProc(glow)
+    local function StopFrame(frame)
+        if not frame then return end
+        self:StopAlphaPulse(
+            frame.Texture,
+            "gui2RestrictedProcPulse"
+        )
+        self:StopAlphaPulse(
+            frame.InnerTexture,
+            "gui2RestrictedProcPulse"
+        )
+    end
+    StopFrame(glow and glow.gui2ProcFallback)
+    if glow and glow.gui2ProcFrame then
+        glow.gui2ProcFrame.animationPlaying = false
+        StopAnimationGroup(glow.gui2ProcFrame.ProcLoop)
+        glow.gui2ProcFrame:Hide()
+    end
+    if glow and glow.gui2ManagedCircleProcGlow then
+        if GUI2.SetManagedProcGlowShown then
+            GUI2:SetManagedProcGlowShown(
+                glow.gui2ManagedCircleProcGlow,
+                false
+            )
+        else
+            glow.gui2ManagedCircleProcGlow:Hide()
+        end
+    end
+    if glow and glow.gui2ShapeProcFrames then
+        for _, frame in pairs(glow.gui2ShapeProcFrames) do
+            StopFrame(frame)
+        end
+    end
+end
+
+function GUI2._RestrictedGlowRuntime:ConfigurePulse(glow, frame)
+    if not (glow and frame and frame.CreateAnimationGroup) then
+        return false
+    end
+    local speed = math_max(0.2, ClampGlowSpeed(glow.gui2GlowSpeed))
+    local alpha = glow.gui2GlowResolvedAlpha
+        or glow.gui2GlowAlpha or 1
+    local duration = 0.5 / speed
+    local lowAlpha = alpha * 0.40
+    local highAlpha = alpha * 0.95
+    local group = frame.gui2RestrictedPulseAnimation
+    if not group then
+        group = frame:CreateAnimationGroup()
+        self:ConfigureLoopingAnimationGroup(group, "BOUNCE")
+        local alphaAnimation = group:CreateAnimation("Alpha")
+        alphaAnimation:SetOrder(1)
+        alphaAnimation:SetDuration(duration)
+        alphaAnimation:SetFromAlpha(lowAlpha)
+        alphaAnimation:SetToAlpha(highAlpha)
+        self:SetAnimationSmoothing(alphaAnimation, "IN_OUT")
+        local scaleAnimation = group:CreateAnimation("Scale")
+        scaleAnimation:SetOrder(1)
+        scaleAnimation:SetDuration(duration)
+        if scaleAnimation.SetScaleFrom then
+            scaleAnimation:SetScaleFrom(0.94, 0.94)
+            scaleAnimation:SetScaleTo(1.04, 1.04)
+        else
+            scaleAnimation:SetScale(1.04 / 0.94, 1.04 / 0.94)
+        end
+        if scaleAnimation.SetOrigin then
+            scaleAnimation:SetOrigin("CENTER", 0, 0)
+        end
+        self:SetAnimationSmoothing(scaleAnimation, "IN_OUT")
+        frame.gui2RestrictedPulseAnimation = group
+        frame.gui2RestrictedPulseAlpha = alphaAnimation
+        frame.gui2RestrictedPulseScale = scaleAnimation
+    elseif frame.gui2RestrictedPulseDuration ~= duration
+        or frame.gui2RestrictedPulseAlphaValue ~= alpha then
+        StopAnimationGroup(group)
+        frame.gui2RestrictedPulseAlpha:SetDuration(duration)
+        frame.gui2RestrictedPulseAlpha:SetFromAlpha(lowAlpha)
+        frame.gui2RestrictedPulseAlpha:SetToAlpha(highAlpha)
+        frame.gui2RestrictedPulseScale:SetDuration(duration)
+    end
+    frame.gui2RestrictedPulseDuration = duration
+    frame.gui2RestrictedPulseAlphaValue = alpha
+    if frame.gui2RestrictedPulsePlaying ~= true then
+        group:Play()
+        frame.gui2RestrictedPulsePlaying = true
+    end
+    return true
+end
+
+function GUI2._RestrictedGlowRuntime:StopPulse(glow)
+    local frame = glow and glow.gui2PulseFrame
+    if frame and frame.gui2RestrictedPulseAnimation then
+        StopAnimationGroup(frame.gui2RestrictedPulseAnimation)
+        frame.gui2RestrictedPulsePlaying = false
+        frame:SetScale(1)
+        frame:SetAlpha(1)
+        frame:Hide()
+    end
 end
 
 local function HidePulseGlow(glow)
     if glow and glow.gui2PulseFrame then
         glow.gui2PulseFrame:Hide()
+    end
+end
+
+function GUI2:_ApplyGlowFrameLayer(glow, style)
+    if not glow then return end
+    local level = glow.gui2GlowFrameLevel
+    local strata = glow.gui2GlowFrameStrata
+    if strata and glow.SetFrameStrata
+        and glow.gui2AppliedGlowFrameStrata ~= strata then
+        glow:SetFrameStrata(strata)
+        glow.gui2AppliedGlowFrameStrata = strata
+    end
+    if type(level) == "number" then
+        if glow.SetFrameLevel
+            and glow.gui2AppliedGlowFrameLevel ~= level then
+            glow:SetFrameLevel(level)
+            glow.gui2AppliedGlowFrameLevel = level
+        end
+        return
+    end
+    if glow.gui2RestrictedParent == true then return end
+    local target = glow.gui2GlowTarget
+    if not (glow.SetFrameLevel and target and target.GetFrameLevel) then
+        return
+    end
+    local targetLevel = target:GetFrameLevel() or 0
+    if UsesNativeGlow(style) then
+        glow:SetFrameLevel(targetLevel + 4)
+    elseif UsesPixelGlowSegments(style) then
+        glow:SetFrameLevel(targetLevel + 3)
+    else
+        glow:SetFrameLevel(math_max(targetLevel - 1, 0))
+    end
+end
+
+function GUI2:_ApplyGlowChildLayer(glow, frame)
+    if not (glow and frame) then return end
+    local strata = glow.gui2GlowFrameStrata
+    local childChanged = glow.gui2AppliedGlowChild ~= frame
+    if strata and frame.SetFrameStrata
+        and (childChanged
+            or glow.gui2AppliedGlowChildStrata ~= strata) then
+        frame:SetFrameStrata(strata)
+        glow.gui2AppliedGlowChildStrata = strata
+    end
+    local level = glow.gui2GlowFrameLevel
+    if type(level) == "number" then
+        if frame.SetFrameLevel
+            and (childChanged
+                or glow.gui2AppliedGlowChildLevel ~= level) then
+            frame:SetFrameLevel(level)
+            glow.gui2AppliedGlowChildLevel = level
+        end
+        glow.gui2AppliedGlowChild = frame
+        return
+    end
+    if glow.gui2RestrictedParent == true then return end
+    if frame.SetFrameLevel and glow.GetFrameLevel then
+        frame:SetFrameLevel((glow:GetFrameLevel() or 0) + 1)
     end
 end
 
@@ -1998,6 +3039,16 @@ local function HideNativeGlow(glow)
     if glow.gui2ProcFallback then
         glow.gui2ProcFallback:Hide()
     end
+    if glow.gui2ManagedCircleProcGlow then
+        if GUI2.SetManagedProcGlowShown then
+            GUI2:SetManagedProcGlowShown(
+                glow.gui2ManagedCircleProcGlow,
+                false
+            )
+        else
+            glow.gui2ManagedCircleProcGlow:Hide()
+        end
+    end
     if glow.gui2ShapeProcFrames then
         for _, frame in pairs(glow.gui2ShapeProcFrames) do
             frame:Hide()
@@ -2008,23 +3059,22 @@ end
 
 local function ApplyButtonGlowLayout(glow)
     local frame = EnsureButtonGlowFrame(glow)
-    local target = glow.gui2GlowTarget or glow
-    local width = target.GetWidth and target:GetWidth() or glow:GetWidth() or 0
-    local height = target.GetHeight and target:GetHeight() or glow:GetHeight() or 0
-    if width <= 0 or height <= 0 then
-        width = glow.GetWidth and glow:GetWidth() or 1
-        height = glow.GetHeight and glow:GetHeight() or 1
-    end
-    if frame.SetFrameLevel and glow.GetFrameLevel then
-        frame:SetFrameLevel((glow:GetFrameLevel() or 0) + 1)
-    end
+    local width, height = GetGlowTargetSize(glow)
+    GUI2:_ApplyGlowChildLayer(glow, frame)
 
-    local frameWidth = glow.GetWidth and glow:GetWidth() or 0
-    local frameHeight = glow.GetHeight and glow:GetHeight() or 0
+    local frameWidth, frameHeight = GUI2:_GetGlowLayoutSize(glow)
     if frameWidth <= 0 or frameHeight <= 0 then
         local outset = ResolveGlowOutset(glow, "button")
         frameWidth = math_max(1, width + outset * 2)
         frameHeight = math_max(1, height + outset * 2)
+    end
+    frame.gui2ButtonGlowPixel = GUI2:GetPixelSize(glow, 1, 1)
+    if glow.gui2RestrictedParent == true then
+        frame.gui2TrustedLayoutWidth = frameWidth
+        frame.gui2TrustedLayoutHeight = frameHeight
+    else
+        frame.gui2TrustedLayoutWidth = nil
+        frame.gui2TrustedLayoutHeight = nil
     end
     frame:ClearAllPoints()
     frame:SetPoint("CENTER", glow, "CENTER", 0, 0)
@@ -2037,8 +3087,16 @@ end
 
 local function ApplyPulseGlowLayout(glow)
     local frame = EnsurePulseGlowFrame(glow)
-    local width = glow.GetWidth and glow:GetWidth() or 0
-    local height = glow.GetHeight and glow:GetHeight() or 0
+    if glow.gui2RestrictedParent == true then
+        frame = GUI2._RestrictedEdgeGlow:Layout(glow, "pulse")
+        if not frame then return nil end
+        GUI2:_ApplyGlowChildLayer(glow, frame)
+        frame:SetScale(1)
+        frame:SetAlpha(1)
+        frame:Show()
+        return frame
+    end
+    local width, height = GUI2:_GetGlowLayoutSize(glow)
     if width <= 0 or height <= 0 then
         local targetWidth, targetHeight = GetGlowTargetSize(glow)
         local outset = ResolveGlowOutset(glow, "pulse")
@@ -2061,15 +3119,22 @@ local function ApplyPulseGlowLayout(glow)
         frame.gui2PulseWidth = width
         frame.gui2PulseHeight = height
     end
-    if frame.SetFrameLevel and glow.GetFrameLevel then
-        frame:SetFrameLevel((glow:GetFrameLevel() or 0) + 1)
-    end
+    GUI2:_ApplyGlowChildLayer(glow, frame)
     frame:Show()
     return frame
 end
 
+function GUI2:_ShouldRenderGlow(glow)
+    if not glow then return false end
+    if glow.gui2RestrictedParent == true then
+        return glow.gui2GlowRequested == true
+            and glow.gui2TrustedGeometryReady == true
+    end
+    return glow.gui2GlowVisible == true
+end
+
 local function ActivateNativeGlow(glow, style)
-    if not (glow and glow.IsShown and glow:IsShown()) then return end
+    if not GUI2:_ShouldRenderGlow(glow) then return end
     HideNativeGlow(glow)
 
     if style == "button" then
@@ -2081,11 +3146,19 @@ local function ActivateNativeGlow(glow, style)
             glow.gui2GlowResolvedB or glow.gui2ColorB or 1,
             glow.gui2GlowResolvedAlpha or glow.gui2GlowAlpha or 1
         )
+        GUI2:_ConfigureButtonGlowClock(frame, glow.gui2GlowSpeed)
+        StartButtonGlowFrame(frame)
         frame:Show()
     elseif style == "autocast" then
         AutoCastGlow:Activate(glow)
     elseif style == "proc" then
         local frame = EnsureProcGlow(glow)
+        GUI2:_ApplyGlowChildLayer(glow, frame)
+        if frame.gui2ManagedProcGlow
+            and GUI2.SetManagedProcGlowShown then
+            GUI2:SetManagedProcGlowShown(frame, true)
+            return
+        end
         frame:Show()
         StopAnimationGroup(frame.ProcStartAnim)
         if frame.ProcStartFlipbook then
@@ -2107,14 +3180,25 @@ local function UpdateButtonGlowFrame(glow, elapsed)
     UpdateButtonGlowAlphaAnimations(frame, alpha)
     StartButtonGlowFrame(frame)
 
-    if type(GUI2._ButtonGlowAnimateTexCoords) == "function" then
-        local speed = math_max(0.2, ClampGlowSpeed(glow.gui2GlowSpeed))
-        GUI2._ButtonGlowAnimateTexCoords(frame.ants, 256, 256, 48, 48, 22, elapsed or 0, 0.25 / speed * 0.01)
+    local speed = ClampGlowSpeed(glow.gui2GlowSpeed)
+    local throttle = GUI2:_ConfigureButtonGlowClock(frame, speed)
+    if speed > 0
+        and type(GUI2._ButtonGlowAnimateTexCoords) == "function" then
+        GUI2._ButtonGlowAnimateTexCoords(
+            frame.ants,
+            256,
+            256,
+            48,
+            48,
+            BUTTON_GLOW_VISUAL.frames,
+            elapsed or 0,
+            throttle
+        )
     end
     frame:Show()
 end
 
-local function PlaceAutoCastParticle(frame, texture, position, width, height)
+PlaceAutoCastParticle = function(frame, texture, position, width, height)
     local rightLimit = height + width
     local bottomLimit = height * 2 + width
     local x, y
@@ -2212,6 +3296,7 @@ end
 function AutoCastGlow.Driver:Register(glow)
     if not glow or self.index[glow]
         or glow.gui2GlowVisible ~= true
+        or glow.gui2RestrictedParent == true
         or glow.gui2GlowStyle ~= "autocast"
         or glow.gui2AutoCastUseNative == true
         or glow.gui2AutoCastGeometryReady ~= true
@@ -2242,6 +3327,7 @@ end
 function AutoCastGlow:Stop(glow)
     if not glow then return end
     self.Driver:Unregister(glow)
+    self:StopRestrictedAnimations(glow)
     if glow.gui2AutoCastFrame then
         glow.gui2AutoCastFrame:Hide()
     end
@@ -2295,7 +3381,7 @@ function AutoCastGlow:ConfigureNative(glow, frame)
 end
 
 function AutoCastGlow:Activate(glow)
-    if not (glow and glow.gui2GlowVisible == true) then return end
+    if not GUI2:_ShouldRenderGlow(glow) then return end
     if glow.gui2AutoCastUseNative == true then
         local frame = glow.gui2NativeAutoCastGlow
         if frame then self:ConfigureNative(glow, frame) end
@@ -2308,6 +3394,10 @@ function AutoCastGlow:Activate(glow)
     for index = 1, self.particleCount do
         frame.textures[index]:Show()
     end
+    if glow.gui2RestrictedParent == true then
+        self:ConfigureRestrictedAnimations(glow)
+        return
+    end
     self.Driver:Draw(glow)
     if (glow.gui2AutoCastResolvedSpeed or 0) > 0 then
         self.Driver:Register(glow)
@@ -2318,8 +3408,7 @@ end
 
 function AutoCastGlow:UpdateGeometry(glow)
     if not (glow and glow.gui2GlowStyle == "autocast") then return end
-    local width = glow.GetWidth and (glow:GetWidth() or 0) or 0
-    local height = glow.GetHeight and (glow:GetHeight() or 0) or 0
+    local width, height = GUI2:_GetGlowLayoutSize(glow)
     local pixel = GUI2:GetPixelSize(glow, 1, 1)
     local native = nil
     if width > 0 and height > 0 and math_abs(width - height) <= pixel then
@@ -2333,15 +3422,11 @@ function AutoCastGlow:UpdateGeometry(glow)
 
     if useNative then
         glow.gui2AutoCastGeometryReady = true
-        if native.SetFrameLevel and glow.GetFrameLevel then
-            native:SetFrameLevel((glow:GetFrameLevel() or 0) + 1)
-        end
+        GUI2:_ApplyGlowChildLayer(glow, native)
     else
         local frame = self:EnsureFrame(glow)
         self:EnsureParticles(frame)
-        if frame.SetFrameLevel and glow.GetFrameLevel then
-            frame:SetFrameLevel((glow:GetFrameLevel() or 0) + 1)
-        end
+        GUI2:_ApplyGlowChildLayer(glow, frame)
         local perimeter = (width + height) * 2
         glow.gui2AutoCastWidth = width
         glow.gui2AutoCastHeight = height
@@ -2358,7 +3443,11 @@ function AutoCastGlow:UpdateGeometry(glow)
             end
             frame.gui2AutoCastScale = scale
         end
-        self.Driver:Draw(glow)
+        if glow.gui2RestrictedParent == true then
+            self:ConfigureRestrictedAnimations(glow)
+        else
+            self.Driver:Draw(glow)
+        end
     end
 
     self:ApplyColor(
@@ -2387,24 +3476,167 @@ function PixelGlowDriver:Draw(glow)
     if not (edges and lines and glow.gui2PixelGlowGeometryReady == true) then
         return false
     end
-    local offset = NormalizeGlowPhase(glow.gui2GlowPhase) * lines
+    local offset = (lines
+        - NormalizeGlowPhase(glow.gui2GlowPhase) * lines) % lines
     local widthPhase = glow.gui2PixelGlowWidthPhase
     local widthHeightPhase = glow.gui2PixelGlowWidthHeightPhase
     local doubleWidthHeightPhase = glow.gui2PixelGlowDoubleWidthHeightPhase
-    edges.top:SetTexCoord(-offset, widthPhase - offset, 0, 1)
-    edges.right:SetTexCoord(0, 1, widthPhase - offset, widthHeightPhase - offset)
-    edges.bottom:SetTexCoord(
-        doubleWidthHeightPhase - offset,
-        widthHeightPhase - offset,
-        0,
-        1
+    GUI2:_SetPixelTextureInterval(
+        edges.top,
+        offset,
+        offset + widthPhase,
+        false,
+        false
     )
-    edges.left:SetTexCoord(
-        0,
-        1,
-        lines - offset,
-        doubleWidthHeightPhase - offset
+    GUI2:_SetPixelTextureInterval(
+        edges.right,
+        offset + widthPhase,
+        offset + widthHeightPhase,
+        true,
+        false
     )
+    GUI2:_SetPixelTextureInterval(
+        edges.bottom,
+        offset + widthHeightPhase,
+        offset + doubleWidthHeightPhase,
+        false,
+        true
+    )
+    GUI2:_SetPixelTextureInterval(
+        edges.left,
+        offset + doubleWidthHeightPhase,
+        offset + lines,
+        true,
+        true
+    )
+    return true
+end
+
+function GUI2._RestrictedGlowRuntime:StopPixel(glow)
+    for _, texture in pairs(glow and glow.gui2PixelEdges or {}) do
+        local group = texture.gui2RestrictedPixelAnimation
+        if group then StopAnimationGroup(group) end
+        texture.gui2RestrictedPixelPlaying = false
+    end
+    SetPixelGlowEdgesShown(glow, false)
+    if glow then glow.gui2RestrictedPixelSignature = nil end
+end
+
+function GUI2._RestrictedGlowRuntime:ConfigurePixel(glow)
+    local edges = glow and glow.gui2PixelEdges
+    local masks = glow and glow.gui2RestrictedPixelMasks
+    local lines = glow and glow.gui2PixelGlowResolvedLines
+    local speed = glow and glow.gui2PixelGlowResolvedSpeed or 0
+    local width, height = GUI2:_GetGlowLayoutSize(glow)
+    local thickness = glow and glow.gui2PixelGlowResolvedThickness
+    local perimeter = (width + height) * 2
+    if not (edges and masks and lines and thickness
+        and perimeter > 0
+        and glow.gui2PixelGlowGeometryReady == true) then
+        return false
+    end
+    local cycle = perimeter / lines
+    if cycle <= 0 then return false end
+    local signature = tostring(lines)
+        .. ":" .. tostring(speed)
+        .. ":" .. tostring(glow.gui2GlowPhase or 0)
+        .. ":" .. tostring(width)
+        .. ":" .. tostring(height)
+        .. ":" .. tostring(thickness)
+    if glow.gui2RestrictedPixelSignature == signature then
+        return true
+    end
+
+    self:StopPixel(glow)
+    local offset = (lines
+        - NormalizeGlowPhase(glow.gui2GlowPhase) * lines) % lines
+    local widthPhase = width / cycle
+    local widthHeightPhase = (width + height) / cycle
+    local doubleWidthHeightPhase = (2 * width + height) / cycle
+    local horizontalCycles = (width + cycle) / cycle
+    local verticalCycles = (height + cycle) / cycle
+
+    masks.top:ClearAllPoints()
+    masks.top:SetPoint("TOPLEFT", glow, "TOPLEFT", 0, 0)
+    masks.top:SetSize(width, thickness)
+    edges.top:ClearAllPoints()
+    edges.top:SetPoint("TOPLEFT", glow, "TOPLEFT", -cycle, 0)
+    edges.top:SetSize(width + cycle, thickness)
+    GUI2:_SetPixelTextureInterval(
+        edges.top,
+        offset,
+        offset + horizontalCycles,
+        false,
+        false
+    )
+
+    masks.right:ClearAllPoints()
+    masks.right:SetPoint("TOPRIGHT", glow, "TOPRIGHT", 0, 0)
+    masks.right:SetSize(thickness, height)
+    edges.right:ClearAllPoints()
+    edges.right:SetPoint("TOPRIGHT", glow, "TOPRIGHT", 0, cycle)
+    edges.right:SetSize(thickness, height + cycle)
+    GUI2:_SetPixelTextureInterval(
+        edges.right,
+        offset + widthPhase,
+        offset + widthPhase + verticalCycles,
+        true,
+        false
+    )
+
+    masks.bottom:ClearAllPoints()
+    masks.bottom:SetPoint("BOTTOMLEFT", glow, "BOTTOMLEFT", 0, 0)
+    masks.bottom:SetSize(width, thickness)
+    edges.bottom:ClearAllPoints()
+    edges.bottom:SetPoint("BOTTOMLEFT", glow, "BOTTOMLEFT", 0, 0)
+    edges.bottom:SetSize(width + cycle, thickness)
+    GUI2:_SetPixelTextureInterval(
+        edges.bottom,
+        offset + widthHeightPhase,
+        offset + widthHeightPhase + horizontalCycles,
+        false,
+        true
+    )
+
+    masks.left:ClearAllPoints()
+    masks.left:SetPoint("TOPLEFT", glow, "TOPLEFT", 0, 0)
+    masks.left:SetSize(thickness, height)
+    edges.left:ClearAllPoints()
+    edges.left:SetPoint("BOTTOMLEFT", glow, "BOTTOMLEFT", 0, -cycle)
+    edges.left:SetSize(thickness, height + cycle)
+    GUI2:_SetPixelTextureInterval(
+        edges.left,
+        offset + doubleWidthHeightPhase,
+        offset + doubleWidthHeightPhase + verticalCycles,
+        true,
+        true
+    )
+
+    local offsets = {
+        top = { cycle, 0 },
+        right = { 0, -cycle },
+        bottom = { -cycle, 0 },
+        left = { 0, cycle },
+    }
+    local duration = speed > 0 and 1 / (speed * lines) or 0
+    for key, translationOffset in pairs(offsets) do
+        local texture = edges[key]
+        local group = texture.gui2RestrictedPixelAnimation
+        local animation = texture.gui2RestrictedPixelTranslation
+        if not (group and animation and animation.SetOffset) then return false end
+        if duration > 0 then
+            animation:SetDuration(duration)
+            animation:SetOffset(
+                translationOffset[1],
+                translationOffset[2]
+            )
+            group:Play()
+            texture.gui2RestrictedPixelPlaying = true
+        else
+            texture.gui2RestrictedPixelPlaying = false
+        end
+    end
+    glow.gui2RestrictedPixelSignature = signature
     return true
 end
 
@@ -2454,7 +3686,8 @@ function PixelGlowDriver:Unregister(glow)
 end
 
 function PixelGlowDriver:Register(glow)
-    if not glow or glow.gui2GlowVisible ~= true
+    if not glow or GUI2:_ShouldRenderGlow(glow) ~= true
+        or glow.gui2RestrictedParent == true
         or not UsesPixelGlowSegments(glow.gui2GlowStyle)
         or glow.gui2PixelGlowGeometryReady ~= true
         or (glow.gui2PixelGlowResolvedSpeed or 0) <= 0 then
@@ -2471,8 +3704,101 @@ function PixelGlowDriver:Register(glow)
     return true
 end
 
+function GUI2._RestrictedGlowRuntime:Stop(glow)
+    if not glow then return end
+    self:StopPixel(glow)
+    self:StopButton(glow)
+    AutoCastGlow:Stop(glow)
+    self:StopProc(glow)
+    self:StopPulse(glow)
+    GUI2._RestrictedEdgeGlow:Hide(glow)
+    glow.gui2RestrictedAnimationPrepared = nil
+end
+
+function GUI2._RestrictedGlowRuntime:Prepare(glow, style)
+    if not (glow and glow.gui2RestrictedParent == true) then
+        return false
+    end
+    if glow.gui2RestrictedAnimationPrepared == style then
+        return true
+    end
+    PixelGlowDriver:Unregister(glow)
+    AutoCastGlow.Driver:Unregister(glow)
+    glow:SetScript("OnUpdate", nil)
+    glow:SetAlpha(1)
+    if glow.gui2TrustedGeometryReady ~= true then
+        glow.gui2RestrictedAnimationPrepared = nil
+        return false
+    end
+
+    local prepared = true
+    if UsesPixelGlowSegments(style) then
+        prepared = self:ConfigurePixel(glow)
+        SetPixelGlowEdgesShown(glow, prepared)
+    elseif style == "button" then
+        local frame = ApplyButtonGlowLayout(glow)
+        ApplyButtonGlowColor(
+            frame,
+            glow.gui2GlowResolvedR or glow.gui2ColorR or 1,
+            glow.gui2GlowResolvedG or glow.gui2ColorG or 1,
+            glow.gui2GlowResolvedB or glow.gui2ColorB or 1,
+            glow.gui2GlowResolvedAlpha or glow.gui2GlowAlpha or 1
+        )
+        self:StartButton(frame)
+        prepared = self:ConfigureButton(glow, frame)
+        frame:Show()
+    elseif style == "autocast" then
+        if glow.gui2AutoCastUseNative == true then
+            local frame = glow.gui2NativeAutoCastGlow
+            if frame then AutoCastGlow:ConfigureNative(glow, frame) end
+            prepared = frame ~= nil
+        else
+            local frame = glow.gui2AutoCastFrame
+            if frame then
+                frame:Show()
+                for index = 1, AutoCastGlow.particleCount do
+                    frame.textures[index]:Show()
+                end
+            end
+            prepared = AutoCastGlow:ConfigureRestrictedAnimations(glow)
+        end
+    elseif style == "proc" then
+        local frame = EnsureProcGlow(glow)
+        frame:Show()
+        StopAnimationGroup(frame.ProcStartAnim)
+        if frame.ProcStartFlipbook then
+            frame.ProcStartFlipbook:Hide()
+        end
+        prepared = self:ConfigureProc(glow, frame)
+    elseif style == "pulse" then
+        local frame = ApplyPulseGlowLayout(glow)
+        prepared = self:ConfigurePulse(glow, frame)
+    elseif style == "soft" then
+        local frame = GUI2._RestrictedEdgeGlow:Layout(glow, "soft")
+        if frame then
+            frame:SetScale(1)
+            frame:SetAlpha(1)
+            GUI2._RestrictedEdgeGlow:SetColor(
+                frame,
+                glow.gui2GlowResolvedR or glow.gui2ColorR or 1,
+                glow.gui2GlowResolvedG or glow.gui2ColorG or 1,
+                glow.gui2GlowResolvedB or glow.gui2ColorB or 1,
+                glow.gui2GlowResolvedAlpha or glow.gui2GlowAlpha or 1
+            )
+            frame:Show()
+        end
+        prepared = frame ~= nil
+    end
+    glow.gui2RestrictedAnimationPrepared = prepared and style or nil
+    return prepared
+end
+
 local function GlowOnUpdate(object, elapsed)
-    if not object or not object.IsShown or not object:IsShown() then
+    if object and object.gui2RestrictedParent == true then
+        object:SetScript("OnUpdate", nil)
+        return
+    end
+    if not GUI2:_ShouldRenderGlow(object) then
         if object and object.SetScript then
             object:SetScript("OnUpdate", nil)
         end
@@ -2518,13 +3844,17 @@ end
 RefreshGlowAnimation = function(glow)
     if not glow then return end
     local style = NormalizeGlowStyle(glow.gui2GlowStyle)
+    if glow.gui2RestrictedParent == true then
+        GUI2._RestrictedGlowRuntime:Prepare(glow, style)
+        return
+    end
+    local shown = GUI2:_ShouldRenderGlow(glow)
     if UsesPixelGlowSegments(style) then
         glow:SetScript("OnUpdate", nil)
         HideNativeGlow(glow)
         HidePulseGlow(glow)
         glow:SetAlpha(1)
-        if glow.gui2GlowVisible == true
-            and glow.gui2PixelGlowGeometryReady == true then
+        if shown and glow.gui2PixelGlowGeometryReady == true then
             SetPixelGlowEdgesShown(glow, true)
             if (glow.gui2PixelGlowResolvedSpeed or 0) > 0 then
                 PixelGlowDriver:Register(glow)
@@ -2550,13 +3880,16 @@ RefreshGlowAnimation = function(glow)
     if style ~= "pulse" then
         HidePulseGlow(glow)
     end
-    local shown = glow.gui2GlowVisible == true
     if shown and UsesNativeGlow(style) then
         ActivateNativeGlow(glow, style)
     else
         HideNativeGlow(glow)
     end
-    if shown and GlowNeedsAnimation(style) then
+    if shown and GlowNeedsAnimation(style)
+        and not (style == "button"
+            and ClampGlowSpeed(glow.gui2GlowSpeed) <= 0)
+        and not (style == "proc"
+            and glow.gui2ManagedCircleProcGlow) then
         if style ~= "pulse" then
             glow:SetAlpha(1)
         end
@@ -2573,16 +3906,9 @@ UpdatePixelGlowLayout = function(glow)
     local lineCount = ClampGlowLines(glow.gui2GlowLines)
     local pixel = GUI2:GetPixelSize(glow, 1, 1)
     local thickness = GUI2:GetPixelSize(glow, ClampGlowThickness(glow.gui2GlowThickness), 1)
-    local width = SnapGlowValue(
-        glow,
-        glow.GetWidth and glow:GetWidth() or 0,
-        pixel
-    )
-    local height = SnapGlowValue(
-        glow,
-        glow.GetHeight and glow:GetHeight() or 0,
-        pixel
-    )
+    local layoutWidth, layoutHeight = GUI2:_GetGlowLayoutSize(glow)
+    local width = SnapGlowValue(glow, layoutWidth, pixel)
+    local height = SnapGlowValue(glow, layoutHeight, pixel)
     local perimeter = (width + height) * 2
     if perimeter <= 0 then
         glow.gui2PixelGlowGeometryReady = false
@@ -2590,24 +3916,46 @@ UpdatePixelGlowLayout = function(glow)
         return
     end
     local edges = EnsurePixelGlowEdges(glow)
-    if glow.gui2PixelGlowResolvedThickness ~= thickness then
-        edges.top:SetHeight(thickness)
-        edges.bottom:SetHeight(thickness)
-        edges.left:SetWidth(thickness)
-        edges.right:SetWidth(thickness)
-        glow.gui2PixelGlowResolvedThickness = thickness
+    if glow.gui2RestrictedParent ~= true then
+        if edges.top.gui2PixelThickness ~= thickness then
+            edges.top:SetHeight(thickness)
+            edges.top.gui2PixelThickness = thickness
+        end
+        if edges.bottom.gui2PixelThickness ~= thickness then
+            edges.bottom:SetHeight(thickness)
+            edges.bottom.gui2PixelThickness = thickness
+        end
+        if edges.left.gui2PixelThickness ~= thickness then
+            edges.left:SetWidth(thickness)
+            edges.left.gui2PixelThickness = thickness
+        end
+        if edges.right.gui2PixelThickness ~= thickness then
+            edges.right:SetWidth(thickness)
+            edges.right.gui2PixelThickness = thickness
+        end
     end
+    glow.gui2PixelGlowResolvedThickness = thickness
     local scale = lineCount / perimeter
     glow.gui2PixelGlowResolvedLines = lineCount
     glow.gui2PixelGlowWidthPhase = width * scale
     glow.gui2PixelGlowWidthHeightPhase = (width + height) * scale
     glow.gui2PixelGlowDoubleWidthHeightPhase = (2 * width + height) * scale
     glow.gui2PixelGlowGeometryReady = true
-    PixelGlowDriver:Draw(glow)
-    SetPixelGlowEdgesShown(glow, glow.gui2GlowVisible == true)
+    if glow.gui2RestrictedParent == true then
+        GUI2._RestrictedGlowRuntime:ConfigurePixel(glow)
+        SetPixelGlowEdgesShown(glow, true)
+    else
+        PixelGlowDriver:Draw(glow)
+        SetPixelGlowEdgesShown(glow, GUI2:_ShouldRenderGlow(glow))
+    end
 end
 
 local function UpdateGlowPixelLayout(glow)
+    if glow and glow.gui2RestrictedParent == true
+        and glow.gui2RestrictedAnimationPrepared
+            == NormalizeGlowStyle(glow.gui2GlowStyle) then
+        return
+    end
     UpdatePixelGlowLayout(glow)
     if glow and UsesPixelGlowSegments(glow.gui2GlowStyle) then
         RefreshGlowAnimation(glow)
@@ -2622,11 +3970,13 @@ end
 
 local function GlowOnShow(glow)
     glow.gui2GlowVisible = true
+    if glow.gui2RestrictedParent == true then return end
     RefreshGlowAnimation(glow)
 end
 
 local function GlowOnHide(glow)
     glow.gui2GlowVisible = false
+    if glow.gui2RestrictedParent == true then return end
     PixelGlowDriver:Unregister(glow)
     AutoCastGlow.Driver:Unregister(glow)
     glow:SetScript("OnUpdate", nil)
@@ -2653,7 +4003,19 @@ local function ApplyGlowColor(glow)
     glow.gui2GlowResolvedB = b2
     glow.gui2GlowResolvedAlpha = alpha
 
-    if UsesPixelGlowSegments(glow.gui2GlowStyle) then
+    if glow.gui2RestrictedParent == true
+        and (glow.gui2GlowStyle == "soft"
+            or glow.gui2GlowStyle == "pulse") then
+        if glow.gui2RestrictedEdgeGlow then
+            GUI2._RestrictedEdgeGlow:SetColor(
+                glow.gui2RestrictedEdgeGlow,
+                r,
+                g2,
+                b2,
+                alpha
+            )
+        end
+    elseif UsesPixelGlowSegments(glow.gui2GlowStyle) then
         local edges = EnsurePixelGlowEdges(glow)
         edges.top:SetVertexColor(r, g2, b2, alpha)
         edges.right:SetVertexColor(r, g2, b2, alpha)
@@ -2707,16 +4069,23 @@ local function ApplyGlowStyle(glow)
     local target = glow.gui2GlowTarget
     local style = NormalizeGlowStyle(glow.gui2GlowStyle)
     glow.gui2GlowStyle = style
-    if glow.SetFrameLevel and target.GetFrameLevel then
-        local targetLevel = target:GetFrameLevel() or 0
-        if UsesNativeGlow(style) then
-            glow:SetFrameLevel(targetLevel + 4)
-        elseif UsesPixelGlowSegments(style) then
-            glow:SetFrameLevel(targetLevel + 3)
-        else
-            glow:SetFrameLevel(math_max(targetLevel - 1, 0))
-        end
+    if glow.gui2RestrictedParent == true then
+        glow.gui2RestrictedAnimationPrepared = nil
     end
+    if style ~= "soft" and style ~= "pulse" then
+        GUI2._RestrictedEdgeGlow:Hide(glow)
+    end
+    if glow.gui2RestrictedParent == true
+        and glow.gui2TrustedGeometryReady ~= true then
+        glow.gui2PixelGlowGeometryReady = false
+        glow.gui2AutoCastGeometryReady = false
+        HidePixelGlowLines(glow)
+        HideNativeGlow(glow)
+        HidePulseGlow(glow)
+        RefreshGlowAnimation(glow)
+        return
+    end
+    GUI2:_ApplyGlowFrameLayer(glow, style)
 
     if style == "none" then
         HidePixelGlowLines(glow)
@@ -2749,7 +4118,12 @@ local function ApplyGlowStyle(glow)
         if glow.SetBackdrop then
             glow:SetBackdrop(nil)
         end
-        SetGlowTargetPoints(glow, target, ResolveGlowOutset(glow, style))
+        SetGlowTargetPoints(
+            glow,
+            target,
+            ResolveGlowOutset(glow, style),
+            style == "proc" and 1 or 0
+        )
         if style == "autocast" then
             AutoCastGlow:UpdateGeometry(glow)
             ApplyGlowColor(glow)
@@ -2769,7 +4143,11 @@ local function ApplyGlowStyle(glow)
             glow:SetBackdrop(nil)
         end
         SetGlowTargetPoints(glow, target, ResolveGlowOutset(glow, style))
-        ApplyPulseGlowLayout(glow)
+        local frame = ApplyPulseGlowLayout(glow)
+        if not frame then
+            RefreshGlowAnimation(glow)
+            return
+        end
         ApplyGlowColor(glow)
         RefreshGlowAnimation(glow)
         return
@@ -2777,6 +4155,26 @@ local function ApplyGlowStyle(glow)
 
     HidePulseGlow(glow)
     local size = ResolveGlowEdgeSize(glow, style)
+    if glow.gui2RestrictedParent == true then
+        if glow.SetBackdrop then
+            glow:SetBackdrop(nil)
+        end
+        SetGlowTargetPoints(
+            glow,
+            target,
+            ResolveGlowOutset(glow, style)
+        )
+        local frame = GUI2._RestrictedEdgeGlow:Layout(glow, style)
+        if frame then
+            GUI2:_ApplyGlowChildLayer(glow, frame)
+            frame:SetScale(1)
+            frame:SetAlpha(1)
+            frame:Show()
+        end
+        ApplyGlowColor(glow)
+        RefreshGlowAnimation(glow)
+        return
+    end
     SetGlowTargetPoints(glow, target, ResolveGlowOutset(glow, style))
     glow:SetBackdrop({
         edgeFile = Assets:Core("images\\GlowTex.tga"),
@@ -2791,6 +4189,20 @@ function GUI2:CreateGlow(frame, opts)
     if not frame then return nil end
     opts = opts or {}
     if frame.gui2Glow then
+        if opts.restrictedParent ~= nil then
+            frame.gui2Glow:_SetGlowLayoutContext(
+                opts.restrictedParent,
+                opts.trustedWidth,
+                opts.trustedHeight
+            )
+        end
+        if opts.trustedFrameLevel ~= nil
+            or opts.trustedFrameStrata ~= nil then
+            frame.gui2Glow:_SetGlowLayerContext(
+                opts.trustedFrameLevel,
+                opts.trustedFrameStrata
+            )
+        end
         frame.gui2Glow:SetGlowParams(opts)
         return frame.gui2Glow
     end
@@ -2799,8 +4211,19 @@ function GUI2:CreateGlow(frame, opts)
     glow:Hide()
     glow.gui2GlowTarget = frame
     glow.gui2GlowVisible = false
+    glow.gui2RestrictedParent = false
+    glow.gui2GlowFrameLevel = type(opts.trustedFrameLevel) == "number"
+        and opts.trustedFrameLevel or nil
+    glow.gui2GlowFrameStrata = type(opts.trustedFrameStrata) == "string"
+        and opts.trustedFrameStrata or nil
     glow:EnableMouse(false)
-    if glow.SetFrameLevel and frame.GetFrameLevel then
+    if glow.gui2GlowFrameStrata and glow.SetFrameStrata then
+        glow:SetFrameStrata(glow.gui2GlowFrameStrata)
+    end
+    if glow.gui2GlowFrameLevel and glow.SetFrameLevel then
+        glow:SetFrameLevel(glow.gui2GlowFrameLevel)
+    elseif opts.restrictedParent ~= true
+        and glow.SetFrameLevel and frame.GetFrameLevel then
         glow:SetFrameLevel(math_max((frame:GetFrameLevel() or 0) - 1, 0))
     end
 
@@ -2814,26 +4237,107 @@ function GUI2:CreateGlow(frame, opts)
         ApplyGlowColor(object)
     end
 
-    glow.SetGlowShown = function(object, shown)
-        if shown == true then
-            object:Show()
+    glow._SetGlowLayoutContext = function(
+        object,
+        restrictedParent,
+        trustedWidth,
+        trustedHeight
+    )
+        local restricted = restrictedParent == true
+        local width = restricted and type(trustedWidth) == "number"
+            and trustedWidth > 0 and trustedWidth or nil
+        local height = restricted and type(trustedHeight) == "number"
+            and trustedHeight > 0 and trustedHeight or nil
+        local ready = restricted and width ~= nil and height ~= nil or nil
+        if object.gui2RestrictedParent == restricted
+            and object.gui2TrustedTargetWidth == width
+            and object.gui2TrustedTargetHeight == height
+            and object.gui2TrustedGeometryReady == ready then
+            return false
+        end
+        if object.gui2RestrictedParent == true then
+            GUI2._RestrictedGlowRuntime:Stop(object)
         else
-            object:Hide()
+            PixelGlowDriver:Unregister(object)
+            AutoCastGlow.Driver:Unregister(object)
+            object:SetScript("OnUpdate", nil)
+            HidePixelGlowLines(object)
+            HideNativeGlow(object)
+            HidePulseGlow(object)
         end
-        local visible = false
-        if object.IsVisible then
-            visible = object:IsVisible() == true
-        elseif object.IsShown then
-            visible = object:IsShown() == true
+        object.gui2RestrictedParent = restricted
+        object.gui2TrustedTargetWidth = width
+        object.gui2TrustedTargetHeight = height
+        object.gui2TrustedGeometryReady = ready
+        object.gui2TrustedLayoutWidth = nil
+        object.gui2TrustedLayoutHeight = nil
+        object.gui2PixelGlowGeometryReady = false
+        object.gui2AutoCastGeometryReady = false
+        if restricted then
+            PixelGlowDriver:Unregister(object)
+            AutoCastGlow.Driver:Unregister(object)
+            object:SetScript("OnUpdate", nil)
+            object:SetScript("OnShow", nil)
+            object:SetScript("OnHide", nil)
+        else
+            object:SetScript("OnShow", GlowOnShow)
+            object:SetScript("OnHide", GlowOnHide)
         end
-        if visible then
-            if UsesPixelGlowSegments(object.gui2GlowStyle)
+        if object.gui2ButtonGlow then
+            object.gui2ButtonGlow.gui2TrustedLayoutWidth = nil
+            object.gui2ButtonGlow.gui2TrustedLayoutHeight = nil
+        end
+        return true
+    end
+
+    glow._SetGlowLayerContext = function(
+        object,
+        trustedFrameLevel,
+        trustedFrameStrata
+    )
+        local level = type(trustedFrameLevel) == "number"
+            and trustedFrameLevel or nil
+        local strata = type(trustedFrameStrata) == "string"
+            and trustedFrameStrata or nil
+        if object.gui2GlowFrameLevel == level
+            and object.gui2GlowFrameStrata == strata then
+            return false
+        end
+        object.gui2GlowFrameLevel = level
+        object.gui2GlowFrameStrata = strata
+        object.gui2AppliedGlowFrameLevel = nil
+        object.gui2AppliedGlowFrameStrata = nil
+        object.gui2AppliedGlowChild = nil
+        object.gui2AppliedGlowChildLevel = nil
+        object.gui2AppliedGlowChildStrata = nil
+        if level ~= nil or strata ~= nil then
+            ApplyGlowStyle(object)
+        end
+        return true
+    end
+
+    glow.SetGlowShown = function(object, shown)
+        local requested = shown == true
+        object.gui2GlowRequested = requested
+        if requested then
+            object:Show()
+            if object.gui2RestrictedParent == true then
+                if UsesPixelGlowSegments(object.gui2GlowStyle)
+                    and object.gui2PixelGlowGeometryReady ~= true then
+                    UpdatePixelGlowLayout(object)
+                end
+                if object.gui2RestrictedAnimationPrepared
+                    ~= NormalizeGlowStyle(object.gui2GlowStyle) then
+                    RefreshGlowAnimation(object)
+                end
+            elseif object.gui2GlowVisible == true
+                and UsesPixelGlowSegments(object.gui2GlowStyle)
                 and object.gui2PixelGlowGeometryReady ~= true then
                 UpdatePixelGlowLayout(object)
+                RefreshGlowAnimation(object)
             end
-            object.gui2GlowVisible = true
-            RefreshGlowAnimation(object)
         else
+            object:Hide()
             GlowOnHide(object)
         end
     end
@@ -2843,6 +4347,14 @@ function GUI2:CreateGlow(frame, opts)
         local previousStyle = object.gui2GlowStyle
         if params.shape ~= nil then
             object.gui2GlowShape = params.shape
+            if params.targetShape == nil then
+                object.gui2GlowTargetShape = params.shape
+            end
+        end
+        if params.targetShape ~= nil then
+            object.gui2GlowTargetShape = params.targetShape
+        elseif object.gui2GlowTargetShape == nil then
+            object.gui2GlowTargetShape = object.gui2GlowShape or "square"
         end
         if params.style ~= nil then
             object.gui2GlowStyle = NormalizeGlowStyle(params.style)
@@ -2850,6 +4362,9 @@ function GUI2:CreateGlow(frame, opts)
             object.gui2GlowStyle = "soft"
         end
         local styleChanged = previousStyle ~= object.gui2GlowStyle
+        if styleChanged and object.gui2RestrictedParent == true then
+            GUI2._RestrictedGlowRuntime:Stop(object)
+        end
         if params.size ~= nil then object.gui2GlowSize = ClampGlowSize(params.size) end
         if params.sizeKey ~= nil then object.gui2GlowSizeKey = params.sizeKey end
         if params.lines ~= nil then
@@ -2890,6 +4405,10 @@ function GUI2:CreateGlow(frame, opts)
         if object.gui2GlowAlpha == nil then object.gui2GlowAlpha = 1 end
         if object.gui2GlowFalloff == nil then object.gui2GlowFalloff = 0.18 end
 
+        if object.gui2RestrictedParent == true then
+            object.gui2RestrictedAnimationPrepared = nil
+        end
+
         if params.colorKey ~= nil or params.color ~= nil then
             object:SetGlowColor(params.colorKey or params.color)
         else
@@ -2898,9 +4417,17 @@ function GUI2:CreateGlow(frame, opts)
         ApplyGlowStyle(object)
     end
 
-    glow.SetGlowShape = function(object, shape)
-        if object.gui2GlowShape == shape then return false end
+    glow.SetGlowShape = function(object, shape, targetShape)
+        targetShape = targetShape or shape
+        if object.gui2GlowShape == shape
+            and object.gui2GlowTargetShape == targetShape then
+            return false
+        end
+        if object.gui2RestrictedParent == true then
+            GUI2._RestrictedGlowRuntime:Stop(object)
+        end
         object.gui2GlowShape = shape
+        object.gui2GlowTargetShape = targetShape
         ApplyGlowStyle(object)
         return true
     end
@@ -2910,6 +4437,11 @@ function GUI2:CreateGlow(frame, opts)
     end
 
     glow.RefreshTheme = function(object)
+        if object.gui2RestrictedParent == true
+            and object.gui2RestrictedAnimationPrepared
+                == NormalizeGlowStyle(object.gui2GlowStyle) then
+            return
+        end
         ApplyGlowStyle(object)
     end
     glow.UpdateGUI2PixelLayout = UpdateGlowPixelLayout
@@ -2925,6 +4457,11 @@ function GUI2:CreateGlow(frame, opts)
     end
     self:RegisterThemeObject(glow)
 
+    glow:_SetGlowLayoutContext(
+        opts.restrictedParent,
+        opts.trustedWidth,
+        opts.trustedHeight
+    )
     glow:SetGlowColor(opts.colorKey or opts.color or "color.border.accent")
     glow:SetGlowParams(opts)
     if opts.hidden ~= false then
@@ -4387,6 +5924,26 @@ GUI2.DurationRingTextures = {
     standard = Assets:Core("gui2\\shapes\\duration-ring-standard.tga"),
     thick = Assets:Core("gui2\\shapes\\duration-ring-thick.tga"),
     heavy = Assets:Core("gui2\\shapes\\duration-ring-heavy.tga"),
+    framed = {
+        innerShadow = Assets:Core(
+            "gui2\\shapes\\duration-ring-bezel-disc.tga"
+        ),
+        outerShadow = Assets:Core(
+            "gui2\\shapes\\duration-ring-bezel-shadow.tga"
+        ),
+        thin = Assets:Core(
+            "gui2\\shapes\\duration-ring-framed-thin.tga"
+        ),
+        standard = Assets:Core(
+            "gui2\\shapes\\duration-ring-framed-standard.tga"
+        ),
+        thick = Assets:Core(
+            "gui2\\shapes\\duration-ring-framed-thick.tga"
+        ),
+        heavy = Assets:Core(
+            "gui2\\shapes\\duration-ring-framed-heavy.tga"
+        ),
+    },
 }
 
 local function NormalizeIconAppearanceShape(shape)
@@ -4701,7 +6258,7 @@ function GUI2:ApplyFontAppearance(fontString, opts)
     return true
 end
 
-function GUI2:ApplyCooldownTextAppearance(slot, opts)
+function GUI2:ApplyCooldownTextAppearance(slot, opts, preserveAnchors)
     if not (slot and slot.cooldown) then return false end
     opts = opts or {}
     local cooldown = slot.cooldown
@@ -4720,7 +6277,7 @@ function GUI2:ApplyCooldownTextAppearance(slot, opts)
     end
     if fontString then
         self:ApplyFontAppearance(fontString, opts)
-        if fontString.ClearAllPoints and fontString.SetPoint then
+        if preserveAnchors ~= true and fontString.ClearAllPoints and fontString.SetPoint then
             local x = tonumber(opts.offsetX) or 0
             local y = tonumber(opts.offsetY) or 0
             fontString:ClearAllPoints()
@@ -5068,10 +6625,16 @@ function GUI2:CreateCloseButton(parent, onClick)
     return button
 end
 
-function GUI2:CreateNavButton(parent, text, icon, width, height)
+function GUI2:CreateNavButton(parent, text, icon, width, height, iconOptions)
     if not parent then return end
 
+    iconOptions = type(iconOptions) == "table" and iconOptions or {}
     local buttonHeight = height or 40
+    local defaultIconSize = buttonHeight - 14
+    local function ResolveIconSize(options)
+        local size = type(options) == "table" and tonumber(options.size) or nil
+        return size and size > 0 and size or defaultIconSize
+    end
     local button = self:CreateButtonFrame(parent, {
         template = "BackdropTemplate",
         width = width or 150,
@@ -5112,7 +6675,10 @@ function GUI2:CreateNavButton(parent, text, icon, width, height)
     if icon then
         local iconTex = self:CreateIcon(button, {
             icon = icon,
-            size = buttonHeight - 14,
+            size = ResolveIconSize(iconOptions),
+            crop = iconOptions.crop,
+            texCoords = iconOptions.texCoords,
+            fallbackIcon = iconOptions.fallbackIcon,
         })
         iconTex:SetPoint("LEFT", 15, 0)
         button.icon = iconTex
@@ -5137,6 +6703,26 @@ function GUI2:CreateNavButton(parent, text, icon, width, height)
     function button:SetTextRightInset(inset)
         self.gui2TextRightInset = tonumber(inset) or 10
         ApplyTextPoints(self)
+    end
+
+    function button:SetIcon(texture, options)
+        if not self.icon then return false end
+        options = type(options) == "table" and options or {}
+        GUI2:SetIconTexture(
+            self.icon,
+            texture,
+            options.fallbackIcon or iconOptions.fallbackIcon or DEFAULT_ICON
+        )
+        local iconSize = ResolveIconSize(options)
+        self.icon:SetSize(iconSize, iconSize)
+        if options.texCoords then
+            self.icon:SetTexCoord(unpack(options.texCoords))
+        elseif options.crop == false then
+            self.icon:SetTexCoord(0, 1, 0, 1)
+        else
+            self.icon:SetTexCoord(unpack(DEFAULT_ICON_TEXCOORDS))
+        end
+        return true
     end
 
     local function ShowOverflowTooltip(frame)
@@ -5447,7 +7033,7 @@ function GUI2:CloseDropdown(animated)
     return true
 end
 
-function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width)
+function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width, config)
     if not parent or not options then return end
     local rowHeight = 28
     local menuPadding = 2
@@ -5462,7 +7048,8 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width)
     local actionButtonGap = 4
     local actionButtonInset = 4
     local maxMenuHeight = 300
-    local needsScrollBar = (#options * rowHeight) > (maxMenuHeight - (menuPadding * 2))
+    local searchHeight = config and 38 or 0
+    local needsScrollBar = (#options * rowHeight) > (maxMenuHeight - searchHeight - (menuPadding * 2))
     local scrollRightInset = needsScrollBar and 16 or menuPadding
 
     local function HasOptionIcon(option)
@@ -5547,6 +7134,8 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width)
         if not HasOptionAction(option) then
             if row.actionButton then
                 row.actionButton:Hide()
+                row.actionButton.gui2DropdownOption = nil
+                if row.actionButton.hoverIcon then row.actionButton.hoverIcon:Hide() end
             end
             return 0
         end
@@ -5620,9 +7209,24 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width)
                 end
             end
             if action.icon.SetVertexColor and self.GetColor then
-                action.icon:SetVertexColor(self:GetColor("color.text.accent"))
+                if option.actionOriginalColor then action.icon:SetVertexColor(1, 1, 1)
+                else action.icon:SetVertexColor(self:GetColor("color.text.accent")) end
             end
             action.icon:Show()
+        end
+        if action.hoverIcon then
+            action.hoverIcon:Hide()
+            action.hoverIcon:SetTexture(nil)
+        end
+        if option.actionHighlightTexture then
+            if not action.hoverIcon then
+                action.hoverIcon = self:CreateTexture(action.bg, { layer = "OVERLAY" })
+            end
+            action.hoverIcon:ClearAllPoints()
+            action.hoverIcon:SetAllPoints(action.icon)
+            action.hoverIcon:SetTexture(option.actionHighlightTexture)
+            action.hoverIcon:SetVertexColor(1, 1, 1)
+            action.hoverIcon:Hide()
         end
         action:SetScript("OnClick", function(button)
             local actionOption = button.gui2DropdownOption
@@ -5631,6 +7235,7 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width)
             end
         end)
         action:SetScript("OnEnter", function(button)
+            if button.hoverIcon and button.gui2DropdownOption and button.gui2DropdownOption.actionHighlightTexture then button.hoverIcon:Show() end
             if button.bg then GUI2:SetBorderColor(button.bg, "color.border.accent") end
             local actionOption = button.gui2DropdownOption
             if GameTooltip and actionOption and actionOption.actionTooltip then
@@ -5640,6 +7245,7 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width)
             end
         end)
         action:SetScript("OnLeave", function(button)
+            if button.hoverIcon then button.hoverIcon:Hide() end
             if button.bg then GUI2:SetBorderColor(button.bg, "color.border.default") end
             if GameTooltip and GameTooltip:IsOwned(button) then
                 YUI.HideGameTooltip()
@@ -5688,6 +7294,8 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width)
         frame.buttons = {}
         frame:SetScript("OnHide", function()
             if frame.blocker then frame.blocker:Hide() end
+            if frame.searchBox then frame.searchBox:ClearFocus() end
+            frame.FilterOptions=nil
             frame.anchor = nil
             frame.gui2DropdownClosing = nil
             frame:EnableMouse(true)
@@ -5714,7 +7322,7 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width)
     local contentWidth = math_max(dropdownWidth - menuPadding - scrollRightInset, 1)
     frame:SetWidth(dropdownWidth)
     frame.scrollFrame:ClearAllPoints()
-    frame.scrollFrame:SetPoint("TOPLEFT", menuPadding, -menuPadding)
+    frame.scrollFrame:SetPoint("TOPLEFT", menuPadding, -menuPadding-searchHeight)
     frame.scrollFrame:SetPoint("BOTTOMRIGHT", -scrollRightInset, menuPadding)
     frame.scrollChild:SetWidth(contentWidth)
 
@@ -5937,8 +7545,15 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width)
     end
 
     frame.scrollChild:SetHeight(height)
-    local finalHeight = math_min(height + (menuPadding * 2), maxMenuHeight)
+    local finalHeight = math_min(height + searchHeight + (menuPadding * 2), maxMenuHeight)
     frame:SetHeight(finalHeight)
+    -- Native wheel handling reads the slider range, which may still be zero
+    -- while a newly built, hidden menu is waiting for OnScrollRangeChanged.
+    local rangeBar = GetScrollFrameScrollBar(frame.scrollFrame)
+    if rangeBar then
+        rangeBar:SetMinMaxValues(0, math_max(0, height - (finalHeight - searchHeight - menuPadding * 2)))
+        rangeBar:SetValue(0)
+    end
     frame.scrollFrame:SetVerticalScroll(0)
 
     local openFrom = "top"
@@ -5979,7 +7594,7 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width)
         AlignDropdownScrollBar()
         if frame.scrollFrame.ScrollBar then frame.scrollFrame.ScrollBar:Show() end
         if selectedIndex and selectedIndex > 1 then
-            local viewportHeight = finalHeight - (menuPadding * 2)
+            local viewportHeight = finalHeight - searchHeight - (menuPadding * 2)
             local selectedTop = (selectedIndex - 1) * rowHeight
             local selectedBottom = selectedTop + rowHeight
             if selectedBottom > viewportHeight then
@@ -5996,8 +7611,52 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width)
         end
     end
 
+    -- Search filters the existing menu rows; no second popup or selection model.
+    if config then
+        if not frame.searchBox then
+            frame.searchBox=self.Form:CreateEditBox(frame,{height=28,width=100,searchPlaceholder=true,
+                placeholder=config.searchPlaceholder or '',onChange=function(_,query)
+                    if frame.FilterOptions then frame:FilterOptions(query) end
+                end})
+            frame.searchBox:SetScript('OnEscapePressed',function() GUI2:CloseDropdown(true) end)
+            frame.searchEmpty=self:CreateText(frame,'','font.size.md','color.text.secondary')
+            frame.searchEmpty:SetPoint('TOPLEFT',12,-searchHeight-8)
+        end
+        frame.searchBox:ClearAllPoints();frame.searchBox:SetPoint('TOPLEFT',8,-6)
+        frame.searchBox:SetWidth(dropdownWidth-16);frame.searchBox:Show()
+        frame.searchBox:SetValue('',true)
+        for i,option in ipairs(options) do
+            frame.buttons[i].searchText=tostring(option.text or option.value or ''):gsub('|c%x%x%x%x%x%x%x%x',''):gsub('|r',''):gsub('|T.-|t',''):gsub('|A.-|a',''):lower()
+        end
+        function frame:FilterOptions(query)
+            query=(query or ''):lower()
+            local count=0
+            for i=1,#options do
+                local row=self.buttons[i]
+                local matches=query=='' or row.searchText:find(query,1,true)~=nil
+                row:SetShown(matches)
+                if matches then
+                    row:ClearAllPoints();row:SetPoint('TOPLEFT',0,-count*rowHeight);row:SetPoint('TOPRIGHT',0,-count*rowHeight)
+                    count=count+1
+                end
+            end
+            self.scrollChild:SetHeight(math_max(1,count*rowHeight))
+            local bar=GetScrollFrameScrollBar(self.scrollFrame)
+            local range=math_max(0,count*rowHeight-(finalHeight-searchHeight-menuPadding*2))
+            if bar then bar:SetMinMaxValues(0,range);bar:SetValue(0);bar:SetShown(range>0) end
+            self.scrollFrame:SetVerticalScroll(0)
+            self.searchEmpty:SetText(config.emptyText or '')
+            self.searchEmpty:SetShown(count==0)
+        end
+        frame.searchEmpty:Hide()
+    else
+        frame.FilterOptions=nil
+        if frame.searchBox then frame.searchBox:ClearFocus();frame.searchBox:Hide();frame.searchEmpty:Hide() end
+    end
+
     self:RefreshPrimitive(frame)
     frame:Show()
+    if config then frame.searchBox:SetFocus() end
     local scrollBar = GetScrollFrameScrollBar(frame.scrollFrame)
     if scrollBar and scrollBar.UpdateVisualThumb then scrollBar:UpdateVisualThumb() end
     if frame.blocker then frame.blocker:Show() end
@@ -6207,7 +7866,7 @@ local function UpdateVisualScrollThumb(scrollBar)
     contentHeight = math_max(contentHeight or 0, viewportHeight + range)
 
     if range <= 0 or contentHeight <= viewportHeight then
-        scrollBar.visualThumb:Hide()
+        if scrollBar.visualThumb:IsShown() then scrollBar.visualThumb:Hide() end
         return
     end
 
@@ -6225,10 +7884,19 @@ local function UpdateVisualScrollThumb(scrollBar)
     local offset = range > 0 and math_floor((value / range) * movableHeight + 0.5) or 0
     local thumbWidth = GetPixelSize(scrollBar, scrollBar.gui2ThumbWidth or 4, 1)
 
-    scrollBar.visualThumb:ClearAllPoints()
-    scrollBar.visualThumb:SetPoint("TOP", scrollBar, "TOP", 0, -offset)
-    scrollBar.visualThumb:SetSize(thumbWidth, math_max(1, thumbHeight))
-    scrollBar.visualThumb:Show()
+    -- Value/range/vertical-scroll callbacks can report the same geometry.
+    -- Keep position and size writes independent: ordinary scrolling only moves.
+    if scrollBar.gui2VisualThumbOffset ~= offset then
+        scrollBar.gui2VisualThumbOffset = offset
+        scrollBar.visualThumb:ClearAllPoints()
+        scrollBar.visualThumb:SetPoint("TOP", scrollBar, "TOP", 0, -offset)
+    end
+    thumbHeight = math_max(1, thumbHeight)
+    if scrollBar.gui2VisualThumbWidth ~= thumbWidth or scrollBar.gui2VisualThumbHeight ~= thumbHeight then
+        scrollBar.gui2VisualThumbWidth, scrollBar.gui2VisualThumbHeight = thumbWidth, thumbHeight
+        scrollBar.visualThumb:SetSize(thumbWidth, thumbHeight)
+    end
+    if not scrollBar.visualThumb:IsShown() then scrollBar.visualThumb:Show() end
 end
 
 local function UpdateVisualScrollTrack(scrollBar)
@@ -6238,6 +7906,23 @@ local function UpdateVisualScrollTrack(scrollBar)
     scrollBar.gui2TrackLine:SetPoint("BOTTOM", scrollBar, "BOTTOM", 0, 0)
     scrollBar.gui2TrackLine:SetWidth(GetPixelSize(scrollBar, scrollBar.gui2TrackLineWidth or 1, 1))
     scrollBar.gui2TrackLine:Show()
+end
+
+-- Opt-in for bounded settings viewports. Never hide overflowing content.
+function GUI2:FitScrollContent(scrollFrame, contentHeight)
+    if contentHeight then scrollFrame.child:SetHeight(math.max(1, contentHeight)) end
+    local child = scrollFrame.child
+    if not child then return end
+    local range = math.max(0, child:GetHeight() - scrollFrame:GetHeight())
+    local current = scrollFrame:GetVerticalScroll() or 0
+    if current > range then scrollFrame:SetVerticalScroll(range) end
+    scrollFrame:EnableMouseWheel(range > 0)
+    local bar = scrollFrame.gui2ScrollBar
+    if bar then
+        bar:SetShown(range > 0)
+        if bar.visualThumb then bar.visualThumb:SetShown(range > 0) end
+        if range > 0 and bar.UpdateVisualThumb then bar:UpdateVisualThumb() end
+    end
 end
 
 function GUI2:SkinScrollBar(scrollFrame)
@@ -6400,8 +8085,10 @@ function GUI2:CreateSwitch(parent, item)
     local onValue = item.onValue
     if onValue == nil then onValue = item.rightValue end
     if onValue == nil then onValue = true end
-    local offText = item.offText or item.leftText or GetCoreText("common.off", "OFF")
-    local onText = item.onText or item.rightText or GetCoreText("common.on", "ON")
+    local offText = item.offText or item.leftText
+        or GetCoreText("common.switch.off", GetCoreText("common.off", "N"))
+    local onText = item.onText or item.rightText
+        or GetCoreText("common.switch.on", GetCoreText("common.on", "Y"))
 
     local container = self:CreateFrame(parent, {
         width = width,

@@ -49,6 +49,11 @@ local SPELL_NAME_CACHE_CLASSIC_HOLES = {
 }
 local cooldownProbeHost
 local cooldownProbes = {}
+local cooldownCompletionByFrame = setmetatable({}, { __mode = "k" })
+local cooldownCompletionActiveProbes = {}
+local cooldownCompletionProbeCount = 0
+local cooldownCompletionRefreshListener
+local cooldownCompletionRefreshOwner = {}
 local nameCacheRuntime = {
     batches = 0,
     scannedIDs = 0,
@@ -1369,6 +1374,10 @@ function Spell.GetCooldownDurationObject(spellID, ignoreGCD)
     return nil
 end
 
+function Spell.GetGlobalCooldownDurationObject()
+    return Spell.GetCooldownDurationObject(GCD_SPELL_ID, false)
+end
+
 function Spell.GetChargeDurationObject(spellID)
     spellID = SafeNumberValue(spellID)
     if not (spellID and C_Spell and C_Spell.GetSpellChargeDuration) then
@@ -1463,7 +1472,91 @@ function Spell.GetCooldownDurationState(spellID)
     }
 end
 
-local function EnsureCooldownProbe(spellID)
+local function DispatchCooldownCompletion(probe)
+    if not probe or probe.dispatching == true then return false end
+    probe.armed = false
+    probe.dispatching = true
+    for handle in pairs(probe.consumers) do
+        if handle.active == true and handle.probe == probe then
+            local handler = handle.handler
+            local owner = handle.owner
+            if type(handler) == "function" then
+                pcall(handler, owner, probe.spellID, probe.mode, handle)
+            elseif type(handler) == "string" and type(owner) == "table"
+                and type(owner[handler]) == "function" then
+                pcall(owner[handler], owner, probe.spellID, probe.mode, handle)
+            end
+        end
+    end
+    probe.dispatching = false
+    return true
+end
+
+local function OnCooldownCompletionDone(cooldown)
+    local probe = cooldown and cooldownCompletionByFrame[cooldown]
+    if not probe or probe.armed ~= true or probe.arming == true then
+        return
+    end
+    DispatchCooldownCompletion(probe)
+end
+
+local function GetCompletionDurationObject(probe)
+    if not probe then return nil end
+    if probe.mode == "charge" then
+        return Spell.GetChargeDurationObject(probe.spellID)
+    end
+    if probe.mode == "cooldown" then
+        return Spell.GetCooldownDurationObject(probe.spellID, true)
+    end
+    return nil
+end
+
+local function OnCooldownCompletionRefresh()
+    for probe in pairs(cooldownCompletionActiveProbes) do
+        if probe.armed == true and probe.consumerCount > 0 then
+            local durationObject = GetCompletionDurationObject(probe)
+            local handle = durationObject ~= nil
+                and next(probe.consumers) or nil
+            if handle then
+                local wasArmed = probe.armed == true
+                local active, resolved = Spell.ArmCooldownCompletion(
+                    handle,
+                    durationObject
+                )
+                if wasArmed and resolved == true and active == false then
+                    DispatchCooldownCompletion(probe)
+                end
+            end
+        end
+    end
+end
+
+local function EnsureCooldownCompletionRefreshListener()
+    if cooldownCompletionRefreshListener
+        or cooldownCompletionProbeCount < 1
+        or not (YUI.Event and YUI.Event.On) then
+        return
+    end
+    cooldownCompletionRefreshListener = YUI.Event:On(
+        "SPELL_UPDATE_COOLDOWN",
+        OnCooldownCompletionRefresh,
+        cooldownCompletionRefreshOwner,
+        { moduleId = "Core.API.Spell" }
+    )
+end
+
+local function ReleaseCooldownCompletionRefreshListener()
+    if cooldownCompletionProbeCount > 0
+        or not cooldownCompletionRefreshListener then
+        return
+    end
+    if YUI.Event and YUI.Event.Off then
+        YUI.Event:Off(cooldownCompletionRefreshListener)
+    end
+    cooldownCompletionRefreshListener = nil
+end
+
+local function EnsureCooldownProbe(spellID, mode)
     if not UIParent or not CreateFrame then
         return nil, "no-ui"
     end
@@ -1477,7 +1570,17 @@ local function EnsureCooldownProbe(spellID)
         cooldownProbeHost:Show()
     end
 
-    local probe = cooldownProbes[spellID]
+    mode = mode or "state"
+    local spellProbes = cooldownProbes[spellID]
+    if not spellProbes then
+        spellProbes = {}
+        cooldownProbes[spellID] = spellProbes
+    elseif spellProbes.spellID and spellProbes.cooldown then
+        spellProbes = { state = spellProbes }
+        cooldownProbes[spellID] = spellProbes
+    end
+
+    local probe = spellProbes[mode]
     if probe then
         cooldownProbeHost:Show()
         return probe
@@ -1493,15 +1596,39 @@ local function EnsureCooldownProbe(spellID)
     cooldown:EnableMouse(false)
     probe = {
         spellID = spellID,
+        mode = mode,
         cooldown = cooldown,
     }
-    cooldownProbes[spellID] = probe
+    if mode ~= "state" then
+        if type(cooldown.SetScript) ~= "function" then
+            return nil, "unsupported"
+        end
+        probe.consumers = {}
+        cooldownCompletionByFrame[cooldown] = probe
+        local scriptOK = pcall(
+            cooldown.SetScript,
+            cooldown,
+            "OnCooldownDone",
+            OnCooldownCompletionDone
+        )
+        if not scriptOK then
+            cooldownCompletionByFrame[cooldown] = nil
+            return nil, "script-failed"
+        end
+    end
+    spellProbes[mode] = probe
     return probe
 end
 
 local function ReadRetailCooldownInfo(spellID)
     if not (C_Spell and C_Spell.GetSpellCooldown) then return nil end
     local ok, info = pcall(C_Spell.GetSpellCooldown, spellID)
+    local trace=YUI.Sound and YUI.Sound.DebugTiming
+    if trace and trace.Watches and trace:Watches(spellID) then
+        if ok and not IsSecretValue(info) and type(info)=='table' then
+            trace:Record('api-cooldown',spellID,info.isActive,info.isOnGCD,info.startTime,info.duration,info.isEnabled)
+        else trace:Record('api-cooldown',spellID,ok,info) end
+    end
     if ok and type(info) == "table" then
         return info
     end
@@ -1513,29 +1640,62 @@ function Spell.ReadCooldownRuleState(spellID)
     if not (spellID and YUI.IsRetail) then return false, false end
 
     local info = ReadRetailCooldownInfo(spellID)
-    if not info then return false, false end
+    if not info or IsSecretValue(info) then return false, false end
 
     local isActive = info.isActive
     if IsSecretValue(isActive) or type(isActive) ~= "boolean" then
         return false, false
     end
 
+    -- No active cooldown already proves completion. isOnGCD is optional and
+    -- only meaningful during SPELL_UPDATE_COOLDOWN, not a later expiry check.
+    if isActive == false then return false, true end
+
     local isOnGCD = info.isOnGCD
-    if IsSecretValue(isOnGCD)
-        or (isOnGCD ~= nil and type(isOnGCD) ~= "boolean") then
+    if IsSecretValue(isOnGCD) or type(isOnGCD) ~= "boolean" then
         return false, false
     end
 
-    return isActive and isOnGCD ~= true, true
+    return isActive and isOnGCD == false, true
 end
 
 local function ReadRetailChargeInfo(spellID)
     if not (C_Spell and C_Spell.GetSpellCharges) then return nil end
     local ok, info = pcall(C_Spell.GetSpellCharges, spellID)
+    local trace=YUI.Sound and YUI.Sound.DebugTiming
+    if trace and trace.Watches and trace:Watches(spellID) then
+        if ok and not IsSecretValue(info) and type(info)=='table' then
+            trace:Record('api-charges',spellID,info.maxCharges,info.currentCharges,info.isActive,info.cooldownStartTime,info.cooldownDuration)
+        else trace:Record('api-charges',spellID,ok,info) end
+    end
     if ok and type(info) == "table" then
         return info
     end
     return nil
+end
+
+-- Public recharge activity only: counts and duration fields may be restricted.
+function Spell.ReadChargeRuleState(spellID)
+    spellID = SafeNumberValue(spellID)
+    if not (spellID and YUI.IsRetail) then return false, false end
+    local info = ReadRetailChargeInfo(spellID)
+    if not info or IsSecretValue(info) then return false, false end
+    local active = info.isActive
+    if IsSecretValue(active) or type(active) ~= "boolean" then return false, false end
+    return active, true
+end
+
+-- A hard cast can expose only its GCD until success starts the real cooldown.
+-- Return matching-cast, resolved without exposing restricted cast data.
+function Spell.ReadPlayerCastRuleState(spellID)
+    spellID = SafeNumberValue(spellID)
+    if not (spellID and YUI.IsRetail and type(UnitCastingInfo) == "function") then return false, false end
+    local ok, name, text, texture, startTime, endTime, tradeSkill, castGUID, notInterruptible, castID = pcall(UnitCastingInfo, "player")
+    if not ok then return false, false end
+    if not IsSecretValue(name) and name == nil then return false, true end
+    castID = SafeNumberValue(castID)
+    if not castID then return false, false end
+    return castID == spellID, true
 end
 
 local function AddChargeSpellCandidate(candidates, count, spellID)
@@ -1547,6 +1707,57 @@ local function AddChargeSpellCandidate(candidates, count, spellID)
     count = count + 1
     candidates[count] = spellID
     return count
+end
+
+-- Cold identity resolution. Other specialization catalogs retain their base ID;
+-- the current spell book is never a fallback for another specialization.
+function Spell.GetEffectiveSpellID(spellID, specID)
+    spellID = SafeNumberValue(spellID)
+    if not spellID or spellID <= 0 then return nil end
+    if not YUI.IsRetail then return spellID end
+    if specID ~= nil then
+        specID = SafeNumberValue(specID)
+        if not specID or specID <= 0 then return spellID end
+        local talent = YUI.API.Talent
+        local index = talent and talent.GetSpecialization and SafeNumberValue(talent.GetSpecialization())
+        local current = index and talent.GetSpecializationInfo and SafeNumberValue(talent.GetSpecializationInfo(index))
+        if not current or current ~= specID then return spellID end
+    end
+    return Spell.GetOverrideSpellID(spellID)
+end
+
+function Spell.GetBaseSpellID(spellID, specID)
+    spellID = SafeNumberValue(spellID)
+    if not spellID or spellID <= 0 then return nil end
+    if specID ~= nil then
+        specID = SafeNumberValue(specID)
+        if not specID or specID <= 0 then return spellID end
+    end
+    if YUI.IsRetail and C_Spell and C_Spell.GetBaseSpell then
+        local ok, value = pcall(C_Spell.GetBaseSpell, spellID, SafeNumberValue(specID) or 0)
+        value = ok and SafeNumberValue(value) or nil
+        if value and value > 0 then return value end
+    end
+    return spellID
+end
+
+-- nil means unavailable/restricted; a single recharge is an ordinary cooldown.
+function Spell.GetChargeCapability(spellID)
+    spellID = SafeNumberValue(spellID)
+    if not spellID or spellID <= 0 then return nil end
+    local info
+    if YUI.IsRetail and C_Spell and C_Spell.GetSpellCharges then
+        local ok, value = pcall(C_Spell.GetSpellCharges, spellID)
+        if not ok or IsSecretValue(value) then return nil end
+        if value == nil then return false end
+        info = value
+    else
+        info = Spell.GetCharges(spellID)
+    end
+    if IsSecretValue(info) then return nil end
+    if type(info) ~= 'table' then return nil end
+    local maximum = SafeNumberValue(info.maxCharges)
+    if maximum then return maximum > 1 end
 end
 
 function Spell.GetOverrideSpellID(spellID, specID, onlyKnown)
@@ -1703,6 +1914,8 @@ end
 local function ReadRetailCastCount(spellID)
     if not (C_Spell and C_Spell.GetSpellCastCount) then return nil end
     local ok, count = pcall(C_Spell.GetSpellCastCount, spellID)
+    local trace=YUI.Sound and YUI.Sound.DebugTiming
+    if trace and trace.Watches and trace:Watches(spellID) then trace:Record('api-cast-count',spellID,ok,count) end
     if not ok then return nil end
     return SafeNumberValue(count), IsSecretValue(count), count
 end
@@ -1804,14 +2017,22 @@ local function FinishCooldownDisplayRead(target, changed, durationObject, forceO
     return target, false
 end
 
+local function IsCooldownReadResolved(info)
+    return info ~= nil and not IsSecretValue(info) and not IsSecretValue(info.isActive)
+        and type(info.isActive) == 'boolean'
+end
+
 local function ReadCooldownDisplayCooldown(spellID, chargeSpellID, target)
     local cooldownInfo = ReadRetailCooldownInfo(spellID)
+    local cooldownReadResolved = IsCooldownReadResolved(cooldownInfo)
     local cooldownStateSecret = cooldownInfo
         and IsSecretValue(cooldownInfo.isActive)
         or false
     local isEnabled = cooldownInfo
         and SafeBooleanValue(cooldownInfo.isEnabled, true)
         or true
+    local cooldownGCDResolved = cooldownInfo ~= nil
+        and SafeBooleanValue(cooldownInfo.isOnGCD, nil) ~= nil
     local isOnGCD = cooldownInfo
         and SafeBooleanValue(cooldownInfo.isOnGCD, false)
         or false
@@ -1835,11 +2056,15 @@ local function ReadCooldownDisplayCooldown(spellID, chargeSpellID, target)
     end
 
     local changed = target.isEnabled ~= isEnabled
+        or target.cooldownReadResolved ~= cooldownReadResolved
         or target.cooldownActive ~= cooldownActive
+        or target.cooldownGCDResolved ~= cooldownGCDResolved
         or target.cooldownStateSecret ~= cooldownStateSecret
         or target.durationMode ~= durationMode
     target.isEnabled = isEnabled
+    target.cooldownReadResolved = cooldownReadResolved
     target.cooldownActive = cooldownActive
+    target.cooldownGCDResolved = cooldownGCDResolved
     target.cooldownStateSecret = cooldownStateSecret
     target.durationMode = durationMode
     target.displayCountRaw = nil
@@ -1854,10 +2079,15 @@ end
 local function ReadCooldownDisplayCharges(spellID, chargeSpellID, target)
     local chargeInfo = ReadRetailChargeInfo(chargeSpellID)
     if not chargeInfo then
+        local changed = target.chargeReadResolved ~= false
+        target.chargeReadResolved = false
         target.durationObject = nil
         target.displayCountRaw = nil
-        return target, false
+        return target, changed
     end
+    local readResolved = IsCooldownReadResolved(chargeInfo)
+    local readRecovered = target.chargeReadResolved ~= readResolved
+    target.chargeReadResolved = readResolved
     local rawMaxCharges = chargeInfo and chargeInfo.maxCharges
     local rawCurrentCharges = chargeInfo and chargeInfo.currentCharges
     local maxCharges = chargeInfo and SafeNumberValue(rawMaxCharges) or nil
@@ -1873,7 +2103,7 @@ local function ReadCooldownDisplayCharges(spellID, chargeSpellID, target)
         if target.hasCharges ~= true then
             target.durationObject = nil
             target.displayCountRaw = nil
-            return target, false
+            return target, readRecovered
         end
         local displayCount = target.castCount
             and target.castCount > 1 and target.castCount or nil
@@ -1905,9 +2135,10 @@ local function ReadCooldownDisplayCharges(spellID, chargeSpellID, target)
 
     local rawChargeActive = chargeInfo.isActive
     local chargeStateAvailable = rawChargeActive ~= nil
-    local chargeActive = chargeStateAvailable
-        and SafeBooleanValue(rawChargeActive, false)
-        or target.chargeActive == true
+    local chargeActive = target.chargeActive == true
+    if chargeStateAvailable then
+        chargeActive = SafeBooleanValue(rawChargeActive, false)
+    end
     local chargeStateSecret
     if chargeStateAvailable then
         chargeStateSecret = IsSecretValue(rawChargeActive)
@@ -1948,7 +2179,7 @@ local function ReadCooldownDisplayCharges(spellID, chargeSpellID, target)
         durationMode = "none"
     end
 
-    local changed = target.hasCharges ~= true
+    local changed = readRecovered or target.hasCharges ~= true
         or target.chargeActive ~= chargeActive
         or target.chargeStateSecret ~= chargeStateSecret
         or target.chargeCountSecret ~= chargeCountSecret
@@ -2024,6 +2255,8 @@ local function ReadCooldownDisplayFull(
     local isEnabled = cooldownInfo
         and SafeBooleanValue(cooldownInfo.isEnabled, true)
         or true
+    local cooldownGCDResolved = cooldownInfo ~= nil
+        and SafeBooleanValue(cooldownInfo.isOnGCD, nil) ~= nil
     local isOnGCD = cooldownInfo
         and SafeBooleanValue(cooldownInfo.isOnGCD, false)
         or false
@@ -2090,6 +2323,8 @@ local function ReadCooldownDisplayFull(
     end
 
     local changed = target.cooldownDisplayInitialized ~= true
+        or target.cooldownReadResolved ~= IsCooldownReadResolved(cooldownInfo)
+        or target.chargeReadResolved ~= IsCooldownReadResolved(chargeInfo)
         or target.spellID ~= spellID
         or target.chargeSpellID ~= chargeSpellID
         or target.hasChargesHint ~= hasChargesHint
@@ -2098,6 +2333,7 @@ local function ReadCooldownDisplayFull(
         or target.available ~= available
         or target.isEnabled ~= isEnabled
         or target.cooldownActive ~= cooldownActive
+        or target.cooldownGCDResolved ~= cooldownGCDResolved
         or target.cooldownStateSecret ~= cooldownStateSecret
         or target.chargeActive ~= chargeActive
         or target.chargeStateSecret ~= chargeStateSecret
@@ -2121,6 +2357,7 @@ local function ReadCooldownDisplayFull(
     target.available = available
     target.isEnabled = isEnabled
     target.cooldownActive = cooldownActive
+    target.cooldownGCDResolved = cooldownGCDResolved
     target.cooldownStateSecret = cooldownStateSecret
     target.chargeActive = chargeActive
     target.chargeStateSecret = chargeStateSecret
@@ -2137,6 +2374,8 @@ local function ReadCooldownDisplayFull(
     target.durationMode = durationMode
     target.secret = false
     target.cooldownDisplayInitialized = true
+    target.cooldownReadResolved = IsCooldownReadResolved(cooldownInfo)
+    target.chargeReadResolved = IsCooldownReadResolved(chargeInfo)
     return FinishCooldownDisplayRead(
         target,
         changed,
@@ -2359,13 +2598,113 @@ end
 
 function Spell.ClearCooldownProbe(spellID)
     spellID = SafeNumberValue(spellID)
-    local probe = spellID and cooldownProbes[spellID] or nil
+    local spellProbes = spellID and cooldownProbes[spellID] or nil
+    local probe = spellProbes and (spellProbes.state or spellProbes) or nil
     if probe and probe.cooldown and probe.cooldown.Clear then
         pcall(probe.cooldown.Clear, probe.cooldown)
     end
     if probe then
         probe.lastState = nil
     end
+end
+
+function Spell.AcquireCooldownCompletion(owner, spellID, mode, handler)
+    spellID = SafeNumberValue(spellID)
+    if not spellID or (mode ~= "cooldown" and mode ~= "charge")
+        or owner == nil
+        or (type(handler) ~= "function" and type(handler) ~= "string") then
+        return nil, "invalid-arguments"
+    end
+    if type(handler) == "string" and (type(owner) ~= "table"
+        or type(owner[handler]) ~= "function") then
+        return nil, "invalid-handler"
+    end
+
+    local probe, reason = EnsureCooldownProbe(spellID, mode)
+    if not probe then return nil, reason or "no-probe" end
+    local handle = {
+        active = true,
+        owner = owner,
+        handler = handler,
+        probe = probe,
+    }
+    local wasEmpty = (probe.consumerCount or 0) == 0
+    probe.consumers[handle] = true
+    probe.consumerCount = (probe.consumerCount or 0) + 1
+    if wasEmpty then
+        cooldownCompletionActiveProbes[probe] = true
+        cooldownCompletionProbeCount = cooldownCompletionProbeCount + 1
+        EnsureCooldownCompletionRefreshListener()
+    end
+    return handle
+end
+
+function Spell.ArmCooldownCompletion(handle, durationObject)
+    local probe = type(handle) == "table" and handle.probe or nil
+    if not (probe and handle.active == true
+        and probe.consumers and probe.consumers[handle]
+        and probe.cooldown and durationObject ~= nil) then
+        return nil, false, "invalid-handle-or-duration"
+    end
+
+    local cooldown = probe.cooldown
+    if type(cooldown.SetCooldownFromDurationObject) ~= "function" then
+        return nil, false, "unsupported"
+    end
+    local wasArmed = probe.armed == true
+    probe.arming = true
+    local setOK = pcall(
+        cooldown.SetCooldownFromDurationObject,
+        cooldown,
+        durationObject,
+        true
+    )
+    probe.arming = false
+    if not setOK then
+        probe.armed = wasArmed
+        return nil, false, "set-failed"
+    end
+
+    probe.armed = true
+    local shownOK, shownRaw = false, nil
+    if type(cooldown.IsShown) == "function" then
+        shownOK, shownRaw = pcall(cooldown.IsShown, cooldown)
+    end
+    local shown
+    if shownOK then shown = SafeBooleanValue(shownRaw, nil) end
+    if shown == nil then
+        return nil, false, "unreadable"
+    end
+    if shown == false then probe.armed = false end
+    return shown, true, shown and "active" or "complete"
+end
+
+function Spell.ReleaseCooldownCompletion(handle)
+    local probe = type(handle) == "table" and handle.probe or nil
+    if not (probe and handle.active == true and probe.consumers
+        and probe.consumers[handle]) then
+        return false
+    end
+
+    probe.consumers[handle] = nil
+    probe.consumerCount = math.max(0, (probe.consumerCount or 1) - 1)
+    handle.active = false
+    handle.owner = nil
+    handle.handler = nil
+    handle.probe = nil
+    if probe.consumerCount == 0 then
+        probe.armed = false
+        cooldownCompletionActiveProbes[probe] = nil
+        cooldownCompletionProbeCount = math.max(
+            0,
+            cooldownCompletionProbeCount - 1
+        )
+        if probe.cooldown and probe.cooldown.Clear then
+            pcall(probe.cooldown.Clear, probe.cooldown)
+        end
+        ReleaseCooldownCompletionRefreshListener()
+    end
+    return true
 end
 
 local function GetMacroSpellID(macroID)
@@ -2679,3 +3018,25 @@ Legacy.GetSpellActionCooldownInfo = Spell.GetActionCooldown
 Legacy.GetSpellChargesInfo = Spell.GetCharges
 Legacy.IsSpellKnown = Spell.IsKnown
 Legacy.IsSpellKnownOrInSpellBook = Spell.IsKnownOrInSpellBook
+
+-- Preserve unknown for prediction predicates; IsKnown's historical false
+-- fallback remains unchanged for existing consumers.
+function Spell.GetKnownState(spellID)
+    if IsSecretValue(spellID) or type(spellID) ~= 'number' then return nil end
+    local value
+    if YUI.IsRetail then
+        value = IsKnownFromCSpellBook(spellID)
+        if value ~= nil then return value end
+        return IsKnownFromGlobal(spellID)
+    end
+    value = IsKnownFromGlobal(spellID)
+    if value ~= nil then return value end
+    return IsKnownFromCSpellBook(spellID)
+end
+
+function Spell.GetPublicDescription(spellID)
+    if IsSecretValue(spellID) or type(spellID) ~= 'number'
+        or not (C_Spell and C_Spell.GetSpellDescription) then return nil end
+    local ok, text = pcall(C_Spell.GetSpellDescription, spellID)
+    if ok and not IsSecretValue(text) and type(text) == 'string' then return text end
+end

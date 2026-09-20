@@ -30,15 +30,28 @@ local C_AuctionHouse = C_AuctionHouse
 -- DB Abstraction
 -------------------------------------------------------------------------------
 local DB = {}
+local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+local DEFAULT_ITEM_FONT = LSM and LSM.GetDefault and LSM:GetDefault("font") or "default"
 local DEFAULT_DB = {
     defaultCollapsed = false,
+    recipeTrackingEnabled = true,
     showTagText = true,
     categoryStyle = "background",
     themeStyle = "auto",
     browseResultsFontSizeEnabled = false,
     browseResultsMoneyFontSizeEnabled = false,
     browseResultsFontSize = 16,
+    tagFont = DEFAULT_ITEM_FONT,
+    quantityFont = DEFAULT_ITEM_FONT,
+    quantityFontSize = 11,
 }
+
+local ITEM_BUTTON_SIZE, ITEM_SPACING = 36, 4
+local function ClampQuantityFontSize(value)
+    value = tonumber(value) or 11
+    if value ~= value then value = 11 end
+    return math.max(8, math.min(18, math.floor(value + 0.5)))
+end
 
 local BROWSE_RESULTS_FONT_SIZE_MIN = 14
 local BROWSE_RESULTS_FONT_SIZE_MAX = 16
@@ -78,7 +91,43 @@ function DB:Get()
     profile.AuctionHelper.browseResultsFontSize = ClampBrowseResultsFontSize(profile.AuctionHelper.browseResultsFontSize)
     profile.AuctionHelper.browseResultsFontSizeEnabled = profile.AuctionHelper.browseResultsFontSizeEnabled == true
     profile.AuctionHelper.browseResultsMoneyFontSizeEnabled = profile.AuctionHelper.browseResultsMoneyFontSizeEnabled == true
+    profile.AuctionHelper.quantityFontSize = ClampQuantityFontSize(profile.AuctionHelper.quantityFontSize)
+    profile.AuctionHelper.recipeTrackingEnabled = profile.AuctionHelper.recipeTrackingEnabled ~= false
+    if type(profile.AuctionHelper.tagFont) ~= "string" or profile.AuctionHelper.tagFont == "" or profile.AuctionHelper.tagFont == "default" then profile.AuctionHelper.tagFont = DEFAULT_ITEM_FONT end
+    if type(profile.AuctionHelper.quantityFont) ~= "string" or profile.AuctionHelper.quantityFont == "" or profile.AuctionHelper.quantityFont == "default" then profile.AuctionHelper.quantityFont = DEFAULT_ITEM_FONT end
     return profile.AuctionHelper
+end
+
+local function ResolveItemFont(value)
+    if value == "default" then value = DEFAULT_ITEM_FONT end
+    if value == "damage" and DAMAGE_TEXT_FONT then return DAMAGE_TEXT_FONT end
+    if value == "standard" and STANDARD_TEXT_FONT then return STANDARD_TEXT_FONT end
+    return (LSM and (LSM:Fetch("font", value, true) or LSM:Fetch("font", DEFAULT_ITEM_FONT, true))) or GUI2.Fonts.normal
+end
+
+local function ApplyItemFont(text, value, size)
+    local path = ResolveItemFont(value)
+    if not text.yuiAuctionFontShadow then
+        text:SetShadowColor(0, 0, 0, 1)
+        text:SetShadowOffset(1, -1)
+        text.yuiAuctionFontShadow = true
+    end
+    local oldPath, oldSize, oldFlags = text:GetFont()
+    if oldPath == path and oldSize == size and oldFlags == "OUTLINE" then return false end
+    local ok, applied = pcall(text.SetFont, text, path, size, "OUTLINE")
+    if not ok or applied == false then text:SetFont(GUI2.Fonts.normal, size, "OUTLINE") end
+    return true
+end
+
+local function ApplyQuantityFont(text, db)
+    db = db or DB:Get()
+    return ApplyItemFont(text, db.quantityFont, db.quantityFontSize)
+end
+
+local function FitQuantityText(text)
+    text:SetScale(1)
+    local width = text:GetStringWidth()
+    if width > ITEM_BUTTON_SIZE - 2 then text:SetScale((ITEM_BUTTON_SIZE - 2) / width) end
 end
 
 function DB:IsEnabled()
@@ -104,7 +153,7 @@ local DATA = {
                 { id = {241322, 241323}, tagKey = "tag.mastery" },
                 { id = {241324, 241325}, tagKey = "tag.haste" },
                 { id = {259085}, tagKey = "tag.rune" },
-                { id = {245879, 245880}, tagKey = "tag.raid" },
+                { id = {272195, 272194}, tagKey = "tag.raid" },
             },
             {
                 { id = {243735, 243736}, tagKey = "tag.healing" },
@@ -124,6 +173,9 @@ local DATA = {
             {
                 { id = 255845, tagKey = "tag.primary" },
                 { id = 255846, tagKey = "tag.primary" },
+                { id = 275264, tagKey = "tag.secondary" },
+                { id = 275265, tagKey = "tag.secondary" },
+                { id = 275266, tagKey = "tag.secondary" },
                 { id = 242272, tagKey = "tag.secondary" },
                 { id = 242273, tagKey = "tag.secondary" },
             },
@@ -496,7 +548,7 @@ if Profiles and Profiles.SetOfficialProfiles then
     Profiles:SetOfficialProfiles({
         {
             id = "recommended",
-            revision = 2,
+            revision = 3,
             nameKey = "profile.official_recommended",
             fallbackName = "12.1 Recommended List",
             data = DATA,
@@ -574,11 +626,6 @@ end
 local function ApplyOptionalFont(fontString, context)
     local appearance = ns.AuctionHelperAppearance
     return appearance and appearance:ApplyFont(fontString, context) or false
-end
-
-local function ApplyOptionalAccent(region, context)
-    local appearance = ns.AuctionHelperAppearance
-    return appearance and appearance:ApplyAccent(region, context) or false
 end
 
 local function ParseHexColor(hex)
@@ -834,8 +881,8 @@ local function CreateUI()
     local contentWidth = helperWidth - (contentInset * 2)
     local scrollBarReservedWidth = 20
     local itemColumns = 8
-    local itemButtonSize = 36
-    local itemSpacing = 4
+    local itemButtonSize = ITEM_BUTTON_SIZE
+    local itemSpacing = ITEM_SPACING
     local itemGridWidth = (itemColumns * itemButtonSize) + ((itemColumns - 1) * itemSpacing)
     local itemGridInset = 10
     
@@ -1011,8 +1058,9 @@ local function CreateUI()
     
     -- Settings Frame
     local settingsFrame = GUI2:CreateFrame(f)
-    settingsFrame:SetSize(300, 430)
+    settingsFrame:SetWidth(300)
     settingsFrame:SetPoint("TOPLEFT", f, "TOPRIGHT", 2, 0)
+    settingsFrame:SetPoint("BOTTOMLEFT", f, "BOTTOMRIGHT", 2, 0)
     settingsFrame:Hide()
     settingsFrame:SetFrameLevel(f:GetFrameLevel() + 5)
     appearance:Register(settingsFrame, { themeProvider = function() return DB:Get().themeStyle end, role = "settings" })
@@ -1062,16 +1110,66 @@ local function CreateUI()
     -- Settings UI
     local sTitle = CreateAuctionText(settingsFrame, L["settings.title"], 14)
     sTitle:SetPoint("TOP", 0, -5)
-    if not ApplyOptionalAccent(sTitle, optionalSkin) then
-        GUI2:SetTextColorKey(sTitle, "color.text.accent")
-    end
     appearance:Register(settingsFrame, {
         themeProvider = function() return DB:Get().themeStyle end,
         heading = sTitle,
+        headingColorKey = "color.text.accent",
         role = "settings",
     })
     
-    local yPos = -40
+    local settingsScroll = GUI2:CreateScrollFrame(settingsFrame, { child = false })
+    settingsScroll:SetPoint("TOPLEFT", 0, -30)
+    settingsScroll:SetPoint("BOTTOMRIGHT", 0, 6)
+    local settingsContent = GUI2:CreateFrame(settingsScroll)
+    settingsContent:SetWidth(300)
+    settingsScroll:SetScrollChild(settingsContent)
+    if settingsScroll.ScrollBar then
+        local bar = settingsScroll.ScrollBar
+        bar:ClearAllPoints()
+        bar:SetPoint("TOPRIGHT", settingsScroll, "TOPRIGHT", -2, -2)
+        bar:SetPoint("BOTTOMRIGHT", settingsScroll, "BOTTOMRIGHT", -2, 2)
+        bar:SetWidth(8)
+    end
+    local settingsLabels = {}
+    local function StyleSettingLabel(label)
+        ApplyOptionalFont(label, optionalSkin)
+        local font = label:GetFont()
+        label:SetFont(font or GUI2.Fonts.normal, 14, "")
+        label:SetTextColor(1, 1, 1)
+        label:SetShadowColor(0, 0, 0, 0)
+        label:SetShadowOffset(0, 0)
+    end
+    local function RegisterSettingLabel(label)
+        settingsLabels[#settingsLabels + 1] = label
+        label.RefreshTheme = StyleSettingLabel
+        StyleSettingLabel(label)
+    end
+    local function StyleSettingsControl(widget)
+        local label = widget.label or widget.text
+        if not label then return end
+        RegisterSettingLabel(label)
+        -- 只包装此面板实例，禁用控件及主题刷新不改变 label 的白色样式。
+        for _, method in ipairs({ "SetDisabled", "RefreshTheme" }) do
+            local base = widget[method]
+            if base then
+                widget[method] = function(control, ...)
+                    local result = base(control, ...)
+                    StyleSettingLabel(label)
+                    return result
+                end
+            end
+        end
+    end
+    local function RefreshItemFonts()
+        local current = DB:Get()
+        for _, button in ipairs(allItemButtons) do
+            if button.tagText then ApplyItemFont(button.tagText, current.tagFont, 12) end
+            ApplyQuantityFont(button.count, current)
+            FitQuantityText(button.count)
+        end
+        if f.recipeTracker then f.recipeTracker:Schedule() end
+    end
+    local yPos = -10
 
     local function SetTagTextVisibility(show)
         for _, btn in ipairs(allItemButtons) do
@@ -1087,18 +1185,21 @@ local function CreateUI()
 
     local editor = ns.AuctionHelperEditor
     if editor and editor.CreateSettingsSection then
+        local editorConfig = CreateEditorConfig(function()
+            selectedTabIndex = 1
+            RebuildTabContents()
+        end, f)
+        editorConfig.styleLabel = RegisterSettingLabel
         yPos = editor:CreateSettingsSection(
-            settingsFrame,
-            CreateEditorConfig(function()
-                selectedTabIndex = 1
-                RebuildTabContents()
-            end, f),
+            settingsContent,
+            editorConfig,
             yPos
         )
     end
 
     local function AlignSettingsSwitch(widget)
         if not widget then return end
+        StyleSettingsControl(widget)
         widget:SetWidth(272)
         if widget.text then
             widget.text:ClearAllPoints()
@@ -1111,7 +1212,7 @@ local function CreateUI()
     end
     
     -- 1. Default Collapsed
-    local collapseSwitch = GUI2:CreateSwitch(settingsFrame, {
+    local collapseSwitch = GUI2:CreateSwitch(settingsContent, {
         label = L["settings.default_collapsed"],
         default = db.defaultCollapsed,
         onText = L["settings.yes"],
@@ -1127,12 +1228,29 @@ local function CreateUI()
     AlignSettingsSwitch(collapseSwitch)
     yPos = yPos - 30
 
+    local trackingSwitch = GUI2:CreateSwitch(settingsContent, {
+        label = L["settings.recipe_tracking_enabled"],
+        default = db.recipeTrackingEnabled,
+        onText = L["settings.yes"],
+        offText = L["settings.no"],
+        onColor = {0.2, 0.6, 0.2},
+        offColor = {0.5, 0.5, 0.5},
+        width = 64,
+        onChange = function(_, value)
+            db.recipeTrackingEnabled = value == true
+            if f.recipeTracker then f.recipeTracker:RefreshEnabled() end
+        end,
+    })
+    trackingSwitch:SetPoint("TOPLEFT", 14, yPos)
+    AlignSettingsSwitch(trackingSwitch)
+    yPos = yPos - 30
+
     RebuildTabContents = function()
         if RebuildTabs then RebuildTabs(selectedTabIndex) end
     end
 
     -- 2. Show Tag Text
-    local tagSwitch = GUI2:CreateSwitch(settingsFrame, {
+    local tagSwitch = GUI2:CreateSwitch(settingsContent, {
         label = L["settings.show_tags"],
         default = db.showTagText,
         onText = L["settings.yes"],
@@ -1150,9 +1268,39 @@ local function CreateUI()
     yPos = yPos - 35
 
     -- 3. Browse Results Font Size
+    local function AddFontSetting(labelKey, dbKey)
+        local label = CreateAuctionText(settingsContent, L[labelKey], 14)
+        label:SetPoint("TOPLEFT", 14, yPos)
+        RegisterSettingLabel(label)
+        local dropdown = GUI2.Form:CreateLSMFontDropdown(settingsContent, {
+            width = 132,
+            value = db[dbKey],
+            onChange = function(_, value)
+                db[dbKey] = value
+                RefreshItemFonts()
+            end,
+        })
+        dropdown:SetPoint("TOPRIGHT", settingsContent, "TOPRIGHT", -14, yPos + 4)
+        yPos = yPos - 35
+    end
+    AddFontSetting("settings.tag_font", "tagFont")
+    AddFontSetting("settings.quantity_font", "quantityFont")
+    local quantitySlider = GUI2:CreateSlider(settingsContent, {
+        label = L["settings.quantity_font_size"], value = db.quantityFontSize,
+        min = 8, max = 18, step = 1, width = 272, inputWidth = 36,
+        labelWidth = 140, inline = true,
+        onChange = function(_, value)
+            db.quantityFontSize = ClampQuantityFontSize(value)
+            RefreshItemFonts()
+        end,
+    })
+    quantitySlider:SetPoint("TOPLEFT", 14, yPos)
+    StyleSettingsControl(quantitySlider)
+    yPos = yPos - 35
+
     local browseFontSizeSlider
     local browseMoneyFontSizeSwitch
-    local browseFontSizeSwitch = GUI2:CreateSwitch(settingsFrame, {
+    local browseFontSizeSwitch = GUI2:CreateSwitch(settingsContent, {
         label = L["settings.browse_results_font_size_enabled"],
         default = db.browseResultsFontSizeEnabled,
         onText = L["settings.yes"],
@@ -1178,7 +1326,7 @@ local function CreateUI()
     AlignSettingsSwitch(browseFontSizeSwitch)
     yPos = yPos - 30
 
-    browseMoneyFontSizeSwitch = GUI2:CreateSwitch(settingsFrame, {
+    browseMoneyFontSizeSwitch = GUI2:CreateSwitch(settingsContent, {
         label = L["settings.browse_results_money_font_size_enabled"],
         default = db.browseResultsMoneyFontSizeEnabled,
         onText = L["settings.yes"],
@@ -1200,7 +1348,7 @@ local function CreateUI()
     AlignSettingsSwitch(browseMoneyFontSizeSwitch)
     yPos = yPos - 30
 
-    browseFontSizeSlider = GUI2:CreateSlider(settingsFrame, {
+    browseFontSizeSlider = GUI2:CreateSlider(settingsContent, {
         label = L["settings.browse_results_font_size"],
         value = db.browseResultsFontSize,
         min = BROWSE_RESULTS_FONT_SIZE_MIN,
@@ -1208,7 +1356,7 @@ local function CreateUI()
         step = 1,
         width = 272,
         inputWidth = 36,
-        labelWidth = 132,
+        labelWidth = 140,
         inline = true,
         disabled = not db.browseResultsFontSizeEnabled,
         onChange = function(widget, value)
@@ -1219,13 +1367,15 @@ local function CreateUI()
         end
     })
     browseFontSizeSlider:SetPoint("TOPLEFT", 14, yPos)
+    StyleSettingsControl(browseFontSizeSlider)
     yPos = yPos - 35
     
     -- 4. Category Style
-    local styleLabel = CreateAuctionText(settingsFrame, L["settings.category_style"], 14)
+    local styleLabel = CreateAuctionText(settingsContent, L["settings.category_style"], 14)
     styleLabel:SetPoint("TOPLEFT", 14, yPos)
+    RegisterSettingLabel(styleLabel)
     
-    local styleDropdown = GUI2:CreateDropdown(settingsFrame, {
+    local styleDropdown = GUI2:CreateDropdown(settingsContent, {
         options = {
             { text = L["settings.style.text"], value = "text" },
             { text = L["settings.style.background"], value = "background" }
@@ -1237,15 +1387,16 @@ local function CreateUI()
             RebuildTabContents()
         end
     })
-    styleDropdown:SetPoint("TOPRIGHT", settingsFrame, "TOPRIGHT", -14, yPos + 4)
+    styleDropdown:SetPoint("TOPRIGHT", settingsContent, "TOPRIGHT", -14, yPos + 4)
 
     yPos = yPos - 35
     
     -- 5. Theme Style
-    local themeLabel = CreateAuctionText(settingsFrame, L["settings.theme_style"], 14)
+    local themeLabel = CreateAuctionText(settingsContent, L["settings.theme_style"], 14)
     themeLabel:SetPoint("TOPLEFT", 14, yPos)
+    RegisterSettingLabel(themeLabel)
     
-    local themeDropdown = GUI2:CreateDropdown(settingsFrame, {
+    local themeDropdown = GUI2:CreateDropdown(settingsContent, {
         options = {
             { text = L["settings.theme.auto"], value = "auto" },
             { text = L["settings.theme.native"], value = "native" },
@@ -1269,7 +1420,8 @@ local function CreateUI()
             end
         end
     })
-    themeDropdown:SetPoint("TOPRIGHT", settingsFrame, "TOPRIGHT", -14, yPos + 4)
+    themeDropdown:SetPoint("TOPRIGHT", settingsContent, "TOPRIGHT", -14, yPos + 4)
+    settingsContent:SetHeight(-yPos + 36)
     
     -- Collapse Button
     local collapseBtn = GUI2:CreateButtonFrame(f, { template = "BackdropTemplate" })
@@ -1343,12 +1495,10 @@ local function CreateUI()
     local title = CreateAuctionText(f, L["title.short"], 14)
 
     title:SetPoint("TOP", 0, -5)
-    if not ApplyOptionalAccent(title, optionalSkin) then
-        GUI2:SetTextColorKey(title, "color.text.accent")
-    end
     appearance:Register(f, {
         themeProvider = function() return DB:Get().themeStyle end,
         heading = title,
+        headingColorKey = "color.text.accent",
         role = "helper",
     })
     
@@ -1463,6 +1613,7 @@ local function CreateUI()
 
                         local tag = GUI2:CreateText(btn, tagText, 12)
                         tag:SetFont(GUI2.Fonts.normal, 12, "OUTLINE")
+                        ApplyItemFont(tag, db.tagFont, 12)
                         tag:SetPoint("TOP", 0, -2)
                         tag:SetJustifyH("CENTER")
                         if tag.SetWordWrap then
@@ -1479,7 +1630,7 @@ local function CreateUI()
                     end
                     
                     local count = GUI2:CreateText(btn, "", 11)
-                    count:SetFont(GUI2.Fonts.normal, 11, "OUTLINE")
+                    ApplyQuantityFont(count, db)
                     count:SetPoint("BOTTOMRIGHT", -1, 1)
                     count:SetJustifyH("RIGHT")
                     btn.count = count
@@ -1495,6 +1646,7 @@ local function CreateUI()
                         GUI2:SetBorderColor(self, "color.border.accent")
                         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                         GameTooltip:SetItemByID(self.primaryID)
+                        GameTooltip:AddLine(L["tooltip.owned_count"]:format(self.ownedCount or 0), 1, 1, 1)
                         GameTooltip:Show()
                     end)
                     
@@ -1644,6 +1796,7 @@ local function CreateUI()
     RebuildTabs(1)
     
     UpdateCounts = function()
+        local current = DB:Get()
         for _, btn in ipairs(allItemButtons) do
             local total = 0
             for _, id in ipairs(btn.itemIDs) do
@@ -1658,6 +1811,9 @@ local function CreateUI()
                 btn.count:SetText("")
                 btn.icon:SetVertexColor(0.3, 0.3, 0.3)
             end
+            btn.ownedCount = total
+            ApplyQuantityFont(btn.count, current)
+            FitQuantityText(btn.count)
         end
     end
     
@@ -1688,9 +1844,10 @@ local function CreateUI()
         isSkinEnabled = appearance:IsDark(optionalSkin)
         for _, fontString in ipairs(appearanceTexts) do
             ApplyOptionalFont(fontString, optionalSkin)
+            if fontString.yuiAuctionAfterFont then fontString:yuiAuctionAfterFont() end
+            fontString.yuiAuctionFontShadow = nil
         end
-        if not ApplyOptionalAccent(title, optionalSkin) then GUI2:SetTextColorKey(title, "color.text.accent") end
-        if not ApplyOptionalAccent(sTitle, optionalSkin) then GUI2:SetTextColorKey(sTitle, "color.text.accent") end
+        for _, label in ipairs(settingsLabels) do StyleSettingLabel(label) end
         if tabWidget then
             for _, button in ipairs(tabWidget.buttons) do
                 ApplyOptionalFont(button.text, optionalSkin)
@@ -1710,6 +1867,7 @@ local function CreateUI()
                 tabWidget:Relayout()
             end
         end
+        RefreshItemFonts()
     end
 
     YUI.Event:OffOwner(f)
@@ -1721,6 +1879,20 @@ local function CreateUI()
     
     UpdateCounts()
     InstallBrowseResultsFontHooks()
+    if ns.AuctionHelperRecipeTracker then
+        f.recipeTracker = ns.AuctionHelperRecipeTracker:Create({
+            helper = f,
+            settings = settingsFrame,
+            settingsButton = settingsBtn,
+            auctionHouse = parent,
+            createText = CreateAuctionText,
+            themeProvider = function() return DB:Get().themeStyle end,
+            isEnabled = function() return DB:IsEnabled() and DB:Get().recipeTrackingEnabled end,
+            itemSize = ITEM_BUTTON_SIZE,
+            itemSpacing = ITEM_SPACING,
+            applyQuantityFont = function(text) return ApplyQuantityFont(text, db) end,
+        })
+    end
 end
 
 ns.Components:RegisterFeature("AuctionHelper", {

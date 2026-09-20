@@ -217,7 +217,7 @@ function Layout:ShowControlPanel()
 
         local snap = GUI2.Form:CreateCheckbox(panel, {
             label = L("layout.option.snap"),
-            width = 70,
+            width = 58,
             height = 24,
             get = function() return GetOptions().snap end,
             set = function(value) GetOptions().snap = value and true or false end,
@@ -226,7 +226,7 @@ function Layout:ShowControlPanel()
 
         local grid = GUI2.Form:CreateCheckbox(panel, {
             label = L("layout.option.grid"),
-            width = 62,
+            width = 54,
             height = 24,
             get = function() return GetOptions().showGrid end,
             set = function(value)
@@ -237,7 +237,7 @@ function Layout:ShowControlPanel()
         grid:SetPoint("LEFT", snap, "RIGHT", 2, 0)
 
         local gridDensity = GUI2.Form:CreateDropdown(panel, {
-            width = 74,
+            width = 64,
             height = 24,
             options = GetGridDensityOptions,
             get = GetGridDensity,
@@ -246,9 +246,22 @@ function Layout:ShowControlPanel()
         gridDensity:SetPoint("LEFT", grid, "RIGHT", 2, 0)
         panel.gridDensity = gridDensity
 
+        local filter = GUI2.Form:CreateButton(panel, {
+            text = L("layout.filter.action"),
+            width = 80,
+            height = 24,
+            onClick = function()
+                if Layout.ToggleMoverFilterPanel then
+                    Layout:ToggleMoverFilterPanel()
+                end
+            end,
+        })
+        filter:SetPoint("LEFT", gridDensity, "RIGHT", 2, 0)
+        panel.filterButton = filter
+
         local done = GUI2.Form:CreateButton(panel, {
             text = L("layout.action.done"),
-            width = 88,
+            width = 78,
             height = 24,
             onClick = function() Layout:CloseEditMode("panel") end,
         })
@@ -282,6 +295,9 @@ function Layout:RefreshControlPanel()
     end
     if panel.doneButton and panel.doneButton.SetText then
         panel.doneButton:SetText(L("layout.action.done"))
+    end
+    if panel.filterButton and panel.filterButton.SetText then
+        panel.filterButton:SetText(L("layout.filter.action"))
     end
     if panel.gridDensity and panel.gridDensity.SetValue then
         panel.gridDensity:SetValue(GetGridDensity(), true)
@@ -598,7 +614,7 @@ end
 
 local function ResolveAnchorTargetForEntry(id, name)
     local entry = Layout.frames[id]
-    if not entry then return nil end
+    if not entry or not ResolveEntryFrame(entry) or (P.InCombat and P.InCombat()) then return nil end
 
     local ok, normalized, reasonKey, target, status = EvaluateAnchorTargetCandidate(id, name)
     if not ok then
@@ -701,6 +717,12 @@ function Layout:ConfirmAnchorPointSelection()
     local entry = id and self.frames[id]
     local targetName = self.pendingAnchorTargetName
     if not entry or not targetName then return false end
+    local candidate, target, _, status = ResolveAnchorTargetForEntry(id, targetName)
+    if not candidate then return false end
+    if not target or status == PLACEMENT_PENDING or status == PLACEMENT_FALLBACK then
+        SetAnchorInputState(L("layout.position.anchor_unavailable"), "color.border.error")
+        return false
+    end
 
     local placement = self:GetPlacement(id)
     if not placement then return false end
@@ -796,7 +818,8 @@ function Layout:StopAnchorTargetPicker(restorePanel)
 end
 
 function Layout:StartAnchorTargetPicker(id)
-    if not self.frames[id] then return false end
+    local entry = self.frames[id]
+    if not entry or not ResolveEntryFrame(entry) or (P.InCombat and P.InCombat()) then return false end
 
     local picker = self.anchorPickerFrame
     if not picker then
@@ -1765,6 +1788,17 @@ function Layout:RefreshMovementWidgets()
     local placementState = entry and self:GetPlacementState(entry.id) or nil
     local placementBlocked = placementState == PLACEMENT_PENDING or placementState == PLACEMENT_FALLBACK
     local disabled = placement == nil
+    local anchorDisabled = disabled or not (entry and ResolveEntryFrame(entry))
+        or (P.InCombat and P.InCombat()) == true
+    local pendingForEntry = entry and self.pendingAnchorSourceId == entry.id
+    local candidateValid, candidateReason
+    if pendingForEntry and not anchorDisabled then
+        local ok, _, reason, target, state = EvaluateAnchorTargetCandidate(entry.id, self.pendingAnchorTargetName)
+        candidateValid = ok and target ~= nil and state ~= PLACEMENT_PENDING and state ~= PLACEMENT_FALLBACK
+        candidateReason = reason or "layout.position.anchor_unavailable"
+    end
+    local pointDisabled = anchorDisabled or (pendingForEntry and not candidateValid)
+        or (not pendingForEntry and placementBlocked)
     local controls = {
         widgets.close,
         widgets.reset,
@@ -1775,8 +1809,6 @@ function Layout:RefreshMovementWidgets()
         widgets.relativePointSummary,
     }
     local placementControls = {
-        widgets.point,
-        widgets.relativePoint,
         widgets.offsetX,
         widgets.offsetY,
     }
@@ -1794,11 +1826,17 @@ function Layout:RefreshMovementWidgets()
             widget:SetDisabled(disabled)
         end
     end
+    -- A missing old target must not lock the controls needed to replace it.
     for _, widget in ipairs(anchorControls) do
         if widget and widget.SetDisabled then
-            widget:SetDisabled(disabled or placementBlocked)
+            widget:SetDisabled(anchorDisabled)
         end
     end
+    if widgets.anchorConfirm and widgets.anchorConfirm.SetDisabled then
+        widgets.anchorConfirm:SetDisabled(anchorDisabled or not pendingForEntry or not candidateValid)
+    end
+    if widgets.point and widgets.point.SetDisabled then widgets.point:SetDisabled(pointDisabled) end
+    if widgets.relativePoint and widgets.relativePoint.SetDisabled then widgets.relativePoint:SetDisabled(pointDisabled) end
     for _, widget in ipairs(placementControls) do
         if widget and widget.SetDisabled then
             widget:SetDisabled(disabled or placementBlocked)
@@ -1829,7 +1867,10 @@ function Layout:RefreshMovementWidgets()
         widgets.anchorTarget:SetValue(anchor.relative or "UIParent", true)
     end
     if self.anchorPickerEntryId ~= entry.id then
-        if placementState == PLACEMENT_PENDING then
+        if pendingForEntry then
+            if candidateValid then SetAnchorInputState(nil)
+            else SetAnchorInputState(L(candidateReason or "layout.position.anchor_unavailable"), "color.state.warning") end
+        elseif placementState == PLACEMENT_PENDING then
             SetAnchorInputState(L("layout.position.anchor_pending") .. ": " .. DisplayAnchorTargetName(entry.pendingAnchor or ""), "color.state.warning")
         elseif placementState == PLACEMENT_FALLBACK then
             SetAnchorInputState(L("layout.position.anchor_fallback") .. ": " .. DisplayAnchorTargetName(entry.pendingAnchor or ""), "color.state.warning")
@@ -1839,7 +1880,6 @@ function Layout:RefreshMovementWidgets()
             SetAnchorInputState(nil)
         end
     end
-    local pendingForEntry = self.pendingAnchorSourceId == entry.id
     local displayPoint = pendingForEntry and self.pendingAnchorPoint or anchor.point or "CENTER"
     local displayRelativePoint = pendingForEntry and self.pendingAnchorRelativePoint or anchor.relativePoint or anchor.point or "CENTER"
     local displayRelative = pendingForEntry and self.pendingAnchorTargetName or anchor.relative or "UIParent"

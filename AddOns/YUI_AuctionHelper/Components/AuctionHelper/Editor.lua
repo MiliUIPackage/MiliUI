@@ -737,6 +737,7 @@ end
 function Editor:CreateSettingsSection(parent, config, yPos)
     self.settingsConfig = config
     local title = CreateText(parent, L["profiles.section"], "font.size.sm", "color.text.secondary")
+    if config.styleLabel then config.styleLabel(title) end
     title:SetPoint("TOPLEFT", 14, yPos)
     yPos = yPos - 20
 

@@ -14,6 +14,11 @@ YUI.F = YUI.F or {}
 local F = YUI.F
 local API = YUI.WOW_API
 local CombatAPI = YUI.API and YUI.API.Combat or API
+local PrintAPI = YUI.API.Print or {}
+local PRINT_TAG = "|cFFFF00FFY|r|cFFFF6666U|r|cFFFF9900I|r "
+local PRINT_LEADING_PREFIX = {}
+
+YUI.API.Print = PrintAPI
 
 local function GetCurrentTime()
     if CombatAPI and CombatAPI.GetTime then
@@ -29,11 +34,20 @@ function YUI:Debug(...)
     if not self.IsDev then
         return
     end
-    print("|cFFFF00FFY|r|cFFFF6666U|r|cFFFF9900I|r ", ...)
+    print(PRINT_TAG, ...)
 end
 
 function YUI:Print(...)
-    print("|cFFFF00FFY|r|cFFFF6666U|r|cFFFF9900I|r ", ...)
+    if select(1, ...) == PRINT_LEADING_PREFIX then
+        print(select(2, ...), PRINT_TAG, select(3, ...))
+        return
+    end
+    print(PRINT_TAG, ...)
+end
+
+function PrintAPI.CallWithLeadingPrefix(callback, owner, prefix, ...)
+    if type(callback) ~= "function" then return nil end
+    return callback(owner, PRINT_LEADING_PREFIX, prefix, ...)
 end
 
 function F:StrSplit(str, sep)

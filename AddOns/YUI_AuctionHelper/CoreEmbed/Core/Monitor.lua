@@ -3440,10 +3440,104 @@ end
 function Monitor:_GetNextWakeAt()
     local conditionDueAt = self._conditionScheduler and self._conditionScheduler.nextDueAt
     local delayedDueAt = self._delayedScheduler and self._delayedScheduler.nextDueAt
-    if conditionDueAt and delayedDueAt then
-        return math_min(conditionDueAt, delayedDueAt)
+    local nextAt = conditionDueAt
+    if delayedDueAt and (not nextAt or delayedDueAt < nextAt) then nextAt = delayedDueAt end
+    local taskAt = self._ownedTasks and self._ownedTasks.nextDueAt
+    if taskAt and (not nextAt or taskAt < nextAt) then nextAt = taskAt end
+    return nextAt
+end
+
+-- Shared one-shot work for nonvisual consumers. Reuses the Monitor wake timer.
+function Monitor:ScheduleTask(owner, key, dueAt, callback)
+    dueAt = SafeNumber(dueAt)
+    if owner == nil or type(key) ~= "string" or key == "" or type(callback) ~= "function"
+        or not dueAt or dueAt ~= dueAt or dueAt == math.huge or dueAt == -math.huge then
+        return false, "invalid-task"
     end
-    return conditionDueAt or delayedDueAt
+    local tasks = self._ownedTasks
+    if not tasks then
+        tasks = { owners = {}, pending = 0, fired = 0, canceled = 0, failures = 0, sequence = 0 }
+        self._ownedTasks = tasks
+    end
+    local owned = tasks.owners[owner]
+    local limit = tonumber(self.Policy.maxOwnedTasks) or 1024
+    if not (owned and owned[key]) and tasks.pending >= limit then
+        return false, "task-limit"
+    end
+    if not owned then owned = {}; tasks.owners[owner] = owned end
+    if not owned[key] then tasks.pending = tasks.pending + 1 end
+    tasks.sequence = tasks.sequence + 1
+    owned[key] = { owner = owner, key = key, at = dueAt, callback = callback, sequence = tasks.sequence }
+    self:_RearmOwnedTasks()
+    return true
+end
+
+function Monitor:_RearmOwnedTasks()
+    local tasks = self._ownedTasks
+    if not tasks then return end
+    local nextAt
+    for _, owned in pairs(tasks.owners) do
+        for _, task in pairs(owned) do
+            if not nextAt or task.at < nextAt then nextAt = task.at end
+        end
+    end
+    tasks.nextDueAt = nextAt
+    if not tasks.running then self:_RearmWakeTimer() end
+end
+
+function Monitor:CancelTask(owner, key)
+    local tasks = self._ownedTasks
+    local owned = tasks and tasks.owners[owner]
+    if not (owned and owned[key]) then return false end
+    owned[key] = nil
+    tasks.pending, tasks.canceled = tasks.pending - 1, tasks.canceled + 1
+    if not next(owned) then tasks.owners[owner] = nil end
+    self:_RearmOwnedTasks()
+    return true
+end
+
+function Monitor:CancelTasks(owner)
+    local tasks = self._ownedTasks
+    local owned = tasks and tasks.owners[owner]
+    if not owned then return false end
+    for _ in pairs(owned) do
+        tasks.pending, tasks.canceled = tasks.pending - 1, tasks.canceled + 1
+    end
+    tasks.owners[owner] = nil
+    self:_RearmOwnedTasks()
+    return true
+end
+
+function Monitor:_RunOwnedTasks(now)
+    local tasks = self._ownedTasks
+    if not tasks or tasks.running then return end
+    tasks.running = true
+    local due = {}
+    for _, owned in pairs(tasks.owners) do
+        for _, task in pairs(owned) do if task.at <= now then due[#due + 1] = task end end
+    end
+    table_sort(due, function(a, b)
+        if a.at == b.at then return a.sequence < b.sequence end
+        return a.at < b.at
+    end)
+    for _, task in ipairs(due) do
+        local owned = tasks.owners[task.owner]
+        if owned and owned[task.key] == task then
+            owned[task.key] = nil
+            if not next(owned) then tasks.owners[task.owner] = nil end
+            tasks.pending, tasks.fired = tasks.pending - 1, tasks.fired + 1
+            local ok = pcall(task.callback, task.owner, task.key, now)
+            if not ok then tasks.failures = tasks.failures + 1 end
+        end
+    end
+    tasks.running = false
+    self:_RearmOwnedTasks()
+end
+
+function Monitor:GetTaskStats()
+    local tasks = self._ownedTasks or {}
+    return { pending = tasks.pending or 0, fired = tasks.fired or 0,
+        canceled = tasks.canceled or 0, failures = tasks.failures or 0 }
 end
 
 function Monitor:_RearmWakeTimer()
@@ -3485,6 +3579,8 @@ function Monitor:_RunScheduledWork(now)
     if scheduler and scheduler.nextDueAt and now + 0.0001 >= scheduler.nextDueAt then
         self:_RunConditionScheduler(scheduler.token)
     end
+    local tasks = self._ownedTasks
+    if tasks and tasks.nextDueAt and now >= tasks.nextDueAt then self:_RunOwnedTasks(now) end
     self:_RearmWakeTimer()
 end
 

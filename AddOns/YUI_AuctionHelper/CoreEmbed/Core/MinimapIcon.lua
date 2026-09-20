@@ -21,9 +21,28 @@ MinimapIcon.compartmentRegistered = MinimapIcon.compartmentRegistered or {}
 
 local DB_KEY = "YUI_MinimapIcon"
 local DEFAULT_ANGLE = 225
-local MINIMAP_RADIUS = 80
+local BUTTON_EDGE_OFFSET = 5
+local FALLBACK_RADIUS = 80
 local BUTTON_SIZE = 32
 local DEFAULT_ICON = "Interface\\Icons\\INV_Misc_Gear_01"
+local Security = YUI.API and YUI.API.Security
+
+local MINIMAP_SHAPES = {
+    ROUND = { true, true, true, true },
+    SQUARE = { false, false, false, false },
+    ["CORNER-TOPLEFT"] = { false, false, false, true },
+    ["CORNER-TOPRIGHT"] = { false, false, true, false },
+    ["CORNER-BOTTOMLEFT"] = { false, true, false, false },
+    ["CORNER-BOTTOMRIGHT"] = { true, false, false, false },
+    ["SIDE-LEFT"] = { false, true, false, true },
+    ["SIDE-RIGHT"] = { true, false, true, false },
+    ["SIDE-TOP"] = { false, false, true, true },
+    ["SIDE-BOTTOM"] = { true, true, false, false },
+    ["TRICORNER-TOPLEFT"] = { false, true, true, true },
+    ["TRICORNER-TOPRIGHT"] = { true, false, true, true },
+    ["TRICORNER-BOTTOMLEFT"] = { true, true, false, true },
+    ["TRICORNER-BOTTOMRIGHT"] = { true, true, true, false },
+}
 
 local Locale = YUI.Locale and YUI.Locale.Get and YUI.Locale:Get("Core") or {}
 
@@ -79,17 +98,25 @@ local function GetProductTitle(product)
     return (product and (product.shortTitle or product.title or product.id)) or "YUI"
 end
 
-local function GetProductIcon(product)
-    if product and product.logo then
-        local logo = product.logo
-        if logo:find("^Interface\\") or logo:find("^Interface/") then
-            return logo
+local function GetProductIcon(product, preferSmall)
+    if product then
+        local logo = preferSmall and product.smallLogo or nil
+        if not logo or logo == "" then
+            logo = product.logo
         end
+        if not logo or logo == "" then
+            logo = nil
+        end
+        if logo then
+            if logo:find("^Interface\\") or logo:find("^Interface/") then
+                return logo
+            end
 
-        if YUI.Assets and YUI.Assets.Product then
-            local resolved = YUI.Assets:Product(product.id, logo)
-            if resolved and resolved ~= "" then
-                return resolved
+            if YUI.Assets and YUI.Assets.Product then
+                local resolved = YUI.Assets:Product(product.id, logo)
+                if resolved and resolved ~= "" then
+                    return resolved
+                end
             end
         end
     end
@@ -102,6 +129,16 @@ local function GetProductIcon(product)
     end
 
     return DEFAULT_ICON
+end
+
+local function ApplyProductIcon(texture, product)
+    if not texture then return end
+    texture:SetTexture(GetProductIcon(product, true))
+    if product and product.logoCrop == false then
+        texture:SetTexCoord(0, 1, 0, 1)
+    else
+        texture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    end
 end
 
 local function GetProfile(productId)
@@ -177,14 +214,86 @@ local function Atan2(y, x)
     return 0
 end
 
+local function SafeNumber(value)
+    if Security and Security.SafeNumber then
+        return Security.SafeNumber(value)
+    end
+    return type(value) == "number" and value or nil
+end
+
+local function SafeString(value)
+    if Security and Security.SafeString then
+        return Security.SafeString(value)
+    end
+    return type(value) == "string" and value or nil
+end
+
+local function GetMinimapHalfExtent(method)
+    if not Minimap or type(Minimap[method]) ~= "function" then
+        return FALLBACK_RADIUS
+    end
+
+    local ok, value = pcall(Minimap[method], Minimap)
+    value = ok and SafeNumber(value) or nil
+    if not value or value <= 0 then
+        return FALLBACK_RADIUS
+    end
+
+    return value * 0.5 + BUTTON_EDGE_OFFSET
+end
+
+local function GetCurrentMinimapShape()
+    local provider = _G.GetMinimapShape
+    if type(provider) ~= "function" then
+        return "ROUND"
+    end
+
+    local ok, shape = pcall(provider)
+    shape = ok and SafeString(shape) or nil
+    if not shape then
+        return "ROUND"
+    end
+
+    shape = string.upper(shape)
+    if not MINIMAP_SHAPES[shape] then
+        return "ROUND"
+    end
+    return shape
+end
+
+local function GetShapeQuadrant(x, y)
+    local quadrant = 1
+    if x < 0 then quadrant = quadrant + 1 end
+    if y > 0 then quadrant = quadrant + 2 end
+    return quadrant
+end
+
+local function ProjectToRectangleEdge(x, y, halfWidth, halfHeight)
+    local absX, absY = math.abs(x), math.abs(y)
+    local scaleX = absX > 0 and halfWidth / absX or math.huge
+    local scaleY = absY > 0 and halfHeight / absY or math.huge
+    local scale = math.min(scaleX, scaleY)
+    return x * scale, y * scale
+end
+
 local function PositionButton(button, angle)
     if not button or not Minimap then
         return
     end
 
     local radians = math.rad(NormalizeAngle(angle))
+    local x, y = math.cos(radians), math.sin(radians)
+    local halfWidth = GetMinimapHalfExtent("GetWidth")
+    local halfHeight = GetMinimapHalfExtent("GetHeight")
+    local shape = MINIMAP_SHAPES[GetCurrentMinimapShape()]
+    if shape[GetShapeQuadrant(x, y)] then
+        x, y = x * halfWidth, y * halfHeight
+    else
+        x, y = ProjectToRectangleEdge(x, y, halfWidth, halfHeight)
+    end
+
     button:ClearAllPoints()
-    button:SetPoint("CENTER", Minimap, "CENTER", math.cos(radians) * MINIMAP_RADIUS, math.sin(radians) * MINIMAP_RADIUS)
+    button:SetPoint("CENTER", Minimap, "CENTER", x, y)
 end
 
 local function SaveDragPosition(button)
@@ -281,7 +390,7 @@ local function CreateButton(product)
     local icon = button:CreateTexture(nil, "BACKGROUND")
     icon:SetSize(20, 20)
     icon:SetPoint("CENTER", button, "CENTER", 0, 0)
-    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    ApplyProductIcon(icon, product)
     button.icon = icon
 
     local border = button:CreateTexture(nil, "OVERLAY")
@@ -395,7 +504,7 @@ function MinimapIcon:Refresh(productId)
 
     button.productId = productId
     if button.icon then
-        button.icon:SetTexture(GetProductIcon(product))
+        ApplyProductIcon(button.icon, product)
     end
 
     PositionButton(button, cfg.angle)
@@ -409,6 +518,38 @@ end
 function MinimapIcon:RefreshAll()
     for productId in pairs(self.products) do
         self:Refresh(productId)
+    end
+end
+
+local function OnMinimapGeometryChanged()
+    MinimapIcon:RefreshAll()
+end
+
+local function EnsureMinimapGeometryHooks()
+    if not Minimap then return end
+
+    if not MinimapIcon.sizeHookInstalled and type(Minimap.HookScript) == "function" then
+        local ok = pcall(Minimap.HookScript, Minimap, "OnSizeChanged", OnMinimapGeometryChanged)
+        if ok then
+            MinimapIcon.sizeHookInstalled = true
+        end
+    end
+
+    if not MinimapIcon.maskHookInstalled and type(Minimap.SetMaskTexture) == "function" then
+        local ok = false
+        if Security and Security.SafeHook then
+            ok = Security.SafeHook(
+                "MinimapIcon:SetMaskTexture",
+                Minimap,
+                "SetMaskTexture",
+                OnMinimapGeometryChanged
+            )
+        elseif type(_G.hooksecurefunc) == "function" then
+            ok = pcall(_G.hooksecurefunc, Minimap, "SetMaskTexture", OnMinimapGeometryChanged)
+        end
+        if ok then
+            MinimapIcon.maskHookInstalled = true
+        end
     end
 end
 
@@ -454,7 +595,7 @@ function MinimapIcon:RegisterAddonCompartment(product)
 
     local data = {
         text = GetProductTitle(product),
-        icon = GetProductIcon(product),
+        icon = GetProductIcon(product, true),
         func = function()
             OpenProductSettings(product)
         end,
@@ -494,12 +635,14 @@ end
 
 local function OnPlayerEnteringWorld()
     MinimapIcon.enteredWorld = true
+    EnsureMinimapGeometryHooks()
     MinimapIcon:RegisterExistingProducts()
     MinimapIcon:RefreshAll()
     MinimapIcon:RegisterAddonCompartments()
 end
 
 local function OnReadyRefresh()
+    EnsureMinimapGeometryHooks()
     MinimapIcon:RegisterExistingProducts()
     MinimapIcon:RefreshAll()
     if MinimapIcon.enteredWorld then
@@ -507,6 +650,7 @@ local function OnReadyRefresh()
     end
 end
 
+EnsureMinimapGeometryHooks()
 MinimapIcon:RegisterExistingProducts()
 
 if YUI.Event and YUI.Event.On then

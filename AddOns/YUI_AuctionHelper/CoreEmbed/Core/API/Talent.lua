@@ -77,6 +77,7 @@ local function CopySpecInfo(info)
         groupIndex = info.groupIndex,
         treeIndex = info.treeIndex,
         points = info.points,
+        isInitial = info.isInitial == true,
     }
 end
 
@@ -383,6 +384,16 @@ function Talent.GetNumSpecializations()
     return 0
 end
 
+-- Retail 会在角色尚未获得正式专精时返回一个位于正式专精列表之后的
+-- “初始专精索引”。这个索引只描述当前角色状态，不能作为持久专精身份。
+function Talent.IsInitialSpecializationIndex(index)
+    if not isRetail then return false end
+    index = tonumber(index)
+    if not index or index % 1 ~= 0 or index < 1 then return false end
+    local count = tonumber(Talent.GetNumSpecializations()) or 0
+    return count > 0 and index > count
+end
+
 local function GetTalentTabInfoCompat(tab, groupIndex)
     if GetTalentTabInfo then
         return GetTalentTabInfo(tab, false, false, groupIndex)
@@ -552,6 +563,7 @@ local function BuildRetailCurrentSpecializationInfo()
         role = role,
         classID = classInfo.classID,
         classFile = classInfo.classFile,
+        isInitial = Talent.IsInitialSpecializationIndex(specIndex),
     }
 end
 
@@ -592,6 +604,7 @@ local function BuildClassicCurrentSpecializationInfo()
             groupIndex = groupIndex,
             treeIndex = nil,
             points = 0,
+            isInitial = false,
         }
     end
 
@@ -610,6 +623,7 @@ local function BuildClassicCurrentSpecializationInfo()
         groupIndex = groupIndex,
         treeIndex = selected.treeIndex,
         points = selected.points,
+        isInitial = false,
     }
 end
 
@@ -655,6 +669,110 @@ function Talent.GetCurrentConfigID()
     end
 
     return nil
+end
+
+local function ReadTraitValue(func, ...)
+    if type(func) ~= "function" then return nil, false end
+    local ok, value = pcall(SecureCallFunction, func, ...)
+    if not ok then return nil, false end
+    return value, true
+end
+
+function Talent.ReadActiveTraitSpellSet(target)
+    target = type(target) == "table" and target or {}
+    for key in pairs(target) do target[key] = nil end
+
+    if not isRetail
+        or not (C_ClassTalents and C_ClassTalents.GetActiveConfigID)
+        or not C_Traits
+        or not C_Traits.GetConfigInfo
+        or not C_Traits.GetTreeNodes
+        or not C_Traits.GetNodeInfo
+        or not C_Traits.GetEntryInfo
+        or not C_Traits.GetDefinitionInfo then
+        return target, false
+    end
+
+    local configID, configIDRead = ReadTraitValue(
+        C_ClassTalents.GetActiveConfigID
+    )
+    if not configIDRead or type(configID) ~= "number" or configID <= 0 then
+        return target, false
+    end
+
+    local configInfo, configRead = ReadTraitValue(
+        C_Traits.GetConfigInfo,
+        configID
+    )
+    local treeIDs = configInfo and configInfo.treeIDs
+    if not configRead or type(treeIDs) ~= "table" or #treeIDs == 0 then
+        return target, false
+    end
+
+    local complete = true
+    for treeIndex = 1, #treeIDs do
+        local treeID = treeIDs[treeIndex]
+        local nodeIDs, nodesRead = ReadTraitValue(
+            C_Traits.GetTreeNodes,
+            treeID
+        )
+        if not nodesRead or type(nodeIDs) ~= "table" then
+            complete = false
+        else
+            for nodeIndex = 1, #nodeIDs do
+                local nodeInfo, nodeRead = ReadTraitValue(
+                    C_Traits.GetNodeInfo,
+                    configID,
+                    nodeIDs[nodeIndex]
+                )
+                if not nodeRead or type(nodeInfo) ~= "table"
+                    or type(nodeInfo.activeRank) ~= "number" then
+                    complete = false
+                elseif nodeInfo.activeRank > 0 then
+                    local activeEntry = nodeInfo.activeEntry
+                    local entryID = type(activeEntry) == "table"
+                        and activeEntry.entryID or nil
+                    if type(entryID) ~= "number" or entryID <= 0 then
+                        complete = false
+                    else
+                        local entryInfo, entryRead = ReadTraitValue(
+                            C_Traits.GetEntryInfo,
+                            configID,
+                            entryID
+                        )
+                        if not entryRead or type(entryInfo) ~= "table" then
+                            complete = false
+                        elseif entryInfo.definitionID == nil then
+                            if entryInfo.subTreeID == nil then
+                                complete = false
+                            end
+                        else
+                            local definitionInfo, definitionRead = ReadTraitValue(
+                                C_Traits.GetDefinitionInfo,
+                                entryInfo.definitionID
+                            )
+                            if not definitionRead
+                                or type(definitionInfo) ~= "table" then
+                                complete = false
+                            else
+                                local spellID = definitionInfo.spellID
+                                if spellID ~= nil then
+                                    if type(spellID) == "number"
+                                        and spellID > 0
+                                        and spellID == math.floor(spellID) then
+                                        target[spellID] = true
+                                    else
+                                        complete = false
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return target, complete
 end
 
 function Talent.HasClassTalents()

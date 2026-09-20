@@ -3,8 +3,10 @@
 	<Script file='Geometry.lua'/>
 	<Script file='AnchorTargets.lua'/>
 	<Script file='Placement.lua'/>
+	<Script file='Providers.lua'/>
 	<Script file='Native.lua'/>
 	<Script file='Overlay.lua'/>
 	<Script file='Panel.lua'/>
+	<Script file='Filter.lua'/>
 	<Script file='Runtime.lua'/>
 </Ui>

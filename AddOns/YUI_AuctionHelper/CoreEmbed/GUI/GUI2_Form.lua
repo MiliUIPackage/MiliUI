@@ -792,8 +792,15 @@ local function LayoutButtonContent(button, offsetX, offsetY)
             text:SetJustifyH(button.gui2JustifyH or "LEFT")
         end
     elseif text then
-        text:SetPoint("CENTER", offsetX, offsetY)
-        text:SetJustifyH(button.gui2JustifyH or "CENTER")
+        if button.gui2ContentAlign == "left" then
+            text:SetPoint("LEFT", button, "LEFT", (button.gui2TextLeftPadding or 8) + offsetX, offsetY)
+            text:SetPoint("RIGHT", button, "RIGHT", -(button.gui2TextRightPadding or 8) + offsetX, offsetY)
+            text:SetJustifyH(button.gui2JustifyH or "LEFT")
+        else
+            text:SetPoint("LEFT", button, "LEFT", (button.gui2TextLeftPadding or 8) + offsetX, offsetY)
+            text:SetPoint("RIGHT", button, "RIGHT", -(button.gui2TextRightPadding or 8) + offsetX, offsetY)
+            text:SetJustifyH(button.gui2JustifyH or "CENTER")
+        end
     end
 end
 
@@ -880,6 +887,9 @@ function GUI2.Form:CreateButton(parent, opts)
         button.gui2JustifyH = opts.justifyH or "LEFT"
         InheritMotion(icon, button)
     else
+        button.gui2ContentAlign = opts.contentAlign
+        button.gui2TextLeftPadding = opts.textLeftPadding or 8
+        button.gui2TextRightPadding = opts.textRightPadding or 8
         button.gui2JustifyH = opts.justifyH or "CENTER"
     end
     LayoutButtonContent(button)
@@ -941,6 +951,19 @@ function GUI2.Form:SetButtonRelief(button, relief)
         return true
     end
     return false
+end
+
+-- Opt-in primary action styling for wizard and transfer footers.
+function GUI2.Form:StyleDialogPrimary(button)
+    button:SetHeight(34)
+    button.gui2SurfaceToken = 'color.accent.fill'
+    button.gui2HoverSurfaceToken = 'color.accent.primary'
+    button.gui2PressedSurfaceToken = 'color.accent.strong'
+    button.gui2TextColorKey = 'color.accent.text'
+    button.gui2HoverTextColorKey = 'color.accent.text'
+    button.gui2PressedTextColorKey = 'color.accent.text'
+    button:SetState(button.gui2Disabled and 'disabled' or 'normal')
+    return button
 end
 
 function GUI2.Form:CreateTextLink(parent, opts)
@@ -1147,6 +1170,61 @@ function GUI2.Form:CreateCheckbox(parent, opts)
     return frame
 end
 
+function GUI2.Form:CreateStepper(parent, opts)
+    opts = opts or {}
+    local group = GUI2:CreateFrame(parent, { width = opts.width or 600, height = 44 })
+    group.steps = {}
+    for i, text in ipairs(opts.items or {}) do
+        local step = GUI2:CreateButtonFrame(group, { height = 44 })
+        group.steps[i] = step
+        step.circle = GUI2:CreateIcon(step, { texture = GUI2:GetSettingsIcon("circle"), width = 24, height = 24, crop = false })
+        step.inset = GUI2:CreateIcon(step, { texture = GUI2:GetIconAppearanceMask("circle", 0), width = 20, height = 20, crop = false })
+        step.inset:SetPoint("CENTER", step.circle, "CENTER")
+        step.check = GUI2:CreateIcon(step, { texture = "Interface\\Buttons\\UI-CheckBox-Check", width = 24, height = 24, crop = false })
+        step.check:SetPoint("CENTER", step.circle, "CENTER")
+        step.number = GUI2:CreateText(step, tostring(i), "font.size.md", "color.text.primary")
+        step.number:SetAllPoints(step.circle); step.number:SetJustifyH("CENTER"); step.number:SetJustifyV("MIDDLE")
+        step.label = GUI2:CreateText(step, text, "font.size.md", "color.text.primary")
+        step.label:SetWordWrap(false)
+        step.line = GUI2:CreateTexture(step, { layer = "ARTWORK" })
+        step.line:SetHeight(2); step.line:SetPoint("BOTTOMLEFT"); step.line:SetPoint("BOTTOMRIGHT")
+        step:SetScript("OnClick", function() if i <= group.reached and opts.onChange then opts.onChange(i) end end)
+        step.RefreshTheme = function()
+            local key = i == group.current and "color.text.accent" or i < (group.current or 1) and "color.state.success" or "color.text.secondary"
+            GUI2:SetTextColorKey(step.label, key)
+            GUI2:SetTextColorKey(step.number, i == group.current and "color.surface.panel" or key)
+            step.circle:SetTexture(GUI2:GetIconAppearanceMask("circle", 0))
+            local complete = i < (group.current or 1)
+            step.circle:SetShown(not complete)
+            step.inset:SetShown(i > (group.current or 1))
+            step.inset:SetVertexColor(GUI2:GetColor("color.surface.popup"))
+            step.check:SetShown(complete)
+            step.check:SetVertexColor(GUI2:GetColor("color.state.success"))
+            step.number:SetShown(not complete)
+            step.circle:SetVertexColor(GUI2:GetColor(key))
+            GUI2:SetTexturePaintKey(step.line, i <= (group.current or 1) and key or "color.border.subtle")
+        end
+        GUI2:RegisterThemeObject(step)
+    end
+    function group:SetStep(current, reached)
+        self.current, self.reached = current, reached
+        self:Layout(self:GetWidth())
+    end
+    function group:Layout(width)
+        self:SetWidth(width)
+        local cell = (width - (#self.steps - 1) * 12) / math.max(1, #self.steps)
+        for i, step in ipairs(self.steps) do
+            step:SetSize(cell, 44); step:ClearAllPoints(); step:SetPoint("TOPLEFT", (i - 1) * (cell + 12), 0)
+            local labelWidth = math.min(step.label:GetStringWidth(), math.max(1, cell - 40))
+            step.circle:ClearAllPoints(); step.circle:SetPoint("LEFT", 0, 2)
+            step.label:ClearAllPoints(); step.label:SetPoint("LEFT", step.circle, "RIGHT", 8, 0); step.label:SetWidth(labelWidth)
+            step:EnableMouse(i <= (self.reached or 1)); step:RefreshTheme()
+        end
+    end
+    group:SetStep(1, 1)
+    return group
+end
+
 function GUI2.Form:CreateSwitch(parent, opts)
     opts = opts or {}
     BindItem(opts)
@@ -1157,14 +1235,17 @@ function GUI2.Form:CreateSwitch(parent, opts)
     local onValue = opts.onValue
     if onValue == nil then onValue = opts.rightValue end
     if onValue == nil then onValue = true end
-    local offText = opts.offText or opts.leftText or GetCoreText("common.off", "OFF")
-    local onText = opts.onText or opts.rightText or GetCoreText("common.on", "ON")
+    local offText = opts.offText or opts.leftText
+        or GetCoreText("common.switch.off", GetCoreText("common.off", "N"))
+    local onText = opts.onText or opts.rightText
+        or GetCoreText("common.switch.on", GetCoreText("common.on", "Y"))
     local variant = opts.variant or opts.switchVariant
     local isChoiceVariant = variant == "choice"
+    local isCompact = variant == "compact"
 
     local frame = CreateFrame("Button", opts.name, parent, "BackdropTemplate")
-    local width = opts.width or 64
-    local height = opts.height or GetControlHeight(26)
+    local width = opts.width or (isCompact and 32 or 64)
+    local height = opts.height or (isCompact and 18 or GetControlHeight(26))
     frame:SetSize(width, height)
     frame.gui2RadiusKey = opts.radiusKey or "layout.radius.control"
     if frame.EnableMouse then frame:EnableMouse(true) end
@@ -1185,7 +1266,7 @@ function GUI2.Form:CreateSwitch(parent, opts)
     GUI2:ApplyBackdrop(frame, "color.control.track")
     GUI2:CreateBorder(frame, "color.border.default")
 
-    local thumbWidth = opts.thumbWidth or 20
+    local thumbWidth = isCompact and math.max(6, math.min(height - 6, width - 12)) or opts.thumbWidth or 20
     local thumb = GUI2:CreatePanel(frame, { width = thumbWidth, height = height - 6, surface = "color.control.thumb", border = "color.border.subtle" })
     frame.thumb = thumb
     if thumb.EnableMouse then thumb:EnableMouse(false) end
@@ -1194,6 +1275,7 @@ function GUI2.Form:CreateSwitch(parent, opts)
     label:SetJustifyH("CENTER")
     label:SetWordWrap(false)
     frame.text = label
+    if isCompact then onText, offText = "", ""; label:Hide() end
 
     function frame:GetValue()
         return self.gui2Value
@@ -1489,6 +1571,7 @@ function GUI2.Form:CreateUnderlineTabs(parent, opts)
             text = type(item) == "table" and item.text or item,
             value = type(item) == "table" and item.value or item,
             disabled = type(item) == "table" and item.disabled == true or false,
+            tooltip = type(item) == "table" and item.tooltip or nil,
         }
     end
 
@@ -1499,6 +1582,11 @@ function GUI2.Form:CreateUnderlineTabs(parent, opts)
     local itemPaddingX = opts.itemPaddingX or GUI2:GetMetric("layout.gap.inline", 8)
     local gap = opts.gap or (GUI2:GetMetric("layout.gap.inline", 8) * 3)
     local minItemWidth = opts.minItemWidth or 44
+    local equalWidth = opts.equalWidth == true
+        and explicitWidth ~= nil
+        and not scrollable
+        and #items > 0
+        and explicitWidth >= (#items + (gap * math_max(#items - 1, 0)))
     local scrollButtonWidth = opts.scrollButtonWidth or 28
     local scrollButtonGap = opts.scrollButtonGap or 2
     local scrollEpsilon = 2
@@ -1539,6 +1627,7 @@ function GUI2.Form:CreateUnderlineTabs(parent, opts)
     frame.items = items
     frame.gui2Disabled = opts.disabled == true
     frame.gui2UnderlineTabsScrollable = scrollable
+    frame.gui2UnderlineTabsEqualWidth = equalWidth
     frame.gui2UnderlineTabStarts = {}
     frame.gui2UnderlineTabEnds = {}
     frame.gui2UnderlineTabsScrollOffset = 0
@@ -1878,17 +1967,36 @@ function GUI2.Form:CreateUnderlineTabs(parent, opts)
 
     function frame:Relayout()
         local x = 0
-        for i, button in ipairs(self.buttons) do
-            local textWidth = button.text and button.text:GetStringWidth() or 0
-            local itemWidth = math_max(minItemWidth, math_ceil(textWidth + (itemPaddingX * 2)))
-            button:SetSize(itemWidth, height)
-            button:ClearAllPoints()
-            button:SetPoint("LEFT", tabParent, "LEFT", x, 0)
-            button.gui2UnderlineTabWidth = itemWidth
-            self.gui2UnderlineTabStarts[i] = x
-            self.gui2UnderlineTabEnds[i] = x + itemWidth
-            x = x + itemWidth
-            if i < #self.buttons then x = x + gap end
+        if equalWidth then
+            local count = #self.buttons
+            local available = explicitWidth - (gap * math_max(count - 1, 0))
+            local previousBoundary = 0
+            for i, button in ipairs(self.buttons) do
+                local boundary = math_floor(((i * available) / count) + 0.5)
+                local itemWidth = boundary - previousBoundary
+                local itemStart = previousBoundary + ((i - 1) * gap)
+                button:SetSize(itemWidth, height)
+                button:ClearAllPoints()
+                button:SetPoint("LEFT", tabParent, "LEFT", itemStart, 0)
+                button.gui2UnderlineTabWidth = itemWidth
+                self.gui2UnderlineTabStarts[i] = itemStart
+                self.gui2UnderlineTabEnds[i] = itemStart + itemWidth
+                previousBoundary = boundary
+            end
+            x = explicitWidth
+        else
+            for i, button in ipairs(self.buttons) do
+                local textWidth = button.text and button.text:GetStringWidth() or 0
+                local itemWidth = math_max(minItemWidth, math_ceil(textWidth + (itemPaddingX * 2)))
+                button:SetSize(itemWidth, height)
+                button:ClearAllPoints()
+                button:SetPoint("LEFT", tabParent, "LEFT", x, 0)
+                button.gui2UnderlineTabWidth = itemWidth
+                self.gui2UnderlineTabStarts[i] = x
+                self.gui2UnderlineTabEnds[i] = x + itemWidth
+                x = x + itemWidth
+                if i < #self.buttons then x = x + gap end
+            end
         end
         self.contentWidth = math_max(x, 1)
         if self.scrollChild then
@@ -2042,6 +2150,10 @@ function GUI2.Form:CreateUnderlineTabs(parent, opts)
             selfButton.gui2Hovered = false
             RefreshButton(selfButton)
         end)
+        AddTooltip(button, {
+            text = data.text,
+            tooltip = data.tooltip,
+        })
         frame.buttons[i] = button
     end
 
@@ -2334,6 +2446,18 @@ function GUI2.Form:CreateEditBox(parent, opts)
     bg:SetFrameLevel(edit:GetFrameLevel() > 0 and edit:GetFrameLevel() - 1 or 0)
     edit.gui2Bg = bg
     InheritMotion(bg, edit)
+    if opts.placeholder then
+        local placeholder = opts.searchPlaceholder and ("|T"..GUI2:GetSettingsIcon("search")..":12:12:0:0|t "..opts.placeholder) or opts.placeholder
+        local hint = GUI2:CreateText(edit, placeholder, "font.size.md", opts.searchPlaceholder and "color.text.disabled" or "color.text.secondary")
+        hint:SetPoint("LEFT", 8, 0)
+        hint:SetPoint("RIGHT", -8, 0)
+        hint:SetJustifyH("LEFT")
+        hint:SetWordWrap(false)
+        edit.placeholder = hint
+        local function refreshHint() hint:SetShown(edit:GetText() == "" and not (opts.searchPlaceholder and edit:HasFocus())) end
+        edit:HookScript("OnShow", refreshHint)
+        refreshHint()
+    end
 
     function edit:RefreshTheme()
         if self.gui2Bg then GUI2:RefreshPrimitive(self.gui2Bg) end
@@ -2376,14 +2500,17 @@ function GUI2.Form:CreateEditBox(parent, opts)
     end
 
     edit:SetScript("OnEditFocusGained", function(self)
+        if opts.searchPlaceholder and self.placeholder then self.placeholder:Hide() end
         if self.gui2Bg then GUI2:SetBorderColor(self.gui2Bg, "color.border.focus") end
         if opts.onFocusGained then opts.onFocusGained(self) end
     end)
     edit:SetScript("OnEditFocusLost", function(self)
+        if opts.searchPlaceholder and self.placeholder then self.placeholder:SetShown(self:GetText() == "" and not (opts.searchPlaceholder and self:HasFocus())) end
         if self.gui2Bg then GUI2:SetBorderColor(self.gui2Bg, opts.focus and "color.border.focus" or "color.border.default") end
         if opts.onFocusLost then opts.onFocusLost(self) end
     end)
     edit:SetScript("OnTextChanged", function(self)
+        if self.placeholder then self.placeholder:SetShown(self:GetText() == "" and not (opts.searchPlaceholder and self:HasFocus())) end
         if self.gui2SettingText then return end
         if opts.set or opts.onChange then
             CommitValue(opts, self, self:GetText())
@@ -2799,6 +2926,8 @@ function GUI2.Form:CreateDropdown(parent, opts)
                 actionTooltip = opt.actionTooltip,
                 actionIcon = opt.actionIcon,
                 actionTexture = opt.actionTexture,
+                actionHighlightTexture = opt.actionHighlightTexture,
+                actionOriginalColor = opt.actionOriginalColor,
                 actionAtlas = opt.actionAtlas,
                 actionIconAtlas = opt.actionIconAtlas,
                 actionSize = opt.actionSize,
@@ -2811,7 +2940,9 @@ function GUI2.Form:CreateDropdown(parent, opts)
         end
         local menuWidth = opts.menuWidth or self:GetWidth()
         menuWidth = math_max(menuWidth, self:GetWidth())
-        GUI2:OpenDropdown(self, menuOptions, nil, self.value, menuWidth)
+        local searchable=opts.searchable
+        if type(searchable)=='function' then searchable=searchable() end
+        GUI2:OpenDropdown(self, menuOptions, nil, self.value, menuWidth, searchable and {searchPlaceholder=opts.searchPlaceholder,emptyText=opts.searchEmptyText} or nil)
     end)
     frame:SetScript("OnEnter", function(self)
         if self.gui2Disabled then return end
@@ -2875,6 +3006,10 @@ local function BuildLSMFontOptions(opts)
         option.value = option.value or option.text
         if option.value == nil or seen[option.value] then return end
         option.text = option.text or tostring(option.value)
+        if option.text == option.value
+            and YUI.Locale and YUI.Locale.GetFontDisplayName then
+            option.text = YUI.Locale:GetFontDisplayName(option.value)
+        end
         seen[option.value] = true
 
         local baseRender = option.render
@@ -4391,4 +4526,29 @@ function GUI2.Form:RenderLab(parent, lab)
     color:SetPoint("TOPLEFT", 16, -172)
     local colorNoAlpha = self:CreateColorPicker(inputPanel, { label = "无透明度", width = 150, hasAlpha = false, default = { 0.24, 0.78, 0.95, 1 } })
     colorNoAlpha:SetPoint("LEFT", color, "RIGHT", 14, 0)
+end
+
+-- Shared save/discard/cancel prompt; the caller owns transaction and modal lifetime.
+function GUI2.Form:CreateSaveChangesDialog(parent, opts)
+    local L=opts.locale
+    local frame=GUI2:CreatePanel(parent,{name=opts.name,width=430,height=186,
+        surface="color.surface.popup",border="color.popup.border",shadow=true})
+    frame:SetFrameStrata("FULLSCREEN_DIALOG");frame:SetFrameLevel(opts.level or 710)
+    frame:EnableMouse(true);frame:Hide()
+    local title=GUI2:CreateText(frame,L["common.save_changes.title"],"font.size.xl","color.text.heading","CENTER")
+    title:SetPoint("TOPLEFT",20,-18);title:SetPoint("TOPRIGHT",-20,-18)
+    local message=GUI2:CreateText(frame,L["common.save_changes.message"],"font.size.md","color.text.secondary","CENTER")
+    message:SetPoint("TOPLEFT",24,-58);message:SetPoint("TOPRIGHT",-24,-58)
+    message:SetHeight(38);message:SetWordWrap(true)
+    for i,action in ipairs({"save","discard","cancel"})do
+        local value=action
+        local button=self:CreateButton(frame,{text=L["common.save_changes."..action],width=120,height=30,
+            tone=action=="save" and "success" or action=="discard" and "danger" or "default",
+            onClick=function()opts.onResolve(value)end})
+        frame[action=="cancel" and "continue" or action]=button
+        if i==1 then button:SetPoint("BOTTOMLEFT",20,18)
+        elseif i==2 then button:SetPoint("BOTTOM",0,18)
+        else button:SetPoint("BOTTOMRIGHT",-20,18)end
+    end
+    return frame
 end

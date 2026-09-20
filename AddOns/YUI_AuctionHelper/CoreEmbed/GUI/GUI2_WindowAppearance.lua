@@ -677,7 +677,9 @@ local function ApplyOfficialShell(frame, state, context)
     if type(frame.SetBackdrop) == "function" then
         pcall(frame.SetBackdrop, frame, nil)
     end
-    local ok, applied = pcall(facade.Shell, frame)
+    local shellOptions = state.options and state.options.noTopBar == true
+        and { noTopBar = true } or nil
+    local ok, applied = pcall(facade.Shell, frame, shellOptions)
     if not ok or applied == false then
         SafeCall(facade, "Unshell", frame)
         SafeCall(facade, "ResetShell", frame)
@@ -826,9 +828,13 @@ local function ApplyCustomShell(frame, state, context)
         SafeHide(state.overlay)
     end
 
-    SetColor(state.topBar, context.topBar or FALLBACK.topBar)
-    SetAlpha(state.topBar, 1)
-    SafeShow(state.topBar)
+    if state.options and state.options.noTopBar == true then
+        SafeHide(state.topBar)
+    else
+        SetColor(state.topBar, context.topBar or FALLBACK.topBar)
+        SetAlpha(state.topBar, 1)
+        SafeShow(state.topBar)
+    end
     if context.contentShade then
         SetColor(state.contentShade, context.contentShade)
         SetAlpha(state.contentShade, 1)
@@ -855,8 +861,12 @@ local function ApplyUniformNativeShell(state)
         SetColor(state.background, FALLBACK.background)
         SafeShow(state.background)
     end
-    SetColor(state.topBar, { 0, 0, 0, 0.36 })
-    SafeShow(state.topBar)
+    if state.options and state.options.noTopBar == true then
+        SafeHide(state.topBar)
+    else
+        SetColor(state.topBar, { 0, 0, 0, 0.36 })
+        SafeShow(state.topBar)
+    end
     for _, line in ipairs(state.border or {}) do
         SetColor(line, { 0.34, 0.34, 0.34, 1 })
         SafeShow(line)
@@ -991,7 +1001,9 @@ function Appearance:Refresh(frame)
 
     for _, heading in ipairs(state.options.headings or {}) do
         self:ApplyFont(heading, context)
-        if not self:ApplyAccent(heading, context) and GUI2 and type(GUI2.SetTextColorKey) == "function" then
+        if state.options.headingColorKey and GUI2 and type(GUI2.SetTextColorKey) == "function" then
+            GUI2:SetTextColorKey(heading, state.options.headingColorKey)
+        elseif not self:ApplyAccent(heading, context) and GUI2 and type(GUI2.SetTextColorKey) == "function" then
             GUI2:SetTextColorKey(heading, "color.text.accent")
         end
     end
@@ -1036,6 +1048,8 @@ function Appearance:Register(frame, options)
     state.options = {
         themeProvider = options.themeProvider,
         headings = options.headings or (options.heading and { options.heading }) or {},
+        headingColorKey = options.headingColorKey,
+        noTopBar = options.noTopBar == true,
         role = options.role,
         onRefresh = options.onRefresh,
     }
@@ -1108,12 +1122,13 @@ function Appearance:IsDark(context)
 end
 
 local function OnAppearanceEvent(event, addonName)
-    if event == "ADDON_LOADED" and (
-        addonName == "EllesmereUI"
-        or addonName == "EllesmereUIBlizzardSkin"
-        or addonName == "ElvUI"
-        or addonName == "NDui"
-    ) then
+    if event == "ADDON_LOADED" then
+        if addonName ~= "EllesmereUI"
+            and addonName ~= "EllesmereUIBlizzardSkin"
+            and addonName ~= "ElvUI"
+            and addonName ~= "NDui" then
+            return
+        end
         if not official.accepted then official.attempted = false end
     end
     Appearance:RefreshAll()

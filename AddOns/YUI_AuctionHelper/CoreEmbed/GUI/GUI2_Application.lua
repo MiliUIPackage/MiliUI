@@ -921,7 +921,14 @@ local function ApplyCastBarTextShadow(fontString, mode)
     end
 end
 
-local function ApplyCastBarFontSize(fontString, size, outlineMode)
+local function NormalizeCastBarFontPath(fontPath)
+    if type(fontPath) == "string" and fontPath ~= "" then
+        return fontPath
+    end
+    return nil
+end
+
+local function ApplyCastBarFontSize(fontString, size, outlineMode, fontPath)
     if not (fontString and fontString.SetFont) then return end
     size = tonumber(size) or GUI2:GetMetric("font.size.sm", 11)
     if size < 6 then size = 6 end
@@ -932,7 +939,12 @@ local function ApplyCastBarFontSize(fontString, size, outlineMode)
     elseif outlineMode == "thick" then
         flags = "THICKOUTLINE"
     end
-    fontString:SetFont(GUI2:GetFont("font.family.body"), size, flags)
+    local defaultFontPath = GUI2:GetFont("font.family.body")
+    local resolvedFontPath = NormalizeCastBarFontPath(fontPath) or defaultFontPath
+    local ok, applied = pcall(fontString.SetFont, fontString, resolvedFontPath, size, flags)
+    if (not ok or applied == false) and resolvedFontPath ~= defaultFontPath then
+        pcall(fontString.SetFont, fontString, defaultFontPath, size, flags)
+    end
     ApplyCastBarTextShadow(fontString, outlineMode)
 end
 
@@ -968,7 +980,7 @@ local function ConfigureCastBarCountdownText(frame)
             region:SetJustifyH("RIGHT")
             region:SetJustifyV("MIDDLE")
             ConfigureCastBarLabel(region)
-            ApplyCastBarFontSize(region, frame.gui2TimeFontSize, frame.gui2TextOutlineMode)
+            ApplyCastBarFontSize(region, frame.gui2TimeFontSize, frame.gui2TextOutlineMode, frame.gui2TextFontPath)
         end
     end
 end
@@ -1276,22 +1288,29 @@ function App:CreateCastBar(parent, opts)
     end
     frame.SetTimeTextSize = function(self, size)
         self.gui2TimeFontSize = tonumber(size)
-        ApplyCastBarFontSize(self.timeText, self.gui2TimeFontSize, self.gui2TextOutlineMode)
+        ApplyCastBarFontSize(self.timeText, self.gui2TimeFontSize, self.gui2TextOutlineMode, self.gui2TextFontPath)
         ConfigureCastBarCountdownText(self)
     end
     frame.SetSpellNameTextSize = function(self, size)
         self.gui2SpellNameFontSize = tonumber(size)
-        ApplyCastBarFontSize(self.spellNameText, self.gui2SpellNameFontSize, self.gui2TextOutlineMode)
+        ApplyCastBarFontSize(self.spellNameText, self.gui2SpellNameFontSize, self.gui2TextOutlineMode, self.gui2TextFontPath)
     end
     frame.SetTargetNameTextSize = function(self, size)
         self.gui2TargetNameFontSize = tonumber(size)
-        ApplyCastBarFontSize(self.targetNameText, self.gui2TargetNameFontSize, self.gui2TextOutlineMode)
+        ApplyCastBarFontSize(self.targetNameText, self.gui2TargetNameFontSize, self.gui2TextOutlineMode, self.gui2TextFontPath)
+    end
+    frame.SetTextFontPath = function(self, fontPath)
+        self.gui2TextFontPath = NormalizeCastBarFontPath(fontPath)
+        ApplyCastBarFontSize(self.timeText, self.gui2TimeFontSize, self.gui2TextOutlineMode, self.gui2TextFontPath)
+        ApplyCastBarFontSize(self.spellNameText, self.gui2SpellNameFontSize, self.gui2TextOutlineMode, self.gui2TextFontPath)
+        ApplyCastBarFontSize(self.targetNameText, self.gui2TargetNameFontSize, self.gui2TextOutlineMode, self.gui2TextFontPath)
+        ConfigureCastBarCountdownText(self)
     end
     frame.SetTextOutlineMode = function(self, mode)
         self.gui2TextOutlineMode = NormalizeCastBarTextOutlineMode(mode)
-        ApplyCastBarFontSize(self.timeText, self.gui2TimeFontSize, self.gui2TextOutlineMode)
-        ApplyCastBarFontSize(self.spellNameText, self.gui2SpellNameFontSize, self.gui2TextOutlineMode)
-        ApplyCastBarFontSize(self.targetNameText, self.gui2TargetNameFontSize, self.gui2TextOutlineMode)
+        ApplyCastBarFontSize(self.timeText, self.gui2TimeFontSize, self.gui2TextOutlineMode, self.gui2TextFontPath)
+        ApplyCastBarFontSize(self.spellNameText, self.gui2SpellNameFontSize, self.gui2TextOutlineMode, self.gui2TextFontPath)
+        ApplyCastBarFontSize(self.targetNameText, self.gui2TargetNameFontSize, self.gui2TextOutlineMode, self.gui2TextFontPath)
         ConfigureCastBarCountdownText(self)
     end
     frame.SetSpellNameText = function(self, text)
@@ -1595,6 +1614,7 @@ function App:CreateCastBar(parent, opts)
         end
     end
 
+    frame.gui2TextFontPath = NormalizeCastBarFontPath(opts.textFontPath)
     frame:SetTextOutlineMode(opts.textOutlineMode or opts.outlineMode or "shadow")
     frame:SetTimeTextSize(opts.timeFontSize)
     frame:SetSpellNameTextSize(opts.nameFontSize)
@@ -1661,18 +1681,33 @@ do
         return ok and fontString or nil
     end
 
-    local function PositionDurationText(frame, fontString, appearance, kind)
+    local function PositionDurationText(frame, fontString, appearance, kind, anchorState)
         if not (frame and fontString and GUI2.PositionStatusBarText) then
             return false
         end
+        local textSurface = frame.track
+        local isRing = frame.gui2Component == "DurationRing"
+        if not isRing and kind == "count" then
+            GUI2:SizeStatusBarCountText(fontString, appearance, anchorState)
+        end
+        if not textSurface and isRing then
+            textSurface = frame
+        end
+        local trustedWidth = isRing
+            and (frame.gui2DurationRingSize
+                or frame.gui2IconBaseSize)
+            or (frame.barWidth or frame.gui2DurationWidth)
         local positioned, anchor = GUI2:PositionStatusBarText(
             fontString,
             appearance,
             frame.orientation,
-            frame.track,
+            textSurface,
             frame.icon,
             frame.gui2DurationShowIcon,
-            kind
+            kind,
+            anchorState,
+            isRing,
+            trustedWidth
         )
         if positioned and anchor then
             frame["gui2DurationResolved" .. kind .. "Anchor"] = anchor
@@ -1686,7 +1721,7 @@ do
         frame.gui2DurationTextAppearance = opts
         GUI2:ApplyCooldownTextAppearance({
             cooldown = frame.countdown,
-        }, opts)
+        }, opts, frame.gui2Component == "DurationBar")
         PositionDurationText(
             frame,
             GetCooldownFontString(frame.countdown),
@@ -1698,6 +1733,11 @@ do
     local function PositionDurationNameText(frame)
         local text = frame and frame.durationNameText
         if not text then return end
+        local appearance = frame.gui2DurationNameAppearance or {}
+        if frame.gui2Component == "DurationRing" then
+            PositionDurationText(frame, text, appearance, "name")
+            return
+        end
         local owner = frame.durationNameOverlay
             or frame.durationOverlay
             or frame
@@ -1741,7 +1781,6 @@ do
             y = 2
             justify = "RIGHT"
         end
-        local appearance = frame.gui2DurationNameAppearance or {}
         if appearance.anchor then
             PositionDurationText(frame, text, appearance, "name")
             return
@@ -1751,8 +1790,15 @@ do
         text:ClearAllPoints()
         text:SetPoint(anchor, owner, anchor, x, y)
         if text.SetJustifyH then text:SetJustifyH(justify) end
-        if text.SetWidth and owner.GetWidth then
-            text:SetWidth(math_max(1, (owner:GetWidth() or 1) - 8))
+        if text.SetWidth then
+            local ownerWidth = frame.gui2DurationWidth
+                or frame.outerWidth
+            if type(ownerWidth) ~= "number" and owner.GetWidth then
+                ownerWidth = owner:GetWidth()
+            end
+            if type(ownerWidth) == "number" then
+                text:SetWidth(math_max(1, ownerWidth - 8))
+            end
         end
     end
 
@@ -1913,7 +1959,7 @@ do
         local overlay = CreateFrame("Frame", nil, frame)
         overlay:SetAllPoints(frame)
         if overlay.SetFrameLevel and frame.track.GetFrameLevel then
-            overlay:SetFrameLevel((frame.track:GetFrameLevel() or 0) + 4)
+            overlay:SetFrameLevel((frame.track:GetFrameLevel() or 0) + 5)
         end
         frame.durationOverlay = overlay
 
@@ -1962,6 +2008,18 @@ do
             countdown:SetMinimumCountdownDuration(0)
         end
         frame.countdown = countdown
+        -- 只调整预建承载层，不迁移已交给暴雪的受限文字或冷却对象。
+        frame.SetDurationTextLayer = function(self, level, strata)
+            self.durationOverlay:SetFrameLevel(level)
+            self.durationCountdownHolder:SetFrameLevel(level + 1)
+            self.countdown:SetFrameLevel(level + 2)
+            if strata then
+                self.durationOverlay:SetFrameStrata(strata)
+                self.durationCountdownHolder:SetFrameStrata(strata)
+                self.countdown:SetFrameStrata(strata)
+            end
+        end
+        frame:SetDurationTextLayer((frame.track:GetFrameLevel() or 0) + 5)
         ApplyDurationTextAppearance(frame, opts.cooldownText or {
             enabled = true,
             font = "default",
@@ -2033,13 +2091,15 @@ do
             self,
             fontString,
             appearance,
-            kind
+            kind,
+            anchorState
         )
             return PositionDurationText(
                 self,
                 fontString,
                 appearance,
-                kind
+                kind,
+                anchorState
             )
         end
         frame.SetDurationCountAppearance = function(self, appearance)
@@ -2406,11 +2466,20 @@ do
         end
     end
 
+    local function ResourceSecondTextAppearance(appearance)
+        local source = appearance and appearance.text2
+        if type(source) ~= "table" then return { valueText = false } end
+        return { valueText = source.valueText, valueFormat = source.valueFormat,
+            position = source.textPosition, offsetX = source.textOffsetX, offsetY = source.textOffsetY,
+            font = appearance.font, size = appearance.size, outline = appearance.outline,
+            color = appearance.color, abbreviateValues = appearance.abbreviateValues,
+            previewDuration = appearance.previewDuration, fractionalValues = appearance.fractionalValues }
+    end
+
     local function PositionResourceText(frame)
         if not frame or not frame.resourceOverlay then return end
         local vertical = frame.gui2ResourceOrientation == "vertical"
         local nameText = frame.resourceNameText
-        local valueText = frame.resourceValueText
         if nameText then
             nameText:ClearAllPoints()
             if vertical then
@@ -2442,69 +2511,87 @@ do
                 )
             end
         end
-        if valueText then
-            local appearance = frame.gui2ResourceTextAppearance or {}
-            local position = appearance.position
-            if position ~= "start" and position ~= "end" then
-                position = "center"
-            end
-            local offsetX = tonumber(appearance.offsetX) or 0
-            local offsetY = tonumber(appearance.offsetY) or 0
-            valueText:ClearAllPoints()
-            if vertical then
-                local point = position == "start" and "BOTTOM"
-                    or (position == "end" and "TOP" or "CENTER")
-                local inset = position == "start" and 4
-                    or (position == "end" and -4 or 0)
-                valueText:SetPoint(
-                    point,
-                    frame.resourceOverlay,
-                    point,
-                    offsetX,
-                    offsetY + inset
-                )
-                valueText:SetWidth(math_max(
-                    1,
-                    frame.gui2ResourceHeight - 8
-                ))
-            else
-                -- FontString 会保留之前由方向写入的显式宽度。每次都重写
-                -- 横向可用宽度和唯一锚点，避免连续切换左/中/右时旧状态
-                -- 继续参与布局计算。
-                valueText:SetWidth(math_max(
-                    1,
-                    frame.gui2ResourceWidth - 10
-                ))
-                local point = position == "start" and "LEFT"
-                    or (position == "end" and "RIGHT" or "CENTER")
-                local inset = position == "start" and 5
-                    or (position == "end" and -5 or 0)
-                valueText:SetPoint(
-                    point,
-                    frame.resourceOverlay,
-                    point,
-                    offsetX + inset,
-                    offsetY
-                )
-                if valueText.SetJustifyH then
-                    valueText:SetJustifyH(
-                        position == "start" and "LEFT"
-                            or (position == "end" and "RIGHT" or "CENTER")
+        for textIndex = 1, 2 do
+            local valueText = textIndex == 1 and frame.resourceValueText or frame.resourceValueText2
+            local appearance = textIndex == 1 and frame.gui2ResourceTextAppearance
+                or frame.gui2ResourceTextAppearance2
+            appearance = appearance or {}
+            if valueText then
+                local position = appearance.position
+                if position ~= "start" and position ~= "end" then
+                    position = "center"
+                end
+                local offsetX = tonumber(appearance.offsetX) or 0
+                local offsetY = tonumber(appearance.offsetY) or 0
+                valueText:ClearAllPoints()
+                if vertical then
+                    local point = position == "start" and "BOTTOM"
+                        or (position == "end" and "TOP" or "CENTER")
+                    local inset = position == "start" and 4
+                        or (position == "end" and -4 or 0)
+                    valueText:SetPoint(
+                        point,
+                        frame.resourceOverlay,
+                        point,
+                        offsetX,
+                        offsetY + inset
                     )
+                    valueText:SetWidth(math_max(
+                        1,
+                        frame.gui2ResourceHeight - 8
+                    ))
+                else
+                    -- FontString 会保留之前由方向写入的显式宽度。每次都重写
+                    -- 横向可用宽度和唯一锚点，避免连续切换左/中/右时旧状态
+                    -- 继续参与布局计算。
+                    valueText:SetWidth(math_max(
+                        1,
+                        frame.gui2ResourceWidth - 10
+                    ))
+                    local point = position == "start" and "LEFT"
+                        or (position == "end" and "RIGHT" or "CENTER")
+                    local inset = position == "start" and 5
+                        or (position == "end" and -5 or 0)
+                    valueText:SetPoint(
+                        point,
+                        frame.resourceOverlay,
+                        point,
+                        offsetX + inset,
+                        offsetY
+                    )
+                    if valueText.SetJustifyH then
+                        valueText:SetJustifyH(
+                            position == "start" and "LEFT"
+                                or (position == "end" and "RIGHT" or "CENTER")
+                        )
+                    end
                 end
             end
-        end
+
+    end
     end
 
-    local function FormatResourceValue(value, maxValue, valueFormat)
+    local function FormatResourceValue(value, maxValue, valueFormat, abbreviate, fractionalValues)
+        if valueFormat == "whole" then return tostring(math_floor(value)) end
+        if valueFormat == "duration" then
+            value = math_max(0, value)
+            if value >= 3 then return tostring(math_floor(value)) end
+            return string_format("%.1f", math_floor(value * 10) / 10)
+        end
         local roundedValue = math_floor(value + 0.5)
         local valueText = tostring(roundedValue)
-        if math_abs(value - roundedValue) >= 0.05 then
+        if fractionalValues == true or math_abs(value - roundedValue) >= 0.05 then
             valueText = string_format("%.1f", value)
         end
+        local maximumText = tostring(maxValue)
+        if abbreviate == true and fractionalValues ~= true and _G.AbbreviateNumbers then
+            valueText = _G.AbbreviateNumbers(value)
+            maximumText = _G.AbbreviateNumbers(maxValue)
+        end
         if valueFormat == "value" then return valueText end
+        if valueFormat == "valueMax" then return valueText .. " / " .. maximumText end
         local percent = maxValue > 0 and (value / maxValue) * 100 or 0
-        percent = math_max(0, math_min(100, math_floor(percent + 0.5)))
+        percent = math_max(0, math_floor(percent + 0.5))
         local percentNumberText = tostring(percent)
         local percentText = percentNumberText .. "%"
         if valueFormat == "percent" then return percentNumberText end
@@ -2532,14 +2619,36 @@ do
         fontString,
         valueRaw,
         percentRaw,
-        valueFormat
+        valueFormat,
+        maxValueRaw,
+        abbreviate
     )
         if not (fontString and fontString.SetFormattedText) then
             ClearResourceValueText(fontString)
             return false
         end
         local ok
-        if valueFormat == "value" then
+        if abbreviate == true and _G.AbbreviateNumbers then
+            local valueOK, shortValue = pcall(_G.AbbreviateNumbers, valueRaw)
+            if valueOK then
+                if valueFormat == "value" then
+                    ok = pcall(fontString.SetFormattedText, fontString, "%s", shortValue)
+                elseif valueFormat == "valueMax" then
+                    local maxOK, shortMax = pcall(_G.AbbreviateNumbers, maxValueRaw)
+                    if maxOK then ok = pcall(fontString.SetFormattedText, fontString, "%s / %s", shortValue, shortMax) end
+                elseif valueFormat == "valuePercent" then
+                    ok = pcall(fontString.SetFormattedText, fontString, "%s | %d%%", shortValue, percentRaw)
+                elseif valueFormat == "percentValue" then
+                    ok = pcall(fontString.SetFormattedText, fontString, "%d%% | %s", percentRaw, shortValue)
+                elseif valueFormat == "valuePercentParen" then
+                    ok = pcall(fontString.SetFormattedText, fontString, "%s (%d%%)", shortValue, percentRaw)
+                end
+                if ok == true then return true end
+            end
+        end
+        if valueFormat == "valueMax" then
+            ok = pcall(fontString.SetFormattedText, fontString, "%d / %d", valueRaw, maxValueRaw)
+        elseif valueFormat == "value" or valueFormat == "whole" then
             ok = pcall(fontString.SetFormattedText, fontString, "%d", valueRaw)
         elseif valueFormat == "percentSign" then
             ok = pcall(fontString.SetFormattedText, fontString, "%d%%", percentRaw)
@@ -2577,6 +2686,44 @@ do
         end
         if not ok then ClearResourceValueText(fontString) end
         return ok == true
+    end
+
+    local function UpdateResourceValueTexts(frame, value, maximum, secret, raw, percent, rawMax,
+        durationObject, publicPreview)
+        local filtered = not publicPreview and (frame.gui2FilteredAuraDurationDisplay
+            or frame.gui2FilteredAuraApplicationDisplay)
+        for index = 1, 2 do
+            local text = index == 1 and frame.resourceValueText or frame.resourceValueText2
+            local appearance = index == 1 and frame.gui2ResourceTextAppearance or frame.gui2ResourceTextAppearance2
+            local countdown = index == 1 and frame.resourceDurationCountdown or frame.resourceDurationCountdown2
+            if text and appearance then
+                local enabled = appearance.valueText ~= false
+                local duration = appearance.valueFormat == "duration"
+                if countdown then
+                    local bound = enabled and duration and not publicPreview and not filtered
+                        and not frame.gui2ResourceFilteredTimeText and durationObject
+                        and countdown.SetCooldownFromDurationObject
+                        and pcall(countdown.SetCooldownFromDurationObject, countdown, durationObject, true)
+                    if not bound and countdown.gui2ResourceTextDurationBound and countdown.Clear then countdown:Clear() end
+                    countdown.gui2ResourceTextDurationBound = bound == true
+                    countdown:SetShown(bound == true)
+                end
+                text:SetShown(enabled and not filtered and (not duration or publicPreview == true))
+                if not enabled or filtered or (duration and not publicPreview) then
+                    ClearResourceValueText(text)
+                elseif secret then
+                    SetSecretResourceValueText(text, raw, percent, appearance.valueFormat, rawMax, appearance.abbreviateValues)
+                else
+                    local display = value or 0
+                    if duration and publicPreview and appearance.previewDuration then
+                        display = maximum and maximum > 0 and math_min(1, math_max(0, display / maximum))
+                            * appearance.previewDuration or 0
+                    end
+                    text:SetText(FormatResourceValue(display, maximum or 0,
+                        appearance.valueFormat, appearance.abbreviateValues, appearance.fractionalValues))
+                end
+            end
+        end
     end
 
     local function ResourceColorComponents(color, fallback)
@@ -2774,7 +2921,7 @@ do
             return true
         end
         local thresholdValue = value
-        if config.valueKind ~= "discrete" then
+        if config.valueKind ~= "discrete" and config.thresholdMode ~= "value" then
             thresholdValue = maxValue > 0 and ((value / maxValue) * 100) or 0
         end
         local thresholds = config.thresholds or {}
@@ -2782,14 +2929,20 @@ do
         local high = thresholds.high
         local color = frame.gui2ResourceFillColor
         if type(high) == "table" and high.enabled == true
+            and (config.valueKind ~= "discrete" or (tonumber(high.value) or 0) <= maxValue)
             and thresholdValue >= (tonumber(high.value) or 0) then
             color = high.color or color
         elseif type(low) == "table" and low.enabled == true
+            and (config.valueKind ~= "discrete" or (tonumber(low.value) or 0) <= maxValue)
             and (
+                config.thresholdDirection == "ascending"
+                    and thresholdValue >= (tonumber(low.value) or 0)
+                or config.thresholdDirection ~= "ascending" and (
                 rechargeActive == true and config.valueKind == "discrete"
                     and thresholdValue < (tonumber(low.value) or 0)
                 or rechargeActive ~= true
                     and thresholdValue <= (tonumber(low.value) or 0)
+                )
             ) then
             color = low.color or color
         end
@@ -2832,7 +2985,7 @@ do
         else
             frame.resourceStatusBar:SetMinMaxValues(
                 0,
-                maxValue > 0 and maxValue or 1,
+                maxValue > 0 and (maxValue * (config.fillCeilingPercent or 100) / 100) or 1,
                 GetStatusBarImmediateInterpolation()
             )
             local applied = SetResourceStatusBarValue(
@@ -2985,13 +3138,7 @@ do
             )
             host:Show()
         end
-        if frame.resourceValueText then
-            frame.resourceValueText:SetText(FormatResourceValue(
-                frame.gui2ResourceDisplayValue,
-                maxValue,
-                frame.gui2ResourceValueFormat
-            ))
-        end
+        UpdateResourceValueTexts(frame, frame.gui2ResourceDisplayValue or value, maxValue, false)
         return true
     end
 
@@ -3518,6 +3665,28 @@ do
         end
     end
 
+    local function FilteredAuraApplicationOwnsFill(frame, config)
+        if not frame.gui2FilteredAuraApplicationDisplay
+            or frame.gui2FilteredAuraApplicationPublicPreview == true then
+            return false
+        end
+        config = type(config) == "table" and config or {}
+        return config.auraApplicationSpellIDs ~= nil
+            or (type(config.auraApplicationVariants) == "table"
+                and #config.auraApplicationVariants > 0)
+    end
+
+    local function HideNativeApplicationFills(frame, cellsMode)
+        if frame.SetNativeFillShown then frame:SetNativeFillShown(false) end
+        if cellsMode then
+            for index = 1, frame.gui2ResourceActiveCellCount or 0 do
+                local cell = frame.resourceCells[index]
+                if cell and cell.statusBar then cell.statusBar:Hide() end
+            end
+        end
+        HideResourceSecretThresholdLayers(frame)
+    end
+
     local function SetResourceThresholdLayer(
         statusBar,
         minimum,
@@ -3687,6 +3856,9 @@ do
         if not line then
             line = frame.resourceDecorationOverlay:CreateTexture(nil, "OVERLAY")
             line:SetTexture(DEFAULT_CAST_BAR_TEXTURE)
+            if GUI2.ApplyTexturePixelPolicy then
+                GUI2:ApplyTexturePixelPolicy(line)
+            end
             frame.resourceLines[index] = line
         end
         return line
@@ -3761,10 +3933,12 @@ do
         kind
     )
         ratio = math_max(0, math_min(1, tonumber(ratio) or 0))
+        local pixelSize = frame.gui2ResourceSegmentPixelSize
+            or (GUI2.GetPixelSize and GUI2:GetPixelSize(frame.track, 1, 1))
+            or (GUI2.mult or 1)
         local offset
         if type(boundaryPixels) == "number" then
-            offset = boundaryPixels
-                * (frame.gui2ResourceSegmentPixelSize or (GUI2.mult or 1))
+            offset = boundaryPixels * pixelSize
         else
             if frame.gui2ResourceFillDirection == "reverse" then
                 ratio = 1 - ratio
@@ -3773,7 +3947,8 @@ do
                 and frame.gui2ResourceHeight or frame.gui2ResourceWidth) * ratio
         end
         local r, g, b, a = ResourceColorComponents(color, { 0, 0, 0, 1 })
-        local size = math_max(1, (tonumber(thickness) or 1) * (GUI2.mult or 1))
+        local thicknessPixels = math_max(1, math_floor((tonumber(thickness) or 1) + 0.5))
+        local size = thicknessPixels * pixelSize
         local vertical = frame.gui2ResourceOrientation == "vertical"
         local axisSize = vertical
             and (frame.track.GetHeight and frame.track:GetHeight()
@@ -3783,6 +3958,15 @@ do
         axisSize = tonumber(axisSize) or 0
         local atStart = offset - (size * 0.5) <= 0
         local atEnd = axisSize > 0 and offset + (size * 0.5) >= axisSize
+        if not atStart and not atEnd then
+            -- Snap the leading edge, not the center. Quantize half-pixel ties
+            -- like the group origin so float noise cannot move a static line.
+            local edgePixels = (boundaryPixels or (offset / pixelSize))
+                - thicknessPixels * 0.5
+            edgePixels = math_floor(edgePixels * 1024 + 0.5) / 1024
+            offset = (math_floor(edgePixels + 0.5) + thicknessPixels * 0.5)
+                * pixelSize
+        end
         line:ClearAllPoints()
         if vertical then
             if atStart then
@@ -3814,6 +3998,25 @@ do
         line:Show()
     end
 
+    local RESOURCE_PREVIEW_TIMER_COLOR = { 1, 1, 1, 1 }
+    local function SetResourcePreviewTimerMarkers(frame, count, progress, spacing)
+        count = math_max(0, math_min(3, math_floor(tonumber(count) or 0)))
+        if count == 0 or not EnsureResourceTimerMarkers(frame, count) then
+            StopResourceTimerMarkers(frame)
+            return
+        end
+        for index = 1, count do
+            local marker = frame.resourceTimerMarkers[index]
+            StopResourceTimerMarker(marker)
+            local remaining = spacing and (progress - (count - index) * spacing)
+                or progress * index / count
+            PlaceResourceLine(frame, marker, remaining, 3,
+                RESOURCE_PREVIEW_TIMER_COLOR, nil, "timer-preview")
+        end
+        HideResourceTimerMarkers(frame, count + 1)
+        frame.gui2ResourceTimerMarkerCount = count
+    end
+
     local function LayoutResourceDecorations(frame)
         HideResourceLines(frame)
         local config = frame.gui2ResourceDisplayConfig or {}
@@ -3838,8 +4041,13 @@ do
             local thresholds = config.thresholds or {}
             local function AddThreshold(threshold)
                 if type(threshold) ~= "table" or threshold.enabled ~= true then return end
-                local divisor = config.valueKind == "discrete" and count or 100
+                local divisor = config.valueKind == "discrete" and count
+                    or config.thresholdMode == "value" and (frame.gui2ResourceThresholdMax or 0)
+                    or config.fillCeilingPercent or 100
                 if divisor <= 0 then return end
+                if (config.thresholdMode == "value" or config.valueKind == "discrete")
+                    and (tonumber(threshold.value) or 0) > divisor then return end
+                if config.fillCeilingPercent and (tonumber(threshold.value) or 0) > divisor then return end
                 writeIndex = writeIndex + 1
                 PlaceResourceLine(
                     frame,
@@ -4319,6 +4527,9 @@ do
         if frame.gui2ResourcePartialRechargeActive == true then
             RefreshResourcePartialRecharge(frame)
         end
+        if FilteredAuraApplicationOwnsFill(frame, config) then
+            HideNativeApplicationFills(frame, cellsMode)
+        end
     end
 
     local function HideResourceRecharge(frame)
@@ -4359,6 +4570,30 @@ do
         return ok
     end
 
+    local function RefreshResourceRuneCountdownText(frame)
+        local mode = frame.gui2ResourceTextAppearance
+            and frame.gui2ResourceTextAppearance.runeCooldownTextMode or "all"
+        local count = frame.gui2ResourceActiveCellCount or 0
+        local shortestIndex, shortestFinish
+        if mode == "shortest" then
+            for index = 1, count do
+                local cell = frame.resourceCells[index]
+                local finish = cell and cell.gui2RuneCountdownFinish
+                if cell and cell.gui2RuneCountdownBound and type(finish) == "number"
+                    and (not shortestFinish or finish < shortestFinish) then
+                    shortestIndex, shortestFinish = index, finish
+                end
+            end
+        end
+        for index = 1, count do
+            local cell = frame.resourceCells[index]
+            if cell and cell.cooldown then
+                cell.cooldown:SetShown(cell.gui2RuneCountdownBound == true and mode ~= "none"
+                    and (mode ~= "shortest" or index == shortestIndex))
+            end
+        end
+    end
+
     local function ApplyIndependentResourceCells(
         frame,
         value,
@@ -4376,12 +4611,15 @@ do
         frame.gui2ResourceHasPublicValues = false
         frame.gui2ResourcePublicValue = nil
         frame.gui2ResourcePublicMaxValue = nil
+        frame.gui2ResourceThresholdMax = nil
         ApplyResourceBaseColor(frame)
         for index = 1, count do
             local cell = frame.resourceCells[index]
             local statusBar = cell and cell.statusBar
             if not statusBar then return false end
             statusBar:SetMinMaxValues(0, 1)
+            cell.gui2RuneCountdownBound = false
+            cell.gui2RuneCountdownFinish = nil
             if readyCells[index] == true then
                 cell.rechargeBar:Hide()
                 cell.rechargeClip:Hide()
@@ -4452,10 +4690,12 @@ do
                         ) == true
                 end
                 if cell.cooldown then
-                    cell.cooldown:SetShown(cooldownBound == true)
+                    cell.gui2RuneCountdownBound = cooldownBound == true
+                    cell.gui2RuneCountdownFinish = type(timerState) == "table" and timerState.finishAt or nil
                 end
             end
         end
+        RefreshResourceRuneCountdownText(frame)
         ApplyResourcePublicThresholdColor(
             frame,
             type(value) == "number" and value or 0,
@@ -4496,16 +4736,6 @@ do
                 frame:SetNativeFillShown(true)
             end
         end
-        local countdown = frame.resourceDurationCountdown
-        local countdownOK = countdown
-            and countdown.SetCooldownFromDurationObject
-            and pcall(
-                countdown.SetCooldownFromDurationObject,
-                countdown,
-                durationObject,
-                true
-            ) == true
-        if countdown then countdown:SetShown(countdownOK == true) end
         return ok
     end
 
@@ -4755,6 +4985,9 @@ do
         )
         valueText:SetWordWrap(false)
         frame.resourceValueText = valueText
+        frame.resourceValueText2 = GUI2:CreateText(overlay, "", "font.size.sm", "color.text.primary", "RIGHT")
+        frame.resourceValueText2:SetWordWrap(false)
+        frame.resourceValueText2:Hide()
 
         local durationCountdown = CreateFrame(
             "Cooldown",
@@ -4779,10 +5012,40 @@ do
             durationCountdown:SetMinimumCountdownDuration(0)
         end
         if durationCountdown.SetCountdownMillisecondsThreshold then
-            durationCountdown:SetCountdownMillisecondsThreshold(10)
+            durationCountdown:SetCountdownMillisecondsThreshold(3)
         end
         durationCountdown:Hide()
         frame.resourceDurationCountdown = durationCountdown
+        local function EnsureSecondResourceCountdown()
+            if frame.resourceDurationCountdown2 then return end
+            local durationCountdown2 = CreateFrame(
+                "Cooldown",
+                nil,
+                overlay,
+                "CooldownFrameTemplate"
+            )
+            durationCountdown2:SetAllPoints(overlay)
+            if durationCountdown2.SetDrawSwipe then
+                durationCountdown2:SetDrawSwipe(false)
+            end
+            if durationCountdown2.SetDrawEdge then
+                durationCountdown2:SetDrawEdge(false)
+            end
+            if durationCountdown2.SetDrawBling then
+                durationCountdown2:SetDrawBling(false)
+            end
+            if durationCountdown2.SetHideCountdownNumbers then
+                durationCountdown2:SetHideCountdownNumbers(false)
+            end
+            if durationCountdown2.SetMinimumCountdownDuration then
+                durationCountdown2:SetMinimumCountdownDuration(0)
+            end
+            if durationCountdown2.SetCountdownMillisecondsThreshold then
+                durationCountdown2:SetCountdownMillisecondsThreshold(3)
+            end
+            durationCountdown2:Hide()
+            frame.resourceDurationCountdown2 = durationCountdown2
+        end
 
         local baseRefreshTheme = frame.RefreshTheme
         frame.SetResourceName = function(self, name)
@@ -4933,6 +5196,24 @@ do
             return text
         end
 
+        local function ConfigureFilteredAuraDurationText(self, auraFrame, appearance)
+            local text = ConfigureFilteredAuraBoundText(self, auraFrame, appearance)
+            if not text then return nil end
+            if not (C_StringUtil and C_StringUtil.CreateNumericRuleFormatter) then return text end
+            local formatter = GUI2.resourceDurationTextFormatter
+            if not formatter then
+                formatter = C_StringUtil.CreateNumericRuleFormatter()
+                local rounding = _G.Enum and _G.Enum.NumericRuleFormatRounding
+                rounding = rounding and rounding.Down or 2
+                formatter:SetBreakpoints({
+                    { threshold = 0, min = 0, step = 0.1, rounding = rounding, format = "%.1f" },
+                    { threshold = 3, step = 1, rounding = rounding, format = "%d" },
+                })
+                GUI2.resourceDurationTextFormatter = formatter
+            end
+            return { target = text, options = { textFormatter = formatter } }
+        end
+
         local function IsPlayerHelpfulFilteredAuraHandle(handle)
             return type(handle) == "table"
                 and handle.unit == "player"
@@ -4977,8 +5258,15 @@ do
 
         local function EnsureFilteredAuraDurationDisplay(self, config)
             local spellID = tonumber(config.auraDurationSpellID)
+            local filter = config.auraDurationFilter or "HELPFUL"
+            local direction = config.auraDurationDirection == "elapsed"
+                and "elapsed" or "remaining"
             local existing = self.gui2FilteredAuraDurationDisplay
             if not spellID then
+                if self.gui2InverseAuraProjection then
+                    self.gui2InverseAuraProjection.nativeFillClip:Hide()
+                    self.gui2InverseAuraProjection = nil
+                end
                 local unitAPI = YUI.API and YUI.API.Unit
                 if existing and unitAPI
                     and unitAPI.ReleaseFilteredAuraDisplay then
@@ -5035,6 +5323,11 @@ do
             end
             local signature = table.concat({
                 tostring(spellID),
+                tostring(filter),
+                direction,
+                tostring(config.inverseFill == true),
+                tostring(self.gui2ResourceOrientation),
+                tostring(self.gui2ResourceFillDirection),
                 tostring(config.smoothProgress == true),
                 tostring(self.gui2ResourceFillTexture),
                 string_format("%.4f,%.4f,%.4f,%.4f", fillR, fillG, fillB, fillA),
@@ -5063,6 +5356,10 @@ do
                 ShowFilteredAuraHandle(self, existing)
             else
                 local unitAPI = YUI.API and YUI.API.Unit
+                if self.gui2InverseAuraProjection then
+                    self.gui2InverseAuraProjection.nativeFillClip:Hide()
+                    self.gui2InverseAuraProjection = nil
+                end
                 if existing and unitAPI
                     and unitAPI.ReleaseFilteredAuraDisplay then
                     unitAPI.ReleaseFilteredAuraDisplay(existing)
@@ -5074,7 +5371,7 @@ do
                     and unitAPI.CreateFilteredAuraDisplay(self.track, {
                         unit = config.auraDurationUnit or "player",
                         spellID = spellID,
-                        filter = "HELPFUL",
+                        filter = filter,
                         key = "yhud-resource-duration",
                         initializeFrame = function(auraFrame, _, displayHandle)
                             auraFrame:SetAllPoints(displayHandle.container)
@@ -5104,6 +5401,36 @@ do
                                 fillB,
                                 fillA
                             )
+                            if config.inverseFill == true then
+                                local projection = {}
+                                GUI2:EnsureProjectedStatusBarFill(projection, self.track, statusBar, {
+                                    inverseFill = true,
+                                    orientation = self.gui2ResourceOrientation,
+                                    fillDirection = vertical
+                                        and (self.gui2ResourceFillDirection == "reverse" and "down" or "up")
+                                        or (self.gui2ResourceFillDirection == "reverse" and "right" or "left"),
+                                    layoutTemplate = "DisableUntrustedLayoutScriptsTemplate",
+                                    frameLevel = trackLevel + 5,
+                                })
+                                self.gui2InverseAuraProjection = projection
+                                -- Only seed cold geometry, before the engine binds the sink.
+                                local texture = statusBar:GetStatusBarTexture()
+                                local origin = vertical
+                                    and (self.gui2ResourceFillDirection == "reverse" and "BOTTOM" or "TOP")
+                                    or (self.gui2ResourceFillDirection == "reverse" and "LEFT" or "RIGHT")
+                                texture:ClearAllPoints()
+                                if vertical then
+                                    texture:SetPoint(origin .. "LEFT", statusBar, origin .. "LEFT")
+                                    texture:SetPoint(origin .. "RIGHT", statusBar, origin .. "RIGHT")
+                                    texture:SetHeight(0.001)
+                                else
+                                    texture:SetPoint("TOP" .. origin, statusBar, "TOP" .. origin)
+                                    texture:SetPoint("BOTTOM" .. origin, statusBar, "BOTTOM" .. origin)
+                                    texture:SetWidth(0.001)
+                                end
+                                EnsureResourceStatusBarFillStyle(self, statusBar, true)
+                                SetResourceStatusBarColor(statusBar, fillR, fillG, fillB, fillA)
+                            end
                             local bindings = {
                                 durationBar = {
                                     target = statusBar,
@@ -5111,16 +5438,15 @@ do
                                         interpolation = config.smoothProgress == true
                                             and GetStatusBarSmoothInterpolation()
                                             or GetStatusBarImmediateInterpolation(),
-                                        direction = Enum
-                                            and Enum.StatusBarTimerDirection
-                                            and Enum.StatusBarTimerDirection
-                                                .RemainingTime or 1,
+                                        direction = direction == "elapsed"
+                                            and GetCastTimerDirection(false)
+                                            or GetCastTimerDirection(true),
                                     },
                                 },
                             }
                             if textAppearance.valueText ~= false then
                                 bindings.durationText =
-                                    ConfigureFilteredAuraBoundText(
+                                    ConfigureFilteredAuraDurationText(
                                         self,
                                         auraFrame,
                                         textAppearance
@@ -5129,7 +5455,10 @@ do
                             return bindings
                         end,
                     })
-                if not handle then return false end
+                if not handle then
+                    if self.gui2InverseAuraProjection then self.gui2InverseAuraProjection.nativeFillClip:Hide() end
+                    return false
+                end
                 self.gui2FilteredAuraDurationDisplay = handle
                 self.gui2FilteredAuraDurationSpellID = spellID
                 self.gui2FilteredAuraDurationSignature = signature
@@ -5137,6 +5466,11 @@ do
                 ApplyFilteredAuraIdentitySuppression(self, existing)
             end
             if self.SetNativeFillShown then self:SetNativeFillShown(false) end
+            if self.gui2InverseAuraProjection then
+                self.gui2InverseAuraProjection.nativeFillClip:SetShown(
+                    self.gui2FilteredAuraIdentitySuppressed ~= true
+                )
+            end
             if self.resourceValueText then self.resourceValueText:Hide() end
             if self.resourceDurationCountdown then
                 self.resourceDurationCountdown:Hide()
@@ -5197,13 +5531,18 @@ do
         local function ConfigureFilteredAuraApplicationText(
             self,
             auraFrame,
-            appearance
+            appearance,
+            maximum
         )
-            return ConfigureFilteredAuraBoundText(
-                self,
-                auraFrame,
-                appearance
-            )
+            local text = ConfigureFilteredAuraBoundText(self, auraFrame, appearance)
+            if appearance and appearance.valueFormat == "valueMax"
+                and C_StringUtil and C_StringUtil.CreateNumericRuleFormatter then
+                local formatter = C_StringUtil.CreateNumericRuleFormatter()
+                formatter:SetBreakpoints({ { threshold = 0, step = 1,
+                    format = "%d / " .. tostring(maximum), } })
+                return { target = text, options = { formatter = formatter } }
+            end
+            return text
         end
 
         local function FilteredAuraApplicationOptions(maximum, smooth)
@@ -5577,17 +5916,6 @@ do
             }
         end
 
-        local function HideNativeApplicationFills(self, cellsMode)
-            if self.SetNativeFillShown then self:SetNativeFillShown(false) end
-            if cellsMode then
-                for index = 1, self.gui2ResourceActiveCellCount or 0 do
-                    local cell = self.resourceCells[index]
-                    if cell and cell.statusBar then cell.statusBar:Hide() end
-                end
-            end
-            HideResourceSecretThresholdLayers(self)
-        end
-
         local function SetFilteredAuraApplicationPublicPreview(
             self,
             enabled,
@@ -5706,6 +6034,7 @@ do
                     fillA
                 ),
                 tostring(textAppearance.valueText ~= false),
+                tostring(textAppearance.valueFormat),
                 tostring(textAppearance.position),
                 tostring(textAppearance.offsetX),
                 tostring(textAppearance.offsetY),
@@ -5764,12 +6093,6 @@ do
                 )
                 return true
             end
-            if existing and unitAPI
-                and unitAPI.ReleaseFilteredAuraDisplay then
-                unitAPI.ReleaseFilteredAuraDisplay(existing)
-            elseif existing and existing.proxy then
-                existing.proxy:Hide()
-            end
             if not (unitAPI and unitAPI.CreateFilteredAuraDisplay) then
                 return false
             end
@@ -5789,6 +6112,7 @@ do
                     tonumber(highThreshold.value) or 0
                 )
                 local visibleLowEnabled = lowEnabled and lowValue > 0
+                    and lowValue <= maximum
                 local highAlwaysEnabled = highEnabled and highValue <= 0
                 local baseColor = config.auraApplicationFillColor
                 if visibleLowEnabled then
@@ -5851,7 +6175,8 @@ do
                                     ConfigureFilteredAuraApplicationText(
                                         self,
                                         auraFrame,
-                                        config.auraApplicationTextAppearance
+                                        config.auraApplicationTextAppearance,
+                                        bindingMaximum
                                     ),
                                 }
                             end
@@ -5988,7 +6313,8 @@ do
                                     ConfigureFilteredAuraApplicationText(
                                         self,
                                         auraFrame,
-                                        config.auraApplicationTextAppearance
+                                        config.auraApplicationTextAppearance,
+                                        maximum
                                     ),
                             }
                         end,
@@ -6003,6 +6329,12 @@ do
                 slots = slots,
             })
             if not handle then return false end
+            -- Keep the committed binding until its replacement is registered.
+            if existing and unitAPI.ReleaseFilteredAuraDisplay then
+                unitAPI.ReleaseFilteredAuraDisplay(existing)
+            elseif existing and existing.proxy then
+                existing.proxy:Hide()
+            end
             self.gui2FilteredAuraApplicationDisplay = handle
             self.gui2FilteredAuraApplicationSignature = signature
             SetFilteredAuraApplicationPublicPreview(self, false, cellsMode)
@@ -6298,7 +6630,69 @@ do
             self.gui2ResourceBackgroundColor = color
             LayoutResourceCells(self)
         end
+        local function EnsureResourceExtraTextDisplay(self)
+            local config = self.gui2ResourceDisplayConfig or {}
+            local appearance = self.gui2ResourceTextAppearance or {}
+            local second = ResourceSecondTextAppearance(appearance)
+            local unitAPI = YUI.API and YUI.API.Unit
+            local existing = self.gui2ResourceExtraTextDisplay
+            local slots = {}
+            local signature = { tostring(self.gui2ResourceOrientation), tostring(appearance.font),
+                tostring(appearance.size), tostring(appearance.outline),
+                FilteredAuraColorSignature(appearance.color, { 1, 1, 1, 1 }) }
+            for index = 1, 2 do
+                local text = index == 1 and appearance or second
+                local spell = config.auraTextSpellID or config.auraDurationSpellID
+                local variants = config.auraApplicationSpellIDs and FilteredAuraApplicationVariants(config, config.auraApplicationMax or 1)
+                local useDuration = text.valueFormat == "duration" and spell ~= nil
+                local useCount = index == 2 and variants ~= nil and config.auraApplicationSpellIDs ~= nil
+                if text.valueText ~= false and (useDuration and (index == 2 or config.auraTextSpellID) or useCount) then
+                    local function Append(ids, maximum)
+                        signature[#signature + 1] = table.concat({ tostring(index), tostring(spell),
+                            tostring(maximum), tostring(text.valueFormat), tostring(text.position),
+                            tostring(text.offsetX), tostring(text.offsetY), table.concat(ids, ",") }, ":")
+                        slots[#slots + 1] = { key = "resource-text-" .. index .. "-" .. #slots,
+                            spellIDs = ids,
+                            initializeFrame = function(auraFrame, _, handle)
+                                auraFrame:SetAllPoints(handle.container)
+                                if useDuration then
+                                    return { durationText = ConfigureFilteredAuraDurationText(self, auraFrame, text) }
+                                end
+                                return { applicationCount = ConfigureFilteredAuraApplicationText(self, auraFrame, text, maximum) }
+                            end }
+                    end
+                    if useDuration then Append({ spell }, 0)
+                    else
+                        for _, variant in ipairs(variants) do Append(variant.spellIDs, variant.maxApplications) end
+                    end
+                end
+            end
+            local key = table.concat(signature, "|")
+            if existing and #slots > 0 and self.gui2ResourceExtraTextSignature == key then
+                ShowFilteredAuraHandle(self, existing)
+                return true
+            end
+            if existing and unitAPI and unitAPI.ReleaseFilteredAuraDisplay then unitAPI.ReleaseFilteredAuraDisplay(existing) end
+            self.gui2ResourceExtraTextDisplay, self.gui2ResourceExtraTextSignature = nil, nil
+            self.gui2ResourceFilteredTimeText = nil
+            if #slots == 0 then return true end
+            if not (unitAPI and unitAPI.CreateFilteredAuraDisplay) then return false end
+            local handle = unitAPI.CreateFilteredAuraDisplay(self.track, {
+                unit = config.auraApplicationUnit or config.auraDurationUnit or "player",
+                filter = config.auraApplicationFilter or config.auraDurationFilter or "HELPFUL",
+                requirePlayerSource = config.auraApplicationRequirePlayerSource == true,
+                slots = slots,
+            })
+            if handle then
+                self.gui2ResourceExtraTextDisplay, self.gui2ResourceExtraTextSignature = handle, key
+                self.gui2ResourceFilteredTimeText = config.auraTextSpellID ~= nil
+                ApplyFilteredAuraIdentitySuppression(self, handle)
+            end
+            return handle ~= nil
+        end
+
         frame.SetResourceDisplayConfig = function(self, config)
+            local previousConfig = self.gui2ResourceDisplayConfig
             config = type(config) == "table" and config or {}
             ResetResourcePartialVisual(self)
             local valueKind = config.valueKind == "discrete"
@@ -6322,8 +6716,18 @@ do
             self.gui2ResourceDurationBound = false
             self.gui2ResourceSmoothProgress = config.smoothProgress == true
                 and mode == "bar"
+            local inverseFill = config.inverseFill == true
+                and (mode == "bar" or mode == "divided")
+                and config.independentCells ~= true
+                and not config.auraApplicationSpellIDs
+                and not config.auraApplicationVariants
+                and config.partialRecharge ~= true
+                and config.rechargeProgress ~= true
+                and config.thresholdColorEnabled ~= true
+            GUI2:SetProjectedStatusBarInverse(self, inverseFill)
             self.gui2ResourceDisplayConfig = {
                 mode = mode,
+                inverseFill = inverseFill,
                 smoothProgress = self.gui2ResourceSmoothProgress,
                 valueKind = valueKind,
                 segmentCount = segmentCount,
@@ -6337,6 +6741,9 @@ do
                 ),
                 dividerColor = config.dividerColor,
                 thresholdColorEnabled = config.thresholdColorEnabled == true,
+                thresholdMode = config.thresholdMode,
+                thresholdDirection = config.thresholdDirection,
+                fillCeilingPercent = config.fillCeilingPercent,
                 thresholdMarkerEnabled = config.thresholdMarkerEnabled == true
                     and mode ~= "cells" and mode ~= "dots",
                 thresholds = config.thresholds,
@@ -6358,7 +6765,10 @@ do
                 partialProgressReader = config.partialProgressReader,
                 chargedPointColor = config.chargedPointColor,
                 auraDurationSpellID = config.auraDurationSpellID,
+                auraTextSpellID = config.auraTextSpellID,
                 auraDurationUnit = config.auraDurationUnit,
+                auraDurationFilter = config.auraDurationFilter,
+                auraDurationDirection = config.auraDurationDirection,
                 auraDurationFillColor = config.auraDurationFillColor,
                 auraDurationTextAppearance = config.auraDurationTextAppearance,
                 auraApplicationSpellIDs = config.auraApplicationSpellIDs,
@@ -6377,20 +6787,39 @@ do
                 self,
                 self.gui2ResourceDisplayConfig
             )
-            EnsureFilteredAuraApplicationDisplay(
+            local applicationRegistered = EnsureFilteredAuraApplicationDisplay(
                 self,
                 self.gui2ResourceDisplayConfig
             )
+            if self.gui2ResourceDisplayConfig.auraApplicationSpellIDs
+                and not applicationRegistered then
+                self.gui2ResourceStructuralMaxPending = segmentCount
+                if previousConfig and self.gui2FilteredAuraApplicationDisplay then
+                    self.gui2ResourceDisplayConfig = previousConfig
+                    LayoutResourceCells(self)
+                end
+            else
+                self.gui2ResourceStructuralMaxPending = nil
+            end
+            if EnsureResourceExtraTextDisplay(self) == false then
+                self.gui2ResourceStructuralMaxPending = segmentCount
+            end
             if self.gui2ResourceDisplayConfig.timerMarkers ~= true then
                 StopResourceTimerMarkers(self)
             end
             StartResourcePartialRecharge(self)
         end
         frame.ReleaseFilteredAuraDisplays = function(self)
+            if self.gui2InverseAuraProjection then
+                self.gui2InverseAuraProjection.nativeFillClip:Hide()
+                self.gui2InverseAuraProjection = nil
+            end
+            GUI2:SetProjectedStatusBarInverse(self, false)
             local unitAPI = YUI.API and YUI.API.Unit
             for _, field in ipairs({
                 "gui2FilteredAuraDurationDisplay",
                 "gui2FilteredAuraApplicationDisplay",
+                "gui2ResourceExtraTextDisplay",
             }) do
                 local handle = self[field]
                 if handle and unitAPI
@@ -6401,6 +6830,9 @@ do
                 end
                 self[field] = nil
             end
+            self.gui2ResourceStructuralMaxPending = nil
+            self.gui2ResourceExtraTextSignature = nil
+            self.gui2ResourceFilteredTimeText = nil
             self.gui2FilteredAuraDurationSpellID = nil
             self.gui2FilteredAuraDurationSignature = nil
             self.gui2FilteredAuraApplicationSignature = nil
@@ -6420,6 +6852,13 @@ do
             local restored = 0
             local durationHandle = self.gui2FilteredAuraDurationDisplay
             local applicationHandle = self.gui2FilteredAuraApplicationDisplay
+            local extraHandle = self.gui2ResourceExtraTextDisplay
+            if IsPlayerHelpfulFilteredAuraHandle(extraHandle) then
+                eligible = eligible + 1
+                local extraChanged, extraRestored = setter(extraHandle, suppressed)
+                changed = extraChanged == true or changed
+                restored = restored + (tonumber(extraRestored) or 0)
+            end
             if IsPlayerHelpfulFilteredAuraHandle(durationHandle) then
                 eligible = eligible + 1
             end
@@ -6430,6 +6869,9 @@ do
                 suppressed and true or nil
             if eligible == 0 then
                 return false, 0, 0
+            end
+            if self.gui2InverseAuraProjection then
+                self.gui2InverseAuraProjection.nativeFillClip:SetShown(not suppressed)
             end
 
             local handleChanged, handleRestored
@@ -6465,7 +6907,19 @@ do
                 return false
             end
             local config = self.gui2ResourceDisplayConfig
-            if not config or config.segmentCount == structuralMax then return false end
+            if not config then return false end
+            if config.segmentCount == structuralMax
+                and not self.gui2ResourceStructuralMaxPending
+                and (not config.auraApplicationSpellIDs
+                    or self.gui2FilteredAuraApplicationDisplay) then
+                self.gui2ResourceStructuralMaxPending = nil
+                return false
+            end
+            local previousCount = config.segmentCount
+            local previousMax = config.auraApplicationMax
+            local variant = type(config.auraApplicationVariants) == "table"
+                and config.auraApplicationVariants[1]
+            local previousVariantMax = variant and variant.maxApplications
             config.segmentCount = structuralMax
             if config.auraApplicationSpellIDs then
                 config.auraApplicationMax = structuralMax
@@ -6475,13 +6929,34 @@ do
                 config.auraApplicationVariants[1].maxApplications = structuralMax
             end
             LayoutResourceCells(self)
-            EnsureFilteredAuraApplicationDisplay(self, config)
+            local registered = EnsureFilteredAuraApplicationDisplay(self, config)
+            if config.auraApplicationSpellIDs and not registered then
+                config.segmentCount = previousCount
+                config.auraApplicationMax = previousMax
+                if variant then variant.maxApplications = previousVariantMax end
+                LayoutResourceCells(self)
+                self.gui2ResourceStructuralMaxPending = structuralMax
+                return false
+            end
+            self.gui2ResourceStructuralMaxPending =
+                EnsureResourceExtraTextDisplay(self) == false and structuralMax or nil
             return true
         end
         frame.SetResourceTextAppearance = function(self, appearance)
             appearance = type(appearance) == "table"
                 and appearance or {}
             self.gui2ResourceTextAppearance = appearance
+            self.gui2ResourceTextAppearance2 = ResourceSecondTextAppearance(appearance)
+            local second = self.gui2ResourceTextAppearance2
+            self.resourceValueText2:SetShown(second.valueText ~= false)
+            if GUI2.ApplyFontAppearance then GUI2:ApplyFontAppearance(self.resourceValueText2, second) end
+            if second.valueText ~= false and second.valueFormat == "duration" then EnsureSecondResourceCountdown() end
+            if GUI2.ApplyCooldownTextAppearance and self.resourceDurationCountdown2 then
+                GUI2:ApplyCooldownTextAppearance({ cooldown = self.resourceDurationCountdown2 }, {
+                    enabled = second.valueText ~= false and second.valueFormat == "duration",
+                    font = second.font, size = second.size, outline = second.outline, color = second.color,
+                    position = second.position, offsetX = second.offsetX, offsetY = second.offsetY })
+            end
             if self.resourceNameText then
                 self.resourceNameText:SetShown(
                     appearance.nameText ~= false
@@ -6508,12 +6983,20 @@ do
                 and GUI2.ApplyCooldownTextAppearance then
                 GUI2:ApplyCooldownTextAppearance({
                     cooldown = self.resourceDurationCountdown,
-                }, appearance)
+                }, {
+                    enabled = appearance.valueText ~= false and appearance.valueFormat == "duration",
+                    font = appearance.font, size = appearance.size,
+                    outline = appearance.outline, color = appearance.color,
+                    position = appearance.position, offsetX = appearance.offsetX, offsetY = appearance.offsetY,
+                })
             end
             self.gui2ResourceValueFormat = appearance.valueFormat == "value"
                 and "value" or appearance.valueFormat
             for index = 1, #(self.resourceCells or {}) do
                 ApplyResourceCellCooldownAppearance(self, self.resourceCells[index])
+            end
+            if self.gui2ResourceDisplayConfig and self.gui2ResourceDisplayConfig.independentCells then
+                RefreshResourceRuneCountdownText(self)
             end
             if self.gui2FilteredAuraDurationDisplay
                 or self.gui2FilteredAuraApplicationDisplay
@@ -6521,6 +7004,7 @@ do
                 if self.resourceValueText then self.resourceValueText:Hide() end
             end
             PositionResourceText(self)
+            EnsureResourceExtraTextDisplay(self)
         end
         local function FinishResourceValueUpdate(
             self,
@@ -6532,6 +7016,8 @@ do
             end
             return applied
         end
+        frame.SetResourcePreviewTimerMarkers = SetResourcePreviewTimerMarkers
+
         frame.SetResourceValues = function(
             self,
             valueRaw,
@@ -6554,6 +7040,20 @@ do
         )
             local config = self.gui2ResourceDisplayConfig or {}
             local cellsMode = config.mode == "cells" or config.mode == "dots"
+            local extra = self.gui2ResourceExtraTextDisplay
+            if extra and extra.proxy then
+                if forcePublicValues == true then extra.proxy:Hide()
+                else ShowFilteredAuraHandle(self, extra) end
+            end
+            if config.thresholdMode == "value" and config.valueKind ~= "discrete" then
+                local maximum = maxValue
+                if secret == true then maximum = maxValueRaw end
+                if IsSecretValue(maximum) or type(maximum) ~= "number" then maximum = nil end
+                if self.gui2ResourceThresholdMax ~= maximum then
+                    self.gui2ResourceThresholdMax = maximum
+                    LayoutResourceDecorations(self)
+                end
+            end
             self.gui2ResourceRechargeActive = rechargeActive == true
             if self.gui2FilteredAuraApplicationDisplay
                 and (forcePublicValues == true
@@ -6568,6 +7068,7 @@ do
                 and forcePublicValues ~= true
                 and self.gui2FilteredAuraApplicationPublicPreview ~= true then
                 HideNativeApplicationFills(self, cellsMode)
+                UpdateResourceValueTexts(self, nil, nil, false)
                 return FinishResourceValueUpdate(self, true, true)
             end
             if config.independentCells == true then
@@ -6578,13 +7079,7 @@ do
                     cellReadyRaw,
                     cellDurationsRaw
                 )
-                if applied and self.resourceValueText then
-                    self.resourceValueText:SetText(FormatResourceValue(
-                        value,
-                        maxValue,
-                        self.gui2ResourceValueFormat
-                    ))
-                end
+                if applied then UpdateResourceValueTexts(self, value, maxValue, false) end
                 return FinishResourceValueUpdate(self, applied)
             end
             if config.durationProgress == true and forcePublicValues ~= true then
@@ -6596,7 +7091,7 @@ do
                     durationResourceRaw
                 )
                 StartResourceTimerMarkers(self, timerEntriesRaw)
-                ClearResourceValueText(self.resourceValueText)
+                UpdateResourceValueTexts(self, value, maxValue, false, nil, nil, nil, durationResourceRaw, false)
                 return FinishResourceValueUpdate(self, applied)
             end
             if config.durationProgress == true then
@@ -6610,6 +7105,15 @@ do
                 local valueOK = true
                 local rawColorApplied = false
                 local rawColorStyleVerified = false
+                local fillMaximum = maxValueRaw
+                local fillMaximumUnavailable = false
+                if config.fillCeilingPercent and config.fillCeilingPercent ~= 100 then
+                    if not IsSecretValue(maxValueRaw) and type(maxValueRaw) == "number" then
+                        fillMaximum = maxValueRaw * config.fillCeilingPercent / 100
+                    else
+                        fillMaximumUnavailable = true
+                    end
+                end
                 if cellsMode then
                     for index = 1, self.gui2ResourceActiveCellCount or 0 do
                         local cell = self.resourceCells[index]
@@ -6638,7 +7142,7 @@ do
                             self.resourceStatusBar.SetMinMaxValues,
                             self.resourceStatusBar,
                             0,
-                            maxValueRaw,
+                            fillMaximum,
                             GetStatusBarImmediateInterpolation()
                         ) == true
                     valueOK = SetResourceStatusBarValue(
@@ -6646,6 +7150,7 @@ do
                         self.resourceStatusBar,
                         valueRaw
                     )
+                    if fillMaximumUnavailable then valueOK = false end
                     if self.SetNativeFillShown then
                         self:SetNativeFillShown(valueOK == true)
                     end
@@ -6678,14 +7183,7 @@ do
                     valueRaw,
                     nil
                 )
-                if self.resourceValueText then
-                    SetSecretResourceValueText(
-                        self.resourceValueText,
-                        valueRaw,
-                        percentRaw,
-                        self.gui2ResourceValueFormat
-                    )
-                end
+                UpdateResourceValueTexts(self, value, maxValue, true, valueRaw, percentRaw, maxValueRaw, durationResourceRaw)
                 return FinishResourceValueUpdate(
                     self,
                     minOK and valueOK,
@@ -6735,13 +7233,8 @@ do
                 displayValue,
                 self.gui2ResourceChargedPointMask
             )
-            if self.resourceValueText then
-                self.resourceValueText:SetText(FormatResourceValue(
-                    displayValue,
-                    maxValue,
-                    self.gui2ResourceValueFormat
-                ))
-            end
+            UpdateResourceValueTexts(self, displayValue, maxValue, false, nil, nil, nil, durationResourceRaw,
+                forcePublicValues == true)
             return FinishResourceValueUpdate(
                 self,
                 true,
@@ -6755,6 +7248,10 @@ do
             self.gui2ResourceHasPublicValues = false
             self.gui2ResourcePublicValue = nil
             self.gui2ResourcePublicMaxValue = nil
+            if self.gui2ResourceThresholdMax ~= nil then
+                self.gui2ResourceThresholdMax = nil
+                LayoutResourceDecorations(self)
+            end
             self.gui2ResourcePartialFraction = nil
             self.gui2ResourceDisplayValue = nil
             self.gui2ResourceChargedPointMask = nil
@@ -6777,8 +7274,12 @@ do
             if self.SetNativeFillShown then
                 self:SetNativeFillShown(false)
             end
-            for index = 1, self.gui2ResourceActiveCellCount or 0 do
-                self.resourceCells[index].statusBar:SetValue(0)
+            for index = 1, self.resourceCells and #self.resourceCells or 0 do
+                local cell = self.resourceCells[index]
+                cell.statusBar:SetValue(0)
+                cell.gui2RuneCountdownBound = nil
+                cell.gui2RuneCountdownFinish = nil
+                if cell.cooldown then cell.cooldown:Hide() end
             end
             HideResourceSecretThresholdLayers(self)
             HideResourceRecharge(self)
@@ -6788,6 +7289,15 @@ do
             ApplyResourceBaseColor(self)
             self:RefreshResourceFillStyle(false)
             ClearResourceValueText(self.resourceValueText)
+            ClearResourceValueText(self.resourceValueText2)
+            for index = 1, 2 do
+                local countdown = index == 1 and self.resourceDurationCountdown or self.resourceDurationCountdown2
+                if countdown then
+                    if countdown.Clear then countdown:Clear() end
+                    countdown.gui2ResourceTextDurationBound = nil
+                    countdown:Hide()
+                end
+            end
             if self.gui2FilteredAuraApplicationDisplay then
                 local config = self.gui2ResourceDisplayConfig or {}
                 SetFilteredAuraApplicationPublicPreview(
@@ -6858,6 +7368,8 @@ do
         })
         if not ring then return nil end
         ring.gui2Component = "DurationRing"
+        ring.gui2DurationShowIcon = false
+        ring.durationCountText = ring.count
         local progressCooldown = ring.cooldown
         ring.durationRingProgress = progressCooldown
         if progressCooldown
@@ -6871,6 +7383,21 @@ do
             or "color.control.track"
         ring.gui2DurationCenterColor = opts.centerColor
             or "color.surface.sunken"
+        ring.gui2DurationRingMaterial = opts.material == "framed"
+            and "framed" or "plain"
+        ring.gui2DurationRingContentSize = tonumber(opts.contentSize)
+        ring.gui2DurationRingBezelPixels = math_max(
+            0,
+            tonumber(opts.bezelPixels) or 2
+        )
+        ring.gui2DurationRingShadowPixels = math_max(
+            0,
+            tonumber(opts.shadowPixels) or 1
+        )
+        ring.gui2DurationRingContactOverlapPixels = math_max(
+            0,
+            tonumber(opts.contactOverlapPixels) or 1
+        )
         if progressCooldown and progressCooldown.SetDrawSwipe then
             progressCooldown:SetDrawSwipe(true)
         end
@@ -6886,14 +7413,228 @@ do
         ring.durationRingTrack = track
         ring.durationRingTracks = { track }
         ring.durationRingProgresses = { progressCooldown }
+        local framedOuterShadow = ring:CreateTexture(
+            nil,
+            "BACKGROUND",
+            nil,
+            -2
+        )
+        local framedChromeOverlay = CreateFrame("Frame", nil, ring)
+        framedChromeOverlay:SetAllPoints(ring)
+        if framedChromeOverlay.EnableMouse then
+            framedChromeOverlay:EnableMouse(false)
+        end
+        local framedInnerShadow = framedChromeOverlay:CreateTexture(
+            nil,
+            "OVERLAY",
+            nil,
+            1
+        )
+        ring.durationRingFramedOuterShadow = framedOuterShadow
+        ring.durationRingFramedChromeOverlay = framedChromeOverlay
+        ring.durationRingFramedInnerShadow = framedInnerShadow
+        if GUI2.ApplyTexturePixelPolicy then
+            GUI2:ApplyTexturePixelPolicy(framedOuterShadow)
+            GUI2:ApplyTexturePixelPolicy(framedInnerShadow)
+        end
 
-        local function ResolveRingTexture(thickness)
+        local function ResolveRingTexture(thickness, material)
             local paths = GUI2.DurationRingTextures or {}
+            if material == "framed" then
+                paths = type(paths.framed) == "table"
+                    and paths.framed or paths
+            end
             thickness = NormalizeDurationRingThickness(thickness)
             if thickness == 4 then return paths.thin end
             if thickness == 8 then return paths.standard end
             if thickness == 14 then return paths.thick end
             return paths.heavy
+        end
+
+        local function SetRingTextureShown(texture, shown)
+            if not texture then return end
+            if texture.SetShown then
+                texture:SetShown(shown == true)
+            elseif shown and texture.Show then
+                texture:Show()
+            elseif not shown and texture.Hide then
+                texture:Hide()
+            end
+        end
+
+        local function ResolvePhysicalDiameter(frame, logicalSize, paritySource)
+            logicalSize = math_max(1, tonumber(logicalSize) or 1)
+            local pixel = GUI2.GetPixelSize
+                and GUI2:GetPixelSize(frame, 1, 1)
+                or (GUI2.mult or 1)
+            pixel = math_max(0.0001, tonumber(pixel) or 1)
+            local pixels = math_max(
+                1,
+                math_floor((logicalSize / pixel) + 0.5)
+            )
+            local parityPixels = tonumber(paritySource)
+            if parityPixels then
+                parityPixels = math_max(
+                    1,
+                    math_floor((parityPixels / pixel) + 0.5)
+                )
+                if (pixels % 2) ~= (parityPixels % 2) then
+                    local lower = math_max(1, pixels - 1)
+                    local upper = pixels + 1
+                    local lowerDelta = math_abs(
+                        logicalSize - (lower * pixel)
+                    )
+                    local upperDelta = math_abs(
+                        (upper * pixel) - logicalSize
+                    )
+                    pixels = lowerDelta < upperDelta and lower or upper
+                end
+            end
+            return pixels * pixel, pixels, pixel
+        end
+
+        local function SetRingPixelSize(region, logicalSize, minPixels)
+            if not region then return false end
+            if GUI2.SetPixelSnappedSize
+                and GUI2:SetPixelSnappedSize(
+                    region,
+                    logicalSize,
+                    logicalSize,
+                    minPixels or 1,
+                    minPixels or 1
+                ) then
+                return true
+            end
+            region:SetSize(logicalSize, logicalSize)
+            return true
+        end
+
+        local function SetDurationRingLayer(region, level)
+            if region and region.SetFrameLevel
+                and (not region.GetFrameLevel
+                    or region:GetFrameLevel() ~= level) then
+                region:SetFrameLevel(level)
+            end
+        end
+
+        local function LayoutDurationRingLayers(frame)
+            local baseLevel = frame.GetFrameLevel
+                and (frame:GetFrameLevel() or 0) or 0
+            SetDurationRingLayer(frame.durationRingProgress, baseLevel + 1)
+            SetDurationRingLayer(
+                frame.durationRingFramedChromeOverlay,
+                baseLevel + 2
+            )
+            SetDurationRingLayer(frame.durationNameOverlay, baseLevel + 3)
+            SetDurationRingLayer(frame.countOverlay, baseLevel + 4)
+            SetDurationRingLayer(
+                frame.durationRingCountdownOverlay,
+                baseLevel + 5
+            )
+        end
+
+        local function LayoutFramedRingChrome(frame)
+            LayoutDurationRingLayers(frame)
+            local paths = GUI2.DurationRingTextures or {}
+            local framedPaths = type(paths.framed) == "table"
+                and paths.framed or nil
+            local enabled = frame.gui2DurationRingMaterial == "framed"
+                and framedPaths ~= nil
+                and framedPaths.innerShadow ~= nil
+                and framedPaths.outerShadow ~= nil
+            SetRingTextureShown(
+                frame.durationRingFramedOuterShadow,
+                enabled
+            )
+            SetRingTextureShown(
+                frame.durationRingFramedChromeOverlay,
+                enabled
+            )
+            SetRingTextureShown(
+                frame.durationRingFramedInnerShadow,
+                enabled
+            )
+            local trackSize = math_max(
+                1,
+                tonumber(frame.gui2DurationRingSize) or size
+            )
+            if not enabled then
+                frame.gui2DurationRingVisualSize = trackSize
+                frame.gui2DurationRingVisualOverflow = 0
+                return trackSize
+            end
+
+            local contentSize = math_max(
+                1,
+                tonumber(frame.gui2DurationRingContentSize) or trackSize
+            )
+            local _, contentPixels, pixel = ResolvePhysicalDiameter(
+                frame,
+                contentSize
+            )
+            local _, trackPixels = ResolvePhysicalDiameter(
+                frame,
+                trackSize,
+                contentSize
+            )
+            local bezelPixels = math_max(
+                0,
+                math_floor(
+                    (tonumber(frame.gui2DurationRingBezelPixels) or 2)
+                        + 0.5
+                )
+            )
+            local shadowPixels = math_max(
+                0,
+                math_floor(
+                    (tonumber(frame.gui2DurationRingShadowPixels) or 1)
+                        + 0.5
+                )
+            )
+            local overlapPixels = math_max(
+                0,
+                math_floor(
+                    (tonumber(
+                        frame.gui2DurationRingContactOverlapPixels
+                    ) or 1) + 0.5
+                )
+            )
+            local innerShadowPixels = contentPixels
+                + (bezelPixels + overlapPixels) * 2
+            local outerShadowPixels = trackPixels
+                + (bezelPixels + shadowPixels) * 2
+            local visualPixels = outerShadowPixels
+            local innerShadowSize = innerShadowPixels * pixel
+            local visualSize = visualPixels * pixel
+
+            framedOuterShadow:SetTexture(framedPaths.outerShadow)
+            framedOuterShadow:ClearAllPoints()
+            framedOuterShadow:SetPoint("CENTER", frame, "CENTER", 0, 0)
+            SetRingPixelSize(
+                framedOuterShadow,
+                visualSize,
+                visualPixels
+            )
+            framedInnerShadow:SetTexture(framedPaths.innerShadow)
+            framedInnerShadow:ClearAllPoints()
+            framedInnerShadow:SetPoint("CENTER", frame, "CENTER", 0, 0)
+            SetRingPixelSize(
+                framedInnerShadow,
+                innerShadowSize,
+                innerShadowPixels
+            )
+            frame.gui2DurationRingPixelSize = pixel
+            frame.gui2DurationRingContentPixels = contentPixels
+            frame.gui2DurationRingTrackPixels = trackPixels
+            frame.gui2DurationRingInnerShadowPixels = innerShadowPixels
+            frame.gui2DurationRingOuterShadowPixels = outerShadowPixels
+            frame.gui2DurationRingVisualPixels = visualPixels
+            frame.gui2DurationRingVisualSize = visualSize
+            frame.gui2DurationRingVisualOverflow = math_max(
+                0,
+                (visualSize - trackSize) * 0.5
+            )
+            return visualSize
         end
 
         local function ConfigureRingProgress(progress, texture)
@@ -7110,13 +7851,24 @@ do
 
         ring.RefreshDurationRingTexture = function(self)
             DetachDynamicRingMasks(self)
+            LayoutFramedRingChrome(self)
             local texture = ResolveRingTexture(
-                self.gui2DurationRingThickness
+                self.gui2DurationRingThickness,
+                self.gui2DurationRingMaterial
             )
             if not texture then return false end
             if self.icon and self.icon.Hide then self.icon:Hide() end
             self.durationRingTrack:SetTexture(texture)
             ConfigureRingProgress(self.durationRingProgress, texture)
+            if self.gui2DurationRingMaterial == "framed"
+                and GUI2.ApplyTexturePixelPolicy then
+                GUI2:ApplyTexturePixelPolicy(self.durationRingTrack)
+                local swipe = FindRingSwipeTexture(
+                    self.durationRingProgress,
+                    texture
+                )
+                if swipe then GUI2:ApplyTexturePixelPolicy(swipe) end
+            end
             RestoreDurationRingProgress(self)
             if self.RefreshDurationRingColors then
                 self:RefreshDurationRingColors()
@@ -7125,9 +7877,6 @@ do
         end
         local countdownOverlay = CreateFrame("Frame", nil, ring)
         countdownOverlay:SetAllPoints(ring)
-        if countdownOverlay.SetFrameLevel and ring.GetFrameLevel then
-            countdownOverlay:SetFrameLevel((ring:GetFrameLevel() or 0) + 5)
-        end
         local countdown = CreateFrame(
             "Cooldown",
             nil,
@@ -7145,13 +7894,13 @@ do
         ring.durationRingCountdown = countdown
         ring.cooldown = countdown
         RestoreDurationRingCountdownChrome(ring)
-        ring:SetCooldownTextAppearance(opts.cooldownText or {
+        local initialCooldownTextAppearance = opts.cooldownText or {
             enabled = true,
             font = "default",
             size = 14,
             outline = "outline",
             position = "center",
-        })
+        }
         local function ResolveRingColor(color, fallbackKey)
             if type(color) == "table" then
                 return color.r or color[1] or 1,
@@ -7165,9 +7914,6 @@ do
         end
         local nameOverlay = CreateFrame("Frame", nil, ring)
         nameOverlay:SetAllPoints(ring)
-        if nameOverlay.SetFrameLevel and ring.GetFrameLevel then
-            nameOverlay:SetFrameLevel((ring:GetFrameLevel() or 0) + 4)
-        end
         local nameText = GUI2:CreateText(
             nameOverlay,
             opts.name or "",
@@ -7193,9 +7939,72 @@ do
             -- border or mask appearance.
         end
         ring.SetDurationTextAppearance = function(self, appearance)
+            appearance = type(appearance) == "table" and appearance or {}
+            self.gui2DurationTextAppearance = appearance
             if self.SetCooldownTextAppearance then
-                self:SetCooldownTextAppearance(appearance or {})
+                self:SetCooldownTextAppearance(appearance)
             end
+            PositionDurationText(
+                self,
+                GetCooldownFontString(self.durationRingCountdown),
+                appearance,
+                "time"
+            )
+        end
+        ring.CreateAuraDurationText = function(self)
+            if self.durationAuraText then return self.durationAuraText end
+            local appearance = self.gui2DurationTextAppearance or {}
+            if appearance.enabled == false then return nil end
+            local owner = self.durationRingCountdownOverlay
+            if not (owner and owner.CreateFontString) then return nil end
+            local text = owner:CreateFontString(
+                nil,
+                "OVERLAY",
+                "GameFontHighlight",
+                0
+            )
+            text:SetText("")
+            text:SetWordWrap(false)
+            text:SetJustifyV("MIDDLE")
+            if GUI2.ApplyFontAppearance then
+                GUI2:ApplyFontAppearance(text, appearance)
+            end
+            PositionDurationText(self, text, appearance, "time")
+            self.durationAuraText = text
+            return text
+        end
+        ring.PositionDurationTextAnchor = function(
+            self,
+            fontString,
+            appearance,
+            kind
+        )
+            return PositionDurationText(
+                self,
+                fontString,
+                appearance,
+                kind
+            )
+        end
+        ring.SetDurationCountAppearance = function(self, appearance)
+            appearance = type(appearance) == "table" and appearance or {}
+            self.gui2DurationCountAppearance = appearance
+            local text = self.durationCountText
+            if not text then return end
+            if GUI2.ApplyFontAppearance then
+                GUI2:ApplyFontAppearance(text, appearance)
+            end
+            local color = type(appearance.color) == "table"
+                and appearance.color or { 1, 1, 1, 1 }
+            text:SetTextColor(
+                color.r or color[1] or 1,
+                color.g or color[2] or 1,
+                color.b or color[3] or 1,
+                (color.a or color[4]) == nil and 1
+                    or (color.a or color[4])
+            )
+            text:SetShown(appearance.enabled ~= false)
+            PositionDurationText(self, text, appearance, "count")
         end
         ring.SetDurationNameAppearance = function(self, appearance)
             appearance = type(appearance) == "table"
@@ -7214,6 +8023,8 @@ do
                 PositionDurationNameText(self)
             end
         end
+        ring:SetDurationTextAppearance(initialCooldownTextAppearance)
+        LayoutDurationRingLayers(ring)
         ring.SetDurationFillColor = function(self, color)
             self.gui2DurationFillColor = color or "color.accent.primary"
             ForEachRingProgress(self, function(progress)
@@ -7357,6 +8168,14 @@ do
                 forcedThickness
             )
         end
+        ring.GetDurationRingVisualSize = function(self)
+            return tonumber(self.gui2DurationRingVisualSize)
+                or tonumber(self.gui2DurationRingSize)
+                or size
+        end
+        ring.GetDurationRingVisualOverflow = function(self)
+            return tonumber(self.gui2DurationRingVisualOverflow) or 0
+        end
         ring.ResolveConcentricDurationRingMetrics = function(
             self,
             previousOuterRadius,
@@ -7385,6 +8204,14 @@ do
             forcedThickness
         )
             local resolvedSize = tonumber(nextSize) or size
+            if self.gui2DurationRingMaterial == "framed" then
+                resolvedSize = ResolvePhysicalDiameter(
+                    self,
+                    resolvedSize,
+                    self.gui2DurationRingContentSize
+                        or referenceSize
+                )
+            end
             self.gui2DurationRingSize = resolvedSize
             self.gui2DurationRingRequestedThickness =
                 NormalizeDurationRingThickness(
@@ -7411,11 +8238,52 @@ do
                     border = "none",
                 })
             end
+            LayoutFramedRingChrome(self)
             self:RefreshDurationRingTexture()
+            PositionDurationText(
+                self,
+                GetCooldownFontString(self.durationRingCountdown),
+                self.gui2DurationTextAppearance,
+                "time"
+            )
+            PositionDurationText(
+                self,
+                self.durationCountText,
+                self.gui2DurationCountAppearance,
+                "count"
+            )
             PositionDurationNameText(self)
         end
         ring.SetDurationRingStyle = function(self, style)
             style = type(style) == "table" and style or {}
+            if style.material ~= nil then
+                self.gui2DurationRingMaterial = style.material == "framed"
+                    and "framed" or "plain"
+            end
+            if style.contentSize ~= nil then
+                self.gui2DurationRingContentSize = math_max(
+                    1,
+                    tonumber(style.contentSize) or 1
+                )
+            end
+            if style.bezelPixels ~= nil then
+                self.gui2DurationRingBezelPixels = math_max(
+                    0,
+                    tonumber(style.bezelPixels) or 2
+                )
+            end
+            if style.shadowPixels ~= nil then
+                self.gui2DurationRingShadowPixels = math_max(
+                    0,
+                    tonumber(style.shadowPixels) or 1
+                )
+            end
+            if style.contactOverlapPixels ~= nil then
+                self.gui2DurationRingContactOverlapPixels = math_max(
+                    0,
+                    tonumber(style.contactOverlapPixels) or 1
+                )
+            end
             self.gui2DurationTrackColor =
                 style.trackColor or self.gui2DurationTrackColor
             self.gui2DurationCenterColor =
@@ -7472,6 +8340,11 @@ do
         ring:SetDurationRingStyle({
             border = opts.border or opts.iconBorder,
             thickness = opts.thickness or opts.ringThickness,
+            material = opts.material,
+            contentSize = opts.contentSize,
+            bezelPixels = opts.bezelPixels,
+            shadowPixels = opts.shadowPixels,
+            contactOverlapPixels = opts.contactOverlapPixels,
             direction = opts.direction or opts.ringDirection,
             start = opts.start or opts.ringStart,
             trackColor = opts.trackColor,

@@ -56,7 +56,7 @@ local function ReadMounted()
     if type(getFormID) == "function" then
         local ok, formID = pcall(getFormID)
         if not ok or IsSecret(formID) then return nil end
-        if formID == 3 or formID == 4 or formID == 27 then
+        if formID == 3 or formID == 4 or formID == 27 or formID == 29 then
             return true
         end
     end
@@ -168,4 +168,19 @@ function Visibility.Read(stateKey)
     local reader = READERS[stateKey]
     if not reader then return nil end
     return reader()
+end
+
+-- Cold path: macro form numbers are runtime indexes, never shapeshift IDs.
+function Visibility.GetTravelFormCondition()
+    if type(_G.GetNumShapeshiftForms) ~= "function" or type(_G.GetShapeshiftFormInfo) ~= "function" then return nil end
+    local ok, count = pcall(_G.GetNumShapeshiftForms)
+    if not ok or IsSecret(count) or type(count) ~= "number" then return nil end
+    local indexes = {}
+    for index = 1, math.min(count, 20) do
+        local read, _, _, _, spellID = pcall(_G.GetShapeshiftFormInfo, index)
+        if read and not IsSecret(spellID) and (spellID == 783 or spellID == 1066 or spellID == 33943 or spellID == 40120) then
+            indexes[#indexes + 1] = tostring(index)
+        end
+    end
+    return #indexes > 0 and table.concat(indexes, "/") or nil
 end

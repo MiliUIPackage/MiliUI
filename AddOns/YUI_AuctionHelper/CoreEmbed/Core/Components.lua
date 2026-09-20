@@ -22,6 +22,43 @@ Components.initializedFeatureErrors = Components.initializedFeatureErrors or {}
 
 local TOOLBOX_ENABLED_KEY = "__toolboxEnabled"
 local TOOLBOX_SNAPSHOT_KEY = "__toolboxSnapshot"
+local function CoreText(key, fallback)
+    local Locale = YUI.Locale
+    local value = Locale and Locale.Resolve and Locale:Resolve("Core", key)
+    if type(value) == "string" and value ~= "" and value ~= key then
+        return value
+    end
+    return fallback or key
+end
+
+local function ResolveComponentText(component, field)
+    if not component then return nil end
+
+    local Locale = YUI.Locale
+    local id = component.id
+    local namespace = component.localeNamespace or id
+    local key = field == "description"
+        and (component.descriptionKey or "feature.description")
+        or (component.nameKey or "feature.name")
+
+    if Locale and Locale.Resolve then
+        local value = namespace and Locale:Resolve(namespace, key)
+        if value == nil and namespace and component[field .. "Key"] == nil then
+            value = Locale:Resolve(namespace, field)
+        end
+        if value == nil and id then
+            value = Locale:Resolve("Core", "component." .. id .. "." .. field)
+        end
+        if type(value) == "string" and value ~= "" then
+            return value
+        end
+    end
+
+    if field == "description" then
+        return component.description or ""
+    end
+    return component.displayName or component.name or id
+end
 
 Components.TAGS = Components.TAGS or {
     "全部",
@@ -43,7 +80,6 @@ local FEATURE_META = {
     SpellAlert = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 200.5, sourceRoot = "Components\\SpellAlert", assetFolders = { "Components\\SpellAlert\\Media" }, versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\spellalert-bg.png", modSwitchImageCrop = false },
     CombatCue = { tags = { "战斗辅助" }, settingsMode = "inline", order = 201, sourceRoot = "Components\\CombatCue", assetFolders = { "Components\\CombatCue\\Media" }, modSwitchImage = "modswitch\\combatcue-bg.png", modSwitchImageCrop = false },
     CombatEnhancement = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 202, sourceRoot = "Components\\CombatEnhancement", assetFolders = { "Components\\CombatEnhancement\\Media" }, versions = { "mainline", "wrath" }, modSwitchImage = "modswitch\\combatenhancement-bg.png", modSwitchImageCrop = false },
-    TabChat = { tags = { "交易社交" }, settingsMode = "toggleOnly", order = 203, sourceRoot = "Components\\TabChat", modSwitchImage = "modswitch\\tabchat-bg.png", modSwitchImageCrop = false },
 
     GameMenuButtons = { tags = { "实用功能" }, settingsMode = "toggleOnly", order = 300, sourceRoot = "Components\\GameMenuButtons", modSwitchImage = "modswitch\\gamemenubuttons-bg.png", modSwitchImageCrop = false },
     LoginCheck = { tags = { "实用功能" }, settingsMode = "inline", order = 301, sourceRoot = "Components\\LoginCheck", modSwitchImage = "modswitch\\logincheck-bg.png", modSwitchImageCrop = false },
@@ -51,13 +87,16 @@ local FEATURE_META = {
     MapPosition = { tags = { "实用功能" }, settingsMode = "toggleOnly", order = 303, sourceRoot = "Components\\MapPosition", modSwitchImage = "modswitch\\mapposition-bg.png", modSwitchImageCrop = false },
     TradeEnhancement = { tags = { "实用功能" }, settingsMode = "inline", order = 304, sourceRoot = "Components\\TradeEnhancement", modSwitchImage = "modswitch\\tradeenhancement-bg.png", modSwitchImageCrop = false },
     UtilityTools = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 305, sourceRoot = "Components\\UtilityTools", versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\utilitytools-bg.png", modSwitchImageCrop = false },
+    AutoGossip = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 305.5, sourceRoot = "Components\\AutoGossip", assetFolders = { "Components\\AutoGossip\\Media" }, versions = { "mainline" }, modSwitchImage = "modswitch\\autogossip-bg.png", modSwitchImageCrop = false },
     MouseEnhancement = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 306, sourceRoot = "Components\\MouseEnhancement", assetFolders = { "Components\\MouseEnhancement\\Media" }, versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\mouseenhancement-bg.png", modSwitchImageCrop = false },
     CharacterEquipmentInfo = { tags = { "实用功能" }, settingsMode = "inline", order = 307, sourceRoot = "Components\\CharacterEquipmentInfo", assetFolders = { "Components\\CharacterEquipmentInfo\\Media" }, modSwitchImage = "modswitch\\characterequipmentinfo-bg.png", modSwitchImageCrop = false, versions = { "mainline" } },
+    CharacterStatsPanel = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 307.5, sourceRoot = "Components\\CharacterStatsPanel", assetFolders = { "Components\\CharacterStatsPanel\\Media" }, modSwitchImage = "modswitch\\characterstatspanel-bg.png", modSwitchImageCrop = false, versions = { "mainline", "wrath" } },
 
     AuctionHelper = { tags = { "交易社交" }, settingsMode = "toggleOnly", standalone = true, order = 400, sourceRoot = "Components\\AuctionHelper", modSwitchImage = "modswitch\\auctionhelper-bg.png", modSwitchImageCrop = false },
     ChatBar = { tags = { "交易社交" }, settingsMode = "inline", order = 401, sourceRoot = "Components\\ChatBar", modSwitchImage = "modswitch\\chatbar-bg.png", modSwitchImageCrop = false },
     WhisperManager = { tags = { "交易社交" }, settingsMode = "inline", default = true, order = 402, sourceRoot = "Components\\WhisperManager", versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\whispermanager-bg.png", modSwitchImageCrop = false },
-    RightPlus = { tags = { "交易社交" }, settingsMode = "toggleOnly", default = false, order = 403, sourceRoot = "Components\\RightPlus", versions = { "mainline", "wrath" } },
+    SocialEnhancement = { tags = { "交易社交" }, settingsMode = "inline", default = true, order = 403, sourceRoot = "Components\\SocialEnhancement", assetFolders = { "Components\\SocialEnhancement\\Media" }, versions = { "mainline", "wrath" }, modSwitchImage = "modswitch\\socialenhancement-bg.png", modSwitchImageCrop = false },
+    MailAssistant = { tags = { "交易社交" }, settingsMode = "inline", default = true, order = 404, sourceRoot = "Components\\MailAssistant", assetFolders = { "Components\\MailAssistant\\Media" }, versions = { "mainline" }, modSwitchImage = "modswitch\\mailassistant-bg.png", modSwitchImageCrop = false },
 
     ElvUIAdapter = { tags = { "插件适配", "美化皮肤" }, settingsMode = "inline", order = 500, sourceRoot = "Components\\ElvUIAdapter", modSwitchImage = "modswitch\\elvuiadapter-bg.png", modSwitchImageCrop = false },
     NDuiAdapter = { tags = { "插件适配", "美化皮肤" }, settingsMode = "toggleOnly", order = 501, sourceRoot = "Components\\NDuiAdapter", modSwitchImage = "modswitch\\nduiadapter-bg.png", modSwitchImageCrop = false },
@@ -110,8 +149,8 @@ local function SortComponents(a, b)
     if orderA ~= orderB then
         return orderA < orderB
     end
-    local nameA = a.displayName or a.name or a.id or ""
-    local nameB = b.displayName or b.name or b.id or ""
+    local nameA = ResolveComponentText(a, "name") or ""
+    local nameB = ResolveComponentText(b, "name") or ""
     if nameA ~= nameB then
         return nameA < nameB
     end
@@ -119,7 +158,7 @@ local function SortComponents(a, b)
 end
 
 local function IsToolboxControlledComponent(component)
-    return component and component.kind == "component"
+    return component and (component.kind == "component" or component.toolboxManaged == true)
         and (component.standalone ~= true or component.toolboxManaged == true)
 end
 
@@ -165,6 +204,38 @@ end
 
 function Components:Get(id)
     return self.registry[id]
+end
+
+function Components:GetDisplayName(component)
+    if type(component) == "string" then
+        component = self.registry[component]
+    end
+    return ResolveComponentText(component, "name")
+end
+
+function Components:GetToolboxDisplayName(component)
+    if type(component) == "string" then
+        component = self.registry[component]
+    end
+    if not component then return nil end
+
+    local Locale = YUI.Locale
+    local id = component.id
+    if Locale and Locale.Resolve and id then
+        local value = Locale:Resolve("Core", "component." .. id .. ".toolbox_name")
+        if type(value) == "string" and value ~= "" then
+            return value
+        end
+    end
+
+    return ResolveComponentText(component, "name")
+end
+
+function Components:GetDescription(component)
+    if type(component) == "string" then
+        component = self.registry[component]
+    end
+    return ResolveComponentText(component, "description")
 end
 
 function Components:GetAll(tag)
@@ -221,7 +292,7 @@ local function NormalizeEffectiveState(value, reason, tone)
         if value.effective == false then
             return {
                 effective = false,
-                reason = value.reason or value.message or reason or "该组件当前未生效。",
+                reason = value.reason or value.message or reason or CoreText("component.inactive", "该组件当前未生效。"),
                 tone = value.tone or tone or "warning",
                 kind = value.kind,
                 controller = value.controller,
@@ -249,7 +320,7 @@ local function NormalizeEffectiveState(value, reason, tone)
     if value == false then
         return {
             effective = false,
-            reason = reason or "该组件当前未生效。",
+            reason = reason or CoreText("component.inactive", "该组件当前未生效。"),
             tone = tone or "warning",
         }
     end
@@ -262,7 +333,7 @@ function Components:GetEffectiveState(component)
         component = self.registry[component]
     end
     if not component then
-        return { effective = false, reason = "组件不存在。", tone = "danger" }
+        return { effective = false, reason = CoreText("component.not_found", "组件不存在。"), tone = "danger" }
     end
 
     local feature = component.feature or component
@@ -351,6 +422,36 @@ local function EnsureStore(productId)
     return store
 end
 
+-- Isolated configuration for cold consumers. Does not migrate or initialize storage.
+function Components:CopyConfigSnapshot(configKey, defaults, productId)
+    local profile = YUI.DB and YUI.DB.GetProfile and YUI.DB:GetProfile(productId or YUI.ProductId or "suite")
+    if type(profile) ~= "table" then return nil end
+    local store = profile.Components
+    local raw = type(store) == "table" and store[configKey]
+    if type(raw) ~= "table" and type(profile.YBox) == "table" then raw = profile.YBox[configKey] end
+    return FillDefaults(CopyDefaultValue(type(raw) == "table" and raw or {}), defaults)
+end
+
+-- Configuration truth only: absence/errors must not become a disabled state.
+function Components:GetConfiguredEnableState(key)
+    local component = self.registry[key]
+    local feature = component and component.feature
+    if not feature or not (YUI.DB and YUI.DB.GetProfile) then return "unknown" end
+    local ok, profile = pcall(YUI.DB.GetProfile, YUI.DB, component.product or YUI.ProductId or "suite")
+    if not ok or type(profile) ~= "table" then return "unknown" end
+    local store, legacy = profile.Components, profile.YBox
+    if (store ~= nil and type(store) ~= "table") or (legacy ~= nil and type(legacy) ~= "table") then return "unknown" end
+    local master = store and store[TOOLBOX_ENABLED_KEY]
+    if master == nil then master = legacy and legacy[TOOLBOX_ENABLED_KEY] end
+    if IsToolboxControlledComponent(component) and master == false then return "disabled" end
+    local enabled = store and store[key]
+    if enabled == nil then enabled = legacy and legacy[key] end
+    if enabled == nil then enabled = feature.default end
+    if enabled == false then return "disabled" end
+    if enabled == true then return "enabled" end
+    return "unknown"
+end
+
 function Components:GetStore(productId)
     return EnsureStore(productId or YUI.ProductId or "suite")
 end
@@ -416,6 +517,14 @@ local function InitializeFeature(key, feature)
         return false
     end
 
+    if type(feature.migrate) == "function" then
+        local migrated, err = pcall(feature.migrate, store, feature.product)
+        if not migrated then
+            Components.initializedFeatureErrors[key] = tostring(err)
+            return false
+        end
+    end
+
     local isEnabled = store[key]
     if isEnabled == nil then
         isEnabled = feature.default == true
@@ -479,6 +588,9 @@ local function RegisterComponentBridge(key, feature)
         kind = "component",
         displayName = feature.name or key,
         description = feature.description or "",
+        localeNamespace = feature.localeNamespace or key,
+        nameKey = feature.nameKey,
+        descriptionKey = feature.descriptionKey,
         tags = CopyArray(feature.tags or meta.tags, { Components.TAGS[2] }),
         settingsMode = settingsMode,
         standalone = feature.standalone ~= nil and feature.standalone or meta.standalone,

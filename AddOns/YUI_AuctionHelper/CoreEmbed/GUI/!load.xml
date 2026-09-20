@@ -1,4 +1,11 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <Texture name="YUI_AuctionHelper_YUIRestrictedButtonGlowAntsTemplate" virtual="true">
+        <Animations>
+            <AnimationGroup parentKey="gui2RestrictedFlipbook" looping="REPEAT">
+                <FlipBook parentKey="gui2RestrictedFlipbookAnimation" duration="1" order="1" flipBookRows="5" flipBookColumns="5" flipBookFrames="22" flipBookFrameWidth="48" flipBookFrameHeight="48"/>
+            </AnimationGroup>
+        </Animations>
+    </Texture>
     <Script file="GUI2_Theme.lua"/>
     <Script file="GUI2_Primitives.lua"/>
     <Script file="GUI2_Visual.lua"/>
@@ -7,6 +14,8 @@
     <Script file="GUI2_Data.lua"/>
     <Script file="GUI2_Overlay.lua"/>
     <Script file="GUI2_Application.lua"/>
+    <Script file="GUI2_SoundPicker.lua"/>
+    <Script file="GUI2_VoicePicker.lua"/>
     <Script file="GUI2_Secure.lua"/>
     <Script file="GUI2_Animation.lua"/>
     <Script file="GUI2_Appearance.lua"/>

@@ -12,6 +12,8 @@ end
 local PRODUCT_ID = "auction_helper"
 local PRODUCT_TITLE = "Auction Helper · YanForge"
 local PRODUCT_LOGO = "icons\\logo_256.png"
+local PRODUCT_SMALL_LOGO = nil
+local PRODUCT_LOGO_CROP = nil
 local OWNED_GLOBALS = {}
 local PRODUCT_SETTINGS = { enabled = false }
 local PRODUCT_DB = { enabled = true, savedVariable = "YUI_AuctionHelper_DB", storageKey = "AuctionHelper" }
@@ -118,10 +120,12 @@ local product = {
     shortTitleNamespace = "",
     localizedShortTitles = nil,
     logo = PRODUCT_LOGO,
-    version = "yah-106",
+    smallLogo = PRODUCT_SMALL_LOGO,
+    logoCrop = PRODUCT_LOGO_CROP,
+    version = "yah-113",
     coreMode = "embedded",
     requiredCoreVersion = 1,
-    embeddedCoreVersion = 1,
+    embeddedCoreVersion = 14,
     settingsScope = "auction_helper",
     author = "阿言",
     notes = "购物助手 · 言工坊",

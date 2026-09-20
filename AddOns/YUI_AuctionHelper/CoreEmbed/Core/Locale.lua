@@ -15,9 +15,36 @@ Locale.missing = Locale.missing or {}
 Locale.defaultLocale = Locale.defaultLocale or "enUS"
 
 local SUPPORTED_OVERRIDES = {
+    deDE = true,
     enUS = true,
+    esES = true,
+    esMX = true,
+    frFR = true,
+    itIT = true,
+    koKR = true,
+    ptBR = true,
+    ruRU = true,
     zhCN = true,
     zhTW = true,
+}
+
+local NORMALIZED_OVERRIDES = {
+    dede = "deDE",
+    enus = "enUS",
+    eses = "esES",
+    esmx = "esMX",
+    frfr = "frFR",
+    itit = "itIT",
+    kokr = "koKR",
+    ptbr = "ptBR",
+    ruru = "ruRU",
+    zhcn = "zhCN",
+    zhtw = "zhTW",
+}
+
+local OVERRIDE_ORDER = {
+    "enUS", "deDE", "esES", "esMX", "frFR", "itIT",
+    "koKR", "ptBR", "ruRU", "zhCN", "zhTW",
 }
 
 local currentLocale = GetLocale and GetLocale() or Locale.defaultLocale
@@ -28,16 +55,7 @@ local function NormalizeOverrideLocale(locale)
         return nil
     end
 
-    local normalized = locale:lower()
-    if normalized == "enus" then
-        return "enUS"
-    elseif normalized == "zhcn" then
-        return "zhCN"
-    elseif normalized == "zhtw" then
-        return "zhTW"
-    end
-
-    return locale
+    return NORMALIZED_OVERRIDES[locale:lower()] or locale
 end
 
 local function IsSupportedOverride(locale)
@@ -204,21 +222,36 @@ function Locale:Register(namespace, locale, values)
     return true
 end
 
+function Locale:Resolve(namespace, key, locale)
+    namespace = namespace or "Core"
+
+    local data = self.namespaces[namespace]
+    if type(data) ~= "table" then
+        return nil
+    end
+
+    local activeLocale = locale or self:Current()
+    local active = data[activeLocale]
+    if type(active) == "table" and active[key] ~= nil then
+        return active[key]
+    end
+
+    local fallback = data[self.defaultLocale]
+    if type(fallback) == "table" then
+        return fallback[key]
+    end
+
+    return nil
+end
+
 function Locale:Get(namespace)
     namespace = namespace or "Core"
 
-    local data = EnsureNamespace(namespace)
+    EnsureNamespace(namespace)
 
     return setmetatable({}, {
         __index = function(_, key)
-            local active = data[self:Current()] or {}
-            local fallback = data[self.defaultLocale] or {}
-            local value = active[key]
-            if value ~= nil then
-                return value
-            end
-
-            value = fallback[key]
+            local value = self:Resolve(namespace, key)
             if value ~= nil then
                 return value
             end
@@ -231,6 +264,48 @@ end
 
 function Locale:Format(namespace, key, ...)
     return string.format(self:Get(namespace)[key], ...)
+end
+
+function Locale:GetClassName(classToken, fallback)
+    if type(classToken) ~= "string" or classToken == "" then
+        return fallback or ""
+    end
+
+    return self:Resolve("Core", "class." .. classToken:upper() .. ".name")
+        or fallback
+        or classToken
+end
+
+function Locale:GetSpecializationName(specID, fallback)
+    specID = tonumber(specID)
+    if not specID then
+        return fallback or ""
+    end
+
+    return self:Resolve("Core", "specialization." .. tostring(specID) .. ".name")
+        or fallback
+        or tostring(specID)
+end
+
+function Locale:UsesCompactSpecializationNames()
+    local locale = self:Current()
+    return locale == "zhCN" or locale == "zhTW"
+end
+
+local BUILTIN_FONT_ROLES = {
+    ["默认"] = "default",
+    ["預設"] = "default",
+    ["기본 글꼴"] = "default",
+    ["聊天"] = "chat",
+    ["伤害数字"] = "damage",
+    ["傷害數字"] = "damage",
+    ["데미지 글꼴"] = "damage",
+}
+
+function Locale:GetFontDisplayName(fontKey)
+    local role = BUILTIN_FONT_ROLES[fontKey]
+    if not role then return fontKey end
+    return self:Resolve("Core", "font.builtin." .. role) or fontKey
 end
 
 YUI.L = Locale:Get("Core")
@@ -258,9 +333,9 @@ local function PrintLocaleHelp()
     end
 
     YUI:Print("Locale commands:")
-    YUI:Print("/yui locale enUS")
-    YUI:Print("/yui locale zhCN")
-    YUI:Print("/yui locale zhTW")
+    for _, locale in ipairs(OVERRIDE_ORDER) do
+        YUI:Print("/yui locale " .. locale)
+    end
     YUI:Print("/yui locale reset")
     YUI:Print("/yui locale status")
 end

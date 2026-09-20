@@ -78,15 +78,34 @@ function Layout:ActivateEditSessionEntry(entry)
         self.editSessionKnownEntries[entry.id] = entry
     end
     self.editSessionEntrySet[entry.id] = entry
+    self.editMoverVisibility = self.editMoverVisibility or {}
+    if self.editMoverVisibility[entry.id] == nil
+        and self.GetEditMoverDefaultVisible then
+        self.editMoverVisibility[entry.id] =
+            self:GetEditMoverDefaultVisible(entry)
+    end
 
     if ResolveSpecValue(entry, "showOnlyInEditMode", false) == true then
-        frame:Show()
+        local moverVisible = not self.IsEditMoverVisible
+            or self:IsEditMoverVisible(entry) ~= false
+        if moverVisible then frame:Show() end
     end
     if type(entry.spec.onEnterEditMode) == "function" then
         SafeCall(
             "Layout:onEnter:" .. tostring(entry.id),
             entry.spec.onEnterEditMode,
             frame,
+            entry,
+            self
+        )
+    end
+    if type(entry.spec.onEditModeFilterChanged) == "function"
+        and self.IsEditMoverVisible then
+        SafeCall(
+            "Layout:onEditModeFilterChanged:" .. tostring(entry.id),
+            entry.spec.onEditModeFilterChanged,
+            frame,
+            self:IsEditMoverVisible(entry),
             entry,
             self
         )
@@ -143,10 +162,12 @@ local OFFSCREEN_RECHECK_EVENTS = {
 local function HasPendingAnchors()
     for id in pairs(Layout.pendingAnchors or {}) do
         local entry = Layout.frames[id]
-        if entry and (entry.placementState == PLACEMENT_PENDING or entry.placementState == PLACEMENT_FALLBACK or entry.placementState == PLACEMENT_SIMULATED) then
+        if entry and entry.placementState == PLACEMENT_PENDING then
             return true
         end
-        if Layout.pendingAnchors then Layout.pendingAnchors[id] = nil end
+        if not entry or (entry.placementState ~= PLACEMENT_FALLBACK and entry.placementState ~= PLACEMENT_SIMULATED) then
+            Layout.pendingAnchors[id] = nil
+        end
     end
     return false
 end
@@ -169,21 +190,58 @@ local function ApplyCombatDeferredPlacements()
 end
 
 local function SchedulePendingAnchorRetry(reset)
-    if reset then Layout.pendingAnchorRetryStep = 0 end
-    if Layout.pendingAnchorRetryScheduled or not C_Timer or not C_Timer.After then return end
-    if not HasPendingAnchors() then return end
+    if reset then
+        Layout.pendingAnchorRetryStep = 0
+        Layout.pendingAnchorRetryGeneration = (Layout.pendingAnchorRetryGeneration or 0) + 1
+    end
+    if not HasPendingAnchors() then
+        Layout.pendingAnchorRetryPaused = nil
+        return
+    end
+    if InCombat() then
+        Layout.pendingAnchorRetryPaused = true
+        return
+    end
+    if Layout.pendingAnchorRetryScheduled or Layout.pendingAnchorRetryRunning
+        or not C_Timer or not C_Timer.After then return end
 
     local step = (Layout.pendingAnchorRetryStep or 0) + 1
     local delay = PENDING_ANCHOR_RETRY_DELAYS[step]
     if not delay then return end
 
-    Layout.pendingAnchorRetryStep = step
+    local generation = Layout.pendingAnchorRetryGeneration or 0
+    local token = (Layout.pendingAnchorRetryToken or 0) + 1
+    Layout.pendingAnchorRetryToken = token
+    Layout.pendingAnchorRetryPaused = nil
     Layout.pendingAnchorRetryScheduled = true
+    local watchdog = YUI.CPUWatchdog
+    if watchdog and watchdog.sceneCapture then watchdog:SceneTaskScheduled("layout.retry-timer") end
     C_Timer.After(delay, function()
+        if Layout.pendingAnchorRetryToken ~= token or not Layout.pendingAnchorRetryScheduled then return end
         Layout.pendingAnchorRetryScheduled = nil
+        if (Layout.pendingAnchorRetryGeneration or 0) ~= generation then
+            SchedulePendingAnchorRetry(false)
+            return
+        end
+        if not HasPendingAnchors() then
+            Layout.pendingAnchorRetryStep = 0
+            return
+        end
+        if InCombat() then
+            Layout.pendingAnchorRetryPaused = true
+            return
+        end
+        Layout.pendingAnchorRetryStep = step
         local allowFallback = step >= #PENDING_ANCHOR_RETRY_DELAYS
-        local stillPending = Layout:RetryPendingAnchors(allowFallback)
-        if stillPending and not allowFallback then
+        Layout.pendingAnchorRetryRunning = true
+        if watchdog and watchdog.sceneCapture then
+            watchdog:MeasureSceneTask("layout.retry-timer", Layout.RetryPendingAnchors, Layout, allowFallback)
+        else
+            Layout:RetryPendingAnchors(allowFallback)
+        end
+        Layout.pendingAnchorRetryRunning = nil
+        if HasPendingAnchors() and (not allowFallback
+            or (Layout.pendingAnchorRetryGeneration or 0) ~= generation) then
             SchedulePendingAnchorRetry(false)
         end
     end)
@@ -307,6 +365,7 @@ function Layout:OpenEditMode(source)
     self.editing = true
     self.editSource = source or "yui"
     self.hiddenMoverOverlayIds = nil
+    if self.ResetEditMoverFilter then self:ResetEditMoverFilter() end
     self.editSessionEntries = {}
     self.editSessionEntrySet = {}
     self.editSessionKnownEntries = {}
@@ -315,9 +374,19 @@ function Layout:OpenEditMode(source)
         local entry = self.frames[id]
         if entry then self:ActivateEditSessionEntry(entry) end
     end
-    if not self.selectedId or not self.editSessionEntrySet[self.selectedId] then
-        local first = self.editSessionEntries[1]
-        self.selectedId = first and first.id or nil
+    if not self.selectedId
+        or not self.editSessionEntrySet[self.selectedId]
+        or (self.IsEditMoverVisible
+            and not self:IsEditMoverVisible(self.selectedId)) then
+        self.selectedId = nil
+        for index = 1, #self.editSessionEntries do
+            local candidate = self.editSessionEntries[index]
+            if not self.IsEditMoverVisible
+                or self:IsEditMoverVisible(candidate) then
+                self.selectedId = candidate.id
+                break
+            end
+        end
     end
     self.editModeStats.lastActiveEntries = #self.editSessionEntries
     AddProfileTime("entryEnterMS", stageStartedAt)
@@ -353,8 +422,10 @@ function Layout:CloseEditMode(source)
     self.editSessionEntries = nil
     self.editSessionEntrySet = nil
     self.editSessionKnownEntries = nil
+    self.editMoverVisibility = nil
     stageStartedAt = ProfileNow()
     self:HideControlPanel()
+    if self.HideMoverFilterPanel then self:HideMoverFilterPanel() end
     self:HideMoverPanel()
     self:HideGrid()
     HideAnchorLine()
@@ -372,8 +443,12 @@ function Layout:CloseEditMode(source)
 end
 
 function Layout:ApplyAllPlacements(options)
+    if self.RefreshAnchorProviders then self:RefreshAnchorProviders(true) end
+    local watchdog = YUI.CPUWatchdog
+    local startedAt = watchdog and watchdog.sceneCapture and watchdog:BeginProbeTiming()
     local deferOverlay = type(options) == "table" and options.deferOverlay == true
     for _, id in ipairs(self.order) do
+        if startedAt then watchdog.sceneCapture.layoutVisited = (watchdog.sceneCapture.layoutVisited or 0) + 1 end
         local entry = self.frames[id]
         if entry then
             ApplyPlacement(entry, GetSavedPlacement(id) or ResolveDefaultPlacement(entry), true, {
@@ -382,11 +457,18 @@ function Layout:ApplyAllPlacements(options)
             })
         end
     end
+    if startedAt then watchdog:EndProbeTiming("layout.apply-all", startedAt) end
 end
 
 function Layout:RetryPendingAnchors(allowFallback, useResolvedGroupTargets)
+    local watchdog = YUI.CPUWatchdog
+    local perf = watchdog and watchdog.sceneCapture and watchdog.sceneCapture.layoutPerf
+    if perf then perf.retryCalls = perf.retryCalls + 1 end
+    local startedAt = watchdog and watchdog.sceneCapture and watchdog:BeginProbeTiming()
     local anyPending = false
     for id in pairs(self.pendingAnchors or {}) do
+        if perf then perf.waitingVisited = perf.waitingVisited + 1 end
+        if startedAt then watchdog.sceneCapture.layoutVisited = (watchdog.sceneCapture.layoutVisited or 0) + 1 end
         local entry = self.frames[id]
         if not entry then
             self.pendingAnchors[id] = nil
@@ -423,6 +505,7 @@ function Layout:RetryPendingAnchors(allowFallback, useResolvedGroupTargets)
     else
         self.pendingAnchorRetryStep = 0
     end
+    if startedAt then watchdog:EndProbeTiming("layout.pending-anchors", startedAt) end
     return anyPending
 end
 
@@ -567,7 +650,15 @@ function Layout:RegisterSettingsModule()
     return false
 end
 
-local function OnLayoutRuntimeEvent(event, ...)
+local function RunLayoutRuntimeEvent(event, ...)
+    local watchdog = YUI.CPUWatchdog
+    local perf = watchdog and watchdog.sceneCapture and watchdog.sceneCapture.layoutPerf
+    if perf then perf.eventCalls = perf.eventCalls + 1 end
+    if Layout.RefreshAnchorProviders and (event == "PLAYER_REGEN_ENABLED"
+        or event == "YUI_DB_READY" or event == "DISPLAY_SIZE_CHANGED"
+        or event == "UI_SCALE_CHANGED" or event == "PLAYER_ENTERING_WORLD") then
+        Layout:RefreshAnchorProviders()
+    end
     if event == "PLAYER_REGEN_DISABLED" then
         if Layout:IsEditing() then
             Layout:CloseEditMode("combat")
@@ -599,6 +690,13 @@ local function OnLayoutRuntimeEvent(event, ...)
         end
         ApplyCombatDeferredPlacements()
         Layout:RetryPendingAnchors(false)
+        if HasPendingAnchors() then
+            SchedulePendingAnchorRetry(not Layout.pendingAnchorRetryScheduled
+                and (Layout.pendingAnchorRetryStep or 0) >= #PENDING_ANCHOR_RETRY_DELAYS)
+        else
+            Layout.pendingAnchorRetryStep = 0
+            Layout.pendingAnchorRetryPaused = nil
+        end
     else
         Layout:TryHookNative()
         if OFFSCREEN_RECHECK_EVENTS[event] and Layout.RecoverOffscreenPlacements then
@@ -612,6 +710,14 @@ end
 
 Layout:TryHookNative()
 Layout:RegisterMoveCommands()
+local function OnLayoutRuntimeEvent(event, ...)
+    local watchdog = YUI.CPUWatchdog
+    if event == "GROUP_ROSTER_UPDATE" and watchdog and watchdog.autoCapture then
+        return watchdog:MeasureTargetTask("layout.group-event", RunLayoutRuntimeEvent, event, ...)
+    end
+    return RunLayoutRuntimeEvent(event, ...)
+end
+
 if Event and Event.On then
     local function RegisterRuntimeEvent(event, throttle)
         Event:On(event, OnLayoutRuntimeEvent, Layout, {

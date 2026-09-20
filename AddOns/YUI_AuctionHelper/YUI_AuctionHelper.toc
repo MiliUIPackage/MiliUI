@@ -5,18 +5,18 @@
 ## Notes-zhCN: 购物助手 · 言工坊
 ## Notes-zhTW: 購物助手 · 言工坊
 ## Author: 阿言
-## Version: yah-106
+## Version: yah-113
 ## SavedVariables: YUI_AuctionHelper_DB
-## Interface: 120100
+## Interface: 120100, 120007, 120005, 120001, 120000
 ## OptionalDeps: YUI, YUI_NovaToolbox
 ## IconTexture: Interface\AddOns\YUI_AuctionHelper\Components\AuctionHelper\Media\icons\logo_256.png
 ## X-YUI-Product: auction_helper
 ## X-YUI-CoreMode: embedded
 ## X-YUI-RequiredCoreVersion: 1
-## X-YUI-EmbeddedCoreVersion: 1
 ## Category-zhTW: 拍賣
 ## Title-zhTW: |cffFFFF99[拍賣]|r 購物助手
 ## Notes-zhTW: Auction Helper · YanForge|n|n言工坊出品的拍賣行購物助手，方便快速選購與批次購買。|n|n|cffffd200使用方法: |r輸入 /yui2 開啟設定。
+## X-YUI-EmbeddedCoreVersion: 14
 
 CoreEmbed\Bootstrap.lua
 CoreEmbed\Libs\!load.xml
@@ -24,6 +24,7 @@ CoreEmbed\Core\Version_Mainline.lua
 CoreEmbed\YUI.lua
 CoreEmbed\Core\Functions.lua
 CoreEmbed\Core\Trace.lua
+CoreEmbed\Core\DBMigration.lua
 CoreEmbed\Core\Event.lua
 CoreEmbed\Core\Lifecycle.lua
 CoreEmbed\Core\Assets.lua
@@ -36,23 +37,31 @@ CoreEmbed\Locales\Core\!load.xml
 CoreEmbed\Core\API.lua
 CoreEmbed\Core\API\System.lua
 CoreEmbed\Core\CPUWatchdog.lua
+CoreEmbed\Core\CPUSceneDiagnostics.lua
 CoreEmbed\Core\API\External.lua
 CoreEmbed\Core\Yield.lua
 CoreEmbed\Core\API\Unit.lua
+CoreEmbed\Core\API\Social.lua
 CoreEmbed\Core\API\Spell.lua
+CoreEmbed\Core\API\Racial.lua
 CoreEmbed\Core\API\Item.lua
 CoreEmbed\Core\API\PaperDoll.lua
 CoreEmbed\Core\API\Profession.lua
 CoreEmbed\Core\API\Security.lua
+CoreEmbed\Core\API\ChatInput.lua
 CoreEmbed\Core\API\ActionBar.lua
 CoreEmbed\Core\API\Frame.lua
 CoreEmbed\Core\API\BlizzardUI.lua
 CoreEmbed\Core\API\Combat.lua
+CoreEmbed\Core\API\Sound.lua
 CoreEmbed\Core\API\Visibility.lua
 CoreEmbed\Core\API\Keystone.lua
+CoreEmbed\Core\API\Gossip.lua
 CoreEmbed\Core\API\EventScheduler.lua
+CoreEmbed\Core\API\Delves.lua
 CoreEmbed\Core\API\Talent.lua
 CoreEmbed\Core\API\Icons.lua
+CoreEmbed\Core\Bloodlust.lua
 CoreEmbed\Core\Visibility.lua
 CoreEmbed\Core\MinimapIcon.lua
 CoreEmbed\Core\Animation\!load.xml
@@ -62,4 +71,5 @@ Components\AuctionHelper\Locales\!load.xml
 Components\AuctionHelper\DataProfiles.lua
 Components\AuctionHelper\Appearance.lua
 Components\AuctionHelper\Editor.lua
+Components\AuctionHelper\RecipeTracker.lua
 Components\AuctionHelper\AuctionHelper.lua

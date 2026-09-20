@@ -120,6 +120,28 @@ local function LayoutProjectedProgressFill(frame)
     if not (clip and track and driverTexture) then return false end
 
     clip:ClearAllPoints()
+    if frame.gui2InverseFill == true then
+        -- The native driver fills from the opposite origin; clip its complement.
+        -- No value/geometry reads, including when the native value is secret.
+        if frame.orientation == "vertical" then
+            local reverse = IsProgressReverse(frame)
+            clip:SetPoint(reverse and "TOPLEFT" or "BOTTOMLEFT", track,
+                reverse and "TOPLEFT" or "BOTTOMLEFT")
+            clip:SetPoint(reverse and "TOPRIGHT" or "BOTTOMRIGHT", track,
+                reverse and "TOPRIGHT" or "BOTTOMRIGHT")
+            clip:SetPoint(reverse and "BOTTOM" or "TOP", driverTexture,
+                reverse and "TOP" or "BOTTOM")
+        else
+            local reverse = IsProgressReverse(frame)
+            clip:SetPoint(reverse and "TOPRIGHT" or "TOPLEFT", track,
+                reverse and "TOPRIGHT" or "TOPLEFT")
+            clip:SetPoint(reverse and "BOTTOMRIGHT" or "BOTTOMLEFT", track,
+                reverse and "BOTTOMRIGHT" or "BOTTOMLEFT")
+            clip:SetPoint(reverse and "LEFT" or "RIGHT", driverTexture,
+                reverse and "RIGHT" or "LEFT")
+        end
+        return true
+    end
     if frame.orientation == "vertical" then
         if IsProgressReverse(frame) then
             clip:SetPoint("TOPLEFT", track, "TOPLEFT", 0, 0)
@@ -150,13 +172,22 @@ local function ApplyProjectedDriverStyle(frame, force)
         and GUI2.ApplyNativeStatusBarStyle) then
         return false
     end
-    GUI2:ApplyNativeStatusBarStyle(
+    local styleWrites = GUI2:ApplyNativeStatusBarStyle(
         driver,
         PROJECTED_DRIVER_STYLE,
         frame.orientation,
         GetProjectedDriverDirection(frame),
         force == true
     )
+    if frame.gui2InverseFill == true then
+        local reverse = not IsProgressReverse(frame)
+        if frame.gui2InverseDriverReverse ~= reverse or force == true or (styleWrites or 0) > 0 then
+            driver:SetReverseFill(reverse)
+            frame.gui2InverseDriverReverse = reverse
+        end
+    else
+        frame.gui2InverseDriverReverse = nil
+    end
     local driverTexture = driver.GetStatusBarTexture
         and driver:GetStatusBarTexture() or nil
     if driverTexture and driverTexture.SetAlpha then
@@ -189,6 +220,7 @@ end
 function GUI2:EnsureProjectedStatusBarFill(frame, track, driver, opts)
     if not (frame and track and driver) then return nil end
     opts = opts or {}
+    frame.gui2InverseFill = opts.inverseFill == true
     frame.track = track
     frame.nativeStatusBar = driver
     frame.orientation = opts.orientation
@@ -204,7 +236,7 @@ function GUI2:EnsureProjectedStatusBarFill(frame, track, driver, opts)
     local parent = opts.parent or track or driver
     local fillClip = frame.nativeFillClip
     if not fillClip then
-        fillClip = CreateFrame("Frame", nil, parent)
+        fillClip = CreateFrame("Frame", nil, parent, opts.layoutTemplate)
         if not fillClip.SetClipsChildren then
             error("GUI2 projected native fill requires SetClipsChildren")
         end
@@ -253,6 +285,13 @@ end
 
 function GUI2:LayoutProjectedStatusBarFill(frame)
     return LayoutProjectedProgressFill(frame)
+end
+
+function GUI2:SetProjectedStatusBarInverse(frame, enabled)
+    enabled = enabled == true
+    if not frame or frame.gui2InverseFill == enabled then return false end
+    frame.gui2InverseFill = enabled
+    return ApplyProjectedDriverStyle(frame, true)
 end
 
 function GUI2:RefreshProjectedStatusBarDriver(frame, force)

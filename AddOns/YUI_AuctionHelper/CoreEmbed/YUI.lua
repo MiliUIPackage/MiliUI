@@ -9,7 +9,7 @@ local ADDON_NAME, YUI = ...
 local bootstrapState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[ADDON_NAME]
 
 YUI.AddonName = ADDON_NAME
-YUI.CoreVersion = YUI.CoreVersion or (bootstrapState and bootstrapState.embeddedCoreVersion) or 1
+YUI.CoreVersion = YUI.CoreVersion or (bootstrapState and bootstrapState.embeddedCoreVersion) or 14
 YUI.CoreMode = YUI.CoreMode or (bootstrapState and bootstrapState.coreMode) or "suite"
 YUI.ProductId = YUI.ProductId or (bootstrapState and bootstrapState.productId) or "suite"
 YUI.SettingsScope = YUI.SettingsScope or (bootstrapState and bootstrapState.settingsScope) or "suite"

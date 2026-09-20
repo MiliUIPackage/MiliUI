@@ -1516,17 +1516,22 @@ local function CreateResourceThresholdColorCurve(
     if not baseColor then return nil end
 
     local discrete = policy.valueKind == "discrete"
+    local absolute = discrete or policy.thresholdMode == "value"
     structuralMax = tonumber(structuralMax)
-    if discrete and (not structuralMax or structuralMax <= 0) then return nil end
+    if absolute and (not structuralMax or structuralMax <= 0) then return nil end
     local domainMax = rawValueDomain == true and structuralMax or 1
     local multiplier = rawValueDomain == true and 1
-        or (discrete and (1 / structuralMax) or 0.01)
+        or (absolute and (1 / structuralMax) or 0.01)
     local lowAt = low and math.max(0, math.min(domainMax,
         (tonumber(low.value) or 0) * multiplier)) or 0
     local highAt = high and math.max(0, math.min(domainMax,
         (tonumber(high.value) or 0) * multiplier)) or domainMax
     local lowEnabled = low and low.enabled == true and lowColor ~= nil
     local highEnabled = high and high.enabled == true and highColor ~= nil
+    -- An unreachable absolute threshold must not become reachable at the cap.
+    if absolute and highEnabled and (tonumber(high.value) or 0) > structuralMax then
+        highEnabled = false
+    end
     if lowEnabled and highEnabled and highAt < lowAt then
         if lowAt >= domainMax then
             lowAt = math.max(0, domainMax - multiplier)
@@ -1696,6 +1701,10 @@ function Unit.ReadPowerDisplay(unit, powerType, state, colorCurve)
     local maxValue = not maxSecret and type(maxRaw) == "number"
         and maxRaw or nil
     local changed = false
+    if state.publicMaxValue ~= maxValue then
+        state.publicMaxValue = maxValue
+        changed = true
+    end
 
     if state.sourceKind ~= "resource"
         or state.unit ~= unit
@@ -1822,7 +1831,8 @@ local function ReadPercentResourceDisplay(
     local safeValue = SafeNumberValue(valueRaw)
     local safeMax = SafeNumberValue(maxRaw)
     if safeValue and safeMax and safeMax > 0 then
-        value = math.max(0, math.min(100, safeValue / safeMax * 100))
+        value = math.max(0, safeValue / safeMax * 100)
+        if providerKind ~= "stagger" then value = math.min(100, value) end
     end
     local available = valueOK and maxOK
     local changed = state.providerKind ~= providerKind
@@ -1981,6 +1991,40 @@ function Unit.SupportsFilteredAuraDurationDisplay()
     return Unit.SupportsFilteredAuraDisplay()
 end
 
+function Unit.IsAuraRestricted()
+    if YUI.IsRetail == false then return false end
+
+    local restrictedActions = _G.C_RestrictedActions
+    local restrictionTypes = _G.Enum and _G.Enum.AddOnRestrictionType
+    local isActive = restrictedActions
+        and restrictedActions.IsAddOnRestrictionActive
+    if type(isActive) ~= "function" or type(restrictionTypes) ~= "table" then
+        return nil
+    end
+
+    local combat = restrictionTypes.Combat
+    local encounter = restrictionTypes.Encounter
+    local challengeMode = restrictionTypes.ChallengeMode
+    local pvpMatch = restrictionTypes.PvPMatch
+    if combat == nil or encounter == nil
+        or challengeMode == nil or pvpMatch == nil then
+        return nil
+    end
+
+    local active = SafeBool(isActive, combat)
+    if active == nil then return nil end
+    if active then return true end
+    active = SafeBool(isActive, encounter)
+    if active == nil then return nil end
+    if active then return true end
+    active = SafeBool(isActive, challengeMode)
+    if active == nil then return nil end
+    if active then return true end
+    active = SafeBool(isActive, pvpMatch)
+    if active == nil then return nil end
+    return active == true
+end
+
 function Unit.IsPlayerHelpfulAuraIdentityTrusted()
     if YUI.IsRetail == false then return true end
 
@@ -2006,10 +2050,77 @@ local function NormalizeFilteredAuraSpellIDs(value)
     return next(result) and result or nil
 end
 
+local FILTERED_AURA_FILTER_HELPFUL = "HELPFUL"
+local FILTERED_AURA_FILTER_HARMFUL = "HARMFUL"
+local FILTERED_AURA_FILTER_PLAYER_HELPFUL = "HELPFUL|PLAYER"
+local FILTERED_AURA_FILTER_PLAYER_HARMFUL = "HARMFUL|PLAYER"
+local FILTERED_AURA_FILTER_CDM_PLAYER_HELPFUL =
+    "HELPFUL|PLAYER|INCLUDE_NAME_PLATE_ONLY"
+
+local function NormalizeFilteredAuraFilter(display, spec)
+    local value = display.filter
+    if value == nil then value = spec.filter end
+    if value == nil then value = FILTERED_AURA_FILTER_HELPFUL end
+    local requirePlayerSource = display.requirePlayerSource == true
+        or spec.requirePlayerSource == true
+    -- PLAYER delegates ownership (including the player's pet/vehicle) to the
+    -- engine. isFromPlayerOrPlayerPet describes any player, not the local one.
+    if value == FILTERED_AURA_FILTER_HELPFUL then
+        return requirePlayerSource and FILTERED_AURA_FILTER_PLAYER_HELPFUL
+            or FILTERED_AURA_FILTER_HELPFUL, false
+    end
+    if value == FILTERED_AURA_FILTER_HARMFUL then
+        return requirePlayerSource and FILTERED_AURA_FILTER_PLAYER_HARMFUL
+            or FILTERED_AURA_FILTER_HARMFUL, true
+    end
+    if value == FILTERED_AURA_FILTER_PLAYER_HELPFUL then
+        return value, false
+    end
+    if value == FILTERED_AURA_FILTER_PLAYER_HARMFUL then
+        return value, true
+    end
+    if value == FILTERED_AURA_FILTER_CDM_PLAYER_HELPFUL then
+        return value, false
+    end
+    return nil
+end
+
 local function ResolveFilteredAuraBinding(value)
     if type(value) ~= "table" then return value, nil end
     if value.target ~= nil then return value.target, value.options end
     return value, nil
+end
+
+-- Cold-path configuration: constant color sampled by the native duration binding.
+function Unit.CreateAuraDurationTextColor(r, g, b, a)
+    local property = Enum and Enum.DurationTextBindingProperty and Enum.DurationTextBindingProperty.RemainingPercent
+    if not YUI.IsRetail or property == nil or not CreateColor
+        or not (C_CurveUtil and C_CurveUtil.CreateColorCurve) then return nil end
+    for _, value in ipairs({r, g, b, a}) do
+        if IsSecretValue(value) or type(value) ~= 'number' or value ~= value or value < 0 or value > 1 then return nil end
+    end
+    if r == nil or g == nil or b == nil or a == nil then return nil end
+    local ok, result = pcall(function()
+        local curve = C_CurveUtil.CreateColorCurve()
+        local color = CreateColor(r, g, b, a)
+        curve:AddPoint(0, color)
+        curve:AddPoint(1, color)
+        return {curve=curve, property=property}
+    end)
+    return ok and result or nil
+end
+
+function Unit.SetFilteredAuraDurationTextOptions(handle, options)
+    if type(handle) ~= 'table' or handle.released then return false end
+    for _, frame in ipairs(handle.frames or {}) do
+        local ok = pcall(function()
+            local text = frame:GetDurationText()
+            if not text then error('duration-text-unavailable') end
+            frame:SetDurationText(text, options)
+        end)
+        if not ok then return false end
+    end
+    return true
 end
 
 local function ApplyFilteredAuraBindings(auraFrame, bindings)
@@ -2171,8 +2282,13 @@ function Unit.ReleaseFilteredAuraDisplay(handle)
     if proxy then
         if proxy.UnregisterAllEvents then
             pcall(proxy.UnregisterAllEvents, proxy)
-        elseif handle.contextEvent and proxy.UnregisterEvent then
-            pcall(proxy.UnregisterEvent, proxy, handle.contextEvent)
+        elseif proxy.UnregisterEvent then
+            if handle.contextEvent then
+                pcall(proxy.UnregisterEvent, proxy, handle.contextEvent)
+            end
+            if handle.contextUnitEvent then
+                pcall(proxy.UnregisterEvent, proxy, handle.contextUnitEvent)
+            end
         end
         if proxy.SetScript then
             pcall(proxy.SetScript, proxy, "OnEvent", nil)
@@ -2185,6 +2301,7 @@ function Unit.ReleaseFilteredAuraDisplay(handle)
         pcall(handle.container.Hide, handle.container)
     end
     handle.active = false
+    handle.initializerFailureCode = nil
     handle.identitySuppressed = nil
     handle.identitySuppressedWasShown = nil
     return true
@@ -2266,7 +2383,11 @@ function Unit.CreateFilteredAuraDisplay(parent, spec)
                 auraFrame,
                 resolvedBindings
             )
-            if not bound then error(code) end
+            if not bound then
+                handle.initializerFailureCode =
+                    code or "filtered-aura-binding-failed"
+                return
+            end
             if auraFrame.SetMouseClickEnabled then
                 auraFrame:SetMouseClickEnabled(false)
             end
@@ -2283,12 +2404,7 @@ function Unit.CreateFilteredAuraDisplay(parent, spec)
                 or spec.spellIDs or spec.spellID
         )
         if not spellIDs then return nil end
-        local candidateFilters = { includeSpellIDs = spellIDs }
-        if display.requirePlayerSource == true
-            or spec.requirePlayerSource == true then
-            candidateFilters.isFromPlayerOrPlayerPet = true
-        end
-        return candidateFilters
+        return { includeSpellIDs = spellIDs }
     end
 
     for index = 1, #slots do
@@ -2298,9 +2414,12 @@ function Unit.CreateFilteredAuraDisplay(parent, spec)
             Unit.ReleaseFilteredAuraDisplay(handle)
             return nil, "invalid-spell"
         end
-        local filter = slot.filter or spec.filter
-        filter = filter == "HARMFUL" and "HARMFUL" or "HELPFUL"
-        if filter == "HARMFUL" then
+        local filter, harmful = NormalizeFilteredAuraFilter(slot, spec)
+        if not filter then
+            Unit.ReleaseFilteredAuraDisplay(handle)
+            return nil, "invalid-filter"
+        end
+        if harmful then
             handle.hasHarmfulFilter = true
         else
             handle.hasHelpfulFilter = true
@@ -2325,6 +2444,11 @@ function Unit.CreateFilteredAuraDisplay(parent, spec)
             Unit.ReleaseFilteredAuraDisplay(handle)
             return nil, "filtered-aura-slot-create-failed"
         end
+        if handle.initializerFailureCode then
+            local code = handle.initializerFailureCode
+            Unit.ReleaseFilteredAuraDisplay(handle)
+            return nil, code
+        end
     end
     for index = 1, #groups do
         local group = type(groups[index]) == "table" and groups[index] or {}
@@ -2333,9 +2457,12 @@ function Unit.CreateFilteredAuraDisplay(parent, spec)
             Unit.ReleaseFilteredAuraDisplay(handle)
             return nil, "invalid-spell"
         end
-        local filter = group.filter or spec.filter
-        filter = filter == "HARMFUL" and "HARMFUL" or "HELPFUL"
-        if filter == "HARMFUL" then
+        local filter, harmful = NormalizeFilteredAuraFilter(group, spec)
+        if not filter then
+            Unit.ReleaseFilteredAuraDisplay(handle)
+            return nil, "invalid-filter"
+        end
+        if harmful then
             handle.hasHarmfulFilter = true
         else
             handle.hasHelpfulFilter = true
@@ -2352,16 +2479,31 @@ function Unit.CreateFilteredAuraDisplay(parent, spec)
             sortMethod = group.sortMethod,
             sortDirection = group.sortDirection,
         }
-        local groupOK, auraGroup = pcall(
+        local groupKey = group.key
+            or ("yui-filtered-aura-group-" .. tostring(index))
+        local groupOK = pcall(
             container.AddAuraGroup,
             container,
-            group.key or ("yui-filtered-aura-group-" .. tostring(index)),
+            groupKey,
             filter,
             options
         )
-        if not groupOK or not auraGroup then
+        local verifyOK, registered = false, false
+        if groupOK and type(container.HasAuraGroup) == "function" then
+            verifyOK, registered = pcall(
+                container.HasAuraGroup,
+                container,
+                groupKey
+            )
+        end
+        if not groupOK or not verifyOK or registered ~= true then
             Unit.ReleaseFilteredAuraDisplay(handle)
             return nil, "filtered-aura-group-create-failed"
+        end
+        if handle.initializerFailureCode then
+            local code = handle.initializerFailureCode
+            Unit.ReleaseFilteredAuraDisplay(handle)
+            return nil, code
         end
     end
     local unitOK = pcall(container.SetUnit, container, unit)
@@ -2382,9 +2524,21 @@ function Unit.CreateFilteredAuraDisplay(parent, spec)
     end
     if unit == "target" and proxy.RegisterEvent and proxy.SetScript then
         handle.contextEvent = "PLAYER_TARGET_CHANGED"
+        handle.contextUnitEvent = "UNIT_FACTION"
         proxy:RegisterEvent(handle.contextEvent)
-        proxy:SetScript("OnEvent", function(_, event)
-            if event == handle.contextEvent then
+        if proxy.RegisterUnitEvent then
+            proxy:RegisterUnitEvent(
+                handle.contextUnitEvent,
+                "player",
+                "target"
+            )
+        else
+            proxy:RegisterEvent(handle.contextUnitEvent)
+        end
+        proxy:SetScript("OnEvent", function(_, event, eventUnit)
+            if event == handle.contextEvent
+                or (event == handle.contextUnitEvent
+                    and (eventUnit == "player" or eventUnit == "target")) then
                 Unit.RefreshFilteredAuraDisplay(handle)
             end
         end)
@@ -2562,6 +2716,28 @@ function Unit.ReadAuraStackDisplay(unit, spellID, state, options)
     return state, changed, code
 end
 
+function Unit.GetPlayerGlidingInfo()
+    local playerInfo = _G.C_PlayerInfo
+    if not (YUI.IsRetail and playerInfo
+        and type(playerInfo.GetGlidingInfo) == "function") then
+        return nil, nil, nil, "unavailable"
+    end
+
+    local ok, isGliding, canGlide, forwardSpeed = pcall(
+        playerInfo.GetGlidingInfo
+    )
+    if not ok
+        or IsSecretValue(isGliding)
+        or IsSecretValue(canGlide)
+        or IsSecretValue(forwardSpeed)
+        or type(isGliding) ~= "boolean"
+        or type(canGlide) ~= "boolean"
+        or type(forwardSpeed) ~= "number" then
+        return nil, nil, nil, "restricted"
+    end
+    return isGliding, canGlide, forwardSpeed, "ok"
+end
+
 Legacy.GetClassInfos = Unit.GetClassInfos
 Legacy.GetNumClasses = Unit.GetNumClasses
 Legacy.GetClassInfo = Unit.GetClassInfo
@@ -2621,6 +2797,7 @@ Legacy.ReadUnitPowerColor = Unit.ReadPowerColor
 Legacy.CreateResourceValueColorCurve = Unit.CreateResourceValueColorCurve
 Legacy.ReadResourceValueColor = Unit.ReadResourceValueColor
 Legacy.ReadUnitAuraStackDisplay = Unit.ReadAuraStackDisplay
+Legacy.GetPlayerGlidingInfo = Unit.GetPlayerGlidingInfo
 Legacy.ReadUnitStaggerResourceDisplay = Unit.ReadStaggerResourceDisplay
 Legacy.ReadUnitAbsorbResourceDisplay = Unit.ReadAbsorbResourceDisplay
 Legacy.ReadUnitAuraDurationResourceDisplay = Unit.ReadAuraDurationResourceDisplay

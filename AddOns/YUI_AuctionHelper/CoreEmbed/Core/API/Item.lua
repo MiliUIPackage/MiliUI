@@ -703,7 +703,7 @@ function Item.ReadItemCooldown(itemInfo, target)
     end
 
     if secret then
-        local changed = target.itemID ~= itemInfo
+        local changed = target.cooldownResolved ~= false or target.itemID ~= itemInfo
             or target.icon ~= nil
             or target.startTime ~= 0
             or target.duration ~= 0
@@ -717,14 +717,17 @@ function Item.ReadItemCooldown(itemInfo, target)
         target.isEnabled = false
         target.available = true
         target.secret = true
+        target.cooldownResolved = false
         return target, changed
     end
 
+    local cooldownResolved = type(startTime) == 'number' and type(duration) == 'number'
+        and isEnabled ~= nil
     startTime = startTime or 0
     duration = duration or 0
     if isEnabled == nil then isEnabled = true end
     local available = icon ~= nil
-    local changed = target.itemID ~= itemInfo
+    local changed = target.cooldownResolved ~= cooldownResolved or target.itemID ~= itemInfo
         or target.icon ~= icon
         or target.startTime ~= startTime
         or target.duration ~= duration
@@ -739,6 +742,7 @@ function Item.ReadItemCooldown(itemInfo, target)
     target.isEnabled = isEnabled
     target.available = available
     target.secret = false
+    target.cooldownResolved = cooldownResolved
     return target, changed
 end
 
