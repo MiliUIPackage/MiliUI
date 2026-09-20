@@ -51,6 +51,16 @@ T.pushedAlpha    = 0.18   -- 黑色疊加（按下）
 -- 圖示裁邊：暴雪圖示四周有一圈暗邊，裁掉才對得上 1px 硬邊的直角語彙
 T.iconCrop = 0.08
 
+-- 物品格（Skin.ItemButton）那一圈方框的邊寬，單位是「像素」，會再過 P.Scale。
+-- ⚠ 想把品質邊框加粗成 2px 就只改這個數字，配方與原語裡一個字都不用動。
+T.itemBorderSize = 1
+
+-- 進度條的填充材質。套組自己的細橫紋（跟傷害統計同一張），取代暴雪那幾張
+-- 帶漸層與高光的 UI-StatusBar／UI-Character-Skills-Bar。
+-- ⚠ 單體發佈 ⇒ 檔案複製一份在自己的 Media/ 底下，**不要跨插件引用路徑**：
+--   玩家只裝這一支的時候那個路徑不存在，條會變成全白。
+T.barTexture = "Interface\\AddOns\\MiliUI_Skin\\Media\\tuktex.tga"
+
 -- 捲軸拇指。比 fillHover 再亮一階，軌道用 fillInset。
 T.scrollThumb = { 0.35, 0.35, 0.35, 1 }
 T.scrollTrack = { 0.08, 0.08, 0.08, 1 }
@@ -118,4 +128,23 @@ end
 function T.AccentFill(alpha)
     Resolve()
     return ar * 0.45, ag * 0.45, ab * 0.45, alpha or 1
+end
+
+-- 勾選框／單選鈕「已勾」的填色：**不壓暗**，直接用職業色。
+--
+-- 跟分頁的 `AccentFill` 不一樣是刻意的。分頁是一整排、每顆都有幾十像素寬，壓暗
+-- 是為了避免一排霓虹燈；勾選框只有 14~16 像素見方，而且它是「值」不是「身分」——
+-- 壓到 0.45 之後，暗色系職業（戰士 0.78/0.61/0.43）的方塊跟 `fillCheck`（0.28）
+-- 的灰幾乎分不出來，等於看不出有沒有勾。
+-- 共用層 `Widgets.lua` 的 `W.CreateCheckButton` 也是拿**整條**職業色畫那個勾
+-- （`CheckLayer(W.Accent())`），所以這裡用滿色才跟套組其他面板是同一套語彙。
+function T.AccentCheck(alpha)
+    Resolve()
+    return ar, ag, ab, alpha or 1
+end
+
+-- 停用狀態的已勾：同色相壓暗（「狀態只換明暗」）。
+function T.AccentCheckDisabled(alpha)
+    Resolve()
+    return ar * 0.4, ag * 0.4, ab * 0.4, alpha or 1
 end

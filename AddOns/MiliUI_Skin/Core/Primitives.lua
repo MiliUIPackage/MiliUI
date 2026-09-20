@@ -100,14 +100,43 @@ end
 -- 已經被我們 alpha 0 了。補一張 PushedTexture 等於對暴雪按鈕做結構性修改，
 -- 不在白名單裡，所以 PoC 接受「按下沒有回饋」。
 ------------------------------------------------------------
-function Skin.Button(btn, key)
+-- opts:
+--   keepFont  不要換 NormalFont。給「字型物件本身帶了別的語意」的按鈕用 ——
+--             好友查詢頁的欄位表頭是 `UserScaledFontGameHighlightSmall`
+--             （跟著玩家的文字大小設定縮放），換成固定字級的 `GameFontHighlight`
+--             等於把那個縮放弄掉。
+--   points    overlay 改用自訂錨點（仍然錨在按鈕上）
+function Skin.Button(btn, key, opts)
+    opts = opts or {}
     E.NeutralizeKeys(btn, { "Left", "Right", "Middle" }, key)
     E.ButtonStates(btn, key)
     -- 文字白色：換 NormalFont，不要 SetTextColor（撐不過一次滑過，理由見 Engine.ButtonFonts）
-    E.ButtonFonts(btn, GameFontHighlight, key)
+    if not opts.keepFont then
+        E.ButtonFonts(btn, GameFontHighlight, key)
+    end
 
-    local ov = E.Overlay(btn, { key = key })
+    local ov = E.Overlay(btn, { key = key, points = opts.points })
     E.Paint(ov, T.fill, T.border)
+    return ov
+end
+
+------------------------------------------------------------
+-- BorderOnly：只畫一圈邊、不動底
+--
+-- 給「保留了內容底材、但還是想要一圈外框」的區塊用（信紙、模型場景）。
+-- 層級 +1 才畫得在底材之上（其餘 overlay 一律 −1），同 `Skin.Icon` 的邊框那一層。
+------------------------------------------------------------
+local TRANSPARENT = { 0, 0, 0, 0 }
+
+function Skin.BorderOnly(target, key, opts)
+    opts = opts or {}
+    local ov = E.Overlay(target, {
+        key = key .. ".border",
+        levelOffset = 1,
+        points = opts.points,
+        parent = opts.parent,
+    })
+    E.Paint(ov, TRANSPARENT, opts.border or T.border)
     return ov
 end
 
@@ -168,6 +197,26 @@ end
 --   所以分頁的**上邊**貼著視窗下緣。兩條 1px 黑邊疊在同一條線上會變成一條 2px 的
 --   粗線，而且分頁看起來就不像跟視窗連在一起（feedback-ui-visual-style）。
 ------------------------------------------------------------
+--
+-- ⚠ **分頁的 overlay 要往右多畫一截，不能只畫按鈕矩形。**
+--   暴雪的分頁按鈕彼此之間**有空隙**（第二輪實測擷圖量到約 3~4 像素），
+--   只是它的端帽貼圖橫向超出按鈕矩形、把空隙補起來了：
+--     `PanelTabButtonTemplate`（SharedUIPanelTemplates.xml:927,932）
+--       `Left` 錨 TOPLEFT x=-3、`Right` 錨 TOPRIGHT x=+7
+--     `AchievementFrameTabButtonTemplate`（Blizzard_AchievementUI.xml:253,260）
+--       `Left` 錨 TOPLEFT x=-4、`Right` 錨 TOPRIGHT x=+4
+--   九張貼圖一 alpha 0，那個空隙就露出底下的地形 —— 這就是第二輪擷圖裡
+--   「分頁之間的紅棕色殘片」的真身：不是漏中和的貼圖，是**沒有東西去補的縫**。
+--
+--   只往**右**補（不往左）是為了讓接縫上只有一條線：配方一律由左往右
+--   （`for i = 1, N`）套，所以第 n+1 顆的 overlay 建得比較晚、畫在上面，
+--   它的左邊線壓在第 n 顆的右延伸上 ⇒ 每個接縫剛好一條 1px 黑線，
+--   最左邊留左邊線、最右邊留右邊線。兩邊都補的話接縫會變成兩條平行線。
+local TAB_OVERHANG = {
+    panel  = 7,   -- uiframe-tab-right 錨在 TOPRIGHT x=+7
+    legacy = 4,   -- UI-Achievement-Header 的右端帽錨在 TOPRIGHT x=+4
+}
+
 local LEGACY_TAB_TEXTURES = {
     "LeftActive", "MiddleActive", "RightActive",
     "Left", "Middle", "Right",
@@ -191,7 +240,15 @@ function Skin.Tab(tab, key, kind)
         E.NeutralizeKeys(tab, LEGACY_TAB_TEXTURES, key)
     end
 
-    local ov = E.Overlay(tab, { key = key, skipEdges = { "TOP" } })
+    local overhang = TAB_OVERHANG[kind or "panel"] or TAB_OVERHANG.panel
+    local ov = E.Overlay(tab, {
+        key = key,
+        skipEdges = { "TOP" },
+        points = {
+            { "TOPLEFT", "TOPLEFT", 0, 0 },
+            { "BOTTOMRIGHT", "BOTTOMRIGHT", overhang, 0 },
+        },
+    })
     E.Paint(ov, T.fill, T.border)
 
     -- 未選中的文字白色走 NormalFont；選中（＝Disabled 狀態）的白字與停用的灰字
@@ -264,10 +321,27 @@ end
 --   SearchBoxTemplate      → searchIcon、clearButton.Icon、Instructions（繼承自
 --                            InputBoxInstructionsTemplate）
 ------------------------------------------------------------
-function Skin.EditBox(eb, key)
+-- opts:
+--   globalPrefix  舊式視窗的三張切片**只有全域名字、沒有 parentKey**
+--                 （`<Texture name="$parentLeft">`，郵件的收件人／主旨、
+--                  `ThinGoldEdgeTemplate`、查詢頁的欄位表頭都是這種），
+--                 `NeutralizeKeys` 找不到 ⇒ 改用全域名字掃。
+--                 傳 `true` 表示「前綴就是 key」。
+--   points        overlay 改用自訂錨點。**舊式輸入框一定要給** ——
+--                 它的邊框美術跟 EditBox 的矩形不一樣大（收件人框是 109x25，
+--                 但三張切片只涵蓋 TOPLEFT(-8,-2) 到 116x20 的範圍），
+--                 直接 SetAllPoints 畫出來的方塊會比暴雪原本的美術大一圈，
+--                 往右壓到旁邊的「郵資」。常數一律從 XML 的錨點抄，不要量測。
+function Skin.EditBox(eb, key, opts)
     if not E.Usable(eb, key) then return end
+    opts = opts or {}
 
     E.NeutralizeKeys(eb, { "Left", "Right", "Middle" }, key)
+
+    if opts.globalPrefix then
+        local prefix = opts.globalPrefix == true and key or opts.globalPrefix
+        E.NeutralizeGlobals({ prefix .. "Left", prefix .. "Middle", prefix .. "Right" })
+    end
 
     local icon
     if pcall(function() icon = eb.searchIcon end) and icon then
@@ -287,7 +361,7 @@ function Skin.EditBox(eb, key)
         end
     end
 
-    local ov = E.Overlay(eb, { key = key })
+    local ov = E.Overlay(eb, { key = key, points = opts.points })
     E.Paint(ov, T.fillInset, T.border)
     return ov
 end
@@ -302,6 +376,23 @@ end
 -- 勾勾本身**不中和**：那是「值」不是裝飾，中和掉玩家就看不出有沒有勾。
 -- 底色用比面板亮一階的 fillCheck（共用層 CHECKBOX_FILL 的理由：沒勾的時候
 -- 它是唯一「什麼都沒有」的控件）。
+--
+-- ⚠ **已勾的樣式換成「整格填滿職業色」，不是保留暴雪的勾／圓點。**
+--   第二輪實測（寄信頁的「寄送金錢／付款取信」）看得很清楚：
+--   `UIRadioButtonTemplate` 的已勾是 `UI-RadioButton` 的第二格 —— 一顆為了亮色
+--   圓鈕設計的小圓點，放進 16 像素的深色方框裡幾乎看不見。
+--   `UICheckButtonTemplate` 的 `UI-CheckBox-Check` 也是同一個問題。
+--   換成滿色之後「有沒有勾」＝「這格是不是亮的」，而且跟共用層
+--   `Widgets.lua` 的 `W.CreateCheckButton`（勾＝整條職業色）是同一套顏色語彙。
+--   做法走 `Engine.CheckedTexture` —— C 端自己依狀態顯示／隱藏那張貼圖，
+--   我們只換長相，沒有 `SetChecked`、沒有腳本（見 Engine 那一段）。
+--
+-- ⚠ **邊要畫在前景。** Checked 貼圖的矩形等於按鈕矩形
+--   （`UICheckButtonTemplate` 的 CheckedTexture 沒有 Size／Anchor ⇒ setAllPoints；
+--    `UIRadioButtonTemplate` 的三張都是整顆 16x16 的 TexCoord 切片，
+--    Blizzard_SharedXML/Shared/Button/CheckButtonTemplates.xml:15-23, 46-47）
+--   ⇒ 填滿之後會蓋掉背景 overlay 的 1px 黑邊。所以底走 −1、邊另外走 +1
+--   （`slot = "front"`），跟 StatusBar 的填充條同一個作法。
 ------------------------------------------------------------
 function Skin.CheckBox(cb, key)
     if not E.Usable(cb, key) then return end
@@ -314,13 +405,14 @@ function Skin.CheckBox(cb, key)
     end
     E.ButtonStates(cb, key)
 
-    if type(cb.GetCheckedTexture) == "function" then
-        local ok, tex = pcall(cb.GetCheckedTexture, cb)
-        if ok and tex then E.VertexColor(tex, T.text, key .. ".Checked") end
-    end
+    local checked = { T.AccentCheck(1) }
+    local checkedDisabled = { T.AccentCheckDisabled(1) }
+    E.CheckedTexture(cb, checked, checkedDisabled, key)
 
     local ov = E.Overlay(cb, { key = key })
     E.Paint(ov, T.fillCheck, T.border)
+    -- 邊畫在已勾的填色之上
+    Skin.BorderOnly(cb, key)
     return ov
 end
 
@@ -331,9 +423,13 @@ end
 -- 一排都有邊會變成格子紙。
 ------------------------------------------------------------
 -- opts:
---   fill    底色（預設 fill；`alt = true` 是舊的簡寫，等同 fillInset）
---   border  給邊（清單列預設沒有邊；成就列是一列一張卡片，那個要邊）
---   keys    順便中和的 parentKey 區域
+--   fill      底色（預設 fill；`alt = true` 是舊的簡寫，等同 fillInset）
+--   border    給邊（清單列預設沒有邊；成就列是一列一張卡片，那個要邊）
+--   keys      順便中和的 parentKey 區域
+--   points    overlay 改用自訂錨點
+--   ownHover  **兩態都自己畫**：把暴雪的 Highlight 中和掉，滑過與選中都走
+--             `Engine.TrackSelectable`。只有「暴雪的 Highlight 矩形跟按鈕矩形
+--             不一樣大」的列需要這一條，理由與代價寫在 Engine 那一段。
 function Skin.Row(btn, key, opts)
     if not E.Usable(btn, key) then return end
     if opts == true then opts = { fill = T.fillInset } end   -- 舊的 `alt` 簽章
@@ -345,14 +441,28 @@ function Skin.Row(btn, key, opts)
             if ok and tex then E.Neutralize(tex, key .. "." .. getter) end
         end
     end
-    E.ButtonStates(btn, key)
+
+    if opts.ownHover then
+        -- Highlight 一起中和 ⇒ 暴雪的 LockHighlight（選中）也跟著看不見，
+        -- 選中與滑過兩態全部由 Engine.TrackSelectable 畫在同一個矩形上。
+        if type(btn.GetHighlightTexture) == "function" then
+            local ok, hl = pcall(btn.GetHighlightTexture, btn)
+            if ok and hl then E.Neutralize(hl, key .. ".GetHighlightTexture") end
+        end
+    else
+        E.ButtonStates(btn, key)
+    end
 
     if opts.keys then
         E.NeutralizeKeys(btn, opts.keys, key)
     end
 
-    local ov = E.Overlay(btn, { key = key, noBorder = not opts.border })
+    local ov = E.Overlay(btn, { key = key, noBorder = not opts.border, points = opts.points })
     E.Paint(ov, opts.fill or T.fill, opts.border and T.border or nil)
+
+    if opts.ownHover then
+        E.TrackSelectable(btn, ov, opts.fill or T.fill)
+    end
     return ov
 end
 
@@ -379,23 +489,169 @@ function Skin.Icon(tex, key, owner)
 end
 
 ------------------------------------------------------------
+-- ItemButton：物品格（裝備欄、附件格、信件圖示鈕……）
+--
+-- 出處（12.1.0.69875）：
+--   Blizzard_ItemButton/Shared/ItemButtonTemplate.xml:4
+--     `ItemButton` intrinsic：`icon`（BORDER）、`Count`/`Stock`（ARTWORK）、
+--     `searchOverlay`、`ItemContextOverlay`、`IconBorder`、`IconOverlay`、
+--     `IconOverlay2`（OVERLAY 各子層）＋ `NormalTexture`（UI-Quickslot2，64x64）
+--     ＋ `PushedTexture` ＋ `HighlightTexture`
+--   Blizzard_ItemButton/Mainline/ItemButtonTemplate.lua:189
+--     `SetItemButtonBorder_Base` → `IconBorder:SetShown(asset ~= nil)` ＋
+--     `SetAtlas`／`SetTexture`（`Interface\Common\WhiteIconFrame`，**圓角**）
+--   同檔 :210 `SetItemButtonQuality_Base` → 上面那支 ＋
+--     `SetItemButtonBorderVertexColor`（:127）餵品質色
+--   同檔 :76 `SetItemButtonTexture_Base` → `icon:SetTexture(...)`
+--     ⇒ **每次更新都會把 texCoord 打回 0,1,0,1**，裁邊一定要放 reapply
+--
+-- 三個不同的「格子」都走這一支（欄位名字不一樣，所以兩種都找）：
+--   * `ItemButton` intrinsic —— 圖示叫 `icon`（小寫）。裝備欄、讀信附件格、
+--     `OpenMailLetterButton`／`OpenMailMoneyButton` 都是。
+--   * 手寫的格子 —— 圖示叫 `Icon`（大寫）。收件匣每列的信件鈕
+--     （`MailItemTemplate` 的 `$parentButton`，MailFrame.xml:71-99）是這種，
+--     它是 `CheckButton` 不是 `ItemButton`，但一樣有 `IconBorder`。
+--   * 只有 `IconBorder` 沒有圖示欄位的 —— 寄信附件格（`SendMailAttachment`，
+--     MailFrame.xml:173），圖示是 `SetItemButtonTexture` 從
+--     `GetItemButtonIconTexture` 拿的，取不到就只畫框、不裁邊。
+--
+-- 做什麼：
+--   1. 暴雪那張**圓角**品質邊框中和（alpha 0）—— 圓角跟這包的直角語彙對不上。
+--      ⚠ 一定要 alpha 不能換材質：`SetItemButtonBorder_Base` 每次更新都
+--        `SetAtlas`／`SetTexture` 回去。
+--   2. 自己畫一圈**直角方框**，邊寬走 `T.itemBorderSize`（預設 1px，走 P.Scale）。
+--      顏色是**轉交**暴雪邊框當下的顏色（`Engine.PassBorderColor`，
+--      當傳遞者不當讀取者）；沒有品質就是 1px 黑邊。
+--   3. 圖示裁邊（`T.iconCrop`）。
+--   4. 空格底圖（`NormalTexture`，那張 64x64 的 UI-Quickslot2 雕花）中和，
+--      改成我們自己的 `fillInset` 底 —— 這樣空格看起來就是一個乾淨的深色方塊。
+--
+-- ⚠ **框畫在圖示之上，但要讓得開別的插件的文字。**
+--   套組裡有插件在裝備格上畫裝等／耐久，它把自己的框做成格子的 child 並且
+--   `SetFrameLevel(110)` / `(111)`；我們這一圈邊走 `levelOffset = +1`
+--   （相對格子本身，通常是個位數），穩穩在那兩層之下。
+--
+-- ⚠ 保護框照規矩跳過（`Engine.Overlay` 自己會擋並記進 `/mskin debug`），
+--   **不為物品格開後門**。
+------------------------------------------------------------
+local ITEM_BUTTON_ICON_KEYS = { "icon", "Icon" }
+
+local function ItemButtonIcon(btn)
+    for _, k in ipairs(ITEM_BUTTON_ICON_KEYS) do
+        local tex
+        if pcall(function() tex = btn[k] end) and type(tex) == "table" then
+            return tex
+        end
+    end
+    return nil
+end
+
+-- opts:
+--   noFill     不要畫底（格子底下已經有別的底材時用）
+--   keepNormal 不要中和 NormalTexture（那張雕花空格圖就是這顆按鈕的全部長相時用）
+function Skin.ItemButton(btn, key, opts)
+    if not E.Usable(btn, key) then return end
+    opts = opts or {}
+
+    -- 圓角品質框中和。`IconOverlay`／`IconOverlay2` 是「艾澤萊／腐蝕／造型」那種
+    -- **額外**的圈，它們是資訊不是裝飾，留著。
+    local border
+    if pcall(function() border = btn.IconBorder end) and border then
+        E.Neutralize(border, key .. ".IconBorder")
+    else
+        E.Missing(key .. ".IconBorder")
+    end
+
+    if not opts.keepNormal and type(btn.GetNormalTexture) == "function" then
+        local ok, tex = pcall(btn.GetNormalTexture, btn)
+        if ok and tex then E.Neutralize(tex, key .. ".GetNormalTexture") end
+    end
+    E.ButtonStates(btn, key)
+
+    local icon = ItemButtonIcon(btn)
+    if icon then E.CropIcon(icon, key .. ".icon") end
+
+    if not opts.noFill then
+        local bg = E.Overlay(btn, { key = key, noBorder = true })
+        E.Paint(bg, T.fillInset)
+    end
+
+    -- 方框走前景 slot（+1）：要蓋在圖示之上
+    local ov = E.Overlay(btn, {
+        key = key .. ".quality",
+        levelOffset = 1,
+        borderSize = T.itemBorderSize,
+    })
+    E.Paint(ov, TRANSPARENT, T.border)
+    E.PassBorderColor(ov, border)
+
+    -- 登記進弱鍵表，之後暴雪每次更新這顆格子都會回到 `Skin.ItemButtonRefresh`
+    E.TrackItemButton(btn, key)
+    return ov
+end
+
+-- 每次暴雪更新這顆格子之後要重跑的部分：轉交顏色 ＋ 重裁圖示。
+-- （`SetItemButtonTexture` 會把 texCoord 打回 0,1；品質色本來就是每次更新才有意義。）
+function Skin.ItemButtonRefresh(btn, key)
+    if type(btn) ~= "table" then return end
+    local ov = E.GetOverlay(btn, "front")
+    if not ov then return end
+
+    local border
+    if pcall(function() border = btn.IconBorder end) and border then
+        -- ⚠ 暴雪每次更新都會把它 `SetShown(true)` 回來（SetItemButtonBorder_Base），
+        --   所以中和也要重下一次，不然圓角框會跟我們的方框疊在一起。
+        E.Neutralize(border, key .. ".IconBorder")
+    end
+    E.PassBorderColor(ov, border)
+
+    local icon = ItemButtonIcon(btn)
+    if icon then E.CropIcon(icon, key .. ".icon") end
+end
+
+------------------------------------------------------------
 -- IconButton：一顆「圖就是內容」的小方鈕（通貨頁右上的兌換紀錄鈕）
 --
 -- 圖不中和、只染 textDim：中和掉就變成一顆空白方塊，玩家不知道那顆是什麼。
 -- 底與邊由 overlay 畫，滑過交給引擎。
+--
+-- opts:
+--   inset       overlay 四邊各內縮。給「圖記本身四周帶一大圈透明留白」的按鈕用：
+--               收件匣的翻頁鈕是 32x32，但 `UI-SpellbookIcon-PrevPage-Up` 的箭頭
+--               只佔中間一小塊 ⇒ 框畫成整個按鈕矩形就會比箭頭大一圈、看起來很空。
+--   desaturate  先去飽和再染色。給「顏色烤在素材裡」的圖記用（紅金色的 ＋／− 鈕）。
+--   labelColor  把按鈕自己 region 裡的 FontString 一起染色。舊式按鈕常常把說明字
+--               做成**沒有名字也沒有 parentKey** 的 layer FontString（收件匣翻頁鈕
+--               旁邊的「上頁」「繼續」就是，MailFrame.xml:388,413），
+--               指名不到，只能走 `GetRegions()`。
 ------------------------------------------------------------
-function Skin.IconButton(btn, key)
-    if not E.Usable(btn, key) then return end
+local ICON_BUTTON_TEXTURES = { "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }
 
-    for _, getter in ipairs({ "GetNormalTexture", "GetPushedTexture" }) do
+function Skin.IconButton(btn, key, opts)
+    if not E.Usable(btn, key) then return end
+    opts = opts or {}
+
+    for _, getter in ipairs(ICON_BUTTON_TEXTURES) do
         if type(btn[getter]) == "function" then
             local ok, tex = pcall(btn[getter], btn)
-            if ok and tex then E.VertexColor(tex, T.textDim, key .. "." .. getter) end
+            if ok and tex then
+                if opts.desaturate then
+                    -- 乘法染不出中性灰，先壓成灰階（見 Engine.Desaturate）
+                    E.Desaturate(tex, key .. "." .. getter)
+                end
+                -- 停用態再暗一階：「狀態只換明暗」
+                local c = (getter == "GetDisabledTexture") and T.textDisabled or T.textDim
+                E.VertexColor(tex, opts.color or c, key .. "." .. getter)
+            end
         end
     end
     E.ButtonStates(btn, key)
 
-    local ov = E.Overlay(btn, { key = key })
+    if opts.labelColor then
+        E.RecolorRegions(btn, opts.labelColor, key)
+    end
+
+    local ov = E.Overlay(btn, { key = key, inset = opts.inset, points = opts.points })
     E.Paint(ov, T.fill, T.border)
     return ov
 end
@@ -417,10 +673,24 @@ end
 --   stripArt    true ＝ 連同「沒有名字也沒有 parentKey」的裝飾貼圖一起中和
 --               （物件池 Acquire 出來的框是無名的，`$parentBG`／`$parentBorder*`
 --               連全域名字都沒有）。填充貼圖會被排除。
+--   texture     填充材質。**預設就換成 `T.barTexture`**（套組的細橫紋）；
+--               傳 `false` 才維持暴雪原本那張。理由與「有沒有程式讀回它」的
+--               查證結果寫在 `Engine.BarTexture`。
+--
+-- ⚠ **1px 黑邊要畫在填充條之上（前景 slot），不是之下。**
+--   第二輪實測（聲望頁擷圖）的症狀是「底框的左緣不見了、填充的左端看起來露在
+--   框外」—— 真正的原因是 overlay 的層級是 target−1，而 StatusBar 的填充貼圖
+--   從**條的左緣**開始畫、正好壓在那條黑邊上；條走到哪、黑邊就被蓋到哪，
+--   看起來就像框比條短一截。底（fillInset）留在背景沒問題（填充本來就該蓋住它），
+--   只有邊要提到前景來。
 ------------------------------------------------------------
 function Skin.StatusBar(bar, key, opts)
     if not E.Usable(bar, key) then return end
     opts = opts or {}
+
+    if opts.texture ~= false then
+        E.BarTexture(bar, opts.texture or T.barTexture, key)
+    end
 
     local fill
     if type(bar.GetStatusBarTexture) == "function" then
@@ -442,8 +712,9 @@ function Skin.StatusBar(bar, key, opts)
         E.NeutralizeKeys(bar, opts.keys, key)
     end
 
-    local ov = E.Overlay(bar, { key = key, points = opts.points })
-    E.Paint(ov, T.fillInset, T.border)
+    local ov = E.Overlay(bar, { key = key, points = opts.points, noBorder = true })
+    E.Paint(ov, T.fillInset)
+    Skin.BorderOnly(bar, key, { points = opts.points })
     return ov
 end
 
@@ -478,13 +749,19 @@ end
 --
 -- **只 skin 下拉按鈕本體，彈出的選單不碰**（選單系統是 STYLE.md ⑦ 的 C 級）。
 --
--- overlay 用 `points` 對齊**原本那張背景圖的矩形**而不是按鈕矩形：文字是錨在
--- 按鈕內縮 8 的位置，overlay 只畫按鈕矩形的話字會頂到邊。
-------------------------------------------------------------
+-- overlay **貼齊按鈕本體**，不照原本那張背景圖的矩形。
+--
+-- 第二輪照著 `Background` 的錨點畫（`-8,+7 / +8,-9`），實測起來是一個比按鈕大一圈
+-- 的方塊：上下各多出 7~9，正好壓到下面清單的上緣（聲望／兌換通貨頁的擷圖）。
+-- 那張 atlas 是「有厚邊與圓角的容器」，外框的厚度本來就不該算進我們的矩形裡。
+--
+-- 文字不會頂到邊：`Text` 錨在按鈕 `TOPLEFT x=8 y=-8`（MenuTemplates.xml:24），
+-- 內縮是模板自己給的。右邊留 2 是因為 `Arrow` 錨在 `RIGHT x=1`（同檔 :17）——
+-- 箭頭本來就突出按鈕矩形 1，不留這 2 它會壓在邊線上。
 local DROPDOWN_INSETS = {
-    -- kind = { 左, 上, 右, 下 }（照 XML 的錨點偏移）
-    style1 = { -8, 7, 8, -9 },
-    filter = { -4, 4, 4, -4 },
+    -- kind = { 左, 上, 右, 下 }
+    style1 = { 0, 0, 2, 0 },
+    filter = { 0, 0, 0, 0 },
 }
 
 function Skin.Dropdown(btn, key, kind)

@@ -51,6 +51,11 @@
 -- | CharacterModelFrameBackground{TopLeft,TopRight,BotLeft,BotRight} | SetAlpha(0) |
 -- | PaperDollInnerBorder{TopLeft,TopRight,BottomLeft,BottomRight,Left,Right,Top,Bottom,Bottom2} | SetAlpha(0) |
 -- | 18 個 `Character<Slot>SlotFrame` 貼圖（裝備格的雕花外框） | SetAlpha(0) |
+-- | 18 個 `Character<Slot>Slot` 的 IconBorder / NormalTexture | SetAlpha(0) |
+-- | 同 18 顆的 icon | SetTexCoord |
+-- | 同 18 顆的 Highlight 貼圖 | SetColorTexture |
+-- | 同 18 顆的 IconBorder | IsShown() / GetVertexColor()（**只轉交**，見 STYLE.md ③） |
+-- | 武器欄兩側無名的 `Char-Slot-Bottom-Left/Right` | SetAlpha(0)（GetRegions ＋ keep-set） |
 -- | PaperDollSidebarTabs.DecorLeft / .DecorRight | SetAlpha(0) |
 -- | PaperDollSidebarTab1..3 的 TabBg / Hider | SetAlpha(0) |
 -- | PaperDollSidebarTab1..3 的 Highlight | SetColorTexture |
@@ -68,6 +73,12 @@
 -- | 分類列的 HighlightLeft / HighlightMiddle | SetAlpha(1) ＋ SetColorTexture |
 -- | 分類列的 Name | SetTextColor |
 -- | 聲望列（池化）的 ReputationBar 的 Background / LeftTexture / RightTexture | SetAlpha(0) |
+-- | 同上的填充貼圖 | SetStatusBarTexture（材質；**顏色不碰**） |
+-- | 子分類列（池化）的 ToggleCollapseButton 的 Normal/Pushed/Disabled | SetDesaturated ＋ SetVertexColor（reapply） |
+-- | ReputationDetailFrame 的無名底圖 / Divider / Border 九片 | SetAlpha(0) |
+-- | ReputationDetailFrame 的 Title、三顆勾選框的 Label/Text | SetTextColor |
+-- | 同三顆勾選框的 Normal/Pushed/Disabled | SetAlpha(0)；Checked/DisabledChecked | SetColorTexture |
+-- | ReputationDetailFrame 的 CloseButton / ScrollBar | 同 chrome |
 --
 -- ### 兌換通貨頁（TokenFrame，`Blizzard_TokenUI`）
 --
@@ -78,7 +89,16 @@
 -- | TokenFrame.CurrencyTransferLogToggleButton 的 Normal/Pushed 貼圖 | SetVertexColor |
 -- | 同上的 Highlight 貼圖 | SetColorTexture |
 -- | 分類列（池化） | 同聲望頁的分類列 |
+-- | 子分類列（池化）的 ToggleCollapseButton | 同聲望頁 |
 -- | 通貨列（池化）的 Content.CurrencyIcon | SetTexCoord |
+-- | TokenFramePopup 的 Border 九片 ＋ Bg | SetAlpha(0) |
+-- | TokenFramePopup 的 Title、兩顆勾選框的 Text | SetTextColor |
+-- | 同兩顆勾選框 | 同 ReputationDetailFrame 的勾選框 |
+-- | TokenFramePopup 的 CurrencyTransferToggleButton / CloseButton | 同 chrome |
+-- | CurrencyTransferLog 的整組 chrome ＋ Background（transfer-log-background） | SetAlpha(0) / SetTextColor / SetColorTexture |
+-- | 轉移紀錄列（池化）的 CurrencyIcon | SetTexCoord |
+-- | 同上的 Arrow | SetVertexColor |
+-- | 同上的 SourceName / DestinationName | SetTextColor（reapply） |
 --
 -- 以上各框：`CreateFrame` 掛自己的 overlay（SetAllPoints／錨在目標上，不吃滑鼠）。
 --
@@ -86,25 +106,36 @@
 --   * `hooksecurefunc(CharacterFrame, "SetTitleColor", …)` —— `UpdateDisplay` 每次
 --     都會重設標題色（CharacterFrame.lua:119），不掛勾的話白字撐不過一次切分頁。
 --   * `hooksecurefunc("PaperDollFrame_UpdateSidebarTabs", …)` —— 側邊欄分頁的選中底色。
---   * `Engine.HookRows` 四支 mixin 後置勾（聲望分類列／聲望列／通貨分類列／通貨列）
+--   * `Engine.HookRows` 七支 mixin 後置勾（聲望分類列／聲望列／**聲望子分類列**／
+--     通貨分類列／通貨列／**通貨子分類列**／**轉移紀錄列**）
 --     ＋ 一支 `ListHeaderThreeSliceMixin:CheckHighlightTitle`（只重申文字顏色）。
+--   * Engine 的 `SetItemButtonQuality` / `SetItemButtonTexture` 兩個全域後置勾
+--     （裝備格的品質方框與裁邊，裝在 Core/Engine.lua，第一行查弱鍵表）。
 --   * Engine 的 `PanelTemplates_SelectTab / DeselectTab / SetDisabledTabState`
 --     三個全域後置勾（裝在 Core/Engine.lua，全套組共用一組）。
 --   * 分頁的 `HookScript("OnEnter"/"OnLeave")`（滑過態；模板自己的 OnEnter 保留）。
 --
 -- 寫入暴雪欄位：無。
 --
--- 讀暴雪物件（契約的讀取例外，全部是純 C 端布林／結構查詢）：
+-- 讀暴雪物件（契約的讀取例外）：
 --   * `PaperDollSidebarTabN.Hider:IsShown()` —— 暴雪自己判斷選中態的**同一個**依據
 --     （PaperDollFrame.lua:2678 對選中的那顆 `Hider:Hide()`），在它的後置勾裡讀。
+--     純 C 端布林查詢。
+--   * 裝備格 `IconBorder` 的 `IsShown()` / `GetVertexColor()` ——
+--     **當傳遞者不當讀取者**：四個顏色分量只被原封不動餵進我們自己邊框的
+--     `SetColorTexture`，不存、不比較、不做算術（STYLE.md ③ 的傳遞者規則）。
 --
 ------------------------------------------------------------
 -- ## 刻意不碰的東西
 --
--- * **裝備格按鈕本身**（`PaperDollItemSlotButton` 系）—— 只對它旁邊那張純裝飾的
---   `Character<Slot>SlotFrame` 貼圖 SetAlpha(0)，**不在按鈕上掛 overlay、不掛任何
---   腳本、不碰它的 Normal/Highlight**。那顆按鈕會走拾取／裝備流程，而且這個套組裡
---   有別的插件在上面畫裝等與耐久文字 —— 少碰一樣東西就少一條互相蓋掉的路。
+-- * **裝備格按鈕的腳本與流程** —— 第三輪對按鈕本身做了視覺（`Skin.ItemButton`：
+--   中和圓角品質框與空格雕花、掛自己的 overlay、轉交品質色），但**一個腳本都沒掛**、
+--   拾取／裝備流程一個字都沒碰。
+--   ⚠ 套組裡有別的插件在這些格子上畫裝等與耐久文字（它的框設在層級 110／111），
+--     我們的品質方框是 `target + 1`，壓在它之下；另外那支也 hook 了
+--     `SetItemButtonQuality` 並且**可以選擇**畫自己的直角品質邊框（預設關閉）——
+--     兩邊都開就會有兩圈幾乎重疊的邊，實機要確認。
+-- * **`PaperDollItemSlotButton` 的 `popoutButton`** —— 裝備切換的彈出箭頭，是功能。
 -- * **模型場景**（`CharacterModelScene`）本體、它的旋轉／縮放控制、以及
 --   `CharacterModelFrameBackgroundOverlay`（那是一張純黑遮罩，留著正好讓模型區
 --   比面板再暗一階；而且 `SetPaperDollBackground`（PaperDollFrame.lua:2650）每次
@@ -115,8 +146,10 @@
 --   全是暴雪自己在 `RefreshBackgroundHighlightOpacity`（ReputationFrame.lua:436）
 --   驅動的，而且紅色那一態是**資訊**。我們自己畫只會蓋掉它。
 -- * 聲望條的**填充色** —— `FACTION_BAR_COLORS[reaction]`，中立／友善／崇敬靠它分。
--- * `ReputationDetailFrame` / `TokenFramePopup` / `CurrencyTransferLog` ——
---   彈出小視窗，STYLE.md ⑦ 的 B 級，另外一輪再做。
+--   （**材質**第三輪換掉了，顏色照樣不碰。）
+-- * 子分類列 ＋／− 鈕的**圖形** —— 那是「這一節收起來了沒有」，是資訊不是裝飾，
+--   所以只去飽和＋染色，不中和。
+-- * 比較視窗的頭像／通貨圖示／幣值圖 —— 身分與值。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -125,6 +158,13 @@ local E = ns.Engine
 local T = ns.Tokens
 local S = ns.Secret
 local L = ns.L
+
+-- NineSliceUtil.ApplyLayout 建出來的九片，直接掛在框自己身上
+-- （Blizzard_SharedXML/NineSlice.lua；同 Skins/Achievement.lua 的 BACKDROP_PIECES）
+local NINE_SLICE_PIECES = {
+    "TopLeftCorner", "TopRightCorner", "BottomLeftCorner", "BottomRightCorner",
+    "TopEdge", "BottomEdge", "LeftEdge", "RightEdge", "Center",
+}
 
 -- 標題色守門：暴雪在 UpdateDisplay 裡 SetTitleColor(displayInfo.titleColor)，
 -- 我們只要在它之後再塗一次白。後置勾不會把 taint 帶回暴雪那條執行流。
@@ -244,6 +284,29 @@ local EQUIP_SLOTS = {
 
 local STAT_CATEGORIES = { "ItemLevelCategory", "AttributesCategory", "EnhancementsCategory" }
 
+-- 武器欄兩側那兩塊括號形雕花（`Char-Slot-Bottom-Left` / `-Right`，
+-- PaperDollFrame.xml:906,920）是**無名也沒有 parentKey** 的貼圖，掛在
+-- `CharacterMainHandSlot` / `CharacterSecondaryHandSlot` 自己的 BACKGROUND 層
+-- ⇒ 指名不到，只剩 `GetRegions()`。掃的時候要把「不是裝飾」的留下來：
+-- 圖示、品質框、兩層額外的圈、搜尋遮罩、物品情境遮罩、忽略標記與數量。
+-- （`$parentFrame` 那張 `Char-BottomSlot` **不留** —— 它本來就要中和，
+--   而且它有全域名字，另外一條路已經掃過了，重複中和無害。）
+local WEAPON_SLOT_KEEP = {
+    "icon", "IconBorder", "IconOverlay", "IconOverlay2",
+    "searchOverlay", "ItemContextOverlay", "ignoreTexture",
+}
+
+local function KeepSet(owner, keys)
+    local set = {}
+    for _, k in ipairs(keys) do
+        local region
+        if pcall(function() region = owner[k] end) and type(region) == "table" then
+            set[region] = true
+        end
+    end
+    return set
+end
+
 local function ApplyPaperDoll()
     -- 右側屬性欄的職業底圖（UI-Character-Info-<CLASS>-BG）
     local pane = _G.CharacterStatsPane
@@ -273,9 +336,35 @@ local function ApplyPaperDoll()
 
     E.NeutralizeGlobals(MODEL_BORDER_GLOBALS)
 
-    -- 裝備格：**只動那張純裝飾的外框貼圖**，按鈕本身一個字都不碰。
+    -- 裝備格。
+    --
+    -- 第二輪只對那張純裝飾的外框貼圖（`Character<Slot>SlotFrame`）SetAlpha(0)，
+    -- 按鈕本身完全不碰 —— 所以擷圖裡剩下的是暴雪那圈**圓角**品質邊框，
+    -- 跟這包的直角語彙對不上。第三輪改走 `Skin.ItemButton`：
+    -- 圓角框中和、自己畫一圈直角方框、顏色**轉交**暴雪給的品質色。
+    --
+    -- ⚠ 還是不掛任何腳本、不碰拾取／裝備流程；`Skin.ItemButton` 只做
+    --   SetAlpha／SetTexCoord／SetColorTexture ＋ 自己的 overlay。
+    -- ⚠ 套組裡有插件在這些格子上畫裝等與耐久文字，它把自己的框做成格子的 child
+    --   並且設在很高的層級（110／111），我們這一圈邊是 target+1（個位數），
+    --   壓在它之下，兩邊不會互相蓋。
     for _, slot in ipairs(EQUIP_SLOTS) do
         E.Neutralize(_G["Character" .. slot .. "SlotFrame"], "Character" .. slot .. "SlotFrame")
+        local name = "Character" .. slot .. "Slot"
+        local btn = _G[name]
+        if btn then
+            Skin.ItemButton(btn, name)
+        else
+            E.Missing(name)
+        end
+    end
+
+    -- 武器欄兩側殘留的括號形雕花（見 WEAPON_SLOT_KEEP 上面那段）
+    for _, name in ipairs({ "CharacterMainHandSlot", "CharacterSecondaryHandSlot" }) do
+        local btn = _G[name]
+        if btn then
+            E.NeutralizeRegions(btn, name, KeepSet(btn, WEAPON_SLOT_KEEP))
+        end
     end
 
     SkinSidebarTabs()
@@ -301,6 +390,43 @@ end
 -- 分類列是不是這個模板（SweepRows 補掃時認人用的，讀結構不讀值）
 local function IsThreeSliceHeader(row)
     return type(row) == "table" and row.HighlightMiddle ~= nil and row.Right ~= nil
+end
+
+------------------------------------------------------------
+-- 子分類列的 ＋／− 小鈕（聲望頁的「銀月城宮廷」、兌換通貨頁的「功能」「區域」…）
+--
+-- 出處：
+--   Blizzard_TokenUI/Blizzard_TokenUI.xml:13
+--     `TokenSubHeaderTemplate` 的 `ToggleCollapseButton`（20x20），
+--     Normal/Pushed 是 `campaign_headericon_closed` / `_closedpressed` 的 atlas，
+--     Highlight 是 `UI-PlusButton-Hilight`
+--   Blizzard_TokenUI/Blizzard_TokenUI.lua:200,219   TokenSubHeaderMixin:Initialize → RefreshIcon
+--   Blizzard_UIPanels_Game/Mainline/ReputationFrame.lua:581,602-605  聲望頁的同一套
+--
+-- ⚠ 那張 atlas 是**紅底金框**的，`SetVertexColor` 是乘法，乘不出中性灰
+--   ⇒ 先 `SetDesaturated(true)` 壓成灰階再染 `textDim`（見 Engine.Desaturate）。
+-- ⚠ `RefreshIcon` 每次收合／展開都重設 atlas（`GetNormalTexture():SetAtlas(...)`）
+--   ⇒ 去飽和與染色一律放 **reapply**，不賭「撐不撐得過 SetAtlas」。
+-- ⚠ ＋／− 的**圖形本身是資訊**（這一節收起來了沒有），所以不中和、只換顏色。
+------------------------------------------------------------
+local function SkinCollapseButton(row, prefix)
+    local btn
+    if not (pcall(function() btn = row.ToggleCollapseButton end) and btn) then return end
+    Skin.IconButton(btn, prefix .. ".ToggleCollapseButton", { desaturate = true })
+end
+
+local function RefreshCollapseButton(row, prefix)
+    local btn
+    if not (pcall(function() btn = row.ToggleCollapseButton end) and btn) then return end
+    for _, getter in ipairs({ "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }) do
+        if type(btn[getter]) == "function" then
+            local ok, tex = pcall(btn[getter], btn)
+            if ok and tex then
+                E.Desaturate(tex, prefix .. ".ToggleCollapseButton." .. getter)
+                E.VertexColor(tex, T.textDim, prefix .. ".ToggleCollapseButton." .. getter)
+            end
+        end
+    end
 end
 
 ------------------------------------------------------------
@@ -332,13 +458,97 @@ local function HookReputationRows()
             local bar
             if pcall(function() bar = row.Content.ReputationBar end) and bar then
                 -- ⚠ 不傳 color：填充色是暴雪依聲望等級給的資訊
-                --   （`ReputationBarMixin:UpdateBarColor`，ReputationFrame.lua:619）。
+                --   （`ReputationBarMixin:UpdateBarColor`，ReputationFrame.lua:619），
+                --   而且那一支每次 Initialize 都會重設（.lua:502,524,547）。
+                -- ⚠ 材質**換成套組的細橫紋**（`Skin.StatusBar` 預設就換）：
+                --   `ReputationBarTemplate` 的 `<BarTexture>` 是
+                --   `UI-Character-Skills-Bar`（ReputationFrame.xml:126），自帶漸層與
+                --   上緣高光。查過 `ReputationBarMixin` 沒有任何 `GetStatusBarTexture()`
+                --   的讀回，換材質安全。
                 Skin.StatusBar(bar, "ReputationEntry.ReputationBar", {
                     keys = { "Background", "LeftTexture", "RightTexture" },
                 })
             end
         end,
     }
+
+    -- 子分類列（帶 ＋／− 鈕的那一種）
+    E.HookRows{
+        key    = "ReputationSubHeader",
+        mixin  = _G.ReputationSubHeaderMixin,
+        method = "Initialize",
+        apply  = function(row) SkinCollapseButton(row, "ReputationSubHeader") end,
+        reapply = function(row) RefreshCollapseButton(row, "ReputationSubHeader") end,
+    }
+end
+
+------------------------------------------------------------
+-- 聲望詳情小視窗（點一列聲望之後彈出來的那個）
+--
+-- 出處：Blizzard_UIPanels_Game/Mainline/ReputationFrame.xml:270
+--   `ReputationFrame.ReputationDetailFrame`（212x203，**不是**隨需載入，
+--    跟聲望頁同一個檔就建好了，只是預設 hidden）
+--     ARTWORK 一張無名的 `UI-Character-Reputation-DetailBackground`（260x128）
+--     OVERLAY `Divider`（UI-DialogBox-Divider）
+--     `Border`（DialogBorderTemplate，九片掛在自己身上）
+--     `ScrollingDescription`（ScrollingFontTemplate）＋ `…ScrollBar`
+--     `CloseButton`（UIPanelCloseButton）
+--     三顆勾選框：`AtWarCheckbox`（自己一套美術）、`MakeInactiveCheckbox`、
+--       `WatchFactionCheckbox`（後兩顆是 UICheckButtonTemplate）
+------------------------------------------------------------
+local REP_DETAIL_CHECKBOXES = { "AtWarCheckbox", "MakeInactiveCheckbox", "WatchFactionCheckbox" }
+
+local function ApplyReputationDetail(f)
+    local d
+    if not (pcall(function() d = f.ReputationDetailFrame end) and d) then
+        E.Missing("ReputationFrame.ReputationDetailFrame")
+        return
+    end
+
+    -- 那張底圖與分隔線都**無名無 parentKey** ⇒ GetRegions 掃（只掃 Texture，
+    -- `Title` 是 FontString 自動排除）。`Divider` 有 parentKey，一起掃到也無妨。
+    E.NeutralizeRegions(d, "ReputationDetailFrame")
+    E.NeutralizeChildNineSlices(d, "ReputationDetailFrame")
+
+    local border
+    if pcall(function() border = d.Border end) and border then
+        E.NeutralizeKeys(border, NINE_SLICE_PIECES, "ReputationDetailFrame.Border")
+        E.NeutralizeKeys(border, { "Bg" }, "ReputationDetailFrame.Border")
+    end
+
+    local ov = E.Overlay(d, { key = "ReputationDetailFrame" })
+    E.Paint(ov, T.fill, T.border)
+
+    local title
+    if pcall(function() title = d.Title end) and title then
+        E.TextColor(title, T.text, "ReputationDetailFrame.Title")
+    end
+
+    local close
+    if pcall(function() close = d.CloseButton end) and close then
+        Skin.CloseButton(close, "ReputationDetailFrame.CloseButton")
+    end
+
+    local bar
+    if pcall(function() bar = d.ScrollingDescriptionScrollBar end) and bar then
+        Skin.ScrollBar(bar, "ReputationDetailFrame.ScrollBar")
+    end
+
+    -- `Skin.CheckBox` 第一次派上用場的地方之一（另一個是寄信頁的單選鈕）
+    for _, key in ipairs(REP_DETAIL_CHECKBOXES) do
+        local cb
+        if pcall(function() cb = d[key] end) and cb then
+            Skin.CheckBox(cb, "ReputationDetailFrame." .. key)
+            local label
+            if pcall(function() label = cb.Label end) and label then
+                E.TextColor(label, T.text, "ReputationDetailFrame." .. key .. ".Label")
+            end
+            local text
+            if pcall(function() text = cb.Text end) and text then
+                E.TextColor(text, T.text, "ReputationDetailFrame." .. key .. ".Text")
+            end
+        end
+    end
 end
 
 local function ApplyReputation()
@@ -347,6 +557,8 @@ local function ApplyReputation()
         E.Missing("ReputationFrame")
         return
     end
+
+    ApplyReputationDetail(f)
 
     local dd
     if pcall(function() dd = f.filterDropdown end) and dd then
@@ -412,6 +624,24 @@ local function HookTokenRows()
         end,
     }
 
+    -- 轉移紀錄的列（池化）
+    E.HookRows{
+        key     = "CurrencyTransferLogEntry",
+        mixin   = _G.CurrencyTransferLogEntryMixin,
+        method  = "Initialize",   -- Blizzard_CurrencyTransfer.lua:742
+        apply   = ApplyTransferLogEntry,
+        reapply = ReapplyTransferLogEntry,
+    }
+
+    -- 子分類列的 ＋／− 鈕（跟聲望頁同一套，見 SkinCollapseButton）
+    E.HookRows{
+        key    = "TokenSubHeader",
+        mixin  = _G.TokenSubHeaderMixin,
+        method = "Initialize",
+        apply  = function(row) SkinCollapseButton(row, "TokenSubHeader") end,
+        reapply = function(row) RefreshCollapseButton(row, "TokenSubHeader") end,
+    }
+
     tokenEntrySweep = E.HookRows{
         key    = "TokenEntry",
         mixin  = _G.TokenEntryMixin,
@@ -438,12 +668,147 @@ local function HookTokenRows()
     }
 end
 
+------------------------------------------------------------
+-- 兌換通貨頁的兩個彈出小視窗
+--
+-- 出處：
+--   Blizzard_TokenUI/Blizzard_TokenUI.xml:185  `TokenFramePopup`（197x100，
+--     `Border` 是 SecureDialogBorderTemplate，兩顆 UICheckButtonTemplate、
+--     一顆 `CurrencyTransferToggleButton`、一顆 UIPanelCloseButton）
+--   Blizzard_TokenUI/Blizzard_TokenUI.xml:179  `CurrencyTransferLog`
+--     ← `CurrencyTransferLogTemplate`（Blizzard_CurrencyTransfer.xml:384，
+--        **ButtonFrameTemplate**：有 Inset、有 CloseButton、有 ScrollBox/ScrollBar，
+--        外加一張 `Background`（atlas transfer-log-background）鋪滿 Inset）
+--   Blizzard_TokenUI/Blizzard_CurrencyTransfer.xml:299  `CurrencyTransferLogEntryTemplate`
+--     （`CurrencyIcon` / `CurrencyQuantity` / `SourceName` / `Arrow` / `DestinationName`
+--      ＋ 一個 alpha 0 的 `BackgroundHighlight` 框）
+--
+-- ⚠ 兩個都跟 TokenFrame 住在同一個隨需載入插件裡 ⇒ 走同一個 part，
+--   **不另開設定開關**（玩家看到的是同一個視窗）。
+------------------------------------------------------------
+local TOKEN_POPUP_CHECKBOXES = { "InactiveCheckbox", "BackpackCheckbox" }
+
+local function ApplyTokenPopup()
+    local p = _G.TokenFramePopup
+    if not p then
+        E.Missing("TokenFramePopup")
+        return
+    end
+
+    local border
+    if pcall(function() border = p.Border end) and border then
+        E.NeutralizeKeys(border, NINE_SLICE_PIECES, "TokenFramePopup.Border")
+        E.NeutralizeKeys(border, { "Bg" }, "TokenFramePopup.Border")
+    end
+    E.NeutralizeChildNineSlices(p, "TokenFramePopup")
+
+    local ov = E.Overlay(p, { key = "TokenFramePopup" })
+    E.Paint(ov, T.fill, T.border)
+
+    local title
+    if pcall(function() title = p.Title end) and title then
+        E.TextColor(title, T.text, "TokenFramePopup.Title")
+    end
+
+    for _, key in ipairs(TOKEN_POPUP_CHECKBOXES) do
+        local cb
+        if pcall(function() cb = p[key] end) and cb then
+            Skin.CheckBox(cb, "TokenFramePopup." .. key)
+            local text
+            if pcall(function() text = cb.Text end) and text then
+                E.TextColor(text, T.text, "TokenFramePopup." .. key .. ".Text")
+            end
+        end
+    end
+
+    local toggle
+    if pcall(function() toggle = p.CurrencyTransferToggleButton end) and toggle then
+        Skin.Button(toggle, "TokenFramePopup.CurrencyTransferToggleButton")
+    end
+
+    -- ⚠ 這顆關閉鈕的 parentKey 在 XML 裡寫成 `$parent.CloseButton`
+    --   （Blizzard_TokenUI.xml:231）—— 那是一個**字面上的 key**，不是
+    --   `p.CloseButton`。所以兩種都試，找不到才記進 debug 清單。
+    local close
+    pcall(function() close = p.CloseButton or p["$parent.CloseButton"] end)
+    if close then
+        Skin.CloseButton(close, "TokenFramePopup.CloseButton")
+    else
+        E.Missing("TokenFramePopup.CloseButton")
+    end
+end
+
+local function ApplyCurrencyTransferLog()
+    local log = _G.CurrencyTransferLog
+    if not log then
+        E.Missing("CurrencyTransferLog")
+        return
+    end
+
+    Skin.PortraitChrome(log, "CurrencyTransferLog")
+    Skin.Panel(log, "CurrencyTransferLog")
+
+    -- `transfer-log-background`：鋪滿 Inset 的那張底圖
+    E.NeutralizeKeys(log, { "Background" }, "CurrencyTransferLog")
+
+    local inset
+    if pcall(function() inset = log.Inset end) and inset then
+        Skin.Inset(inset, "CurrencyTransferLog.Inset")
+    end
+
+    local close
+    if pcall(function() close = log.CloseButton end) and close then
+        Skin.CloseButton(close, "CurrencyTransferLog.CloseButton")
+    end
+
+    local bar
+    if pcall(function() bar = log.ScrollBar end) and bar then
+        Skin.ScrollBar(bar, "CurrencyTransferLog.ScrollBar")
+    end
+
+    local empty
+    if pcall(function() empty = log.EmptyLogMessage end) and empty then
+        E.TextColor(empty, T.textDim, "CurrencyTransferLog.EmptyLogMessage")
+    end
+end
+
+-- 紀錄列（池化）。`SourceName` / `DestinationName` 是 `GameFontNormalLeft`（暗金），
+-- 在深底上偏灰 ⇒ 改白。數量（`CurrencyQuantity`）是 `GameFontHighlightRight`（白），
+-- 不動。圖示走 Icon（裁邊＋1px 邊），`Arrow` 染 `textDim`。
+local function ApplyTransferLogEntry(row)
+    local icon
+    if pcall(function() icon = row.CurrencyIcon end) and icon then
+        Skin.Icon(icon, "CurrencyTransferLogEntry.CurrencyIcon")
+    end
+    local arrow
+    if pcall(function() arrow = row.Arrow end) and arrow then
+        E.VertexColor(arrow, T.textDim, "CurrencyTransferLogEntry.Arrow")
+    end
+end
+
+local function ReapplyTransferLogEntry(row)
+    for _, k in ipairs({ "SourceName", "DestinationName" }) do
+        local fs
+        if pcall(function() fs = row[k] end) and fs then
+            E.TextColor(fs, T.text, "CurrencyTransferLogEntry." .. k)
+        end
+    end
+    -- `CurrencyIcon` 每次 Initialize 都被 SetTexture ⇒ 裁邊要重下
+    local icon
+    if pcall(function() icon = row.CurrencyIcon end) and icon then
+        E.CropIcon(icon, "CurrencyTransferLogEntry.CurrencyIcon")
+    end
+end
+
 local function ApplyToken()
     local f = _G.TokenFrame
     if not f then
         E.Missing("TokenFrame")
         return
     end
+
+    ApplyTokenPopup()
+    ApplyCurrencyTransferLog()
 
     local dd
     if pcall(function() dd = f.filterDropdown end) and dd then
