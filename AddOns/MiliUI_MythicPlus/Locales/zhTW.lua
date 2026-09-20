@@ -37,7 +37,7 @@ L["Deaths"] = "死亡"
 -- 結算面板：滑過一列的提示
 L["Total damage"] = "傷害總量"
 L["Total healing"] = "治療總量"
-L["Avoidable damage taken"] = "可避免的傷害"
+L["Avoidable damage taken"] = "可迴避傷害"
 L["Time in combat"] = "戰鬥時間"
 
 -- 結算面板：統計來源的說明

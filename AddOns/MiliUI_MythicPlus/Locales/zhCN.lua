@@ -37,7 +37,7 @@ L["Deaths"] = "死亡"
 -- 结算面板：鼠标提示
 L["Total damage"] = "伤害总量"
 L["Total healing"] = "治疗总量"
-L["Avoidable damage taken"] = "可避免的伤害"
+L["Avoidable damage taken"] = "可规避伤害"
 L["Time in combat"] = "战斗时间"
 
 -- 结算面板：统计来源的说明
