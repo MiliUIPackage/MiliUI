@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收，第二輪（打磨＋任務／郵件／好友）進行中。** `AddOns/MiliUI_Skin/`，TOC 是
+**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（打磨＋任務／郵件／好友，共六個視窗）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
 `## DefaultState: disabled`（PoC 期間 push 也不會讓整包玩家預設吃到），`/mskin` 開設定、
 `/mskin debug` 印每份配方的狀態＋找不到的區域＋因保護框跳過的清單。
 規範全文在 `AddOns/MiliUI_Skin/STYLE.md`（Tokens／契約／模板配方表／新增視窗 checklist／範圍分級），
@@ -56,6 +56,36 @@ metadata:
 - **成就視窗「外框深、內容亮橘羊皮紙」是全套最不協調的** ⇒ 「內容底材保留」不是鐵律：
   要換可以，但必須連同上面所有文字顏色一起接管（暴雪在 Saturate/Desaturate 類路徑會重設）。
 - 角色面板殘留的雕花（屬性欄標題牌、模型內框、裝備格外框）、聲望／通貨頁的下拉與分類標題列要補。
+
+## 第二輪（2026-09-20 同日合併，未實測）
+
+**池化列機制 `Engine.HookRows`（STYLE.md 陷阱 4）**：ScrollBox 的列只能掛在暴雪每次重用列時一定會跑的
+那支上（`hooksecurefunc(XxxMixin, "Init", …)`）。
+- ⚠ **mixin hook 只對之後建立的 frame 生效**（mixin 在 frame 建立時複製函式）⇒ hook 要在
+  登記／ADDON_LOADED 當下就裝、**不過戰鬥閘**；先建好的列用 `ScrollBox:ForEachFrame` 補掃。
+- ⚠ **`CreateFromMixins` 是同一條規則往上一層**：`ListHeaderThreeSliceMixin = CreateFromMixins(ListHeaderVisualMixin)`
+  在檔案載入時就拷貝了，勾父 mixin 追不上，要勾子 mixin。
+- hook 內：弱鍵表分 apply（一次）／reapply（暴雪每次重設的：文字顏色、被打回的 alpha、**`SetTexture` 會把
+  texCoord 打回 0,1** 所以圖示裁邊要放 reapply）；不讀 elementData；出錯一次就停用該 hook。
+- 不用 `ScrollUtil.AddAcquiredFrameCallback`（那是往暴雪的 callback 表寫東西）。
+- 隨需載入的子頁（兌換通貨住在 `Blizzard_TokenUI`）用 `Register` 的 `parts`，共用外層的設定開關。
+
+**下拉 `Skin.Dropdown`**：只 skin 按鈕本體、不碰彈出選單。下拉這個 intrinsic **沒有 HighlightTexture**，
+滑過回饋靠暴雪自己換 Arrow 的 atlas；filter 版的文字顏色由 `baseFontObject` **欄位**驅動 ⇒ 接管不了，維持暗金。
+
+**成就視窗深色化**：重設文字顏色的路徑有四條（`Saturate` 設純黑、`Desaturate`、`Init` 只在 saturatedStyle
+變了才呼叫 Saturate ⇒ 三支都要勾、`AchievementObjectives_DisplayCriteria`）。完成／未完成＝「暴雪呼叫了哪一支」
+決定底色明暗，不讀欄位。分類列的選中與滑過在暴雪是同一張貼圖（LockHighlight）⇒ 選中另走 overlay 底色。
+
+**聲望／通貨分類列的 ＋／− 是烤在右端帽 atlas 裡的**，`Right` 不能中和只能染色。
+**裝備格**：只對獨立裝飾貼圖 `Character<Slot>SlotFrame` SetAlpha(0)，按鈕本體完全不碰。
+
+**任務／郵件／好友**（只做 chrome／按鈕／分頁／捲軸／輸入框，零 hook）：
+- 好友名單頂部分頁是 `TabSystemButtonTemplate`，**不經過 `PanelTemplates_*`** 而且是池化的 ⇒ `Skin.Tab` 不適用，沒做。
+- 郵件的舊式輸入框／ThinGoldEdge 的切片**只有全域名字沒有 parentKey**；金額欄是三個獨立小框（parentKey 小寫 `left`/`right`）。
+  這批 local 小函式標了 `TODO(升格)`。信件列格子美術無名 ⇒ 收件匣目前是深底＋暴雪棕色格線。
+- 套組裡 Postal 掛了一票按鈕在郵件視窗（這一輪不碰），而且會把暴雪的 `OpenAllMail` 藏起來。
+- ⚠ 待測重點：好友名單「傳送訊息」（`ChatFrameUtil.SendTell`）之後 R 鍵回覆還能不能用（[[wow-121-chat-reply-secret-taint]]）。
 
 ## 還沒實機確認的
 
