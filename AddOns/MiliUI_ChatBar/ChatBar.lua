@@ -234,9 +234,14 @@ end
 -- 限制（都來自暴雪的處理器，不是我們選的）：
 --   * 只有**左鍵**會開頻道，右鍵是它的頻道選單 —— 所以「右鍵切替代頻道」做不到，
 --     喊話／回覆／幹部拆成各自一顆；按鈕的右鍵穿透給底下的條，開我們自己的選單。
---   * chatStyle = "im" 時 ChooseBoxForSend 會讀 preferredChatFrame.editBox，Sink 沒有
---     這個欄位；classic（預設）完全不看 frame 是誰。im 的玩家不補這個欄位 —— 補了是
---     我們寫的、暴雪讀了照樣髒，跟以前一樣壞，但不會更壞。
+--   * chatStyle = "im"（介面設定的「即時通訊風格」）時 ChooseBoxForSend 走
+--     `preferredChatFrame:IsShown()` → `return preferredChatFrame.editBox`，**沒有 nil 備援**：
+--     Sink 是裸的 ChatFrameTemplate、沒有這個欄位 ⇒ ActivateChat(nil) 在
+--     ChatFrameUtil.lua:450 硬錯，整排按鈕全死（玩家回報 2026-09-20）。所以下面補
+--     Sink.editBox。這個欄位是我們寫的，im 的玩家讀到它那次執行會髒（R 鍵回秘密名字
+--     那條跟著壞到 /reload）—— 這是 im 樣式下唯一的選擇，Chattynator 的
+--     HyperlinkHandler 同一寫法。classic（預設）在前一個分支就 return 了，
+--     **根本不讀這個欄位**，沒被讀的髒欄位不染任何東西，所以無條件補不傷預設玩家。
 --
 -- 詳見 .claude/notes/wow-121-chat-reply-secret-taint.md
 ------------------------------------------------------------
@@ -250,6 +255,8 @@ Sink:Show()
 -- 模板的 OnLoad 註冊了一整批聊天事件；這顆框只負責收超連結點擊
 Sink:UnregisterAllEvents()
 Sink:SetScript("OnEvent", nil)
+-- im 聊天樣式的備援，見上面「限制」第二點
+Sink.editBox = DEFAULT_CHAT_FRAME.editBox
 -- 滑鼠停在連結區上時，按鈕自己收到的是 OnLeave 而不是 OnEnter —— 連結區是引擎另一個
 -- 滑鼠焦點（暴雪自己的聊天框也因此用游標輪詢管捲軸淡出，不用 OnEnter/OnLeave）。
 -- 按鈕整面都是連結，所以提示要從 propagate 的終點這裡顯示：region 是被滑到的 FontString，

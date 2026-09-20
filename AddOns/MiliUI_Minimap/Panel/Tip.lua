@@ -198,6 +198,10 @@ sink:Show()
 -- 這顆框只負責收超連結事件
 sink:UnregisterAllEvents()
 sink:SetScript("OnEvent", nil)
+-- chatStyle = "im" 時 ChooseBoxForSend 直接回 preferredChatFrame.editBox、沒有 nil 備援，
+-- 裸的 ChatFrameTemplate 沒這個欄位 ⇒ SendTell → ActivateChat(nil) 硬錯。
+-- classic（預設）不讀這個欄位，所以無條件補不染預設玩家；理由全文見 MiliUI_ChatBar 的 Sink 段。
+sink.editBox = DEFAULT_CHAT_FRAME.editBox
 if sink.ScrollBar then sink.ScrollBar:Hide() end
 -- ⚠ OnHyperlinkClick 不能碰（那是暴雪的 method，換掉就回到插件堆疊）。
 --   HookScript 是安全的後掛：暴雪的先跑完、乾淨地開了密語，我們再把名單收掉 ——

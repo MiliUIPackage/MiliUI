@@ -62,8 +62,16 @@ MiliUI_ChatBar 的做法（`ChatBar.lua` 的 Sink 段 ＋ `Sink.xml`）：
   `/w 名字 `，給名單型的東西（MiliUI_Minimap 的好友／公會列）用。
 - 限制都來自暴雪的處理器：**只有左鍵會開頻道**（右鍵是它的頻道選單）⇒ 右鍵切替代頻道
   做不到，喊／回／幹拆成各自一顆，按鈕 `SetPassThroughButtons("RightButton")` 穿透給底下
-  的條開自己的選單；`chatStyle = "im"` 時 `ChooseBoxForSend` 會讀 `preferredChatFrame.editBox`
-  （classic 完全不看 frame），Sink 沒這欄位、也**不要補**（補了是插件寫的、暴雪讀了照樣髒）。
+  的條開自己的選單；`chatStyle = "im"` 時 `ChooseBoxForSend` 走
+  `preferredChatFrame:IsShown()` → `return preferredChatFrame.editBox`，**沒有 nil 備援**。
+  ⚠ **Sink 一定要補 `Sink.editBox = DEFAULT_CHAT_FRAME.editBox`**（2026-09-20 玩家回報）：原本
+  決定「不補」，結果 im 樣式的玩家每點一下就是
+  `ChatFrameUtil.lua:450: attempt to index local 'editBox' (a nil value)`
+  （堆疊：ChatFrame.lua:23 → SetItemRef → ItemRefHandlersShared:42 → OpenChat:407 → ActivateChat），
+  整排按鈕全死 —— 指紋是**堆疊裡一行插件都沒有＋ItemRef 處理器**。補了之後 im 玩家那次執行會髒
+  （R 鍵回秘密名字壞到 /reload），但那是 im 下唯一的選擇，Chattynator 的 HyperlinkHandler 同一寫法；
+  classic 在前一個分支就 return、**不讀這個欄位**，沒被讀的髒欄位不染東西，所以無條件補。
+  MiliUI_Minimap 的 LinkSink（`player:` → SendTell → 同一支）一起補了。
 
 ⚠ 通則：**任何會替玩家開聊天輸入框的插件（點名字密語、頻道按鈕、「回覆」鍵）都必須走這條，
 否則這次登入的 R 鍵就沒了。** 已改走這條的：MiliUI_ChatBar、MiliUI_Minimap（好友／公會列點名字，
