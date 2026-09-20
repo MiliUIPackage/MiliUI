@@ -59,26 +59,54 @@ Engine.State = State
 -- debug 紀錄
 --
 -- 配方裡找不到的區域**只記錄不報錯**：暴雪改版會改名，一個名字對不上不應該讓
--- 整份配方掛掉。`/mskin debug` 把這兩張清單印出來，就是下次改版的待辦。
+-- 整份配方掛掉。`/mskin debug` 把這幾張清單印出來，就是下次改版的待辦。
+--
+-- ⚠ **紀錄要記在「哪一份配方」身上。** 第三輪只有六份配方的時候，一張全域的
+--   `missing` 清單印出來還讀得完；第四輪之後十幾份配方一起套，那張清單會變成
+--   幾十行沒有主人的字串 —— 看得到但查不動。所以現在每一份配方自己帶一格
+--   （`rec.log.missing` / `.protected` / `.forbidden`），只有**執行期**才發生的
+--   紀錄（池化列的 hook、全域物品格後置勾）才落在下面這張共用的表上。
+--   分流的開關是 `currentOwner`：只有在跑某份配方的 hooks／apply／companions
+--   期間它才有值。
 ------------------------------------------------------------
 Engine.log = {
-    neutralized = 0,      -- 成功中和幾個區域
+    neutralized = 0,      -- 成功中和幾個區域（**只算第一次**，見 Engine.Neutralize）
     overlays    = 0,      -- 建了幾個 overlay
-    missing     = {},     -- 配方指名、但物件不存在的區域
+    missing     = {},     -- 配方指名、但物件不存在的區域（執行期發生的那些）
     protected   = {},     -- IsProtected 為真、刻意跳過的框
     forbidden   = {},     -- 動態 forbidden、跳過的框
+    brokenHooks = {},     -- 出過錯、已經被停用的 hook（`/mskin debug` 的第一節）
 }
 
+-- 目前正在跑哪一份配方。nil ＝ 執行期（hook 裡），紀錄落回 Engine.log。
+local currentOwner
+
 local function Note(list, label)
-    if not label then return end
+    if not list or not label then return end
     for _, v in ipairs(list) do
         if v == label then return end
     end
     list[#list + 1] = label
 end
 
+-- 這一筆紀錄該記在誰身上
+local function Bucket(kind)
+    local owner = currentOwner
+    if not owner then return Engine.log[kind] end
+    owner.log = owner.log or {}
+    owner.log[kind] = owner.log[kind] or {}
+    return owner.log[kind]
+end
+
 function Engine.Missing(label)
-    Note(Engine.log.missing, label)
+    Note(Bucket("missing"), label)
+end
+
+-- hook 出錯一次就停用（捲動一次報一百發比少一塊皮嚴重得多）。停用的 hook 是
+-- **最要緊**的一種訊息 —— 它代表「這個視窗從某一刻起就不再上皮了」，所以獨立
+-- 記一張表，`/mskin debug` 放在最上面。
+function Engine.NoteBrokenHook(label)
+    Note(Engine.log.brokenHooks, label)
 end
 
 ------------------------------------------------------------
@@ -93,7 +121,7 @@ local function Usable(obj, label)
         return false
     end
     if S.IsForbiddenObject(obj) then
-        Note(Engine.log.forbidden, label or "?")
+        Note(Bucket("forbidden"), label or "?")
         return false
     end
     return true
@@ -222,6 +250,30 @@ function Engine.RecolorRegions(owner, color, prefix)
             local ok2, kind = pcall(region.GetObjectType, region)
             if ok2 and kind == "FontString" then
                 Engine.TextColor(region, color, (prefix or "?") .. ".text" .. i)
+            end
+        end
+    end
+end
+
+-- 走訪自己的 region，把 **Texture** 全部染成同一個顏色（FontString 不動）。
+--
+-- 給「這張圖是資訊、不能中和，但它連名字都沒有」的情況用。
+-- 實例：好友名單線上／離線之間那條分隔線（`FriendsFrameFriendDividerTemplate`，
+-- Blizzard_FriendsFrame/Mainline/FriendsFrame.xml:50-56）——
+-- 整個模板就是一張**無名**的 `UI-FriendsFrame-OnlineDivider`，中和掉等於把
+-- 「以下是離線的」這條分界線整個拿掉，所以只能染暗一階。
+--
+-- ⚠ 跟 `NeutralizeRegions` 一樣只掃 owner 自己的 region，不遞迴進子框。
+function Engine.TintRegions(owner, color, prefix)
+    if not Usable(owner, prefix) then return end
+    if type(owner.GetRegions) ~= "function" then return end
+    local ok, regions = pcall(function() return { owner:GetRegions() } end)
+    if not ok then return end
+    for i, region in ipairs(regions) do
+        if type(region) == "table" and type(region.GetObjectType) == "function" then
+            local ok2, kind = pcall(region.GetObjectType, region)
+            if ok2 and kind == "Texture" then
+                Engine.VertexColor(region, color, (prefix or "?") .. ".region" .. i)
             end
         end
     end
@@ -435,6 +487,55 @@ function Engine.ButtonFonts(btn, normalFont, label)
 end
 
 ------------------------------------------------------------
+-- 篩選下拉的文字顏色（第四輪才解開的那一條）
+--
+-- `WowStyle1FilterDropdownTemplate` 的 `Text` 是 `GameFontNormal`（暗金），
+-- 壓在我們的 `fillInset` 上偏灰。第二／三輪的結論是「改不了」——
+-- 理由是它的字型物件由 `baseFontObject` **欄位**驅動，而契約禁止寫暴雪欄位。
+--
+-- 第四輪重查（12.1 live），結論改了。完整路徑只有三條，全部查證過：
+--   Blizzard_Menu/MenuTemplates.lua:954  `WowStyle1FilterDropdownMixin:OnLoad`
+--     :960-964 只有**設過** `baseFontObject` 才 `Text:SetFontObject(...)`；
+--              沒設就走 else 把現況記起來 ⇒ 成就視窗那顆根本不會被 OnLoad 改
+--              （Blizzard_AchievementUI.xml:1702-1707 沒有設 baseFontObject）。
+--   同檔 :991  `:OnEnable`  → :994 `Text:SetFontObject(self.baseFontObject)`
+--   同檔 :997  `:OnDisable` → :1000 `Text:SetFontObject(self.disableFontObject)`
+--   同檔 :987  `:OnButtonStateChanged` → :988 **只動 Background 的 atlas**，不碰文字。
+--
+-- 關鍵是後兩條在模板裡是**frame script**，不是只能從 mixin 表走的方法：
+--   Blizzard_Menu/Mainline/MenuTemplates.xml:113,114
+--     `<OnEnable method="OnEnable"/>` / `<OnDisable method="OnDisable"/>`
+-- ⇒ `HookScript` 就接得到，而且**對已經建好的那一顆也有效**
+--   （mixin 後置勾對它沒用：frame 建立時就把函式拷走了，陷阱 4）。
+--   接觸面也只有我們指名的那一顆，不像勾 mixin 表會讓全遊戲的篩選下拉都進來。
+--
+-- 所以這裡對「按鈕的 FontString」破例用 `SetTextColor`（註 ⓔ 的例外）：
+-- 條件是**把所有會重設它的路徑都接住**，而上面那張表就是全部。
+-- 停用態交回暴雪的語彙（`textDisabled`），維持「狀態只換明暗」。
+------------------------------------------------------------
+function Engine.DropdownText(dd, color, disabledColor, label)
+    if not Usable(dd, label) then return end
+    local fs
+    if not (pcall(function() fs = dd.Text end) and fs) then
+        Engine.Missing((label or "?") .. ".Text")
+        return
+    end
+
+    Engine.TextColor(fs, color, (label or "?") .. ".Text")
+
+    -- 重申：兩個 script 都是暴雪自己 SetFontObject 的地方，後掛在它後面就贏。
+    -- ⚠ HookScript 不是 SetScript —— 模板自己的 OnEnable/OnDisable 還要跑
+    --   （`ButtonStateBehaviorMixin.OnEnable` 會重算背景 atlas）。
+    if type(dd.HookScript) ~= "function" then return end
+    pcall(dd.HookScript, dd, "OnEnable", function(self)
+        Engine.TextColor(self.Text, color, label)
+    end)
+    pcall(dd.HookScript, dd, "OnDisable", function(self)
+        Engine.TextColor(self.Text, disabledColor or T.textDisabled, label)
+    end)
+end
+
+------------------------------------------------------------
 -- overlay 掛哪裡（陷阱 2）
 --
 -- 會走訪 children 並讀它們欄位的框一律不當 parent。判斷用「有沒有這些方法」——
@@ -532,13 +633,13 @@ function Engine.Overlay(target, opts)
 
     -- 保護框上不掛 overlay。記下來，`/mskin debug` 看得到。
     if IsProtectedFrame(target) then
-        Note(Engine.log.protected, label or "?")
+        Note(Bucket("protected"), label or "?")
         return nil
     end
 
     local parent = opts.parent or SafeParent(target)
     if IsProtectedFrame(parent) then
-        Note(Engine.log.protected, (label or "?") .. " (parent)")
+        Note(Bucket("protected"), (label or "?") .. " (parent)")
         return nil
     end
 
@@ -908,6 +1009,134 @@ function Engine.SetSelected(btn, selected)
 end
 
 ------------------------------------------------------------
+-- 新式頂部分頁（`TabSystemButtonTemplate` 系）
+--
+-- 出處（12.1 live）：
+--   Blizzard_SharedXML/Shared/TabSystem/TabSystemTemplates.xml:3
+--     `TabSystemButtonArtTemplate`（mixin `TabSystemButtonArtMixin`）——
+--     九張貼圖，parentKey 的名字跟 `PanelTabButtonTemplate` 一模一樣
+--     （LeftActive/MiddleActive/RightActive、Left/Middle/Right、
+--      LeftHighlight/MiddleHighlight/RightHighlight），但 parentArray 叫
+--     **`RotatedTextures`** 不是 `TabTextures`（同檔 :27,32,37,43,48,53,61,66,72）。
+--   同檔 :85,86　`<NormalFont style="GameFontNormalSmall"/>`
+--     ＋ `<HighlightFont style="GameFontHighlightSmall"/>`，**沒有 DisabledFont**。
+--   TabSystemTemplates.lua:41　`TabSystemButtonArtMixin:SetTabSelected(isSelected)`
+--     → 六張 Show/Hide ＋ `SetNormalFontObject(isSelected and selectedFontObject
+--       or unselectedFontObject)`（:51-53，預設 GameFontHighlightSmall／
+--       GameFontNormalSmall）＋ `SetEnabled(not isSelected and …)`（:55）。
+--   同檔 :117　`TabSystemButtonMixin:Init` 最後一行就呼叫 `SetTabSelected(false)`。
+--   同檔 :209　`TabSystemMixin:OnLoad` → `CreateFramePool("BUTTON", self, tabTemplate)`。
+--   同檔 :234　`TabSystemMixin:SetTabVisuallySelected` → 逐顆 `tab:SetTabSelected(...)`。
+--
+-- **為什麼不能走 `Engine.TrackTab` 那一套**：這種分頁完全不經過
+-- `PanelTemplates_SelectTab`／`_DeselectTab`／`_SetDisabledTabState`，Engine 的
+-- 那三個全域後置勾一次都不會觸發 —— 套下去會變成「每一顆都畫成閒置」。
+--
+-- **實際被拷貝到 frame 上的是哪一層 mixin**（陷阱 4 ＋ `CreateFromMixins` 那一條）：
+--   `FriendsTabTemplate` → `TabSystemButtonTemplate` → `TabSystemButtonArtTemplate`，
+--   三層各自帶一個 `mixin=`，frame 建立時**三張表都會被逐一拷貝**上去。
+--   `SetTabSelected` 只定義在最底下那一層（`TabSystemButtonArtMixin`，
+--   TabSystemTemplates.lua:41），所以要勾的是**它**。
+--   ⚠ 不要勾 `TabSystemButtonMixin`：`FriendsTabMixin = CreateFromMixins(
+--     TabSystemButtonMixin)`（Blizzard_FriendsFrame/Mainline/FriendsFrame.lua:690）
+--     在**那一行執行時**就把整張表拷貝走了，勾來源追不上（同
+--     `ListHeaderThreeSliceMixin` 那一條）。而 `TabSystemButtonArtMixin` 是
+--     `TabSystemButtonArtMixin = {}`（TabSystemTemplates.lua:4），沒有中間層。
+--
+-- ⚠⚠ **mixin 後置勾對「已經建好的分頁」沒有用，而且這裡幾乎一定來不及。**
+--   分頁是 `TabSystemMixin:AddTab` 從池子借出來的，而各視窗都在自己的 `OnLoad`
+--   裡就把分頁建完（好友名單：`FriendsTabHeaderMixin:OnLoad` → `GenerateHeaderTabs`，
+--   FriendsFrame.lua:554）—— OnLoad 跑在該插件的檔案執行期，比 `ADDON_LOADED`
+--   還早，更別說我們的 `PLAYER_LOGIN`。
+--   ⇒ 這一支提供**兩條**路，配方兩條都要接：
+--     1. `Engine.TabSystemHooks()`：全域 mixin 後置勾，接住「之後才建的」分頁
+--        （執行期 `AddTab`、隨需載入視窗裡比較晚建的分頁）。放 `hooks` 欄位。
+--     2. `Engine.SyncTabSystem(tab)` / `SyncTabSystemAll()`：**重讀**
+--        `tab.LeftActive:IsShown()` 再重畫。那是暴雪自己判斷選中態的同一個依據
+--        （`SetTabSelected` 把它 `SetShown(isSelected)`，TabSystemTemplates.lua:47），
+--        純 C 端布林、契約讀取例外表上已經有的那一條（`Engine.TrackTab` 的初始同步
+--        用的就是它）。配方把它掛在該視窗「每次切頁都會跑的那支**全域**函式」的
+--        後置勾上（好友名單是 `FriendsFrame_Update`，FriendsFrame.lua:450）。
+--
+-- 三態沿用 `Engine.TrackSelectable`（選中＝AccentFill／滑過＝fillHover／閒置＝fill），
+-- 不另起一套狀態機。
+--
+-- **停用態不畫**：`SetTabEnabled` 住在 `TabSystemButtonMixin` 上，而那張表會被
+-- `CreateFromMixins` 拷走（上面那條）⇒ 勾不到。不賭的作法是交還給暴雪 ——
+-- 它自己在 `SetTabEnabled` 裡把分頁文字包進 `DISABLED_FONT_COLOR`
+-- （TabSystemTemplates.lua:133），停用的分頁靠文字變灰就看得出來。
+------------------------------------------------------------
+local tabSystemButtons = setmetatable({}, { __mode = "k" })
+local tabSystemHooksInstalled = false
+
+-- 選中／未選中的文字都改成白的。
+--
+-- ⚠ 一定要**重申**：`SetTabSelected` 每次都 `SetNormalFontObject(...)`
+--   （TabSystemTemplates.lua:53），未選中那一邊預設是 `GameFontNormalSmall`（暗金）。
+-- ⚠ 選中的分頁會被 `SetEnabled(false)`（同檔 :55），但這個模板**沒有 DisabledFont**
+--   （TabSystemTemplates.xml:85-86 只有 NormalFont／HighlightFont）⇒ 停用狀態照樣
+--   吃 NormalFontObject，暴雪自己就是靠這一點把選中的分頁畫成白字的。
+local function TabSystemFont(tab)
+    if type(tab.SetNormalFontObject) == "function" then
+        pcall(tab.SetNormalFontObject, tab, GameFontHighlightSmall)
+    end
+end
+
+-- 讀一次「暴雪認為這顆選中了沒」。過 Secret.ToBool，問不到就 fail 到閒置。
+local function TabSystemIsSelected(tab)
+    local active
+    pcall(function() active = tab.LeftActive end)
+    if not active or type(active.IsShown) ~= "function" then return nil end
+    local ok, v = pcall(active.IsShown, active)
+    if not ok then return nil end
+    return S.ToBool(v)
+end
+
+function Engine.SyncTabSystem(tab)
+    if not tabSystemButtons[tab] then return end
+    TabSystemFont(tab)
+    Engine.SetSelected(tab, TabSystemIsSelected(tab) == true)
+end
+
+-- 一次重掃所有登記過的新式分頁。配方掛在視窗的全域刷新函式後面就好，
+-- 不必自己記住有哪幾顆。
+function Engine.SyncTabSystemAll()
+    for tab in pairs(tabSystemButtons) do
+        pcall(Engine.SyncTabSystem, tab)
+    end
+end
+
+-- 全域 mixin 後置勾。**放 `Engine.Register` 的 `hooks` 欄位**（戰鬥閘前面）。
+-- 冪等；`TabSystemButtonArtMixin` 不存在就記一筆 missing，不報錯。
+function Engine.TabSystemHooks()
+    if tabSystemHooksInstalled then return end
+    local mixin = _G.TabSystemButtonArtMixin
+    if type(mixin) ~= "table" or type(mixin.SetTabSelected) ~= "function" then
+        Engine.Missing("TabSystemButtonArtMixin:SetTabSelected")
+        return
+    end
+    tabSystemHooksInstalled = true
+    -- ⚠ 第一行就查弱鍵表：這一支是**全遊戲**的新式分頁都會進來的。
+    hooksecurefunc(mixin, "SetTabSelected", function(tab, isSelected)
+        if type(tab) ~= "table" or not tabSystemButtons[tab] then return end
+        TabSystemFont(tab)
+        Engine.SetSelected(tab, S.ToBool(isSelected) == true)
+    end)
+end
+
+-- `Skin.TabSystem` 建完 overlay 之後把分頁交給這裡管。
+function Engine.TrackTabSystem(tab, overlay, key)
+    if not tab or not overlay then return end
+    Engine.TabSystemHooks()
+    tabSystemButtons[tab] = key or true
+    -- 滑過與選中兩態都自己畫：九張貼圖（含 HIGHLIGHT 層那三張）全部中和掉之後，
+    -- 引擎沒有東西可以畫，跟成就分類列同一條退路。
+    Engine.TrackSelectable(tab, overlay, T.fill)
+    TabSystemFont(tab)
+    Engine.SetSelected(tab, TabSystemIsSelected(tab) == true)
+end
+
+------------------------------------------------------------
 -- 池化列（ScrollBox 的 element）—— STYLE.md ③ 的陷阱 4
 --
 -- ScrollBox 的列是物件池借還的：同一個 frame 這一秒是「奧術之塵」、捲兩下之後
@@ -970,7 +1199,7 @@ function Engine.HookRows(spec)
         if not st then
             if spec.requireKnown then return end
             if IsProtectedFrame(row) then
-                Note(Engine.log.protected, key)
+                Note(Bucket("protected"), key)
                 rowState[row] = SKIP
                 return
             end
@@ -986,7 +1215,7 @@ function Engine.HookRows(spec)
         local ok, err = pcall(Handle, row, arg1)
         if not ok then
             broken = true
-            Note(Engine.log.missing, key .. " (hook 已停用)")
+            Engine.NoteBrokenHook(key)
             ns.ReportError(err)
         end
     end
@@ -1068,7 +1297,7 @@ local function RefreshItemButton(btn)
     local ok, err = pcall(ns.Skin.ItemButtonRefresh, btn, key)
     if not ok then
         itemHookBroken = true
-        Note(Engine.log.missing, "SetItemButton* (hook 已停用)")
+        Engine.NoteBrokenHook("SetItemButtonQuality / SetItemButtonTexture")
         ns.ReportError(err)
     end
 end
@@ -1128,7 +1357,9 @@ end
 local pendingCombat = false
 
 -- 一個「單元」＝配方本身或它的一個 part。兩者的欄位長得一樣。
-local function RunUnit(unit)
+-- `owner` 是紀錄要掛在誰身上（part 的 missing 併進外層配方那一格 ——
+-- 玩家看到的是一個視窗，debug 輸出也就不該拆成兩列）。
+local function RunUnit(unit, owner)
     if unit.status == "applied" then return end
 
     if unit.addon and not C_AddOns.IsAddOnLoaded(unit.addon) then
@@ -1139,7 +1370,9 @@ local function RunUnit(unit)
     -- ⚠ hook 先裝，而且**在戰鬥閘前面**。理由見上面那段與陷阱 4。
     if unit.hooks and not unit.hooksDone then
         unit.hooksDone = true
+        currentOwner = owner or unit
         xpcall(unit.hooks, ns.ReportError)
+        currentOwner = nil
     end
 
     -- 戰鬥閘。我們碰的視窗都帶著保護子物件（角色面板的裝備格、UIPanel 管理），
@@ -1156,18 +1389,28 @@ local function RunUnit(unit)
     end
 
     -- ⚠ 每份配方各自 xpcall：一份壞掉不能拖垮其他份，錯誤照常進 ns.errors 與 BugSack。
+    currentOwner = owner or unit
     local ok = xpcall(unit.apply, ns.ReportError)
+    currentOwner = nil
     unit.status = ok and "applied" or "error"
 end
 
+-- ⚠ **設定裡關掉的視窗，一個 hook 都不裝、一個事件都不註冊。**
+--   這道閘擋在 `RunUnit` 之前，而 `RunUnit` 是 `hooks`（mixin 後置勾）、`apply`
+--   （`Engine.TrackItemButton` 的兩個全域後置勾、`Engine.TabSystemHooks`、
+--   `Engine.TrackTab` 的三個 `PanelTemplates_*` 後置勾都是從 apply 裡的原語裝的）
+--   **唯一**的入口 —— 也就是說關掉的配方連接觸面都不會產生。
+--   伴隨元件的事件框同理：`Engine.Boot` 只對啟用中的配方呼叫 `RegisterCompanions`，
+--   而 `RunCompanions` 每次派送前還會再問一次（玩家有可能在同一次登入裡改設定，
+--   雖然要 /reload 才完整生效）。
 local function RunRecipe(rec)
     if not ns.DB.IsWindowEnabled(rec.key) then
         rec.status = "disabled"
         return
     end
-    RunUnit(rec)
+    RunUnit(rec, rec)
     if rec.parts then
-        for _, part in ipairs(rec.parts) do RunUnit(part) end
+        for _, part in ipairs(rec.parts) do RunUnit(part, rec) end
     end
 end
 
@@ -1201,7 +1444,9 @@ local function RunCompanions(event)
     companionPending[event] = nil
     for _, job in ipairs(jobs) do
         if ns.DB.IsWindowEnabled(job.rec.key) then
+            currentOwner = job.rec
             xpcall(job.apply, ns.ReportError)
+            currentOwner = nil
         end
     end
 end
@@ -1263,7 +1508,7 @@ function Engine.Boot()
 end
 
 ------------------------------------------------------------
--- /mskin debug
+-- /mskin debug 的組字
 ------------------------------------------------------------
 local L = ns.L
 
@@ -1276,33 +1521,102 @@ local function StatusText(status)
     return L["Not applied yet"]
 end
 
-function Engine.Report()
-    ns.Print(("v%s  enabled=%s"):format(ns.VERSION, tostring(ns.db and ns.db.enabled)))
-    for _, rec in ipairs(recipes) do
-        print(("  %s: %s"):format(rec.title or rec.key, StatusText(rec.status)))
-        -- part 的名字用暴雪的插件名，那本來就不在地化
-        if rec.parts then
-            for _, part in ipairs(rec.parts) do
-                print(("    · %s: %s"):format(part.addon or "?", StatusText(part.status)))
-            end
+-- 三張問題清單共用的印法：空的就整節不印。
+--
+-- ⚠ **有問題的才展開。** 十幾份配方一起套，把每一條 missing 都攤平印出來會是
+--   幾十行沒有主人的字串；狀態列上先給一個數字，要看細節再往下讀那一節。
+local PROBLEM_SECTIONS = {
+    { key = "missing",   title = "Regions not found (Blizzard may have renamed them):" },
+    { key = "protected", title = "Skipped because the frame is protected:" },
+    { key = "forbidden", title = "Skipped because the object is forbidden:" },
+}
+
+local function ProblemCount(log)
+    if not log then return 0 end
+    local n = 0
+    for _, sec in ipairs(PROBLEM_SECTIONS) do
+        local list = log[sec.key]
+        if list then n = n + #list end
+    end
+    return n
+end
+
+local function PrintProblems(log, indent)
+    if not log then return end
+    for _, sec in ipairs(PROBLEM_SECTIONS) do
+        local list = log[sec.key]
+        if list and #list > 0 then
+            print(indent .. L[sec.title])
+            for _, v in ipairs(list) do print(indent .. "  " .. v) end
         end
     end
+end
+
+------------------------------------------------------------
+-- /mskin debug
+--
+-- 版面（第四輪改的，理由見上面那段）：
+--
+--   [米利的介面外觀] v0.1.0  enabled=true
+--     hook: 已停用                  ← 只有真的停用過才出現，而且排在最上面
+--       AchievementCategory
+--     對話: 已套用
+--     角色資訊: 已套用  (3)         ← 括號是問題筆數，有才印
+--       找不到的區域（暴雪可能改名了）:
+--         TokenFramePopup.CloseButton
+--     …
+--     已中和的區域: 312 / 已建立的覆蓋層: 180
+--     沒有記錄到錯誤
+--
+-- 「hook 已停用」排最上面是因為它跟別的紀錄不同級：missing 是「少中和一塊」，
+-- hook 停用是「這個視窗從某一刻起整個不再上皮」。
+------------------------------------------------------------
+function Engine.Report()
+    ns.Print(("v%s  enabled=%s"):format(ns.VERSION, tostring(ns.db and ns.db.enabled)))
+
+    -- ① 停用掉的 hook（最要緊，排最前面）
+    if #Engine.log.brokenHooks > 0 then
+        print(("  hook: %s"):format(L["Disabled"]))
+        for _, v in ipairs(Engine.log.brokenHooks) do print("    " .. v) end
+    end
+
+    -- ② 每份配方一行，有問題才展開
+    for _, rec in ipairs(recipes) do
+        local status = StatusText(rec.status)
+        -- part 沒跟上外層的就在同一行點名（`· Blizzard_TokenUI: 等待暴雪插件載入`），
+        -- 不再為了一句「已套用」多印一列
+        if rec.parts then
+            local lagging = {}
+            for _, part in ipairs(rec.parts) do
+                if part.status ~= rec.status then
+                    -- 暴雪的插件名本來就不在地化
+                    lagging[#lagging + 1] = ("%s: %s"):format(part.addon or "?", StatusText(part.status))
+                end
+            end
+            if #lagging > 0 then
+                status = ("%s  · %s"):format(status, table.concat(lagging, ", "))
+            end
+        end
+
+        local n = ProblemCount(rec.log)
+        if n > 0 then
+            print(("  %s: %s  (%d)"):format(rec.title or rec.key, status, n))
+            PrintProblems(rec.log, "    ")
+        else
+            print(("  %s: %s"):format(rec.title or rec.key, status))
+        end
+    end
+
+    -- ③ 執行期（hook 裡）發生的紀錄 —— 沒有主人，單獨一節
+    if ProblemCount(Engine.log) > 0 then
+        print("  hook:")
+        PrintProblems(Engine.log, "    ")
+    end
+
     print(("  %s %d / %s %d"):format(
         L["Regions neutralized:"], Engine.log.neutralized,
         L["Overlays:"], Engine.log.overlays))
 
-    if #Engine.log.missing > 0 then
-        print("  " .. L["Regions not found (Blizzard may have renamed them):"])
-        for _, v in ipairs(Engine.log.missing) do print("    " .. v) end
-    end
-    if #Engine.log.protected > 0 then
-        print("  " .. L["Skipped because the frame is protected:"])
-        for _, v in ipairs(Engine.log.protected) do print("    " .. v) end
-    end
-    if #Engine.log.forbidden > 0 then
-        print("  " .. L["Skipped because the object is forbidden:"])
-        for _, v in ipairs(Engine.log.forbidden) do print("    " .. v) end
-    end
     if #ns.errors == 0 then
         print("  " .. L["No errors recorded"])
     else

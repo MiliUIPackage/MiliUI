@@ -19,6 +19,16 @@
 --   Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:660   ButtonFrameBaseTemplate（Bg／TopTileStreaks／CloseButton）
 --   Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:684   ButtonFrameTemplate（$parentInset）
 --
+-- 第四輪重查的結論：**這個視窗不用跟進任何一項引擎改動。**
+--   * 沒有 `WowStyle1DropdownTemplate` 系的下拉（整份 QuestFrame.xml 一個 `Dropdown` 都沒有）。
+--   * 沒有 `WowScrollBoxList` 池化列（獎勵格與對話選項是靜態的，而且我們本來就不碰）。
+--   * 六顆面板按鈕在 XML 裡**沒有**自訂字型物件（`:67,90,99,193,202,225` 都只有
+--     `inherits="UIPanelButtonTemplate"`）⇒ `Skin.Button` 的預設路徑正確，不需要 `keepFont`。
+--   * 沒有分頁 ⇒ 第三輪的「分頁縫」修正與這裡無關。
+--   * 羊皮紙**維持保留**。想要深底亮字的任務視窗，暴雪內建的「任務文字對比」
+--     無障礙設定就會成對換掉底與字 —— 那條路留給使用者決定，這包不動 CVar
+--     （見 STYLE.md ③ 的「內容底材規則」備註）。
+--
 -- 查證後跟計畫假設不一樣的兩件事：
 --   1. **QuestFrame 不是 `UIThemeContainerFrame`**（對話視窗才是），所以沒有
 --      `UIThemeContainerMixin:UpdateBackground` 那條「換主題時重設背景」的行為。

@@ -259,6 +259,143 @@ function Skin.Tab(tab, key, kind)
 end
 
 ------------------------------------------------------------
+-- TabSystem：新式分頁（`TabSystemButtonTemplate` 系）
+--
+-- 出處（12.1 live）：
+--   Blizzard_SharedXML/Shared/TabSystem/TabSystemTemplates.xml:3
+--     `TabSystemButtonArtTemplate`：九張貼圖，parentKey 的名字跟
+--     `PanelTabButtonTemplate` 一模一樣，但 parentArray 叫 **`RotatedTextures`**
+--     （同檔 :27,32,37,43,48,53,61,66,72）。
+--   同檔 :89 `TabSystemButtonTemplate`（10x32）、:98 `TabSystemTopButtonTemplate`
+--     （多一個 `isTabOnTop=true`）、:110 `TabSystemTemplate`（← HorizontalLayoutFrame，
+--     `spacing` 預設 **1**，同檔 :125）。
+--   TabSystemTemplates.lua:6 `HandleRotation`：`isTabOnTop` 的分頁把九張貼圖
+--     旋轉 180°，端帽改成往**左**外擴 6／7（同檔 :13,18）。
+--
+-- 這是**通用**原語：專業、收藏這些新式視窗的頂部分頁全都是這一套，之後會大量重用。
+--
+-- 狀態機、兩條同步路徑（mixin 後置勾 ＋ 重讀 `LeftActive:IsShown()`）與
+-- 「為什麼不能沿用 `Skin.Tab`」全部寫在 `Core/Engine.lua` 的 `Engine.TrackTabSystem`
+-- 那一段 —— 配方只要記得把 `Engine.TabSystemHooks()` 放進 `hooks`、
+-- 把 `Engine.SyncTabSystemAll()` 掛在視窗的全域刷新函式後面。
+--
+-- opts:
+--   onTop     分頁掛在內容的**上方**（`isTabOnTop=true`）⇒ 與內容相連的是**下邊**，
+--             那一邊不畫。預設 false（跟模板的 `isTabOnTop` 預設一致，相連的是上邊）。
+--             ⚠ 由**配方**指定，不從 `tab.isTabOnTop` 讀 —— 那是暴雪的欄位，
+--               不在讀取例外表上；而配方本來就知道自己接的是哪個模板。
+--   overhang  overlay 往右多畫幾點，把分頁之間的縫補起來。預設 **1** ＝
+--             `TabSystemTemplate` 的 `spacing`（TabSystemTemplates.xml:125）。
+--             理由跟 `Skin.Tab` 的 `TAB_OVERHANG` 一樣：只往右補，接縫上只留一條線。
+------------------------------------------------------------
+local TAB_SYSTEM_TEXTURES = {
+    "LeftActive", "MiddleActive", "RightActive",
+    "Left", "Middle", "Right",
+    "LeftHighlight", "MiddleHighlight", "RightHighlight",
+}
+
+function Skin.TabSystem(tab, key, opts)
+    if not E.Usable(tab, key) then return end
+    opts = opts or {}
+
+    -- 首選 parentArray（九張一次掃完，暴雪加減貼圖也跟得上），
+    -- 陣列不在就退回逐一點名。
+    local arr
+    if pcall(function() arr = tab.RotatedTextures end) and type(arr) == "table" then
+        for i, tex in ipairs(arr) do
+            E.Neutralize(tex, key .. ".RotatedTextures[" .. i .. "]")
+        end
+    else
+        E.NeutralizeKeys(tab, TAB_SYSTEM_TEXTURES, key)
+    end
+
+    local overhang = opts.overhang or 1
+    local ov = E.Overlay(tab, {
+        key = key,
+        skipEdges = { opts.onTop and "BOTTOM" or "TOP" },
+        points = {
+            { "TOPLEFT", "TOPLEFT", 0, 0 },
+            { "BOTTOMRIGHT", "BOTTOMRIGHT", overhang, 0 },
+        },
+    })
+    E.Paint(ov, T.fill, T.border)
+
+    -- 三態（選中／滑過／閒置）＋ 白字，全部收在 Engine 那一支
+    E.TrackTabSystem(tab, ov, key)
+    return ov
+end
+
+-- 把一整排新式分頁一次套完。
+--
+-- ⚠ **走 `GetChildren()` 認分頁，不讀 `tabSystem.tabs`。**
+--   `TabSystemMixin:AddTab`（TabSystemTemplates.lua:212-221）把分頁收在
+--   `self.tabs` 這個 Lua 陣列裡，但那是暴雪的欄位、不在讀取例外表上。
+--   `GetChildren()` 是表上有的那一條（「讀結構不是讀值」），而且認人的依據
+--   （有沒有 `RotatedTextures` 這個 parentArray）同樣只是問結構。
+-- ⚠ 只掃一次。`FriendsTabHeaderMixin:GenerateHeaderTabs`（FriendsFrame.lua:642）
+--   在 `OnLoad` 就把分頁建完了，之後 `RefreshTabVisibility`（:648）只做
+--   Show/Hide，不會再 `AddTab` ⇒ 掃一次就夠。真的有視窗會在執行期加分頁的話，
+--   那顆會落在 `Engine.TabSystemHooks` 的 mixin 後置勾上（有狀態、沒有 overlay），
+--   到時候再為它想辦法。
+function Skin.TabSystemAll(tabSystem, key, opts)
+    if not E.Usable(tabSystem, key) then return end
+    if type(tabSystem.GetChildren) ~= "function" then
+        E.Missing(key .. ".GetChildren")
+        return
+    end
+    local ok, children = pcall(function() return { tabSystem:GetChildren() } end)
+    if not ok then return end
+
+    local n = 0
+    for _, child in ipairs(children) do
+        local arr
+        if type(child) == "table" and pcall(function() arr = child.RotatedTextures end)
+            and type(arr) == "table" then
+            n = n + 1
+            Skin.TabSystem(child, key .. "." .. n, opts)
+        end
+    end
+    if n == 0 then E.Missing(key .. ".tabs") end
+end
+
+------------------------------------------------------------
+-- StretchButton：`UIMenuButtonStretchTemplate`（那顆銀色九宮格小鈕）
+--
+-- 出處（12.1 live）：
+--   Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:745
+--     九張 `UI-Silver-Button-Up` 的切片，parentKey：
+--     TopLeft / TopRight / BottomLeft / BottomRight /
+--     TopMiddle / MiddleLeft / MiddleRight / BottomMiddle / MiddleMiddle
+--     ＋ HighlightTexture（`UI-Silver-Button-Highlight`，alphaMode ADD，同檔 :839）
+--     ＋ NormalFont/HighlightFont **已經是 `GameFontHighlightSmall`**（白，:836-837）、
+--       DisabledFont `GameFontDisableSmall`（:838）
+--   Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.lua:820
+--     `UIMenuButtonStretchMixin:SetTextures(texture)` 把那九張一起 `SetTexture`，
+--     由 `OnMouseDown`(:832) / `OnMouseUp`(:841) / `OnShow`(:850) / `OnEnable`(:855)
+--     各呼叫一次 ⇒ **一定要 alpha 中和，換材質撐不過一次點擊**（同 `Skin.Button`）。
+--
+-- 三態：滑過交給引擎。**按下沒有視覺** —— 這個模板跟 `UIPanelButtonTemplate` 一樣
+-- 沒有 PushedTexture，它是靠換那九張的材質表示按下的（註 ⓒ 的同一條）。
+-- 字型不碰：NormalFont 本來就是白的。
+------------------------------------------------------------
+local STRETCH_BUTTON_ART = {
+    "TopLeft", "TopRight", "BottomLeft", "BottomRight",
+    "TopMiddle", "MiddleLeft", "MiddleRight", "BottomMiddle", "MiddleMiddle",
+}
+
+function Skin.StretchButton(btn, key, opts)
+    if not E.Usable(btn, key) then return end
+    opts = opts or {}
+
+    E.NeutralizeKeys(btn, STRETCH_BUTTON_ART, key)
+    E.ButtonStates(btn, key)
+
+    local ov = E.Overlay(btn, { key = key, points = opts.points, inset = opts.inset })
+    E.Paint(ov, T.fill, T.border)
+    return ov
+end
+
+------------------------------------------------------------
 -- ScrollBar：`MinimalScrollBar`
 --
 -- 出處：Blizzard_SharedXML/Shared/Scroll/MinimalScrollBar.xml
@@ -624,6 +761,16 @@ end
 --               做成**沒有名字也沒有 parentKey** 的 layer FontString（收件匣翻頁鈕
 --               旁邊的「上頁」「繼續」就是，MailFrame.xml:388,413），
 --               指名不到，只能走 `GetRegions()`。
+--   stripFrame  **Normal/Pushed/Disabled 是「按鈕的殼」而不是「按鈕的圖」時用**：
+--               改成中和那三張，再把真正的圖（`opts.iconKey`，預設 `Icon`）染 textDim。
+--               `SquareIconButtonTemplate` 就是這種形狀：殼是
+--               `UI-SquareButton-Up/Down/Disabled`（Blizzard_SharedXML/Shared/Button/
+--               IconButtonTemplate.xml:53-55），圖是 OVERLAY 層一張獨立的 `Icon`
+--               （同檔 :25）。預設那條路（染 Normal/Pushed/Disabled）是給
+--               「圖就是 NormalTexture」的舊式按鈕用的，兩者不能混。
+--               ⚠ 那三張只寫在 XML 裡，`IconButtonMixin` 完全不重設它們
+--               （同檔 .lua:30-38 只動 `Icon` 的錨點）⇒ alpha 中和撐得住。
+--   iconKey     `stripFrame` 時要染色的那張圖的 parentKey，預設 `"Icon"`。
 ------------------------------------------------------------
 local ICON_BUTTON_TEXTURES = { "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }
 
@@ -635,16 +782,32 @@ function Skin.IconButton(btn, key, opts)
         if type(btn[getter]) == "function" then
             local ok, tex = pcall(btn[getter], btn)
             if ok and tex then
-                if opts.desaturate then
-                    -- 乘法染不出中性灰，先壓成灰階（見 Engine.Desaturate）
-                    E.Desaturate(tex, key .. "." .. getter)
+                if opts.stripFrame then
+                    -- 殼不是內容：整組中和，長相交給 overlay
+                    E.Neutralize(tex, key .. "." .. getter)
+                else
+                    if opts.desaturate then
+                        -- 乘法染不出中性灰，先壓成灰階（見 Engine.Desaturate）
+                        E.Desaturate(tex, key .. "." .. getter)
+                    end
+                    -- 停用態再暗一階：「狀態只換明暗」
+                    local c = (getter == "GetDisabledTexture") and T.textDisabled or T.textDim
+                    E.VertexColor(tex, opts.color or c, key .. "." .. getter)
                 end
-                -- 停用態再暗一階：「狀態只換明暗」
-                local c = (getter == "GetDisabledTexture") and T.textDisabled or T.textDim
-                E.VertexColor(tex, opts.color or c, key .. "." .. getter)
             end
         end
     end
+
+    if opts.stripFrame then
+        local iconKey = opts.iconKey or "Icon"
+        local icon
+        if pcall(function() icon = btn[iconKey] end) and icon then
+            E.VertexColor(icon, opts.color or T.textDim, key .. "." .. iconKey)
+        else
+            E.Missing(key .. "." .. iconKey)
+        end
+    end
+
     E.ButtonStates(btn, key)
 
     if opts.labelColor then
@@ -743,9 +906,13 @@ end
 --    正好是「狀態只換明暗」。這也是這支唯一的滑過回饋：`DropdownButton` 這個
 --    intrinsic（Blizzard_Menu/DropdownButton.xml:3）**沒有 HighlightTexture**，
 --    引擎沒有東西可以畫，而補一張等於對暴雪按鈕做結構性修改（同註 ⓒ）。
--- 3. Text **不碰**：`WowStyle1DropdownMixin` 已經是 HIGHLIGHT_FONT_COLOR（白）。
---    filter 那支是 GameFontNormal（暗金），但它的字型物件由 `baseFontObject`
---    欄位驅動，要改就得寫暴雪欄位 —— 契約禁止，維持暴雪的顏色。
+-- 3. Text：`WowStyle1DropdownMixin` 已經是 HIGHLIGHT_FONT_COLOR（白），不必碰。
+--    filter 那支是 `GameFontNormal`（暗金）—— 第二／三輪的結論是「改不了」
+--    （字型物件由 `baseFontObject` **欄位**驅動，寫欄位是契約禁止的）。
+--    **第四輪重查之後解開了**：會重設它的兩條路 `OnEnable` / `OnDisable`
+--    在模板裡是 **frame script**（Blizzard_Menu/Mainline/MenuTemplates.xml:113,114），
+--    `HookScript` 就接得到，而且對已經建好的那一顆也有效。
+--    走 `opts.textColor` → `Engine.DropdownText`，完整查證寫在那一支的註解裡。
 --
 -- **只 skin 下拉按鈕本體，彈出的選單不碰**（選單系統是 STYLE.md ⑦ 的 C 級）。
 --
@@ -764,14 +931,23 @@ local DROPDOWN_INSETS = {
     filter = { 0, 0, 0, 0 },
 }
 
-function Skin.Dropdown(btn, key, kind)
+-- opts:
+--   textColor  把 `Text` 染成這個顏色，並把暴雪兩條會重設字型物件的 script 接住
+--              （`Engine.DropdownText`）。`style1` 那一支本來就是白字，**不要給**；
+--              只有 `filter` 那一支需要。
+function Skin.Dropdown(btn, key, kind, opts)
     if not E.Usable(btn, key) then return end
+    opts = opts or {}
 
     E.NeutralizeKeys(btn, { "Background" }, key)
 
     local arrow
     if pcall(function() arrow = btn.Arrow end) and arrow then
         E.VertexColor(arrow, T.textDim, key .. ".Arrow")
+    end
+
+    if opts.textColor then
+        E.DropdownText(btn, opts.textColor, T.textDisabled, key)
     end
 
     local inset = DROPDOWN_INSETS[kind or "style1"] or DROPDOWN_INSETS.style1

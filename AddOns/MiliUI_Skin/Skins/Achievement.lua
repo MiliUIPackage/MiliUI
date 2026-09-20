@@ -61,6 +61,15 @@
 -- | AchievementFrame.HeaderDetails.Back（UIPanelButtonTemplate） | SetAlpha(0) / SetColorTexture / SetNormalFontObject |
 -- | AchievementFrame.HeaderDetails.Filters.SearchBox | SetAlpha(0) / SetVertexColor / SetTextColor |
 -- | AchievementFrame.HeaderDetails.Filters.FilterDropdown.Background | SetAlpha(0) |
+-- | 同上的 .Text | SetTextColor ＋ HookScript("OnEnable"/"OnDisable")（第四輪，見下） |
+-- | SearchBox.SearchPreviewContainer 的 Background ＋ 六張邊框拼片 | SetAlpha(0) |
+-- | 五顆 SearchPreview 與 ShowAllSearchResults 的 IconFrame / Normal / Pushed | SetAlpha(0) |
+-- | 同上的 SelectedTexture | SetAlpha(1) ＋ SetColorTexture（白 8%，**不中和**） |
+-- | 同上的 Name / Text | SetTextColor；Icon | SetTexCoord |
+-- | AchievementFrame.SearchResults 的十二張邊框拼片 ＋ 無名石頭底圖 | SetAlpha(0) |
+-- | 同上的 TitleText | SetTextColor；CloseButton / ScrollBar | 同前 |
+-- | 搜尋結果列（池化）的 IconFrame / Normal / Pushed | SetAlpha(0)；Highlight | SetColorTexture |
+-- | 搜尋結果列的 Name / Path / ResultType | SetTextColor；Icon | SetTexCoord（**reapply**） |
 -- | 三個 MinimalScrollBar 的 Track/Thumb 六張貼圖 | SetAlpha(0) |
 -- | 三個 MinimalScrollBar 的 Back/Forward.Texture | SetVertexColor |
 -- | AchievementFrameTab1..3 的九張貼圖 | SetAlpha(0) |
@@ -104,11 +113,16 @@
 -- hook（全部是後置勾，不換函式）：
 --   * Engine 的三個 `PanelTemplates_*` 全域後置勾（成就視窗自己也是走
 --     `PanelTemplates_UpdateTabs` 切分頁，見 Blizzard_AchievementUI.lua:258-260）。
---   * `Engine.HookRows` ×7：分類列的 `Init` 與 `UpdateSelectionState`、
+--   * `Engine.HookRows` ×8：分類列的 `Init` 與 `UpdateSelectionState`、
 --     成就列的 `Init` / `Saturate` / `Desaturate`、統計列的 `Init`、
+--     **搜尋結果列的 `AchievementFullSearchResultsButtonMixin:Init`**、
 --     總結頁列的 `AchievementComparisonPlayerButton_Saturate` / `_Desaturate`（全域）。
+--   * 篩選下拉的 `HookScript("OnEnable")` / `("OnDisable")`（第四輪新增，
+--     `Engine.DropdownText`）—— 只掛在那一顆上，不是全域 mixin。
 --   * `hooksecurefunc("AchievementObjectives_DisplayCriteria", …)` 與
 --     `…_DisplayProgressiveAchievement` —— 展開後的子目標文字色與進度條。
+--   * `hooksecurefunc("AchievementFrame_ShowSearchPreviewResults", …)` —— 搜尋預覽的
+--     圖示每次換結果都被 `SetTexture` 打回 texCoord（.lua:3420），裁邊要重下。
 --   * `hooksecurefunc("AchievementFrameSummary_Refresh", …)` —— 總結頁五列的
 --     `TitleBar` 每次都被設回 0.5（.lua:2364），跟 `_Saturate` 是兩條獨立的路。
 --   * 分類列的 `HookScript("OnEnter"/"OnLeave")`（滑過態；模板自己的 OnEnter 保留，
@@ -134,8 +148,11 @@
 -- * **`Reward` 的金字**、子目標的 `RepCriteria`（綠／紅）—— 深底上讀得到，而且是資訊。
 -- * **成就列的 `Highlight` 框**（UI-Character-ReputationBar-Highlight，ADD 疊加）——
 --   暴雪自己在 OnEnter/OnLeave 顯示隱藏，ADD 疊在深底上正好是一次提亮。
--- * **搜尋預覽／完整搜尋結果**（`SearchPreviewContainer` / `SearchResults`）——
---   STYLE.md ⑦ 的 B 級，會動態建立子框，成本要先量。
+-- * **搜尋預覽列的 `Icon`／搜尋結果列的 `Icon`** 的內容本身 —— 那是成就圖示，是資訊。
+--   （第四輪查證推翻了「搜尋預覽會動態建立子框」這個假設：五顆預覽列在
+--    `Blizzard_AchievementUI.xml:1778-1801` 就寫死了，Lua 全檔沒有 `CreateFrame`。）
+-- * **搜尋預覽的 `SelectedTexture`** —— 不中和。它同時是「滑過」與「方向鍵選取」的
+--   訊號（暴雪在 :1832-1835 把 HighlightTexture 註解掉並寫明理由），中和掉就兩個都沒了。
 -- * **比較視窗的頭像與頭像底**（`…HeaderPortrait` / `…HeaderPortraitBg`）——
 --   頭像是身分，底下那塊純黑方塊是它的襯底，拿掉頭像會直接貼在面板上。
 -- * **彈出的下拉選單**（`Filters.FilterDropdown` 展開後的那張）—— C 級，只 skin 按鈕本體。
@@ -301,6 +318,9 @@ local function SkinHeader(f)
     end
 end
 
+-- 前置宣告：`SkinHeaderDetails` 要用它，但它的定義（連同一整段查證註解）排在下面
+local SkinSearchPreview
+
 local function SkinHeaderDetails(f)
     local hd
     if not (pcall(function() hd = f.HeaderDetails end) and hd) then
@@ -325,17 +345,245 @@ local function SkinHeaderDetails(f)
     local search
     if pcall(function() search = filters.SearchBox end) and search then
         Skin.EditBox(search, "AchievementFrame.HeaderDetails.Filters.SearchBox")
+        SkinSearchPreview(search)
     else
         E.Missing("AchievementFrame.HeaderDetails.Filters.SearchBox")
     end
 
     -- 篩選下拉跟聲望／通貨頁的是同一族（都是 DropdownButton ＋ ButtonStateBehaviorMixin），
     -- 只是背景 atlas 不同、沒有 Arrow ⇒ kind = "filter"。
+    --
+    -- ⚠ `textColor`：第二／三輪把「篩選」兩個字的暗金留著，理由是它的字型物件由
+    --   `baseFontObject` 欄位驅動、寫欄位是契約禁止的。第四輪重查
+    --   `WowStyle1FilterDropdownMixin` 之後改了：會重設它的只有
+    --   `OnEnable`（Blizzard_Menu/MenuTemplates.lua:994）與
+    --   `OnDisable`（同檔 :1000），而這兩支在模板裡是 **frame script**
+    --   （Blizzard_Menu/Mainline/MenuTemplates.xml:113,114）⇒ `HookScript` 接得到。
+    --   `OnLoad`（:960-964）只有設過 `baseFontObject` 才動文字，而成就視窗這顆沒設
+    --   （Blizzard_AchievementUI.xml:1702-1707 的 KeyValues 裡沒有那一條）。
+    --   `OnButtonStateChanged`（:987-989）只換 Background 的 atlas，不碰文字。
+    --   三條路全部查過 ⇒ 接得住，破例對按鈕的 FontString 用 SetTextColor（註 ⓔ 的例外）。
     local dd
     if pcall(function() dd = filters.FilterDropdown end) and dd then
-        Skin.Dropdown(dd, "AchievementFrame.HeaderDetails.Filters.FilterDropdown", "filter")
+        Skin.Dropdown(dd, "AchievementFrame.HeaderDetails.Filters.FilterDropdown", "filter",
+            { textColor = T.text })
     else
         E.Missing("AchievementFrame.HeaderDetails.Filters.FilterDropdown")
+    end
+end
+
+------------------------------------------------------------
+-- 搜尋預覽（打字時掉下來的那五列 ＋「顯示全部結果」）
+--
+-- 出處（12.1 live）：
+--   Blizzard_AchievementUI.xml:1724 `SearchBox.SearchPreviewContainer`
+--     —— 裸 `<Frame>`，不繼承任何模板。自己的美術：
+--     `Background`（atlas `_search-rowbg`，:1731）＋ 六張邊框拼片
+--     `BorderAnchor`（**名字叫 anchor，其實是左下角那張圖**，:1739）、
+--     `BotRightCorner`（:1745）、`BottomBorder`（:1751）、`LeftBorder`（:1757）、
+--     `RightBorder`（:1763）、`TopBorder`（:1769）。
+--   同檔 :1778-1801　五顆 `SearchPreview1..5`（inherits `AchievementSearchPreviewButton`）
+--   同檔 :1803　`ShowAllSearchResults`（**不繼承那個模板**，要另外點名）
+--   同檔 :14　`AchievementSearchPreviewButton`，`parentArray="searchPreviews"`
+--     —— 五顆同時掛在 `SearchPreviewContainer.searchPreviews[1..5]`，Lua 端
+--     （.lua:3320,3412,3554）就是走這個陣列。
+--   同檔 :18,26,50,52　`SelectedTexture`（atlas `search-highlight`）、
+--     `IconFrame`（atlas `search-iconframe-large`）、NormalTexture／PushedTexture
+--     （都是 `_search-rowbg`）
+--   同檔 :40,46　`Name`（`GameFontNormalSmall`，XML 裡硬寫了一組米金色）
+--
+-- ⚠ **靜態的**：五顆按鈕在 XML 就建好了（:1778 起），Lua 全檔沒有 `CreateFrame`
+--   ——`AchievementSearchPreviewButton_OnLoad`（.lua:3654）只是回頭查自己的 index。
+--   ⇒ 一次套完就好，不必走池化列那一套。
+--
+-- ⚠ **`Background` 一定要用 alpha 中和**：`AchievementFrameSearchBox_OnUpdate`
+--   （.lua:3376）`Background:Show()`、`AchievementFrame_ShowSearchPreviewResults`
+--   （.lua:3440）`Background:Hide()` —— 那是「搜尋中／有結果」兩種狀態的切換。
+--   Hide 掉會被 :3376 叫回來；alpha 是獨立屬性，撐得過去。
+--
+-- ⚠ **滑過態不是 HighlightTexture**：這個模板**沒有** HighlightTexture
+--   （:14-60 只有 Normal/Pushed；`ShowAllSearchResults` 的那張在 :1832-1835 被註解掉了，
+--    暴雪自己寫「改成用手動的，這樣方向鍵才能移動選取」）。
+--   滑過與鍵盤選取共用 `SelectedTexture`，由 `AchievementFrame_SetSearchPreviewSelection`
+--   （.lua:3552，:3558/:3569 Hide、:3581/:3583 Show）開關。
+--   ⇒ 那一張**留著不中和**，只把它換成我們的白 8%（`Engine.HighlightTexture`
+--      連 `SetAlpha(1)` 一起下）—— 顯示與否仍然完全是暴雪說了算。
+------------------------------------------------------------
+local SEARCH_PREVIEW_ART = {
+    "Background", "BorderAnchor", "BotRightCorner",
+    "BottomBorder", "LeftBorder", "RightBorder", "TopBorder",
+}
+
+-- 套過皮的那五顆預覽列（給下面重裁圖示用）。
+-- ⚠ 存**我們自己**的一份陣列，不是每次去 `SearchPreviewContainer.searchPreviews`
+--   重讀 —— 少一次對暴雪欄位的存取，而且那五顆是靜態的，抓一次就夠。
+local searchPreviewRows = {}
+
+-- 一列預覽（五顆 ＋「顯示全部結果」共用）
+local function SkinSearchPreviewRow(btn, key)
+    if not E.Usable(btn, key) then return end
+
+    -- Normal/Pushed 是那條 `_search-rowbg` 色帶（列的底），中和掉換成我們的 Row。
+    -- `IconFrame` 是圖示外那圈金框，跟成就列的 `Icon.frame` 同一種裝飾。
+    E.NeutralizeKeys(btn, { "IconFrame" }, key)
+
+    -- ⚠ `SelectedTexture` **不中和**：它是暴雪的選取／滑過訊號（.lua:3558-3583），
+    --   只換長相。Engine.HighlightTexture 會連 SetAlpha(1) 一起下。
+    local sel
+    if pcall(function() sel = btn.SelectedTexture end) and sel then
+        E.HighlightTexture(sel, key .. ".SelectedTexture")
+    end
+
+    Skin.Row(btn, key)
+
+    -- 兩種列的文字欄位名字不一樣（`Name` / `Text`），兩個都試
+    for _, k in ipairs({ "Name", "Text" }) do
+        local fs
+        if pcall(function() fs = btn[k] end) and fs then
+            E.TextColor(fs, T.text, key .. "." .. k)
+        end
+    end
+
+    -- 圖示（只有五顆預覽列有）
+    local icon
+    if pcall(function() icon = btn.Icon end) and icon then
+        Skin.Icon(icon, key .. ".Icon")
+        searchPreviewRows[#searchPreviewRows + 1] = icon
+    end
+end
+
+-- ⚠ `AchievementFrame_ShowSearchPreviewResults`（.lua:3420）每次都
+--   `searchPreview.Icon:SetTexture(icon)`，而 `SetTexture` 會把 texCoord 打回
+--   `0,1,0,1`（陷阱 4 的同一條）⇒ 裁邊每次都要重下。
+--   這一支不是池化列，所以不走 `Engine.HookRows`，直接後掛那支全域函式。
+local function RecropSearchPreviewIcons()
+    for i = 1, #searchPreviewRows do
+        E.CropIcon(searchPreviewRows[i], "AchievementSearchPreview.Icon")
+    end
+end
+
+function SkinSearchPreview(searchBox)   -- 指派給上面的前置宣告，不是全域
+    local container
+    if not (pcall(function() container = searchBox.SearchPreviewContainer end) and container) then
+        E.Missing("AchievementFrame…SearchBox.SearchPreviewContainer")
+        return
+    end
+
+    E.NeutralizeKeys(container, SEARCH_PREVIEW_ART, "AchievementSearchPreview")
+    local ov = E.Overlay(container, { key = "AchievementSearchPreview" })
+    E.Paint(ov, T.fill, T.border)
+
+    -- 五顆走 parentArray（暴雪加減列數我們自動跟上）
+    local previews
+    if pcall(function() previews = container.searchPreviews end) and type(previews) == "table" then
+        for i, btn in ipairs(previews) do
+            SkinSearchPreviewRow(btn, "AchievementSearchPreview." .. i)
+        end
+    else
+        E.Missing("AchievementSearchPreview.searchPreviews")
+    end
+
+    -- ⚠ 「顯示全部結果」**不在** `searchPreviews` 陣列裡（它不繼承那個模板，:1803）
+    local showAll
+    if pcall(function() showAll = container.ShowAllSearchResults end) and showAll then
+        SkinSearchPreviewRow(showAll, "AchievementSearchPreview.ShowAll")
+    else
+        E.Missing("AchievementSearchPreview.ShowAllSearchResults")
+    end
+end
+
+------------------------------------------------------------
+-- 完整搜尋結果視窗（`AchievementFrame.SearchResults`）
+--
+-- 出處（12.1 live）：
+--   Blizzard_AchievementUI.xml:2582　`AchievementFrame.SearchResults`
+--     —— 裸 `<Frame>`，**沒有全域名字**。外框是手工拼的 13 張具名貼圖（下表），
+--     不是 NineSlice 也不是 BackdropTemplate。
+--   同檔 :2589　一張**無名**的 `UI-Background-Rock`（帶 `<Color 0.9/0.8/0.7>`）
+--     ⇒ 整個視窗裡唯一只能走 `GetRegions()` 的區域。
+--   同檔 :2598　`TitleText`（`GameFontNormal`）
+--   同檔 :2605-2675　`TopLeftCorner` / `TopRightCorner` / `TopBorder` /
+--     `BottomLeftCorner` / `BottomRightCorner` / `BottomBorder` /
+--     `LeftBorder` / `RightBorder` / `TopTileStreaks` /
+--     `TopLeftCorner2` / `TopRightCorner2` / `TopBorder2`（標題列下面那條分隔框）
+--   同檔 :2678　`CloseButton`（`UIPanelCloseButton`）
+--   同檔 :2688　`ScrollBox`（`WowScrollBoxList`）、:2695 `ScrollBar`（`MinimalScrollBar`）
+--   同檔 :62　`AchievementFullSearchResultsButtonTemplate`，
+--     mixin `AchievementFullSearchResultsButtonMixin`（.lua:3462）
+--   同檔 :66,74,103,105,107　`IconFrame`（`search-iconframe-large`）、`Icon`、
+--     NormalTexture／PushedTexture（`_SearchBarLg`）、**HighlightTexture**
+--     （atlas `search-highlight-large`）—— 這一種列**有**正規的 HighlightTexture，
+--     跟上面的預覽列不同 ⇒ 滑過交給引擎。
+--
+-- ⚠ 列的 `Init`（.lua:3464）只做 `SetText` / `SetTexture`，**不重設顏色或 alpha**
+--   ⇒ reapply 只留「`SetTexture` 會打回 texCoord」那一條（圖示裁邊）。
+------------------------------------------------------------
+local SEARCH_RESULTS_ART = {
+    "TopLeftCorner", "TopRightCorner", "TopBorder",
+    "BottomLeftCorner", "BottomRightCorner", "BottomBorder",
+    "LeftBorder", "RightBorder", "TopTileStreaks",
+    "TopLeftCorner2", "TopRightCorner2", "TopBorder2",
+}
+
+local function ApplySearchResultRow(row)
+    E.NeutralizeKeys(row, { "IconFrame" }, "AchievementSearchResult")
+    Skin.Row(row, "AchievementSearchResult")
+
+    for _, k in ipairs({ "Name", "Path", "ResultType" }) do
+        local fs
+        if pcall(function() fs = row[k] end) and fs then
+            E.TextColor(fs, k == "Name" and T.text or T.textDim,
+                "AchievementSearchResult." .. k)
+        end
+    end
+
+    local icon
+    if pcall(function() icon = row.Icon end) and icon then
+        Skin.Icon(icon, "AchievementSearchResult.Icon")
+    end
+end
+
+-- `Init`（.lua:3471）每次 `Icon:SetTexture(...)`，而 SetTexture 會把 texCoord
+-- 打回 0,1,0,1 ⇒ 裁邊一定要重下（陷阱 4）。其餘什麼都不用重申。
+local function ReapplySearchResultRow(row)
+    local icon
+    if pcall(function() icon = row.Icon end) and icon then
+        E.CropIcon(icon, "AchievementSearchResult.Icon")
+    end
+end
+
+local function SkinSearchResults(f)
+    local sr
+    if not (pcall(function() sr = f.SearchResults end) and sr) then
+        E.Missing("AchievementFrame.SearchResults")
+        return
+    end
+
+    E.NeutralizeKeys(sr, SEARCH_RESULTS_ART, "AchievementFrame.SearchResults")
+    -- 那張石頭底圖無名（XML:2589）⇒ 只能掃 region。這一層沒有別的裝飾貼圖，
+    -- 具名的十二片上面已經中和過（Engine.Neutralize 冪等，掃到也只是再下一次 alpha）。
+    E.NeutralizeRegions(sr, "AchievementFrame.SearchResults")
+
+    local ov = E.Overlay(sr, { key = "AchievementFrame.SearchResults" })
+    E.Paint(ov, T.fill, T.border)
+
+    local title
+    if pcall(function() title = sr.TitleText end) and title then
+        E.TextColor(title, T.text, "AchievementFrame.SearchResults.TitleText")
+    end
+
+    local close
+    if pcall(function() close = sr.CloseButton end) and close then
+        Skin.CloseButton(close, "AchievementFrame.SearchResults.CloseButton")
+    else
+        E.Missing("AchievementFrame.SearchResults.CloseButton")
+    end
+
+    local bar
+    if pcall(function() bar = sr.ScrollBar end) and bar then
+        Skin.ScrollBar(bar, "AchievementFrame.SearchResults.ScrollBar")
+    else
+        E.Missing("AchievementFrame.SearchResults.ScrollBar")
     end
 end
 
@@ -408,13 +656,29 @@ local ACHIEVEMENT_ART = {
 --   只在 apply 裡中和一次，第二次重用這一列就會把那條藍／棕漸層標題帶整條打回來
 --   —— 這就是第二輪擷圖裡「每一列上方都還有一條漸層帶」的成因。
 --
---   `Icon.frame`（那圈雕花金框）與 `Icon.bling` 也一起放進來。它們在原始碼裡只被
---   `SetTexture`／`SetTexCoord`／`SetPoint`（.lua:1205-1207, 1219-1221）與
---   `SetVertexColor`（`AchievementIcon_Saturate`/`_Desaturate`，.lua:1040,1046）碰，
---   理論上 alpha 0 撐得住 —— 但第二輪實測是「**未完成的列有金框、已完成的沒有**」
---   （擷圖 10 第 5 列、擷圖 11 第 1/2/4/5 列），而未完成正好是
---   「`Init` 每次都無條件呼叫 `Desaturate`」（.lua:1294）的那一條路。
---   源碼上找不到能解釋它的那一行 ⇒ 不賭，改成每次重申。成本是一列三發 SetAlpha。
+--   `Icon.frame`（那圈雕花金框）也在這一組。第二輪的症狀是「**未完成的列有金框、
+--   已完成的沒有**」，第三輪找不到解釋所以整組（含 `Icon.bling`）一起重申。
+--
+--   ⚠ **第四輪把路徑追完了，結論是「重申保留，但可以縮到只剩 `Icon.frame`」。**
+--   會碰到那圈金框的只有兩支，而且兩支都只用 `SetVertexColor`：
+--       Blizzard_AchievementUI.lua:1038 `AchievementIcon_Desaturate`
+--         → :1040 `self.frame:SetVertexColor(.75, .75, .75, **1**)`
+--       同檔 :1044 `AchievementIcon_Saturate`
+--         → :1046 `self.frame:SetVertexColor(1, 1, 1, **1**)`
+--   兩支的呼叫路徑**不對稱**，而那個不對稱正好等於症狀：
+--       未完成 → `Init` 的 :1294 **無條件** `self:Desaturate()` → :1445 `Icon:Desaturate()`
+--                → :1040 每次都跑 ⇒ 金框回來
+--       已完成 → `Init` 的 :1288 有 `if self.saturatedStyle ~= saturatedStyle` 擋著
+--                ⇒ 重用一列而樣式沒變時 :1046 **不跑** ⇒ 金框維持中和
+--   （全檔的 `SetAlpha` 只有 .lua:1204,1211,1215,1218,1225,1229,2222,2227,2364,2528,
+--     2976,2981 那幾行，**沒有一行**作用在 `Icon.frame`／`bling` 上。）
+--   我們不在配方裡去賭「vertex alpha 跟 region alpha 是相乘還是同一條」——
+--   相關性是 1:1，重申的成本又只有一發 SetAlpha，所以保留重申。
+--
+--   ⚠ **`Icon.bling` 從這一組拿掉了**（這就是「reapply 縮回最小」的那一刀）：
+--   它在模板裡就是 `hidden="true"`（Blizzard_AchievementUI.xml:671），而整個
+--   `Blizzard_AchievementUI.lua` **沒有任何一處 `bling:Show()`** ⇒ 它從來不會顯示，
+--   中和它本來就是多餘的一發。
 local ACHIEVEMENT_ART_VOLATILE = { "TitleBar", "BottomTsunami1", "TopTsunami1" }
 
 -- 總結頁／比較頁的列走 `ComparisonPlayerTemplate`（XML:1138），美術比成就列少一半
@@ -428,8 +692,9 @@ local function NeutralizeVolatileArt(row, key)
     E.NeutralizeKeys(row, ACHIEVEMENT_ART_VOLATILE, key)
     local icon
     if pcall(function() icon = row.Icon end) and icon then
-        -- frame＝那圈雕花金框、bling＝取得時的閃光。兩張都是裝飾。
-        E.NeutralizeKeys(icon, { "frame", "bling" }, key .. ".Icon")
+        -- frame ＝那圈雕花金框。`bling`（取得時的閃光）**不處理**：
+        -- 模板裡就是 hidden（Blizzard_AchievementUI.xml:671），Lua 從來沒有 Show 過它。
+        E.NeutralizeKeys(icon, { "frame" }, key .. ".Icon")
     end
 end
 
@@ -704,7 +969,7 @@ end
 ------------------------------------------------------------
 -- hook 安裝（**不過戰鬥閘**，理由見 STYLE.md ③ 的陷阱 4）
 ------------------------------------------------------------
-local categorySweep, achievementSweep, statSweep
+local categorySweep, achievementSweep, statSweep, searchResultSweep
 
 local function InstallHooks()
     categorySweep = E.HookRows{
@@ -754,6 +1019,20 @@ local function InstallHooks()
         reapply = AchievementDim,
     }
 
+    -- 完整搜尋結果的列。`Init`（.lua:3464）是唯一的重用入口 ——
+    -- view 那邊（.lua:3493）是匿名閉包，但它轉呼叫的是具名 mixin 方法，勾得到；
+    -- 而且 **沒有 ElementResetter**，所以只有這一支。
+    searchResultSweep = E.HookRows{
+        key     = "AchievementSearchResult",
+        mixin   = _G.AchievementFullSearchResultsButtonMixin,
+        method  = "Init",
+        match   = function(row)
+            return type(row) == "table" and row.Path ~= nil and row.ResultType ~= nil
+        end,
+        apply   = ApplySearchResultRow,
+        reapply = ReapplySearchResultRow,
+    }
+
     statSweep = E.HookRows{
         key     = "AchievementStat",
         mixin   = _G.AchievementStatTemplateMixin,
@@ -795,6 +1074,13 @@ local function InstallHooks()
         end)
     else
         E.Missing("AchievementFrameSummary_Refresh")
+    end
+
+    -- 搜尋預覽的圖示每次換結果都被 `SetTexture` 打回 texCoord（.lua:3420）
+    if type(_G.AchievementFrame_ShowSearchPreviewResults) == "function" then
+        hooksecurefunc("AchievementFrame_ShowSearchPreviewResults", RecropSearchPreviewIcons)
+    else
+        E.Missing("AchievementFrame_ShowSearchPreviewResults")
     end
 
     if type(_G.AchievementObjectives_DisplayCriteria) == "function" then
@@ -841,6 +1127,7 @@ local function Apply()
 
     SkinSummary()
     SkinComparison(f)
+    SkinSearchResults(f)
 
     for i = 1, 3 do
         local key = "AchievementFrameTab" .. i
@@ -876,6 +1163,10 @@ local function Apply()
     if _G.AchievementFrameStats
         and pcall(function() box = _G.AchievementFrameStats.ScrollBox end) and box then
         E.SweepRows(box, "AchievementFrameStats.ScrollBox", statSweep)
+    end
+    box = nil
+    if pcall(function() box = f.SearchResults.ScrollBox end) and box then
+        E.SweepRows(box, "AchievementFrame.SearchResults.ScrollBox", searchResultSweep)
     end
 end
 

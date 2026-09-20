@@ -8,6 +8,15 @@
 --
 -- GossipFrame 是 `UIThemeContainerFrame`，繼承 `ButtonFrameTemplate`。
 --
+-- 第四輪重查的結論：**這個視窗不用跟進任何一項引擎改動。**
+--   * 沒有下拉、沒有分頁、沒有 `WowScrollBoxList` 池化列。
+--   * 唯一的按鈕（再見）是 `UIPanelButtonTemplate`，沒有自訂字型物件
+--     ⇒ `Skin.Button` 的預設路徑正確，不需要 `keepFont`。
+--     （`GossipFrame.xml:109` 那個 `<NormalFont style="QuestFontLeft"/>` 是
+--      `GossipTitleButtonArtTemplate` 的，也就是羊皮紙上的對話選項列 —— 我們不碰。）
+--   * 羊皮紙**維持保留**；想要深底亮字就開暴雪的「任務文字對比」無障礙設定，
+--     這包不動 CVar（見 STYLE.md ③ 的「內容底材規則」備註）。
+--
 ------------------------------------------------------------
 -- ## taint 接觸面清單（這份配方碰了哪些暴雪物件、各用了哪個白名單動作）
 --
