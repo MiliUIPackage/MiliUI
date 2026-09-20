@@ -127,6 +127,7 @@
 -- | InboxFrameBg | SetAlpha(0) |
 -- | MailItem1..7 自己的三張無名貼圖（兩片棕框 ＋ 列底那條 0.33/0.16/0 的線） | SetAlpha(0)（GetRegions 掃） |
 -- | MailItem1..7ButtonSlot（UI-EmptySlot-White） | SetAlpha(0) |
+-- | MailItem1..7 的列底與列間髮絲線 | overlay **parent ＝ MailItem<i>Button**（跟著暴雪的 Show/Hide 一起出現／消失） |
 -- | MailItem1..7Button 的 IconBorder | SetAlpha(0) |
 -- | 同七顆的 Icon | SetTexCoord |
 -- | 同七顆的 NormalTexture（沒有）／Highlight | SetColorTexture |
@@ -224,19 +225,8 @@ local T = ns.Tokens
 local L = ns.L
 
 ------------------------------------------------------------
--- `Engine.NeutralizeRegions` 的「要留下的」set。物品格上的裝飾是無名的、
--- 要留的反而全部有 parentKey ⇒ 列出要留的那一邊才寫得出來。
-local function KeepSet(owner, keys)
-    local set = {}
-    for _, k in ipairs(keys) do
-        local region
-        if pcall(function() region = owner[k] end) and type(region) == "table" then
-            set[region] = true
-        end
-    end
-    return set
-end
-
+-- 物品格上的裝飾是無名的、要留的反而全部有 parentKey ⇒ 列出要留的那一邊才寫得出來。
+-- （第五輪把三份配方各寫一支的 `KeepSet` 升格進 `Engine.KeepSet`。）
 local ATTACHMENT_KEEP = { "icon", "Icon", "IconBorder", "IconOverlay", "IconOverlay2" }
 
 ------------------------------------------------------------
@@ -247,10 +237,28 @@ local ATTACHMENT_KEEP = { "icon", "Icon", "IconBorder", "IconOverlay", "IconOver
 -- 主旨框 220x20，切片涵蓋 x ∈ [-8, 229]、y ∈ [0, -20]
 --   ⇒ TOPLEFT(-8, 0) / BOTTOMRIGHT(229-220 = +9, 0)
 ------------------------------------------------------------
+-- ⚠ 收件人框的右下角**錨在自己的 TOPLEFT 上**，不是 BOTTOMRIGHT（第五輪改的）。
+--
+--   第四輪寫成 `BOTTOMRIGHT (-1, +3)`，也就是「跟著 EditBox 的矩形走」。
+--   但這個框的**視覺**寬度不是 EditBox 的寬度 —— 三張切片是從 `TOPLEFT` 開始
+--   用固定尺寸串起來的（8 ＋ 100 ＋ 8），右端帽落在 `x = 108` 這個定值上，
+--   EditBox 的框再怎麼寬，暴雪畫出來的輸入框就是那 116 點。
+--   實機擷圖 22 的症狀（我們的深色方塊一路伸到「郵資：30」底下、把那行字蓋在
+--   方塊裡）就是跟著框跑、而不是跟著美術跑的結果。
+--
+--   右邊那一塊是誰：`SendMailCostMoneyFrame` 錨 `TOPRIGHT x=-50`（SendMailFrame
+--   寬 384 ⇒ 右緣在 334），「郵資：」是它 BACKGROUND 層一條**無名無 parentKey**
+--   的 `GameFontNormal`，錨 `RIGHT → 它自己的 LEFT x=-3` ⇒ 那條字的左緣位置
+--   由**譯文長度**決定，算不出來也不該算。所以正解不是「往左讓多少」，
+--   而是「不要多畫」——把矩形釘回 XML 寫死的美術範圍就不會撞到任何東西。
+--
+--   幾何：Left 錨 TOPLEFT(-8,-2) 8x20、Middle 100x20、Right 8x20
+--   ⇒ x ∈ [-8, 108]、y ∈ [-2, -22]。
 local NAME_BOX_POINTS = {
     { "TOPLEFT", "TOPLEFT", -8, -2 },
-    { "BOTTOMRIGHT", "BOTTOMRIGHT", -1, 3 },
+    { "BOTTOMRIGHT", "TOPLEFT", 108, -22 },
 }
+-- 主旨框右邊沒有東西，維持跟著框走（真的被誰加寬了，皮也跟著寬比較好看）。
 local SUBJECT_BOX_POINTS = {
     { "TOPLEFT", "TOPLEFT", -8, 0 },
     { "BOTTOMRIGHT", "BOTTOMRIGHT", 9, 0 },
@@ -292,16 +300,32 @@ end
 ------------------------------------------------------------
 local INBOX_ROWS = 7
 
--- 列與列之間靠**隔行明暗**分，不畫格線（feedback-ui-visual-style：一排都有邊
--- 會變成格子紙）。奇數列 `fill`、偶數列 `fillInset`。
-local function RowFill(i)
-    return (i % 2 == 1) and T.fill or T.fillInset
-end
-
+------------------------------------------------------------
+-- 收件匣七列：**列底只在那一列真的有信的時候才畫**
+--
+-- 第四輪走「隔行明暗」（奇 `fill`／偶 `fillInset`）。信箱空的時候七列的底照樣
+-- 都畫著，畫面上就是三條沒有內容的暗帶浮在空白裡（實機擷圖 21）——
+-- 隔行明暗的前提是「每一行都有東西」，這裡不成立。
+--
+-- 怎麼知道「這一列有沒有信」而**不讀任何東西**：
+--   `InboxFrame_Update`（Blizzard_MailFrame/MailFrame.lua）對有信的那幾列
+--   `_G["MailItem"..i.."Button"]:Show()`、對其餘 `:Hide()`
+--   （`MailItemTemplate` 的 `$parentButton` 在 XML 裡本來就是 `hidden="true"`）。
+--   ⇒ 把列底 overlay 的 **parent 設成那顆按鈕**（錨點仍然錨在列上）：
+--     按鈕被藏起來，我們的底跟著消失，按鈕顯示出來就跟著回來。
+--     零讀取、零 hook、零判斷 —— 顯示與否完全由暴雪自己那一行決定。
+--
+-- 列與列之間改用一條髮絲線（`fillHover`，深底上的分隔線要比底**亮**才看得見，
+-- 同 `Skin.SectionTitle`）。線畫在每一列的**上緣**、**第一列不畫** ⇒ 線只會出現
+-- 在兩列之間，不會在最後一列底下留一條沒有下文的收尾線
+-- （feedback-ui-visual-style：「一條線只能有一個語意」）。
+-- 信是由上往下填的，所以第 n 列有線的時候第 n−1 列一定也有信。
+------------------------------------------------------------
 local function SkinInboxRows()
     for i = 1, INBOX_ROWS do
         local key = "MailItem" .. i
         local row = _G[key]
+        local btn = _G[key .. "Button"]
         if not row then
             E.Missing(key)
         else
@@ -312,11 +336,27 @@ local function SkinInboxRows()
             -- 不用列「要留哪些」。
             E.NeutralizeRegions(row, key)
 
-            local ov = E.Overlay(row, { key = key, noBorder = true })
-            E.Paint(ov, RowFill(i))
+            -- parent ＝ 信件鈕（見上）。找不到那顆按鈕就退回掛在列上 ——
+            -- 那是第四輪的行為，至少不會少一塊皮。
+            local ov = E.Overlay(row, { key = key, noBorder = true, parent = btn })
+            E.Paint(ov, T.fill)
+
+            if i > 1 then
+                local rule = E.Overlay(row, {
+                    key = key .. ".rule",
+                    slot = "rule",
+                    parent = btn,
+                    noBorder = true,
+                    height = 1,
+                    points = {
+                        { "TOPLEFT", "TOPLEFT", 0, 0 },
+                        { "TOPRIGHT", "TOPRIGHT", 0, 0 },
+                    },
+                })
+                E.Paint(rule, T.fillHover)
+            end
 
             -- 信件圖示鈕：手寫的 CheckButton，欄位是 `Icon`（大寫）
-            local btn = _G[key .. "Button"]
             if btn then
                 -- `$parentSlot`（UI-EmptySlot-White）是那張 64x64 的空格雕花。
                 -- ⚠ 一定要 alpha：`InboxFrame_Update` 每次都對它
@@ -437,7 +477,7 @@ local function SkinSendMail()
             -- ⇒ 只剩 GetRegions 一條路。掃的時候要把「不是裝飾」的留下來：
             -- `icon` 是內容、`IconBorder` 已經中和過（再掃一次無害但省得重複）、
             -- 兩張 `IconOverlay` 是艾澤萊／造型那種額外的圈，是資訊。
-            E.NeutralizeRegions(btn, name, KeepSet(btn, ATTACHMENT_KEEP))
+            E.NeutralizeRegions(btn, name, E.KeepSet(btn, ATTACHMENT_KEEP))
         else
             E.Missing(name)
         end
@@ -726,15 +766,19 @@ local function Apply()
 
     -- 底部兩顆分頁（收件匣／寄出郵件）。FriendsFrameTabTemplate ← PanelTabButtonTemplate，
     -- 九張貼圖收在 TabTextures parentArray ⇒ kind = "panel"。
+    -- ⚠ 走 `Skin.TabGroup`：第一顆的右緣錨在第二顆的左緣，接縫只留一條 1px 黑線
+    --   （第四輪的「往右多畫 7」在收件匣那一顆右邊畫出兩條，實機擷圖 21）。
+    local tabs = {}
     for i = 1, 2 do
         local key = "MailFrameTab" .. i
         local tab = _G[key]
         if tab then
-            Skin.Tab(tab, key, "panel")
+            tabs[#tabs + 1] = { tab = tab, key = key }
         else
             E.Missing(key)
         end
     end
+    Skin.TabGroup(tabs, { kind = "panel", joined = "TOP" })
 
     SkinInbox()
     SkinSendMail()

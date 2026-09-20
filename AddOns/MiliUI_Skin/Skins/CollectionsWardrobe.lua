@@ -187,17 +187,19 @@ local function Apply()
         return
     end
 
-    -- 頂部兩顆分頁：相連的是**下**邊，而且按鈕矩形首尾相接 ⇒ 左右都不內縮。
-    -- 由左往右套，接縫上只有一條線（同 Skins/Collections.lua 的底部分頁）。
+    -- 頂部兩顆分頁：相連的是**下**邊（`PanelTopTabButtonTemplate` 掛在內容框上緣），
+    -- 按鈕矩形首尾相接（`LEFT → RIGHT x="0"`）⇒ `pad = 0`。
+    -- 第一顆的右緣錨在第二顆的左緣上，接縫只留一條 1px 黑線（`Skin.TabGroup`）。
+    local tabs = {}
     for i, key in ipairs({ "ItemsTab", "SetsTab" }) do
         local tab
         if pcall(function() tab = f[key] end) and tab then
-            Shared.SkinPanelTab(tab, "WardrobeCollectionFrameTab" .. i,
-                { left = 0, right = 0, joined = "BOTTOM" })
+            tabs[#tabs + 1] = { tab = tab, key = "WardrobeCollectionFrameTab" .. i }
         else
             E.Missing("WardrobeCollectionFrame." .. key)
         end
     end
+    Skin.TabGroup(tabs, { kind = "panel", joined = "BOTTOM" })
 
     local search
     if pcall(function() search = f.SearchBox end) and search then

@@ -66,3 +66,5 @@ L["Regions not found (Blizzard may have renamed them):"] = "找不到的區域�
 L["Skipped because the frame is protected:"] = "因為是保護框而跳過:"
 L["Skipped because the object is forbidden:"] = "因為物件被禁止存取而跳過:"
 L["No errors recorded"] = "沒有記錄到錯誤"
+L["Implicitly protected (skinned anyway):"] = "隱式保護的容器（照樣上皮）:"
+L["Deferred until out of combat:"] = "脫戰後才會處理:"

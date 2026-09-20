@@ -683,15 +683,18 @@ local function ApplyChrome()
     -- 底部三顆分頁（地城與團隊搜尋器／玩家對玩家／傳奇鑰石）。
     -- 停用態（沒開 M+ 的賽季）走 `PanelTemplates_SetDisabledTabState`
     -- （SharedUIPanelTemplates.lua:372,481），Engine 的三個後置勾已經接住。
+    -- 走 `Skin.TabGroup`：相鄰兩顆共用一條線、選中那顆的字置中（第五輪）。
+    local tabs = {}
     for i = 1, 3 do
         local key = "PVEFrameTab" .. i
         local tab = _G[key]
         if tab then
-            Skin.Tab(tab, key, "panel")
+            tabs[#tabs + 1] = { tab = tab, key = key }
         else
             E.Missing(key)
         end
     end
+    Skin.TabGroup(tabs, { kind = "panel" })
 end
 
 ------------------------------------------------------------

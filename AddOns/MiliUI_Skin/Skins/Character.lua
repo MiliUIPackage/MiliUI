@@ -296,17 +296,6 @@ local WEAPON_SLOT_KEEP = {
     "searchOverlay", "ItemContextOverlay", "ignoreTexture",
 }
 
-local function KeepSet(owner, keys)
-    local set = {}
-    for _, k in ipairs(keys) do
-        local region
-        if pcall(function() region = owner[k] end) and type(region) == "table" then
-            set[region] = true
-        end
-    end
-    return set
-end
-
 local function ApplyPaperDoll()
     -- 右側屬性欄的職業底圖（UI-Character-Info-<CLASS>-BG）
     local pane = _G.CharacterStatsPane
@@ -363,7 +352,7 @@ local function ApplyPaperDoll()
     for _, name in ipairs({ "CharacterMainHandSlot", "CharacterSecondaryHandSlot" }) do
         local btn = _G[name]
         if btn then
-            E.NeutralizeRegions(btn, name, KeepSet(btn, WEAPON_SLOT_KEEP))
+            E.NeutralizeRegions(btn, name, E.KeepSet(btn, WEAPON_SLOT_KEEP))
         end
     end
 
@@ -465,8 +454,15 @@ local function HookReputationRows()
                 --   `UI-Character-Skills-Bar`（ReputationFrame.xml:126），自帶漸層與
                 --   上緣高光。查過 `ReputationBarMixin` 沒有任何 `GetStatusBarTexture()`
                 --   的讀回，換材質安全。
+                -- ⚠ `pad = 2`：條只有 **13** 高（`ReputationBarTemplate` 的
+                --   `<Size x="99" y="13"/>`，ReputationFrame.xml），但上面那條
+                --   `BarText`（`GameFontHighlightSmall`）的中文字面高過 13 ——
+                --   不留內距的話「名望 3」的上下兩端會壓在邊線上（實機擷圖 16）。
+                --   往外推 2 之後框變 17 高，列高 22 仍然放得下（`ReputationEntryTemplate`
+                --   的 `y="22"`），列與列之間還留得住 3 的間距。
                 Skin.StatusBar(bar, "ReputationEntry.ReputationBar", {
                     keys = { "Background", "LeftTexture", "RightTexture" },
+                    pad  = 2,
                 })
             end
         end,
@@ -893,15 +889,23 @@ local function Apply()
 
     -- 底部三顆分頁（角色資訊／聲望／貨幣）。第三顆平常是隱藏的，照樣要套 ——
     -- 它顯示出來的時候不會再跑一次配方。
+    --
+    -- ⚠ 走 `Skin.TabGroup`：接縫由「下一顆分頁的左緣」決定，相鄰兩顆共用一條
+    --   1px 黑線（第四輪的「往右多畫 7」會在選中的分頁右邊畫出兩條，實機擷圖 15）。
+    -- ⚠ 第三顆會被藏起來，但它排在**最後**，所以不用標 `hideable`：藏起來的框
+    --   照樣有位置，第二顆的右緣錨在它的左緣上不會留洞（`hideable` 是給
+    --   「中間那一顆會消失」的情況用的，見收藏視窗的傳家寶分頁）。
+    local tabs = {}
     for i = 1, 3 do
         local key = "CharacterFrameTab" .. i
         local tab = _G[key]
         if tab then
-            Skin.Tab(tab, key, "panel")
+            tabs[#tabs + 1] = { tab = tab, key = key }
         else
             E.Missing(key)
         end
     end
+    Skin.TabGroup(tabs, { kind = "panel", joined = "TOP" })
 
     ApplyPaperDoll()
     ApplyReputation()

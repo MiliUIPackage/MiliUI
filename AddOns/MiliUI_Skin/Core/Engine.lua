@@ -73,7 +73,9 @@ Engine.log = {
     neutralized = 0,      -- 成功中和幾個區域（**只算第一次**，見 Engine.Neutralize）
     overlays    = 0,      -- 建了幾個 overlay
     missing     = {},     -- 配方指名、但物件不存在的區域（執行期發生的那些）
-    protected   = {},     -- IsProtected 為真、刻意跳過的框
+    protected   = {},     -- **顯式**保護、刻意跳過的框
+    implicit    = {},     -- **隱式**保護（有 secure 子孫／錨點）、照樣上皮的框
+    deferred    = {},     -- 隱式保護 ＋ 正在戰鬥 ⇒ 這次不做，等下一次
     forbidden   = {},     -- 動態 forbidden、跳過的框
     brokenHooks = {},     -- 出過錯、已經被停用的 hook（`/mskin debug` 的第一節）
 }
@@ -128,13 +130,48 @@ local function Usable(obj, label)
 end
 Engine.Usable = Usable
 
--- 保護框：我們不在上面掛 overlay。記進清單而不是靜默跳過 —— 「這個視窗沒有變」
--- 跟「這個視窗被擋掉了」在畫面上長得一模一樣。
+------------------------------------------------------------
+-- 保護框分兩種：**顯式**跳過、**隱式**照做
+--
+-- `IsProtected()` 回**兩個**值：`isProtected, isProtectedExplicitly`。
+--   * 顯式（兩個都真）＝這個框自己就是 `SecureFrameTemplate` 系的
+--     （玩具格 `CollectionsSpellButtonTemplate`、快捷列按鈕…）。
+--   * 隱式（第一個真、第二個假）＝**它身上掛了／錨了一個保護框**，保護沿著
+--     parent／anchor 鏈往上傳染（warcraft.wiki `Region:IsProtected`：
+--     "Anchoring or parenting a protected frame to another frame makes that frame
+--      implicitly protected as well… This applies recursively."）。
+--
+-- 第四輪只看第一個回傳值 ⇒ **整個收藏視窗與玩具箱的格子底都被跳過**：
+-- 18 顆 secure 玩具格把 `ToyBox.iconsFrame` → `ToyBox` → `CollectionsJournal`
+-- 一路染成隱式保護，結果玩家看到的是「一個沒有底的視窗」（實機擷圖 20）。
+-- 分頁、搜尋框、進度條不在那條鏈上，所以它們有皮 —— 那個對比就是指紋。
+--
+-- 第五輪的規則：**只有顯式保護才跳過。**
+-- 隱式保護的容器准許掛 overlay，理由是我們對它做的事只有兩件，兩件都不是
+-- 保護操作：`CreateFrame` 一個**不受保護的**普通子框、然後把那個子框錨在它身上。
+-- 我們從來不對它 Show／Hide／SetPoint／SetSize／SetAttribute ——
+-- 那些才是戰鬥中會被擋下來的動作。
+--
+-- ⚠ 但「建立子框並設錨點」在戰鬥中對隱式保護的框仍然可能被擋
+--   （`CreateFrame` 以它為 parent ＝ 動它的子框清單）。所以戰鬥中遇到隱式保護
+--   就**這次不做、也不標記成已處理**，等脫戰後的補掃或下一次 Init 再做
+--   （`Engine.Overlay` 與 `Engine.HookRows` 兩個入口都擋）。
+--
+-- 三種結果記進三張不同的清單，`/mskin debug` 分開印 —— 「跳過了」跟「照做了」
+-- 是完全不同的訊息。
+------------------------------------------------------------
+local function ProtectionOf(obj)
+    if type(obj) ~= "table" or type(obj.IsProtected) ~= "function" then return "none" end
+    local ok, protected, explicitly = pcall(obj.IsProtected, obj)
+    if not ok then return "explicit" end      -- 問不到就 fail 到最保守的那一邊
+    if S.ToBool(protected) ~= true then return "none" end
+    return S.ToBool(explicitly) == true and "explicit" or "implicit"
+end
+Engine.ProtectionOf = ProtectionOf
+
+-- 舊名保留（只回答「顯式嗎」）：SafeParent 與物品格都只在意這一邊。
 local function IsProtectedFrame(obj)
-    if type(obj) ~= "table" or type(obj.IsProtected) ~= "function" then return false end
-    local ok, protected = pcall(obj.IsProtected, obj)
-    if not ok then return true end            -- 問不到就當成有
-    return S.ToBool(protected) == true
+    return ProtectionOf(obj) == "explicit"
 end
 Engine.IsProtectedFrame = IsProtectedFrame
 
@@ -229,6 +266,34 @@ function Engine.NeutralizeRegions(owner, prefix, exclude)
             end
         end
     end
+end
+
+------------------------------------------------------------
+-- 「要留下的」set —— `NeutralizeRegions` 的 `exclude` 參數
+--
+-- 第四輪有三份配方各自寫了一支一模一樣的 local `KeepSet`（郵件、商人、試衣間），
+-- 差別只在「有沒有順手把 getter 拿到的那幾張也留下」。升格進來。
+--   keys    ＝ parentKey 清單（`Icon`、`IconBorder`…）
+--   getters ＝ getter 名稱清單（`GetHighlightTexture`…）——
+--             ⚠ Highlight 幾乎一定要留：中和過的貼圖再也上不了色
+--             （區域 alpha 與顏色 alpha 相乘，見 `Engine.ButtonStates`）。
+------------------------------------------------------------
+function Engine.KeepSet(owner, keys, getters)
+    local set = {}
+    if type(owner) ~= "table" then return set end
+    for _, k in ipairs(keys or {}) do
+        local region
+        if pcall(function() region = owner[k] end) and type(region) == "table" then
+            set[region] = true
+        end
+    end
+    for _, g in ipairs(getters or {}) do
+        if type(owner[g]) == "function" then
+            local ok, tex = pcall(owner[g], owner)
+            if ok and tex then set[tex] = true end
+        end
+    end
+    return set
 end
 
 -- 走訪自己的 region，把 **FontString** 全部重新上色（貼圖不動）。
@@ -359,13 +424,21 @@ end
 -- ⚠ 暴雪的 Highlight 多半是 alphaMode="ADD"，換成白色純色之後就是一層很淡的
 --   提亮，正好是我們要的「狀態只換明暗」。
 ------------------------------------------------------------
-function Engine.ButtonStates(btn, label, withPushed)
+--
+-- ⚠ `ownHover` ＝「這顆按鈕的滑過由我們自己畫」（職業色邊框，見 TrackButtonHover）
+--   ⇒ 暴雪那張 Highlight 要**中和**而不是換成白 8%，否則兩層疊在一起：
+--   一層我們的職業色邊 ＋ 一層引擎的白色提亮，亮度變成兩倍、而且色相被沖淡。
+function Engine.ButtonStates(btn, label, withPushed, ownHover)
     if not Usable(btn, label) then return end
 
     if type(btn.GetHighlightTexture) == "function" then
         local ok, hl = pcall(btn.GetHighlightTexture, btn)
-        if ok and hl and type(hl.SetColorTexture) == "function" then
-            pcall(hl.SetColorTexture, hl, 1, 1, 1, T.highlightAlpha)
+        if ok and hl then
+            if ownHover then
+                Engine.Neutralize(hl, (label or "?") .. ".GetHighlightTexture")
+            elseif type(hl.SetColorTexture) == "function" then
+                pcall(hl.SetColorTexture, hl, 1, 1, 1, T.highlightAlpha)
+            end
         end
     end
 
@@ -631,17 +704,28 @@ function Engine.Overlay(target, opts)
     local st = State[target]
     if st and st.overlays and st.overlays[slot] then return st.overlays[slot] end
 
-    -- 保護框上不掛 overlay。記下來，`/mskin debug` 看得到。
-    if IsProtectedFrame(target) then
-        Note(Bucket("protected"), label or "?")
-        return nil
+    -- 顯式保護的框不掛 overlay；隱式保護的照做，但戰鬥中要延後（見 ProtectionOf）。
+    local parent = opts.parent or SafeParent(target)
+
+    -- 回 true ＝ 可以繼續。⚠ 這一支在捲動時每一列都會跑到，所以不配置任何表。
+    local function Allowed(obj, suffix)
+        local prot = ProtectionOf(obj)
+        if prot == "explicit" then
+            Note(Bucket("protected"), (label or "?") .. suffix)
+            return false
+        elseif prot == "implicit" then
+            if InCombatLockdown() then
+                -- 不快取、不標記 ⇒ 下一次進來會重試
+                Note(Bucket("deferred"), (label or "?") .. suffix)
+                return false
+            end
+            Note(Bucket("implicit"), (label or "?") .. suffix)
+        end
+        return true
     end
 
-    local parent = opts.parent or SafeParent(target)
-    if IsProtectedFrame(parent) then
-        Note(Bucket("protected"), (label or "?") .. " (parent)")
-        return nil
-    end
+    if not Allowed(target, "") then return nil end
+    if not Allowed(parent, " (parent)") then return nil end
 
     -- ⚠ 純 Frame、不繼承任何模板。EnableMouse 維持預設的 false ——
     --   overlay 一旦吃滑鼠就會把暴雪按鈕的 OnEnter/OnClick 整個攔掉
@@ -652,8 +736,15 @@ function Engine.Overlay(target, opts)
     local anchor = opts.anchorTo or target
 
     if opts.points then
+        -- `pt.rel` ＝ 這一個錨點改錨到**別的**物件上（其餘照舊錨在 anchor 身上）。
+        -- 給「一個矩形的兩端分別由兩個暴雪物件決定」的情況用：
+        --   * 分頁的右緣錨到**下一顆分頁**的左緣（接縫只留一條線，見 Skin.TabGroup）
+        --   * 寄信頁收件人框的右緣錨到**郵資標籤**的左緣（那條標籤的寬度隨語系變，
+        --     算不出來，只有它自己知道自己在哪）
+        -- 錨到暴雪物件是白名單動作（我們動的是自己的框），跟「讀它的錨點」不同。
         for _, pt in ipairs(opts.points) do
-            ov:SetPoint(pt[1], anchor, pt[2] or pt[1], P.Scale(pt[3] or 0), P.Scale(pt[4] or 0))
+            ov:SetPoint(pt[1], pt.rel or anchor, pt[2] or pt[1],
+                P.Scale(pt[3] or 0), P.Scale(pt[4] or 0))
         end
     elseif opts.inset then
         local n = P.Scale(opts.inset)
@@ -704,11 +795,34 @@ function Engine.Overlay(target, opts)
         end
     end
 
-    -- 靜態圖記（關閉鈕的 ×）。建立時定好，執行期不動。
+    -- 靜態圖記（關閉鈕的 ×、最大化／最小化的 ＋／−）。建立時定好，執行期不動。
     if opts.glyph then
         local g = opts.glyph
         local c = g.color or T.text
-        if g.kind == "cross" then
+        if g.kind == "expand" or g.kind == "collapse" then
+            -- ＋／− 兩種線條圖記。
+            --
+            -- 為什麼是 ＋／− 而不是「兩支往外的箭頭」：`CreateLine` 畫得出來的只有
+            -- 直線，箭頭要三條線一個端點、在 10 像素的方塊裡糊成一團。而套組裡
+            -- 「展開／收合」本來就已經是 ＋／− 的語彙（聲望／通貨頁的子分類鈕用的
+            -- 就是暴雪的 `campaign_headericon_open/closed`，也是 ＋／−）——
+            -- 同一個套組裡一個意思只用一種圖形。
+            local half = P.Scale((g.size or 8) / 2)
+            local th = P.Scale(g.thickness or 1)
+            local lines = {}
+            local function Line(x1, y1, x2, y2)
+                local line = ov:CreateLine(nil, "ARTWORK")
+                line:SetThickness(th)
+                line:SetTexture(WHITE)
+                line:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
+                line:SetStartPoint("CENTER", ov, x1, y1)
+                line:SetEndPoint("CENTER", ov, x2, y2)
+                lines[#lines + 1] = line
+            end
+            Line(-half, 0, half, 0)
+            if g.kind == "expand" then Line(0, -half, 0, half) end
+            ov.glyphLines = lines
+        elseif g.kind == "cross" then
             -- ⚠ 不要用 `Interface\Buttons\UI-StopButton`：那張圖本身是暗金色的，
             --   SetVertexColor 是乘法，乘不白。自己用兩條線畫才拿得到純白的 ×。
             --   建立時定好、執行期零 Lua；粗細走 P.Scale（不同 UI 縮放下的 1 像素
@@ -744,6 +858,26 @@ function Engine.Overlay(target, opts)
     return ov
 end
 
+------------------------------------------------------------
+-- 把一組 `points` 往外推 n 個框架單位（原表不動，回一份新的）
+--
+-- 給「邊框要畫在底之外一圈」的原語用（`Skin.StatusBar`）：每個錨點照它自己的
+-- 方位往外移 —— 帶 LEFT 的往左、帶 RIGHT 的往右、帶 TOP 的往上、BOTTOM 的往下。
+-- `rel`（改錨到別的物件）原樣帶過去。
+------------------------------------------------------------
+function Engine.ExpandPoints(points, n)
+    if not points or n == 0 then return points end
+    local out = {}
+    for i, pt in ipairs(points) do
+        local x, y = pt[3] or 0, pt[4] or 0
+        local p = pt[1] or "CENTER"
+        if p:find("LEFT") then x = x - n elseif p:find("RIGHT") then x = x + n end
+        if p:find("TOP") then y = y + n elseif p:find("BOTTOM") then y = y - n end
+        out[i] = { p, pt[2], x, y, rel = pt.rel }
+    end
+    return out
+end
+
 -- 取回某個目標身上已經建好的 overlay（沒有就 nil）。debug 與重畫用。
 function Engine.GetOverlay(target, slot)
     local st = target and State[target]
@@ -760,7 +894,12 @@ function Engine.Paint(ov, fill, border)
     if not ov then return end
     fill = fill or T.fill
     ov.bg:SetColorTexture(fill[1], fill[2], fill[3], fill[4] or 1)
-    if not ov.edges then return end
+    Engine.Border(ov, border)
+end
+
+-- 只換四條邊的顏色（`false` ＝這次不要邊）。滑過時把邊換成職業色走這一支。
+function Engine.Border(ov, border)
+    if not ov or not ov.edges then return end
     if border == false then
         for i = 1, 4 do ov.edges[i]:SetAlpha(0) end
         return
@@ -771,6 +910,9 @@ function Engine.Paint(ov, fill, border)
             ov.edges[i]:SetAlpha(0)
         else
             ov.edges[i]:SetAlpha(1)
+            -- ⚠ 一併把 vertex color 還原成白：`PassBorderColor` 轉交過品質色的邊
+            --   帶著乘法顏色，不還原的話這裡下的顏色會被乘暗。
+            ov.edges[i]:SetVertexColor(1, 1, 1, 1)
             ov.edges[i]:SetColorTexture(border[1], border[2], border[3], border[4] or 1)
         end
     end
@@ -838,6 +980,80 @@ function Engine.PassBorderColor(ov, src, fallback)
 end
 
 ------------------------------------------------------------
+-- 按鈕的滑過：底提亮 ＋ **1px 邊換成職業色**
+--
+-- 這是第五輪把暴雪視窗的按鈕語彙對齊套組自己的設定視窗：共用層的
+-- `W.CreateButton`（`BTN_COLORS.normal` ＝ fill → fillHover）與套組本體的
+-- `S.ApplyDarkButton`（`DarkEnter` ＝ 底 `fillHover` ＋ 邊 `S.Accent(1)`）
+-- 都是這一套，暴雪視窗這邊原本只有「白 8% 疊加」，兩邊看起來像兩個插件。
+--
+-- 為什麼只能掛腳本、不能交給引擎（陷阱 3 的例外）：我們的 overlay **不吃滑鼠**
+-- （吃了就把暴雪按鈕的 OnEnter/OnClick 攔掉），所以 C 端不會替我們切狀態；
+-- 而「換 overlay 的邊框顏色」沒有對應的暴雪貼圖可以借。跟分頁與成就分類列
+-- 走的是同一條退路（HookScript，不是 SetScript），代價一樣：兩個後掛腳本，
+-- 裡面只碰我們自己的 overlay。
+--
+-- ⚠ 腳本只在**滑鼠進出**時跑，不在點擊路徑上 —— 不會有我們的 Lua 出現在
+--   暴雪的 OnClick 派送堆疊裡（wow-121-addon-code-in-secure-stack 的入口 6）。
+-- ⚠ **停用的按鈕不給滑過**：`IsEnabled()` 是純 C 端布林（讀取例外表新增的那一條），
+--   一律過 `Secret.ToBool`；問不到就當成「可以按」——失敗方向只是多一次提亮。
+-- ⚠ 底與邊可以在**兩個不同的 overlay** 上：勾選框的邊走前景 slot（已勾的滿色會
+--   蓋掉背景層的邊），所以 fillOv 與 borderOv 分開傳。
+------------------------------------------------------------
+local hoverState = setmetatable({}, { __mode = "k" })
+
+local function HoverEnabled(btn)
+    if type(btn.IsEnabled) ~= "function" then return true end
+    local ok, v = pcall(btn.IsEnabled, btn)
+    if not ok then return true end
+    return S.ToBool(v) ~= false
+end
+
+local function PaintHover(btn)
+    local rec = hoverState[btn]
+    if not rec then return end
+    if rec.hover then
+        Engine.Fill(rec.fillOv, T.fillHover)
+        rec.accent = rec.accent or {}
+        rec.accent[1], rec.accent[2], rec.accent[3], rec.accent[4] = T.Accent(1)
+        Engine.Border(rec.borderOv, rec.accent)
+    else
+        Engine.Fill(rec.fillOv, rec.idle)
+        Engine.Border(rec.borderOv, T.border)
+    end
+end
+
+-- fillOv 是要換底色的那一層；borderOv 不給就跟 fillOv 同一層。
+function Engine.TrackButtonHover(btn, fillOv, idleFill, borderOv)
+    if not btn or not fillOv then return end
+    local rec = hoverState[btn]
+    if rec then
+        rec.fillOv, rec.borderOv, rec.idle = fillOv, borderOv or fillOv, idleFill or rec.idle
+        PaintHover(btn)
+        return
+    end
+    hoverState[btn] = {
+        fillOv = fillOv, borderOv = borderOv or fillOv,
+        idle = idleFill or T.fill, hover = false,
+    }
+    if type(btn.HookScript) ~= "function" then return end
+    -- ⚠ HookScript 不是 SetScript：模板自己的 OnEnter 多半在開提示
+    --   （wow-setscript-clobbers-hookscript）。
+    pcall(btn.HookScript, btn, "OnEnter", function(self)
+        local r = hoverState[self]
+        if not r or not HoverEnabled(self) then return end
+        r.hover = true
+        PaintHover(self)
+    end)
+    pcall(btn.HookScript, btn, "OnLeave", function(self)
+        local r = hoverState[self]
+        if not r then return end
+        r.hover = false
+        PaintHover(self)
+    end)
+end
+
+------------------------------------------------------------
 -- 分頁的選中態
 --
 -- 暴雪兩種分頁模板（`PanelTabButtonTemplate` 與成就視窗自己的
@@ -859,21 +1075,63 @@ end
 local tabState = setmetatable({}, { __mode = "k" })
 local tabHooksInstalled = false
 
+------------------------------------------------------------
+-- 分頁文字置中 —— STYLE.md ③ 白名單的**唯一一條 SetPoint 例外**（第五輪核准）
+--
+-- 暴雪把「選中」跟「未選中」的分頁文字放在**不同的高度**上：
+--   `PanelTemplates_SelectTab`          `tab.Text:SetPoint("CENTER", tab, "CENTER", x, -3)`
+--   `PanelTemplates_DeselectTab`        同上，但 `+2`
+--   `PanelTemplates_SetDisabledTabState` 同上，`+2`
+--   （`Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.lua`，三支都在檔尾那一區；
+--     `isTopTab` 的分頁另外換算成 `-offsetY - 7` / `-offsetY - 6`）
+-- 那 5 個單位的落差是為了配合端帽貼圖「選中的分頁往上凸一截」的造型。
+-- 九張貼圖一中和、換成我們矩形對齊的 overlay 之後，那個落差就只剩「選中的那一顆
+-- 字特別低」——使用者實機擷圖（角色頁、成就頁）指的就是這個。
+--
+-- 例外的範圍寫死，三個條件缺一不可：
+--   1. 只碰 **`tab.Text`**（一個 FontString 區域，不是框、更不是保護物件）。
+--   2. 只在**我們接管過的分頁**上（第一行就查 side table）。
+--   3. 只在暴雪那三支的**後置勾裡**跑 —— 緊接在它自己 SetPoint 的下一行，
+--      沒有「誰蓋誰」的競態，也不會有第三方跟我們搶。
+-- 不寫任何 Lua 欄位、不 ClearAllPoints（同一個 `CENTER` 點直接取代，跟暴雪一樣）。
+------------------------------------------------------------
+function Engine.CenterTabText(tab)
+    local fs
+    if not (pcall(function() fs = tab.Text end) and fs) then return end
+    if type(fs.SetPoint) ~= "function" then return end
+    pcall(fs.SetPoint, fs, "CENTER", tab, "CENTER", 0, 0)
+end
+
 local function PaintTab(tab, mode)
     local rec = tabState[tab]
     if not rec then return end
-    rec.mode = mode
-    if mode == "selected" then
+    if mode then rec.mode = mode end
+
+    -- 暴雪剛剛才把文字移過位（見上），所以每一次重畫都要重申
+    Engine.CenterTabText(tab)
+
+    local m = rec.mode
+    if m == "selected" then
         local r, g, b, a = T.AccentFill(1)
         rec.accent = rec.accent or {}
         rec.accent[1], rec.accent[2], rec.accent[3], rec.accent[4] = r, g, b, a
         Engine.Fill(rec.overlay, rec.accent)
-    elseif mode == "disabled" then
+    elseif m == "disabled" then
         Engine.Fill(rec.overlay, T.fillInset)
-    elseif mode == "hover" then
+    elseif rec.hover then
         Engine.Fill(rec.overlay, T.fillHover)
     else
         Engine.Fill(rec.overlay, T.fill)
+    end
+
+    -- 滑過時邊框換職業色（同 Engine.TrackButtonHover 的語彙）。
+    -- 選中的分頁底已經是職業色，再換邊等於同一個訊號講兩次；停用的不給回饋。
+    if rec.hover and m ~= "selected" and m ~= "disabled" then
+        rec.hoverBorder = rec.hoverBorder or {}
+        rec.hoverBorder[1], rec.hoverBorder[2], rec.hoverBorder[3], rec.hoverBorder[4] = T.Accent(1)
+        Engine.Border(rec.overlay, rec.hoverBorder)
+    else
+        Engine.Border(rec.overlay, T.border)
     end
 end
 
@@ -889,7 +1147,7 @@ end
 function Engine.TrackTab(tab, overlay, key)
     if not tab or not overlay then return end
     InstallTabHooks()
-    tabState[tab] = { overlay = overlay, key = key, mode = "idle" }
+    tabState[tab] = { overlay = overlay, key = key, mode = "idle", hover = false }
 
     -- 滑過：分頁模板的 HIGHLIGHT 層是三張 useAtlasSize 的貼圖（同樣會超出矩形），
     -- 所以這裡沒有「交給引擎畫」的選項，只能掛腳本。
@@ -898,15 +1156,15 @@ function Engine.TrackTab(tab, overlay, key)
     if type(tab.HookScript) == "function" then
         pcall(tab.HookScript, tab, "OnEnter", function(self)
             local rec = tabState[self]
-            if rec and rec.mode ~= "selected" and rec.mode ~= "disabled" then
-                Engine.Fill(rec.overlay, T.fillHover)
-            end
+            if not rec then return end
+            rec.hover = true
+            PaintTab(self)
         end)
         pcall(tab.HookScript, tab, "OnLeave", function(self)
             local rec = tabState[self]
-            if rec and rec.mode ~= "selected" and rec.mode ~= "disabled" then
-                Engine.Fill(rec.overlay, T.fill)
-            end
+            if not rec then return end
+            rec.hover = false
+            PaintTab(self)
         end)
     end
 
@@ -1198,9 +1456,16 @@ function Engine.HookRows(spec)
         if st == SKIP then return end
         if not st then
             if spec.requireKnown then return end
-            if IsProtectedFrame(row) then
+            local prot = ProtectionOf(row)
+            if prot == "explicit" then
                 Note(Bucket("protected"), key)
                 rowState[row] = SKIP
+                return
+            end
+            -- 隱式保護（列上掛了 secure 子物件）＋ 正在戰鬥 ⇒ 這次什麼都不做，
+            -- **也不標記成已處理**，下一次重用這一列（或脫戰後的補掃）會重試。
+            if prot == "implicit" and InCombatLockdown() then
+                Note(Bucket("deferred"), key)
                 return
             end
             rowState[row] = true
@@ -1528,15 +1793,22 @@ end
 local PROBLEM_SECTIONS = {
     { key = "missing",   title = "Regions not found (Blizzard may have renamed them):" },
     { key = "protected", title = "Skipped because the frame is protected:" },
+    { key = "implicit",  title = "Implicitly protected (skinned anyway):" },  -- L key，見 Locales
+    { key = "deferred",  title = "Deferred until out of combat:" },
     { key = "forbidden", title = "Skipped because the object is forbidden:" },
 }
+
+-- ⚠ 「隱式保護但照樣上皮了」**不算問題**，所以不進這個數字 —— 它只是一張
+--    「哪些容器坐在 secure 子孫上」的參考清單（下次有人懷疑保護規則時要看的）。
+--    括號裡的數字要維持「這個視窗有幾個地方沒做到」的語意。
+local INFORMATIONAL = { implicit = true }
 
 local function ProblemCount(log)
     if not log then return 0 end
     local n = 0
     for _, sec in ipairs(PROBLEM_SECTIONS) do
         local list = log[sec.key]
-        if list then n = n + #list end
+        if list and not INFORMATIONAL[sec.key] then n = n + #list end
     end
     return n
 end
@@ -1601,14 +1873,16 @@ function Engine.Report()
         local n = ProblemCount(rec.log)
         if n > 0 then
             print(("  %s: %s  (%d)"):format(rec.title or rec.key, status, n))
-            PrintProblems(rec.log, "    ")
         else
             print(("  %s: %s"):format(rec.title or rec.key, status))
         end
+        -- 參考清單（隱式保護）沒有計入括號，但照樣要印得出來
+        PrintProblems(rec.log, "    ")
     end
 
     -- ③ 執行期（hook 裡）發生的紀錄 —— 沒有主人，單獨一節
-    if ProblemCount(Engine.log) > 0 then
+    if Engine.log.missing[1] or Engine.log.protected[1] or Engine.log.implicit[1]
+        or Engine.log.deferred[1] or Engine.log.forbidden[1] then
         print("  hook:")
         PrintProblems(Engine.log, "    ")
     end

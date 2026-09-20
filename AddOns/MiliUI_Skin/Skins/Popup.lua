@@ -402,7 +402,7 @@ local function SkinDialog(dialog, key)
     ------------------------------------------------------------
     local dd
     if pcall(function() dd = dialog.Dropdown end) and dd then
-        Skin.Dropdown(dd, key .. ".Dropdown", "style1")
+        Skin.Dropdown(dd, key .. ".Dropdown", "style1", { noHover = true })
     else
         E.Missing(key .. ".Dropdown")
     end

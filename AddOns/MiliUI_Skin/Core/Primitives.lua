@@ -95,10 +95,12 @@ end
 --   `_OnEnable` / `_OnDisable` / `_OnMouseDown` / `_OnMouseUp`（同檔的 .lua）
 --   每次都會 `SetTexture` 回去，換材質撐不過一次點擊。
 --
--- 三態：滑過交給引擎（Highlight 換成白色 8%）。**按下沒有視覺** —— 這個模板
--- 沒有 PushedTexture，它是靠換 Left/Middle/Right 的材質來表示按下的，而那三張
--- 已經被我們 alpha 0 了。補一張 PushedTexture 等於對暴雪按鈕做結構性修改，
--- 不在白名單裡，所以 PoC 接受「按下沒有回饋」。
+-- 三態：**滑過自己畫**（底提亮 ＋ 1px 邊換成職業色，`Engine.TrackButtonHover`）——
+-- 第五輪對齊套組設定視窗的按鈕語彙，理由與代價寫在 Engine 那一段。
+-- 暴雪的 Highlight 因此改成中和（`ownHover`），不然白 8% 會疊在我們的提亮上。
+-- **按下仍然沒有視覺** —— 這個模板沒有 PushedTexture，它是靠換 Left/Middle/Right
+-- 的材質來表示按下的，而那三張已經被我們 alpha 0 了。補一張 PushedTexture 等於
+-- 對暴雪按鈕做結構性修改，不在白名單裡。
 ------------------------------------------------------------
 -- opts:
 --   keepFont  不要換 NormalFont。給「字型物件本身帶了別的語意」的按鈕用 ——
@@ -109,7 +111,7 @@ end
 function Skin.Button(btn, key, opts)
     opts = opts or {}
     E.NeutralizeKeys(btn, { "Left", "Right", "Middle" }, key)
-    E.ButtonStates(btn, key)
+    E.ButtonStates(btn, key, nil, true)
     -- 文字白色：換 NormalFont，不要 SetTextColor（撐不過一次滑過，理由見 Engine.ButtonFonts）
     if not opts.keepFont then
         E.ButtonFonts(btn, GameFontHighlight, key)
@@ -117,6 +119,7 @@ function Skin.Button(btn, key, opts)
 
     local ov = E.Overlay(btn, { key = key, points = opts.points })
     E.Paint(ov, T.fill, T.border)
+    E.TrackButtonHover(btn, ov, T.fill)
     return ov
 end
 
@@ -168,7 +171,7 @@ function Skin.CloseButton(btn, key)
             if ok and tex then E.Neutralize(tex, key .. "." .. getter) end
         end
     end
-    E.ButtonStates(btn, key, true)
+    E.ButtonStates(btn, key, true, true)
 
     local ov = E.Overlay(btn, {
         key = key,
@@ -176,6 +179,7 @@ function Skin.CloseButton(btn, key)
         glyph = { kind = "cross", size = 9, thickness = 1, color = T.text },
     })
     E.Paint(ov, T.fill, T.border)
+    E.TrackButtonHover(btn, ov, T.fill)
     return ov
 end
 
@@ -223,8 +227,87 @@ local LEGACY_TAB_TEXTURES = {
     "LeftHighlight", "MiddleHighlight", "RightHighlight",
 }
 
-function Skin.Tab(tab, key, kind)
+------------------------------------------------------------
+-- TabGroup：**一整排分頁一次套完**，接縫由「下一顆分頁的左緣」決定
+--
+-- 第四輪每顆分頁各自「往右多畫 overhang」把縫補起來，結果是相鄰兩顆的 overlay
+-- **重疊**：後建的那顆左邊線壓在前一顆的右延伸上，而前一顆自己的右邊線還在
+-- ⇒ 選中的分頁右邊變成「底色 → 1px 黑 → 2px 底色 → 1px 黑」兩條線
+-- （使用者實機擷圖的角色頁／信箱頁）。
+--
+-- 這一輪改成：
+--   * 每顆 overlay 的左緣錨在**自己**，右緣直接錨到**下一顆分頁的左緣**
+--     （`Engine.Overlay` 的 `points[i].rel`）。
+--   * 除了最後一顆，右邊線不畫（`skipEdges`）⇒ 接縫上永遠只有下一顆的左邊線，
+--     一條 1px。
+-- 暴雪把間距設成 `+3`（`PanelTemplates_AnchorTabs`）、`+1`（TabSystem 的 spacing）
+-- 還是**重疊 16**（收藏視窗的底部分頁）都自動對上，配方不必再抄常數。
+--
+-- opts:
+--   kind      "panel"（有 `TabTextures` parentArray）／"legacy"（逐一點名）
+--   joined    跟內容相連、因此不畫的那一邊（預設 "TOP" ＝分頁在內容下方）
+--   pad       左緣與接縫的水平偏移（預設 0）。
+--             **按鈕矩形彼此重疊**的那一種要給：收藏視窗底部六顆重疊 16
+--             （`Blizzard_Collections.xml` 的 `LEFT → RIGHT x="-16"`），
+--             pad 給 8 之後 overlay 剛好落在按鈕矩形的正中間，分頁文字
+--             （內縮 `TAB_SIDES_PADDING/2` ＝ 10）也才整段落在自己的底色上。
+--
+-- 每個 entry：`{ tab = <frame>, key = "...", hideable = true? }`，**由左往右**。
+--   `hideable` ＝「暴雪會把這一顆藏起來」。藏起來的分頁連我們的 overlay 一起消失
+--   （overlay 是它的子框），前一顆的右緣要是錨在它身上就會留下一個洞
+--   ⇒ 接縫目標**跳過** hideable 的那一顆，直接錨到再下一顆。兩顆的 overlay
+--   因此會重疊一段，但同一個底色、後建的畫在上面，看不出來。
+--   實例：收藏視窗的傳家寶分頁（時空漫遊角色會被 `PanelTemplates_HideTab` 藏掉，
+--   而且「外觀」那一顆會被 `CollectionsJournal_CheckAndDisplayHeirloomsTab` 重錨）。
+------------------------------------------------------------
+function Skin.TabGroup(list, opts)
+    opts = opts or {}
+    local pad = opts.pad or 0
+    local joined = opts.joined or "TOP"
+    local n = #list
+
+    for i = 1, n do
+        local entry = list[i]
+        local tab, key = entry.tab, entry.key
+
+        -- 接縫目標：下一顆**不會被藏起來**的分頁
+        local nextTab
+        for j = i + 1, n do
+            if not list[j].hideable then
+                nextTab = list[j].tab
+                break
+            end
+        end
+
+        local points
+        if nextTab then
+            -- ⚠ BOTTOMRIGHT 錨到下一顆的 BOTTOMLEFT 會同時定住**下緣** ——
+            --   一排分頁本來就等高、底邊對齊（暴雪的 AnchorTabs 是
+            --   `TOPLEFT → 前一顆 TOPRIGHT`），這個前提成立才這樣寫。
+            points = {
+                { "TOPLEFT", "TOPLEFT", pad, 0 },
+                { "BOTTOMRIGHT", "BOTTOMLEFT", pad, 0, rel = nextTab },
+            }
+        else
+            points = {
+                { "TOPLEFT", "TOPLEFT", pad, 0 },
+                { "BOTTOMRIGHT", "BOTTOMRIGHT", -pad, 0 },
+            }
+        end
+
+        local skip = { joined }
+        if nextTab then skip[#skip + 1] = "RIGHT" end
+
+        Skin.Tab(tab, key, opts.kind, { points = points, skipEdges = skip })
+    end
+end
+
+-- opts（`Skin.TabGroup` 用；舊簽章 `Skin.Tab(tab, key, kind)` 照樣可用）：
+--   points     overlay 的錨點（不給就是舊的「往右多畫 overhang」）
+--   skipEdges  不畫的邊（不給就是「上邊不畫」）
+function Skin.Tab(tab, key, kind, opts)
     if not E.Usable(tab, key) then return end
+    opts = opts or {}
 
     if kind == "panel" then
         local arr
@@ -243,8 +326,8 @@ function Skin.Tab(tab, key, kind)
     local overhang = TAB_OVERHANG[kind or "panel"] or TAB_OVERHANG.panel
     local ov = E.Overlay(tab, {
         key = key,
-        skipEdges = { "TOP" },
-        points = {
+        skipEdges = opts.skipEdges or { "TOP" },
+        points = opts.points or {
             { "TOPLEFT", "TOPLEFT", 0, 0 },
             { "BOTTOMRIGHT", "BOTTOMRIGHT", overhang, 0 },
         },
@@ -309,10 +392,23 @@ function Skin.TabSystem(tab, key, opts)
         E.NeutralizeKeys(tab, TAB_SYSTEM_TEXTURES, key)
     end
 
+    -- 接縫：往右多畫 `overhang`（＝`TabSystemTemplate` 的 `spacing`，預設 1）**並且
+    -- 不畫右邊線**（`opts.hasNext`）⇒ 接縫上只剩下一顆的左邊線，一條 1px。
+    -- 第四輪只做了前半，結果兩顆的邊線緊貼成一條 2px 的粗線（同 `Skin.Tab` 的症狀，
+    -- 只是細一點）。
+    --
+    -- ⚠ 這裡**不學 `Skin.TabGroup` 去錨下一顆的左緣**：`TabSystemTemplate` 是
+    --   `HorizontalLayoutFrame`（`TabSystemTemplates.xml`），藏起來的分頁會被排除在
+    --   排版之外、位置不保證是最新的 —— 錨在它身上等於錨在一個過期的矩形上。
+    --   反過來說也不需要：layout frame 會把剩下的分頁重排成連續的一排，
+    --   間距永遠是 `spacing`，往右多畫 `spacing` 就剛好接上。
+    local skip = { opts.onTop and "BOTTOM" or "TOP" }
+    if opts.hasNext then skip[#skip + 1] = "RIGHT" end
+
     local overhang = opts.overhang or 1
     local ov = E.Overlay(tab, {
         key = key,
-        skipEdges = { opts.onTop and "BOTTOM" or "TOP" },
+        skipEdges = skip,
         points = {
             { "TOPLEFT", "TOPLEFT", 0, 0 },
             { "BOTTOMRIGHT", "BOTTOMRIGHT", overhang, 0 },
@@ -346,16 +442,29 @@ function Skin.TabSystemAll(tabSystem, key, opts)
     local ok, children = pcall(function() return { tabSystem:GetChildren() } end)
     if not ok then return end
 
-    local n = 0
+    -- 先收齊，再串接縫（每一顆的右緣錨到下一顆的左緣）。
+    -- ⚠ `GetChildren()` 的順序是建立順序，而 `TabSystemMixin:AddTab` 是由左往右
+    --   一顆一顆加的（`TabSystemTemplates.lua:212`）⇒ 順序就是版面順序。
+    local tabs = {}
     for _, child in ipairs(children) do
         local arr
         if type(child) == "table" and pcall(function() arr = child.RotatedTextures end)
             and type(arr) == "table" then
-            n = n + 1
-            Skin.TabSystem(child, key .. "." .. n, opts)
+            tabs[#tabs + 1] = child
         end
     end
-    if n == 0 then E.Missing(key .. ".tabs") end
+    if #tabs == 0 then
+        E.Missing(key .. ".tabs")
+        return
+    end
+
+    for i, tab in ipairs(tabs) do
+        Skin.TabSystem(tab, key .. "." .. i, {
+            onTop    = opts.onTop,
+            overhang = opts.overhang,
+            hasNext  = tabs[i + 1] ~= nil,
+        })
+    end
 end
 
 ------------------------------------------------------------
@@ -388,10 +497,11 @@ function Skin.StretchButton(btn, key, opts)
     opts = opts or {}
 
     E.NeutralizeKeys(btn, STRETCH_BUTTON_ART, key)
-    E.ButtonStates(btn, key)
+    E.ButtonStates(btn, key, nil, true)
 
     local ov = E.Overlay(btn, { key = key, points = opts.points, inset = opts.inset })
     E.Paint(ov, T.fill, T.border)
+    E.TrackButtonHover(btn, ov, T.fill)
     return ov
 end
 
@@ -540,7 +650,7 @@ function Skin.CheckBox(cb, key)
             if ok and tex then E.Neutralize(tex, key .. "." .. getter) end
         end
     end
-    E.ButtonStates(cb, key)
+    E.ButtonStates(cb, key, nil, true)
 
     local checked = { T.AccentCheck(1) }
     local checkedDisabled = { T.AccentCheckDisabled(1) }
@@ -549,7 +659,10 @@ function Skin.CheckBox(cb, key)
     local ov = E.Overlay(cb, { key = key })
     E.Paint(ov, T.fillCheck, T.border)
     -- 邊畫在已勾的填色之上
-    Skin.BorderOnly(cb, key)
+    local borderOv = Skin.BorderOnly(cb, key)
+    -- ⚠ 滑過時要換色的是**前景**那一層的邊（背景層的邊被已勾的滿色蓋住了），
+    --   底色仍然換背景層的 ⇒ 兩個 overlay 分開傳。
+    E.TrackButtonHover(cb, ov, T.fillCheck, borderOv)
     return ov
 end
 
@@ -782,7 +895,7 @@ function Skin.IconButton(btn, key, opts)
         if type(btn[getter]) == "function" then
             local ok, tex = pcall(btn[getter], btn)
             if ok and tex then
-                if opts.stripFrame then
+                if opts.stripFrame or opts.glyph then
                     -- 殼不是內容：整組中和，長相交給 overlay
                     E.Neutralize(tex, key .. "." .. getter)
                 else
@@ -808,14 +921,124 @@ function Skin.IconButton(btn, key, opts)
         end
     end
 
-    E.ButtonStates(btn, key)
+    E.ButtonStates(btn, key, nil, true)
 
     if opts.labelColor then
         E.RecolorRegions(btn, opts.labelColor, key)
     end
 
+    local ov = E.Overlay(btn, {
+        key = key,
+        inset = opts.inset,
+        points = opts.points,
+        glyph = opts.glyph and
+            { kind = opts.glyph, size = opts.glyphSize or 9, thickness = 1, color = T.text }
+            or nil,
+    })
+    E.Paint(ov, T.fill, T.border)
+    E.TrackButtonHover(btn, ov, T.fill)
+    return ov
+end
+
+------------------------------------------------------------
+-- SquareIconButton：`SquareIconButtonTemplate`（殼是 UI-SquareButton-*、圖是 `Icon`）
+--
+-- 只是 `Skin.IconButton` 的 `stripFrame` 模式取個名字 —— 第四輪有兩份配方各自
+-- 寫了一支同名的 local（STYLE.md ⑤ 的 `TODO(升格)`），配方裡看不出「這是哪個
+-- 暴雪模板」，升格之後模板名就是函式名。
+------------------------------------------------------------
+function Skin.SquareIconButton(btn, key, opts)
+    opts = opts or {}
+    return Skin.IconButton(btn, key, {
+        stripFrame = true,
+        iconKey    = opts.iconKey,
+        color      = opts.color,
+        inset      = opts.inset,
+        points     = opts.points,
+    })
+end
+
+------------------------------------------------------------
+-- SlotIconButton：「底圖無名、圖示是 parentKey，而且圖示本身帶狀態」的圖示鈕
+--
+-- 出處（12.1 live）：`Blizzard_UIPanels_Game/Mainline/MerchantFrame.xml:187,220,280,318`
+--   賣垃圾／修裝／修全部／公會修裝四顆 —— 一張**無名無 parentKey** 的
+--   `UI-EmptySlot`（64x64）＋ `PushedTexture`，**沒有** NormalTexture／DisabledTexture。
+--
+-- 跟 `Skin.IconButton` 的差別只有一條：**`Icon` 完全不碰**。
+-- 暴雪用 `Icon:SetDesaturated(...)` 表示「不能修裝／沒有垃圾」，那是狀態不是裝飾；
+-- 我們要是也去染它，狀態就被抹掉了。
+--
+-- ⚠ keep-set 一定要把 `GetHighlightTexture()` 那張留下來 —— 中和過的貼圖再也
+--   上不了色（區域 alpha 與顏色 alpha 相乘，見 `Engine.ButtonStates`）。
+------------------------------------------------------------
+function Skin.SlotIconButton(btn, key, opts)
+    if not E.Usable(btn, key) then return end
+    opts = opts or {}
+
+    E.NeutralizeRegions(btn, key, E.KeepSet(btn, opts.keep or { "Icon" },
+        opts.keepGetters or { "GetHighlightTexture" }))
+    E.ButtonStates(btn, key, nil, true)
+
     local ov = E.Overlay(btn, { key = key, inset = opts.inset, points = opts.points })
     E.Paint(ov, T.fill, T.border)
+    E.TrackButtonHover(btn, ov, T.fill)
+    return ov
+end
+
+------------------------------------------------------------
+-- ThreeSliceButton：`ThreeSliceButtonTemplate`（`SharedButton*Template` 系）
+--
+-- 出處（12.1 live）：
+--   `Blizzard_SharedXML/Shared/Button/ThreeSliceButtonTemplate.xml:4,62,83`
+--   跟 `UIPanelButtonTemplate` 只差一個名字：中間那一片叫 **`Center`** 不是 `Middle`
+--   （直接套 `Skin.Button` 會留下中間那一片沒中和）。
+--   同名 `.lua` 的 `UpdateButton` 每次狀態改變都重設三張的 **atlas** ⇒ 一定要 alpha。
+------------------------------------------------------------
+function Skin.ThreeSliceButton(btn, key, opts)
+    if not E.Usable(btn, key) then return end
+    opts = opts or {}
+
+    E.NeutralizeKeys(btn, { "Left", "Right", "Center" }, key)
+    E.ButtonStates(btn, key, nil, true)
+    if not opts.keepFont then
+        E.ButtonFonts(btn, GameFontHighlight, key)
+    end
+
+    local ov = E.Overlay(btn, { key = key, points = opts.points })
+    E.Paint(ov, T.fill, T.border)
+    E.TrackButtonHover(btn, ov, T.fill)
+    return ov
+end
+
+------------------------------------------------------------
+-- InputScroll：`InputScrollFrameTemplate`（多行輸入框）
+--
+-- 出處（12.1 live）：
+--   `Blizzard_SharedXML/Shared/InputBox/InputBoxTemplates.xml:72`
+--   九張 `*Tex` 切片，跟 `InputBoxTemplate` 的 Left/Right/Middle 完全不同一組名字
+--   ⇒ `Skin.EditBox` 套不上去（第四輪配方裡的 local `SkinInputScroll`）。
+--   它繼承 `ScrollFrameTemplate` ⇒ `.ScrollBar` 是 `MinimalScrollBar`。
+------------------------------------------------------------
+local INPUT_SCROLL_ART = {
+    "TopLeftTex", "TopRightTex", "TopTex",
+    "BottomLeftTex", "BottomRightTex", "BottomTex",
+    "LeftTex", "RightTex", "MiddleTex",
+}
+
+function Skin.InputScroll(frame, key, opts)
+    if not E.Usable(frame, key) then return end
+    opts = opts or {}
+
+    E.NeutralizeKeys(frame, INPUT_SCROLL_ART, key)
+
+    local ov = E.Overlay(frame, { key = key, points = opts.points })
+    E.Paint(ov, T.fillInset, T.border)
+
+    local bar
+    if pcall(function() bar = frame.ScrollBar end) and bar then
+        Skin.ScrollBar(bar, key .. ".ScrollBar")
+    end
     return ov
 end
 
@@ -840,12 +1063,22 @@ end
 --               傳 `false` 才維持暴雪原本那張。理由與「有沒有程式讀回它」的
 --               查證結果寫在 `Engine.BarTexture`。
 --
--- ⚠ **1px 黑邊要畫在填充條之上（前景 slot），不是之下。**
---   第二輪實測（聲望頁擷圖）的症狀是「底框的左緣不見了、填充的左端看起來露在
---   框外」—— 真正的原因是 overlay 的層級是 target−1，而 StatusBar 的填充貼圖
---   從**條的左緣**開始畫、正好壓在那條黑邊上；條走到哪、黑邊就被蓋到哪，
---   看起來就像框比條短一截。底（fillInset）留在背景沒問題（填充本來就該蓋住它），
---   只有邊要提到前景來。
+--   pad         底與邊往外推幾個框架單位（預設 0）。
+--               給「條的文字比條還高」的那幾種用 —— 聲望條只有 13 高
+--               （`ReputationFrame.xml` 的 `ReputationBarTemplate`），
+--               上面那條 `BarText` 是 `GameFontHighlightSmall`，中文字面高過 13
+--               ⇒ 不留內距的話字的上下兩端會頂到邊線上。
+--
+-- ⚠ **1px 黑邊畫在條之下、而且往外推一圈** —— 這是第五輪改的。
+--
+--   第二輪：邊跟底同一層（target−1）⇒ 填充貼圖從條的左緣開始畫、蓋住黑邊，
+--           看起來像「框比條短一截」。
+--   第三輪：把邊提到**前景**（target+1）。填充蓋不到了，但條上的文字
+--           （`BarText`／`Label`／`$parentText`）也在條上 ⇒ 1px 黑線改成橫切過
+--           文字（使用者實機擷圖的聲望頁與成就總結頁，「字被擋住」）。
+--   第五輪：邊回到**背景**（target−1）、矩形往外推 1px ——
+--           填充在條的矩形**內**、碰不到往外推的邊；文字在條**上**、
+--           也碰不到。兩個症狀同時沒有，而且不必跟任何一層搶層級。
 ------------------------------------------------------------
 function Skin.StatusBar(bar, key, opts)
     if not E.Usable(bar, key) then return end
@@ -875,9 +1108,27 @@ function Skin.StatusBar(bar, key, opts)
         E.NeutralizeKeys(bar, opts.keys, key)
     end
 
-    local ov = E.Overlay(bar, { key = key, points = opts.points, noBorder = true })
+    -- 底：條的矩形（＋ opts.pad），沒有邊
+    local pad = opts.pad or 0
+    local basePoints = opts.points or {
+        { "TOPLEFT", "TOPLEFT", 0, 0 },
+        { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0 },
+    }
+    local fillPoints = pad ~= 0 and E.ExpandPoints(basePoints, pad) or basePoints
+
+    local ov = E.Overlay(bar, { key = key, points = fillPoints, noBorder = true })
     E.Paint(ov, T.fillInset)
-    Skin.BorderOnly(bar, key, { points = opts.points })
+
+    -- 邊：同一層（target−1），矩形再往外推 1px ⇒ 那一圈落在條的矩形**外面**，
+    -- 填充與文字都碰不到它。底色全透明，這一層只是一圈邊。
+    -- ⚠ slot 要跟底分開（底用預設的 "main"），不然 `Engine.Overlay` 的冪等會
+    --   把第二次呼叫當成同一個 overlay 直接回傳上一個。
+    local border = E.Overlay(bar, {
+        key = key .. ".border",
+        slot = "border",
+        points = E.ExpandPoints(fillPoints, 1),
+    })
+    E.Paint(border, TRANSPARENT, T.border)
     return ov
 end
 
@@ -943,11 +1194,25 @@ function Skin.Dropdown(btn, key, kind, opts)
 
     local arrow
     if pcall(function() arrow = btn.Arrow end) and arrow then
+        -- ⚠ 先去飽和再染。`common-dropdown-a-button` 那張箭頭本身是**金黃色**的，
+        --   而 `SetVertexColor` 是乘法 —— 乘上 `textDim` 只會變成暗金，永遠乘不出
+        --   中性灰（實機擷圖 16 的聲望頁：深灰面板上一顆很亮的黃色三角形，
+        --   是整個視窗唯一不照「文字統一白色」的東西）。
+        --   同 `Engine.Desaturate` 那一段的紅金 ＋／− 鈕。
+        -- ⚠ `SetDesaturated` 跟 `SetAtlas` 是兩個獨立的屬性 ⇒ 暴雪在
+        --   `OnButtonStateChanged` 換 `-hover` atlas 不會把去飽和洗掉
+        --   （同一條規則讓「中和一律用 alpha」成立）。實機要看一次滑過態。
+        E.Desaturate(arrow, key .. ".Arrow")
         E.VertexColor(arrow, T.textDim, key .. ".Arrow")
     end
 
-    if opts.textColor then
-        E.DropdownText(btn, opts.textColor, T.textDisabled, key)
+    -- 篩選下拉的 `Text` 是 `GameFontNormal`（暗金），壓在深底上偏灰 ——
+    -- 第四輪查清楚了兩條會重設字型物件的路徑都是 frame script、接得住
+    -- （`Engine.DropdownText`），所以這一種**預設**就接管成白字，不必每個配方各記一次。
+    -- `style1` 那一支本來就是 `HIGHLIGHT_FONT_COLOR`（白），不要碰。
+    local textColor = opts.textColor or (kind == "filter" and T.text or nil)
+    if textColor then
+        E.DropdownText(btn, textColor, T.textDisabled, key)
     end
 
     local inset = DROPDOWN_INSETS[kind or "style1"] or DROPDOWN_INSETS.style1
@@ -959,6 +1224,14 @@ function Skin.Dropdown(btn, key, kind, opts)
         },
     })
     E.Paint(ov, T.fillInset, T.border)
+    -- 第五輪補上滑過：這個 intrinsic 沒有 HighlightTexture（註 ⓕ），原本唯一的
+    -- 回饋是暴雪自己把 Arrow 換成 `-hover` atlas —— 那顆箭頭只有幾像素，
+    -- 在一整排下拉裡看不出「游標在哪一顆上」。底提亮 ＋ 職業色邊補上這一條。
+    -- ⚠ `opts.noHover`：確認彈窗／ESC 選單是「零按鈕 HookScript」的特許視窗
+    --   （STYLE.md ⑦），那裡的下拉不掛這一支。
+    if not opts.noHover then
+        E.TrackButtonHover(btn, ov, T.fillInset)
+    end
     return ov
 end
 

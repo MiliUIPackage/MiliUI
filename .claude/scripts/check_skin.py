@@ -95,6 +95,11 @@ RULES = [
     # 而且把「為什麼需要去飽和」的理由跟呼叫收在同一個地方。
     (r":SetDesaturated\s*\(",
      "去飽和走 Engine.Desaturate（Skin.IconButton 的 opts.desaturate）：只准對 region"),
+    # 讀「這顆按鈕能不能按」只准在 Engine 的滑過處理器裡（`Engine.TrackButtonHover`）。
+    # 那是讀取例外表上的一條，條件是「純 C 端布林 ＋ 過 Secret.ToBool ＋ 只用來決定
+    # 要不要提亮」。寫進配方就會變成「依按鈕狀態分支」，那已經是在讀暴雪的值了。
+    (r":IsEnabled\s*\(",
+     "「能不能按」只准在 Engine.TrackButtonHover 裡讀（讀取例外表）：配方不要依它分支"),
     (r":LockHighlight\s*\(",     "LockHighlight 是寫暴雪按鈕的狀態；選中態走自己的 overlay"),
     (r":UnlockHighlight\s*\(",   "UnlockHighlight 是寫暴雪按鈕的狀態；選中態走自己的 overlay"),
     # `SetHighlightLocked` 是 LockHighlight／UnlockHighlight 的新式合併版

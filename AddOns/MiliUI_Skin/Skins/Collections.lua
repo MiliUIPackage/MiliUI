@@ -51,14 +51,13 @@
 --       見 Skins/CollectionsWardrobe.lua。好友名單那種 `TabSystemButtonTemplate`
 --       這裡一顆都沒有。）
 --   2. **分頁的按鈕矩形彼此重疊 16**（`LEFT → RIGHT x="-16"`，.xml:27,32,37,42,47），
---      不是角色面板那種「間隔 1」。所以 `Skin.Tab` 的「往右多畫 7」在這裡是反效果：
---      後建的那顆會壓掉前一顆右邊 16＋7＝23，而分頁文字只內縮 10（TAB_SIDES_PADDING
---      ／2）⇒ 前一顆文字的尾巴 6 像素會落在鄰居的底色上。
---      ⇒ 這一份用自己的 `SkinPanelTab`，overlay **左右各內縮 8**，相鄰兩顆的矩形
---        剛好首尾相接（`left_{n+1}+8 = right_n-16+8 = right_n-8`），文字也整段落在
---        自己的底色上。⚠ 例外是「外觀」那一顆：`CollectionsJournal_CheckAndDisplay
---        HeirloomsTab`（.lua:60-67）每次 OnShow 都把它重錨成 `RIGHT x=+3`
---        （不是 −16），所以它的左邊要改成 −11 才接得上（＋3 的間隔 ＋ 8 的內縮）。
+--      不是角色面板那種「間隔 3」。第四輪為此自寫了一支 `SkinPanelTab`
+--      （左右各內縮 8 ＋ 第 5 顆 −11 的補償）。
+--      **第五輪改走通用的 `Skin.TabGroup`**：每顆 overlay 的右緣直接錨在
+--      「下一顆分頁的左緣」，重疊 16、間隔 +3、時空漫遊把傳家寶藏起來這三種情況
+--      一律自動對上。配方只要給 `pad = 8`（讓 overlay 落在按鈕矩形正中間，
+--      分頁文字內縮 TAB_SIDES_PADDING/2 ＝ 10，整段落在自己的底色上）
+--      與「傳家寶那一顆會被藏起來」的旗標。
 --   3. **「坐騎召喚」不是 secure 按鈕。** `MountJournal.MountButton` 是
 --      `MagicButtonTemplate` ← `UIPanelButtonTemplate`（SharedUIPanelTemplates.xml:722），
 --      OnClick 是普通 Lua（`MountJournalMountButton_OnClick`）⇒ `Skin.Button` 適用。
@@ -149,53 +148,9 @@ local L = ns.L
 local Shared = {}
 ns.CollectionsSkin = Shared
 
--- `PanelTabButtonTemplate` 的九張貼圖（`PanelTopTabButtonTemplate` 同名）
-local TAB_TEXTURES = {
-    "LeftActive", "MiddleActive", "RightActive",
-    "Left", "Middle", "Right",
-    "LeftHighlight", "MiddleHighlight", "RightHighlight",
-}
-
--- TODO(升格): `Skin.Tab` 只吃 `kind`，矩形（左右內縮）與「相連的是哪一邊」都寫死成
---   「往右多畫 overhang、上邊不畫」。收藏視窗兩種分頁都不符合：底部六顆的按鈕矩形
---   互相**重疊** 16（往右多畫只會更糟），外觀頁那兩顆是**頂部**分頁（相連的是下邊）。
---   等 `Skin.Tab` 收了 `opts.points` / `opts.joined` 之後，這一支直接刪掉。
---   這裡只組合 Engine 的公開函式（Neutralize／Overlay／Paint／ButtonFonts／TrackTab），
---   契約與 `Skin.Tab` 完全一樣。
---
--- opts:
---   left / right  overlay 相對按鈕矩形的左右偏移（框架單位，Engine 會過 P.Scale）
---   joined        跟內容相連、因此不畫的那一邊（"TOP" ＝底部分頁／"BOTTOM" ＝頂部分頁）
-function Shared.SkinPanelTab(tab, key, opts)
-    if not E.Usable(tab, key) then return end
-    opts = opts or {}
-
-    local arr
-    if pcall(function() arr = tab.TabTextures end) and type(arr) == "table" then
-        for i, tex in ipairs(arr) do
-            E.Neutralize(tex, key .. ".TabTextures[" .. i .. "]")
-        end
-    else
-        -- 模板換掉了就退回逐一點名，parentKey 的名字是一樣的
-        E.NeutralizeKeys(tab, TAB_TEXTURES, key)
-    end
-
-    local ov = E.Overlay(tab, {
-        key = key,
-        skipEdges = { opts.joined or "TOP" },
-        points = {
-            { "TOPLEFT", "TOPLEFT", opts.left or 0, 0 },
-            { "BOTTOMRIGHT", "BOTTOMRIGHT", opts.right or 0, 0 },
-        },
-    })
-    E.Paint(ov, T.fill, T.border)
-
-    -- 未選中走 NormalFont；選中（＝Disabled 狀態）的白字由暴雪自己在
-    -- PanelTemplates_SelectTab 設，不用我們管（STYLE.md 註 ⓔ）。
-    E.ButtonFonts(tab, GameFontHighlightSmall, key)
-    E.TrackTab(tab, ov, key)
-    return ov
-end
+-- （第四輪這裡有一支 `Shared.SkinPanelTab`：`Skin.Tab` 當時只吃 `kind`，矩形寫死成
+--   「往右多畫 overhang」，收藏視窗兩種分頁都不符合。第五輪 `Skin.TabGroup` 把
+--   「接縫錨在下一顆的左緣」做成通用規則，這一支連同它的 −11 補償一起刪掉。）
 
 -- `InsetFrameTemplate3`（UIPanelTemplates.xml:724）：八片 Common-Input-Border ＋ Bg
 local INSET3_KEYS = {
@@ -308,23 +263,29 @@ end
 ------------------------------------------------------------
 -- 外框
 ------------------------------------------------------------
--- 六顆分頁的 overlay 矩形（相對按鈕矩形的左右偏移）。
+-- 六顆分頁的 overlay：接縫一律由「下一顆分頁的左緣」決定（`Skin.TabGroup`）。
 --
--- 幾何全部從 XML 的錨點換算，不量測（STYLE.md ④）：
---   * 分頁 2/3/4/6 錨 `LEFT → 前一顆的 RIGHT x="-16"` ⇒ 按鈕矩形重疊 16。
---     左右各內縮 8，相鄰兩顆的 overlay 就首尾相接。
+-- 幾何全部從 XML／Lua 的錨點換算，不量測（STYLE.md ④）：
+--   * 分頁 2/3/4/6 錨 `LEFT → 前一顆的 RIGHT x="-16"`（Blizzard_Collections.xml）
+--     ⇒ 按鈕矩形**重疊 16**。`pad = 8` 讓 overlay 落在按鈕矩形的正中間，
+--     分頁文字（內縮 `TAB_SIDES_PADDING / 2` ＝ 10）也整段落在自己的底色上。
 --   * 分頁 5（外觀）被 `CollectionsJournal_CheckAndDisplayHeirloomsTab`
---     （Blizzard_Collections.lua:66）每次 OnShow 重錨成 `RIGHT x=+3` ⇒ 跟前一顆
---     之間是 3 的**間隔**不是重疊，左邊要往外拉 8+3＝11 才接得上。
---   * 文字內縮 10（TAB_SIDES_PADDING 20 的一半，SharedUIPanelTemplates.lua:393,403）
---     ⇒ 內縮 8 之後文字仍然整段落在自己的底色上。
-local TAB_INSETS = {
-    { 8, -8 },    -- 1 坐騎
-    { 8, -8 },    -- 2 寵物
-    { 8, -8 },    -- 3 玩具箱
-    { 8, -8 },    -- 4 傳家寶
-    { -11, -8 },  -- 5 外觀（被 Lua 重錨成 +3，見上）
-    { 8, -8 },    -- 6 戰隊場景
+--     （Blizzard_Collections.lua）每次 OnShow 重錨：平常是 `LEFT → 傳家寶的 RIGHT
+--     x=+3`（**間隔**不是重疊），時空漫遊角色則是 `LEFT → 玩具箱的 RIGHT x=0`
+--     ＋ 把傳家寶那一顆 `PanelTemplates_HideTab` 藏起來。
+--     第四輪為了那個 +3 在第 5 顆的左邊寫了一個 −11 的補償；接縫改成錨在
+--     「下一顆的左緣」之後那個補償自動消失 —— 不管暴雪把它重錨成什麼都對得上。
+--   * 傳家寶（第 4 顆）因此標 **`hideable`**：它被藏起來的時候我們的 overlay
+--     也跟著消失（overlay 是它的子框），第 3 顆的右緣要是錨在它身上就會留一個洞
+--     ⇒ 接縫跳過它、直接錨到第 5 顆。兩顆的 overlay 會重疊一段，同底色、
+--     後建的畫在上面，看不出來。
+local TAB_KEYS = {
+    "CollectionsJournalTab1",   -- 坐騎
+    "CollectionsJournalTab2",   -- 寵物
+    "CollectionsJournalTab3",   -- 玩具箱
+    "CollectionsJournalTab4",   -- 傳家寶（時空漫遊會被藏起來）
+    "CollectionsJournalTab5",   -- 外觀
+    "CollectionsJournalTab6",   -- 戰隊場景
 }
 
 local function SkinChrome()
@@ -345,18 +306,18 @@ local function SkinChrome()
     end
 
     -- ⚠ 由左往右套：同層級的 overlay 疊放順序看建立先後，接縫上才只有一條線。
-    --   第 4 顆（傳家寶）在時空漫遊期間會被 `PanelTemplates_HideTab` 藏起來
-    --   （Blizzard_Collections.lua:62），照樣要套 —— 藏起來的框一樣收得到我們的皮。
-    for i = 1, 6 do
-        local key = "CollectionsJournalTab" .. i
+    --   第 4 顆（傳家寶）在時空漫遊期間會被 `PanelTemplates_HideTab` 藏起來，
+    --   照樣要套 —— 藏起來的框一樣收得到我們的皮，只是跟著看不見。
+    local tabs = {}
+    for i, key in ipairs(TAB_KEYS) do
         local tab = _G[key]
         if tab then
-            local inset = TAB_INSETS[i]
-            Shared.SkinPanelTab(tab, key, { left = inset[1], right = inset[2], joined = "TOP" })
+            tabs[#tabs + 1] = { tab = tab, key = key, hideable = (i == 4) }
         else
             E.Missing(key)
         end
     end
+    Skin.TabGroup(tabs, { kind = "panel", joined = "TOP", pad = 8 })
 
     return f
 end
