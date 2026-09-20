@@ -42,9 +42,19 @@ end)
 ------------------------------------------------------------
 -- 啟動
 ------------------------------------------------------------
+-- ⚠ `PLAYER_LOGOUT` 把 `/mskin debug` 的內容原封不動存進 SavedVariables
+--   （`MiliUI_Skin_DB.lastReport`，只留最後一份）。那是給維護者讀的：
+--   「哪些區域找不到了」「哪些框被跳過」在改版之後就是現成的待辦清單，
+--   不必再請玩家進遊戲打一次指令、把輸出貼出來。
+--   整支走 `Engine.SaveReport` 的 pcall —— 登出路徑上報錯只會留下一個關不掉的視窗。
 local boot = CreateFrame("Frame")
 boot:RegisterEvent("PLAYER_LOGIN")
-boot:SetScript("OnEvent", function(self)
+boot:RegisterEvent("PLAYER_LOGOUT")
+boot:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_LOGOUT" then
+        pcall(ns.Engine.SaveReport)
+        return
+    end
     self:UnregisterEvent("PLAYER_LOGIN")
     ns.DB.Init()
     ns.Engine.Boot()

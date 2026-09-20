@@ -341,69 +341,17 @@ local function Path(owner, ...)
     return node
 end
 
--- `UIMenuButtonStretchTemplate`（申請者列的邀請／拒絕鈕）的九片銀色貼圖。
+-- ⚠ 第六輪：三支 local（`SkinStretchButton`／`SkinSquareIconButton`／
+--   `SkinInputScroll`）的 `TODO(升格)` 結案了 —— 第五輪已經把對應的原語做好
+--   （`Skin.StretchButton`／`Skin.SquareIconButton`／`Skin.InputScroll`），
+--   這一份改成直接呼叫原語。模板名從此就是函式名，配方裡看得出「這是哪個暴雪模板」。
 --
--- TODO(升格): 這一組跟 `Skin.Button` 只差「區域名單」，如果之後別的視窗也用到
---   這個模板，就把它升格成 `Skin.Button` 的一個 `opts.keys` 變體。
---
--- ⚠ 一定要 alpha：`UIMenuButtonStretchMixin:SetTextures`
---   （SharedUIPanelTemplates.lua:820）在 OnMouseDown／OnMouseUp／OnShow／OnEnable
---   四個地方把九張的**材質**換掉，但完全不碰 alpha ⇒ 中和撐得住。
-local STRETCH_PIECES = {
-    "TopLeft", "TopRight", "BottomLeft", "BottomRight",
-    "TopMiddle", "MiddleLeft", "MiddleRight", "BottomMiddle", "MiddleMiddle",
-}
-
-local function SkinStretchButton(btn, key)
-    if not E.Usable(btn, key) then return end
-    E.NeutralizeKeys(btn, STRETCH_PIECES, key)
-    E.ButtonStates(btn, key)
-    E.ButtonFonts(btn, GameFontHighlightSmall, key)
-    local ov = E.Overlay(btn, { key = key })
-    E.Paint(ov, T.fill, T.border)
-    return ov
-end
-
--- 「方形小鈕 ＋ 一張獨立的圖記」：搜尋／申請者頁的重新整理鈕。
---
--- TODO(升格): `Skin.IconButton` 是「圖就是 NormalTexture」的那一種，會把狀態貼圖
---   染色而不是中和。這裡的圖記是另一張 `btn.Icon`，底下的 `UI-SquareButton-*`
---   才是要中和的美術 ⇒ 之後給 `Skin.IconButton` 加一個 `opts.iconKey` 模式。
-local function SkinSquareIconButton(btn, key)
-    if not E.Usable(btn, key) then return end
-    for _, getter in ipairs({ "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }) do
-        if type(btn[getter]) == "function" then
-            local ok, tex = pcall(btn[getter], btn)
-            if ok and tex then E.Neutralize(tex, key .. "." .. getter) end
-        end
-    end
-    E.ButtonStates(btn, key)
-    E.VertexColor(Field(btn, "Icon"), T.textDim, key .. ".Icon")
-    local ov = E.Overlay(btn, { key = key })
-    E.Paint(ov, T.fill, T.border)
-    return ov
-end
-
--- `InputScrollFrameTemplate`（建立隊伍的「詳細說明」多行輸入框）。
---
--- TODO(升格): 九張 `*Tex` 切片是這個模板專屬的命名，跟 `Skin.EditBox` 的
---   Left/Right/Middle 不同一組 ⇒ 之後併成 `Skin.EditBox` 的一個 kind。
-local INPUT_SCROLL_TEX = {
-    "TopLeftTex", "TopRightTex", "TopTex",
-    "BottomLeftTex", "BottomRightTex", "BottomTex",
-    "LeftTex", "RightTex", "MiddleTex",
-}
-
-local function SkinInputScroll(frame, key)
-    if not E.Usable(frame, key) then return end
-    E.NeutralizeKeys(frame, INPUT_SCROLL_TEX, key)
-    local ov = E.Overlay(frame, { key = key })
-    E.Paint(ov, T.fillInset, T.border)
-
-    local bar = Field(frame, "ScrollBar")
-    if bar then Skin.ScrollBar(bar, key .. ".ScrollBar") end
-    return ov
-end
+--   三支的行為差異（升格之後跟著原語走，是刻意的）：
+--     * `Skin.StretchButton` 的滑過走 `ownHover`（底提亮 ＋ 職業色邊，
+--       `Engine.TrackButtonHover`），local 那版還停在第四輪的「白 8%」。
+--       改成跟整包其他按鈕同一套。
+--     * `Skin.SquareIconButton` 同上，而且用的是 `opts.stripFrame`
+--       （殼整組中和、改染 `Icon`）—— 跟 local 那版做的事一模一樣。
 
 -- 透明底（只要一圈邊的 overlay 用）
 local CLEAR = { 0, 0, 0, 0 }
@@ -465,10 +413,19 @@ end
 -- ⚠ 暴雪對 checkButton 只做 Show/Hide/Enable/Disable/SetChecked
 --   （LFGFrame.lua:397-432），**沒有**任何路徑重設貼圖的 vertex color ⇒ 不必 reapply。
 --
--- TODO(升格): 這是「疊在圖示上的勾選框」的通用形狀，之後別的視窗遇到同一種
---   （坐騎的最愛星星那類）就把它升格成 `Skin.CheckBox` 的 `opts.glyph` 變體。
+-- ⚠ **第六輪：整包的勾選框都改成這一套了**（`Skin.CheckBox` 的方框收成置中的
+--   18，勾保留形狀只染職業色）—— 也就是說這一顆當初被迫走的窄路，現在是通則。
+--   這裡仍然保留自己一支，差別只剩兩個，兩個都是「它不是表單裡的勾選框」：
+--     * 底色用 `fillInset` 不是 `fillCheck`（它疊在一顆亮的職責圖示上）；
+--     * 方框更小（`ROLE_BOX_SIZE`），因為按鈕本身 scale 0.7 之後只有 21x20。
+--   染色改走 `Engine.CheckedGlyph`（多了一道去飽和：`SetVertexColor` 是乘法，
+--   素材本身不是純白就乘不出職業色）。
 ------------------------------------------------------------
 local CHECK_STATE_GETTERS = { "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }
+
+-- 按鈕是 30x29 再 scale 0.7（LFGFrame.xml:6-8）⇒ 在它自己的座標系裡方框畫 14
+-- 大約等於畫面上的 10，剛好是那顆 48x48 職責圖示角落的一個凹槽。
+local ROLE_BOX_SIZE = 14
 
 local function SkinRoleCheckBox(cb, key)
     if not E.Usable(cb, key) then return end
@@ -481,20 +438,14 @@ local function SkinRoleCheckBox(cb, key)
     end
     E.ButtonStates(cb, key)
 
-    -- 已勾／停用又已勾：只染色，不塗滿
-    local checked = { T.AccentCheck(1) }
-    local checkedDisabled = { T.AccentCheckDisabled(1) }
-    for getter, color in pairs({
-        GetCheckedTexture = checked,
-        GetDisabledCheckedTexture = checkedDisabled,
-    }) do
-        if type(cb[getter]) == "function" then
-            local ok, tex = pcall(cb[getter], cb)
-            if ok and tex then E.VertexColor(tex, color, key .. "." .. getter) end
-        end
-    end
+    -- 已勾／停用又已勾：保留勾的形狀，只去飽和＋染色（不塗滿）
+    E.CheckedGlyph(cb, { T.AccentCheck(1) }, { T.AccentCheckDisabled(1) }, key)
 
-    local ov = E.Overlay(cb, { key = key })
+    local ov = E.Overlay(cb, {
+        key = key,
+        points = { { "CENTER", "CENTER", 0, 0 } },
+        width = ROLE_BOX_SIZE, height = ROLE_BOX_SIZE,
+    })
     E.Paint(ov, T.fillInset, T.border)
     return ov
 end
@@ -985,7 +936,7 @@ local function ApplySearchPanel(lfg)
 
     local refresh = Field(panel, "RefreshButton")
     if refresh then
-        SkinSquareIconButton(refresh, "LFGListFrame.SearchPanel.RefreshButton")
+        Skin.SquareIconButton(refresh, "LFGListFrame.SearchPanel.RefreshButton")
     else
         E.Missing("LFGListFrame.SearchPanel.RefreshButton")
     end
@@ -1040,7 +991,7 @@ local function ApplyApplicationViewer(lfg)
 
     local refresh = Field(panel, "RefreshButton")
     if refresh then
-        SkinSquareIconButton(refresh, "LFGListFrame.ApplicationViewer.RefreshButton")
+        Skin.SquareIconButton(refresh, "LFGListFrame.ApplicationViewer.RefreshButton")
     else
         E.Missing("LFGListFrame.ApplicationViewer.RefreshButton")
     end
@@ -1096,7 +1047,7 @@ local function ApplyEntryCreation(lfg)
         end
     end
 
-    SkinInputScroll(Field(panel, "Description"), "LFGListFrame.EntryCreation.Description")
+    Skin.InputScroll(Field(panel, "Description"), "LFGListFrame.EntryCreation.Description")
 
     for _, key in ipairs(REQUIREMENT_KEYS) do
         local req = Field(panel, key)
@@ -1182,10 +1133,13 @@ end
 local function ReapplyDungeonRow(row)
     -- ⚠ `LFGDungeonListButton_SetDungeon`（LFGFrame.lua:1737-1742）**每次**都
     --   `enableButton:SetCheckedTexture(路徑)`（多選 UI-MultiCheck／單選
-    --   UI-CheckBox-Check 兩組）—— 換材質會把我們的 `SetColorTexture` 蓋掉。
+    --   UI-CheckBox-Check 兩組）—— 換材質會把我們的去飽和與染色一起打回。
+    --   ⚠ 第六輪改走 `E.CheckedGlyph`（保留勾的形狀、只去飽和＋染職業色），
+    --     跟 `Skin.CheckBox` 同一套；`SetCheckedTexture` 換掉的是**材質**，
+    --     而去飽和與 vertex color 是貼圖自己的獨立屬性 —— 所以這裡一樣要重下。
     local cb = Field(row, "enableButton")
     if cb then
-        E.CheckedTexture(cb, { T.AccentCheck(1) }, { T.AccentCheckDisabled(1) },
+        E.CheckedGlyph(cb, { T.AccentCheck(1) }, { T.AccentCheckDisabled(1) },
             DUNGEON_ROW_KEY .. ".enableButton")
     end
 
@@ -1298,7 +1252,7 @@ local function InstallRowHooks()
         apply  = function(row)
             for _, key in ipairs({ "DeclineButton", "InviteButton", "InviteButtonSmall" }) do
                 local btn = Field(row, key)
-                if btn then SkinStretchButton(btn, "LFGListApplicant." .. key) end
+                if btn then Skin.StretchButton(btn, "LFGListApplicant." .. key) end
             end
         end,
     }

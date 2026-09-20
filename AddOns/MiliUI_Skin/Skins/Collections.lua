@@ -56,8 +56,9 @@
 --      **第五輪改走通用的 `Skin.TabGroup`**：每顆 overlay 的右緣直接錨在
 --      「下一顆分頁的左緣」，重疊 16、間隔 +3、時空漫遊把傳家寶藏起來這三種情況
 --      一律自動對上。配方只要給 `pad = 8`（讓 overlay 落在按鈕矩形正中間，
---      分頁文字內縮 TAB_SIDES_PADDING/2 ＝ 10，整段落在自己的底色上）
---      與「傳家寶那一顆會被藏起來」的旗標。
+--      分頁文字內縮 TAB_SIDES_PADDING/2 ＝ 10，整段落在自己的底色上）。
+--      ⚠ 第五輪另外給的「傳家寶會被藏起來」旗標第六輪拿掉了 —— 它會讓玩具箱的
+--        overlay 橫跨傳家寶，兩顆一起亮（實機擷圖 29）。理由寫在下面的 TAB_KEYS。
 --   3. **「坐騎召喚」不是 secure 按鈕。** `MountJournal.MountButton` 是
 --      `MagicButtonTemplate` ← `UIPanelButtonTemplate`（SharedUIPanelTemplates.xml:722），
 --      OnClick 是普通 Lua（`MountJournalMountButton_OnClick`）⇒ `Skin.Button` 適用。
@@ -275,10 +276,13 @@ end
 --     ＋ 把傳家寶那一顆 `PanelTemplates_HideTab` 藏起來。
 --     第四輪為了那個 +3 在第 5 顆的左邊寫了一個 −11 的補償；接縫改成錨在
 --     「下一顆的左緣」之後那個補償自動消失 —— 不管暴雪把它重錨成什麼都對得上。
---   * 傳家寶（第 4 顆）因此標 **`hideable`**：它被藏起來的時候我們的 overlay
---     也跟著消失（overlay 是它的子框），第 3 顆的右緣要是錨在它身上就會留一個洞
---     ⇒ 接縫跳過它、直接錨到第 5 顆。兩顆的 overlay 會重疊一段，同底色、
---     後建的畫在上面，看不出來。
+--   * ⚠ **第五輪在傳家寶（第 4 顆）上標的 `hideable` 第六輪拿掉了。**
+--     那個旗標讓第 3 顆（玩具箱）的右緣跳過傳家寶、直接錨到第 5 顆 ——
+--     保的是「時空漫遊角色會把傳家寶藏起來」這個少數情況，
+--     代價卻是**正常情況就錯**：玩具箱的 overlay 一路畫過傳家寶，
+--     選中玩具箱的時候兩顆分頁一起亮（實機擷圖 29）。
+--     現在一律錨緊鄰的下一顆；傳家寶真的被藏起來時那一段會留一個縫
+--     （藏起來的框位置仍然在，所以是縫不是錯位），那是可以接受的失敗方向。
 local TAB_KEYS = {
     "CollectionsJournalTab1",   -- 坐騎
     "CollectionsJournalTab2",   -- 寵物
@@ -309,10 +313,10 @@ local function SkinChrome()
     --   第 4 顆（傳家寶）在時空漫遊期間會被 `PanelTemplates_HideTab` 藏起來，
     --   照樣要套 —— 藏起來的框一樣收得到我們的皮，只是跟著看不見。
     local tabs = {}
-    for i, key in ipairs(TAB_KEYS) do
+    for _, key in ipairs(TAB_KEYS) do
         local tab = _G[key]
         if tab then
-            tabs[#tabs + 1] = { tab = tab, key = key, hideable = (i == 4) }
+            tabs[#tabs + 1] = { tab = tab, key = key }
         else
             E.Missing(key)
         end

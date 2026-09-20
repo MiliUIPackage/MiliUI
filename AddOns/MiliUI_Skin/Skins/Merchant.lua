@@ -100,6 +100,7 @@
 -- |---|---|
 -- | MerchantItemN.SlotTexture | SetAlpha(0) |
 -- | MerchantItemNNameFrame（全域名） | SetAlpha(0) |
+-- | MerchantItemN 的格底 | overlay **parent ＝ MerchantItemNItemButton**（跟著暴雪對空格的 Hide 一起消失） |
 -- | MerchantItemNItemButton 的 IconBorder / NormalTexture | SetAlpha(0) |
 -- | 同上的 icon | SetTexCoord |
 -- | 同上的 Highlight 貼圖 | SetColorTexture |
@@ -209,10 +210,27 @@ end
 -- `ItemButton` intrinsic。三件事：
 --   1. 格底那張 64x64 的 `UI-EmptySlot` 雕花（`SlotTexture`）與商品名字底下那張
 --      `UI-Merchant-LabelSlots` 標籤底（`$parentNameFrame`，只有全域名字）中和。
---   2. 格子本身給一塊平面底（`Skin.Row`，沒有邊）——列與列之間靠底色跟 Inset
---      的明暗差分，不畫格線（feedback-ui-visual-style：一排都有邊會變成格子紙）。
+--   2. 格子本身給一塊**內嵌底框**（`fillInset` ＋ 1px 黑邊、四邊各內縮 2）。
 --   3. 物品鈕走 `Skin.ItemButton`（圓角品質框換成直角方框、圖示裁邊、空格底）。
-------------------------------------------------------------
+--
+-- ⚠ **第六輪把格底從「跟視窗同色的平面底」換成內嵌底框。**
+--   第五輪是 `T.fill`，跟 `MerchantFrame.Inset` 的 `fillInset` 疊在一起只差
+--   0.035 的亮度 —— 實機上就是「看不出這裡是一格一格的」（擷圖 28 的買回頁，
+--   使用者原話：「每件商品沒有格子，有點怪」）。換成比內嵌框**暗**一階
+--   ＋ 一圈 1px 黑邊之後，每一格讀起來是一個凹槽。
+--   這跟「一排都有邊會變成格子紙」不衝突：那條規則講的是**清單列**
+--   （一列一筆文字），商品格是格子不是列 —— 暴雪自己原本就給了每一格一張雕花底圖。
+--
+-- ⚠ **空格的底要跟著消失，而且零讀取。**
+--   `MerchantFrame_UpdateMerchantInfo`（MerchantFrame.lua:271）與
+--   `..._UpdateBuybackInfo`（同檔 :411）對沒有商品的那一格做的是
+--   **`itemButton:Hide()`** —— 藏的是 `MerchantItem<i>ItemButton`，不是格子本身
+--   （格子只被改 vertex color）。所以把底 overlay 的 **parent 設成那顆物品鈕**
+--   （錨點仍然錨在格子上）：鈕被藏起來，我們的底跟著消失。
+--   跟收件匣七列同一招（`Skins/Mail.lua`），零讀取、零 hook、零判斷。
+--   找不到那顆鈕就退回掛在格子上 —— 那是第五輪的行為，至少不會少一塊皮。
+local CELL_INSET = 2
+
 local function SkinCell(i)
     local key = "MerchantItem" .. i
     local cell = _G[key]
@@ -222,10 +240,11 @@ local function SkinCell(i)
     -- `$parentNameFrame` 只有全域名字、沒有 parentKey（MerchantFrame.xml:13）
     E.NeutralizeGlobals({ key .. "NameFrame" })
 
-    local ov = E.Overlay(cell, { key = key, noBorder = true })
-    E.Paint(ov, T.fill)
-
     local btn = _G[key .. "ItemButton"]
+
+    local ov = E.Overlay(cell, { key = key, inset = CELL_INSET, parent = btn })
+    E.Paint(ov, T.fillInset, T.border)
+
     if btn then
         Skin.ItemButton(btn, key .. "ItemButton")
     else
@@ -330,13 +349,18 @@ local function SkinBottomStrip()
     SkinPageButton("MerchantPrevPageButton")
     SkinPageButton("MerchantNextPageButton")
 
-    -- 買回格：外層是 Frame（`MerchantBuyBackItem`），物品鈕是它的 `ItemButton` 子框
+    -- 買回格（底部那一格「最近賣出」）：外層是 Frame（`MerchantBuyBackItem`），
+    -- 物品鈕是它的 `ItemButton` 子框。底框跟商品格一致（內嵌底 ＋ 1px 邊、內縮 2）。
+    -- ⚠ 這一格**不能**學商品格把 parent 掛在物品鈕上：
+    --   `MerchantFrame_UpdateMerchantInfo`（MerchantFrame.lua:534-553）在「沒有
+    --   可買回的東西」時只清掉圖示與名字、**不 Hide 那顆鈕**；真正被 Show／Hide 的是
+    --   格子本身（`MerchantBuyBackItem:Show()`，同檔 :541）⇒ 掛在格子上就對了。
     local bb = _G.MerchantBuyBackItem
     if bb then
         E.NeutralizeKeys(bb, { "SlotTexture" }, "MerchantBuyBackItem")
         E.NeutralizeGlobals({ "MerchantBuyBackItemNameFrame" })
-        local ov = E.Overlay(bb, { key = "MerchantBuyBackItem", noBorder = true })
-        E.Paint(ov, T.fill)
+        local ov = E.Overlay(bb, { key = "MerchantBuyBackItem", inset = CELL_INSET })
+        E.Paint(ov, T.fillInset, T.border)
 
         local btn = _G.MerchantBuyBackItemItemButton
         if btn then

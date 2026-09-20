@@ -25,17 +25,33 @@ local Skin = ns.Skin
 ------------------------------------------------------------
 -- Panel：視窗本體的底 ＋ 1px 硬邊
 --
--- overlay 壓在目標自己的區域之下（levelOffset −1），所以**一定要先中和**
--- 目標自己的底圖，不然我們畫的東西看不見。
+-- 底壓在目標自己的區域之下，所以**一定要先中和**目標自己的底圖，
+-- 不然我們畫的東西看不見。
+--
+-- ⚠ 第六輪起預設走 `Engine.RegionBackdrop`（底與邊直接建成**目標框自己的貼圖**，
+--   不建子框）。理由與退路寫在 `Engine.RegionBackdrop` 的註解裡，一句話版本是：
+--   貼圖沒有 frame level／strata／parent 的問題，保護框與 `useParentLevel` 的
+--   內嵌框都不必再各自特判，而且失敗會自動退回子框那條路。
+--
+-- ⚠ **`opts.parent` 有給就一律走子框。** 那表示配方知道得比引擎清楚
+--   （確認彈窗要掛 `dialog.BG`、ESC 選單要掛 `GameMenuFrame.Border`，
+--    兩個本體都是 layout host ＋ DIALOG strata）——
+--   那兩份的作法第六輪一個字都不動。
 ------------------------------------------------------------
 function Skin.Panel(frame, key, opts)
     opts = opts or {}
-    local ov = E.Overlay(frame, {
+    local spec = {
         key = key,
         inset = opts.inset,
         points = opts.points,
         parent = opts.parent,
-    })
+    }
+    local ov
+    if opts.parent then
+        ov = E.Overlay(frame, spec)
+    else
+        ov = E.RegionBackdrop(frame, spec)
+    end
     E.Paint(ov, opts.fill or T.fill, opts.border)
     return ov
 end
@@ -55,7 +71,26 @@ end
 ------------------------------------------------------------
 local PORTRAIT_ART = { "NineSlice", "Bg", "TopTileStreaks", "PortraitContainer" }
 
-function Skin.PortraitChrome(frame, key)
+-- opts:
+--   titleBar  傳 false 就不畫標題帶（標題區長得跟標準模板不一樣的視窗）
+--
+-- ⚠ **標題帶（第六輪）**：視窗上緣一條比面板暗一階的橫帶 ＋ 下緣一條髮絲線。
+--   幾何常數從 XML 抄：`PortraitFrameBaseTemplate` 的 `TitleContainer` 是
+--   `<Size y="20"/>` ＋ `TOPLEFT/TOPRIGHT y="-1"`（`Blizzard_SharedXML/Mainline/
+--   SharedUIPanelTemplates.xml`）⇒ 標題那一條佔上緣往下 1~21，取 `T.titleBarHeight`
+--   ＝ 22。**沒有量測任何東西。**
+--
+-- ⚠ 為什麼這一條可以放心畫：它走 `Engine.RegionBackdrop`，也就是**目標框自己的
+--   一張 BACKGROUND 貼圖**，sublevel 排在面板底（−8）之上、其餘一切之下
+--   ⇒ 它**蓋不住任何內容**（標題文字在 `TitleContainer` 這個子框上、內嵌框也是
+--   子框，子框永遠畫在父層貼圖之上，見 wow-frame-vs-texture-layering）。
+--   最壞的情況只是「這條帶子在這個視窗裡位置不好看」，不會是「字不見了」。
+--   真的不好看就傳 `titleBar = false`。
+local TITLE_BAR_SUBLEVEL = -6      -- 面板底是 −8、面板的四條邊是 −7
+local TITLE_RULE_SUBLEVEL = -5
+
+function Skin.PortraitChrome(frame, key, opts)
+    opts = opts or {}
     E.NeutralizeKeys(frame, PORTRAIT_ART, key)
 
     local title
@@ -69,6 +104,36 @@ function Skin.PortraitChrome(frame, key)
     else
         E.Missing(key .. ".TitleContainer")
     end
+
+    if opts.titleBar == false then return end
+
+    local h = opts.titleBarHeight or T.titleBarHeight
+    local band = E.RegionBackdrop(frame, {
+        key = key .. ".titleBar",
+        slot = "titleBar",
+        noBorder = true,
+        sublevel = TITLE_BAR_SUBLEVEL,
+        points = {
+            { "TOPLEFT", "TOPLEFT", 0, 0 },
+            { "TOPRIGHT", "TOPRIGHT", 0, 0 },
+        },
+        height = h,
+    })
+    E.Paint(band, T.fillInset)
+
+    -- 下緣的髮絲線。深底上的分隔線要比底**亮**才看得見（同 `Skin.SectionTitle`）。
+    local rule = E.RegionBackdrop(frame, {
+        key = key .. ".titleRule",
+        slot = "titleRule",
+        noBorder = true,
+        sublevel = TITLE_RULE_SUBLEVEL,
+        points = {
+            { "TOPLEFT", "TOPLEFT", 0, -h },
+            { "TOPRIGHT", "TOPRIGHT", 0, -h },
+        },
+        height = 1,
+    })
+    E.Paint(rule, T.fillHover)
 end
 
 ------------------------------------------------------------
@@ -76,9 +141,14 @@ end
 --
 -- 內容區比外框暗一階。兩層同色就完全看不出內縮，等於把資訊層級抹平。
 ------------------------------------------------------------
+--
+-- ⚠ 第六輪起走 `Engine.RegionBackdrop`（同 `Skin.Panel`）。內嵌框特別吃這條路的好處：
+--   `InsetFrameTemplate` 常常帶 `useParentLevel="true"`（商人視窗的金錢列就是），
+--   那種框的層級等於**父框**的層級 ⇒ 子框 overlay 要靠「誰先建」決定誰蓋誰。
+--   改成建在內嵌框自己身上的貼圖之後，那個先後順序的問題就不存在了。
 function Skin.Inset(inset, key)
     E.NeutralizeKeys(inset, { "Bg", "NineSlice" }, key)
-    local ov = E.Overlay(inset, { key = key })
+    local ov = E.RegionBackdrop(inset, { key = key })
     E.Paint(ov, T.fillInset, T.border)
     return ov
 end
@@ -137,6 +207,8 @@ function Skin.BorderOnly(target, key, opts)
         key = key .. ".border",
         levelOffset = 1,
         points = opts.points,
+        width = opts.width,
+        height = opts.height,
         parent = opts.parent,
     })
     E.Paint(ov, TRANSPARENT, opts.border or T.border)
@@ -252,32 +324,44 @@ local LEGACY_TAB_TEXTURES = {
 --             pad 給 8 之後 overlay 剛好落在按鈕矩形的正中間，分頁文字
 --             （內縮 `TAB_SIDES_PADDING/2` ＝ 10）也才整段落在自己的底色上。
 --
--- 每個 entry：`{ tab = <frame>, key = "...", hideable = true? }`，**由左往右**。
---   `hideable` ＝「暴雪會把這一顆藏起來」。藏起來的分頁連我們的 overlay 一起消失
---   （overlay 是它的子框），前一顆的右緣要是錨在它身上就會留下一個洞
---   ⇒ 接縫目標**跳過** hideable 的那一顆，直接錨到再下一顆。兩顆的 overlay
---   因此會重疊一段，但同一個底色、後建的畫在上面，看不出來。
---   實例：收藏視窗的傳家寶分頁（時空漫遊角色會被 `PanelTemplates_HideTab` 藏掉，
---   而且「外觀」那一顆會被 `CollectionsJournal_CheckAndDisplayHeirloomsTab` 重錨）。
+-- 每個 entry：`{ tab = <frame>, key = "..." }`，**由左往右**。
+--
+-- ⚠⚠ **接縫一律錨在「緊鄰的下一顆」，不跳過任何一顆。**
+--   第五輪為了「暴雪會把某一顆藏起來」的情況加了一個 `hideable` 旗標，讓前一顆
+--   跳過它、直接錨到再下一顆。結果是**正常情況就錯**：收藏視窗的玩具箱分頁
+--   （第 3 顆）因此把 overlay 一路畫過傳家寶（第 4 顆）——
+--   選中玩具箱的時候傳家寶跟著一起亮（實機擷圖 29）。
+--   同一個根因還有兩個症狀：滑過玩具箱時提亮的底與邊線一路延伸到傳家寶的右緣
+--   （實機擷圖 37）、切到傳家寶時它**看起來沒亮**（它自己的 overlay 有上選中色，
+--   只是被玩具箱那塊橫跨過來的 overlay 蓋住了，實機擷圖 36）。
+--   權衡很清楚：跳過的寫法保的是一個少數情況（時空漫遊角色才會發生），
+--   代價卻是每一個玩家每一次開收藏視窗都看到三個症狀。
+--   所以改成永遠錨緊鄰的下一顆；那一顆真的被藏起來時，它那一段會留一個縫
+--   （藏起來的框位置仍然在，所以是縫不是錯位）—— 那是可以接受的失敗方向。
+--
+-- ⚠ **接壤，不重疊 —— 疊放順序因此不再是一個變數。**
+--   第 n 顆的右緣 ＝ 第 n+1 顆的 `BOTTOMLEFT + pad`，
+--   而第 n+1 顆的左緣 ＝ 它自己的 `TOPLEFT + pad` —— 同一個 x。
+--   兩塊 overlay 剛好貼在一起、一個像素都不重疊，所以「誰畫在上面」
+--   （同層級時看建立先後）對畫面沒有任何影響。
+--   第四輪的 overhang 與第五輪的 `hideable` 都是「靠重疊補縫、再靠建立順序
+--   決定誰蓋誰」，兩個症狀都是從那裡來的。
+--   接縫上只有一條線：第 n 顆不畫右邊線（`skipEdges`），留下第 n+1 顆的左邊線。
 ------------------------------------------------------------
 function Skin.TabGroup(list, opts)
     opts = opts or {}
     local pad = opts.pad or 0
     local joined = opts.joined or "TOP"
+    -- 選中的那一條線畫在「朝外」的那一邊：分頁掛在內容下方（joined = TOP）
+    -- ⇒ 線在下緣；掛在內容上方（joined = BOTTOM）⇒ 線在上緣。
+    local accentSide = (joined == "BOTTOM") and "TOP" or "BOTTOM"
     local n = #list
 
     for i = 1, n do
         local entry = list[i]
         local tab, key = entry.tab, entry.key
 
-        -- 接縫目標：下一顆**不會被藏起來**的分頁
-        local nextTab
-        for j = i + 1, n do
-            if not list[j].hideable then
-                nextTab = list[j].tab
-                break
-            end
-        end
+        local nextTab = list[i + 1] and list[i + 1].tab or nil
 
         local points
         if nextTab then
@@ -298,13 +382,18 @@ function Skin.TabGroup(list, opts)
         local skip = { joined }
         if nextTab then skip[#skip + 1] = "RIGHT" end
 
-        Skin.Tab(tab, key, opts.kind, { points = points, skipEdges = skip })
+        Skin.Tab(tab, key, opts.kind, {
+            points = points,
+            skipEdges = skip,
+            accentSide = accentSide,
+        })
     end
 end
 
 -- opts（`Skin.TabGroup` 用；舊簽章 `Skin.Tab(tab, key, kind)` 照樣可用）：
---   points     overlay 的錨點（不給就是舊的「往右多畫 overhang」）
---   skipEdges  不畫的邊（不給就是「上邊不畫」）
+--   points      overlay 的錨點（不給就是舊的「往右多畫 overhang」）
+--   skipEdges   不畫的邊（不給就是「上邊不畫」）
+--   accentSide  選中時那條職業色線畫在哪一邊（不給就是下緣）
 function Skin.Tab(tab, key, kind, opts)
     if not E.Usable(tab, key) then return end
     opts = opts or {}
@@ -331,12 +420,26 @@ function Skin.Tab(tab, key, kind, opts)
             { "TOPLEFT", "TOPLEFT", 0, 0 },
             { "BOTTOMRIGHT", "BOTTOMRIGHT", overhang, 0 },
         },
+        -- 選中時那條職業色線（`Engine.PaintTab` 負責開關），建立時就定好
+        accentSide = opts.accentSide or "BOTTOM",
+        accentSize = T.tabAccentSize,
     })
     E.Paint(ov, T.fill, T.border)
 
-    -- 未選中的文字白色走 NormalFont；選中（＝Disabled 狀態）的白字與停用的灰字
-    -- 是暴雪自己在 PanelTemplates_* 裡設 DisabledFont 的，不用我們管。
-    E.ButtonFonts(tab, GameFontHighlightSmall, key)
+    -- 文字的三態全部交給暴雪自己的字型物件系統（`PanelTabButtonTemplate` 的
+    -- `NormalFont` / `HighlightFont` / `DisabledFont`，
+    -- SharedUIPanelTemplates.xml:1330-1332）：
+    --   * `HighlightFont` 本來就是 `GameFontHighlightSmall`（白）⇒ **滑過自動變白**
+    --   * 選中的分頁被 `PanelTemplates_SelectTab` 設成 Disabled 狀態，
+    --     而 `DisabledFont` 也是 `GameFontHighlightSmall`（白）⇒ **選中自動是白的**
+    --   * 我們只換 `NormalFont`，也就是「閒置」那一態。
+    -- `"underline"` 樣式把閒置降到 `textDim`（同一個字型、只換顏色，見 Engine.DimFont）；
+    -- `"fill"` 退回第五輪的白字。**一顆腳本都沒多掛。**
+    if T.tabStyle == "fill" then
+        E.ButtonFonts(tab, GameFontHighlightSmall, key)
+    else
+        E.ButtonFonts(tab, E.DimFont(GameFontHighlightSmall, "MiliUISkinFontTabDim"), key)
+    end
     E.TrackTab(tab, ov, key)
     return ov
 end
@@ -413,6 +516,10 @@ function Skin.TabSystem(tab, key, opts)
             { "TOPLEFT", "TOPLEFT", 0, 0 },
             { "BOTTOMRIGHT", "BOTTOMRIGHT", overhang, 0 },
         },
+        -- 選中的那條職業色線畫在「朝外」的那一邊：分頁在內容上方（onTop）
+        -- ⇒ 線在上緣，否則在下緣。跟 `Skin.TabGroup` 同一條規則。
+        accentSide = opts.onTop and "TOP" or "BOTTOM",
+        accentSize = T.tabAccentSize,
     })
     E.Paint(ov, T.fill, T.border)
 
@@ -533,16 +640,37 @@ function Skin.ScrollBar(bar, key)
         return
     end
 
+    -- ⚠ 第六輪：軌道與拇指都收成一條**置中的細條**（`T.scrollThumbSize`），
+    --   不再整塊塗滿。暴雪的拇指矩形有十幾點寬，塗滿之後是一根跟內容搶注意力的
+    --   灰柱；捲軸是「還有多少沒看到」的次要資訊，細條就夠了。
+    --   長度仍然完全由暴雪決定（那才是資訊），我們只收窄。
+    --   ⚠ 只錨上下兩端 ＋ 自己給寬度 ⇒ 垂直捲軸才對。這一整包遇到的
+    --     `MinimalScrollBar` 全部是垂直的（清單、說明文字），水平的另外遇到再說。
+    local thin = T.scrollThumbSize
+    local thinPoints = {
+        { "TOP", "TOP", 0, 0 },
+        { "BOTTOM", "BOTTOM", 0, 0 },
+    }
+
     E.NeutralizeKeys(track, { "Begin", "Middle", "End" }, key .. ".Track")
-    local trackOv = E.Overlay(track, { key = key .. ".Track", noBorder = true })
+    local trackOv = E.Overlay(track, {
+        key = key .. ".Track", noBorder = true,
+        points = thinPoints, width = thin,
+    })
     E.Paint(trackOv, T.scrollTrack)
 
     local thumb
     pcall(function() thumb = track.Thumb end)
     if thumb then
         E.NeutralizeKeys(thumb, { "Begin", "Middle", "End" }, key .. ".Thumb")
-        local thumbOv = E.Overlay(thumb, { key = key .. ".Thumb", noBorder = true })
+        local thumbOv = E.Overlay(thumb, {
+            key = key .. ".Thumb", noBorder = true,
+            points = thinPoints, width = thin,
+        })
         E.Paint(thumbOv, T.scrollThumb)
+        -- 滑過提亮。⚠ 閒置的拇指是 0.35，比 `fillHover`（0.23）還亮
+        -- ⇒ 一定要自己給滑過色，不然會變成「滑過反而變暗」。
+        E.TrackButtonHover(thumb, thumbOv, T.scrollThumb, nil, T.scrollThumbHover)
     else
         E.Missing(key .. ".Track.Thumb")
     end
@@ -624,24 +752,40 @@ end
 -- 底色用比面板亮一階的 fillCheck（共用層 CHECKBOX_FILL 的理由：沒勾的時候
 -- 它是唯一「什麼都沒有」的控件）。
 --
--- ⚠ **已勾的樣式換成「整格填滿職業色」，不是保留暴雪的勾／圓點。**
---   第二輪實測（寄信頁的「寄送金錢／付款取信」）看得很清楚：
---   `UIRadioButtonTemplate` 的已勾是 `UI-RadioButton` 的第二格 —— 一顆為了亮色
---   圓鈕設計的小圓點，放進 16 像素的深色方框裡幾乎看不見。
---   `UICheckButtonTemplate` 的 `UI-CheckBox-Check` 也是同一個問題。
---   換成滿色之後「有沒有勾」＝「這格是不是亮的」，而且跟共用層
---   `Widgets.lua` 的 `W.CreateCheckButton`（勾＝整條職業色）是同一套顏色語彙。
---   做法走 `Engine.CheckedTexture` —— C 端自己依狀態顯示／隱藏那張貼圖，
---   我們只換長相，沒有 `SetChecked`、沒有腳本（見 Engine 那一段）。
+-- ⚠⚠ **第六輪整個換掉了「已勾」的畫法。**
 --
--- ⚠ **邊要畫在前景。** Checked 貼圖的矩形等於按鈕矩形
+--   第三～五輪是「已勾＝整格填滿職業色」（`Engine.CheckedTexture` →
+--   `SetColorTexture`）。那條路的前提是「方框很小，暴雪的細勾看不見」，
+--   但實機上**方框一點都不小** —— overlay 照按鈕矩形畫，而暴雪的勾選按鈕矩形
+--   常常是 32x32（`UICheckButtonTemplate`）、24x24（插件列表）。
+--   結果就是使用者看到的一整排大方塊（實機擷圖 33，原話：「方塊好醜」）。
+--
+--   現在對齊套組自己的設定視窗（共用層 `Widgets.lua` 的 `W.CreateCheckButton`）：
+--     * **方框固定邊長、置中**（`T.checkBoxSize` ＝ 18，跟共用層同一個數字），
+--       跟按鈕矩形多大無關 —— 也就不必為每個模板各查一個內縮量。
+--     * 未勾與已勾**同一個底**（`fillCheck`），狀態全部由那個勾表示。
+--     * 勾**保留暴雪自己的形狀**，只去飽和 ＋ 染職業色（`Engine.CheckedGlyph`）。
+--       Checked 貼圖仍然是整顆按鈕大（setAllPoints），比 18 的方框大
+--       ⇒ 共用層那個「勾刻意比框大一圈往外溢」的效果自動成立。
+--
+-- ⚠ **邊仍然畫在前景。** Checked 貼圖的矩形等於按鈕矩形
 --   （`UICheckButtonTemplate` 的 CheckedTexture 沒有 Size／Anchor ⇒ setAllPoints；
 --    `UIRadioButtonTemplate` 的三張都是整顆 16x16 的 TexCoord 切片，
 --    Blizzard_SharedXML/Shared/Button/CheckButtonTemplates.xml:15-23, 46-47）
---   ⇒ 填滿之後會蓋掉背景 overlay 的 1px 黑邊。所以底走 −1、邊另外走 +1
---   （`slot = "front"`），跟 StatusBar 的填充條同一個作法。
+--   ⇒ 勾會畫在背景 overlay 的黑邊之上。所以底走 −1、邊另外走 +1
+--   （`slot = "front"`），跟第五輪一樣。
+--
+-- opts:
+--   boxSize    方框邊長（像素）。預設 `T.checkBoxSize`。
+--   keepCheck  **完全不碰 Checked 貼圖。** 給「那張圖本身帶了狀態語意」的勾選框：
+--              插件列表的三態勾選（`TriStateCheckbox_SetState` 用
+--              `SetDesaturated` 區分「全部啟用」與「部分角色啟用」，
+--              我們一染色那個區分就沒了），而且它的 Checked 本來就是
+--              `checkmark-minimal` —— 白勾配深色小方框，長相已經是我們要的。
+--   noHover    不掛 `HookScript`（確認彈窗／ESC 選單那兩個特許視窗）
 ------------------------------------------------------------
-function Skin.CheckBox(cb, key)
+function Skin.CheckBox(cb, key, opts)
+    opts = opts or {}
     if not E.Usable(cb, key) then return end
 
     for _, getter in ipairs({ "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }) do
@@ -652,17 +796,26 @@ function Skin.CheckBox(cb, key)
     end
     E.ButtonStates(cb, key, nil, true)
 
-    local checked = { T.AccentCheck(1) }
-    local checkedDisabled = { T.AccentCheckDisabled(1) }
-    E.CheckedTexture(cb, checked, checkedDisabled, key)
+    if not opts.keepCheck then
+        E.CheckedGlyph(cb, { T.AccentCheck(1) }, { T.AccentCheckDisabled(1) }, key)
+    end
 
-    local ov = E.Overlay(cb, { key = key })
+    -- 置中的固定邊長方框（**不量按鈕**，見上）
+    local size = opts.boxSize or T.checkBoxSize
+    local boxPoints = { { "CENTER", "CENTER", 0, 0 } }
+
+    local ov = E.Overlay(cb, {
+        key = key, points = boxPoints, width = size, height = size,
+    })
     E.Paint(ov, T.fillCheck, T.border)
-    -- 邊畫在已勾的填色之上
-    local borderOv = Skin.BorderOnly(cb, key)
-    -- ⚠ 滑過時要換色的是**前景**那一層的邊（背景層的邊被已勾的滿色蓋住了），
-    --   底色仍然換背景層的 ⇒ 兩個 overlay 分開傳。
-    E.TrackButtonHover(cb, ov, T.fillCheck, borderOv)
+    -- 邊畫在勾之上
+    local borderOv = Skin.BorderOnly(cb, key, {
+        points = boxPoints, width = size, height = size,
+    })
+    -- ⚠ 滑過時要換色的是**前景**那一層的邊，底色仍然換背景層的 ⇒ 兩個分開傳。
+    if not opts.noHover then
+        E.TrackButtonHover(cb, ov, T.fillCheck, borderOv)
+    end
     return ov
 end
 
@@ -1116,17 +1269,26 @@ function Skin.StatusBar(bar, key, opts)
     }
     local fillPoints = pad ~= 0 and E.ExpandPoints(basePoints, pad) or basePoints
 
-    local ov = E.Overlay(bar, { key = key, points = fillPoints, noBorder = true })
+    -- ⚠ 第六輪：底與邊都改成**建在條自己身上的貼圖**（`Engine.RegionBackdrop`）。
+    --   第五輪是「下層子框 ＋ 矩形往外推」，這一輪把子框拿掉之後，
+    --   「邊會不會橫切過條上的文字」這個問題從根本上消失了：
+    --   同一個框裡的 region 是按 draw layer 交錯的，文字（OVERLAY／ARTWORK）
+    --   天然浮在 BACKGROUND 的底與 BORDER 的邊之上，不必跟任何層級搶。
+    --   （`pad` 的語意不變：底與邊一起往外推，給「字比條高」的那幾種。）
+    local ov = E.RegionBackdrop(bar, { key = key, points = fillPoints, noBorder = true })
     E.Paint(ov, T.fillInset)
 
-    -- 邊：同一層（target−1），矩形再往外推 1px ⇒ 那一圈落在條的矩形**外面**，
-    -- 填充與文字都碰不到它。底色全透明，這一層只是一圈邊。
-    -- ⚠ slot 要跟底分開（底用預設的 "main"），不然 `Engine.Overlay` 的冪等會
-    --   把第二次呼叫當成同一個 overlay 直接回傳上一個。
-    local border = E.Overlay(bar, {
+    -- 邊：矩形再往外推 1px ⇒ 那一圈落在條的矩形**外面**，填充碰不到它。
+    -- ⚠ slot 要跟底分開（底用預設的 "main"），不然冪等會把第二次呼叫
+    --   當成同一個背景直接回傳上一個。
+    local border = E.RegionBackdrop(bar, {
         key = key .. ".border",
         slot = "border",
         points = E.ExpandPoints(fillPoints, 1),
+        -- 邊在 BORDER 層：確保它畫在自己的底（BACKGROUND）之上，
+        -- 同時仍然在填充貼圖與文字之下。
+        edgeLayer = "BORDER",
+        edgeSublevel = -7,
     })
     E.Paint(border, TRANSPARENT, T.border)
     return ov
