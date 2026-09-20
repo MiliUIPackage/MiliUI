@@ -32,6 +32,10 @@ local function BuildDefaults()
             quest       = true,
             mail        = true,
             friends     = true,
+            merchant    = true,
+            dressup     = true,
+            itemupgrade = true,
+            addonlist   = true,
         },
     }
 end

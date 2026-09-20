@@ -45,6 +45,10 @@ local controls = {
     { type = "toggle", sub = "windows", key = "quest",       label = L["Quest"] },
     { type = "toggle", sub = "windows", key = "mail",        label = L["Mail"] },
     { type = "toggle", sub = "windows", key = "friends",     label = L["Friends List"] },
+    { type = "toggle", sub = "windows", key = "merchant",    label = L["Merchant"] },
+    { type = "toggle", sub = "windows", key = "dressup",     label = L["Dressing Room"] },
+    { type = "toggle", sub = "windows", key = "itemupgrade", label = L["Item Upgrade"] },
+    { type = "toggle", sub = "windows", key = "addonlist",   label = L["AddOns"] },
 
     { type = "space", h = 6 },
     { type = "text", label = L["Changes take effect after a UI reload."] },

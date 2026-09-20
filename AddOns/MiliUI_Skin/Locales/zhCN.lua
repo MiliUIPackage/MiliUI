@@ -29,6 +29,10 @@ L["Achievements"] = "成就"
 L["Quest"] = "任务"
 L["Mail"] = "邮件"
 L["Friends List"] = "好友列表"
+L["Merchant"] = "商人"
+L["Dressing Room"] = "试衣间"
+L["Item Upgrade"] = "物品升级"
+L["AddOns"] = "插件"
 
 -- 暴雪「系统 > 插件」入口页
 L["Use /mskin to open options"] = "使用 /mskin 打开设置"
