@@ -87,3 +87,4 @@ Fix\ParagonReputation_HideTooltipForbidden.lua
 Fix\HandyNotes_DecorName.lua
 Fix\MasqueBlizzBars_CooldownViewer.lua
 Fix\Blizzard_TransmogRollChat.lua
+Fix\Blizzard_FriendsStatusDropdown.lua
