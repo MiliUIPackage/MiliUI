@@ -520,6 +520,15 @@ overlay 的層級一律是**目標層級 − 1**（`Engine.Overlay` 的 `levelOf
 | **`InboxPrev/NextPageButton`**<br>同檔 `:381,388,406,413` | 無（箭頭是內容） | Normal/Pushed 染 `textDim`、Disabled 染 `textDisabled` | IconButton overlay **內縮 4**（按鈕 32x32，箭頭素材四周一大圈留白）；「上頁」「繼續」是**無名無 parentKey** 的 layer FontString ⇒ `opts.labelColor` 走 `GetRegions()` 染白 | 未實測 |
 | **兩組信紙**<br>同檔 `:506,512,968,974`<br>`.lua:546,736-739,1065-1070` | `SendStationeryBackgroundLeft/Right`、`OpenStationeryBackgroundLeft/Right`（**alpha**：每次更新都重設材質／TexCoord／高度，alpha 是獨立屬性所以撐得住） | — | 換掉底材 ⇒ **連同上面所有文字一起接管**（內容底材規則）：寄信內文、`OpenMailBodyText`（SimpleHTML，**放 reapply**，`SetText` 會重排）、發票九條 ＋ 訂單收據六條 `InvoiceTextFontNormal`、金錢框裡的無名 `+`/`-`。金幣數字本身不碰（字型物件是白／紅／綠） | 未實測 |
 | `TabSystemButtonTemplate`（好友名單頂部分頁）<br>`Blizzard_SharedXML/Shared/TabSystem/TabSystemTemplates.xml:3` | 九張貼圖的 parentKey 名字跟 `PanelTabButtonTemplate` **一樣**，但 parentArray 叫 `RotatedTextures` | **做不到**：狀態走 `TabSystemButtonArtMixin:SetTabSelected`，不經過 `PanelTemplates_*` ⇒ Engine 的三個後置勾一次都不會觸發；而且是 `CreateFramePool` 生的（同檔 `.lua:209`） | **這一輪不做**，跟下拉與池化列同一批 | — |
+| **`CollectionsBackgroundTemplate`**（收藏的格子底）<br>`Blizzard_SharedXML/Mainline/SharedCollectionTemplates.xml:56` | `InsetFrameTemplate` 的 `Bg`/`NineSlice` ＋ `BackgroundTile` ＋ 8 張 `ShadowCorner*` ＋ 8 張 `OverlayShadow*` ＋ 4 張 `BGCorner*`（21 個 parentKey） | — | Inset overlay。收在 `ns.CollectionsSkin.SkinCollectionsBackground` | 未實測 |
+| **`InsetFrameTemplate3`**（坐騎／寵物的「總數」小框）<br>`Blizzard_UIPanelTemplates/Mainline/UIPanelTemplates.xml:724` | 八片 `Border*`（Common-Input-Border）＋ `Bg` | — | Inset overlay（`ns.CollectionsSkin.SkinInset3`）；`Count`/`Label` 不碰 | 未實測 |
+| **`CollectionsProgressBarTemplate`**<br>`Blizzard_Collections/Mainline/Blizzard_CollectionTemplates.xml:5,18,26,36` | `border`（UI-Character-Skills-BarBorder）＋ BACKGROUND 層一張**無名**的純黑 ⇒ `stripArt` | 材質換 `barTexture`；綠色**重下一次**暴雪自己的 `(0.03125, 0.85, 0)`（XML 的 `<BarColor>` 只在建立時生效一次）。查過四支使用者都只 `SetValue`，沒有讀回 | StatusBar overlay，邊走前景 | 未實測 |
+| **`CollectionsPagingFrameTemplate`**<br>同檔 `:170,178,186` | 無（箭頭是內容） | Normal/Pushed 染 `textDim`、Disabled 染 `textDisabled`；Highlight → 白 8% | IconButton overlay **內縮 4**（按鈕 32x32，`UI-SpellbookIcon-*` 的箭頭只佔中間一小塊）；`PageText` 已經是 `GameFontWhite`，不碰 | 未實測 |
+| **`CollectionsJournalTab`**（收藏底部六顆）<br>`Blizzard_Collections/Mainline/Blizzard_Collections.xml:5,20-49`<br>`…/Blizzard_Collections.lua:60-67` | 同 `PanelTabButtonTemplate`（九張 `TabTextures`） | **hook**（註 ⓐ） | ⚠ **不能用 `Skin.Tab`**：按鈕矩形彼此**重疊 16**（`LEFT → RIGHT x="-16"`），往右多畫只會讓後建的那顆壓掉前一顆的文字尾巴。改成 overlay **左右各內縮 8**（相鄰兩顆首尾相接）；第 5 顆「外觀」被 `CheckAndDisplayHeirloomsTab` 每次 OnShow 重錨成 `x=+3`，左邊要改成 `−11` | 未實測 |
+| **`PanelTopTabButtonTemplate`**（外觀頁頂部兩顆）<br>`Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:979`<br>`…/SharedUIPanelTemplates.lua:280-299` | 同上九張 | **hook**（同上；它仍然走 `PanelTemplates_SetTab`） | ⚠ **相連的是下邊**（掛在內容框上緣）⇒ `skipEdges = { "BOTTOM" }`。兩顆矩形首尾相接（`LEFT → RIGHT x="0"`）⇒ 左右都不內縮 | 未實測 |
+| **`MountListButtonTemplate` / `CompanionListButtonTemplate`**（坐騎／寵物清單列）<br>`Blizzard_Collections/Mainline/Blizzard_MountCollection.xml:80`<br>`Blizzard_Collections/Shared/Blizzard_PetCollection.xml:7`<br>`…/Blizzard_MountCollection.lua:328`、`…/Blizzard_PetCollection.lua:766` | `background`（PetList-ButtonBackground）。⚠ 一定要 alpha：`CollectionItemListButton_SetRedOverlayShown`（`Blizzard_CollectionTemplates.lua:134`）每次都重設它的 vertex color | **引擎**：`HighlightTexture`（PetList-ButtonHighlight）→ 白 8% | Row overlay（無邊、`fill`）＋ `icon` 走 Icon（**裁邊放 reapply**，`Init` 每次 `SetTexture`）。⚠ 初始化是**全域函式**不是 mixin ⇒ `HookRows{ mixin = _G }`。`selectedTexture`/`favorite`/`factionIcon`/`petTypeIcon`/`new` 全是資訊，不碰 | 未實測 |
+| **`CollectionsSpellButtonTemplate`**（玩具格／傳家寶格）<br>`Blizzard_Collections/Mainline/Blizzard_CollectionTemplates.xml:39` | **一張都不碰** | — | **不做**。它 `inherits="SecureFrameTemplate"` ⇒ `IsProtected()` 為真 ⇒ 不掛 overlay（引擎會擋）。而「只中和裝飾」那條路也不走：按鈕的長相幾乎全在 `slotFrameCollected`/`slotFrameUncollected` 上，中和掉之後**沒有東西可以補**，會變成一片沒有框的裸圖示 | — |
+| **`HeirloomHeaderTemplate`**（傳家寶分類帶）<br>`Blizzard_Collections/Mainline/Blizzard_HeirloomCollection.xml:5,9,17` | **不碰** | — | **不做**。`collections-slotheader` 是亮底、`text` 是 XML 寫死的深橄欖綠 ⇒ 換底材就要接管文字（內容底材規則），而唯一的接管路徑是走訪 `HeirloomsMixin` 的 `heirloomHeaderFrames` 池子 —— 那是**讀暴雪框的欄位**，不在讀取例外表裡 | — |
 
 ### 註 ⓐ　分頁為什麼只能 hook
 
@@ -731,6 +740,12 @@ AchievementObjectives_DisplayProgressiveAchievement   同上
 | 任務 `QuestFrame` | `quest` | chrome／關閉鈕／Inset／六顆面板按鈕／四條捲軸／`QuestModelScene` 的兩個外框。**羊皮紙與四張 `Material*` 不碰** |
 | 郵件 `MailFrame`＋`OpenMailFrame` | `mail` | **整頁重做**：兩個視窗的 chrome／兩顆分頁／收件匣七列（平面列＋隔行明暗、信件鈕走 `ItemButton`、翻頁鈕收緊）／**信紙深色化＋文字全接管**／附件格走 `ItemButton`／附件區兩條分隔線／收件人與主旨的矩形修正／金額欄／單選鈕（已勾＝職業色）／九顆按鈕／兩條捲軸／**伴隨元件** |
 | 好友名單 `FriendsFrame` | `friends` | chrome／底部四顆分頁／聯絡人頁兩顆按鈕／戰網廣播框（邊框＋輸入框＋兩顆按鈕）／查詢頁（搜尋框、Inset、四個欄位表頭、三顆按鈕）／忽略名單小視窗／三條捲軸 |
+| 收藏 `CollectionsJournal` | `collections` | **四個檔案共用一個 key**（`Skins/Collections.lua`＝外框＋坐騎、`CollectionsToys.lua`＝玩具箱＋傳家寶＋戰隊場景、`CollectionsPets.lua`＝寵物、`CollectionsWardrobe.lua`＝外觀）。chrome／關閉鈕／底部六顆分頁（矩形另算，見配方表）／坐騎頁（三塊 Inset、搜尋、篩選下拉、總數框、召喚鈕、捲軸、清單列、資訊區圖示）／玩具箱與傳家寶（進度條、搜尋、兩種下拉、格子底、翻頁）／戰隊場景（格子底＋勾選框）／寵物（三塊 Inset、總數框、搜尋、篩選、捲軸、出戰框、兩顆按鈕、清單列）／外觀（頂部兩顆分頁、搜尋、進度條、三顆下拉、兩頁的底、翻頁、捲軸）。**模型場景、玩具／傳家寶的 secure 格子、寵物卡內部、外觀的模型格子都不碰** |
+
+收藏視窗**還沒做的**：玩具與傳家寶的格子（secure，理由見配方表）、傳家寶的分類標題帶、
+外觀頁的模型格子與部位按鈕、套裝清單的池化列、寵物卡內部（血量／速度／品質／技能格／
+經驗條）與三個出戰格、坐騎的動態飛行按鈕與裝備格、戰隊場景的翻頁控制列。
+塑形師的 `WardrobeFrame` 是另一個框，不在這一輪。
 
 **還沒做的**：任務／好友的 `WowStyle1DropdownTemplate` 系下拉與 `WowScrollBoxList`
 池化列（機制都有了：`Skin.Dropdown`、`Engine.HookRows`，只差套上去）、好友名單的
