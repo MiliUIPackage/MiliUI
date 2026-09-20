@@ -50,6 +50,10 @@ Skins\CollectionsWardrobe.lua
 Skins\PVE.lua
 Skins\PVP.lua
 Skins\Challenges.lua
+Skins\Merchant.lua
+Skins\DressUp.lua
+Skins\ItemUpgrade.lua
+Skins\AddonList.lua
 
 # 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
 Libs\MiliUIWidgets\Env.lua
