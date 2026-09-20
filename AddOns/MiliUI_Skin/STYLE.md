@@ -651,6 +651,8 @@ overlay 的層級一律是**目標層級 − 1**（`Engine.Overlay` 的 `levelOf
 | **`ItemUpgradeFrame`**（隨需載入）<br>`Blizzard_ItemUpgradeUI/Mainline/Blizzard_ItemUpgradeUI.xml:144,148,181,188,232,268,301,315,358,388,422`<br>`.lua:112,164,647` | `TopBG`／`BottomBG`／`BottomBGShadow`（兩片石板底）、物品槽的 `ButtonFrame`、費用列的 `BGTex`、`$parentPlayerCurrenciesBorder` 的三張全域切片、三個預覽框的 `NineSlice` | **引擎就夠**：物品槽走的是**全域** `SetItemButtonQuality`／`SetItemButtonTexture`（跟商人視窗相反）⇒ 不必自己勾 | 內容底材破例走深色（全檔**零** `SetTextColor`、字本來就是白／灰／紅 ⇒ 沒有東西要接管）。**所有動畫特效留著**（`IdleGlow`／`Ring`／`BottomPanel_Flash`／`MicaFleckSheen`／`EmptySlotGlow`／`Glow*`／`Arrow`）。⚠ 它繼承 `PortraitFrameTemplate` **不是** `ButtonFrameTemplate` ⇒ 沒有 `Bg`／`TopTileStreaks`／`Inset`，不走 `Skin.PortraitChrome`（免得 debug 清單留兩筆假的） | 未實測 |
 | **`SideDressUpFrame`**<br>`Blizzard_UIPanels_Game/Mainline/DressUpFrames.xml:44,51,57,110,116`<br>`.lua:306-313` | `$parentTop`（全域名）＋ 一張**無名**的 `-Bottom` ⇒ `GetRegions()` ＋ keep-set；關閉鈕自己 BACKGROUND 層裡一張**無名**的 `-Corner` | 同關閉鈕 | Panel overlay。⚠ `BGTopLeft`／`BGBottomLeft` 是**模型場景的背景**（`.lua:306-313` 每次 `SetTexture`）⇒ 留在 keep-set 裡不碰。⚠ 這個框是 `flattenRenderLayers="true"`，子孫的 render layer 會被壓平 ⇒ **實機要確認 overlay 沒有蓋到模型** | 未實測 |
 | **`DressUpFrameTransmogSetTemplate`** / **`DressUpCustomSetDetailsPanelMixin`**<br>同檔 `:174,367`<br>`.lua:475-482,896` | `BlackBackground`／`Border`（atlas `dressingroom-sideframe`）／`ClassBackground`／一張**無名**的 sideframe ⇒ `GetRegions()`。`ClassBackground` 的 alpha 只在 **OnLoad** 設一次（`.lua:481`）⇒ 中和撐得住 | — | Panel overlay ＋ `Skin.ScrollBar`。**列不碰**：明細列的 `IconBorder` atlas 名字就是品質／未收藏／錯誤三種狀態（`.lua:896-953`），是資訊；套裝選擇列的 mixin 不在 `DressUpFrames.lua` 裡，查不到可以掛的 Init | 未實測 |
+| **`StaticPopupTemplate`**（確認彈窗，**第五輪特許**）<br>`Blizzard_StaticPopup_Game/GameDialog.xml:3,51,54,64,78,94,103,112,170-176,196,201,235,248,253,334-353`<br>`…/GameDialog.lua:24-28,171,179-186,801-813` | `BG.Top`（`UI-DiamondDialogBox-Border`）＋ `BG.Bottom`（`UI-DialogBox-Background-Dark`）；按鈕的 Normal／Pushed／Disabled（`UI-DialogBox-Button-*`，**全檔沒有 Lua 重設**）；關閉鈕的 Normal／Pushed（`SetupCloseButton` 每次 Init 重設 atlas ⇒ **一定要 alpha**）；EditBox 的 `NineSlice`；`ItemFrame.NameFrame`／`Item.IconBorder` | **引擎**：Highlight → 白 8%。**Pushed 一律中和不上色**（關閉鈕在這裡不符合註 ⓔ 的「模板寫死」前提）。按鈕文字走 `SetNormalFontObject(UserScaledFontGameHighlight)`（模板自己的 HighlightFont，保住 `useScaleWeight` 的度量） | 配方自己的 local `FlatButton`／`FlatCloseButton`／`FlatItemButton`（`-- TODO(升格)`）。⚠ **overlay 的 parent 一定要指定 `dialog.BG`**：彈窗本身是 `ResizeLayoutFrame` ＋ 顯示時 `SetFrameStrata("DIALOG")`，交給 `SafeParent` 會掉到 `UIParent`(MEDIUM) ⇒ 皮跑到彈窗後面。⚠ **零 hook**：`StaticPopup1…4` 是 XML 靜態建好的，登入掃一次就完整；物品格因此**不追品質色也不裁邊**（沒有 reapply，裁了會被 `SetItemButtonTexture` 打回） | **未實測（第五輪新做）** |
+| **`GameMenuFrame`**（ESC 選單，**第五輪特許**）<br>`Blizzard_GameMenu/Shared/GameMenuFrame.xml:4`<br>`…/GameMenuFrame.lua:57,68`<br>`Blizzard_SharedXML/Mainline/Frame/MainMenuFrameTemplates.xml:11,18,35,40,46`<br>`…/Shared/Frame/MainMenuFrameTemplates.lua:14,25,46,54`<br>`…/Shared/Dialog/DialogTemplates.xml:11,69`<br>`…/Mainline/NineSliceLayouts.lua:157` | `Border` 的八片（`Dialog` 版面**沒有 `Center`**）＋ `Bg`；`Header.LeftBG`/`.RightBG`/`.CenterBG`；每顆按鈕的 `Left`/**`Center`**/`Right`（`ThreeSliceButtonMixin:UpdateButton` 每次重設 atlas ⇒ **一定要 alpha**） | **引擎**：Highlight → 白 8%（`InitButton` 的 `SetHighlightAtlas` 只在 OnLoad 跑一次）。**字型一個都不換**：`MainMenuFrameButtonTemplate` 的 NormalFont 本來就是 `GameFontHighlightLarge`（白）、Disabled 是 `GameFontDisableLarge`（灰） | Panel overlay **往上長 11**（＝`Header` 的 `TOP y=11`，把標題吃進面板）＋ `Header.Text` 改白。按鈕是 `buttonPool` 借的 ⇒ 時機走 **`GameMenuFrame:HookScript("OnShow", …)`＋`C_Timer.After(0, …)` 延一幀**（三條路的評估寫在配方檔頭）。⚠ overlay 的 parent 指定 `GameMenuFrame.Border`（本體是 `VerticalLayoutFrame`）。⚠ **戰鬥中直接返回**，脫戰後下次開再套 | **未實測（第五輪新做）** |
 
 ### 註 ⓐ　分頁為什麼只能 hook
 
@@ -944,6 +946,8 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 試衣間 `DressUpFrame`＋`SideDressUpFrame` | `dressup` | chrome／關閉鈕／最大化最小化／外觀套裝下拉／外觀清單開關／底部三顆按鈕／右側兩片面板＋捲軸／小試衣間。**模型場景與它的背景不碰** |
 | 物品升級 `ItemUpgradeFrame` | `itemupgrade` | **整個視窗深色化**（全檔零 `SetTextColor`，沒有文字要接管）：chrome／物品槽／等級下拉／左右兩欄預覽／費用列／持有貨幣列／升級鈕。**所有動畫特效留著** |
 | 插件列表 `AddonList` | `addonlist` | chrome／角色下拉／搜尋框／「載入過期插件」／效能區／底部四顆三片式按鈕／捲軸／**池化列**（插件列與分類列兩態都自己畫）／重載對話框。**只有遊戲內那一份** |
+| **確認彈窗 `StaticPopup1…4`**（特許，見下） | `popup` | 四顆彈窗的外框／關閉鈕／四顆按鈕＋額外按鈕／輸入框／下拉／金額輸入框／物品格（**靜態 1px 黑邊，不追品質色**）。**hook 數 0** |
+| **ESC 選單 `GameMenuFrame`**（特許，見下） | `gamemenu` | 外框（往上長 11 把標題吃進來）／標題白字／池化的選單按鈕。**唯一的 hook 是 `HookScript("OnShow")`，內容只有延一幀** |
 
 收藏視窗**還沒做的**：玩具與傳家寶的格子（secure，理由見配方表）、傳家寶的分類標題帶、
 外觀頁的模型格子與部位按鈕、套裝清單的池化列、寵物卡內部（血量／速度／品質／技能格／
@@ -985,6 +989,36 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
   ⚠ 套組裡另有插件也 hook `SetItemButtonQuality` 並在格子上畫自己的直角品質邊框
   （預設關閉）。兩邊都開就會有兩圈幾乎重疊的邊 —— 已知衝突，實機要確認。
 
+### 特許：確認彈窗與 ESC 選單（第五輪）
+
+這兩個視窗原本分別在 C 級（`StaticPopup`）與「根本沒列」（`GameMenuFrame` ——
+它的按鈕通往編輯模式，而編輯模式自己就是 C 級）。使用者點名要做，所以開一條
+**比 B 級更窄**的特許，條件寫死在兩份配方的檔頭，合併前逐條檢查：
+
+1. **零 `HookScript` 在任何按鈕上**，連 `OnEnter`/`OnLeave` 都不行 ——
+   滑過一律交給引擎換 Highlight 貼圖的長相（`Engine.ButtonStates`）。
+   ⚠ 一般按鈕的滑過態若改成走 `HookScript`，這兩份配方**不准跟進**：
+   它們用自己的 local 平面按鈕函式（只組合 `Neutralize`／`NeutralizeKeys`／
+   `ButtonStates`／`ButtonFonts`／`Overlay`／`Paint`），不呼叫 `Skin.Button`。
+2. **零 `hooksecurefunc` 在 `StaticPopup_*` 上**。彈窗這一份的 hook 數是 **0**
+   （`StaticPopup1…4` 是 XML 靜態建好的，登入掃一次就完整）。
+   ESC 選單這一份只有一支 `GameMenuFrame:HookScript("OnShow", …)`，
+   而且內容只有 `C_Timer.After(0, …)` —— 真正在畫的那一段跑在下一幀的 timer
+   堆疊裡，不在 `ShowUIPanel → OnShow → InitButtons` 這條暴雪執行流裡面。
+   ⚠ **不准**改成 `hooksecurefunc(GameMenuFrame, "InitButtons", …)`：那等於
+   `GameMenuFrame.InitButtons = 包裝函式`，是在暴雪框上寫欄位。
+3. 不呼叫任何 `StaticPopup_*`／`GameMenuFrame` 的函式；不碰 `dialog.data`／
+   `.which`／按鈕的 `GetText()`；不讀 `buttonPool`。
+4. overlay 照舊：純貼圖、零腳本、不吃滑鼠、層級在目標之下，
+   而且**兩個視窗都要明確指定 parent**（本體都是 layout host ＋ DIALOG strata，
+   交給 `SafeParent` 會掉到 `UIParent` 而跑到視窗後面）。
+5. ESC 選單的掃描**戰鬥中直接返回**；戰鬥中第一次開看到的是原生樣子，
+   脫戰後下一次開再套，這是刻意選的失敗方向。
+
+⚠ 兩個視窗都浮在世界上方，照 ① 的兩個問題嚴格套會落在**提示皮**那一邊。
+這一輪照使用者指示走設定視窗皮（`fill` ＋ 1px 黑邊），實機看過之後再決定要不要
+把邊換成職業色 —— 這是外觀選擇，不是契約問題。
+
 ### C 級：不碰
 
 | 系統 | 為什麼 |
@@ -993,7 +1027,9 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 快捷列 | `SetAttribute` 的大宗，碰一下就是戰鬥中被封鎖 |
 | 單位框、名條、團隊框 | 秘密值與 `RegisterUnitWatch` 的執行污染入口 |
 | 編輯模式 | 選取框模板的 `OnMouseDown` 會靜默染髒快捷列（`.claude/notes/wow-121-addon-code-in-secure-stack.md` 入口 8） |
-| `StaticPopup` | 裡面會出現保護按鈕（退出隊伍、傳送…） |
+| `ReadyCheckFrame`／`LFGDungeonReadyDialog`／`LFDRoleCheckPopup` | 長得像 `StaticPopup`，但按鈕是**戰鬥中／首領戰中**在按的，而且 12.x 的插件限制系統把就位確認整條路收緊了（`.claude/notes/wow-12x-addon-restrictions.md`） |
+| `GuildInviteFrame` | 繼承的是 `TranslucentFrameTemplate` 不是 `DialogBorderTemplate`，整個框幾乎都是公會徽章美術 ⇒ 不是「順手一支 local 函式」，要做是另一份配方 |
+| `BNToastFrame` 之類的浮出提示 | 判準落在**提示皮**那一邊（① 的第二題：浮在世界上方、彈出來讀一眼），不是這包的設定視窗皮 |
 | `UnitPopup` 右鍵選單 | 地雷圖在 `.claude/notes/wow-121-unitpopup-menu.md`，兩條死路都實測過 |
 | 商城 / 商店 | forbidden 物件 |
 | 聊天輸入框 | `.claude/notes/wow-121-chat-reply-secret-taint.md`：開框的執行裡不能有插件 Lua |
