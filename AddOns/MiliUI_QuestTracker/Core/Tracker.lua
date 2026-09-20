@@ -21,7 +21,9 @@
 --    連 GetBottom() 都算碰。它們的內容是從暴雪的共用 widget pool 借出來畫的，
 --    而那個池子同時服務工具提示與地圖圖釘 —— 沾過的元件被回收去畫提示時就會在
 --    版面計算裡炸秘密值。它們的 Header 是安全的（不從池子來），可以照樣美化。
---    唯一的例外是場景 ObjectivesBlock 上的目標行，理由與界線寫在 T.EachScenarioLine。
+--    例外只有兩個，理由與界線各自寫在原語上：場景 ObjectivesBlock 的目標行
+--    （T.EachScenarioLine）、StageBlock 自己的底圖與階段文字＋ObjectivesBlock 的
+--    HeaderText 錨點（T.StageArt／T.ScenarioObjectivesAnchor）。
 --
 -- 4. 藏貼圖只准 SetTexture("")。SetTexture(nil) 與 SetAlpha(0) 都會沾到暴雪的貼圖。
 --
@@ -202,6 +204,89 @@ function T.EachScenarioLine(fn)
             fn(line)
         end
     end
+end
+
+------------------------------------------------------------
+-- 場景的階段框（StageBlock）—— 規矩 3 的第二個例外
+--
+-- StageBlock 是寫死在 XML 裡的固定子框（parentArray="FixedBlocks"），不是池子來的；
+-- 底圖與階段文字都是它自己的 region，暴雪對它們只寫不讀。池子的東西在它的
+-- WidgetContainer 底下，那邊照舊不碰 —— 有 widget set 的場景（探究、詛咒浪潮）
+-- NormalBG 會被暴雪藏起來，T.StageArt 直接回 nil。
+--
+-- 界線：只挪 region 的錨點位移。不寫 block 的任何欄位（height／offsetX 是排版在讀的），
+-- 不動 block 自己的錨點（後面的區塊錨在它身上）。
+------------------------------------------------------------
+-- 看 IsShown 不看 IsVisible：要分得出「widget 接手了」（回 nil）與「只是現在沒顯示」
+-- （照樣回傳，呼叫端量不到 rect 自己會放棄）—— 前者要把挪過的東西歸位，後者不用
+function T.StageArt()
+    local tracker = _G.ScenarioObjectiveTracker
+    local block = tracker and tracker.StageBlock
+    local bg = block and block.NormalBG
+    -- block 沒 shown ＝這一輪沒排到它（鑰石／試煉場用的是別的固定區塊）
+    if not bg or not tracker.Header or not block:IsShown() or not bg:IsShown() then return end
+    return block, bg, tracker.Header
+end
+
+-- 場景目標行的水平位置要挪這一個：目標行是一條接一條錨下去的（AddObjective／AddProgressBar
+-- 都錨在上一個 region 的 BOTTOMLEFT），第一條錨在 ObjectivesBlock.HeaderText 上。
+-- 行本身每次排版都會被重新錨定，挪它就是每一輪跳一下；HeaderText 的 TOPLEFT 暴雪只在
+-- 滑入動畫（AdjustSlideAnchor）才重設，平常挪一次就留著。ObjectivesBlock 同樣是固定子框。
+function T.ScenarioObjectivesAnchor()
+    local tracker = _G.ScenarioObjectiveTracker
+    local block = tracker and tracker.ObjectivesBlock
+    local fs = block and block.HeaderText
+    if fs and fs.GetPoint then return fs end
+end
+
+-- 跟著底圖一起走的 region。ThemeOverlay 錨在 NormalBG 上、Name 錨在 Stage 上，會自己跟
+local STAGE_FOLLOWERS = { "FinalBG", "GlowTexture", "Stage", "CompleteLabel", "findGroupButton" }
+
+function T.EachStageFollower(block, fn)
+    for _, key in ipairs(STAGE_FOLLOWERS) do
+        local region = block[key]
+        if type(region) == "table" and region.GetPoint then fn(region) end
+    end
+end
+
+-- 暴雪只在換階段時重設這些錨點（UpdateStageBlock），而且跟我們一樣是「同一個 point 直接
+-- SetPoint、不 ClearAllPoints」。所以分辨方式是：讀到的位移不是我們上次設的 ⇒ 暴雪剛重設過，
+-- 那組就是新的基準。位移一律從基準算，重跑幾次結果都一樣。
+local nudged = T.Flags()   -- region → { x, y = 我們上次設的, baseX, baseY = 暴雪的 }
+
+local function Near(a, b) return math.abs(a - b) < 0.01 end
+
+-- wantPoint：region 有不只一個錨點時指名要哪一個（HeaderText 是 TOPLEFT ＋ RIGHT）
+local function ReadPoint(region, wantPoint)
+    local IsSecret = ns.Secret.IsSecret
+    for i = 1, (wantPoint and region:GetNumPoints() or 1) do
+        local point, rel, relPoint, x, y = region:GetPoint(i)
+        if not point or IsSecret(point) or IsSecret(x) or IsSecret(y) then return end
+        if not wantPoint or point == wantPoint then
+            return point, rel, relPoint, x, y
+        end
+    end
+end
+
+function T.RegionBase(region, wantPoint)
+    local point, rel, relPoint, x, y = ReadPoint(region, wantPoint)
+    if not point then return end
+    local st = nudged[region]
+    if not (st and st.x and Near(x, st.x) and Near(y, st.y)) then
+        st = st or {}
+        nudged[region] = st
+        st.baseX, st.baseY = x, y
+    end
+    return st.baseX, st.baseY, point, rel, relPoint
+end
+
+function T.NudgeRegion(region, dx, dy, wantPoint)
+    local baseX, baseY, point, rel, relPoint = T.RegionBase(region, wantPoint)
+    if not baseX then return end
+    region:SetPoint(point, rel, relPoint, baseX + dx, baseY + dy)
+    local _, _, _, x, y = ReadPoint(region, point)
+    local st = nudged[region]
+    st.x, st.y = x, y
 end
 
 -- 這個子追蹤器現在有沒有東西可顯示。三個訊號取聯集：收合中的區段仍然算「有內容」，

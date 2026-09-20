@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 115994b3-d41f-4e67-b636-6c325885e05b
-  modified: 2026-09-19T02:32:59.623Z
+  modified: 2026-09-20T18:20:03.796Z
 ---
 
 2026-08-29 開的獨立插件（`AddOns/MiliUI_QuestTracker/`），骨架照
@@ -307,6 +307,30 @@ CampaignQuest 153.91 ＋ Quest 485.31 塞在 700 高的框裡，有任務區塊�
 **2026-09-14 已在遊戲內驗證**（探究「納爾多島」）：場景兩行跟戰役行同字級、同描邊，玩家確認正常。
 秘密值閘在 M+ 的表現：2026-09-15 使用者確認正常。
 
+## 場景階段框 StageBlock：規矩 3 的第二個例外（2026-09-21）
+
+玩家要求把階段框（「清理詛咒深淵」那塊）往右挪、跟標題底線隔開。對過原始碼的事實：
+
+- `ScenarioObjectiveTracker.StageBlock` 是 **XML 寫死的固定子框**（`parentArray="FixedBlocks"`），不是池子來的。
+  region：`NormalBG`（底圖）、`ThemeOverlay`（錨在 NormalBG 上）、`FinalBG`、`GlowTexture`、`Stage`（Game18Font）、
+  `Name`（錨在 Stage 上）、`CompleteLabel`；池子的東西在 `WidgetContainer` 底下。暴雪對這些 region **只寫不讀**。
+- **`UpdateStageBlock` 只在 `currentStage`／`scenarioID` 換掉時才呼叫**，不是每次排版 ⇒ 挪錨點幾乎不用拉鋸。
+  它重設的是 `NormalBG`／`FinalBG`／`Stage` 的 TOPLEFT（**不 ClearAllPoints**）＋每次 `SetAtlas(…, true)`＋`Stage:SetTextColor`。
+- 底圖位移表 `textureKitOffsets` 是檔案 local：evergreen 0、delves -2、**midnight-scenario -6**（所以 12.x 的場景框會凸出底線左端）。
+- 有 `widgetSetID` 的場景（探究、詛咒浪潮）`UpdateWidgetRegistration` 會把 NormalBG／Stage／Name 藏掉，畫面交給池子 —— 那種碰不了。
+- **高度縮不了**：區塊高度是 `height=83` KeyValue，排版在讀；場景模組 `fromHeaderOffsetY = 0`（一般模組 -10），所以框才會貼著底線。
+  ⇒ 間距只能靠把 region 在 83 高的格子裡往下挪，吃的是框底下那段空白（原本約 25，挪 7 剩 18）。
+
+做法：`T.StageArt`／`T.RegionBase`／`T.NudgeRegion`（Core/Tracker.lua）＋ `AlignStageArt`（Skin.lua，掛場景 Update hook 的
+`T.Defer("stageArt")`）。水平是**量出來置中在標題底線上**（不查表）；分辨「暴雪剛重設過」的方式是讀到的位移不等於我們上次設的。
+⚠ `STAGE_GAP_Y` **不能是 8**：Stage 的兩種 y（-10／-18）差剛好 8，會讓基準偵測撞值。
+**目標行跟著對齊框左緣**（同日第二輪）：目標行是鏈狀錨定（`AddObjective`／`AddProgressBar` 都錨在 `lastRegion or HeaderText`
+的 BOTTOMLEFT），行本身**每次排版**都被重新錨定，挪它會每輪跳一下；但第一行錨的 `ObjectivesBlock.HeaderText` 的 TOPLEFT
+暴雪只在 `AdjustSlideAnchor`（滑入動畫）才重設 ⇒ **挪 HeaderText 一次，整串含進度條跟著走、不用拉鋸**（`T.ScenarioObjectivesAnchor`）。
+`block.offsetX = 32` 是排版在讀的 KeyValue，不能寫。位移量 ＝ 框的可見左緣 − 圓點左緣，其中 `STAGE_BG_PAD = 3`／`BULLET_LEFT = 5`
+是**從截圖量的**，再加 `OBJECTIVES_INSET = 3` 縮到框線內緣（對齊外緣時圓點光暈會凸出去、看起來仍偏左；合計約 +7）；StageArt 回 nil（widget 接手、鑰石、收合）時歸零。
+換皮（清 NormalBG 畫自己的框）還只是討論，沒做；要做的話 `SetAtlas` 同樣只在換階段時重設。
+
 ## 跟別的插件的關係
 
 - **Leatrix Plus**：`LeaPlusLC` 是檔案內 local，**遙控不了也同步不了**。只能讀
@@ -339,6 +363,9 @@ CampaignQuest 153.91 ＋ Quest 485.31 塞在 700 高的框裡，有任務區塊�
 
 - ~~標題列的垂直位置~~ —— 已驗證，「藏掉『所有目標』之後版面高度還是保留著」成立，
   22px 的標題列擺進那個洞不會蓋到第一個任務。
+- 場景階段框置中＋下移 7（2026-09-21）：位置對不對、換階段那一幀會不會看到跳一下、滑入動畫有沒有跟著、
+  ~~evergreen 主題會不會被挪過頭~~（玩家看過「好像可以」）。目標行 +4 對不對得齊框緣（兩個常數是截圖量的）、
+  有進度條的場景有沒有一起動、長目標換行後右緣會不會出界。
 - `PAD_LEFT` / `PAD_RIGHT`（現在 -4 / +4）—— 追蹤器的區塊本來就從框緣往內縮，要看實際的縮排調。
 - 任務類型圖示擺 TOPRIGHT ＋ 壓掉 POI 按鈕：要確認 12.1.5 的 POI 按鈕真的在那個位置。
 - 背景高度的跨縮放算式（編輯模式可以單獨縮放追蹤器，所以座標一律換成螢幕像素再比較）。

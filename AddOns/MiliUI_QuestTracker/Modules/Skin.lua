@@ -569,11 +569,59 @@ local function SkinScenarioLines()
     T.EachScenarioLine(SkinLine)
 end
 
+-- 場景的階段框：水平置中在標題底線上、跟底線隔開一點。
+--
+-- 暴雪把底圖錨在區塊左緣再照 textureKit 補位移（midnight-scenario 是 -6），有些主題
+-- 的框會凸出標題底線的左端、右邊卻留一截。位移量是量出來的不是查表：各主題的圖寬
+-- 與位移都不同，而那張位移表是暴雪檔案裡的 local。
+--
+-- ⚠ STAGE_GAP_Y 不能是 8：暴雪的 Stage 文字只有 y=-10／-18 兩種位置，差剛好是 8，
+--   我們挪過的 -10 會跟暴雪剛重設的 -18 撞在一起，T.RegionBase 就認不出基準換了。
+local STAGE_GAP_Y = 7   -- 加上圖本身的透明邊約 3，視覺上跟戰役那段的 10 對齊
+
+-- 底下的目標行跟著對齊框的左緣。兩個數字都是從截圖量的、不是 API 給的：
+--   STAGE_BG_PAD   底圖左側的透明邊（看得見的框緣比貼圖左緣往內這麼多）
+--   BULLET_LEFT    暴雪排出來的圓點左緣，相對 header 左緣（ObjectivesBlock 的 offsetX 是固定的）
+--   OBJECTIVES_INSET 圓點再往框裡縮多少 —— 對齊外緣時圓點的光暈會比框線凸出去一點，
+--                    看起來還是偏左；縮到框線內緣才順
+local STAGE_BG_PAD = 3
+local BULLET_LEFT  = 5
+local OBJECTIVES_INSET = 3
+
+local function NudgeObjectives(dx)
+    local anchor = T.ScenarioObjectivesAnchor()
+    if anchor then T.NudgeRegion(anchor, dx, 0, "TOPLEFT") end
+end
+
+local function AlignStageArt()
+    local block, bg, header = T.StageArt()
+    -- widget 接手階段框的場景（探究之類）沒有框可以對，目標行歸位
+    if not block then NudgeObjectives(0) return end
+    local Safe = ns.Secret.SafeValue
+    local headerLeft, headerWidth = Safe(header:GetLeft()), Safe(header:GetWidth())
+    local blockLeft, bgWidth = Safe(block:GetLeft()), Safe(bg:GetWidth())
+    local bgBaseX = T.RegionBase(bg)
+    -- rect 還沒解出來（剛顯示的那一幀）就等下一輪
+    if not (headerLeft and headerWidth and blockLeft and bgWidth and bgBaseX) then return end
+    -- 底線是從 header 左緣 +2 畫到右緣（見 ApplyHeaderLine）
+    local lineCenter = headerLeft + (P.Scale(2) + headerWidth) / 2
+    local dx = (lineCenter - bgWidth / 2 - blockLeft) - bgBaseX
+    local dy = -STAGE_GAP_Y
+    T.NudgeRegion(bg, dx, dy)
+    T.EachStageFollower(block, function(region) T.NudgeRegion(region, dx, dy) end)
+
+    local boxLeft = lineCenter - bgWidth / 2 + STAGE_BG_PAD + OBJECTIVES_INSET
+    NudgeObjectives(math.max(0, boxLeft - (headerLeft + BULLET_LEFT)))
+end
+
 local function SkinExisting(tracker)
     if not tracker then return end
     if tracker.Header then ApplyHeaderLine(tracker.Header) end
     T.EachBlock(tracker, SkinBlock)
-    if tracker == _G.ScenarioObjectiveTracker then SkinScenarioLines() end
+    if tracker == _G.ScenarioObjectiveTracker then
+        SkinScenarioLines()
+        AlignStageArt()
+    end
 end
 
 local function HookTracker(tracker)
@@ -606,6 +654,8 @@ local function HookTracker(tracker)
                 -- 新借出來的行會先以暴雪字型排一次版，下一輪排版行高才會對上 —— 規矩 1 的同一種代價
                 if self == _G.ScenarioObjectiveTracker then
                     T.Defer("scenarioLines", SkinScenarioLines)
+                    -- 換階段時暴雪會把階段框的錨點設回去，晚一幀挪回來（平常是 no-op）
+                    T.Defer("stageArt", AlignStageArt)
                 end
             end)
         end
