@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第三輪打磨＋第四輪（收藏／地城與團隊／商人／試衣間／物品升級／插件列表，共 12 個視窗開關）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
+**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第四輪（12 個視窗）使用者實機看過、taint.log 零 blocked；第五輪（打磨＋確認彈窗／ESC 選單，共 14 個開關＋任務深色開關）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
 `## DefaultState: disabled`（PoC 期間 push 也不會讓整包玩家預設吃到），`/mskin` 開設定、
 `/mskin debug` 印每份配方的狀態＋找不到的區域＋因保護框跳過的清單。
 規範全文在 `AddOns/MiliUI_Skin/STYLE.md`（Tokens／契約／模板配方表／新增視窗 checklist／範圍分級），
@@ -142,6 +142,39 @@ metadata:
 - 物品升級：全檔零 SetTextColor ⇒ 整個深色化零接管成本。`SideDressUpFrame` 是 `flattenRenderLayers`（[[wow-toplevel-flattens-child-strata]]），overlay 可能蓋到模型，待測。
 - 插件列表：分類列的 Init 是 local 函式掛不上 ⇒ 借全域 `AddonList_Update` 補掃。最大化／最小化鈕沒有自己的圖記（Engine glyph 只有 cross）。
 - lint 這一輪再收緊：`SetEnabled/Enable/Disable`、`SetHighlightLocked`、`SetDisabledFontObject/SetHighlightFontObject`、`AddAcquiredFrameCallback`。
+
+## 第五輪（2026-09-21，依第四輪實機擷圖）
+
+- **保護會沿 parent／anchor 鏈往上傳染（隱式保護）**：收藏視窗整個透明的根因 —— 18 顆 `SecureFrameTemplate` 玩具格把
+  `ToyBox.iconsFrame → ToyBox → CollectionsJournal` 一路染成隱式保護，舊規則「IsProtected 就跳過」把外框底整份跳掉
+  （分頁／搜尋框不在那條鏈上所以有皮 —— 這個對比是指紋）。`IsProtected()` 回兩個值 `(isProtected, isExplicit)`：
+  **只有顯式才跳過**；隱式照樣掛 overlay，但戰鬥中不做也不標記、下次重試。`/mskin debug` 分三張清單。
+- **分頁組 `Skin.TabGroup`**：每顆 overlay 右緣直接錨到**下一顆分頁的左緣**（自己的 overlay 同時錨兩個暴雪框是允許的）、
+  除最後一顆不畫右邊線 ⇒ 共用一條線，間距 +1／+3／重疊 16 都自動對上。`PanelTemplates_AnchorTabs` 不跳過隱藏分頁，
+  只有「排在中間會消失」的才要標 `hideable`（目前只有收藏的傳家寶）。TabSystem 是 HorizontalLayoutFrame，隱藏的分頁位置不保證 ⇒ 不錨下一顆。
+- **契約例外：分頁文字置中**。暴雪在 Select/Deselect 裡把 `tab.Text` 設成 CENTER −3／+2（選中那顆原本垂得比較低）；
+  在同三支後置勾裡對已接管分頁的 `tab.Text` 重設 `CENTER 0,0`（`Engine.CenterTabText`，lint 仍禁止配方直接 SetPoint）。
+- **進度條的邊不能畫前景**：會橫切過條上的文字。改成畫在下層、矩形往外推（`pad`），填充在條內碰不到邊。
+  聲望條只有 13 高、成就總結條的標籤比中心高 3~4 ⇒ 都給 pad 2。
+- **按鈕 hover＝底提亮＋1px 職業色邊**（對齊 `W.CreateButton`／`S.ApplyDarkButton`），走 `Engine.TrackButtonHover`
+  （HookScript OnEnter/OnLeave，只在滑鼠進出時跑）；原本引擎的白 8% 要 alpha 0 避免疊兩層；停用的不給 hover（讀 `IsEnabled()`，已列例外）。
+  清單列維持低調提亮。**確認彈窗／ESC 選單是「零按鈕 HookScript」特許**，那裡的下拉用 `opts.noHover`。
+- 收件匣列底的 **parent 設成會被暴雪 Hide 的那顆信件鈕**、錨點仍錨在列上 ⇒ 空列自動沒有底，零讀取零 hook。
+- 下拉箭頭／紅金小鈕這類烤了顏色的 atlas：乘法染不出中性灰，要先 `SetDesaturated`。
+- **任務／對話深色化走暴雪內建 CVar `questTextContrast = 4`**（0~4，`Blizzard_AccessibilityTemplates/QuestTextContrast.lua`）：
+  暴雪自己換底圖與全部字色，我們不碰任務框。設定開關預設開、記住原值、關掉還原；邏輯放配方自己的事件框而不是 apply
+  （否則關掉 quest 視窗後沒人還原）。⚠ 整支插件被停用的話 CVar 會停在 4。
+- 地城／團隊搜尋的「羊皮紙」上其實全是白字與金字（`QuestTitleFontBlackShadow` 的 Black 指陰影）⇒ 零接管就能深色化。
+  鑰石頁地城圖示：要勾的是每格的 `ChallengesDungeonIconMixin:SetUp`（LoD＋格子晚建 ⇒ 追得上），第四輪說勾不到是掛點找錯。
+  PvP 征服條的中和撐不過第一次 Update（`SetDisabled` 下 SetAlpha）⇒ 靠條的 OnShow/OnEvent frame script 後掛重申。
+  職責勾選框的 CheckedTexture 是 setAllPoints 縮不了 ⇒ 改成保留勾的形狀只染職業色、底用 fillInset。
+- **確認彈窗＋ESC 選單（純視覺特許）**：`StaticPopup1..4` 是 XML 靜態框 ⇒ 零 hook 套一次；ESC 選單按鈕是池化且每次 `SetScript`
+  OnEnter/OnLeave（HookScript 會靜默失效）⇒ 只有一支 `GameMenuFrame:HookScript("OnShow")`，內容是延一幀＋戰鬥閘的掃描。
+  兩者本體都是 layout host 且在 DIALOG strata ⇒ overlay 必須明確 parent 到 `dialog.BG`／`GameMenuFrame.Border`，否則 SafeParent 爬到 UIParent、皮掉到視窗後面。
+  關閉鈕每次 Init 被重設貼圖 ⇒ 不能沿用 `Skin.CloseButton`（Pushed 要中和）。就位確認／地城就緒／職責確認刻意不做。
+  待決：這兩個視窗照三套皮判準其實落在「提示皮」（職業色邊），目前用黑邊。
+- 本體 `Enhance/ChallengesUI_Buttons`／`PartyKeystone`／`ChallengesUI_LootTable` 已改走 `S.ApplyDarkPanel`／`S.ApplyDarkButton`。
+- 還沒收：`PVE.lua`／`PVP.lua`／`Challenges.lua` 的三支 local（StretchButton／SquareIconButton／InputScroll）正式原語已備好、尚未切換。
 
 ## 還沒實機確認的
 
