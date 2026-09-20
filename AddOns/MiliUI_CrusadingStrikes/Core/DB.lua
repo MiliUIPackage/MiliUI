@@ -83,9 +83,12 @@ function DB.Init()
     -- v1 → v2：掛載位置的預設從名條改成聖能條上方。
     -- MergeDefaults 只補 nil，而 v1 已經把 "nameplate" 寫進每個人的存檔了，光改預設值
     -- 一個既有玩家都改不到。版本閘＋值閘：只動「v1 而且還停在舊預設值」的那份。
-    -- 代價要講清楚：v1 裡「特地選了名條」跟「沒動過」存起來是同一個值，分不出來，
-    -- 這條會把兩種都搬走。v1 只存在一天，使用者指定這樣遷。
-    if oldVersion ~= nil and oldVersion < 2 and db.bar.attach == "nameplate" then
+    -- v1 裡「特地選了名條」跟「沒動過」存起來是同一個值，光看 attach 分不出來，
+    -- 所以多看兩個值當旁證：**間距與水平位移只要有一個不是預設，就當作玩家調過位置、
+    -- 是特地留在名條上的，不遷**。兩個都還是出廠值才搬。
+    local defaults = BuildDefaults().bar
+    if oldVersion ~= nil and oldVersion < 2 and db.bar.attach == "nameplate"
+        and db.bar.gap == defaults.gap and db.bar.offsetX == defaults.offsetX then
         db.bar.attach = "resourceAbove"
     end
 
