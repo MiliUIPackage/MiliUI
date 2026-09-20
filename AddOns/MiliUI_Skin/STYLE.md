@@ -761,16 +761,16 @@ AchievementObjectives_DisplayProgressiveAchievement   同上
 | 郵件 `MailFrame`＋`OpenMailFrame` | `mail` | **整頁重做**：兩個視窗的 chrome／兩顆分頁／收件匣七列（平面列＋隔行明暗、信件鈕走 `ItemButton`、翻頁鈕收緊）／**信紙深色化＋文字全接管**／附件格走 `ItemButton`／附件區兩條分隔線／收件人與主旨的矩形修正／金額欄／單選鈕（已勾＝職業色）／九顆按鈕／兩條捲軸／**伴隨元件** |
 | 好友名單 `FriendsFrame` | `friends` | chrome／底部四顆分頁／聯絡人頁兩顆按鈕／戰網廣播框（邊框＋輸入框＋兩顆按鈕）／查詢頁（搜尋框、Inset、四個欄位表頭、三顆按鈕）／忽略名單小視窗／三條捲軸 |
 | 收藏 `CollectionsJournal` | `collections` | **四個檔案共用一個 key**（`Skins/Collections.lua`＝外框＋坐騎、`CollectionsToys.lua`＝玩具箱＋傳家寶＋戰隊場景、`CollectionsPets.lua`＝寵物、`CollectionsWardrobe.lua`＝外觀）。chrome／關閉鈕／底部六顆分頁（矩形另算，見配方表）／坐騎頁（三塊 Inset、搜尋、篩選下拉、總數框、召喚鈕、捲軸、清單列、資訊區圖示）／玩具箱與傳家寶（進度條、搜尋、兩種下拉、格子底、翻頁）／戰隊場景（格子底＋勾選框）／寵物（三塊 Inset、總數框、搜尋、篩選、捲軸、出戰框、兩顆按鈕、清單列）／外觀（頂部兩顆分頁、搜尋、進度條、三顆下拉、兩頁的底、翻頁、捲軸）。**模型場景、玩具／傳家寶的 secure 格子、寵物卡內部、外觀的模型格子都不碰** |
-
-收藏視窗**還沒做的**：玩具與傳家寶的格子（secure，理由見配方表）、傳家寶的分類標題帶、
-外觀頁的模型格子與部位按鈕、套裝清單的池化列、寵物卡內部（血量／速度／品質／技能格／
-經驗條）與三個出戰格、坐騎的動態飛行按鈕與裝備格、戰隊場景的翻頁控制列。
-塑形師的 `WardrobeFrame` 是另一個框，不在這一輪。
 | 地城與團隊 `PVEFrame` 家族 | `pve` | **三份配方共用一個開關**（`Skins/PVE.lua` ＋ `parts`：`Skins/PVP.lua`、`Skins/Challenges.lua`）。外框（十一張 bluemenu 切片＋陰影）／三顆分頁／左側四顆大類鈕（選中態勾 `GroupFinderFrame_SelectGroupButton`）／地城搜尋與團隊搜尋（Inset、職責勾選、下拉、尋找隊伍鈕、捲軸、遮罩上的按鈕）／預組隊伍五個面板（**純視覺**：Inset、搜尋框、篩選下拉、重新整理鈕、欄位表頭、建立隊伍的輸入框與勾選框、結果列的滑過帶、申請者列的三顆按鈕）／PvP（左側五顆大類鈕、三頁的征服條與 Inset 與職責勾選、兩個下拉、四顆排隊鈕）／傳奇鑰石（Inset、鑰石視窗的關閉鈕與開始鈕）。**兩頁的羊皮紙、鑰石視窗的 atlas、符文底圖全部保留** |
 | 商人 `MerchantFrame` | `merchant` | chrome／兩顆分頁／篩選下拉／**商品格**（格底雕花中和＋平面底＋物品鈕走 `ItemButton`，格數讀 `MERCHANT_ITEMS_PER_PAGE`）／四顆修裝與賣垃圾鈕／兩顆翻頁鈕／買回格／金錢與貨幣列。品質色靠自己的兩支更新後置勾（走不到引擎的全域勾） |
 | 試衣間 `DressUpFrame`＋`SideDressUpFrame` | `dressup` | chrome／關閉鈕／最大化最小化／外觀套裝下拉／外觀清單開關／底部三顆按鈕／右側兩片面板＋捲軸／小試衣間。**模型場景與它的背景不碰** |
 | 物品升級 `ItemUpgradeFrame` | `itemupgrade` | **整個視窗深色化**（全檔零 `SetTextColor`，沒有文字要接管）：chrome／物品槽／等級下拉／左右兩欄預覽／費用列／持有貨幣列／升級鈕。**所有動畫特效留著** |
 | 插件列表 `AddonList` | `addonlist` | chrome／角色下拉／搜尋框／「載入過期插件」／效能區／底部四顆三片式按鈕／捲軸／**池化列**（插件列與分類列兩態都自己畫）／重載對話框。**只有遊戲內那一份** |
+
+收藏視窗**還沒做的**：玩具與傳家寶的格子（secure，理由見配方表）、傳家寶的分類標題帶、
+外觀頁的模型格子與部位按鈕、套裝清單的池化列、寵物卡內部（血量／速度／品質／技能格／
+經驗條）與三個出戰格、坐騎的動態飛行按鈕與裝備格、戰隊場景的翻頁控制列。
+塑形師的 `WardrobeFrame` 是另一個框，不在這一輪。
 
 **還沒做的**：任務／好友的 `WowStyle1DropdownTemplate` 系下拉與 `WowScrollBoxList`
 池化列（機制都有了：`Skin.Dropdown`、`Engine.HookRows`，只差套上去）、好友名單的
