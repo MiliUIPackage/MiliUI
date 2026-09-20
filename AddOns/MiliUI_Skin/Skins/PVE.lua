@@ -42,8 +42,39 @@
 --       $parentBackground（parentKey `background`，GetBackgroundForRole 的 80x80 圓底）
 --   Blizzard_GroupFinder/Shared/LFGFrame.lua:401,414,434  background 被 Show/Hide（**不是** alpha）
 --   Blizzard_GroupFinder/Shared/LFGFrame.lua:1254    background:SetTexture(backgroundTexture)
---       —— 隨地城換的羊皮紙，內容底材，**不碰**
+--       —— 隨地城換的羊皮紙，第五輪起**中和**（理由見下面第 6 點）
 --   Blizzard_GroupFinder/Shared/LFGFrame.xml:979,1101  LFGCooldownCoverTemplate／LFGBackfillCoverTemplate
+--
+--   Blizzard_GroupFinder/Mainline/LFGFrame.xml:227   LFGSpecificChoiceTemplate
+--       （＝指定地城清單的列）heroicIcon／level／instanceName／lockedIndicator
+--       ＋ $parentEnableButton（parentKey `enableButton`，UI-CheckBox-* 那一組）
+--       ＋ $parentExpandOrCollapseButton（UI-Plus/MinusButton-UP ＋ 同一張 Hilight）
+--       ⚠ 列本身是 `<Frame>`，**一張底圖都沒有**（也沒有 HighlightTexture）
+--   Blizzard_GroupFinder/Mainline/LFDFrame.xml:21    LFDFrameDungeonChoiceTemplate
+--   Blizzard_GroupFinder/Mainline/LFDFrame.lua:296,312
+--       LFDQueueFrameSpecificList_InitButton／LFDQueueFrameFollowerList_InitButton
+--       —— 兩支都是**全域函式**，`SetElementInitializer` 的匿名閉包只是轉呼叫它們
+--   Blizzard_GroupFinder/Shared/LFGFrame.lua:1676,1737-1742
+--       LFGDungeonListButton_SetDungeon —— **每次**都 `enableButton:SetCheckedTexture(路徑)`
+--       （多選 UI-MultiCheck／單選 UI-CheckBox-Check 兩組）⇒ 我們的顏色要放 reapply；
+--       ＋ 展開鈕每次 `SetNormalTexture(UI-Plus/MinusButton-UP)`（同檔 :1692,1694）
+--   Blizzard_GroupFinder/Mainline/LFGFrame.xml:753   LFGRewardFrameTemplate
+--       $parentTitle（**QuestTitleFontBlackShadow**）／$parentDescription（QuestFont）／
+--       $parentRewardsLabel（同 Title）／$parentRewardsDescription／$parentXPLabel／
+--       $parentXPAmount（NumberFontNormalLarge）／$parentItem1／$parentMoneyReward
+--   Blizzard_GroupFinder/Mainline/LFGFrame.xml:685   LFGRewardsLootTemplate ← LargeItemButtonTemplate
+--   Blizzard_ItemButton/Mainline/ItemButtonTemplate.xml:167,174,180,188
+--       LargeItemButtonTemplate：Icon（39x39，TOPLEFT）／NameFrame（UI-QuestItemNameFrame
+--       的雕花名牌，128x64）／Name（GameFontHighlight，白）／IconBorder
+--   Blizzard_GroupFinder/Shared/LFGFrame.lua:1224-1228  LFGRewardsFrame_OnLoad
+--       description／rewardsDescription／xpLabel **在 OnLoad 就被設成白 (1,1,1)**
+--   Blizzard_GroupFinder/Shared/LFGFrame.lua:1416,1479-1485  LFGRewardsFrame_SetItemButton
+--       —— **全域函式**；`_G[parentName.."Item"..index]` 動態建立，並呼叫
+--       `SetItemButtonQuality` ＋ `frame.IconBorder:Show()/Hide()`
+--   Blizzard_Fonts_Shared/Shared/GameFontStyles.xml:225  QuestTitleFontBlackShadow
+--       ＝ **金色 (1, .82, 0) ＋ 黑色陰影**（名字裡的 Black 指的是陰影，不是字）
+--   Blizzard_FrameXMLBase/Constants.lua:210-218  QuestDifficultyColors
+--       —— 指定地城清單的字色全部是亮色（紅／橘／金／綠／灰）
 --
 --   Blizzard_GroupFinder/Shared/RaidFinder.xml:15    RaidFinderFrame
 --   Blizzard_GroupFinder/Shared/RaidFinder.xml:22    $parentRoleBackground（橘色漸層貼圖）
@@ -99,18 +130,39 @@
 --      （PVEFrame.lua:382）。引擎驅動不了，只能勾那一支全域函式；而它的
 --      HighlightTexture 是 224x80、比按鈕矩形 203x60 大一圈（跟成就分類列同型），
 --      所以滑過也不能交給引擎 ⇒ `Skin.Row` 的 `opts.ownHover`。
---   3. **地城／團隊搜尋的羊皮紙是內容底材，留著**（STYLE.md ③ 的內容底材規則）：
---      獎勵說明、地城清單的字都是為它設計的深色字，換底就得接管十幾條文字顏色，
---      而暴雪在 `LFGRewardsFrame_UpdateFrame` 每次都重設。所以這兩頁只換 chrome。
---      連帶的決定：**羊皮紙上的東西一律不碰** —— 指定地城清單的列
---      （`LFDFrameDungeonChoiceTemplate`）、獎勵物品格（`LFGRewardsLootTemplate`）
---      如果套上深色皮，會變成「亮羊皮紙上一排黑方塊」，比不套還糟。
+--   3. ~~地城／團隊搜尋的羊皮紙是內容底材，留著~~ —— **第五輪推翻**，見第 6 點。
 --   4. **角色鈕的圖示是 `NormalTexture` 本身**（`SetNormalAtlas(GetIconForRole(...))`，
 --      LFGFrame.lua:2236），不是獨立的 Icon 貼圖 ⇒ **不能中和**，只能中和它背後的
 --      `background` 圓底。勾選框（`checkButton`）才是我們接管的部分。
 --   5. **搜尋結果列幾乎不用做。** `ResultBG` 本來就是白 4% 的平面矩形、
 --      `BackgroundTexture` 是申請狀態的紅／綠／黃（資訊），兩張都不該動；
 --      唯一格格不入的是 HIGHLIGHT 層那條藍色滑過帶 ⇒ 只換它的長相。
+--
+-- 第五輪查證後推翻的三件事：
+--   6. **地城／團隊搜尋的羊皮紙可以換掉 —— 上面一條深色字都沒有。**
+--      第四輪的「留著」是照內容底材規則的預設值走的，沒有真的去查字色。查完是：
+--        * `LFGRewardsFrame_OnLoad`（LFGFrame.lua:1224-1228）在 OnLoad 就把
+--          `description`／`rewardsDescription`／`xpLabel` 設成 **白 (1,1,1)**，
+--          而且那一支**只跑一次**、之後沒有任何路徑重設 ⇒ 沒有東西要接管。
+--        * `title` 與 `rewardsLabel` 是 `QuestTitleFontBlackShadow`
+--          （GameFontStyles.xml:225）—— 那個名字指的是**陰影**是黑的，字本身是
+--          **金色 (1, .82, 0)**。
+--        * `xpAmount` 是 `NumberFontNormalLarge`（白）、物品名是 `GameFontHighlight`
+--          （白）、數量是 `HIGHLIGHT_FONT_COLOR` 或貨幣色。
+--        * 隨從頁的 `$parentTitle` 同樣是金的、`$parentDescription` 在 XML 直接寫
+--          `<Color color="WHITE_FONT_COLOR"/>`（LFDFrame.xml:298-309）。
+--        * 指定地城清單的字全部走 `QuestDifficultyColors`（Constants.lua:210-218），
+--          最暗的一格是 `header` 的 0.7 灰 —— 在 `fillInset`（0.08）上照樣讀得到。
+--      ⇒ 換底**零**文字接管，內容底材規則的前提（「把底拿掉之後字還讀得出來嗎」）
+--        成立。羊皮紙一中和，第四輪連帶不做的兩樣（清單列、獎勵格）也跟著解禁。
+--   7. **獎勵格不是 `ItemButton` intrinsic，是 `LargeItemButtonTemplate`**
+--      （ItemButtonTemplate.xml:167）：圖示只佔左邊 39x39、右邊是一張
+--      `UI-QuestItemNameFrame` 的雕花名牌。`Skin.ItemButton` 直接套會把品質方框
+--      畫成整顆 147x41 的長方形 ⇒ 配方自己的 local 小函式，方框用 `anchorTo`
+--      錨在 `Icon` 上。重畫仍然走 Engine 既有的兩個全域後置勾
+--      （`LFGRewardsFrame_SetItemButton` 裡呼叫 `SetItemButtonQuality`）。
+--   8. **指定地城清單的列一張底圖都沒有**（`LFGSpecificChoiceTemplate` 是裸
+--      `<Frame>`，LFGFrame.xml:227）⇒ 沒有「列」要畫，只有勾選框與展開鈕要接管。
 --
 ------------------------------------------------------------
 -- ## taint 接觸面清單（暴雪物件）
@@ -126,15 +178,22 @@
 -- | PVEFrame.CloseButton 的 Highlight/Pushed 貼圖 | SetColorTexture |
 -- | PVEFrameTab1..3 的 TabTextures（九張） | SetAlpha(0) |
 -- | PVEFrameTab1..3 | SetNormalFontObject(GameFontHighlightSmall) |
--- | GroupFinderFrame.groupButton1..4 的 bg / ring | SetAlpha(0) |
+-- | GroupFinderFrame.groupButton1..4 的 bg | SetAlpha(0) |
+-- | 同四顆的 ring | SetDesaturated(true)（Engine.Desaturate）＋ SetVertexColor |
 -- | 同四顆的 HighlightTexture | SetAlpha(0)（改由 overlay 自己畫滑過） |
 -- | 同四顆的 name | SetTextColor |
 -- | LFDParentFrameRoleBackground、LFDParentFrame.TopTileStreaks | SetAlpha(0) |
 -- | RaidFinderFrameRoleBackground | SetAlpha(0) |
+-- | **LFDQueueFrameBackground、RaidFinderQueueFrameBackground**（羊皮紙） | SetAlpha(0) |
 -- | 七個 InsetFrameTemplate 的 Bg / NineSlice | SetAlpha(0) |
 -- | 八顆角色鈕的 background | SetAlpha(0) |
 -- | 八顆角色鈕的 checkButton 的 Normal/Pushed/Disabled 貼圖 | SetAlpha(0) |
--- | 同八顆的 Checked / DisabledChecked 貼圖 | SetColorTexture（職業色） |
+-- | 同八顆的 Checked / DisabledChecked 貼圖 | **SetVertexColor**（職業色，**保留勾的形狀**） |
+-- | 兩個獎勵框的 MoneyReward、動態建立的 Item1..N 的 NameFrame / IconBorder | SetAlpha(0) |
+-- | 同上的 Icon | SetTexCoord（裁邊）；品質色 | Engine.PassBorderColor（轉交） |
+-- | 指定／隨從地城清單列的 enableButton 的 Normal/Pushed/Disabled | SetAlpha(0) |
+-- | 同上的 Checked / DisabledChecked | SetColorTexture（職業色，**每次 Init 重下**） |
+-- | 同上的 expandOrCollapseButton 的 NormalTexture | SetDesaturated ＋ SetVertexColor |
 -- | 三顆 WowStyle1Dropdown 的 Background | SetAlpha(0)；Arrow | SetVertexColor |
 -- | LFGListFrame.SearchPanel.FilterButton 的 Background | SetAlpha(0) |
 -- | 下拉左邊的說明字（…DropdownName） | SetTextColor |
@@ -171,13 +230,28 @@
 --         （邀請／拒絕／小邀請）的九片銀色貼圖中和掉並補 overlay。
 --         同樣**沒有 reapply**、同樣不讀 `elementData`、不讀 applicantID。
 --         列底本身（`Background`，暴雪自己在 InitButton 裡做隔行明暗）不碰。
+--   4. `Engine.HookRows{ mixin = _G, method = "LFDQueueFrameSpecificList_InitButton" }`
+--      ＋ 同一組 apply/reapply 的 `…FollowerList_InitButton`（第五輪新增）
+--      —— 指定／隨從地城清單的池化列。兩支都是**全域函式**（LFDFrame.lua:296,312），
+--         傳進來的第二個參數 `elementData` **一次都沒有被讀**（apply／reapply 的
+--         簽章只收 row）。apply＝勾選框套皮、reapply＝重下勾選框的顏色與展開鈕的
+--         染色（`LFGDungeonListButton_SetDungeon` 每次都 `SetCheckedTexture`／
+--         `SetNormalTexture`）。
+--   5. `hooksecurefunc("LFGRewardsFrame_SetItemButton", fn)`（第五輪新增）
+--      —— 獎勵物品格是**動態建立**的（`_G[parentName.."Item"..index]`，
+--         LFGFrame.lua:1418-1426）。hook 裡只做三件事：把 `index` 過
+--         `Secret.PlainNumber`、用 `parentFrame:GetName()`（讀取例外表）拼出格子的
+--         全域名字、對那顆格子跑我們自己的 `SkinLargeItemButton`。
+--         **不讀 dungeonID、不讀 quality、不讀任何暴雪欄位。**
 --   ＋ Engine 既有的三個 `PanelTemplates_*` 全域後置勾（分頁選中態，裝在
 --     Core/Engine.lua，全套組共用一組）與分頁的 HookScript("OnEnter"/"OnLeave")。
 --   ＋ `Skin.Row` 的 `opts.ownHover` ⇒ 四顆大類按鈕各一組
 --     HookScript("OnEnter"/"OnLeave")（`Engine.TrackSelectable`，只碰自己的 overlay）。
 --
 -- 寫入暴雪欄位：無。
--- 讀暴雪物件：只有 `GetRegions`（PVEFrame.shadows 的三張無名貼圖）與
+-- 讀暴雪物件：只有 `GetRegions`（PVEFrame.shadows 的三張無名貼圖）、
+--   `GetName`（獎勵格的 hook 拼全域名字）、`IconBorder:IsShown()` 與
+--   `IconBorder:GetVertexColor()`（`Engine.PassBorderColor`，傳遞者規則）與
 --   `GetFrameLevel`（Engine.Overlay 內部）—— 都在 STYLE.md ③ 的讀取例外表上。
 --
 ------------------------------------------------------------
@@ -192,15 +266,19 @@
 --   `InviteButton` 的 OnClick 走 `C_LFGList.*`，我們對它們只做
 --   「中和貼圖 ＋ 換 NormalFont 字型物件 ＋ 掛 overlay」，點下去的那次執行
 --   從頭到尾是暴雪的。
--- * **兩頁的羊皮紙與其上的一切**：`LFDQueueFrameBackground`、
---   `RaidFinderQueueFrameBackground`（內容底材規則）、指定地城清單的池化列
---   （`LFDFrameDungeonChoiceTemplate`，初始化走全域
---    `LFDQueueFrameSpecificList_InitButton`／`LFDQueueFrameFollowerList_InitButton`，
---    勾得到但**刻意不勾**）、獎勵框 `LFGRewardFrameTemplate` 與獎勵物品格。
+-- * **獎勵格上的 `shortageBorder`（Talent-GoldMedal-Border）與兩顆 `roleIcon`**
+--   —— 那是「這個獎勵只有補缺的職責拿得到」的資訊（LFGFrame.lua:1436-1470）。
+-- * **獎勵框的 `randomList` / `encounterList` / `spacer`** —— 小圖示列與排版用的空框。
+-- * **指定地城清單的 `heroicIcon` / `lockedIndicator` / 難度字色** —— 全部是資訊；
+--   列本身沒有底圖也沒有 HighlightTexture ⇒ 沒有「列」可以畫，也不做隔行明暗
+--   （那要讀 `elementData` 的索引，契約禁止）。
+-- * **展開鈕的 `$parentHighlight`** —— 它就是同一張 ＋／− 箭頭
+--   （LFGFrame.xml:288），`SetColorTexture` 會把它變成一塊白方塊（同插件列表那條）。
 -- * **角色鈕的圖示／`lockedIndicator`／`alert`／`shortageBorder`／`incentiveIcon`**
 --   —— 全部是資訊（能不能當這個角色、有沒有獎勵加成）。
 -- * **左側大類按鈕的 `icon`**：被 `CircleMask` 遮成圓形（PVEFrame.xml:38），
 --   圓圖配方角邊框只會更難看，而且遮罩不在白名單裡。不裁邊、不加邊。
+--   ⚠ `ring` 第五輪起**不中和**了（改成壓深），理由寫在 `SkinCategoryRing`。
 -- * **`LFGListCategoryTemplate` 的五顆分類按鈕**（LFGList.xml:466）：整顆就是一張
 --   `groupfinder-button-*` 的美術圖 ＋ 一張 `SelectedTexture`，中和掉等於變成空方塊；
 --   而且它們是 `LFGListCategorySelection_AddButton` **動態建立**的，要接管就得再加
@@ -237,6 +315,9 @@ local L = ns.L
 ns.PVESkin = ns.PVESkin or {}
 ns.PVESkin.ApplyPVP = ns.PVESkin.ApplyPVP or function() end
 ns.PVESkin.ApplyChallenges = ns.PVESkin.ApplyChallenges or function() end
+-- 傳奇鑰石的地城圖示是 mixin 後置勾（`ChallengesDungeonIconMixin:SetUp`）⇒ 要排在
+-- `parts` 的 `hooks` 裡，也就是**戰鬥閘前面**（STYLE.md ③ 的陷阱 4）。
+ns.PVESkin.HookChallenges = ns.PVESkin.HookChallenges or function() end
 
 ------------------------------------------------------------
 -- 小工具
@@ -324,6 +405,154 @@ local function SkinInputScroll(frame, key)
     return ov
 end
 
+-- 透明底（只要一圈邊的 overlay 用）
+local CLEAR = { 0, 0, 0, 0 }
+
+------------------------------------------------------------
+-- 大類按鈕圖示外面那一圈金屬環（`ring` / `Ring`，atlas `bluemenu-Ring`）
+--
+-- 第四輪把它**中和**了，實機的結果是：`CircleMask` 把 66x66 的 icon 切成圓形之後
+-- 留下的毛邊與一圈殘光直接露在底色上，壓在選中的職業色底上特別明顯
+-- （使用者擷圖：「icon 和背景交接的地方有點瑕疵」）。
+--
+-- 環本來就畫在 icon **之上**（ARTWORK `textureSubLevel="2"` 對 icon 的預設 0，
+-- PVEFrame.xml:15,23 ／ Blizzard_PVPUI.xml:603,611），所以留著它就正好蓋住那一圈
+-- 毛邊 —— 這是唯一「不動遮罩也能收掉」的辦法（`RemoveMaskTexture` 是結構性修改）。
+--
+-- 做法：**先去飽和再壓暗**。`SetVertexColor` 是乘法，金屬環的暗金乘上 `fillInset`
+-- 只會變成暗金；先 `SetDesaturated(true)` 壓成灰階再乘才是中性的深灰
+-- （同 `Engine.Desaturate` 的註解）。乘完是 0.08 那一階 —— 在 `fill`（0.115）的
+-- 閒置底上幾乎看不見，在選中的職業色底上就是一圈乾淨的深色圓框。
+--
+-- ⚠ 去飽和撐不過「停用↔啟用」切換：`GroupFinderFrameButton_SetEnabled`
+--   （PVEFrame.lua:304）與 `PVPQueueFrame_SetCategoryButtonState`
+--   （Blizzard_PVPUI.lua:477）都會 `ring:SetDesaturated(not enabled)`。
+--   **不補勾**：乘上 0.08 之後彩度差在肉眼下不存在（最大通道差 < 0.06），
+--   去飽和只是讓那一步更準，不是結果本身。多一支 hook 換不到任何看得見的東西。
+-- ⚠ `SetVertexColor` 沒有人重設（兩支 `SetEnabled` 只動 Desaturated 與 TexCoord）。
+------------------------------------------------------------
+local function SkinCategoryRing(ring, key)
+    if not ring then
+        E.Missing(key)
+        return
+    end
+    E.Desaturate(ring, key)
+    E.VertexColor(ring, T.fillInset, key)
+end
+
+------------------------------------------------------------
+-- 職責鈕角落那顆勾選框（`LFGRoleButtonTemplate` 的 `checkButton`）
+--
+-- 第四輪走 `Skin.CheckBox`，也就是「已勾＝整格填滿職業色」。那條規則是為
+-- **表單裡的** 14~16 像素勾選框定的（寄信頁的「寄送金錢」實測看不見細勾），
+-- 但這一顆不在表單裡 —— 它疊在一顆 48x48 的職責圖示的左下角，而且它自己是
+-- 30x29 `scale=0.7` ⇒ 21x20 框架單位（LFGFrame.xml:6-8），差不多是圖示的一半寬。
+-- 整格填滿的結果就是使用者看到的「一個大方塊壓在圖示上」。
+--
+-- ⚠ **矩形縮不掉。** `CheckedTexture` 沒有 Size 也沒有 Anchors ⇒ setAllPoints，
+--   它的矩形永遠等於按鈕矩形，而對暴雪區域 `SetPoint`／`SetSize` 是契約禁止的。
+--   所以「做小」只有一條路：**別把那張貼圖塗成實心**。
+--
+-- 改成：`SetColorTexture`（會把整張圖換成一塊純色）換成 **`SetVertexColor`** ——
+-- `checkmark-minimal` 那個勾的**形狀留著**，只是被染成職業色。底色同時從
+-- `fillCheck`（0.28 中灰，正好跟圖示的亮度打架）換成 `fillInset`（0.08），
+-- 讓那一格讀起來是「圖示角落的一個凹槽」而不是「疊上去的一塊灰板」。
+-- 兩態還是只換明暗：暗格 → 暗格裡一個亮色的勾。
+--
+-- ⚠ `checkbox-minimal` / `checkmark-minimal` 這一組**不會**被 `SetCheckButtonIsRadio`
+--   換掉：那一支（UIPanelTemplatesShared.lua:145）只用在 `LFGInvitePopup`
+--   （LFGFrame.lua:1625-1627），是我們不碰的彈窗。
+-- ⚠ 暴雪對 checkButton 只做 Show/Hide/Enable/Disable/SetChecked
+--   （LFGFrame.lua:397-432），**沒有**任何路徑重設貼圖的 vertex color ⇒ 不必 reapply。
+--
+-- TODO(升格): 這是「疊在圖示上的勾選框」的通用形狀，之後別的視窗遇到同一種
+--   （坐騎的最愛星星那類）就把它升格成 `Skin.CheckBox` 的 `opts.glyph` 變體。
+------------------------------------------------------------
+local CHECK_STATE_GETTERS = { "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }
+
+local function SkinRoleCheckBox(cb, key)
+    if not E.Usable(cb, key) then return end
+
+    for _, getter in ipairs(CHECK_STATE_GETTERS) do
+        if type(cb[getter]) == "function" then
+            local ok, tex = pcall(cb[getter], cb)
+            if ok and tex then E.Neutralize(tex, key .. "." .. getter) end
+        end
+    end
+    E.ButtonStates(cb, key)
+
+    -- 已勾／停用又已勾：只染色，不塗滿
+    local checked = { T.AccentCheck(1) }
+    local checkedDisabled = { T.AccentCheckDisabled(1) }
+    for getter, color in pairs({
+        GetCheckedTexture = checked,
+        GetDisabledCheckedTexture = checkedDisabled,
+    }) do
+        if type(cb[getter]) == "function" then
+            local ok, tex = pcall(cb[getter], cb)
+            if ok and tex then E.VertexColor(tex, color, key .. "." .. getter) end
+        end
+    end
+
+    local ov = E.Overlay(cb, { key = key })
+    E.Paint(ov, T.fillInset, T.border)
+    return ov
+end
+
+------------------------------------------------------------
+-- `LargeItemButtonTemplate`（獎勵物品格：桶型寶箱、金錢那兩格）
+--
+-- 跟 `ItemButton` intrinsic 不同的地方只有一個，但那一個很要命：
+-- **圖示只佔左邊 39x39，按鈕本身是 147x41**（ItemButtonTemplate.xml:171,174），
+-- 右邊那半是一張 `UI-QuestItemNameFrame` 的雕花名牌。`Skin.ItemButton` 會把品質
+-- 方框畫成整顆 147x41 的長方形，所以這裡自己畫一份，方框用 `anchorTo` 錨在
+-- `Icon` 上。
+--
+-- 重畫仍然交給 Engine 既有的兩個全域後置勾：`LFGRewardsFrame_SetItemButton`
+-- （LFGFrame.lua:1479-1483）呼叫的就是全域的 `SetItemButtonQuality`，
+-- 而 `Skin.ItemButtonRefresh` 拿的正是 `slot = "front"` 那一層 —— 也就是下面這個
+-- 品質方框（`levelOffset = 1` 預設就是 front）。圖示欄位叫 `Icon`（大寫），
+-- `Skin.ItemButtonRefresh` 兩種大小寫都找。
+--
+-- TODO(升格): 「圖示只佔按鈕一角」的物品格不只這一種（任務獎勵格也是），
+--   之後給 `Skin.ItemButton` 加一個 `opts.iconOnly`。
+------------------------------------------------------------
+local function SkinLargeItemButton(btn, key)
+    if not E.Usable(btn, key) then return end
+
+    -- 名牌雕花中和。名字是 `GameFontHighlight`（白）或暴雪寫上去的品質色，不碰。
+    E.NeutralizeKeys(btn, { "NameFrame" }, key)
+
+    local border
+    if pcall(function() border = btn.IconBorder end) and border then
+        E.Neutralize(border, key .. ".IconBorder")
+    else
+        E.Missing(key .. ".IconBorder")
+    end
+
+    E.ButtonStates(btn, key)
+
+    local icon = Field(btn, "Icon")
+    if icon then E.CropIcon(icon, key .. ".Icon") end
+
+    -- 整顆一塊平面底（名牌那一半拿掉之後要有東西接住文字）
+    local bg = E.Overlay(btn, { key = key, noBorder = true })
+    E.Paint(bg, T.fill)
+
+    if not icon then return end
+
+    local ov = E.Overlay(btn, {
+        key = key .. ".quality",
+        anchorTo = icon,
+        levelOffset = 1,
+        borderSize = T.itemBorderSize,
+    })
+    E.Paint(ov, CLEAR, T.border)
+    E.PassBorderColor(ov, border)
+    E.TrackItemButton(btn, key)
+    return ov
+end
+
 -- 一條掛在某個 parentKey 底下的 MinimalScrollBar（這一整家族的標準形狀）
 local function SkinOwnedScrollBar(owner, key)
     local bar = Field(owner, "ScrollBar")
@@ -356,7 +585,7 @@ local function SkinRoleButton(btn, key)
 
     local cb = Field(btn, "checkButton")
     if cb then
-        Skin.CheckBox(cb, key .. ".checkButton")
+        SkinRoleCheckBox(cb, key .. ".checkButton")
     else
         E.Missing(key .. ".checkButton")
     end
@@ -514,10 +743,12 @@ local function ApplyGroupButtons()
         local key = "GroupFinderFrame.groupButton" .. i
         local btn = Field(gf, "groupButton" .. i)
         if btn then
-            -- `bg` 是藍色選單切片、`ring` 是圖示外面那圈鐵環：兩張都是裝飾。
+            -- `bg` 是藍色選單切片（裝飾，中和）。
             -- ⚠ `icon` 不碰：它被 `CircleMask` 遮成圓形（PVEFrame.xml:38），
             --   而且是這顆按鈕的身分。
-            Skin.Row(btn, key, { keys = { "bg", "ring" }, ownHover = true })
+            -- ⚠ `ring` 不中和，壓深當「蓋住遮罩毛邊的一圈深色框」用，見 SkinCategoryRing。
+            Skin.Row(btn, key, { keys = { "bg" }, ownHover = true })
+            SkinCategoryRing(Field(btn, "ring"), key .. ".ring")
             groupButtons[i] = btn
 
             -- 標題文字改白。
@@ -533,6 +764,22 @@ local function ApplyGroupButtons()
             E.Missing(key)
         end
     end
+end
+
+------------------------------------------------------------
+-- 獎勵框（`LFGRewardFrameTemplate`）：地城搜尋與團隊搜尋各一個
+--
+-- 文字一條都不接管 —— 檔頭第 6 點查過了，這一整塊的字本來就是白／金／品質色。
+-- 這裡只處理「靜態就存在」的 `MoneyReward`；`Item1..N` 是動態建立的，
+-- 走 `LFGRewardsFrame_SetItemButton` 的後置勾。
+------------------------------------------------------------
+local function ApplyRewardFrame(frameName)
+    local frame = _G[frameName]
+    if not frame then
+        E.Missing(frameName)
+        return
+    end
+    SkinLargeItemButton(Field(frame, "MoneyReward"), frameName .. ".MoneyReward")
 end
 
 ------------------------------------------------------------
@@ -565,6 +812,11 @@ local function ApplyLFD()
         return
     end
 
+    -- 羊皮紙（UI-LFG-BACKGROUND-QUESTPAPER）。第五輪起中和 —— 上面一條深色字都沒有
+    -- （檔頭第 6 點）。⚠ 一定要 alpha：`LFGRewardsFrame_UpdateFrame`（LFGFrame.lua:1252）
+    --   每次更新都 `background:SetTexture(...)` 換成該地城的那一張。
+    E.NeutralizeGlobals({ "LFDQueueFrameBackground" })
+
     SkinRoleButtonRow("LFDQueueFrameRoleButton")
 
     local dropdown = _G.LFDQueueFrameTypeDropdown
@@ -589,6 +841,8 @@ local function ApplyLFD()
     SkinOwnedScrollBar(_G.LFDQueueFrameRandomScrollFrame, "LFDQueueFrameRandomScrollFrame.ScrollBar")
     SkinOwnedScrollBar(Field(queue, "Specific"), "LFDQueueFrame.Specific.ScrollBar")
     SkinOwnedScrollBar(Field(queue, "Follower"), "LFDQueueFrame.Follower.ScrollBar")
+
+    ApplyRewardFrame("LFDQueueFrameRandomScrollFrameChildFrame")
 end
 
 ------------------------------------------------------------
@@ -602,7 +856,8 @@ local function ApplyRaidFinder()
     end
 
     -- 角色列背後那張橘色漸層（RaidFinder.xml:22，只有 Gradient 沒有檔案）
-    E.NeutralizeGlobals({ "RaidFinderFrameRoleBackground" })
+    -- ＋ 下半的羊皮紙（RaidFinder.xml:77，同 LFD 那一張，理由見檔頭第 6 點）
+    E.NeutralizeGlobals({ "RaidFinderFrameRoleBackground", "RaidFinderQueueFrameBackground" })
 
     local roleInset = Field(frame, "Inset")
     if roleInset then
@@ -637,6 +892,8 @@ local function ApplyRaidFinder()
     })
 
     SkinOwnedScrollBar(_G.RaidFinderQueueFrameScrollFrame, "RaidFinderQueueFrameScrollFrame.ScrollBar")
+
+    ApplyRewardFrame("RaidFinderQueueFrameScrollFrameChildFrame")
 end
 
 ------------------------------------------------------------
@@ -898,7 +1155,108 @@ end
 ------------------------------------------------------------
 -- 池化列（兩支，都只拿 frame 參照）
 ------------------------------------------------------------
-local searchEntrySweep, applicantSweep
+local searchEntrySweep, applicantSweep, dungeonRowSweep
+
+------------------------------------------------------------
+-- 指定／隨從地城清單的列（`LFGSpecificChoiceTemplate`）
+--
+-- 列本身是裸 `<Frame>`（LFGFrame.xml:227）—— 沒有底圖、沒有 HighlightTexture，
+-- 所以沒有「列」要畫。要接管的只有兩顆按鈕：
+--   * `enableButton`（UI-CheckBox-* 那一組）→ 一般的 `Skin.CheckBox`
+--   * `expandOrCollapseButton`（＋／−）→ 圖形是資訊，只去飽和 ＋ 染 `textDim`
+------------------------------------------------------------
+local DUNGEON_ROW_KEY = "LFDDungeonChoice"
+
+local function ApplyDungeonRow(row)
+    local cb = Field(row, "enableButton")
+    if cb then
+        Skin.CheckBox(cb, DUNGEON_ROW_KEY .. ".enableButton")
+    else
+        E.Missing(DUNGEON_ROW_KEY .. ".enableButton")
+    end
+end
+
+local function ReapplyDungeonRow(row)
+    -- ⚠ `LFGDungeonListButton_SetDungeon`（LFGFrame.lua:1737-1742）**每次**都
+    --   `enableButton:SetCheckedTexture(路徑)`（多選 UI-MultiCheck／單選
+    --   UI-CheckBox-Check 兩組）—— 換材質會把我們的 `SetColorTexture` 蓋掉。
+    local cb = Field(row, "enableButton")
+    if cb then
+        E.CheckedTexture(cb, { T.AccentCheck(1) }, { T.AccentCheckDisabled(1) },
+            DUNGEON_ROW_KEY .. ".enableButton")
+    end
+
+    -- ⚠ 同一支每次都 `expandOrCollapseButton:SetNormalTexture(UI-Plus/MinusButton-UP)`
+    --   （同檔 :1692,1694）。＋／− 是「展開了沒」，不中和；素材是烤了顏色的金屬鈕
+    --   ⇒ 先去飽和再乘 `textDim`（同 Engine.Desaturate 的理由）。
+    -- ⚠ Highlight 不碰：那是同一張箭頭圖（LFGFrame.xml:288），
+    --   `SetColorTexture` 會把它變成一塊白方塊。
+    local expand = Field(row, "expandOrCollapseButton")
+    if expand and type(expand.GetNormalTexture) == "function" then
+        local ok, tex = pcall(expand.GetNormalTexture, expand)
+        if ok and tex then
+            local key = DUNGEON_ROW_KEY .. ".expandOrCollapseButton"
+            E.Desaturate(tex, key)
+            E.VertexColor(tex, T.textDim, key)
+        end
+    end
+end
+
+local function MatchDungeonRow(row)
+    return type(row) == "table" and row.enableButton ~= nil
+end
+
+------------------------------------------------------------
+-- 獎勵物品格：`LFGRewardsFrame_SetItemButton`（全域）的後置勾
+--
+-- 格子是動態建立的（`_G[parentName.."Item"..index]`，LFGFrame.lua:1418-1426），
+-- 所以不能在 apply 裡掃一次。hook 裡只做三件事：
+--   1. `index` 過 `Secret.PlainNumber`（後置勾的**參數**，不是 elementData 的欄位）
+--   2. `parentFrame:GetName()`（讀取例外表）拼出格子的全域名字
+--   3. 對那顆格子跑 `SkinLargeItemButton`（冪等）
+-- dungeonID、quality、rewardID 一個都沒有讀。
+------------------------------------------------------------
+local rewardHookInstalled = false
+-- 已經套過皮的獎勵格（弱鍵 side table，不在暴雪的框上寫欄位）。
+-- 之後每次更新的重畫（品質色、重裁圖示）由 Engine 的兩個全域物品格後置勾負責，
+-- 這一支只負責「第一次見到這顆格子」。
+local rewardSkinned = setmetatable({}, { __mode = "k" })
+
+local function InstallRewardItemHook()
+    if rewardHookInstalled then return end
+    if type(_G.LFGRewardsFrame_SetItemButton) ~= "function" then
+        E.Missing("LFGRewardsFrame_SetItemButton")
+        return
+    end
+    rewardHookInstalled = true
+
+    -- 跟 `Engine.HookRows` 同一套紀律：第一行查弱鍵表、整段 pcall、
+    -- 出錯一次就把這支標成壞掉（切一次地城會進來好幾發，洗版比少一塊皮嚴重）。
+    local broken = false
+
+    local function Handle(parentFrame, index)
+        local n = S.PlainNumber(index)
+        if not n or type(parentFrame) ~= "table" then return end
+        local name
+        if not (pcall(function() name = parentFrame:GetName() end) and type(name) == "string") then
+            return
+        end
+        local btn = _G[name .. "Item" .. n]
+        if not btn or rewardSkinned[btn] then return end
+        rewardSkinned[btn] = true
+        SkinLargeItemButton(btn, "LFGRewardsLoot")
+    end
+
+    hooksecurefunc("LFGRewardsFrame_SetItemButton", function(parentFrame, _, index)
+        if broken then return end
+        local ok, err = pcall(Handle, parentFrame, index)
+        if not ok then
+            broken = true
+            E.NoteBrokenHook("LFGRewardsFrame_SetItemButton")
+            ns.ReportError(err)
+        end
+    end)
+end
 
 local function InstallRowHooks()
     -- 搜尋結果列：只把 HIGHLIGHT 層那條藍色滑過帶換成白 8%。
@@ -941,13 +1299,42 @@ local function InstallRowHooks()
             end
         end,
     }
+
+    -- 指定地城清單與隨從地城清單：**兩支全域初始化函式共用同一組 apply/reapply**。
+    -- 兩邊是不同的 ScrollBox，但列的模板是同一個（LFDFrameDungeonChoiceTemplate），
+    -- 而 `Engine.RowState` 是跨 hook 共用的弱鍵表 ⇒ 同一顆列被哪一支先碰到都一樣。
+    dungeonRowSweep = E.HookRows{
+        key    = DUNGEON_ROW_KEY,
+        mixin  = _G,
+        method = "LFDQueueFrameSpecificList_InitButton",
+        match  = MatchDungeonRow,
+        apply  = ApplyDungeonRow,
+        reapply = ReapplyDungeonRow,
+    }
+    E.HookRows{
+        key    = DUNGEON_ROW_KEY,
+        mixin  = _G,
+        method = "LFDQueueFrameFollowerList_InitButton",
+        match  = MatchDungeonRow,
+        apply  = ApplyDungeonRow,
+        reapply = ReapplyDungeonRow,
+    }
+
+    InstallRewardItemHook()
 end
 
 local function SweepRowsNow()
     local lfg = _G.LFGListFrame
-    if not lfg then return end
-    E.SweepRows(Path(lfg, "SearchPanel", "ScrollBox"), "LFGListSearchEntry", searchEntrySweep)
-    E.SweepRows(Path(lfg, "ApplicationViewer", "ScrollBox"), "LFGListApplicant", applicantSweep)
+    if lfg then
+        E.SweepRows(Path(lfg, "SearchPanel", "ScrollBox"), "LFGListSearchEntry", searchEntrySweep)
+        E.SweepRows(Path(lfg, "ApplicationViewer", "ScrollBox"), "LFGListApplicant", applicantSweep)
+    end
+
+    local queue = _G.LFDQueueFrame
+    if queue then
+        E.SweepRows(Path(queue, "Specific", "ScrollBox"), DUNGEON_ROW_KEY, dungeonRowSweep)
+        E.SweepRows(Path(queue, "Follower", "ScrollBox"), DUNGEON_ROW_KEY, dungeonRowSweep)
+    end
 end
 
 ------------------------------------------------------------
@@ -971,6 +1358,7 @@ ns.PVESkin.Path = Path
 ns.PVESkin.SkinRoleButton = SkinRoleButton
 ns.PVESkin.SkinOwnedScrollBar = SkinOwnedScrollBar
 ns.PVESkin.SkinKeyedButtons = SkinKeyedButtons
+ns.PVESkin.SkinCategoryRing = SkinCategoryRing
 
 E.Register{
     key   = "pve",
@@ -983,6 +1371,12 @@ E.Register{
     parts = {
         -- 兩塊住在隨需載入的暴雪插件裡，實作在 Skins/PVP.lua 與 Skins/Challenges.lua
         { addon = "Blizzard_PVPUI",        apply = function() ns.PVESkin.ApplyPVP() end },
-        { addon = "Blizzard_ChallengesUI", apply = function() ns.PVESkin.ApplyChallenges() end },
+        {
+            addon = "Blizzard_ChallengesUI",
+            -- ⚠ `hooks` 在戰鬥閘**前面**跑：地城圖示是 `ChallengesFrameMixin:Update`
+            --   動態建立的，戰鬥中切到這一頁一樣會建，晚裝就整排漏掉（陷阱 4）。
+            hooks = function() ns.PVESkin.HookChallenges() end,
+            apply = function() ns.PVESkin.ApplyChallenges() end,
+        },
     },
 }

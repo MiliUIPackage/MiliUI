@@ -14,8 +14,16 @@
 --     ⇒ `Skin.Button` 的預設路徑正確，不需要 `keepFont`。
 --     （`GossipFrame.xml:109` 那個 `<NormalFont style="QuestFontLeft"/>` 是
 --      `GossipTitleButtonArtTemplate` 的，也就是羊皮紙上的對話選項列 —— 我們不碰。）
---   * 羊皮紙**維持保留**；想要深底亮字就開暴雪的「任務文字對比」無障礙設定，
---     這包不動 CVar（見 STYLE.md ③ 的「內容底材規則」備註）。
+--
+-- 第五輪改掉的一件事（實作**不在這個檔案裡**）：
+--   對話的羊皮紙 `GossipFrame.Background` 由 `UIThemeContainerMixin:UpdateBackground`
+--   依「任務文字對比」的 CVar（`questTextContrast`）決定，而第五輪起那個 CVar 由
+--   `Skins/Quest.lua` 的事件框在登入時設成深色那一檔（預設開，設定頁可關）。
+--   ⇒ **這個檔案還是一根手指都不碰羊皮紙與對話選項的字色**，只是底會變深、
+--     字會由暴雪自己換成亮色。查證出處寫在 `Skins/Quest.lua` 的檔頭。
+--   ⚠ `GossipFrameMixin:OnLoad`（GossipFrame.lua:54-57）只有在**暴雪設定面板裡**
+--     改值才會收到 callback 去 `UpdateScrollBox()`。我們是直接 `SetCVar`，
+--     所以只在登入那一刻動它（那時這個視窗還沒開過）。
 --
 ------------------------------------------------------------
 -- ## taint 接觸面清單（這份配方碰了哪些暴雪物件、各用了哪個白名單動作）
@@ -45,6 +53,7 @@
 -- * `GossipFrame.Background` —— 對話正文的**羊皮紙底**。暴雪的
 --   `UIThemeContainerMixin:UpdateBackground` 會依「任務文字對比」設定重新 SetAtlas，
 --   而對話選項的字色（QuestFontLeft）就是為那張底設計的。中和掉＝暗字壓暗底。
+--   要深色就讓暴雪自己換成對的那一組（見上面那一段），我們不碰這張圖。
 -- * `GossipFrame.GreetingPanel` 的四張 Material* 貼圖 —— 模板裡沒有 file，
 --   實際上畫不出東西，碰它只是多一筆接觸面。
 -- * `FriendshipStatusBar`、對話選項按鈕（`GossipTitleButtonTemplate`）—— 內容不是 chrome。

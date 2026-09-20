@@ -37,6 +37,12 @@ local controls = {
         hint  = L["Repaints Blizzard's windows in the MiliUI settings-window look."],
     },
     { type = "text", label = L["This addon only repaints. It never moves, resizes or rebuilds anything Blizzard owns."] },
+    {
+        type  = "toggle",
+        key   = "questDarkText",
+        label = L["Dark quest and gossip background"],
+        hint  = L["Uses Blizzard's own accessibility setting (Quest Text Contrast) instead of repainting the parchment: Blizzard swaps the background and every text colour together. Your original value is remembered and put back when you turn this off. If you change that setting in Blizzard's options yourself, this puts it back on the next login."],
+    },
 
     { type = "header", label = L["Windows"] },
     { type = "toggle", sub = "windows", key = "gossip",      label = L["Gossip"] },

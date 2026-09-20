@@ -345,13 +345,22 @@ overlay 的 parent 是**列自己**（列不是 layout host），不是 `ScrollT
 
 判準不是「它好不好看」，是「把它拿掉之後，上面那些字還讀得出來嗎」。
 
-**備註：任務／對話的羊皮紙有一條「不必我們動手」的路。**
-暴雪內建了**任務文字對比**（Accessibility → Quest Text Contrast）這個無障礙設定，
-打開之後 `UIThemeContainerMixin:UpdateBackground` 會自己把對話／任務的底換成深色、
-文字換成亮色 —— 整組是暴雪自己成對設計的，比我們接管安全得多。
-**這包不碰那個 CVar**：改玩家的設定不在「重畫」的範圍裡，而且那是一個全遊戲的
-無障礙選項，不該由一支外觀插件替玩家決定。想要深底亮字的任務視窗就去開那個設定，
-我們只負責 chrome。
+**備註：任務／對話的羊皮紙走「不必我們動手」的那一條路。**
+暴雪內建了**任務文字對比**（Accessibility → Quest Text Contrast，CVar
+`questTextContrast`，0~4，**4 ＝深色**）這個無障礙設定。設成 4 之後
+`QuestFrame_SetMaterial` / `QuestInfo_Display` / `UIThemeContainerMixin:UpdateBackground`
+會自己把任務、對話、任務日誌的底換成深色、**所有**文字顏色換成
+`GetMaterialTextColors("Stone")` 的亮色，連四張 `Material*` 角花與蠟封底都一起收掉
+—— 整組是暴雪自己成對設計的，比我們接管十幾條字色安全得多。
+
+**第五輪起這包會去設那個 CVar**（`Skins/Quest.lua` 的事件框，預設開、設定頁可關）。
+第四輪的立場是「不碰玩家的設定」，推翻的理由有兩條：
+(a) 實機看到的是「深色外框包一張亮羊皮紙」，跟成就視窗當時同一個問題；
+(b) 唯一的替代方案是自己接管 `QuestInfo` 整套字色，那是「少查一條就整段字消失」的
+那一類，成本與風險都比按一個暴雪自己的開關高一個數量級。
+配套的紀律：**記住玩家原本的值**（`db.questContrastSaved`）、關掉就還原、
+說明文字寫明「你自己改的話下次登入會再被蓋回去」。
+**除了這一個 CVar 以外，這包不碰任何玩家設定。**
 
 **要換也可以，但是有條件**：換掉底材就**必須連同它上面所有文字顏色一起接管**，
 而且要**查清楚暴雪在哪些路徑重設那些顏色**，一條都不能漏。
@@ -632,10 +641,15 @@ overlay 的層級一律是**目標層級 − 1**（`Engine.Overlay` 的 `levelOf
 | **`MountListButtonTemplate` / `CompanionListButtonTemplate`**（坐騎／寵物清單列）<br>`Blizzard_Collections/Mainline/Blizzard_MountCollection.xml:80`<br>`Blizzard_Collections/Shared/Blizzard_PetCollection.xml:7`<br>`…/Blizzard_MountCollection.lua:328`、`…/Blizzard_PetCollection.lua:766` | `background`（PetList-ButtonBackground）。⚠ 一定要 alpha：`CollectionItemListButton_SetRedOverlayShown`（`Blizzard_CollectionTemplates.lua:134`）每次都重設它的 vertex color | **引擎**：`HighlightTexture`（PetList-ButtonHighlight）→ 白 8% | Row overlay（無邊、`fill`）＋ `icon` 走 Icon（**裁邊放 reapply**，`Init` 每次 `SetTexture`）。⚠ 初始化是**全域函式**不是 mixin ⇒ `HookRows{ mixin = _G }`。`selectedTexture`/`favorite`/`factionIcon`/`petTypeIcon`/`new` 全是資訊，不碰 | 未實測 |
 | **`CollectionsSpellButtonTemplate`**（玩具格／傳家寶格）<br>`Blizzard_Collections/Mainline/Blizzard_CollectionTemplates.xml:39` | **一張都不碰** | — | **不做**。它 `inherits="SecureFrameTemplate"` ⇒ `IsProtected()` 為真 ⇒ 不掛 overlay（引擎會擋）。而「只中和裝飾」那條路也不走：按鈕的長相幾乎全在 `slotFrameCollected`/`slotFrameUncollected` 上，中和掉之後**沒有東西可以補**，會變成一片沒有框的裸圖示 | — |
 | **`HeirloomHeaderTemplate`**（傳家寶分類帶）<br>`Blizzard_Collections/Mainline/Blizzard_HeirloomCollection.xml:5,9,17` | **不碰** | — | **不做**。`collections-slotheader` 是亮底、`text` 是 XML 寫死的深橄欖綠 ⇒ 換底材就要接管文字（內容底材規則），而唯一的接管路徑是走訪 `HeirloomsMixin` 的 `heirloomHeaderFrames` 池子 —— 那是**讀暴雪框的欄位**，不在讀取例外表裡 | — |
-| **`GroupFinderGroupButtonTemplate`**（地城與團隊的左側大類鈕）<br>`Blizzard_GroupFinder/Mainline/PVEFrame.xml:3,49`<br>`…/PVEFrame.lua:382,387` | `bg`（bluemenu 切片）、`ring`（bluemenu-Ring）。⚠ `icon` **不碰**：被 `CircleMask` 遮成圓形 | **兩態都自己畫**（`Skin.Row` 的 `opts.ownHover`）。⚠ HighlightTexture 是 224x80 置中、按鈕矩形只有 203x60 ⇒ 交給引擎會在外圍多一圈光暈。選中態是 `bg:SetTexCoord`（不是 Show/Hide、也不走 `PanelTemplates_*`）⇒ 勾全域 `GroupFinderFrame_SelectGroupButton`，只讀它的 `index` 參數 | Row overlay；`name` 改白（模板沒有 `<ButtonText>`，只能 `SetTextColor`） | 未實測 |
-| **`PVPQueueFrameButtonTemplate`**（PvP 的左側大類鈕）<br>`Blizzard_PVPUI/Mainline/Blizzard_PVPUI.xml:591,631`<br>`…/Blizzard_PVPUI.lua:564` | 同上，但 parentKey 大寫：`Background`／`Ring`／`Icon` | 同上；選中態勾全域 `PVPQueueFrame_SelectButton` | 同上（`Name` 改白） | 未實測 |
-| **`LFGRoleButtonTemplate`** 系（職責勾選）<br>`Blizzard_GroupFinder/Shared/LFGFrame.xml:3,164`<br>`…/LFGFrame.lua:401,414,434,2236` | `background`（圓底，**只有 `WithBackground` 那一支才有** ⇒ 先問再中和）。⚠ 角色圖示是按鈕自己的 `NormalTexture`（`SetNormalAtlas(GetIconForRole(...))`）—— **不能中和** | `checkButton` 交給 `Skin.CheckBox`（`checkbox-minimal`／`checkmark-minimal`，**沒有 HighlightTexture**） | 無（按鈕本體就是圖示）；`lockedIndicator`／`alert`／`shortageBorder`／`incentiveIcon` 全部是資訊，留著 | 未實測 |
-| **`PVPConquestBarTemplate`**（征服點數條）<br>`Blizzard_PVPUI/Mainline/Blizzard_PVPUI.xml:466,513`<br>`…/Blizzard_PVPUI.lua:2158-2163` | `Border`（pvpqueue-conquestbar-frame）、`Background` | **填充材質與顏色都不碰**：`PVPConquestBarMixin:Update` 每次都 `FillTexture:SetAtlas(...)`，而黃／藍／灰三種是「進度／已達上限／停用」的**狀態** ⇒ `Skin.StatusBar` 傳 `texture = false` | StatusBar overlay（邊走前景） | 未實測 |
+| **`GroupFinderGroupButtonTemplate`**（地城與團隊的左側大類鈕）<br>`Blizzard_GroupFinder/Mainline/PVEFrame.xml:3,15,23,38,49`<br>`…/PVEFrame.lua:304,382,387` | `bg`（bluemenu 切片）。⚠ `icon` **不碰**：被 `CircleMask` 遮成圓形 | **兩態都自己畫**（`Skin.Row` 的 `opts.ownHover`）。⚠ HighlightTexture 是 224x80 置中、按鈕矩形只有 203x60 ⇒ 交給引擎會在外圍多一圈光暈。選中態是 `bg:SetTexCoord`（不是 Show/Hide、也不走 `PanelTemplates_*`）⇒ 勾全域 `GroupFinderFrame_SelectGroupButton`，只讀它的 `index` 參數 | Row overlay；`name` 改白（模板沒有 `<ButtonText>`，只能 `SetTextColor`）。**第五輪：`ring` 改成不中和**（`Engine.Desaturate` ＋ `SetVertexColor(fillInset)`）—— 它畫在 `icon` 之上（ARTWORK subLevel 2 對 0），留著正好蓋住 `CircleMask` 切圓留下的毛邊，中和掉那圈毛邊就直接露在底色上 | **未實測（第五輪改動）** |
+| **`PVPQueueFrameButtonTemplate`**（PvP 的左側大類鈕）<br>`Blizzard_PVPUI/Mainline/Blizzard_PVPUI.xml:591,603,611,631`<br>`…/Blizzard_PVPUI.lua:415-419,477,564` | 同上，但 parentKey 大寫：`Background`／`Ring`／`Icon` | 同上；選中態勾全域 `PVPQueueFrame_SelectButton` | 同上（`Name` 改白、`Ring` 同樣壓深）。⚠ 開了掠奪風暴時 `Icon`／`Ring` 會被暴雪 `SetSize`／`SetPoint` 縮小（66→46 / 95→67）⇒ 我們只染色、不量尺寸 | **未實測（第五輪改動）** |
+| **`LFGRoleButtonTemplate`** 系（職責勾選）<br>`Blizzard_GroupFinder/Mainline/LFGFrame.xml:3,6-28,164`<br>`…/Shared/LFGFrame.lua:397-432,2236` | `background`（圓底，**只有 `WithBackground` 那一支才有** ⇒ 先問再中和）。⚠ 角色圖示是按鈕自己的 `NormalTexture`（`SetNormalAtlas(GetIconForRole(...))`）—— **不能中和** | `checkButton` 的 Normal/Pushed/Disabled 中和、Highlight → 白 8% | **第五輪改成配方自己的 `SkinRoleCheckBox`**（`-- TODO(升格)`）：勾選框是 30x29 `scale=0.7` ⇒ 21x20，疊在 48x48 的職責圖示左下角。`CheckedTexture` **沒有 Size 也沒有 Anchors ⇒ setAllPoints**，矩形縮不掉（改它要 `SetPoint`／`SetSize`，契約禁止）⇒ 唯一能做小的是**別把它塗實**：`SetColorTexture` 換成 **`SetVertexColor`**，`checkmark-minimal` 那個勾的形狀留著、只染職業色；底色從 `fillCheck`（0.28）換成 `fillInset`（0.08），讓它讀起來像圖示角落的凹槽而不是疊上去的灰板。`lockedIndicator`／`alert`／`shortageBorder`／`incentiveIcon` 全部是資訊 | **未實測（第五輪改動）** |
+| **`PVPConquestBarTemplate`**（征服點數條）<br>`Blizzard_PVPUI/Mainline/Blizzard_PVPUI.xml:466,513,519-522`<br>`…/Blizzard_PVPUI.lua:2158-2163,2186-2196` | `Border`（pvpqueue-conquestbar-frame）、`Background` | **填充材質與顏色都不碰**：`PVPConquestBarMixin:Update` 每次都 `FillTexture:SetAtlas(...)`，而黃／藍／灰三種是「進度／已達上限／停用」的**狀態** ⇒ `Skin.StatusBar` 傳 `texture = false` | StatusBar overlay（邊走前景）。⚠ **第五輪修的洞**：`PVPConquestBarMixin:SetDisabled` 對那兩張下 `SetAlpha(0.6 或 1)`，`self.disabled` 一開始是 `nil` ⇒ 視窗第一次顯示時一定跑一遍，中和當場被打回。mixin 勾不到（XML frame 比 `ADDON_LOADED` 早，陷阱 4 第三層），但 `OnShow`／`OnEvent` 是 **frame script**（`.xml:519-522`）⇒ `HookScript` 重申 | **未實測（第五輪改動）** |
+| **`LFGRewardFrameTemplate`**（地城／團隊搜尋的獎勵頁）<br>`Blizzard_GroupFinder/Mainline/LFGFrame.xml:753,757,768,778,789`<br>`…/Shared/LFGFrame.lua:1224-1228,1252,1416,1479-1485`<br>`…/Mainline/LFDFrame.xml:167,298-309`<br>`Blizzard_Fonts_Shared/Shared/GameFontStyles.xml:225` | 羊皮紙 `LFDQueueFrameBackground` / `RaidFinderQueueFrameBackground`（**一定要 alpha**：`LFGRewardsFrame_UpdateFrame` 每次 `background:SetTexture(...)` 換成該地城那一張） | — | **第五輪把底材換掉了，而且零文字接管** —— 查證結果是這一整塊**一條深色字都沒有**：`LFGRewardsFrame_OnLoad` 在 OnLoad 就把 `description`／`rewardsDescription`／`xpLabel` 設成白 (1,1,1)（之後沒有任何路徑重設）；`title`／`rewardsLabel` 的 `QuestTitleFontBlackShadow` 名字裡的 Black 指的是**陰影**，字是金色 (1,.82,0)；隨從頁的說明在 XML 直接寫 `WHITE_FONT_COLOR`。羊皮紙一中和，第四輪連帶不做的兩樣（清單列、獎勵格）也跟著解禁 | **未實測（第五輪新做）** |
+| **`LargeItemButtonTemplate`**（獎勵物品格／金錢格）<br>`Blizzard_ItemButton/Mainline/ItemButtonTemplate.xml:167,171,174,180,188,196`<br>`Blizzard_GroupFinder/Mainline/LFGFrame.xml:685,691`<br>`…/Shared/LFGFrame.lua:1416-1426,1479-1485` | `NameFrame`（`UI-QuestItemNameFrame` 的雕花名牌，128x64）、`IconBorder` | **引擎**：Highlight → 白 8%；品質色**轉交**（`Engine.PassBorderColor`） | 配方自己的 local `SkinLargeItemButton`（`-- TODO(升格)`）：**不能直接用 `Skin.ItemButton`** —— 圖示只佔左邊 39x39、按鈕是 147x41，直接套會把品質方框畫成整條長方形。整顆一塊 `fill` 底，品質方框用 `opts.anchorTo` 錨在 `Icon` 上。重畫沿用 Engine 既有的兩個全域後置勾（`LFGRewardsFrame_SetItemButton` 裡呼叫的就是全域 `SetItemButtonQuality`）。格子是**動態建立**的 ⇒ 另外勾 `LFGRewardsFrame_SetItemButton`，只用它的 `index` 參數 ＋ `parentFrame:GetName()` 拼名字。`shortageBorder`／兩顆 `roleIcon` 是資訊 | **未實測（第五輪新做）** |
+| **`LFGSpecificChoiceTemplate`**（指定／隨從地城清單的池化列）<br>`Blizzard_GroupFinder/Mainline/LFGFrame.xml:227,244,263,273,288`<br>`…/Mainline/LFDFrame.xml:21`<br>`…/Mainline/LFDFrame.lua:38,43,296,312`<br>`…/Shared/LFGFrame.lua:1676,1692-1694,1737-1742` | **一張都沒有** —— 列是裸 `<Frame>`，沒有底圖也沒有 HighlightTexture ⇒ 沒有「列」要畫 | **引擎**：`enableButton` 的 Highlight → 白 8% | `enableButton` 走 `Skin.CheckBox`。⚠ **`Checked`／`DisabledChecked` 要放 reapply**：`LFGDungeonListButton_SetDungeon` 每次都 `SetCheckedTexture(路徑)`（多選 `UI-MultiCheck`／單選 `UI-CheckBox-Check` 兩組）。`expandOrCollapseButton` 的 ＋／− 是資訊 ⇒ 不中和、`Engine.Desaturate` ＋ `textDim`，**同樣放 reapply**（每次 `SetNormalTexture`）；它的 `$parentHighlight` 就是同一張箭頭圖，`SetColorTexture` 會變成白方塊 ⇒ 不碰。字色全部是 `QuestDifficultyColors`（最暗的一格是 0.7 灰），深底讀得到 ⇒ 不接管 | **未實測（第五輪新做）** |
+| **`ChallengesDungeonIconFrameTemplate`**（傳奇鑰石「賽季最佳」那一排）<br>`Blizzard_ChallengesUI/Mainline/Blizzard_ChallengesUI.xml:744,747,750,756`<br>`…/Blizzard_ChallengesUI.lua:201,478,487-488,497-504` | BORDER 層一張**無名無 parentKey** 的 `ChallengeMode-DungeonIconFrame`（setAllPoints，圓角雕花）⇒ `GetRegions()` ＋ keep-set `{ Icon }` | — | `Skin`：`fillInset` ＋ 1px 黑邊的 overlay（框 52、圖 50 ⇒ 四邊各露 1）。**裁邊放 reapply**（`SetUp` 每次 `Icon:SetTexture`）。⚠ **第四輪的「勾不到」是錯的**：要勾的是**每一格自己的** `ChallengesDungeonIconMixin:SetUp`，不是容器的 `Update`；而格子是 `ChallengesFrameMixin:Update` 裡的 `CreateFrames` 在頁面第一次需要時才建的 ⇒ 只要 hook 裝在 `parts` 的 `hooks`（戰鬥閘前面）就追得上，形狀跟池化列完全一樣。`HighestLevel` 的數字與顏色、`Icon:SetDesaturated(level == 0)` 都是資訊。補掃走 `ChallengesFrame:GetChildren()`（**不是** `.DungeonIcons`，那是暴雪的欄位） | **未實測（第五輪新做）** |
+| **任務／對話的羊皮紙**<br>`Blizzard_AccessibilityTemplates/QuestTextContrast.lua:1-64`<br>`Blizzard_SettingsDefinitions_Shared/Mainline/Text.lua:18-53`<br>`Blizzard_UIPanels_Game/Mainline/QuestFrame.lua:338,386,599,603-607,612-623`<br>`…/QuestInfo.lua:29,64-80,166,218,238,245`<br>`…/GossipFrame.lua:54-57`<br>`…/QuestMapFrame.lua:920,2370` | **一張都不碰** | — | 改設 CVar `questTextContrast = 4`（`QUEST_BG_DARK`）讓**暴雪自己**把底圖與所有文字顏色成對換掉。實作在 `Skins/Quest.lua` 自己的事件框（`PLAYER_LOGIN` 延一幀 ＋ `PLAYER_REGEN_ENABLED` 補跑），**不在配方的 apply 裡** —— 還原路徑不能綁在「這個視窗有沒有上皮」上。記住原值、關掉還原，理由與紀律見 ③ 的內容底材規則 | **未實測（第五輪新做）** |
 | **`UIMenuButtonStretchTemplate`**（申請者列的邀請／拒絕鈕）<br>`Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:745`<br>`…/SharedUIPanelTemplates.lua:820,832,850,855` | 九片：`TopLeft`/`TopRight`/`BottomLeft`/`BottomRight`/`TopMiddle`/`MiddleLeft`/`MiddleRight`/`BottomMiddle`/`MiddleMiddle`。⚠ 一定要 alpha：`SetTextures` 在四個地方重設材質，但**不碰 alpha** | **引擎**：Highlight→白 8%；文字走 `SetNormalFontObject(GameFontHighlightSmall)` | Button overlay（配方檔裡的 local `SkinStretchButton`，標了 `TODO(升格)`） | 未實測 |
 | **`InputScrollFrameTemplate`**（建立隊伍的多行說明欄）<br>`Blizzard_SharedXML/Shared/InputBox/InputBoxTemplates.xml:72` | 九張 `*Tex`：`TopLeftTex`/`TopRightTex`/`TopTex`/`BottomLeftTex`/`BottomRightTex`/`BottomTex`/`LeftTex`/`RightTex`/`MiddleTex` | 無 | EditBox 風格的 overlay ＋ 它繼承來的 `.ScrollBar`（配方檔裡的 local `SkinInputScroll`，標了 `TODO(升格)`） | 未實測 |
 | **`LFGListColumnHeaderTemplate`**（申請者頁的四個欄位表頭）<br>`Blizzard_GroupFinder/Mainline/LFGList.xml:753,787,796` | `Left` / `Middle` / `Right`（WhoFrame-ColumnTabs） | **引擎**：Highlight→白 8%。⚠ `keepFont`：它們在 OnLoad 就 `self:Disable()`，換 NormalFont 沒有意義 | Button overlay | 未實測 |
@@ -934,14 +948,14 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 
 | 視窗 | key | 現況 |
 |---|---|---|
-| 對話 `GossipFrame` | `gossip` | chrome／關閉鈕／Inset／再見鈕／捲軸。羊皮紙不碰 |
+| 對話 `GossipFrame` | `gossip` | chrome／關閉鈕／Inset／再見鈕／捲軸。**羊皮紙一根手指都沒碰** —— 深色底由 `Skins/Quest.lua` 設的 `questTextContrast` CVar 讓暴雪自己換（設定頁可關） |
 | 角色面板 `CharacterFrame` | `character` | chrome／關閉鈕／Inset／底部分頁／側邊欄分頁（含選中態）／屬性欄小節標題／模型內框去雕花／**裝備格走 `ItemButton`（直角品質方框）**／武器欄兩側的括號雕花／聲望頁與兌換通貨頁（下拉、分類標題列、**子分類的 ＋／− 鈕**、聲望條、通貨列）／**三個彈出小視窗**（聲望詳情、通貨選項、轉移紀錄含列） |
 | 成就 `AchievementFrame` | `achievement` | **整個視窗深色化**：chrome／**標題帽**／分類列（選中與滑過都自己畫）／成就列（完成＝明、未完成＝暗，文字顏色全接管，標題帶與圖示金框放 reapply）／總結頁／統計列／進度條（換材質）／搜尋框／分頁／**比較視窗補完** |
-| 任務 `QuestFrame` | `quest` | chrome／關閉鈕／Inset／六顆面板按鈕／四條捲軸／`QuestModelScene` 的兩個外框。**羊皮紙與四張 `Material*` 不碰** |
+| 任務 `QuestFrame` | `quest` | chrome／關閉鈕／Inset／六顆面板按鈕／四條捲軸／`QuestModelScene` 的兩個外框。**羊皮紙與四張 `Material*` 一根手指都沒碰** —— 深色底走 CVar `questTextContrast = 4`（這個檔案自己的事件框，預設開、設定頁可關、記住原值、關掉還原；對話視窗吃同一個值） |
 | 郵件 `MailFrame`＋`OpenMailFrame` | `mail` | **整頁重做**：兩個視窗的 chrome／兩顆分頁／收件匣七列（平面列＋隔行明暗、信件鈕走 `ItemButton`、翻頁鈕收緊）／**信紙深色化＋文字全接管**／附件格走 `ItemButton`／附件區兩條分隔線／收件人與主旨的矩形修正／金額欄／單選鈕（已勾＝職業色）／九顆按鈕／兩條捲軸／**伴隨元件** |
 | 好友名單 `FriendsFrame` | `friends` | chrome／底部四顆分頁／**頂部分頁（`Skin.TabSystem`）**／聯絡人頁兩顆按鈕／戰網廣播框／**聯絡人選單鈕**／查詢頁（搜尋框、Inset、四個欄位表頭、三顆按鈕、**查詢條件下拉**）／忽略名單小視窗／**三種池化列＋邀請列＋邀請標題列＋分隔線**／**狀態下拉**／**四個子頁**（團隊＝`Blizzard_RaidFrame` 那一半、快速加入、近期盟友、招募好友）／七條捲軸 |
 | 收藏 `CollectionsJournal` | `collections` | **四個檔案共用一個 key**（`Skins/Collections.lua`＝外框＋坐騎、`CollectionsToys.lua`＝玩具箱＋傳家寶＋戰隊場景、`CollectionsPets.lua`＝寵物、`CollectionsWardrobe.lua`＝外觀）。chrome／關閉鈕／底部六顆分頁（矩形另算，見配方表）／坐騎頁（三塊 Inset、搜尋、篩選下拉、總數框、召喚鈕、捲軸、清單列、資訊區圖示）／玩具箱與傳家寶（進度條、搜尋、兩種下拉、格子底、翻頁）／戰隊場景（格子底＋勾選框）／寵物（三塊 Inset、總數框、搜尋、篩選、捲軸、出戰框、兩顆按鈕、清單列）／外觀（頂部兩顆分頁、搜尋、進度條、三顆下拉、兩頁的底、翻頁、捲軸）。**模型場景、玩具／傳家寶的 secure 格子、寵物卡內部、外觀的模型格子都不碰** |
-| 地城與團隊 `PVEFrame` 家族 | `pve` | **三份配方共用一個開關**（`Skins/PVE.lua` ＋ `parts`：`Skins/PVP.lua`、`Skins/Challenges.lua`）。外框（十一張 bluemenu 切片＋陰影）／三顆分頁／左側四顆大類鈕（選中態勾 `GroupFinderFrame_SelectGroupButton`）／地城搜尋與團隊搜尋（Inset、職責勾選、下拉、尋找隊伍鈕、捲軸、遮罩上的按鈕）／預組隊伍五個面板（**純視覺**：Inset、搜尋框、篩選下拉、重新整理鈕、欄位表頭、建立隊伍的輸入框與勾選框、結果列的滑過帶、申請者列的三顆按鈕）／PvP（左側五顆大類鈕、三頁的征服條與 Inset 與職責勾選、兩個下拉、四顆排隊鈕）／傳奇鑰石（Inset、鑰石視窗的關閉鈕與開始鈕）。**兩頁的羊皮紙、鑰石視窗的 atlas、符文底圖全部保留** |
+| 地城與團隊 `PVEFrame` 家族 | `pve` | **三份配方共用一個開關**（`Skins/PVE.lua` ＋ `parts`：`Skins/PVP.lua`、`Skins/Challenges.lua`）。外框（十一張 bluemenu 切片＋陰影）／三顆分頁／左側四顆大類鈕（選中態勾 `GroupFinderFrame_SelectGroupButton`、**圖示外環壓深**）／地城搜尋與團隊搜尋（Inset、職責勾選、下拉、尋找隊伍鈕、捲軸、遮罩上的按鈕、**羊皮紙深色化＋獎勵物品格＋指定／隨從地城清單的池化列**）／預組隊伍五個面板（**純視覺**：Inset、搜尋框、篩選下拉、重新整理鈕、欄位表頭、建立隊伍的輸入框與勾選框、結果列的滑過帶、申請者列的三顆按鈕）／PvP（左側五顆大類鈕、三頁的征服條與 Inset 與職責勾選、兩個下拉、四顆排隊鈕）／傳奇鑰石（Inset、鑰石視窗的關閉鈕與開始鈕、**「賽季最佳」那一排地城圖示改成方塊**）。**鑰石視窗的 atlas、符文底圖、詞綴圓圖示保留** |
 | 商人 `MerchantFrame` | `merchant` | chrome／兩顆分頁／篩選下拉／**商品格**（格底雕花中和＋平面底＋物品鈕走 `ItemButton`，格數讀 `MERCHANT_ITEMS_PER_PAGE`）／四顆修裝與賣垃圾鈕／兩顆翻頁鈕／買回格／金錢與貨幣列。品質色靠自己的兩支更新後置勾（走不到引擎的全域勾） |
 | 試衣間 `DressUpFrame`＋`SideDressUpFrame` | `dressup` | chrome／關閉鈕／最大化最小化／外觀套裝下拉／外觀清單開關／底部三顆按鈕／右側兩片面板＋捲軸／小試衣間。**模型場景與它的背景不碰** |
 | 物品升級 `ItemUpgradeFrame` | `itemupgrade` | **整個視窗深色化**（全檔零 `SetTextColor`，沒有文字要接管）：chrome／物品槽／等級下拉／左右兩欄預覽／費用列／持有貨幣列／升級鈕。**所有動畫特效留著** |
@@ -958,12 +972,15 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 近期盟友的分隔列（`RecentAlliesDividerTemplate` 沒有 initializer 也沒有對應的全域
 刷新函式可以補掃）、`Blizzard_RaidUI` 的團隊名冊（`SecureUnitButtonTemplate`，C 級）。
 （任務／對話兩個視窗第四輪重查過一遍：**沒有下拉、沒有 `WowScrollBoxList` 池化列**，
-六顆面板按鈕也沒有自訂字型物件 ⇒ 前三輪的做法不需要跟進，見兩份配方的檔頭。）
-地城與團隊那一家還缺：**指定地城清單的池化列**與**獎勵物品格**（刻意不做 ——
-它們坐在保留下來的羊皮紙上，套深色皮會變成「亮羊皮紙上一排黑方塊」）、
-**`LFGListCategoryTemplate` 的分類按鈕**（整顆是美術圖，而且動態建立）、
-**PvP 的活動列**（同理）、**傳奇鑰石的地城圖示格**（`ChallengesFrameMixin:Update`
-動態建立，勾實例方法會寫暴雪欄位、勾 mixin 又追不上）、
+六顆面板按鈕也沒有自訂字型物件 ⇒ 前三輪的做法不需要跟進，見兩份配方的檔頭。
+第五輪只多了一條 CVar，框還是一個都沒多碰。）
+地城與團隊那一家第五輪補完了**指定／隨從地城清單的池化列**與**獎勵物品格**
+（第四輪說「不做」的理由是「它們坐在保留下來的羊皮紙上」——
+羊皮紙第五輪換掉了，理由見配方表的 `LFGRewardFrameTemplate` 那一列），
+也補完了**傳奇鑰石的地城圖示格**（第四輪說「勾不到」是**錯的**，同一列有完整說明）。
+還缺：**`LFGListCategoryTemplate` 的分類按鈕**（整顆是美術圖，而且動態建立）、
+**PvP 的活動列**（同理）、**傳奇鑰石上方那一排詞綴圓圖示**（圓形是詞綴的識別
+語彙，刻意保留）、
 **`LFGListApplicationDialog`／`LFGListInviteDialog`／`LFDRoleCheckPopup`**
 （`frameStrata="DIALOG"` 的彈出視窗，離 StaticPopup 太近）。
 

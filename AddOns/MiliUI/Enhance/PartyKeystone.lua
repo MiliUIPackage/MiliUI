@@ -11,7 +11,12 @@
 -- INSTANCE_CHAT 發請求 (真正的 LibKeystone 只認 PARTY/GUILD → 無人回應)，
 -- 又完全不接 LibOpenRaid 的主動廣播 (副本內唯一可靠來源)。改用這兩個函式庫即解決。
 --
--- 設計風格：深色半透明面板 + 金色邊框，與 Enhance/ChallengesUI_Buttons.lua 一致。
+-- 外觀走套組的**設定視窗皮**（`MiliUI.Style` 的 `S.Dark`）：不透明 0.1／0.115 底、
+-- 1px 純黑邊、白字、hover 換職業色邊。跟 Enhance/ChallengesUI_Buttons.lua 與
+-- Enhance/ChallengesUI_LootTable.lua 是同一套（三支在第五輪一起從手寫的
+-- 「深色半透明底 ＋ 金色邊框 ＋ 金字」換過來）。
+--
+-- ⚠ 只動外觀。同步來源、事件、發送邏輯一行都沒有改。
 --------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -25,17 +30,9 @@ local KS = LibStub and LibStub("LibKeystone", true)
 -- 之後照樣會發生（討論下一把）。
 local IsCommRestricted = ns.IsCommRestricted
 
--- Locale-aware font (對齊 ChallengesUI_Buttons)
-local barFont
-if LOCALE_koKR then
-    barFont = "Fonts\\2002.TTF"
-elseif LOCALE_zhCN then
-    barFont = "Fonts\\ARKai_T.ttf"
-elseif LOCALE_zhTW then
-    barFont = "Fonts\\blei00d.TTF"
-else
-    barFont = "Fonts\\FRIZQT__.TTF"
-end
+-- `Style.lua` 在 MiliUI.toc 排在所有 Enhance 之前（:26 對 :52-54），一定在。
+local S = MiliUI.Style
+local barFont = S.Font
 
 local MAX_ROWS = 5
 local ROW_HEIGHT = 17
@@ -205,29 +202,12 @@ end
 --------------------------------------------------------------------------------
 -- UI 建立
 --------------------------------------------------------------------------------
+-- ⚠ `S.ApplyDarkButton` 自己會掛 hover 的 OnEnter/OnLeave，而且**只掛第一次**
+--   （Style.lua 的註解寫了為什麼）—— 所以下面「發送」那顆之後再 `SetScript`
+--   疊提示的寫法會把樣式的 hover 洗掉，改成在那一顆自己重做兩階明暗。
 local function CreateStyledButton(parent, width, height)
     local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    btn:SetSize(width, height)
-    btn:SetBackdrop({
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    btn:SetBackdropColor(0.15, 0.15, 0.22, 1)
-    btn:SetBackdropBorderColor(0.45, 0.40, 0.20, 1)
-    local text = btn:CreateFontString(nil, "OVERLAY")
-    text:SetFont(barFont, 12, "OUTLINE")
-    text:SetPoint("CENTER")
-    text:SetTextColor(1, 0.84, 0, 1)
-    btn.label = text
-    btn:SetScript("OnEnter", function(self)
-        self:SetBackdropColor(0.25, 0.25, 0.35, 1)
-        self:SetBackdropBorderColor(0.8, 0.7, 0.3, 1)
-    end)
-    btn:SetScript("OnLeave", function(self)
-        self:SetBackdropColor(0.15, 0.15, 0.22, 1)
-        self:SetBackdropBorderColor(0.45, 0.40, 0.20, 1)
-    end)
+    btn.label = S.ApplyDarkButton(btn, nil, { width, height }, 12)
     return btn
 end
 
@@ -239,18 +219,13 @@ local function BuildPanel()
     panel = CreateFrame("Frame", "MiliUI_PartyKeystoneFrame", parent, "BackdropTemplate")
     panel:SetSize(230, 150)
     panel:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -8, 85)
-    panel:SetBackdrop({
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    panel:SetBackdropColor(0.08, 0.08, 0.12, 0.9)
-    panel:SetBackdropBorderColor(0.6, 0.5, 0.25, 0.8) -- 金色邊框
+    S.ApplyDarkPanel(panel)
 
+    -- 標題白字（標題是身分不是值）
     local title = panel:CreateFontString(nil, "OVERLAY")
-    title:SetFont(barFont, 12, "OUTLINE")
+    title:SetFont(barFont, 12)
     title:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -8)
-    title:SetTextColor(1, 0.84, 0, 1)
+    title:SetTextColor(unpack(S.Dark.text))
     title:SetText("隊伍鑰石")
 
     -- 發送按鈕
@@ -271,16 +246,18 @@ local function BuildPanel()
             end)
         end
     end)
+    -- ⚠ 這兩支是 `SetScript` 不是 `HookScript`，所以會蓋掉 `S.ApplyDarkButton`
+    --   掛的 hover —— 兩階明暗在這裡自己重做一次（色票照樣從 S.Dark 拿）。
     sendBtn:SetScript("OnEnter", function(self)
-        self:SetBackdropColor(0.25, 0.25, 0.35, 1)
-        self:SetBackdropBorderColor(0.8, 0.7, 0.3, 1)
+        self:SetBackdropColor(unpack(S.Dark.fillHover))
+        self:SetBackdropBorderColor(S.Accent(1))
         GameTooltip:SetOwner(self, "ANCHOR_TOP", 0, 3)
         GameTooltip:AddLine("把隊伍鑰石送到隊伍頻道")
         GameTooltip:Show()
     end)
     sendBtn:SetScript("OnLeave", function(self)
-        self:SetBackdropColor(0.15, 0.15, 0.22, 1)
-        self:SetBackdropBorderColor(0.45, 0.40, 0.20, 1)
+        self:SetBackdropColor(unpack(S.Dark.fill))
+        self:SetBackdropBorderColor(unpack(S.Dark.border))
         GameTooltip:Hide()
     end)
     panel.sendBtn = sendBtn
@@ -303,13 +280,15 @@ local function BuildPanel()
         row:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -28 - (i - 1) * ROW_HEIGHT)
         row:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -10, -28 - (i - 1) * ROW_HEIGHT)
 
+        -- ⚠ 不加 OUTLINE：外框字是給「底下會有地形在動」的 HUD 用的，
+        --   這塊面板現在是不透明底（S.Dark.panel），描邊只會讓字糊掉。
         local left = row:CreateFontString(nil, "OVERLAY")
-        left:SetFont(barFont, 12, "OUTLINE")
+        left:SetFont(barFont, 12)
         left:SetPoint("LEFT", row, "LEFT", 0, 0)
         left:SetJustifyH("LEFT")
 
         local right = row:CreateFontString(nil, "OVERLAY")
-        right:SetFont(barFont, 12, "OUTLINE")
+        right:SetFont(barFont, 12)
         right:SetPoint("RIGHT", row, "RIGHT", 0, 0)
         right:SetJustifyH("RIGHT")
 
