@@ -3,6 +3,14 @@
 把暴雪原生視窗重畫成米利UI的**設定視窗皮**。這份文件是這包的規格書：顏色從哪來、
 什麼動作准、什麼動作不准、每個暴雪模板走哪條路。
 
+> **第六輪摘要（未實測）：** 分頁換成「底亮一階 ＋ 一條職業色線」並修掉兩個 bug
+> （overlay 橫跨下一顆、滑過邊框只亮三邊）；勾選框從「整格職業色」換成
+> 「置中 18 的小方框 ＋ 染色的勾」；面板／內嵌框／進度條的底改成**直接建在暴雪框
+> 上的貼圖**（失敗自動退回子框，`MiliUI_Skin_DB.regionBackdrop = false` 可整批關）；
+> 商人每格一個內嵌底框；捲軸收成 6px 細條；標題帶；
+> **兌換通貨頁的列與轉移鈕全部撤掉**（⑦ 的 C 級新增一條）；
+> `/mskin debug` 的內容登出時存進 `MiliUI_Skin_DB.lastReport`。
+>
 > **狀態：第四輪（打磨 ＋ 擴張）。** 前三輪的成果已經在 2026-09-20 通過實機 taint
 > 驗收 —— 戰鬥中按 C 開得了角色面板、`taint.log` 零筆 blocked、零行點名本插件，
 > 外觀也由使用者實機看過。所以配方表裡「前三輪做的、第四輪沒動到的」那些列
@@ -118,6 +126,9 @@
   ⚠ `SetTexture` 會把 texCoord 打回 `0,1,0,1`，所以池化列與物品格的圖示要在
   **reapply** 裡重裁（陷阱 4）
 - `SetDesaturated(true)` —— **純視覺，只對 region**。給「顏色烤在素材裡」的小圖示用：
+  ⚠ 第六輪多一個用法：**勾選框「已勾」那張貼圖**（`Engine.CheckedGlyph`）。
+  暴雪的勾是暗金色的素材，`SetVertexColor` 是乘法 ⇒ 不先壓成灰階就乘不出職業色。
+  跟下面那條一樣，那張貼圖的顯示與否仍然完全是 C 端決定的。
   `SetVertexColor` 是乘法，紅底金框的 ＋／− 鈕（`campaign_headericon_closed`）
   乘上 `textDim` 只會變暗紅金，永遠乘不出中性灰。先壓成灰階再乘才準。
   走 `Engine.Desaturate`；**不准對按鈕下**（那會把它所有狀態貼圖一起灰掉）。
@@ -142,7 +153,32 @@
 對**frame**：
 
 - `SetAlpha`（`NineSlice`、`PortraitContainer` 這種純美術容器）
-- `SetNormalFontObject` —— 只對按鈕、只傳**暴雪自己的**字型物件（`GameFontHighlight` 系），見註 ⓔ
+- `SetNormalFontObject` —— 只對按鈕，傳進去的字型物件只准兩種：
+  1. **暴雪自己的**（`GameFontHighlight` 系），見註 ⓔ；
+  2. **第六輪核准**：一個「`SetFontObject(暴雪那一份)` 之後只改了顏色」的字型物件
+     （`Engine.DimFont`，唯一的實例是分頁未選中態的 `textDim`）。
+     ⚠ 這不是放寬註 ⓔ 的理由，是**同一條**理由：那條規則要保的是
+     「字型檔、字級、輪廓、陰影跟原本同一份，不會有度量差」，
+     而 `SetFontObject` 就是整份繼承過來、只再呼叫一次 `SetTextColor`。
+     ⚠ 只准住在 `Engine.DimFont`（有快取、建不出來就回傳原本那一份）。
+- **`CreateTexture`（第六輪核准，只准 `Engine.RegionBackdrop` 呼叫）** ——
+  把面板／內嵌框／進度條的底與邊**直接建成目標框自己的貼圖**，不另建子框。
+  理由（`.claude/notes/wow-blizzard-window-skin-strategies.md` 第一節）：
+  * 它**只建、不寫任何 Lua 欄位**，也不碰 secure 屬性 ⇒ 不 taint，
+    連隱式保護的容器都不必特判；
+  * 貼圖在 `BACKGROUND` 的最底 sublevel ⇒ 永遠在該框自己的內容之下，
+    **沒有 frame level／strata／parent 的問題**（`useParentLevel` 的內嵌框、
+    DIALOG strata 的彈窗、`toplevel` 的視窗一律不必再各自想一次），
+    顯示隱藏自動跟著目標走。
+  三個條件缺一不可，所以全部收在那一支函式裡、配方與原語不准直接呼叫
+  （`check_skin.py` 擋 `:CreateTexture(`）：
+  1. 狀態一律記在引擎的弱鍵表，暴雪框上仍然零欄位寫入；
+  2. **自動排版的框不准建**（`LayoutFrame` 會把 region 算進版面）⇒
+     `IsLayoutHost` 為真自動退回子框那條路；
+  3. 重掃時要認得出「這張是我們畫的」（`Engine.ownRegions`），
+     否則 `NeutralizeRegions` 第二次掃會把自己的底中和掉 —— 那是靜默失效。
+  **失敗一律退回 `Engine.Overlay`**，也就是第五輪的行為；
+  `MiliUI_Skin_DB.regionBackdrop = false` ＋ `/reload` 可以整批關掉。
 
 其他：
 
@@ -177,6 +213,9 @@
   `SetHighlightTexture` / `SetCheckedTexture`）—— 那是結構性修改不是重畫，見註 ⓒ。
 - `SetStatusBarColor`（顏色分量在 12.1 可能是秘密數字，走貼圖的 `SetVertexColor`，註 ⓓ）。
 - `LockHighlight` / `UnlockHighlight`（那是寫暴雪按鈕的狀態）。
+- **`CreateTexture`（在配方與原語裡）** —— 白名單的那一條只開給
+  `Engine.RegionBackdrop`，理由見上面。寫在配方裡就會少掉排版框排除、
+  弱鍵登記、失敗退路其中一條，而那三條漏哪一條都是靜默失效。
 
 ### 讀暴雪物件的例外清單
 
@@ -472,16 +511,16 @@ implicitly protected as well… This applies recursively."
 | Inset（內嵌區） | `fillInset` | 1px `border` | 無 |
 | Button | `fill` | 1px `border` | 滑過＝**自己畫**（底 `fillHover` ＋ 邊職業色）；**按下沒有視覺**（見註 ⓒ） |
 | CloseButton | `fill`，內縮 2 | 1px `border` | 滑過＝自己畫（底 ＋ 職業色邊）／按下黑 18%（引擎畫） |
-| Tab | 閒置 `fill`／滑過 `fillHover`＋職業色邊／選中 `AccentFill`／停用 `fillInset` | 1px `border`，**與視窗相連的那一邊不畫**；整排走 `Skin.TabGroup` 之後**接縫那一邊也不畫**（共用下一顆的左邊線） | hook（註 ⓐ）；文字置中走 `Engine.CenterTabText`（③ 的 `SetPoint` 例外） |
+| Tab | 閒置 `fill`／滑過 `fillHover`／選中 `fillSelected`＋朝外那一邊一條 2px 職業色線／停用 `fillInset` | 1px `border`，**與視窗相連的那一邊不畫**；整排走 `Skin.TabGroup` 之後**接縫那一邊也不畫**（共用下一顆的左邊線）。**邊框不隨狀態變**（見下） | hook（註 ⓐ）；文字置中走 `Engine.CenterTabText`（③ 的 `SetPoint` 例外）；字色全交給暴雪的三個字型物件（見下） |
 | **TabSystem**（新式分頁） | 同 Tab，但**沒有停用態** | 1px `border`，相連的那一邊不畫（`opts.onTop` 決定是上邊還是下邊） | 重讀 ＋ mixin 後置勾兩條路（註 ⓘ） |
 | **StretchButton**（`UIMenuButtonStretchTemplate`） | `fill` | 1px `border` | 滑過＝自己畫（底 ＋ 職業色邊）；按下沒有視覺（同註 ⓒ）；文字不碰（本來就是白的） |
-| ScrollBar 軌道 | `scrollTrack` | 無 | 無 |
-| ScrollBar 拇指 | `scrollThumb` | 無 | 無（註 ⓑ） |
+| ScrollBar 軌道 | `scrollTrack`，**置中 `scrollThumbSize`（6px）的細條** | 無 | 無 |
+| ScrollBar 拇指 | `scrollThumb`，同樣的 6px 細條 | 無 | 滑過 `scrollThumbHover`（註 ⓑ） |
 | ScrollBar 箭頭 | 不中和，`SetVertexColor(textDim)` | — | 暴雪自己換 atlas |
 | EditBox | `fillInset` | 1px `border` | 無；舊式的走 `opts.globalPrefix` ＋ `opts.points` |
-| CheckBox | `fillCheck` | 1px `border`（**前景**） | 滑過＝自己畫（底 ＋ **前景那一層**的職業色邊）；**已勾＝整格 `AccentCheck`**（Checked 貼圖換色） |
+| CheckBox | `fillCheck`，**置中 `checkBoxSize`（18px）的小方框**，不吃按鈕矩形 | 1px `border`（**前景**） | 滑過＝自己畫（底 ＋ **前景那一層**的職業色邊）；**已勾＝保留暴雪勾的形狀、去飽和＋染 `AccentCheck`**（勾比方框大 ⇒ 自然往外溢） |
 | Row（清單列） | `fill`（`opts.fill` 可換） | 預設**無**；`opts.border` 才給 | 滑過白 8%；`opts.ownHover` 時兩態都自己畫 |
-| StatusBar | `fillInset` | 1px `border`，**畫在條之下、矩形往外推 1px**（第五輪改） | 填充材質換 `barTexture`；顏色預設不碰（註 ⓓ）；`opts.pad` 把底與邊再往外推（字比條高的那幾種） |
+| StatusBar | `fillInset`（**建成條自己的貼圖**，第六輪改） | 1px `border`，**同樣建在條上**、矩形往外推 1px | 填充材質換 `barTexture`；顏色預設不碰（註 ⓓ）；`opts.pad` 把底與邊再往外推（字比條高的那幾種） |
 | Icon | — | 1px `border`（前景） | 裁邊 `iconCrop`；`owner` 不給就直接錨在貼圖上 |
 | **ItemButton**（物品格） | `fillInset` | `itemBorderSize` 的**方框**，顏色＝轉交的品質色（前景） | 圖示裁邊；空格／普通＝1px 黑邊 |
 | **Dropdown** | `fillInset` | 1px `border` | 貼齊**按鈕本體**（右邊留 2 給箭頭）；箭頭**先去飽和再**染 `textDim`（註 ⓕ）；滑過＝自己畫（底 ＋ 職業色邊）；**`filter` 那一種預設接管文字成白字** |
@@ -490,6 +529,8 @@ implicitly protected as well… This applies recursively."
 | **IconButton** | `fill` | 1px `border` | 滑過＝自己畫（底 ＋ 職業色邊）；圖不中和只染 `textDim`（停用 `textDisabled`）；`opts.inset` 收緊、`opts.desaturate` 去飽和、`opts.labelColor` 連無名說明字一起染；**`opts.stripFrame`** 反過來：Normal/Pushed/Disabled 是「按鈕的殼」時整組中和，改染 `opts.iconKey`（預設 `Icon`）那一張；**`opts.glyph`**（`"expand"`／`"collapse"`）＝狀態圖整組中和、改畫我們自己的 ＋／− 線條圖記 |
 | **BorderOnly** | 無（全透明） | 1px `border`（前景） | 給「保留了內容底材但還是要外框」的區塊 |
 | **標題帽** | `fill` | 1px `border`，**下邊不畫** | 無（見下面那一段） |
+| **標題帶**（`Skin.PortraitChrome`） | `fillInset`，高 `titleBarHeight`（22） | 無；下緣一條 1px `fillHover` 髮絲線 | 無；`opts.titleBar = false` 關掉 |
+| **商人商品格** | `fillInset`，四邊各內縮 2 | 1px `border` | 無；空格跟著暴雪對 `ItemButton` 的 `Hide()` 一起消失 |
 
 overlay 的層級一律是**目標層級 − 1**（`Engine.Overlay` 的 `levelOffset` 預設 −1），
 所以它壓在目標自己的區域之下 —— **這就是為什麼每個原語都要先中和再畫**，
@@ -509,8 +550,98 @@ TexCoord 切片），填滿之後會把黑邊蓋掉。
 23 的成就總結條，「字被擋住」）；
 第五輪讓邊回到背景、矩形往外推 1px —— 填充在條的矩形**內**、碰不到往外推的邊，
 文字在條**上**、也碰不到。兩個症狀同時沒有，而且不必跟任何一層搶層級。
+**第六輪把子框整個拿掉**（底與邊改建成條自己的貼圖，`Engine.RegionBackdrop`）：
+同一個框裡的 region 是按 draw layer 交錯的，文字（OVERLAY／ARTWORK）天然浮在
+BACKGROUND 的底與 BORDER 的邊之上 —— 「邊會不會橫切過文字」這個問題從根本消失，
+`pad` 只剩「留內距讓字不要貼著邊」這一個語意。
 
-### 這一輪定下來的新元件規格
+### 第六輪定下來的新元件規格
+
+**分頁的語彙換成「底只亮一階 ＋ 一條線」（`T.tabStyle`，一行切得回去）。**
+
+| | 底 | 字 | 邊 | 線 |
+|---|---|---|---|---|
+| 閒置 | `fill` | `textDim` | `border`（黑） | 無 |
+| 滑過 | `fillHover` | 白 | `border`（**不變**） | 無 |
+| 選中 | `fillSelected`（0.16） | 白 | `border`（不變） | 朝外那一邊 2px 職業色 |
+| 停用 | `fillInset` | 暴雪的灰字 | `border` | 無 |
+
+兩個理由，第二個是硬的：
+
+1. 整塊職業色的分頁跟清單列的選中態撞在一起 —— 同一個套組裡一個視覺訊號
+   只能有一個語意（`miliui-menu-design` 第一條）。分頁有地方畫線，清單列沒有，
+   所以線留給分頁、整塊職業色留給列。
+2. **共用邊線的設計下，非最後一顆的分頁畫不出完整的滑過邊框。**
+   接縫是「下一顆的左邊線」（見第五輪那一段），也就是說除了最後一顆以外
+   每一顆都沒有自己的右邊線 ⇒ 滑過換邊色永遠只亮三邊（實機擷圖 30~32）。
+   那不是 bug，是那個設計的必然。所以分頁不用邊框表示狀態。
+
+**字色一個腳本都不用掛**：`PanelTabButtonTemplate` 的三個字型物件
+（`SharedUIPanelTemplates.xml:1330-1332`）本來就是
+`NormalFont = GameFontNormalSmall`、`HighlightFont = GameFontHighlightSmall`（白）、
+`DisabledFont = GameFontHighlightSmall`（白），而選中的分頁被
+`PanelTemplates_SelectTab` 設成 Disabled 狀態 ⇒ 我們只換 `NormalFont`
+（＝閒置那一態）就得到「閒置暗、滑過白、選中白」。
+新式分頁沒有 DisabledFont ⇒ 選中／未選中各給一個（`Engine.TabSystemFont`）。
+
+**接縫一律錨「緊鄰的下一顆」，不跳過任何一顆（`hideable` 拿掉了）。**
+第五輪的 `hideable` 讓前一顆跳過「會被藏起來」的那一顆、直接錨到再下一顆，
+保的是時空漫遊角色才會發生的情況；代價是**正常情況就錯** ——
+收藏視窗的玩具箱 overlay 橫跨傳家寶，選中玩具箱時兩顆一起亮（實機擷圖 29）。
+現在藏起來的那一段會留一個縫（藏起來的框位置仍然在，是縫不是錯位），
+那是刻意選的失敗方向。
+
+**勾選框：小方框 ＋ 染色的勾，不再是整格職業色。**
+第三～五輪的「已勾＝整格填滿職業色」前提是「方框很小」，但 overlay 是照
+**按鈕矩形**畫的，而暴雪的勾選按鈕常常是 32x32／24x24 ⇒ 實機上是一排大方塊
+（實機擷圖 33，使用者原話「方塊好醜」）。現在對齊套組自己的設定視窗
+（共用層 `Widgets.lua` 的 `W.CreateCheckButton`）：
+
+- 方框**固定邊長、置中**（`T.checkBoxSize` ＝ 18，跟共用層同一個數字），
+  跟按鈕多大無關 —— 也就不必為每個模板各查一個內縮量（查錯一個歪一個）。
+- 未勾與已勾**同一個底**，狀態全部由勾表示。
+- 勾**保留暴雪自己的形狀**，只去飽和 ＋ 染職業色（`Engine.CheckedGlyph`）。
+  Checked 貼圖的矩形是整顆按鈕（setAllPoints），比 18 的方框大
+  ⇒ 共用層那個「勾刻意比框大一圈往外溢」自動成立。
+- **不 `SetAtlas("checkmark-minimal")`**（那條窄路核准過，但用不上）：
+  那張 atlas 不是正方形（共用層自己要 `w = h * (width/height)` 換算），
+  套到 setAllPoints 的正方形 Checked 貼圖上會被拉扁，而修正比例要對暴雪區域
+  `SetSize`／`SetPoint` ⇒ 契約禁止。暴雪自己的 `UI-CheckBox-Check` 本來就是
+  正方形素材，只換顏色反而沒有這個問題。
+- **黑描邊不做**：共用層那一版是「同形黑貼圖往四個斜角各偏半像素墊在下層」，
+  那要在暴雪按鈕上多建四張帶遮罩的貼圖 —— 那是結構性修改，不在白名單裡。
+- 單選鈕（寄信頁的「寄送金錢／付款取信」）走**同一支**：
+  `UIRadioButtonTemplate` 的 Checked 是一顆置中的小圓點，去飽和 ＋ 染色之後
+  正好是「深色小方框裡一個職業色圓點」，一行特例都不用寫（`boxSize = 16`，
+  因為那個模板的按鈕本身就是 16x16）。
+- **例外：插件列表兩顆走 `opts.keepCheck`**（勾完全不碰）。
+  那顆「啟用」是三態的，`TriStateCheckbox_SetState`（**local**、勾不到）
+  用 `SetDesaturated` 區分「全部啟用」與「部分角色啟用」；我們無條件染色會讓
+  兩種狀態長得一模一樣 ＝ 把資訊抹掉。而它的 Checked 本來就是
+  `checkmark-minimal`（白色細勾），形狀已經是目標，只差顏色。
+  「載入過期插件」那顆不是三態，但跟列上那一排同一個視窗同一張圖 ——
+  只有它染職業色會讀起來像 bug，所以一起 `keepCheck`。
+
+**捲軸收成一條 6px 的細條。** 軌道與拇指都置中收窄（`T.scrollThumbSize`），
+拇指的**長度**仍然完全由暴雪決定（那是「還有多少沒看到」的資訊）。
+滑過提亮到 `scrollThumbHover`（0.5）—— 一定要自己給，`fillHover`（0.23）
+比閒置的拇指（0.35）還暗，套下去會變成「滑過反而變暗」。
+
+**`Skin.PortraitChrome` 的標題帶。** 視窗上緣一條 `fillInset` 的橫帶
+＋ 下緣一條 `fillHover` 髮絲線。高度從 XML 抄：`TitleContainer` 是
+`<Size y="20"/>` ＋ `y="-1"`（`SharedUIPanelTemplates.xml:739-744`）⇒ 取 22。
+它走 `Engine.RegionBackdrop`（目標框自己的一張 BACKGROUND 貼圖，sublevel −6），
+所以**它蓋不住任何內容** —— 標題文字與內嵌框都是子框，子框永遠畫在父層貼圖之上。
+最壞的情況只是「這條帶子在這個視窗裡不好看」，那就傳 `titleBar = false`。
+
+**商人的每一格一個內嵌底框。** `fillInset` ＋ 1px 黑邊、四邊各內縮 2。
+第五輪是 `T.fill`，跟內嵌框只差 0.035 的亮度 ⇒ 看不出一格一格（實機擷圖 28）。
+空格的底跟著消失，而且**零讀取**：`MerchantFrame_UpdateMerchantInfo`
+（`MerchantFrame.lua:271`）對沒有商品的那一格做的是 `itemButton:Hide()`
+⇒ 把底 overlay 的 **parent 設成那顆物品鈕**（錨點仍錨在格子上）。
+底部那一格「最近賣出」不能學這招：那裡被 Show/Hide 的是格子本身（同檔 :541）。
+
+### 第五輪定下來的新元件規格
 
 **ItemButton（物品格）：暴雪的圓角品質框換成直角方框。**
 中和那張 `WhiteIconFrame`（**一定要 alpha**：`SetItemButtonBorder_Base` 每次更新都
@@ -683,14 +814,14 @@ TexCoord 切片），填滿之後會把黑邊蓋掉。
 
 | 模板／框 | 要中和的區域（實際名稱） | 狀態 | 補套 | 實測狀態 |
 |---|---|---|---|---|
-| `PortraitFrameBaseTemplate`（含 `ButtonFrameTemplate`）<br>`Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:544` | `NineSlice`（Frame）、`Bg`（UI-Background-Rock）、`TopTileStreaks`、`PortraitContainer`（Frame）；`TitleContainer.TitleText` 改白 | — | Panel overlay | 已實測（2026-09-20） |
-| `InsetFrameTemplate`<br>同檔 `:389` | `Bg`（UI-Background-Marble）、`NineSlice` | — | Inset overlay | 已實測（2026-09-20） |
+| `PortraitFrameBaseTemplate`（含 `ButtonFrameTemplate`）<br>`Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:544` | `NineSlice`（Frame）、`Bg`（UI-Background-Rock）、`TopTileStreaks`、`PortraitContainer`（Frame）；`TitleContainer.TitleText` 改白 | — | Panel overlay（第六輪改成建在框自己身上的貼圖）＋ **標題帶**（`fillInset` 高 22 ＋ 下緣髮絲線，`opts.titleBar = false` 可關） | **未實測（第六輪改動）** |
+| `InsetFrameTemplate`<br>同檔 `:389` | `Bg`（UI-Background-Marble）、`NineSlice` | — | Inset 底（第六輪改成建在框自己身上的貼圖 ⇒ `useParentLevel` 的那幾個不必再靠「誰先建」決定誰蓋誰） | **未實測（第六輪改動）** |
 | `UIPanelCloseButton`<br>同檔 `:134`（← `UIPanelCloseButtonNoScripts`） | `GetNormalTexture` / `GetDisabledTexture`（atlas `RedButton-*`）；**Pushed 不中和**（註 ⓔ） | **引擎**：Highlight→白 8%、Pushed→黑 18% | overlay ＋ 兩條 `CreateLine()` 畫的白色 ×（註 ⓖ） | 已實測（2026-09-20） |
 | **`ItemButton`**（intrinsic）<br>`Blizzard_ItemButton/Shared/ItemButtonTemplate.xml:4`<br>`…/Mainline/ItemButtonTemplate.lua:76,94,189,241` | `IconBorder`（圓角品質框，**一定要 alpha**：每次更新都 `SetShown(true)` ＋重設材質）、`NormalTexture`（UI-Quickslot2 雕花空格） | **引擎**：Highlight→白 8%；顏色**轉交**（`Engine.PassBorderColor`） | `fillInset` 底 ＋ `itemBorderSize` 的直角方框（前景）；圖示裁邊。重畫掛 `SetItemButtonQuality` / `SetItemButtonTexture` 兩個**全域**後置勾 | 已實測（2026-09-20） |
 | **`PaperDollItemSlotButtonTemplate`**<br>`Blizzard_UIPanels_Game/Mainline/PaperDollFrame.xml:3,90,111,129`<br>`…/PaperDollFrame.lua:1694` | `Character<Slot>SlotFrame`（`$parentFrame`，`Char-*Slot` 雕花）＋ 武器欄兩側**無名**的 `Char-Slot-Bottom-Left/Right`（同檔 `:906,920`，只能 `GetRegions` ＋ keep-set） | 同 `ItemButton` | 同 `ItemButton`。⚠ 破損裝備的紅色訊號留在**圖示**的 vertex color（`.lua:1703`），`NormalTexture` 那一份跟著中和沒了 | 已實測（2026-09-20） |
 | `UIPanelButtonNoTooltipTemplate`（← `UIPanelButtonTemplate`）<br>`Blizzard_SharedXML/SecureUIPanelTemplates.xml:39` | `Left` / `Right` / `Middle` | **引擎**：Highlight→白 8%；文字白色走 `SetNormalFontObject(GameFontHighlight)`（註 ⓔ） | Button overlay | 已實測（2026-09-20） |
-| `PanelTabButtonTemplate`<br>`SharedUIPanelTemplates.xml:905,927,932` | `TabTextures`（`parentArray`，九張：`Left/Middle/Right`＋`*Active`＋`*Highlight`） | **hook**（註 ⓐ）；文字走 `SetNormalFontObject(GameFontHighlightSmall)`（註 ⓔ） | `Skin.TabGroup`：**上邊不畫**，右緣錨到**下一顆分頁的左緣**、接縫那一邊不畫（第五輪；第四輪的「右邊多畫 7」會在選中的分頁右邊留兩條平行線）。文字走 `Engine.CenterTabText` 拉回正中 | **未實測（第五輪改動）** |
-| `AchievementFrameTabButtonTemplate`<br>`Blizzard_AchievementUI/Mainline/Blizzard_AchievementUI.xml:246,253,260` | 同樣九個 parentKey，但**沒有** `parentArray` ⇒ 逐一點名 | **hook**（同上） | 同上（`Skin.TabGroup`，`kind = "legacy"`） | **未實測（第五輪改動）** |
+| `PanelTabButtonTemplate`<br>`SharedUIPanelTemplates.xml:905,927,932` | `TabTextures`（`parentArray`，九張：`Left/Middle/Right`＋`*Active`＋`*Highlight`） | **hook**（註 ⓐ）；文字走 `SetNormalFontObject(GameFontHighlightSmall)`（註 ⓔ） | `Skin.TabGroup`：**上邊不畫**，右緣錨到**緊鄰的下一顆分頁的左緣**、接縫那一邊不畫。**第六輪換了狀態語彙**（選中＝`fillSelected` ＋ 朝外那一邊 2px 職業色線、未選中的字降到 `textDim`、滑過不換邊框），並把第五輪的 `hideable` 拿掉（它會讓一顆 overlay 橫跨下一顆，實機擷圖 29）。文字走 `Engine.CenterTabText` 拉回正中 | **未實測（第六輪改動）** |
+| `AchievementFrameTabButtonTemplate`<br>`Blizzard_AchievementUI/Mainline/Blizzard_AchievementUI.xml:246,253,260` | 同樣九個 parentKey，但**沒有** `parentArray` ⇒ 逐一點名 | **hook**（同上） | 同上（`Skin.TabGroup`，`kind = "legacy"`） | **未實測（第六輪改動）** |
 | `PaperDollSidebarTabTemplate`<br>`Blizzard_UIPanels_Game/Mainline/PaperDollFrame.xml:393` | `TabBg`、`Hider`；父框 `PaperDollSidebarTabs` 的 `DecorLeft`/`DecorRight` | **引擎**：`Highlight`（HIGHLIGHT 層）→白 8%；選中態借暴雪自己的 `Highlight:Hide()` | overlay | 已實測（2026-09-20） |
 | **`UIMenuButtonStretchTemplate`**<br>`Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:745,836-839`<br>`…/SharedUIPanelTemplates.lua:820,832,841,850,855` | 九張 `UI-Silver-Button-Up` 切片：`TopLeft`/`TopRight`/`BottomLeft`/`BottomRight`/`TopMiddle`/`MiddleLeft`/`MiddleRight`/`BottomMiddle`/`MiddleMiddle`。**一定要 alpha**：`SetTextures` 被 OnMouseDown/OnMouseUp/OnShow/OnEnable 各呼叫一次 | **引擎**：Highlight（`UI-Silver-Button-Highlight`，ADD）→白 8%。文字不碰（NormalFont 本來就是 `GameFontHighlightSmall`） | `Skin.StretchButton`。沒有 PushedTexture ⇒ 按下沒有視覺（註 ⓒ） | **未實測（第四輪新做）** |
 | **`SquareIconButtonTemplate`**<br>`Blizzard_SharedXML/Shared/Button/IconButtonTemplate.xml:4,25,40,53-56`<br>`…/IconButtonTemplate.lua:2,30-38` | Normal/Pushed/Disabled（`UI-SquareButton-Up/Down/Disabled`）—— 那是**按鈕的殼**不是按鈕的圖 | **引擎**：Highlight（`UI-Common-MouseHilight`，ADD）→白 8% | **`Skin.SquareIconButton`**（第五輪升格，＝ `Skin.IconButton` 的 `opts.stripFrame`）：殼整組中和，改染 OVERLAY 層的 `Icon`（`textDim`）。`IconButtonMixin` 不重設那三張 ⇒ alpha 撐得住 | **未實測（第四輪新做）** |
@@ -704,7 +835,7 @@ TexCoord 切片），填滿之後會把黑邊蓋掉。
 | **`RecentAlliesEntryTemplate`**（近期盟友列）<br>`Blizzard_RecentAllies/Blizzard_RecentAlliesTemplates.xml:35,39,86,90,187,193`<br>`…/.lua:130,294-297,342` | `NormalTexture`（色帶，**放 reapply**：`UpdateBackgroundForOnlineStatus` 每次 `SetColorTexture`） | 同上（`SetSelected` → `SetHighlightLocked`） | Row overlay。⚠ 分隔列（`RecentAlliesDividerTemplate`）**沒有 initializer 也沒有對應的全域刷新函式** ⇒ 這一輪不做，記在待驗證清單 | **未實測（第四輪新做）** |
 | **`RecruitListButtonTemplate`** ＋ **`RewardClaimingTemplate`**（招募好友）<br>`Blizzard_RecruitAFriend/RecruitAFriendFrame.xml:434,441,449,457,494,497,504,512-536,666,709,717,740`<br>`…/.lua:656,792-799,1610,1637-1639` | 列的 `Background`（**reapply**：`UpdateBackground` 每次 `SetColorTexture`）；`DividerTexture` **不中和只染 `textDim`**（同好友名單那條分隔線）；上半的羊皮紙 `Background`＋四個 `Bracket_*`＋`Watermark`（**reapply**：`UpdateNextReward` 每次 `SetAtlas`）；`RecruitList.Header.Background`（石條） | **引擎**：列的 HighlightTexture（無名）→白 8% | 兩個 `InsetFrameTemplate` ＋ 三顆 `UIPanelButtonTemplate` ＋ ScrollBar ＋ Row overlay。🚫 `NextRewardButton.ModelScene`、`RecruitActivityButtonTemplate.Model`、`CircleMask`、四組 `ClaimGlow*` 動畫一律不碰 | **未實測（第四輪新做）** |
 | **`RaidInfoInstanceTemplate`** ＋ 團隊頁<br>`Blizzard_RaidFrame/Mainline/RaidFrame.xml:3,39,88,138,145,182,194,205,217,235,242,249,259,265,276,287,292,303,309,321`<br>`…/RaidFrame.lua:140,171` | `RaidInfoDetailHeader`／`Footer`（全域名）、兩個 `RaidInfoHeaderTemplate` 的 `$parentLeft/Middle/Right`（**只有全域名**）、`RaidInfoFrame.Border` 的九片 | 同上（`RaidInfoFrame_SetButtonSelected` 走 `LockHighlight`） | ⚠ `RaidFrame` 本身**零美術**（`:138` 是裸 `<Frame>`），面板底來自 `FriendsFrame` 與 `FriendsFrameInset`。四顆 `UIPanelButtonTemplate` 一律 `keepFont`（XML 自己指定了 `GameFontNormalSmall`）。🚫 `Blizzard_RaidUI` 整包不碰（`SecureUnitButtonTemplate`，C 級） | **未實測（第四輪新做）** |
-| `MinimalScrollBar`<br>`Blizzard_SharedXML/Shared/Scroll/MinimalScrollBar.xml` | `Track.Begin/Middle/End`、`Track.Thumb.Begin/Middle/End`（**只准 alpha**，註 ⓑ） | 無 | 軌道 overlay ＋ 拇指 overlay；`Back`/`Forward` 的 `Texture` 只染 `textDim`、不中和 | 已實測（2026-09-20） |
+| `MinimalScrollBar`<br>`Blizzard_SharedXML/Shared/Scroll/MinimalScrollBar.xml` | `Track.Begin/Middle/End`、`Track.Thumb.Begin/Middle/End`（**只准 alpha**，註 ⓑ） | 無 | **第六輪：軌道與拇指都收成置中 6px 的細條**（`T.scrollThumbSize`），長度仍然由暴雪決定；拇指多一個滑過提亮（`scrollThumbHover`，走 `HookScript`）。`Back`/`Forward` 的 `Texture` 只染 `textDim`、不中和 | **未實測（第六輪改動）** |
 | `InputBoxTemplate` / `SearchBoxTemplate`<br>`Blizzard_SharedXML/Shared/InputBox/InputBoxTemplates.xml:70, :206` | `Left` / `Right` / `Middle`；`searchIcon`、`clearButton.Icon` 染 `textDim`；`Instructions` 染 `textDisabled` | 無 | EditBox overlay | 已實測（2026-09-20） |
 | `BackdropTemplate` 的九片<br>`Blizzard_SharedXML/Backdrop.lua:317` | `TopLeftCorner` / `TopRightCorner` / `BottomLeftCorner` / `BottomRightCorner` / `TopEdge` / `BottomEdge` / `LeftEdge` / `RightEdge` / `Center`（`NineSliceUtil.ApplyLayout(self, …)` 直接掛在 frame 上） | — | Panel overlay | 已實測（2026-09-20） |
 | `WowStyle1DropdownTemplate`<br>`Blizzard_Menu/Mainline/MenuTemplates.xml:3,17,24` | `Background`（atlas `common-dropdown-textholder`，錨 −8,+7 / +8,−9） | **引擎**：`Arrow` **先 `SetDesaturated(true)` 再**染 `textDim`（那張 atlas 本身是金黃色的，乘法乘不出中性灰 —— 實機擷圖 16 的聲望頁上那顆很亮的黃三角形），滑過時暴雪自己換成 `-hover` atlas（註 ⓕ） | Dropdown overlay **貼齊按鈕本體**（`0,0 / +2,0`，右邊 2 給錨在 `RIGHT x=1` 的箭頭）。第二輪照背景圖畫 ⇒ 上下多出 7~9、壓到下面清單 | 已實測（2026-09-20） |
@@ -712,12 +843,12 @@ TexCoord 切片），填滿之後會把黑邊蓋掉。
 | `CharacterStatFrameCategoryTemplate`<br>`Blizzard_UIPanels_Game/Mainline/CharacterFrame.xml:78` | `Background`（atlas `UI-Character-Info-Title`，雕花卷軸牌） | — | SectionTitle：`Title` 改白 ＋ 框下緣一條 `fillHover` 髮絲線 | 已實測（2026-09-20） |
 | `ListHeaderThreeSliceTemplate`<br>`Blizzard_SharedXML/ListTemplates.xml:53`<br>（＝聲望頁的 `ReputationHeaderTemplate`，`ReputationFrame.xml:3`） | `Left` / `Middle` / `HighlightRight`。⚠ **`Right` 不中和** —— ＋／− 記號烤在那張 atlas 裡，只染 `textDim` | **引擎**：`HighlightLeft`/`HighlightMiddle` → `SetAlpha(1)` ＋ 白 8% | ListHeader overlay ＋ `Name` 改白 | 已實測（2026-09-20） |
 | `ReputationBarTemplate`<br>`Blizzard_UIPanels_Game/Mainline/ReputationFrame.xml:77,126`<br>`…/ReputationFrame.lua:502,524,547,619` | `Background`、`LeftTexture`、`RightTexture` | **填充色不碰**：`UpdateBarColor` 每次 Initialize 都重設，而且那是聲望等級的資訊（註 ⓓ）。**材質換 `barTexture`**：`<BarTexture>` 原本是 `UI-Character-Skills-Bar`，查過 `ReputationBarMixin` 沒有讀回 | StatusBar overlay；**邊畫在條之下、矩形往外推 1px**（第五輪）＋ **`pad = 2`** —— 條只有 **13** 高（`<Size x="99" y="13"/>`）而 `BarText` 是 `GameFontHighlightSmall`，中文字面高過 13，不留內距字的上下兩端會壓在邊線上（實機擷圖 16） | **未實測（第五輪改動）** |
-| `TokenEntryTemplate`<br>`Blizzard_TokenUI/Blizzard_TokenUI.xml:39` | 無（列本身沒有底圖） | — | `Content.CurrencyIcon` 走 Icon（裁邊＋1px 邊）；**裁邊要放 reapply**，`Init` 每次 `SetTexture` | 已實測（2026-09-20） |
-| **`TokenSubHeaderTemplate` / `ReputationSubHeader` 的 `ToggleCollapseButton`**<br>`Blizzard_TokenUI/Blizzard_TokenUI.xml:13`、`.lua:200,219`<br>`…/ReputationFrame.lua:581,602-605` | 無（＋／− 的圖形是資訊，不中和） | **引擎**：Highlight → 白 8% | IconButton overlay ＋ `SetDesaturated(true)` ＋ `textDim`。⚠ **放 reapply**：`RefreshIcon` 每次收合／展開都重設 `campaign_headericon_*` 的 atlas | 已實測（2026-09-20） |
+| `TokenEntryTemplate`<br>`Blizzard_TokenUI/Blizzard_TokenUI.xml:39` | **一張都不碰** | — | **第六輪整條拿掉**（原本是 `Content.CurrencyIcon` 走 Icon）。理由見 ⑦ 的 C 級：這條列跟戰隊通貨轉移那個受保護請求是同一條執行流 | — |
+| **`ReputationSubHeader` 的 `ToggleCollapseButton`**（⚠ 第六輪起**只剩聲望頁**，`TokenSubHeaderTemplate` 那一半拿掉了，見 ⑦ 的 C 級）<br>`Blizzard_TokenUI/Blizzard_TokenUI.xml:13`、`.lua:200,219`<br>`…/ReputationFrame.lua:581,602-605` | 無（＋／− 的圖形是資訊，不中和） | **引擎**：Highlight → 白 8% | IconButton overlay ＋ `SetDesaturated(true)` ＋ `textDim`。⚠ **放 reapply**：`RefreshIcon` 每次收合／展開都重設 `campaign_headericon_*` 的 atlas | 已實測（2026-09-20） |
 | `CurrencyTransferLogToggleButtonTemplate`<br>`Blizzard_TokenUI/Blizzard_CurrencyTransfer.xml:372` | 無（圖不中和，Normal/Pushed 染 `textDim`） | **引擎**：Highlight → 白 8% | IconButton overlay | 已實測（2026-09-20） |
 | **`CurrencyTransferLogTemplate`**（轉移紀錄視窗）<br>`Blizzard_TokenUI/Blizzard_TokenUI.xml:179`<br>`…/Blizzard_CurrencyTransfer.xml:384` | `Background`（atlas `transfer-log-background`）＋ `ButtonFrameTemplate` 那一整組 | 同關閉鈕 | Panel ＋ Inset ＋ CloseButton ＋ ScrollBar；`EmptyLogMessage` 染 `textDim` | 已實測（2026-09-20） |
-| **`CurrencyTransferLogEntryTemplate`**<br>同檔 `:299`、`.lua:742` | 無 | — | `CurrencyIcon` 走 Icon（**裁邊放 reapply**）、`Arrow` 染 `textDim`、`SourceName`/`DestinationName` 改白（`GameFontNormalLeft` 是暗金） | 已實測（2026-09-20） |
-| **`TokenFramePopup`**<br>`Blizzard_TokenUI/Blizzard_TokenUI.xml:185` | `Border`（SecureDialogBorder 的九片 ＋ Bg） | — | Panel overlay ＋ `Title` 改白；兩顆 `UICheckButtonTemplate` 走 CheckBox。⚠ 關閉鈕的 parentKey 在 XML 裡寫成字面的 `$parent.CloseButton`（`:231`），兩種取法都要試 | 已實測（2026-09-20） |
+| **`CurrencyTransferLogEntryTemplate`**<br>同檔 `:299`、`.lua:742` | **一張都不碰** | — | **第六輪整條拿掉**（原本是圖示裁邊＋兩條名字改白）。那個視窗整個存在的理由就是通貨轉移，見 ⑦ 的 C 級 | — |
+| **`TokenFramePopup`**<br>`Blizzard_TokenUI/Blizzard_TokenUI.xml:185` | `Border`（SecureDialogBorder 的九片 ＋ Bg） | — | Panel overlay ＋ `Title` 改白；兩顆 `UICheckButtonTemplate` 走 CheckBox。⚠ **`CurrencyTransferToggleButton` 第六輪起不碰**（它是轉移請求的入口，見 ⑦ 的 C 級）⇒ 這個小視窗裡留著一顆原生按鈕。⚠ 關閉鈕的 parentKey 在 XML 裡寫成字面的 `$parent.CloseButton`（`:231`），兩種取法都要試 | 已實測（2026-09-20） |
 | **`ReputationDetailFrame`**<br>`Blizzard_UIPanels_Game/Mainline/ReputationFrame.xml:270` | 一張**無名**的 `UI-Character-Reputation-DetailBackground` ＋ `Divider` ＋ `Border` 的九片（`GetRegions` ／ `GetChildren` 掃） | — | Panel overlay ＋ `Title` 改白 ＋ CloseButton ＋ ScrollBar；三顆勾選框走 CheckBox | 已實測（2026-09-20） |
 | `AchievementCategoryTemplate`<br>`Blizzard_AchievementUI.xml:622,650-654`<br>`.lua:602-607,612` | `Button.Background`（`UI-Achievement-Category-Background`）＋ **`HighlightTexture` 也中和** | **兩態都自己畫**（`Skin.Row` 的 `opts.ownHover` → `Engine.TrackSelectable`）。⚠ 不能交給引擎：暴雪的 Highlight 錨的是 `TOPLEFT 0,0 / BOTTOMRIGHT -1,-7`，比按鈕**往下多 7**，選中時 `LockHighlight` 就在選中底色下面多畫一條灰帶 | Row overlay；`Button.Label` 改白，**放 reapply**（`Init` 每次 `SetFontObject`） | 已實測（2026-09-20） |
 | `AchievementTemplate`<br>`Blizzard_AchievementUI.xml:733`<br>`.lua:1204,1211,1215,1218,1225,1229` | **apply**：`Background`、`NineSlice`、`RewardBackground`、四角 `*Tsunami`、`GuildCornerL/R`<br>**reapply**：`TitleBar`、`BottomTsunami1`、`TopTsunami1`、`Icon.frame` —— ⚠ `Init` **每次**都把前三張的 alpha 設回 `1`/`0.8`/`0.35`/`0.3`，只 apply 一次那條漸層標題帶會整條回來。**`Icon.bling` 第四輪拿掉了**：模板裡就是 `hidden`（`.xml:671`）而且全檔沒有 `Show()`，中和它是多餘的一發 | `Saturate`／`Desaturate` 兩支後置勾決定底色明暗；`Highlight` 框保留（ADD 疊加，暴雪自己開關） | Row overlay（**有邊**）＋ `Icon.texture` 走 Icon；`Description` 接管成 `textDim`（註 ⓗ）；`Icon.frame` 的重申理由見註 ⓙ | **未實測（第四輪改動）** |
@@ -730,8 +861,8 @@ TexCoord 切片），填滿之後會把黑邊蓋掉。
 | `TooltipBackdropTemplate`（成就視窗的金邊）<br>`Blizzard_SharedXML/SharedTooltipTemplates.xml:111` | `NineSlice`；無名的那幾層用 `GetChildren()` 掃 | — | 無（外層 Panel overlay 已經夠） | 已實測（2026-09-20） |
 | `ScrollFrameTemplate`（舊式捲動框）<br>`Blizzard_SharedXML/SecureUIPanelTemplates.xml:24`<br>`…/SecureUIPanelTemplates.lua:1`（`ScrollFrame_OnLoad`） | 自己沒有美術；`OnLoad` 建出來的 `self.ScrollBar` **模板就是 `MinimalScrollBar`**（`Blizzard_SharedXML/Mainline/ScrollDefine.lua:1`） | — | 直接把 `.ScrollBar` 丟給 `Skin.ScrollBar` | 已實測（2026-09-20） |
 | `MoneyInputFrameTemplate`（寄信的金額欄）<br>`Blizzard_MoneyFrame/Mainline/MoneyInputFrame.xml:72` | 底下是 `gold`/`silver`/`copper` **三個各自獨立**的 `MoneyFrameEditBoxTemplate`（同檔 `:3`）；每個的切片是 `parentKey="left"`／`"right"`（**小寫**）＋ 只有全域名字的 `$parentMiddle` | 無 | 三個框各一個 EditBox overlay；幣值圖 `texture` 不碰（那是值） | 已實測（2026-09-20） |
-| `UIRadioButtonTemplate`（送錢／貨到付款）<br>`Blizzard_SharedXML/Shared/Button/CheckButtonTemplates.xml:4,15-23` | `GetNormalTexture`；**沒有** Pushed／Disabled | **引擎**：Highlight→白 8%；**`Checked` 換成整格 `AccentCheck`** —— 原本是圓鈕裡一顆小圓點，16 像素的深底方框上看不見 | CheckBox overlay（圓鈕改方框是刻意的）＋**邊走前景**（Checked 的矩形＝按鈕矩形，會蓋掉背景層的邊） | 已實測（2026-09-20） |
-| `UICheckButtonTemplate`<br>同檔 `:42-47,50` | `GetNormalTexture` / `GetPushedTexture` / `GetDisabledTexture` | 同上（`Checked` 與 `DisabledChecked` 兩張都換） | 同上 | 已實測（2026-09-20） |
+| `UIRadioButtonTemplate`（送錢／貨到付款）<br>`Blizzard_SharedXML/Shared/Button/CheckButtonTemplates.xml:4,15-23` | `GetNormalTexture`；**沒有** Pushed／Disabled | **引擎**：Highlight→白 8%；**第六輪：`Checked` 保留那顆小圓點的形狀，去飽和 ＋ 染 `AccentCheck`**（`Engine.CheckedGlyph`）⇒ 深色小方框裡一個職業色圓點 | CheckBox overlay，**`boxSize = 16`**（這個模板的按鈕本身就是 16x16，預設的 18 會比按鈕還大一圈）＋**邊走前景** | **未實測（第六輪改動）** |
+| `UICheckButtonTemplate`<br>同檔 `:42-47,50` | `GetNormalTexture` / `GetPushedTexture` / `GetDisabledTexture` | 同上（`Checked` 與 `DisabledChecked` 兩張都去飽和＋染色） | CheckBox overlay，**置中 18 的小方框**（按鈕是 32x32，照矩形畫就是一塊大方塊） | **未實測（第六輪改動）** |
 | `ThinGoldEdgeTemplate`（金額列的金邊）<br>`Blizzard_UIPanelTemplates/Mainline/UIPanelTemplates.xml:1314` | `$parentLeft`／`$parentMiddle`／`$parentRight`，**只有全域名字、沒有 parentKey** | 無 | 無（底下的 `InsetFrameTemplate` 已經有底有邊） | 已實測（2026-09-20） |
 | 舊式輸入框（收件人／主旨）<br>`Blizzard_MailFrame/MailFrame.xml:574-594, 662-682` | `$parentLeft/Middle/Right` **只有全域名字** ⇒ 走 `Skin.EditBox` 的 `opts.globalPrefix` | 無 | EditBox overlay，**`points` 對齊美術的矩形**。⚠ 收件人框第五輪改成 `TOPLEFT (-8,-2)` → **`BOTTOMRIGHT` 錨在自己的 `TOPLEFT (108, -22)`** ——三張切片是從 `TOPLEFT` 用固定尺寸串起來的（8＋100＋8），右端帽落在 `x = 108` 這個**定值**上，EditBox 的框再怎麼寬，暴雪畫出來的輸入框就是那 116 點；跟著框跑的話方塊會一路伸到「郵資：30」底下（實機擷圖 22）。主旨框右邊沒有東西，維持跟著框走（`-8,0 / +9,0`） | **未實測（第五輪改動）** |
 | **`MailItemTemplate`**（收件匣七列）<br>`Blizzard_MailFrame/MailFrame.xml:11,15,22,29,71,78`<br>`.lua:233-262` | 三張**無名無 parentKey** 的美術（兩片 `MailItemBorder` ＋ 列底那條 `0.33/0.16/0` 的線）⇒ `GetRegions()`（只掃 Texture，兩條 FontString 自動排除）；`$parentSlot`（`UI-EmptySlot-White`，**一定要 alpha**：每次更新都重設 vertex color） | 信件鈕的 `Checked`（`CheckButtonHilight`）＝「目前打開的是哪一封」⇒ 換成 `AccentCheck` | **列底只在那一列真的有信的時候才畫**（第五輪）：overlay 的 **parent ＝ `MailItem<i>Button`**，`InboxFrame_Update` 對空列 `:Hide()` 那顆按鈕 ⇒ 我們的底跟著消失，零讀取零 hook。第四輪的隔行明暗在空信箱會留下三條沒有內容的暗帶（實機擷圖 21）⇒ 取消，全部 `fill`，列與列之間改用一條 `fillHover` 髮絲線（畫在每一列的**上緣**、第一列不畫 ⇒ 線只出現在兩列之間）。信件鈕走 `Skin.ItemButton`（圖示欄位是 `Icon` 大寫）。寄件人金字／主旨白字／到期天數的顏色是**資訊**，不碰 | **未實測（第五輪改動）** |
@@ -762,11 +893,11 @@ TexCoord 切片），填滿之後會把黑邊蓋掉。
 | **`LFGListColumnHeaderTemplate`**（申請者頁的四個欄位表頭）<br>`Blizzard_GroupFinder/Mainline/LFGList.xml:753,787,796` | `Left` / `Middle` / `Right`（WhoFrame-ColumnTabs） | **引擎**：Highlight→白 8%。⚠ `keepFont`：它們在 OnLoad 就 `self:Disable()`，換 NormalFont 沒有意義 | Button overlay | 未實測 |
 | **`LFGListSearchEntryTemplate`**（搜尋結果列）<br>`Blizzard_GroupFinder/Mainline/LFGList.xml:800,804,811,852`<br>`…/LFGList.lua:2866,3374-3382,3523,3530` | **一張都不中和**：`ResultBG` 本來就是白 4% 的平面矩形、`BackgroundTexture` 是申請狀態的紅／綠／黃（資訊） | `Highlight`（**HIGHLIGHT 層**，`groupfinder-highlightbar-blue`）→ `Engine.HighlightTexture`。暴雪只 Show/Hide 它、不重設材質 ⇒ **沒有 reapply** | 無 overlay。hook 走全域 `LFGListSearchPanel_InitButton`，**不讀 `elementData`** | 未實測 |
 | **`LFGListApplicantTemplate`**（申請者列）<br>`Blizzard_GroupFinder/Mainline/LFGList.xml:300,304`<br>`…/LFGList.lua:1888,1895` | 無：`Background` 的隔行明暗是暴雪自己在 `InitButton` 裡做的（alpha 0.1 / 0.05），中和就把層次抹掉了 | — | 列上三顆 `UIMenuButtonStretchTemplate`。hook 走全域 `LFGListApplicationViewer_InitButton`，**不讀 `elementData`／applicantID** | 未實測 |
-| **`MerchantItemTemplate`**（商品格）<br>`Blizzard_UIPanels_Game/Mainline/MerchantFrame.xml:3,7,13,19,28`<br>`.lua:212,227,294,350,369-397` | `SlotTexture`（parentKey，`UI-EmptySlot` 雕花空格）、`$parentNameFrame`（`UI-Merchant-LabelSlots`，**只有全域名字**）。兩張每次更新被改的都是 **vertex color**（`SetItemButtonSlotVertexColor`／`…NameFrameVertexColor`）⇒ alpha 中和撐得住 | **引擎不夠用**：品質色走的是**方法** `ItemButton:SetItemButtonQuality`（`ItemButtonTemplate.lua:409`）不是全域函式，而全域的 `SetItemButtonTexture` 又跑在品質更新**之前** ⇒ 配方自己勾 `MerchantFrame_UpdateMerchantInfo`／`…_UpdateBuybackInfo` 重跑 `Skin.ItemButtonRefresh` | 格子給一塊平面底（Row，無邊）；`MerchantItemNItemButton` 走 `Skin.ItemButton`。名字的品質色、圖示的紅／灰染色、`IconQuestTexture` 都是**資訊**，不碰 | 未實測 |
+| **`MerchantItemTemplate`**（商品格）<br>`Blizzard_UIPanels_Game/Mainline/MerchantFrame.xml:3,7,13,19,28`<br>`.lua:212,227,294,350,369-397` | `SlotTexture`（parentKey，`UI-EmptySlot` 雕花空格）、`$parentNameFrame`（`UI-Merchant-LabelSlots`，**只有全域名字**）。兩張每次更新被改的都是 **vertex color**（`SetItemButtonSlotVertexColor`／`…NameFrameVertexColor`）⇒ alpha 中和撐得住 | **引擎不夠用**：品質色走的是**方法** `ItemButton:SetItemButtonQuality`（`ItemButtonTemplate.lua:409`）不是全域函式，而全域的 `SetItemButtonTexture` 又跑在品質更新**之前** ⇒ 配方自己勾 `MerchantFrame_UpdateMerchantInfo`／`…_UpdateBuybackInfo` 重跑 `Skin.ItemButtonRefresh` | **第六輪：每格一個內嵌底框**（`fillInset` ＋ 1px 黑邊、四邊各內縮 2；第五輪的 `T.fill` 跟內嵌框只差 0.035，看不出一格一格 —— 實機擷圖 28）。**空格的底跟著消失、零讀取**：`MerchantFrame_UpdateMerchantInfo`（`.lua:271`）對空格做的是 `itemButton:Hide()` ⇒ 底 overlay 的 parent 設成那顆物品鈕（同收件匣七列）。`MerchantItemNItemButton` 走 `Skin.ItemButton`。名字的品質色、圖示的紅／灰染色、`IconQuestTexture` 都是**資訊**，不碰 | **未實測（第六輪改動）** |
 | **商人的四顆圖示鈕**（賣垃圾／修裝／修全部／公會修裝）<br>同檔 `:187,220,280,318` | 一張**無名無 parentKey** 的 `UI-EmptySlot`（64x64）＋ `PushedTexture`（`UI-Quickslot-Depress`）⇒ `GetRegions()` ＋ keep-set。⚠ **沒有** NormalTexture／DisabledTexture ⇒ `Skin.IconButton` 在這裡等於什麼都沒做 | **引擎**：Highlight → 白 8% | **`Skin.SlotIconButton`**（第五輪升格）：fill ＋ 1px 邊的 overlay。`Icon` 完全不碰 —— 暴雪用 `Icon:SetDesaturated(...)` 表示「不能修裝／沒有垃圾」，那是狀態 | 未實測 |
 | **`MerchantPrev/NextPageButton`**<br>同檔 `:520,532,548,560` | 一張**無名**的 `UI-PageButton-Background`（32x32）⇒ `GetRegions()` ＋ keep-set，而且 keep-set **要列全四張狀態貼圖**（它們也是 region） | Normal/Pushed 染 `textDim`、Disabled 染 `textDisabled` | IconButton overlay **內縮 4**；「PREV」「NEXT」是**無名** FontString ⇒ `opts.labelColor` | 未實測 |
 | **`AddonListBaseTemplate`**（插件列表的列）<br>`Blizzard_AddOnList/AddonList.xml:4,14,45`<br>`.lua:207,317,338,367-371,426,901` | `HighlightTexture`（`UI-QuestTitleHighlight`）—— 錨 `LEFT x=40`／`RIGHT`、高度寫死 22（列只有 16 高）⇒ **矩形跟按鈕矩形不一樣**，同成就分類列的坑 | **兩態都自己畫**（`Skin.Row` 的 `opts.ownHover`）。⚠ 分類列的初始化 `AddonList_InitCategory` 是 **local**、掛不上去 ⇒ 借全域 `AddonList_Update` 當掛點拿 sweeper，每次清單重建後 `Engine.SweepRows` 補掃 | Row overlay（底色＝`fillInset`，閒置時跟 Inset 同色）；分類列的 `Title` 改白、`CollapseExpand` 的 `Normal`/`Pushed` 染 `textDim`（**不畫框、不碰 Highlight**：那張 Highlight 就是同一張箭頭，`SetColorTexture` 會變成白方塊）。插件名的金／紅／灰是**資訊**，不碰 | 未實測 |
-| **`MinimalCheckboxTemplate`**（插件列表的啟用勾選框）<br>`Blizzard_SharedXML/Shared/Button/CheckButtonTemplates.xml:66,74`<br>`AddonList.lua:317` | `GetNormalTexture` / `GetPushedTexture`（atlas `checkbox-minimal`） | 同 `UICheckButtonTemplate`（`Checked` 換成整格 `AccentCheck`）。⚠ 三態：`TriStateCheckbox_SetState` 對「部分角色啟用」做 `SetDesaturated(true)`、對「全部啟用」做 `SetVertexColor(1,1,1)` ＋ `SetDesaturated(false)` ⇒ 我們的滿色**剛好**被壓成灰／還原成職業色，正好是「狀態只換明暗」 | CheckBox overlay（邊走前景） | 未實測 |
+| **`MinimalCheckboxTemplate`**（插件列表的啟用勾選框）<br>`Blizzard_SharedXML/Shared/Button/CheckButtonTemplates.xml:66,74`<br>`AddonList.lua:317` | `GetNormalTexture` / `GetPushedTexture`（atlas `checkbox-minimal`） | **第六輪：`Checked` 一根手指都不碰**（`opts.keepCheck`）。三態：`TriStateCheckbox_SetState`（`AddonList.lua:164-179`，**local**、勾不到）對「部分角色啟用」做 `SetDesaturated(true)`、對「全部啟用」做 `SetVertexColor(1,1,1)` ＋ `SetDesaturated(false)` ⇒ **我們一染色那個區分就沒了**，而且分辨不出是哪一種（要讀 elementData／按鈕欄位）。它的 Checked 本來就是 `checkmark-minimal`（白色細勾），形狀已經是目標 | CheckBox overlay（置中 18 的小方框，邊走前景）。「載入過期插件」那顆同樣 `keepCheck`——同一個視窗兩種顏色的勾讀起來像 bug | **未實測（第六輪改動）** |
 | **`ThreeSliceButtonTemplate`**（`SharedButton*Template` 系）<br>`Blizzard_SharedXML/Shared/Button/ThreeSliceButtonTemplate.xml:4,62,83`<br>同名 `.lua` | `Left` / `Right` / **`Center`**（**不是** `Middle` ⇒ `Skin.Button` 直接套會留下中間那一片）。`UpdateButton` 每次狀態改變都重設三張的 **atlas** ⇒ 一定要 alpha | **引擎**：`InitButton` 的 `SetHighlightAtlas` **只在 OnLoad 跑一次** ⇒ 白 8% 撐得住；文字走 `SetNormalFontObject(GameFontHighlight)` | **`Skin.ThreeSliceButton`**（第五輪升格） | 未實測 |
 | **`MaximizeMinimizeButtonFrameTemplate`**<br>`Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:1032,1035,1047` | 無（`MaximizeButton`／`MinimizeButton` 兩顆，素材是 `RedButton-Expand`／`-Condense` 系，**紅色烤在圖裡**） | **引擎**：Highlight → 白 8% | `Skin.IconButton` 的 **`opts.glyph`**（第五輪升格）：三張紅底狀態圖整組中和，圖記換成我們自己畫的 ＋（`expand`，最大化）／−（`collapse`，最小化）。⚠ 圖形選 ＋／− 不選「往外的箭頭」：`CreateLine` 只畫得出直線，箭頭在 9 點見方的方塊裡會糊成一團；而且套組裡「展開／收合」本來就已經是 ＋／− 的語彙（子分類列那兩顆） | **未實測（第五輪改動）** |
 | **`ItemUpgradeFrame`**（隨需載入）<br>`Blizzard_ItemUpgradeUI/Mainline/Blizzard_ItemUpgradeUI.xml:144,148,181,188,232,268,301,315,358,388,422`<br>`.lua:112,164,647` | `TopBG`／`BottomBG`／`BottomBGShadow`（兩片石板底）、物品槽的 `ButtonFrame`、費用列的 `BGTex`、`$parentPlayerCurrenciesBorder` 的三張全域切片、三個預覽框的 `NineSlice` | **引擎就夠**：物品槽走的是**全域** `SetItemButtonQuality`／`SetItemButtonTexture`（跟商人視窗相反）⇒ 不必自己勾 | 內容底材破例走深色（全檔**零** `SetTextColor`、字本來就是白／灰／紅 ⇒ 沒有東西要接管）。**所有動畫特效留著**（`IdleGlow`／`Ring`／`BottomPanel_Flash`／`MicaFleckSheen`／`EmptySlotGlow`／`Glow*`／`Arrow`）。⚠ 它繼承 `PortraitFrameTemplate` **不是** `ButtonFrameTemplate` ⇒ 沒有 `Bg`／`TopTileStreaks`／`Inset`，不走 `Skin.PortraitChrome`（免得 debug 清單留兩筆假的） | 未實測 |
@@ -1070,7 +1201,7 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 視窗 | key | 現況 |
 |---|---|---|
 | 對話 `GossipFrame` | `gossip` | chrome／關閉鈕／Inset／再見鈕／捲軸。**羊皮紙一根手指都沒碰** —— 深色底由 `Skins/Quest.lua` 設的 `questTextContrast` CVar 讓暴雪自己換（設定頁可關） |
-| 角色面板 `CharacterFrame` | `character` | chrome／關閉鈕／Inset／底部分頁／側邊欄分頁（含選中態）／屬性欄小節標題／模型內框去雕花／**裝備格走 `ItemButton`（直角品質方框）**／武器欄兩側的括號雕花／聲望頁與兌換通貨頁（下拉、分類標題列、**子分類的 ＋／− 鈕**、聲望條、通貨列）／**三個彈出小視窗**（聲望詳情、通貨選項、轉移紀錄含列） |
+| 角色面板 `CharacterFrame` | `character` | chrome／關閉鈕／Inset／底部分頁／側邊欄分頁（含選中態）／屬性欄小節標題／模型內框去雕花／**裝備格走 `ItemButton`（直角品質方框）**／武器欄兩側的括號雕花／聲望頁（下拉、分類標題列、**子分類的 ＋／− 鈕**、聲望條）／兌換通貨頁**只做外框級**（Inset、捲軸、下拉、右上的紀錄鈕；列與轉移鈕一律不碰，見 ⑦ 的 C 級）／**三個彈出小視窗**（聲望詳情、通貨選項、轉移紀錄 —— 只有 chrome，列不碰） |
 | 成就 `AchievementFrame` | `achievement` | **整個視窗深色化**：chrome／**標題帽**／分類列（選中與滑過都自己畫）／成就列（完成＝明、未完成＝暗，文字顏色全接管，標題帶與圖示金框放 reapply）／總結頁／統計列／進度條（換材質）／搜尋框／分頁／**比較視窗補完** |
 | 任務 `QuestFrame` | `quest` | chrome／關閉鈕／Inset／六顆面板按鈕／四條捲軸／`QuestModelScene` 的兩個外框。**羊皮紙與四張 `Material*` 一根手指都沒碰** —— 深色底走 CVar `questTextContrast = 4`（這個檔案自己的事件框，預設開、設定頁可關、記住原值、關掉還原；對話視窗吃同一個值） |
 | 郵件 `MailFrame`＋`OpenMailFrame` | `mail` | **整頁重做**：兩個視窗的 chrome／兩顆分頁／收件匣七列（平面列＋隔行明暗、信件鈕走 `ItemButton`、翻頁鈕收緊）／**信紙深色化＋文字全接管**／附件格走 `ItemButton`／附件區兩條分隔線／收件人與主旨的矩形修正／金額欄／單選鈕（已勾＝職業色）／九顆按鈕／兩條捲軸／**伴隨元件** |
@@ -1171,6 +1302,12 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | `UnitPopup` 右鍵選單 | 地雷圖在 `.claude/notes/wow-121-unitpopup-menu.md`，兩條死路都實測過 |
 | 商城 / 商店 | forbidden 物件 |
 | 聊天輸入框 | `.claude/notes/wow-121-chat-reply-secret-taint.md`：開框的執行裡不能有插件 Lua |
+| **兌換通貨清單的「列」**（`TokenEntry` / `TokenHeader` / `TokenSubHeader` / `CurrencyTransferLogEntry`）與 `CurrencyTransferToggleButton` | 那條列的更新路徑跟**戰隊通貨轉移**（`RequestCurrencyFromAccountCharacter`）那個受保護請求是**同一條執行流** —— 連「把底帶淡化」都可能讓轉移在玩家真的要用的時候被封鎖，而且錯誤不會指向這裡。收益是幾條列上的圖示有沒有 1px 邊，代價是一個只在特定時刻才發作的功能性故障。**外框級的東西（Inset／捲軸／下拉／右上的紀錄鈕／兩個彈出視窗的 chrome 與關閉鈕）不在那條流上，可以做。** 聲望頁的列是一般清單列，維持現狀 |
+| 公會名單的**尺寸與錨點** | 列在同一個 pass 裡讀回被寫過的寬度 ⇒ 整個 session 帶 taint ⇒ 改註記／改階級被 FORBIDDEN |
+| secure 的欄位表頭容器（`ColumnDisplay` 類） | 連 `HookScript` 都不行：它的 `OnShow` 會在 secure 的刷新流程裡觸發 |
+| 世界地圖／任務日誌（`QuestMapFrame`）的腳本與池化任務列 | 那是通往任務追蹤的 taint 路徑 |
+| `GroupLootContainer`、`SocialUIFrame` 的 sizer、`PVEFrame` 的**位置** | 一沾 UIPanel 的管理路徑，`ToggleUIPanel` 就死 |
+| 預組隊伍的 per-result／per-member **資料** | 12.x 起是秘密值，讀就爆（我們只碰框，不碰資料） |
 
 ---
 

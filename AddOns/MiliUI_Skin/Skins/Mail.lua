@@ -486,11 +486,19 @@ local function SkinSendMail()
     SkinMoneyInput(_G.SendMailMoney, "SendMailMoney", "SendMailMoney")
 
     -- 送錢／貨到付款是 UIRadioButtonTemplate：只有 Normal / Highlight / Checked 三張。
-    -- 圓鈕換成方框、已勾換成整格職業色都是刻意的（見 Skin.CheckBox 那一段）。
+    -- 圓鈕換成方框是刻意的（見 Skin.CheckBox 那一段）。
+    -- ⚠ `boxSize = 16`：這個模板的按鈕本身就是 16x16
+    --   （CheckButtonTemplates.xml:4），預設的 18 會比按鈕還大一圈 ——
+    --   方框超出點擊區看起來就像對不準。
+    -- ⚠ 已選的長相：`UIRadioButtonTemplate` 的 Checked 是 `UI-RadioButton` 的
+    --   第二格（一顆置中的小圓點，整顆 16x16 的 TexCoord 切片）。
+    --   第六輪起它跟勾選框走同一支（`Engine.CheckedGlyph`：去飽和 ＋ 染職業色）
+    --   ⇒ 結果正好是「深色小方框裡一個置中的職業色圓點」，
+    --   跟「單選不該是打勾」那條期待對得上，而且一行特例都不用寫。
     for _, name in ipairs({ "SendMailSendMoneyButton", "SendMailCODButton" }) do
         local btn = _G[name]
         if btn then
-            Skin.CheckBox(btn, name)
+            Skin.CheckBox(btn, name, { boxSize = 16 })
         else
             E.Missing(name)
         end

@@ -88,17 +88,16 @@
 -- | TokenFrame.ScrollBar | 同聲望頁 |
 -- | TokenFrame.CurrencyTransferLogToggleButton 的 Normal/Pushed 貼圖 | SetVertexColor |
 -- | 同上的 Highlight 貼圖 | SetColorTexture |
--- | 分類列（池化） | 同聲望頁的分類列 |
--- | 子分類列（池化）的 ToggleCollapseButton | 同聲望頁 |
--- | 通貨列（池化）的 Content.CurrencyIcon | SetTexCoord |
 -- | TokenFramePopup 的 Border 九片 ＋ Bg | SetAlpha(0) |
 -- | TokenFramePopup 的 Title、兩顆勾選框的 Text | SetTextColor |
 -- | 同兩顆勾選框 | 同 ReputationDetailFrame 的勾選框 |
--- | TokenFramePopup 的 CurrencyTransferToggleButton / CloseButton | 同 chrome |
+-- | TokenFramePopup 的 CloseButton | 同 chrome |
 -- | CurrencyTransferLog 的整組 chrome ＋ Background（transfer-log-background） | SetAlpha(0) / SetTextColor / SetColorTexture |
--- | 轉移紀錄列（池化）的 CurrencyIcon | SetTexCoord |
--- | 同上的 Arrow | SetVertexColor |
--- | 同上的 SourceName / DestinationName | SetTextColor（reapply） |
+--
+-- ⚠ **這一頁的「列」與轉移相關的按鈕一條都不碰**（第六輪改的，理由寫在
+--   `HookTokenRows` 上面那一段）：分類列、子分類列、通貨列、轉移紀錄列，
+--   以及 `TokenFramePopup.CurrencyTransferToggleButton`。
+--   它們跟戰隊通貨轉移那個受保護請求走的是同一條執行流。
 --
 -- 以上各框：`CreateFrame` 掛自己的 overlay（SetAllPoints／錨在目標上，不吃滑鼠）。
 --
@@ -106,9 +105,13 @@
 --   * `hooksecurefunc(CharacterFrame, "SetTitleColor", …)` —— `UpdateDisplay` 每次
 --     都會重設標題色（CharacterFrame.lua:119），不掛勾的話白字撐不過一次切分頁。
 --   * `hooksecurefunc("PaperDollFrame_UpdateSidebarTabs", …)` —— 側邊欄分頁的選中底色。
---   * `Engine.HookRows` 七支 mixin 後置勾（聲望分類列／聲望列／**聲望子分類列**／
---     通貨分類列／通貨列／**通貨子分類列**／**轉移紀錄列**）
---     ＋ 一支 `ListHeaderThreeSliceMixin:CheckHighlightTitle`（只重申文字顏色）。
+--   * `Engine.HookRows` **三**支 mixin 後置勾，全部在**聲望頁**：
+--     `ReputationHeaderMixin:Initialize`／`ReputationEntryMixin:Initialize`／
+--     `ReputationSubHeaderMixin:Initialize`。
+--     ⚠ 第六輪**移除**了五支（全部是兌換通貨那一頁）：`TokenHeaderMixin:Initialize`、
+--       `TokenSubHeaderMixin:Initialize`、`TokenEntryMixin:Initialize`、
+--       `ListHeaderThreeSliceMixin:CheckHighlightTitle`、
+--       `CurrencyTransferLogEntryMixin:Initialize`。理由見那一段。
 --   * Engine 的 `SetItemButtonQuality` / `SetItemButtonTexture` 兩個全域後置勾
 --     （裝備格的品質方框與裁邊，裝在 Core/Engine.lua，第一行查弱鍵表）。
 --   * Engine 的 `PanelTemplates_SelectTab / DeselectTab / SetDisabledTabState`
@@ -582,86 +585,30 @@ end
 ------------------------------------------------------------
 -- 兌換通貨頁（Blizzard_TokenUI，隨需載入）
 ------------------------------------------------------------
-local tokenHeaderSweep, tokenEntrySweep
-
+--
+-- ⚠⚠ **第六輪把兌換通貨頁的「列級」東西全部拿掉了。**
+--
+--   這一頁（`TokenFrame`）跟別的清單不一樣：那條列的更新路徑，跟**戰隊通貨轉移**
+--   （`RequestCurrencyFromAccountCharacter`）這個受保護請求走的是同一條執行流。
+--   也就是說我們掛在列上的任何東西 —— 連「把底帶淡化」這種純視覺的動作 ——
+--   都可能讓那個轉移在玩家真的要用的時候被封鎖，而且錯誤不會指向這裡。
+--   代價與收益完全不對等：收益是幾條列上的圖示有沒有 1px 邊，
+--   代價是一個「只在玩家要轉通貨的那一刻才發作」的功能性故障。
+--
+--   ⇒ 拿掉的是：`TokenHeaderMixin:Initialize`、`TokenSubHeaderMixin:Initialize`、
+--     `TokenEntryMixin:Initialize`、`ListHeaderThreeSliceMixin:CheckHighlightTitle`
+--     （這一支只為通貨掛的，聲望頁走自己的 `ReputationHeaderMixin`，不受影響）、
+--     以及 `CurrencyTransferLogEntryMixin:Initialize`。
+--   ⇒ 留下的是**外框級**的東西：Inset、捲軸、篩選下拉、右上的紀錄鈕，
+--     以及兩個彈出視窗的 chrome 與關閉鈕。那些都不在那條執行流上。
+--   ⇒ **聲望頁的列維持現狀**：它沒有轉移動作，`ReputationEntryMixin` 那一條
+--     是一般的清單列。
+--
+--   這一頁因此看起來會是「外框有皮、列是暴雪原樣」。那是刻意的。
 local function HookTokenRows()
-    tokenHeaderSweep = E.HookRows{
-        key    = "TokenHeader",
-        mixin  = _G.TokenHeaderMixin,
-        method = "Initialize",
-        match  = IsThreeSliceHeader,
-        apply  = ApplyListHeader("TokenHeader"),
-    }
-
-    -- ⚠ 通貨分類列的標題顏色跟聲望的不一樣：它走共用層的
-    --   `ListHeaderVisualMixin:CheckHighlightTitle`（ListTemplates.lua:48），
-    --   每次滑鼠進出都 `SetTextColor(self:GetTitleColor(isMouseOver))`，而
-    --   `TokenHeaderMixin:OnLoad_TokenHeaderTemplate`（Blizzard_TokenUI.lua:12）
-    --   把兩態都設成 NORMAL_FONT_COLOR（暗金）。要它變白就只能在後置勾裡重申。
-    --
-    -- ⚠ hook 的對象是 **ListHeaderThreeSliceMixin**，不是 ListHeaderVisualMixin：
-    --   `ListHeaderThreeSliceMixin = CreateFromMixins(ListHeaderVisualMixin)`
-    --   （ListTemplates.lua:150）在**檔案載入時**就把函式拷貝過去了，之後再 hook
-    --   來源那張表已經追不上。這是陷阱 4 的同一條規則往上一層：
-    --   mixin 的拷貝發生在「被拷貝的那一刻」，不是呼叫的那一刻。
-    --
-    -- requireKnown：這支是共用模板，全遊戲的三片式分類列都會進來。
-    -- 只對我們 apply 過的列做事，其餘第一行就返回。
-    E.HookRows{
-        key          = "TokenHeader.CheckHighlightTitle",
-        mixin        = _G.ListHeaderThreeSliceMixin,
-        method       = "CheckHighlightTitle",
-        requireKnown = true,
-        reapply      = function(row)
-            local name
-            if pcall(function() name = row.Name end) and name then
-                E.TextColor(name, T.text, "TokenHeader.Name")
-            end
-        end,
-    }
-
-    -- 轉移紀錄的列（池化）
-    E.HookRows{
-        key     = "CurrencyTransferLogEntry",
-        mixin   = _G.CurrencyTransferLogEntryMixin,
-        method  = "Initialize",   -- Blizzard_CurrencyTransfer.lua:742
-        apply   = ApplyTransferLogEntry,
-        reapply = ReapplyTransferLogEntry,
-    }
-
-    -- 子分類列的 ＋／− 鈕（跟聲望頁同一套，見 SkinCollapseButton）
-    E.HookRows{
-        key    = "TokenSubHeader",
-        mixin  = _G.TokenSubHeaderMixin,
-        method = "Initialize",
-        apply  = function(row) SkinCollapseButton(row, "TokenSubHeader") end,
-        reapply = function(row) RefreshCollapseButton(row, "TokenSubHeader") end,
-    }
-
-    tokenEntrySweep = E.HookRows{
-        key    = "TokenEntry",
-        mixin  = _G.TokenEntryMixin,
-        method = "Initialize",
-        match  = function(row)
-            return type(row) == "table" and type(row.Content) == "table"
-                and row.Content.CurrencyIcon ~= nil
-        end,
-        apply  = function(row)
-            local icon
-            if pcall(function() icon = row.Content.CurrencyIcon end) and icon then
-                Skin.Icon(icon, "TokenEntry.CurrencyIcon")
-            end
-        end,
-        -- ⚠ `TokenEntryMixin:Initialize`（Blizzard_TokenUI.lua:52）每次都
-        --   `CurrencyIcon:SetTexture(elementData.iconFileID)`，而 SetTexture 會把
-        --   texCoord 打回 0,1,0,1 ⇒ 裁邊每一次都要重下。
-        reapply = function(row)
-            local icon
-            if pcall(function() icon = row.Content.CurrencyIcon end) and icon then
-                E.CropIcon(icon, "TokenEntry.CurrencyIcon")
-            end
-        end,
-    }
+    -- 目前一支都沒有，而且**刻意**沒有（理由見上面那段）。
+    -- 留著這支空函式是為了讓 `E.Register` 的 part 形狀不變，也為了下次有人想
+    -- 「順手把通貨列也上皮」的時候先讀到上面那段字。
 end
 
 ------------------------------------------------------------
@@ -717,10 +664,12 @@ local function ApplyTokenPopup()
         end
     end
 
-    local toggle
-    if pcall(function() toggle = p.CurrencyTransferToggleButton end) and toggle then
-        Skin.Button(toggle, "TokenFramePopup.CurrencyTransferToggleButton")
-    end
+    -- ⚠ `CurrencyTransferToggleButton`（「轉移通貨」那顆）**第六輪起不碰**：
+    --   它是通往 `RequestCurrencyFromAccountCharacter` 那條受保護請求的入口，
+    --   跟通貨列同一條執行流（見上面 `HookTokenRows` 那段）。
+    --   `Skin.Button` 會中和它的三片、換字型物件、還掛兩個 OnEnter/OnLeave ——
+    --   收益是一顆按鈕的長相，代價是踩在功能性故障的正上方。
+    --   結果是這個小視窗裡留著一顆原生按鈕，刻意的。
 
     -- ⚠ 這顆關閉鈕的 parentKey 在 XML 裡寫成 `$parent.CloseButton`
     --   （Blizzard_TokenUI.xml:231）—— 那是一個**字面上的 key**，不是
@@ -768,33 +717,11 @@ local function ApplyCurrencyTransferLog()
     end
 end
 
--- 紀錄列（池化）。`SourceName` / `DestinationName` 是 `GameFontNormalLeft`（暗金），
--- 在深底上偏灰 ⇒ 改白。數量（`CurrencyQuantity`）是 `GameFontHighlightRight`（白），
--- 不動。圖示走 Icon（裁邊＋1px 邊），`Arrow` 染 `textDim`。
-local function ApplyTransferLogEntry(row)
-    local icon
-    if pcall(function() icon = row.CurrencyIcon end) and icon then
-        Skin.Icon(icon, "CurrencyTransferLogEntry.CurrencyIcon")
-    end
-    local arrow
-    if pcall(function() arrow = row.Arrow end) and arrow then
-        E.VertexColor(arrow, T.textDim, "CurrencyTransferLogEntry.Arrow")
-    end
-end
-
-local function ReapplyTransferLogEntry(row)
-    for _, k in ipairs({ "SourceName", "DestinationName" }) do
-        local fs
-        if pcall(function() fs = row[k] end) and fs then
-            E.TextColor(fs, T.text, "CurrencyTransferLogEntry." .. k)
-        end
-    end
-    -- `CurrencyIcon` 每次 Initialize 都被 SetTexture ⇒ 裁邊要重下
-    local icon
-    if pcall(function() icon = row.CurrencyIcon end) and icon then
-        E.CropIcon(icon, "CurrencyTransferLogEntry.CurrencyIcon")
-    end
-end
+-- ⚠ 轉移紀錄的**列**第六輪拿掉了（`CurrencyTransferLogEntryMixin:Initialize`
+--   的後置勾、圖示裁邊、`SourceName`／`DestinationName` 改白、`Arrow` 染色）。
+--   那個視窗整個存在的理由就是通貨轉移，它的列跟轉移請求是同一條執行流；
+--   紀錄列上那幾個字是暗金色不好看，但「不好看」跟「轉移被封鎖」不是同一個量級。
+--   視窗本身的 chrome（外框、Inset、關閉鈕、捲軸、空清單提示）留著。
 
 local function ApplyToken()
     local f = _G.TokenFrame
@@ -827,10 +754,7 @@ local function ApplyToken()
         E.Missing("TokenFrame.CurrencyTransferLogToggleButton")
     end
 
-    local box
-    if pcall(function() box = f.ScrollBox end) and box then
-        E.SweepRows(box, "TokenFrame.ScrollBox", tokenHeaderSweep, tokenEntrySweep)
-    end
+    -- ⚠ 這裡**沒有** `E.SweepRows` —— 通貨列一條都不掃（見 `HookTokenRows`）。
 end
 
 ------------------------------------------------------------

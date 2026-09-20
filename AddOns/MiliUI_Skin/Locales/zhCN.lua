@@ -68,3 +68,5 @@ L["Skipped because the object is forbidden:"] = "因为对象被禁止访问而�
 L["No errors recorded"] = "没有记录到错误"
 L["Implicitly protected (skinned anyway):"] = "隐式保护的容器（照样换肤）:"
 L["Deferred until out of combat:"] = "脱战后才会处理:"
+L["Backdrop drawn as a child frame:"] = "背景改用子框绘制（没走贴图那条路）:"
+L["Region backdrops:"] = "贴图背景:"

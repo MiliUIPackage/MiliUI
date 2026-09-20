@@ -30,6 +30,11 @@ local function BuildDefaults()
         questDarkText = true,
         -- 記住玩家原本的 `questTextContrast`。`false` ＝ 還沒記過（只記第一次）。
         questContrastSaved = false,
+        -- 背景走「直接建在暴雪框上的貼圖」那條路（第六輪）。
+        -- ⚠ 這是一個**安全閥**，不是玩家設定，所以不放進設定視窗：
+        --   萬一某個視窗的底跑掉、或是位置不對，把它設成 false 再 /reload，
+        --   所有面板／內嵌框／進度條的底就整批退回第五輪的子框 overlay。
+        regionBackdrop = true,
         -- 每個視窗一個開關。key 與 Engine.Register 的 key 一致。
         windows = {
             gossip      = true,

@@ -56,6 +56,20 @@ local State = setmetatable({}, { __mode = "k" })
 Engine.State = State
 
 ------------------------------------------------------------
+-- 「這張貼圖是我們自己畫的」
+--
+-- `Engine.RegionBackdrop` 把底與邊建成**暴雪框自己的 region**，所以
+-- `GetRegions()` 那一類的掃描（`NeutralizeRegions` / `TintRegions`）會掃到它們。
+-- 同一個框被掃第二次（配方重跑、隨需載入的視窗被套兩次）就會把我們自己的底
+-- 中和掉 —— 症狀是「第一次開有皮、第二次開沒有」，而且完全不報錯。
+--
+-- 所以每一張我們建的 region 都記在這裡，掃描時按物件識別跳過。
+-- 弱鍵：暴雪回收了那個框，這裡跟著消失。
+------------------------------------------------------------
+local ownRegions = setmetatable({}, { __mode = "k" })
+Engine.ownRegions = ownRegions
+
+------------------------------------------------------------
 -- debug 紀錄
 --
 -- 配方裡找不到的區域**只記錄不報錯**：暴雪改版會改名，一個名字對不上不應該讓
@@ -71,7 +85,9 @@ Engine.State = State
 ------------------------------------------------------------
 Engine.log = {
     neutralized = 0,      -- 成功中和幾個區域（**只算第一次**，見 Engine.Neutralize）
-    overlays    = 0,      -- 建了幾個 overlay
+    overlays    = 0,      -- 建了幾個 overlay（子框那條路）
+    regions     = 0,      -- 建了幾個 region 背景（直接建在暴雪框上那條路）
+    frameBackdrop = {},   -- 想走 region、但退回子框的（參考資料，不算問題）
     missing     = {},     -- 配方指名、但物件不存在的區域（執行期發生的那些）
     protected   = {},     -- **顯式**保護、刻意跳過的框
     implicit    = {},     -- **隱式**保護（有 secure 子孫／錨點）、照樣上皮的框
@@ -258,7 +274,8 @@ function Engine.NeutralizeRegions(owner, prefix, exclude)
     end
 
     for i, region in ipairs(regions) do
-        if type(region) == "table" and not (keep and keep[region])
+        -- ⚠ 跳過我們自己畫的底與邊（`Engine.RegionBackdrop` 建的就是這個框的 region）
+        if type(region) == "table" and not (keep and keep[region]) and not ownRegions[region]
             and type(region.GetObjectType) == "function" then
             local ok2, kind = pcall(region.GetObjectType, region)
             if ok2 and kind == "Texture" then
@@ -335,7 +352,9 @@ function Engine.TintRegions(owner, color, prefix)
     local ok, regions = pcall(function() return { owner:GetRegions() } end)
     if not ok then return end
     for i, region in ipairs(regions) do
-        if type(region) == "table" and type(region.GetObjectType) == "function" then
+        -- ⚠ 同 NeutralizeRegions：我們自己畫的底與邊不進來（染了會把皮弄糊）
+        if type(region) == "table" and not ownRegions[region]
+            and type(region.GetObjectType) == "function" then
             local ok2, kind = pcall(region.GetObjectType, region)
             if ok2 and kind == "Texture" then
                 Engine.VertexColor(region, color, (prefix or "?") .. ".region" .. i)
@@ -484,6 +503,54 @@ function Engine.CheckedTexture(cb, color, disabledColor, label)
             -- 否則填色會被壓成半透明（同 Engine.HighlightTexture 的理由）。
             pcall(tex.SetAlpha, tex, 1)
             pcall(tex.SetColorTexture, tex, c[1], c[2], c[3], c[4] or 1)
+        end
+    end
+
+    Paint("GetCheckedTexture", color)
+    Paint("GetDisabledCheckedTexture", disabledColor or color)
+end
+
+------------------------------------------------------------
+-- 「已勾」＝**保留勾的形狀**、只把它染成職業色（第六輪換掉上面那一支）
+--
+-- 上面的 `Engine.CheckedTexture` 把 Checked 貼圖整張塗成一塊純色
+-- （`SetColorTexture`）。它的矩形等於按鈕矩形（setAllPoints），所以實機上看到的
+-- 是**一整格職業色的大方塊**（使用者的原話：「方塊好醜」，實機擷圖 33）。
+--
+-- 套組自己的設定視窗（共用層 `Widgets.lua` 的 `W.CreateCheckButton`）是另一套：
+-- 深色小方框 ＋ 一個職業色的**勾**，而且勾刻意比框大一圈往外溢。
+-- 暴雪視窗這邊對齊它的方法是：
+--   * 方框由 overlay 畫成固定邊長、置中（`T.checkBoxSize`，見 `Skin.CheckBox`）；
+--   * 勾**不換形狀**，只 `SetDesaturated(true)` ＋ `SetVertexColor(職業色)`。
+--     Checked 貼圖仍然是整顆按鈕大，比我們 18 的方框大 ⇒ 往外溢的效果自動成立。
+--
+-- ⚠ **為什麼不 `SetAtlas("checkmark-minimal")`**（那是被核准過的一條窄路）：
+--   那張 atlas 不是正方形（共用層自己就要 `w = h * (width/height)` 去換算），
+--   而 Checked 貼圖的矩形是 setAllPoints 的**正方形**按鈕 —— 換上去會被拉扁。
+--   要修正比例就得對暴雪區域 `SetSize`／`SetPoint`，契約禁止。
+--   所以維持暴雪自己的勾（`UI-CheckBox-Check` 本來就是正方形素材），只換顏色。
+--
+-- ⚠ 去飽和是**必要的**，不是順手：`SetVertexColor` 是乘法，
+--   `UI-CheckBox-Check` 本身是暗金色的，直接乘職業色只會變成暗金偏色
+--   （同 `Engine.Desaturate` 那一段的紅金 ＋／− 鈕）。
+-- ⚠ 一律連 `SetAlpha(1)` 一起下：模板常常帶 `alphaMode="ADD"` 與 alpha < 1。
+-- ⚠ 跟 `Engine.CheckedTexture` 一樣，這裡**沒有** `SetChecked`、沒有腳本 ——
+--   勾沒勾仍然完全是 C 端說了算，我們只換那張圖長什麼樣。
+------------------------------------------------------------
+function Engine.CheckedGlyph(cb, color, disabledColor, label)
+    if not Usable(cb, label) then return end
+
+    local function Paint(getter, c)
+        if type(cb[getter]) ~= "function" or not c then return end
+        local ok, tex = pcall(cb[getter], cb)
+        if not ok or not tex then return end
+        pcall(tex.SetAlpha, tex, 1)
+        -- 先壓成灰階再乘，不然乘不出職業色（見上）
+        if type(tex.SetDesaturated) == "function" then
+            pcall(tex.SetDesaturated, tex, true)
+        end
+        if type(tex.SetVertexColor) == "function" then
+            pcall(tex.SetVertexColor, tex, c[1], c[2], c[3], c[4] or 1)
         end
     end
 
@@ -795,6 +862,26 @@ function Engine.Overlay(target, opts)
         end
     end
 
+    -- 強調線：分頁「選中」用的那一條（`opts.accentSide` ＝ "TOP" / "BOTTOM"）。
+    --
+    -- 建立時就定好位置與粗細，執行期只換 alpha 與顏色（同底色與邊框的作法）——
+    -- 沒有腳本、沒有 OnUpdate，陷阱 1 的規則照舊。
+    -- 畫在 `ARTWORK`：要蓋在底（BACKGROUND）與四條邊（BORDER）之上，
+    -- 不然接縫那一顆的左邊線會把線頭切掉。
+    if opts.accentSide then
+        local bar = ov:CreateTexture(nil, "ARTWORK")
+        bar:SetTexture(WHITE)
+        local th = P.Scale(opts.accentSize or 2)
+        if opts.accentSide == "TOP" then
+            bar:SetPoint("TOPLEFT");    bar:SetPoint("TOPRIGHT")
+        else
+            bar:SetPoint("BOTTOMLEFT"); bar:SetPoint("BOTTOMRIGHT")
+        end
+        bar:SetHeight(th)
+        bar:SetAlpha(0)
+        ov.accentBar = bar
+    end
+
     -- 靜態圖記（關閉鈕的 ×、最大化／最小化的 ＋／−）。建立時定好，執行期不動。
     if opts.glyph then
         local g = opts.glyph
@@ -856,6 +943,130 @@ function Engine.Overlay(target, opts)
     State[target] = st
     Engine.log.overlays = Engine.log.overlays + 1
     return ov
+end
+
+------------------------------------------------------------
+-- Engine.RegionBackdrop(target, opts) —— 底與邊**直接建在目標框自己身上**
+--
+-- 第六輪新增的第二條路。跟 `Engine.Overlay` 的差別只有一件事：不建子框，
+-- 底與四條邊是 `target:CreateTexture(...)` 出來的 region。
+--
+-- 為什麼這條路更穩（`.claude/notes/wow-blizzard-window-skin-strategies.md` 第一節）：
+--   * `CreateTexture` 不寫任何 Lua 欄位、不改 secure 屬性 ⇒ 不 taint；
+--     **隱式保護的容器也能建**，不必特判「這個框身上掛了 secure 子孫嗎」。
+--   * region 在 `BACKGROUND` 的最底 sublevel ⇒ 永遠在該框自己的內容之下，
+--     **沒有 frame level／strata 問題**：`useParentLevel` 的 Inset、DIALOG strata
+--     的彈窗、`toplevel` 提層的視窗都不用再各自想一次；
+--     顯示／隱藏自動跟著目標走，連 parent 都不必挑。
+--
+-- ⚠⚠ **自動排版的框不准走這條路。** `LayoutFrame` / `ResizeLayoutFrame` 會把
+--   region 算進版面（`GetLayoutChildren` 之外還有 region 的尺寸），多一張我們的
+--   底圖就可能改變它算出來的大小。`IsLayoutHost` 為真一律退回子框那條路。
+--
+-- ⚠ 回傳的表**跟 overlay 同形狀**（`.bg` / `.edges` / `.skipEdges`），
+--   所以 `Engine.Paint` / `Fill` / `Border` / `PassBorderColor` 一個字都不用改。
+--   它不是 Frame，**沒有** `SetPoint` / `Hide` / `GetFrameLevel` ——
+--   需要那些的原語（按鈕的滑過、分頁、物品格的前景邊）維持走 `Engine.Overlay`。
+--
+-- ⚠ 失敗一律**退回 `Engine.Overlay`**：目標不是 Frame、是 layout host、
+--   `CreateTexture` 被擋（forbidden／保護）、或玩家把 `db.regionBackdrop` 關掉。
+--   也就是說這一條在最壞的情況下等於第五輪的行為，不會少一塊皮。
+--
+-- opts（跟 `Engine.Overlay` 同名同義）：
+--   key / inset / points / noBorder / borderSize / skipEdges / slot
+--   layer, sublevel          底的繪製層，預設 BACKGROUND / -8
+--   edgeLayer, edgeSublevel  邊的繪製層，預設 BACKGROUND / -7
+------------------------------------------------------------
+function Engine.RegionBackdrop(target, opts)
+    opts = opts or {}
+    local label = opts.key
+
+    if not Usable(target, label) then return nil end
+
+    local slot = opts.slot or "main"
+
+    local st = State[target]
+    if st and st.overlays and st.overlays[slot] then return st.overlays[slot] end
+
+    -- 三道閘，任何一道不過就走子框那條路（記一筆，`/mskin debug` 看得到是誰退回去的）
+    local function Fallback(why)
+        Note(Bucket("frameBackdrop"), (label or "?") .. " (" .. why .. ")")
+        return Engine.Overlay(target, opts)
+    end
+
+    if ns.db and ns.db.regionBackdrop == false then return Fallback("off") end
+    if type(target.CreateTexture) ~= "function" then return Fallback("not a frame") end
+    if IsLayoutHost(target) then return Fallback("layout") end
+
+    local layer      = opts.layer or "BACKGROUND"
+    local sublevel   = opts.sublevel or -8
+    local edgeLayer  = opts.edgeLayer or "BACKGROUND"
+    local edgeSub    = opts.edgeSublevel or -7
+
+    local ok, bg = pcall(target.CreateTexture, target, nil, layer, nil, sublevel)
+    if not ok or not bg then return Fallback("CreateTexture") end
+    ownRegions[bg] = true
+
+    local placed = pcall(function()
+        bg:SetTexture(WHITE)
+        if opts.points then
+            for _, pt in ipairs(opts.points) do
+                bg:SetPoint(pt[1], pt.rel or target, pt[2] or pt[1],
+                    P.Scale(pt[3] or 0), P.Scale(pt[4] or 0))
+            end
+        elseif opts.inset then
+            local n = P.Scale(opts.inset)
+            bg:SetPoint("TOPLEFT", target, "TOPLEFT", n, -n)
+            bg:SetPoint("BOTTOMRIGHT", target, "BOTTOMRIGHT", -n, n)
+        else
+            bg:SetAllPoints(target)
+        end
+        if opts.width then bg:SetWidth(P.Scale(opts.width)) end
+        if opts.height then bg:SetHeight(P.Scale(opts.height)) end
+    end)
+    if not placed then
+        pcall(bg.SetAlpha, bg, 0)     -- 建都建了，至少讓它看不見
+        return Fallback("SetPoint")
+    end
+
+    local rec = { bg = bg, isRegion = true }
+
+    if not opts.noBorder then
+        local w = opts.borderSize and P.Scale(opts.borderSize) or T.BorderSize()
+        local e = {}
+        local madeAll = true
+        for i = 1, 4 do
+            local ok2, tex = pcall(target.CreateTexture, target, nil, edgeLayer, nil, edgeSub)
+            if not ok2 or not tex then madeAll = false break end
+            ownRegions[tex] = true
+            tex:SetTexture(WHITE)
+            e[i] = tex
+        end
+        if madeAll then
+            -- 四條邊錨在底那張貼圖上（region 可以互相錨定），矩形與 overlay 版一致
+            e[1]:SetPoint("TOPLEFT", bg, "TOPLEFT");        e[1]:SetPoint("TOPRIGHT", bg, "TOPRIGHT");        e[1]:SetHeight(w)
+            e[2]:SetPoint("BOTTOMLEFT", bg, "BOTTOMLEFT");  e[2]:SetPoint("BOTTOMRIGHT", bg, "BOTTOMRIGHT");  e[2]:SetHeight(w)
+            e[3]:SetPoint("TOPLEFT", bg, "TOPLEFT", 0, -w); e[3]:SetPoint("BOTTOMLEFT", bg, "BOTTOMLEFT", 0, w); e[3]:SetWidth(w)
+            e[4]:SetPoint("TOPRIGHT", bg, "TOPRIGHT", 0, -w); e[4]:SetPoint("BOTTOMRIGHT", bg, "BOTTOMRIGHT", 0, w); e[4]:SetWidth(w)
+            rec.edges = e
+
+            if opts.skipEdges then
+                local skip = {}
+                for _, side in ipairs(opts.skipEdges) do
+                    local idx = EDGE_INDEX[side]
+                    if idx then skip[idx] = true end
+                end
+                rec.skipEdges = skip
+            end
+        end
+    end
+
+    st = st or {}
+    st.overlays = st.overlays or {}
+    st.overlays[slot] = rec
+    State[target] = st
+    Engine.log.regions = Engine.log.regions + 1
+    return rec
 end
 
 ------------------------------------------------------------
@@ -922,6 +1133,59 @@ end
 function Engine.Fill(ov, fill)
     if not ov then return end
     ov.bg:SetColorTexture(fill[1], fill[2], fill[3], fill[4] or 1)
+end
+
+-- 強調線（`Engine.Overlay` 的 `accentSide` 建出來的那一條）。
+-- `color` 傳 `false` 或 nil ＝這次不要線。overlay 沒有那條線就什麼都不做。
+function Engine.AccentLine(ov, color)
+    local bar = ov and ov.accentBar
+    if not bar then return end
+    if not color then
+        bar:SetAlpha(0)
+        return
+    end
+    bar:SetAlpha(1)
+    bar:SetColorTexture(color[1], color[2], color[3], color[4] or 1)
+end
+
+------------------------------------------------------------
+-- 「同一個字型、只換顏色」的字型物件
+--
+-- ⚠ 白名單本來寫的是「`SetNormalFontObject` 只准傳**暴雪自己的**字型物件」，
+--   理由是「字型檔與字級跟原本同一家族，不會有換字型物件導致 FontString
+--   重新配置的度量差」。這一支守住的是**同一條**理由，不是繞過它：
+--   `SetFontObject(base)` 先把暴雪那一份的字型檔、字級、輪廓、陰影整份繼承過來，
+--   然後**只**呼叫 `SetTextColor` —— 度量一個位元都沒動。
+--
+-- 為什麼需要：第六輪的分頁未選中態要「字降到次要色」。分頁的文字顏色跟著
+-- 狀態字型物件走（註 ⓔ），`SetTextColor` 撐不過一次滑過 —— 唯一撐得住的路
+-- 就是給它一個顏色不一樣的字型物件。
+--
+-- ⚠ `CreateFont` 需要一個名字（它會寫進 `_G`），所以這裡用自己的前綴，
+--   而且**只建一次**（建第二次會拿到同一個物件並把它改掉）。
+-- ⚠ 建不出來（介面限制、名字被佔用）就回 `base` —— 退回「白字」，也就是
+--   第五輪的行為，不會變成沒有字型的 FontString。
+------------------------------------------------------------
+local dimFonts = {}
+
+function Engine.DimFont(base, name, color)
+    if not base or not name then return base end
+    local cached = dimFonts[name]
+    if cached then return cached end
+
+    local ok, font = pcall(CreateFont, name)
+    if not ok or not font then
+        dimFonts[name] = base
+        return base
+    end
+    if not pcall(font.SetFontObject, font, base) then
+        dimFonts[name] = base
+        return base
+    end
+    color = color or T.textDim
+    pcall(font.SetTextColor, font, color[1], color[2], color[3], color[4] or 1)
+    dimFonts[name] = font
+    return font
 end
 
 ------------------------------------------------------------
@@ -1013,7 +1277,7 @@ local function PaintHover(btn)
     local rec = hoverState[btn]
     if not rec then return end
     if rec.hover then
-        Engine.Fill(rec.fillOv, T.fillHover)
+        Engine.Fill(rec.fillOv, rec.hoverFill or T.fillHover)
         rec.accent = rec.accent or {}
         rec.accent[1], rec.accent[2], rec.accent[3], rec.accent[4] = T.Accent(1)
         Engine.Border(rec.borderOv, rec.accent)
@@ -1024,17 +1288,21 @@ local function PaintHover(btn)
 end
 
 -- fillOv 是要換底色的那一層；borderOv 不給就跟 fillOv 同一層。
-function Engine.TrackButtonHover(btn, fillOv, idleFill, borderOv)
+-- `hoverFill` 不給就是 `T.fillHover`；只有「閒置底色本來就比 fillHover 亮」的
+-- 元件需要自己給（捲軸拇指閒置是 0.35，套 0.23 會變成滑過反而變暗）。
+function Engine.TrackButtonHover(btn, fillOv, idleFill, borderOv, hoverFill)
     if not btn or not fillOv then return end
     local rec = hoverState[btn]
     if rec then
         rec.fillOv, rec.borderOv, rec.idle = fillOv, borderOv or fillOv, idleFill or rec.idle
+        rec.hoverFill = hoverFill or rec.hoverFill
         PaintHover(btn)
         return
     end
     hoverState[btn] = {
         fillOv = fillOv, borderOv = borderOv or fillOv,
         idle = idleFill or T.fill, hover = false,
+        hoverFill = hoverFill,
     }
     if type(btn.HookScript) ~= "function" then return end
     -- ⚠ HookScript 不是 SetScript：模板自己的 OnEnter 多半在開提示
@@ -1102,6 +1370,23 @@ function Engine.CenterTabText(tab)
     pcall(fs.SetPoint, fs, "CENTER", tab, "CENTER", 0, 0)
 end
 
+------------------------------------------------------------
+-- 分頁的三態（第六輪換了語彙，`T.tabStyle` 一行切得回去）
+--
+-- `"underline"`（預設）
+--   閒置：底 `fill`、字 `textDim`（字型物件走 `Engine.DimFont`，見 `Skin.Tab`）
+--   滑過：底 `fillHover`、字白（暴雪自己的 `HighlightFont` 就是白的，不必我們管）
+--         **沒有邊框變化**
+--   選中：底 `fillSelected`（比 `fill` 亮一階）、字白（暴雪的 `DisabledFont`）
+--         ＋ 朝外那一邊一條 `T.tabAccentSize` 的職業色線
+--   停用：底 `fillInset`，字交還暴雪
+--
+-- **為什麼分頁不再用「滑過換邊框」**（其他按鈕仍然用）：
+-- 一排分頁的接縫是「共用下一顆的左邊線」（`Skin.TabGroup`），也就是說除了最後
+-- 一顆以外每一顆**都沒有自己的右邊線**。滑過換邊色的結果就是「只亮三邊」——
+-- 使用者實機擷圖 30~32 拍到的正是這個，而且它不是 bug 是那個設計的必然。
+-- 換成「選中畫一條線、滑過只提亮底」之後，狀態不再依賴一個畫不完整的東西。
+------------------------------------------------------------
 local function PaintTab(tab, mode)
     local rec = tabState[tab]
     if not rec then return end
@@ -1111,27 +1396,54 @@ local function PaintTab(tab, mode)
     Engine.CenterTabText(tab)
 
     local m = rec.mode
-    if m == "selected" then
-        local r, g, b, a = T.AccentFill(1)
-        rec.accent = rec.accent or {}
-        rec.accent[1], rec.accent[2], rec.accent[3], rec.accent[4] = r, g, b, a
-        Engine.Fill(rec.overlay, rec.accent)
-    elseif m == "disabled" then
-        Engine.Fill(rec.overlay, T.fillInset)
-    elseif rec.hover then
-        Engine.Fill(rec.overlay, T.fillHover)
-    else
-        Engine.Fill(rec.overlay, T.fill)
+    local ov = rec.overlay
+
+    if T.tabStyle == "fill" then
+        -- 第五輪的樣式（整塊職業色底 ＋ 滑過換邊框），留著當退路
+        if m == "selected" then
+            local r, g, b, a = T.AccentFill(1)
+            rec.accent = rec.accent or {}
+            rec.accent[1], rec.accent[2], rec.accent[3], rec.accent[4] = r, g, b, a
+            Engine.Fill(ov, rec.accent)
+        elseif m == "disabled" then
+            Engine.Fill(ov, T.fillInset)
+        elseif rec.hover then
+            Engine.Fill(ov, T.fillHover)
+        else
+            Engine.Fill(ov, T.fill)
+        end
+
+        if rec.hover and m ~= "selected" and m ~= "disabled" then
+            rec.hoverBorder = rec.hoverBorder or {}
+            rec.hoverBorder[1], rec.hoverBorder[2], rec.hoverBorder[3], rec.hoverBorder[4] = T.Accent(1)
+            Engine.Border(ov, rec.hoverBorder)
+        else
+            Engine.Border(ov, T.border)
+        end
+        Engine.AccentLine(ov, false)
+        return
     end
 
-    -- 滑過時邊框換職業色（同 Engine.TrackButtonHover 的語彙）。
-    -- 選中的分頁底已經是職業色，再換邊等於同一個訊號講兩次；停用的不給回饋。
-    if rec.hover and m ~= "selected" and m ~= "disabled" then
-        rec.hoverBorder = rec.hoverBorder or {}
-        rec.hoverBorder[1], rec.hoverBorder[2], rec.hoverBorder[3], rec.hoverBorder[4] = T.Accent(1)
-        Engine.Border(rec.overlay, rec.hoverBorder)
+    -- 預設樣式："underline"
+    if m == "selected" then
+        Engine.Fill(ov, T.fillSelected)
+    elseif m == "disabled" then
+        Engine.Fill(ov, T.fillInset)
+    elseif rec.hover then
+        Engine.Fill(ov, T.fillHover)
     else
-        Engine.Border(rec.overlay, T.border)
+        Engine.Fill(ov, T.fill)
+    end
+
+    -- 邊框永遠是黑的：分頁的狀態全部交給底色與那條線
+    Engine.Border(ov, T.border)
+
+    if m == "selected" then
+        rec.accent = rec.accent or {}
+        rec.accent[1], rec.accent[2], rec.accent[3], rec.accent[4] = T.Accent(1)
+        Engine.AccentLine(ov, rec.accent)
+    else
+        Engine.AccentLine(ov, false)
     end
 end
 
@@ -1212,33 +1524,56 @@ end
 ------------------------------------------------------------
 local selectState = setmetatable({}, { __mode = "k" })
 
+-- `opts.selectedFill` ＋ `opts.accentLine`（第六輪）：新式分頁走的是「亮一階的底
+-- ＋ 一條職業色線」，跟清單列的「整塊職業色底」不是同一套（分頁有地方畫線、
+-- 清單列沒有）。不給就是原本的 `AccentFill`。
 local function PaintSelectable(btn)
     local rec = selectState[btn]
     if not rec then return end
     if rec.selected then
-        local r, g, b, a = T.AccentFill(1)
-        rec.accent = rec.accent or {}
-        rec.accent[1], rec.accent[2], rec.accent[3], rec.accent[4] = r, g, b, a
-        Engine.Fill(rec.overlay, rec.accent)
+        if rec.selectedFill then
+            Engine.Fill(rec.overlay, rec.selectedFill)
+        else
+            local r, g, b, a = T.AccentFill(1)
+            rec.accent = rec.accent or {}
+            rec.accent[1], rec.accent[2], rec.accent[3], rec.accent[4] = r, g, b, a
+            Engine.Fill(rec.overlay, rec.accent)
+        end
     elseif rec.hover then
         Engine.Fill(rec.overlay, T.fillHover)
     else
         Engine.Fill(rec.overlay, rec.idle or T.fill)
     end
+
+    if rec.accentLine then
+        if rec.selected then
+            rec.line = rec.line or {}
+            rec.line[1], rec.line[2], rec.line[3], rec.line[4] = T.Accent(1)
+            Engine.AccentLine(rec.overlay, rec.line)
+        else
+            Engine.AccentLine(rec.overlay, false)
+        end
+    end
 end
 
 -- 只在第一次見到這顆按鈕時掛腳本；之後重複呼叫只更新 overlay 參照。
-function Engine.TrackSelectable(btn, overlay, idleFill)
+function Engine.TrackSelectable(btn, overlay, idleFill, opts)
     if not btn or not overlay then return end
+    opts = opts or {}
     local rec = selectState[btn]
     if rec then
         rec.overlay = overlay
         rec.idle = idleFill or rec.idle
+        rec.selectedFill = opts.selectedFill or rec.selectedFill
+        rec.accentLine = opts.accentLine or rec.accentLine
         PaintSelectable(btn)
         return
     end
 
-    selectState[btn] = { overlay = overlay, idle = idleFill, selected = false, hover = false }
+    selectState[btn] = {
+        overlay = overlay, idle = idleFill, selected = false, hover = false,
+        selectedFill = opts.selectedFill, accentLine = opts.accentLine,
+    }
 
     if type(btn.HookScript) == "function" then
         pcall(btn.HookScript, btn, "OnEnter", function(self)
@@ -1334,10 +1669,18 @@ local tabSystemHooksInstalled = false
 -- ⚠ 選中的分頁會被 `SetEnabled(false)`（同檔 :55），但這個模板**沒有 DisabledFont**
 --   （TabSystemTemplates.xml:85-86 只有 NormalFont／HighlightFont）⇒ 停用狀態照樣
 --   吃 NormalFontObject，暴雪自己就是靠這一點把選中的分頁畫成白字的。
-local function TabSystemFont(tab)
-    if type(tab.SetNormalFontObject) == "function" then
-        pcall(tab.SetNormalFontObject, tab, GameFontHighlightSmall)
+--
+-- ⚠ 第六輪：`"underline"` 樣式下**未選中的分頁字降到 `textDim`**。這一種分頁沒有
+--   DisabledFont，選中與未選中都吃 NormalFontObject ⇒ 兩態各給一個字型物件。
+--   滑過仍然是暴雪自己的 `HighlightFont`（`TabSystemTemplates.xml:86`，白），
+--   我們一個字都不用管。
+local function TabSystemFont(tab, selected)
+    if type(tab.SetNormalFontObject) ~= "function" then return end
+    local font = GameFontHighlightSmall
+    if T.tabStyle ~= "fill" and not selected then
+        font = Engine.DimFont(GameFontHighlightSmall, "MiliUISkinFontTabDim")
     end
+    pcall(tab.SetNormalFontObject, tab, font)
 end
 
 -- 讀一次「暴雪認為這顆選中了沒」。過 Secret.ToBool，問不到就 fail 到閒置。
@@ -1352,8 +1695,9 @@ end
 
 function Engine.SyncTabSystem(tab)
     if not tabSystemButtons[tab] then return end
-    TabSystemFont(tab)
-    Engine.SetSelected(tab, TabSystemIsSelected(tab) == true)
+    local selected = TabSystemIsSelected(tab) == true
+    TabSystemFont(tab, selected)
+    Engine.SetSelected(tab, selected)
 end
 
 -- 一次重掃所有登記過的新式分頁。配方掛在視窗的全域刷新函式後面就好，
@@ -1377,8 +1721,9 @@ function Engine.TabSystemHooks()
     -- ⚠ 第一行就查弱鍵表：這一支是**全遊戲**的新式分頁都會進來的。
     hooksecurefunc(mixin, "SetTabSelected", function(tab, isSelected)
         if type(tab) ~= "table" or not tabSystemButtons[tab] then return end
-        TabSystemFont(tab)
-        Engine.SetSelected(tab, S.ToBool(isSelected) == true)
+        local selected = S.ToBool(isSelected) == true
+        TabSystemFont(tab, selected)
+        Engine.SetSelected(tab, selected)
     end)
 end
 
@@ -1389,9 +1734,17 @@ function Engine.TrackTabSystem(tab, overlay, key)
     tabSystemButtons[tab] = key or true
     -- 滑過與選中兩態都自己畫：九張貼圖（含 HIGHLIGHT 層那三張）全部中和掉之後，
     -- 引擎沒有東西可以畫，跟成就分類列同一條退路。
-    Engine.TrackSelectable(tab, overlay, T.fill)
-    TabSystemFont(tab)
-    Engine.SetSelected(tab, TabSystemIsSelected(tab) == true)
+    -- 選中態跟舊式分頁同一套語彙（`T.tabStyle`）：`"underline"` 用亮一階的底
+    -- ＋ 一條職業色線；`"fill"` 退回第五輪的整塊職業色。
+    if T.tabStyle == "fill" then
+        Engine.TrackSelectable(tab, overlay, T.fill)
+    else
+        Engine.TrackSelectable(tab, overlay, T.fill,
+            { selectedFill = T.fillSelected, accentLine = true })
+    end
+    local selected = TabSystemIsSelected(tab) == true
+    TabSystemFont(tab, selected)
+    Engine.SetSelected(tab, selected)
 end
 
 ------------------------------------------------------------
@@ -1796,12 +2149,16 @@ local PROBLEM_SECTIONS = {
     { key = "implicit",  title = "Implicitly protected (skinned anyway):" },  -- L key，見 Locales
     { key = "deferred",  title = "Deferred until out of combat:" },
     { key = "forbidden", title = "Skipped because the object is forbidden:" },
+    -- 參考資料：這幾塊背景走的是子框那條路而不是 region（見 INFORMATIONAL）
+    { key = "frameBackdrop", title = "Backdrop drawn as a child frame:" },
 }
 
 -- ⚠ 「隱式保護但照樣上皮了」**不算問題**，所以不進這個數字 —— 它只是一張
 --    「哪些容器坐在 secure 子孫上」的參考清單（下次有人懷疑保護規則時要看的）。
 --    括號裡的數字要維持「這個視窗有幾個地方沒做到」的語意。
-local INFORMATIONAL = { implicit = true }
+--    同理「這塊背景退回子框畫」也只是參考 —— 它是「哪個面板走了哪條路」的答案，
+--    不是「這個視窗有幾個地方沒做到」。
+local INFORMATIONAL = { implicit = true, frameBackdrop = true }
 
 local function ProblemCount(log)
     if not log then return 0 end
@@ -1813,13 +2170,13 @@ local function ProblemCount(log)
     return n
 end
 
-local function PrintProblems(log, indent)
+local function PrintProblems(out, log, indent)
     if not log then return end
     for _, sec in ipairs(PROBLEM_SECTIONS) do
         local list = log[sec.key]
         if list and #list > 0 then
-            print(indent .. L[sec.title])
-            for _, v in ipairs(list) do print(indent .. "  " .. v) end
+            out[#out + 1] = indent .. L[sec.title]
+            for _, v in ipairs(list) do out[#out + 1] = indent .. "  " .. v end
         end
     end
 end
@@ -1843,13 +2200,18 @@ end
 -- 「hook 已停用」排最上面是因為它跟別的紀錄不同級：missing 是「少中和一塊」，
 -- hook 停用是「這個視窗從某一刻起整個不再上皮」。
 ------------------------------------------------------------
-function Engine.Report()
-    ns.Print(("v%s  enabled=%s"):format(ns.VERSION, tostring(ns.db and ns.db.enabled)))
+-- ⚠ **先組行、再印。** 第六輪把同一份內容也寫進 SavedVariables
+--   （`MiliUI_Skin_DB.lastReport`，登出時存），這樣「請把 /mskin debug 的輸出貼給我」
+--   就不再是驗收的必要步驟 —— 玩家只要正常登出，下一個人直接讀存檔。
+--   兩邊共用同一支組字，不會出現「印出來的跟存起來的不一樣」。
+function Engine.BuildReport()
+    local out = {}
+    out[#out + 1] = ("v%s  enabled=%s"):format(ns.VERSION, tostring(ns.db and ns.db.enabled))
 
     -- ① 停用掉的 hook（最要緊，排最前面）
     if #Engine.log.brokenHooks > 0 then
-        print(("  hook: %s"):format(L["Disabled"]))
-        for _, v in ipairs(Engine.log.brokenHooks) do print("    " .. v) end
+        out[#out + 1] = ("  hook: %s"):format(L["Disabled"])
+        for _, v in ipairs(Engine.log.brokenHooks) do out[#out + 1] = "    " .. v end
     end
 
     -- ② 每份配方一行，有問題才展開
@@ -1872,30 +2234,67 @@ function Engine.Report()
 
         local n = ProblemCount(rec.log)
         if n > 0 then
-            print(("  %s: %s  (%d)"):format(rec.title or rec.key, status, n))
+            out[#out + 1] = ("  %s: %s  (%d)"):format(rec.title or rec.key, status, n)
         else
-            print(("  %s: %s"):format(rec.title or rec.key, status))
+            out[#out + 1] = ("  %s: %s"):format(rec.title or rec.key, status)
         end
-        -- 參考清單（隱式保護）沒有計入括號，但照樣要印得出來
-        PrintProblems(rec.log, "    ")
+        -- 參考清單（隱式保護、退回子框的背景）沒有計入括號，但照樣要印得出來
+        PrintProblems(out, rec.log, "    ")
     end
 
     -- ③ 執行期（hook 裡）發生的紀錄 —— 沒有主人，單獨一節
     if Engine.log.missing[1] or Engine.log.protected[1] or Engine.log.implicit[1]
-        or Engine.log.deferred[1] or Engine.log.forbidden[1] then
-        print("  hook:")
-        PrintProblems(Engine.log, "    ")
+        or Engine.log.deferred[1] or Engine.log.forbidden[1]
+        or Engine.log.frameBackdrop[1] then
+        out[#out + 1] = "  hook:"
+        PrintProblems(out, Engine.log, "    ")
     end
 
-    print(("  %s %d / %s %d"):format(
+    out[#out + 1] = ("  %s %d / %s %d / %s %d"):format(
         L["Regions neutralized:"], Engine.log.neutralized,
-        L["Overlays:"], Engine.log.overlays))
+        L["Overlays:"], Engine.log.overlays,
+        L["Region backdrops:"], Engine.log.regions)
 
     if #ns.errors == 0 then
-        print("  " .. L["No errors recorded"])
+        out[#out + 1] = "  " .. L["No errors recorded"]
     else
         for i, err in ipairs(ns.errors) do
-            print(("  %d. %s"):format(i, err))
+            out[#out + 1] = ("  %d. %s"):format(i, err)
         end
     end
+    return out
+end
+
+function Engine.Report()
+    local ok, lines = pcall(Engine.BuildReport)
+    if not ok or type(lines) ~= "table" then return end
+    ns.Print(lines[1] or "")
+    for i = 2, #lines do print(lines[i]) end
+end
+
+------------------------------------------------------------
+-- 登出時把同一份報告存進 SavedVariables
+--
+-- 只留**最後一份**（不是歷史紀錄）：這是「上一次遊戲結束時 skin 的狀態」，
+-- 不是一份要長期累積的日誌。上限 400 行 —— 正常情況二、三十行就印完，
+-- 真的長到四百行表示有東西在暴衝，那時候多存的也沒有意義。
+--
+-- ⚠ 整段 pcall：登出路徑上報一發錯誤只會讓玩家看到一個關不掉的錯誤視窗。
+-- ⚠ 不新增任何玩家可見的字串 —— 這是給維護者讀存檔用的。
+------------------------------------------------------------
+local REPORT_MAX_LINES = 400
+
+function Engine.SaveReport()
+    if type(MiliUI_Skin_DB) ~= "table" then return end
+    local ok, lines = pcall(Engine.BuildReport)
+    if not ok or type(lines) ~= "table" then return end
+    local kept = {}
+    for i = 1, math.min(#lines, REPORT_MAX_LINES) do
+        kept[i] = tostring(lines[i])
+    end
+    MiliUI_Skin_DB.lastReport = {
+        time    = date("%Y-%m-%d %H:%M:%S"),
+        version = ns.VERSION,
+        lines   = kept,
+    }
 end

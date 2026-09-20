@@ -123,6 +123,20 @@ RULES = [
     # 池化列一律走 Engine.HookRows（mixin／全域函式的後置勾）。
     (r"AddAcquiredFrameCallback",
      "不可以把我們的函式註冊進暴雪的 callback 表：池化列走 Engine.HookRows"),
+    # 第六輪把「背景直接建成暴雪框自己的貼圖」放進白名單（STYLE.md ③）：
+    # `CreateTexture` 不寫任何 Lua 欄位、不改 secure 屬性，所以不 taint，
+    # 而且貼圖沒有 frame level／strata／parent 的問題。
+    # **但那是一條窄路**，條件有三個，lint 抓不到其中任何一個：
+    #   (a) 只准建、不准在暴雪框上寫欄位去記住它（記在 Engine 的弱鍵表）；
+    #   (b) **自動排版的框不准建**（region 會被算進版面）；
+    #   (c) 重掃時要認得出「這張是我們畫的」，否則第二次掃會把自己中和掉。
+    # 三個條件全部收在 `Engine.RegionBackdrop` 一支函式裡（Engine.lua 不在掃描
+    # 範圍），所以配方與原語**一律不准直接呼叫** —— 寫在配方裡就會少掉其中一條。
+    # ⚠ 自己建的 overlay 上的 `CreateLine`（關閉鈕的 ×）不在這條規則裡：
+    #   那是對**我們自己的 frame** 呼叫的，而且本來就只住在 Engine.Overlay。
+    (r":CreateTexture\s*\(",
+     "在暴雪框上建貼圖只准走 Engine.RegionBackdrop（Skin.Panel／Inset／StatusBar）："
+     "排版框的排除、弱鍵登記與失敗退路都收在那一支裡"),
     (r"\bPanelTemplates_\w+\s*\(", "不可以呼叫 PanelTemplates_*：那會寫暴雪框的欄位（selectedTab、isDisabled…）"),
     (r"\bShowUIPanel\s*\(",      "UIPanel 系是保護函式"),
     (r"\bHideUIPanel\s*\(",      "UIPanel 系是保護函式"),

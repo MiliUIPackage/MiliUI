@@ -64,13 +64,20 @@
 --      而它掛的那支「Init」在這裡指定成 `AddonList_Update` 本身：那支函式沒有參數，
 --      `HookRows` 的第一行型別檢查會直接返回，等於只借它的 sweeper、不真的靠它派送。
 --
--- 2. **「啟用」勾選框是三態的。** `TriStateCheckbox_SetState`（:317）對
---    「部分角色啟用」做 `checkedTexture:SetDesaturated(true)`、對「全部啟用」做
+-- 2. **「啟用」勾選框是三態的，所以第六輪起它的勾一根手指都不碰。**
+--    `TriStateCheckbox_SetState` 對「部分角色啟用」做
+--    `checkedTexture:SetDesaturated(true)`、對「全部啟用」做
 --    `SetVertexColor(1, 1, 1)` ＋ `SetDesaturated(false)`。
---    我們把 Checked 換成整格職業色（`Engine.CheckedTexture` → `SetColorTexture`）之後
---    這兩件事**剛好接得起來**：`SetVertexColor(1,1,1)` 是把乘數還原成白（不影響
---    colorTexture 的顏色），`SetDesaturated(true)` 把那一格職業色壓成灰
---    ⇒ 「全部啟用＝職業色」「部分啟用＝灰」，正好是「狀態只換明暗」。
+--    ⚠ 第五輪的作法（Checked 換成整格職業色）**在實機上是錯的**：那顆按鈕是
+--      24x24，整格塗滿就是一個大藍方塊（使用者擷圖 33）。
+--    ⚠ 但也不能改成「染職業色」：那支函式是 **local**（AddonList.lua:164-179）、
+--      勾不到，而我們唯一能動手的時機（`AddonList_InitAddon` 的後置勾）跑在它
+--      **之後** —— 在那裡無條件染色會讓「全部啟用」與「部分啟用」長得一模一樣，
+--      等於把那個區分抹掉。而且我們也沒有辦法分辨是哪一種
+--      （分辨要讀 `elementData`／按鈕的狀態欄位，兩個都不在讀取例外表上）。
+--    ⇒ 方框收成 18 的小方框（`Skin.CheckBox` 的預設），**勾整個交還暴雪**
+--      （`opts.keepCheck`）。它的 CheckedTexture 本來就是 `checkmark-minimal`，
+--      白色細勾配深色小方框 —— 形狀已經是目標，只是顏色是白的不是職業色。
 --
 -- 3. **底部四顆按鈕不是 `UIPanelButtonTemplate`。** 它們是
 --    `SharedButtonSmallTemplate` ← `ThreeSliceButtonTemplate`，三片的 parentKey 是
@@ -91,7 +98,7 @@
 -- | 同上的 Highlight/Pushed 貼圖 | SetColorTexture |
 -- | AddonList.Dropdown 的 Background | SetAlpha(0)；Arrow | SetVertexColor |
 -- | AddonList.SearchBox 的 Left/Right/Middle | SetAlpha(0)；searchIcon／clearButton.Icon／Instructions | SetVertexColor／SetTextColor |
--- | AddonList.ForceLoad 的 Normal/Pushed/Disabled | SetAlpha(0)；Checked/DisabledChecked | SetColorTexture |
+-- | AddonList.ForceLoad 的 Normal/Pushed/Disabled | SetAlpha(0)。**Checked 不碰**（見上） |
 -- | AddonList.ForceLoad 的無名 FontString | SetTextColor |
 -- | AddonList.Performance.Header | SetTextColor |
 -- | AddonList.Performance.Divider | SetVertexColor |
@@ -185,9 +192,18 @@ end
 local function ApplyEntryRow(row)
     Skin.Row(row, "AddonListEntry", { fill = T.fillInset, ownHover = true })
 
+    -- ⚠ `keepCheck`：**這顆勾是三態的，那張圖本身帶了狀態語意。**
+    --   `TriStateCheckbox_SetState`（AddonList.lua:164-179，**local**、勾不到）
+    --   用「全部啟用 ＝ `SetVertexColor(1,1,1)` ＋ `SetDesaturated(false)`」與
+    --   「部分角色啟用 ＝ `SetDesaturated(true)`」區分兩種已勾。
+    --   我們要是去染職業色，兩種狀態就會長得一模一樣 —— 那是把資訊抹掉，
+    --   不是換皮。而且它的 CheckedTexture 本來就是 `checkmark-minimal`
+    --   （CheckButtonTemplates.xml:66,74）：白色細勾配深色小方框，
+    --   形狀已經就是我們要的那一種，只差顏色。
+    --   ⇒ 方框照樣收成 18 的小方框，勾整個交還暴雪。
     local cb
     if pcall(function() cb = row.Enabled end) and cb then
-        Skin.CheckBox(cb, "AddonListEntry.Enabled")
+        Skin.CheckBox(cb, "AddonListEntry.Enabled", { keepCheck = true })
     end
 
     local load
@@ -349,9 +365,13 @@ local function Apply()
     -- 「載入過期插件」。`MinimalCheckboxTemplate` 的四張狀態圖全部走 getter
     -- ⇒ `Skin.CheckBox` 直接適用。旁邊那條說明字是**無名無 parentKey** 的
     -- layer FontString（AddonList.xml:137）⇒ 只能走 `Engine.RecolorRegions`。
+    -- ⚠ `keepCheck`：這一顆**不是**三態的（它只是一般的勾選框），但它跟列上那
+    --   一整排是同一個模板、同一個視窗、同一張 `checkmark-minimal`。
+    --   只有它染成職業色的話，玩家在同一個畫面上會看到兩種不同顏色的勾 ——
+    --   那讀起來像 bug 而不像設計。一致性在這裡贏過「跟別的視窗一致」。
     local force
     if pcall(function() force = f.ForceLoad end) and force then
-        Skin.CheckBox(force, "AddonList.ForceLoad")
+        Skin.CheckBox(force, "AddonList.ForceLoad", { keepCheck = true })
         E.RecolorRegions(force, T.text, "AddonList.ForceLoad")
     else
         E.Missing("AddonList.ForceLoad")

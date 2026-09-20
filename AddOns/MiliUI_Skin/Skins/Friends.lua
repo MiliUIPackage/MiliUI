@@ -419,7 +419,21 @@ local function SkinHeaderTabs(f)
 
     -- 狀態下拉就住在 FriendsTabHeader 上（FriendsFrame.xml:746，
     -- 同時有全域名 `FriendsFrameStatusDropdown`）。文字是暴雪塞的一張狀態小圖
-    -- （`SetSelectionTranslator`，.lua:611-613），不是文字顏色的問題 ⇒ 不給 textColor。
+    -- （`SetSelectionTranslator`，.lua:612），不是文字顏色的問題 ⇒ 不給 textColor。
+    --
+    -- ⚠ **這一顆的寬度歸套組本體管，不歸這一份管。**
+    --   暴雪把它 `SetWidth(51)`（`FriendsFrame.lua:589`），而 `Text` 的可用寬度是
+    --   `51 + 1 − Arrow 的 atlas 寬 − 8`（`MenuTemplates.xml:14-24`：`Arrow` 是
+    --   `useAtlasSize` 錨 `RIGHT x=1`，`Text` 從 `TOPLEFT x=8` 接到 `Arrow` 的 LEFT，
+    --   `wordwrap="false"`）—— 內容是固定 16 寬的 `|T…tga:16:16:0:0|t`
+    --   （同檔 `.lua:612`），餘裕只有一兩點，放不下就被截成「...」。
+    --   那是**換皮之前就存在**的緊繃版面：這一份對這顆按鈕只做
+    --   `Background:SetAlpha(0)`、`Arrow` 去飽和 ＋ `SetVertexColor`、自己的 overlay、
+    --   以及 `HookScript("OnEnter"/"OnLeave")`（只碰 overlay）——
+    --   `style1` 連 `Engine.DropdownText` 都不呼叫，字型物件與顏色一個字都沒動。
+    --   ⇒ 加寬那件事住在 `MiliUI/Fix/Blizzard_FriendsStatusDropdown.lua`。
+    --   **這一份不為它 `SetWidth`／`SetPoint`**（那是重排不是重畫），
+    --   而且不必跟進：overlay 是錨點跟隨的，那顆變成幾寬都自動對上。
     local dd
     if pcall(function() dd = header.StatusDropdown end) and dd then
         Skin.Dropdown(dd, "FriendsFrameStatusDropdown", "style1")
