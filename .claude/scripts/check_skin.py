@@ -37,6 +37,16 @@ ALLOW_MARK = "skin-lint: own-frame"
 #
 # ⚠ `PanelTemplates_` 只禁**呼叫**：`hooksecurefunc("PanelTemplates_SelectTab", …)`
 #   是字串，那是合法而且必要的（分頁選中態唯一的來源）。所以樣式帶 `(`。
+#
+# ⚠ 這裡**沒有**禁 `hooksecurefunc`。池化列（ScrollBox 的 element）只能靠 mixin
+#   後置勾來套（STYLE.md ③ 的陷阱 4），所以
+#     hooksecurefunc(TokenEntryMixin, "Initialize", fn)      ← mixin 表
+#     hooksecurefunc("AchievementObjectives_DisplayCriteria", fn)  ← 全域
+#   兩種寫法都是合法的，不能誤報。後置勾不會把 taint 帶回呼叫端
+#   （.claude/notes/project-charframe-taint.md 明列它不會汙染 CharacterFrame）。
+#   真正危險的是**前置**替換（`X.Init = function() end`），那會在下面的
+#   「結構性修改」那組被 `=` 左邊的寫法擋掉 —— 目前沒有規則抓得到它，
+#   所以這一條靠 code review，記在這裡是為了下次有人想加規則時看得到。
 RULES = [
     (r":Hide\s*\(",              "暴雪的框不可以 Hide —— 它會被暴雪自己的 Show 打回來，還會跟編輯模式打架"),
     (r":Show\s*\(",              "暴雪的框不可以 Show"),
@@ -54,6 +64,16 @@ RULES = [
     (r":EnableMouse\s*\(",       "overlay 吃滑鼠會把暴雪按鈕的 OnEnter／OnClick 攔掉"),
     (r":SetAtlas\s*\(",          "中和一律用 alpha：暴雪會重新 SetAtlas，而且有程式會讀回 GetAtlas()"),
     (r":SetTexture\s*\(\s*nil",  "SetTexture(nil) 會讓讀回材質的暴雪程式拿到 nil 然後炸"),
+    # 結構性修改：在暴雪按鈕上**補一張本來沒有的貼圖**，跟中和／換色不是同一件事。
+    # 模板沒有 PushedTexture 就是沒有（STYLE.md ⑤ 的註 ⓒ），補一張等於改它的結構。
+    (r":SetNormalTexture\s*\(",  "在暴雪按鈕上換／補狀態貼圖是結構性修改，不在白名單裡"),
+    (r":SetPushedTexture\s*\(",  "在暴雪按鈕上換／補狀態貼圖是結構性修改，不在白名單裡"),
+    (r":SetHighlightTexture\s*\(", "在暴雪按鈕上換／補狀態貼圖是結構性修改，不在白名單裡"),
+    (r":SetCheckedTexture\s*\(", "在暴雪按鈕上換／補狀態貼圖是結構性修改，不在白名單裡"),
+    # 12.1：顏色分量可能是秘密數字，只有貼圖層的 setter 保證吃得下
+    (r":SetStatusBarColor\s*\(", "上色走貼圖的 SetVertexColor：顏色分量在 12.1 可能是秘密數字"),
+    (r":LockHighlight\s*\(",     "LockHighlight 是寫暴雪按鈕的狀態；選中態走自己的 overlay"),
+    (r":UnlockHighlight\s*\(",   "UnlockHighlight 是寫暴雪按鈕的狀態；選中態走自己的 overlay"),
     (r"\bPanelTemplates_\w+\s*\(", "不可以呼叫 PanelTemplates_*：那會寫暴雪框的欄位（selectedTab、isDisabled…）"),
     (r"\bShowUIPanel\s*\(",      "UIPanel 系是保護函式"),
     (r"\bHideUIPanel\s*\(",      "UIPanel 系是保護函式"),

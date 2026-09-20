@@ -24,6 +24,9 @@
 -- | GossipFrame.GreetingPanel.ScrollBar 的 Back/Forward.Texture | SetVertexColor |
 -- | 以上各框 | CreateFrame 掛自己的 overlay（SetAllPoints，不吃滑鼠） |
 --
+-- 關閉鈕的 × 是 overlay 上兩條自己畫的 `CreateLine()`（建立時定好、執行期零 Lua）。
+-- 暴雪的三張狀態貼圖照舊全部 alpha 0 —— 接觸面沒有變。
+--
 -- hook：無。
 -- 寫入暴雪欄位：無。讀暴雪欄位：只讀 parentKey 找區域，以及 GetFrameLevel（有守衛）。
 --
