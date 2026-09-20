@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（打磨＋任務／郵件／好友，共六個視窗）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
+**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第三輪打磨（2026-09-20 晚）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
 `## DefaultState: disabled`（PoC 期間 push 也不會讓整包玩家預設吃到），`/mskin` 開設定、
 `/mskin debug` 印每份配方的狀態＋找不到的區域＋因保護框跳過的清單。
 規範全文在 `AddOns/MiliUI_Skin/STYLE.md`（Tokens／契約／模板配方表／新增視窗 checklist／範圍分級），
@@ -86,6 +86,34 @@ metadata:
   這批 local 小函式標了 `TODO(升格)`。信件列格子美術無名 ⇒ 收件匣目前是深底＋暴雪棕色格線。
 - 套組裡 Postal 掛了一票按鈕在郵件視窗（這一輪不碰），而且會把暴雪的 `OpenAllMail` 藏起來。
 - ⚠ 待測重點：好友名單「傳送訊息」（`ChatFrameUtil.SendTell`）之後 R 鍵回覆還能不能用（[[wow-121-chat-reply-secret-taint]]）。
+
+## 第二輪實測＋第三輪（2026-09-20 晚）
+
+第二輪 taint.log：0 blocked；點名 MiliUI_Skin 的只有 slash 全域與 `UISpecialFrames` 的設定視窗名（所有 MiliUI 設定視窗共通、
+開過設定視窗才有），**17 支 mixin／全域後置勾零筆**。使用者回饋：信箱要重做、bar 材質要換、裝備格要 1~2px 方框、
+成就標題浮在框外。
+
+第三輪做法與新坑：
+- **`Skin.ItemButton`（物品格方框）**：勾**全域** `SetItemButtonQuality`＋`SetItemButtonTexture`（不勾 `ItemButtonMixin` ——
+  intrinsic 的 mixin 建立時就拷貝走，裝備欄是 LoadFirst 建的追不上）。全遊戲物品格都會進來 ⇒ 第一行查弱鍵表。
+  圓角 `IconBorder` alpha 0（每次被 SetShown(true)＋重設材質 ⇒ reapply），自己畫 `T.itemBorderSize`（預設 1）方框，
+  **顏色轉交**：`IconBorder:GetVertexColor()` → 自己貼圖的 **SetVertexColor**（貼圖鋪白；不做任何比較／算術），顯示與否跟 `IsShown()`。
+  收件匣「沒有附件」那條路直接 `IconBorder:Hide()` 不經過全域函式 ⇒ 要另勾 `InboxFrame_Update`。
+  破損裝備的紅框訊號隨 NormalTexture 中和沒了（圖示染紅還在）。
+- **進度條換 `Media/tuktex.tga`**（自帶一份；`SetStatusBarTexture` 明文路徑，先查證沒人 `GetAtlas` 讀回）。
+  聲望條「框比條短」其實是**層級**：overlay 在 target−1，填充從左緣畫起蓋住黑邊 ⇒ 邊走前景 slot。
+- **分頁之間的「殘片」不是漏中和的貼圖，是按鈕間 3~4px 的縫**（原本靠端帽超出矩形去補）⇒ overlay 往右延伸。
+- 成就分類列：暴雪 Highlight 比按鈕往下多 7px、列間無間距 ⇒ 選中／滑過兩態都自己畫、中和 Highlight。
+- 成就 `Init` 每次 `TitleBar:SetAlpha(1|0.8)` ⇒ reapply；總結頁要另勾 `AchievementFrameSummary_Refresh`。圖示金框時有時無的根因沒找到，靠每次重申硬蓋。
+- **成就標題帽**：`Header` 本來就凸出視窗上緣（Points 正好跨在上邊線）；不能 SetPoint 暴雪的框 ⇒ 以 `Header.PointBorder`
+  為錨畫一塊下邊不畫的平面（上下鏡射的分頁語彙），level 在 Header−1 ⇒ 蓋過視窗上邊線、在文字之下。
+- 紅金 ＋／− 鈕烤了顏色、乘法染不灰 ⇒ `SetDesaturated(true)` 再染（`RefreshIcon` 每次重設 atlas ⇒ reapply）。
+- 勾選／單選：`GetCheckedTexture()`／`GetDisabledCheckedTexture()` 換成滿格職業色（引擎驅動）。
+- **伴隨元件規則**（STYLE.md ③）：套組內建、固定掛在暴雪視窗上的別家元件（郵件增強插件的按鈕）有就 skin、沒有靜默跳過；
+  不呼叫／不 hook 它的函式、不寫它的欄位；時機＝自己的事件框收 `MAIL_SHOW` 後延一幀、冪等。
+- 信紙深色化（內文字色全接管）；**信件內文自帶的 `|cff…|r` 色碼接不住**（GM／活動信可能出現深色字），發票算式線直接中和。
+- 白名單這一輪擴充：進度條材質、`SetDesaturated`、EditBox/SimpleHTML 的 `SetTextColor`、Checked／DisabledChecked 的 `SetColorTexture`；
+  lint 同步收緊（這幾個 setter 與 `GetVertexColor` 只准走 Engine）。
 
 ## 還沒實機確認的
 
