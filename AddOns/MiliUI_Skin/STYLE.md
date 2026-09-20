@@ -232,6 +232,12 @@ overlay 的層級一律是**目標層級 − 1**（`Engine.Overlay` 的 `levelOf
 | `InputBoxTemplate` / `SearchBoxTemplate`<br>`Blizzard_SharedXML/Shared/InputBox/InputBoxTemplates.xml:70, :206` | `Left` / `Right` / `Middle`；`searchIcon`、`clearButton.Icon` 染 `textDim`；`Instructions` 染 `textDisabled` | 無 | EditBox overlay | 未實測 |
 | `BackdropTemplate` 的九片<br>`Blizzard_SharedXML/Backdrop.lua:317` | `TopLeftCorner` / `TopRightCorner` / `BottomLeftCorner` / `BottomRightCorner` / `TopEdge` / `BottomEdge` / `LeftEdge` / `RightEdge` / `Center`（`NineSliceUtil.ApplyLayout(self, …)` 直接掛在 frame 上） | — | Panel overlay | 未實測 |
 | `TooltipBackdropTemplate`（成就視窗的金邊）<br>`Blizzard_SharedXML/SharedTooltipTemplates.xml:111` | `NineSlice`；無名的那幾層用 `GetChildren()` 掃 | — | 無（外層 Panel overlay 已經夠） | 未實測 |
+| `ScrollFrameTemplate`（舊式捲動框）<br>`Blizzard_SharedXML/SecureUIPanelTemplates.xml:24`<br>`…/SecureUIPanelTemplates.lua:1`（`ScrollFrame_OnLoad`） | 自己沒有美術；`OnLoad` 建出來的 `self.ScrollBar` **模板就是 `MinimalScrollBar`**（`Blizzard_SharedXML/Mainline/ScrollDefine.lua:1`） | — | 直接把 `.ScrollBar` 丟給 `Skin.ScrollBar` | 未實測 |
+| `MoneyInputFrameTemplate`（寄信的金額欄）<br>`Blizzard_MoneyFrame/Mainline/MoneyInputFrame.xml:72` | 底下是 `gold`/`silver`/`copper` **三個各自獨立**的 `MoneyFrameEditBoxTemplate`（同檔 `:3`）；每個的切片是 `parentKey="left"`／`"right"`（**小寫**）＋ 只有全域名字的 `$parentMiddle` | 無 | 三個框各一個 EditBox overlay；幣值圖 `texture` 不碰（那是值） | 未實測 |
+| `UIRadioButtonTemplate`（送錢／貨到付款）<br>`Blizzard_SharedXML/Shared/Button/CheckButtonTemplates.xml:4` | `GetNormalTexture`；**沒有** Pushed／Disabled | **引擎**：Highlight→白 8%；`Checked` 染白（那是值） | CheckBox overlay（圓鈕改方框是刻意的） | 未實測 |
+| `ThinGoldEdgeTemplate`（金額列的金邊）<br>`Blizzard_UIPanelTemplates/Mainline/UIPanelTemplates.xml:1314` | `$parentLeft`／`$parentMiddle`／`$parentRight`，**只有全域名字、沒有 parentKey** | 無 | 無（底下的 `InsetFrameTemplate` 已經有底有邊） | 未實測 |
+| 舊式輸入框（收件人／主旨）<br>`Blizzard_MailFrame/MailFrame.xml:574,581,588` | 同上，`$parentLeft/Middle/Right` **只有全域名字** ⇒ `Skin.EditBox` 的 `NeutralizeKeys` 找不到 | 無 | 配方裡的 `SkinLegacyEditBox`（TODO(升格)） | 未實測 |
+| `TabSystemButtonTemplate`（好友名單頂部分頁）<br>`Blizzard_SharedXML/Shared/TabSystem/TabSystemTemplates.xml:3` | 九張貼圖的 parentKey 名字跟 `PanelTabButtonTemplate` **一樣**，但 parentArray 叫 `RotatedTextures` | **做不到**：狀態走 `TabSystemButtonArtMixin:SetTabSelected`，不經過 `PanelTemplates_*` ⇒ Engine 的三個後置勾一次都不會觸發；而且是 `CreateFramePool` 生的（同檔 `.lua:209`） | **這一輪不做**，跟下拉與池化列同一批 | — |
 
 ### 註 ⓐ　分頁為什麼只能 hook
 
@@ -362,7 +368,23 @@ alpha，兩個相乘 —— 中和過的 Pushed 再怎麼上色都看不見。
 
 一般的面板視窗 —— 外框、標題列、關閉鈕、內嵌框、`UIPanelButtonTemplate` 按鈕、
 分頁、`MinimalScrollBar`、搜尋框。
-對話、成就、角色面板、商人、郵件、好友、公會、任務日誌、專業、收藏……都屬於這一類。
+對話、成就、角色面板、任務、郵件、好友名單、商人、公會、任務日誌、專業、收藏……
+都屬於這一類。
+
+**已經有配方的六個視窗**（`Skins/*.lua`，全部未實測）：
+
+| 視窗 | key | 這一輪做到哪 |
+|---|---|---|
+| 對話 `GossipFrame` | `gossip` | chrome／關閉鈕／Inset／再見鈕／捲軸。羊皮紙不碰 |
+| 角色面板 `CharacterFrame` | `character` | chrome／關閉鈕／兩個 Inset／底部三顆分頁／側邊欄分頁 |
+| 成就 `AchievementFrame` | `achievement` | chrome／標題列／返回鈕／搜尋框／三條捲軸／三顆分頁 |
+| 任務 `QuestFrame` | `quest` | chrome／關閉鈕／Inset／六顆面板按鈕／四條捲軸／`QuestModelScene` 的兩個外框。**羊皮紙與四張 `Material*` 不碰** |
+| 郵件 `MailFrame`＋`OpenMailFrame` | `mail` | 兩個視窗的 chrome／兩顆分頁／收件匣底圖與翻頁鈕／寄信頁的輸入框、金額欄、單選鈕、Inset／七顆按鈕／兩條捲軸。**信紙不碰**，信件列與三條分隔線留下一輪 |
+| 好友名單 `FriendsFrame` | `friends` | chrome／底部四顆分頁／聯絡人頁兩顆按鈕／戰網廣播框（邊框＋輸入框＋兩顆按鈕）／查詢頁（搜尋框、Inset、四個欄位表頭、三顆按鈕）／忽略名單小視窗／三條捲軸 |
+
+同一批裡**刻意留到下一輪**的：所有 `WowStyle1DropdownTemplate` 系下拉、所有
+`WowScrollBoxList` 的池化列、好友名單的 `TabSystemButtonTemplate` 頂部分頁、
+團隊／快速加入／近期盟友／招募好友四個子框（它們的框不住在 `Blizzard_FriendsFrame` 裡）。
 
 ### B 級：只做 overlay，而且要逐一驗收
 

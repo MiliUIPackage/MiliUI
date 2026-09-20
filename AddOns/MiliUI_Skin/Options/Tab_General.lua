@@ -42,6 +42,9 @@ local controls = {
     { type = "toggle", sub = "windows", key = "gossip",      label = L["Gossip"] },
     { type = "toggle", sub = "windows", key = "character",   label = L["Character Info"] },
     { type = "toggle", sub = "windows", key = "achievement", label = L["Achievements"] },
+    { type = "toggle", sub = "windows", key = "quest",       label = L["Quest"] },
+    { type = "toggle", sub = "windows", key = "mail",        label = L["Mail"] },
+    { type = "toggle", sub = "windows", key = "friends",     label = L["Friends List"] },
 
     { type = "space", h = 6 },
     { type = "text", label = L["Changes take effect after a UI reload."] },

@@ -26,6 +26,9 @@ L["Show status"] = "列出套用狀態"
 L["Gossip"] = "對話"
 L["Character Info"] = "角色資訊"
 L["Achievements"] = "成就"
+L["Quest"] = "任務"
+L["Mail"] = "郵件"
+L["Friends List"] = "好友名單"
 
 -- 暴雪「選項 > 插件」入口頁
 L["Use /mskin to open options"] = "使用 /mskin 開啟設定"
