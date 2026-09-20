@@ -32,6 +32,9 @@ local function BuildDefaults()
             quest       = true,
             mail        = true,
             friends     = true,
+            -- 收藏視窗有四份配方（外框＋坐騎／玩具箱＋傳家寶／寵物／外觀），
+            -- 共用這一個 key —— 玩家看到的是一個視窗
+            collections = true,
         },
     }
 end

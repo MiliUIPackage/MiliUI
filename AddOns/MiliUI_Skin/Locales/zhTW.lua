@@ -29,6 +29,11 @@ L["Achievements"] = "成就"
 L["Quest"] = "任務"
 L["Mail"] = "郵件"
 L["Friends List"] = "好友名單"
+L["Collections"] = "收藏"
+-- 同一個視窗的四份配方，只有 /mskin debug 的狀態清單看得到
+L["Collections: Toys & Heirlooms"] = "收藏：玩具箱與傳家寶"
+L["Collections: Pets"] = "收藏：寵物"
+L["Collections: Appearances"] = "收藏：外觀"
 
 -- 暴雪「選項 > 插件」入口頁
 L["Use /mskin to open options"] = "使用 /mskin 開啟設定"

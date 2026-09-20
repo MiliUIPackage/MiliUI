@@ -40,6 +40,12 @@ Skins\Achievement.lua
 Skins\Quest.lua
 Skins\Mail.lua
 Skins\Friends.lua
+# 收藏的四份共用設定 key `collections`，共用工具掛在 Collections.lua 的
+# `ns.CollectionsSkin` ⇒ 它一定要排在另外三份前面
+Skins\Collections.lua
+Skins\CollectionsToys.lua
+Skins\CollectionsPets.lua
+Skins\CollectionsWardrobe.lua
 
 # 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
 Libs\MiliUIWidgets\Env.lua
