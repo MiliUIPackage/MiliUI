@@ -4,8 +4,10 @@
     python3 .claude/scripts/check_skin.py
 
 這支插件的全部價值都建立在一條契約上：**只重畫，不重排。**
-對暴雪物件只准 SetAlpha / SetVertexColor / SetTextColor / SetColorTexture（限
-按鈕的 Highlight／Pushed 貼圖）／SetTexCoord，其餘一律禁止 —— 因為 12.1 之後
+對暴雪物件只准 SetAlpha / SetVertexColor / SetTextColor / SetTexCoord /
+SetColorTexture（限按鈕的 Highlight／Pushed／Checked 貼圖）／
+SetDesaturated（限 Engine.Desaturate）／SetStatusBarTexture（限 Engine.BarTexture），
+其餘一律禁止 —— 因為 12.1 之後
 「寫一個暴雪會讀的欄位」與「讓自己的 Lua 跑在暴雪的執行流裡」都會把污染擴散到
 完全不相干的系統，而錯誤訊息不會指向這裡（見 .claude/notes/wow-121-secret-values.md
 與 wow-121-addon-code-in-secure-stack.md）。
@@ -70,8 +72,29 @@ RULES = [
     (r":SetPushedTexture\s*\(",  "在暴雪按鈕上換／補狀態貼圖是結構性修改，不在白名單裡"),
     (r":SetHighlightTexture\s*\(", "在暴雪按鈕上換／補狀態貼圖是結構性修改，不在白名單裡"),
     (r":SetCheckedTexture\s*\(", "在暴雪按鈕上換／補狀態貼圖是結構性修改，不在白名單裡"),
+    # 第三輪把「換進度條的填充材質」放進白名單（STYLE.md ③）：那不是補一張本來沒有
+    # 的狀態貼圖，是把本來就存在、本來就被 SetValue 改寬度的那一張換掉長相。
+    # 但前提是「沒有程式讀回它」（`GetAtlas()`／`GetTexture()`），那要人去查原始碼、
+    # lint 抓不到 ⇒ **只准走 `Engine.BarTexture`**，查證結果就記在那一支的註解裡。
+    # 收緊不是放寬：配方與原語裡直接呼叫照樣是違規。
+    (r":SetStatusBarTexture\s*\(",
+     "換填充材質走 Engine.BarTexture（Skin.StatusBar 的 opts.texture）："
+     "查證「有沒有程式讀回這張圖」的結果記在那一支的註解裡"),
     # 12.1：顏色分量可能是秘密數字，只有貼圖層的 setter 保證吃得下
     (r":SetStatusBarColor\s*\(", "上色走貼圖的 SetVertexColor：顏色分量在 12.1 可能是秘密數字"),
+    # 讀暴雪物件的顏色**只准走 Engine.PassBorderColor**（當傳遞者不當讀取者）。
+    # 在配方裡直接讀就會忍不住拿去做判斷，而那一次比較就是在讀秘密值。
+    (r":GetVertexColor\s*\(",
+     "讀顏色只准走 Engine.PassBorderColor：分量可能是秘密值，"
+     "只能原封不動轉交，不能存、不能比較、不能算術"),
+    # `SetChecked` 寫的是暴雪按鈕的**值**（玩家的設定），比寫欄位更嚴重。
+    # 已勾的長相走 Engine.CheckedTexture —— 只換貼圖長相，顯示與否仍然是 C 端決定。
+    (r":SetChecked\s*\(",        "勾沒勾是暴雪的值；我們只換 Checked 貼圖的長相"),
+    # 去飽和只准走 Engine.Desaturate：那一支會擋掉「對按鈕下」的寫法
+    # （對按鈕下去會把它所有狀態貼圖一起灰掉，不是「只換長相」），
+    # 而且把「為什麼需要去飽和」的理由跟呼叫收在同一個地方。
+    (r":SetDesaturated\s*\(",
+     "去飽和走 Engine.Desaturate（Skin.IconButton 的 opts.desaturate）：只准對 region"),
     (r":LockHighlight\s*\(",     "LockHighlight 是寫暴雪按鈕的狀態；選中態走自己的 overlay"),
     (r":UnlockHighlight\s*\(",   "UnlockHighlight 是寫暴雪按鈕的狀態；選中態走自己的 overlay"),
     (r"\bPanelTemplates_\w+\s*\(", "不可以呼叫 PanelTemplates_*：那會寫暴雪框的欄位（selectedTab、isDisabled…）"),

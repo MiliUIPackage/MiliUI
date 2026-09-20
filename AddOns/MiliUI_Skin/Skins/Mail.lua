@@ -2,50 +2,109 @@
 -- 配方：郵件（MailFrame 收件匣／寄信頁 ＋ OpenMailFrame）
 --
 -- 暴雪原始碼出處（12.1 live 分支，Gethe/wow-ui-source）：
+--   Blizzard_MailFrame/MailFrame.xml:11       MailItemTemplate（三張**無名**美術 ＋ 兩條 FontString）
+--   Blizzard_MailFrame/MailFrame.xml:71       MailItemTemplate 的 `$parentButton`（CheckButton，
+--                                             帶 `$parentSlot` / `Icon` / `IconBorder` / COD / Count）
+--   Blizzard_MailFrame/MailFrame.xml:173      SendMailAttachment（Button ＋ 無名 UI-Slot-Background ＋ IconBorder）
 --   Blizzard_MailFrame/MailFrame.xml:274      MailFrame（ButtonFrameTemplate）
 --   Blizzard_MailFrame/MailFrame.xml:288,295  InboxFrame ／ InboxFrameBg（UI-MailFrameBG）
 --   Blizzard_MailFrame/MailFrame.xml:381,406  InboxPrevPageButton ／ InboxNextPageButton
+--                                             （32x32，箭頭是 Normal/Pushed/Disabled 三張；
+--                                              「上頁」「繼續」是**無名無 parentKey** 的 layer FontString，:388,:413）
 --   Blizzard_MailFrame/MailFrame.xml:431      OpenAllMail（UIPanelButtonTemplate）
 --   Blizzard_MailFrame/MailFrame.xml:447      SendMailFrame
+--   Blizzard_MailFrame/MailFrame.xml:463,477  SendMailHorizontalBarLeft / Left2（＋各自一張**無名**右半，:470,:484）
 --   Blizzard_MailFrame/MailFrame.xml:494      SendMailScrollFrame（ScrollFrameTemplate）
+--   Blizzard_MailFrame/MailFrame.xml:506,512  SendStationeryBackgroundLeft / Right（信紙）
+--   Blizzard_MailFrame/MailFrame.xml:527      SendMailBodyEditBox（FontString 走 MailTextFontNormal）
 --   Blizzard_MailFrame/MailFrame.xml:562,650  SendMailNameEditBox ／ SendMailSubjectEditBox
+--   Blizzard_MailFrame/MailFrame.xml:574-594  收件人框的三張切片：$parentLeft 錨 TOPLEFT(-8,-2) 8x20、
+--                                             $parentMiddle 100x20、$parentRight 8x20（框本身 109x25）
+--   Blizzard_MailFrame/MailFrame.xml:662-682  主旨框：$parentLeft 錨 TOPLEFT(-8,0)、Middle 221、Right 8（框 220x20）
+--   Blizzard_MailFrame/MailFrame.xml:697-712  SendMailAttachment1..16
 --   Blizzard_MailFrame/MailFrame.xml:728      SendMailMoney（MoneyInputFrameTemplate）
 --   Blizzard_MailFrame/MailFrame.xml:741,751  SendMailSendMoneyButton ／ SendMailCODButton
 --   Blizzard_MailFrame/MailFrame.xml:763,769  SendMailMoneyInset ／ SendMailMoneyBg（ThinGoldEdgeTemplate）
 --   Blizzard_MailFrame/MailFrame.xml:781,792  SendMailCancelButton ／ SendMailMailButton
 --   Blizzard_MailFrame/MailFrame.xml:840,850  MailFrameTab1 / Tab2（FriendsFrameTabTemplate）
 --   Blizzard_MailFrame/MailFrame.xml:877      OpenMailFrame（ButtonFrameTemplate）
---   Blizzard_MailFrame/MailFrame.xml:921      OpenMailReportSpamButton
+--   Blizzard_MailFrame/MailFrame.xml:904,911  OpenMailHorizontalBarLeft ＋一張無名右半
 --   Blizzard_MailFrame/MailFrame.xml:956,968  OpenMailScrollFrame ／ OpenStationeryBackground*
+--   Blizzard_MailFrame/MailFrame.xml:989      OpenMailBodyText（SimpleHTML，MailTextFontNormal）
+--   Blizzard_MailFrame/MailFrame.xml:996      ConsortiumMailFrame（五條 InvoiceTextFontNormal ＋ 兩個金錢框）
+--   Blizzard_MailFrame/MailFrame.xml:1094     OpenMailInvoiceFrame（九條具名 InvoiceTextFontNormal ＋四個金錢框）
+--   Blizzard_MailFrame/MailFrame.xml:1224,1242,1258  OpenMailLetterButton／AttachmentButton1..16／MoneyButton（皆 ItemButton）
 --   Blizzard_MailFrame/MailFrame.xml:1289,1298,1307  OpenMailCancel／Delete／ReplyButton
---   Blizzard_MailFrame/MailFrame.lua:21,26,27 SetPortraitToAsset ＋ SetNumTabs／SetTab
---   Blizzard_MailFrame/MailFrame.lua:548,1069 兩組信紙 SetTexture
+--   Blizzard_MailFrame/MailFrame.lua:190      InboxFrame_Update
+--   Blizzard_MailFrame/MailFrame.lua:233-262  信件鈕的 SetItemButtonQuality／IconBorder:Hide()／
+--                                             Slot 每次重設 vertex color／Icon 每次 SetTexture
+--   Blizzard_MailFrame/MailFrame.lua:516      OpenMail_Update
+--   Blizzard_MailFrame/MailFrame.lua:736-739,1065-1070  兩組信紙每次 SetTexture/SetTexCoord/SetHeight
+--   Blizzard_MailFrame/MailFrame.lua:958      SendMailFrame_Update
 --   Blizzard_MoneyFrame/Mainline/MoneyInputFrame.xml:3,72  MoneyFrameEditBoxTemplate ／ MoneyInputFrameTemplate
---   Blizzard_SharedXML/Shared/Button/CheckButtonTemplates.xml:4  UIRadioButtonTemplate
+--   Blizzard_MoneyFrame/Shared/MoneyFrame.lua:311          SetMoneyFrameColorByFrame → **SetNormalFontObject**
+--   Blizzard_SharedXML/Shared/Button/CheckButtonTemplates.xml:4   UIRadioButtonTemplate
+--   Blizzard_ItemButton/Shared/ItemButtonTemplate.xml:4           ItemButton intrinsic
+--   Blizzard_ItemButton/Mainline/ItemButtonTemplate.lua:76,94,189,241  SetItemButtonTexture／Quality／Border
 --   Blizzard_UIPanelTemplates/Mainline/UIPanelTemplates.xml:1314 ThinGoldEdgeTemplate
 --   Blizzard_FriendsFrame/Mainline/FriendsFrame.xml:472          FriendsFrameTabTemplate ← PanelTabButtonTemplate
---   Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:660,684 ButtonFrameBase／ButtonFrameTemplate
 --   Blizzard_SharedXML/SecureUIPanelTemplates.lua:1              ScrollFrame_OnLoad → self.ScrollBar（MinimalScrollBar）
 --
--- 查證後跟計畫假設不一樣的四件事：
+-- 查證後跟計畫假設不一樣的五件事：
 --   1. **郵件不是隨需載入的。** `Blizzard_MailFrame` 的 TOC 是 `## DefaultState: enabled`
---      而且沒有 `LoadOnDemand`（它的相依是 `Blizzard_FriendsFrame`），所以登入就在
---      ⇒ `addon = nil`。
---   2. **底部兩顆分頁走的是 `FriendsFrameTabTemplate`**（定義在 `Blizzard_FriendsFrame`，
---      FriendsFrame.xml:472），而它只是 `PanelTabButtonTemplate` 加一個 OnClick
+--      而且沒有 `LoadOnDemand` ⇒ `addon = nil`。
+--   2. **底部兩顆分頁走的是 `FriendsFrameTabTemplate`** ← `PanelTabButtonTemplate`
 --      ⇒ 九張貼圖收在 `TabTextures` parentArray，`Skin.Tab(..., "panel")` 直接適用。
---      狀態切換走 `PanelTemplates_SetTab`（MailFrame.lua:27,145），Engine 的三個後置勾吃得到。
---   3. **收件人／主旨輸入框不是 `InputBoxTemplate`。** 它們的三張邊框貼圖是
+--   3. **收件人／主旨輸入框不是 `InputBoxTemplate`。** 三張邊框貼圖是
 --      `<Texture name="$parentLeft">`，**只有全域名字、沒有 parentKey**
---      （MailFrame.xml:574,581,588 與 662,669,676）⇒ `Skin.EditBox` 的 `NeutralizeKeys` 找不到，
---      改走本檔的 `SkinLegacyEditBox`。
---   4. **金額輸入框是三個各自獨立的小輸入框。** `MoneyInputFrameTemplate` 底下是
---      `gold` / `silver` / `copper` 三個 `MoneyFrameEditBoxTemplate`，各自帶
---      `parentKey="left"` / `parentKey="right"`（**小寫**）與一張只有全域名字的
---      `$parentMiddle`（MoneyInputFrame.xml:17-40）⇒ 三個框各畫一個 overlay。
+--      ⇒ 走 `Skin.EditBox` 的 `opts.globalPrefix`。
+--      而且**美術的矩形比框小一圈**（見上面的行號），overlay 一定要給 `points`，
+--      不然畫出來的方塊會往右壓到「郵資」。
+--   4. **金額輸入框是三個各自獨立的小輸入框。** `gold`/`silver`/`copper` 三個
+--      `MoneyFrameEditBoxTemplate`，切片是 `parentKey="left"`/`"right"`（**小寫**）
+--      ＋ 只有全域名字的 `$parentMiddle`。
+--   5. **收件匣的信件鈕不是 `ItemButton`**，是手寫的 `CheckButton`
+--      （MailFrame.xml:71），圖示欄位叫 `Icon`（大寫）而不是 `icon`。
+--      `Skin.ItemButton` 兩種都找，所以照樣適用。
+--      它的 `CheckedTexture`（`CheckButtonHilight`，ADD）是「目前打開的是哪一封」
+--      的**選中**訊號 ⇒ 走 `Engine.CheckedTexture` 換成職業色。
+--
+------------------------------------------------------------
+-- ## 信紙為什麼這一輪改成深色（內容底材規則的第二個實例）
+--
+-- 第二輪的結論是「信紙不碰」。第三輪改掉，理由跟成就視窗一模一樣：深色外框裡
+-- 包著一整張亮橘信紙是整個視窗最不協調的地方。
+--
+-- 破例的代價是規則的後半段 —— **換底材就要連同上面所有文字顏色一起接管，而且
+-- 要查清楚暴雪在哪些路徑重設那些顏色。** 這個視窗查出來是：
+--
+--   寄信頁：信紙上只有一條文字線 —— `SendMailBodyEditBox`（`MailTextFontNormal`）。
+--           `MailFrame.lua` 全檔沒有任何一行重設它的顏色 ⇒ 設一次就撐得住。
+--   讀信視窗：信紙上有三種互斥的內容，全部查過：
+--           a. `OpenMailBodyText`（SimpleHTML）—— 只被 `SetText(bodyText, true)`
+--              （.lua:546）。`SetText` 會依字型物件重排 ⇒ 顏色放在
+--              `OpenMail_Update` 的後置勾裡重申，不是只設一次。
+--           b. `OpenMailInvoiceFrame` 的九條具名 `InvoiceTextFontNormal` ——
+--              沒有任何一條在 Lua 裡被重設顏色。
+--           c. `ConsortiumMailFrame` 的五條 parentKey FontString ＋
+--              `CommissionPaidDisplay.CommissionPaidText` —— 同上。
+--              它的 `Separator` 是 `DEFAULT_MATERIAL_TEXT_COLOR`（深色）⇒ 改亮。
+--           另外那幾個金錢框（`SmallMoneyFrameTemplate` / `MoneyDisplayFrameTemplate`）
+--           **不用碰**：它們的字色走 `SetMoneyFrameColorByFrame` →
+--           `SetNormalFontObject(NumberFontNormalRight…)`（MoneyFrame.lua:311-316），
+--           那一族本來就是**白／紅／綠**，深底上讀得到。
+--           躲在金錢框裡的 `+` `-` 與數量是**無名** `InvoiceTextFontNormal`
+--           ⇒ 走 `Engine.RecolorRegions` 掃那一層的 FontString。
+--
+-- ⚠ 接不乾淨的殘留（回報裡有列）：**信件內文自己帶的色碼**。玩家寫的信不會有，
+--   但系統信與拍賣信會用 `|cff……|r` 指定顏色（多半是亮金／亮白，深底上沒問題），
+--   而 GM 信件與部分活動信件會出現深色色碼 —— 那是字串裡的資料，任何顏色接管
+--   都蓋不過去。這是已知殘留，不是漏查。
 --
 ------------------------------------------------------------
 -- ## taint 接觸面清單
+--
+-- ### 兩個視窗的 chrome
 --
 -- | 物件 | 動作 |
 -- |---|---|
@@ -56,48 +115,106 @@
 -- | 兩顆關閉鈕的 Highlight/Pushed 貼圖 | SetColorTexture |
 -- | MailFrameTab1..2 的 TabTextures（九張） | SetAlpha(0) |
 -- | MailFrameTab1..2 | SetNormalFontObject(GameFontHighlightSmall) |
+-- | 九顆 UIPanelButtonTemplate 的 Left/Right/Middle | SetAlpha(0) |
+-- | 同九顆 | SetNormalFontObject(GameFontHighlight) |
+-- | 兩條 MinimalScrollBar 的 Track/Thumb 六張貼圖 | SetAlpha(0) |
+-- | 兩條 MinimalScrollBar 的 Back/Forward.Texture | SetVertexColor |
+--
+-- ### 收件匣
+--
+-- | 物件 | 動作 |
+-- |---|---|
 -- | InboxFrameBg | SetAlpha(0) |
--- | InboxPrev/NextPageButton 的 Highlight 貼圖 | SetColorTexture |
--- | 七顆 UIPanelButtonTemplate 的 Left/Right/Middle | SetAlpha(0) |
--- | 同七顆 | SetNormalFontObject(GameFontHighlight) |
+-- | MailItem1..7 自己的三張無名貼圖（兩片棕框 ＋ 列底那條 0.33/0.16/0 的線） | SetAlpha(0)（GetRegions 掃） |
+-- | MailItem1..7ButtonSlot（UI-EmptySlot-White） | SetAlpha(0) |
+-- | MailItem1..7Button 的 IconBorder | SetAlpha(0) |
+-- | 同七顆的 Icon | SetTexCoord |
+-- | 同七顆的 NormalTexture（沒有）／Highlight | SetColorTexture |
+-- | 同七顆的 CheckedTexture | SetAlpha(1) ＋ SetColorTexture（職業色） |
+-- | InboxPrev/NextPageButton 的 Normal/Pushed/Disabled 貼圖 | SetVertexColor |
+-- | 同兩顆的無名 FontString（「上頁」「繼續」） | SetTextColor |
+-- | 同兩顆的 Highlight 貼圖 | SetColorTexture |
+--
+-- ### 寄信頁
+--
+-- | 物件 | 動作 |
+-- |---|---|
 -- | SendMailName/SubjectEditBox 的 *Left/*Middle/*Right（全域） | SetAlpha(0) |
+-- | SendStationeryBackgroundLeft/Right | SetAlpha(0) |
+-- | SendMailBodyEditBox | SetTextColor |
+-- | SendMailHorizontalBarLeft/Left2 ＋ 兩張無名右半 | SetAlpha(0)（GetRegions 掃 SendMailFrame） |
+-- | SendMailAttachment1..16 的無名 UI-Slot-Background、IconBorder | SetAlpha(0) |
+-- | 同 16 顆的 icon | SetTexCoord |
 -- | SendMailMoney{Gold,Silver,Copper} 的 left/right ＋ *Middle（全域） | SetAlpha(0) |
 -- | SendMailMoneyBg 的 *Left/*Middle/*Right（全域） | SetAlpha(0) |
 -- | SendMailSendMoneyButton / SendMailCODButton 的 Normal 貼圖 | SetAlpha(0) |
--- | 同兩顆的 Checked 貼圖 | SetVertexColor |
+-- | 同兩顆的 Checked 貼圖 | SetAlpha(1) ＋ SetColorTexture（職業色） |
 -- | SendMailMoneyInset 的 Bg / NineSlice | SetAlpha(0) |
--- | 兩條 MinimalScrollBar 的 Track/Thumb 六張貼圖 | SetAlpha(0) |
--- | 兩條 MinimalScrollBar 的 Back/Forward.Texture | SetVertexColor |
--- | 以上各框 | CreateFrame 掛自己的 overlay |
 --
--- hook：只有 Engine 的三個 `PanelTemplates_*` 全域後置勾（分頁選中態，裝在 Core/Engine.lua）。
+-- ### 讀信視窗
+--
+-- | 物件 | 動作 |
+-- |---|---|
+-- | OpenStationeryBackgroundLeft/Right | SetAlpha(0) |
+-- | OpenMailBodyText | SetTextColor |
+-- | OpenMailInvoice* 九條 FontString | SetTextColor |
+-- | ConsortiumMailFrame 的五條 FontString ＋ CommissionPaidText | SetTextColor |
+-- | ConsortiumMailFrame.CommissionPaidDisplay.Separator | SetVertexColor |
+-- | 四個金錢框裡的無名 InvoiceTextFontNormal | SetTextColor |
+-- | OpenMailHorizontalBarLeft ＋一張無名右半 | SetAlpha(0)（GetRegions 掃 OpenMailFrame） |
+-- | OpenMailLetterButton / OpenMailMoneyButton / OpenMailAttachmentButton1..16 | 同附件格 |
+--
+-- ### 伴隨元件（套組內建的郵件增強插件，見下面那一節）
+--
+-- | 全域名稱 | 動作 |
+-- |---|---|
+-- | PostalSelectOpenButton / PostalSelectReturnButton / PostalOpenAllButton / OpenMailForwardButton | 同 `Skin.Button` |
+-- | Postal_ModuleMenuButton / Postal_OpenAllMenuButton / Postal_BlackBookButton | 同 `Skin.IconButton` |
+-- | PostalInboxCB1..7 | 同 `Skin.CheckBox` |
+--
+-- 以上各框：`CreateFrame` 掛自己的 overlay（SetAllPoints／錨在目標上，不吃滑鼠）。
+--
+-- hook（全部是後置勾，不換函式）：
+--   * Engine 的三個 `PanelTemplates_*` 全域後置勾（分頁選中態，裝在 Core/Engine.lua）。
+--   * Engine 的 `SetItemButtonQuality` / `SetItemButtonTexture` 兩個全域後置勾
+--     （物品格的品質方框與裁邊，裝在 Core/Engine.lua，第一行查弱鍵表）。
+--   * `hooksecurefunc("InboxFrame_Update", …)` —— 七列的重畫（Slot 的 vertex color
+--     與寄件人／主旨的顏色每次都被重設）。
+--   * `hooksecurefunc("OpenMail_Update", …)` —— 信紙與上面所有文字顏色的重申。
+--   * `hooksecurefunc("SendMailFrame_Update", …)` —— 信紙的重申。
+--
 -- 寫入暴雪欄位：無。
+-- 讀暴雪物件：只有 `Engine.PassBorderColor` 那一條（`IconBorder` 的
+--   `IsShown()` / `GetVertexColor()`，**當傳遞者不當讀取者**，見 STYLE.md ③ 的讀取例外表）。
+--
+------------------------------------------------------------
+-- ## 伴隨元件
+--
+-- 套組內建了一支郵件增強插件，它在收件匣與寄信頁上掛了一排自己的按鈕
+-- （開啟／返回／收取全部、兩顆選單小鈕、每列左邊的勾選框，以及讀信視窗的轉寄）。
+-- 第二輪定的規矩是「只 skin 暴雪自己的物件」，但收件匣最顯眼的就是它們 ——
+-- 一個換了皮的視窗上擺著三顆紅色的原生按鈕，比整個視窗都沒換皮更難看。
+--
+-- 所以第三輪加了「伴隨元件」規則（STYLE.md ③）。這一份守的是：
+--   * 用**全域名稱**判斷有沒有，**沒有就靜默跳過** —— 不記進「找不到的區域」，
+--     玩家可能根本沒裝。
+--   * 不呼叫它的任何函式、不 hook 它的函式、不依賴載入順序、**不在它的框上寫欄位**。
+--   * 動作跟對暴雪物件一樣走白名單，原語直接重用。
+--   * 時機走 `Engine.Register` 的 `companions`（`MAIL_SHOW` ＋ 延一幀），
+--     配方裡**不自己建事件框**。冪等，戰鬥閘照走。
 --
 ------------------------------------------------------------
 -- ## 刻意不碰的東西
 --
--- * **兩組信紙**（`SendStationeryBackgroundLeft/Right`、`OpenStationeryBackgroundLeft/Right`，
---   MailFrame.xml:506,512,968,974）—— 信件內文用的是 `MailTextFontNormal`（深色），
---   那個字色就是為信紙設計的。中和掉＝暗字壓暗底（內容底材保留規則）。
---   內文區只補一圈畫在**信紙之上**的 1px 邊（`BorderOnly`）。
--- * **三條 `UI-ClassTrainer-HorizontalBar` 分隔線**（MailFrame.xml:463,477,904）——
---   每條都是「一張具名的左半 ＋ 一張**無名無 parentKey** 的右半」。只中和得到左半，
---   留下半截比整條都在更難看，所以整組不動。等原語層有「無名裝飾貼圖」的作法再處理。
--- * **信件列 `MailItemTemplate` 的格子美術**（MailFrame.xml:15,22 與 :29 的分隔線）—— 同上，
---   三張貼圖全部無名無 parentKey，只能靠 `GetRegions()` 的索引去猜，太脆。
---   信件列本身是池化／逐列的東西，列在下一輪。
--- * **附件格**（`SendMailAttachment*`、`OpenMailAttachmentButton*`、`OpenMailLetterButton`、
---   `OpenMailMoneyButton`）—— 物品格帶品質色，是內容不是 chrome。
--- * **`SmallMoneyFrameTemplate` 的金幣數字**（`SendMailCostMoneyFrame`、
---   `SendMailMoneyFrame`、`OpenMail*MoneyFrame`）—— 那是值不是裝飾。
+-- * **`SmallMoneyFrameTemplate` / `MoneyDisplayFrameTemplate` 的金幣數字** ——
+--   那是值不是裝飾，而且字色走字型物件（白／紅／綠），深底上讀得到。
 -- * **`MailFrame.trialError`、`InboxTooMuchMail`、`SendMailErrorText`、
 --   `SendMailFrameLockSendMail`** —— 警告與遮罩，顏色本身就是訊息。
--- * **`ConsortiumMailFrame` / `OpenMailInvoiceFrame`** —— 拍賣／訂單收據的內容版面。
---
--- ⚠ 套組裡 **Postal** 也掛在這三個視窗上（見回報）。這一輪只 skin 暴雪自己的物件，
---   Postal 自己建的按鈕維持暴雪原樣。順帶一提 Postal 會把暴雪的 `OpenAllMail`
---   `Hide()` 起來換成自己那顆，所以我們給 `OpenAllMail` 的皮多半看不到 ——
---   照樣套，因為那是暴雪的框，而且玩家可能沒開 Postal。
+-- * **寄件人金字／主旨白字／到期天數的綠紅** —— 資訊，`InboxFrame_Update`
+--   每次都重設（.lua:253-268），我們也不該蓋。
+-- * **`SendMailCODButtonText`** —— `SendMailFrame_Update` 依能不能送在金／灰之間切
+--   （.lua:998,1014），那是狀態。
+-- * **附件格的 `Count` 與 `IconOverlay`/`IconOverlay2`** —— 數量與特殊品質圈，都是值。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -106,48 +223,38 @@ local E = ns.Engine
 local T = ns.Tokens
 local L = ns.L
 
-local TRANSPARENT = { 0, 0, 0, 0 }
+------------------------------------------------------------
+-- `Engine.NeutralizeRegions` 的「要留下的」set。物品格上的裝飾是無名的、
+-- 要留的反而全部有 parentKey ⇒ 列出要留的那一邊才寫得出來。
+local function KeepSet(owner, keys)
+    local set = {}
+    for _, k in ipairs(keys) do
+        local region
+        if pcall(function() region = owner[k] end) and type(region) == "table" then
+            set[region] = true
+        end
+    end
+    return set
+end
+
+local ATTACHMENT_KEEP = { "icon", "Icon", "IconBorder", "IconOverlay", "IconOverlay2" }
 
 ------------------------------------------------------------
--- TODO(升格): 下面四支是「舊式模板」的通用處理，之後應該收進 Core/Primitives.lua。
---   等第二個視窗也用得上再升格 —— 現在只有郵件這一支，先留在配方裡。
+-- 舊式輸入框的美術矩形（照 XML 的錨點抄，不要量測）
+--
+-- 收件人框 109x25，三張切片涵蓋 x ∈ [-8, 108]、y ∈ [-2, -22]
+--   ⇒ TOPLEFT(-8, -2) / BOTTOMRIGHT(109-108 = -1, 25-22 = +3)
+-- 主旨框 220x20，切片涵蓋 x ∈ [-8, 229]、y ∈ [0, -20]
+--   ⇒ TOPLEFT(-8, 0) / BOTTOMRIGHT(229-220 = +9, 0)
 ------------------------------------------------------------
-
--- TODO(升格): 只有全域名字、沒有 parentKey 的三張切片（`<Texture name="$parentLeft">`）。
---   舊視窗滿地都是（輸入框、ThinGoldEdge、WhoFrame 的欄位表頭），Primitives 值得有一支。
-local function NeutralizeGlobalSlices(prefix)
-    E.NeutralizeGlobals({ prefix .. "Left", prefix .. "Middle", prefix .. "Right" })
-end
-
--- TODO(升格): 舊式輸入框 ＝ 全域三張切片 ＋ EditBox overlay。
---   跟 `Skin.EditBox` 的差別只在「區域怎麼找」，升格時應該是 Skin.EditBox 多一個
---   `opts.globalPrefix`，而不是兩支函式。
-local function SkinLegacyEditBox(eb, key, prefix)
-    if not E.Usable(eb, key) then return end
-    NeutralizeGlobalSlices(prefix or key)
-    local ov = E.Overlay(eb, { key = key })
-    E.Paint(ov, T.fillInset, T.border)
-    return ov
-end
-
--- TODO(升格): 只有圖示、沒有 Left/Middle/Right 的按鈕（收件匣的上一頁／下一頁）。
---   圖示本身**不中和** —— 那是「這顆按鈕是幹嘛的」唯一的線索，跟捲軸箭頭同一條理由
---   （STYLE.md ⑤ 的 MinimalScrollBar 那一列）。我們只補底與邊，滑過交給引擎。
-local function SkinIconOnlyButton(btn, key)
-    if not E.Usable(btn, key) then return end
-    E.ButtonStates(btn, key)
-    local ov = E.Overlay(btn, { key = key })
-    E.Paint(ov, T.fill, T.border)
-    return ov
-end
-
--- TODO(升格): 「只畫一圈邊、不動底」。給保留了內容底材（信紙）但還是想要外框的區塊用。
---   層級 +1 才畫得在信紙之上（其餘 overlay 一律 −1），同 `Skin.Icon` 的邊框那一層。
-local function BorderOnly(target, key)
-    local ov = E.Overlay(target, { key = key .. ".border", levelOffset = 1 })
-    E.Paint(ov, TRANSPARENT, T.border)
-    return ov
-end
+local NAME_BOX_POINTS = {
+    { "TOPLEFT", "TOPLEFT", -8, -2 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", -1, 3 },
+}
+local SUBJECT_BOX_POINTS = {
+    { "TOPLEFT", "TOPLEFT", -8, 0 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", 9, 0 },
+}
 
 ------------------------------------------------------------
 -- 金額輸入框（MoneyInputFrameTemplate）
@@ -181,8 +288,71 @@ local function SkinMoneyInput(frame, globalName, key)
 end
 
 ------------------------------------------------------------
--- 收件匣頁
+-- 收件匣
 ------------------------------------------------------------
+local INBOX_ROWS = 7
+
+-- 列與列之間靠**隔行明暗**分，不畫格線（feedback-ui-visual-style：一排都有邊
+-- 會變成格子紙）。奇數列 `fill`、偶數列 `fillInset`。
+local function RowFill(i)
+    return (i % 2 == 1) and T.fill or T.fillInset
+end
+
+local function SkinInboxRows()
+    for i = 1, INBOX_ROWS do
+        local key = "MailItem" .. i
+        local row = _G[key]
+        if not row then
+            E.Missing(key)
+        else
+            -- 三張美術全部**無名無 parentKey**（MailFrame.xml:15,22,29）：
+            -- 兩片 `MailItemBorder` 切片（左邊那塊棕色格子 ＋ 右邊那條棕框）
+            -- 與列底那條 `0.33/0.16/0 a=.3` 的線。`GetRegions` 只掃 Texture，
+            -- `$parentSender` / `$parentSubject` 是 FontString ⇒ 自動排除，
+            -- 不用列「要留哪些」。
+            E.NeutralizeRegions(row, key)
+
+            local ov = E.Overlay(row, { key = key, noBorder = true })
+            E.Paint(ov, RowFill(i))
+
+            -- 信件圖示鈕：手寫的 CheckButton，欄位是 `Icon`（大寫）
+            local btn = _G[key .. "Button"]
+            if btn then
+                -- `$parentSlot`（UI-EmptySlot-White）是那張 64x64 的空格雕花。
+                -- ⚠ 一定要 alpha：`InboxFrame_Update` 每次都對它
+                --   `SetVertexColor(1,0.82,0)` 或 `(0.5,0.5,0.5)`（.lua:255,261），
+                --   換材質或換顏色都撐不過一次更新。
+                E.Neutralize(_G[key .. "ButtonSlot"], key .. "ButtonSlot")
+                Skin.ItemButton(btn, key .. "Button")
+                -- 已讀／未讀不歸我們管（那是資訊），但「目前打開的是哪一封」
+                -- 走 CheckedTexture（.lua:297），換成職業色才看得出選中。
+                E.CheckedTexture(btn,
+                    { T.AccentCheck(0.45) }, { T.AccentCheckDisabled(0.45) },
+                    key .. "Button")
+            else
+                E.Missing(key .. "Button")
+            end
+        end
+    end
+end
+
+-- ⚠ 這一支**一定要有**，而且不能只靠 Engine 那兩個 `SetItemButton*` 全域後置勾。
+--
+-- 「這一列沒有附件」那條路，`InboxFrame_Update` 是**直接**
+-- `button.IconBorder:Hide()`（MailFrame.lua:237），不經過 `SetItemButtonBorder`
+-- ⇒ 全域後置勾一次都不會觸發，我們的品質方框會留著上一封信的顏色。
+-- 所以這裡逐列重跑一次轉交（順便重裁圖示，`buttonIcon:SetTexture` 在 .lua:245）。
+--
+-- 其餘的不用重申：列自己那三張美術暴雪不會再碰，`$parentSlot` 被重設的是
+-- **vertex color**（.lua:255,261）而不是 alpha，中和撐得住。
+local function ReapplyInbox()
+    for i = 1, INBOX_ROWS do
+        local key = "MailItem" .. i .. "Button"
+        local btn = _G[key]
+        if btn then Skin.ItemButtonRefresh(btn, key) end
+    end
+end
+
 local function SkinInbox()
     local inbox = _G.InboxFrame
     if not inbox then
@@ -190,15 +360,20 @@ local function SkinInbox()
         return
     end
 
-    -- UI-MailFrameBG：鋪滿內容區的那張大底圖。不中和就看不到皮。
-    -- 信件列自己的格子美術留著（見檔頭），所以這一頁實測起來會是
-    -- 「深灰底 ＋ 七條暴雪原本的棕色格線」 —— 池化列那一輪才會一致。
+    -- UI-MailFrameBG：鋪滿內容區的那張大底圖
     E.NeutralizeGlobals({ "InboxFrameBg" })
 
+    SkinInboxRows()
+
+    -- 翻頁鈕：32x32，但 `UI-SpellbookIcon-PrevPage-Up` 的箭頭只佔中間一小塊，
+    -- 框畫成整顆按鈕會比箭頭大一圈（第二輪實測的症狀）⇒ 四邊各內縮 4。
+    -- 「上頁」「繼續」是按鈕自己 region 裡的**無名** FontString（:388,:413），
+    -- 暴雪不會重設它們的顏色（`InboxFrame_Update` 只動 `InboxCurrentPage`），
+    -- 設一次就撐得住。
     for _, name in ipairs({ "InboxPrevPageButton", "InboxNextPageButton" }) do
         local btn = _G[name]
         if btn then
-            SkinIconOnlyButton(btn, name)
+            Skin.IconButton(btn, name, { inset = 4, labelColor = T.text })
         else
             E.Missing(name)
         end
@@ -215,6 +390,8 @@ end
 ------------------------------------------------------------
 -- 寄信頁
 ------------------------------------------------------------
+local SEND_ATTACHMENTS = 16
+
 local function SkinSendMail()
     local frame = _G.SendMailFrame
     if not frame then
@@ -222,13 +399,25 @@ local function SkinSendMail()
         return
     end
 
-    SkinLegacyEditBox(_G.SendMailNameEditBox, "SendMailNameEditBox")
-    SkinLegacyEditBox(_G.SendMailSubjectEditBox, "SendMailSubjectEditBox")
+    Skin.EditBox(_G.SendMailNameEditBox, "SendMailNameEditBox",
+        { globalPrefix = true, points = NAME_BOX_POINTS })
+    Skin.EditBox(_G.SendMailSubjectEditBox, "SendMailSubjectEditBox",
+        { globalPrefix = true, points = SUBJECT_BOX_POINTS })
 
-    -- 內文區：信紙不中和，只在它之上補一圈邊 ＋ 一條捲軸。
+    -- 附件區上下那兩條雕花分隔線：每條都是「一張具名左半 ＋ 一張**無名無 parentKey**
+    -- 的右半」（:463/:470 與 :477/:484）。第二輪因為右半指名不到而整組放棄，
+    -- 這一輪改走 `GetRegions()` 掃 `SendMailFrame` 自己那一層 ——
+    -- 那一層只有這四張 Texture 加兩張錯誤提示用的（`SendMailErrorCoin` 是 Texture，
+    -- 但它本來就 hidden，中和掉沒有損失；`SendMailErrorText` 是 FontString，不會被掃到）。
+    E.NeutralizeRegions(frame, "SendMailFrame")
+
+    -- 內文區：信紙中和 ＋ 文字接管（見檔頭「信紙為什麼改成深色」）
+    E.NeutralizeGlobals({ "SendStationeryBackgroundLeft", "SendStationeryBackgroundRight" })
+    E.TextColor(_G.SendMailBodyEditBox, T.text, "SendMailBodyEditBox")
+
     local scroll = _G.SendMailScrollFrame
     if scroll then
-        BorderOnly(scroll, "SendMailScrollFrame")
+        Skin.BorderOnly(scroll, "SendMailScrollFrame")
         local bar
         if pcall(function() bar = scroll.ScrollBar end) and bar then
             Skin.ScrollBar(bar, "SendMailScrollFrame.ScrollBar")
@@ -239,11 +428,25 @@ local function SkinSendMail()
         E.Missing("SendMailScrollFrame")
     end
 
+    for i = 1, SEND_ATTACHMENTS do
+        local name = "SendMailAttachment" .. i
+        local btn = _G[name]
+        if btn then
+            Skin.ItemButton(btn, name)
+            -- 那張格子底（`UI-Slot-Background`，:177）**無名也沒有 parentKey**
+            -- ⇒ 只剩 GetRegions 一條路。掃的時候要把「不是裝飾」的留下來：
+            -- `icon` 是內容、`IconBorder` 已經中和過（再掃一次無害但省得重複）、
+            -- 兩張 `IconOverlay` 是艾澤萊／造型那種額外的圈，是資訊。
+            E.NeutralizeRegions(btn, name, KeepSet(btn, ATTACHMENT_KEEP))
+        else
+            E.Missing(name)
+        end
+    end
+
     SkinMoneyInput(_G.SendMailMoney, "SendMailMoney", "SendMailMoney")
 
-    -- 送錢／貨到付款是 UIRadioButtonTemplate：只有 Normal / Highlight / Checked 三張，
-    -- 沒有 Pushed 也沒有 Disabled。`Skin.CheckBox` 走 getter 不點名 parentKey，所以
-    -- 少了兩張也不會出事（拿不到就跳過）。圓鈕換成方框是刻意的 —— 直角是這包的語彙。
+    -- 送錢／貨到付款是 UIRadioButtonTemplate：只有 Normal / Highlight / Checked 三張。
+    -- 圓鈕換成方框、已勾換成整格職業色都是刻意的（見 Skin.CheckBox 那一段）。
     for _, name in ipairs({ "SendMailSendMoneyButton", "SendMailCODButton" }) do
         local btn = _G[name]
         if btn then
@@ -262,7 +465,7 @@ local function SkinSendMail()
 
     -- ThinGoldEdgeTemplate：金額顯示那條的金邊。三張切片同樣只有全域名字。
     -- 中和就好，不補 overlay —— 它正好疊在 SendMailMoneyInset 上，那一層已經有底有邊了。
-    NeutralizeGlobalSlices("SendMailMoneyBg")
+    E.NeutralizeGlobals({ "SendMailMoneyBgLeft", "SendMailMoneyBgMiddle", "SendMailMoneyBgRight" })
 
     for _, name in ipairs({ "SendMailMailButton", "SendMailCancelButton" }) do
         local btn = _G[name]
@@ -271,6 +474,15 @@ local function SkinSendMail()
         else
             E.Missing(name)
         end
+    end
+end
+
+-- `SendMailFrame_Update`（.lua:1065-1070）每次都重設信紙的材質／TexCoord／高度。
+-- alpha 跟它們是獨立的屬性 ⇒ 中和撐得住；這裡只重申「附件格有沒有新的」。
+local function ReapplySendMail()
+    for i = 1, SEND_ATTACHMENTS do
+        local btn = _G["SendMailAttachment" .. i]
+        if btn then Skin.ItemButtonRefresh(btn, "SendMailAttachment" .. i) end
     end
 end
 
@@ -284,6 +496,80 @@ local OPEN_MAIL_BUTTONS = {
     "OpenMailCancelButton",
 }
 
+local OPEN_MAIL_ITEM_BUTTONS = { "OpenMailLetterButton", "OpenMailMoneyButton" }
+local OPEN_ATTACHMENTS = 16
+
+-- 發票上那九條具名的 `InvoiceTextFontNormal`（深棕，為信紙設計的）
+local INVOICE_FONTSTRINGS = {
+    "OpenMailInvoiceItemLabel",
+    "OpenMailInvoicePurchaser",
+    "OpenMailInvoiceSalePrice",
+    "OpenMailInvoiceDeposit",
+    "OpenMailInvoiceHouseCut",
+    "OpenMailInvoiceAmountReceived",
+    "OpenMailInvoiceNotYetSent",
+    "OpenMailInvoiceMoneyDelay",
+}
+
+-- 訂單收據（`ConsortiumMailFrame`）的五條 parentKey FontString
+local CONSORTIUM_FONTSTRINGS = {
+    "OpeningText", "CrafterText", "CommissionReceived", "CrafterNote", "ConsortiumNote",
+}
+
+-- 信紙上那幾個金錢框：字色本身不用動（走白／紅／綠的字型物件），但框裡
+-- 藏著無名的 `+` `-` 與數量 FontString，那幾條要接管。
+local INVOICE_MONEY_FRAMES = {
+    "OpenMailTransactionAmountMoneyFrame",   -- MailFrame.xml:1147
+    "OpenMailDepositMoneyFrame",             -- 同檔 :1158
+    "OpenMailHouseCutMoneyFrame",            -- 同檔 :1178
+    "OpenMailSalePriceMoneyFrame",           -- 同檔 :1198
+}
+
+-- 信紙上所有文字的接管。`OpenMail_Update` 每次都 `SetText` ⇒ 放在後置勾裡重申。
+local function RecolourOpenMailContents()
+    E.TextColor(_G.OpenMailBodyText, T.text, "OpenMailBodyText")
+
+    -- 發票中間那條算式分隔線（`UI-MailFrame-InvoiceLine`，MailFrame.xml:1123）是
+    -- 一張**深色**的線畫，而 `SetVertexColor` 是乘法 —— 深底上乘不出比底亮的線，
+    -- 只會變成一塊看不見的暗斑。跟關閉鈕的 × 同一個坑，這裡的解法是直接中和：
+    -- 那條線只是排版輔助，拿掉之後上下兩塊金額靠間距一樣分得開。
+    E.Neutralize(_G.OpenMailArithmeticLine, "OpenMailArithmeticLine")
+
+    for _, name in ipairs(INVOICE_FONTSTRINGS) do
+        local fs = _G[name]
+        if fs then E.TextColor(fs, T.text, name) end
+    end
+    for _, name in ipairs(INVOICE_MONEY_FRAMES) do
+        E.RecolorRegions(_G[name], T.text, name)
+    end
+
+    local cm = _G.ConsortiumMailFrame
+    if cm then
+        for _, k in ipairs(CONSORTIUM_FONTSTRINGS) do
+            local fs
+            if pcall(function() fs = cm[k] end) and fs then
+                E.TextColor(fs, T.text, "ConsortiumMailFrame." .. k)
+            end
+        end
+        local paid
+        if pcall(function() paid = cm.CommissionPaidDisplay end) and paid then
+            local fs, sep
+            if pcall(function() fs = paid.CommissionPaidText end) and fs then
+                E.TextColor(fs, T.text, "ConsortiumMailFrame.CommissionPaidText")
+            end
+            -- 分隔線是 `DEFAULT_MATERIAL_TEXT_COLOR a=0.5`（深色，為信紙設計）
+            -- ⇒ 深底上要比底亮才看得見，同小節標題的髮絲線
+            if pcall(function() sep = paid.Separator end) and sep then
+                E.VertexColor(sep, T.fillHover, "ConsortiumMailFrame.Separator")
+            end
+            E.RecolorRegions(paid.MoneyDisplayFrame, T.text,
+                "ConsortiumMailFrame.CommissionPaidDisplay.MoneyDisplayFrame")
+        end
+        E.RecolorRegions(cm.CommissionReceivedDisplay, T.text,
+            "ConsortiumMailFrame.CommissionReceivedDisplay")
+    end
+end
+
 local function SkinOpenMail()
     local f = _G.OpenMailFrame
     if not f then
@@ -293,6 +579,9 @@ local function SkinOpenMail()
 
     Skin.PortraitChrome(f, "OpenMailFrame")
     Skin.Panel(f, "OpenMailFrame")
+
+    -- 那條 `UI-ClassTrainer-HorizontalBar` 分隔線（具名左半 ＋ 無名右半，:904/:911）
+    E.NeutralizeRegions(f, "OpenMailFrame")
 
     local inset
     if pcall(function() inset = f.Inset end) and inset then
@@ -317,9 +606,13 @@ local function SkinOpenMail()
         end
     end
 
+    -- 信紙中和 ＋ 上面所有文字接管
+    E.NeutralizeGlobals({ "OpenStationeryBackgroundLeft", "OpenStationeryBackgroundRight" })
+    RecolourOpenMailContents()
+
     local scroll = _G.OpenMailScrollFrame
     if scroll then
-        BorderOnly(scroll, "OpenMailScrollFrame")
+        Skin.BorderOnly(scroll, "OpenMailScrollFrame")
         local bar
         if pcall(function() bar = scroll.ScrollBar end) and bar then
             Skin.ScrollBar(bar, "OpenMailScrollFrame.ScrollBar")
@@ -329,6 +622,82 @@ local function SkinOpenMail()
     else
         E.Missing("OpenMailScrollFrame")
     end
+
+    for _, name in ipairs(OPEN_MAIL_ITEM_BUTTONS) do
+        local btn = _G[name]
+        if btn then
+            Skin.ItemButton(btn, name)
+        else
+            E.Missing(name)
+        end
+    end
+    for i = 1, OPEN_ATTACHMENTS do
+        local name = "OpenMailAttachmentButton" .. i
+        local btn = _G[name]
+        if btn then
+            Skin.ItemButton(btn, name)
+        else
+            E.Missing(name)
+        end
+    end
+end
+
+local function ReapplyOpenMail()
+    RecolourOpenMailContents()
+end
+
+------------------------------------------------------------
+-- 伴隨元件（見檔頭）
+--
+-- ⚠ 一律 `_G[...]` 判斷，**找不到就靜默 return**，不走 `E.Missing`。
+------------------------------------------------------------
+local COMPANION_BUTTONS = {
+    "PostalSelectOpenButton",     -- 收件匣「開啟」
+    "PostalSelectReturnButton",   -- 收件匣「返回」
+    "PostalOpenAllButton",        -- 收件匣「收取全部」（暴雪那顆 OpenAllMail 會被它藏起來，
+                                  --  但我們照樣給 OpenAllMail 上皮 —— 玩家可能沒裝）
+    "OpenMailForwardButton",      -- 讀信視窗「轉寄」
+}
+
+local COMPANION_ICON_BUTTONS = {
+    "Postal_ModuleMenuButton",    -- 視窗右上的 ▼
+    "Postal_OpenAllMenuButton",   -- 「收取全部」右邊的 ▼
+    "Postal_BlackBookButton",     -- 寄信頁收件人欄右邊的 ▼
+}
+
+local COMPANION_CHECKBOXES = 7    -- PostalInboxCB1..7
+
+local function SkinCompanions()
+    for _, name in ipairs(COMPANION_BUTTONS) do
+        local btn = _G[name]
+        if btn then Skin.Button(btn, name) end
+    end
+    for _, name in ipairs(COMPANION_ICON_BUTTONS) do
+        local btn = _G[name]
+        if btn then Skin.IconButton(btn, name, { inset = 4 }) end
+    end
+    for i = 1, COMPANION_CHECKBOXES do
+        local cb = _G["PostalInboxCB" .. i]
+        if cb then Skin.CheckBox(cb, "PostalInboxCB" .. i) end
+    end
+end
+
+------------------------------------------------------------
+-- 進入點
+------------------------------------------------------------
+local function InstallHooks()
+    -- ⚠ 這一段**不過戰鬥閘**（Engine 的 RunUnit 在戰鬥閘之前跑它）。
+    --   `hooksecurefunc` 不寫任何暴雪欄位，戰鬥中完全安全；被戰鬥閘擋的是「畫」。
+    local function Hook(name, fn)
+        if type(_G[name]) == "function" then
+            hooksecurefunc(name, fn)
+        else
+            E.Missing(name)
+        end
+    end
+    Hook("InboxFrame_Update", ReapplyInbox)
+    Hook("OpenMail_Update", ReapplyOpenMail)
+    Hook("SendMailFrame_Update", ReapplySendMail)
 end
 
 local function Apply()
@@ -376,5 +745,10 @@ E.Register{
     key   = "mail",
     addon = nil,                       -- Blizzard_MailFrame 的 TOC 是 DefaultState: enabled、非 LoD
     title = L["Mail"],
+    hooks = InstallHooks,
     apply = Apply,
+    companions = {
+        -- 伴隨元件是「開信箱那一刻才建」的 ⇒ MAIL_SHOW ＋ 延一幀。冪等，重掃無害。
+        { event = "MAIL_SHOW", apply = SkinCompanions },
+    },
 }

@@ -131,24 +131,6 @@ local BROADCAST_EDIT_BORDERS = {
     "LeftBorder", "RightBorder", "MiddleBorder",
 }
 
-------------------------------------------------------------
--- TODO(升格): 查詢頁的欄位表頭（WhoFrameColumnHeaderTemplate）
---
--- 三張切片的 parentKey 名字跟 `UIPanelButtonTemplate` 一樣（Left/Middle/Right），
--- 所以中和的部分跟 `Skin.Button` 完全重疊 —— **但不能直接用 Skin.Button**：
--- 表頭的 NormalFont 是 `UserScaledFontGameHighlightSmall`（跟著玩家的文字大小設定縮放），
--- `Skin.Button` 會把它換成固定字級的 `GameFontHighlight`，等於把縮放弄掉。
--- 升格時正解是 `Skin.Button` 多一個 `opts.keepFont`，不是再多一支函式。
-------------------------------------------------------------
-local function SkinColumnHeader(btn, key)
-    if not E.Usable(btn, key) then return end
-    E.NeutralizeKeys(btn, { "Left", "Right", "Middle" }, key)
-    E.ButtonStates(btn, key)
-    local ov = E.Overlay(btn, { key = key })
-    E.Paint(ov, T.fill, T.border)
-    return ov
-end
-
 -- 一條 MinimalScrollBar 掛在某個 parentKey 底下（好友／忽略／查詢三頁都是這個形狀）
 local function SkinOwnedScrollBar(owner, key)
     local bar
@@ -264,7 +246,10 @@ local function SkinWhoFrame()
         local key = "WhoFrameColumnHeader" .. i
         local header = _G[key]
         if header then
-            SkinColumnHeader(header, key)
+            -- ⚠ `keepFont`：欄位表頭的 NormalFont 是
+            --   `UserScaledFontGameHighlightSmall`（跟著玩家的文字大小設定縮放），
+            --   換成固定字級的 `GameFontHighlight` 等於把那個縮放弄掉。
+            Skin.Button(header, key, { keepFont = true })
         else
             E.Missing(key)
         end
