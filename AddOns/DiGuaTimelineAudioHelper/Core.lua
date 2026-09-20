@@ -61,6 +61,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             if db.playerDebuffEnabled == nil then db.playerDebuffEnabled = false end -- 玩家减益图标（默认关）
             if db.playerDebuffSize == nil then db.playerDebuffSize = 0 end -- 玩家减益图标大小档位（0~9，0=默认小）
             if db.bossVoiceEnabled == nil then db.bossVoiceEnabled = true end
+            if db.raidVoiceDisabled == nil then db.raidVoiceDisabled = false end -- 禁用团本语音（默认不勾选）
             if db.forceEncounterWarnings == nil then db.forceEncounterWarnings = true end
             if db.bloodlustOpenSound == nil then db.bloodlustOpenSound = false end
             if db.lfgProposalSound == nil then db.lfgProposalSound = false end
@@ -76,6 +77,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             if db.focusCastBarY == nil then db.focusCastBarY = 140 end
             if db.nameplateTotemTextEnabled == nil then db.nameplateTotemTextEnabled = true end -- 姓名板显示"图腾"文字（默认开）
             if db.normalAuraSoundEnabled == nil then db.normalAuraSoundEnabled = true end -- 光环音效总开关（默认开：光环有声）
+            if db.jingBaoSoundEnabled == nil then db.jingBaoSoundEnabled = true end -- 踩地板警报音（默认开：JingBao 警报音正常注册）
 
             self:UnregisterEvent("ADDON_LOADED")
         end
@@ -87,12 +89,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
         end
 
         -- 初始化首领语音状态：关闭则清空，开启则确保清理后重新注册
-        addonTable.ClearTimelineSounds(addonTable.EventSoundData)
-        if DiGuaTimelineAudioHelper.bossVoiceEnabled then
-            addonTable.registerTable(addonTable.EventSoundData)
-        end
+        if addonTable.ClearAllTimelineSounds then addonTable.ClearAllTimelineSounds() end
+        if addonTable.RegisterAllTimelineSounds then addonTable.RegisterAllTimelineSounds() end
 
-        if not C_AddOns.IsAddOnLoaded("BigWigs") then
+        -- 自动开启暴雪文字预警：仅在控制台勾选“自动开启暴雪文字预警”时才强制打开
+        -- （勾选状态保存在 db.forceEncounterWarnings，默认 true）
+        if DiGuaTimelineAudioHelper.forceEncounterWarnings and not C_AddOns.IsAddOnLoaded("BigWigs") then
             C_Timer.After(2, function() SetCVar("encounterWarningsEnabled", 1) end)
         end
 
@@ -111,6 +113,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             DiGuaTimelineTenSecCheck:SetChecked(DiGuaTimelineAudioHelper.tenSecCountDown)
             DiGuaTimelineCoTankCheck:SetChecked(DiGuaTimelineAudioHelper.coTankAuraEnabled)
             DiGuaTimelineBossVoiceCheck:SetChecked(DiGuaTimelineAudioHelper.bossVoiceEnabled)
+            DiGuaTimelineRaidVoiceCheck:SetChecked(DiGuaTimelineAudioHelper.raidVoiceDisabled) -- 同步禁用团本语音
             DiGuaTimelineForceWarningsCheck:SetChecked(DiGuaTimelineAudioHelper.forceEncounterWarnings) -- 同步勾选状态
             DiGuaTimelineBloodlustSoundCheck:SetChecked(DiGuaTimelineAudioHelper.bloodlustOpenSound) -- 同步嗜血开启提示音
             DiGuaTimelineLfgProposalCheck:SetChecked(DiGuaTimelineAudioHelper.lfgProposalSound) -- 同步副本就绪提示音
@@ -120,16 +123,17 @@ frame:SetScript("OnEvent", function(self, event, ...)
             DiGuaTimelineFocusCastBarCheck:SetChecked(DiGuaTimelineAudioHelper.focusCastBarEnabled) -- 同步焦点施法条
             DiGuaTimelineTotemTextCheck:SetChecked(DiGuaTimelineAudioHelper.nameplateTotemTextEnabled) -- 同步姓名板"图腾"文字
             DiGuaTimelineAuraSoundCheck:SetChecked(not DiGuaTimelineAudioHelper.normalAuraSoundEnabled) -- 同步“关闭光环音效”（勾选=关）
+            DiGuaTimelineJingBaoSoundCheck:SetChecked(not DiGuaTimelineAudioHelper.jingBaoSoundEnabled) -- 同步“关闭踩地板警报音”（勾选=关）
             DiGuaTimelineBossHealthPctCheck:SetChecked(DiGuaTimelineAudioHelper.bossHealthCenterEnabled) -- 同步首领转阶段血量百分比
         end
 
-        elseif event == "PLAYER_ENTERING_WORLD" then
-            if DiGuaTimelineAudioHelper.forceEncounterWarnings then                
-                C_Timer.After(3, function() 
-                    -- print("encounterWarningsEnabled")
-                    SetCVar("encounterWarningsEnabled", 1) 
-                end)
-            end
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        if DiGuaTimelineAudioHelper.forceEncounterWarnings then                
+            C_Timer.After(3, function() 
+                -- print("encounterWarningsEnabled")
+                SetCVar("encounterWarningsEnabled", 1) 
+            end)
+        end
     end
 end)
 
@@ -148,6 +152,23 @@ f:Hide()
 f.title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 f.title:SetPoint("TOP", f.TitleBg, "TOP", 0, -3)
 f.title:SetText("DiGua 控制台")
+
+-- 标题右侧：当前版本号（直接读 .toc 的 ## Version，以后改版本号不用动代码）
+local function GetAddonVersion()
+    local fn = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+    if type(fn) ~= "function" then return nil end
+    local ok, ver = pcall(fn, addonName, "Version")
+    if not ok or ver == nil then return nil end
+    if issecretvalue and issecretvalue(ver) then return nil end
+    return tostring(ver)
+end
+
+local versionText = GetAddonVersion()
+f.version = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+-- 靠标题栏右端；留出 26px 避开右上角关闭按钮，别压到它
+f.version:SetPoint("RIGHT", f.TitleBg, "RIGHT", -26, 0)
+f.version:SetText(versionText and ("v" .. versionText) or "v?")
+f.version:SetTextColor(0.6, 0.8, 1)
 
 -- 左右两栏标题
 local function CreateColumnTitle(text, xOffset, yOffset)
@@ -206,10 +227,8 @@ local cbBossVoice = CreateCheckButton("DiGuaTimelineBossVoiceCheck", "開啟首�
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.bossVoiceEnabled = isEnabled
     
-    addonTable.ClearTimelineSounds(addonTable.EventSoundData)
-    if isEnabled then
-        addonTable.registerTable(addonTable.EventSoundData)
-    end
+    -- 改开关后重新登记（常驻表 + 场次表；内部按条件清理/登记，战斗锁定中会延后到脱战）
+    if addonTable.ReloadTimelineSounds then addonTable.ReloadTimelineSounds() end
     
     print("|cffffd100[DiGua]|r 首領語音警報功能: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
@@ -241,9 +260,46 @@ local cbAuraSound = CreateCheckButton("DiGuaTimelineAuraSoundCheck", "關閉光�
     print("|cffffd100[DiGua]|r 關閉光環音效: " .. (disabled and "|cffff0000已關閉（光環靜音）|r" or "|cff00ff00已開啟（光環有聲）|r"))
 end)
 
+-- 关闭踩地板警报音（勾选=注销 NormalAuraSound.lua 里所有注册了 JingBao 警报音的光环；默认不勾选=有警报音）
+-- 实现：NormalAuraSound.lua 注册时跳过值为 "JingBao" 的条目，其余光环音效不受影响
+local cbJingBaoSound = CreateCheckButton("DiGuaTimelineJingBaoSoundCheck", "關閉踩地板警報音", 20, -255, function(self)
+    local disabled = self:GetChecked()
+    DiGuaTimelineAudioHelper.jingBaoSoundEnabled = not disabled
+    -- 先整體注銷、再按開關重新注冊（戰斗鎖定 / 副本 secret 狀態會自動延後補做）
+    if addonTable.ReloadNormalAuras then addonTable.ReloadNormalAuras() end
+    print("|cffffd100[DiGua]|r 踩地板警報音: " .. (disabled and "|cffff0000已關閉（JingBao 警報音靜音）|r" or "|cff00ff00已開啟|r"))
+end)
+
+-- 禁用团本语音（勾选=不播放/不注册指定团本首领的语音；默认不勾选=正常播放）
+-- 受控范围：
+--   EncounterTimeline.lua：盘魂者内克扎莉 / 万毒邪祟者瓦什尼克 / 乌拉特克（时间轴整体跳过）
+--   EncounterEvents.lua  ：RaidEventSoundData 表（盘魂者内克扎莉 / 陵寝哨兵 / 迷失的探险者 /
+--                          万毒邪祟者瓦什尼克 / 斯索拉克 / 双子毒牙 / 盘卷祭坛 / 乌拉特克 / 潮缚石窟）
+--   NormalAuraSound.lua  ：raidAppliedList / raidRefreshedList / raidRemovedList
+local cbRaidVoice = CreateCheckButton("DiGuaTimelineRaidVoiceCheck", "禁用團本語音", 20, -345, function(self)
+    local disabled = self:GetChecked()
+    DiGuaTimelineAudioHelper.raidVoiceDisabled = disabled
+
+    -- 重新登记 EncounterEvents 音效：勾选时跳过受控事件，取消勾选时恢复
+    -- （战斗安全，内部会延迟到脱战后再执行）
+    if addonTable.ReloadTimelineSounds then addonTable.ReloadTimelineSounds() end
+    -- 重新登记团本光环音效：勾选时不注册 raid*List，取消勾选时恢复
+    if addonTable.ReloadNormalAuras then addonTable.ReloadNormalAuras() end
+
+    print("|cffffd100[DiGua]|r 禁用團本語音: " .. (disabled and "|cffff0000已勾選（團本首領語音靜音）|r" or "|cff00ff00未勾選（正常播放）|r"))
+end)
+
+-- 跳过过场动画（SkipCinematic.lua）：仅在指定副本的大秘境环境下自动生效，无控制台开关
+
 -- ===== 右栏：视觉 =====
 local cbRing = CreateCheckButton("DiGuaTimelineRingCheck", "顯示倒計時圓環", 250, -55, function(self)
     DiGuaTimelineAudioHelper.ringEnabled = self:GetChecked()
+    -- 取消勾选时立刻清掉正在显示的圆环（否则要等本次计时器走完才消失）
+    if not DiGuaTimelineAudioHelper.ringEnabled and addonTable.ForceHideRingFrame then
+        addonTable.ForceHideRingFrame()
+    end
+    -- 外部减益圆环（ForeignDebuffRing.lua）共用同一总开关：立刻重判显示
+    if addonTable.RefreshForeignDebuffRing then addonTable.RefreshForeignDebuffRing() end
     print("|cffffd100[DiGua]|r 倒計時圓環圖示狀態: " .. (DiGuaTimelineAudioHelper.ringEnabled and "|cff00ff00已顯示|r" or "|cffff0000已隱藏|r"))
     -- 同步半透明拖动定位框（勾选且控制台打开时显示，供拖动调整圆环位置）
     if addonTable.RefreshRingAnchor then addonTable.RefreshRingAnchor(f:IsShown()) end
@@ -319,20 +375,20 @@ playerDebuffSizeSlider:SetValue(tonumber((DiGuaTimelineAudioHelper or {}).player
 playerDebuffSizeUpdating = false
 UpdatePlayerDebuffSizeLabel(playerDebuffSizeSlider:GetValue())
 
-local cbFocusCastBar = CreateCheckButton("DiGuaTimelineFocusCastBarCheck", "焦点特定技能施法条(测试版)", 250, -285, function(self)
+local cbFocusCastBar = CreateCheckButton("DiGuaTimelineFocusCastBarCheck", "焦點特定技能施法條(測試版)", 250, -285, function(self)
     DiGuaTimelineAudioHelper.focusCastBarEnabled = self:GetChecked()
     print("|cffffd100[DiGua]|r 焦點特定技能施法條(測試版): " .. (DiGuaTimelineAudioHelper.focusCastBarEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
     if addonTable.RefreshFocusCastBarState then addonTable.RefreshFocusCastBarState(f:IsShown()) end
 end)
 
-local cbTotemText = CreateCheckButton("DiGuaTimelineTotemTextCheck", "姓名板顯示\"圖騰\"文字", 250, -265, function(self)
+local cbTotemText = CreateCheckButton("DiGuaTimelineTotemTextCheck", "姓名板顯示\"圖騰\"文字", 250, -310, function(self)
     DiGuaTimelineAudioHelper.nameplateTotemTextEnabled = self:GetChecked()
     if addonTable.SetNameplateTotemTextEnabled then addonTable.SetNameplateTotemTextEnabled(self:GetChecked()) end
     print("|cffffd100[DiGua]|r 姓名板顯示\"圖騰\"文字: " .. (DiGuaTimelineAudioHelper.nameplateTotemTextEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
--- 首領轉階段血量百分比（默認關閉）
-local cbBossHealthPct = CreateCheckButton("DiGuaTimelineBossHealthPctCheck", "首領轉階段血量百分比", 250, -290, function(self)
+-- 首领转阶段血量百分比（默认关闭）
+local cbBossHealthPct = CreateCheckButton("DiGuaTimelineBossHealthPctCheck", "首領轉階段血量百分比", 250, -335, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.bossHealthCenterEnabled = isEnabled
     if addonTable.SetBossHealthEnabled then addonTable.SetBossHealthEnabled(isEnabled) end
@@ -342,7 +398,7 @@ end)
 -- 主音量滑块（映射魔兽系统主音量 Sound_MasterVolume，范围 0-1，显示 0%-100%）
 -- 归入左栏“听觉”分组底部
 local masterVolumeSlider = CreateFrame("Slider", "DiGuaTimelineMasterVolumeSlider", f, "OptionsSliderTemplate")
-masterVolumeSlider:SetPoint("TOPLEFT", 20, -270) -- 往下移 25，给上方“关闭光环音效”行腾位置
+masterVolumeSlider:SetPoint("TOPLEFT", 20, -300) -- 往下移，给上方“关闭光环音效”“关闭踩地板警报音”两行腾位置
 masterVolumeSlider:SetMinMaxValues(0, 1)
 masterVolumeSlider:SetValueStep(0.05)
 masterVolumeSlider:SetObeyStepOnDrag(true)
@@ -457,3 +513,5 @@ end
 addonTable.GetMediaPath = function() return MEDIA_PATH end
 addonTable.GetDefaultMediaPath = function() return DEFAULT_MEDIA_PATH end
 addonTable.GetAudioChannel = function() return DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.audioChannel or "Master" end
+-- 当前联动的语音包名（nil = 未联动第三方语音包 / 已静音，供 Utils 判断特殊语音包例外）
+addonTable.GetVoicePackName = function() return currentVoicePackName end

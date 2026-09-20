@@ -89,8 +89,8 @@ local function BuildContainer()
             borderHost:SetFrameLevel(cd:GetFrameLevel() + 2)
             local border = borderHost:CreateTexture(nil, "OVERLAY")
             -- 替换 SetAllPoints：向四周各扩展 8 像素（即边框比图标宽/高各多 8 像素）
-            border:SetPoint("TOPLEFT", borderHost, "TOPLEFT", -8, 8)
-            border:SetPoint("BOTTOMRIGHT", borderHost, "BOTTOMRIGHT", 8, -8)
+            border:SetPoint("TOPLEFT", borderHost, "TOPLEFT", -9, 9)
+            border:SetPoint("BOTTOMRIGHT", borderHost, "BOTTOMRIGHT", 9, -9)
 
             local style = Enum.CustomAuraButtonDispelTypeTextureStyle
             pcall(button.AddDispelTypeTexture, button, border, {
@@ -161,7 +161,7 @@ HostFrame:SetScript("OnMouseUp", function(self)
         if DiGuaTimelineAudioHelper then
             DiGuaTimelineAudioHelper.playerDebuffX = xOfs
             DiGuaTimelineAudioHelper.playerDebuffY = yOfs
-            print(string.format("|cff00ff00[DiGua]|r 玩家减益新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
+            print(string.format("|cff00ff00[DiGua]|r 玩家減益新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
         end
     end
 end)

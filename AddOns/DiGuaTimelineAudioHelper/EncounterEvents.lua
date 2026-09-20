@@ -14,7 +14,8 @@ addonTable.EventSoundData = {
     [179] = { {"ZhunBeiAOE.ogg", 1} }, -- 唤棘者咆哮 (1236709)
     [180] = { {"MuBiaoShiNi.ogg", 0} }, -- 嗜血注视 (1237090)
     [178] = { {"XiaoXinJiTui.ogg", 1} }, -- 青翠践踏 (1236746)
-
+    -- [1001] = { {"ShouLingQiangHua.ogg", 0} }, -- 光狂疯乱 (1237073)
+    
     -- 护光者鲁伊亚
     [181] = { {"ZhuYiDianMing.ogg", 1}}, -- 光明之火 (1239824) , {"JiHeFangFeng.ogg", 0}
     [182] = { {"WuMiaoZhuYiDuoQuan.ogg", 2} }, -- 光明坠落 (1240098)
@@ -186,6 +187,35 @@ addonTable.EventSoundData = {
     [836] = { {"BaMaFenSan.ogg", 0} }, -- 震地之跃 (1303326)
     [837] = { {"TanKeLiuXue.ogg", 1, {TANK = true, HEALER = true}} }, -- 野蛮槌击 (1303481)
 
+    -- 小怪类条目（[474] 翻捡 / [476] 供品上限 / [493] 强风）已移到下方
+    -- PersistentEventSoundData「常驻表」：它们不在首领战里触发，需要在登录时
+    -- 就登记，并且不能被开怪时的清空清掉。
+
+
+    -- 通用
+    [937] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
+    -- [668] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
+    [633] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (64238)
+
+    -- 毒瀑深渊
+    [978] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1291555)
+    [979] = { {"QuSanMoFa.ogg", 1, {HEALER = true}} }, -- 虚空毒素 (1293824)
+    [980] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 毒蛇猛击 (1293825)
+    [981] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 灵魂灭绝 (1294963)
+    [982] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
+    [983] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1294984)
+    [984] = { {"QuSanMoFa.ogg", 1, {HEALER = true}} }, -- 虚空毒素 (1294983)
+    [985] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 毒蛇猛击 (1294982)
+    [986] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 灵魂灭绝 (1294981)
+    [987] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
+
+}
+
+-- ==================================================================
+-- 团本首领语音（受控制台“禁用团本语音”开关控制：勾选时整体不注册）
+-- 默认所有难度都登记；个别条目要限定难度，见下方 EventSoundDifficultyFilter
+-- ==================================================================
+addonTable.RaidEventSoundData = {
     -- 盘魂者内克扎莉
     [675] = { {"TieBianFangShui.ogg", 0} }, -- 精华撕裂 (1287426)
     [676] = { {"ZhuYiDuoQuan.ogg", 1} }, -- 盘魂点燃 (1285681)
@@ -194,7 +224,7 @@ addonTable.EventSoundData = {
     [710] = { {"TanKeTouQian.ogg", 1} }, -- 附身弹幕 (1292036)
     -- [712] = { {".ogg", 1} }, -- 解除盘卷 (1290001)
     -- [731] = { {".ogg", 1} }, -- 紧攫深渊 (1293212)
-    -- [804] = { {".ogg", 1} }, -- 祈求 (1299673)
+    [804] = { {"ZhunBeiChenMo.ogg", 1} }, -- 祈求 (1299673)
     [865] = { {"FenTanShangHai.ogg", 1} }, -- 噬灭烈焰 (1305421)
     -- [877] = { {".ogg", 1} }, -- 残余丧钟 (1305993)
 
@@ -207,7 +237,7 @@ addonTable.EventSoundData = {
     [643] = { {"HeBingXingZuo.ogg", 0}, {"QuanTuanFenSan.ogg", 2} }, -- 强酸静滞 (1284588)
     [668] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
     [673] = { {"FenTanShangHai.ogg", 1} }, -- 不稳定的瘴气 (1288232)
-    [788] = { {"QuanTuanFenSan.ogg", 1} }, -- 变幻的原型毒液 (1296878)
+    [788] = { {"ZhuYiFenSan.ogg", 1} }, -- 变幻的原型毒液 (1296878)
 
     -- 迷失的探险者
     [721] = { {"ZhunBeiAOE.ogg", 0} }, -- 灾变祈求 (1291390)
@@ -230,7 +260,7 @@ addonTable.EventSoundData = {
     [755] = { {"ZhuYiDianMing.ogg", 1, {HEALER = true}} }, -- 适应性感染 (1282114)
     [756] = { {"ZhunBeiJieQuan.ogg", 1} }, -- 恶性催化剂 (1282509)
     [757] = { {"ZhuYiFenSan.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 瘟疫泡沫 (1281907)
-    [759] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 痛饮 (1283164)
+    [759] = { {"ZhunBeiAOE.ogg", 1} }, -- 痛饮 (1283164)
     -- [770] = { {".ogg", 1} }, -- 冥河感染 (1294994)
     -- [771] = { {".ogg", 1} }, -- 虹吸感染 (1295224)
     -- [772] = { {".ogg", 1} }, -- 爆炸感染 (1295173)
@@ -282,7 +312,7 @@ addonTable.EventSoundData = {
     [898] = { {"TanKeTouQian.ogg", 1}, {"WuMiaoHouTanKeJianCiSanErYi.ogg", 2, {TANK = true}} }, -- 凋零撕裂 (1307279)
 
     -- 乌拉特克
-    [799] = { {"WeiBaChuXian.ogg", 1} }, -- 血腥响尾 (1298559)
+    [799] = { {"WeiBaChuXian.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 血腥响尾 (1298559)
     [699] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 蛇母之怒 (1298367)
     [807] = { {"FenTanShangHai.ogg", 1} }, -- 幽魂盘卷 (1300530)
     [912] = { {"DuoKaiDaQuan.ogg", 1}, {"WuMiaoHouAOE.ogg", 2, {HEALER = true}} }, -- 恶臭痛击 (1296301)
@@ -301,48 +331,37 @@ addonTable.EventSoundData = {
     -- 潮缚石窟
     [366] = { {"ZhuYiXiaoShui.ogg", 1, {TANK = true}} }, -- 水流喷射 (1268562)
     [367] = { {"ZhuanHuoXiaoGuai.ogg", 0} }, -- 诱人水泡 (1257717)
-    -- [368] = { {"TieBianFangShui.ogg", 0} }, -- 冰霜弹幕 (1257608)
+    -- [368] = { {"WuMiaoHouDianMing.ogg", 2} }, -- 冰霜弹幕 (1257608)
     [369] = { {"KuaiZhaoQueKou.ogg", 1} }, -- 激荡漩涡 (1258668)
     [370] = { {"ZhunBeiAOE.ogg", 1} }, -- 深渊之雨 (1260837)
     [745] = { {"ShouLingKuangBao.ogg", 1} }, -- 无尽潮汐 (1294867)
-    [976] = { {"ZhuYiDianMing.ogg", 1, {HEALER = true, DAMAGER = true}} }, -- 刺骨寒霜 (1313393)
+    [976] = { {"ZhuYiDianMing.ogg", 1}, {"WuMiaoHouDianMing.ogg", 2} }, -- 刺骨寒霜 (1313393)
     -- [977] = { {"ZhuanHuoXiaoGuai.ogg", 0} }, -- 诱人水泡 (1257717)
+}
 
+-- ==================================================================
+-- 常驻事件语音（登录 / 重载时登记一次，且【不参与】开怪时的清空）
+-- 适用：非首领战里就会触发的事件（小怪、场景事件等）——它们在开怪之前发生，
+--       等不到 ENCOUNTER_START 才登记。
+-- 受“开启首领语音警报”总开关控制（不受“禁用团本语音”影响）。
+-- ==================================================================
+addonTable.PersistentEventSoundData = {
     -- 小怪
     [474] = { {"KongDuanXiaoGuai.ogg", 0} }, -- 翻捡 (1239352)
     [476] = { {"ShouLingJiHuo.ogg", 0} }, -- 获得的供品达到上限 (1283004)
     -- [493] = { {"KuaiZhaoYanTi.ogg", 0} }, -- 强风 (1283107)
-
-    -- -- 毒瀑深渊
-    -- [978] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1291555)
-    -- [979] = { {"ZhunBeiQuSan.ogg", 1 } }, -- 虚空毒素 (1293824)
-    -- [980] = { {"TanKeJianCi.ogg", 1} }, -- 毒蛇猛击 (1293825)
-    -- [981] = { {"DaDuanBoss.ogg", 1} }, -- 灵魂灭绝 (1294963)
-    -- [982] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
-    -- [983] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1294984)
-    -- [984] = { {"ZhunBeiQuSan.ogg", 1} }, -- 虚空毒素 (1294983)
-    -- [985] = { {"TanKeJianCi.ogg", 1} }, -- 毒蛇猛击 (1294982)
-    -- [986] = { {"DaDuanBoss.ogg", 1} }, -- 灵魂灭绝 (1294981)
-    -- [987] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
-
-    -- 通用
-    [937] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
-    -- [668] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
-    [633] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (64238)
-
-    -- 毒瀑深渊
-    [978] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1291555)
-    [979] = { {"QuSanMoFa.ogg", 1, {HEALER = true}} }, -- 虚空毒素 (1293824)
-    [980] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 毒蛇猛击 (1293825)
-    [981] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 灵魂灭绝 (1294963)
-    [982] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
-    [983] = { {"DuoKaiTouQian.ogg", 1} }, -- 剧毒胆汁 (1294984)
-    [984] = { {"QuSanMoFa.ogg", 1, {HEALER = true}} }, -- 虚空毒素 (1294983)
-    [985] = { {"TanKeJianCi.ogg", 1, {TANK = true}} }, -- 毒蛇猛击 (1294982)
-    [986] = { {"DaDuanBoss.ogg", 1, {TANK = true, DAMAGER = true}} }, -- 灵魂灭绝 (1294981)
-    [987] = { {"ZhunBeiDuoBo.ogg", 1} }, -- 毒性风暴 (1309418)
-
 }
+
+-- ==================================================================
+-- 条目级难度过滤（按 eventID 生效，跟它在哪张表无关）
+--   写法：eventID = { [难度ID] = true, ... }
+--   不写在这里的条目 = 所有难度都登记（默认行为）
+--   难度 ID：团本 14=普通 / 15=英雄 / 16=史诗；5 人本 2=英雄 / 8=史诗(大秘境)
+-- ==================================================================
+addonTable.EventSoundDifficultyFilter = {
+    [804] = { [16] = true }, -- 祈求 (1299673)：仅史诗团本登记
+}
+
 local frame = CreateFrame("Frame")
 
 -- 清空声音的函数
@@ -358,13 +377,23 @@ function addonTable.ClearTimelineSounds(dataTable)
 end
 
 -- 注册声音的函数
+--   配置格式：{ 文件名, 触发类型, 职责过滤? }；条目级难度过滤见 addonTable.EventSoundDifficultyFilter
 function addonTable.registerTable(dataTable)
     if not dataTable then return end
     
     -- 获取当前推理出的职责 (TANK / HEALER / DAMAGER)
     local currentRole = addonTable.GetPlayerRole()
+    local diffFilter = addonTable.EventSoundDifficultyFilter
     
     for eventID, configs in pairs(dataTable) do
+        -- 条目级难度过滤：不在过滤表里 = 所有难度都登记；在表里则只登记列出的难度
+        local diffAllowed = true
+        local diffCfg = diffFilter and diffFilter[eventID]
+        if diffCfg then
+            local _, _, difficultyID = GetInstanceInfo()
+            diffAllowed = diffCfg[difficultyID] == true
+        end
+
         -- 遍历该 ID 下的所有配置
         for _, config in ipairs(configs) do
             local fileName = config[1]
@@ -387,9 +416,10 @@ function addonTable.registerTable(dataTable)
             end
 
             -- 执行注册
-            if isMatch and fileName and triggerType then
+            if isMatch and fileName and triggerType and diffAllowed then
                 C_EncounterEvents.SetEventSound(eventID, triggerType, {
-                    file = addonTable.GetMediaPath() .. fileName,
+                    -- 路径统一走 GetSoundFullPath：语音包缺这只语音时自动改用本体同名语音
+                    file = addonTable.GetSoundFullPath(fileName),
                     channel = DiGuaTimelineAudioHelper.audioChannel,
                     volume = 1
                 })
@@ -398,12 +428,71 @@ function addonTable.registerTable(dataTable)
     end
 end
 
-frame:RegisterEvent("PLAYER_LOGIN")
+-- 清空【场次表】事件音效（非团本表 + 团本表）
+-- ⚠️ 不含常驻表 PersistentEventSoundData：那张表登录即登记，每场都要保留，故不参与开怪清空
+function addonTable.ClearAllTimelineSounds()
+    addonTable.ClearTimelineSounds(addonTable.EventSoundData)
+    addonTable.ClearTimelineSounds(addonTable.RaidEventSoundData)
+end
 
--- 战斗安全的“重新登记”接口：频道切换等场景下调用，让已登记的
--- SetEventSound 立即按最新的 audioChannel 刷新。
--- 说明：SetEventSound 是“登记即存储”，登录后改勾选若不再调用，
--- 旧的声道会一直生效（这正是“未勾选却走环境音”的根因）。
+-- 登记【常驻表】事件音效（登录 / 重载后调用一次）：
+--   非首领战事件（小怪等）；同样只在首领语音警报开启时登记。
+function addonTable.RegisterPersistentTimelineSounds()
+    addonTable.ClearTimelineSounds(addonTable.PersistentEventSoundData)
+    if not (DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.bossVoiceEnabled) then return end
+    addonTable.registerTable(addonTable.PersistentEventSoundData)
+end
+
+-- 按开关注册【场次表】事件音效（开怪后调用）：
+--   前提：首领语音警报已开启（bossVoiceEnabled）；
+--   非团本表始终注册；团本表仅当未勾选“禁用团本语音”时注册。
+--   两张表默认都是全难度登记，个别条目的难度限制见上方 EventSoundDifficultyFilter。
+function addonTable.RegisterAllTimelineSounds()
+    if not (DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.bossVoiceEnabled) then return end
+    addonTable.registerTable(addonTable.EventSoundData)
+    if not DiGuaTimelineAudioHelper.raidVoiceDisabled then
+        addonTable.registerTable(addonTable.RaidEventSoundData)
+    end
+end
+
+-- ==================================================================
+-- 登记时机：开怪后延迟登记（ENCOUNTER_START + 0.5 秒）
+-- ==================================================================
+-- 为什么改成开怪登记：
+--   1) SetEventSound 没有战斗限制（非 protected、无 secret 前置条件），开怪后登记完全允许；
+--   2) 登记是“登记即存储”，开怪瞬间写入，本场后续的高亮/施放/文字警告都来得及；
+--   3) 只有 ENCOUNTER_START 之后才拿得到「本场首领 ID / 副本难度」，方便按条件过滤
+--      （个别条目的难度限制见上方 EventSoundDifficultyFilter）。
+-- ⚠️ 开怪【之前】就可能触发的事件（小怪、场景事件等）不能等开怪，已单独放进
+--    下方 PersistentEventSoundData「常驻表」，在 PLAYER_LOGIN 时登记、且不被开怪清空。
+
+local REGISTER_DELAY = 0.5    -- 开怪后等待秒数（留给职责 / 难度 / 首领数据刷新）
+local currentEncounterID = 0  -- 本场首领 ID（来自 ENCOUNTER_START）
+
+-- 本场是否登记：返回 false = 本场只清空、不登记任何事件语音。
+-- 想加条件（副本难度 / 首领白名单 / 副本类型）都写在这里。
+local function ShouldRegisterForEncounter(encounterID)
+    -- 注意：这里是【整场】级别开关（返回 false = 非团本表 + 团本表都不登记，本场完全静音）。
+    -- 只想限制个别条目（比如某个技能只在史诗难度响）→ 用上面的 EventSoundDifficultyFilter，别改这里。
+    -- 示例①：只在团队副本（raid）里登记
+    --   local _, instanceType = GetInstanceInfo()
+    --   if instanceType ~= "raid" then return false end
+    -- 示例②：只在“有语音配置的首领”登记
+    --   if not SOUND_ENCOUNTER_IDS[encounterID] then return false end
+    return true
+end
+
+-- 清空上一场残留 + 按条件登记本场
+-- ⚠️ 必须先清空：SetEventSound 登记是持久的，不清掉上一场的登记会继续生效，条件就形同虚设
+function addonTable.RegisterTimelineSoundsForEncounter(encounterID)
+    addonTable.ClearAllTimelineSounds()
+    if not ShouldRegisterForEncounter(encounterID) then return end
+    addonTable.RegisterAllTimelineSounds()
+end
+
+-- 战斗安全的“重新登记”接口：控台切声道 / 改勾选时调用，让 SetEventSound 立即按最新设置刷新。
+-- 说明：SetEventSound 是“登记即存储”，改设置后不再调用，旧声道会一直生效
+-- （这正是“未勾选却走环境音”的根因）。
 local reloadPending = false
 local reloadFrame = CreateFrame("Frame")
 reloadFrame:SetScript("OnEvent", function(self, event)
@@ -421,21 +510,38 @@ function addonTable.ReloadTimelineSounds()
         return
     end
     reloadPending = false
-    addonTable.ClearTimelineSounds(addonTable.EventSoundData)
-    if DiGuaTimelineAudioHelper.bossVoiceEnabled then
-        addonTable.registerTable(addonTable.EventSoundData)
-    end
+    -- 常驻表 + 场次表都按最新设置刷新（常驻表登录即有，不受开怪清空影响）
+    addonTable.RegisterPersistentTimelineSounds()
+    -- 与开怪登记走同一入口，保证条件过滤不会被绕过
+    addonTable.RegisterTimelineSoundsForEncounter(currentEncounterID)
 end
-frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 
-frame:SetScript("OnEvent", function(self, event, ...)
-    if event == "PLAYER_LOGIN" or event == "PLAYER_SPECIALIZATION_CHANGED" then
-        -- 延迟 1 秒执行，确保专精与职责数据完全更新
-        C_Timer.After(1, function()
-            addonTable.ClearTimelineSounds(addonTable.EventSoundData)
-            -- 受"首领语音警报"开关控制：关闭时不注册任何 EncounterEvents 声音
-            if DiGuaTimelineAudioHelper.bossVoiceEnabled then
-                addonTable.registerTable(addonTable.EventSoundData)
+frame:RegisterEvent("ENCOUNTER_START")
+frame:RegisterEvent("ENCOUNTER_END")
+frame:RegisterEvent("PLAYER_LOGIN")
+
+frame:SetScript("OnEvent", function(self, event, encounterID)
+    if event == "ENCOUNTER_START" then
+        currentEncounterID = encounterID or 0
+        -- 开怪 0.5 秒后再登记：此时职责 / 难度 / 首领数据都已就绪
+        C_Timer.After(REGISTER_DELAY, function()
+            -- 0.5 秒内若已换场或出本，就别再写入了
+            if currentEncounterID == (encounterID or 0) then
+                addonTable.RegisterTimelineSoundsForEncounter(encounterID)
+            end
+        end)
+
+    elseif event == "ENCOUNTER_END" then
+        currentEncounterID = 0
+
+    elseif event == "PLAYER_LOGIN" then
+        C_Timer.After(REGISTER_DELAY, function()
+            -- 常驻表：登录 / 重载后立刻登记（小怪等非首领事件在开怪前就可能触发）
+            addonTable.RegisterPersistentTimelineSounds()
+            -- 兜底：登录时若已身处首领战（战斗中 /reload、插件中途加载），
+            -- ENCOUNTER_START 不会再补发，这里补一次场次登记
+            if UnitExists("boss1") then
+                addonTable.RegisterTimelineSoundsForEncounter(currentEncounterID)
             end
         end)
     end

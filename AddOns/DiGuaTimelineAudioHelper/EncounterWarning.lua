@@ -159,6 +159,11 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
 
 
 
+    -- 技能：空灵冲刺
+    if currentEncounterID == 3285 and severity == 0 then 
+            addonTable.StartCircleTimerBySeconds(7)
+        return
+    end
 
 
 

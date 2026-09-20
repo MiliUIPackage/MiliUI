@@ -25,7 +25,7 @@ frame:SetScript("OnEvent", function(self, event, criteriaID)
         -- 2. 机制判断
 
         if criteriaID == 115538 then -- 神灵代言人纳尼亚
-                addonTable.CustomEncounterBar(460693, 26, "首领激活")
+                addonTable.CustomEncounterBar(460693, 26, "首領啟動")
                 -- 首领激活前 5 秒语音倒数：5 → 4 → 3 → 2 → 1（26 秒倒计时的最后 5 秒）
                 C_Timer.After(21, function()
                     PlaySoundFile(addonTable.GetMediaPath() .. "DaoShu5.ogg", DiGuaTimelineAudioHelper.audioChannel)
@@ -58,7 +58,7 @@ frame:SetScript("OnEvent", function(self, event, criteriaID)
         elseif criteriaID == 115501 then -- 鲁莽监督者
             addonTable.LuMangJianDuZhe = true
 
-        elseif criteriaID == 40370 or criteriaID == 116488 then -- 防腐液 / 毒液水蛭 (带防抖，仅12层以上)
+        elseif criteriaID == 40370 or criteriaID == 116488 or criteriaID == 115513 then -- 防腐液 / 毒液水蛭 / 爆爬虫 (带防抖，仅2层以上)
             if C_ChallengeMode.GetActiveKeystoneInfo() and C_ChallengeMode.GetActiveKeystoneInfo() >= 2 and not addonTable.isAudioDebounced then
                 addonTable.isAudioDebounced = true
                 PlaySoundFile(addonTable.GetMediaPath() .. "DuoQuan.ogg", DiGuaTimelineAudioHelper.audioChannel)

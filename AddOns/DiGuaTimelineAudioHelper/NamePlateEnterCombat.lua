@@ -303,7 +303,7 @@ frame:SetScript("OnEvent", function(self, event, unitTarget)
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
         then
             addonTable.UnitTargetTriggered[unitTarget] = true
-            addonTable.CustomEncounterBar(460698, 10.4, "準備AOE", unitTarget)
+            addonTable.CustomEncounterBar(460698, 8.4, "準備AOE", unitTarget)
         end
 
         -- ============================

@@ -157,6 +157,21 @@ function addonTable.IsInterruptOnCooldown()
     return true
 end
 
+-- 爆发药水是否在冷却中（true=CD 中，不该播 BaoFaYaoShui 语音）
+-- 由 EncounterTimeline.lua 在播报前调用，药水 CD 中则跳过该语音
+function addonTable.IsBurstPotionOnCooldown()
+    for _, config in ipairs(COMMON_SPELL_CONFIG) do
+        if config.name == "爆發藥水" then
+            for _, id in ipairs(config.ids) do
+                if addonTable.PlayerSpellStatus.spells[id] == false then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
 local EventListener = CreateFrame("Frame")
 EventListener:RegisterEvent("PLAYER_LOGIN")
 EventListener:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")

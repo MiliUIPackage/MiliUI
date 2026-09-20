@@ -50,6 +50,7 @@ frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "NAME_PLATE_UNIT_ADDED" then
+
         local unitTarget = ... 
         
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 动荡图腾 / 熔岩图腾
@@ -65,7 +66,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             then
             
             -- 在姓名板下方显示竖排“图腾”
-            DisplayNameplateText(unitTarget, "图\n腾")
+            DisplayNameplateText(unitTarget, "圖\n騰")
 
             -- 检查并触发防抖锁
             if not addonTable.isAudioDebounced then
@@ -88,10 +89,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitClassification(unitTarget) == "normal" -- 普通怪
             and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2
             and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
+            and C_ChallengeMode.GetActiveKeystoneInfo() 
+            and C_ChallengeMode.GetActiveKeystoneInfo() >= 2
             then
             
             -- 在姓名板下方显示竖排“图腾”
-            DisplayNameplateText(unitTarget, "图\n腾")
+            DisplayNameplateText(unitTarget, "圖\n騰")
 
             -- 检查并触发防抖锁
             if not addonTable.isAudioDebounced then

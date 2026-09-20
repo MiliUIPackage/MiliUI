@@ -75,6 +75,28 @@ function addonTable.GetPlayerRole()
     return UnitGroupRolesAssigned("player")
 end
 
+-- 获取玩家当前专精 ID（未选择专精时返回 nil）
+function addonTable.GetPlayerSpecID()
+    local specIndex = GetSpecialization()
+    if not specIndex then return nil end
+    return select(1, GetSpecializationInfo(specIndex))
+end
+
+-- 坦克专精播报豁免名单：这些专精虽然是坦克，但仍按“非坦克”处理（照常播报）
+-- 66  = 圣骑士-防护（防骑）
+-- 268 = 武僧-酒仙
+addonTable.TankSpecExemptions = {
+    [66] = true,
+    [268] = true,
+}
+
+-- 是否应视为“非坦克”处理：
+--   非坦克 → true；坦克但属于豁免专精（防骑 / 酒仙）→ true；其余坦克 → false
+function addonTable.IsNonTankOrExemptTank()
+    if UnitGroupRolesAssigned("player") ~= "TANK" then return true end
+    return addonTable.TankSpecExemptions[addonTable.GetPlayerSpecID()] == true
+end
+
 -- ==================== 专精 近战/远程 分类 ====================
 -- specID -> 战斗定位（"MELEE" 近战 / "RANGED" 远程）
 addonTable.SpecPosition = {
@@ -164,16 +186,11 @@ function addonTable.PlayAudioSequence(...)
             
             -- 开启定时器排队播放
             C_Timer.After(totalDelay, function()
-                -- 1. 优先使用当前确定的 MEDIA_PATH 尝试播放
-                local fullPath = addonTable.GetMediaPath() .. fileName
-                local willPlay = PlaySoundFile(fullPath, DiGuaTimelineAudioHelper.audioChannel)
+                -- 1. 用当前 MEDIA_PATH 播放（语音包缺这只语音时，全局 PlaySoundFile 拦截器会自动换成本体路径）
+                PlaySoundFile(addonTable.GetMediaPath() .. fileName, DiGuaTimelineAudioHelper.audioChannel)
                 
-                -- 2. 动态兜底逻辑：如果当前播放失败（willPlay为假/nil），且当前用的不是内置默认路径
-                --    （即启用了第三方 DiGua- 语音包且恰好缺该文件），则改用内置 Media 路径再试一次
-                if not willPlay and addonTable.GetMediaPath() ~= addonTable.GetDefaultMediaPath() then
-                    local fallbackPath = addonTable.GetDefaultMediaPath() .. fileName
-                    PlaySoundFile(fallbackPath, DiGuaTimelineAudioHelper.audioChannel)
-                end
+                -- 2. 缺文件兜底已改由全局 PlaySoundFile 拦截器统一处理（见文件下方“语音包缺失文件自动兜底”）
+                --    这里不再用 PlaySoundFile 的返回值判断：它只反映声道是否被静音，跟文件是否存在无关
             end)
         end
     end
@@ -188,19 +205,218 @@ local FIXED_DEFAULT_PATH_SOUNDS = {
     ["bubu.ogg"]      = true,
 }
 
---- 获取音频完整路径（带固定默认路径覆盖）
+-- 豁免语音包：这些语音包内已自带上面几个音效的对应音源，
+-- 因此对它们解除"强制本体路径"限制 —— alarmbeep / JingBao / BuBu 照常跟随语音包 Media 目录播放。
+-- 匹配规则：当前联动语音包名中包含下列关键字（大小写不敏感）即视为豁免。
+local FIXED_OVERRIDE_EXEMPT_PACK_KEYWORDS = {
+    "TTNX", -- 如 "DiGua-TTNX"
+}
+
+-- 当前联动的语音包是否属于豁免名单
+local function IsFixedOverrideExempt()
+    local packName = addonTable.GetVoicePackName and addonTable.GetVoicePackName()
+    if not packName then return false end
+    local upperName = string.upper(packName)
+    for _, keyword in ipairs(FIXED_OVERRIDE_EXEMPT_PACK_KEYWORDS) do
+        if string.find(upperName, keyword, 1, true) then return true end
+    end
+    return false
+end
+
+--- 获取音频完整路径（带固定默认路径覆盖，豁免语音包除外）
 --- 传入 "xxx.ogg" 文件名，返回完整路径。
---- 若文件名命中固定列表，则强制使用内置默认路径；否则使用当前语音包/内置路径。
+--- 若文件名命中固定列表：
+---   · 语音包属于豁免名单（如 DiGua-TTNX）→ 不做覆盖，跟随当前语音包 Media 目录
+---   · 其余情况                          → 强制使用内置默认 Media 目录（不被语音包替换）
+--- 未命中固定列表时使用当前语音包/内置路径。
 --- 注意：本函数在运行时才调用，因此即使依赖 Core.lua 中定义的
---- GetMediaPath / GetDefaultMediaPath（加载顺序靠后）也不受影响。
+--- GetMediaPath / GetDefaultMediaPath / GetVoicePackName（加载顺序靠后）也不受影响。
 function addonTable.GetSoundFullPath(fileName)
-    if FIXED_DEFAULT_PATH_SOUNDS[fileName:lower()] then
+    local path
+    if FIXED_DEFAULT_PATH_SOUNDS[fileName:lower()] and not IsFixedOverrideExempt() then
         local defaultPath = addonTable.GetDefaultMediaPath and addonTable.GetDefaultMediaPath()
-        if defaultPath then
-            return defaultPath .. fileName
+        path = defaultPath and (defaultPath .. fileName) or nil
+    end
+    if not path then
+        path = addonTable.GetMediaPath() .. fileName
+    end
+    -- 最后再过一遍“语音包缺文件兜底”：语音包没有这只语音就换成本体同名语音
+    -- （固定路径音效本来就在本体目录，不受影响）
+    return addonTable.ResolveVoicePackFallback(path) or path
+end
+
+-- ==================== 语音包缺失文件自动兜底 ====================
+-- 场景：第三方语音包（DiGua-XXX）更新往往滞后，里面缺几只 ogg 是常态；
+--       语音包缺文件时 PlaySoundFile 既不报错也不出声 —— 玩家感受就是“该播却一片安静”。
+-- 目标：语音包里没有的语音，自动改用本体 DiGuaTimelineAudioHelper\Media\ 里的同名语音顶上。
+--       （音色不统一，总比整条语音丢失强。）
+-- 这是**强制功能**：没有控制台开关，语音包缺哪只就强制听本体那只。
+--
+-- 判断手段：C_UIFileAsset.IsKnownFile / C_UIFileAsset.IsLooseFile / C_UIFileAsset.GetFileID（12.0.7+）
+--           以及老一点的 GetFileIDFromPath。这几个 API 对“散装文件(loose file)”的说明都比较含糊，
+--           所以第一次用之前先自检：拿【本体一定存在】和【本体一定不存在】两个文件名去探测 ——
+--             · 能区分（存在=true / 不存在=false）→ 启用兜底；
+--             · 区分不了（例如一律返回 true）  → 直接放弃兜底，行为与加本功能之前完全一致，绝不乱换语音。
+-- 结果按文件缓存（音频文件必须“登录/重载前”就位才会被客户端登记，所以缓存不需要跨会话）。
+
+local VOICE_PROBE_PRESENT = "DaoShu5.ogg"            -- 本体长期存在的文件（自检用）
+local VOICE_PROBE_ABSENT  = "__DiGuaVoiceProbe__.ogg" -- 本体不可能存在的文件（自检用）
+
+local voiceProbe = {
+    available = false, -- 自检是否通过（通过才启用兜底）
+    fn        = nil,   -- 自检通过的那个探测函数
+    name      = nil,   -- 探测函数名（打印/排查用）
+    attempts  = 0,     -- 自检次数（失败可重试几次，避免刚登录时文件表还没就绪）
+}
+local voiceExistCache   = {} -- [完整路径] = true/false，该文件是否存在
+local voiceResolveCache = {} -- [语音包名][文件名] = "pack"/"base"，最终用哪边的语音
+
+-- 探测手段 1：IsKnownFile（语义最接近“这个文件客户端认不认识”）
+local function ProbeByIsKnownFile(path)
+    if type(C_UIFileAsset) ~= "table" or type(C_UIFileAsset.IsKnownFile) ~= "function" then return nil end
+    local ok, res = pcall(C_UIFileAsset.IsKnownFile, path)
+    if ok and type(res) == "boolean" then return res end
+    return nil
+end
+
+-- 探测手段 2：IsLooseFile（只认“本地散装文件”，我们的语音包正好属于这一类）
+local function ProbeByIsLooseFile(path)
+    if type(C_UIFileAsset) ~= "table" or type(C_UIFileAsset.IsLooseFile) ~= "function" then return nil end
+    local ok, res = pcall(C_UIFileAsset.IsLooseFile, path)
+    if ok and type(res) == "boolean" then return res end
+    return nil
+end
+
+-- 探测手段 3：C_UIFileAsset.GetFileID（客户端不认识这个路径时返回 nil）
+local function ProbeByGetFileID(path)
+    if type(C_UIFileAsset) ~= "table" or type(C_UIFileAsset.GetFileID) ~= "function" then return nil end
+    local ok, res = pcall(C_UIFileAsset.GetFileID, path)
+    if not ok then return nil end
+    return res ~= nil
+end
+
+-- 探测手段 4：老 API GetFileIDFromPath（拿不准的版本上兜一下，自检会筛掉不靠谱的）
+local function ProbeByGetFileIDFromPath(path)
+    if type(GetFileIDFromPath) ~= "function" then return nil end
+    local ok, res = pcall(GetFileIDFromPath, path)
+    if not ok then return nil end
+    return res ~= nil and res ~= 0
+end
+
+local VOICE_PROBE_FUNCS = {
+    { name = "C_UIFileAsset.IsKnownFile",    fn = ProbeByIsKnownFile },
+    { name = "C_UIFileAsset.IsLooseFile",    fn = ProbeByIsLooseFile },
+    { name = "C_UIFileAsset.GetFileID",      fn = ProbeByGetFileID },
+    { name = "GetFileIDFromPath",            fn = ProbeByGetFileIDFromPath },
+}
+
+-- 自检：挑一个“能把存在/不存在分清楚”的探测函数；一个都挑不出来就彻底放弃兜底
+local function EnsureVoiceFileProbe()
+    if voiceProbe.available then return true end
+    if voiceProbe.attempts >= 5 then return false end -- 试过几次都不行，本局不再折腾
+    voiceProbe.attempts = voiceProbe.attempts + 1
+
+    local base = addonTable.GetDefaultMediaPath and addonTable.GetDefaultMediaPath()
+    if not base then return false end
+    local presentPath = base .. VOICE_PROBE_PRESENT
+    local absentPath  = base .. VOICE_PROBE_ABSENT
+
+    for _, probe in ipairs(VOICE_PROBE_FUNCS) do
+        if probe.fn(presentPath) == true and probe.fn(absentPath) == false then
+            voiceProbe.available = true
+            voiceProbe.fn = probe.fn
+            voiceProbe.name = probe.name
+            return true
         end
     end
-    return addonTable.GetMediaPath() .. fileName
+    return false
+end
+
+-- 当前客户端能不能做“文件是否存在”探测（自检结果，供外部/排查使用）
+function addonTable.IsVoiceFileProbeAvailable()
+    return EnsureVoiceFileProbe()
+end
+
+-- 单个音频文件是否存在：true / false / nil（探测不可用或调用失败）
+function addonTable.IsSoundFileExist(fullPath)
+    if type(fullPath) ~= "string" or fullPath == "" then return nil end
+    local cached = voiceExistCache[fullPath]
+    if cached ~= nil then return cached end
+    if not EnsureVoiceFileProbe() then return nil end
+    local ok, res = pcall(voiceProbe.fn, fullPath)
+    if not ok or type(res) ~= "boolean" then return nil end
+    voiceExistCache[fullPath] = res
+    return res
+end
+
+-- 清空兜底缓存（需要重新探测时手动调用，如中途往语音包里补了文件）
+function addonTable.ClearVoiceFallbackCache()
+    voiceExistCache = {}
+    voiceResolveCache = {}
+end
+
+-- 兜底换算：给一个“语音包里的音频完整路径”，返回“这次该用哪条路径播”
+--   语音包里有这只语音        → nil（照原样播语音包）
+--   语音包缺、本体有同名文件   → 返回本体路径
+--   探测不可用 / 两边都没有 / 用户关了兜底 → nil（维持原行为）
+function addonTable.ResolveVoicePackFallback(path)
+    if type(path) ~= "string" or path == "" then return nil end
+
+    -- 先做最便宜的“是不是语音包路径”判断：不是就直接返回，
+    -- 免得别的插件的 PlaySoundFile 调用也陪我们跑自检/C 调用
+    local packName = addonTable.GetVoicePackName and addonTable.GetVoicePackName()
+    if not packName then return nil end                                   -- 没挂第三方语音包，用本体
+    local packPrefix = "Interface\\AddOns\\" .. packName .. "\\Media\\"
+    if path:sub(1, #packPrefix) ~= packPrefix then return nil end         -- 不是语音包路径，别碰
+
+    -- 强制兜底：不给用户开关 —— 语音包缺哪只，就让它听本体那只
+    local db = DiGuaTimelineAudioHelper
+    if db and db.enabled == false then return nil end                    -- 整体静音模式：不做任何换算
+    if not EnsureVoiceFileProbe() then return nil end                     -- 本客户端探测不可用
+
+    local fileName = path:sub(#packPrefix + 1)
+    -- 只处理 Media 根目录下的文件（本体 Media 是平铺的），带子目录的原样不动
+    if fileName == "" or fileName:find("\\", 1, true) then return nil end
+
+    local base = addonTable.GetDefaultMediaPath and addonTable.GetDefaultMediaPath()
+    if not base then return nil end
+    local basePath = base .. fileName
+
+    local cache = voiceResolveCache[packName]
+    if not cache then cache = {}; voiceResolveCache[packName] = cache end
+    local decided = cache[fileName]
+    if decided == "base" then return basePath end
+    if decided == "pack" then return nil end
+
+    -- 语音包里有（或查不出来）→ 不动
+    if addonTable.IsSoundFileExist(path) ~= false then
+        cache[fileName] = "pack"
+        return nil
+    end
+    -- 本体也没有这只语音 → 换了也白换，老实按原路径播
+    if addonTable.IsSoundFileExist(basePath) == false then
+        cache[fileName] = "pack"
+        return nil
+    end
+
+    cache[fileName] = "base"
+    return basePath
+end
+
+-- 全局拦截 PlaySoundFile：只把“语音包路径”按需换成“本体路径”，其余一律原样透传。
+-- 好处：插件里 200 多处 PlaySoundFile 调用（含以后新增的文件）都直接受益，不必逐个改。
+-- 保险：换算逻辑整体 pcall，出任何意外都退回原路径播放，绝不因为兜底把声音弄哑。
+if type(PlaySoundFile) == "function" and not addonTable._voiceFallbackPatched then
+    local rawPlaySoundFile = PlaySoundFile
+    addonTable.RawPlaySoundFile = rawPlaySoundFile
+    PlaySoundFile = function(soundFile, ...)
+        if type(soundFile) == "string" then
+            local ok, resolved = pcall(addonTable.ResolveVoicePackFallback, soundFile)
+            if ok and resolved then soundFile = resolved end
+        end
+        return rawPlaySoundFile(soundFile, ...)
+    end
+    addonTable._voiceFallbackPatched = true
 end
 
 -- 🛠️ 职责优先的特征指纹扫描仪（施法/意图/能量 强固版）
@@ -329,7 +545,7 @@ RingEditFrame.bg:SetColorTexture(0.4, 1, 0.8, 0.25) -- 与圆环同主题的青�
 
 RingEditFrame.text = RingEditFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 RingEditFrame.text:SetPoint("CENTER")
-RingEditFrame.text:SetText("倒计时\n圆环")
+RingEditFrame.text:SetText("倒計時\n圓環")
 RingEditFrame.text:SetTextColor(1, 1, 1, 0.9)
 RingEditFrame.text:SetJustifyH("CENTER")
 RingEditFrame.text:SetSpacing(2)
@@ -360,7 +576,7 @@ RingEditFrame:SetScript("OnMouseUp", function(self)
     DiGuaTimelineAudioHelper = DiGuaTimelineAudioHelper or {}
     DiGuaTimelineAudioHelper.ringX, DiGuaTimelineAudioHelper.ringY = x, y
     ApplyRingPosition() -- 让真正显示的圆环也立刻同步到新位置
-    print(string.format("|cff00ff00[DiGua]|r 倒计时圆环新位置已保存 (X: %d, Y: %d)", x, y))
+    print(string.format("|cff00ff00[DiGua]|r 倒計時圓環新位置已保存 (X: %d, Y: %d)", x, y))
 end)
 
 -- 控制台打开 + 勾选"显示倒计时圆环" → 显示半透明可拖动定位框；否则隐藏并释放鼠标
@@ -397,6 +613,10 @@ local function ForceHideRingFrame()
     if activeCircleTimer then activeCircleTimer:Cancel(); activeCircleTimer = nil end
     if backupHideTimer then backupHideTimer:Cancel(); backupHideTimer = nil end
 end
+
+-- 供控制台「显示倒计时圆环」取消勾选时调用：立刻清掉正在显示的圆环
+-- （否则要等本次计时器走完才会消失）
+addonTable.ForceHideRingFrame = ForceHideRingFrame
 
 -- 启动光圈倒计时 (增加 checkCast 参数)
 function addonTable.StartCircleTimerBySeconds(seconds, checkCast, PlayerIsSpellTarget)
