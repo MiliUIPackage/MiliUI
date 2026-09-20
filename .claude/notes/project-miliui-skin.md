@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第三輪打磨（2026-09-20 晚）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
+**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第三輪打磨＋第四輪（收藏／地城與團隊／商人／試衣間／物品升級／插件列表，共 12 個視窗開關）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
 `## DefaultState: disabled`（PoC 期間 push 也不會讓整包玩家預設吃到），`/mskin` 開設定、
 `/mskin debug` 印每份配方的狀態＋找不到的區域＋因保護框跳過的清單。
 規範全文在 `AddOns/MiliUI_Skin/STYLE.md`（Tokens／契約／模板配方表／新增視窗 checklist／範圍分級），
@@ -114,6 +114,34 @@ metadata:
 - 信紙深色化（內文字色全接管）；**信件內文自帶的 `|cff…|r` 色碼接不住**（GM／活動信可能出現深色字），發票算式線直接中和。
 - 白名單這一輪擴充：進度條材質、`SetDesaturated`、EditBox/SimpleHTML 的 `SetTextColor`、Checked／DisabledChecked 的 `SetColorTexture`；
   lint 同步收緊（這幾個 setter 與 `GetVertexColor` 只准走 Engine）。
+
+## 第四輪（2026-09-20 深夜，四個 Opus 平行：A 打磨＋引擎、B/C/D 各加新視窗且不准改 Core）
+
+平行模式的分工規則（有效，下次照用）：一個代理擁有 `Core/**`＋既有配方且**不准改現有 API 簽章**；其餘代理只新增 `Skins/*.lua`，
+缺的功能寫成配方內 local 小函式標 `TODO(升格)`；共用檔（TOC／DB `windows`／Tab_General／Locales／STYLE ⑤表尾與⑦）各自只加行，
+合併衝突用「兩邊都留」解（scratchpad 的 keepboth.py），STYLE.md 的表要人工看一眼有沒有被段落切斷。
+
+新坑與結論：
+- **陷阱 4 的第三層**：`TabSystemButtonArtMixin:SetTabSelected` 的 mixin 後置勾對好友名單無效 —— 分頁在 XML 載入期就建完，
+  而且 `FriendsTabMixin = CreateFromMixins(TabSystemButtonMixin)`，勾哪一層都追不上 ⇒ `Skin.TabSystem` 走兩條路：mixin 勾（之後才建的）＋
+  掛在該視窗的全域刷新函式後面**重讀** `LeftActive:IsShown()`。
+- 篩選下拉的文字顏色其實接得住：`OnEnable/OnDisable` 是 frame script（`HookScript` 接得到）、`OnLoad` 只有設過 `baseFontObject` 才動文字。
+- 成就圖示金框根因：只有 `AchievementIcon_Desaturate/_Saturate` 碰 `Icon.frame`（SetVertexColor），未完成列每次 Init 無條件 Desaturate、
+  已完成列被 `saturatedStyle` 守衛擋掉 ⇒ 症狀 1:1 對上；保留每次重申一發 SetAlpha。
+- 好友名單三種列的 view 都是匿名閉包轉呼叫**全域函式** ⇒ `HookRows{ mixin = _G }`；`row.name` 這種只是拿 FontString 子鍵認模板，不是讀資料。
+- **收藏**：分頁是 `PanelTabButtonTemplate` 但矩形彼此**重疊 16**（`Skin.Tab` 的右延伸會壓到鄰居）⇒ 配方內 `SkinPanelTab` 左右各內縮 8；
+  玩具／傳家寶格是 `SecureFrameTemplate`，長相全在格框貼圖上，中和了沒東西補 ⇒ 完全不動；坐騎／寵物列的初始化是全域函式。
+- **地城與團隊**：`Blizzard_GroupFinder` 非 LoD（PvP、M+ 才是，走 `parts`）；左側大類鈕的選中靠 `bg:SetTexCoord`、Highlight 比按鈕大 ⇒ 勾
+  `GroupFinderFrame_SelectGroupButton`＋ownHover；**預組隊伍只做純視覺**（搜尋列只換滑過帶、申請者列只 skin 三顆按鈕，不讀 resultID／applicantID）；
+  羊皮紙上的地城清單不做；征服條每次 SetAtlas ⇒ 不換材質；`LFGListPVEStub_OnShow` 每次對 `LFGListFrame` SetFrameLevel（overlay 層級是建立時算的，待測）。
+  本體 `Enhance/ChallengesUI_Buttons`／`PartyKeystone`／`ChallengesUI_LootTable` 是各自手寫的「深半透明底＋金邊」，要一致得在本體改。
+- **商人**：品質更新走的是物品鈕的**方法**不是全域函式，而全域 `SetItemButtonTexture` 又跑在品質更新之前 ⇒ 方框會慢一件商品 ⇒
+  配方自己勾 `MerchantFrame_UpdateMerchantInfo/_UpdateBuybackInfo`，第一行 `MerchantFrame:IsShown()`（已列入讀取例外；暴雪視窗沒開也狂跑更新）。
+  `MiliUI_Merchant` 自己加的齒輪鈕／右側補白格／已收藏勾都是**匿名框**，伴隨元件規則碰不到 ⇒ 要在那支插件裡給全域名稱；
+  補白格的純黑在底部雕花中和後會對不上。
+- 物品升級：全檔零 SetTextColor ⇒ 整個深色化零接管成本。`SideDressUpFrame` 是 `flattenRenderLayers`（[[wow-toplevel-flattens-child-strata]]），overlay 可能蓋到模型，待測。
+- 插件列表：分類列的 Init 是 local 函式掛不上 ⇒ 借全域 `AddonList_Update` 補掃。最大化／最小化鈕沒有自己的圖記（Engine glyph 只有 cross）。
+- lint 這一輪再收緊：`SetEnabled/Enable/Disable`、`SetHighlightLocked`、`SetDisabledFontObject/SetHighlightFontObject`、`AddAcquiredFrameCallback`。
 
 ## 還沒實機確認的
 
