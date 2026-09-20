@@ -41,6 +41,8 @@ ns.AddonRoster = {
         { key = "MiliUI_AuraEnhance", folders = { "MiliUI_AuraEnhance" }, menuKey = "auraenhance" },
         { key = "MiliUI_CharacterNotes", folders = { "MiliUI_CharacterNotes" }, menuKey = "characternotes" },
         { key = "MiliUI_Minimap", folders = { "MiliUI_Minimap" }, menuKey = "minimap" },
+        { key = "MiliUI_InfoBar", folders = { "MiliUI_InfoBar" }, menuKey = "infobar" },
+        { key = "MiliUI_QuestTracker", folders = { "MiliUI_QuestTracker" }, menuKey = "questtracker" },
         { key = "MiliUI_ShoppingList", folders = { "MiliUI_ShoppingList" }, menuKey = "shoppinglist" },
         { key = "MiliUI_Merchant", folders = { "MiliUI_Merchant" }, menuKey = "merchant" },
         { key = "MiliUI_AdventureGuideSpecCompare", folders = { "MiliUI_AdventureGuideSpecCompare" }, slash = "/agsc" },

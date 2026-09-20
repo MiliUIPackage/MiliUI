@@ -17,6 +17,7 @@ local DETAIL_X        = LIST_X + LIST_W + 8
 local TOP_Y           = -46
 local BAR_H           = 34          -- 底部套用列
 local SHOT_W, SHOT_H  = 420, 210    -- 擷圖顯示區（2:1，檔案建議 840x420）
+local DESC_BOTTOM     = 44          -- 說明捲動區的下緣：讓開「開啟該插件設定」那顆按鈕
 local SHOTS_PATH      = "Interface\\AddOns\\MiliUI\\Media\\Shots\\"
 local CPU_TICK        = 2           -- 詳情面板 CPU 數字的更新間隔（秒）
 
@@ -310,14 +311,31 @@ local function CreateDetail()
     meta:SetPoint("RIGHT", detail, "RIGHT", -12, 0)
     meta:SetJustifyH("LEFT")
 
-    local desc = detail:CreateFontString(nil, "OVERLAY")
+    -- 說明：完整顯示，裝不下的自己捲。
+    -- ⚠ 不要拿 SetMaxLines 截斷——TOC 的 Notes 夾著 |n 換行與 |c 色碼，截斷點一旦落在
+    -- 跳脫序列中間，漏出來的半截就被當字面印成「|...」（EasyExperienceBar 必中）。
+    local descBox = CreateFrame("Frame", nil, detail)
+    descBox:SetPoint("TOPLEFT", meta, "BOTTOMLEFT", 0, -8)
+    descBox:SetPoint("BOTTOMRIGHT", detail, "BOTTOMRIGHT", -12, DESC_BOTTOM)
+
+    local descScroll = W.CreateScrollFrame(descBox)
+
+    local desc = descScroll.child:CreateFontString(nil, "OVERLAY")
     desc:SetFontObject(W.fontNormal)
-    desc:SetPoint("TOPLEFT", meta, "BOTTOMLEFT", 0, -8)
-    desc:SetPoint("RIGHT", detail, "RIGHT", -12, 0)
+    desc:SetPoint("TOPLEFT")
     desc:SetJustifyH("LEFT")
     desc:SetJustifyV("TOP")
     desc:SetSpacing(3)
-    desc:SetMaxLines(4)
+
+    -- 捲動範圍＝換行後的實際字高，所以得先有明確寬度才量得準。第一次 Init 時框還沒
+    -- layout（GetWidth 是 0），量不到就先擱著，等 OnSizeChanged 尺寸底定再補算一次。
+    local function SyncDescHeight()
+        local w = descScroll:GetWidth()
+        if w <= 0 then return end
+        desc:SetWidth(w)
+        descScroll:SetContentHeight(desc:GetStringHeight() + 4)
+    end
+    descScroll:HookScript("OnSizeChanged", SyncDescHeight)
 
     local openBtn = W.CreateButton(detail, "開啟該插件設定", "accent", 150, 24)
     openBtn:SetPoint("BOTTOMLEFT", 12, 12)
@@ -339,6 +357,7 @@ local function CreateDetail()
 
     detailUI.shotHolder, detailUI.phIcon, detailUI.shot = shotHolder, phIcon, shot
     detailUI.name, detailUI.meta, detailUI.desc = name, meta, desc
+    detailUI.descScroll, detailUI.SyncDescHeight = descScroll, SyncDescHeight
     detailUI.openBtn, detailUI.openHint = openBtn, openHint
 end
 
@@ -377,6 +396,8 @@ local function ShowDetail(entry)
 
     local descText = entry.desc or EntryMeta(entry, "Notes") or "（這個插件沒有提供說明）"
     detailUI.desc:SetText(descText)
+    detailUI.descScroll:SetVerticalScroll(0)   -- 換插件要回到最上面，別留著上一個的捲動位置
+    detailUI.SyncDescHeight()
 
     -- 按鈕顯示與否由名冊寫死（有定義入口＋插件啟用中就顯示），介面才穩定；
     -- 「入口當下到底在不在」的即時偵測移到按下去那一刻（OpenEntrySettings）——
