@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-**2026-09-20 建立，PoC 階段，尚未進遊戲驗證。** `AddOns/MiliUI_Skin/`，TOC 是
+**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收，第二輪（打磨＋任務／郵件／好友）進行中。** `AddOns/MiliUI_Skin/`，TOC 是
 `## DefaultState: disabled`（PoC 期間 push 也不會讓整包玩家預設吃到），`/mskin` 開設定、
 `/mskin debug` 印每份配方的狀態＋找不到的區域＋因保護框跳過的清單。
 規範全文在 `AddOns/MiliUI_Skin/STYLE.md`（Tokens／契約／模板配方表／新增視窗 checklist／範圍分級），
@@ -44,7 +44,20 @@ metadata:
 - `UIPanelButtonTemplate` 沒有 PushedTexture ⇒ 按下沒視覺，PoC 接受。
 - 成就視窗是 BackdropTemplate（九片直接掛在 frame 上）不是 PortraitFrame；分頁模板沒有 `TabTextures` parentArray。
 
-## 待實機驗證（使用者還沒測）
+## 實機驗收結果（2026-09-20，使用者實測＋taint.log）
+
+**PoC 的 taint 線通過**：戰鬥中按 C 開角色面板正常；`taint.log`（載入 Skin 之後的 session）
+**0 筆 blocked、0 行提到 MiliUI_Skin**。成就視窗那批污染點名的是別的插件、既有狀況。
+⇒ 「alpha 中和＋純貼圖 overlay＋side table＋hooksecurefunc（含掛在 CharacterFrame 實例方法上的
+`SetTitleColor` 後置勾、全域 `PanelTemplates_*` 後置勾）」這一組在 12.1 是實證安全的。
+
+外觀面使用者看過擷圖後的結論（第二輪打磨的來源）：
+- 關閉鈕 × 用 `UI-StopButton` 會是暗金色 —— 那張貼圖本身有色，vertex color 染不白 ⇒ 改用 Line 自己畫。
+- **成就視窗「外框深、內容亮橘羊皮紙」是全套最不協調的** ⇒ 「內容底材保留」不是鐵律：
+  要換可以，但必須連同上面所有文字顏色一起接管（暴雪在 Saturate/Desaturate 類路徑會重設）。
+- 角色面板殘留的雕花（屬性欄標題牌、模型內框、裝備格外框）、聲望／通貨頁的下拉與分類標題列要補。
+
+## 還沒實機確認的
 
 三條驗收線：`/console taintLog 2` 操作後 taint.log 零 blocked、**戰鬥中按 C 開得了角色面板**
 （[[project-charframe-taint]] 的壓力測試）、首領戰中不報錯。
