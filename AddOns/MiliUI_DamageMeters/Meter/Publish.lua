@@ -378,6 +378,24 @@ end
 -- 用不了的頻道**不列出來**（共用層的選單沒有 disabled 項目，不為此改共用層）。
 -- 版面與互動的規則見 .claude/skills/miliui-menu-design。
 ------------------------------------------------------------
+-- 社群頻道的內部名稱是「Community:<社群 ID>:<頻道 ID>」，直接印出來是一串數字。
+-- 換成聊天框顯示的那個名字：社群的「一般」頻道只報社群名，其餘是「社群 - 頻道」。
+-- 任何一步查不到（社群資料還沒載入）就退回原字串 —— 醜，但至少認得出是哪一條。
+local function ChannelLabel(name)
+    local clubId, streamId = name:match("^Community:(%d+):(%d+)$")
+    if not clubId or not C_Club then return name end
+    clubId, streamId = tonumber(clubId), tonumber(streamId)
+    local club = C_Club.GetClubInfo and C_Club.GetClubInfo(clubId)
+    local clubName = club and (club.shortName or club.name)
+    if not clubName or clubName == "" then return name end
+    local stream = C_Club.GetStreamInfo and C_Club.GetStreamInfo(clubId, streamId)
+    local general = Enum and Enum.ClubStreamType and Enum.ClubStreamType.General
+    if not stream or stream.streamType == general or not stream.name or stream.name == "" then
+        return clubName
+    end
+    return clubName .. " - " .. stream.name
+end
+
 local function ChannelItems(W)
     if not GetChannelList then return nil end
     local items
@@ -388,7 +406,7 @@ local function ChannelItems(W)
         if id and name and not disabled then
             items = items or { { text = ns.L["Channels"], isTitle = true } }
             items[#items + 1] = {
-                text = format("%d. %s", id, name),
+                text = format("%d. %s", id, ChannelLabel(name)),
                 onClick = function() Pub.Send(W, "CHANNEL", id) end,
             }
         end
