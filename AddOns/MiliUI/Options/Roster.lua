@@ -45,6 +45,7 @@ ns.AddonRoster = {
         { key = "MiliUI_QuestTracker", folders = { "MiliUI_QuestTracker" }, menuKey = "questtracker" },
         { key = "MiliUI_ShoppingList", folders = { "MiliUI_ShoppingList" }, menuKey = "shoppinglist" },
         { key = "MiliUI_Merchant", folders = { "MiliUI_Merchant" }, menuKey = "merchant" },
+        { key = "MiliUI_MythicPlus", folders = { "MiliUI_MythicPlus" }, menuKey = "mythicplus" },
         { key = "MiliUI_AdventureGuideSpecCompare", folders = { "MiliUI_AdventureGuideSpecCompare" }, slash = "/agsc" },
 
         -- ===== 介面與外觀 =====
