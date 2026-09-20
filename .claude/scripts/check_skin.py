@@ -97,6 +97,27 @@ RULES = [
      "去飽和走 Engine.Desaturate（Skin.IconButton 的 opts.desaturate）：只准對 region"),
     (r":LockHighlight\s*\(",     "LockHighlight 是寫暴雪按鈕的狀態；選中態走自己的 overlay"),
     (r":UnlockHighlight\s*\(",   "UnlockHighlight 是寫暴雪按鈕的狀態；選中態走自己的 overlay"),
+    # `SetHighlightLocked` 是 LockHighlight／UnlockHighlight 的新式合併版
+    # （`RecentAlliesEntryMixin:SetSelected` 就是走它，
+    #  Blizzard_RecentAllies/Blizzard_RecentAlliesTemplates.lua:342-344）。
+    # 舊的兩支擋了、新的這支沒擋，等於留了一個同義的後門。
+    (r":SetHighlightLocked\s*\(", "SetHighlightLocked 就是新版的 LockHighlight：寫的是暴雪按鈕的狀態"),
+    # 啟用／停用寫的是暴雪按鈕的**值**（能不能按），跟 SetChecked 同一級。
+    # 我們只換長相：停用長什麼樣由暴雪的 DisabledTexture／DisabledFont 決定。
+    (r":SetEnabled\s*\(",        "啟用／停用是暴雪按鈕的狀態，不是長相"),
+    (r":Enable\s*\(",            "啟用／停用是暴雪按鈕的狀態，不是長相"),
+    (r":Disable\s*\(",           "啟用／停用是暴雪按鈕的狀態，不是長相"),
+    # 白名單裡的字型物件動作**只有** SetNormalFontObject（註 ⓔ）：
+    # 停用灰字與「分頁選中＝Disabled 狀態的白字」都是暴雪自己設的語彙，換掉就看不出狀態。
+    (r":SetDisabledFontObject\s*\(",
+     "只准換 NormalFontObject（Engine.ButtonFonts）：停用字與分頁選中態的白字是暴雪的語彙"),
+    (r":SetHighlightFontObject\s*\(",
+     "只准換 NormalFontObject（Engine.ButtonFonts）：滑過字色是暴雪的語彙"),
+    # STYLE.md ③ 白紙黑字禁止，但一直沒有對應的規則 ——
+    # 那是把我們的函式寫進暴雪的 callback 表，跟「暴雪物件零欄位寫入」同一條線。
+    # 池化列一律走 Engine.HookRows（mixin／全域函式的後置勾）。
+    (r"AddAcquiredFrameCallback",
+     "不可以把我們的函式註冊進暴雪的 callback 表：池化列走 Engine.HookRows"),
     (r"\bPanelTemplates_\w+\s*\(", "不可以呼叫 PanelTemplates_*：那會寫暴雪框的欄位（selectedTab、isDisabled…）"),
     (r"\bShowUIPanel\s*\(",      "UIPanel 系是保護函式"),
     (r"\bHideUIPanel\s*\(",      "UIPanel 系是保護函式"),

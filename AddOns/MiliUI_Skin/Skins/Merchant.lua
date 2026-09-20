@@ -139,8 +139,7 @@
 -- 讀暴雪物件（契約的讀取例外）：
 --   * 物品格 `IconBorder` 的 `IsShown()` / `GetVertexColor()` —— 走
 --     `Engine.PassBorderColor`，**當傳遞者不當讀取者**（STYLE.md ③ 的傳遞者規則）。
---   * **`MerchantFrame:IsShown()`** —— 兩支更新後置勾的第一道閘。⚠ 這一條目前**不在**
---     STYLE.md ③ 的讀取例外表上（那張表不在這一輪的可改範圍），理由與申請寫在回報 ④：
+--   * **`MerchantFrame:IsShown()`** —— 兩支更新後置勾的第一道閘（已列入 STYLE.md ③ 的讀取例外表）：
 --     暴雪在 `MerchantFrame_OnLoad`（.lua:7）就註冊了 `BAG_UPDATE` 與
 --     `UNIT_INVENTORY_CHANGED`，所以商人框**沒開的時候照樣會跑** `MerchantFrame_Update`
 --     —— 登入後光是背包整理就能跑上千次，少了這道閘那上千次全部會變成
