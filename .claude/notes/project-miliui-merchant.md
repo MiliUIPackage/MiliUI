@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 3797478f-dadc-4703-a9bd-65d89fd251d9
-  modified: 2026-09-19T07:51:16.662Z
+  modified: 2026-09-19T18:33:56.601Z
 ---
 
 **MiliUI_Merchant（2026-09-19 建立，v1.0.0）**：加大商人視窗（列×欄可調，預設 5×4）＋已收藏的
@@ -46,6 +46,10 @@ metadata:
   收尾一定要記得加這一筆** —— 這次是使用者提醒才補的。
 - taint 接觸面跟 Krowi 時代相同：全域被污染 ⇒ 商人更新路徑被污染（無保護函式、無秘密值）；
   13 格以後是插件建的框，點擊時暴雪處理器以污染狀態寫 `MerchantFrame.itemHover/extendedCost/highPrice`。
+- **開著 taintLog 時這支會灌爆 taint.log**（2026-09-20 量測）：每次登入 25 秒 ≈ 12 萬筆／17MB、一晚 45 萬筆／272MB，
+  全是 `MERCHANT_ITEMS_PER_PAGE`＋`MerchantItemN*` 的讀取（暴雪登入時的 `BAG_UPDATE` 風暴 × 每次 63 筆）。
+  不是 bug（0 筆 blocked、全域污染無法還原）。**看 taint.log 時先 `grep -v "tainted by MiliUI_Merchant"`**，
+  而且**先把 log 複製到 scratchpad 再分析** —— 遊戲重開會整份重寫，分析到一半就沒了。
 
 ## 寬版底部列（實機擷圖對過）
 暴雪的底部元件有的錨左緣、有的錨右緣，原尺寸下剛好疊在一起，視窗一變寬就各自飄走：
