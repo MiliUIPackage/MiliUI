@@ -29,6 +29,9 @@ local function BuildDefaults()
             gossip      = true,
             character   = true,
             achievement = true,
+            quest       = true,
+            mail        = true,
+            friends     = true,
         },
     }
 end
