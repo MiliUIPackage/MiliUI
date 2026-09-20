@@ -43,9 +43,9 @@ local PULSE_TIME     = 0.9
 ------------------------------------------------------------
 -- 標題列按鈕的貼圖
 --
--- 自己畫的一套六款 128px PNG（純白＋alpha，由下面的 SetVertexColor 染職業色）。
+-- 自己畫的一套八款 128px PNG（純白＋alpha，由下面的 SetVertexColor 染職業色）。
 -- **不用暴雪的 Interface\Buttons：**那幾張是 16~32px 的舊素材，放到 22px 會糊，
--- 而且六張來自三個不同年代，湊在一起像雜牌軍。也不用 atlas —— atlas 被拿掉時
+-- 而且來自三個不同年代，湊在一起像雜牌軍。也不用 atlas —— atlas 被拿掉時
 -- 是靜默失敗（見 miliui-inspect-icons 技能踩過的坑）。
 --
 -- ⚠ PNG 是 `.claude/skills/miliui-damagemeter-icons/scripts/dm-icons.py` 畫出來的，
@@ -53,14 +53,19 @@ local PULSE_TIME     = 0.9
 ------------------------------------------------------------
 local MEDIA = "Interface\\AddOns\\MiliUI_DamageMeters\\Media\\"
 local BTN_TEX = {
-    meters   = MEDIA .. "icon-meters.png",
-    segments = MEDIA .. "icon-segments.png",
-    reset    = MEDIA .. "icon-reset.png",
-    settings = MEDIA .. "icon-settings.png",
-    locked   = MEDIA .. "icon-locked.png",
-    unlocked = MEDIA .. "icon-unlocked.png",
+    meters     = MEDIA .. "icon-meters.png",
+    segments   = MEDIA .. "icon-segments.png",
+    reset      = MEDIA .. "icon-reset.png",
+    settings   = MEDIA .. "icon-settings.png",
+    locked     = MEDIA .. "icon-locked.png",
+    unlocked   = MEDIA .. "icon-unlocked.png",
+    publish    = MEDIA .. "icon-publish.png",
+    publishOff = MEDIA .. "icon-publish-off.png",
 }
 Win.BTN_TEX = BTN_TEX
+
+-- 發佈被封鎖時的壓暗係數：強調色三個分量各乘它（套組慣例，狀態只換明暗不換色）
+local BLOCKED_K = 0.45
 
 ------------------------------------------------------------
 -- 字型
@@ -328,7 +333,11 @@ end
 ------------------------------------------------------------
 -- 標題列按鈕
 ------------------------------------------------------------
-local function MakeHeaderButton(W, key, tooltip, onClick)
+-- id  這顆按鈕在設定裡的身分（segments / publish / reset / settings / lock），
+--     顯示與順序都查它。**是存檔內容**，不要改名。
+-- key 貼圖 key。跟 id 多半一樣，但會切換的兩顆不是：鎖頭在 locked/unlocked 之間切、
+--     發佈在 publish/publishOff 之間切。
+local function MakeHeaderButton(W, id, key, tooltip, onClick)
     local s = ns.DB.Style()
     local btn = CreateFrame("Button", nil, W.header)
     btn:SetSize(s.hdrIconSize or 20, s.hdrIconSize or 20)
@@ -341,6 +350,7 @@ local function MakeHeaderButton(W, key, tooltip, onClick)
     icon:SetVertexColor(M.Accent())
     icon:SetAlpha(ICON_ALPHA)
     btn.icon = icon
+    btn.id = id
     btn.key = key
 
     btn:SetScript("OnEnter", function(self)
@@ -348,6 +358,10 @@ local function MakeHeaderButton(W, key, tooltip, onClick)
         if ns.W.Menu.IsOpenFor(self) then return end   -- 選單開著時不要再疊工具提示
         AnchorButtonTooltip(self)
         GameTooltip:SetText(tooltip, 1, 1, 1)
+        -- 動態補一行：狀態會變的按鈕（發佈）用它講「為什麼現在按不下去」。
+        -- 掛成函式而不是字串，提示才是打開的那一刻才求值的。
+        local note = self.tooltipNote and self.tooltipNote(self)
+        if note then GameTooltip:AddLine(note, 0.7, 0.7, 0.7, true) end
         GameTooltip:Show()
     end)
     btn:SetScript("OnLeave", function(self)
@@ -360,43 +374,56 @@ local function MakeHeaderButton(W, key, tooltip, onClick)
     end)
 
     W.hdrButtons[#W.hdrButtons + 1] = btn
+    W.hdrButtonById[id] = btn
     return btn
 end
 
--- 哪幾顆按鈕被設定藏起來了。三個地方要用同一個判斷（排版、滑過顯示、切換顯示），
--- 所以收斂成一支 —— 之前三處各寫一份，加第三顆按鈕時就會漏改。
-local HIDE_OPTION = {
-    reset    = "hideResetButton",
-    settings = "hideSettingsButton",
-    -- ⚠ 鎖頭的 key 會在這兩個值之間切換（見 Win.UpdateLockIcon），兩個都要列
-    locked   = "hideLockButton",
-    unlocked = "hideLockButton",
-}
-
-local function HiddenByOption(btn, s)
-    local key = HIDE_OPTION[btn.key]
-    return key ~= nil and s[key] == true
+-- 這顆按鈕被關掉了沒。三個地方要用同一個判斷（排版、滑過顯示、切換顯示），
+-- 所以收斂成一支 —— 之前三處各寫一份，加按鈕時就會漏改。
+local function HiddenByOption(btn)
+    local cfg = ns.DB.HdrButton(btn.id)
+    return not (cfg and cfg.enabled)
 end
 
--- 由右到左排列，回傳實際顯示的顆數（給 FitTitle 算可用寬度）
+-- 排序緩衝：Layout 只走設定變動路徑（不在刷新迴圈裡），但沒必要每次配一張新表。
+-- 整支是同步的，兩個視窗不會同時用到它。
+local _laySeq = {}
+
+local function ByOrder(a, b)
+    local oa = ns.DB.HdrButton(a.id).order
+    local ob = ns.DB.HdrButton(b.id).order
+    if oa ~= ob then return oa < ob end
+    return a.id < b.id      -- 同 order 用 id 定生死，排列才是穩定的
+end
+
+-- 依 hdrButtons 的 order 排成「由左到右」的序列，再從右緣往左貼
+-- （序列最後一顆在最右邊）。回傳實際顯示的顆數，給 FitTitle 算可用寬度。
 function Win.LayoutHeaderButtons(W)
     local s = ns.DB.Style()
     local size = s.hdrIconSize or 20
-    local x = -(BTN_GAP + 1)
-    local n = 0
+
+    local seq = _laySeq
+    wipe(seq)
     for _, btn in ipairs(W.hdrButtons) do
-        local hide = HiddenByOption(btn, s)
-        if hide then
+        if HiddenByOption(btn) then
             btn:Hide()
         else
-            btn:SetSize(size, size)
-            btn:ClearAllPoints()
-            btn:SetPoint("RIGHT", W.header, "RIGHT", x, 0)
-            btn:Show()
-            x = x - size - BTN_GAP
-            n = n + 1
+            seq[#seq + 1] = btn
         end
     end
+    table.sort(seq, ByOrder)
+
+    local x = -(BTN_GAP + 1)
+    for i = #seq, 1, -1 do
+        local btn = seq[i]
+        btn:SetSize(size, size)
+        btn:ClearAllPoints()
+        btn:SetPoint("RIGHT", W.header, "RIGHT", x, 0)
+        btn:Show()
+        x = x - size - BTN_GAP
+    end
+
+    local n = #seq
     W._hdrButtonCount = n
     return n
 end
@@ -444,7 +471,7 @@ function SetHeaderIconsShown(W, shown)
     if W._hdrIconsShown == shown then return end
     W._hdrIconsShown = shown
     for _, btn in ipairs(W.hdrButtons) do
-        if shown and not HiddenByOption(btn, s) then btn:Show()
+        if shown and not HiddenByOption(btn) then btn:Show()
         else btn:Hide() end
     end
     Win.FitTitle(W)
@@ -457,7 +484,7 @@ function Win.ApplyHeaderHoverIcons(W)
     if not s.hdrMouseoverIcons then
         W._hdrIconsShown = true
         for _, btn in ipairs(W.hdrButtons) do
-            if not HiddenByOption(btn, s) then btn:Show() end
+            if not HiddenByOption(btn) then btn:Show() end
         end
         Win.FitTitle(W)
         return
@@ -989,7 +1016,8 @@ function Win.Create(idx)
     W.visibleCount = 0
     W.scrollMax    = 0
     W.rowPool      = {}
-    W.hdrButtons   = {}
+    W.hdrButtons   = {}      -- 建立順序（跟畫面上的排列無關）
+    W.hdrButtonById = {}     -- id → 按鈕，狀態更新用
     W.sourceOpen   = false
 
     local hdrH = D.Px(s.hdrHeight or 22)
@@ -1126,25 +1154,36 @@ function Win.Create(idx)
     end)
 
     ------------------------------------------------------------
-    -- 標題列按鈕（由右到左：鎖定／設定／重置／分段／首頁）
+    -- 標題列按鈕
+    --
+    -- 建立順序不決定畫面上的排列 —— 那是 style.hdrButtons[id].order 的事
+    -- （見 Win.LayoutHeaderButtons）。這裡只負責把五顆都建出來。
     ------------------------------------------------------------
     local L = ns.L
-    W.lockBtn = MakeHeaderButton(W, wdb.locked and "locked" or "unlocked",
+    W.lockBtn = MakeHeaderButton(W, "lock", wdb.locked and "locked" or "unlocked",
         L["Lock window"], function()
             -- 讀 W.wdb 而不是 wdb 這個區域變數：視窗池會在換設定時重綁 W.wdb，
             -- closure 抓住舊表的話按鈕就開始改一張沒人看的設定
             W.wdb.locked = not W.wdb.locked
             Win.UpdateLockIcon(W)
         end)
-    MakeHeaderButton(W, "settings", L["Window menu"], function(btn)
+    MakeHeaderButton(W, "settings", "settings", L["Window menu"], function(btn)
         ns.Windows.ShowContextMenu(W, btn)
     end)
-    MakeHeaderButton(W, "reset", L["Reset data"], function()
+    MakeHeaderButton(W, "reset", "reset", L["Reset data"], function()
         ns.Combat.ResetData()
     end)
-    MakeHeaderButton(W, "segments", L["Segments"], function(btn)
+    MakeHeaderButton(W, "segments", "segments", L["Segments"], function(btn)
         ns.Windows.ShowSegmentMenu(W, btn)
     end)
+    -- ns.Publish 在 TOC 裡排在這支後面，但這兩支都是**點擊／滑過當下**才解的，
+    -- 不是檔案層的引用，所以沒有載入順序問題
+    local pubBtn = MakeHeaderButton(W, "publish", "publish", L["Publish"], function(btn)
+        ns.Publish.OnButtonClick(W, btn)
+    end)
+    pubBtn.tooltipNote = function()
+        return ns.Publish and ns.Publish.BlockedReason()
+    end
     ------------------------------------------------------------
     -- 左側區塊的行為：左鍵切類型、右鍵開選單，而且**還是拖得動視窗**
     --
@@ -1276,6 +1315,30 @@ function Win.UpdateLockIcon(W)
     ns.Move.ApplyLock(W)
 end
 
+------------------------------------------------------------
+-- 發佈鈕的可用狀態
+--
+-- 封鎖中（戰鬥、首領戰、傳奇鑰石、PvP）換成打叉的圖並壓暗 —— 套組慣例是
+-- **狀態只換明暗不換色**，所以壓暗就是強調色三個分量各乘 BLOCKED_K，不換色相。
+-- 「為什麼」由工具提示的第二行說（見 MakeHeaderButton 的 tooltipNote）。
+--
+-- 這裡碰的全是自己的非保護框上的貼圖與顏色，戰鬥中隨時能做。
+-- 圖示狀態只是**提示**：真正的閘在點擊當下與送出當下各重問一次 BlockedReason()。
+------------------------------------------------------------
+function Win.UpdatePublishState(W)
+    local btn = W.hdrButtonById and W.hdrButtonById.publish
+    if not btn then return end
+    local blocked = (ns.Publish and ns.Publish.BlockedReason() ~= nil) or false
+    if btn._blocked == blocked then return end   -- 值沒變就不要動 setter
+    btn._blocked = blocked
+
+    btn.key = blocked and "publishOff" or "publish"
+    btn.icon:SetTexture(BTN_TEX[btn.key])
+    local r, g, b = M.Accent()
+    if blocked then r, g, b = r * BLOCKED_K, g * BLOCKED_K, b * BLOCKED_K end
+    btn.icon:SetVertexColor(r, g, b)
+end
+
 -- 一條長條的外觀（ApplyStyle 與懶建的右欄共用）
 function Win.StyleBar(bar, s, texPath)
     Win.ApplyBarTextOffsets(bar)
@@ -1364,6 +1427,11 @@ function Win.ApplyStyle(W)
     for _, btn in ipairs(W.hdrButtons) do
         btn.icon:SetVertexColor(M.Accent())
     end
+    -- ⚠ 上面那個迴圈剛剛把發佈鈕的壓暗洗掉了（換職業色、套任何樣式都會走到這裡）。
+    --   備忘要先清掉再重算，否則「值沒變就不做」會讓它停在剛被洗成亮色的狀態。
+    local pubBtn = W.hdrButtonById and W.hdrButtonById.publish
+    if pubBtn then pubBtn._blocked = nil end
+    Win.UpdatePublishState(W)
     Win.LayoutHeaderButtons(W)
     Win.ApplyHeaderHoverIcons(W)
 

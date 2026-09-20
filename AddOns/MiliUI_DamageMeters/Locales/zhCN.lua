@@ -36,6 +36,7 @@ L["Segments"] = "分段"
 
 -- 窗口内的操作
 L["Meter type"] = "统计类型"
+L["Publish"] = "发布"
 L["Window menu"] = "窗口菜单"
 L["Lock window"] = "锁定窗口"
 L["Reset data"] = "重置数据"
@@ -54,6 +55,25 @@ L["Smart display: Current in combat, Overall a few seconds after combat ends."] 
 L["Smart display: stays on Current in a raid."] = "智能显示：团队里一直看当前。"
 L["Smart display is paused while you look at a past segment. Switch back to Current or Overall to resume."] = "正在看过去的分段，智能显示暂停；切回当前或总计就会恢复。"
 L["Unknown"] = "未知"
+
+-- 发布（Meter/Publish.lua）
+L["Publish: %s - %s"] = "发布：%s － %s"
+L["Party"] = "队伍"
+L["Raid"] = "团队"
+L["Instance"] = "副本队伍"
+L["Guild"] = "公会"
+L["Say"] = "说"
+L["Channels"] = "频道"
+L["Lines"] = "行数"
+L["%s: %s - %s"] = "%s：%s － %s"
+L["%s - %s"] = "%s － %s"
+L["(no data)"] = "（没有数据）"
+L["Nothing to publish."] = "没有可以发布的数据。"
+L["Not available in combat."] = "战斗中无法使用。"
+L["Blizzard blocks addon chat messages during Mythic+ runs, boss fights and PvP matches."] =
+    "史诗钥石进行中、首领战与 PvP 对战期间，暴雪会挡掉插件发出的聊天消息。"
+L["The data is still locked by the game. Try again in a moment."] =
+    "战斗刚结束，数据还没解锁，请稍后再试一次。"
 
 -- 常规
 L["Windows"] = "窗口"
@@ -89,9 +109,19 @@ L["Pin your own row when it scrolls out of view"] = "自己滚出画面时把那
 L["Show a spell preview on hover"] = "鼠标悬停显示法术预览"
 L["Preview position"] = "预览位置"
 L["Show the game tooltip on breakdown rows"] = "展开页悬停法术显示游戏提示"
-L["Hide the settings button in the title bar"] = "隐藏标题栏的设置（齿轮）按钮"
-L["Hide the lock button in the title bar"] = "隐藏标题栏的锁定按钮"
-L["Hide the reset button in the title bar"] = "隐藏标题栏的重置按钮"
+L["Buttons"] = "按钮"
+L["Drag a button to reorder it, drag it into \"Not shown\" (or just click it) to turn it off. Hover a button to see what it does."] =
+    "拖动方块可以换位置，拖进「不显示」（或直接点一下）就关掉。悬停方块会说明那颗按钮做什么。"
+L["Shown (left to right)"] = "显示（由左到右）"
+L["Not shown"] = "不显示"
+L["Switch which segment this window shows."] = "切换这个窗口要看的分段。"
+L["Post the current ranking to a chat channel. Not available in combat or during a Mythic+ run."] =
+    "把当前的排行贴到聊天频道。战斗中与史诗钥石进行中无法使用。"
+L["Clear every recorded segment. This cannot be undone; the right-click menu and /mdm reset do the same thing."] =
+    "清除所有已记录的分段。不可还原；右键菜单与 /mdm reset 也能做同一件事。"
+L["Open the window menu — the same one you get by right-clicking the title bar."] =
+    "打开窗口菜单 —— 跟在标题栏点右键是同一个。"
+L["Lock or unlock the window. The right-click menu has it too."] = "锁定／解锁窗口。右键菜单里也有。"
 L["Data"] = "数据"
 L["Combat data"] = "战斗数据"
 L["Reset all segments"] = "清除所有分段"

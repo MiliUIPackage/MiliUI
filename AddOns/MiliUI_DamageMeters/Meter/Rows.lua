@@ -169,14 +169,18 @@ end
 
 ------------------------------------------------------------
 -- 死亡列表：API 給的是「最近的在前」，反轉成時間順序，並濾掉假死
+--
+-- holder 只是「緩衝掛在誰身上」：繪製路徑傳 pane，發佈（Meter/Publish.lua）傳
+-- 它自己的表。**不要為了別的呼叫端複製一份這段邏輯** —— 假死的判準要是兩套，
+-- 清單裡看不到的人會出現在貼進聊天的排行裡。
 ------------------------------------------------------------
-local function FilterDeaths(pane, sources)
+function Rows.FilterDeaths(holder, sources)
     ns.Combat.CleanupFeignCache()
     -- 緩衝重用：這支每 tick 都跑，每次配一張新表就是每秒四張垃圾。
     -- 安全性：回傳的表只在這一趟 Render 裡被讀完（PaintBar／UpdateSticky），
     -- 沒有任何地方跨 tick 抓著它。
-    local out = pane._deathBuf
-    if not out then out = {}; pane._deathBuf = out end
+    local out = holder._deathBuf
+    if not out then out = {}; holder._deathBuf = out end
     wipe(out)
     for i = #sources, 1, -1 do
         local src = sources[i]
@@ -411,7 +415,7 @@ local function RenderPane(W, pane, session, dmType, ctx)
     local sources = session and session.combatSources
     if sources then
         local isDeaths = D.IsDeathType(dmType)
-        if isDeaths then sources = FilterDeaths(pane, sources) end
+        if isDeaths then sources = Rows.FilterDeaths(pane, sources) end
         pane._barSources = sources
 
         count = math.min(#sources, POOL)

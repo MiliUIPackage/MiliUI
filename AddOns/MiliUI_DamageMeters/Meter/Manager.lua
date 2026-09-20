@@ -504,8 +504,8 @@ function Windows.ShowContextMenu(W, btn, redraw)
         },
         { isSeparator = true },
         { text = L["Reset data"], onClick = function() ns.Combat.ResetData() end },
-        -- 鎖定放在這裡而不是上面那組開關：標題列的鎖頭預設是藏起來的
-        -- （style.hideLockButton），所以這裡是玩家實際會用的那個入口，
+        -- 鎖定放在這裡而不是上面那組開關：標題列的鎖頭預設是不顯示的
+        -- （style.hdrButtons.lock），所以這裡是玩家實際會用的那個入口，
         -- 擺在動作區比夾在一排視窗行為開關裡好找。
         {
             text = L["Lock window"], isActive = wdb.locked, keepOpen = true,

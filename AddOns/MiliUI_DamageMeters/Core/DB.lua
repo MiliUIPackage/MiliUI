@@ -23,6 +23,58 @@ function DB.SnapKey(idx)
     return "damageMeter" .. idx
 end
 
+------------------------------------------------------------
+-- 標題列按鈕
+--
+-- 每顆按鈕一筆 { enabled, order }：enabled＝顯不顯示，order＝畫面上**由左到右**
+-- 的順序（小的在左）。設定頁「一般 → 標題列按鈕」那個方塊看板就是這張表的視圖，
+-- 拖放之後整條序列重新編成 10、20、30…。
+--
+-- ⚠ 這五個 id 是**存檔內容**（style.hdrButtons 的鍵），改名等於把玩家調好的
+--   顯示與排序整組洗掉。
+-- ⚠ 列舉一律走 DB.HDR_BUTTON_IDS，不要 pairs：看板與標題列都要有穩定的順序，
+--   而 pairs 每次的順序都可能不一樣。
+------------------------------------------------------------
+DB.HDR_BUTTON_IDS = { "segments", "publish", "reset", "settings", "lock" }
+
+local HDR_BUTTON_DEFAULTS = {
+    segments = { enabled = true,  order = 10 },
+    publish  = { enabled = true,  order = 20 },
+    -- 預設藏起來：重置是不可逆的動作，不該擺在一顆隨手就會點到的按鈕上。
+    -- 右鍵選單與 /mdm reset 都還在。
+    reset    = { enabled = false, order = 30 },
+    -- 齒輪那顆開的**就是右鍵選單**，功能完全重複 —— 標題列少一顆按鈕，
+    -- 標題就多一顆按鈕的寬度可以用。
+    settings = { enabled = false, order = 40 },
+    -- 鎖頭同理：右鍵選單裡有「鎖定視窗」（就排在重置資料下面）。
+    -- 鎖定是設定好之後幾乎不會再動的東西，不值得常駐一顆按鈕。
+    lock     = { enabled = false, order = 50 },
+}
+
+------------------------------------------------------------
+-- 防呆存取器：缺表／缺項／型別不對就當場補成預設值再回傳。
+--
+-- MergeDefaults 本來就會補，但匯入的字串與手改過的 SV 都可能少東西，而呼叫端
+-- （排版迴圈、看板）拿到 nil 會整支炸掉 —— 這種「資料有洞」的情況要在存取器
+-- 就收掉，不要散在每個讀取點。
+------------------------------------------------------------
+function DB.HdrButton(id)
+    local def = HDR_BUTTON_DEFAULTS[id]
+    if not def then return nil end
+    local s = DB.Style()
+    -- 還沒有設定檔（DB.Init 之前）：回唯讀的預設值。這條路上沒有人會寫回去。
+    if not s then return def end
+    if type(s.hdrButtons) ~= "table" then s.hdrButtons = {} end
+    local cfg = s.hdrButtons[id]
+    if type(cfg) ~= "table" then
+        cfg = CopyTable(def)
+        s.hdrButtons[id] = cfg
+    end
+    if type(cfg.enabled) ~= "boolean" then cfg.enabled = def.enabled end
+    if type(cfg.order) ~= "number" then cfg.order = def.order end
+    return cfg
+end
+
 local function Color(r, g, b, a)
     return { r = r, g = g, b = b, a = a or 1 }
 end
@@ -212,15 +264,9 @@ local function BuildDefaults()
             -- 預設開：標題列平常只留標題與計時器，滑過去才長出按鈕。
             -- 藏起來的按鈕不佔位置，所以標題能用滿整條（見 Win.FitTitle）。
             hdrMouseoverIcons = true,
-            -- 預設藏起來：重置是不可逆的動作，不該擺在一顆隨手就會點到的按鈕上。
-            -- 右鍵選單與 /mdm reset 都還在。
-            hideResetButton = true,
-            -- 齒輪那顆開的**就是右鍵選單**，功能完全重複 —— 預設也藏起來，
-            -- 標題列少兩顆按鈕、標題就多兩顆按鈕的寬度可以用。
-            hideSettingsButton = true,
-            -- 鎖頭同理：右鍵選單裡有「鎖定視窗」（就排在重置資料下面）。
-            -- 鎖定是設定好之後幾乎不會再動的東西，不值得常駐一顆按鈕。
-            hideLockButton = true,
+            -- 哪幾顆按鈕要顯示、由左到右怎麼排（定義與各顆的理由見檔案上方的
+            -- HDR_BUTTON_DEFAULTS）。設定頁的方塊看板就是它的視圖。
+            hdrButtons = CopyTable(HDR_BUTTON_DEFAULTS),
 
             ------------------------------------------------------------
             -- 行為
@@ -240,6 +286,9 @@ local function BuildDefaults()
             -- 視窗互相磁吸（拖曳與縮放時吸附其他統計視窗的邊緣與尺寸）
             snapEnabled   = true,
             snapThreshold = 6,
+            -- 發佈到聊天頻道時貼幾名（見 Meter/Publish.lua）。上限 10 是硬的：
+            -- 訊息要在點擊的那一趟同步送完（硬體事件），合併檢視最多 2＋20 列。
+            publishLines = 5,
         },
 
         -- 兩個：傷害輸出 ＋ 治療量。單獨一個傷害統計看不出治療在做什麼，
@@ -482,6 +531,31 @@ local PROFILE_MIGRATIONS = {
                 end
             end
         end
+    end,
+
+    -- v4：標題列按鈕的三個「藏起來」旗標 → 一張 hdrButtons 表（顯示 ＋ 順序）。
+    --
+    -- 判準：**舊旗標 true 或缺鍵都等於藏**（三個的舊預設值都是 true，所以缺鍵
+    -- ＝當時的預設＝藏）；只有明確的 false 才是「玩家把它叫出來過」。
+    -- 分段鈕以前沒有開關、一直都在 ⇒ enabled；發佈是新的按鈕 ⇒ 預設開。
+    --
+    -- order 10/30/40/50 保留舊版畫面上由左到右的「分段、重置、設定、鎖定」相對位置，
+    -- 所以老玩家升上來看到的排列一模一樣，只是中間多一顆發佈（20）。
+    --
+    -- ⚠ 遷移跑在 MergeDefaults **之前**（見 DB.Init 與 Tab_Share 的匯入），
+    --   所以這時候舊 SV 還沒有 hdrButtons —— 有的話就是已經遷過了，早退。
+    --   真正的新安裝連 style 都還沒有，一樣早退交給預設值。
+    [4] = function(p)
+        local st = p.style
+        if type(st) ~= "table" or st.hdrButtons ~= nil then return end
+        st.hdrButtons = {
+            segments = { enabled = true, order = 10 },
+            publish  = { enabled = true, order = 20 },
+            reset    = { enabled = st.hideResetButton    == false, order = 30 },
+            settings = { enabled = st.hideSettingsButton == false, order = 40 },
+            lock     = { enabled = st.hideLockButton     == false, order = 50 },
+        }
+        st.hideResetButton, st.hideSettingsButton, st.hideLockButton = nil, nil, nil
     end,
 }
 

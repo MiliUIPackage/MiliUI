@@ -1,11 +1,11 @@
 ---
 name: miliui-damagemeter-icons
-description: 重新產生 MiliUI_DamageMeters 標題列的六款圖示（直方圖／清單／重置／齒輪／鎖上／未鎖）。當使用者說「標題列圖示太糊」「換傷害統計的按鈕圖」「齒輪重畫」「加一顆標題列按鈕」，或要動 Meter/Window.lua 的 BTN_TEX／icon-*.png 時使用。圖示是 Pillow 腳本畫出來的，不要用繪圖軟體手改 PNG——那樣下次要調就沒有來源了。
+description: 重新產生 MiliUI_DamageMeters 標題列的八款圖示（直方圖／清單／重置／齒輪／鎖上／未鎖／大聲公／大聲公禁止）。當使用者說「標題列圖示太糊」「換傷害統計的按鈕圖」「齒輪重畫」「加一顆標題列按鈕」，或要動 Meter/Window.lua 的 BTN_TEX／icon-*.png 時使用。圖示是 Pillow 腳本畫出來的，不要用繪圖軟體手改 PNG——那樣下次要調就沒有來源了。
 ---
 
 # MiliUI 傷害統計的標題列圖示
 
-`AddOns/MiliUI_DamageMeters/Media/icon-*.png` 這六張圖**不是素材，是
+`AddOns/MiliUI_DamageMeters/Media/icon-*.png` 這八張圖**不是素材，是
 `scripts/dm-icons.py` 畫出來的**。要改造型就改腳本再跑一次。
 
 腳本放這裡而不是 `Media/`：它是開發工具，玩家 clone 下來不需要
@@ -19,7 +19,12 @@ cd "/Applications/World of Warcraft/_retail_/Interface/AddOns/MiliUI_DamageMeter
 ```
 
 **一定要 `cd` 到 `Media/`** —— 腳本用相對檔名 `save()`，在別的地方跑就把圖寫到別的地方了。
-六個檔案會被直接覆蓋，改壞了用 `git checkout` 還原。需要 Pillow。
+八個檔案會被直接覆蓋，改壞了用 `git checkout` 還原。需要 Pillow。
+
+⚠ **產出後不要再跑 `wow-png-shrink`。** 那支對 128px 單色圖確實還有三成
+（1956 → 1185 bytes），但省下來的是**幾百個 byte**，代價是「跑一次腳本、
+git 就乾淨」這條不變式 —— 壓過的檔案下次重跑會整批顯示成有改動，
+而這支腳本最常見的用途就是重跑。repo 裡這八張目前都是 Pillow 的原始輸出。
 
 ## 為什麼不用暴雪的圖
 
@@ -27,7 +32,7 @@ cd "/Applications/World of Warcraft/_retail_/Interface/AddOns/MiliUI_DamageMeter
 兩個原因，改造型前要知道：
 
 1. **那些是 16~32px 的舊素材**，放到 22px 已經是等比或放大，一定糊。
-2. **六張來自三個不同年代的美術**（vanilla 按鈕、公會面板、鎖頭），筆畫粗細、
+2. **來自三個不同年代的美術**（vanilla 按鈕、公會面板、鎖頭），筆畫粗細、
    留白、風格全不一樣，湊成一排像雜牌軍。
 
 **也不要改用 atlas。** `miliui-inspect-icons` 已經踩過：Midnight 把
@@ -66,11 +71,12 @@ cd "/Applications/World of Warcraft/_retail_/Interface/AddOns/MiliUI_DamageMeter
    | 齒輪（圓＋齒） | 1.02 | 也是圓，但齒讓它看起來比較滿 |
    | 鎖 | 0.98 | 直立形，吃滿的是高度不是寬度 |
    | 清單 | 0.96 | 橫向展開，略收 |
+   | 大聲公 | 0.94 | 也是橫向展開，但帶一塊實心梯形，比清單再收一點 |
    | 直方圖 | 0.90 | 三塊實心頂滿四個角，最重 |
    **這件事量尺寸是量不出來的**，只能靠並排看。
 3. **墨量要配平。** 用「不透明像素的 alpha 總和」量得出來 —— 第一版齒輪是最輕那款的
    **兩倍**。對策：直方圖的條畫瘦（縫比條寬）、齒輪的軸孔開大（實心圓盤 → 環）。
-   目前六款落在 0.57~1.00，肉眼看過去輕重一致。
+   目前八款落在 0.57~1.00（大聲公 0.67／0.65），肉眼看過去輕重一致。
 
 ## 三個重畫過的造型，以及原因
 
@@ -81,14 +87,22 @@ cd "/Applications/World of Warcraft/_retail_/Interface/AddOns/MiliUI_DamageMeter
   箭頭明顯比筆畫寬、底邊**往回退**壓在環的切口上（切齊的話 `arc` 的方形切口會露出缺角）、
   但也不能太寬（往環外凸太多就從箭頭變成一面旗子，鋒利度要靠拉長而不是加寬）。
 * **鎖**：鎖身刻意比外框窄（0.74）。掛鎖是直立的東西，畫成接近正方形會又胖又重。
+* **大聲公（水平，不是傾斜）**：典型的大聲公是斜的（喇叭口朝右上、握柄朝左下），
+  128px 下很漂亮，但縮到 20px 整個糊成一塊三角形 —— 加上斜線的停用款更是認不出來。
+  所以改成水平剪影，再用**機身底下那一小截握柄**跟音量圖示分家：沒有握柄的版本
+  在 20px 下跟「喇叭／音效設定」分不出來（並排比過）。
 
 ## 新增一顆標題列按鈕
 
 | 檔案 | 改什麼 |
 |---|---|
 | `scripts/dm-icons.py` | 加一支畫圖函式，並在 `__main__` 裡呼叫 |
+| `Core/DB.lua` | `HDR_BUTTON_DEFAULTS` 加一筆（enabled ＋ order）、`DB.HDR_BUTTON_IDS` 加 id |
 | `Meter/Window.lua` 的 `BTN_TEX` | 加 `<key> = MEDIA .. "icon-<key>.png"` |
-| `Meter/Window.lua` 的 `Win.Create` | 加一行 `MakeHeaderButton(W, "<key>", L["…"], fn)`（由右往左排） |
-| `Locales/*.lua` | 補工具提示的字串 |
+| `Meter/Window.lua` 的 `Win.Create` | 加一行 `MakeHeaderButton(W, "<id>", "<貼圖 key>", L["…"], fn)` |
+| `Options/ButtonBoard.lua` | 方塊標籤（`BTN_LABELS`）與滑過的說明（`BTN_NOTES`） |
+| `Locales/*.lua` | 補工具提示與說明的字串 |
 
-按鈕的順序就是 `MakeHeaderButton` 的呼叫順序，第一顆在最右邊。
+按鈕的順序**由 `style.hdrButtons[id].order` 決定**（小的在左），跟
+`MakeHeaderButton` 的呼叫順序無關 —— 玩家在設定頁的「標題列按鈕」看板上拖曳，
+整條序列就被重新編成 10、20、30…。已發佈的插件加新按鈕要配一條 DB 遷移。

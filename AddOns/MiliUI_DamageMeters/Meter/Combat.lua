@@ -75,6 +75,7 @@ local function FreezeCombat(ts)
         _curViewFrozenDur = d
     end
     _combatEndTime = ts or GetTime()
+    if ns.Publish then ns.Publish.Refresh() end   -- 發佈鈕的打叉狀態跟著戰鬥狀態機走
     -- 智慧顯示的「脫戰 → 總計」掛在這裡：FreezeCombat 是所有戰鬥結束路徑的
     -- 唯一匯流點（五個出口的呼叫端都有 _combatEndTime 守衛，每個分段最多跑一次）。
     -- 一定要在讀完 Current 的時長**之後**才切走。
@@ -245,6 +246,7 @@ local function BeginSegment()
     if ns.Windows and ns.Windows.InvalidateAll then ns.Windows.InvalidateAll() end
     if not _sharedTicker then C.StartTicker() end
     if ns.Windows and ns.Windows.SmartApply then ns.Windows.SmartApply(true, true) end
+    if ns.Publish then ns.Publish.Refresh() end
 end
 
 ------------------------------------------------------------

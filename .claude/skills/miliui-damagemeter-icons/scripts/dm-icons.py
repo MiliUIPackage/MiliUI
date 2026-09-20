@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MiliUI_DamageMeters 標題列圖示（六款）。
+"""MiliUI_DamageMeters 標題列圖示（八款）。
 
 技術限制：
   * 顯示尺寸 12~32px，預設 20px → 只能是「單一粗筆畫的幾何符號」，細節砍掉。
@@ -23,13 +23,13 @@
 2. **光學等大 ≠ 幾何等大。** 同一個外框裡：
      圓看起來比方**小**    → 重置的環、齒輪要 overshoot（SCALE > 1）
      實心看起來比線條**大** → 直方圖要收進來（SCALE < 1）
-     橫向展開的看起來寬     → 清單略收
+     橫向展開的看起來寬     → 清單、大聲公略收
    所以每一款帶自己的 SCALE，而不是共用一個外框。這是唯一能讓「一排圖示
    看起來一樣大」的辦法 —— 量尺寸是量不出來的。
 
 3. **墨量要配平。** 直方圖是三塊實心、清單是三條細線，同樣大小下前者重得多。
    對策：直方圖的條畫瘦（縫比條寬）、齒輪的軸孔開大（實心圓盤 → 環），
-   讓六款的黑色面積落在同一個帶子裡。
+   讓八款的黑色面積落在同一個帶子裡。
 """
 import math
 
@@ -256,6 +256,64 @@ def padlock(path, locked):
     save(img, path)
 
 
+# ------------------------------------------------------------------ 發佈 / 不能發佈
+# 大聲公：左邊小機身、往右張開的喇叭口（梯形），右側兩道短弧聲波。
+# 造型選它是因為這顆按鈕做的就是「把排行喊出去給隊友看」。
+#
+# SCALE 0.94：橫向展開的形狀看起來偏寬（同清單），但它有一塊實心梯形，
+# 又不能像清單收到 0.96 那麼少 —— 落在直方圖（0.90）與清單（0.96）之間。
+#
+# 四個造型重點：
+#   * 喇叭口要**明顯**比機身高（0.86 vs 0.30）。兩端差距不夠大就只是一個歪掉的
+#     方塊，20px 下讀不出「往外喊」的方向。
+#   * **機身底下要有一小截握柄。** 沒有它就只是一顆音量圖示（實測並排比過：
+#     少了握柄的版本在 20px 下跟「喇叭／音效設定」分不出來）。握柄畫成一道短線，
+#     20px 下剩一個小凸點，但那個凸點就是「手持」的全部訊息量。
+#   * 聲波以喇叭口為圓心、跟它留一段空隙。貼著畫會跟梯形糊成一塊。
+#     兩道就夠：第三道在 20px 下只剩 1px 多，變成一圈毛邊。
+#   * 聲波的線比主筆畫細（0.62×）—— 它是附屬的動態暗示，跟本體一樣粗會搶戲。
+#
+# ⚠ 傾斜版（喇叭口朝右上、握柄朝左下的那種「典型」大聲公）試過就放棄了：
+#    128px 下很漂亮，縮到 20px 整個糊成一塊三角形，加上斜線的 off 款更是認不出來。
+#    這個尺寸只容得下水平的剪影。
+#
+# off=True：**同一個大聲公**（幾何完全不動，同鎖頭的兩款），拿掉聲波、加一條
+# 左上→右下的斜線。斜線兩側各挖一圈透明縫，不然在 20px 下會跟喇叭黏成一團。
+def publish(path, off):
+    img = canvas()
+    d = ImageDraw.Draw(img)
+    x0, y0, box_s = box(0.94)
+
+    body_x = x0 + box_s * 0.14          # 機身與喇叭的交界
+    mouth_x = x0 + box_s * 0.60         # 喇叭口（最右、最高的那一端）
+    h_back = box_s * 0.30
+    h_mouth = box_s * 0.86
+
+    # 機身：圓角小方塊，往右稍微伸進梯形裡，兩塊才接得順
+    rrect(d, x0, CY - h_back / 2, body_x + W * 0.3, CY + h_back / 2, r=box_s * 0.07)
+    d.polygon([
+        (body_x, CY - h_back / 2), (mouth_x, CY - h_mouth / 2),
+        (mouth_x, CY + h_mouth / 2), (body_x, CY + h_back / 2),
+    ], fill=WHITE)
+    # 握柄：從機身下緣往下、略往左（手持的角度）
+    grip_x = x0 + box_s * 0.13
+    stroke(d, grip_x, CY + h_back * 0.35,
+           grip_x - box_s * 0.02, CY + h_back * 0.35 + box_s * 0.22, w=W * 0.85)
+
+    if off:
+        sx, sy = x0 + box_s * 0.08, y0 + box_s * 0.08
+        ex, ey = x0 + box_s * 0.92, y0 + box_s * 0.92
+        stroke(d, sx, sy, ex, ey, w=W * 2.0, fill=NONE)   # 先挖縫
+        stroke(d, sx, sy, ex, ey, w=W * 0.95)             # 再畫線
+    else:
+        wave_w = W * 0.62
+        for r in (box_s * 0.17, box_s * 0.31):
+            d.arc([mouth_x - r, CY - r, mouth_x + r, CY + r],
+                  start=-48, end=48, fill=WHITE, width=int(round(wave_w)))
+
+    save(img, path)
+
+
 if __name__ == "__main__":
     meters("icon-meters.png")
     segments("icon-segments.png")
@@ -263,3 +321,5 @@ if __name__ == "__main__":
     settings("icon-settings.png")
     padlock("icon-locked.png", True)
     padlock("icon-unlocked.png", False)
+    publish("icon-publish.png", False)
+    publish("icon-publish-off.png", True)

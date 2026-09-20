@@ -77,9 +77,14 @@ local CONTROLS = {
     { type = "dropdown", key = "breakdownAnchor", label = L["Preview position"],
       items = Specs.BREAKDOWN_ANCHORS },
     { type = "toggle", key = "showSpellTooltips", label = L["Show the game tooltip on breakdown rows"] },
-    { type = "toggle", key = "hideResetButton", label = L["Hide the reset button in the title bar"] },
-    { type = "toggle", key = "hideSettingsButton", label = L["Hide the settings button in the title bar"] },
-    { type = "toggle", key = "hideLockButton", label = L["Hide the lock button in the title bar"] },
+
+    -- 「視窗」分頁另有一節「標題列按鈕」管大小與滑過顯示；這裡管的是哪幾顆、怎麼排
+    { type = "header", label = L["Buttons"] },
+    { type = "text",   label = L["Drag a button to reorder it, drag it into \"Not shown\" (or just click it) to turn it off. Hover a button to see what it does."] },
+    -- 整列寬的方塊看板（Options/ButtonBoard.lua）。包一層 closure 而不是直接指過去：
+    -- 這張表是檔案層就建好的，繞一手就不必擔心 TOC 的載入順序。
+    { type = "custom", h = ns.Options.BUTTON_BOARD_H,
+      build = function(parent, x, y, width) return ns.Options.BuildButtonBoard(parent, x, y, width) end },
 
     { type = "header", label = L["Data"] },
     { type = "button", label = L["Combat data"], text = L["Reset all segments"], color = "red",
