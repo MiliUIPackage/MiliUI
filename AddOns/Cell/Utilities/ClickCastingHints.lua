@@ -46,12 +46,13 @@ Cell.defaults.clickCastingHints = {
     -- broken. Off means the mover drags it and `position` is what is remembered.
     ["snap"] = true,
     -- WHICH SIDE it attaches to, one setting per group type, because the frames are a
-    -- different shape in each. Five party rows down the screen leave a tall empty strip
-    -- beside them; a raid block is already wide and has nothing to spare there, so its bar
-    -- goes above. "auto" reads the direction off the side -- see ResolvedOrientation.
+    -- different shape in each and a player may want the bar somewhere else in a raid. Both
+    -- SHIP on the left, running down the screen: that is where the pack has always parked
+    -- it, and a bar that jumps to another edge the moment a party converts to a raid reads
+    -- as a bug. "auto" reads the direction off the side -- see ResolvedOrientation.
     ["attach"] = {
         ["party"] = {["side"] = "left", ["orientation"] = "auto", ["gap"] = 4},
-        ["raid"] = {["side"] = "top", ["orientation"] = "auto", ["gap"] = 4},
+        ["raid"] = {["side"] = "left", ["orientation"] = "auto", ["gap"] = 4},
     },
     -- mouse over an icon -> the spell's own tooltip. ⚠ The bar catches the mouse while this
     -- is on (each icon does, not the whole strip), which is why it is a setting at all.
