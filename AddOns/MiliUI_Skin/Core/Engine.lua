@@ -402,6 +402,32 @@ function Engine.VertexColor(tex, color, label)
     pcall(tex.SetVertexColor, tex, color[1], color[2], color[3], color[4] or 1)
 end
 
+-- 一次性重錨「整條錨定鏈的根」—— 只重畫不重排的**唯一**例外（STYLE.md ③）
+--
+-- 有些暴雪視窗的版面是為原本的美術排的（專業技能書：內容為了讓出書脊，整批偏右），
+-- 美術拿掉之後留白就不對稱了。內容若是「一條錨定鏈掛在同一個根框上」，把根框
+-- 平移一次，整批就跟著移動，不必碰其他任何東西。
+--
+-- 條件（缺一不可，配方要在呼叫處寫明 XML 原值與出處）：
+--   * 只准這一支呼叫 SetPoint；lint 照樣禁止配方直接寫。
+--   * 只在脫戰時做（根框底下常有 secure 子孫 ⇒ 隱式保護，戰鬥中動它會被擋）。
+--     戰鬥中回傳 false，呼叫端的 apply 本來就過戰鬥閘，這裡是第二道。
+--   * 用**同一個錨點名稱**重設（同名的 SetPoint 是覆寫，不必 ClearAllPoints），
+--     相對框、相對點、另一軸的位移照 XML 原值給，只改要調的那一軸。
+--   * 暴雪的 Lua 不能有任何地方重設或讀回這個框的位置（先 grep 過）。
+--   * 不寫任何 Lua 欄位；`MiliUI_Skin_DB.relayout == false` 可以整批關掉。
+function Engine.ShiftRoot(frame, point, relativeTo, relativePoint, x, y, label)
+    if ns.db and ns.db.relayout == false then return false end
+    if not Usable(frame, label) or not relativeTo then return false end
+    if type(frame.SetPoint) ~= "function" then return false end
+    if InCombatLockdown() then
+        Note(Bucket("deferred"), (label or "?") .. " (relayout)")
+        return false
+    end
+    local ok = pcall(frame.SetPoint, frame, point, relativeTo, relativePoint, x, y)
+    return ok and true or false
+end
+
 -- 拿掉圖示上的遮罩（圓形圖示 → 方形圖示）
 --
 -- ⚠ 契約例外（STYLE.md ③）：`RemoveMaskTexture` 是對暴雪區域的**結構性修改**，

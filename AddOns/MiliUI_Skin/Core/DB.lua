@@ -35,6 +35,8 @@ local function BuildDefaults()
         --   萬一某個視窗的底跑掉、或是位置不對，把它設成 false 再 /reload，
         --   所有面板／內嵌框／進度條的底就整批退回第五輪的子框 overlay。
         regionBackdrop = true,
+        -- 一次性重錨版面根框（Engine.ShiftRoot）。false ＝ 整批關掉，回到暴雪原本的位置
+        relayout = true,
         -- 每個視窗一個開關。key 與 Engine.Register 的 key 一致。
         windows = {
             gossip      = true,

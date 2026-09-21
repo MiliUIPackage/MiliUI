@@ -132,6 +132,12 @@
   （走 `Engine.HighlightTexture` / `Engine.CheckedTexture`，兩支都已經代下了）。
   Pushed 是「中和」與「上色」二選一，不能兩個都做，見註 ⓔ
 - `SetTexCoord` —— 只用在圖示裁邊
+- **`SetPoint` 重錨版面根框 —— 只准 `Engine.ShiftRoot`**（「只重畫不重排」的唯一例外）：暴雪視窗的內容若是一條錨定鏈掛在
+  同一個根框上，而版面是為已經被我們拿掉的美術排的（專業技能書為書脊讓出的左留白），准許把**根框**平移一次。
+  條件：只在脫戰、同名錨點覆寫（不 `ClearAllPoints`）、相對框／相對點／另一軸照 XML 原值、暴雪 Lua 零處重設或讀回那個框的位置、
+  配方在呼叫處寫明 XML 原值與出處；`MiliUI_Skin_DB.relayout = false` 整批關掉。清單列、名冊、任何會在更新時讀回自己尺寸的框**不適用**
+- 技能鈕這類 **secure 按鈕的圖示裁邊**（`Engine.CropIcon` 對它的 `IconTexture`）：`SetTexCoord` 是對 region 的純 C 端 setter，准許；
+  方框不准掛在 secure 按鈕上，改掛在外層的（隱式保護）容器、用 `anchorTo` 貼著按鈕、層級墊高、不吃滑鼠
 - `RemoveMaskTexture` —— **只准 `Engine.UnmaskIcon`**，只用在「純裝飾的圓形遮罩」（地城與團隊／PvP 左側大類按鈕的
   `CircleMask`）：遮罩是 XML 寫死的、暴雪的 Lua 零引用、不寫任何欄位、只在脫戰時做；拿不掉就自動退回
   「保留圓形、外圈環壓深」。理由是風格：圓形遮罩切出來的邊是軟的，接在純色底上怎麼墊都是一圈毛邊或暗暈，

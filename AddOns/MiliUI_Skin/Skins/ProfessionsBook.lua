@@ -259,6 +259,18 @@ local TEMPLATES = {
 -- 暴雪框上零欄位寫入（STYLE.md ③）。
 local squareIcons = setmetatable({}, { __mode = "k" })
 
+-- 每個專業框底下那兩顆技能鈕的圖示（裁邊要在 `FormatProfession` 之後重申）
+local spellIcons = setmetatable({}, { __mode = "k" })
+
+-- 版面根框的水平位置。
+--
+-- 五個專業框是**一條錨定鏈**：`PrimaryProfession1` 錨在 `ProfessionsContentFrame` 的
+-- `TOPLEFT x=80 y=-67`，其餘四個一個接一個往下掛（Blizzard_ProfessionsBook.xml:359-400）。
+-- 視窗寬 550、專業框寬 437 ⇒ 左留白 80、右留白 33：那 47 是原本讓給書脊與左頁邊的，
+-- 書本美術拿掉之後就只是一塊歪掉的空白。置中＝(550−437)/2 ≈ 56。
+-- 只平移根框這一顆（`Engine.ShiftRoot`，契約例外），整條鏈與掛在它們上面的別家元件一起跟著走。
+local ROOT_X, ROOT_Y = 56, -67
+
 ------------------------------------------------------------
 -- 專業圖示：圓形遮罩 → 方形 ＋ 裁邊 ＋ 1px 黑框
 --
@@ -344,12 +356,36 @@ local function SkinProfession(frameName, spec)
     end
     SkinProfessionBar(frameName, frame, frameName)
 
-    -- secure 技能鈕：**只有**名牌底板那一張
-    local names = {}
+    -- secure 技能鈕：名牌底板中和 ＋ 圖示做成方形。
+    --
+    -- 這顆按鈕**沒有**自己的外框美術（模板只有 IconTexture／Pushed／Highlight／Checked，
+    -- Blizzard_ProfessionsBook.xml:3-68）—— 看起來圓角，是因為法術圖示素材本身四周有一圈
+    -- 圓角暗邊。所以「變方形」＝裁邊（`SetTexCoord`，對 region 的純 C 端 setter）。
+    -- ⚠ 方框**不掛在 secure 按鈕上**（Engine 會擋，也不該繞）：掛在外層的專業框上
+    --   （隱式保護的容器，第五輪起准許）、用 `anchorTo` 貼著按鈕、層級墊高到按鈕之上、
+    --   底透明只有 1px 黑邊、不吃滑鼠 ⇒ 點擊與拖曳照樣落在暴雪的按鈕上。
+    -- ⚠ `UpdateButton` 每次 `IconTexture:SetTexture(...)`（.lua:323,344）⇒ 裁邊要重申，
+    --   掛在既有的 `FormatProfession` 後置勾上（它逐顆呼叫 UpdateProfessionButton）。
+    local names, icons = {}, {}
     for i, suffix in ipairs(spec.buttons) do
-        names[i] = frameName .. suffix .. "NameFrame"
+        local btnName = frameName .. suffix
+        names[i] = btnName .. "NameFrame"
+        local icon = _G[btnName .. "IconTexture"]
+        local btn = _G[btnName]
+        if icon and btn then
+            icons[#icons + 1] = icon
+            E.CropIcon(icon, btnName .. ".IconTexture")
+            local ov = E.Overlay(frame, {
+                key = btnName .. ".border",
+                slot = "spell" .. i,
+                anchorTo = btn,
+                levelOffset = 4,
+            })
+            E.Paint(ov, { 0, 0, 0, 0 }, T.border)
+        end
     end
     E.NeutralizeGlobals(names)
+    spellIcons[frame] = icons
 end
 
 ------------------------------------------------------------
@@ -387,6 +423,13 @@ local function Apply()
         E.Missing("ProfessionsBookFrame.Inset")
     end
 
+    -- 版面置中：只平移錨定鏈的根（理由與數字見 ROOT_X 的註解）。
+    -- 暴雪的 Lua 沒有任何地方重設或讀回 `PrimaryProfession1` 的位置（grep 過整個
+    -- Blizzard_ProfessionsBook.lua）。要在畫內嵌區**之前**做：內嵌區是錨點跟隨的，先後都對，
+    -- 但先移再畫可以少一幀跳動。
+    E.ShiftRoot(_G.PrimaryProfession1, "TOPLEFT", _G.ProfessionsContentFrame, "TOPLEFT",
+        ROOT_X, ROOT_Y, "PrimaryProfession1")
+
     for _, spec in ipairs(TEMPLATES) do
         for _, frameName in ipairs(spec.frames) do
             SkinProfession(frameName, spec)
@@ -417,6 +460,12 @@ local function InstallHooks()
         local icon = squareIcons[frame]
         if icon then
             E.CropIcon(icon, "FormatProfession.icon")
+        end
+        local spells = spellIcons[frame]
+        if spells then
+            for i = 1, #spells do
+                E.CropIcon(spells[i], "FormatProfession.spellIcon")
+            end
         end
     end)
 end
