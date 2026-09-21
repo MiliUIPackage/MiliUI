@@ -1,8 +1,11 @@
 ---
 name: project-miliui-skin
 description: 米利的介面外觀 MiliUI_Skin —— 暴雪原生視窗換成設定視窗皮的 PoC（對話／角色面板／成就）；只重畫不重排的契約、驗收時抓到的三個坑、待實機驗證清單
-metadata:
+metadata: 
+  node_type: memory
   type: project
+  originSessionId: 3d3da2d2-d8a9-4944-8afe-aebf91167c1f
+  modified: 2026-09-21T03:47:31.585Z
 ---
 
 **2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第四輪（12 個視窗）使用者實機看過、taint.log 零 blocked；第五輪使用者實機看過（收藏有底、條不壓字、分頁「好很多」）；第六輪使用者看過分頁（提出置中問題、已修）；第七輪（精緻化＋寶庫／冒險指南／拍賣場／專業，共 18 個視窗開關）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
@@ -219,6 +222,24 @@ metadata:
   （`ProfessionsMixin:SetTab` 最後用明碼表查詢呼叫它），只在裡面呼叫 `Engine.SyncTabSystemAll()`。Auctionator 的四顆分頁照伴隨元件規則一起進 `Skin.TabGroup`
   （必須跟暴雪三顆**同一次**畫完：接縫錨點只在 overlay 建立時定一次）。
 - 撞到過一次用量上限（三個 Opus 同時）：被中斷的代理用 SendMessage 續跑即可，worktree 還在。
+
+## 第八輪（2026-09-21，依實機擷圖逐項修）
+
+- **第三方樣式一律住 `ThirdParty/`**（使用者定的）：一支插件一個檔（Postal／Auctionator／PremadeGroupsFilter／RaiderIO），TOC 排在所有 `Skins\` 之後。
+  掛法：`Engine.AddCompanion(hostKey, {event|atLogin, addonKey, apply})`（hostKey=nil ＝不長在任何暴雪視窗上，例如對方自建的 tooltip）；
+  **額外分頁**走 `Engine.AddCompanionTabs(hostKey, names, addonKey)`，host 配方用 `E.CompanionTabs(hostKey)` 取出跟暴雪分頁同一次交給 `Skin.TabGroup`。
+  開關在 `db.thirdparty[addonKey]`（設定頁「其他插件」一節），跟 host 視窗開關是「而且」。ThirdParty 檔**零 hook、不呼叫對方函式**，只照全域名字拿框、沒有就靜默跳過；`check_skin.py` 已把這個資料夾納入。
+  對方自建的 tooltip 走 `MiliUITip_API.Adopt(tip)`（MiliUI_Tooltip 提供；沒裝就退回 `T.tipFill`＋職業色邊自己畫）。⇒ **以後任何第三方換皮都放這裡，不要再塞回 MiliUI_Tooltip 或本體 Enhance。**
+- **平面勾**：`Engine.CheckedGlyph` —— Checked 貼圖置中、`SetColorTexture` 純色、用 `checkmark-minimal` atlas 當**遮罩**切出勾形（同套組設定視窗的勾）；單選鈕是實心小方塊；任一步失敗退回染色。
+  勾選框的邊線要跟底同一層（放前景會蓋住勾）。`T.checkStyle`／`T.checkGlyphHeight`。
+- **`Engine.ShiftRoot`**（新契約例外）：整條錨定鏈只重錨**根框**一次，後面的自己跟著走；脫戰、`db.relayout=false` 可關。專業書用它收左邊留白。
+- **專業技能書**：等級條換平面材質後要自己給顏色（原色烤在材質裡）；技能鈕方框要用 `RegionBackdrop` 建在**按鈕本身**（掛外層容器 ⇒ 按鈕隱藏後留空框）；
+  只有一顆技能鈕時上移置中（讀 `SpellButtonTop:IsShown()`，已列讀取例外）；`FormatProfession` 後置勾重裁圖示。
+- **選用參數的坑**：`Skin.TabSystemAll(x)` 沒傳 opts 當場報錯 ⇒ 每支原語開頭 `opts = opts or {}`，**驗收時逐一對照呼叫端與簽章**。
+- PGF 自畫的難度下拉：overlay 要內縮到可見欄位（22／18），照它 145x32 的外框畫會凸出視窗。
+- 不是 skin 但一起修的（都在 `MiliUI/`）：`Fix/Blizzard_FriendsStatusDropdown.lua`（51 寬剛好等於狀態圖寬，換字型就「...」⇒ 設成常數 63）、
+  `Fix/PremadeGroupsFilter_ShortLabel.lua`、`Enhance/ChallengesUI_LootTable.lua`（M+ 檔案提示會被對方自己 SetPoint 挪回來 ⇒ 勾它 anchor 的 `SetPoint` 重套、有重入保護；面板底不透明）。
+- 待使用者決定：團隊列表職責人數「…」（固定寬＋套組字型較寬）要不要在 `MiliUI/Fix` 保守加寬；彈窗／ESC 選單要不要改提示皮。
 
 ## 還沒實機確認的
 
