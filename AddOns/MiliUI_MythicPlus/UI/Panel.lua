@@ -8,12 +8,12 @@
 --   +14 副本名                          [ +14 副本名  9/21 01:14 ▾ ] [×]
 --   32:47 / 28:00   超時   19 死亡 (-4:45)              評分 3206 (+12)
 --
---       玩家          分數  戰利品      輸出      承傷  可迴避傷害   中斷  驅散  死亡
+--       玩家          分數  戰利品      秒傷      承傷  可迴避傷害   中斷  驅散  死亡
 --   ─────────────────────────────────────────────────────────────────
 --   [圖] 名字         3206  [圖][圖]   294.1K   52.10M      4.20M     7     3     4
 --
 -- ⚠ 顏色的分配（見 miliui-color-states）：
---   * 數字一律白字。輸出最高的那一列不特別上色 —— 排序本身就說明了名次。
+--   * 數字一律白字。秒傷最高的那一列不特別上色 —— 排序本身就說明了名次。
 --   * 名字用職業色：這裡顏色承載的是「這是誰」，是允許的身分色。
 --   * 分數用稀有度色：同理，那是暴雪定義的身分色。
 --   * 「+等級」依結果換色（準時綠／超時紅），**只有那一個字換**，副本名維持白字。
@@ -222,7 +222,7 @@ local function NewRow(parent, index)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine(p.name or "?", 1, 1, 1)
         -- ⚠ 這兩條用的是**跟欄位標題不同的 key**：欄位標題那一欄顯示的是每秒值
-        --   （「輸出」），這裡是總量。同一個 key 兩個意思，翻譯就只能二選一
+        --   （「秒傷」），這裡是總量。同一個 key 兩個意思，翻譯就只能二選一
         GameTooltip:AddDoubleLine(L["Total damage"], Abbrev(p.dmg), 0.8, 0.8, 0.8, 1, 1, 1)
         GameTooltip:AddDoubleLine(L["Total healing"],
             ("%s (%s)"):format(Abbrev(p.heal), Abbrev(p.hps)), 0.8, 0.8, 0.8, 1, 1, 1)
@@ -532,7 +532,7 @@ function Panel.EnsureFrame()
     --   標籤會掉回列的最左邊（實機看到的是「戰利品」疊在「玩家」前面）
     hLoot:SetPoint("LEFT", headerRow, "LEFT", COL.lootL, 0)
     hLoot:SetText(L["Loot"])
-    HeadText(L["Damage"], COL.dmgR)
+    HeadText(L["DPS"], COL.dmgR)
     HeadText(L["Damage taken"], COL.takenR)
     HeadText(L["Avoidable damage taken"], COL.avoidR)
     HeadText(L["Interrupts"], COL.intR)
