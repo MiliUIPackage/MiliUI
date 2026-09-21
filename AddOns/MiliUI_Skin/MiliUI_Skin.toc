@@ -50,6 +50,8 @@ Skins\CollectionsWardrobe.lua
 Skins\PVE.lua
 Skins\PVP.lua
 Skins\Challenges.lua
+# 伴隨元件（套組內建的預組隊伍過濾插件）也走 ns.PVESkin 那張交接桌 ⇒ 排在 PVE.lua 後面
+Skins\PVECompanions.lua
 Skins\Merchant.lua
 Skins\AuctionHouse.lua
 Skins\Professions.lua

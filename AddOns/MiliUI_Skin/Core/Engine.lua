@@ -2176,6 +2176,16 @@ end
 --          **延一幀**（`C_Timer.After(0, …)`）再掃一次。延一幀是因為那些元件多半是
 --          「視窗第一次顯示時才建」的，同一幀裡去找還不存在。
 --
+--          `{ atLogin = true, apply = fn }`（第八輪加的第二種觸發）：
+--          有些伴隨元件是**檔案層／XML 就整組建好**的（`CreateFrame` 寫在插件自己的
+--          `.lua` 檔案層，不是等視窗第一次顯示）。那種沒有「第一次顯示」這個掛點，
+--          也就沒有一個暴雪事件擺在對的時間點上 —— 硬挑一個（搜尋結果回來、
+--          隨從表可用…）只會讓第一次開視窗晚一拍才上皮，而且之後每次都白掃一遍。
+--          `atLogin` 走**完全同一條路**（延一幀、戰鬥閘、脫戰補跑），只是觸發點
+--          改成「`Engine.Boot` 把所有配方套完之後」。
+--          ⚠ 那一刻所有非隨需載入的插件都載完了（`PLAYER_LOGIN` 在
+--            `ADDON_LOADED` 全部派送完之後），所以**不是**在賭載入順序。
+--
 --          ⚠ 紀律（配方不准自己違反）：
 --            * 用全域名稱判斷有沒有，**沒有就靜默跳過**，不記進「找不到的區域」——
 --              玩家可能根本沒裝那支插件，那張清單是給「暴雪改版改了什麼」用的。
@@ -2275,6 +2285,10 @@ local companionFrame
 local companionJobs = {}      -- [event] = { {rec = 配方, apply = fn}, ... }
 local companionPending = {}   -- [event] = true（戰鬥中收到事件，出戰再補跑）
 
+-- `atLogin` 的保留鍵。**不是真的事件**，不會註冊到事件框上 —— 它只是借用同一張
+-- 工作表與同一條戰鬥補跑路徑（`companionPending` 的走訪不在意鍵是不是事件名）。
+local COMPANION_AT_LOGIN = "@login"
+
 local function RunCompanions(event)
     local jobs = companionJobs[event]
     if not jobs then return end
@@ -2296,18 +2310,22 @@ end
 local function RegisterCompanions(rec)
     if not rec.companions then return end
     for _, c in ipairs(rec.companions) do
-        if c.event and c.apply then
-            if not companionFrame then
-                companionFrame = CreateFrame("Frame")
-                companionFrame:SetScript("OnEvent", function(_, event)
-                    C_Timer.After(0, function() RunCompanions(event) end)
-                end)
+        -- 兩種觸發共用同一張工作表；`atLogin` 的鍵不是事件名，所以不註冊事件。
+        local key = c.atLogin and COMPANION_AT_LOGIN or c.event
+        if key and c.apply then
+            if not companionJobs[key] then
+                companionJobs[key] = {}
+                if not c.atLogin then
+                    if not companionFrame then
+                        companionFrame = CreateFrame("Frame")
+                        companionFrame:SetScript("OnEvent", function(_, event)
+                            C_Timer.After(0, function() RunCompanions(event) end)
+                        end)
+                    end
+                    companionFrame:RegisterEvent(key)
+                end
             end
-            if not companionJobs[c.event] then
-                companionJobs[c.event] = {}
-                companionFrame:RegisterEvent(c.event)
-            end
-            local jobs = companionJobs[c.event]
+            local jobs = companionJobs[key]
             jobs[#jobs + 1] = { rec = rec, apply = c.apply }
         end
     end
@@ -2320,6 +2338,10 @@ function Engine.Boot()
     for _, rec in ipairs(recipes) do
         if ns.DB.IsWindowEnabled(rec.key) then RegisterCompanions(rec) end
     end
+
+    -- 「插件載入時就整組建好」的伴隨元件：跟事件那一條走同一條路（延一幀、戰鬥閘、
+    -- 脫戰補跑），只是觸發點是「配方全部套完之後」。沒有人登記就什麼都不會發生。
+    C_Timer.After(0, function() RunCompanions(COMPANION_AT_LOGIN) end)
 
     watcher = CreateFrame("Frame")
     watcher:RegisterEvent("ADDON_LOADED")
