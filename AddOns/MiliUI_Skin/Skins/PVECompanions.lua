@@ -260,10 +260,21 @@ local function SkinDropDown(dd, key)
 
     E.NeutralizeKeys(dd, DROPDOWN_ART, key)
 
-    -- 三片切片是 64 高、從框的上緣往上凸 17 點（`PopupMenu.xml:78-99`），
-    -- 那是「有厚邊的容器」美術，厚度不該算進我們的矩形 —— 照**框自己的矩形**畫
-    -- （145x32，`Text` 與 `Button` 都錨在裡面）。同 `Skin.Dropdown` 第五輪的理由。
-    local ov = E.Overlay(dd, { key = key })
+    -- 矩形不能照框自己的 145x32 畫（第一版這樣做，實機是一個凸出視窗右緣、比旁邊輸入框
+    -- 高一截的大方塊）：這個框是舊式下拉的外盒，**可見的欄位只佔中間一塊**，而且整個框
+    -- 被錨在列的 `TOPRIGHT x=+13 y=+4`（UI/Templates.xml:32）刻意超出列的右緣，靠美術的
+    -- 透明邊把多出來的部分藏掉。對齊的基準是同一欄的「最小值／最大值」輸入框：
+    --   列高 23；Min 佔 x=-110..-70、Max 佔 x=-45..-5（相對列的右緣），y=-1..-21（同檔 :45-52）
+    --   下拉框：右緣在 +13、寬 145 ⇒ 左緣在 -132；上緣在 +4、高 32 ⇒ 下緣在 -28
+    -- ⇒ 左內縮 17（-132 → -115，對上 Min 的輸入框底）、右內縮 17（+13 → -4）、
+    --   上內縮 5（+4 → -1）、下內縮 7（-28 → -21）。
+    local ov = E.Overlay(dd, {
+        key = key,
+        points = {
+            { "TOPLEFT", "TOPLEFT", 17, -5 },
+            { "BOTTOMRIGHT", "BOTTOMRIGHT", -17, 7 },
+        },
+    })
     E.Paint(ov, T.fillInset, T.border)
 
     local btn = Field(dd, "Button")
