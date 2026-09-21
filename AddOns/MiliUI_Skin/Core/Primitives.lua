@@ -853,7 +853,8 @@ function Skin.CheckBox(cb, key, opts)
     E.ButtonStates(cb, key, nil, true)
 
     if not opts.keepCheck then
-        E.CheckedGlyph(cb, { T.AccentCheck(1) }, { T.AccentCheckDisabled(1) }, key)
+        E.CheckedGlyph(cb, { T.AccentCheck(1) }, { T.AccentCheckDisabled(1) }, key,
+            { boxSize = opts.boxSize, radio = opts.radio })
     end
 
     -- 置中的固定邊長方框（**不量按鈕**，見上）
@@ -863,14 +864,11 @@ function Skin.CheckBox(cb, key, opts)
     local ov = E.Overlay(cb, {
         key = key, points = boxPoints, width = size, height = size,
     })
+    -- 邊跟底畫在**同一層、都在勾的下面**。第三～六輪邊是另一層前景（那時已勾＝整格填色，
+    -- 邊不畫在上面會被蓋掉）；現在勾比框大、刻意往外溢，前景的邊反而會橫切過勾（實機擷圖）。
     E.Paint(ov, T.fillCheck, T.border)
-    -- 邊畫在勾之上
-    local borderOv = Skin.BorderOnly(cb, key, {
-        points = boxPoints, width = size, height = size,
-    })
-    -- ⚠ 滑過時要換色的是**前景**那一層的邊，底色仍然換背景層的 ⇒ 兩個分開傳。
     if not opts.noHover then
-        E.TrackButtonHover(cb, ov, T.fillCheck, borderOv)
+        E.TrackButtonHover(cb, ov, T.fillCheck)
     end
     return ov
 end

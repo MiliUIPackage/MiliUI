@@ -585,21 +585,99 @@ end
 -- ⚠ 跟 `Engine.CheckedTexture` 一樣，這裡**沒有** `SetChecked`、沒有腳本 ——
 --   勾沒勾仍然完全是 C 端說了算，我們只換那張圖長什麼樣。
 ------------------------------------------------------------
-function Engine.CheckedGlyph(cb, color, disabledColor, label)
-    if not Usable(cb, label) then return end
+-- 已經替哪幾張 Checked 貼圖掛過我們的勾形遮罩（弱鍵；暴雪物件上零欄位寫入）
+local checkMasks = setmetatable({}, { __mode = "k" })
 
-    local function Paint(getter, c)
-        if type(cb[getter]) ~= "function" or not c then return end
-        local ok, tex = pcall(cb[getter], cb)
-        if not ok or not tex then return end
+-- 平面勾：純色 ＋ `checkmark-minimal` 的形狀。
+--
+-- 做法跟共用層 `W.CreateCheckButton` 一樣：**顏色與形狀分離** —— 貼圖鋪純色
+-- （`SetColorTexture`，不是染一張有陰影高光的素材 ⇒ 完全平面，而且顏色就是職業色本身，
+-- 不會被素材的灰階壓暗），形狀用那張 atlas 的 alpha 當遮罩摳出來。
+--
+-- ⚠ 這一支對暴雪的 **Checked／DisabledChecked 狀態貼圖** 做了三件契約例外（STYLE.md ③）：
+--   1. `ClearAllPoints` ＋ `SetPoint("CENTER")` ＋ `SetSize`：那張貼圖預設鋪滿整顆按鈕（正方形），
+--      而 `checkmark-minimal` 不是正方形 —— 不重設尺寸就會被拉扁（第六輪因此沒用它）。
+--      暴雪不會重新定位狀態貼圖；會在執行期 `SetCheckedTexture(...)` 重設**材質**的模板
+--      （指定地城清單）由呼叫端放進 reapply，錨點與遮罩都還在，只要重上顏色。
+--   2. `CreateMaskTexture`（在按鈕上建一個我們的遮罩 region）＋ `AddMaskTexture`。
+--      跟 `CreateTexture` 同一類：只建、不寫欄位、不碰 secure 屬性。
+--      遮罩與貼圖同一個矩形 ⇒ 沒有「遮罩外面取樣到 atlas 鄰居」的問題。
+--   3. 顯示與否仍然**完全由 C 端依勾選狀態決定**，我們沒有掛任何腳本。
+--   任何一步失敗就退回 "tint"（保留暴雪的勾、去飽和染色）。
+local function FlatCheck(cb, tex, c, boxSize)
+    local info = C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("checkmark-minimal")
+    if not info or not info.width or not info.height or info.height <= 0 then return false end
+    if type(cb.CreateMaskTexture) ~= "function" or type(tex.AddMaskTexture) ~= "function" then
+        return false
+    end
+
+    local h = T.checkGlyphHeight * ((boxSize or T.checkBoxSize) / T.checkBoxSize)
+    local w = h * (info.width / info.height)
+
+    local ok = pcall(function()
+        tex:ClearAllPoints()
+        tex:SetPoint("CENTER", cb, "CENTER", 0, 0)
+        tex:SetSize(P.Scale(w), P.Scale(h))
+        tex:SetAlpha(1)
+        tex:SetDesaturated(false)
+        tex:SetVertexColor(1, 1, 1, 1)
+        tex:SetColorTexture(c[1], c[2], c[3], c[4] or 1)
+    end)
+    if not ok then return false end
+
+    if not checkMasks[tex] then
+        local okMask, mask = pcall(cb.CreateMaskTexture, cb)
+        if not okMask or not mask then return false end
+        local okSet = pcall(function()
+            mask:SetAtlas("checkmark-minimal")
+            mask:SetAllPoints(tex)
+            tex:AddMaskTexture(mask)
+        end)
+        if not okSet then return false end
+        checkMasks[tex] = mask
+    end
+    return true
+end
+
+-- opts.boxSize  方框邊長（勾的大小跟著等比縮放）
+-- opts.radio    單選鈕：不是打勾，而是框內一個置中的實心小方塊（約框的一半），同樣純色
+function Engine.CheckedGlyph(cb, color, disabledColor, label, opts)
+    if not Usable(cb, label) then return end
+    opts = opts or {}
+
+    local function Tint(tex, c)
         pcall(tex.SetAlpha, tex, 1)
-        -- 先壓成灰階再乘，不然乘不出職業色（見上）
         if type(tex.SetDesaturated) == "function" then
             pcall(tex.SetDesaturated, tex, true)
         end
         if type(tex.SetVertexColor) == "function" then
             pcall(tex.SetVertexColor, tex, c[1], c[2], c[3], c[4] or 1)
         end
+    end
+
+    local function Dot(tex, c)
+        local size = (opts.boxSize or T.checkBoxSize) / 2
+        return pcall(function()
+            tex:ClearAllPoints()
+            tex:SetPoint("CENTER", cb, "CENTER", 0, 0)
+            tex:SetSize(P.Scale(size), P.Scale(size))
+            tex:SetAlpha(1)
+            tex:SetDesaturated(false)
+            tex:SetVertexColor(1, 1, 1, 1)
+            tex:SetColorTexture(c[1], c[2], c[3], c[4] or 1)
+        end)
+    end
+
+    local function Paint(getter, c)
+        if type(cb[getter]) ~= "function" or not c then return end
+        local ok, tex = pcall(cb[getter], cb)
+        if not ok or not tex then return end
+        if opts.radio then
+            if Dot(tex, c) then return end
+        elseif T.checkStyle == "flat" then
+            if FlatCheck(cb, tex, c, opts.boxSize) then return end
+        end
+        Tint(tex, c)
     end
 
     Paint("GetCheckedTexture", color)

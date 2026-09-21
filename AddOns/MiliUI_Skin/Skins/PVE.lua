@@ -477,7 +477,9 @@ local function SkinRoleCheckBox(cb, key)
     E.ButtonStates(cb, key)
 
     -- 已勾／停用又已勾：保留勾的形狀，只去飽和＋染色（不塗滿）
-    E.CheckedGlyph(cb, { T.AccentCheck(1) }, { T.AccentCheckDisabled(1) }, key)
+    -- 勾的大小跟著這顆的小方框等比縮（第八輪：平面勾，見 Engine.CheckedGlyph）
+    E.CheckedGlyph(cb, { T.AccentCheck(1) }, { T.AccentCheckDisabled(1) }, key,
+        { boxSize = ROLE_BOX_SIZE })
 
     local ov = E.Overlay(cb, {
         key = key,

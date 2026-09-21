@@ -132,6 +132,11 @@
   （走 `Engine.HighlightTexture` / `Engine.CheckedTexture`，兩支都已經代下了）。
   Pushed 是「中和」與「上色」二選一，不能兩個都做，見註 ⓔ
 - `SetTexCoord` —— 只用在圖示裁邊
+- **平面勾（`Engine.CheckedGlyph`，`T.checkStyle = "flat"`）** —— 對暴雪的 Checked／DisabledChecked **狀態貼圖**：`SetColorTexture`（純色）、
+  `ClearAllPoints`＋`SetPoint("CENTER")`＋`SetSize`（照 `checkmark-minimal` 的比例，不然會被正方形的按鈕矩形拉扁）、
+  在按鈕上 `CreateMaskTexture` 並 `AddMaskTexture`（形狀取自那張 atlas；遮罩與貼圖同矩形）。只准 Engine 做；不寫欄位、不掛腳本，
+  顯示與否仍由 C 端依勾選狀態決定；任何一步失敗退回「保留暴雪的勾、去飽和染色」。單選鈕（`opts.radio`）改成框內一個實心小方塊。
+  勾選框的邊線跟底畫在同一層、都在勾的下面（勾刻意比框大、往外溢）
 - **`SetPoint` 重錨版面根框 —— 只准 `Engine.ShiftRoot`**（「只重畫不重排」的唯一例外）：暴雪視窗的內容若是一條錨定鏈掛在
   同一個根框上，而版面是為已經被我們拿掉的美術排的（專業技能書為書脊讓出的左留白），准許把**根框**平移一次。
   條件：只在脫戰、同名錨點覆寫（不 `ClearAllPoints`）、相對框／相對點／另一軸照 XML 原值、暴雪 Lua 零處重設或讀回那個框的位置、

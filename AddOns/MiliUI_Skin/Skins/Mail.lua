@@ -537,7 +537,7 @@ local function SkinSendMail()
     for _, name in ipairs({ "SendMailSendMoneyButton", "SendMailCODButton" }) do
         local btn = _G[name]
         if btn then
-            Skin.CheckBox(btn, name, { boxSize = 16 })
+            Skin.CheckBox(btn, name, { boxSize = 16, radio = true })
         else
             E.Missing(name)
         end
