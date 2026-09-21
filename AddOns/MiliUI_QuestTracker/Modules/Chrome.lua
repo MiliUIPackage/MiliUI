@@ -33,6 +33,8 @@ local CHIP_BOX   = 10
 local bar, bg
 local chips = {}
 
+local RememberTrackerRect, FoldedAnchor
+
 local function Cfg()   return ns.db and ns.db.appearance end
 local function BarCfg() return ns.db and ns.db.titleBar end
 
@@ -299,6 +301,62 @@ local function LowestContentBottom()
 end
 
 ------------------------------------------------------------
+-- 摺疊期間標題列待在哪裡
+--
+-- 摺疊＝把追蹤器 SetParent 到隱藏容器底下（Core/Tracker.lua），也就是把它從暴雪的版面
+-- 抽走。預設位置的追蹤器錨在 RightManagedFrameContainer 上，那是個 LayoutFrame：小孩
+-- 被抽光之後它的尺寸退化，錨在它身上的追蹤器解到**螢幕最頂端**（2026-09-22 玩家報告
+-- 實測 y=1013／1024，還在版面裡的時候是 753）。標題列原本無條件錨在追蹤器上，於是跟著
+-- 飛進小地圖那一區被蓋住 —— 玩家看到的是「整份清單消失、沒有錯誤」，而且唯一能點回來
+-- 的把手也不見了。用搬家遮罩拖過位置的人錨點是絕對座標，所以一直沒事。
+--
+-- 所以摺著的時候標題列**不跟追蹤器**，待在追蹤器最後一次看得見時的位置：
+--   * 看得見的時候每次排版順手記一筆（不必搶在摺疊之前量，也就沒有先後順序的問題）
+--   * 記成相對 UIParent 右上角的位移（追蹤器是靠右的，換解析度／UI 縮放比較不會跑）
+--   * 存檔、分角色（編輯模式的版面可以分角色）：登入時就摺著的人沒有「上一次看得見」可以量
+-- 代價：摺著期間暴雪的版面變了（首領框出現把追蹤器往下推），標題列不會跟；展開一次就更新。
+-- 這是刻意的 —— 一條摺著的標題列自己在畫面上移動，比停在舊位置更怪。
+------------------------------------------------------------
+local function SnapshotKey()
+    local name, realm = UnitName("player"), GetRealmName()
+    if type(name) ~= "string" then return nil end
+    return name .. "-" .. tostring(realm)
+end
+
+function RememberTrackerRect(otf)
+    if not ns.db or T.IsHidden() or not otf:IsVisible() then return end
+    local l, r, t = otf:GetLeft(), otf:GetRight(), otf:GetTop()
+    if not (l and r and t) then return end
+    local s, us = otf:GetEffectiveScale() or 1, UIParent:GetEffectiveScale() or 1
+    local w, h = UIParent:GetWidth(), UIParent:GetHeight()
+    l, r, t = l * s / us, r * s / us, t * s / us
+    -- 還沒排好版的那幾幀會量到螢幕外的值；不記，等下一次排版
+    if r <= 0 or l >= w or t <= 0 or t > h then return end
+    local key = SnapshotKey()
+    if not key then return end
+    ns.db.barSnapshot = ns.db.barSnapshot or {}
+    ns.db.barSnapshot[key] = { l = l - w, r = r - w, t = t - h }
+end
+
+function FoldedAnchor(otf)
+    local key = SnapshotKey()
+    local snap = key and ns.db and ns.db.barSnapshot and ns.db.barSnapshot[key]
+    if snap then return snap end
+
+    -- 從來沒量過（更新上來那一刻就摺著的人）。預設位置的話，暴雪自己算右側容器錨點的
+    -- 那支函式問得到；追蹤器是容器裡的第一個小孩時就在那個點往下一點。差個十來點無妨，
+    -- 展開一次就會換成實測值。拖過位置的人錨點是絕對座標，回 nil 照舊跟追蹤器
+    if not (otf.IsInDefaultPosition and otf:IsInDefaultPosition()) then return nil end
+    if ns.Position and ns.Position.IsOverridden() then return nil end
+    local util = _G.EditModeUtil
+    local anchor = util and util.GetRightContainerAnchor and util:GetRightContainerAnchor()
+    local _, _, _, x, y
+    if anchor and anchor.Get then _, _, _, x, y = anchor:Get() end
+    if type(x) ~= "number" or type(y) ~= "number" then return nil end
+    return { l = x - (otf:GetWidth() or 260), r = x, t = y - 11 }
+end
+
+------------------------------------------------------------
 -- 排版：每次追蹤器重排、設定變更、摺疊狀態改變都跑一次
 ------------------------------------------------------------
 -- 傳奇鑰石面板錨在標題列底下（Modules/MythicPlus.lua）
@@ -322,8 +380,16 @@ function Chrome.Layout()
     -- 玩家選擇留著暴雪那條的話就往上疊一層，不要互相蓋住。
     local barTop = a.hideBlizzardHeader and 0 or BAR_H
     bar:ClearAllPoints()
-    bar:SetPoint("TOPLEFT",  otf, "TOPLEFT",  P.Scale(PAD_LEFT),  P.Scale(barTop))
-    bar:SetPoint("TOPRIGHT", otf, "TOPRIGHT", P.Scale(PAD_RIGHT), P.Scale(barTop))
+    local snap = T.IsHidden() and FoldedAnchor(otf)
+    if snap then
+        -- 摺著：追蹤器已經被抽離暴雪的版面，它解出來的位置不能信（理由在 RememberTrackerRect）
+        bar:SetPoint("TOPLEFT",  UIParent, "TOPRIGHT", snap.l + P.Scale(PAD_LEFT),  snap.t + P.Scale(barTop))
+        bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", snap.r + P.Scale(PAD_RIGHT), snap.t + P.Scale(barTop))
+    else
+        bar:SetPoint("TOPLEFT",  otf, "TOPLEFT",  P.Scale(PAD_LEFT),  P.Scale(barTop))
+        bar:SetPoint("TOPRIGHT", otf, "TOPRIGHT", P.Scale(PAD_RIGHT), P.Scale(barTop))
+        RememberTrackerRect(otf)
+    end
     bar:SetHeight(P.Scale(BAR_H))
     SetHairlineHeight(bar.divider, bar)
 
@@ -660,6 +726,6 @@ ns.RegisterCallback("PositionChanged", "chrome", function()
 end)
 
 ns.RegisterCallback("FoldChanged", "chrome", function()
-    Chrome.ApplyStyle()
-    Chrome.UpdateVisibility()
+    -- 整個重排而不是只換樣式：摺與不摺，標題列錨的對象不一樣（見 RememberTrackerRect）
+    Chrome.Layout()
 end)

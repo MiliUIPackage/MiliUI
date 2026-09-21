@@ -461,6 +461,27 @@ local function SecOurs(add, ctx)
         add("!! wantHidden=true but the tracker is on screen (parent=%s)",
             Str(otf:GetParent() and otf:GetParent().GetName and otf:GetParent():GetName() or "?"))
     end
+    -- 標題列是玩家唯一能把清單點回來的把手，它在哪裡要印出來：2026-09-22 的回報就是
+    -- 它跟著被抽離版面的追蹤器飛到螢幕頂端、被小地圖蓋住，報告裡卻只看得到 bar=true/true。
+    -- 摺著的時候它該待在存檔的那個位置（Modules/Chrome.lua 的 RememberTrackerRect），
+    -- 跟上面 OTF topleft 對不上是正常的
+    local bar = ns.Chrome and ns.Chrome.GetBar and ns.Chrome.GetBar()
+    if bar then
+        local us = UIParent:GetEffectiveScale() or 1
+        local bs = bar:GetEffectiveScale() or 1
+        local l, t = bar:GetLeft(), bar:GetTop()
+        if l and t then
+            local ul, ut = l * bs / us, t * bs / us
+            add("title bar topleft=(%.0f, %.0f) size=%.0fx%.0f", ul, ut, bar:GetWidth() or -1, bar:GetHeight() or -1)
+            if ul < 0 or ul > GetScreenWidth() or ut < 0 or ut > GetScreenHeight() then
+                ctx.barOffscreen = true
+                add("!! title bar is off-screen")
+            end
+        else
+            ctx.barOffscreen = bar:IsShown()
+            add("title bar has no rect")
+        end
+    end
     local emm = _G.EditModeManagerFrame
     add("mythicPlus.inChallenge=%s positionOverridden=%s editMode=%s",
         tostring(ns.MythicPlus and ns.MythicPlus.IsInChallenge()),
@@ -801,6 +822,9 @@ function D.Report()
     -- 但要在這裡點出來，不然讀報告的人只看判定會以為這份跟症狀無關
     if ctx.hideMismatch then
         out[#out + 1] = "  also: the list is folded but still on screen — see \"this addon\""
+    end
+    if ctx.barOffscreen then
+        out[#out + 1] = "  also: the title bar is shown but cannot be seen — see \"this addon\""
     end
     if (ctx.lineMismatch or 0) > 0 then
         out[#out + 1] = ("  also: %d objective line(s) don't match the font settings — see \"objective line fonts\"")
