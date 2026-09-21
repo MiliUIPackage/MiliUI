@@ -89,3 +89,4 @@ Fix\MasqueBlizzBars_CooldownViewer.lua
 Fix\Blizzard_TransmogRollChat.lua
 Fix\Blizzard_FriendsStatusDropdown.lua
 Fix\PremadeGroupsFilter_ShortLabel.lua
+Fix\Blizzard_LFGListRoleCountWidth.lua
