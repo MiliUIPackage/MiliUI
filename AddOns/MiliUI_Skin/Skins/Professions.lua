@@ -164,21 +164,10 @@
 --   那是「還剩多少」的數值顯示，底圖本身就是那個數值的容器美術。
 -- * **`NoteBox`／`NoteEditBox` 的 `CraftingOrders-NoteFrameNarrow`** ——
 --   那是「一張便條紙」的造型，換成方框就看不出它是顧客留言了。
--- * **`ProfessionsBookFrame`（專業書）** —— 見下面。
---
-------------------------------------------------------------
--- ## 為什麼不做專業書 `ProfessionsBookFrame`
---
--- 它是**書本造型**（`Blizzard_ProfessionsBook`，兩頁攤開的羊皮紙 ＋ 書脊 ＋
--- 四角雕花），判準就是內容底材規則那一句：「把底拿掉之後，上面那些字還讀得出來嗎」
--- —— 那一頁上的專業名稱、等級、描述全部是針對羊皮紙設計的暗色字。
--- 要換底就得接管整頁的字色，而那一頁的字色來源分散在
--- `ProfessionsBookFrame_Update` 與每一顆技能鈕的模板裡。
--- 「只做外框」也不成立：書本沒有一圈可以套方框的 chrome，外框就是書的邊緣美術。
---
--- ⇒ 整份不做。跟任務／對話的羊皮紙同一條理由（STYLE.md ③ 的內容底材規則），
---   差別只在任務那邊有暴雪自己的 CVar 可以按，這裡沒有。
---   另外：套組內建的一支插件已經在改造專業書的版面，兩邊都畫會互相蓋。
+-- * **`ProfessionsBookFrame`（專業書）** —— 第八輪補上了，住在
+--   `Skins/ProfessionsBook.lua`（同一個 key `professions` 的 `parts`）。
+--   第七輪「不做」的三條理由查證後有兩條是錯的（它繼承 `ButtonFrameTemplate`、
+--   書頁上的字色一次 `SetTextColor` 就永久有效），完整說明寫在那一份的檔頭。
 --
 ------------------------------------------------------------
 -- ## taint 接觸面清單
@@ -229,6 +218,19 @@ local E = ns.Engine
 local T = ns.Tokens
 local L = ns.L
 local S = ns.Secret
+
+------------------------------------------------------------
+-- 專業書（`ProfessionsBookFrame`）住在 `Skins/ProfessionsBook.lua`，走這份配方的
+-- `parts`、共用 `professions` 這一個設定開關（STYLE.md ⑥ 第 5 步：玩家看到的是
+-- 一個功能）。交接表的形狀跟 `ns.PVESkin` 一樣。
+--
+-- ⚠ 這兩個 stub 是為了「TOC 少載一支、或那一份在本機被停掉」的情況：
+--   `Engine.Register` 的 `parts` 會照樣跑，但兩支什麼都不做。
+--   `hooks` 排在戰鬥閘**前面**（陷阱 4），所以分成兩支交接。
+------------------------------------------------------------
+ns.ProfessionsSkin = ns.ProfessionsSkin or {}
+ns.ProfessionsSkin.HookBook = ns.ProfessionsSkin.HookBook or function() end
+ns.ProfessionsSkin.ApplyBook = ns.ProfessionsSkin.ApplyBook or function() end
 
 ------------------------------------------------------------
 -- 特許：通往受保護動作的按鈕
@@ -659,4 +661,13 @@ E.Register{
     title = L["Professions"],
     hooks = InstallHooks,
     apply = Apply,
+    parts = {
+        -- 專業技能書（按 K 開的那一本）。隨需載入的是**另一支**暴雪插件，
+        -- 所以 `addon` 要各自寫一條。
+        {
+            addon = "Blizzard_ProfessionsBook",
+            hooks = function() ns.ProfessionsSkin.HookBook() end,
+            apply = function() ns.ProfessionsSkin.ApplyBook() end,
+        },
+    },
 }

@@ -53,6 +53,9 @@ Skins\Challenges.lua
 Skins\Merchant.lua
 Skins\AuctionHouse.lua
 Skins\Professions.lua
+# 專業書是 professions 的 part（共用同一個設定開關），靠 ns.ProfessionsSkin
+# 這張表交接 ⇒ 一定要排在 Professions.lua 後面
+Skins\ProfessionsBook.lua
 Skins\DressUp.lua
 Skins\ItemUpgrade.lua
 Skins\AddonList.lua
