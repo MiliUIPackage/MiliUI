@@ -528,7 +528,9 @@ function Panel.EnsureFrame()
 
     HeadText(L["Score"], COL.scoreR)
     local hLoot = S.NewText(headerRow, HEAD_SIZE, S.TEXT_DIM, "LEFT")
-    hLoot:SetPoint("LEFT", headerRow, "LEFT", COL.lootL)
+    -- ⚠ 位移要 x、y 兩個一起給。只給 x 的話這個錨點不會照你想的套用，
+    --   標籤會掉回列的最左邊（實機看到的是「戰利品」疊在「玩家」前面）
+    hLoot:SetPoint("LEFT", headerRow, "LEFT", COL.lootL, 0)
     hLoot:SetText(L["Loot"])
     HeadText(L["Damage"], COL.dmgR)
     HeadText(L["Damage taken"], COL.takenR)

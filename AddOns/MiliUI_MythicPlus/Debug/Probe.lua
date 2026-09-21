@@ -168,6 +168,30 @@ local function CompareStrategies(myGen, baseline, completion)
         end
     end
 
+    -- 每一段的 ID／名字／時長：認「整趟合併分段」靠的是時長，這裡是它的驗證資料
+    local list = ns.Snapshot.AvailableSessions()
+    if list then
+        for _, sess in ipairs(list) do
+            Log("[sess] id=%s dur=%s name=%s", Safe(sess.sessionID), Safe(sess.durationSeconds), Safe(sess.name))
+        end
+    end
+
+    -- 總計的中斷列，**連不是隊友的也印**：寵物斷法到底是併在主人那一列、
+    -- 自己一列、還是根本沒記，看這裡就知道
+    local ST = Enum and Enum.DamageMeterSessionType
+    local T  = Enum and Enum.DamageMeterType
+    if ns.HAS_DM_API and ST and T and T.Interrupts ~= nil then
+        local ok, session = pcall(C_DamageMeter.GetCombatSessionFromType, ST.Overall, T.Interrupts)
+        local sources = ok and type(session) == "table" and session.combatSources
+        if type(sources) == "table" then
+            for _, src in ipairs(sources) do
+                Log("[int] name=%s n=%s guid=%s creature=%s class=%s cls=%s disp=%s",
+                    Safe(src.name), Safe(src.totalAmount), Safe(src.sourceGUID), Safe(src.sourceCreatureID),
+                    Safe(src.classFilename), Safe(src.classification), Safe(src.sourceDisplayType))
+            end
+        end
+    end
+
     -- B：基準之後的分段
     local bPlayers, bSource, _, bSec = ns.Snapshot.Take(baseline or 0, completion)
     Dump("B(sessions)", bPlayers, bSource, bSec)

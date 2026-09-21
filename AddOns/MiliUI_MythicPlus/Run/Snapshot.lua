@@ -23,6 +23,10 @@
 -- **A「總計」（備援）**：直接問 Overall 那一份。只有在鑰石開始前剛好重置過時才
 -- 等於整趟，所以只在 B 走不通（分段被淘汰掉了）時才用，而且會標記出來。
 --
+-- **合併分段（優先於兩者）**：鑰石打完時暴雪自己會把整趟合成一段。認得出來就只讀
+-- 那一段（statsSource = "combined"）—— 那是暴雪自己算的整趟，而且不受分段淘汰影響。
+-- 認法與它的由來見 FindCombined。
+--
 -- ⚠ **策略 B 建立在「sessionID 單調遞增」這個假設上，而那是待驗證的。**
 --   程式寫成「假設不成立也只是退到策略 A」，不會崩潰；探針（Debug/Probe.lua）
 --   會把每次的最小／最大 sessionID 印出來，實機驗證過再回來收掉這段註解。
@@ -64,14 +68,14 @@ do
         { "DamageTaken",          "taken" },
         { "AvoidableDamageTaken", "avoidable" },
         { "EnemyDamageTaken",     "enemyTaken" },
-        { "Interrupts",           "interrupts" },
-        { "Dispels",              "dispels" },
+        { "Interrupts",           "interrupts", nil, true },
+        { "Dispels",              "dispels",    nil, true },
     }
     if T then
         for _, d in ipairs(defs) do
             local v = T[d[1]]
             if v ~= nil then
-                TYPE_FIELDS[#TYPE_FIELDS + 1] = { type = v, field = d[2], perSec = d[3] }
+                TYPE_FIELDS[#TYPE_FIELDS + 1] = { type = v, field = d[2], perSec = d[3], count = d[4] }
             end
         end
         DEATHS_TYPE = T.Deaths
@@ -129,6 +133,38 @@ function Snap.CurrentBaseline()
 end
 
 ------------------------------------------------------------
+-- 找出「整趟合併分段」
+--
+-- 鑰石打完時，暴雪會把這一趟的分段另外合成一段（Enum.DamageMeterCombineSessionType
+-- 有 ChallengeMode 這個型別），而**原本那些分段還留在清單裡**。全部加總的話
+-- 每個數字剛好是兩倍 —— 實機第一場就是這樣：表頭死亡 6、逐人加起來 12。
+--
+-- API 沒有欄位說「這一段是合併出來的」，只能從時長認：
+-- **某一段的時長 ≥ 其餘各段總和的九成** ⇒ 它就是合併段。一般的分段做不到這件事
+-- （單一一場戰鬥不可能跟整趟其他戰鬥加起來一樣長），除非這一趟幾乎只打了一場，
+-- 而那種情況下讀哪一段結果都一樣。
+--
+-- ⚠ 這是從一場實機數據反推的，合併段的時長到底是「各段相加」還是「整趟牆鐘時間」
+--   還沒驗過（兩種都會過這個門檻）。探針會把每一段的 ID／名字／時長印出來。
+--
+-- ids = { { id, dur }, ... }（已照 id 排好）。回傳合併段那一筆，或 nil。
+------------------------------------------------------------
+local COMBINED_RATIO = 0.9
+
+function Snap.FindCombined(ids)
+    if #ids < 2 then return nil end
+    local total = 0
+    for _, e in ipairs(ids) do total = total + e.dur end
+    -- 從最新的往回找：合併段是完賽那一刻才生出來的，幾乎一定排在最後
+    for i = #ids, 1, -1 do
+        local e = ids[i]
+        local rest = total - e.dur
+        if rest > 0 and e.dur >= rest * COMBINED_RATIO then return e end
+    end
+    return nil
+end
+
+------------------------------------------------------------
 -- 隊伍白名單
 --
 -- 目的：把統計裡的怪、寵物、路過的人濾掉，只留這一隊五個人。
@@ -174,6 +210,37 @@ function Snap.BuildRoster(completion)
 end
 
 ------------------------------------------------------------
+-- 寵物 → 主人
+--
+-- 寵物的**傷害**暴雪已經併進主人那一列（法術明細裡帶 creatureName），不必我們管。
+-- 但「次數」型的統計（中斷／驅散）實機看到術士的寵物斷法沒有算在術士身上 ——
+-- 這裡把寵物那一列轉記給主人。
+--
+-- ⚠ 只對次數型統計做。傷害類如果也轉，而暴雪本來就併過，就會算兩次。
+-- ⚠ 對照表是**快照當下**問的（pet / partypet1-4）。寵物的 GUID 每次重新召喚都會換，
+--   所以另外用名字再對一次（同一個術士的惡魔名字是固定的）；完賽時寵物已經收起來、
+--   名字也問不到的話就對不回去 —— 那種情況照舊略過，不猜。
+------------------------------------------------------------
+function Snap.BuildPetOwners()
+    local byGUID, byName = {}, {}
+    local pairsList = { { "pet", "player" } }
+    for i = 1, 4 do pairsList[#pairsList + 1] = { "partypet" .. i, "party" .. i } end
+    for _, pr in ipairs(pairsList) do
+        local petUnit, ownerUnit = pr[1], pr[2]
+        if UnitExists(petUnit) then
+            local owner = S.PlainText(S.SafeCall(UnitGUID, ownerUnit))
+            if owner then
+                local pg = S.PlainText(S.SafeCall(UnitGUID, petUnit))
+                local pn = S.PlainText(S.SafeCall(UnitName, petUnit))
+                if pg then byGUID[pg] = owner end
+                if pn and pn ~= "" then byName[pn] = owner end
+            end
+        end
+    end
+    return byGUID, byName
+end
+
+------------------------------------------------------------
 -- 一列來源 → 這是誰
 --
 -- 回傳 key（累加用的 table key，一定是明碼）, kind
@@ -181,14 +248,22 @@ end
 --        = "other"       認得出來但不是這一隊（怪、寵物、別人）
 --        = "unresolved"  身分整個讀不到（秘密值）——呼叫端要據此重試
 ------------------------------------------------------------
-local function Identify(src, guids, names)
+local function Identify(src, guids, names, pets)
     local guid = S.PlainText(src.sourceGUID)
-    if guid then
-        return guid, guids[guid] and "member" or "other"
-    end
     local name = S.PlainText(src.name)
+    if guid then
+        if guids[guid] then return guid, "member" end
+        -- pets 只在次數型統計才會傳進來（見 BuildPetOwners）
+        if pets then
+            local owner = pets.byGUID[guid] or (name and pets.byName[name])
+            if owner then return owner, "pet" end
+        end
+        return guid, "other"
+    end
     if name then
-        return name, names[name] and "member" or "other"
+        if names[name] then return name, "member" end
+        if pets and pets.byName[name] then return pets.byName[name], "pet" end
+        return name, "other"
     end
     -- GUID 與名字都是秘密值 ⇒ 認不出來。⚠ 不能猜、也不能拿秘密值當 key
     return nil, "unresolved"
@@ -244,7 +319,7 @@ end
 --
 -- 回傳 unresolved 的列數：> 0 代表這一份裡有認不出來的人，快照要重試。
 ------------------------------------------------------------
-local function Absorb(session, def, acc, order, guids, names)
+local function Absorb(session, def, acc, order, guids, names, pets)
     if type(session) ~= "table" then return 0 end
     local sources = session.combatSources
     if type(sources) ~= "table" then return 0 end
@@ -252,12 +327,13 @@ local function Absorb(session, def, acc, order, guids, names)
     local unresolved = 0
     for _, src in ipairs(sources) do
         if type(src) == "table" then
-            local key, kind = Identify(src, guids, names)
+            local key, kind = Identify(src, guids, names, def.count and pets or nil)
             if kind == "unresolved" then
                 unresolved = unresolved + 1
-            elseif kind == "member" then
+            elseif kind == "member" or kind == "pet" then
                 local e = EnsureEntry(acc, order, key)
-                FillIdentity(e, src)
+                -- ⚠ 寵物那一列的名字／職業是寵物的，不能拿來填主人的身分欄
+                if kind == "member" then FillIdentity(e, src) end
                 if def.deaths then
                     -- 死亡型別是**一列一次死亡**（每列自帶 deathRecapID 與死亡時刻），
                     -- 不是一個「死了幾次」的總量 —— 所以這裡是數列數，不是加總。
@@ -384,19 +460,36 @@ function Snap.Take(baselineSessionID, completion)
         flags.truncated = true
     end
 
-    if #ids > 0 and not flags.truncated then
-        table.sort(ids, function(a, b) return a.id < b.id end)
-        for _, entry in ipairs(ids) do
-            combatSec = combatSec + entry.dur
-            for _, def in ipairs(TYPE_FIELDS) do
-                unresolved = unresolved + Absorb(GetSessionFromID(entry.id, def.type), def, acc, order, guids, names)
-            end
-            if DEATHS_TYPE ~= nil then
-                unresolved = unresolved + Absorb(GetSessionFromID(entry.id, DEATHS_TYPE),
-                    { deaths = true }, acc, order, guids, names)
-            end
+    local pets = {}
+    pets.byGUID, pets.byName = Snap.BuildPetOwners()
+
+    local function AbsorbSessionID(id)
+        for _, def in ipairs(TYPE_FIELDS) do
+            unresolved = unresolved + Absorb(GetSessionFromID(id, def.type), def, acc, order, guids, names, pets)
         end
-        statsSource = "sessions"
+        if DEATHS_TYPE ~= nil then
+            unresolved = unresolved + Absorb(GetSessionFromID(id, DEATHS_TYPE),
+                { deaths = true }, acc, order, guids, names, pets)
+        end
+    end
+
+    if #ids > 0 then
+        table.sort(ids, function(a, b) return a.id < b.id end)
+        local combined = Snap.FindCombined(ids)
+        if combined then
+            -- 暴雪自己的整趟合併分段：只讀它，其他分段一律不加（加了就是兩倍）。
+            -- 它不受「前段分段被淘汰」影響，所以截斷旗標在這條路上不成立
+            flags.truncated = nil
+            combatSec = combined.dur
+            AbsorbSessionID(combined.id)
+            statsSource = "combined"
+        elseif not flags.truncated then
+            for _, entry in ipairs(ids) do
+                combatSec = combatSec + entry.dur
+                AbsorbSessionID(entry.id)
+            end
+            statsSource = "sessions"
+        end
     end
 
     ------------------------------------------------------------
@@ -408,11 +501,11 @@ function Snap.Take(baselineSessionID, completion)
         if overall == nil then return nil, "noapi" end
 
         for _, def in ipairs(TYPE_FIELDS) do
-            unresolved = unresolved + Absorb(GetSessionFromType(overall, def.type), def, acc, order, guids, names)
+            unresolved = unresolved + Absorb(GetSessionFromType(overall, def.type), def, acc, order, guids, names, pets)
         end
         if DEATHS_TYPE ~= nil then
             unresolved = unresolved + Absorb(GetSessionFromType(overall, DEATHS_TYPE),
-                { deaths = true }, acc, order, guids, names)
+                { deaths = true }, acc, order, guids, names, pets)
         end
 
         if C_DamageMeter.GetSessionDurationSeconds then
@@ -434,12 +527,13 @@ function Snap.Take(baselineSessionID, completion)
     ------------------------------------------------------------
     -- 每秒值
     --
+    -- 合併分段：同策略 A，直接用 API 給的（那就是玩家在內建統計上看到的數字）。
     -- 策略 B：總量 ÷ 這一趟的戰鬥秒數（分段的 amountPerSecond 各算各的，加起來
     --         沒有意義 —— 那是「每一段各自的平均」的和）。
     -- 策略 A：直接用 API 給的 amountPerSecond，那本來就是 Overall 的平均。
     ------------------------------------------------------------
     for _, e in ipairs(order) do
-        if statsSource == "overall" then
+        if statsSource == "overall" or statsSource == "combined" then
             e.dps = e._ps_dps or 0
             e.hps = e._ps_hps or 0
         elseif combatSec > 0 then
