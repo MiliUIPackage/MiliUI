@@ -46,6 +46,7 @@ Libs\MiliUIWidgets\Controls.lua
 # 面板用共用層的選單與彈窗，排在它們後面
 UI\Panel.lua
 UI\HistoryMenu.lua
+UI\MinimapButton.lua
 
 Debug\Probe.lua
 

@@ -1,11 +1,11 @@
 ---
 name: project-miliui-infobar
-description: MiliUI_InfoBar 資訊列——取代微型選單的自製條；secure 點擊轉發／暴雪列 hider／戰鬥紀律／待驗證清單
+description: MiliUI_InfoBar 資訊列——取代微型選單的自製條；secure 點擊轉發／暴雪列 hider／戰鬥紀律／**外部方塊接口 MiliUI_InfoBarPlugins**／待驗證清單
 metadata: 
   node_type: memory
   type: project
   originSessionId: c0d1056b-afe5-4f0b-a0d1-24a0f3f4c05d
-  modified: 2026-09-19T00:00:00.000Z
+  modified: 2026-09-22T00:00:00.000Z
 ---
 
 `AddOns/MiliUI_InfoBar/`（2026-08-29 新增）。純色方底一長條：資訊區塊（裝等／耐久／
@@ -438,3 +438,22 @@ Cell 設定視窗開著時勾選框是否即時同步、面板在停靠上／下
 2026-09-21）。玩家的體感是「點了資訊列的圖示就跳錯」，跟點的那顆圖示無關。
 治本＝不需要 propagate：子框 `SetMouseClickEnabled(false)`＋`SetMouseMotionEnabled(true)`
 只吃移動，點擊本來就會落到底下的列。
+
+
+## 外部方塊接口 MiliUI_InfoBarPlugins（2026-09-22）
+
+`Core/Plugins.lua`。之前**沒有**第三方接口（BLOCK_DEFS 寫死），為了傳奇鑰石的「M+結算」鈕才開。
+形狀照 `MiliUI_MenuEntries`：註冊方在自己的入口檔**檔案層**往全域表塞
+`{ key, text, label?, desc?, order?, enabled?, OnClick(tile, button)?, OnTooltip(tooltip)? }`，
+沒裝那支插件＝沒人塞＝沒有方塊（「有安裝才顯示」自然成立，不用 IsAddOnLoaded）。
+
+- `ns.Plugins.Sync()` 在 **ApplyAll 開頭每次都跑**：新 key 接到 BLOCK_DEFS 尾巴＋`ns.Blocks[key]` 工廠；
+  存檔缺格補預設。⚠ 補存檔那段不能只在第一次見到 key 時跑 —— `ns.ResetDB` 會把 db.blocks 整張清掉。
+- 存檔 key 一律 `ext_<key>`，跟內建不撞名；插件停用後那格留著不讀，重新啟用順序與開關都還在。
+- 隨選載入的註冊方：ADDON_LOADED（`IsLoggedIn()` 之後）再 Sync，有新的才 ApplyAll。
+- 看板（Tab_Blocks）的名字／說明走 `ns.Plugins.Label/Desc`，**不能**照內建規則查 `L["BLOCK_EXT_…"]`
+  （AceLocale 缺鍵警告）；說明尾巴自動加「由其他插件提供」。
+- **刻意只給普通按鈕**：第三方 Lua 掛在 secure 方塊上就是 CreateTile 那段的污染問題，資訊列沒辦法替別人把關。
+  文字是靜態的（沒有 refresh API，現在沒有使用者）。
+- `.claude/scripts/check_lua.py` 的 ALLOWED_GLOBAL_WRITES 已放行 `MiliUI_InfoBarPlugins`。
+

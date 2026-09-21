@@ -1312,6 +1312,9 @@ end
 ----------------------------------------------------------------------
 function ns.ApplyAll()
     ns.InitDB()
+    -- 外部插件掛進來的方塊（Core/Plugins.lua）：接上 BLOCK_DEFS、補存檔預設。
+    -- 每次都掃——還原預設值清掉的外部方塊存檔格也靠這裡補回來
+    ns.Plugins.Sync()
     -- secure 按鈕的建立與 Show/Hide 都是戰鬥違禁品，整包延到脫戰
     if InCombatLockdown() then
         ns.Defer("applyall", ns.ApplyAll)

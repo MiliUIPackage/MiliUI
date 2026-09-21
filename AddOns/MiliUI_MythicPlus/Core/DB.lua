@@ -38,6 +38,13 @@ local function BuildDefaults()
             scale = 1.0,
         },
 
+        -- 小地圖按鈕（UI/MinimapButton.lua）。angle 是繞小地圖中心的角度，
+        -- 預設錯開米利系列其他兩顆（頭像 200、角色筆記 220）
+        minimap = {
+            show  = true,
+            angle = 240,
+        },
+
         -- 進行中的場次。**要進 SV**：中途 /reload 才不會丟掉開跑時的基準
         -- （baselineSessionID 是「鑰石開始那一刻有幾段戰鬥」，事後補不回來）
         active = nil,
@@ -90,6 +97,9 @@ local function Normalize(db)
     if type(db.runs) ~= "table" then db.runs = {} end
     if type(db.probe.log) ~= "table" then db.probe.log = {} end
 
+    -- 角度拿去做三角函數，nil 會讓按鈕定位那一行直接硬錯
+    if type(db.minimap.angle) ~= "number" then db.minimap.angle = 240 end
+
     local p = db.panel.point
     local maxX = (GetScreenWidth() or 1920) / 2
     local maxY = (GetScreenHeight() or 1080) / 2
@@ -132,4 +142,5 @@ function DB.ResetAll()
 
     Normalize(db)
     if ns.Panel then ns.Panel.ApplySettings() end
+    if ns.MinimapButton then ns.MinimapButton.Apply() end
 end

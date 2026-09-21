@@ -114,6 +114,7 @@ boot:SetScript("OnEvent", function(self)
     ns.Probe.Init()
     ns.Recorder.Init()
     ns.Loot.Init()
+    ns.MinimapButton.Apply()
 end)
 
 _G.MiliUIMythicPlus = ns

@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 暴雪「選項 > 插件」入口頁：名稱＋版本＋開啟設定按鈕
+-- 暴雪「選項 > 插件」入口頁：名稱＋版本＋開啟設定／開啟結算面板兩顆按鈕
 -- 版面在共用層 Libs/MiliUIWidgets/BlizzOptions.lua，這裡只填字串。
 --
 -- ⚠ 版本那行與按鈕文字**一定要在這裡傳**：共用層不查語系表（語系契約只有四個
@@ -14,4 +14,8 @@ ns.BlizzCategory = ns.RegisterBlizzardCategory{
     instructions = L["Use /mmp to open the panel, /mmp config for the settings"],
     versionText  = L["Version: %s"]:format(ns.VERSION),
     buttonText   = L["Open options"],
+    -- 這頁原本只教人打 /mmp —— 結算面板才是主角，直接給一顆鈕
+    extraButtons = {
+        { text = L["Open the settlement panel"], onClick = function() ns.Panel.Show() end },
+    },
 }

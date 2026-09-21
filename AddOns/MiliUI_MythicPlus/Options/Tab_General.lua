@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 「一般」分頁：面板行為 ＋ 歷史保留
+-- 「一般」分頁：面板行為 ＋ 入口 ＋ 歷史保留
 --
 -- ⚠ 有標題的小節前面不放收尾隔線 —— 小節標題自己就是分隔，再補一條就變成
 --   「一條線底下馬上又一條線」。
@@ -11,7 +11,7 @@ local L = ns.L
 local tab, scroll, refreshers
 
 local function BuildSpecs()
-    return {
+    local specs = {
         { type = "header", label = L["Settlement panel"] },
         { type = "toggle", key = "autoOpen", label = L["Open when a run ends"],
           hint = L["The panel is your own frame, so it can appear during combat without any risk."] },
@@ -23,9 +23,20 @@ local function BuildSpecs()
         { type = "button", label = L["Position"], text = L["Back to the centre"],
           onClick = function() ns.Panel.ResetPosition() end },
         { type = "text", label = L["Drag the header to move the panel; right-click it to bring it back."] },
-        { type = "button", label = L["Panel"], text = L["Open the panel"],
-          onClick = function() ns.Panel.Show() end },
+        -- 「開啟結算面板」不放這裡：在視窗上緣分頁那排的最右邊，每一頁都看得到（Options/Panel.lua）
 
+        { type = "header", label = L["Shortcuts"] },
+        { type = "toggle", sub = "minimap", key = "show", label = L["Minimap button"],
+          hint = L["Left-click toggles the settlement panel, right-click opens these settings."] },
+    }
+
+    -- 資訊列那顆方塊的說明只在有裝資訊列時出現：沒裝的人看了只會去找一個不存在的東西
+    if C_AddOns.IsAddOnLoaded("MiliUI_InfoBar") then
+        specs[#specs + 1] = { type = "text",
+            label = L["MiliUI InfoBar also gets an M+ Summary block; turn it on or off in the InfoBar settings, Blocks tab."] }
+    end
+
+    local history = {
         { type = "header", label = L["History"] },
         { type = "slider", key = "historyCap", label = L["Runs to keep"],
           min = ns.DB.LIMITS.historyCap[1], max = ns.DB.LIMITS.historyCap[2], step = 10 },
@@ -37,6 +48,8 @@ local function BuildSpecs()
               ns.Panel.SetRun(nil)
           end },
     }
+    for _, spec in ipairs(history) do specs[#specs + 1] = spec end
+    return specs
 end
 
 local function Init()
@@ -47,6 +60,7 @@ local function Init()
         -- 保留場數調小之後要馬上裁，不然玩家關了視窗才發現沒生效
         ns.History.Trim()
         ns.Panel.ApplySettings()
+        ns.MinimapButton.Apply()
     end)
 
     local _, built = ns.Options.BuildScrollBody(scroll, BuildSpecs(), ctx)

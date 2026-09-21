@@ -29,6 +29,8 @@ local _, ns = ...
 --   setCategoryID 預設 true。⚠ 本體要傳 false —— 見下面
 --   versionText   版本那一行的完整字串（**已經格式化好的**）
 --   buttonText    按鈕文字
+--   extraButtons  { { text = , onClick = }, ... } 排在主按鈕底下的其他捷徑
+--                 （例：傳奇鑰石的「開啟結算面板」）。點了一樣先關暴雪選項
 --
 -- ⚠⚠ versionText / buttonText 一定要宿主自己傳，這支**不查語系表**。
 --   共用層的語系契約只有四個 key（見 README 的「L 只需要四個 key」），這裡原本
@@ -65,22 +67,39 @@ function ns.RegisterBlizzardCategory(spec)
     if not (C_XMLUtil and C_XMLUtil.GetTemplateInfo(template)) then
         template = "UIPanelDynamicResizeButtonTemplate"
     end
-    local button = CreateFrame("Button", nil, panel, template)
-    button:SetText(spec.buttonText or "Open options")
-    button.padding = 40
-    if DynamicResizeButton_Resize then DynamicResizeButton_Resize(button) end
-    button:SetPoint("CENTER", panel, "CENTER", 0, -30)
-    button:SetScript("OnClick", function()
-        -- 自製設定視窗是 DIALOG strata，會被暴雪選項蓋住 —— 先關掉再開
-        if SettingsPanel and SettingsPanel:IsShown() then
-            HideUIPanel(SettingsPanel)
-        end
+    -- 自製的視窗（設定是 DIALOG strata）會被暴雪選項蓋住 —— 一律先關掉再開
+    local function MakeButton(text, onClick)
+        local b = CreateFrame("Button", nil, panel, template)
+        b:SetText(text)
+        b.padding = 40
+        if DynamicResizeButton_Resize then DynamicResizeButton_Resize(b) end
+        b:SetScript("OnClick", function()
+            if SettingsPanel and SettingsPanel:IsShown() then
+                HideUIPanel(SettingsPanel)
+            end
+            onClick()
+        end)
+        return b
+    end
+
+    local button = MakeButton(spec.buttonText or "Open options", function()
         if spec.onClick then
             spec.onClick()
         elseif ns.OpenOptions then
             ns.OpenOptions()
         end
     end)
+    button:SetPoint("CENTER", panel, "CENTER", 0, -30)
+
+    -- 其他捷徑一顆接一顆往下排，錨在上一顆的底緣（兩種模板高度不同，不寫死座標）
+    local prev = button
+    for _, extra in ipairs(spec.extraButtons or {}) do
+        if type(extra) == "table" and type(extra.onClick) == "function" then
+            local b = MakeButton(extra.text or "", extra.onClick)
+            b:SetPoint("TOP", prev, "BOTTOM", 0, -8)
+            prev = b
+        end
+    end
 
     panel.OnCommit = function() end
     panel.OnDefault = function() end

@@ -42,6 +42,7 @@ Core\RepairPopup.lua
 Core\ReadyCheck.lua
 Core\ReadyCheckPopup.lua
 Core\Blocks.lua
+Core\Plugins.lua
 
 Options\Panel.lua
 Options\Tab_General.lua

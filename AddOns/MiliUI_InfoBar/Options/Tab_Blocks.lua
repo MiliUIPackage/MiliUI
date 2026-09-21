@@ -35,8 +35,17 @@ local BLOCK_NOTES = {
     mem        = "BLOCK_MEM_DESC",
 }
 
+-- 外部插件掛進來的方塊（Core/Plugins.lua）名字由註冊方給，不在我們的語系表裡——
+-- 照內建的規則查 L["BLOCK_EXT_…"] 會是 AceLocale 的缺鍵警告
 local function BlockLabel(key)
-    return L["BLOCK_" .. key:upper()]
+    return ns.Plugins.Label(key) or L["BLOCK_" .. key:upper()]
+end
+
+local function BlockNote(key)
+    local ext = ns.Plugins.Desc(key)
+    if ext then return ext end
+    local note = BLOCK_NOTES[key]
+    return note and L[note] or nil
 end
 
 ------------------------------------------------------------
@@ -153,9 +162,9 @@ local function CreateBoard(parent, width, onHeight)
                 self:SetBackdropBorderColor(W.Accent(1))
                 GameTooltip:SetOwner(self, "ANCHOR_TOP")
                 GameTooltip:SetText(BlockLabel(self.key), 1, 1, 1)
-                local note = BLOCK_NOTES[self.key]
+                local note = BlockNote(self.key)
                 if note then
-                    GameTooltip:AddLine(L[note], 0.8, 0.8, 0.8, true)
+                    GameTooltip:AddLine(note, 0.8, 0.8, 0.8, true)
                 end
                 GameTooltip:Show()
             end)

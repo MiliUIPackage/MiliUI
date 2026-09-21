@@ -1,5 +1,6 @@
 ------------------------------------------------------------
--- 對外入口：/mmp 指令、插件選單按鈕、米利UI選單那一筆
+-- 對外入口：/mmp 指令、插件選單按鈕、米利UI選單那一筆、資訊列的「M+結算」方塊
+-- （小地圖按鈕是自己的框，住 UI/MinimapButton.lua）
 --
 -- 這支檔案是**唯一**往全域寫東西的地方（外加 Core/Init.lua 尾端那一行）。
 ------------------------------------------------------------
@@ -27,6 +28,29 @@ MiliUI_MenuEntries[#MiliUI_MenuEntries + 1] = {
     icon    = "Interface\\Icons\\INV_Relics_Hourglass",
     order   = 88,
     OnClick = function() ns.OpenOptions() end,
+}
+
+-- 米利的資訊列（MiliUI_InfoBar）上的一顆「M+結算」方塊。接口說明見
+-- MiliUI_InfoBar/Core/Plugins.lua；同樣是塞全域表 —— 沒裝資訊列就只是一張沒人讀的表，
+-- 資訊列那邊也是「有人塞才有方塊」，所以沒裝這支時不會出現。
+-- ⚠ key 是資訊列存檔的鍵（玩家排過的位置、開關都掛在上面），發佈後別改名。
+MiliUI_InfoBarPlugins = MiliUI_InfoBarPlugins or {}
+MiliUI_InfoBarPlugins[#MiliUI_InfoBarPlugins + 1] = {
+    key     = "mythicplus",
+    text    = L["M+ Summary"],
+    desc    = L["Toggles the settlement panel of MiliUI Mythic Plus. Right-click opens its settings."],
+    order   = 58,     -- 確認倒數（57）後面
+    OnClick = function(_, button)
+        if button == "RightButton" then
+            ns.OpenOptions()
+        else
+            ns.Panel.Toggle()
+        end
+    end,
+    OnTooltip = function(tip)
+        tip:AddLine(L["Left-click: toggle the settlement panel"], 0.8, 0.8, 0.8)
+        tip:AddLine(L["Right-click: open the settings"], 0.8, 0.8, 0.8)
+    end,
 }
 
 local function Usage()

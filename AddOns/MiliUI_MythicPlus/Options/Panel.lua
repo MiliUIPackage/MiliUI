@@ -154,6 +154,19 @@ local function CreatePanel()
     end
     highlightTab = W.CreateButtonGroup(tabButtons, ShowTab)
 
+    -- 結算面板的入口：分頁那一排的最右邊，每一頁都看得到（使用者點名：每次打 /mmp 太不直覺）。
+    -- 那排右半本來就空著，米利頭像的設定搜尋框也放這個位置。
+    -- ⚠ 先關設定視窗再開面板：面板是 HIGH、設定視窗是 DIALOG，不關的話面板開在視窗
+    --   底下、大半被蓋住，看起來像按了沒反應（原本放在「一般」分頁裡那顆就是這樣）。
+    -- 錨在視窗外側、戰鬥遮罩蓋不到，戰鬥中照樣點得到 —— 面板是自己的非保護框，沒有風險。
+    local openPanel = W.CreateButton(panel, L["Open the settlement panel"], "accent-hover", TAB_MIN_W, TAB_H)
+    W.FitButton(openPanel, TAB_MIN_W, TAB_H)
+    openPanel:SetPoint("BOTTOMRIGHT", panel, "TOPRIGHT", 0, 1)
+    openPanel:SetScript("OnClick", function()
+        panel:Hide()
+        ns.Panel.Show()
+    end)
+
     panel:SetScript("OnHide", function() W.CloseDropdowns() end)
 
     W.CreateCombatMask(panel)

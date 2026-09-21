@@ -1,11 +1,11 @@
 ---
 name: project-miliui-mythicplus
-description: 米利的傳奇鑰石 MiliUI_MythicPlus —— M+ 結算面板＋場次歷史＋探針的雛形；哪些 M+ 功能刻意不搬、兩條統計策略、三個待實機驗證的假設
+description: 米利的傳奇鑰石 MiliUI_MythicPlus —— M+ 結算面板＋場次歷史＋探針的雛形；哪些 M+ 功能刻意不搬、兩條統計策略、三個待實機驗證的假設；入口四處（小地圖鈕／資訊列方塊／設定視窗常駐鈕／暴雪選項頁）
 metadata: 
   node_type: memory
   type: project
   originSessionId: 0ce5b7cb-dc8d-44b0-a3cb-d20f768bfdbf
-  modified: 2026-09-20T18:22:56.739Z
+  modified: 2026-09-22T00:00:00.000Z
 ---
 
 2026-09-21 開的獨立插件（`/mmp`，SV `MiliUI_MythicPlus_DB` 帳號層級，Widgets NAMESPACE `MiliUIMPlus`，v0.1.0 雛形）。
@@ -51,3 +51,14 @@ metadata:
 3. 隊友的尾箱戰利品走哪個事件（目前只接 `ENCOUNTER_LOOT_RECEIVED`，探針另聽 CHAT_MSG_LOOT／SHOW_LOOT_TOAST／BONUS_ROLL_RESULT）、參數是不是秘密。`LOOT_ITEM_PUSHED` 不存在
 
 **已知缺口**：完賽後統計重試還沒跑完就 /reload，那一趟會丟（改法：完賽當下先存表頭、統計之後補寫）；假死不過濾；寵物傷害不併回主人；隊友裝等不做（要 inspect）。
+
+**入口（2026-09-22，使用者嫌每次打 /mmp 不直覺）**：
+- 小地圖鈕 `UI/MinimapButton.lua`（左鍵開關面板、右鍵設定、拖曳沿邊緣；`db.minimap = { show, angle=240 }`，一般分頁「入口」小節可關）。
+  ⚠ 被 MiliUI_Minimap 收進袋子後父層不是 Minimap —— 那時不拖、不 SetPoint，否則把它從袋子拽出來。
+- 資訊列「M+結算」方塊：Api.lua 往 `MiliUI_InfoBarPlugins` 塞（接口見 [[project-miliui-infobar]]），key `mythicplus` 是資訊列存檔鍵別改名。
+- 設定視窗：分頁那排最右邊常駐「開啟結算面板」（每頁都看得到、在戰鬥遮罩外）。
+  **原本一般分頁裡那顆「開啟面板」看起來按了沒反應的原因：結算面板 HIGH、設定視窗 DIALOG，面板開在視窗底下被蓋住。**
+  從設定視窗開面板一律先關設定視窗。
+- 暴雪「選項 > 插件」頁：共用層 BlizzOptions 新增 `extraButtons`，這支加一顆「開啟結算面板」。
+- 插件選單（AddonCompartment）一開始就是開關面板。
+
