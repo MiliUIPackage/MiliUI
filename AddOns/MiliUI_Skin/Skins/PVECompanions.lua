@@ -266,13 +266,14 @@ local function SkinDropDown(dd, key)
     -- 透明邊把多出來的部分藏掉。對齊的基準是同一欄的「最小值／最大值」輸入框：
     --   列高 23；Min 佔 x=-110..-70、Max 佔 x=-45..-5（相對列的右緣），y=-1..-21（同檔 :45-52）
     --   下拉框：右緣在 +13、寬 145 ⇒ 左緣在 -132；上緣在 +4、高 32 ⇒ 下緣在 -28
-    -- ⇒ 左內縮 17（-132 → -115，對上 Min 的輸入框底）、右內縮 17（+13 → -4）、
+    -- ⇒ 左內縮 22（-132 → -110，對齊 Min 輸入框的左緣）、右內縮 18（+13 → -5，對齊 Max 的右緣）、
     --   上內縮 5（+4 → -1）、下內縮 7（-28 → -21）。
+    --   （拿實機擷圖回推過：Min 框左緣、Max 框右緣、列距 23 三個數字都跟這組換算對得上。）
     local ov = E.Overlay(dd, {
         key = key,
         points = {
-            { "TOPLEFT", "TOPLEFT", 17, -5 },
-            { "BOTTOMRIGHT", "BOTTOMRIGHT", -17, 7 },
+            { "TOPLEFT", "TOPLEFT", 22, -5 },
+            { "BOTTOMRIGHT", "BOTTOMRIGHT", -18, 7 },
         },
     })
     E.Paint(ov, T.fillInset, T.border)
