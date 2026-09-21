@@ -480,8 +480,12 @@ local function GetOrCreateRow(index)
             local area = CreateFrame("Frame", nil, row)
             area:SetSize(col.width, ROW_H)
             area:SetPoint("LEFT", col.x, 0)
-            area:EnableMouse(true)
-            area:SetPropagateMouseClicks(true)
+            -- 只吃移動、不吃點擊：右鍵自然落到底下的列。
+            -- ⚠ 不要寫成 EnableMouse(true) ＋ SetPropagateMouseClicks(true) —— 後者戰鬥中
+            -- 對插件是保護函式，而列是第一次開面板才建的（這張 allowCombat），
+            -- 戰鬥中第一次滑開就每列噴一次「介面功能因插件而失效」。
+            area:SetMouseClickEnabled(false)
+            area:SetMouseMotionEnabled(true)
             area.cells = {}
             local cellW = col.width / 3
             for i = 1, 3 do

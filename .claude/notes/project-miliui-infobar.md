@@ -182,7 +182,7 @@ metadata:
   下次領寶庫可開 `/mib keydebug` 看 `KeyCheck#n` 那行確認 API 有跟上物品。
 
 待驗證（沒進過遊戲）：遷移訊息與筆數、面板在 bar 貼頂／貼底／靠右三種位置的翻面、
-右鍵寶庫格會不會經 `SetPropagateMouseClicks` 傳到列、ESC 關面板後 OnHide 的清理、
+右鍵寶庫格會不會落到列（寶庫格只吃移動，見下）、ESC 關面板後 OnHide 的清理、
 戰鬥中點方塊開面板、「分身key」關鍵字在 zhTW／enUS 客戶端各自的觸發。
 
 
@@ -402,3 +402,10 @@ Cell 設定視窗開著時勾選框是否即時同步、面板在停靠上／下
 待驗證（沒進過遊戲）：遷移後兩個開關的值、面板勾選原地重畫、keepOpen 續排（列選單關掉後面板有沒有收）、
 戰鬥中滑過方塊長出表格會不會太擋、enUS 下寶庫欄變寬的量、修裝分頁多一節之後清單的捲軸範圍。
 
+**戰鬥中會第一次建框的面板，不能呼叫 `SetPropagateMouseClicks`／`SetPropagateMouseMotion`。**
+這兩支戰鬥中對插件是保護函式（跟框是不是保護框無關）。戰隊表格是 `allowCombat`、列又是
+第一次開面板才建，結果戰鬥中第一次滑開就**每列**噴一次「介面功能因插件而失效」
+（taint.log：`blocked in combat because of taint from MiliUI_InfoBar - Frame:SetPropagateMouseClicks()`，
+2026-09-21）。玩家的體感是「點了資訊列的圖示就跳錯」，跟點的那顆圖示無關。
+治本＝不需要 propagate：子框 `SetMouseClickEnabled(false)`＋`SetMouseMotionEnabled(true)`
+只吃移動，點擊本來就會落到底下的列。
