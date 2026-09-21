@@ -39,6 +39,11 @@ L["Collections: Appearances"] = "收藏：外觀"
 -- 暴雪的 GlobalStrings：GROUP_FINDER（PVEFrame 的標題與第一顆分頁）
 L["Group Finder"] = "地城與團隊"
 L["Merchant"] = "商人"
+-- 暴雪的 GlobalStrings：BUTTON_LAG_AUCTIONHOUSE ＝「拍賣場」、TRADE_SKILLS ＝「專業技能」
+L["Auction House"] = "拍賣場"
+L["Professions"] = "專業技能"
+L["Turn this off first if a bid, buyout or posting button stops responding."] = "若出價、直購或建立拍賣的按鈕沒反應，先關掉這一項。"
+L["Turn this off first if a craft or crafting-order button stops responding."] = "若製作或製作訂單的按鈕沒反應，先關掉這一項。"
 L["Dressing Room"] = "試衣間"
 L["Item Upgrade"] = "物品升級"
 L["AddOns"] = "插件"

@@ -50,6 +50,11 @@ local function BuildDefaults()
             -- 全部共用這一個 key（後三塊住在隨需載入的暴雪插件裡，走 Register 的 parts）
             pve         = true,
             merchant    = true,
+            -- 拍賣場與專業：兩個視窗都貼著「需要硬體事件」的動作（出價／直購／
+            -- 建立拍賣／製作／接單／套用專精變更），所以各自獨立一個開關 ——
+            -- 玩家一遇到「按了沒反應」就該先關掉對應的那一項。
+            auctionhouse = true,
+            professions  = true,
             dressup     = true,
             itemupgrade = true,
             addonlist   = true,

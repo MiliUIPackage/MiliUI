@@ -51,6 +51,8 @@ Skins\PVE.lua
 Skins\PVP.lua
 Skins\Challenges.lua
 Skins\Merchant.lua
+Skins\AuctionHouse.lua
+Skins\Professions.lua
 Skins\DressUp.lua
 Skins\ItemUpgrade.lua
 Skins\AddonList.lua

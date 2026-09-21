@@ -54,6 +54,18 @@ local controls = {
     { type = "toggle", sub = "windows", key = "collections", label = L["Collections"] },
     { type = "toggle", sub = "windows", key = "pve",         label = L["Group Finder"] },
     { type = "toggle", sub = "windows", key = "merchant",    label = L["Merchant"] },
+    -- ⚠ 這兩個視窗的按鈕通往受保護的動作（出價、直購、建立拍賣、製作、接單、
+    --   套用專精變更…），所以各自帶一句「出事先關這個」的說明。
+    {
+        type  = "toggle", sub = "windows", key = "auctionhouse",
+        label = L["Auction House"],
+        hint  = L["Turn this off first if a bid, buyout or posting button stops responding."],
+    },
+    {
+        type  = "toggle", sub = "windows", key = "professions",
+        label = L["Professions"],
+        hint  = L["Turn this off first if a craft or crafting-order button stops responding."],
+    },
     { type = "toggle", sub = "windows", key = "dressup",     label = L["Dressing Room"] },
     { type = "toggle", sub = "windows", key = "itemupgrade", label = L["Item Upgrade"] },
     { type = "toggle", sub = "windows", key = "addonlist",   label = L["AddOns"] },
