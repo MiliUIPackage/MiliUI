@@ -39,6 +39,11 @@ L["Collections: Appearances"] = "收藏：外观"
 -- 暴雪的 GlobalStrings：GROUP_FINDER（PVEFrame 的标题与第一个标签页）
 L["Group Finder"] = "地下城和团队副本"
 L["Merchant"] = "商人"
+-- 陆服用词：拍卖行（不是「拍卖场」）、专业
+L["Auction House"] = "拍卖行"
+L["Professions"] = "专业"
+L["Turn this off first if a bid, buyout or posting button stops responding."] = "若出价、一口价或上架拍卖的按钮没反应，先关掉这一项。"
+L["Turn this off first if a craft or crafting-order button stops responding."] = "若制造或制造订单的按钮没反应，先关掉这一项。"
 L["Dressing Room"] = "试衣间"
 L["Item Upgrade"] = "物品升级"
 L["AddOns"] = "插件"
