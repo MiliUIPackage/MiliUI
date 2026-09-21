@@ -274,7 +274,9 @@ local function Apply()
         panelOK = ov ~= nil
         if panelOK then
             E.NeutralizeKeys(border, DIALOG_BORDER_PIECES, KEY .. ".Border")
-            E.Paint(ov, T.fill, T.border)
+            -- 提示皮（同確認彈窗，理由見 Popup.lua）：0.133 底 ＋ 1px 職業色邊；
+            -- 裡面那排按鈕照舊 `fill` ＋ 黑邊。
+            E.Paint(ov, T.tipFill, { T.Accent() })
         end
     else
         -- parent 沒著落就整塊不畫（檔頭的講究 1）

@@ -319,7 +319,10 @@ local function SkinDialog(dialog, key)
     if not ov then return end
 
     E.NeutralizeKeys(bg, { "Top", "Bottom" }, key .. ".BG")
-    E.Paint(ov, T.fill, T.border)
+    -- **提示皮**（STYLE.md ①：浮在世界上方、彈出來讀一眼就關）：
+    -- 不透明 0.133 底 ＋ 1px 職業色邊。裡面的按鈕／輸入框照舊是設定視窗皮的
+    -- `fill`／`fillInset` ＋ 黑邊 —— 職業色只給最外面那一圈，不然整顆彈窗都是線。
+    E.Paint(ov, T.tipFill, { T.Accent() })
 
     ------------------------------------------------------------
     -- 關閉鈕
