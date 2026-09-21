@@ -109,7 +109,7 @@ MiliUI_InfoBar 更早在天賦／法術書上踩到同一個，見 [[project-mil
 | 公會／社群 | `GuildMicroButton` | InfoBar 的 hider 藏著也照樣能轉發 |
 | 好友清單 | `QuickJoinToastButton` | 有快速加入通知時會改開快速加入面板（暴雪原行為） |
 | 天賦／法術書 | `PlayerSpellsMicroButton` | InfoBar 已驗證 |
-| 遊戲選單 | ✗ | `MainMenuMicroButtonMixin:OnClick` 第一行是 `IsMouseOver()` 閘，轉發會空轉 |
+| 遊戲選單 | ✗（改走 snippet） | `MainMenuMicroButtonMixin:OnClick` 第一行是 `IsMouseOver()` 閘，轉發會空轉；全暴雪原始碼沒有第二個 secure 入口。戰鬥外用 `SecureHandlerClickTemplate` 的 `_onclick` 直接 Show／Hide `GameMenuFrame`（乾淨），戰鬥中只能 CallMethod 回插件自己開，見 [[project-miliui-infobar]] |
 
 ⚠ **不要用 `/friends` 巨集**：不帶參數是開好友清單沒錯，但它前面有一行
 「目標是玩家就把目標名字當參數」—— 選著人按下去會變成**加他好友**。

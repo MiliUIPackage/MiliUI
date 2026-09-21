@@ -53,10 +53,10 @@ local BUTTON_DEFS = {
     { key = "journal", label = ADVENTURE_JOURNAL,                binding = "TOGGLEENCOUNTERJOURNAL", globals = { "EJMicroButton" } },
     { key = "shop",    label = BLIZZARD_STORE,                   binding = nil,                      globals = { "StoreMicroButton" } },
     { key = "help",    label = HELP_BUTTON,                      binding = nil,                      globals = { "HelpMicroButton" } },
-    -- menu 走 plain：MainMenuMicroButtonMixin:OnClick 第一行就是 IsMouseOver() 閘
+    -- menu 不走 /click 轉發：MainMenuMicroButtonMixin:OnClick 第一行就是 IsMouseOver() 閘
     -- （Blizzard_MicroMenu/Mainline/MainMenuBarMicroButtons.lua），secure 轉發時
-    -- 滑鼠不在被藏起來的原鈕身上，點擊被整顆吃掉。EUI 同一個結論。
-    { key = "menu",    label = MAINMENU_BUTTON,                  binding = "TOGGLEGAMEMENU",         globals = { "MainMenuMicroButton" }, plain = true },
+    -- 滑鼠不在被藏起來的原鈕身上，點擊被整顆吃掉。改走 _onclick snippet，見方塊建立處。
+    { key = "menu",    label = MAINMENU_BUTTON,                  binding = "TOGGLEGAMEMENU",         globals = { "MainMenuMicroButton" }, snippet = true },
 }
 
 MM.BUTTON_DEFS = BUTTON_DEFS
@@ -452,17 +452,52 @@ function ns.Blocks.micromenu.create()
         if ref then
             local tile = ns.CreateTile("MiliUIInfoBar_Micro_" .. def.key, {
                 clickable = true,
-                template  = not def.plain and "SecureActionButtonTemplate" or nil,
+                template  = def.snippet and "SecureHandlerClickTemplate" or "SecureActionButtonTemplate",
             })
             tile.def = def
 
-            if def.plain then
-                -- 遊戲選單自己開（理由見上面 BUTTON_DEFS 的註解）。戰鬥中不動手：
-                -- insecure 開關 GameMenuFrame 有污染風險，Esc 鍵本身照常能用
-                tile:SetScript("OnClick", function(_, button)
-                    if button == "LeftButton" and not InCombatLockdown() then
-                        ToggleFrame(GameMenuFrame)
+            if def.snippet then
+                -- 遊戲選單：沒有任何 secure 入口可以轉發（全暴雪原始碼只有 ESC 綁定與原鈕
+                -- 那個 IsMouseOver 閘兩條路，2026-09-21 查過），所以分兩條：
+                --
+                -- 戰鬥外 ＝ snippet 裡直接 Show／Hide GameMenuFrame。restricted 環境的執行是
+                --   乾淨的 ⇒ OnShow → InitButtons 建出來的每顆選單按鈕（編輯模式、選項…）
+                --   都不帶我們的 taint。插件 Lua 自己 Show 的話，那一趟選單的每顆按鈕都是髒的，
+                --   從那裡進編輯模式＝用插件的身分進編輯模式。
+                -- 戰鬥中 ＝ restricted 環境拿不到非保護框的 handle（RestrictedFrames.lua 的
+                --   GetHandleFrame：非保護框 ＋ InCombatLockdown ⇒ "Invalid frame handle"），
+                --   只能 CallMethod 回插件端自己開。GameMenuFrame 與微型按鈕都不是保護框，
+                --   開關本身不會被擋；髒的只有**那一趟**的選單按鈕（每次 OnShow 重建、物件池是
+                --   SecureTypes，不會留到下一趟）。
+                --
+                -- 走哪條看 incombat 屬性，由 REGEN 事件寫 —— 要跟 InCombatLockdown 完全同步，
+                -- snippet 裡的 PlayerInCombat() 是 UnitAffectingCombat，兩者有落差的那一瞬間
+                -- 會走錯路報錯。PLAYER_REGEN_DISABLED 派送當下還能寫保護框的屬性。
+                if GameMenuFrame then
+                    SecureHandlerSetFrameRef(tile, "gamemenu", GameMenuFrame)
+                end
+                tile:SetAttribute("incombat", InCombatLockdown() and true or false)
+                tile:SetAttribute("_onclick", [[
+                    if button == "RightButton" then
+                        self:CallMethod("OnTileRightClick")
+                    elseif button == "LeftButton" then
+                        local menu = self:GetFrameRef("gamemenu")
+                        if not menu or self:GetAttribute("incombat") then
+                            self:CallMethod("ToggleGameMenuInCombat")
+                        elseif menu:IsShown() then
+                            menu:Hide(true)
+                        else
+                            menu:Show(true)
+                        end
                     end
+                ]])
+                function tile:ToggleGameMenuInCombat()
+                    if GameMenuFrame then ToggleFrame(GameMenuFrame) end
+                end
+                tile:RegisterEvent("PLAYER_REGEN_DISABLED")
+                tile:RegisterEvent("PLAYER_REGEN_ENABLED")
+                tile:SetScript("OnEvent", function(self, event)
+                    self:SetAttribute("incombat", event == "PLAYER_REGEN_DISABLED")
                 end)
             else
                 -- secure 點擊轉發：走 **macrotext 的 /click <名字>**，不是 clickbutton。
@@ -498,11 +533,11 @@ function ns.Blocks.micromenu.create()
 
             -- 右鍵＝選單。secure 方塊不能在 OnClick 上直接掛 Lua（會把左鍵的 secure 轉發
             -- 一起染髒），走 Core/Bar.lua 的 ns.SecureRightClick（WrapScript ＋ CallMethod）；
-            -- 遊戲選單那顆是 plain 按鈕，OnClick 本來就是我們的，直接 hook 即可
-            if def.plain then
-                tile:HookScript("OnClick", function(self, button)
-                    if button == "RightButton" then ShowButtonMenu(self) end
-                end)
+            -- 遊戲選單那顆的 OnClick 整個就是 snippet，右鍵在裡面 CallMethod 回來
+            if def.snippet then
+                function tile:OnTileRightClick()
+                    xpcall(ShowButtonMenu, ns.ReportError, self)
+                end
             else
                 ns.SecureRightClick(tile, ShowButtonMenu)
             end

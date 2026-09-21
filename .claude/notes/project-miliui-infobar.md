@@ -50,6 +50,17 @@ metadata:
   第一行是 `if ( self:IsMouseOver() ) then`（Blizzard_MicroMenu/Mainline/
   MainMenuBarMicroButtons.lua）——轉發點擊時滑鼠在我們的按鈕上、不在被藏起來的
   原鈕上，整個 handler 空轉。這就是 EUI 把 menu 做成 plain button 的原因。
+  **現況（2026-09-21）**：那顆是 `SecureHandlerClickTemplate`，`_onclick` snippet 分兩條——
+  戰鬥外在 snippet 裡對 frame ref 直接 `Show(true)`／`Hide(true)`（restricted 環境的執行是
+  乾淨的 ⇒ OnShow → InitButtons 建的選單按鈕不帶我們的 taint；插件 Lua 自己 Show 的話那一趟
+  的「編輯模式」「選項」全是髒的）；戰鬥中 restricted 環境拿不到非保護框
+  （`GetHandleFrame`：非保護框＋InCombatLockdown ⇒ Invalid frame handle），只能
+  `self:CallMethod` 回插件端 `ToggleFrame`。髒的只有那一趟選單（每次 OnShow 重建、物件池是
+  SecureTypes、`MICRO_BUTTONS_DISABLED` 這個 upvalue 在下一次乾淨的 UpdateMicroButtons 會先被
+  EnableMicroButtons 乾淨地覆寫才讀）。走哪條看 `incombat` 屬性（REGEN 事件寫），不用 snippet
+  的 `PlayerInCombat()`——那是 UnitAffectingCombat，跟 InCombatLockdown 有落差。
+  原本是「戰鬥中整顆不動作」，使用者回報點不開才改的。⚠ 戰鬥中從這顆開的選單進編輯模式
+  仍然是髒的，要乾淨就按 ESC 開。待實機驗證：戰鬥外／戰鬥中各點一次、右鍵選單、ESC 關。
   其餘 12 顆的 mixin 沒有這個閘，secure 轉發實測正常（戰鬥中含天賦都能開）。
 - **預設位置跟隨官方那排**：沒拖過（db.x/y=nil）就讀 `MicroMenuContainer:GetCenter()`
   換算成 UIParent 座標（乘有效縮放比），被 hider 藏著也讀得到（錨點都在）；
