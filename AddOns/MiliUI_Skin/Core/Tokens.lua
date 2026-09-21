@@ -101,6 +101,12 @@ T.tabStyle = "underline"
 -- 選中分頁那條線的粗細（像素，會過 P.Scale）。1px 在一排 32 高的分頁上太細了。
 T.tabAccentSize = 2
 
+-- 選中清單列**左緣**那條直條的粗細（像素，會過 P.Scale）。第七輪。
+-- 跟分頁那條同一個數字 —— 它們是同一個語彙（選中＝一條職業色線），只是方向不同。
+-- ⚠ 設成 0 等於關掉？**不行** —— `P.Scale(0)` 仍然會畫出最細的一條線。
+--   要整批關掉是 `Skin.Row` 的 `opts.noAccentLine`。
+T.rowAccentSize = 2
+
 -- 勾選框方框的邊長（像素，會過 P.Scale）。
 --
 -- ⚠ **不是按鈕的尺寸。** 暴雪的勾選按鈕矩形常常比「看起來的那個方框」大很多
@@ -110,6 +116,33 @@ T.tabAccentSize = 2
 --   去查一個 inset（查錯一個就歪一個）。
 --   18 是共用層 `Widgets.lua` 的 `W.CreateCheckButton` 用的值，套組其他面板同一個。
 T.checkBoxSize = 18
+
+------------------------------------------------------------
+-- 線條圖記（第七輪）
+--
+-- 暴雪的小圖示（下拉的 ▼、翻頁的 ◀▶、捲軸的 ∧∨）是立體、帶描邊、顏色烤在素材裡
+-- 的 atlas。第五輪只能「去飽和 ＋ 染 textDim」，去飽和之後仍然是一顆有厚度的小圖，
+-- 擺在 1px 硬邊的直角語彙裡很突兀。關閉鈕的 × 早就改成自己用 `CreateLine` 畫了
+-- （註 ⓖ），這一輪把同一招推廣到 chevron 與 ＋／−。
+--
+-- 尺寸：暴雪那幾張 atlas 都在 10~14 像素之間，取 8 之後線條圖記看起來比原本小一號
+-- ——那是刻意的，它是**次要**的指示符號，不該跟內容搶注意力。
+T.glyphSize = 8
+
+-- 捲軸上下箭頭的處理方式。
+--
+-- `"glyph"`（預設）＝ 中和暴雪那張 atlas，改畫我們自己的 ∧／∨ 線條圖記。
+-- `"hide"`         ＝ 整個中和，不補任何東西（軌道兩端會留 19 點空白 ——
+--                     `MinimalScrollBar.xml` 的 Track 本來就錨在 `TOP y=-19` /
+--                     `BOTTOM y=19`，那兩段是留給 Back／Forward 的）。
+--
+-- ⚠ 第七輪的計畫原本寫「直接中和，對齊套組設定視窗的捲軸」，查證之後**前提不成立**：
+--   共用層的 `W.CreateScrollFrame`（`Libs/MiliUIWidgets/Widgets.lua:1264`）用的就是
+--   暴雪的 `ScrollFrameTemplate` ⇒ 它的捲軸也是 `MinimalScrollBar`、**也有那兩顆
+--   箭頭**，只是沒有換皮。所以「對齊套組」其實等於「把箭頭留著」。
+--   ⇒ 預設改成「換成我們的線條圖記」：既拿掉了暴雪的立體素材，也沒有拿掉
+--   「這裡可以按」的線索。要整個收掉改成 `"hide"`，一行切得回去。
+T.scrollStepper = "glyph"
 
 -- `Skin.PortraitChrome` 標題帶的高度（像素，會過 P.Scale）。
 -- 出處：`PortraitFrameBaseTemplate` 的 `TitleContainer`

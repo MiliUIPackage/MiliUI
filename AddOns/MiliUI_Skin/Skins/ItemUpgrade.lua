@@ -94,6 +94,7 @@
 -- |---|---|
 -- | ItemUpgradeFrame 的 NineSlice / PortraitContainer | SetAlpha(0) |
 -- | ItemUpgradeFrame.TitleContainer.TitleText | SetTextColor |
+-- | ItemUpgradeFrame 自己的兩張 BACKGROUND 貼圖（標題帶＋髮絲線） | CreateTexture（第七輪，`Skin.TitleBar` → `Engine.RegionBackdrop`） |
 -- | ItemUpgradeFrame 的 TopBG / BottomBG / BottomBGShadow | SetAlpha(0) |
 -- | ItemUpgradeFrameCloseButton 的 Normal/Disabled 貼圖 | SetAlpha(0) |
 -- | 同上的 Highlight/Pushed 貼圖 | SetColorTexture |
@@ -200,6 +201,15 @@ local function Apply()
     E.NeutralizeKeys(f, PANEL_ART, "ItemUpgradeFrame")
 
     Skin.Panel(f, "ItemUpgradeFrame")
+
+    -- ⚠ **第七輪：補上標題帶。** 第六輪的標題帶住在 `Skin.PortraitChrome` 裡面，
+    --   而這個視窗刻意不走那一支（見上），所以它是全套唯一一個有標題卻沒有帶子的
+    --   視窗 —— 那不是設計決定，只是原語的邊界剛好落在這裡。
+    --   `Skin.TitleBar` 是第七輪從 `PortraitChrome` 拆出來的同一段，幾何常數也一樣
+    --   （`TitleContainer` 在 `PortraitFrameBaseTemplate` 裡是 `<Size y="20"/>` ＋
+    --    `y="-1"` ⇒ `T.titleBarHeight` ＝ 22）。
+    --   它是目標框自己的一張 BACKGROUND 貼圖 ⇒ 蓋不住任何內容，最壞只是不好看。
+    Skin.TitleBar(f, "ItemUpgradeFrame")
 
     local close
     if pcall(function() close = f.CloseButton end) and close then

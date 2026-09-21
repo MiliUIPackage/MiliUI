@@ -132,11 +132,23 @@
 -- | 同七顆的 Icon | SetTexCoord |
 -- | 同七顆的 NormalTexture（沒有）／Highlight | SetColorTexture |
 -- | 同七顆的 CheckedTexture | SetAlpha(1) ＋ SetColorTexture（職業色） |
--- | InboxPrev/NextPageButton 的 Normal/Pushed/Disabled 貼圖 | SetVertexColor |
+-- | InboxPrev/NextPageButton 的 Normal/Pushed/Disabled 貼圖 | SetAlpha(0)（第七輪：整組中和，改畫自己的 ‹ › 線條圖記） |
+-- | 同兩顆的 OnEnable / OnDisable | HookScript（第七輪；圖記的停用態，見 `Engine.TrackGlyph`） |
 -- | 同兩顆的無名 FontString（「上頁」「繼續」） | SetTextColor |
 -- | 同兩顆的 Highlight 貼圖 | SetColorTexture |
 --
 -- ### 寄信頁
+--
+-- ⚠ **第七輪加的三條欄位標籤**（文字層級規則見 STYLE.md ④）：
+--
+-- | 物件 | 動作 |
+-- |---|---|
+-- | SendMailMoneyText（`SEND_MONEY`，MailFrame.xml:387） | SetTextColor(textDim) |
+-- | SendMailNameEditBox 那一層的無名 FontString（`MAIL_TO_LABEL`，:345） | SetTextColor(textDim)（GetRegions） |
+-- | SendMailSubjectEditBox 那一層的無名 FontString（`MAIL_SUBJECT_LABEL`，:433） | 同上 |
+-- | SendMailCostMoneyFrame 那一層的無名 FontString（`SEND_MAIL_COST`，:458） | 同上 |
+--
+-- 三條都是 XML 靜態文字、暴雪不重設顏色 ⇒ **零 hook**。
 --
 -- | 物件 | 動作 |
 -- |---|---|
@@ -410,10 +422,17 @@ local function SkinInbox()
     -- 「上頁」「繼續」是按鈕自己 region 裡的**無名** FontString（:388,:413），
     -- 暴雪不會重設它們的顏色（`InboxFrame_Update` 只動 `InboxCurrentPage`），
     -- 設一次就撐得住。
-    for _, name in ipairs({ "InboxPrevPageButton", "InboxNextPageButton" }) do
+    -- ⚠ 第七輪：箭頭素材整組中和，改畫自己的 ‹ › 線條圖記；到頭時暴雪對按鈕
+    --   `Disable()` ⇒ 圖記跟著變暗（`trackEnabled`，見 `Engine.TrackGlyph`）。
+    for i, name in ipairs({ "InboxPrevPageButton", "InboxNextPageButton" }) do
         local btn = _G[name]
         if btn then
-            Skin.IconButton(btn, name, { inset = 4, labelColor = T.text })
+            Skin.IconButton(btn, name, {
+                inset = 4, labelColor = T.text,
+                glyph = (i == 1) and "chevronLeft" or "chevronRight",
+                glyphColor = T.textDim,
+                trackEnabled = true,
+            })
         else
             E.Missing(name)
         end
@@ -443,6 +462,26 @@ local function SkinSendMail()
         { globalPrefix = true, points = NAME_BOX_POINTS })
     Skin.EditBox(_G.SendMailSubjectEditBox, "SendMailSubjectEditBox",
         { globalPrefix = true, points = SUBJECT_BOX_POINTS })
+
+    -- ⚠ **第七輪：欄位標籤降成次要灰**（STYLE.md ④ 的「文字層級」）。
+    --
+    -- 「收件人：」「主旨：」「寄送金額：」「郵資：」在暴雪那邊是 `GameFontNormal`／
+    -- `GameFontNormalSmall`（暗金）。深底上的暗金既不像標題也不像內文，而且它跟
+    -- 右邊那一格**玩家輸入的內容**搶注意力 —— 標籤是後設資訊，該比內容弱
+    -- （`miliui-menu-design` 第一條）。
+    --
+    -- 三條標籤各自的取法不一樣（查證自 `MailFrame.xml`，12.1 live）：
+    --   * `SendMailMoneyText`（:387，`SEND_MONEY`）有全域名字 ⇒ 直接指名。
+    --   * 收件人（:345，`MAIL_TO_LABEL`）與主旨（:433，`MAIL_SUBJECT_LABEL`）是
+    --     **EditBox 自己那一層的 FontString**，XML 沒給全域名字 ⇒ 只能
+    --     `E.RecolorRegions` 掃那一層（EditBox 自己的輸入文字不是 region，掃不到）。
+    --   * 郵資（:458，`SEND_MAIL_COST`）同理，掛在 `SendMailCostMoneyFrame` 上。
+    -- 全部是靜態文字：`SendMailFrame_Update` 只 `SetText` 內容欄位，不碰這三條的
+    -- 顏色 ⇒ 設一次就撐得住，不必掛任何勾。
+    E.TextColor(_G.SendMailMoneyText, T.textDim, "SendMailMoneyText")
+    E.RecolorRegions(_G.SendMailNameEditBox, T.textDim, "SendMailNameEditBox")
+    E.RecolorRegions(_G.SendMailSubjectEditBox, T.textDim, "SendMailSubjectEditBox")
+    E.RecolorRegions(_G.SendMailCostMoneyFrame, T.textDim, "SendMailCostMoneyFrame")
 
     -- 附件區上下那兩條雕花分隔線：每條都是「一張具名左半 ＋ 一張**無名無 parentKey**
     -- 的右半」（:463/:470 與 :477/:484）。第二輪因為右半指名不到而整組放棄，

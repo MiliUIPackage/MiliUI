@@ -87,7 +87,7 @@
 -- | `StaticPopupN.CloseButton` 的 Normal/Pushed/Disabled | `SetAlpha(0)` | 同上 |
 -- | `StaticPopupN.EditBox.NineSlice`（Frame） | `SetAlpha(0)` | 純美術容器，白名單允許對 frame 下 SetAlpha |
 -- | `StaticPopupN.EditBox.Instructions` | `SetTextColor` | 不屬於按鈕的 FontString（白名單） |
--- | `StaticPopupN.Dropdown.Background` / `.Arrow` | `SetAlpha(0)` / `SetVertexColor` | `Skin.Dropdown`，不傳 `opts.textColor` ⇒ 那條會掛 HookScript 的路**沒有**被走到 |
+-- | `StaticPopupN.Dropdown.Background` / `.Arrow` | 兩張都 `SetAlpha(0)`（第七輪：`Arrow` 從染色改成中和，改畫我們自己的 ⌄ 線條圖記） | `Skin.Dropdown`，不傳 `opts.textColor`、傳 `noHover = true` ⇒ **這一份的 HookScript 數仍然是 0**：`Engine.TrackGlyph` 不帶 `trackHover`／`trackEnabled` 時一個腳本都不掛，只把圖記的顏色記進弱鍵表 |
 -- | `StaticPopupN.MoneyInputFrame.{gold,silver,copper}` 的 `left`/`right` ＋ 全域 `…Middle` | `SetAlpha(0)` | 同上 |
 -- | `StaticPopupN.ItemFrame.NameFrame` | `SetAlpha(0)` | 純裝飾（`UI-QuestItemNameFrame`）；上面的字是品質色＝資訊，不碰 |
 -- | `StaticPopupN.ItemFrame.Item.IconBorder` ／ `GetNormalTexture()` | `SetAlpha(0)` | 同上 |

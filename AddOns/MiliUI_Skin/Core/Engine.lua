@@ -733,6 +733,126 @@ end
 Engine.TargetLevel = TargetLevel
 
 ------------------------------------------------------------
+-- 線條圖記（第七輪把 ＋／−／× 那三種擴成一整套）
+--
+-- **為什麼要有這一套。** 暴雪的小圖示（下拉的 ▼、翻頁的 ◀▶、捲軸的 ∧∨）全部是
+-- 「立體、帶描邊、顏色烤在素材裡」的 atlas。中和不行（玩家會失去「這裡可以按」
+-- 的線索），染色也救不回來 —— `SetVertexColor` 是乘法，金黃色的素材乘上 `textDim`
+-- 只會變暗金（實機擷圖 16 的聲望頁那顆亮黃三角形就是這樣來的，第五輪只好再加一道
+-- `SetDesaturated`）。去飽和之後仍然是一顆有厚度、有內描邊的小圖，擺在 1px 硬邊的
+-- 直角語彙裡就是突兀。
+--
+-- 關閉鈕的 × 早就走這條路了（註 ⓖ），這一輪把同一招推廣到其餘四種圖形。
+-- 規矩跟 × 完全一樣，所以陷阱 1（overlay 執行期零 Lua）沒有被放寬：
+--   * 用 `CreateLine` 畫在**我們自己的 overlay** 上，暴雪物件一根手指都沒碰；
+--   * **建立時就定好**位置與粗細，之後不會再算任何幾何；
+--   * 粗細走 `P.Scale`（不同 UI 縮放下的 1 像素不是 1 個框架單位）；
+--   * 唯一的執行期動作是 `Engine.GlyphColor` 換 vertex color —— 跟底色、邊框
+--     三態走的是同一種動作，不是排版。
+--
+-- 為什麼是這幾個形狀：`CreateLine` 只畫得出直線，所以圖形一律「兩條線以內」。
+-- 箭頭（三線一端點）在 9 像素見方的方塊裡會糊成一團，`>` 形的折線（chevron）
+-- 反而是最清楚的 —— 它也正好是暴雪自己新式 UI 在用的語彙。
+--
+-- g（`opts.glyph`）：
+--   kind       "cross" ／ "expand"（＋）／ "collapse"（−）／
+--              "plus"／"minus"（＝上面兩個的別名，讀起來比較直白）／
+--              "chevronUp" / "chevronDown" / "chevronLeft" / "chevronRight"
+--              不認得的 kind ⇒ 退回 `g.texture` 那條舊路（一張貼圖）
+--   size       圖形的外框邊長（會過 P.Scale）
+--   thickness  線寬（會過 P.Scale）
+--   color      顏色（之後可用 `Engine.GlyphColor` 換）
+--   anchor     圖記錨在 overlay 的哪一點，預設 "CENTER"
+--   x / y      相對那一點的偏移（會過 P.Scale）——
+--              下拉的 ⌄ 要靠右（暴雪的 Arrow 錨在 `RIGHT x=1`）
+------------------------------------------------------------
+local CHEVRON = {
+    -- kind = 兩條線的端點（單位：half），折點在中間
+    --   { {x1,y1, x2,y2}, {x1,y1, x2,y2} }
+    chevronUp    = { { -1,  -0.5,  0,  0.5 }, {  0,  0.5,  1, -0.5 } },
+    chevronDown  = { { -1,   0.5,  0, -0.5 }, {  0, -0.5,  1,  0.5 } },
+    chevronLeft  = { {  0.5, 1,   -0.5, 0  }, { -0.5, 0,   0.5, -1 } },
+    chevronRight = { { -0.5, 1,    0.5, 0  }, {  0.5, 0,  -0.5, -1 } },
+}
+
+local GLYPH_ALIAS = { plus = "expand", minus = "collapse" }
+
+local function BuildGlyph(ov, g)
+    if not ov or not g then return end
+    local kind = GLYPH_ALIAS[g.kind] or g.kind
+    local c = g.color or T.text
+    local half = P.Scale((g.size or 8) / 2)
+    local th = P.Scale(g.thickness or 1)
+    local anchor = g.anchor or "CENTER"
+    local ox, oy = P.Scale(g.x or 0), P.Scale(g.y or 0)
+
+    local lines = {}
+    local function Line(x1, y1, x2, y2)
+        local line = ov:CreateLine(nil, "ARTWORK")
+        line:SetThickness(th)
+        line:SetTexture(WHITE)
+        line:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
+        line:SetStartPoint(anchor, ov, x1 + ox, y1 + oy)
+        line:SetEndPoint(anchor, ov, x2 + ox, y2 + oy)
+        lines[#lines + 1] = line
+    end
+
+    local chev = CHEVRON[kind]
+    if chev then
+        -- 折線的兩段。半高刻意比半寬小（±0.5 對 ±1），不然 45° 的 chevron
+        -- 在小尺寸下看起來像箭頭的一半。
+        for _, seg in ipairs(chev) do
+            Line(seg[1] * half, seg[2] * half, seg[3] * half, seg[4] * half)
+        end
+    elseif kind == "expand" or kind == "collapse" then
+        -- ＋／− 兩種線條圖記。
+        --
+        -- 為什麼是 ＋／− 而不是「兩支往外的箭頭」：`CreateLine` 畫得出來的只有
+        -- 直線，箭頭要三條線一個端點、在 10 像素的方塊裡糊成一團。而套組裡
+        -- 「展開／收合」本來就已經是 ＋／− 的語彙（聲望頁的子分類鈕用的
+        -- 就是暴雪的 `campaign_headericon_open/closed`，也是 ＋／−）——
+        -- 同一個套組裡一個意思只用一種圖形。
+        Line(-half, 0, half, 0)
+        if kind == "expand" then Line(0, -half, 0, half) end
+    elseif kind == "cross" then
+        -- ⚠ 不要用 `Interface\Buttons\UI-StopButton`：那張圖本身是暗金色的，
+        --   SetVertexColor 是乘法，乘不白。自己用兩條線畫才拿得到純白的 ×。
+        for _, dir in ipairs({ 1, -1 }) do
+            Line(-half, -half * dir, half, half * dir)
+        end
+    else
+        local tex = ov:CreateTexture(nil, "ARTWORK")
+        tex:SetTexture(g.texture)
+        tex:SetSize(P.Scale(g.size or 10), P.Scale(g.size or 10))
+        tex:SetPoint(anchor, ov, anchor, ox, oy)
+        tex:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
+        ov.glyph = tex
+        return
+    end
+
+    ov.glyphLines = lines
+end
+
+------------------------------------------------------------
+-- 換圖記的顏色（三態用）
+--
+-- 這是圖記**唯一**的執行期動作，跟 `Engine.Fill`／`Engine.Border` 同一級：
+-- 換顏色不是排版。沒有圖記的 overlay 進來就直接返回。
+------------------------------------------------------------
+function Engine.GlyphColor(ov, color)
+    if not ov or not color then return end
+    local lines = ov.glyphLines
+    if lines then
+        for i = 1, #lines do
+            lines[i]:SetVertexColor(color[1], color[2], color[3], color[4] or 1)
+        end
+    end
+    if ov.glyph then
+        ov.glyph:SetVertexColor(color[1], color[2], color[3], color[4] or 1)
+    end
+end
+
+------------------------------------------------------------
 -- Engine.Overlay(target, opts) → overlay 或 nil
 --
 -- opts:
@@ -862,7 +982,9 @@ function Engine.Overlay(target, opts)
         end
     end
 
-    -- 強調線：分頁「選中」用的那一條（`opts.accentSide` ＝ "TOP" / "BOTTOM"）。
+    -- 強調線：「選中」用的那一條。
+    --   分頁 ＝ `"TOP"` / `"BOTTOM"`（朝外那一邊的橫線，第六輪）
+    --   清單列 ＝ `"LEFT"` / `"RIGHT"`（第七輪：左緣一條直條，見 `Skin.Row`）
     --
     -- 建立時就定好位置與粗細，執行期只換 alpha 與顏色（同底色與邊框的作法）——
     -- 沒有腳本、沒有 OnUpdate，陷阱 1 的規則照舊。
@@ -872,69 +994,24 @@ function Engine.Overlay(target, opts)
         local bar = ov:CreateTexture(nil, "ARTWORK")
         bar:SetTexture(WHITE)
         local th = P.Scale(opts.accentSize or 2)
-        if opts.accentSide == "TOP" then
-            bar:SetPoint("TOPLEFT");    bar:SetPoint("TOPRIGHT")
+        local side = opts.accentSide
+        if side == "LEFT" then
+            bar:SetPoint("TOPLEFT");    bar:SetPoint("BOTTOMLEFT");  bar:SetWidth(th)
+        elseif side == "RIGHT" then
+            bar:SetPoint("TOPRIGHT");   bar:SetPoint("BOTTOMRIGHT"); bar:SetWidth(th)
+        elseif side == "TOP" then
+            bar:SetPoint("TOPLEFT");    bar:SetPoint("TOPRIGHT");    bar:SetHeight(th)
         else
-            bar:SetPoint("BOTTOMLEFT"); bar:SetPoint("BOTTOMRIGHT")
+            bar:SetPoint("BOTTOMLEFT"); bar:SetPoint("BOTTOMRIGHT"); bar:SetHeight(th)
         end
-        bar:SetHeight(th)
         bar:SetAlpha(0)
         ov.accentBar = bar
     end
 
-    -- 靜態圖記（關閉鈕的 ×、最大化／最小化的 ＋／−）。建立時定好，執行期不動。
+    -- 靜態圖記（關閉鈕的 ×、翻頁的 ‹ ›、下拉的 ⌄、最大化／最小化的 ＋／−）。
+    -- 建立時定好，執行期只會被 `Engine.GlyphColor` 換顏色（見那一支）。
     if opts.glyph then
-        local g = opts.glyph
-        local c = g.color or T.text
-        if g.kind == "expand" or g.kind == "collapse" then
-            -- ＋／− 兩種線條圖記。
-            --
-            -- 為什麼是 ＋／− 而不是「兩支往外的箭頭」：`CreateLine` 畫得出來的只有
-            -- 直線，箭頭要三條線一個端點、在 10 像素的方塊裡糊成一團。而套組裡
-            -- 「展開／收合」本來就已經是 ＋／− 的語彙（聲望／通貨頁的子分類鈕用的
-            -- 就是暴雪的 `campaign_headericon_open/closed`，也是 ＋／−）——
-            -- 同一個套組裡一個意思只用一種圖形。
-            local half = P.Scale((g.size or 8) / 2)
-            local th = P.Scale(g.thickness or 1)
-            local lines = {}
-            local function Line(x1, y1, x2, y2)
-                local line = ov:CreateLine(nil, "ARTWORK")
-                line:SetThickness(th)
-                line:SetTexture(WHITE)
-                line:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
-                line:SetStartPoint("CENTER", ov, x1, y1)
-                line:SetEndPoint("CENTER", ov, x2, y2)
-                lines[#lines + 1] = line
-            end
-            Line(-half, 0, half, 0)
-            if g.kind == "expand" then Line(0, -half, 0, half) end
-            ov.glyphLines = lines
-        elseif g.kind == "cross" then
-            -- ⚠ 不要用 `Interface\Buttons\UI-StopButton`：那張圖本身是暗金色的，
-            --   SetVertexColor 是乘法，乘不白。自己用兩條線畫才拿得到純白的 ×。
-            --   建立時定好、執行期零 Lua；粗細走 P.Scale（不同 UI 縮放下的 1 像素
-            --   不是 1 個框架單位，見 project-miliui-pixel-snapping）。
-            local half = P.Scale((g.size or 8) / 2)
-            local th = P.Scale(g.thickness or 1)
-            local lines = {}
-            for i, dir in ipairs({ 1, -1 }) do
-                local line = ov:CreateLine(nil, "ARTWORK")
-                line:SetThickness(th)
-                line:SetTexture(WHITE)
-                line:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
-                line:SetStartPoint("CENTER", ov, -half, -half * dir)
-                line:SetEndPoint("CENTER", ov, half, half * dir)
-                lines[i] = line
-            end
-            ov.glyphLines = lines
-        else
-            local tex = ov:CreateTexture(nil, "ARTWORK")
-            tex:SetTexture(g.texture)
-            tex:SetSize(P.Scale(g.size or 10), P.Scale(g.size or 10))
-            tex:SetPoint("CENTER")
-            tex:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
-            ov.glyph = tex
-        end
+        BuildGlyph(ov, opts.glyph)
     end
 
     st = st or {}
@@ -1276,7 +1353,11 @@ end
 local function PaintHover(btn)
     local rec = hoverState[btn]
     if not rec then return end
-    if rec.hover then
+    -- ⚠ `rec.enabled` 預設是 **nil**（＝沒有人在追這顆按鈕的啟用狀態）。
+    --   只有 `Engine.TrackGlyph{ trackEnabled = true }` 才會把它設成布林 ——
+    --   也就是說對第五／六輪那些呼叫者來說，下面這一行等同於原本的 `if rec.hover`。
+    local on = rec.hover and rec.enabled ~= false
+    if on then
         Engine.Fill(rec.fillOv, rec.hoverFill or T.fillHover)
         rec.accent = rec.accent or {}
         rec.accent[1], rec.accent[2], rec.accent[3], rec.accent[4] = T.Accent(1)
@@ -1285,26 +1366,27 @@ local function PaintHover(btn)
         Engine.Fill(rec.fillOv, rec.idle)
         Engine.Border(rec.borderOv, T.border)
     end
+
+    -- 線條圖記跟著三態走（第七輪）：停用最暗、滑過最亮、其餘次要色。
+    -- 只改**我們自己畫的線**的顏色，暴雪的貼圖一張都沒碰。
+    if rec.glyphOv then
+        local c
+        if rec.enabled == false then
+            c = rec.glyphDisabled or T.textDisabled
+        elseif on then
+            c = rec.glyphHover or T.text
+        else
+            c = rec.glyphIdle or T.textDim
+        end
+        Engine.GlyphColor(rec.glyphOv, c)
+    end
 end
 
--- fillOv 是要換底色的那一層；borderOv 不給就跟 fillOv 同一層。
--- `hoverFill` 不給就是 `T.fillHover`；只有「閒置底色本來就比 fillHover 亮」的
--- 元件需要自己給（捲軸拇指閒置是 0.35，套 0.23 會變成滑過反而變暗）。
-function Engine.TrackButtonHover(btn, fillOv, idleFill, borderOv, hoverFill)
-    if not btn or not fillOv then return end
-    local rec = hoverState[btn]
-    if rec then
-        rec.fillOv, rec.borderOv, rec.idle = fillOv, borderOv or fillOv, idleFill or rec.idle
-        rec.hoverFill = hoverFill or rec.hoverFill
-        PaintHover(btn)
-        return
-    end
-    hoverState[btn] = {
-        fillOv = fillOv, borderOv = borderOv or fillOv,
-        idle = idleFill or T.fill, hover = false,
-        hoverFill = hoverFill,
-    }
+-- 進出腳本只掛一次（底色與圖記共用同一筆紀錄，所以也共用同一對腳本）。
+local function InstallHoverScripts(btn, rec)
+    if rec.hovHooked then return end
     if type(btn.HookScript) ~= "function" then return end
+    rec.hovHooked = true
     -- ⚠ HookScript 不是 SetScript：模板自己的 OnEnter 多半在開提示
     --   （wow-setscript-clobbers-hookscript）。
     pcall(btn.HookScript, btn, "OnEnter", function(self)
@@ -1319,6 +1401,100 @@ function Engine.TrackButtonHover(btn, fillOv, idleFill, borderOv, hoverFill)
         r.hover = false
         PaintHover(self)
     end)
+end
+
+-- fillOv 是要換底色的那一層；borderOv 不給就跟 fillOv 同一層。
+-- `hoverFill` 不給就是 `T.fillHover`；只有「閒置底色本來就比 fillHover 亮」的
+-- 元件需要自己給（捲軸拇指閒置是 0.35，套 0.23 會變成滑過反而變暗）。
+function Engine.TrackButtonHover(btn, fillOv, idleFill, borderOv, hoverFill)
+    if not btn or not fillOv then return end
+    local rec = hoverState[btn]
+    if rec then
+        rec.fillOv, rec.borderOv, rec.idle = fillOv, borderOv or fillOv, idleFill or rec.idle
+        rec.hoverFill = hoverFill or rec.hoverFill
+        InstallHoverScripts(btn, rec)
+        PaintHover(btn)
+        return
+    end
+    rec = {
+        fillOv = fillOv, borderOv = borderOv or fillOv,
+        idle = idleFill or T.fill, hover = false,
+        hoverFill = hoverFill,
+    }
+    hoverState[btn] = rec
+    InstallHoverScripts(btn, rec)
+end
+
+------------------------------------------------------------
+-- 把一個線條圖記交給三態管（第七輪）
+--
+-- `Engine.TrackButtonHover` 已經在管「底色 ＋ 邊框」，圖記只是同一顆按鈕上的第三
+-- 個外觀元素 —— 所以不另起一套狀態機，直接掛進同一筆紀錄。
+--
+-- opts:
+--   idle / hover / disabled   三態各自的顏色（預設 textDim / text / textDisabled）
+--   trackHover                這顆按鈕沒有底色 overlay（捲軸的上下箭頭只有一個
+--                             圖記），但滑過仍然要提亮 ⇒ 自己掛進出腳本。
+--                             已經走過 `TrackButtonHover` 的按鈕不必給（腳本共用）。
+--   trackEnabled              追「這顆能不能按」。**只有翻頁鈕這一類需要**：
+--                             暴雪對到頭的翻頁鈕呼叫 `Disable()`，而它原本的
+--                             `DisabledTexture`（那張灰掉的箭頭）已經被我們中和了
+--                             ⇒ 不追的話「按不動」這個資訊就沒了。
+--
+-- ⚠ **為什麼不走「把 DisabledTexture 塗成暗色」那條零 hook 的路**（那是白名單裡
+--   現成的動作）：那張貼圖的矩形是暴雪給的（翻頁鈕是整顆 32x32），而我們的
+--   overlay 通常有 `inset`（翻頁鈕內縮 4）⇒ 塗出來的暗色方塊會比我們的框大一圈，
+--   在面板上留下一圈看得見的暗色光暈。要對齊就得對暴雪區域 `SetSize`／`SetPoint`，
+--   契約禁止。
+--
+-- ⚠ `OnEnable` / `OnDisable` 是**每個 Button 都有的 frame script**，`HookScript`
+--   接得到（同 `Engine.DropdownText` 對篩選下拉的那兩支）。接觸面只有指名的那一顆，
+--   而且腳本只在「啟用狀態改變」時跑，不在點擊派送路徑上。
+-- ⚠ 初始值讀一次 `IsEnabled()`（讀取例外表上那一條，純 C 端布林、過 Secret.ToBool）。
+--   問不到就當成「可以按」——失敗方向只是「到頭的翻頁鈕看起來還能按」，
+--   而它本來就按不動，不會有功能性後果。
+------------------------------------------------------------
+function Engine.TrackGlyph(btn, glyphOv, opts)
+    if not btn or not glyphOv then return end
+    opts = opts or {}
+
+    local rec = hoverState[btn]
+    if not rec then
+        -- 沒有 hover 紀錄（`noHover` 的特許視窗）也要能記顏色：`PaintHover` 對
+        -- `fillOv` / `borderOv` 是 nil 的紀錄會自己跳過那兩段。
+        rec = { hover = false }
+        hoverState[btn] = rec
+    end
+    rec.glyphOv = glyphOv
+    rec.glyphIdle = opts.idle
+    rec.glyphHover = opts.hover
+    rec.glyphDisabled = opts.disabled
+
+    if opts.trackHover then
+        InstallHoverScripts(btn, rec)
+    end
+
+    if opts.trackEnabled then
+        rec.enabled = HoverEnabled(btn)
+        if type(btn.HookScript) == "function" then
+            -- ⚠ HookScript 不是 SetScript：模板自己的 OnEnable/OnDisable 還要跑。
+            pcall(btn.HookScript, btn, "OnEnable", function(self)
+                local r = hoverState[self]
+                if not r then return end
+                r.enabled = true
+                PaintHover(self)
+            end)
+            pcall(btn.HookScript, btn, "OnDisable", function(self)
+                local r = hoverState[self]
+                if not r then return end
+                r.enabled = false
+                r.hover = false      -- 停用的當下游標可能還停在上面
+                PaintHover(self)
+            end)
+        end
+    end
+
+    PaintHover(btn)
 end
 
 ------------------------------------------------------------
