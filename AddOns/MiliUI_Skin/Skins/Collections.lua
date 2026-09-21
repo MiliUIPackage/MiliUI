@@ -334,7 +334,12 @@ local function SkinChrome()
             E.Missing(key)
         end
     end
-    Skin.TabGroup(tabs, { kind = "panel", joined = "TOP", pad = 8 })
+    -- ⚠ `pad` 一定是 0。XML 裡第 2 顆起寫的是 `LEFT → 前一顆 RIGHT x=-16`（重疊 16），
+    --   但 OnLoad 的 `PanelTemplates_SetNumTabs(self, 6)`（Blizzard_Collections.xml:56）會走
+    --   `PanelTemplates_AnchorTabs`，把每一顆重錨成 `TOPLEFT → 前一顆 TOPRIGHT x=+3` ——
+    --   遊戲裡實際的間距是 **+3**，那個 -16 從來沒有生效過。照 -16 給 `pad = 8` 的後果是
+    --   overlay 整個往右偏 8，字看起來就不置中（實機擷圖量到的偏移正好對得上）。
+    Skin.TabGroup(tabs, { kind = "panel", joined = "TOP" })
 
     return f
 end

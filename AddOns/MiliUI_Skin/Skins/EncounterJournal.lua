@@ -379,7 +379,10 @@ local BOTTOM_TABS = {
     "JourneysTab", "MonthlyActivitiesTab", "suggestTab",
     "dungeonsTab", "raidsTab", "LootJournalTab", "TutorialsTab",
 }
-local BOTTOM_TAB_PAD = 7
+-- ⚠ 一定是 0：XML 寫的重疊從來沒生效 —— `EncounterJournal_OnLoad` 的
+--   `PanelTemplates_SetNumTabs`（Blizzard_EncounterJournal.lua:456）會走
+--   `PanelTemplates_AnchorTabs` 把每顆重錨成「前一顆 TOPRIGHT x=+3」（同收藏視窗）。
+local BOTTOM_TAB_PAD = 0
 
 ------------------------------------------------------------
 -- `navBar` 的五張內嵌邊框切片（.xml:1366-1388）

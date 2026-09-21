@@ -1078,6 +1078,23 @@ local function InstallHooks()
     -- `TitleBar` 的 alpha 設回 0.5（公會視圖是 `…_SetGuildTextures`，.lua:2528，設回 1）。
     -- 那一支跟 `AchievementComparisonPlayerButton_Saturate` 是兩條獨立的路，
     -- 順序不保證 ⇒ 另外勾一支重申，不賭。
+    -- 分頁文字的垂直位置。成就視窗的 `AchievementFrame_UpdateTabs`
+    -- （Blizzard_AchievementUI.lua:364-372）先走 `PanelTemplates_Tab_OnClick`
+    -- （我們的後置勾在那裡把字置中），**緊接著**又自己對三顆分頁
+    -- `tab.Text:SetPoint("CENTER", 0, -5 或 -3)` ⇒ 我們的置中被蓋掉，
+    -- 選中那顆還比別人再低 2。補一支後置勾，在它之後重新置中。
+    -- 走 `Engine.CenterTabText`（STYLE.md ③ 核准的那一條例外：只碰已接管分頁的 `tab.Text`）。
+    if type(_G.AchievementFrame_UpdateTabs) == "function" then
+        hooksecurefunc("AchievementFrame_UpdateTabs", function()
+            for i = 1, 3 do
+                local tab = _G["AchievementFrameTab" .. i]
+                if tab then E.CenterTabText(tab) end
+            end
+        end)
+    else
+        E.Missing("AchievementFrame_UpdateTabs")
+    end
+
     if type(_G.AchievementFrameSummary_Refresh) == "function" then
         hooksecurefunc("AchievementFrameSummary_Refresh", function()
             for i = 1, (ACHIEVEMENTUI_MAX_SUMMARY_ACHIEVEMENTS or 5) do
