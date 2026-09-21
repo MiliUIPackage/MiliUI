@@ -450,17 +450,20 @@ end
 --
 -- ⚠ **第六輪：整包的勾選框都改成這一套了**（`Skin.CheckBox` 的方框收成置中的
 --   18，勾保留形狀只染職業色）—— 也就是說這一顆當初被迫走的窄路，現在是通則。
---   這裡仍然保留自己一支，差別只剩兩個，兩個都是「它不是表單裡的勾選框」：
---     * 底色用 `fillInset` 不是 `fillCheck`（它疊在一顆亮的職責圖示上）；
---     * 方框更小（`ROLE_BOX_SIZE`），因為按鈕本身 scale 0.7 之後只有 21x20。
+--   這裡仍然保留自己一支，差別只剩一個：方框的大小要自己算（`ROLE_BOX_SIZE`），
+--   因為按鈕本身 scale 0.7 之後只有 21x20。
+--   ⚠ 底色**曾經**用 `fillInset`（0.08）—— 實機上那一格有一半落在圖示外面、
+--     壓在 0.115 的視窗底上，黑邊＋0.08 的底等於隱形，沒勾的時候根本看不出
+--     那裡有一格可以點。現在跟整包的勾選框一樣用 `fillCheck`。
 --   染色改走 `Engine.CheckedGlyph`（多了一道去飽和：`SetVertexColor` 是乘法，
 --   素材本身不是純白就乘不出職業色）。
 ------------------------------------------------------------
 local CHECK_STATE_GETTERS = { "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }
 
--- 按鈕是 30x29 再 scale 0.7（LFGFrame.xml:6-8）⇒ 在它自己的座標系裡方框畫 14
--- 大約等於畫面上的 10，剛好是那顆 48x48 職責圖示角落的一個凹槽。
-local ROLE_BOX_SIZE = 14
+-- 按鈕是 30x29 再 scale 0.7（LFGFrame.xml:6-8）⇒ 在它自己的座標系裡方框畫 22
+-- 大約等於畫面上的 15，比表單的 18 小一號（它是圖示角落的附屬品），
+-- 但不能再小：畫面上 10 的那一版實測看不清楚。上限是按鈕自己的 29 高。
+local ROLE_BOX_SIZE = 22
 
 local function SkinRoleCheckBox(cb, key)
     if not E.Usable(cb, key) then return end
@@ -471,7 +474,7 @@ local function SkinRoleCheckBox(cb, key)
             if ok and tex then E.Neutralize(tex, key .. "." .. getter) end
         end
     end
-    E.ButtonStates(cb, key)
+    E.ButtonStates(cb, key, nil, true)   -- 滑過改由下面的 TrackButtonHover 換邊色（同 Skin.CheckBox）
 
     -- 已勾／停用又已勾：保留勾的形狀，只去飽和＋染色（不塗滿）
     -- 勾的大小跟著這顆的小方框等比縮（第八輪：平面勾，見 Engine.CheckedGlyph）
@@ -483,7 +486,8 @@ local function SkinRoleCheckBox(cb, key)
         points = { { "CENTER", "CENTER", 0, 0 } },
         width = ROLE_BOX_SIZE, height = ROLE_BOX_SIZE,
     })
-    E.Paint(ov, T.fillInset, T.border)
+    E.Paint(ov, T.fillCheck, T.border)
+    E.TrackButtonHover(cb, ov, T.fillCheck)
     return ov
 end
 
