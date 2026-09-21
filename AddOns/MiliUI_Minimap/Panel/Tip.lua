@@ -105,6 +105,10 @@ local function EnsureRow(i)
 
     row = CreateFrame("Button", nil, panel)
     row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    -- ⚠ 連結的點擊是**一層一層**往上交的：row.link → row → panel → Sink，
+    --   每一層都要開 propagate。第一版漏了這一層，點擊停在列上、到不了 Sink：
+    --   左鍵密語沒反應、名單也不收（afterOpen 掛在 Sink 上），而且沒有任何錯誤。
+    row:SetHyperlinkPropagateToParent(true)
 
     -- 按鈕列的底：整列一塊比面板亮一階的實心帶。平常就看得到（它是按鈕，
     -- 要讓人知道這裡可以按），滑過再疊上 hl 亮一階 —— 狀態只換明暗不換色。
