@@ -466,9 +466,9 @@ function ns.Blocks.micromenu.create()
                 --   從那裡進編輯模式＝用插件的身分進編輯模式。
                 -- 戰鬥中 ＝ 看 GameMenuFrame 當下是不是保護框（snippet 裡的 IsProtected 戰鬥中照樣能問）：
                 --   是 ⇒ 照樣走 snippet。暴雪原廠它不是保護框，但**只要有插件把 secure 按鈕掛在
-                --     它底下，它就變成隱式保護框**（套組裡的 TeleportMenu 就是）——這時插件 Lua
-                --     戰鬥中 Show 它會被**靜默**擋掉（沒有錯誤訊息、taint.log 也沒記，2026-09-21
-                --     實測「戰鬥中點了沒反應」），而 restricted 環境反過來可以合法操作它。
+                --     它底下，它就變成隱式保護框**（套組裡的 TeleportMenu 就是；它的按鈕框是
+                --     **第一次開選單才建**，所以 reload 後沒開過選單就進戰鬥的話還不是保護框）
+                --     ——這時插件 Lua 戰鬥中 Show 它會被擋，而 restricted 環境反過來可以合法操作它。
                 --   否 ⇒ restricted 環境拿不到非保護框的 handle（RestrictedFrames.lua 的
                 --     GetHandleFrame：非保護框 ＋ InCombatLockdown ⇒ "Invalid frame handle"），
                 --     只能 CallMethod 回插件端自己開；髒的只有**那一趟**的選單按鈕（每次 OnShow
@@ -496,7 +496,14 @@ function ns.Blocks.micromenu.create()
                     end
                 ]])
                 function tile:ToggleGameMenuInCombat()
-                    if GameMenuFrame then ToggleFrame(GameMenuFrame) end
+                    -- ⚠ 不能用 ToggleFrame／ShowUIPanel／HideUIPanel：UIParentPanelManager 的
+                    -- CheckProtectedFunctionsAllowed 寫死「戰鬥中不准插件開關 UI 面板」，直接
+                    -- return 並印「介面功能因插件而失效」（taint.log 不記）。直接 Show／Hide
+                    -- 不經過面板系統，非保護框戰鬥中合法。ESC 照樣關得掉（HideUIPanel 對不在
+                    -- 面板系統裡的框會退成 Hide）。
+                    if GameMenuFrame then
+                        GameMenuFrame:SetShown(not GameMenuFrame:IsShown())
+                    end
                 end
                 tile:RegisterEvent("PLAYER_REGEN_DISABLED")
                 tile:RegisterEvent("PLAYER_REGEN_ENABLED")
