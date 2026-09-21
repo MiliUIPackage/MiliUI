@@ -12,7 +12,7 @@ metadata:
 
 **哪些框戰鬥中不能移**：明式保護（Secure*Template / SetProtected）之外，**隱式保護往上傳**——secure 框的父層、以及被 secure 框 SetPoint 錨定的目標框，戰鬥中一樣不能移／藏（移它等於移 secure 框）。子框不繼承保護。Cell 的各個 anchorFrame 都是因為 secure 容器反向錨定在它們身上才中鏢。
 
-**錨定的保護沿錨點鏈遞迴往回傳**（warcraft.wiki.gg ScriptRegion:IsProtected 原文「This applies recursively」）。所以「每顆錨在前一顆」的排版鏈只要尾巴有一顆 secure 鈕，前面**整排**都是保護框 —— 不只是被移動會擋，連 `SetHitRectInsets` 這類只標 IsProtectedFunction 的 API 戰鬥中也擋。2026-09-21 MiliUI_ChatBar：骰／開怪／重置（SecureActionButton）排在頻道超連結鈕後面，頻道事件戰鬥中重畫按鈕，四顆頻道鈕各擋一次 SetHitRectInsets。**判斷是哪一種**：沒有 secure 子框的按鈕只可能是被錨點牽連。**解法**：排版一律直接錨在父框（本來就是 secure 鈕的祖先、早就是保護框）、偏移自己算，普通按鈕就不被牽連；再加上「值沒變不寫」，戰鬥中重畫就沒有保護呼叫。相關：[[wow-hasrestrictions-mouse-apis]]（`SetPassThroughButtons` 是另一類，戰鬥中對任何框都擋）。
+**錨定的保護沿錨點鏈遞迴往回傳**（warcraft.wiki.gg ScriptRegion:IsProtected 原文「This applies recursively」）。所以「每顆錨在前一顆」的排版鏈只要尾巴有一顆 secure 鈕，前面**整排**都是保護框 —— 不只是被移動會擋，連 `SetHitRectInsets` 這類只標 IsProtectedFunction 的 API 戰鬥中也擋。2026-09-21 MiliUI_ChatBar：骰／開怪／重置（SecureActionButton）排在頻道超連結鈕後面，頻道事件戰鬥中重畫按鈕，四顆頻道鈕各擋一次 SetHitRectInsets。**判斷是哪一種**：沒有 secure 子框的按鈕只可能是被錨點牽連。**解法**：排版一律直接錨在父框（本來就是 secure 鈕的祖先、早就是保護框）、偏移自己算，普通按鈕就不被牽連；再加上「值沒變不寫」，戰鬥中重畫就沒有保護呼叫。實測（同日）：拆鏈前 `IsProtected()` 是「畫面上排在骰前面的每一顆＝true、被藏起來不在鏈上的＝false」（這個分布本身就是錨點鏈的指紋，祖先成因的話藏起來的也會中）；拆鏈後只剩三顆 secure 鈕是 true，taint.log 零封鎖。相關：[[wow-hasrestrictions-mouse-apis]]（`SetPassThroughButtons` 是另一類，戰鬥中對任何框都擋）。
 
 **解法**：`PLAYER_REGEN_DISABLED` 在 combat lockdown 生效**之前**發火（warcraft.wiki.gg 明載），事件 handler 內是操作保護框的最後窗口。在這裡對「移動中」的框強制 `StopMovingOrSizing()` ＋ 存位置即可。注意要**直接呼叫**，別經過帶 guard 的 OnDragStop handler。
 
