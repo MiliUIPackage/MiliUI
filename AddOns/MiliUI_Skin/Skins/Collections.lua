@@ -36,6 +36,10 @@
 --   Blizzard_Collections/Mainline/Blizzard_MountCollection.lua:730-760  MountJournal_UpdateMountDisplay（InfoButton.Icon 每次 SetTexture）
 --   Blizzard_Collections/Mainline/Blizzard_CollectionTemplates.xml:5    CollectionsProgressBarTemplate
 --   Blizzard_Collections/Mainline/Blizzard_CollectionTemplates.xml:170,178,186  翻頁鈕與 CollectionsPagingFrameTemplate
+--     ⚠ **第七輪改動（接觸面）**：兩顆翻頁鈕的 Normal/Pushed/Disabled 從
+--       `SetVertexColor` 改成 `SetAlpha(0)`（整組中和、改畫自己的 ‹ › 線條圖記），
+--       並各多一對 `HookScript("OnEnable"/"OnDisable")` 讓圖記跟著停用態變暗
+--       （`Engine.TrackGlyph`）。這支 `Shared.SkinPaging` 是收藏四個檔共用的。
 --   Blizzard_Collections/Mainline/Blizzard_CollectionTemplates.lua:130  CollectionItemListButton_SetRedOverlayShown
 --   Blizzard_SharedXML/Mainline/SharedCollectionTemplates.xml:56  CollectionsBackgroundTemplate（← InsetFrameTemplate ＋ 21 張裝飾）
 --   Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:905  PanelTabButtonTemplate（九張 TabTextures）
@@ -214,12 +218,21 @@ end
 -- ⚠ `inset = 4`：按鈕是 32x32，但 `UI-SpellbookIcon-PrevPage-Up` 的箭頭只佔中間
 --   一小塊，框畫成整個矩形會比箭頭大一圈（同收件匣翻頁鈕）。
 -- `PageText` 是 `CollectionsPageTextTemplate` ← `GameFontWhite`，本來就是白的，不碰。
+--
+-- ⚠ **第七輪：箭頭素材整組中和，改畫自己的 ‹ › 線條圖記**（`opts.glyph`）。
+--   `UI-SpellbookIcon-*Page-*` 是立體、帶內描邊的金屬箭頭，去飽和之後仍然是這一整
+--   套裡唯一有厚度的零件。停用態（翻到頭）走 `trackEnabled`，理由見 `Engine.TrackGlyph`。
 function Shared.SkinPaging(frame, key)
     if not E.Usable(frame, key) then return end
-    for _, k in ipairs({ "PrevPageButton", "NextPageButton" }) do
+    for i, k in ipairs({ "PrevPageButton", "NextPageButton" }) do
         local btn
         if pcall(function() btn = frame[k] end) and btn then
-            Skin.IconButton(btn, key .. "." .. k, { inset = 4 })
+            Skin.IconButton(btn, key .. "." .. k, {
+                inset = 4,
+                glyph = (i == 1) and "chevronLeft" or "chevronRight",
+                glyphColor = T.textDim,
+                trackEnabled = true,
+            })
         else
             E.Missing(key .. "." .. k)
         end

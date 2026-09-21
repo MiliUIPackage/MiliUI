@@ -106,8 +106,27 @@ function Skin.PortraitChrome(frame, key, opts)
     end
 
     if opts.titleBar == false then return end
+    Skin.TitleBar(frame, key, opts.titleBarHeight)
+end
 
-    local h = opts.titleBarHeight or T.titleBarHeight
+------------------------------------------------------------
+-- TitleBar：視窗上緣的標題帶（第七輪從 `Skin.PortraitChrome` 裡拆出來）
+--
+-- 第六輪只有走 `PortraitFrameTemplate` 系的視窗有這條帶子。結果是同一套皮裡
+-- 兩種視窗：大部分有標題帶，而**沒有**繼承那個模板的（物品升級、成就）沒有
+-- —— 那不是設計決定，只是原語的邊界剛好落在那裡。拆成獨立的一支之後，
+-- 任何配方都補得上。
+--
+-- ⚠ 為什麼這一條可以放心畫：它走 `Engine.RegionBackdrop`，也就是**目標框自己的
+--   一張 BACKGROUND 貼圖**，sublevel 排在面板底（−8）之上、其餘一切之下
+--   ⇒ 它**蓋不住任何內容**（標題文字與內嵌框都是子框，子框永遠畫在父層貼圖之上，
+--   見 wow-frame-vs-texture-layering）。最壞的情況只是「這條帶子在這個視窗裡
+--   位置不好看」，不會是「字不見了」。
+------------------------------------------------------------
+function Skin.TitleBar(frame, key, height)
+    if not E.Usable(frame, key) then return end
+    local h = height or T.titleBarHeight
+
     local band = E.RegionBackdrop(frame, {
         key = key .. ".titleBar",
         slot = "titleBar",
@@ -134,6 +153,7 @@ function Skin.PortraitChrome(frame, key, opts)
         height = 1,
     })
     E.Paint(rule, T.fillHover)
+    return band
 end
 
 ------------------------------------------------------------
@@ -675,13 +695,46 @@ function Skin.ScrollBar(bar, key)
         E.Missing(key .. ".Track.Thumb")
     end
 
+    -- ⚠⚠ **第七輪：上下箭頭改成中和 ＋ 自己畫的 ∧／∨ 線條圖記。**
+    --
+    -- 出處（12.1 live，`Blizzard_SharedXML/Shared/Scroll/MinimalScrollBar.xml`）：
+    --   `Back`／`Forward` 各是 17x11 的 EventButton，錨在捲軸的 TOP／BOTTOM，
+    --   底下一張 parentKey 是 `Texture` 的 atlas 貼圖；
+    --   `Track` 錨 `TOP y=-19` / `BOTTOM y=19` ⇒ 軌道本來就讓開了那兩段。
+    -- 中和撐得住，同檔 `.lua` 的 `MinimalScrollBarStepperScriptsMixin` 只有兩處碰它：
+    --   `:OnLoad` → `SetDisplacedRegions(1, -1, self.Texture)`（按下時位移）
+    --             ＋ `DesaturateIfDisabled()`
+    --   `:OnButtonStateChanged` → `self.Texture:SetAtlas(self:GetAtlas(), UseAtlasSize)`
+    --   **一行 `SetAlpha`／`SetShown` 都沒有** ⇒ alpha 中和撐得過狀態切換。
+    --
+    -- ⚠ 圖記畫在**我們自己的一層 overlay** 上（`noBorder`、無底色），不是把
+    --   軌道那一條延伸過去：延伸過去的話拇指永遠走不到軌道的兩端，捲到底時會
+    --   在頭尾各留一段空軌，讀起來像「捲不完」。
+    -- ⚠ `T.scrollStepper = "hide"` 一行就切成「整個中和、什麼都不補」。
     for _, side in ipairs({ "Back", "Forward" }) do
         local stepper
         pcall(function() stepper = bar[side] end)
         if stepper then
             local tex
             pcall(function() tex = stepper.Texture end)
-            E.VertexColor(tex, T.textDim, key .. "." .. side .. ".Texture")
+            if T.scrollStepper == "hide" then
+                E.Neutralize(tex, key .. "." .. side .. ".Texture")
+            else
+                E.Neutralize(tex, key .. "." .. side .. ".Texture")
+                local stepOv = E.Overlay(stepper, {
+                    key = key .. "." .. side,
+                    noBorder = true,
+                    glyph = {
+                        kind = (side == "Back") and "chevronUp" or "chevronDown",
+                        size = T.glyphSize, thickness = 1, color = T.textDim,
+                    },
+                })
+                -- 底色全透明：這一層只是拿來掛圖記的。
+                E.Paint(stepOv, TRANSPARENT)
+                -- 捲到頭的那一顆暴雪會 `Disable()` ⇒ 圖記跟著變暗
+                -- （原本那張 atlas 的灰掉版本已經被我們中和了）。
+                E.TrackGlyph(stepper, stepOv, { trackHover = true, trackEnabled = true })
+            end
         else
             E.Missing(key .. "." .. side)
         end
@@ -833,6 +886,26 @@ end
 --   ownHover  **兩態都自己畫**：把暴雪的 Highlight 中和掉，滑過與選中都走
 --             `Engine.TrackSelectable`。只有「暴雪的 Highlight 矩形跟按鈕矩形
 --             不一樣大」的列需要這一條，理由與代價寫在 Engine 那一段。
+--             ⚠ **第七輪：這一種列的選中態多一條左緣職業色直條**（見下）。
+--   noAccentLine
+--             不要那條左緣直條。給「左緣已經被別的東西佔住」的列用
+--             （目前沒有實例，留給配方當退路）。
+--
+-- ⚠⚠ **第七輪：清單列的語彙統一成「滑過提亮一階／選中＝壓暗職業色底 ＋ 左緣 2px
+--   職業色條」。** 在這之前各視窗各做各的：成就分類列與好友列是整塊 `AccentFill`、
+--   插件列表只有 `ownHover` 的底色明暗、商人格什麼都沒有 —— 同一個套組裡「選中」
+--   長三種樣子。
+--
+--   為什麼加那條直條而不是只換底色（`miliui-menu-design` 第二條）：顏色是最弱的
+--   一層訊號。暗色系職業（戰士 0.78/0.61/0.43 壓到 0.45）的底跟 `fillHover`（0.23）
+--   在低對比螢幕上幾乎分不出來 —— 一條**滿飽和**的職業色直條是第二層（結構）訊號，
+--   而且跟分頁那條線是同一個語彙（選中＝一條職業色線），只是換了方向。
+--   ⚠ 分頁的線畫在「朝外」的那一邊、清單列畫在左緣：兩者不會同時出現在同一個
+--   元件上，所以不算兩個語意共用一個訊號。
+--
+-- ⚠ **只有 `ownHover` 的列有這條線。** 沒有 `ownHover` 的列（坐騎／寵物清單、
+--   搜尋結果列）本來就沒有「選中」這個狀態掛點 —— 為了畫一條線去新增 hook
+--   是本末倒置。
 function Skin.Row(btn, key, opts)
     if not E.Usable(btn, key) then return end
     if opts == true then opts = { fill = T.fillInset } end   -- 舊的 `alt` 簽章
@@ -860,11 +933,18 @@ function Skin.Row(btn, key, opts)
         E.NeutralizeKeys(btn, opts.keys, key)
     end
 
-    local ov = E.Overlay(btn, { key = key, noBorder = not opts.border, points = opts.points })
+    local accent = opts.ownHover and not opts.noAccentLine
+    local ov = E.Overlay(btn, {
+        key = key,
+        noBorder = not opts.border,
+        points = opts.points,
+        accentSide = accent and "LEFT" or nil,
+        accentSize = T.rowAccentSize,
+    })
     E.Paint(ov, opts.fill or T.fill, opts.border and T.border or nil)
 
     if opts.ownHover then
-        E.TrackSelectable(btn, ov, opts.fill or T.fill)
+        E.TrackSelectable(btn, ov, opts.fill or T.fill, { accentLine = accent })
     end
     return ov
 end
@@ -1037,6 +1117,16 @@ end
 --               ⚠ 那三張只寫在 XML 裡，`IconButtonMixin` 完全不重設它們
 --               （同檔 .lua:30-38 只動 `Icon` 的錨點）⇒ alpha 中和撐得住。
 --   iconKey     `stripFrame` 時要染色的那張圖的 parentKey，預設 `"Icon"`。
+--   glyph       **Normal/Pushed/Disabled 是暴雪的立體小圖，而那個圖形我們畫得出來**
+--               時用：三張整組中和，改畫自己的線條圖記（`Engine` 的 `BuildGlyph`）。
+--               第五輪只有 `"expand"`／`"collapse"`；第七輪多了
+--               `"chevronLeft"`／`"chevronRight"`（翻頁鈕）與 `"plus"`／`"minus"`。
+--   glyphSize   圖記的外框邊長，預設 9。
+--   glyphColor  **有給才把圖記交給三態管**（閒置這個色／滑過白／停用 `textDisabled`）。
+--               翻頁鈕那一類是「次要指示符號」⇒ 給 `T.textDim`；
+--               最大化／最小化那兩顆的 ＋／− 是按鈕的全部內容 ⇒ 不給，維持靜態白。
+--   trackEnabled  追「這顆能不能按」（翻頁鈕到頭時暴雪會 `Disable()`）。
+--               詳見 `Engine.TrackGlyph`。
 ------------------------------------------------------------
 local ICON_BUTTON_TEXTURES = { "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }
 
@@ -1084,12 +1174,24 @@ function Skin.IconButton(btn, key, opts)
         key = key,
         inset = opts.inset,
         points = opts.points,
-        glyph = opts.glyph and
-            { kind = opts.glyph, size = opts.glyphSize or 9, thickness = 1, color = T.text }
-            or nil,
+        glyph = opts.glyph and {
+            kind = opts.glyph,
+            size = opts.glyphSize or 9,
+            thickness = 1,
+            color = opts.glyphColor or T.text,
+        } or nil,
     })
     E.Paint(ov, T.fill, T.border)
     E.TrackButtonHover(btn, ov, T.fill)
+    -- 圖記的三態（第七輪）。`glyphColor` 有給才交給三態管 ——
+    -- 最大化／最小化那兩顆的 ＋／− 是**白**的（它是按鈕的全部內容，不是次要指示），
+    -- 維持第五輪的靜態白字，不進三態。
+    if opts.glyph and opts.glyphColor then
+        E.TrackGlyph(btn, ov, {
+            idle = opts.glyphColor,
+            trackEnabled = opts.trackEnabled,
+        })
+    end
     return ov
 end
 
@@ -1351,21 +1453,41 @@ local DROPDOWN_INSETS = {
 function Skin.Dropdown(btn, key, kind, opts)
     if not E.Usable(btn, key) then return end
     opts = opts or {}
+    local glyph
 
     E.NeutralizeKeys(btn, { "Background" }, key)
 
+    -- ⚠⚠ **第七輪：箭頭改成中和 ＋ 自己畫的 ⌄ 線條圖記。**
+    --
+    -- 第五輪是「先 `SetDesaturated(true)` 再染 `textDim`」。那解決了「深灰面板上
+    -- 一顆很亮的黃色三角形」（實機擷圖 16），但留下的仍然是暴雪那張**立體、帶
+    -- 內描邊**的三角形 atlas —— 在 1px 硬邊的直角語彙裡它是唯一一顆有厚度的零件。
+    --
+    -- 中和撐得住，查證過（12.1 live，`Blizzard_Menu/MenuTemplates.lua`）：
+    --   `WowStyle1DropdownMixin:OnButtonStateChanged`（:455-462）碰 Arrow 的只有
+    --   一行 `self.Arrow:SetAtlas(self:GetArrowAtlas(), UseAtlasSize)` ——
+    --   **沒有 `SetAlpha`、沒有 `SetShown`**，而 alpha 與 atlas 是兩個獨立的屬性。
+    --   全檔唯一對 Arrow 下 `SetShown`／`SetDesaturated` 的是
+    --   `WowStyle2DropdownMixin:OnButtonStateChanged`（:540-541），那是**另一個**
+    --   模板，這支原語不接它（配方只送 style1／filter 進來）。
+    --   ⇒ 真的哪天送了一顆 style2 進來，最壞的情況是「箭頭在滑鼠移開時被暴雪
+    --     `SetShown(false)`，而我們的 ⌄ 還在」——多一顆圖記，不是少一個功能。
+    --
+    -- ⚠ 只有**真的有 Arrow** 的那一種才畫（filter 那一支沒有 Arrow，也不該憑空
+    --   長出一顆箭頭）。位置照抄 XML 的錨點：`Arrow` 錨在按鈕的 `RIGHT x=1`
+    --   （`MenuTemplates.xml:17`）⇒ 我們的圖記也錨在 overlay 的 RIGHT，
+    --   往內縮一個半徑多一點。
     local arrow
     if pcall(function() arrow = btn.Arrow end) and arrow then
-        -- ⚠ 先去飽和再染。`common-dropdown-a-button` 那張箭頭本身是**金黃色**的，
-        --   而 `SetVertexColor` 是乘法 —— 乘上 `textDim` 只會變成暗金，永遠乘不出
-        --   中性灰（實機擷圖 16 的聲望頁：深灰面板上一顆很亮的黃色三角形，
-        --   是整個視窗唯一不照「文字統一白色」的東西）。
-        --   同 `Engine.Desaturate` 那一段的紅金 ＋／− 鈕。
-        -- ⚠ `SetDesaturated` 跟 `SetAtlas` 是兩個獨立的屬性 ⇒ 暴雪在
-        --   `OnButtonStateChanged` 換 `-hover` atlas 不會把去飽和洗掉
-        --   （同一條規則讓「中和一律用 alpha」成立）。實機要看一次滑過態。
-        E.Desaturate(arrow, key .. ".Arrow")
-        E.VertexColor(arrow, T.textDim, key .. ".Arrow")
+        E.Neutralize(arrow, key .. ".Arrow")
+        glyph = {
+            kind = "chevronDown",
+            size = T.glyphSize,
+            thickness = 1,
+            color = T.textDim,
+            anchor = "RIGHT",
+            x = -(T.glyphSize),
+        }
     end
 
     -- 篩選下拉的 `Text` 是 `GameFontNormal`（暗金），壓在深底上偏灰 ——
@@ -1384,6 +1506,7 @@ function Skin.Dropdown(btn, key, kind, opts)
             { "TOPLEFT", "TOPLEFT", inset[1], inset[2] },
             { "BOTTOMRIGHT", "BOTTOMRIGHT", inset[3], inset[4] },
         },
+        glyph = glyph,
     })
     E.Paint(ov, T.fillInset, T.border)
     -- 第五輪補上滑過：這個 intrinsic 沒有 HighlightTexture（註 ⓕ），原本唯一的
@@ -1393,6 +1516,12 @@ function Skin.Dropdown(btn, key, kind, opts)
     --   （STYLE.md ⑦），那裡的下拉不掛這一支。
     if not opts.noHover then
         E.TrackButtonHover(btn, ov, T.fillInset)
+    end
+    -- ⌄ 跟著邊框一起提亮（`noHover` 的視窗裡它就停在 `textDim`，等同靜態）。
+    -- ⚠ `TrackGlyph` 本身不掛任何腳本（`trackEnabled` 才掛），所以「零 HookScript」
+    --   的特許視窗照樣呼叫得起。
+    if glyph then
+        E.TrackGlyph(btn, ov)
     end
     return ov
 end

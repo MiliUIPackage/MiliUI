@@ -118,7 +118,8 @@
 -- | MerchantMoneyInset / MerchantExtraCurrencyInset 的 Bg 與 NineSlice | SetAlpha(0) |
 -- | MerchantMoneyBg* / MerchantExtraCurrencyBg*（各三張全域名切片） | SetAlpha(0) |
 -- | MerchantPrev/NextPageButton 的無名 UI-PageButton-Background | SetAlpha(0)（GetRegions ＋ keep-set） |
--- | 同兩顆的 Normal/Pushed/Disabled | SetVertexColor |
+-- | 同兩顆的 Normal/Pushed/Disabled | SetAlpha(0)（第七輪：整組中和，改畫自己的 ‹ › 線條圖記） |
+-- | 同兩顆的 OnEnable / OnDisable | HookScript（第七輪；圖記的停用態，見 `Engine.TrackGlyph`） |
 -- | 同兩顆的無名 FontString（「上頁」「繼續」） | SetTextColor |
 -- | 同兩顆的 Highlight | SetColorTexture |
 --
@@ -311,14 +312,19 @@ local PAGE_BUTTON_KEEP_GETTERS = {
     "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture", "GetHighlightTexture",
 }
 
-local function SkinPageButton(name)
+-- ⚠ 第七輪：箭頭素材整組中和，改畫自己的 ‹ › 線條圖記；到頭時暴雪對按鈕
+--   `Disable()` ⇒ 圖記跟著變暗（`trackEnabled`，見 `Engine.TrackGlyph`）。
+local function SkinPageButton(name, dir)
     local btn = _G[name]
     if not btn then
         E.Missing(name)
         return
     end
     E.NeutralizeRegions(btn, name, E.KeepSet(btn, nil, PAGE_BUTTON_KEEP_GETTERS))
-    Skin.IconButton(btn, name, { inset = 4, labelColor = T.text })
+    Skin.IconButton(btn, name, {
+        inset = 4, labelColor = T.text,
+        glyph = dir, glyphColor = T.textDim, trackEnabled = true,
+    })
 end
 
 ------------------------------------------------------------
@@ -346,8 +352,8 @@ local function SkinBottomStrip()
         end
     end
 
-    SkinPageButton("MerchantPrevPageButton")
-    SkinPageButton("MerchantNextPageButton")
+    SkinPageButton("MerchantPrevPageButton", "chevronLeft")
+    SkinPageButton("MerchantNextPageButton", "chevronRight")
 
     -- 買回格（底部那一格「最近賣出」）：外層是 Frame（`MerchantBuyBackItem`），
     -- 物品鈕是它的 `ItemButton` 子框。底框跟商品格一致（內嵌底 ＋ 1px 邊、內縮 2）。
