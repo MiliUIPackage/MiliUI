@@ -177,15 +177,11 @@
 -- | OpenMailHorizontalBarLeft ＋一張無名右半 | SetAlpha(0)（GetRegions 掃 OpenMailFrame） |
 -- | OpenMailLetterButton / OpenMailMoneyButton / OpenMailAttachmentButton1..16 | 同附件格 |
 --
--- ### 伴隨元件（套組內建的郵件增強插件，見下面那一節）
+-- ### 伴隨元件（套組內建的郵件增強插件）
 --
--- | 全域名稱 | 動作 |
--- |---|---|
--- | PostalSelectOpenButton / PostalSelectReturnButton / PostalOpenAllButton / OpenMailForwardButton | 同 `Skin.Button` |
--- | Postal_ModuleMenuButton / Postal_OpenAllMenuButton / Postal_BlackBookButton | 同 `Skin.IconButton` |
--- | PostalInboxCB1..7 | 同 `Skin.CheckBox` |
---
--- 以上各框：`CreateFrame` 掛自己的 overlay（SetAllPoints／錨在目標上，不吃滑鼠）。
+-- **見 `ThirdParty/Postal.lua`** —— 這一份對它一行都不做。
+-- 那一份用 `Engine.AddCompanion("mail", { event = "MAIL_SHOW", … })` 自己掛上來，
+-- 接觸面清單也在它自己的檔頭。
 --
 -- hook（全部是後置勾，不換函式）：
 --   * Engine 的三個 `PanelTemplates_*` 全域後置勾（分頁選中態，裝在 Core/Engine.lua）。
@@ -199,22 +195,6 @@
 -- 寫入暴雪欄位：無。
 -- 讀暴雪物件：只有 `Engine.PassBorderColor` 那一條（`IconBorder` 的
 --   `IsShown()` / `GetVertexColor()`，**當傳遞者不當讀取者**，見 STYLE.md ③ 的讀取例外表）。
---
-------------------------------------------------------------
--- ## 伴隨元件
---
--- 套組內建了一支郵件增強插件，它在收件匣與寄信頁上掛了一排自己的按鈕
--- （開啟／返回／收取全部、兩顆選單小鈕、每列左邊的勾選框，以及讀信視窗的轉寄）。
--- 第二輪定的規矩是「只 skin 暴雪自己的物件」，但收件匣最顯眼的就是它們 ——
--- 一個換了皮的視窗上擺著三顆紅色的原生按鈕，比整個視窗都沒換皮更難看。
---
--- 所以第三輪加了「伴隨元件」規則（STYLE.md ③）。這一份守的是：
---   * 用**全域名稱**判斷有沒有，**沒有就靜默跳過** —— 不記進「找不到的區域」，
---     玩家可能根本沒裝。
---   * 不呼叫它的任何函式、不 hook 它的函式、不依賴載入順序、**不在它的框上寫欄位**。
---   * 動作跟對暴雪物件一樣走白名單，原語直接重用。
---   * 時機走 `Engine.Register` 的 `companions`（`MAIL_SHOW` ＋ 延一幀），
---     配方裡**不自己建事件框**。冪等，戰鬥閘照走。
 --
 ------------------------------------------------------------
 -- ## 刻意不碰的東西
@@ -438,6 +418,10 @@ local function SkinInbox()
         end
     end
 
+    -- ⚠ **不要因為「有插件會把它藏起來」就拿掉這一行。** 套組內建的郵件增強插件
+    --   會藏掉暴雪這顆、換成它自己的 `PostalOpenAllButton`（皮在
+    --   `ThirdParty/Postal.lua`）—— 但玩家可能沒裝那支，兩顆各自獨立上皮，
+    --   誰也不問對方在不在（伴隨元件規則第 2、3 條）。
     local openAll = _G.OpenAllMail
     if openAll then
         Skin.Button(openAll, "OpenAllMail")
@@ -734,42 +718,6 @@ local function ReapplyOpenMail()
 end
 
 ------------------------------------------------------------
--- 伴隨元件（見檔頭）
---
--- ⚠ 一律 `_G[...]` 判斷，**找不到就靜默 return**，不走 `E.Missing`。
-------------------------------------------------------------
-local COMPANION_BUTTONS = {
-    "PostalSelectOpenButton",     -- 收件匣「開啟」
-    "PostalSelectReturnButton",   -- 收件匣「返回」
-    "PostalOpenAllButton",        -- 收件匣「收取全部」（暴雪那顆 OpenAllMail 會被它藏起來，
-                                  --  但我們照樣給 OpenAllMail 上皮 —— 玩家可能沒裝）
-    "OpenMailForwardButton",      -- 讀信視窗「轉寄」
-}
-
-local COMPANION_ICON_BUTTONS = {
-    "Postal_ModuleMenuButton",    -- 視窗右上的 ▼
-    "Postal_OpenAllMenuButton",   -- 「收取全部」右邊的 ▼
-    "Postal_BlackBookButton",     -- 寄信頁收件人欄右邊的 ▼
-}
-
-local COMPANION_CHECKBOXES = 7    -- PostalInboxCB1..7
-
-local function SkinCompanions()
-    for _, name in ipairs(COMPANION_BUTTONS) do
-        local btn = _G[name]
-        if btn then Skin.Button(btn, name) end
-    end
-    for _, name in ipairs(COMPANION_ICON_BUTTONS) do
-        local btn = _G[name]
-        if btn then Skin.IconButton(btn, name, { inset = 4 }) end
-    end
-    for i = 1, COMPANION_CHECKBOXES do
-        local cb = _G["PostalInboxCB" .. i]
-        if cb then Skin.CheckBox(cb, "PostalInboxCB" .. i) end
-    end
-end
-
-------------------------------------------------------------
 -- 進入點
 ------------------------------------------------------------
 local function InstallHooks()
@@ -838,8 +786,7 @@ E.Register{
     title = L["Mail"],
     hooks = InstallHooks,
     apply = Apply,
-    companions = {
-        -- 伴隨元件是「開信箱那一刻才建」的 ⇒ MAIL_SHOW ＋ 延一幀。冪等，重掃無害。
-        { event = "MAIL_SHOW", apply = SkinCompanions },
-    },
+    -- ⚠ 伴隨元件（套組內建的郵件增強插件）**不寫在這裡**：它住在
+    --   `ThirdParty/Postal.lua`，用 `Engine.AddCompanion("mail", …)` 自己掛上來
+    --   （TOC 裡排在所有 `Skins\*.lua` 之後）。
 }

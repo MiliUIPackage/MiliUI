@@ -50,8 +50,6 @@ Skins\CollectionsWardrobe.lua
 Skins\PVE.lua
 Skins\PVP.lua
 Skins\Challenges.lua
-# 伴隨元件（套組內建的預組隊伍過濾插件）也走 ns.PVESkin 那張交接桌 ⇒ 排在 PVE.lua 後面
-Skins\PVECompanions.lua
 Skins\Merchant.lua
 Skins\AuctionHouse.lua
 Skins\Professions.lua
@@ -68,6 +66,15 @@ Skins\WeeklyRewards.lua
 # 零 hook 進點擊路徑。動它們之前先讀各自的檔頭。
 Skins\Popup.lua
 Skins\GameMenu.lua
+
+# 伴隨元件：套組內建、固定掛在暴雪視窗上的**別家**插件（STYLE.md ③），一支一個檔。
+# ⚠ 一定要排在所有 Skins\*.lua 之後：它們用 Engine.AddCompanion 掛到 host 配方上，
+#   而 ThirdParty/PremadeGroupsFilter.lua 還借用 Skins/PVE.lua 匯出的 ns.PVESkin.Field。
+#   （引擎本身不依賴這個順序 —— host 還沒登記會先暫存、Engine.Boot 統一結算。）
+ThirdParty\Postal.lua
+ThirdParty\Auctionator.lua
+ThirdParty\PremadeGroupsFilter.lua
+ThirdParty\RaiderIO.lua
 
 # 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
 Libs\MiliUIWidgets\Env.lua

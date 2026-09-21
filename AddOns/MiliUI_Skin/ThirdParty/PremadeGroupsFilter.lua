@@ -1,15 +1,29 @@
 ------------------------------------------------------------
--- 配方：地城與團隊的伴隨元件（套組內建的預組隊伍過濾插件）
+-- 伴隨元件：套組內建的預組隊伍過濾插件（掛在「地城與團隊」上）
 --
--- 這一份**不是**一份獨立的配方 —— 它把自己的入口交給 `Skins/PVE.lua`
--- （`ns.PVESkin.ApplyCompanions`，跟 PvP／傳奇鑰石同一張交接桌），
--- 由 `pve` 那一筆的 `companions` 觸發。玩家看到的是一個視窗，設定裡就只有一個開關。
+-- 這一份**不是**一份獨立的配方 —— 它用 `Engine.AddCompanion("pve", …)` 把自己
+-- 掛到 `Skins/PVE.lua` 那一筆上。玩家看到的是一個視窗，視窗設定裡就只有一個開關；
+-- 要單獨關掉這一支走設定頁「其他插件」那一節（`addonKey = "premadegroupsfilter"`）。
 --
--- 處理兩樣東西（STYLE.md ③「伴隨元件」那條窄路）：
---   1. 搜尋頁右上的勾選框 `UsePGFButton`（`UICheckButtonTemplate`，
---      parent 是 `LFGListFrame.SearchPanel`）。
---   2. 貼在 `PVEFrame` 右邊的篩選視窗 `PremadeGroupsFilterDialog`
---      （`PortraitFrameTemplateMinimizable`）與它底下的七個面板。
+-- ## 掛了哪些元件
+--
+-- | 全域名稱 | 模板 | 建立時機 |
+-- |---|---|---|
+-- | `UsePGFButton` | `UICheckButtonTemplate`（parent ＝ `LFGListFrame.SearchPanel`） | 那支插件的 `.lua` **檔案層** |
+-- | `PremadeGroupsFilterDialog` | `PortraitFrameTemplateMinimizable`（parent ＝ `PVEFrame`） | 同上 |
+-- | `PremadeGroupsFilter{Dungeon,Raid,Role,Arena,RBG,Delve,Mini}Panel` | 各自的 XML 模板 | 同上 |
+--
+-- 各用哪個原語：勾選框 ＝ `Skin.CheckBox`／視窗 chrome ＝ `Skin.TitleBar` ＋
+-- `Skin.Panel` ＋ `Skin.CloseButton`／最大化最小化與兩顆小圖示鈕 ＝ `Skin.IconButton`／
+-- 重新整理 ＝ `Skin.Button`／每列的輸入框 ＝ `Skin.EditBox`／進階過濾式 ＝
+-- `Skin.InputScroll`／它自己那一種下拉與小文字鈕 ＝ 這一份的兩支 local（理由見第 5 點）。
+--
+-- ## 觸發時機與理由
+--
+-- `Engine.AddCompanion("pve", { atLogin = true, … })` —— **不是** `event`。
+-- 那支插件的視窗、面板與每一個控件都是「檔案層 ＋ XML 一次建完」的（出處見下），
+-- 沒有「第一次顯示才建」這個掛點 ⇒ 沒有一個暴雪事件擺在對的時間點上。
+-- `atLogin` 走完全同一條路（延一幀、戰鬥閘、脫戰補跑），觸發點是「配方全部套完之後」。
 --
 ------------------------------------------------------------
 -- ## 暴雪原始碼出處（12.1 live 分支，Gethe/wow-ui-source）
@@ -90,9 +104,8 @@
 --    ⇒ 也**沒有**一個暴雪事件擺在對的時間點上：`LFG_LIST_SEARCH_RESULTS_RECEIVED`
 --      要等第一次搜尋結果回來（視窗已經顯示了一拍），`LFG_LIST_AVAILABILITY_UPDATE`
 --      跟這幾個框的生命週期完全無關。挑任何一個都是「第一次開晚一拍上皮，
---      之後每次白掃一遍」。所以 `Engine` 的 `companions` 這一輪多一個
---      **`atLogin = true`**：同一條路（延一幀、戰鬥閘、脫戰補跑），觸發點改成
---      「配方全部套完之後」。
+--      之後每次白掃一遍」。所以伴隨元件的觸發多一個 **`atLogin = true`**：
+--      同一條路（延一幀、戰鬥閘、脫戰補跑），觸發點改成「配方全部套完之後」。
 --    ⚠ 那一刻不是在賭載入順序：`PLAYER_LOGIN` 在所有 `ADDON_LOADED` 之後，
 --      而那支插件的 TOC 沒有 `LoadOnDemand`。沒裝就是全域名字查不到 ⇒ 靜默返回。
 --
@@ -188,10 +201,11 @@ local Skin = ns.Skin
 local E = ns.Engine
 local T = ns.Tokens
 
-ns.PVESkin = ns.PVESkin or {}
-
--- 安全取欄位（同 `Skins/PVE.lua` 的那一支，這裡借用它匯出的版本）
-local Field = ns.PVESkin.Field or function(owner, key)
+-- 安全取欄位（同 `Skins/PVE.lua` 的那一支，這裡借用它匯出的版本）。
+-- ⚠ TOC 裡 `ThirdParty\*.lua` 排在所有 `Skins\*.lua` 之後 ⇒ `ns.PVESkin.Field`
+--   一定已經存在。後面那個 local 是「萬一那一份被語法錯誤擋掉」的退路，
+--   形狀跟它一模一樣。
+local Field = (ns.PVESkin and ns.PVESkin.Field) or function(owner, key)
     if type(owner) ~= "table" then return nil end
     local v
     if pcall(function() v = owner[key] end) then return v end
@@ -416,7 +430,7 @@ local function SkinDialog(dlg)
 end
 
 ------------------------------------------------------------
--- 進入點（`Skins/PVE.lua` 的 `companions` 呼叫，延一幀 ＋ 戰鬥閘 ＋ 脫戰補跑）
+-- 進入點（引擎的伴隨元件輪呼叫，延一幀 ＋ 戰鬥閘 ＋ 脫戰補跑）
 --
 -- ⚠ 全域名字查不到就**靜默返回** —— 玩家沒裝那支插件不是改版事故。
 -- ⚠ 冪等：`Engine.Overlay` 本來就只建一次，重跑（脫戰補跑）不會長出第二層。
@@ -441,4 +455,10 @@ local function ApplyCompanions()
     end
 end
 
-ns.PVESkin.ApplyCompanions = ApplyCompanions
+-- host ＝ `pve`（`Skins/PVE.lua` 那一筆）⇒ 視窗開關關掉的時候這一支也不跑。
+-- `addonKey` 是設定頁「其他插件」那一節的開關。
+E.AddCompanion("pve", {
+    atLogin  = true,
+    addonKey = "premadegroupsfilter",
+    apply    = ApplyCompanions,
+})

@@ -2271,9 +2271,41 @@ end
 --              **不在它的框上寫欄位**（跟暴雪物件同一條線）。
 --            * 能做的動作跟對暴雪物件一樣（白名單），原語直接重用。
 --            * `Engine.Overlay` 本來就冪等 ⇒ 每次事件重掃一遍是安全的。
+--
+--          ⚠ **第三方那一邊的實作不寫在配方裡**（STYLE.md ③）：
+--            一支插件一個檔，住在 `ThirdParty/`，用 `Engine.AddCompanion` 掛到
+--            host 配方上。`companions = {…}` 這個欄位照舊有效 —— 它現在只剩
+--            「同一個視窗裡、事件觸發的補掃」在用（商人的格數、宏偉寶庫的重掃），
+--            那兩個掃的是**暴雪自己的**框，不是第三方。
 ------------------------------------------------------------
 local recipes = {}
 Engine.recipes = recipes
+
+-- key → 配方。`Engine.AddCompanion` 要照 key 找 host —— 走訪 `recipes` 也行，
+-- 但那是每登記一支就線性掃一次。
+local recipesByKey = {}
+
+------------------------------------------------------------
+-- 還沒等到 host 的伴隨元件
+--
+-- `ThirdParty/*.lua` 在 TOC 裡排在所有 `Skins\*.lua` 之後，所以正常情況下
+-- host 一定已經 `Register` 過了。這張表是**為了不依賴那個順序**：
+-- 檔案被搬動、或哪天有人把某份配方改成隨需載入，這裡照樣接得上。
+-- `Engine.Boot` 會做最後一次結算，那時候還沒有主人的才真的算錯。
+------------------------------------------------------------
+local pendingCompanions = {}     -- [hostKey] = { spec, ... }
+
+-- 沒有 host 的伴隨元件（`hostKey = nil`）。
+-- 不是每一支第三方元件都長在某個暴雪視窗上 —— 有的是它自己建的一整個框
+-- （自建的 tooltip）。那種沒有「哪個視窗的開關」可以掛，只看總開關與它自己的
+-- 第三方開關。**不進 `recipes`**：`/mskin debug` 那張表是「暴雪視窗的現況」，
+-- 混進一列沒有視窗的東西只會讓那張表更難讀。
+local hostlessCompanions = {}
+
+local function AttachCompanion(rec, spec)
+    rec.companions = rec.companions or {}
+    rec.companions[#rec.companions + 1] = spec
+end
 
 function Engine.Register(spec)
     spec.status = "pending"
@@ -2281,7 +2313,99 @@ function Engine.Register(spec)
         for _, part in ipairs(spec.parts) do part.status = "pending" end
     end
     recipes[#recipes + 1] = spec
+    if spec.key then
+        recipesByKey[spec.key] = spec
+        -- 先到的伴隨元件現在補掛上去
+        local waiting = pendingCompanions[spec.key]
+        if waiting then
+            for _, c in ipairs(waiting) do AttachCompanion(spec, c) end
+            pendingCompanions[spec.key] = nil
+        end
+    end
     return spec
+end
+
+------------------------------------------------------------
+-- Engine.AddCompanion(hostKey, spec) —— 從別的檔案把伴隨元件掛到某份配方上
+--
+-- `spec` 的形狀跟 `Engine.Register` 的 `companions` 條目**完全一樣**，多一個欄位：
+--   event / atLogin   觸發方式，二選一（語意見上面那一段）
+--   apply             要跑的函式
+--   addonKey          `ns.DB.thirdparty` 裡的開關 key（`"postal"`…）。
+--                     ⚠ 這是**第三方自己的**開關，跟 host 視窗的開關是「而且」的關係：
+--                       host 關掉 ⇒ 不跑（現行行為，伴隨元件本來就跟著視窗走）；
+--                       第三方關掉 ⇒ 也不跑，而且連事件都不註冊。
+--                     不給就只看 host 的開關（`companions = {…}` 的舊寫法就是這樣）。
+--
+-- `hostKey` 傳 nil ＝ 這一支不屬於任何暴雪視窗（見 `hostlessCompanions`）。
+--
+-- 回傳 spec 本身（方便呼叫端在同一行看到自己登記了什麼）。
+------------------------------------------------------------
+function Engine.AddCompanion(hostKey, spec)
+    if type(spec) ~= "table" or type(spec.apply) ~= "function" then return nil end
+
+    if hostKey == nil then
+        hostlessCompanions[#hostlessCompanions + 1] = spec
+        return spec
+    end
+
+    local rec = recipesByKey[hostKey]
+    if rec then
+        AttachCompanion(rec, spec)
+    else
+        local list = pendingCompanions[hostKey]
+        if not list then
+            list = {}
+            pendingCompanions[hostKey] = list
+        end
+        list[#list + 1] = spec
+    end
+    return spec
+end
+
+------------------------------------------------------------
+-- 伴隨元件的「額外分頁」：`Engine.AddCompanionTabs` / `Engine.CompanionTabs`
+--
+-- **為什麼分頁不能走一般的 `AddCompanion`。** `Skin.TabGroup` 的接縫是
+-- 「這一顆的右緣錨在下一顆的左緣」，而 overlay 的錨點**只在建立時定一次**
+-- （陷阱 1：執行期零 Lua）⇒ 先畫暴雪那三顆、之後再補第三方那四顆，
+-- 第三顆會永遠停在「我是最後一顆」的幾何上。整排一定要**同一次**畫完。
+--
+-- 所以第三方那一支只登記「我加了哪幾顆、全域名字是什麼」，host 配方在它自己的
+-- 那一輪把清單取出來，跟暴雪那幾顆一起交給 `Skin.TabGroup`。
+--
+--   ThirdParty/Auctionator.lua:  Engine.AddCompanionTabs("auctionhouse", { …名字… }, "auctionator")
+--   Skins/AuctionHouse.lua:      for _, name in ipairs(Engine.CompanionTabs("auctionhouse")) do …
+--
+-- ⚠ 登記的是**名字**不是框：取出來的那一刻才 `_G[name]`，沒有就靜默跳過
+--   （伴隨元件規則第 2 條）。這裡不呼叫、不 hook 對方的任何東西。
+-- ⚠ 第三方開關關掉 ⇒ `Engine.CompanionTabs` 回**空表**（不是 nil），
+--   呼叫端的迴圈原樣跑過去就好，不用多寫一個判斷。
+------------------------------------------------------------
+local companionTabs = {}     -- [hostKey] = { { names = {…}, addonKey = … }, … }
+
+function Engine.AddCompanionTabs(hostKey, names, addonKey)
+    if not hostKey or type(names) ~= "table" then return end
+    local list = companionTabs[hostKey]
+    if not list then
+        list = {}
+        companionTabs[hostKey] = list
+    end
+    list[#list + 1] = { names = names, addonKey = addonKey }
+end
+
+function Engine.CompanionTabs(hostKey)
+    local out = {}
+    local list = hostKey and companionTabs[hostKey]
+    if not list then return out end
+    for _, group in ipairs(list) do
+        if not group.addonKey or ns.DB.IsThirdPartyEnabled(group.addonKey) then
+            for _, name in ipairs(group.names) do
+                out[#out + 1] = name
+            end
+        end
+    end
+    return out
 end
 
 local pendingCombat = false
@@ -2367,6 +2491,19 @@ local companionPending = {}   -- [event] = true（戰鬥中收到事件，出戰
 -- 工作表與同一條戰鬥補跑路徑（`companionPending` 的走訪不在意鍵是不是事件名）。
 local COMPANION_AT_LOGIN = "@login"
 
+-- 這一份工作現在該不該跑。兩道閘是「而且」的關係（見 `Engine.AddCompanion`）：
+--   * host 的視窗開關 —— 沒有 host（`job.rec == nil`）就只看總開關。
+--   * 第三方自己的開關 —— 沒給 `addonKey` 就不問（`companions = {…}` 的舊寫法）。
+local function CompanionEnabled(job)
+    if job.rec then
+        if not ns.DB.IsWindowEnabled(job.rec.key) then return false end
+    elseif not (ns.db and ns.db.enabled) then
+        return false
+    end
+    if job.addonKey and not ns.DB.IsThirdPartyEnabled(job.addonKey) then return false end
+    return true
+end
+
 local function RunCompanions(event)
     local jobs = companionJobs[event]
     if not jobs then return end
@@ -2377,7 +2514,10 @@ local function RunCompanions(event)
     end
     companionPending[event] = nil
     for _, job in ipairs(jobs) do
-        if ns.DB.IsWindowEnabled(job.rec.key) then
+        if CompanionEnabled(job) then
+            -- `job.rec` 是 nil（沒有 host）時 `currentOwner` 也是 nil ⇒
+            -- 紀錄落回 `Engine.log` 那一格（`/mskin debug` 的 "hook:" 那一節），
+            -- 不會憑空多出一列沒有主人的視窗。
             currentOwner = job.rec
             xpcall(job.apply, ns.ReportError)
             currentOwner = nil
@@ -2385,12 +2525,17 @@ local function RunCompanions(event)
     end
 end
 
-local function RegisterCompanions(rec)
-    if not rec.companions then return end
-    for _, c in ipairs(rec.companions) do
+-- `rec` 可以是 nil（沒有 host 的那一批），那時候 `list` 要自己給。
+local function RegisterCompanions(rec, list)
+    list = list or (rec and rec.companions)
+    if not list then return end
+    for _, c in ipairs(list) do
         -- 兩種觸發共用同一張工作表；`atLogin` 的鍵不是事件名，所以不註冊事件。
         local key = c.atLogin and COMPANION_AT_LOGIN or c.event
-        if key and c.apply then
+        -- ⚠ 第三方開關關掉 ⇒ 連事件都不註冊（同「關掉的視窗一個 hook 都不裝」
+        --   那一條）。`RunCompanions` 每次派送前還會再問一次。
+        local gated = c.addonKey and not ns.DB.IsThirdPartyEnabled(c.addonKey)
+        if key and c.apply and not gated then
             if not companionJobs[key] then
                 companionJobs[key] = {}
                 if not c.atLogin then
@@ -2404,7 +2549,7 @@ local function RegisterCompanions(rec)
                 end
             end
             local jobs = companionJobs[key]
-            jobs[#jobs + 1] = { rec = rec, apply = c.apply }
+            jobs[#jobs + 1] = { rec = rec, apply = c.apply, addonKey = c.addonKey }
         end
     end
 end
@@ -2415,6 +2560,20 @@ function Engine.Boot()
 
     for _, rec in ipairs(recipes) do
         if ns.DB.IsWindowEnabled(rec.key) then RegisterCompanions(rec) end
+    end
+
+    -- 結算 `Engine.AddCompanion`：到這一刻還沒等到 host 的，就是 key 打錯了
+    -- （`ThirdParty/*.lua` 排在所有 `Skins\*.lua` 之後，host 一定已經 Register 過）。
+    -- 記進「找不到的區域」—— 這是**我們自己**的設定錯誤，不是「玩家沒裝那支插件」，
+    -- 所以不受伴隨元件規則第 2 條的「靜默跳過」管。
+    for hostKey in pairs(pendingCompanions) do
+        Note(Engine.log.missing, "AddCompanion(" .. tostring(hostKey) .. ")")
+    end
+
+    -- 沒有 host 的那一批（第三方自己建的框，不長在任何暴雪視窗上）。
+    -- 只看總開關 ＋ 它自己的第三方開關，兩道閘都在 `CompanionEnabled` 裡。
+    if ns.db and ns.db.enabled then
+        RegisterCompanions(nil, hostlessCompanions)
     end
 
     -- 「插件載入時就整組建好」的伴隨元件：跟事件那一條走同一條路（延一幀、戰鬥閘、

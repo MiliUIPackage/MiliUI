@@ -41,7 +41,6 @@ Modules\Quest.lua
 Modules\Model.lua
 Modules\Anchor.lua
 Modules\ChatHover.lua
-Modules\ThirdParty.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua

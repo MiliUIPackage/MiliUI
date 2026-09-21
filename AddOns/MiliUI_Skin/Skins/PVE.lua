@@ -290,9 +290,9 @@
 -- * **遮罩層本身**（`LFGCooldownCoverTemplate` 的 93% 黑、`NoRaidsCover`、
 --   `UnempoweredCover`、`WorkingCover`）—— 本來就是深色，只 skin 上面的按鈕。
 -- * **`UsePGFButton` 與 `PremadeGroupsFilterDialog`**（套組內建的預組隊伍過濾插件）
---   —— 第八輪起走「伴隨元件」那條窄路（STYLE.md ③），實作在
---   `Skins/PVECompanions.lua`，時機是下面 `companions` 的 `atLogin`。
---   這一份對它們一行都不做。
+--   —— 走「伴隨元件」那條窄路（STYLE.md ③），實作與接觸面清單見
+--   `ThirdParty/PremadeGroupsFilter.lua`（`Engine.AddCompanion("pve", …)` 的
+--   `atLogin`）。這一份對它們一行都不做。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -319,9 +319,6 @@ ns.PVESkin.ApplyChallenges = ns.PVESkin.ApplyChallenges or function() end
 -- 傳奇鑰石的地城圖示是 mixin 後置勾（`ChallengesDungeonIconMixin:SetUp`）⇒ 要排在
 -- `parts` 的 `hooks` 裡，也就是**戰鬥閘前面**（STYLE.md ③ 的陷阱 4）。
 ns.PVESkin.HookChallenges = ns.PVESkin.HookChallenges or function() end
--- 伴隨元件（套組內建的預組隊伍過濾插件）住在 `Skins/PVECompanions.lua`，
--- 走下面 `companions` 的 `atLogin`。沒載到就是什麼都不做。
-ns.PVESkin.ApplyCompanions = ns.PVESkin.ApplyCompanions or function() end
 
 ------------------------------------------------------------
 -- 小工具
@@ -1380,13 +1377,7 @@ E.Register{
             apply = function() ns.PVESkin.ApplyChallenges() end,
         },
     },
-    companions = {
-        -- 套組內建的預組隊伍過濾插件（`UsePGFButton` ＋ `PremadeGroupsFilterDialog`
-        -- 與它的七個面板），實作在 `Skins/PVECompanions.lua`。
-        -- ⚠ `atLogin` 不是 `event`：那支插件的視窗、面板與每一個控件都是**檔案層／
-        --   XML 一次建完**的（查證出處寫在那一份的檔頭），沒有「第一次顯示才建」
-        --   這個掛點 ⇒ 沒有一個暴雪事件擺在對的時間點上。走同一條路（延一幀、
-        --   戰鬥閘、脫戰補跑），觸發點改成「配方套完之後」。
-        { atLogin = true, apply = function() ns.PVESkin.ApplyCompanions() end },
-    },
+    -- ⚠ 伴隨元件（套組內建的預組隊伍過濾插件）**不寫在這裡**：它住在
+    --   `ThirdParty/PremadeGroupsFilter.lua`，用 `Engine.AddCompanion("pve", …)`
+    --   自己掛上來（TOC 裡排在所有 `Skins\*.lua` 之後）。
 }

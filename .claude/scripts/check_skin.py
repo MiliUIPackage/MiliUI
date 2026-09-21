@@ -16,8 +16,11 @@ SetDesaturated（限 Engine.Desaturate）／SetStatusBarTexture（限 Engine.Bar
 差一個變數名。所以規則是**分檔**的：
 
   * `Core/Engine.lua`  —— 唯一可以對「自己的 overlay」做定位類呼叫的地方，不掃。
-  * `Core/Primitives.lua` 與 `Skins/*.lua` —— 全掃。要操作 overlay 一律經由
-    Engine 的函式（Engine.Overlay / Engine.Paint / Engine.Fill…）。
+  * `Core/Primitives.lua`、`Skins/*.lua` 與 `ThirdParty/*.lua` —— 全掃。要操作
+    overlay 一律經由 Engine 的函式（Engine.Overlay / Engine.Paint / Engine.Fill…）。
+    ⚠ `ThirdParty/` 是「伴隨元件」（套組內建、掛在暴雪視窗上的別家插件，STYLE.md ③）。
+      對它們能做的動作**跟對暴雪物件完全一樣** —— 契約沒有因為「那不是暴雪的框」
+      而放寬一條，所以掃描範圍也一樣。
 
 真的有例外就在行尾加 `-- skin-lint: own-frame`，那一行會放行並列進輸出的放行數
 —— 看得到才管得住，靜默的例外等於沒有規則。
@@ -149,16 +152,24 @@ RULES = [
 COMPILED = [(re.compile(p), why) for p, why in RULES]
 
 
+SCAN_DIRS = ("Skins", "ThirdParty")
+
+
 def scanned_files():
-    """掃描範圍：Core/Primitives.lua ＋ Skins/*.lua。Core/Engine.lua 刻意不掃。"""
+    """掃描範圍：Core/Primitives.lua ＋ Skins/*.lua ＋ ThirdParty/*.lua。
+
+    Core/Engine.lua 刻意不掃（它是唯一可以對自己的 overlay 做定位類呼叫的地方）。
+    """
     prim = os.path.join(ADDON, "Core", "Primitives.lua")
     if os.path.isfile(prim):
         yield prim
-    skins = os.path.join(ADDON, "Skins")
-    if os.path.isdir(skins):
-        for name in sorted(os.listdir(skins)):
+    for sub in SCAN_DIRS:
+        folder = os.path.join(ADDON, sub)
+        if not os.path.isdir(folder):
+            continue
+        for name in sorted(os.listdir(folder)):
             if name.endswith(".lua"):
-                yield os.path.join(skins, name)
+                yield os.path.join(folder, name)
 
 
 def strip_comment(line):
@@ -216,7 +227,8 @@ def main():
                 if rx.search(code):
                     hits.append((rel, lineno, code.strip(), why))
 
-    print(f"掃了 {count} 個檔（Core/Primitives.lua ＋ Skins/*.lua；Core/Engine.lua 不在範圍內）")
+    print(f"掃了 {count} 個檔（Core/Primitives.lua ＋ Skins/*.lua ＋ ThirdParty/*.lua；"
+          f"Core/Engine.lua 不在範圍內）")
 
     if hits:
         print(f"\n違反 Skin 契約 {len(hits)} 處：")
