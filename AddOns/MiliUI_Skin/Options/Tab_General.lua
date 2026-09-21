@@ -57,6 +57,13 @@ local controls = {
     { type = "toggle", sub = "windows", key = "dressup",     label = L["Dressing Room"] },
     { type = "toggle", sub = "windows", key = "itemupgrade", label = L["Item Upgrade"] },
     { type = "toggle", sub = "windows", key = "addonlist",   label = L["AddOns"] },
+    { type = "toggle", sub = "windows", key = "encounterjournal", label = L["Adventure Guide"] },
+    -- ⚠ 寶庫的按鈕通往受保護的領獎動作，跟下面兩個特許視窗同一條理由。
+    {
+        type  = "toggle", sub = "windows", key = "weeklyrewards",
+        label = L["Great Vault"],
+        hint  = L["Turn this off first if you cannot select or claim a Great Vault reward."],
+    },
     -- ⚠ 這兩個視窗的按鈕通往受保護的動作（刪除物品、離開隊伍、登出、編輯模式…），
     --   所以各自帶一句「出事先關這個」的說明 —— 玩家不必懂 taint 也知道該關哪一項。
     {

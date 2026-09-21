@@ -53,6 +53,12 @@ local function BuildDefaults()
             dressup     = true,
             itemupgrade = true,
             addonlist   = true,
+            -- 冒險指南（隨需載入 Blizzard_EncounterJournal）
+            encounterjournal = true,
+            -- 宏偉寶庫（隨需載入 Blizzard_WeeklyRewards）。選取／領取獎勵在
+            -- 受保護、吃硬體事件的路徑上 ⇒ 跟下面那兩個特許視窗同一條，
+            -- 各自獨立一個開關，出事先關這個。
+            weeklyrewards = true,
             -- 第五輪的兩個特許視窗（只做純視覺、零 hook 進點擊路徑）。
             -- 預設開，但它們是整包唯一「按鈕通往受保護動作」的兩個視窗 ——
             -- 玩家一遇到「按了沒反應」就該先關掉這兩項，所以各自獨立一個開關。

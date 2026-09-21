@@ -42,6 +42,10 @@ L["Merchant"] = "商人"
 L["Dressing Room"] = "試衣間"
 L["Item Upgrade"] = "物品升級"
 L["AddOns"] = "插件"
+-- 暴雪的 GlobalStrings：ADVENTURE_JOURNAL（冒險指南）、GREAT_VAULT_REWARDS（宏偉寶庫）
+L["Adventure Guide"] = "冒險指南"
+L["Great Vault"] = "宏偉寶庫"
+L["Turn this off first if you cannot select or claim a Great Vault reward."] = "若宏偉寶庫選不了或領不了獎勵，先關掉這一項。"
 -- 第五輪的兩個特許視窗。「遊戲選項」是 ESC 選單標題列的官方字串（MAINMENU_BUTTON）
 L["Confirmation Popups"] = "確認視窗"
 L["Game Menu"] = "遊戲選項"
