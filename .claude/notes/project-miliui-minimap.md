@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 580e7fa6-2fb6-4fbd-8d8b-3858879778a6
-  modified: 2026-08-29T07:00:19.442Z
+  modified: 2026-09-21T07:33:24.746Z
 ---
 
 **2026-08-29 新建的獨立插件**（第十一支自製插件、MiliUIWidgets 的第十一個消費者，
@@ -275,6 +275,14 @@ N 是**雜訊路徑的兜底週期，不是更新延遲** —— 真的有人上
   `|Hplayer:名字|h`／`|HBNplayer:暱稱:帳號ID|h`，左鍵由暴雪的 `SetItemRef → SendTell` 開密語；
   右鍵 `SetPassThroughButtons` 穿透回列本身做邀請。列的整寬另鋪一串空白的連結（字級＝列高），
   點在名字與區域之間的空隙也算數。
+  ⚠⚠ **propagate 是一層一層交的**：`row.link → row → panel → Sink` 每一層都要
+  `SetHyperlinkPropagateToParent(true)`。09-17 第一版漏了中間的 row，左鍵密語從那時起就沒反應、名單也不收，
+  **零錯誤、taint.log 乾淨**（2026-09-21 才發現，`891d6122f` 補上）。判別法：點名字後名單收不收
+  ——afterOpen 掛在 Sink 的 OnHyperlinkClick 上，不收＝點擊沒到 Sink。
+  ⚠ SetPassThroughButtons 戰鬥中對任何框都封（[[wow-hasrestrictions-mouse-apis]]）⇒ 列池不能懶建：
+  `Tip.Reserve(上限＋11)` 由 Bar 在 Init／ConfigChanged 叫，戰鬥外長滿；戰鬥中被迫新建的列先不穿透、
+  出戰鬥 Grow 補。Bar.lua 的 `LIST_CHROME_ROWS = 11` 是好友名單人名以外的列數，改版面要跟著改
+  （2026-09-21 戰鬥中第一次滑開公會名單，14 列各擋一次）。
 - 亮塊：連結字框是另一個滑鼠焦點（[[wow-hyperlink-region-steals-hover]]），`row.link` 的
   OnEnter/OnLeave 之外，Sink 的 `OnHyperlinkEnter/Leave` 用 `region:GetParent().row` 補。
 - 名單收掉：`sink:HookScript("OnHyperlinkClick", …)` 後掛 `Tip.afterOpen`（跟 secure 開面板鈕同一條）。

@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 2975a2fc-396d-4e73-9da2-295e55bee8db
-  modified: 2026-09-15T17:16:08.019Z
+  modified: 2026-09-21T07:33:27.762Z
 ---
 
 按 REPLY（預設 R）回覆密語，噴 `Lua Taint: <插件>` + `ChatFrameEditBox.lua:49 SetTellTarget`
@@ -46,6 +46,9 @@ MiliUI_ChatBar 的做法（`ChatBar.lua` 的 Sink 段 ＋ `Sink.xml`）：
   拿 `GetChatWindowInfo(self:GetID())` 讀它 —— Sink 不是真聊天視窗、ID 是 0，回全 nil，
   `fontSize > 0` 在 `ChatFrameOverrides.lua:116` 炸「attempt to compare number with nil」
   （MiliUI_Minimap 第一版放在懶載入的 Build() 裡，登入就報六次）。
+- ⚠ **propagate 一次只交給直接父框**：按鈕跟 Sink 之間每多一層框，那一層也要
+  `SetHyperlinkPropagateToParent(true)`，漏一層點擊就停在那裡，零錯誤（MiliUI_Minimap 名單的列漏了，
+  左鍵密語壞了四天沒人發現，[[project-miliui-minimap]]）。
 - 按鈕是 Sink 的子框、`SetHyperlinkPropagateToParent(true)`、**不用 SecureActionButtonTemplate**
   （只有骰／開怪／重置三顆保留）。點擊區用真的字：標籤 `|H<link>|h說|h` ＋
   `SetHitRectInsets(0,0,-標籤高,0)` 把按鈕矩形往上撐到蓋住標籤；條的部分另一個 FontString

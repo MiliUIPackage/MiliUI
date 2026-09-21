@@ -94,7 +94,8 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-gettime-stamp-multipacket.md](wow-gettime-stamp-multipacket.md) | **「一幀之內狀態不會變」是錯的**：多封包幀同一個 `GetTime()` 派送多波事件 —— 快照讀取＋終點狀態不能吃戳記跳過，「字對條錯」是指紋 |
 | [wow-unit-power-update-2s.md](wow-unit-power-update-2s.md) | `UNIT_POWER_UPDATE` 在回能／衰減期間**兩秒才送一次** ——「能量要 2 秒才更新」的成因；掛 `UNIT_POWER_FREQUENT`，UPDATE 留 force 當「回滿」的保底 |
 | [wow-transmog-roll-chat-garbage.md](wow-transmog-roll-chat-garbage.md) | 團隊骰裝按**塑形**聊天印出 `u`、`]` 之類怪字元：GlobalStrings 缺塑形的 `_SELF` 字串，客戶端把首領編號的原始位元組當訊息（**位元組當整數解回來＝lootHistory 編號**是指紋）；GlobalStrings 可從 wago.tools 整張抓；含四條看起來很像真的錯路 |
-| [wow-combat-drag-release.md](wow-combat-drag-release.md) | 拖曳保護框進戰會黏著游標放不開；`PLAYER_REGEN_DISABLED` 是強制鬆開的窗口 |
+| [wow-combat-drag-release.md](wow-combat-drag-release.md) | 拖曳保護框進戰會黏著游標放不開；`PLAYER_REGEN_DISABLED` 是強制鬆開的窗口；**隱式保護沿錨點鏈遞迴傳** —— 排版鏈尾巴一顆 secure 鈕，前面整排都成保護框，要直接錨父框 |
+| [wow-hasrestrictions-mouse-apis.md](wow-hasrestrictions-mouse-apis.md) | `SetPassThroughButtons`／`SetPropagateMouseClicks`／`SetPropagateMouseMotion` 戰鬥中對**任何**框都封鎖（API 文件標 HasRestrictions，不是 IsProtectedFunction）；懶建的列池要在戰鬥外預建 |
 | [wow-chattynator-chat-window-frame.md](wow-chattynator-chat-window-frame.md) | 要吸附／對齊「聊天視窗」時 `ChatFrame1` 是錯的答案 —— 沒名字的那顆怎麼認 |
 
 ### 字型
