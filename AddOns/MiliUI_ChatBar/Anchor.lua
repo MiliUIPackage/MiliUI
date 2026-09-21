@@ -159,7 +159,7 @@ end
 function Anchor.Apply()
     local bar = ns.Chatbar
     if not bar then return end
-    -- 聊天列本身不是受保護的框，但底下掛著一排 SecureActionButton；
+    -- 聊天列是三顆 SecureActionButton（骰／開怪／重置）的祖先 ⇒ 隱式保護框；
     -- 戰鬥中一律不動版面，PLAYER_REGEN_ENABLED 會補跑（跟 UpdateLayout 同一套規矩）
     if InCombatLockdown() then return end
 

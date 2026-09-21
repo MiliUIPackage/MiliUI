@@ -274,6 +274,33 @@ if Sink.ScrollBar then Sink.ScrollBar:Hide() end
 -- /mcb links：把空白換成底線，看得到每顆按鈕的點擊區有沒有蓋住條
 local LINK_DEBUG = false
 
+------------------------------------------------------------
+-- 超連結按鈕的滑鼠設定：點擊矩形、右鍵穿透
+--
+-- RenderLink 戰鬥中也會跑 —— 頻道事件（CHANNEL_UI_UPDATE…）不挑時間，UpdateChannelButtons
+-- 每次都把每顆頻道按鈕整個重畫一遍。畫字免費，這兩支不是：
+--   * SetHitRectInsets 是保護函式，按鈕是保護框的話戰鬥中會被擋。
+--   * SetPassThroughButtons 戰鬥中對**任何**框都擋（API 文件標 HasRestrictions）。
+-- 頻道清單沒變，點擊矩形就一樣大、穿透也早就設好了，本來就沒有東西要寫 ⇒ 只在真的變了才寫。
+-- 真的要變卻剛好寫不了（戰鬥中才加入的頻道要設穿透），就先不寫也不記：脫戰時
+-- PLAYER_REGEN_ENABLED → UpdateButtonVisibility → UpdateLayout 會對每顆顯示中的按鈕重跑
+-- RenderLink，比對到差異自然補上。戰鬥中新建的按鈕在那之前也還沒排版，不會被點到。
+--
+-- 骰／開怪／重置沒有超連結、走不到這裡：它們的右鍵各有用途（type2 巨集、戰鬥記錄），不穿透。
+------------------------------------------------------------
+local function SyncMouseRect(bu, labelH)
+    local locked = InCombatLockdown()
+    -- 右鍵穿透給底下的條，開聊天列自己的選單（暴雪的處理器右鍵是它的頻道選單）
+    if not bu.passThrough and not locked then
+        bu:SetPassThroughButtons("RightButton")
+        bu.passThrough = true
+    end
+    local _, _, top = bu:GetHitRectInsets()
+    if top ~= -labelH and not (locked and bu:IsProtected()) then
+        bu:SetHitRectInsets(0, 0, -labelH, 0)
+    end
+end
+
 -- 把按鈕上的兩個連結重畫成按鈕現在的樣子。按鈕改大小、標籤改字級都要重畫。
 local function RenderLink(bu)
     if not bu.hyperlink then return end
@@ -285,7 +312,7 @@ local function RenderLink(bu)
         bu.fs:SetFormattedText("|H%s|h%s|h", bu.hyperlink, bu.labelText)
         labelH = math.ceil(bu.fs:GetStringHeight() + 1)
     end
-    bu:SetHitRectInsets(0, 0, -labelH, 0)
+    SyncMouseRect(bu, labelH)
 
     -- ② 條：一串空白撐出跟條一樣大的連結。字級＝條的高度（一行的高度就是條的高度），
     --    寬度靠算出一個空白的寬度再除。空白沒有墨水，所以這個 FontString 不必藏。
@@ -314,12 +341,8 @@ end
 
 -- 指定按鈕點下去要開的連結（"channel:PARTY"、"channel:CHANNEL:2"、"player:名字"）。
 -- 同一顆按鈕的連結會隨狀態換（隊伍→副本、目標換人），所以可以重複呼叫。
+-- 右鍵穿透在 RenderLink 裡設（SyncMouseRect），戰鬥中才建的按鈕要等脫戰。
 local function SetChannelLink(bu, hyperlink)
-    if bu.hyperlink == nil then
-        -- 頻道按鈕的右鍵穿透給底下的條，開聊天列自己的選單（暴雪的處理器右鍵是它的頻道選單）。
-        -- 骰／開怪／重置那三顆不走這裡：它們的右鍵各有用途（type2 巨集、戰鬥記錄）。
-        bu:SetPassThroughButtons("RightButton")
-    end
     if bu.hyperlink == hyperlink then return end
     bu.hyperlink = hyperlink
     RenderLink(bu)
@@ -383,7 +406,8 @@ UpdateButtonSize = function()
 end
 
 -- 單一入口：按鈕該不該出現，全部走 IsButtonVisible。
--- 按鈕是 SecureActionButtonTemplate，戰鬥中不能動，PLAYER_REGEN_ENABLED 會補跑一次。
+-- 骰／開怪／重置是 SecureActionButtonTemplate，戰鬥中不能 Show/Hide，重排也會動到它們
+-- 與聊天列 ⇒ 整段戰鬥中不做，PLAYER_REGEN_ENABLED 會補跑一次。
 UpdateButtonVisibility = function()
     if InCombatLockdown() then return end
     for _, bu in ipairs(buttonList) do
@@ -756,6 +780,13 @@ bgFrame:SetFrameLevel(Chatbar:GetFrameLevel() - 1)
 local MIN_AUTO_BUTTON_W = 6
 
 -- Layout Logic
+--
+-- ⚠ 每顆按鈕都直接錨在聊天列上（偏移自己算），**不要改回「錨在前一顆」的鏈**。
+--   保護框錨在誰身上，誰就被隱式保護，而且沿著錨點鏈一路往回傳（warcraft.wiki.gg
+--   ScriptRegion:IsProtected：「This applies recursively」）。骰／開怪／重置是
+--   SecureActionButton、排在最後；鏈起來的話它前面的每一顆超連結按鈕都成了保護框，
+--   戰鬥中連 SetHitRectInsets 都被擋（2026-09-21 taint.log：打木樁時頻道事件重畫按鈕，
+--   四顆頻道鈕各擋一次）。聊天列本來就是 secure 鈕的祖先、早就是保護框，錨在它上面不牽連任何人。
 UpdateLayout = function()
     if InCombatLockdown() then return end
     local cb = (MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar) or {}
@@ -792,11 +823,7 @@ UpdateLayout = function()
             bu:SetSize(bw, bh)
             RenderLink(bu)   -- 超連結的點擊區跟著按鈕大小走
             bu:ClearAllPoints()
-            if i == 1 then
-                bu:SetPoint("TOP", Chatbar, "TOP", 0, -vTopPadding)
-            else
-                bu:SetPoint("TOP", visibleButtons[i-1], "BOTTOM", 0, -spacing)
-            end
+            bu:SetPoint("TOP", Chatbar, "TOP", 0, -(vTopPadding + (i - 1) * (bh + spacing)))
         end
         
         -- Adjust background for vertical
@@ -847,11 +874,7 @@ UpdateLayout = function()
             bu:SetSize(bw, bh)
             RenderLink(bu)   -- 超連結的點擊區跟著按鈕大小走
             bu:ClearAllPoints()
-            if i == 1 then
-                bu:SetPoint("LEFT", Chatbar, "LEFT", startOffset, 0)
-            else
-                bu:SetPoint("LEFT", visibleButtons[i-1], "RIGHT", padding, 0)
-            end
+            bu:SetPoint("LEFT", Chatbar, "LEFT", startOffset + (i - 1) * (bw + padding), 0)
         end
         
         -- Adjust background for horizontal
