@@ -172,8 +172,12 @@ local function ApplyCategoryButtons(queue)
         if btn then
             -- `Icon` 不碰：被 CircleMask 遮成圓形，而且那是這一類的身分
             -- `Ring` 不中和、壓深當一圈蓋住遮罩毛邊的深色框（同 PVE.lua 的大類鈕）
-            Skin.Row(btn, key, { keys = { "Background" }, ownHover = true })
-            X.SkinCategoryRing(Field(btn, "Ring"), key .. ".Ring")
+            Skin.Row(btn, key, { keys = { "Background" }, ownHover = true, points = X.CATEGORY_ROW_POINTS })
+            if X.SkinCategoryIcon then
+                X.SkinCategoryIcon(btn, key, "Icon", "Ring", "CircleMask")
+            else
+                X.SkinCategoryRing(Field(btn, "Ring"), key .. ".Ring")
+            end
             categoryButtons[i] = btn
             -- 這個模板一樣沒有 `<ButtonText>`，`Name` 是 Layer 裡的獨立 FontString
             -- （.xml:1097）⇒ 只能 SetTextColor，不能換 NormalFont

@@ -402,6 +402,28 @@ function Engine.VertexColor(tex, color, label)
     pcall(tex.SetVertexColor, tex, color[1], color[2], color[3], color[4] or 1)
 end
 
+-- 拿掉圖示上的遮罩（圓形圖示 → 方形圖示）
+--
+-- ⚠ 契約例外（STYLE.md ③）：`RemoveMaskTexture` 是對暴雪區域的**結構性修改**，
+--   只准用在「純裝飾的圓形遮罩」上、只准由這一支呼叫、只在脫戰時做：
+--     * 它不寫任何 Lua 欄位；遮罩是 XML 寫死的，暴雪不會在執行期把它加回來，
+--       也沒有程式讀它（大類按鈕的 `CircleMask` 在 .lua 裡零引用）。
+--     * 理由是風格：整包的圖示一律是方形＋1px 硬邊，圓形遮罩切出來的邊是軟的，
+--       不管外圈墊什麼，接在純色底上都是一圈毛邊／暗暈。
+--   回傳 true 才代表真的拿掉了；呼叫端要用它決定要不要接著裁邊與畫方框
+--   （遮罩還在就裁邊＋畫方框，會變成「方框裡一顆圓圖」）。
+function Engine.UnmaskIcon(tex, mask, label)
+    if not Usable(tex, label) then return false end
+    if not mask then
+        Engine.Missing((label or "?") .. ".mask")
+        return false
+    end
+    if type(tex.RemoveMaskTexture) ~= "function" then return false end
+    if InCombatLockdown() then return false end
+    local ok = pcall(tex.RemoveMaskTexture, tex, mask)
+    return ok and true or false
+end
+
 -- 圖示裁邊：把暴雪圖示四周那圈暗邊切掉，才對得上 1px 硬邊的直角語彙
 function Engine.CropIcon(tex, label)
     if not Usable(tex, label) then return end

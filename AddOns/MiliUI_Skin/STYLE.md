@@ -131,7 +131,11 @@
   否則區域 alpha 與顏色 alpha 相乘會把白 8% 壓成 3%
   （走 `Engine.HighlightTexture` / `Engine.CheckedTexture`，兩支都已經代下了）。
   Pushed 是「中和」與「上色」二選一，不能兩個都做，見註 ⓔ
-- `SetTexCoord` —— 只用在圖示裁邊。
+- `SetTexCoord` —— 只用在圖示裁邊
+- `RemoveMaskTexture` —— **只准 `Engine.UnmaskIcon`**，只用在「純裝飾的圓形遮罩」（地城與團隊／PvP 左側大類按鈕的
+  `CircleMask`）：遮罩是 XML 寫死的、暴雪的 Lua 零引用、不寫任何欄位、只在脫戰時做；拿不掉就自動退回
+  「保留圓形、外圈環壓深」。理由是風格：圓形遮罩切出來的邊是軟的，接在純色底上怎麼墊都是一圈毛邊或暗暈，
+  而整包的圖示語彙是方形＋1px 硬邊。`T.categoryIconStyle = "ring"` 可切回。
   ⚠ `SetTexture` 會把 texCoord 打回 `0,1,0,1`，所以池化列與物品格的圖示要在
   **reapply** 裡重裁（陷阱 4）
 - `SetDesaturated(true)` —— **純視覺，只對 region**。給「顏色烤在素材裡」的小圖示用：

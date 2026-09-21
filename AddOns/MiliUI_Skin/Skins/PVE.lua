@@ -388,6 +388,40 @@ local function SkinCategoryRing(ring, key)
     E.VertexColor(ring, T.fillInset, key)
 end
 
+-- 大類按鈕的列 overlay 範圍（PvE／PvP 共用；兩邊的按鈕都是 203x60、圖示 66x66）
+local CATEGORY_ROW_POINTS = {
+    { "TOPLEFT", "TOPLEFT", 0, 3 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, -3 },
+}
+
+-- 大類按鈕的圖示（PvE 四顆＋PvP 五顆共用）。
+--
+-- 第五輪的做法是「保留圓形、把外圈金屬環壓深」，實機看起來是一圈模糊的暗暈，
+-- 使用者不喜歡。第七輪改成整包一致的語彙：**方形圖示＋裁邊＋1px 黑硬邊**。
+--   * 圖示素材本來就是方形的（`Interface\Icons\…`），圓形只是 XML 掛的 `CircleMask`。
+--   * 環整個中和；遮罩用 `Engine.UnmaskIcon` 拿掉（契約例外，理由寫在那一支）。
+--   * 方框錨在**圖示**上（66x66），不是按鈕矩形（203x60）。
+--   * 拿不掉遮罩（戰鬥中、API 不在、暴雪改了 parentKey）就**自動退回**壓深環的做法 ——
+--     不然會變成「方框裡一顆圓圖」。
+-- `T.categoryIconStyle = "ring"` 一行切回第五輪。
+local function SkinCategoryIcon(btn, key, iconKey, ringKey, maskKey)
+    local icon, ring, mask = Field(btn, iconKey), Field(btn, ringKey), Field(btn, maskKey)
+    if T.categoryIconStyle == "square" and icon
+        and E.UnmaskIcon(icon, mask, key .. "." .. iconKey) then
+        if ring then E.Neutralize(ring, key .. "." .. ringKey) end
+        E.CropIcon(icon, key .. "." .. iconKey)
+        local ov = E.Overlay(btn, {
+            key = key .. "." .. iconKey .. ".border",
+            slot = "iconBorder",
+            anchorTo = icon,
+            levelOffset = 1,
+        })
+        E.Paint(ov, { 0, 0, 0, 0 }, T.border)
+        return
+    end
+    SkinCategoryRing(ring, key .. "." .. ringKey)
+end
+
 ------------------------------------------------------------
 -- 職責鈕角落那顆勾選框（`LFGRoleButtonTemplate` 的 `checkButton`）
 --
@@ -701,8 +735,10 @@ local function ApplyGroupButtons()
             -- ⚠ `icon` 不碰：它被 `CircleMask` 遮成圓形（PVEFrame.xml:38），
             --   而且是這顆按鈕的身分。
             -- ⚠ `ring` 不中和，壓深當「蓋住遮罩毛邊的一圈深色框」用，見 SkinCategoryRing。
-            Skin.Row(btn, key, { keys = { "bg" }, ownHover = true })
-            SkinCategoryRing(Field(btn, "ring"), key .. ".ring")
+            -- 列的 overlay 上下各多 3：圖示是 66 高、按鈕只有 60 高（PVEFrame.xml:4,25），
+            -- 方形圖示會上下各凸出 3；列與列之間隔 23（同檔 :206），多 3 不會碰到鄰居。
+            Skin.Row(btn, key, { keys = { "bg" }, ownHover = true, points = CATEGORY_ROW_POINTS })
+            SkinCategoryIcon(btn, key, "icon", "ring", "CircleMask")
             groupButtons[i] = btn
 
             -- 標題文字改白。
@@ -1316,6 +1352,8 @@ ns.PVESkin.SkinRoleButton = SkinRoleButton
 ns.PVESkin.SkinOwnedScrollBar = SkinOwnedScrollBar
 ns.PVESkin.SkinKeyedButtons = SkinKeyedButtons
 ns.PVESkin.SkinCategoryRing = SkinCategoryRing
+ns.PVESkin.SkinCategoryIcon = SkinCategoryIcon
+ns.PVESkin.CATEGORY_ROW_POINTS = CATEGORY_ROW_POINTS
 
 E.Register{
     key   = "pve",
