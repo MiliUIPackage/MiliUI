@@ -478,10 +478,14 @@ function ns.Blocks.micromenu.create()
                 -- 父框底下有保護框就是隱式保護框，snippet 戰鬥內外都能合法開關它，一條路到底。
                 -- （TeleportMenu 的傳送按鈕本來就會讓它變保護框，但要等第一次開選單才建，
                 -- reload 後直接進戰鬥就還不是；這裡只是把那個狀態變成從登入起就確定。）
-                -- ignoreInLayout：GameMenuFrame 是 layout frame，別讓它把這顆算進版面。
+                -- ⚠ 這顆空框上**一個欄位都不要寫**，包括 ignoreInLayout：GameMenuFrame 是 layout
+                -- frame，Layout() 會逐一讀每個子框的 ignoreInLayout／layoutIndex
+                -- （LayoutFrame.lua AddLayoutChildren）。我們寫的值是髒的，一讀到整趟 Layout 就染成
+                -- InfoBar ⇒ 接下來的 GameMenuFrame:SetSize() 戰鬥中被擋（它現在是保護框），
+                -- 連 ESC 開的也中。不寫的話讀到的是乾淨的 nil，而且沒有 layoutIndex 的子框
+                -- 本來就不會被排進版面。2026-09-21 taint.log 實測。
                 if GameMenuFrame then
                     local protector = CreateFrame("Frame", nil, GameMenuFrame, "SecureFrameTemplate")
-                    protector.ignoreInLayout = true
                     protector:SetSize(1, 1)
                     protector:SetPoint("CENTER")
                     SecureHandlerSetFrameRef(tile, "gamemenu", GameMenuFrame)

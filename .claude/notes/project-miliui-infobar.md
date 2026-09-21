@@ -55,7 +55,13 @@ metadata:
   ⇒ OnShow → InitButtons 建的選單按鈕（編輯模式、選項…）不帶我們的 taint。
   restricted 環境戰鬥中只拿得到**保護框**（`GetHandleFrame`：非保護框＋InCombatLockdown ⇒
   Invalid frame handle），GameMenuFrame 原廠不是 ⇒ **掛一個 1×1 的 `SecureFrameTemplate` 空框在
-  它底下**（`ignoreInLayout`），父框底下有保護框＝隱式保護框，從登入起就確定。
+  它底下**，父框底下有保護框＝隱式保護框，從登入起就確定。
+  **⚠ 那顆空框上一個欄位都不能寫，`ignoreInLayout` 也不行**：GameMenuFrame 是 layout frame，
+  `Layout()` 逐一讀每個子框的 `ignoreInLayout`／`layoutIndex`（LayoutFrame.lua AddLayoutChildren），
+  讀到我們寫的值整趟就染髒 ⇒ 接下來 `GameMenuFrame:SetSize()` 戰鬥中被擋，**連 ESC 開的也中**
+  （taint.log：`LayoutFrame.lua:37 AddLayoutChildren()` 緊接 `blocked … GameMenuFrame:SetSize()`）。
+  不寫就是乾淨的 nil，沒有 `layoutIndex` 的子框本來就不進版面。
+  通則：**掛在暴雪 layout frame 底下的自製子框，別寫暴雪版面程式會讀的欄位名。**
   （TeleportMenu 的傳送按鈕本來就會讓它變保護框，但要第一次開選單才建。）
   走過的死路：
   - **「點擊 → 觸發 ESC」做不到**：沒有任何 secure 動作能執行按鍵綁定；插件呼叫
