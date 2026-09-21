@@ -1,6 +1,6 @@
 ---
 name: project-miliui-questtracker
-description: 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker 的獨立插件；六條 taint 規矩、摺疊機制走 IsProtected 分流、內建傳奇鑰石計時面板（取代 WarpDeplete，該插件已於 2026-09-05 移出套組）、Leatrix 衝突偵測、待驗證清單
+description: 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker 的獨立插件；六條 taint 規矩、摺疊機制走 IsProtected 分流（**摺著時標題列改錨存檔座標**）、內建傳奇鑰石計時面板（取代 WarpDeplete，該插件已於 2026-09-05 移出套組）、Leatrix 衝突偵測、待驗證清單
 metadata: 
   node_type: memory
   type: project
@@ -43,39 +43,40 @@ metadata:
 **問出來的**（`otf:IsProtected()`），不是「戰鬥中一律 alpha」：
 
 - 動得了 parent → `SetParent(hiddenParent)`。子框連滑鼠都收不到，最乾淨。
-- 動不了 → `SetAlpha(0)` ＋ **自己蓋一塊擋滑鼠的板子**。alpha 0 的框滑鼠還在，
-  滑過去照樣跳工具提示、照樣點得到；而 `EnableMouse(false)` 只作用在最上層，
-  子區塊不會跟著關（要關就得遞迴，那是規矩 2/3 禁的）。
-- `PLAYER_REGEN_ENABLED` 再收斂回 parent 路線。
-- ⚠ **已經 parent 藏起來之後，戰鬥中就是展不開**（父層是隱藏的，alpha 救不回來）。
-  這是客觀限制，設定頁有寫出來，不要疊補救措施。
+- 動不了 → `SetAlpha(0)` ＋ **自己蓋一塊擋滑鼠的板子**。
+- `PLAYER_REGEN_ENABLED` 再收斂回 parent 路線。已經 parent 藏起來之後，戰鬥中就是展不開（客觀限制，設定頁有寫）。
 
-`hiddenParent` 要 `SetAllPoints(UIParent)`：追蹤器的錨點如果是相對「父層」而不是具名
-UIParent，換父層會連位置一起跑掉，我們錨在它身上的標題列與背景會跟著飛。
+`hiddenParent` 要 `SetAllPoints(UIParent)`。
 
-⚠ **parent 不是我們一個人的（2026-09-18，回報「進探究整個消失」）。** 暴雪有三處直接寫它、
-都不看現在掛在誰底下：`ManagedFrameContainerMixin:UpdateFrame`（`SetParent(RightManagedFrameContainer)`）、
-`EditModeSystemMixin:ApplySystemAnchor`（預設位置走前者；`AddManagedFrame` 的閘是 **`IsShown` 不是
-`IsVisible`**，掛在隱藏容器底下照樣通過）、`BreakFromFrameManager`（拖過位置的走 `SetParent(UIParent)`）。
-⇒ **每次編輯模式套用版面（過圖、換專精）都會把摺起來的清單拉回畫面**，標題列還顯示「已摺疊」；
-下一次 `PLAYER_REGEN_ENABLED` 的 Reconcile 又把它收走 —— 玩家看到的是「過圖有、打完第一波怪消失」。
-報告指紋：`wantHidden=true parentedAway=false mouseBlocker=false` 而 `OTF visible=true parent=RightManagedFrameContainer`。
-修法：`hooksecurefunc(otf, "SetParent")` 只排一次下一幀的 `Reconcile`（不在 hook 裡直接 SetParent，
-那會在 AddManagedFrame 跑到一半時重入 OnHide → RemoveManagedFrame）。報告多了 `parentReclaimed=N` 與
-`!! wantHidden=true but the tracker is on screen`。**還沒進遊戲驗證**；hook 會在 OTF 上多一個 `SetParent` 欄位，
-要看 taint 段有沒有變髒。原始碼在 `Blizzard_ManagedFrameSystem/Shared/ManagedFrameSystem.lua`
-（不在 UIParent.lua）。容器的 `Update` 也會自己 `Show()`／`Hide()` 追蹤器（有沒有任何模組有內容）。
-⚠ **但這不是那位玩家的症狀**（2026-09-19 補的照片：連「目標」標題列都不見、沒有錯誤）。被我們摺起來的話
-標題列會留著，所以上面那個 bug 是報告順手抓到的另一件事。「無錯誤、整份消失」在暴雪原始碼裡只有一條靜默路徑：
-`ObjectiveTrackerContainerMixin:Update` 走完沒有任何模組 `GetContentsHeight() > 0` 就 `self:Hide()`；
-**場景模組 `hasDisplayPriority=true`，它一被截斷（`isTruncated`），`availableHeight` 直接歸零，後面所有模組都
-Skipped** —— 所以只在場景／探究裡發作。我們的標題列跟著 `HasAnyContent()` 走，一起消失。
-追蹤器高度（預設位置）＝ `GetParent():GetHeight() + GetPoint(1) 的 offsetY`，最低 20。**誰讓高度變小還沒查到**
-（我們換 parent 只會讓它變大不會變小）；報告加了 `OTF height inputs` 一行、每個模組的 `avail=`、以及**判定 D**
-（有模組 NotShown、沒有任何模組排得進去、OTF 沒 shown）。要玩家**在探究裡清單消失的當下**打 `/mquest debug`。
-另一個對過的事實：`DirtiableMixin` 的 `self.dirty = nil` 寫在 `method(self)` **之後** —— Update 拋錯一次，
-dirty 就永遠卡在 true、追蹤器到 /reload 前不再更新（這次不是這條，BugGrabber 0 筆、updates 計數是活的）。
-連帶的 UX 風險：`db.folded` 是點標題列就寫入的，誤點一次就永久摺著，玩家不見得知道那條可以點開。
+⚠ **parent 不是我們一個人的（2026-09-18）。** 暴雪有三處直接寫它、都不看現在掛在誰底下：
+`ManagedFrameContainerMixin:UpdateFrame`（`SetParent(RightManagedFrameContainer)`）、`EditModeSystemMixin:ApplySystemAnchor`
+（`AddManagedFrame` 的閘是 **`IsShown` 不是 `IsVisible`**）、`BreakFromFrameManager`（`SetParent(UIParent)`）。
+每次編輯模式套用版面都會把摺著的清單拉回畫面 ⇒ `hooksecurefunc(otf, "SetParent")` 只排下一幀的 `Reconcile`
+（不在 hook 裡直接 SetParent，會重入 AddManagedFrame）。實測一個 session 收回 23 次，報告印 `parentReclaimed=N`。
+
+## ⚠ 摺著的時候標題列不能錨在追蹤器上（2026-09-22，「進探究整個消失」的真正根因）
+
+**症狀：沒有錯誤、整份清單連「目標」標題列一起不見。** 報告指紋：`folded=true parentedAway=true`、
+`OTF topleft=(1505, 1013) of screen 1820x1024`、`size=260x1013`。
+預設位置的追蹤器錨在 `RightManagedFrameContainer`（LayoutFrame，錨在 UIParent TOPRIGHT `(−右側列寬−5, RIGHT_CONTAINER_OFFSET_Y=−260)`）；
+SetParent 把它抽離版面之後，位置解到**螢幕最頂端**、高度變成整個螢幕（`UpdateHeight` 讀 `GetParent():GetHeight()`）。
+標題列原本無條件錨在追蹤器上 ⇒ 跟著飛進小地圖那一區被蓋住，唯一的把手也沒了。
+**用搬家遮罩拖過位置的人錨點是絕對座標，所以 Mili 自己一直沒事**——只有預設位置的玩家中。
+
+修法（`Modules/Chrome.lua` 的 `RememberTrackerRect`／`FoldedAnchor`）：追蹤器看得見的時候每次 Layout 順手記下
+它的左／右／上緣，存成**相對 UIParent 右上角**的位移，放 `db.barSnapshot["名字-伺服器"]`（分角色，因為編輯模式版面可以分角色；
+登入時就摺著的人沒有「上一次看得見」可以量）。摺著時標題列改錨 UIParent 到那組座標；背景／搬家遮罩／鑰石面板都錨在標題列上，一起對。
+從來沒量過的人用 `EditModeUtil:GetRightContainerAnchor()` 推（`AnchorMixin:Get()` 回五個值），位置接管中或非預設位置回 nil、照舊跟追蹤器。
+`FoldChanged` 改成整個 `Chrome.Layout()`（摺與不摺錨的對象不同）。代價：摺著期間暴雪版面變了標題列不會跟，展開一次才更新——刻意的。
+報告加了 `title bar topleft=…`（不在螢幕內標 `!!`）。**還沒進遊戲驗證。**
+
+**考慮過、否決的兩條**：①只走 alpha＋擋滑鼠板（位置高度都對，但摺著時那塊區域點不到地面、起不了滑鼠轉視角，使用者不要）；
+②`SetScale(0.001)`（沒人搶 scale，但整棵帶文字的框縮到千分之一會不會出事沒依據）。
+判定 D（容器因排不進去自己 Hide；場景模組 `hasDisplayPriority`，被截斷就把後面所有模組的可用高度歸零）**目前沒有實例**，9/19 我誤以為是它。
+救急指令：`/mquest fold`。`db.folded` 點標題列就寫入、誤點一次永久摺著，這個 UX 還沒處理。
+對過的暴雪事實：`DirtiableMixin` 的 `self.dirty = nil` 寫在 `method(self)` 之後 —— Update 拋錯一次，追蹤器到 /reload 前不再更新。
+原始碼：`Blizzard_ManagedFrameSystem/Shared/ManagedFrameSystem.lua`、`Blizzard_EditMode/Shared/EditModeSystemTemplates.lua`＋`EditModeUtil.lua`＋
+`Mainline/EditModePresetLayouts.lua`（常數）、`Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua`（`ManageRightFrameContainer`）。
 
 **暴雪原生的收合（`Header:SetCollapsed`）不能拿來做自動摺疊** —— 那要跑它整串收合程式碼。
 所以「自動縮起」是我們自己藏，配一條自畫的標題列當把手（`Modules/Chrome.lua`）。
