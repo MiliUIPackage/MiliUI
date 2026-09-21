@@ -127,9 +127,9 @@
 --   顏色本身是訊號。**整顆不碰。**
 -- * **教學鈕 `MainHelpButton`**（`MainHelpPlateButton`）—— 整顆是那個金色問號的
 --   美術（含自己的 `Ring` 與動畫），跟關閉鈕不同，它沒有「殼 ＋ 圖」可以拆。
--- * **等級條的 `capRight` 與 `capped`** —— `capRight` 是「練滿了」
---   （`FormatProfession` .lua:418-422 的 Show／Hide），`capped` 是試用帳號封頂的
---   鎖頭。兩個都是狀態指示，不是裝飾。
+-- * **等級條的 `capped`** —— 試用帳號封頂的鎖頭，是狀態指示不是裝飾。
+--   （`capRight`「練滿了」那顆端帽第一版也留著，實機看是一坨凸出條外的綠點 ⇒
+--   改成中和，理由寫在 `SkinRankBar`。）
 -- * **`statusBar.rankText`（「XX / 100」）與技能鈕的 `spellString`／
 --   `subSpellString`** —— 見上面第 2 點，兩條都是暴雪每次更新重設的資訊色。
 -- * **`rank`（「大師」「宗師」那一行）** —— 它的字型物件是
@@ -203,10 +203,34 @@ local PAGE_ART = { "ProfessionsBookPage1", "ProfessionsBookPage2" }
 ------------------------------------------------------------
 -- 等級條上「只有全域名字」的四張裝飾貼圖。
 --
--- ⚠ `$parentRight`（parentKey `capRight`）**不在這張表裡**：它是「練滿了」的
---   狀態指示（`FormatProfession` 對它 Show／Hide），不是裝飾。
+-- ⚠ `$parentRight`（parentKey `capRight`）不在這張表裡，但一樣會被中和 ——
+--   另外點名，理由寫在用到的地方。
 ------------------------------------------------------------
 local BAR_ART = { "BGLeft", "BGMiddle", "BGRight", "Left" }
+
+-- 等級條的填充色：跟成就視窗的進度條同一個綠（暴雪在那邊用的 0, 0.6, 0）
+local RANK_BAR_COLOR = { 0, 0.6, 0, 1 }
+
+-- 每個專業那塊內嵌區的範圍。
+--
+-- 暴雪的框（主要 437x81、次要 437x46，Blizzard_ProfessionsBook.xml:158,265）**包不住
+-- 自己的內容**：原本壓在一整頁羊皮紙上所以看不出來，我們替每個框畫了一圈邊之後
+-- 就露餡了（實機擷圖）——
+--   * 主要專業：等級條與技能鈕的下緣比框低幾個單位。
+--   * 次要專業：等級條錨在 `BOTTOMLEFT y=-1`（同檔 :280）⇒ 掉到框外；
+--     專業名稱疊在「等級文字」上面、等級文字又疊在條上面（:286-297）⇒ 用套組的
+--     中文字型時名稱整行凸出框的上緣。
+-- 只能動我們自己的範圍：上下往外擴到包得住。框與框之間隔 15／35 個單位，擴了不會碰到鄰居。
+local CARD_POINTS = {
+    primary = {
+        { "TOPLEFT", "TOPLEFT", 0, 2 },
+        { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, -8 },
+    },
+    secondary = {
+        { "TOPLEFT", "TOPLEFT", 0, 12 },
+        { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, -7 },
+    },
+}
 
 ------------------------------------------------------------
 -- 兩個專業模板的差異表（框名、字色、技能鈕後綴、有沒有圖示）
@@ -283,8 +307,16 @@ local function SkinProfessionBar(frameName, frame, key)
     end
     E.NeutralizeGlobals(names)
 
-    -- 顏色不給 ⇒ 不碰填充色（註 ⓓ）。材質換成套組的細橫紋。
-    Skin.StatusBar(bar, key .. ".statusBar")
+    -- 練滿時右端那顆端帽（`$parentRight`，parentKey `capRight`）。第一版把它當成
+    -- 「狀態指示」留著，實機看是一坨凸出條外的綠色光點（它是為暴雪那條立體條的
+    -- 端頭畫的）；「練滿了」已經由「100/100」的數字與整條填滿表達 ⇒ 中和。
+    -- 暴雪對它只有 Show／Hide（FormatProfession），不碰 alpha，設一次就永久有效。
+    E.NeutralizeGlobals({ frameName .. "StatusBarRight" })
+
+    -- ⚠ 這條**一定要給顏色**。暴雪原本的顏色是「烤在那張條材質裡」的（綠色立體條），
+    --   不是 `SetStatusBarColor` 設的；材質一換成套組的平面條就只剩灰白（實機擷圖）。
+    --   這條的顏色不帶資訊（不像聲望條依等級變色）⇒ 用跟成就進度條同一個綠。
+    Skin.StatusBar(bar, key .. ".statusBar", { color = RANK_BAR_COLOR })
 end
 
 ------------------------------------------------------------
@@ -295,7 +327,10 @@ local function SkinProfession(frameName, spec)
     if not E.Usable(frame, frameName) then return end
 
     -- 每個專業一塊 `fillInset` 的內嵌區（書頁是 `fill`）
-    Skin.Panel(frame, frameName, { fill = T.fillInset })
+    Skin.Panel(frame, frameName, {
+        fill = T.fillInset,
+        points = spec.icon and CARD_POINTS.primary or CARD_POINTS.secondary,
+    })
 
     for _, fieldKey in ipairs(spec.white) do
         E.TextColor(Field(frame, fieldKey), T.text, frameName .. "." .. fieldKey)
