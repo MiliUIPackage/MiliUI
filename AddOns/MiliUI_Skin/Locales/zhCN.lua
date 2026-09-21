@@ -57,6 +57,10 @@ L["Game Menu"] = "游戏选项"
 L["Turn this off first if a confirmation button stops responding or the UI reports a blocked action."] = "若确认窗口的按钮没反应、或弹出「界面操作被封锁」，先关掉这一项。"
 L["Turn this off first if an Esc menu button stops responding or the UI reports a blocked action."] = "若 ESC 菜单的按钮没反应、或弹出「界面操作被封锁」，先关掉这一项。"
 
+-- 伴随组件那一节（插件名称是专有名词，不翻）
+L["Other Addons"] = "其他插件"
+L["Bundled addons that attach to Blizzard's windows. Only has an effect when that addon is installed."] = "整合包内建、挂在暴雪窗口上的其他插件。只在那个插件有安装时才有作用。"
+
 -- 暴雪「系统 > 插件」入口页
 L["Use /mskin to open options"] = "使用 /mskin 打开设置"
 L["Version: %s"] = "版本: %s"

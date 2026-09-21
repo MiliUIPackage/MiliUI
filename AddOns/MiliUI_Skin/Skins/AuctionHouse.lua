@@ -167,7 +167,7 @@
 --
 -- | 全域名稱 | 是什麼 | 怎麼處理 |
 -- |---|---|---|
--- | `AuctionatorTabs_Shopping` / `_Selling` / `_Cancelling` / `_Auctionator` | 套組內建的拍賣插件加在底部的四顆分頁，用的是**暴雪同一個** `AuctionHouseFrameDisplayModeTabTemplate`（LibAHTab 的 `CreateTab`）⇒ 不處理的話一排分頁會有兩種長相 | 跟暴雪那三顆一起交給 `Skin.TabGroup` |
+-- | `AuctionatorTabs_Shopping` / `_Selling` / `_Cancelling` / `_Auctionator` | 套組內建的拍賣插件加在底部的四顆分頁，用的是**暴雪同一個** `AuctionHouseFrameDisplayModeTabTemplate` ⇒ 不處理的話一排分頁會有兩種長相 | 名字登記在 `ThirdParty/Auctionator.lua`，下面 `SkinTabRow` 用 `Engine.CompanionTabs` 取出來，跟暴雪那三顆**同一次**交給 `Skin.TabGroup` |
 -- | `YUI_AuctionHelperFrame` | 另一支套組內建插件的**獨立側邊面板**（錨在拍賣場右外側，自己有一整套主題系統） | 不碰，見下面「刻意不碰」 |
 -- | `MiliUI_AHFilterBtn` | 套組本體加在視窗右上外側的「僅限當前資料片」開關 | 不碰，見下面「刻意不碰」 |
 --
@@ -722,17 +722,14 @@ end
 -- ⚠ 一律 `_G[...]` 判斷，**找不到就靜默跳過**（不記 `E.Missing`）：
 --   玩家沒裝那支插件不是暴雪改版事故。
 -- ⚠ 不呼叫它的任何函式、不 hook 它的函式、不在它的框上寫欄位。
--- ⚠ 順序就是版面順序：那支插件依自己的 `tabOrder` 由左往右建
+-- ⚠ 順序就是版面順序：那支插件依自己的分頁序由左往右建
 --   （購物／上架／取消／設定），接在暴雪第三顆的右邊。
+--
+-- ⚠ **那四顆的名字不寫在這裡**：它們登記在 `ThirdParty/Auctionator.lua`
+--   （`Engine.AddCompanionTabs`），這裡用 `E.CompanionTabs` 取出來。
+--   第三方開關關掉時取到的是空表 ⇒ 這一排就只剩暴雪三顆，接縫照樣對。
 ------------------------------------------------------------
 local BLIZZARD_TABS = { "BuyTab", "SellTab", "AuctionsTab" }
-
-local COMPANION_TABS = {
-    "AuctionatorTabs_Shopping",
-    "AuctionatorTabs_Selling",
-    "AuctionatorTabs_Cancelling",
-    "AuctionatorTabs_Auctionator",
-}
 
 local function SkinTabRow()
     local f = _G.AuctionHouseFrame
@@ -747,7 +744,7 @@ local function SkinTabRow()
             E.Missing("AuctionHouseFrame." .. name)
         end
     end
-    for _, name in ipairs(COMPANION_TABS) do
+    for _, name in ipairs(E.CompanionTabs("auctionhouse")) do
         local tab = _G[name]
         if tab then
             tabs[#tabs + 1] = { tab = tab, key = name }

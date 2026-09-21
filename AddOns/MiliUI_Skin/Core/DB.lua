@@ -72,6 +72,20 @@ local function BuildDefaults()
             popup       = true,
             gamemenu    = true,
         },
+        -- 「伴隨元件」—— 套組內建、固定掛在暴雪視窗上的**別家**插件的元件
+        -- （STYLE.md ③）。實作一支一個檔，住在 `ThirdParty/`。
+        --
+        -- ⚠ key 與 `Engine.AddCompanion` 的 `addonKey`（以及
+        --   `Engine.AddCompanionTabs` 的第三個參數）一致。
+        -- ⚠ 這幾個開關跟視窗開關是「而且」的關係：host 視窗關掉、或這裡關掉，
+        --   都不跑。預設全開 —— 玩家沒裝那支插件的時候本來就是靜默跳過，
+        --   開著不會有任何代價。
+        thirdparty = {
+            postal              = true,
+            auctionator         = true,
+            premadegroupsfilter = true,
+            raiderio            = true,
+        },
     }
 end
 DB.BuildDefaults = BuildDefaults
@@ -116,4 +130,19 @@ function DB.IsWindowEnabled(key)
     local db = ns.db
     if not db or not db.enabled then return false end
     return db.windows[key] ~= false
+end
+
+------------------------------------------------------------
+-- 這支第三方插件的伴隨元件現在該不該套？（總開關 ＋ 它自己的開關）
+--
+-- ⚠ `db.thirdparty` 不存在時當成「開」：`MergeDefaults` 只補 nil，這張表是後來
+--   才加的，理論上一定補得到；真的沒有也不該讓整批伴隨元件靜靜地消失。
+--   總開關那一關仍然照走。
+------------------------------------------------------------
+function DB.IsThirdPartyEnabled(key)
+    local db = ns.db
+    if not db or not db.enabled then return false end
+    local t = db.thirdparty
+    if not t then return true end
+    return t[key] ~= false
 end

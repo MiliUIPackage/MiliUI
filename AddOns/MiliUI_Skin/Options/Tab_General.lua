@@ -89,6 +89,18 @@ local controls = {
         hint  = L["Turn this off first if an Esc menu button stops responding or the UI reports a blocked action."],
     },
 
+    -- ⚠ 這一節管的是「伴隨元件」—— 套組內建、固定掛在暴雪視窗上的**別家**插件
+    --   （STYLE.md ③，實作在 `ThirdParty/`）。跟上面的視窗開關是「而且」的關係：
+    --   host 視窗關掉、或這裡關掉，那一支都不跑。
+    --   插件名稱一律用它們自己的英文名，**不進語系表**：那是專有名詞，
+    --   翻成中文反而找不到是哪一支。
+    { type = "header", label = L["Other Addons"] },
+    { type = "text", label = L["Bundled addons that attach to Blizzard's windows. Only has an effect when that addon is installed."] },
+    { type = "toggle", sub = "thirdparty", key = "postal",              label = "Postal" },
+    { type = "toggle", sub = "thirdparty", key = "auctionator",         label = "Auctionator" },
+    { type = "toggle", sub = "thirdparty", key = "premadegroupsfilter", label = "Premade Groups Filter" },
+    { type = "toggle", sub = "thirdparty", key = "raiderio",            label = "RaiderIO" },
+
     { type = "space", h = 6 },
     { type = "text", label = L["Changes take effect after a UI reload."] },
     {

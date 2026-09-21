@@ -296,33 +296,104 @@
    跟對暴雪物件同一條線。
 4. **能做的動作跟對暴雪物件一樣**（上面那張白名單），原語直接重用
    （`Skin.Button` / `Skin.CheckBox` / `Skin.IconButton`）。
-5. **時機走 `Engine.Register` 的 `companions`**：`{ event = "MAIL_SHOW", apply = fn }`，
+   `check_skin.py` 的掃描範圍因此**含 `ThirdParty/*.lua`** —— 契約沒有因為
+   「那不是暴雪的框」而放寬一條。
+5. **時機走伴隨元件的兩種觸發**：`{ event = "MAIL_SHOW", apply = fn }`，
    引擎收到事件之後 `C_Timer.After(0, …)` **延一幀**再掃（那些元件多半是
    「視窗第一次顯示時才建」的，同一幀去找還不存在）。
-   **配方裡不准自己建事件框。** 冪等（`Engine.Overlay` 本來就是），
+   **自己的檔案裡不准建事件框。** 冪等（`Engine.Overlay` 本來就是），
    **戰鬥閘照走**（戰鬥中收到的事件記著，`PLAYER_REGEN_ENABLED` 補跑）。
-   ⚠ **第八輪多一種觸發：`{ atLogin = true, apply = fn }`。**
-   有些伴隨元件是**插件自己的 `.lua` 檔案層 ＋ XML 一次建完**的（預組隊伍過濾的
-   視窗與七個面板就是），那種沒有「第一次顯示」這個掛點，也就沒有一個暴雪事件擺在
-   對的時間點上 —— 硬挑一個的代價是「第一次開晚一拍才上皮，之後每次白掃一遍」。
+   另一種是 `{ atLogin = true, apply = fn }`：有些伴隨元件是**插件自己的 `.lua`
+   檔案層 ＋ XML 一次建完**的（預組隊伍過濾的視窗與七個面板就是），那種沒有
+   「第一次顯示」這個掛點，也就沒有一個暴雪事件擺在對的時間點上 ——
+   硬挑一個的代價是「第一次開晚一拍才上皮，之後每次白掃一遍」。
    `atLogin` 走**完全同一條路**（延一幀、戰鬥閘、脫戰補跑），只是觸發點改成
    「`Engine.Boot` 把配方全部套完之後」。那一刻所有非隨需載入的插件都載完了
    （`PLAYER_LOGIN` 排在所有 `ADDON_LOADED` 之後）⇒ **不是**在賭載入順序。
    要用哪一種**以讀原始碼的結果為準**，不要猜。
 6. **接觸面清單另列一張「伴隨元件」表**，跟暴雪物件那張分開。
 7. **原語會記 `Engine.Missing` 的那幾支要小心**（`Skin.PortraitChrome`、
-   `Engine.NeutralizeKeys`）：parentKey 探不到就會寫進「找不到的區域」，
-   而第 2 條說伴隨元件不准進那張清單。對**它自己的**框逐一探再動手
-   （`Skins/PVECompanions.lua` 的 `SkinDialog` 就是為了這個沒有用
+   `Engine.NeutralizeKeys`、`Engine.Neutralize` 對 nil）：parentKey 探不到就會寫進
+   「找不到的區域」，而第 2 條說伴隨元件不准進那張清單。對**它自己的**框逐一探
+   再動手（`ThirdParty/PremadeGroupsFilter.lua` 的 `SkinDialog` 就是為了這個沒有用
    `Skin.PortraitChrome`）；暴雪模板**內部**的 parentKey（`Left`/`Right`/`Middle`…）
    照常記 —— 那真的是「暴雪改名了」。
 
-**目前的兩份清單：**
+#### 放哪裡：`ThirdParty/`，一支插件一個檔
 
-| 配方 | 元件 | 觸發 |
-|---|---|---|
-| `Skins/Mail.lua` | 郵件增強插件的四顆按鈕、三顆 ▼、七個列勾選框 | `event = "MAIL_SHOW"` |
-| `Skins/PVECompanions.lua` | 預組隊伍過濾的 `UsePGFButton` ＋ `PremadeGroupsFilterDialog` ＋ 七個面板 | `atLogin = true` |
+在這之前，伴隨元件的實作散在四個地方（郵件配方裡一段、拍賣配方裡一張名單、
+一份叫 `PVECompanions.lua` 的半配方、甚至有一支住在 `MiliUI_Tooltip` 裡）。
+現在收成一條規則：
+
+* **換皮的事統一歸 `MiliUI_Skin`**，檔案住在 `AddOns/MiliUI_Skin/ThirdParty/`，
+  **檔名就是那支插件的名字**（`Postal.lua`、`Auctionator.lua`…）。
+* TOC 裡 `ThirdParty\*.lua` 排在**所有** `Skins\*.lua` 之後。
+  （引擎本身**不依賴**這個順序 —— host 還沒 `Register` 的登記會先暫存，
+  `Engine.Boot` 統一結算；排在後面只是讓「借用 host 匯出的小工具」這種事最單純。）
+* 登記走 **`Engine.AddCompanion(hostKey, spec)`**，`spec` 就是上面那兩種觸發，
+  外加 `addonKey` ＝ 設定頁「其他插件」那一節的開關 key。
+  配方那一邊的 `companions = {…}` 欄位**照舊有效**，但它現在只剩
+  「同一個視窗裡、事件觸發的補掃」在用（商人的格數、宏偉寶庫的重掃）——
+  那兩個掃的是**暴雪自己的**框，不是第三方，所以不搬。
+* 兩道閘是「而且」的關係：**host 視窗關掉 ⇒ 不跑**（伴隨元件本來就跟著視窗走），
+  **第三方自己的開關關掉 ⇒ 也不跑**，而且連事件都不註冊。
+* `hostKey` 可以是 **nil** —— 不是每一支第三方元件都長在某個暴雪視窗上
+  （自建的 tooltip 就不是）。那種只看總開關與它自己的第三方開關，
+  而且**不進 `/mskin debug` 的視窗清單**（那張表是「暴雪視窗的現況」）。
+* **檔頭要有**：這支插件掛了哪些元件（全域名稱、模板、建立時機）、各用哪個原語、
+  觸發時機與理由、接觸面清單、刻意不碰的東西。
+* 署名規則照舊（`.claude/notes/project-miliui-uf-comment-attribution.md`）：
+  檔名與全域名稱可以是那支插件的名字，但**敘述不要寫成「抄自／參考某某」**。
+
+#### 特例一：分頁要「一次畫完」
+
+`Skin.TabGroup` 的接縫是「這一顆的右緣錨在**下一顆**的左緣」，而 overlay 的錨點
+**只在建立時定一次**（陷阱 1）⇒ 先畫暴雪那幾顆、之後再補第三方那幾顆，
+暴雪最後一顆會永遠停在「我是最後一顆」的幾何上。**整排一定要同一次畫完。**
+
+所以分頁不走 `AddCompanion`，走另一對函式：
+
+```lua
+-- ThirdParty/Auctionator.lua —— 只登記「我加了哪幾顆、全域名字是什麼」
+Engine.AddCompanionTabs("auctionhouse", { "AuctionatorTabs_Shopping", … }, "auctionator")
+
+-- Skins/AuctionHouse.lua —— 在它現有的那個伴隨輪裡取出來，跟暴雪那三顆一起畫
+for _, name in ipairs(Engine.CompanionTabs("auctionhouse")) do … end
+```
+
+登記的是**名字**不是框：取出來的那一刻才 `_G[name]`，沒有就靜默跳過。
+第三方開關關掉時 `CompanionTabs` 回**空表**（不是 nil），呼叫端的迴圈原樣跑過去。
+
+#### 特例二：第三方自建的 tooltip ⇒ 有 `MiliUITip_API` 就委派
+
+有些插件自己 `CreateFrame("GameTooltip", …, "GameTooltipTemplate")` 一顆專用的提示框。
+那種**不由這包自己畫**：
+
+1. **有 `MiliUITip_API`**（玩家裝了 `MiliUI_Tooltip`）⇒ 一律 `MiliUITip_API.Adopt(tip)`。
+   那是內建 tooltip 走的同一條接管管線，外觀因此與玩家**自己的提示框設定**完全一致。
+   回 `false` ＝ 那支插件還沒初始化完，**留給下一輪重試**，不要因為早了一拍就退回
+   自己畫的那一層。
+2. **沒有**（玩家只裝了這一支）⇒ 才自己畫，而且畫的是**提示皮不是設定視窗皮**
+   （① 的兩個問題：浮在世界上方、彈出來讀一眼）：NineSlice `SetAlpha(0)` ＋
+   `Engine.RegionBackdrop`，底 `T.tipFill`（0.133 不透明）＋ 1px **職業色**邊。
+   數值出處見 `.claude/notes/project-miliui-hud-skin.md` 的「提示皮」那一節。
+
+⚠ 退回路徑動手之前先問 `Engine.IsLayoutHost(tip)`：`GameTooltipTemplate` 不是
+layout host（排版在 C 端），所以 `RegionBackdrop` 會走 region 那條路、底與邊是
+tooltip 自己的 region、顯示與隱藏自動跟著它。萬一哪天變了，`RegionBackdrop` 會退回
+子框而 `SafeParent` 會爬到 tooltip 外面 ⇒ 提示藏起來了底還留在畫面上。
+是 layout host 就整個不畫。
+⚠ **不准為了重申樣式去 hook 那支插件**（規則第 3 條）。要不要重申先查
+`MiliUI_Tooltip/Core/Skin.lua` 是怎麼做的，以及那支插件到底有沒有動那個屬性。
+
+**目前的四支：**
+
+| 檔案 | host | 元件 | 觸發 | 開關 |
+|---|---|---|---|---|
+| `ThirdParty/Postal.lua` | `mail` | 郵件增強插件的四顆按鈕、三顆 ▼、七個列勾選框 | `event = "MAIL_SHOW"` | `postal` |
+| `ThirdParty/Auctionator.lua` | `auctionhouse` | 拍賣插件加在底部的四顆分頁（名字登記，由 host 一次畫完） | `AddCompanionTabs` | `auctionator` |
+| `ThirdParty/PremadeGroupsFilter.lua` | `pve` | 預組隊伍過濾的 `UsePGFButton` ＋ `PremadeGroupsFilterDialog` ＋ 七個面板 | `atLogin = true` | `premadegroupsfilter` |
+| `ThirdParty/RaiderIO.lua` | **無**（nil） | 傳奇鑰石檔案插件自建的兩顆 tooltip | `atLogin = true` ＋ 2／10 秒補掃 | `raiderio` |
 
 ### 四個陷阱
 
@@ -1375,12 +1446,12 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 角色面板 `CharacterFrame` | `character` | chrome／關閉鈕／Inset／底部分頁／側邊欄分頁（含選中態）／屬性欄小節標題／模型內框去雕花／**裝備格走 `ItemButton`（直角品質方框）**／武器欄兩側的括號雕花／聲望頁（下拉、分類標題列、**子分類的 ＋／− 鈕**、聲望條）／兌換通貨頁**只做外框級**（Inset、捲軸、下拉、右上的紀錄鈕；列與轉移鈕一律不碰，見 ⑦ 的 C 級）／**三個彈出小視窗**（聲望詳情、通貨選項、轉移紀錄 —— 只有 chrome，列不碰） |
 | 成就 `AchievementFrame` | `achievement` | **整個視窗深色化**：chrome／**標題帽**／分類列（選中與滑過都自己畫）／成就列（完成＝明、未完成＝暗，文字顏色全接管，標題帶與圖示金框放 reapply）／總結頁／統計列／進度條（換材質）／搜尋框／分頁／**比較視窗補完** |
 | 任務 `QuestFrame` | `quest` | chrome／關閉鈕／Inset／六顆面板按鈕／四條捲軸／`QuestModelScene` 的兩個外框。**羊皮紙與四張 `Material*` 一根手指都沒碰** —— 深色底走 CVar `questTextContrast = 4`（這個檔案自己的事件框，預設開、設定頁可關、記住原值、關掉還原；對話視窗吃同一個值） |
-| 郵件 `MailFrame`＋`OpenMailFrame` | `mail` | **整頁重做**：兩個視窗的 chrome／兩顆分頁／收件匣七列（平面列＋隔行明暗、信件鈕走 `ItemButton`、翻頁鈕收緊）／**信紙深色化＋文字全接管**／附件格走 `ItemButton`／附件區兩條分隔線／收件人與主旨的矩形修正／金額欄／單選鈕（已勾＝職業色）／九顆按鈕／兩條捲軸／**伴隨元件**／**寄信頁三條欄位標籤降成次要灰**（第七輪） |
+| 郵件 `MailFrame`＋`OpenMailFrame` | `mail` | **整頁重做**：兩個視窗的 chrome／兩顆分頁／收件匣七列（平面列＋隔行明暗、信件鈕走 `ItemButton`、翻頁鈕收緊）／**信紙深色化＋文字全接管**／附件格走 `ItemButton`／附件區兩條分隔線／收件人與主旨的矩形修正／金額欄／單選鈕（已勾＝職業色）／九顆按鈕／兩條捲軸／**寄信頁三條欄位標籤降成次要灰**（第七輪）。伴隨元件見 `ThirdParty/Postal.lua` |
 | 好友名單 `FriendsFrame` | `friends` | chrome／底部四顆分頁／**頂部分頁（`Skin.TabSystem`）**／聯絡人頁兩顆按鈕／戰網廣播框／**聯絡人選單鈕**／查詢頁（搜尋框、Inset、四個欄位表頭、三顆按鈕、**查詢條件下拉**）／忽略名單小視窗／**三種池化列＋邀請列＋邀請標題列＋分隔線**／**狀態下拉**／**四個子頁**（團隊＝`Blizzard_RaidFrame` 那一半、快速加入、近期盟友、招募好友）／七條捲軸 |
 | 收藏 `CollectionsJournal` | `collections` | **四個檔案共用一個 key**（`Skins/Collections.lua`＝外框＋坐騎、`CollectionsToys.lua`＝玩具箱＋傳家寶＋戰隊場景、`CollectionsPets.lua`＝寵物、`CollectionsWardrobe.lua`＝外觀）。chrome／關閉鈕／底部六顆分頁（矩形另算，見配方表）／坐騎頁（三塊 Inset、搜尋、篩選下拉、總數框、召喚鈕、捲軸、清單列、資訊區圖示）／玩具箱與傳家寶（進度條、搜尋、兩種下拉、格子底、翻頁）／戰隊場景（格子底＋勾選框）／寵物（三塊 Inset、總數框、搜尋、篩選、捲軸、出戰框、兩顆按鈕、清單列）／外觀（頂部兩顆分頁、搜尋、進度條、三顆下拉、兩頁的底、翻頁、捲軸）。**模型場景、玩具／傳家寶的 secure 格子、寵物卡內部、外觀的模型格子都不碰** |
-| 地城與團隊 `PVEFrame` 家族 | `pve` | **四個檔共用一個開關**（`Skins/PVE.lua` ＋ `parts`：`Skins/PVP.lua`、`Skins/Challenges.lua` ＋ `companions`：`Skins/PVECompanions.lua`）。外框（十一張 bluemenu 切片＋陰影）／三顆分頁／左側四顆大類鈕（選中態勾 `GroupFinderFrame_SelectGroupButton`、**圖示外環壓深**）／地城搜尋與團隊搜尋（Inset、職責勾選、下拉、尋找隊伍鈕、捲軸、遮罩上的按鈕、**羊皮紙深色化＋獎勵物品格＋指定／隨從地城清單的池化列**）／預組隊伍五個面板（**純視覺**：Inset、搜尋框、篩選下拉、重新整理鈕、欄位表頭、建立隊伍的輸入框與勾選框、結果列的滑過帶、申請者列的三顆按鈕）／PvP（左側五顆大類鈕、三頁的征服條與 Inset 與職責勾選、兩個下拉、四顆排隊鈕）／傳奇鑰石（Inset、鑰石視窗的關閉鈕與開始鈕、**「賽季最佳」那一排地城圖示改成方塊**）／**伴隨元件（第八輪）**：套組內建的預組隊伍過濾插件 —— 搜尋頁右上的 `UsePGFButton`、篩選視窗 `PremadeGroupsFilterDialog`（外框／標題帶／關閉鈕／最大化最小化／重設與設定小鈕／重新整理鈕）與它的七個面板（區塊標題改白、每列的勾選框與最小最大輸入框、它自己那一種下拉、全選那幾顆小文字鈕、進階過濾式與排序輸入框）。**鑰石視窗的 atlas、符文底圖、詞綴圓圖示保留**；**伴隨元件的 `Icon`、說明鈕、列標籤、`UsePGFButton.Text` 的寬度都不碰** |
+| 地城與團隊 `PVEFrame` 家族 | `pve` | **四個檔共用一個開關**（`Skins/PVE.lua` ＋ `parts`：`Skins/PVP.lua`、`Skins/Challenges.lua` ＋ 伴隨元件：`ThirdParty/PremadeGroupsFilter.lua`）。外框（十一張 bluemenu 切片＋陰影）／三顆分頁／左側四顆大類鈕（選中態勾 `GroupFinderFrame_SelectGroupButton`、**圖示外環壓深**）／地城搜尋與團隊搜尋（Inset、職責勾選、下拉、尋找隊伍鈕、捲軸、遮罩上的按鈕、**羊皮紙深色化＋獎勵物品格＋指定／隨從地城清單的池化列**）／預組隊伍五個面板（**純視覺**：Inset、搜尋框、篩選下拉、重新整理鈕、欄位表頭、建立隊伍的輸入框與勾選框、結果列的滑過帶、申請者列的三顆按鈕）／PvP（左側五顆大類鈕、三頁的征服條與 Inset 與職責勾選、兩個下拉、四顆排隊鈕）／傳奇鑰石（Inset、鑰石視窗的關閉鈕與開始鈕、**「賽季最佳」那一排地城圖示改成方塊**）／**伴隨元件**（`ThirdParty/PremadeGroupsFilter.lua`）：套組內建的預組隊伍過濾插件 —— 搜尋頁右上的 `UsePGFButton`、篩選視窗 `PremadeGroupsFilterDialog`（外框／標題帶／關閉鈕／最大化最小化／重設與設定小鈕／重新整理鈕）與它的七個面板（區塊標題改白、每列的勾選框與最小最大輸入框、它自己那一種下拉、全選那幾顆小文字鈕、進階過濾式與排序輸入框）。**鑰石視窗的 atlas、符文底圖、詞綴圓圖示保留**；**伴隨元件的 `Icon`、說明鈕、列標籤、`UsePGFButton.Text` 的寬度都不碰** |
 | 商人 `MerchantFrame` | `merchant` | chrome／兩顆分頁／篩選下拉／**商品格**（格底雕花中和＋平面底＋物品鈕走 `ItemButton`，格數讀 `MERCHANT_ITEMS_PER_PAGE`）／四顆修裝與賣垃圾鈕／兩顆翻頁鈕／買回格／金錢與貨幣列。品質色靠自己的兩支更新後置勾（走不到引擎的全域勾） |
-| **拍賣場 `AuctionHouseFrame`** | `auctionhouse` | chrome／關閉鈕／底部分頁（暴雪三顆 ＋ **伴隨元件四顆**，整排在 `AUCTION_HOUSE_SHOW` 的伴隨輪一次畫完）／底部金錢列／搜尋列（搜尋框、篩選下拉、搜尋鈕、最愛鈕）／左側分類樹（池化列，選中與滑過**交還暴雪顯示、只換長相**）／六個結果清單的**框級**（面板底、欄位表頭那條帶、捲軸、重新整理鈕）／物品購買頁／商品購買頁／兩個上架頁（數量框、金錢框、期限下拉、只賣直購勾選框）／我的拍賣頁（兩顆子分頁、摘要清單、出價與直購欄）／購買確認彈窗。**所有結果清單的「列」一顆都不碰**（出價／直購的執行流＋沒有可勾的每列出口），時光徽章兩頁只做外框 |
+| **拍賣場 `AuctionHouseFrame`** | `auctionhouse` | chrome／關閉鈕／底部分頁（暴雪三顆 ＋ **伴隨元件四顆**，名字登記在 `ThirdParty/Auctionator.lua`，整排在 `AUCTION_HOUSE_SHOW` 的伴隨輪一次畫完）／底部金錢列／搜尋列（搜尋框、篩選下拉、搜尋鈕、最愛鈕）／左側分類樹（池化列，選中與滑過**交還暴雪顯示、只換長相**）／六個結果清單的**框級**（面板底、欄位表頭那條帶、捲軸、重新整理鈕）／物品購買頁／商品購買頁／兩個上架頁（數量框、金錢框、期限下拉、只賣直購勾選框）／我的拍賣頁（兩顆子分頁、摘要清單、出價與直購欄）／購買確認彈窗。**所有結果清單的「列」一顆都不碰**（出價／直購的執行流＋沒有可勾的每列出口），時光徽章兩頁只做外框 |
 | **專業 `ProfessionsFrame`** | `professions` | chrome／關閉鈕／最大化最小化／頂部三顆分頁（`Skin.TabSystemAll` ＋ `TabSystemOwnerMixin:SetTab` 後置勾同步）／配方頁（配方清單＋池化的分類列與配方列、搜尋框、篩選下拉、捲軸、`SchematicForm` 的底、兩顆勾選框、配方等級下拉、數量框、**製作／全部製作走特許**）／製作訂單頁（瀏覽清單的框級＋池化列、搜尋與翻頁鈕、訂單檢視頁的三塊面板、**接單／婉拒／釋出／完成訂單走特許**）／專精頁（footer 底 ＋ 底部按鈕列，**套用／撤銷走特許**）。**第八輪加上專業技能書**（`Skins/ProfessionsBook.lua`，同一個 key 的 `parts`，隨需載入的是 `Blizzard_ProfessionsBook`）：chrome／關閉鈕／書頁深色化（兩張羊皮紙中和 ＋ `Inset` ＝ `T.fill`）／五塊專業內嵌區（`T.fillInset`）／四條字色接管／五條等級條（`Skin.StatusBar`）／兩顆專業圖示改方形 ＋ 1px 黑框／十顆 secure 技能鈕**只中和名牌底板**。**進度條 `RankBar`、四顆範圍分頁、材料格與產出圖示、天賦樹都不做**；書裡的**技能鈕本體、遺忘專業鈕、教學鈕、`capRight`／`capped`／`rankText`** 也都不做（各自的理由在配方表與配方檔頭） |
 | 宏偉寶庫 `WeeklyRewardsFrame` | `weeklyrewards` | **純視覺特許、整份零 hook**：面板底／雕花中和／九～十二個活動格各一個內嵌底框／格內物品圖示方框／分類標題白字／關閉鈕與「選擇獎勵」（本檔 local 平面函式，不掛 HookScript）。解鎖／未解鎖的明暗差做不到（暴雪用同一張貼圖換 atlas）；選取框與領獎確認面板不碰 |
 | 冒險指南 `EncounterJournal` | `encounterjournal` | chrome／底部七顆分頁（`pad = 0`：`SetNumTabs` 會把分頁重錨成 +3）／五個下拉／四條捲軸／搜尋框／四顆頁籤鈕／戰利品清單與首領清單（池化列）。技能說明區的羊皮紙保留（SimpleHTML 字色接不住）；副本卡片接不到（初始化是 local 函式）；推薦內容／月度活動／旅行者日誌未做 |
@@ -1410,6 +1481,23 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 語彙，刻意保留）、
 **`LFGListApplicationDialog`／`LFGListInviteDialog`／`LFDRoleCheckPopup`**
 （`frameStrata="DIALOG"` 的彈出視窗，離 StaticPopup 太近）。
+
+### 第三方（伴隨元件）現況
+
+套組內建、固定掛在暴雪視窗上的**別家**插件。規則、兩個特例與登記方式見 ③ 的
+「伴隨元件」；實作一支一個檔，住在 `ThirdParty/`，檔名就是那支插件的名字。
+設定頁「其他插件」那一節各有一個開關，**跟 host 視窗的開關是「而且」的關係**。
+
+| 檔案 | host | 做了什麼 | 觸發 | 沒做／不碰 |
+|---|---|---|---|---|
+| `ThirdParty/Postal.lua` | `mail` | 收件匣與讀信視窗的四顆按鈕（`Skin.Button`）、三顆 ▼ 小鈕（`Skin.IconButton`，`inset = 4`）、每列左邊的七個勾選框（`Skin.CheckBox`） | `event = "MAIL_SHOW"` | 它的彈出選單；它掛在信件列上的任何東西的位置。⚠ 暴雪那顆 `OpenAllMail` 會被它藏起來換成自己那顆，**兩顆都要有皮**（暴雪那顆的皮在 `Skins/Mail.lua`） |
+| `ThirdParty/Auctionator.lua` | `auctionhouse` | 只登記底部那四顆分頁的**全域名字**（`Engine.AddCompanionTabs`）；真正畫的是 host 的 `SkinTabRow`，跟暴雪三顆**同一次** `Skin.TabGroup` | `AddCompanionTabs`（host 的 `AUCTION_HOUSE_SHOW` 伴隨輪） | 它自己的側邊面板與分頁內容（它有自己的主題系統，兩邊都畫就是兩層底） |
+| `ThirdParty/PremadeGroupsFilter.lua` | `pve` | `UsePGFButton`；`PremadeGroupsFilterDialog` 的 chrome／關閉鈕／最大化最小化／重設與設定小鈕／重新整理鈕；七個面板的區塊標題、每列的勾選框與最小最大輸入框、它自己那一種下拉、四顆小文字鈕、進階過濾式與排序輸入框 | `atLogin = true`（視窗、面板與控件全部是檔案層 ＋ XML 一次建完） | 兩顆小圖示鈕的 `Icon`、說明鈕、列標籤、`UsePGFButton.Text` 的寬度、小文字鈕的 `Label` 顏色、它的彈出選單與設定頁 |
+| `ThirdParty/RaiderIO.lua` | **無**（nil） | 它自建的兩顆 tooltip（`RaiderIO_ProfileTooltip` / `_SearchTooltip`）：**有 `MiliUITip_API` 就 `Adopt` 委派**，沒有才退回自己畫提示皮（NineSlice `SetAlpha(0)` ＋ `Engine.RegionBackdrop`，`T.tipFill` ＋ 1px 職業色邊） | `atLogin = true` ＋ 登入後 2／10 秒各補掃一次 | 它的搜尋視窗本體（`BackdropTemplate` ＋ 它自己的 backdrop，我們的底壓在下面看不見）、tooltip 裡的文字顏色（那是它的資料）、模板自帶的 `StatusBar` |
+
+⚠ 這四支的 hook 數合計：**0**（`hooksecurefunc` / `SetScript` / 呼叫對方函式一個都沒有）。
+只有原語內建的 `HookScript("OnEnter"/"OnLeave"/"OnEnable"/"OnDisable")`，
+而那幾個只碰**我們自己的** overlay。
 
 ### B 級：只做 overlay，而且要逐一驗收
 
