@@ -289,7 +289,28 @@
    「視窗第一次顯示時才建」的，同一幀去找還不存在）。
    **配方裡不准自己建事件框。** 冪等（`Engine.Overlay` 本來就是），
    **戰鬥閘照走**（戰鬥中收到的事件記著，`PLAYER_REGEN_ENABLED` 補跑）。
+   ⚠ **第八輪多一種觸發：`{ atLogin = true, apply = fn }`。**
+   有些伴隨元件是**插件自己的 `.lua` 檔案層 ＋ XML 一次建完**的（預組隊伍過濾的
+   視窗與七個面板就是），那種沒有「第一次顯示」這個掛點，也就沒有一個暴雪事件擺在
+   對的時間點上 —— 硬挑一個的代價是「第一次開晚一拍才上皮，之後每次白掃一遍」。
+   `atLogin` 走**完全同一條路**（延一幀、戰鬥閘、脫戰補跑），只是觸發點改成
+   「`Engine.Boot` 把配方全部套完之後」。那一刻所有非隨需載入的插件都載完了
+   （`PLAYER_LOGIN` 排在所有 `ADDON_LOADED` 之後）⇒ **不是**在賭載入順序。
+   要用哪一種**以讀原始碼的結果為準**，不要猜。
 6. **接觸面清單另列一張「伴隨元件」表**，跟暴雪物件那張分開。
+7. **原語會記 `Engine.Missing` 的那幾支要小心**（`Skin.PortraitChrome`、
+   `Engine.NeutralizeKeys`）：parentKey 探不到就會寫進「找不到的區域」，
+   而第 2 條說伴隨元件不准進那張清單。對**它自己的**框逐一探再動手
+   （`Skins/PVECompanions.lua` 的 `SkinDialog` 就是為了這個沒有用
+   `Skin.PortraitChrome`）；暴雪模板**內部**的 parentKey（`Left`/`Right`/`Middle`…）
+   照常記 —— 那真的是「暴雪改名了」。
+
+**目前的兩份清單：**
+
+| 配方 | 元件 | 觸發 |
+|---|---|---|
+| `Skins/Mail.lua` | 郵件增強插件的四顆按鈕、三顆 ▼、七個列勾選框 | `event = "MAIL_SHOW"` |
+| `Skins/PVECompanions.lua` | 預組隊伍過濾的 `UsePGFButton` ＋ `PremadeGroupsFilterDialog` ＋ 七個面板 | `atLogin = true` |
 
 ### 四個陷阱
 
@@ -1041,6 +1062,8 @@ footer 沒有 —— 底部按鈕列的高度要嘛量（契約禁止），要�
 | **`ProfessionsFrame` 的頂部分頁**（`TabSystemTemplate`）<br>`Blizzard_Professions/Blizzard_ProfessionsFrame.xml:5,7,17,24`<br>`…/Blizzard_ProfessionsFrame.lua:35,41-43,457`<br>`Blizzard_SharedXML/Shared/TabSystem/TabSystemOwner.lua:98` | `RotatedTextures`（九張，`Skin.TabSystemAll`） | 兩條同步路徑（註 ⓘ）。⚠ 三顆分頁在 `ProfessionsMixin:OnLoad` 就建好了 ⇒ 主力是第二條 | **第二條同步路徑不是全域函式，是全域 mixin 表**：`ProfessionsMixin:SetTab` 的最後一行是 **`TabSystemOwnerMixin.SetTab(self, tabID)`** —— 明碼的表查詢，每次切分頁都重新解析 ⇒ `hooksecurefunc(TabSystemOwnerMixin, "SetTab", Engine.SyncTabSystemAll)` 接得到，而且**不必在暴雪框上寫欄位**。⚠ 反過來 `hooksecurefunc(ProfessionsFrame, "SetTab", …)` 是禁止的（＝`ProfessionsFrame.SetTab = 包裝函式`，同 ⑦ ESC 選單那一條）。⚠ 分頁錨在視窗的 `BOTTOMLEFT` ⇒ 在內容**下方**、相連的是上邊 ⇒ `onTop = false`（預設） | **未實測（第七輪新做）** |
 | **`ProfessionsSpecPageTemplate` 的底部按鈕列**<br>`Blizzard_Professions/Blizzard_ProfessionsSpecializations.xml:5,20,26-31,36-80` | `PanelFooter` 底下一張**無名無 parentKey** 的 `Professions-Specializations-Background-Footer` ⇒ `GetRegions()` | 見「特許按鈕」 | 只做 footer 的底 ＋ 底部那一排按鈕。**天賦樹本身不碰**（⑦ 的 C 級）：`TreeView`／`DetailedView`／`ProfessionsSpecPathTemplate` 的整組 `SpecDial_*` 轉盤與六組動畫 | **未實測（第七輪新做）** |
 | **`ProfessionsBookFrame`**（專業技能書，第八輪補做）<br>`Blizzard_ProfessionsBook/Blizzard_ProfessionsBook.xml:3,89,158,265,325,329,342,353`<br>`…/Blizzard_ProfessionsBook.lua:23,317,320,382-498` | `ProfessionsBookPage1`／`Page2`（兩張**只有全域名字**的書頁羊皮紙，Lua 零引用）、`Inset` 的 `Bg`／`NineSlice`、`$parentIconBorder`（72x72 雕花環）、等級條的 `$parentBGLeft`／`BGMiddle`／`BGRight`／`$parentLeft`、十顆 secure 技能鈕的 **`$parentNameFrame`**（名牌底板，Lua 零引用） | **引擎**：只有關閉鈕（Highlight → 白 8%、Pushed → 黑 18%）。技能鈕的三態一張都不碰 | **內容底材破例走深色**：`Inset` ＝ `T.fill` 的書頁、每個專業一塊 `T.fillInset` 內嵌區。字色接得住而且**一個 hook 都不用掛** —— `professionName`／`specialization`／`missingHeader`／`missingText` 四條的顏色只來自字型物件或 XML 的 `<Color>`，`FormatProfession` 對它們只做 `SetText`。等級條是**真的 `StatusBar`**（跟配方頁那條 `ProfessionsRankBarTemplate` 不是同一個東西）⇒ `Skin.StatusBar` 直接套。圖示走 `Engine.UnmaskIcon`（方形 ＋ 裁邊 ＋ 1px 黑框，同 PVE 的大類鈕）。**唯一的 hook 是全域 `FormatProfession` 的後置勾，內容只有「重裁 texCoord」**（`icon:SetTexture` 會把 texCoord 打回去）。⚠ 第七輪寫的「沒有 chrome 可以套」是錯的：它繼承的就是 **`ButtonFrameTemplate`**。⚠ 技能鈕是 `SecureFrameTemplate` ⇒ 零 overlay／零腳本／零 mixin 勾，`IconTexture`／`highlightTexture`／Checked 都是狀態不碰；「遺忘專業」鈕是 `ResizeLayoutFrame` ＋ 通往 `StaticPopup_Show("UNLEARN_SKILL")` ⇒ 整顆不碰 | **未實測（第八輪新做）** |
+| **`PortraitFrameTemplateMinimizable`**（伴隨元件的篩選視窗，第八輪）<br>`Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:1074-1121,1123-1137,1129-1132,1134-1139` | 同 `PortraitFrameBaseTemplate`（`NineSlice`／`Bg`／`TopTileStreaks`／`PortraitContainer`），`TitleContainer.TitleText` 改白 | — | Panel overlay ＋ `Skin.TitleBar`（**逐一探 parentKey，不走 `Skin.PortraitChrome`** —— 伴隨元件不准進 `Engine.Missing`，見 ③ 第 7 條）。⚠ `Minimizable` 這個變體**自己沒有最大化／最小化鈕**，只多一個 `layoutType` 的 KeyValue；那顆 `MaximizeMinimizeFrame` 是使用者那一邊自己加的子框 | **未實測（第八輪新做）** |
+| **`IconButtonTemplate`**（＝ `SquareIconButtonTemplate` 的**父**模板）<br>`Blizzard_SharedXML/Shared/Button/IconButtonTemplate.xml:4,25,39,52-55`<br>`…/IconButtonTemplate.lua:3-27` | **沒有殼可以中和** —— Normal/Pushed/Disabled 是 `SquareIconButtonTemplate` 才加的，這一層只有一張 OVERLAY 的 `Icon` | **引擎**：Highlight → 中和（`useIconAsHighlight` 時它就是 `Icon` 的複本，`OnLoad` 設一次，alpha 撐得住） | `Skin.IconButton` 的**預設路徑**（三個 getter 都回 nil ⇒ 實際只有「Highlight 中和 ＋ 我們的底與邊與滑過」）。⚠ **不准用 `Skin.SquareIconButton`／`opts.stripFrame`**：那會去染 `Icon`，而這一層的 `Icon` 就是按鈕的全部內容；而且 `IconButtonMixin:SetEnabledState` 用 `SetDesaturated` 表示停用，我們一去飽和那個狀態就沒了 | **未實測（第八輪新做）** |
 
 ### 註 ⓐ　分頁為什麼只能 hook
 
@@ -1343,7 +1366,7 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 郵件 `MailFrame`＋`OpenMailFrame` | `mail` | **整頁重做**：兩個視窗的 chrome／兩顆分頁／收件匣七列（平面列＋隔行明暗、信件鈕走 `ItemButton`、翻頁鈕收緊）／**信紙深色化＋文字全接管**／附件格走 `ItemButton`／附件區兩條分隔線／收件人與主旨的矩形修正／金額欄／單選鈕（已勾＝職業色）／九顆按鈕／兩條捲軸／**伴隨元件**／**寄信頁三條欄位標籤降成次要灰**（第七輪） |
 | 好友名單 `FriendsFrame` | `friends` | chrome／底部四顆分頁／**頂部分頁（`Skin.TabSystem`）**／聯絡人頁兩顆按鈕／戰網廣播框／**聯絡人選單鈕**／查詢頁（搜尋框、Inset、四個欄位表頭、三顆按鈕、**查詢條件下拉**）／忽略名單小視窗／**三種池化列＋邀請列＋邀請標題列＋分隔線**／**狀態下拉**／**四個子頁**（團隊＝`Blizzard_RaidFrame` 那一半、快速加入、近期盟友、招募好友）／七條捲軸 |
 | 收藏 `CollectionsJournal` | `collections` | **四個檔案共用一個 key**（`Skins/Collections.lua`＝外框＋坐騎、`CollectionsToys.lua`＝玩具箱＋傳家寶＋戰隊場景、`CollectionsPets.lua`＝寵物、`CollectionsWardrobe.lua`＝外觀）。chrome／關閉鈕／底部六顆分頁（矩形另算，見配方表）／坐騎頁（三塊 Inset、搜尋、篩選下拉、總數框、召喚鈕、捲軸、清單列、資訊區圖示）／玩具箱與傳家寶（進度條、搜尋、兩種下拉、格子底、翻頁）／戰隊場景（格子底＋勾選框）／寵物（三塊 Inset、總數框、搜尋、篩選、捲軸、出戰框、兩顆按鈕、清單列）／外觀（頂部兩顆分頁、搜尋、進度條、三顆下拉、兩頁的底、翻頁、捲軸）。**模型場景、玩具／傳家寶的 secure 格子、寵物卡內部、外觀的模型格子都不碰** |
-| 地城與團隊 `PVEFrame` 家族 | `pve` | **三份配方共用一個開關**（`Skins/PVE.lua` ＋ `parts`：`Skins/PVP.lua`、`Skins/Challenges.lua`）。外框（十一張 bluemenu 切片＋陰影）／三顆分頁／左側四顆大類鈕（選中態勾 `GroupFinderFrame_SelectGroupButton`、**圖示外環壓深**）／地城搜尋與團隊搜尋（Inset、職責勾選、下拉、尋找隊伍鈕、捲軸、遮罩上的按鈕、**羊皮紙深色化＋獎勵物品格＋指定／隨從地城清單的池化列**）／預組隊伍五個面板（**純視覺**：Inset、搜尋框、篩選下拉、重新整理鈕、欄位表頭、建立隊伍的輸入框與勾選框、結果列的滑過帶、申請者列的三顆按鈕）／PvP（左側五顆大類鈕、三頁的征服條與 Inset 與職責勾選、兩個下拉、四顆排隊鈕）／傳奇鑰石（Inset、鑰石視窗的關閉鈕與開始鈕、**「賽季最佳」那一排地城圖示改成方塊**）。**鑰石視窗的 atlas、符文底圖、詞綴圓圖示保留** |
+| 地城與團隊 `PVEFrame` 家族 | `pve` | **四個檔共用一個開關**（`Skins/PVE.lua` ＋ `parts`：`Skins/PVP.lua`、`Skins/Challenges.lua` ＋ `companions`：`Skins/PVECompanions.lua`）。外框（十一張 bluemenu 切片＋陰影）／三顆分頁／左側四顆大類鈕（選中態勾 `GroupFinderFrame_SelectGroupButton`、**圖示外環壓深**）／地城搜尋與團隊搜尋（Inset、職責勾選、下拉、尋找隊伍鈕、捲軸、遮罩上的按鈕、**羊皮紙深色化＋獎勵物品格＋指定／隨從地城清單的池化列**）／預組隊伍五個面板（**純視覺**：Inset、搜尋框、篩選下拉、重新整理鈕、欄位表頭、建立隊伍的輸入框與勾選框、結果列的滑過帶、申請者列的三顆按鈕）／PvP（左側五顆大類鈕、三頁的征服條與 Inset 與職責勾選、兩個下拉、四顆排隊鈕）／傳奇鑰石（Inset、鑰石視窗的關閉鈕與開始鈕、**「賽季最佳」那一排地城圖示改成方塊**）／**伴隨元件（第八輪）**：套組內建的預組隊伍過濾插件 —— 搜尋頁右上的 `UsePGFButton`、篩選視窗 `PremadeGroupsFilterDialog`（外框／標題帶／關閉鈕／最大化最小化／重設與設定小鈕／重新整理鈕）與它的七個面板（區塊標題改白、每列的勾選框與最小最大輸入框、它自己那一種下拉、全選那幾顆小文字鈕、進階過濾式與排序輸入框）。**鑰石視窗的 atlas、符文底圖、詞綴圓圖示保留**；**伴隨元件的 `Icon`、說明鈕、列標籤、`UsePGFButton.Text` 的寬度都不碰** |
 | 商人 `MerchantFrame` | `merchant` | chrome／兩顆分頁／篩選下拉／**商品格**（格底雕花中和＋平面底＋物品鈕走 `ItemButton`，格數讀 `MERCHANT_ITEMS_PER_PAGE`）／四顆修裝與賣垃圾鈕／兩顆翻頁鈕／買回格／金錢與貨幣列。品質色靠自己的兩支更新後置勾（走不到引擎的全域勾） |
 | **拍賣場 `AuctionHouseFrame`** | `auctionhouse` | chrome／關閉鈕／底部分頁（暴雪三顆 ＋ **伴隨元件四顆**，整排在 `AUCTION_HOUSE_SHOW` 的伴隨輪一次畫完）／底部金錢列／搜尋列（搜尋框、篩選下拉、搜尋鈕、最愛鈕）／左側分類樹（池化列，選中與滑過**交還暴雪顯示、只換長相**）／六個結果清單的**框級**（面板底、欄位表頭那條帶、捲軸、重新整理鈕）／物品購買頁／商品購買頁／兩個上架頁（數量框、金錢框、期限下拉、只賣直購勾選框）／我的拍賣頁（兩顆子分頁、摘要清單、出價與直購欄）／購買確認彈窗。**所有結果清單的「列」一顆都不碰**（出價／直購的執行流＋沒有可勾的每列出口），時光徽章兩頁只做外框 |
 | **專業 `ProfessionsFrame`** | `professions` | chrome／關閉鈕／最大化最小化／頂部三顆分頁（`Skin.TabSystemAll` ＋ `TabSystemOwnerMixin:SetTab` 後置勾同步）／配方頁（配方清單＋池化的分類列與配方列、搜尋框、篩選下拉、捲軸、`SchematicForm` 的底、兩顆勾選框、配方等級下拉、數量框、**製作／全部製作走特許**）／製作訂單頁（瀏覽清單的框級＋池化列、搜尋與翻頁鈕、訂單檢視頁的三塊面板、**接單／婉拒／釋出／完成訂單走特許**）／專精頁（footer 底 ＋ 底部按鈕列，**套用／撤銷走特許**）。**第八輪加上專業技能書**（`Skins/ProfessionsBook.lua`，同一個 key 的 `parts`，隨需載入的是 `Blizzard_ProfessionsBook`）：chrome／關閉鈕／書頁深色化（兩張羊皮紙中和 ＋ `Inset` ＝ `T.fill`）／五塊專業內嵌區（`T.fillInset`）／四條字色接管／五條等級條（`Skin.StatusBar`）／兩顆專業圖示改方形 ＋ 1px 黑框／十顆 secure 技能鈕**只中和名牌底板**。**進度條 `RankBar`、四顆範圍分頁、材料格與產出圖示、天賦樹都不做**；書裡的**技能鈕本體、遺忘專業鈕、教學鈕、`capRight`／`capped`／`rankText`** 也都不做（各自的理由在配方表與配方檔頭） |
