@@ -561,6 +561,9 @@ end
 --   那顆會落在 `Engine.TabSystemHooks` 的 mixin 後置勾上（有狀態、沒有 overlay），
 --   到時候再為它想辦法。
 function Skin.TabSystemAll(tabSystem, key, opts)
+    -- ⚠ `opts` 是選用的：少了這一行，不傳 opts 的呼叫端會在下面讀 `opts.onTop` 時炸掉，
+    --   而且是炸在「視窗第一次載入」那一刻（實機抓到：專業視窗）。
+    opts = opts or {}
     if not E.Usable(tabSystem, key) then return end
     if type(tabSystem.GetChildren) ~= "function" then
         E.Missing(key .. ".GetChildren")
