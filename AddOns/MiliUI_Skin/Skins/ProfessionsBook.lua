@@ -221,16 +221,29 @@ local RANK_BAR_COLOR = { 0, 0.6, 0, 1 }
 --     專業名稱疊在「等級文字」上面、等級文字又疊在條上面（:286-297）⇒ 用套組的
 --     中文字型時名稱整行凸出框的上緣。
 -- 只能動我們自己的範圍：上下往外擴到包得住。框與框之間隔 15／35 個單位，擴了不會碰到鄰居。
+-- 第二版（實機擷圖）：內容貼著框線很擠 —— 主要專業的名稱頂著上緣、次要專業的名稱與
+-- 等級條貼著左緣。四邊再各讓出一圈留白（左右各 8；上緣讓到名稱上方約 8）。
+-- 左右對稱外擴，置中（ROOT_X）不受影響。暴雪排的框距：主要專業之間 12、次要專業之間 30、
+-- 兩組之間 40（Blizzard_ProfessionsBook.xml:364,376,387,398）；上下外擴的量是照
+-- 「同組的卡片之間剩 2、兩組之間剩 15」湊的（12−5−5、30−8−20、40−5−20），
+-- 讀起來是「兩組清單」而不是五個各自飄著的方塊。
 local CARD_POINTS = {
     primary = {
-        { "TOPLEFT", "TOPLEFT", 0, 2 },
-        { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, -8 },
+        { "TOPLEFT", "TOPLEFT", -8, 5 },
+        { "BOTTOMRIGHT", "BOTTOMRIGHT", 8, -5 },
     },
     secondary = {
-        { "TOPLEFT", "TOPLEFT", 0, 12 },
-        { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, -7 },
+        { "TOPLEFT", "TOPLEFT", -8, 20 },
+        { "BOTTOMRIGHT", "BOTTOMRIGHT", 8, -8 },
     },
 }
+
+-- 只有一顆技能鈕時，把它垂直置中的位移量。
+-- XML：`SpellButtonTop` 錨 `TOPRIGHT x=-109 y=-3`（40 高），`SpellButtonBottom` 錨
+-- `TOPLEFT → SpellButtonTop 的 BOTTOMLEFT (0,0)` ⇒ 下面那顆佔 y=-43..-83（同檔 :221-229）。
+-- 只學了一個技能的專業只顯示下面那顆（`FormatProfession` .lua:456-458），上半格空著，
+-- 看起來像整排往下掉。卡片範圍是 +5..-86 ⇒ 中線 -40.5 ⇒ 鈕頂要在 -20.5 ⇒ 往上提 22。
+local SINGLE_SPELL_LIFT = 22
 
 ------------------------------------------------------------
 -- 兩個專業模板的差異表（框名、字色、技能鈕後綴、有沒有圖示）
@@ -254,6 +267,28 @@ local TEMPLATES = {
         icon    = false,
     },
 }
+
+-- 只有一顆技能鈕的主要專業：把那一顆垂直置中（兩顆都在就還原）。
+--
+-- 讀的是 `SpellButtonTop:IsShown()` —— 暴雪自己表達「這個專業有幾顆技能鈕」的同一個依據
+-- （`FormatProfession` 對它 Show／Hide），純 C 端布林、過 `Secret.ToBool`、問不到就當成
+-- 「兩顆都在」（＝不動，失敗方向安全）。已列入 STYLE.md ③ 的讀取例外表。
+-- 移動走 `Engine.ShiftRoot`（同名錨點覆寫、戰鬥中不做）：技能鈕是 secure 框，戰鬥中
+-- 動它會被擋，所以戰鬥中開書就維持暴雪原位，下次脫戰更新再置中。
+local liftable = setmetatable({}, { __mode = "k" })   -- [專業框] = { top, bottom }
+
+local function CenterSingleSpell(frame)
+    local pair = liftable[frame]
+    if not pair then return end
+    local top, bottom = pair[1], pair[2]
+    local both = true
+    if type(top.IsShown) == "function" then
+        local ok, shown = pcall(top.IsShown, top)
+        if ok and ns.Secret.ToBool(shown) == false then both = false end
+    end
+    E.ShiftRoot(bottom, "TOPLEFT", top, "BOTTOMLEFT", 0, both and 0 or SINGLE_SPELL_LIFT,
+        "ProfessionSpellButtonBottom")
+end
 
 -- 我們**自己的**弱鍵表：記住「這個專業框的圖示已經拿掉圓形遮罩、裁過邊」。
 -- 暴雪框上零欄位寫入（STYLE.md ③）。
@@ -375,17 +410,33 @@ local function SkinProfession(frameName, spec)
         if icon and btn then
             icons[#icons + 1] = icon
             E.CropIcon(icon, btnName .. ".IconTexture")
-            local ov = E.Overlay(frame, {
+            -- ⚠ 方框是**直接建在那顆按鈕上的貼圖**（`Engine.RegionBackdrop`，OVERLAY 層，
+            --   底透明只有邊）。第一版掛在外層專業框上、用 anchorTo 貼著按鈕 ——
+            --   暴雪把沒用到的技能鈕 `Hide()` 掉時（只有一個技能的專業、還沒學的考古學），
+            --   我們的框還留在原地，變成一個個空方框（實機擷圖）。貼圖是按鈕自己的 region，
+            --   按鈕藏它就跟著藏，零讀取零 hook。`CreateTexture` 不寫欄位、不碰 secure 屬性；
+            --   apply 過戰鬥閘，所以只會在脫戰時建。建不出來就是沒有框，不影響按鈕。
+            local ov = E.RegionBackdrop(btn, {
                 key = btnName .. ".border",
-                slot = "spell" .. i,
-                anchorTo = btn,
-                levelOffset = 4,
+                slot = "iconBorder",
+                layer = "OVERLAY", sublevel = 6,
+                edgeLayer = "OVERLAY", edgeSublevel = 7,
             })
-            E.Paint(ov, { 0, 0, 0, 0 }, T.border)
+            if ov and ov.isRegion then
+                E.Paint(ov, { 0, 0, 0, 0 }, T.border)
+            end
         end
     end
     E.NeutralizeGlobals(names)
     spellIcons[frame] = icons
+
+    if spec.icon then
+        local top, bottom = _G[frameName .. "SpellButtonTop"], _G[frameName .. "SpellButtonBottom"]
+        if top and bottom then
+            liftable[frame] = { top, bottom }
+            CenterSingleSpell(frame)
+        end
+    end
 end
 
 ------------------------------------------------------------
@@ -467,6 +518,7 @@ local function InstallHooks()
                 E.CropIcon(spells[i], "FormatProfession.spellIcon")
             end
         end
+        CenterSingleSpell(frame)
     end)
 end
 

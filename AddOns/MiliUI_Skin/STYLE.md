@@ -254,6 +254,7 @@
 | ScrollBox 的 `ForEachFrame` | 一次性補掃已建立的列 | 唯讀走訪，不寫暴雪欄位 |
 | **物品格 `IconBorder` 的 `IsShown()`** | `Engine.PassBorderColor`：決定畫品質色還是 1px 黑邊 | 暴雪自己判斷「這格有沒有品質」的**同一個**依據（`SetItemButtonBorder_Base` 的 `IconBorder:SetShown(asset ~= nil)`，`Blizzard_ItemButton/Mainline/ItemButtonTemplate.lua:190`），純 C 端布林；過 `Secret.ToBool`，問不到就 fail 到「沒有品質」＝黑邊，失敗方向安全 |
 | **按鈕的 `IsEnabled()`** | `Engine.TrackButtonHover`：停用的按鈕不給滑過回饋 | 純 C 端布林；過 `Secret.ToBool`，問不到就當成「可以按」——失敗方向只是多一次提亮。`check_skin.py` 禁止配方與原語直接呼叫，只有 Engine 那一支能讀 |
+| 專業技能書 `<專業框>SpellButtonTop:IsShown()` | 只有一顆技能鈕時把下面那顆垂直置中（`FormatProfession` 後置勾） | 暴雪自己表達「這個專業有幾顆技能鈕」的同一個依據（`FormatProfession` 對它 Show／Hide）。純 C 端布林、過 `Secret.ToBool`，問不到當成「兩顆都在」＝不動 |
 | `MerchantFrame:IsShown()` | 商人配方兩支更新後置勾（`MerchantFrame_UpdateMerchantInfo`／`_UpdateBuybackInfo`）的第一行 | 暴雪在 `MerchantFrame_OnLoad` 就註冊了 `BAG_UPDATE`／`UNIT_INVENTORY_CHANGED`，**視窗沒開也照樣跑更新**（登入幾秒內上千次）；少了這道閘，每一次都是「所有商品格重畫一遍」的空轉。純 C 端布林、過 `Secret.ToBool`，問不到當成「沒開」（少畫一次，失敗方向安全） |
 | **物品格 `IconBorder` 的 `GetVertexColor()`** | 同上：把品質色**轉交**給我們自己的四條邊 | 唯一一條「讀顏色」的例外，規則見下面的**傳遞者規則** |
 
