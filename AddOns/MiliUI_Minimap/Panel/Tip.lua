@@ -48,6 +48,7 @@
 --
 -- ⚠ 列是**池化**的，只增不減（frame 刪不掉，見 wow-frame-lifecycle-costs）。
 --   每次 Open 從第一列重新用起，Show 時把多出來的藏掉；上限由 tipMaxRows 管。
+-- ⚠ 池子**只在戰鬥外長**（見列池段）：每列的 SetPassThroughButtons 是受保護函式。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -84,7 +85,20 @@ end
 
 ------------------------------------------------------------
 -- 列池
+--
+-- ⚠ **列只在戰鬥外建。** 連結字框的 SetPassThroughButtons 在 API 文件上除了
+--   IsProtectedFunction 還多標一個 HasRestrictions（整份只有它跟 SetPropagateMouseClicks／
+--   SetPropagateMouseMotion 三支）—— 不分是不是保護框，戰鬥中從插件呼叫就是 ADDON_ACTION_BLOCKED。
+--   （只標 IsProtectedFunction 的 EnableMouse、SetMouseClickEnabled 那些只在保護框上受限。）
+--   第一版是滑過名單才懶建，戰鬥中第一次滑開名單（或名單比上次長）就被擋，
+--   錯誤掛在小地圖名下、而且被擋下的那幾列右鍵掉到暴雪的玩家選單。
+--   所以池子由宿主在戰鬥外先長到「一張名單最多幾列」（Tip.Reserve，Panel/Bar.lua
+--   在 Init 與設定變動時叫 —— 設定視窗戰鬥中改不了），戰鬥中只重用。
+--   萬一戰鬥中還是得新建（上限被關掉、名單比預留的長），那幾列先不穿透、
+--   記在 link.passThrough 上，出戰鬥由 Grow 補。
 ------------------------------------------------------------
+local reserved = 0
+
 local function EnsureRow(i)
     local row = rows[i]
     if row then return row end
@@ -111,7 +125,10 @@ local function EnsureRow(i)
     local link = CreateFrame("Frame", nil, row)
     link:SetAllPoints(row)
     link:SetHyperlinkPropagateToParent(true)
-    link:SetPassThroughButtons("RightButton")
+    if not InCombatLockdown() then
+        link:SetPassThroughButtons("RightButton")
+        link.passThrough = true
+    end
     link:EnableMouse(false)
     link.row = row
     link:SetScript("OnEnter", function() row.hl:Show() end)
@@ -347,6 +364,30 @@ local function Build()
     end)
 
     return panel
+end
+
+------------------------------------------------------------
+-- 預留列池（理由見上面的列池段）
+--
+-- Grow：戰鬥外把池子長到 reserved，順便補戰鬥中建出來、還沒穿透的列。
+-- 戰鬥中直接不做，出戰鬥由下面 WatchCombat 的 PLAYER_REGEN_ENABLED 再叫一次。
+------------------------------------------------------------
+local function Grow()
+    if InCombatLockdown() then return end
+    Build()
+    for i = #rows + 1, reserved do EnsureRow(i) end
+    for _, row in ipairs(rows) do
+        if not row.link.passThrough then
+            row.link:SetPassThroughButtons("RightButton")
+            row.link.passThrough = true
+        end
+    end
+end
+
+-- n：一張名單最多會用到幾列。只增不減（列本來就刪不掉，縮回去沒有意義）。
+function Tip.Reserve(n)
+    if n > reserved then reserved = n end
+    Grow()
 end
 
 ------------------------------------------------------------
@@ -615,6 +656,7 @@ end
 -- 是碰 secure 鈕的最後窗口：把兩顆都藏掉。不藏的話，名單在戰鬥中關掉之後那顆
 -- 透明的鈕會留在原地變成一塊看不見的點擊區，一直到出戰鬥。
 -- 出戰鬥再同步一次：名單如果還開著，鈕會擺回它的按鈕列上。
+-- 列池也在出戰鬥時補（Grow）：戰鬥中欠下的穿透與預留列。
 ------------------------------------------------------------
 local function WatchCombat()
     if combatWatcher then return end
@@ -626,6 +668,7 @@ local function WatchCombat()
             for _, btn in pairs(openers) do btn:Hide() end
         else
             ns.Safe(SyncOpeners)
+            ns.Safe(Grow)
         end
         RefreshButtonRow()
     end)

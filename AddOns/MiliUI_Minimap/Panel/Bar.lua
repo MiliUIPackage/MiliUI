@@ -41,6 +41,17 @@ local function MaxRows()
     return (n and n > 0) and n or math.huge
 end
 
+-- 名單列池要在戰鬥外先長好（理由見 Panel/Tip.lua 的列池段），這裡算一張名單最多幾列。
+-- 人名以外最多 11 列，好友那張最長：標題 1、「我的最愛」「好友」兩個小標各帶半列空白 4、
+-- 「還有 N 人」1、說明的空白＋兩行 3、按鈕的空白＋按鈕 2。**改名單的版面要跟著改這個數。**
+-- 上限被關掉（存檔裡是 0）時沒有上界，先備到設定滑桿的最大值 60。
+local LIST_CHROME_ROWS = 11
+local function ReserveRows()
+    local cap = MaxRows()
+    if cap == math.huge then cap = 60 end
+    ns.Tip.Reserve(cap + LIST_CHROME_ROWS)
+end
+
 ------------------------------------------------------------
 -- 跟著游標活著的彈出物
 --
@@ -715,6 +726,8 @@ end
 --   要到下一次設定變動才修正。改由 Skin.Apply 結尾的 SkinApplied 驅動，
 --   順序就由呼叫鏈保證而不是靠運氣。
 ns.RegisterCallback("Init", "Bar", function()
+    ns.Safe(ReserveRows)
+
     local ev = CreateFrame("Frame")
     ev:RegisterEvent("PLAYER_ENTERING_WORLD")
     ev:RegisterEvent("GUILD_ROSTER_UPDATE")
@@ -733,7 +746,10 @@ ns.RegisterCallback("Init", "Bar", function()
     end)
 end)
 
-ns.RegisterCallback("ConfigChanged", "Bar", function() ns.Safe(Bar.Apply) end)
+ns.RegisterCallback("ConfigChanged", "Bar", function()
+    ns.Safe(ReserveRows)      -- tipMaxRows 可能變了
+    ns.Safe(Bar.Apply)
+end)
 ns.RegisterCallback("AccentChanged", "Bar", function() ns.Safe(Bar.Apply) end)
 ns.RegisterCallback("SkinApplied", "Bar", function() ns.Safe(Bar.Apply) end)
 ns.RegisterCallback("BagCountChanged", "Bar", function() ns.Safe(Bar.Update) end)
