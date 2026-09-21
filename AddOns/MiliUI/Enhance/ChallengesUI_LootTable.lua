@@ -115,7 +115,10 @@ local function SetupLootTable(challengesFrame)
     local panelHeight = (-TABLE_TOP) + HEADER_HEIGHT + 6 + (numRows * ROW_HEIGHT) + 24
     panel:SetSize(440, panelHeight)
     panel:SetPoint("TOPLEFT", challengesFrame, "TOPRIGHT", 8, 0)
-    S.ApplyDarkPanel(panel)
+    -- ⚠ 底要**完全不透明**（S.Dark.panel 預設是 0.97）。這塊面板開在搜尋器視窗的右邊，
+    --   而玩家常把別的插件的資訊提示框（M+ 檔案那一類）也擺在同一個位置 ——
+    --   0.97 會讓後面那一框的字淡淡地透上來，整張表看起來像疊了兩層字（實機擷圖）。
+    S.ApplyDarkPanel(panel, { S.Dark.panel[1], S.Dark.panel[2], S.Dark.panel[3], 1 })
     panel:SetFrameStrata("DIALOG")
 
     ---------------------------------------------------------------------------
@@ -319,8 +322,8 @@ local function SetupLootTable(challengesFrame)
     ---------------------------------------------------------------------------
     local rioOriginalAnchors = nil -- 儲存原始錨點
 
-    local function SaveRaiderIOAnchors(rioAnchor)
-        if rioOriginalAnchors then return end
+    local function SaveRaiderIOAnchors(rioAnchor, force)
+        if rioOriginalAnchors and not force then return end
         local n = rioAnchor:GetNumPoints()
         if n > 0 then
             rioOriginalAnchors = {}
@@ -339,16 +342,45 @@ local function SetupLootTable(challengesFrame)
         end
     end
 
+    -- ⚠ 只在「顯示面板／切頁後 0.2 秒」挪一次是不夠的：那支插件對它每一個可能的錨定視窗
+    --   都掛了 OnShow／OnHide，每次都會把自己的錨點**設回它要的位置**（自動定位或玩家拖過的
+    --   位置），時機常常比我們的計時器晚 ⇒ 我們挪過去、它又挪回來，結果就是疊在對照表後面
+    --   （實機擷圖）。所以改成跟著它：勾它那顆錨點框的 `SetPoint`，它一設、面板又開著，
+    --   我們就記下它這次想去的位置（面板關掉時還原用）再挪到面板右邊。
+    --   `applying` 擋住我們自己那次 SetPoint 觸發的重入。
+    local rioHooked, applying = false, false
+
+    local function MoveBesidePanel(rioAnchor)
+        applying = true
+        rioAnchor:ClearAllPoints()
+        rioAnchor:SetPoint("TOPLEFT", panel, "TOPRIGHT", 0, 0)
+        applying = false
+    end
+
+    local function EnsureRaiderIOHook(rioAnchor)
+        if rioHooked then return end
+        rioHooked = true
+        hooksecurefunc(rioAnchor, "SetPoint", function(self)
+            if applying then return end
+            if panelVisible and panel:IsShown() then
+                SaveRaiderIOAnchors(self, true)   -- 它剛設的就是「原本的位置」的最新版
+                MoveBesidePanel(self)
+            end
+        end)
+    end
+
     function UpdateRaiderIOPosition()
         local rioAnchor = _G["RaiderIO_ProfileTooltipAnchor"]
         if not rioAnchor then return end
+        EnsureRaiderIOHook(rioAnchor)
 
         if panelVisible and panel:IsShown() then
             SaveRaiderIOAnchors(rioAnchor)
-            rioAnchor:ClearAllPoints()
-            rioAnchor:SetPoint("TOPLEFT", panel, "TOPRIGHT", 0, 0)
+            MoveBesidePanel(rioAnchor)
         else
+            applying = true
             RestoreRaiderIOAnchors(rioAnchor)
+            applying = false
         end
     end
 
@@ -363,6 +395,9 @@ local function SetupLootTable(challengesFrame)
     end)
     challengesFrame:HookScript("OnHide", function()
         panel:Hide()
+        -- 面板跟著分頁一起藏起來了 ⇒ 把那顆框放回它自己的位置，
+        -- 不然它會停在「一塊已經隱藏的面板」的右邊，直到那支插件下次自己重設
+        UpdateRaiderIOPosition()
     end)
 
     -- 初始同步
