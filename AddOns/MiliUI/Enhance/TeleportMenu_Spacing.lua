@@ -3,8 +3,8 @@
 -- 在 TeleportMenu 按鈕之間加入垂直間距，不改 TeleportMenu 原始碼。
 --
 -- 問題背景：
---   TeleportMenu 透過 hooksecurefunc("ToggleGameMenu") 建立按鈕，
---   註冊時機在 tpm:Setup()，而 tpm:Setup 又透過 ContinueOnLoad
+--   TeleportMenu 透過掛勾建立按鈕（上游是 hooksecurefunc("ToggleGameMenu")，
+--   套組裡的版本改成 GameMenuFrame 的 OnShow），註冊時機在 tpm:Setup()，而 tpm:Setup 又透過 ContinueOnLoad
 --   非同步執行 — 所以我們無法在載入期保證 hook 註冊順序。
 --
 -- 策略：
@@ -91,10 +91,16 @@ GameMenuFrame:HookScript("OnShow", function(self)
 
         -- 註冊 sync post-hook。因為 tpm 首次註冊已完成，我們的 hook 會排
         -- 在它之後，之後每次開選單都按 tpm → 我們 的順序同步執行。
-        hooksecurefunc("ToggleGameMenu", function()
+        --
+        -- 兩個都掛：套組裡的 TeleportMenu 已改成聽 GameMenuFrame 的 OnShow（從選單圖示開
+        -- 也要有傳送按鈕），但上游更新會把它洗回 ToggleGameMenu。ApplySpacing 是冪等的，
+        -- 兩邊都掛就不必管 tpm 現在是哪一版。
+        local function Respace()
             if GameMenuFrame:IsShown() then
                 ApplySpacing()
             end
-        end)
+        end
+        GameMenuFrame:HookScript("OnShow", Respace)
+        hooksecurefunc("ToggleGameMenu", Respace)
     end)
 end)

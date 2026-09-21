@@ -1147,7 +1147,10 @@ function tpm:Setup()
 		tpm:updateHearthstone()
 	end
 
-	hooksecurefunc("ToggleGameMenu", tpm.ReloadFrames)
+	-- MiliUI：原本掛的是 hooksecurefunc("ToggleGameMenu", …)，只有 ESC 那條路會觸發 ——
+	-- 從選單圖示（暴雪原廠那顆、MiliUI_InfoBar 那顆都是）開選單不經過 ToggleGameMenu，
+	-- 傳送按鈕就整排不出現。改聽選單本身的 OnShow，怎麼開的都算。
+	GameMenuFrame:HookScript("OnShow", function() tpm:ReloadFrames() end)
 end
 
 -- Event Handlers

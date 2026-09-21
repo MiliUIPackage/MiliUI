@@ -50,25 +50,29 @@ metadata:
   第一行是 `if ( self:IsMouseOver() ) then`（Blizzard_MicroMenu/Mainline/
   MainMenuBarMicroButtons.lua）——轉發點擊時滑鼠在我們的按鈕上、不在被藏起來的
   原鈕上，整個 handler 空轉。這就是 EUI 把 menu 做成 plain button 的原因。
-  **現況（2026-09-21）**：那顆是 `SecureHandlerClickTemplate`，`_onclick` snippet 分兩條——
-  戰鬥外在 snippet 裡對 frame ref 直接 `Show(true)`／`Hide(true)`（restricted 環境的執行是
-  乾淨的 ⇒ OnShow → InitButtons 建的選單按鈕不帶我們的 taint；插件 Lua 自己 Show 的話那一趟
-  的「編輯模式」「選項」全是髒的）；戰鬥中先問 `menu:IsProtected()`（snippet 裡戰鬥中能問）：
-  **GameMenuFrame 原廠不是保護框，但 TeleportMenu 把 secure 按鈕掛在它底下 ⇒ 隱式保護框**
-  （它的按鈕框**第一次開選單才建**，reload 後沒開過就進戰鬥的話還不是保護框，兩條路都會走到）
-  ⇒ 是保護框就照走 snippet（戰鬥中也乾淨）。不是保護框時 restricted 環境拿不到它
-  （`GetHandleFrame`：非保護框＋InCombatLockdown ⇒ Invalid frame handle），才
-  `self:CallMethod` 回插件端 **直接 `SetShown`**。
-  **⚠ 插件端戰鬥中不能用 `ToggleFrame`／`ShowUIPanel`／`HideUIPanel`**：UIParentPanelManager 的
-  `CheckProtectedFunctionsAllowed` 寫死「戰鬥中不准插件開關 UI 面板」，直接 return 並印一次
-  「介面功能因插件而失效」，**taint.log 完全不記**（每個 session 只印第一次，之後連訊息都沒有
-  ⇒ 症狀是「點了沒反應」）。前兩版都栽在這，還誤判成保護框被靜默擋。
-  **通則：判斷暴雪框是不是保護框不能只看暴雪原始碼，要看套組裡有沒有人往它底下掛 secure 子框。**髒的只有那一趟選單（每次 OnShow 重建、物件池是
-  SecureTypes、`MICRO_BUTTONS_DISABLED` 這個 upvalue 在下一次乾淨的 UpdateMicroButtons 會先被
-  EnableMicroButtons 乾淨地覆寫才讀）。走哪條看 `incombat` 屬性（REGEN 事件寫），不用 snippet
-  的 `PlayerInCombat()`——那是 UnitAffectingCombat，跟 InCombatLockdown 有落差。
-  原本是「戰鬥中整顆不動作」，使用者回報點不開才改的。⚠ 沒裝 TeleportMenu（走 CallMethod 那條）時，
-  戰鬥中從這顆開的選單進編輯模式仍然是髒的，要乾淨就按 ESC 開。待實機驗證：戰鬥外／戰鬥中各點一次、右鍵選單、ESC 關。
+  **現況（2026-09-21，四版才定案）**：那顆是 `SecureHandlerClickTemplate`，`_onclick` snippet 對
+  frame ref 直接 `Show(true)`／`Hide(true)`，**戰鬥內外同一條路**。restricted 環境的執行是乾淨的
+  ⇒ OnShow → InitButtons 建的選單按鈕（編輯模式、選項…）不帶我們的 taint。
+  restricted 環境戰鬥中只拿得到**保護框**（`GetHandleFrame`：非保護框＋InCombatLockdown ⇒
+  Invalid frame handle），GameMenuFrame 原廠不是 ⇒ **掛一個 1×1 的 `SecureFrameTemplate` 空框在
+  它底下**（`ignoreInLayout`），父框底下有保護框＝隱式保護框，從登入起就確定。
+  （TeleportMenu 的傳送按鈕本來就會讓它變保護框，但要第一次開選單才建。）
+  走過的死路：
+  - **「點擊 → 觸發 ESC」做不到**：沒有任何 secure 動作能執行按鍵綁定；插件呼叫
+    `RunBinding`／`ToggleGameMenu()` 是髒的，戰鬥中還會被下一條擋。
+  - **插件端戰鬥中不能用 `ToggleFrame`／`ShowUIPanel`／`HideUIPanel`**：UIParentPanelManager 的
+    `CheckProtectedFunctionsAllowed` 寫死「戰鬥中不准插件開關 UI 面板」，直接 return 並印一次
+    「介面功能因插件而失效」，**taint.log 完全不記**（每個 session 只印第一次，之後連訊息都沒有
+    ⇒ 症狀是「點了沒反應」）。前兩版都栽在這，還誤判成保護框被靜默擋。
+  - 插件端直接 `GameMenuFrame:SetShown()`：開得起來，但那一趟選單的按鈕全是髒的，
+    而且 **TeleportMenu 的傳送按鈕不出現** —— 上游掛的是 `hooksecurefunc("ToggleGameMenu")`，
+    只有 ESC 會觸發（暴雪原廠的選單圖示也一樣沒有）。套組裡已把它改成聽
+    `GameMenuFrame` 的 OnShow（見 [[project-local-addon-forks]]），`MiliUI/Enhance/TeleportMenu_Spacing.lua`
+    兩個都掛（冪等），上游洗回去也不會壞間距，只會回到「從圖示開沒有傳送」。
+  **通則：判斷暴雪框是不是保護框不能只看暴雪原始碼，要看套組裡有沒有人往它底下掛 secure 子框。**
+  snippet 的 Show 不經過面板系統（不會 CloseAllWindows、不佔 center 區），ESC 照樣關得掉。
+  戰鬥中**第一次**開選單不會有傳送按鈕（TeleportMenu 戰鬥中建不了 secure 按鈕，ESC 開也一樣）。
+  待實機驗證：戰鬥外／戰鬥中各點一次、傳送按鈕與間距、右鍵選單、ESC 關。
   其餘 12 顆的 mixin 沒有這個閘，secure 轉發實測正常（戰鬥中含天賦都能開）。
 - **預設位置跟隨官方那排**：沒拖過（db.x/y=nil）就讀 `MicroMenuContainer:GetCenter()`
   換算成 UIParent 座標（乘有效縮放比），被 hider 藏著也讀得到（錨點都在）；

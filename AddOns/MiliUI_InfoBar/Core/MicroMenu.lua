@@ -457,59 +457,45 @@ function ns.Blocks.micromenu.create()
             tile.def = def
 
             if def.snippet then
-                -- 遊戲選單：沒有任何 secure 入口可以轉發（全暴雪原始碼只有 ESC 綁定與原鈕
-                -- 那個 IsMouseOver 閘兩條路，2026-09-21 查過），所以分兩條：
+                -- 遊戲選單：沒有任何 secure 入口可以轉發 —— 全暴雪原始碼只有 ESC 綁定與原鈕
+                -- 那個 IsMouseOver 閘兩條路，而「點擊 → 觸發按鍵綁定」沒有 secure 動作可用
+                -- （RunBinding／ToggleGameMenu 由插件呼叫＝髒的，戰鬥中還會被下面那道閘擋）。
+                -- 2026-09-21 查過。所以在 _onclick snippet 裡直接 Show／Hide GameMenuFrame：
+                -- restricted 環境的執行是乾淨的 ⇒ OnShow → InitButtons 建出來的每顆選單按鈕
+                -- （編輯模式、選項…）都不帶我們的 taint。
                 --
-                -- 戰鬥外 ＝ snippet 裡直接 Show／Hide GameMenuFrame。restricted 環境的執行是
-                --   乾淨的 ⇒ OnShow → InitButtons 建出來的每顆選單按鈕（編輯模式、選項…）
-                --   都不帶我們的 taint。插件 Lua 自己 Show 的話，那一趟選單的每顆按鈕都是髒的，
-                --   從那裡進編輯模式＝用插件的身分進編輯模式。
-                -- 戰鬥中 ＝ 看 GameMenuFrame 當下是不是保護框（snippet 裡的 IsProtected 戰鬥中照樣能問）：
-                --   是 ⇒ 照樣走 snippet。暴雪原廠它不是保護框，但**只要有插件把 secure 按鈕掛在
-                --     它底下，它就變成隱式保護框**（套組裡的 TeleportMenu 就是；它的按鈕框是
-                --     **第一次開選單才建**，所以 reload 後沒開過選單就進戰鬥的話還不是保護框）
-                --     ——這時插件 Lua 戰鬥中 Show 它會被擋，而 restricted 環境反過來可以合法操作它。
-                --   否 ⇒ restricted 環境拿不到非保護框的 handle（RestrictedFrames.lua 的
-                --     GetHandleFrame：非保護框 ＋ InCombatLockdown ⇒ "Invalid frame handle"），
-                --     只能 CallMethod 回插件端自己開；髒的只有**那一趟**的選單按鈕（每次 OnShow
-                --     重建、物件池是 SecureTypes，不會留到下一趟）。
+                -- ⚠ 插件 Lua 自己開的兩條死路（都實測過）：
+                --   ToggleFrame／ShowUIPanel／HideUIPanel —— UIParentPanelManager 的
+                --     CheckProtectedFunctionsAllowed 寫死「戰鬥中不准插件開關 UI 面板」，直接
+                --     return 並印一次「介面功能因插件而失效」，**taint.log 不記**，之後連訊息
+                --     都沒有 ⇒ 症狀是「點了沒反應」。
+                --   GameMenuFrame:Show() —— 開得起來，但那一趟選單的每顆按鈕都是髒的
+                --     （從那裡進編輯模式＝用插件的身分進編輯模式）。
                 --
-                -- 走哪條看 incombat 屬性，由 REGEN 事件寫 —— 要跟 InCombatLockdown 完全同步，
-                -- snippet 裡的 PlayerInCombat() 是 UnitAffectingCombat，兩者有落差的那一瞬間
-                -- 會走錯路報錯。PLAYER_REGEN_DISABLED 派送當下還能寫保護框的屬性。
+                -- restricted 環境戰鬥中只拿得到**保護框**的 handle（RestrictedFrames.lua 的
+                -- GetHandleFrame：非保護框 ＋ InCombatLockdown ⇒ "Invalid frame handle"）。
+                -- GameMenuFrame 原廠不是保護框，所以掛一個 1×1 的 secure 空框在它底下 ——
+                -- 父框底下有保護框就是隱式保護框，snippet 戰鬥內外都能合法開關它，一條路到底。
+                -- （TeleportMenu 的傳送按鈕本來就會讓它變保護框，但要等第一次開選單才建，
+                -- reload 後直接進戰鬥就還不是；這裡只是把那個狀態變成從登入起就確定。）
+                -- ignoreInLayout：GameMenuFrame 是 layout frame，別讓它把這顆算進版面。
                 if GameMenuFrame then
+                    local protector = CreateFrame("Frame", nil, GameMenuFrame, "SecureFrameTemplate")
+                    protector.ignoreInLayout = true
+                    protector:SetSize(1, 1)
+                    protector:SetPoint("CENTER")
                     SecureHandlerSetFrameRef(tile, "gamemenu", GameMenuFrame)
                 end
-                tile:SetAttribute("incombat", InCombatLockdown() and true or false)
                 tile:SetAttribute("_onclick", [[
                     if button == "RightButton" then
                         self:CallMethod("OnTileRightClick")
                     elseif button == "LeftButton" then
                         local menu = self:GetFrameRef("gamemenu")
-                        if not menu or (self:GetAttribute("incombat") and not menu:IsProtected()) then
-                            self:CallMethod("ToggleGameMenuInCombat")
-                        elseif menu:IsShown() then
-                            menu:Hide(true)
-                        else
-                            menu:Show(true)
-                        end
+                        -- 保險：萬一不是保護框（protector 沒建成），戰鬥中碰它會報錯，寧可不動作
+                        if not menu or (PlayerInCombat() and not menu:IsProtected()) then return end
+                        if menu:IsShown() then menu:Hide(true) else menu:Show(true) end
                     end
                 ]])
-                function tile:ToggleGameMenuInCombat()
-                    -- ⚠ 不能用 ToggleFrame／ShowUIPanel／HideUIPanel：UIParentPanelManager 的
-                    -- CheckProtectedFunctionsAllowed 寫死「戰鬥中不准插件開關 UI 面板」，直接
-                    -- return 並印「介面功能因插件而失效」（taint.log 不記）。直接 Show／Hide
-                    -- 不經過面板系統，非保護框戰鬥中合法。ESC 照樣關得掉（HideUIPanel 對不在
-                    -- 面板系統裡的框會退成 Hide）。
-                    if GameMenuFrame then
-                        GameMenuFrame:SetShown(not GameMenuFrame:IsShown())
-                    end
-                end
-                tile:RegisterEvent("PLAYER_REGEN_DISABLED")
-                tile:RegisterEvent("PLAYER_REGEN_ENABLED")
-                tile:SetScript("OnEvent", function(self, event)
-                    self:SetAttribute("incombat", event == "PLAYER_REGEN_DISABLED")
-                end)
             else
                 -- secure 點擊轉發：走 **macrotext 的 /click <名字>**，不是 clickbutton。
                 --

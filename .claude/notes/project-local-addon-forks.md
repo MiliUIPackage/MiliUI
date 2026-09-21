@@ -38,6 +38,7 @@ metadata:
 | **Platynator** | `Core/Initialize.lua` 讀 MiliUI 內建 profile 並自動切換 | [[project-platynator-preset]] |
 | **AppearanceTooltip** | **整包 zhTW 中文化**（`config.lua` 32 行、`overlays.lua` 4 行、`addon.lua` 的職業警告 1 行，上游沒有語系檔，翻譯是就地改字串）＋兩處秘密值修補：`GetCenter` 的 `IsRectValid` guard（上游 `bf84c3cb1` 之後已同文，不再是分歧）、**秘密錨點下不顯示預覽**（2026-09-08，`ShowTooltip`＋positioner 每幀檢查＋`issecretframe` helper 補秘密布林判斷，解 `OrbitCameraMixin.lua:546` 每幀報錯） | [[project-appearancetooltip-secret-rect]]。秘密值那三處有 `fix from MiliUI` 標記；中文化沒有（量太大），更新前先留一份舊檔對照 |
 | **DamageMeterTools** | 錯誤處理器改成鏈式（原本會吃掉 BugSack 的錯誤）、登入卡頓修補 | 見 [[project-121-addon-migration]] |
+| **TeleportMenu** | `TeleportMenu.lua` 的 `tpm:Setup` 尾端：`hooksecurefunc("ToggleGameMenu", tpm.ReloadFrames)` 改成 `GameMenuFrame:HookScript("OnShow", …)`（2026-09-21）。上游只有 ESC 開選單才會建／顯示傳送按鈕，從選單圖示開（暴雪原廠那顆、MiliUI_InfoBar 那顆）整排不出現 | 一行，有 `MiliUI` 註解。這支常 `update:`，洗掉的症狀是「從資訊列圖示開選單沒有傳送按鈕」；`MiliUI/Enhance/TeleportMenu_Spacing.lua` 兩種掛法都接，不用跟著改。見 [[project-miliui-infobar]] |
 | **BuffReminders** | `Core/Bootstrap.lua` 註解掉每次登入的 external buffs 提示 | 一行 |
 | **DiGuaTimelineAudioHelper** | `Core.lua` 註解掉每次登入的「愛發電」贊助提示 print | 一行，有 `fix from MiliUI` 標記。這支會定期 `update:` 同步上游 |
 | **MRT** | 12.1 光環秘密值閘：`RaidCheck.lua` 的 `module.frame:UpdateData`（閘從迴圈內移到呼叫前）與 `CheckPotionsOnPull`（新增閘） | [[project-121-addon-migration]]。兩處都有 `fix from MiliUI` 標記；上游自己有在修同一類問題，同步後要重看這兩個點 |
