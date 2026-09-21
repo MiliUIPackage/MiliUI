@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第四輪（12 個視窗）使用者實機看過、taint.log 零 blocked；第五輪使用者實機看過（收藏有底、條不壓字、分頁「好很多」）；第六輪（2026-09-21 凌晨，使用者睡覺時）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
+**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第四輪（12 個視窗）使用者實機看過、taint.log 零 blocked；第五輪使用者實機看過（收藏有底、條不壓字、分頁「好很多」）；第六輪使用者看過分頁（提出置中問題、已修）；第七輪（精緻化＋寶庫／冒險指南／拍賣場／專業，共 18 個視窗開關）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
 `## DefaultState: disabled`（PoC 期間 push 也不會讓整包玩家預設吃到），`/mskin` 開設定、
 `/mskin debug` 印每份配方的狀態＋找不到的區域＋因保護框跳過的清單。
 規範全文在 `AddOns/MiliUI_Skin/STYLE.md`（Tokens／契約／模板配方表／新增視窗 checklist／範圍分級），
@@ -192,6 +192,33 @@ metadata:
 - 標題帶（`PortraitChrome` 系，`fillInset` 高 22＋髮絲線，`opts.titleBar=false` 可關）、捲軸收成 6px 細條＋拇指 hover。
 - **`MiliUI_Skin_DB.lastReport`**：登出時存 `/mskin debug` 的內容（400 行上限）—— 之後直接讀 WTF 的 SavedVariables，不用等使用者貼。
 - 同日另修：好友狀態下拉顯示「...」不是 Skin 的鍋（暴雪寫死 51 寬 ≈ 8＋16＋箭頭 28，換字型後零頭放不下）⇒ `MiliUI/Fix/Blizzard_FriendsStatusDropdown.lua` 加寬到 63。
+
+## 第七輪（2026-09-21）
+
+- **線條圖記**：下拉 ⌄、翻頁 ‹ ›、捲軸 ∧ ∨ 都改成 `CreateLine` 畫在自己 overlay 上（暴雪的立體小圖 alpha 0）；停用態走 `HookScript OnEnable/OnDisable`
+  （DisabledTexture 的矩形是暴雪給的、比我們內縮過的 overlay 大，塗暗會露一圈光暈）。`T.scrollStepper="hide"` 可純中和。
+  套組設定視窗的捲軸其實也是暴雪 `MinimalScrollBar`（只是沒換皮），不是「沒有箭頭」。
+- **清單列語彙**統一在 `Skin.Row`：滑過提亮；選中＝`AccentFill` 底＋左緣 2px 職業色直條（`opts.noAccentLine` 可關）。
+  做不到的：聲望分類列／插件列表分類列的 ＋／−（展開狀態沒有零讀取來源）。
+- **分頁的兩個坑（使用者擷圖抓到）**：
+  1. **XML 寫的分頁重疊（`LEFT → 前一顆 RIGHT x=-16`）在遊戲裡從來沒生效** —— `PanelTemplates_SetNumTabs` → `PanelTemplates_AnchorTabs`
+     把每顆重錨成 `TOPLEFT → 前一顆 TOPRIGHT +3`。照 XML 給 `pad` 會讓 overlay 偏移、字看起來不置中。⇒ **PanelTab 系的 `pad` 一律 0**
+     （收藏、冒險指南都踩過；查 XML 時要連 OnLoad 有沒有 `SetNumTabs` 一起看）。
+  2. 成就視窗的 `AchievementFrame_UpdateTabs` 在 `PanelTemplates_Tab_OnClick` **之後**又把三顆分頁的字設成 −5／−3 ⇒ 要另勾它再置中一次。
+- **大類按鈕圖示改方形**：使用者不喜歡「圓形＋壓深環」的模糊邊。圖示素材本來就是方形、圓形只是 `CircleMask` ⇒ 新契約例外
+  `Engine.UnmaskIcon`（`RemoveMaskTexture`，只准純裝飾遮罩、脫戰、失敗自動退回壓深環）＋裁邊＋錨在圖示上的 1px 黑框；
+  列 overlay 上下各加 3（圖示 66 高、按鈕 60 高）。`T.categoryIconStyle="ring"` 切回。
+- **寶庫**：純視覺特許、零 hook；活動格無名且 OnLoad 就建好 ⇒ 用 `GetChildren`＋四個 parentKey 的組合認；圖示裁邊靠自己事件框收
+  `WEEKLY_REWARDS_UPDATE` 延一幀補；解鎖／未解鎖是同一張貼圖換 atlas ⇒ 做不出明暗差；領獎確認面板不碰。
+- **冒險指南**：戰利品列／首領列勾 mixin `Init`；戰利品列是 345 寬的「按鈕」⇒ 方框要錨在 icon 貼圖上而不是用 `Skin.ItemButton`；
+  技能說明區羊皮紙保留（十幾處字色＋SimpleHTML 每次重設）；副本卡片的初始化是 local 函式，接不到。
+- **拍賣場／專業：特許的第二種粒度（按鈕級）** —— 只有會送出受保護請求的按鈕（出價／直購／上架／取消拍賣／製作／接單／完成訂單／套用專精…）走配方內的
+  `CommerceButton`（中和＋引擎 hover＋字型物件＋overlay，零 HookScript），其餘照一般原語。拍賣結果清單的「列」一顆都不碰
+  （唯一出口是全遊戲共用的 `TableBuilderMixin:AddRow`，而且跟出價／直購同一條執行流）；`ProfessionsRankBar` 不是 StatusBar（遮罩＋FlipBook）不碰；
+  製作訂單的四顆範圍分頁是 XML 建的、選中態只能從暴雪框實例方法得知 ⇒ 不碰；專業視窗的分頁同步勾的是**全域** `TabSystemOwnerMixin.SetTab`
+  （`ProfessionsMixin:SetTab` 最後用明碼表查詢呼叫它），只在裡面呼叫 `Engine.SyncTabSystemAll()`。Auctionator 的四顆分頁照伴隨元件規則一起進 `Skin.TabGroup`
+  （必須跟暴雪三顆**同一次**畫完：接縫錨點只在 overlay 建立時定一次）。
+- 撞到過一次用量上限（三個 Opus 同時）：被中斷的代理用 SendMessage 續跑即可，worktree 還在。
 
 ## 還沒實機確認的
 
