@@ -239,7 +239,11 @@ metadata:
 - PGF 自畫的難度下拉：overlay 要內縮到可見欄位（22／18），照它 145x32 的外框畫會凸出視窗。
 - 不是 skin 但一起修的（都在 `MiliUI/`）：`Fix/Blizzard_FriendsStatusDropdown.lua`（51 寬剛好等於狀態圖寬，換字型就「...」⇒ 設成常數 63）、
   `Fix/PremadeGroupsFilter_ShortLabel.lua`、`Enhance/ChallengesUI_LootTable.lua`（M+ 檔案提示會被對方自己 SetPoint 挪回來 ⇒ 勾它 anchor 的 `SetPoint` 重套、有重入保護；面板底不透明）。
-- 待使用者決定：團隊列表職責人數「…」（固定寬＋套組字型較寬）要不要在 `MiliUI/Fix` 保守加寬；彈窗／ESC 選單要不要改提示皮。
+- **彈窗／ESC 選單外框＝提示皮**（使用者定）：`T.tipFill`＋`T.Accent()` 邊，**只有最外圈**；裡面的按鈕／輸入框照舊 fill＋黑邊（職業色一個視窗只給一處）。
+- 地城搜尋器的職責勾選框：原本 `fillInset`(0.08)＋黑邊壓在 0.115 視窗底上等於隱形 ⇒ 改 `fillCheck`、`ROLE_BOX_SIZE` 14→22（按鈕 scale 0.7，上限 29）、加滑過。
+- `MiliUI/Fix/Blizzard_LFGListRoleCountWidth.lua`：團隊列表職責人數兩位數顯示「…」—— `RoleCountNoScriptsTemplate` 三個人數欄寫死 17 寬；
+  後置勾 `LFGListGroupDataDisplayRoleCount_Update`、每框一次把輸出／治療 `SetWidth` 22／20（右往左的錨定鏈自己讓位）。
+  **總量只能 +8 左右**：列寬 312、名稱最寬到 186、這組左緣 187，零餘裕。暴雪不讀這三個寬度、我們不碰 displayData（秘密值）。
 
 ## 還沒實機確認的
 
