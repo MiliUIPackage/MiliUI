@@ -348,10 +348,44 @@ local function Absorb(session, def, acc, order, guids, names, pets)
                         if ps then e["_ps_" .. def.perSec] = (e["_ps_" .. def.perSec] or 0) + ps end
                     end
                 end
+            elseif kind == "other" and def.count and pets then
+                -- 對照表沒對到的寵物／守護物：先記下來，等所有人的職業都填好再用職業對
+                -- （見 ResolvePendingPets）。敵方的列不收
+                local enemy = Enum and Enum.DamageMeterSourceDisplayType and Enum.DamageMeterSourceDisplayType.Enemy
+                local disp = S.PlainNumber(src.sourceDisplayType)
+                local cls = S.PlainText(src.classFilename)
+                local amt = S.PlainNumber(src.totalAmount)
+                if cls and cls ~= "" and amt and not (enemy ~= nil and disp == enemy) then
+                    pets.pending[#pets.pending + 1] = { class = cls, field = def.field, amt = amt }
+                end
             end
         end
     end
     return unresolved
+end
+
+------------------------------------------------------------
+-- 沒對到主人的寵物列 → 用職業對
+--
+-- 實機看到的事實（內建統計的「打斷」頁）：寵物是**獨立的一列**，而那一列的
+-- classFilename 是**主人的職業**（長條跟主人同色）。所以對照表對不到時
+-- （寵物完賽時已經收起來、重新召喚過 GUID 換了），還有一條路：
+-- **隊伍裡只有一個人是那個職業** ⇒ 就是他的。兩個同職業就分不出來，不猜。
+--
+-- ⚠ 圖騰這類沒有職業的守護物（長條是灰的）走不了這條路，目前對不回主人。
+------------------------------------------------------------
+local function ResolvePendingPets(pending, order)
+    if #pending == 0 then return end
+    local byClass, dup = {}, {}
+    for _, e in ipairs(order) do
+        if e.class then
+            if byClass[e.class] then dup[e.class] = true else byClass[e.class] = e end
+        end
+    end
+    for _, p in ipairs(pending) do
+        local owner = not dup[p.class] and byClass[p.class]
+        if owner then owner[p.field] = owner[p.field] + p.amt end
+    end
 end
 
 ------------------------------------------------------------
@@ -460,7 +494,7 @@ function Snap.Take(baselineSessionID, completion)
         flags.truncated = true
     end
 
-    local pets = {}
+    local pets = { pending = {} }
     pets.byGUID, pets.byName = Snap.BuildPetOwners()
 
     local function AbsorbSessionID(id)
@@ -523,6 +557,8 @@ function Snap.Take(baselineSessionID, completion)
 
     ApplyScores(acc)
     ApplyUnitIdentity(acc)
+    -- 要排在補職業之後：用職業對主人，職業沒填好就對不到
+    ResolvePendingPets(pets.pending, order)
 
     ------------------------------------------------------------
     -- 每秒值

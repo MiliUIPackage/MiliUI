@@ -31,6 +31,34 @@ function H.Trim()
 end
 
 ------------------------------------------------------------
+-- 修復「被加成兩倍」的舊記錄
+--
+-- 0.1.0 最早的版本把暴雪的整趟合併分段跟逐場分段一起加總，每個總量（連戰鬥秒數）
+-- 剛好是兩倍。指紋很硬：**戰鬥秒數比整趟的牆鐘時間還長** —— 那在物理上不可能。
+-- 符合的就把所有總量減半；每秒值是「總量 ÷ 秒數」，兩邊同乘 2 互相抵銷，不必動。
+-- 修過的標 statsSource = "combined"（減半之後剩下的正是合併分段那一份）。
+------------------------------------------------------------
+local HALVE_FIELDS = { "dmg", "heal", "taken", "avoidable", "enemyTaken", "interrupts", "dispels", "deaths" }
+
+function H.RepairDoubled()
+    local db = ns.db
+    if not db or type(db.runs) ~= "table" then return end
+    for _, run in ipairs(db.runs) do
+        local sec, ms = tonumber(run.combatSec), tonumber(run.timeMs)
+        if run.statsSource == "sessions" and sec and ms and sec * 1000 > ms
+            and type(run.players) == "table" then
+            for _, p in ipairs(run.players) do
+                for _, f in ipairs(HALVE_FIELDS) do
+                    if type(p[f]) == "number" then p[f] = p[f] / 2 end
+                end
+            end
+            run.combatSec = sec / 2
+            run.statsSource = "combined"
+        end
+    end
+end
+
+------------------------------------------------------------
 -- 新增一筆（最新的在前）
 ------------------------------------------------------------
 function H.Add(run)

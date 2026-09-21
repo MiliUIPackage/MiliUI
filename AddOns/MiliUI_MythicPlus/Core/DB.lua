@@ -105,6 +105,7 @@ function DB.Init()
     Normalize(db)
     ns.db = db
     ns.History.Trim()
+    ns.History.RepairDoubled()
     return db
 end
 
