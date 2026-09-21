@@ -464,11 +464,15 @@ function ns.Blocks.micromenu.create()
                 --   乾淨的 ⇒ OnShow → InitButtons 建出來的每顆選單按鈕（編輯模式、選項…）
                 --   都不帶我們的 taint。插件 Lua 自己 Show 的話，那一趟選單的每顆按鈕都是髒的，
                 --   從那裡進編輯模式＝用插件的身分進編輯模式。
-                -- 戰鬥中 ＝ restricted 環境拿不到非保護框的 handle（RestrictedFrames.lua 的
-                --   GetHandleFrame：非保護框 ＋ InCombatLockdown ⇒ "Invalid frame handle"），
-                --   只能 CallMethod 回插件端自己開。GameMenuFrame 與微型按鈕都不是保護框，
-                --   開關本身不會被擋；髒的只有**那一趟**的選單按鈕（每次 OnShow 重建、物件池是
-                --   SecureTypes，不會留到下一趟）。
+                -- 戰鬥中 ＝ 看 GameMenuFrame 當下是不是保護框（snippet 裡的 IsProtected 戰鬥中照樣能問）：
+                --   是 ⇒ 照樣走 snippet。暴雪原廠它不是保護框，但**只要有插件把 secure 按鈕掛在
+                --     它底下，它就變成隱式保護框**（套組裡的 TeleportMenu 就是）——這時插件 Lua
+                --     戰鬥中 Show 它會被**靜默**擋掉（沒有錯誤訊息、taint.log 也沒記，2026-09-21
+                --     實測「戰鬥中點了沒反應」），而 restricted 環境反過來可以合法操作它。
+                --   否 ⇒ restricted 環境拿不到非保護框的 handle（RestrictedFrames.lua 的
+                --     GetHandleFrame：非保護框 ＋ InCombatLockdown ⇒ "Invalid frame handle"），
+                --     只能 CallMethod 回插件端自己開；髒的只有**那一趟**的選單按鈕（每次 OnShow
+                --     重建、物件池是 SecureTypes，不會留到下一趟）。
                 --
                 -- 走哪條看 incombat 屬性，由 REGEN 事件寫 —— 要跟 InCombatLockdown 完全同步，
                 -- snippet 裡的 PlayerInCombat() 是 UnitAffectingCombat，兩者有落差的那一瞬間
@@ -482,7 +486,7 @@ function ns.Blocks.micromenu.create()
                         self:CallMethod("OnTileRightClick")
                     elseif button == "LeftButton" then
                         local menu = self:GetFrameRef("gamemenu")
-                        if not menu or self:GetAttribute("incombat") then
+                        if not menu or (self:GetAttribute("incombat") and not menu:IsProtected()) then
                             self:CallMethod("ToggleGameMenuInCombat")
                         elseif menu:IsShown() then
                             menu:Hide(true)
