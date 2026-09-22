@@ -3179,6 +3179,12 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         p(("身分閘：已重新掃描並強制重讀 %d 個容器%s"):format(n,
             InCombatLockdown() and "（戰鬥中只能標記，離開戰鬥後補跑）" or ""))
     elseif cmd == "spell" then
+        -- 法術旗標分析視窗（AuraSpellInspector.lua）：arg 可以是 ID、名稱或法術連結，
+        -- 空白就開一個空的視窗。視窗不在（檔案沒載入）才退回下面的一行版。
+        if Cell.AuraSpellInspector then
+            Cell.AuraSpellInspector.Show(arg)
+            return
+        end
         -- "will this spell go secret in combat?" ShouldSpellAuraBeSecret answers for the
         -- SPELL, not for anyone currently carrying it, so it is safe to ask mid-combat.
         local spellID = tonumber(arg)
@@ -3278,7 +3284,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
     else
         p("supported =", tostring(AD.IsSupported()), "|", tostring(ACC.Failure() or "OK"))
         AD.Debug()
-        p("其他：/cab list | stats | ghosts | report [n] | bounce on|off | inspect [unit] | overdraw [unit] | spell <id> | gate | test")
+        p("其他：/cab list | stats | ghosts | report [n] | bounce on|off | inspect [unit] | overdraw [unit] | spell [id｜名稱｜連結]（旗標分析視窗） | gate | test")
     end
 end
 
