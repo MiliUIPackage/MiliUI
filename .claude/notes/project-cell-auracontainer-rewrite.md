@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 47adb948-8bd2-4804-9bff-d58a154ecf7c
-  modified: 2026-09-22T06:08:42.965Z
+  modified: 2026-09-22T06:30:53.067Z
 ---
 
 Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard AuraContainer（路線 A，見 [[wow-121-aura-containers]]），讓分類全走 Blizzard-side candidateFilters，照 DandersFrames v5 作法「一個都不少」。使用者 2026-08 選定路線 A。**已上線使用**（master，Cell r283-MiliUI）。
@@ -67,10 +67,14 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
   `Blizzard_CustomAuraButton.lua`，只有學派貼圖/文字、倒數、層數、圖示、法術名、pandemic）。所以 `bossrole`
   record 帶 `badge = true`，initFn 蓋 `button._adBadge`（跟 effColor 同招），StyleButton 畫。
   範圍＝`isBossOrRoleAura` 那一組（含職責減益）；**優先減益、左下減益排都沒有**（左下是單一 HARMFUL group，分不出來）。
-- **畫法**：`ACC.StyleBossBadge(host, anchorTo, iconSize, scaleRef)`——金底（1,0.82,0）黑 1px 邊＋黑「!」，
-  全用色塊、以**實體像素**計（px = GetPixelToUIUnitFactor / scaleRef 有效縮放），邊長 ≈ 圖示 45%、偶數、10–16px。
+- **畫法**（使用者定案：**黃色「!」包 1px 黑邊，不要底框**）：`ACC.StyleBossBadge(host, anchorTo, iconSize, scaleRef)`，
+  四張色塊（bar／dot 各一張黑邊＋一張黃 1,0.82,0），兩個黑邊重疊讓 bar 與 dot 之間只隔 `gap` 的黑。
+  尺寸表 `GLYPH` 是「22px 圖示上的實體像素」（inset 1、edge 1、寬 2、bar 高 6、gap 1），**每一項都乘 k = 圖示實體像素 / 22**
+  再取整（各有下限）。px = GetPixelToUIUnitFactor / scaleRef 有效縮放。
   遊戲內畫在 `dfDurHolder`（base+6）的 ARTWORK 層＝在圖示／遮罩／時鐘掃描之上、倒數文字之下，不多建 frame；
   scaleRef 用 `handle.frame`（不從 AuraButton 讀任何東西）。
+  ⚠ **不要給實體像素設上限**：第一版（金底方塊）限 10–16px，設定面板的預覽有「縮放大小」會把整顆按鈕放大，
+  圖示變 80px 角標還是 16px，使用者以為實際就那麼小。任何以實體像素計的尺寸都要跟著縮放走。
 - **預覽**：預覽按鈕的第 1 顆 BorderIcon（無學派紅框那顆）代表首領組，畫在它的 `textFrame`（同樣在掃描之上、
   數字之下），呼叫同一支 `ACC.StyleBossBadge`。`UpdateBossBadgePreview` 掛在四個觸發點：初始化迴圈、
   checkbutton bossBadge、raidDebuffFilters（首領／職責關掉就不畫）、size-border。不支援 AuraContainer 時不畫。
@@ -79,7 +83,7 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
   UnitButton 的 checkbutton 分派要走 no-op 分支（跟 excludeImportant 同一格），否則會蓋掉同指示器的 onlyShowTopGlow（通則 12）。
 - bossBadge 是結構鍵（改了就重建），也在寄存 key 裡（TableSig(config)），所以蓋過章的按鈕不需要「拿掉」路徑。
   `/cab inspect` 的 record 行帶 ` [!]`。
-- **待驗證**：副本裡首領減益真的出現角標、非首領組沒有；18px 圖示上 10px 角標會不會太大；預覽勾選即時切換。
+- **待驗證**：副本裡首領減益真的出現「!」、非首領組沒有；預覽勾選與縮放即時跟著變。
 
 ## 樣式規則（StyleButton）
 
