@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 3711022c-b7f1-4e09-8bca-88c69c5bfca9
-  modified: 2026-08-18T04:21:50.028Z
+  modified: 2026-09-22T04:03:52.363Z
 ---
 
 12.1 之後插件**讀不到光環內容**，所以「過濾」只剩一條路：把條件交給引擎，由 C 端決定
@@ -80,6 +80,46 @@ includeSpellIDs     excludeSpellIDs      maxDuration
 **在確認之前一律用 `isPriorityAura` 這個 candidate**（Cell 就是這樣，兩邊都不得罪）。
 要驗證的話 Cell 有現成的探針：`/cab test` 是六步二分，`AuraDisplay.lua:1595` 那張
 filter 測試表加一條 `HARMFUL|IMPORTANT` 就看得出來。
+
+**2026-09-22 旁證（傾向 EUI 對）**：暴雪熱修正的用詞「X is now an Important Aura」用在
+Ula'tek 的 Boiling Venom（9/21）——那是**敵方小怪身上的增益**（+100% 急速／傷害），
+跟 AuraUtil 註解「helpful auras that show on enemy nameplates」一致。友方團隊框上的大減益
+在熱修正裡的用詞是另一句「is now a large debuff on raid frames」（9/9 Faerie Swarm）。
+⇒ 玩家說「暴雪把某減益改成 Important」時，**不要以為 Cell 中央會自動吃到**。
+
+## 旗標是暴雪逐法術手標的，會漏標也會熱修
+- DBM 12.1.4 release note（作者 MysticalOS）：isBossOrRoleAura 在 DBM 預設關，因為
+  「PTR 期間至少一半的首領光環沒被正確標記」。漏標是已知狀況，不是插件問題。
+- 離線查某法術的旗標（傳明文 spellID 不受秘密限制，戰鬥中也能問）——**現成工具：
+  `/cab spell <ID｜名稱｜連結>` 開 Cell 的法術旗標分析視窗**，一次把下面全部查完，
+  再用目前版面實際建好的 record 推算 Cell 哪一組會認它（`Cell/RaidFrames/AuraSpellInspector.lua`）。
+  玩家回報「某減益不夠顯眼」時先開它。2026-09-22 翻 Gethe/wow-ui-source 的
+  `Blizzard_APIDocumentationGenerated` 整理出的完整清單：
+  * 旗標：`C_Spell.IsPriorityAura`（＝cf `isPriorityAura`；暴雪 AuraUtil 的 PriorityDebuff 就是它，聖騎士另把自律 25771 算進去）、
+    `C_Spell.IsSpellImportant`（暴雪名條排序用，跟 token `IMPORTANT` 是否同源未證實）、
+    `C_UnitAuras.AuraIsBigDefensive`（token `BIG_DEFENSIVE`）、`C_Spell.IsExternalDefensive`（token `EXTERNAL_DEFENSIVE`）、
+    `C_Spell.IsSpellCrowdControl`（**法術層級**「施放會造成控場」，光環層級的 `CROWD_CONTROL` 可能不同）、
+    `C_UnitAuras.AuraIsPrivate`、`C_Spell.IsSelfBuff`、
+    `C_Spell.GetVisibilityInfo(id, Enum.SpellAuraVisibilityType.RaidInCombat|RaidOutOfCombat|EnemyTarget)`
+    → `hasCustom, alwaysShowMine, showForMySpec`（暴雪團隊框 ShouldDisplayDebuff/Buff 的規則）、
+    `C_Spell.GetDeadlyDebuffInfo`（`priority`、`warningText`、`criticalStacks`、`criticalTimeRemainingMs`）、
+    `C_UnitAuras.GetCooldownAuraBySpellID`、`C_Spell.GetSpellMaxCumulativeAuraApplications`（光環受限時是秘密值）。
+  * 秘密：`C_Secrets.GetSpellAuraSecrecy(id)` 回 `Enum.SecrecyLevel`（0 NeverSecret／1 AlwaysSecret／2 ContextuallySecret）
+    ——**這一支直接回答「隊友減益的 ID 過濾對它有沒有用」**（只有 NeverSecret 有用）；
+    `ShouldSpellAuraBeSecret` 是「此刻」；另有 `GetSpellCastSecrecy`、`GetSpellCooldownSecrecy`。
+  * **沒有依 ID 查的**：`isBossAura`、`isTankRoleAura`／`isHealerRoleAura`／`isDPSRoleAura`、學派、持續時間、
+    `isStealable`、`isRaid`、`nameplateShow*` —— 只存在光環實例上（AuraUtil.IsRoleAura 就是三個職責欄位 OR）。
+    要讀只能等光環掛在某人身上且那一刻不是秘密（`GetUnitAuraBySpellID` 是 RequiresNonSecretAura，秘密時回空、不報錯）。
+  * 有實例時，`C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, iid, filter)` 讓引擎對那顆實例實測整條 filter
+    ——**「某 token 到底認不認它」唯一的第一手答案**，上面「IMPORTANT 能不能配 HARMFUL」可以用它驗。
+  * `AuraUtil.AuraFilters` 還有 `DISPELLABLE`（「可驅散，不管隊上有沒有人能驅」）與 `INCLUDE_NAME_PLATE_ONLY`、`MAW`，
+    上面的 token 清單沒列到。
+- `maxDuration` 對友方減益在秘密下**確實生效**：DBM 12.1.2 用 60 秒上限、12.1.5 撤掉，
+  原因是沒有持續時間的環境／GTFO 減益被一起濾掉（「非 nil 就隱藏永久光環」）。
+  實例：盤蛇祭壇幽暗炸彈 1286901／1310881 = 5 秒、恐慌凝視 1285911 = 7 天，
+  兩者都沒學派，唯一能分的就是持續時間。實測 `C_Spell.IsPriorityAura` 兩個都 false
+  ⇒ 恐慌凝視是靠首領／職責旗標進 Cell 中央的（刪去法）。Cell 因此加了兩個持續時間選項，
+  見 [[project-cell-auracontainer-rewrite]]。
 
 ## 兩個雜項
 

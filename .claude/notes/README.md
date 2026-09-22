@@ -132,7 +132,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-zhtw-blizzard-terms.md](feedback-zhtw-blizzard-terms.md) | zhTW 用暴雪官方詞彙：focus 是「專注目標」不是「焦點」，後者只留給輸入焦點 |
 | [feedback-plan-opus-verify-workflow.md](feedback-plan-opus-verify-workflow.md) | 較大的功能走「寫 plan → Opus 子代理在 worktree 實作 → 驗收 → commit＋merge」；push 另等指示，遠端叫 `MiliUIPackage` |
 | [project-miliui-hud-skin.md](project-miliui-hud-skin.md) | **HUD 皮的正式定義**：黑透明底＋1px 職業色邊＋白字＋直角；跟設定視窗皮的二選一判準與數值表 |
-| [project-miliui-button-variants.md](project-miliui-button-variants.md) | **按鈕上色規則（全套組遵守）**：primary（主動作）／normal 兩種長相、職業色公式、七條判準、`W.CreateButton(…, "primary")`＋`W.PaintButton`；`accent`／`green` 是舊配色（遷移待辦） |
+| [project-miliui-button-variants.md](project-miliui-button-variants.md) | **按鈕上色規則（全套組遵守）**：primary（主動作）／normal 兩種長相、職業色公式、八條判準（主按鈕不疊發光／彩色字）、`W.CreateButton(…, "primary")`＋`W.PaintButton`；`accent`／`green` 是舊配色（遷移待辦） |
 | [project-agent-dir-convention.md](project-agent-dir-convention.md) | agent 資料的擺放慣例（就是這個結構） |
 
 ### 自製功能

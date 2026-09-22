@@ -112,11 +112,16 @@ arg1 從頭到尾沒被用過 —— 路由只是為了少畫幾格。把三個�
 見 [[feedback-fix-root-cause-not-symptom]]。
 
 **最大生命值損失：`GetUnitTotalModifiedMaxHealthPercent(unit)`**（2026-09-22 查 12.1.0 (69875)
-的 `UnitDocumentation.lua`，**尚未實機驗證**）：文件**沒有任何秘密標記**（沒有 SecretReturns、
+的 `UnitDocumentation.lua`）：文件**沒有任何秘密標記**（沒有 SecretReturns、
 也沒有 SecretWhen…Restricted），回 0～1 的損失比例 —— 少數插件可以拿來算版面的血量值。
+**2026-09-22 實機驗證：地城首領戰中（party／戰鬥中／IsEncounterInProgress）對 target、boss1target
+回明文 `0.24999928474426`**（25% 的 debuff，約 2 秒）。**M+ 鑰石與團隊副本還沒驗**。
+附帶觀察：同一次變化 boss1target 的 tracker 收到 4 次事件、target 只收到 1 次 —— 複合 token
+（xxxtarget）的 RegisterUnitEvent 過濾比較鬆，不讀 arg1 的處理器不受影響。
 對應事件 `UNIT_MAX_HEALTH_MODIFIERS_CHANGED` 則標了 `SecretPayloads`（payload 是 unitTarget ＋
 同一個比例），所以事件只當訊號：**不讀 arg1 路由、不讀比例**，當下重問函式。
 MiliUI_UnitFrames 用它畫血條的損失段（`Elements/Health.lua`、`Core/Events.lua` 的
-`NO_ROUTE_EVENT`），`/muf debug` 的「最大生命值損失」那段印 api 回值是不是 secret ——
-實機跑過（尤其 M+／首領戰）之後把這段的「尚未驗證」改掉。暴雪自己的畫法在
+`NO_ROUTE_EVENT`）。實機記錄寫在帳號層 SV `MiliUI_UnitFrames_DB.maxHPLog`（每行帶副本類型／戰鬥／
+首領戰／M+ 情境），使用者 `/reload` 後直接讀 `WTF/Account/LAXGENIUS/SavedVariables/MiliUI_UnitFrames.lua`，
+不用截圖；`/muf maxhp` 在遊戲裡印。暴雪自己的畫法在
 `Blizzard_UnitFrame/Shared/UnitFrame.lua` 的 `TempMaxHealthLossMixin`（CVar `showTempMaxHealthLoss`）。

@@ -52,6 +52,9 @@ metadata:
 5. 會開選單的按鈕、可收合的清單標題用 normal。它們不是動作。
 6. 讀不出是哪一顆時照位置判斷。位置也不可靠就全部用 normal。
 7. `red` 只給破壞性動作（清空、刪除、還原預設）跟關閉鈕 ×。「取消」不是破壞性動作，用 normal。
+8. **主按鈕不要再疊發光或彩色字**（2026-09-22，「加入一鍵購買清單」拿掉發光時定的）。
+   發光原本是在講「這顆可以按」，primary 平時就帶職業色，已經在講同一件事，兩個訊號疊在一起只會變吵。
+   字裡的色碼還會蓋掉停用時的灰字。
 
 ## 實作入口
 
@@ -81,9 +84,7 @@ metadata:
   也包括共用層自己的 `W.CreateConfirmPopup`／`W.CreateInputPopup`：
   「確定」是 green、「取消」是 red，應該分別改成 primary 跟 normal。
   **這一條會一次改到所有插件的彈窗**，動手前先問使用者。
-- **`accent-hover` 當成單顆動作鈕用的**：採購清單的「加入一鍵購買清單」（`Modules/AddButton.lua`）
-  應該改成 primary。它啟用時字是金色，改成 primary 之後金色碼就多餘了。
-  分頁（`W.CreateButtonGroup`）維持原樣。
+- **`accent-hover` 當成單顆動作鈕用的**：改成 primary。分頁（`W.CreateButtonGroup`）維持原樣。
 - **normal 的滑過**：共用層只把底提亮到 0.23、邊維持黑；Skin 的 secondary 另外亮職業色邊。
   兩邊還沒統一，要統一的話會改到全部插件的 normal 按鈕。
 
@@ -92,6 +93,7 @@ metadata:
 - MiliUI_ShoppingList（2026-09-22，**待實機驗證**）：用 primary 的是每列「購買」、底部「全部購買」、
   確認列的「確認」與「購買」。用 normal 的是搜尋、搜尋全部、清除已齊、取消、跳過。
   用 red 的是清空清單跟關閉。
+  同一天，專業視窗上的「加入一鍵購買清單」也改成 primary（使用者指定）：**發光拿掉、字的金色碼拿掉**。
 - MiliUI_Skin 換皮的暴雪視窗（第九輪，未實測）。
 
 相關：[[project-miliui-skin]]、[[project-miliui-widgets-vendor]]、[[project-miliui-shoppinglist]]、

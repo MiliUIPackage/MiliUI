@@ -289,9 +289,11 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
   - 製作頁「追蹤配方」左邊 —— 回收類配方沒有追蹤勾選框，按鈕浮在面板中間
   - 材料區右端 —— 製作頁的詳細資訊面板貼在右上（TOPRIGHT -20, -125）
   - 按鈕底下常駐一行說明 —— 使用者要求**說明只在滑過時出現**，改成工具提示第一行
-- **⚠ 按鈕字的金色碼只在啟用時加。** W.CreateButton 停用時把字轉灰，但內嵌色碼
-  蓋得過 SetTextColor —— 原本一律帶金色，停用的按鈕看起來跟能按的一樣，
-  回報就變成「按鈕不能按」（其實是被停用，只是看不出來）。停用時也要
+- **⚠ 按鈕字不放色碼。** 內嵌色碼蓋得過 W.CreateButton 停用時上的灰字 —— 以前一律帶金色，
+  停用的按鈕看起來跟能按的一樣，回報就變成「按鈕不能按」（其實是被停用，只是看不出來）。
+  2026-09-22 起按鈕是 primary（[[project-miliui-button-variants]]）：啟用＝職業色、停用＝中性，
+  **金色碼與發光都拿掉了**（`MiliUIGlow` 也從這支插件移除，它只為這顆按鈕存在）。
+  「已經在清單裡」只寫在工具提示裡。停用時仍要
   `SetMotionScriptsWhileDisabled(true)`，滑過才講得出原因。
 - **製作頁底部那排不能錨「製造」鈕的左邊**（實測，2026-09-08）。由右往左是
   `CreateButton` ← `CreateMultipleInputBox` ← `CreateAllButton`，暴雪的 XML 各留
@@ -352,6 +354,7 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 
 - [ ] 2026-09-22 按鈕改 primary（每列購買、全部購買、確認列的確認／購買，見 [[project-miliui-button-variants]]）：
       平時職業色底＋邊、滑過整顆亮、**拍賣場沒開／不缺的那幾列要退回中性**；滑過中被停用再移開不能卡色。
+      專業視窗的「加入一鍵購買清單」同樣是 primary、沒有發光；下單頁沒選配方時要是中性（停用）。
 
 ## 已知的檢查器誤報
 
