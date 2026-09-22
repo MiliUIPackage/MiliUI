@@ -566,7 +566,8 @@ end
 --          顏色 alpha 相乘（註 ⓔ 的二選一）。
 --   按下 ＝ `opts.pushed` 有給、而且模板的 Pushed **沒有 Lua 重設**時才換成黑 `pushedAlpha`。
 --
--- **沒有 DisabledTexture 的模板（`UIPanelButtonTemplate` 系）做不到停用態** ⇒
+-- **沒有 DisabledTexture 的模板（`UIPanelButtonTemplate` 系）**：2026-09-22 起替它
+--   `SetDisabledTexture` 一張（見函式內註解），三態俱全。設不上時才退回：
 --   平時的 primary 底**不畫**（維持 `fill` ＋ 黑邊），只留滑過的職業色 —— 少一態，
 --   而且少的是「平時」不是「停用」：停用的按鈕看起來像能按，比主按鈕不夠顯眼嚴重
 --   （出價／直購／製作常常是停用的）。回傳值讓呼叫端知道走了哪一條：
@@ -608,6 +609,17 @@ function Engine.ScriptlessButton(btn, ov, variant, label, opts)
     end
 
     local dis = State("GetDisabledTexture")
+    -- 2026-09-22：模板沒有 DisabledTexture（`UIPanelButtonTemplate` 系：製作、開始訂單、
+    -- 直購…）就**替它設一張**。`SetDisabledTexture` 是 C 端的狀態貼圖 setter：
+    -- 不寫 Lua 欄位、不加腳本，顯示與否仍然完全由引擎依 IsEnabled 決定 ——
+    -- 跟對既有那張 SetColorTexture 是同一個性質，只是這個模板原本沒給。
+    -- 暴雪對這個模板的停用處理（`UIPanelButton_OnDisable`，SecureUIPanelTemplates.lua:70）
+    -- 只換 Left/Middle/Right 的材質，不碰 DisabledTexture ⇒ 不會被打回。
+    -- 設不上（改版、被擋）就退回下面的 hoverOnly。
+    if not dis and not opts.noAddDisabled and type(btn.SetDisabledTexture) == "function" then
+        pcall(btn.SetDisabledTexture, btn, WHITE)
+        dis = State("GetDisabledTexture")
+    end
     if dis then
         local c = T.fillInset
         pcall(dis.SetAlpha, dis, 1)

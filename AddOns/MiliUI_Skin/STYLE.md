@@ -241,6 +241,10 @@ k = 1、完全不變。職業色不是秘密值，這是純 Lua 算術。
   （後置勾的引數），不准讀暴雪物件的文字欄位；(3) 切段邏輯要逐字照暴雪那一支，
   內容相同 ⇒ 暴雪先前用 `GetContentHeight` 排好的高度照樣成立。
   現有用法：冒險指南 `EncounterJournal_SetBullets` 的後置勾。
+- **`SetDisabledTexture`（只准 `Engine.ScriptlessButton`）** —— 2026-09-22：模板本來沒有
+  DisabledTexture（`UIPanelButtonTemplate` 系）的特許按鈕，替它設一張白貼圖再塗成
+  `fillInset`，讓引擎在停用時自己蓋上中性底 ⇒ 平時就能畫 primary 的職業色，仍然零腳本。
+  C 端狀態貼圖 setter，不寫 Lua 欄位；暴雪對這個模板的停用處理只換 Left/Middle/Right。
 
 其他：
 
