@@ -91,8 +91,7 @@ SlashCmdList.MILIUIMYTHICPLUS = function(msg)
             for _, line in ipairs(Pub.CurrentLines(run)) do
                 local w = Pub.ChatWidth(line)
                 local wText = (w == math.floor(w)) and ("%d"):format(w) or ("%.1f"):format(w)
-                -- {rtN} 換成圖示：自己的聊天框不會轉，而對方看到的是圖示
-                ns.Print(Pub.WithIcons(line) .. "  |cff888888"
+                ns.Print(line .. "  |cff888888"
                     .. L["(width %s · %dB)"]:format(wText, #line) .. "|r")
             end
         end
