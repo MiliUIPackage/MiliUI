@@ -47,17 +47,19 @@ function AddButton.Create(parent, onClick, fillTooltip)
 end
 
 ------------------------------------------------------------
--- 啟用與否、寬度
+-- 啟用與否、字、寬度
+--
+-- listed ＝這個配方已經在清單裡：字直接寫「已在清單中」、按鈕停用。停用的 primary
+-- 自己退回中性底＋灰字，所以「能不能按」跟「加過沒」是同一個訊號，不必在提示裡另外
+-- 解釋重按會怎樣（要改份數去清單視窗改；從清單移除之後 ListChanged 會把按鈕叫回來）。
 --
 -- ⚠ 字裡**不要**放色碼。內嵌色碼蓋得過 W.CreateButton 停用時上的灰字 ——
---   以前啟用時字帶金色，停用前忘了拿掉就會看起來跟能按的一樣。啟用／停用現在由
---   primary 的底色自己講（職業色 ↔ 中性），字一律白。
--- 「已經在清單裡」寫在工具提示裡，不另外給視覺訊號：按鈕照樣能按（重按＝覆寫份數）。
+--   以前啟用時字帶金色，停用的按鈕看起來跟能按的一模一樣。
 -- 寬度跟著字走：按鈕字在不同語系長度差很多，固定寬度不是太空就是溢出。
 ------------------------------------------------------------
-function AddButton.SetState(b, enabled)
-    b:SetEnabled(enabled and true or false)
-    b:SetText(Label())
+function AddButton.SetState(b, enabled, listed)
+    b:SetEnabled((enabled and not listed) and true or false)
+    b:SetText(listed and L["Already in the list"] or Label())
     local w = math.max(MIN_W, math.ceil(TextWidth(b:GetFontString())) + PAD_X * 2)
     ns.P.Size(b, w, HEIGHT)
 end

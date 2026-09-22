@@ -79,7 +79,7 @@ local function Refresh()
     -- 材料區沒顯示＝沒有材料可買（「重新製作」還沒放物品時暴雪也把材料區藏起來），
     -- Place 會把按鈕一起收起來
     if not ns.AddButton.Place(button, form.Reagents, form.OptionalReagents) then return end
-    ns.AddButton.SetState(button, true)
+    ns.AddButton.SetState(button, true, ns.List.Find(EntryKey(form, info)) ~= nil)
 end
 
 local function FillTooltip(_, tip)
@@ -93,17 +93,21 @@ local function FillTooltip(_, tip)
     local entry = ns.List.Find(EntryKey(form, info))
     tip:AddLine(" ")
 
+    -- 已在清單中：按鈕字已經講了、也按不下去 ⇒ 不講「按了會怎樣」，只給清單裡的現況
+    if entry then
+        local _, missing = ns.List.RecipeDetail(entry)
+        if not recraft then
+            tip:AddDoubleLine(L["Already in the list"], tostring(entry.quantity or 1), 0.7, 0.7, 0.7, 1, 1, 1)
+        end
+        tip:AddDoubleLine(L["Still missing"], tostring(missing), 0.7, 0.7, 0.7,
+            missing > 0 and 1 or 0.4, missing > 0 and 0.4 or 1, 0.4)
+        return
+    end
+
     if recraft then
         -- 重製固定一件，沒有份數可講；要講的是「原裝備上的附加材料不算」
         tip:AddLine(L["Adds this recraft to the shopping list."], 0.8, 0.8, 0.8, true)
         tip:AddLine(L["Reagents the item already carries (sparks, embellishments) are left out."], 0.6, 0.6, 0.6, true)
-        if entry then
-            local _, missing = ns.List.RecipeDetail(entry)
-            tip:AddLine(" ")
-            tip:AddLine(L["Already in the list"], 0.4, 1, 0.4)
-            tip:AddDoubleLine(L["Still missing"], tostring(missing), 0.7, 0.7, 0.7,
-                missing > 0 and 1 or 0.4, missing > 0 and 0.4 or 1, 0.4)
-        end
         return
     end
 
@@ -111,14 +115,6 @@ local function FillTooltip(_, tip)
         0.8, 0.8, 0.8, true)
     tip:AddLine(" ")
     tip:AddDoubleLine(L["Craft count"], tostring(CreateCount()), 0.7, 0.7, 0.7, 1, 1, 1)
-    if entry then
-        local _, missing = ns.List.RecipeDetail(entry)
-        tip:AddDoubleLine(L["Already in the list"], tostring(entry.quantity or 1), 0.7, 0.7, 0.7, 1, 1, 1)
-        tip:AddDoubleLine(L["Still missing"], tostring(missing), 0.7, 0.7, 0.7,
-            missing > 0 and 1 or 0.4, missing > 0 and 0.4 or 1, 0.4)
-        tip:AddLine(" ")
-        tip:AddLine(L["Pressing this again overwrites the count — it does not add on top."], 0.6, 0.6, 0.6, true)
-    end
 end
 
 local function OnClick()

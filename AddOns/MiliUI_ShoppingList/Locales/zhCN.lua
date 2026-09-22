@@ -83,7 +83,6 @@ L["Adds this recipe to the shopping list. The count comes from the box next to t
 L["Craft count"] = "制作份数"
 L["Already in the list"] = "已在清单中"
 L["Still missing"] = "还缺"
-L["Pressing this again overwrites the count — it does not add on top."] = "再按一次是覆写份数，不是往上加。"
 L["Could not read that recipe."] = "读不到那个配方。"
 L["Added: %s x%d (makes %d)"] = "已加入：%s ×%d（可做 %d 个）"
 L["Reagents you can provide for this order:"] = "这笔订单你可以自备的材料："
