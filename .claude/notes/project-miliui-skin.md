@@ -245,6 +245,18 @@ metadata:
   後置勾 `LFGListGroupDataDisplayRoleCount_Update`、每框一次把輸出／治療 `SetWidth` 22／20（右往左的錨定鏈自己讓位）。
   **總量只能 +8 左右**：列寬 312、名稱最寬到 186、這組左緣 187，零餘裕。暴雪不讀這三個寬度、我們不碰 displayData（秘密值）。
 
+## 第九輪（2026-09-22，兩個 Opus 平行；未實測）
+
+- **按鈕主／次變體**（使用者定）：`Skin.Button`／`ThreeSliceButton`／`StretchButton` 的 `opts.variant`，預設 primary ＝ 平時 `T.AccentButton()`（accent×0.30）＋邊 accent×0.60、滑過 `T.AccentHover()`＋邊全亮、停用退回 `fill`＋黑邊；secondary ＝原樣。
+  **對比保護**：`k = min(1, T.buttonTextLum / lum)`，門檻 0.40（WCAG 算過，0.50 時十個職業不及格，武僧最差）。
+  停用態：三個按鈕模板都沒有 DisabledTexture ⇒ 走 `TrackButtonHover` 第 6 參數 opts 掛 `OnEnable/OnDisable`（與翻頁鈕共用 `InstallEnableScripts`）。
+  零腳本特許按鈕走 `Engine.ScriptlessButton`：Highlight（ADD 模式）塗職業色 ×0.70、DisabledTexture `SetAlpha(1)`＋`SetColorTexture`（**白名單新增，只准 ScriptlessButton**）；UIPanelButtonTemplate 沒 DisabledTexture ⇒ 拍賣／專業／寶庫主按鈕**平時中性、只有滑過職業色**（寧可少「平時」一態，也不讓停用的「製作」看起來能按）。
+  判準：成對時確認那顆 primary、取消／返回／拒絕／再見 secondary；一塊最多一顆 primary；平行選項整排 secondary。ESC 選單「返回遊戲」認不出（同池同模板，只剩 layoutIndex／文字可分）⇒ 整排 secondary。
+- **冒險指南重做**：戰利品列沒上皮的推論根因＝套組多支插件登入就載入冒險指南，`EJ_LOOT_DATA_RECIEVED` → `EncounterJournal_LootUpdate` → `SetDataProvider` 在視窗沒開時就建列、早於 mixin 勾 ⇒ 新增 `EncounterJournal_LootUpdate` 全域後置勾唯讀補掃＋列登記進 `SetItemButtonQuality` 全域勾；
+  `/mskin debug` 出現 `EncounterItem:Init (hook bypassed…)` 就證實。書頁深色化，**綜覽／技能／副本簡介三塊內文接不住（SimpleHTML 每次重設、PAPER_FRAME 色切換、Lore OnLoad 設暗棕）⇒ 用原本的 UI-EJ-JournalBG 做羊皮紙內嵌**。
+  麵包屑：`NavBar_AddButton` 後置勾＋身分比對只處理冒險指南那條；下拉鈕 Normal/Pushed 用 `SetVertexColor(1,1,1,0)` 中和（它自己的 OnEnter 會 SetAlpha(1)，alpha 中和撐不住；已核准）。頁籤選中線走 `EncounterJournal_SetTab` 後置勾讀參數 tabType。
+  擷圖「教學說明」後的青色小方塊不是冒險指南的東西（像視窗後面的單位框），待使用者 /framestack。
+
 ## 還沒實機確認的
 
 三條驗收線：`/console taintLog 2` 操作後 taint.log 零 blocked、**戰鬥中按 C 開得了角色面板**
