@@ -172,7 +172,9 @@ local function ApplyCategoryButtons(queue)
         if btn then
             -- `Icon` 不碰：被 CircleMask 遮成圓形，而且那是這一類的身分
             -- `Ring` 不中和、壓深當一圈蓋住遮罩毛邊的深色框（同 PVE.lua 的大類鈕）
-            Skin.Row(btn, key, { keys = { "Background" }, ownHover = true, points = X.CATEGORY_ROW_POINTS })
+            Skin.Row(btn, key, { keys = { "Background" }, ownHover = true,
+                points = X.CategoryRowPoints and X.CategoryRowPoints(Field(btn, "Icon")) or X.CATEGORY_ROW_POINTS,
+                accentSide = "RIGHT" })
             if X.SkinCategoryIcon then
                 X.SkinCategoryIcon(btn, key, "Icon", "Ring", "CircleMask")
             else

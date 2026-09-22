@@ -991,7 +991,7 @@ function Skin.Row(btn, key, opts)
         key = key,
         noBorder = not opts.border,
         points = opts.points,
-        accentSide = accent and "LEFT" or nil,
+        accentSide = accent and (opts.accentSide or "LEFT") or nil,   -- opts.accentSide：大類鈕的左緣被圖示蓋住，改畫右緣
         accentSize = T.rowAccentSize,
     })
     E.Paint(ov, opts.fill or T.fill, opts.border and T.border or nil)

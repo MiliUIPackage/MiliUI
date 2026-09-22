@@ -390,10 +390,28 @@ local function SkinCategoryRing(ring, key)
 end
 
 -- 大類按鈕的列 overlay 範圍（PvE／PvP 共用；兩邊的按鈕都是 203x60、圖示 66x66）
-local CATEGORY_ROW_POINTS = {
-    { "TOPLEFT", "TOPLEFT", 0, 3 },
-    { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, -3 },
-}
+--
+-- 2026-09-22 實機：列比圖示高出一點、左邊露出一截。原本是「上下各 +3」的估算，
+-- 但圖示不是置中在按鈕上：它置中在 ring 上，ring 是 `LEFT x=-12 y=-1`
+-- （PVEFrame.xml:18-20；PvP 是 `LEFT x=-14 y=-1`，Blizzard_PVPUI.xml:282）
+-- ⇒ 圖示頂 ＝ 按鈕頂 +2、底 ＝ 按鈕底 −4、左緣 ＝ 按鈕左緣 +2.5（PvP +3）。
+-- 改成**直接錨在圖示上**：左上角＝圖示左上角；右下角＝按鈕右緣、按鈕底 −4
+-- （底只能給數字：一個錨點不能同時取「圖示的底」與「按鈕的右」）。
+-- ⇒ 卡片跟圖示完全等高、圖示貼齊卡片左緣。
+local CATEGORY_ICON_BOTTOM = -4
+
+local function CategoryRowPoints(icon)
+    if not icon then
+        return { { "TOPLEFT", "TOPLEFT", 0, 2 }, { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, CATEGORY_ICON_BOTTOM } }
+    end
+    return {
+        { "TOPLEFT", "TOPLEFT", 0, 0, rel = icon },
+        { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, CATEGORY_ICON_BOTTOM },
+    }
+end
+
+-- 舊名保留給還沒改的呼叫端（值等同 `CategoryRowPoints(nil)`）
+local CATEGORY_ROW_POINTS = CategoryRowPoints(nil)
 
 -- 大類按鈕的圖示（PvE 四顆＋PvP 五顆共用）。
 --
@@ -411,6 +429,19 @@ local function SkinCategoryIcon(btn, key, iconKey, ringKey, maskKey)
         and E.UnmaskIcon(icon, mask, key .. "." .. iconKey) then
         if ring then E.Neutralize(ring, key .. "." .. ringKey) end
         E.CropIcon(icon, key .. "." .. iconKey)
+        -- 圖示底下先鋪一塊黑：有些圖示素材本身有透明區（團隊搜尋器的頭盔四角），
+        -- 原本靠圓形遮罩藏起來，改成方形後會透出底下的卡片色。
+        -- 建在按鈕自己身上（BACKGROUND −8，在 ARTWORK 的圖示之下、卡片 overlay 之上）。
+        local backing = E.RegionBackdrop(btn, {
+            key = key .. "." .. iconKey .. ".backing",
+            slot = "iconBacking",
+            points = {
+                { "TOPLEFT", "TOPLEFT", 0, 0, rel = icon },
+                { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0, rel = icon },
+            },
+            noBorder = true,
+        })
+        E.Paint(backing, { 0, 0, 0, 1 }, false)
         local ov = E.Overlay(btn, {
             key = key .. "." .. iconKey .. ".border",
             slot = "iconBorder",
@@ -757,7 +788,8 @@ local function ApplyGroupButtons()
             -- ⚠ `ring` 不中和，壓深當「蓋住遮罩毛邊的一圈深色框」用，見 SkinCategoryRing。
             -- 列的 overlay 上下各多 3：圖示是 66 高、按鈕只有 60 高（PVEFrame.xml:4,25），
             -- 方形圖示會上下各凸出 3；列與列之間隔 23（同檔 :206），多 3 不會碰到鄰居。
-            Skin.Row(btn, key, { keys = { "bg" }, ownHover = true, points = CATEGORY_ROW_POINTS })
+            Skin.Row(btn, key, { keys = { "bg" }, ownHover = true,
+                points = CategoryRowPoints(Field(btn, "icon")), accentSide = "RIGHT" })
             SkinCategoryIcon(btn, key, "icon", "ring", "CircleMask")
             groupButtons[i] = btn
 
@@ -1381,6 +1413,7 @@ ns.PVESkin.SkinKeyedButtons = SkinKeyedButtons
 ns.PVESkin.SkinCategoryRing = SkinCategoryRing
 ns.PVESkin.SkinCategoryIcon = SkinCategoryIcon
 ns.PVESkin.CATEGORY_ROW_POINTS = CATEGORY_ROW_POINTS
+ns.PVESkin.CategoryRowPoints = CategoryRowPoints
 
 E.Register{
     key   = "pve",
