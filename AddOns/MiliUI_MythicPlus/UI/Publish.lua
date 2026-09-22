@@ -202,25 +202,24 @@ end
 --     內容只剩 **19 全形**（半形算半個）。超過就折行，而折下去的那半行沒有前綴、
 --     從最左邊開始，逐人列表一折就散了。
 --   下面每一個格式字串都是用實際記錄量過的，**不要加欄位、不要加空格**：
---   * 表頭長副本名時已經 19 寬，死亡、評分都放不進去
+--   * 表頭長副本名時已經 18 寬，死亡、評分都放不進去
 --   * 逐人那行靠「次數欄之間不空格」才塞得下（單字欄名本身就是分隔）
---   * 聊天是比例字型，不能用空白對齊成表格；內文不能自帶色碼（伺服器會拒收），
---     能上色的只有連結與 {rt4}（限時，綠三角）／{rt7}（超時，紅叉）
+--   * 聊天是比例字型，不能用空白對齊成表格；內文不能自帶色碼（伺服器會拒收）
+--   * 不放團隊標記 {rtN}：使用者不要（「限時／超時」本來就寫在字裡）
 --
--- 回傳字串陣列，`{rtN}` 保留原樣（聊天框收到時自己會換成圖示；
--- 預覽要自己換，見 Pub.WithIcons）。送出、預覽、選單的行數讀數全部走這一支。
+-- 回傳字串陣列。送出、預覽、選單的行數讀數全部走這一支。
 ------------------------------------------------------------
 local function Header(run)
-    local icon, result
+    local result
     if run.onTime then
         local up = Count(run.upgrades)
         if up < 1 then up = 1 end
         if up > 3 then up = 3 end
-        icon, result = "{rt4}", L["Timed +%d"]:format(up)
+        result = L["Timed +%d"]:format(up)
     else
-        icon, result = "{rt7}", L["Over time"]
+        result = L["Over time"]
     end
-    return ("%s +%d %s %s %s"):format(icon, Count(run.level), Plain(H.MapName(run)),
+    return ("+%d %s %s %s"):format(Count(run.level), Plain(H.MapName(run)),
         result, H.FormatMs(run.timeMs))
 end
 
@@ -324,24 +323,14 @@ end
 -- 預覽用
 ------------------------------------------------------------
 
--- 提示框與自己的聊天框（print）不會把 {rtN} 換成圖示 —— 那是聊天框收到頻道訊息時
--- 才做的事。預覽要長得跟對方看到的一樣，就得自己換
-local RT_TEX = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_%s:0|t"
-
-function Pub.WithIcons(line)
-    return (line:gsub("{rt(%d)}", function(n) return RT_TEX:format(n) end))
-end
-
--- 一行在聊天框裡大約佔幾格：全形 1、半形 0.5、{rtN} 算 1（換成圖示後約一個字寬）、
--- 連結只算顯示出來的「[名稱]」。聊天是比例字型，這只是估算 —— 但「19 格」的預算
+-- 一行在聊天框裡大約佔幾格：全形 1、半形 0.5、連結只算顯示出來的「[名稱]」。聊天是比例字型，這只是估算 —— 但「19 格」的預算
 -- 本來就是用同一套算法量出來的，兩邊對得上。/mmp preview 用它
 function Pub.ChatWidth(line)
     local s = line:gsub("|H.-|h(.-)|h", "%1")
     s = s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|cn[^:]*:", ""):gsub("|r", "")
-    local rest, icons = s:gsub("{rt%d}", "")
-    local w = icons
+    local w = 0
     -- 一次吃一個 UTF-8 字元：首位元組 ＋ 後面的延續位元組
-    for ch in rest:gmatch("[\1-\127\194-\244][\128-\191]*") do
+    for ch in s:gmatch("[\1-\127\194-\244][\128-\191]*") do
         w = w + ((#ch == 1) and 0.5 or 1)
     end
     return w
@@ -354,7 +343,7 @@ local function PreviewTooltip(lines)
         tt:AddLine(L["Will send:"], 0.52, 0.52, 0.52)
         for i = 1, #lines do
             -- 淺灰白，不用隊伍色：隊伍色是聊天框的事，這裡上色只會讓人以為已經送出去了
-            tt:AddLine(Pub.WithIcons(lines[i]), 0.86, 0.86, 0.86)
+            tt:AddLine(lines[i], 0.86, 0.86, 0.86)
         end
     end
 end
@@ -474,7 +463,7 @@ local function FormatItems(run, btn, unreliable, cur, withAvoidable)
                     if not unreliable and ns.db and ns.db.publish then
                         ns.db.publish.format = f
                     end
-                    Pub.ShowMenu(btn, true)   -- 原地重畫，更新讀數與打勾
+                    Pub.ShowMenu(btn, true)   -- 原地重畫，更新讀數與打勾（子選單會留著）
                 end,
             }
         end
@@ -485,7 +474,26 @@ local function FormatItems(run, btn, unreliable, cur, withAvoidable)
             text = L["This run's statistics are incomplete, so only the scorecard can be published."],
             isTitle = true,
         }
+        return items
     end
+
+    -- 逐人的選配欄位：放在格式子選單裡、自己一個小節（使用者指定的位置）。
+    -- 不管目前選哪個格式都列 —— 小節標題寫明「逐人的」，而且先勾好再切過去是合理的操作。
+    -- 標題前面**不放分隔線**：標題自己有髮絲線，再加一條就是兩條線夾一行灰字
+    items[#items + 1] = { text = L["Per-player columns"], isTitle = true }
+    items[#items + 1] = {
+        text = L["Avoidable damage (share of party)"],
+        isActive = withAvoidable,
+        keepOpen = true,
+        -- 預覽勾選**之後**的樣子：滑過就知道按下去那幾行會變成什麼
+        tooltip = PreviewTooltip(Pub.BuildLines(run, "perplayer", not withAvoidable)),
+        onClick = function()
+            if ns.db and ns.db.publish then
+                ns.db.publish.avoidable = not withAvoidable
+            end
+            Pub.ShowMenu(btn, true)   -- 原地重畫；共用層會把子選單照同一列重開
+        end,
+    }
     return items
 end
 
@@ -532,21 +540,6 @@ function Pub.ShowMenu(btn, redraw)
         value = FormatName(fmt),
         submenu = FormatItems(run, btn, unreliable, fmt, withAvoidable),
     }
-
-    -- 只有逐人格式用得到這一欄，其他格式列出來是一個按了沒有任何效果的開關
-    if fmt == "perplayer" then
-        items[#items + 1] = {
-            text = L["Avoidable damage (share of party)"],
-            isActive = withAvoidable,
-            keepOpen = true,
-            onClick = function()
-                if ns.db and ns.db.publish then
-                    ns.db.publish.avoidable = not withAvoidable
-                end
-                Pub.ShowMenu(btn, true)
-            end,
-        }
-    end
 
     ns.W.Menu.Show(items, btn, redraw)
 end
