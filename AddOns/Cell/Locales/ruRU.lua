@@ -736,3 +736,8 @@ L["auto"] = "Авто"
 L["Settings For"] = "Настройки для"
 L["Frame Distance"] = "Отступ от рамок"
 L["ATTACH_SIDE_TIPS"] = "С какой стороны рамок располагается панель. Она начинается от угла, из которого растёт раскладка, и обходит блок меню Cell и таймер боевого воскрешения."
+
+-- fix from MiliUI: max health reduction
+L["Max Health Reduction"] = "Снижение макс. здоровья"
+L["Debuffs that lower maximum health, e.g. some dungeon trash."] = "Эффекты, снижающие максимальный запас здоровья, напр. у противников в подземельях."
+L["The bar shortens by that share; the lost part takes this color."] = "Полоса укорачивается на эту долю, потерянная часть окрашивается этим цветом."

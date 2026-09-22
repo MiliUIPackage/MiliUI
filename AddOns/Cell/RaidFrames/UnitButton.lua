@@ -78,6 +78,14 @@ end
 local barAnimationType, highlightEnabled, predictionEnabled
 local shieldEnabled, overshieldEnabled, overshieldReverseFillEnabled, overshieldGlowReverseEnabled
 local absorbEnabled, absorbInvertColor
+-- fix from MiliUI: max health reduction (see B.MHL.Update). ⚠ NO new locals for it: this
+-- file's main chunk is at EXACTLY Lua's 200-local ceiling. The nine locals it first used, and
+-- then a single table local, each made the whole file fail to compile ("too many local
+-- variables") -- i.e. no raid frames at all. So its state and functions hang off B instead.
+-- The next person adding a file-level local here has to remove one first.
+--   api      GetUnitTotalModifiedMaxHealthPercent, nil on classic flavours
+--   enabled, color   appearance "maxHealthLoss", set by B.UpdateMaxHealthLoss
+B.MHL = {api = GetUnitTotalModifiedMaxHealthPercent}
 
 -- SMOOTH BARS ON MIDNIGHT
 -- SmoothStatusBarMixin is dead here: it is Lua, it caches min/max, and its per-frame Clamp()
@@ -325,7 +333,7 @@ local function HandleIndicators(b)
                 indicator:SetPosition(t["position"][1], t["position"][2], t["position"][3])
             else
                 P.ClearPoints(indicator)
-                local relativeTo = t["position"][2] == "healthBar" and b.widgets.healthBar or b
+                local relativeTo = t["position"][2] == "healthBar" and (b.widgets.healthArea or b.widgets.healthBar) or b
                 P.Point(indicator, t["position"][1], relativeTo, t["position"][3], t["position"][4], t["position"][5])
             end
         end
@@ -591,7 +599,7 @@ local function HandleIndicators(b)
             local _, fontSize = healthText.text:GetFont()
             if nameConfig and nameConfig["position"] and fontSize then
                 local pos = nameConfig["position"]
-                local relativeTo = pos[2] == "healthBar" and b.widgets.healthBar or b
+                local relativeTo = pos[2] == "healthBar" and (b.widgets.healthArea or b.widgets.healthBar) or b
                 P.ClearPoints(nameText)
                 P.Point(nameText, pos[1], relativeTo, pos[3], pos[4],
                     (pos[5] or 0) + (fontSize + PARTY_TARGET.HEALTH_TEXT_GAP) / 2)
@@ -870,7 +878,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     indicator:SetPosition(value[1], value[2], value[3])
                 else
                     P.ClearPoints(indicator)
-                    local relativeTo = value[2] == "healthBar" and b.widgets.healthBar or b
+                    local relativeTo = value[2] == "healthBar" and (b.widgets.healthArea or b.widgets.healthBar) or b
                     P.Point(indicator, value[1], relativeTo, value[3], value[4], value[5])
                 end
                 -- update arrangement
@@ -1198,7 +1206,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 -- update position
                 if value["position"] then
                     P.ClearPoints(indicator)
-                    local relativeTo = value["position"][2] == "healthBar" and b.widgets.healthBar or b
+                    local relativeTo = value["position"][2] == "healthBar" and (b.widgets.healthArea or b.widgets.healthBar) or b
                     P.Point(indicator, value["position"][1], relativeTo, value["position"][3], value["position"][4], value["position"][5])
                 end
                 -- update anchor
@@ -2270,24 +2278,76 @@ CheckPowerEventRegistration = function(b)
     end
 end
 
+-- fix from MiliUI: max health reduction. The slot the health bar used to fill is now
+-- healthArea, and the health bar itself hangs off it:
+--
+--   healthArea   the full health slot. What ShowPowerBar / HidePowerBar used to anchor the
+--                health bar to, and what the power bar and "anchor to health bar" indicators
+--                anchor to now -- so none of them move when the health bar shortens.
+--                It is also a StatusBar used as a RULER: its value is (1 - lost share), its
+--                (invisible) fill texture ends exactly where the health bar should end.
+--   healthBar    near edge on healthArea, far edge on the ruler's fill edge. Everything that
+--                SetAllPoints the health bar (midLevelFrame, shields, heal absorb) and the
+--                health-loss texture shortens with it for free.
+--   maxHealthLoss   the stretch between the ruler's edge and the end of healthArea.
+--
+-- The ruler lets the ENGINE do the proportion: nothing here reads a frame size, so there is
+-- no pixel maths, no stale width before the first layout pass, and a resize just works.
+-- Health fills left -> right (horizontal) or bottom -> top (vertical / vertical_health);
+-- the far end, where max health would be, is where the bar gives way.
+function B.MHL.Anchor(b)
+    local w = b.widgets
+    local area, healthBar = w.healthArea, w.healthBar
+    local ruler = area:GetStatusBarTexture()
+    local loss, divider = w.maxHealthLoss, w.maxHealthLossDivider
+
+    P.ClearPoints(healthBar)
+    P.ClearPoints(loss)
+    P.ClearPoints(divider)
+    if b.orientation == "horizontal" or not b.orientation then
+        P.Point(healthBar, "TOPLEFT", area, "TOPLEFT")
+        P.Point(healthBar, "BOTTOMRIGHT", ruler, "BOTTOMRIGHT")
+        P.Point(loss, "TOPLEFT", ruler, "TOPRIGHT")
+        P.Point(loss, "BOTTOMRIGHT", area, "BOTTOMRIGHT")
+        P.Point(divider, "TOPLEFT", loss, "TOPLEFT")
+        P.Point(divider, "BOTTOMLEFT", loss, "BOTTOMLEFT")
+        divider.height = nil  -- P.Resize replays whichever is stored; only one axis is ours
+        P.Width(divider, 1)
+    else
+        P.Point(healthBar, "BOTTOMLEFT", area, "BOTTOMLEFT")
+        P.Point(healthBar, "TOPRIGHT", ruler, "TOPRIGHT")
+        P.Point(loss, "BOTTOMLEFT", ruler, "TOPLEFT")
+        P.Point(loss, "TOPRIGHT", area, "TOPRIGHT")
+        P.Point(divider, "BOTTOMLEFT", loss, "BOTTOMLEFT")
+        P.Point(divider, "BOTTOMRIGHT", loss, "BOTTOMRIGHT")
+        divider.width = nil
+        P.Height(divider, 1)
+    end
+end
+
 local function ShowPowerBar(b)
     b.widgets.powerBar:Show()
     b.widgets.powerBarLoss:Show()
     b.widgets.gapTexture:SetShown(CELL_BORDER_SIZE ~= 0)
 
-    P.ClearPoints(b.widgets.healthBar)
+    -- fix from MiliUI: healthArea, not healthBar -- see B.MHL.Anchor. The power bar used to
+    -- anchor to the health bar's edges; on "vertical" that is its TOP edge, which is exactly
+    -- the edge a max health reduction pulls down.
+    local area = b.widgets.healthArea
+    P.ClearPoints(area)
     P.ClearPoints(b.widgets.powerBar)
     if b.orientation == "horizontal" or b.orientation == "vertical_health" then
-        P.Point(b.widgets.healthBar, "TOPLEFT", b, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
-        P.Point(b.widgets.healthBar, "BOTTOMRIGHT", b, "BOTTOMRIGHT", -CELL_BORDER_SIZE, b.powerSize + CELL_BORDER_SIZE * 2)
-        P.Point(b.widgets.powerBar, "TOPLEFT", b.widgets.healthBar, "BOTTOMLEFT", 0, -CELL_BORDER_SIZE)
+        P.Point(area, "TOPLEFT", b, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+        P.Point(area, "BOTTOMRIGHT", b, "BOTTOMRIGHT", -CELL_BORDER_SIZE, b.powerSize + CELL_BORDER_SIZE * 2)
+        P.Point(b.widgets.powerBar, "TOPLEFT", area, "BOTTOMLEFT", 0, -CELL_BORDER_SIZE)
         P.Point(b.widgets.powerBar, "BOTTOMRIGHT", b, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
     else
-        P.Point(b.widgets.healthBar, "TOPLEFT", b, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
-        P.Point(b.widgets.healthBar, "BOTTOMRIGHT", b, "BOTTOMRIGHT", -(b.powerSize + CELL_BORDER_SIZE * 2), CELL_BORDER_SIZE)
-        P.Point(b.widgets.powerBar, "TOPLEFT", b.widgets.healthBar, "TOPRIGHT", CELL_BORDER_SIZE, 0)
+        P.Point(area, "TOPLEFT", b, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+        P.Point(area, "BOTTOMRIGHT", b, "BOTTOMRIGHT", -(b.powerSize + CELL_BORDER_SIZE * 2), CELL_BORDER_SIZE)
+        P.Point(b.widgets.powerBar, "TOPLEFT", area, "TOPRIGHT", CELL_BORDER_SIZE, 0)
         P.Point(b.widgets.powerBar, "BOTTOMRIGHT", b, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
     end
+    B.MHL.Anchor(b)
 
     if b:IsVisible() then
         -- update now
@@ -2305,9 +2365,12 @@ local function HidePowerBar(b)
     b.widgets.powerBarLoss:Hide()
     b.widgets.gapTexture:Hide()
 
-    P.ClearPoints(b.widgets.healthBar)
-    P.Point(b.widgets.healthBar, "TOPLEFT", b, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
-    P.Point(b.widgets.healthBar, "BOTTOMRIGHT", b, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+    -- fix from MiliUI: healthArea, see B.MHL.Anchor
+    local area = b.widgets.healthArea
+    P.ClearPoints(area)
+    P.Point(area, "TOPLEFT", b, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+    P.Point(area, "BOTTOMRIGHT", b, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+    B.MHL.Anchor(b)
 end
 
 -------------------------------------------------
@@ -2619,6 +2682,55 @@ UnitButton_UpdatePowerType = function(self)
 
     self.widgets.powerBar:SetStatusBarColor(r, g, b)
     self.widgets.powerBarLoss:SetVertexColor(lossR, lossG, lossB)
+end
+
+-------------------------------------------------
+-- fix from MiliUI: max health reduction
+--
+-- A debuff that lowers MAXIMUM health makes UnitHealthMax shrink with it, so the bar is
+-- full again at the new cap and the player cannot tell a fifth of their health is gone.
+-- Blizzard's own frames (TempMaxHealthLossMixin) shorten the health bar by that share and
+-- paint the freed stretch; this does the same (layout in B.MHL.Anchor).
+--
+-- GetUnitTotalModifiedMaxHealthPercent(unit) is the lost share, 0..1. 12.1's API docs give
+-- it NO secret flag -- verified in a dungeon boss encounter: plain 0.2499 -- which makes it one
+-- of the few health values a tainted addon can do layout maths with. Guarded anyway: a
+-- secret or an error reads as 0, i.e. "draw nothing", never an arithmetic error.
+-- Blizzard only draws a LOSS and clamps to 0..1; same here.
+-------------------------------------------------
+-- pct is plain, already clamped. Only touches the ruler + two textures when the share changes.
+function B.MHL.Set(b, pct)
+    local w = b.widgets
+    if b._maxHealthLoss ~= pct then
+        b._maxHealthLoss = pct
+        w.healthArea:SetValue(1 - pct)
+    end
+    local shown = pct > 0
+    local c = B.MHL.color
+    if shown and c then
+        -- re-applied every time: buttons that spawn after the last appearance pass still get it
+        w.maxHealthLoss:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
+    end
+    w.maxHealthLoss:SetShown(shown)
+    w.maxHealthLossDivider:SetShown(shown)
+end
+B.SetMaxHealthLoss = B.MHL.Set  -- the appearance preview draws its sample through this
+
+function B.MHL.Update(self)
+    local pct = 0
+    -- a party-target button draws health, name and raid marker only (see PARTY_TARGET_INDICATORS)
+    if B.MHL.enabled and B.MHL.api and not self.isPartyTarget then
+        local unit = self.states.displayedUnit
+        if unit then
+            local ok, v = pcall(B.MHL.api, unit)
+            if ok and not F.IsSecretValue(v) and type(v) == "number" and v > 0 then
+                -- keep 1% of the bar: at a value of 0 the ruler's fill texture has no extent
+                -- and the health bar anchored to its edge would collapse with it
+                pct = v < 0.99 and v or 0.99
+            end
+        end
+    end
+    B.MHL.Set(self, pct)
 end
 
 local function UnitButton_UpdateHealthMax(self)
@@ -3178,6 +3290,8 @@ local OVERLAY_ONLY_EVENTS = {
     ["UNIT_HEAL_PREDICTION"] = true,
     ["UNIT_ABSORB_AMOUNT_CHANGED"] = true,
     ["UNIT_HEAL_ABSORB_AMOUNT_CHANGED"] = true,
+    -- fix from MiliUI: max health reduction is not drawn on that row either
+    ["UNIT_MAX_HEALTH_MODIFIERS_CHANGED"] = true,
 }
 
 local UNIT_SCOPED_EVENTS = {
@@ -3189,6 +3303,12 @@ local UNIT_SCOPED_EVENTS = {
     "UNIT_FLAGS", "UNIT_FACTION", "UNIT_CONNECTION",
     "UNIT_IN_RANGE_UPDATE", "UNIT_NAME_UPDATE", "UNIT_PORTRAIT_UPDATE",
 }
+-- fix from MiliUI: max health reduction, handled ahead of the unit filter (see UnitButton_OnEvent).
+-- Only where it exists: registering an event the client does not know is a hard error, and the
+-- classic flavours have neither the event nor the API.
+if B.MHL.api then
+    tinsert(UNIT_SCOPED_EVENTS, "UNIT_MAX_HEALTH_MODIFIERS_CHANGED")
+end
 
 -- The button's current token pair, or nil when it has no unit.
 ScopeTokens = function(b)
@@ -3820,6 +3940,7 @@ UnitButton_UpdateAll = function(self)
     UnitButton_UpdateNameTextColor(self)
     UnitButton_UpdateHealthTextColor(self)
     UnitButton_UpdateHealthMax(self)
+    B.MHL.Update(self)  -- fix from MiliUI: a new unit may already carry one
     UnitButton_UpdateHealth(self, nil, true)
     UnitButton_UpdateHealPrediction(self, true)
     UnitButton_UpdateStatusText(self)
@@ -4001,6 +4122,30 @@ local function MarkOverlayDirty(b)
     overlayFlush:Show()
 end
 
+-- fix from MiliUI: max health reduction gets its OWN dirty set rather than riding the overlay
+-- flush -- that one runs on every UNIT_HEALTH, and this needs one read per actual change.
+-- Deferred to the next frame: the event is documented SynchronousEvent, so it may be dispatched
+-- from inside a secure key-press flow (Tab's TargetUnit, UseAction), and painting there would
+-- run Cell's Lua in Blizzard's stack. Marking is a table write; the flush also collapses the
+-- several dispatches one change can produce into one read.
+B.MHL.dirty = {}
+B.MHL.flush = CreateFrame("Frame")
+B.MHL.flush:Hide()
+B.MHL.flush:SetScript("OnUpdate", function(self)
+    self:Hide()
+    for b in pairs(B.MHL.dirty) do
+        B.MHL.dirty[b] = nil
+        if b:IsVisible() and b.states and b.states.displayedUnit then
+            B.MHL.Update(b)
+        end
+    end
+end)
+
+function B.MHL.MarkDirty(b)
+    B.MHL.dirty[b] = true
+    B.MHL.flush:Show()
+end
+
 local function UnitButton_OnEvent(self, event, unit, arg)
     -- Handled ahead of the unit filter on purpose: the event's unit is "player", which does
     -- not match a button whose token is "raid5", and every button re-reads only its own role.
@@ -4026,6 +4171,15 @@ local function UnitButton_OnEvent(self, event, unit, arg)
         return
     elseif event == "READY_CHECK_FINISHED" then
         UnitButton_FinishReadyCheck(self)
+        return
+    end
+
+    -- fix from MiliUI: max health reduction, ahead of the filter for the ready-check reason.
+    -- 12.1's docs mark the event SecretPayloads (unitTarget + the share), so arg1 is never
+    -- compared and the share is never read -- the flush re-asks the API for the button's own
+    -- unit. RegisterUnitEvent already filtered it to this button's tokens in C.
+    if event == "UNIT_MAX_HEALTH_MODIFIERS_CHANGED" then
+        B.MHL.MarkDirty(self)
         return
     end
 
@@ -4505,6 +4659,15 @@ function B.UpdateShields(button)
     UnitButton_UpdateShieldAbsorbs(button)
 end
 
+-- fix from MiliUI: max health reduction settings (appearance "maxHealthLoss" = {enabled, rgba})
+function B.UpdateMaxHealthLoss(button)
+    local t = CellDB["appearance"]["maxHealthLoss"]
+    B.MHL.enabled = t[1] and true or false
+    B.MHL.color = t[2]  -- B.MHL.Set re-applies it on every call that shows the stretch
+    if button.isPreview then return end  -- previews draw a sample, see Appearance.lua
+    B.MHL.Update(button)
+end
+
 function B.SetTexture(button, tex)
     -- new texture objects underneath, so whatever colour they were wearing is gone
     InvalidateHealthColor(button)
@@ -4740,6 +4903,11 @@ function B.SetOrientation(button, orientation, rotateTexture)
     end
     healthBar:SetRotatesTexture(rotateTexture)
     powerBar:SetRotatesTexture(rotateTexture)
+
+    -- fix from MiliUI: the ruler measures along the health bar's own axis, and which corners
+    -- the health bar hangs from flips with it (see B.MHL.Anchor)
+    button.widgets.healthArea:SetOrientation(orientation == "vertical_health" and "vertical" or orientation)
+    B.MHL.Anchor(button)
 
     button.indicators.healthThresholds:SetOrientation(orientation)
 
@@ -5103,8 +5271,12 @@ function B.UpdatePixelPerfect(button, updateIndicators)
     if not InCombatLockdown() then P.Resize(button) end
     P.Reborder(button)
 
+    P.Repoint(button.widgets.healthArea)  -- fix from MiliUI: before healthBar, which hangs off it
     P.Repoint(button.widgets.healthBar)
     P.Repoint(button.widgets.healthBarLoss)
+    P.Repoint(button.widgets.maxHealthLoss)
+    P.Repoint(button.widgets.maxHealthLossDivider)
+    P.Resize(button.widgets.maxHealthLossDivider)
     P.Repoint(button.widgets.powerBar)
     P.Repoint(button.widgets.powerBarLoss)
     P.Repoint(button.widgets.gapTexture)
@@ -5219,6 +5391,29 @@ function CellUnitButton_OnLoad(button)
     healthBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", -7)
     healthBar:SetFrameLevel(button:GetFrameLevel()+1)
     healthBar.SetBarValue = healthBar.SetValue
+
+    -- fix from MiliUI: max health reduction -- the full health slot + ruler, see B.MHL.Anchor.
+    -- Its fill is never drawn (alpha 0): only the fill texture's EDGE is used, as an anchor.
+    local healthArea = CreateFrame("StatusBar", name.."HealthArea", button)
+    button.widgets.healthArea = healthArea
+    healthArea:SetStatusBarTexture(Cell.vars.whiteTexture)
+    healthArea:GetStatusBarTexture():SetAlpha(0)
+    healthArea:SetMinMaxValues(0, 1)
+    healthArea:SetValue(1)
+    healthArea:SetFrameLevel(button:GetFrameLevel())
+
+    -- the reduced stretch: the button's own textures, below every child frame -- it never
+    -- overlaps the health bar, and indicators / highlights stay on top of it
+    local maxHealthLoss = button:CreateTexture(name.."MaxHealthLoss", "ARTWORK", nil, -6)
+    button.widgets.maxHealthLoss = maxHealthLoss
+    maxHealthLoss:SetTexture(Cell.vars.whiteTexture)
+    maxHealthLoss:Hide()
+    -- 1px line where the bar now ends: reads as "the bar stops here", not as missing health
+    local maxHealthLossDivider = button:CreateTexture(name.."MaxHealthLossDivider", "ARTWORK", nil, -5)
+    button.widgets.maxHealthLossDivider = maxHealthLossDivider
+    maxHealthLossDivider:SetTexture(Cell.vars.whiteTexture)
+    maxHealthLossDivider:SetVertexColor(1, 1, 1, 0.8)
+    maxHealthLossDivider:Hide()
 
     -- healthBar:SetScript("OnValueChanged", function(self, value)
     --     if value == 0 then

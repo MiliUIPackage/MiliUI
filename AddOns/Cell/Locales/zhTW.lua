@@ -797,3 +797,8 @@ L["You don't have permission to do this"] = "你沒有權限這樣做"
 
 -- fix from MiliUI: 分享按鈕不再自己開聊天輸入框
 L["Open the chat edit box first (press Enter), then click Share."] = "請先按 Enter 打開聊天輸入框，再按分享。"
+
+-- fix from MiliUI: 最大生命值降低
+L["Max Health Reduction"] = "最大生命值降低"
+L["Debuffs that lower maximum health, e.g. some dungeon trash."] = "把最大生命值壓低的減益效果，例如部分地城小怪。"
+L["The bar shortens by that share; the lost part takes this color."] = "血條會照比例縮短，少掉的那段畫成這個顏色。"

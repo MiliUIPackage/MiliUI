@@ -37,6 +37,9 @@ Cell.defaults.appearance = {
     ["overshield"] = {not (Cell.isTBC or Cell.isVanilla), {1, 1, 1, 1}},
     ["overshieldReverseFill"] = true,
     ["overshieldGlowReverse"] = false,
+    -- fix from MiliUI: max health reduction -- shorten the bar by the lost share, paint the rest.
+    -- Retail only (the API does not exist elsewhere). Existing saves get it from Core.lua.
+    ["maxHealthLoss"] = {Cell.isRetail and true or false, {0.4, 0.05, 0.05, 1}},
 }
 
 local buttonStyleIndices = {
@@ -62,7 +65,8 @@ local buttonStyleIndices = {
     "shield",
     "overshield",
     "overshieldReverseFill",
-    "overshieldGlowReverse"
+    "overshieldGlowReverse",
+    "maxHealthLoss",
 }
 
 function F.ResetButtonStyle()
