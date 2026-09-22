@@ -7,6 +7,11 @@ local addonName, Cell = ...
 -- custom one, and it dies on the missing ["auras"] field. Keep it == #Cell.defaults.layout.indicators.
 Cell.defaults.builtIns = 30
 
+-- Important Debuffs duration options: the value used when the layout has none saved.
+-- Read by the container config, the debuff row and the options widget -- one table, so
+-- "absent" cannot mean three different numbers.
+Cell.defaults.importantDebuffSeconds = { short = 8, limit = 60 }
+
 Cell.defaults.indicatorIndices = {
     ["nameText"] = 1,
     ["statusText"] = 2,
@@ -476,6 +481,12 @@ Cell.defaults.layout = {
                 ["crowdControl"] = true, -- HARMFUL|CROWD_CONTROL
                 ["raid"] = true,         -- HARMFUL|RAID
                 ["dispellable"] = true,  -- HARMFUL|RAID_PLAYER_DISPELLABLE
+                -- The two duration options are OFF, and absent = off (unlike the five above):
+                -- unflagged NPC debuffs up to shortSeconds long (bombs and the like)
+                ["short"] = false,
+                -- drop boss/role + priority debuffs longer than limitSeconds
+                ["limit"] = false,
+                -- shortSeconds / limitSeconds: absent = Cell.defaults.importantDebuffSeconds
             },
             ["font"] = {
                 -- stack: size 9, anchored TOP (+0, +5)
