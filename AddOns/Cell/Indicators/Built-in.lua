@@ -986,9 +986,16 @@ function I.CreateDebuffs(parent)
                     if it["enabled"] then
                         local rf = it["filters"] or {}
                         local function claimed(k) return rf[k] == nil or rf[k] and true or false end
+                        -- With the long-debuff limit on, boss/role and priority only claim
+                        -- what is SHORT enough, and "short enough" cannot be subtracted here
+                        -- (there is no minDuration). Subtracting the whole category would make
+                        -- the long ones vanish from both rows, so stop subtracting it: the
+                        -- short ones are drawn twice instead. Visible beats vanished.
+                        -- The short category itself cannot be subtracted either -- same reason.
+                        local limited = rf["limit"] == true
                         excludeImportant = {
-                            bossRole     = claimed("bossRole"),
-                            priority     = claimed("priority"),
+                            bossRole     = claimed("bossRole") and not limited,
+                            priority     = claimed("priority") and not limited,
                             crowdControl = claimed("crowdControl"),
                             raid         = claimed("raid"),
                             dispellable  = claimed("dispellable"),
@@ -1558,11 +1565,12 @@ function I.CreateRaidDebuffs(parent)
                 end
                 cfr:SetSize((t.size and t.size[1]) or 18, (t.size and t.size[2]) or 18)
 
-                -- the five category toggles, from the indicator's ["filters"] table.
+                -- the category toggles, from the indicator's ["filters"] table.
                 -- Absent means ON: a layout saved before the toggles existed must keep
                 -- showing everything, not suddenly show nothing.
                 local f = t.filters or {}
                 local function on(k) return f[k] == nil or f[k] and true or false end
+                local secs = Cell.defaults.importantDebuffSeconds
 
                 local opts = {
                     filterBossRole      = on("bossRole"),
@@ -1570,6 +1578,20 @@ function I.CreateRaidDebuffs(parent)
                     filterCrowdControl  = on("crowdControl"),
                     filterRaid          = on("raid"),
                     filterDispellable   = on("dispellable"),
+                    -- ⚠ The two duration options are the toggles where absent means OFF.
+                    -- The options widget reads them the same way (== true).
+                    filterShort         = f.short == true,
+                    shortSeconds        = f.shortSeconds or secs.short,
+                    -- `false`, never nil, so switching it off clears the container's value
+                    importantMaxDuration = f.limit == true and (f.limitSeconds or secs.limit) or false,
+                    -- 首領技能驚嘆號. Absent = off, same as the options checkbox shows it;
+                    -- Revise writes true into every layout that predates the option.
+                    bossBadge           = t.bossBadge == true,
+                    -- 可驅散加號: the schools THIS spec can dispel, or false (never nil -- a nil
+                    -- would never reach SetOptions, so switching it off would not clear it).
+                    -- Re-pushed on "DispellableChanged" (see UnitButton.lua).
+                    dispelBadge         = t.dispelBadge == true
+                        and Cell.AuraContainerCore.GetMyDispelTypes() or false,
                     -- true = always; number N = only when remaining < N s; false = never
                     showDuration        = t.showDuration,
                     orientation         = t.orientation,

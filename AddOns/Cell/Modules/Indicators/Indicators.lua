@@ -533,6 +533,41 @@ local function InitIndicator(indicatorName)
             end)
         end
 
+        -- The two corner marks, drawn by the same ACC functions as the frames, on the text layer
+        -- (above the sweeps, under the numbers) -- exactly like the countdown holder they ride
+        -- on in game. Neither is drawn without AuraContainer: the legacy icons have none.
+        --   首領技能驚嘆號 "!": in game it rides on the boss/role group's icons; the preview has
+        --     no groups, so icon 1 -- the schoolless red one, which is what a boss debuff
+        --     usually looks like -- stands in for them. Off with the boss/role category too:
+        --     there would be no group to wear it.
+        --   可驅散加號 "+": in game it is decided per aura -- a school THIS spec can dispel -- so
+        --     the preview asks the same question of each icon's school. A spec that dispels
+        --     nothing sees no "+" here either, because it will not see one in game.
+        function indicator:UpdateBadgePreview()
+            local ACC = Cell.AuraContainerCore
+            if not (ACC and ACC.StyleBossBadge and ACC.StyleDispelBadge) then return end
+            local t = self.configs
+            local supported = t and Cell.AuraDisplay and Cell.AuraDisplay.IsSupported()
+            local filters = t and t["filters"]
+            local size = (t and t["size"] and t["size"][1]) or 22
+            local bossOn = supported and t["bossBadge"] == true
+                and not (filters and filters["bossRole"] == false)
+            local dispelOn = supported and t["dispelBadge"] == true
+
+            for i = 1, #self do
+                local icon = self[i]
+                if icon and icon.textFrame then
+                    local boss = bossOn and i == 1
+                    if boss then ACC.StyleBossBadge(icon.textFrame, icon, size, icon) end
+                    ACC.SetBossBadgeShown(icon.textFrame, boss and true or false)
+
+                    local plus = dispelOn and I.CanDispel(types[i]) and true or false
+                    if plus then ACC.StyleDispelBadge(icon.textFrame, icon, size, icon) end
+                    ACC.SetDispelBadgeShown(icon.textFrame, plus)
+                end
+            end
+        end
+
     elseif indicatorName == "privateAuras" then
         indicator.isPrivateAuras = true
 
@@ -921,6 +956,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if type(t["smooth"]) == "boolean" then
                     indicator:EnableSmooth(t["smooth"])
                 end
+                -- corner marks (after size: they are sized from the icon)
+                if indicator.UpdateBadgePreview then
+                    indicator:UpdateBadgePreview()
+                end
 
                 -- after init
                 indicator.enabled = t["enabled"]
@@ -978,6 +1017,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
         elseif setting == "size-border" then
             P.Size(indicator, value[1], value[2])
             indicator:SetBorder(value[3])
+            if indicator.UpdateBadgePreview then indicator:UpdateBadgePreview() end
+        elseif setting == "raidDebuffFilters" then
+            -- the boss/role toggle decides whether there is a group to wear the badge
+            if indicator.UpdateBadgePreview then indicator:UpdateBadgePreview() end
         elseif setting == "thickness" then
             indicator:SetThickness(value)
             if indicatorName == "healthThresholds" then
@@ -1124,6 +1167,8 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 -- indicator:SetCooldown(GetTime(), 13)
             elseif value == "smooth" then
                 indicator:EnableSmooth(value2)
+            elseif value == "bossBadge" or value == "dispelBadge" then
+                if indicator.UpdateBadgePreview then indicator:UpdateBadgePreview() end
             end
         elseif setting == "create" then
             indicator = I.CreateIndicator(previewButton, value)
@@ -1239,6 +1284,12 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
     end
 end
 Cell.RegisterCallback("UpdateIndicators", "PreviewButton_UpdateIndicators", UpdateIndicators)
+
+-- the preview's "+" follows the spec's dispels, like the frames do
+Cell.RegisterCallback("DispellableChanged", "PreviewButton_DispellableChanged", function()
+    local ind = previewButton and previewButton.indicators and previewButton.indicators.raidDebuffs
+    if ind and ind.UpdateBadgePreview then ind:UpdateBadgePreview() end
+end)
 
 -------------------------------------------------
 -- layout
@@ -1757,7 +1808,7 @@ if Cell.isRetail or Cell.isMists then
         -- tooltip are Blizzard's to drive. The blacklist stays but only bites on spells
         -- flagged NeverSecret (Exhaustion/Sated and the like).
         ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "checkbutton2:excludeImportant", "debuffBlacklist", midnightDurationVisibility, "borderColor", "animationStyle", "size", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "raidDebuffFilters", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, midnightDurationVisibility, "borderColor", "animationStyle", "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "raidDebuffFilters", "checkbutton3:bossBadge:"..L["bossBadgeTips"], "checkbutton4:dispelBadge:"..L["dispelBadgeTips"], "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, midnightDurationVisibility, "borderColor", "animationStyle", "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
         ["privateAuras"] = {"|cffb7b7b7"..L["Due to restrictions of the private aura system, this indicator can only use Blizzard style."], "enabled", "size-square", "position", "frameLevel"},
         ["targetedSpells"] = Cell.isMidnight
             and {"enabled", "targetedSpellsDisplayMode", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"}

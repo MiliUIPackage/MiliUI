@@ -258,6 +258,13 @@ metadata:
   麵包屑：`NavBar_AddButton` 後置勾＋身分比對只處理冒險指南那條；下拉鈕 Normal/Pushed 用 `SetVertexColor(1,1,1,0)` 中和（它自己的 OnEnter 會 SetAlpha(1)，alpha 中和撐不住；已核准）。頁籤選中線走 `EncounterJournal_SetTab` 後置勾讀參數 tabType。
   擷圖「教學說明」後的青色小方塊不是冒險指南的東西（像視窗後面的單位框），待使用者 /framestack。
 
+## 第十輪（2026-09-22，未實測）
+
+- 冒險指南綜覽／技能／簡介**整頁深色、羊皮紙拿掉**：第九輪「接不住」重查後都接得住 —— SimpleHTML 只有 `EncounterJournal_SetBullets` 寫字、標題色只在 `EncounterJournal_UpdateButtonState` 設（三條呼叫路徑：XML `function=` 綁定的 OnShow ⇒ HookScript、`EncounterJournal_OnClick` 用 GetScript 呼叫 ⇒ HookScript OnClick、綜覽直呼全域）、`ToggleHeaders` 的 SetFontObject 會蓋色 ⇒ 也勾。**教訓：「接不住」要逐條列路徑，別整塊放棄。**
+- **`useParentLevel` 的 sublevel 平手**：inset／info 跟視窗本體同 frame level，貼圖跨框按 sublevel 交錯，大家都在 −8 就被本體蓋掉（書頁一直是 fill 不是 fillInset、捲軸軌道像粗黑柱）⇒ 內嵌底墊到 −4（邊 −3）。其他視窗的 `Skin.Inset` 可能同病，待實機比對後決定要不要改原語。
+- 成就列金光帶是 `Glow`（Lua 只動 texCoord／vertex color）；`Top/BottomTsunami1` 那四筆 Missing 是總結頁列（ComparisonPlayerTemplate）沒有那兩張的假警報。
+- 實機報告已證實：戰利品列早於 mixin 勾建立（`EncounterItem:Init (hook bypassed…)`）。
+
 ## 還沒實機確認的
 
 三條驗收線：`/console taintLog 2` 操作後 taint.log 零 blocked、**戰鬥中按 C 開得了角色面板**

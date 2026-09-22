@@ -485,8 +485,10 @@ local function FormatItems(run, btn, unreliable, cur, withAvoidable)
         text = L["Avoidable damage (share of party)"],
         isActive = withAvoidable,
         keepOpen = true,
-        -- 預覽勾選**之後**的樣子：滑過就知道按下去那幾行會變成什麼
-        tooltip = PreviewTooltip(Pub.BuildLines(run, "perplayer", not withAvoidable)),
+        -- 預覽**目前**勾選狀態會送出的樣子（勾著＝有「避」）。⚠ 不要改成預覽「按下去之後」：
+        --   提示框標題寫的是「會送出的內容」，跟打勾對不上就讀成反了（2026-09-22 使用者回報）。
+        --   按下去之後子選單整個重畫、舊的提示框跟著收掉，不會留下過期的預覽
+        tooltip = PreviewTooltip(Pub.BuildLines(run, "perplayer", withAvoidable)),
         onClick = function()
             if ns.db and ns.db.publish then
                 ns.db.publish.avoidable = not withAvoidable

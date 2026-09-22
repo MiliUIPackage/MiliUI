@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 47adb948-8bd2-4804-9bff-d58a154ecf7c
-  modified: 2026-09-16T20:35:52.084Z
+  modified: 2026-09-22T06:56:45.696Z
 ---
 
 Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard AuraContainer（路線 A，見 [[wow-121-aura-containers]]），讓分類全走 Blizzard-side candidateFilters，照 DandersFrames v5 作法「一個都不少」。使用者 2026-08 選定路線 A。**已上線使用**（master，Cell r283-MiliUI）。
@@ -32,6 +32,81 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
 - **overlay mode**（血條 highlight）：`AddAuraSlot`、button `SetAllPoints`、tint 貼圖 `AddDispelTypeTexture(tex,{style=PreserveAsset})` 盲染。**漸層不能用 `SetGradient`**（跟暴雪 vertex-tint 打架），改用**自帶 alpha 漸層的貼圖** `Cell/Media/gradient.tga`（1×4、白 RGB、alpha 255→0、底部不透明往上淡出）—— 暴雪 tint RGB、貼圖 alpha 給漸層（DandersFrames 同法）。
 - **buff mode**：12.1 的 spellID 過濾禁令**只針對友方減益，友方增益合法**，所以 Cell 現有清單直接當 `includeSpellIDs`。來源表同時用名稱與 ID 當鍵（trackByName），要 `NumericKeysOf()` 濾掉字串鍵。**空清單回 `{}` 不建 record** —— 否則裸 `HELPFUL` 顯示所有增益（這正是舊 bridge 的 bug）。trackByName 在容器路只精確比對 ID。buff 容器完全跳過 dispel 綁定。
 - **左下 debuffs 的 `excludeImportant`（預設開）**：讀 `raidDebuffs` 的五個 filter 勾，把中央宣告的類別從自己減掉（`|!CROWD_CONTROL`、`|!RAID`、`|!RAID_PLAYER_DISPELLABLE` + `cf{isBossOrRoleAura=false}`、`cf{isPriorityAura=false}` 疊成一個 record）。**失敗模式刻意設計成「多顯示」**（token 被拒逐級退回 `HARMFUL`；多顯示看得見、空白看不見）。⚠ 必擋組合：`dispellableByMe` + 排除可驅散 = `...|RAID_PLAYER_DISPELLABLE|!RAID_PLAYER_DISPELLABLE` 保證零匹配 —— 已寫死 dispellableByMe 勝出。⚠ 綁在 `raidDebuffs.enabled`：中央關掉就不扣，否則兩邊都不顯示。
+
+## 重要減益的兩個持續時間選項（2026-09-22，d8ecc4cef，未在遊戲內驗證）
+
+**起因**：RL 回報盤蛇祭壇 M 的幽暗炸彈（1286901，5 秒，治療要對著點刷）只在左下排，
+恐慌凝視（1285911，7 天，八個人都有）卻佔中央。暴雪旗標漏標／錯標，spellID 過濾對隊友減益禁用，
+唯一分得開的是持續時間（兩者都沒學派）。見 [[wow-121-aura-filter-vocabulary]] 的「旗標是暴雪逐法術手標的」。
+
+- **短時效減益** `filters.short`／`shortSeconds`（預設 8）：record key `short`，
+  `HARMFUL|!CROWD_CONTROL|!RAID|!RAID_PLAYER_DISPELLABLE` ＋ cf `{isBossOrRoleAura=false,
+  isPriorityAura=false, isFromPlayerOrPlayerPet=false, maxDuration=N}`。**否定所有類別（不管啟用與否）**
+  ＝「什麼旗標都沒有」；非玩家造成（EUI 的 Non-Player Auras，擋掉 PvP 敵方玩家的短減益）。
+  宣告第一、`FIXED_BUDGET = {short = 1}` 固定一格，GroupBudget 的「第一組給滿」改算第一個**非固定**組
+  （Build 用 `FlexCount(_groupKeys)+1`、SetNum 邊走邊數）。左下排扣不掉（沒有 minDuration）⇒ 兩處各顯示一次。
+- **持續時間上限** `filters.limit`／`limitSeconds`（預設 60）：只給 bossrole／priority 兩個 record 加
+  `maxDuration`。**控場與可驅散不受限**——午夜資料表裡可驅散且沒有持續時間的光環有 87 個（驅散掉才消失的設計很常見）。
+  開啟時 Built-in 的 excludeImportant 對 bossRole／priority 送 false（不扣）：否則被上限踢出中央的長效減益
+  左下也扣掉＝兩邊都消失。EUI 同一套取捨（布林類的認領允許重複）。
+- ⚠ **兩個選項都是「沒設定＝關」**，跟五個分類的「沒設定＝開」相反。三處一致：Built-in ConfigureContainer
+  （`== true`）、widget SetDBValue（`== true`）、BuildRecords（`opts.filterShort == true`）；
+  Built-in 的 debuff 排讀 `rf.limit == true`。秒數沒設定讀 `Cell.defaults.importantDebuffSeconds`（Layout_Defaults.lua）。
+  使用者 2026-09-22 決定短時效也預設關（原提案預設開）。
+- 設定面板：第四列兩個勾（右欄 x=135）＋第五列兩個「最長秒數」滑桿（1–30、10–300 步進 5），勾掉時滑桿反灰。
+  widget 高度 74→140。10 個語系都有翻譯。
+- **待驗證**：maxDuration ＋ isFromPlayerOrPlayerPet=false 在首領戰秘密下真的把幽暗炸彈收進中央；
+  上限開啟後恐慌凝視離開中央、仍在左下；固定一格不影響首領組 3 格；滑桿放開才重建。
+
+## 首領技能驚嘆號（2026-09-22，未在遊戲內驗證）
+
+使用者要「重要的首領技能在圖示角落標一個小驚嘆號，預覽也要看得到」。layout key `bossBadge`（重要減益），
+設定面板 `checkbutton3:bossBadge`（排在分類勾選下面），10 語系＋enUS 都有 `bossBadge`／`bossBadgeTips`。
+
+- **做法＝依 group 蓋章，不讀光環**：暴雪 AuraButton 沒有「依首領旗標顯示貼圖」的綁定（2026-09-22 翻過
+  `Blizzard_CustomAuraButton.lua`，只有學派貼圖/文字、倒數、層數、圖示、法術名、pandemic）。所以 `bossrole`
+  record 帶 `badge = true`，initFn 蓋 `button._adBadge`（跟 effColor 同招），StyleButton 畫。
+  範圍＝`isBossOrRoleAura` 那一組（含職責減益）；**優先減益、左下減益排都沒有**（左下是單一 HARMFUL group，分不出來）。
+- **畫法**（使用者定案：**黃色「!」包 1px 黑邊，不要底框**）：`ACC.StyleBossBadge(host, anchorTo, iconSize, scaleRef)`，
+  四張色塊（bar／dot 各一張黑邊＋一張黃 1,0.82,0），兩個黑邊重疊讓 bar 與 dot 之間只隔 `gap` 的黑。
+  尺寸表 `GLYPH` 是「22px 圖示上的實體像素」（inset 1、edge 1、寬 2、bar 高 6、gap 1），**每一項都乘 k = 圖示實體像素 / 22**
+  再取整（各有下限）。px = GetPixelToUIUnitFactor / scaleRef 有效縮放。
+  遊戲內畫在 `dfDurHolder`（base+6）的 ARTWORK 層＝在圖示／遮罩／時鐘掃描之上、倒數文字之下，不多建 frame；
+  scaleRef 用 `handle.frame`（不從 AuraButton 讀任何東西）。
+  ⚠ **不要給實體像素設上限**：第一版（金底方塊）限 10–16px，設定面板的預覽有「縮放大小」會把整顆按鈕放大，
+  圖示變 80px 角標還是 16px，使用者以為實際就那麼小。任何以實體像素計的尺寸都要跟著縮放走。
+- **預覽**：預覽按鈕的第 1 顆 BorderIcon（無學派紅框那顆）代表首領組，畫在它的 `textFrame`（同樣在掃描之上、
+  數字之下），呼叫同一支 `ACC.StyleBossBadge`。`UpdateBossBadgePreview` 掛在四個觸發點：初始化迴圈、
+  checkbutton bossBadge、raidDebuffFilters（首領／職責關掉就不畫）、size-border。不支援 AuraContainer 時不畫。
+- **預設**：「沒設定＝關」三處一致（ConfigureContainer `== true`、checkbox 顯示 nil＝沒勾、預覽 `== true`），
+  Revise 每次登入把 raidDebuffs 上**缺的** `bossBadge` 補成 true（只補 nil，不動玩家的 false）＝既有版面升級後就有。
+  UnitButton 的 checkbutton 分派要走 no-op 分支（跟 excludeImportant 同一格），否則會蓋掉同指示器的 onlyShowTopGlow（通則 12）。
+- bossBadge 是結構鍵（改了就重建），也在寄存 key 裡（TableSig(config)），所以蓋過章的按鈕不需要「拿掉」路徑。
+  `/cab inspect` 的 record 行帶 ` [!]`。
+- **待驗證**：副本裡首領減益真的出現「!」、非首領組沒有；預覽勾選與縮放即時跟著變。
+
+### 可驅散加號（2026-09-22，同日，未在遊戲內驗證）
+
+layout key `dispelBadge`（`checkbutton4`，預設開，Revise 同一段補 nil），右上角**白色「＋」包 1px 黑邊**
+（使用者從 學派色＋／白＋／學派色方塊 三案裡選白＋：外框已經說了是哪個學派，符號只說「你能處理」）。
+
+- **跟「!」不同，這個是逐顆光環判斷，不靠分組**：四塊色塊（橫／直各一塊黑邊＋一塊白）全部
+  `AddDispelTypeTexture(style=PreserveAsset, customDispelColorMap)`，色表對**自己能驅的學派**給白／黑、
+  **其他學派給 alpha 0**。⚠ 五個學派都要有條目——漏掉的學派會保留引擎自己的學派色（PreserveAsset 先上學派色、
+  色表才覆寫），變成不能驅的減益上有彩色「＋」。沒學派的光環引擎本來就不顯示（showWithoutDispelType 沒開）。
+  ⇒ 任何一組都會標，能驅的首領技能同時有「!」和「＋」。這招（色表 alpha 0 當「逐學派開關」）可以用在別處：
+  暴雪沒有「玩家能不能驅」的按鈕選項，但學派＋自己的名單就等於那個判斷。
+- 色塊**生出來就 Hide**：綁上之後 Shown 歸引擎管；萬一綁失敗，不會變成每顆圖示都掛著白「＋」。
+- 學派集合（`ACC.GetMyDispelTypes()`，讀 Cell 的 `I.CanDispel`，右下驅散指示器同一份）放進容器 config
+  （`dispelBadge = 集合 or false`，**不能送 nil**）→ 在 TableSig／寄存 key 裡、變了就重建（色表是綁定時複製進按鈕的）。
+  Cell 原本沒有通知：在 `Indicator_DefaultSpells.lua` 補 `NotifyDispellable()`（簽章比對，變了才 `Cell.Fire("DispellableChanged")`），
+  UnitButton 收到就 `PushContainerConfig("raidDebuffs")`，預覽也重畫。名單在登入後 1 秒才填好 ⇒ 登入時重要減益容器會多重建一次。
+  AD 裡 `/cab test` 用的 `MyDispelTypes` 改成直接指向 `ACC.GetMyDispelTypes`。
+- `AddDispelTexture`（ACC 內部）是所有學派貼圖共用的「第一次綁時清空列表」入口——環、只顯示學派圖示、加號都走它，
+  否則誰先綁誰清的順序會把別人的綁定清掉。
+- 預覽：`UpdateBadgePreview`（取代 UpdateBossBadgePreview）同時管兩個符號，「＋」看 `I.CanDispel(預覽圖示的學派)`
+  ——預覽三顆是 無／詛咒／魔法，**不能驅散的專精預覽上就不會有「＋」**（遊戲內也不會有）。
+- **待驗證**：能驅的學派才有「＋」、不能驅的完全透明；換專精後「＋」跟著換；登入後一秒那次重建沒有副作用。
 
 ## 樣式規則（StyleButton）
 
@@ -138,6 +213,27 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
 還在用那個 token（debuff mode、dispel mode、重要減益的 dispel record）。`AD.Test` 戰鬥中
 不能換 filter，所以驗法是：設第 3 步→開打→看整排會不會消失；再設第 6 步→開打→對照。
 **尚未驗證。** 健康基準線（正常時五個 display 的長相）在 2026-08-11 的 log，重點：`mode=buff groupsAdded=1 initCount=10 buttons=10 +cf{includeSpellIDs}`、anchorFrame 有實際矩形。
+
+### 法術旗標分析視窗（2026-09-22，未在遊戲內驗證）
+
+`/cab spell <ID｜名稱｜法術連結｜wowhead 網址｜冒險指南段落連結>` 開視窗（`RaidFrames/AuraSpellInspector.lua`，
+TOC 排在 AuraDisplay 後面；舊的一行版只在這支沒載入時才退回）。**全部只讀**：不碰容器、不改設定、不在暴雪框上寫欄位；
+每支 API pcall、每個回傳值先過 issecretvalue 才做布林判斷。
+
+- 分六段：結論／暴雪旗標（依 ID 離線查，清單見 [[wow-121-aura-filter-vocabulary]]）／秘密值／光環實例
+  （掃 player＋隊友＋target＋focus，`GetUnitAuraBySpellID` 找第一顆讀得到的，再用 `IsAuraFilteredOutByInstanceID`
+  對它實測十個 token）／**Cell 判定**／Cell 法術清單（黑名單、減傷、外部、爆發、控場、目標法術）。
+- **Cell 判定用的是容器實際建好的 record**：代表按鈕上每個 `ind.container` 的 `_parkRecords`（沒建就 `BuildRecords(h.config)`），
+  逐條推算 true／false／未知。有實例：filter 整條交給引擎實測、cf 從實例欄位推；沒實例：減益類指示器假設是減益、
+  token 只有 CROWD_CONTROL（法術層級近似）／BIG_DEFENSIVE／EXTERNAL_DEFENSIVE 推得出來，首領／職責／學派／持續時間／來源一律「未知」並列出缺什麼。
+  group 不去重，所以摘要是「所有認它的組」（兩組以上＝會重複顯示），不是「第一個認領的」。ID 清單條件照秘密等級判斷有沒有效。
+- 視窗開著時 UNIT_AURA／名單／目標／進出戰鬥 → 0.5 秒 debounce 重掃（事件的 unit 參數可能是秘密字串，不比對），內容沒變不重畫；
+  「文字」模式可整段複製（自動重掃在文字模式暫停，免得選到一半被重寫）。
+- Shift 點法術連結：後掛 `ChatFrameUtil.InsertLink`，**只在輸入框有焦點時**吃；冒險指南只在聊天框開著時才送連結，走不到這裡，
+  它的 `journal:2:<段落>` 連結要用貼的（`C_EncounterJournal.GetSectionInfo(...).spellID` 換成 ID）。
+- 文字寫死繁中（跟 `/cab` 其他輸出一致，沒進語系檔），record 標籤借用重要減益面板的 L 字串。
+- 離線驗過：scratchpad 的 mock harness 跑離線／有實例／秘密值三情境無錯（幽暗炸彈有實例時落在短時效）。
+  **待驗證**：視窗排版、捲動、Shift 點連結、首領戰中開著不報錯、token 實測結果合理。
 
 ## 順手修掉的相關項
 

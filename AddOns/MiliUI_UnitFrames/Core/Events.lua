@@ -29,6 +29,9 @@ local UNIT_EVENT_BUCKET = {
     UNIT_HEAL_PREDICTION = "health",
     UNIT_ABSORB_AMOUNT_CHANGED = "health",
     UNIT_HEAL_ABSORB_AMOUNT_CHANGED = "health",
+    -- 最大生命值被 debuff 壓低／恢復 → 只重排血條的損失段（Elements/Health.lua）。
+    -- ⚠ 這個事件在 TrackerOnEvent 裡**不看 arg1**，理由見 NO_ROUTE_EVENT
+    UNIT_MAX_HEALTH_MODIFIERS_CHANGED = "maxhploss",
     -- ⚠ 自然回復／衰減時 UNIT_POWER_UPDATE **兩秒才來一次**（只有花費與回滿會即時送），
     -- 只掛它的症狀是「貓德／盜賊等能量時條和數字每兩秒跳一格」。平滑的那條是
     -- FREQUENT；暴雪自己的玩家框更狠，是每幀輪詢 UnitPower。
@@ -86,7 +89,33 @@ local FORCE_EVENT = {
     UNIT_LEVEL = true,
     UNIT_CLASSIFICATION_CHANGED = true,
     UNIT_THREAT_SITUATION_UPDATE = true,
+    -- debuff 掉了那一波就是終點（之後不會再來），被擋掉的話損失段會一直掛著
+    UNIT_MAX_HEALTH_MODIFIERS_CHANGED = true,
 }
+
+-- ⚠ 這幾個事件**不拿 arg1 路由**。12.1 的 API 文件把它們標成 SecretPayloads，
+-- 而 unit token 本身就可能是秘密字串（READY_CHECK 實測過）：拿來 `~=` 比對，或當
+-- 下面 census 的 table key，都是 tainted 程式碰秘密值的硬錯誤。
+-- RegisterUnitEvent 已經在 C 端濾過 token，進得來的就是這顆 tracker 註冊的單位；
+-- 唯一的誤差是副 token（寵物框也收 player 的），多重讀一次自己的單位而已，不會讀錯人。
+--
+-- ⚠ 而且這幾個**延一幀才處理**，不在 OnEvent 裡同步重畫。文件標了 SynchronousEvent，
+-- 我們無法證明它永遠不會在暴雪的 secure 流程裡被派送（入口 2：按 Tab 的 TargetUnit、
+-- 按技能的 UseAction 都會同步派送事件，見 .claude/notes/wow-121-addon-code-in-secure-stack.md）。
+-- 同步跑的話整條按鍵流程會被染成我們的。它是低頻事件、只動版面，延一幀沒有視覺差別。
+-- 同一幀來好幾次只排一次（複合 token 的 tracker 實測一次變化收到 4 次）：
+-- 處理時讀的是 API 的當下值，排幾次結果都一樣。
+local NO_ROUTE_EVENT = {
+    UNIT_MAX_HEALTH_MODIFIERS_CHANGED = true,
+}
+
+local function FlushNoRoute(tracker, event)
+    tracker.noRoutePending[event] = nil
+    local uf = tracker.uf
+    if uf and uf:IsVisible() then
+        ns.Refresh(uf, UNIT_EVENT_BUCKET[event], FORCE_EVENT[event])
+    end
+end
 
 local function RefreshUnit(unitToken, bucket, force, src)
     local uf = ns.frames[unitToken]
@@ -141,6 +170,16 @@ local trackers = {}
 local function TrackerOnEvent(self, event, unit)
     local uf = self.uf
     if not (uf and uf:IsVisible()) then return end
+    if NO_ROUTE_EVENT[event] then
+        -- 這裡只記帳，理由見 NO_ROUTE_EVENT。arg1 一個位元組都不碰（連傳進 Defer 都不傳）
+        local pending = self.noRoutePending
+        if not pending then pending = {}; self.noRoutePending = pending end
+        if not pending[event] then
+            pending[event] = true
+            ns.Defer(FlushNoRoute, self, event)
+        end
+        return
+    end
     if uf.unit == uf.baseUnit then
         -- 一般情況（99% 的時間）：只理會這個框正在畫的那個 token
         if unit ~= uf.unit then return end

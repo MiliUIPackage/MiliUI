@@ -81,7 +81,22 @@ end
 --
 -- opts (from the indicator's ["filters"] table) -- all boolean, default true:
 --   filterBossRole, filterPriority, filterCrowdControl, filterRaid, filterDispellable
+-- and the two duration options, both default OFF (they change what the row means):
+--   filterShort (+ shortSeconds), importantMaxDuration (seconds, or false = no limit).
+-- bossBadge (default OFF when absent; Revise fills it in) is not a filter: it marks the
+-- boss/role record so its icons wear the corner "!" (see ACC.StyleBossBadge). Nor is
+-- dispelBadge (a school set, or false): StyleButton puts the "+" on every icon, per aura.
 -- Boss and Role are ONE toggle: isBossOrRoleAura covers both, and no UI ever split them.
+--
+-- The two DURATION options exist because every category above is a flag Blizzard sets by
+-- hand, spell by spell, and misses some (DBM's author: "a good half of boss auras at least
+-- were not correctly flagged" on the PTR). The case that forced it: Mythic Coiled Altar,
+-- where Gloombomb (1286901, 5 s, the one healers must spot-heal) carries no flag at all and
+-- Unnerving Fixation (1285911, 7 DAYS, on eight people) lands in the centre anyway -- not as
+-- priority (C_Spell.IsPriorityAura is false for both, checked in game), so by elimination
+-- through the boss/role flag, which is exactly what the limit trims. Spell IDs cannot help:
+-- ID filtering of debuffs on friendly units is banned outright. Duration is the one thing
+-- that tells them apart, and maxDuration is not an identity filter, so it survives secrets.
 -- ============================================================
 
 -- all dispel schools, named explicitly so Blizzard never consults the player's spec
@@ -250,8 +265,41 @@ local function BuildRecordsRaw(opts)
     local cc   = on("filterCrowdControl")
     local raid = on("filterRaid")
     local disp = on("filterDispellable")
+    -- default OFF, unlike the five above: absent must not switch it on
+    local short = opts.filterShort == true
+
+    -- Long-debuff limit on the two FLAG categories only. Crowd control and the dispel
+    -- tokens are deliberately exempt: "needs dispelling" and "cannot act" matter however
+    -- long they last, and plenty of dispellable debuffs have no duration at all (they
+    -- last until dispelled -- maxDuration hides permanent auras outright).
+    local limit = opts.importantMaxDuration
+    if type(limit) ~= "number" or limit <= 0 then limit = nil end
 
     local records = {}
+
+    -- SHORT: the debuffs Blizzard left unflagged. Declared FIRST because what it catches is
+    -- by definition about to expire -- a bomb marker is the thing to look at for its five
+    -- seconds -- and pinned to ONE slot (FIXED_BUDGET) so it never takes the full `num`
+    -- away from the boss/role group below it.
+    --   * NPC-caused only (isFromPlayerOrPlayerPet = false): keeps enemy players' short
+    --     slows and DoTs out of the row in PvP.
+    --   * Negates EVERY other category, enabled or not, so it is exactly "no flag at all".
+    --     A category the user switched off stays out of the centre instead of sneaking back
+    --     in through here, and nothing is lost: the debuff row only subtracts ENABLED
+    --     categories, so those auras are still drawn there.
+    --   * Cannot be subtracted from the debuff row (there is no minDuration), so these
+    --     auras show in both places. Duplicated is visible; vanished is not.
+    if short then
+        local secs = tonumber(opts.shortSeconds) or 8
+        records[#records + 1] = {
+            key = "short",
+            filter = "HARMFUL|!" .. TOKEN_CC .. "|!RAID|!" .. TOKEN_DISP,
+            candidateFilters = {
+                isBossOrRoleAura = false, isPriorityAura = false,
+                isFromPlayerOrPlayerPet = false, maxDuration = secs,
+            },
+        }
+    end
 
     -- set when the boss/role record was declared, so the lower records can subtract it
     local importantFlag
@@ -259,14 +307,17 @@ local function BuildRecordsRaw(opts)
         importantFlag = "isBossOrRoleAura"
         records[#records + 1] = {
             key = "bossrole", filter = "HARMFUL",
-            candidateFilters = { isBossOrRoleAura = true },
+            candidateFilters = { isBossOrRoleAura = true, maxDuration = limit },
+            -- 首領技能驚嘆號: every icon this group creates wears the corner badge. The group
+            -- can only ever show boss/role debuffs, so the badge needs no read of the aura.
+            badge = opts.bossBadge == true or nil,
         }
     end
 
     local priorityDeclared = false
     if priority then
         priorityDeclared = true
-        local cf = { isPriorityAura = true }
+        local cf = { isPriorityAura = true, maxDuration = limit }
         if importantFlag then cf[importantFlag] = false end
         records[#records + 1] = { key = "priority", filter = "HARMFUL", candidateFilters = cf }
     end
@@ -1134,6 +1185,28 @@ local function StyleButton(handle, button)
     button.dfStackHolder:SetFrameLevel(base + 7)
     ApplyFont(button.dfStack, button.dfStackHolder, cfg.stackFont)
 
+    -- ---- boss badge (首領技能驚嘆號) -------------------------------------------
+    -- Drawn on the countdown's holder rather than a frame of its own: base + 6 is already
+    -- above the icon, the vertical mask and the clock sweep, and the badge's ARTWORK layer
+    -- sits under the countdown's OVERLAY text on that same frame. One frame fewer per button.
+    -- Re-applied every pass so a size change resizes it.
+    if button._adBadge then
+        ACC.StyleBossBadge(button.dfDurHolder, button.dfDurHolder, math.min(size, sizeH), handle.frame)
+    end
+
+    -- ---- dispel badge (可驅散加號) ----------------------------------------------
+    -- Per aura, not per group: Blizzard shows it blind for the schools in the set (see
+    -- ACC.BindDispelBadge). Same holder and layer as the "!", opposite corner. The set is
+    -- config, so a spec change rebuilds -- the colour map is copied in at bind time.
+    local dispelTypes = cfg.dispelBadge
+    if type(dispelTypes) == "table" and next(dispelTypes) then
+        ACC.StyleDispelBadge(button.dfDurHolder, button.dfDurHolder, math.min(size, sizeH), handle.frame)
+        if not button._boundDispelBadge
+            and ACC.BindDispelBadge(button, button.dfDurHolder, dispelTypes) then
+            button._boundDispelBadge = true
+        end
+    end
+
     -- ---- native binds (bind-once via flags) ----
     -- Direct calls, NOT pcall'd: StyleButton's caller captures errors into
     -- handle._errors so /cab and /cab test can surface the real failure
@@ -1276,9 +1349,27 @@ end
 -- not among records: if the top record's filter string is rejected, the next one becomes
 -- the first real group and inherits the full budget. Keep Build and Handle:SetNum both
 -- calling this -- they used to carry the same formula twice.
-local function GroupBudget(index, total, wanted)
+--
+-- A FIXED group always gets exactly its own count and is invisible to that ranking, so
+-- "first" means first FLEXIBLE group. The short-debuff group sits on top of the important
+-- display for its ordering, not for its share: with it first and flexible, the boss/role
+-- group would drop to 1 and the common case above would break again. `flexIndex` is the
+-- position among the flexible groups only (see FlexCount).
+local FIXED_BUDGET = { short = 1 }
+
+local function GroupBudget(key, flexIndex, total, wanted)
     if total <= 1 then return wanted end
-    return index == 1 and wanted or 1
+    local fixed = FIXED_BUDGET[key]
+    if fixed then return fixed end
+    return flexIndex == 1 and wanted or 1
+end
+
+local function FlexCount(keys)
+    local n = 0
+    for _, key in ipairs(keys) do
+        if not FIXED_BUDGET[key] then n = n + 1 end
+    end
+    return n
 end
 
 -- Table-valued options need a CONTENT signature, and the config must remember the
@@ -1568,6 +1659,7 @@ local function Build(handle, why)
             cfDesc = " +cf{" .. table.concat(keys, ",") .. "}"
         end
         handle._recordInfo[#handle._recordInfo + 1] = rec.key .. "=" .. rec.filter .. cfDesc
+            .. (rec.badge and " [!]" or "")
     end
     handle._modeDbg = handle.config.mode or "important"
 
@@ -1590,6 +1682,10 @@ local function Build(handle, why)
             -- engine -- the park key covers the record set, so a returning button always
             -- carries the colour its record was built with.
             if rec.effColor ~= nil then button._adEffColor = rec.effColor end
+            -- Same for the boss badge. It never has to come off again: bossBadge is structural
+            -- (a toggle rebuilds) and part of the park key, so this button only ever serves
+            -- a config that asked for it.
+            if rec.badge then button._adBadge = true end
             -- ⚠ Tracked HERE and nowhere else. This is the only place a genuinely new
             -- button arrives; StyleButton must never append, because Restyle iterates this
             -- very list and calls StyleButton on each entry -- appending from there grew
@@ -1611,8 +1707,8 @@ local function Build(handle, why)
             })
         else
             okG, errG = pcall(c.AddAuraGroup, c, rec.key, rec.filter, {
-                -- position among groups added so far (+1 = the one we are adding now)
-                maxFrameCount = GroupBudget(#handle._groupKeys + 1, #records, wanted),
+                -- position among flexible groups added so far (+1 = this one, if flexible)
+                maxFrameCount = GroupBudget(rec.key, FlexCount(handle._groupKeys) + 1, #records, wanted),
                 initializeFrame = initFn,
                 layout = groupLayout,
                 candidateFilters = rec.candidateFilters,
@@ -1804,8 +1900,10 @@ function Handle:SetNum(n)
         -- same allocation Build uses -- one shared GroupBudget so the two cannot drift
         local total = #self._groupKeys
         local allOK = true
-        for i, key in ipairs(self._groupKeys) do
-            local per = GroupBudget(i, total, n)
+        local flex = 0
+        for _, key in ipairs(self._groupKeys) do
+            if not FIXED_BUDGET[key] then flex = flex + 1 end
+            local per = GroupBudget(key, flex, total, n)
             if not pcall(c.SetAuraGroupMaxFrameCount, c, key, per) then allOK = false end
         end
         if allOK then
@@ -2293,9 +2391,10 @@ end
 -- ============================================================
 -- FACTORY
 -- config: { size, sizeH, border, spacing, num, orientation, showDuration, showStack,
---           stackFont, durationFont, borderColor, mode, and the five category toggles
+--           stackFont, durationFont, borderColor, mode, and the category toggles
 --           filterBossRole / filterPriority / filterCrowdControl / filterRaid /
---           filterDispellable }
+--           filterDispellable / filterShort (+ shortSeconds), importantMaxDuration,
+--           bossBadge, dispelBadge }
 -- returns a handle, or nil when unsupported (caller keeps its fallback path).
 -- ============================================================
 
@@ -2699,16 +2798,8 @@ end
 
 -- The player's own dispel schools, i.e. the candidateFilter spelling of what the
 -- RAID_PLAYER_DISPELLABLE token says. Computed at press time because it follows the spec.
-local function MyDispelTypes()
-    local I = Cell.iFuncs
-    if not (I and I.CanDispel) then return nil end
-    local t = {}
-    for dispelType in pairs(ALL_DISPEL_TYPES) do
-        if I.CanDispel(dispelType) then t[dispelType] = true end
-    end
-    if not next(t) then return nil end -- nothing dispellable on this spec
-    return t
-end
+-- nil when nothing is dispellable on this spec
+local MyDispelTypes = ACC.GetMyDispelTypes
 
 -- One-button stepper: /cab test
 -- Each press advances to the next bisect case and prints what to look for.
@@ -3094,6 +3185,12 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         p(("身分閘：已重新掃描並強制重讀 %d 個容器%s"):format(n,
             InCombatLockdown() and "（戰鬥中只能標記，離開戰鬥後補跑）" or ""))
     elseif cmd == "spell" then
+        -- 法術旗標分析視窗（AuraSpellInspector.lua）：arg 可以是 ID、名稱或法術連結，
+        -- 空白就開一個空的視窗。視窗不在（檔案沒載入）才退回下面的一行版。
+        if Cell.AuraSpellInspector then
+            Cell.AuraSpellInspector.Show(arg)
+            return
+        end
         -- "will this spell go secret in combat?" ShouldSpellAuraBeSecret answers for the
         -- SPELL, not for anyone currently carrying it, so it is safe to ask mid-combat.
         local spellID = tonumber(arg)
@@ -3193,7 +3290,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
     else
         p("supported =", tostring(AD.IsSupported()), "|", tostring(ACC.Failure() or "OK"))
         AD.Debug()
-        p("其他：/cab list | stats | ghosts | report [n] | bounce on|off | inspect [unit] | overdraw [unit] | spell <id> | gate | test")
+        p("其他：/cab list | stats | ghosts | report [n] | bounce on|off | inspect [unit] | overdraw [unit] | spell [id｜名稱｜連結]（旗標分析視窗） | gate | test")
     end
 end
 

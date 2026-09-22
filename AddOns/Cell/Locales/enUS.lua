@@ -25,6 +25,13 @@ select(2, ...).L = setmetatable({
     ["showBackground"] = "Show background",
     ["dispellableByMe"] = "Only show debuffs dispellable by me",
     ["excludeImportant"] = "Hide debuffs already shown as important",
+    ["bossBadge"] = "Mark boss debuffs with \"!\"",
+    ["bossBadgeTips"] = "A small yellow \"!\" with a black outline in the top-left corner|of every Boss/Role Debuffs icon.",
+    ["dispelBadge"] = "Mark dispellable debuffs with \"+\"",
+    ["dispelBadgeTips"] = "Debuffs your current spec can dispel get a small white \"+\"|with a black outline in the top-right corner.|Applies to every category shown here.",
+    -- fix from MiliUI: Important Debuffs duration options
+    ["shortDebuffsTips"] = "NPC debuffs Blizzard left out of every category above\nthat last no longer than the set seconds (bomb markers and the like).\nShown first, one icon at most.\nThe Debuffs indicator keeps showing them too.",
+    ["durationLimitTips"] = "Boss/Role and Priority debuffs lasting longer than the set seconds,\nor with no duration, are left out of this indicator.\nCrowd controls and dispellable debuffs are never limited.\nWhile on, the Debuffs indicator shows every Boss/Role and Priority debuff.",
     ["showDispelTypeIcons"] = "Show dispel type icons",
     ["castByMe"] = "Only show buffs cast by me",
     ["buffByMe"] = "Only show buffs I can apply",

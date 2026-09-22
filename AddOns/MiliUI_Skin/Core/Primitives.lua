@@ -829,7 +829,22 @@ function Skin.EditBox(eb, key, opts)
         end
     end
 
-    local ov = E.Overlay(eb, { key = key, points = opts.points })
+    -- 預設照暴雪原本那組美術的幾何畫（`InputBoxVisualTemplate`，InputBoxTemplates.xml:46-62）：
+    -- Left 錨 LEFT x=-5、Right 錨 RIGHT x=0、三段都是 20 高、垂直置中。
+    -- ⚠ **不是**輸入框本身的矩形：框可以比美術高（成就搜尋框 107x30，
+    --   Blizzard_AchievementUI.xml:1710），照框畫會變成一塊 30 高的方塊；
+    --   左緣也少了那 5，放大鏡（LEFT x=1）就貼在邊線上。
+    -- 只在認得這組美術（有 `Left`）時才這樣畫；呼叫端給了 points 就照呼叫端。
+    local points, height = opts.points, nil
+    if not points then
+        local left
+        if pcall(function() left = eb.Left end) and left then
+            points = { { "LEFT", "LEFT", -5, 0 }, { "RIGHT", "RIGHT", 0, 0 } }
+            height = 20
+        end
+    end
+
+    local ov = E.Overlay(eb, { key = key, points = points, height = height })
     E.Paint(ov, T.fillInset, T.border)
     return ov
 end

@@ -214,6 +214,7 @@ E.AddCompanion(nil, {
 --
 -- `Skin.Button`（`UIPanelButtonTemplate` 就是它的對象）：三張切片 alpha 0、
 -- Highlight 中和、NormalFont 換 `GameFontHighlight`、`fill` ＋ 1px 邊、滑過底提亮 ＋ 職業色邊。
+-- **第十輪起 `variant = "secondary"`**（第九輪預設的 primary 職業色底疊在搜尋框下面太搶眼）。
 -- 它對那三張下的 `SetDesaturated` 跟我們的 alpha 是兩個獨立的屬性，不衝突。
 --
 -- ## 觸發時機與理由
@@ -261,7 +262,11 @@ local function SkinJournalShortcut()
             return
         end
     end
-    ns.Skin.Button(btn, SHORTCUT_NAME)
+    -- 第十輪：**secondary**（`fill` ＋ 黑邊，滑過才亮職業色）。它疊在搜尋框正下方、
+    -- 跟難度下拉擠在一起（位置是它自己的，不動），primary 的職業色底在那個角落
+    -- 太搶眼；而且它是「開一份外部資料」的捷徑，不是這一頁的主要動作
+    -- （STYLE.md ④「按鈕的兩種變體」判準 5：開選單／捷徑類 secondary）。
+    ns.Skin.Button(btn, SHORTCUT_NAME, { variant = "secondary" })
     shortcutDone = true
 end
 

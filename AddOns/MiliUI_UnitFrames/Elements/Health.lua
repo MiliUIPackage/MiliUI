@@ -11,6 +11,7 @@ local Media, Colors = ns.Media, ns.Colors
 
 local UnitHealth, UnitHealthMax = UnitHealth, UnitHealthMax
 local UnitGetDetailedHealPrediction = UnitGetDetailedHealPrediction
+local GetUnitTotalModifiedMaxHealthPercent = GetUnitTotalModifiedMaxHealthPercent
 
 -- 疊加層貼圖統一走 Media（檔案是從 Cell/Media 複製過來的那四張）
 
@@ -145,6 +146,137 @@ local function AnchorToFillEdge(obj, hpTex, reversed)
     end
 end
 
+------------------------------------------------------------
+-- 最大生命值損失（debuff 把血量上限壓低的那一截）
+--
+-- 上限被壓低之後 UnitHealthMax 跟著變小，血條以新上限為滿 —— 看起來還是滿血，
+-- 玩家完全不知道自己少了一截。暴雪的玩家／目標／隊伍／團隊框都有「暫時最大生命值
+-- 損失」條（Blizzard_UnitFrame 的 TempMaxHealthLossMixin），做法是血條寬度縮成
+-- (1 − 損失比例)、空出來那段畫暗色。這裡照同一個版面：
+--
+--   **縮的是 f.clip，不是 f.bar。** 吸收盾、治療吸收、扣血暗化、溢盾光暈、背景
+--   全部錨在 clip 上，縮 clip 等於整組跟著縮，一條都不用各自改；只縮 f.bar 的話
+--   吸收盾（SetAllPoints clip、從空端長回來）會長進損失段裡。
+--   損失段 f.maxLoss 錨在 clip 的遠端外側，clip 一動它自己就跟上。
+--
+-- 資料：`GetUnitTotalModifiedMaxHealthPercent(unit)`，0～1 的損失比例（暴雪註明
+-- 「只畫損失、不畫增加」，把值 Clamp 到 0～1，這裡照做）。12.1 的 API 文件在這支函式上**沒有任何
+-- 秘密標記**（對照 UnitHealth 是 SecretReturns），所以它是少數能拿來算版面的血量值。
+-- 保險起見照樣驗 IsSecret：哪天改成秘密就退成「不畫」，不會炸在算術上。
+--
+-- 觸發：UNIT_MAX_HEALTH_MODIFIERS_CHANGED（"maxhploss" 桶，見 Core/Events.lua 為什麼
+-- 不看它的 arg1）＋換人。事件 payload 裡其實帶著同一個比例，但文件標了
+-- SecretPayloads，一律不讀、當下重問 API。
+------------------------------------------------------------
+-- 損失段遠端那 1px 分隔線：跟「扣血」的暗化區分開，讀起來是「條在這裡結束」
+local MAX_LOSS_DIVIDER_COLOR = { r = 1, g = 1, b = 1, a = 0.8 }
+-- 預覽示範用的損失比例（跟吸收盾 12%／治療吸收 8% 一樣只是展示）
+local PREVIEW_MAX_LOSS = 0.15
+
+-- clip 框的遠端內縮 f.maxLossW；損失段的顯示跟著同一個值走
+local function LayoutClip(f)
+    local inset, lost = f.inset or 0, f.maxLossW or 0
+    f.clip:ClearAllPoints()
+    if f.fillReversed then
+        f.clip:SetPoint("TOPLEFT", f, "TOPLEFT", inset + lost, -inset)
+        f.clip:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -inset, inset)
+    else
+        f.clip:SetPoint("TOPLEFT", f, "TOPLEFT", inset, -inset)
+        f.clip:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -(inset + lost), inset)
+    end
+    if f.maxLoss then f.maxLoss:SetShown(lost > 0) end
+end
+
+-- 比例 → 像素寬度。值沒變就不重排（換人每次都會問一次，大多數時候是 0 → 0）。
+-- 回傳「版面有沒有動」，實機記錄只記有變化的那幾次
+local function SetMaxHealthLoss(f, pct)
+    f.maxLossPct = pct
+    local lost = 0
+    if pct > 0 then
+        local w = f.innerW or 0
+        lost = ns.P.Scale(w * pct)
+        -- 至少留 1px 給血條：clip 寬度歸零的話錨點會退化
+        local keep = ns.P.Scale(1)
+        if lost > w - keep then lost = w - keep end
+        if lost < 0 then lost = 0 end
+    end
+    if lost == f.maxLossW then return false end
+    f.maxLossW = lost
+    LayoutClip(f)
+    return true
+end
+
+-- 讀比例。回傳明文 0～1；讀不到（沒這支 API／拋錯／秘密值）一律當 0。
+-- 原始結果記在 f.maxLossRaw 給 /muf debug 看，「沒畫出來」時分得出是哪一種
+local function ReadMaxHealthLoss(f, unit)
+    if not GetUnitTotalModifiedMaxHealthPercent then
+        f.maxLossRaw = "no-api"
+        return 0
+    end
+    local ok, v = pcall(GetUnitTotalModifiedMaxHealthPercent, unit)
+    if not ok then
+        f.maxLossRaw = "error"
+        return 0
+    end
+    if ns.IsSecret(v) then
+        f.maxLossRaw = "secret"
+        return 0
+    end
+    if type(v) ~= "number" then
+        f.maxLossRaw = type(v)
+        return 0
+    end
+    f.maxLossRaw = v
+    if v <= 0 then return 0 end
+    if v > 1 then return 1 end
+    return v
+end
+
+local function UpdateMaxHealthLoss(uf, f, edb)
+    if not edb.showMaxHealthLoss then return false end
+    f.maxLossReads = (f.maxLossReads or 0) + 1
+    return SetMaxHealthLoss(f, ReadMaxHealthLoss(f, uf.unit))
+end
+
+------------------------------------------------------------
+-- 實機記錄（/muf maxhp 印出）
+--
+-- 事件每來一次、或換人時寬度有變就記一行，連同當下情境（副本類型／戰鬥／首領戰／M+）。
+-- 為什麼要自己記：debuff 常常在玩家打指令之前就掉了，事後看當下狀態只會是 0；
+-- 而「首領戰或 M+ 裡 API 會不會變秘密」正是要驗的事，情境一定要跟著值一起記。
+--
+-- 存在帳號層 SV（MiliUI_UnitFrames_DB.maxHPLog，跟 charClasses 同層、不進設定檔），
+-- /reload 或登出就寫進 WTF，不必截圖。環狀只留最近 MAXHP_LOG_MAX 行。
+------------------------------------------------------------
+local MAXHP_LOG_MAX = 60
+
+local function LogContext()
+    local _, instType = IsInInstance()
+    local ctx = instType or "?"
+    if InCombatLockdown() then ctx = ctx .. ",戰鬥" end
+    if IsEncounterInProgress and IsEncounterInProgress() then ctx = ctx .. ",首領戰" end
+    if C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive
+        and C_ChallengeMode.IsChallengeModeActive() then
+        ctx = ctx .. ",M+"
+    end
+    return ctx
+end
+
+local function LogMaxHealthLoss(uf, f, src)
+    if uf.isPreview then return end
+    local db = MiliUI_UnitFrames_DB
+    if type(db) ~= "table" then return end
+    local log = db.maxHPLog
+    if type(log) ~= "table" then log = {}; db.maxHPLog = log end
+    -- 記錄本身絕對不能擋到繪製：情境 API 在受限內容裡拋錯就只記「?」
+    local okCtx, ctx = pcall(LogContext)
+    tinsert(log, ("%s %s(%s) %s raw=%s pct=%.3f 寬=%.1f/%.1f [%s]"):format(
+        date("%m-%d %H:%M:%S"), uf.baseUnit or "?", uf.unit or "?", src,
+        tostring(f.maxLossRaw), f.maxLossPct or 0, f.maxLossW or 0, f.innerW or 0,
+        okCtx and ctx or "?"))
+    while #log > MAXHP_LOG_MAX do tremove(log, 1) end
+end
+
 local function Build(uf, edb)
     local f = uf.elements.hpbar or ns.CreateElementBase(uf, "hpbar", "Frame", "BackdropTemplate")
     ns.ApplyElementBase(uf, f, edb)
@@ -161,9 +293,8 @@ local function Build(uf, edb)
         f.clip = CreateFrame("Frame", nil, f)
         f.clip:SetClipsChildren(true)
     end
-    f.clip:ClearAllPoints()
-    f.clip:SetPoint("TOPLEFT", f, "TOPLEFT", inset, -inset)
-    f.clip:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -inset, inset)
+    -- clip 的錨點由 LayoutClip 設（遠端要扣掉最大生命值損失那一截），下面填充方向
+    -- 與內容寬度都算好之後才呼叫
     f.clip:SetFrameLevel(edb.level or 4)
 
     -- 背景兩種擺法：
@@ -215,6 +346,52 @@ local function Build(uf, edb)
     local innerW = ns.P.Scale(edb.w or 10) - inset * 2
     local innerH = ns.P.Scale(edb.h or 10) - inset * 2
     local hpTex = f.bar:GetStatusBarTexture()
+
+    ------------------------------------------------------------
+    -- 最大生命值損失段：錨在 clip 遠端的**外側**，所以掛在 f 上不掛 clip
+    -- （掛進 clip 會被自己裁掉）。層級跟 clip 相同：兩者不重疊，而三明治版面裡
+    -- 這段要壓在 3D 頭像之上、不透出模型。
+    -- 寬度、inset、方向都存在 f 上，事件來時 SetMaxHealthLoss 只需要比例。
+    ------------------------------------------------------------
+    f.inset, f.innerW, f.fillReversed = inset, innerW, reversed
+    if edb.showMaxHealthLoss then
+        local m = f.maxLoss
+        if not m then
+            m = CreateFrame("Frame", nil, f)
+            m.fill = m:CreateTexture(nil, "ARTWORK")
+            m.fill:SetAllPoints(m)
+            m.fill:SetTexture(Media.WHITE8X8)
+            m.divider = m:CreateTexture(nil, "OVERLAY")
+            m.divider:SetTexture(Media.WHITE8X8)
+            m:Hide()
+            f.maxLoss = m
+        end
+        m:SetFrameLevel(edb.level or 4)
+        m:ClearAllPoints()
+        m.divider:ClearAllPoints()
+        if reversed then
+            m:SetPoint("TOPLEFT", f, "TOPLEFT", inset, -inset)
+            m:SetPoint("BOTTOMRIGHT", f.clip, "BOTTOMLEFT", 0, 0)
+            m.divider:SetPoint("TOPRIGHT", m, "TOPRIGHT", 0, 0)
+            m.divider:SetPoint("BOTTOMRIGHT", m, "BOTTOMRIGHT", 0, 0)
+        else
+            m:SetPoint("TOPLEFT", f.clip, "TOPRIGHT", 0, 0)
+            m:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -inset, inset)
+            m.divider:SetPoint("TOPLEFT", m, "TOPLEFT", 0, 0)
+            m.divider:SetPoint("BOTTOMLEFT", m, "BOTTOMLEFT", 0, 0)
+        end
+        m.divider:SetWidth(ns.P.Scale(1))
+        local c = edb.maxHealthLossColor or { r = 0.4, g = 0.05, b = 0.05, a = 1 }
+        m.fill:SetVertexColor(c.r, c.g, c.b, c.a or 1)
+        local dc = MAX_LOSS_DIVIDER_COLOR
+        m.divider:SetVertexColor(dc.r, dc.g, dc.b, dc.a)
+        -- 寬度／方向可能剛改過：用上次讀到的比例重算一次（換人的全量重畫緊接著會重讀）
+        f.maxLossW = nil
+        SetMaxHealthLoss(f, f.maxLossPct or 0)
+    else
+        f.maxLossPct, f.maxLossW = 0, 0
+        LayoutClip(f)
+    end
 
     -- 扣血暗化層：從填充前緣鋪到條的另一端的半透明黑（貼在 clip 框上，位於頭像之上、
     -- overlay 條之下）。三明治版面裡 3D 模型太搶眼，沒這層「模型」和「模型＋40% 職業色」
@@ -426,6 +603,16 @@ local function Update(uf, edb, bucket)
         end
         return
     end
+    -- 最大生命值損失的事件只動版面，血量與顏色不必重讀。
+    -- 上限被壓低時 UNIT_MAXHEALTH 另外會來，血條的值由 health 桶那一波負責
+    if bucket == "maxhploss" then
+        f.maxLossEvents = (f.maxLossEvents or 0) + 1
+        if not uf.isPreview then
+            UpdateMaxHealthLoss(uf, f, edb)
+            LogMaxHealthLoss(uf, f, edb.showMaxHealthLoss and "事件" or "事件(開關關)")
+        end
+        return
+    end
     -- health／info 桶沿用上次的仇恨狀態：它們一秒來很多次，而仇恨不會因為掉血改變。
     -- 其餘（換人、陣營／隊伍、生死）都可能改變「該不該亮」，順手重算
     if bucket ~= "health" and bucket ~= "info" then
@@ -470,7 +657,13 @@ local function Update(uf, edb, bucket)
         if stripOn and f.absorbStrip then
             f.absorbStrip:SetMinMaxValues(0, 100); f.absorbStrip:SetValue(35); f.absorbStrip:Show()
         end
+        if edb.showMaxHealthLoss then SetMaxHealthLoss(f, PREVIEW_MAX_LOSS) end
     else
+        -- 最大生命值損失：換人／生死／陣營這些桶順手重問一次（一支 C 呼叫）。
+        -- health／info 不問 —— 那兩個一秒來很多次，而上限變動有自己的事件
+        if bucket ~= "health" and bucket ~= "info" then
+            if UpdateMaxHealthLoss(uf, f, edb) then LogMaxHealthLoss(uf, f, bucket) end
+        end
         -- 治療預估／吸收盾 overlay 只對「可協助」的單位畫：計算器對敵對單位回的
         -- 預估與吸收值都是垃圾（副本兩次實測：連 Platynator 同款設定也整條滿，
         -- 把扣血區染成粉紫／灰藍）。敵人的護盾要顯示得另找可靠來源，不是這顆計算器。
@@ -578,7 +771,8 @@ ns.RegisterElement{
     -- info：難度色（methods.difficulty）讀的是 cache.level，只在 info 桶重讀 ——
     --       少了它，選「難度色」的人升級或目標變等級時顏色不會更新
     -- threat：仇恨提醒（Elements/HealthThreat.lua），只換色不重讀血量
-    buckets = { "health", "death", "reaction", "info", "threat" },
+    -- maxhploss：最大生命值被 debuff 壓低／恢復，只重排損失段
+    buckets = { "health", "death", "reaction", "info", "threat", "maxhploss" },
     build = Build,
     update = Update,
 }

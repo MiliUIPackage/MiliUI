@@ -247,7 +247,7 @@ local PANEL_BUTTON_ART = { "Left", "Right", "Middle" }
 
 -- 第九輪：成組時退到 secondary 的那幾顆（其餘 primary）
 local COMMERCE_SECONDARY = {
-    CreateAllButton    = true,   -- 跟「製作」並排，一塊只給一顆 primary
+    -- CreateAllButton：2026-09-22 使用者指定「全部製造」也用職業色 ⇒ 改回 primary
     DeclineOrderButton = true,   -- 跟「接單」成對
     ReleaseOrderButton = true,   -- 跟「製作」成對（放棄這張訂單）
     StopRecraftButton  = true,   -- 跟「重新製作」成對

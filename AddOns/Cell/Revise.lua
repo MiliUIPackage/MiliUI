@@ -3749,6 +3749,21 @@ function F.Revise()
         end
     end
 
+    --! fix from MiliUI: Important Debuffs' two corner marks -- the boss "!" (首領技能驚嘆號) and
+    --! the dispel "+" (可驅散加號) -- are on for every layout that predates them, and for old
+    --! layouts imported later (they pick them up at the next login).
+    --! No version gate: it only fills an ABSENT key, so a player's own "off" is never touched.
+    --! Absent is read as OFF everywhere (ConfigureContainer, the options checkbox, the
+    --! preview), so the frames and the panel agree even before this has run.
+    for _, layout in pairs(CellDB["layouts"] or {}) do
+        for _, t in pairs(layout["indicators"] or {}) do
+            if type(t) == "table" and t["indicatorName"] == "raidDebuffs" then
+                if t["bossBadge"] == nil then t["bossBadge"] = true end
+                if t["dispelBadge"] == nil then t["dispelBadge"] = true end
+            end
+        end
+    end
+
     --! fix from MiliUI: "clock" used to mean what is now "border" -- the animation was a
     --! single style whose sweep happens to land on the ring, and splitting the real clock
     --! sweep out of it left the old value pointing at the wrong look. Rename it once.

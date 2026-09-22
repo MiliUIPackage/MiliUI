@@ -686,6 +686,23 @@ function I.CanDispel(dispelType)
     return dispellable[dispelType]
 end
 
+--! fix from MiliUI: tell whoever cares that the set CHANGED (Important Debuffs' dispel badge
+--! bakes it into its containers). Compared against the last set, so the TRAIT_CONFIG_UPDATED
+--! that also fires for profession points does not rebuild anything.
+local lastDispellable = ""
+local function NotifyDispellable()
+    local keys = {}
+    for k, v in pairs(dispellable) do
+        if v then keys[#keys + 1] = k end
+    end
+    table.sort(keys)
+    local sig = table.concat(keys, ",")
+    if sig ~= lastDispellable then
+        lastDispellable = sig
+        Cell.Fire("DispellableChanged")
+    end
+end
+
 local dispelNodeIDs = {
     -- DRUID ----------------
         -- 102 - Balance
@@ -779,6 +796,7 @@ if UnitClassBase("player") == "WARLOCK" then
             -- update dispellable
             dispellable["Magic"] = IsSpellKnown(89808, true)
             -- texplore(dispellable)
+            NotifyDispellable()
         end)
 
     end)
@@ -813,6 +831,7 @@ else
         end
 
         -- texplore(dispellable)
+        NotifyDispellable()
     end
 
     local timer
