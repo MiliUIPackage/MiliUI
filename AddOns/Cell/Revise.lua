@@ -3749,6 +3749,19 @@ function F.Revise()
         end
     end
 
+    --! fix from MiliUI: Important Debuffs' boss badge (首領技能驚嘆號) is on for every layout
+    --! that predates it, and for old layouts imported later (they pick it up at the next login).
+    --! No version gate: it only fills an ABSENT key, so a player's own "off" is never touched.
+    --! Absent is read as OFF everywhere (ConfigureContainer, the options checkbox, the
+    --! preview), so the frames and the panel agree even before this has run.
+    for _, layout in pairs(CellDB["layouts"] or {}) do
+        for _, t in pairs(layout["indicators"] or {}) do
+            if type(t) == "table" and t["indicatorName"] == "raidDebuffs" and t["bossBadge"] == nil then
+                t["bossBadge"] = true
+            end
+        end
+    end
+
     --! fix from MiliUI: "clock" used to mean what is now "border" -- the animation was a
     --! single style whose sweep happens to land on the ring, and splitting the real clock
     --! sweep out of it left the old value pointing at the wrong look. Rename it once.

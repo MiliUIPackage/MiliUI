@@ -365,6 +365,76 @@ function ACC.BindDispelText(button, fontString)
 end
 
 -- ============================================================
+-- BOSS BADGE  (Important Debuffs: 首領技能驚嘆號)
+--
+-- A small corner badge -- gold square, black "!" -- on the icons of the Important Debuffs
+-- boss/role group. Nothing here asks "is this a boss aura": the aura's flags are secret.
+-- The answer is WHICH GROUP the button was created for -- that group only ever holds
+-- isBossOrRoleAura debuffs -- stamped onto the button in Build's initializeFrame, the same
+-- way the per-spell effect slots know their colour (see AuraDisplay.lua).
+--
+-- Flat colour textures sized in whole PHYSICAL pixels rather than an image: at 10px a
+-- scaled bitmap "!" smears into a blob, while a 2px bar over a 2px dot stays sharp.
+-- The options preview draws its badge through this same function, so the two cannot drift.
+-- ============================================================
+
+local BADGE_FILL = { 1, 0.82, 0 } -- Blizzard gold (NORMAL_FONT_COLOR)
+local BADGE_INK  = { 0, 0, 0 }    -- the 1px edge and the "!"
+
+-- host      the frame the textures live on. They sit in its ARTWORK layer, so OVERLAY text
+--           on the same frame (the countdown) stays readable on top of the badge.
+-- anchorTo  the icon's OUTER rect, ring included; the badge fills its TOPLEFT corner.
+-- iconSize  the icon's size in UI units (the indicator's size setting).
+-- scaleRef  a frame WE own in the same scale chain -- never the AuraButton, whose subtree
+--           must not be read from.
+function ACC.StyleBossBadge(host, anchorTo, iconSize, scaleRef)
+    local b = host.cellBossBadge
+    if not b then
+        b = {
+            edge = host:CreateTexture(nil, "ARTWORK", nil, 1),
+            fill = host:CreateTexture(nil, "ARTWORK", nil, 2),
+            bar  = host:CreateTexture(nil, "ARTWORK", nil, 3),
+            dot  = host:CreateTexture(nil, "ARTWORK", nil, 3),
+        }
+        b.edge:SetColorTexture(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
+        b.fill:SetColorTexture(BADGE_FILL[1], BADGE_FILL[2], BADGE_FILL[3], 1)
+        b.bar:SetColorTexture(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
+        b.dot:SetColorTexture(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
+        host.cellBossBadge = b
+    end
+
+    -- one physical pixel, in UI units
+    local scale = (scaleRef and scaleRef:GetEffectiveScale()) or 1
+    local px = PixelUtil.GetPixelToUIUnitFactor() / scale
+    local iconPx = (iconSize or 22) / px
+    -- ~45% of the icon, 10..16px. EVEN, so the 2px "!" centres on a pixel boundary.
+    local s = 2 * math.floor(iconPx * 0.45 / 2 + 0.5)
+    s = math.max(10, math.min(16, s))
+    local n = s - 2                     -- inside the 1px edge
+    local pad = n >= 12 and 2 or 1
+    local bar = n - 2 * pad - 1 - 2     -- what is left after the 1px gap and the 2px dot
+
+    b.edge:ClearAllPoints()
+    b.edge:SetPoint("TOPLEFT", anchorTo, "TOPLEFT", 0, 0)
+    b.edge:SetSize(s * px, s * px)
+    b.fill:ClearAllPoints()
+    b.fill:SetPoint("TOPLEFT", b.edge, "TOPLEFT", px, -px)
+    b.fill:SetPoint("BOTTOMRIGHT", b.edge, "BOTTOMRIGHT", -px, px)
+    b.bar:ClearAllPoints()
+    b.bar:SetPoint("TOP", b.fill, "TOP", 0, -pad * px)
+    b.bar:SetSize(2 * px, bar * px)
+    b.dot:ClearAllPoints()
+    b.dot:SetPoint("BOTTOM", b.fill, "BOTTOM", 0, pad * px)
+    b.dot:SetSize(2 * px, 2 * px)
+end
+
+function ACC.SetBossBadgeShown(host, shown)
+    local b = host and host.cellBossBadge
+    if not b then return end
+    for _, tex in pairs(b) do tex:SetShown(shown) end
+end
+
+-- ============================================================
 -- FONT
 -- Cell's font tables are {face, size, outline, shadow, anchor, xOffset, yOffset,
 -- color}. I.SetFont is the canonical applier (pixel-perfect points, justify,

@@ -1180,12 +1180,12 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 end, true)
             elseif value == "showAllSpells" then
                 I.ShowAllTargetedSpells(value2)
-            elseif value == "excludeImportant" then
+            elseif value == "excludeImportant" or value == "bossBadge" then
                 -- ⚠ Deliberately a no-op here: PushContainerConfig at the end of this
                 -- function is what applies it. It must NOT reach the generic write below --
                 -- indicatorBooleans is keyed by INDICATOR, not by setting, so a second
-                -- checkbox on the same indicator overwrites the first. This one shares an
-                -- indicator with dispellableByMe.
+                -- checkbox on the same indicator overwrites the first. excludeImportant
+                -- shares an indicator with dispellableByMe, bossBadge with onlyShowTopGlow.
             else
                 indicatorBooleans[indicatorName] = value2
             end

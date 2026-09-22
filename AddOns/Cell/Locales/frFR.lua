@@ -217,6 +217,8 @@ L["DISPEL"] = "DISSIPER"
 L["Dispellable By Me"] = "Dissipable par moi"
 L["dispellableByMe"] = "Afficher uniquement les affaiblissements que je peux dissiper"
 L["excludeImportant"] = "Masquer les affaiblissements déjà affichés comme importants"
+L["bossBadge"] = "Marquer les affaiblissements de boss d'un « ! »"
+L["bossBadgeTips"] = "Chaque icône d'affaiblissement de boss/rôle affiche|un petit « ! » doré en haut à gauche."
 --[[Translation missing --]]
 --[[ L["Dispels"] = "Dispels"--]]
 L["Display a gradient texture when the unit receives a heal from your certain healing spells."] = "Affiche une texture dégradée lorsque l'unité reçoit un soin de certains de vos sorts de soins de zone."

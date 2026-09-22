@@ -298,6 +298,8 @@ L["Dispel Request"] = "Richiesta di Dispel"
 L["Dispellable By Me"] = "Dispellabile Da Me"
 L["dispellableByMe"] = "Mostra solo debuff dispellabili da me"
 L["excludeImportant"] = "Nascondi i debuff già mostrati come importanti"
+L["bossBadge"] = "Segna i debuff del boss con «!»"
+L["bossBadgeTips"] = "Ogni icona dei debuff di boss/ruolo mostra|un piccolo «!» dorato in alto a sinistra."
 L["Dispels"] = "Dispel"
 L["Display a gradient texture when the unit receives a heal from your certain healing spells."] = "Mostra una texture a gradiente quando l'unità riceve cure da alcune abilità di cura AoE."
 --[[Translation missing --]]
