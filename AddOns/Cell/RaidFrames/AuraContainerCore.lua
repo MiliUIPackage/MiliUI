@@ -367,23 +367,34 @@ end
 -- ============================================================
 -- BOSS BADGE  (Important Debuffs: 首領技能驚嘆號)
 --
--- A small corner badge -- gold square, black "!" -- on the icons of the Important Debuffs
--- boss/role group. Nothing here asks "is this a boss aura": the aura's flags are secret.
--- The answer is WHICH GROUP the button was created for -- that group only ever holds
--- isBossOrRoleAura debuffs -- stamped onto the button in Build's initializeFrame, the same
--- way the per-spell effect slots know their colour (see AuraDisplay.lua).
+-- A yellow "!" with a 1px black outline in the top-left corner of the Important Debuffs
+-- boss/role group's icons. Nothing here asks "is this a boss aura": the aura's flags are
+-- secret. The answer is WHICH GROUP the button was created for -- that group only ever
+-- holds isBossOrRoleAura debuffs -- stamped onto the button in Build's initializeFrame, the
+-- same way the per-spell effect slots know their colour (see AuraDisplay.lua).
 --
--- Flat colour textures sized in whole PHYSICAL pixels rather than an image: at 10px a
--- scaled bitmap "!" smears into a blob, while a 2px bar over a 2px dot stays sharp.
--- The options preview draws its badge through this same function, so the two cannot drift.
+-- Flat colour textures sized in whole PHYSICAL pixels rather than an image: at this size a
+-- scaled bitmap "!" smears into a blob, while a 2px bar and dot inside a 1px edge stay sharp.
+-- The options preview draws through this same function, so the two cannot drift.
 -- ============================================================
 
-local BADGE_FILL = { 1, 0.82, 0 } -- Blizzard gold (NORMAL_FONT_COLOR)
-local BADGE_INK  = { 0, 0, 0 }    -- the 1px edge and the "!"
+local BADGE_FILL = { 1, 0.82, 0 } -- the "!" (Blizzard's NORMAL_FONT_COLOR yellow)
+local BADGE_INK  = { 0, 0, 0 }    -- its 1px outline
+
+-- The glyph as drawn on a 22px icon, in physical pixels. Every part scales with the icon
+-- (never below its minimum), so the options preview -- which zooms the whole button --
+-- shows the same shape at the zoomed size instead of a fixed-size speck. The first cut
+-- capped the badge at 16 physical pixels, and that is exactly what the zoomed preview showed.
+--   inset  gap between the icon's outer corner and the outline
+--   edge   outline thickness
+--   w      "!" width; the dot is w x w
+--   h      bar height
+--   gap    the black between the bar and the dot
+local GLYPH = { inset = {1, 1}, edge = {1, 1}, w = {2, 2}, h = {6, 4}, gap = {1, 1} } -- {base, min}
 
 -- host      the frame the textures live on. They sit in its ARTWORK layer, so OVERLAY text
 --           on the same frame (the countdown) stays readable on top of the badge.
--- anchorTo  the icon's OUTER rect, ring included; the badge fills its TOPLEFT corner.
+-- anchorTo  the icon's OUTER rect, ring included; the "!" sits in its TOPLEFT corner.
 -- iconSize  the icon's size in UI units (the indicator's size setting).
 -- scaleRef  a frame WE own in the same scale chain -- never the AuraButton, whose subtree
 --           must not be read from.
@@ -391,41 +402,39 @@ function ACC.StyleBossBadge(host, anchorTo, iconSize, scaleRef)
     local b = host.cellBossBadge
     if not b then
         b = {
-            edge = host:CreateTexture(nil, "ARTWORK", nil, 1),
-            fill = host:CreateTexture(nil, "ARTWORK", nil, 2),
-            bar  = host:CreateTexture(nil, "ARTWORK", nil, 3),
-            dot  = host:CreateTexture(nil, "ARTWORK", nil, 3),
+            barEdge = host:CreateTexture(nil, "ARTWORK", nil, 1),
+            dotEdge = host:CreateTexture(nil, "ARTWORK", nil, 1),
+            bar     = host:CreateTexture(nil, "ARTWORK", nil, 2),
+            dot     = host:CreateTexture(nil, "ARTWORK", nil, 2),
         }
-        b.edge:SetColorTexture(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
-        b.fill:SetColorTexture(BADGE_FILL[1], BADGE_FILL[2], BADGE_FILL[3], 1)
-        b.bar:SetColorTexture(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
-        b.dot:SetColorTexture(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
+        b.barEdge:SetColorTexture(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
+        b.dotEdge:SetColorTexture(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
+        b.bar:SetColorTexture(BADGE_FILL[1], BADGE_FILL[2], BADGE_FILL[3], 1)
+        b.dot:SetColorTexture(BADGE_FILL[1], BADGE_FILL[2], BADGE_FILL[3], 1)
         host.cellBossBadge = b
     end
 
     -- one physical pixel, in UI units
     local scale = (scaleRef and scaleRef:GetEffectiveScale()) or 1
     local px = PixelUtil.GetPixelToUIUnitFactor() / scale
-    local iconPx = (iconSize or 22) / px
-    -- ~45% of the icon, 10..16px. EVEN, so the 2px "!" centres on a pixel boundary.
-    local s = 2 * math.floor(iconPx * 0.45 / 2 + 0.5)
-    s = math.max(10, math.min(16, s))
-    local n = s - 2                     -- inside the 1px edge
-    local pad = n >= 12 and 2 or 1
-    local bar = n - 2 * pad - 1 - 2     -- what is left after the 1px gap and the 2px dot
+    local k = ((iconSize or 22) / px) / 22
+    local function P(part) return math.max(part[2], math.floor(part[1] * k + 0.5)) * px end
+    local inset, edge, w, h, gap = P(GLYPH.inset), P(GLYPH.edge), P(GLYPH.w), P(GLYPH.h), P(GLYPH.gap)
 
-    b.edge:ClearAllPoints()
-    b.edge:SetPoint("TOPLEFT", anchorTo, "TOPLEFT", 0, 0)
-    b.edge:SetSize(s * px, s * px)
-    b.fill:ClearAllPoints()
-    b.fill:SetPoint("TOPLEFT", b.edge, "TOPLEFT", px, -px)
-    b.fill:SetPoint("BOTTOMRIGHT", b.edge, "BOTTOMRIGHT", -px, px)
+    b.barEdge:ClearAllPoints()
+    b.barEdge:SetPoint("TOPLEFT", anchorTo, "TOPLEFT", inset, -inset)
+    b.barEdge:SetSize(w + 2 * edge, h + 2 * edge)
     b.bar:ClearAllPoints()
-    b.bar:SetPoint("TOP", b.fill, "TOP", 0, -pad * px)
-    b.bar:SetSize(2 * px, bar * px)
+    b.bar:SetPoint("TOPLEFT", b.barEdge, "TOPLEFT", edge, -edge)
+    b.bar:SetSize(w, h)
+    -- placed so the two outlines OVERLAP: what separates the yellow bar from the yellow dot
+    -- is exactly `gap` of black, not two outlines stacked
+    b.dotEdge:ClearAllPoints()
+    b.dotEdge:SetPoint("TOPLEFT", b.barEdge, "TOPLEFT", 0, -(h + gap))
+    b.dotEdge:SetSize(w + 2 * edge, w + 2 * edge)
     b.dot:ClearAllPoints()
-    b.dot:SetPoint("BOTTOM", b.fill, "BOTTOM", 0, pad * px)
-    b.dot:SetSize(2 * px, 2 * px)
+    b.dot:SetPoint("TOPLEFT", b.dotEdge, "TOPLEFT", edge, -edge)
+    b.dot:SetSize(w, w)
 end
 
 function ACC.SetBossBadgeShown(host, shown)

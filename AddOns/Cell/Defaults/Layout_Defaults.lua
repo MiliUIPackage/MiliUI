@@ -488,7 +488,7 @@ Cell.defaults.layout = {
                 ["limit"] = false,
                 -- shortSeconds / limitSeconds: absent = Cell.defaults.importantDebuffSeconds
             },
-            -- gold "!" in the top-left corner of every boss/role debuff icon
+            -- yellow "!" (1px black outline) in the top-left corner of every boss/role debuff icon
             ["bossBadge"] = true,
             ["font"] = {
                 -- stack: size 9, anchored TOP (+0, +5)
