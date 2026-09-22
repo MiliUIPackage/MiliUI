@@ -107,8 +107,9 @@ W.Menu.IsOpenFor(btn)        -- 同一顆再按一次＝關閉；宿主用它避
 W.SetMenuFont(token, size)   -- 選用，讓選單跟著宿主自己的字型設定走
 ```
 
-`items` 每一筆：`{ text, onClick, value, isActive, isTitle, isSeparator, submenu, keepOpen }`。
+`items` 每一筆：`{ text, onClick, value, isActive, isTitle, isSeparator, submenu, keepOpen, tooltip }`。
 `value` 是右側的「目前值」讀數，`isActive` 會在左槽打勾。
+`tooltip` 選用，`function(tt)`：滑過時在該列右邊開 GameTooltip，宿主只管 `tt:AddLine`。
 
 ⚠ **「有哪些項目」是宿主自己的事，不要寫回這支。** 這包會進共用層正是因為
 ChatBar 與 DamageMeters 各帶一份幾乎一樣的引擎，結果同一個「ESC 關不掉」的 bug

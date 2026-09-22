@@ -15,10 +15,12 @@
 --   W.SetMenuFont(token, size)     -- 選用；不叫就用 Env 的預設字型與 12
 --
 -- items 是一個陣列，每一筆：
---   { text, onClick, value, isActive, isTitle, isSeparator, submenu, keepOpen }
+--   { text, onClick, value, isActive, isTitle, isSeparator, submenu, keepOpen, tooltip }
 --   value    右側的「目前值」讀數（灰色）—— 不用展開子選單就知道現在選什麼
 --   isActive 左槽打勾 ＋ 強調色
 --   keepOpen 點下去不關閉（開關型項目用；配 keepAnchor 原地重畫）
+--   tooltip  選用，function(tt)：滑過這一列時在它右邊開 GameTooltip，宿主往 tt 裡
+--            AddLine（不必 SetOwner／Show，這裡包辦）。用來預覽「點下去會發生什麼」
 --
 -- 版面與互動的設計規則寫在 .claude/skills/miliui-menu-design。
 -- 最多兩層（主選單 ＋ 一層子選單）：三層以上在遊戲裡沒人點得動。
@@ -211,8 +213,26 @@ local function EnsureRow(panel, idx)
         elseif _sub and _sub:IsShown() then
             Menu.ScheduleSubClose()
         end
+        -- 提示貼在這一列的右邊、頂端對齊，而不是 ANCHOR_RIGHT：那個是從列的右上角
+        -- **往上**長，列在選單下半部時提示會離開它說明的那一列
+        if self.tooltip then
+            GameTooltip:SetOwner(self, "ANCHOR_NONE")
+            GameTooltip:ClearAllPoints()
+            GameTooltip:SetPoint("TOPLEFT", self, "TOPRIGHT", 6, 0)
+            self.tooltip(GameTooltip)
+            GameTooltip:Show()
+        end
     end)
-    row:SetScript("OnLeave", function(self) self.hl:Hide() end)
+    local function HideOwnTooltip(self)
+        if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+    end
+    row:SetScript("OnLeave", function(self)
+        self.hl:Hide()
+        HideOwnTooltip(self)
+    end)
+    -- 點下去就關選單的項目：游標底下的框被藏起來時不保證有 OnLeave，
+    -- 提示要跟著這一列一起收（祖先被 Hide 時子框也會收到 OnHide）
+    row:SetScript("OnHide", HideOwnTooltip)
 
     panel.rows[idx] = row
     return row
@@ -243,6 +263,8 @@ local function Layout(panel, items, onDismiss)
         row:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -1, y)
         row.submenu = item.submenu
         row.enabled = not (item.isTitle or item.isSeparator)
+        -- 列是池化的：沒給就要清掉，不然會沿用上一次畫在這一格的提示
+        row.tooltip = row.enabled and item.tooltip or nil
 
         row.check:Hide()
         row.rule:Hide()
