@@ -3,6 +3,14 @@
 把暴雪原生視窗重畫成米利UI的**設定視窗皮**。這份文件是這包的規格書：顏色從哪來、
 什麼動作准、什麼動作不准、每個暴雪模板走哪條路。
 
+> **第十輪摘要（未實測）：** 冒險指南打磨 —— ①綜覽／首領技能／副本簡介三頁的**羊皮紙內嵌拿掉、
+> 文字全接管**（第九輪判「接不住」的三條理由逐條重查都接得住，查證表在 `Skins/EncounterJournal.lua`）；
+> ②**`useParentLevel` 的內嵌框底要墊 sublevel**：它跟父框同一個 frame level、region 跨框按
+> sublevel 交錯，`Engine.RegionBackdrop` 預設的 −8 會跟父框的面板底平手（冒險指南的書頁因此一直是
+> `fill` 而不是 `fillInset`）。冒險指南配方裡墊到 −4／−3；**`Skin.Inset` 本身沒改**，其他視窗同型的
+> 內嵌框是否也受影響待實機比對（見 ⑦ 冒險指南那一列）；③成就列的金色光帶是 `Glow`（不是 `TitleBar`／
+> `Tsunami1`），apply 一次中和；④天賦版本鈕改 secondary。
+>
 > **第九輪摘要（未實測）：** 按鈕分成**兩種變體**（`opts.variant`，見 ④「按鈕的兩種變體」）——
 > **primary**（預設）平時就是壓暗的職業色底 ＋ 中亮的職業色邊、滑過整顆換成職業色、
 > 停用退回中性；**secondary** ＝第五輪的樣式原封不動。職業色的分派規則因此改成
@@ -1159,7 +1167,7 @@ footer 沒有 —— 底部按鈕列的高度要嘛量（契約禁止），要�
 | **`TokenFramePopup`**<br>`Blizzard_TokenUI/Blizzard_TokenUI.xml:185` | `Border`（SecureDialogBorder 的九片 ＋ Bg） | — | Panel overlay ＋ `Title` 改白；兩顆 `UICheckButtonTemplate` 走 CheckBox。⚠ **`CurrencyTransferToggleButton` 第六輪起不碰**（它是轉移請求的入口，見 ⑦ 的 C 級）⇒ 這個小視窗裡留著一顆原生按鈕。⚠ 關閉鈕的 parentKey 在 XML 裡寫成字面的 `$parent.CloseButton`（`:231`），兩種取法都要試 | 已實測（2026-09-20） |
 | **`ReputationDetailFrame`**<br>`Blizzard_UIPanels_Game/Mainline/ReputationFrame.xml:270` | 一張**無名**的 `UI-Character-Reputation-DetailBackground` ＋ `Divider` ＋ `Border` 的九片（`GetRegions` ／ `GetChildren` 掃） | — | Panel overlay ＋ `Title` 改白 ＋ CloseButton ＋ ScrollBar；三顆勾選框走 CheckBox | 已實測（2026-09-20） |
 | `AchievementCategoryTemplate`<br>`Blizzard_AchievementUI.xml:622,650-654`<br>`.lua:602-607,612` | `Button.Background`（`UI-Achievement-Category-Background`）＋ **`HighlightTexture` 也中和** | **兩態都自己畫**（`Skin.Row` 的 `opts.ownHover` → `Engine.TrackSelectable`）。⚠ 不能交給引擎：暴雪的 Highlight 錨的是 `TOPLEFT 0,0 / BOTTOMRIGHT -1,-7`，比按鈕**往下多 7**，選中時 `LockHighlight` 就在選中底色下面多畫一條灰帶 | Row overlay；`Button.Label` 改白，**放 reapply**（`Init` 每次 `SetFontObject`） | 已實測（2026-09-20） |
-| `AchievementTemplate`<br>`Blizzard_AchievementUI.xml:733`<br>`.lua:1204,1211,1215,1218,1225,1229` | **apply**：`Background`、`NineSlice`、`RewardBackground`、四角 `*Tsunami`、`GuildCornerL/R`<br>**reapply**：`TitleBar`、`BottomTsunami1`、`TopTsunami1`、`Icon.frame` —— ⚠ `Init` **每次**都把前三張的 alpha 設回 `1`/`0.8`/`0.35`/`0.3`，只 apply 一次那條漸層標題帶會整條回來。**`Icon.bling` 第四輪拿掉了**：模板裡就是 `hidden`（`.xml:671`）而且全檔沒有 `Show()`，中和它是多餘的一發 | `Saturate`／`Desaturate` 兩支後置勾決定底色明暗；`Highlight` 框保留（ADD 疊加，暴雪自己開關） | Row overlay（**有邊**）＋ `Icon.texture` 走 Icon；`Description` 接管成 `textDim`（註 ⓗ）；`Icon.frame` 的重申理由見註 ⓙ | **未實測（第四輪改動）** |
+| `AchievementTemplate`<br>`Blizzard_AchievementUI.xml:733,806`<br>`.lua:1204,1211,1215,1218,1225,1229` | **apply**：`Background`、`NineSlice`、`RewardBackground`、**`Glow`（第十輪：描述文字底下那道金色光帶；Lua 只 `SetTexCoord`／`SetVertexColor`，.lua:1216,1230,1418,1444，沒有 SetAlpha）**、四角 `*Tsunami`、`GuildCornerL/R`<br>**reapply**：`TitleBar`、`BottomTsunami1`、`TopTsunami1`、`Icon.frame` —— ⚠ `Init` **每次**都把前三張的 alpha 設回 `1`/`0.8`/`0.35`/`0.3`，只 apply 一次那條漸層標題帶會整條回來。**`Icon.bling` 第四輪拿掉了**：模板裡就是 `hidden`（`.xml:671`）而且全檔沒有 `Show()`，中和它是多餘的一發 | `Saturate`／`Desaturate` 兩支後置勾決定底色明暗；`Highlight` 框保留（ADD 疊加，暴雪自己開關） | Row overlay（**有邊**）＋ `Icon.texture` 走 Icon；`Description` 接管成 `textDim`（註 ⓗ）；`Icon.frame` 的重申理由見註 ⓙ | **未實測（第四輪改動）** |
 | **成就視窗的標題帽**<br>`Blizzard_AchievementUI.xml:1926,1949,1956,1973,1979` | `Header.Left`/`Right`/`PointBorder`/`RightDDLInset` | — | `Engine.Overlay`：target `Header`、`anchorTo` `Header.PointBorder`、`points` `-20,+18 / +20,0`、**下邊不畫**。幾何換算與三個講究見 ④ | 已實測（2026-09-20） |
 | `AchievementStatTemplate`<br>`Blizzard_AchievementUI.xml:1351` | `Left` / `Middle` / `Right`（apply）、`Background`（**reapply**：`Init` 每次把 alpha 設回 1.0/0.5） | — | 無 overlay（文字直接落在內嵌皮上） | 已實測（2026-09-20） |
 | `ComparisonPlayerTemplate` / `SummaryAchievementTemplate`<br>`Blizzard_AchievementUI.xml:1012,1138`<br>`.lua:2364,2528` | **apply**：`Background`、`NineSlice`、`Glow`<br>**reapply**：`TitleBar`、`Icon.frame`（`bling` 同上，第四輪拿掉）—— ⚠ `AchievementFrameSummary_Refresh` 每次把 `TitleBar` 設回 `0.5`（公會視圖設回 `1`），另外勾一支重申 | 全域 `AchievementComparisonPlayerButton_Saturate` / `_Desaturate` 兩支後置勾 | 同 `AchievementTemplate` | **未實測（第四輪改動）** |
@@ -1534,7 +1542,7 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | **拍賣場 `AuctionHouseFrame`** | `auctionhouse` | chrome／關閉鈕／底部分頁（暴雪三顆 ＋ **伴隨元件四顆**，名字登記在 `ThirdParty/Auctionator.lua`，整排在 `AUCTION_HOUSE_SHOW` 的伴隨輪一次畫完）／底部金錢列／搜尋列（搜尋框、篩選下拉、搜尋鈕、最愛鈕）／左側分類樹（池化列，選中與滑過**交還暴雪顯示、只換長相**）／六個結果清單的**框級**（面板底、欄位表頭那條帶、捲軸、重新整理鈕）／物品購買頁／商品購買頁／兩個上架頁（數量框、金錢框、期限下拉、只賣直購勾選框）／我的拍賣頁（兩顆子分頁、摘要清單、出價與直購欄）／購買確認彈窗。**所有結果清單的「列」一顆都不碰**（出價／直購的執行流＋沒有可勾的每列出口），時光徽章兩頁只做外框 |
 | **專業 `ProfessionsFrame`** | `professions` | chrome／關閉鈕／最大化最小化／頂部三顆分頁（`Skin.TabSystemAll` ＋ `TabSystemOwnerMixin:SetTab` 後置勾同步）／配方頁（配方清單＋池化的分類列與配方列、搜尋框、篩選下拉、捲軸、`SchematicForm` 的底、兩顆勾選框、配方等級下拉、數量框、**製作／全部製作走特許**）／製作訂單頁（瀏覽清單的框級＋池化列、搜尋與翻頁鈕、訂單檢視頁的三塊面板、**接單／婉拒／釋出／完成訂單走特許**）／專精頁（footer 底 ＋ 底部按鈕列，**套用／撤銷走特許**）。**第八輪加上專業技能書**（`Skins/ProfessionsBook.lua`，同一個 key 的 `parts`，隨需載入的是 `Blizzard_ProfessionsBook`）：chrome／關閉鈕／書頁深色化（兩張羊皮紙中和 ＋ `Inset` ＝ `T.fill`）／五塊專業內嵌區（`T.fillInset`）／四條字色接管／五條等級條（`Skin.StatusBar`）／兩顆專業圖示改方形 ＋ 1px 黑框／十顆 secure 技能鈕**只中和名牌底板**。**進度條 `RankBar`、四顆範圍分頁、材料格與產出圖示、天賦樹都不做**；書裡的**技能鈕本體、遺忘專業鈕、教學鈕、`capRight`／`capped`／`rankText`** 也都不做（各自的理由在配方表與配方檔頭） |
 | 宏偉寶庫 `WeeklyRewardsFrame` | `weeklyrewards` | **純視覺特許、整份零 hook**：面板底／雕花中和／九～十二個活動格各一個內嵌底框／格內物品圖示方框／分類標題白字／關閉鈕與「選擇獎勵」（本檔 local 平面函式，不掛 HookScript）。解鎖／未解鎖的明暗差做不到（暴雪用同一張貼圖換 atlas）；選取框與領獎確認面板不碰 |
-| 冒險指南 `EncounterJournal` | `encounterjournal` | chrome／底部七顆分頁（`pad = 0`：`SetNumTabs` 會把分頁重錨成 +3）／五個下拉／四條捲軸／搜尋框／四顆頁籤鈕／戰利品清單與首領清單（池化列）。技能說明區的羊皮紙保留（SimpleHTML 字色接不住）；副本卡片接不到（初始化是 local 函式）；推薦內容／月度活動／旅行者日誌未做 |
+| 冒險指南 `EncounterJournal` | `encounterjournal` | chrome／底部七顆分頁（`pad = 0`：`SetNumTabs` 會把分頁重錨成 +3）／五個下拉／六條捲軸／搜尋框／四顆頁籤鈕／戰利品清單、分類列與首領清單（池化列）。**第十輪：綜覽／首領技能／副本簡介三頁整頁深色、文字全接管**（段落 `EncounterInfoTemplate` 走三支全域後置勾 ＋ 每顆標題列的 `HookScript` OnShow／OnClick）；書頁與內嵌框的底墊到 sublevel −4（`useParentLevel` 平手問題）。副本卡片接不到（初始化是 local 函式）；推薦內容／月度活動／旅行者日誌未做 |
 | 試衣間 `DressUpFrame`＋`SideDressUpFrame` | `dressup` | chrome／關閉鈕／最大化最小化／外觀套裝下拉／外觀清單開關／底部三顆按鈕／右側兩片面板＋捲軸／小試衣間。**模型場景與它的背景不碰** |
 | 物品升級 `ItemUpgradeFrame` | `itemupgrade` | **整個視窗深色化**（全檔零 `SetTextColor`，沒有文字要接管）：chrome／**標題帶**（第七輪）／物品槽／等級下拉／左右兩欄預覽／費用列／持有貨幣列／升級鈕。**所有動畫特效留著** |
 | 插件列表 `AddonList` | `addonlist` | chrome／角色下拉／搜尋框／「載入過期插件」／效能區／底部四顆三片式按鈕／捲軸／**池化列**（插件列與分類列兩態都自己畫）／重載對話框。**只有遊戲內那一份** |

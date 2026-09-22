@@ -85,8 +85,9 @@
 -- | 分類列（池化）的 Button.Background ＋ **Highlight 貼圖** | SetAlpha(0) |
 -- | 分類列的 Button | HookScript("OnEnter"/"OnLeave")（兩態都自己畫，見下面） |
 -- | 分類列的 Button.Label | SetTextColor |
--- | 成就列（池化）**apply**：Background / NineSlice / RewardBackground / 四角 Tsunami / GuildCornerL/R | SetAlpha(0) |
--- | 成就列（池化）**reapply**：TitleBar / BottomTsunami1 / TopTsunami1 / Icon.frame / Icon.bling | SetAlpha(0) |
+-- | 成就列（池化）**apply**：Background / NineSlice / RewardBackground / **Glow（第十輪）** / 四角 Tsunami / GuildCornerL/R | SetAlpha(0) |
+-- | 成就列（池化）**reapply**：TitleBar / BottomTsunami1 / TopTsunami1 / Icon.frame | SetAlpha(0) |
+-- | 總結頁五列 **reapply**：TitleBar / Icon.frame（第十輪起不再去找它們沒有的 Tsunami1） | SetAlpha(0) |
 -- | 成就列的 Description | SetTextColor |
 -- | 成就列的 Icon.texture | SetTexCoord |
 -- | 子目標（池化）的 Name / MetaCriteria.Label | SetTextColor |
@@ -421,12 +422,17 @@ local SEARCH_PREVIEW_ART = {
 local searchPreviewRows = {}
 
 -- 一列預覽（五顆 ＋「顯示全部結果」共用）
-local function SkinSearchPreviewRow(btn, key)
+-- `noIcon`：「顯示全部結果」（.xml:1803-1830）只有 SelectedTexture／Text／Normal／Pushed，
+--   **沒有** `IconFrame` 也沒有 `Icon` —— 第九輪以前照樣去中和 ⇒ `/mskin debug` 一筆假的
+--   `AchievementSearchPreview.ShowAll.IconFrame`。第十輪起不去找。
+local function SkinSearchPreviewRow(btn, key, noIcon)
     if not E.Usable(btn, key) then return end
 
     -- Normal/Pushed 是那條 `_search-rowbg` 色帶（列的底），中和掉換成我們的 Row。
     -- `IconFrame` 是圖示外那圈金框，跟成就列的 `Icon.frame` 同一種裝飾。
-    E.NeutralizeKeys(btn, { "IconFrame" }, key)
+    if not noIcon then
+        E.NeutralizeKeys(btn, { "IconFrame" }, key)
+    end
 
     -- ⚠ `SelectedTexture` **不中和**：它是暴雪的選取／滑過訊號（.lua:3558-3583），
     --   只換長相。Engine.HighlightTexture 會連 SetAlpha(1) 一起下。
@@ -487,7 +493,7 @@ function SkinSearchPreview(searchBox)   -- 指派給上面的前置宣告，不�
     -- ⚠ 「顯示全部結果」**不在** `searchPreviews` 陣列裡（它不繼承那個模板，:1803）
     local showAll
     if pcall(function() showAll = container.ShowAllSearchResults end) and showAll then
-        SkinSearchPreviewRow(showAll, "AchievementSearchPreview.ShowAll")
+        SkinSearchPreviewRow(showAll, "AchievementSearchPreview.ShowAll", true)
     else
         E.Missing("AchievementSearchPreview.ShowAllSearchResults")
     end
@@ -642,8 +648,18 @@ end
 -- 成就列（池化）
 ------------------------------------------------------------
 -- 只跑一次就夠的（暴雪不會再把它們的 alpha 設回來）
+--
+-- ⚠ **第十輪加 `Glow`**（實機擷圖 61：每一列描述文字底下那道金色橫向漸層光帶）。
+--   出處：Blizzard_AchievementUI.xml:806 `<Texture parentKey="Glow"
+--   file="UI-Achievement-Borders">`（ARTWORK，10x64，錨 `TitleBar` 的 BOTTOMLEFT
+--   `y=+4` → 列的 `RIGHT y=+4`，TexCoords 0.0039~0.2539 ＝ 那張素材最上面的金色光暈）。
+--   **只放 apply**：全檔碰它的只有 `SetTexCoord`（.lua:1216,1230 公會／一般兩種光暈）
+--   與 `SetVertexColor`（.lua:1418 Saturate 白、1444 Desaturate 暗棕）——
+--   **沒有一行 `SetAlpha`／`Show`／`Hide`** ⇒ alpha 0 一次就撐得住。
+--   前四輪一直以為那道光是 `TitleBar`／`Tsunami1`，所以只在那三張上打轉；
+--   描述文字取樣是 (165,165,165) ＝ `textDim` 本身沒錯，「暗金色」是被光帶染出來的。
 local ACHIEVEMENT_ART = {
-    "Background", "NineSlice", "RewardBackground",
+    "Background", "NineSlice", "RewardBackground", "Glow",
     "BottomLeftTsunami", "BottomRightTsunami", "TopLeftTsunami", "TopRightTsunami",
     "GuildCornerL", "GuildCornerR",
 }
@@ -681,6 +697,12 @@ local ACHIEVEMENT_ART = {
 --   `Blizzard_AchievementUI.lua` **沒有任何一處 `bling:Show()`** ⇒ 它從來不會顯示，
 --   中和它本來就是多餘的一發。
 local ACHIEVEMENT_ART_VOLATILE = { "TitleBar", "BottomTsunami1", "TopTsunami1" }
+-- 總結頁／比較頁的列（`ComparisonPlayerTemplate`，XML:1012）**沒有** `Tsunami1` 那兩張
+-- （只有 `TitleBar`／`Glow`／`Icon.frame`）。第九輪以前兩種列共用上面那一份 ⇒
+-- `/mskin debug` 多出四筆假的「找不到」：`SummaryAchievement.{Top,Bottom}Tsunami1`
+-- （`AchievementFrameSummary_Refresh` 的勾）與 `Achievement.{Top,Bottom}Tsunami1`
+-- （`AchievementBright`／`Dim` 裡寫死了 "Achievement" 這個 key）。第十輪拆開。
+local SUMMARY_ART_VOLATILE = { "TitleBar" }
 
 -- 總結頁／比較頁的列走 `ComparisonPlayerTemplate`（XML:1138），美術比成就列少一半
 -- —— 共用一份中和清單的話，少掉的那幾個會被記進「找不到的區域」變成假警報。
@@ -689,8 +711,8 @@ local ACHIEVEMENT_ART_VOLATILE = { "TitleBar", "BottomTsunami1", "TopTsunami1" }
 --   （.lua:2528）`SetAlpha(1)` —— 擷圖 9「最近達成」那三條棕帶就是這個。
 local SUMMARY_ROW_ART = { "Background", "NineSlice", "Glow" }
 
-local function NeutralizeVolatileArt(row, key)
-    E.NeutralizeKeys(row, ACHIEVEMENT_ART_VOLATILE, key)
+local function NeutralizeVolatileArt(row, key, volatile)
+    E.NeutralizeKeys(row, volatile or ACHIEVEMENT_ART_VOLATILE, key)
     local icon
     if pcall(function() icon = row.Icon end) and icon then
         -- frame ＝那圈雕花金框。`bling`（取得時的閃光）**不處理**：
@@ -699,9 +721,9 @@ local function NeutralizeVolatileArt(row, key)
     end
 end
 
-local function ApplyRowArt(row, keys, key)
+local function ApplyRowArt(row, keys, key, volatile)
     E.NeutralizeKeys(row, keys, key)
-    NeutralizeVolatileArt(row, key)
+    NeutralizeVolatileArt(row, key, volatile)
 
     local icon
     if pcall(function() icon = row.Icon end) and icon then
@@ -719,24 +741,35 @@ local function ApplyAchievementRow(row)
 end
 
 local function ApplySummaryRow(row)
-    ApplyRowArt(row, SUMMARY_ROW_ART, "SummaryAchievement")
+    ApplyRowArt(row, SUMMARY_ROW_ART, "SummaryAchievement", SUMMARY_ART_VOLATILE)
 end
 
-local function ReapplyAchievementRow(row)
+-- 兩種列共用的重申。由下面兩支薄包裝帶入 key 與各自的 volatile 清單
+-- （`HookRows` 的 reapply 會多傳被勾函式的第一個參數 —— 成就列 `Init(elementData)`
+-- 的那一顆 —— 包裝層刻意不收、不讀）。
+local function ReapplyRow(row, key, volatile)
     -- ⚠ 這一條是整份配方的核心：Saturate 把描述設成**純黑**（.lua:1423），
     --   壓在深底上等於整段消失。
     local desc
     if pcall(function() desc = row.Description end) and desc then
-        E.TextColor(desc, T.textDim, "Achievement.Description")
+        E.TextColor(desc, T.textDim, key .. ".Description")
     end
     -- `Init` 每次都 `Icon.texture:SetTexture(icon)`（.lua:1283），SetTexture 會把
     -- texCoord 打回 0,1,0,1 ⇒ 裁邊每次都要重下。
     local tex
     if pcall(function() tex = row.Icon.texture end) and tex then
-        E.CropIcon(tex, "Achievement.Icon.texture")
+        E.CropIcon(tex, key .. ".Icon.texture")
     end
-    -- 每次 Init 都被打回來的那三張＋圖示金框（理由見 ACHIEVEMENT_ART_VOLATILE）
-    NeutralizeVolatileArt(row, "Achievement")
+    -- 每次 Init 都被打回來的那幾張＋圖示金框（理由見 ACHIEVEMENT_ART_VOLATILE）
+    NeutralizeVolatileArt(row, key, volatile)
+end
+
+local function ReapplyAchievementRow(row)
+    ReapplyRow(row, "Achievement", ACHIEVEMENT_ART_VOLATILE)
+end
+
+local function ReapplySummaryRow(row)
+    ReapplyRow(row, "SummaryAchievement", SUMMARY_ART_VOLATILE)
 end
 
 -- 完成／未完成只換明暗，不換色相。
@@ -747,6 +780,16 @@ end
 
 local function AchievementDim(row)
     ReapplyAchievementRow(row)
+    E.Fill(E.GetOverlay(row), T.fillInset)
+end
+
+local function SummaryBright(row)
+    ReapplySummaryRow(row)
+    E.Fill(E.GetOverlay(row), T.fill)
+end
+
+local function SummaryDim(row)
+    ReapplySummaryRow(row)
     E.Fill(E.GetOverlay(row), T.fillInset)
 end
 
@@ -1065,14 +1108,14 @@ local function InstallHooks()
         mixin   = _G,
         method  = "AchievementComparisonPlayerButton_Saturate",
         apply   = ApplySummaryRow,
-        reapply = AchievementBright,
+        reapply = SummaryBright,
     }
     E.HookRows{
         key     = "SummaryAchievement.Desaturate",
         mixin   = _G,
         method  = "AchievementComparisonPlayerButton_Desaturate",
         apply   = ApplySummaryRow,
-        reapply = AchievementDim,
+        reapply = SummaryDim,
     }
 
     -- 總結頁的五列：`AchievementFrameSummary_Refresh`（.lua:2364）每次都把
@@ -1100,7 +1143,7 @@ local function InstallHooks()
         hooksecurefunc("AchievementFrameSummary_Refresh", function()
             for i = 1, (ACHIEVEMENTUI_MAX_SUMMARY_ACHIEVEMENTS or 5) do
                 local row = _G["AchievementFrameSummaryAchievement" .. i]
-                if row then NeutralizeVolatileArt(row, "SummaryAchievement") end
+                if row then NeutralizeVolatileArt(row, "SummaryAchievement", SUMMARY_ART_VOLATILE) end
             end
         end)
     else

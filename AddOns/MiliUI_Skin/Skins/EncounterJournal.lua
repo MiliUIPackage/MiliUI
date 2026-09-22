@@ -143,25 +143,49 @@
 -- 8. 職業過濾條平面化（`classClearFilter`）。
 --
 ------------------------------------------------------------
--- ## 書頁的字色（內容底材規則的查證）
+-- ## 第十輪（使用者擷圖 58～60：「有點不自然，再打磨調整一下」）改了什麼
+--
+-- 1. **綜覽頁／首領技能頁／副本簡介頁的羊皮紙內嵌整塊拿掉，文字全接管。**
+--    第九輪判「接不住」的三條理由逐條重查（12.1 live）：
+--      * 「SimpleHTML 每次 SetText 會重設顏色」—— SetText 只發生在一支全域函式
+--        `EncounterJournal_SetBullets` 裡（.lua:1598），勾它、在 SetText 之後重申即可；
+--      * 「`PAPER_FRAME_*_COLOR` 會切換」—— 只在 `EncounterJournal_UpdateButtonState`
+--        （.lua:1533），它的三條呼叫路徑都接得到（見「書頁深色化 ＋ …」那一段）；
+--      * 「Lore 在 OnLoad 設暗棕」—— 全檔**只有** OnLoad 那一次（.lua:425），
+--        我們的 apply 必然更晚，一次就撐得住。
+--    ⇒ `ParchmentInlay`／`ParchmentUV` 與第九輪的 `TODO(升格)` 一起刪掉（不再有第二個用途）。
+--    段落標題列換成 `T.fill` 條 ＋ 黑邊 ＋ 白字，說明區直接落在 `fillInset` 的書頁上，
+--    條列點換成自己畫的 4px `textDim` 小方點。**沒有任何一塊保留羊皮紙。**
+-- 2. **書頁其實一直是 `T.fill`**（擷圖取樣 29,29,29）：`info`／`inset` 都是
+--    `useParentLevel`，底跟視窗本體同一個 sublevel（−8）⇒ 平手被本體蓋掉。墊到 −4／−3。
+--    「首領清單捲軸像一條粗黑柱」就是這個：軌道（20）擺在 29 的底上。書頁回到 20 之後
+--    軌道融進去、只剩拇指 —— 跟成就視窗等其他視窗一致（那些捲軸的軌道都坐在同色的內嵌上）。
+-- 3. **戰利品清單：內嵌區往左擴 7**（`LOOT_PAD`），列與捲軸左右各 7 的內距；
+--    職業過濾條的左緣跟著擴，上緣兩者都貼 LootContainer 的上緣。
+-- 4. **戰利品分類列（「額外戰利品」）上皮**：白字 ＋ 字下一條 `fillHover` 髮絲線，ⓘ 保留。
+--    同樣會被「早於 mixin 勾建立」繞過 ⇒ 走同一條 `EncounterJournal_LootUpdate` 補掃。
+-- 5. 天賦版本鈕（伴隨元件）改 secondary —— 在 `ThirdParty/RaiderIO.lua`。
+--
+------------------------------------------------------------
+-- ## 書頁的字色（內容底材規則的查證；第十輪更新）
 --
 -- | 文字 | 在哪一塊底上 | 暴雪怎麼設顏色 | 處理 |
 -- |---|---|---|---|
 -- | `info.encounterTitle` / `instanceTitle` | 深色書頁 | XML `<Color>`；Lua **只有** `SetText`（.lua:1272,1364,2198）與 `SetPoint` | `SetTextColor(T.text)` 一次 |
 -- | 首領列的文字 | 我們的 `fill` 列底 | 字型物件（GameFontNormalMed3 金、Disabled 白） | 不動（金字在深底上讀得出來） |
 -- | 戰利品列 `slot` / `armorType` / `boss` | 列底 | 只 `SetText`（.lua:212-232） | `textDim`；紅色內嵌色碼自動留著 |
--- | 戰利品分類列「額外戰利品」 | LootContainer 深底 | GameFontNormalMed3（金） | 不動 |
+-- | 戰利品分類列「額外戰利品」 | LootContainer 深底 | GameFontNormalMed3（金）；`Init` 只 `SetText`（.lua:257） | **第十輪**：`SetTextColor(T.text)` 一次 |
 -- | `classClearFilter.text` | 我們的 `fill` 條 | XML `<Color>`；Lua 只 `SetText`（.lua:2982） | `SetTextColor(T.text)` 一次 |
--- | 綜覽頁：`loreDescription`、`overviewDescription`（SimpleHTML）、動態的 `Bullets` | **保留的羊皮紙** | GameFontBlack 暗棕；SimpleHTML 每次 `SetText` 連 `<html>` 標籤一起重設 | **接不住** ⇒ 羊皮紙內嵌 |
--- | 首領技能頁：`description`、動態的 `EncounterInfoTemplate`（`title` 被 `SetTextColor(PAPER_FRAME_*_COLOR)` 切換，.lua:1538-1543）與它的 SimpleHTML | **保留的羊皮紙** | 同上，另有逐段的色碼 | **接不住** ⇒ 羊皮紙內嵌 |
--- | 副本簡介：`LoreScrollingFont` | **保留的羊皮紙** | OnLoad `SetTextColor(.13,.07,.01)`（.lua:425） | **接不住**（`ScrollingFont` 的字是它自己管的）⇒ 羊皮紙內嵌 |
+-- | 綜覽頁：`loreDescription`（簡介）、「概況說明」標題 | 深色書頁 | XML `<Color>`；Lua 只 `SetText`／尺寸 | **第十輪**：一次（簡介 `textDim`、標題 `text`） |
+-- | 綜覽頁與各段的 `overviewDescription.Text`、每一顆 `Bullets[i].Text`（SimpleHTML） | 深色書頁 | XML `<Color>`；**只有** `EncounterJournal_SetBullets` 會 SetText | **第十輪**：那一支的後置勾裡 `text` |
+-- | 首領技能頁：`description`（簡介） | 深色書頁 | XML `<Color>`；只 `SetText` | **第十輪**：一次（`textDim`） |
+-- | 段落（`EncounterInfoTemplate`）的 `button.title`／`expandedIcon` | 我們的 `fill` 條 | `UpdateButtonState` 的 `PAPER_FRAME_*_COLOR`（.lua:1538-1543）＋ `ToggleHeaders` 的 `SetFontObject`（.lua:1926,1928） | **第十輪**：三條路徑 ＋ ToggleHeaders 後置勾都重申（`text`／± 號 `textDim`） |
+-- | 段落的 `description`（FontString） | 深色書頁 | XML `<Color>`；只 `SetText` | **第十輪**：`text` |
+-- | 副本簡介：`LoreScrollingFont` 的 FontString | 深色書頁 | **只有** OnLoad 一次（.lua:425） | **第十輪**：一次（`text`） |
 -- | 模型頁 | 它自己的 `dungeonBG` ＋ 紙框 | — | 不碰（3D 模型場景） |
 --
--- 羊皮紙內嵌的畫法：`Engine.RegionBackdrop`（建在那個頁面框自己身上 ⇒ 跟著那一頁
--- 顯示／隱藏、而且在它所有內容之下），底那張貼圖換成**原本那張** `UI-EJ-JournalBG`、
--- texCoord 照「那一塊在書頁上的位置」換算（`ParchmentUV`，常數全部從 XML 的尺寸
--- 與錨點抄），外加一圈 1px 黑邊 ⇒ 看起來是深色書頁上鑲著一塊原本的書頁。
--- `-- TODO(升格)`：「RegionBackdrop 的底換成一張貼圖」第二個視窗用到時搬進 Engine。
+-- 內文裡的法術連結（`|cff…|r` 藍字）不碰，深底上讀得到。完整的逐條查證與掛點在
+-- 「書頁深色化 ＋ 綜覽／首領技能／副本簡介三頁的文字接管」那一段。
 --
 ------------------------------------------------------------
 -- ## 補掃時機（第七輪穩定性規則 (a)）
@@ -221,10 +245,22 @@
 -- | `EncounterJournalEncounterFrameInfoBG`（全域名）、info.leftShadow / rightShadow | SetAlpha(0) |
 -- | info | `Engine.RegionBackdrop`（`fillInset`，無邊） |
 -- | info.encounterTitle / instanceTitle | SetTextColor |
--- | info.overviewScroll / detailsScroll / encounter.instance | `Engine.RegionBackdrop`（羊皮紙內嵌）；**我們自己那張底貼圖**的 SetTexture ＋ SetTexCoord |
+-- | EncounterJournal.inset、info | `Engine.RegionBackdrop` 的 sublevel 墊到 −4（第十輪） |
+-- | overviewScroll／detailsScroll／instance.LoreScrollBar | 走 `Skin.ScrollBar`（第十輪） |
+-- | overviewScroll.child 的 loreDescription、`$parentTitle`（全域名）、overviewDescription.Text | SetTextColor（第十輪） |
+-- | overviewScroll.child.header（UI-EJ-Header-Overview） | SetAlpha(0)；child 上 `Engine.RegionBackdrop`（錨在 header 上的 `fill` 條） |
+-- | detailsScroll.child.description | SetTextColor（第十輪） |
+-- | 段落（EncounterInfoTemplate，動態建立、池化）的 descriptionBG / descriptionBGBottom | SetAlpha(0) |
+-- | 段落 button 的十二張標題條切片 ＋ 三張 HIGHLIGHT 切片（GetRegions，keep `abilityIcon`）、`$parentGlow` 子框的三張 | SetAlpha(0) |
+-- | 段落 button | `Engine.RegionBackdrop`（`fill` ＋ 邊）；`HookScript` OnEnter/OnLeave（滑過）、**OnShow／OnClick（重申字色）** |
+-- | 段落 button 的 title / expandedIcon | SetTextColor；abilityIcon | SetTexCoord |
+-- | 段落的 description、overviewDescription.Text | SetTextColor |
+-- | 條列點（EncounterOverviewBulletTemplate，動態建立）的 Bullet | SetAlpha(0)；overlay（4px 小方點）；Text | SetTextColor |
+-- | instance.LoreScrollingFont.ScrollBox.FontStringContainer.FontString | SetTextColor（第十輪） |
 -- | 四顆 EncounterTabTemplate 的 Normal/Pushed/Disabled/Highlight | SetAlpha(0) |
 -- | 同四顆 | overlay（底 ＋ 三邊 ＋ 右緣職業色線）；`HookScript` OnEnter/OnLeave |
--- | LootContainer | overlay（底 `fillInset` ＋ 1px 邊） |
+-- | LootContainer | overlay（底 `fillInset` ＋ 1px 邊；第十輪左緣往外擴 7） |
+-- | 戰利品分類列（池化，第十輪）的 name | SetTextColor；overlay（髮絲線） |
 -- | classClearFilter 的 region（無名 UI-EJ-FilterBar） | SetAlpha(0) |
 -- | classClearFilter | `Engine.RegionBackdrop`（`fill` ＋ 1px 邊） |
 -- | classClearFilter.text | SetTextColor |
@@ -240,6 +276,12 @@
 --   * **第九輪新增三支全域後置勾**（理由各寫在 `InstallHooks`）：
 --       `EncounterJournal_LootUpdate`（補掃）、`NavBar_AddButton`（新的麵包屑）、
 --       `EncounterJournal_SetTab`（頁籤選中態）
+--   * **第十輪新增**：
+--       `hooksecurefunc(EncounterJournalItemHeaderMixin, "Init", …)`（`Engine.HookRows`，分類列）
+--       全域後置勾 `EncounterJournal_ToggleHeaders`／`EncounterJournal_UpdateButtonState`／
+--       `EncounterJournal_SetBullets`
+--       每個段落標題列按鈕的 `HookScript("OnShow")`、`HookScript("OnClick")`（重申字色）、
+--       `HookScript("OnEnter"/"OnLeave")`（滑過，`Engine.TrackButtonHover`）
 --   * Engine 的 `PanelTemplates_SelectTab / DeselectTab / SetDisabledTabState`
 --     三個全域後置勾（裝在 Core/Engine.lua，全套組共用一組）
 --   * Engine 的 `SetItemButtonQuality` / `SetItemButtonTexture` 兩個全域後置勾
@@ -252,7 +294,10 @@
 -- 讀暴雪物件（契約的讀取例外）：
 --   * `ScrollBox:ForEachFrame`（`Engine.SweepRows`，唯讀走訪）。
 --   * `GetRegions` / `GetChildren`（找無名的美術區域、找 navBar 底下的按鈕、
---     找 classClearFilter 的關閉鈕）—— 讀結構不是讀值。
+--     找 classClearFilter 的關閉鈕；第十輪：找兩個捲動子框底下的段落、段落底下的條列點、
+--     標題列按鈕底下沒有 parentKey 的 `$parentGlow`）—— 讀結構不是讀值。
+--   * `GetParent`（第十輪，`EncounterJournal_SetBullets` 的參數 `object` 的 parent ＝
+--     條列點所在的框，同 .lua:1599 暴雪自己的取法）—— 讀結構。
 --   * 戰利品列 `IconBorder` 的 `IsShown()` / `GetVertexColor()` ——
 --     走 `Engine.PassBorderColor`，當傳遞者不當讀取者。
 --   * 麵包屑按鈕的 `IsEnabled()`（`Engine.TrackGlyph` 的 `trackEnabled`，讀取例外表
@@ -263,10 +308,13 @@
 ------------------------------------------------------------
 -- ## 刻意不碰的東西
 --
--- * **綜覽頁、首領技能頁、副本簡介頁的內文顏色** —— 見「書頁的字色」：SimpleHTML
---   與 `ScrollingFont` 的顏色是逐段／由它自己管的，少接一條就是「某一段在某個狀態下
---   整段消失」。那三塊保留原本的羊皮紙。它們的捲軸（ScrollFrameTemplate 的
---   `ScrollBar`、`LoreScrollBar`）也維持原生，坐在羊皮紙上本來就該長那樣。
+-- * ~~綜覽頁、首領技能頁、副本簡介頁的內文顏色~~ —— **第十輪接管了**（見第十輪那一節）。
+-- * **段落的角色圖示（`icon1..4`：盾／劍／⚠／骷髏）、首領小頭像（`portrait` 與圓框）**
+--   —— 那是資訊與識別，原樣留著。
+-- * **段落「從連結跳過來」的閃光**（`flashAnim` 對 `$parentGlow` 的 alpha 動畫）——
+--   動畫照跑，但它的三張切片已經 alpha 0 ⇒ 看不到閃光。要保留就得自己畫一層跟著
+--   動畫走的東西，那需要掛 OnUpdate 或勾動畫腳本，不划算。
+-- * **副本簡介頁的插畫（`loreBG`）、名牌（`titleBG`／`title`）、`mapButton`** —— 插畫類，不碰。
 -- * **`$parentModelFrame`（ModelScene）與它的背景、`creatureButtons`** ——
 --   STYLE.md ③「3D 模型場景不碰」。
 -- * **`instanceButton`**（書頁左上的圓形副本圖示）—— 整顆就是一張圓框美術
@@ -283,8 +331,7 @@
 --   它被 `NavBar_CheckLength` 用 Lua `Show`／`Hide`（不是 C 端狀態貼圖），
 --   `SetColorTexture` 不在它的白名單裡；而目前這一頁本來就是**停用**的
 --   （沒有滑過回饋、後面沒有 ›），那已經是足夠的訊號。
--- * **戰利品分類列（`EncounterItemDividerTemplate`，「額外戰利品」）** —— 金字在
---   深底上讀得出來，為了把它改白要多勾一支 mixin，不划算。
+-- * ~~戰利品分類列~~ —— **第十輪上皮了**（白字 ＋ 髮絲線）；它的 ⓘ（`TipButton`）不碰。
 -- * **`classClearFilter` 的 ⊗ 關閉鈕** —— 那張 `ClearBroadcastIcon` 本來就是灰白色的，
 --   而且它自己的 OnEnter／OnLeave 在切 alpha，中和不了。原樣留著。
 -- * **`MonthlyActivitiesFrame` / `JourneysFrame` / `suggestFrame` /
@@ -443,6 +490,57 @@ local function LootReapply(row)
 end
 
 ------------------------------------------------------------
+-- 戰利品內嵌區往左擴多少（第十輪，實機擷圖 58 的兩個箭頭）
+--
+-- 列是貼著 LootContainer 的左緣排的：ScrollBox 345 寬、錨 `BOTTOMRIGHT -20,1`
+-- （.xml:1944-1948），沒有過濾時 `TOPLEFT 0,0`、有過濾時錨過濾條的 `BOTTOMLEFT 14,7`
+-- （.lua:2985,2988；過濾條左緣在 −15 ⇒ 列從 −1 開始），view 沒有 padding（.lua:345）
+-- ⇒ 列的左緣＝容器的左邊線。右邊則是 列(≈325) → 捲軸(330~338，.xml:1950-1954) → 容器右緣 345，
+-- 捲軸外面還剩 **7**。列的位置不能動（不 SetPoint 暴雪框），所以讓我們的底往左擴同樣的 7：
+-- 內容（列 ＋ 捲軸）左右各 7 的內距，分類列的字也就不再凸出邊線。
+-- 擴出去的 7 落在首領清單捲軸（info x≈368~376）與容器左緣（435）之間的空白裡。
+-- 上緣不擴：容器上方緊貼著兩顆篩選下拉，而且上緣要跟職業過濾條的上緣齊。
+------------------------------------------------------------
+local LOOT_PAD = 7
+
+------------------------------------------------------------
+-- 戰利品分類列（`EncounterItemDividerTemplate`，.xml:1176，mixin
+-- `EncounterJournalItemHeaderMixin`，.lua:254-264；factory 在 .lua:355-357）
+--
+-- 第九輪不碰（金字讀得出來）；第十輪上皮成小節標題的語彙（STYLE.md ④「文字層級」、
+-- `Skin.SectionTitle` 同一套：白字 ＋ 字下一條 `fillHover` 髮絲線，無底）。
+--   * `name`（GameFontNormalMed3，錨 TOPLEFT `0,-22`、高 12 ⇒ 字的下緣在 −34）
+--     ⇒ 髮絲線畫在列下緣往上 7（字下 4 點）。列高 45（BOSS_LOOT_BUTTON_HEIGHT）。
+--   * `Init` 只 `name:SetText` ＋ `TipButton` Show/Hide ⇒ 顏色一次就撐得住（沒有 reapply）。
+--   * ⓘ（`TipButton`，`Interface\common\help-i`）保留原樣 —— 它是「滑過看說明」的入口。
+-- ⚠ 不走 `Skin.SectionTitle`：那一支找的是 `Title`／`Background`，這個模板是 `name` 而且
+--   沒有底圖，套下去只會多兩筆假的「找不到」。
+------------------------------------------------------------
+local DIVIDER_KEY = "EncounterItemDivider"
+local DIVIDER_RULE_Y = 7
+
+local function IsDividerRow(row)
+    return Probe(row, "TipButton") ~= nil and Probe(row, "name") ~= nil
+end
+
+local function DividerApply(row)
+    local name = Probe(row, "name")
+    if name then
+        E.TextColor(name, T.text, DIVIDER_KEY .. ".name")
+    else
+        E.Missing(DIVIDER_KEY .. ".name")
+    end
+    local rule = E.Overlay(row, {
+        key = DIVIDER_KEY .. ".rule", noBorder = true, height = 1,
+        points = {
+            { "BOTTOMLEFT", "BOTTOMLEFT", 0, DIVIDER_RULE_Y },
+            { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, DIVIDER_RULE_Y },
+        },
+    })
+    E.Paint(rule, T.fillHover)
+end
+
+------------------------------------------------------------
 -- 首領列（`EncounterBossButtonTemplate`，`BossesScrollBox` 的 element）
 --
 -- ⚠ **不走 `ownHover`**：暴雪用 `LockHighlight()` 表示選中，而「選中了沒」只存在
@@ -539,61 +637,236 @@ local function SyncPageTabs(tabType)
 end
 
 ------------------------------------------------------------
--- 書頁深色化 ＋ 三塊羊皮紙內嵌
+-- 書頁深色化 ＋ 綜覽／首領技能／副本簡介三頁的文字接管（第十輪）
 --
--- `UI-EJ-JournalBG` 在 XML 裡是 785x425、TexCoords 右 0.766601562／下 0.830078125
--- ⇒ 原檔 1024x512，書頁上的一點 ＝ 貼圖上的一點（沒有縮放）。
--- 內嵌那一塊在書頁上的矩形（以 info 的左上角為原點、往右往下為正）直接換算 texCoord，
--- 所以羊皮紙的紋理跟原本同一個位置一模一樣，只是周圍變深色。
+-- 第九輪在這三塊保留了原本的羊皮紙內嵌（字色「接不住」）。第十輪逐條重查，
+-- 結論是**全部接得住**，羊皮紙整塊拿掉。每一條寫字的路徑與它的掛點：
+--
+-- | 文字 | 暴雪怎麼設顏色（12.1 live） | 我們的掛點 |
+-- |---|---|---|
+-- | 綜覽頁 `loreDescription`、首領技能頁 `infoFrame.description`、「概況說明」標題（`$parentTitle`） | XML `<Color>`（.xml:1801,1839,1851）；Lua 只 `SetText`／`SetWidth`／`SetHeight`（.lua:1376-1378,1398,2197） | apply 一次 |
+-- | 各段 `overviewDescription.Text` 與每一顆 `Bullets[i].Text`（SimpleHTML） | XML `<FontString … <Color>>`（.xml:740,753）；**只有** `EncounterJournal_SetBullets`（.lua:1598）會 `SetText` | 那一支全域函式的後置勾：SetText 之後重申（不賭 SimpleHTML 的 SetText 會不會把顏色洗掉） |
+-- | 段落標題列 `button.title`／`button.expandedIcon`（± 號） | `EncounterJournal_UpdateButtonState`（.lua:1533）`SetTextColor(PAPER_FRAME_*_COLOR)`；`EncounterJournal_ToggleHeaders`（.lua:1926,1928）`title:SetFontObject(...)` | 見下面「標題列的三條呼叫路徑」 |
+-- | 段落內文 `header.description`（FontString） | XML `<Color>`（.xml:1039）；Lua 只 `SetText`（.lua:992,1922） | 第一次見到那一段時 ＋ 每次 sweep |
+-- | 副本簡介 `LoreScrollingFont` 的 FontString | **只有** `EncounterJournal_OnLoad`（.lua:425）`SetTextColor(.13,.07,.01)` 一次；`ScrollingFontMixin:SetText`（Blizzard_SharedXML/Shared/Scroll/ScrollTemplates.lua:347）不碰顏色、EJ 全檔沒有對它 `SetFontObject` | apply 一次（我們的 apply 必然晚於 OnLoad） |
+--
+-- 標題列的三條呼叫路徑（`UpdateButtonState` 的 XML 綁定是 `function="…"` ⇒ **載入當下**
+-- 就把函式值拷進 script 了，勾全域函式追不上這一條）：
+--   (a) 按鈕的 `OnShow`（.xml:989）—— 段落第一次顯示、或從物件池拿回來再 Show
+--       ⇒ `HookScript("OnShow")`，跑在暴雪那支之後；
+--   (b) `EncounterJournal_OnClick`（.lua:1562，XML 同樣是 `function=` 綁定）在最後一行
+--       `self:GetScript("OnShow")(self)` ⇒ `HookScript("OnClick")`，跑在整支 OnClick 之後；
+--   (c) `EncounterJournal_ToggleHeaders` 的綜覽分支**直接呼叫全域**（.lua:1868）
+--       ⇒ `hooksecurefunc("EncounterJournal_UpdateButtonState")`。
+--   另外 `ToggleHeaders` 本身的後置勾負責「新建出來的段落」（.lua:1686,1901 的 `CreateFrame`）。
+--   ⚠ 萬一某條路漏接，那一行會回到 `PAPER_FRAME_EXPANDED/COLLAPSED_COLOR` ——
+--     那是**淺米色**（原本就是寫給羊皮紙上的深色標題條用的），在我們的深色條上照樣讀得到，
+--     失敗方向不會是「深底暗字」。
+--
+-- 內文裡的法術連結是 `|cff…|r` 內嵌色碼，深底上讀得到，不碰。
+-- （暴雪在 .lua:991,1918 把**白色**色碼剝掉，是為了羊皮紙；深底上剝掉之後就是我們的白字，一樣讀得到。）
 ------------------------------------------------------------
-local PARCHMENT = "Interface\\EncounterJournal\\UI-EJ-JournalBG"
-local PARCHMENT_W, PARCHMENT_H = 1024, 512
+local SECTION_KEY = "EncounterJournal.section"
+local BULLET_DOT = 4                  -- 自己畫的小方點（取代 13x13 的棕色 `UI-PaperOverlay-Bullet`）
+local SECTION_ICON_KEEP = { "abilityIcon" }
 
-local function ParchmentUV(x1, y1, x2, y2)
-    return { x1 / PARCHMENT_W, x2 / PARCHMENT_W, y1 / PARCHMENT_H, y2 / PARCHMENT_H }
+local sectionContainers = {}          -- { infoFrame, overviewFrame }：Apply 之後才有值（我們自己的表）
+local sectionDone = setmetatable({}, { __mode = "k" })   -- 段落（EncounterInfoTemplate）
+local sectionButtons = setmetatable({}, { __mode = "k" }) -- 段落的標題列按鈕
+local bulletDone = setmetatable({}, { __mode = "k" })
+
+local function Children(frame)
+    if type(frame) ~= "table" or type(frame.GetChildren) ~= "function" then return nil end
+    local ok, list = pcall(function() return { frame:GetChildren() } end)
+    if ok then return list end
+    return nil
 end
 
--- 綜覽／首領技能：ScrollFrame 350x383、BOTTOMRIGHT -5,1（.xml:1779,1817）
---   ⇒ 在書頁上是 x 430～780、y 41～424。往外留 左 6／上 4／右 4／下 1
---   （下面只剩 1 點就到書頁底了）⇒ x 424～784、y 37～425。
-local SCROLL_INLAY = {
-    points = {
-        { "TOPLEFT", "TOPLEFT", -6, 4 },
-        { "BOTTOMRIGHT", "BOTTOMRIGHT", 4, -1 },
-    },
-    uv = ParchmentUV(424, 37, 784, 425),
-}
--- 副本簡介：`instance` 390x425、BOTTOMRIGHT -1,2（.xml:1470），跟 info 同一個右下角
---   ⇒ 在書頁上是 x 395～785、y 0～425（整個右半頁）。四邊內縮 2，
---   讓 1px 黑邊落在書頁裡面 ⇒ x 397～783、y 2～423。
-local INSTANCE_INLAY = {
-    points = {
-        { "TOPLEFT", "TOPLEFT", 2, -2 },
-        { "BOTTOMRIGHT", "BOTTOMRIGHT", -2, 2 },
-    },
-    uv = ParchmentUV(397, 2, 783, 423),
+-- 認人只看結構（有沒有這些 parentKey），不讀任何值
+local function IsSectionHeader(f)
+    return Probe(f, "button") ~= nil and Probe(f, "descriptionBG") ~= nil
+end
+local function IsBullet(f)
+    return Probe(f, "Bullet") ~= nil and Probe(f, "Text") ~= nil
+end
+
+-- 標題列上每次都會被暴雪蓋掉的東西：標題字、± 號、技能圖示的裁邊
+-- （`abilityIcon:SetTexture` 每次都在 ToggleHeaders 裡重下，.lua:1945）。
+local function ReapplySectionButton(btn)
+    if type(btn) ~= "table" or not sectionButtons[btn] then return end
+    local title = Probe(btn, "title")
+    if title then E.TextColor(title, T.text, SECTION_KEY .. ".title") end
+    local sign = Probe(btn, "expandedIcon")
+    if sign then E.TextColor(sign, T.textDim, SECTION_KEY .. ".expandedIcon") end
+    local icon = Probe(btn, "abilityIcon")
+    if icon then E.CropIcon(icon, SECTION_KEY .. ".abilityIcon") end
+end
+
+local SectionButtonScript = Guard("EncounterInfoTemplate.button:OnShow/OnClick", ReapplySectionButton)
+
+-- 前置宣告（`SkinSectionHeader` 第一次見到一段時要補跑它；本體在下面）
+local OnSetBullets
+
+-- 一顆條列點（`EncounterOverviewBulletTemplate`，.xml:722）
+local function SkinBullet(b)
+    if not bulletDone[b] then
+        bulletDone[b] = true
+        local dot = Probe(b, "Bullet")
+        if dot then
+            E.Neutralize(dot, SECTION_KEY .. ".Bullet")
+            -- 小方點錨在原本那顆圓點的中心（13x13，錨 TOPLEFT）＝ 第一行字的高度
+            local ov = E.Overlay(b, {
+                key = SECTION_KEY .. ".bulletDot", noBorder = true, anchorTo = dot,
+                points = { { "CENTER", "CENTER", 0, 0 } },
+                width = BULLET_DOT, height = BULLET_DOT,
+            })
+            E.Paint(ov, T.textDim)
+        end
+    end
+    local text = Probe(b, "Text")
+    if text then E.TextColor(text, T.text, SECTION_KEY .. ".bullet.Text") end
+end
+
+-- 一個段落（`EncounterInfoTemplate`，.xml:762）
+--
+-- apply（每個段落只跑一次，**弱鍵表記住**；段落是 `freeHeaders`／`usedHeaders`
+-- 兩張表之間借還的，同一個框會一直被重用，.lua:1899-1905,2176,2209）：
+--   * `descriptionBG`／`descriptionBGBottom`（羊皮紙的內文底與下緣）alpha 0 ——
+--     它們被 Lua `Show`／`Hide`／`SetPoint`（.lua:1672-1680,1812-1813,1834-1835,1855-1856,1934-1935），
+--     alpha 是獨立屬性撐得住。展開後的說明區因此直接落在書頁的 `fillInset` 上（無邊）。
+--   * 標題列按鈕：十二張 `eLeftUp`…`cMidDown` 與三張 HIGHLIGHT 切片全部 alpha 0
+--     （`GetRegions` ＋ keep-set 只留 `abilityIcon`）；子框 `$parentGlow`（連結跳轉時的
+--     閃光動畫目標，.xml:764-769、.xml:888）的三張切片也 alpha 0 —— 那是羊皮紙色的亮帶，
+--     疊在深色條上是一塊米色；代價是「從連結跳到這一段」時沒有閃光。
+--   * 標題列＝ `T.fill` 條 ＋ 1px 黑邊（`Engine.RegionBackdrop`，建在按鈕自己身上）；
+--     滑過＝底提亮 ＋ 職業色邊（可收合的清單標題 ⇒ secondary 語彙，STYLE.md ④）。
+--   * 右側的角色圖示（`icon1..4`）、首領小頭像（`portrait` 與它的圓框）**不碰**。
+-- 兩層（首領名／技能）不另外分色：暴雪自己就把子段落縮排（`hWidth - HEADER_INDENT`，
+-- .lua:1884、`SetWidth(hWidth)` :1972，段落錨 TOPRIGHT ⇒ 左緣內縮），層級已經在版面上。
+local function SkinSectionHeader(h)
+    if not sectionDone[h] then
+        sectionDone[h] = true
+        E.NeutralizeKeys(h, { "descriptionBG", "descriptionBGBottom" }, SECTION_KEY)
+
+        local btn = Probe(h, "button")
+        if btn then
+            E.NeutralizeRegions(btn, SECTION_KEY .. ".button", E.KeepSet(btn, SECTION_ICON_KEEP))
+            -- `$parentGlow` 沒有 parentKey；按鈕的子框裡只有它沒有 `icon`
+            -- （`icon1..4` 與 `portrait` 都有），讀結構認人。
+            for _, child in ipairs(Children(btn) or {}) do
+                if Probe(child, "icon") == nil then
+                    E.NeutralizeRegions(child, SECTION_KEY .. ".button.Glow")
+                end
+            end
+            local bar = E.RegionBackdrop(btn, { key = SECTION_KEY .. ".button" })
+            E.Paint(bar, T.fill, T.border)
+            E.TrackButtonHover(btn, bar, T.fill)
+
+            sectionButtons[btn] = true
+            if type(btn.HookScript) == "function" then
+                pcall(btn.HookScript, btn, "OnShow", SectionButtonScript)
+                pcall(btn.HookScript, btn, "OnClick", SectionButtonScript)
+            end
+        else
+            E.Missing(SECTION_KEY .. ".button")
+        end
+
+        -- 這一段在我們 apply 之前就跑過 `SetBullets` 的話（戰鬥中第一次開、apply 延到脫戰），
+        -- 它的條列點還是暗棕字 ⇒ 第一次見到時補一次。之後的由 SetBullets 的後置勾接手。
+        local od = Probe(h, "overviewDescription")
+        if od then OnSetBullets(od) end
+    end
+
+    local desc = Probe(h, "description")
+    if desc then E.TextColor(desc, T.text, SECTION_KEY .. ".description") end
+    local od = Probe(h, "overviewDescription")
+    local odText = od and Probe(od, "Text")
+    if odText then E.TextColor(odText, T.text, SECTION_KEY .. ".overviewDescription.Text") end
+    ReapplySectionButton(Probe(h, "button"))
+end
+
+-- `EncounterJournal_ToggleHeaders` 的後置勾：兩個容器底下的段落全部走一遍
+-- （新建的做 apply、舊的只重申）。只有 `GetChildren` 唯讀走訪，
+-- **不讀** `usedHeaders`／`freeHeaders`／`overviews`（暴雪的欄位）。
+local function SweepSections()
+    for _, container in ipairs(sectionContainers) do
+        for _, child in ipairs(Children(container) or {}) do
+            if IsSectionHeader(child) then SkinSectionHeader(child) end
+        end
+    end
+end
+
+-- `EncounterJournal_SetBullets(object, description, hideBullets)` 的後置勾：
+-- `object` 是某一段（或綜覽頁本身）的 `overviewDescription`，條列點是它 parent 的子框
+-- （.lua:1599,1635）。只拿參數裡的框，不讀 `description`。
+function OnSetBullets(object)   -- 指派給上面的前置宣告，不是全域
+    if #sectionContainers == 0 or type(object) ~= "table" then return end
+    local text = Probe(object, "Text")
+    if text then E.TextColor(text, T.text, SECTION_KEY .. ".overviewDescription.Text") end
+    if type(object.GetParent) ~= "function" then return end
+    local ok, parent = pcall(object.GetParent, object)
+    if not ok then return end
+    for _, child in ipairs(Children(parent) or {}) do
+        if IsBullet(child) then SkinBullet(child) end
+    end
+end
+
+-- 綜覽頁那一條「概況說明」（不是 EncounterInfoTemplate，是捲動子框上的一張貼圖 ＋ 一條字）
+--   .xml:1841 `header`（`UI-EJ-Header-Overview`，327x30（.xml:314），錨 `loreDescription` 的 BOTTOM）
+--   .xml:1846 `$parentTitle`（**沒有 parentKey**，全域名
+--             `EncounterJournalEncounterFrameInfoOverviewScrollFrameScrollChildTitle`，
+--             錨 header 的 BOTTOMLEFT `8, 6`、高 10）
+-- 我們的條：左右對齊下面那一排段落（段落錨子框的 TOPLEFT/TOPRIGHT 0，.lua:1717-1718）。
+--   header 是 327 寬、置中在 `loreDescription`（x=2、寬＝子框寬 −5，.lua:1377）的下方
+--   ⇒ 子框寬 320（.xml:1828）時左緣在 −4、右緣在 323 ⇒ 條取 header 的 `+4 … −3`。
+--   垂直取 header 下緣往上 22：字的中心（下緣 +6、高 10 ⇒ +11）正好落在條的正中。
+local OVERVIEW_TITLE_GLOBAL = "EncounterJournalEncounterFrameInfoOverviewScrollFrameScrollChildTitle"
+local OVERVIEW_HEADER_POINTS = {
+    { "TOPLEFT", "BOTTOMLEFT", 4, 22 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", -3, 0 },
 }
 
--- `-- TODO(升格)`：「RegionBackdrop 的底換成一張貼圖」。第二個視窗要用時搬進 Engine
--- （`Engine.RegionBackdrop` 的 opts 加 `texture` / `texCoord`）。
--- ⚠ 動的全是 `Engine.RegionBackdrop` 回傳的**我們自己的**那張底貼圖（`ownRegions`
---   裡登記過的），暴雪的物件一張都沒有碰；失敗退回子框時那張底一樣是我們的。
-local function ParchmentInlay(target, label, spec)
-    local rec = E.RegionBackdrop(target, {
-        key = label .. ".parchment",
-        slot = "parchment",
-        points = spec.points,
-    })
-    if not rec or not rec.bg then return end
-    local bg = rec.bg
-    local uv = spec.uv
-    pcall(function()
-        bg:SetTexture(PARCHMENT)
-        bg:SetTexCoord(uv[1], uv[2], uv[3], uv[4])
-        bg:SetVertexColor(1, 1, 1, 1)
-    end)
-    E.Border(rec, T.border)
+local function SkinOverviewPage(overviewFrame, label)
+    local lore = Child(overviewFrame, "loreDescription", label .. ".loreDescription")
+    if lore then E.TextColor(lore, T.textDim, label .. ".loreDescription") end
+
+    local header = Child(overviewFrame, "header", label .. ".header")
+    if header then
+        E.Neutralize(header, label .. ".header")
+        local points = {}
+        for i, pt in ipairs(OVERVIEW_HEADER_POINTS) do
+            points[i] = { pt[1], pt[2], pt[3], pt[4], rel = header }
+        end
+        local bar = E.RegionBackdrop(overviewFrame, {
+            key = label .. ".header", slot = "overviewHeader", points = points,
+        })
+        E.Paint(bar, T.fill, T.border)
+    end
+    local title = _G[OVERVIEW_TITLE_GLOBAL]
+    if title then
+        E.TextColor(title, T.text, OVERVIEW_TITLE_GLOBAL)
+    else
+        E.Missing(OVERVIEW_TITLE_GLOBAL)
+    end
+
+    local od = Child(overviewFrame, "overviewDescription", label .. ".overviewDescription")
+    if od then OnSetBullets(od) end
 end
+
+-- 書頁底與內嵌框的繪製子層（第十輪）
+--
+-- ⚠ 實機擷圖 58／59 取樣：書頁是 (29,29,29) ＝ `T.fill`，不是 `info` 身上那張
+--   `fillInset`（20）—— **`info`／`inset` 的底都被視窗本體的底蓋掉了**。
+--   兩個都是 `useParentLevel`（.xml:1401,1573），跟 `EncounterJournal` 同一個 frame level，
+--   而同一層的 region 是**跨框按 draw layer／sublevel 交錯**畫的（暴雪自己就靠這個：
+--   `InsetFrameTemplate` 的 Bg 在 BACKGROUND −5、`ButtonFrameTemplate` 的 Bg 在 −6，
+--   Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:394,451）。
+--   `Engine.RegionBackdrop` 預設三個都是 −8 ⇒ 平手，誰在上面看建立順序。
+--   ⇒ 這兩張改成 −4（邊 −3）：高於本體的底（−8）、邊（−7）、標題帶（−6）、髮絲線（−5）。
+--   「首領清單捲軸像一條粗黑柱」也是這個的症狀：軌道是 `scrollTrack`（＝ `fillInset`，20），
+--   本來應該融進書頁，結果擺在 29 的底上變成一條深色柱；書頁回到 20 之後只剩拇指。
+local BOOK_SUBLEVEL = -4
+local BOOK_EDGE_SUBLEVEL = -3
 
 ------------------------------------------------------------
 -- 麵包屑（`EncounterJournal.navBar`）
@@ -758,7 +1031,8 @@ end
 --   ⇒ 左緣在 LootContainer 左邊 −15、右緣在右邊 −5、頂在上緣 +1。
 -- 顯示的時候 ScrollBox 重錨到它的 `BOTTOMLEFT 14, 7`（.lua:2985）＝ 列從它底下往上
 -- 7 點的地方開始 ⇒ 我們的條只畫到那裡（`BOTTOMRIGHT y=+7`），不然第一列會壓在條上。
--- 左右對齊 LootContainer（右緣 ＋5），頂對齊 LootContainer 的上緣。
+-- 左右對齊我們畫的戰利品內嵌區（**第十輪：左緣跟著內嵌區往外擴 `LOOT_PAD`**，
+-- 右緣 ＋5 ＝ LootContainer 右緣），頂對齊 LootContainer 的上緣 ＝ 內嵌區的上緣。
 ------------------------------------------------------------
 local function SkinClassFilter(loot, label)
     local ccf = Child(loot, "classClearFilter", label)
@@ -767,7 +1041,7 @@ local function SkinClassFilter(loot, label)
     local bar = E.RegionBackdrop(ccf, {
         key = label,
         points = {
-            { "TOPLEFT", "TOPLEFT", 0, 0, rel = loot },
+            { "TOPLEFT", "TOPLEFT", -LOOT_PAD, 0, rel = loot },
             { "BOTTOMRIGHT", "BOTTOMRIGHT", 5, 7 },
         },
     })
@@ -796,18 +1070,29 @@ local BOTTOM_TAB_PAD = 0
 ------------------------------------------------------------
 -- 補掃（見檔頭「補掃時機」）
 ------------------------------------------------------------
-local lootSweeper, bossSweeper
+local lootSweeper, dividerSweeper, bossSweeper
 local lootScrollBox, bossScrollBox
-local bypassNoted = false
+local bypassNoted, dividerBypassNoted = false, false
 
 -- 補掃接手的列＝弱鍵表裡沒有紀錄＝它的 Init 沒經過我們的 mixin 勾。
--- 記一筆（只記一次）進 `/mskin debug`，那就是檔頭第 1 條假設的實機證據。
+-- 記一筆（只記一次）進 `/mskin debug`，那就是檔頭第 1 條假設的實機證據
+-- （第十輪：使用者的報告裡已經看到 `EncounterItem:Init (hook bypassed…)`，假設成立）。
+-- 分類列（`EncounterItemDividerTemplate`）跟物品列是同一個 ScrollBox、同一個 factory
+-- （.lua:355-363）建的，會被同一件事繞過 ⇒ 同一條補掃、各自記一筆。
 local function LootAdopt(row)
-    if not bypassNoted and IsLootRow(row) and E.RowState[row] == nil then
-        bypassNoted = true
-        E.Missing(LOOT_KEY .. ":Init (hook bypassed; adopted by EncounterJournal_LootUpdate sweep)")
+    if IsLootRow(row) then
+        if not bypassNoted and E.RowState[row] == nil then
+            bypassNoted = true
+            E.Missing(LOOT_KEY .. ":Init (hook bypassed; adopted by EncounterJournal_LootUpdate sweep)")
+        end
+        if lootSweeper then lootSweeper(row) end
+    elseif IsDividerRow(row) then
+        if not dividerBypassNoted and E.RowState[row] == nil then
+            dividerBypassNoted = true
+            E.Missing(DIVIDER_KEY .. ":Init (hook bypassed; adopted by EncounterJournal_LootUpdate sweep)")
+        end
+        if dividerSweeper then dividerSweeper(row) end
     end
-    if lootSweeper then lootSweeper(row) end
 end
 
 local function Resweep()
@@ -827,6 +1112,15 @@ local function InstallHooks()
         apply   = LootApply,
         reapply = LootReapply,
         match   = IsLootRow,
+    }
+    -- 第十輪：分類列（「額外戰利品」）。`EncounterJournalItemHeaderMixin:Init`（.lua:256）
+    -- 只 `name:SetText` ＋ `TipButton` Show／Hide ⇒ 全部放 apply，沒有 reapply。
+    dividerSweeper = E.HookRows{
+        key    = DIVIDER_KEY,
+        mixin  = _G.EncounterJournalItemHeaderMixin,
+        method = "Init",
+        apply  = DividerApply,
+        match  = IsDividerRow,
     }
     bossSweeper = E.HookRows{
         key    = "EncounterBossButton",
@@ -863,6 +1157,27 @@ local function InstallHooks()
     else
         E.Missing("EncounterJournal_SetTab")
     end
+
+    -- ④～⑥ 第十輪：綜覽／首領技能兩頁的段落與內文（理由與三條路徑見「書頁深色化 ＋ …」那一段）。
+    --    三支都是**全域函式**的後置勾；Apply 之前（`sectionContainers` 還是空的）等於空轉。
+    --    動作只有 SetTextColor／SetAlpha／SetTexCoord ＋ 建我們自己的底，戰鬥中照做。
+    if type(_G.EncounterJournal_ToggleHeaders) == "function" then
+        hooksecurefunc("EncounterJournal_ToggleHeaders",
+            Guard("EncounterJournal_ToggleHeaders", SweepSections))
+    else
+        E.Missing("EncounterJournal_ToggleHeaders")
+    end
+    if type(_G.EncounterJournal_UpdateButtonState) == "function" then
+        hooksecurefunc("EncounterJournal_UpdateButtonState",
+            Guard("EncounterJournal_UpdateButtonState", ReapplySectionButton))
+    else
+        E.Missing("EncounterJournal_UpdateButtonState")
+    end
+    if type(_G.EncounterJournal_SetBullets) == "function" then
+        hooksecurefunc("EncounterJournal_SetBullets", Guard("EncounterJournal_SetBullets", OnSetBullets))
+    else
+        E.Missing("EncounterJournal_SetBullets")
+    end
 end
 
 local function Apply()
@@ -878,8 +1193,16 @@ local function Apply()
     local close = Child(f, "CloseButton", "EncounterJournal.CloseButton")
     if close then Skin.CloseButton(close, "EncounterJournal.CloseButton") end
 
+    -- 內嵌框：`Skin.Inset` 的同一件事，只是底與邊的 sublevel 墊高（見 BOOK_SUBLEVEL 的註解）
     local inset = Child(f, "inset", "EncounterJournal.inset")
-    if inset then Skin.Inset(inset, "EncounterJournal.inset") end
+    if inset then
+        E.NeutralizeKeys(inset, { "Bg", "NineSlice" }, "EncounterJournal.inset")
+        local rec = E.RegionBackdrop(inset, {
+            key = "EncounterJournal.inset",
+            sublevel = BOOK_SUBLEVEL, edgeSublevel = BOOK_EDGE_SUBLEVEL,
+        })
+        E.Paint(rec, T.fillInset, T.border)
+    end
 
     local navBar = Child(f, "navBar", "EncounterJournal.navBar")
     if navBar then SkinNavBar(navBar) end
@@ -908,10 +1231,20 @@ local function Apply()
 
     local info = Child(enc, "info", "EncounterJournal.encounter.info")
 
-    -- 副本簡介頁：羊皮紙內嵌（整個右半頁）。`LoreScrollBar` 不上皮 —— 它坐在羊皮紙上。
+    -- 副本簡介頁（第十輪：羊皮紙內嵌拿掉，直接落在深色書頁上）。
+    --   `loreBG`（副本插畫）與 `titleBG`／`title` 是插畫與它的名牌，不碰。
+    --   簡介文字：`LoreScrollingFont.ScrollBox.FontStringContainer.FontString`
+    --   （ScrollTemplates.xml:48-57 的 parentKey 鏈；**不呼叫**它的 mixin 方法
+    --   `SetTextColor(color)`，直接對那一條 FontString 下 SetTextColor）。
     local instance = Child(enc, "instance", "EncounterJournal.encounter.instance")
     if instance then
-        ParchmentInlay(instance, "EncounterJournal.encounter.instance", INSTANCE_INLAY)
+        local label = "EncounterJournal.encounter.instance"
+        local lsf = Child(instance, "LoreScrollingFont", label .. ".LoreScrollingFont")
+        local box = lsf and Child(lsf, "ScrollBox", label .. ".LoreScrollingFont.ScrollBox")
+        local holder = box and Child(box, "FontStringContainer", label .. ".LoreScrollingFont.FontStringContainer")
+        local fs = holder and Child(holder, "FontString", label .. ".LoreScrollingFont.FontString")
+        if fs then E.TextColor(fs, T.text, label .. ".LoreScrollingFont.FontString") end
+        SkinBar(instance, "LoreScrollBar", label .. ".LoreScrollBar")
     end
 
     if not info then return end
@@ -919,9 +1252,12 @@ local function Apply()
     -- 書頁深色化：羊皮紙與兩張頁眉陰影 alpha 0，底交給 `info` 自己的 region。
     -- 不畫邊：`info` 幾乎貼齊 `inset`（encounter 錨 inset 內縮 3、info 再內縮 1），
     -- 再畫一圈就是兩條幾乎重疊的黑線。
+    -- ⚠ 第十輪：sublevel 墊高（見 BOOK_SUBLEVEL）——第九輪這一張其實從來沒被看見過。
     E.NeutralizeGlobals({ "EncounterJournalEncounterFrameInfoBG" })
     E.NeutralizeKeys(info, { "leftShadow", "rightShadow" }, "EncounterJournal.encounter.info")
-    local book = E.RegionBackdrop(info, { key = "EncounterJournal.encounter.info", noBorder = true })
+    local book = E.RegionBackdrop(info, {
+        key = "EncounterJournal.encounter.info", noBorder = true, sublevel = BOOK_SUBLEVEL,
+    })
     E.Paint(book, T.fillInset)
 
     for _, field in ipairs({ "encounterTitle", "instanceTitle" }) do
@@ -929,11 +1265,30 @@ local function Apply()
         if fs then E.TextColor(fs, T.text, "EncounterJournal.encounter.info." .. field) end
     end
 
-    -- 綜覽／首領技能兩頁：羊皮紙內嵌（字色接不住，見檔頭「書頁的字色」）
+    -- 綜覽／首領技能兩頁（第十輪：羊皮紙內嵌拿掉，文字全接管，見「書頁深色化 ＋ …」那一段）。
+    --   容器 ＝ 兩個 ScrollFrame 的 `child`（暴雪自己也叫它們 `overviewFrame`／`infoFrame`，
+    --   .lua:318,323 —— 我們從 parentKey 走過去，不讀那兩個欄位）。
+    wipe(sectionContainers)
     for _, key in ipairs({ "overviewScroll", "detailsScroll" }) do
-        local sf = Child(info, key, "EncounterJournal.encounter.info." .. key)
-        if sf then ParchmentInlay(sf, "EncounterJournal.encounter.info." .. key, SCROLL_INLAY) end
+        local label = "EncounterJournal.encounter.info." .. key
+        local sf = Child(info, key, label)
+        if sf then
+            -- ScrollFrameTemplate 的捲軸是 `ScrollFrame_OnLoad` 執行期建的 MinimalScrollBar
+            -- （Blizzard_SharedXML/SecureUIPanelTemplates.lua:23、Mainline/ScrollDefine.lua:1）
+            SkinBar(sf, "ScrollBar", label .. ".ScrollBar")
+            local child = Child(sf, "child", label .. ".child")
+            if child then
+                sectionContainers[#sectionContainers + 1] = child
+                if key == "overviewScroll" then
+                    SkinOverviewPage(child, label .. ".child")
+                else
+                    local desc = Child(child, "description", label .. ".child.description")
+                    if desc then E.TextColor(desc, T.textDim, label .. ".child.description") end
+                end
+            end
+        end
     end
+    SweepSections()
 
     for _, t in ipairs(PAGE_TABS) do
         SkinPageTab(info, t.key, t.id)
@@ -946,7 +1301,14 @@ local function Apply()
     if loot then
         -- 戰利品清單一塊內嵌區（`fillInset` ＋ 1px 邊）：它是獨立的框
         -- （frameStrata HIGH，.xml:1875），列坐在它上面、比它亮一階。
-        local ov = E.Overlay(loot, { key = "EncounterJournal.encounter.info.LootContainer" })
+        -- 第十輪：左緣往外擴 `LOOT_PAD`，讓列有內距（見 LOOT_PAD 的註解）。
+        local ov = E.Overlay(loot, {
+            key = "EncounterJournal.encounter.info.LootContainer",
+            points = {
+                { "TOPLEFT", "TOPLEFT", -LOOT_PAD, 0 },
+                { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0 },
+            },
+        })
         E.Paint(ov, T.fillInset, T.border)
 
         SkinClassFilter(loot, "EncounterJournal.encounter.info.LootContainer.classClearFilter")
