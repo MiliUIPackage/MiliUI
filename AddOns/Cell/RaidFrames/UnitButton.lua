@@ -2698,17 +2698,18 @@ end
 -- secret or an error reads as 0, i.e. "draw nothing", never an arithmetic error.
 -- Blizzard only draws a LOSS and clamps to 0..1; same here.
 -------------------------------------------------
--- pct is plain, already clamped. Only touches the ruler + two textures when the share changes.
+-- pct is plain, already clamped. Nothing at all happens while the share is unchanged -- this
+-- sits in UnitButton_UpdateAll, which refreshOnUpdate buttons (spotlight) run every 0.25s.
+-- b._maxHealthLoss == nil forces a repaint: a fresh button, or B.UpdateMaxHealthLoss after a
+-- colour change.
 function B.MHL.Set(b, pct)
+    if b._maxHealthLoss == pct then return end
+    b._maxHealthLoss = pct
     local w = b.widgets
-    if b._maxHealthLoss ~= pct then
-        b._maxHealthLoss = pct
-        w.healthArea:SetValue(1 - pct)
-    end
+    w.healthArea:SetValue(1 - pct)
     local shown = pct > 0
     local c = B.MHL.color
     if shown and c then
-        -- re-applied every time: buttons that spawn after the last appearance pass still get it
         w.maxHealthLoss:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
     end
     w.maxHealthLoss:SetShown(shown)
@@ -4663,7 +4664,8 @@ end
 function B.UpdateMaxHealthLoss(button)
     local t = CellDB["appearance"]["maxHealthLoss"]
     B.MHL.enabled = t[1] and true or false
-    B.MHL.color = t[2]  -- B.MHL.Set re-applies it on every call that shows the stretch
+    B.MHL.color = t[2]
+    button._maxHealthLoss = nil  -- the next B.MHL.Set repaints, new colour included
     if button.isPreview then return end  -- previews draw a sample, see Appearance.lua
     B.MHL.Update(button)
 end
