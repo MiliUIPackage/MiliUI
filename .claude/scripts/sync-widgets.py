@@ -12,6 +12,7 @@ MiliUIWidgets 是 **vendor 包，不是 LibStub 函式庫**：每個插件各帶
 ⚠ `Env.lua` **每個插件都不一樣**（宿主接點），永遠不同步。
 ⚠ 沒有那個檔案的插件不會被塞進去 —— 只更新它已經帶著的那幾支。
    要讓某支插件開始用新模組，先手動複製一次（或在下面的 SEED 加一筆）。
+   例外是 ASSETS（Media/ 的貼圖）：不用排 TOC，所以一律補齊。
 """
 
 import filecmp
@@ -38,6 +39,12 @@ VERBATIM = [
 ]
 
 NEVER = {"Env.lua"}
+
+# 資產檔（Media/ 底下）。跟 Lua 模組不同：**沒有也會塞進去** —— 貼圖不用排 TOC，
+# 而 Widgets.lua 一載入就照「<插件>\Libs\MiliUIWidgets\Media\…」取用，缺了是靜默的空白。
+ASSETS = [
+    os.path.join("Media", "check-outline.tga"),
+]
 
 # 單檔 vendor：本體 Libs 底下的 source → 消費端相對插件根目錄的路徑。
 # 本體只放 source 不載入（見各自的 README）。消費端沒有那個檔就不塞。
@@ -81,6 +88,20 @@ def main():
                     shutil.copy2(src, dst)
         for name in sorted(have - set(VERBATIM) - NEVER):
             extra.append(f"{addon}/{name}")
+        for rel in ASSETS:
+            src = os.path.join(SRC, rel)
+            dst = os.path.join(dest, rel)
+            if os.path.exists(dst) and filecmp.cmp(src, dst, shallow=False):
+                continue
+            drift.append(f"{addon}/{rel}")
+            if not check:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(src, dst)
+        media = os.path.join(dest, "Media")
+        if os.path.isdir(media):
+            for name in sorted(os.listdir(media)):
+                if os.path.join("Media", name) not in ASSETS and not name.startswith("."):
+                    extra.append(f"{addon}/Media/{name}")
 
     # 單檔 vendor：掃所有插件（Cell 也帶 MiliUIGlow，不限 MiliUI 前綴）
     for src_rel, dst_rel in VENDOR_FILES:

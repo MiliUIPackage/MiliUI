@@ -95,7 +95,7 @@ end
 ------------------------------------------------------------
 local PICKER_W, PICKER_H, PICKER_ROW_H = 340, 400, 22
 
--- 打勾：跟共用層的勾選框同一個素材（純白貼圖染色 ＋ 圖集的 alpha 當遮罩，
+-- 打勾：跟共用層右鍵選單的勾同一個素材（純白貼圖染色 ＋ 圖集的 alpha 當遮罩，
 -- 直接把圖集當貼圖染色會偏暗）。圖集哪天被拿掉是**靜默**失效，所以留退路。
 local function MakeCheck(parent)
     local t = parent:CreateTexture(nil, "OVERLAY")

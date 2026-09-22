@@ -5,7 +5,7 @@
 -- ⚠ 共用層：這支可以逐字複製到其他 MiliUI 插件，宿主專屬的東西一律走
 --   ns.WidgetsEnv（見 Libs/MiliUIWidgets/Env.lua）。改這裡時不要引進新的 ns.* 依賴。
 ------------------------------------------------------------
-local _, ns = ...
+local ADDON, ns = ...
 
 local Env = ns.WidgetsEnv
 local L, P = Env.L, Env.P
@@ -15,6 +15,9 @@ ns.W = {}
 local W = ns.W
 
 local WHITE = "Interface\\BUTTONS\\WHITE8X8"
+-- 共用層唯一的資產檔（勾選框的勾）。路徑跟著宿主的資料夾名走，
+-- 所以這包一定要放在 <插件>\Libs\MiliUIWidgets\ —— README 的搬家步驟本來就是這樣。
+local CHECK_TEX = "Interface\\AddOns\\" .. ADDON .. "\\Libs\\MiliUIWidgets\\Media\\check-outline.tga"
 
 ------------------------------------------------------------
 -- accent 色（由宿主決定，本插件是玩家職業色）
@@ -662,61 +665,29 @@ function W.CreateCheckButton(parent, label, onChange)
         return W.TextExtraHeight(fs, text)
     end
 
-    -- 勾＝職業色、刻意比框大一圈往外溢（暴雪原生勾選框的視覺語言，素材換成
-    -- 現代扁平的 checkmark-minimal 細勾），外加 1px 黑描邊跟任何底色分離。
-    -- 顏色與形狀分離：底是純白貼圖直接染色（染色是乘法，圖集素材不是純白、
-    -- 直接染會比職業色文字暗一階），勾形用圖集的 alpha 當遮罩摳出來。
-    -- 描邊＝黑色同形往四個斜角各偏 1px 墊在下層（FontString OUTLINE 的
-    -- 土法煉鋼版——貼圖沒有內建描邊）。只墊斜角不墊正向：勾的筆畫是斜的，
-    -- 斜角剛好貼著筆畫包；八方向全墊的話軟邊疊加會讓描邊看起來有 2px 粗。
-    -- 勾用材質不用字元：中文字型沒有 ✓。
-    local atlasInfo = C_Texture and C_Texture.GetAtlasInfo
-        and C_Texture.GetAtlasInfo("checkmark-minimal")
-    local checkLayers = {}
+    -- 勾＝職業色、刻意比框大一圈往外溢（暴雪原生勾選框的視覺語言，形狀是
+    -- 現代扁平的 checkmark-minimal 細勾），外加 1px 黑框跟任何底色分離。
+    -- 素材是自帶的「白勾＋黑框」64×64 貼圖（跟 MiliUI_Skin 的勾同一張），
+    -- 染色是乘法 ⇒ 白的變職業色、黑框維持黑。勾用材質不用字元：中文字型沒有 ✓。
+    --
+    -- 2026-09-22 之前是 checkmark-minimal 圖集當遮罩摳純白貼圖，再墊四張往斜角
+    -- 錯開半像素的黑勾當描邊。圖集只有 30×29，放大到 24 高再經雙線性取樣就糊了，
+    -- 半像素描邊也只是一圈灰霧 —— 跟 Skin 的勾擺在同一個畫面裡差很多。
+    --
+    -- 勾（含黑框）在貼圖裡約佔 64 格的 0.64 ⇒ 貼圖邊長 ＝ 24 ÷ 0.64，看得到的勾才是 24 高
+    -- （同 MiliUI_Skin 的 T.checkGlyphHeight／T.checkOutlineGlyphFrac，改一邊要改兩邊）。
+    local check = cb:CreateTexture(nil, "OVERLAY")
+    check:SetTexture(CHECK_TEX)
+    check:SetVertexColor(W.Accent())
+    P.Size(check, 24 / 0.64, 24 / 0.64)
+    check:SetPoint("CENTER", 0, 0)
+    check:Hide()
 
-    if atlasInfo then
-        local h = 24
-        local w = (atlasInfo.height and atlasInfo.height > 0)
-            and h * (atlasInfo.width / atlasInfo.height) or h
-        -- 描邊偏移用半像素：P.Scale(0.5) 會被像素對齊進位掉，
-        -- 所以取 1px 的實體尺寸自己乘——半像素靠 GPU 混色，出來是髮絲線
-        local px = P.Scale(1)
-        local function CheckLayer(r, g, b, dx, dy, sub)
-            local t = cb:CreateTexture(nil, "OVERLAY", nil, sub)
-            t:SetTexture(WHITE)
-            t:SetVertexColor(r, g, b)
-            P.Size(t, w, h)
-            t:SetPoint("CENTER", px * dx, px * dy)
-            local m = cb:CreateMaskTexture()
-            m:SetAtlas("checkmark-minimal")
-            m:SetAllPoints(t)
-            t:AddMaskTexture(m)
-            t:Hide()
-            checkLayers[#checkLayers + 1] = t
-            return t
-        end
-        for _, o in ipairs({ {0.5, 0.5}, {0.5, -0.5}, {-0.5, 0.5}, {-0.5, -0.5} }) do
-            CheckLayer(0, 0, 0, o[1], o[2], 1)
-        end
-        local ar, ag, ab = W.Accent()
-        CheckLayer(ar, ag, ab, 0, 0, 2)
-    else
-        -- 舊素材自帶暗影，描邊夠用
-        local t = cb:CreateTexture(nil, "OVERLAY")
-        t:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
-        t:SetDesaturated(true)
-        t:SetVertexColor(W.Accent(1))
-        P.Size(t, 26, 26)
-        t:SetPoint("CENTER", 0, 0)
-        t:Hide()
-        checkLayers[1] = t
-    end
-
-    -- 多層貼圖要一起顯隱，SetCheckedTexture 只管得了一張——
+    -- 顯隱自己管、不交給 SetCheckedTexture：原本是多層貼圖要一起顯隱才這樣做，
+    -- 改成一張之後沿用，停用／點擊的行為跟之前完全相同。
     -- 自己包 SetChecked、OnClick 也跟著同步（refreshers 走 SetChecked、玩家走點擊）
     local function UpdateVisual(self)
-        local on = self:GetChecked() and true or false
-        for _, t in ipairs(checkLayers) do t:SetShown(on) end
+        check:SetShown(self:GetChecked() and true or false)
     end
     local rawSetChecked = cb.SetChecked
     function cb:SetChecked(v)
