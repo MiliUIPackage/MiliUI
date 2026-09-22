@@ -195,3 +195,83 @@ E.AddCompanion(nil, {
     addonKey = "raiderio",
     apply    = Apply,
 })
+
+------------------------------------------------------------
+-- 伴隨元件（第九輪）：冒險指南上的「天賦版本」鈕
+--
+-- ## 掛了哪些元件
+--
+-- | 全域名稱 | 是什麼 | 模板 | 建立時機 |
+-- |---|---|---|---|
+-- | `RaiderIO_TalentBuildsEncounterJournalShortcut` | 冒險指南首領頁、難度下拉上方的「天賦版本」鈕 | `UIPanelButtonTemplate` | 它的天賦版本模組初始化時，用 `EventUtil.ContinueOnAddOnLoaded("Blizzard_EncounterJournal", …)` 建 ⇒ 冒險指南載入的那一刻（已經載入就是模組初始化的那一刻）；玩家在它的設定裡關掉這個功能就根本不建 |
+--
+-- 它是 `CreateFrame("Button", "RaiderIO_TalentBuildsEncounterJournalShortcut",
+-- 難度下拉, "UIPanelButtonTemplate")`，parent 是 `EncounterJournalEncounterFrameInfoDifficulty`，
+-- 錨 `BOTTOMRIGHT → 難度下拉 TOPRIGHT (0, 1)`、`SetScale(0.9)`；它自己把
+-- `Left`／`Middle`／`Right`／Highlight `SetDesaturated(true)`、字色設成白。
+--
+-- ## 用哪個原語
+--
+-- `Skin.Button`（`UIPanelButtonTemplate` 就是它的對象）：三張切片 alpha 0、
+-- Highlight 中和、NormalFont 換 `GameFontHighlight`、`fill` ＋ 1px 邊、滑過底提亮 ＋ 職業色邊。
+-- 它對那三張下的 `SetDesaturated` 跟我們的 alpha 是兩個獨立的屬性，不衝突。
+--
+-- ## 觸發時機與理由
+--
+-- host ＝ `encounterjournal`（它長在冒險指南上 ⇒ 冒險指南的開關關掉就不做）。
+-- 兩種觸發各登記一次，都走引擎的「延一幀 ＋ 戰鬥閘 ＋ 脫戰補跑」：
+--   * `event = "ADDON_LOADED"` —— 一般情況：冒險指南是隨需載入的，那顆鈕在
+--     `Blizzard_EncounterJournal` 的 `ADDON_LOADED` 裡建好，下一幀我們就找得到。
+--   * `atLogin = true` —— 冒險指南在登入前就被別的插件載進來、鈕在登入時就建好的情況。
+-- 找到並套完之後 `shortcutDone` 擋掉之後每一次（`ADDON_LOADED` 之後還會一直來）。
+-- ⚠ 死角：冒險指南早就載入、而它的天賦版本模組**晚於登入**才初始化 ⇒ 要等下一次
+--   任何插件的 `ADDON_LOADED` 才會補上（通常是玩家開某個隨需載入的視窗）。
+--   不為了這一顆鈕多排 timer。
+--
+-- ## taint 接觸面清單（伴隨元件）
+--
+-- | 物件 | 動作 |
+-- |---|---|
+-- | 那顆鈕的 `Left`／`Middle`／`Right`／Highlight | SetAlpha(0) |
+-- | 那顆鈕 | SetNormalFontObject(GameFontHighlight)；overlay；`HookScript` OnEnter/OnLeave（`Skin.Button` 內建的滑過） |
+--
+-- hook：**零**（沒有 `hooksecurefunc`、沒有 `SetScript`、沒有呼叫它的任何函式）。
+-- 寫入它的欄位：無。讀它的物件：只有 `_G[名字]` 在不在，以及三張切片的 parentKey。
+--
+-- ## 刻意不碰的東西
+--
+-- * **它的位置。** 它錨在難度下拉的上緣，在冒險指南裡會壓到搜尋框下方、跟戰利品頁
+--   上方那一排篩選下拉擠在一起 —— 那是它自己的 `SetPoint`，伴隨元件規則不准我們
+--   `SetPoint` 別人的框，回報給使用者決定。
+-- * **按鈕文字裡的圖示**（它的 logo 是 `|T…|t` 內嵌在字串裡）—— 那是它的識別。
+------------------------------------------------------------
+local SHORTCUT_NAME = "RaiderIO_TalentBuildsEncounterJournalShortcut"
+local shortcutDone = false
+
+local function SkinJournalShortcut()
+    if shortcutDone then return end
+    local btn = _G[SHORTCUT_NAME]
+    if not btn then return end        -- 沒裝、沒開這個功能、或還沒建 ⇒ 靜默
+    -- ⚠ 先確認模板形狀對（三張切片都在）再動手：`Skin.Button` 對找不到的
+    --   parentKey 會記進「找不到的區域」，而伴隨元件不准進那張清單（規則第 7 條）。
+    for _, k in ipairs({ "Left", "Middle", "Right" }) do
+        local v
+        if not (pcall(function() v = btn[k] end) and v) then
+            shortcutDone = true       -- 不是我們認得的形狀：之後也不必再找
+            return
+        end
+    end
+    ns.Skin.Button(btn, SHORTCUT_NAME)
+    shortcutDone = true
+end
+
+E.AddCompanion("encounterjournal", {
+    event    = "ADDON_LOADED",
+    addonKey = "raiderio",
+    apply    = SkinJournalShortcut,
+})
+E.AddCompanion("encounterjournal", {
+    atLogin  = true,
+    addonKey = "raiderio",
+    apply    = SkinJournalShortcut,
+})
