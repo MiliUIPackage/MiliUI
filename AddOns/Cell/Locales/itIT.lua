@@ -229,6 +229,11 @@ L["Boss/Role Debuffs"] = "Debuff di boss/ruolo"
 L["Priority Debuffs"] = "Debuff prioritari"
 L["Raid-wide Debuffs"] = "Debuff del raid"
 L["Dispellable"] = "Dissolvibile"
+L["Short Debuffs"] = "Debuff brevi"
+L["Duration Limit"] = "Limite di durata"
+L["Max Seconds"] = "Secondi max"
+L["shortDebuffsTips"] = "Debuff dei PNG che Blizzard non assegna a nessuna categoria qui sopra\ne che durano al massimo i secondi impostati (es. marchi di bomba).\nMostrati per primi, al massimo un'icona.\nL'indicatore dei debuff continua a mostrarli."
+L["durationLimitTips"] = "I debuff di boss/ruolo e prioritari che durano più dei secondi impostati,\no senza durata, non vengono più mostrati qui.\nGli effetti di controllo e i debuff dissolvibili non sono mai limitati.\nSe attivo, l'indicatore dei debuff mostra tutti i debuff di boss/ruolo e prioritari."
 --[[Translation missing --]]
 --[[ L["Current"] = " Current"--]]
 --[[Translation missing --]]

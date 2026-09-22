@@ -81,7 +81,19 @@ end
 --
 -- opts (from the indicator's ["filters"] table) -- all boolean, default true:
 --   filterBossRole, filterPriority, filterCrowdControl, filterRaid, filterDispellable
+-- and the two duration options, both default OFF (they change what the row means):
+--   filterShort (+ shortSeconds), importantMaxDuration (seconds, or false = no limit).
 -- Boss and Role are ONE toggle: isBossOrRoleAura covers both, and no UI ever split them.
+--
+-- The two DURATION options exist because every category above is a flag Blizzard sets by
+-- hand, spell by spell, and misses some (DBM's author: "a good half of boss auras at least
+-- were not correctly flagged" on the PTR). The case that forced it: Mythic Coiled Altar,
+-- where Gloombomb (1286901, 5 s, the one healers must spot-heal) carries no flag at all and
+-- Unnerving Fixation (1285911, 7 DAYS, on eight people) lands in the centre anyway -- not as
+-- priority (C_Spell.IsPriorityAura is false for both, checked in game), so by elimination
+-- through the boss/role flag, which is exactly what the limit trims. Spell IDs cannot help:
+-- ID filtering of debuffs on friendly units is banned outright. Duration is the one thing
+-- that tells them apart, and maxDuration is not an identity filter, so it survives secrets.
 -- ============================================================
 
 -- all dispel schools, named explicitly so Blizzard never consults the player's spec
@@ -250,8 +262,41 @@ local function BuildRecordsRaw(opts)
     local cc   = on("filterCrowdControl")
     local raid = on("filterRaid")
     local disp = on("filterDispellable")
+    -- default OFF, unlike the five above: absent must not switch it on
+    local short = opts.filterShort == true
+
+    -- Long-debuff limit on the two FLAG categories only. Crowd control and the dispel
+    -- tokens are deliberately exempt: "needs dispelling" and "cannot act" matter however
+    -- long they last, and plenty of dispellable debuffs have no duration at all (they
+    -- last until dispelled -- maxDuration hides permanent auras outright).
+    local limit = opts.importantMaxDuration
+    if type(limit) ~= "number" or limit <= 0 then limit = nil end
 
     local records = {}
+
+    -- SHORT: the debuffs Blizzard left unflagged. Declared FIRST because what it catches is
+    -- by definition about to expire -- a bomb marker is the thing to look at for its five
+    -- seconds -- and pinned to ONE slot (FIXED_BUDGET) so it never takes the full `num`
+    -- away from the boss/role group below it.
+    --   * NPC-caused only (isFromPlayerOrPlayerPet = false): keeps enemy players' short
+    --     slows and DoTs out of the row in PvP.
+    --   * Negates EVERY other category, enabled or not, so it is exactly "no flag at all".
+    --     A category the user switched off stays out of the centre instead of sneaking back
+    --     in through here, and nothing is lost: the debuff row only subtracts ENABLED
+    --     categories, so those auras are still drawn there.
+    --   * Cannot be subtracted from the debuff row (there is no minDuration), so these
+    --     auras show in both places. Duplicated is visible; vanished is not.
+    if short then
+        local secs = tonumber(opts.shortSeconds) or 8
+        records[#records + 1] = {
+            key = "short",
+            filter = "HARMFUL|!" .. TOKEN_CC .. "|!RAID|!" .. TOKEN_DISP,
+            candidateFilters = {
+                isBossOrRoleAura = false, isPriorityAura = false,
+                isFromPlayerOrPlayerPet = false, maxDuration = secs,
+            },
+        }
+    end
 
     -- set when the boss/role record was declared, so the lower records can subtract it
     local importantFlag
@@ -259,14 +304,14 @@ local function BuildRecordsRaw(opts)
         importantFlag = "isBossOrRoleAura"
         records[#records + 1] = {
             key = "bossrole", filter = "HARMFUL",
-            candidateFilters = { isBossOrRoleAura = true },
+            candidateFilters = { isBossOrRoleAura = true, maxDuration = limit },
         }
     end
 
     local priorityDeclared = false
     if priority then
         priorityDeclared = true
-        local cf = { isPriorityAura = true }
+        local cf = { isPriorityAura = true, maxDuration = limit }
         if importantFlag then cf[importantFlag] = false end
         records[#records + 1] = { key = "priority", filter = "HARMFUL", candidateFilters = cf }
     end
@@ -1276,9 +1321,27 @@ end
 -- not among records: if the top record's filter string is rejected, the next one becomes
 -- the first real group and inherits the full budget. Keep Build and Handle:SetNum both
 -- calling this -- they used to carry the same formula twice.
-local function GroupBudget(index, total, wanted)
+--
+-- A FIXED group always gets exactly its own count and is invisible to that ranking, so
+-- "first" means first FLEXIBLE group. The short-debuff group sits on top of the important
+-- display for its ordering, not for its share: with it first and flexible, the boss/role
+-- group would drop to 1 and the common case above would break again. `flexIndex` is the
+-- position among the flexible groups only (see FlexCount).
+local FIXED_BUDGET = { short = 1 }
+
+local function GroupBudget(key, flexIndex, total, wanted)
     if total <= 1 then return wanted end
-    return index == 1 and wanted or 1
+    local fixed = FIXED_BUDGET[key]
+    if fixed then return fixed end
+    return flexIndex == 1 and wanted or 1
+end
+
+local function FlexCount(keys)
+    local n = 0
+    for _, key in ipairs(keys) do
+        if not FIXED_BUDGET[key] then n = n + 1 end
+    end
+    return n
 end
 
 -- Table-valued options need a CONTENT signature, and the config must remember the
@@ -1611,8 +1674,8 @@ local function Build(handle, why)
             })
         else
             okG, errG = pcall(c.AddAuraGroup, c, rec.key, rec.filter, {
-                -- position among groups added so far (+1 = the one we are adding now)
-                maxFrameCount = GroupBudget(#handle._groupKeys + 1, #records, wanted),
+                -- position among flexible groups added so far (+1 = this one, if flexible)
+                maxFrameCount = GroupBudget(rec.key, FlexCount(handle._groupKeys) + 1, #records, wanted),
                 initializeFrame = initFn,
                 layout = groupLayout,
                 candidateFilters = rec.candidateFilters,
@@ -1804,8 +1867,10 @@ function Handle:SetNum(n)
         -- same allocation Build uses -- one shared GroupBudget so the two cannot drift
         local total = #self._groupKeys
         local allOK = true
-        for i, key in ipairs(self._groupKeys) do
-            local per = GroupBudget(i, total, n)
+        local flex = 0
+        for _, key in ipairs(self._groupKeys) do
+            if not FIXED_BUDGET[key] then flex = flex + 1 end
+            local per = GroupBudget(key, flex, total, n)
             if not pcall(c.SetAuraGroupMaxFrameCount, c, key, per) then allOK = false end
         end
         if allOK then
@@ -2293,9 +2358,9 @@ end
 -- ============================================================
 -- FACTORY
 -- config: { size, sizeH, border, spacing, num, orientation, showDuration, showStack,
---           stackFont, durationFont, borderColor, mode, and the five category toggles
+--           stackFont, durationFont, borderColor, mode, and the category toggles
 --           filterBossRole / filterPriority / filterCrowdControl / filterRaid /
---           filterDispellable }
+--           filterDispellable / filterShort (+ shortSeconds), importantMaxDuration }
 -- returns a handle, or nil when unsupported (caller keeps its fallback path).
 -- ============================================================
 

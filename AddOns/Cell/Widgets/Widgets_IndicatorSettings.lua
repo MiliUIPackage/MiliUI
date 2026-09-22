@@ -6566,7 +6566,7 @@ local function CreateSetting_RaidDebuffFilters(parent)
     local widget
 
     if not settingWidgets["raidDebuffFilters"] then
-        widget = Cell.CreateFrame("CellIndicatorSettings_RaidDebuffFilters", parent, 240, 74)
+        widget = Cell.CreateFrame("CellIndicatorSettings_RaidDebuffFilters", parent, 240, 140)
         settingWidgets["raidDebuffFilters"] = widget
 
         widget.bossRole = Cell.CreateCheckButton(widget, L["Boss/Role Debuffs"])
@@ -6583,6 +6583,23 @@ local function CreateSetting_RaidDebuffFilters(parent)
 
         widget.dispellable = Cell.CreateCheckButton(widget, L["Dispellable"])
         widget.dispellable:SetPoint("TOPLEFT", widget.crowdControl, "BOTTOMLEFT", 0, -8)
+
+        -- The two duration options (both OFF by default), each with its seconds slider
+        -- directly underneath. Duration is the only thing that still separates a debuff
+        -- Blizzard forgot to flag from one it flagged by mistake -- see BuildRecords.
+        widget.short = Cell.CreateCheckButton(widget, L["Short Debuffs"], nil,
+            L["Short Debuffs"], L["shortDebuffsTips"])
+        widget.short:SetPoint("TOPLEFT", widget.dispellable, "BOTTOMLEFT", 0, -8)
+
+        widget.limit = Cell.CreateCheckButton(widget, L["Duration Limit"], nil,
+            L["Duration Limit"], L["durationLimitTips"])
+        widget.limit:SetPoint("TOPLEFT", widget.short, 135, 0)
+
+        widget.shortSeconds = Cell.CreateSlider(L["Max Seconds"], widget, 1, 30, 110, 1)
+        widget.shortSeconds:SetPoint("TOPLEFT", widget.short, "BOTTOMLEFT", 0, -22)
+
+        widget.limitSeconds = Cell.CreateSlider(L["Max Seconds"], widget, 10, 300, 110, 5)
+        widget.limitSeconds:SetPoint("LEFT", widget.shortSeconds, "RIGHT", 25, 0)
 
         -- callback
         function widget:SetFunc(func)
@@ -6606,6 +6623,26 @@ local function CreateSetting_RaidDebuffFilters(parent)
                 widget.filters.dispellable = checked
                 func()
             end
+            widget.short.onClick = function(checked)
+                widget.filters.short = checked
+                widget.shortSeconds:SetEnabled(checked)
+                func()
+            end
+            widget.limit.onClick = function(checked)
+                widget.filters.limit = checked
+                widget.limitSeconds:SetEnabled(checked)
+                func()
+            end
+            -- afterValueChangedFn: the slider only reports once the mouse is released, so a
+            -- drag rebuilds the containers once, not once per step
+            widget.shortSeconds.afterValueChangedFn = function(value)
+                widget.filters.shortSeconds = value
+                func()
+            end
+            widget.limitSeconds.afterValueChangedFn = function(value)
+                widget.filters.limitSeconds = value
+                func()
+            end
         end
 
         -- show db value
@@ -6620,6 +6657,16 @@ local function CreateSetting_RaidDebuffFilters(parent)
             widget.crowdControl:SetChecked(on("crowdControl"))
             widget.raid:SetChecked(on("raid"))
             widget.dispellable:SetChecked(on("dispellable"))
+            -- ⚠ ...except the duration options, where absent == OFF -- again matching
+            -- ConfigureContainer (and Built-in's debuff row, which reads `limit` too).
+            local secs = Cell.defaults.importantDebuffSeconds
+            local shortOn, limitOn = filters.short == true, filters.limit == true
+            widget.short:SetChecked(shortOn)
+            widget.limit:SetChecked(limitOn)
+            widget.shortSeconds:SetValue(filters.shortSeconds or secs.short)
+            widget.limitSeconds:SetValue(filters.limitSeconds or secs.limit)
+            widget.shortSeconds:SetEnabled(shortOn)
+            widget.limitSeconds:SetEnabled(limitOn)
         end
     else
         widget = settingWidgets["raidDebuffFilters"]
