@@ -1584,6 +1584,9 @@ function I.CreateRaidDebuffs(parent)
                     shortSeconds        = f.shortSeconds or secs.short,
                     -- `false`, never nil, so switching it off clears the container's value
                     importantMaxDuration = f.limit == true and (f.limitSeconds or secs.limit) or false,
+                    -- 首領技能驚嘆號. Absent = off, same as the options checkbox shows it;
+                    -- Revise writes true into every layout that predates the option.
+                    bossBadge           = t.bossBadge == true,
                     -- true = always; number N = only when remaining < N s; false = never
                     showDuration        = t.showDuration,
                     orientation         = t.orientation,

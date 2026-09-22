@@ -83,6 +83,8 @@ end
 --   filterBossRole, filterPriority, filterCrowdControl, filterRaid, filterDispellable
 -- and the two duration options, both default OFF (they change what the row means):
 --   filterShort (+ shortSeconds), importantMaxDuration (seconds, or false = no limit).
+-- bossBadge (default OFF when absent; Revise fills it in) is not a filter: it marks the
+-- boss/role record so its icons wear the corner "!" (see ACC.StyleBossBadge).
 -- Boss and Role are ONE toggle: isBossOrRoleAura covers both, and no UI ever split them.
 --
 -- The two DURATION options exist because every category above is a flag Blizzard sets by
@@ -305,6 +307,9 @@ local function BuildRecordsRaw(opts)
         records[#records + 1] = {
             key = "bossrole", filter = "HARMFUL",
             candidateFilters = { isBossOrRoleAura = true, maxDuration = limit },
+            -- 首領技能驚嘆號: every icon this group creates wears the corner badge. The group
+            -- can only ever show boss/role debuffs, so the badge needs no read of the aura.
+            badge = opts.bossBadge == true or nil,
         }
     end
 
@@ -1179,6 +1184,15 @@ local function StyleButton(handle, button)
     button.dfStackHolder:SetFrameLevel(base + 7)
     ApplyFont(button.dfStack, button.dfStackHolder, cfg.stackFont)
 
+    -- ---- boss badge (首領技能驚嘆號) -------------------------------------------
+    -- Drawn on the countdown's holder rather than a frame of its own: base + 6 is already
+    -- above the icon, the vertical mask and the clock sweep, and the badge's ARTWORK layer
+    -- sits under the countdown's OVERLAY text on that same frame. One frame fewer per button.
+    -- Re-applied every pass so a size change resizes it.
+    if button._adBadge then
+        ACC.StyleBossBadge(button.dfDurHolder, button.dfDurHolder, math.min(size, sizeH), handle.frame)
+    end
+
     -- ---- native binds (bind-once via flags) ----
     -- Direct calls, NOT pcall'd: StyleButton's caller captures errors into
     -- handle._errors so /cab and /cab test can surface the real failure
@@ -1631,6 +1645,7 @@ local function Build(handle, why)
             cfDesc = " +cf{" .. table.concat(keys, ",") .. "}"
         end
         handle._recordInfo[#handle._recordInfo + 1] = rec.key .. "=" .. rec.filter .. cfDesc
+            .. (rec.badge and " [!]" or "")
     end
     handle._modeDbg = handle.config.mode or "important"
 
@@ -1653,6 +1668,10 @@ local function Build(handle, why)
             -- engine -- the park key covers the record set, so a returning button always
             -- carries the colour its record was built with.
             if rec.effColor ~= nil then button._adEffColor = rec.effColor end
+            -- Same for the boss badge. It never has to come off again: bossBadge is structural
+            -- (a toggle rebuilds) and part of the park key, so this button only ever serves
+            -- a config that asked for it.
+            if rec.badge then button._adBadge = true end
             -- ⚠ Tracked HERE and nowhere else. This is the only place a genuinely new
             -- button arrives; StyleButton must never append, because Restyle iterates this
             -- very list and calls StyleButton on each entry -- appending from there grew
@@ -2360,7 +2379,8 @@ end
 -- config: { size, sizeH, border, spacing, num, orientation, showDuration, showStack,
 --           stackFont, durationFont, borderColor, mode, and the category toggles
 --           filterBossRole / filterPriority / filterCrowdControl / filterRaid /
---           filterDispellable / filterShort (+ shortSeconds), importantMaxDuration }
+--           filterDispellable / filterShort (+ shortSeconds), importantMaxDuration,
+--           bossBadge }
 -- returns a handle, or nil when unsupported (caller keeps its fallback path).
 -- ============================================================
 

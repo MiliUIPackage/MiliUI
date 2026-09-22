@@ -533,6 +533,27 @@ local function InitIndicator(indicatorName)
             end)
         end
 
+        -- 首領技能驚嘆號. In game the badge rides on the boss/role group's icons; the preview
+        -- has no groups, so icon 1 -- the schoolless red one, which is what a boss debuff
+        -- usually looks like -- stands in for them. Drawn by the same ACC.StyleBossBadge as
+        -- the frames, on the text layer (above the sweeps, under the numbers), exactly like
+        -- the countdown holder it rides on in game.
+        -- Off when the boss/role category is off too: there would be no group to wear it.
+        -- And off without AuraContainer: the legacy icons the frames fall back to have none.
+        function indicator:UpdateBossBadgePreview()
+            local first = self[1]
+            local ACC = Cell.AuraContainerCore
+            if not (first and first.textFrame and ACC and ACC.StyleBossBadge) then return end
+            local t = self.configs
+            local filters = t and t["filters"]
+            local on = t and t["bossBadge"] == true and not (filters and filters["bossRole"] == false)
+                and Cell.AuraDisplay and Cell.AuraDisplay.IsSupported()
+            if on then
+                ACC.StyleBossBadge(first.textFrame, first, (t["size"] and t["size"][1]) or 22, first)
+            end
+            ACC.SetBossBadgeShown(first.textFrame, on and true or false)
+        end
+
     elseif indicatorName == "privateAuras" then
         indicator.isPrivateAuras = true
 
@@ -921,6 +942,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if type(t["smooth"]) == "boolean" then
                     indicator:EnableSmooth(t["smooth"])
                 end
+                -- boss badge (after size: the badge is sized from the icon)
+                if indicator.UpdateBossBadgePreview then
+                    indicator:UpdateBossBadgePreview()
+                end
 
                 -- after init
                 indicator.enabled = t["enabled"]
@@ -978,6 +1003,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
         elseif setting == "size-border" then
             P.Size(indicator, value[1], value[2])
             indicator:SetBorder(value[3])
+            if indicator.UpdateBossBadgePreview then indicator:UpdateBossBadgePreview() end
+        elseif setting == "raidDebuffFilters" then
+            -- the boss/role toggle decides whether there is a group to wear the badge
+            if indicator.UpdateBossBadgePreview then indicator:UpdateBossBadgePreview() end
         elseif setting == "thickness" then
             indicator:SetThickness(value)
             if indicatorName == "healthThresholds" then
@@ -1124,6 +1153,8 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 -- indicator:SetCooldown(GetTime(), 13)
             elseif value == "smooth" then
                 indicator:EnableSmooth(value2)
+            elseif value == "bossBadge" then
+                if indicator.UpdateBossBadgePreview then indicator:UpdateBossBadgePreview() end
             end
         elseif setting == "create" then
             indicator = I.CreateIndicator(previewButton, value)
@@ -1757,7 +1788,7 @@ if Cell.isRetail or Cell.isMists then
         -- tooltip are Blizzard's to drive. The blacklist stays but only bites on spells
         -- flagged NeverSecret (Exhaustion/Sated and the like).
         ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "checkbutton2:excludeImportant", "debuffBlacklist", midnightDurationVisibility, "borderColor", "animationStyle", "size", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "raidDebuffFilters", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, midnightDurationVisibility, "borderColor", "animationStyle", "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "raidDebuffFilters", "checkbutton3:bossBadge:"..L["bossBadgeTips"], "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, midnightDurationVisibility, "borderColor", "animationStyle", "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
         ["privateAuras"] = {"|cffb7b7b7"..L["Due to restrictions of the private aura system, this indicator can only use Blizzard style."], "enabled", "size-square", "position", "frameLevel"},
         ["targetedSpells"] = Cell.isMidnight
             and {"enabled", "targetedSpellsDisplayMode", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"}
