@@ -1838,7 +1838,7 @@ Cell.RegisterCallback("UpdateIndicators", "AppearanceTab_UpdateIndicators", Upda
 -- update appearance
 -------------------------------------------------
 local function UpdateAppearance(which)
-    F.Debug("|cff7f7fffUpdateAppearance:|r", which)
+    F.Log("layout", "|cff7f7fffUpdateAppearance:|r", which)
 
     if not which or which == "texture" or which == "color" or which == "fullColor" or which == "deathColor" or which == "alpha" or which == "outOfRangeAlpha" or which == "shields" or which == "maxHealthLoss" or which == "animation" or which == "highlightColor" or which == "highlightSize" or which == "reset" then
         local tex

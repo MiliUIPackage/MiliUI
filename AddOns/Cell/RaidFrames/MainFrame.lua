@@ -489,7 +489,7 @@ local function UpdatePosition()
 end
 
 local function UpdateMenu(which)
-    F.Debug("|cff00bfffUpdateMenu:|r", which)
+    F.Log("layout", "|cff00bfffUpdateMenu:|r", which)
 
     if not which or which == "lock" then
         if CellDB["general"]["locked"] then
@@ -536,7 +536,7 @@ Cell.RegisterCallback("UpdateMenu", "MainFrame_UpdateMenu", UpdateMenu)
 
 local init
 local function MainFrame_UpdateLayout(layout, which)
-    F.Debug("|cffff0066UpdateLayout:|r layout:", layout, " which:", which)
+    F.Log("layout", "|cffff0066UpdateLayout:|r layout:", layout, " which:", which)
 
     -- visibility
     if Cell.vars.isHidden then
@@ -578,7 +578,7 @@ end
 Cell.RegisterCallback("UpdateLayout", "MainFrame_UpdateLayout", MainFrame_UpdateLayout)
 
 local function UpdatePixelPerfect()
-    F.Debug("|cffffff7fUpdatePixelPerfect")
+    F.Log("layout", "|cffffff7fUpdatePixelPerfect")
     P.Resize(cellMainFrame)
     -- P.Repoint(cellMainFrame)
     P.Resize(anchorFrame)

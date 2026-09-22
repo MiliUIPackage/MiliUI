@@ -45,18 +45,15 @@ Cell.MIN_QUICKASSIST_VERSION = 275
 -- /run SetCVar("secretPvPMatchRestrictionsForced", 1)
 -- Reset: /run SetCVar("secretCombatRestrictionsForced", 0)
 
-function F.Debug(arg, ...)
-    if debugMode then
-        if type(arg) == "string" or type(arg) == "number" then
-            print(arg, ...)
-        elseif type(arg) == "table" then
-            DevTools_Dump(arg)
-        elseif type(arg) == "function" then
-            arg(...)
-        elseif arg == nil then
-            return true
-        end
-    end
+-- fix from MiliUI: 原本看的是全域 debugMode，整個套組沒有人設它，所有 F.Debug 都是死的。
+-- 改接除錯主控台（Modules/General/DebugConsole.lua）的「其他」分類。
+-- 有明確歸屬的呼叫點直接寫 F.Log("<分類>", ...)；table 參數只記 "<table>"，不再 dump；
+-- 不再執行 function 參數。
+-- F.Log 先放一支空的佔位，主控台那支檔案載入後會蓋掉；萬一它沒載入，呼叫點也不會因此報錯。
+function F.Log() end
+
+function F.Debug(...)
+    F.Log("misc", ...)
 end
 
 function F.Print(msg)
@@ -82,11 +79,11 @@ end)
 
 function F.UpdateLayout(layoutGroupType)
     if InCombatLockdown() then
-        F.Debug("|cFF7CFC00F.UpdateLayout(\""..layoutGroupType.."\") DELAYED")
+        F.Log("layout", "|cFF7CFC00F.UpdateLayout(\""..layoutGroupType.."\") DELAYED")
         delayedLayoutGroupType = layoutGroupType
         delayedFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     else
-        F.Debug("|cFF7CFC00F.UpdateLayout(\""..layoutGroupType.."\")")
+        F.Log("layout", "|cFF7CFC00F.UpdateLayout(\""..layoutGroupType.."\")")
 
         if CellDB["layoutAutoSwitch"][Cell.vars.playerClass][Cell.vars.playerSpecID] then
             Cell.vars.layoutAutoSwitchBy = "spec"
@@ -728,7 +725,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
     if IsInRaid() then
         if Cell.vars.groupType ~= "raid" then
             Cell.vars.groupType = "raid"
-            F.Debug("|cffffbb77GroupTypeChanged:|r raid")
+            F.Log("group", "|cffffbb77GroupTypeChanged:|r raid")
             Cell.Fire("GroupTypeChanged", "raid")
         end
 
@@ -780,7 +777,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
     elseif IsInGroup() then
         if Cell.vars.groupType ~= "party" then
             Cell.vars.groupType = "party"
-            F.Debug("|cffffbb77GroupTypeChanged:|r party")
+            F.Log("group", "|cffffbb77GroupTypeChanged:|r party")
             Cell.Fire("GroupTypeChanged", "party")
         end
 
@@ -800,7 +797,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
     else
         if Cell.vars.groupType ~= "solo" then
             Cell.vars.groupType = "solo"
-            F.Debug("|cffffbb77GroupTypeChanged:|r solo")
+            F.Log("group", "|cffffbb77GroupTypeChanged:|r solo")
             Cell.Fire("GroupTypeChanged", "solo")
         end
 
@@ -825,7 +822,7 @@ function eventFrame:GROUP_ROSTER_UPDATE(skipFallbackUpdate)
         Cell.vars.hasPermission = F.HasPermission()
         Cell.vars.hasPartyMarkPermission = F.HasPermission(true)
         Cell.Fire("PermissionChanged")
-        F.Debug("|cffbb00bbPermissionChanged")
+        F.Log("group", "|cffbb00bbPermissionChanged")
     end
 
     if not skipFallbackUpdate then
@@ -846,14 +843,14 @@ local function UpdateFallbackGroupType()
 
     if Cell.vars.groupType ~= CellDB.fallbackGroupType then
         Cell.vars.groupType = CellDB.fallbackGroupType
-        F.Debug("|cffffbb77GroupTypeChanged:|r", Cell.vars.groupType, "(fallback validation)")
+        F.Log("group", "|cffffbb77GroupTypeChanged:|r", Cell.vars.groupType, "(fallback validation)")
         Cell.Fire("GroupTypeChanged", Cell.vars.groupType)
     end
 end
 
 function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
     -- eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
-    F.Debug("|cffbbbbbb=== PLAYER_ENTERING_WORLD ===")
+    F.Log("group", "|cffbbbbbb=== PLAYER_ENTERING_WORLD ===")
     Cell.vars.inMythic = false
 
     local isIn, iType = IsInInstance()
@@ -864,12 +861,12 @@ function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
     C_Timer.After(1, UpdateFallbackGroupType)
 
     if isIn then
-        F.Debug("|cffff1111*** Entered Instance:|r", iType)
+        F.Log("group", "|cffff1111*** Entered Instance:|r", iType)
         Cell.Fire("EnterInstance", iType)
 
         --! NOTE: for PLAYER_LOGIN/PLAYER_ENTERING_WORLD(initial) event, IsInRaid/IsInGroup always return false
         if (isInitialLogin or isReloadingUi) and CellDB.fallbackGroupType then
-            F.Debug("|cffff1111*** Fallback:|r", Cell.vars.groupType, "->", CellDB.fallbackGroupType, CellDB.fallbackInMythic)
+            F.Log("group", "|cffff1111*** Fallback:|r", Cell.vars.groupType, "->", CellDB.fallbackGroupType, CellDB.fallbackInMythic)
             Cell.vars.groupType = CellDB.fallbackGroupType
             Cell.vars.inMythic = CellDB.fallbackInMythic
             CellDB.fallbackGroupType = nil
@@ -888,7 +885,7 @@ function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
                 CellDB.fallbackInMythic = Cell.vars.inMythic
 
                 if Cell.vars.inMythic and Cell.vars.layoutGroupType ~= "raid_mythic" then
-                    F.Debug("|cffff1111*** Switch to Mythic Raid layout|r")
+                    F.Log("group", "|cffff1111*** Switch to Mythic Raid layout|r")
                     Cell.Fire("EnterInstance", iType)
                     PreUpdateLayout()
                 end
@@ -898,13 +895,13 @@ function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
         end
 
     elseif inInstance then -- left insntance
-        F.Debug("|cffff1111*** Left Instance|r")
+        F.Log("group", "|cffff1111*** Left Instance|r")
         Cell.Fire("LeaveInstance")
         PreUpdateLayout()
         inInstance = false
 
         if not InCombatLockdown() and not UnitAffectingCombat("player") then
-            F.Debug("|cffbbbbbb--- LeftInstance: |cffff7777collectgarbage")
+            F.Log("group", "|cffbbbbbb--- LeftInstance: |cffff7777collectgarbage")
             collectgarbage("collect")
         end
     end
@@ -946,7 +943,7 @@ local function UpdateSpecVars()
 end
 
 function eventFrame:PLAYER_LOGIN()
-    F.Debug("|cffbbbbbb=== PLAYER_LOGIN ===")
+    F.Log("group", "|cffbbbbbb=== PLAYER_LOGIN ===")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
     eventFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
@@ -1012,7 +1009,7 @@ end
 
 local function UpdatePixels()
     if not InCombatLockdown() then
-        F.Debug("UI_SCALE_CHANGED: ", UIParent:GetScale(), CellParent:GetEffectiveScale())
+        F.Log("layout", "UI_SCALE_CHANGED: ", UIParent:GetScale(), CellParent:GetEffectiveScale())
         Cell.Fire("UpdatePixelPerfect")
         Cell.Fire("UpdateAppearance", "scale")
     end
@@ -1056,7 +1053,7 @@ function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
     local spec = GetSpecialization()
     if prevSpec ~= spec then
         prevSpec = spec
-        F.Debug("|cffbbbbbb=== ACTIVE_TALENT_GROUP_CHANGED ===")
+        F.Log("group", "|cffbbbbbb=== ACTIVE_TALENT_GROUP_CHANGED ===")
 
         -- update spec vars
         UpdateSpecVars()
@@ -1065,11 +1062,11 @@ function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
             -- NOTE: when join in battleground, spec auto switched, during loading, can't get info from GetSpecializationInfo, until PLAYER_ENTERING_WORLD
             prevSpec = nil
             checkSpecFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-            F.Debug("|cffffbb77SpecChanged:|r FAILED")
+            F.Log("group", "|cffffbb77SpecChanged:|r FAILED")
         else
             checkSpecFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
             checkSpecFrame:UnregisterEvent("PLAYER_REGEN_ENABLED")
-            F.Debug("|cffffbb77SpecChanged:|r", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
+            F.Log("group", "|cffffbb77SpecChanged:|r", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
             if not CellDB["clickCastings"][Cell.vars.playerClass]["useCommon"] then
                 Cell.Fire("UpdateClickCastings")
             end
@@ -1096,6 +1093,10 @@ function SlashCmdList.CELL(msg, editbox)
 
     elseif command == "healers" then
         F.FirstRun()
+
+    elseif command == "debug" then
+        -- fix from MiliUI: 除錯主控台
+        F.ToggleDebugConsole()
 
     elseif command == "rescale" then
         CellDB["appearance"]["scale"] = P.GetRecommendedScale()
@@ -1192,6 +1193,7 @@ function SlashCmdList.CELL(msg, editbox)
             "|cFFFFB5C5/cell options|r, |cFFFFB5C5/cell opt|r: "..L["show Cell options frame"]..".\n"..
             "|cFFFFB5C5/cell healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
             "|cFFFFB5C5/cell rescale|r: "..strlower(L["Apply Recommended Scale"])..".\n"..
+            "|cFFFFB5C5/cell debug|r: "..L["toggle the debug console"]..".\n"..
             "|cFFFF7777"..L["These \"reset\" commands below affect all your characters in this account"]..".|r\n"..
             "|cFFFFB5C5/cell reset position|r: "..L["reset Cell position"]..".\n"..
             "|cFFFFB5C5/cell reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..

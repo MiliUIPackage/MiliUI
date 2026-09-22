@@ -3,7 +3,7 @@
 ## Version: r304_MiliUI
 ## Author: enderneko
 ## X-Flavor: Mainline
-## SavedVariables: CellDB, CellDBBackup
+## SavedVariables: CellDB, CellDBBackup, CellDebugLog
 ## AddonCompartmentFunc: Cell_OnAddonCompartmentClick
 ## IconTexture: Interface\AddOns\Cell\Media\icon.tga
 ## Title-zhTW: |cff33CCFF[團隊]|r Cell 團隊框架

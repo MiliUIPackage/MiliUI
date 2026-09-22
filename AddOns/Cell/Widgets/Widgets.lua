@@ -3638,7 +3638,7 @@ function Cell.CreateReceivingFrame(parent)
             if received["type"] == "Debuffs" then
                 local isCompatible = type(received["version"]) == "number" and received["version"] >= Cell.MIN_DEBUFFS_VERSION
 
-                F.Debug("|cffFFDAB9RECEIVED DEBUFFS:|r ", received["instanceId"], received["bossId"], received["data"])
+                F.Log("comm", "|cffFFDAB9RECEIVED DEBUFFS:|r ", received["instanceId"], received["bossId"], received["data"])
                 local builtIn, custom = F.CalcRaidDebuffs(received["instanceId"], received["bossId"], received["data"])
 
                 dataLabel:SetText(L["Debuffs"] .. ": ")
@@ -3668,7 +3668,7 @@ function Cell.CreateReceivingFrame(parent)
             elseif received["type"] == "Layout" then
                 local isCompatible = type(received["version"]) == "number" and received["version"] >= Cell.MIN_LAYOUTS_VERSION
 
-                F.Debug("|cffFFDAB9RECEIVED LAYOUT:|r ", received["name"], received["data"])
+                F.Log("comm", "|cffFFDAB9RECEIVED LAYOUT:|r ", received["name"], received["data"])
 
                 importBtn:SetScript("OnClick", function()
                     -- check layout name

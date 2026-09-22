@@ -1344,7 +1344,7 @@ local function UpdateDebuffsForCurrentZone(instanceName)
 
     if iName == instanceName or instanceName == nil then
         currentAreaDebuffs = F.GetDebuffList(iName)
-        F.Debug("|cffff77AARaidDebuffsChanged:|r", iName)
+        F.Log("aura", "|cffff77AARaidDebuffsChanged:|r", iName)
     end
 end
 Cell.RegisterCallback("RaidDebuffsChanged", "UpdateDebuffsForCurrentZone", UpdateDebuffsForCurrentZone)

@@ -16,18 +16,18 @@ end
 local function Deserialize(encoded)
     local decoded = LibDeflate:DecodeForWoWAddonChannel(encoded) -- decode
     if not decoded then -- garbage on the channel: DecompressDeflate(nil) would error
-        F.Debug("Error decoding: bad addon-channel payload")
+        F.Log("comm", "Error decoding: bad addon-channel payload")
         return
     end
     local decompressed = LibDeflate:DecompressDeflate(decoded) -- decompress
     if not decompressed then
         -- ⚠ was `.. errorMsg`, an undeclared global -- the error path itself errored
-        F.Debug("Error decompressing")
+        F.Log("comm", "Error decompressing")
         return
     end
     local success, data = Serializer:Deserialize(decompressed) -- deserialize
     if not success then
-        F.Debug("Error deserializing: " .. data)
+        F.Log("comm", "Error deserializing: " .. data)
         return
     end
     return data
@@ -187,7 +187,7 @@ function F.CheckPriority()
         UpdateSendChannel()
         -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
         if IsCommRestricted() then
-            F.Debug("Cell: Comm suppressed - restricted context (CELL_CPRIO chk)")
+            F.Log("comm", "Cell: Comm suppressed - restricted context (CELL_CPRIO chk)")
             return
         end
         Comm:SendCommMessage("CELL_CPRIO", "chk", sendChannel, nil, "ALERT")
@@ -209,7 +209,7 @@ Comm:RegisterComm("CELL_CPRIO", function(prefix, message, channel, sender)
         UpdateSendChannel()
         -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
         if IsCommRestricted() then
-            F.Debug("Cell: Comm suppressed - restricted context (CELL_PRIO)")
+            F.Log("comm", "Cell: Comm suppressed - restricted context (CELL_PRIO)")
             return
         end
         Comm:SendCommMessage("CELL_PRIO", tostring(myPriority), sendChannel, nil, "ALERT")
@@ -227,7 +227,7 @@ Comm:RegisterComm("CELL_PRIO", function(prefix, message, channel, sender)
         t_update = C_Timer.NewTimer(2, function()
             Cell.hasHighestPriority = myPriority <= highestPriority
             Cell.Fire("UpdatePriority", Cell.hasHighestPriority)
-            F.Debug("|cff00ff00UpdatePriority:|r", Cell.hasHighestPriority)
+            F.Log("comm", "|cff00ff00UpdatePriority:|r", Cell.hasHighestPriority)
         end)
     end
 end)
@@ -238,7 +238,7 @@ end)
 local function CrossRealmSendCommMessage(prefix, message, playerName, priority, callbackFn)
     -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
     if IsCommRestricted() then
-        F.Debug("Cell: Comm suppressed - restricted context (CrossRealm:", prefix, ")")
+        F.Log("comm", "Cell: Comm suppressed - restricted context (CrossRealm:", prefix, ")")
         return
     end
     -- NOTE: unit needs to be in your group, or it will always return true

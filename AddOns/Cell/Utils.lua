@@ -2379,7 +2379,8 @@ function F.UpdateFramePriority()
         end
     end
 
-    F.Debug(frame_priorities)
+    -- fix from MiliUI: 原本丟整張表給 DevTools_Dump；記錄只收字串，改成攤平成一行
+    F.Debug("FramePriority:", table.concat(frame_priorities, ", "))
 end
 
 function Cell.GetUnitFramesForLGF(unit, frames, priorities)
