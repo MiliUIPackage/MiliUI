@@ -656,7 +656,7 @@ local function SkinKeyedButtons(owner, prefix, keys, opts, secondary)
         if btn then
             Skin.Button(btn, prefix .. "." .. key, {
                 keepFont = opts and opts.keepFont,
-                points   = opts and opts.points,
+                points   = opts and ((opts.pointsByKey and opts.pointsByKey[key]) or opts.points),
                 variant  = (secondary and secondary[key]) and "secondary"
                     or (opts and opts.variant) or nil,
             })
@@ -965,6 +965,18 @@ local PANEL_INSET_POINTS = {
     { "BOTTOMRIGHT", "BOTTOMRIGHT", 1.5, 5 },
 }
 
+-- 同三頁底下那一對按鈕：暴雪錨在 `BOTTOMLEFT x=-3` / `BOTTOMRIGHT x=-3`（LFGList.xml:971,980,
+-- 1881,1912），左邊那顆比內嵌框凸出 2、右邊那顆多 2 ⇒ 我們畫的按鈕面收進去，
+-- 左右緣跟上面 `PANEL_INSET_POINTS` 畫出來的內嵌框切齊（按鈕的點擊範圍不變）。
+local BOTTOM_LEFT_BUTTON_POINTS = {
+    { "TOPLEFT", "TOPLEFT", 3.5, 0 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0 },
+}
+local BOTTOM_RIGHT_BUTTON_POINTS = {
+    { "TOPLEFT", "TOPLEFT", 0, 0 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", -0.5, 0 },
+}
+
 local function SkinPanelInset(panel, key, insetKey)
     local inset = Field(panel, insetKey or "Inset")
     if not inset then
@@ -986,7 +998,9 @@ local function ApplyCategorySelection(lfg)
     SkinPanelInset(panel, "LFGListFrame.CategorySelection.Inset")
     E.TextColor(Field(panel, "Label"), T.text, "LFGListFrame.CategorySelection.Label")
     SkinKeyedButtons(panel, "LFGListFrame.CategorySelection",
-        { "FindGroupButton", "StartGroupButton" }, nil, { StartGroupButton = true })
+        { "FindGroupButton", "StartGroupButton" },
+        { pointsByKey = { StartGroupButton = BOTTOM_LEFT_BUTTON_POINTS, FindGroupButton = BOTTOM_RIGHT_BUTTON_POINTS } },
+        { StartGroupButton = true })
 end
 
 local function ApplyNothingAvailable(lfg)
@@ -1176,7 +1190,8 @@ local function ApplyEntryCreation(lfg)
     end
 
     SkinKeyedButtons(panel, "LFGListFrame.EntryCreation", { "ListGroupButton", "CancelButton" },
-        nil, { CancelButton = true })
+        { pointsByKey = { CancelButton = BOTTOM_LEFT_BUTTON_POINTS, ListGroupButton = BOTTOM_RIGHT_BUTTON_POINTS } },
+        { CancelButton = true })
 
     -- 「找活動」那個蓋在上面的小對話框（LFGList.xml:1644）
     local dialog = Path(panel, "ActivityFinder", "Dialog")
