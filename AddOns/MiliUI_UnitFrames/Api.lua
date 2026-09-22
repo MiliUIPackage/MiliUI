@@ -518,6 +518,30 @@ local function Debug()
     end
 
     ------------------------------------------------------------
+    -- 最大生命值損失（Elements/Health.lua）：「中了 debuff 卻沒畫出損失段」時看這裡
+    --   api=secret     ⇒ 文件沒標、實際卻是秘密值 —— 這個功能在這個情境做不到
+    --   api=0、事件=0  ⇒ 那個效果不走暴雪這套系統（暴雪預設框應該也沒畫）
+    --   api>0、寬=0    ⇒ 我們自己的版面沒跟上（看 raw 與 pct 是不是對得起來）
+    -- 事件是 UNIT_MAX_HEALTH_MODIFIERS_CHANGED 的累計次數，讀取含換人時的重問
+    ------------------------------------------------------------
+    p("  最大生命值損失：")
+    for _, key in ipairs({ "player", "target", "focus" }) do
+        local xf = ns.frames[key]
+        local hp = xf and xf.elements and xf.elements.hpbar
+        if hp then
+            local api = "no-api"
+            if GetUnitTotalModifiedMaxHealthPercent then
+                local ok, v = pcall(GetUnitTotalModifiedMaxHealthPercent, xf.unit)
+                api = ok and (ns.IsSecret(v) and "secret" or tostring(v)) or "error"
+            end
+            p(("   %-7s api=%s raw=%s pct=%s 寬=%s 事件=%d 讀取=%d 開關=%s"):format(key, api,
+                SafeStr(hp.maxLossRaw), tostring(hp.maxLossPct), tostring(hp.maxLossW),
+                hp.maxLossEvents or 0, hp.maxLossReads or 0,
+                tostring(xf.db.elements.hpbar and xf.db.elements.hpbar.showMaxHealthLoss)))
+        end
+    end
+
+    ------------------------------------------------------------
     -- 換單位的帳：最後一次 unitchanged 畫的是誰、被閘掉幾次、看門狗抓到幾次
     --
     -- 「名字停在上一個單位」時看這裡：

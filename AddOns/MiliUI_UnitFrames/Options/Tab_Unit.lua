@@ -471,6 +471,10 @@ local function BarSpecs(name, isHP, unitKey)
         tinsert(list, { type = "toggle", sub = name, key = "showHealAbsorb", label = L["Heal absorb"] })
         tinsert(list, { type = "color", sub = name, key = "healAbsorbColor", label = L["Heal absorb color"] })
         tinsert(list, { type = "text", label = L["Debuffs that eat healing, such as Necrotic. Reverse-filled and drawn on top."] })
+        tinsert(list, { type = "header", label = L["Max health reduction"] })
+        tinsert(list, { type = "toggle", sub = name, key = "showMaxHealthLoss", label = L["Max health reduction"] })
+        tinsert(list, { type = "color", sub = name, key = "maxHealthLossColor", label = L["Max health reduction color"] })
+        tinsert(list, { type = "text", label = L["Debuffs that lower maximum health, such as some dungeon trash. The health bar shortens by the same share and the lost part is drawn in this color, so a full bar no longer hides it."] })
     end
 
     for i = #list, 1, -1 do
