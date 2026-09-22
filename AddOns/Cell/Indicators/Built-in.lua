@@ -410,7 +410,7 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         -- are ordinary boxes and fall through to position + size like every icon display.
         if not AnchorEffectFrame(cfr, parent, customStyle, t) then
             local pos = t.position
-            local rel = (pos and pos[2] == "healthBar" and parent.widgets and parent.widgets.healthBar)
+            local rel = (pos and pos[2] == "healthBar" and parent.widgets and (parent.widgets.healthArea or parent.widgets.healthBar))
                 or parent
             cfr:ClearAllPoints()
             if pos then
@@ -959,7 +959,7 @@ function I.CreateDebuffs(parent)
         -- anchored to it never resolve (IsVisible() still reports true).
         local cfr = self.container:GetFrame()
         local pos = t.position
-        local rel = (pos and pos[2] == "healthBar" and parent.widgets and parent.widgets.healthBar)
+        local rel = (pos and pos[2] == "healthBar" and parent.widgets and (parent.widgets.healthArea or parent.widgets.healthBar))
             or parent
         cfr:ClearAllPoints()
         if pos then
@@ -1557,7 +1557,7 @@ function I.CreateRaidDebuffs(parent)
                 local cfr = self.container:GetFrame()
                 cfr:ClearAllPoints()
                 local pos = t.position
-                local rel = (pos and pos[2] == "healthBar") and parent.widgets.healthBar or parent
+                local rel = (pos and pos[2] == "healthBar") and (parent.widgets.healthArea or parent.widgets.healthBar) or parent
                 if pos then
                     cfr:SetPoint(pos[1], rel, pos[3], pos[4], pos[5])
                 else

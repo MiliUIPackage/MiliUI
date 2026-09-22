@@ -510,6 +510,12 @@ function eventFrame:ADDON_LOADED(arg1)
         if type(CellDB["appearance"]) ~= "table" then
             CellDB["appearance"] = F.Copy(Cell.defaults.appearance)
         end
+        -- fix from MiliUI: appearance keys added after a save was made. Keyed on the key being
+        -- absent, not on Cell's revision, so it needs no version bump and an import of an
+        -- older profile is topped up the same way on its reload.
+        if type(CellDB["appearance"]["maxHealthLoss"]) ~= "table" then
+            CellDB["appearance"]["maxHealthLoss"] = F.Copy(Cell.defaults.appearance["maxHealthLoss"])
+        end
 
         -- color ---------------------------------------------------------------------------------
         if CellDB["appearance"]["accentColor"] then -- version < r103

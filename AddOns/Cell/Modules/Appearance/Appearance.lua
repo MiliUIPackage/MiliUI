@@ -12,13 +12,22 @@ Cell.frames.appearanceTab = appearanceTab
 appearanceTab:SetAllPoints(Cell.frames.optionsFrame)
 appearanceTab:Hide()
 
+-- fix from MiliUI: the three panes stack from these heights (tab height = their sum + gaps,
+-- kept in step in Modules/OptionsFrame.lua). The Cell pane loses its last row on zh/ko,
+-- where "Use Game Font" is hidden -- that used to leave a blank band above Unit Button Style.
+local CELL_PANE_HEIGHT = Cell.isAsian and 115 or 140
+local UNIT_BUTTON_PANE_HEIGHT = 415
+local PANE_GAP = 15
+local UNIT_BUTTON_PANE_Y = -(5 + CELL_PANE_HEIGHT + PANE_GAP)
+local DEBUFF_TYPE_PANE_Y = UNIT_BUTTON_PANE_Y - UNIT_BUTTON_PANE_HEIGHT - 20
+
 -------------------------------------------------
 -- cell
 -------------------------------------------------
 local scaleSlider, strataDropdown, accentColorDropdown, accentColorPicker, optionsFontSizeOffset, useGameFontCB
 
 local function CreateCellPane()
-    local cellPane = Cell.CreateTitledPane(appearanceTab, "Cell", 422, 140)
+    local cellPane = Cell.CreateTitledPane(appearanceTab, "Cell", 422, CELL_PANE_HEIGHT)
     cellPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, -5)
 
     -- global scale
@@ -556,7 +565,7 @@ local function UpdatePreviewButton(which)
         B.SetPowerSize(previewButton2, Cell.vars.currentLayoutTable["main"]["powerSize"])
     end
 
-    if not which or which == "color" or which == "alpha" or which == "shields" or which == "reset" then
+    if not which or which == "color" or which == "alpha" or which == "shields" or which == "maxHealthLoss" or which == "reset" then
         -- power color
         local r, g, b = F.GetPowerBarColor("player", Cell.vars.playerClass)
         previewButton.widgets.powerBar:SetStatusBarColor(r, g, b)
@@ -578,6 +587,13 @@ local function UpdatePreviewButton(which)
 
         -- shields
         UpdatePreviewShields(r, g, b)
+
+        -- max health reduction (fix from MiliUI): a fixed 15% sample on preview 3, like the
+        -- 20% / 30% overlays above. B.UpdateMaxHealthLoss first so the colour is current even
+        -- when no live button has been through this pass yet (it skips the read on a preview).
+        B.UpdateMaxHealthLoss(previewButton2)
+        local maxLossOn = CellDB["appearance"]["maxHealthLoss"][1] and GetUnitTotalModifiedMaxHealthPercent ~= nil
+        B.SetMaxHealthLoss(previewButton2, maxLossOn and 0.15 or 0)
     end
 
     previewButton.loaded = true
@@ -593,6 +609,7 @@ local gradientCB, thresholdCP1, thresholdCP2, thresholdCP3, thresholdDropdown, c
 local gradientLossCB, thresholdLossCP1, thresholdLossCP2, thresholdLossCP3, thresholdLossDropdown1, thresholdLossDropdown2
 local barAlpha, lossAlpha, bgAlpha, oorAlpha, predCB, absorbCB, invertColorCB, shieldCB, oversCB, reverseCB, oversReverseCB
 local predCustomCB, predColorPicker, absorbColorPicker, shieldColorPicker, oversColorPicker
+local maxHealthLossCB, maxHealthLossColorPicker  -- fix from MiliUI
 local iconOptionsBtn, iconOptionsFrame, iconAnimationDropdown, durationRoundUpCB, durationDecimalText1, durationDecimalText2, durationDecimalDropdown, durationColorCB, durationNormalCP, durationPercentCP, durationSecondCP, durationPercentDD, durationSecondEB, durationSecondText
 
 local LSM = LibStub("LibSharedMedia-3.0", true)
@@ -864,6 +881,7 @@ local function UpdateCheckButtons()
     invertColorCB:SetEnabled(CellDB["appearance"]["healAbsorb"][1])
     oversColorPicker:SetEnabled(CellDB["appearance"]["overshield"][1])
     oversReverseCB:SetEnabled(CellDB["appearance"]["overshield"][1])
+    maxHealthLossColorPicker:SetEnabled(CellDB["appearance"]["maxHealthLoss"][1] and GetUnitTotalModifiedMaxHealthPercent ~= nil)
 
     if CellDB["appearance"]["healAbsorbInvertColor"] then
         absorbCB:SetText(L["Heal Absorb"])
@@ -949,8 +967,8 @@ local function UpdateColorPickers()
 end
 
 local function CreateUnitButtonStylePane()
-    local unitButtonPane = Cell.CreateTitledPane(appearanceTab, L["Unit Button Style"], 422, 410)
-    unitButtonPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, -160)
+    local unitButtonPane = Cell.CreateTitledPane(appearanceTab, L["Unit Button Style"], 422, UNIT_BUTTON_PANE_HEIGHT)
+    unitButtonPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, UNIT_BUTTON_PANE_Y)
 
     -- texture
     textureDropdown = Cell.CreateDropdown(unitButtonPane, 160, "texture")
@@ -1413,8 +1431,10 @@ local function CreateUnitButtonStylePane()
     end
 
     -- icon options
-    iconOptionsBtn = Cell.CreateButton(unitButtonPane, L["Aura Icon Options"], "accent-hover", {160, 20})
-    iconOptionsBtn:SetPoint("TOPLEFT", unitButtonPane, "TOPLEFT", 222, -42)
+    -- fix from MiliUI: in the title row next to Reset All (anchored there at the end of this
+    -- function). It opens a separate panel, so it is a pane-level action like Reset, and the
+    -- 50px it used to take at the top of the right column is what that column was short of.
+    iconOptionsBtn = Cell.CreateButton(unitButtonPane, L["Aura Icon Options"], "accent-hover", {160, 17})
     iconOptionsBtn:SetScript("OnClick", function()
         if iconOptionsFrame:IsShown() then
             iconOptionsFrame:Hide()
@@ -1428,7 +1448,9 @@ local function CreateUnitButtonStylePane()
         CellDB["appearance"]["barAlpha"] = value/100
         Cell.Fire("UpdateAppearance", "alpha")
     end, nil, true)
-    barAlpha:SetPoint("TOPLEFT", iconOptionsBtn, "BOTTOMLEFT", 0, -30)
+    -- fix from MiliUI: -43 puts each slider's label on the same line as the dropdown label
+    -- beside it (a dropdown label sits 1px above its box, a slider label 2px)
+    barAlpha:SetPoint("TOPLEFT", unitButtonPane, "TOPLEFT", 222, -43)
 
     -- loss alpha
     lossAlpha = Cell.CreateSlider(L["Health Loss Alpha"], unitButtonPane, 0, 100, 141, 1, function(value)
@@ -1457,7 +1479,7 @@ local function CreateUnitButtonStylePane()
         UpdateCheckButtons()
         Cell.Fire("UpdateAppearance", "shields")
     end)
-    predCB:SetPoint("TOPLEFT", oorAlpha, "BOTTOMLEFT", 0, -35)
+    predCB:SetPoint("TOPLEFT", oorAlpha, "BOTTOMLEFT", 0, -25)  -- fix from MiliUI: 10px under the value box, like slider to slider
 
     -- heal prediction custom color
     predCustomCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
@@ -1563,9 +1585,28 @@ local function CreateUnitButtonStylePane()
     end)
     oversReverseCB:SetPoint("TOPLEFT", oversCB, "BOTTOMRIGHT", 0, -7)
 
+    -- fix from MiliUI: max health reduction (RaidFrames/UnitButton.lua, B.MHL)
+    maxHealthLossCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
+        CellDB["appearance"]["maxHealthLoss"][1] = checked
+        UpdateCheckButtons()
+        Cell.Fire("UpdateAppearance", "maxHealthLoss")
+    end, L["Max Health Reduction"], L["Debuffs that lower maximum health, e.g. some dungeon trash."], L["The bar shortens by that share; the lost part takes this color."])
+    maxHealthLossCB:SetPoint("TOPLEFT", oversCB, "BOTTOMLEFT", 0, -28)
+    maxHealthLossCB:SetEnabled(GetUnitTotalModifiedMaxHealthPercent ~= nil)
+
+    maxHealthLossColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Max Health Reduction"], true, function(r, g, b, a)
+        CellDB["appearance"]["maxHealthLoss"][2][1] = r
+        CellDB["appearance"]["maxHealthLoss"][2][2] = g
+        CellDB["appearance"]["maxHealthLoss"][2][3] = b
+        CellDB["appearance"]["maxHealthLoss"][2][4] = a
+        Cell.Fire("UpdateAppearance", "maxHealthLoss")
+    end)
+    maxHealthLossColorPicker:SetPoint("TOPLEFT", maxHealthLossCB, "TOPRIGHT", 5, 0)
+
     -- reset
     local resetBtn = Cell.CreateButton(unitButtonPane, L["Reset All"], "accent", {77, 17}, nil, nil, nil, nil, nil, L["Reset All"], L["[Ctrl+Left-Click] to reset these settings"])
     resetBtn:SetPoint("TOPRIGHT")
+    iconOptionsBtn:SetPoint("TOPRIGHT", resetBtn, "TOPLEFT", -5, 0)  -- fix from MiliUI, see above
     resetBtn:SetScript("OnClick", function()
         if IsControlKeyDown() then
             F.ResetButtonStyle()
@@ -1587,7 +1628,7 @@ local curseCP, diseaseCP, magicCP, poisonCP, bleedCP
 
 local function CreateDebuffTypeColorPane()
     local dtcPane = Cell.CreateTitledPane(appearanceTab, L["Debuff Type Color"], 422, 60)
-    dtcPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, -595)
+    dtcPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, DEBUFF_TYPE_PANE_Y)
 
     -- curse
     curseCP = Cell.CreateColorPicker(dtcPane, "|TInterface\\AddOns\\Cell\\Media\\Debuffs\\Curse:0|t"..L["Curse"], false, nil, function(r, g, b)
@@ -1698,6 +1739,8 @@ LoadButtonStyle = function()
     oversCB:SetChecked(CellDB["appearance"]["overshield"][1])
     reverseCB:SetChecked(CellDB["appearance"]["overshieldReverseFill"])
     oversReverseCB:SetChecked(CellDB["appearance"]["overshieldGlowReverse"])
+    maxHealthLossCB:SetChecked(CellDB["appearance"]["maxHealthLoss"][1])
+    maxHealthLossColorPicker:SetColor(unpack(CellDB["appearance"]["maxHealthLoss"][2]))
 
     predCustomCB:SetChecked(CellDB["appearance"]["healPrediction"][2])
     predColorPicker:SetColor(unpack(CellDB["appearance"]["healPrediction"][3]))
@@ -1789,7 +1832,7 @@ Cell.RegisterCallback("UpdateIndicators", "AppearanceTab_UpdateIndicators", Upda
 local function UpdateAppearance(which)
     F.Debug("|cff7f7fffUpdateAppearance:|r", which)
 
-    if not which or which == "texture" or which == "color" or which == "fullColor" or which == "deathColor" or which == "alpha" or which == "outOfRangeAlpha" or which == "shields" or which == "animation" or which == "highlightColor" or which == "highlightSize" or which == "reset" then
+    if not which or which == "texture" or which == "color" or which == "fullColor" or which == "deathColor" or which == "alpha" or which == "outOfRangeAlpha" or which == "shields" or which == "maxHealthLoss" or which == "animation" or which == "highlightColor" or which == "highlightSize" or which == "reset" then
         local tex
         if not which or which == "texture" or which == "reset" then tex = F.GetBarTexture() end
 
@@ -1825,6 +1868,10 @@ local function UpdateAppearance(which)
             -- shields
             if not which or which == "shields" or which == "reset" then
                 B.UpdateShields(b)
+            end
+            -- max health reduction (fix from MiliUI)
+            if not which or which == "maxHealthLoss" or which == "reset" then
+                B.UpdateMaxHealthLoss(b)
             end
             -- animation
             if not which or which == "animation" or which == "reset" then

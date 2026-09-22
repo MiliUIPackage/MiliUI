@@ -80,7 +80,10 @@ local function CreateTabButtons()
 
     local tabHeight = {
         ["general"] = 535,
-        ["appearance"] = 665,
+        -- fix from MiliUI: follows the pane heights in Modules/Appearance/Appearance.lua
+        -- (5 + Cell pane + 15 + Unit Button Style 415 + 20 + Debuff Type Color 60 + 10); the
+        -- Cell pane is 25px shorter on zh/ko, where "Use Game Font" is hidden
+        ["appearance"] = Cell.isAsian and 640 or 665,
         ["layouts"] = 550,
         ["clickCastings"] = 592,
         ["indicators"] = 607,

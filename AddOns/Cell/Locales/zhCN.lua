@@ -1039,3 +1039,8 @@ L["By Aura Type"] = "按光环类型"
 
 -- fix from MiliUI: 分享按鈕不再自己開聊天輸入框
 L["Open the chat edit box first (press Enter), then click Share."] = "请先按 Enter 打开聊天输入框，再按分享。"
+
+-- fix from MiliUI: 最大生命值降低
+L["Max Health Reduction"] = "最大生命值降低"
+L["Debuffs that lower maximum health, e.g. some dungeon trash."] = "压低最大生命值的减益效果，例如部分地下城小怪。"
+L["The bar shortens by that share; the lost part takes this color."] = "血条会按比例缩短，少掉的那段画成这个颜色。"

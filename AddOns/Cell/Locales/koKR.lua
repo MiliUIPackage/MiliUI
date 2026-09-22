@@ -735,3 +735,8 @@ L["auto"] = "자동"
 L["Settings For"] = "설정 대상"
 L["Frame Distance"] = "프레임과의 거리"
 L["ATTACH_SIDE_TIPS"] = "바가 유닛 프레임의 어느 쪽에 붙을지 정합니다. 레이아웃이 자라나는 모서리에서 시작하며, Cell 메뉴 블록과 전투 부활 타이머는 피해서 배치됩니다."
+
+-- fix from MiliUI: max health reduction
+L["Max Health Reduction"] = "최대 생명력 감소"
+L["Debuffs that lower maximum health, e.g. some dungeon trash."] = "일부 던전 일반 몹처럼 최대 생명력을 낮추는 약화 효과입니다."
+L["The bar shortens by that share; the lost part takes this color."] = "생명력 바가 그만큼 짧아지고, 잃은 부분은 이 색으로 표시됩니다."

@@ -745,3 +745,8 @@ L["auto"] = "Automático"
 L["Settings For"] = "Ajustes para"
 L["Frame Distance"] = "Dist. dos quadros"
 L["ATTACH_SIDE_TIPS"] = "De que lado dos quadros a barra fica. Ela começa no canto de onde o layout cresce e desvia do bloco de menu do Cell e do cronômetro de ressurreição."
+
+-- fix from MiliUI: max health reduction
+L["Max Health Reduction"] = "Redução de vida máxima"
+L["Debuffs that lower maximum health, e.g. some dungeon trash."] = "Penalidades que reduzem a vida máxima, ex.: alguns inimigos de masmorra."
+L["The bar shortens by that share; the lost part takes this color."] = "A barra encurta nessa proporção; a parte perdida recebe esta cor."
