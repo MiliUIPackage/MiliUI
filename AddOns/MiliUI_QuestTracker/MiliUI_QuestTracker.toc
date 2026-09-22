@@ -9,7 +9,7 @@
 ## Category-zhTW: 任務
 ## Category-zhCN: 任务
 ## Author: Mili
-## Version: 1.0.2
+## Version: 1.0.3
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## SavedVariables: MiliUI_QuestTracker_DB
