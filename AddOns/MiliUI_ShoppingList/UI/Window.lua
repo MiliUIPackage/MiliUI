@@ -531,7 +531,7 @@ local function Build()
     -- 靠右擺：動作鈕跟清單每一列右端的「搜尋／購買」對齊，是同一類東西
     -- 兩顆都往左長（一顆錨右緣、一顆錨在它左邊），左邊是總價讀數，撐開不會壓到誰。
     -- 英文的「全部購買」比 96 長一點點，就那麼一點也會畫到邊框外面
-    local buyAll = W.CreateButton(bottomBar, L["Buy everything"], "accent-hover", 96, 20)
+    local buyAll = W.CreateButton(bottomBar, L["Buy everything"], "primary", 96, 20)
     W.FitButton(buyAll, 96, 20)
     buyAll:SetPoint("BOTTOMRIGHT", -4, 2)
 

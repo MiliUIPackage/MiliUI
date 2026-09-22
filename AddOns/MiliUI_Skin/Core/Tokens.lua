@@ -285,6 +285,11 @@ end
 --   就會把其他職業壓成泥色。按鈕字有陰影，3.6 可以接受。
 --   職業色不是秘密值（`Resolve` 已經擋過），這裡是純 Lua 算術。
 ------------------------------------------------------------
+--
+-- ⚠ 2026-09-22 起這是全套組規則：共用層 `Libs/MiliUIWidgets/Widgets.lua` 的
+--   `W.CreateButton(…, "primary")` 用同一條公式（`BTN_TEXT_LUM`／`BTN_IDLE_SCALE`／
+--   `BTN_BORDER_SCALE`）。單體發佈不能互讀 ⇒ 數字兩邊各寫一份，**要改就兩邊一起改**。
+--   判準與待辦見 `.claude/notes/project-miliui-button-variants.md`。
 T.buttonTextLum = 0.40
 
 -- primary 平時的底 ＝ 保護後的職業色 × 這個比例；邊 ＝ 原始職業色 × 下面那個。

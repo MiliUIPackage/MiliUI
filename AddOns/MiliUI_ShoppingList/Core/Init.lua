@@ -40,18 +40,18 @@ end)
 -- ⚠ W.CreateButton 自己在 OnEnter/OnLeave 上換 backdrop 色，直接 SetScript
 --   會把那段蓋掉（按鈕從此不會反白）。要掛提示就得連著一起重設，這件事
 --   在三個模組都要做，所以收成一支。
+-- ⚠ 重畫走 W.PaintButton，不要自己 unpack(_colors[2])：primary 滑過連邊一起換，
+--   只換底的話邊會卡在上一個狀態。
 ------------------------------------------------------------
 function ns.AttachTooltip(button, fill)
     button:SetScript("OnEnter", function(self)
-        if self._colors and self:IsEnabled() then
-            self:SetBackdropColor(unpack(self._colors[2]))
-        end
+        ns.W.PaintButton(self, true)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         fill(self, GameTooltip)
         GameTooltip:Show()
     end)
     button:SetScript("OnLeave", function(self)
-        if self._colors then self:SetBackdropColor(unpack(self._colors[1])) end
+        ns.W.PaintButton(self, false)
         GameTooltip:Hide()
     end)
 end

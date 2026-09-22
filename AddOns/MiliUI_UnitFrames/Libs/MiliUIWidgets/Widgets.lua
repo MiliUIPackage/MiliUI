@@ -123,21 +123,82 @@ end
 
 ------------------------------------------------------------
 -- 按鈕
+--
+-- 配色表的形狀：`{ 平時底, 滑過底 [, 平時邊, 滑過邊] }`。
+-- 只有兩格的邊一律黑、停用時維持平時的底（原本的行為）；
+-- 有第 3、4 格的（primary）滑過連邊一起換、停用退回中性 —— 停用的按鈕不能看起來像能按。
+--
+-- ⚠ 要用哪一種，規則在 `.claude/notes/project-miliui-button-variants.md`（全套組共用）：
+--   「確認／執行」那一顆 primary，其餘 normal；一個區塊最多一顆 primary。
 ------------------------------------------------------------
+
+-- primary：跟 MiliUI_Skin 的主按鈕**同一條公式**（MiliUI_Skin/Core/Tokens.lua 的
+-- 「按鈕的兩種變體」），套組自己的視窗跟換過皮的暴雪視窗才會是同一顆按鈕。
+-- 數字寫死在兩邊、不去讀對方 —— 插件是單體發佈的。**要改就兩邊一起改。**
+--
+--   平時 底＝保護色 × 0.30、邊＝職業色 × 0.60
+--   滑過 底＝保護色、        邊＝職業色
+--   保護色＝職業色 × k，k = min(1, 0.40 / 亮度)：白字壓在牧師白、盜賊黃上讀不到，
+--   依亮度壓暗；深色職業（死騎、薩滿、惡魔獵人）k = 1、不變。0.40 的由來見 MiliUI_Skin/STYLE.md ②。
+-- 職業色不是秘密值（Env.Accent 早就查完表了），這裡是純算術。
+local BTN_TEXT_LUM, BTN_IDLE_SCALE, BTN_BORDER_SCALE = 0.40, 0.30, 0.60
+local function PrimaryColors()
+    local r, g, b = accent.r, accent.g, accent.b
+    local lum = 0.299 * r + 0.587 * g + 0.114 * b
+    local k = lum > 0 and math.min(1, BTN_TEXT_LUM / lum) or 1
+    local i, e = k * BTN_IDLE_SCALE, BTN_BORDER_SCALE
+    return {
+        { r * i, g * i, b * i, 1 },
+        { r * k, g * k, b * k, 1 },
+        { r * e, g * e, b * e, 1 },
+        { r, g, b, 1 },
+    }
+end
+
 local BTN_COLORS = {
     normal      = { WIDGET_FILL,  { 0.23, 0.23, 0.23, 1 } },
+    primary     = PrimaryColors(),
     accent      = { { accent.r, accent.g, accent.b, 0.3 }, { accent.r, accent.g, accent.b, 0.6 } },
     ["accent-hover"] = { WIDGET_FILL, { accent.r, accent.g, accent.b, 0.6 } },
     red         = { { 0.6, 0.1, 0.1, 0.6 }, { 0.6, 0.1, 0.1, 1 } },
     green       = { { 0.1, 0.6, 0.1, 0.6 }, { 0.1, 0.6, 0.1, 1 } },
 }
 
+-- 依目前狀態重畫一顆 W.CreateButton 的底與邊。
+--
+-- ⚠ 自己 SetScript("OnEnter"/"OnLeave") 的呼叫端（掛提示、列高亮）一律叫這支，
+--   不要自己 `unpack(self._colors[2])` —— 那只換得到底，primary 的邊會卡在上一個狀態。
+function W.PaintButton(b, hover)
+    local c = b._colors
+    if not c then return end
+    local enabled = b:IsEnabled()
+    if not c[3] then
+        -- 只有底色的配色：停用時滑過不反白、離開照樣回平時的底（跟原本一模一樣）
+        if not hover then
+            b:SetBackdropColor(unpack(c[1]))
+        elseif enabled then
+            b:SetBackdropColor(unpack(c[2]))
+        end
+        return
+    end
+    if not enabled then
+        b:SetBackdropColor(unpack(WIDGET_FILL))
+        b:SetBackdropBorderColor(0, 0, 0, 1)
+    elseif hover then
+        b:SetBackdropColor(unpack(c[2]))
+        b:SetBackdropBorderColor(unpack(c[4]))
+    else
+        b:SetBackdropColor(unpack(c[1]))
+        b:SetBackdropBorderColor(unpack(c[3]))
+    end
+end
+
 function W.CreateButton(parent, text, colorKey, width, height)
     local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
     P.Size(b, width or 60, height or 20)
     local colors = BTN_COLORS[colorKey or "normal"] or BTN_COLORS.normal
     b._colors = colors
-    W.Stylize(b, colors[1])
+    W.Stylize(b, colors[1], colors[3])
 
     -- ⚠ label 自己建、自己註冊，而且**兩個狀態用同一個字型物件**。
     -- 原本 normal/disabled 給不同物件，結果 SetEnabled 切換的瞬間暴雪會換掉
@@ -159,11 +220,17 @@ function W.CreateButton(parent, text, colorKey, width, height)
 
     -- 停用的灰字自己上：SetEnabled / Enable / Disable 三條路都要接
     -- （SetEnabled 是 C 端方法，不會呼叫到我們覆寫的 Enable/Disable）
+    --
+    -- 有邊色的配色（primary）連底與邊一起換：停用中的按鈕預設收不到 OnEnter/OnLeave，
+    -- 滑過時被停用、移開、再啟用，只靠滑鼠腳本的話會卡在滑過的顏色上。
     local function Recolor(self)
         if self:IsEnabled() then
             fs:SetTextColor(1, 1, 1)
         else
             fs:SetTextColor(0.4, 0.4, 0.4)
+        end
+        if self._colors and self._colors[3] then
+            W.PaintButton(self, self:IsVisible() and self:IsMouseOver())
         end
     end
     local rawSetEnabled, rawEnable, rawDisable = b.SetEnabled, b.Enable, b.Disable
@@ -171,12 +238,8 @@ function W.CreateButton(parent, text, colorKey, width, height)
     function b:Enable()       rawEnable(self);         Recolor(self) end
     function b:Disable()      rawDisable(self);        Recolor(self) end
 
-    b:SetScript("OnEnter", function(self)
-        if self:IsEnabled() then self:SetBackdropColor(unpack(self._colors[2])) end
-    end)
-    b:SetScript("OnLeave", function(self)
-        self:SetBackdropColor(unpack(self._colors[1]))
-    end)
+    b:SetScript("OnEnter", function(self) W.PaintButton(self, true) end)
+    b:SetScript("OnLeave", function(self) W.PaintButton(self, false) end)
     return b
 end
 

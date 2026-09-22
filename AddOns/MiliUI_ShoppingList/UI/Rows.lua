@@ -195,7 +195,9 @@ function Rows.Build(row)
             return b
         end
         if key == "search" or key == "buy" then
-            local b = W.CreateButton(row, "", "normal", w, Rows.ROW_H - 6)
+            -- 購買是這一列的主動作（primary），搜尋是次要的；停用的購買鈕自動退回中性，
+            -- 所以一眼看得出哪幾列還有東西要買
+            local b = W.CreateButton(row, "", key == "buy" and "primary" or "normal", w, Rows.ROW_H - 6)
             P.Size(b, w, Rows.ROW_H - 6)
             b:SetFrameLevel(base + 3)
             return b
@@ -422,7 +424,7 @@ function Rows.CreateConfirmBar(parent, width, height)
     skip:SetPoint("RIGHT", cancel, "LEFT", -4, 0)
     skip:SetScript("OnClick", function() ns.Auction.Skip() end)
 
-    local ok = W.CreateButton(bar, L["Confirm"], "green", 64, 20)
+    local ok = W.CreateButton(bar, L["Confirm"], "primary", 64, 20)
     ok:SetScript("OnClick", function() ns.Auction.Confirm() end)
 
     -- 批次購買買完一筆之後停在這裡等玩家按下一筆。
@@ -434,7 +436,7 @@ function Rows.CreateConfirmBar(parent, width, height)
     --
     -- 既然省不掉，就讓它**落在跟「確認」一模一樣的位置**（同寬同錨點，跳過鈕那一格
     -- 留空）。滑鼠不用移動，一直按同一個地方就能走完整批。
-    local nextBtn = W.CreateButton(bar, L["Buy"], "green", 64, 20)
+    local nextBtn = W.CreateButton(bar, L["Buy"], "primary", 64, 20)
     nextBtn:SetScript("OnClick", function() ns.Auction.Next() end)
 
     local function Layout(rightOf)

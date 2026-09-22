@@ -119,6 +119,24 @@ ChatBar 與 DamageMeters 各帶一份幾乎一樣的引擎，結果同一個「E
 版面與互動的設計規則（打勾欄、標題階層、子選單寬限期）寫在
 [`miliui-menu-design`](../../../../.claude/skills/miliui-menu-design/SKILL.md) 技能。
 
+### 按鈕配色（`W.CreateButton` 的 colorKey）
+
+```lua
+W.CreateButton(parent, text, "primary", w, h)  -- 「確認／執行」那一顆
+W.CreateButton(parent, text, "normal",  w, h)  -- 其餘（取消、返回、一整排平行選項）
+W.PaintButton(b, hover)                        -- 自己接 OnEnter/OnLeave 時用它重畫
+```
+
+**用哪一種是全套組的規則**，寫在 `.claude/notes/project-miliui-button-variants.md`：
+一個區塊最多一顆 `primary`，其餘 `normal`；`red` 留給破壞性動作與關閉鈕。
+`primary` 跟 MiliUI_Skin 的主按鈕是同一條公式（平時壓暗的職業色底 ＋ 中亮的職業色邊、
+滑過整顆換成職業色、停用退回中性），兩邊的數字要一起改。
+`accent`（半透明底）與 `green` 是舊配色，新程式碼不要再用。
+
+⚠ **自己 `SetScript("OnEnter"/"OnLeave")` 的呼叫端**（掛工具提示、列高亮）要叫
+`W.PaintButton(self, true/false)`，不要自己 `unpack(self._colors[2])`：那只換得到底，
+`primary` 的邊會卡在上一個狀態。啟停（`SetEnabled`／`Enable`／`Disable`）已經內建重畫。
+
 ### 放不下的字（幾支 opt-in 的工具）
 
 共用層的按鈕字、勾選框標籤、下拉的選中文字**都不換行**，太長就溢出或被截成「…」，
