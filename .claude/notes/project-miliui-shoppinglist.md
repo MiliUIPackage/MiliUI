@@ -293,7 +293,9 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
   停用的按鈕看起來跟能按的一樣，回報就變成「按鈕不能按」（其實是被停用，只是看不出來）。
   2026-09-22 起按鈕是 primary（[[project-miliui-button-variants]]）：啟用＝職業色、停用＝中性，
   **金色碼與發光都拿掉了**（`MiliUIGlow` 也從這支插件移除，它只為這顆按鈕存在）。
-  「已經在清單裡」只寫在工具提示裡。停用時仍要
+  **已在清單裡＝字改「已在清單中」＋停用**（`AddButton.SetState(b, usable, listed)`）：製作頁不再能
+  「重按覆寫份數」，要改份數去清單視窗；從清單移除後 `ListChanged` 會把按鈕叫回來。
+  提示裡的「再按一次是覆寫份數」與操作說明在已加入時拿掉（那條語系一併刪了）。停用時仍要
   `SetMotionScriptsWhileDisabled(true)`，滑過才講得出原因。
 - **製作頁底部那排不能錨「製造」鈕的左邊**（實測，2026-09-08）。由右往左是
   `CreateButton` ← `CreateMultipleInputBox` ← `CreateAllButton`，暴雪的 XML 各留
@@ -355,6 +357,7 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 - [ ] 2026-09-22 按鈕改 primary（每列購買、全部購買、確認列的確認／購買，見 [[project-miliui-button-variants]]）：
       平時職業色底＋邊、滑過整顆亮、**拍賣場沒開／不缺的那幾列要退回中性**；滑過中被停用再移開不能卡色。
       專業視窗的「加入一鍵購買清單」同樣是 primary、沒有發光；下單頁沒選配方時要是中性（停用）。
+      加進去之後要立刻變成「已在清單中」＋中性；到清單視窗移掉那個配方，按鈕要變回可按。
 
 ## 已知的檢查器誤報
 
