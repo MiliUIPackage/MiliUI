@@ -60,7 +60,9 @@ metadata:
 
 ## 文字顏色
 
-- **SimpleHTML 的顏色在 `SetText` 那一刻才烘進去**：事後 `SetTextColor` 只影響下一次 SetText，已顯示的字不變。
+- **SimpleHTML 的 `SetTextColor` 要帶文字類型**：`SetTextColor("P", r,g,b)`（標題另有 H1～H3）。不帶類型的 `SetTextColor(r,g,b)` 管不到純文字 ——
+  沒標籤的內文是當 "P" 畫的。暴雪自己就這樣寫（ItemTextFrame.lua:58）。冒險指南踩過：換色、重畫都做了，字照樣暗棕。
+- **SimpleHTML 的顏色（推測）在 `SetText` 那一刻才烘進去**：事後 `SetTextColor` 只影響下一次 SetText，已顯示的字不變。
   後置勾來不及 ⇒ 換色後用**暴雪剛寫的同一段文字**（取自被勾函式的參數，切段照抄）再 SetText 一次；內容相同，高度不變。
   FontString 的 SetTextColor 是即時的，沒這個問題。症狀：「第一次打開是暗字，收合再展開就對了」。
 
