@@ -187,7 +187,8 @@ local function LayoutClip(f)
     if f.maxLoss then f.maxLoss:SetShown(lost > 0) end
 end
 
--- 比例 → 像素寬度。值沒變就不重排（換人每次都會問一次，大多數時候是 0 → 0）
+-- 比例 → 像素寬度。值沒變就不重排（換人每次都會問一次，大多數時候是 0 → 0）。
+-- 回傳「版面有沒有動」，實機記錄只記有變化的那幾次
 local function SetMaxHealthLoss(f, pct)
     f.maxLossPct = pct
     local lost = 0
@@ -199,9 +200,10 @@ local function SetMaxHealthLoss(f, pct)
         if lost > w - keep then lost = w - keep end
         if lost < 0 then lost = 0 end
     end
-    if lost == f.maxLossW then return end
+    if lost == f.maxLossW then return false end
     f.maxLossW = lost
     LayoutClip(f)
+    return true
 end
 
 -- 讀比例。回傳明文 0～1；讀不到（沒這支 API／拋錯／秘密值）一律當 0。
@@ -231,9 +233,48 @@ local function ReadMaxHealthLoss(f, unit)
 end
 
 local function UpdateMaxHealthLoss(uf, f, edb)
-    if not edb.showMaxHealthLoss then return end
+    if not edb.showMaxHealthLoss then return false end
     f.maxLossReads = (f.maxLossReads or 0) + 1
-    SetMaxHealthLoss(f, ReadMaxHealthLoss(f, uf.unit))
+    return SetMaxHealthLoss(f, ReadMaxHealthLoss(f, uf.unit))
+end
+
+------------------------------------------------------------
+-- 實機記錄（/muf maxhp 印出）
+--
+-- 事件每來一次、或換人時寬度有變就記一行，連同當下情境（副本類型／戰鬥／首領戰／M+）。
+-- 為什麼要自己記：debuff 常常在玩家打指令之前就掉了，事後看當下狀態只會是 0；
+-- 而「首領戰或 M+ 裡 API 會不會變秘密」正是要驗的事，情境一定要跟著值一起記。
+--
+-- 存在帳號層 SV（MiliUI_UnitFrames_DB.maxHPLog，跟 charClasses 同層、不進設定檔），
+-- /reload 或登出就寫進 WTF，不必截圖。環狀只留最近 MAXHP_LOG_MAX 行。
+------------------------------------------------------------
+local MAXHP_LOG_MAX = 60
+
+local function LogContext()
+    local _, instType = IsInInstance()
+    local ctx = instType or "?"
+    if InCombatLockdown() then ctx = ctx .. ",戰鬥" end
+    if IsEncounterInProgress and IsEncounterInProgress() then ctx = ctx .. ",首領戰" end
+    if C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive
+        and C_ChallengeMode.IsChallengeModeActive() then
+        ctx = ctx .. ",M+"
+    end
+    return ctx
+end
+
+local function LogMaxHealthLoss(uf, f, src)
+    if uf.isPreview then return end
+    local db = MiliUI_UnitFrames_DB
+    if type(db) ~= "table" then return end
+    local log = db.maxHPLog
+    if type(log) ~= "table" then log = {}; db.maxHPLog = log end
+    -- 記錄本身絕對不能擋到繪製：情境 API 在受限內容裡拋錯就只記「?」
+    local okCtx, ctx = pcall(LogContext)
+    tinsert(log, ("%s %s(%s) %s raw=%s pct=%.3f 寬=%.1f/%.1f [%s]"):format(
+        date("%m-%d %H:%M:%S"), uf.baseUnit or "?", uf.unit or "?", src,
+        tostring(f.maxLossRaw), f.maxLossPct or 0, f.maxLossW or 0, f.innerW or 0,
+        okCtx and ctx or "?"))
+    while #log > MAXHP_LOG_MAX do tremove(log, 1) end
 end
 
 local function Build(uf, edb)
@@ -566,7 +607,10 @@ local function Update(uf, edb, bucket)
     -- 上限被壓低時 UNIT_MAXHEALTH 另外會來，血條的值由 health 桶那一波負責
     if bucket == "maxhploss" then
         f.maxLossEvents = (f.maxLossEvents or 0) + 1
-        if not uf.isPreview then UpdateMaxHealthLoss(uf, f, edb) end
+        if not uf.isPreview then
+            UpdateMaxHealthLoss(uf, f, edb)
+            LogMaxHealthLoss(uf, f, edb.showMaxHealthLoss and "事件" or "事件(開關關)")
+        end
         return
     end
     -- health／info 桶沿用上次的仇恨狀態：它們一秒來很多次，而仇恨不會因為掉血改變。
@@ -618,7 +662,7 @@ local function Update(uf, edb, bucket)
         -- 最大生命值損失：換人／生死／陣營這些桶順手重問一次（一支 C 呼叫）。
         -- health／info 不問 —— 那兩個一秒來很多次，而上限變動有自己的事件
         if bucket ~= "health" and bucket ~= "info" then
-            UpdateMaxHealthLoss(uf, f, edb)
+            if UpdateMaxHealthLoss(uf, f, edb) then LogMaxHealthLoss(uf, f, bucket) end
         end
         -- 治療預估／吸收盾 overlay 只對「可協助」的單位畫：計算器對敵對單位回的
         -- 預估與吸收值都是垃圾（副本兩次實測：連 Platynator 同款設定也整條滿，
