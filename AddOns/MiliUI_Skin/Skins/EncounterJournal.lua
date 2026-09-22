@@ -798,8 +798,41 @@ end
 
 -- `EncounterJournal_SetBullets(object, description, hideBullets)` 的後置勾：
 -- `object` 是某一段（或綜覽頁本身）的 `overviewDescription`，條列點是它 parent 的子框
--- （.lua:1599,1635）。只拿參數裡的框，不讀 `description`。
-function OnSetBullets(object)   -- 指派給上面的前置宣告，不是全域
+-- （.lua:1599,1635）。
+--
+-- 實機（2026-09-22）：第一次出現的綜覽／條列還是暗棕字 —— SimpleHTML 的顏色是
+-- SetText 那一刻才烘進去的，後置勾裡的 SetTextColor 只管得到「下一次」。
+-- ⇒ 用暴雪剛寫進去的同一段文字重畫（`Engine.RepaintHTML`，STYLE.md ③ 的例外）。
+--   原文取自這支函式的**參數** `description`，不讀任何暴雪物件的文字欄位。
+-- 切段方式**逐字照抄** `EncounterJournal_SetBullets`（.lua:1601-1650）：
+--   * `string.find(description, "$bullet;")` 找不到 ⇒ 整段寫進 `object.Text`；
+--   * 找得到 ⇒ 第一個 `$bullet;` 之前那段 strtrim 後寫進 `object.Text`，
+--     之後每一段 `strtrim(v) .. "|n|n"` 依序寫進 `parent.Bullets[k].Text`
+--     （接了 "|n|n" 不可能是空字串 ⇒ 暴雪的 skipped 分支走不到，k 與段落序一致）。
+-- ⚠ 暴雪改了切段方式，重畫出來的字就會跟它不一樣（高度也跟著不對）——
+--   改版時對照 SetBullets 重看這一段。
+local function RepaintBullets(object, parent, description)
+    local text = Probe(object, "Text")
+    if not string.find(description, "$bullet;") then
+        if text then E.RepaintHTML(text, T.text, description, SECTION_KEY .. ".overviewDescription.Text") end
+        return
+    end
+    local desc = string.match(description, "(.-)$bullet;")
+    if desc and text then
+        E.RepaintHTML(text, T.text, strtrim(desc), SECTION_KEY .. ".overviewDescription.Text")
+    end
+    local list = parent and Probe(parent, "Bullets")
+    if type(list) ~= "table" then return end
+    local k = 1
+    for v in string.gmatch(description, "$bullet;([^$]+)") do
+        local b = list[k]
+        local bt = b and Probe(b, "Text")
+        if bt then E.RepaintHTML(bt, T.text, strtrim(v) .. "|n|n", SECTION_KEY .. ".Bullets.Text") end
+        k = k + 1
+    end
+end
+
+function OnSetBullets(object, description)   -- 指派給上面的前置宣告，不是全域
     if #sectionContainers == 0 or type(object) ~= "table" then return end
     local text = Probe(object, "Text")
     if text then E.TextColor(text, T.text, SECTION_KEY .. ".overviewDescription.Text") end
@@ -809,6 +842,9 @@ function OnSetBullets(object)   -- 指派給上面的前置宣告，不是全域
     for _, child in ipairs(Children(parent) or {}) do
         if IsBullet(child) then SkinBullet(child) end
     end
+    -- 只有從後置勾進來（拿得到暴雪的參數）才重畫；apply 時的補掃沒有原文，
+    -- 那幾段要等暴雪下一次 SetText（顏色已經設好，下一次就對）。
+    if type(description) == "string" then RepaintBullets(object, parent, description) end
 end
 
 -- 綜覽頁那一條「概況說明」（不是 EncounterInfoTemplate，是捲動子框上的一張貼圖 ＋ 一條字）

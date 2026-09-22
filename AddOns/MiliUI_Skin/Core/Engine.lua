@@ -393,6 +393,28 @@ function Engine.TextColor(fs, color, label)
     pcall(fs.SetTextColor, fs, color[1], color[2], color[3], color[4] or 1)
 end
 
+------------------------------------------------------------
+-- Engine.RepaintHTML(html, color, text, label) —— SimpleHTML 換色後用**同一段文字**重畫
+--
+-- ⚠ SimpleHTML 的顏色是 `SetText` 那一刻才烘進去的：事後 `SetTextColor` 只影響
+--   **下一次** `SetText`，已經顯示的字不會變（冒險指南的綜覽／條列第一次出現時
+--   永遠是暗棕字，就是後置勾比暴雪的 SetText 晚了一步）。
+-- ⇒ 契約例外（STYLE.md ③）：換色後再 `SetText` 一次，內容**必須是暴雪剛寫進去的
+--   那一段**，而且只能從暴雪函式的**參數**取得（後置勾的引數），不准讀暴雪物件的
+--   文字欄位。內容相同 ⇒ 版面高度不變，暴雪早先用 `GetContentHeight` 排好的位置照樣成立。
+-- ⚠ 只准用在 SimpleHTML；FontString 的 SetTextColor 本來就即時生效，用 `TextColor`。
+------------------------------------------------------------
+function Engine.RepaintHTML(html, color, text, label)
+    if type(text) ~= "string" then return end
+    if not Usable(html, label) then return end
+    if type(html.SetTextColor) ~= "function" or type(html.SetText) ~= "function" then
+        Engine.Missing(label)
+        return
+    end
+    pcall(html.SetTextColor, html, color[1], color[2], color[3], color[4] or 1)
+    pcall(html.SetText, html, text)
+end
+
 function Engine.VertexColor(tex, color, label)
     if not Usable(tex, label) then return end
     if type(tex.SetVertexColor) ~= "function" then

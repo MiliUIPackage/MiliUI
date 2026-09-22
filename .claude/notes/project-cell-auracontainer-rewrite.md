@@ -191,6 +191,27 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
 不能換 filter，所以驗法是：設第 3 步→開打→看整排會不會消失；再設第 6 步→開打→對照。
 **尚未驗證。** 健康基準線（正常時五個 display 的長相）在 2026-08-11 的 log，重點：`mode=buff groupsAdded=1 initCount=10 buttons=10 +cf{includeSpellIDs}`、anchorFrame 有實際矩形。
 
+### 法術旗標分析視窗（2026-09-22，未在遊戲內驗證）
+
+`/cab spell <ID｜名稱｜法術連結｜wowhead 網址｜冒險指南段落連結>` 開視窗（`RaidFrames/AuraSpellInspector.lua`，
+TOC 排在 AuraDisplay 後面；舊的一行版只在這支沒載入時才退回）。**全部只讀**：不碰容器、不改設定、不在暴雪框上寫欄位；
+每支 API pcall、每個回傳值先過 issecretvalue 才做布林判斷。
+
+- 分六段：結論／暴雪旗標（依 ID 離線查，清單見 [[wow-121-aura-filter-vocabulary]]）／秘密值／光環實例
+  （掃 player＋隊友＋target＋focus，`GetUnitAuraBySpellID` 找第一顆讀得到的，再用 `IsAuraFilteredOutByInstanceID`
+  對它實測十個 token）／**Cell 判定**／Cell 法術清單（黑名單、減傷、外部、爆發、控場、目標法術）。
+- **Cell 判定用的是容器實際建好的 record**：代表按鈕上每個 `ind.container` 的 `_parkRecords`（沒建就 `BuildRecords(h.config)`），
+  逐條推算 true／false／未知。有實例：filter 整條交給引擎實測、cf 從實例欄位推；沒實例：減益類指示器假設是減益、
+  token 只有 CROWD_CONTROL（法術層級近似）／BIG_DEFENSIVE／EXTERNAL_DEFENSIVE 推得出來，首領／職責／學派／持續時間／來源一律「未知」並列出缺什麼。
+  group 不去重，所以摘要是「所有認它的組」（兩組以上＝會重複顯示），不是「第一個認領的」。ID 清單條件照秘密等級判斷有沒有效。
+- 視窗開著時 UNIT_AURA／名單／目標／進出戰鬥 → 0.5 秒 debounce 重掃（事件的 unit 參數可能是秘密字串，不比對），內容沒變不重畫；
+  「文字」模式可整段複製（自動重掃在文字模式暫停，免得選到一半被重寫）。
+- Shift 點法術連結：後掛 `ChatFrameUtil.InsertLink`，**只在輸入框有焦點時**吃；冒險指南只在聊天框開著時才送連結，走不到這裡，
+  它的 `journal:2:<段落>` 連結要用貼的（`C_EncounterJournal.GetSectionInfo(...).spellID` 換成 ID）。
+- 文字寫死繁中（跟 `/cab` 其他輸出一致，沒進語系檔），record 標籤借用重要減益面板的 L 字串。
+- 離線驗過：scratchpad 的 mock harness 跑離線／有實例／秘密值三情境無錯（幽暗炸彈有實例時落在短時效）。
+  **待驗證**：視窗排版、捲動、Shift 點連結、首領戰中開著不報錯、token 實測結果合理。
+
 ## 順手修掉的相關項
 
 - **AFK 偵測**：Cell 在 Midnight 整段停用（`UnitIsAFK` 可能回 secret boolean），但對隊伍/團隊成員其實可讀 —— `SafeIsAFK(unit)`（pcall + `F.ToBool`）恢復功能。

@@ -29,6 +29,9 @@ local UNIT_EVENT_BUCKET = {
     UNIT_HEAL_PREDICTION = "health",
     UNIT_ABSORB_AMOUNT_CHANGED = "health",
     UNIT_HEAL_ABSORB_AMOUNT_CHANGED = "health",
+    -- 最大生命值被 debuff 壓低／恢復 → 只重排血條的損失段（Elements/Health.lua）。
+    -- ⚠ 這個事件在 TrackerOnEvent 裡**不看 arg1**，理由見 NO_ROUTE_EVENT
+    UNIT_MAX_HEALTH_MODIFIERS_CHANGED = "maxhploss",
     -- ⚠ 自然回復／衰減時 UNIT_POWER_UPDATE **兩秒才來一次**（只有花費與回滿會即時送），
     -- 只掛它的症狀是「貓德／盜賊等能量時條和數字每兩秒跳一格」。平滑的那條是
     -- FREQUENT；暴雪自己的玩家框更狠，是每幀輪詢 UnitPower。
@@ -86,6 +89,17 @@ local FORCE_EVENT = {
     UNIT_LEVEL = true,
     UNIT_CLASSIFICATION_CHANGED = true,
     UNIT_THREAT_SITUATION_UPDATE = true,
+    -- debuff 掉了那一波就是終點（之後不會再來），被擋掉的話損失段會一直掛著
+    UNIT_MAX_HEALTH_MODIFIERS_CHANGED = true,
+}
+
+-- ⚠ 這幾個事件**不拿 arg1 路由**。12.1 的 API 文件把它們標成 SecretPayloads，
+-- 而 unit token 本身就可能是秘密字串（READY_CHECK 實測過）：拿來 `~=` 比對，或當
+-- 下面 census 的 table key，都是 tainted 程式碰秘密值的硬錯誤。
+-- RegisterUnitEvent 已經在 C 端濾過 token，進得來的就是這顆 tracker 註冊的單位；
+-- 唯一的誤差是副 token（寵物框也收 player 的），多重讀一次自己的單位而已，不會讀錯人。
+local NO_ROUTE_EVENT = {
+    UNIT_MAX_HEALTH_MODIFIERS_CHANGED = true,
 }
 
 local function RefreshUnit(unitToken, bucket, force, src)
@@ -141,6 +155,10 @@ local trackers = {}
 local function TrackerOnEvent(self, event, unit)
     local uf = self.uf
     if not (uf and uf:IsVisible()) then return end
+    if NO_ROUTE_EVENT[event] then
+        ns.Refresh(uf, UNIT_EVENT_BUCKET[event], FORCE_EVENT[event])
+        return
+    end
     if uf.unit == uf.baseUnit then
         -- 一般情況（99% 的時間）：只理會這個框正在畫的那個 token
         if unit ~= uf.unit then return end

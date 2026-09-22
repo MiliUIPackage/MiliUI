@@ -233,6 +233,14 @@ k = 1、完全不變。職業色不是秘密值，這是純 Lua 算術。
      否則 `NeutralizeRegions` 第二次掃會把自己的底中和掉 —— 那是靜默失效。
   **失敗一律退回 `Engine.Overlay`**，也就是第五輪的行為；
   `MiliUI_Skin_DB.regionBackdrop = false` ＋ `/reload` 可以整批關掉。
+- **SimpleHTML 換色後用同一段文字重新 `SetText`（只准 `Engine.RepaintHTML`）** ——
+  2026-09-22 實機抓到：SimpleHTML 的顏色是 `SetText` 那一刻才烘進去的，後置勾裡的
+  `SetTextColor` 只影響**下一次** SetText，第一次出現的內文永遠是暴雪的暗色字。
+  條件：(1) 只用在 SimpleHTML（FontString 的 SetTextColor 即時生效，不需要）；
+  (2) 寫回去的內容**必須是暴雪剛寫的那一段**，而且只能取自暴雪函式的**參數**
+  （後置勾的引數），不准讀暴雪物件的文字欄位；(3) 切段邏輯要逐字照暴雪那一支，
+  內容相同 ⇒ 暴雪先前用 `GetContentHeight` 排好的高度照樣成立。
+  現有用法：冒險指南 `EncounterJournal_SetBullets` 的後置勾。
 
 其他：
 
