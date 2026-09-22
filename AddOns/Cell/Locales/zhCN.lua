@@ -1044,3 +1044,14 @@ L["Open the chat edit box first (press Enter), then click Share."] = "请先按 
 L["Max Health Reduction"] = "最大生命值降低"
 L["Debuffs that lower maximum health, e.g. some dungeon trash."] = "压低最大生命值的减益效果，例如部分地下城小怪。"
 L["The bar shortens by that share; the lost part takes this color."] = "血条会按比例缩短，少掉的那段画成这个颜色。"
+
+-- fix from MiliUI: 除錯主控台
+L["Debug Console"] = "调试控制台"
+L["Select All"] = "全选"
+L["Group"] = "群组"
+L["Auras"] = "光环"
+L["Comm"] = "通讯"
+L["DEBUG_COMBAT_MARK"] = "战"
+L["%d lines skipped (over the per-second limit)"] = "略过 %d 行（超过每秒上限）"
+L["—— Above: log from before the last reload ——"] = "—— 以上是上次 reload 前的记录 ——"
+L["toggle the debug console"] = "开关调试控制台"

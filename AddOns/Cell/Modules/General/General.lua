@@ -306,7 +306,7 @@ end
 local alwaysUpdateAurasCB, translitCB
 
 local function CreateMiscPane()
-    local miscPane = Cell.CreateTitledPane(generalTab, L["Misc"], 205, 105)
+    local miscPane = Cell.CreateTitledPane(generalTab, L["Misc"], 205, 130)
     miscPane:SetPoint("TOPLEFT", generalTab, 222, -300)
 
     alwaysUpdateAurasCB = Cell.CreateCheckButton(miscPane, L["Always Update Auras"], function(checked, self)
@@ -324,6 +324,13 @@ local function CreateMiscPane()
         Cell.Fire("TranslitNames")
     end)
     translitCB:SetPoint("TOPLEFT", alwaysUpdateAurasCB, "BOTTOMLEFT", 0, -9)
+
+    -- fix from MiliUI: 除錯主控台（同 /cell debug）
+    local debugConsoleBtn = Cell.CreateButton(miscPane, L["Debug Console"], "accent-hover", {137, 20})
+    debugConsoleBtn:SetPoint("TOPLEFT", translitCB, "BOTTOMLEFT", 0, -9)
+    debugConsoleBtn:SetScript("OnClick", function()
+        F.ShowDebugConsole()
+    end)
 end
 
 -------------------------------------------------

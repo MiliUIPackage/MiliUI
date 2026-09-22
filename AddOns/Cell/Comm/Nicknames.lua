@@ -49,7 +49,7 @@ local function Update(b)
 end
 
 local function UpdateName(who)
-    F.Debug("|cFF69A000UpdateName:|r|cFF696969", who, Cell.vars.nicknames[who], Cell.vars.nicknameCustoms[who])
+    F.Log("comm", "|cFF69A000UpdateName:|r|cFF696969", who, Cell.vars.nicknames[who], Cell.vars.nicknameCustoms[who])
     -- update name
     local handled = F.HandleUnitButton("name", who, Update)
     if not handled then
@@ -75,7 +75,7 @@ local function CheckNicknames()
                 UpdateSendChannel()
                 -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
                 if Cell.isMidnight and F.IsCommRestricted() then
-                    F.Debug("Cell: Comm suppressed - restricted context (CELL_CNIC)")
+                    F.Log("comm", "Cell: Comm suppressed - restricted context (CELL_CNIC)")
                     return
                 end
                 Comm:SendCommMessage("CELL_CNIC", "chk", sendChannel, nil, "ALERT")
@@ -122,7 +122,7 @@ end
 ---------------------------------------
 
 local function UpdateNicknames(which, value1, value2)
-    F.Debug("|cFF80FF00UpdateNicknames:|r", which, value1, value2)
+    F.Log("comm", "|cFF80FF00UpdateNicknames:|r", which, value1, value2)
     -- init
     if not which then
         Cell.vars.playerNickname = CellDB["nicknames"]["mine"] ~= "" and CellDB["nicknames"]["mine"] or nil
@@ -167,7 +167,7 @@ local function UpdateNicknames(which, value1, value2)
             UpdateSendChannel()
             -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
             if Cell.isMidnight and F.IsCommRestricted() then
-                F.Debug("Cell: Comm suppressed - restricted context (CELL_NIC sync-off)")
+                F.Log("comm", "Cell: Comm suppressed - restricted context (CELL_NIC sync-off)")
             else
                 Comm:SendCommMessage("CELL_NIC", "CELL_NONE", sendChannel)
             end
@@ -190,7 +190,7 @@ local function UpdateNicknames(which, value1, value2)
             UpdateSendChannel()
             -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
             if Cell.isMidnight and F.IsCommRestricted() then
-                F.Debug("Cell: Comm suppressed - restricted context (CELL_NIC mine)")
+                F.Log("comm", "Cell: Comm suppressed - restricted context (CELL_NIC mine)")
             else
                 Comm:SendCommMessage("CELL_NIC", Cell.vars.playerNickname or "CELL_NONE", sendChannel)
             end
@@ -235,7 +235,7 @@ Comm:RegisterComm("CELL_CNIC", function(prefix, message, channel, sender)
         UpdateSendChannel()
         -- Addon comms blocked during encounters/M+/PvP on Midnight 12.0.0+
         if Cell.isMidnight and F.IsCommRestricted() then
-            F.Debug("Cell: Comm suppressed - restricted context (CELL_NIC nic_send)")
+            F.Log("comm", "Cell: Comm suppressed - restricted context (CELL_NIC nic_send)")
             return
         end
         if CellDB["nicknames"]["sync"] then

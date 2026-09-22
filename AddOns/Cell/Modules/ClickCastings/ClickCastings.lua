@@ -805,7 +805,8 @@ function F.UpdateClickCastings(noReload, onlyqueued)
     end
 
     local snippet = F.GetBindingSnippet()
-    F.Debug(snippet)
+    -- fix from MiliUI: 整段 secure snippet 塞進除錯主控台只會被截斷、又把別的記錄擠掉，不記
+    -- F.Debug(snippet)
 
     -- REVIEW:
     -- local clickFrames = Cell.clickCastFrames

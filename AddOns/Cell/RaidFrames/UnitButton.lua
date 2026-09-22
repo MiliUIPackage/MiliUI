@@ -725,7 +725,7 @@ local function PushContainerConfig(indicatorName)
 end
 
 local function UpdateIndicators(layout, indicatorName, setting, value, value2)
-    F.Debug("|cffff7777UpdateIndicators:|r ", layout, indicatorName, setting, value, value2)
+    F.Log("layout", "|cffff7777UpdateIndicators:|r ", layout, indicatorName, setting, value, value2)
 
     -- FlushQueue()
 
@@ -738,13 +738,13 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
         for groupType, groupLayout in next, activeLayouts do
             if groupLayout == layout then
                 activeLayouts[groupType] = nil -- update required
-                F.Debug("  -> UPDATE REQUIRED:", groupType)
+                F.Log("layout", "  -> UPDATE REQUIRED:", groupType)
             end
         end
 
         --! indicator changed, but not current layout
         if layout ~= currentLayout then
-            F.Debug("  -> NO UPDATE: not active layout")
+            F.Log("layout", "  -> NO UPDATE: not active layout")
             return
         end
 
@@ -753,7 +753,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
         if activeLayouts[INDEX] == currentLayout then
             I.ResetCustomIndicatorTables()
             ResetIndicators()
-            F.Debug("  -> NO FULL UPDATE: only reset custom indicator tables")
+            F.Log("layout", "  -> NO FULL UPDATE: only reset custom indicator tables")
             F.IterateAllUnitButtons(AddToUpdateQueue, true, nil, true)
             F.IterateSharedUnitButtons(AddToInitQueue)
             updater:Show()
@@ -762,7 +762,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
     end
 
     if Cell.vars.isHidden then
-        F.Debug("  -> NO UPDATE: Cell is hidden")
+        F.Log("layout", "  -> NO UPDATE: Cell is hidden")
         I.ResetCustomIndicatorTables()
         ResetIndicators()
         return
@@ -771,7 +771,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
     activeLayouts[INDEX] = currentLayout
 
     if not indicatorName then -- init
-        F.Debug("  -> FULL UPDATE", INDEX, currentLayout)
+        F.Log("layout", "  -> FULL UPDATE", INDEX, currentLayout)
         I.ResetCustomIndicatorTables()
         ResetIndicators()
         F.IterateAllUnitButtons(AddToInitQueue, true)
@@ -4053,7 +4053,7 @@ local function UnitButton_RegisterEvents(self)
     --! OnShowæ—¶ç«‹å³æ‰§è¡Œï¼Œä½†UpdateIndicatorså¯èƒ½å¹¶æœªæ‰§è¡Œå®Œæ¯•ï¼Œå¯¼è‡´åœ¨ResetCustomIndicatorsè¿‡ç¨‹ä¸­æŒ‡ç¤ºå™¨å‘ç”Ÿå˜åŒ–ï¼Œè¿›è€ŒæŠ¥é”™
     local success, result = pcall(UnitButton_UpdateAll, self)
     if not success then
-        F.Debug("UnitButton_UpdateAll |cffff0000FAILED:|r", self:GetName(), result)
+        F.Log("error", "UnitButton_UpdateAll |cffff0000FAILED:|r", self:GetName(), result)
     end
 end
 
@@ -4330,7 +4330,7 @@ local timer
 local function EnterLeaveInstance()
     if timer then timer:Cancel() timer=nil end
     timer = C_Timer.NewTimer(1, function()
-        F.Debug("|cffff1111*** EnterLeaveInstance:|r UnitButton_UpdateAll")
+        F.Log("group", "|cffff1111*** EnterLeaveInstance:|r UnitButton_UpdateAll")
         F.IterateAllUnitButtons(UnitButton_UpdateAll, true)
         timer = nil
     end)
@@ -4564,7 +4564,7 @@ end
 --
 -- ⚠ Each button is ticked under pcall. A per-button OnUpdate isolated failures for free;
 -- one shared loop does not, and an error on raid7 would silently cost raid8..40 their tick
--- for the rest of the fight. Same guard, and the same F.Debug report, as UnitButton_UpdateAll.
+-- for the rest of the fight. Same guard, and the same error-log report, as UnitButton_UpdateAll.
 -------------------------------------------------
 local tickingButtons = {}
 local tickDriver
@@ -4580,8 +4580,11 @@ function StartTicking(self)
         tickDriver = C_Timer.NewTicker(0.25, function()
             for b in pairs(tickingButtons) do
                 local ok, err = pcall(TickOne, b)
-                if not ok then
-                    F.Debug("UnitButton tick |cffff0000FAILED:|r", b:GetName(), err)
+                -- fix from MiliUI: 每 0.25 秒一輪，壞掉的按鈕會每輪都失敗；記錄只記每顆第一次，
+                -- 不然幾秒就把除錯主控台的緩衝洗光
+                if not ok and not b._tickFailLogged then
+                    b._tickFailLogged = true
+                    F.Log("error", "UnitButton tick |cffff0000FAILED:|r", b:GetName(), err)
                 end
             end
         end)

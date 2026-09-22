@@ -663,7 +663,11 @@ function QuickAssist_StartTicking(self)
         qaTicker = C_Timer.NewTicker(0.25, function()
             for b in pairs(qaTicking) do
                 local ok, err = pcall(QuickAssist_OnTick, b)
-                if not ok then F.Debug("QuickAssist tick |cffff0000FAILED:|r", b:GetName(), err) end
+                -- fix from MiliUI: 每輪都會失敗的按鈕只記第一次，免得洗掉除錯主控台的緩衝
+                if not ok and not b._tickFailLogged then
+                    b._tickFailLogged = true
+                    F.Log("error", "QuickAssist tick |cffff0000FAILED:|r", b:GetName(), err)
+                end
             end
         end)
     end

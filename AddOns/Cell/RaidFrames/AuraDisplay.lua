@@ -1763,8 +1763,9 @@ do
     regen:RegisterEvent("PLAYER_REGEN_ENABLED")
     AD._pending = {}
     AD.FLUSH_BUDGET_MS = 8      -- per-frame build budget; /run Cell.AuraDisplay.FLUSH_BUDGET_MS = n
-    -- Chat line when a regen queue is at least this long. Persisted in CellDB and OFF by
+    -- Log line when a regen queue is at least this long. Persisted in CellDB and OFF by
     -- default: this is a producer-hunt diagnostic, players must never see it. /cab report <n>
+    -- fix from MiliUI: 只寫進除錯主控台（/cell debug 的光環分類），不再印聊天框
     local function ReportMin()
         local v = CellDB and tonumber(CellDB["auraQueueReportMin"])
         return v or 0
@@ -1837,7 +1838,8 @@ do
             for why, c in pairs(whys) do list[#list + 1] = {why, c} end
             table.sort(list, function(a, b) return a[2] > b[2] end)
             for i, e in ipairs(list) do list[i] = e[1] .. " " .. e[2] end
-            print(("|cff33ff99[Cell 光環]|r 脫戰時佇列 %d 筆：%s"):format(n, table.concat(list, "、")))
+            -- fix from MiliUI: 這是自動回報、不是玩家下的指令，只進除錯主控台，不洗聊天框
+            F.Log("aura", ("脫戰時佇列 %d 筆：%s"):format(n, table.concat(list, "、")))
         end
         restyleList = nil
         flushTicker = C_Timer.NewTicker(0, Tick)
@@ -2855,7 +2857,11 @@ end
 -- DIAGNOSTICS  ->  /cab
 -- ============================================================
 
-local function p(...) print("|cff33ff99[Cell 光環]|r", ...) end
+-- 玩家自己下的 /cab 指令：照舊印聊天框，同時進除錯主控台的光環分類
+local function p(...)
+    print("|cff33ff99[Cell 光環]|r", ...)
+    F.Log("aura", ...)
+end
 
 function AD.Debug()
     p("Cell.isMidnight =", tostring(Cell.isMidnight))
@@ -3217,16 +3223,16 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
             p(("戰鬥中直接彈跳：%s。用法：/cab bounce on|off"):format(AD.BounceInCombat() and "開" or "關"))
         end
     elseif cmd == "report" then
-        -- /cab report 40  -> print the queue breakdown after any fight that queued >= 40
+        -- /cab report 40  -> log the queue breakdown after any fight that queued >= 40 (/cell debug)
         -- /cab report 0   -> off (default). Saved in CellDB, so it survives /reload.
         local n = tonumber(arg and strtrim(arg))
         if not n then
             local cur = CellDB and tonumber(CellDB["auraQueueReportMin"]) or 0
-            p(("脫戰佇列自動回報：%s。用法：/cab report <筆數>，0 關閉"):format(cur > 0 and ("≥ " .. cur .. " 筆時印") or "關"))
+            p(("脫戰佇列自動回報：%s。用法：/cab report <筆數>，0 關閉"):format(cur > 0 and ("≥ " .. cur .. " 筆時記進 /cell debug") or "關"))
             return
         end
         if CellDB then CellDB["auraQueueReportMin"] = n > 0 and n or nil end
-        p(n > 0 and ("脫戰時佇列 ≥ %d 筆就印一行來源分佈（已存檔）"):format(n) or "脫戰佇列自動回報已關閉")
+        p(n > 0 and ("脫戰時佇列 ≥ %d 筆就在 /cell debug 記一行來源分佈（已存檔）"):format(n) or "脫戰佇列自動回報已關閉")
     elseif cmd == "stats" then
         -- The measurement behind the roster-stutter fix. Zero it, make people join/leave the
         -- group, read it again: `repoints` should climb and `builds`/`discards` should not.

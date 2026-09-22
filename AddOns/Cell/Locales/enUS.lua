@@ -149,6 +149,8 @@ select(2, ...).L = setmetatable({
     ["BACKUP_TIPS2"] = "Note for Classic players: Backups do not include Click-Castings and Layout Auto Switch of other characters",
     -- fix from MiliUI: 分享按鈕不再自己開聊天輸入框
     ["Open the chat edit box first (press Enter), then click Share."] = "Open the chat edit box first (press Enter), then click Share.",
+    -- fix from MiliUI: 除錯主控台裡「戰鬥中」的行首標記
+    ["DEBUG_COMBAT_MARK"] = "C",
 
 
 }, {
