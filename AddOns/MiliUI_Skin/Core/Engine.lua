@@ -777,6 +777,29 @@ end
 
 -- opts.boxSize  方框邊長（勾的大小跟著等比縮放）
 -- opts.radio    單選鈕：不是打勾，而是框內一個置中的實心小方塊（約框的一半），同樣純色
+-- 帶 1px 黑框的勾（`T.checkStyle = "outline"`）：自帶的白勾黑框貼圖 × 職業色。
+-- 不用遮罩（黑框是貼圖本身的一部分）。之前 flat 那一版建過遮罩的話要拆掉，
+-- 不然黑框會被遮罩切掉 —— 同一顆勾選框只會走其中一條，但 /reload 之前切換樣式時會遇到。
+local function OutlineCheck(cb, tex, c, boxSize, file, sizeOverride)
+    local size = sizeOverride
+        or (T.checkGlyphHeight * ((boxSize or T.checkBoxSize) / T.checkBoxSize)) / T.checkOutlineGlyphFrac
+    return pcall(function()
+        local mask = checkMasks[tex]
+        if mask then
+            tex:RemoveMaskTexture(mask)
+            checkMasks[tex] = nil
+        end
+        tex:ClearAllPoints()
+        tex:SetPoint("CENTER", cb, "CENTER", 0, 0)
+        tex:SetSize(P.Scale(size), P.Scale(size))
+        tex:SetTexture(file)
+        tex:SetTexCoord(0, 1, 0, 1)
+        tex:SetAlpha(1)
+        tex:SetDesaturated(false)
+        tex:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
+    end)
+end
+
 function Engine.CheckedGlyph(cb, color, disabledColor, label, opts)
     if not Usable(cb, label) then return end
     opts = opts or {}
@@ -809,7 +832,14 @@ function Engine.CheckedGlyph(cb, color, disabledColor, label, opts)
         local ok, tex = pcall(cb[getter], cb)
         if not ok or not tex then return end
         if opts.radio then
+            if T.checkStyle == "outline"
+                and OutlineCheck(cb, tex, c, nil, T.dotOutlineTexture, (opts.boxSize or T.checkBoxSize) / 2) then
+                return
+            end
             if Dot(tex, c) then return end
+        elseif T.checkStyle == "outline" then
+            if OutlineCheck(cb, tex, c, opts.boxSize, T.checkOutlineTexture) then return end
+            if FlatCheck(cb, tex, c, opts.boxSize) then return end
         elseif T.checkStyle == "flat" then
             if FlatCheck(cb, tex, c, opts.boxSize) then return end
         end

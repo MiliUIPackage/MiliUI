@@ -143,7 +143,15 @@ T.checkBoxSize = 18
 -- 勾的樣式：
 --   "flat"   純色、形狀取自 `checkmark-minimal`（跟套組設定視窗的勾選框同一個做法）；預設
 --   "tint"   第六輪的做法：保留暴雪那張立體勾、去飽和後染職業色（有陰影與高光，看起來是浮雕）
-T.checkStyle = "flat"
+--   "outline" 2026-09-22 使用者要求：flat 的形狀＋1px 黑框。自帶一張「白勾＋黑框」的貼圖
+--             （`Media/check-outline.tga`），`SetVertexColor` 是乘法 ⇒ 白的變職業色、黑框維持黑；
+--             單選鈕的小方塊同理（`Media/dot-outline.tga`）。預設
+T.checkStyle = "outline"
+T.checkOutlineTexture = "Interface\\AddOns\\MiliUI_Skin\\Media\\check-outline.tga"
+T.dotOutlineTexture   = "Interface\\AddOns\\MiliUI_Skin\\Media\\dot-outline.tga"
+-- 勾（含黑框）在貼圖裡佔的高度比例：64 格裡約 41 格（上下留白給黑框與反鋸齒）。
+-- 貼圖尺寸 ＝ checkGlyphHeight ÷ 這個比例 ⇒ 看得到的勾跟 flat 一樣高。
+T.checkOutlineGlyphFrac = 0.64
 -- 勾的高度（對 18 的框）。刻意比框大：勾往外溢是套組勾選框的語彙。寬度照 atlas 的比例換算。
 T.checkGlyphHeight = 24
 
