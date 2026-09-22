@@ -141,13 +141,15 @@ T.rowAccentSize = 2
 T.checkBoxSize = 18
 
 -- 勾的樣式：
---   "flat"   純色、形狀取自 `checkmark-minimal`（跟套組設定視窗的勾選框同一個做法）；預設
+--   "flat"   純色、形狀取自 `checkmark-minimal`（套組設定視窗的勾選框 2026-09-22 以前的做法）
 --   "tint"   第六輪的做法：保留暴雪那張立體勾、去飽和後染職業色（有陰影與高光，看起來是浮雕）
---   "outline" 2026-09-22 使用者要求：flat 的形狀＋1px 黑框。自帶一張「白勾＋黑框」的貼圖
---             （`Media/check-outline.tga`），`SetVertexColor` 是乘法 ⇒ 白的變職業色、黑框維持黑；
+--   "outline" 2026-09-22 使用者要求：flat 的形狀＋1px 黑框。自帶一張「白勾＋黑框」的貼圖，
+--             `SetVertexColor` 是乘法 ⇒ 白的變職業色、黑框維持黑；
 --             單選鈕的小方塊同理（`Media/dot-outline.tga`）。預設
+--             勾的貼圖跟套組設定視窗的勾選框共用一張：放在共用層 `Libs/MiliUIWidgets/Media/`，
+--             原始檔在 MiliUI 本體那份、由 sync-widgets.py 同步過來 —— 要改勾的長相改那裡。
 T.checkStyle = "outline"
-T.checkOutlineTexture = "Interface\\AddOns\\MiliUI_Skin\\Media\\check-outline.tga"
+T.checkOutlineTexture = "Interface\\AddOns\\MiliUI_Skin\\Libs\\MiliUIWidgets\\Media\\check-outline.tga"
 T.dotOutlineTexture   = "Interface\\AddOns\\MiliUI_Skin\\Media\\dot-outline.tga"
 -- 勾（含黑框）在貼圖裡佔的高度比例：64 格裡約 41 格（上下留白給黑框與反鋸齒）。
 -- 貼圖尺寸 ＝ checkGlyphHeight ÷ 這個比例 ⇒ 看得到的勾跟 flat 一樣高。

@@ -62,7 +62,9 @@ description: MiliUI 自製插件的選單／清單 UI-UX 標準（右鍵選單�
 
 - 整列本來就可點的選單，**勾選框的框是多餘的噪音**。只畫勾。
 - **中文字型沒有 `✓`**，用字元會變方框 → 一定要用材質。
-  暴雪的 `checkmark-minimal` 圖集是首選（跟 `MiliUIWidgets` 的勾選框同一個素材）。
+  暴雪的 `checkmark-minimal` 圖集是首選（跟 `MiliUIWidgets` 勾選框的勾同一個形狀）。
+  圖集只有 30×29：選單那種 11～12 的勾放大倍率小、很清楚；**勾選框那種 24 的勾在高解析度螢幕上
+  被放大兩倍以上就糊了** —— 所以勾選框改用自帶的 64×64 貼圖（`Libs/MiliUIWidgets/Media/check-outline.tga`）。
 - ⚠ **圖集當貼圖直接染色會偏暗** —— 染色是乘法，而素材不是純白。
   正解：純白貼圖染色，**勾形用圖集的 alpha 當遮罩**摳出來。
 - ⚠ **atlas 被暴雪拿掉是靜默失效**（見 [miliui-inspect-icons](../miliui-inspect-icons/SKILL.md)）。

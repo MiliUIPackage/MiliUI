@@ -246,8 +246,10 @@ k = 1、完全不變。職業色不是秘密值，這是純 Lua 算術。
 - **勾選貼圖 `SetTexture(自帶的白勾黑框)` ＋ `SetVertexColor`（只准 `Engine.CheckedGlyph`）** ——
   2026-09-22：勾要有 1px 黑框（跟套組設定視窗的勾一致）。遮罩切出來的純色勾沒辦法描邊，
   而多張貼圖又沒辦法跟著勾選狀態顯隱（只有 Checked 這一張由引擎管）⇒ 把黑框做進貼圖本身
-  （`Media/check-outline.tga`、單選 `Media/dot-outline.tga`），染色是乘法：白變職業色、黑框不變。
+  （勾 `Libs/MiliUIWidgets/Media/check-outline.tga`、單選 `Media/dot-outline.tga`），染色是乘法：白變職業色、黑框不變。
   `T.checkStyle = "flat"` 切回無框版。
+  勾的那張跟套組設定視窗的勾選框（`W.CreateCheckButton`）是同一張：原始檔在 MiliUI 本體的共用層，
+  由 `sync-widgets.py` 同步到每支插件的 `Libs/MiliUIWidgets/Media/` —— 不要在 Skin 這邊另放一份。
 - **`SetDisabledTexture`（只准 `Engine.ScriptlessButton`）** —— 2026-09-22：模板本來沒有
   DisabledTexture（`UIPanelButtonTemplate` 系）的特許按鈕，替它設一張白貼圖再塗成
   `fillInset`，讓引擎在停用時自己蓋上中性底 ⇒ 平時就能畫 primary 的職業色，仍然零腳本。

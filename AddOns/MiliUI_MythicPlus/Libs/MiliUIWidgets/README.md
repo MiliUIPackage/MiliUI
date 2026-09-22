@@ -1,7 +1,8 @@
 # MiliUIWidgets
 
-MiliUI 各插件共用的元件與基礎設施。自寫、零外部依賴、零資產檔（材質只用暴雪內建的
-`WHITE8X8`，字型走暴雪內建路徑），複製過去就會動。
+MiliUI 各插件共用的元件與基礎設施。自寫、零外部依賴，資產檔只有一張勾選框的勾
+（`Media/check-outline.tga`；其餘材質只用暴雪內建的 `WHITE8X8`，字型走暴雪內建路徑），
+整個資料夾複製過去就會動。
 
 **這是 vendor 包，不是 LibStub 函式庫。** 每個插件各帶一份、各跑各的，彼此不共享執行期
 狀態 —— 所以單獨發佈某支插件時，玩家只會下載到**一個**資料夾，不必另外裝共用層。
@@ -30,6 +31,7 @@ python3 .claude/scripts/sync-widgets.py --check   # 只檢查漂移（提交前�
 | `ContextMenu.lua` | 逐字複製 | 右鍵／情境選單（長在遊戲畫面上的那種，不是設定表單裡的下拉） |
 | `Controls.lua` | 逐字複製 | 表單引擎：吃一張 spec 清單，吐出對齊好的一整頁控制項 |
 | `PixelPerfect.lua` | 可略 | 像素對齊。插件已經有自己的一份就別帶，把 `Env.P` 指過去即可 |
+| `Media/check-outline.tga` | 逐字複製 | 勾選框的勾：64×64「白勾＋1px 黑框」，`SetVertexColor` 染職業色（乘法 ⇒ 黑框不變）。跟 MiliUI_Skin 的勾同一張。`Widgets.lua` 照 `<插件>\Libs\MiliUIWidgets\Media\` 取用 —— **這包一定要放在 `Libs/MiliUIWidgets/`**，換地方勾會靜默變空白。同步腳本會自動補齊（貼圖不用排 TOC） |
 
 ## 怎麼搬到新插件
 
