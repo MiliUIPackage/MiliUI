@@ -949,6 +949,22 @@ end
 ------------------------------------------------------------
 
 -- 五個面板共用的 `Inset` ＋ 它底下那張 `groupfinder-background` 裝飾底圖
+-- 預組隊伍三個沒有捲動清單的頁面（分類選擇／沒有可用隊伍／建立隊伍）的內嵌框。
+--
+-- 2026-09-22 實機：「留白不平均、下面兩個按鈕擠住了」。暴雪的幾何（LFGList.xml:948-951、
+-- 998-1001、1587-1590 三處一樣）：
+--   * 內嵌框 `TOPLEFT x=-1`、`BOTTOMRIGHT x=-5 y=26`；
+--   * 底下兩顆按鈕 `BOTTOMLEFT/BOTTOMRIGHT x=-3 y=4`、高 22 ⇒ 按鈕頂 ＝ y 26 ＝ 內嵌框底，零間隙；
+--   * 左右不對稱：左緣貼著左邊的大類欄、右邊離視窗邊多一截。
+-- 框本身不能動（SetPoint 暴雪框）⇒ 只改**我們畫的範圍**：整塊往右 1.5（左右留白一致），
+-- 底往上收 5（跟按鈕之間留一條縫）。裡面的分類按鈕置中在同一條中線上，平移不影響置中。
+-- ⚠ 搜尋結果／申請者清單那兩個內嵌框**不套**：它們的 ScrollBox 錨在內嵌框底 +3
+--   （LFGList.xml:1176、1452），底往上收會讓清單列壓到我們的邊線。
+local PANEL_INSET_POINTS = {
+    { "TOPLEFT", "TOPLEFT", 1.5, 0 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", 1.5, 5 },
+}
+
 local function SkinPanelInset(panel, key, insetKey)
     local inset = Field(panel, insetKey or "Inset")
     if not inset then
@@ -958,7 +974,7 @@ local function SkinPanelInset(panel, key, insetKey)
     -- CustomBG 是 Inset 自己 Layer 裡的一張 atlas（LFGList.xml:955），
     -- 中和掉才看得見我們的 fillInset
     E.NeutralizeKeys(inset, { "CustomBG" }, key)
-    Skin.Inset(inset, key)
+    Skin.Inset(inset, key, { points = PANEL_INSET_POINTS })
 end
 
 local function ApplyCategorySelection(lfg)

@@ -166,9 +166,10 @@ end
 --   `InsetFrameTemplate` 常常帶 `useParentLevel="true"`（商人視窗的金錢列就是），
 --   那種框的層級等於**父框**的層級 ⇒ 子框 overlay 要靠「誰先建」決定誰蓋誰。
 --   改成建在內嵌框自己身上的貼圖之後，那個先後順序的問題就不存在了。
-function Skin.Inset(inset, key)
+function Skin.Inset(inset, key, opts)
+    opts = opts or {}
     E.NeutralizeKeys(inset, { "Bg", "NineSlice" }, key)
-    local ov = E.RegionBackdrop(inset, { key = key })
+    local ov = E.RegionBackdrop(inset, { key = key, points = opts.points })   -- opts.points：畫的範圍跟內嵌框本身不同時
     E.Paint(ov, T.fillInset, T.border)
     return ov
 end
