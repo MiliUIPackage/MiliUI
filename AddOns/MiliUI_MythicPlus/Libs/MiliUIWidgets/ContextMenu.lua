@@ -67,6 +67,7 @@ local SUB_CLOSE_DELAY = 0.4
 local _subGen = 0
 
 local _main, _sub, _catcher
+local _subParent      -- 子選單目前掛在主選單的哪一列（keepAnchor 重畫後照同一列再開）
 local _anchorBtn      -- 哪顆按鈕開的（同一顆再按一次＝關閉）
 local _anchorPoints   -- 上次解出來的錨點，供 keepAnchor 重畫時原地重貼
 
@@ -384,6 +385,7 @@ function Menu.ShowSub(items, parentRow)
     end
     Layout(_sub, items, Menu.Hide)
     _sub:Show()
+    _subParent = parentRow
 
     -- x 偏移 0 而不是 1：留一格空隙的話，游標橫著移過去會先掉進「兩個選單之間」
     -- 那一列縫裡。子選單直接壓在主選單的邊框上，路徑才是連續的。
@@ -406,6 +408,7 @@ end
 -- keepAnchor：選單裡的開關項目按下去之後要**原地重畫**（更新勾選狀態）。
 -- 沒有這個參數的話那條路會撞上上面的「同一顆再按一次＝關閉」而直接關掉選單，
 -- 而且用游標錨定（沒有 anchorBtn）的選單會跳到新的游標位置。
+-- 子選單開著的話會照同一列重開（宿主整份 items 重給就好，子選單內容跟著更新）。
 function Menu.Show(items, anchorBtn, keepAnchor)
     if not keepAnchor and anchorBtn and Menu.IsOpenFor(anchorBtn) then
         Menu.Hide()
@@ -417,6 +420,16 @@ function Menu.Show(items, anchorBtn, keepAnchor)
         SetupEscape(_main)
     end
     EnsureCatcher():Show()
+
+    -- 重畫若是從**子選單裡**點出來的（keepOpen 的單選／開關），子選單要跟著留在原地：
+    -- 收掉的話玩家看不到自己剛勾的那一格，體感是「按了沒反應」。
+    -- 記下它掛在主選單第幾列，重畫完照同一列、用新的項目再開一次
+    local reopen
+    if keepAnchor and _sub and _sub:IsShown() and _subParent and _main then
+        for i, r in ipairs(_main.rows) do
+            if r == _subParent then reopen = i; break end
+        end
+    end
     if _sub then _sub:Hide() end
 
     Layout(_main, items, Menu.Hide)
@@ -426,6 +439,8 @@ function Menu.Show(items, anchorBtn, keepAnchor)
         _main:SetPoint(unpack(_anchorPoints))
         _main:Show()
         _anchorBtn = anchorBtn
+        local item = reopen and items[reopen]
+        if item and item.submenu then Menu.ShowSub(item.submenu, _main.rows[reopen]) end
         return
     end
 
