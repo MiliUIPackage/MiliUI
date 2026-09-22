@@ -601,7 +601,7 @@ local INVOICE_MONEY_FRAMES = {
 
 -- 信紙上所有文字的接管。`OpenMail_Update` 每次都 `SetText` ⇒ 放在後置勾裡重申。
 local function RecolourOpenMailContents()
-    E.TextColor(_G.OpenMailBodyText, T.text, "OpenMailBodyText")
+    E.HTMLTextColor(_G.OpenMailBodyText, T.text, "OpenMailBodyText")   -- SimpleHTML 要帶 "P"（Engine.HTMLTextColor）
 
     -- 發票中間那條算式分隔線（`UI-MailFrame-InvoiceLine`，MailFrame.xml:1123）是
     -- 一張**深色**的線畫，而 `SetVertexColor` 是乘法 —— 深底上乘不出比底亮的線，

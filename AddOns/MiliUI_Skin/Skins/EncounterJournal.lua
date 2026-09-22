@@ -724,7 +724,7 @@ local function SkinBullet(b)
         end
     end
     local text = Probe(b, "Text")
-    if text then E.TextColor(text, T.text, SECTION_KEY .. ".bullet.Text") end
+    if text then E.HTMLTextColor(text, T.text, SECTION_KEY .. ".bullet.Text") end
 end
 
 -- 一個段落（`EncounterInfoTemplate`，.xml:762）
@@ -781,7 +781,7 @@ local function SkinSectionHeader(h)
     if desc then E.TextColor(desc, T.text, SECTION_KEY .. ".description") end
     local od = Probe(h, "overviewDescription")
     local odText = od and Probe(od, "Text")
-    if odText then E.TextColor(odText, T.text, SECTION_KEY .. ".overviewDescription.Text") end
+    if odText then E.HTMLTextColor(odText, T.text, SECTION_KEY .. ".overviewDescription.Text") end
     ReapplySectionButton(Probe(h, "button"))
 end
 
@@ -835,7 +835,7 @@ end
 function OnSetBullets(object, description)   -- 指派給上面的前置宣告，不是全域
     if #sectionContainers == 0 or type(object) ~= "table" then return end
     local text = Probe(object, "Text")
-    if text then E.TextColor(text, T.text, SECTION_KEY .. ".overviewDescription.Text") end
+    if text then E.HTMLTextColor(text, T.text, SECTION_KEY .. ".overviewDescription.Text") end
     if type(object.GetParent) ~= "function" then return end
     local ok, parent = pcall(object.GetParent, object)
     if not ok then return end

@@ -404,14 +404,39 @@ end
 --   文字欄位。內容相同 ⇒ 版面高度不變，暴雪早先用 `GetContentHeight` 排好的位置照樣成立。
 -- ⚠ 只准用在 SimpleHTML；FontString 的 SetTextColor 本來就即時生效，用 `TextColor`。
 ------------------------------------------------------------
-function Engine.RepaintHTML(html, color, text, label)
-    if type(text) ~= "string" then return end
+------------------------------------------------------------
+-- Engine.HTMLTextColor(html, color, label) —— SimpleHTML 的文字色
+--
+-- ⚠ SimpleHTML 的 `SetTextColor` 要**指定文字類型**：不帶 HTML 標籤的純文字是當成
+--   "P" 段落畫的，不帶類型的 `SetTextColor(r,g,b)` 管不到它（實機：冒險指南內文
+--   換色、重畫之後都還是暗棕字）。暴雪自己也是這樣寫：
+--   ItemTextFrame.lua:58 `ItemTextPageText:SetTextColor("P", …)`、
+--   Blizzard_PlayerChoiceOptionBase.lua:340。
+--   ⇒ 預設、P、H1～H3 全部設一次（有 HTML 標籤的內文也一起接住）。
+------------------------------------------------------------
+local HTML_TEXT_TYPES = { "P", "H1", "H2", "H3" }
+
+function Engine.HTMLTextColor(html, color, label)
     if not Usable(html, label) then return end
-    if type(html.SetTextColor) ~= "function" or type(html.SetText) ~= "function" then
+    if type(html.SetTextColor) ~= "function" then
         Engine.Missing(label)
         return
     end
-    pcall(html.SetTextColor, html, color[1], color[2], color[3], color[4] or 1)
+    local r, g, b, a = color[1], color[2], color[3], color[4] or 1
+    pcall(html.SetTextColor, html, r, g, b, a)
+    for _, kind in ipairs(HTML_TEXT_TYPES) do
+        pcall(html.SetTextColor, html, kind, r, g, b, a)
+    end
+end
+
+function Engine.RepaintHTML(html, color, text, label)
+    if type(text) ~= "string" then return end
+    if not Usable(html, label) then return end
+    if type(html.SetText) ~= "function" then
+        Engine.Missing(label)
+        return
+    end
+    Engine.HTMLTextColor(html, color, label)
     pcall(html.SetText, html, text)
 end
 
