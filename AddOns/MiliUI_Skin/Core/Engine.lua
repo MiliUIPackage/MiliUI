@@ -522,6 +522,83 @@ function Engine.ButtonStates(btn, label, withPushed, ownHover)
 end
 
 ------------------------------------------------------------
+-- 零腳本的按鈕變體（第九輪）
+--
+-- 確認彈窗、ESC 選單、寶庫、拍賣場／專業的「通往受保護請求」按鈕都不准掛任何
+-- 腳本（STYLE.md ⑦ 的兩條特許），所以 `Engine.TrackButtonHover` 那一套
+-- （HookScript OnEnter/OnLeave/OnEnable/OnDisable）用不上。primary 的三態只能
+-- 交給**引擎自己依狀態顯示的貼圖**：
+--
+--   滑過 ＝ `GetHighlightTexture()` → `SetColorTexture(保護色, buttonHoverAddAlpha)`。
+--          ⚠ **前提是那張 Highlight 是 `alphaMode="ADD"`**（HIGHLIGHT 層在文字之上；
+--          ADD 只會把底下變亮，白字加任何東西還是白字；換成 BLEND 就會把字蓋掉）。
+--          呼叫端要查證過模板再傳 primary：
+--            `UIPanelButtonHighlightTexture`（SharedUIPanelTemplates.xml:3，ADD，無錨點＝鋪滿）
+--            `StaticPopupButtonTemplate` 的 HighlightTexture（GameDialog.xml:43，ADD，無錨點）
+--   停用 ＝ `GetDisabledTexture()` → `SetAlpha(1)` ＋ `SetColorTexture(fillInset)`。
+--          引擎只在停用時畫它，而它是按鈕自己的 region ⇒ 蓋在我們的 overlay（層級 −1）
+--          之上，整顆變成中性的暗底。⚠ 它跟按鈕同矩形 ⇒ 會連 overlay 的邊一起蓋掉，
+--          所以停用色用 `fillInset`（0.08，「凹下去的槽」）而不是 `fill`：
+--          沒有黑邊的 `fill` 擺在 0.133 的提示皮底上幾乎看不見。
+--          ⚠ `SetAlpha(1)` 是必要的：它可能先被 `Neutralize` 過，區域 alpha 與
+--          顏色 alpha 相乘（註 ⓔ 的二選一）。
+--   按下 ＝ `opts.pushed` 有給、而且模板的 Pushed **沒有 Lua 重設**時才換成黑 `pushedAlpha`。
+--
+-- **沒有 DisabledTexture 的模板（`UIPanelButtonTemplate` 系）做不到停用態** ⇒
+--   平時的 primary 底**不畫**（維持 `fill` ＋ 黑邊），只留滑過的職業色 —— 少一態，
+--   而且少的是「平時」不是「停用」：停用的按鈕看起來像能按，比主按鈕不夠顯眼嚴重
+--   （出價／直購／製作常常是停用的）。回傳值讓呼叫端知道走了哪一條：
+--     "secondary" / "primary"（三態俱全）/ "hoverOnly"（沒有 DisabledTexture）
+--
+-- ⚠ 這一支**不掛任何腳本**，只對 C 端依狀態顯示的三張貼圖做白名單動作
+--   （`SetColorTexture` 對 Highlight／Pushed／**Disabled**，第九輪把 Disabled 加進白名單）。
+------------------------------------------------------------
+function Engine.ScriptlessButton(btn, ov, variant, label, opts)
+    if not ov or not Usable(btn, label) then return nil end
+    opts = opts or {}
+
+    if variant == "secondary" then
+        Engine.ButtonStates(btn, label, opts.pushed)
+        Engine.Paint(ov, T.fill, T.border)
+        return "secondary"
+    end
+
+    local function State(getter)
+        if type(btn[getter]) ~= "function" then return nil end
+        local ok, tex = pcall(btn[getter], btn)
+        if ok and tex and type(tex.SetColorTexture) == "function" then return tex end
+        return nil
+    end
+
+    local hl = State("GetHighlightTexture")
+    if hl then
+        local r, g, b = T.AccentHover()
+        pcall(hl.SetAlpha, hl, 1)
+        pcall(hl.SetColorTexture, hl, r, g, b, T.buttonHoverAddAlpha)
+    end
+
+    if opts.pushed then
+        local pushed = State("GetPushedTexture")
+        if pushed then
+            pcall(pushed.SetAlpha, pushed, 1)
+            pcall(pushed.SetColorTexture, pushed, 0, 0, 0, T.pushedAlpha)
+        end
+    end
+
+    local dis = State("GetDisabledTexture")
+    if dis then
+        local c = T.fillInset
+        pcall(dis.SetAlpha, dis, 1)
+        pcall(dis.SetColorTexture, dis, c[1], c[2], c[3], c[4] or 1)
+        Engine.Paint(ov, { T.AccentButton() }, { T.AccentButtonBorder() })
+        return "primary"
+    end
+
+    Engine.Paint(ov, T.fill, T.border)
+    return "hoverOnly"
+end
+
+------------------------------------------------------------
 -- 「已勾／已選」的那張貼圖 —— 跟 Highlight／Pushed 同一條理由
 --
 -- `GetCheckedTexture()` / `GetDisabledCheckedTexture()` 拿到的貼圖，跟
@@ -1483,14 +1560,23 @@ local function PaintHover(btn)
     --   只有 `Engine.TrackGlyph{ trackEnabled = true }` 才會把它設成布林 ——
     --   也就是說對第五／六輪那些呼叫者來說，下面這一行等同於原本的 `if rec.hover`。
     local on = rec.hover and rec.enabled ~= false
-    if on then
+    if rec.enabled == false and rec.disabledFill then
+        -- 第九輪：primary 停用時退回**中性**（停用的按鈕不能看起來像能按）。
+        -- 只有給了 `disabledFill` 的按鈕會進來；secondary 維持「停用＝閒置」。
+        Engine.Fill(rec.fillOv, rec.disabledFill)
+        Engine.Border(rec.borderOv, rec.disabledBorder or T.border)
+    elseif on then
         Engine.Fill(rec.fillOv, rec.hoverFill or T.fillHover)
-        rec.accent = rec.accent or {}
-        rec.accent[1], rec.accent[2], rec.accent[3], rec.accent[4] = T.Accent(1)
-        Engine.Border(rec.borderOv, rec.accent)
+        if rec.hoverBorder then
+            Engine.Border(rec.borderOv, rec.hoverBorder)
+        else
+            rec.accent = rec.accent or {}
+            rec.accent[1], rec.accent[2], rec.accent[3], rec.accent[4] = T.Accent(1)
+            Engine.Border(rec.borderOv, rec.accent)
+        end
     else
         Engine.Fill(rec.fillOv, rec.idle)
-        Engine.Border(rec.borderOv, T.border)
+        Engine.Border(rec.borderOv, rec.idleBorder or T.border)
     end
 
     -- 線條圖記跟著三態走（第七輪）：停用最暗、滑過最亮、其餘次要色。
@@ -1529,26 +1615,75 @@ local function InstallHoverScripts(btn, rec)
     end)
 end
 
+-- 「能不能按」的兩支腳本也只掛一次（`TrackGlyph{ trackEnabled }` 與
+-- 第九輪的 primary 按鈕共用同一對）。
+--
+-- ⚠ `OnEnable` / `OnDisable` 是**每個 Button 都有的 frame script**，`HookScript`
+--   接得到（同 `Engine.DropdownText` 對篩選下拉的那兩支）。接觸面只有指名的那一顆，
+--   而且腳本只在「啟用狀態改變」時跑，不在點擊派送路徑上；內容只換我們自己
+--   overlay 的顏色。
+-- ⚠ 初始值讀一次 `IsEnabled()`（讀取例外表上那一條，純 C 端布林、過 Secret.ToBool）。
+local function InstallEnableScripts(btn, rec)
+    rec.enabled = HoverEnabled(btn)
+    if rec.enHooked then return end
+    if type(btn.HookScript) ~= "function" then return end
+    rec.enHooked = true
+    -- ⚠ HookScript 不是 SetScript：模板自己的 OnEnable/OnDisable 還要跑
+    --   （`UIPanelButton_OnEnable`／`_OnDisable` 會換 Left/Middle/Right 的材質）。
+    pcall(btn.HookScript, btn, "OnEnable", function(self)
+        local r = hoverState[self]
+        if not r then return end
+        r.enabled = true
+        PaintHover(self)
+    end)
+    pcall(btn.HookScript, btn, "OnDisable", function(self)
+        local r = hoverState[self]
+        if not r then return end
+        r.enabled = false
+        r.hover = false      -- 停用的當下游標可能還停在上面
+        PaintHover(self)
+    end)
+end
+
 -- fillOv 是要換底色的那一層；borderOv 不給就跟 fillOv 同一層。
 -- `hoverFill` 不給就是 `T.fillHover`；只有「閒置底色本來就比 fillHover 亮」的
 -- 元件需要自己給（捲軸拇指閒置是 0.35，套 0.23 會變成滑過反而變暗）。
-function Engine.TrackButtonHover(btn, fillOv, idleFill, borderOv, hoverFill)
+--
+-- opts（第九輪，按鈕的 primary 變體用；**不給就是第五輪的行為**）：
+--   idleBorder      閒置的邊色（預設 `T.border`）
+--   hoverBorder     滑過的邊色（預設職業色 `T.Accent()`）
+--   disabledFill    有給 ⇒ 追「能不能按」（掛 OnEnable/OnDisable），停用時換這個底
+--   disabledBorder  停用時的邊色（預設 `T.border`）
+-- ⚠ 顏色表是呼叫端的（`T.ButtonPalette` 每次給新表），這裡只存參照、不改內容。
+function Engine.TrackButtonHover(btn, fillOv, idleFill, borderOv, hoverFill, opts)
     if not btn or not fillOv then return end
+    opts = opts or {}
     local rec = hoverState[btn]
+    -- ⚠ 第一次建紀錄、又沒有給變體顏色 ⇒ **不重畫**（第五～八輪的行為）：
+    --   呼叫端已經自己 `Paint` 過閒置態，而有些呼叫端刻意把邊關掉
+    --   （`Paint(ov, fill, false)`），這裡一重畫就會把那幾條邊畫回來。
+    local repaint = rec ~= nil or opts.idleBorder ~= nil or opts.disabledFill ~= nil
     if rec then
         rec.fillOv, rec.borderOv, rec.idle = fillOv, borderOv or fillOv, idleFill or rec.idle
         rec.hoverFill = hoverFill or rec.hoverFill
-        InstallHoverScripts(btn, rec)
-        PaintHover(btn)
-        return
+    else
+        rec = {
+            fillOv = fillOv, borderOv = borderOv or fillOv,
+            idle = idleFill or T.fill, hover = false,
+            hoverFill = hoverFill,
+        }
+        hoverState[btn] = rec
     end
-    rec = {
-        fillOv = fillOv, borderOv = borderOv or fillOv,
-        idle = idleFill or T.fill, hover = false,
-        hoverFill = hoverFill,
-    }
-    hoverState[btn] = rec
+    rec.idleBorder     = opts.idleBorder or rec.idleBorder
+    rec.hoverBorder    = opts.hoverBorder or rec.hoverBorder
+    rec.disabledFill   = opts.disabledFill or rec.disabledFill
+    rec.disabledBorder = opts.disabledBorder or rec.disabledBorder
+
     InstallHoverScripts(btn, rec)
+    if rec.disabledFill then
+        InstallEnableScripts(btn, rec)
+    end
+    if repaint then PaintHover(btn) end
 end
 
 ------------------------------------------------------------
@@ -1601,23 +1736,9 @@ function Engine.TrackGlyph(btn, glyphOv, opts)
     end
 
     if opts.trackEnabled then
-        rec.enabled = HoverEnabled(btn)
-        if type(btn.HookScript) == "function" then
-            -- ⚠ HookScript 不是 SetScript：模板自己的 OnEnable/OnDisable 還要跑。
-            pcall(btn.HookScript, btn, "OnEnable", function(self)
-                local r = hoverState[self]
-                if not r then return end
-                r.enabled = true
-                PaintHover(self)
-            end)
-            pcall(btn.HookScript, btn, "OnDisable", function(self)
-                local r = hoverState[self]
-                if not r then return end
-                r.enabled = false
-                r.hover = false      -- 停用的當下游標可能還停在上面
-                PaintHover(self)
-            end)
-        end
+        -- 第九輪：跟 primary 按鈕共用同一對 OnEnable/OnDisable（`InstallEnableScripts`），
+        -- 同一顆按鈕兩邊都要追也只掛一次。
+        InstallEnableScripts(btn, rec)
     end
 
     PaintHover(btn)

@@ -82,7 +82,8 @@
 -- | `StaticPopupN.BG.Top` / `.Bottom` | `SetAlpha(0)` | 一次性的區域屬性寫入，跑在我們自己的 `PLAYER_LOGIN` 堆疊裡；之後執行期零 Lua |
 -- | `StaticPopupN` | `CreateFrame` 一個 overlay（parent 指定 `BG`，見下） | 建立時就定好錨點與層級，**沒有腳本**（陷阱 1）⇒ 點擊時不會有我們的程式被呼叫 |
 -- | `StaticPopupN.ButtonContainer.ButtonN` ／ `.ExtraButton` 的 Normal/Pushed/Disabled | `SetAlpha(0)` | 同上，一次性 |
--- | 同上按鈕的 `GetHighlightTexture()` | `SetColorTexture(1,1,1,0.08)` | **只換那張貼圖長什麼樣**；顯示／隱藏仍然完全由 C 端在滑鼠進出時決定，我們沒有掛 OnEnter/OnLeave ⇒ 滑過與點擊的派送裡一行我們的 Lua 都沒有（STYLE.md ③ 陷阱 3） |
+-- | **第九輪** Button1（primary）的 Pushed／Disabled | `SetAlpha(1)` ＋ `SetColorTexture`（黑 `pushedAlpha`／`fillInset`；`Engine.ScriptlessButton`） | 跟 Highlight 同一條：兩張都是 C 端依狀態自己顯示的貼圖，模板寫死、**全檔沒有 Lua 重設**；我們只換長相 |
+-- | 同上按鈕的 `GetHighlightTexture()` | `SetColorTexture(1,1,1,0.08)`；**第九輪** Button1 改成保護後的職業色 × `buttonHoverAddAlpha`（ADD） | **只換那張貼圖長什麼樣**；顯示／隱藏仍然完全由 C 端在滑鼠進出時決定，我們沒有掛 OnEnter/OnLeave ⇒ 滑過與點擊的派送裡一行我們的 Lua 都沒有（STYLE.md ③ 陷阱 3） |
 -- | 同上按鈕 | `SetNormalFontObject(UserScaledFontGameHighlight)` | 白名單動作，傳的是**暴雪自己的**字型物件；一次性設定，之後由 C 端在三態之間切換 |
 -- | `StaticPopupN.CloseButton` 的 Normal/Pushed/Disabled | `SetAlpha(0)` | 同上 |
 -- | `StaticPopupN.EditBox.NineSlice`（Frame） | `SetAlpha(0)` | 純美術容器，白名單允許對 frame 下 SetAlpha |
@@ -192,6 +193,14 @@ end
 -- 三態：滑過交給引擎（Highlight → 白 8%）。**按下沒有視覺** ——
 -- Pushed 已經被 alpha 0，再 `SetColorTexture` 也乘不出東西（註 ⓔ 的二選一）。
 --
+-- **第九輪：`opts.variant`**（`"primary"`／`"secondary"`，不給＝不分變體，
+-- 關閉鈕走這條）。primary 走 `Engine.ScriptlessButton`，三態全是 C 端依狀態顯示的貼圖：
+--   平時 ＝ overlay 畫壓暗的職業色（`T.AccentButton` ＋ `T.AccentButtonBorder`）
+--   滑過 ＝ Highlight（GameDialog.xml:43，**ADD**、無錨點＝鋪滿）→ 保護色 × 0.70
+--   按下 ＝ Pushed（:37，**全檔沒有 Lua 重設**）→ 黑 `pushedAlpha`
+--   停用 ＝ Disabled（:40，同上）→ `fillInset`，蓋住整顆 overlay（中性、不像能按）
+-- 零 HookScript 的特許條件照舊成立。
+--
 -- TODO(升格): 如果第五輪之後「要一顆完全不掛腳本的平面按鈕」在別的配方也出現，
 --   就把這支升格成 `Skin.Button` 的 `opts.noHover` 之類的開關。
 ------------------------------------------------------------
@@ -213,11 +222,17 @@ local function FlatButton(btn, key, opts)
             if ok and tex then E.Neutralize(tex, key .. "." .. getter) end
         end
     end
-    -- 第三個參數不給 ⇒ 只換 Highlight 的長相，Pushed 不上色
-    E.ButtonStates(btn, key)
 
     if opts.font then E.ButtonFonts(btn, opts.font, key) end
 
+    if opts.variant then
+        -- Pushed／Disabled 剛才被中和過；primary 那一支會自己 `SetAlpha(1)` 再上色
+        E.ScriptlessButton(btn, ov, opts.variant, key, { pushed = true })
+        return ov
+    end
+
+    -- 第三個參數不給 ⇒ 只換 Highlight 的長相，Pushed 不上色
+    E.ButtonStates(btn, key)
     E.Paint(ov, T.fill, T.border)
     return ov
 end
@@ -296,6 +311,18 @@ local function FlatItemButton(btn, key)
 end
 
 ------------------------------------------------------------
+-- 第九輪：彈窗按鈕的變體**照位置**分派 —— Button1 primary、其餘 secondary
+--
+-- 有些彈窗的 button1 其實是「取消」，但要知道就得讀 `which`／`dialogInfo`／按鈕文字，
+-- 三樣都是這份特許明文禁止的讀取（條件 3）。`StaticPopupDialogs` 的慣例是
+-- `button1` 配 `OnAccept`、`button2` 配 `OnCancel`，照位置分派錯的機率最低。
+-- ExtraButton 一律 secondary（它是附加選項）。
+------------------------------------------------------------
+local function PopupVariant(i)
+    return i == 1 and "primary" or "secondary"
+end
+
+------------------------------------------------------------
 -- 一顆彈窗
 ------------------------------------------------------------
 local function SkinDialog(dialog, key)
@@ -320,8 +347,8 @@ local function SkinDialog(dialog, key)
 
     E.NeutralizeKeys(bg, { "Top", "Bottom" }, key .. ".BG")
     -- **提示皮**（STYLE.md ①：浮在世界上方、彈出來讀一眼就關）：
-    -- 不透明 0.133 底 ＋ 1px 職業色邊。裡面的按鈕／輸入框照舊是設定視窗皮的
-    -- `fill`／`fillInset` ＋ 黑邊 —— 職業色只給最外面那一圈，不然整顆彈窗都是線。
+    -- 不透明 0.133 底 ＋ 1px 職業色邊。裡面的輸入框與次按鈕照舊是設定視窗皮的
+    -- `fill`／`fillInset` ＋ 黑邊；職業色給：外框、滑過、主按鈕（第九輪，STYLE.md ④）。
     E.Paint(ov, T.tipFill, { T.Accent() })
 
     ------------------------------------------------------------
@@ -348,13 +375,13 @@ local function SkinDialog(dialog, key)
         local arr
         if pcall(function() arr = container.Buttons end) and type(arr) == "table" and #arr > 0 then
             for i, btn in ipairs(arr) do
-                FlatButton(btn, key .. ".Button" .. i, { font = font })
+                FlatButton(btn, key .. ".Button" .. i, { font = font, variant = PopupVariant(i) })
             end
         else
             for i = 1, 4 do
                 local btn
                 if pcall(function() btn = container["Button" .. i] end) and btn then
-                    FlatButton(btn, key .. ".Button" .. i, { font = font })
+                    FlatButton(btn, key .. ".Button" .. i, { font = font, variant = PopupVariant(i) })
                 else
                     E.Missing(key .. ".ButtonContainer.Button" .. i)
                 end
@@ -366,7 +393,7 @@ local function SkinDialog(dialog, key)
 
     local extra
     if pcall(function() extra = dialog.ExtraButton end) and extra then
-        FlatButton(extra, key .. ".ExtraButton", { font = font })
+        FlatButton(extra, key .. ".ExtraButton", { font = font, variant = "secondary" })
     else
         E.Missing(key .. ".ExtraButton")
     end

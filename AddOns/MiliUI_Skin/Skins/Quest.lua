@@ -156,6 +156,13 @@ local PANEL_BUTTONS = {
     "QuestFrameGreetingGoodbyeButton",
 }
 
+-- 第九輪：接受／繼續／完成 primary，拒絕／再見 secondary（STYLE.md ④ 按鈕的兩種變體）
+local PANEL_SECONDARY = {
+    QuestFrameDeclineButton = true,
+    QuestFrameGoodbyeButton = true,
+    QuestFrameGreetingGoodbyeButton = true,
+}
+
 -- 四個面板各一條 QuestScrollFrameTemplate（← ScrollFrameTemplate，ScrollBar 是 MinimalScrollBar）
 local SCROLL_FRAMES = {
     "QuestDetailScrollFrame",
@@ -242,7 +249,7 @@ local function Apply()
     for _, name in ipairs(PANEL_BUTTONS) do
         local btn = _G[name]
         if btn then
-            Skin.Button(btn, name)
+            Skin.Button(btn, name, { variant = PANEL_SECONDARY[name] and "secondary" or nil })
         else
             E.Missing(name)
         end

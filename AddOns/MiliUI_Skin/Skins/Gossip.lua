@@ -92,7 +92,8 @@ local function Apply()
     if pcall(function() panel = f.GreetingPanel end) and panel then
         local goodbye
         if pcall(function() goodbye = panel.GoodbyeButton end) and goodbye then
-            Skin.Button(goodbye, "GossipFrame.GreetingPanel.GoodbyeButton")
+            -- 第九輪：「再見」＝ secondary（就算它是這個面板唯一一顆按鈕）
+            Skin.Button(goodbye, "GossipFrame.GreetingPanel.GoodbyeButton", { variant = "secondary" })
         else
             E.Missing("GossipFrame.GreetingPanel.GoodbyeButton")
         end

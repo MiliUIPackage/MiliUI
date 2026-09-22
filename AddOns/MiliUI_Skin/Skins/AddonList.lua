@@ -208,7 +208,8 @@ local function ApplyEntryRow(row)
 
     local load
     if pcall(function() load = row.LoadAddonButton end) and load then
-        Skin.Button(load, "AddonListEntry.LoadAddonButton")
+        -- 第九輪：每一列一顆「載入」＝一整欄平行選項 ⇒ secondary
+        Skin.Button(load, "AddonListEntry.LoadAddonButton", { variant = "secondary" })
     end
 end
 
@@ -260,7 +261,9 @@ local function ApplyDialog()
         local name = "AddonDialogButton" .. i
         local btn = _G[name]
         if btn then
-            Skin.Button(btn, name)
+            -- 第九輪：照位置 —— Button1（確定）primary、Button2（取消）secondary
+            --（AddonList.lua:36-70 的三種對話框 button1 都是執行、button2 都是退回）
+            Skin.Button(btn, name, { variant = i == 2 and "secondary" or nil })
         else
             E.Missing(name)
         end
@@ -396,7 +399,10 @@ local function Apply()
     for _, key in ipairs({ "CancelButton", "OkayButton", "EnableAllButton", "DisableAllButton" }) do
         local btn
         if pcall(function() btn = f[key] end) and btn then
-            Skin.ThreeSliceButton(btn, "AddonList." .. key)
+            -- 第九輪：確定 primary；取消／全部啟用／全部停用 secondary
+            Skin.ThreeSliceButton(btn, "AddonList." .. key, {
+                variant = key ~= "OkayButton" and "secondary" or nil,
+            })
         else
             E.Missing("AddonList." .. key)
         end

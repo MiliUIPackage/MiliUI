@@ -164,7 +164,8 @@
 --
 -- hook：**一支都沒有掛在它的函式上**。只有原語內建的
 --   `HookScript("OnEnter"/"OnLeave")`（`Engine.TrackButtonHover`／`TrackGlyph`，
---   只碰我們自己的 overlay）與 `HookScript("OnEnable"/"OnDisable")`（箭頭鈕的停用態）。
+--   只碰我們自己的 overlay）與 `HookScript("OnEnable"/"OnDisable")`（箭頭鈕的停用態；
+--   第九輪起 `RefreshButton` 也有這一對 —— 它是 primary，停用時退回中性底）。
 --   **沒有 `hooksecurefunc`、沒有 `SetScript`、沒有呼叫它的任何函式。**
 -- 寫入它的欄位：無（狀態全在 `Engine.State` 的弱鍵表裡）。
 -- 讀它的物件：只有 parentKey 查詢（`frame.Act`…）、`GetChildren()` 與
@@ -426,6 +427,7 @@ local function SkinDialog(dlg)
     end
 
     local refresh = Field(dlg, "RefreshButton")
+    -- 第九輪：對話框唯一一顆文字鈕（依條件重新搜尋）⇒ 預設 primary
     if refresh then Skin.Button(refresh, key .. ".RefreshButton") end
 end
 

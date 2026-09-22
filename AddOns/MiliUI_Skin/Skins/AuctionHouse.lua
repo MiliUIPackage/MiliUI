@@ -115,7 +115,8 @@
 --
 --   * **零 `HookScript`**、**零 `hooksecurefunc` 在任何 `C_AuctionHouse.*` 或
 --     那幾顆按鈕的 mixin 上**。滑過一律交給引擎換 Highlight 貼圖的長相
---     （`Engine.ButtonStates` ⇒ 白 8%），不是 `Engine.TrackButtonHover` 的
+--     （第九輪起走 `Engine.ScriptlessButton`：primary ⇒ 保護後的職業色 ADD、
+--     secondary ⇒ 白 8%），不是 `Engine.TrackButtonHover` 的
 --     職業色邊（那一支會掛 `OnEnter`/`OnLeave`）。
 --   * 所以它們走本檔的 local `CommerceButton`，**不呼叫 `Skin.Button`**。
 --   * 純導覽的按鈕（搜尋、返回、最大數量、重新整理、分頁）維持一般原語。
@@ -221,8 +222,8 @@
 -- | 欄位表頭的 `Left`／`Right`／`Middle` | `SetAlpha(0)`；`Arrow` | `SetVertexColor` |
 -- | 搜尋框／數量框／金額框的 `Left`／`Right`／`Middle`／`left`／`right` | `SetAlpha(0)` |
 -- | 篩選下拉的 `Background` | `SetAlpha(0)`；`Arrow` | `SetDesaturated` ＋ `SetVertexColor`；`Text` | `SetTextColor` ＋ 兩支 `HookScript`（`Engine.DropdownText`） |
--- | 一般按鈕的 `Left`／`Right`／`Middle` | `SetAlpha(0)` ＋ `SetNormalFontObject` ＋ Highlight 中和 ＋ `HookScript("OnEnter"/"OnLeave")`（`Engine.TrackButtonHover`） |
--- | **特許按鈕**的 `Left`／`Right`／`Middle` | `SetAlpha(0)` ＋ `SetNormalFontObject` ＋ Highlight `SetColorTexture`。**零 HookScript** |
+-- | 一般按鈕的 `Left`／`Right`／`Middle` | `SetAlpha(0)` ＋ `SetNormalFontObject` ＋ Highlight 中和 ＋ `HookScript("OnEnter"/"OnLeave")`（`Engine.TrackButtonHover`）；**第九輪** primary 的那幾顆（搜尋）再加 `HookScript("OnEnable"/"OnDisable")` |
+-- | **特許按鈕**的 `Left`／`Right`／`Middle` | `SetAlpha(0)` ＋ `SetNormalFontObject` ＋ Highlight `SetColorTexture`（第九輪：primary ＝ 保護色 × 0.70、secondary ＝ 白 8%）。**零 HookScript**。模板沒有 DisabledTexture ⇒ 沒有別的貼圖被碰 |
 -- | `BuyoutModeCheckButton` 的四張狀態圖 | `SetAlpha(0)` / `SetColorTexture` / `SetDesaturated`（`Skin.CheckBox`） |
 -- | 捲軸的 Track／Thumb／Back／Forward | `SetAlpha(0)` / `SetVertexColor`（`Skin.ScrollBar`） |
 -- | 賣出頁的 `CreateAuctionTabLeft/Middle/Right` | `SetAlpha(0)`；`CreateAuctionLabel` | `SetTextColor` |
@@ -236,6 +237,7 @@
 -- | `hooksecurefunc(AuctionHouseTableHeaderStringMixin, "Init", …)` | mixin 後置勾（`Engine.HookRows`） | 中和三片式底圖、染排序箭頭。**不讀 `owner`／`headerText`／`sortOrder`** |
 -- | `Engine.DropdownText` 的 `HookScript("OnEnable"/"OnDisable")` | frame script 後掛 | 只對篩選下拉那一顆，內容只有 `SetTextColor` |
 -- | `Engine.TrackButtonHover` 的 `HookScript("OnEnter"/"OnLeave")` | frame script 後掛 | 只對**一般**按鈕；內容只有換我們自己 overlay 的底色與邊色 |
+-- | **第九輪** `Engine.TrackButtonHover` 的 `HookScript("OnEnable"/"OnDisable")` | frame script 後掛 | 只對 primary 的**一般**按鈕（`SearchBar.SearchButton`）；內容只有換 overlay 的底色與邊色 |
 -- | `Engine.TrackTab` 的三支 `PanelTemplates_*` 後置勾 | 全域函式後置勾（引擎既有，不是新的） | 第一行查弱鍵表 |
 --
 -- **`hooksecurefunc` 在 `AuctionHouseFrame`／任何 `C_AuctionHouse` 函式上：0 支。**
@@ -259,23 +261,35 @@ local L = ns.L
 --   `Engine.Overlay` 對顯式保護框會回 nil，倒過來寫的話那顆按鈕會變成
 --   「美術被中和掉、又沒有東西補」的隱形按鈕 —— 而這幾顆是「出價／直購／上架」。
 --
+-- **第九輪：變體**（`variant`，預設 primary）走 `Engine.ScriptlessButton` ——
+--   同樣零腳本，只換 C 端依狀態顯示的貼圖。這幾顆全是 `UIPanelButtonTemplate` 系
+--   （`AuctionHouseDialogButtonTemplate` 也是，Shared/Blizzard_AuctionHouseBuyDialog.xml:41），
+--   **沒有 DisabledTexture** ⇒ primary 只拿得到「滑過＝職業色」（Highlight 是
+--   `UIPanelButtonHighlightTexture`，ADD）、平時維持 `fill` ＋ 黑邊。
+--   少的是平時那一態，不是停用那一態：直購／出價在沒選東西時是停用的，
+--   平時就畫成主按鈕的話，停用的那顆看起來會像能按。
+--
 -- TODO(升格): 第三個視窗也需要「一顆完全不掛腳本的平面按鈕」時，
 --   就把它升格成 `Skin.Button` 的 `opts.noHover`。
 ------------------------------------------------------------
 local PANEL_BUTTON_ART = { "Left", "Right", "Middle" }
 
-local function CommerceButton(btn, key)
+local function CommerceButton(btn, key, variant)
     if not E.Usable(btn, key) then return nil end
 
     local ov = E.Overlay(btn, { key = key })
     if not ov then return nil end
 
     E.NeutralizeKeys(btn, PANEL_BUTTON_ART, key)
-    -- 第三、四個參數都不給 ⇒ Highlight 換成白 8%、Pushed 不上色、**不掛腳本**
-    E.ButtonStates(btn, key)
     E.ButtonFonts(btn, GameFontHighlight, key)
-    E.Paint(ov, T.fill, T.border)
+    -- Highlight 的長相 ＋ 底與邊；**不掛腳本**（見 `Engine.ScriptlessButton`）
+    E.ScriptlessButton(btn, ov, variant or "primary", key)
     return ov
+end
+
+-- 成對的那一顆（出價、購買彈窗的取消）
+local function CommerceSecondary(btn, key)
+    return CommerceButton(btn, key, "secondary")
 end
 
 -- 取子物件的共同寫法：拿不到就記一筆 missing（伴隨元件另外走靜默跳過）
@@ -460,7 +474,7 @@ local function SkinSearchBar(bar, key)
     end)
     WithSub(bar, "SearchButton", key .. ".SearchButton", function(btn, label)
         -- 搜尋不在任何受保護請求的執行流上（它走 `C_AuctionHouse.SendBrowseQuery`）
-        -- ⇒ 一般按鈕，有職業色滑過邊。
+        -- ⇒ 一般按鈕，有職業色滑過邊。第九輪：搜尋列唯一的文字鈕 ⇒ primary。
         Skin.Button(btn, label)
     end)
     WithSub(bar, "FavoritesSearchButton", key .. ".FavoritesSearchButton", function(btn, label)
@@ -493,7 +507,8 @@ local function SkinBidFrame(frame, key)
     end
     local btn
     if pcall(function() btn = frame.BidButton end) and btn then
-        CommerceButton(btn, key .. ".BidButton")
+        -- 第九輪：出價跟直購在同一塊 ⇒ 直購 primary、出價 secondary
+        CommerceSecondary(btn, key .. ".BidButton")
     end
 end
 
@@ -531,7 +546,8 @@ local function SkinSellFrame(frame, key)
         end)
         WithSub(q, "MaxButton", qkey .. ".MaxButton", function(btn, blabel)
             -- 「最大數量」只是把數字填滿，不通往任何受保護請求 ⇒ 一般按鈕
-            Skin.Button(btn, blabel)
+            -- 第九輪：輸入欄旁的輔助鈕 ⇒ secondary（這一塊的 primary 是上架）
+            Skin.Button(btn, blabel, { variant = "secondary" })
         end)
     end)
 
@@ -609,7 +625,8 @@ local function SkinAuctionsFrame(frame, key)
 
     WithSub(frame, "BidFrame", key .. ".BidFrame", SkinBidFrame)
     WithSub(frame, "BuyoutFrame", key .. ".BuyoutFrame", SkinBuyoutFrame)
-    -- **特許**：取消拍賣
+    -- **特許**：取消拍賣。第九輪：這是「拍賣」分頁的唯一動作 ⇒ primary
+    --（名字雖然叫取消，但它是執行，不是對話框的「退回」）
     WithSub(frame, "CancelAuctionButton", key .. ".CancelAuctionButton", CommerceButton)
 end
 
@@ -634,7 +651,9 @@ local function SkinBuyDialog(dialog, key)
     for _, name in ipairs({ "BuyNowButton", "CancelButton", "OkayButton" }) do
         local btn
         if pcall(function() btn = dialog[name] end) and btn then
-            CommerceButton(btn, key .. "." .. name)
+            -- 第九輪：立即購買／確定 primary、取消 secondary
+            CommerceButton(btn, key .. "." .. name,
+                name == "CancelButton" and "secondary" or nil)
         end
     end
 end
@@ -797,7 +816,7 @@ local function Apply()
     -- 物品購買頁
     WithSub(f, "ItemBuyFrame", "AuctionHouseFrame.ItemBuyFrame", function(frame, key)
         WithSub(frame, "BackButton", key .. ".BackButton", function(btn, label)
-            Skin.Button(btn, label)
+            Skin.Button(btn, label, { variant = "secondary" })   -- 第九輪：返回
         end)
         WithSub(frame, "ItemDisplay", key .. ".ItemDisplay", SkinItemDisplay)
         WithSub(frame, "ItemList", key .. ".ItemList", SkinItemList)
@@ -808,7 +827,7 @@ local function Apply()
     -- 商品（可堆疊）購買頁
     WithSub(f, "CommoditiesBuyFrame", "AuctionHouseFrame.CommoditiesBuyFrame", function(frame, key)
         WithSub(frame, "BackButton", key .. ".BackButton", function(btn, label)
-            Skin.Button(btn, label)
+            Skin.Button(btn, label, { variant = "secondary" })   -- 第九輪：返回
         end)
         WithSub(frame, "ItemList", key .. ".ItemList", SkinItemList)
         WithSub(frame, "BuyDisplay", key .. ".BuyDisplay", function(display, dkey)
@@ -820,7 +839,7 @@ local function Apply()
                     Skin.EditBox(box, blabel)
                 end)
                 WithSub(q, "MaxButton", qkey .. ".MaxButton", function(btn, blabel)
-                    Skin.Button(btn, blabel)
+                    Skin.Button(btn, blabel, { variant = "secondary" })   -- 第九輪
                 end)
             end)
             for _, name in ipairs({ "UnitPrice", "TotalPrice" }) do

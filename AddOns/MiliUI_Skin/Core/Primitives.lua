@@ -192,12 +192,51 @@ end
 -- 的材質來表示按下的，而那三張已經被我們 alpha 0 了。補一張 PushedTexture 等於
 -- 對暴雪按鈕做結構性修改，不在白名單裡。
 ------------------------------------------------------------
+------------------------------------------------------------
+-- 按鈕的兩種變體（第九輪）—— `Skin.Button`／`ThreeSliceButton`／`StretchButton` 共用
+--
+-- | 狀態 | primary（預設） | secondary（＝第五輪，不改） |
+-- |---|---|---|
+-- | 平時 | 底 `T.AccentButton()`、邊 `T.AccentButtonBorder()` | `fill` ＋ 黑邊 |
+-- | 滑過 | 底 `T.AccentHover()`、邊 `T.Accent()` | `fillHover` ＋ 職業色邊 |
+-- | 停用 | **中性**：`fill` ＋ 黑邊（字是暴雪的停用灰） | 同平時 |
+-- | 按下 | 沒有視覺（這三個模板都沒有 PushedTexture，註 ⓒ） | 同左 |
+--
+-- 判準（STYLE.md ④「按鈕的兩種變體」）：成對／成組時「確認／執行」那顆 primary、
+-- 「取消／返回／拒絕／關閉」那顆 secondary；單獨一顆 primary；一整排平行選項全部 secondary。
+--
+-- ⚠ 停用態走 `Engine.TrackButtonHover` 的 `disabledFill` ⇒ **多掛兩支
+--   `HookScript("OnEnable"/"OnDisable")`**。零腳本那條路（DisabledTexture）在這三個
+--   模板上不存在：`UIPanelButtonNoTooltipTemplate`（SecureUIPanelTemplates.xml:39-86）、
+--   `ThreeSliceButtonTemplate`、`UIMenuButtonStretchTemplate` 都**沒有** `<DisabledTexture>`
+--   ——停用是靠 `UIPanelButton_OnDisable`（SecureUIPanelTemplates.lua:70）換
+--   Left/Middle/Right 的材質表示的，而那三張已經被我們 alpha 0。補一張 DisabledTexture
+--   是結構性修改（註 ⓒ），所以只能追事件。
+------------------------------------------------------------
+local function PaintVariant(btn, ov, variant)
+    if not ov then return end
+    local pal = T.ButtonPalette(variant or "primary")
+    if not pal then
+        E.Paint(ov, T.fill, T.border)
+        E.TrackButtonHover(btn, ov, T.fill)
+        return
+    end
+    E.Paint(ov, pal.idle, pal.idleBorder)
+    E.TrackButtonHover(btn, ov, pal.idle, nil, pal.hover, {
+        idleBorder     = pal.idleBorder,
+        hoverBorder    = pal.hoverBorder,
+        disabledFill   = pal.disabled,
+        disabledBorder = pal.disabledBorder,
+    })
+end
+
 -- opts:
 --   keepFont  不要換 NormalFont。給「字型物件本身帶了別的語意」的按鈕用 ——
 --             好友查詢頁的欄位表頭是 `UserScaledFontGameHighlightSmall`
 --             （跟著玩家的文字大小設定縮放），換成固定字級的 `GameFontHighlight`
 --             等於把那個縮放弄掉。
 --   points    overlay 改用自訂錨點（仍然錨在按鈕上）
+--   variant   **第九輪**：`"primary"`（預設）｜`"secondary"`，見 `PaintVariant`
 function Skin.Button(btn, key, opts)
     opts = opts or {}
     E.NeutralizeKeys(btn, { "Left", "Right", "Middle" }, key)
@@ -208,8 +247,7 @@ function Skin.Button(btn, key, opts)
     end
 
     local ov = E.Overlay(btn, { key = key, points = opts.points })
-    E.Paint(ov, T.fill, T.border)
-    E.TrackButtonHover(btn, ov, T.fill)
+    PaintVariant(btn, ov, opts.variant)
     return ov
 end
 
@@ -630,8 +668,7 @@ function Skin.StretchButton(btn, key, opts)
     E.ButtonStates(btn, key, nil, true)
 
     local ov = E.Overlay(btn, { key = key, points = opts.points, inset = opts.inset })
-    E.Paint(ov, T.fill, T.border)
-    E.TrackButtonHover(btn, ov, T.fill)
+    PaintVariant(btn, ov, opts.variant)      -- 第九輪：opts.variant（預設 primary）
     return ov
 end
 
@@ -1262,8 +1299,7 @@ function Skin.ThreeSliceButton(btn, key, opts)
     end
 
     local ov = E.Overlay(btn, { key = key, points = opts.points })
-    E.Paint(ov, T.fill, T.border)
-    E.TrackButtonHover(btn, ov, T.fill)
+    PaintVariant(btn, ov, opts.variant)      -- 第九輪：opts.variant（預設 primary）
     return ov
 end
 

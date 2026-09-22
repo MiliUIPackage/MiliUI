@@ -201,6 +201,8 @@ local L = ns.L
 --   跟這一份的特許條件衝突。這裡只組合四個不掛腳本的動作。
 --
 -- 三態：滑過交給引擎（Highlight 貼圖 → 白 8%，C 端自己顯示／隱藏）。
+-- 第九輪：`opts.variant` 有給就改走 `Engine.ScriptlessButton`（同樣零腳本；
+-- 「選擇獎勵」primary ⇒ Highlight 換成保護後的職業色 × 0.70，ADD）。
 --
 -- TODO(升格): 這一支跟 `Skins/Popup.lua` 的 `FlatButton` 是同一個形狀，只差
 --   「要中和哪幾張貼圖」（那邊是 Normal/Pushed/Disabled，這邊還要加
@@ -217,6 +219,8 @@ local FLAT_GETTERS = { "GetNormalTexture", "GetPushedTexture", "GetDisabledTextu
 --   glyph   靜態圖記（關閉鈕的 ×）
 --   inset   overlay 四邊內縮
 --   font    換 NormalFontObject
+--   variant 第九輪：`"primary"`／`"secondary"`，走 `Engine.ScriptlessButton`（零腳本）；
+--           不給＝舊行為（關閉鈕走這條）
 local function FlatButton(btn, key, opts)
     if not E.Usable(btn, key) then return nil end
     opts = opts or {}
@@ -235,10 +239,14 @@ local function FlatButton(btn, key, opts)
             if ok and tex then E.Neutralize(tex, key .. "." .. getter) end
         end
     end
-    E.ButtonStates(btn, key, opts.pushed)
-
     if opts.font then E.ButtonFonts(btn, opts.font, key) end
 
+    if opts.variant then
+        E.ScriptlessButton(btn, ov, opts.variant, key, { pushed = opts.pushed })
+        return ov
+    end
+
+    E.ButtonStates(btn, key, opts.pushed)
     E.Paint(ov, T.fill, T.border)
     return ov
 end
@@ -521,9 +529,13 @@ local function Apply()
         -- （atlas evergreen-weeklyrewards-frame-selectbutton，.xml:743）。
         -- ⚠ 一定要 alpha：`UIPanelButton_OnShow`/`_OnMouseDown`… 每次都
         --   `SetTexture` 回去（同 `Skin.Button` 的查證）。
+        -- 第九輪：視窗唯一的動作 ⇒ primary。它是 `UIPanelButtonTemplate`（沒有
+        -- DisabledTexture）⇒ `ScriptlessButton` 只給得了「滑過＝職業色」，平時維持
+        -- `fill` ＋ 黑邊（沒選獎勵之前它是停用的，不能畫得像能按）。
         FlatButton(selectBtn, "WeeklyRewardsFrame.SelectRewardButton", {
             keys = { "Left", "Right", "Middle", "Background" },
             font = GameFontHighlight,
+            variant = "primary",
         })
     else
         E.Missing("WeeklyRewardsFrame.SelectRewardButton")
