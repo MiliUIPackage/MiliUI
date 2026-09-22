@@ -147,7 +147,8 @@ ns.DB_DEFAULTS = {
     -- 反過來存「要顯示哪些」的話，之後新增一個修裝道具就不會自己出現。
     -- auto／guild 是自動修裝（Core/AutoRepair.lua，2026-09-19 從本體搬過來）：
     -- 預設開，公會金庫預設關——花的是公會的錢，要不要用得由玩家自己說。
-    -- 同一張表裡還會多一個 migration 印記（nil ＝ 還沒查過 MiliUI_DB）。
+    -- 同一張表裡還會多一個 migration 印記（nil ＝ 還沒查過 MiliUI_DB），以及
+    -- coreSync（上次登入本體在不在；本體在的時候 auto／guild 只是本體設定的鏡像）。
     repair = {
         hidden = {},
         auto   = true,

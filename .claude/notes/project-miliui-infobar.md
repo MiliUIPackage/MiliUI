@@ -402,6 +402,18 @@ Cell 設定視窗開著時勾選框是否即時同步、面板在停靠上／下
 修裝圖示排換行、四張面板貼頂／貼底翻面一致。
 
 
+## 自動修裝改成兩邊都有、設定一份（2026-09-23，取代下面 9/19 那節的「本體只剩賣垃圾」）
+
+- 起因：9/19 搬走後**沒開資訊列的玩家就沒修裝**。現在本體 `Merchant_Automation.lua` 把修裝加回來
+  （`MiliUI_DB.merchant.autoRepair` 預設開、`guildRepair` 預設關，GetDB 又補預設了），便利功能分頁有兩個開關。
+- 判準＝`MiliUI_MerchantAutomation.IsAutoRepair` 在不在（呼叫當下問）：在 ⇒ 本體修、資訊列不修，
+  `ns.AutoRepair` 的 getter/setter 轉讀寫本體那份（setter 順手寫自己的 `db.repair` 當鏡像）；
+  不在 ⇒ 資訊列用自己的 `db.repair` 修。「修裝」分頁的兩列改走 spec get/set（不能用 key 直讀 db）。
+- 同步印記 `db.repair.coreSync`＝上次登入本體在不在：本體在＋nil ⇒ 資訊列值**推給本體**（9/23 升級的遷移
+  也走這條）；本體在＋true ⇒ 本體值**抄回資訊列**；本體不在 ⇒ 清掉。排在 MigrateFromMiliUI 之後。
+  `ns.ResetDB` 要保留 coreSync，不然還原的預設會在下次登入推回本體。
+- Leatrix 撞車提醒：本體在時只由本體印。
+
 ## 自動修裝搬進資訊列／戰隊改滑過／寶庫欄切換（2026-09-19）
 
 - **自動修裝從本體搬到 `Core/AutoRepair.lua`**（`ns.AutoRepair`）。設定 `db.repair.auto`（預設開）／

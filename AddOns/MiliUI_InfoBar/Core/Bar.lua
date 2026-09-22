@@ -1383,6 +1383,7 @@ function ns.ResetDB()
     -- 戰隊資訊的角色記錄是資料不是設定，還原預設值不該把它清掉；
     -- 遷移印記也在同一張表裡，清了下次登入又會從 MiliUI_DB 搬一次舊記錄回來
     local warband = db.warband
+    local coreSync = type(db.repair) == "table" and db.repair.coreSync or nil
     wipe(db)
     CopyDefaults(ns.DB_DEFAULTS, db)
     if type(warband) == "table" then db.warband = warband end
@@ -1390,6 +1391,10 @@ function ns.ResetDB()
     -- 自動修裝的遷移印記也一樣：wipe 把它清掉的話，下次登入又會從 MiliUI_DB
     -- 把舊的開關值搬回來，「還原預設值」就白按了（Core/AutoRepair.lua）
     db.repair.migration = "reset"
+    -- 本體在的時候修裝設定是本體那份（還原資訊列不去動它，開關照樣讀本體）；
+    -- 印記要留著，不然下次登入會把這裡剛還原的預設值推回本體蓋掉玩家的設定
+    db.repair.coreSync = coreSync
+    if ns.AutoRepair.SyncWithCore then ns.AutoRepair.SyncWithCore() end
     ns.ApplyAll()
 end
 

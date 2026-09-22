@@ -1,8 +1,9 @@
 ------------------------------------------------------------
 -- 「修裝」分頁：自動修裝的兩個開關 ＋ 耐久面板要顯示哪些修裝道具／玩具／坐騎
 --
--- 自動修裝（Core/AutoRepair.lua）在耐久方塊的面板最上面也有同樣兩列，兩邊讀寫
--- 的是同一個 db.repair；面板每次滑過都現讀，所以在這裡切換不必去通知它。
+-- 自動修裝（Core/AutoRepair.lua）在耐久方塊的面板最上面也有同樣兩列，兩邊都走
+-- ns.AutoRepair 的 getter／setter（本體在的時候讀寫的是本體那份設定，所以不能
+-- 用 key 直接讀 db.repair）；面板每次滑過都現讀，所以在這裡切換不必去通知它。
 --
 -- 清單是這一頁專屬的控件，走共用層表單引擎的 `custom` 型別
 -- （Libs/MiliUIWidgets/Controls.lua 的逃生門）——不為了它在共用層長出新型別。
@@ -195,9 +196,13 @@ local CONTROLS = {
     -- 自動修裝擺最前面：它是會自己發生的行為，而且方塊被玩家收起來之後，
     -- 這裡就是唯一的入口（面板要滑過耐久方塊才長得出來）。
     { type = "header", label = L["SECTION_AUTO_REPAIR"] },
-    { type = "toggle", key = "auto",  sub = "repair", label = L["MENU_AUTO_REPAIR"] },
+    { type = "toggle", key = "auto",  label = L["MENU_AUTO_REPAIR"],
+      get = function() return ns.AutoRepair.IsEnabled() end,
+      set = function(v) ns.AutoRepair.SetEnabled(v) end },
     { type = "text",   label = L["AUTO_REPAIR_DESC"] },
-    { type = "toggle", key = "guild", sub = "repair", label = L["MENU_GUILD_REPAIR"] },
+    { type = "toggle", key = "guild", label = L["MENU_GUILD_REPAIR"],
+      get = function() return ns.AutoRepair.IsGuild() end,
+      set = function(v) ns.AutoRepair.SetGuild(v) end },
     { type = "text",   label = L["GUILD_REPAIR_DESC"] },
     -- ⚠ 撞車警告不能寫成檔案層的 if：LeaPlusDB 是 Leatrix 自己的 SavedVariables，
     --   本檔載入時不保證已經在了。走 custom，build 在「第一次打開分頁」才跑。
@@ -227,7 +232,19 @@ local CONTROLS = {
 local function Init()
     if tab then return end
     tab, scroll = ns.Options.MakeFormTab(L["TAB_REPAIR"])
-    local ctx = ns.Controls.MakeCtx(function() return ns.GetDB() end, RefreshAll)
+    local base = ns.Controls.MakeCtx(function() return ns.GetDB() end, RefreshAll)
+    -- spec 自帶 get/set 的（自動修裝那兩列）走它自己的，其餘照舊讀 db
+    local ctx = {
+        get = function(spec)
+            if spec.get then return spec.get() end
+            return base.get(spec)
+        end,
+        set = function(spec, v)
+            if spec.set then return spec.set(v) end
+            return base.set(spec, v)
+        end,
+        apply = base.apply,
+    }
     content, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx)
 end
 

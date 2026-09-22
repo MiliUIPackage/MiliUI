@@ -1,25 +1,43 @@
 ------------------------------------------------------------
--- MiliUI: 商人自動化（現在只剩自動賣垃圾）
+-- MiliUI: 商人自動化（自動賣垃圾 ＋ 自動修裝）
 --
--- ⚠ **自動修裝 2026-09-19 搬去 MiliUI_InfoBar/Core/AutoRepair.lua 了。**
---   原本這支的主張是「行為一律住本體，不要寄居在某個顯示元件裡」——修裝這一半
---   不成立：它的設定入口早就長在資訊列的耐久方塊上（滑過就看得到、就按得到），
---   行為卻在本體，改一個開關要跨兩支插件找。搬過去之後兩者同住，而且那邊的
---   事件註冊跟方塊的啟用與否無關，「方塊關掉就連行為一起消失」的顧慮不存在。
---   賣垃圾沒有對應的顯示元件，留在本體。
+-- 開商人視窗時自動發生的事：先賣垃圾，再修裝。
 --
+-- ── 自動修裝跟資訊列的分工（2026-09-23）──
+-- 9/19 曾經把修裝整個搬去 MiliUI_InfoBar，結果**沒開資訊列的玩家就沒修裝了**。
+-- 現在兩邊都有修裝，但同一時間只有一邊在做、設定只有一份：
+--   * 本體在 ⇒ 本體修，設定就是這裡的 MiliUI_DB.merchant.autoRepair／guildRepair。
+--     資訊列的開關（耐久面板、「修裝」分頁）透過下面的對外 API 讀寫這兩格，
+--     所以在任一邊關掉，另一邊看到的就是關的。
+--   * 只有資訊列 ⇒ 資訊列用自己的 db.repair 修（MiliUI_InfoBar/Core/AutoRepair.lua）。
+-- 設定的遷移與「本體不在時改了什麼」的回推都在資訊列那邊做（它兩份存檔都看得到，
+-- 本體這邊不必知道資訊列存不存在）。
+-- ⚠ 資訊列拿「IsAutoRepair 這支 API 在不在」判斷本體會不會修——改名或拿掉就會
+--   變成兩邊各修一次（或都不修）。
+--
+-- 「先賣後修」的順序沒有辦法讓賣來的錢救到這一次的修裝（入帳是伺服器非同步
+-- 回來的，趕不上同一幀的 GetRepairAllCost()），但反過來排也沒有任何好處。
+--
+-- ── 自動賣垃圾 ──
 -- 走暴雪自己的 C_MerchantFrame.SellAllJunkItems()，也就是商人視窗那顆「賣掉
 -- 所有垃圾」按鈕按下去跑的同一支（MerchantFrame_OnSellAllJunkButtonConfirmed）。
 -- 不自己一格一格 UseContainerItem 的理由：
 --   * 「什麼算垃圾」的判定留在暴雪那邊，不會跟遊戲本體各講各話
 --   * 伺服器端一次處理完，不用 ticker 重試，也不會撞上物品鎖定
 -- ⚠ 這支 API 直接就賣了，不會跳確認視窗——確認視窗是那顆按鈕自己加的。
--- 賣了多少是掃背包前後相減算出來的，不是讀 GetMoney()：入帳非同步，相減出來的
--- 金額才是這一趟真正的成果。
+-- 賣了多少是掃背包前後相減算出來的，不是讀 GetMoney()：入帳非同步，會跟同一次
+-- 開商人的修裝花費混在一起，相減出來的金額是錯的。
 --
--- 讀寫於 MiliUI_DB.merchant（sellJunk 預設開）。
--- ⚠ `autoRepair`／`guildRepair` 兩格**不再補預設值、也不要刪**：資訊列的一次性
---   遷移（Core/AutoRepair.lua）要讀舊值，玩家原本關掉的自動修裝才不會自己開回來。
+-- ── 自動修裝 ──
+--   1. 按住 Shift 這次不修——修裝是花錢的動作，一定要留一個當下就能取消的閘
+--   2. CanMerchantRepair()：這個商人根本不提供修理就什麼都不做
+--   3. GetRepairAllCost() 回 (花費, 修不修得起)
+--   4. 公會金庫：RepairAllItems(1) 之後**再打一次** RepairAllItems()——
+--      公會每日上限用完時第一下會失敗，第二下用個人的補完；全部由公會付掉的話
+--      第二下是空包彈。這是行之有年的寫法，別自作聰明改成只打一次。
+--
+-- 讀寫於 MiliUI_DB.merchant（autoRepair 預設開、sellJunk 預設開、guildRepair
+-- 預設關）。公會金庫花的是公會的錢，要不要用得由玩家自己說，不能替他決定。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -30,10 +48,9 @@ local function GetDB()
         db = {}
         MiliUI_DB.merchant = db
     end
+    if db.autoRepair == nil then db.autoRepair = true end
     if db.sellJunk == nil then db.sellJunk = true end
-    -- autoRepair／guildRepair 刻意不補預設：那兩格已經是資訊列在管，這裡只是
-    -- 讓舊存檔裡的值留著給它遷移用（檔頭）。補預設等於替一個不再由本體負責的
-    -- 設定憑空生出值。
+    if db.guildRepair == nil then db.guildRepair = false end
     return db
 end
 
@@ -47,10 +64,16 @@ end
 -- ⚠ 套組已經不內附 Leatrix Plus（2026-08-29 移除），這段仍然要**留著**：
 --   玩家自己另外裝回來的時候 LeaPlusDB 才會存在；沒裝的話下面第一行就回 nil，
 --   偵測自然靜音。留著的成本是零，拿掉的代價是那天沒人提醒。
---
--- 修裝那半的偵測搬去資訊列了（Core/AutoRepair.lua 有自己的一份），這裡只剩
--- 賣垃圾——兩個開關各自獨立，合併成一個回傳值會在不相干的地方跳警告。
 ------------------------------------------------------------
+local function LeatrixConflict()
+    local db = _G.LeaPlusDB
+    if type(db) ~= "table" then return nil end
+    if db.AutoRepairGear ~= "On" then return nil end
+    return { guild = db.AutoRepairGuildFunds == "On" }
+end
+
+-- 賣垃圾那邊是另一個開關，跟修裝各自獨立，所以分成兩支——不要合併成一個
+-- 回傳值，資訊列的修裝面板只認修裝那一邊，混在一起會在不相干的地方跳警告。
 local function LeatrixJunkConflict()
     local db = _G.LeaPlusDB
     if type(db) ~= "table" then return nil end
@@ -122,33 +145,69 @@ local function SellJunk()
     end)
 end
 
+------------------------------------------------------------
+-- 自動修裝
+------------------------------------------------------------
+local function AutoRepair()
+    local db = GetDB()
+    if not db.autoRepair then return end
+    if IsShiftKeyDown() then return end
+    if not CanMerchantRepair() then return end
+
+    local cost, canRepair = GetRepairAllCost()
+    if not canRepair or not cost or cost <= 0 then return end
+
+    local useGuild = db.guildRepair and IsInGuild() and CanGuildBankRepair()
+    if useGuild then
+        RepairAllItems(1)
+        RepairAllItems()
+    else
+        RepairAllItems()
+    end
+
+    print("|cff00FFFFMiliUI|r " .. (useGuild
+        and ("已修裝，花費 " .. CoinText(cost) .. "（優先使用公會金庫）。")
+        or  ("已修裝，花費 " .. CoinText(cost) .. "。")))
+end
+
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("MERCHANT_SHOW")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:SetScript("OnEvent", function(_, event)
     if event == "MERCHANT_SHOW" then
         SellJunk()
+        AutoRepair()
         return
     end
-    -- 兩邊都開著的話會各賣一次（後到的那次是空包彈，但還是講一聲比較好查）。
+    -- 兩邊都開著的話會各自做一次。修裝的第二次多半是空包彈，但「我明明關掉
+    -- 公會修裝了，錢還是從公會扣」這種狀況只有講出來玩家才知道原因。
     -- 延後幾秒再說，不然會淹在登入時的一堆插件訊息裡。
+    -- （資訊列那邊的同一則警告在本體在的時候不印，不會講兩次。）
     C_Timer.After(8, function()
-        if not (GetDB().sellJunk and LeatrixJunkConflict()) then return end
-        print("|cffff9900登入時偵測到 Leatrix Plus 也開著自動賣垃圾。請關掉其中一邊。|r")
+        local db = GetDB()
+        local repairClash = db.autoRepair and LeatrixConflict()
+        local junkClash = db.sellJunk and LeatrixJunkConflict()
+        if not (repairClash or junkClash) then return end
+        local what = repairClash and junkClash and "自動修裝與自動賣垃圾"
+            or (repairClash and "自動修裝" or "自動賣垃圾")
+        print("|cffff9900登入時偵測到 Leatrix Plus 也開著" .. what .. "。請關掉其中一邊。"
+            .. (repairClash and "兩支插件會各修一次，「優先使用公會金庫」不一定是勝出的那邊。" or "") .. "|r")
     end)
 end)
 
 ------------------------------------------------------------
--- 對外 API（給 Options/Tab_QoL.lua 用）
+-- 對外 API（給 Options/Tab_QoL.lua 與 MiliUI_InfoBar 用）
 --
--- ⚠ 自動修裝那幾支（IsAutoRepair／SetAutoRepair／IsGuildRepair／SetGuildRepair／
---   LeatrixConflict）已經拿掉。資訊列拿「這支還在不在」當「本體是不是舊版」的
---   判準（Core/AutoRepair.lua 的 LegacyBodyHandlesRepair），所以不要為了相容
---   又補一個空殼回來——補了就會變成兩邊都不修。
+-- ⚠ IsAutoRepair 是資訊列判斷「本體會修裝」的依據（檔頭），不要改名。
 ------------------------------------------------------------
 MiliUI_MerchantAutomation = {
     GetDB = GetDB,
+    LeatrixConflict = LeatrixConflict,
     LeatrixJunkConflict = LeatrixJunkConflict,
+    IsAutoRepair = function() return GetDB().autoRepair end,
+    SetAutoRepair = function(v) GetDB().autoRepair = v and true or false end,
+    IsGuildRepair = function() return GetDB().guildRepair end,
+    SetGuildRepair = function(v) GetDB().guildRepair = v and true or false end,
     IsSellJunk = function() return GetDB().sellJunk end,
     SetSellJunk = function(v) GetDB().sellJunk = v and true or false end,
 }
