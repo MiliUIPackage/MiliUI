@@ -252,6 +252,7 @@ metadata:
   停用態：三個按鈕模板都沒有 DisabledTexture ⇒ 走 `TrackButtonHover` 第 6 參數 opts 掛 `OnEnable/OnDisable`（與翻頁鈕共用 `InstallEnableScripts`）。
   零腳本特許按鈕走 `Engine.ScriptlessButton`：Highlight（ADD 模式）塗職業色 ×0.70、DisabledTexture `SetAlpha(1)`＋`SetColorTexture`（**白名單新增，只准 ScriptlessButton**）；UIPanelButtonTemplate 沒 DisabledTexture ⇒ 拍賣／專業／寶庫主按鈕**平時中性、只有滑過職業色**（寧可少「平時」一態，也不讓停用的「製作」看起來能按）。
   判準：成對時確認那顆 primary、取消／返回／拒絕／再見 secondary；一塊最多一顆 primary；平行選項整排 secondary。ESC 選單「返回遊戲」認不出（同池同模板，只剩 layoutIndex／文字可分）⇒ 整排 secondary。
+  **2026-09-22 升格成全套組規則**：共用層 `W.CreateButton(…, "primary")` 用同一條公式（數字兩邊各寫一份，改要一起改），規則與判準見 [[project-miliui-button-variants]]。
 - **冒險指南重做**：戰利品列沒上皮的推論根因＝套組多支插件登入就載入冒險指南，`EJ_LOOT_DATA_RECIEVED` → `EncounterJournal_LootUpdate` → `SetDataProvider` 在視窗沒開時就建列、早於 mixin 勾 ⇒ 新增 `EncounterJournal_LootUpdate` 全域後置勾唯讀補掃＋列登記進 `SetItemButtonQuality` 全域勾；
   `/mskin debug` 出現 `EncounterItem:Init (hook bypassed…)` 就證實。書頁深色化，**綜覽／技能／副本簡介三塊內文接不住（SimpleHTML 每次重設、PAPER_FRAME 色切換、Lore OnLoad 設暗棕）⇒ 用原本的 UI-EJ-JournalBG 做羊皮紙內嵌**。
   麵包屑：`NavBar_AddButton` 後置勾＋身分比對只處理冒險指南那條；下拉鈕 Normal/Pushed 用 `SetVertexColor(1,1,1,0)` 中和（它自己的 OnEnter 會 SetAlpha(1)，alpha 中和撐不住；已核准）。頁籤選中線走 `EncounterJournal_SetTab` 後置勾讀參數 tabType。

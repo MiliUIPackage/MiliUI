@@ -350,6 +350,9 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 - [ ] 火花排除清單的 itemID 是不是本季的（`Core/List.lua` 的 `SPARK_IDS`，
       名字比對有兜底，過期不會壞）。
 
+- [ ] 2026-09-22 按鈕改 primary（每列購買、全部購買、確認列的確認／購買，見 [[project-miliui-button-variants]]）：
+      平時職業色底＋邊、滑過整顆亮、**拍賣場沒開／不缺的那幾列要退回中性**；滑過中被停用再移開不能卡色。
+
 ## 已知的檢查器誤報
 
 `miliui-locale-audit` 會對每個 MiliUIWidgets 消費者報「缺 `MiliUI Tooltip` /

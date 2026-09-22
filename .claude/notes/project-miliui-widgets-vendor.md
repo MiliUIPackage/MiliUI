@@ -170,4 +170,9 @@ vendor 最怕的就是「改了來源忘了同步」，這道檢查上線第一�
 跟 `PixelPerfect.lua` 一起排在 TOC 最前面 —— 宿主的 `Core/*.lua` 在檔案層就會用到。
 `BlizzOptions.lua` 排在 `Options\Blizzard.lua` 之前。
 
+**2026-09-22 第六次擴充：按鈕的 `primary` 配色＋`W.PaintButton`。** 起因是採購清單要「取 MiliUI_Skin 按鈕的職業色搭法」，
+使用者接著定成全套組規則（[[project-miliui-button-variants]]）。配色表多兩格邊色（`{ 平時底, 滑過底, 平時邊, 滑過邊 }`），
+只有兩格的舊配色行為一個位元都沒變。⚠ 宿主自己 `SetScript("OnEnter")` 的要叫 `W.PaintButton`，不要再 `unpack(_colors[2])`。
+⚠ **消費者已經是 17 份**（`ls -d */Libs/MiliUIWidgets` 為準，上面寫的「十個」是舊數字）。
+
 相關：[[project-miliui-unit-frame]]、[[project-miliui-release-version]]

@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: 793dd5c5-f56b-4692-b61a-9114d0a500db
-  modified: 2026-09-19T00:00:00.000Z
+  modified: 2026-09-22T03:56:48.775Z
 ---
 
 使用者對套組的視覺有明確偏好，2026-08-24 幫 Chattynator 分頁標籤上色時他說
@@ -27,5 +27,6 @@ metadata:
 
 **How to apply:** 做任何新 UI 或改第三方插件外觀時直接照這個方向走，不用先問。
 完整規則與公式在 `.claude/skills/miliui-color-states/SKILL.md`（會自動觸發）。
-元件沒有身分色時走 `Widgets.lua` 的 `BTN_COLORS`。相關：[[project-miliui-pixel-snapping]]、
+元件沒有身分色時走 `Widgets.lua` 的 `BTN_COLORS`；**按鈕先分 primary／normal**，
+規則見 [[project-miliui-button-variants]]（2026-09-22 起全套組遵守）。相關：[[project-miliui-pixel-snapping]]、
 [[project-miliui-widgets-vendor]]。

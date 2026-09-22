@@ -118,6 +118,15 @@ r, g, b = seedR * k + rest, seedG * k + rest, seedB * k + rest
 
 兩套並存不衝突 —— 明暗階梯本來就一致（0.115 / 0.23 對上 k = 0.12 / 0.28）。
 
+### 文字按鈕另有一條全套組規則
+
+按鈕不是挑一個 colorKey 就好，**先判斷它是不是主動作**：「確認／執行」那一顆用
+`W.CreateButton(…, "primary")`，其餘用 `normal`，一個區塊最多一顆 primary。
+primary 的底與邊都從職業色推導（平時壓暗、滑過全亮、停用退回中性），跟 MiliUI_Skin
+換皮的暴雪按鈕是同一條公式。判準、公式與舊配色待辦都在
+[`.claude/notes/project-miliui-button-variants.md`](../../notes/project-miliui-button-variants.md)。
+`accent`（半透明底）與 `green` 是舊配色，新程式碼不要再用。
+
 ---
 
 ## 形狀的部分
@@ -141,3 +150,4 @@ r, g, b = seedR * k + rest, seedG * k + rest, seedB * k + rest
 5. 文字是不是統一白色？有沒有殘留宿主原本的彩色字？
 6. 邊框走 `P.Scale(1)` 了嗎？圓角清乾淨了嗎？
 7. 元件如果**沒有**身分色，是不是誤用了這套而不是 `Widgets.lua` 那套？
+8. 文字按鈕分好 primary／normal 了嗎？自己接 OnEnter/OnLeave 的有沒有改叫 `W.PaintButton`？
