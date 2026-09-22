@@ -1681,6 +1681,28 @@ end
 -------------------------------------------------
 -- functions
 -------------------------------------------------
+-- fix from MiliUI: split out of LoadButtonStyle, which sat at EXACTLY WoW's 60-upvalue limit
+-- (Lua 5.1: "function at line N has more than 60 upvalues", and the whole file fails to load).
+-- These twelve widgets are one self-contained block; moving them frees eleven upvalues there.
+-- ⚠ A desktop luac (5.4/5.5) does not flag this -- its limit is 255.
+local function LoadColorThresholds()
+    local c = CellDB["appearance"]["colorThresholds"]
+    gradientCB:SetChecked(c[6])
+    thresholdCP1:SetColor(c[1][1], c[1][2], c[1][3])
+    thresholdCP2:SetColor(c[2][1], c[2][2], c[2][3])
+    thresholdCP3:SetColor(c[3][1], c[3][2], c[3][3])
+    thresholdDropdown:SetSelectedValue(c[4])
+    colorThresholdDropdown2:SetSelectedValue(c[5])
+
+    local d = CellDB["appearance"]["colorThresholdsLoss"]
+    gradientLossCB:SetChecked(d[6])
+    thresholdLossCP1:SetColor(d[1][1], d[1][2], d[1][3])
+    thresholdLossCP2:SetColor(d[2][1], d[2][2], d[2][3])
+    thresholdLossCP3:SetColor(d[3][1], d[3][2], d[3][3])
+    thresholdLossDropdown1:SetSelectedValue(d[4])
+    thresholdLossDropdown2:SetSelectedValue(d[5])
+end
+
 local init
 LoadButtonStyle = function()
     if not init then CheckTextures() end
@@ -1707,21 +1729,7 @@ LoadButtonStyle = function()
 
     barAnimationDropdown:SetSelected(L[CellDB["appearance"]["barAnimation"]])
 
-    local c = CellDB["appearance"]["colorThresholds"]
-    gradientCB:SetChecked(c[6])
-    thresholdCP1:SetColor(c[1][1], c[1][2], c[1][3])
-    thresholdCP2:SetColor(c[2][1], c[2][2], c[2][3])
-    thresholdCP3:SetColor(c[3][1], c[3][2], c[3][3])
-    thresholdDropdown:SetSelectedValue(c[4])
-    colorThresholdDropdown2:SetSelectedValue(c[5])
-
-    local d = CellDB["appearance"]["colorThresholdsLoss"]
-    gradientLossCB:SetChecked(d[6])
-    thresholdLossCP1:SetColor(d[1][1], d[1][2], d[1][3])
-    thresholdLossCP2:SetColor(d[2][1], d[2][2], d[2][3])
-    thresholdLossCP3:SetColor(d[3][1], d[3][2], d[3][3])
-    thresholdLossDropdown1:SetSelectedValue(d[4])
-    thresholdLossDropdown2:SetSelectedValue(d[5])
+    LoadColorThresholds()
 
     targetColorPicker:SetColor(CellDB["appearance"]["targetColor"])
     mouseoverColorPicker:SetColor(CellDB["appearance"]["mouseoverColor"])
