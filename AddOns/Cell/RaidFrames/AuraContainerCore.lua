@@ -327,6 +327,22 @@ function ACC.GetDispelColorMap()
     return map
 end
 
+-- AddDispelTypeTexture APPENDS, so the list is cleared once per button -- a re-bind then
+-- replaces rather than stacks. Every dispel texture on a button goes through here (the
+-- ring, the icon-only dispel display, the dispel badge), so whichever binds first clears.
+local function AddDispelTexture(button, texture, opts)
+    if button.AddDispelTypeTexture then
+        if not button._dispelCleared then
+            button._dispelCleared = true
+            if button.ClearDispelTypeTextures then pcall(button.ClearDispelTypeTextures, button) end
+        end
+        return pcall(button.AddDispelTypeTexture, button, texture, opts)
+    elseif button.SetAuraBorder then
+        return pcall(button.SetAuraBorder, button, texture, opts) -- deprecated single-region alias
+    end
+    return false
+end
+
 -- The texture is shown ONLY while the aura has a dispel school, and vertex-tinted to it.
 -- Callers rely on that: whatever they want an undispellable aura to look like has to be
 -- drawn on a layer underneath, because this one simply will not be there.
@@ -343,16 +359,24 @@ function ACC.BindDispelTexture(button, texture, styleName)
         opts.customDispelColorMap = ACC.GetDispelColorMap()
     end
 
-    if button.AddDispelTypeTexture then
-        -- APPENDS -- clear once per button so a re-bind replaces rather than stacks
-        if not button._dispelCleared then
-            button._dispelCleared = true
-            if button.ClearDispelTypeTextures then pcall(button.ClearDispelTypeTextures, button) end
+    AddDispelTexture(button, texture, opts)
+end
+
+-- The schools the player's CURRENT spec/talents can dispel, as a set -- or nil for none.
+-- From Cell's own table (I.CanDispel), the one the right-bottom dispel indicator uses too.
+-- It fills in a second after login and on every spec/talent change; Cell fires
+-- "DispellableChanged" when it does (Indicator_DefaultSpells.lua).
+function ACC.GetMyDispelTypes()
+    local I = Cell.iFuncs
+    if not (I and I.CanDispel) then return nil end
+    local t
+    for _, name in ipairs(DISPEL_NAMES) do
+        if I.CanDispel(name) then
+            t = t or {}
+            t[name] = true
         end
-        pcall(button.AddDispelTypeTexture, button, texture, opts)
-    else
-        pcall(button.SetAuraBorder, button, texture, opts) -- deprecated single-region alias
     end
+    return t
 end
 
 function ACC.BindDispelText(button, fontString)
@@ -441,6 +465,116 @@ function ACC.SetBossBadgeShown(host, shown)
     local b = host and host.cellBossBadge
     if not b then return end
     for _, tex in pairs(b) do tex:SetShown(shown) end
+end
+
+-- ============================================================
+-- DISPEL BADGE  (Important Debuffs: 可驅散加號)
+--
+-- A white "+" with a 1px black outline in the top-right corner, on any icon whose debuff
+-- the player's current spec can dispel -- mirrored against the boss "!" on the left.
+-- The ring already says WHICH school; the "+" says "you can deal with this", so it is white
+-- rather than school-coloured (and stays readable on any ring).
+--
+-- Unlike the boss badge this needs no group: it is decided per aura, by Blizzard, blind.
+-- Every piece is an AddDispelTypeTexture (shown only while the aura has a school), and the
+-- colour map paints the pieces white/black for the player's schools and fully TRANSPARENT
+-- for the rest. So it works in every category of the display -- a dispellable boss debuff
+-- wears both marks. The map is copied into the button at bind time, which is why the
+-- school set is part of the container config: a spec change rebuilds.
+-- ============================================================
+
+-- The "+" on a 22px icon, in physical pixels, scaled like GLYPH above. arm/thick are forced
+-- EVEN so the cross centres on a pixel boundary.
+local PLUS = { inset = {1, 1}, edge = {1, 1}, arm = {6, 4}, thick = {2, 2} } -- {base, min}
+
+local function EvenPx(part, k)
+    return math.max(part[2], 2 * math.floor(part[1] * k / 2 + 0.5))
+end
+
+-- Creates (once) and lays out the four pieces. Plain colours: this is all the options
+-- preview needs, and the in-game badge is this plus BindDispelBadge.
+function ACC.StyleDispelBadge(host, anchorTo, iconSize, scaleRef)
+    local b = host.cellDispelBadge
+    if not b then
+        b = {
+            hEdge = host:CreateTexture(nil, "ARTWORK", nil, 1),
+            vEdge = host:CreateTexture(nil, "ARTWORK", nil, 1),
+            h     = host:CreateTexture(nil, "ARTWORK", nil, 2),
+            v     = host:CreateTexture(nil, "ARTWORK", nil, 2),
+        }
+        -- WHITE bases: in game Blizzard vertex-tints these through the colour map, and white
+        -- times the map colour is exactly the map colour.
+        -- Born HIDDEN: once bound, the engine shows them per aura; if a bind is ever refused
+        -- they must not sit there as a permanent white "+" on every icon.
+        for _, tex in pairs(b) do
+            tex:SetColorTexture(1, 1, 1, 1)
+            tex:Hide()
+        end
+        b.hEdge:SetVertexColor(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
+        b.vEdge:SetVertexColor(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
+        host.cellDispelBadge = b
+    end
+
+    local scale = (scaleRef and scaleRef:GetEffectiveScale()) or 1
+    local px = PixelUtil.GetPixelToUIUnitFactor() / scale
+    local k = ((iconSize or 22) / px) / 22
+    local inset = math.max(PLUS.inset[2], math.floor(PLUS.inset[1] * k + 0.5))
+    local edge = math.max(PLUS.edge[2], math.floor(PLUS.edge[1] * k + 0.5))
+    local arm, thick = EvenPx(PLUS.arm, k), EvenPx(PLUS.thick, k)
+    if thick >= arm then arm = thick + 2 end
+
+    -- every piece is centred on one point, (inset + edge + arm/2) in from the TOPRIGHT corner
+    local c = (inset + edge + arm / 2) * px
+    local function Place(tex, w, h)
+        tex:ClearAllPoints()
+        tex:SetPoint("CENTER", anchorTo, "TOPRIGHT", -c, -c)
+        tex:SetSize(w * px, h * px)
+    end
+    Place(b.hEdge, arm + 2 * edge, thick + 2 * edge)
+    Place(b.vEdge, thick + 2 * edge, arm + 2 * edge)
+    Place(b.h, arm, thick)
+    Place(b.v, thick, arm)
+end
+
+-- Preview only. In game the engine owns Shown (it is a secret aspect once bound).
+function ACC.SetDispelBadgeShown(host, shown)
+    local b = host and host.cellDispelBadge
+    if not b then return end
+    for _, tex in pairs(b) do tex:SetShown(shown) end
+end
+
+-- In game: hand the four pieces to Blizzard. Call from initializeFrame only (binds are
+-- refused on a live button once auras are secret); true when every piece bound.
+-- dispelTypes = the player's school set (ACC.GetMyDispelTypes()).
+function ACC.BindDispelBadge(button, host, dispelTypes)
+    local b = host and host.cellDispelBadge
+    if not (b and button.AddDispelTypeTexture and CreateColor) then return false end
+
+    local E = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
+    local clear = CreateColor(1, 1, 1, 0)
+    local ink = CreateColor(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
+    local white = CreateColor(1, 1, 1, 1)
+    -- EVERY school gets an entry: a school missing from the map keeps the engine's own school
+    -- tint (PreserveAsset), which would put a coloured "+" on a debuff you cannot dispel
+    local inkMap, whiteMap = {}, {}
+    for _, name in ipairs(DISPEL_NAMES) do
+        local mine = dispelTypes and dispelTypes[name]
+        inkMap[name] = mine and ink or clear
+        whiteMap[name] = mine and white or clear
+    end
+    local function Opts(map)
+        return { style = (E and E.PreserveAsset) or 3, showIcon = false,
+                 showWhenHarmful = true, showWhenHelpful = false, customDispelColorMap = map }
+    end
+
+    local ok = true
+    for _, key in ipairs({ "hEdge", "vEdge" }) do
+        if not AddDispelTexture(button, b[key], Opts(inkMap)) then ok = false end
+    end
+    for _, key in ipairs({ "h", "v" }) do
+        if not AddDispelTexture(button, b[key], Opts(whiteMap)) then ok = false end
+    end
+    return ok
 end
 
 -- ============================================================

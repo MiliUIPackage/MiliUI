@@ -300,6 +300,8 @@ L["dispellableByMe"] = "Mostra solo debuff dispellabili da me"
 L["excludeImportant"] = "Nascondi i debuff già mostrati come importanti"
 L["bossBadge"] = "Segna i debuff del boss con «!»"
 L["bossBadgeTips"] = "Ogni icona dei debuff di boss/ruolo mostra|un piccolo «!» giallo bordato di nero in alto a sinistra."
+L["dispelBadge"] = "Segna i debuff dissolvibili con «+»"
+L["dispelBadgeTips"] = "I debuff che la tua specializzazione attuale può dissolvere|mostrano un piccolo «+» bianco bordato di nero in alto a destra.|Vale per tutte le categorie mostrate qui."
 L["Dispels"] = "Dispel"
 L["Display a gradient texture when the unit receives a heal from your certain healing spells."] = "Mostra una texture a gradiente quando l'unità riceve cure da alcune abilità di cura AoE."
 --[[Translation missing --]]

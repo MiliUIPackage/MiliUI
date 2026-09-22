@@ -84,7 +84,8 @@ end
 -- and the two duration options, both default OFF (they change what the row means):
 --   filterShort (+ shortSeconds), importantMaxDuration (seconds, or false = no limit).
 -- bossBadge (default OFF when absent; Revise fills it in) is not a filter: it marks the
--- boss/role record so its icons wear the corner "!" (see ACC.StyleBossBadge).
+-- boss/role record so its icons wear the corner "!" (see ACC.StyleBossBadge). Nor is
+-- dispelBadge (a school set, or false): StyleButton puts the "+" on every icon, per aura.
 -- Boss and Role are ONE toggle: isBossOrRoleAura covers both, and no UI ever split them.
 --
 -- The two DURATION options exist because every category above is a flag Blizzard sets by
@@ -1191,6 +1192,19 @@ local function StyleButton(handle, button)
     -- Re-applied every pass so a size change resizes it.
     if button._adBadge then
         ACC.StyleBossBadge(button.dfDurHolder, button.dfDurHolder, math.min(size, sizeH), handle.frame)
+    end
+
+    -- ---- dispel badge (可驅散加號) ----------------------------------------------
+    -- Per aura, not per group: Blizzard shows it blind for the schools in the set (see
+    -- ACC.BindDispelBadge). Same holder and layer as the "!", opposite corner. The set is
+    -- config, so a spec change rebuilds -- the colour map is copied in at bind time.
+    local dispelTypes = cfg.dispelBadge
+    if type(dispelTypes) == "table" and next(dispelTypes) then
+        ACC.StyleDispelBadge(button.dfDurHolder, button.dfDurHolder, math.min(size, sizeH), handle.frame)
+        if not button._boundDispelBadge
+            and ACC.BindDispelBadge(button, button.dfDurHolder, dispelTypes) then
+            button._boundDispelBadge = true
+        end
     end
 
     -- ---- native binds (bind-once via flags) ----
@@ -2380,7 +2394,7 @@ end
 --           stackFont, durationFont, borderColor, mode, and the category toggles
 --           filterBossRole / filterPriority / filterCrowdControl / filterRaid /
 --           filterDispellable / filterShort (+ shortSeconds), importantMaxDuration,
---           bossBadge }
+--           bossBadge, dispelBadge }
 -- returns a handle, or nil when unsupported (caller keeps its fallback path).
 -- ============================================================
 
@@ -2784,16 +2798,8 @@ end
 
 -- The player's own dispel schools, i.e. the candidateFilter spelling of what the
 -- RAID_PLAYER_DISPELLABLE token says. Computed at press time because it follows the spec.
-local function MyDispelTypes()
-    local I = Cell.iFuncs
-    if not (I and I.CanDispel) then return nil end
-    local t = {}
-    for dispelType in pairs(ALL_DISPEL_TYPES) do
-        if I.CanDispel(dispelType) then t[dispelType] = true end
-    end
-    if not next(t) then return nil end -- nothing dispellable on this spec
-    return t
-end
+-- nil when nothing is dispellable on this spec
+local MyDispelTypes = ACC.GetMyDispelTypes
 
 -- One-button stepper: /cab test
 -- Each press advances to the next bisect case and prints what to look for.

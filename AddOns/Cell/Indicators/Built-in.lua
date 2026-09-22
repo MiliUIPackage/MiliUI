@@ -1587,6 +1587,11 @@ function I.CreateRaidDebuffs(parent)
                     -- 首領技能驚嘆號. Absent = off, same as the options checkbox shows it;
                     -- Revise writes true into every layout that predates the option.
                     bossBadge           = t.bossBadge == true,
+                    -- 可驅散加號: the schools THIS spec can dispel, or false (never nil -- a nil
+                    -- would never reach SetOptions, so switching it off would not clear it).
+                    -- Re-pushed on "DispellableChanged" (see UnitButton.lua).
+                    dispelBadge         = t.dispelBadge == true
+                        and Cell.AuraContainerCore.GetMyDispelTypes() or false,
                     -- true = always; number N = only when remaining < N s; false = never
                     showDuration        = t.showDuration,
                     orientation         = t.orientation,
