@@ -173,7 +173,10 @@ local function Apply()
     for _, k in ipairs({ "FindBattleButton", "SummonButton" }) do
         local btn
         if pcall(function() btn = j[k] end) and btn then
-            Skin.Button(btn, "PetJournal." .. k)
+            -- 第九輪：召喚 primary（對齊坐騎頁那顆單獨的召喚鈕）、尋找對戰 secondary
+            Skin.Button(btn, "PetJournal." .. k, {
+                variant = k == "FindBattleButton" and "secondary" or nil,
+            })
         else
             E.Missing("PetJournal." .. k)
         end

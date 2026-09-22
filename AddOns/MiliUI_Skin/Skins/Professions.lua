@@ -121,7 +121,8 @@
 -- 這些按鈕照第五輪確認彈窗那條窄路處理：
 --
 --   * **零 `HookScript`**、**零 `hooksecurefunc`** 在它們或它們的 mixin 上。
---   * 滑過交還給引擎（Highlight 貼圖換成白 8%），**不呼叫 `Skin.Button`**
+--   * 滑過交還給引擎（Highlight 貼圖：第九輪起 primary ＝ 保護後的職業色 ADD、
+--     secondary ＝ 白 8%，`Engine.ScriptlessButton`），**不呼叫 `Skin.Button`**
 --     （它會經由 `Engine.TrackButtonHover` 掛 `OnEnter`/`OnLeave`）。
 --   * 走本檔的 local `CommerceButton`，逐顆列在下面的接觸面清單。
 --
@@ -189,8 +190,8 @@
 -- | 搜尋框的 `Left`／`Right`／`Middle`、`searchIcon`、`Instructions` | `SetAlpha(0)` / `SetVertexColor` / `SetTextColor` |
 -- | 篩選下拉的 `Background` | `SetAlpha(0)`；`Arrow` | `SetDesaturated` ＋ `SetVertexColor`；`Text` | `SetTextColor` ＋ 兩支 `HookScript` |
 -- | 兩顆勾選框的四張狀態圖 | `SetAlpha(0)` / `SetColorTexture` / `SetDesaturated`（`Skin.CheckBox`） |
--- | 一般按鈕的 `Left`／`Right`／`Middle` | `SetAlpha(0)` ＋ `SetNormalFontObject` ＋ Highlight 中和 ＋ `HookScript("OnEnter"/"OnLeave")` |
--- | **特許按鈕**的 `Left`／`Right`／`Middle` | `SetAlpha(0)` ＋ `SetNormalFontObject` ＋ Highlight `SetColorTexture`。**零 HookScript** |
+-- | 一般按鈕的 `Left`／`Right`／`Middle` | `SetAlpha(0)` ＋ `SetNormalFontObject` ＋ Highlight 中和 ＋ `HookScript("OnEnter"/"OnLeave")`；**第九輪** primary 的那幾顆（訂單搜尋、專精「解鎖」）再加 `HookScript("OnEnable"/"OnDisable")` |
+-- | **特許按鈕**的 `Left`／`Right`／`Middle` | `SetAlpha(0)` ＋ `SetNormalFontObject` ＋ Highlight `SetColorTexture`（第九輪：primary ＝ 保護色 × 0.70、secondary ＝ 白 8%）。**零 HookScript** |
 -- | 捲軸的 Track／Thumb／Back／Forward | `SetAlpha(0)` / `SetVertexColor` |
 -- | 專精頁 `PanelFooter` 的那張無名底圖 | `SetAlpha(0)`（`Engine.NeutralizeRegions`） |
 -- | 上面所有目標 | 以它們為 parent／anchor 建**我們自己的** overlay 框與貼圖 |
@@ -206,6 +207,7 @@
 -- | `hooksecurefunc(ProfessionsCrafterOrderListElementMixin, "Init", …)` | mixin 後置勾（`Engine.HookRows`） | 只畫我們的列底（滑過那張留給暴雪）。**不讀 `elementData`** |
 -- | `Engine.DropdownText` 的 `HookScript("OnEnable"/"OnDisable")` | frame script 後掛 | 只對兩顆篩選下拉，內容只有 `SetTextColor` |
 -- | `Engine.TrackButtonHover`／`TrackSelectable` 的 `HookScript("OnEnter"/"OnLeave")` | frame script 後掛 | 只對**一般**按鈕與清單列；內容只有換我們自己 overlay 的底色與邊色 |
+-- | **第九輪** `Engine.TrackButtonHover` 的 `HookScript("OnEnable"/"OnDisable")` | frame script 後掛 | 只對 primary 的**一般**按鈕（`BrowseFrame.SearchButton`、`UnlockTabButton`）；特許按鈕 0 支 |
 --
 -- **`hooksecurefunc` 在 `ProfessionsFrame` 或它任何子框上：0 支。**
 -- **在特許按鈕上的 `HookScript`：0 支。**
@@ -236,11 +238,22 @@ ns.ProfessionsSkin.ApplyBook = ns.ProfessionsSkin.ApplyBook or function() end
 -- 特許：通往受保護動作的按鈕
 --
 -- 跟 `Skins/AuctionHouse.lua` 的 `CommerceButton` 是同一支（同一條特許）。
+-- **第九輪：變體**走 `Engine.ScriptlessButton`（零腳本）。這幾顆都是
+--   `UIPanelButtonTemplate` 系、沒有 DisabledTexture ⇒ primary 只有「滑過＝職業色」，
+--   平時維持 `fill` ＋ 黑邊（理由見 AuctionHouse.lua 那一支：「製作」常常是停用的）。
 -- TODO(升格): 第三個視窗也需要時，把它升格成 `Skin.Button` 的 `opts.noHover`。
 ------------------------------------------------------------
 local PANEL_BUTTON_ART = { "Left", "Right", "Middle" }
 
-local function CommerceButton(btn, key)
+-- 第九輪：成組時退到 secondary 的那幾顆（其餘 primary）
+local COMMERCE_SECONDARY = {
+    CreateAllButton    = true,   -- 跟「製作」並排，一塊只給一顆 primary
+    DeclineOrderButton = true,   -- 跟「接單」成對
+    ReleaseOrderButton = true,   -- 跟「製作」成對（放棄這張訂單）
+    StopRecraftButton  = true,   -- 跟「重新製作」成對
+}
+
+local function CommerceButton(btn, key, variant)
     if not E.Usable(btn, key) then return nil end
 
     -- ⚠ 先建 overlay 再中和：`Engine.Overlay` 對顯式保護框會回 nil，
@@ -249,9 +262,8 @@ local function CommerceButton(btn, key)
     if not ov then return nil end
 
     E.NeutralizeKeys(btn, PANEL_BUTTON_ART, key)
-    E.ButtonStates(btn, key)          -- Highlight → 白 8%，**不掛腳本**
     E.ButtonFonts(btn, GameFontHighlight, key)
-    E.Paint(ov, T.fill, T.border)
+    E.ScriptlessButton(btn, ov, variant or "primary", key)   -- **不掛腳本**
     return ov
 end
 
@@ -272,13 +284,19 @@ local function WithSub(owner, key, label, fn)
 end
 
 -- 一組「有就做、沒有就靜默跳過」的按鈕（暴雪依情境隱藏的那幾顆）
+-- `fn(btn, label, name)`：第三個參數（第九輪）是 parentKey，給分派變體用
 local function OptionalButtons(owner, names, prefix, fn)
     for _, name in ipairs(names) do
         local btn
         if pcall(function() btn = owner[name] end) and btn then
-            fn(btn, prefix .. "." .. name)
+            fn(btn, prefix .. "." .. name, name)
         end
     end
+end
+
+-- 特許按鈕的分派：照 `COMMERCE_SECONDARY` 給變體
+local function Commerce(btn, label, name)
+    return CommerceButton(btn, label, COMMERCE_SECONDARY[name] and "secondary" or nil)
 end
 
 ------------------------------------------------------------
@@ -463,10 +481,11 @@ local function SkinCraftingPage(page, key)
         Skin.EditBox(box, label)
     end)
 
+    -- 第九輪：「公會工匠」是導覽 ⇒ secondary（這一塊的 primary 是「製作」）
     OptionalButtons(page, CRAFTING_NAV_BUTTONS, key, function(btn, label)
-        Skin.Button(btn, label)
+        Skin.Button(btn, label, { variant = "secondary" })
     end)
-    OptionalButtons(page, CRAFTING_COMMERCE_BUTTONS, key, CommerceButton)
+    OptionalButtons(page, CRAFTING_COMMERCE_BUTTONS, key, Commerce)
 
     -- 最小化狀態下的搜尋框
     local box
@@ -517,7 +536,7 @@ local function SkinOrdersPage(page, key)
         WithSub(browse, "RecipeList", bkey .. ".RecipeList", SkinRecipeList)
         WithSub(browse, "OrderList", bkey .. ".OrderList", SkinOrderList)
         WithSub(browse, "SearchButton", bkey .. ".SearchButton", function(btn, label)
-            Skin.Button(btn, label)
+            Skin.Button(btn, label)   -- 第九輪：搜尋列唯一的文字鈕 ⇒ primary
         end)
         WithSub(browse, "FavoritesSearchButton", bkey .. ".FavoritesSearchButton",
             function(btn, label) Skin.SquareIconButton(btn, label) end)
@@ -539,18 +558,19 @@ local function SkinOrdersPage(page, key)
         end)
         local back
         if pcall(function() back = view.OrderInfo and view.OrderInfo.BackButton end) and back then
-            Skin.Button(back, vkey .. ".OrderInfo.BackButton")
+            Skin.Button(back, vkey .. ".OrderInfo.BackButton", { variant = "secondary" })
         end
         local social
         if pcall(function() social = view.OrderInfo and view.OrderInfo.SocialDropdown end)
             and social then
-            Skin.StretchButton(social, vkey .. ".OrderInfo.SocialDropdown")
+            -- 第九輪：它是一顆開選單的鈕（密語／加好友…），不是動作 ⇒ secondary
+            Skin.StretchButton(social, vkey .. ".OrderInfo.SocialDropdown", { variant = "secondary" })
         end
         -- 按鈕散在 `OrderInfo` 與 `OrderView` 兩層，兩層都掃一遍（有就做）
-        OptionalButtons(view, ORDER_COMMERCE_BUTTONS, vkey, CommerceButton)
+        OptionalButtons(view, ORDER_COMMERCE_BUTTONS, vkey, Commerce)
         if type(view.OrderInfo) == "table" then
             OptionalButtons(view.OrderInfo, ORDER_COMMERCE_BUTTONS, vkey .. ".OrderInfo",
-                CommerceButton)
+                Commerce)
         end
     end)
 end
@@ -579,9 +599,12 @@ local function SkinSpecPage(page, key)
         E.Paint(ov, T.fillInset, T.border)
     end)
 
-    OptionalButtons(page, SPEC_COMMERCE_BUTTONS, key, CommerceButton)
-    OptionalButtons(page, SPEC_NAV_BUTTONS, key, function(btn, label)
-        Skin.Button(btn, label)
+    OptionalButtons(page, SPEC_COMMERCE_BUTTONS, key, Commerce)
+    -- 第九輪：「解鎖」是那個狀態下唯一的動作 ⇒ primary；其餘四顆是切換檢視 ⇒ secondary
+    OptionalButtons(page, SPEC_NAV_BUTTONS, key, function(btn, label, name)
+        Skin.Button(btn, label, {
+            variant = name ~= "UnlockTabButton" and "secondary" or nil,
+        })
     end)
     -- 撤銷鈕是 `IconButtonTemplate`（殼 ＋ `Icon`）⇒ `Skin.SquareIconButton`。
     -- 它跟「套用」同一條路（都改變未提交的專精點數），所以**不給職業色滑過**——

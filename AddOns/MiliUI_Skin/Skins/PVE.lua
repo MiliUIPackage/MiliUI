@@ -599,11 +599,16 @@ local function SkinRoleButtonRow(prefix)
 end
 
 -- 一票用全域名字取得的 UIPanelButton
-local function SkinGlobalButtons(names)
+--
+-- `secondary`（第九輪）：名字 → true 的表，列在裡面的走 secondary 變體，
+-- 其餘走預設的 primary（判準見 STYLE.md ④「按鈕的兩種變體」）。
+local function SkinGlobalButtons(names, secondary)
     for _, name in ipairs(names) do
         local btn = _G[name]
         if btn then
-            Skin.Button(btn, name)
+            Skin.Button(btn, name, {
+                variant = secondary and secondary[name] and "secondary" or nil,
+            })
         else
             E.Missing(name)
         end
@@ -611,11 +616,19 @@ local function SkinGlobalButtons(names)
 end
 
 -- 一票掛在某個框底下的 parentKey 按鈕
-local function SkinKeyedButtons(owner, prefix, keys, opts)
+--
+-- `secondary`（第九輪）同上：parentKey → true。`opts` 是共用的那幾個選項
+-- （`keepFont`），每顆各拷一份再填變體，不改呼叫端的表。
+local function SkinKeyedButtons(owner, prefix, keys, opts, secondary)
     for _, key in ipairs(keys) do
         local btn = Field(owner, key)
         if btn then
-            Skin.Button(btn, prefix .. "." .. key, opts)
+            Skin.Button(btn, prefix .. "." .. key, {
+                keepFont = opts and opts.keepFont,
+                points   = opts and opts.points,
+                variant  = (secondary and secondary[key]) and "secondary"
+                    or (opts and opts.variant) or nil,
+            })
         else
             E.Missing(prefix .. "." .. key)
         end
@@ -831,7 +844,7 @@ local function ApplyLFD()
         "LFDQueueFramePartyBackfillBackfillButton",
         "LFDQueueFramePartyBackfillNoBackfillButton",
         "LFDQueueFrameNoLFDWhileLFRLeaveQueueButton",
-    })
+    }, { LFDQueueFramePartyBackfillNoBackfillButton = true })
 
     -- 三條捲軸：隨機頁的舊式 ScrollFrame（ScrollFrame_OnLoad 生出來的
     -- `.ScrollBar` 模板就是 MinimalScrollBar），指定頁與隨從頁各一條。
@@ -886,7 +899,7 @@ local function ApplyRaidFinder()
         "RaidFinderQueueFramePartyBackfillBackfillButton",
         "RaidFinderQueueFramePartyBackfillNoBackfillButton",
         "RaidFinderQueueFrameIneligibleFrameLeaveQueueButton",
-    })
+    }, { RaidFinderQueueFramePartyBackfillNoBackfillButton = true })
 
     SkinOwnedScrollBar(_G.RaidFinderQueueFrameScrollFrame, "RaidFinderQueueFrameScrollFrame.ScrollBar")
 
@@ -925,7 +938,7 @@ local function ApplyCategorySelection(lfg)
     SkinPanelInset(panel, "LFGListFrame.CategorySelection.Inset")
     E.TextColor(Field(panel, "Label"), T.text, "LFGListFrame.CategorySelection.Label")
     SkinKeyedButtons(panel, "LFGListFrame.CategorySelection",
-        { "FindGroupButton", "StartGroupButton" })
+        { "FindGroupButton", "StartGroupButton" }, nil, { StartGroupButton = true })
 end
 
 local function ApplyNothingAvailable(lfg)
@@ -994,7 +1007,8 @@ local function ApplySearchPanel(lfg)
     SkinOwnedScrollBar(panel, "LFGListFrame.SearchPanel.ScrollBar")
 
     SkinKeyedButtons(panel, "LFGListFrame.SearchPanel",
-        { "BackButton", "BackToGroupButton", "SignUpButton" })
+        { "BackButton", "BackToGroupButton", "SignUpButton" }, nil,
+        { BackButton = true, BackToGroupButton = true })
 
     -- 「沒有結果」時出現的那顆自己開隊伍（LFGList.xml:1189）
     local startGroup = Path(panel, "ScrollBox", "StartGroupButton")
@@ -1030,7 +1044,7 @@ local function ApplyApplicationViewer(lfg)
     --   （LFGList.xml:787），而且它們在 OnLoad 就 `self:Disable()` 了（同檔 :796）
     --   —— 換 NormalFont 對停用的按鈕沒有意義，只會多一次寫入。
     SkinKeyedButtons(panel, "LFGListFrame.ApplicationViewer",
-        APPLICATION_COLUMN_HEADERS, { keepFont = true })
+        APPLICATION_COLUMN_HEADERS, { keepFont = true, variant = "secondary" })
 
     local refresh = Field(panel, "RefreshButton")
     if refresh then
@@ -1042,7 +1056,7 @@ local function ApplyApplicationViewer(lfg)
     SkinOwnedScrollBar(panel, "LFGListFrame.ApplicationViewer.ScrollBar")
 
     SkinKeyedButtons(panel, "LFGListFrame.ApplicationViewer",
-        { "RemoveEntryButton", "EditButton", "BrowseGroupsButton" })
+        { "RemoveEntryButton", "EditButton", "BrowseGroupsButton" }, { variant = "secondary" })
 
     local auto = Field(panel, "AutoAcceptButton")
     if auto then
@@ -1113,7 +1127,8 @@ local function ApplyEntryCreation(lfg)
         end
     end
 
-    SkinKeyedButtons(panel, "LFGListFrame.EntryCreation", { "ListGroupButton", "CancelButton" })
+    SkinKeyedButtons(panel, "LFGListFrame.EntryCreation", { "ListGroupButton", "CancelButton" },
+        nil, { CancelButton = true })
 
     -- 「找活動」那個蓋在上面的小對話框（LFGList.xml:1644）
     local dialog = Path(panel, "ActivityFinder", "Dialog")
@@ -1130,7 +1145,7 @@ local function ApplyEntryCreation(lfg)
         if eb then Skin.EditBox(eb, key .. ".EntryBox") end
 
         SkinOwnedScrollBar(dialog, key .. ".ScrollBar")
-        SkinKeyedButtons(dialog, key, { "SelectButton", "CancelButton" })
+        SkinKeyedButtons(dialog, key, { "SelectButton", "CancelButton" }, nil, { CancelButton = true })
     else
         E.Missing("LFGListFrame.EntryCreation.ActivityFinder.Dialog")
     end
@@ -1295,7 +1310,12 @@ local function InstallRowHooks()
         apply  = function(row)
             for _, key in ipairs({ "DeclineButton", "InviteButton", "InviteButtonSmall" }) do
                 local btn = Field(row, key)
-                if btn then Skin.StretchButton(btn, "LFGListApplicant." .. key) end
+                -- 第九輪：邀請 primary、拒絕 secondary
+                if btn then
+                    Skin.StretchButton(btn, "LFGListApplicant." .. key, {
+                        variant = key == "DeclineButton" and "secondary" or nil,
+                    })
+                end
             end
         end,
     }

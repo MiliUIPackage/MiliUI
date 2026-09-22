@@ -239,14 +239,15 @@ local function ApplyDressUp()
     for _, name in ipairs({ "DressUpFrameResetButton", "DressUpFrameCancelButton" }) do
         local btn = _G[name]
         if btn then
-            Skin.Button(btn, name)
+            -- 第九輪：重設／關閉／連結三顆沒有「確認」那一顆 ⇒ 全部 secondary
+            Skin.Button(btn, name, { variant = "secondary" })
         else
             E.Missing(name)
         end
     end
     local link
     if pcall(function() link = f.LinkButton end) and link then
-        Skin.Button(link, "DressUpFrame.LinkButton")
+        Skin.Button(link, "DressUpFrame.LinkButton", { variant = "secondary" })
     else
         E.Missing("DressUpFrame.LinkButton")
     end

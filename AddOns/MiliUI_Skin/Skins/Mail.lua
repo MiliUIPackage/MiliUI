@@ -541,7 +541,10 @@ local function SkinSendMail()
     for _, name in ipairs({ "SendMailMailButton", "SendMailCancelButton" }) do
         local btn = _G[name]
         if btn then
-            Skin.Button(btn, name)
+            -- 第九輪：寄出 primary、取消 secondary
+            Skin.Button(btn, name, {
+                variant = name == "SendMailCancelButton" and "secondary" or nil,
+            })
         else
             E.Missing(name)
         end
@@ -671,7 +674,10 @@ local function SkinOpenMail()
     for _, name in ipairs(OPEN_MAIL_BUTTONS) do
         local btn = _G[name]
         if btn then
-            Skin.Button(btn, name)
+            -- 第九輪：回信 primary；檢舉／退回（刪除）／關閉 secondary
+            Skin.Button(btn, name, {
+                variant = name ~= "OpenMailReplyButton" and "secondary" or nil,
+            })
         else
             E.Missing(name)
         end

@@ -332,7 +332,10 @@ local function ApplyInviteRow(row)
     for _, k in ipairs({ "AcceptButton", "DeclineButton" }) do
         local btn
         if pcall(function() btn = row[k] end) and btn then
-            Skin.StretchButton(btn, "FriendsFrameFriendInvite." .. k)
+            -- 第九輪：接受 primary、拒絕 secondary
+            Skin.StretchButton(btn, "FriendsFrameFriendInvite." .. k, {
+                variant = k == "DeclineButton" and "secondary" or nil,
+            })
         end
     end
 end
@@ -341,7 +344,8 @@ end
 local function ApplyInviteHeaderRow(row)
     -- BG 是一張 UI-Background-Rock（.xml:145），跟九張銀色切片一起中和
     E.NeutralizeKeys(row, { "BG" }, "FriendsPendingInviteHeader")
-    Skin.StretchButton(row, "FriendsPendingInviteHeader")
+    -- 第九輪：這是一條可收合的清單標題，不是動作按鈕 ⇒ secondary
+    Skin.StretchButton(row, "FriendsPendingInviteHeader", { variant = "secondary" })
 
     -- ▶／▼ 是「展開了沒」的訊號，不中和、只染暗一階
     for _, k in ipairs({ "RightArrow", "DownArrow" }) do
@@ -388,7 +392,10 @@ local function SkinFriendsList()
         local btn = _G[name]
         if btn then
             -- ⚠ 傳送訊息那顆會開聊天輸入框 —— 只做視覺，腳本一個都不掛（見檔頭）。
-            Skin.Button(btn, name)
+            -- 第九輪：新增好友 primary（這一頁的主動作）、傳送訊息 secondary
+            Skin.Button(btn, name, {
+                variant = name == "FriendsFrameSendMessageButton" and "secondary" or nil,
+            })
         else
             E.Missing(name)
         end
@@ -480,7 +487,10 @@ local function SkinBroadcast(battlenet)
     for _, key in ipairs({ "UpdateButton", "CancelButton" }) do
         local btn
         if pcall(function() btn = broadcast[key] end) and btn then
-            Skin.Button(btn, "FriendsFrame.BroadcastFrame." .. key)
+            -- 第九輪：更新 primary、取消 secondary
+            Skin.Button(btn, "FriendsFrame.BroadcastFrame." .. key, {
+                variant = key == "CancelButton" and "secondary" or nil,
+            })
         else
             E.Missing("FriendsFrame.BroadcastFrame." .. key)
         end
@@ -527,7 +537,8 @@ local function SkinWhoFrame()
             -- ⚠ `keepFont`：欄位表頭的 NormalFont 是
             --   `UserScaledFontGameHighlightSmall`（跟著玩家的文字大小設定縮放），
             --   換成固定字級的 `GameFontHighlight` 等於把那個縮放弄掉。
-            Skin.Button(header, key, { keepFont = true })
+            -- 第九輪：欄位表頭不是動作按鈕 ⇒ secondary
+            Skin.Button(header, key, { keepFont = true, variant = "secondary" })
         else
             E.Missing(key)
         end
@@ -536,7 +547,10 @@ local function SkinWhoFrame()
     for _, name in ipairs(WHO_BUTTONS) do
         local btn = _G[name]
         if btn then
-            Skin.Button(btn, name)
+            -- 第九輪：查詢 primary；加為好友／邀請入隊（對選中那一列的平行操作）secondary
+            Skin.Button(btn, name, {
+                variant = name ~= "WhoFrameWhoButton" and "secondary" or nil,
+            })
         else
             E.Missing(name)
         end
@@ -625,7 +639,11 @@ local function SkinRaidFrame()
         if btn then
             -- ⚠ `keepFont`：這兩顆在 XML 裡自己指定了 `GameFontNormalSmall`
             --   （RaidFrame.xml:213-215, 231-233），換成 `GameFontHighlight` 會變大一級。
-            Skin.Button(btn, name, { keepFont = true })
+            -- 第九輪：轉換成團隊 primary、團隊資訊（開另一個小視窗）secondary
+            Skin.Button(btn, name, {
+                keepFont = true,
+                variant = name == "RaidFrameRaidInfoButton" and "secondary" or nil,
+            })
         else
             E.Missing(name)
         end
@@ -672,7 +690,11 @@ local function SkinRaidFrame()
     for _, name in ipairs({ "RaidInfoExtendButton", "RaidInfoCancelButton" }) do
         local btn = _G[name]
         if btn then
-            Skin.Button(btn, name, { keepFont = true })
+            -- 第九輪：延長進度 primary、關閉 secondary
+            Skin.Button(btn, name, {
+                keepFont = true,
+                variant = name == "RaidInfoCancelButton" and "secondary" or nil,
+            })
         else
             E.Missing(name)
         end

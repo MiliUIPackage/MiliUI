@@ -177,6 +177,16 @@ local HEADER_OVERHANG = 11
 --   `ThreeSliceButtonTemplate` 那一列）。兩份都定下來之後就該升格成
 --   `Skin.ThreeSliceButton`，順便把「要不要掛滑過腳本」做成 opts。
 ------------------------------------------------------------
+--
+-- **第九輪（按鈕的兩種變體）：這一排全部維持 secondary，包括「返回遊戲」。**
+--   計畫是「一整排平行選項 secondary、只有返回遊戲 primary」，查證後認不出那一顆：
+--   `GameMenuFrameMixin:InitButtons` 最後一行是 `self:AddCloseButton(RETURN_TO_GAME)`
+--   （Blizzard_GameMenu/Shared/GameMenuFrame.lua:179），而 `AddCloseButton` 只是
+--   `AddSection` ＋ 同一個 `AddButton`（MainMenuFrameTemplates.lua:46-52）——
+--   **同一個池子、同一個模板、沒有 parentKey**。唯一的差別是 `layoutIndex` 欄位與
+--   按鈕文字，兩樣都是這份特許禁止的讀取（條件 3），而池子每次 `ReleaseAll` 之後
+--   借出的順序不保證，靠 `GetChildren` 的順序猜會在條件式按鈕（商城／評分）增減時
+--   把錯的那顆畫成主按鈕。⇒ 不做，列進回報等核准讀取例外。
 local THREE_SLICE_ART = { "Left", "Center", "Right" }
 
 local function FlatThreeSliceButton(btn, key)

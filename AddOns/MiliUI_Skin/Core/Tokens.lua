@@ -264,3 +264,76 @@ function T.AccentCheckDisabled(alpha)
     Resolve()
     return ar * 0.4, ag * 0.4, ab * 0.4, alpha or 1
 end
+
+------------------------------------------------------------
+-- 按鈕的兩種變體（第九輪）
+--
+-- 使用者原話：「目前設計有時候不知道他是按鈕」。平時跟面板同一個 `fill` 的按鈕，
+-- 在一片深灰裡只剩一圈黑邊可以認。所以按鈕分兩種：
+--   primary   ＝「確認／執行」那一顆：平時就是壓暗的職業色底 ＋ 中亮的職業色邊，
+--               滑過整顆換成職業色；
+--   secondary ＝「取消／返回／關閉」與一整排平行選項：第五輪的樣式原封不動
+--               （`fill` ＋ 黑邊，滑過底提亮 ＋ 職業色邊）。
+-- 這條規則把 ① 的「職業色只給選中」改成「職業色給：選中、hover、主按鈕」。
+--
+-- ⚠ **對比保護**：白字壓在職業色上，牧師（白）與盜賊（亮黃）會讀不到。
+--   依亮度壓暗：`lum = 0.299r + 0.587g + 0.114b`，`k = min(1, buttonTextLum / lum)`，
+--   底色一律用 `accent × k`。深色職業（死騎 0.33、薩滿 0.36、惡魔獵人 0.39）k = 1、不變。
+--   門檻取 **0.40** 而不是計畫的 0.50：以 WCAG 對比算過全部十三個職業，0.50 時
+--   白字對底 < 4.5 的有十個（武僧 2.3、法師 3.2、德魯伊 3.5…）；0.40 時只剩
+--   武僧 3.6 —— 綠色在 0.299/0.587/0.114 這條 gamma 亮度式裡被低估，為它再壓
+--   就會把其他職業壓成泥色。按鈕字有陰影，3.6 可以接受。
+--   職業色不是秘密值（`Resolve` 已經擋過），這裡是純 Lua 算術。
+------------------------------------------------------------
+T.buttonTextLum = 0.40
+
+-- primary 平時的底 ＝ 保護後的職業色 × 這個比例；邊 ＝ 原始職業色 × 下面那個。
+T.buttonIdleScale   = 0.30
+T.buttonBorderScale = 0.60
+
+-- 零腳本那條路（確認彈窗、特許按鈕）的滑過：Highlight 貼圖是 `alphaMode="ADD"`，
+-- 疊在 primary 平時的底（0.30 × 保護色）上，加 0.70 × 保護色正好等於 `AccentHover`。
+T.buttonHoverAddAlpha = 0.70
+
+local function ProtectK()
+    local lum = 0.299 * ar + 0.587 * ag + 0.114 * ab
+    if lum <= 0 then return 1 end
+    return math.min(1, T.buttonTextLum / lum)
+end
+
+-- 滑過的底：保護後的職業色（白字讀得出來的最亮那一階）
+function T.AccentHover(alpha)
+    Resolve()
+    local k = ProtectK()
+    return ar * k, ag * k, ab * k, alpha or 1
+end
+
+-- primary 平時的底：同一個保護色再壓到 0.30
+function T.AccentButton(alpha)
+    Resolve()
+    local k = ProtectK() * T.buttonIdleScale
+    return ar * k, ag * k, ab * k, alpha or 1
+end
+
+-- primary 平時的邊：原始職業色 × 0.60（邊上沒有字，不必做對比保護）
+function T.AccentButtonBorder(alpha)
+    Resolve()
+    local s = T.buttonBorderScale
+    return ar * s, ag * s, ab * s, alpha or 1
+end
+
+-- 一顆按鈕要的全部顏色（給 `Engine.TrackButtonHover` 的 opts 用）。
+-- secondary 回 nil ＝「照第五輪」。每次呼叫都是新表：只在上皮的那一次呼叫，
+-- 不在滑過路徑上。
+function T.ButtonPalette(variant)
+    if variant == "secondary" then return nil end
+    return {
+        idle           = { T.AccentButton() },
+        idleBorder     = { T.AccentButtonBorder() },
+        hover          = { T.AccentHover() },
+        hoverBorder    = { T.Accent(1) },
+        -- 停用一律中性：停用的按鈕不能看起來像能按
+        disabled       = T.fill,
+        disabledBorder = T.border,
+    }
+end

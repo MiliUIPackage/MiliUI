@@ -331,7 +331,8 @@ local function SkinHeaderDetails(f)
 
     local back
     if pcall(function() back = hd.Back end) and back then
-        Skin.Button(back, "AchievementFrame.HeaderDetails.Back")
+        -- 第九輪：「返回」＝ secondary（STYLE.md ④ 按鈕的兩種變體）
+        Skin.Button(back, "AchievementFrame.HeaderDetails.Back", { variant = "secondary" })
     else
         E.Missing("AchievementFrame.HeaderDetails.Back")
     end

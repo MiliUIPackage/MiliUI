@@ -55,7 +55,8 @@
 --
 -- hook：**一支都沒有掛在它的函式上**。只有原語內建的
 --   `HookScript("OnEnter"/"OnLeave")`（`Engine.TrackButtonHover`，只碰我們自己的
---   overlay）。**沒有 `hooksecurefunc`、沒有 `SetScript`、沒有呼叫它的任何函式。**
+--   overlay）；**第九輪**起 primary 的那一顆（`PostalOpenAllButton`）再多
+--   `HookScript("OnEnable"/"OnDisable")`（同一支引擎函式，停用時退回中性底）。**沒有 `hooksecurefunc`、沒有 `SetScript`、沒有呼叫它的任何函式。**
 -- 寫入它的欄位：無（狀態全在 `Engine.State` 的弱鍵表裡）。
 -- 讀它的物件：只有 `_G[名字]` 在不在，以及原語內部的 getter（`GetHighlightTexture`…）。
 --
@@ -95,7 +96,13 @@ local CHECKBOXES = 7              -- PostalInboxCB1..7
 local function Apply()
     for _, name in ipairs(BUTTONS) do
         local btn = _G[name]
-        if btn then Skin.Button(btn, name) end
+        -- 第九輪：「收取全部」primary（它取代暴雪那顆單獨的主按鈕）；
+        -- 開啟／返回（對勾選信件的一對平行操作）與轉寄 secondary
+        if btn then
+            Skin.Button(btn, name, {
+                variant = name ~= "PostalOpenAllButton" and "secondary" or nil,
+            })
+        end
     end
     for _, name in ipairs(ICON_BUTTONS) do
         local btn = _G[name]
