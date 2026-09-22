@@ -98,9 +98,24 @@ local FORCE_EVENT = {
 -- 下面 census 的 table key，都是 tainted 程式碰秘密值的硬錯誤。
 -- RegisterUnitEvent 已經在 C 端濾過 token，進得來的就是這顆 tracker 註冊的單位；
 -- 唯一的誤差是副 token（寵物框也收 player 的），多重讀一次自己的單位而已，不會讀錯人。
+--
+-- ⚠ 而且這幾個**延一幀才處理**，不在 OnEvent 裡同步重畫。文件標了 SynchronousEvent，
+-- 我們無法證明它永遠不會在暴雪的 secure 流程裡被派送（入口 2：按 Tab 的 TargetUnit、
+-- 按技能的 UseAction 都會同步派送事件，見 .claude/notes/wow-121-addon-code-in-secure-stack.md）。
+-- 同步跑的話整條按鍵流程會被染成我們的。它是低頻事件、只動版面，延一幀沒有視覺差別。
+-- 同一幀來好幾次只排一次（複合 token 的 tracker 實測一次變化收到 4 次）：
+-- 處理時讀的是 API 的當下值，排幾次結果都一樣。
 local NO_ROUTE_EVENT = {
     UNIT_MAX_HEALTH_MODIFIERS_CHANGED = true,
 }
+
+local function FlushNoRoute(tracker, event)
+    tracker.noRoutePending[event] = nil
+    local uf = tracker.uf
+    if uf and uf:IsVisible() then
+        ns.Refresh(uf, UNIT_EVENT_BUCKET[event], FORCE_EVENT[event])
+    end
+end
 
 local function RefreshUnit(unitToken, bucket, force, src)
     local uf = ns.frames[unitToken]
@@ -156,7 +171,13 @@ local function TrackerOnEvent(self, event, unit)
     local uf = self.uf
     if not (uf and uf:IsVisible()) then return end
     if NO_ROUTE_EVENT[event] then
-        ns.Refresh(uf, UNIT_EVENT_BUCKET[event], FORCE_EVENT[event])
+        -- 這裡只記帳，理由見 NO_ROUTE_EVENT。arg1 一個位元組都不碰（連傳進 Defer 都不傳）
+        local pending = self.noRoutePending
+        if not pending then pending = {}; self.noRoutePending = pending end
+        if not pending[event] then
+            pending[event] = true
+            ns.Defer(FlushNoRoute, self, event)
+        end
         return
     end
     if uf.unit == uf.baseUnit then
