@@ -132,6 +132,50 @@ function H.FormatSec(sec)
     return ("%d:%02d"):format(math.floor(n / 60), n % 60)
 end
 
+------------------------------------------------------------
+-- 統計可不可靠
+--
+-- 結算面板的灰色 `?`（UI/Panel.lua 的 RenderNotice）與聊天發佈（UI/Publish.lua 的
+-- 「統計不完整只能發成績單」）**必須是同一條規則**：面板上沒有 `?` 的場次卻不給發、
+-- 或有 `?` 的場次照樣把逐人數字貼出去，兩種都會讓玩家搞不懂哪一邊才是對的。
+-- 所以「哪些情況算數」只寫在 StatsNotes 這一處，兩邊都從它推。
+--
+-- 回傳說明句的陣列（面板提示框逐行印），乾淨的整趟回空表。
+-- ⚠ 新增 statsFlags 旗標時要在這裡補一句，否則面板不出 `?`、發佈也不會擋 ——
+--   沒有說明句的旗標等於不存在，這是刻意的：玩家看不到理由的限制比沒有限制更糟。
+------------------------------------------------------------
+function H.StatsNotes(run)
+    local notes = {}
+    if not run then return notes end
+    local flags = type(run.statsFlags) == "table" and run.statsFlags or {}
+
+    if run.statsSource == "overall" then
+        notes[#notes + 1] = L["These numbers come from the overall session, not from this run alone."]
+    end
+    if flags.truncated then
+        notes[#notes + 1] = L["The game had already dropped the earliest combat segments of this run."]
+    end
+    if flags.resetDuringRun then
+        notes[#notes + 1] = L["The combat statistics were reset partway through the run."]
+    end
+    if flags.partialStart then
+        notes[#notes + 1] = L["Recording started after the run had already begun."]
+    end
+    if flags.incompleteRoster then
+        notes[#notes + 1] = L["Some of the party never became readable, so a line may be missing."]
+    end
+    if flags.secretGaveUp then
+        notes[#notes + 1] = L["The game never handed out readable combat statistics for this run."]
+    end
+    return notes
+end
+
+-- 面板會出 `?`，或者乾脆沒有統計（statsSource == nil，面板那時是「沒有讀到戰鬥統計」的灰字）
+function H.StatsUnreliable(run)
+    if not run or run.statsSource == nil then return true end
+    return #H.StatsNotes(run) > 0
+end
+
 -- 下拉與標題用的短描述：「+14 晶紅生命之池  9/21 01:14」
 function H.Label(run)
     if not run then return "" end

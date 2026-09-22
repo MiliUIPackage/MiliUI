@@ -5,7 +5,7 @@
 --
 -- 版面（欄位是使用者指定的，順序不要自己調）：
 --
---   +14 副本名                          [ +14 副本名  9/21 01:14 ▾ ] [×]
+--   +14 副本名                   [發佈] [ +14 副本名  9/21 01:14 ▾ ] [×]
 --   32:47 / 28:00   超時   19 死亡 (-4:45)              評分 3206 (+12)
 --
 --       玩家          分數  戰利品      秒傷      承傷  可迴避傷害   中斷  驅散  死亡
@@ -330,29 +330,12 @@ end
 --
 -- 只有「統計不是乾淨的整趟」時才出現。⚠ 用 `?` 不用 `ⓘ`：中文字型沒有那個字元，
 -- 畫出來是方框（同樣的理由讓選單的打勾一律走材質）。
+--
+-- 哪些情況算數寫在 H.StatsNotes —— 聊天發佈的「只能發成績單」跟這個標記是同一條規則，
+-- 不要在這裡另外加判斷。
 ------------------------------------------------------------
 local function RenderNotice(run)
-    local flags = (run and type(run.statsFlags) == "table") and run.statsFlags or {}
-    local lines = {}
-
-    if run and run.statsSource == "overall" then
-        lines[#lines + 1] = L["These numbers come from the overall session, not from this run alone."]
-    end
-    if flags.truncated then
-        lines[#lines + 1] = L["The game had already dropped the earliest combat segments of this run."]
-    end
-    if flags.resetDuringRun then
-        lines[#lines + 1] = L["The combat statistics were reset partway through the run."]
-    end
-    if flags.partialStart then
-        lines[#lines + 1] = L["Recording started after the run had already begun."]
-    end
-    if flags.incompleteRoster then
-        lines[#lines + 1] = L["Some of the party never became readable, so a line may be missing."]
-    end
-    if flags.secretGaveUp then
-        lines[#lines + 1] = L["The game never handed out readable combat statistics for this run."]
-    end
+    local lines = H.StatsNotes(run)
 
     panel.notice.lines = lines
     panel.notice:SetShown(#lines > 0)
@@ -367,6 +350,9 @@ end
 function Panel.SetRun(run)
     Panel.EnsureFrame()
     currentRun = run
+    -- 發佈鈕的明暗有一半看場次（沒有場次、測試場次都不能發），換場次就要重算。
+    -- ns.Publish 在 TOC 裡排在這支後面，但這裡是執行期才解的，沒有載入順序問題
+    if ns.Publish then ns.Publish.UpdateButton() end
     if not run then
         panel.title:SetText(L["No runs recorded yet"])
         panel.subtitle:SetText("")
@@ -389,6 +375,11 @@ end
 
 function Panel.CurrentRun()
     return currentRun
+end
+
+-- 面板還沒建過就是 nil（UI/Publish.lua 的狀態同步要能安靜地什麼都不做）
+function Panel.PublishButton()
+    return panel and panel.publishBtn
 end
 
 -- 戰利品是在存檔之後才進來的，面板開著就把那一場重畫
@@ -478,9 +469,9 @@ function Panel.EnsureFrame()
     panel.rating:SetPoint("TOPRIGHT", head, "TOPRIGHT", -PAD, -(PAD + TITLE_SIZE + 8))
 
     ------------------------------------------------------------
-    -- 右上角的兩顆鈕
+    -- 右上角的三顆鈕（由右到左：關閉、歷史下拉、發佈）
     --
-    -- ⚠ **層級要明確墊高。** 這兩顆坐在 head 的範圍內，而 head 是整片收滑鼠的
+    -- ⚠ **層級要明確墊高。** 這幾顆坐在 head 的範圍內，而 head 是整片收滑鼠的
     --   拖曳把手；同層的兩個框誰吃到點擊是不保證的。症狀會是「關閉鈕有時候點不到」
     --   —— 偶發、難重現，所以不要賭，直接指定
     ------------------------------------------------------------
@@ -502,6 +493,24 @@ function Panel.EnsureFrame()
     hist:SetPoint("RIGHT", close, "LEFT", -4, 0)
     hist:SetScript("OnClick", function(self) ns.HistoryMenu.Toggle(self) end)
     panel.historyBtn = hist
+
+    -- 發佈到聊天：行為全在 UI/Publish.lua，這裡只建按鈕。
+    -- 寬度跟著字走（FitButton 的 40 是下限）：中文兩個字、英文 Publish 寬度差一倍，
+    -- 寫死的話不是中文太空就是英文溢出
+    -- ⚠ **封鎖時只壓暗文字，不 SetEnabled(false)**：停用的按鈕點了沒反應也沒有提示框，
+    --   玩家不會知道「為什麼」。要能點，點了印原因（見 Publish.OnButtonClick）
+    local pub = W.CreateButton(panel, L["Publish"], "accent-hover", 40, 18)
+    W.FitButton(pub, 40, 18)
+    pub:SetFrameLevel(BTN_LEVEL)
+    pub:SetPoint("RIGHT", hist, "LEFT", -4, 0)
+    pub:SetScript("OnClick", function(self) ns.Publish.OnButtonClick(self) end)
+    -- HookScript 而不是 SetScript：CreateButton 自己的 OnEnter／OnLeave 管的是底色的
+    -- 滑過狀態，SetScript 會把它蓋掉
+    pub:HookScript("OnEnter", function(self) ns.Publish.ShowButtonTooltip(self) end)
+    pub:HookScript("OnLeave", function(self)
+        if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+    end)
+    panel.publishBtn = pub
 
     ------------------------------------------------------------
     -- 欄位標題列 ＋ 底下的髮絲線

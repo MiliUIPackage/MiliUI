@@ -58,6 +58,7 @@ local function Usage()
     print("  |cffffd200/mmp|r — " .. L["toggle the settlement panel"])
     print("  |cffffd200/mmp config|r — " .. L["open the settings"])
     print("  |cffffd200/mmp test|r — " .. L["show a sample run without saving it"])
+    print("  |cffffd200/mmp preview|r — " .. L["print what publishing would send, without sending it"])
     print("  |cffffd200/mmp probe on|off|dump|clear|r — " .. L["the in-game API probe"])
 end
 
@@ -77,6 +78,24 @@ SlashCmdList.MILIUIMYTHICPLUS = function(msg)
         -- ⚠ **不存檔**：假場次只是拿來看版面的，進了歷史就會污染真的記錄
         ns.Panel.SetRun(ns.History.MakeFake(variant))
         ns.Panel.Show()
+
+    elseif msg == "preview" then
+        -- 發佈的原文印在自己的聊天框、**不送出**，每行附上估算的寬度與位元組數：
+        -- 給玩家在遊戲裡對照「這一行會不會折行」用的（預算是內容 ≤ 19 格、≤ 255B）。
+        -- 假場次也可以看（只是不能送）。面板還沒開過就看最新那一場 —— 開面板時顯示的也是它
+        local Pub = ns.Publish
+        local run = ns.Panel.CurrentRun() or ns.History.Latest()
+        if not run then
+            ns.Print(L["No run to publish."])
+        else
+            for _, line in ipairs(Pub.CurrentLines(run)) do
+                local w = Pub.ChatWidth(line)
+                local wText = (w == math.floor(w)) and ("%d"):format(w) or ("%.1f"):format(w)
+                -- {rtN} 換成圖示：自己的聊天框不會轉，而對方看到的是圖示
+                ns.Print(Pub.WithIcons(line) .. "  |cff888888"
+                    .. L["(width %s · %dB)"]:format(wText, #line) .. "|r")
+            end
+        end
 
     elseif msg:match("^probe") then
         local arg = msg:match("^probe%s+(%S+)$")

@@ -20,6 +20,9 @@ DB.LIMITS = {
 -- 探針日誌上限（環狀）。400 行大約是三趟鑰石的量，reload 不會被沖掉
 DB.PROBE_LOG_CAP = 400
 
+-- 發佈格式的合法值。正規化與 UI/Publish.lua 共用這一張，加格式時兩邊一起動
+DB.PUBLISH_FORMATS = { scorecard = true, summary = true, perplayer = true }
+
 local function BuildDefaults()
     return {
         schemaVersion = ns.DB_VERSION,
@@ -43,6 +46,13 @@ local function BuildDefaults()
         minimap = {
             show  = true,
             angle = 240,
+        },
+
+        -- 發佈到聊天（UI/Publish.lua）。format 全頻道共用；avoidable 只對「逐人」有意義
+        -- （在那一行尾巴加「避N%」），預設關 —— 那一欄最容易把一行撐到折行
+        publish = {
+            format    = "summary",
+            avoidable = false,
         },
 
         -- 進行中的場次。**要進 SV**：中途 /reload 才不會丟掉開跑時的基準
@@ -99,6 +109,11 @@ local function Normalize(db)
 
     -- 角度拿去做三角函數，nil 會讓按鈕定位那一行直接硬錯
     if type(db.minimap.angle) ~= "number" then db.minimap.angle = 240 end
+
+    -- 不認得的格式（手改、或以後拿掉某個格式）夾回預設，不然選單讀數是空的、
+    -- BuildLines 也不知道要組哪一種
+    if not DB.PUBLISH_FORMATS[db.publish.format] then db.publish.format = "summary" end
+    db.publish.avoidable = db.publish.avoidable and true or false
 
     local p = db.panel.point
     local maxX = (GetScreenWidth() or 1920) / 2
