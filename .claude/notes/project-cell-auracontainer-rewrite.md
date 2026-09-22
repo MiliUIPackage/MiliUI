@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 47adb948-8bd2-4804-9bff-d58a154ecf7c
-  modified: 2026-09-22T06:30:53.067Z
+  modified: 2026-09-22T06:56:45.696Z
 ---
 
 Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard AuraContainer（路線 A，見 [[wow-121-aura-containers]]），讓分類全走 Blizzard-side candidateFilters，照 DandersFrames v5 作法「一個都不少」。使用者 2026-08 選定路線 A。**已上線使用**（master，Cell r283-MiliUI）。
@@ -84,6 +84,29 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
 - bossBadge 是結構鍵（改了就重建），也在寄存 key 裡（TableSig(config)），所以蓋過章的按鈕不需要「拿掉」路徑。
   `/cab inspect` 的 record 行帶 ` [!]`。
 - **待驗證**：副本裡首領減益真的出現「!」、非首領組沒有；預覽勾選與縮放即時跟著變。
+
+### 可驅散加號（2026-09-22，同日，未在遊戲內驗證）
+
+layout key `dispelBadge`（`checkbutton4`，預設開，Revise 同一段補 nil），右上角**白色「＋」包 1px 黑邊**
+（使用者從 學派色＋／白＋／學派色方塊 三案裡選白＋：外框已經說了是哪個學派，符號只說「你能處理」）。
+
+- **跟「!」不同，這個是逐顆光環判斷，不靠分組**：四塊色塊（橫／直各一塊黑邊＋一塊白）全部
+  `AddDispelTypeTexture(style=PreserveAsset, customDispelColorMap)`，色表對**自己能驅的學派**給白／黑、
+  **其他學派給 alpha 0**。⚠ 五個學派都要有條目——漏掉的學派會保留引擎自己的學派色（PreserveAsset 先上學派色、
+  色表才覆寫），變成不能驅的減益上有彩色「＋」。沒學派的光環引擎本來就不顯示（showWithoutDispelType 沒開）。
+  ⇒ 任何一組都會標，能驅的首領技能同時有「!」和「＋」。這招（色表 alpha 0 當「逐學派開關」）可以用在別處：
+  暴雪沒有「玩家能不能驅」的按鈕選項，但學派＋自己的名單就等於那個判斷。
+- 色塊**生出來就 Hide**：綁上之後 Shown 歸引擎管；萬一綁失敗，不會變成每顆圖示都掛著白「＋」。
+- 學派集合（`ACC.GetMyDispelTypes()`，讀 Cell 的 `I.CanDispel`，右下驅散指示器同一份）放進容器 config
+  （`dispelBadge = 集合 or false`，**不能送 nil**）→ 在 TableSig／寄存 key 裡、變了就重建（色表是綁定時複製進按鈕的）。
+  Cell 原本沒有通知：在 `Indicator_DefaultSpells.lua` 補 `NotifyDispellable()`（簽章比對，變了才 `Cell.Fire("DispellableChanged")`），
+  UnitButton 收到就 `PushContainerConfig("raidDebuffs")`，預覽也重畫。名單在登入後 1 秒才填好 ⇒ 登入時重要減益容器會多重建一次。
+  AD 裡 `/cab test` 用的 `MyDispelTypes` 改成直接指向 `ACC.GetMyDispelTypes`。
+- `AddDispelTexture`（ACC 內部）是所有學派貼圖共用的「第一次綁時清空列表」入口——環、只顯示學派圖示、加號都走它，
+  否則誰先綁誰清的順序會把別人的綁定清掉。
+- 預覽：`UpdateBadgePreview`（取代 UpdateBossBadgePreview）同時管兩個符號，「＋」看 `I.CanDispel(預覽圖示的學派)`
+  ——預覽三顆是 無／詛咒／魔法，**不能驅散的專精預覽上就不會有「＋」**（遊戲內也不會有）。
+- **待驗證**：能驅的學派才有「＋」、不能驅的完全透明；換專精後「＋」跟著換；登入後一秒那次重建沒有副作用。
 
 ## 樣式規則（StyleButton）
 
