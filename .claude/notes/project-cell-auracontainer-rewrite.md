@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 47adb948-8bd2-4804-9bff-d58a154ecf7c
-  modified: 2026-09-22T06:08:42.965Z
+  modified: 2026-09-22T06:30:53.067Z
 ---
 
 Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard AuraContainer（路線 A，見 [[wow-121-aura-containers]]），讓分類全走 Blizzard-side candidateFilters，照 DandersFrames v5 作法「一個都不少」。使用者 2026-08 選定路線 A。**已上線使用**（master，Cell r283-MiliUI）。
@@ -67,10 +67,14 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
   `Blizzard_CustomAuraButton.lua`，只有學派貼圖/文字、倒數、層數、圖示、法術名、pandemic）。所以 `bossrole`
   record 帶 `badge = true`，initFn 蓋 `button._adBadge`（跟 effColor 同招），StyleButton 畫。
   範圍＝`isBossOrRoleAura` 那一組（含職責減益）；**優先減益、左下減益排都沒有**（左下是單一 HARMFUL group，分不出來）。
-- **畫法**：`ACC.StyleBossBadge(host, anchorTo, iconSize, scaleRef)`——金底（1,0.82,0）黑 1px 邊＋黑「!」，
-  全用色塊、以**實體像素**計（px = GetPixelToUIUnitFactor / scaleRef 有效縮放），邊長 ≈ 圖示 45%、偶數、10–16px。
+- **畫法**（使用者定案：**黃色「!」包 1px 黑邊，不要底框**）：`ACC.StyleBossBadge(host, anchorTo, iconSize, scaleRef)`，
+  四張色塊（bar／dot 各一張黑邊＋一張黃 1,0.82,0），兩個黑邊重疊讓 bar 與 dot 之間只隔 `gap` 的黑。
+  尺寸表 `GLYPH` 是「22px 圖示上的實體像素」（inset 1、edge 1、寬 2、bar 高 6、gap 1），**每一項都乘 k = 圖示實體像素 / 22**
+  再取整（各有下限）。px = GetPixelToUIUnitFactor / scaleRef 有效縮放。
   遊戲內畫在 `dfDurHolder`（base+6）的 ARTWORK 層＝在圖示／遮罩／時鐘掃描之上、倒數文字之下，不多建 frame；
   scaleRef 用 `handle.frame`（不從 AuraButton 讀任何東西）。
+  ⚠ **不要給實體像素設上限**：第一版（金底方塊）限 10–16px，設定面板的預覽有「縮放大小」會把整顆按鈕放大，
+  圖示變 80px 角標還是 16px，使用者以為實際就那麼小。任何以實體像素計的尺寸都要跟著縮放走。
 - **預覽**：預覽按鈕的第 1 顆 BorderIcon（無學派紅框那顆）代表首領組，畫在它的 `textFrame`（同樣在掃描之上、
   數字之下），呼叫同一支 `ACC.StyleBossBadge`。`UpdateBossBadgePreview` 掛在四個觸發點：初始化迴圈、
   checkbutton bossBadge、raidDebuffFilters（首領／職責關掉就不畫）、size-border。不支援 AuraContainer 時不畫。
@@ -79,7 +83,7 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
   UnitButton 的 checkbutton 分派要走 no-op 分支（跟 excludeImportant 同一格），否則會蓋掉同指示器的 onlyShowTopGlow（通則 12）。
 - bossBadge 是結構鍵（改了就重建），也在寄存 key 裡（TableSig(config)），所以蓋過章的按鈕不需要「拿掉」路徑。
   `/cab inspect` 的 record 行帶 ` [!]`。
-- **待驗證**：副本裡首領減益真的出現角標、非首領組沒有；18px 圖示上 10px 角標會不會太大；預覽勾選即時切換。
+- **待驗證**：副本裡首領減益真的出現「!」、非首領組沒有；預覽勾選與縮放即時跟著變。
 
 ## 樣式規則（StyleButton）
 
@@ -186,6 +190,27 @@ Cell slider **只在 `OnMouseUp` 才呼叫 `afterValueChangedFn`**（`Widgets/Wi
 還在用那個 token（debuff mode、dispel mode、重要減益的 dispel record）。`AD.Test` 戰鬥中
 不能換 filter，所以驗法是：設第 3 步→開打→看整排會不會消失；再設第 6 步→開打→對照。
 **尚未驗證。** 健康基準線（正常時五個 display 的長相）在 2026-08-11 的 log，重點：`mode=buff groupsAdded=1 initCount=10 buttons=10 +cf{includeSpellIDs}`、anchorFrame 有實際矩形。
+
+### 法術旗標分析視窗（2026-09-22，未在遊戲內驗證）
+
+`/cab spell <ID｜名稱｜法術連結｜wowhead 網址｜冒險指南段落連結>` 開視窗（`RaidFrames/AuraSpellInspector.lua`，
+TOC 排在 AuraDisplay 後面；舊的一行版只在這支沒載入時才退回）。**全部只讀**：不碰容器、不改設定、不在暴雪框上寫欄位；
+每支 API pcall、每個回傳值先過 issecretvalue 才做布林判斷。
+
+- 分六段：結論／暴雪旗標（依 ID 離線查，清單見 [[wow-121-aura-filter-vocabulary]]）／秘密值／光環實例
+  （掃 player＋隊友＋target＋focus，`GetUnitAuraBySpellID` 找第一顆讀得到的，再用 `IsAuraFilteredOutByInstanceID`
+  對它實測十個 token）／**Cell 判定**／Cell 法術清單（黑名單、減傷、外部、爆發、控場、目標法術）。
+- **Cell 判定用的是容器實際建好的 record**：代表按鈕上每個 `ind.container` 的 `_parkRecords`（沒建就 `BuildRecords(h.config)`），
+  逐條推算 true／false／未知。有實例：filter 整條交給引擎實測、cf 從實例欄位推；沒實例：減益類指示器假設是減益、
+  token 只有 CROWD_CONTROL（法術層級近似）／BIG_DEFENSIVE／EXTERNAL_DEFENSIVE 推得出來，首領／職責／學派／持續時間／來源一律「未知」並列出缺什麼。
+  group 不去重，所以摘要是「所有認它的組」（兩組以上＝會重複顯示），不是「第一個認領的」。ID 清單條件照秘密等級判斷有沒有效。
+- 視窗開著時 UNIT_AURA／名單／目標／進出戰鬥 → 0.5 秒 debounce 重掃（事件的 unit 參數可能是秘密字串，不比對），內容沒變不重畫；
+  「文字」模式可整段複製（自動重掃在文字模式暫停，免得選到一半被重寫）。
+- Shift 點法術連結：後掛 `ChatFrameUtil.InsertLink`，**只在輸入框有焦點時**吃；冒險指南只在聊天框開著時才送連結，走不到這裡，
+  它的 `journal:2:<段落>` 連結要用貼的（`C_EncounterJournal.GetSectionInfo(...).spellID` 換成 ID）。
+- 文字寫死繁中（跟 `/cab` 其他輸出一致，沒進語系檔），record 標籤借用重要減益面板的 L 字串。
+- 離線驗過：scratchpad 的 mock harness 跑離線／有實例／秘密值三情境無錯（幽暗炸彈有實例時落在短時效）。
+  **待驗證**：視窗排版、捲動、Shift 點連結、首領戰中開著不報錯、token 實測結果合理。
 
 ## 順手修掉的相關項
 
