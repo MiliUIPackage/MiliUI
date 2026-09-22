@@ -34,8 +34,10 @@ local function TextWidth(fs)
     return tonumber(w) or 0
 end
 
+-- 主按鈕（primary）：這一區唯一的動作，平時就是職業色，玩家不用靠發光才知道這裡能按。
+-- 停用時 W.CreateButton 自己退回中性底＋灰字（規則見 .claude/notes/project-miliui-button-variants.md）。
 function AddButton.Create(parent, onClick, fillTooltip)
-    local b = ns.W.CreateButton(parent, Label(), "accent-hover", MIN_W, HEIGHT)
+    local b = ns.W.CreateButton(parent, Label(), "primary", MIN_W, HEIGHT)
     -- 停用時滑過也要有提示：「為什麼不能按」本身就是要講的資訊
     b:SetMotionScriptsWhileDisabled(true)
     ns.AttachTooltip(b, fillTooltip)
@@ -45,19 +47,19 @@ function AddButton.Create(parent, onClick, fillTooltip)
 end
 
 ------------------------------------------------------------
--- 啟用與否、文字色、寬度、發光
+-- 啟用與否、寬度
 --
--- ⚠ 金色碼只在啟用時加。W.CreateButton 停用時會把字轉灰，但內嵌色碼蓋得過
---   SetTextColor —— 原本一律帶金色，停用的按鈕看起來跟能按的一模一樣。
+-- ⚠ 字裡**不要**放色碼。內嵌色碼蓋得過 W.CreateButton 停用時上的灰字 ——
+--   以前啟用時字帶金色，停用前忘了拿掉就會看起來跟能按的一樣。啟用／停用現在由
+--   primary 的底色自己講（職業色 ↔ 中性），字一律白。
+-- 「已經在清單裡」寫在工具提示裡，不另外給視覺訊號：按鈕照樣能按（重按＝覆寫份數）。
 -- 寬度跟著字走：按鈕字在不同語系長度差很多，固定寬度不是太空就是溢出。
 ------------------------------------------------------------
-function AddButton.SetState(b, enabled, glow)
+function AddButton.SetState(b, enabled)
     b:SetEnabled(enabled and true or false)
-    b:SetText(enabled and ("|cffffd200" .. Label() .. "|r") or Label())
+    b:SetText(Label())
     local w = math.max(MIN_W, math.ceil(TextWidth(b:GetFontString())) + PAD_X * 2)
     ns.P.Size(b, w, HEIGHT)
-    -- 還沒加進清單才發光；加過就熄掉（一直亮著的提示等於沒有提示）
-    ns.SetGlow(b, (enabled and glow) and true or false)
 end
 
 ------------------------------------------------------------

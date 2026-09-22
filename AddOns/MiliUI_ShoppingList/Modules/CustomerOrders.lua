@@ -52,7 +52,7 @@ local function Refresh()
         return
     end
     local usable = (order.spellID and form.transaction) and true or false
-    ns.AddButton.SetState(button, usable, usable and not ns.List.Find(EntryKey(order)))
+    ns.AddButton.SetState(button, usable)
 end
 
 -- UpdateListOrderButton 在打小費時每個按鍵都會跑一次，直接重算會白算幾十遍。
@@ -101,7 +101,7 @@ local function FillTooltip(_, tip)
         tip:AddLine(L["Reagents the item already carries (sparks, embellishments) are left out."], 0.6, 0.6, 0.6, true)
     end
     if ns.List.Find(EntryKey(order)) then
-        -- 按鈕不發光的時候要講得出理由，不然看起來像壞掉
+        -- 按鈕外觀不分「加過／沒加過」，這件事只在這裡講
         tip:AddLine(L["Already in the list"], 0.4, 1, 0.4)
     end
     tip:AddLine(L["Click to put the missing reagents on the shopping list."], 0.6, 0.6, 0.6, true)

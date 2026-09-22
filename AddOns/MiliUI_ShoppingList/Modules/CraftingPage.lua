@@ -79,7 +79,7 @@ local function Refresh()
     -- 材料區沒顯示＝沒有材料可買（「重新製作」還沒放物品時暴雪也把材料區藏起來），
     -- Place 會把按鈕一起收起來
     if not ns.AddButton.Place(button, form.Reagents, form.OptionalReagents) then return end
-    ns.AddButton.SetState(button, true, not ns.List.Find(EntryKey(form, info)))
+    ns.AddButton.SetState(button, true)
 end
 
 local function FillTooltip(_, tip)
