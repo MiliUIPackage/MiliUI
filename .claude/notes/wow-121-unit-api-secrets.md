@@ -110,3 +110,13 @@ arg1 從頭到尾沒被用過 —— 路由只是為了少畫幾格。把三個�
 （不然有人 AFK 就要重畫全團），**沒有實測崩潰之前不要憑猜測改**，但看到同款錯誤訊息時
 它們是第一批要查的。判準：處理函式有沒有真的用到 arg1；沒用到就收掉路由，有用到才另想辦法。
 見 [[feedback-fix-root-cause-not-symptom]]。
+
+**最大生命值損失：`GetUnitTotalModifiedMaxHealthPercent(unit)`**（2026-09-22 查 12.1.0 (69875)
+的 `UnitDocumentation.lua`，**尚未實機驗證**）：文件**沒有任何秘密標記**（沒有 SecretReturns、
+也沒有 SecretWhen…Restricted），回 0～1 的損失比例 —— 少數插件可以拿來算版面的血量值。
+對應事件 `UNIT_MAX_HEALTH_MODIFIERS_CHANGED` 則標了 `SecretPayloads`（payload 是 unitTarget ＋
+同一個比例），所以事件只當訊號：**不讀 arg1 路由、不讀比例**，當下重問函式。
+MiliUI_UnitFrames 用它畫血條的損失段（`Elements/Health.lua`、`Core/Events.lua` 的
+`NO_ROUTE_EVENT`），`/muf debug` 的「最大生命值損失」那段印 api 回值是不是 secret ——
+實機跑過（尤其 M+／首領戰）之後把這段的「尚未驗證」改掉。暴雪自己的畫法在
+`Blizzard_UnitFrame/Shared/UnitFrame.lua` 的 `TempMaxHealthLossMixin`（CVar `showTempMaxHealthLoss`）。
