@@ -120,3 +120,16 @@ r277，用 `r277.9.x` 自己往下編號。我們從 r282 走自己的路，**�
   寫欄位）＋ `issecretvalue` 閘。他們額外去鉤每個 frame 的 `CreateTexture`，那段別抄。
 - 預設減益黑名單補 `95809`／`160455`／`428628`／`25771`。⚠ 要配 Revise 遷移 append 到既有
   `CellDB["debuffBlacklist"]`，否則老玩家吃不到（同 HoT 清單那次的坑）。
+
+## 第三次比對（2026-09-23，他們 r277.9.8.7 ＋ r277.9.8.8-forever-BETA / 我們 r304_MiliUI）
+
+08-21 → 09-15 出了 9 版，之後只剩 09-21 一個 **WoW Forever** 測試版。重心已從修 bug 轉向：
+①新功能（Highlight Debuffs 九個 filter 勾選、減益類型色框、驅散整框描邊、滿血淡出、
+獨立語系下拉、除錯主控台、Border 指示器時間條、Glow 指示器回歸、寵物框減益開關）；
+②多版本（Classic/TBC/MoP/Forever 條目數已超過 Retail，9.8.7 的 Retail 只剩 3 條）。
+他們的 HideBlizzard 火在 9.7.10 以「強制把編輯模式切成團隊樣式隊伍框」收尾。
+
+**值得回頭查的（我們可能也有）**：
+- 9.8.1「角色互換後 raid slot 的 unit token 沒變，光環／施法圖示卡在別人框上」—— 查我們的光環容器 key 有沒有吃 guid。
+- 9.8.2「戰士／盜賊／獵人戰鬥中距離淡出失效」—— 我們 `F.IsInRange` 在 UnitInRange 回秘密且沒有 spell_friend 時，
+  戰鬥中直接 `return true`；群組內主要靠 UNIT_IN_RANGE_UPDATE 的 payload（`ir`），要實測 payload 是否戰鬥中秘密。
