@@ -484,7 +484,11 @@ local function Apply()
 
     local border
     if pcall(function() border = f.BorderContainer end) and border then
-        E.NeutralizeKeys(border, { "Border", "TopDecor" }, "WeeklyRewardsFrame.BorderContainer")
+        -- 2026-09-23 使用者要求：上緣正中央的寶庫徽飾（`TopDecor`，atlas
+        -- evergreen-weeklyrewards-frame-topdecor 229x103，錨 TOP y=-16，OVERLAY 5）留著看效果 ——
+        -- 它是這個視窗的識別，跟冒險指南的首領圖同一類。只中和雕花外框 `Border`。
+        -- 要拿掉就把 "TopDecor" 加回這張表。
+        E.NeutralizeKeys(border, { "Border" }, "WeeklyRewardsFrame.BorderContainer")
     else
         E.Missing("WeeklyRewardsFrame.BorderContainer")
     end
