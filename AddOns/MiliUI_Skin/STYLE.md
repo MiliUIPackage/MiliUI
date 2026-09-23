@@ -193,6 +193,10 @@ k = 1、完全不變。職業色不是秘密值，這是純 Lua 算術。
   條件：只在脫戰、同名錨點覆寫（不 `ClearAllPoints`）、相對框／相對點／另一軸照 XML 原值、暴雪 Lua 零處重設或讀回那個框的位置、
   配方在呼叫處寫明 XML 原值與出處；`MiliUI_Skin_DB.relayout = false` 整批關掉。清單列、名冊、任何會在更新時讀回自己尺寸的框**不適用**。
   第二個實例（2026-09-24）：伴隨元件 Postal 的「開啟／返回」兩顆 —— 相對框從 `InboxFrame`（384 寬、比可見視窗寬）改成 `MailFrame` 才置中，這是**唯一改了相對框**的用法；前提同上（Postal 只在建立時錨一次、零處重設或讀回）
+- **`ClearAllPoints`＋`SetPoint` 重接一小段錨定鏈 —— 只准 `Engine.Reanchor`**（2026-09-24，`ShiftRoot` 的同級例外）：
+  要把鏈**反過來接**（原本 A 錨 B、改成 B 錨 A）時同名覆寫做不到、一定要先清錨點。條件同 `ShiftRoot`（脫戰、
+  暴雪 Lua 零處重設或讀回、配方寫明 XML 原值與換算、`relayout = false` 整批關），另加「整段鏈一次交出、先全清再全錨」。
+  唯一實例：好友視窗的狀態列（狀態下拉改當根、左緣對齊分頁列，戰網名稱框接在它右邊，`Skins/Friends.lua` 的 `AlignStatusRow`）
 - 技能鈕這類 **secure 按鈕的圖示裁邊**（`Engine.CropIcon` 對它的 `IconTexture`）：`SetTexCoord` 是對 region 的純 C 端 setter，准許；
   方框不准掛在 secure 按鈕上，改掛在外層的（隱式保護）容器、用 `anchorTo` 貼著按鈕、層級墊高、不吃滑鼠
 - `RemoveMaskTexture` —— **只准 `Engine.UnmaskIcon`**，只用在「純裝飾的圓形遮罩」（地城與團隊／PvP 左側大類按鈕的

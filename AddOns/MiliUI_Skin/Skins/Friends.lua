@@ -1092,41 +1092,36 @@ end
 -- 套用
 ------------------------------------------------------------
 
-------------------------------------------------------------
--- 左上角的方形識別圖示（取代暴雪那張 60x60 的圓形頭像，見 Apply 裡的說明）
-------------------------------------------------------------
-local PORTRAIT_TILE_TEXTURE = "Interface\\FriendsFrame\\Battlenet-Portrait"
-local PORTRAIT_TILE_GAP = 7
-local PORTRAIT_TILE_SIZE = 29      -- ＝BattlenetFrame 的高度（FriendsFrame.xml:513）
 
-local function SkinPortraitTile(f)
-    local status = _G.FriendsFrameStatusDropdown
-    if not (status and _G.FriendsTabHeader) then
-        E.Missing("FriendsFrame.portraitTile (BattlenetFrame / StatusDropdown)")
+------------------------------------------------------------
+-- 狀態列左移、左緣對齊「好友」分頁（2026-09-24 使用者要求）
+--
+-- 原本的鏈（FriendsFrame.xml:512-515,746-749）：`BattlenetFrame` 是根（TOP → TitleContainer x=40
+-- y=-26，190x29），狀態下拉 `RIGHT → BattlenetFrame LEFT -7` 掛在它左邊 ⇒ 整組偏右，左邊空一大塊
+-- （原本那塊是 60x60 的圓頭像，頭像拿掉之後就只剩留白）。
+-- 反過來接：**下拉當根**，左中點錨在分頁列（`FriendsTabHeader.TabSystem`，TOPLEFT x=18 y=-60，
+-- .xml:510）的左緣；垂直照原本那一列的中線 —— 名稱框頂在視窗頂下 27（TitleContainer y=-1 再 -26）、
+-- 高 29 ⇒ 中線在 -41.5，相對分頁列頂端（-60）是 +18.5。名稱框改接在下拉右邊、間距照原值 7；
+-- ▼ 選單鈕錨在名稱框上，自己跟著走。
+-- 暴雪的 Lua 零處重設或讀回這兩個框的位置（grep 過；只有 OnLoad 對下拉 SetWidth(51)）。
+-- 走 `Engine.Reanchor`（`ShiftRoot` 的同級例外，脫戰、`db.relayout = false` 可整批關）。
+------------------------------------------------------------
+local STATUS_ROW_Y = 18.5   -- 相對 TabSystem 頂端，見上面的換算
+local STATUS_ROW_GAP = 7    -- FriendsFrame.xml:748
+
+local function AlignStatusRow()
+    local status, bnet = _G.FriendsFrameStatusDropdown, _G.FriendsFrameBattlenetFrame
+    local header = _G.FriendsTabHeader
+    local tabs
+    if header then pcall(function() tabs = header.TabSystem end) end
+    if not (status and bnet and tabs) then
+        E.Missing("FriendsFrame.statusRow")
         return
     end
-    local tile = E.Overlay(f, {
-        key = "FriendsFrame.portraitTile",
-        slot = "portraitTile",
-        levelOffset = 2,                 -- 畫在面板底與內容之上
-        -- parent 掛狀態列所在的 `FriendsTabHeader`（FriendsFrame.xml:499，TabSystemOwnerTemplate，
-        -- 不是 layout host）⇒ 查詢／團隊／快速加入頁把它藏起來時，圖示跟著一起藏
-        parent = _G.FriendsTabHeader,
-        -- 只錨右中點：狀態下拉 `RIGHT → BattlenetFrame LEFT`（.xml:748）⇒ 兩者垂直中心本來就對齊
-        points = {
-            { "RIGHT", "LEFT", -PORTRAIT_TILE_GAP, 0, rel = status },
-        },
-        width = PORTRAIT_TILE_SIZE,
-        height = PORTRAIT_TILE_SIZE,
-    })
-    if not tile then return end
-    E.Paint(tile, { 0, 0, 0, 1 }, T.border)
-    if not tile.icon then
-        local icon = tile:CreateTexture(nil, "ARTWORK")   -- skin-lint: own-frame
-        icon:SetTexture(PORTRAIT_TILE_TEXTURE)
-        icon:SetAllPoints(tile)
-        tile.icon = icon
-    end
+    E.Reanchor({
+        { status, { { "LEFT", "TOPLEFT", 0, STATUS_ROW_Y, rel = tabs } } },
+        { bnet,   { { "LEFT", "RIGHT", STATUS_ROW_GAP, 0, rel = status } } },
+    }, "FriendsFrame.statusRow")
 end
 
 local function Apply()
@@ -1143,16 +1138,8 @@ local function Apply()
     --   （FriendsFrame.lua:462,487,494,500），換材質撐不過一次切頁。
     E.NeutralizeGlobals({ "FriendsFrameIcon" })
 
-    -- 2026-09-24 使用者要求：圖示要方形、放在協調的位置。
-    -- 那張 `Battlenet-Portrait` 是**烤成圓形**的圖（黑色圓底＋藍色人像），沒有遮罩可拿 ⇒
-    -- 暴雪那張照舊中和，改在**我們自己的**前景框上畫一塊方磚：底塗黑、同一張圖整張放進去
-    -- （圓形黑底跟方形黑底融在一起 ⇒ 看起來就是方形黑磚＋人像）、外圍 1px 黑邊。
-    -- 位置：跟狀態列排成一組 ［圖示］［狀態下拉］［戰網名稱］［▼］——
-    --   高度＝`BattlenetFrame`（29，FriendsFrame.xml:513）、上下錨它；右緣錨狀態下拉的左緣、
-    --   間距 7（同 .xml:748 狀態下拉與名稱框之間的 -7）⇒ 29x29 正方形，零量測。
-    -- ⚠ 圖示固定是戰網人像：團隊頁暴雪會把原圖換成團隊圖示，但「現在是哪一頁」要讀暴雪的欄位，
-    --   不讀 ⇒ 這一顆是視窗的識別圖、不跟頁籤變。
-    SkinPortraitTile(f)
+    -- 2026-09-24：試過方形識別圖示，使用者決定拿掉；左邊留白改由狀態列左移補上
+    AlignStatusRow()
 
     -- 查詢／團隊／快速加入頁的標題走的是這個 FontString，不是 TitleContainer.TitleText
     -- （FriendsFrame.lua:488,495,501）。兩個都要塗白，不然切頁就變回暗金色。
