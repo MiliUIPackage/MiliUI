@@ -4,6 +4,7 @@
 -- 左邊列出「這個單位現在身上有什麼」，右邊是黑名單，按 ＋／－ 搬過去。
 -- 名單存進 `udb.elements.<buffs|debuffs>.blacklist`（[spellID] = true），
 -- 由 Elements/Auras.lua 交給引擎的 candidateFilters.excludeSpellIDs 過濾。
+-- 玩家／寵物的減益頁只收 NeverSecret 的法術（見下面的 Filterable）。
 --
 -- ⚠ 12.1 之後插件讀不到光環內容：在戰鬥／首領戰／M+／評分 PvP 裡，
 -- 光環資料是秘密值，這裡會一顆都掃不到（不是壞掉，是規則）。所以掃描一律
@@ -87,6 +88,20 @@ local function UnitToken(unitKey)
     return unitKey
 end
 
+-- 這顆能不能進這張名單。只有「永遠是友方的單位 × 減益」要擋：引擎在那裡只認
+-- NeverSecret 的法術 ID，其餘的加進去會是一個按了沒反應的條目。
+-- 查不到 secrecy（API 不在）就放行 —— 擋錯比漏擋更難察覺。
+local NEVER_SECRET = (Enum.SecrecyLevel and Enum.SecrecyLevel.NeverSecret) or 0
+
+local function Filterable(id)
+    if ctxElement ~= "debuffs" then return true end
+    if not (ns.AURA_FRIENDLY_ONLY_UNITS and ns.AURA_FRIENDLY_ONLY_UNITS[ctxUnitKey]) then return true end
+    if not (C_Secrets and C_Secrets.GetSpellAuraSecrecy) then return true end
+    local ok, level = pcall(C_Secrets.GetSpellAuraSecrecy, id)
+    if not ok or level == nil then return true end
+    return level == NEVER_SECRET
+end
+
 local function Apply()
     if ctxUnitKey then ns.ApplySettings(ctxUnitKey) end
     -- 表單上那顆按鈕寫著筆數，ApplySettings 不會重整它（那條路只重建文字分頁）
@@ -98,7 +113,8 @@ end
 ------------------------------------------------------------
 -- ⚠ 列會回收再用，所以 handler 一律讀 row.spellID（更新時才填），
 -- 不要在 buildRow 裡把 ID 抓進 closure —— 那樣捲動幾次之後就會搬到別顆。
-local function MakeRow(row, actionText, onAction)
+local function MakeRow(row, actionText, onAction, isAdd)
+    row.isAdd = isAdd
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(18, 18)
     row.icon:SetPoint("LEFT", 6, 0)
@@ -122,6 +138,10 @@ local function MakeRow(row, actionText, onAction)
         if not row.spellID then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetSpellByID(row.spellID)
+        if row.blocked then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(L["The game doesn't allow hiding this debuff on friendly units."], 1, 0.3, 0.3, true)
+        end
         GameTooltip:Show()
     end)
     row:SetScript("OnLeave", GameTooltip_Hide)
@@ -132,6 +152,12 @@ local function UpdateRow(row, id)
     local name, icon = SpellDisplay(id)
     row.icon:SetTexture(icon)
     row.name:SetText(name)
+    -- 列會回收，每次都要重設（不然灰掉的狀態會跟著列跑到別顆）。
+    -- 右邊那張的「－」永遠可以按：拿掉一顆無效的條目本來就該放行。
+    row.blocked = not Filterable(id)
+    row.btn:SetEnabled(not (row.blocked and row.isAdd))
+    row.icon:SetDesaturated(row.blocked)
+    row.name:SetTextColor(row.blocked and 0.5 or 1, row.blocked and 0.5 or 1, row.blocked and 0.5 or 1)
 end
 
 local Refresh   -- 前向宣告（下面兩個 handler 互相呼叫）
@@ -199,6 +225,10 @@ local function OpenIDEntry()
             print("|cff4DD2FF" .. L["[MiliUI UF]"] .. "|r " .. L["No spell with that ID."])
             return false          -- 不關窗，讓玩家直接改
         end
+        if not Filterable(id) then
+            print("|cff4DD2FF" .. L["[MiliUI UF]"] .. "|r " .. L["The game doesn't allow hiding this debuff on friendly units."])
+            return false
+        end
         AddToBlacklist(id)
     end)
 end
@@ -242,7 +272,7 @@ local function CreatePopup()
     rightLabel:SetPoint("TOPLEFT", 16 + LIST_W + 12, -38)
 
     leftList  = W.CreateRowList(popup, LIST_W, LIST_H, ROW_H, function(row)
-        MakeRow(row, "+", AddToBlacklist)
+        MakeRow(row, "+", AddToBlacklist, true)
     end)
     leftList:SetPoint("TOPLEFT", 16, -56)
 
