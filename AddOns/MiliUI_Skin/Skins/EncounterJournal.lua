@@ -59,6 +59,12 @@
 --          `IconBorder`（WhiteIconFrame）、`IconOverlay`、`IconOverlay2`；
 --          **沒有** Normal／Pushed／Highlight 狀態貼圖
 --   同檔 :583  `EncounterBossButtonTemplate`（mixin `EncounterBossButtonMixin`）
+--   同檔 :319  `EncounterInstanceButtonTemplate`（副本卡片，174x96，**沒有 mixin**）：
+--          `bgImage`（BACKGROUND，`$parentbgImage`，TexCoords 0~0.68/0~0.74）／`heroicIcon`／
+--          `name`（QuestTitleFontBlackShadow）／`range`（OVERLAY）；
+--          NormalTexture `UI-EJ-DungeonButton-Up`、PushedTexture `-Down`、
+--          HighlightTexture `-Highlight`（XML 寫死）；子框 `ModifiedInstanceIcon`（TOPRIGHT +8,+6）；
+--          OnClick → `EncounterJournal_DisplayInstance`（非保護）
 --
 --   Blizzard_EncounterJournal.lua:
 --     :41-46 `EJ_Tabs`（local）：1=overviewScroll/overviewTab、2=LootContainer/lootTab、
@@ -71,12 +77,18 @@
 --       :236 **`SetItemButtonQuality(self, quality, itemInfo.link)`**（**全域**函式）
 --     :268 `EncounterBossButtonMixin:Init`（:276-279 選中＝LockHighlight）
 --     :305 `EncounterJournal_OnLoad`：:326 `overviewTab:Click()`（⇒ 初始頁籤是 1）、
+--          :385-418 副本卡片的 grid view ＋ **local `Initializer`**（只 `SetText`／`bgImage:SetTexture`／
+--          寫它自己的欄位／`ModifiedInstanceIcon` 顯隱 —— **不碰 Normal／Pushed／Highlight**）、
 --          :335 首領清單 initializer、:361 戰利品 factory、:425
 --          `loreScrollingFont:SetTextColor(.13, .07, .01)`（副本簡介的字是暗棕）、
 --          :452 `NavBar_Initialize(self.navBar, "NavButtonTemplate", …)`
 --     :775 `EncounterJournal_OnShow` → :789 `EncounterJournal_LootUpdate()`
 --     :1002 `EncounterJournal_OnEvent`：`EJ_LOOT_DATA_RECIEVED` → :1014
 --           `EncounterJournal_LootUpdate()` —— **視窗沒開也會跑**（事件在 OnLoad 就註冊）
+--     :1092 **`EncounterJournal_ListInstances()`**（全域）→ :1134 `instanceSelect.ScrollBox:SetDataProvider`
+--           （`ScrollBoxListMixin:OnViewDataChanged` → `FullUpdate(UpdateImmediately)`，
+--           Blizzard_SharedXML/Shared/Scroll/ScrollBox.lua:724-726 ⇒ 卡片在它返回前就 Acquire 完）；
+--           呼叫端：:653（換資料片）、:2777、:2832（`EJ_ContentTab_Select` 地城／團隊分頁）
 --     :1239 `EncounterJournal_DisplayInstance` → :1252 LootUpdate、:1323
 --           `instance:Show()`、:1342 `NavBar_AddButton(EncounterJournal.navBar, …)`
 --     :2225 **`EncounterJournal_SetTab(tabType)`**（全域）：四顆頁籤的
@@ -167,6 +179,35 @@
 -- 5. 天賦版本鈕（伴隨元件）改 secondary —— 在 `ThirdParty/RaiderIO.lua`。
 --
 ------------------------------------------------------------
+-- ## 第十四輪（2026-09-23，使用者看實機擷圖點名）：地城／團隊的副本卡片
+--
+-- 卡片改成**直角 1px 黑框、滑過框變職業色**，卡片圖（`bgImage`）保留。
+--
+-- 第九輪記的「副本卡片初始化是 local 函式、接不到」重查：**初始化確實是 local**
+-- （.lua:392 的 `Initializer`，沒有 mixin、沒有全域函式），但成熟同類實作根本不靠初始化 ——
+-- 它是在一串全域刷新函式（`EJ_ContentTab_Select`／`EncounterJournal_DisplayInstance`…）之後
+-- **重掃 `instanceSelect` 底下「有 `bgImage` ＋ `name` 的 Button」**。我們照這個思路，
+-- 掛點收成契約內的兩種：
+--   1. **`hooksecurefunc("EncounterJournal_ListInstances", …)`**（全域函式）—— 所有「列出副本」
+--      的路徑（換地城／團隊分頁、換資料片、第一次打開）都經過它，而它最後一步
+--      `SetDataProvider` 是**同步**把卡片 Acquire 完的 ⇒ 後置勾裡用 `ScrollBox:ForEachFrame`
+--      （唯讀，`Engine.SweepRows`）補掃，再排一次下一幀的補掃當保險。
+--   2. **捲動**：grid view 捲動時可能要比第一次多一排卡片 ⇒ 池子裡會**新建**卡片，
+--      那幾張沒經過 1.。補在 `instanceSelect.ScrollBox` 的 `HookScript("OnMouseWheel")` 與
+--      捲軸（`MinimalScrollBar`）的 `Back`／`Forward`／`Track`／`Track.Thumb` 的
+--      `HookScript("OnMouseUp")` —— 捲完（放開滑鼠）之後排一次下一幀的補掃。
+--      （`ScrollBox:RegisterCallback`／`AddAcquiredFrameCallback` 是契約禁止的那條路。）
+-- 每張卡片**只需要處理一次**：`Initializer` 不碰三張狀態貼圖，池子重用時長相不會被打回。
+--
+-- 做法（成熟同類實作是「原生框半透明＋疊一張商城卡片框 atlas＋白色滑過」、並把
+-- `bgImage` 重錨內縮 1 —— 重錨契約不准，atlas 也不是我們的語彙；範圍與時機照抄，長相換成我們的）：
+--   * `NormalTexture`／`PushedTexture`（雕花卡框）alpha 0；`HighlightTexture` 中和（滑過由我們畫）。
+--   * 卡片**自己的**四條 1px 邊（`Engine.RegionBackdrop`，OVERLAY 7：壓在卡片圖與名字之上、
+--     `ModifiedInstanceIcon` 子框之下），閒置 `T.border`、滑過職業色（`Engine.TrackButtonHover`，
+--     卡片上 `HookScript("OnEnter"/"OnLeave")` 各一支，只換我們那四條邊的顏色）。
+--   * 按下沒有視覺（Pushed 二選一：中和）。
+--
+------------------------------------------------------------
 -- ## 書頁的字色（內容底材規則的查證；第十輪更新）
 --
 -- | 文字 | 在哪一塊底上 | 暴雪怎麼設顏色 | 處理 |
@@ -224,6 +265,10 @@
 -- | 五個下拉（LootJournalViewDropdown／ExpansionDropdown／difficulty／filter／slotFilter）的 Background | SetAlpha(0) |
 -- | 同上的 Arrow | SetDesaturated ＋ SetVertexColor |
 -- | 三條捲軸（instanceSelect／Bosses／Loot） | 走 `Skin.ScrollBar` |
+-- | **副本卡片**（`EncounterInstanceButtonTemplate`，池化，第十四輪）的 Normal／Pushed／Highlight | SetAlpha(0) |
+-- | 同上 | `Engine.RegionBackdrop`（四條 1px 邊，OVERLAY 7）；`HookScript` OnEnter/OnLeave（滑過換邊色，`Engine.TrackButtonHover`） |
+-- | `instanceSelect.ScrollBox` | `HookScript("OnMouseWheel")`（第十四輪，只排補掃） |
+-- | `instanceSelect.ScrollBar` 的 Back／Forward／Track／Track.Thumb | `HookScript("OnMouseUp")`（第十四輪，只排補掃） |
 --
 -- ### 麵包屑（`EncounterJournal.navBar`，第九輪）
 --
@@ -276,6 +321,9 @@
 --   * **第九輪新增三支全域後置勾**（理由各寫在 `InstallHooks`）：
 --       `EncounterJournal_LootUpdate`（補掃）、`NavBar_AddButton`（新的麵包屑）、
 --       `EncounterJournal_SetTab`（頁籤選中態）
+--   * **第十四輪新增**：全域後置勾 `EncounterJournal_ListInstances`（副本卡片補掃；
+--       同時借它當 `Engine.HookRows` 的掛點拿 sweeper —— 那支函式沒有參數，
+--       `HookRows` 的 `Handle` 第一行型別檢查直接返回，同 `Skins/AddonList.lua` 的分類列）
 --   * **第十輪新增**：
 --       `hooksecurefunc(EncounterJournalItemHeaderMixin, "Init", …)`（`Engine.HookRows`，分類列）
 --       全域後置勾 `EncounterJournal_ToggleHeaders`／`EncounterJournal_UpdateButtonState`／
@@ -319,10 +367,8 @@
 --   STYLE.md ③「3D 模型場景不碰」。
 -- * **`instanceButton`**（書頁左上的圓形副本圖示）—— 整顆就是一張圓框美術
 --   （`UI-EJ-BossModelButton`），中和掉就只剩一張沒有框的圖。
--- * **副本選擇頁的卡片**（`EncounterInstanceButtonTemplate`）—— 初始化是
---   `EncounterJournal_OnLoad` 裡一個 **local 的 `Initializer`**（.lua:392,416），
---   沒有 mixin 也沒有全域函式，唯一的路 `ScrollUtil.AddAcquiredFrameCallback`
---   是契約禁止的。
+-- * ~~副本選擇頁的卡片~~ —— **第十四輪上皮了**（見那一節）。卡片圖 `bgImage`、名字、
+--   英雄圖示、`ModifiedInstanceIcon` 不碰。
 -- * **`instanceSelect.bg` / `evergreenBg`** —— 副本選擇頁的背景大圖，而且
 --   `evergreenBg` 同時是教學說明頁的內容背景。內容底材規則「預設保留」。
 -- * **`GreatVaultButton`** —— 整顆就是一張 atlas 美術。
@@ -1137,6 +1183,66 @@ local function Resweep()
 end
 
 ------------------------------------------------------------
+-- 副本卡片（第十四輪；理由與掛點見檔頭那一節）
+------------------------------------------------------------
+local CARD_KEY = "EncounterInstanceButton"
+local CARD_STATE_GETTERS = { "GetNormalTexture", "GetPushedTexture" }
+local cardSweeper
+local instanceScrollBox     -- `instanceSelect.ScrollBox`（Apply 時記下；身分，不讀欄位）
+
+-- 認卡片：有 `bgImage`、`name`、`ModifiedInstanceIcon` 三個 parentKey（讀結構）
+local function IsInstanceCard(btn)
+    return (Probe(btn, "bgImage") and Probe(btn, "name") and Probe(btn, "ModifiedInstanceIcon")) and true or false
+end
+
+local function CardApply(btn)
+    for _, getter in ipairs(CARD_STATE_GETTERS) do
+        local fn = Probe(btn, getter)
+        if type(fn) == "function" then
+            local ok, tex = pcall(fn, btn)
+            if ok and tex then E.Neutralize(tex, CARD_KEY .. "." .. getter) end
+        end
+    end
+    -- Highlight：滑過由我們的邊負責 ⇒ 中和（`ownHover`）
+    E.ButtonStates(btn, CARD_KEY, nil, true)
+    local rec = E.RegionBackdrop(btn, {
+        key = CARD_KEY,
+        slot = "cardBorder",
+        edgeLayer = "OVERLAY",
+        edgeSublevel = 7,
+    })
+    if not rec then return end
+    E.Paint(rec, TRANSPARENT, T.border)
+    -- 底是透明的（在卡片圖之下，本來就看不到）；只有邊跟著滑過換色
+    E.TrackButtonHover(btn, rec, TRANSPARENT, rec, TRANSPARENT)
+end
+
+local function SweepCards()
+    if instanceScrollBox and cardSweeper then
+        E.SweepRows(instanceScrollBox, CARD_KEY, cardSweeper)
+    end
+end
+
+local cardPending = false
+local function ScheduleCardSweep()
+    if cardPending or not instanceScrollBox then return end
+    cardPending = true
+    C_Timer.After(0, function()
+        cardPending = false
+        SweepCards()
+    end)
+end
+
+-- 捲動之後補掃（新建的那幾張卡片）。每個框只掛一次。
+local scrollHooked = setmetatable({}, { __mode = "k" })
+local function HookScrollSweep(frame, script)
+    if not frame or scrollHooked[frame] or type(frame.HookScript) ~= "function" then return end
+    if E.IsProtectedFrame(frame) then return end
+    scrollHooked[frame] = true
+    pcall(frame.HookScript, frame, script, Guard(CARD_KEY .. ":" .. script, ScheduleCardSweep))
+end
+
+------------------------------------------------------------
 -- 進入點
 ------------------------------------------------------------
 local function InstallHooks()
@@ -1165,6 +1271,21 @@ local function InstallHooks()
         apply  = BossApply,
         match  = IsBossRow,
     }
+    -- 第十四輪：副本卡片。初始化是 local ⇒ 借 `EncounterJournal_ListInstances`（全域、無參數）
+    --   當 `HookRows` 的掛點，只為了拿它產生的 sweeper（弱鍵表／保護框跳過／出錯停用都在引擎裡）。
+    cardSweeper = E.HookRows{
+        key    = CARD_KEY,
+        mixin  = _G,
+        method = "EncounterJournal_ListInstances",
+        apply  = CardApply,
+        match  = IsInstanceCard,
+    }
+    if type(_G.EncounterJournal_ListInstances) == "function" then
+        hooksecurefunc("EncounterJournal_ListInstances", Guard("EncounterJournal_ListInstances", function()
+            SweepCards()          -- `SetDataProvider` 是同步 Acquire ⇒ 這裡就掃得到
+            ScheduleCardSweep()   -- 保險：下一幀再掃一次
+        end))
+    end
 
     -- ① 補掃。理由與「為什麼不是 ScrollBox:Update 的勾」見檔頭「補掃時機」。
     --    只有 `ForEachFrame` 唯讀走訪 ＋ 我們自己的 overlay；apply 裡的動作全是非保護的，
@@ -1257,6 +1378,21 @@ local function Apply()
         if title then E.TextColor(title, T.text, "EncounterJournal.instanceSelect.Title") end
         SkinDropdown(sel, "ExpansionDropdown", "EncounterJournal.instanceSelect.ExpansionDropdown")
         SkinBar(sel, "ScrollBar", "EncounterJournal.instanceSelect.ScrollBar")
+
+        -- 第十四輪：副本卡片（已經建好的補掃一遍；之後由 ListInstances 後置勾與捲動接手）
+        instanceScrollBox = Child(sel, "ScrollBox", "EncounterJournal.instanceSelect.ScrollBox")
+        if instanceScrollBox then
+            SweepCards()
+            HookScrollSweep(instanceScrollBox, "OnMouseWheel")
+        end
+        local bar = Probe(sel, "ScrollBar")
+        if bar then
+            HookScrollSweep(Probe(bar, "Back"), "OnMouseUp")
+            HookScrollSweep(Probe(bar, "Forward"), "OnMouseUp")
+            local track = Probe(bar, "Track")
+            HookScrollSweep(track, "OnMouseUp")
+            HookScrollSweep(track and Probe(track, "Thumb"), "OnMouseUp")
+        end
     end
 
     ------------------------------------------------------------

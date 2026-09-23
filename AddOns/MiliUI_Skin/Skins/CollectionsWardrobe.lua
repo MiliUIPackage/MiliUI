@@ -4,9 +4,53 @@
 -- 跟 Skins/Collections.lua 共用設定 key `collections`（理由見那一份的檔頭），
 -- 共用工具在 `ns.CollectionsSkin`。
 --
--- **範圍：chrome ＋ 控制列。** 模型格子（`DressUpModel`）、部位按鈕、套裝清單的
--- 池化列這一輪都不做，理由見下面「刻意不碰的東西」。
+-- **範圍：chrome ＋ 控制列 ＋（第十四輪）套裝頁的兩排圖示。** 模型格子（`DressUpModel`）、
+-- 部位按鈕、套裝清單列本身的底圖這一輪都不做，理由見下面「刻意不碰的東西」。
 -- 塑形師那個大視窗（`WardrobeFrame`）不在這一輪，它是另一個框。
+--
+-- ## 第十四輪（2026-09-23，使用者看實機擷圖點名）：套裝頁的圖示改方形
+--
+-- 成熟同類實作在這兩排圖示上沒有專門的處理（只有整個收藏視窗的通用掃描），
+-- 所以這一段是照「圖示一律方形＋1px 硬邊、品質色走框」的套組語彙自己做的。
+--
+-- 1. **左側套裝清單每列的圖示** → 裁邊 ＋ 1px 黑框。
+--    列是 `WardrobeSetsScrollFrameButtonTemplate`（mixin `WardrobeSetsScrollFrameButtonMixin`，
+--    Blizzard_Collections/Shared/Blizzard_Wardrobe_Sets.xml:5），ScrollBox 第一次顯示套裝頁
+--    才從池子建 ⇒ `Engine.HookRows` 勾 mixin 的 `Init`（Blizzard_Wardrobe_Sets.lua:515）。
+--    圖示每次 `Init` 都被 `SetIconTexture` → `Icon:SetTexture`（:611-613）打回 texCoord ⇒ 裁邊放 reapply。
+--    框是 `IconFrame` **自己的**四張貼圖（`Engine.RegionBackdrop`），邊畫在 OVERLAY −2：
+--    蓋在圖示（ARTWORK）上、在「未收藏」的黑色遮罩 `Cover`（OVERLAY −1）與最愛星號
+--    `Favorite`（OVERLAY 1）之下 —— 星號露在框外那一角不會被線切過。
+-- 2. **右側套裝細節上方那一排部位圖示** → 裁邊 ＋ 1px 方框，**框的顏色照品質**。
+--    ⚠ 查證後跟計畫假設不一樣：暴雪**不是**用 vertex color 上品質色，
+--    是**每個品質一張 atlas**（`WardrobeSetsCollectionMixin:SetItemFrameQuality`，
+--    Blizzard_Wardrobe_Sets.lua:332-349 → `ColorManager.GetAtlasDataForWardrobeSetItemQuality`，
+--    Blizzard_Colors/Mainline/ColorManager.lua:174-192 → `WARDROBE_SETS_ITEM_QUALITY_ICON_BORDER_ATLASES`，
+--    ColorConstants.lua:98-102）：綠／藍／紫三張（各 41x41 的雕花框），`SetVertexColor(1,1,1)`；
+--    只有色盲／自訂品質色（`ITEM_QUALITY_OVERRIDES`）才用白底的 `loottab-set-itemborder-color`
+--    ＋ `SetVertexColor(覆寫色)`；未收藏是 `loottab-set-itemborder-white`。
+--    ⇒ `Engine.PassBorderColor` 只轉交 vertex color，**對綠藍紫三種會拿到白色**。
+--    所以這一支多讀一樣東西：`IconBorder:GetAtlas()`（**待加進讀取例外表**，見 `SetItemQualityBorder`）：
+--      * `-color`（覆寫色）→ 照舊走 `PassBorderColor`（傳遞者規則，轉交暴雪設的 vertex color）；
+--      * 綠／藍／紫 → 反查暴雪自己那張「品質 → atlas」表，拿 `ITEM_QUALITY_COLORS[品質]`
+--        （`ColorManager.UpdateColorsForItemQuality` 建的，已含覆寫色，ColorManager.lua:19-26）；
+--      * 其餘（未收藏的白框、沒有 atlas）→ 1px 黑框。
+--    暴雪那張雕花框（`IconBorder`）中和（alpha 0）。
+--    ⚠ 這排圖示是 `CreateFramePool` 借的（:78），更新全在 `WardrobeSetsCollectionMixin` 的方法裡
+--    （`DisplaySet` :224／`SetItemFrameQuality` :332／`OnEvent` :188），而 `SetsCollectionFrame`
+--    是 XML 載入期建的 ⇒ 那些方法是**拷走的副本**，勾 mixin 不會跑；圖示框自己的 mixin
+--    只剩 `OnShow`（`HookScript OnShow` 契約禁止，同理不勾它的 mixin 版）。
+--    ⇒ 觸發點改成「排一次下一幀的補掃」，由三支 hook 排：
+--      a. `ColorManager.GetAtlasDataForWardrobeSetItemQuality`（全域表的函式，整份原始碼只有這裡在用）——
+--         `SetItemFrameQuality` 已收藏那一支每次都會呼叫：換套裝、`GET_ITEM_INFO_RECEIVED`、
+--         `TRANSMOG_COLLECTION_ITEM_UPDATE` 都帶得到；
+--      b. 清單列的 `Init`（`Refresh`／打開套裝頁都會重建清單，緊接著 `DisplaySet`）；
+--      c. 清單列的 `SetSelected`（:557；點清單換套裝 ⇒ 選取回呼 → `SelectBaseSetID` → `DisplaySet`）。
+--    補掃：`DetailsFrame:GetChildren()`（讀結構）認出有 `Icon`／`IconBorder`／`Favorite` 的子框。
+--    ⚠ 補掃晚一幀：換套裝的那一幀暴雪剛把雕花框 `SetAlpha(1 或 0.3)` 回來 ⇒ **可能閃一幀**。
+--    ⚠ 已知漏洞：從**變體下拉**換到一個「一件都沒收藏」的變體 —— 那條路不經過 a／b／c
+--      （選取沒變、沒有已收藏的件），補掃不會跑，框留著上一個變體的顏色，
+--      直到下一次換套裝／重開。要補就得勾 `SetsCollectionFrame` 的框實例，契約不准。
 --
 -- 暴雪原始碼出處（12.1 live 分支，Gethe/wow-ui-source）：
 --   Blizzard_Collections/Mainline/Blizzard_Wardrobe.xml:186  WardrobeCollectionFrame
@@ -61,11 +105,28 @@
 -- | 同兩顆的 Highlight | SetColorTexture |
 -- | ListContainer.ScrollBar 的 Track/Thumb 六張 | SetAlpha(0)；Back/Forward.Texture | SetVertexColor |
 -- | 以上各框 | CreateFrame 掛自己的 overlay |
+-- | 套裝清單列的 `IconFrame.Icon` | SetTexCoord（裁邊，每次 Init 之後） |
+-- | 套裝清單列的 `IconFrame` | `Engine.RegionBackdrop`（四條 1px 黑邊，**它自己的** OVERLAY −2 貼圖） |
+-- | 套裝細節部位圖示的 `Icon` | SetTexCoord（裁邊，每次補掃） |
+-- | 同一顆的 `IconBorder`（雕花品質框） | SetAlpha(0)（每次補掃：`DisplaySet` 每次都 `SetAlpha(1/0.3)`） |
+-- | 同一顆 | `Engine.RegionBackdrop`（四條 1px 邊，錨在 `Icon` 的矩形上、ARTWORK 層），顏色見檔頭 2. |
 --
--- hook：只有 Engine 的三個 `PanelTemplates_*` 全域後置勾與兩顆分頁的
---   `HookScript("OnEnter"/"OnLeave")`（都由 `Engine.TrackTab` 代掛）。
+-- hook：Engine 的三個 `PanelTemplates_*` 全域後置勾與兩顆分頁的
+--   `HookScript("OnEnter"/"OnLeave")`（都由 `Engine.TrackTab` 代掛）；第十四輪加：
+--
+-- | hook | 型別 | 裡面做什麼 |
+-- |---|---|---|
+-- | `WardrobeSetsScrollFrameButtonMixin:Init` | mixin 後置勾（`Engine.HookRows`） | 第一次：`IconFrame` 建四條邊；每次：圖示裁邊、排一次細節圖示補掃。**不讀 elementData** |
+-- | `WardrobeSetsScrollFrameButtonMixin:SetSelected` | mixin 後置勾（`Engine.HookRows`，`requireKnown`） | 只排一次細節圖示補掃（**不讀參數 `selected`**） |
+-- | `ColorManager.GetAtlasDataForWardrobeSetItemQuality` | 全域表函式後置勾 | 只排一次細節圖示補掃（**不讀參數 `quality`**、不看回傳值） |
+--
+-- 補掃跑在 `C_Timer.After(0)` 的下一幀，同一幀只排一次。
+--
 -- 寫入暴雪欄位：無。讀暴雪物件：`Engine.TrackTab` 的 `LeftActive:IsShown()`
---   （讀取例外表第 4 條）與 `GetFrameLevel`。
+--   （讀取例外表第 4 條）與 `GetFrameLevel`；`ScrollBox:ForEachFrame`／`GetChildren()`（結構）；
+--   第十四輪：細節部位圖示 `IconBorder` 的 `IsShown()`／`GetVertexColor()`（`Engine.PassBorderColor`）
+--   與 **`GetAtlas()`（新的讀取例外，待主控加進 STYLE ③；理由見 `SetItemQualityBorder`）**；
+--   暴雪的全域常數表 `WARDROBE_SETS_ITEM_QUALITY_ICON_BORDER_ATLASES`／`ITEM_QUALITY_COLORS`。
 --
 ------------------------------------------------------------
 -- ## 刻意不碰的東西
@@ -78,12 +139,14 @@
 -- * **`ItemsCollectionFrame.SlotsFrame` 的部位按鈕**（`WardrobeSlotButtonTemplate`／
 --   `WardrobeSmallSlotButtonTemplate`，.xml:100,133）：一排十幾顆「目前在看哪個
 --   部位」的圖示鈕，選中態同樣是暴雪自己 Show/Hide 的貼圖，接觸面沒查完。
--- * **`SetsCollectionFrame.ListContainer.ScrollBox` 的套裝列**：`WowScrollBoxList`
---   的池化 element，而且**整包裡另有第三方插件掛在同一個 ScrollBox 上**
---   （見下面「別的插件」那一段）—— 兩邊在同一批列上畫東西的風險要先實機看過，
---   這一輪只做它的捲軸。
--- * **`SetsCollectionFrame.DetailsFrame`**（右下角的套裝明細，含 `LimitedSet`
---   與部位小圖）：貼在模型上的一層資訊，底材是模型場景。
+-- * **`SetsCollectionFrame.ListContainer.ScrollBox` 的套裝列本身**（列底 `Background`、
+--   選中 `SelectedTexture`、滑過、進度條、名字顏色）：`WowScrollBoxList` 的池化 element，
+--   而且**整包裡另有第三方插件掛在同一個 ScrollBox 上**（見下面「別的插件」那一段）。
+--   第十四輪只動每列的**圖示**（`IconFrame`；那支插件畫的小圖示是它自己的框，不在這裡）。
+--   名字的綠／金／灰是「收集進度」的**狀態**，每次 `Init` 都 `SetTextColor`，不接管。
+-- * **`SetsCollectionFrame.DetailsFrame` 的其餘部分**（套裝名、`LimitedSet`、`IconRowBackground`、
+--   `ModelFadeTexture`）：貼在模型上的一層資訊，底材是模型場景。第十四輪只動那一排部位圖示。
+--   部位圖示上的「新」光暈（`New`）與最愛星號（`Favorite.Icon`）是資訊，不碰。
 -- * **`WardrobeCollectionFrame.SearchBox.ProgressFrame`**（搜尋進度的轉圈與細條）：
 --   只在搜尋大量外觀時短暫出現，接觸面不值得花。
 -- * **`WardrobeCollectionFrame.InfoButton`（`MainHelpPlateButton`）**：`HelpTip`
@@ -114,9 +177,213 @@ local _, ns = ...
 
 local Skin = ns.Skin
 local E = ns.Engine
+local T = ns.Tokens
 local L = ns.L
+local S = ns.Secret
 
 local Shared = ns.CollectionsSkin
+
+local TRANSPARENT = { 0, 0, 0, 0 }
+
+local function Probe(owner, key)
+    local v
+    if type(owner) == "table" and pcall(function() v = owner[key] end) then return v end
+    return nil
+end
+
+------------------------------------------------------------
+-- 套裝細節那一排部位圖示（`WardrobeSetsDetailsItemFrameTemplate`，
+-- Blizzard_Collections/Shared/Blizzard_Wardrobe_Sets.xml:80）
+--
+-- `Icon`（BORDER，28x28 置中）／`IconBorder`（OVERLAY，41x41 雕花品質框 atlas，
+-- 錨 RIGHT → Icon 的 CENTER x=20）／`New`（OVERLAY，光暈）／`Favorite`（子框，星號）。
+------------------------------------------------------------
+local DETAIL_KEY = "WardrobeSetsDetailsItem"
+local detailsFrame            -- `SetsCollectionFrame.DetailsFrame`（Apply 時記下；只拿來 GetChildren）
+local detailDone = setmetatable({}, { __mode = "k" })
+
+local function IsDetailItem(f)
+    return (Probe(f, "Icon") and Probe(f, "IconBorder") and Probe(f, "Favorite")) and true or false
+end
+
+-- 暴雪「品質 → atlas」表反查成「atlas → 品質」。表是暴雪的全域常數
+-- （ColorConstants.lua:98-102），讀不到就退回同一份字面值。
+local OVERRIDE_ATLAS = "loottab-set-itemborder-color"
+local qualityByAtlas
+
+local function QualityByAtlas()
+    if qualityByAtlas then return qualityByAtlas end
+    qualityByAtlas = {}
+    local src = _G.WARDROBE_SETS_ITEM_QUALITY_ICON_BORDER_ATLASES
+    if type(src) == "table" then
+        for q, atlas in pairs(src) do
+            if type(atlas) == "string" then qualityByAtlas[atlas] = q end
+        end
+    end
+    if next(qualityByAtlas) == nil and Enum and Enum.ItemQuality then
+        qualityByAtlas["loottab-set-itemborder-green"]  = Enum.ItemQuality.Uncommon
+        qualityByAtlas["loottab-set-itemborder-blue"]   = Enum.ItemQuality.Rare
+        qualityByAtlas["loottab-set-itemborder-purple"] = Enum.ItemQuality.Epic
+    end
+    return qualityByAtlas
+end
+
+------------------------------------------------------------
+-- 品質框的顏色
+--
+-- ⚠ **新的讀取例外（待主控加進 STYLE.md ③ 的表）：`IconBorder:GetAtlas()`**
+--   條件逐條對照表頭那一句「純 C 端查詢、不是文字／尺寸／錨點、不會回秘密值」：
+--     * 純 C 端查詢：貼圖目前的 atlas 名；
+--     * 不是文字／尺寸／錨點；
+--     * 不會是秘密值：收藏資料不在 12.1 的秘密值範圍，atlas 名是美術資源的名字；
+--       照樣過 `Secret.PlainText`，問不到（或是秘密）⇒ 當成「沒有品質」＝黑框，失敗方向安全。
+--   為什麼非讀不可：品質色烤在 atlas 裡（見檔頭 2.），三種品質的 vertex color 都是白色，
+--   `PassBorderColor` 轉交不到。這是暴雪自己表達「這件是什麼品質」的**同一個**依據
+--   （`SetItemFrameQuality` 依品質選 atlas）。
+--   讀到的字串只拿去查兩張**暴雪自己的**常數表，不存、不跨幀使用。
+-- TODO(升格): 若別的配方也遇到「品質烤在 atlas 裡」，收成 `Engine.PassAtlasQuality`。
+------------------------------------------------------------
+local function SetItemQualityBorder(rec, iconBorder)
+    if not rec then return end
+    local atlas
+    if type(iconBorder.GetAtlas) == "function" then
+        local ok, v = pcall(iconBorder.GetAtlas, iconBorder)
+        if ok then atlas = S.PlainText(v) end
+    end
+    if atlas == OVERRIDE_ATLAS then
+        -- 覆寫色：暴雪是 `SetVertexColor(覆寫色)` ⇒ 傳遞者規則，原封不動轉交
+        E.PassBorderColor(rec, iconBorder)
+        return
+    end
+    local q = atlas and QualityByAtlas()[atlas]
+    local colors = _G.ITEM_QUALITY_COLORS
+    local c = q and type(colors) == "table" and colors[q]
+    if type(c) == "table" and type(c.r) == "number" then
+        E.Border(rec, { c.r, c.g, c.b, 1 })
+    else
+        E.Border(rec, T.border)
+    end
+end
+
+local function SkinDetailItem(f)
+    local icon = Probe(f, "Icon")
+    local iconBorder = Probe(f, "IconBorder")
+    if not icon or not iconBorder then return end
+    local rec
+    if not detailDone[f] then
+        if E.IsProtectedFrame(f) then return end
+        detailDone[f] = true
+        -- 邊畫在 ARTWORK（圖示是 BORDER、光暈 `New` 是 OVERLAY、星號是子框）⇒
+        -- 蓋在圖示上、在光暈與星號之下。錨在 `Icon` 的矩形上（不是整顆 32x32 的框）。
+        rec = E.RegionBackdrop(f, {
+            key = DETAIL_KEY,
+            slot = "qualityBorder",
+            edgeLayer = "ARTWORK",
+            edgeSublevel = 0,
+            points = {
+                { "TOPLEFT", "TOPLEFT", 0, 0, rel = icon },
+                { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0, rel = icon },
+            },
+        })
+        if rec then E.Fill(rec, TRANSPARENT) end
+    else
+        rec = E.GetOverlay(f, "qualityBorder")
+    end
+    -- 每次都重申：`DisplaySet` 每次都 `Icon:SetTexture`（texCoord 回 0,1）與
+    -- `IconBorder:SetAlpha(1 或 0.3)`，`SetItemFrameQuality` 每次都換 atlas
+    E.CropIcon(icon, DETAIL_KEY .. ".Icon")
+    E.Neutralize(iconBorder, DETAIL_KEY .. ".IconBorder")
+    SetItemQualityBorder(rec, iconBorder)
+end
+
+local function SweepDetails()
+    if not detailsFrame or type(detailsFrame.GetChildren) ~= "function" then return end
+    local ok, kids = pcall(function() return { detailsFrame:GetChildren() } end)
+    if not ok then return end
+    for _, f in ipairs(kids) do
+        if IsDetailItem(f) then SkinDetailItem(f) end
+    end
+end
+
+-- 出錯一次就停用（同 `Engine.HookRows` 的紀律：換一次套裝報一串錯比少一塊皮嚴重）
+local detailPending = false
+local detailBroken = false
+local function ScheduleDetailSweep()
+    if detailPending or detailBroken or not detailsFrame then return end
+    detailPending = true
+    C_Timer.After(0, function()
+        detailPending = false
+        local ok, err = pcall(SweepDetails)
+        if not ok then
+            detailBroken = true
+            E.NoteBrokenHook(DETAIL_KEY .. ":sweep")
+            ns.ReportError(err)
+        end
+    end)
+end
+
+------------------------------------------------------------
+-- 左側套裝清單每列的圖示（`WardrobeSetsScrollFrameButtonTemplate.IconFrame`，
+-- Blizzard_Wardrobe_Sets.xml:8-34：38x38，`Icon` ARTWORK setAllPoints、`Cover` OVERLAY −1、
+-- `Favorite` OVERLAY 1 錨 TOPLEFT −8,8）
+------------------------------------------------------------
+local SET_ROW_KEY = "WardrobeSetsScrollFrameButton"
+local setRowSweep
+
+local function IsSetRow(row)
+    return (Probe(row, "IconFrame") and Probe(row, "SelectedTexture") and Probe(row, "ProgressBar")) and true or false
+end
+
+local function SetRowApply(row)
+    local iconFrame = Probe(row, "IconFrame")
+    if not iconFrame then return end
+    local rec = E.RegionBackdrop(iconFrame, {
+        key = SET_ROW_KEY .. ".IconFrame",
+        slot = "iconBorder",
+        edgeLayer = "OVERLAY",
+        edgeSublevel = -2,
+    })
+    E.Paint(rec, TRANSPARENT, T.border)
+end
+
+local function SetRowReapply(row)
+    local iconFrame = Probe(row, "IconFrame")
+    local icon = iconFrame and Probe(iconFrame, "Icon")
+    if icon then E.CropIcon(icon, SET_ROW_KEY .. ".Icon") end
+    ScheduleDetailSweep()
+end
+
+local function InstallHooks()
+    -- ⚠ 不過戰鬥閘（`Engine.RunUnit` 把 hooks 排在戰鬥閘前面）：清單列是第一次打開
+    --   套裝頁才建的，hook 一定要比那一刻早（陷阱 4）。
+    local mixin = _G.WardrobeSetsScrollFrameButtonMixin
+    setRowSweep = E.HookRows{
+        key     = SET_ROW_KEY .. ":Init",
+        mixin   = mixin,
+        method  = "Init",
+        apply   = SetRowApply,
+        reapply = SetRowReapply,
+        match   = IsSetRow,
+    }
+    E.HookRows{
+        key          = SET_ROW_KEY .. ":SetSelected",
+        mixin        = mixin,
+        method       = "SetSelected",
+        requireKnown = true,
+        reapply      = function() ScheduleDetailSweep() end,
+    }
+
+    -- 全域表 `ColorManager` 的函式（Blizzard_Colors 在登入時就載入）。
+    -- 裡面只排補掃：不讀參數 `quality`、不看回傳值。
+    local cm = _G.ColorManager
+    if type(cm) == "table" and type(cm.GetAtlasDataForWardrobeSetItemQuality) == "function" then
+        hooksecurefunc(cm, "GetAtlasDataForWardrobeSetItemQuality", function()
+            ScheduleDetailSweep()
+        end)
+    else
+        E.Missing("ColorManager.GetAtlasDataForWardrobeSetItemQuality")
+    end
+end
 
 local function SkinItemsPage(f)
     local items
@@ -170,6 +437,16 @@ local function SkinSetsPage(f)
         Shared.SkinOwnedScrollBar(list, "WardrobeCollectionFrame.SetsCollectionFrame.ListContainer.ScrollBar")
     else
         E.Missing("WardrobeCollectionFrame.SetsCollectionFrame.ListContainer")
+    end
+
+    -- 第十四輪：清單列圖示（已經建好的列補掃一遍）與細節部位圖示
+    local box = list and Probe(list, "ScrollBox")
+    if box then E.SweepRows(box, SET_ROW_KEY, setRowSweep) end
+    detailsFrame = Probe(sets, "DetailsFrame")
+    if detailsFrame then
+        SweepDetails()
+    else
+        E.Missing("WardrobeCollectionFrame.SetsCollectionFrame.DetailsFrame")
     end
 
     local variants
@@ -239,5 +516,6 @@ E.Register{
     key   = "collections",              -- 跟 Skins/Collections.lua 同一個設定開關
     addon = "Blizzard_Collections",
     title = L["Collections: Appearances"],
+    hooks = InstallHooks,
     apply = Apply,
 }
