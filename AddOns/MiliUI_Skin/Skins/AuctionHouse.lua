@@ -816,10 +816,13 @@ local function Apply()
     WithSub(f, "MoneyFrameInset", "AuctionHouseFrame.MoneyFrameInset", function(inset, label)
         Skin.Inset(inset, label)
     end)
+    -- ⚠ 2026-09-24 起 `MoneyFrameBorder` **只中和、不另畫框**：它整個躺在 `MoneyFrameInset`
+    --   裡面（Inset：x 2～167、y 3～27；Border：158×19 錨 BOTTOMLEFT 5,6，
+    --   Shared/Blizzard_AuctionHouseFrame.xml:11-23），兩個都畫就是「框裡再一個框」——
+    --   使用者擷圖裡金錢列長得跟上面的內嵌框不是同一套，就是多了這一圈。
+    --   金額數字只留在外面那一塊 `fillInset`＋1px 黑邊裡，跟其他內嵌框一致。
     WithSub(f, "MoneyFrameBorder", "AuctionHouseFrame.MoneyFrameBorder", function(border, label)
         E.NeutralizeRegions(border, label)
-        local ov = E.RegionBackdrop(border, { key = label })
-        E.Paint(ov, T.fillInset, T.border)
     end)
 
     WithSub(f, "SearchBar", "AuctionHouseFrame.SearchBar", SkinSearchBar)
