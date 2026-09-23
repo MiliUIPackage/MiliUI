@@ -265,6 +265,15 @@ metadata:
 - 成就列金光帶是 `Glow`（Lua 只動 texCoord／vertex color）；`Top/BottomTsunami1` 那四筆 Missing 是總結頁列（ComparisonPlayerTemplate）沒有那兩張的假警報。
 - 實機報告已證實：戰利品列早於 mixin 勾建立（`EncounterItem:Init (hook bypassed…)`）。
 
+## 第十一輪（2026-09-23，未實測）
+
+- **天賦與法術書**（`Skins/PlayerSpells.lua`，key `playerspells`，原本 C 級、使用者點名要做）：只換框 —— 外框、底部分頁、天賦頁 `BottomBar`（1612x82，atlas 尺寸查 wago.tools UiTextureAtlasMember）換 footer 帶、法術書書頁（`TopBar`／`BookBG*`）換 `fillInset`、搜尋／下拉／翻頁、三個載入方案彈窗（提示皮）。
+  天賦樹、專精美術、法術格、專精卡美術、英雄天賦、PvP 天賦一律不碰；套用變更／複製方案字串／啟用專精／彈窗按鈕零腳本。**這個視窗 hooksecurefunc 0 支、HookScript OnShow 0 支**。
+  成熟同類實作在法術格勾 `SpellBookItemMixin:UpdateVisuals` 改字色 —— 我們不勾（字本來就是淺色 `SPELLBOOK_FONT_COLOR`）。
+- `TabSystemOwnerMixin.SetTab` 後置勾升格成 `Engine.TabSystemOwnerHooks`（冪等；專業、天賦、法術書三個 owner 共用）。
+- **探究／世界副本難度選擇**（`Skins/DelvesPicker.lua`，key `delvespicker`）：探究與世界副本（`TieredEntranceType.Lairs`）是同一個 `DelvesDifficultyPickerFrame`。使用者要**保留場景底圖**（那是 `DelveBackgroundWidgetContainer`，BACKGROUND strata 的 UIWidget）⇒ 外框只畫 1px 職業色邊不畫底；兩個 UIWidget 容器與挑戰詞綴 trait 樹整棵不碰。
+- 第十二輪（同日開工）：公會／行事曆／巨集／訓練師／交易／觀察／插槽／催化器／拾取／探究隨從／塑形／顧客訂單／玩家選擇，四個 Opus 平行；共用檔（TOC／DB／語系／設定頁／STYLE）改由主控合併時統一加，代理只新增 `Skins/*.lua`。
+
 ## 還沒實機確認的
 
 三條驗收線：`/console taintLog 2` 操作後 taint.log 零 blocked、**戰鬥中按 C 開得了角色面板**
@@ -280,4 +289,4 @@ SetNormalFontObject 會不會觸發「吃掉最後一個字」；捲軸箭頭染
 - 側邊欄分頁的選中底色、成就列／分類列／篩選下拉、Primitives 的 CheckBox/Row/Icon/StatusBar 零覆蓋。
 - 技能 `miliui-skin-blizzard` 等 PoC 過了再寫。
 - 範圍分級：A 郵件／任務／收藏／冒險指南／拍賣／專業／行事曆…；B 角色面板／LFG／世界地圖／ESC／Settings；
-  **C 不碰**：法術書天賦、快捷列、單位框、名條、團隊框、編輯模式、StaticPopup、UnitPopup、商城、聊天輸入框。
+  **C 不碰**：法術書天賦的**內容**（框第十一輪做了）、快捷列、單位框、名條、團隊框、編輯模式、StaticPopup、UnitPopup、商城、聊天輸入框。
