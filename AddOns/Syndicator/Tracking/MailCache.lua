@@ -56,7 +56,7 @@ function SyndicatorMailCacheMixin:OnLoad()
 
   -- Track outgoing mail to alts
   hooksecurefunc("SendMail", function(recipient, subject, body)
-    if not recipient:find("-", nil, true) then
+    if not recipient:find("-", nil, true) and (not RegionalUniqueNamesEnabled or not RegionalUniqueNamesEnabled()) then
       recipient = recipient .. "-" .. GetNormalizedRealmName()
     end
 

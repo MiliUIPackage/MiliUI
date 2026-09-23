@@ -125,7 +125,7 @@ function addonTable.Tooltips.AddItemLines(tooltip, summaries, itemLink)
     seenRealms[s.realmNormalized] = true
   end
   totals = totals + tooltipInfo.warband[1]
-  seenRealms[GetNormalizedRealmName() or ""] = true -- ensure realm name is shown for a different realm
+  seenRealms[RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() and "" or GetNormalizedRealmName() or ""] = true -- ensure realm name is shown for a different realm
 
   local realmCount = 0
   for realm in pairs(seenRealms) do

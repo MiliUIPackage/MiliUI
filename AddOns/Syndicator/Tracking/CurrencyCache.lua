@@ -94,7 +94,7 @@ function SyndicatorCurrencyCacheMixin:ScanAllCurrencies()
   local currencies = {}
   local currencyByHeader = { { name = UNKNOWN, currencies = {} } }
 
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     local index = 0
     local toCollapse = {}
     while index < C_CurrencyInfo.GetCurrencyListSize() do

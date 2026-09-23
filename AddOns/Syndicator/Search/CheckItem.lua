@@ -696,11 +696,6 @@ end
 
 local UPGRADE_PATH_PATTERN = ITEM_UPGRADE_TOOLTIP_FORMAT_STRING and "^" .. ITEM_UPGRADE_TOOLTIP_FORMAT_STRING:gsub("%%s", ".*"):gsub("%%d", ".*")
 local currentSeasonBonusIDs = {
-  [13653] = true, -- Voidforged
-  [13654] = true, -- Voidforged
-  [13655] = true, -- Voidforged
-  [12066] = true, -- Radiance Crafted
-  [13786] = true, -- Sporefused: Myth
 }
 
 local function CheckBonusIDs(itemLink)
@@ -1537,6 +1532,12 @@ if addonTable.Constants.IsTitan then
   stats["CR_LIFESTEAL"] = "lifesteal rating"
 end
 
+if addonTable.Constants.IsForever then
+  stats["SPELL_DAMAGE_DONE"] = "spell damage"
+  stats["SPELL_HEALING_DONE"] = "spell healing"
+  stats["SPELL_PENETRATION"] = "spell piercing"
+end
+
 for s, english in pairs(stats) do
   local keyword = _G["ITEM_MOD_" .. s .. "_SHORT"] or _G["ITEM_MOD_" .. s]
   if keyword ~= nil then
@@ -1545,7 +1546,7 @@ for s, english in pairs(stats) do
   end
 end
 AddKeywordLocalised("KEYWORD_ARMOR_STAT", GetGemStatCheck(STAT_ARMOR), addonTable.Locales.GROUP_STAT)
-if addonTable.Constants.IsClassic then
+if addonTable.Constants.IsClassic or addonTable.Constants.IsForever then
   local resistances = {
     "holy resistance",
     "fire resistance",
@@ -2125,11 +2126,11 @@ function addonTable.Search.InitializeSearchEngine()
     [19] = "profession",
     [20] = "housing",
   }
-  if addonTable.Constants.IsClassic then
+  if addonTable.Constants.IsClassic or addonTable.Constants.IsForever then
     classesToCheck[7] = "trade goods"
     classesToCheck[8] = nil
   end
-  if addonTable.Constants.IsEra then
+  if addonTable.Constants.IsEra or addonTable.Constants.IsForever then
     classesToCheck[3] = nil
   end
   for i, english in pairs(classesToCheck) do
@@ -2161,6 +2162,10 @@ function addonTable.Search.InitializeSearchEngine()
     if addonTable.Constants.IsClassic then
       tradeGoodsToCheck[2] = "explosives"
       tradeGoodsToCheck[3] = "devices"
+    end
+    if addonTable.Constants.IsForever then
+      tradeGoodsToCheck[2] = nil
+      tradeGoodsToCheck[3] = nil
     end
     if addonTable.Constants.IsEra or addonTable.Constants.IsBC or addonTable.Constants.IsWrath or addonTable.Constants.IsCata then
       tradeGoodsToCheck[8] = "meat"
@@ -2256,12 +2261,12 @@ function addonTable.Search.InitializeSearchEngine()
     [20] = "fishing poles",
     [0] = "one-handed axes",
   }
-  if addonTable.Constants.IsClassic then
+  if addonTable.Constants.IsClassic or addonTable.Constants.IsForever then
     weaponTypesToCheck[9] = nil
     weaponTypesToCheck[11] = "one-handed exotics"
     weaponTypesToCheck[12] = "two-handed exotics"
   end
-  if addonTable.Constants.IsEra then
+  if addonTable.Constants.IsEra or addonTable.Constants.IsForever then
     weaponTypesToCheck[20] = "fishing pole"
   end
   -- All weapons + fishingpole
@@ -2375,6 +2380,10 @@ function addonTable.Search.InitializeSearchEngine()
       consumablesToCheck[7] = "bandage"
       consumablesToCheck[10] = nil
       consumablesToCheck[11] = nil
+    end
+    if addonTable.Constants.IsForever then
+      consumablesToCheck[0] = "explosives"
+      consumablesToCheck[3] = "flasks"
     end
     for subClass, english in pairs(consumablesToCheck) do
       local keyword = C_Item.GetItemSubClassInfo(Enum.ItemClass.Consumable, subClass)

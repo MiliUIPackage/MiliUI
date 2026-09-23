@@ -29,9 +29,21 @@ do
   end
 end
 
-function addonTable.Utilities.GetCharacterFullName()
-  local characterName, realm = UnitFullName("player")
-  return characterName .. "-" .. realm
+if RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() then
+  function addonTable.Utilities.GetCharacterFullName()
+    local name = UnitName("player")
+    return name
+  end
+
+  addonTable.Utilities.GetCharacterName = addonTable.Utilities.GetCharacterFullName
+else
+  function addonTable.Utilities.GetCharacterFullName()
+    local characterName, realm = UnitFullName("player")
+    return characterName .. "-" .. realm
+  end
+  function addonTable.Utilities.GetCharacterName()
+    return (UnitName("player"))
+  end
 end
 
 if addonTable.Constants.IsClassic then
@@ -187,10 +199,16 @@ function addonTable.Utilities.RecoverBattlePetLink(tooltipInfo, itemLink, qualit
 end
 
 local cachedConnectedRealms = {}
-function addonTable.Utilities.CacheConnectedRealms()
-  cachedConnectedRealms = GetAutoCompleteRealms()
-  if #cachedConnectedRealms == 0 then
-    cachedConnectedRealms = {GetNormalizedRealmName()}
+if RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() then
+  function addonTable.Utilities.CacheConnectedRealms()
+    cachedConnectedRealms = {""}
+  end
+else
+  function addonTable.Utilities.CacheConnectedRealms()
+    cachedConnectedRealms = GetAutoCompleteRealms()
+    if #cachedConnectedRealms == 0 then
+      cachedConnectedRealms = {GetNormalizedRealmName()}
+    end
   end
 end
 

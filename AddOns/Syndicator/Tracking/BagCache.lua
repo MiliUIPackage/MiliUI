@@ -47,23 +47,19 @@ function SyndicatorBagCacheMixin:OnLoad()
   if not addonTable.Constants.CharacterBankTabsActive then
     self:RegisterEvent("PLAYERBANKBAGSLOTS_CHANGED")
   end
-  if addonTable.Constants.IsRetail then
-    if not addonTable.Constants.CharacterBankTabsActive then
-      self:RegisterEvent("REAGENTBANK_UPDATE")
-      self:RegisterEvent("PLAYERREAGENTBANKSLOTS_CHANGED")
-    end
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     -- Bank items reagent bank updating
     self:RegisterEvent("TRADE_SKILL_ITEM_CRAFTED_RESULT")
-    -- Keystone level changing due to start/end of an M+ dungeon
-    self:RegisterEvent("ITEM_CHANGED")
-    self:RegisterEvent("CHALLENGE_MODE_START")
-    self:RegisterEvent("CHALLENGE_MODE_COMPLETED")
 
     self:RegisterEvent("BANK_TABS_CHANGED")
     self:RegisterEvent("BANK_TAB_SETTINGS_UPDATED")
     self:RegisterEvent("PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED")
-  else
-    self:RegisterEvent("PLAYERBANKBAGSLOTS_CHANGED")
+  end
+  if addonTable.Constants.IsRetail then
+    -- Keystone level changing due to start/end of an M+ dungeon
+    self:RegisterEvent("ITEM_CHANGED")
+    self:RegisterEvent("CHALLENGE_MODE_START")
+    self:RegisterEvent("CHALLENGE_MODE_COMPLETED")
   end
 
   self.craftingTime = 0

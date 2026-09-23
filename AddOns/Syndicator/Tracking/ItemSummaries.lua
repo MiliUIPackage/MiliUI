@@ -330,7 +330,7 @@ function SyndicatorItemSummariesMixin:GetTooltipInfo(key, sameConnectedRealm, sa
     if charactersByRealm then
       for char, summary in pairs(charactersByRealm) do
         local byKey = summary[key]
-        local characterDetails = Syndicator.API.GetCharacter(char .. "-" .. r).details
+        local characterDetails = Syndicator.API.GetCharacter(char .. (r ~= "" and "-" .. r or "")).details
         if byKey ~= nil and characterDetails.show.inventory and (not sameFaction or characterDetails.faction == currentFaction) then
           table.insert(result.characters, {
             character = characterDetails.character,

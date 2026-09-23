@@ -1,6 +1,8 @@
 ---@class addonTableSyndicator
 local addonTable = select(2, ...)
 
+local build = select(4, GetBuildInfo())
+
 addonTable.Constants = {
   AllBagIndexes = {
     Enum.BagIndex.Backpack,
@@ -12,7 +14,8 @@ addonTable.Constants = {
   AllBankIndexes = {},
   AllWarbandIndexes = {},
 
-  IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE,
+  IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE and build >= 120000,
+  IsForever = build >= 16000 and build < 20000,
   IsClassic = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE,
   IsMists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC,
   IsCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC,
@@ -37,31 +40,38 @@ addonTable.Constants = {
   MailExpiryDuration = 30 * 24 * 60 * 60,
 }
 
+addonTable.Constants.IsClassic = addonTable.Constants.IsClassic and not addonTable.Constants.IsForever
+
 addonTable.Constants.IsBrokenTooltipScanning = false
 
-if addonTable.Constants.IsRetail then
+if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
   addonTable.Constants.WarbandBankActive = true
-  addonTable.Constants.CharacterBankTabsActive = Enum.BagIndex.CharacterBankTab_1 ~= nil
+  addonTable.Constants.CharacterBankTabsActive = true
   table.insert(addonTable.Constants.AllBagIndexes, Enum.BagIndex.ReagentBag)
   addonTable.Constants.BagSlotsCount = 5
   addonTable.Constants.MaxBagSize = 42
-  if addonTable.Constants.CharacterBankTabsActive then
-    addonTable.Constants.AllBankIndexes = {
-      Enum.BagIndex.CharacterBankTab_1,
-      Enum.BagIndex.CharacterBankTab_2,
-      Enum.BagIndex.CharacterBankTab_3,
-      Enum.BagIndex.CharacterBankTab_4,
-      Enum.BagIndex.CharacterBankTab_5,
-      Enum.BagIndex.CharacterBankTab_6,
-    }
-    addonTable.Constants.BankBagSlotsCount = 0
-  end
+  addonTable.Constants.AllBankIndexes = {
+    Enum.BagIndex.CharacterBankTab_1,
+    Enum.BagIndex.CharacterBankTab_2,
+    Enum.BagIndex.CharacterBankTab_3,
+    Enum.BagIndex.CharacterBankTab_4,
+    Enum.BagIndex.CharacterBankTab_5,
+    Enum.BagIndex.CharacterBankTab_6,
+    Enum.BagIndex.CharacterBankTab_7,
+    Enum.BagIndex.CharacterBankTab_8,
+    Enum.BagIndex.CharacterBankTab_9,
+  }
+  addonTable.Constants.BankBagSlotsCount = 0
   addonTable.Constants.AllWarbandIndexes = {
     Enum.BagIndex.AccountBankTab_1,
     Enum.BagIndex.AccountBankTab_2,
     Enum.BagIndex.AccountBankTab_3,
     Enum.BagIndex.AccountBankTab_4,
     Enum.BagIndex.AccountBankTab_5,
+    Enum.BagIndex.AccountBankTab_6,
+    Enum.BagIndex.AccountBankTab_7,
+    Enum.BagIndex.AccountBankTab_8,
+    Enum.BagIndex.AccountBankTab_9,
   }
 end
 
