@@ -173,7 +173,9 @@ end
 local function RemoveFromBlacklist(id)
     local bl = CurrentBlacklist()
     if not bl then return end
-    bl[id] = nil
+    -- ⚠ 記成 false 不是 nil：減益名單有預設條目（疲勞），刪成 nil 的話
+    -- MergeDefaults 下次載入又會補回來 —— 玩家會覺得「刪不掉」
+    bl[id] = false
     Apply()
     Refresh()
 end
