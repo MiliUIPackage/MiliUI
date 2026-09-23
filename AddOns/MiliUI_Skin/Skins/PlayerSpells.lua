@@ -5,6 +5,9 @@
 --   所以走一條**比特許視窗還窄**的路：只重畫「框」，天賦樹、法術、專精卡片的
 --   **內容一顆都不碰**。判準跟宏偉寶庫、拍賣場那兩條特許是同一條：
 --   「這個物件在不在會送出受保護／受限請求的執行流上」，在的就不碰或零腳本。
+-- ⚠ **第十四輪（2026-09-23）修正**：法術書的字與背板必須接管（第十一輪「字本來就是淺色」
+--   的判斷是錯的，見「做法」與「法術格」兩段）。法術格仍然**只動貼圖與字**，
+--   施法鈕本身、圖示、點擊路徑一根手指都不碰。
 --
 -- 暴雪原始碼出處（12.1 live 分支，Gethe/wow-ui-source）：
 --   Blizzard_PlayerSpells/Blizzard_PlayerSpellsFrame.xml:5
@@ -40,7 +43,23 @@
 --     `PagedSpellsFrame`（`PagingControls` ← PagingControlsHorizontalTemplate，
 --     Blizzard_PagedContent/Blizzard_PagingControls.xml）
 --   SpellBook/Blizzard_SpellBookFrame.lua:36-49  `OnLoad` → 三顆分類分頁 `AddNamedTab`（XML 載入期）
---   同檔 :198-199  `SpellBookFrameMixin:SetTab` → `TabSystemOwnerMixin.SetTab(self, tabID)`
+--   同檔 :7-10  `Templates` 表：`initFunc = SpellBookHeaderMixin.Init`／`SpellBookItemMixin.Init`
+--     是**檔案載入時就取走的函式參照**（勾這兩支 Init 不會跑）
+--   SpellBook/Blizzard_SpellBookItem.xml:41  `SpellBookItemTemplate`（mixin `SpellBookItemMixin`）：
+--     `Backplate`（BACKGROUND，atlas spellbook-item-backplate）／`TextContainer.Name`・`.SubName`・
+--     `.RequiredLevel`（XML `<Color SPELLBOOK_FONT_COLOR>`）／`Button`（施法鈕，
+--     `SpellBookItemButtonMixin`）的 `Icon`／`Border`／`IconHighlight`／`BorderSheen`／`IconMask`
+--   SpellBook/Blizzard_SpellBookItem.lua:13-23 `OnLoad`（`self.Name = self.TextContainer.Name` 等別名、
+--     背板 alpha 0.25）／:184-306 `UpdateVisuals`／:488-556 `OnIconEnter`・`OnIconLeave`
+--     （背板 alpha 1／0.25）／:728-765 `SpellBookItemButtonMixin`（施法鈕的腳本）
+--   SpellBook/Blizzard_SpellBookTemplates.xml:6  `SpellBookHeaderTemplate`（mixin `SpellBookHeaderMixin`）：
+--     `Backplate`（atlas spellbook-list-backplate，alpha 0.65）／`Text`（SystemFont_Huge2，
+--     `SPELLBOOK_FONT_COLOR`）／`Border`（atlas spellbook-divider，高 11，
+--     錨 BOTTOMLEFT x=-32 ～ BOTTOMRIGHT x=-60）；.lua:3 `Init` 只 `Text:SetText`
+--   Blizzard_PagedContent/Blizzard_PagedContentFrame.lua:194-204  `EnumerateFrames`／`ForEachFrame`
+--     （`ipairs(self.frames)`，唯讀）；:474-543 `DisplayViewsForCurrentPage`
+--   Blizzard_PagedContent/Blizzard_PagingControls.lua:16-17  `PageText:SetTextColor(fontColor)`（只在 OnLoad）
+--   SpellBook/Blizzard_SpellBookFrame.lua:198-199  `SpellBookFrameMixin:SetTab` → `TabSystemOwnerMixin.SetTab(self, tabID)`
 --   ClassSpecializations/Blizzard_ClassSpecializationsFrame.xml:311
 --     `ClassSpecContentFrameTemplate.ActivateButton`（MagicButtonTemplate ← UIPanelButtonTemplate）
 --   同資料夾 .lua `ClassSpecFrameMixin:OnLoad` → `SpecContentFramePool` 在載入期就
@@ -64,10 +83,22 @@
 --      其餘（天賦鈕、法術格、專精卡）天然不符合就被跳過。
 --   3. **不掛任何會跑在天賦執行流裡的東西**。
 -- 我們比它再收一步：
---   * 它在法術書的**每一格法術**上勾了 `SpellBookItemMixin:UpdateVisuals` 等三支
---     mixin（把文字改白、背板淡化）—— 那是法術格的更新路徑，而法術格點下去就是
---     施法。**我們一支都不勾**：法術格的字本來就是淺色（`SPELLBOOK_FONT_COLOR`），
---     書頁換成深色底之後照樣讀得出來，不需要接管。
+--   * 法術書的**每一格法術**：第十四輪起**照它的做法**勾 `SpellBookItemMixin` 的
+--     `UpdateVisuals`／`OnIconEnter`／`OnIconLeave` 三支 mixin 方法（背板淡掉、字改白）。
+--     ⚠ 第十一輪這裡寫「字本來就是淺色、不接管、零 hook」—— **錯了**：
+--     `SPELLBOOK_FONT_COLOR` 是**暗紅棕色**（配羊皮紙用的），書頁換成深底之後名字與
+--     副標幾乎看不見（2026-09-23 實機擷圖）。內容底材規則「換底就要連字一起換」在這裡
+--     不是零成本 —— 必須接管。
+--     法術格點下去就是施法，所以三支 hook 裡的動作收在最窄的白名單
+--     （見下面「法術格」那一段與 taint 接觸面表）：只 `SetAlpha`／`SetTextColor`／
+--     `SetDesaturated` 對**貼圖與字**，不讀任何法術資料、不碰那顆施法鈕本身
+--     （`SpellBookItemButtonMixin` 一支都不勾）。
+--   * 分類標題列（`SpellBookHeaderTemplate`）：它**在每次翻頁／切分頁後重掃**；我們沒有
+--     那種掛點（`SpellBookFrame:SetTab` 是框實例、`PagedSpellsFrame` 的方法是 XML 載入期
+--     就拷走的副本、`SpellBookHeaderMixin.Init` 被 `Templates` 表在檔案載入時就**拿走了原函式
+--     參照**⇒ 勾了也不會跑）⇒ 改成「法術格的 `UpdateVisuals` 後置勾排一次下一幀的補掃」：
+--     每一次 `DisplayViewsForCurrentPage` 都會對頁上每一格法術 `Init` → `UpdateVisuals`，
+--     所以**任何**會換頁內容的路徑（翻頁、滾輪、切分類、搜尋、`SPELLS_CHANGED`）都會帶到它。
 --   * 它對載入方案的名稱輸入框、標題 `ClearAllPoints`／`SetPoint`／`SetHeight` 重排；
 --     我們的契約不准，**零重排**。
 --   * 它的主要按鈕（套用變更、啟用專精、載入方案彈窗）是一般按鈕；我們一律走
@@ -79,9 +110,12 @@
 --
 -- * 法術書的書頁（`BookBG*`）只是一張底圖：Lua 只在最小化／最大化時對
 --   `minimizedArt`／`maximizedArt` 這兩個 parentArray 做 `SetShown`，沒有讀回、沒有換 atlas
---   ⇒ `SetAlpha(0)` 撐得住。上面的字色是 XML 寫死的 `SPELLBOOK_FONT_COLOR`（淺米色），
---   在 `fillInset` 上照樣讀得出來 ⇒ **不必接管任何文字**（內容底材規則的「換底就要連字一起換」
---   在這裡是零成本）。
+--   ⇒ `SetAlpha(0)` 撐得住。上面的字色是 XML 寫死的 `SPELLBOOK_FONT_COLOR`（**暗紅棕**，
+--   第十一輪誤記成淺米色）⇒ 內容底材規則「換底就要連字一起換」：法術名／副標／
+--   需求等級／分類標題／頁碼全部接管（見「法術格」「分類標題列」兩段）。
+--   好消息是這幾條字**暴雪的 Lua 一次都不 `SetTextColor`**（只在未學會時 `SetAlpha(0.6)`，
+--   Blizzard_SpellBookItem.lua:228-230,255-257；頁碼只在 `PagingControlsMixin:OnLoad`
+--   設一次，Blizzard_PagingControls.lua:16-17）⇒ 每一格／每一條**上一次色就永久有效**。
 -- * 天賦樹的 `Background` 是「這是哪個專精」的識別圖，而且有一整組動畫貼圖
 --   （雲、粒子、套用時的閃光）疊在上面、以它為錨 —— 它是內容，不是框。
 --   換掉的只有它**下面那條** `BottomBar`（木紋按鈕列）。
@@ -106,6 +140,14 @@
 -- | `SpellBookFrame` 的 `TopBar`／`BookBG*`／`BookCornerFlipbook`／`Bookmark` | `SetAlpha(0)`；書頁換成 `SpellBookFrame` 自己的 `fillInset` 貼圖 |
 -- | 法術書 `PagingControls` 的兩顆翻頁鈕 | 三張狀態圖 `SetAlpha(0)` ＋ ‹ › 圖記（`Skin.IconButton`） |
 -- | 三個載入方案彈窗的 `Border` | `SetAlpha(0)`；外框走提示皮（`T.tipFill` ＋ 職業色邊，同確認彈窗） |
+-- | **法術格**（`SpellBookItemTemplate`）的 `Backplate`（羊皮紙煙霧背板） | `SetAlpha(0)`（每次 `UpdateVisuals`／`OnIconEnter`／`OnIconLeave` 之後重申：暴雪在這三支裡把它設回 0.25／1） |
+-- | 法術格的 `TextContainer.Name`／`.SubName`／`.RequiredLevel` | `SetTextColor`（白／`textDim`／`textDim`，一次） |
+-- | 法術格施法鈕上的**貼圖** `Button.Border`（金色翅膀框） | `SetAlpha(0.5)`（一次）＋ `SetDesaturated(true)`（每次 `UpdateVisuals` 之後，那一支會 `SetAtlas`） |
+-- | 同上 `Button.BorderSheen`（掃光動畫） | `SetAlpha(0)`（一次；動畫只有位移、不動 alpha） |
+-- | 同上 `Button.IconHighlight`（滑過光暈） | `SetDesaturated(true)`（每次 `UpdateVisuals` 之後）。alpha 仍由暴雪管（滑過 0.35／按下 0.65） |
+-- | **分類標題列**（`SpellBookHeaderTemplate`）的 `Backplate`／`Border`（暗紅分隔線） | `SetAlpha(0)`；分隔線換成標題列自己的一條 1px `fillHover` 貼圖（`Engine.RegionBackdrop`） |
+-- | 分類標題列的 `Text` | `SetTextColor(白)`（一次） |
+-- | 頁碼 `PagingControls.PageText` | `SetTextColor(白)`（一次） |
 -- | 彈窗的輸入框（`InputBoxTemplate`／`InputScrollFrameTemplate`）、勾選框 | `Skin.EditBox`／`Skin.InputScroll`／`Skin.CheckBox` |
 --
 -- ### 讀了什麼
@@ -114,6 +156,11 @@
 -- **不讀** `specID`／`configID`／`nodeID`／任何天賦或法術資料，不讀 `self.tabs`、
 -- 不讀 `SpecContentFramePool`（那是暴雪的欄位，不在讀取例外表上 ⇒ 改用 `GetChildren()`
 -- 找「有 `ActivateButton` 這個 parentKey 的子框」）。
+-- 法術格／分類標題列：只認 parentKey（`Backplate`／`Button`／`TextContainer`／`Text`／`Border`）。
+-- **不讀** `spellBookItemInfo`／`artSet`／`isUnlearned`／`elementData`，不呼叫 `HasValidData()`。
+-- 補掃分類標題列走 `PagedSpellsFrame:ForEachFrame`（Blizzard_PagedContentFrame.lua:198，
+-- `ipairs(self.frames)` 的唯讀走訪 —— 跟 ScrollBox 的 `ForEachFrame` 同一類，
+-- 它順手傳給回呼的 `elementData` 我們不看）。
 --
 -- ### 掛了哪些 hook
 --
@@ -122,9 +169,23 @@
 -- | `hooksecurefunc(TabSystemOwnerMixin, "SetTab", …)` | 全域 mixin 後置勾（`Engine.TabSystemOwnerHooks`，跟專業視窗**共用同一支**） | 只呼叫 `Engine.SyncTabSystemAll()`，不讀參數 |
 -- | `TabSystemButtonArtMixin:SetTabSelected` | 全域 mixin 後置勾（`Engine.TabSystemHooks`，既有） | 第一行查弱鍵表 |
 -- | `Engine.TrackButtonHover`／`TrackSelectable`／`TrackGlyph` 的 `HookScript("OnEnter"/"OnLeave")`（翻頁鈕另加 `OnEnable`/`OnDisable`） | frame script 後掛 | **只對**分頁、下拉、搜尋框的清除鈕、關閉鈕、最大化最小化、翻頁鈕；內容只換我們自己 overlay 的顏色 |
+-- | `hooksecurefunc(SpellBookItemMixin, "UpdateVisuals", …)` | mixin 後置勾（`Engine.HookRows`） | 第一次：三條字上色、翅膀框半透明、掃光 alpha 0；每次：背板 alpha 0、翅膀框與滑過光暈去飽和、**排一次下一幀的分類標題列補掃**（`C_Timer.After(0)`，同一幀只排一次） |
+-- | `hooksecurefunc(SpellBookItemMixin, "OnIconEnter"/"OnIconLeave", …)` | mixin 後置勾（`Engine.HookRows`，`requireKnown`） | 只有背板 `SetAlpha(0)` |
 --
--- **`hooksecurefunc` 在 `PlayerSpellsFrame`／`TalentsFrame`／`SpellBookFrame` 或它們任何子框、
--- 任何 `Talent*Mixin`／`SpellBook*Mixin`／`ClassSpec*Mixin` 上：0 支。**
+-- ⚠ 三支法術格 hook 的時機與範圍（查證）：
+--   * 三支都是 **mixin 方法**，法術格是 `PagedSpellsFrame` 第一次顯示時才從池子建的
+--     （Blizzard_PagedContentFrame.lua:474-540，`SpellBookFrameMixin:OnShow` → `UpdateAllSpellData`），
+--     比 `ADDON_LOADED` 晚 ⇒ frame 建立時拷到的是**我們勾過的**版本（陷阱 4）。
+--   * `OnIconEnter`／`OnIconLeave` 由施法鈕的 `SpellBookItemButtonMixin:OnEnter`／`OnLeave`
+--     以 `self:GetParent():OnIconEnter()` 呼叫（Blizzard_SpellBookItem.lua:742-750），
+--     `UpdateVisuals` 在游標停在格子上時也會自己呼叫一次（:302-305）—— 每次滑進滑出都跑。
+--   * **不勾** `OnIconMouseDown`／`OnIconMouseUp`／`OnIconClick`／`SpellBookItemButtonMixin` 的
+--     任何方法：那是點擊（施法）的派送路徑，我們的 Lua 不准出現在那裡
+--     （wow-121-addon-code-in-secure-stack 入口 6／7）。所以按下時的光暈亮度
+--     （`iconHighlightPressAlpha` 0.65）仍是暴雪的 —— 我們只把它去飽和成中性白光。
+--
+-- **`hooksecurefunc` 在 `PlayerSpellsFrame`／`TalentsFrame`／`SpellBookFrame` 或它們任何子框
+-- （框實例）：0 支。`Talent*Mixin`／`ClassSpec*Mixin`／`SpellBookItemButtonMixin`：0 支。**
 -- **`HookScript("OnShow")` 在這個視窗的任何框上：0 支**（`ShowUIPanel` 的執行流裡不准有我們的 Lua）。
 -- **零腳本按鈕上的 `HookScript`：0 支。**
 --
@@ -136,8 +197,19 @@
 -- * 樹的專精美術 `Background` 與整組動畫貼圖（見上面）。
 -- * `ResetButton`／`UndoButton`：紅金色的重設／復原圖示本身就是這兩顆鈕的全部長相，
 --   而且它們改的是「還沒提交的天賦點」—— 跟套用鈕同一條執行流，不值得為了兩顆小圖掛東西。
--- * 法術書的每一格法術（`SpellBookItemTemplate`）、分類標題列、`AssistedCombatRotationSpellFrame`
---   （裡面是一顆 secure 的法術鈕）、`SettingsDropdown`（齒輪）、`HelpPlateButton`。
+-- * 法術格的**圖示本身**、遮罩、冷卻、自動施放螞蟻線、「不在快捷列上」的光暈
+--   （`ActionBarHighlight`）、雕文／點擊綁定／等級鎖的標記 —— 那些是資訊。
+-- * 法術格的圖示外框**沒有**改成「方形 1px 黑框、滑過職業色」（使用者偏好的那一種），
+--   評估過、做不到，退回成熟同類實作的「半透明＋去飽和」：
+--     1. 圖示有**遮罩**（`Button.IconMask`），而且是 Lua 管的：`UpdateVisuals` 每次依
+--        主動／被動 `SetAtlas` 成方形（`spellbook-item-spellicon-mask`）或**圓形**
+--        （`talents-node-circle-mask`）（Blizzard_SpellBookItem.lua:210-216,675-713）。
+--        `Engine.UnmaskIcon` 的前提是「XML 寫死、Lua 零引用」—— 這一張不符合。
+--     2. 被動技能畫成圓的**本身就是資訊**（主動＝方、被動＝圓）；而分辨主動被動要讀
+--        `spellBookItemInfo.isPassive`／`artSet`（暴雪欄位，不在讀取例外表上）。
+--        不分辨就會替被動技能畫出「方框裡一顆圓圖」。
+-- * `AssistedCombatRotationSpellFrame`（裡面是一顆 secure 的法術鈕）、
+--   `SettingsDropdown`（齒輪）、`HelpPlateButton`。
 -- * 專精頁的卡片美術（專精縮圖、職責圖示、代表技能圓圈）與整頁底圖 —— 卡片就是內容。
 --   只換 `ActivateButton` 的長相（零腳本）。
 -- * `HeroTalentsSelectionDialog`（英雄天賦的選擇視窗，本身就是一棵小天賦樹）。
@@ -299,6 +371,127 @@ local function SkinTalents(tf, key)
 end
 
 ------------------------------------------------------------
+-- 法術格（`SpellBookItemTemplate`，`PagedSpellsFrame` 池化的 element）
+--
+-- 做法照成熟同類實作：背板淡掉、名字／副標改白、翅膀框半透明去飽和、掃光拿掉。
+-- ⚠ 法術格點下去是施法。這裡的每一個動作都只對**貼圖與字**，而且只在三支
+--   **非點擊路徑**的 mixin 方法之後跑（`UpdateVisuals`／`OnIconEnter`／`OnIconLeave`）：
+--   `SetAlpha`、`SetTextColor`、`SetDesaturated` —— 沒有 overlay、沒有 HookScript、
+--   不讀任何欄位。施法鈕（`Button`）本身一個方法都沒被呼叫。
+-- ⚠ 暴雪自己動過的 alpha 我們不去搶：
+--   * 字：未學會時暴雪 `SetAlpha(0.6)`（.lua:228-230）—— 那是「還不能用」的訊號，留著；
+--     我們只換顏色（兩者相乘 ⇒ 未學會的字是 60% 的白／灰）。
+--   * `IconHighlight`：滑過 0.35、按下 0.65（.lua:22,546,655,665）—— 只去飽和，
+--     不然滑過就沒有任何回饋（背板我們拿掉了）；而 `OnIconMouseDown` 在點擊路徑上，勾不得。
+-- ⚠ 翅膀框（`Button.Border`）為什麼不是方形 1px：見檔頭「刻意不碰」最後一條。
+------------------------------------------------------------
+local SPELL_ITEM_KEY = "SpellBookItem"
+local BORDER_ALPHA = 0.5
+
+local function IsSpellItem(row)
+    return (Optional(row, "Backplate") and Optional(row, "Button") and Optional(row, "TextContainer")) and true or false
+end
+
+local function SpellItemApply(row)
+    local tc = Optional(row, "TextContainer")
+    if tc then
+        local name = Optional(tc, "Name")
+        if name then E.TextColor(name, T.text, SPELL_ITEM_KEY .. ".Name") end
+        for _, k in ipairs({ "SubName", "RequiredLevel" }) do
+            local fs = Optional(tc, k)
+            if fs then E.TextColor(fs, T.textDim, SPELL_ITEM_KEY .. "." .. k) end
+        end
+    end
+    local btn = Optional(row, "Button")
+    if btn then
+        local border = Optional(btn, "Border")
+        if border then pcall(border.SetAlpha, border, BORDER_ALPHA) end
+        E.NeutralizeKeys(btn, { "BorderSheen" }, SPELL_ITEM_KEY .. ".Button")
+    end
+end
+
+-- 分類標題列的補掃排在下一幀（宣告在下面，這裡先留名字）
+local ScheduleHeaderSweep
+
+local function SpellItemReapply(row)
+    -- 背板：暴雪在 OnLoad／OnIconEnter／OnIconLeave 都會把它設回來 ⇒ 每次重申
+    E.NeutralizeKeys(row, { "Backplate" }, SPELL_ITEM_KEY)
+    local btn = Optional(row, "Button")
+    if btn then
+        -- `UpdateVisuals` 每次都對這兩張 `SetAtlas`（.lua:218,268）⇒ 去飽和放 reapply
+        local border = Optional(btn, "Border")
+        if border then E.Desaturate(border, SPELL_ITEM_KEY .. ".Button.Border") end
+        local hl = Optional(btn, "IconHighlight")
+        if hl then E.Desaturate(hl, SPELL_ITEM_KEY .. ".Button.IconHighlight") end
+    end
+    if ScheduleHeaderSweep then ScheduleHeaderSweep() end
+end
+
+-- 滑進滑出只需要把背板再壓回去
+local function SpellItemBackplate(row)
+    E.NeutralizeKeys(row, { "Backplate" }, SPELL_ITEM_KEY)
+end
+
+------------------------------------------------------------
+-- 分類標題列（`SpellBookHeaderTemplate`）
+--
+-- 成熟同類實作的做法：標題改白、羊皮紙煙霧背板淡掉、華麗分隔線換成一條 1px 細線。
+-- 它靠「量尺寸認分隔線」＋ 在 `SetTab`／翻頁鈕／滾輪／OnShow 之後重掃；
+-- 我們不量尺寸（分隔線就是 parentKey `Border`），也不掛 OnShow ——
+-- 觸發點改成法術格 `UpdateVisuals` 的後置勾（理由見檔頭「做法」）。
+--
+-- 認列：有 `Text`／`Border`／`Backplate`、**沒有** `Button`（法術格有 `Button`）。
+-- 標題列的三樣東西暴雪都只在 XML 設過（`Init` 只 `SetText`）⇒ 每一條只要處理一次。
+-- 細線是標題列**自己的**一張貼圖（`Engine.RegionBackdrop`，BACKGROUND）：
+--   從 `Text` 的左緣（x=-8）拉到原分隔線的右緣（x=-60），垂直置中在原分隔線那 11 點高度裡。
+--   標題列不是 layout host（純 Frame），寬度由暴雪排版（`autoExpandHeaders`）決定，
+--   我們的線錨在它兩端 ⇒ 跟著走。
+------------------------------------------------------------
+local HEADER_KEY = "SpellBookHeader"
+local HEADER_RULE_POINTS = {
+    { "BOTTOMLEFT", "BOTTOMLEFT", -8, 5 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", -60, 5 },
+}
+local headerDone = setmetatable({}, { __mode = "k" })
+local pagedSpells              -- `SpellBookFrame.PagedSpellsFrame`（Apply 時記下；身分，不讀欄位）
+
+local function IsHeader(f)
+    return (Optional(f, "Text") and Optional(f, "Border") and Optional(f, "Backplate")
+        and not Optional(f, "Button")) and true or false
+end
+
+local function HeaderSweep(f)
+    if headerDone[f] or not IsHeader(f) then return end
+    if E.IsProtectedFrame(f) then return end
+    headerDone[f] = true
+    E.NeutralizeKeys(f, { "Backplate", "Border" }, HEADER_KEY)
+    local text = Optional(f, "Text")
+    if text then E.TextColor(text, T.text, HEADER_KEY .. ".Text") end
+    local rule = E.RegionBackdrop(f, {
+        key = HEADER_KEY .. ".rule",
+        slot = "rule",
+        noBorder = true,
+        points = HEADER_RULE_POINTS,
+        height = 1,
+    })
+    E.Paint(rule, T.fillHover)
+end
+
+local function SweepHeaders()
+    if pagedSpells then E.SweepRows(pagedSpells, HEADER_KEY, HeaderSweep) end
+end
+
+local sweepPending = false
+ScheduleHeaderSweep = function()
+    if sweepPending or not pagedSpells then return end
+    sweepPending = true
+    C_Timer.After(0, function()
+        sweepPending = false
+        SweepHeaders()
+    end)
+end
+
+------------------------------------------------------------
 -- 法術書頁
 --
 -- 版面（SpellBook/Blizzard_SpellBookFrame.xml）：上緣 51 是標題列（`TopBar` 1614x58 的 atlas，
@@ -306,8 +499,8 @@ end
 -- 換成：標題列就是視窗本身的 `fill`（中和 TopBar 之後自然透出來）＋ 下緣一條髮絲線，
 -- 書頁是 `SpellBookFrame` 自己的一張 `fillInset` 貼圖。
 --
--- ⚠ 書頁的**字不接管**：法術名稱、副標、分類標題都是 XML 寫死的 `SPELLBOOK_FONT_COLOR`
---   （淺米色），在深底上照樣讀得出來；要改成純白就得勾法術格的更新路徑，那一條不走（檔頭）。
+-- ⚠ 書頁上的字（法術名稱、副標、分類標題、頁碼）是 XML 寫死的 `SPELLBOOK_FONT_COLOR`
+--   （暗紅棕）⇒ 全部接管：法術格與分類標題列走上面兩段，頁碼在這裡一次。
 -- ⚠ 最小化時暴雪 `SetWidth` 視窗、切換 `minimizedArt`／`maximizedArt` 的顯示 ——
 --   我們的書頁貼圖是錨點跟著 `SpellBookFrame` 的矩形走，兩種寬度都對。
 ------------------------------------------------------------
@@ -355,8 +548,12 @@ local function SkinSpellBook(sb, key)
 
     -- 翻頁鈕（同收藏視窗的 `SkinPaging`：箭頭素材中和、改畫 ‹ ›，翻到頭時變暗）
     local paged = Sub(sb, "PagedSpellsFrame", key .. ".PagedSpellsFrame")
+    pagedSpells = paged
     local pc = paged and Sub(paged, "PagingControls", key .. ".PagedSpellsFrame.PagingControls")
     if pc then
+        -- 頁碼「第 X/Y 頁」：`fontColor = SPELLBOOK_FONT_COLOR`，只在 OnLoad 設一次
+        local pageText = Optional(pc, "PageText")
+        if pageText then E.TextColor(pageText, T.text, key .. ".PagingControls.PageText") end
         for i, k in ipairs({ "PrevPageButton", "NextPageButton" }) do
             local pkey = key .. ".PagingControls." .. k
             local btn = Sub(pc, k, pkey)
@@ -469,11 +666,34 @@ end
 ------------------------------------------------------------
 -- hooks：只有兩支**全域** mixin 後置勾（都是冪等、全遊戲共用的那兩支）
 ------------------------------------------------------------
+local spellItemSweep
+
 local function InstallHooks()
     -- 之後才建的新式分頁（這個視窗的分頁全是 XML 載入期建的，裝著是為了一致）
     E.TabSystemHooks()
     -- 兩排分頁（底部三顆、法術書三顆）都在 XML 載入期建好 ⇒ 靠這一支重讀選中態
     E.TabSystemOwnerHooks()
+
+    -- 法術格（第十四輪）。⚠ 不過戰鬥閘（`Engine.RunUnit` 把 hooks 排在戰鬥閘前面）：
+    --   法術格是第一次開法術書才建的，hook 一定要比那一刻早。
+    local mixin = _G.SpellBookItemMixin
+    spellItemSweep = E.HookRows{
+        key     = SPELL_ITEM_KEY .. ":UpdateVisuals",
+        mixin   = mixin,
+        method  = "UpdateVisuals",
+        apply   = SpellItemApply,
+        reapply = SpellItemReapply,
+        match   = IsSpellItem,
+    }
+    for _, method in ipairs({ "OnIconEnter", "OnIconLeave" }) do
+        E.HookRows{
+            key          = SPELL_ITEM_KEY .. ":" .. method,
+            mixin        = mixin,
+            method       = method,
+            requireKnown = true,
+            reapply      = SpellItemBackplate,
+        }
+    end
 end
 
 local function Apply()
@@ -494,6 +714,11 @@ local function Apply()
 
     -- 建立時讀一次選中態；之後由 `TabSystemOwnerMixin:SetTab` 的後置勾重讀
     E.SyncTabSystemAll()
+
+    -- 已經建好的法術格與分類標題列補掃一遍（正常情況下這時候書還沒開過、池子是空的）
+    if pagedSpells then
+        E.SweepRows(pagedSpells, SPELL_ITEM_KEY, spellItemSweep, HeaderSweep)
+    end
 end
 
 E.Register{
