@@ -2,7 +2,7 @@
 -- 戰隊資訊：資料層
 --
 -- 記錄戰隊裡每隻角色的鑰石（升級／降級／領取時更新）、本週寶庫進度、
--- 探究懸賞圖狀態（拿過沒／用了沒）與鍍金儲物箱進度；週重置後自動清掉上週的。
+-- 探究懸賞圖狀態（拿過沒／用了沒）、鍍金儲物箱進度與團本進度；週重置後自動清掉上週的。
 -- 2026-09-05 從 MiliUI 本體的 Enhance/CharacterKeystones.lua 搬過來
 --（那邊原本掛在 KeystoneLoot 視窗旁邊），第一次啟動會把 MiliUI_DB 裡的舊記錄
 -- 搬過來一次（見下面「一次性遷移」）。
@@ -13,7 +13,9 @@
 -- 資料放在 MiliUI_InfoBar_DB.warband.characters，key 是「角色名-伺服器」：
 --   { name, realm, class（classFile）, mapID, level, timestamp,
 --     vault = { timestamp, mplus / raid / pvp / world = 三格, mplusRuns,
---               bounty = { got, count }, stash = { cur, max, trusted } } }
+--               bounty = { got, count }, stash = { cur, max, trusted } },
+--     raids = { timestamp, list = { { name, instanceID, difficultyID, difficulty,
+--               reset（絕對伺服器時間）, killed, total, bosses = { { name, killed } } } } } }
 -- ⚠ 追蹤**永遠在跑**、不看方塊有沒有啟用：要看的是「其他角色」的資料，
 --   而那些資料只能在登入那隻角色的時候記。全部走事件，零輪詢。
 ------------------------------------------------------------
@@ -324,14 +326,12 @@ local function ReadOwnVaultSnapshot()
     return snap
 end
 
-local function SaveVaultSnapshot()
-    local snap = ReadOwnVaultSnapshot()
-    if not snap then return false end
+-- 自己那筆記錄；還沒有鑰石記錄但有寶庫／團本進度（例如本週還沒拿過鑰石）就建一筆空殼
+local function EnsureOwnRecord()
     local history = Store().characters
     local key = GetCharacterKey()
     local rec = history[key]
     if not rec then
-        -- 還沒有鑰石記錄但有寶庫進度（例如本週還沒拿過鑰石），建一筆空殼
         local _, class = UnitClass("player")
         rec = {
             name  = UnitName("player"),
@@ -343,6 +343,13 @@ local function SaveVaultSnapshot()
         }
         history[key] = rec
     end
+    return rec
+end
+
+local function SaveVaultSnapshot()
+    local snap = ReadOwnVaultSnapshot()
+    if not snap then return false end
+    local rec = EnsureOwnRecord()
     -- 冷快取防護：剛登入或快速 relog 的短 session，旗標/widget 可能讀到假的空值。
     -- 懸賞圖旗標與儲物箱進度在一週內只會單向前進（週重置由 PruneOldRecords 整筆清掉，
     -- 不會跨週殘留），所以永遠不用「更差」的讀值蓋掉已存的。
@@ -373,6 +380,114 @@ local function SaveVaultSnapshot()
     return true
 end
 
+------------------------------------------------------------
+-- 團本進度（副本鎖定）：滑過表格某一列時右邊那張提示的資料
+--
+-- 來源是暴雪「團隊資訊」視窗那份（GetSavedInstanceInfo／GetSavedInstanceEncounterInfo），
+-- 只收**團本且鎖定中**的；過期的在顯示時用 reset（絕對時間）濾掉，不必等週清理。
+-- 團搜不在這份清單裡（暴雪把團搜的進度記在 LFG 那邊），所以這裡只會有普通以上。
+--
+-- ⚠ 這份快取要等 RequestRaidInfo → UPDATE_INSTANCE_INFO 回來才是真的；剛登入時
+--   GetNumSavedInstances() 會回 0。所以**只在事件回來之後存**（raidInfoReady），
+--   不然冷快取會把別次記好的進度蓋成「本週沒打」。
+------------------------------------------------------------
+local raidInfoReady = false
+local lastRaidSig
+
+local function ReadOwnRaidLockouts()
+    if not (GetNumSavedInstances and GetSavedInstanceInfo) then return nil end
+    local n = S.PlainNumber(GetNumSavedInstances())
+    if not n then return nil end
+    local now = GetServerTime()
+    local list = {}
+    for i = 1, n do
+        local name, _, reset, difficultyID, locked, _, _, isRaid, _, difficultyName,
+            numEncounters, _, _, instanceID = GetSavedInstanceInfo(i)
+        name = S.PlainText(name)
+        reset = S.PlainNumber(reset)
+        numEncounters = S.PlainNumber(numEncounters) or 0
+        if name and reset and reset > 0 and S.ToBool(isRaid) and S.ToBool(locked) then
+            local bosses, killed = {}, 0
+            for j = 1, numEncounters do
+                local bossName, _, isKilled = GetSavedInstanceEncounterInfo(i, j)
+                local k = S.ToBool(isKilled) or false
+                if k then killed = killed + 1 end
+                bosses[j] = { name = S.PlainText(bossName) or "?", killed = k }
+            end
+            list[#list + 1] = {
+                name         = name,
+                instanceID   = S.PlainNumber(instanceID) or 0,
+                difficultyID = S.PlainNumber(difficultyID) or 0,
+                difficulty   = S.PlainText(difficultyName) or "",
+                reset        = now + reset,
+                killed       = killed,
+                total        = numEncounters,
+                bosses       = bosses,
+            }
+        end
+    end
+    return list
+end
+
+-- 內容指紋：UPDATE_INSTANCE_INFO 換區也會發，內容沒變就不通知重畫
+local function RaidSignature(list)
+    local parts = {}
+    for _, e in ipairs(list) do
+        parts[#parts + 1] = e.name .. "#" .. e.difficultyID .. "#" .. e.killed
+        for _, b in ipairs(e.bosses) do parts[#parts + 1] = b.killed and "1" or "0" end
+    end
+    return table.concat(parts, ",")
+end
+
+-- 回傳 true＝內容有變
+local function SaveRaidSnapshot()
+    if not raidInfoReady then return false end
+    local list = ReadOwnRaidLockouts()
+    if not list then return false end
+    local rec = EnsureOwnRecord()
+    rec.raids = { timestamp = GetServerTime(), list = list }
+    local sig = RaidSignature(list)
+    local changed = sig ~= lastRaidSig
+    lastRaidSig = sig
+    Debug("Raids saved: %d lockouts%s", #list, changed and " (changed)" or "")
+    return changed
+end
+
+-- 給面板：還沒過期的鎖定，依副本分組排好。nil＝這隻從沒記過（跟「本週沒打」要分得開）。
+-- 排序：新的副本在前（instanceID 大致隨資料片遞增），同副本內傳奇 → 英雄 → 普通 → 其他。
+local DIFF_RANK = { [16] = 4, [15] = 3, [14] = 2, [17] = 1 }
+
+function Warband.ActiveRaids(data)
+    local raids = data and data.raids
+    if not (raids and raids.list) then return nil end
+    local now = GetServerTime()
+    local out = {}
+    for _, e in ipairs(raids.list) do
+        if (e.reset or 0) > now then out[#out + 1] = e end
+    end
+    table.sort(out, function(a, b)
+        if a.instanceID ~= b.instanceID then return a.instanceID > b.instanceID end
+        if a.name ~= b.name then return a.name < b.name end
+        local ra, rb = DIFF_RANK[a.difficultyID] or 0, DIFF_RANK[b.difficultyID] or 0
+        if ra ~= rb then return ra > rb end
+        return a.difficultyID > b.difficultyID
+    end)
+    return out, raids.timestamp
+end
+
+local raidDebounceTimer
+local function OnRaidInfoUpdate()
+    raidInfoReady = true
+    if raidDebounceTimer then raidDebounceTimer:Cancel() end
+    raidDebounceTimer = C_Timer.NewTimer(0.3, function()
+        raidDebounceTimer = nil
+        local t0 = Perf.Begin()
+        local changed = SaveRaidSnapshot()
+        Perf.End("warband raids", t0)
+        if changed then Notify() end
+    end)
+end
+
 -- 向伺服器請求最新的寶庫＋M+資料。
 -- 重點：C_WeeklyRewards.GetActivities / C_MythicPlus.GetRunHistory 讀的是「客戶端快取」，
 -- 這快取只有靠這兩個請求才會刷新（與 Blizzard 寶庫 UI 開啟時做的事一致）：
@@ -392,6 +507,8 @@ local function RequestVaultData(reason)
     if C_WeeklyRewards and C_WeeklyRewards.OnUIInteract then
         C_WeeklyRewards.OnUIInteract()
     end
+    -- 團本進度同一個節奏：資料回來是 UPDATE_INSTANCE_INFO → OnRaidInfoUpdate
+    if RequestRaidInfo then RequestRaidInfo() end
     Debug("RequestVaultData: %s", tostring(reason))
 end
 Warband.RequestVaultData = RequestVaultData
@@ -735,6 +852,12 @@ local function OnEvent(event, ...)
             SaveKeystoneRecord(mapID, level)
         end
         SaveVaultSnapshot()
+        SaveRaidSnapshot()
+    elseif event == "UPDATE_INSTANCE_INFO" then
+        OnRaidInfoUpdate()
+    elseif event == "BOSS_KILL" then
+        -- 團本以外的首領（時光漫遊團本、舊團本）也會改鎖定；RequestVaultData 只看四種難度
+        if RequestRaidInfo then RequestRaidInfo() end
     -- 「資料已刷新」事件 → 直接存檔（此刻 GetActivities/GetRunHistory 才是新的）
     elseif event == "WEEKLY_REWARDS_UPDATE" then
         SnapshotAndRefresh(event)
@@ -792,6 +915,7 @@ local TRACK_EVENTS = {
     "WEEKLY_REWARDS_UPDATE", "CHALLENGE_MODE_MAPS_UPDATE",
     "ENCOUNTER_END", "PVP_MATCH_COMPLETE", "LFG_COMPLETION_REWARD", "QUEST_TURNED_IN",
     "BAG_UPDATE_DELAYED", "ITEM_CHANGED", "UPDATE_UI_WIDGET",
+    "UPDATE_INSTANCE_INFO", "BOSS_KILL",
     -- 只有 Plumber 在用這個事件名，萬一哪版被移除，ns.Events 內部的 pcall 會接住
     "ACTIVE_DELVE_DATA_UPDATE", "ZONE_CHANGED_NEW_AREA",
 }

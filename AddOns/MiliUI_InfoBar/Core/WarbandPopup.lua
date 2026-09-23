@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 戰隊資訊：彈出面板（角色表格）＋寶庫提示＋列選單
+-- 戰隊資訊：彈出面板（角色表格）＋寶庫提示＋團本提示＋列選單
 --
 -- ⚠ 它是**表格**不是「一列一個選項」的清單，所以走 Core/HoverPanel.lua 的
 --   控制器（開關節奏、皮、定位）但**不走列層**——那套排版套在多欄表格上只會把
@@ -406,6 +406,191 @@ local function HideVaultTip()
 end
 
 ------------------------------------------------------------
+-- 團本提示：滑過表格某一列，在**整張面板**旁邊列出那隻角色的團本進度
+--
+-- 一層就講完：每個「副本＋難度」一組，組頭是「副本名 …… 難度 x/y」，底下直接
+-- 攤開首領（打過＝勾＋白字，沒打＝灰）。不做「滑過難度再開第二層」—— 兩層提示
+-- 要多一套開關節奏，游標斜切過去就會關掉，換來的只是省一點高度。
+-- 首領排兩欄、**先直後橫**（1～4 左、5～8 右），照副本裡的順序往下讀。
+--
+-- 錨在面板頂端而不是那一列：換列時提示不會上下跳，標題已經點名是哪隻角色。
+-- 預設開在面板右邊，右邊塞不下翻左邊，翻完還出界才平移（跟寶庫提示同一套）。
+-- 字串池化：組數與首領數每隻角色都不同，frame／FontString 刪不掉，一律重用。
+------------------------------------------------------------
+local RT = {
+    PAD       = 10,
+    TITLE_H   = 20,
+    HEAD_H    = 20,   -- 組頭（副本名 …… 難度 x/y）
+    BOSS_H    = 16,
+    GROUP_GAP = 6,
+    COL_GAP   = 12,
+    MARK_W    = 16,   -- 勾／點的欄
+    COL_MIN   = 110,
+    COL_MAX   = 170,  -- 首領名再長就截「…」，不讓一個名字把整張撐寬
+    SPACE     = 8,
+    FOOTER_H  = 14,
+    BOSS_SZ   = 11,
+}
+
+local raidTip, raidTipRow
+
+local function Hex(r, g, b)
+    return string.format("%02x%02x%02x",
+        math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
+end
+
+local function BuildRaidTip()
+    if raidTip then return raidTip end
+    local f = CreateFrame("Frame", "MiliUIInfoBar_WarbandRaidTip", UIParent, "BackdropTemplate")
+    f:SetFrameStrata("TOOLTIP")
+    f:SetSize(RT.COL_MIN * 2, 100)
+    ApplyTipSkin(f)
+    f:Hide()
+    f.pool, f.used = {}, 0
+    -- 量首領名寬用的（不顯示）
+    f.measure = MakeText(f, RT.BOSS_SZ)
+    f.measure:Hide()
+    raidTip = f
+    return f
+end
+
+local function AcquireText(f, size, color)
+    f.used = f.used + 1
+    local fs = f.pool[f.used]
+    if not fs then
+        fs = MakeText(f)
+        f.pool[f.used] = fs
+    end
+    fs:SetFont(ns.LOCALE_FONT, size, "")
+    SetColor(fs, color)
+    fs:ClearAllPoints()
+    fs:SetWidth(0)
+    fs:SetJustifyH("LEFT")
+    fs:Show()
+    return fs
+end
+
+local function HideRaidTip()
+    if raidTip then raidTip:Hide() end
+    raidTipRow = nil
+end
+
+local function ShowRaidTip(row)
+    local data = row.data
+    if not (data and frame) then return end
+    raidTipRow = row
+    local f = BuildRaidTip()
+    f.used = 0
+    local P = RT.PAD
+    local list, ts = Warband.ActiveRaids(data)
+
+    local title = AcquireText(f, TITLE_SZ, GOLD)
+    title:SetText(L["WARBAND_RAID_TITLE"]:format(data.name or row.key or "?"))
+    title:SetPoint("TOPLEFT", P, -P)
+    local contentW = title:GetStringWidth()
+    local y = P + RT.TITLE_H
+
+    if not list or #list == 0 then
+        -- nil＝這隻從沒記過；空表＝記過、本週沒有鎖定。兩句話要分得開
+        local main = AcquireText(f, FONT_SZ, { 0.7, 0.7, 0.7 })
+        main:SetText(list and L["WARBAND_RAID_EMPTY"] or L["WARBAND_RAID_NONE"])
+        main:SetPoint("TOPLEFT", P, -y)
+        contentW = math.max(contentW, main:GetStringWidth())
+        y = y + RT.HEAD_H
+        if not list then
+            local sub = AcquireText(f, 11, { 0.5, 0.5, 0.5 })
+            sub:SetText(L["WARBAND_RAID_NONE_SUB"])
+            sub:SetPoint("TOPLEFT", P, -y)
+            contentW = math.max(contentW, sub:GetStringWidth())
+            y = y + RT.FOOTER_H
+        end
+    else
+        -- 首領欄寬：量最長的名字，夾在 COL_MIN～COL_MAX
+        local maxName = 0
+        for _, e in ipairs(list) do
+            for _, b in ipairs(e.bosses) do
+                f.measure:SetText(b.name)
+                maxName = math.max(maxName, f.measure:GetStringWidth())
+            end
+        end
+        local colW = math.min(RT.COL_MAX, math.max(RT.COL_MIN, math.ceil(maxName) + RT.MARK_W + 4))
+        contentW = math.max(contentW, colW * 2 + RT.COL_GAP)
+
+        for gi, e in ipairs(list) do
+            if gi > 1 then y = y + RT.GROUP_GAP end
+            -- 組頭：副本名在左、「難度 x/y」靠右；難度照寶庫獎勵軌道的品質色
+            local head = AcquireText(f, FONT_SZ, TEXT_MAIN)
+            head:SetText(e.name)
+            head:SetPoint("TOPLEFT", P, -y)
+            head:SetHeight(RT.HEAD_H)
+            head:SetJustifyV("MIDDLE")
+
+            local info = RAID_DIFFICULTY_INFO[e.difficultyID]
+            local q = info and ITEM_QUALITY_COLORS[info.quality]
+            local dr, dg, db = TEXT_MAIN[1], TEXT_MAIN[2], TEXT_MAIN[3]
+            if q then dr, dg, db = q.r, q.g, q.b end
+            local cnt = (e.total > 0 and e.killed >= e.total) and GREEN or TEXT_MAIN
+            local diffText = e.difficulty ~= "" and e.difficulty or (info and L[info.label]) or ""
+            local right = AcquireText(f, FONT_SZ, TEXT_MAIN)
+            right:SetText(string.format("|cff%s%s|r  |cff%s%d/%d|r",
+                Hex(dr, dg, db), diffText, Hex(cnt[1], cnt[2], cnt[3]), e.killed, e.total))
+            right:SetPoint("TOPRIGHT", f, "TOPRIGHT", -P, -y)
+            right:SetHeight(RT.HEAD_H)
+            right:SetJustifyV("MIDDLE")
+            right:SetJustifyH("RIGHT")
+            contentW = math.max(contentW, head:GetStringWidth() + right:GetStringWidth() + 16)
+            y = y + RT.HEAD_H
+
+            -- 首領：兩欄、先直後橫
+            local n = #e.bosses
+            local perCol = math.ceil(n / 2)
+            for bi, b in ipairs(e.bosses) do
+                local c = (bi > perCol) and 1 or 0
+                local r = (bi - 1) % perCol
+                local x = P + c * (colW + RT.COL_GAP)
+                local by = y + r * RT.BOSS_H
+                local mark = AcquireText(f, RT.BOSS_SZ, b.killed and TEXT_MAIN or LOCKED)
+                -- 用 Blizzard atlas 的勾勾，避免繁中字型缺 ✓ 字符變豆腐
+                mark:SetText(b.killed and "|A:common-icon-checkmark:12:12|a" or "·")
+                mark:SetPoint("TOPLEFT", x, -by)
+                mark:SetSize(RT.MARK_W, RT.BOSS_H)
+                mark:SetJustifyH("CENTER")
+                mark:SetJustifyV("MIDDLE")
+                local name = AcquireText(f, RT.BOSS_SZ, b.killed and TEXT_MAIN or LOCKED)
+                name:SetText(b.name)
+                name:SetPoint("TOPLEFT", x + RT.MARK_W, -by)
+                name:SetSize(colW - RT.MARK_W, RT.BOSS_H)
+                name:SetJustifyV("MIDDLE")
+            end
+            y = y + perCol * RT.BOSS_H
+        end
+    end
+
+    if ts then
+        y = y + RT.SPACE
+        local snap = AcquireText(f, 11, TEXT_DIM)
+        snap:SetText(L["WARBAND_SNAPSHOT"]:format(date("%m/%d %H:%M", ts)))
+        snap:SetPoint("TOPLEFT", P, -y)
+        contentW = math.max(contentW, snap:GetStringWidth())
+        y = y + RT.FOOTER_H
+    end
+
+    for i = f.used + 1, #f.pool do f.pool[i]:Hide() end
+    f:SetSize(P * 2 + math.ceil(contentW), y + P)
+
+    -- 定位：預設開在面板右邊，右緣塞不下就翻到左邊，翻完還出界才平移
+    f:Show()
+    local pts = { "TOPLEFT", frame, "TOPRIGHT", 6, 0 }
+    f:ClearAllPoints()
+    f:SetPoint(unpack(pts))
+    local rgt, pr = f:GetRight(), UIParent:GetRight()
+    if rgt and pr and rgt > pr - W.SCREEN_PAD then
+        pts = { "TOPRIGHT", frame, "TOPLEFT", -6, 0 }
+    end
+    W.PlaceClamped(f, pts)
+end
+
+------------------------------------------------------------
 -- 列選單（共用層 W.Menu，自己會翻面／貼齊畫面）
 --
 -- ⚠ 選單開著的期間游標在面板**外面**（選單是另一個框），面板的關閉排程照樣會
@@ -415,6 +600,7 @@ local function ShowRowMenu(row)
     if not (row.data and row.key) then return end
     menuRow = row
     HideVaultTip()
+    HideRaidTip()
     local items = { { isTitle = true, text = row.data.name or row.key } }
     if Warband.PartyChannel() and (row.data.level or 0) > 0 then
         items[#items + 1] = {
@@ -469,9 +655,16 @@ local function GetOrCreateRow(index)
     row:SetScript("OnClick", function(self, button)
         if button == "RightButton" then ShowRowMenu(self) end
     end)
-    -- 列吃滑鼠（有滑過反白、有右鍵選單），所以它得自己接回面板的開關節奏
-    row:SetScript("OnEnter", function() panel:CancelClose() end)
-    row:SetScript("OnLeave", function() panel:ScheduleClose() end)
+    -- 列吃滑鼠（有滑過反白、有右鍵選單），所以它得自己接回面板的開關節奏。
+    -- 滑過順便在面板旁開團本提示；游標進寶庫欄時列收到 OnLeave ⇒ 換成寶庫提示
+    row:SetScript("OnEnter", function(self)
+        panel:CancelClose()
+        ShowRaidTip(self)
+    end)
+    row:SetScript("OnLeave", function()
+        HideRaidTip()
+        panel:ScheduleClose()
+    end)
 
     row.cells = {}
     for _, col in ipairs(cols) do
@@ -692,6 +885,15 @@ local function Populate()
         bodyH = #list * ROW_H
     end
     frame:SetHeight(rowTop + bodyH + 6 + FOOTER_H + PAD)
+
+    -- 開著團本提示時資料變了（例如剛打完首領）：照同一列重畫
+    if raidTip and raidTip:IsShown() then
+        if raidTipRow and raidTipRow:IsShown() and raidTipRow.data then
+            ShowRaidTip(raidTipRow)
+        else
+            HideRaidTip()
+        end
+    end
 end
 
 ------------------------------------------------------------
@@ -852,6 +1054,7 @@ panel = HP.New({
     end,
     onHide      = function()
         HideVaultTip()
+        HideRaidTip()
         ns.Events.Unregister("GROUP_ROSTER_UPDATE", "warband-popup")
         Warband.RemoveListener("popup")
     end,
