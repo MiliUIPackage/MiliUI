@@ -51,7 +51,7 @@
 -- | 元件 | 模板 | 原語 |
 -- |---|---|---|
 -- | `SaleItemFrame.Icon`（拖物品進來那一格） | 自製 `AuctionatorGroupsViewItemTemplate`（`Icon`／`EmptySlot`／`IconBorder`／`IconSelectedHighlight` 四張 parentKey 貼圖，**不是** `ItemButton`） | local `SaleIcon`：空格／品質框／橘光暈中和、`fillInset` 底、圖示裁邊、1px 方框轉交品質色（格子自己的貼圖，OVERLAY 6） |
--- | 背包清單的每一格（`…ItemListingFrame` 的直屬子框，同一個模板，`FramePool`） | 同上 | local `BagItem`：同上但不墊底；右下 2px 間距線；**選中＝2px 職業色框＋白色 state layer＋職業色勾**；`HookScript("OnShow")` 重裁與重上選中色 |
+-- | 背包清單的每一格（`…ItemListingFrame` 的直屬子框，同一個模板，`FramePool`） | 同上 | local `BagItem`：同上但不墊底；右下 2px 間距線；**選中＝2px 職業色框＋職業色勾**；`HookScript("OnShow")` 重裁與重上選中色 |
 -- | `SaleItemFrame.Quantity.InputBox` | `LargeInputBoxTemplate`（經 `AuctionatorRetailImportLargeInputBoxTemplate`） | `Skin.EditBox` |
 -- | `SaleItemFrame.Price／BidPrice.MoneyInput` 的 `GoldBox`／`SilverBox`／`CopperBox` | `LargeMoneyInputFrameTemplate` | `Skin.EditBox`（同 host 的 `SkinLargeMoneyInput`） |
 -- | `SaleItemFrame.MaxButton`（最大） | `UIPanelDynamicResizeButtonTemplate` | `Skin.Button` secondary |
@@ -468,7 +468,7 @@ end
 --     轉交的掛點跟重裁一樣（OnShow／補掃）：它是直接 `SetVertexColor` 上色、沒經過全域函式，
 --     接不到引擎的 `SetItemButtonBorder` 勾，只能在更新之後自己去 `IconBorder` 拿。
 --   * 圖示裁邊（`Engine.CropIcon`，**每次換圖示之後重下**，見下面兩條掛點）。
---   * 一圈 1px 方框轉交品質色；背包清單另有 2px 間距線與選中態（2px 職業色＋白色 state layer，見 SelectFrame）。
+--   * 一圈 1px 方框轉交品質色；背包清單另有 2px 間距線與選中態（2px 職業色框＋勾，見 SelectFrame）。
 --     方框建成**格子自己的貼圖**（`Engine.RegionBackdrop`，邊在 OVERLAY 6）——
 --     比它的專業品質鑽石（OVERLAY 7）低一層、比圖示與數量字高 ⇒ 鑽石壓在框上、不被框線切過。
 --     （子框 overlay 做不到：子框永遠畫在父層所有貼圖之上，鑽石會被框線劃一刀。）
@@ -530,13 +530,11 @@ end
 --   ⚠ 只畫右下兩邊：四邊都畫的話兩格之間會是兩倍寬。
 --
 -- **選中**：照「狀態只換明暗、不換色」（miliui-color-states）：
---   選中＝**2px 職業色框 ＋ 圖示上一層白色 state layer ＋ 正中間職業色勾**（2026-09-24 使用者指定；
+--   選中＝**2px 職業色框 ＋ 正中間職業色勾**（2026-09-24 使用者指定；白色 state layer 試過、拿掉了；
 --   試過「品質色框加粗」，混在一排品質色框裡還是不夠明顯）。
 --   2px ＝ 外圈的品質方框換職業色 ＋ 內圈再一條 1px 職業色。
---   state layer 在 BACKGROUND 7：比圖示（BACKGROUND 2）高、比數量字（ARTWORK）低，字不會被洗淡。
 --   那支插件把選中的圖示 `SetAlpha(0.8)`（`ViewItem.lua:16`）—— 選中反而變暗，跟我們的方向相反，
 --   所以 `Recrop` 每次把圖示 alpha 設回 1。
-local SELECT_LAYER = { 1, 1, 1, 0.15 }
 local GAP = 2   -- 格子之間的間距（框架單位，過 P.Scale）
 
 local function GapFrame(btn, key)
@@ -563,14 +561,14 @@ local function SelectFrame(btn, key)
         edgeLayer = "OVERLAY",
         edgeSublevel = 6,
     })
-    E.Paint(ov, SELECT_LAYER, false)
+    E.Paint(ov, TRANSPARENT, false)
     return ov
 end
 
 -- 選中那格正中間的職業色勾（套組勾選框同一張 `check-outline.tga`：白勾＋1px 黑框，
 -- `SetVertexColor` 染職業色、黑框乘不動 ⇒ 壓在任何圖示上都讀得出來）。
 -- 貼圖一樣走 `Engine.RegionBackdrop`（lint：暴雪框上建貼圖只准走那一支），
--- 建完把底那張的材質換成勾。OVERLAY 4：蓋過圖示、數量字與 state layer，低於方框的邊（OVERLAY 5／6）。
+-- 建完把底那張的材質換成勾。OVERLAY 4：蓋過圖示與數量字，低於方框的邊（OVERLAY 5／6）。
 -- 尺寸跟著格子（那支插件的格子大小是設定值 `SELLING_ICON_SIZE`），建立時量一次：
 -- 貼圖的勾本體只佔 `checkOutlineGlyphFrac`，所以 0.8 倍格寬 ≈ 勾本體半格高。
 local CHECK_SCALE = 0.8
@@ -617,10 +615,7 @@ local function PaintSelected(btn, rec)
         local r, g, b = T.Accent()
         local accent = { r, g, b, 1 }
         E.Border(rec.frame, accent)
-        if sel then
-            sel.bg:SetAlpha(1)
-            E.Border(sel, accent)
-        end
+        if sel then E.Border(sel, accent) end
         if rec.check then
             rec.check.bg:SetVertexColor(r, g, b, 1)
             rec.check.bg:SetAlpha(1)
@@ -629,10 +624,7 @@ local function PaintSelected(btn, rec)
     end
     if rec.check then rec.check.bg:SetAlpha(0) end
     E.PassBorderColor(rec.frame, Field(btn, "IconBorder"))
-    if sel then
-        sel.bg:SetAlpha(0)
-        E.Border(sel, false)
-    end
+    if sel then E.Border(sel, false) end
 end
 
 local function Recrop(btn, key)
