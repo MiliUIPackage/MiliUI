@@ -274,6 +274,17 @@ metadata:
 - **探究／世界副本難度選擇**（`Skins/DelvesPicker.lua`，key `delvespicker`）：探究與世界副本（`TieredEntranceType.Lairs`）是同一個 `DelvesDifficultyPickerFrame`。使用者要**保留場景底圖**（那是 `DelveBackgroundWidgetContainer`，BACKGROUND strata 的 UIWidget）⇒ 外框只畫 1px 職業色邊不畫底；兩個 UIWidget 容器與挑戰詞綴 trait 樹整棵不碰。
 - 第十二輪（同日開工）：公會／行事曆／巨集／訓練師／交易／觀察／插槽／催化器／拾取／探究隨從／塑形／顧客訂單／玩家選擇，四個 Opus 平行；共用檔（TOC／DB／語系／設定頁／STYLE）改由主控合併時統一加，代理只新增 `Skins/*.lua`。
 
+## 第十二＋十三輪（2026-09-23，未實測）
+
+- 使用者定規則：做法照抄 EllesmereUI、樣式套我們的，見 [[feedback-skin-copy-ellesmereui]]。新增 20 份配方（清單在 STYLE.md 摘要與 ⑦）。
+- **代理從 EllesmereUI 查出、我們照做的 taint 雷**：公會名冊列寬讀回污染（改註記／階級 FORBIDDEN）；`ColumnDisplay` 連 HookScript 都不行；
+  就位確認的 OnShow 緊接著用秘密的發起人名字（`UnitIsUnit`／`SetPortraitTexture` 是 AllowedWhenUntainted）⇒ 改聽 `READY_CHECK` 延一幀；
+  戰利品擲骰視窗從插件 `Hide()` 會讓 OnHide 在髒執行裡寫清單資料 ⇒ 改解 `LOOT_HISTORY_GO_TO_ENCOUNTER` ＋ secure snippet 關窗。
+- lint：`skin-lint: readycheck-allowlist` 只在 `Skins/ReadyCheck.lua` 有效。
+- 代理 API 額度中斷後 `SendMessage` 續跑可行，但**原本的 isolation worktree 會被清掉**，續跑的代理改在主控 worktree 直接 commit —— 共用檔要等全部回來再加，避免互踩。
+- 待補進 STYLE ③ 的規則文字：訓練師 `selectedTex:IsShown()` 讀取例外、`PassBorderColor` 來源擴充、vertex alpha 中和動畫區域。
+- 下一步候選：住宅總覽（只做 chrome，key `housing`）；Mapster／HandyNotes 的地圖按鈕走 ThirdParty。
+
 ## 還沒實機確認的
 
 三條驗收線：`/console taintLog 2` 操作後 taint.log 零 blocked、**戰鬥中按 C 開得了角色面板**
