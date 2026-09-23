@@ -142,7 +142,7 @@
 -- |---|---|
 -- | FriendsFrame.NineSlice / .Bg / .TopTileStreaks / .PortraitContainer | SetAlpha(0) |
 -- | FriendsFrame.TitleContainer.TitleText、FriendsFrameTitleText | SetTextColor |
--- | FriendsFrameIcon | SetAlpha(0) |
+-- | FriendsFrameIcon | （2026-09-24 起保留，不中和） |
 -- | FriendsFrame.Inset 的 Bg / NineSlice | SetAlpha(0) |
 -- | FriendsFrame.CloseButton 的 Normal/Disabled 貼圖 | SetAlpha(0) |
 -- | FriendsFrame.CloseButton 的 Highlight/Pushed 貼圖 | SetColorTexture |
@@ -1103,7 +1103,9 @@ local function Apply()
     -- 左上那張 60x60 的戰網／團隊圖示。
     -- ⚠ 一定要用 alpha：`FriendsFrame_Update` 每次切頁都 `SetTexture` 重設
     --   （FriendsFrame.lua:462,487,494,500），換材質撐不過一次切頁。
-    E.NeutralizeGlobals({ "FriendsFrameIcon" })
+    -- 2026-09-24 使用者要求：先還原看效果（它是視窗的識別圖，跟寶庫的 TopDecor 同一類）。
+    --   要再拿掉就把下面這一行的註解打開。
+    -- E.NeutralizeGlobals({ "FriendsFrameIcon" })
 
     -- 查詢／團隊／快速加入頁的標題走的是這個 FontString，不是 TitleContainer.TitleText
     -- （FriendsFrame.lua:488,495,501）。兩個都要塗白，不然切頁就變回暗金色。
