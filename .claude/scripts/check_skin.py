@@ -156,13 +156,16 @@ SCAN_DIRS = ("Skins", "ThirdParty")
 
 
 def scanned_files():
-    """掃描範圍：Core/Primitives.lua ＋ Skins/*.lua ＋ ThirdParty/*.lua。
+    """掃描範圍：Core/Primitives.lua ＋ Core/External.lua ＋ Skins/*.lua ＋ ThirdParty/*.lua。
 
     Core/Engine.lua 刻意不掃（它是唯一可以對自己的 overlay 做定位類呼叫的地方）。
+    Core/External.lua 是對外 handle（別的插件把自己的框交進來畫）：交進來的框跟
+    暴雪物件同一條線，所以跟原語一樣全掃。
     """
-    prim = os.path.join(ADDON, "Core", "Primitives.lua")
-    if os.path.isfile(prim):
-        yield prim
+    for name in ("Primitives.lua", "External.lua"):
+        path = os.path.join(ADDON, "Core", name)
+        if os.path.isfile(path):
+            yield path
     for sub in SCAN_DIRS:
         folder = os.path.join(ADDON, sub)
         if not os.path.isdir(folder):
@@ -196,6 +199,44 @@ def strip_comment(line):
     return line
 
 
+BAGANATOR = os.path.join(REPO, "AddOns", "Baganator")
+BAGANATOR_ADAPTER = "Skins\\MiliUI.lua"
+
+
+def check_baganator_adapter():
+    """背包插件的 MiliUI 皮（轉接層住在它自己的 fork 裡，STYLE.md 的「外部皮膚 handle」）。
+
+    轉接層是 `AddOns/Baganator/Skins/MiliUI.lua` ＋ 它的 TOC 裡**一行**。
+    那一行在上游同步時會被整份 TOC 蓋掉，而症狀是**靜默**的：下拉選單裡少一款皮，
+    沒有任何錯誤。所以兩條：
+
+      * 檔案在、TOC 沒列 ⇒ 錯誤（檔案永遠不會載入）。
+      * 上游是會用這種轉接層的版本（829 起才有 `Skins/EllesmereUI.lua`，拿它當指紋）、
+        套組裡有 MiliUI_Skin、但沒有轉接層 ⇒ 警告（多半是同步時用了上游原版）。
+
+    回傳 (errors, warnings)，兩個都是字串清單。
+    """
+    errors, warnings = [], []
+    if not os.path.isdir(BAGANATOR):
+        return errors, warnings
+    adapter = os.path.join(BAGANATOR, "Skins", "MiliUI.lua")
+    toc = os.path.join(BAGANATOR, "Baganator.toc")
+    listed = False
+    if os.path.isfile(toc):
+        with open(toc, encoding="utf-8", errors="replace") as fh:
+            listed = any(line.strip().lower() == BAGANATOR_ADAPTER.lower() for line in fh)
+    if os.path.isfile(adapter):
+        if not listed:
+            errors.append("AddOns/Baganator/Skins/MiliUI.lua 存在，但 Baganator.toc 沒有列 "
+                          + BAGANATOR_ADAPTER + " —— 那一行多半在上游同步時被蓋掉了")
+    elif (os.path.isfile(os.path.join(BAGANATOR, "Skins", "EllesmereUI.lua"))
+          and os.path.isdir(ADDON)):
+        warnings.append("AddOns/Baganator 是 829 以後的版本、套組也有 MiliUI_Skin，"
+                        "但沒有 Skins/MiliUI.lua —— 上游同步把 MiliUI 轉接層弄掉了？"
+                        "（轉接層在 Baganator_for_MiliUI 的 fork 裡）")
+    return errors, warnings
+
+
 def main():
     if not os.path.isdir(ADDON):
         print("找不到 AddOns/MiliUI_Skin —— 跳過")
@@ -227,7 +268,7 @@ def main():
                 if rx.search(code):
                     hits.append((rel, lineno, code.strip(), why))
 
-    print(f"掃了 {count} 個檔（Core/Primitives.lua ＋ Skins/*.lua ＋ ThirdParty/*.lua；"
+    print(f"掃了 {count} 個檔（Core/Primitives.lua ＋ Core/External.lua ＋ Skins/*.lua ＋ ThirdParty/*.lua；"
           f"Core/Engine.lua 不在範圍內）")
 
     if hits:
@@ -246,7 +287,13 @@ def main():
         for x in allowed:
             print(f"  {x}")
 
-    return 1 if hits else 0
+    adapter_errors, adapter_warnings = check_baganator_adapter()
+    for msg in adapter_errors:
+        print(f"\n✗ 背包插件轉接層：{msg}")
+    for msg in adapter_warnings:
+        print(f"\n⚠ 背包插件轉接層：{msg}")
+
+    return 1 if (hits or adapter_errors) else 0
 
 
 if __name__ == "__main__":

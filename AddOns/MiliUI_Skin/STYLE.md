@@ -446,6 +446,64 @@ tooltip 自己的 region、顯示與隱藏自動跟著它。萬一哪天變了�
 | `ThirdParty/PremadeGroupsFilter.lua` | `pve` | 預組隊伍過濾的 `UsePGFButton` ＋ `PremadeGroupsFilterDialog` ＋ 七個面板 | `atLogin = true` | `premadegroupsfilter` |
 | `ThirdParty/RaiderIO.lua` | **無**（nil） | 傳奇鑰石檔案插件自建的兩顆 tooltip | `atLogin = true` ＋ 2／10 秒補掃 | `raiderio` |
 
+### 外部皮膚 handle（`MiliUISkin_API`，`Core/External.lua`）
+
+伴隨元件是「我們去找別人的框」；這一條反過來：**別的插件自己有皮膚系統、會把自己的
+每一個框逐一交出來**（背包插件的皮膚下拉選單），我們給它一個 handle，讓它把框交給
+這一包的原語畫。長相因此跟換過皮的暴雪視窗是同一套設定視窗皮。
+
+- **介面**：`MiliUISkin_API.RegisterSkin(addonName, cb)`；`cb(handle)` 在 `Engine.Boot`
+  之後被呼叫一次（Boot 前的登記暫存、Boot 當下交付；之後的登記立刻交付）。
+  `handle.version = 1`，原語清單與各自的參數寫在 `Core/External.lua` 的檔頭。
+  debug 的 key 前綴是呼叫端的名字（`baganator.ItemButton`…），落在 `/mskin debug` 的 `hook:` 那一節。
+- **契約不放寬**：交進來的框跟暴雪物件同一條線（零欄位寫入、alpha 中和、不重排），
+  `check_skin.py` 的掃描範圍含 `Core/External.lua`。沒有原語的兩種（`WowTrimScrollBar`、
+  `MinimalSliderWithSteppersTemplate`）先寫成那支檔案裡的 local，標 `TODO(升格)`。
+- **開關**：只看總開關。設定頁的各視窗開關管的是暴雪視窗；選不選這款皮是對方的皮膚選單決定的。
+  總開關關掉 ⇒ 不交付 handle ⇒ 對方的框維持原樣。
+- **戰鬥**：物件本身沒保護 ⇒ 戰鬥中照畫；有保護（顯式或隱式）＋ 戰鬥中 ⇒ 整筆延到
+  `PLAYER_REGEN_ENABLED`（配方有 `Engine.ApplyAll` 補跑，handle 沒有，補跑佇列在 External 裡）。
+- **物品格**：兩三百格 ⇒ 底與品質方框都走 `Engine.RegionBackdrop`（一格 0 個子框），
+  方框的邊在 OVERLAY 7。刷新走 `Engine.TrackItemButtonBorder`：勾全域的
+  `SetItemButtonBorder`／`SetItemButtonBorderVertexColor` —— 格子呼叫**自己的方法**
+  `btn:SetItemButtonQuality(…)` 時全域的 `SetItemButtonQuality` 不會跑，這兩支一定會
+  （出處寫在 Engine 那一段）。圖示裁邊靠「換圖示之後一定緊跟著換品質」的呼叫順序。
+
+#### 背包插件（Baganator）的「MiliUI」皮
+
+轉接層**不在這個 repo**：住在 Baganator 的 fork（`Baganator_for_MiliUI`，分支 `miliui-skin`）的
+`Skins/MiliUI.lua`，TOC 只多一行 `Skins\MiliUI.lua`（排在 `Skins\EllesmereUI.lua` 後面）。
+轉接層只做「regionType → handle 原語」的分派，怎麼畫全部在這一包。
+
+⚠ **上游同步會把那一行 TOC 弄掉**（整份 TOC 被上游原版蓋掉），症狀是靜默的：
+皮膚下拉選單裡少了「MiliUI」，沒有任何錯誤。`check_skin.py` 因此多兩條：
+轉接層在、TOC 沒列 ⇒ 錯誤；套組的 Baganator 是 829 以後的版本（`Skins/EllesmereUI.lua` 當指紋）、
+有 MiliUI_Skin、卻沒有轉接層 ⇒ 警告。
+
+| regionType | 原語 | 備註 |
+|---|---|---|
+| `ButtonFrame` | `Shell` | 外框 ＋ 標題帶 ＋ 關閉鈕；`Inset` 被 Baganator 自己藏起來了，不畫 |
+| `InsetFrame` | `Inset` | |
+| `Dialog` | `Dialog` | 提示皮（`tipFill` ＋ 職業色邊），同確認彈窗 |
+| `Button` | `Button` | 預設 secondary；對話框裡第一顆（確認）與單獨的「儲存」是 primary |
+| `IconButton` | `IconButton` | 殼照按鈕畫、圖示不碰 |
+| `ItemButton` | `ItemButton` | Masque 在套就整個交給 Masque；`SlotBackground` 一起中和 |
+| `SideTabButton` | `SideTab` | 圖示鋪滿整顆 ⇒ 只畫前景的邊；選中光暈去飽和染職業色 |
+| `TopTabButton` / `TabButton` | `Tab` | 一顆一顆交進來，湊不成一排 ⇒ 不走 `TabGroup` 的接縫 |
+| `SearchBox` / `EditBox` | `EditBox` | 依美術自動分三路（`Left`／金額框的 `left`／沒有美術就不畫） |
+| `Dropdown` | `Dropdown` | style1 |
+| `CheckBox` | `CheckBox` | 設定頁模板的 `HoverBackground` 一起中和 |
+| `Slider` | `Slider` | local，`TODO(升格)` |
+| `TrimScrollBar` | `ScrollBar` | 實際上兩種模板都有（`MinimalScrollBar`／`WowTrimScrollBar`），原語自己分 |
+| `CategoryLabel` | `Label` | 白字；分類自己的色碼照樣生效 |
+| `CategorySectionHeader` | `SectionHeader` | 同字型白字 ＋ 箭頭染次要色 |
+| `Divider` | `Divider` | 原本的美術中和，改畫 1px 髮絲線 |
+| `CornerWidget` | —— | 刻意不處理：那是各插件自己的角落資訊 |
+
+**未實測。** 驗收照 ⑥ 的第 8 條走，另外加：戰鬥中第一次開背包（格子要照樣能用、脫戰後補上皮）、
+裝著 Masque、切換皮膚再切回來、銀行／戰隊銀行／公會銀行／自訂視窗、標題帶（22）與頂端那排
+按鈕（對方的 `ButtonFrameOffsetTop = 0` ⇒ 從 y=−1 起算）有沒有互相壓到。
+
 ### 四個陷阱
 
 **1. overlay 不准用 `BackdropTemplate`，也不准掛 `OnShow`/`OnHide`/`OnSizeChanged`/`OnUpdate` 腳本。**

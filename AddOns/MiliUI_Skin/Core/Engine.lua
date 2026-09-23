@@ -2446,6 +2446,45 @@ function Engine.TrackItemButton(btn, key)
 end
 
 ------------------------------------------------------------
+-- 物品格的第二組出口：「只走方法、不走全域」的格子（對外 handle 用）
+--
+-- 上面那兩支全域函式只接得住「呼叫全域 `SetItemButtonQuality(btn, …)`」的路徑。
+-- 有的插件直接呼叫**格子自己的方法** `btn:SetItemButtonQuality(…)` ——
+-- 那是 `ItemButtonMixin` 在 frame 建立時拷貝上去的副本（陷阱 4），全域那支一次都不會跑。
+--
+-- 但那個方法最後一樣會走到兩支**真的全域**：
+--   `ItemButtonMixin:SetItemButtonQuality`（Blizzard_ItemButton/Mainline/ItemButtonTemplate.lua:409）
+--     → local `SetItemButtonQuality_Base`（:210）
+--       → 全域 `SetItemButtonBorder(button, asset)`（:200，有沒有品質都會呼叫；
+--         沒有品質時 asset 是 nil ⇒ `IconBorder:SetShown(false)`，:190）
+--       → 全域 `SetItemButtonBorderVertexColor(button, r, g, b)`（:127，有品質才呼叫，
+--         而且排在 `SetItemButtonBorder` 後面 ⇒ 它跑完時顏色才是最終值）
+-- ⇒ 勾這兩支，兩條路（全域／方法）都接得住，而且不必碰格子本身。
+--
+-- ⚠ **不勾格子自己的方法**：`hooksecurefunc(btn, "SetItemButtonQuality", …)` 等於
+--   `btn.SetItemButtonQuality = 包裝函式`，是在別人的框上寫欄位（契約禁止）。
+-- ⚠ 圖示裁邊：方法那條路的 `SetItemButtonTexture` 同樣走 local 的 `_Base`，
+--   接不到。靠的是「換圖示之後一定緊跟著換品質」這個呼叫順序 ——
+--   品質那一次的刷新會把裁邊一起重下（`Skin.ItemButtonRefresh`）。
+--   呼叫端要自己查證過那個順序，不成立的插件別用這一支。
+-- ⚠ 兩支都是**全遊戲**的物品格會進來的，第一行查弱鍵表（同 `RefreshItemButton`）。
+------------------------------------------------------------
+local itemBorderHooksInstalled = false
+
+function Engine.TrackItemButtonBorder(btn, key)
+    Engine.TrackItemButton(btn, key)
+    if itemBorderHooksInstalled then return end
+    itemBorderHooksInstalled = true
+    for _, name in ipairs({ "SetItemButtonBorder", "SetItemButtonBorderVertexColor" }) do
+        if type(_G[name]) == "function" then
+            hooksecurefunc(name, RefreshItemButton)
+        else
+            Engine.Missing(name)
+        end
+    end
+end
+
+------------------------------------------------------------
 -- 登記表 ＋ 戰鬥閘
 --
 -- 每份配方一筆。`addon` 是暴雪的隨需載入插件名（nil 表示常駐）。

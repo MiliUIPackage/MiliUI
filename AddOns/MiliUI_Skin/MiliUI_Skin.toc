@@ -32,6 +32,8 @@ Core\Init.lua
 Core\DB.lua
 Core\Engine.lua
 Core\Primitives.lua
+# 對外 handle（`MiliUISkin_API`）：包 Engine／Skin 的原語，要排在 Primitives 後面
+Core\External.lua
 
 # 配方：每一份在檔案層只做 Engine.Register，真正套用要等 PLAYER_LOGIN
 Skins\Gossip.lua

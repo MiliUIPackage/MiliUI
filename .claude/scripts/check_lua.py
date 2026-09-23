@@ -53,6 +53,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUIMythicPlus", "MiliUIMythicPlus_OnAddonCompartmentClick",
     "MiliUISkin", "MiliUISkin_OnAddonCompartmentClick",
     "MiliUITip_API",                  # MiliUI_Tooltip 的公開接管介面（Api.lua），MiliUI_Skin 的 ThirdParty/ 會叫它
+    "MiliUISkin_API",                 # MiliUI_Skin 的對外皮膚 handle（Core/External.lua），背包插件的 MiliUI 皮會叫它
     "MiliUICrafterTableCellRewardsMixin",
     # 各 Enhance 模組的對外開關（設定面板要叫得到）
     "MiliUI_AHFilter", "MiliUI_BagsAlpha", "MiliUI_BaganatorKeystone",
