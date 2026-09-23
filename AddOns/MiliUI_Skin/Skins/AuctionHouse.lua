@@ -320,13 +320,21 @@ end
 -- ⚠ `Skin.Inset` 套不上去：它找的是 `Bg`／`NineSlice` 兩個 parentKey，
 --   這裡的底圖叫 `Background`。
 -- ⚠ 有些繼承者同時是 `VerticalLayoutFrame`（賣出頁、商品購買區）——
---   `Engine.RegionBackdrop` 會自己認出排版框並退回子框那條路（白名單第 2 條），
---   所以這裡不必特判。
+--   `Engine.RegionBackdrop` 會自己認出排版框並退回子框那條路（白名單第 2 條）。
+-- ⚠⚠ 退回子框時 overlay 的 parent 是 `SafeParent` 往上爬到的第一個非排版祖先，
+--   **不是目標本身** ⇒ 目標被 Hide 了、底還留在畫面上。商品購買區爬到的是
+--   `CommoditiesBuyFrame`（跟它一起隱藏，沒事）；**賣出頁爬到的是 `AuctionHouseFrame`**
+--   —— 伴隨元件的頁面（`SetDisplayMode({})` 把暴雪所有子頁藏掉）會在賣出頁的舊位置
+--   （左欄 363 寬、y=-69 往下，Shared/Blizzard_AuctionHouseFrame.xml:118-124）
+--   看到一塊 `fillInset` 的幽靈底（2026-09-24 實機擷圖：拍賣小幫手銷售頁左上的暗塊）。
+--   所以 `parent` 讓呼叫端明確指定一顆「跟目標一起顯隱、又不是排版框」的框
+--   （`Skins/Mail.lua` 收件匣列「底的 parent 設成會被暴雪 Hide 的那顆」同一招，零讀取）。
+--   region 那條路（非排版框）用不到它。
 ------------------------------------------------------------
-local function SkinBackgroundPanel(frame, key, fill)
+local function SkinBackgroundPanel(frame, key, fill, parent)
     if not E.Usable(frame, key) then return nil end
     E.NeutralizeKeys(frame, { "Background", "NineSlice", "BackgroundNineSlice" }, key)
-    local ov = E.RegionBackdrop(frame, { key = key })
+    local ov = E.RegionBackdrop(frame, { key = key, parent = parent })
     E.Paint(ov, fill or T.fillInset, T.border)
     return ov
 end
@@ -526,10 +534,18 @@ end
 ------------------------------------------------------------
 local SELL_TAB_ART = { "CreateAuctionTabLeft", "CreateAuctionTabMiddle", "CreateAuctionTabRight" }
 
-local function SkinSellFrame(frame, key)
+-- `list` ＝ 同一個顯示模式裡的那張清單（`ItemSellList`／`CommoditiesSellList`）。
+-- 賣出頁是排版框，底只能走子框；子框的 parent 交給這張清單 ⇒ 跟賣出頁一起顯隱
+-- （見 `SkinBackgroundPanel` 的 ⚠⚠）。依據：`AuctionHouseFrameDisplayMode` 裡這兩對
+-- **永遠成對出現**（`ItemSell = { ItemSellFrame, ItemSellList }`、
+-- `CommoditiesSell = { CommoditiesSellFrame, CommoditiesSellList }`，
+-- Shared/Blizzard_AuctionHouseFrame.lua:510-518），而 `SetDisplayMode`（:541-）是它們唯一的
+-- 顯隱路徑。清單是 `AuctionHouseItemListTemplate`，沒有任何排版標記 ⇒ 可以當 parent。
+-- 拿不到清單就退回原本的行為（`SafeParent`）。
+local function SkinSellFrame(frame, key, list)
     if not E.Usable(frame, key) then return end
 
-    SkinBackgroundPanel(frame, key)
+    SkinBackgroundPanel(frame, key, nil, list)
     -- 左上那顆「建立拍賣」小分頁：三張 `auctionhouse-selltab-*` 中和，
     -- 標籤文字接管成白字（它是 FontString 不是按鈕文字）
     E.NeutralizeKeys(frame, SELL_TAB_ART, key)
@@ -855,8 +871,17 @@ local function Apply()
     end)
 
     -- 上架頁（物品／商品兩個實例共用同一個模板）＋ 兩個對應的清單
-    WithSub(f, "ItemSellFrame", "AuctionHouseFrame.ItemSellFrame", SkinSellFrame)
-    WithSub(f, "CommoditiesSellFrame", "AuctionHouseFrame.CommoditiesSellFrame", SkinSellFrame)
+    -- 賣出頁的底要跟著同一顯示模式的清單顯隱（`SkinSellFrame` 註解）
+    for _, pair in ipairs({
+        { frame = "ItemSellFrame",        list = "ItemSellList" },
+        { frame = "CommoditiesSellFrame", list = "CommoditiesSellList" },
+    }) do
+        local list
+        pcall(function() list = f[pair.list] end)
+        WithSub(f, pair.frame, "AuctionHouseFrame." .. pair.frame, function(frame, key)
+            SkinSellFrame(frame, key, list)
+        end)
+    end
     WithSub(f, "ItemSellList", "AuctionHouseFrame.ItemSellList", SkinItemList)
     WithSub(f, "CommoditiesSellList", "AuctionHouseFrame.CommoditiesSellList", SkinItemList)
 

@@ -339,6 +339,7 @@ k = 1、完全不變。職業色不是秘密值，這是純 Lua 算術。
 | 專業技能書 `<專業框>SpellButtonTop:IsShown()` | 只有一顆技能鈕時把下面那顆垂直置中（`FormatProfession` 後置勾） | 暴雪自己表達「這個專業有幾顆技能鈕」的同一個依據（`FormatProfession` 對它 Show／Hide）。純 C 端布林、過 `Secret.ToBool`，問不到當成「兩顆都在」＝不動 |
 | `MerchantFrame:IsShown()` | 商人配方兩支更新後置勾（`MerchantFrame_UpdateMerchantInfo`／`_UpdateBuybackInfo`）的第一行 | 暴雪在 `MerchantFrame_OnLoad` 就註冊了 `BAG_UPDATE`／`UNIT_INVENTORY_CHANGED`，**視窗沒開也照樣跑更新**（登入幾秒內上千次）；少了這道閘，每一次都是「所有商品格重畫一遍」的空轉。純 C 端布林、過 `Secret.ToBool`，問不到當成「沒開」（少畫一次，失敗方向安全） |
 | 拍賣插件 `AuctionatorSellingFrame.BagListing:IsShown()` | `ThirdParty/Auctionator.lua`：決定清單下方三顆小分頁交給 `Skin.TabGroup` 的順序 | 那支插件表達「不顯示背包 ⇒ 三顆小分頁改成由右往左排」的**同一個**依據（它的 `ApplyHiding` 在同一個 if 裡 `BagListing:Hide()` 並重錨三顆分頁，`Source_ModernAH/Tabs/Selling/Mixins/Main.lua:20-30`）；`TabGroup` 的接縫錨在「下一顆」，順序交反會畫出反向矩形。純 C 端布林、只在套用時讀一次、過 `Secret.ToBool`，問不到當成「有背包」＝預設順序（2026-09-24） |
+| 拍賣插件物品格 `IconSelectedHighlight:IsShown()` | `ThirdParty/Auctionator.lua`：背包清單哪一格的 1px 框換職業色（選中＝正在上架的那一格） | 那支插件表達「這格選中」的**同一個**依據（`AuctionatorGroupsViewItemMixin:SetItemInfo` 的 `IconSelectedHighlight:SetShown(info.selected)`，`Source/Groups/ViewItem.lua:23`）；純 C 端布林、過 `Secret.ToBool`，問不到當成「沒選中」＝黑框。只在格子的 `OnShow`（排在 `SetItemInfo` 之後）與補掃時讀；**不讀** `itemInfo.selected`。零讀取的路走不通：會顯隱的是貼圖，不能當 frame 的 parent，而那張貼圖每次更新都被 `SetVertexColor(橘)` 蓋回（2026-09-24） |
 | 套裝細節部位圖示 `IconBorder:GetAtlas()` | `Skins/CollectionsWardrobe.lua` 的 `SetItemQualityBorder`：atlas → 品質 → `ITEM_QUALITY_COLORS` | 品質色烤在 atlas 裡（Blizzard_Wardrobe_Sets.lua:332-349、ColorManager.lua:174-192），vertex color 三種品質都是白，轉交拿不到；純 C 端查詢、收藏資料不是秘密值；過 `Secret.PlainText`，問不到當黑框；字串只拿來查暴雪自己的常數表、不存（2026-09-23 核准） |
 | **物品格 `IconBorder` 的 `GetVertexColor()`** | 同上：把品質色**轉交**給我們自己的四條邊 | 唯一一條「讀顏色」的例外，規則見下面的**傳遞者規則** |
 
@@ -556,6 +557,13 @@ child 就多一次我們沒預期的讀取。`Engine.SafeParent` 會往上爬到
 `GetScrollTarget` / `GetView` 這些方法，或 `framePool` / `pools` 欄位 ——
 這是**讀結構不是讀值**，安全），錨點照樣錨在目標上。
 配方知道得更清楚時可以用 `opts.parent` 明確指定。
+
+⚠ **爬上去的祖先不會跟著目標一起隱藏。** 目標被 Hide、祖先還開著 ⇒ 底留在畫面上成了幽靈。
+實例（2026-09-24）：暴雪賣出頁 `ItemSellFrame` 是 `VerticalLayoutFrame`，爬到的是 `AuctionHouseFrame`；
+拍賣小幫手的銷售頁把暴雪子頁全藏掉之後，左上角露出一塊 `fillInset`。
+解法是 `opts.parent` 指定「跟目標一起顯隱、又不是排版框」的兄弟（同一顯示模式的 `ItemSellList`），
+零讀取、不掛腳本（`Skins/AuctionHouse.lua` 的 `SkinSellFrame`）。**目標是排版框、而它的父框
+比它活得久的，都要這樣指定。**
 
 實例：成就視窗的搜尋框在 `HeaderDetails.Filters`（`HorizontalLayoutFrame`）底下，
 overlay 掛在搜尋框自己身上，不掛 `Filters`。
@@ -1713,7 +1721,7 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 檔案 | host | 做了什麼 | 觸發 | 沒做／不碰 |
 |---|---|---|---|---|
 | `ThirdParty/Postal.lua` | `mail` | 收件匣與讀信視窗的四顆按鈕（`Skin.Button`）、三顆 ▼ 小鈕（`Skin.IconButton`，`inset = 4`）、每列左邊的七個勾選框（`Skin.CheckBox`） | `event = "MAIL_SHOW"` | 它的彈出選單；它掛在信件列上的任何東西的位置。⚠ 暴雪那顆 `OpenAllMail` 會被它藏起來換成自己那顆，**兩顆都要有皮**（暴雪那顆的皮在 `Skins/Mail.lua`） |
-| `ThirdParty/Auctionator.lua` | `auctionhouse` | **兩件事**：(1) 底部四顆分頁只登記**全域名字**（`Engine.AddCompanionTabs`），由 host 的 `SkinTabRow` 跟暴雪三顆**同一次** `Skin.TabGroup`；(2) 四頁內容（2026-09-24）：輸入框（數量、金／銀／銅、搜尋、最小最大值、複製連結）`Skin.EditBox`、有效時限三顆單選 `Skin.CheckBox{radio}`、一般按鈕 `Skin.Button`（最大／略過／上一個／返回／掃描… secondary；搜尋、完成、匯出、匯入、完整掃描 primary）、**開始拍賣／取消被壓價的拍賣／購買彈窗的購買與直購／商品確認彈窗的繼續與接受＝特許零腳本 primary**（彈窗裡的取消＝零腳本 secondary）、清單下方與上方兩組小分頁 `Skin.TabGroup`、`WowTrimScrollBar` 借 `ns.External.ScrollBar`、內嵌框與對話框外框（`RegionBackdrop`）、結果清單的表頭帶＋表頭三片中和、無名的重新整理鈕（讀結構找）、背包清單的分類標題列（`FramePool`，`fill`＋黑邊、滑過／選中帶去飽和染色）、銷售頁物品格（空格中和＋`fillInset`＋1px 黑框）、欄位標籤 `textDim` | `AUCTION_HOUSE_SHOW`（全掃）＋ `AUCTION_HOUSE_THROTTLED_SYSTEM_READY`（全掃成功前補全掃、之後只補分類標題列） | 所有清單的「列」（池化、而且就是購買／取消的執行流）；物品格的**品質框**（它直接對自己的貼圖 `SetVertexColor`、沒有全域出口 ⇒ 方框顏色跟不上，留它自己那圈）與圖示裁邊；右鍵確認選單、多筆上架進度、數值文字。⚠ **它沒有主題系統**（這一列之前寫錯，跟同樣掛在拍賣場上的另一支側邊面板插件搞混了）；`SHOW_SELLING_BAG` 關掉時小分頁反排，靠讀 `BagListing:IsShown()` 決定交給 `TabGroup` 的順序，改設定要 `/reload` |
+| `ThirdParty/Auctionator.lua` | `auctionhouse` | **兩件事**：(1) 底部四顆分頁只登記**全域名字**（`Engine.AddCompanionTabs`），由 host 的 `SkinTabRow` 跟暴雪三顆**同一次** `Skin.TabGroup`；(2) 四頁內容（2026-09-24）：輸入框（數量、金／銀／銅、搜尋、最小最大值、複製連結）`Skin.EditBox`、有效時限三顆單選 `Skin.CheckBox{radio}`、一般按鈕 `Skin.Button`（最大／略過／上一個／返回／掃描… secondary；搜尋、完成、匯出、匯入、完整掃描 primary）、**開始拍賣／取消被壓價的拍賣／購買彈窗的購買與直購／商品確認彈窗的繼續與接受＝特許零腳本 primary**（彈窗裡的取消＝零腳本 secondary）、清單下方與上方兩組小分頁 `Skin.TabGroup`、`WowTrimScrollBar` 借 `ns.External.ScrollBar`、內嵌框與對話框外框（`RegionBackdrop`）、結果清單的表頭帶＋表頭三片中和、無名的重新整理鈕（讀結構找）、背包清單的分類標題列（`FramePool`，`fill`＋黑邊、滑過／選中帶去飽和染色）、銷售頁物品格（上方那格＋背包清單每一格：空格／品質框／橘光暈中和、圖示裁邊、1px 方框建成格子自己的貼圖（OVERLAY 6，壓在專業品質鑽石之下），**背包清單選中那一格＝職業色框**；背包格走 `HookScript("OnShow")` 重裁／重上選中色）、欄位標籤 `textDim` | `AUCTION_HOUSE_SHOW`（全掃）＋ `AUCTION_HOUSE_THROTTLED_SYSTEM_READY`（全掃成功前補全掃、之後只補背包清單與上方物品格的重裁） | 所有清單的「列」（池化、而且就是購買／取消的執行流）；物品格的**品質色**（使用者只要黑框；而且它直接 `SetVertexColor`、沒有全域出口，轉交也跟不上）；上方物品格換物品到查價回來之間圖示未裁（它沒有 OnShow 可接，只能等節流解除的補掃）；背包清單新長出來的格子要等下一次補掃；右鍵確認選單、多筆上架進度、數值文字。⚠ **它沒有主題系統**（這一列之前寫錯，跟同樣掛在拍賣場上的另一支側邊面板插件搞混了）；`SHOW_SELLING_BAG` 關掉時小分頁反排，靠讀 `BagListing:IsShown()` 決定交給 `TabGroup` 的順序，改設定要 `/reload` |
 | `ThirdParty/PremadeGroupsFilter.lua` | `pve` | `UsePGFButton`；`PremadeGroupsFilterDialog` 的 chrome／關閉鈕／最大化最小化／重設與設定小鈕／重新整理鈕；七個面板的區塊標題、每列的勾選框與最小最大輸入框、它自己那一種下拉、四顆小文字鈕、進階過濾式與排序輸入框 | `atLogin = true`（視窗、面板與控件全部是檔案層 ＋ XML 一次建完） | 兩顆小圖示鈕的 `Icon`、說明鈕、列標籤、`UsePGFButton.Text` 的寬度、小文字鈕的 `Label` 顏色、它的彈出選單與設定頁 |
 | `ThirdParty/RaiderIO.lua` | **無**（nil） | 它自建的兩顆 tooltip（`RaiderIO_ProfileTooltip` / `_SearchTooltip`）：**有 `MiliUITip_API` 就 `Adopt` 委派**，沒有才退回自己畫提示皮（NineSlice `SetAlpha(0)` ＋ `Engine.RegionBackdrop`，`T.tipFill` ＋ 1px 職業色邊） | `atLogin = true` ＋ 登入後 2／10 秒各補掃一次 | 它的搜尋視窗本體（`BackdropTemplate` ＋ 它自己的 backdrop，我們的底壓在下面看不見）、tooltip 裡的文字顏色（那是它的資料）、模板自帶的 `StatusBar` |
 | `ThirdParty/Mapster.lua` | `worldmap` | `MapsterOptionsButton`（`UIPanelButtonTemplate`，`Skin.Button` secondary —— 開設定頁的導覽鈕） | `atLogin = true`（它在 `PLAYER_LOGIN` 的 `OnEnable` 裡建） | 按鈕位置與文字、它的設定頁。⚠ 先勾「隱藏地圖按鈕」登入、之後才取消的話按鈕是那一刻才建的，要 /reload 才有皮。同一排的 `HandyNotesWorldMapButton` **不做**：它的 NormalTexture 是一張不透明、自帶黑框的 64px 圖示，把整顆按鈕蓋滿，紅色切片本來就看不到 |
@@ -1721,6 +1729,10 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 ⚠ 這五支的 hook 數合計：**0**（`hooksecurefunc` / `SetScript` / 呼叫對方函式一個都沒有）。
 只有原語內建的 `HookScript("OnEnter"/"OnLeave"/"OnEnable"/"OnDisable")`，
 而那幾個只碰**我們自己的** overlay。
+唯一一支配方自己掛的 frame script：`ThirdParty/Auctionator.lua` 背包清單物品格的
+`HookScript("OnShow")`（2026-09-24）—— 勾的是格子的 script 不是它的 mixin 方法（那張表勾了也追不上，
+而且是規則第 3 條禁的），內容只有圖示 `SetTexCoord` 與換我們自己四條邊的顏色；
+理由是那支插件每次更新都「全部 Release → SetItemInfo → SetShown」，OnShow 是唯一排在換圖示之後的掛點。
 
 ### B 級：只做 overlay，而且要逐一驗收
 
