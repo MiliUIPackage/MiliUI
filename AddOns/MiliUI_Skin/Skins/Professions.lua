@@ -158,9 +158,9 @@
 --   `PaperDollItemSlotButton_*` 那一整套（XML 內嵌腳本），跟角色面板的裝備欄同源；
 --   那一塊已經由 `Skins/Character.lua` 的 `Skin.ItemButton` ＋
 --   `Engine.TrackItemButton` 的兩個全域後置勾接管，這裡不重複接。
--- * **`CraftingOutputLog`／`OverlayCastBarAnchor`／`DeclineOrderDialog`
+-- * **`OverlayCastBarAnchor`／`DeclineOrderDialog`
 --   ／`QualityDialog`** —— `frameStrata="DIALOG"` 的彈出視窗，判準離
---   StaticPopup 太近（STYLE.md ⑦ 的同一條）。
+--   StaticPopup 太近（STYLE.md ⑦ 的同一條）。`CraftingOutputLog`（製作結果）2026-09-24 補上了，見 `SkinOutputLog`。
 -- * **`ConcentrationDisplay`／`OrdersRemainingDisplay`／`UnspentPoints`** ——
 --   那是「還剩多少」的數值顯示，底圖本身就是那個數值的容器美術。
 -- * **`NoteBox`／`NoteEditBox` 的 `CraftingOrders-NoteFrameNarrow`** ——
@@ -448,6 +448,40 @@ local CRAFTING_NAV_BUTTONS = { "ViewGuildCraftersButton" }
 -- **特許**：製作／全部製作
 local CRAFTING_COMMERCE_BUTTONS = { "CreateButton", "CreateAllButton" }
 
+
+------------------------------------------------------------
+-- 製作結果（`CraftingOutputLog`，2026-09-24 補上）
+--
+-- 出處：Blizzard_Professions/Blizzard_ProfessionsCrafting.xml:239、Blizzard_ProfessionsCrafterOrderView.xml:547
+--   （`ProfessionsCraftingOutputLogTemplate` ← `ScrollingFlatPanelTemplate`，frameStrata DIALOG）；
+--   Blizzard_UIPanels_Game/Mainline/ScrollingFlatPanel.xml:3（`ClosePanelButton`、`ScrollBox`、
+--   `ScrollBar` ← MinimalScrollBar）；Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:478,527
+--   （`DefaultPanelBaseTemplate` 的 `NineSlice`／`TitleContainer.TitleText`、`DefaultPanelFlatTemplate` 的 `Bg` 子框）。
+-- 做法照成熟同類實作：**只換外框、關閉鈕、捲軸**，每一列結果（物品卡、複數製造列）一顆都不碰。
+-- 浮在畫面上、彈出來看一眼就關 ⇒ 提示皮（`T.tipFill` ＋ 1px 職業色邊，同確認彈窗）。
+-- 零 hook；`ScrollingFlatPanelTemplate` 不是 layout host ⇒ 底直接建成它自己的貼圖。
+------------------------------------------------------------
+local function SkinOutputLog(log, key)
+    if not E.Usable(log, key) then return end
+    E.NeutralizeKeys(log, { "NineSlice", "Bg" }, key)
+    local ov = E.RegionBackdrop(log, { key = key })
+    E.Paint(ov, T.tipFill, { T.Accent() })
+
+    local tc
+    if pcall(function() tc = log.TitleContainer end) and tc then
+        local fs
+        if pcall(function() fs = tc.TitleText end) and fs then
+            E.TextColor(fs, T.text, key .. ".TitleText")
+        end
+    end
+    WithSub(log, "ClosePanelButton", key .. ".ClosePanelButton", function(btn, label)
+        Skin.CloseButton(btn, label)
+    end)
+    WithSub(log, "ScrollBar", key .. ".ScrollBar", function(bar, label)
+        Skin.ScrollBar(bar, label)
+    end)
+end
+
 local function SkinCraftingPage(page, key)
     if not E.Usable(page, key) then return end
 
@@ -480,6 +514,11 @@ local function SkinCraftingPage(page, key)
         Skin.Button(btn, label, { variant = "secondary" })
     end)
     OptionalButtons(page, CRAFTING_COMMERCE_BUTTONS, key, Commerce)
+
+    local log
+    if pcall(function() log = page.CraftingOutputLog end) and log then
+        SkinOutputLog(log, key .. ".CraftingOutputLog")
+    end
 
     -- 最小化狀態下的搜尋框
     local box
@@ -546,6 +585,10 @@ local function SkinOrdersPage(page, key)
             if pcall(function() panel = view[name] end) and panel then
                 SkinContentPanel(panel, vkey .. "." .. name)
             end
+        end
+        local vlog
+        if pcall(function() vlog = view.CraftingOutputLog end) and vlog then
+            SkinOutputLog(vlog, vkey .. ".CraftingOutputLog")
         end
         WithSub(view, "SchematicForm", vkey .. ".SchematicForm", function(form, fkey)
             SkinContentPanel(form, fkey)
