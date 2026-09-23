@@ -3,6 +3,16 @@
 把暴雪原生視窗重畫成米利UI的**設定視窗皮**。這份文件是這包的規格書：顏色從哪來、
 什麼動作准、什麼動作不准、每個暴雪模板走哪條路。
 
+> **第十二＋十三輪摘要（2026-09-23，未實測）：** 使用者定了新原則 ——**新視窗的做法（範圍、掛點、不碰清單、時機）
+> 照抄成熟同類實作，樣式套這包的；契約照舊，只有就位確認開越界白名單**（`Skins/ReadyCheck.lua` 檔頭的表，
+> lint 註記 `skin-lint: readycheck-allowlist` 只在那一支有效）。新增 20 份配方：公會與社群、行事曆、巨集、
+> 訓練師、交易、觀察、物品插入、催化器、戰利品視窗、探究夥伴、塑形師、顧客製作訂單、玩家選擇、世界地圖＋任務日誌、
+> 設定面板、骰裝彈窗、拾取記錄、拾取通知、暴雪通知、就位確認。**所有會送出受保護／受限請求的按鈕零腳本**；
+> 每一份檔頭都有「照抄不了的地方＋原因」。另外 `MiliUI/Enhance/GroupLootHistory_AutoClose.lua`（功能不是皮）：
+> 解掉 `LOOT_HISTORY_GO_TO_ENCOUNTER` 讓它不自動跳出、或 N 秒後經 secure snippet 關閉 —— 不從插件直接 `Hide()`。
+> 待補的白名單條目（配方裡已在用，規則文字還沒寫進 ③）：訓練師 `selectedTex:IsShown()` 讀取例外；
+> `PassBorderColor` 的來源擴成骰裝 `Border` 與拾取通知 `ItemName`；`SetVertexColor(1,1,1,0)` 中和自帶 alpha 動畫的區域。
+>
 > **第十一輪摘要（未實測）：** ①**天賦與法術書**（`Skins/PlayerSpells.lua`，原本 C 級）——
 > 範圍比特許視窗還窄：只換外框、底部分頁、天賦頁底部那條按鈕列（1612x82 的 `BottomBar`
 > ⇒ footer 帶，高度是 atlas 常數）、法術書的書頁與標題列、搜尋框、下拉、翻頁鈕；
@@ -1638,6 +1648,26 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 宏偉寶庫 `WeeklyRewardsFrame` | `weeklyrewards` | **純視覺特許、整份零 hook**：面板底／雕花中和／九～十二個活動格各一個內嵌底框／格內物品圖示方框／分類標題白字／關閉鈕與「選擇獎勵」（本檔 local 平面函式，不掛 HookScript）。解鎖／未解鎖的明暗差做不到（暴雪用同一張貼圖換 atlas）；選取框與領獎確認面板不碰 |
 | **天賦與法術書 `PlayerSpellsFrame`**（第十一輪，原本 C 級） | `playerspells` | 外框／標題帶／關閉鈕／最大化最小化／底部三顆分頁／**天賦頁 footer 帶**（`BottomBar` 換 `fillInset` ＋ 髮絲線）／載入方案下拉／搜尋框／**法術書書頁深色化**（`TopBar`／`BookBG*`／書角／書籤中和，字不接管 —— `SPELLBOOK_FONT_COLOR` 本來就是淺色）／法術書三顆分類分頁（`onTop`）／翻頁鈕／三個載入方案彈窗（提示皮）。**零腳本**：套用變更、複製方案字串、專精卡的啟用鈕、彈窗按鈕。**不碰**：天賦樹與英雄天賦、PvP 天賦格、戰爭模式鈕、重設／復原圖示、專精美術、法術格、專精卡美術、`HeroTalentsSelectionDialog` |
 | **探究難度選擇 `DelvesDifficultyPickerFrame`**（第十一輪） | `delvespicker` | **場景底圖保留**；外框 `Border`／`NineSlice` 中和 ＋ 1px 職業色邊（不畫底）／關閉鈕／難度下拉／獎勵捲軸／「進入」（零腳本 primary）／說明字白、小標與「可能獲得」`textDim`。探究與世界副本入口是同一個框。**不碰**：兩個小工具容器（場景圖、地圖詞綴）、挑戰詞綴樹、世界副本的「查看獎勵」大圓鈕、獎勵列 |
+| **公會與社群 `CommunitiesFrame`**（第十二輪） | `communities` | 外框／徽章頭像收掉／左側清單（池化列）／側邊分頁（零腳本、C 端 Checked）／聊天外框與捲軸／**輸入框只中和美術＋自身貼圖（零 hook、零重排）**／名冊外框與零腳本捲軸／福利頁／資訊頁／尋找公會／七個彈窗（提示皮）；全部文字按鈕零腳本。**不碰**：名冊的列與尺寸、`ColumnDisplay`、訊息框、註記底、`GuildControlUI` |
+| 行事曆 `CalendarFrame`（第十二輪） | `calendar` | 外框／42 格平面格線／選中與滑過＝同一張 Highlight 去飽和染職業色／七個面板；邀請與回覆鈕零腳本；hook 0。節日圖、今天的框不碰 |
+| 巨集 `MacroFrame`（第十二輪） | `macro` | 外框／兩顆分頁／內文框／六顆按鈕全零腳本／名稱與圖示彈窗。格子圖示與選中框不碰 |
+| 訓練師 `ClassTrainerFrame`（第十二輪） | `trainer` | 外框／訓練鈕零腳本／等級條／技能列（全域 `ClassTrainerFrame_InitServiceButton` 後置勾）。金錢與條件字色不碰 |
+| 交易 `TradeFrame`（第十二輪） | `trade` | 外框／14 格名牌與物品方框／交易、取消零腳本。**新 hook 0**；我方金額框（forbidden）不碰 |
+| 觀察 `InspectFrame`（第十二輪） | `inspect` | 同角色面板；兩支全域後置勾（空格刷新、模型底圖）；零單位資料讀取 |
+| 物品插入 `ItemSocketingFrame`（第十二輪） | `socketing` | 外框與羊皮紙中和／套用零腳本；hook 0。寶石顏色底與插槽保留 |
+| 催化器 `ItemInteractionFrame`（第十二輪） | `iteminteraction` | 外框（含場景圖）／動作鈕零腳本；hook 0。物品格不碰 |
+| 戰利品視窗 `LootFrame`（第十二輪） | `loot` | 提示皮／池化列（`LootFrameElementMixin.Init`）；列上零腳本；滑過回饋只在圖示格 |
+| 探究夥伴（第十二輪） | `delvescompanion` | 兩個視窗的外框、下拉、翻頁；設定格／能力格（trait）不碰 |
+| 塑形師 `TransmogFrame`（第十二輪，12.x 新框） | `transmog` | 外框／分頁／搜尋、下拉、翻頁、勾選；套用零腳本。模型與外觀格不碰 |
+| 顧客製作訂單（第十二輪） | `customerorders` | 同專業視窗語彙；下訂單／取消零腳本。材料格與欄位表頭不碰 |
+| 玩家選擇 `PlayerChoiceFrame`（第十二輪） | `playerchoice` | 外框雕花中和＋職業色邊／選項按鈕零腳本。UIWidget 與卡片不碰 |
+| **世界地圖＋任務日誌**（第十三輪，框移出 C 級） | `worldmap` | 外框／導覽列／四塊內嵌底／細節頁按鈕零腳本／側邊分頁。**`QuestMapFrame` 上 0 支 hook**；任務列、地圖疊加鈕、畫布不碰 |
+| 設定面板 `SettingsPanel`（第十三輪） | `settings` | 外框／× 與三顆按鈕零腳本／分頁（**沒有選中態**）／分類欄與清單底。每個設定項不碰 |
+| 骰裝彈窗 `GroupLootFrame1..4`（第十三輪） | `lootroll` | 提示皮／圖示方形＋轉交品質色。容器與四顆擲骰鈕不碰 |
+| 拾取記錄 `GroupLootHistoryFrame`（第十三輪） | `loothistory` | 外框／下拉／捲軸／池化列 |
+| 拾取通知（AlertFrame）（第十三輪） | `loottoast` | 全域 `AlertFrame_ShowNewAlert` 後置勾＋延一幀；只認三種形狀；不重排 |
+| 暴雪通知 `BNToastFrame`（第十三輪） | `bntoast` | 提示皮；hook 0 |
+| **就位確認**（第十三輪，**唯一越界白名單**） | `readycheck` | 皮掛 listener（提示皮）、頭像拿掉、量寬重排（白名單①～⑧）。觸發靠自己的 `READY_CHECK` 事件＋延一幀，**不掛 OnShow**（首領戰中發起人名字是秘密值）；按鈕零腳本 |
 | 冒險指南 `EncounterJournal` | `encounterjournal` | chrome／底部七顆分頁（`pad = 0`：`SetNumTabs` 會把分頁重錨成 +3）／五個下拉／六條捲軸／搜尋框／四顆頁籤鈕／戰利品清單、分類列與首領清單（池化列）。**第十輪：綜覽／首領技能／副本簡介三頁整頁深色、文字全接管**（段落 `EncounterInfoTemplate` 走三支全域後置勾 ＋ 每顆標題列的 `HookScript` OnShow／OnClick）；書頁與內嵌框的底墊到 sublevel −4（`useParentLevel` 平手問題）。副本卡片接不到（初始化是 local 函式）；推薦內容／月度活動／旅行者日誌未做 |
 | 試衣間 `DressUpFrame`＋`SideDressUpFrame` | `dressup` | chrome／關閉鈕／最大化最小化／外觀套裝下拉／外觀清單開關／底部三顆按鈕／右側兩片面板＋捲軸／小試衣間。**模型場景與它的背景不碰** |
 | 物品升級 `ItemUpgradeFrame` | `itemupgrade` | **整個視窗深色化**（全檔零 `SetTextColor`，沒有文字要接管）：chrome／**標題帶**（第七輪）／物品槽／等級下拉／左右兩欄預覽／費用列／持有貨幣列／升級鈕。**所有動畫特效留著** |
@@ -1774,16 +1804,15 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 快捷列 | `SetAttribute` 的大宗，碰一下就是戰鬥中被封鎖 |
 | 單位框、名條、團隊框 | 秘密值與 `RegisterUnitWatch` 的執行污染入口 |
 | 編輯模式 | 選取框模板的 `OnMouseDown` 會靜默染髒快捷列（`.claude/notes/wow-121-addon-code-in-secure-stack.md` 入口 8） |
-| `ReadyCheckFrame`／`LFGDungeonReadyDialog`／`LFDRoleCheckPopup` | 長得像 `StaticPopup`，但按鈕是**戰鬥中／首領戰中**在按的，而且 12.x 的插件限制系統把就位確認整條路收緊了（`.claude/notes/wow-12x-addon-restrictions.md`） |
+| `LFGDungeonReadyDialog`／`LFDRoleCheckPopup`（就位確認第十三輪已移出） | 長得像 `StaticPopup`，但按鈕是**戰鬥中／首領戰中**在按的，而且 12.x 的插件限制系統把就位確認整條路收緊了（`.claude/notes/wow-12x-addon-restrictions.md`） |
 | `GuildInviteFrame` | 繼承的是 `TranslucentFrameTemplate` 不是 `DialogBorderTemplate`，整個框幾乎都是公會徽章美術 ⇒ 不是「順手一支 local 函式」，要做是另一份配方 |
-| `BNToastFrame` 之類的浮出提示 | 判準落在**提示皮**那一邊（① 的第二題：浮在世界上方、彈出來讀一眼），不是這包的設定視窗皮 |
 | `UnitPopup` 右鍵選單 | 地雷圖在 `.claude/notes/wow-121-unitpopup-menu.md`，兩條死路都實測過 |
 | 商城 / 商店 | forbidden 物件 |
 | 聊天輸入框 | `.claude/notes/wow-121-chat-reply-secret-taint.md`：開框的執行裡不能有插件 Lua |
 | **兌換通貨清單的「列」**（`TokenEntry` / `TokenHeader` / `TokenSubHeader` / `CurrencyTransferLogEntry`）與 `CurrencyTransferToggleButton` | 那條列的更新路徑跟**戰隊通貨轉移**（`RequestCurrencyFromAccountCharacter`）那個受保護請求是**同一條執行流** —— 連「把底帶淡化」都可能讓轉移在玩家真的要用的時候被封鎖，而且錯誤不會指向這裡。收益是幾條列上的圖示有沒有 1px 邊，代價是一個只在特定時刻才發作的功能性故障。**外框級的東西（Inset／捲軸／下拉／右上的紀錄鈕／兩個彈出視窗的 chrome 與關閉鈕）不在那條流上，可以做。** 聲望頁的列是一般清單列，維持現狀 |
 | 公會名單的**尺寸與錨點** | 列在同一個 pass 裡讀回被寫過的寬度 ⇒ 整個 session 帶 taint ⇒ 改註記／改階級被 FORBIDDEN |
 | secure 的欄位表頭容器（`ColumnDisplay` 類） | 連 `HookScript` 都不行：它的 `OnShow` 會在 secure 的刷新流程裡觸發 |
-| 世界地圖／任務日誌（`QuestMapFrame`）的腳本與池化任務列 | 那是通往任務追蹤的 taint 路徑 |
+| 世界地圖／任務日誌的**內容**（`QuestMapFrame` 的腳本、池化任務列、地圖疊加鈕、畫布；框第十三輪已移出） | 那是通往任務追蹤的 taint 路徑 |
 | `GroupLootContainer`、`SocialUIFrame` 的 sizer、`PVEFrame` 的**位置** | 一沾 UIPanel 的管理路徑，`ToggleUIPanel` 就死 |
 | 預組隊伍的 per-result／per-member **資料** | 12.x 起是秘密值，讀就爆（我們只碰框，不碰資料） |
 

@@ -81,10 +81,19 @@ Skins\DelvesCompanion.lua
 Skins\Transmog.lua
 Skins\CustomerOrders.lua
 Skins\PlayerChoice.lua
+# 第十三輪：做法照成熟同類實作（動之前先讀各檔檔頭）
+Skins\WorldMap.lua
+Skins\Settings.lua
+Skins\LootRoll.lua
+Skins\LootHistory.lua
+Skins\LootToast.lua
+Skins\BNToast.lua
 # 這兩份是第五輪的特許（原本列在 STYLE.md ⑦ 的 B／C 級）：只做純視覺、
 # 零 hook 進點擊路徑。動它們之前先讀各自的檔頭。
 Skins\Popup.lua
 Skins\GameMenu.lua
+# 第十三輪：就位確認 —— 唯一准許越過契約的配方，白名單在檔頭（lint 註記 skin-lint: readycheck-allowlist 只在這支有效）
+Skins\ReadyCheck.lua
 
 # 伴隨元件：套組內建、固定掛在暴雪視窗上的**別家**插件（STYLE.md ③），一支一個檔。
 # ⚠ 一定要排在所有 Skins\*.lua 之後：它們用 Engine.AddCompanion 掛到 host 配方上，

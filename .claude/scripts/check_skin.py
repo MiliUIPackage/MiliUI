@@ -37,6 +37,10 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 ADDON = os.path.join(REPO, "AddOns", "MiliUI_Skin")
 
 ALLOW_MARK = "skin-lint: own-frame"
+# 就位確認是唯一准許越過契約的配方（使用者 2026-09-23 指定：做法照成熟同類實作、開白名單）。
+# 這個註記**只在那一支檔案裡有效**，寫在別的檔案照樣算違規 —— 例外不能外溢。
+RC_MARK = "skin-lint: readycheck-allowlist"
+RC_FILE = os.path.join("AddOns", "MiliUI_Skin", "Skins", "ReadyCheck.lua")
 
 # 每一條都是 (正規式, 為什麼禁止)。
 #
@@ -244,6 +248,7 @@ def main():
 
     hits = []
     allowed = []
+    rc_allowed = []
     count = 0
 
     for path in scanned_files():
@@ -260,6 +265,9 @@ def main():
         for lineno, line in enumerate(raw.split("\n"), 1):
             if ALLOW_MARK in line:
                 allowed.append(f"{rel}:{lineno}")
+                continue
+            if RC_MARK in line and rel == RC_FILE:
+                rc_allowed.append(f"{rel}:{lineno}")
                 continue
             code = strip_comment(line)
             if not code.strip():
@@ -285,6 +293,11 @@ def main():
     if allowed:
         print(f"\n以 `-- {ALLOW_MARK}` 放行 {len(allowed)} 行：")
         for x in allowed:
+            print(f"  {x}")
+
+    if rc_allowed:
+        print(f"\n以 `-- {RC_MARK}` 放行 {len(rc_allowed)} 行（就位確認白名單，只在 {RC_FILE} 有效）：")
+        for x in rc_allowed:
             print(f"  {x}")
 
     adapter_errors, adapter_warnings = check_baganator_adapter()

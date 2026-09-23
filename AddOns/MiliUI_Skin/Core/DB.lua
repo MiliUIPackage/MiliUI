@@ -86,6 +86,14 @@ local function BuildDefaults()
             transmog = true,
             customerorders = true,
             playerchoice = true,
+            -- 第十三輪：做法照成熟同類實作；就位確認是唯一開越界白名單的一份（Skins/ReadyCheck.lua 檔頭）
+            worldmap = true,
+            settings = true,
+            lootroll = true,
+            loothistory = true,
+            loottoast = true,
+            bntoast = true,
+            readycheck = true,
             -- 第五輪的兩個特許視窗（只做純視覺、零 hook 進點擊路徑）。
             -- 預設開，但它們是整包唯一「按鈕通往受保護動作」的兩個視窗 ——
             -- 玩家一遇到「按了沒反應」就該先關掉這兩項，所以各自獨立一個開關。
