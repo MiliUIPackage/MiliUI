@@ -1074,8 +1074,13 @@ local function SkinNavBar(navBar)
     else
         E.Missing(label .. ".overlay")
     end
+    -- 2026-09-24 實機擷圖：導覽列畫成一塊 `fillInset` ＋ 黑邊的長條，只到搜尋框前面 ⇒
+    -- 標題帶與內嵌框之間變成「面板色／暗條／面板色」三段交錯，左側與搜尋框前的縫特別突兀。
+    -- 改成**不畫整條底**：上方整區就是面板本身的 `fill`，只有麵包屑按鈕與搜尋框各自有框
+    -- （同 ESC 選單「按鈕自己有框、容器不畫」的語彙）。暴雪的那條亮面與雕花照樣中和。
+    -- 要回到整條暗底，把下面兩行改回 `E.Paint(bar, T.fillInset, T.border)`。
     local bar = E.RegionBackdrop(navBar, { key = label })
-    E.Paint(bar, T.fillInset, T.border)
+    E.Paint(bar, TRANSPARENT, false)
 
     local home = Child(navBar, "home", label .. ".home")
     if home and not navDone[home] then
