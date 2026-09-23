@@ -651,7 +651,7 @@ local function SkinOpenMail()
         return
     end
 
-    Skin.PortraitChrome(f, "OpenMailFrame")
+    Skin.PortraitChrome(f, "OpenMailFrame", { keepPortrait = true })   -- 2026-09-24：信件圖示留著看效果
     Skin.Panel(f, "OpenMailFrame")
 
     -- 那條 `UI-ClassTrainer-HorizontalBar` 分隔線（具名左半 ＋ 無名右半，:904/:911）
@@ -748,7 +748,7 @@ local function Apply()
         return
     end
 
-    Skin.PortraitChrome(f, "MailFrame")
+    Skin.PortraitChrome(f, "MailFrame", { keepPortrait = true })   -- 2026-09-24：信件圖示留著看效果
     Skin.Panel(f, "MailFrame")
 
     local inset

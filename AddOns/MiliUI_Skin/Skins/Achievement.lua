@@ -294,6 +294,8 @@ local function SkinHeaderCap(f, header)
     E.Paint(ov, T.fill, T.border)
 end
 
+local KEEP_HEADER_ART = true   -- 見 SkinHeader 裡的說明（2026-09-24）
+
 local function SkinHeader(f)
     local header
     if not (pcall(function() header = f.Header end) and header) then
@@ -305,6 +307,13 @@ local function SkinHeader(f)
     -- 結果是「戰隊成就點數」整組懸在框外、上邊線從點數中間穿過去。
     -- 第三輪補一頂**標題帽**（見上面那一段）把它收回視窗的輪廓裡。
     -- RightDDLInset 平常 hidden，公會分頁會顯示，一起中和
+    -- 2026-09-24 使用者要求：上方的原圖（木頭橫幅 Left/Right ＋ 點數小牌 PointBorder）先還原看效果
+    -- ⇒ `KEEP_HEADER_ART = true` 時三張都留著、不畫標題帽、標題與點數的字色也不動
+    --   （原本的字色是配那塊橫幅設計的）。改回 false 就是第三輪的標題帽做法。
+    if KEEP_HEADER_ART then
+        E.NeutralizeKeys(header, { "RightDDLInset" }, "AchievementFrame.Header")
+        return
+    end
     E.NeutralizeKeys(header, { "Left", "Right", "PointBorder", "RightDDLInset" },
         "AchievementFrame.Header")
 
