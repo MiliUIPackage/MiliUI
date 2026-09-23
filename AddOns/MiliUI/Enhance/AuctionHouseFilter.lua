@@ -10,6 +10,8 @@
 --   不會被影響。
 --------------------------------------------------------------------------------
 
+local _, ns = ...
+
 EventUtil.ContinueOnAddOnLoaded("Blizzard_AuctionHouseUI", function()
     -- 初始化 SavedVariables
     if not MiliUI_DB then MiliUI_DB = {} end
@@ -22,34 +24,31 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_AuctionHouseUI", function()
 
     --------------------------------------------------------------------------
     -- 建立篩選按鈕（不用 PanelTabButtonTemplate，避免破壞標籤系統）
+    -- 套組按鈕樣式：開＝primary（職業色）、關＝normal（中性），狀態只換明暗
     --------------------------------------------------------------------------
-    local btn = CreateFrame("Button", "MiliUI_AHFilterBtn", AuctionHouseFrame, "BackdropTemplate")
-    btn:SetSize(130, 28)
+    local W = ns.W
+    local btn = W.CreateButton(AuctionHouseFrame, "", "primary", 130, 22)
+    btn:SetFrameLevel(AuctionHouseFrame:GetFrameLevel() + 10)
 
-    -- 文字
-    local btnText = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    btnText:SetPoint("CENTER", 0, 1)
+    local onColors = btn._colors
+    -- 四格：切回「關」時邊框才會一起退回黑色（兩格的配色不換邊）
+    local offColors = {
+        { 0.115, 0.115, 0.115, 1 },
+        { 0.23, 0.23, 0.23, 1 },
+        { 0, 0, 0, 1 },
+        { 0, 0, 0, 1 },
+    }
 
-    -- 背景
-    btn:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        tile = true, tileSize = 16, edgeSize = 12,
-        insets = { left = 2, right = 2, top = 2, bottom = 2 },
-    })
-    btn:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
-    btn:SetBackdropBorderColor(0.4, 0.4, 0.4, 0.8)
-
-    local function UpdateAppearance()
+    local function UpdateAppearance(hover)
         if MiliUI_DB.ahAutoCurrentExpansion then
-            btnText:SetText("|cffffd200僅限當前資料片|r")
-            btn:SetBackdropColor(0.15, 0.12, 0.05, 0.95)
-            btn:SetBackdropBorderColor(0.6, 0.5, 0.2, 0.9)
+            btn:SetText("僅限當前資料片")
+            btn._colors = onColors
         else
-            btnText:SetText("|cff999999所有資料片|r")
-            btn:SetBackdropColor(0.08, 0.08, 0.08, 0.8)
-            btn:SetBackdropBorderColor(0.3, 0.3, 0.3, 0.6)
+            btn:SetText("所有資料片")
+            btn._colors = offColors
         end
+        if hover == nil then hover = btn:IsVisible() and btn:IsMouseOver() end
+        W.PaintButton(btn, hover)
     end
 
     btn:SetScript("OnClick", function()
@@ -63,7 +62,7 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_AuctionHouseUI", function()
     end)
 
     btn:SetScript("OnEnter", function(self)
-        btn:SetBackdropBorderColor(0.8, 0.7, 0.3, 1)
+        W.PaintButton(self, true)
         GameTooltip:SetOwner(self, "ANCHOR_NONE")
         GameTooltip:SetPoint("TOPLEFT", self, "TOPRIGHT", 2, 0)
         GameTooltip:SetText("僅限當前資料片", 1, 1, 1)
@@ -71,7 +70,7 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_AuctionHouseUI", function()
         GameTooltip:Show()
     end)
     btn:SetScript("OnLeave", function()
-        UpdateAppearance()
+        UpdateAppearance(false)
         GameTooltip_Hide()
     end)
 
