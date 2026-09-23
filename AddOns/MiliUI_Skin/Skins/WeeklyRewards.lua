@@ -115,7 +115,7 @@
 -- | WeeklyRewardsFrame | `Engine.RegionBackdrop`（面板底＋1px 邊，建成它自己的貼圖） |
 -- | 同上的 Background / BorderShadow | SetAlpha(0) |
 -- | 同上的 Divider1 / Divider2 | SetDesaturated(true) ＋ SetVertexColor |
--- | WeeklyRewardsFrame.BorderContainer 的 Border / TopDecor | SetAlpha(0) |
+-- | WeeklyRewardsFrame.BorderContainer 的 Border | SetAlpha(0)（TopDecor 徽飾 2026-09-23 起保留） |
 -- | WeeklyRewardsFrame.HeaderFrame.HeaderDivider | SetDesaturated(true) ＋ SetVertexColor |
 -- | WeeklyRewardsFrame.CloseButton 的 Normal/Disabled 貼圖 | SetAlpha(0) |
 -- | 同上的 Highlight/Pushed 貼圖 | SetColorTexture（`Engine.ButtonStates`） |
