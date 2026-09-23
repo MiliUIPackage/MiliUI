@@ -3001,6 +3001,14 @@ end
 --   （`MiliUI_Skin_DB.lastReport`，登出時存），這樣「請把 /mskin debug 的輸出貼給我」
 --   就不再是驗收的必要步驟 —— 玩家只要正常登出，下一個人直接讀存檔。
 --   兩邊共用同一支組字，不會出現「印出來的跟存起來的不一樣」。
+-- 探針：配方登記一支函式，`/mskin debug` 時呼叫、回傳要印的幾行。
+-- 給「log 記不到、要看當下實際狀態」的東西用（物件池的格子有沒有被接管…）。
+-- 只讀不寫；出錯就印一行錯誤，不影響其他內容。
+local debugProbes = {}
+function Engine.AddDebugProbe(fn)
+    debugProbes[#debugProbes + 1] = fn
+end
+
 function Engine.BuildReport()
     local out = {}
     out[#out + 1] = ("v%s  enabled=%s"):format(ns.VERSION, tostring(ns.db and ns.db.enabled))
@@ -3045,6 +3053,16 @@ function Engine.BuildReport()
         or Engine.log.frameBackdrop[1] then
         out[#out + 1] = "  hook:"
         PrintProblems(out, Engine.log, "    ")
+    end
+
+    -- ④ 探針：配方自己登記的現況快照（見 Engine.AddDebugProbe）
+    for _, probe in ipairs(debugProbes) do
+        local ok, lines = pcall(probe)
+        if ok and type(lines) == "table" then
+            for _, line in ipairs(lines) do out[#out + 1] = "  " .. tostring(line) end
+        elseif not ok then
+            out[#out + 1] = "  probe error: " .. tostring(lines)
+        end
     end
 
     out[#out + 1] = ("  %s %d / %s %d / %s %d"):format(

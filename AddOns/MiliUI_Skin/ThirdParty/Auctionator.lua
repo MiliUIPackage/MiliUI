@@ -683,6 +683,33 @@ local function HookBagListing()
     host:HookScript("OnSizeChanged", OnListingResized)
 end
 
+-- `/mskin debug` 探針：背包清單那一層現在有什麼、接管了幾格。
+-- 格子沒上皮時用來分辨：格子不在這一層（items=0）／沒被接管（adopted=0）／
+-- 接管了但品質框又被畫回來（adopted>0 但 borderHidden 少）。
+E.AddDebugProbe(function()
+    local host = Field(_G.AuctionatorSellingFrame, "BagListing.View.ScrollBox.ItemListingFrame")
+    if not host then return { "Auctionator bag: no ItemListingFrame" } end
+    local n, titles, skinned, items, adopted, hidden, shown, match = 0, 0, 0, 0, 0, 0, 0, 0
+    for _, child in ipairs(Children(host)) do
+        n = n + 1
+        local title = Field(child, "GroupTitle")
+        if title then
+            titles = titles + 1
+            if E.GetOverlay(title) then skinned = skinned + 1 end
+        end
+        if Field(child, "IconBorder") then
+            items = items + 1
+            if child:IsShown() then shown = shown + 1 end
+            if IsBagItem(child) then match = match + 1 end
+            if bagButtons[child] then adopted = adopted + 1 end
+            if child.IconBorder:GetAlpha() == 0 then hidden = hidden + 1 end
+        end
+    end
+    return { ("Auctionator bag: children=%d titles=%d(skinned %d) items=%d(shown %d, isBagItem %d) adopted=%d borderHidden=%d broken=%s/%s"):format(
+        n, titles, skinned, items, shown, match,
+        adopted, hidden, tostring(bagHookBroken), tostring(listingHookBroken)) }
+end)
+
 -- 上方那一格的重裁（換物品就被 SetTexture 打回，見物品格那一段）
 local function RecropSaleIcon()
     local icon = Field(_G.AuctionatorSellingFrame, "SaleItemFrame.Icon")
