@@ -451,6 +451,20 @@ local function Build()
         frame:SetUserPlaced(false)
         SavePos()               -- 拍賣場開著時拖的存成 ah，其餘存成 main
     end)
+    -- 右鍵標題列：回預設位置。只清「現在這個模式」的存檔 ——
+    -- 拍賣場開著時回到自動貼齊，平常則回畫面中央；另一份位置不動。
+    header:EnableMouse(true)
+    header:SetScript("OnMouseUp", function(_, button)
+        if button ~= "RightButton" then return end
+        if docked then
+            ns.db.windows.ah = nil
+            DockToAuctionHouse()
+        else
+            ns.db.windows.main = nil
+            RestorePos()
+            Layout()
+        end
+    end)
 
     local title = header:CreateFontString(nil, "OVERLAY")
     title:SetFontObject(W.fontNormal)
