@@ -177,6 +177,7 @@ local controls = {
     { type = "toggle", sub = "thirdparty", key = "auctionator",         label = "Auctionator" },
     { type = "toggle", sub = "thirdparty", key = "premadegroupsfilter", label = "Premade Groups Filter" },
     { type = "toggle", sub = "thirdparty", key = "raiderio",            label = "RaiderIO" },
+    { type = "toggle", sub = "thirdparty", key = "mapster",             label = "Mapster" },
 
     { type = "space", h = 6 },
     { type = "text", label = L["Changes take effect after a UI reload."] },
