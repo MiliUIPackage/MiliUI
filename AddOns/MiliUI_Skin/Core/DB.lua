@@ -113,6 +113,7 @@ local function BuildDefaults()
             auctionator         = true,
             premadegroupsfilter = true,
             raiderio            = true,
+            mapster             = true,
         },
     }
 end
