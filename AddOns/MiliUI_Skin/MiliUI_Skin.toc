@@ -14,7 +14,6 @@
 ## IconTexture: Interface\Icons\INV_Misc_Gem_Variety_01
 ## SavedVariables: MiliUI_Skin_DB
 ## AddonCompartmentFunc: MiliUISkin_OnAddonCompartmentClick
-## DefaultState: disabled
 
 # 像素工具單獨排最前面：其他模組也吃 ns.P
 Libs\MiliUIWidgets\PixelPerfect.lua

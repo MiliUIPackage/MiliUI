@@ -8,8 +8,8 @@ metadata:
   modified: 2026-09-21T03:47:31.585Z
 ---
 
-**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第四輪（12 個視窗）使用者實機看過、taint.log 零 blocked；第五輪使用者實機看過（收藏有底、條不壓字、分頁「好很多」）；第六輪使用者看過分頁（提出置中問題、已修）；第七輪（精緻化＋寶庫／冒險指南／拍賣場／專業，共 18 個視窗開關）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC 是
-`## DefaultState: disabled`（PoC 期間 push 也不會讓整包玩家預設吃到），`/mskin` 開設定、
+**2026-09-20 建立；PoC 三視窗已通過實機 taint 驗收；第二輪（六個視窗）實機看過、taint.log 零 blocked；第四輪（12 個視窗）使用者實機看過、taint.log 零 blocked；第五輪使用者實機看過（收藏有底、條不壓字、分頁「好很多」）；第六輪使用者看過分頁（提出置中問題、已修）；第七輪（精緻化＋寶庫／冒險指南／拍賣場／專業，共 18 個視窗開關）已合併、尚未實測。** `AddOns/MiliUI_Skin/`，TOC **預設啟用**（2026-09-24 拿掉
+`## DefaultState: disabled`；⚠ 那個指令只影響從沒見過這支插件的角色，之前被預設關掉的人要自己去插件清單打開），`/mskin` 開設定、
 `/mskin debug` 印每份配方的狀態＋找不到的區域＋因保護框跳過的清單。
 規範全文在 `AddOns/MiliUI_Skin/STYLE.md`（Tokens／契約／模板配方表／新增視窗 checklist／範圍分級），
 配方表每列的「實測狀態」目前全是未實測。契約 lint：`.claude/scripts/check_skin.py`（已接進 check-all）。
