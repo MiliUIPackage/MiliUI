@@ -39,37 +39,13 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_AuctionHouseUI", function()
         { 0, 0, 0, 1 },
     }
 
-    -- 選中時字前面加一個職業色的勾，勾＋字整組置中。
-    -- 勾形照共用層右鍵選單：純白貼圖染色、checkmark-minimal 圖集當遮罩摳
-    -- （直接拿圖集染色會偏暗）；圖集被拿掉時退回 UI-CheckBox-Check。
-    local CHECK, CHECK_GAP = 12, 3
-    local fs = btn:GetFontString()
-    local check = btn:CreateTexture(nil, "OVERLAY")
-    check:SetSize(CHECK, CHECK)
-    check:SetPoint("RIGHT", fs, "LEFT", -CHECK_GAP, 0)
-    if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("checkmark-minimal") then
-        check:SetTexture("Interface\\Buttons\\WHITE8X8")
-        local mask = btn:CreateMaskTexture()
-        mask:SetAtlas("checkmark-minimal")
-        mask:SetAllPoints(check)
-        check:AddMaskTexture(mask)
-    else
-        check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
-    end
-    check:SetVertexColor(W.Accent())
-
     local function UpdateAppearance(hover)
-        fs:ClearAllPoints()
         if MiliUI_DB.ahAutoCurrentExpansion then
             btn:SetText("僅限當前資料片")
             btn._colors = onColors
-            fs:SetPoint("CENTER", (CHECK + CHECK_GAP) / 2, 0)
-            check:Show()
         else
             btn:SetText("所有資料片")
             btn._colors = offColors
-            fs:SetPoint("CENTER", 0, 0)
-            check:Hide()
         end
         if hover == nil then hover = btn:IsVisible() and btn:IsMouseOver() end
         W.PaintButton(btn, hover)
