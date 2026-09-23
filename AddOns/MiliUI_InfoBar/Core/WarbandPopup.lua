@@ -532,8 +532,10 @@ local function ShowRaidTip(row)
             local cnt = (e.total > 0 and e.killed >= e.total) and GREEN or TEXT_MAIN
             local diffText = e.difficulty ~= "" and e.difficulty or (info and L[info.label]) or ""
             local right = AcquireText(f, FONT_SZ, TEXT_MAIN)
-            right:SetText(string.format("|cff%s%s|r  |cff%s%d/%d|r",
-                Hex(dr, dg, db), diffText, Hex(cnt[1], cnt[2], cnt[3]), e.killed, e.total))
+            -- 沒有首領清單（舊記錄、快取從沒讀到過）就只寫難度，不寫一個騙人的 0/0
+            local count = e.total > 0 and string.format("  |cff%s%d/%d|r",
+                Hex(cnt[1], cnt[2], cnt[3]), e.killed, e.total) or ""
+            right:SetText(string.format("|cff%s%s|r%s", Hex(dr, dg, db), diffText, count))
             right:SetPoint("TOPRIGHT", f, "TOPRIGHT", -P, -y)
             right:SetHeight(RT.HEAD_H)
             right:SetJustifyV("MIDDLE")
