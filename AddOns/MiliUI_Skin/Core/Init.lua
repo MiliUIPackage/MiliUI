@@ -58,6 +58,8 @@ boot:SetScript("OnEvent", function(self, event)
     self:UnregisterEvent("PLAYER_LOGIN")
     ns.DB.Init()
     ns.Engine.Boot()
+    -- 對外 handle（`Core/External.lua`）：Boot 前登記的插件在這一刻拿到 handle
+    ns.External.OnBoot()
 end)
 
 -- 對外命名空間（除錯用；沒有任何對外 API 承諾）
