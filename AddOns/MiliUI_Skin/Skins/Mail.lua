@@ -645,31 +645,6 @@ local function RecolourOpenMailContents()
 end
 
 
-------------------------------------------------------------
--- 頭像改方形（2026-09-24 使用者要求：方形、照原位稍微凸出視窗、1px 黑框）
---
--- 信件圖示本身是方的，圓形是 `PortraitContainer.CircleMask` 切出來的
--- （Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml:564，XML 寫死）；
--- 暴雪的 Lua 只 `GetPortrait():SetTexture(...)`（PortraitFrame.lua:47-48），
--- **零處引用 `CircleMask`** ⇒ 符合 `Engine.UnmaskIcon` 的前提（STYLE.md ③）。
--- 位置照暴雪原值（portrait `TOPLEFT x=-5 y=7`，62x62 ⇒ 左上各凸出一點），不重錨。
--- 遮罩拿不掉（戰鬥中、改版）就維持原本的圓形、不畫方框。
--- ⚠ 讀信視窗每封信會換一次頭像（信紙圖，MailFrame.lua:298）⇒ `SetTexture` 把裁邊打回 0,1；
---   只差 8% 的邊，不為它掛 hook。
-------------------------------------------------------------
-local function SquarePortrait(f, key)
-    local pc, portrait, mask
-    if not (pcall(function() pc = f.PortraitContainer end) and pc) then return end
-    pcall(function() portrait = pc.portrait; mask = pc.CircleMask end)
-    if not portrait then
-        E.Missing(key .. ".PortraitContainer.portrait")
-        return
-    end
-    if E.UnmaskIcon(portrait, mask, key .. ".portrait") then
-        Skin.Icon(portrait, key .. ".portrait")
-    end
-end
-
 local function SkinOpenMail()
     local f = _G.OpenMailFrame
     if not f then
@@ -677,8 +652,7 @@ local function SkinOpenMail()
         return
     end
 
-    Skin.PortraitChrome(f, "OpenMailFrame", { keepPortrait = true })
-    SquarePortrait(f, "OpenMailFrame")   -- 2026-09-24：頭像方形＋1px 黑框
+    Skin.PortraitChrome(f, "OpenMailFrame")   -- 2026-09-24：試過保留方形頭像，使用者決定拿掉
     Skin.Panel(f, "OpenMailFrame")
 
     -- 那條 `UI-ClassTrainer-HorizontalBar` 分隔線（具名左半 ＋ 無名右半，:904/:911）
@@ -775,8 +749,7 @@ local function Apply()
         return
     end
 
-    Skin.PortraitChrome(f, "MailFrame", { keepPortrait = true })
-    SquarePortrait(f, "MailFrame")   -- 2026-09-24：頭像方形＋1px 黑框
+    Skin.PortraitChrome(f, "MailFrame")   -- 2026-09-24：試過保留方形頭像，使用者決定拿掉
     Skin.Panel(f, "MailFrame")
 
     local inset
