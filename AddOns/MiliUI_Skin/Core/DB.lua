@@ -93,6 +93,7 @@ local function BuildDefaults()
             loothistory = true,
             loottoast = true,
             bntoast = true,
+            menu = true,
             readycheck = true,
             -- 第五輪的兩個特許視窗（只做純視覺、零 hook 進點擊路徑）。
             -- 預設開，但它們是整包唯一「按鈕通往受保護動作」的兩個視窗 ——

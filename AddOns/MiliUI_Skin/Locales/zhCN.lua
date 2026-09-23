@@ -87,6 +87,8 @@ L["Turn this off first if the Need / Greed buttons stop responding."] = "如果�
 L["Loot Rolls Window"] = "战利品掷骰记录"
 L["Loot Toasts"] = "拾取提示（你获得了）"
 L["Battle.net Toasts"] = "暴雪游戏浮窗（好友上线）"
+L["Dropdown Menus"] = "下拉与右键菜单"
+L["Frame only (background and border) of every Blizzard dropdown and right-click menu. Turn this off first if a menu option stops working."] = "只更换暴雪所有下拉菜单与右键菜单的外框（背景与边框）。菜单里的选项点了没反应时，请先关闭这一项。"
 L["Ready Check"] = "就位确认"
 L["Turn this off first if the Ready / Not Ready buttons stop responding or the UI reports a blocked action."] = "如果点击“就位”/“未就位”没有反应，或界面提示操作被阻止，请先关闭此项。"
 -- 第五轮的两个特许窗口。「游戏选项」是 ESC 菜单标题栏的官方字串（MAINMENU_BUTTON）

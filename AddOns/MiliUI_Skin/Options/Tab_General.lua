@@ -149,6 +149,11 @@ local controls = {
     { type = "toggle", sub = "windows", key = "loottoast", label = L["Loot Toasts"] },
     { type = "toggle", sub = "windows", key = "bntoast", label = L["Battle.net Toasts"] },
     {
+        type  = "toggle", sub = "windows", key = "menu",
+        label = L["Dropdown Menus"],
+        hint  = L["Frame only (background and border) of every Blizzard dropdown and right-click menu. Turn this off first if a menu option stops working."],
+    },
+    {
         type  = "toggle", sub = "windows", key = "readycheck",
         label = L["Ready Check"],
         hint  = L["Turn this off first if the Ready / Not Ready buttons stop responding or the UI reports a blocked action."],

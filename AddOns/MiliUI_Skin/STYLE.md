@@ -1685,6 +1685,7 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 拾取記錄 `GroupLootHistoryFrame`（第十三輪） | `loothistory` | 外框／下拉／捲軸／池化列 |
 | 拾取通知（AlertFrame）（第十三輪） | `loottoast` | 全域 `AlertFrame_ShowNewAlert` 後置勾＋延一幀；只認三種形狀；不重排 |
 | 暴雪通知 `BNToastFrame`（第十三輪） | `bntoast` | 提示皮；hook 0 |
+| 下拉與右鍵選單 `Blizzard_Menu`（2026-09-24） | `menu` | 只做外框（提示皮）：底中和＋子框 overlay；`MenuStyle1/2Mixin.Generate` 後置勾只收框、`C_Timer.After(0)` 才動手。列／勾選框／勾／文字不碰；不用 `AddMenuAcquiredCallback`、不勾選單管理器實例 |
 | **就位確認**（第十三輪，**唯一越界白名單**） | `readycheck` | 皮掛 listener（提示皮）、頭像拿掉、量寬重排（白名單①～⑧）。觸發靠自己的 `READY_CHECK` 事件＋延一幀，**不掛 OnShow**（首領戰中發起人名字是秘密值）；按鈕零腳本 |
 | 冒險指南 `EncounterJournal` | `encounterjournal` | chrome／底部七顆分頁（`pad = 0`：`SetNumTabs` 會把分頁重錨成 +3）／五個下拉／六條捲軸／搜尋框／四顆頁籤鈕／戰利品清單、分類列與首領清單（池化列）。**第十輪：綜覽／首領技能／副本簡介三頁整頁深色、文字全接管**（段落 `EncounterInfoTemplate` 走三支全域後置勾 ＋ 每顆標題列的 `HookScript` OnShow／OnClick）；書頁與內嵌框的底墊到 sublevel −4（`useParentLevel` 平手問題）。副本卡片：`EncounterJournal_ListInstances` 後置勾＋捲動補掃，直角 1px、滑過職業色（2026-09-23）；推薦內容／月度活動／旅行者日誌未做 |
 | 試衣間 `DressUpFrame`＋`SideDressUpFrame` | `dressup` | chrome／關閉鈕／最大化最小化／外觀套裝下拉／外觀清單開關／底部三顆按鈕／右側兩片面板＋捲軸／小試衣間。**模型場景與它的背景不碰** |
@@ -1741,7 +1742,9 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 ### B 級：只做 overlay，而且要逐一驗收
 
 - **下拉按鈕本體**（`WowStyle1DropdownTemplate` / `WowStyle1FilterDropdownTemplate`）：
-  ✅ 已做（`Skin.Dropdown`，註 ⓕ）。**彈出的選單本身是 C 級，不碰。**
+  ✅ 已做（`Skin.Dropdown`，註 ⓕ）。**彈出的選單**：2026-09-24 起照 EllesmereUI 只做**外框**
+  （`Skins/Menu.lua`，`MenuStyle1/2Mixin.Generate` 後置勾只收框、延一幀才中和底＋掛提示皮子框）；
+  列、勾選框、勾、文字仍是 C 級，不碰。
 - **清單列**（`ScrollBox` 的 element）：✅ 已做（`Engine.HookRows`，陷阱 4）。
   會被池化回收，所以是「掛在暴雪重用它的那一支上」而不是「掃一次」。
 - **ScrollBox 的 `ScrollTarget`**：走訪 children 的框，overlay 不准掛上去。

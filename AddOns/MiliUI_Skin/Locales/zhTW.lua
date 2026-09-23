@@ -87,6 +87,8 @@ L["Turn this off first if the Need / Greed buttons stop responding."] = "若需�
 L["Loot Rolls Window"] = "拾取記錄"
 L["Loot Toasts"] = "拾取通知（你獲得）"
 L["Battle.net Toasts"] = "暴雪通知（好友上線）"
+L["Dropdown Menus"] = "下拉與右鍵選單"
+L["Frame only (background and border) of every Blizzard dropdown and right-click menu. Turn this off first if a menu option stops working."] = "只換暴雪所有下拉選單與右鍵選單的外框（底與邊）。選單裡的選項點了沒反應時，請先關掉這一項。"
 L["Ready Check"] = "就位確認"
 L["Turn this off first if the Ready / Not Ready buttons stop responding or the UI reports a blocked action."] = "如果「就位」／「未就位」按了沒反應，或介面提示動作被封鎖，請先關掉這一項。"
 -- 第五輪的兩個特許視窗。「遊戲選項」是 ESC 選單標題列的官方字串（MAINMENU_BUTTON）

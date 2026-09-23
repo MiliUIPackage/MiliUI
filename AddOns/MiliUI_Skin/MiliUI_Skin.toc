@@ -88,6 +88,7 @@ Skins\LootRoll.lua
 Skins\LootHistory.lua
 Skins\LootToast.lua
 Skins\BNToast.lua
+Skins\Menu.lua
 # 這兩份是第五輪的特許（原本列在 STYLE.md ⑦ 的 B／C 級）：只做純視覺、
 # 零 hook 進點擊路徑。動它們之前先讀各自的檔頭。
 Skins\Popup.lua
