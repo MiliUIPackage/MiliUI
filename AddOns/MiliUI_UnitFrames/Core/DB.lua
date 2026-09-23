@@ -729,6 +729,21 @@ function DB.BuildDefaults()
                         textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -21, w = 70, h = 10,
                                  size = 8, justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
                     },
+                    -- 光環預設關。排法跟旁邊的專注目標一樣（兩排都在框下方），兩個框的光環才會對齊；
+                    -- 框寬 70 ⇒ 一排 3 顆，減益限一排免得壓到增益。
+                    -- 減益走 bossrole：理由同目標的目標（這個位置通常是坦或補的目標）。
+                    debuffs = { enabled = false, x = 0, y = -31, w = 19, h = 19,
+                                maxCount = 3, perRow = 3, growth = "LRTB", spacing = 1,
+                                onlyMine = false, filterMode = "bossrole",
+                                showStack = true, stackSize = 10,
+                                stackAnchor = "TOP", stackX = 0, stackY = 4,
+                                durationText = false, durationThreshold = 60,
+                                hideSated = true },
+                    buffs  = { enabled = false, x = 0, y = -51, w = 19, h = 19,
+                               maxCount = 6, perRow = 3, growth = "LRTB", spacing = 1,
+                               showStack = true, stackSize = 10,
+                               stackAnchor = "TOP", stackX = 0, stackY = 4,
+                               durationText = false, durationThreshold = 60, filterMode = "all" },
                     icons = { enabled = true,
                               raidtarget = { enabled = true, x = 27, y = 10, w = 16, h = 16, level = ICON_LEVEL } },
                 },
