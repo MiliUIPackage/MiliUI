@@ -3083,6 +3083,7 @@ L["SEARCH_EVERYWHERE_TOOLTIP_TEXT_2"] = "將把搜尋結果發送到您的聊天
 L["SEARCH_HELP"] = "搜尋幫助"
 L["SEARCH_TRY_X"] = "搜尋，嘗試 %s"
 L["SECTION_CRAFTING"] = "製作"
+L["SECTION_HOUSING"] = "房屋"
 L["SECTION_EQUIPMENT"] = "裝備"
 L["SELLJUNK"] = "賣出垃圾"
 L["SHIFT_CLICK_TO_TRACK_UNTRACK"] = "<Shift-點擊 來追蹤/不追蹤>"
