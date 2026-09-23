@@ -88,6 +88,7 @@ Fix\HandyNotes_DecorName.lua
 Fix\MasqueBlizzBars_CooldownViewer.lua
 Fix\Blizzard_TransmogRollChat.lua
 Fix\Blizzard_FriendsStatusDropdown.lua
+Fix\Blizzard_FriendsButtonBar.lua
 Fix\PremadeGroupsFilter_ShortLabel.lua
 Fix\PremadeGroupsFilter_SecretResult.lua
 Fix\Blizzard_LFGListRoleCountWidth.lua
