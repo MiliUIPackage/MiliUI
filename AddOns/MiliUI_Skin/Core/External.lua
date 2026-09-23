@@ -198,8 +198,10 @@ end
 
 -- 物品格。opts.art ＝ 呼叫端自己加在格子上的美術（parentKey 清單），一起中和。
 function P.ItemButton(key, btn, opts)
-    -- 顯式保護的格子照規矩跳過（③）：不為物品格開後門。
-    if E.ProtectionOf(btn) == "explicit" then return end
+    -- ⚠ 這裡**不跳過顯式保護**：③ 的「顯式跳過」是為了 overlay 子框而定的，物品格這支
+    -- 只做貼圖層的事（alpha 中和、CreateTexture 建在格子上、後置勾全域），沒有子框。
+    -- 背包格的模板是顯式保護的，照規矩跳過的話整顆都不換皮 —— 空格那張翅膀底圖
+    -- （呼叫端交進來的 `opts.art`）也就留著。戰鬥中的保護框照樣由 `Run` 延到脫戰。
 
     local border = Field(btn, "IconBorder")
     if border then E.Neutralize(border, key .. ".IconBorder") end
