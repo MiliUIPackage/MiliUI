@@ -50,7 +50,7 @@
 --
 -- | 元件 | 模板 | 原語 |
 -- |---|---|---|
--- | `SaleItemFrame.Icon`（拖物品進來那一格） | 自製 `AuctionatorGroupsViewItemTemplate`（`Icon`／`EmptySlot`／`IconBorder`／`IconSelectedHighlight` 四張 parentKey 貼圖，**不是** `ItemButton`） | local `SaleIcon`：空格／品質框／橘光暈中和、`fillInset` 底、圖示裁邊、1px 黑方框（格子自己的貼圖，OVERLAY 6） |
+-- | `SaleItemFrame.Icon`（拖物品進來那一格） | 自製 `AuctionatorGroupsViewItemTemplate`（`Icon`／`EmptySlot`／`IconBorder`／`IconSelectedHighlight` 四張 parentKey 貼圖，**不是** `ItemButton`） | local `SaleIcon`：空格／品質框／橘光暈中和、`fillInset` 底、圖示裁邊、1px 方框轉交品質色（格子自己的貼圖，OVERLAY 6） |
 -- | 背包清單的每一格（`…ItemListingFrame` 的直屬子框，同一個模板，`FramePool`） | 同上 | local `BagItem`：同上但不墊底；**選中那一格的框換職業色**；`HookScript("OnShow")` 重裁與重上選中色 |
 -- | `SaleItemFrame.Quantity.InputBox` | `LargeInputBoxTemplate`（經 `AuctionatorRetailImportLargeInputBoxTemplate`） | `Skin.EditBox` |
 -- | `SaleItemFrame.Price／BidPrice.MoneyInput` 的 `GoldBox`／`SilverBox`／`CopperBox` | `LargeMoneyInputFrameTemplate` | `Skin.EditBox`（同 host 的 `SkinLargeMoneyInput`） |
@@ -188,8 +188,6 @@
 --   `ScrollBox` 的池化元素，捲動時重用；而且結果列就是購買／取消的執行流（host 檔頭同一條理由）。
 --   只做框級：內嵌框、表頭帶、捲軸。（背包清單的物品格是例外，2026-09-24 起有皮：
 --   它是 `FramePool` 不是 ScrollBox 的元素，每次更新都經過 OnShow，見物品格那一段。）
--- * **物品格的品質色** —— 使用者要的是「只要黑框」（2026-09-24），品質框整張中和、不轉交。
---   （轉交也做不到：顏色是它直接 `SetVertexColor` 上去的，沒有全域出口。）
 -- * **銷售頁上半部的底** —— 跟暴雪自己的賣出頁一樣，控件直接擺在面板底上，不另外畫內嵌框。
 --   上半部左邊那塊暗色方塊（2026-09-24 實機擷圖）**不是**這支插件或這個檔案畫的，是 host 的
 --   暴雪賣出頁（`ItemSellFrame`，排版框 ⇒ 底退回子框、parent 爬到 `AuctionHouseFrame`）
@@ -466,9 +464,11 @@ end
 --   ⇒ `Engine.TrackItemButton` 的現成全域勾接不到。
 --
 -- 做什麼：
---   * 品質框與橘色光暈中和（使用者只要黑框，不要品質色）；空格中和。
+--   * 品質框與橘色光暈中和（圓角框換成我們的 1px 直角方框，顏色轉交過來）；空格中和。
+--     轉交的掛點跟重裁一樣（OnShow／補掃）：它是直接 `SetVertexColor` 上色、沒經過全域函式，
+--     接不到引擎的 `SetItemButtonBorder` 勾，只能在更新之後自己去 `IconBorder` 拿。
 --   * 圖示裁邊（`Engine.CropIcon`，**每次換圖示之後重下**，見下面兩條掛點）。
---   * 一圈 1px 方框：閒置黑、**選中＝職業色**（只有背包清單會有選中）。
+--   * 一圈 1px 方框：閒置＝轉交品質色、**選中＝職業色**（只有背包清單會有選中）。
 --     方框建成**格子自己的貼圖**（`Engine.RegionBackdrop`，邊在 OVERLAY 6）——
 --     比它的專業品質鑽石（OVERLAY 7）低一層、比圖示與數量字高 ⇒ 鑽石壓在框上、不被框線切過。
 --     （子框 overlay 做不到：子框永遠畫在父層所有貼圖之上，鑽石會被框線劃一刀。）
@@ -499,7 +499,7 @@ end
 -- ## 選中態怎麼知道（讀取例外表那一條）
 --
 -- 讀 `IconSelectedHighlight:IsShown()`：那支插件表達「這格選中」的**同一個**依據
--- （`SetShown(info.selected)`），純 C 端布林、過 `Secret.ToBool`，問不到就當「沒選中」＝黑框。
+-- （`SetShown(info.selected)`），純 C 端布林、過 `Secret.ToBool`，問不到就當「沒選中」＝品質色。
 -- **不讀** `itemInfo.selected`（它的 Lua 資料欄位）。
 -- 零讀取那條路（`Skins/Mail.lua` 的「底的 parent 設成會被 Hide 的那顆」）走不通：
 -- 會被顯隱的是一張**貼圖**，貼圖不能當 frame 的 parent；而把那張貼圖本身換長相也不行 ——
@@ -521,7 +521,13 @@ local function IconFrame(btn, key)
     return ov
 end
 
--- 選中態：職業色邊；其餘黑邊。每次都跑（格子會被池子換給別的物品）。
+-- 選中態：職業色邊；其餘轉交品質色（`Engine.PassBorderColor`，跟暴雪物品格同一條路：
+-- 讀 `IconBorder` 的 IsShown ＋ GetVertexColor，只轉交不判斷）。
+-- 那支插件選中時把 `IconBorder` 藏起來、沒選中時秀出來並染品質色，
+-- 所以「沒選中」這一支拿到的一定是品質色；問不到就退回黑邊。
+-- ⚠ 普通品質它也照畫（白色），不像暴雪的物品格會藏掉 ⇒ 普通物品是白邊。
+--   要改成黑邊得讀品質值來判斷，那就不是轉交了，所以不做。
+-- 每次都跑（格子會被池子換給別的物品）。
 local function PaintSelected(btn, ov)
     local selected = false
     local hl = Field(btn, "IconSelectedHighlight")
@@ -533,7 +539,7 @@ local function PaintSelected(btn, ov)
         local r, g, b = T.Accent()
         E.Border(ov, { r, g, b, 1 })
     else
-        E.Border(ov, T.border)
+        E.PassBorderColor(ov, Field(btn, "IconBorder"))
     end
 end
 
@@ -551,8 +557,9 @@ local function SaleIcon(btn, key)
     E.ButtonStates(btn, key)
     local bg = E.Overlay(btn, { key = key, noBorder = true })
     E.Paint(bg, T.fillInset)
-    IconFrame(btn, key)
+    local ov = IconFrame(btn, key)
     Recrop(btn, key)
+    E.PassBorderColor(ov, Field(btn, "IconBorder"))
 end
 
 -- 背包清單的格子
@@ -718,7 +725,10 @@ end)
 -- 上方那一格的重裁（換物品就被 SetTexture 打回，見物品格那一段）
 local function RecropSaleIcon()
     local icon = Field(_G.AuctionatorSellingFrame, "SaleItemFrame.Icon")
-    if icon and E.GetOverlay(icon) then Recrop(icon, "AuctionatorSellingFrame.SaleItemFrame.Icon") end
+    if icon and E.GetOverlay(icon) then
+        Recrop(icon, "AuctionatorSellingFrame.SaleItemFrame.Icon")
+        E.PassBorderColor(E.GetOverlay(icon, "front"), Field(icon, "IconBorder"))
+    end
 end
 
 ------------------------------------------------------------
