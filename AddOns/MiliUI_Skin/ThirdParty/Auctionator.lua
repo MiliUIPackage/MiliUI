@@ -35,7 +35,9 @@
 -- | `event = "AUCTION_HOUSE_THROTTLED_SYSTEM_READY"` | 還沒全掃成功就全掃；成功過就**只補背包清單（分類標題列＋物品格）與上方物品格的重裁** | 補掃時機：(a) 背包清單是物件池晚一拍才借出來的，上方物品格換物品之後緊接著就會查價；(b) 那支插件有一條「別的插件把拍賣場縮到很小」的退路（`Mixin.lua:119-126`，改用 OnUpdate 延後建頁），那時四頁要晚很久才建。這個事件在拍賣場開著的時候、每次查詢節流解除都會來，不開拍賣場不會來 |
 --
 -- 戰鬥閘照走（引擎）；**不排 timer**、自己的檔案裡沒有事件框。
--- 背包清單的物品格另外有一支 `HookScript("OnShow")`（重裁與選中色，理由見物品格那一段）。
+-- 背包清單另外有兩支 frame script 後掛：容器 `ItemListingFrame` 的 `HookScript("OnSizeChanged")`
+-- （群組框與物品格是切到銷售頁才借出來的，晚於上面兩輪，理由見分類標題列那一段）與
+-- 物品格的 `HookScript("OnShow")`（重裁與選中色，理由見物品格那一段）。
 --
 ------------------------------------------------------------
 -- ## 掛了哪些元件
@@ -61,7 +63,7 @@
 -- | `CurrentPricesListing`／`HistoricalPriceListing`／`PostingHistoryListing` | 自製 `AuctionatorResultsListingTemplate` | local `ResultsListing`（表頭帶 ＋ 表頭三片中和 ＋ 捲軸） |
 -- | `BagListing.View.ScrollBar` ＋ 清單兩個的 `ScrollArea.ScrollBar` | **`WowTrimScrollBar`** | `ns.External.ScrollBar`（`Core/External.lua` 的 local 那一支，TODO(升格)） |
 -- | `BagInset`／`HistoricalPriceInset` | 自製 `AuctionatorInset(Dark)Template`（`Bg` ＋ `NineSlice`） | local `Inset` |
--- | 背包清單的分類標題列（`…ItemListingFrame` 子框的 `.GroupTitle`） | **暴雪的** `AuctionCategoryButtonTemplate` | local `GroupTitle`（見那一段） |
+-- | 背包清單的分類標題列（`…ItemListingFrame` 子框的 `.GroupTitle`） | **暴雪的** `AuctionCategoryButtonTemplate` | local `GroupTitle`（`ListHeader` 語彙＋白字，見那一段） |
 -- | `Deposit`／`Total` 與各輸入框的 `Label` | FontString（標籤） | `E.TextColor` → `textDim`（④ 文字層級：欄位標籤） |
 --
 -- ### 取消頁 `AuctionatorCancellingFrame`（`Source/Tabs/Cancelling/Frames/Main.xml`）
@@ -161,7 +163,8 @@
 -- | `ButtonFrameTemplate` 對話框的 NineSlice／Portrait／Bg／TitleText | `SetAlpha(0)`／`SetTextColor`（`Skin.PortraitChrome`） |
 -- | 欄位表頭的 `Left`／`Right`／`Middle`；`Arrow` | `SetAlpha(0)`；`SetVertexColor`；Highlight `SetColorTexture`（白 8%） |
 -- | 物品格（上方那格＋背包清單）的 `EmptySlot`／`IconBorder`／`IconSelectedHighlight` | `SetAlpha(0)`；`Icon` | `SetTexCoord`（裁邊）；Highlight | `SetColorTexture`（白 8%）；`CreateTexture`（`Engine.RegionBackdrop`，1px 方框） |
--- | 分類標題列的 `NormalTexture`；`HighlightTexture`／`SelectedTexture`／`Lines` | `SetAlpha(0)`；`SetDesaturated` ＋ `SetVertexColor` |
+-- | 分類標題列的 `NormalTexture`／`Lines`；`HighlightTexture`／`SelectedTexture` | `SetAlpha(0)`；`SetDesaturated` ＋ `SetVertexColor`；按鈕 `SetNormalFontObject(GameFontHighlightSmall)` |
+-- | `BagListing.View.ScrollBox.ItemListingFrame` | `HookScript("OnSizeChanged")`（補掃，內容同上面各列） |
 -- | 標籤 FontString（`Deposit`、`Total`、各 `Label`、`SearchLabel`、大標題 `HeadingText`） | `SetTextColor` |
 -- | 以上各框 | `CreateFrame` 掛自己的 overlay（錨在目標上、不吃滑鼠、零腳本） |
 --
@@ -191,7 +194,6 @@
 --   上半部左邊那塊暗色方塊（2026-09-24 實機擷圖）**不是**這支插件或這個檔案畫的，是 host 的
 --   暴雪賣出頁（`ItemSellFrame`，排版框 ⇒ 底退回子框、parent 爬到 `AuctionHouseFrame`）
 --   在頁面被藏起來之後留下的幽靈底，已在 `Skins/AuctionHouse.lua` 的 `SkinBackgroundPanel` 治本。
--- * **分類標題列的文字顏色**（`AuctionCategoryButtonTemplate` 的按鈕字型）—— 跟 host 的暴雪分類清單一致，不動。
 -- * **`IconAndName`（購買面板的物品圖示與名稱）、`TitleArea.Text`、金額數字、`Total` 等值** ——
 --   顏色本身帶資訊（④ 文字層級）。
 -- * **`ConfirmDropDown`（右鍵確認選單）、`MultisellProgress`、`FullScanStatus`、翻譯者旗幟、設定頁說明文字** ——
@@ -307,10 +309,10 @@ end
 -- `AuctionatorInsetTemplate`／`…DarkTemplate`（`Source_ModernAH/Components/Frames/Inset.xml`）：
 -- `Bg` ＋ `NineSlice`，`useParentLevel`。底建成它自己的貼圖（`Skin.Inset` 的同一條路），
 -- 但鍵是**它的**模板的 ⇒ 有才中和、不記 missing（規則第 7 條）。
-local function Inset(frame, key)
+local function Inset(frame, key, points)
     if not frame or not E.Usable(frame, key) then return end
     NeutralizeIfPresent(frame, { "Bg", "NineSlice" }, key)
-    local ov = E.RegionBackdrop(frame, { key = key })
+    local ov = E.RegionBackdrop(frame, { key = key, points = points })
     E.Paint(ov, T.fillInset, T.border)
 end
 
@@ -596,7 +598,26 @@ end
 -- （`Source_ModernAH/Tabs/Selling/Frames/BagViewSection.xml:13`）。
 --
 -- ⚠ 它是 `FramePool` 不是 `ScrollBox` 的元素：群組框借出來之後永遠是「群組」，只是標題字換了，
---   我們的畫法跟內容無關 ⇒ 掃到一次就一直對。晚借出來的由 `THROTTLED_SYSTEM_READY` 那一輪補。
+--   我們的畫法跟內容無關 ⇒ 掃到一次就一直對。
+-- ⚠⚠ **什麼時候借出來**（2026-09-24 實機：標題列仍是金色木紋長條＋金字，就是這一條沒接住）：
+--   群組框與物品格都是 `View:OnShow` → `UpdateFromExisting` 才借（`Source/Groups/View.lua:26-35,189-`），
+--   也就是**第一次切到銷售頁**的那一刻 —— 那時兩個伴隨輪都已經跑完了
+--   （`AUCTION_HOUSE_SHOW` 延一幀時預設頁是購物頁、銷售頁還沒顯示過；節流解除的事件要等查詢，
+--   而還沒點物品之前銷售頁不會查任何東西）⇒ 補掃永遠早一步，標題列一次都沒被畫到。
+--   解法：掛 `ItemListingFrame` 的 `HookScript("OnSizeChanged")`。每次重建最後一步都是
+--   `UpdateGroupHeights` 的 `ItemListingFrame:SetHeight(offset)`（`View.lua:173-181`）——
+--   群組框、標題、物品格此時都已借出並 `SetItemInfo` 完。高度沒變的重建（例如只換選中）
+--   不會觸發，但那種重建不會多借框（群組數固定、物品格數沒變），選中色由物品格自己的 OnShow 接。
+--   ScrollBox 對它只 `RegisterCallback`、不 `SetScript`（Blizzard_SharedXML/Shared/Scroll/ScrollBox.lua:44）
+--   ⇒ 後掛的處理器不會被蓋掉。
+-- 樣式選 **`Skin.ListHeader` 的語彙（`fill` 實心帶 ＋ 1px 黑邊 ＋ 白字）**，不選 `Skin.SectionTitle`
+-- （標題字 ＋ 底下一條髮絲線）：這一列**可以點**（`OnClick` → `ToggleOpen` 收合整組），
+-- 跟聲望／通貨的可收合分類列是同一種東西；`SectionTitle` 是給不能點的小節標題用的，
+-- 畫成一條線會讓人看不出它能收合。字走 `SetNormalFontObject(GameFontHighlightSmall)`
+-- （模板的 NormalFont 是 `GameFontNormalSmall` 金字、HighlightFont 本來就是這一份，註 ⓔ 的白名單用法；
+-- 那支插件與模板的 Lua 都不重設字型物件）。
+-- 那張 `Lines`（分類清單第三層的縮排線，`auctionhouse-nav-button-tertiary-filterline`）在這裡沒有語意
+-- （正式服它不呼叫 `AuctionHouseFilterButton_SetUp`，那張線就一直露著）⇒ 中和。
 -- ⚠ host 的分類清單是靠 `AuctionHouseFilterButton_SetUp` 那支全域後置勾畫的；
 --   正式服這支插件**不呼叫**它（只在經典服呼叫，`BagViewSection.xml:18-21`）⇒ 那條勾接不到，要自己掃。
 -- 畫法：對齊 host 的分類列（`SkinCategoryRowOnce`）—— 金色底圖中和、滑過帶去飽和染 `textDim`、
@@ -605,7 +626,8 @@ end
 ------------------------------------------------------------
 local function GroupTitle(title, key)
     if not title or not E.Usable(title, key) then return end
-    NeutralizeIfPresent(title, { "NormalTexture" }, key)
+    NeutralizeIfPresent(title, { "NormalTexture", "Lines" }, key)
+    E.ButtonFonts(title, GameFontHighlightSmall, key)
     local hl = Field(title, "HighlightTexture")
     if hl then
         E.Desaturate(hl, key .. ".HighlightTexture")
@@ -615,11 +637,6 @@ local function GroupTitle(title, key)
     if sel then
         E.Desaturate(sel, key .. ".SelectedTexture")
         E.VertexColor(sel, { T.AccentFill(1) }, key .. ".SelectedTexture")
-    end
-    local lines = Field(title, "Lines")
-    if lines then
-        E.Desaturate(lines, key .. ".Lines")
-        E.VertexColor(lines, T.textDisabled, key .. ".Lines")
     end
     local ov = E.Overlay(title, { key = key })
     E.Paint(ov, T.fill, T.border)
@@ -642,6 +659,28 @@ local function SweepBagListing()
             BagItem(child)
         end
     end
+end
+
+-- 重建時的補掃（`ItemListingFrame` 的 OnSizeChanged，理由見分類標題列那一段的 ⚠⚠）。
+-- 出錯一次就停掉（同 `RefreshBagButton`）。
+local listingHooked = setmetatable({}, { __mode = "k" })
+local listingHookBroken = false
+
+local function OnListingResized()
+    if listingHookBroken then return end
+    local ok, err = pcall(SweepBagListing)
+    if not ok then
+        listingHookBroken = true
+        E.NoteBrokenHook("Auctionator ItemListingFrame OnSizeChanged")
+        ns.ReportError(err)
+    end
+end
+
+local function HookBagListing()
+    local host = Field(_G.AuctionatorSellingFrame, "BagListing.View.ScrollBox.ItemListingFrame")
+    if not host or listingHooked[host] or type(host.HookScript) ~= "function" then return end
+    listingHooked[host] = true
+    host:HookScript("OnSizeChanged", OnListingResized)
 end
 
 -- 上方那一格的重裁（換物品就被 SetTexture 打回，見物品格那一段）
@@ -680,7 +719,15 @@ local function SkinSelling()
         RefreshButtons(sale, skey, { "Icon", "MaxButton", "PostButton", "SkipButton", "PrevButton" })
     end
 
-    Inset(Field(f, "BagInset"), key .. ".BagInset")
+    -- 背包清單的內嵌框：它的 XML 把右下角錨在 `BagListing` 往左 22（`Main.xml:35-38`），
+    -- 捲軸因此掛在框**外面**；右邊結果清單的內嵌框（`HistoricalPriceInset`，右下錨在清單本身）
+    -- 是把捲軸包在框裡的。兩欄要同一套 ⇒ 我們畫的底與邊把右下角改錨到 `BagListing` 本身
+    -- （錨到它的框是白名單動作，不量測、不動它的框；左上照它自己的 `BagInset`）。
+    local bagList = Field(f, "BagListing")
+    Inset(Field(f, "BagInset"), key .. ".BagInset", bagList and {
+        { "TOPLEFT", "TOPLEFT", 0, 0 },
+        { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0, rel = bagList },
+    } or nil)
     Inset(Field(f, "HistoricalPriceInset"), key .. ".HistoricalPriceInset")
     ScrollBar(Field(f, "BagListing.View.ScrollBar"), key .. ".BagListing.ScrollBar")
 
@@ -707,6 +754,7 @@ local function SkinSelling()
         if #tabs > 0 then Skin.TabGroup(tabs, { kind = "panel", joined = "TOP" }) end
     end
 
+    HookBagListing()
     SweepBagListing()
     return true
 end
