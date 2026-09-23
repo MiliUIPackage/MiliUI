@@ -89,9 +89,13 @@ local PORTRAIT_ART = { "NineSlice", "Bg", "TopTileStreaks", "PortraitContainer" 
 local TITLE_BAR_SUBLEVEL = -6      -- 面板底是 −8、面板的四條邊是 −7
 local TITLE_RULE_SUBLEVEL = -5
 
+-- opts.keepPortrait（2026-09-24）：頭像圖示留著（`PortraitContainer` 裡只有 `portrait` ＋ 圓形遮罩，
+--   外圈金環屬於 NineSlice、照樣中和）⇒ 視窗的識別圖示回來，雕花外框不回來。
+local PORTRAIT_ART_KEEP = { "NineSlice", "Bg", "TopTileStreaks" }
+
 function Skin.PortraitChrome(frame, key, opts)
     opts = opts or {}
-    E.NeutralizeKeys(frame, PORTRAIT_ART, key)
+    E.NeutralizeKeys(frame, opts.keepPortrait and PORTRAIT_ART_KEEP or PORTRAIT_ART, key)
 
     local title
     if type(frame) == "table" and pcall(function() title = frame.TitleContainer end) and title then
