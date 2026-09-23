@@ -475,6 +475,37 @@ function Engine.ShiftRoot(frame, point, relativeTo, relativePoint, x, y, label)
     return ok and true or false
 end
 
+-- 重排一小段錨定鏈（2026-09-24，`ShiftRoot` 的同級例外）
+--
+-- `ShiftRoot` 只能「同名錨點覆寫」；要把一條鏈**反過來接**（原本 A 錨 B、改成 B 錨 A）
+-- 就一定要先 `ClearAllPoints`，否則兩邊互錨成環。條件跟 `ShiftRoot` 完全一樣，另加兩條：
+--   * 呼叫端一次交出整段鏈（`list` = { {frame, points}, … }），**先全部清掉再全部重錨**，
+--     中間不會出現互錨成環的瞬間。
+--   * 只准用在「暴雪 Lua 零處重設或讀回這幾個框的位置」的框（呼叫處寫明 grep 結果）。
+-- `points` 的形狀同 `Engine.Overlay`：{ point, relPoint, x, y, rel = 相對框 }。
+function Engine.Reanchor(list, label)
+    if ns.db and ns.db.relayout == false then return false end
+    if InCombatLockdown() then
+        Note(Bucket("deferred"), (label or "?") .. " (relayout)")
+        return false
+    end
+    for _, item in ipairs(list) do
+        if not Usable(item[1], label) or type(item[1].ClearAllPoints) ~= "function" then return false end
+        for _, pt in ipairs(item[2]) do
+            if not pt.rel then return false end
+        end
+    end
+    local ok = pcall(function()
+        for _, item in ipairs(list) do item[1]:ClearAllPoints() end
+        for _, item in ipairs(list) do
+            for _, pt in ipairs(item[2]) do
+                item[1]:SetPoint(pt[1], pt.rel, pt[2] or pt[1], pt[3] or 0, pt[4] or 0)
+            end
+        end
+    end)
+    return ok
+end
+
 -- 拿掉圖示上的遮罩（圓形圖示 → 方形圖示）
 --
 -- ⚠ 契約例外（STYLE.md ③）：`RemoveMaskTexture` 是對暴雪區域的**結構性修改**，
