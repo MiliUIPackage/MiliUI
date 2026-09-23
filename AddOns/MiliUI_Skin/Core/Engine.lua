@@ -2236,11 +2236,18 @@ local function TabSystemIsSelected(tab)
     return S.ToBool(v)
 end
 
+-- 2026-09-24：選中時文字不要下移。`TabSystemButtonArtMixin:SetTabSelected` 每次都
+--   `self.Text:SetPoint("CENTER", self, "CENTER", 0, GetTextYOffset(isSelected))`
+--   （TabSystemTemplates.lua:33-41,58）：分頁在內容下方時選中 −3、未選 +2，差 5 ——
+--   那是配合「選中那顆的美術往外凸」設計的，換成平面分頁之後只剩「選中那顆的字特別低」。
+--   舊式分頁早就走 `Engine.CenterTabText`（③ 的 SetPoint 例外）；新式分頁在同樣的位置補上：
+--   只對已接管的分頁（`tabSystemButtons`）、只在暴雪設完位置之後的後置勾／重讀裡跑。
 function Engine.SyncTabSystem(tab)
     if not tabSystemButtons[tab] then return end
     local selected = TabSystemIsSelected(tab) == true
     TabSystemFont(tab, selected)
     Engine.SetSelected(tab, selected)
+    Engine.CenterTabText(tab)
 end
 
 -- 一次重掃所有登記過的新式分頁。配方掛在視窗的全域刷新函式後面就好，
@@ -2267,6 +2274,7 @@ function Engine.TabSystemHooks()
         local selected = S.ToBool(isSelected) == true
         TabSystemFont(tab, selected)
         Engine.SetSelected(tab, selected)
+        Engine.CenterTabText(tab)
     end)
 end
 
@@ -2313,6 +2321,7 @@ function Engine.TrackTabSystem(tab, overlay, key)
     local selected = TabSystemIsSelected(tab) == true
     TabSystemFont(tab, selected)
     Engine.SetSelected(tab, selected)
+    Engine.CenterTabText(tab)
 end
 
 ------------------------------------------------------------

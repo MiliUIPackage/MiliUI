@@ -229,6 +229,8 @@ k = 1、完全不變。職業色不是秘密值，這是純 Lua 算術。
   那是配合「選中的分頁往上凸一截」的端帽造型；九張貼圖一中和、換成我們矩形
   對齊的 overlay 之後，那個落差就只剩「選中的那一顆字特別低」（實機擷圖 15、23）。
   **lint 維持禁止配方與原語直接 `SetPoint`**，這一條只住在 `Core/Engine.lua`。
+  2026-09-24 擴到**新式分頁**（`TabSystemButtonTemplate`）：`TabSystemButtonArtMixin:SetTabSelected` 同樣把 `Text` 放在
+  選中 −3／未選 +2（TabSystemTemplates.lua:33-41,58）⇒ `Engine.SyncTabSystem`、mixin 後置勾、`TrackTabSystem` 初始同步三處各補一次置中。
 
 對**frame**：
 
