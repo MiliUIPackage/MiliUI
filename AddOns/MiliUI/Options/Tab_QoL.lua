@@ -58,6 +58,28 @@ local CONTROLS = {
       set = function(v) if MiliUI_BonusRollFilter then MiliUI_BonusRollFilter.SetOption("hideRaidNormal", v) end end },
     { type = "text", label = "隨機、故事、普通難度的首領擊殺不顯示；英雄與傳奇難度照常顯示。" },
 
+    -- ns.LootHistoryAutoClose 由 Enhance\GroupLootHistory_AutoClose.lua 建（TOC 排在本檔之後，
+    -- 所以一律執行期才問）
+    { type = "header", label = "戰利品擲骰視窗" },
+    { type = "toggle", label = "不讓「戰利品擲骰」視窗自己跳出來",
+      get = function() return ns.LootHistoryAutoClose and ns.LootHistoryAutoClose.IsEnabled() end,
+      set = function(v) if ns.LootHistoryAutoClose then ns.LootHistoryAutoClose.SetEnabled(v) end end },
+    { type = "text", label = "團隊裡每掉一件裝備，遊戲就會自動打開「戰利品擲骰」清單（誰擲了什麼、誰贏了）。"
+        .. "打開這個選項之後依下面的模式處理。只管這個清單視窗，"
+        .. "|cffffd200不影響需求／貪婪的擲骰彈窗本身|r；想看的時候照樣可以輸入 /loot 或點聊天裡的連結打開。" },
+    { type = "dropdown", label = "模式",
+      items = {
+          { text = "完全不自動跳出",       value = "hide" },
+          { text = "跳出後幾秒自動關閉",   value = "autoclose" },
+      },
+      get = function() return ns.LootHistoryAutoClose and ns.LootHistoryAutoClose.GetMode() end,
+      set = function(v) if ns.LootHistoryAutoClose then ns.LootHistoryAutoClose.SetMode(v) end end },
+    { type = "slider", label = "自動關閉秒數", min = 1, max = 30, step = 1,
+      get = function() return ns.LootHistoryAutoClose and ns.LootHistoryAutoClose.GetDelay() end,
+      set = function(v) if ns.LootHistoryAutoClose then ns.LootHistoryAutoClose.SetDelay(v) end end },
+    { type = "text", label = "只在「跳出後幾秒自動關閉」模式有用。視窗開著的時候又掉東西或有新的擲骰結果，"
+        .. "會重新開始計時；戰鬥中到點會等脫離戰鬥再關。你自己用 /loot 打開的不會被自動關掉。" },
+
     { type = "header", label = "遊戲行為（強制覆蓋 CVar，每次載入時套用）" },
     { type = "dropdown", label = "點擊地板清除目標",
       items = {
