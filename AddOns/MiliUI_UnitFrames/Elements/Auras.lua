@@ -115,31 +115,20 @@ end
 --
 -- 插件端讀不到光環內容，所以「不要顯示這幾顆」只能把法術 ID 交給引擎。
 -- ⚠ 引擎對「友方單位的**減益**」禁止 ID 過濾（反自動化），只有標記 NeverSecret
--- 的法術例外 —— 疲勞、自律這類長駐噪音剛好都是（2026-09-23 實測下面七個全是 0）。
+-- 的法術例外 —— 疲勞、自律這類長駐噪音剛好都是（預設名單見 Core/DB.lua 的 SATED_DEBUFFS）。
 -- 增益、以及敵方身上的減益則不受限。
 ------------------------------------------------------------
 
--- 嗜血／英勇類的疲勞減益。玩家最常想藏的就是它，所以做成一個勾選而不是要人自己挑。
--- 新的嗜血類技能出來時補在這裡（要先確認 GetSpellAuraSecrecy 是 0，不然在友方身上無效）
-ns.SATED_DEBUFFS = {
-    [57723]  = true,   -- Exhaustion（英勇）
-    [57724]  = true,   -- Sated（嗜血）
-    [80354]  = true,   -- Temporal Displacement（時間扭曲）
-    [95809]  = true,   -- Insanity（寵物：Ancient Hysteria）
-    [160455] = true,   -- Fatigued（寵物：Netherwinds）
-    [264689] = true,   -- Fatigued（寵物：Primal Rage）
-    [390435] = true,   -- Exhaustion（喚能師：Fury of the Aspects）
-}
-
--- 這一欄要排除的法術 ID（黑名單 ∪ 疲勞），沒有就回 nil
+-- 這一欄要排除的法術 ID，沒有就回 nil。
+-- 一律新建：存檔裡的名單帶 false（移除過的預設條目，見 Core/DB.lua 的 SATED_DEBUFFS），
+-- 也不能讓引擎拿著 SV 本體。
 local function ExcludeSet(edb)
-    local bl = type(edb.blacklist) == "table" and edb.blacklist or nil
-    local sated = edb.hideSated and ns.SATED_DEBUFFS or nil
-    if not (sated or (bl and next(bl))) then return nil end
-    -- 一律新建：存檔裡的表可能帶 false（移除過的條目），也不能讓引擎拿著 SV 本體
+    local bl = edb.blacklist
+    if type(bl) ~= "table" then return nil end
     local out = {}
-    if sated then for id in pairs(sated) do out[id] = true end end
-    if bl then for id, on in pairs(bl) do if on then out[id] = true end end end
+    for id, on in pairs(bl) do
+        if on then out[id] = true end
+    end
     return next(out) and out or nil
 end
 
