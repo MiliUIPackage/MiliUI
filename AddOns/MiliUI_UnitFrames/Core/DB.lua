@@ -674,6 +674,21 @@ function DB.BuildDefaults()
                                   justifyH = "RIGHT", justifyV = "TOP", color = white(1) },
                         icon  = { x = 0, y = 0, w = 10, h = 10 },
                     },
+                    -- 光環預設關。框體上方是施法條（y 10~20）與團隊標記，所以兩排都放下面：
+                    -- 減益緊貼框底（底緣 = 血條 20 ＋ 魔力條 10 = -30），增益接在它下面。
+                    -- 減益限一排（6 顆 × 20 = 框寬），換行就會壓到增益那排。
+                    debuffs = { enabled = false, x = 0, y = -31, w = 19, h = 19,
+                                maxCount = 6, perRow = 6, growth = "LRTB", spacing = 1,
+                                onlyMine = false, filterMode = "all",
+                                showStack = true, stackSize = 10,
+                                stackAnchor = "TOP", stackX = 0, stackY = 4,
+                                durationText = false, durationThreshold = 60,
+                                hideSated = true },
+                    buffs  = { enabled = false, x = 0, y = -51, w = 19, h = 19,
+                               maxCount = 12, perRow = 6, growth = "LRTB", spacing = 1,
+                               showStack = true, stackSize = 10,
+                               stackAnchor = "TOP", stackX = 0, stackY = 4,
+                               durationText = false, durationThreshold = 60, filterMode = "all" },
                     icons = { enabled = true,
                               raidtarget = { enabled = true, x = 52, y = 12, w = 16, h = 16, level = ICON_LEVEL } },
                 },
