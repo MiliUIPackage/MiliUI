@@ -71,6 +71,21 @@ local function BuildDefaults()
             -- 兩個都貼著受限的動作（提交天賦、切換專精、傳送進副本）⇒ 各自獨立一個開關。
             playerspells = true,
             delvespicker = true,
+            -- 第十二輪（2026-09-23）：做法照成熟同類實作的範圍、樣式套這包的；
+            -- 會送出受保護／受限請求的按鈕全部零腳本。各自一個開關，出事先關對應那一項。
+            communities = true,
+            calendar = true,
+            macro = true,
+            trainer = true,
+            trade = true,
+            inspect = true,
+            socketing = true,
+            iteminteraction = true,
+            loot = true,
+            delvescompanion = true,
+            transmog = true,
+            customerorders = true,
+            playerchoice = true,
             -- 第五輪的兩個特許視窗（只做純視覺、零 hook 進點擊路徑）。
             -- 預設開，但它們是整包唯一「按鈕通往受保護動作」的兩個視窗 ——
             -- 玩家一遇到「按了沒反應」就該先關掉這兩項，所以各自獨立一個開關。

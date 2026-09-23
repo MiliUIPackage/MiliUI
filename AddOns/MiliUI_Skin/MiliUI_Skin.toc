@@ -67,6 +67,20 @@ Skins\WeeklyRewards.lua
 # 第十一輪：天賦與法術書（原本 C 級，範圍比特許還窄 —— 動它之前先讀檔頭）＋ 探究難度選擇
 Skins\PlayerSpells.lua
 Skins\DelvesPicker.lua
+# 第十二輪：做法照成熟同類實作的範圍；受保護按鈕全零腳本（動之前先讀各檔檔頭）
+Skins\Communities.lua
+Skins\Calendar.lua
+Skins\Macro.lua
+Skins\Trainer.lua
+Skins\Trade.lua
+Skins\Inspect.lua
+Skins\ItemSocketing.lua
+Skins\ItemInteraction.lua
+Skins\Loot.lua
+Skins\DelvesCompanion.lua
+Skins\Transmog.lua
+Skins\CustomerOrders.lua
+Skins\PlayerChoice.lua
 # 這兩份是第五輪的特許（原本列在 STYLE.md ⑦ 的 B／C 級）：只做純視覺、
 # 零 hook 進點擊路徑。動它們之前先讀各自的檔頭。
 Skins\Popup.lua

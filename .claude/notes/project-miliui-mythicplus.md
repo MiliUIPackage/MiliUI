@@ -96,3 +96,5 @@ metadata:
 子選單裡的 keepOpen 項目按下去，共用層會在原地重畫後把子選單照同一列重開（這次為它改的），打勾換位置看得到。
 
 **待實機驗證**：`|cnIQ4:` 新格式連結從插件送出伺服器收不收；「19 全形」的寬度估算跟實際聊天框對不對得上；打完鑰石到按鈕亮起要等多久。
+
+**2026-09-23 觸發改照 EllesmereUI RunSummary（DB v2）**：完賽當下就 H.Add 存檔（run.statsPending/statsBaseline），領獎勵 CHALLENGE_MODE_COMPLETED_REWARDS／LOOT_CLOSED／PEW 任一先到開面板，統計補完是保底。舊版「偶爾沒跳出來」的推測成因：存檔＋開面板掛在 30 秒重試鏈尾巴，單次報錯就斷鏈；完賽後 IsChallengeModeActive 仍是 true，換地圖時 OnEnteringWorld 補開場把 gen +1 害重試自殺。面板位置改存 TOP 位移（預設 0,-73，由使用者 CENTER y=421 推得），v1 存檔換算。待實機驗證：REWARDS 事件存在且在 COMPLETED 之後到。
