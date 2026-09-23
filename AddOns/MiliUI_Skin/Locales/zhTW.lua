@@ -51,6 +51,11 @@ L["AddOns"] = "插件"
 L["Adventure Guide"] = "冒險指南"
 L["Great Vault"] = "宏偉寶庫"
 L["Turn this off first if you cannot select or claim a Great Vault reward."] = "若宏偉寶庫選不了或領不了獎勵，先關掉這一項。"
+-- 第十一輪：暴雪 GlobalStrings：TALENTS（天賦）、SPELLBOOK（法術書）、DELVES_LABEL（探究）
+L["Talents & Spellbook"] = "天賦與法術書"
+L["Turn this off first if applying talents, switching specialization or casting from the spellbook stops working."] = "若套用天賦、切換專精或從法術書施法沒反應，先關掉這一項。"
+L["Delve Difficulty Picker"] = "探究難度選擇"
+L["The difficulty window at a Delve or world instance entrance. Its background art is kept."] = "走進探究或世界副本入口時跳出的難度視窗。保留原本的場景底圖。"
 -- 第五輪的兩個特許視窗。「遊戲選項」是 ESC 選單標題列的官方字串（MAINMENU_BUTTON）
 L["Confirmation Popups"] = "確認視窗"
 L["Game Menu"] = "遊戲選項"

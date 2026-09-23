@@ -2239,6 +2239,31 @@ function Engine.TabSystemHooks()
     end)
 end
 
+-- 第二條同步路徑的共用版：`TabSystemOwnerMixin.SetTab` 的全域 mixin 後置勾。
+--
+-- 用得到它的視窗，分頁都是 XML 載入期就建好的（mixin 勾追不上，註 ⓘ），而且
+-- 自己的 `SetTab` 最後一行是**明碼的全域表查詢** `TabSystemOwnerMixin.SetTab(self, tabID)`
+-- ⇒ 勾全域表接得到、不必在暴雪框上寫欄位：
+--   專業    `ProfessionsMixin:SetTab`（Blizzard_ProfessionsFrame.lua:457）
+--   天賦    `PlayerSpellsFrameMixin:SetTab`（Blizzard_PlayerSpellsFrame.lua:144）
+--   法術書  `SpellBookFrameMixin:SetTab`（SpellBook/Blizzard_SpellBookFrame.lua:199）
+-- ⚠ 以前住在 `Skins/Professions.lua` 裡；第十一輪天賦也要用 ⇒ 升格成冪等的一支，
+--   兩份配方各勾一次會變成每次切分頁重掃兩遍。
+-- ⚠ 全遊戲共用 ⇒ 內容只有 `SyncTabSystemAll()`（第一行查弱鍵表），**不讀參數**。
+local tabSystemOwnerHooked = false
+function Engine.TabSystemOwnerHooks()
+    if tabSystemOwnerHooked then return end
+    local mixin = _G.TabSystemOwnerMixin
+    if type(mixin) ~= "table" or type(mixin.SetTab) ~= "function" then
+        Engine.Missing("TabSystemOwnerMixin:SetTab")
+        return
+    end
+    tabSystemOwnerHooked = true
+    hooksecurefunc(mixin, "SetTab", function()
+        Engine.SyncTabSystemAll()
+    end)
+end
+
 -- `Skin.TabSystem` 建完 overlay 之後把分頁交給這裡管。
 function Engine.TrackTabSystem(tab, overlay, key)
     if not tab or not overlay then return end
