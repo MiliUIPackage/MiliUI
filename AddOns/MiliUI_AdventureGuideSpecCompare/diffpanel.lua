@@ -45,6 +45,52 @@ local baselineSpecID    -- 目前選的基準天賦
 local baselineClassID   -- 上次決定 baseline 時的職業（換職業就重置）
 
 -- ============================================================
+-- 樣式（AGSCDB.style）
+-- MILI ＝ 這次登入畫的是「米利UI」樣式。第一次建面板時定下（CreatePanel），之後不變——
+-- 兩種樣式的框結構不同，換樣式要 /reload（見 core.lua 的 ns.SetStyle）。
+-- ============================================================
+local MILI = false
+local MILI_TITLE_H = 22
+
+-- 米利UI 樣式的色票（套組設定視窗皮，數值同 MiliUI_Skin/Core/Tokens.lua）
+local MC = {
+    fill             = { 0.115, 0.115, 0.115, 1 },   -- 面板底（不透明）
+    titleFill        = { 0.08, 0.08, 0.08, 1 },      -- 標題列：比面板暗一階
+    border           = { 0, 0, 0, 1 },               -- 1px 純黑硬邊
+    textDim          = { 0.65, 0.65, 0.65 },         -- 欄位標籤、空狀態
+    headerFill       = { 0.16, 0.16, 0.16, 1 },      -- 天賦欄標題（比面板亮一階）
+    headerSelected   = { 0.21, 0.21, 0.21, 1 },      -- 基準天賦那一欄（再亮一階 ＋ 職業色直條）
+    line             = { 0.22, 0.22, 0.22, 1 },      -- 小節標題後的髮絲線
+    scrollTrack      = { 0.08, 0.08, 0.08, 1 },
+    scrollThumb      = { 0.35, 0.35, 0.35, 1 },
+    scrollThumbHover = { 0.5, 0.5, 0.5, 1 },
+}
+
+-- 物品名稱的字（米利UI 樣式）。名字的顏色是品質色碼，字型物件只管字型與陰影。
+local itemFont
+local function ItemFont()
+    if not itemFont then
+        itemFont = CreateFont("MiliUIAGSC_FontItem")
+        itemFont:SetFont(ns.WidgetsEnv.Font(), 12, "")
+        itemFont:SetTextColor(1, 1, 1)
+        itemFont:SetShadowColor(0, 0, 0)
+        itemFont:SetShadowOffset(1, -1)
+    end
+    return itemFont
+end
+
+local function SetPanelTitle(text)
+    if not panel then return end
+    if panel.titleText then
+        panel.titleText:SetText(text)
+    elseif panel.SetTitle then
+        panel:SetTitle(text)
+    elseif panel.TitleText then
+        panel.TitleText:SetText(text)
+    end
+end
+
+-- ============================================================
 -- 一次性 frame factory（script 只綁一次）
 -- ============================================================
 local function BuildItemButton(btn)
@@ -61,7 +107,12 @@ local function BuildItemButton(btn)
     btn.iconBorder:SetPoint("TOPLEFT", btn.icon, "TOPLEFT", -1, 1)
     btn.iconBorder:SetPoint("BOTTOMRIGHT", btn.icon, "BOTTOMRIGHT", 1, -1)
 
-    btn.name = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    if MILI then
+        btn.name = btn:CreateFontString(nil, "OVERLAY")
+        btn.name:SetFontObject(ItemFont())
+    else
+        btn.name = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    end
     btn.name:SetPoint("LEFT", btn.icon, "RIGHT", 4, 0)
     btn.name:SetPoint("RIGHT", btn, "RIGHT", -2, 0)
     btn.name:SetJustifyH("LEFT")
@@ -126,7 +177,20 @@ local function BuildSpecHeader(f)
     f.iconBorder:SetPoint("TOPLEFT", f.icon, "TOPLEFT", -1, 1)
     f.iconBorder:SetPoint("BOTTOMRIGHT", f.icon, "BOTTOMRIGHT", 1, -1)
 
-    f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    if MILI then
+        -- 基準天賦那一欄的「選中」訊號：左緣 2px 職業色直條（狀態只換明暗，色相由職業決定）
+        f.accentBar = f:CreateTexture(nil, "ARTWORK")
+        f.accentBar:SetColorTexture(ns.W.Accent(1))
+        f.accentBar:SetPoint("TOPLEFT")
+        f.accentBar:SetPoint("BOTTOMLEFT")
+        f.accentBar:SetWidth(ns.P.Scale(2))
+        f.accentBar:Hide()
+
+        f.title = f:CreateFontString(nil, "OVERLAY")
+        f.title:SetFontObject(ns.W.fontNormal)
+    else
+        f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    end
     f.title:SetPoint("LEFT", f.icon, "RIGHT", 4, 0)
     f.title:SetPoint("RIGHT", f, "RIGHT", -2, 0)
     f.title:SetJustifyH("LEFT")
@@ -134,13 +198,22 @@ local function BuildSpecHeader(f)
 end
 
 local function BuildSubHeader(f)
-    f.label = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    if MILI then
+        f.label = f:CreateFontString(nil, "OVERLAY")
+        f.label:SetFontObject(ns.W.fontSmall)
+    else
+        f.label = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    end
     f.label:SetPoint("LEFT", 4, 0)
     f.line = f:CreateTexture(nil, "ARTWORK")
-    f.line:SetHeight(1)
+    f.line:SetHeight(MILI and ns.P.Scale(1) or 1)
     f.line:SetPoint("LEFT", f.label, "RIGHT", 6, 0)
     f.line:SetPoint("RIGHT", -4, 0)
-    f.line:SetColorTexture(0.5, 0.5, 0.5, 0.4)
+    if MILI then
+        f.line:SetColorTexture(unpack(MC.line))
+    else
+        f.line:SetColorTexture(0.5, 0.5, 0.5, 0.4)
+    end
 end
 
 -- ============================================================
@@ -167,32 +240,55 @@ end
 
 -- ============================================================
 -- 建立 Panel
+--
+-- 兩種外觀（AGSCDB.style）只差在「外框＋標題列＋關閉鈕＋下拉＋勾選框＋捲軸長相」，
+-- 內容區（ScrollFrame、pool、空狀態）與所有行為是同一份。
+--   blizzard：BasicFrameTemplate ＋ WowStyle1DropdownTemplate ＋ UICheckButtonTemplate（原本的樣子，一行沒改）
+--   miliui  ：套組設定視窗皮 —— 0.115 不透明底、1px 黑邊、直角、標題列暗一階、線條 ×，
+--             下拉與勾選框走共用層 Libs/MiliUIWidgets
 -- ============================================================
-local function CreatePanel()
-    if panel then return panel end
-    if not EncounterJournal then return nil end
 
-    -- 以冒險指南為父框架：顯示/隱藏自動跟隨，無需任何 OnShow/OnHide 時序處理
-    panel = CreateFrame("Frame", "AGSCPanel", EncounterJournal, "BasicFrameTemplate")
-    panel:SetSize(MIN_CONTENT_W + LEFT_PAD + SCROLLBAR_PAD, PANEL_HEIGHT)
-    panel:SetFrameStrata("HIGH")
-    panel:SetToplevel(true)
-    panel:EnableMouse(true)
-    panel:SetClampedToScreen(true)
-    panel:SetMovable(true)
-    RestorePosition()
-
-    if panel.SetTitle then
-        panel:SetTitle("天賦差異")
-    elseif panel.TitleText then
-        panel.TitleText:SetText("天賦差異")
+-- 下拉的「對照天賦」選項變了（換職業／掃描完成）時重建
+local function RefreshDropdown()
+    local dd = panel and panel.specDropdown
+    if not dd then return end
+    if MILI then
+        local items, found = {}, false
+        for _, spec in ipairs(ns.specList) do
+            items[#items + 1] = { text = spec.name, value = spec.id }
+            if spec.id == baselineSpecID then found = true end
+        end
+        dd:SetItems(items)
+        if found then
+            dd:SetSelectedValue(baselineSpecID)
+        else
+            dd.selected = nil
+            dd.text:SetText("選擇天賦")
+        end
+    else
+        dd:GenerateMenu()
     end
+end
 
-    -- 拖曳把手（蓋住標題列，但避開右上 X）
+local function ShowSharedTooltip(self, anchor)
+    GameTooltip:SetOwner(self, anchor)
+    GameTooltip:AddLine("對照天賦顯示全系共用裝備")
+    GameTooltip:AddLine("勾選時，最左邊「對照天賦」欄會一併列出全系共用裝備（預設勾選）。", 1, 1, 1, false)
+    GameTooltip:AddLine("取消勾選則排除，避免與上方「全系共用」區塊重複。", 1, 1, 1, false)
+    GameTooltip:Show()
+end
+
+local function OnSharedChanged(checked)
+    if ns.db then ns.db.baselineShowShared = checked and true or false end
+    Refresh()
+end
+
+-- 拖曳把手（蓋住標題列，但避開右上 X）
+local function MakeDrag(height, rightGap)
     local drag = CreateFrame("Frame", nil, panel)
     drag:SetPoint("TOPLEFT", 0, 0)
-    drag:SetPoint("TOPRIGHT", -26, 0)
-    drag:SetHeight(22)
+    drag:SetPoint("TOPRIGHT", -rightGap, 0)
+    drag:SetHeight(height)
     drag:EnableMouse(true)
     drag:RegisterForDrag("LeftButton")
     drag:SetScript("OnDragStart", function() panel:StartMoving() end)
@@ -201,6 +297,14 @@ local function CreatePanel()
         SavePosition()
     end)
     panel.drag = drag
+end
+
+-- 暴雪原生樣式（原本的外框，保持原樣）
+local function BuildChromeBlizzard()
+    -- 以冒險指南為父框架：顯示/隱藏自動跟隨，無需任何 OnShow/OnHide 時序處理
+    panel = CreateFrame("Frame", "AGSCPanel", EncounterJournal, "BasicFrameTemplate")
+
+    MakeDrag(22, 26)
 
     -- 對照天賦下拉選單
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -233,19 +337,111 @@ local function CreatePanel()
     cbLabel:SetPoint("RIGHT", cb, "LEFT", -2, 0)
     cbLabel:SetText("對照天賦顯示全系共用裝備")
     cb:SetChecked(ns.db and ns.db.baselineShowShared or false)
-    cb:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-        GameTooltip:AddLine("對照天賦顯示全系共用裝備")
-        GameTooltip:AddLine("勾選時，最左邊「對照天賦」欄會一併列出全系共用裝備（預設勾選）。", 1, 1, 1, false)
-        GameTooltip:AddLine("取消勾選則排除，避免與上方「全系共用」區塊重複。", 1, 1, 1, false)
-        GameTooltip:Show()
-    end)
+    cb:SetScript("OnEnter", function(self) ShowSharedTooltip(self, "ANCHOR_LEFT") end)
     cb:SetScript("OnLeave", GameTooltip_Hide)
-    cb:SetScript("OnClick", function(self)
-        if ns.db then ns.db.baselineShowShared = self:GetChecked() and true or false end
+    cb:SetScript("OnClick", function(self) OnSharedChanged(self:GetChecked()) end)
+    panel.showSharedCheck = cb
+end
+
+-- 米利UI 樣式：套組設定視窗皮
+local function BuildChromeMili()
+    local W, P = ns.W, ns.P
+
+    panel = CreateFrame("Frame", "AGSCPanel", EncounterJournal, "BackdropTemplate")
+    W.Stylize(panel, MC.fill, MC.border)
+
+    -- 標題列：比面板暗一階，畫在 1px 邊框內側
+    local bar = panel:CreateTexture(nil, "BACKGROUND", nil, 1)
+    bar:SetColorTexture(unpack(MC.titleFill))
+    bar:SetPoint("TOPLEFT", P.Scale(1), -P.Scale(1))
+    bar:SetPoint("TOPRIGHT", -P.Scale(1), -P.Scale(1))
+    bar:SetHeight(MILI_TITLE_H)
+    panel.titleBar = bar
+
+    local title = panel:CreateFontString(nil, "OVERLAY")
+    title:SetFontObject(W.fontTitle)
+    title:SetPoint("LEFT", bar, "LEFT", 8, 0)
+    title:SetPoint("RIGHT", bar, "RIGHT", -28, 0)
+    title:SetJustifyH("LEFT")
+    title:SetWordWrap(false)
+    panel.titleText = title
+
+    -- 關閉鈕：red（button-variants 判準 7：關閉鈕 ×），× 用兩條線自己畫
+    local close = W.CreateButton(panel, "", "red", 16, 16)
+    close:SetPoint("RIGHT", bar, "RIGHT", -3, 0)
+    local th = P.Scale(1)
+    for i = 1, 2 do
+        local ln = close:CreateLine(nil, "OVERLAY")
+        ln:SetColorTexture(1, 1, 1, 1)
+        ln:SetThickness(th)
+        if i == 1 then
+            ln:SetStartPoint("TOPLEFT", 4, -4)
+            ln:SetEndPoint("BOTTOMRIGHT", -4, 4)
+        else
+            ln:SetStartPoint("TOPRIGHT", -4, -4)
+            ln:SetEndPoint("BOTTOMLEFT", 4, 4)
+        end
+    end
+    close:SetScript("OnClick", function() panel:Hide() end)
+    panel.closeButton = close
+
+    MakeDrag(MILI_TITLE_H + 1, 24)
+
+    -- 對照天賦下拉選單（欄位標籤＝次要灰）
+    local label = panel:CreateFontString(nil, "OVERLAY")
+    label:SetFontObject(W.fontSmall)
+    label:SetTextColor(unpack(MC.textDim))
+    label:SetPoint("TOPLEFT", LEFT_PAD + 2, DROPDOWN_ROW_Y - 4)
+    label:SetText("對照天賦：")
+    panel.ddLabel = label
+
+    local dd = W.CreateDropdown(panel, 130, {}, function(id)
+        baselineSpecID = id
         Refresh()
     end)
+    dd:SetPoint("LEFT", label, "RIGHT", 4, 0)
+    panel.specDropdown = dd
+
+    -- 「對照天賦顯示全系共用裝備」勾選框（固定右側，標籤在框的左邊，跟暴雪樣式同一個版面）
+    local cb = W.CreateCheckButton(panel, "", OnSharedChanged)
+    cb:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -10, DROPDOWN_ROW_Y - 3)
+    local cbLabel = panel:CreateFontString(nil, "OVERLAY")
+    cbLabel:SetFontObject(W.fontSmall)
+    cbLabel:SetTextColor(unpack(MC.textDim))
+    cbLabel:SetPoint("RIGHT", cb, "LEFT", -6, 0)
+    cbLabel:SetText("對照天賦顯示全系共用裝備")
+    -- 點標籤也能勾：熱區往左延伸到標籤
+    cb:SetHitRectInsets(-(cbLabel:GetStringWidth() + 8), 0, 0, 0)
+    cb:SetChecked(ns.db and ns.db.baselineShowShared or false)
+    cb:SetScript("OnEnter", function(self)
+        self:SetBackdropBorderColor(W.Accent(1))
+        ShowSharedTooltip(self, "ANCHOR_LEFT")
+    end)
+    cb:SetScript("OnLeave", function(self)
+        self:SetBackdropBorderColor(0, 0, 0, 1)
+        GameTooltip_Hide()
+    end)
     panel.showSharedCheck = cb
+end
+
+local function CreatePanel()
+    if panel then return panel end
+    if not EncounterJournal then return nil end
+
+    -- 樣式在第一次建框時定下（之後換要 /reload）。共用層沒載到就退回暴雪樣式。
+    MILI = (not ns.db or ns.db.style ~= "blizzard") and ns.W ~= nil and ns.W.Menu ~= nil
+    ns.activeStyle = MILI and "miliui" or "blizzard"
+
+    if MILI then BuildChromeMili() else BuildChromeBlizzard() end
+
+    panel:SetSize(MIN_CONTENT_W + LEFT_PAD + SCROLLBAR_PAD, PANEL_HEIGHT)
+    panel:SetFrameStrata("HIGH")
+    panel:SetToplevel(true)
+    panel:EnableMouse(true)
+    panel:SetClampedToScreen(true)
+    panel:SetMovable(true)
+    RestorePosition()
+    SetPanelTitle("天賦差異")
 
     -- 內容 scroll（自製細捲軸，無箭頭按鈕；不夠長時自動隱藏）
     local scroll = CreateFrame("ScrollFrame", nil, panel)
@@ -260,8 +456,10 @@ local function CreatePanel()
     panel.content = content
 
     -- 細捲軸（貼齊右緣，全高）
+    -- 米利UI 樣式照套組捲軸：6px 細條、軌道 0.08、拇指 0.35、滑過提亮到 0.5
+    local barW = MILI and 6 or 8
     local bar = CreateFrame("Slider", nil, panel)
-    bar:SetWidth(8)
+    bar:SetWidth(barW)
     bar:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -7, SCROLL_TOP_Y - 2)
     bar:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -7, 12)
     bar:SetOrientation("VERTICAL")
@@ -270,13 +468,26 @@ local function CreatePanel()
 
     local track = bar:CreateTexture(nil, "BACKGROUND")
     track:SetAllPoints()
-    track:SetColorTexture(0, 0, 0, 0.30)
+    if MILI then
+        track:SetColorTexture(unpack(MC.scrollTrack))
+    else
+        track:SetColorTexture(0, 0, 0, 0.30)
+    end
 
     local thumb = bar:CreateTexture(nil, "OVERLAY")
-    thumb:SetColorTexture(0.55, 0.55, 0.58, 0.85)
-    thumb:SetSize(8, 40)
+    if MILI then
+        thumb:SetColorTexture(unpack(MC.scrollThumb))
+    else
+        thumb:SetColorTexture(0.55, 0.55, 0.58, 0.85)
+    end
+    thumb:SetSize(barW, 40)
     bar:SetThumbTexture(thumb)
     bar.thumb = thumb
+
+    if MILI then
+        bar:SetScript("OnEnter", function() thumb:SetColorTexture(unpack(MC.scrollThumbHover)) end)
+        bar:SetScript("OnLeave", function() thumb:SetColorTexture(unpack(MC.scrollThumb)) end)
+    end
 
     bar:SetScript("OnValueChanged", function(_, value)
         scroll:SetVerticalScroll(value)
@@ -299,7 +510,14 @@ local function CreatePanel()
         f:Hide(); f:ClearAllPoints()
     end)
 
-    local empty = content:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    local empty
+    if MILI then
+        empty = content:CreateFontString(nil, "OVERLAY")
+        empty:SetFontObject(ns.W.fontNormal)
+        empty:SetTextColor(unpack(MC.textDim))
+    else
+        empty = content:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    end
     empty:SetPoint("TOPLEFT", 10, -10)
     empty:SetWidth(MIN_CONTENT_W - 20)
     empty:SetJustifyH("CENTER")
@@ -463,11 +681,7 @@ local function UpdateTitle()
     if not panel then return end
     local name = EJ_GetInstanceInfo and EJ_GetInstanceInfo()
     local title = (name and name ~= "") and (name .. " 天賦裝備比對") or "天賦裝備比對"
-    if panel.SetTitle then
-        panel:SetTitle(title)
-    elseif panel.TitleText then
-        panel.TitleText:SetText(title)
-    end
+    SetPanelTitle(title)
 end
 
 local function showEmpty(text)
@@ -535,7 +749,9 @@ Refresh = function()
         local h = acquireSub(contentW)
         h:SetParent(content)
         h:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
-        h.label:SetText(string.format("|cffffd200全系共用 (%d)|r", #view.universal))
+        -- 米利UI 樣式：小節標題白字（金色是暴雪的標題色，不是資訊）
+        h.label:SetText(string.format(MILI and "|cffffffff全系共用 (%d)|r" or "|cffffd200全系共用 (%d)|r",
+            #view.universal))
         h:Show()
         y = y - SUBHEADER_H
 
@@ -560,7 +776,12 @@ Refresh = function()
         local hd = acquireSpecHeader(COL_INNER)
         hd:SetParent(content)
         hd:SetPoint("TOPLEFT", content, "TOPLEFT", COL_PAD, cy)
-        hd.bg:SetColorTexture(1, 0.82, 0, 0.2)
+        if MILI then
+            hd.bg:SetColorTexture(unpack(MC.headerSelected))
+            hd.accentBar:Show()
+        else
+            hd.bg:SetColorTexture(1, 0.82, 0, 0.2)
+        end
         hd.icon:SetTexture(view.baseline.spec.icon)
         hd.title:SetText(view.baseline.spec.name)
         hd:Show()
@@ -579,7 +800,12 @@ Refresh = function()
         local hd = acquireSpecHeader(COL_INNER)
         hd:SetParent(content)
         hd:SetPoint("TOPLEFT", content, "TOPLEFT", x + COL_PAD, cy)
-        hd.bg:SetColorTexture(1, 1, 1, 0.08)
+        if MILI then
+            hd.bg:SetColorTexture(unpack(MC.headerFill))
+            hd.accentBar:Hide()
+        else
+            hd.bg:SetColorTexture(1, 1, 1, 0.08)
+        end
         hd.icon:SetTexture(c.spec.icon)
         hd.title:SetText(c.spec.name)
         hd:Show()
@@ -652,15 +878,12 @@ function ns.TogglePanel()
 end
 
 -- ============================================================
--- 註冊
+-- 主開關按鈕（兩種樣式）＋ 樣式選單
+-- 兩個建構函式都回傳 btn, UpdateToggleAppearance(hover)
 -- ============================================================
-ns.RegisterOnEJLoaded(function()
-    if ns._panelInited then return end
-    ns._panelInited = true
 
-    CreatePanel()
-
-    -- 主開關按鈕（MiliUI 風格，錨在冒險指南右上角上方）
+-- 暴雪原生樣式：原本的暗金框按鈕（保持原樣）
+local function CreateToggleBlizzard()
     local btn = CreateFrame("Button", "AGSCToggle", EncounterJournal, "BackdropTemplate")
     btn:SetSize(150, 26)
     btn:SetPoint("BOTTOMRIGHT", EncounterJournal, "TOPRIGHT", -6, 2)
@@ -687,6 +910,107 @@ ns.RegisterOnEJLoaded(function()
             btn:SetBackdropBorderColor(0.3, 0.3, 0.3, 0.6)
         end
     end
+    return btn, UpdateToggleAppearance
+end
+
+-- 米利UI 樣式：套組按鈕。它是「開關」不是動作 ⇒ 不用 primary（button-variants 判準 3），
+-- 關＝normal（0.115 底、黑邊）；開＝選中態：底是壓暗的職業色（保護色 × 0.30，同 primary
+-- 的平時底，白字在淺色職業上也讀得到）＋ 邊框全亮職業色。滑過只提亮底，色相不變。
+-- 文字一律白，開／關寫在字上。
+local function ToggleColors()
+    local r, g, b = ns.W.Accent()
+    local lum = 0.299 * r + 0.587 * g + 0.114 * b
+    local k = lum > 0 and math.min(1, 0.40 / lum) or 1   -- 保護色係數（同 Widgets.lua 的 BTN_TEXT_LUM）
+    local on = {
+        { r * k * 0.30, g * k * 0.30, b * k * 0.30, 1 },  -- 平時底
+        { r * k * 0.50, g * k * 0.50, b * k * 0.50, 1 },  -- 滑過底
+        { r, g, b, 1 },                                   -- 平時邊
+        { r, g, b, 1 },                                   -- 滑過邊
+    }
+    -- 四格：切回「關」時邊框才會一起退回黑色（兩格的配色不換邊）
+    local off = {
+        { 0.115, 0.115, 0.115, 1 },
+        { 0.23, 0.23, 0.23, 1 },
+        { 0, 0, 0, 1 },
+        { 0, 0, 0, 1 },
+    }
+    return on, off
+end
+
+local function CreateToggleMili()
+    local W = ns.W
+    local btn = W.CreateButton(EncounterJournal, "", "normal", 150, 22)
+    btn:SetPoint("BOTTOMRIGHT", EncounterJournal, "TOPRIGHT", -6, 2)
+    btn:SetFrameStrata(EncounterJournal:GetFrameStrata())
+    btn:SetFrameLevel(EncounterJournal:GetFrameLevel() + 10)
+
+    local on, off = ToggleColors()
+    local function UpdateToggleAppearance(hover)
+        if ns.db and ns.db.featureEnabled then
+            btn:SetText("天賦裝備比對：開")
+            btn._colors = on
+        else
+            btn:SetText("天賦裝備比對：關")
+            btn._colors = off
+        end
+        if hover == nil then hover = btn:IsVisible() and btn:IsMouseOver() end
+        W.PaintButton(btn, hover)
+    end
+    return btn, UpdateToggleAppearance
+end
+
+-- 右鍵選單：選樣式（存 AGSCDB.style，/reload 生效）
+local function ShowStyleMenu(owner)
+    local cur = ns.db and ns.db.style or "miliui"
+    local pending = cur ~= ns.activeStyle
+    if MILI then
+        local Menu = ns.W.Menu
+        if Menu.IsOpenFor(owner) then Menu.Hide() return end
+        GameTooltip_Hide()
+        local items = {
+            { text = "面板樣式", isTitle = true },
+            { text = ns.STYLE_NAMES.miliui,   isActive = cur == "miliui",
+              onClick = function() ns.SetStyle("miliui") end },
+            { text = ns.STYLE_NAMES.blizzard, isActive = cur == "blizzard",
+              onClick = function() ns.SetStyle("blizzard") end },
+        }
+        if pending then
+            items[#items + 1] = { isSeparator = true }
+            items[#items + 1] = { text = "重新載入介面以套用", onClick = function() ReloadUI() end }
+        end
+        Menu.Show(items, owner)
+    else
+        MenuUtil.CreateContextMenu(owner, function(_, root)
+            root:CreateTitle("面板樣式")
+            for _, style in ipairs({ "miliui", "blizzard" }) do
+                root:CreateRadio(ns.STYLE_NAMES[style],
+                    function() return (ns.db and ns.db.style) == style end,
+                    function() ns.SetStyle(style) end)
+            end
+            if pending then
+                root:CreateDivider()
+                root:CreateButton("重新載入介面以套用", function() ReloadUI() end)
+            end
+        end)
+    end
+end
+
+-- ============================================================
+-- 註冊
+-- ============================================================
+ns.RegisterOnEJLoaded(function()
+    if ns._panelInited then return end
+    ns._panelInited = true
+
+    CreatePanel()
+
+    -- 主開關按鈕（錨在冒險指南右上角上方）
+    local btn, UpdateToggleAppearance
+    if MILI then
+        btn, UpdateToggleAppearance = CreateToggleMili()
+    else
+        btn, UpdateToggleAppearance = CreateToggleBlizzard()
+    end
 
     -- 依主開關狀態套用面板顯示
     local function ApplyFeatureState()
@@ -695,7 +1019,7 @@ ns.RegisterOnEJLoaded(function()
         if ns.db and ns.db.featureEnabled and EncounterJournal:IsShown() then
             SyncBaseline()
             panel:Show()
-            if panel.specDropdown then panel.specDropdown:GenerateMenu() end
+            RefreshDropdown()
             Refresh()
         else
             panel:Hide()
@@ -703,21 +1027,34 @@ ns.RegisterOnEJLoaded(function()
     end
     ns.ApplyFeatureState = ApplyFeatureState
 
-    btn:SetScript("OnClick", function()
+    -- 左鍵＝開關；右鍵＝樣式選單
+    btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    btn:SetScript("OnClick", function(self, mouseButton)
+        if mouseButton == "RightButton" then
+            ShowStyleMenu(self)
+            return
+        end
         if ns.db then ns.db.featureEnabled = not ns.db.featureEnabled end
         ApplyFeatureState()
     end)
     btn:SetScript("OnEnter", function(self)
-        btn:SetBackdropBorderColor(0.8, 0.7, 0.3, 1)
+        if MILI then
+            ns.W.PaintButton(self, true)
+            -- 選單開著時不疊提示
+            if ns.W.Menu.IsOpenFor(self) then return end
+        else
+            btn:SetBackdropBorderColor(0.8, 0.7, 0.3, 1)
+        end
         GameTooltip:SetOwner(self, "ANCHOR_NONE")
         GameTooltip:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -2)
         GameTooltip:SetText("天賦裝備比對", 1, 1, 1)
         GameTooltip:AddLine("由 MiliUI 提供。", 0.7, 0.7, 0.7, false)
         GameTooltip:AddLine("在冒險指南右側顯示同職業各天賦的裝備差異。", 0.7, 0.7, 0.7, false)
+        GameTooltip:AddLine("右鍵：切換面板樣式（米利UI／暴雪原生）", 0.7, 0.7, 0.7, false)
         GameTooltip:Show()
     end)
     btn:SetScript("OnLeave", function()
-        UpdateToggleAppearance()
+        UpdateToggleAppearance(false)
         GameTooltip_Hide()
     end)
     ns.toggle = btn
@@ -731,7 +1068,7 @@ ns.RegisterOnEJLoaded(function()
         end
         SyncBaseline()
         panel:Show()
-        if panel.specDropdown then panel.specDropdown:GenerateMenu() end
+        RefreshDropdown()
         Refresh()
     end)
 
@@ -743,7 +1080,7 @@ end)
 ns.RegisterOnScanned(function()
     SyncBaseline()
     if panel and panel:IsShown() then
-        if panel.specDropdown then panel.specDropdown:GenerateMenu() end
+        RefreshDropdown()
         Refresh()
     end
 end)

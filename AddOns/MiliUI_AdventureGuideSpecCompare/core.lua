@@ -319,6 +319,9 @@ loader:SetScript("OnEvent", function(_, event, name)
         if AGSCDB.baselineShowShared == nil then AGSCDB.baselineShowShared = true end -- 對照欄顯示全系共用（預設開）
         if AGSCDB.showLooted == nil then AGSCDB.showLooted = true end                -- 顯示「已取得」骰子（預設開）
         AGSCDB.looted = nil                                                          -- v1.2 起改純讀 KeystoneLoot，清掉舊的自有記錄
+        -- 面板／開關鈕的外觀：「miliui」＝套組設定視窗皮（預設）、「blizzard」＝原本的暴雪原生樣式。
+        -- 只認這兩個值，其餘（nil、打錯）一律補回預設。換樣式要 /reload（面板只建一次）。
+        if AGSCDB.style ~= "miliui" and AGSCDB.style ~= "blizzard" then AGSCDB.style = "miliui" end
         if IsEJLoaded() then InitEJ() end
     elseif event == "PLAYER_LOGIN" then
         if IsEJLoaded() then InitEJ() end
@@ -373,7 +376,32 @@ local commands = {
     lootinfo = function()
         if ns.Looted and ns.Looted.PrintStats then ns.Looted:PrintStats() end
     end,
+    -- 樣式切換（空白會被剝掉，所以「/agsc style miliui」到這裡是 "stylemiliui"）
+    style = function()
+        ns.SetStyle(ns.db.style == "miliui" and "blizzard" or "miliui")
+    end,
+    stylemiliui = function() ns.SetStyle("miliui") end,
+    styleblizzard = function() ns.SetStyle("blizzard") end,
 }
+
+-- ============================================================
+-- 樣式（AGSCDB.style）
+-- ============================================================
+-- 面板與開關鈕是冒險指南載入時建一次的，兩種樣式的框結構不同（暴雪模板 vs 自畫），
+-- 所以換樣式不即時套用：存起來，/reload 之後生效。
+-- ns.activeStyle ＝ 這次登入實際畫出來的樣式（第一次建框時定下，之後不變）。
+ns.STYLE_NAMES = { miliui = "米利UI", blizzard = "暴雪原生" }
+
+function ns.SetStyle(style)
+    if style ~= "miliui" and style ~= "blizzard" then return end
+    ns.db.style = style
+    local name = ns.STYLE_NAMES[style]
+    if ns.activeStyle and ns.activeStyle ~= style then
+        print("|cff66ccff[AGSC]|r 樣式已設為「" .. name .. "」，輸入 /reload 後生效")
+    else
+        print("|cff66ccff[AGSC]|r 樣式：「" .. name .. "」")
+    end
+end
 
 SLASH_AGSC1 = "/agsc"
 SlashCmdList["AGSC"] = function(msg)
@@ -382,6 +410,6 @@ SlashCmdList["AGSC"] = function(msg)
     if fn then
         fn()
     else
-        print("|cff66ccff[AGSC]|r 指令：/agsc " .. table.concat({"rescan", "dump", "panel", "badges", "looted", "lootinfo", "loot"}, " | "))
+        print("|cff66ccff[AGSC]|r 指令：/agsc " .. table.concat({"rescan", "dump", "panel", "badges", "looted", "lootinfo", "loot", "style [miliui|blizzard]"}, " | "))
     end
 end

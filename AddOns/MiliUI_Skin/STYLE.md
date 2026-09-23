@@ -458,7 +458,7 @@ tooltip 自己的 region、顯示與隱藏自動跟著它。萬一哪天變了�
 ⚠ **不准為了重申樣式去 hook 那支插件**（規則第 3 條）。要不要重申先查
 `MiliUI_Tooltip/Core/Skin.lua` 是怎麼做的，以及那支插件到底有沒有動那個屬性。
 
-**目前的四支：**
+**目前的五支：**
 
 | 檔案 | host | 元件 | 觸發 | 開關 |
 |---|---|---|---|---|
@@ -466,6 +466,7 @@ tooltip 自己的 region、顯示與隱藏自動跟著它。萬一哪天變了�
 | `ThirdParty/Auctionator.lua` | `auctionhouse` | 拍賣插件加在底部的四顆分頁（名字登記，由 host 一次畫完） | `AddCompanionTabs` | `auctionator` |
 | `ThirdParty/PremadeGroupsFilter.lua` | `pve` | 預組隊伍過濾的 `UsePGFButton` ＋ `PremadeGroupsFilterDialog` ＋ 七個面板 | `atLogin = true` | `premadegroupsfilter` |
 | `ThirdParty/RaiderIO.lua` | **無**（nil） | 傳奇鑰石檔案插件自建的兩顆 tooltip | `atLogin = true` ＋ 2／10 秒補掃 | `raiderio` |
+| `ThirdParty/Mapster.lua` | `worldmap` | 地圖增強插件在世界地圖標題帶右上的 `MapsterOptionsButton` | `atLogin = true` | `mapster` |
 
 ### 外部皮膚 handle（`MiliUISkin_API`，`Core/External.lua`）
 
@@ -1708,8 +1709,9 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | `ThirdParty/Auctionator.lua` | `auctionhouse` | 只登記底部那四顆分頁的**全域名字**（`Engine.AddCompanionTabs`）；真正畫的是 host 的 `SkinTabRow`，跟暴雪三顆**同一次** `Skin.TabGroup` | `AddCompanionTabs`（host 的 `AUCTION_HOUSE_SHOW` 伴隨輪） | 它自己的側邊面板與分頁內容（它有自己的主題系統，兩邊都畫就是兩層底） |
 | `ThirdParty/PremadeGroupsFilter.lua` | `pve` | `UsePGFButton`；`PremadeGroupsFilterDialog` 的 chrome／關閉鈕／最大化最小化／重設與設定小鈕／重新整理鈕；七個面板的區塊標題、每列的勾選框與最小最大輸入框、它自己那一種下拉、四顆小文字鈕、進階過濾式與排序輸入框 | `atLogin = true`（視窗、面板與控件全部是檔案層 ＋ XML 一次建完） | 兩顆小圖示鈕的 `Icon`、說明鈕、列標籤、`UsePGFButton.Text` 的寬度、小文字鈕的 `Label` 顏色、它的彈出選單與設定頁 |
 | `ThirdParty/RaiderIO.lua` | **無**（nil） | 它自建的兩顆 tooltip（`RaiderIO_ProfileTooltip` / `_SearchTooltip`）：**有 `MiliUITip_API` 就 `Adopt` 委派**，沒有才退回自己畫提示皮（NineSlice `SetAlpha(0)` ＋ `Engine.RegionBackdrop`，`T.tipFill` ＋ 1px 職業色邊） | `atLogin = true` ＋ 登入後 2／10 秒各補掃一次 | 它的搜尋視窗本體（`BackdropTemplate` ＋ 它自己的 backdrop，我們的底壓在下面看不見）、tooltip 裡的文字顏色（那是它的資料）、模板自帶的 `StatusBar` |
+| `ThirdParty/Mapster.lua` | `worldmap` | `MapsterOptionsButton`（`UIPanelButtonTemplate`，`Skin.Button` secondary —— 開設定頁的導覽鈕） | `atLogin = true`（它在 `PLAYER_LOGIN` 的 `OnEnable` 裡建） | 按鈕位置與文字、它的設定頁。⚠ 先勾「隱藏地圖按鈕」登入、之後才取消的話按鈕是那一刻才建的，要 /reload 才有皮。同一排的 `HandyNotesWorldMapButton` **不做**：它的 NormalTexture 是一張不透明、自帶黑框的 64px 圖示，把整顆按鈕蓋滿，紅色切片本來就看不到 |
 
-⚠ 這四支的 hook 數合計：**0**（`hooksecurefunc` / `SetScript` / 呼叫對方函式一個都沒有）。
+⚠ 這五支的 hook 數合計：**0**（`hooksecurefunc` / `SetScript` / 呼叫對方函式一個都沒有）。
 只有原語內建的 `HookScript("OnEnter"/"OnLeave"/"OnEnable"/"OnDisable")`，
 而那幾個只碰**我們自己的** overlay。
 

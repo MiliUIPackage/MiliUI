@@ -46,8 +46,9 @@ local Media = ns.Media
 --
 -- ⚠ `IMPORTANT` 這個 token 沒有定論（有的實作認為它只標 HELPFUL，也有實作拿它配
 -- HARMFUL 出貨），所以「重要」走 candidateFilter `isPriorityAura`，兩邊都不得罪。
--- ⚠ 不提供 spellID 黑名單：友方單位的減益禁止 ID 過濾（只有標記 NeverSecret 的
--- 才生效），做出來會是一個「有時有用有時沒用」的功能，比沒有更糟。
+-- ⚠ 友方單位的減益禁止 ID 過濾，只有標記 NeverSecret 的法術例外。黑名單在
+-- 那一欄只收 NeverSecret 的（設定視窗用 C_Secrets.GetSpellAuraSecrecy 事先擋），
+-- 所以不會變成「有時有用有時沒用」。
 ------------------------------------------------------------
 local FILTER_MODES = {
     all         = {},
@@ -113,20 +114,45 @@ end
 -- 黑名單 → candidateFilters.excludeSpellIDs
 --
 -- 插件端讀不到光環內容，所以「不要顯示這幾顆」只能把法術 ID 交給引擎。
--- ⚠ 引擎對「友方單位的**減益**」禁止 ID 過濾（反自動化），所以黑名單在
--- 玩家／隊友的減益那一欄是無效的 —— 增益、以及敵方身上的減益都可以。
--- 設定面板那邊有寫清楚，這裡不另外擋（送過去被忽略而已，不會壞）。
+-- ⚠ 引擎對「友方單位的**減益**」禁止 ID 過濾（反自動化），只有標記 NeverSecret
+-- 的法術例外 —— 疲勞、自律這類長駐噪音剛好都是（2026-09-23 實測下面七個全是 0）。
+-- 增益、以及敵方身上的減益則不受限。
 ------------------------------------------------------------
+
+-- 嗜血／英勇類的疲勞減益。玩家最常想藏的就是它，所以做成一個勾選而不是要人自己挑。
+-- 新的嗜血類技能出來時補在這裡（要先確認 GetSpellAuraSecrecy 是 0，不然在友方身上無效）
+ns.SATED_DEBUFFS = {
+    [57723]  = true,   -- Exhaustion（英勇）
+    [57724]  = true,   -- Sated（嗜血）
+    [80354]  = true,   -- Temporal Displacement（時間扭曲）
+    [95809]  = true,   -- Insanity（寵物：Ancient Hysteria）
+    [160455] = true,   -- Fatigued（寵物：Netherwinds）
+    [264689] = true,   -- Fatigued（寵物：Primal Rage）
+    [390435] = true,   -- Exhaustion（喚能師：Fury of the Aspects）
+}
+
+-- 這一欄要排除的法術 ID（黑名單 ∪ 疲勞），沒有就回 nil
+local function ExcludeSet(edb)
+    local bl = type(edb.blacklist) == "table" and edb.blacklist or nil
+    local sated = edb.hideSated and ns.SATED_DEBUFFS or nil
+    if not (sated or (bl and next(bl))) then return nil end
+    -- 一律新建：存檔裡的表可能帶 false（移除過的條目），也不能讓引擎拿著 SV 本體
+    local out = {}
+    if sated then for id in pairs(sated) do out[id] = true end end
+    if bl then for id, on in pairs(bl) do if on then out[id] = true end end end
+    return next(out) and out or nil
+end
+
 local function WithBlacklist(cand, edb)
-    local bl = edb.blacklist
-    if type(bl) ~= "table" or next(bl) == nil then return cand end
+    local ex = ExcludeSet(edb)
+    if not ex then return cand end
     -- ⚠ 不能直接往 mode.cand 上加：那是 FILTER_MODES 裡的共用常數表，
     -- 改下去會污染每一個用到同一個模式的單位。一律複製一份新的。
     local out = {}
     if cand then
         for k, v in pairs(cand) do out[k] = v end
     end
-    out.excludeSpellIDs = bl        -- 格式跟我們存的一樣：[spellID] = true
+    out.excludeSpellIDs = ex        -- 格式：[spellID] = true
     return out
 end
 
@@ -466,12 +492,10 @@ end
 -- ⇒ 每次套設定都白重建一顆容器（而重建的舊容器刪不掉，只是被藏起來）。
 local blScratch = {}
 local function BlacklistKey(edb)
-    local bl = edb.blacklist
-    if type(bl) ~= "table" then return "" end
+    local ex = ExcludeSet(edb)
+    if not ex then return "" end
     wipe(blScratch)
-    for id, on in pairs(bl) do
-        if on then blScratch[#blScratch + 1] = id end
-    end
+    for id in pairs(ex) do blScratch[#blScratch + 1] = id end
     table.sort(blScratch)
     return table.concat(blScratch, ",")
 end
