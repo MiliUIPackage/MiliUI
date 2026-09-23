@@ -67,6 +67,7 @@ local skinners = {
   end,
   CheckBox = function(frame)
     S:HandleCheckBox(frame)
+    frame:SetSize(20, 20)
   end,
   InsetFrame = function(frame)
     if frame.NineSlice then
@@ -93,6 +94,12 @@ local skinners = {
   end,
   MinMaxFrame = function(frame)
     S:HandleMaxMinFrame(frame)
+  end,
+  Slider = function(frame)
+    frame:SetHeight(12)
+    S:HandleSliderFrame(frame.Slider)
+    S:HandleNextPrevButton(frame.Back)
+    S:HandleNextPrevButton(frame.Forward)
   end,
 }
 

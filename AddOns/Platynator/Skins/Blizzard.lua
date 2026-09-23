@@ -19,7 +19,7 @@ local function SkinFrame(details)
 end
 
 local function SetConstants()
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     addonTable.Constants.ButtonFrameOffset = 6
   end
   if addonTable.Constants.IsClassic then

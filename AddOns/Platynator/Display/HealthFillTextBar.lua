@@ -7,13 +7,11 @@ function addonTable.Display.HealthFillTextBarMixin:PostInit()
   if self.details.background.applyColor then -- Apply tint to colours
     self.modColors = addonTable.Display.Utilities.TintAutoColors(self.details.autoColors, self.details.background.color)
   end
-  if addonTable.Constants.IsRetail then
-    self.calculator = CreateUnitHealPredictionCalculator()
-    self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.WithAbsorbs)
-    self.calculator:SetDamageAbsorbClampMode(Enum.UnitDamageAbsorbClampMode.MaximumHealth)
+  self.calculator = CreateUnitHealPredictionCalculator()
+  self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.WithAbsorbs)
+  self.calculator:SetDamageAbsorbClampMode(Enum.UnitDamageAbsorbClampMode.MaximumHealth)
 
-    self.animate = self.details.animate and Enum.StatusBarInterpolation.ExponentialEaseOut or Enum.StatusBarInterpolation.Immediate
-  end
+  self.animate = self.details.animate and Enum.StatusBarInterpolation.ExponentialEaseOut or Enum.StatusBarInterpolation.Immediate
 end
 
 function addonTable.Display.HealthFillTextBarMixin:SetUnit(unit)
@@ -32,6 +30,14 @@ function addonTable.Display.HealthFillTextBarMixin:SetUnit(unit)
     self.animate = nil
     self:UpdateHealth()
     self.animate = animate
+
+    if self.details.showWhenWowDoes then
+      self:RegisterUnitEvent("UNIT_HEALTH", self.unit)
+      self:SetShown(UnitShouldDisplayName(self.unit))
+      addonTable.Cache:RegisterCallback(unit, "target", function()
+        self:SetShown(UnitIsUnit(self.unit, "target") or UnitShouldDisplayName(self.unit))
+      end)
+    end
 
     addonTable.Display.RegisterForColorEvents(self, self.details.autoColors)
   else
@@ -58,6 +64,9 @@ end
 
 function addonTable.Display.HealthFillTextBarMixin:SetColor(...)
   self.foreground:SetTextColor(...)
+  if not self.details.absorb.applyColor then
+    self.absorb:SetTextColor(...)
+  end
   if self.details.background.applyColor then
     local mod = self.details.background.color
     if self.modColors then
@@ -70,34 +79,27 @@ function addonTable.Display.HealthFillTextBarMixin:SetColor(...)
 end
 
 function addonTable.Display.HealthFillTextBarMixin:UpdateHealth()
-  if self.calculator then
-    UnitGetDetailedHealPrediction(self.unit, nil, self.calculator)
+  UnitGetDetailedHealPrediction(self.unit, nil, self.calculator)
 
-    self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.WithAbsorbs)
-    local maxHealth = self.calculator:GetMaximumHealth()
-    self.statusBar:SetMinMaxValues(0, maxHealth)
+  self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.WithAbsorbs)
+  local maxHealth = self.calculator:GetMaximumHealth()
+  self.statusBar:SetMinMaxValues(0, maxHealth)
 
-    self.statusBarAbsorb:SetMinMaxValues(0, maxHealth)
+  self.statusBarAbsorb:SetMinMaxValues(0, maxHealth)
 
-    local absorbs = self.calculator:GetDamageAbsorbs()
-    self.statusBarAbsorb:SetValue(absorbs, self.animate)
-    self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.Default)
-    local newHealth = self.calculator:GetCurrentHealth()
-    self.statusBar:SetValue(newHealth, self.animate)
-  else
-    local absorbs = UnitGetTotalAbsorbs(self.unit)
-    local maxHealth = UnitHealthMax(self.unit)
-    self.statusBar:SetMinMaxValues(0, maxHealth + absorbs)
-    self.statusBarAbsorb:SetMinMaxValues(0, maxHealth)
-    local newHealth = UnitHealth(self.unit, true)
-    self.statusBar:SetValue(newHealth)
-    self.statusBarAbsorb:SetValue(absorbs)
-  end
+  local absorbs = self.calculator:GetDamageAbsorbs()
+  self.statusBarAbsorb:SetValue(absorbs, self.animate)
+  self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.Default)
+  local newHealth = self.calculator:GetCurrentHealth()
+  self.statusBar:SetValue(newHealth, self.animate)
 end
 
 function addonTable.Display.HealthFillTextBarMixin:OnEvent(eventName)
   if eventName == "UNIT_HEALTH" then
     self:UpdateHealth()
+    if self.details.showWhenWowDoes then
+      self:SetShown(UnitShouldDisplayName(self.unit))
+    end
   elseif eventName == "UNIT_MAXHEALTH" then
     self:UpdateHealth()
   elseif eventName == "UNIT_ABSORB_AMOUNT_CHANGED" then

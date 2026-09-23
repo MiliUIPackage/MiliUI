@@ -7,7 +7,7 @@ function addonTable.Display.CreatureTextMixin:SetUnit(unit)
   self.unit = unit
   if self.unit then
     self:RegisterUnitEvent("UNIT_NAME_UPDATE", self.unit)
-    self.defaultText = UnitName(self.unit)
+    self:SaveName()
     self.text:SetText(self.defaultText)
 
     if self.details.showWhenWowDoes then
@@ -50,11 +50,20 @@ function addonTable.Display.CreatureTextMixin:OnEvent(eventName, ...)
       self:SetShown(UnitShouldDisplayName(self.unit))
     end
   elseif eventName == "UNIT_NAME_UPDATE" then
-    self.defaultText = UnitName(self.unit)
+    self:SaveName()
     self.text:SetText(self.defaultText)
   end
 
   self:ColorEventHandler(eventName)
+end
+
+function addonTable.Display.CreatureTextMixin:SaveName()
+  if UnitIsPlayer(self.unit) and RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() then
+    local part1, part2 = UnitName(self.unit)
+    self.defaultText = part1 and part2 and part1 .. Constants.CharacterNameSeparatorConsts.CHARACTERNAME_SURNAME_SEPARATOR .. part2 or part1
+  else
+    self.defaultText = UnitName(self.unit)
+  end
 end
 
 function addonTable.Display.CreatureTextMixin:ApplyTextOverride()

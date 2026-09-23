@@ -7,13 +7,11 @@ function addonTable.Display.HealthBarMixin:PostInit()
   if self.details.background.applyColor then -- Apply tint to colours
     self.modColors = addonTable.Display.Utilities.TintAutoColors(self.details.autoColors, self.details.background.color)
   end
-  if addonTable.Constants.IsRetail then
-    self.calculator = CreateUnitHealPredictionCalculator()
-    self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.WithAbsorbs)
-    self.calculator:SetDamageAbsorbClampMode(Enum.UnitDamageAbsorbClampMode.MaximumHealth)
+  self.calculator = CreateUnitHealPredictionCalculator()
+  self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.WithAbsorbs)
+  self.calculator:SetDamageAbsorbClampMode(Enum.UnitDamageAbsorbClampMode.MaximumHealth)
 
-    self.animate = self.details.animate and Enum.StatusBarInterpolation.ExponentialEaseOut or Enum.StatusBarInterpolation.Immediate
-  end
+  self.animate = self.details.animate and Enum.StatusBarInterpolation.ExponentialEaseOut or Enum.StatusBarInterpolation.Immediate
 end
 
 function addonTable.Display.HealthBarMixin:SetUnit(unit)
@@ -68,29 +66,18 @@ function addonTable.Display.HealthBarMixin:SetColor(...)
 end
 
 function addonTable.Display.HealthBarMixin:UpdateHealth()
-  if self.calculator then
-    UnitGetDetailedHealPrediction(self.unit, nil, self.calculator)
+  UnitGetDetailedHealPrediction(self.unit, nil, self.calculator)
 
-    local maxHealth = self.calculator:GetMaximumHealth()
-    self.statusBar:SetMinMaxValues(0, maxHealth)
+  local maxHealth = self.calculator:GetMaximumHealth()
+  self.statusBar:SetMinMaxValues(0, maxHealth)
 
-    self.statusBarCutaway:SetMinMaxValues(0, maxHealth)
-    self.statusBarAbsorb:SetMinMaxValues(0, maxHealth)
+  self.statusBarCutaway:SetMinMaxValues(0, maxHealth)
+  self.statusBarAbsorb:SetMinMaxValues(0, maxHealth)
 
-    local absorbs = self.calculator:GetDamageAbsorbs()
-    self.statusBarAbsorb:SetValue(absorbs, self.animate)
-    self.newHealth = self.calculator:GetCurrentHealth()
-    self.statusBar:SetValue(self.newHealth, self.animate)
-  else
-    local absorbs = UnitGetTotalAbsorbs(self.unit)
-    local maxHealth = UnitHealthMax(self.unit)
-    self.statusBar:SetMinMaxValues(0, maxHealth + absorbs)
-    self.statusBarCutaway:SetMinMaxValues(0, maxHealth)
-    self.statusBarAbsorb:SetMinMaxValues(0, maxHealth)
-    self.newHealth = UnitHealth(self.unit, true)
-    self.statusBar:SetValue(self.newHealth)
-    self.statusBarAbsorb:SetValue(absorbs)
-  end
+  local absorbs = self.calculator:GetDamageAbsorbs()
+  self.statusBarAbsorb:SetValue(absorbs, self.animate)
+  self.newHealth = self.calculator:GetCurrentHealth()
+  self.statusBar:SetValue(self.newHealth, self.animate)
 end
 
 function addonTable.Display.HealthBarMixin:OnEvent(eventName)

@@ -383,6 +383,7 @@ function addonTable.Display.GetPower(frame, parent)
   frame = frame or CreateFrame("Frame", nil, parent or UIParent)
 
   frame.powerTextures = {}
+  frame.powerStatusPips = {}
 
   function frame:Init(details)
     if frame.Strip then
@@ -401,6 +402,11 @@ function addonTable.Display.GetPower(frame, parent)
       t:SetTexture(self.asset.file)
     end
 
+    for _, sb in ipairs(self.powerStatusPips) do
+      sb.empty:SetTexture(self.asset.file)
+      sb.filled:SetTexture(self.asset.file)
+    end
+
     if frame.PostInit then
       frame:PostInit()
     end
@@ -411,10 +417,13 @@ function addonTable.Display.GetPower(frame, parent)
   end
 
   function frame:ApplySize()
+    local maxPower = self.lastMaxPower
     self.lastMaxPower = nil
     PixelUtil.SetSize(self, (self.asset.width - self.asset.inset) * (self.points and #self.points or 0), self.asset.height)
     if self.points then
       self:SetValue(self.points)
+    elseif self.currentPower and maxPower then
+      self:SetValueSecret(self.currentPower, maxPower, self.lastColor)
     end
   end
 
@@ -454,22 +463,67 @@ function addonTable.Display.GetPower(frame, parent)
     end
 
     if maxPower > 0 then
-      if self.powerTextures[1].SetSpriteSheetCell then
-        for i, point in ipairs(points) do
-          local t = self.powerTextures[i]
-          t:SetSpriteSheetCell(point.set and 1 or 2, 1, 2)
-          t:SetVertexColor(point.color.r, point.color.g, point.color.b)
+      for i, point in ipairs(points) do
+        local t = self.powerTextures[i]
+        t:SetSpriteSheetCell(point.set and 1 or 2, 1, 2)
+        t:SetVertexColor(point.color.r, point.color.g, point.color.b)
+      end
+    end
+  end
+
+  function frame:SetValueSecret(currentPower, maxPower, color)
+    self.currentPower = currentPower
+    self.lastColor = color
+    if self.lastMaxPower ~= maxPower then
+      local width = PixelUtil.ConvertPixelsToUIForRegion(self.asset.width * self.details.scale, self)
+      local height = PixelUtil.ConvertPixelsToUIForRegion(self.asset.height * self.details.scale, self)
+      while #self.powerStatusPips < maxPower do
+        local sb = CreateFrame("StatusBar", nil, self)
+        sb:SetStatusBarTexture("Interface/AddOns/Platynator/Special/transparent.png")
+        sb:SetClipsChildren(true)
+        sb.empty = sb:CreateTexture()
+        sb.empty:SetPoint("LEFT", sb:GetStatusBarTexture(), "RIGHT")
+        sb.empty:SetTexture(self.asset.file)
+        sb.empty:SetSpriteSheetCell(2, 1, 2)
+        sb.filled = sb:CreateTexture()
+        sb.filled:SetTexture(self.asset.file)
+        sb.filled:SetSpriteSheetCell(1, 1, 2)
+        sb.filled:SetAllPoints(sb:GetStatusBarTexture())
+        sb:SetMinMaxValues(#self.powerStatusPips, #self.powerStatusPips + 1)
+        sb:SetValue(#self.powerStatusPips)
+
+        table.insert(self.powerStatusPips, sb)
+      end
+
+      if #self.powerStatusPips > maxPower then
+        for i = maxPower + 1, #self.powerStatusPips do
+          self.powerStatusPips[i]:Hide()
         end
-      else
-        for i, point in ipairs(points) do
-          local t = self.powerTextures[i]
-          if point.set then
-            t:SetTexCoord(0, 0.5, 0, 1)
-          else
-            t:SetTexCoord(0.5, 1, 0, 1)
-          end
-          t:SetVertexColor(point.color.r, point.color.g, point.color.b)
-        end
+      end
+
+      local offset = PixelUtil.ConvertPixelsToUIForRegion((-(self.asset.width - self.asset.inset) * maxPower/2 - self.asset.inset / 2) * self.details.scale, self)
+      local step = PixelUtil.ConvertPixelsToUIForRegion((self.asset.width - self.asset.inset) * self.details.scale, self)
+      for i = 1, maxPower do
+        local sb = self.powerStatusPips[i]
+        sb:ClearAllPoints()
+        sb:SetPoint("LEFT", self, "CENTER", offset, 0)
+        sb:SetSize(width, height)
+        sb.empty:SetSize(width, height)
+        sb:Show()
+        offset = offset + step
+      end
+
+      self.lastMaxPower = maxPower
+
+      PixelUtil.SetSize(self, (self.asset.width - self.asset.inset) * self.details.scale * maxPower, (self.asset.height - self.asset.inset) * self.details.scale)
+    end
+
+    if maxPower > 0 then
+      for i = 1, maxPower do
+        local sb = self.powerStatusPips[i]
+        sb:SetValue(currentPower)
+        sb.filled:SetVertexColor(color.r, color.g, color.b)
+        sb.empty:SetVertexColor(color.r, color.g, color.b)
       end
     end
   end
@@ -762,6 +816,8 @@ function addonTable.Display.GetText(frame, parent)
       Mixin(frame, addonTable.Display.MythicPlusForcesTextMixin)
     elseif details.kind == "energy" then
       Mixin(frame, addonTable.Display.EnergyTextMixin)
+    elseif details.kind == "threat" then
+      Mixin(frame, addonTable.Display.ThreatTextMixin)
     else
       assert(false)
     end

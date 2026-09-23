@@ -765,8 +765,14 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
       MenuUtil.CreateContextMenu(foci[1], function(_, rootDescription)
         rootDescription:SetMinimumWidth(1)
         for _, w in ipairs(foci) do
-          local button = rootDescription:CreateButton(titleMap[w.kind][w.details.kind], function()
-            local index = tIndexOf(widgets, w)
+          local index = tIndexOf(widgets, w)
+          local isSelected = tIndexOf(selectionIndexes, index)
+          local label = titleMap[w.kind][w.details.kind]
+          if isSelected then
+            label = LIGHTBLUE_FONT_COLOR:WrapTextInColorCode(label)
+          end
+          local button = rootDescription:CreateButton(label, function()
+            index = tIndexOf(widgets, w)
             ApplyIndex(index)
           end)
           button:SetOnEnter(function()
@@ -1321,7 +1327,7 @@ function addonTable.CustomiseDialog.GetMainDesigner(parent)
           else
             display = addonTable.Locales.NO_VALUE_UPPER
           end
-        elseif w.details.kind == "energy" then
+        elseif w.details.kind == "energy" or w.details.kind == "threat" then
           display = "50"
           if w.details.showPercentSymbol then
             display = display .. "%"

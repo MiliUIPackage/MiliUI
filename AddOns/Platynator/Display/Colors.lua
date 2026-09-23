@@ -23,11 +23,8 @@ local roleMap = {
 
 local inRelevantThreatInstance, inRelevantEliteInstance, inRelevantDelveInstance = false, false, false
 
--- Checking for party members below the player's level which indicates the mobs will be shifted down one
--- Except when the dungeon is already at its minimum level, in which case the level won't shift.
 local instanceTracker = CreateFrame("Frame")
 instanceTracker:RegisterEvent("PLAYER_ENTERING_WORLD")
-instanceTracker:RegisterEvent("PLAYER_LEVEL_UP")
 instanceTracker:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 instanceTracker:RegisterEvent("INSTANCE_GROUP_SIZE_CHANGED")
 instanceTracker:SetScript("OnEvent", function(_, event)

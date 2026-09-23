@@ -1,6 +1,6 @@
-## Interface: 120100, 120007, 50504, 38001, 20506, 11508, 11509
+## Interface: 120100, 16001, 50504, 38001, 20506, 11509
 ## Title: Platynator
-## Version: 484
+## Version: 490
 ## Author: plusmouse
 ## SavedVariables: PLATYNATOR_CONFIG
 ## SavedVariablesPerCharacter: PLATYNATOR_CURRENT_PROFILE, PLATYNATOR_LAST_INSTANCE
@@ -65,6 +65,7 @@ Display/GuildText.lua
 Display/HealthText.lua
 Display/AbsorbText.lua
 Display/EnergyText.lua
+Display/ThreatText.lua
 Display/CastText.lua
 Display/CastTimeText.lua
 Display/CastTargetText.lua

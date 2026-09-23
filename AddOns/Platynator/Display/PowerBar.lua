@@ -169,7 +169,7 @@ function addonTable.Display.PowerBarMixin:ApplyTarget()
           currentPower = currentPower + 1
         end
       end
-    elseif addonTable.Constants.IsClassic and powerKind == Enum.PowerType.ComboPoints then
+    elseif (addonTable.Constants.IsClassic or addonTable.Constants.IsForever) and powerKind == Enum.PowerType.ComboPoints then
       maxPower = UnitPowerMax("player", powerKind)
       currentPower = GetComboPoints("player", "target")
     else
@@ -183,26 +183,30 @@ function addonTable.Display.PowerBarMixin:ApplyTarget()
     if maxPower == 0 then
       self:Hide()
       return
-    end
+    elseif addonTable.Constants.IsForever then
+      self:Show()
+      self:SetValueSecret(currentPower, maxPower, self.fixedColor or powerColor)
+      return
+    else
+      self:Show()
 
-    self:Show()
+      local points = {}
+      local color = self.fixedColor or powerColor
+      for i = 1, maxPower do
+        table.insert(points, {set = i <= currentPower, color = color})
+      end
 
-    local points = {}
-    local color = self.fixedColor or powerColor
-    for i = 1, maxPower do
-      table.insert(points, {set = i <= currentPower, color = color})
-    end
-
-    if addonTable.Constants.IsRetail then
-      local charged = GetUnitChargedPowerPoints("player")
-      if charged then
-        for _, i in ipairs(charged) do
-          points[i].color = chargedColor
+      if addonTable.Constants.IsRetail then
+        local charged = GetUnitChargedPowerPoints("player")
+        if charged then
+          for _, i in ipairs(charged) do
+            points[i].color = chargedColor
+          end
         end
       end
-    end
 
-    self:SetValue(points)
+      self:SetValue(points, currentPower)
+    end
   else
     self.registered = nil
     self:UnregisterAllEvents()

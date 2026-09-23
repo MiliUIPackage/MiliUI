@@ -33,7 +33,7 @@ function addonTable.Display.NameplateMixin:OnLoad()
 
   self.sizeChangeCount = -1
 
-  if not addonTable.Constants.IsRetail then
+  if not addonTable.Constants.IsSecretsActive then
     addonTable.Display.SetupLegacyAuras(self)
   else
     self.AurasManager = addonTable.Utilities.InitFrameWithMixin(self, addonTable.Display.AurasManagerNextMixin)
@@ -120,7 +120,7 @@ function addonTable.Display.NameplateMixin:InitializeWidgets(design, scaleOffset
   end
   self.aurasInfo = designInfo
   self:AnchorAuras(designInfo)
-  if not addonTable.Constants.IsRetail then
+  if not addonTable.Constants.IsSecretsActive then
     addonTable.Display.InitializeWidgetsLegacyAuras(self, designInfo)
   else
     self.AurasManager:InitializeWidgets(self, designInfo)
@@ -199,7 +199,7 @@ function addonTable.Display.NameplateMixin:SetUnit(unit)
       self:UpdateVisual()
     end)
 
-    if not addonTable.Constants.IsRetail then
+    if not addonTable.Constants.IsSecretsActive then
       addonTable.Display.SetUnitUpdateLegacyAuras(self, self.unit)
     end
     self.AurasManager:SetUnit(self.unit)
@@ -231,7 +231,7 @@ function addonTable.Display.NameplateMixin:SetUnit(unit)
       w:Hide()
     end
 
-    if not addonTable.Constants.IsRetail then
+    if not addonTable.Constants.IsSecretsActive then
       addonTable.Display.SetUnitUpdateLegacyAuras(self, nil)
     end
     self.AurasManager:SetUnit(nil)

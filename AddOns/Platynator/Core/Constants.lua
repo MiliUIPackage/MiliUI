@@ -1,8 +1,11 @@
 ---@class addonTablePlatynator
 local addonTable = select(2, ...)
 
+local build = select(4, GetBuildInfo())
+
 addonTable.Constants = {
-  IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE,
+  IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE and build >= 120000,
+  IsForever = build >= 16000 and build < 20000,
   IsMists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC,
   --IsCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC,
   IsWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC,

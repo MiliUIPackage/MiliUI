@@ -58,12 +58,14 @@ addonTable.CustomiseDialog.DesignWidgets = {
       scale = 1,
       layer = 1,
       animate = false,
+      showWhenWowDoes = false,
       background = {
         color = GetColor("4F4F4F"),
         applyColor = false,
       },
       absorb = {
-        color = GetColor("21c4ff")
+        color = GetColor("21c4ff"),
+        applyColor = true,
       },
       autoColors = {
         CopyTable(addonTable.CustomiseDialog.ColorsConfig["classColors"].default),
@@ -501,6 +503,25 @@ addonTable.CustomiseDialog.DesignWidgets = {
         boss = true,
         miniboss = true,
       },
+    },
+  },
+  {
+    name = addonTable.Locales.THREAT_PERCENTAGE,
+    kind = "texts",
+    default = {
+      kind = "threat",
+      scale = 1,
+      layer = 2,
+      anchor = {"TOPLEFT", -140, 50},
+      color = GetColor("FFFFFF"),
+      maxWidth = 0,
+      align = "CENTER",
+      shorten = "NONE",
+      showPercentSymbol = true,
+      autoColors = {
+        CopyTable(addonTable.CustomiseDialog.ColorsConfig["threat"].default),
+      },
+      showWhenGrouped = true,
     },
   },
   {

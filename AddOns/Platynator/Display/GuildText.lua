@@ -14,7 +14,7 @@ local invalidPattern1 = "^" .. UNIT_TYPE_LEVEL_TEMPLATE:gsub("%%.", ".+") .. "$"
 local invalidPattern2 = "^" .. UNIT_LEVEL_TEMPLATE:gsub("%%.", ".+") .. "$"
 
 local tooltip
-if not C_TooltipInfo then
+if not (addonTable.Constants.IsRetail or addonTable.Constants.IsForever) then
   tooltip = CreateFrame("GameTooltip", "PlatynatorUnitGuildTooltip", nil, "GameTooltipTemplate")
 end
 
@@ -35,20 +35,20 @@ function addonTable.Display.GuildTextMixin:UpdateText()
 
     if self.details.npcRole then
       local text
-        if C_TooltipInfo then
-          local tooltipData = C_TooltipInfo.GetUnit(self.unit)
-          local line = tooltipData.lines[isColorBlindMode and 3 or 2]
-          if not issecretvalue and line or (issecretvalue and not issecretvalue(line) and line and not issecretvalue(line.leftText)) then
-            text = line.leftText
-          end
-        else
-          tooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
-          tooltip:SetUnit(self.unit)
-          local line = _G[tooltip:GetName() .. "TextLeft" .. (isColorBlindMode and 3 or 2)]
-          if line then
-            text = line:GetText()
-          end
+      if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
+        local tooltipData = C_TooltipInfo.GetUnit(self.unit)
+        local line = tooltipData.lines[isColorBlindMode and 3 or 2]
+        if not issecretvalue(line) and line and not issecretvalue(line.leftText) then
+          text = line.leftText
         end
+      else
+        tooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
+        tooltip:SetUnit(self.unit)
+        local line = _G[tooltip:GetName() .. "TextLeft" .. (isColorBlindMode and 3 or 2)]
+        if line then
+          text = line:GetText()
+        end
+      end
       if text and not text:match(invalidPattern1) and not text:match(invalidPattern2) then
         self.defaultText = text
       end

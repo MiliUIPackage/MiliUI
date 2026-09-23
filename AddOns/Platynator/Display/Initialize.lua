@@ -670,48 +670,22 @@ function addonTable.Display.ManagerMixin:UpdateNamePlateSize()
   end
 
   height = height + verticalOffset * globalScale
+  width = math.max(math.min(250, 200 * NamePlateConstants.NAME_PLATE_SCALES[tonumber(C_CVar.GetCVar("nameplateSize"))].horizontal), width)
 
-  if C_NamePlate.SetNamePlateSize then
-    width = math.max(math.min(250, 200 * NamePlateConstants.NAME_PLATE_SCALES[tonumber(C_CVar.GetCVar("nameplateSize"))].horizontal), width)
-    if self.baseBlizzHeight and self.baseBlizzHeight > height then
-      local diff = -(self.baseBlizzHeight - height) / 2
-      self.baseOffsetFriendly = self.baseOffsetFriendly + diff
-      if addonTable.Config.Get(addonTable.Config.Options.NAMEPLATE_POSITION) == "bottom" then
-        diff = -diff
-      end
-      self.baseOffsetEnemy = self.baseOffsetEnemy + diff
-      height = self.baseBlizzHeight
+  if self.baseBlizzHeight and self.baseBlizzHeight > height then
+    local diff = -(self.baseBlizzHeight - height) / 2
+    self.baseOffsetFriendly = self.baseOffsetFriendly + diff
+    if addonTable.Config.Get(addonTable.Config.Options.NAMEPLATE_POSITION) == "bottom" then
+      diff = -diff
     end
-    if addonTable.Constants.IsMists then
-      local uiParentScale = UIParent:GetScale()
-      C_NamePlate.SetNamePlateSize(width * uiParentScale, height * uiParentScale)
-    else
-      C_NamePlate.SetNamePlateSize(width, height)
-    end
-  elseif C_NamePlate.SetNamePlateEnemySize then
-    width = width * UIParent:GetScale() * addonTable.Config.Get(addonTable.Config.Options.CLICK_REGION_SCALE_X)
-    height = height * UIParent:GetScale() * addonTable.Config.Get(addonTable.Config.Options.CLICK_REGION_SCALE_Y)
-    local stackState = addonTable.Config.Get(addonTable.Config.Options.STACKING_NAMEPLATES)
-    local anyStack = stackState.enemy or stackState.friend
-    if stackState.enemy or not anyStack then
-      C_NamePlate.SetNamePlateEnemySize(width, height)
-    else
-      C_NamePlate.SetNamePlateEnemySize(1, 1)
-    end
-    if stackState.friend or not anyStack then
-      C_NamePlate.SetNamePlateFriendlySize(width, height)
-    else
-      C_NamePlate.SetNamePlateFriendlySize(1, 1)
-    end
-    if IsInInstance() then
-      if addonTable.Display.Utilities.IsInRelevantInstance({dungeon = true, raid = true}) then
-        if addonTable.Constants.IsClassic then
-          C_NamePlate.SetNamePlateFriendlySize(128, 16)
-        else
-          C_NamePlate.SetNamePlateFriendlySize(width, height)
-        end
-      end
-    end
+    self.baseOffsetEnemy = self.baseOffsetEnemy + diff
+    height = self.baseBlizzHeight
+  end
+  if addonTable.Constants.IsMists then
+    local uiParentScale = UIParent:GetScale()
+    C_NamePlate.SetNamePlateSize(width * uiParentScale, height * uiParentScale)
+  else
+    C_NamePlate.SetNamePlateSize(width, height)
   end
 end
 

@@ -9,10 +9,6 @@ local hidden = CreateFrame("Frame")
 hidden:Hide()
 addonTable.hiddenFrame = hidden
 
-local offscreen = CreateFrame("Frame")
-offscreen:SetPoint("TOPLEFT", UIParent, "TOPRIGHT")
-addonTable.offscreenFrame = hidden
-
 local function SetStyle(isInit)
   local styleName = addonTable.Config.Get(addonTable.Config.Options.STYLE)
   if styleName:match("^_") then

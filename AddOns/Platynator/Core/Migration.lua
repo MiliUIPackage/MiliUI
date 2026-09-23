@@ -705,6 +705,15 @@ local function UpgradeDesignv19(design)
   end
 end
 
+local function UpgradeDesignv20(design)
+  for _, bar in ipairs(design.specialBars) do
+    if bar.kind == "healthFillText" then
+      bar.absorb.applyColor = true
+      bar.showWhenWowDoes = false
+    end
+  end
+end
+
 local designUpgrades = {
   UpgradeDesignv1,
   UpgradeDesignv2,
@@ -725,6 +734,7 @@ local designUpgrades = {
   UpgradeDesignv17,
   UpgradeDesignv18,
   UpgradeDesignv19,
+  UpgradeDesignv20,
 }
 
 function addonTable.Core.UpgradeDesign(design)

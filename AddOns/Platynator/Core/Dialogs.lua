@@ -163,7 +163,7 @@ function addonTable.Dialogs.ShowAcknowledge(text)
       dialog:Hide()
     end)
 
-    addonTable.Skins.AddFrame("Button", dialog.okButton)
+    addonTable.Skins.AddFrame("Button", okButton)
 
     acknowledgeDialogsBySkin[currentSkinKey] = dialog
   end
