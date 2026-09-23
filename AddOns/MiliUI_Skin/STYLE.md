@@ -16,7 +16,7 @@
 > **第十一輪摘要（未實測）：** ①**天賦與法術書**（`Skins/PlayerSpells.lua`，原本 C 級）——
 > 範圍比特許視窗還窄：只換外框、底部分頁、天賦頁底部那條按鈕列（1612x82 的 `BottomBar`
 > ⇒ footer 帶，高度是 atlas 常數）、法術書的書頁與標題列、搜尋框、下拉、翻頁鈕；
-> **天賦樹、專精美術、法術格、專精卡片一顆都不碰**；套用變更／啟用專精／複製方案字串／
+> **天賦樹、專精美術、專精卡片一顆都不碰；法術格只勾 `SpellBookItemMixin` 的 `UpdateVisuals`／`OnIconEnter`／`OnIconLeave` 換字色與淡背板（2026-09-23 修正：字是暗紅棕 `SPELLBOOK_FONT_COLOR` 不是淺色）**；套用變更／啟用專精／複製方案字串／
 > 載入方案彈窗的按鈕一律零腳本（`Engine.ScriptlessButton`）；**`hooksecurefunc` 在這個視窗的
 > 任何框或 mixin 上 0 支、`HookScript("OnShow")` 0 支**。分頁同步走升格後的
 > `Engine.TabSystemOwnerHooks`（冪等，專業視窗改呼叫同一支）。
@@ -333,6 +333,7 @@ k = 1、完全不變。職業色不是秘密值，這是純 Lua 算術。
 | **按鈕的 `IsEnabled()`** | `Engine.TrackButtonHover`：停用的按鈕不給滑過回饋；**第九輪**：primary 按鈕的停用態初始值（`InstallEnableScripts`，之後由 `OnEnable`／`OnDisable` 更新） | 純 C 端布林；過 `Secret.ToBool`，問不到就當成「可以按」——失敗方向只是多一次提亮。`check_skin.py` 禁止配方與原語直接呼叫，只有 Engine 那一支能讀 |
 | 專業技能書 `<專業框>SpellButtonTop:IsShown()` | 只有一顆技能鈕時把下面那顆垂直置中（`FormatProfession` 後置勾） | 暴雪自己表達「這個專業有幾顆技能鈕」的同一個依據（`FormatProfession` 對它 Show／Hide）。純 C 端布林、過 `Secret.ToBool`，問不到當成「兩顆都在」＝不動 |
 | `MerchantFrame:IsShown()` | 商人配方兩支更新後置勾（`MerchantFrame_UpdateMerchantInfo`／`_UpdateBuybackInfo`）的第一行 | 暴雪在 `MerchantFrame_OnLoad` 就註冊了 `BAG_UPDATE`／`UNIT_INVENTORY_CHANGED`，**視窗沒開也照樣跑更新**（登入幾秒內上千次）；少了這道閘，每一次都是「所有商品格重畫一遍」的空轉。純 C 端布林、過 `Secret.ToBool`，問不到當成「沒開」（少畫一次，失敗方向安全） |
+| 套裝細節部位圖示 `IconBorder:GetAtlas()` | `Skins/CollectionsWardrobe.lua` 的 `SetItemQualityBorder`：atlas → 品質 → `ITEM_QUALITY_COLORS` | 品質色烤在 atlas 裡（Blizzard_Wardrobe_Sets.lua:332-349、ColorManager.lua:174-192），vertex color 三種品質都是白，轉交拿不到；純 C 端查詢、收藏資料不是秘密值；過 `Secret.PlainText`，問不到當黑框；字串只拿來查暴雪自己的常數表、不存（2026-09-23 核准） |
 | **物品格 `IconBorder` 的 `GetVertexColor()`** | 同上：把品質色**轉交**給我們自己的四條邊 | 唯一一條「讀顏色」的例外，規則見下面的**傳遞者規則** |
 
 ### 傳遞者規則（讀顏色唯一的例外）
@@ -1669,7 +1670,7 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 拾取通知（AlertFrame）（第十三輪） | `loottoast` | 全域 `AlertFrame_ShowNewAlert` 後置勾＋延一幀；只認三種形狀；不重排 |
 | 暴雪通知 `BNToastFrame`（第十三輪） | `bntoast` | 提示皮；hook 0 |
 | **就位確認**（第十三輪，**唯一越界白名單**） | `readycheck` | 皮掛 listener（提示皮）、頭像拿掉、量寬重排（白名單①～⑧）。觸發靠自己的 `READY_CHECK` 事件＋延一幀，**不掛 OnShow**（首領戰中發起人名字是秘密值）；按鈕零腳本 |
-| 冒險指南 `EncounterJournal` | `encounterjournal` | chrome／底部七顆分頁（`pad = 0`：`SetNumTabs` 會把分頁重錨成 +3）／五個下拉／六條捲軸／搜尋框／四顆頁籤鈕／戰利品清單、分類列與首領清單（池化列）。**第十輪：綜覽／首領技能／副本簡介三頁整頁深色、文字全接管**（段落 `EncounterInfoTemplate` 走三支全域後置勾 ＋ 每顆標題列的 `HookScript` OnShow／OnClick）；書頁與內嵌框的底墊到 sublevel −4（`useParentLevel` 平手問題）。副本卡片接不到（初始化是 local 函式）；推薦內容／月度活動／旅行者日誌未做 |
+| 冒險指南 `EncounterJournal` | `encounterjournal` | chrome／底部七顆分頁（`pad = 0`：`SetNumTabs` 會把分頁重錨成 +3）／五個下拉／六條捲軸／搜尋框／四顆頁籤鈕／戰利品清單、分類列與首領清單（池化列）。**第十輪：綜覽／首領技能／副本簡介三頁整頁深色、文字全接管**（段落 `EncounterInfoTemplate` 走三支全域後置勾 ＋ 每顆標題列的 `HookScript` OnShow／OnClick）；書頁與內嵌框的底墊到 sublevel −4（`useParentLevel` 平手問題）。副本卡片：`EncounterJournal_ListInstances` 後置勾＋捲動補掃，直角 1px、滑過職業色（2026-09-23）；推薦內容／月度活動／旅行者日誌未做 |
 | 試衣間 `DressUpFrame`＋`SideDressUpFrame` | `dressup` | chrome／關閉鈕／最大化最小化／外觀套裝下拉／外觀清單開關／底部三顆按鈕／右側兩片面板＋捲軸／小試衣間。**模型場景與它的背景不碰** |
 | 物品升級 `ItemUpgradeFrame` | `itemupgrade` | **整個視窗深色化**（全檔零 `SetTextColor`，沒有文字要接管）：chrome／**標題帶**（第七輪）／物品槽／等級下拉／左右兩欄預覽／費用列／持有貨幣列／升級鈕。**所有動畫特效留著** |
 | 插件列表 `AddonList` | `addonlist` | chrome／角色下拉／搜尋框／「載入過期插件」／效能區／底部四顆三片式按鈕／捲軸／**池化列**（插件列與分類列兩態都自己畫）／重載對話框。**只有遊戲內那一份** |
