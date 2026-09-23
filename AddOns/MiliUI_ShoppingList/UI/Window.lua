@@ -48,11 +48,20 @@ local Refresh, Layout   -- 前向宣告：上面的 Dock 與工具列的 OnClick
 ------------------------------------------------------------
 -- 位置
 ------------------------------------------------------------
+-- 兩個存檔位置：
+--   main  平常的位置（/mlist 叫出來時）
+--   ah    拍賣場開著時的位置。玩家在拍賣場旁邊拖過一次就記住，之後開拍賣場都擺
+--         回那裡，不再自動貼齊 —— 自動貼齊只是「還沒擺過」時的預設。
+--         連尺寸一起存：貼齊時寬度跟著拍賣場、高度跟著剩餘空間，跟 main 不一樣。
 local function SavePos()
-    if docked then return end   -- 貼在拍賣場旁邊是暫時的位置，不要存
     local point, _, relPoint, x, y = frame:GetPoint(1)
-    if point then
-        ns.db.windows.main = { point = point, relPoint = relPoint or point, x = x or 0, y = y or 0 }
+    if not point then return end
+    local p = { point = point, relPoint = relPoint or point, x = x or 0, y = y or 0 }
+    if docked then
+        p.w, p.h = frame.width or frame:GetWidth(), frame.height or frame:GetHeight()
+        ns.db.windows.ah = p
+    else
+        ns.db.windows.main = p
     end
 end
 
@@ -68,6 +77,27 @@ local function RestorePos()
     end
 end
 
+-- 拍賣場底下垂著的分頁（購買／出售／拍賣，加上 Auctionator 之類插件自己加的）
+-- 最低到哪裡。分頁長在 AuctionHouseFrame 的矩形**外面**，只看 GetBottom 會把清單
+-- 貼在分頁上面、把分頁蓋掉。
+-- 插件加的分頁常常包在一層容器裡，所以往下看兩層；只算「上緣碰著拍賣場下緣、
+-- 往下垂出去」的東西，不然拍賣場裡面的面板也會被算進來。
+local function AuctionHouseTabsBottom(ahBottom)
+    local lowest = ahBottom
+    local function consider(f)
+        if not (f.IsShown and f:IsShown()) then return end
+        local top, bottom = f:GetTop(), f:GetBottom()
+        if top and bottom and bottom < lowest and top >= ahBottom - 8 and top <= ahBottom + 40 then
+            lowest = bottom
+        end
+    end
+    for _, child in ipairs({ AuctionHouseFrame:GetChildren() }) do
+        consider(child)
+        for _, grand in ipairs({ child:GetChildren() }) do consider(grand) end
+    end
+    return lowest
+end
+
 -- 開拍賣場時把視窗貼到拍賣場**下面**（那裡讀起來最順：拍賣場在上、清單在下，
 -- 視線是往下走的；貼右邊會被推到畫面邊緣去，跟背包之類的東西搶位置）。
 --
@@ -78,19 +108,30 @@ end
 --     不夠 → 才退回貼右邊
 -- **先 Show 才量得到矩形**，再由 W.PlaceClamped 把超出畫面的部分推回來
 -- （共用層 README 的「貼齊螢幕」那一節）。
+-- 玩家拖過（有 windows.ah）就照他擺的，不再自動貼。
 local function DockToAuctionHouse()
     if not AuctionHouseFrame then return false end
     local ahBottom = AuctionHouseFrame:GetBottom()
     if not ahBottom then return false end
     docked = true
 
-    local avail = ahBottom - 12
+    local saved = ns.db.windows.ah
+    if type(saved) == "table" and saved.point then
+        P.Size(frame, saved.w or WINDOW_W, saved.h or WINDOW_H)
+        W.PlaceClamped(frame, { saved.point, UIParent, saved.relPoint or saved.point, saved.x or 0, saved.y or 0 })
+        Layout()
+        return true
+    end
+
+    local tabsBottom = AuctionHouseTabsBottom(ahBottom)
+    local drop = ahBottom - tabsBottom + 4          -- 分頁垂出去的高度＋間距
+    local avail = tabsBottom - 12
     if avail >= MIN_DOCK_H then
         -- 跟拍賣場同寬：貼在它正下方，寬度不一樣會像兩個沒對齊的東西疊著。
         -- 欄位都是靠右錨的，多出來的寬度自動給材料名稱那一欄。
         local w = math.max(WINDOW_W, math.floor(AuctionHouseFrame:GetWidth() or 0))
         P.Size(frame, w, math.min(WINDOW_H, avail))
-        local pts = { "TOPLEFT", AuctionHouseFrame, "BOTTOMLEFT", 0, -4 }
+        local pts = { "TOPLEFT", AuctionHouseFrame, "BOTTOMLEFT", 0, -drop }
         W.PlaceClamped(frame, pts)
     else
         P.Size(frame, WINDOW_W, WINDOW_H)
@@ -406,8 +447,9 @@ local function Build()
     header:SetScript("OnDragStart", function() frame:StartMoving() end)
     header:SetScript("OnDragStop", function()
         frame:StopMovingOrSizing()
-        docked = false          -- 自己拖過就不算貼在拍賣場旁邊了
-        SavePos()
+        -- 位置自己存（SavePos），不交給暴雪的 layout-cache —— 兩邊都存會在登入時互蓋
+        frame:SetUserPlaced(false)
+        SavePos()               -- 拍賣場開著時拖的存成 ah，其餘存成 main
     end)
 
     local title = header:CreateFontString(nil, "OVERLAY")
