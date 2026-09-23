@@ -10,7 +10,16 @@
 ## OptionalDeps: Blizzard_EncounterJournal, KeystoneLoot
 ## Category-zhTW: 資訊
 
+# 像素工具單獨排最前面：Widgets.lua 吃 ns.P
+Libs\MiliUIWidgets\PixelPerfect.lua
+
 core.lua
 looted.lua
 badges.lua
+
+# 共用層（只拿來畫「米利UI」樣式）：Env 要在 Widgets 之前，ContextMenu 要在 Widgets 之後
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
+
 diffpanel.lua
