@@ -24,17 +24,18 @@
 -- （結果清單的欄位表頭 `ResultsListing:Init`、購物頁的兩個清單容器與五個對話框、
 -- `FilterKeySelector` 的下拉）—— **也都在同一個呼叫堆疊裡**，沒有「第一次顯示某頁才建」的東西。
 --
--- 唯一例外是**銷售頁左邊背包清單的分類標題列**（護甲／消耗品…）：`CreateFramePool`
--- （`Source/Groups/View.lua:10`）在背包快取算完之後才 `Acquire`，時間點不定。
+-- 唯一例外是**銷售頁左邊背包清單**（分類標題列與每一格物品）：兩個 `CreateFramePool`
+-- （`Source/Groups/View.lua:10-11`）在背包快取算完之後才 `Acquire`，時間點不定。
 --
 -- ## 觸發時機與理由
 --
 -- | 觸發 | 做什麼 | 理由 |
 -- |---|---|---|
 -- | `event = "AUCTION_HOUSE_SHOW"`（引擎延一幀） | 全掃 | 上面那一整批在拍賣商互動事件的同一幀建好；延一幀之後都在。冪等，每次開拍賣場重掃無害 |
--- | `event = "AUCTION_HOUSE_THROTTLED_SYSTEM_READY"` | 還沒全掃成功就全掃；成功過就**只掃分類標題列** | 補掃時機：(a) 分類標題列是物件池晚一拍才借出來的；(b) 那支插件有一條「別的插件把拍賣場縮到很小」的退路（`Mixin.lua:119-126`，改用 OnUpdate 延後建頁），那時四頁要晚很久才建。這個事件在拍賣場開著的時候、每次查詢節流解除都會來，不開拍賣場不會來 |
+-- | `event = "AUCTION_HOUSE_THROTTLED_SYSTEM_READY"` | 還沒全掃成功就全掃；成功過就**只補背包清單（分類標題列＋物品格）與上方物品格的重裁** | 補掃時機：(a) 背包清單是物件池晚一拍才借出來的，上方物品格換物品之後緊接著就會查價；(b) 那支插件有一條「別的插件把拍賣場縮到很小」的退路（`Mixin.lua:119-126`，改用 OnUpdate 延後建頁），那時四頁要晚很久才建。這個事件在拍賣場開著的時候、每次查詢節流解除都會來，不開拍賣場不會來 |
 --
 -- 戰鬥閘照走（引擎）；**不排 timer**、自己的檔案裡沒有事件框。
+-- 背包清單的物品格另外有一支 `HookScript("OnShow")`（重裁與選中色，理由見物品格那一段）。
 --
 ------------------------------------------------------------
 -- ## 掛了哪些元件
@@ -47,7 +48,8 @@
 --
 -- | 元件 | 模板 | 原語 |
 -- |---|---|---|
--- | `SaleItemFrame.Icon`（拖物品進來那一格） | 自製 `AuctionatorGroupsViewItemTemplate`（`Icon`／`EmptySlot`／`IconBorder`／`IconSelectedHighlight` 四張 parentKey 貼圖，**不是** `ItemButton`） | local `SaleIcon`：`EmptySlot` 中和、`fillInset` 底、前景 1px 黑方框；品質框見「刻意不碰」 |
+-- | `SaleItemFrame.Icon`（拖物品進來那一格） | 自製 `AuctionatorGroupsViewItemTemplate`（`Icon`／`EmptySlot`／`IconBorder`／`IconSelectedHighlight` 四張 parentKey 貼圖，**不是** `ItemButton`） | local `SaleIcon`：空格／品質框／橘光暈中和、`fillInset` 底、圖示裁邊、1px 黑方框（格子自己的貼圖，OVERLAY 6） |
+-- | 背包清單的每一格（`…ItemListingFrame` 的直屬子框，同一個模板，`FramePool`） | 同上 | local `BagItem`：同上但不墊底；**選中那一格的框換職業色**；`HookScript("OnShow")` 重裁與重上選中色 |
 -- | `SaleItemFrame.Quantity.InputBox` | `LargeInputBoxTemplate`（經 `AuctionatorRetailImportLargeInputBoxTemplate`） | `Skin.EditBox` |
 -- | `SaleItemFrame.Price／BidPrice.MoneyInput` 的 `GoldBox`／`SilverBox`／`CopperBox` | `LargeMoneyInputFrameTemplate` | `Skin.EditBox`（同 host 的 `SkinLargeMoneyInput`） |
 -- | `SaleItemFrame.MaxButton`（最大） | `UIPanelDynamicResizeButtonTemplate` | `Skin.Button` secondary |
@@ -158,7 +160,7 @@
 -- | 內嵌框與對話框的 `Bg`／`NineSlice`／`Background`／`Border` | `SetAlpha(0)`；`CreateTexture`（`Engine.RegionBackdrop`） |
 -- | `ButtonFrameTemplate` 對話框的 NineSlice／Portrait／Bg／TitleText | `SetAlpha(0)`／`SetTextColor`（`Skin.PortraitChrome`） |
 -- | 欄位表頭的 `Left`／`Right`／`Middle`；`Arrow` | `SetAlpha(0)`；`SetVertexColor`；Highlight `SetColorTexture`（白 8%） |
--- | 銷售頁物品格的 `EmptySlot` | `SetAlpha(0)` |
+-- | 物品格（上方那格＋背包清單）的 `EmptySlot`／`IconBorder`／`IconSelectedHighlight` | `SetAlpha(0)`；`Icon` | `SetTexCoord`（裁邊）；Highlight | `SetColorTexture`（白 8%）；`CreateTexture`（`Engine.RegionBackdrop`，1px 方框） |
 -- | 分類標題列的 `NormalTexture`；`HighlightTexture`／`SelectedTexture`／`Lines` | `SetAlpha(0)`；`SetDesaturated` ＋ `SetVertexColor` |
 -- | 標籤 FontString（`Deposit`、`Total`、各 `Label`、`SearchLabel`、大標題 `HeadingText`） | `SetTextColor` |
 -- | 以上各框 | `CreateFrame` 掛自己的 overlay（錨在目標上、不吃滑鼠、零腳本） |
@@ -166,25 +168,29 @@
 -- hook：**一支都沒有掛在它的函式上**（`hooksecurefunc` 0、`SetScript` 0、呼叫它的函式 0）。
 --   只有原語內建的 `HookScript("OnEnter"/"OnLeave")`（一般按鈕、下拉、勾選框、單選鈕、分頁、
 --   捲軸拇指）與 primary 一般按鈕的 `HookScript("OnEnable"/"OnDisable")`，內容只碰我們自己的 overlay；
+--   **這個檔案自己的一支**：背包清單物品格的 `HookScript("OnShow")`，內容是圖示 `SetTexCoord`
+--   ＋ 換我們自己那四條邊的顏色（理由與「為什麼不算勾它的函式」見物品格那一段）；
 --   分頁的選中態走引擎既有的三支 `PanelTemplates_*` 後置勾（第一行查弱鍵表）。
 --   **特許按鈕上的 HookScript：0。**
 -- 寫入它的欄位：無（狀態全在 `Engine.State` 的弱鍵表裡）。
 -- 讀它的東西：`_G[名字]`、parentKey 路徑、`GetChildren`／`GetObjectType`（結構）、
---   `BagListing:IsShown()`（一次，決定小分頁順序）、原語內部的 getter。
+--   `BagListing:IsShown()`（一次，決定小分頁順序）、物品格 `IconSelectedHighlight:IsShown()`
+--   （每次 OnShow／補掃，決定選中色）、原語內部的 getter。
 --   **不讀** 它的任何 Lua 資料欄位（`itemInfo`、`elementData`…）、不讀 `Auctionator.Config`。
 --
 ------------------------------------------------------------
 -- ## 刻意不碰的東西
 --
--- * **所有清單的「列」**（結果清單、購物清單、最近搜尋、背包清單的物品格、匯出清單的勾選列）——
+-- * **所有清單的「列」**（結果清單、購物清單、最近搜尋、匯出清單的勾選列）——
 --   `ScrollBox` 的池化元素，捲動時重用；而且結果列就是購買／取消的執行流（host 檔頭同一條理由）。
---   只做框級：內嵌框、表頭帶、捲軸。
--- * **銷售頁物品格的品質框（`IconBorder`）** —— 方形 1px 品質框做不到：那支插件在
---   `AuctionatorGroupsViewItemMixin:SetItemInfo`（`Source/Groups/ViewItem.lua:25-31`）直接對自己的貼圖
---   `SetVertexColor`，**沒有經過任何全域函式**（`SetItemButtonQuality` 系勾不到），而規則不准 hook 它。
---   換成我們的方框的話顏色只能在套用當下轉交一次，換物品之後就是錯的 ⇒ 保留它自己那圈
---   （白色貼圖乘品質色，有物品才顯示），我們只換空格底與外圈 1px 黑邊。圖示不裁邊：它每次
---   `SetTexture` 都會把 texCoord 打回 0,1，而我們沒有 reapply 掛點。
+--   只做框級：內嵌框、表頭帶、捲軸。（背包清單的物品格是例外，2026-09-24 起有皮：
+--   它是 `FramePool` 不是 ScrollBox 的元素，每次更新都經過 OnShow，見物品格那一段。）
+-- * **物品格的品質色** —— 使用者要的是「只要黑框」（2026-09-24），品質框整張中和、不轉交。
+--   （轉交也做不到：顏色是它直接 `SetVertexColor` 上去的，沒有全域出口。）
+-- * **銷售頁上半部的底** —— 跟暴雪自己的賣出頁一樣，控件直接擺在面板底上，不另外畫內嵌框。
+--   上半部左邊那塊暗色方塊（2026-09-24 實機擷圖）**不是**這支插件或這個檔案畫的，是 host 的
+--   暴雪賣出頁（`ItemSellFrame`，排版框 ⇒ 底退回子框、parent 爬到 `AuctionHouseFrame`）
+--   在頁面被藏起來之後留下的幽靈底，已在 `Skins/AuctionHouse.lua` 的 `SkinBackgroundPanel` 治本。
 -- * **分類標題列的文字顏色**（`AuctionCategoryButtonTemplate` 的按鈕字型）—— 跟 host 的暴雪分類清單一致，不動。
 -- * **`IconAndName`（購買面板的物品圖示與名稱）、`TitleArea.Text`、金額數字、`Total` 等值** ——
 --   顏色本身帶資訊（④ 文字層級）。
@@ -436,25 +442,149 @@ local function ResultsListing(listing, key)
 end
 
 ------------------------------------------------------------
--- 銷售頁的物品格（`SaleItemFrame.Icon`）
+-- 銷售頁的物品格：上方那一格（`SaleItemFrame.Icon`）＋ 左邊背包清單的每一格
 --
--- 自製的 `AuctionatorGroupsViewItemTemplate`（`Source/Groups/ViewItem.xml`）：
+-- 兩者是同一個自製模板 `AuctionatorGroupsViewItemTemplate`（`Source/Groups/ViewItem.xml`）：
 --   BACKGROUND 1 `EmptySlot`（`UI-Slot-Background`，雕花空格）
---   BACKGROUND 2 `Icon`、BACKGROUND 3 `IconBorder`（`WhiteIconFrame`，乘品質色）／`IconSelectedHighlight`
+--   BACKGROUND 2 `Icon`
+--   BACKGROUND 3 `IconBorder`（`WhiteIconFrame`，乘品質色）／`IconSelectedHighlight`（`bags-glow-artifact`，橘色光暈）
+--   ARTWORK `Text`（右下的數量）；OVERLAY 7 `ProfessionQualityOverlay`（專業品質鑽石，它第一次用到才建）
 --   ＋ Pushed（`UI-Quickslot-Depress`）＋ Highlight（`ButtonHilight-Square`，ADD）
--- 做什麼：空格中和、底 `fillInset`、前景一圈 1px 黑框；Highlight 換成引擎白 8%。
--- 品質框留給它自己（理由見檔頭「刻意不碰」）。
+--
+-- 它怎麼更新（`Source/Groups/ViewItem.lua:7-44`，`SetItemInfo`）：
+--   `Icon:SetTexture(…)` ⇒ **texCoord 每次都被打回 0,1**；
+--   `IconSelectedHighlight:SetVertexColor(橘)` ＋ `:SetShown(info.selected)`；
+--   `IconBorder:SetVertexColor(品質色)` ＋ `:SetShown(not info.selected)`。
+--   **兩張貼圖的 alpha 它從來不碰** ⇒ `SetAlpha(0)` 中和一次就一直在。
+--   上方那一格另外在後面補一句 `IconSelectedHighlight:Hide()`（`BagItemSelected.lua:3-7`）。
+--   整條路**沒有經過任何暴雪全域函式**（`SetItemButtonTexture`／`SetItemButtonQuality` 系都沒呼叫）
+--   ⇒ `Engine.TrackItemButton` 的現成全域勾接不到。
+--
+-- 做什麼：
+--   * 品質框與橘色光暈中和（使用者只要黑框，不要品質色）；空格中和。
+--   * 圖示裁邊（`Engine.CropIcon`，**每次換圖示之後重下**，見下面兩條掛點）。
+--   * 一圈 1px 方框：閒置黑、**選中＝職業色**（只有背包清單會有選中）。
+--     方框建成**格子自己的貼圖**（`Engine.RegionBackdrop`，邊在 OVERLAY 6）——
+--     比它的專業品質鑽石（OVERLAY 7）低一層、比圖示與數量字高 ⇒ 鑽石壓在框上、不被框線切過。
+--     （子框 overlay 做不到：子框永遠畫在父層所有貼圖之上，鑽石會被框線劃一刀。）
+--   * Highlight 換成引擎白 8%。
+--   * 上方那一格另外墊一層 `fillInset` 底（空格時看得到；背包清單的格子一定有圖示，不墊）。
+--
+-- ## 重裁與選中態的掛點
+--
+-- **背包清單的格子：`HookScript("OnShow")`（格子自己的 frame script）。**
+--   格子是 `CreateFramePool("Button", ItemListingFrame, …)`（`Source/Groups/View.lua:10`），
+--   而每次更新（換背包、點一格選中、收合分類）都是 `UpdateFromExisting`（`View.lua:189-`）：
+--   `buttonPool:ReleaseAll()`（全部 Hide）→ 逐格 `Acquire` → `SetItemInfo` → `AddButton`
+--   （`ViewGroup.lua:21-33`，`button:SetShown(not collapsed)`）⇒ **OnShow 一定排在 SetItemInfo 之後**。
+--   展開收合的分類（`ToggleOpen`）同樣是 SetShown，資料沒換、重跑一次無害。
+--   ⚠ 為什麼不是規則第 3 條禁的「hook 它的函式」：勾的是 frame 的 script（C 端的處理器鏈，
+--     跟原語對它的按鈕掛 `HookScript("OnEnter")` 同一類），不是 `AuctionatorGroupsViewItemMixin`
+--     的方法；那張 mixin **表**勾了也沒用 —— 方法在格子建立時就被拷走了（陷阱 4），
+--     而且那才是第 3 條明文禁止的東西。模板沒有自己的 OnShow，`SetScript` 蓋掉我們的風險是零。
+--   ⚠ 處理器跑在它的 `UpdateFromExisting` 堆疊裡（插件自己的 Lua，不是暴雪的 secure 流程），
+--     只做白名單動作（`SetTexCoord` ＋ 換我們自己那四條邊的顏色）＋ 一次 C 端布林讀取；
+--     出錯一次就整支停掉（同 `Engine.HookRows`），不會洗版。
+--   ⚠ 代價：**池子長大時新建的格子要等下一次補掃**才有皮（`AUCTION_HOUSE_THROTTLED_SYSTEM_READY`，
+--     開拍賣場與每次查詢節流解除都會來）。在那之前那幾格是原生長相。
+-- **上方那一格：只能靠既有的伴隨輪補掃**（它一直顯示著，沒有 OnShow 可接）。
+--   換物品 ⇒ 那支插件緊接著就查價 ⇒ 節流解除的事件隨後就到 ⇒ 重裁。
+--   代價：換物品到查價回來之間（通常不到一秒）圖示是未裁的（四周那圈暗邊）。
+--
+-- ## 選中態怎麼知道（讀取例外表那一條）
+--
+-- 讀 `IconSelectedHighlight:IsShown()`：那支插件表達「這格選中」的**同一個**依據
+-- （`SetShown(info.selected)`），純 C 端布林、過 `Secret.ToBool`，問不到就當「沒選中」＝黑框。
+-- **不讀** `itemInfo.selected`（它的 Lua 資料欄位）。
+-- 零讀取那條路（`Skins/Mail.lua` 的「底的 parent 設成會被 Hide 的那顆」）走不通：
+-- 會被顯隱的是一張**貼圖**，貼圖不能當 frame 的 parent；而把那張貼圖本身換長相也不行 ——
+-- 它不是 C 端依狀態顯隱的狀態貼圖（`SetColorTexture` 不准），而且每次更新都被
+-- `SetVertexColor(橘)` 蓋回去（乘法，染不出職業色）。
 ------------------------------------------------------------
 local TRANSPARENT = { 0, 0, 0, 0 }
+local ITEM_ART = { "EmptySlot", "IconBorder", "IconSelectedHighlight" }
 
+local function IconFrame(btn, key)
+    local ov = E.RegionBackdrop(btn, {
+        key = key .. ".border",
+        slot = "front",
+        borderSize = T.itemBorderSize,
+        edgeLayer = "OVERLAY",
+        edgeSublevel = 6,
+    })
+    E.Paint(ov, TRANSPARENT, T.border)
+    return ov
+end
+
+-- 選中態：職業色邊；其餘黑邊。每次都跑（格子會被池子換給別的物品）。
+local function PaintSelected(btn, ov)
+    local selected = false
+    local hl = Field(btn, "IconSelectedHighlight")
+    if hl and type(hl.IsShown) == "function" then
+        local ok, v = pcall(hl.IsShown, hl)
+        selected = ok and S.ToBool(v) == true
+    end
+    if selected then
+        local r, g, b = T.Accent()
+        E.Border(ov, { r, g, b, 1 })
+    else
+        E.Border(ov, T.border)
+    end
+end
+
+local function Recrop(btn, key)
+    local icon = Field(btn, "Icon")
+    if icon then E.CropIcon(icon, key .. ".Icon") end
+end
+
+-- 上方那一格
 local function SaleIcon(btn, key)
     if not btn or not E.Usable(btn, key) then return end
-    NeutralizeIfPresent(btn, { "EmptySlot" }, key)
+    NeutralizeIfPresent(btn, ITEM_ART, key)
     E.ButtonStates(btn, key)
     local bg = E.Overlay(btn, { key = key, noBorder = true })
     E.Paint(bg, T.fillInset)
-    local frame = E.Overlay(btn, { key = key .. ".border", levelOffset = 1 })
-    E.Paint(frame, TRANSPARENT, T.border)
+    IconFrame(btn, key)
+    Recrop(btn, key)
+end
+
+-- 背包清單的格子
+local BAG_KEY = "AuctionatorSellingFrame.BagItem"
+local bagButtons = setmetatable({}, { __mode = "k" })   -- 已接管的格子 → 前景方框
+local bagHookBroken = false
+
+local function RefreshBagButton(btn)
+    if bagHookBroken then return end
+    local ov = bagButtons[btn]
+    if not ov then return end
+    local ok, err = pcall(function()
+        Recrop(btn, BAG_KEY)
+        PaintSelected(btn, ov)
+    end)
+    if not ok then
+        bagHookBroken = true
+        E.NoteBrokenHook("AuctionatorGroupsViewItem OnShow")
+        ns.ReportError(err)
+    end
+end
+
+-- 形狀檢查：`ItemListingFrame` 的直屬子框同時有群組框（`AuctionatorSellingViewGroupTemplate`）
+-- 與物品格；物品格才有這三張 parentKey 貼圖。
+local function IsBagItem(child)
+    return ObjectType(child) == "Button"
+        and Field(child, "Icon") and Field(child, "IconBorder") and Field(child, "IconSelectedHighlight")
+end
+
+local function BagItem(btn)
+    if bagButtons[btn] then return RefreshBagButton(btn) end
+    if not E.Usable(btn, BAG_KEY) then return end
+    NeutralizeIfPresent(btn, ITEM_ART, BAG_KEY)
+    E.ButtonStates(btn, BAG_KEY)
+    local ov = IconFrame(btn, BAG_KEY)
+    if not ov then return end
+    bagButtons[btn] = ov
+    btn:HookScript("OnShow", RefreshBagButton)
+    RefreshBagButton(btn)
 end
 
 ------------------------------------------------------------
@@ -495,16 +625,29 @@ local function GroupTitle(title, key)
     E.Paint(ov, T.fill, T.border)
 end
 
-local function SweepGroupTitles()
+-- 背包清單（分類標題列 ＋ 物品格）的補掃。`ItemListingFrame` 的直屬子框兩種都有：
+-- 群組框（標題列在它的 `.GroupTitle`）與物品格（池子的 parent 就是這一層，`View.lua:10`）。
+-- 已經接管的物品格只重裁、重上選中色（`BagItem` 開頭那一行），要便宜 —— 節流解除時都會來。
+local function SweepBagListing()
     local host = Field(_G.AuctionatorSellingFrame, "BagListing.View.ScrollBox.ItemListingFrame")
     if not host then return end
-    for _, group in ipairs(Children(host)) do
-        local title = Field(group, "GroupTitle")
-        -- 已經畫過的跳過（這一輪在查詢節流解除時都會來，要便宜）
-        if title and not E.GetOverlay(title) then
-            GroupTitle(title, "AuctionatorSellingFrame.GroupTitle")
+    for _, child in ipairs(Children(host)) do
+        local title = Field(child, "GroupTitle")
+        if title then
+            -- 已經畫過的跳過
+            if not E.GetOverlay(title) then
+                GroupTitle(title, "AuctionatorSellingFrame.GroupTitle")
+            end
+        elseif IsBagItem(child) then
+            BagItem(child)
         end
     end
+end
+
+-- 上方那一格的重裁（換物品就被 SetTexture 打回，見物品格那一段）
+local function RecropSaleIcon()
+    local icon = Field(_G.AuctionatorSellingFrame, "SaleItemFrame.Icon")
+    if icon and E.GetOverlay(icon) then Recrop(icon, "AuctionatorSellingFrame.SaleItemFrame.Icon") end
 end
 
 ------------------------------------------------------------
@@ -564,7 +707,7 @@ local function SkinSelling()
         if #tabs > 0 then Skin.TabGroup(tabs, { kind = "panel", joined = "TOP" }) end
     end
 
-    SweepGroupTitles()
+    SweepBagListing()
     return true
 end
 
@@ -823,7 +966,8 @@ end
 
 local function ApplyThrottled()
     if complete then
-        SweepGroupTitles()
+        SweepBagListing()
+        RecropSaleIcon()
     else
         ApplyAll()
     end
