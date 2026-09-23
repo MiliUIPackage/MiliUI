@@ -43,6 +43,7 @@ Skins\ElvUI.lua
 Skins\GW2.lua
 Skins\NDui.lua
 Skins\EllesmereUI.lua
+Skins\MiliUI.lua
 
 Sorting\BagUsageChecks.lua
 Sorting\ItemFields.lua
