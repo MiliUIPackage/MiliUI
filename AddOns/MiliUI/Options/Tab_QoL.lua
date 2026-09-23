@@ -32,7 +32,7 @@ local function AskReload()
 end
 
 local CONTROLS = {
-    { type = "header", label = "星雲之核骰裝隱藏" },
+    { type = "header", label = "星雲之核骰裝" },
     { type = "toggle", label = "依內容類型隱藏骰裝提示",
       get = function() return MiliUI_BonusRollFilter and MiliUI_BonusRollFilter.IsEnabled() end,
       set = function(v) if MiliUI_BonusRollFilter then MiliUI_BonusRollFilter.SetEnabled(v) end end },
@@ -57,6 +57,11 @@ local CONTROLS = {
       get = function() return MiliUI_BonusRollFilter and MiliUI_BonusRollFilter.GetOption("hideRaidNormal") end,
       set = function(v) if MiliUI_BonusRollFilter then MiliUI_BonusRollFilter.SetOption("hideRaidNormal", v) end end },
     { type = "text", label = "隨機、故事、普通難度的首領擊殺不顯示；英雄與傳奇難度照常顯示。" },
+    { type = "toggle", label = "擲骰確認",
+      get = function() return MiliUI_BonusRollConfirm and MiliUI_BonusRollConfirm.IsEnabled() end,
+      set = function(v) if MiliUI_BonusRollConfirm then MiliUI_BonusRollConfirm.SetEnabled(v) end end },
+    { type = "text", label = "按下骰子之前先跳確認框，並顯示目前的拾取專精，避免手滑或忘了切專精就花掉核心。"
+        .. "放棄鈕不受影響。" },
 
     -- ns.LootHistoryAutoClose 由 Enhance\GroupLootHistory_AutoClose.lua 建（TOC 排在本檔之後，
     -- 所以一律執行期才問）
