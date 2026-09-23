@@ -56,7 +56,7 @@ end
 
 function addonTable.CustomiseDialog.Components.GetTab(parent, text)
   local tab
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     tab = CreateFrame("Button", nil, parent, "PanelTopTabButtonTemplate")
     tab:SetScript("OnShow", function(self)
       PanelTemplates_TabResize(self, 15, nil, 70)
@@ -118,7 +118,7 @@ function addonTable.CustomiseDialog.Components.GetSlider(parent, label, min, max
     return holder.Slider:Enable()
   end
 
-  --addonTable.Skins.AddFrame("Slider", holder.Slider)
+  addonTable.Skins.AddFrame("Slider", holder.Slider)
 
   holder:SetScript("OnMouseWheel", function(_, delta)
     if holder.Slider.Slider:IsEnabled() then

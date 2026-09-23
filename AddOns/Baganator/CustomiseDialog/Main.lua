@@ -878,7 +878,7 @@ function BaganatorCustomiseDialogMixin:SetupIcon()
   table.insert(allFrames, cornersEditor)
 
   local itemButton
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     itemButton = CreateFrame("ItemButton", nil, frame)
   else
     itemButton = CreateFrame("Button", nil, frame, "ItemButtonTemplate")

@@ -112,8 +112,10 @@ function BaganatorCurrencyPanelMixin:OnLoad()
   ScrollUtil.InitScrollBoxListWithScrollBar(self.scrollBox, scrollBar, view)
   addonTable.Skins.AddFrame("TrimScrollBar", scrollBar)
 
-  self.transferButton = self:GetTransferButton(self.scrollBox)
-  self.transferButton:SetFrameStrata("DIALOG")
+  if addonTable.Constants.IsRetail then
+    self.transferButton = self:GetTransferButton(self.scrollBox)
+    self.transferButton:SetFrameStrata("DIALOG")
+  end
 
   addonTable.CallbackRegistry:RegisterCallback("CharacterSelect", function(_, character)
     self.selectedCharacter = character
@@ -326,8 +328,10 @@ function BaganatorCurrencyPanelMixin:SetupRow(row, details)
   row.arrowIcon:Hide()
   row.warbandIcon:Hide()
   row:SetEnabled(not details.disabled)
-  self.transferButton:Hide()
-  self.transferButton.currencyID = nil
+  if self.transferButton then
+    self.transferButton:Hide()
+    self.transferButton.currencyID = nil
+  end
   row.UpdateTooltip = nil
 
   row:SetText(details.name)
@@ -387,7 +391,7 @@ function BaganatorCurrencyPanelMixin:SetupRow(row, details)
           GameTooltip:Show()
         end
         row.UpdateTooltip()
-        if details.isWarbandTransfer then
+        if self.transferButton and details.isWarbandTransfer then
           self.transferButton.currencyID = details.currencyID
           self.transferButton:SetAllPoints(row)
           self.transferButton:SetShown(IsControlKeyDown() and not self.transferButton.clicked)

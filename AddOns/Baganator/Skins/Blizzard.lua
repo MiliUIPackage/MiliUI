@@ -80,11 +80,12 @@ local function SkinFrame(details)
 end
 
 local function SetConstants()
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     addonTable.Constants.ButtonFrameOffset = 6
-  end
-  if addonTable.Constants.IsClassic then
+    addonTable.Constants.ButtonFrameOffsetTop = 2
+  else
     addonTable.Constants.ButtonFrameOffset = 0
+    addonTable.Constants.ButtonFrameOffsetTop = 0
   end
 end
 
@@ -130,4 +131,4 @@ addonTable.Skins.RegisterSkin(addonTable.Locales.BLIZZARD, "blizzard", LoadSkin,
     option = "empty_slot_background",
     default = false,
   },
-}, false, addonTable.Skins.ImmediateLoadingTrigger)
+}, false)

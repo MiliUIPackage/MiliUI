@@ -81,6 +81,8 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
     end
   end)
 
+  self.ToggleAllCharacters:SetPoint("TOPLEFT", self, addonTable.Constants.ButtonFrameOffset, -1 + addonTable.Constants.ButtonFrameOffsetTop)
+
   addonTable.Skins.AddFrame("Button", self.DepositIntoReagentsBankButton)
   addonTable.Skins.AddFrame("Button", self.BuyReagentBankButton)
 

@@ -5,17 +5,11 @@ local addonTable = select(2, ...)
 function addonTable.Sorting.GetBagUsageChecks(bagIDs)
   local checks = {}
   local sortOrder = {}
-  if addonTable.Constants.IsRetail and tIndexOf(bagIDs, Enum.BagIndex.ReagentBag) ~= nil then
+  if (addonTable.Constants.IsRetail or addonTable.Constants.IsForever) and tIndexOf(bagIDs, Enum.BagIndex.ReagentBag) ~= nil then
     checks[Enum.BagIndex.ReagentBag] = function(item)
       return item.itemID and (select(17, C_Item.GetItemInfo(item.itemID)))
     end
     sortOrder[Enum.BagIndex.ReagentBag] = 10 -- reagent bags go after special bags
-  end
-  if addonTable.Constants.IsRetail and tIndexOf(bagIDs, Enum.BagIndex.Reagentbank) ~= nil then
-    checks[Enum.BagIndex.Reagentbank] = function(item)
-      return (select(17, C_Item.GetItemInfo(item.itemID)))
-    end
-    sortOrder[Enum.BagIndex.Reagentbank] = 10 -- reagent bags go after special bags
   end
   if not addonTable.Constants.IsRetail and tIndexOf(bagIDs, Enum.BagIndex.Keyring) ~= nil then
     checks[Enum.BagIndex.Keyring] = function(item)

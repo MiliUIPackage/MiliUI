@@ -36,6 +36,8 @@ function BaganatorItemViewCommonBankViewMixin:OnLoad()
     self.hasCharacter = true
   end)
 
+  self.CustomiseButton:SetPoint("TOP", self, 0, -1 + addonTable.Constants.ButtonFrameOffsetTop)
+
   self:UpdateTransferButton()
 
   addonTable.Skins.AddFrame("ButtonFrame", self, {"bank"})
@@ -217,13 +219,14 @@ function BaganatorItemViewCommonBankViewMixin:UpdateView()
 
   if BankFrame.BankPanel then
     BankFrame.BankPanel:SetShown(self.currentTab.isLive)
+    Addon_SetBankType(self:GetBankType())
   end
 
   addonTable.CallbackRegistry:TriggerEvent("ItemContextChanged")
 end
 
 function BaganatorItemViewCommonBankViewMixin:GetBankType()
-  return self.currentTab.bankType
+  return self.currentTab and self.currentTab.bankType
 end
 
 

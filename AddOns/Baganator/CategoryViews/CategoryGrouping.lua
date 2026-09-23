@@ -371,18 +371,14 @@ do
       crafted = addonTable.Locales.CRAFTED,
     }
     local items = {
-      explorer = "|cnIQ2:|Hitem:237894::::::::80:253::25:5:12265:6652:10394:10392:3171:1:28:2462:::::|h[Pendant of Arcane Havoc]|h|r",
-      adventurer = "|cnIQ3:|Hitem:249627::::::::90:104::126:3:12769:6652:13668:1:28:6020:::::|h[Arboreal Vine Collar]|h|r",
-      veteran = "|cnIQ4:|Hitem:211028::::::::80:253::173:7:12282:6652:12921:11215:12239:3247:10255:1:28:2462:::::|h[Torchbearer's Bracers]|h|r",
-      champion = "|cnIQ4:|Hitem:249303::::::::90:1473::3:5:6652:12667:13577:13333:12787:1:28:3607:::::|h[Waistcord of the Judged]|h|r",
+      adventurer = "|cnIQ3:|Hitem:239050::::::::90:250::2:1:3524:1:28:3024:::::|h[Helm of the Raptor King]|h|r",
+      veteran = "|cnIQ4:|Hitem:268202::::::::90:250::4:1:3524:1:28:7360:::::|h[Jaw of the Shackled Goddess]|h|r",
+      champion = "|cnIQ4:|Hitem:159644::::::::90:250::23:1:3524:1:28:3025:::::|h[Geti'ikku, Cut of Death]|h|r",
       hero =  "|cnIQ4:|Hitem:193707::::::::90:1473::16:4:12795:13440:6652:12701:1:28:1279:::::|h[Final Grade]|h|r",
-      myth = "|cnIQ4:|Hitem:250247::::::::90:268::6:1:3524:1:28:3610:::::|h[Amulet of the Abyssal Hymn]|h|r",
+      myth = "|cnIQ4:|Hitem:270930::::::::90:250::6:1:3524:1:28:7362:::::|h[Tomb-Creeper's Claw]|h|r",
     }
     local bonusIDToTrack = {
-      [13653] = "hero",
-      [13654] = "myth",
-      [13655] = "crafted",
-      [12066] = "crafted",
+      [7362] = "myth",
     }
     local function CheckBonusIDs(itemLink)
       local _, main = LinkUtil.ExtractLink(itemLink)

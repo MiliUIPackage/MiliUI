@@ -332,9 +332,7 @@ function addonTable.Utilities.GetBagType(bagID, itemID)
     return "quiver"
   elseif iconDetails then
     return subClassID
-  elseif addonTable.Constants.IsRetail and bagID == Enum.BagIndex.ReagentBag then
-    return "reagentBag"
-  elseif addonTable.Constants.IsRetail and bagID == Enum.BagIndex.Reagentbank and not Syndicator.Constants.CharacterBankTabsActive then
+  elseif (addonTable.Constants.IsRetail or addonTable.Constants.IsForever) and bagID == Enum.BagIndex.ReagentBag then
     return "reagentBag"
   elseif bagID == Enum.BagIndex.Keyring then
     return "keyring"
@@ -434,7 +432,7 @@ do
   end
 end
 
-if addonTable.Constants.IsRetail or IsUsingLegacyAuctionClient and not IsUsingLegacyAuctionClient() then
+if addonTable.Constants.IsRetail or addonTable.Constants.IsForever or IsUsingLegacyAuctionClient and not IsUsingLegacyAuctionClient() then
   function addonTable.Utilities.IsAuctionable(details)
     if not C_Item.IsItemDataCachedByID(details.itemID) then
       C_Item.RequestLoadItemDataByID(details.itemID)

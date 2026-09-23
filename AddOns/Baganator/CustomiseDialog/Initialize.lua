@@ -5,13 +5,11 @@ local addonName = ...
 function addonTable.CustomiseDialog.Initialize()
   local customiseDialog = {} -- Stored by skin applied
 
-  addonTable.CallbackRegistry:RegisterCallback("ShowCustomise", function()
+  addonTable.CallbackRegistry:RegisterCallback("ShowCustomise", function(_, index)
     for _, dialog in pairs(customiseDialog) do
       dialog:Hide()
     end
-  end)
 
-  addonTable.CallbackRegistry:RegisterCallback("ShowCustomise", function(_, index)
     local currentSkinKey = addonTable.Config.Get(addonTable.Config.Options.CURRENT_SKIN)
     if not customiseDialog[currentSkinKey] then
       customiseDialog[currentSkinKey] = CreateFrame("Frame", "BaganatorCustomiseDialogFrame" .. currentSkinKey, UIParent, "BaganatorCustomiseDialogTemplate")

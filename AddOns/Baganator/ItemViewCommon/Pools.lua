@@ -3,7 +3,7 @@ local addonTable = select(2, ...)
 local classicCachedObjectCounter = 0
 
 function addonTable.ItemViewCommon.GetCachedItemButtonPool(self)
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     return CreateFramePool("ItemButton", self, "BaganatorRetailCachedItemButtonTemplate", nil, false, function(b) b:UpdateTextures() end)
   else
     return CreateObjectPool(function()
@@ -16,7 +16,7 @@ function addonTable.ItemViewCommon.GetCachedItemButtonPool(self)
 end
 
 function addonTable.ItemViewCommon.GetLiveItemButtonPool(self)
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     return CreateFramePool("ItemButton", self, "BaganatorRetailLiveContainerItemButtonTemplate", nil, false, function(b) b:UpdateTextures() end)
   else
     return CreateObjectPool(function()
@@ -29,7 +29,7 @@ function addonTable.ItemViewCommon.GetLiveItemButtonPool(self)
 end
 
 function addonTable.ItemViewCommon.GetLiveGuildItemButtonPool(parent)
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     return CreateFramePool("ItemButton", parent, "BaganatorRetailLiveGuildItemButtonTemplate", nil, false, function(b) b:UpdateTextures() end)
   else
     return CreateObjectPool(function()
@@ -42,7 +42,7 @@ function addonTable.ItemViewCommon.GetLiveGuildItemButtonPool(parent)
 end
 
 function addonTable.ItemViewCommon.GetTabButtonPool(parent)
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     return CreateFramePool("Button", parent, "BaganatorRetailTabButtonTemplate")
   else
     return CreateObjectPool(function()

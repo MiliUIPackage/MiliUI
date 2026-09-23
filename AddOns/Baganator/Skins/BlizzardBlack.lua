@@ -31,7 +31,10 @@ local skinners = {
     frame.Bg = CreateFrame("Frame", nil, frame, "FlatPanelBackgroundTemplate")
     frame.Bg:SetFrameStrata("LOW")
     frame.Bg:SetPoint("TOPLEFT", 2, -3)
-    frame.Bg:SetPoint("BOTTOMRIGHT", -2, 3)
+    frame.Bg:SetPoint("BOTTOMRIGHT", -2, addonTable.Constants.IsForever and -3 or 3)
+    if addonTable.Constants.IsForever then
+      frame.NineSlice:SetPoint("BOTTOMRIGHT", 0, -5)
+    end
 		NineSliceUtil.ApplyLayout(frame.NineSlice, layout, frame.NineSlice:GetFrameLayoutTextureKit());
   end,
 }
@@ -52,11 +55,12 @@ local function SkinFrame(details)
 end
 
 local function SetConstants()
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     addonTable.Constants.ButtonFrameOffset = 1
-  end
-  if addonTable.Constants.IsClassic then
+    addonTable.Constants.ButtonFrameOffsetTop = 2
+  else
     addonTable.Constants.ButtonFrameOffset = 0
+    addonTable.Constants.ButtonFrameOffsetTop = 0
   end
 end
 
@@ -80,4 +84,4 @@ addonTable.Skins.RegisterSkin(addonTable.Locales.BLIZZARD_BLACK, "blizzard_black
     option = "empty_slot_background",
     default = false,
   },
-}, false, addonTable.Skins.ImmediateLoadingTrigger)
+}, false)

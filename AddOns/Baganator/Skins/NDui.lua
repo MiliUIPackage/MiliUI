@@ -139,6 +139,7 @@ local skinners = {
 
 local function SetConstants()
   addonTable.Constants.ButtonFrameOffset = 0
+  addonTable.Constants.ButtonFrameOffsetTop = 0
 end
 
 local function SkinFrame(details)
@@ -161,5 +162,5 @@ local function LoadSkin()
 end
 
 if addonTable.Skins.IsAddOnLoading("NDui") or addonTable.Skins.IsAddOnLoading("AuroraClassic") then
-  addonTable.Skins.RegisterSkin(addonTable.Locales.NDUI, "ndui", LoadSkin, SkinFrame, SetConstants, {}, true, addonTable.Skins.PlayerLoginLoadingTrigger)
+  addonTable.Skins.RegisterSkin(addonTable.Locales.NDUI, "ndui", LoadSkin, SkinFrame, SetConstants, {}, true)
 end

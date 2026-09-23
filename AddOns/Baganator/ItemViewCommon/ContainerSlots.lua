@@ -428,7 +428,7 @@ function BaganatorBagSlotsContainerMixin:OnLoad()
   local bagIndexes
   if self.mode == "bags" then
     GetBagSlotButton = function()
-      if addonTable.Constants.IsRetail then
+      if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
         return CreateFrame("ItemButton", nil, self, "BaganatorRetailBagSlotButtonTemplate")
       else
         return CreateFrame("Button", nil, self, "BaganatorClassicBagSlotButtonTemplate")
@@ -439,7 +439,7 @@ function BaganatorBagSlotsContainerMixin:OnLoad()
     bagIndexes = Syndicator.Constants.AllBagIndexes
   elseif self.mode == "bank" then
     GetBagSlotButton = function()
-      if addonTable.Constants.IsRetail then
+      if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
         return CreateFrame("ItemButton", nil, self, "BaganatorRetailBankButtonTemplate")
       else
         return CreateFrame("Button", nil, self, "BaganatorClassicBankButtonTemplate")
@@ -466,7 +466,7 @@ function BaganatorBagSlotsContainerMixin:OnLoad()
   local cachedBagSlotCounter = 0
   local function GetCachedBagSlotButton()
     -- Use cached item buttons from cached layout views
-    if addonTable.Constants.IsRetail then
+    if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
       return CreateFrame("ItemButton", nil, self, "BaganatorRetailCachedItemButtonTemplate")
     else
       cachedBagSlotCounter = cachedBagSlotCounter + 1

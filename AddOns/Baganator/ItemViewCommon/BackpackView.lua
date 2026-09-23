@@ -105,7 +105,7 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
     end
   end)
 
-  if addonTable.Constants.IsEra then
+  if addonTable.Constants.IsEra or addonTable.Constants.IsForever then
     local index = tIndexOf(self.TopButtons, self.ToggleGuildBankButton)
     table.remove(self.TopButtons, index)
     self.ToggleGuildBankButton:Hide()
@@ -117,7 +117,9 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
   end
 
   self.TopButtons[1]:ClearAllPoints()
-  self.TopButtons[1]:SetPoint("TOPLEFT", self, "TOPLEFT", addonTable.Constants.ButtonFrameOffset + 2, -1)
+  self.TopButtons[1]:SetPoint("TOPLEFT", self, "TOPLEFT", addonTable.Constants.ButtonFrameOffset + 2, -1 + addonTable.Constants.ButtonFrameOffsetTop)
+
+  self.CustomiseButton:SetPoint("TOP", self, 0, -1 + addonTable.Constants.ButtonFrameOffsetTop)
 
   addonTable.Skins.AddFrame("ButtonFrame", self, {"backpack"})
 

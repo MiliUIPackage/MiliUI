@@ -89,3 +89,7 @@ end
 function addonTable.CheckTimeout()
   return GetTimePreciseSec() - addonTable.lastEntryTime > 0.1
 end
+
+function Baganator_AddonCompartmentCallback()
+  addonTable.CallbackRegistry:TriggerEvent("ShowCustomise")
+end

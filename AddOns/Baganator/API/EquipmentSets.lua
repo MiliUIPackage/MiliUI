@@ -125,7 +125,7 @@ if not addonTable.Constants.IsEra and not addonTable.Constants.IsBC and Syndicat
             addonTable.Utilities.LoadItemData(slot.itemID, function()
               waiting = waiting - 1
               local tooltipInfo
-              if addonTable.Constants.IsRetail then
+              if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
                 tooltipInfo = C_TooltipInfo.GetBagItem(location.bagID, location.slotIndex)
               elseif location.bagID == Syndicator.Constants.AllBankIndexes[1] then
                 tooltipInfo = Syndicator.Search.DumpClassicTooltip(function(tooltip) tooltip:SetInventoryItem("player", BankButtonIDToInvSlotID(location.slotIndex)) end)
@@ -179,7 +179,7 @@ if not addonTable.Constants.IsEra and not addonTable.Constants.IsBC and Syndicat
 end
 
 -- ItemRack Classic
-if not addonTable.Constants.IsRetail then
+if not addonTable.Constants.IsRetail and not addonTable.Constants.IsForever then
   addonTable.Utilities.OnAddonLoaded("ItemRack", function()
     local equipmentSetInfo = {}
     local equipmentSetNames = {}

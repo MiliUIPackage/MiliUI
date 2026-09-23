@@ -804,7 +804,7 @@ function BaganatorGuildLogsTemplateMixin:ApplyTab()
 		elseif ( type == "move" ) then
 			msg = msg .. format(GUILDBANK_MOVE_FORMAT, name, itemLink, count, GetGuildBankTabInfo(tab1), GetGuildBankTabInfo(tab2));
 		end
-    msg = msg..GUILD_BANK_LOG_TIME:format(RecentTimeDate(year, month, day, hour))
+    msg = msg..GUILD_BANK_LOG_TIME:format((TimeUtil and TimeUtil.GetRecentTimeDate or RecentTimeDate)(year, month, day, hour))
     msg = msg .. "\n"
 	end
 
@@ -844,7 +844,7 @@ function BaganatorGuildLogsTemplateMixin:ApplyMoney()
     elseif ( type == "depositSummary" ) then
       msg = msg .. format(GUILDBANK_AWARD_MONEY_SUMMARY_FORMAT, money);
     end
-    msg = msg..GUILD_BANK_LOG_TIME:format(RecentTimeDate(year, month, day, hour))
+    msg = msg..GUILD_BANK_LOG_TIME:format((TimeUtil and TimeUtil.GetRecentTimeDate or RecentTimeDate)(year, month, day, hour))
     msg = msg .. "\n"
   end
 

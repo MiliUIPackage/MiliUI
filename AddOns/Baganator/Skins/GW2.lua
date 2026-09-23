@@ -404,6 +404,7 @@ end
 
 local function SetConstants()
   addonTable.Constants.ButtonFrameOffset = 0
+  addonTable.Constants.ButtonFrameOffsetTop = 0
 end
 
 local function LoadSkin()
@@ -428,5 +429,5 @@ local function LoadSkin()
 end
 
 if addonTable.Skins.IsAddOnLoading("GW2_UI") then
-  addonTable.Skins.RegisterSkin(addonTable.Locales.GW2_UI, "gw2_ui", LoadSkin, SkinFrame, SetConstants, {}, true, addonTable.Skins.PlayerLoginLoadingTrigger)
+  addonTable.Skins.RegisterSkin(addonTable.Locales.GW2_UI, "gw2_ui", LoadSkin, SkinFrame, SetConstants, {}, true)
 end

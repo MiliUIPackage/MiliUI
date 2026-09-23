@@ -437,7 +437,7 @@ local function HideDefaultBackpack()
     _G["ContainerFrame" .. i]:SetParent(hidden)
   end
 
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     ContainerFrameCombinedBags:SetParent(hidden)
 
     local frame = CreateFrame("Frame")
@@ -451,6 +451,7 @@ local function HideDefaultBackpack()
       SetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_UPGRADEABLE_ITEM_IN_SLOT, true)
       SetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_EQUIP_REAGENT_BAG, true)
       SetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_REAGENT_BANK_UNLOCK, true)
+      SetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_EQUIP_REAGENT_BAG, true)
     end)
   end
 end
@@ -467,6 +468,10 @@ local function HideDefaultBank()
   BankFrame:SetScript("OnHide", nil)
   BankFrame:SetScript("OnEvent", nil)
   BankFrame:SetScript("OnShow", nil)
+
+  if BankFrame.BankPanel and BankFrame.BankPanel.MoneyDisplay then
+    BankFrame.BankPanel.MoneyDisplay:UnregisterAllEvents()
+  end
 end
 
 local function SetupCharacterSelect(frameGroup)

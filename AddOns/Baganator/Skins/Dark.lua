@@ -253,6 +253,7 @@ end
 
 local function SetConstants()
   addonTable.Constants.ButtonFrameOffset = 0
+  addonTable.Constants.ButtonFrameOffsetTop = 0
 end
 
 local function LoadSkin()
@@ -311,4 +312,4 @@ addonTable.Skins.RegisterSkin(addonTable.Locales.DARK, "dark", LoadSkin, SkinFra
     option = "square_icons",
     default = false,
   },
-}, false, addonTable.Skins.ImmediateLoadingTrigger)
+}, false)
