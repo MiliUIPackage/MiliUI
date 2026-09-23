@@ -9,7 +9,7 @@
 ## Category-zhTW: 拍賣
 ## Category-zhCN: 拍卖
 ## Author: Mili
-## Version: 1.0.1
+## Version: 1.0.2
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\INV_Misc_Bag_10_Green
 ## SavedVariables: MiliUI_ShoppingList_DB
