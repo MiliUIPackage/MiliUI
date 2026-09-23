@@ -1,7 +1,7 @@
 # Chattynator
 
-## [223](https://github.com/TheMouseNest/Chattynator/tree/223) (2026-09-06)
-[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/222...223) 
+## [224](https://github.com/TheMouseNest/Chattynator/tree/224) (2026-09-18)
+[Full Changelog](https://github.com/TheMouseNest/Chattynator/compare/223...224) 
 
-- ElvUI skin improvements  
-- Fix invalidating messages breaking hyperlinks and frame interactivity  
+- Tag as supporting Forever  
+- Forever: Fixes  

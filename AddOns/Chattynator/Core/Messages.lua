@@ -983,7 +983,7 @@ local function GetOutMessageFormatKey(chatEventSubtype, isSecret)
       return formatKey:gsub(pat.p, pat.r, 1)
     end
   end
-  assertsafe(formatKey ~= nil, "'formatKey' at _G[CHAT_%s_GET] doesn't exist.", chatEventSubtype);
+  --assertsafe(formatKey ~= nil, "'formatKey' at _G[CHAT_%s_GET] doesn't exist.", chatEventSubtype);
   return formatKey or "";
 end
 

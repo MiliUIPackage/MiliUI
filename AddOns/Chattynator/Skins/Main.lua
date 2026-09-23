@@ -35,6 +35,7 @@ function addonTable.Skins.Initialize()
     addonTable.Config.ResetOne(addonTable.Config.Options.CURRENT_SKIN)
     currentSkin = addonTable.Skins.availableSkins[addonTable.Config.Get(addonTable.Config.Options.CURRENT_SKIN)]
   end
+  addonTable.Skins.availableSkins["blizzard"].constants()
 
   local frame = CreateFrame("Frame")
   frame:RegisterEvent("PLAYER_LOGIN")

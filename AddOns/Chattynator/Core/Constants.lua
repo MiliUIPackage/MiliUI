@@ -25,11 +25,6 @@ addonTable.Constants = {
     Services = 42,
   }
 }
-if addonTable.Constants.IsRetail then
-  addonTable.Constants.ButtonFrameOffset = 5
-else
-  addonTable.Constants.ButtonFrameOffset = 0
-end
 addonTable.Constants.Events = {
   "Render",
 
