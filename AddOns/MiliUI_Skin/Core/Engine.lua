@@ -1604,11 +1604,8 @@ end
 -- Blizzard_ItemButton/Mainline/ItemButtonTemplate.lua:190），而且是純 C 端布林查詢。
 -- 一律過 `Secret.ToBool`：問不到就 fail 到「沒有品質」那一邊，也就是 1px 黑邊 ——
 -- 空格與普通物品本來就長那樣，失敗方向是安全的。
---
--- `ignoreShown`：不看 IsShown、只要拿得到顏色就轉交。給「宿主把品質框藏起來表示
--- 別的狀態、但顏色照樣先上好」的元件用（Auctionator 背包格子選中時藏品質框）。
 ------------------------------------------------------------
-function Engine.PassBorderColor(ov, src, fallback, ignoreShown)
+function Engine.PassBorderColor(ov, src, fallback)
     if not ov or not ov.edges then return end
 
     -- 沒有品質（或問不到）：回到固定色。⚠ 要把 vertex color 還原成白 ——
@@ -1622,8 +1619,8 @@ function Engine.PassBorderColor(ov, src, fallback, ignoreShown)
         end
     end
 
-    local shown = ignoreShown and src ~= nil
-    if not shown and src and type(src.IsShown) == "function" then
+    local shown = false
+    if src and type(src.IsShown) == "function" then
         local ok, v = pcall(src.IsShown, src)
         if ok then shown = S.ToBool(v) == true end
     end

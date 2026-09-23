@@ -51,7 +51,7 @@
 -- | 元件 | 模板 | 原語 |
 -- |---|---|---|
 -- | `SaleItemFrame.Icon`（拖物品進來那一格） | 自製 `AuctionatorGroupsViewItemTemplate`（`Icon`／`EmptySlot`／`IconBorder`／`IconSelectedHighlight` 四張 parentKey 貼圖，**不是** `ItemButton`） | local `SaleIcon`：空格／品質框／橘光暈中和、`fillInset` 底、圖示裁邊、1px 方框轉交品質色（格子自己的貼圖，OVERLAY 6） |
--- | 背包清單的每一格（`…ItemListingFrame` 的直屬子框，同一個模板，`FramePool`） | 同上 | local `BagItem`：同上但不墊底；右下 1px 間距線；**選中＝品質色框加粗＋白色 state layer**；`HookScript("OnShow")` 重裁與重上選中色 |
+-- | 背包清單的每一格（`…ItemListingFrame` 的直屬子框，同一個模板，`FramePool`） | 同上 | local `BagItem`：同上但不墊底；右下 2px 間距線；**選中＝2px 職業色框＋白色 state layer**；`HookScript("OnShow")` 重裁與重上選中色 |
 -- | `SaleItemFrame.Quantity.InputBox` | `LargeInputBoxTemplate`（經 `AuctionatorRetailImportLargeInputBoxTemplate`） | `Skin.EditBox` |
 -- | `SaleItemFrame.Price／BidPrice.MoneyInput` 的 `GoldBox`／`SilverBox`／`CopperBox` | `LargeMoneyInputFrameTemplate` | `Skin.EditBox`（同 host 的 `SkinLargeMoneyInput`） |
 -- | `SaleItemFrame.MaxButton`（最大） | `UIPanelDynamicResizeButtonTemplate` | `Skin.Button` secondary |
@@ -468,7 +468,7 @@ end
 --     轉交的掛點跟重裁一樣（OnShow／補掃）：它是直接 `SetVertexColor` 上色、沒經過全域函式，
 --     接不到引擎的 `SetItemButtonBorder` 勾，只能在更新之後自己去 `IconBorder` 拿。
 --   * 圖示裁邊（`Engine.CropIcon`，**每次換圖示之後重下**，見下面兩條掛點）。
---   * 一圈 1px 方框轉交品質色；背包清單另有 1px 間距線與選中態（加粗＋白色 state layer，見 SelectFrame）。
+--   * 一圈 1px 方框轉交品質色；背包清單另有 2px 間距線與選中態（2px 職業色＋白色 state layer，見 SelectFrame）。
 --     方框建成**格子自己的貼圖**（`Engine.RegionBackdrop`，邊在 OVERLAY 6）——
 --     比它的專業品質鑽石（OVERLAY 7）低一層、比圖示與數量字高 ⇒ 鑽石壓在框上、不被框線切過。
 --     （子框 overlay 做不到：子框永遠畫在父層所有貼圖之上，鑽石會被框線劃一刀。）
@@ -526,22 +526,24 @@ end
 --
 -- **間距**：那支插件把格子一格貼一格排（`col * iconSize`，`ViewGroup.lua:23`），
 --   我們不重排（只重畫不重排），改成在每格**右邊與下邊**畫一條清單底色（`fillInset`，
---   跟 `BagInset` 同色）的 1px 線 ⇒ 相鄰兩格之間剛好空 1px。品質方框往內縮 1px 讓出位置。
---   ⚠ 只畫右下兩邊：四邊都畫的話兩格之間會是 2px。
+--   跟 `BagInset` 同色）的 GAP 寬的線 ⇒ 相鄰兩格之間剛好空 GAP。品質方框往內縮讓出位置。
+--   ⚠ 只畫右下兩邊：四邊都畫的話兩格之間會是兩倍寬。
 --
 -- **選中**：照「狀態只換明暗、不換色」（miliui-color-states）：
---   顏色＝物品品質（身分），選中不換成職業色（混在一排品質色的 1px 框裡根本看不出來），
---   改成**品質色框加粗到 2px ＋ 圖示上一層白色 state layer**。
+--   選中＝**2px 職業色框 ＋ 圖示上一層白色 state layer**（2026-09-24 使用者指定；
+--   試過「品質色框加粗」，混在一排品質色框裡還是不夠明顯）。
+--   2px ＝ 外圈的品質方框換職業色 ＋ 內圈再一條 1px 職業色。
 --   state layer 在 BACKGROUND 7：比圖示（BACKGROUND 2）高、比數量字（ARTWORK）低，字不會被洗淡。
 --   那支插件把選中的圖示 `SetAlpha(0.8)`（`ViewItem.lua:16`）—— 選中反而變暗，跟我們的方向相反，
 --   所以 `Recrop` 每次把圖示 alpha 設回 1。
 local SELECT_LAYER = { 1, 1, 1, 0.15 }
+local GAP = 2   -- 格子之間的間距（框架單位，過 P.Scale）
 
 local function GapFrame(btn, key)
     local ov = E.RegionBackdrop(btn, {
         key = key .. ".gap",
         slot = "gap",
-        borderSize = 1,
+        borderSize = GAP,
         skipEdges = { "TOP", "LEFT" },
         edgeLayer = "OVERLAY",
         edgeSublevel = 5,
@@ -554,7 +556,7 @@ local function SelectFrame(btn, key)
     local ov = E.RegionBackdrop(btn, {
         key = key .. ".select",
         slot = "select",
-        points = { { "TOPLEFT", "TOPLEFT", 1, -1 }, { "BOTTOMRIGHT", "BOTTOMRIGHT", -2, 2 } },
+        points = { { "TOPLEFT", "TOPLEFT", 1, -1 }, { "BOTTOMRIGHT", "BOTTOMRIGHT", -(GAP + 1), GAP + 1 } },
         borderSize = T.itemBorderSize,
         layer = "BACKGROUND",
         sublevel = 7,
@@ -565,13 +567,12 @@ local function SelectFrame(btn, key)
     return ov
 end
 
--- 品質框往內縮：右下讓 1px 給間距線
-local BAG_FRAME_POINTS = { { "TOPLEFT", "TOPLEFT", 0, 0 }, { "BOTTOMRIGHT", "BOTTOMRIGHT", -1, 1 } }
+-- 品質框往內縮：右下讓 GAP 給間距線
+local BAG_FRAME_POINTS = { { "TOPLEFT", "TOPLEFT", 0, 0 }, { "BOTTOMRIGHT", "BOTTOMRIGHT", -GAP, GAP } }
 
 -- 方框一律轉交品質色（`Engine.PassBorderColor`，跟暴雪物品格同一條路：讀 `IconBorder` 的
--- GetVertexColor，只轉交不判斷）。那支插件**選中時也照樣先上品質色、才把框藏起來**
--- （`ViewItem.lua:24-30`），所以傳 `ignoreShown`：不看 IsShown，選中那格一樣拿得到品質色。
--- 問不到就退回黑邊。
+-- IsShown ＋ GetVertexColor，只轉交不判斷）。沒選中時那支插件一定秀出品質框並染好色；
+-- 選中那格它把框藏起來，我們改畫職業色。問不到就退回黑邊。
 -- ⚠ 普通品質它也照畫（白色），不像暴雪的物品格會藏掉 ⇒ 普通物品是白邊。
 --   要改成黑邊得讀品質值來判斷，那就不是轉交了，所以不做。
 -- 每次都跑（格子會被池子換給別的物品）。
@@ -582,14 +583,19 @@ local function PaintSelected(btn, rec)
         local ok, v = pcall(hl.IsShown, hl)
         selected = ok and S.ToBool(v) == true
     end
-    local src = Field(btn, "IconBorder")
-    E.PassBorderColor(rec.frame, src, nil, true)
     local sel = rec.select
-    if not sel then return end
     if selected then
-        sel.bg:SetAlpha(1)
-        E.PassBorderColor(sel, src, nil, true)
-    else
+        local r, g, b = T.Accent()
+        local accent = { r, g, b, 1 }
+        E.Border(rec.frame, accent)
+        if sel then
+            sel.bg:SetAlpha(1)
+            E.Border(sel, accent)
+        end
+        return
+    end
+    E.PassBorderColor(rec.frame, Field(btn, "IconBorder"))
+    if sel then
         sel.bg:SetAlpha(0)
         E.Border(sel, false)
     end
