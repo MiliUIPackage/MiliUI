@@ -385,7 +385,7 @@ end
 --
 -- 來源是暴雪「團隊資訊」視窗那份（GetSavedInstanceInfo／GetSavedInstanceEncounterInfo），
 -- 只收**團本且鎖定中**的；過期的在顯示時用 reset（絕對時間）濾掉，不必等週清理。
--- 團搜不在這份清單裡（暴雪把團搜的進度記在 LFG 那邊），所以這裡只會有普通以上。
+-- 團搜不在這份清單裡（暴雪把團搜的進度記在 LFG 那邊），另外走 ReadOwnLFR 讀。
 --
 -- ⚠ 這份快取要等 RequestRaidInfo → UPDATE_INSTANCE_INFO 回來才是真的；剛登入時
 --   GetNumSavedInstances() 會回 0。所以**只在事件回來之後存**（raidInfoReady），
@@ -450,17 +450,105 @@ local function RaidSignature(list)
     return table.concat(parts, ",")
 end
 
+------------------------------------------------------------
+-- 團搜進度：讀法照暴雪團搜介面（RaidFinder.lua）—— 每個區段 GetRFDungeonInfo(i)，
+-- 第 20 個回傳值是副本名、第 23 個是副本 mapID；首領走 GetLFGDungeonEncounterInfo(區段, j)。
+--
+-- * 按**副本**併成一組（跟普通以上的長相一樣），首領依名字去重、打過取 OR：不管 API
+--   對區段回的是「這一區的首領」還是「整個團本的首領」，併起來都對。
+-- * 只收**本週有擊殺**的副本：團搜清單裡是每一個舊團本的每一區，全列出來就是一整面牆。
+-- * 重置時間＝每週重置（團搜的鎖定跟著週重置走）。
+-- * 資料要等 RequestLFDPlayerLockInfo → LFG_LOCK_INFO_RECEIVED 才是真的（lfrInfoReady），
+--   冷快取讀到的「沒打」跟真的沒打分不出來。
+------------------------------------------------------------
+local lfrInfoReady = false
+local LFR_DIFFICULTY = 17
+
+local function ReadOwnLFR()
+    if not (GetNumRFDungeons and GetRFDungeonInfo and GetLFGDungeonNumEncounters
+        and GetLFGDungeonEncounterInfo) then return {} end
+    local secs = C_DateAndTime and C_DateAndTime.GetSecondsUntilWeeklyReset
+        and S.PlainNumber(C_DateAndTime.GetSecondsUntilWeeklyReset())
+    if not secs or secs <= 0 then return {} end
+    local now = GetServerTime()
+    local diffName = GetDifficultyInfo and S.PlainText((GetDifficultyInfo(LFR_DIFFICULTY))) or ""
+
+    local groups, order = {}, {}
+    for i = 1, (S.PlainNumber(GetNumRFDungeons()) or 0) do
+        local info = { GetRFDungeonInfo(i) }
+        local id = S.PlainNumber(info[1])
+        local raidName = S.PlainText(info[20])
+        if id and raidName then
+            local g = groups[raidName]
+            if not g then
+                g = { name = raidName, instanceID = S.PlainNumber(info[23]) or 0,
+                      bosses = {}, byName = {} }
+                groups[raidName] = g
+                order[#order + 1] = g
+            end
+            for j = 1, (S.PlainNumber(GetLFGDungeonNumEncounters(id)) or 0) do
+                local bossName, _, isKilled = GetLFGDungeonEncounterInfo(id, j)
+                bossName = S.PlainText(bossName)
+                if bossName then
+                    local k = S.ToBool(isKilled) or false
+                    local b = g.byName[bossName]
+                    if b then
+                        b.killed = b.killed or k
+                    else
+                        b = { name = bossName, killed = k }
+                        g.byName[bossName] = b
+                        g.bosses[#g.bosses + 1] = b
+                    end
+                end
+            end
+        end
+    end
+
+    local list = {}
+    for _, g in ipairs(order) do
+        local killed = 0
+        for _, b in ipairs(g.bosses) do
+            if b.killed then killed = killed + 1 end
+        end
+        if killed > 0 then
+            list[#list + 1] = {
+                name         = g.name,
+                instanceID   = g.instanceID,
+                difficultyID = LFR_DIFFICULTY,
+                difficulty   = diffName,
+                reset        = now + secs,
+                killed       = killed,
+                total        = #g.bosses,
+                bosses       = g.bosses,
+            }
+        end
+    end
+    return list
+end
+
 -- 回傳 true＝內容有變
+-- 兩份來源各自有「準備好了沒」：還沒準備好的那一份沿用上次存的（沒過期的），
+-- 不然先回來的那份會把另一份清掉
 local function SaveRaidSnapshot()
-    if not raidInfoReady then return false end
-    local list = ReadOwnRaidLockouts()
-    if not list then return false end
+    if not (raidInfoReady or lfrInfoReady) then return false end
     local rec = EnsureOwnRecord()
-    -- 讀到「有鎖定、沒首領」＝首領快取不在（見上面），沿用同一個鎖定上次的首領清單。
-    -- 同一個鎖定＝同副本、同難度、上次記的重置時間還沒到
     local prev = rec.raids and rec.raids.list
-    if prev then
-        local now = GetServerTime()
+    local now = GetServerTime()
+    local function KeepPrev(list, isLFR)
+        for _, p in ipairs(prev or {}) do
+            if ((p.difficultyID == LFR_DIFFICULTY) == isLFR) and (p.reset or 0) > now then
+                list[#list + 1] = p
+            end
+        end
+    end
+
+    local list = raidInfoReady and ReadOwnRaidLockouts()
+    if not list then
+        list = {}
+        KeepPrev(list, false)
+    elseif prev then
+        -- 讀到「有鎖定、沒首領」＝首領快取不在（見上面），沿用同一個鎖定上次的首領清單。
+        -- 同一個鎖定＝同副本、同難度、上次記的重置時間還沒到
         for _, e in ipairs(list) do
             if e.total == 0 then
                 for _, p in ipairs(prev) do
@@ -473,7 +561,14 @@ local function SaveRaidSnapshot()
             end
         end
     end
-    rec.raids = { timestamp = GetServerTime(), list = list }
+
+    if lfrInfoReady then
+        for _, e in ipairs(ReadOwnLFR()) do list[#list + 1] = e end
+    else
+        KeepPrev(list, true)
+    end
+
+    rec.raids = { timestamp = now, list = list }
     local sig = RaidSignature(list)
     local changed = sig ~= lastRaidSig
     lastRaidSig = sig
@@ -504,8 +599,9 @@ function Warband.ActiveRaids(data)
 end
 
 local raidDebounceTimer
-local function OnRaidInfoUpdate()
-    raidInfoReady = true
+-- source：「lockouts」＝UPDATE_INSTANCE_INFO、「lfr」＝LFG_LOCK_INFO_RECEIVED
+local function OnRaidInfoUpdate(source)
+    if source == "lfr" then lfrInfoReady = true else raidInfoReady = true end
     if raidDebounceTimer then raidDebounceTimer:Cancel() end
     raidDebounceTimer = C_Timer.NewTimer(0.3, function()
         raidDebounceTimer = nil
@@ -537,6 +633,8 @@ local function RequestVaultData(reason)
     end
     -- 團本進度同一個節奏：資料回來是 UPDATE_INSTANCE_INFO → OnRaidInfoUpdate
     if RequestRaidInfo then RequestRaidInfo() end
+    -- 團搜：LFG_LOCK_INFO_RECEIVED → OnRaidInfoUpdate("lfr")
+    if RequestLFDPlayerLockInfo then RequestLFDPlayerLockInfo() end
     Debug("RequestVaultData: %s", tostring(reason))
 end
 Warband.RequestVaultData = RequestVaultData
@@ -883,10 +981,13 @@ local function OnEvent(event, ...)
         -- ⚠ 團本**不在這裡存**：登出當下首領快取已清空，存了會把整份蓋成 0/0
         --   （見 ReadOwnRaidLockouts 上面的說明）。線上時 UPDATE_INSTANCE_INFO 已經存過
     elseif event == "UPDATE_INSTANCE_INFO" then
-        OnRaidInfoUpdate()
+        OnRaidInfoUpdate("lockouts")
+    elseif event == "LFG_LOCK_INFO_RECEIVED" then
+        OnRaidInfoUpdate("lfr")
     elseif event == "BOSS_KILL" then
         -- 團本以外的首領（時光漫遊團本、舊團本）也會改鎖定；RequestVaultData 只看四種難度
         if RequestRaidInfo then RequestRaidInfo() end
+        if RequestLFDPlayerLockInfo then RequestLFDPlayerLockInfo() end
     -- 「資料已刷新」事件 → 直接存檔（此刻 GetActivities/GetRunHistory 才是新的）
     elseif event == "WEEKLY_REWARDS_UPDATE" then
         SnapshotAndRefresh(event)
@@ -944,7 +1045,7 @@ local TRACK_EVENTS = {
     "WEEKLY_REWARDS_UPDATE", "CHALLENGE_MODE_MAPS_UPDATE",
     "ENCOUNTER_END", "PVP_MATCH_COMPLETE", "LFG_COMPLETION_REWARD", "QUEST_TURNED_IN",
     "BAG_UPDATE_DELAYED", "ITEM_CHANGED", "UPDATE_UI_WIDGET",
-    "UPDATE_INSTANCE_INFO", "BOSS_KILL",
+    "UPDATE_INSTANCE_INFO", "LFG_LOCK_INFO_RECEIVED", "BOSS_KILL",
     -- 只有 Plumber 在用這個事件名，萬一哪版被移除，ns.Events 內部的 pcall 會接住
     "ACTIVE_DELVE_DATA_UPDATE", "ZONE_CHANGED_NEW_AREA",
 }

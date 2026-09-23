@@ -473,7 +473,7 @@ Cell 設定視窗開著時勾選框是否即時同步、面板在停靠上／下
 ## 團本提示（2026-09-24）
 
 滑過戰隊表格某一列 → 面板旁開「團隊副本進度」（`WarbandPopup.lua` 的 ShowRaidTip，一層：每組「副本 …… 難度 x/y」底下兩欄攤首領）。
-資料 `rec.raids = { timestamp, list }`，來源 GetSavedInstanceInfo／GetSavedInstanceEncounterInfo，只收團本＋鎖定中；團搜不在這份清單。
+資料 `rec.raids = { timestamp, list }`，來源 GetSavedInstanceInfo／GetSavedInstanceEncounterInfo，只收團本＋鎖定中。團搜另走 GetRFDungeonInfo（第 20 值副本名、23 值 mapID）＋GetLFGDungeonEncounterInfo，按副本併組、首領去重取 OR、只收本週有擊殺的；等 LFG_LOCK_INFO_RECEIVED 才存（lfrInfoReady），兩份來源沒準備好的那份沿用上次。
 - **登出不存團本**：PLAYER_LOGOUT 當下副本名還在、首領快取已清，存了全變 0/0（實機踩過：術士線上正確、換角色後被蓋掉）。
 - 讀到「有鎖定、沒首領」沿用同一鎖定（同名同難度、reset 未到）上次的首領清單；首領數回 0 時逐一問到沒回應。
 - 只在 UPDATE_INSTANCE_INFO 之後存（raidInfoReady），冷快取 GetNumSavedInstances 回 0。
