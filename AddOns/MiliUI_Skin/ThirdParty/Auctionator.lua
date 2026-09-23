@@ -457,7 +457,10 @@ end
 --   `Icon:SetTexture(…)` ⇒ **texCoord 每次都被打回 0,1**；
 --   `IconSelectedHighlight:SetVertexColor(橘)` ＋ `:SetShown(info.selected)`；
 --   `IconBorder:SetVertexColor(品質色)` ＋ `:SetShown(not info.selected)`。
---   **兩張貼圖的 alpha 它從來不碰** ⇒ `SetAlpha(0)` 中和一次就一直在。
+--   ⚠⚠ `SetVertexColor(r, g, b, 1)` 的第四個參數**就是貼圖的 alpha**（跟 `SetAlpha` 同一個值），
+--   所以每次更新品質框都被打回不透明 —— 中和一次撐不過下一次重建（2026-09-24 實機：
+--   `/mskin debug` 探針 adopted=56 borderHidden=0，症狀是「一開始有、點一格就變回去」）。
+--   ⇒ 中和跟重裁一樣，**每次更新之後都要重下**（見下面兩條掛點）。
 --   上方那一格另外在後面補一句 `IconSelectedHighlight:Hide()`（`BagItemSelected.lua:3-7`）。
 --   整條路**沒有經過任何暴雪全域函式**（`SetItemButtonTexture`／`SetItemButtonQuality` 系都沒呼叫）
 --   ⇒ `Engine.TrackItemButton` 的現成全域勾接不到。
@@ -485,7 +488,7 @@ end
 --     的方法；那張 mixin **表**勾了也沒用 —— 方法在格子建立時就被拷走了（陷阱 4），
 --     而且那才是第 3 條明文禁止的東西。模板沒有自己的 OnShow，`SetScript` 蓋掉我們的風險是零。
 --   ⚠ 處理器跑在它的 `UpdateFromExisting` 堆疊裡（插件自己的 Lua，不是暴雪的 secure 流程），
---     只做白名單動作（`SetTexCoord` ＋ 換我們自己那四條邊的顏色）＋ 一次 C 端布林讀取；
+--     只做白名單動作（`SetTexCoord` ＋ 三張美術 `SetAlpha(0)` ＋ 換我們自己那四條邊的顏色）＋ 一次 C 端布林讀取；
 --     出錯一次就整支停掉（同 `Engine.HookRows`），不會洗版。
 --   ⚠ 代價：**池子長大時新建的格子要等下一次補掃**才有皮（`AUCTION_HOUSE_THROTTLED_SYSTEM_READY`，
 --     開拍賣場與每次查詢節流解除都會來）。在那之前那幾格是原生長相。
@@ -535,6 +538,8 @@ local function PaintSelected(btn, ov)
 end
 
 local function Recrop(btn, key)
+    -- 品質框／光暈的中和也在這裡重下：SetItemInfo 的 SetVertexColor 會把 alpha 打回 1（見上）
+    NeutralizeIfPresent(btn, ITEM_ART, key)
     local icon = Field(btn, "Icon")
     if icon then E.CropIcon(icon, key .. ".Icon") end
 end
