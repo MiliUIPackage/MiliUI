@@ -20,6 +20,9 @@ DB.LIMITS = {
 -- 探針日誌上限（環狀）。400 行大約是三趟鑰石的量，reload 不會被沖掉
 DB.PROBE_LOG_CAP = 400
 
+-- 面板預設位置：水平置中、面板頂邊在畫面頂邊往下這麼多（未縮放的框架單位）
+DB.PANEL_DEFAULT_Y = -73
+
 -- 發佈格式的合法值。正規化與 UI/Publish.lua 共用這一張，加格式時兩邊一起動
 DB.PUBLISH_FORMATS = { scorecard = true, summary = true, perplayer = true }
 
@@ -35,9 +38,11 @@ local function BuildDefaults()
         historyCap = 50,
 
         panel = {
-            -- CENTER 位移。⚠ 存自己的數字而不是 SetUserPlaced：
+            -- 面板 TOP 對 UIParent TOP 的位移（v2 起；v1 是 CENTER 對 CENTER）。
+            -- 錨在頂邊：面板高度或縮放改了，往下長而不是上下一起長。
+            -- ⚠ 存自己的數字而不是 SetUserPlaced：
             -- 暴雪那套會在某些情況把位置吃掉，而且跟縮放互相干擾
-            point = { x = 0, y = 0 },
+            point = { x = 0, y = DB.PANEL_DEFAULT_Y },
             scale = 1.0,
         },
 
@@ -117,14 +122,39 @@ local function Normalize(db)
 
     local p = db.panel.point
     local maxX = (GetScreenWidth() or 1920) / 2
-    local maxY = (GetScreenHeight() or 1080) / 2
+    local maxY = GetScreenHeight() or 1080
     if type(p.x) ~= "number" or math.abs(p.x) > maxX then p.x = 0 end
-    if type(p.y) ~= "number" or math.abs(p.y) > maxY then p.y = 0 end
+    if type(p.y) ~= "number" or p.y > 0 or p.y < -maxY then p.y = DB.PANEL_DEFAULT_Y end
+end
+
+------------------------------------------------------------
+-- 遷移
+------------------------------------------------------------
+-- v1 → v2：面板位置從 CENTER 位移換成 TOP 位移。
+-- 沒動過（0,0）的直接拿新預設；拖過的換算成同一個位置，畫面上不會跳。
+-- 位移是面板自己的縮放單位：TOP 位移 = CENTER 位移 + 半個面板高 − 半個畫面高 ÷ 縮放
+local function MigratePanelTop(db)
+    local p = type(db.panel) == "table" and db.panel.point
+    if type(p) ~= "table" then return end
+    local x, y = tonumber(p.x), tonumber(p.y)
+    if not (x and y) or (x == 0 and y == 0) then
+        p.x, p.y = 0, DB.PANEL_DEFAULT_Y
+        return
+    end
+    local scale = tonumber(db.panel.scale) or 1
+    if scale <= 0 then scale = 1 end
+    local screenH = GetScreenHeight() or 768
+    local panelH = (ns.Panel and ns.Panel.HEIGHT) or 193
+    p.x = x
+    p.y = math.floor(y + panelH / 2 - screenH / 2 / scale + 0.5)
 end
 
 function DB.Init()
     MiliUI_MythicPlus_DB = MiliUI_MythicPlus_DB or {}
     local db = MiliUI_MythicPlus_DB
+    -- 版本閘：只有舊存檔（有版本號、而且小於 2）才遷移；新裝的由 MergeDefaults 直接拿 v2 預設
+    local from = tonumber(db.schemaVersion)
+    if from and from < 2 then MigratePanelTop(db) end
     MergeDefaults(db, BuildDefaults())
     db.schemaVersion = ns.DB_VERSION
     Normalize(db)

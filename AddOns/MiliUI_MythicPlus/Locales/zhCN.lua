@@ -83,6 +83,7 @@ L["Not ready"] = "尚未就绪"
 L["Idle"] = "待命中"
 L["Recording a run"] = "正在记录一趟钥石"
 L["Waiting for the combat statistics"] = "正在等战斗统计"
+L["Waiting for the combat statistics…"] = "正在等战斗统计…"
 
 -- 探针
 L["Probe"] = "探针"

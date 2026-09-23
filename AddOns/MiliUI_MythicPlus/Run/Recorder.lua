@@ -5,9 +5,19 @@
 --
 --   CHALLENGE_MODE_START        建 db.active，記下「開跑時有幾段戰鬥」當基準
 --   （鑰石進行中）              插件限制整趟生效，什麼都讀不到，我們也不讀
---   CHALLENGE_MODE_COMPLETED    立刻抓完賽資訊（表頭），統計排重試
+--   CHALLENGE_MODE_COMPLETED    立刻抓完賽資訊（表頭）**當場存檔**，清 db.active，
+--                               統計排重試，面板「待開」
+--   CHALLENGE_MODE_COMPLETED_REWARDS／LOOT_CLOSED／PLAYER_ENTERING_WORLD
+--                               任一個先到就開面板（統計還沒好就先顯示「正在等」）
 --   +1s, +2s, ... 最多 30 次     限制解除、值變明碼之後，某一次會成功
---   存檔 → 清 db.active → 開面板 → 開 120 秒的戰利品窗口
+--   統計寫回那一筆 → 重畫面板 → 開 120 秒的戰利品窗口（面板還沒開過就在這裡開）
+--
+-- ⚠ 為什麼不再「統計好了才存、才開」（舊做法，偶爾整場沒跳出來）：
+--   存檔與開面板掛在一條 30 秒的重試鏈尾巴，鏈上任何一環斷掉 —— 重試途中報錯、
+--   離開副本時 IsChallengeModeActive 還是 true 害 OnEnteringWorld 開了新場次
+--   把世代 token 換掉、/reload —— 那一場就既沒存也沒開。
+--   開面板的時機照 EllesmereUI 的 RunSummary：完賽當下存、領獎勵／關拾取／
+--   離開副本開，統計晚到就原地補。
 --
 -- ⚠ 為什麼要重試而不是讀一次：
 --   1. `Enum.AddOnRestrictionType.ChallengeMode` 涵蓋**整趟未完成的鑰石**，
@@ -43,6 +53,15 @@ local frame
 local gen = 0
 local retrying = false
 
+-- 完賽後還在補統計的那一筆（db.runs 裡的表本人）。重試只認它，不看 gen：
+-- 補開場（partialStart）也會 +gen，拿 gen 當判準的話離開副本那一下就把重試斷了
+local pendingRun
+-- 已經收過 CHALLENGE_MODE_COMPLETED 的世代。事件重送時第二次直接略過，
+-- 不然同一場會存兩筆
+local completedGen
+-- 等著開面板的那一筆
+local showArmed
+
 ------------------------------------------------------------
 -- 小工具
 ------------------------------------------------------------
@@ -65,9 +84,15 @@ end
 ------------------------------------------------------------
 -- 開始
 ------------------------------------------------------------
+local FinishStats   -- 下面定義
+
 local function StartActive(partial)
     local db = ns.db
     if not db then return end
+
+    -- 真的開了下一把：上一把還在等的統計不會再來了，收掉（照樣標「沒讀到」）。
+    -- 補開場（partial）不收 —— 那是 PEW／重載推出來的，不代表上一把結束了
+    if not partial and pendingRun then FinishStats(pendingRun, true) end
 
     gen = gen + 1
     retrying = false
@@ -177,34 +202,57 @@ local function BuildRun(active, completion)
 end
 
 ------------------------------------------------------------
--- 存檔
+-- 開面板
+--
+-- 時機照 EllesmereUI：領獎勵（CHALLENGE_MODE_COMPLETED_REWARDS）、關拾取視窗、
+-- 離開副本，三個誰先到誰開；統計補完時如果還沒開過，那裡再開一次當保底。
 ------------------------------------------------------------
-local function Commit(run)
-    local db = ns.db
-    if not db then return end
+local function RefreshPanel(run)
+    -- 面板關著也要重填：發佈鈕的明暗跟著場次算，不重填就停在「正在等」
+    if ns.Panel and ns.Panel.CurrentRun() == run then
+        ns.Panel.SetRun(run)
+    end
+end
 
-    ns.History.Add(run)
-    db.active = nil
+local function ShowArmed()
+    local run = showArmed
+    if not run then return end
+    showArmed = nil
+    if not (ns.db and ns.db.autoOpen and ns.Panel) then return end
+    ns.Panel.SetRun(run)
+    ns.Panel.Show()
+end
+
+------------------------------------------------------------
+-- 統計收尾：寫回那一筆（它早就在 db.runs 裡了）
+------------------------------------------------------------
+FinishStats = function(run, gaveUp)
+    if run ~= pendingRun then return end
+    pendingRun = nil
     retrying = false
+    run.statsPending = nil
+    run.statsBaseline = nil
+    if gaveUp then
+        -- 問到最後還是問不到。表頭（時間、結果、評分變化）是完整的，
+        -- 那些是真正「過了就回不來」的東西；統計那一區在面板上會說明它沒讀到
+        run.statsSource = nil
+        run.statsFlags = run.statsFlags or {}
+        run.statsFlags.secretGaveUp = true
+    end
 
     ns.Probe.OnRunCommitted(run)
     ns.Loot.Open(run)
 
-    if ns.Panel then
-        ns.Panel.SetRun(run)
-        if db.autoOpen then ns.Panel.Show() end
-    end
+    RefreshPanel(run)
+    ShowArmed()
 end
 
 ------------------------------------------------------------
 -- 統計重試
 ------------------------------------------------------------
-local function TryStats(myGen, active, completion, run, attempt)
-    if myGen ~= gen then return end            -- 已經是下一場了，放棄
-    if not retrying then return end
-
+local function TryOnce(run, completion, attempt)
     local players, sourceOrReason, flags, combatSec, complete =
-        ns.Snapshot.Take(active.baselineSessionID or 0, completion)
+        ns.Snapshot.Take(run.statsBaseline or 0, completion)
 
     ns.Probe.OnStatsAttempt(attempt, players and (complete and "ok" or "partial") or sourceOrReason)
 
@@ -214,24 +262,34 @@ local function TryStats(myGen, active, completion, run, attempt)
         run.players    = players
         run.statsSource = sourceOrReason
         run.combatSec   = combatSec
+        run.statsFlags = run.statsFlags or {}
         if type(flags) == "table" then
             for k, v in pairs(flags) do run.statsFlags[k] = v end
         end
-        Commit(run)
-        return
+        FinishStats(run)
     end
+end
 
+-- ⚠ 讀取包在 Guard 裡、排程放在 Guard 外：某一次報錯只算「這次沒讀到」，
+--   鏈不會斷（舊版鏈一斷，那一場就既沒存也沒開）
+local function TryStats(run, completion, attempt)
+    if run ~= pendingRun then return end       -- 已經收掉了（下一場開了、或已補完）
+    ns.Guard(TryOnce, run, completion, attempt)
+    if run ~= pendingRun then return end
     if attempt >= RETRY_MAX then
-        -- 問到最後還是問不到。照樣存一筆：表頭（時間、結果、評分變化）是完整的，
-        -- 那些是真正「過了就回不來」的東西；統計那一區在面板上會說明它沒讀到
-        run.statsSource = nil
-        run.statsFlags.secretGaveUp = true
-        Commit(run)
+        ns.Guard(FinishStats, run, true)
         return
     end
-
     C_Timer.After(RETRY_STEP, function()
-        ns.Guard(TryStats, myGen, active, completion, run, attempt + 1)
+        TryStats(run, completion, attempt + 1)
+    end)
+end
+
+local function StartStats(run, completion)
+    pendingRun = run
+    retrying = true
+    C_Timer.After(RETRY_FIRST, function()
+        TryStats(run, completion, 1)
     end)
 end
 
@@ -242,10 +300,14 @@ local function OnCompleted()
     local db = ns.db
     if not db then return end
 
+    -- 同一場的事件重送：已經存過了，不要再存一筆
+    if completedGen == gen and db.active == nil then return end
+
     -- 沒有 active（登入前就開跑、或事件漏接）也要補一筆，不然整場白打
     if not db.active then StartActive(true) end
     local active = db.active
     if not active then return end
+    completedGen = gen
 
     -- ⚠ 完賽資訊**立刻**讀：它是這個時刻才有的東西，等重試時多半已經被清掉了。
     --   （統計相反，統計要等。）
@@ -253,14 +315,34 @@ local function OnCompleted()
     if type(completion) ~= "table" then completion = nil end
 
     local run = BuildRun(active, completion)
-
     ns.Probe.OnRunCompleted(completion)
 
-    retrying = true
-    local myGen = gen
-    C_Timer.After(RETRY_FIRST, function()
-        ns.Guard(TryStats, myGen, active, completion, run, 1)
-    end)
+    -- **當場存檔**：之後不管重試斷在哪、玩家馬上 /reload，這一場都在清單裡。
+    -- 基準值跟著存，/reload 回來還能接著補統計（見 ResumePending）
+    run.statsPending = true
+    run.statsBaseline = active.baselineSessionID or 0
+    ns.History.Add(run)
+    db.active = nil
+
+    if pendingRun then FinishStats(pendingRun, true) end
+    showArmed = run
+    if ns.Panel then ns.Panel.SetRun(run) end
+
+    StartStats(run, completion)
+end
+
+-- /reload 前還在等統計的那一筆：接著問。完賽資訊沒有了，名單改從隊伍裡讀
+local function ResumePending()
+    local db = ns.db
+    local run = db and db.runs and db.runs[1]
+    if type(run) ~= "table" or not run.statsPending then return end
+    -- 很久以前留下來的（上一版 /reload 中斷、或當機）就別等了，直接標「沒讀到」
+    if (time() - (tonumber(run.endedAt) or 0)) > 600 then
+        pendingRun = run
+        FinishStats(run, true)
+        return
+    end
+    StartStats(run, nil)
 end
 
 ------------------------------------------------------------
@@ -287,11 +369,17 @@ end
 local function OnEnteringWorld()
     local db = ns.db
     if not db then return end
+    -- 完賽後換地圖（通常是離開副本）＝開面板的時機之一
+    ShowArmed()
     if InChallenge() then
-        -- 鑰石裡重載／登入。沒有 active 就補一筆，並標記「不是從頭記的」
-        if not db.active then StartActive(true) end
-    elseif db.active and not retrying then
-        -- 已經不在鑰石裡，而且沒有正在跑的重試 ⇒ 這一趟沒完成
+        -- 鑰石裡重載／登入。沒有 active 就補一筆，並標記「不是從頭記的」。
+        -- ⚠ 完賽後 IsChallengeModeActive 會一直是 true 到鑰石重置為止，剛完賽
+        --   就換地圖時這裡也會進來 —— 那一場已經存了，不要再補一趟開場
+        if not db.active and not pendingRun and completedGen ~= gen then
+            StartActive(true)
+        end
+    elseif db.active then
+        -- 已經不在鑰石裡 ⇒ 這一趟沒完成（完成的那一趟在 OnCompleted 就清掉 active 了）
         DiscardActive()
     end
 end
@@ -310,6 +398,9 @@ function R.Init()
     -- ⚠ 這個事件名不能猜，而且 RegisterEvent 對不存在的事件會拋錯 —— 包起來。
     --   註冊失敗的代價是「中途重置偵測不到」，不是崩潰，所以失敗只記不擋
     ns.SafeRegister(frame, "DAMAGE_METER_RESET")
+    -- 開面板的時機（照 EllesmereUI）。前者名字同樣不能猜，包起來
+    ns.SafeRegister(frame, "CHALLENGE_MODE_COMPLETED_REWARDS")
+    frame:RegisterEvent("LOOT_CLOSED")
 
     frame:SetScript("OnEvent", function(_, event)
         if event == "CHALLENGE_MODE_START" then
@@ -325,11 +416,14 @@ function R.Init()
             ns.Guard(ns.Probe.OnChallengeReset)
         elseif event == "DAMAGE_METER_RESET" then
             ns.Guard(OnMeterReset)
+        elseif event == "CHALLENGE_MODE_COMPLETED_REWARDS" or event == "LOOT_CLOSED" then
+            ns.Guard(ShowArmed)
         elseif event == "PLAYER_ENTERING_WORLD" then
             ns.Guard(OnEnteringWorld)
         end
     end)
 
+    ns.Guard(ResumePending)
     OnEnteringWorld()
 end
 

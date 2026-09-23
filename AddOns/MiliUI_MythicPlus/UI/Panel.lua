@@ -48,6 +48,9 @@ local HEAD_H    = 52     -- 表頭兩行那一塊（同時是拖曳把手）
 local HEADROW_H = 16     -- 欄位標題列
 local MAX_ROWS  = 5      -- 鑰石就是五個人
 
+-- 面板高度（未縮放）。DB 的 v1→v2 位置遷移要拿它把 CENTER 位移換成 TOP 位移
+Panel.HEIGHT = HEAD_H + 6 + HEADROW_H + 4 + MAX_ROWS * ROW_H + PAD
+
 local ICON_SIZE = 18
 local LOOT_MAX  = 2
 local LOOT_GAP  = 2
@@ -340,7 +343,11 @@ local function RenderNotice(run)
     panel.notice.lines = lines
     panel.notice:SetShown(#lines > 0)
 
+    -- 完賽當下就開面板了，統計晚幾秒才補進來：那段時間是「正在等」不是「沒讀到」
     local noStats = (run ~= nil) and (run.statsSource == nil)
+    panel.empty:SetText(run and run.statsPending
+        and L["Waiting for the combat statistics…"]
+        or L["No combat statistics were recorded for this run."])
     panel.empty:SetShown(noStats)
 end
 
@@ -397,11 +404,15 @@ end
 ------------------------------------------------------------
 local function SavePosition()
     if not panel or not ns.db then return end
-    local cx, cy = UIParent:GetCenter()
-    local fx, fy = panel:GetCenter()
-    if not (cx and fx) then return end
-    ns.db.panel.point.x = math.floor(fx - cx + 0.5)
-    ns.db.panel.point.y = math.floor(fy - cy + 0.5)
+    -- 位移是面板自己的縮放單位；UIParent 的座標要除以面板縮放才能跟它相減
+    local ps = panel:GetScale() or 1
+    local cx = UIParent:GetCenter()
+    local top = UIParent:GetTop()
+    local fx = panel:GetCenter()
+    local ftop = panel:GetTop()
+    if not (cx and top and fx and ftop) then return end
+    ns.db.panel.point.x = math.floor(fx - cx / ps + 0.5)
+    ns.db.panel.point.y = math.floor(ftop - top / ps + 0.5)
 end
 
 function Panel.ApplySettings()
@@ -409,12 +420,12 @@ function Panel.ApplySettings()
     panel:SetScale(tonumber(ns.db.panel.scale) or 1)
     local pt = ns.db.panel.point
     panel:ClearAllPoints()
-    panel:SetPoint("CENTER", UIParent, "CENTER", pt.x or 0, pt.y or 0)
+    panel:SetPoint("TOP", UIParent, "TOP", pt.x or 0, pt.y or ns.DB.PANEL_DEFAULT_Y)
 end
 
 function Panel.ResetPosition()
     if not ns.db then return end
-    ns.db.panel.point.x, ns.db.panel.point.y = 0, 0
+    ns.db.panel.point.x, ns.db.panel.point.y = 0, ns.DB.PANEL_DEFAULT_Y
     Panel.ApplySettings()
 end
 
@@ -594,7 +605,7 @@ function Panel.EnsureFrame()
     panel.empty:SetText(L["No combat statistics were recorded for this run."])
     panel.empty:Hide()
 
-    panel:SetHeight(HEAD_H + 6 + HEADROW_H + 4 + MAX_ROWS * ROW_H + PAD)
+    panel:SetHeight(Panel.HEIGHT)
 
     panel:SetScript("OnHide", function() ns.HistoryMenu.Close() end)
 

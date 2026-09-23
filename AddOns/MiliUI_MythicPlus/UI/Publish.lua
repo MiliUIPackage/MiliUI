@@ -78,6 +78,8 @@ function Pub.RunReason(run)
     if not run then return L["No run to publish."] end
     -- 假場次（/mmp test）的名字與數字是捏造的，貼到公會就是在散播假成績
     if run.fake then return L["Test runs can't be published."] end
+    -- 統計還在補：這時候發只能發成績單，等幾秒就有完整的
+    if run.statsPending then return L["Waiting for the combat statistics…"] end
     return nil
 end
 
