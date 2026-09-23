@@ -408,14 +408,8 @@ local function InstallHooks()
 
     -- 頂部三顆分頁的第二條同步路徑（見檔頭第 1 點）。
     -- ⚠ 勾的是**全域 mixin 表**，不是 `ProfessionsFrame` 這個暴雪框。
-    if type(_G.TabSystemOwnerMixin) == "table"
-        and type(_G.TabSystemOwnerMixin.SetTab) == "function" then
-        hooksecurefunc(_G.TabSystemOwnerMixin, "SetTab", function()
-            E.SyncTabSystemAll()
-        end)
-    else
-        E.Missing("TabSystemOwnerMixin:SetTab")
-    end
+    --   第十一輪升格成 `Engine.TabSystemOwnerHooks`（冪等）：天賦視窗也要同一支。
+    E.TabSystemOwnerHooks()
 
     E.HookRows{
         key     = "ProfessionsRecipeListCategory",

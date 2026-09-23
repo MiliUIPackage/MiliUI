@@ -3,6 +3,17 @@
 把暴雪原生視窗重畫成米利UI的**設定視窗皮**。這份文件是這包的規格書：顏色從哪來、
 什麼動作准、什麼動作不准、每個暴雪模板走哪條路。
 
+> **第十一輪摘要（未實測）：** ①**天賦與法術書**（`Skins/PlayerSpells.lua`，原本 C 級）——
+> 範圍比特許視窗還窄：只換外框、底部分頁、天賦頁底部那條按鈕列（1612x82 的 `BottomBar`
+> ⇒ footer 帶，高度是 atlas 常數）、法術書的書頁與標題列、搜尋框、下拉、翻頁鈕；
+> **天賦樹、專精美術、法術格、專精卡片一顆都不碰**；套用變更／啟用專精／複製方案字串／
+> 載入方案彈窗的按鈕一律零腳本（`Engine.ScriptlessButton`）；**`hooksecurefunc` 在這個視窗的
+> 任何框或 mixin 上 0 支、`HookScript("OnShow")` 0 支**。分頁同步走升格後的
+> `Engine.TabSystemOwnerHooks`（冪等，專業視窗改呼叫同一支）。
+> ②**探究／世界副本難度選擇**（`Skins/DelvesPicker.lua`）：**場景底圖保留**，只把雕花外框換成
+> 1px 職業色邊（提示皮、不畫底）、關閉鈕／下拉／捲軸／「進入」（零腳本 primary）、兩行字改色；
+> 兩個 `UIWidgetContainerTemplate` 與挑戰詞綴那棵 trait 樹**整棵不碰**（秘密值 ＋ LayoutFrame）。
+>
 > **第十輪摘要（未實測）：** 冒險指南打磨 —— ①綜覽／首領技能／副本簡介三頁的**羊皮紙內嵌拿掉、
 > 文字全接管**（第九輪判「接不住」的三條理由逐條重查都接得住，查證表在 `Skins/EncounterJournal.lua`）；
 > ②**`useParentLevel` 的內嵌框底要墊 sublevel**：它跟父框同一個 frame level、region 跨框按
@@ -1625,6 +1636,8 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | **拍賣場 `AuctionHouseFrame`** | `auctionhouse` | chrome／關閉鈕／底部分頁（暴雪三顆 ＋ **伴隨元件四顆**，名字登記在 `ThirdParty/Auctionator.lua`，整排在 `AUCTION_HOUSE_SHOW` 的伴隨輪一次畫完）／底部金錢列／搜尋列（搜尋框、篩選下拉、搜尋鈕、最愛鈕）／左側分類樹（池化列，選中與滑過**交還暴雪顯示、只換長相**）／六個結果清單的**框級**（面板底、欄位表頭那條帶、捲軸、重新整理鈕）／物品購買頁／商品購買頁／兩個上架頁（數量框、金錢框、期限下拉、只賣直購勾選框）／我的拍賣頁（兩顆子分頁、摘要清單、出價與直購欄）／購買確認彈窗。**所有結果清單的「列」一顆都不碰**（出價／直購的執行流＋沒有可勾的每列出口），時光徽章兩頁只做外框 |
 | **專業 `ProfessionsFrame`** | `professions` | chrome／關閉鈕／最大化最小化／頂部三顆分頁（`Skin.TabSystemAll` ＋ `TabSystemOwnerMixin:SetTab` 後置勾同步）／配方頁（配方清單＋池化的分類列與配方列、搜尋框、篩選下拉、捲軸、`SchematicForm` 的底、兩顆勾選框、配方等級下拉、數量框、**製作／全部製作走特許**）／製作訂單頁（瀏覽清單的框級＋池化列、搜尋與翻頁鈕、訂單檢視頁的三塊面板、**接單／婉拒／釋出／完成訂單走特許**）／專精頁（footer 底 ＋ 底部按鈕列，**套用／撤銷走特許**）。**第八輪加上專業技能書**（`Skins/ProfessionsBook.lua`，同一個 key 的 `parts`，隨需載入的是 `Blizzard_ProfessionsBook`）：chrome／關閉鈕／書頁深色化（兩張羊皮紙中和 ＋ `Inset` ＝ `T.fill`）／五塊專業內嵌區（`T.fillInset`）／四條字色接管／五條等級條（`Skin.StatusBar`）／兩顆專業圖示改方形 ＋ 1px 黑框／十顆 secure 技能鈕**只中和名牌底板**。**進度條 `RankBar`、四顆範圍分頁、材料格與產出圖示、天賦樹都不做**；書裡的**技能鈕本體、遺忘專業鈕、教學鈕、`capRight`／`capped`／`rankText`** 也都不做（各自的理由在配方表與配方檔頭） |
 | 宏偉寶庫 `WeeklyRewardsFrame` | `weeklyrewards` | **純視覺特許、整份零 hook**：面板底／雕花中和／九～十二個活動格各一個內嵌底框／格內物品圖示方框／分類標題白字／關閉鈕與「選擇獎勵」（本檔 local 平面函式，不掛 HookScript）。解鎖／未解鎖的明暗差做不到（暴雪用同一張貼圖換 atlas）；選取框與領獎確認面板不碰 |
+| **天賦與法術書 `PlayerSpellsFrame`**（第十一輪，原本 C 級） | `playerspells` | 外框／標題帶／關閉鈕／最大化最小化／底部三顆分頁／**天賦頁 footer 帶**（`BottomBar` 換 `fillInset` ＋ 髮絲線）／載入方案下拉／搜尋框／**法術書書頁深色化**（`TopBar`／`BookBG*`／書角／書籤中和，字不接管 —— `SPELLBOOK_FONT_COLOR` 本來就是淺色）／法術書三顆分類分頁（`onTop`）／翻頁鈕／三個載入方案彈窗（提示皮）。**零腳本**：套用變更、複製方案字串、專精卡的啟用鈕、彈窗按鈕。**不碰**：天賦樹與英雄天賦、PvP 天賦格、戰爭模式鈕、重設／復原圖示、專精美術、法術格、專精卡美術、`HeroTalentsSelectionDialog` |
+| **探究難度選擇 `DelvesDifficultyPickerFrame`**（第十一輪） | `delvespicker` | **場景底圖保留**；外框 `Border`／`NineSlice` 中和 ＋ 1px 職業色邊（不畫底）／關閉鈕／難度下拉／獎勵捲軸／「進入」（零腳本 primary）／說明字白、小標與「可能獲得」`textDim`。探究與世界副本入口是同一個框。**不碰**：兩個小工具容器（場景圖、地圖詞綴）、挑戰詞綴樹、世界副本的「查看獎勵」大圓鈕、獎勵列 |
 | 冒險指南 `EncounterJournal` | `encounterjournal` | chrome／底部七顆分頁（`pad = 0`：`SetNumTabs` 會把分頁重錨成 +3）／五個下拉／六條捲軸／搜尋框／四顆頁籤鈕／戰利品清單、分類列與首領清單（池化列）。**第十輪：綜覽／首領技能／副本簡介三頁整頁深色、文字全接管**（段落 `EncounterInfoTemplate` 走三支全域後置勾 ＋ 每顆標題列的 `HookScript` OnShow／OnClick）；書頁與內嵌框的底墊到 sublevel −4（`useParentLevel` 平手問題）。副本卡片接不到（初始化是 local 函式）；推薦內容／月度活動／旅行者日誌未做 |
 | 試衣間 `DressUpFrame`＋`SideDressUpFrame` | `dressup` | chrome／關閉鈕／最大化最小化／外觀套裝下拉／外觀清單開關／底部三顆按鈕／右側兩片面板＋捲軸／小試衣間。**模型場景與它的背景不碰** |
 | 物品升級 `ItemUpgradeFrame` | `itemupgrade` | **整個視窗深色化**（全檔零 `SetTextColor`，沒有文字要接管）：chrome／**標題帶**（第七輪）／物品槽／等級下拉／左右兩欄預覽／費用列／持有貨幣列／升級鈕。**所有動畫特效留著** |
@@ -1757,7 +1770,7 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 
 | 系統 | 為什麼 |
 |---|---|
-| 法術書、天賦 | 整片保護框，而且戰鬥中禁止變更 |
+| 法術書、天賦的**內容**（天賦樹、法術格、專精卡、英雄天賦、PvP 天賦） | 第十一輪只把**框**移出 C 級（`Skins/PlayerSpells.lua`）；內容仍是 C 級：天賦鈕的點擊就是提交 trait 設定、法術格的點擊就是施法，戰鬥中受限 |
 | 快捷列 | `SetAttribute` 的大宗，碰一下就是戰鬥中被封鎖 |
 | 單位框、名條、團隊框 | 秘密值與 `RegisterUnitWatch` 的執行污染入口 |
 | 編輯模式 | 選取框模板的 `OnMouseDown` 會靜默染髒快捷列（`.claude/notes/wow-121-addon-code-in-secure-stack.md` 入口 8） |

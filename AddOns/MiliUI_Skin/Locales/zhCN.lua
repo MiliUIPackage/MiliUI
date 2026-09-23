@@ -51,6 +51,11 @@ L["AddOns"] = "插件"
 L["Adventure Guide"] = "冒险指南"
 L["Great Vault"] = "宏伟宝库"
 L["Turn this off first if you cannot select or claim a Great Vault reward."] = "若宏伟宝库选不了或领不了奖励，先关掉这一项。"
+-- 第十一轮：暴雪 GlobalStrings：TALENTS（天赋）、SPELLBOOK（法术书）、DELVES_LABEL（地下堡）
+L["Talents & Spellbook"] = "天赋与法术书"
+L["Turn this off first if applying talents, switching specialization or casting from the spellbook stops working."] = "若应用天赋、切换专精或从法术书施法没反应，先关掉这一项。"
+L["Delve Difficulty Picker"] = "地下堡难度选择"
+L["The difficulty window at a Delve or world instance entrance. Its background art is kept."] = "走进地下堡或世界副本入口时弹出的难度窗口。保留原本的场景底图。"
 -- 第五轮的两个特许窗口。「游戏选项」是 ESC 菜单标题栏的官方字串（MAINMENU_BUTTON）
 L["Confirmation Popups"] = "确认窗口"
 L["Game Menu"] = "游戏选项"
