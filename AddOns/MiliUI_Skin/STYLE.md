@@ -334,6 +334,7 @@ k = 1、完全不變。職業色不是秘密值，這是純 Lua 算術。
 | **按鈕的 `IsEnabled()`** | `Engine.TrackButtonHover`：停用的按鈕不給滑過回饋；**第九輪**：primary 按鈕的停用態初始值（`InstallEnableScripts`，之後由 `OnEnable`／`OnDisable` 更新） | 純 C 端布林；過 `Secret.ToBool`，問不到就當成「可以按」——失敗方向只是多一次提亮。`check_skin.py` 禁止配方與原語直接呼叫，只有 Engine 那一支能讀 |
 | 專業技能書 `<專業框>SpellButtonTop:IsShown()` | 只有一顆技能鈕時把下面那顆垂直置中（`FormatProfession` 後置勾） | 暴雪自己表達「這個專業有幾顆技能鈕」的同一個依據（`FormatProfession` 對它 Show／Hide）。純 C 端布林、過 `Secret.ToBool`，問不到當成「兩顆都在」＝不動 |
 | `MerchantFrame:IsShown()` | 商人配方兩支更新後置勾（`MerchantFrame_UpdateMerchantInfo`／`_UpdateBuybackInfo`）的第一行 | 暴雪在 `MerchantFrame_OnLoad` 就註冊了 `BAG_UPDATE`／`UNIT_INVENTORY_CHANGED`，**視窗沒開也照樣跑更新**（登入幾秒內上千次）；少了這道閘，每一次都是「所有商品格重畫一遍」的空轉。純 C 端布林、過 `Secret.ToBool`，問不到當成「沒開」（少畫一次，失敗方向安全） |
+| 拍賣插件 `AuctionatorSellingFrame.BagListing:IsShown()` | `ThirdParty/Auctionator.lua`：決定清單下方三顆小分頁交給 `Skin.TabGroup` 的順序 | 那支插件表達「不顯示背包 ⇒ 三顆小分頁改成由右往左排」的**同一個**依據（它的 `ApplyHiding` 在同一個 if 裡 `BagListing:Hide()` 並重錨三顆分頁，`Source_ModernAH/Tabs/Selling/Mixins/Main.lua:20-30`）；`TabGroup` 的接縫錨在「下一顆」，順序交反會畫出反向矩形。純 C 端布林、只在套用時讀一次、過 `Secret.ToBool`，問不到當成「有背包」＝預設順序（2026-09-24） |
 | 套裝細節部位圖示 `IconBorder:GetAtlas()` | `Skins/CollectionsWardrobe.lua` 的 `SetItemQualityBorder`：atlas → 品質 → `ITEM_QUALITY_COLORS` | 品質色烤在 atlas 裡（Blizzard_Wardrobe_Sets.lua:332-349、ColorManager.lua:174-192），vertex color 三種品質都是白，轉交拿不到；純 C 端查詢、收藏資料不是秘密值；過 `Secret.PlainText`，問不到當黑框；字串只拿來查暴雪自己的常數表、不存（2026-09-23 核准） |
 | **物品格 `IconBorder` 的 `GetVertexColor()`** | 同上：把品質色**轉交**給我們自己的四條邊 | 唯一一條「讀顏色」的例外，規則見下面的**傳遞者規則** |
 
@@ -465,7 +466,7 @@ tooltip 自己的 region、顯示與隱藏自動跟著它。萬一哪天變了�
 | 檔案 | host | 元件 | 觸發 | 開關 |
 |---|---|---|---|---|
 | `ThirdParty/Postal.lua` | `mail` | 郵件增強插件的四顆按鈕、三顆 ▼、七個列勾選框 | `event = "MAIL_SHOW"` | `postal` |
-| `ThirdParty/Auctionator.lua` | `auctionhouse` | 拍賣插件加在底部的四顆分頁（名字登記，由 host 一次畫完） | `AddCompanionTabs` | `auctionator` |
+| `ThirdParty/Auctionator.lua` | `auctionhouse` | 拍賣插件加在底部的四顆分頁（名字登記，由 host 一次畫完）＋ 它四頁的內容元件 | `AddCompanionTabs` ＋ `event = "AUCTION_HOUSE_SHOW"`／`"AUCTION_HOUSE_THROTTLED_SYSTEM_READY"` | `auctionator` |
 | `ThirdParty/PremadeGroupsFilter.lua` | `pve` | 預組隊伍過濾的 `UsePGFButton` ＋ `PremadeGroupsFilterDialog` ＋ 七個面板 | `atLogin = true` | `premadegroupsfilter` |
 | `ThirdParty/RaiderIO.lua` | **無**（nil） | 傳奇鑰石檔案插件自建的兩顆 tooltip | `atLogin = true` ＋ 2／10 秒補掃 | `raiderio` |
 | `ThirdParty/Mapster.lua` | `worldmap` | 地圖增強插件在世界地圖標題帶右上的 `MapsterOptionsButton` | `atLogin = true` | `mapster` |
@@ -1708,7 +1709,7 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 檔案 | host | 做了什麼 | 觸發 | 沒做／不碰 |
 |---|---|---|---|---|
 | `ThirdParty/Postal.lua` | `mail` | 收件匣與讀信視窗的四顆按鈕（`Skin.Button`）、三顆 ▼ 小鈕（`Skin.IconButton`，`inset = 4`）、每列左邊的七個勾選框（`Skin.CheckBox`） | `event = "MAIL_SHOW"` | 它的彈出選單；它掛在信件列上的任何東西的位置。⚠ 暴雪那顆 `OpenAllMail` 會被它藏起來換成自己那顆，**兩顆都要有皮**（暴雪那顆的皮在 `Skins/Mail.lua`） |
-| `ThirdParty/Auctionator.lua` | `auctionhouse` | 只登記底部那四顆分頁的**全域名字**（`Engine.AddCompanionTabs`）；真正畫的是 host 的 `SkinTabRow`，跟暴雪三顆**同一次** `Skin.TabGroup` | `AddCompanionTabs`（host 的 `AUCTION_HOUSE_SHOW` 伴隨輪） | 它自己的側邊面板與分頁內容（它有自己的主題系統，兩邊都畫就是兩層底） |
+| `ThirdParty/Auctionator.lua` | `auctionhouse` | **兩件事**：(1) 底部四顆分頁只登記**全域名字**（`Engine.AddCompanionTabs`），由 host 的 `SkinTabRow` 跟暴雪三顆**同一次** `Skin.TabGroup`；(2) 四頁內容（2026-09-24）：輸入框（數量、金／銀／銅、搜尋、最小最大值、複製連結）`Skin.EditBox`、有效時限三顆單選 `Skin.CheckBox{radio}`、一般按鈕 `Skin.Button`（最大／略過／上一個／返回／掃描… secondary；搜尋、完成、匯出、匯入、完整掃描 primary）、**開始拍賣／取消被壓價的拍賣／購買彈窗的購買與直購／商品確認彈窗的繼續與接受＝特許零腳本 primary**（彈窗裡的取消＝零腳本 secondary）、清單下方與上方兩組小分頁 `Skin.TabGroup`、`WowTrimScrollBar` 借 `ns.External.ScrollBar`、內嵌框與對話框外框（`RegionBackdrop`）、結果清單的表頭帶＋表頭三片中和、無名的重新整理鈕（讀結構找）、背包清單的分類標題列（`FramePool`，`fill`＋黑邊、滑過／選中帶去飽和染色）、銷售頁物品格（空格中和＋`fillInset`＋1px 黑框）、欄位標籤 `textDim` | `AUCTION_HOUSE_SHOW`（全掃）＋ `AUCTION_HOUSE_THROTTLED_SYSTEM_READY`（全掃成功前補全掃、之後只補分類標題列） | 所有清單的「列」（池化、而且就是購買／取消的執行流）；物品格的**品質框**（它直接對自己的貼圖 `SetVertexColor`、沒有全域出口 ⇒ 方框顏色跟不上，留它自己那圈）與圖示裁邊；右鍵確認選單、多筆上架進度、數值文字。⚠ **它沒有主題系統**（這一列之前寫錯，跟同樣掛在拍賣場上的另一支側邊面板插件搞混了）；`SHOW_SELLING_BAG` 關掉時小分頁反排，靠讀 `BagListing:IsShown()` 決定交給 `TabGroup` 的順序，改設定要 `/reload` |
 | `ThirdParty/PremadeGroupsFilter.lua` | `pve` | `UsePGFButton`；`PremadeGroupsFilterDialog` 的 chrome／關閉鈕／最大化最小化／重設與設定小鈕／重新整理鈕；七個面板的區塊標題、每列的勾選框與最小最大輸入框、它自己那一種下拉、四顆小文字鈕、進階過濾式與排序輸入框 | `atLogin = true`（視窗、面板與控件全部是檔案層 ＋ XML 一次建完） | 兩顆小圖示鈕的 `Icon`、說明鈕、列標籤、`UsePGFButton.Text` 的寬度、小文字鈕的 `Label` 顏色、它的彈出選單與設定頁 |
 | `ThirdParty/RaiderIO.lua` | **無**（nil） | 它自建的兩顆 tooltip（`RaiderIO_ProfileTooltip` / `_SearchTooltip`）：**有 `MiliUITip_API` 就 `Adopt` 委派**，沒有才退回自己畫提示皮（NineSlice `SetAlpha(0)` ＋ `Engine.RegionBackdrop`，`T.tipFill` ＋ 1px 職業色邊） | `atLogin = true` ＋ 登入後 2／10 秒各補掃一次 | 它的搜尋視窗本體（`BackdropTemplate` ＋ 它自己的 backdrop，我們的底壓在下面看不見）、tooltip 裡的文字顏色（那是它的資料）、模板自帶的 `StatusBar` |
 | `ThirdParty/Mapster.lua` | `worldmap` | `MapsterOptionsButton`（`UIPanelButtonTemplate`，`Skin.Button` secondary —— 開設定頁的導覽鈕） | `atLogin = true`（它在 `PLAYER_LOGIN` 的 `OnEnable` 裡建） | 按鈕位置與文字、它的設定頁。⚠ 先勾「隱藏地圖按鈕」登入、之後才取消的話按鈕是那一刻才建的，要 /reload 才有皮。同一排的 `HandyNotesWorldMapButton` **不做**：它的 NormalTexture 是一張不透明、自帶黑框的 64px 圖示，把整顆按鈕蓋滿，紅色切片本來就看不到 |
@@ -1792,6 +1793,8 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 出價／直購／商品直購／建立拍賣／取消拍賣／購買確認彈窗的三顆／
 製作／全部製作／接單／婉拒訂單／釋出訂單／完成訂單／重新製作／
 套用專精變更／撤銷專精變更。
+伴隨元件 `ThirdParty/Auctionator.lua` 也有一支同形狀的 local `CommerceButton`（2026-09-24）：
+開始拍賣／取消被壓價的拍賣／購買彈窗的購買與取消／商品直購／商品確認彈窗的繼續、接受與取消。
 
 三條配套紀律：
 1. **不呼叫 `Skin.Button`**（它會經由 `TrackButtonHover` 掛腳本）。

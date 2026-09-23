@@ -391,6 +391,13 @@ function P.ScrollBar(key, bar)
     end
 end
 
+-- 給 `ThirdParty/*.lua` 借用（伴隨元件的 `WowTrimScrollBar`，第一個用的是拍賣插件）。
+-- 直接呼叫、不走 handle 的戰鬥佇列：伴隨元件本來就在引擎的戰鬥閘後面跑。
+-- TODO(升格) 同上：升格成 `Skin.ScrollBar` 的參數化版本之後，這一行跟著拿掉。
+function External.ScrollBar(bar, key)
+    P.ScrollBar(key, bar)
+end
+
 ------------------------------------------------------------
 -- `MinimalSliderWithSteppersTemplate`（Blizzard_SharedXML/Shared/Slider/MinimalSlider.xml）
 --

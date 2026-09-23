@@ -638,10 +638,7 @@ end
 local FRIENDLY_ONLY_UNITS = { player = true, pet = true }
 ns.AURA_FRIENDLY_ONLY_UNITS = FRIENDLY_ONLY_UNITS
 
--- 首領框永遠是敵方，身上不會有嗜血疲勞，那個勾選放了只是雜訊
-local NO_SATED_UNITS = { boss = true }
-
-local BLACKLIST_MARKER = {}     -- 佔位，下面換成黑名單那幾列（減益另加疲勞勾選與說明）
+local BLACKLIST_MARKER = {}     -- 佔位，下面換成黑名單那一列（減益另加說明）
 
 local function AuraSpecs(name, unitKey)
     local list = {
@@ -679,9 +676,6 @@ local function AuraSpecs(name, unitKey)
                 rows[#rows + 1] = { type = "text", label = FRIENDLY_ONLY_UNITS[unitKey]
                     and L["On friendly units the game only lets you hide debuffs that are never kept secret, like Bloodlust exhaustion. The rest are greyed out in the list."]
                     or L["On friendly units the game only lets you hide debuffs that are never kept secret, like Bloodlust exhaustion. On enemies any debuff can be hidden."] }
-                if not NO_SATED_UNITS[unitKey] then
-                    tinsert(rows, 1, { type = "toggle", sub = name, key = "hideSated", label = L["Hide Bloodlust exhaustion"] })
-                end
             end
             tremove(list, i)
             for j = #rows, 1, -1 do tinsert(list, i, rows[j]) end
