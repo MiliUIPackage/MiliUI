@@ -59,7 +59,10 @@ local function SkinMenu(frame)
     -- 池化：同一個框下次開別的選單時，暴雪會重新 Attach 一張底並 SetAlpha(.925)
     -- ⇒ 中和每次都要重下；overlay 是我們的子框，建一次就一直在（Engine.Overlay 冪等）。
     E.NeutralizeRegions(frame, KEY)
-    local ov = E.Overlay(frame, { key = KEY })
+    -- ⚠ parent 一定要明確給選單框本身：選單框**沒有 parent**（根選單與子選單都是
+    --   無父的頂層框，自己設 strata），交給 SafeParent 往上找不到就會退回 UIParent（MEDIUM）
+    --   ⇒ 底跑到拍賣場這類視窗後面，看起來像「背景消失」（2026-09-24 實機）。
+    local ov = E.Overlay(frame, { key = KEY, parent = frame })
     if ov then E.Paint(ov, T.tipFill, { T.Accent() }) end
 end
 
