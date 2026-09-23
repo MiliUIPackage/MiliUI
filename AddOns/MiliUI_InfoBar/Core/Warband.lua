@@ -390,6 +390,10 @@ end
 -- ⚠ 這份快取要等 RequestRaidInfo → UPDATE_INSTANCE_INFO 回來才是真的；剛登入時
 --   GetNumSavedInstances() 會回 0。所以**只在事件回來之後存**（raidInfoReady），
 --   不然冷快取會把別次記好的進度蓋成「本週沒打」。
+-- ⚠ 副本清單跟首領清單是**兩份快取、生命週期不同**：登出當下（PLAYER_LOGOUT）
+--   副本名還在、首領已經清掉，讀出來每個團本都是 0/0（2026-09-24 實機：術士線上
+--   看是對的，換角色後被登出那次存檔蓋成 0/0）。所以登出**不存**團本，而且任何
+--   一次讀到「有鎖定、沒首領」都沿用同一個鎖定上次存好的首領清單，不拿空的蓋掉。
 ------------------------------------------------------------
 local raidInfoReady = false
 local lastRaidSig
@@ -407,12 +411,19 @@ local function ReadOwnRaidLockouts()
         reset = S.PlainNumber(reset)
         numEncounters = S.PlainNumber(numEncounters) or 0
         if name and reset and reset > 0 and S.ToBool(isRaid) and S.ToBool(locked) then
+            -- 首領數不當上限：它回 0 的時候逐一問到沒回應為止（團本最多十幾個首領）
             local bosses, killed = {}, 0
-            for j = 1, numEncounters do
+            local limit = numEncounters > 0 and numEncounters or 20
+            for j = 1, limit do
                 local bossName, _, isKilled = GetSavedInstanceEncounterInfo(i, j)
+                bossName = S.PlainText(bossName)
+                if not bossName then
+                    if numEncounters == 0 then break end
+                    bossName = "?"
+                end
                 local k = S.ToBool(isKilled) or false
                 if k then killed = killed + 1 end
-                bosses[j] = { name = S.PlainText(bossName) or "?", killed = k }
+                bosses[#bosses + 1] = { name = bossName, killed = k }
             end
             list[#list + 1] = {
                 name         = name,
@@ -421,7 +432,7 @@ local function ReadOwnRaidLockouts()
                 difficulty   = S.PlainText(difficultyName) or "",
                 reset        = now + reset,
                 killed       = killed,
-                total        = numEncounters,
+                total        = #bosses,
                 bosses       = bosses,
             }
         end
@@ -445,6 +456,23 @@ local function SaveRaidSnapshot()
     local list = ReadOwnRaidLockouts()
     if not list then return false end
     local rec = EnsureOwnRecord()
+    -- 讀到「有鎖定、沒首領」＝首領快取不在（見上面），沿用同一個鎖定上次的首領清單。
+    -- 同一個鎖定＝同副本、同難度、上次記的重置時間還沒到
+    local prev = rec.raids and rec.raids.list
+    if prev then
+        local now = GetServerTime()
+        for _, e in ipairs(list) do
+            if e.total == 0 then
+                for _, p in ipairs(prev) do
+                    if p.name == e.name and p.difficultyID == e.difficultyID
+                        and (p.reset or 0) > now and (p.total or 0) > 0 then
+                        e.bosses, e.killed, e.total = p.bosses, p.killed, p.total
+                        break
+                    end
+                end
+            end
+        end
+    end
     rec.raids = { timestamp = GetServerTime(), list = list }
     local sig = RaidSignature(list)
     local changed = sig ~= lastRaidSig
@@ -852,7 +880,8 @@ local function OnEvent(event, ...)
             SaveKeystoneRecord(mapID, level)
         end
         SaveVaultSnapshot()
-        SaveRaidSnapshot()
+        -- ⚠ 團本**不在這裡存**：登出當下首領快取已清空，存了會把整份蓋成 0/0
+        --   （見 ReadOwnRaidLockouts 上面的說明）。線上時 UPDATE_INSTANCE_INFO 已經存過
     elseif event == "UPDATE_INSTANCE_INFO" then
         OnRaidInfoUpdate()
     elseif event == "BOSS_KILL" then
