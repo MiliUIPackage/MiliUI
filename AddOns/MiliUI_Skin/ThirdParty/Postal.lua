@@ -112,6 +112,24 @@ local function Apply()
         local cb = _G["PostalInboxCB" .. i]
         if cb then Skin.CheckBox(cb, "PostalInboxCB" .. i) end
     end
+
+    -- 「開啟／返回」置中（2026-09-24 使用者要求，實機擷圖整組偏右）
+    --
+    -- 原因：Postal 把兩顆錨在 **`InboxFrame` 的 TOP**（Postal/Modules/Select.lua:92,103：
+    --   開啟 `RIGHT → InboxFrame TOP 0,-42`、返回 `LEFT → InboxFrame TOP 5,-42`），
+    --   但 `InboxFrame` 是舊版寬度 384、錨在 `MailFrame` 的 TOPLEFT
+    --   （Blizzard_MailFrame/MailFrame.xml:288-291），比可見的 `MailFrame` 寬 ⇒ 中心偏右約 23。
+    -- 做法：`Engine.ShiftRoot`（重錨的唯一例外）把**同名錨點**改掛到 `MailFrame` 的 TOP，
+    --   兩顆各離中線 3（原本間距 5 ⇒ 6，對稱）。y 照 Postal 原值 -42。
+    --   * Postal 只在 `OnEnable` 建立時錨一次、之後零處重設或讀回這兩顆的位置（grep 過）⇒ 撐得住；
+    --     它是 Postal 建的框、不在任何 secure 路徑上。
+    --   * `db.relayout = false` 整批關；戰鬥中 ShiftRoot 自己回 false（伴隨輪本來就過戰鬥閘）。
+    local mail = _G.MailFrame
+    if mail then
+        local open, ret = _G.PostalSelectOpenButton, _G.PostalSelectReturnButton
+        if open then E.ShiftRoot(open, "RIGHT", mail, "TOP", -3, -42, "PostalSelectOpenButton") end
+        if ret then E.ShiftRoot(ret, "LEFT", mail, "TOP", 3, -42, "PostalSelectReturnButton") end
+    end
 end
 
 E.AddCompanion("mail", {
