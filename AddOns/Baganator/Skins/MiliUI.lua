@@ -84,10 +84,10 @@ local routes = {
     h.IconButton(button)
   end,
   ItemButton = function(h, button)
-    if addonTable.API.IsMasqueApplying and addonTable.API.IsMasqueApplying() then
-      return
-    end
-    h.ItemButton(button, { art = { "SlotBackground" } })
+    -- 有 Masque 在套：格子的長相整個交給它，但空格那張底圖（翅膀）照樣藏掉 ——
+    -- Masque 不認得這張 Baganator 自己加的貼圖，不藏就會從 Masque 的框裡透出來。
+    local masque = addonTable.API.IsMasqueApplying and addonTable.API.IsMasqueApplying()
+    h.ItemButton(button, { art = { "SlotBackground" }, artOnly = masque })
   end,
   SideTabButton = function(h, button)
     h.SideTab(button, { art = { "Background" }, selected = "SelectedTexture" })

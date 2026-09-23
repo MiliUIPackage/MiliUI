@@ -202,6 +202,12 @@ function P.ItemButton(key, btn, opts)
     -- 只做貼圖層的事（alpha 中和、CreateTexture 建在格子上、後置勾全域），沒有子框。
     -- 背包格的模板是顯式保護的，照規矩跳過的話整顆都不換皮 —— 空格那張翅膀底圖
     -- （呼叫端交進來的 `opts.art`）也就留著。戰鬥中的保護框照樣由 `Run` 延到脫戰。
+    --
+    -- opts.artOnly：格子的長相交給別人（Masque）時，只中和呼叫端點名的底圖，其餘一概不碰。
+    if opts.artOnly then
+        NeutralizeIfPresent(btn, opts.art, key)
+        return
+    end
 
     local border = Field(btn, "IconBorder")
     if border then E.Neutralize(border, key .. ".IconBorder") end
