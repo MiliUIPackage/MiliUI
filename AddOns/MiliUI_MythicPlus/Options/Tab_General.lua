@@ -25,8 +25,8 @@ local function BuildSpecs()
         -- 「開啟結算面板」不放這裡：在視窗上緣分頁那排的最右邊，每一頁都看得到（Options/Panel.lua）
 
         { type = "header", label = L["Shortcuts"] },
-        { type = "toggle", sub = "minimap", key = "show", label = L["Minimap button"],
-          hint = L["Left-click toggles the settlement panel, right-click opens these settings."] },
+        { type = "toggle", sub = "minimap", key = "show", label = L["Minimap button"] },
+        { type = "text", label = L["Left-click toggles the settlement panel, right-click opens these settings."] },
     }
 
     local history = {
