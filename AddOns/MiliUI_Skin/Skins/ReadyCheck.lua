@@ -158,6 +158,7 @@
 -- |---|---|---|
 -- | listener 的 `Bg`／`NineSlice`／`PortraitContainer` | `SetAlpha(0)` | `SetPortraitTexture` 每次重設頭像材質，alpha 撐得住 |
 -- | listener | `Engine.RegionBackdrop` 建底與邊（提示皮：`T.tipFill` ＋ 1px `T.Accent()`） | 不是 layout host ⇒ 直接建成它自己的 BACKGROUND 貼圖，DIALOG strata 的問題不存在 |
+-- | listener | `Skin.TitleBar` 標題帶（`fillInset` ＋ 下緣髮絲線，同樣是它自己的貼圖） | 2026-09-24 試做 |
 -- | `TitleContainer.TitleText`、`ReadyCheckFrameText` | `SetTextColor`（白） | 暴雪只 `SetFormattedText`，不重設顏色 ⇒ 做一次就好 |
 -- | 兩顆按鈕的 `Left`/`Right`/`Middle` | `SetAlpha(0)` | |
 -- | 兩顆按鈕 | `SetNormalFontObject(GameFontHighlight)` ＋ Highlight／Disabled 的 `SetColorTexture`（`Engine.ScriptlessButton`） | **零 HookScript**；`ConfirmReadyCheck` 是 `AllowedWhenUntainted`，點擊那一次的執行裡一行我們的 Lua 都沒有 |
@@ -232,6 +233,10 @@ local function SkinOnce()
     local ov = Skin.Panel(listener, KEY, { fill = T.tipFill, border = { T.Accent() } })
     if not ov then return end
     E.NeutralizeKeys(listener, { "Bg", "NineSlice", "PortraitContainer" }, KEY .. ".Listener")
+    -- 標題帶（2026-09-24 試做）：標題與訊息同為白字，層級只剩位置在分。暴雪原版的
+    -- 標題區就是 Bg 上緣（y=-23，ReadyCheck.xml:29）以上那一條，跟其他視窗的標題帶同一格
+    -- ⇒ 直接用 `Skin.TitleBar`（listener 自己的貼圖，蓋不住任何內容）。
+    Skin.TitleBar(listener, KEY)
 
     local title = Field(Field(listener, "TitleContainer"), "TitleText")
     if title then
