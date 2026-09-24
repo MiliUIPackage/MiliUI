@@ -108,7 +108,7 @@
 --      `RC_MAX_GROW` 倍（離譜的名字就換行，不衝出螢幕）。
 --   2. **置中**：頭像拿掉之後，暴雪替頭像留的左內縮（訊息 x=20、標題 x=58、按鈕那一對
 --      的中點偏右約 16）變成左邊一個洞 ⇒ 標題、訊息、按鈕全部置中。
---      訊息上移到 `RC_TEXT_Y`（−30，暴雪 −37）：長名字換成兩行時第二行不會壓到按鈕。
+--      垂直方向「標題帶→訊息→按鈕→下緣」三段等距（2026-09-24；原本訊息上緣 −30、按鈕離下緣 16）。
 --      按鈕對彈窗的 `BOTTOM` 對稱錨（各離中線半個間距），自動跟著 SetWidth 走。
 --
 --   **修正 ①：秘密訊息不放棄重排。** 聊天封鎖期間訊息裡的名字是秘密字串，量到的寬度
@@ -133,10 +133,10 @@
 -- |---|---|---|---|---|---|
 -- | ① | `GetWidth()` | `ReadyCheckFrame` | 讀尺寸 | 只讀一次當基準（`geo.baseW`）；外框錨在 UIParent、寬度是 XML 寫死的 323，不會是秘密值，仍過 `PlainNumber` | 同（存在它自己的框資料表） |
 -- | ② | ~~`GetLeft/GetRight/GetTop()`~~ | —— | —— | **2026-09-24 拿掉**：標題改對標題帶中線置中（⑦），不必再量暴雪的標題位置 | 量標題相對上緣的 y |
--- | ③ | `GetUnboundedStringWidth()`／`GetStringWidth()` | `ReadyCheckFrameText` | 讀文字寬度 | 可能是秘密數字（名字是秘密字串時）⇒ 過 `PlainNumber`，秘密就**不讀**、改用原始寬度（修正 ①） | 只用 `GetStringWidth`，秘密就整段 return |
+-- | ③ | `GetUnboundedStringWidth()`／`GetStringWidth()`／`GetStringHeight()`（2026-09-24 加） | `ReadyCheckFrameText` | 讀文字寬度／高度 | 可能是秘密數字（名字是秘密字串時）⇒ 過 `PlainNumber`，秘密就**不讀**、改用原始寬度（修正 ①） | 只用 `GetStringWidth`，秘密就整段 return |
 -- | ④ | `SetWidth(want)` | `ReadyCheckFrame` | 改尺寸 | 沒有保護；暴雪不讀回；listener `setAllPoints` 跟著變寬，皮（listener 自己的貼圖）也跟著走 | 同 |
 -- | ⑤ | `SetWidth(want − pad)` | `ReadyCheckFrameText` | 改尺寸 | 只影響換行寬度；XML 原值 240 | 同 |
--- | ⑥ | `ClearAllPoints` ＋ `SetPoint("TOP", fr, "TOP", 0, RC_TEXT_Y)` | `ReadyCheckFrameText` | 重排 | FontString 區域、不是框；暴雪只在 XML 錨過一次 | 同 |
+-- | ⑥ | `ClearAllPoints` ＋ `SetPoint("TOP", fr, "TOP", 0, −(標題帶下緣 ＋ 空隙))` | `ReadyCheckFrameText` | 重排 | FontString 區域、不是框；暴雪只在 XML 錨過一次 | 同 |
 -- | ⑦ | `ClearAllPoints` ＋ `SetPoint("CENTER", fr, "TOP", 0, −(1 ＋ TITLE_BAR_H/2))` | `TitleContainer.TitleText` | 重排 | 同上；`TitleContainer` 本身不動 | 同 |
 -- | ⑧ | `ClearAllPoints` ＋ `SetPoint("BOTTOMRIGHT"/"BOTTOMLEFT", fr, "BOTTOM", ∓6, 16)` | 兩顆按鈕 | 重排 | 不是 secure 按鈕；y=16 照 XML；錨點不影響點擊派送（點擊路徑上沒有我們的 Lua） | 同 |
 --
@@ -186,13 +186,19 @@ local KEY = "ReadyCheckFrame"
 -- 幾何常數：照抄成熟同類實作，一字不改
 local RC_PAD      = 24   -- 訊息左右各留的內距
 local RC_MAX_GROW = 2    -- 上限：最多撐到暴雪原寬的兩倍
-local RC_TEXT_Y   = -30  -- 訊息上緣（暴雪 −37；長名字換兩行時不壓到按鈕）
 local RC_BTN_GAP  = 12   -- 兩顆按鈕之間
-local RC_BTN_Y    = 16   -- 按鈕離下緣（暴雪自己的值，ReadyCheck.xml:82,95）
+local RC_GAP_MIN  = 4    -- 三段空隙的下限（長名字換兩行時）
 
 -- 標題帶高度（像素）：比其他視窗的標題帶高 4（2026-09-24 使用者試看）。
 -- 標題字對這條帶子的中線置中（`Fit` 的 ⑦），不再沿用暴雪量出來的上緣偏移。
 local TITLE_BAR_H = T.titleBarHeight + 4
+
+-- 垂直版面（2026-09-24）：標題帶下緣 → 訊息、訊息 → 按鈕、按鈕 → 彈窗下緣
+-- **三段空隙一樣大**。彈窗高度不動，扣掉標題帶、訊息、按鈕之後平分成三份；
+-- 按鈕原本離下緣 16（暴雪 ReadyCheck.xml:82,95），現在跟著空隙走。
+-- 彈窗高 100（ReadyCheck.xml:15，暴雪 Lua 零處 SetHeight）、按鈕高 24（:80,93）
+local RC_FRAME_H = 100
+local RC_BTN_H   = 24
 
 -- 量到的東西存在這裡，**不存在暴雪框上**
 local geo = {}
@@ -278,6 +284,16 @@ local function MeasureMessage(fs)
     return S.PlainNumber(v)                       -- 秘密 ⇒ nil ⇒ 當作不知道（修正 ①）
 end
 
+-- 訊息的高度：秘密（名字是秘密字串時）就退回字型大小 —— 一行的高度，
+-- 換成兩行時只是空隙算得稍大，不會重疊。
+local function MeasureMessageHeight(fs)
+    local ok, v = pcall(function() return fs:GetStringHeight() end)   -- skin-lint: readycheck-allowlist ③
+    v = ok and S.PlainNumber(v) or nil
+    if v and v > 0 then return v end
+    local okF, _, size = pcall(function() return fs:GetFont() end)
+    return okF and S.PlainNumber(size) or nil
+end
+
 local function Fit()
     if ns.db and ns.db.relayout == false then return end
 
@@ -306,10 +322,17 @@ local function Fit()
 
     pcall(function() fr:SetWidth(want) end)                            -- skin-lint: readycheck-allowlist ④
 
+    -- 三段等距（見 RC_FRAME_H 上面的說明）。訊息高度要在 SetWidth 之後量（換行跟著寬度變）
+    local top = ns.P.Scale(1 + TITLE_BAR_H)                -- 標題帶下緣，離彈窗上緣
+    local textH
     if fs then
         pcall(function() fs:SetWidth(want - pad) end)                  -- skin-lint: readycheck-allowlist ⑤
+        textH = MeasureMessageHeight(fs)
+    end
+    local gap = math.max(RC_GAP_MIN, (RC_FRAME_H - top - RC_BTN_H - (textH or 0)) / 3)
+    if fs then
         pcall(function() fs:ClearAllPoints() end)                      -- skin-lint: readycheck-allowlist ⑥
-        pcall(function() fs:SetPoint("TOP", fr, "TOP", 0, RC_TEXT_Y) end)   -- skin-lint: readycheck-allowlist ⑥
+        pcall(function() fs:SetPoint("TOP", fr, "TOP", 0, -(top + gap)) end)   -- skin-lint: readycheck-allowlist ⑥
     end
 
     if title then
@@ -322,9 +345,9 @@ local function Fit()
     if yes and no then
         local half = RC_BTN_GAP / 2
         pcall(function() yes:ClearAllPoints() end)                     -- skin-lint: readycheck-allowlist ⑧
-        pcall(function() yes:SetPoint("BOTTOMRIGHT", fr, "BOTTOM", -half, RC_BTN_Y) end)   -- skin-lint: readycheck-allowlist ⑧
+        pcall(function() yes:SetPoint("BOTTOMRIGHT", fr, "BOTTOM", -half, gap) end)   -- skin-lint: readycheck-allowlist ⑧
         pcall(function() no:ClearAllPoints() end)                      -- skin-lint: readycheck-allowlist ⑧
-        pcall(function() no:SetPoint("BOTTOMLEFT", fr, "BOTTOM", half, RC_BTN_Y) end)      -- skin-lint: readycheck-allowlist ⑧
+        pcall(function() no:SetPoint("BOTTOMLEFT", fr, "BOTTOM", half, gap) end)      -- skin-lint: readycheck-allowlist ⑧
     end
 end
 
