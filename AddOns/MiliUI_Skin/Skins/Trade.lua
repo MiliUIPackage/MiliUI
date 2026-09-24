@@ -82,6 +82,7 @@
 -- | 14 格 `Trade{Player,Recipient}ItemN` 自己的貼圖（`GetRegions`） | `SetAlpha(0)`；名牌方框建成**格子自己的** BACKGROUND 貼圖（錨在 `$parentNameFrame` 上） |
 -- | 14 顆 `…ItemButton` | `Skin.ItemButton`（IconBorder／NormalTexture `SetAlpha(0)`、裁邊、方框 overlay） |
 -- | 兩個名字、兩行附魔說明 | `SetTextColor` |
+-- | 兩行附魔說明 | `Engine.Reanchor`：BOTTOMLEFT 錨在各自第 7 格 TOPLEFT 上方 4（重排例外，脫戰、`relayout=false` 可關） |
 -- | `TradeFrameTradeButton`／`TradeFrameCancelButton` | 零腳本：Left/Right/Middle `SetAlpha(0)` ＋ `SetNormalFontObject(GameFontHighlight)` ＋ Highlight／Disabled 換長相 |
 -- | `CloseButton` | `Skin.CloseButton` |
 --
@@ -265,6 +266,35 @@ local function SkinButtons()
     end
 end
 
+------------------------------------------------------------
+-- 「不會被交易」兩行：改貼在附魔格正上方（`Engine.Reanchor`，STYLE.md ③ 的重排例外）
+--
+-- XML 原值（TradeFrame.xml）：`TradeFramePlayerEnchantText` TOPLEFT → TradeFrame TOPLEFT (15, -360)；
+--   `TradeFrameRecipientEnchantText` LEFT → 前者 (166, 0)。第 7 格在第 6 格下方 28（`y="-28"`），
+--   原設計是 10 號字塞進那 28 的縫。zhTW 的字比那高，從 -360 往下長就壓進第 7 格；
+--   暴雪的羊皮紙名牌上緣是透明的看不出來，換成實心方框之後就變成「字被格子蓋住」（實機擷圖）。
+-- ⇒ 兩行各自改成 BOTTOMLEFT 錨在自己那一半第 7 格的 TOPLEFT、上移 4：字從格子上緣往上長，
+--   字多高都不會再壓到格子，左緣也跟格子對齊。
+-- grep（12.1 live，TradeFrame.lua）：兩行字與第 7 格零處 SetPoint／GetPoint，只在 XML 錨一次。
+------------------------------------------------------------
+local ENCHANT_LABEL_GAP = 4
+
+local function SkinEnchantLabels()
+    local list = {}
+    for _, pair in ipairs({
+        { "TradeFramePlayerEnchantText", "TradePlayerItem7" },
+        { "TradeFrameRecipientEnchantText", "TradeRecipientItem7" },
+    }) do
+        local fs, slot = _G[pair[1]], _G[pair[2]]
+        if fs and slot then
+            list[#list + 1] = { fs, { { "BOTTOMLEFT", "TOPLEFT", 0, ENCHANT_LABEL_GAP, rel = slot } } }
+        else
+            E.Missing(pair[1])
+        end
+    end
+    if #list > 0 then E.Reanchor(list, "TradeFrame.EnchantText") end
+end
+
 local function Apply()
     local f = _G.TradeFrame
     if not f then
@@ -274,7 +304,7 @@ local function Apply()
     if not E.Usable(f, "TradeFrame") then return end
 
     -- 分段 pcall：一格出錯不拖垮後面的按鈕（成熟同類實作踩過兩次「半套皮」的就是這個）
-    for _, step in ipairs({ SkinChrome, SkinSlots, SkinButtons }) do
+    for _, step in ipairs({ SkinChrome, SkinSlots, SkinEnchantLabels, SkinButtons }) do
         local ok, err = pcall(step, f)
         if not ok then ns.ReportError(err) end
     end
