@@ -91,7 +91,7 @@
 --     **池化列**（`CommunitiesListEntryMixin.Init` 後置勾）：卡片底 `Background` 與頭像金環 `IconRing` 中和、
 --     改成上下各縮 2 的平面卡片（fill ＋ 黑邊）、滑過自己畫；選中態讀 `Selection:IsShown()` 走 `Skin.Row` 的標準選中（`Selection` 本身中和，2026-09-24）。
 --   * 右側四顆側邊分頁與尋找公會的兩顆：只留圖示（裁邊）＋一圈方框；滑過＝引擎的 Highlight 白 8%、
---     選中＝引擎的 Checked 換成一圈職業色方框（`Engine.CheckedOutline`）（C 端依 `SetChecked` 顯示，**零 hook**）。
+--     選中＝引擎的 Checked 換成右緣職業色直條（`Engine.CheckedTextureFile`）（C 端依 `SetChecked` 顯示，**零 hook**）。
 --   * 五顆下拉、「加入聊天」小箭頭鈕（中和箭頭、畫 ⌄、字改白）。
 --   * 聊天：`Chat.InsetFrame` 只畫邊、聊天捲軸；**輸入框只中和三張美術 ＋ 建一張底與四條邊**（見下）。
 --   * 名冊：`InsetFrame` 只畫邊、捲軸（**零腳本版**）、「在線人數」字改白、「顯示離線」勾選框。
@@ -457,15 +457,15 @@ end
 -- 做法照成熟實作：圖示方形化、其餘美術全收、一塊方框墊在**圖示周圍**（錨在圖示上，
 -- 不碰分頁的尺寸與錨點）。狀態全交給 C 端：
 --   * 滑過：`HighlightTexture`（ButtonHilight-Square，ADD，鋪滿 32x32）→ 白 8%（`Engine.ButtonStates`）
---   * 選中：`CheckedTexture`（CheckButtonHilight，ADD，鋪滿）→ 一圈職業色方框（2026-09-24 起；原本是職業色 × 0.35 的 ADD 疊加）
---     （`Engine.CheckedOutline`）。暴雪 `SetChecked` 決定顯示與否，我們一行 Lua 都不跑。
+--   * 選中：`CheckedTexture`（CheckButtonHilight，ADD，鋪滿）→ 右緣職業色直條（2026-09-24 起；原本是職業色 × 0.35 的 ADD 疊加）
+--     （`Engine.CheckedTextureFile`）。暴雪 `SetChecked` 決定顯示與否，我們一行 Lua 都不跑。
 -- 那張 64x64 的 `SpellBook-SkillLineTab` 是**無名**的 ⇒ `NeutralizeRegions` ＋ keep-set
 -- （`Icon`／`IconOverlay`／Highlight／Checked 留下；`IconOverlay` 是「聊天被家長控制停用」的 50% 黑罩，資訊）。
 ------------------------------------------------------------
--- 側邊分頁離視窗右緣的空隙（2026-09-24）：暴雪的 ChatTab 錨 `TOPLEFT → TOPRIGHT x=0 y=-36`
--- （CommunitiesFrame.xml:376），方框貼著視窗邊；其餘三顆一顆接一顆錨在它下面，
--- 只挪第一顆整排就跟著走。暴雪 Lua 只重錨 GuildInfoTab（錨在 RosterTab 上，:1057）。
-local SIDE_TAB_GAP = 4
+-- 側邊分頁貼著視窗（2026-09-24）：暴雪的 ChatTab 錨 `TOPLEFT → TOPRIGHT x=0 y=-36`
+-- （CommunitiesFrame.xml:376）⇒ 分頁的黑邊跟視窗的黑邊並排成 2 條。往左推一個邊寬，
+-- 兩條疊成一條、分頁看起來是從視窗長出來的（同底部分頁）。其餘三顆一顆接一顆錨在它
+-- 下面，只挪第一顆整排就跟著走。暴雪 Lua 只重錨 GuildInfoTab（錨在 RosterTab 上，:1057）。
 
 local function SideTab(tab, key)
     if not E.Usable(tab, key) then return end
@@ -474,9 +474,10 @@ local function SideTab(tab, key)
     E.NeutralizeRegions(tab, key, E.KeepSet(tab, { "Icon", "IconOverlay" },
         { "GetHighlightTexture", "GetCheckedTexture" }))
     E.ButtonStates(tab, key)
-    -- 選中：一圈職業色方框（2026-09-24；原本是整格 ADD 職業色 ×0.35，疊在圖示上像一層霧）
+    -- 選中：朝外那一邊（右緣）一條職業色直條 —— 跟底部分頁（`T.tabStyle = "underline"`，
+    -- 線畫在朝外的下緣）同一套語言（2026-09-24；原本是整格 ADD 職業色 ×0.35，像一層霧）
     local r, g, b = T.Accent()
-    E.CheckedOutline(tab, { r, g, b, 1 }, key)
+    E.CheckedTextureFile(tab, T.tabAccentRightTexture, { r, g, b, 1 }, key)
 
     if icon then
         E.CropIcon(icon, key .. ".Icon")
@@ -636,7 +637,7 @@ local function SkinChrome(f)
     end
     local chatTab = Optional(f, "ChatTab")
     if chatTab then
-        E.ShiftRoot(chatTab, "TOPLEFT", f, "TOPRIGHT", SIDE_TAB_GAP, -36, "CommunitiesFrame.ChatTab")
+        E.ShiftRoot(chatTab, "TOPLEFT", f, "TOPRIGHT", -T.BorderSize(), -36, "CommunitiesFrame.ChatTab")
     end
 end
 
