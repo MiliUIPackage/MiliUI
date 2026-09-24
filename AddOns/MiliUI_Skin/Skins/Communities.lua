@@ -89,7 +89,7 @@
 --   * 左側社群清單：藍色選單美術（Bg／兩條 Filigree／`FilligreeOverlay`）中和、清單底 fillInset、
 --     框線改畫在它自己那個 level 200 的 `InsetFrame` 上（**只有邊、底透明**，不然會蓋住列）、捲軸；
 --     **池化列**（`CommunitiesListEntryMixin.Init` 後置勾）：卡片底 `Background` 與頭像金環 `IconRing` 中和、
---     改成上下各縮 2 的平面卡片（fill ＋ 黑邊）、滑過自己畫；選中那張 `Selection` 去飽和染壓暗職業色。
+--     改成上下各縮 2 的平面卡片（fill ＋ 黑邊）、滑過自己畫；選中態讀 `Selection:IsShown()` 走 `Skin.Row` 的標準選中（`Selection` 本身中和，2026-09-24）。
 --   * 右側四顆側邊分頁與尋找公會的兩顆：只留圖示（裁邊）＋一圈方框；滑過＝引擎的 Highlight 白 8%、
 --     選中＝引擎的 Checked 換成職業色疊加（C 端依 `SetChecked` 顯示，**零 hook**）。
 --   * 五顆下拉、「加入聊天」小箭頭鈕（中和箭頭、畫 ⌄、字改白）。
@@ -145,7 +145,7 @@
 -- | 六顆側邊分頁 | 無名 BORDER 貼圖與 NormalTexture `SetAlpha(0)`、`Icon` 裁邊、Highlight／Checked `SetColorTexture`（**零腳本**） |
 -- | 下拉 | `Background`／`Arrow` `SetAlpha(0)` ＋ ⌄ 圖記（名冊兩顆與階級下拉 `noHover` ＝零腳本） |
 -- | 所有文字按鈕（含彈窗） | 美術 `SetAlpha(0)` ＋ `SetNormalFontObject` ＋ Highlight／Disabled 的 `SetColorTexture`（`Engine.ScriptlessButton`，**零 HookScript**） |
--- | 社群清單列 | `Background`／`IconRing` `SetAlpha(0)`、`Selection` 去飽和＋`SetVertexColor`、Highlight `SetAlpha(0)`、我們的子框 overlay |
+-- | 社群清單列 | `Background`／`IconRing`／`Selection` `SetAlpha(0)`、Highlight `SetAlpha(0)`、我們的子框 overlay |
 -- | 福利列／獎勵列 | 美術 `SetAlpha(0)`（獎勵只中和 NormalTexture）、Highlight `SetColorTexture`、圖示裁邊、我們的子框 overlay |
 -- | 捲軸 | `Track`／`Thumb` 三片與 `Background` `SetAlpha(0)`、我們的細條 overlay（名冊那一條零腳本） |
 -- | 輸入框／多行輸入框／勾選框 | `Skin.EditBox`／`Skin.InputScroll`／`Skin.CheckBox` |
@@ -160,7 +160,7 @@
 --
 -- | hook | 型別 | 裡面做什麼 |
 -- |---|---|---|
--- | `CommunitiesListEntryMixin.Init` | mixin 後置勾（`Engine.HookRows`，裝在 `hooks`） | 第一次：中和＋建 overlay（`Skin.Row` ⇒ 列上 `HookScript("OnEnter"/"OnLeave")` 換我們自己的底色）；每次：`Selection` 去飽和＋染色 |
+-- | `CommunitiesListEntryMixin.Init` | mixin 後置勾（`Engine.HookRows`，裝在 `hooks`） | 第一次：中和（含 `Selection`）＋建 overlay（`Skin.Row` ⇒ 列上 `HookScript("OnEnter"/"OnLeave")` 換我們自己的底色）；每次：讀 `Selection:IsShown()` → `Engine.SetSelected` |
 -- | `CommunitiesGuildPerksButtonMixin.Init` | mixin 後置勾 | 第一次：中和＋建 overlay；每次：圖示裁邊 |
 -- | `CommunitiesGuildRewardsButtonMixin.Init` | mixin 後置勾 | 同上 |
 -- | 原語內建的 `HookScript("OnEnter"/"OnLeave")`（＋翻頁鈕的 `OnEnable`/`OnDisable`） | frame script 後掛 | **只對**關閉鈕、最大化最小化、清單兩顆下拉、「加入聊天」、清單捲軸／聊天捲軸／福利與資訊頁捲軸、彈窗的捲軸／勾選框／下拉、尋找公會的翻頁鈕與勾選框、「顯示離線」勾選框；內容只換我們自己 overlay 的顏色 |
@@ -176,7 +176,7 @@
 --   1. 列卡片改成「對話框底圖 atlas、半透明」並在貼圖實例上勾 SetAtlas/SetTexture/SetAlpha 自我修復
 --      ⇒ `SetAtlas` 與實例勾都禁止；改成中和 `Background` ＋ 我們自己的平面卡片（overlay 用 points 縮 2）。
 --      選中與滑過的洗白也是把暴雪貼圖 `ClearAllPoints`/`SetPoint` 裁進卡片 ⇒ 禁止；
---      滑過改成自己畫（`Skin.Row` ownHover）、選中那張 80 高的 `Selection` 只能去飽和染色、**矩形照暴雪**（會溢出列 6 點）。
+--      滑過改成自己畫（`Skin.Row` ownHover）、選中那張 80 高的 `Selection` 原本去飽和染色（溢出列 6 點），2026-09-24 改成中和、讀它的 IsShown 畫我們自己的選中態。
 --   2. 側邊分頁的間距收緊 10、第一顆重錨貼齊視窗邊 ⇒ `ClearAllPoints`/`SetPoint` 禁止，不做。
 --      依 `IsEnabled()` 做半透明 ⇒ 配方不准讀 IsEnabled、也不准對按鈕框 SetAlpha，不做（停用的分頁暴雪自己會去飽和圖示）。
 --   3. 公會招募視窗重錨到視窗右側 ⇒ 重排，不做。彈窗輸入框的左內距 6（讀錨點再 `SetPoint`／`SetWidth`）⇒ 不做。
@@ -391,10 +391,10 @@ local function MainInset(inset, key)
     E.Paint(ov, T.fillInset, T.border)
 end
 
-local function BorderInset(inset, key)
+local function BorderInset(inset, key, points)
     if not E.Usable(inset, key) then return end
     NeutralizePresent(inset, { "Bg", "NineSlice" }, key)
-    local ov = E.RegionBackdrop(inset, { key = key })
+    local ov = E.RegionBackdrop(inset, { key = key, points = points })
     E.Paint(ov, TRANSPARENT, T.border)
 end
 
@@ -499,8 +499,7 @@ end
 --   * 平面卡片：`Skin.Row`（fill ＋ 黑邊，上下各縮 2 讓相鄰兩張之間留縫）、滑過自己畫
 --     （暴雪的 Highlight 是 80 高、溢出列 6 點的藍卡，對不齊 ⇒ `ownHover` 把它中和）。
 -- reapply（每次 Init）：
---   * `Selection`（選中那張亮卡）去飽和 ＋ 染壓暗的職業色（`T.AccentFill`）。
---     Init 每次重設它的材質／atlas ⇒ 放 reapply，不去賭去飽和撐不撐得過。
+--   * 選中態：讀 `Selection:IsShown()`（見下面 ApplyListEntry 上方的說明）。
 --   名字顏色（綠＝公會、藍＝戰網、金＝一般、灰＝停用）是資訊，不碰；公會徽章、頭像、
 --   未讀點、我的最愛星號、新社群閃光都不碰。
 ------------------------------------------------------------
@@ -509,13 +508,16 @@ local LIST_ROW_POINTS = {
     { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 2 },
 }
 
-local selectionTint
-
+-- 選中態（2026-09-24 改）：原本把暴雪的 `Selection` 去飽和染職業色，但它是 **80 高**、
+-- 比 68 高的列溢出 6 —— 染出來是一塊溢出卡片、壓到鄰列的暗紅光暈。改成中和它，
+-- 選中改走 `Skin.Row` 的標準選中態（壓暗職業色底 ＋ 左緣職業色條），來源是
+-- **`Selection:IsShown()`**（C 端布林、過 `Secret.ToBool`）：暴雪每次 Init 都
+-- `Selection:SetShown(...)`（CommunitiesList.lua:471,510,588,626,674），而換選取會走
+-- `OnClubSelected → Update → SetDataProvider` 讓每一列重跑 Init ⇒ reapply 一定跟得上。
 local function ApplyListEntry(row)
-    NeutralizePresent(row, { "Background", "IconRing" }, "CommunitiesListEntry")
+    NeutralizePresent(row, { "Background", "IconRing", "Selection" }, "CommunitiesListEntry")
     Skin.Row(row, "CommunitiesListEntry", {
         ownHover = true,
-        noAccentLine = true,       -- 沒有選中態的來源（不讀 Selection 的顯示狀態），線永遠不會亮
         border = true,
         points = LIST_ROW_POINTS,
     })
@@ -524,9 +526,8 @@ end
 local function ReapplyListEntry(row)
     local sel = Optional(row, "Selection")
     if not sel then return end
-    if not selectionTint then selectionTint = { T.AccentFill(1) } end
-    E.Desaturate(sel, "CommunitiesListEntry.Selection")
-    E.VertexColor(sel, selectionTint, "CommunitiesListEntry.Selection")
+    local ok, shown = pcall(sel.IsShown, sel)
+    E.SetSelected(row, ok and ns.Secret.ToBool(shown) == true)
 end
 
 ------------------------------------------------------------
@@ -635,6 +636,9 @@ end
 -- (b) 左側社群清單
 ------------------------------------------------------------
 local LIST_ART = { "Bg", "TopFiligree", "BottomFiligree" }
+-- InsetFrame 上緣（清單上緣 +1，CommunitiesList.xml:247）往下這麼多 ⇒ 框頂在清單上緣 −38，
+-- 第一張卡片（上內距 40 ＋ 卡片內縮 2）上方留 4。
+local LIST_BOX_TOP = 39
 
 local function SkinCommunitiesList(list, key)
     if not E.Usable(list, key) then return end
@@ -645,16 +649,26 @@ local function SkinCommunitiesList(list, key)
 
     -- 清單底：畫在**清單自己身上**（useParentLevel ⇒ 墊 sublevel −4），範圍照 InsetFrame 的矩形。
     -- 邊畫在 InsetFrame 上（它在 level 200、疊在列上面，就像暴雪原本那一圈 NineSlice）。
+    --
+    -- 2026-09-24：框的上緣往下收 LIST_BOX_TOP，跟聊天框／名冊框的上緣切齊。
+    -- 暴雪的清單從標題帶正下方就開始（CommunitiesFrame.xml:365 `TOPLEFT y=-23`），但列表
+    -- 自己留了 40 的上內距（CommunitiesList.lua:271 `view:SetPadding(40,…)`，原本墊藍色花邊）
+    -- ⇒ 深色框頂到標題帶、右邊那一排卻是面板色，接縫處看起來是一個斷點。
     local inset = Optional(list, "InsetFrame")
     local fill = E.RegionBackdrop(list, {
         key = key .. ".fill", slot = "fill", noBorder = true, sublevel = -4,
         points = inset and {
-            { "TOPLEFT", "TOPLEFT", 0, 0, rel = inset },
+            { "TOPLEFT", "TOPLEFT", 0, -LIST_BOX_TOP, rel = inset },
             { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0, rel = inset },
         } or nil,
     })
     E.Paint(fill, T.fillInset)
-    if inset then BorderInset(inset, key .. ".InsetFrame") end
+    if inset then
+        BorderInset(inset, key .. ".InsetFrame", {
+            { "TOPLEFT", "TOPLEFT", 0, -LIST_BOX_TOP },
+            { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0 },
+        })
+    end
 
     WithSub(list, "ScrollBar", key .. ".ScrollBar", ScrollBar)
     local box = Optional(list, "ScrollBox")
@@ -1131,6 +1145,56 @@ end
 ------------------------------------------------------------
 -- apply
 ------------------------------------------------------------
+------------------------------------------------------------
+-- 底部按鈕列留呼吸（2026-09-24）
+--
+-- 暴雪的按鈕 20 高、錨 `y=5`（CommunitiesFrame.xml:570,586,592），上面那一整排框的下緣在
+-- 26～30 ⇒ 按鈕頂著框、底下貼著視窗邊。把**所有**錨在視窗下緣的內容框一起往上抬 FOOTER_DY，
+-- 按鈕抬 FOOTER_BTN_DY ⇒ 上下各留約 6。每一種顯示模式（聊天／名冊／福利／資訊／尋找／邀請）
+-- 的框都在清單裡，否則換頁時下緣會跟左邊清單差一截。
+-- 全部走 `Engine.ShiftRoot`（同名錨點覆寫：**只改 BOTTOM 那一個**，暴雪 Lua 另外設的 TOPLEFT
+-- 不受影響；脫戰；`db.relayout = false` 可關）。暴雪 Lua 對這些框的 BOTTOMRIGHT／BOTTOMLEFT
+-- 零處重設（grep 過 Blizzard_Communities 全部 .lua；`MemberList:RefreshLayout` 只設 TOPLEFT、
+-- 聊天框錨在名冊上自己跟著走、`CommunitiesSettingsButton` 是錨在 InviteButton 上）。
+-- 最小化模式另有自己的一套錨點（聊天框錨視窗下緣 y=36），不在範圍內。
+------------------------------------------------------------
+local FOOTER_DY = 6
+local FOOTER_BTN_DY = 2
+local FOOTER_SHIFTS = {
+    -- { parentKey, 錨點, 相對點, x, XML 原本的 y }
+    { "Inset", "BOTTOMRIGHT", "BOTTOMRIGHT", -6, 26 },                   -- SharedUIPanelTemplates.xml:689
+    { "CommunitiesList", "BOTTOMRIGHT", "BOTTOMLEFT", 170, 29 },         -- CommunitiesFrame.xml:366
+    { "MemberList", "BOTTOMRIGHT", "BOTTOMRIGHT", -26, 28 },             -- :461
+    { "ApplicantList", "BOTTOMRIGHT", "BOTTOMRIGHT", -9, 29 },           -- :467
+    { "GuildFinderFrame", "BOTTOMRIGHT", "BOTTOMRIGHT", -9, 29 },        -- :478
+    { "CommunityFinderFrame", "BOTTOMRIGHT", "BOTTOMRIGHT", -9, 29 },    -- :489
+    { "InvitationFrame", "BOTTOMRIGHT", "BOTTOMRIGHT", -9, 29 },         -- :505
+    { "ClubFinderInvitationFrame", "BOTTOMRIGHT", "BOTTOMRIGHT", -9, 29 }, -- :511
+    { "TicketFrame", "BOTTOMRIGHT", "BOTTOMRIGHT", -12, 30 },            -- :524
+    { "GuildBenefitsFrame", "BOTTOMRIGHT", "BOTTOMRIGHT", -12, 30 },     -- :530
+    { "GuildDetailsFrame", "BOTTOMRIGHT", "BOTTOMRIGHT", -12, 30 },      -- :536
+}
+local FOOTER_BUTTONS = {
+    { "InviteButton", "BOTTOMRIGHT", "BOTTOMRIGHT", -5, 5 },             -- :570
+    { "CommunitiesControlFrame", "BOTTOMRIGHT", "BOTTOMRIGHT", -5, 5 },  -- :586
+    { "GuildLogButton", "BOTTOMLEFT", "BOTTOMLEFT", 190, 5 },            -- :592
+}
+
+local function LayoutFooter(f)
+    for _, it in ipairs(FOOTER_SHIFTS) do
+        local fr = Optional(f, it[1])
+        if fr then
+            E.ShiftRoot(fr, it[2], f, it[3], it[4], it[5] + FOOTER_DY, "CommunitiesFrame." .. it[1])
+        end
+    end
+    for _, it in ipairs(FOOTER_BUTTONS) do
+        local fr = Optional(f, it[1])
+        if fr then
+            E.ShiftRoot(fr, it[2], f, it[3], it[4], it[5] + FOOTER_BTN_DY, "CommunitiesFrame." .. it[1])
+        end
+    end
+end
+
 local function Apply()
     local f = _G.CommunitiesFrame
     if not f then
@@ -1152,6 +1216,7 @@ local function Apply()
     end
     SkinInvitationHosts(f)
     SkinDialogs(f)
+    LayoutFooter(f)
 end
 
 E.Register{
