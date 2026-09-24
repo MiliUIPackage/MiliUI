@@ -140,6 +140,7 @@
 -- | 活動格的 Background / Border | SetAlpha(0) |
 -- | 活動格.ItemFrame 的無名 BORDER 貼圖 | SetAlpha(0)（GetRegions ＋ keep-set） |
 -- | 活動格.ItemFrame | `CreateFrame` overlay（底 `fill` ＋ 1px 邊） |
+-- | 活動格.ItemFrame | `Engine.ShiftRoot`：CENTER y −7 → −8.5（脫戰；`db.relayout = false` 可關） |
 -- | 活動格.ItemFrame.Icon | SetTexCoord（apply ＋ 每次 WEEKLY_REWARDS_UPDATE 重裁） |
 -- | 同上 | `CreateFrame` overlay（前景，只有 1px 黑邊） |
 --
@@ -149,7 +150,7 @@
 -- |---|---|
 -- | ConcessionFrameN.Background | SetAlpha(0) |
 -- | ConcessionFrameN | `CreateFrame` overlay（底 `fillInset` ＋ 1px 邊） |
--- | ConcessionFrameN | `CreateFrame` 一個只有 1px 黑邊的框，錨在 `RewardsFrame.Text` 的 LEFT（圍住內嵌的貨幣圖示） |
+-- | ConcessionFrameN | `CreateFrame` 一個只有 2px 黑邊的框，錨在 `RewardsFrame.Text` 的 LEFT（圍住內嵌的貨幣圖示） |
 -- | Overlay（`WeeklyRewardOverlayTemplate`，延遲建立）的 Background / NineSlice | SetAlpha(0) |
 -- | 同上 | `CreateFrame` overlay（底 `fill` ＋ 1px 邊） |
 --
@@ -301,9 +302,14 @@ end
 --   是資訊不是裝飾。
 local ITEM_KEEP_KEYS = { "Icon", "Name", "IconOverlay" }
 local ITEM_CARD_POINTS = {
-    { "TOPLEFT", "TOPLEFT", -2, 1 },
-    { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 3 },
+    { "TOPLEFT", "TOPLEFT", -1, 0 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 4 },
 }
+-- 物品牌整塊往下挪 1.5：原位（`CENTER x=2 y=-7`，.xml:255-258）牌子上緣貼著兩行的
+-- 門檻文字（`Threshold`，TOPLEFT y=-16）；下方離物品等級（`Progress`，BOTTOMRIGHT
+-- y=15）還有餘裕 ⇒ 挪過去之後上下的空隙差不多。暴雪 Lua 對 ItemFrame 只有
+-- Show/Hide/SetRewards，零處重設或讀回位置（grep 過）。
+local ITEM_FRAME_X, ITEM_FRAME_Y = 2, -8.5
 
 local function SkinItemFrame(cell, key)
     local item
@@ -316,7 +322,8 @@ local function SkinItemFrame(cell, key)
     -- 先建 overlay 再中和（同 FlatButton 的理由）
     -- 牌子圍著圖示留一樣的邊（2026-09-24）：圖示 37x37 錨 `LEFT x=3 y=2`（.xml:9-12），
     -- 在 155x49 的框裡是左 3、上 4、下 8 —— 直接 SetAllPoints 就是「上下沒置中、
-    -- 左邊太貼」。牌子往左推 2、往上推 1、下緣收 3 ⇒ 圖示三邊各 5。
+    -- 左邊太貼」。牌子往左推 1、下緣收 4 ⇒ 圖示三邊各 4（上緣不再往上推，
+    -- 讓出跟門檻文字之間的空隙）。
     local ov = E.Overlay(item, {
         key = label,
         points = ITEM_CARD_POINTS,
@@ -328,6 +335,8 @@ local function SkinItemFrame(cell, key)
         -- 讀起來是「凹槽裡放了一張牌」。
         E.Paint(ov, T.fill, T.border)
     end
+
+    E.ShiftRoot(item, "CENTER", cell, "CENTER", ITEM_FRAME_X, ITEM_FRAME_Y, label)
 
     local icon
     if pcall(function() icon = item.Icon end) and icon then
@@ -442,7 +451,7 @@ end
 ------------------------------------------------------------
 local CONCESSION_KEYS = { "ConcessionFrame1", "ConcessionFrame2" }
 
--- 貨幣圖示的 1px 黑框（2026-09-24）
+-- 貨幣圖示的黑框（2026-09-24）
 --
 -- 圖示不是貼圖，是 `RewardsFrame.Text` 字串裡的內嵌材質：
 -- `WEEKLY_REWARDS_CONCESSION_FORMAT` ＝ `|T%1$d:24:24:0:-2|t x %2$d`（GlobalStrings，
@@ -467,6 +476,9 @@ local function ConcessionIconBorder(cf, label)
         parent = cf,
         anchorTo = text,
         levelOffset = 1,
+        -- 2px：內嵌材質的像素對齊跟我們的框不一定落在同一格，1px 會露出圖示的毛邊
+        --（2026-09-24 實機看到錯開），加厚一格把那一圈蓋掉。
+        borderSize = 2,
         points = {
             { "TOPLEFT", "LEFT", 0, half + CONCESSION_ICON_DY },
             { "BOTTOMRIGHT", "LEFT", CONCESSION_ICON, -half + CONCESSION_ICON_DY },
