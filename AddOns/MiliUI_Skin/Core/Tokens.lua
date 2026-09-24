@@ -151,6 +151,8 @@ T.checkBoxSize = 18
 T.checkStyle = "outline"
 T.checkOutlineTexture = "Interface\\AddOns\\MiliUI_Skin\\Libs\\MiliUIWidgets\\Media\\check-outline.tga"
 T.dotOutlineTexture   = "Interface\\AddOns\\MiliUI_Skin\\Media\\dot-outline.tga"
+-- 方形分頁的選中框（`Engine.CheckedOutline`）：64x64、外圈 4px 白、中間透明
+T.squareOutlineTexture = "Interface\\AddOns\\MiliUI_Skin\\Media\\square-outline.tga"
 -- 勾（含黑框）在貼圖裡佔的高度比例：64 格裡約 41 格（上下留白給黑框與反鋸齒）。
 -- 貼圖尺寸 ＝ checkGlyphHeight ÷ 這個比例 ⇒ 看得到的勾跟 flat 一樣高。
 T.checkOutlineGlyphFrac = 0.64
