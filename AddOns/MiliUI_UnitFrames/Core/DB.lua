@@ -499,7 +499,9 @@ function DB.BuildDefaults()
                                maxCount = 16, perRow = 8, growth = "LRTB", spacing = 1,
                                showStack = true, stackSize = 10,
                                stackAnchor = "TOP", stackX = 0, stackY = 4,
-                               durationText = true, durationThreshold = 60, filterMode = "all" },
+                               durationText = true, durationThreshold = 60, filterMode = "all",
+                               -- 目標是自己時可右鍵取消；新鍵由 MergeDefaults 補，不必遷移
+                               rightClickCancel = true },
                     debuffs = { enabled = true, x = 0, y = 4, w = 24, h = 24,
                                 maxCount = 16, perRow = 8, growth = "LRBT", spacing = 1,
                                 showStack = true, stackSize = 10,

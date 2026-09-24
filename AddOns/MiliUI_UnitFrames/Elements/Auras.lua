@@ -770,7 +770,8 @@ local function BuildStyle(elementName, edb)
     end
     return {
         borderColor = BUFF_BORDER_COLOR,
-        -- 只有玩家框的預設值有這個鍵（別人的增益取消不了）
+        -- 只有玩家框與目標框的預設值有這個鍵。目標框開著也無妨：取消的是按鈕當下
+        -- 綁的單位，目標是別人時暴雪端自己拒絕，插件不用（也不能）逐次判斷
         cancelClick = edb.rightClickCancel and true or false,
         showDuration = edb.durationText and true or false,
         showStack = edb.showStack and true or false,

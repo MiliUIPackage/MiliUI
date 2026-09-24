@@ -639,7 +639,8 @@ local FRIENDLY_ONLY_UNITS = { player = true, pet = true }
 ns.AURA_FRIENDLY_ONLY_UNITS = FRIENDLY_ONLY_UNITS
 
 local BLACKLIST_MARKER = {}     -- 佔位，下面換成黑名單那一列（減益另加說明）
-local CANCEL_MARKER = {}        -- 佔位，玩家框的增益換成右鍵取消，其餘單位拿掉
+local CANCEL_MARKER = {}        -- 佔位，玩家／目標框的增益換成右鍵取消，其餘單位拿掉
+local CANCEL_UNITS = { player = true, target = true }
 
 local function AuraSpecs(name, unitKey)
     local list = {
@@ -683,9 +684,12 @@ local function AuraSpecs(name, unitKey)
             for j = #rows, 1, -1 do tinsert(list, i, rows[j]) end
         elseif list[i] == CANCEL_MARKER then
             tremove(list, i)
-            -- 別人身上的增益取消不了，只有玩家框有這個鍵（Core/DB.lua）
-            if name == "buffs" and unitKey == "player" then
+            -- 別人身上的增益取消不了，只有玩家框與目標框有這個鍵（Core/DB.lua）
+            if name == "buffs" and CANCEL_UNITS[unitKey] then
                 tinsert(list, i, { type = "text", label = L["Some buffs can't be cancelled; the \"Cancelable by right-click\" filter shows only the ones that can. Changing this rebuilds the icons."] })
+                if unitKey == "target" then
+                    tinsert(list, i, { type = "text", label = L["Only works when you are targeting yourself."] })
+                end
                 tinsert(list, i, { type = "toggle", sub = name, key = "rightClickCancel", label = L["Right-click to cancel"] })
             end
         end
