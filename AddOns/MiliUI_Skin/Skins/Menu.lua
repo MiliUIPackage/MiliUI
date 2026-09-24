@@ -22,8 +22,8 @@
 -- | 對象 | 動作 |
 -- |---|---|
 -- | `MenuStyle1Mixin.Generate`／`MenuStyle2Mixin.Generate`（全域 mixin 表） | `hooksecurefunc`，內容**只有**把框收進我們自己的待辦表、排一個 `C_Timer.After(0)` |
--- | 選單框自己的貼圖（那張 `common-dropdown-bg`） | `SetAlpha(0)`（`Engine.NeutralizeRegions`），**延一幀之後**才做 |
--- | 選單框 | `Engine.Overlay`（我們自己的子框，提示皮），同樣延一幀 |
+-- | 選單框自己的貼圖（那張 `common-dropdown-bg`） | `SetColorTexture`＋`SetAlpha(1)`＋重錨到框內 1px（照 Elles），**延一幀之後**才做 |
+-- | 選單框 | `Engine.Overlay`（我們自己的子框，**只畫邊、內部透明**），層級每次重算成 +4，同樣延一幀 |
 --
 -- **讀了什麼**：`GetRegions()`（讀結構，只挑貼圖）。不讀選單描述、不讀列的任何東西。
 --
@@ -42,9 +42,11 @@
 -- * 列、勾選框、勾、單選點、分隔線、子選單箭頭、文字與字色。
 --   選單開著時框的 metatable 被 compositor 換掉、不准 `CreateTexture`，本來也只能動那張底。
 --
--- ## 照抄不了的地方
--- * Elles 把那張底 `SetColorTexture` 成自己的顏色並重錨 ⇒ 契約只准 alpha 中和、不准重錨
---   暴雪的貼圖；改成中和 ＋ 我們自己的子框 overlay（`Engine.Overlay`：建子框不是在框上建貼圖）。
+-- ## 契約例外：底直接改暴雪那張貼圖（照 Elles）
+-- 原本照契約「中和＋自己的實心子框」，結果子框蓋掉整個選單內容（選單框池化、層級每次重設，
+-- 我們子框的層級漂到列的上面）。**實心的底不能是子框**，只能畫在選單框自己的貼圖上 ——
+-- 那張是 compositor 每次 Generate 重新 Attach 的暫用貼圖，關選單就收回，所以重錨放行
+-- （行尾 `skin-lint: own-frame`）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -54,16 +56,41 @@ local L = ns.L
 
 local KEY = "Menu"
 
+-- 底要畫在「選單框自己的貼圖」上，不能是子框：選單的列是選單框的子框
+-- （`childFrame:SetFrameLevel(menuFrame:GetFrameLevel() + 20)`），而選單框是池化的、
+-- 每次開都被 `SetToDefaults` ＋重設層級 —— 我們的子框層級只在建立時算一次，
+-- 換手幾次之後就漂到列的上面，整片實心底把選單內容全部蓋掉（2026-09-24 實機：
+-- 好友右鍵選單只剩一塊空的深色框）。所以照 Elles：
+--   * 底 ＝ 暴雪那張 `common-dropdown-bg` 直接改成純色、錨回框內 1px（它是 compositor
+--     每次 Generate 重新 Attach 的，選單關掉就收回，寫的東西不會留下來）。
+--   * 邊 ＝ 我們的子框，**內部透明**，層級每一次都重算成選單框 +4（列在 +20，壓不到）。
 local function SkinMenu(frame)
     if not E.Usable(frame, KEY) then return end
-    -- 池化：同一個框下次開別的選單時，暴雪會重新 Attach 一張底並 SetAlpha(.925)
-    -- ⇒ 中和每次都要重下；overlay 是我們的子框，建一次就一直在（Engine.Overlay 冪等）。
-    E.NeutralizeRegions(frame, KEY)
+    local okLvl, level = pcall(frame.GetFrameLevel, frame)
+    if not okLvl or type(level) ~= "number" then return end
+
+    local okR, regions = pcall(function() return { frame:GetRegions() } end)
+    if okR then
+        local fill = T.tipFill
+        for _, r in ipairs(regions) do
+            if type(r) == "table" and r.IsObjectType and r:IsObjectType("Texture") then
+                r:SetColorTexture(fill[1], fill[2], fill[3], fill[4] or 1)
+                r:SetAlpha(1)
+                r:ClearAllPoints()                                   -- skin-lint: own-frame（照 Elles：compositor 的暫用貼圖，關選單就收回）
+                r:SetPoint("TOPLEFT", frame, "TOPLEFT", 1, -1)         -- skin-lint: own-frame
+                r:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1) -- skin-lint: own-frame
+            end
+        end
+    end
+
     -- ⚠ parent 一定要明確給選單框本身：選單框**沒有 parent**（根選單與子選單都是
     --   無父的頂層框，自己設 strata），交給 SafeParent 往上找不到就會退回 UIParent（MEDIUM）
-    --   ⇒ 底跑到拍賣場這類視窗後面，看起來像「背景消失」（2026-09-24 實機）。
-    local ov = E.Overlay(frame, { key = KEY, parent = frame })
-    if ov then E.Paint(ov, T.tipFill, { T.Accent() }) end
+    --   ⇒ 邊跑到拍賣場這類視窗後面（2026-09-24 實機）。
+    local ov = E.Overlay(frame, { key = KEY, parent = frame, levelOffset = 4 })
+    if ov then
+        ov:SetFrameLevel(level + 4) -- skin-lint: own-frame（池化框的層級每次開都會變）
+        E.Paint(ov, { 0, 0, 0, 0 }, { T.Accent() })
+    end
 end
 
 local pending, armed, broken = {}, false, false
