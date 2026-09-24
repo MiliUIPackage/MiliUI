@@ -297,7 +297,14 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
     sizeH = sizeH or sizeW
     auraButton:SetIgnoringChildrenForBounds(true)
     auraButton:SetSize(sizeW, sizeH)
-    auraButton:SetMouseClickEnabled(false)
+    -- 右鍵取消：交給 AuraButton 內建的 OnClick（暴雪安全端呼叫 CancelAuraByInstanceID）。
+    -- 插件只登記「哪個鍵會取消」，碰不到 auraInstanceID（秘密值），也不掛自己的 OnClick。
+    -- 沒開的框維持不收點擊，免得光環圖示吃掉底下的點選。
+    local cancelOn = false
+    if style.cancelClick and auraButton.SetCancelAuraButtons then
+        cancelOn = pcall(auraButton.SetCancelAuraButtons, auraButton, "RightButtonUp")
+    end
+    auraButton:SetMouseClickEnabled(cancelOn)
     -- 滑鼠提示：光環內容是秘密值，插件畫不出提示——開啟 motion 讓 AuraButton
     -- 自己顯示暴雪的光環提示（12.1 build 68914 的按鈕 API）
     if style.tooltips ~= false then
@@ -505,6 +512,8 @@ local function BuildSignature(edb)
         tostring(edb.onlyMine), tostring(edb.filterMode), tostring(ns.db.global.font),
         -- 黑名單走 candidateFilters，同樣是宣告時就固定、沒有 setter（見 filterMode）
         BlacklistKey(edb),
+        -- 右鍵取消也是在 initializeFrame 裡登記的
+        tostring(edb.rightClickCancel),
     }, "|")
 end
 
@@ -761,6 +770,8 @@ local function BuildStyle(elementName, edb)
     end
     return {
         borderColor = BUFF_BORDER_COLOR,
+        -- 只有玩家框的預設值有這個鍵（別人的增益取消不了）
+        cancelClick = edb.rightClickCancel and true or false,
         showDuration = edb.durationText and true or false,
         showStack = edb.showStack and true or false,
         stackFontSize = edb.stackSize or 10,

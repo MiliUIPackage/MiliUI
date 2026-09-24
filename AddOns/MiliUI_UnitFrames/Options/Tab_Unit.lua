@@ -639,6 +639,7 @@ local FRIENDLY_ONLY_UNITS = { player = true, pet = true }
 ns.AURA_FRIENDLY_ONLY_UNITS = FRIENDLY_ONLY_UNITS
 
 local BLACKLIST_MARKER = {}     -- 佔位，下面換成黑名單那一列（減益另加說明）
+local CANCEL_MARKER = {}        -- 佔位，玩家框的增益換成右鍵取消，其餘單位拿掉
 
 local function AuraSpecs(name, unitKey)
     local list = {
@@ -657,6 +658,7 @@ local function AuraSpecs(name, unitKey)
         { type = "toggle", sub = name, key = "onlyMine", label = L["Only show my own"] },
         { type = "text", label = L["Filtering is done by the game, not by a spell list — 12.1 addons can't read aura contents. The two settings stack: \"dispellable by me\" plus \"only my own\" shows only what you applied and can remove. Changing either rebuilds the icons."] },
         BLACKLIST_MARKER,
+        CANCEL_MARKER,
         { type = "header", label = L["Text"] },
         { type = "toggle", sub = name, key = "showStack", label = L["Show stacks"] },
         { type = "slider", sub = name, key = "stackSize", label = L["Stack font size"], min = 6, max = 20 },
@@ -679,6 +681,13 @@ local function AuraSpecs(name, unitKey)
             end
             tremove(list, i)
             for j = #rows, 1, -1 do tinsert(list, i, rows[j]) end
+        elseif list[i] == CANCEL_MARKER then
+            tremove(list, i)
+            -- 別人身上的增益取消不了，只有玩家框有這個鍵（Core/DB.lua）
+            if name == "buffs" and unitKey == "player" then
+                tinsert(list, i, { type = "text", label = L["Some buffs can't be cancelled; the \"Cancelable by right-click\" filter shows only the ones that can. Changing this rebuilds the icons."] })
+                tinsert(list, i, { type = "toggle", sub = name, key = "rightClickCancel", label = L["Right-click to cancel"] })
+            end
         end
     end
     return list
