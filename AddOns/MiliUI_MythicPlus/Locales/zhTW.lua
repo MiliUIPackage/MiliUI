@@ -53,11 +53,10 @@ L["No combat statistics were recorded for this run."] = "這一場沒有讀到�
 -- 設定：一般
 L["Settlement panel"] = "結算面板"
 L["Open when a run ends"] = "打完自動開啟"
-L["The panel is your own frame, so it can appear during combat without any risk."] = "面板是插件自己畫的框，戰鬥中跳出來沒有任何風險。"
 L["Panel scale"] = "面板縮放"
 L["Position"] = "位置"
 L["Back to the default position"] = "回到預設位置"
-L["Drag the header to move the panel; right-click it to bring it back."] = "拖曳面板上方的表頭就能移動，在表頭按右鍵可以叫它回到畫面中央。"
+L["Drag the header to move the panel; right-click it to bring it back."] = "拖曳面板上方的表頭就能移動，在表頭按右鍵可以讓它回到預設位置。"
 L["Open the settlement panel"] = "開啟結算面板"
 L["Shortcuts"] = "入口"
 L["Minimap button"] = "小地圖按鈕"
