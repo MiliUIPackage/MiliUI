@@ -115,6 +115,7 @@ boot:SetScript("OnEvent", function(self)
     ns.Recorder.Init()
     ns.Loot.Init()
     ns.Publish.Init()
+    ns.Keystone.Init()
     ns.MinimapButton.Apply()
 end)
 

@@ -48,11 +48,13 @@ UI\Panel.lua
 UI\Publish.lua
 UI\HistoryMenu.lua
 UI\MinimapButton.lua
+UI\Keystone.lua
 
 Debug\Probe.lua
 
 Options\Panel.lua
 Options\Tab_General.lua
+Options\Tab_Keystone.lua
 Options\Tab_About.lua
 
 Libs\MiliUIWidgets\BlizzOptions.lua
