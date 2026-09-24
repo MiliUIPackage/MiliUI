@@ -12,8 +12,8 @@
 -- 又完全不接 LibOpenRaid 的主動廣播 (副本內唯一可靠來源)。改用這兩個函式庫即解決。
 --
 -- 外觀走套組的**設定視窗皮**（`MiliUI.Style` 的 `S.Dark`）：不透明 0.1／0.115 底、
--- 1px 純黑邊、白字、hover 換職業色邊。跟 Enhance/ChallengesUI_Buttons.lua 與
--- Enhance/ChallengesUI_LootTable.lua 是同一套（三支在第五輪一起從手寫的
+-- 1px 純黑邊、白字、hover 換職業色邊。跟 Enhance/ChallengesUI_LootTable.lua
+-- 是同一套（原本連同已搬去 MiliUI_MythicPlus 的確認／倒數列三支在第五輪一起從手寫的
 -- 「深色半透明底 ＋ 金色邊框 ＋ 金字」換過來）。
 --
 -- ⚠ 只動外觀。同步來源、事件、發送邏輯一行都沒有改。

@@ -60,6 +60,14 @@ local function BuildDefaults()
             avoidable = false,
         },
 
+        -- 鑰石視窗（UI/Keystone.lua）：自動放入鑰石、底下的確認／倒數列，預設都開。
+        -- countdown 是倒數秒數，範圍見 ns.Keystone.MIN/MAX_SECONDS
+        keystone = {
+            autoSlot  = true,
+            buttons   = true,
+            countdown = 5,
+        },
+
         -- 進行中的場次。**要進 SV**：中途 /reload 才不會丟掉開跑時的基準
         -- （baselineSessionID 是「鑰石開始那一刻有幾段戰鬥」，事後補不回來）
         active = nil,
@@ -119,6 +127,13 @@ local function Normalize(db)
     -- BuildLines 也不知道要組哪一種
     if not DB.PUBLISH_FORMATS[db.publish.format] then db.publish.format = "summary" end
     db.publish.avoidable = db.publish.avoidable and true or false
+
+    -- 倒數秒數直接拼進 /cd 巨集，非數字會變成「/cd nil」
+    local k = db.keystone
+    k.autoSlot = k.autoSlot and true or false
+    k.buttons  = k.buttons and true or false
+    local sec = math.floor(tonumber(k.countdown) or 5)
+    k.countdown = math.min(math.max(sec, 3), 30)
 
     local p = db.panel.point
     local maxX = (GetScreenWidth() or 1920) / 2
@@ -188,4 +203,5 @@ function DB.ResetAll()
     Normalize(db)
     if ns.Panel then ns.Panel.ApplySettings() end
     if ns.MinimapButton then ns.MinimapButton.Apply() end
+    if ns.Keystone then ns.Keystone.Apply() end
 end

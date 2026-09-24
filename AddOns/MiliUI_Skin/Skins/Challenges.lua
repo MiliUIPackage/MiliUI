@@ -106,10 +106,10 @@
 -- * **`WeeklyChest`／`DungeonScoreInfo`** —— 寶箱與分數，是內容。
 -- * **`ChallengesFrame.SeasonChangeNoticeFrame`**（`frameStrata="DIALOG"`）
 --   —— 換季公告，一個賽季看一次。
--- * **套組內建掛在這個視窗上的四個自製功能** —— `ChallengesUI_Buttons`（鑰石視窗
---   下方的就位確認／倒數面板）、`ChallengesUI_LootTable`（右側裝等對照表）、
---   `PartyKeystone`（右下隊友鑰石）、`AutoSlotKeystone`（沒有 UI）。
---   前三個各自帶一套「深色半透明底 ＋ 金色邊框」的自畫樣式 —— **第五輪改成走
+-- * **套組掛在這個視窗上的四個自製功能** —— 鑰石視窗下方的就位確認／倒數列與
+--   自動放鑰石（2026-09-24 起在 `MiliUI_MythicPlus/UI/Keystone.lua`，走 MiliUIWidgets）、
+--   本體的 `ChallengesUI_LootTable`（右側裝等對照表）、`PartyKeystone`（右下隊友鑰石）。
+--   原本三個有 UI 的各自帶一套「深色半透明底 ＋ 金色邊框」的自畫樣式 —— **第五輪改成走
 --   本體 `MiliUI/Style.lua` 的設定視窗皮（`S.ApplyDarkPanel`／`S.ApplyDarkButton`），
 --   改在它們自己的檔案裡**，這包一行都沒有碰它們。
 -- * **`MplusAdventureGuide` 掛在每一格地城圖示上的東西**（傳送門按鈕、地城縮寫

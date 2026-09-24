@@ -20,7 +20,7 @@ local function BuildSpecs()
         { type = "slider", sub = "panel", key = "scale", label = L["Panel scale"],
           min = ns.DB.LIMITS.panelScale[1] * 100, max = ns.DB.LIMITS.panelScale[2] * 100,
           step = 5, scale = 100 },
-        { type = "button", label = L["Position"], text = L["Back to the centre"],
+        { type = "button", label = L["Position"], text = L["Back to the default position"],
           onClick = function() ns.Panel.ResetPosition() end },
         { type = "text", label = L["Drag the header to move the panel; right-click it to bring it back."] },
         -- 「開啟結算面板」不放這裡：在視窗上緣分頁那排的最右邊，每一頁都看得到（Options/Panel.lua）

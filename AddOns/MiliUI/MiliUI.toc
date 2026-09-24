@@ -47,9 +47,7 @@ Enhance\SlashRL.lua
 Enhance\AyijeCDM_PixelFont.lua
 Enhance\AyijeCDM_CastBar.lua
 Enhance\AddonNames.lua
-Enhance\AutoSlotKeystone.lua
 Enhance\Baganator_Keystone.lua
-Enhance\ChallengesUI_Buttons.lua
 Enhance\PartyKeystone.lua
 Enhance\ChallengesUI_LootTable.lua
 Enhance\LibCustomGlow_FpsGate.lua

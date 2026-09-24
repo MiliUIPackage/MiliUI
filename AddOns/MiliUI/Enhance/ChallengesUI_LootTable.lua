@@ -11,7 +11,7 @@
 -- 若偵測到 RaiderIO 的 GuildWeeklyFrame，將其移至本面板右側
 --
 -- 外觀走套組的**設定視窗皮**（`MiliUI.Style` 的 `S.Dark`）：不透明 0.1／0.115 底、
--- 1px 純黑邊、白字、hover 換職業色邊。跟 Enhance/ChallengesUI_Buttons.lua 與
+-- 1px 純黑邊、白字、hover 換職業色邊。跟
 -- Enhance/PartyKeystone.lua 是同一套（三支在第五輪一起從手寫的
 -- 「深色半透明底 ＋ 金色邊框 ＋ 金字」換過來）。
 --
