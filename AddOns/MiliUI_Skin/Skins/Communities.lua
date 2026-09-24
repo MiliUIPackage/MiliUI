@@ -720,7 +720,9 @@ end
 --   * `ShowOfflineButton`：`Skin.CheckBox`（只有 OnEnter/OnLeave，點擊路徑上沒有我們的 Lua）。
 --   * 兩顆下拉：`noHover` ⇒ 零腳本（選項改的是名冊的顯示方式，會觸發名冊刷新）。
 ------------------------------------------------------------
-local MEMBER_COUNT_DY = 23.5
+-- 23.5 是耳機鈕框的中線；CJK 字的筆畫重心比字框中線偏上，實機看起來高了約 2
+-- （2026-09-24 擷圖 14）⇒ 再往下 2，對的是耳機圖示的視覺中心。
+local MEMBER_COUNT_DY = 21.5
 
 local function SkinMemberList(f)
     WithSub(f, "MemberList", "CommunitiesFrame.MemberList", function(ml, key)
