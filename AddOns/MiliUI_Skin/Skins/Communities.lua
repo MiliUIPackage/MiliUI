@@ -91,7 +91,7 @@
 --     **池化列**（`CommunitiesListEntryMixin.Init` 後置勾）：卡片底 `Background` 與頭像金環 `IconRing` 中和、
 --     改成上下各縮 2 的平面卡片（fill ＋ 黑邊）、滑過自己畫；選中態讀 `Selection:IsShown()` 走 `Skin.Row` 的標準選中（`Selection` 本身中和，2026-09-24）。
 --   * 右側四顆側邊分頁與尋找公會的兩顆：只留圖示（裁邊）＋一圈方框；滑過＝引擎的 Highlight 白 8%、
---     選中＝引擎的 Checked 換成職業色疊加（C 端依 `SetChecked` 顯示，**零 hook**）。
+--     選中＝引擎的 Checked 換成一圈職業色方框（`Engine.CheckedOutline`）（C 端依 `SetChecked` 顯示，**零 hook**）。
 --   * 五顆下拉、「加入聊天」小箭頭鈕（中和箭頭、畫 ⌄、字改白）。
 --   * 聊天：`Chat.InsetFrame` 只畫邊、聊天捲軸；**輸入框只中和三張美術 ＋ 建一張底與四條邊**（見下）。
 --   * 名冊：`InsetFrame` 只畫邊、捲軸（**零腳本版**）、「在線人數」字改白、「顯示離線」勾選框。
@@ -457,12 +457,15 @@ end
 -- 做法照成熟實作：圖示方形化、其餘美術全收、一塊方框墊在**圖示周圍**（錨在圖示上，
 -- 不碰分頁的尺寸與錨點）。狀態全交給 C 端：
 --   * 滑過：`HighlightTexture`（ButtonHilight-Square，ADD，鋪滿 32x32）→ 白 8%（`Engine.ButtonStates`）
---   * 選中：`CheckedTexture`（CheckButtonHilight，ADD，鋪滿）→ 職業色 × 0.35 的 ADD 疊加
---     （`Engine.CheckedTexture`）。暴雪 `SetChecked` 決定顯示與否，我們一行 Lua 都不跑。
+--   * 選中：`CheckedTexture`（CheckButtonHilight，ADD，鋪滿）→ 一圈職業色方框（2026-09-24 起；原本是職業色 × 0.35 的 ADD 疊加）
+--     （`Engine.CheckedOutline`）。暴雪 `SetChecked` 決定顯示與否，我們一行 Lua 都不跑。
 -- 那張 64x64 的 `SpellBook-SkillLineTab` 是**無名**的 ⇒ `NeutralizeRegions` ＋ keep-set
 -- （`Icon`／`IconOverlay`／Highlight／Checked 留下；`IconOverlay` 是「聊天被家長控制停用」的 50% 黑罩，資訊）。
 ------------------------------------------------------------
-local TAB_CHECKED_ALPHA = 0.35
+-- 側邊分頁離視窗右緣的空隙（2026-09-24）：暴雪的 ChatTab 錨 `TOPLEFT → TOPRIGHT x=0 y=-36`
+-- （CommunitiesFrame.xml:376），方框貼著視窗邊；其餘三顆一顆接一顆錨在它下面，
+-- 只挪第一顆整排就跟著走。暴雪 Lua 只重錨 GuildInfoTab（錨在 RosterTab 上，:1057）。
+local SIDE_TAB_GAP = 4
 
 local function SideTab(tab, key)
     if not E.Usable(tab, key) then return end
@@ -471,8 +474,9 @@ local function SideTab(tab, key)
     E.NeutralizeRegions(tab, key, E.KeepSet(tab, { "Icon", "IconOverlay" },
         { "GetHighlightTexture", "GetCheckedTexture" }))
     E.ButtonStates(tab, key)
+    -- 選中：一圈職業色方框（2026-09-24；原本是整格 ADD 職業色 ×0.35，疊在圖示上像一層霧）
     local r, g, b = T.Accent()
-    E.CheckedTexture(tab, { r, g, b, TAB_CHECKED_ALPHA }, nil, key)
+    E.CheckedOutline(tab, { r, g, b, 1 }, key)
 
     if icon then
         E.CropIcon(icon, key .. ".Icon")
@@ -630,6 +634,10 @@ local function SkinChrome(f)
     for _, k in ipairs(SIDE_TABS) do
         WithSub(f, k, "CommunitiesFrame." .. k, SideTab)
     end
+    local chatTab = Optional(f, "ChatTab")
+    if chatTab then
+        E.ShiftRoot(chatTab, "TOPLEFT", f, "TOPRIGHT", SIDE_TAB_GAP, -36, "CommunitiesFrame.ChatTab")
+    end
 end
 
 ------------------------------------------------------------
@@ -712,13 +720,24 @@ end
 --   * `ShowOfflineButton`：`Skin.CheckBox`（只有 OnEnter/OnLeave，點擊路徑上沒有我們的 Lua）。
 --   * 兩顆下拉：`noHover` ⇒ 零腳本（選項改的是名冊的顯示方式，會觸發名冊刷新）。
 ------------------------------------------------------------
+local MEMBER_COUNT_DY = 23.5
+
 local function SkinMemberList(f)
     WithSub(f, "MemberList", "CommunitiesFrame.MemberList", function(ml, key)
         local inset = Optional(ml, "InsetFrame")
         if inset then BorderInset(inset, key .. ".InsetFrame") end
         WithSub(ml, "ScrollBar", key .. ".ScrollBar", QuietScrollBar)
         local count = Optional(ml, "MemberCount")
-        if count then E.TextColor(count, T.text, key .. ".MemberCount") end
+        if count then
+            E.TextColor(count, T.text, key .. ".MemberCount")
+            -- 「N/M 線上」跟左邊的語音耳機鈕垂直置中（2026-09-24）。原本 `BOTTOMLEFT` 錨名冊上緣
+            -- ＋17（CommunitiesMemberList.xml:249）⇒ 字越大越往上長。改錨 `LEFT`（字的中線）：
+            -- 耳機鈕 `TOPRIGHT y=-26`、高 27（CommunitiesFrame.lua:1677、.xml:450）⇒ 中線在視窗
+            -- 上緣 −39.5；名冊上緣 −63（.xml:460）⇒ 名冊上緣往上 23.5。跟字型大小無關。
+            -- 暴雪 Lua 對名冊的 MemberCount 只 SetText（:396-406），零處重錨。
+            E.Reanchor({ { count, { { "LEFT", "TOPLEFT", 0, MEMBER_COUNT_DY, rel = ml } } } },
+                key .. ".MemberCount")
+        end
         local offline = Optional(ml, "ShowOfflineButton")
         if offline then
             Skin.CheckBox(offline, key .. ".ShowOfflineButton")

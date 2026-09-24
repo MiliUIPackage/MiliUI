@@ -725,6 +725,25 @@ function Engine.CheckedTexture(cb, color, disabledColor, label)
     Paint("GetDisabledCheckedTexture", disabledColor or color)
 end
 
+-- 選中＝一圈職業色方框（2026-09-24，給「圖示本身就是按鈕」的方形分頁用）
+--
+-- `Engine.CheckedTexture` 塗滿整格，疊在圖示上就是一層職業色的霧（ADD）或整塊蓋掉。
+-- 這一支把 Checked 貼圖換成 `T.squareOutlineTexture`（外圈 1/16 寬、中間透明）再染色：
+-- 矩形照暴雪（按鈕 setAllPoints），顯示與否照舊由 C 端 `SetChecked` 決定 ⇒ 零 hook。
+-- 32 大的分頁上是 2 單位寬的框，蓋住圖示最外圈 1 單位。
+function Engine.CheckedOutline(cb, color, label)
+    if not Usable(cb, label) or type(cb.GetCheckedTexture) ~= "function" then return end
+    local ok, tex = pcall(cb.GetCheckedTexture, cb)
+    if not (ok and tex) then return end
+    pcall(function()
+        tex:SetTexture(T.squareOutlineTexture)
+        tex:SetTexCoord(0, 1, 0, 1)
+        tex:SetBlendMode("BLEND")
+        tex:SetAlpha(1)
+        tex:SetVertexColor(color[1], color[2], color[3], color[4] or 1)
+    end)
+end
+
 ------------------------------------------------------------
 -- 「已勾」＝**保留勾的形狀**、只把它染成職業色（第六輪換掉上面那一支）
 --
