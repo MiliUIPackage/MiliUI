@@ -140,7 +140,8 @@
 -- | 活動格的 Background / Border | SetAlpha(0) |
 -- | 活動格.ItemFrame 的無名 BORDER 貼圖 | SetAlpha(0)（GetRegions ＋ keep-set） |
 -- | 活動格.ItemFrame | `CreateFrame` overlay（底 `fill` ＋ 1px 邊） |
--- | 活動格.ItemFrame | `Engine.ShiftRoot`：CENTER y −7 → −8.5（脫戰；`db.relayout = false` 可關） |
+-- | 活動格.ItemFrame | `Engine.ShiftRoot`：CENTER y −7 → −11（脫戰；`db.relayout = false` 可關） |
+-- | 活動格.Progress（物品等級） | `Engine.Reanchor`：改 `TOPRIGHT` 錨在 ItemFrame 右下角（同上） |
 -- | 活動格.ItemFrame.Icon | SetTexCoord（apply ＋ 每次 WEEKLY_REWARDS_UPDATE 重裁） |
 -- | 同上 | `CreateFrame` overlay（前景，只有 1px 黑邊） |
 --
@@ -304,11 +305,17 @@ local ITEM_CARD_POINTS = {
     { "TOPLEFT", "TOPLEFT", -1, 0 },
     { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 4 },
 }
--- 物品牌整塊往下挪 1.5：原位（`CENTER x=2 y=-7`，.xml:255-258）牌子上緣貼著兩行的
--- 門檻文字（`Threshold`，TOPLEFT y=-16）；下方離物品等級（`Progress`，BOTTOMRIGHT
--- y=15）還有餘裕 ⇒ 挪過去之後上下的空隙差不多。暴雪 Lua 對 ItemFrame 只有
+-- 物品牌整塊往下挪 4：原位（`CENTER x=2 y=-7`，.xml:255-258）牌子上緣貼著兩行的
+-- 門檻文字（`Threshold`，TOPLEFT y=-16）。暴雪 Lua 對 ItemFrame 只有
 -- Show/Hide/SetRewards，零處重設或讀回位置（grep 過）。
-local ITEM_FRAME_X, ITEM_FRAME_Y = 2, -8.5
+local ITEM_FRAME_X, ITEM_FRAME_Y = 2, -11
+
+-- 物品等級（`Progress`，原本 `BOTTOMRIGHT x=-15 y=15` 錨在活動格上，.xml:98）改錨在
+-- **物品牌的右下角**：`TOPRIGHT` ⇒ 右緣跟牌子切齊、上緣離牌子底 ILVL_GAP ——
+-- 兩個都跟字型大小無關（原本錨下緣，字一大就往上長去貼牌子）。
+-- 牌子下緣＝ItemFrame 下緣 ＋4（ITEM_CARD_POINTS）。暴雪 Lua 對 Progress 只有
+-- SetText／SetFormattedText／SetTextColor（.lua:439-534），零處重錨。
+local ILVL_GAP = 5
 
 local function SkinItemFrame(cell, key)
     local item
@@ -336,6 +343,11 @@ local function SkinItemFrame(cell, key)
     end
 
     E.ShiftRoot(item, "CENTER", cell, "CENTER", ITEM_FRAME_X, ITEM_FRAME_Y, label)
+    local progress
+    if pcall(function() progress = cell.Progress end) and progress then
+        E.Reanchor({ { progress, { { "TOPRIGHT", "BOTTOMRIGHT", 0, 4 - ILVL_GAP, rel = item } } } },
+            key .. ".Progress")
+    end
 
     local icon
     if pcall(function() icon = item.Icon end) and icon then
