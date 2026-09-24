@@ -131,14 +131,18 @@ function Skin.TitleBar(frame, key, height)
     if not E.Usable(frame, key) then return end
     local h = height or T.titleBarHeight
 
+    -- 帶子縮在面板的邊**裡面**（2026-09-24）：它的 sublevel（−6）排在面板四條邊（−7）
+    -- 之上，貼齊外緣就會蓋掉上緣整條、左右兩邊最上面 h 那一截。黑邊時看不出來
+    -- （帶子是近黑的 `fillInset`），職業色邊的就位確認一眼就看到「上面沒包住」。
+    local b = 1   -- 面板的邊寬（像素，同 `T.BorderSize()`）
     local band = E.RegionBackdrop(frame, {
         key = key .. ".titleBar",
         slot = "titleBar",
         noBorder = true,
         sublevel = TITLE_BAR_SUBLEVEL,
         points = {
-            { "TOPLEFT", "TOPLEFT", 0, 0 },
-            { "TOPRIGHT", "TOPRIGHT", 0, 0 },
+            { "TOPLEFT", "TOPLEFT", b, -b },
+            { "TOPRIGHT", "TOPRIGHT", -b, -b },
         },
         height = h,
     })
@@ -151,8 +155,8 @@ function Skin.TitleBar(frame, key, height)
         noBorder = true,
         sublevel = TITLE_RULE_SUBLEVEL,
         points = {
-            { "TOPLEFT", "TOPLEFT", 0, -h },
-            { "TOPRIGHT", "TOPRIGHT", 0, -h },
+            { "TOPLEFT", "TOPLEFT", b, -(b + h) },
+            { "TOPRIGHT", "TOPRIGHT", -b, -(b + h) },
         },
         height = 1,
     })
