@@ -341,6 +341,24 @@ local function ApplyPVP()
             { Field(training, "Inset"), "BOTTOMRIGHT", "BOTTOMRIGHT", -5, hi },                 -- :1488 y=22
             { Field(training, "QueueButton"), "BOTTOM", "BOTTOM", 0, BT - 3 + PVP_BUTTON_FIX }, -- :1590 y=-1
         }, "PVPFooter")
+        -- 三張背景插畫（`useAtlasSize`、只錨 TOP）是照原本的內嵌框高度畫的，內嵌框抬高之後
+        -- 下緣會蓋到按鈕（2026-09-24 擷圖 18）。改成 TOP ＋ BOTTOM 兩點錨在內嵌框裡：
+        -- 寬度照 atlas、只有高度跟著內嵌框縮（約 4%，看不出變形）。兩點錨定優先於
+        -- `SetAtlas(..., true)` 設的尺寸 ⇒ 陣營切換重設 atlas 也撐得住。
+        -- 暴雪 Lua 對這三張只有 SetAtlas（Blizzard_PVPUI.lua:112,114），零處重錨。
+        for _, it in ipairs({
+            { Field(Field(honor, "BonusFrame"), "WorldBattlesTexture"), Field(honor, "Inset"), "HonorFrame.WorldBattlesTexture" },
+            { Field(Field(training, "BonusTrainingGroundList"), "WorldBattlesTexture"), Field(training, "Inset"), "TrainingGroundsFrame.WorldBattlesTexture" },
+            { Field(conquest, "RatedBGTexture"), Field(conquest, "Inset"), "ConquestFrame.RatedBGTexture" },
+        }) do
+            local tex, inset = it[1], it[2]
+            if tex and inset then
+                E.Reanchor({ { tex, {
+                    { "TOP", "TOP", 0, -3, rel = inset },
+                    { "BOTTOM", "BOTTOM", 0, 3, rel = inset },
+                } } }, it[3])
+            end
+        end
     end
 
     -- 掠奪風暴（沒開活動的時候整個分類是隱藏的，找不到就靜默降級成一筆紀錄）
