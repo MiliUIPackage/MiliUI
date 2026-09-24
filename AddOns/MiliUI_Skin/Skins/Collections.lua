@@ -260,8 +260,22 @@ function Shared.ApplyCompanionRow(row, key)
 
     local icon
     if pcall(function() icon = row.icon end) and icon then
-        -- owner 不給 ⇒ 邊直接錨在圖示貼圖上（`Skin.Icon` 的預設）
-        Skin.Icon(icon, key .. ".icon")
+        -- 邊**建成列自己的 ARTWORK 貼圖**（2026-09-24），不走 `Skin.Icon` 的子框：
+        -- 子框永遠畫在列的所有貼圖之上，會把 OVERLAY 層的我的最愛星號（`favorite`，錨在
+        -- 圖示左上角往外 8，Blizzard_MountCollection.xml:121-124）壓在框線底下。
+        -- ARTWORK 排在圖示（BORDER）之上、星號／陣營外的 OVERLAY 之下。
+        E.CropIcon(icon, key .. ".icon")
+        local ov = E.RegionBackdrop(row, {
+            key = key .. ".iconBorder",
+            slot = "iconBorder",
+            layer = "ARTWORK", sublevel = 0,
+            edgeLayer = "ARTWORK", edgeSublevel = 1,
+            points = {
+                { "TOPLEFT", "TOPLEFT", 0, 0, rel = icon },
+                { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0, rel = icon },
+            },
+        })
+        E.Paint(ov, { 0, 0, 0, 0 }, T.border)
     end
 end
 
