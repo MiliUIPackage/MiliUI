@@ -668,6 +668,37 @@ end
 local icons = {}
 local shown = 0
 
+local canaccessvalue, canaccesstable = canaccessvalue, canaccesstable
+
+local function CanRead(v)
+    if type(v) == "table" then
+        return not canaccesstable or canaccesstable(v)
+    end
+    return not canaccessvalue or canaccessvalue(v)
+end
+
+--! ⚠ This bar is on screen in combat, and in restricted content a spell's tooltip data
+--! carries secret lines (text AND colour table). SetSpellByID from here runs Blizzard's
+--! line builder on OUR tainted execution, and tainted code may not index a secret table:
+--! "attempt to index local 'color' (a secret table value, while execution tainted by
+--! 'Cell')" in GameTooltip_AddColoredLine, once per line per hover. There is no clean
+--! execution an addon can hand the tooltip to, so ask first and never feed it secret data.
+--! Only lines' own fields are touched here, each after its table passed the check.
+local function SpellTooltipReadable(spellId)
+    if not (C_TooltipInfo and C_TooltipInfo.GetSpellByID) then return true end
+    local data = C_TooltipInfo.GetSpellByID(spellId)
+    if not (data and CanRead(data)) then return false end
+    local lines = data.lines
+    if not (lines and CanRead(lines)) then return false end
+    for _, line in ipairs(lines) do
+        if not CanRead(line) then return false end
+        if not (CanRead(line.leftText) and CanRead(line.rightText)) then return false end
+        if line.leftColor and not CanRead(line.leftColor) then return false end
+        if line.rightColor and not CanRead(line.rightColor) then return false end
+    end
+    return true
+end
+
 local function CreateHintIcon()
     local icon = CreateFrame("Frame", nil, hintsFrame, "BackdropTemplate")
     icon:SetFrameLevel(hintsFrame:GetFrameLevel() + 1)
@@ -708,7 +739,16 @@ local function CreateHintIcon()
     icon:SetScript("OnEnter", function(self)
         if not (self.spellId and CellSpellTooltip) then return end
         CellSpellTooltip:SetOwner(self, "ANCHOR_TOP")
-        CellSpellTooltip:SetSpellByID(self.spellId, self.tex:GetTexture())
+        if SpellTooltipReadable(self.spellId) then
+            CellSpellTooltip:SetSpellByID(self.spellId, self.tex:GetTexture())
+        else
+            local name = C_Spell.GetSpellName(self.spellId)
+            if not (name and CanRead(name)) then return end
+            CellSpellTooltip:SetText(name, 1, 1, 1)
+            CellSpellTooltip.icon:SetTexture(self.tex:GetTexture())
+            CellSpellTooltip.icon:Show()
+            CellSpellTooltip.iconBG:Show()
+        end
         CellSpellTooltip:Show()
     end)
     icon:SetScript("OnLeave", function()
