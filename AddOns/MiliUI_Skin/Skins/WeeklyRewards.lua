@@ -123,6 +123,7 @@
 -- | WeeklyRewardsFrame.SelectRewardButton 的 Left/Right/Middle/Background | SetAlpha(0) |
 -- | 同上的 Highlight 貼圖 | SetColorTexture |
 -- | 同上 | SetNormalFontObject(GameFontHighlight) ＋ overlay |
+-- | 同上 | `Engine.ShiftRoot`：BOTTOM y 3 → 20（脫戰；`db.relayout = false` 可關） |
 --
 -- ### 三（四）條分類標題（Raid/Mythic/PVP/World Frame）
 --
@@ -210,6 +211,9 @@ local L = ns.L
 --   `Background`）。第三個用到的地方出現時就升格成 `Skin.Button` 的
 --   `opts.noHover`，兩份配方一起改。
 ------------------------------------------------------------
+-- 「選擇獎勵」離視窗底的距離（原值 3，見 Apply 裡的換算）
+local SELECT_BUTTON_Y = 20
+
 local FLAT_GETTERS = { "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }
 
 -- opts:
@@ -541,6 +545,13 @@ local function Apply()
             font = GameFontHighlight,
             variant = "primary",
         })
+        -- 按鈕往上抬到「代幣列底 ↔ 視窗底」的正中間（2026-09-24）。原值 `BOTTOM x=0 y=3`
+        -- （.xml:731），貼著視窗底、上面空一大截；換皮後沒有底座美術撐著就顯得歪。
+        -- 代幣列的可見底離視窗底約 62、按鈕高 23 ⇒ 上下各留 ~20。
+        -- 暴雪 Lua 對這顆只有 SetShown／SetEnabled（.lua:193,293），零處重設或讀回位置；
+        -- 視窗高度 657／737 兩種（.lua:223,225）都是從底往上量，同一個值兩邊都對。
+        E.ShiftRoot(selectBtn, "BOTTOM", f, "BOTTOM", 0, SELECT_BUTTON_Y,
+            "WeeklyRewardsFrame.SelectRewardButton")
     else
         E.Missing("WeeklyRewardsFrame.SelectRewardButton")
     end
