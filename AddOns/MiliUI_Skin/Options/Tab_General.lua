@@ -34,15 +34,15 @@ local controls = {
         type  = "toggle",
         key   = "enabled",
         label = L["Enable the skin"],
-        hint  = L["Repaints Blizzard's windows in the MiliUI settings-window look."],
     },
+    { type = "text", label = L["Repaints Blizzard's windows in the MiliUI settings-window look."] },
     { type = "text", label = L["This addon only repaints. It never moves, resizes or rebuilds anything Blizzard owns."] },
     {
         type  = "toggle",
         key   = "questDarkText",
         label = L["Dark quest and gossip background"],
-        hint  = L["Uses Blizzard's own accessibility setting (Quest Text Contrast) instead of repainting the parchment: Blizzard swaps the background and every text colour together. Your original value is remembered and put back when you turn this off. If you change that setting in Blizzard's options yourself, this puts it back on the next login."],
     },
+    { type = "text", label = L["Uses Blizzard's own accessibility setting (Quest Text Contrast) instead of repainting the parchment: Blizzard swaps the background and every text colour together. Your original value is remembered and put back when you turn this off. If you change that setting in Blizzard's options yourself, this puts it back on the next login."] },
 
     { type = "header", label = L["Windows"] },
     { type = "toggle", sub = "windows", key = "gossip",      label = L["Gossip"] },
@@ -59,13 +59,13 @@ local controls = {
     {
         type  = "toggle", sub = "windows", key = "auctionhouse",
         label = L["Auction House"],
-        hint  = L["Turn this off first if a bid, buyout or posting button stops responding."],
     },
+    { type = "text", label = L["Turn this off first if a bid, buyout or posting button stops responding."] },
     {
         type  = "toggle", sub = "windows", key = "professions",
         label = L["Professions"],
-        hint  = L["Turn this off first if a craft or crafting-order button stops responding."],
     },
+    { type = "text", label = L["Turn this off first if a craft or crafting-order button stops responding."] },
     { type = "toggle", sub = "windows", key = "dressup",     label = L["Dressing Room"] },
     { type = "toggle", sub = "windows", key = "itemupgrade", label = L["Item Upgrade"] },
     { type = "toggle", sub = "windows", key = "addonlist",   label = L["AddOns"] },
@@ -74,102 +74,102 @@ local controls = {
     {
         type  = "toggle", sub = "windows", key = "weeklyrewards",
         label = L["Great Vault"],
-        hint  = L["Turn this off first if you cannot select or claim a Great Vault reward."],
     },
+    { type = "text", label = L["Turn this off first if you cannot select or claim a Great Vault reward."] },
     -- ⚠ 第十一輪：天賦視窗的按鈕通往提交天賦／切換專精；探究視窗的「進入」是傳送。
     {
         type  = "toggle", sub = "windows", key = "playerspells",
         label = L["Talents & Spellbook"],
-        hint  = L["Turn this off first if applying talents, switching specialization or casting from the spellbook stops working."],
     },
+    { type = "text", label = L["Turn this off first if applying talents, switching specialization or casting from the spellbook stops working."] },
     {
         type  = "toggle", sub = "windows", key = "delvespicker",
         label = L["Delve Difficulty Picker"],
-        hint  = L["The difficulty window at a Delve or world instance entrance. Its background art is kept."],
     },
+    { type = "text", label = L["The difficulty window at a Delve or world instance entrance. Its background art is kept."] },
     -- 第十二輪
     {
         type  = "toggle", sub = "windows", key = "communities",
         label = L["Guild & Communities"],
-        hint  = L["Turn this off first if changing guild notes or ranks, inviting, or community chat stops working."],
     },
+    { type = "text", label = L["Turn this off first if changing guild notes or ranks, inviting, or community chat stops working."] },
     { type = "toggle", sub = "windows", key = "calendar", label = L["Calendar"] },
     { type = "toggle", sub = "windows", key = "macro", label = L["Macros"] },
     {
         type  = "toggle", sub = "windows", key = "trainer",
         label = L["Trainer"],
-        hint  = L["Turn this off first if the Train button stops responding."],
     },
+    { type = "text", label = L["Turn this off first if the Train button stops responding."] },
     {
         type  = "toggle", sub = "windows", key = "trade",
         label = L["Trade"],
-        hint  = L["Turn this off first if the Trade button stops responding or the UI reports a blocked action."],
     },
+    { type = "text", label = L["Turn this off first if the Trade button stops responding or the UI reports a blocked action."] },
     { type = "toggle", sub = "windows", key = "inspect", label = L["Inspect"] },
     { type = "toggle", sub = "windows", key = "socketing", label = L["Item Socketing"] },
     { type = "toggle", sub = "windows", key = "iteminteraction", label = L["Catalyst & Item Conversion"] },
     {
         type  = "toggle", sub = "windows", key = "loot",
         label = L["Loot Window"],
-        hint  = L["Turn this off first if clicking an item in the loot window stops picking it up."],
     },
+    { type = "text", label = L["Turn this off first if clicking an item in the loot window stops picking it up."] },
     { type = "toggle", sub = "windows", key = "delvescompanion", label = L["Delve Companion"] },
     {
         type  = "toggle", sub = "windows", key = "transmog",
         label = L["Transmogrifier"],
-        hint  = L["Turn this off first if applying a transmog outfit stops responding."],
     },
+    { type = "text", label = L["Turn this off first if applying a transmog outfit stops responding."] },
     {
         type  = "toggle", sub = "windows", key = "customerorders",
         label = L["Crafting Orders"],
-        hint  = L["Turn this off first if placing or cancelling a crafting order stops responding."],
     },
+    { type = "text", label = L["Turn this off first if placing or cancelling a crafting order stops responding."] },
     {
         type  = "toggle", sub = "windows", key = "playerchoice",
         label = L["Player Choice"],
-        hint  = L["Choice windows like the weekly \"how will you help\" picker. Only the frame and buttons are restyled; the cards keep their art."],
     },
+    { type = "text", label = L["Choice windows like the weekly \"how will you help\" picker. Only the frame and buttons are restyled; the cards keep their art."] },
     -- 第十三輪
     {
         type  = "toggle", sub = "windows", key = "worldmap",
         label = L["World Map & Quest Log"],
-        hint  = L["Turn this off first if tracking, sharing or abandoning quests from the quest log stops working."],
     },
+    { type = "text", label = L["Turn this off first if tracking, sharing or abandoning quests from the quest log stops working."] },
     {
         type  = "toggle", sub = "windows", key = "settings",
         label = L["Options Window"],
-        hint  = L["Turn this off first if Apply, Defaults or closing the Options window stops saving your settings or keybindings."],
     },
+    { type = "text", label = L["Turn this off first if Apply, Defaults or closing the Options window stops saving your settings or keybindings."] },
     {
         type  = "toggle", sub = "windows", key = "lootroll",
         label = L["Loot Roll Popups"],
-        hint  = L["Turn this off first if the Need / Greed buttons stop responding."],
     },
+    { type = "text", label = L["Turn this off first if the Need / Greed buttons stop responding."] },
     { type = "toggle", sub = "windows", key = "loothistory", label = L["Loot Rolls Window"] },
     { type = "toggle", sub = "windows", key = "loottoast", label = L["Loot Toasts"] },
     { type = "toggle", sub = "windows", key = "bntoast", label = L["Battle.net Toasts"] },
     {
         type  = "toggle", sub = "windows", key = "menu",
         label = L["Dropdown Menus"],
-        hint  = L["Frame only (background and border) of every Blizzard dropdown and right-click menu. Turn this off first if a menu option stops working."],
     },
+    { type = "text", label = L["Frame only (background and border) of every Blizzard dropdown and right-click menu. Turn this off first if a menu option stops working."] },
     {
         type  = "toggle", sub = "windows", key = "readycheck",
         label = L["Ready Check"],
-        hint  = L["Turn this off first if the Ready / Not Ready buttons stop responding or the UI reports a blocked action."],
     },
+    { type = "text", label = L["Turn this off first if the Ready / Not Ready buttons stop responding or the UI reports a blocked action."] },
     -- ⚠ 這兩個視窗的按鈕通往受保護的動作（刪除物品、離開隊伍、登出、編輯模式…），
     --   所以各自帶一句「出事先關這個」的說明 —— 玩家不必懂 taint 也知道該關哪一項。
     {
         type  = "toggle", sub = "windows", key = "popup",
         label = L["Confirmation Popups"],
-        hint  = L["Turn this off first if a confirmation button stops responding or the UI reports a blocked action."],
     },
+    { type = "text", label = L["Turn this off first if a confirmation button stops responding or the UI reports a blocked action."] },
     {
         type  = "toggle", sub = "windows", key = "gamemenu",
         label = L["Game Menu"],
-        hint  = L["Turn this off first if an Esc menu button stops responding or the UI reports a blocked action."],
     },
+    { type = "text", label = L["Turn this off first if an Esc menu button stops responding or the UI reports a blocked action."] },
 
     -- ⚠ 這一節管的是「伴隨元件」—— 套組內建、固定掛在暴雪視窗上的**別家**插件
     --   （STYLE.md ③，實作在 `ThirdParty/`）。跟上面的視窗開關是「而且」的關係：

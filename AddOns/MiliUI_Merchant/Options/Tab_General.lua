@@ -24,17 +24,17 @@ local function BuildSpecs()
         { type = "text", label = L["Blizzard's own window is 5 rows by 2 columns. Every slot is still drawn by the game, so tooltips and other add-ons keep working on the extra ones."] },
 
         { type = "header", label = L["Already collected"] },
-        { type = "toggle", sub = "dim", key = "enabled", label = L["Dim them"],
-          hint = L["Fade the slot and tick the icon instead of removing it, so every slot keeps the number the game gave it."] },
+        { type = "toggle", sub = "dim", key = "enabled", label = L["Dim them"] },
+        { type = "text", label = L["Fade the slot and tick the icon instead of removing it, so every slot keeps the number the game gave it."] },
         { type = "text", label = L["Bought but not used yet counts too: anything still sitting in your bags or bank is dimmed the same way."] },
         { type = "toggle", sub = "dim", key = "pets",     label = L["Battle pets"] },
         { type = "toggle", sub = "dim", key = "mounts",   label = L["Mounts"] },
         { type = "toggle", sub = "dim", key = "toys",     label = L["Toys"] },
         { type = "toggle", sub = "dim", key = "recipes",  label = L["Recipes"] },
-        { type = "toggle", sub = "dim", key = "transmog", label = L["Appearances"],
-          hint = L["Off by default: this only asks whether the look is learned, not whether your class can wear it."] },
-        { type = "toggle", sub = "dim", key = "housing",  label = L["Housing decor"],
-          hint = L["Off by default: owning one does not mean you don't want a second."] },
+        { type = "toggle", sub = "dim", key = "transmog", label = L["Appearances"] },
+        { type = "text", label = L["Off by default: this only asks whether the look is learned, not whether your class can wear it."] },
+        { type = "toggle", sub = "dim", key = "housing",  label = L["Housing decor"] },
+        { type = "text", label = L["Off by default: owning one does not mean you don't want a second."] },
     }
 end
 
