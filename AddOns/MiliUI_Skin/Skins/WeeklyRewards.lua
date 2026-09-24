@@ -149,6 +149,7 @@
 -- |---|---|
 -- | ConcessionFrameN.Background | SetAlpha(0) |
 -- | ConcessionFrameN | `CreateFrame` overlay（底 `fillInset` ＋ 1px 邊） |
+-- | ConcessionFrameN | `CreateFrame` 一個只有 1px 黑邊的框，錨在 `RewardsFrame.Text` 的 LEFT（圍住內嵌的貨幣圖示） |
 -- | Overlay（`WeeklyRewardOverlayTemplate`，延遲建立）的 Background / NineSlice | SetAlpha(0) |
 -- | 同上 | `CreateFrame` overlay（底 `fill` ＋ 1px 邊） |
 --
@@ -299,6 +300,10 @@ end
 --   `IconOverlay` 是 `SetItemButtonOverlay`（.lua:955）畫的「戰隊綁定」那一圈，
 --   是資訊不是裝飾。
 local ITEM_KEEP_KEYS = { "Icon", "Name", "IconOverlay" }
+local ITEM_CARD_POINTS = {
+    { "TOPLEFT", "TOPLEFT", -2, 1 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 3 },
+}
 
 local function SkinItemFrame(cell, key)
     local item
@@ -309,7 +314,13 @@ local function SkinItemFrame(cell, key)
     local label = key .. ".ItemFrame"
 
     -- 先建 overlay 再中和（同 FlatButton 的理由）
-    local ov = E.Overlay(item, { key = label })
+    -- 牌子圍著圖示留一樣的邊（2026-09-24）：圖示 37x37 錨 `LEFT x=3 y=2`（.xml:9-12），
+    -- 在 155x49 的框裡是左 3、上 4、下 8 —— 直接 SetAllPoints 就是「上下沒置中、
+    -- 左邊太貼」。牌子往左推 2、往上推 1、下緣收 3 ⇒ 圖示三邊各 5。
+    local ov = E.Overlay(item, {
+        key = label,
+        points = ITEM_CARD_POINTS,
+    })
     if ov then
         E.NeutralizeRegions(item, label, E.KeepSet(item, ITEM_KEEP_KEYS, FLAT_GETTERS))
         E.ButtonStates(item, label)
@@ -431,6 +442,39 @@ end
 ------------------------------------------------------------
 local CONCESSION_KEYS = { "ConcessionFrame1", "ConcessionFrame2" }
 
+-- 貨幣圖示的 1px 黑框（2026-09-24）
+--
+-- 圖示不是貼圖，是 `RewardsFrame.Text` 字串裡的內嵌材質：
+-- `WEEKLY_REWARDS_CONCESSION_FORMAT` ＝ `|T%1$d:24:24:0:-2|t x %2$d`（GlobalStrings，
+-- 各語系同一條）⇒ 永遠排在 Text 的最左邊、24x24、往下 2。
+-- ⇒ 框錨在 Text 的 LEFT 上畫一個 24x24，**不讀字串、不改字串**。
+--   裁邊做不到（要改 `|T` 的 texCoord 就得重寫暴雪的字），所以只加框。
+-- ⚠ 層級：`RewardsFrame` 是 frameLevel 1000 的絕對值，代幣格自己的層級比它低 ⇒
+--   target 給 `RewardsFrame`（levelOffset +1 蓋在字上），parent 仍然是代幣格 ——
+--   `RewardsFrame` 是 `HorizontalLayoutFrame`，掛成它的子框會被算進版面（陷阱 2）。
+local CONCESSION_ICON = 24
+local CONCESSION_ICON_DY = -2
+
+local function ConcessionIconBorder(cf, label)
+    local rf, text
+    if not (pcall(function() rf = cf.RewardsFrame; text = rf and rf.Text end) and text) then
+        E.Missing(label .. ".RewardsFrame.Text")
+        return
+    end
+    local half = CONCESSION_ICON / 2
+    local ov = E.Overlay(rf, {
+        key = label .. ".iconBorder",
+        parent = cf,
+        anchorTo = text,
+        levelOffset = 1,
+        points = {
+            { "TOPLEFT", "LEFT", 0, half + CONCESSION_ICON_DY },
+            { "BOTTOMRIGHT", "LEFT", CONCESSION_ICON, -half + CONCESSION_ICON_DY },
+        },
+    })
+    E.Paint(ov, { 0, 0, 0, 0 }, T.border)
+end
+
 local function SkinConcessions(frame)
     local rewards
     if not (pcall(function() rewards = frame.ConcessionsFrame and frame.ConcessionsFrame.Rewards end)
@@ -448,6 +492,7 @@ local function SkinConcessions(frame)
                 E.NeutralizeKeys(cf, { "Background" }, label)
                 E.Paint(ov, T.fillInset, T.border)
             end
+            ConcessionIconBorder(cf, label)
         else
             E.Missing(label)
         end
