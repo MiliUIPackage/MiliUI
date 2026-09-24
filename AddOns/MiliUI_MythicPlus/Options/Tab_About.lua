@@ -22,7 +22,7 @@ local function Init()
         ns.PREFIX_COLOR .. L["MiliUI Mythic Plus"] .. "|r v" .. ns.VERSION,
         "",
         L["Every finished keystone is recorded: the timer, the key level, your rating change, and one line per player."],
-        L["The numbers come from the game's own combat statistics — this addon never parses the combat log and never touches a Blizzard frame."],
+        L["The numbers come from the game's own combat statistics — this addon never parses the combat log."],
         "",
         L["Commands: |cffffd200/mmp|r opens the panel, |cffffd200/mmp config|r the settings, |cffffd200/mmp test|r a sample run"],
         "",

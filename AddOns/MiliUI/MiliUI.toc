@@ -11,7 +11,6 @@
 # 但那支要靠它做一次性搬家 —— 拿掉宣告等於讓還沒登入過的分身讀不到舊筆記。
 ## SavedVariablesPerCharacter: MiliUI_CharDB
 
-Libs\Libs.xml
 Libs\MiliUIWidgets\PixelPerfect.lua
 Libs\MiliUIWidgets\Secret.lua
 Libs\MiliUIWidgets\Errors.lua
@@ -48,8 +47,6 @@ Enhance\AyijeCDM_PixelFont.lua
 Enhance\AyijeCDM_CastBar.lua
 Enhance\AddonNames.lua
 Enhance\Baganator_Keystone.lua
-Enhance\PartyKeystone.lua
-Enhance\ChallengesUI_LootTable.lua
 Enhance\LibCustomGlow_FpsGate.lua
 Enhance\CraftingOrders_RewardColumn.xml
 Enhance\CraftingOrders_RewardColumn.lua
@@ -58,7 +55,6 @@ Enhance\TeleportMenu_Spacing.lua
 Enhance\AuctionHouseFilter.lua
 Enhance\GameMenu_MiliUIButton.lua
 Enhance\VersionCheck.lua
-Enhance\KeystoneAutoReport.lua
 Enhance\TinyInspectRemake_GearSlots.lua
 Enhance\TinyInspectRemake_TrackColors.lua
 Enhance\GameplayCVars.lua

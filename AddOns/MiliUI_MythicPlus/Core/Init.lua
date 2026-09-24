@@ -104,6 +104,48 @@ function ns.SafeRegister(frame, event)
 end
 
 ------------------------------------------------------------
+-- 暴雪的鑰石介面（Blizzard_ChallengesUI）是隨選載入的：
+-- 鑰石視窗、傳奇鑰石頁都在裡面。fn 會在它載入後各叫一次（已經載入就當場叫）
+------------------------------------------------------------
+local challengesUIWaiters = {}
+local challengesUIFrame
+
+function ns.OnChallengesUI(fn)
+    if C_AddOns.IsAddOnLoaded("Blizzard_ChallengesUI") then
+        ns.Guard(fn)
+        return
+    end
+    challengesUIWaiters[#challengesUIWaiters + 1] = fn
+    if challengesUIFrame then return end
+    challengesUIFrame = CreateFrame("Frame")
+    challengesUIFrame:RegisterEvent("ADDON_LOADED")
+    challengesUIFrame:SetScript("OnEvent", function(self, _, name)
+        if name ~= "Blizzard_ChallengesUI" then return end
+        self:UnregisterEvent("ADDON_LOADED")
+        for _, waiter in ipairs(challengesUIWaiters) do ns.Guard(waiter) end
+        wipe(challengesUIWaiters)
+    end)
+end
+
+------------------------------------------------------------
+-- 12.1 在首領戰／M+ 計時中／PvP 戰場中封鎖插件通訊（addon message）。
+-- 判斷照 MiliUI 本體 Init.lua 的同名函式（那邊抄自 Cell）；本插件單體發佈，自己留一份
+------------------------------------------------------------
+function ns.IsCommRestricted()
+    if IsEncounterInProgress and IsEncounterInProgress() then return true end
+    if C_MythicPlus and C_MythicPlus.IsRunActive and C_MythicPlus.IsRunActive() then return true end
+    if C_PvP and C_PvP.IsActiveBattlefield and C_PvP.IsActiveBattlefield() then return true end
+    return false
+end
+
+-- 隊伍頻道：副本隊伍優先
+function ns.PartyChannel()
+    if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then return "INSTANCE_CHAT" end
+    if IsInGroup() then return "PARTY" end
+    return nil
+end
+
+------------------------------------------------------------
 -- 啟動
 ------------------------------------------------------------
 local boot = CreateFrame("Frame")
@@ -116,6 +158,9 @@ boot:SetScript("OnEvent", function(self)
     ns.Loot.Init()
     ns.Publish.Init()
     ns.Keystone.Init()
+    ns.PartyKeystone.Init()
+    ns.LootTable.Init()
+    ns.KeystoneReport.Init()
     ns.MinimapButton.Apply()
 end)
 

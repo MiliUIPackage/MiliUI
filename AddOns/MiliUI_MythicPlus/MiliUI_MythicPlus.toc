@@ -2,9 +2,9 @@
 ## Title: MiliUI Mythic Plus
 ## Title-zhTW: |cffFF7F00[M+]|r 米利的傳奇鑰石
 ## Title-zhCN: |cffFF7F00[M+]|r 米利的史诗钥石
-## Notes: Shows a settlement panel when a Mythic+ run ends: everyone's score, loot, DPS, damage taken, interrupts, dispels and deaths on one line each, with the timer, the key level and your rating change in the header.|n|nThe summary can be posted to party or guild chat with one click.|n|nEvery run is kept, so you can pull up the last fifty from the dropdown in the corner.|n|nThe numbers come from the game's own combat statistics — nothing parses the combat log.|n|n|cffffd200Usage: |r/mmp opens the panel, /mmp config opens the settings.
-## Notes-zhTW: MiliUI Mythic Plus|n|n米利的傳奇鑰石。|n|n鑰石打完就跳出結算面板：每個人一列，分數、戰利品、每秒傷害、承受傷害、中斷、驅散、死亡；表頭是計時、鑰石等級與自己的評分變化。|n|n結算可以一鍵貼到隊伍或公會頻道。|n|n每一場都會留著，右上角的下拉可以翻出最近五十場。|n|n數字來自遊戲本身的戰鬥統計，沒有任何戰鬥記錄解析。|n|n|cffffd200使用方法: |r/mmp 開關面板，/mmp config 開啟設定。
-## Notes-zhCN: MiliUI Mythic Plus|n|n米利的史诗钥石。|n|n钥石打完就跳出结算面板：每个人一行，分数、战利品、每秒伤害、承受伤害、打断、驱散、死亡；表头是计时、钥石等级与自己的评分变化。|n|n结算可以一键贴到队伍或公会频道。|n|n每一场都会留着，右上角的下拉可以翻出最近五十场。|n|n数字来自游戏本身的战斗统计，没有任何战斗记录解析。|n|n|cffffd200使用方法: |r/mmp 开关面板，/mmp config 打开设置。
+## Notes: Shows a settlement panel when a Mythic+ run ends: everyone's score, loot, DPS, damage taken, interrupts, dispels and deaths on one line each, with the timer, the key level and your rating change in the header.|n|nThe summary can be posted to party or guild chat with one click.|n|nEvery run is kept, so you can pull up the last fifty from the dropdown in the corner.|n|nThe numbers come from the game's own combat statistics — nothing parses the combat log.|n|nAlso on the keystone screens: auto-insert your keystone, ready check and countdown buttons, the party's keystones, and a loot table by key level. It can post your new keystone to party, and answer when someone types key.|n|n|cffffd200Usage: |r/mmp opens the panel, /mmp config opens the settings.
+## Notes-zhTW: MiliUI Mythic Plus|n|n米利的傳奇鑰石。|n|n鑰石打完就跳出結算面板：每個人一列，分數、戰利品、每秒傷害、承受傷害、中斷、驅散、死亡；表頭是計時、鑰石等級與自己的評分變化。|n|n結算可以一鍵貼到隊伍或公會頻道。|n|n每一場都會留著，右上角的下拉可以翻出最近五十場。|n|n數字來自遊戲本身的戰鬥統計，沒有任何戰鬥記錄解析。|n|n鑰石介面上另外有：自動放入鑰石、就位確認與倒數按鈕、隊伍鑰石清單、各層數的掉落對照表；也能自動把新鑰石貼到隊伍、隊友打 key 時回報全隊鑰石。|n|n|cffffd200使用方法: |r/mmp 開關面板，/mmp config 開啟設定。
+## Notes-zhCN: MiliUI Mythic Plus|n|n米利的史诗钥石。|n|n钥石打完就跳出结算面板：每个人一行，分数、战利品、每秒伤害、承受伤害、打断、驱散、死亡；表头是计时、钥石等级与自己的评分变化。|n|n结算可以一键贴到队伍或公会频道。|n|n每一场都会留着，右上角的下拉可以翻出最近五十场。|n|n数字来自游戏本身的战斗统计，没有任何战斗记录解析。|n|n钥石界面上另外有：自动放入钥石、就位确认与倒数按钮、队伍钥石列表、各层数的掉落对照表；也能自动把新钥石发到队伍、队友打 key 时回报全队钥石。|n|n|cffffd200使用方法: |r/mmp 开关面板，/mmp config 打开设置。
 ## Category: Dungeons & Raids
 ## Category-zhTW: 副本
 ## Category-zhCN: 地下城和团队副本
@@ -16,6 +16,7 @@
 ## AddonCompartmentFunc: MiliUIMythicPlus_OnAddonCompartmentClick
 
 # 無相依的共用層排最前面：Core 的檔案在檔案層就會用到 ns.P / ns.Secret / ns.Errors
+Libs\Libs.xml
 Libs\MiliUIWidgets\PixelPerfect.lua
 Libs\MiliUIWidgets\Secret.lua
 Libs\MiliUIWidgets\Errors.lua
@@ -35,6 +36,7 @@ Run\Snapshot.lua
 Run\History.lua
 Run\Loot.lua
 Run\Recorder.lua
+Run\KeystoneReport.lua
 
 # 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色。
 # ContextMenu 要在 Widgets 之後（它用 W.Accent / W.CloseOnEscape）
@@ -49,12 +51,15 @@ UI\Publish.lua
 UI\HistoryMenu.lua
 UI\MinimapButton.lua
 UI\Keystone.lua
+UI\PartyKeystone.lua
+UI\LootTable.lua
 
 Debug\Probe.lua
 
 Options\Panel.lua
 Options\Tab_General.lua
 Options\Tab_Keystone.lua
+Options\Tab_Chat.lua
 Options\Tab_About.lua
 
 Libs\MiliUIWidgets\BlizzOptions.lua

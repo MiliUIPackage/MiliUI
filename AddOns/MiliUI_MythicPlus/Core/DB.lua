@@ -60,12 +60,25 @@ local function BuildDefaults()
             avoidable = false,
         },
 
-        -- 鑰石視窗（UI/Keystone.lua）：自動放入鑰石、底下的確認／倒數列，預設都開。
-        -- countdown 是倒數秒數，範圍見 ns.Keystone.MIN/MAX_SECONDS
+        -- 鑰石視窗與傳奇鑰石頁上的功能，預設都開（設定在「鑰石」分頁）：
+        --   autoSlot／buttons／countdown  鑰石視窗（UI/Keystone.lua），countdown 範圍見 ns.Keystone
+        --   partyPanel                    傳奇鑰石頁右下的隊伍鑰石（UI/PartyKeystone.lua）
+        --   lootTable／lootTableOpen      傳奇鑰石頁右側的掉落對照表與它的開合（UI/LootTable.lua）
         keystone = {
-            autoSlot  = true,
-            buttons   = true,
-            countdown = 5,
+            autoSlot      = true,
+            buttons       = true,
+            countdown     = 5,
+            partyPanel    = true,
+            lootTable     = true,
+            lootTableOpen = true,
+        },
+
+        -- 自動貼到隊伍頻道的東西，預設都開（設定在「聊天」分頁）：
+        --   keyReply  隊友打 key／鑰石 時回報全隊鑰石（UI/PartyKeystone.lua）
+        --   newKey    自己拿到新鑰石時貼出連結（Run/KeystoneReport.lua）
+        announce = {
+            keyReply = true,
+            newKey   = true,
         },
 
         -- 進行中的場次。**要進 SV**：中途 /reload 才不會丟掉開跑時的基準
@@ -132,6 +145,11 @@ local function Normalize(db)
     local k = db.keystone
     k.autoSlot = k.autoSlot and true or false
     k.buttons  = k.buttons and true or false
+    k.partyPanel = k.partyPanel and true or false
+    k.lootTable  = k.lootTable and true or false
+    k.lootTableOpen = k.lootTableOpen and true or false
+    db.announce.keyReply = db.announce.keyReply and true or false
+    db.announce.newKey   = db.announce.newKey and true or false
     local sec = math.floor(tonumber(k.countdown) or 5)
     k.countdown = math.min(math.max(sec, 3), 30)
 
@@ -204,4 +222,6 @@ function DB.ResetAll()
     if ns.Panel then ns.Panel.ApplySettings() end
     if ns.MinimapButton then ns.MinimapButton.Apply() end
     if ns.Keystone then ns.Keystone.Apply() end
+    if ns.PartyKeystone then ns.PartyKeystone.Apply() end
+    if ns.LootTable then ns.LootTable.Apply() end
 end

@@ -218,14 +218,11 @@ end
 
 function K.Init()
     local f = CreateFrame("Frame")
-    f:RegisterEvent("ADDON_LOADED")
     f:RegisterEvent("PLAYER_REGEN_ENABLED")
     ns.SafeRegister(f, "START_PLAYER_COUNTDOWN")
     ns.SafeRegister(f, "CANCEL_PLAYER_COUNTDOWN")
     f:SetScript("OnEvent", function(_, event, ...)
-        if event == "ADDON_LOADED" then
-            if ... == "Blizzard_ChallengesUI" then ns.Guard(Hook) end
-        elseif event == "PLAYER_REGEN_ENABLED" then
+        if event == "PLAYER_REGEN_ENABLED" then
             if pendingSync then
                 pendingSync = false
                 ns.Guard(SyncMacros)
@@ -237,6 +234,5 @@ function K.Init()
             ns.Guard(SetCounting, false)
         end
     end)
-    -- 暴雪的鑰石介面是隨選載入的；已經載入了（別的插件先叫過）就直接掛
-    if C_AddOns.IsAddOnLoaded("Blizzard_ChallengesUI") then Hook() end
+    ns.OnChallengesUI(Hook)
 end
