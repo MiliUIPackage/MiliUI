@@ -325,16 +325,21 @@ local function ApplyPVP()
     -- 底部按鈕列留呼吸（2026-09-24，規則見 PVE.lua 的 `LayoutFooters`）。
     -- 三頁都錨 PVEFrame 的 `TOPLEFT y=-22`：快速對戰／練習場高 403 ⇒ 下緣離視窗底 3；
     -- 評級高 407 ⇒ 離視窗底 −1（Blizzard_PVPUI.xml:1168,1320,1476；PVEFrame 高 428）。
+    -- ⚠ 上面那組換算（下緣離視窗底 3／−1）第一版照著算，實機（擷圖 15）按鈕上方只剩 ~2、
+    --   下方 ~3.5 ⇒ 頁面實際下緣比假設的低（PVPUIFrame 自己在 PVEFrame 裡還有位移）。
+    --   改用實測修正：內框再抬 PVP_INSET_FIX、按鈕再抬 PVP_BUTTON_FIX。
     local IN, BT = X.FOOTER_INSET, X.FOOTER_BUTTON
+    local PVP_INSET_FIX, PVP_BUTTON_FIX = 4, 1.5
     if X.ShiftFooter and IN then
+        local hi = IN - 3 + PVP_INSET_FIX
         X.ShiftFooter({
-            { Field(honor, "Inset"), "BOTTOMRIGHT", "BOTTOMRIGHT", -5, IN - 3 },                -- :1180 y=22
-            { Field(honor, "SpecificScrollBar"), "BOTTOMLEFT", "BOTTOMRIGHT", -22, 27 + (IN - 3 - 22) }, -- :1208
-            { Field(honor, "QueueButton"), "BOTTOM", "BOTTOM", 0, BT - 3 },                     -- :1294 y=-1
-            { Field(conquest, "Inset"), "BOTTOMRIGHT", "BOTTOMRIGHT", -5, IN + 1 },             -- :1341 y=26
-            { Field(conquest, "JoinButton"), "BOTTOM", "BOTTOM", 0, BT + 1 },                   -- :1401 y=0
-            { Field(training, "Inset"), "BOTTOMRIGHT", "BOTTOMRIGHT", -5, IN - 3 },             -- :1488 y=22
-            { Field(training, "QueueButton"), "BOTTOM", "BOTTOM", 0, BT - 3 },                  -- :1590 y=-1
+            { Field(honor, "Inset"), "BOTTOMRIGHT", "BOTTOMRIGHT", -5, hi },                    -- :1180 y=22
+            { Field(honor, "SpecificScrollBar"), "BOTTOMLEFT", "BOTTOMRIGHT", -22, 27 + (hi - 22) }, -- :1208
+            { Field(honor, "QueueButton"), "BOTTOM", "BOTTOM", 0, BT - 3 + PVP_BUTTON_FIX },    -- :1294 y=-1
+            { Field(conquest, "Inset"), "BOTTOMRIGHT", "BOTTOMRIGHT", -5, IN + 1 + PVP_INSET_FIX }, -- :1341 y=26
+            { Field(conquest, "JoinButton"), "BOTTOM", "BOTTOM", 0, BT + 1 + PVP_BUTTON_FIX },  -- :1401 y=0
+            { Field(training, "Inset"), "BOTTOMRIGHT", "BOTTOMRIGHT", -5, hi },                 -- :1488 y=22
+            { Field(training, "QueueButton"), "BOTTOM", "BOTTOM", 0, BT - 3 + PVP_BUTTON_FIX }, -- :1590 y=-1
         }, "PVPFooter")
     end
 
