@@ -322,6 +322,22 @@ local function ApplyPVP()
         X.SkinKeyedButtons(training, "TrainingGroundsFrame", { "QueueButton" })
     end
 
+    -- 底部按鈕列留呼吸（2026-09-24，規則見 PVE.lua 的 `LayoutFooters`）。
+    -- 三頁都錨 PVEFrame 的 `TOPLEFT y=-22`：快速對戰／練習場高 403 ⇒ 下緣離視窗底 3；
+    -- 評級高 407 ⇒ 離視窗底 −1（Blizzard_PVPUI.xml:1168,1320,1476；PVEFrame 高 428）。
+    local IN, BT = X.FOOTER_INSET, X.FOOTER_BUTTON
+    if X.ShiftFooter and IN then
+        X.ShiftFooter({
+            { Field(honor, "Inset"), "BOTTOMRIGHT", "BOTTOMRIGHT", -5, IN - 3 },                -- :1180 y=22
+            { Field(honor, "SpecificScrollBar"), "BOTTOMLEFT", "BOTTOMRIGHT", -22, 27 + (IN - 3 - 22) }, -- :1208
+            { Field(honor, "QueueButton"), "BOTTOM", "BOTTOM", 0, BT - 3 },                     -- :1294 y=-1
+            { Field(conquest, "Inset"), "BOTTOMRIGHT", "BOTTOMRIGHT", -5, IN + 1 },             -- :1341 y=26
+            { Field(conquest, "JoinButton"), "BOTTOM", "BOTTOM", 0, BT + 1 },                   -- :1401 y=0
+            { Field(training, "Inset"), "BOTTOMRIGHT", "BOTTOMRIGHT", -5, IN - 3 },             -- :1488 y=22
+            { Field(training, "QueueButton"), "BOTTOM", "BOTTOM", 0, BT - 3 },                  -- :1590 y=-1
+        }, "PVPFooter")
+    end
+
     -- 掠奪風暴（沒開活動的時候整個分類是隱藏的，找不到就靜默降級成一筆紀錄）
     local plunder = _G.PlunderstormFrame
     if plunder then

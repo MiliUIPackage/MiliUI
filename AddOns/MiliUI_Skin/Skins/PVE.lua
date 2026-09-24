@@ -1426,6 +1426,60 @@ local function InstallHooks()
     InstallRowHooks()
 end
 
+------------------------------------------------------------
+-- 底部按鈕列留呼吸（2026-09-24）
+--
+-- 暴雪的內嵌框下緣離視窗底 25～26，22 高的主按鈕錨在 `y=4`（PvP 那幾頁是 −1／0，
+-- 換算到視窗底也差不多）⇒ 按鈕頂著內嵌框、底下貼著視窗邊。整家族統一成：
+-- **內嵌框下緣離視窗底 FOOTER_INSET（32），按鈕下緣離視窗底 FOOTER_BUTTON（5）**
+-- ⇒ 上下各留 5。內嵌框裡面那些「錨在頁面下緣、不是錨在內嵌框上」的內容框
+-- （捲動清單、冷卻／回填遮罩）一起抬，不然會從抬高的框底露出去。
+--
+-- 全部走 `Engine.ShiftRoot`（同名錨點覆寫、只改那一個錨點；脫戰；`db.relayout = false`
+-- 可關）。每一筆都寫 XML 原值；暴雪 Lua（LFDFrame／LFGFrame／RaidFinder／Blizzard_PVPUI）
+-- 對這些框零處 SetPoint／ClearAllPoints（grep 過，只有對話框與獎勵列會重錨）。
+-- 視窗高 428（PVEFrame.xml:68），各頁面高度不同 ⇒ y 是「換算到視窗底」之後的值。
+------------------------------------------------------------
+local FOOTER_INSET = 32
+local FOOTER_BUTTON = 5
+
+-- items：{ 物件, 錨點, 相對點, x, y }；相對的一律是物件自己的 parent（XML 預設）
+local function ShiftFooter(items, label)
+    for i, it in ipairs(items) do
+        local obj = it[1]
+        if obj then
+            local ok, parent = pcall(function() return obj:GetParent() end)
+            if ok and parent then
+                E.ShiftRoot(obj, it[2], parent, it[3], it[4], it[5], label .. "[" .. i .. "]")
+            end
+        end
+    end
+end
+
+local function LayoutFooters()
+    local G = _G
+    -- 地城搜尋器（LFDFrame.xml）。LFDParentFrame 跟視窗同高、下緣對齊。
+    ShiftFooter({
+        { G.LFDParentFrameInset, "BOTTOMRIGHT", "BOTTOMRIGHT", -6, FOOTER_INSET },               -- :161 y=26
+        { G.LFDQueueFrameRandomScrollFrame, "BOTTOMRIGHT", "BOTTOMRIGHT", -29, 35 + (FOOTER_INSET - 26) }, -- :245
+        { Path(G.LFDQueueFrameSpecific, "ScrollBox"), "BOTTOMRIGHT", "BOTTOMRIGHT", -32, FOOTER_INSET },  -- :262 y=26
+        { Path(G.LFDQueueFrameFollower, "ScrollBox"), "BOTTOMRIGHT", "BOTTOMRIGHT", -32, FOOTER_INSET },  -- :281 y=26
+        { G.LFDQueueFramePartyBackfill, "BOTTOMRIGHT", "BOTTOMRIGHT", -6, FOOTER_INSET + 1 },     -- :346 y=27
+        { G.LFDQueueFrameCooldownFrame, "BOTTOMRIGHT", "BOTTOMRIGHT", -6, FOOTER_INSET + 1 },     -- :357 y=27
+        { G.LFDQueueFrameNoLFDWhileLFR, "BOTTOMRIGHT", "BOTTOMRIGHT", -6, FOOTER_INSET + 1 },     -- :374 y=27
+        { G.LFDQueueFrameFindGroupButton, "BOTTOM", "BOTTOM", 0, FOOTER_BUTTON },                  -- :322 y=4
+    }, "LFDFooter")
+    -- 團隊搜尋器（Shared/RaidFinder.xml），同一套數字
+    ShiftFooter({
+        { G.RaidFinderFrameBottomInset, "BOTTOMRIGHT", "BOTTOMRIGHT", -4, FOOTER_INSET },         -- :67 y=26
+        { G.RaidFinderQueueFrameScrollFrame, "BOTTOMRIGHT", "BOTTOMRIGHT", -29, 28 + (FOOTER_INSET - 26) }, -- :153
+        { G.RaidFinderQueueFramePartyBackfill, "BOTTOMRIGHT", "BOTTOMRIGHT", -6, FOOTER_INSET + 1 }, -- :168 y=27
+        { G.RaidFinderQueueFrameCooldownFrame, "BOTTOMRIGHT", "BOTTOMRIGHT", -6, FOOTER_INSET + 1 }, -- :179 y=27
+        { G.RaidFinderQueueFrameIneligibleFrame, "BOTTOMRIGHT", "BOTTOMRIGHT", -6, FOOTER_INSET + 1 }, -- :197 y=27
+        { G.RaidFinderFrameFindRaidButton, "BOTTOM", "BOTTOM", 0, FOOTER_BUTTON },               -- :242 y=4
+    }, "RaidFinderFooter")
+end
+
 local function Apply()
     ApplyChrome()
     ApplyGroupButtons()
@@ -1433,10 +1487,14 @@ local function Apply()
     ApplyRaidFinder()
     ApplyLFGList()
     SweepRowsNow()
+    LayoutFooters()
 end
 
 -- 另外兩支配方要用的小工具（同一家族的形狀完全一樣，複製三份沒有意義）
 ns.PVESkin.Field = Field
+ns.PVESkin.ShiftFooter = ShiftFooter
+ns.PVESkin.FOOTER_INSET = FOOTER_INSET
+ns.PVESkin.FOOTER_BUTTON = FOOTER_BUTTON
 ns.PVESkin.Path = Path
 ns.PVESkin.SkinRoleButton = SkinRoleButton
 ns.PVESkin.SkinOwnedScrollBar = SkinOwnedScrollBar
