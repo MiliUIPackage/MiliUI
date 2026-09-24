@@ -143,6 +143,7 @@
 -- | `TitleText`、`MemberCount`、各頁 `TitleText`、彈窗標題與欄位標籤 | `SetTextColor` |
 -- | 關閉鈕、最大化最小化、翻頁鈕 | 狀態圖 `SetAlpha(0)`＋我們的圖記（`Skin.CloseButton`／`Skin.IconButton`） |
 -- | 六顆側邊分頁 | 無名 BORDER 貼圖與 NormalTexture `SetAlpha(0)`、`Icon` 裁邊、Highlight／Checked `SetColorTexture`（**零腳本**） |
+-- | 四顆側邊分頁（不含尋找公會那兩顆） | `Engine.Resize` 48x48、`Icon` `Engine.Reanchor` 鋪滿、Roster／Benefits／Info `Engine.ShiftRoot` 相鄰（重排例外，脫戰、`relayout=false` 可關） |
 -- | 下拉 | `Background`／`Arrow` `SetAlpha(0)` ＋ ⌄ 圖記（名冊兩顆與階級下拉 `noHover` ＝零腳本） |
 -- | 所有文字按鈕（含彈窗） | 美術 `SetAlpha(0)` ＋ `SetNormalFontObject` ＋ Highlight／Disabled 的 `SetColorTexture`（`Engine.ScriptlessButton`，**零 HookScript**） |
 -- | 社群清單列 | `Background`／`IconRing`／`Selection` `SetAlpha(0)`、Highlight `SetAlpha(0)`、我們的子框 overlay |
@@ -177,7 +178,8 @@
 --      ⇒ `SetAtlas` 與實例勾都禁止；改成中和 `Background` ＋ 我們自己的平面卡片（overlay 用 points 縮 2）。
 --      選中與滑過的洗白也是把暴雪貼圖 `ClearAllPoints`/`SetPoint` 裁進卡片 ⇒ 禁止；
 --      滑過改成自己畫（`Skin.Row` ownHover）、選中那張 80 高的 `Selection` 原本去飽和染色（溢出列 6 點），2026-09-24 改成中和、讀它的 IsShown 畫我們自己的選中態。
---   2. 側邊分頁的間距收緊 10、第一顆重錨貼齊視窗邊 ⇒ `ClearAllPoints`/`SetPoint` 禁止，不做。
+--   2. 側邊分頁的間距收緊 10、第一顆重錨貼齊視窗邊 ⇒ 當時不做；2026-09-24 改走重排例外
+--      （`ShiftRoot`／`Reanchor`／`Resize`），放大並相鄰，見 `EnlargeSideTabs`。
 --      依 `IsEnabled()` 做半透明 ⇒ 配方不准讀 IsEnabled、也不准對按鈕框 SetAlpha，不做（停用的分頁暴雪自己會去飽和圖示）。
 --   3. 公會招募視窗重錨到視窗右側 ⇒ 重排，不做。彈窗輸入框的左內距 6（讀錨點再 `SetPoint`／`SetWidth`）⇒ 不做。
 --   4. 串流下拉縮 0.9 並左移、名冊下拉縮 0.85 並下移 8、輸入框縮高 12、尋找公會搜尋框與搜尋鈕改尺寸並用
@@ -476,8 +478,10 @@ local function SideTab(tab, key)
     E.ButtonStates(tab, key)
     -- 選中：朝外那一邊（右緣）一條職業色直條 —— 跟底部分頁（`T.tabStyle = "underline"`，
     -- 線畫在朝外的下緣）同一套語言（2026-09-24；原本是整格 ADD 職業色 ×0.35，像一層霧）
+    -- 2026-09-24 再改：直條之外，圖示上薄薄蓋一層職業色（貼圖其餘部分是白 18%，照冒險指南
+    -- 頁籤「選中＝底亮一階＋右緣線」—— 這裡圖示鋪滿整顆、底看不到，所以改成蓋在圖示上）
     local r, g, b = T.Accent()
-    E.CheckedTextureFile(tab, T.tabAccentRightTexture, { r, g, b, 1 }, key)
+    E.CheckedTextureFile(tab, T.tabAccentRightTintTexture, { r, g, b, 1 }, key)
 
     if icon then
         E.CropIcon(icon, key .. ".Icon")
@@ -610,6 +614,53 @@ end
 local MAXMIN_GLYPH = { MaximizeButton = "expand", MinimizeButton = "collapse" }
 local SIDE_TABS = { "ChatTab", "RosterTab", "GuildBenefitsTab", "GuildInfoTab" }
 
+------------------------------------------------------------
+-- 四顆側邊分頁放大、一顆接一顆（2026-09-24，照冒險指南右側四顆頁籤的樣子）
+--
+-- XML 原值（CommunitiesTabs.xml:6,19-25；CommunitiesFrame.xml:376,390,416,426）：
+--   分頁 32x32，`Icon` 30x30 錨 CENTER；RosterTab／GuildBenefitsTab／GuildInfoTab 各自
+--   `TOPLEFT → 上一顆 BOTTOMLEFT (0, -20)`。
+-- 改成：分頁 SIDE_TAB_SIZE 見方（`Engine.Resize`）、圖示鋪滿（四邊內縮一個邊寬，留給方框）、
+--   上下兩顆重疊一個邊寬（同名 TOPLEFT 覆寫，`Engine.ShiftRoot`）⇒ 接縫只有一條線。
+--   `Icon` 兩點錨定之後 XML 的 Size 就不作數；`IconOverlay`（家長控制的黑罩）錨在 Icon 上跟著走；
+--   RosterTab 的 `NotificationOverlay` 是 setAllPoints，未讀圖示跟著落在新的右上角。
+-- grep（12.1 live）：CommunitiesTabs.lua 零處尺寸／錨點；CommunitiesFrame.lua 全檔對分頁零處
+--   SetSize／GetSize／GetWidth／GetPoint，**只有 :1057** 在「公會沒有福利頁」時把 GuildInfoTab
+--   重錨回 RosterTab 下方 -20 ⇒ 那種公會（幾乎不存在：有公會天賦或公會聲望就有福利頁）
+--   最後一顆會離開 20，不追（要追就得勾實例方法 = 寫暴雪框欄位）。
+-- 代價：UIPanel 為分頁保留的 `extraWidth` 是 32（:1063），放大後分頁多伸出去 16，
+--   旁邊同時開著另一個面板時會壓到它的左緣一點。
+------------------------------------------------------------
+local SIDE_TAB_SIZE = 48
+local SIDE_TAB_CHAIN = {   -- { 分頁, 錨在誰的下面 }
+    { "RosterTab", "ChatTab" },
+    { "GuildBenefitsTab", "RosterTab" },
+    { "GuildInfoTab", "GuildBenefitsTab" },
+}
+
+local function EnlargeSideTabs(f)
+    local bs = T.BorderSize()
+    for _, k in ipairs(SIDE_TABS) do
+        local tab = Optional(f, k)
+        local icon = tab and Optional(tab, "Icon")
+        if tab and icon then
+            local label = "CommunitiesFrame." .. k
+            if E.Resize(tab, SIDE_TAB_SIZE, SIDE_TAB_SIZE, label) then
+                E.Reanchor({ { icon, {
+                    { "TOPLEFT", "TOPLEFT", bs, -bs, rel = tab },
+                    { "BOTTOMRIGHT", "BOTTOMRIGHT", -bs, bs, rel = tab },
+                } } }, label .. ".Icon")
+            end
+        end
+    end
+    for _, link in ipairs(SIDE_TAB_CHAIN) do
+        local tab, above = Optional(f, link[1]), Optional(f, link[2])
+        if tab and above then
+            E.ShiftRoot(tab, "TOPLEFT", above, "BOTTOMLEFT", 0, bs, "CommunitiesFrame." .. link[1])
+        end
+    end
+end
+
 local function SkinChrome(f)
     Skin.PortraitChrome(f, "CommunitiesFrame")
     Skin.Panel(f, "CommunitiesFrame")
@@ -639,6 +690,7 @@ local function SkinChrome(f)
     if chatTab then
         E.ShiftRoot(chatTab, "TOPLEFT", f, "TOPRIGHT", -T.BorderSize(), -36, "CommunitiesFrame.ChatTab")
     end
+    EnlargeSideTabs(f)
 end
 
 ------------------------------------------------------------

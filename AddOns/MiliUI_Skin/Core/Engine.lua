@@ -506,6 +506,22 @@ function Engine.Reanchor(list, label)
     return ok
 end
 
+-- 改一個框的尺寸（2026-09-24，`ShiftRoot`／`Reanchor` 的同級例外）
+--
+-- 條件同 `ShiftRoot`（脫戰、`relayout = false` 整批關、暴雪 Lua 零處 SetSize 或讀回尺寸，
+-- 呼叫處寫明 XML 原值與 grep 結果）。只准用在「只有自己的 region 跟著尺寸走」的小按鈕
+-- （側邊圖示分頁），**不准**用在清單列、名冊、排版框、任何被 UIPanel 版面讀寬度的框。
+function Engine.Resize(frame, w, h, label)
+    if ns.db and ns.db.relayout == false then return false end
+    if not Usable(frame, label) or type(frame.SetSize) ~= "function" then return false end
+    if InCombatLockdown() then
+        Note(Bucket("deferred"), (label or "?") .. " (relayout)")
+        return false
+    end
+    local ok = pcall(frame.SetSize, frame, w, h)
+    return ok and true or false
+end
+
 -- 拿掉圖示上的遮罩（圓形圖示 → 方形圖示）
 --
 -- ⚠ 契約例外（STYLE.md ③）：`RemoveMaskTexture` 是對暴雪區域的**結構性修改**，

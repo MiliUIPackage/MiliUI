@@ -154,6 +154,9 @@ T.dotOutlineTexture   = "Interface\\AddOns\\MiliUI_Skin\\Media\\dot-outline.tga"
 -- 側邊圖示分頁的選中條（`Engine.CheckedTextureFile`）：64x64、最右 4px 白、其餘透明
 -- ⇒ 32 大的分頁上是 2 單位寬的右緣直條，同 `T.tabAccentSize`
 T.tabAccentRightTexture = "Interface\\AddOns\\MiliUI_Skin\\Media\\tab-accent-right.tga"
+-- 同上，但其餘 63x61 不是透明、是白 18%（alpha 46）：選中時圖示上**薄薄蓋一層職業色**＋右緣 3px 直條
+-- （48 大的分頁上約 2.25 單位，≈ `T.tabAccentSize`）。公會與社群的側邊分頁（2026-09-24，照冒險指南頁籤的語彙）
+T.tabAccentRightTintTexture = "Interface\\AddOns\\MiliUI_Skin\\Media\\tab-accent-right-tint.tga"
 -- 勾（含黑框）在貼圖裡佔的高度比例：64 格裡約 41 格（上下留白給黑框與反鋸齒）。
 -- 貼圖尺寸 ＝ checkGlyphHeight ÷ 這個比例 ⇒ 看得到的勾跟 flat 一樣高。
 T.checkOutlineGlyphFrac = 0.64

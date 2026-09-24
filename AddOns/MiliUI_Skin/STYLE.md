@@ -197,6 +197,9 @@ k = 1、完全不變。職業色不是秘密值，這是純 Lua 算術。
   要把鏈**反過來接**（原本 A 錨 B、改成 B 錨 A）時同名覆寫做不到、一定要先清錨點。條件同 `ShiftRoot`（脫戰、
   暴雪 Lua 零處重設或讀回、配方寫明 XML 原值與換算、`relayout = false` 整批關），另加「整段鏈一次交出、先全清再全錨」。
   唯一實例：好友視窗的狀態列（狀態下拉改當根、左緣對齊分頁列，戰網名稱框接在它右邊，`Skins/Friends.lua` 的 `AlignStatusRow`）
+- **`SetSize` 改小按鈕的尺寸 —— 只准 `Engine.Resize`**（2026-09-24，`ShiftRoot` 的同級例外）：條件同 `ShiftRoot`
+  （脫戰、暴雪 Lua 零處 SetSize 或讀回尺寸、配方寫明 XML 原值、`relayout = false` 整批關）；只准用在「只有自己的
+  region 跟著尺寸走」的小按鈕。唯一實例：公會與社群的四顆側邊分頁（放大到 48、相鄰，`Skins/Communities.lua` 的 `EnlargeSideTabs`）
 - 技能鈕這類 **secure 按鈕的圖示裁邊**（`Engine.CropIcon` 對它的 `IconTexture`）：`SetTexCoord` 是對 region 的純 C 端 setter，准許；
   方框不准掛在 secure 按鈕上，改掛在外層的（隱式保護）容器、用 `anchorTo` 貼著按鈕、層級墊高、不吃滑鼠
 - `RemoveMaskTexture` —— **只准 `Engine.UnmaskIcon`**，只用在「純裝飾的圓形遮罩」（地城與團隊／PvP 左側大類按鈕的
