@@ -181,7 +181,8 @@ local indicatorNums, indicatorBooleans, indicatorColors, indicatorCustoms = {}, 
 -- HandleBuff/HandleDebuff never file anything for these buttons, and the containers
 -- themselves are hidden by UpdateIndicatorParentVisibility below.
 --! HEALTH_TEXT_GAP: the gap between the name and the health % under it. NPC_GREEN is what Cell
---! paints a friendly NPC, used as the fallback when a palette key is missing.
+--! paints a friendly NPC, used as the fallback when a palette key is missing. layoutLoaded
+--! (set by ResetIndicators) holds the allowlist back until a layout exists -- see IsEnabled.
 --! (One table rather than two locals: this file's main chunk is near Lua's 200-local ceiling.)
 local PARTY_TARGET = {
     HEALTH_TEXT_GAP = 2,
@@ -204,9 +205,16 @@ local PARTY_TARGET_INDICATORS = {
 
 -- Per-button view of enabledIndicators. Everything that asks "is this indicator on" goes
 -- through here; the plain table is only written, never read directly.
+--! ⚠ The allowlist overrides the layout's CHOICE, not the layout's ABSENCE. Until
+--! ResetIndicators has read a layout, enabledIndicators is empty and every other button
+--! answers "off" -- which is what keeps the updaters away from indicatorColors /
+--! indicatorNums, empty too until then. A button shown before F.UpdateLayout (logging in
+--! while grouped: the header shows its children at PLAYER_LOGIN, OnShow runs UpdateAll)
+--! answering "on" from the constant list walked straight into indicatorColors["nameText"]
+--! == nil. So the party-target view waits for the same load, via PARTY_TARGET.layoutLoaded.
 local function IsEnabled(b, indicatorName)
     if b.isPartyTarget then
-        return PARTY_TARGET_INDICATORS[indicatorName]
+        return PARTY_TARGET.layoutLoaded and PARTY_TARGET_INDICATORS[indicatorName]
     end
     return enabledIndicators[indicatorName]
 end
@@ -239,6 +247,8 @@ end
 local function ResetIndicators()
     wipe(enabledIndicators)
     wipe(indicatorNums)
+    -- fix from MiliUI: the per-indicator tables are about to hold a layout -- see IsEnabled
+    PARTY_TARGET.layoutLoaded = true
 
     for _, t in next, Cell.vars.currentLayoutTable["indicators"] do
         -- update enabled
