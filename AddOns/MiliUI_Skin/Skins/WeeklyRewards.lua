@@ -150,7 +150,6 @@
 -- |---|---|
 -- | ConcessionFrameN.Background | SetAlpha(0) |
 -- | ConcessionFrameN | `CreateFrame` overlay（底 `fillInset` ＋ 1px 邊） |
--- | ConcessionFrameN | `CreateFrame` 一個只有 2px 黑邊的框，錨在 `RewardsFrame.Text` 的 LEFT（圍住內嵌的貨幣圖示） |
 -- | Overlay（`WeeklyRewardOverlayTemplate`，延遲建立）的 Background / NineSlice | SetAlpha(0) |
 -- | 同上 | `CreateFrame` overlay（底 `fill` ＋ 1px 邊） |
 --
@@ -451,44 +450,9 @@ end
 ------------------------------------------------------------
 local CONCESSION_KEYS = { "ConcessionFrame1", "ConcessionFrame2" }
 
--- 貨幣圖示的黑框（2026-09-24）
---
--- 圖示不是貼圖，是 `RewardsFrame.Text` 字串裡的內嵌材質：
--- `WEEKLY_REWARDS_CONCESSION_FORMAT` ＝ `|T%1$d:24:24:0:-2|t x %2$d`（GlobalStrings，
--- 各語系同一條）⇒ 永遠排在 Text 的最左邊、24x24、往下 2。
--- ⇒ 框錨在 Text 的 LEFT 上畫一個 24x24，**不讀字串、不改字串**。
---   裁邊做不到（要改 `|T` 的 texCoord 就得重寫暴雪的字），所以只加框。
--- ⚠ 層級：`RewardsFrame` 是 frameLevel 1000 的絕對值，代幣格自己的層級比它低 ⇒
---   target 給 `RewardsFrame`（levelOffset +1 蓋在字上），parent 仍然是代幣格 ——
---   `RewardsFrame` 是 `HorizontalLayoutFrame`，掛成它的子框會被算進版面（陷阱 2）。
-local CONCESSION_ICON = 24
-local CONCESSION_ICON_DY = -2
-local CONCESSION_ICON_DEBUG = { 1, 0.9, 0, 1 }   -- 暫時：亮黃對位框
-
-local function ConcessionIconBorder(cf, label)
-    local rf, text
-    if not (pcall(function() rf = cf.RewardsFrame; text = rf and rf.Text end) and text) then
-        E.Missing(label .. ".RewardsFrame.Text")
-        return
-    end
-    local half = CONCESSION_ICON / 2
-    local ov = E.Overlay(rf, {
-        key = label .. ".iconBorder",
-        parent = cf,
-        anchorTo = text,
-        levelOffset = 1,
-        -- 2px：內嵌材質的像素對齊跟我們的框不一定落在同一格，1px 會露出圖示的毛邊
-        --（2026-09-24 實機看到錯開），加厚一格把那一圈蓋掉。
-        borderSize = 2,
-        points = {
-            { "TOPLEFT", "LEFT", 0, half + CONCESSION_ICON_DY },
-            { "BOTTOMRIGHT", "LEFT", CONCESSION_ICON, -half + CONCESSION_ICON_DY },
-        },
-    })
-    -- ⚠ 暫時亮黃（2026-09-24 對位用）：尺寸對不上，先讓框看得清楚再調 CONCESSION_ICON／_DY，
-    --   對好之後改回 T.border。
-    E.Paint(ov, { 0, 0, 0, 0 }, CONCESSION_ICON_DEBUG)
-end
+-- ⚠ 代幣格的貨幣圖示**不加框**（2026-09-24 試過、拿掉）：它是 `RewardsFrame.Text`
+--   字串裡的內嵌材質（`|T%1$d:24:24:0:-2|t`），上下位置與實際尺寸跟著字型的行高／
+--   基線走，外面畫的框換個字型或字級就錯開；要做對只能重寫暴雪的字，不值得。
 
 local function SkinConcessions(frame)
     local rewards
@@ -507,7 +471,6 @@ local function SkinConcessions(frame)
                 E.NeutralizeKeys(cf, { "Background" }, label)
                 E.Paint(ov, T.fillInset, T.border)
             end
-            ConcessionIconBorder(cf, label)
         else
             E.Missing(label)
         end
