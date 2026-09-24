@@ -21,7 +21,6 @@ metadata:
 **How to apply:**
 - 新寫的設定頁：toggle 不帶 `hint`，需要說明就下一列 `type = "text"`。滑桿、按鈕、下拉同理。
 - 自己手刻的勾選框（直接 `W.CreateCheckButton(parent, text, …)`）第二個參數也不要塞說明句。
-- 改既有插件時順手遷移。2026-09-24 盤點還用 toggle `hint` 的：MiliUI_UnitFrames 9、MiliUI_CharacterNotes 9、
-  MiliUI_ShoppingList 7、MiliUI_Merchant 3（MiliUI_MythicPlus 已改完）。機械轉換：
-  `{ type = "toggle", …, label = X,\n hint = H },` → `{ type = "toggle", …, label = X },\n{ type = "text", label = H },`。
+- 2026-09-24 全套組已遷移完（MythicPlus、UnitFrames、CharacterNotes、ShoppingList、Merchant、Skin 共 56 個）。
+  剩下的 `hint` 都不是勾選框說明（輸入框佔位提示、對話框），不用動。盤點時注意 `hint  =`（對齊用的兩個空格）也要搜。
 - 相關：[[project-miliui-options-label-width]]（左欄標籤換行）、[[feedback-ui-visual-style]]、[[project-miliui-widgets-vendor]]。
