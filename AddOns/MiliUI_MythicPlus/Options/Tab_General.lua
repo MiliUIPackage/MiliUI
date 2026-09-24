@@ -29,12 +29,6 @@ local function BuildSpecs()
           hint = L["Left-click toggles the settlement panel, right-click opens these settings."] },
     }
 
-    -- 資訊列那顆方塊的說明只在有裝資訊列時出現：沒裝的人看了只會去找一個不存在的東西
-    if C_AddOns.IsAddOnLoaded("MiliUI_InfoBar") then
-        specs[#specs + 1] = { type = "text",
-            label = L["MiliUI InfoBar also gets an M+ Summary block; turn it on or off in the InfoBar settings, Blocks tab."] }
-    end
-
     local history = {
         { type = "header", label = L["History"] },
         { type = "slider", key = "historyCap", label = L["Runs to keep"],
