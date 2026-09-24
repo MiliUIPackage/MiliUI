@@ -463,6 +463,7 @@ local CONCESSION_KEYS = { "ConcessionFrame1", "ConcessionFrame2" }
 --   `RewardsFrame` 是 `HorizontalLayoutFrame`，掛成它的子框會被算進版面（陷阱 2）。
 local CONCESSION_ICON = 24
 local CONCESSION_ICON_DY = -2
+local CONCESSION_ICON_DEBUG = { 1, 0.9, 0, 1 }   -- 暫時：亮黃對位框
 
 local function ConcessionIconBorder(cf, label)
     local rf, text
@@ -484,7 +485,9 @@ local function ConcessionIconBorder(cf, label)
             { "BOTTOMRIGHT", "LEFT", CONCESSION_ICON, -half + CONCESSION_ICON_DY },
         },
     })
-    E.Paint(ov, { 0, 0, 0, 0 }, T.border)
+    -- ⚠ 暫時亮黃（2026-09-24 對位用）：尺寸對不上，先讓框看得清楚再調 CONCESSION_ICON／_DY，
+    --   對好之後改回 T.border。
+    E.Paint(ov, { 0, 0, 0, 0 }, CONCESSION_ICON_DEBUG)
 end
 
 local function SkinConcessions(frame)
