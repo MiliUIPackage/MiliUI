@@ -28,7 +28,7 @@
 --            Blizzard_SharedXML/NineSlice.lua:243）
 --       :45  `TitleContainer`（`TOPLEFT x=58 y=-1`／`TOPRIGHT x=-24 y=-1`，高 20）
 --            ＋ :53 `TitleText`（parentKey，`GameFontNormal`，錨 `TOP y=-5` ＋ LEFT ＋ RIGHT）
---            ⇒ 標題的上緣在彈窗上緣往下 6（XML 值，量不到時的退路 `TITLE_DY_XML`）
+--            ⇒ 標題的上緣在彈窗上緣往下 6（2026-09-24 起改成對標題帶中線置中，不再用這個值）
 --       :63  `PortraitContainer` 底下 :70 `ReadyCheckPortrait`（54x54，半個露在外面）
 --       :79  `ReadyCheckFrameYesButton`（`UIPanelButtonTemplate`，119x24，
 --            `BOTTOMRIGHT → BOTTOM x=11 y=16`）
@@ -63,7 +63,7 @@
 -- | 時機 | **不在登入時做**（皮不能是觸發第一次排版的那個人）；重載時彈窗正開著就立刻做一次 | 照抄。**觸發點從 OnShow 改掉**，見下一節 |
 -- | 頭像 | 拿掉，沒有選項：它是 `PortraitFrameTemplate` 的道具，半個露在外框外、靠雕花圓環嵌住；雕花一拿掉就是一顆飄在左上角的圓 —— 發起人的名字已經在訊息裡了 | 照抄（`PortraitContainer` 整個 alpha 0） |
 -- | 標題與訊息 | 兩個都是 `GameFontNormal`，改白 | 照抄（`E.TextColor`，`T.text`） |
--- | 幾何 | `RC_*` 五個常數、`CaptureTopOffset`、`FitReadyCheck`（見下面「幾何」） | 照抄，常數一字不改；兩處修正見「幾何」 |
+-- | 幾何 | `RC_*` 五個常數、`CaptureTopOffset`（2026-09-24 拿掉）、`FitReadyCheck`（見下面「幾何」） | 照抄，常數一字不改；兩處修正見「幾何」 |
 -- | 按鈕 | 一般皮按鈕 | **零腳本**（`Engine.ScriptlessButton`）：「就位」primary、「未就位」secondary。按鈕本身一支腳本都不掛 |
 -- | 第二次就位確認重用開著的框 | 在 `ReadyCheckFrameText` 上 `hooksecurefunc(fs, "SetText"/"SetFormattedText", …)` | **不做**：那是在暴雪物件上寫欄位（契約最硬的那一條）。改由 `READY_CHECK` 事件覆蓋，見下一節 |
 --
@@ -132,12 +132,12 @@
 -- | # | 動作 | 對象 | 違反哪一條 | 為什麼安全 | 成熟同類實作原本怎麼寫 |
 -- |---|---|---|---|---|---|
 -- | ① | `GetWidth()` | `ReadyCheckFrame` | 讀尺寸 | 只讀一次當基準（`geo.baseW`）；外框錨在 UIParent、寬度是 XML 寫死的 323，不會是秘密值，仍過 `PlainNumber` | 同（存在它自己的框資料表） |
--- | ② | `GetLeft/GetRight/GetTop()` | `TitleText` 與 `ReadyCheckFrame` | 讀錨點位置 | `CaptureTopOffset`：只量一次標題相對上緣的 y；六個值全過 `PlainNumber`，量不到退回 XML 值 −6 | 同（量不到就整段 return、等下一次開） |
+-- | ② | ~~`GetLeft/GetRight/GetTop()`~~ | —— | —— | **2026-09-24 拿掉**：標題改對標題帶中線置中（⑦），不必再量暴雪的標題位置 | 量標題相對上緣的 y |
 -- | ③ | `GetUnboundedStringWidth()`／`GetStringWidth()` | `ReadyCheckFrameText` | 讀文字寬度 | 可能是秘密數字（名字是秘密字串時）⇒ 過 `PlainNumber`，秘密就**不讀**、改用原始寬度（修正 ①） | 只用 `GetStringWidth`，秘密就整段 return |
 -- | ④ | `SetWidth(want)` | `ReadyCheckFrame` | 改尺寸 | 沒有保護；暴雪不讀回；listener `setAllPoints` 跟著變寬，皮（listener 自己的貼圖）也跟著走 | 同 |
 -- | ⑤ | `SetWidth(want − pad)` | `ReadyCheckFrameText` | 改尺寸 | 只影響換行寬度；XML 原值 240 | 同 |
 -- | ⑥ | `ClearAllPoints` ＋ `SetPoint("TOP", fr, "TOP", 0, RC_TEXT_Y)` | `ReadyCheckFrameText` | 重排 | FontString 區域、不是框；暴雪只在 XML 錨過一次 | 同 |
--- | ⑦ | `ClearAllPoints` ＋ `SetPoint("TOP", fr, "TOP", 0, dy)` | `TitleContainer.TitleText` | 重排 | 同上；`TitleContainer` 本身不動 | 同 |
+-- | ⑦ | `ClearAllPoints` ＋ `SetPoint("CENTER", fr, "TOP", 0, −(1 ＋ TITLE_BAR_H/2))` | `TitleContainer.TitleText` | 重排 | 同上；`TitleContainer` 本身不動 | 同 |
 -- | ⑧ | `ClearAllPoints` ＋ `SetPoint("BOTTOMRIGHT"/"BOTTOMLEFT", fr, "BOTTOM", ∓6, 16)` | 兩顆按鈕 | 重排 | 不是 secure 按鈕；y=16 照 XML；錨點不影響點擊派送（點擊路徑上沒有我們的 Lua） | 同 |
 --
 -- ⚠ **不在白名單上、而且刻意沒做的**：在暴雪框／FontString 上 `hooksecurefunc`
@@ -152,7 +152,7 @@
 --   事件參數（可能是秘密的名字）一個都不碰。
 -- **寫入暴雪欄位：無。**
 -- **讀暴雪物件**：parentKey／全域名找區域、`IsShown()`（外框，只在 `apply` 讀一次：
---   重載時彈窗正開著就立刻做；純 C 端布林、過 `Secret.ToBool`）、以及白名單 ①②③。
+--   重載時彈窗正開著就立刻做；純 C 端布林、過 `Secret.ToBool`）、以及白名單 ①③。
 --
 -- | 物件 | 動作 | 備註 |
 -- |---|---|---|
@@ -190,8 +190,9 @@ local RC_TEXT_Y   = -30  -- 訊息上緣（暴雪 −37；長名字換兩行時�
 local RC_BTN_GAP  = 12   -- 兩顆按鈕之間
 local RC_BTN_Y    = 16   -- 按鈕離下緣（暴雪自己的值，ReadyCheck.xml:82,95）
 
--- 標題上緣離彈窗上緣：TitleContainer y=-1 ＋ TitleText TOP y=-5（ReadyCheck.xml:48,55）
-local TITLE_DY_XML = -6
+-- 標題帶高度（像素）：比其他視窗的標題帶高 4（2026-09-24 使用者試看）。
+-- 標題字對這條帶子的中線置中（`Fit` 的 ⑦），不再沿用暴雪量出來的上緣偏移。
+local TITLE_BAR_H = T.titleBarHeight + 4
 
 -- 量到的東西存在這裡，**不存在暴雪框上**
 local geo = {}
@@ -236,7 +237,7 @@ local function SkinOnce()
     -- 標題帶（2026-09-24 試做）：標題與訊息同為白字，層級只剩位置在分。暴雪原版的
     -- 標題區就是 Bg 上緣（y=-23，ReadyCheck.xml:29）以上那一條，跟其他視窗的標題帶同一格
     -- ⇒ 直接用 `Skin.TitleBar`（listener 自己的貼圖，蓋不住任何內容）。
-    Skin.TitleBar(listener, KEY)
+    Skin.TitleBar(listener, KEY, TITLE_BAR_H)
 
     local title = Field(Field(listener, "TitleContainer"), "TitleText")
     if title then
@@ -256,20 +257,6 @@ end
 ------------------------------------------------------------
 -- 幾何（越界白名單 ①～⑧）
 ------------------------------------------------------------
--- 區域相對彈窗 TOP 的偏移：(中心 x 差, 上緣 y 差, 半寬)。量不到（版面還沒有幾何、
--- 或任何一個值是秘密）回 nil —— 呼叫端退回 XML 值，不凍結垃圾。
-local function CaptureTopOffset(region, fr)
-    local ok, rl, rr, rt, fl, fRight, ft = pcall(function()
-        return region:GetLeft(), region:GetRight(), region:GetTop(),   -- skin-lint: readycheck-allowlist ②
-               fr:GetLeft(), fr:GetRight(), fr:GetTop()                -- skin-lint: readycheck-allowlist ②
-    end)
-    if not ok then return nil end
-    rl, rr, rt = S.PlainNumber(rl), S.PlainNumber(rr), S.PlainNumber(rt)
-    fl, fRight, ft = S.PlainNumber(fl), S.PlainNumber(fRight), S.PlainNumber(ft)
-    if not (rl and rr and rt and fl and fRight and ft) then return nil end
-    return ((rl + rr) / 2) - ((fl + fRight) / 2), rt - ft, (rr - rl) / 2
-end
-
 -- 任一個要動的物件是保護框、而且在戰鬥中 ⇒ 這次不重排（XML 裡沒有 secure 模板，
 -- 正常情況永遠放行；這一道只防「將來暴雪把它改成 secure」）
 local function GeometryAllowed(list)
@@ -309,10 +296,6 @@ local function Fit()
         if not w or w <= 0 then return end
         geo.baseW = w
     end
-    if title and not geo.titleDY then
-        local _, dy = CaptureTopOffset(title, fr)
-        geo.titleDY = dy or TITLE_DY_XML
-    end
 
     local pad = RC_PAD * 2
     local want = geo.baseW
@@ -329,9 +312,11 @@ local function Fit()
         pcall(function() fs:SetPoint("TOP", fr, "TOP", 0, RC_TEXT_Y) end)   -- skin-lint: readycheck-allowlist ⑥
     end
 
-    if title and geo.titleDY then
+    if title then
+        -- 帶子從面板的邊（1px）往下 TITLE_BAR_H ⇒ 中線在 1 ＋ H/2（Skin.TitleBar）
+        local dy = -ns.P.Scale(1 + TITLE_BAR_H / 2)
         pcall(function() title:ClearAllPoints() end)                   -- skin-lint: readycheck-allowlist ⑦
-        pcall(function() title:SetPoint("TOP", fr, "TOP", 0, geo.titleDY) end)   -- skin-lint: readycheck-allowlist ⑦
+        pcall(function() title:SetPoint("CENTER", fr, "TOP", 0, dy) end)   -- skin-lint: readycheck-allowlist ⑦
     end
 
     if yes and no then
