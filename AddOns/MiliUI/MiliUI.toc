@@ -62,6 +62,7 @@ Enhance\WorldMapCoords.lua
 Enhance\Delves_MarkButton.lua
 Enhance\Chattynator_TabStyle.lua
 Enhance\Chattynator_ButtonStyle.lua
+Enhance\Chattynator_URLs.lua
 Enhance\DBM_PrivateAura.lua
 Enhance\ItemUpgrade_PreviewIcon.lua
 Enhance\MplusAdventureGuide_Masque.lua

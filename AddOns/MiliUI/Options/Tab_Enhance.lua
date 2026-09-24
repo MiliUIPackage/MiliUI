@@ -104,6 +104,12 @@ local CONTROLS = {
     { type = "text", label = "把左側那排按鈕（好友／頻道／語音／快捷聊天／搜尋／複製／設定）的圓角底"
         .. "換成純色方底加 1px 直角硬邊，按鈕間距收窄、整排下移到訊息區頂端，"
         .. "好友數那串數字也挪到圖示底下並加上描邊。" },
+    { type = "toggle", label = "網址可點擊複製",
+      get = function() return MiliUI_ChattynatorURLs and MiliUI_ChattynatorURLs.IsEnabled() end,
+      set = function(v) if MiliUI_ChattynatorURLs then MiliUI_ChattynatorURLs.SetEnabled(v) end end },
+    { type = "text", label = "訊息裡的網址變成藍色 [網址] 連結，點一下跳出複製框並自動全選，"
+        .. "依 Mac／Windows 提示按 Cmd+C 或 Ctrl+C，複製後自動關閉。"
+        .. "緊貼中文的網址、沒寫 https:// 的網域（如 raider.io/…）也認得出來。" },
 
     { type = "header", label = "世界地圖" },
     { type = "toggle", label = "隱藏內建世界地圖座標",

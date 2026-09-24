@@ -60,7 +60,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_BonusRollFilter",
     "MiliUI_BonusRollConfirm",
     "MiliUI_CVarEnforce", "MiliUI_CastBarEnhance", "MiliUI_CastBarPixelFont",
-    "MiliUI_ChattynatorButtons", "MiliUI_ChattynatorTabs",
+    "MiliUI_ChattynatorButtons", "MiliUI_ChattynatorTabs", "MiliUI_ChattynatorURLs",
     "MiliUI_DelveMarkButton", "MiliUI_KeystoneDebug", "MiliUI_LegacyAddons",
     "MiliUI_MerchantAutomation",
     "MiliUI_WorldMapCoords",
