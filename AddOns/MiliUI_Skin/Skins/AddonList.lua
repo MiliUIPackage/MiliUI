@@ -94,6 +94,7 @@
 -- | AddonList 的 NineSlice / Bg / TopTileStreaks / PortraitContainer | SetAlpha(0) |
 -- | AddonList.TitleContainer.TitleText | SetTextColor |
 -- | AddonList.Inset 的 Bg 與 NineSlice | SetAlpha(0) |
+-- | AddonList.Inset／ScrollBox／EnableAllButton／CancelButton | `Engine.ShiftRoot`：底部按鈕列加高（見 `LayoutFooter`） |
 -- | AddonListCloseButton 的 Normal/Disabled 貼圖 | SetAlpha(0) |
 -- | 同上的 Highlight/Pushed 貼圖 | SetColorTexture |
 -- | AddonList.Dropdown 的 Background | SetAlpha(0)；Arrow | SetVertexColor |
@@ -327,6 +328,38 @@ local function InstallHooks()
     end
 end
 
+------------------------------------------------------------
+-- 底部按鈕列加高（2026-09-24）
+--
+-- 暴雪的按鈕列只有 26：Inset 下緣 `BOTTOMRIGHT y=26`（SharedUIPanelTemplates.xml:689），
+-- 四顆 22 高的按鈕錨 `y=4`（AddonList.xml:193,205）⇒ 上面貼著內框、下面貼著視窗底。
+-- 換成「間隙 ＋ 按鈕 ＋ 間隙」，間隙上下一樣大：
+--   * Inset 與 ScrollBox 的下緣往上抬（ScrollBox 原本比 Inset 高 2，照留）。
+--   * 最左、最右兩顆改錨在 Inset 的下角 ⇒ 左右緣跟內框對齊；另外兩顆本來就錨在它們身上。
+-- 全部走 `Engine.ShiftRoot`（同名錨點覆寫，只改那一個錨點；脫戰；`db.relayout = false` 可關）。
+-- 暴雪 AddonList.lua 對這幾個框零處 SetPoint／讀回位置（只動 AddonDialog 的，grep 過）。
+------------------------------------------------------------
+local FOOTER_GAP = 8
+local FOOTER_BTN_H = 22                                   -- AddonList.xml:191,203
+local FOOTER_H = FOOTER_GAP + FOOTER_BTN_H + FOOTER_GAP
+
+local function LayoutFooter(f, inset)
+    E.ShiftRoot(inset, "BOTTOMRIGHT", f, "BOTTOMRIGHT", -6, FOOTER_H, "AddonList.Inset")
+    local box
+    if pcall(function() box = f.ScrollBox end) and box then
+        E.ShiftRoot(box, "BOTTOMRIGHT", f, "BOTTOMRIGHT", -34, FOOTER_H + 2, "AddonList.ScrollBox")
+    end
+    local enableAll, cancel
+    pcall(function() enableAll, cancel = f.EnableAllButton, f.CancelButton end)
+    local dy = -(FOOTER_GAP + FOOTER_BTN_H)
+    if enableAll then
+        E.ShiftRoot(enableAll, "BOTTOMLEFT", inset, "BOTTOMLEFT", 0, dy, "AddonList.EnableAllButton")
+    end
+    if cancel then
+        E.ShiftRoot(cancel, "BOTTOMRIGHT", inset, "BOTTOMRIGHT", 0, dy, "AddonList.CancelButton")
+    end
+end
+
 local function Apply()
     local f = _G.AddonList
     if not f then
@@ -340,6 +373,7 @@ local function Apply()
     local inset
     if pcall(function() inset = f.Inset end) and inset then
         Skin.Inset(inset, "AddonList.Inset")
+        LayoutFooter(f, inset)
     else
         E.Missing("AddonList.Inset")
     end
