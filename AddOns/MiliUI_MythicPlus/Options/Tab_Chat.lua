@@ -12,10 +12,10 @@ local tab, scroll, refreshers
 local function BuildSpecs()
     return {
         { type = "header", label = L["Party chat"] },
-        { type = "toggle", sub = "announce", key = "keyReply", label = L["Answer \"key\""],
-          hint = L["When someone types key or 鑰石 in party chat, post everyone's keystone. Only one MiliUI in the group answers."] },
-        { type = "toggle", sub = "announce", key = "newKey", label = L["New keystone"],
-          hint = L["Post your new keystone after finishing your own key, or after changing it at the keystone NPC."] },
+        { type = "toggle", sub = "announce", key = "keyReply", label = L["Answer \"key\""] },
+        { type = "text", label = L["When someone types key or 鑰石 in party chat, post everyone's keystone. Only one MiliUI in the group answers."] },
+        { type = "toggle", sub = "announce", key = "newKey", label = L["New keystone"] },
+        { type = "text", label = L["Post your new keystone after finishing your own key, or after changing it at the keystone NPC."] },
         { type = "text", label = L["Blizzard blocks addon chat messages during Mythic+ runs, boss fights and PvP matches."] },
     }
 end

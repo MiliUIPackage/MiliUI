@@ -13,19 +13,19 @@ local tab, scroll, refreshers
 local function BuildSpecs()
     return {
         { type = "header", label = L["Keystone window"] },
-        { type = "toggle", sub = "keystone", key = "autoSlot", label = L["Insert keystone"],
-          hint = L["Put your keystone in the slot as soon as the window opens."] },
-        { type = "toggle", sub = "keystone", key = "buttons", label = L["Ready check and countdown"],
-          hint = L["Show a ready check and a countdown button under the window."] },
+        { type = "toggle", sub = "keystone", key = "autoSlot", label = L["Insert keystone"] },
+        { type = "text", label = L["Put your keystone in the slot as soon as the window opens."] },
+        { type = "toggle", sub = "keystone", key = "buttons", label = L["Ready check and countdown"] },
+        { type = "text", label = L["Show a ready check and a countdown button under the window."] },
         { type = "slider", sub = "keystone", key = "countdown", label = L["Countdown seconds"],
           min = ns.Keystone.MIN_SECONDS, max = ns.Keystone.MAX_SECONDS, step = 1 },
         { type = "text", label = L["Ready check needs the group leader or an assistant."] },
 
         { type = "header", label = L["Mythic+ page"] },
-        { type = "toggle", sub = "keystone", key = "partyPanel", label = L["Party keystones"],
-          hint = L["List everyone's keystone in the bottom-right corner, with a button to post it to party chat."] },
-        { type = "toggle", sub = "keystone", key = "lootTable", label = L["Loot table"],
-          hint = L["Show item levels and crests per key level beside the page. The button above its corner folds it away."] },
+        { type = "toggle", sub = "keystone", key = "partyPanel", label = L["Party keystones"] },
+        { type = "text", label = L["List everyone's keystone in the bottom-right corner, with a button to post it to party chat."] },
+        { type = "toggle", sub = "keystone", key = "lootTable", label = L["Loot table"] },
+        { type = "text", label = L["Show item levels and crests per key level beside the page. The button above its corner folds it away."] },
     }
 end
 
