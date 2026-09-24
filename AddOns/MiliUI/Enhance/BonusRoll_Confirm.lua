@@ -60,7 +60,10 @@ local function BuildPopup()
     local width, height = 260, 84
     popup = W.CreateFrame(nil, UIParent, width, height)
     W.CloseOnEscape(popup)
-    popup:SetFrameStrata("DIALOG")
+    -- 貪需視窗（GroupLootFrameTemplate）與骰裝框都是 DIALOG ＋ toplevel，
+    -- 在 GroupLootContainer 裡往上疊，正好疊在確認框錨的位置；同層會被
+    -- toplevel 的點擊抬升蓋過去，所以要高一層
+    popup:SetFrameStrata("FULLSCREEN_DIALOG")
     popup:SetBackdropBorderColor(W.Accent(1))
 
     local fs = popup:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
