@@ -31,6 +31,7 @@ local closeBtn
 local TABS = {
     { id = "general", label = L["General"] },
     { id = "keystone", label = L["Keystone"] },
+    { id = "chat",     label = L["Chat"] },
     { id = "about",   label = L["About"] },
 }
 
