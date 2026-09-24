@@ -9,7 +9,7 @@
 ## Category-zhTW: 副本
 ## Category-zhCN: 地下城和团队副本
 ## Author: Mili
-## Version: 0.1.0
+## Version: 1.0.0
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\INV_Relics_Hourglass
 ## SavedVariables: MiliUI_MythicPlus_DB
