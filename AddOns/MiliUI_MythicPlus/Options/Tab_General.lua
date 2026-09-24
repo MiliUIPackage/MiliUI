@@ -13,8 +13,7 @@ local tab, scroll, refreshers
 local function BuildSpecs()
     local specs = {
         { type = "header", label = L["Settlement panel"] },
-        { type = "toggle", key = "autoOpen", label = L["Open when a run ends"],
-          hint = L["The panel is your own frame, so it can appear during combat without any risk."] },
+        { type = "toggle", key = "autoOpen", label = L["Open when a run ends"] },
         -- ⚠ 縮放走 scale = 100：滑桿的 min/max/step 全部用「顯示單位」寫，
         --   實際存進 DB 的還是 0.8–1.4
         { type = "slider", sub = "panel", key = "scale", label = L["Panel scale"],
