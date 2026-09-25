@@ -19,6 +19,11 @@ local AuraStyle = ns.AuraStyle
 -- ⚠ DB.ResetAll 只覆寫這兩張表的內容、不換表，就是為了這裡。
 local DUR, CNT
 
+-- 層數字型的世代號：設定每套用一次就 +1。層數文字的 SetText 掛勾每次光環更新都會跑，
+-- SetFont 會讓文字重新排版，所以只在這顆的字型落後（新按鈕、設定剛改過）時才重設；
+-- 位置照舊每次都校正。
+local countGen = 1
+
 ------------------------------------------------------------
 -- 字型
 ------------------------------------------------------------
@@ -68,6 +73,7 @@ end
 local function ApplyCountFont(cnt)
     SetFontSafe(cnt, CountFontPath(cnt), CNT.fontSize, CNT.outline and "OUTLINE" or "")
     cnt.MiliUIAura_fontApplied = true
+    cnt.MiliUIAura_countGen = countGen
     if CNT.outline then
         cnt:SetShadowOffset(1, -1)
         cnt:SetShadowColor(0, 0, 0, 0.6)
@@ -157,11 +163,12 @@ local function HookCount(btn)
         if overriding or not CNT or not CNT.enabled then return end
 
         overriding = true
-        self:SetParent(EnsureOverlay(btn))
+        local ov = EnsureOverlay(btn)
+        if self:GetParent() ~= ov then self:SetParent(ov) end
         self:SetWidth(0)
         self:ClearAllPoints()
         self:SetPoint(CNT.anchor, btn.Icon, CNT.anchor, CNT.x, CNT.y)
-        ApplyCountFont(self)
+        if self.MiliUIAura_countGen ~= countGen then ApplyCountFont(self) end
         overriding = false
     end
 
@@ -318,6 +325,7 @@ end
 ------------------------------------------------------------
 function AuraStyle.Apply()
     if not DUR then return end
+    countGen = countGen + 1
     ForEachAuraButton(function(btn)
         if DUR.enabled then ApplyDurationStyle(btn) else RestoreDurationStyle(btn) end
         if CNT.enabled then ApplyCountStyle(btn) else RestoreCountStyle(btn) end

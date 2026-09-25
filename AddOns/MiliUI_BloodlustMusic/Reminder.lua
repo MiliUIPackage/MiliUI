@@ -38,7 +38,7 @@ local eventFrame = CreateFrame("Frame")
 --   (b) reminder currently showing (auto-dismiss on recast).
 local function UpdateAuraSubscription()
     if watchingDebuffExpiry or reminderShowing then
-        eventFrame:RegisterEvent("UNIT_AURA")
+        eventFrame:RegisterUnitEvent("UNIT_AURA", "player")
     else
         eventFrame:UnregisterEvent("UNIT_AURA")
     end

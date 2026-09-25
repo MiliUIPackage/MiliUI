@@ -764,7 +764,8 @@ end
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-eventFrame:RegisterEvent("UNIT_AURA")
+-- 只看自己：引擎在 C 層先濾掉隊友與名條的光環事件，不讓它們進 Lua
+eventFrame:RegisterUnitEvent("UNIT_AURA", "player")
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
