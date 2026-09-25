@@ -219,6 +219,11 @@ local function OpenIDEntry()
             { key = "id", label = L["Spell ID"], maxLetters = 40,
               hint = L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so this is the only way to add something you only ever see mid-fight."] },
         })
+        -- ⚠ 共用層的輸入彈窗固定在 FULLSCREEN_DIALOG 400/410，跟黑名單視窗同一層；
+        -- 黑名單的清單列是它的子孫、層級更高 ⇒ 會穿透畫在輸入彈窗上面。
+        -- 疊在彈窗上的彈窗要自己墊高，但留在戰鬥遮罩（500）之下。
+        idPopup.mask:SetFrameLevel(440)
+        idPopup:SetFrameLevel(450)
     end
     idPopup:Open(nil, function(values)
         local text = values.id or ""
