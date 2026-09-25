@@ -61,7 +61,24 @@ local CONTROLS = {
       get = function() return MiliUI_BonusRollConfirm and MiliUI_BonusRollConfirm.IsEnabled() end,
       set = function(v) if MiliUI_BonusRollConfirm then MiliUI_BonusRollConfirm.SetEnabled(v) end end },
     { type = "text", label = "按下骰子之前先跳確認框，並顯示目前的拾取專精，避免手滑或忘了切專精就花掉核心。"
-        .. "放棄鈕不受影響。" },
+        .. "放棄鈕不受影響。確認框可以拖曳移動，位置會記住；按下面的「預覽確認框」先擺好位置，"
+        .. "預覽框按任一顆鈕就會關閉。" },
+    -- 預覽／重設兩顆並排，共用層的 button 型別一列只放一顆，所以自畫
+    { type = "custom", label = "", build = function(parent, x, y)
+        local demo = W.CreateButton(parent, "預覽確認框", "normal", 120, 22)
+        W.FitButton(demo, 120, 22)
+        demo:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 2)
+        demo:SetScript("OnClick", function()
+            if MiliUI_BonusRollConfirm then MiliUI_BonusRollConfirm.ShowDemo() end
+        end)
+        local reset = W.CreateButton(parent, "重設位置", "normal", 120, 22)
+        W.FitButton(reset, 120, 22)
+        reset:SetPoint("LEFT", demo, "RIGHT", 8, 0)
+        reset:SetScript("OnClick", function()
+            if MiliUI_BonusRollConfirm then MiliUI_BonusRollConfirm.ResetPosition() end
+        end)
+        return 30
+    end },
 
     -- ns.LootHistoryAutoClose 由 Enhance\GroupLootHistory_AutoClose.lua 建（TOC 排在本檔之後，
     -- 所以一律執行期才問）

@@ -17,6 +17,11 @@
 -- 從插件 Lua 開 StaticPopup 會把共用的彈窗框寫髒，首領剛倒時暴雪自己的彈窗
 -- （拾取綁定確認之類）就得背這個污染。
 -- 按確定時再核一次提示還在、而且還是同一個 spellID，逾時或換了一次提示就不送。
+--
+-- 位置：確認框可以拖曳，放開就存進 db.pos（相對 UIParent 中心的偏移）；沒存過就貼在
+-- 骰裝框正上方。設定頁的「預覽」開的是**同一個框**（pending.demo），兩顆鈕都只關框，
+-- 長相與位置跟實際跳出來的一模一樣。一律 SetClampedToScreen，存檔座標在換解析度／
+-- 介面縮放之後也拉不出螢幕。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -53,7 +58,26 @@ local function LootSpecText()
     return UNKNOWN
 end
 
-local popup, pending
+local popup, pending, PlacePopup
+
+-- 存過位置就用存的；否則貼在骰裝框正上方。預覽時骰裝框通常沒顯示，
+-- 就照 GroupLootContainer_Update 的排法推算它排第一格時的位置（格中心在容器底上
+-- reservedSize × 0.5），推不出來才退到畫面中央
+PlacePopup = function(demo)
+    popup:ClearAllPoints()
+    local pos = GetDB().pos
+    if pos then
+        popup:SetPoint("CENTER", UIParent, "CENTER", pos.x, pos.y)
+    elseif not demo or BonusRollFrame:IsShown() then
+        popup:SetPoint("BOTTOM", BonusRollFrame, "TOP", 0, 8)
+    elseif GroupLootContainer and GroupLootContainer:GetBottom() then
+        local slot = (GroupLootContainer.reservedSize or 100) * 0.5
+        popup:SetPoint("BOTTOM", GroupLootContainer, "BOTTOM", 0,
+            slot + BonusRollFrame:GetHeight() / 2 + 8)
+    else
+        popup:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    end
+end
 
 local function BuildPopup()
     local W = ns.W
@@ -66,6 +90,21 @@ local function BuildPopup()
     -- toplevel 的點擊抬升蓋過去，所以要高一層
     popup:SetFrameStrata("FULLSCREEN_DIALOG")
     popup:SetBackdropBorderColor(W.Accent(1))
+    popup:SetClampedToScreen(true)
+    popup:SetMovable(true)
+    popup:RegisterForDrag("LeftButton")
+    popup:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    popup:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        -- 存成相對 UIParent 中心、以本框座標單位計的偏移（SetPoint 的位移吃本框縮放）
+        local cx, cy = self:GetCenter()
+        local ux, uy = UIParent:GetCenter()
+        if cx and ux then
+            local s = self:GetEffectiveScale() / UIParent:GetEffectiveScale()
+            GetDB().pos = { x = cx - ux / s, y = cy - uy / s }
+        end
+        PlacePopup()
+    end)
 
     local fs = popup:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     fs:SetPoint("TOP", 0, -14)
@@ -78,7 +117,7 @@ local function BuildPopup()
     yes:SetScript("OnClick", function()
         local p = pending
         popup:Hide()
-        if not p then return end
+        if not p or p.demo then return end
         -- 確認框開著的時候提示可能已經逾時、或換成下一個首領的提示
         if BonusRollFrame.state ~= "prompt" or BonusRollFrame.spellID ~= p.spellID
             or not p.button:IsEnabled() then
@@ -97,12 +136,17 @@ end
 
 local function ShowConfirm(button, onClick)
     if not popup then BuildPopup() end
-    pending = { button = button, onClick = onClick, spellID = BonusRollFrame.spellID }
+    if button then
+        pending = { button = button, onClick = onClick, spellID = BonusRollFrame.spellID }
+    else
+        -- 預覽：真的確認框開著就別搶（會把待送的擲骰丟掉）
+        if popup:IsShown() and pending and not pending.demo then return end
+        pending = { demo = true }
+    end
     popup.text:SetFormattedText("確定要使用星雲之核擲骰嗎？\n\n拾取專精：|cffffd200%s|r", LootSpecText())
     -- 上緣 14 ＋ 字 ＋ 間距 14 ＋ 按鈕 22 ＋ 下緣 12
     popup:SetHeight(math.ceil(popup.text:GetStringHeight()) + 62)
-    popup:ClearAllPoints()
-    popup:SetPoint("BOTTOM", BonusRollFrame, "TOP", 0, 8)
+    PlacePopup(pending.demo)
     popup:Show()
 end
 
@@ -136,5 +180,11 @@ MiliUI_BonusRollConfirm = {
     SetEnabled = function(v)
         GetDB().enabled = v and true or false
         if not v and popup then popup:Hide() end
+    end,
+    -- 設定頁的預覽：同一個框，兩顆鈕都只關框
+    ShowDemo = function() ShowConfirm() end,
+    ResetPosition = function()
+        GetDB().pos = nil
+        if popup and popup:IsShown() then PlacePopup(pending and pending.demo) end
     end,
 }
