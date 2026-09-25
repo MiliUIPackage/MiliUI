@@ -184,6 +184,41 @@ tinsert(CONTROLS, { type = "custom", h = 0, build = function(parent, x, y, width
     return math.ceil(fs:GetStringHeight()) + 8
 end })
 
+-- 自動交接任務。有米利的任務追蹤器時這兩個開關就是它的開關
+-- （Enhance/Quest_Automation.lua 檔頭），本體那份不作用。
+tinsert(CONTROLS, { type = "header", label = "任務" })
+tinsert(CONTROLS, { type = "toggle", label = "自動交任務",
+    get = function() return MiliUI_QuestBasic and MiliUI_QuestBasic.IsAutoTurnIn() end,
+    set = function(v) if MiliUI_QuestBasic then MiliUI_QuestBasic.SetAutoTurnIn(v) end end })
+tinsert(CONTROLS, { type = "text", label = "跟 NPC 對話時自動選已完成的任務、按繼續、領獎勵。"
+    .. "有多個獎勵可以選的任務、要付金幣才能交的任務會留給你自己處理。" })
+tinsert(CONTROLS, { type = "toggle", label = "自動接任務",
+    get = function() return MiliUI_QuestBasic and MiliUI_QuestBasic.IsAutoAccept() end,
+    set = function(v) if MiliUI_QuestBasic then MiliUI_QuestBasic.SetAutoAccept(v) end end })
+tinsert(CONTROLS, { type = "text", label = "任務視窗打開時自動接受。NPC 同時有好幾個任務可以接時不會替你挑。"
+    .. "按住 Shift 跟 NPC 對話可以略過這一次的自動交接。" })
+-- 進階設定鈕只在任務追蹤器有載入時長出來。理由同下面的撞車警告：
+-- 本檔載入時 Enhance 模組還不存在，要等打開分頁才問得到
+tinsert(CONTROLS, { type = "custom", label = "", h = 0, build = function(parent, x, y)
+    local api = MiliUI_QuestBasic
+    local adv = api and api.Advanced()
+    if not adv then return 0 end
+    local b = W.CreateButton(parent, "延遲接任務與進階設定", "normal", 180, 22)
+    W.FitButton(b, 180, 22)
+    b:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 2)
+    b:SetScript("OnClick", function()
+        -- 任務追蹤器的設定視窗 strata 比較低，先讓路
+        if ns.Options.panel then ns.Options.panel:Hide() end
+        adv.OpenSettings()
+    end)
+    local fs = parent:CreateFontString(nil, "OVERLAY")
+    fs:SetFontObject(W.fontSmall)
+    fs:SetTextColor(0.6, 0.6, 0.6)
+    fs:SetPoint("TOPLEFT", b, "BOTTOMLEFT", 0, -6)
+    fs:SetText("有開米利的任務追蹤器，上面兩個開關跟它標題列上的開關是同一個，由任務追蹤器處理。")
+    return 26 + 6 + math.ceil(fs:GetStringHeight()) + 8
+end })
+
 -- spec 自帶 get/set，ctx 只是轉接
 local ctx = {
     get = function(spec) if spec.get then return spec.get() end end,

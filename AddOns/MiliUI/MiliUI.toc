@@ -71,6 +71,7 @@ Enhance\BonusRoll_Confirm.lua
 Enhance\GroupLootHistory_AutoClose.lua
 Enhance\LegacyAddons.lua
 Enhance\Merchant_Automation.lua
+Enhance\Quest_Automation.lua
 Enhance\EditMode_BagsAlpha.lua
 Enhance\TaintLog.lua
 

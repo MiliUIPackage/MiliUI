@@ -98,3 +98,33 @@ SlashCmdList.MILIUIQUEST = function(msg)
         ns.OpenOptions()
     end
 end
+
+------------------------------------------------------------
+-- 任務自動化的對外 API（給 MiliUI 本體的「便利功能」分頁用）
+--
+-- 本體有一份基本型的自動交接任務（MiliUI/Enhance/Quest_Automation.lua）。
+-- 這支有載入的時候本體那份整個不註冊事件，本體設定頁的兩個開關改成讀寫
+-- 這裡的 ns.db.automation——兩邊看到的是同一份設定，由這支來做。
+-- ⚠ 本體拿「這張表在不在」判斷要不要讓位：改名或拿掉就會變成兩邊各接一次。
+--
+-- ns.db 要等 PLAYER_LOGIN 才有（Core/Init.lua），之前讀到的是 nil。
+-- 寫完要 Fire Apply：標題列上的兩顆開關靠它重畫。
+------------------------------------------------------------
+local function Automation() return ns.db and ns.db.automation end
+
+local function SetAutomation(key, v)
+    local au = Automation()
+    if not au then return end
+    au[key] = v and true or false
+    ns.Fire("Apply")
+    ns.Fire("SettingsChanged")
+end
+
+MiliUI_QuestAutomation = {
+    IsReady       = function() return Automation() ~= nil end,
+    IsAutoTurnIn  = function() local au = Automation(); return au and au.autoTurnIn and true or false end,
+    SetAutoTurnIn = function(v) SetAutomation("autoTurnIn", v) end,
+    IsAutoAccept  = function() local au = Automation(); return au and au.autoAccept and true or false end,
+    SetAutoAccept = function(v) SetAutomation("autoAccept", v) end,
+    OpenSettings  = function() ns.OpenOptions("automation") end,
+}

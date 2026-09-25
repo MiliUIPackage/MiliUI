@@ -63,6 +63,8 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_ChattynatorButtons", "MiliUI_ChattynatorTabs", "MiliUI_ChattynatorURLs",
     "MiliUI_DelveMarkButton", "MiliUI_KeystoneDebug", "MiliUI_LegacyAddons",
     "MiliUI_MerchantAutomation",
+    "MiliUI_QuestBasic",
+    "MiliUI_QuestAutomation",
     "MiliUI_WorldMapCoords",
     # 刻意寫回暴雪／第三方的全域（都有掛勾理由，見各檔註解）
     "ChatEdit_CustomTabPressed",      # 暴雪留的官方覆寫點，有串回原本的
