@@ -57,8 +57,9 @@ local popup, pending
 
 local function BuildPopup()
     local W = ns.W
-    local width, height = 260, 84
-    popup = W.CreateFrame(nil, UIParent, width, height)
+    local width = 260
+    -- 高度在 ShowConfirm 依字高重算；字型大小跟著套組字型走，寫死會跟按鈕疊在一起
+    popup = W.CreateFrame(nil, UIParent, width, 84)
     W.CloseOnEscape(popup)
     -- 貪需視窗（GroupLootFrameTemplate）與骰裝框都是 DIALOG ＋ toplevel，
     -- 在 GroupLootContainer 裡往上疊，正好疊在確認框錨的位置；同層會被
@@ -98,6 +99,8 @@ local function ShowConfirm(button, onClick)
     if not popup then BuildPopup() end
     pending = { button = button, onClick = onClick, spellID = BonusRollFrame.spellID }
     popup.text:SetFormattedText("確定要使用星雲之核擲骰嗎？\n\n拾取專精：|cffffd200%s|r", LootSpecText())
+    -- 上緣 14 ＋ 字 ＋ 間距 14 ＋ 按鈕 22 ＋ 下緣 12
+    popup:SetHeight(math.ceil(popup.text:GetStringHeight()) + 62)
     popup:ClearAllPoints()
     popup:SetPoint("BOTTOM", BonusRollFrame, "TOP", 0, 8)
     popup:Show()
