@@ -3256,11 +3256,9 @@ local function UnitButton_UpdateInRange(self, ir)
         end
         return
     end
-    if self.states.secretRange then
-        -- GetAlpha() after SetAlphaFromBoolean is not ours to read; restart from a known alpha.
-        self.states.secretRange = nil
-        self:SetAlpha(1)
-    end
+    -- A readable answer again. wasInRange was cleared on the secret path, so this is always a
+    -- transition, and the secret-alpha check there takes care of the alpha.
+    self.states.secretRange = nil
 
     -- Nil-safety: if IsInRange errors (e.g. secret value issue), default to true
     -- so frames don't grey out incorrectly
@@ -3269,13 +3267,15 @@ local function UnitButton_UpdateInRange(self, ir)
     self.states.inRange = inRange
     if Cell.loaded then
         if self.states.inRange ~= self.states.wasInRange then
-            -- fix from MiliUI: the fades below start from GetAlpha() and do arithmetic on it.
-            -- The secretRange reset above is not enough: a unit change wipes states (flag gone,
-            -- alpha still secret from SetAlphaFromBoolean), and the health-fade curve writes a
-            -- secret alpha without ever setting the flag. Test the alpha itself, and only here
-            -- at a transition -- resetting on every update would stomp the curve's alpha.
+            -- fix from MiliUI: the fades below start from GetAlpha() and do arithmetic on it,
+            -- and the alpha can be secret: SetAlphaFromBoolean on the secret-range path, and the
+            -- health-fade curve. A flag cannot track it -- a unit change wipes states while the
+            -- button keeps its alpha, and the curve never set one -- so test the alpha itself.
+            -- Unreadable = no start to animate from: snap to where the fade would end (the
+            -- fades below then run end->end, a no-op). Restarting from 1 flashed the frame.
+            -- Only here at a transition: every update would stomp the curve's alpha.
             if not F.IsValueNonSecret(self:GetAlpha()) then
-                self:SetAlpha(1)
+                self:SetAlpha(inRange and 1 or CellDB["appearance"]["outOfRangeAlpha"])
             end
             if inRange then
                 if CELL_FADE_OUT_HEALTH_PERCENT then
