@@ -523,6 +523,17 @@ local CHIP_PAD  = 8      -- chip 右內距
 function W.CreateTitleBar(panel, titleText, onMoved, opts)
     opts = opts or {}
 
+    -- 有標題列的就是一扇設定視窗 ⇒ 開 toplevel。
+    -- ⚠ 各插件的視窗都是 DIALOG／level 100，只靠開啟時 panel:Raise() 排前後；
+    -- Raise 只抬面板自己，裡面自己 SetFrameLevel 過的子框留在原地 ⇒ 同時開兩扇
+    -- 時兩邊的控件照 level 大小交錯著畫（A 的分頁鈕疊在 B 的內容上）。
+    -- toplevel 隱含 render layer flattening：整扇視窗連子孫併成一層、照面板自己的
+    -- level 畫，視窗之間只剩整扇的前後；點一下也會自動拉到最前。
+    -- 代價是子孫的 strata 在繪製上失效 —— 視窗裡的彈窗／戰鬥遮罩靠的是 level
+    -- 400～520 所以照樣在內容之上；下拉與右鍵選單掛 UIParent，不受影響。
+    -- 要浮到別的視窗上面的東西別掛在面板底下。
+    panel:SetToplevel(true)
+
     local bar = CreateFrame("Frame", nil, panel)
     bar:EnableMouse(true)
     bar:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, opts.y or BAR_Y)
