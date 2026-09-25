@@ -124,13 +124,6 @@ local function RemoveAllHotkeys()
     end
 end
 
-local function CreateFrame_Hook(frameType, name, parent, template)
-    if not ready or not DB().enabled then return end
-    if template == "SecureUnitButtonTemplate" or template == "SecureUnitButtonTemplate,BackdropTemplate" then
-        SetFocusHotkey(_G[name])
-    end
-end
-
 ----------------------------------------------------------------------
 -- 綁定：override binding 處理名條 / 世界目標
 -- SetOverrideBinding* 在戰鬥中會被擋，記下待辦脫戰再套
@@ -224,8 +217,10 @@ end
 -- 為什麼不靠另外兩條路：
 --   * defaultFrameNames + PLAYER_LOGIN 掃描：只掃那一瞬間，有些插件的 target /
 --     focus 是在 C_Timer.After(0) 裡才建的，掃過去時還不存在。
---   * hooksecurefunc("CreateFrame")：只保護「hook 安裝之後」建立的框架，
---     載入順序一變就接不到。
+--   * hooksecurefunc("CreateFrame")（經典版 Focuser 的寫法，2026-09-26 拿掉）：只接得到
+--     「hook 安裝之後」建立、有名字、模板字串一字不差的框架，載入順序一變就接不到；
+--     套組裡符合條件的只有 MiliUI_UnitFrames，而它本來就會寫入 ClickCastFrames。
+--     代價卻是全遊戲每一次 CreateFrame 都多跑一次我們的 Lua。
 -- 兩條都是時機相依，才會出現「有時好有時壞」。註冊表沒有這個問題。
 local function WatchClickCastFrames()
     ClickCastFrames = ClickCastFrames or {}
@@ -323,8 +318,6 @@ end
 ----------------------------------------------------------------------
 -- Events
 ----------------------------------------------------------------------
-hooksecurefunc("CreateFrame", CreateFrame_Hook)
-
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("PLAYER_REGEN_ENABLED")
 ev:RegisterEvent("NAME_PLATE_UNIT_ADDED")
