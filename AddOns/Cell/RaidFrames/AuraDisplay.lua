@@ -877,6 +877,12 @@ local function StyleButton(handle, button)
         return
     end
 
+    -- PROBE A (/cab probe anim): animated markers created in THIS window, to test rule 3
+    -- (see EFFECT SLOTS) against EUI's claim. Off = one table read. See the PROBES section.
+    if AD._probe and AD._probe.anim and not cfg.mode then
+        AD._probe.MarkButton(handle, button, size)
+    end
+
     -- OVERLAY MODE: a tint texture covering the button (positioned over the health bar),
     -- vertex-tinted by dispel type BLIND ("Color"/PreserveAsset style). This is Cell's
     -- dispel HIGHLIGHT, done the DandersFrames way -- our art, Blizzard's colour. The
@@ -1530,7 +1536,11 @@ local function Build(handle, why)
         AD._pending[handle] = nil
         return
     end
-    if InCombatLockdown() then
+    -- PROBE B (/cab probe build | reloadbuild): _probeBypassCombat is set only around the
+    -- probe's own Build call. CombatBuild returns false unless the saved switch is on, in
+    -- which case it has just run this build itself (re-entering with the bypass set).
+    if InCombatLockdown() and not handle._probeBypassCombat then
+        if AD._probe and AD._probe.CombatBuild(handle, why) then return end
         handle._pendingBuild = true
         if AD._defer then AD._defer(handle, why or "build") end
         return
@@ -3163,6 +3173,371 @@ function AD.BounceAll()
     return n
 end
 
+-- ============================================================
+-- PROBES  ->  /cab probe [anim | build | reloadbuild on|off]
+--
+-- EUI Raid Frames ships two things our rules say cannot work. These answer yes/no in game
+-- instead of by argument. All of it is inert until a /cab probe command turns it on.
+--
+--   A  "An AnimationGroup created in initializeFrame and Play()ed right there keeps
+--      animating in C, in combat and while auras are secret." Contradicts rule 3 of the
+--      EFFECT SLOTS note. /cab probe anim rebuilds the central containers as HARMFUL and
+--      puts three markers on every new button:
+--        A1  top-left, white   Translation, REPEAT, Play() inside the window (EUI's way)
+--        A2  top-right, yellow Alpha 1 -> 0.1, BOUNCE, Play() inside the window
+--        A3  bottom-left, red  same as A1, but Play() one frame LATER (C_Timer.After 0).
+--            Control: expected to be refused or to sit still.
+--      plus a plain UIParent frame at the top of the screen with A1's animation, which
+--      must always move -- if it stops, the test itself is broken, not the rule.
+--      The markers live on a child frame of the button in DIALOG strata, created in the
+--      same window: a texture on the button itself would be covered by dfIconFrame (child
+--      frames always draw over parent textures), and a strata needs no frame-level read
+--      and cannot sink when the container re-levels its buttons.
+--      Parking is off while A runs, both ways: a reused host would skip initializeFrame
+--      (no markers), and a marked host must never be parked and handed to a normal build.
+--
+--   B  "Since build 68914 AuraContainer creation is legal in combat." Build defers every
+--      build to regen. B1 (/cab probe build) rebuilds every central container once, 1 s
+--      into the next fight, with parking off so the constructor really runs, and counts
+--      ADDON_ACTION_BLOCKED/FORBIDDEN naming Cell for 3 s afterwards. B2
+--      (/cab probe reloadbuild on) removes the defer for the whole session (saved), i.e.
+--      what shipping without it would look like; its block counter covers every Cell block
+--      while the switch is on, not only the ones a build caused.
+-- ============================================================
+AD._probe = {
+    anim = false,
+    animMarks = setmetatable({}, { __mode = "k" }),  -- every marker region, for the hide pass
+    animButtons = 0,
+    animLateOk = 0,
+    animLateFail = 0,
+    b2 = { builds = 0, fresh = 0, failed = 0, errs = 0, ms = 0, maxMs = 0, blocked = 0, funcs = {} },
+}
+do
+    local P = AD._probe
+    local PREFIX = "|cff33ff99[Cell 光環]|r "
+    local function say(s) print(PREFIX .. s) end
+
+    local function NoteErr(handle, tag, err)
+        local e = handle and handle._errors
+        if e and #e < 6 then e[#e + 1] = "probe " .. tag .. ": " .. tostring(err) end
+    end
+
+    local function FuncList(set)
+        local t = {}
+        for fn in pairs(set) do t[#t + 1] = fn end
+        table.sort(t)
+        if #t > 5 then
+            for i = #t, 6, -1 do t[i] = nil end
+            t[6] = "…"
+        end
+        return #t > 0 and ("（" .. table.concat(t, "、") .. "）") or ""
+    end
+
+    -- ---- A: animated markers ------------------------------------------------------------
+    local function Marker(parent, point, r, g, b)
+        local t = parent:CreateTexture(nil, "OVERLAY", nil, 7)
+        t:SetSize(4, 4)
+        t:SetPoint(point, parent, point, 0, 0)
+        t:SetColorTexture(r, g, b, 1)
+        return t
+    end
+
+    local function SlideGroup(tex, dx)
+        local ag = tex:CreateAnimationGroup()
+        ag:SetLooping("REPEAT")
+        local a = ag:CreateAnimation("Translation")
+        a:SetOffset(dx, 0)
+        a:SetDuration(1)
+        return ag
+    end
+
+    -- Called from StyleButton, i.e. inside initializeFrame for a new button. Each marker is
+    -- its own pcall so one refusal cannot hide the answer of the other two.
+    function P.MarkButton(handle, button, size)
+        if button._adProbeMarked then return end
+        button._adProbeMarked = true -- first: a failed attempt must never retry outside the window
+        P.animButtons = P.animButtons + 1
+        local dx = (size or 22) / 2
+
+        local okF, pf = pcall(function()
+            local f = CreateFrame("Frame", nil, button)
+            f:SetAllPoints(button)
+            f:SetFrameStrata("DIALOG")
+            return f
+        end)
+        if okF and pf then
+            P.animMarks[pf] = true
+        else
+            NoteErr(handle, "frame", pf)
+            pf = button
+        end
+
+        local ok1, e1 = pcall(function()
+            local t = Marker(pf, "TOPLEFT", 1, 1, 1)
+            P.animMarks[t] = true
+            SlideGroup(t, dx):Play()
+        end)
+        if not ok1 then NoteErr(handle, "A1", e1) end
+
+        local ok2, e2 = pcall(function()
+            local t = Marker(pf, "TOPRIGHT", 1, 0.82, 0)
+            P.animMarks[t] = true
+            local ag = t:CreateAnimationGroup()
+            ag:SetLooping("BOUNCE")
+            local a = ag:CreateAnimation("Alpha")
+            a:SetFromAlpha(1)
+            a:SetToAlpha(0.1)
+            a:SetDuration(0.5)
+            ag:Play()
+        end)
+        if not ok2 then NoteErr(handle, "A2", e2) end
+
+        local ok3, e3 = pcall(function()
+            local t = Marker(pf, "BOTTOMLEFT", 1, 0, 0)
+            P.animMarks[t] = true
+            local ag = SlideGroup(t, dx)
+            C_Timer.After(0, function()
+                -- a closure, not pcall(ag.Play, ag): indexing a forbidden object throws too
+                local ok, err = pcall(function() ag:Play() end)
+                if ok then
+                    P.animLateOk = P.animLateOk + 1
+                else
+                    P.animLateFail = P.animLateFail + 1
+                    if not P.animLateErr then P.animLateErr = tostring(err) end
+                end
+            end)
+        end)
+        if not ok3 then NoteErr(handle, "A3", e3) end
+    end
+
+    local control
+    local function Control()
+        if control then return control end
+        local f = CreateFrame("Frame", nil, UIParent)
+        f:SetSize(24, 24)
+        f:SetPoint("TOP", UIParent, "TOP", 0, -120)
+        f:SetFrameStrata("DIALOG")
+        local bg = f:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints(f)
+        bg:SetColorTexture(0.05, 0.05, 0.05, 0.9)
+        f.ag = SlideGroup(Marker(f, "TOPLEFT", 1, 1, 1), 12)
+        f:Hide()
+        control = f
+        return f
+    end
+
+    local savedPark
+    function P.ToggleAnim()
+        if InCombatLockdown() then
+            say("探針 A：戰鬥中不能切換——容器要在脫戰時重建，標記只有按鈕建立的那一刻掛得上。")
+            return
+        end
+        if not P.anim then
+            P.anim = true
+            P.animButtons, P.animLateOk, P.animLateFail, P.animLateErr = 0, 0, 0, nil
+            savedPark = AD.PARK_ENABLED
+            AD.PARK_ENABLED = false
+            AD.Test("HARMFUL")
+            local c = Control()
+            c:Show()
+            c.ag:Play()
+            say("探針 A 開：中央容器改成顯示所有減益。每顆圖示上：")
+            say("  左上白點＝建立當下播放（左右滑）、右上黃點＝建立當下播放（閃爍）、左下紅點＝下一幀才播放（對照組，預期不動）。")
+            say("  螢幕頂端中央的深色方塊是一般框架的對照組，應該一直在動。野外／戰鬥中／首領戰／M+ 各看一次。再打一次 /cab probe anim 關閉。")
+            return
+        end
+        P.anim = false
+        AD.Test(nil)            -- still with parking off: the marked hosts are discarded, not parked
+        if savedPark ~= nil then AD.PARK_ENABLED = savedPark end
+        savedPark = nil
+        if control then
+            control.ag:Stop()
+            control:Hide()
+        end
+        local failed = 0
+        for region in pairs(P.animMarks) do
+            if not pcall(function() region:Hide() end) then failed = failed + 1 end
+        end
+        wipe(P.animMarks)
+        say("探針 A 關：已恢復正常 5 組 filter。")
+        if failed > 0 then
+            say(("  有 %d 個標記藏不掉（按鈕已被鎖住），/reload 會清掉。"):format(failed))
+        end
+    end
+
+    -- ---- B: blocked-action counting (B1 window + B2 session) ------------------------------
+    local function CombatBuildOn()
+        return CellDB ~= nil and CellDB["probeCombatBuild"] == true
+    end
+    P.CombatBuildOn = CombatBuildOn
+
+    local b1Window -- { blocked = n, funcs = {} } while B1 listens
+    local blockFrame = CreateFrame("Frame")
+    blockFrame:SetScript("OnEvent", function(_, _, addon, func)
+        local isSecret = issecretvalue or function() return false end -- Classic has no secrets
+        if isSecret(addon) or addon ~= "Cell" then return end
+        func = isSecret(func) and "?" or tostring(func)
+        if b1Window then
+            b1Window.blocked = b1Window.blocked + 1
+            b1Window.funcs[func] = true
+        end
+        if CombatBuildOn() then
+            P.b2.blocked = P.b2.blocked + 1
+            P.b2.funcs[func] = true
+        end
+    end)
+    local function SyncBlockEvents()
+        local want = b1Window ~= nil or CombatBuildOn()
+        for _, e in ipairs({ "ADDON_ACTION_BLOCKED", "ADDON_ACTION_FORBIDDEN" }) do
+            if want then blockFrame:RegisterEvent(e) else blockFrame:UnregisterEvent(e) end
+        end
+    end
+
+    -- New entries a Build left in handle._errors: Build replaces the list once it gets past
+    -- its early returns, so a different table means every entry is new.
+    local function NewErrs(h, before, nBefore)
+        local e = h._errors
+        if not e then return 0, nil end
+        if e ~= before then return #e, e[1] end
+        return #e - nBefore, e[nBefore + 1]
+    end
+
+    -- ---- B1: one in-combat rebuild of every central container -----------------------------
+    local armFrame = CreateFrame("Frame")
+
+    local function RunB1()
+        if not P.buildArmed then return end
+        if not InCombatLockdown() then
+            say("探針 B1：1 秒後已經脫戰，這次不算，繼續待命。")
+            return
+        end
+        P.buildArmed = false
+        armFrame:UnregisterEvent("PLAYER_REGEN_DISABLED")
+        b1Window = { blocked = 0, funcs = {} }
+        SyncBlockEvents()
+
+        local built, empty, failed, errs = 0, 0, 0, 0
+        local firstErr
+        local fresh0 = AD.stats.builds
+        local park = AD.PARK_ENABLED
+        AD.PARK_ENABLED = false -- a reused host would skip the very constructor under test
+        local start = debugprofilestop()
+        for h in pairs(AD._instances or {}) do
+            if not h._destroyed and not h.config.mode then
+                local before = h._errors
+                local nBefore = before and #before or 0
+                h._probeBypassCombat = true
+                local ok, err = pcall(Build, h, "probe")
+                h._probeBypassCombat = nil
+                if not ok then
+                    failed = failed + 1
+                    firstErr = firstErr or tostring(err)
+                else
+                    if h.container then built = built + 1 else empty = empty + 1 end
+                    local n, e1 = NewErrs(h, before, nBefore)
+                    if n > 0 then
+                        errs = errs + n
+                        firstErr = firstErr or e1
+                    end
+                end
+            end
+        end
+        local ms = debugprofilestop() - start
+        AD.PARK_ENABLED = park
+        local fresh = AD.stats.builds - fresh0
+
+        -- blocks can be reported late; keep listening a little before closing the window
+        C_Timer.After(3, function()
+            local w = b1Window
+            b1Window = nil
+            SyncBlockEvents()
+            P.b1Last = ("建好 %d（新建 %d）／失敗 %d／沒東西可建 %d／步驟錯誤 %d／%.1f ms／封鎖 %d%s"):format(
+                built, fresh, failed, empty, errs, ms, w.blocked, FuncList(w.funcs))
+            P.b1FirstErr = firstErr
+            say("探針 B1 結果：" .. P.b1Last)
+            if firstErr then say("  第一個錯誤：" .. firstErr) end
+        end)
+    end
+
+    armFrame:SetScript("OnEvent", function()
+        if P.buildArmed then C_Timer.After(1, RunB1) end
+    end)
+
+    function P.ArmBuild()
+        P.buildArmed = true
+        armFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+        say("探針 B1 待命：下次進戰鬥 1 秒後，所有中央容器會在戰鬥中直接重建一次（不排脫戰佇列、不領寄存），約 4 秒後印結果。")
+    end
+
+    -- ---- B2: no combat defer at all (saved switch) ----------------------------------------
+    -- Called from Build's combat gate. false = switch off, defer as usual. true = this build
+    -- has just been run here, with the gate bypassed, and the caller must return.
+    local b2Announced
+    function P.CombatBuild(handle, why)
+        if not CombatBuildOn() then return false end
+        if not b2Announced then
+            b2Announced = true
+            say("[探針] 戰鬥中直接建容器")
+        end
+        local s = P.b2
+        local before = handle._errors
+        local nBefore = before and #before or 0
+        local fresh0 = AD.stats.builds
+        handle._probeBypassCombat = true
+        local t0 = debugprofilestop()
+        local ok, err = pcall(Build, handle, why)
+        local ms = debugprofilestop() - t0
+        handle._probeBypassCombat = nil
+        s.builds = s.builds + 1
+        s.ms = s.ms + ms
+        if ms > s.maxMs then s.maxMs = ms end
+        if AD.stats.builds > fresh0 then s.fresh = s.fresh + 1 end
+        if not ok then
+            s.failed = s.failed + 1
+            s.firstErr = s.firstErr or tostring(err)
+        else
+            local n, e1 = NewErrs(handle, before, nBefore)
+            if n > 0 then
+                s.errs = s.errs + n
+                s.firstErr = s.firstErr or e1
+            end
+        end
+        return true
+    end
+
+    function P.SetCombatBuild(on)
+        if not CellDB then
+            say("CellDB 還沒載入。")
+            return
+        end
+        CellDB["probeCombatBuild"] = on and true or nil
+        SyncBlockEvents()
+        say(on and "探針 B2 開（已存檔）：戰鬥中的容器建立不再延到脫戰。關閉：/cab probe reloadbuild off"
+            or "探針 B2 關（已存檔）：戰鬥中的容器建立照舊延到脫戰。")
+    end
+
+    Cell.RegisterCallback("AddonLoaded", "AuraDisplay_Probe", function()
+        if not CombatBuildOn() then return end
+        SyncBlockEvents()
+        say("|cffff5555提醒|r：探針 B2 開著——戰鬥中的容器建立不會延到脫戰。/cab probe reloadbuild off 關閉。")
+    end)
+
+    function P.Status()
+        say(("探針 A（動畫）：%s｜標記按鈕 %d 顆｜紅點下一幀播放 成功 %d／失敗 %d")
+            :format(P.anim and "開" or "關", P.animButtons, P.animLateOk, P.animLateFail))
+        if P.animLateErr then say("  紅點第一個錯誤：" .. P.animLateErr) end
+        say("探針 B1（戰鬥中重建一次）：" .. (P.buildArmed and "待命中" or "未待命")
+            .. "｜上次：" .. (P.b1Last or "無"))
+        if P.b1FirstErr then say("  第一個錯誤：" .. P.b1FirstErr) end
+        local s = P.b2
+        say(("探針 B2（不延到脫戰）：%s｜本次登入 %d 次（新建 %d）／失敗 %d／步驟錯誤 %d／共 %.1f ms、最長 %.1f ms／封鎖 %d%s")
+            :format(CombatBuildOn() and "開" or "關", s.builds, s.fresh, s.failed, s.errs,
+                s.ms, s.maxMs, s.blocked, FuncList(s.funcs)))
+        if s.firstErr then say("  第一個錯誤：" .. s.firstErr) end
+        say("用法：/cab probe anim｜build｜reloadbuild on|off")
+    end
+end
+
 SLASH_CELLAURACONTAINER1 = "/cab"
 SlashCmdList["CELLAURACONTAINER"] = function(msg)
     local cmd, arg = strsplit(" ", strtrim(msg or ""), 2)
@@ -3170,6 +3545,20 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
 
     if cmd == "test" then
         StepTest()
+    elseif cmd == "probe" then
+        -- /cab probe [anim | build | reloadbuild on|off]  -- see the PROBES section
+        local sub, val = strsplit(" ", strtrim(arg or ""), 2)
+        sub = (sub or ""):lower()
+        val = val and strtrim(val):lower() or ""
+        if sub == "anim" then
+            AD._probe.ToggleAnim()
+        elseif sub == "build" then
+            AD._probe.ArmBuild()
+        elseif sub == "reloadbuild" and (val == "on" or val == "off") then
+            AD._probe.SetCombatBuild(val == "on")
+        else
+            AD._probe.Status()
+        end
     elseif cmd == "ghosts" then
         AD.Ghosts()
     elseif cmd == "inspect" then
@@ -3296,7 +3685,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
     else
         p("supported =", tostring(AD.IsSupported()), "|", tostring(ACC.Failure() or "OK"))
         AD.Debug()
-        p("其他：/cab list | stats | ghosts | report [n] | bounce on|off | inspect [unit] | overdraw [unit] | spell [id｜名稱｜連結]（旗標分析視窗） | gate | test")
+        p("其他：/cab list | stats | ghosts | report [n] | bounce on|off | inspect [unit] | overdraw [unit] | spell [id｜名稱｜連結]（旗標分析視窗） | gate | test | probe [anim｜build｜reloadbuild on|off]")
     end
 end
 
