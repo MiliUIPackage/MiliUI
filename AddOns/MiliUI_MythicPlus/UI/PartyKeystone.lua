@@ -7,9 +7,9 @@
 -- 文字改走語系檔。設定：面板在「鑰石」分頁、打字回報在「聊天」分頁。
 --
 -- 同步來源（與 ElvUI_WindTools 同款，雙來源互補）：
---   1. LibOpenRaid（主）—— Details!／Plater 等會主動廣播，副本內外都可靠。
---   2. LibKeystone （備）—— DBM／BigWigs 那套 PARTY／GUILD 請求協議。
--- 兩個函式庫內嵌在 Libs/，靠 LibStub 去重，不依賴其他插件是否安裝。
+--   1. LibOpenRaid 協定（主）—— Details!／Plater 等的使用者會廣播。只用得到收鑰石，
+--      所以不內嵌整包函式庫，改用 UI/OpenRaidKeystone.lua 的精簡接收端（只收不回）。
+--   2. LibKeystone （備）—— DBM／BigWigs 那套 PARTY／GUILD 請求協議，內嵌在 Libs/。
 --
 -- ⚠ 面板是 ChallengesFrame 的孩子（跟著它顯示／隱藏）。只建子框、不寫暴雪框的欄位。
 ------------------------------------------------------------
@@ -23,7 +23,7 @@ local S = ns.Style
 local Sec = ns.Secret
 
 local LibStub = _G.LibStub
-local OR = LibStub and LibStub("LibOpenRaid-1.0", true)
+local OR = ns.OpenRaidKeystone
 local KS = LibStub and LibStub("LibKeystone", true)
 
 local MAX_ROWS   = 5
@@ -65,14 +65,9 @@ if KS and KS.Register then
     end)
 end
 
-if OR and OR.RegisterCallback then
-    local orOwner = {
-        KeystoneUpdate = function()
-            if QueueRefresh then QueueRefresh() end
-        end,
-    }
-    OR.RegisterCallback(orOwner, "KeystoneUpdate", "KeystoneUpdate")
-end
+OR.SetOnUpdate(function()
+    if QueueRefresh then QueueRefresh() end
+end)
 
 local function GetOwnKeystone()
     local mapID = C_MythicPlus and C_MythicPlus.GetOwnedKeystoneChallengeMapID
@@ -95,10 +90,7 @@ local function GetUnitKeystone(unit)
     if unit == "player" then return GetOwnKeystone() end
     if not UnitExists(unit) or not UnitIsPlayer(unit) then return end
 
-    local data
-    if OR and OR.GetKeystoneInfo then
-        data = OR.GetKeystoneInfo(unit)
-    end
+    local data = OR.GetKeystoneInfo(unit)
     if not Valid(data) then
         local name = Sec.PlainText(GetUnitName(unit, true))
         local fb = name and libKeystoneInfo[Ambiguate(name, "short")]
@@ -109,11 +101,9 @@ end
 
 -- 向隊伍請求鑰石資料
 local function RequestData()
-    if OR then
-        if OR.RequestKeystoneDataFromParty then OR.RequestKeystoneDataFromParty() end
-        if IsInRaid() and OR.RequestKeystoneDataFromRaid then OR.RequestKeystoneDataFromRaid() end
-    end
-    -- LibKeystone 只認 PARTY／GUILD（副本內走 LibOpenRaid，所以只在一般隊伍請求）
+    OR.RequestFromParty()
+    OR.RequestFromRaid()
+    -- LibKeystone 只認 PARTY／GUILD（副本內走 LibOpenRaid 協定，所以只在一般隊伍請求）
     if KS and KS.Request and IsInGroup(LE_PARTY_CATEGORY_HOME) then
         KS.Request("PARTY")
     end

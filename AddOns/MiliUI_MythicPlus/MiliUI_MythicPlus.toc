@@ -51,6 +51,7 @@ UI\Publish.lua
 UI\HistoryMenu.lua
 UI\MinimapButton.lua
 UI\Keystone.lua
+UI\OpenRaidKeystone.lua
 UI\PartyKeystone.lua
 UI\LootTable.lua
 
