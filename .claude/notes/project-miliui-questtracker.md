@@ -390,3 +390,8 @@ CampaignQuest 153.91 ＋ Quest 485.31 塞在 700 高的框裡，有任務區塊�
 
 相關：[[project-miliui-widgets-vendor]]、[[project-miliui-hide-blizzard-taint]]、
 [[wow-121-secret-values]]、[[project-local-addon-forks]]、[[feedback-ui-visual-style]]
+
+## 跟本體基本型自動交接任務的分工（2026-09-25）
+本體 `MiliUI/Enhance/Quest_Automation.lua` 是基本型（Shift 暫停、特殊對話選項不動、多獎勵／收金幣不交、多個可接不挑、秒接不學習）。
+判準是全域表 `MiliUI_QuestAutomation`（QT 的 Api.lua）在不在：在 ⇒ 本體 PLAYER_LOGIN 不註冊任何任務事件，設定頁開關改讀寫 QT 的 `ns.db.automation`，`MiliUI_DB.quest` 只是鏡像；QT 的 ns.db 要等它自己的 PLAYER_LOGIN，同步延一幀。
+`MiliUI_DB.quest.dirty`：QT 不在時改過開關 ⇒ QT 回來時推過去，否則以 QT 為準抄回。**`MiliUI_QuestAutomation` 改名＝兩邊各接一次。** 待實機驗證。
