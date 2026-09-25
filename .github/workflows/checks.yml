@@ -46,9 +46,9 @@ jobs:
       - name: Lua — 語法與可疑的全域寫入
         run: python3 .claude/scripts/check_lua.py
 
-      # Cell 是本地分支：UnitButton.lua 主 chunk 曾卡在 Lua 200 個 local 的硬上限（超過整支不載入），
+      # Cell 是本地分支：每支檔的主 chunk 都有 Lua 200 個 local 的硬上限（超過整支不載入，UnitButton.lua 卡過），
       # 另外 5.1 的 upvalue 上限 60 本機 luac 5.5 編譯時不會報，這支自己數
-      - name: Cell — 語法／UnitButton 主 chunk local 餘裕／upvalue
+      - name: Cell — 語法／主 chunk local 餘裕／upvalue
         run: python3 .claude/scripts/check_cell.py
 
       - name: TOC — 載入清單與 Interface 版本

@@ -1,6 +1,6 @@
 ---
 name: project-cell-unitbutton-local-ceiling
-description: Cell 的兩個 Lua 硬上限——UnitButton.lua 主 chunk 200 個 local（2026-09-25 瘦身後餘裕 43）、函式 upvalue 60（Appearance.lua 最高 56）；check-all 的 check_cell.py 現在會擋
+description: Cell 的兩個 Lua 硬上限——主 chunk 200 個 local（UnitButton 餘裕 43、全檔都量）、函式 upvalue 60（拆分後最高 51）；check_cell.py 全檔擋；檔尾 return 會讓量法誤報 0
 metadata:
   node_type: memory
   type: project
@@ -28,9 +28,17 @@ StartTicking／StopTicking、InvalidateHealthColor。
   API 快取不要拿掉來換格子。
 - 重構這類作用域時的驗證法：改前改後 `luac -l -p` 比 `GETTABUP/SETTABUP _ENV "名稱"` 的次數，
   新增的全域讀取只能是刻意拿掉的快取；再比各函式 upvalue 名單。
-- `.claude/scripts/check_cell.py`（check-all 與 CI 都跑）：Cell 全部 `luac -p`、量 UnitButton 餘裕
-  （< 20 失敗）、按 5.1 算法數 upvalue（清單裡的 `_ENV` 不算）> 60 就報。
+- `.claude/scripts/check_cell.py`（check-all 與 CI 都跑）：Cell 全部 `luac -p`；**每支檔**都量主 chunk
+  餘裕（UnitButton < 20 失敗；其他檔 < 10 失敗、< 20 警告）；按 5.1 算法數 upvalue（`_ENV` 不算），
+  **任何檔** > 60 失敗、≥ 55 警告。2026-09-25 從「只盯 UnitButton／Appearance」擴大成全檔。
+- ⚠ **量法陷阱：檔尾是 `return X` 的檔**（`AuraDisplay.lua` 的 `return AD`）——探針接在 return 後面
+  是語法錯誤，會量成餘裕 0。2026-09-25 我照這個誤報去緊急通知實作代理，實際餘裕 125。
+  check_cell.py 已改成插在 return 前面；手動量時也要先拿掉檔尾 return。
+- 2026-09-25 各檔最緊：QuickAssist_Config 38、UnitButton 43、Indicators/Base 70，其餘都 ≥ 80。
 - **第二個上限：upvalue 60。** 本機 luac 5.5 上限 255、編譯不報，只能數。2026-09-22 在
   `Modules/Appearance/Appearance.lua` 的 `LoadButtonStyle` 踩過（拆出 `LoadColorThresholds` 解掉）；
-  2026-09-25 該檔最高 56，離上限最近。
+  2026-09-25 `CreateUnitButtonStylePane` 到 56，拆出 `CreateHealPredictionOptions`（治療預測／吸收／
+  護盾／溢盾／最大生命值損失那幾列，只錨在 oorAlpha 上）降到 42；全 Cell 最高變成 `LoadButtonStyle` 51。
+  **會長到上限的都是「一個函式建一整頁控件」的設定面板**，控件本身是檔案層 local ⇒ 每加一個控件＋1。
+  拆法：挑一段只往上錨一個控件的連續區塊，錨點當參數傳進去；拆完用 `_ENV` 讀取次數比對確認沒有名字掉出作用域。
 - 相關：[[project-local-addon-forks]]、[[wow-luac-global-scan]]

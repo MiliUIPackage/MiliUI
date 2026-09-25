@@ -966,6 +966,142 @@ local function UpdateColorPickers()
     end
 end
 
+-- fix from MiliUI: split out of CreateUnitButtonStylePane, which had reached 56 of WoW's 60
+-- upvalues (Lua 5.1: past 60 the whole file fails to load, and a desktop luac 5.4/5.5 does not
+-- flag it -- its limit is 255). The heal prediction / heal absorb / shield / overshield / max
+-- health reduction rows are one self-contained block that only chains to oorAlpha above it.
+local function CreateHealPredictionOptions(unitButtonPane, anchor)
+    -- heal prediction
+    predCB = Cell.CreateCheckButton(unitButtonPane, L["Heal Prediction"], function(checked, self)
+        CellDB["appearance"]["healPrediction"][1] = checked
+        UpdateCheckButtons()
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    predCB:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -25)  -- fix from MiliUI: 10px under the value box, like slider to slider
+
+    -- heal prediction custom color
+    predCustomCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
+        CellDB["appearance"]["healPrediction"][2] = checked
+        UpdateCheckButtons()
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    predCustomCB:SetPoint("TOPLEFT", predCB, "BOTTOMRIGHT", 0, -7)
+
+    predColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Custom Color"], true, function(r, g, b, a)
+        CellDB["appearance"]["healPrediction"][3][1] = r
+        CellDB["appearance"]["healPrediction"][3][2] = g
+        CellDB["appearance"]["healPrediction"][3][3] = b
+        CellDB["appearance"]["healPrediction"][3][4] = a
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    predColorPicker:SetPoint("TOPLEFT", predCustomCB, "TOPRIGHT", 5, 0)
+
+    -- heal prediction use LibHealComm
+    -- useLibCB = Cell.CreateCheckButton(unitButtonPane, _G.USE.." LibHealComm", function(checked, self)
+    --     CellDB["appearance"]["useLibHealComm"] = checked
+    --     F.EnableLibHealComm(checked)
+    -- end, L["LibHealComm needs to be installed"])
+    -- useLibCB:SetPoint("TOPLEFT", predCustomCB, "BOTTOMLEFT", 0, -7)
+    -- useLibCB:SetEnabled(Cell.isVanilla or Cell.isCata)
+
+    -- heal absorb
+    absorbCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
+        CellDB["appearance"]["healAbsorb"][1] = checked
+        UpdateCheckButtons()
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    absorbCB:SetPoint("TOPLEFT", predCB, "BOTTOMLEFT", 0, -28)
+    absorbCB:SetEnabled(Cell.isRetail or Cell.isMists)
+
+    absorbColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Heal Absorb"], true, function(r, g, b, a)
+        CellDB["appearance"]["healAbsorb"][2][1] = r
+        CellDB["appearance"]["healAbsorb"][2][2] = g
+        CellDB["appearance"]["healAbsorb"][2][3] = b
+        CellDB["appearance"]["healAbsorb"][2][4] = a
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    absorbColorPicker:SetPoint("TOPLEFT", absorbCB, "TOPRIGHT", 5, 0)
+
+    -- heal absorb invert color
+    invertColorCB = Cell.CreateCheckButton(unitButtonPane, L["Invert Color"], function(checked, self)
+        CellDB["appearance"]["healAbsorbInvertColor"] = checked
+        UpdateCheckButtons()
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    invertColorCB:SetPoint("TOPLEFT", absorbCB, "BOTTOMRIGHT", 0, -7)
+
+    -- shield
+    shieldCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
+        CellDB["appearance"]["shield"][1] = checked
+        UpdateCheckButtons()
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    shieldCB:SetPoint("TOPLEFT", absorbCB, "BOTTOMLEFT", 0, -28)
+    shieldCB:SetEnabled(not (Cell.isVanilla or Cell.isTBC))
+
+    shieldColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Shield Texture"], true, function(r, g, b, a)
+        CellDB["appearance"]["shield"][2][1] = r
+        CellDB["appearance"]["shield"][2][2] = g
+        CellDB["appearance"]["shield"][2][3] = b
+        CellDB["appearance"]["shield"][2][4] = a
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    shieldColorPicker:SetPoint("TOPLEFT", shieldCB, "TOPRIGHT", 5, 0)
+
+    -- shield reverse fill (a NORMAL shield display option: fills from the front so the shield
+    -- reads as extra HP and stays visible at full health). Kept.
+    reverseCB = Cell.CreateCheckButton(unitButtonPane, L["Reverse Fill"], function(checked, self)
+        CellDB["appearance"]["overshieldReverseFill"] = checked
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    reverseCB:SetPoint("TOPLEFT", shieldCB, "BOTTOMRIGHT", 0, -7)
+
+    -- overshield (glow shown at full health when the absorb overflows past max HP; detected via
+    -- the secret isClamped bool from GetDamageAbsorbs -- see B.UpdateShields / B.SetOvershieldGlow)
+    oversCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
+        CellDB["appearance"]["overshield"][1] = checked
+        UpdateCheckButtons()
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    oversCB:SetPoint("TOPLEFT", shieldCB, "BOTTOMLEFT", 0, -28)
+    oversCB:SetEnabled(not (Cell.isVanilla or Cell.isTBC))
+
+    oversColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Overshield Texture"], true, function(r, g, b, a)
+        CellDB["appearance"]["overshield"][2][1] = r
+        CellDB["appearance"]["overshield"][2][2] = g
+        CellDB["appearance"]["overshield"][2][3] = b
+        CellDB["appearance"]["overshield"][2][4] = a
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    oversColorPicker:SetPoint("TOPLEFT", oversCB, "TOPRIGHT", 5, 0)
+
+    -- overshield reverse fill: its OWN toggle (default off), separate from the shield's reverse
+    -- fill -- flips which edge the overshield glow sits on without touching the shield bar.
+    oversReverseCB = Cell.CreateCheckButton(unitButtonPane, L["Reverse Fill"], function(checked, self)
+        CellDB["appearance"]["overshieldGlowReverse"] = checked
+        Cell.Fire("UpdateAppearance", "shields")
+    end)
+    oversReverseCB:SetPoint("TOPLEFT", oversCB, "BOTTOMRIGHT", 0, -7)
+
+    -- fix from MiliUI: max health reduction (RaidFrames/UnitButton.lua, B.MHL)
+    maxHealthLossCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
+        CellDB["appearance"]["maxHealthLoss"][1] = checked
+        UpdateCheckButtons()
+        Cell.Fire("UpdateAppearance", "maxHealthLoss")
+    end, L["Max Health Reduction"], L["Debuffs that lower maximum health, e.g. some dungeon trash."], L["The bar shortens by that share; the lost part takes this color."])
+    maxHealthLossCB:SetPoint("TOPLEFT", oversCB, "BOTTOMLEFT", 0, -28)
+    maxHealthLossCB:SetEnabled(GetUnitTotalModifiedMaxHealthPercent ~= nil)
+
+    maxHealthLossColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Max Health Reduction"], true, function(r, g, b, a)
+        CellDB["appearance"]["maxHealthLoss"][2][1] = r
+        CellDB["appearance"]["maxHealthLoss"][2][2] = g
+        CellDB["appearance"]["maxHealthLoss"][2][3] = b
+        CellDB["appearance"]["maxHealthLoss"][2][4] = a
+        Cell.Fire("UpdateAppearance", "maxHealthLoss")
+    end)
+    maxHealthLossColorPicker:SetPoint("TOPLEFT", maxHealthLossCB, "TOPRIGHT", 5, 0)
+end
+
 local function CreateUnitButtonStylePane()
     local unitButtonPane = Cell.CreateTitledPane(appearanceTab, L["Unit Button Style"], 422, UNIT_BUTTON_PANE_HEIGHT)
     unitButtonPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, UNIT_BUTTON_PANE_Y)
@@ -1473,135 +1609,7 @@ local function CreateUnitButtonStylePane()
     end, nil, true)
     oorAlpha:SetPoint("TOPLEFT", bgAlpha, "BOTTOMLEFT", 0, -40)
 
-    -- heal prediction
-    predCB = Cell.CreateCheckButton(unitButtonPane, L["Heal Prediction"], function(checked, self)
-        CellDB["appearance"]["healPrediction"][1] = checked
-        UpdateCheckButtons()
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    predCB:SetPoint("TOPLEFT", oorAlpha, "BOTTOMLEFT", 0, -25)  -- fix from MiliUI: 10px under the value box, like slider to slider
-
-    -- heal prediction custom color
-    predCustomCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
-        CellDB["appearance"]["healPrediction"][2] = checked
-        UpdateCheckButtons()
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    predCustomCB:SetPoint("TOPLEFT", predCB, "BOTTOMRIGHT", 0, -7)
-
-    predColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Custom Color"], true, function(r, g, b, a)
-        CellDB["appearance"]["healPrediction"][3][1] = r
-        CellDB["appearance"]["healPrediction"][3][2] = g
-        CellDB["appearance"]["healPrediction"][3][3] = b
-        CellDB["appearance"]["healPrediction"][3][4] = a
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    predColorPicker:SetPoint("TOPLEFT", predCustomCB, "TOPRIGHT", 5, 0)
-
-    -- heal prediction use LibHealComm
-    -- useLibCB = Cell.CreateCheckButton(unitButtonPane, _G.USE.." LibHealComm", function(checked, self)
-    --     CellDB["appearance"]["useLibHealComm"] = checked
-    --     F.EnableLibHealComm(checked)
-    -- end, L["LibHealComm needs to be installed"])
-    -- useLibCB:SetPoint("TOPLEFT", predCustomCB, "BOTTOMLEFT", 0, -7)
-    -- useLibCB:SetEnabled(Cell.isVanilla or Cell.isCata)
-
-    -- heal absorb
-    absorbCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
-        CellDB["appearance"]["healAbsorb"][1] = checked
-        UpdateCheckButtons()
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    absorbCB:SetPoint("TOPLEFT", predCB, "BOTTOMLEFT", 0, -28)
-    absorbCB:SetEnabled(Cell.isRetail or Cell.isMists)
-
-    absorbColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Heal Absorb"], true, function(r, g, b, a)
-        CellDB["appearance"]["healAbsorb"][2][1] = r
-        CellDB["appearance"]["healAbsorb"][2][2] = g
-        CellDB["appearance"]["healAbsorb"][2][3] = b
-        CellDB["appearance"]["healAbsorb"][2][4] = a
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    absorbColorPicker:SetPoint("TOPLEFT", absorbCB, "TOPRIGHT", 5, 0)
-
-    -- heal absorb invert color
-    invertColorCB = Cell.CreateCheckButton(unitButtonPane, L["Invert Color"], function(checked, self)
-        CellDB["appearance"]["healAbsorbInvertColor"] = checked
-        UpdateCheckButtons()
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    invertColorCB:SetPoint("TOPLEFT", absorbCB, "BOTTOMRIGHT", 0, -7)
-
-    -- shield
-    shieldCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
-        CellDB["appearance"]["shield"][1] = checked
-        UpdateCheckButtons()
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    shieldCB:SetPoint("TOPLEFT", absorbCB, "BOTTOMLEFT", 0, -28)
-    shieldCB:SetEnabled(not (Cell.isVanilla or Cell.isTBC))
-
-    shieldColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Shield Texture"], true, function(r, g, b, a)
-        CellDB["appearance"]["shield"][2][1] = r
-        CellDB["appearance"]["shield"][2][2] = g
-        CellDB["appearance"]["shield"][2][3] = b
-        CellDB["appearance"]["shield"][2][4] = a
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    shieldColorPicker:SetPoint("TOPLEFT", shieldCB, "TOPRIGHT", 5, 0)
-
-    -- shield reverse fill (a NORMAL shield display option: fills from the front so the shield
-    -- reads as extra HP and stays visible at full health). Kept.
-    reverseCB = Cell.CreateCheckButton(unitButtonPane, L["Reverse Fill"], function(checked, self)
-        CellDB["appearance"]["overshieldReverseFill"] = checked
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    reverseCB:SetPoint("TOPLEFT", shieldCB, "BOTTOMRIGHT", 0, -7)
-
-    -- overshield (glow shown at full health when the absorb overflows past max HP; detected via
-    -- the secret isClamped bool from GetDamageAbsorbs -- see B.UpdateShields / B.SetOvershieldGlow)
-    oversCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
-        CellDB["appearance"]["overshield"][1] = checked
-        UpdateCheckButtons()
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    oversCB:SetPoint("TOPLEFT", shieldCB, "BOTTOMLEFT", 0, -28)
-    oversCB:SetEnabled(not (Cell.isVanilla or Cell.isTBC))
-
-    oversColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Overshield Texture"], true, function(r, g, b, a)
-        CellDB["appearance"]["overshield"][2][1] = r
-        CellDB["appearance"]["overshield"][2][2] = g
-        CellDB["appearance"]["overshield"][2][3] = b
-        CellDB["appearance"]["overshield"][2][4] = a
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    oversColorPicker:SetPoint("TOPLEFT", oversCB, "TOPRIGHT", 5, 0)
-
-    -- overshield reverse fill: its OWN toggle (default off), separate from the shield's reverse
-    -- fill -- flips which edge the overshield glow sits on without touching the shield bar.
-    oversReverseCB = Cell.CreateCheckButton(unitButtonPane, L["Reverse Fill"], function(checked, self)
-        CellDB["appearance"]["overshieldGlowReverse"] = checked
-        Cell.Fire("UpdateAppearance", "shields")
-    end)
-    oversReverseCB:SetPoint("TOPLEFT", oversCB, "BOTTOMRIGHT", 0, -7)
-
-    -- fix from MiliUI: max health reduction (RaidFrames/UnitButton.lua, B.MHL)
-    maxHealthLossCB = Cell.CreateCheckButton(unitButtonPane, "", function(checked, self)
-        CellDB["appearance"]["maxHealthLoss"][1] = checked
-        UpdateCheckButtons()
-        Cell.Fire("UpdateAppearance", "maxHealthLoss")
-    end, L["Max Health Reduction"], L["Debuffs that lower maximum health, e.g. some dungeon trash."], L["The bar shortens by that share; the lost part takes this color."])
-    maxHealthLossCB:SetPoint("TOPLEFT", oversCB, "BOTTOMLEFT", 0, -28)
-    maxHealthLossCB:SetEnabled(GetUnitTotalModifiedMaxHealthPercent ~= nil)
-
-    maxHealthLossColorPicker = Cell.CreateColorPicker(unitButtonPane, L["Max Health Reduction"], true, function(r, g, b, a)
-        CellDB["appearance"]["maxHealthLoss"][2][1] = r
-        CellDB["appearance"]["maxHealthLoss"][2][2] = g
-        CellDB["appearance"]["maxHealthLoss"][2][3] = b
-        CellDB["appearance"]["maxHealthLoss"][2][4] = a
-        Cell.Fire("UpdateAppearance", "maxHealthLoss")
-    end)
-    maxHealthLossColorPicker:SetPoint("TOPLEFT", maxHealthLossCB, "TOPRIGHT", 5, 0)
+    CreateHealPredictionOptions(unitButtonPane, oorAlpha) -- fix from MiliUI, see there
 
     -- reset
     local resetBtn = Cell.CreateButton(unitButtonPane, L["Reset All"], "accent", {77, 17}, nil, nil, nil, nil, nil, L["Reset All"], L["[Ctrl+Left-Click] to reset these settings"])
