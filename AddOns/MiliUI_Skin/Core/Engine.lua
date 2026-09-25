@@ -952,6 +952,19 @@ end
 -- ⚠ 一定要連 `SetAlpha(1)` 一起做：那幾張在模板裡是 `alpha="0.4"`，
 --   區域 alpha 會跟顏色 alpha 相乘，不重設的話白 8% 會被壓成 3%，等於沒有滑過。
 ------------------------------------------------------------
+-- 把一張暴雪貼圖整張塗成純色（2026-09-24）。顯示與否仍由暴雪決定（例如選中態的
+-- `SelectedTexture:SetShown`），我們只換長相 —— 給「選中條」這種要用暴雪的顯示開關、
+-- 又要自己畫形狀的情況（形狀靠 `Engine.Reanchor` 另外定）。
+function Engine.SolidTexture(tex, color, label)
+    if not Usable(tex, label) then return end
+    if type(tex.SetColorTexture) ~= "function" then
+        Engine.Missing(label)
+        return
+    end
+    pcall(tex.SetAlpha, tex, 1)
+    pcall(tex.SetColorTexture, tex, color[1], color[2], color[3], color[4] or 1)
+end
+
 function Engine.HighlightTexture(tex, label)
     if not Usable(tex, label) then return end
     if type(tex.SetColorTexture) ~= "function" then
