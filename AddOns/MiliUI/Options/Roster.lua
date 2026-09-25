@@ -84,7 +84,7 @@ ns.AddonRoster = {
         { key = "Baganator", folders = { "Baganator", "Syndicator" }, slash = "/bgr",
           desc = "功能強大的整合背包。這一筆連同物品資料庫 Syndicator 一起開關\n（Baganator 依賴它，拆開關會直接不能動）。" },
         { key = "Auctionator", folders = { "Auctionator" }, slash = "/atr" },
-        { key = "YUI_AuctionHelper", folders = { "YUI_AuctionHelper" }, slash = "/yui2" },
+        { key = "YUI_AuctionHelper", folders = { "YUI_AuctionHelper" }, slash = "/yah" },   -- /yui2 是它的元件實驗室，不是設定
         { key = "AppearanceTooltip", folders = { "AppearanceTooltip" }, slash = "/aptip" },
         { key = "TinyInspect-Remake", folders = { "TinyInspect-Remake" }, slash = "/ti" },
         { key = "KeystoneLoot", folders = { "KeystoneLoot" }, slash = "/ksl" },

@@ -90,3 +90,4 @@ Fix\Blizzard_FriendsButtonBar.lua
 Fix\PremadeGroupsFilter_ShortLabel.lua
 Fix\PremadeGroupsFilter_SecretResult.lua
 Fix\Blizzard_LFGListRoleCountWidth.lua
+Fix\YUI_AuctionHelper_LoadOnDemand.lua
