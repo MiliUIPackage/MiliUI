@@ -712,10 +712,10 @@ function CellQuickAssist_OnLoad(button)
     -- ping system
     Mixin(button, PingableType_UnitFrameMixin)
     button:SetAttribute("ping-receiver", true)
-
-    function button:GetTargetPingGUID()
-        return button.__unitGuid
-    end
+    -- fix from MiliUI: no GetTargetPingGUID override. It is the 10.1 interface nobody calls
+    -- any more, and addon Lua anywhere in the ping path is what 12.1 punishes -- a secret
+    -- GUID handed through it becomes inaccessible to PingManager (hard error, stuck
+    -- listener). The mixin resolves the target from the "unit" attribute on its own.
 
     -- healthBar
     local healthBar = CreateFrame("StatusBar", nil, button)

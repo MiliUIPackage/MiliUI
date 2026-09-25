@@ -239,7 +239,9 @@ if Cell.isRetail then
         if not unit then return end
 
         -- https://wow.gamepedia.com/API_UnitPhaseReason
-        local phaseReason = UnitPhaseReason(unit)
+        -- fix from MiliUI: 12.1 answers secret for identity-restricted units, and the
+        -- `== 3` below is a hard error on a secret. Unreadable = no phase icon.
+        local phaseReason = F.Desecret(UnitPhaseReason(unit))
 
         local icon = button.indicators.statusIcon
 

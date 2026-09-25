@@ -2624,6 +2624,10 @@ end
 
 rc:SetScript("OnEvent", DELAYED_SPELLS_CHANGED)
 
+-- Second return (12.1): when the only answer left is UnitInRange's SECRET boolean, it is
+-- handed back untouched as `secretInRange` and the first return stays the old "don't know =
+-- in range" true, so callers that only read the first value behave exactly as before. A
+-- caller that can apply it without reading it (SetAlphaFromBoolean) should. -- fix from MiliUI
 function F.IsInRange(unit, check)
     local visible = UnitIsVisible(unit)
     if not F.IsValueNonSecret(visible) or not visible then
@@ -2647,6 +2651,7 @@ function F.IsInRange(unit, check)
         return inRange
 
     else
+        local secretInRange
         if UnitCanAssist("player", unit) then -- or UnitCanCooperate("player", unit)
             -- Precautionary, not a confirmed 12.1 crash: neither of these is on the
             -- SecretWhenUnitIdentityRestricted list, but this branch is the NON-group path, so
@@ -2660,18 +2665,24 @@ function F.IsInRange(unit, check)
                 return false
             end
 
+            -- fix from MiliUI: UnitInSpellRange answers nil when it cannot tell (secret, or the
+            -- Evoker spell that never answers -- see friendSpells). Returning that nil made the
+            -- caller treat the unit as in range; fall through to UnitInRange instead.
+            local spellRange
             if UnitIsDead(unit) then
                 if spell_dead then
-                    return UnitInSpellRange(spell_dead, unit)
+                    spellRange = UnitInSpellRange(spell_dead, unit)
                 end
             elseif spell_friend then
-                return UnitInSpellRange(spell_friend, unit)
+                spellRange = UnitInSpellRange(spell_friend, unit)
             end
+            if spellRange ~= nil then return spellRange end
 
             local inRange, checked = UnitInRange(unit)
             -- Midnight 12.0.0+: UnitInRange returns secret booleans during restricted contexts
             if not F.IsValueNonSecret(checked) then
-                -- Skip, fall through to pet/interact checks below
+                -- Unreadable: keep it for the caller (second return), then try pet/interact below
+                secretInRange = inRange
             elseif checked then
                 return inRange
             end
@@ -2694,7 +2705,7 @@ function F.IsInRange(unit, check)
             return CheckInteractDistance(unit, 4) -- 28 yards
         end
 
-        return true
+        return true, secretInRange
     end
 end
 
