@@ -1,16 +1,11 @@
-## Interface: 120100
+## Interface: 120100, 120105
 ## Title: Method Raid Tools
 ## Author: ykiigor
 ## Notes: Method Raid Tools
 ## SavedVariables: VMRT
-## Version: 5325
+## Version: 5330
 ## AddonCompartmentFunc: MRT_MinimapClickFunction
 ## IconTexture: Interface\AddOns\MRT\media\MiniMap.tga
-## Title-zhTW: |cffFF7F00[副本]|r Method 團隊工具箱
-## Notes-zhTW: Method Raid Tools |n|n一個團隊會用到應有盡有的工具箱插件，包含團隊技能CD，團隊準備檢查等等。
-## DefaultState: Disabled
-## Category: Raid
-## Category-zhTW: 副本
 ## X-Wago-ID: 5bGoJnK0
 core.lua
 Functions.lua

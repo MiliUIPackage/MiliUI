@@ -62,7 +62,13 @@ module.db.specIcons = ExRT.GDB.ClassSpecializationIcons
 module.db.specByClass = ExRT.GDB.ClassSpecializationList
 module.db.localizatedClassNames = L.classLocalizate
 
-local function ToRaid(msg)
+module.db.colorsList = {
+	orange = {r=1,g=0.5,b=0},
+	red = {r=1,g=0,b=0},
+	yellow = {r=1,g=1,b=0},
+}
+
+local function ToRaid(msg, color)
 	if VMRT.Timers.DisableRW then
 		return
 	end
@@ -73,7 +79,11 @@ local function ToRaid(msg)
 		if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown and C_ChatInfo.InChatMessagingLockdown() then return end
 		SendChatMessage(msg, IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "PARTY")
 	else
-		RaidWarningFrame_OnEvent(RaidWarningFrame,"CHAT_MSG_RAID_WARNING",msg)
+		if RaidWarningFrame_OnEvent then
+			RaidWarningFrame_OnEvent(RaidWarningFrame,"CHAT_MSG_RAID_WARNING",msg)
+		else
+			RaidWarningUtil.AddMessage(msg, color or module.db.colorsList.orange, 3, RaidWarningUtil and RaidWarningUtil.MessageType and RaidWarningUtil.MessageType.RaidWarning or 1)
+		end
 		print(msg)
 	end
 end
@@ -146,7 +156,7 @@ function module:timer(elapsed)
 	if module.db.timertopull > 0 then
 		if math_ceil(module.db.timertopull) < math_ceil(module.db.lasttimertopull) then
 			if module.db.firstmsg == true or math_ceil(module.db.timertopull) % 5 == 0 or math_ceil(module.db.timertopull) == 7 or math_ceil(module.db.timertopull) < 5 then
-				ToRaid(L.timerattackt.." "..math_ceil(module.db.timertopull).." "..L.timersec)
+				ToRaid(L.timerattackt.." "..math_ceil(module.db.timertopull).." "..L.timersec, module.db.timertopull > 5 and module.db.colorsList.yellow or module.db.colorsList.orange)
 				module.db.firstmsg = false
 			end
 			module.db.lasttimertopull = module.db.timertopull
@@ -154,7 +164,7 @@ function module:timer(elapsed)
 		module.db.timertopull = module.db.timertopull - elapsed
 		if module.db.timertopull < 0 then
 			module.db.timertopull = 0
-			ToRaid(">>> "..L.timerattack.." <<<")
+			ToRaid(">>> "..L.timerattack.." <<<", module.db.colorsList.red)
 		end
 	end
 	if VMRT.Timers.enabled then

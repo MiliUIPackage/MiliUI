@@ -2643,8 +2643,8 @@ ExRT.GDB.EncountersList = {
 	{2532,3306},	--The Dreamrift:Raid
 	{2533,3182,3183},	--March on Quel'Danas:Raid
 	{2427,3159},	--Sporefall:Raid
-	{2606,3470,3445,3497,3455,3420,3421,3429,3492},	--The Venomous Abyss:Raid
 	{2632,3379},	--The Tidebound Grotto:Raid
+	{2606,3470,3445,3497,3455,3420,3421,3429,3492},	--The Venomous Abyss:Raid
 }
 
 
