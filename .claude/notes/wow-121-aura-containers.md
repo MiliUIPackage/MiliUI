@@ -308,3 +308,5 @@ callback 裡只查表。2026-08-30 在 MiliUI_UnitFrames `Elements/Auras.lua` �
    不再看 `UnitCanAssist`。身分閘（cinematic／跨陣營／不可見→白名單失效）對團隊框的 HELPFUL 列已經不成立；
    只剩 NeverSecret 例外與「非隊員」那條。Cell 的 `GATE_FAIL_CLOSED` 現在只會把離線／不可見隊友的減傷列
    藏起來，不再防到任何 fail-open。
+
+**右鍵取消光環：`auraButton:SetCancelAuraButtons("RightButtonUp")`**(在 initializeFrame 裡呼叫,再 `SetMouseClickEnabled(true)`)。取消由按鈕內建的 `OnClick_Intrinsic`(暴雪安全端)呼叫 `C_UnitAuras.CancelAuraByInstanceID(unitToken, id)`,插件碰不到秘密的 auraInstanceID 也不用碰。參數是逗號分隔的點擊 token 字串,nil＝關。**2026-09-24 實測**:玩家框可取消;**目標框在目標是自己時也能取消**(`target` token 被接受);目標是別人時右鍵無反應、不報錯 ⇒ 不必逐次判斷敵友。戰鬥中能否取消未驗。MiliUI_UnitFrames 的玩家／目標增益列用這條(`rightClickCancel` 鍵)。
