@@ -2080,6 +2080,8 @@ local function StatusText_ShowTimer(self)
         if showGuid and not startTimeCache[showGuid] then startTimeCache[showGuid] = GetTime() end
     end
 
+    -- UpdateStatusText 每次重繪都會再叫一次；已有 ticker 就沿用，否則舊的蓋掉後永遠取消不到、越疊越多
+    if self.ticker then return end
     self.ticker = C_Timer.NewTicker(1, function()
         if not self.parent.states.guid and self.parent.states.unit then -- ElvUI AFK mode
             self.parent.states.guid = UnitGUID(self.parent.states.unit)
@@ -2096,8 +2098,11 @@ end
 local function StatusText_HideTimer(self, reset)
     self.timer:Hide()
     self.timer:SetText("")
+    if self.ticker then
+        self.ticker:Cancel()
+        self.ticker = nil
+    end
     if reset then
-        if self.ticker then self.ticker:Cancel() end
         -- Midnight 12.0.0+: guid may be secret for NPC/boss units
         local guid = self.parent.states.guid
         if guid and not (issecretvalue and issecretvalue(guid)) then

@@ -1905,6 +1905,10 @@ UnitButton_UpdateAuras = function(self, updateInfo)
         end
     end
 
+    -- fix from MiliUI: a party-target button shows no aura indicator (PARTY_TARGET_INDICATORS),
+    -- and it runs UpdateAll on the 0.25s tick -- the scan below had no reader, 16x/s in a 5-man
+    if self.isPartyTarget then return end
+
     -- 12.1: when auras are secret the payload cannot be diffed (isFullUpdate is a secret boolean,
     -- addedAuras a secret table) AND the slot-based full rescan below errors as well, because
     -- GetAuraSlots/GetAuraDataBySlot Lua-error while auras are secret. Nothing can be updated, so
