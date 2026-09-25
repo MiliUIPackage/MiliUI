@@ -136,7 +136,7 @@ local function Attach()
     if not form then return end
     attached = true
 
-    button = ns.AddButton.Create(form, OnClick, FillTooltip)
+    button = ns.AddButton.Create(form, OnClick, FillTooltip, Schedule)
 
     -- hook **實體**不 hook mixin。
     -- ⚠ 重製訂單放入物品走的是 SetRecraftItemGUID → InitSchematic，**不會**再跑 Init；

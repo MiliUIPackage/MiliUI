@@ -15,6 +15,7 @@ local L = ns.L
 
 local button
 local attached = false
+local dirty = false
 
 ------------------------------------------------------------
 -- 製作數量輸入框
@@ -82,6 +83,17 @@ local function Refresh()
     ns.AddButton.SetState(button, true, ns.List.Find(EntryKey(form, info)) ~= nil)
 end
 
+-- 延一幀的重算：框 OnShow 時材料區的子框還沒跑完自己的 OnShow，別的插件在那裡
+-- 才擺到標題旁邊的東西（見 AddButton 的 Neighbor）要等下一幀才找得到
+local function Schedule()
+    if dirty then return end
+    dirty = true
+    C_Timer.After(0, function()
+        dirty = false
+        Refresh()
+    end)
+end
+
 local function FillTooltip(_, tip)
     ns.AddButton.TooltipHeader(tip)
     local form, info = CurrentRecipe()
@@ -141,7 +153,7 @@ local function Attach()
     if not form then return end
     attached = true
 
-    button = ns.AddButton.Create(form, OnClick, FillTooltip)
+    button = ns.AddButton.Create(form, OnClick, FillTooltip, Schedule)
 
     -- 換配方、放入要重製的物品都會跑 Init，材料區的顯示與位置在那之後才定。
     -- hook **實體**不 hook mixin：mixin 是所有製作頁共用的那張表，掛上去等於替
@@ -149,7 +161,7 @@ local function Attach()
     if form.Init then
         hooksecurefunc(form, "Init", Refresh)
     end
-    form:HookScript("OnShow", Refresh)
+    form:HookScript("OnShow", Schedule)
     Refresh()
 end
 
