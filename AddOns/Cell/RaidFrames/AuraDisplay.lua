@@ -3374,9 +3374,8 @@ do
     local b1Window -- { blocked = n, funcs = {} } while B1 listens
     local blockFrame = CreateFrame("Frame")
     blockFrame:SetScript("OnEvent", function(_, _, addon, func)
-        local isSecret = issecretvalue or function() return false end -- Classic has no secrets
-        if isSecret(addon) or addon ~= "Cell" then return end
-        func = isSecret(func) and "?" or tostring(func)
+        if issecretvalue(addon) or addon ~= "Cell" then return end
+        func = issecretvalue(func) and "?" or tostring(func)
         if b1Window then
             b1Window.blocked = b1Window.blocked + 1
             b1Window.funcs[func] = true
