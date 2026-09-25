@@ -34,6 +34,15 @@ local RESURRECTING = F.GetSpellInfo(160029)
 --   * soulstone death        -> UNIT_AURA (buff gone) + UNIT_HEALTH (UnitIsDeadOrGhost)
 local statusEvents = CreateFrame("Frame")
 
+-- fix from MiliUI: soulstone / Resurrecting only ever concern group members, and a group
+-- member's UNIT_AURA / UNIT_HEALTH always arrives under its group token too (a spotlight
+-- showing "target" = raid5 still hears it as raid5, matched by HandleUnitButton). So the
+-- noise -- nameplates, boss, target, pets -- can be dropped with one table lookup. This matters
+-- because F.HasUnitButton answers "maybe" for EVERY unit once any spotlight is bound.
+local GROUP_TOKENS = {player = true}
+for i = 1, 4 do GROUP_TOKENS["party"..i] = true end
+for i = 1, 40 do GROUP_TOKENS["raid"..i] = true end
+
 -- Soulstone deaths come from UNIT_AURA + UNIT_HEALTH.
 -- UNIT_AURA fires when any aura is added/removed on a tracked unit.
 -- We watch for soulstone buff removal and immediately note the guid;
@@ -48,6 +57,9 @@ statusEvents:SetScript("OnEvent", function(self, event, unit)
     --
     -- (A soulstone on a unit with no button goes unrecorded, which is the point: the record is
     -- only ever consumed through F.HandleUnitButton, so it could never have been read.)
+    if not GROUP_TOKENS[unit] then return end
+    -- UNIT_HEALTH only reads and clears `soulstones`; with nobody recorded there is nothing to do
+    if event == "UNIT_HEALTH" and next(soulstones) == nil then return end
     if not F.HasUnitButton(unit) then return end
 
     if event == "UNIT_AURA" then

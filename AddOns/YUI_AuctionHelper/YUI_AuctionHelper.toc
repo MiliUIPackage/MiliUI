@@ -9,13 +9,15 @@
 ## SavedVariables: YUI_AuctionHelper_DB
 ## Interface: 120100, 120007, 120005, 120001, 120000
 ## OptionalDeps: YUI, YUI_NovaToolbox
+## LoadOnDemand: 1
+## LoadWith: Blizzard_AuctionHouseUI
 ## IconTexture: Interface\AddOns\YUI_AuctionHelper\Components\AuctionHelper\Media\icons\logo_256.png
 ## X-YUI-Product: auction_helper
 ## X-YUI-CoreMode: embedded
 ## X-YUI-RequiredCoreVersion: 1
 ## Category-zhTW: 拍賣
 ## Title-zhTW: |cffFFFF99[拍賣]|r 購物助手
-## Notes-zhTW: Auction Helper · YanForge|n|n言工坊出品的拍賣行購物助手，方便快速選購與批次購買。|n|n|cffffd200使用方法: |r輸入 /yui2 開啟設定。
+## Notes-zhTW: Auction Helper · YanForge|n|n言工坊出品的拍賣行購物助手，方便快速選購與批次購買。|n|n|cffffd200使用方法: |r第一次開拍賣場時才會載入。在拍賣場的購物面板點齒輪，或開過拍賣場後輸入 /yah 開啟設定。
 ## X-YUI-EmbeddedCoreVersion: 14
 
 CoreEmbed\Bootstrap.lua
