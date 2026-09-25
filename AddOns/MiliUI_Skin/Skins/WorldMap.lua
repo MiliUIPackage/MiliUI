@@ -139,7 +139,8 @@
 -- | `Skin.CloseButton`／`Skin.IconButton` 內建的 `HookScript("OnEnter"/"OnLeave")` | frame script 後掛 | **只對**地圖的關閉鈕、最大化最小化、側邊收合鈕；內容只換我們自己 overlay 的顏色 |
 --
 -- **`QuestMapFrame` 與它的任何子框：0 支 hook、0 支 HookScript**（按鈕全零腳本、側邊分頁的滑過交給 HIGHLIGHT 層）。
--- ⚠ 2026-09-24 例外一支：任務日誌標題列（池化）的 `HookScript("OnLeave")`，只把標題字補回白色（見 `SweepQuestHeaders`）。
+-- ⚠ 2026-09-24 例外：任務日誌標題列（池化）—— 褐色底條中和＋自己的底與邊、Highlight 白 8%、收合圖示去飽和，
+--   外加一支 `HookScript("OnLeave")` 把標題字補回白色（見 `SkinQuestHeaderArt`／`SweepQuestHeaders`）。
 -- **`hooksecurefunc` 在 `WorldMapFrame`／`QuestMapFrame` 實例或任何 `WorldMap*Mixin`／`QuestLog*Mixin` 上：0 支。**
 -- **`HookScript("OnShow"/"OnHide")`：0 支。**
 --
@@ -452,6 +453,31 @@ local function IsQuestHeader(child)
         and Optional(child, "CollapseButton") ~= nil
 end
 
+-- 標題列的長相（2026-09-24）：`ListHeaderVisualTemplate`（Blizzard_SharedXML/ListTemplates.xml:21-39）
+--   * `NormalTexture`（褐色長條 atlas `common-button-list-collapseExpand`）中和 —— 暴雪 Lua 零處
+--     重設它（ListTemplates.lua 全檔沒有 SetNormal*）⇒ alpha 一次就撐得住。
+--   * 底與邊建成列自己的貼圖（`Engine.RegionBackdrop`）：面板色 ＋ 1px 黑邊，直角。
+--   * `HighlightTexture`（同一張 atlas、ADD 0.4）→ 白 8%。
+--   * 收合鈕的 ＋／− 圖示：`UpdateCollapsedState` 每次 `SetAtlas`（:11-16）⇒ 去飽和＋染字色放在
+--     每次掃描裡做（亮黃的 ＋ 在深底上太搶）。
+local function SkinQuestHeaderArt(row)
+    local key = "QuestLogHeader"
+    local okN, normal = pcall(row.GetNormalTexture, row)
+    if okN and normal then E.Neutralize(normal, key .. ".NormalTexture") end
+    local okH, hl = pcall(row.GetHighlightTexture, row)
+    if okH and hl then E.HighlightTexture(hl, key .. ".HighlightTexture") end
+    local box = E.RegionBackdrop(row, { key = key })
+    E.Paint(box, T.fill, T.border)
+end
+
+local function TintCollapseIcon(row)
+    local icon = Optional(Optional(row, "CollapseButton"), "Icon")
+    if icon then
+        E.Desaturate(icon, "QuestLogHeader.CollapseButton.Icon")
+        E.VertexColor(icon, T.textDim, "QuestLogHeader.CollapseButton.Icon")
+    end
+end
+
 local function SweepQuestHeaders()
     local qs = _G.QuestScrollFrame
     local contents = qs and Optional(qs, "Contents")
@@ -462,9 +488,11 @@ local function SweepQuestHeaders()
         if IsQuestHeader(child) then
             if not headerRows[child] then
                 headerRows[child] = true
+                SkinQuestHeaderArt(child)
                 pcall(child.HookScript, child, "OnLeave", WhiteTitle)
             end
             WhiteTitle(child)
+            TintCollapseIcon(child)
         end
     end
 end
