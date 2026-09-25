@@ -86,9 +86,9 @@
 --   那一支是任務視窗與任務日誌共用的，而且我們已經有「讓暴雪自己換深色」這條更安全的路。
 -- * 標題列、任務列、戰役標題、事件列（池化）；`SettingsDropdown`（齒輪）；`Tutorial`；
 --   `BlackoutFrame`；`Underlay`；側邊分頁的 `TabGlow`（有動畫在跑 alpha）與 `Icon`（選中態就是換 atlas）。
--- * 側邊分頁的重新定位、圖示裁邊、停用半透明（成熟同類實作有做：量 `GetRight()`／`GetLeft()` 再
---   `ClearAllPoints`＋`SetPoint`、每次 `SetTexCoord`、`tab:SetAlpha`）—— 讀尺寸、重排、寫框的 alpha 都在
---   禁止清單上；裁邊要在 `SetChecked` 之後重做，而那是建立時就拷貝走的 mixin 方法，勾不到。
+-- * 側邊分頁的圖示裁邊、停用半透明（成熟同類實作有做：每次 `SetTexCoord`、`tab:SetAlpha`）——
+--   寫框的 alpha 在禁止清單上；裁邊要在 `SetChecked` 之後重做，而那是建立時就拷貝走的 mixin 方法，勾不到。
+--   （重新定位 2026-09-24 起有做，但不量尺寸：`Engine.ShiftRoot` 挪第一顆，見 `SkinSideTab` 上方。）
 -- * 導覽列「黑條只延伸到最後一顆麵包屑」與「整條往下 4」：要每次重錨自己的貼圖（lint 禁 SetPoint）
 --   與對暴雪框 `ClearAllPoints`＋`SetPoint` ⇒ 改成整條內嵌帶，不重排。
 -- * 麵包屑的 `HookScript("OnClick")`（成熟同類實作用來重算黑條）—— 我們沒有要重算的東西。
@@ -363,30 +363,57 @@ end
 -- 任務日誌
 ------------------------------------------------------------
 local SIDE_TABS = { "QuestsTab", "EventsTab", "MapLegendTab" }
-local SIDE_TAB_BOX_PAD = 5     -- 照成熟同類實作：方框＝圖示外擴 5
 
--- 側邊分頁：**零腳本**。底座與選中框中和、改畫方框；選中態就是暴雪自己換的圖示 atlas（彩色／灰）。
--- 滑過交給模板的 HIGHLIGHT 層貼圖（C 端依滑鼠顯示），只換長相。
+-- 側邊分頁：**零腳本**，長相跟社群視窗的側邊分頁同一套分頁語言（2026-09-24）：
+--   * 方框貼著視窗右緣（左邊框跟視窗邊框疊成一條），選中＝朝外那一邊（右緣）一條職業色直條。
+--   * 方框的矩形照**分頁本身**算，不再錨在圖示上：圖示是 `SetAtlas(..., UseAtlasSize)`，
+--     選中／未選中兩張 atlas 不保證同尺寸，按下時暴雪還會 `Icon:SetPoint` 位移
+--     （SharedUIPanelTemplates.lua:305-316）⇒ 錨圖示的框會跟著變大變小、跟著跳。
+--   分頁 43x55、圖示 `CENTER x=-2`（SharedUIPanelTemplates.xml:982,994）⇒ 方框以圖示中心
+--   為中心、邊長 42：左右 −1.5／−2.5、上下各內縮 6.5。
+--   * 選中條：暴雪的 `SelectedTexture`（`SetChecked` 只對它 `SetShown`，:324-333）重錨到
+--     方框右緣、塗職業色 ⇒ 顯示與否照舊是暴雪決定，零 hook。
+--   * 滑過：`HighlightTexture`（atlas 尺寸、比方框大）重錨成方框矩形、塗白 8%。
+--   * 貼齊：QuestsTab 原本錨 `TOPLEFT → QuestMapFrame TOPRIGHT x=3 y=-28`（QuestMapFrame.xml:405）
+--     ⇒ 方框左緣在視窗右緣外 1.5。改 x=SIDE_TAB_X 讓方框左緣落在視窗邊框上；另外兩顆
+--     `TOP → 上一顆 BOTTOM` 串在它下面（暴雪 Lua 只重錨 MapLegendTab，也是錨在上一顆上，
+--     QuestMapFrame.lua:246）⇒ 只挪第一顆整排就跟著走。
+local SIDE_TAB_BOX_POINTS = {
+    { "TOPLEFT", "TOPLEFT", -1.5, -6.5 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", -2.5, 6.5 },
+}
+local SIDE_TAB_X = 0.5
+
 local function SkinSideTab(tab, key)
     if not E.Usable(tab, key) then return end
-    E.NeutralizeKeys(tab, { "Background", "SelectedTexture" }, key)
+    E.NeutralizeKeys(tab, { "Background" }, key)
 
-    local icon = Optional(tab, "Icon")
-    if icon then
-        local box = E.RegionBackdrop(tab, {
-            key = key .. ".box",
-            points = {
-                { "TOPLEFT", "TOPLEFT", -SIDE_TAB_BOX_PAD, SIDE_TAB_BOX_PAD, rel = icon },
-                { "BOTTOMRIGHT", "BOTTOMRIGHT", SIDE_TAB_BOX_PAD, -SIDE_TAB_BOX_PAD, rel = icon },
-            },
-        })
-        E.Paint(box, T.fill, T.border)
+    local box = E.RegionBackdrop(tab, { key = key .. ".box", points = SIDE_TAB_BOX_POINTS })
+    E.Paint(box, T.fill, T.border)
+
+    local sel = Optional(tab, "SelectedTexture")
+    if sel then
+        local accent = T.tabAccentSize or 2
+        E.Reanchor({ { sel, {
+            { "TOPLEFT", "TOPRIGHT", -2.5 - accent, -6.5, rel = tab },
+            { "BOTTOMRIGHT", "BOTTOMRIGHT", -2.5, 6.5, rel = tab },
+        } } }, key .. ".SelectedTexture")
+        local r, g, b = T.Accent()
+        E.SolidTexture(sel, { r, g, b, 1 }, key .. ".SelectedTexture")
     else
-        E.Missing(key .. ".Icon")
+        E.Missing(key .. ".SelectedTexture")
     end
 
     local hl = Optional(tab, "HighlightTexture")
-    if hl then E.HighlightTexture(hl, key .. ".HighlightTexture") else E.Missing(key .. ".HighlightTexture") end
+    if hl then
+        E.Reanchor({ { hl, {
+            { "TOPLEFT", "TOPLEFT", -1.5, -6.5, rel = tab },
+            { "BOTTOMRIGHT", "BOTTOMRIGHT", -2.5, 6.5, rel = tab },
+        } } }, key .. ".HighlightTexture")
+        E.HighlightTexture(hl, key .. ".HighlightTexture")
+    else
+        E.Missing(key .. ".HighlightTexture")
+    end
 end
 
 local function SkinQuestList(qs)
@@ -514,6 +541,10 @@ local function SkinQuestLog(qm)
     for _, k in ipairs(SIDE_TABS) do
         local tab = Optional(qm, k)
         if tab then SkinSideTab(tab, key .. "." .. k) else E.Missing(key .. "." .. k) end
+    end
+    local first = Optional(qm, "QuestsTab")
+    if first then
+        E.ShiftRoot(first, "TOPLEFT", qm, "TOPRIGHT", SIDE_TAB_X, -28, key .. ".QuestsTab")
     end
 end
 
