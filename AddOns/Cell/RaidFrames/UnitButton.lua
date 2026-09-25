@@ -3269,6 +3269,14 @@ local function UnitButton_UpdateInRange(self, ir)
     self.states.inRange = inRange
     if Cell.loaded then
         if self.states.inRange ~= self.states.wasInRange then
+            -- fix from MiliUI: the fades below start from GetAlpha() and do arithmetic on it.
+            -- The secretRange reset above is not enough: a unit change wipes states (flag gone,
+            -- alpha still secret from SetAlphaFromBoolean), and the health-fade curve writes a
+            -- secret alpha without ever setting the flag. Test the alpha itself, and only here
+            -- at a transition -- resetting on every update would stomp the curve's alpha.
+            if not F.IsValueNonSecret(self:GetAlpha()) then
+                self:SetAlpha(1)
+            end
             if inRange then
                 if CELL_FADE_OUT_HEALTH_PERCENT then
                     if Cell.isMidnight and self.widgets and self.widgets.healthCalculator then
