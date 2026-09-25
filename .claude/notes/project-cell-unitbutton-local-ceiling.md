@@ -1,27 +1,36 @@
 ---
 name: project-cell-unitbutton-local-ceiling
-description: Cell 貼著 Lua 兩個硬上限——UnitButton.lua 主 chunk 剛好 200 個 local、Appearance.lua 的 LoadButtonStyle 曾剛好 60 個 upvalue；桌面 luac 5.5 抓不到 upvalue、check-all 又不掃 Cell
+description: Cell 的兩個 Lua 硬上限——UnitButton.lua 主 chunk 200 個 local（2026-09-25 瘦身後餘裕 43）、函式 upvalue 60（Appearance.lua 最高 56）；check-all 的 check_cell.py 現在會擋
 metadata:
+  node_type: memory
   type: project
+  originSessionId: 90446616-c947-4777-8e2a-7f241b895c53
+  modified: 2026-09-25T03:46:29.068Z
 ---
 
-`AddOns/Cell/RaidFrames/UnitButton.lua` 的**主 chunk 剛好 200 個同時存活的 local**（Lua 硬上限）。
-2026-09-22 加最大生命值損失時實測：新增 9 個 file-level local → `too many local variables (limit is 200)
-in main function`；收成 1 個 table local **還是爆**（201）。錯誤是**編譯期**的，整個檔案不載入 = 所有團隊框消失。
+`AddOns/Cell/RaidFrames/UnitButton.lua` 主 chunk 的**同時存活 local 上限是 200**（編譯期錯誤，
+超過＝整支不載入＝所有團隊框消失）。2026-09-22 曾卡到剛好 200、餘裕 0（加最大生命值損失時爆過，
+當時的權宜是把新狀態掛 `B.MHL`）。
 
-**Why:** 這支檔案十年來一直往主 chunk 堆 local（快取的全域 API、旗標、前置宣告），已經沒有任何餘裕；
-而 `bash .claude/scripts/check-all.sh` 的語法掃描只掃自製插件（「自製插件本體，不含 Libs/」），
-**不會編譯 Cell**，所以這種錯要到遊戲裡才看得到。
+**2026-09-25 瘦身（commit 8c2907ea7）後餘裕 43。** 手法：刪重複的 `UnitIsPlayer`、沒人用的
+`L`/`U`/`UnitPhaseReason`/`IsDelveInProgress`，其餘把區段私有狀態收進 `do … end`（更新佇列、
+overlay 合併重繪、進出副本、OnTick／共用 tick、血條顏色、角色圖示、SetOrientation 八個 SetValue、
+OnLoad）。區塊用 `-- local-budget block` 標頭尾、**沒有重新縮排**。
+對外要用的函式是「外面前置宣告、區塊內賦值」：AddToInitQueue／AddToUpdateQueue、MarkOverlayDirty、
+StartTicking／StopTicking、InvalidateHealthColor。
+
+**Why:** 這支檔案十年來一直往主 chunk 堆 local；之前 check-all 不編譯 Cell，這類錯要到遊戲裡才看得到。
 
 **How to apply:**
-- 在這個檔案加 file-level 狀態／函式，一律掛在既有的表上（現在的做法：`B.MHL = {...}`，函式寫
-  `function B.MHL.Update(self)`），**不要新增 local**；真要加就先拿掉一個。函式內的 local 不受影響。
-- 動完 Cell 一定要自己跑 `luac -p AddOns/Cell/RaidFrames/UnitButton.lua`（以及其他改到的檔案），
-  不能只信 check-all。
-- **第二個上限：upvalue 60**（同日第二次踩）。`Modules/Appearance/Appearance.lua` 的 `LoadButtonStyle`
-  原本剛好 60 個 upvalue（5.1 算法），多引用兩個控件 → 遊戲裡「function at line N has more than 60
-  upvalues」，整支 Appearance.lua 不載入（外觀頁與外觀套用全掛）。**本機 `luac` 是 5.5，上限 255，完全不報**；
-  `.claude/scripts/check_lua.py` 有 upvalue 檢查（`luac -l -l` 的 upvalues 數，含 `_ENV`，所以比 5.1 保守 1）
-  但只掃自製插件。修法：把一整塊控件搬進獨立函式（`LoadColorThresholds`，-11）。
-  改完 Cell 要用同一套算法自己掃：`luac -l -l -p <檔>`，看每個 `function <…>` 下一行的 upvalues 數 ≤ 60。
+- 在 `do` 區塊內新增程式時，**區塊外前置宣告過的名字只能賦值、不能再寫 `local function X`**
+  —— 會遮蔽外面那個，外面永遠是 nil，而且全域讀取比對抓不到（名稱一樣）。
+- 熱路徑（UpdateAll 也算：spotlight 按鈕設了 refreshOnUpdate，每 0.25 秒從 tick 跑一次）用到的
+  API 快取不要拿掉來換格子。
+- 重構這類作用域時的驗證法：改前改後 `luac -l -p` 比 `GETTABUP/SETTABUP _ENV "名稱"` 的次數，
+  新增的全域讀取只能是刻意拿掉的快取；再比各函式 upvalue 名單。
+- `.claude/scripts/check_cell.py`（check-all 與 CI 都跑）：Cell 全部 `luac -p`、量 UnitButton 餘裕
+  （< 20 失敗）、按 5.1 算法數 upvalue（清單裡的 `_ENV` 不算）> 60 就報。
+- **第二個上限：upvalue 60。** 本機 luac 5.5 上限 255、編譯不報，只能數。2026-09-22 在
+  `Modules/Appearance/Appearance.lua` 的 `LoadButtonStyle` 踩過（拆出 `LoadColorThresholds` 解掉）；
+  2026-09-25 該檔最高 56，離上限最近。
 - 相關：[[project-local-addon-forks]]、[[wow-luac-global-scan]]
