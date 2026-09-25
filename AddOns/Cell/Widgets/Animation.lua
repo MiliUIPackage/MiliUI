@@ -102,6 +102,14 @@ function A.FrameFadeOut(frame, timeToFade, startAlpha, endAlpha)
     FrameFade(frame, frame.fade)
 end
 
+-- fix from MiliUI: drop a running fade so it stops writing alpha (the caller sets it itself).
+function A.FrameFadeStop(frame)
+    if FADEFRAMES[frame] then
+        FADEFRAMES[frame] = nil
+        if frame.fade then frame.fade.fadeTimer = nil end
+    end
+end
+
 -----------------------------------------
 -- fade in/out on mouseover/mouseout
 -----------------------------------------

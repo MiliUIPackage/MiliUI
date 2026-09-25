@@ -2829,7 +2829,7 @@ local function UnitButton_UpdateHealth(self, diff, skipStateUpdates)
         -- fix from MiliUI: not on a party-target button -- see UnitButton_UpdateInRange
         if CELL_FADE_OUT_HEALTH_PERCENT and self.widgets.healthCalculator and not self.isPartyTarget then
             RebuildFadeOutHealthCurve()
-            if fadeOutHealthCurve and self.states.inRange then
+            if fadeOutHealthCurve and self.states.inRange and not self.states.secretRange then
                 -- EvaluateCurrentHealthPercent feeds secret health% into the curve
                 -- Curve output: 1.0 if below threshold (needs healing), outOfRangeAlpha if above
                 local targetAlpha = self.widgets.healthCalculator:EvaluateCurrentHealthPercent(fadeOutHealthCurve)
@@ -3223,7 +3223,7 @@ local function UnitButton_UpdateInRange(self, ir)
         return
     end
 
-    local inRange
+    local inRange, secretInRange
     -- ⚠ secret test FIRST, then the nil test. `ir ~= nil` is still a comparison, and the
     -- payload for an identity-restricted teammate can arrive secret; F.IsValueNonSecret(nil)
     -- answers true, so ordering it this way costs nothing and keeps the nil case working.
@@ -3235,8 +3235,29 @@ local function UnitButton_UpdateInRange(self, ir)
             inRange = ir and true or false
         end
     else
-        inRange = IsInRange(unit)
+        inRange, secretInRange = IsInRange(unit)
     end
+
+    -- fix from MiliUI: the only answer is a SECRET boolean (12.1 restricted content). It used
+    -- to come back as "in range", so classes with no friendly range spell (DK, DH, hunter,
+    -- rogue, warrior) never saw a frame fade in combat. Let the engine pick the alpha from it
+    -- without us reading it. No animated fade here -- it needs a readable start and end.
+    if secretInRange ~= nil and self.SetAlphaFromBoolean then
+        self.states.inRange = true -- readers of states.inRange keep the old "unknown = in range"
+        self.states.wasInRange = nil -- next readable answer always re-applies its alpha
+        if Cell.loaded then
+            A.FrameFadeStop(self)
+            self.states.secretRange = true
+            self:SetAlphaFromBoolean(secretInRange, 1, CellDB["appearance"]["outOfRangeAlpha"])
+        end
+        return
+    end
+    if self.states.secretRange then
+        -- GetAlpha() after SetAlphaFromBoolean is not ours to read; restart from a known alpha.
+        self.states.secretRange = nil
+        self:SetAlpha(1)
+    end
+
     -- Nil-safety: if IsInRange errors (e.g. secret value issue), default to true
     -- so frames don't grey out incorrectly
     if inRange == nil then inRange = true end
@@ -4282,6 +4303,11 @@ local function UnitButton_OnEvent(self, event, unit, arg)
 
         elseif event == "UNIT_AURA" then
             UnitButton_UpdateAuras(self, arg)
+            -- fix from MiliUI: a shield running out on its TIMER, on a unit nobody hits or
+            -- heals, fires no absorb/health event at all -- UNIT_AURA (the aura leaving) is the
+            -- only signal, and the payload cannot be read for "was it a removal" while secret.
+            -- Marking is a table write; the flush paints each button at most once a frame.
+            MarkOverlayDirty(self)
 
         elseif event == "UNIT_IN_RANGE_UPDATE" then
             UnitButton_UpdateInRange(self, arg)
@@ -5399,10 +5425,10 @@ function CellUnitButton_OnLoad(button)
     -- ping system
     Mixin(button, PingableType_UnitFrameMixin)
     button:SetAttribute("ping-receiver", true)
-
-    function button:GetTargetPingGUID()
-        return button.__unitGuid
-    end
+    -- fix from MiliUI: no GetTargetPingGUID override. It is the 10.1 interface nobody calls
+    -- any more, and addon Lua anywhere in the ping path is what 12.1 punishes -- a secret
+    -- GUID handed through it becomes inaccessible to PingManager (hard error, stuck
+    -- listener). The mixin resolves the target from the "unit" attribute on its own.
 
     -- background
     -- local background = button:CreateTexture(name.."Background", "BORDER")

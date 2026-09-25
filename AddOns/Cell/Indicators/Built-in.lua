@@ -2268,41 +2268,108 @@ local function GetMidnightCurves()
     return _pct01to100, _pct01toNeg100
 end
 
+-- fix from MiliUI: "is this secret number zero?" without reading it. TruncateWhenZero turns a
+-- secret 0 into an empty string; written into a hidden FontString, GetText() then comes back
+-- nil exactly when the value was zero (EUI's field-tested probe). The answer is a secret-free
+-- truthiness test on a non-boolean, which is legal. Unknown (no API) = non-zero, the old output.
+local TruncateWhenZero = C_StringUtil and C_StringUtil.TruncateWhenZero
+local function NonZero(probe, value)
+    if not (TruncateWhenZero and probe) then return true end
+    probe:SetText(TruncateWhenZero(value))
+    return probe:GetText() and true or false
+end
+
+-- hideIfEmptyOrFull on the secret path: empty = current 0, full = missing 0.
+local function HideEmptyOrFull(hide, probe, calc)
+    return hide and not (NonZero(probe, calc:GetCurrentHealth()) and NonZero(probe, calc:GetMissingHealth()))
+end
+
 local midnightFormatter = {
     none = function() return "" end,
 
-    health = function(pattern, calc) return pattern:format(calc:GetCurrentHealth()) end,
-    health_short = function(pattern, calc) return pattern:format(AbbreviateNumbers(calc:GetCurrentHealth())) end,
+    health = function(pattern, calc, hide, probe)
+        if HideEmptyOrFull(hide, probe, calc) then return "" end
+        return pattern:format(calc:GetCurrentHealth())
+    end,
+    health_short = function(pattern, calc, hide, probe)
+        if HideEmptyOrFull(hide, probe, calc) then return "" end
+        return pattern:format(AbbreviateNumbers(calc:GetCurrentHealth()))
+    end,
     -- Percent formatters round via %.0f since F.Round would do arithmetic on a secret.
-    health_percent = function(pattern, calc)
+    health_percent = function(pattern, calc, hide, probe)
+        if HideEmptyOrFull(hide, probe, calc) then return "" end
         local pos = GetMidnightCurves()
         return pattern:format(string.format("%.0f", calc:EvaluateCurrentHealthPercent(pos)))
     end,
 
-    -- Sign is embedded in the string (can't negate a secret).
-    deficit = function(pattern, calc) return pattern:format("-"..BreakUpLargeNumbers(calc:GetMissingHealth())) end,
-    deficit_short = function(pattern, calc) return pattern:format("-"..AbbreviateNumbers(calc:GetMissingHealth())) end,
-    deficit_percent = function(pattern, calc)
+    -- Sign is embedded in the string (can't negate a secret), so it is only added when the
+    -- deficit is non-zero -- a full unit used to read "-0".
+    deficit = function(pattern, calc, hide, probe)
+        if HideEmptyOrFull(hide, probe, calc) then return "" end
+        local missing = calc:GetMissingHealth()
+        if not NonZero(probe, missing) then return pattern:format("0") end
+        return pattern:format("-"..BreakUpLargeNumbers(missing))
+    end,
+    deficit_short = function(pattern, calc, hide, probe)
+        if HideEmptyOrFull(hide, probe, calc) then return "" end
+        local missing = calc:GetMissingHealth()
+        if not NonZero(probe, missing) then return pattern:format("0") end
+        return pattern:format("-"..AbbreviateNumbers(missing))
+    end,
+    deficit_percent = function(pattern, calc, hide, probe)
+        if HideEmptyOrFull(hide, probe, calc) then return "" end
         local _, neg = GetMidnightCurves()
         return pattern:format(string.format("%.0f", calc:EvaluateMissingHealthPercent(neg)))
     end,
 
     -- effective_* degrades to health_* (no calc method for effective health).
-    effective = function(pattern, calc) return pattern:format(calc:GetCurrentHealth()) end,
-    effective_short = function(pattern, calc) return pattern:format(AbbreviateNumbers(calc:GetCurrentHealth())) end,
-    effective_percent = function(pattern, calc)
+    effective = function(pattern, calc, hide, probe)
+        if HideEmptyOrFull(hide, probe, calc) then return "" end
+        return pattern:format(calc:GetCurrentHealth())
+    end,
+    effective_short = function(pattern, calc, hide, probe)
+        if HideEmptyOrFull(hide, probe, calc) then return "" end
+        return pattern:format(AbbreviateNumbers(calc:GetCurrentHealth()))
+    end,
+    effective_percent = function(pattern, calc, hide, probe)
+        if HideEmptyOrFull(hide, probe, calc) then return "" end
         local pos = GetMidnightCurves()
         return pattern:format(string.format("%.0f", calc:EvaluateCurrentHealthPercent(pos)))
     end,
 
-    shields = function(pattern, calc) return pattern:format(calc:GetTotalDamageAbsorbs()) end,
-    shields_short = function(pattern, calc) return pattern:format(AbbreviateNumbers(calc:GetTotalDamageAbsorbs())) end,
+    -- Shields / heal absorbs: blank at zero like the plain path (every frame used to read "0").
+    shields = function(pattern, calc, _, probe)
+        local v = calc:GetTotalDamageAbsorbs()
+        if not NonZero(probe, v) then return "" end
+        return pattern:format(v)
+    end,
+    shields_short = function(pattern, calc, _, probe)
+        local v = calc:GetTotalDamageAbsorbs()
+        if not NonZero(probe, v) then return "" end
+        return pattern:format(AbbreviateNumbers(v))
+    end,
     -- *_percent variants degrade to short absolute (no calc method for absorbs percent).
-    shields_percent = function(pattern, calc) return pattern:format(AbbreviateNumbers(calc:GetTotalDamageAbsorbs())) end,
+    shields_percent = function(pattern, calc, _, probe)
+        local v = calc:GetTotalDamageAbsorbs()
+        if not NonZero(probe, v) then return "" end
+        return pattern:format(AbbreviateNumbers(v))
+    end,
 
-    healabsorbs = function(pattern, calc) return pattern:format(calc:GetTotalHealAbsorbs()) end,
-    healabsorbs_short = function(pattern, calc) return pattern:format(AbbreviateNumbers(calc:GetTotalHealAbsorbs())) end,
-    healabsorbs_percent = function(pattern, calc) return pattern:format(AbbreviateNumbers(calc:GetTotalHealAbsorbs())) end,
+    healabsorbs = function(pattern, calc, _, probe)
+        local v = calc:GetTotalHealAbsorbs()
+        if not NonZero(probe, v) then return "" end
+        return pattern:format(v)
+    end,
+    healabsorbs_short = function(pattern, calc, _, probe)
+        local v = calc:GetTotalHealAbsorbs()
+        if not NonZero(probe, v) then return "" end
+        return pattern:format(AbbreviateNumbers(v))
+    end,
+    healabsorbs_percent = function(pattern, calc, _, probe)
+        local v = calc:GetTotalHealAbsorbs()
+        if not NonZero(probe, v) then return "" end
+        return pattern:format(AbbreviateNumbers(v))
+    end,
 }
 
 local function HealthText_SetFormat(self, format)
@@ -2337,11 +2404,12 @@ local function HealthText_SetValue(self, health, maxHealth, shields, healAbsorbs
         local f2 = midnightFormatter[self._health2_format or "none"] or midnightFormatter.none
         local fs = midnightFormatter[self._shields_format or "none"] or midnightFormatter.none
         local fh = midnightFormatter[self._healAbsorbs_format or "none"] or midnightFormatter.none
+        local probe = self.zeroProbe
         self.text:SetFormattedText("%s%s%s%s",
-            f1(self.health1, calc),
-            f2(self.health2, calc),
-            fs(self.shields, calc),
-            fh(self.healAbsorbs, calc))
+            f1(self.health1, calc, self.health1_hideIfEmptyOrFull, probe),
+            f2(self.health2, calc, self.health2_hideIfEmptyOrFull, probe),
+            fs(self.shields, calc, nil, probe),
+            fh(self.healAbsorbs, calc, nil, probe))
         local _, fontSize = self.text:GetFont()
         self:SetWidth(SafeTextWidth(self.text, fontSize))
         return
@@ -2414,6 +2482,11 @@ function I.CreateHealthText(parent)
 
     local text = healthText:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
     healthText.text = text
+
+    -- fix from MiliUI: never shown, only read back -- see NonZero
+    local zeroProbe = healthText:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
+    zeroProbe:Hide()
+    healthText.zeroProbe = zeroProbe
 
     healthText.GetHealth1 = formatter.none
     healthText.GetHealth2 = formatter.none
