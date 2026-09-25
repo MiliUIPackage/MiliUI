@@ -1,13 +1,17 @@
 local _, Cell = ...
-local L = Cell.L
+-- fix from MiliUI: main-chunk local budget. This chunk sat at EXACTLY Lua's 200-local
+-- ceiling (one more and the whole file fails to compile -- no raid frames at all). Unused
+-- aliases (L, U, IsDelveInProgress, UnitPhaseReason, a second UnitIsPlayer) are gone, a
+-- load-time-only cache is read straight from the global, and self-contained sections are
+-- wrapped in `do ... end` so their private state stops occupying a slot. Those blocks are
+-- NOT re-indented, to keep the diff reviewable; each opens with a "local-budget block"
+-- comment. check-all reports the remaining headroom.
 ---@type CellFuncs
 local F = Cell.funcs
 ---@class CellUnitButtonFuncs
 local B = Cell.bFuncs
 ---@type CellIndicatorFuncs
 local I = Cell.iFuncs
----@type CellUtilityFuncs
-local U = Cell.uFuncs
 ---@type PixelPerfectFuncs
 local P = Cell.pixelPerfectFuncs
 ---@type CellAnimations
@@ -45,11 +49,9 @@ local UnitHasVehicleUI = UnitHasVehicleUI
 -- local UnitInVehicle = UnitInVehicle
 -- local UnitUsingVehicle = UnitUsingVehicle
 local UnitIsCharmed = UnitIsCharmed
-local UnitIsPlayer = UnitIsPlayer
 local UnitInPartyIsAI = UnitInPartyIsAI
 local UnitGroupRolesAssigned = UnitGroupRolesAssigned
-local GetSpecialization = GetSpecialization or (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization)
-local GetSpecializationInfo = GetSpecializationInfo or (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo)
+-- GetSpecialization / GetSpecializationInfo: moved into SpecRole's local-budget block
 local UnitThreatSituation = UnitThreatSituation
 local GetThreatStatusColor = GetThreatStatusColor
 local UnitExists = UnitExists
@@ -57,7 +59,6 @@ local UnitIsGroupLeader = UnitIsGroupLeader
 local UnitIsGroupAssistant = UnitIsGroupAssistant
 local InCombatLockdown = InCombatLockdown
 local UnitAffectingCombat = UnitAffectingCombat
-local UnitPhaseReason = UnitPhaseReason
 -- local UnitBuff = UnitBuff
 -- local UnitDebuff = UnitDebuff
 local IsInRaid = IsInRaid
@@ -66,9 +67,8 @@ local GetAuraDataByAuraInstanceID = C_UnitAuras.GetAuraDataByAuraInstanceID
 local GetAuraSlots = C_UnitAuras.GetAuraSlots
 local GetAuraDataBySlot = C_UnitAuras.GetAuraDataBySlot
 local IsAuraFilteredOutByInstanceID = C_UnitAuras.IsAuraFilteredOutByInstanceID
-local IsDelveInProgress = C_PartyInfo.IsDelveInProgress
 local UnitGetDetailedHealPrediction = UnitGetDetailedHealPrediction  -- nil pre-12.0
-local CreateUnitHealPredictionCalculator = CreateUnitHealPredictionCalculator  -- nil pre-12.0
+-- CreateUnitHealPredictionCalculator (nil pre-12.0) is read as a global: only button creation uses it
 
 --! for AI followers, UnitClassBase is buggy
 local UnitClassBase = function(unit)
@@ -78,11 +78,12 @@ end
 local barAnimationType, highlightEnabled, predictionEnabled
 local shieldEnabled, overshieldEnabled, overshieldReverseFillEnabled, overshieldGlowReverseEnabled
 local absorbEnabled, absorbInvertColor
--- fix from MiliUI: max health reduction (see B.MHL.Update). ⚠ NO new locals for it: this
--- file's main chunk is at EXACTLY Lua's 200-local ceiling. The nine locals it first used, and
--- then a single table local, each made the whole file fail to compile ("too many local
--- variables") -- i.e. no raid frames at all. So its state and functions hang off B instead.
--- The next person adding a file-level local here has to remove one first.
+-- fix from MiliUI: max health reduction (see B.MHL.Update). ⚠ NO new locals for it: when it
+-- was written this file's main chunk sat at EXACTLY Lua's 200-local ceiling. The nine locals
+-- it first used, and then a single table local, each made the whole file fail to compile
+-- ("too many local variables") -- i.e. no raid frames at all. So its state and functions
+-- hang off B instead. The chunk has since been slimmed (see the note at the top of the
+-- file); check-all prints the remaining headroom and fails below 20.
 --   api      GetUnitTotalModifiedMaxHealthPercent, nil on classic flavours
 --   enabled, color   appearance "maxHealthLoss", set by B.UpdateMaxHealthLoss
 B.MHL = {api = GetUnitTotalModifiedMaxHealthPercent}
@@ -625,6 +626,8 @@ end
 -------------------------------------------------
 local updater = CreateFrame("Frame")
 updater:Hide()
+local AddToInitQueue, AddToUpdateQueue
+do -- local-budget block: the queue itself is private; UpdateIndicators uses updater + the two Add*
 local queue = {}
 
 local WAITING_FOR_INIT = "WAITING_FOR_INIT"
@@ -675,19 +678,20 @@ local function FlushQueue()
     wipe(queue)
 end
 
-local function AddToInitQueue(b)
+function AddToInitQueue(b)
     b._indicatorsReady = nil
     b._status = WAITING_FOR_INIT
     b._config = Cell.vars.currentLayoutTable["indicators"]
     queue[b] = true
 end
 
-local function AddToUpdateQueue(b)
+function AddToUpdateQueue(b)
     if queue[b] then return end
     b._indicatorsReady = nil
     b._status = WAITING_FOR_UPDATE
     queue[b] = true
 end
+end -- local-budget block (update queue)
 
 -------------------------------------------------
 -- UpdateIndicators
@@ -2417,6 +2421,10 @@ local function UnitButton_UpdateTarget(self)
 end
 
 
+do -- local-budget block: CheckVehicleRoot / SpecRole are private to UnitButton_UpdateRole
+local GetSpecialization = GetSpecialization or (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization)
+local GetSpecializationInfo = GetSpecializationInfo or (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo)
+
 local function CheckVehicleRoot(self, petUnit)
     if not petUnit then return end
 
@@ -2497,6 +2505,7 @@ UnitButton_UpdateRole = function(self)
         roleIcon:Hide()
     end
 end
+end -- local-budget block (UnitButton_UpdateRole)
 
 UnitButton_UpdateLeader = function(self, event)
     local unit = self.states.unit
@@ -3548,6 +3557,9 @@ end
 -- `SecretWhenUnitIdentityRestricted`, unlike UnitClassBase and UnitGroupRolesAssigned. So
 -- these are plain values even for a boss and the branches are real branches. UnitPowerMax
 -- DOES carry one, which is why "has mana" is asked by power TYPE.
+local InvalidateHealthColor
+do -- local-budget block: health colour helpers, private to UnitButton_UpdateHealthColor
+   -- (InvalidateHealthColor is the one B.SetTexture / B.UpdateColor call from outside)
 local partyTargetColors = {}
 
 Cell.RegisterCallback("UpdateTools", "UnitButton_PartyTargetColors", function(which)
@@ -3685,7 +3697,7 @@ end
 -- Forget what colour the widgets are wearing. Anything that replaces or repaints them from
 -- outside UnitButton_UpdateHealthColor must call this, or the stamp below will skip the
 -- repaint that puts the colour back.
-local function InvalidateHealthColor(b)
+function InvalidateHealthColor(b)
     b.__hcBarR, b.__hcBarG, b.__hcBarB, b.__hcBarA = nil, nil, nil, nil
     b.__hcLossR, b.__hcLossG, b.__hcLossB, b.__hcLossA = nil, nil, nil, nil
     b.__hcIhR, b.__hcIhG, b.__hcIhB, b.__hcIhA = nil, nil, nil, nil
@@ -3928,6 +3940,7 @@ UnitButton_UpdateHealthColor = function(self)
         end
     end
 end
+end -- local-budget block (health colour)
 
 -------------------------------------------------
 -- translit names
@@ -4100,6 +4113,8 @@ end
 -- are a handful of getters and a SetValue. Tracking dirty KINDS would save that in the
 -- single-absorb-event-alone case and cost a mask on every mark.
 -------------------------------------------------
+local MarkOverlayDirty
+do -- local-budget block: flush state is private; UnitButton_OnEvent uses MarkOverlayDirty
 local overlayDirty = {}
 local overlayFlush = CreateFrame("Frame")
 local OVERLAY_FLUSH_BUDGET = 20
@@ -4128,10 +4143,11 @@ overlayFlush:SetScript("OnUpdate", function(self)
     if next(overlayDirty) == nil then self:Hide() end
 end)
 
-local function MarkOverlayDirty(b)
+function MarkOverlayDirty(b)
     overlayDirty[b] = true
     overlayFlush:Show()
 end
+end -- local-budget block (overlay flush)
 
 -- fix from MiliUI: max health reduction gets its OWN dirty set rather than riding the overlay
 -- flush -- that one runs on every UNIT_HEALTH, and this needs one read per actual change.
@@ -4336,6 +4352,7 @@ local function UnitButton_OnEvent(self, event, unit, arg)
     end
 end
 
+do -- local-budget block: enter/leave instance refresh
 local timer
 local function EnterLeaveInstance()
     if timer then timer:Cancel() timer=nil end
@@ -4347,6 +4364,7 @@ local function EnterLeaveInstance()
 end
 Cell.RegisterCallback("EnterInstance", "UnitButton_EnterInstance", EnterLeaveInstance)
 Cell.RegisterCallback("LeaveInstance", "UnitButton_LeaveInstance", EnterLeaveInstance)
+end -- local-budget block (enter/leave instance)
 
 local function UnitButton_OnAttributeChanged(self, name, value)
     if name == "unit" then
@@ -4475,6 +4493,7 @@ local function UnitButton_OnLeave(self)
     GameTooltip:Hide()
 end
 
+do -- local-budget block: OnTick and the shared tick driver; OnShow/OnHide use StartTicking/StopTicking
 local UNKNOWN = _G.UNKNOWN
 local UNKNOWNOBJECT = _G.UNKNOWNOBJECT
 local function UnitButton_OnTick(self)
@@ -4609,6 +4628,7 @@ function StopTicking(self)
         tickDriver = nil
     end
 end
+end -- local-budget block (OnTick / tick driver)
 
 -------------------------------------------------
 -- button functions
@@ -4710,6 +4730,7 @@ function B.UpdateColor(button)
     button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
 end
 
+do -- local-budget block: the eight SetValue variants are private to B.SetOrientation
 local function IncomingHeal_SetValue_Horizontal(self, incomingPercent, healthPercent)
     local barWidth = self:GetParent():GetWidth()
     local incomingHealWidth = incomingPercent * barWidth
@@ -5117,6 +5138,7 @@ function B.SetOrientation(button, orientation, rotateTexture)
     -- update actions
     I.UpdateActionsOrientation(button, orientation)
 end
+end -- local-budget block (B.SetOrientation)
 
 function B.UpdateHighlightColor(button)
     button.widgets.targetHighlight:SetBackdropBorderColor(unpack(CellDB["appearance"]["targetColor"]))
@@ -5330,6 +5352,7 @@ B.UpdateName = UnitButton_UpdateName
 -------------------------------------------------
 -- unit button init
 -------------------------------------------------
+do -- local-budget block: startTimeCache / DumbFunc are private to CellUnitButton_OnLoad
 -- local startTimeCache, statusCache = {}, {}
 local startTimeCache = {}
 
@@ -5739,3 +5762,4 @@ function CellUnitButton_OnLoad(button)
     button:SetScript("OnEvent", UnitButton_OnEvent)
     button:RegisterForClicks("AnyDown")
 end
+end -- local-budget block (CellUnitButton_OnLoad)

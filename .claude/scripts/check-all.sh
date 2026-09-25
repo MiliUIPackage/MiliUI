@@ -21,6 +21,7 @@ run() {
 }
 
 run "Lua：語法 ＋ 可疑的全域寫入" python3 .claude/scripts/check_lua.py
+run "Cell：語法／UnitButton 主 chunk local 餘裕／upvalue" python3 .claude/scripts/check_cell.py
 run "TOC：載入清單與 Interface 版本"  python3 .claude/scripts/check_toc.py
 run "語系：缺鍵／重複／格式符／色碼"  python3 .claude/scripts/check_locales.py
 run "共用層：MiliUIWidgets 有沒有漂移" python3 .claude/scripts/sync-widgets.py --check
