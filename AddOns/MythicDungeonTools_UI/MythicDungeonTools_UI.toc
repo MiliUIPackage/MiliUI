@@ -7,6 +7,8 @@
 ## Dependencies: MythicDungeonTools
 ## LoadOnDemand: 1
 ## IconTexture: Interface\AddOns\MythicDungeonTools\Textures\MDTFull
+## Title-zhTW: |cffFF7F00[M+]|r 傳奇地城工具 - 介面
+## Category-zhTW: 副本
 
 ..\MythicDungeonTools\libs\load_libs.xml
 Bootstrap.lua
