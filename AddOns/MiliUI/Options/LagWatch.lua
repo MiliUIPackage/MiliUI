@@ -168,6 +168,11 @@ function ns.LagWatch.SetEnabled(on)
     end
 end
 
+-- 自己造成的頓（洩漏追蹤的強制回收／全堆掃描）不該被當成卡頓廣播
+function ns.LagWatch.Suppress(sec)
+    suppressUntil = math.max(suppressUntil, GetTime() + sec)
+end
+
 function ns.LagWatch.IsEnabled()
     return DB().lagWatch
 end
