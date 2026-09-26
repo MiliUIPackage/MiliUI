@@ -33,6 +33,9 @@ local TRACKED = {
     "ItemRefShoppingTooltip1",
     "ItemRefShoppingTooltip2",
     "NamePlateTooltip",
+    -- 好友名單滑過的 Battle.net 好友提示。不是 GameTooltip，是普通 Frame 繼承
+    -- TooltipBackdropTemplate（一樣是 NineSlice 底），只換外觀、內容不經過 post-call
+    "FriendsTooltip",
 }
 
 -- 共同入口閘：沒接管的 tooltip（例如 EmbeddedItemTooltip）、forbidden、db 未載入 → 全部跳過
