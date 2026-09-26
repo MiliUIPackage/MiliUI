@@ -37,6 +37,7 @@ Options\HeapTrack.lua
 Options\Tab_Perf.lua
 Options\LagWatch.lua
 Options\LeakTrack.lua
+Options\HeapCensus.lua
 Options\Tab_Import.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua

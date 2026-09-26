@@ -181,6 +181,7 @@ function leak.Refresh()
     local LT = ns.LeakTrack
     if not (leak.statusFS and LT) then return end
     leak.cb:SetChecked(LT.IsEnabled())
+    if leak.censusCB and ns.HeapCensus then leak.censusCB:SetChecked(ns.HeapCensus.IsArmed()) end
     if LT.IsEnabled() then
         leak.statusFS:SetText(("|cff999999本次登入已拍 %d 張乾淨快照|r"):format(LT.SnapCount()))
     else
@@ -1094,6 +1095,27 @@ function leak.Build(anchor, innerW)
         GameTooltip:Show()
     end)
     leak.cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- 堆普查：一次性，下次 reload 才跑，跑完自己取消勾選（HeapCensus.lua）
+    local HC = ns.HeapCensus
+    leak.censusCB = W.CreateCheckButton(ramPage, "reload 後普查", function(checked)
+        if HC then HC.SetArmed(checked) end
+    end)
+    leak.censusCB:SetPoint("LEFT", leak.cb, "RIGHT", math.ceil(leak.cb.label:GetStringWidth()) + 24, 0)
+    leak.censusCB:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(leak.censusCB, "ANCHOR_TOPLEFT", 0, 4)
+        GameTooltip:AddLine("reload 後普查", 1, 1, 1)
+        GameTooltip:AddLine("洩漏追蹤只分得出「插件 vs 暴雪」。這個更細：reload 當下把 _G 底下"
+            .. "所有的表爬一遍，3 分鐘後再爬一次，列出是哪張表變大；同時記下這段期間"
+            .. "建立框架／貼圖最多的程式碼位置。", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("勾了之後下次 /reload 才開始，reload 完站著不動約 4 分鐘。"
+            .. "結果印在聊天視窗並存檔，跑完自動取消勾選。", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("代價：爬的過程每幀只用幾毫秒不會卡，但會暫時多佔幾十 MB；"
+            .. "開始與結束各強制回收一次（頓半秒）。", 1, 0.6, 0.3, true)
+        GameTooltip:Show()
+    end)
+    leak.censusCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    if HC then HC.onDone = function() leak.Refresh() end end
 
     leak.statusFS = ramPage:CreateFontString(nil, "OVERLAY")
     leak.statusFS:SetFontObject(W.fontSmall)
