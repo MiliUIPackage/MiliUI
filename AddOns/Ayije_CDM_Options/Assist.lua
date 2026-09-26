@@ -6,6 +6,11 @@ local CDM = Runtime
 local UI = ns.ConfigUI
 local L = Runtime.L
 
+local rotationAssistStyleOptions = {
+    { value = "square", label = L["Square"] },
+    { value = "blizzard", label = L["Blizzard"] },
+}
+
 
 local function CreateAssistTab(page, tabId)
     local scrollChild = UI.CreateScrollableTab(page, "AyijeCDM_AssistScrollFrame", 700, 370)
@@ -138,6 +143,28 @@ local function CreateAssistTab(page, tabId)
     )
     page.controls.rotationAssistEnabled:SetPoint("TOPLEFT", raHeader, "BOTTOMLEFT", 0, -15)
 
+    local lblRAStyle = scrollChild:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font14")
+    lblRAStyle:SetText(L["Highlight Style"])
+    lblRAStyle:SetPoint("TOPLEFT", page.controls.rotationAssistEnabled, "BOTTOMLEFT", 0, -15)
+
+    local setRASizeEnabled
+    local ddRAStyle = CreateFrame("DropdownButton", nil, scrollChild, "WowStyle1DropdownTemplate")
+    ddRAStyle:SetPoint("TOPLEFT", lblRAStyle, "BOTTOMLEFT", 0, -10)
+    ddRAStyle:SetWidth(180)
+    ddRAStyle:SetDefaultText(UI.GetOptionLabel(rotationAssistStyleOptions, CDM.db.rotationAssistStyle or "square", L["Square"]))
+    UI.SetupValueDropdown(
+        ddRAStyle,
+        rotationAssistStyleOptions,
+        function() return CDM.db.rotationAssistStyle or "square" end,
+        function(value, label)
+            CDM.db.rotationAssistStyle = value
+            ddRAStyle:SetDefaultText(label)
+            if setRASizeEnabled then setRASizeEnabled() end
+            API:Refresh("STYLE")
+        end
+    )
+    page.rotationAssistStyleDropdown = ddRAStyle
+
     page.controls.rotationAssistGlowRatio = UI.CreateModernSliderPrecise(
         scrollChild, L["Highlight Size"], 0.2, 0.4, CDM.db.rotationAssistGlowRatio or 0.33, 0.01, 2,
         function(v)
@@ -145,18 +172,34 @@ local function CreateAssistTab(page, tabId)
             API:Refresh("STYLE")
         end
     )
-    page.controls.rotationAssistGlowRatio:SetPoint("TOPLEFT", page.controls.rotationAssistEnabled, "BOTTOMLEFT", 0, -15)
+    page.controls.rotationAssistGlowRatio:SetPoint("TOPLEFT", ddRAStyle, "BOTTOMLEFT", 0, -15)
 
     local raOverlay = CreateFrame("Frame", nil, scrollChild)
-    raOverlay:SetPoint("TOPLEFT", page.controls.rotationAssistGlowRatio, "TOPLEFT")
+    raOverlay:SetPoint("TOPLEFT", lblRAStyle, "TOPLEFT")
     raOverlay:SetPoint("BOTTOMRIGHT", page.controls.rotationAssistGlowRatio, "BOTTOMRIGHT")
-    raOverlay:SetFrameLevel(page.controls.rotationAssistGlowRatio:GetFrameLevel() + 10)
+    raOverlay:SetFrameLevel(math.max(ddRAStyle:GetFrameLevel(), page.controls.rotationAssistGlowRatio:GetFrameLevel()) + 10)
     raOverlay:EnableMouse(true)
     raOverlay:Hide()
 
-    setRAControlsEnabled = function(en)
+    -- Highlight Size only drives the Blizzard flipbook; the square style is fixed-pixel.
+    local sizeOverlay = CreateFrame("Frame", nil, scrollChild)
+    sizeOverlay:SetAllPoints(page.controls.rotationAssistGlowRatio)
+    sizeOverlay:SetFrameLevel(page.controls.rotationAssistGlowRatio:GetFrameLevel() + 10)
+    sizeOverlay:EnableMouse(true)
+    sizeOverlay:Hide()
+
+    setRASizeEnabled = function()
+        local en = CDM.db.rotationAssistEnabled and CDM.db.rotationAssistStyle == "blizzard"
         page.controls.rotationAssistGlowRatio:SetAlpha(en and 1 or 0.35)
+        sizeOverlay:SetShown(CDM.db.rotationAssistEnabled and not en or false)
+    end
+
+    setRAControlsEnabled = function(en)
+        local alpha = en and 1 or 0.35
+        lblRAStyle:SetAlpha(alpha)
+        ddRAStyle:SetAlpha(alpha)
         raOverlay:SetShown(not en)
+        setRASizeEnabled()
     end
     setRAControlsEnabled(CDM.db.rotationAssistEnabled or false)
 

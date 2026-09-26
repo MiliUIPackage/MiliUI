@@ -300,6 +300,7 @@ ns.ConfigKeys = {
             label = L["Assist Settings"],
             keys = {
                 "rotationAssistEnabled",
+                "rotationAssistStyle",
                 "rotationAssistGlowRatio",
                 "assistEnabled",
                 "assistFontSize",

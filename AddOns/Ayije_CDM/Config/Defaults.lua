@@ -169,6 +169,7 @@ CDM.defaults = {
 
     -- Assist
     rotationAssistEnabled = false,
+    rotationAssistStyle = "square", -- "square", "blizzard"
     rotationAssistGlowRatio = 0.33,
     assistEnabled = false,
     assistFontSize = 15,

@@ -104,6 +104,7 @@ MiliUI_AyijeCDM_Profile = {
     ["chargeOffsetX"] = 0,
     ["fadingOpacity"] = 30,
     ["rotationAssistGlowRatio"] = 0.33,
+    ["rotationAssistStyle"] = "square",
     ["sizeEssRow1"] = { ["w"] = 46, ["h"] = 40 },
     ["resourcesMaelstromColor"] = { ["a"] = 1, ["r"] = 0, ["g"] = 0.5, ["b"] = 1 },
     ["castBarOffsetX"] = 0,
