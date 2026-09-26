@@ -11,7 +11,8 @@
 --           ⚠ 分插件的歸戶要 UpdateAddOnMemoryUsage()，那一下是整個 Lua 堆
 --           的掃描，是這一頁唯一真的會花錢的動作（Cell 的原始碼裡把它註解掉，
 --           旁邊寫 "stuck like hell"）—— 所以只在開啟分頁時量一次，之後要嘛
---           按「重新測量」，要嘛自己勾自動（預設關，而且戰鬥中不量）。
+--           按「重新測量」，要嘛勾「洩漏追蹤」（LeakTrack.lua）讓它挑乾淨的
+--           時機自己量（預設關，戰鬥中不量）。
 --
 -- 分頁一關就完全停擺：OnUpdate 掛在分頁 frame 上，Hide 之後引擎不會派送，
 -- 不必自己記得拆。分頁沒被打開過連 frame 都不會建。
@@ -54,7 +55,9 @@ local RAM_TRENDLBL_Y = -(PANEL_H + 12)
 local RAM_PLOT_Y     = RAM_TRENDLBL_Y - 18
 local RAM_PLOT_H     = 56
 local RAM_CTRL_Y     = RAM_PLOT_Y - RAM_PLOT_H - 12
-local RAM_HEAD_Y     = RAM_CTRL_Y - 30
+local RAM_REPORT_Y   = RAM_CTRL_Y - 30  -- 洩漏追蹤的結論區（三行）
+local RAM_REPORT_H   = 56
+local RAM_HEAD_Y     = RAM_REPORT_Y - RAM_REPORT_H - 10
 local RAM_LIST_TOP   = RAM_HEAD_Y - 22
 
 local FOOT_Y     = 8            -- 頁尾離分頁底部
@@ -70,7 +73,6 @@ local SCROLL_W   = 20           -- CreateScrollFrame 固定讓出的捲軸寬，
 
 local VALUE_TICK = 1            -- 數字重讀間隔（免費，只在分頁開著時跑）
 local SORT_TICK  = 5            -- 重新排序間隔：每秒重排會讓列一直上下跳，根本讀不到
-local MEM_TICK   = 5            -- 自動測量記憶體的間隔（要玩家自己勾才跑）
 
 -- 平均型指標超過這個 ms/幀就上色。60 FPS 一幀 16.7 ms，單一插件吃掉 1 ms 就是 6%，
 -- 那確實該讓玩家看見；尖峰型指標不套色（偶爾一次 50 ms 的尖峰是正常的）。
@@ -89,8 +91,8 @@ local COL = {
 }
 
 -- 記憶體子頁的欄位幾何
--- （MB／長條／與上次測量的差／記錄期間的累計成長／佔插件合計）
--- 加「累計成長」那一欄的空間是跟長條借的（148 → 92），不是跟名稱借的：
+-- （MB／長條／與上次測量的差／洩漏追蹤算出的每小時成長／佔插件合計）
+-- 「每小時」那一欄的空間是跟長條借的（148 → 92），不是跟名稱借的：
 -- 名稱被截斷比長條短一截難用得多。
 local COL2 = {
     NAME_L   = 28,
@@ -114,13 +116,13 @@ local SORTS = { cpu = true, mem = true, name = true }
 
 local tab, list, warnBox, lagCB, graph, folderFS
 local cpuPage, ramPage
--- 子分頁鈕與它的高亮函式。收成一張表同樣是為了省 upvalue（見下面 growth 的註解）
+-- 子分頁鈕與它的高亮函式。收成一張表同樣是為了省 upvalue（見下面 leak 的註解）
 local subTab = { buttons = {} } -- buttons[id] / Highlight
 local memList                   -- 記憶體子頁的清單
--- 成長記錄的三個控件與它的重繪函式收在一張表裡。
+-- 洩漏追蹤的控件與它的重繪函式收在一張表裡。
 -- ⚠ 不是為了整齊：Init 那支函式的 upvalue 已經頂到 Lua 的 60 上限，
 --    每多一個 file-scope local 就多吃一格。同一組東西一律用一張表帶走。
-local growth = {}               -- statusFS / clearBtn / head / Refresh
+local leak = {}                 -- cb / statusFS / lines / head / Build / Refresh
 local trend = {}                -- rangeFS / verdictFS
 local cards = {}
 local headerCells = {}
@@ -140,13 +142,11 @@ local maxCPU, maxMem = 0, 0
 local folderCount = { total = 0, loaded = 0 }
 local hasProfiler = false
 local rendered = 0              -- 上次真的重排過的列數（見 Refresh）
-local valueAcc, sortAcc, memAcc = 0, 0, 0
+local valueAcc, sortAcc = 0, 0
 local graphRev = -1             -- 上次畫圖時的 HeapTrack 版號
 
--- 這兩個是 DB() 的快取。DB() 每次都要走訪 METRICS 驗證欄位，而這兩個值一個
--- 每幀讀（OnUpdate）、一個每列讀（MsColor）—— 直接查 DB 等於把驗證邏輯
--- 塞進最熱的迴圈裡。設定值改動的入口只有三個，同步在那裡做。
-local autoMem = false
+-- DB() 的快取。DB() 每次都要走訪 METRICS 驗證欄位，而這個值每列讀（MsColor）
+-- —— 直接查 DB 等於把驗證邏輯塞進最熱的迴圈裡。
 local metricIsAvg = true
 
 ------------------------------------------------------------
@@ -167,77 +167,37 @@ local function DB()
     if not valid then db.metric = METRICS[1].value end
     if not SORTS[db.sort] then db.sort = "cpu" end
     if type(db.desc) ~= "boolean" then db.desc = true end
-    if type(db.autoMem) ~= "boolean" then db.autoMem = false end
     if db.page ~= "cpu" and db.page ~= "ram" then db.page = "cpu" end
-    -- 成長記錄：勾著「自動測量」的那段時間，每個插件總共往上長了多少。
-    -- 存在 SavedVariables 所以登出／斷線都留著，要清由玩家自己按鈕。
-    if type(db.growth) ~= "table" then db.growth = {} end
-    if type(db.growth.addons) ~= "table" then db.growth.addons = {} end
-    if type(db.growth.samples) ~= "number" then db.growth.samples = 0 end
+    -- 舊的「每 5 秒自動測量＋累計成長」（2026-09-26 由洩漏追蹤取代）：它量的是
+    -- 沒回收的堆，垃圾製造機跟洩漏混在一起分不開。欄位直接清掉
+    db.autoMem, db.growth = nil, nil
     return db
 end
 
 ------------------------------------------------------------
--- 成長記錄
---
--- 累加的是**正的差值**：每次測量跟上一次比，漲了就加進去、跌了不扣。
--- 理由是這一欄要回答的問題是「誰在持續往上爬」，而 GC 收走的那一大筆回落
--- 不該把前面爬升的證據抵銷掉（抵銷之後垃圾製造機的指紋會變成一條零線）。
---
--- 這個累加法也剛好跨得過登出：新的一次登入第一次測量沒有「上一次」可比，
--- 不會產生差值，所以不會把「堆被清空」誤記成一筆巨大的負成長或成長。
---
--- ⚠ 只在**自動測量勾著**的時候累加。手動按「重新測量」不算——玩家講的是
--- 「勾選之後這段時間」，把零星的手動測量混進去會讓區間失去意義。
+-- 洩漏追蹤的狀態列與結論區（資料與比對全在 LeakTrack.lua，這裡只貼字）
 ------------------------------------------------------------
-local function GrowthDB()
-    return DB().growth
-end
-
-local function RecordGrowth()
-    local g = GrowthDB()
-    if not g.since then g.since = date("%Y-%m-%d %H:%M") end
-    g.samples = g.samples + 1
-    for f, kb in pairs(memKB) do
-        local prev = memPrevKB[f]
-        if prev then
-            local delta = kb - prev
-            if delta > 0 then
-                g.addons[f] = (g.addons[f] or 0) + delta
-            end
+function leak.Refresh()
+    local LT = ns.LeakTrack
+    if not (leak.statusFS and LT) then return end
+    leak.cb:SetChecked(LT.IsEnabled())
+    if LT.IsEnabled() then
+        leak.statusFS:SetText(("|cff999999本次登入已拍 %d 張乾淨快照|r"):format(LT.SnapCount()))
+    else
+        leak.statusFS:SetText("")
+    end
+    local l1, l2, l3 = LT.ReportLines()
+    leak.lines[1]:SetText(l1)
+    leak.lines[2]:SetText(l2)
+    leak.lines[3]:SetText(l3)
+    -- 表頭染色＝「清單現在照這一欄排」
+    if leak.head then
+        if LT.GetRates() then
+            leak.head:SetTextColor(W.Accent())
+        else
+            leak.head:SetTextColor(0.6, 0.6, 0.6)
         end
     end
-end
-
-local function ClearGrowth()
-    local g = GrowthDB()
-    wipe(g.addons)
-    g.samples = 0
-    g.since = nil
-end
-
-local function HasGrowthData()
-    local g = GrowthDB()
-    if g.samples <= 0 then return false end
-    return next(g.addons) ~= nil
-end
-
--- 狀態列：記錄從什麼時候開始、量了幾次，以及清單現在是照什麼排的。
--- 排序會隨著有沒有記錄而變，不講的話玩家會覺得清單自己亂跳。
-function growth.Refresh()
-    if not growth.statusFS then return end
-    local g = GrowthDB()
-    if not HasGrowthData() then
-        growth.statusFS:SetText("|cff666666勾選自動測量後開始記錄各插件的累計成長|r")
-        if growth.clearBtn then growth.clearBtn:SetEnabled(false) end
-        if growth.head then growth.head:SetTextColor(0.6, 0.6, 0.6) end
-        return
-    end
-    growth.statusFS:SetText(("|cff999999記錄自 %s ・ %d 次測量 ・ 清單依成長排序|r")
-        :format(g.since or "?", g.samples))
-    if growth.clearBtn then growth.clearBtn:SetEnabled(true) end
-    -- 表頭染色＝「現在是照這一欄排的」，跟 CPU 頁的排序表頭同一個語彙
-    if growth.head then growth.head:SetTextColor(W.Accent()) end
 end
 
 local function CurrentMetric()
@@ -312,12 +272,13 @@ end
 -- UpdateAddOnMemoryUsage 是這一頁唯一昂貴的呼叫，只有這個函式會叫它。
 -- GetAddOnMemoryUsage 從 10.1.0 起對暴雪內部插件會直接報錯，所以逐筆 pcall。
 ------------------------------------------------------------
-local function MeasureMemory()
+-- fresh = 剛剛別人（洩漏追蹤）才掃過堆，直接讀結果，不再掃一次
+local function MeasureMemory(fresh)
     if type(UpdateAddOnMemoryUsage) ~= "function"
             or type(GetAddOnMemoryUsage) ~= "function" then
         return
     end
-    UpdateAddOnMemoryUsage()
+    if not fresh then UpdateAddOnMemoryUsage() end
     -- 「變化」欄跟上一次測量比。快照要在覆寫前抄走 —— 存參照的話新舊是同一張表，
     -- 差值永遠是 0（同一個坑見 Cell 筆記的 sig 快照）
     if memStamp then
@@ -332,13 +293,12 @@ local function MeasureMemory()
         end
     end
     memStamp = GetTime()
-    if autoMem and memHasPrev then RecordGrowth() end
     if RebuildMemEntries then
         RebuildMemEntries()
         if ramPage and ramPage:IsShown() then
             RefreshMemPanel()
             RefreshMemList()
-            growth.Refresh()
+            leak.Refresh()
         end
     end
 end
@@ -827,7 +787,7 @@ end
 function RebuildMemEntries()
     wipe(memEntries)
     memTotalKB = 0
-    local growthAddons = GrowthDB().addons
+    local rates = ns.LeakTrack and ns.LeakTrack.GetRates()
     for _, item in ipairs(entries) do
         local mem, prev = 0, 0
         for _, f in ipairs(item.folders) do
@@ -837,19 +797,20 @@ function RebuildMemEntries()
         -- 獨立欄位不共用 item.mem：那個每秒被 CPU 頁的 Recompute 覆寫
         item.mem2 = mem
         item.memDelta = memHasPrev and (mem - prev) or nil
-        local grown = 0
-        for _, f in ipairs(item.folders) do
-            grown = grown + (growthAddons[f] or 0)
+        local rate
+        if rates then
+            rate = 0
+            for _, f in ipairs(item.folders) do rate = rate + (rates[f] or 0) end
         end
-        item.memGrowth = grown
+        item.memRate = rate
         memTotalKB = memTotalKB + mem
         if mem > 0 then memEntries[#memEntries + 1] = item end
     end
-    -- 有成長記錄就改成「成長最多的排最上面」——那正是開著記錄時要看的東西；
-    -- 沒有記錄（或剛清掉）就回到固定 MB 由大到小。
-    if HasGrowthData() then
+    -- 洩漏追蹤有結論就改成「長最快的排最上面」——那正是開著追蹤時要看的東西；
+    -- 沒有結論就回到固定 MB 由大到小。
+    if rates then
         table.sort(memEntries, function(a, b)
-            if a.memGrowth ~= b.memGrowth then return a.memGrowth > b.memGrowth end
+            if a.memRate ~= b.memRate then return a.memRate > b.memRate end
             if a.mem2 ~= b.mem2 then return a.mem2 > b.mem2 end
             return a.sortName < b.sortName
         end)
@@ -872,15 +833,13 @@ local function FmtDelta(kb)
     return "|cff8888880.0|r"
 end
 
--- 「累計成長」欄：記錄期間往上長的總和。只有正值（見 RecordGrowth），
--- 所以不需要像「變化」那樣有回落的顏色；用亮度分級講「這筆值不值得追」。
-local function FmtGrowth(kb)
-    if not kb or kb <= 0 then return "|cff666666—|r" end
-    local mb = kb / 1024
-    if mb >= 20 then return ("|cffff5555+%.1f|r"):format(mb) end
-    if mb >= 5  then return ("|cffff9900+%.1f|r"):format(mb) end
-    if mb >= 0.5 then return ("|cffcccccc+%.1f|r"):format(mb) end
-    return "|cff666666—|r"
+-- 「每小時」欄：洩漏追蹤在回收後的快照上算的斜率（MB／小時）。
+-- 用亮度分級講「這筆值不值得追」；負的與 1 MB 以下都是雜訊
+local function FmtRate(mb)
+    if not mb or mb < 1 then return "|cff666666—|r" end
+    if mb >= 20 then return ("|cffff5555+%.0f|r"):format(mb) end
+    if mb >= 5  then return ("|cffff9900+%.0f|r"):format(mb) end
+    return ("|cffcccccc+%.0f|r"):format(mb)
 end
 
 local function ShowMemRowTooltip(row)
@@ -958,7 +917,7 @@ local function UpdateMemRow(row, item)
     row.memFS:SetText(FmtMB(item.mem2))
     SetBar(row.memBar, item.mem2, memEntries[1] and memEntries[1].mem2 or 0)
     row.deltaFS:SetText(FmtDelta(item.memDelta))
-    row.growthFS:SetText(FmtGrowth(item.memGrowth))
+    row.growthFS:SetText(FmtRate(item.memRate))
     if memTotalKB > 0 then
         row.shareFS:SetText(("|cff999999%.1f%%|r"):format(item.mem2 / memTotalKB * 100))
     else
@@ -1058,14 +1017,6 @@ end
 local function OnTabUpdate(_, elapsed)
     valueAcc = valueAcc + elapsed
     sortAcc  = sortAcc + elapsed
-    -- 自動測量在戰鬥中停手：那一下的堆掃描是看得見的頓格，戰鬥中最不該發生
-    if autoMem and not InCombatLockdown() then
-        memAcc = memAcc + elapsed
-        if memAcc >= MEM_TICK then
-            memAcc = 0
-            MeasureMemory()     -- 自己會把記憶體子頁的面板與清單一起帶起來
-        end
-    end
     -- 走勢圖每分鐘才有新資料，用版號比對就好，不必每秒重畫幾十根貼圖
     if ramPage:IsShown() then
         local rev = ns.HeapTrack and ns.HeapTrack.GetRevision() or 0
@@ -1114,9 +1065,76 @@ local function ShowPage(id)
     else
         RefreshMemPanel()
         RefreshMemList()
-        growth.Refresh()
+        leak.Refresh()
         graphRev = -1           -- 進頁立刻重畫，不等下一個取樣點
         RefreshGraph()
+    end
+end
+
+-- 控制列的洩漏追蹤開關＋下面三行結論區。拆出 Init 是因為 Init 的 upvalue 已滿
+function leak.Build(anchor, innerW)
+    local LT = ns.LeakTrack
+    leak.cb = W.CreateCheckButton(ramPage, "洩漏追蹤", function(checked)
+        if not LT then return end
+        LT.SetEnabled(checked)
+        leak.Refresh()
+    end)
+    leak.cb:SetPoint("LEFT", anchor, "RIGHT", 14, 0)
+    leak.cb:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(leak.cb, "ANCHOR_TOPLEFT", 0, 4)
+        GameTooltip:AddLine("洩漏追蹤", 1, 1, 1)
+        GameTooltip:AddLine("在堆最乾淨的時候自動拍快照：GC 剛收完一輪、讀取畫面、暫離。"
+            .. "每張記下總量、每個插件的用量，以及上一張之後做過什麼（戰鬥、拍賣場、換區域…）。",
+            0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("玩滿 15 分鐘、拍到 4 張就自動比對：每小時長多少、長在插件還是暴雪那邊、"
+            .. "哪幾支長最快、在做什麼的時候長。結果寫在下面，登出後也留著。", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("代價：勾選當下與讀取畫面、暫離時會強制回收一次（半秒左右的頓，"
+            .. "讀取畫面會變長一點）；GC 收完時的快照是一次堆掃描。戰鬥中不拍。"
+            .. "抓完就取消勾選。", 1, 0.6, 0.3, true)
+        GameTooltip:Show()
+    end)
+    leak.cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    leak.statusFS = ramPage:CreateFontString(nil, "OVERLAY")
+    leak.statusFS:SetFontObject(W.fontSmall)
+    leak.statusFS:SetPoint("TOPRIGHT", ramPage, "TOPRIGHT", -SIDE, RAM_CTRL_Y - 5)
+    leak.statusFS:SetJustifyH("RIGHT")
+
+    local box = W.CreateFrame(nil, ramPage)
+    W.Stylize(box, { 0.08, 0.08, 0.08, 0.9 })
+    box:SetPoint("TOPLEFT", SIDE, RAM_REPORT_Y)
+    box:SetSize(innerW, RAM_REPORT_H)
+    leak.lines = {}
+    for i = 1, 3 do
+        local fs = box:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(i == 1 and W.fontNormal or W.fontSmall)
+        fs:SetPoint("TOPLEFT", 10, -6 - (i - 1) * 16)
+        fs:SetWidth(innerW - 20)
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(false)
+        leak.lines[i] = fs
+    end
+    -- 一行放不下的會被截掉，完整內容在工具提示（自動換行）
+    box:EnableMouse(true)
+    box:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(box, "ANCHOR_TOP")
+        GameTooltip:AddLine("洩漏追蹤結論", 1, 1, 1)
+        for i = 1, 3 do
+            local t = leak.lines[i]:GetText()
+            if t and t ~= "" then GameTooltip:AddLine(t, 0.8, 0.8, 0.8, true) end
+        end
+        GameTooltip:Show()
+    end)
+    box:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- 新快照進來時分頁開著的話，順手用那次掃描的結果刷新清單（不再掃一次）
+    if LT then
+        LT.onSnapshot = function()
+            if tab and tab:IsShown() and ramPage:IsShown() then
+                MeasureMemory(true)
+            end
+            leak.Refresh()
+        end
     end
 end
 
@@ -1353,69 +1371,9 @@ local function Init()
     measureBtn:SetPoint("TOPLEFT", SIDE, RAM_CTRL_Y)
     measureBtn:SetScript("OnClick", function()
         MeasureMemory()
-        memAcc = 0
     end)
 
-    local autoCB = W.CreateCheckButton(ramPage, "每 5 秒自動測量", function(checked)
-        DB().autoMem = checked
-        autoMem = checked
-        memAcc = 0
-        if checked then
-            -- 打勾的當下講一次就好：這是整頁唯一真的會花錢的動作，玩家該知道
-            -- 代價再決定留不留著（工具提示只有滑過才看得到，不夠）
-            ns.Print("自動測量每 5 秒掃描一次整個 Lua 堆，堆越大越貴，"
-                .. "開著可能造成額外的細微頓格（戰鬥中會自動停手）。看完記得取消勾選。")
-            MeasureMemory()
-        end
-    end)
-    autoCB:SetPoint("LEFT", measureBtn, "RIGHT", 14, 0)
-    autoCB:SetChecked(DB().autoMem)
-    autoCB:SetScript("OnEnter", function()
-        GameTooltip:SetOwner(autoCB, "ANCHOR_TOPLEFT", 0, 4)
-        GameTooltip:AddLine("每 5 秒自動測量", 1, 1, 1)
-        GameTooltip:AddLine("每 5 秒重新歸戶一次。搭配「變化」欄抓垃圾製造機：持續 +、"
-            .. "過一陣子突然一大筆 − 的那幾列就是 —— 跟佔用大是兩回事。", 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine("這是整個 Lua 堆的掃描，堆越大越貴，開著可能造成額外的"
-            .. "細微頓格。戰鬥中自動停手，分頁一關就停。", 1, 0.6, 0.3, true)
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine("勾著的期間會累加「累計成長」", 1, 1, 1)
-        GameTooltip:AddLine("每次取樣跟上一次比，漲了才加。所以它抓的是「留著不放」"
-            .. "（快取越長越大、洩漏），抓不到「配置完馬上被 GC 收走」的垃圾製造機 —— "
-            .. "那種的淨差是 0，要看「變化」欄持續 + 然後一大筆 −。", 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine("短時間內幾乎都是 0 是正常的：多數插件在幾十秒內的真實成長"
-            .. "遠低於顯示門檻（0.5 MB）。這一欄要開著幾十分鐘以上才看得出差距。",
-            0.8, 0.8, 0.8, true)
-        GameTooltip:Show()
-    end)
-    autoCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-    ------------------------------------------------------------
-    -- 成長記錄的狀態與清除
-    --
-    -- 記錄本身跨登入留著（存在 SavedVariables），所以一定要給一個「從什麼時候
-    -- 開始算的」——不然玩家看到一筆 300MB 的成長，不知道那是十分鐘還是三天。
-    ------------------------------------------------------------
-    growth.clearBtn = W.CreateButton(ramPage, "清除成長記錄", "red", 110, 22)
-    growth.clearBtn:SetPoint("LEFT", autoCB, "RIGHT", 150, 0)
-    growth.clearBtn:SetScript("OnClick", function()
-        ClearGrowth()
-        RebuildMemEntries()     -- 清掉之後排序要回到 MB 由大到小
-        RefreshMemList()
-        growth.Refresh()
-    end)
-    growth.clearBtn:SetScript("OnEnter", function()
-        GameTooltip:SetOwner(growth.clearBtn, "ANCHOR_TOPLEFT", 0, 4)
-        GameTooltip:AddLine("清除成長記錄", 1, 1, 1)
-        GameTooltip:AddLine("把「累計成長」歸零、重新開始算。記錄會跨登入留著，"
-            .. "所以要換一個觀察區間就得自己清一次。", 0.8, 0.8, 0.8, true)
-        GameTooltip:Show()
-    end)
-    growth.clearBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-    growth.statusFS = ramPage:CreateFontString(nil, "OVERLAY")
-    growth.statusFS:SetFontObject(W.fontSmall)
-    growth.statusFS:SetPoint("LEFT", growth.clearBtn, "RIGHT", 10, 0)
-    growth.statusFS:SetJustifyH("LEFT")
+    leak.Build(measureBtn, innerW)
 
     -- 記憶體清單：固定 MB 由大到小，只在測量後才變，所以表頭是靜態標籤不是按鈕
     local memHeader = CreateFrame("Frame", nil, ramPage)
@@ -1438,7 +1396,7 @@ local function Init()
     MemHeadLabel("名稱", COL2.NAME_L, "LEFT")
     MemHeadLabel("記憶體 MB", COL2.MEM_R)
     MemHeadLabel("變化", COL2.DELTA_R)
-    growth.head = MemHeadLabel("累計成長", COL2.GROWTH_R)
+    leak.head = MemHeadLabel("每小時", COL2.GROWTH_R)
     MemHeadLabel("佔插件", COL2.SHARE_R)
 
     local memHeadLine = memHeader:CreateTexture(nil, "ARTWORK")
@@ -1458,9 +1416,7 @@ local function Init()
     ramFooter:SetJustifyH("LEFT")
     ramFooter:SetText("|cff888888記憶體要掃過整個 Lua 堆才分得出是誰用的，所以只在測量時更新。"
         .. "「變化」是跟上一次測量比 —— 佔用大而不動的是資料庫，持續爬升的才要追。"
-        .. "「累計成長」只在自動測量勾著時累加、只加漲的不扣跌的，跨登入留著；"
-        .. "它量的是取樣之間留下來的量，中間被 GC 收掉的看不見 —— "
-        .. "所以全 0 代表沒有明顯洩漏，不是沒有插件在吃記憶體。|r")
+        .. "「每小時」是洩漏追蹤在回收後的快照上算的成長速度，有結論後清單照它排。|r")
 
     -- ⚠ 清單底部跟著註腳的**實際**高度走，不要用寫死的「頁尾一行」常數：
     -- 這段文字長到換兩行的時候就會被清單的最後幾列蓋住（2026-08-30 踩過）。
@@ -1499,7 +1455,6 @@ ns.RegisterCallback("ShowOptionsTab", "perfTab", function(id)
 
     hasProfiler = ProfilerAvailable()
     warnBox:SetShown(not hasProfiler)
-    autoMem = DB().autoMem
     lagCB:SetChecked(ns.LagWatch and ns.LagWatch.IsEnabled() or false)
 
     RebuildEntries()
@@ -1510,7 +1465,7 @@ ns.RegisterCallback("ShowOptionsTab", "perfTab", function(id)
     wipe(memPrevKB)
     memHasPrev = false
     RebuildMemEntries()
-    valueAcc, sortAcc, memAcc = 0, 0, 0
+    valueAcc, sortAcc = 0, 0
     RefreshHeaders()
     graphRev = -1
     ShowPage(DB().page)
