@@ -18,12 +18,35 @@ dirtyFrame:Hide()
 local VIEWER_NAMES = CDM_C.COOLDOWN_VIEWER_NAMES
 
 local glowRatio = 0.33
-local assistStyle = "square"
 
--- "blizzard": the action-bar ant flipbook, scaled out by glowRatio.
--- "square":   the same cyan, drawn as a hard 2px frame over the icon edge plus a
---             1px-per-step halo outside it. Plain textures on our own child frame:
---             no Blizzard template, and no geometry read from the viewer item.
+-- Setting ("blizzard" / "square") picks a renderer:
+-- "blizzard":   the action-bar ant flipbook, scaled out by glowRatio.
+-- "squareAnts": the same flipbook template with Masque's square-cornered ant sheet
+--               swapped in. Referenced from Masque's folder, never copied: its
+--               license forbids redistributing its files piecemeal.
+-- "square":     fallback without Masque. The same cyan as a hard 2px frame over the
+--               icon edge plus a 1px-per-step halo. Plain textures, no template.
+local renderer = "square"
+
+local SQUARE_ANTS_TEXTURE = [[Interface\AddOns\Masque\Textures\Square\AssistedCombatHighlight-Ants]]
+local SQUARE_ANTS_CELL_PX = 84
+local SQUARE_ANTS_COORD = SQUARE_ANTS_CELL_PX / 512
+-- The ant line runs through texel 11 and 73 of each 84px cell, so stretching the
+-- cell by 84/62 of the icon puts the line right on the icon edge.
+local SQUARE_ANTS_OUTSET = (SQUARE_ANTS_CELL_PX / 62 - 1) / 2
+
+local hasSquareAnts
+local function HasSquareAnts()
+    if hasSquareAnts == nil then
+        hasSquareAnts = (C_AddOns and C_AddOns.DoesAddOnExist and C_AddOns.DoesAddOnExist("Masque")) and true or false
+    end
+    return hasSquareAnts
+end
+
+local function ResolveRenderer(style)
+    if style == "blizzard" then return "blizzard" end
+    return HasSquareAnts() and "squareAnts" or "square"
+end
 local SQUARE_COLOR = { 0.30, 0.82, 1.00 }
 local SQUARE_EDGE_PX = 2
 local SQUARE_HALO_ALPHA = { 0.60, 0.36, 0.18, 0.07 }
@@ -36,6 +59,28 @@ local function CreateFlipbookFrame(parent)
     f:SetFrameLevel(parent:GetFrameLevel() + 5)
     f.Flipbook.Anim:Play()
     f.Flipbook.Anim:Stop()
+    return f
+end
+
+local function GetFlipBookAnimation(animGroup)
+    for _, anim in ipairs({ animGroup:GetAnimations() }) do
+        if anim:GetObjectType() == "FlipBook" then return anim end
+    end
+end
+
+local function CreateSquareAntsFrame(parent)
+    local f = CreateFlipbookFrame(parent)
+    local flipbook = f.Flipbook
+    flipbook:SetTexture(SQUARE_ANTS_TEXTURE)
+    flipbook:SetTexCoord(0, SQUARE_ANTS_COORD, 0, SQUARE_ANTS_COORD)
+    local anim = GetFlipBookAnimation(flipbook.Anim)
+    if anim then
+        anim:SetFlipBookFrameWidth(SQUARE_ANTS_CELL_PX)
+        anim:SetFlipBookFrameHeight(SQUARE_ANTS_CELL_PX)
+    end
+    -- Re-seat the first cell after the swap (same glitch fix Blizzard/Masque use).
+    flipbook.Anim:Play()
+    flipbook.Anim:Stop()
     return f
 end
 
@@ -113,6 +158,7 @@ end
 -- hides the other set and keeps it pooled for a switch back.
 local highlightFramesByStyle = {
     blizzard = setmetatable({}, { __mode = "k" }),
+    squareAnts = setmetatable({}, { __mode = "k" }),
     square = setmetatable({}, { __mode = "k" }),
 }
 
@@ -121,9 +167,9 @@ local function GetAnim(hf)
 end
 
 local function ShowHighlight(frame)
-    local frames = highlightFramesByStyle[assistStyle]
+    local frames = highlightFramesByStyle[renderer]
     local hf = frames[frame]
-    if assistStyle == "square" then
+    if renderer == "square" then
         if not hf then
             hf = CreateSquareFrame(frame)
             frames[frame] = hf
@@ -131,16 +177,19 @@ local function ShowHighlight(frame)
         LayoutSquareFrame(hf)
     else
         if not hf then
-            hf = CreateFlipbookFrame(frame)
+            hf = renderer == "squareAnts" and CreateSquareAntsFrame(frame) or CreateFlipbookFrame(frame)
             frames[frame] = hf
         end
+        local ratio = renderer == "squareAnts" and SQUARE_ANTS_OUTSET or glowRatio
         local w = frame:GetWidth()
         local h = frame:GetHeight()
-        local ox = w * glowRatio
-        local oy = h * glowRatio
-        hf.Flipbook:ClearAllPoints()
-        hf.Flipbook:SetPoint("TOPLEFT", frame, "TOPLEFT", -ox, oy)
-        hf.Flipbook:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", ox, -oy)
+        if IsSafeNumber(w) and IsSafeNumber(h) then
+            local ox = w * ratio
+            local oy = h * ratio
+            hf.Flipbook:ClearAllPoints()
+            hf.Flipbook:SetPoint("TOPLEFT", frame, "TOPLEFT", -ox, oy)
+            hf.Flipbook:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", ox, -oy)
+        end
     end
     hf:Show()
     local anim = GetAnim(hf)
@@ -151,7 +200,7 @@ local function ShowHighlight(frame)
 end
 
 local function HideHighlight(frame)
-    local hf = highlightFramesByStyle[assistStyle][frame]
+    local hf = highlightFramesByStyle[renderer][frame]
     if hf then
         GetAnim(hf):Stop()
         hf:Hide()
@@ -203,7 +252,7 @@ local function GetCurrentHighlightSpell()
 end
 
 local function PlayAllAnimations()
-    for _, hf in pairs(highlightFramesByStyle[assistStyle]) do
+    for _, hf in pairs(highlightFramesByStyle[renderer]) do
         if hf:IsShown() then
             GetAnim(hf):Play()
         end
@@ -211,7 +260,7 @@ local function PlayAllAnimations()
 end
 
 local function StopAllAnimations()
-    for _, hf in pairs(highlightFramesByStyle[assistStyle]) do
+    for _, hf in pairs(highlightFramesByStyle[renderer]) do
         if hf:IsShown() then
             GetAnim(hf):Stop()
         end
@@ -329,10 +378,10 @@ CDM.RotationAssist = CDM.RotationAssist or {}
 function CDM.RotationAssist:Initialize()
     CDM:RegisterRefreshCallback("rotationAssist", function()
         glowRatio = CDM.db.rotationAssistGlowRatio or 0.33
-        local nextStyle = CDM.db.rotationAssistStyle == "blizzard" and "blizzard" or "square"
-        if nextStyle ~= assistStyle then
+        local nextRenderer = ResolveRenderer(CDM.db.rotationAssistStyle)
+        if nextRenderer ~= renderer then
             ClearAllHighlights()
-            assistStyle = nextStyle
+            renderer = nextRenderer
         end
         local wantEnabled = CDM.db.rotationAssistEnabled
         if wantEnabled and not isEnabled then
