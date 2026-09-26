@@ -8,7 +8,7 @@
 --   普查    從 _G 出發把所有看得到的表爬一遍，每個頂層名字底下有幾格、字串
 --           幾 bytes；再用 EnumerateFrames 補上沒名字的框（依最近的具名祖先
 --           歸類）。reload 當下爬一次、STAY_SEC 秒後再爬一次，相減。
---   建立點  同一段期間掛勾 CreateFrame／CreateFromMixins／CreateTexture／
+--   建立點  同一段期間掛勾 CreateFrame／CreateTexture／
 --           CreateFontString，記呼叫的檔案與行號 —— 藏在區域變數裡、_G 走不到
 --           的東西，建立的那一刻還是看得到。
 --
@@ -81,18 +81,30 @@ local function Count(kind)
 end
 
 local hooked = false
+local hookedNames = {}
+
+-- ⚠ 12.1 有些全域禁止掛勾（CreateFromMixins 實測：「is forbidden for hooking」，
+--   硬錯會把整支普查的啟動打斷），所以每個各自 pcall，掛不上就跳過並在報告裡講
+local function TryHook(tbl, name)
+    local fn = function() Count(name) end
+    local ok
+    if tbl then
+        ok = pcall(hooksecurefunc, tbl, name, fn)
+    else
+        ok = pcall(hooksecurefunc, name, fn)
+    end
+    if ok then hookedNames[#hookedNames + 1] = name end
+end
+
 local function InstallHooks()
     if hooked then return end
     hooked = true
-    hooksecurefunc("CreateFrame", function() Count("CreateFrame") end)
-    if CreateFromMixins then
-        hooksecurefunc("CreateFromMixins", function() Count("CreateFromMixins") end)
-    end
+    TryHook(nil, "CreateFrame")
     local meta = getmetatable(CreateFrame("Frame"))
     local idx = meta and meta.__index
     if type(idx) == "table" then
-        hooksecurefunc(idx, "CreateTexture", function() Count("CreateTexture") end)
-        hooksecurefunc(idx, "CreateFontString", function() Count("CreateFontString") end)
+        TryHook(idx, "CreateTexture")
+        TryHook(idx, "CreateFontString")
     end
 end
 
@@ -257,7 +269,7 @@ local function PrintReport(r)
         print(("  |cffffcc66%+.1f MB|r  %s  |cff888888(+%d 格)|r"):format(e.mb, e.label, e.cells))
     end
     if r.sites[1] then
-        print("  建立次數最多：")
+        print(("  建立次數最多（有掛到的：%s）："):format(table.concat(hookedNames, "、")))
         for i = 1, math.min(4, #r.sites) do
             print(("    %d×  %s"):format(r.sites[i].n, r.sites[i].site))
         end
