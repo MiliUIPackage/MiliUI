@@ -3267,16 +3267,8 @@ local function UnitButton_UpdateInRange(self, ir)
     self.states.inRange = inRange
     if Cell.loaded then
         if self.states.inRange ~= self.states.wasInRange then
-            -- fix from MiliUI: the fades below start from GetAlpha() and do arithmetic on it,
-            -- and the alpha can be secret: SetAlphaFromBoolean on the secret-range path, and the
-            -- health-fade curve. A flag cannot track it -- a unit change wipes states while the
-            -- button keeps its alpha, and the curve never set one -- so test the alpha itself.
-            -- Unreadable = no start to animate from: snap to where the fade would end (the
-            -- fades below then run end->end, a no-op). Restarting from 1 flashed the frame.
-            -- Only here at a transition: every update would stomp the curve's alpha.
-            if not F.IsValueNonSecret(self:GetAlpha()) then
-                self:SetAlpha(inRange and 1 or CellDB["appearance"]["outOfRangeAlpha"])
-            end
+            -- fix from MiliUI: GetAlpha() below can be secret (SetAlphaFromBoolean on the
+            -- secret-range path, the health-fade curve); the fades snap to their end value then.
             if inRange then
                 if CELL_FADE_OUT_HEALTH_PERCENT then
                     if Cell.isMidnight and self.widgets and self.widgets.healthCalculator then

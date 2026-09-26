@@ -70,7 +70,21 @@ local function FrameFade(frame, info)
     end
 end
 
+-- fix from MiliUI: the start alpha is GetAlpha() at every call site, and in 12.1 it can be
+-- secret (SetAlphaFromBoolean, the health-fade curve). A plain SetAlpha afterwards does NOT make
+-- GetAlpha readable again -- the aspect sticks until SetToDefaults, which a secure unit button
+-- can't take -- so callers can't snap-then-read. No readable start = nothing to animate from:
+-- land on the end value, and drop any running fade so it stops writing over it.
+local function SnapIfSecretStart(frame, startAlpha, endAlpha)
+    if F.IsValueNonSecret(startAlpha) then return false end
+    FADEFRAMES[frame] = nil
+    if frame.fade then frame.fade.fadeTimer = nil end
+    frame:SetAlpha(endAlpha)
+    return true
+end
+
 function A.FrameFadeIn(frame, timeToFade, startAlpha, endAlpha)
+    if SnapIfSecretStart(frame, startAlpha, endAlpha) then return end
     if frame.fade then
         frame.fade.fadeTimer = nil
     else
@@ -87,6 +101,7 @@ function A.FrameFadeIn(frame, timeToFade, startAlpha, endAlpha)
 end
 
 function A.FrameFadeOut(frame, timeToFade, startAlpha, endAlpha)
+    if SnapIfSecretStart(frame, startAlpha, endAlpha) then return end
     if frame.fade then
         frame.fade.fadeTimer = nil
     else
