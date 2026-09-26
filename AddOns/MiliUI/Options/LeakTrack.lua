@@ -282,9 +282,25 @@ local function EventText(evt, limit)
 end
 
 local function Analyze(s)
-    local snaps = s.snaps
+    local all = s.snaps
+    -- ⚠ 登入／reload 的基準點不進斜率。實測（2026-09-26）：reload 後 366 MB，
+    -- 四分鐘、三場戰鬥後就是 757，之後兩小時只在 800 上下晃 —— 一次性的暖機
+    -- 跟持續洩漏是兩回事，混在一起算斜率會把暖機攤成「每小時 +71」的假洩漏。
+    -- 暖機另外報，斜率從第二張開始算。
+    local warm
+    if all[1] and all[1].k == "load" and all[1].t <= 5 and all[2] then
+        warm = { mb = (all[2].tot - all[1].tot) / 1024, min = all[2].t / 60,
+            fromMB = all[1].tot / 1024, otherMB = ((all[2].tot - SnapAddonSum(all[2]))
+                - (all[1].tot - SnapAddonSum(all[1]))) / 1024 }
+    end
+    local snaps = all
+    if warm then
+        snaps = {}
+        for i = 2, #all do snaps[#snaps + 1] = all[i] end
+    end
     local n = #snaps
-    local res = { session = s, n = n, span = n > 0 and (snaps[n].t - snaps[1].t) / 60 or 0 }
+    local res = { session = s, n = n, warm = warm,
+        span = n > 0 and (snaps[n].t - snaps[1].t) / 60 or 0 }
     if n < MIN_SNAPS or res.span < MIN_SPAN_MIN then return res end
     res.ready = true
 
@@ -421,8 +437,12 @@ function LT.ReportLines()
     else
         line1 = ("|cff33ff66回收後每小時 %s MB —— 穩定，沒有洩漏|r"):format(Signed(r.total))
     end
-    line1 = head .. line1 .. ("|cff888888（%.0f → %.0f MB，%d 張快照、%d 分鐘）|r")
-        :format(r.fromMB, r.toMB, r.n, math.floor(r.span + 0.5))
+    line1 = head .. line1 .. ("|cff888888（%d 張、%d 分鐘）|r")
+        :format(r.n, math.floor(r.span + 0.5))
+    if r.warm and r.warm.mb >= 20 then
+        line1 = line1 .. ("|cffffcc66　另有登入暖機 %+.0f MB（前 %d 分鐘）|r")
+            :format(r.warm.mb, math.floor(r.warm.min + 0.5))
+    end
 
     -- 第二行：長在哪一邊、哪幾支
     local who
