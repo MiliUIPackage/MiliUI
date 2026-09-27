@@ -233,6 +233,7 @@ function addonTable.Display.ManagerMixin:GeneratePoolForIndex(index)
     local frame = CreateFrame("Frame", nil, _G["NamePlate" .. i] or UIParent)
     Mixin(frame, addonTable.Display.NameplateMixin)
     frame.kind = index
+    frame.miliPoolSlot = i -- MiliUI: lazy aura groups (AurasNext.lua PREWARM_SLOTS)
     frame:OnLoad()
     frame:SetPoint("CENTER")
     table.insert(self.preallocatedDisplays, frame)

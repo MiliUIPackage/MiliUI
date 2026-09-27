@@ -183,6 +183,44 @@ end
 
 local _, class = UnitClass("player")
 
+-- MiliUI: lazy aura groups (local change, re-apply after upstream updates; see
+-- .claude/notes/project-local-addon-forks.md).
+-- Every AddAuraGroup makes Blizzard pre-build a batch of 10 aura buttons that can never
+-- be freed, and the manager pre-allocates 40 displays per style -- 40 x ~7 groups x 10
+-- buttons (~2800 buttons, ~250 MB of Lua heap measured 2026-09-27) before a single plate
+-- is shown. Only the first PREWARM_SLOTS displays of each style declare their groups up
+-- front (nameplate indices are handed out low-first); the rest declare them the first
+-- time they get a unit.
+local PREWARM_SLOTS = 16
+
+local function ApplyGroups(container, details, groups, allowCreate)
+  if allowCreate and (not container.groupsCount or container.groupsCount < #groups) then
+    for i = container.groupsCount and container.groupsCount + 1 or 1, #groups do
+      container:AddAuraGroup(tostring(i), "", {initializeFrame = GetAurasInitializerModern(container)})
+    end
+    container.groupsCount = #groups
+  end
+  local have = container.groupsCount or 0
+  container.pendingGroups = have < #groups and groups or nil
+
+  local padding = PixelUtil.ConvertPixelsToUIForRegion(20 * details.padding, container)
+
+  for index, group in ipairs(groups) do
+    if index > have then break end
+    local key = tostring(index)
+    container:SetAuraGroupFilterString(key, group[1])
+    container:SetAuraGroupLayout(key, {elementSpacing = padding, lineSpacing = padding})
+    container:SetAuraGroupCandidateFilters(key, group[2])
+    container:SetAuraGroupMaxFrameCount(key, details.limit)
+  end
+
+  if have > #groups then
+    for i = #groups + 1, have do
+      container:SetAuraGroupMaxFrameCount(tostring(i), 0)
+    end
+  end
+end
+
 function addonTable.Display.AurasManagerNextMixin:GetFilters(kind, settings)
   local output = table.create(6)
   local include, exclude = ProcessSpells(kind)
@@ -305,6 +343,10 @@ function addonTable.Display.AurasManagerNextMixin:InitializeWidgets(parent, aura
   self.debuffs:SetEnabled(false)
   self.crowdControl:SetEnabled(false)
 
+  -- MiliUI: lazy aura groups
+  self.buffs.pendingGroups, self.debuffs.pendingGroups, self.crowdControl.pendingGroups = nil, nil, nil
+  local allowCreate = self.unit ~= nil or (parent.miliPoolSlot or 1) <= PREWARM_SLOTS
+
   for kind, details in pairs(auraDetails) do
     local groups, start, tail, deduplicate = self:GetFilters(kind, details)
 
@@ -317,28 +359,7 @@ function addonTable.Display.AurasManagerNextMixin:InitializeWidgets(parent, aura
     self[kind]:SetPoint(directionMap[details.direction])
     self[kind]:SetFlowLayoutAnchorPoint(anchorMap[details.direction])
 
-    if not self[kind].groupsCount or self[kind].groupsCount < #groups then
-      for i = self[kind].groupsCount and self[kind].groupsCount + 1 or 1, #groups do
-        self[kind]:AddAuraGroup(tostring(i), "", {initializeFrame = GetAurasInitializerModern(self[kind])})
-      end
-      self[kind].groupsCount = #groups
-    end
-
-    local padding = PixelUtil.ConvertPixelsToUIForRegion(20 * details.padding, self[kind])
-
-    for index, group in ipairs(groups) do
-      local key = tostring(index)
-      self[kind]:SetAuraGroupFilterString(key, group[1])
-      self[kind]:SetAuraGroupLayout(key, {elementSpacing = padding, lineSpacing = padding})
-      self[kind]:SetAuraGroupCandidateFilters(key, group[2])
-      self[kind]:SetAuraGroupMaxFrameCount(key, details.limit)
-    end
-
-    if self[kind].groupsCount > #groups then
-      for i = #groups + 1, self[kind].groupsCount do
-        self[kind]:SetAuraGroupMaxFrameCount(tostring(i), 0)
-      end
-    end
+    ApplyGroups(self[kind], details, groups, allowCreate) -- MiliUI: lazy aura groups
 
     if not addonTable.Utilities.IsChangesRestricted() and not self.initialSetup and not doNotSize then
       for _, f in ipairs(self[kind].frames) do
@@ -383,6 +404,13 @@ function addonTable.Display.AurasManagerNextMixin:SetUnit(unit)
     self.debuffs:SetEnabled(false)
     self.crowdControl:SetEnabled(false)
     return
+  end
+
+  -- MiliUI: lazy aura groups -- first unit on a display that skipped them at pool build
+  for _, container in ipairs({self.buffs, self.debuffs, self.crowdControl}) do
+    if container.pendingGroups and container.details then
+      ApplyGroups(container, container.details, container.pendingGroups, true)
+    end
   end
 
   if UnitCanAssist("player", unit) then
