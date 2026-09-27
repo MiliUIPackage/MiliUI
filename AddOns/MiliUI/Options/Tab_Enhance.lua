@@ -1,12 +1,12 @@
 ------------------------------------------------------------
--- 「插件強化」分頁：施法條美化、拍賣行篩選、鑰石發光、聊天視窗樣式、世界地圖
+-- 「插件強化」分頁：施法條美化、拍賣行篩選、鑰石發光、聊天視窗樣式、世界地圖、Raider.IO 右鍵選單
 --
 -- 這頁只放「指名一個介面對象」的注入式功能；不指名對象、純粹省你一個動作的
 -- （商人自動化、骰裝提示過濾、探究標記鈕、CVar、套組自身設定）在「便利功能」頁。
 --
 -- 每一條 spec 自帶 get/set，直接接各 Enhance 模組的全域 API
 -- （MiliUI_CastBarEnhance / MiliUI_AHFilter / MiliUI_BaganatorKeystone /
---   MiliUI_ChattynatorTabs / MiliUI_WorldMapCoords）。模組沒載入時 get/set 都靜默略過。
+--   MiliUI_ChattynatorTabs / MiliUI_WorldMapCoords / MiliUI_RaiderIOUnitMenu）。模組沒載入時 get/set 都靜默略過。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -118,6 +118,18 @@ local CONTROLS = {
     { type = "text", label = "關掉世界地圖左下角內建的「玩家地圖座標」與「游標地圖座標」兩塊面板"
         .. "（worldMapShowPlayerCoords、worldMapShowCursorCoords），一次兩個一起。"
         .. "取消勾選則兩個都顯示。改完立即生效，不需要重載。" },
+
+    { type = "header", label = "Raider.IO" },
+    { type = "toggle", label = "關閉右鍵選單的 Raider.IO 項目",
+      get = function() return MiliUI_RaiderIOUnitMenu and MiliUI_RaiderIOUnitMenu.IsEnabled() end,
+      set = function(v)
+          if not MiliUI_RaiderIOUnitMenu then return end
+          MiliUI_RaiderIOUnitMenu.SetEnabled(v)
+          AskReload()
+      end },
+    { type = "text", label = "不在玩家右鍵選單裡加「複製 Raider.IO 網址」。那個項目會讓選單裡的「密語」"
+        .. "把聊天輸入框弄髒，首領戰／傳奇鑰石中可能打不了字，要重載才恢復。"
+        .. "這裡的勾選會蓋過 Raider.IO 自己設定裡的同一個選項。" },
 }
 
 -- spec 自帶 get/set，ctx 只是轉接

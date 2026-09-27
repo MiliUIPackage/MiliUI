@@ -66,6 +66,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_QuestBasic",
     "MiliUI_QuestAutomation",
     "MiliUI_WorldMapCoords",
+    "MiliUI_RaiderIOUnitMenu",
     # 刻意寫回暴雪／第三方的全域（都有掛勾理由，見各檔註解）
     "ChatEdit_CustomTabPressed",      # 暴雪留的官方覆寫點，有串回原本的
     "SetDesaturation", "AnimateTexCoords",   # Fix/DeprecatedGlobals.lua 的相容層
