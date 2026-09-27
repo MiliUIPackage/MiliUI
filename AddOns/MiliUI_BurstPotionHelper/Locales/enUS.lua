@@ -77,6 +77,14 @@ L["TIP_SELECT"]          = "Left-click: select this potion"
 L["TIP_USE"]             = "Right-click: use this potion"
 L["TIP_NONE"]            = "Left-click: use no potion"
 
+-- Raid: boss fights only
+L["SECTION_RAID"]        = "Raid"
+L["OPT_RAID_BOSS_ONLY"]  = "Only drink during boss fights"
+L["OPT_RAID_BOSS_ONLY_DESC"] = "In raids, the macro drinks your chosen potion only while a boss is engaged; on trash it does nothing and the bar dims. Your choice stays selected, and pre-pull potions (out of combat) still work."
+L["TIP_RAID_BOSS_ONLY"]  = "Raid: boss fights only"
+L["TIP_RAID_PAUSED"]     = "No boss engaged — the macro won't drink"
+L["MSG_RAID_BOSS_ONLY"]  = "Raid: the potion is only used during boss fights, not on trash."
+
 -- MiliUIWidgets 共用層（元件庫只查這四個 key，見 Libs/MiliUIWidgets/README.md）
 L["Apply"]               = "Apply"
 L["Okay"]                = "Okay"

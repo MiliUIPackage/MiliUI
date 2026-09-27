@@ -37,48 +37,103 @@ function ns.GetItemRef(itemID)
     return "item:" .. itemID
 end
 
-function ns.ClearSecure()
-    if InCombatLockdown() then
-        ns.pendingApply = true
-        return
+----------------------------------------------------------------------
+-- Raid boss-only gate.
+--
+-- Every write to the use button goes through one secure frame (ns.gate):
+--   state-sel   the selected potion's ref ("" = no potion). Written out of
+--               combat by ApplySecure, and in combat by the selector snippet.
+--   bossonly    true while "raid: boss fights only" applies (option on AND the
+--               current context is raid). Written out of combat only.
+--   state-boss  a macro-condition state driver, so Blizzard flips it from the
+--               secure side even in combat: "open" out of combat (pre-pull
+--               potions still work) or while any boss unit exists, else
+--               "closed" (fighting trash).
+-- GATE_APPLY points the use button at state-sel, or clears it when bossonly is
+-- on and the gate is closed. The selection itself is never touched, so the
+-- chosen potion comes back by itself the moment a boss is engaged.
+----------------------------------------------------------------------
+local GATE_DRIVER = "[nocombat] open; "
+    .. "[@boss1,exists][@boss2,exists][@boss3,exists][@boss4,exists][@boss5,exists] open; "
+    .. "closed"
+
+local GATE_APPLY = [[
+    local use = self:GetFrameRef("use")
+    if not use then return end
+    local ref = self:GetAttribute("state-sel")
+    if self:GetAttribute("bossonly") and self:GetAttribute("state-boss") == "closed" then
+        ref = nil
     end
-    local b = ns.button
-    if not b then return end
-    b:SetAttribute("type", nil)
-    b:SetAttribute("item", nil)
-    b:SetAttribute("typerelease", nil)
-    b:SetAttribute("itemrelease", nil)
-    b:SetAttribute("type1", nil)
-    b:SetAttribute("item1", nil)
+    if ref and ref ~= "" then
+        use:SetAttribute("pressAndHoldAction", true)
+        use:SetAttribute("type", "item")
+        use:SetAttribute("item", ref)
+        use:SetAttribute("typerelease", "item")  -- /click up-edge release path
+        use:SetAttribute("itemrelease", ref)
+        use:SetAttribute("type1", "item")         -- left-down click path
+        use:SetAttribute("item1", ref)
+    else
+        use:SetAttribute("type", nil)
+        use:SetAttribute("item", nil)
+        use:SetAttribute("typerelease", nil)
+        use:SetAttribute("itemrelease", nil)
+        use:SetAttribute("type1", nil)
+        use:SetAttribute("item1", nil)
+    end
+]]
+
+function ns.CreateGate()
+    if ns.gate then return ns.gate end
+    local gate = CreateFrame("Frame", nil, UIParent, "SecureHandlerStateTemplate")
+    SecureHandlerSetFrameRef(gate, "use", ns.button or ns.CreateSecureButton())
+    gate:SetAttribute("_onstate-sel", GATE_APPLY)
+    gate:SetAttribute("_onstate-boss", GATE_APPLY)
+    RegisterStateDriver(gate, "boss", GATE_DRIVER)
+    ns.gate = gate
+    return gate
 end
 
--- Sets the use button to the current selection. Used for non-click updates
--- (login, bag changes, leaving combat). In-combat selector clicks are handled
--- by the secure snippet instead, so no _ref cache is kept here (the snippet
--- changes the attribute without going through this path).
+-- "Raid: boss fights only" is in force for the current environment.
+function ns.BossOnlyActive()
+    return ns.GetDB().raidBossOnly
+        and (ns.currentContext or ns.ComputeContext()) == "raid"
+end
+
+local function BossPresent()
+    for i = 1, 5 do
+        local exists = UnitExists("boss" .. i)
+        -- A secret answer can't be tested; treat it as "boss here" so the bar
+        -- never shows a pause that may not be real.
+        if issecretvalue and issecretvalue(exists) then return true end
+        if exists then return true end
+    end
+    return false
+end
+
+-- Visual mirror of the secure gate (the bar dims while paused). Insecure and
+-- event-driven; the real decision is made by the state driver above.
+function ns.IsGatePaused()
+    return ns.BossOnlyActive() and ns.inCombat and not BossPresent() or false
+end
+
+-- Points the use button at the current selection (via the gate). Used for
+-- non-click updates (login, bag changes, leaving combat, option changes).
+-- In-combat selector clicks go through the selector snippet instead.
 function ns.ApplySecure()
     if InCombatLockdown() then
         ns.pendingApply = true
         return
     end
-    local b = ns.button or ns.CreateSecureButton()
-    if ns.SelStore().disabled then
-        ns.ClearSecure()
-        return
+    local gate = ns.gate or ns.CreateGate()
+    local ref = ""
+    if not ns.SelStore().disabled then
+        local id = ns.GetSelected()
+        if id then ref = ns.GetItemRef(id) end
     end
-    local id = ns.GetSelected()
-    if not id then
-        ns.ClearSecure()
-        return
-    end
-    local ref = ns.GetItemRef(id)
-    b:SetAttribute("pressAndHoldAction", true)
-    b:SetAttribute("type", "item")
-    b:SetAttribute("item", ref)
-    b:SetAttribute("typerelease", "item")  -- /click up-edge release path
-    b:SetAttribute("itemrelease", ref)
-    b:SetAttribute("type1", "item")         -- left-down click path
-    b:SetAttribute("item1", ref)
+    gate:SetAttribute("bossonly", ns.BossOnlyActive() and true or false)
+    gate:SetAttribute("state-sel", ref)
+    -- Re-apply even when neither value changed (no OnAttributeChanged then).
+    SecureHandlerExecute(gate, GATE_APPLY)
 end
 
 -- (The addon intentionally never edits your macro's #showtooltip line or icon.)

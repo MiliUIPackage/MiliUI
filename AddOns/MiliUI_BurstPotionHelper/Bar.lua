@@ -17,31 +17,17 @@ local MILIUI_BACKDROP = {
 }
 
 -- Secure pre-click snippet wrapped onto every selector's OnClick. On LEFT click
--- it points the shared use button at this selector's pre-stored "potionref"
--- (empty = clear = no potion). It runs in the restricted environment, so it is
--- legal in combat. RIGHT click falls through to the button's own type2 "item"
--- action (direct use), which is configured per the rightClickUse option.
+-- it hands this selector's pre-stored "potionref" (empty = no potion) to the
+-- gate (Secure.lua), which points the shared use button at it — or holds it
+-- back while "raid: boss fights only" is pausing trash fights. It runs in the
+-- restricted environment, so it is legal in combat. RIGHT click falls through
+-- to the button's own type2 "item" action (direct use, never gated), which is
+-- configured per the rightClickUse option.
 local SELECT_PREBODY = [[
     if button == "LeftButton" then
-        local use = self:GetFrameRef("use")
-        if use then
-            local ref = self:GetAttribute("potionref")
-            if ref and ref ~= "" then
-                use:SetAttribute("pressAndHoldAction", true)
-                use:SetAttribute("type", "item")
-                use:SetAttribute("item", ref)
-                use:SetAttribute("typerelease", "item")
-                use:SetAttribute("itemrelease", ref)
-                use:SetAttribute("type1", "item")
-                use:SetAttribute("item1", ref)
-            else
-                use:SetAttribute("type", nil)
-                use:SetAttribute("item", nil)
-                use:SetAttribute("typerelease", nil)
-                use:SetAttribute("itemrelease", nil)
-                use:SetAttribute("type1", nil)
-                use:SetAttribute("item1", nil)
-            end
+        local gate = self:GetFrameRef("gate")
+        if gate then
+            gate:SetAttribute("state-sel", self:GetAttribute("potionref") or "")
         end
     end
 ]]
@@ -170,7 +156,7 @@ local function CreateSelector(parent, isNone)
     -- Left-click select runs in the restricted environment via the wrapped
     -- pre-snippet; right-click "use this item" is the button's own type2 action,
     -- enabled per-variant in the layout pass when rightClickUse is on.
-    SecureHandlerSetFrameRef(btn, "use", ns.button)
+    SecureHandlerSetFrameRef(btn, "gate", ns.gate or ns.CreateGate())
     SecureHandlerWrapScript(btn, "OnClick", btn, SELECT_PREBODY)
     if isNone then
         btn:SetAttribute("potionref", "")  -- empty = clear the use button
@@ -255,11 +241,13 @@ local function CreateSelector(parent, isNone)
             if db.rightClickUse then
                 GameTooltip:AddLine(L.TIP_USE, 0.7, 0.7, 0.7)
             end
+            ns.AddGateTooltip(GameTooltip)
         else
             GameTooltip:SetText(L.TIP_SELECT)
             if db.rightClickUse then
                 GameTooltip:AddLine(L.TIP_USE)
             end
+            ns.AddGateTooltip(GameTooltip)
         end
         GameTooltip:Show()
     end)
@@ -343,6 +331,7 @@ function ns.CreateBar()
         if ns.GetDB().splitByContext then
             GameTooltip:AddLine(L.TIP_CONTEXT:format(ns.ContextLabel()), 0.8, 0.8, 0.8)
         end
+        ns.AddGateTooltip(GameTooltip)
         GameTooltip:AddLine(L.TIP_COLLAPSE, 0.8, 0.8, 0.8)
         if ns.GetDB().lockBar then
             GameTooltip:AddLine(L.TIP_LOCKED, 1, 0.5, 0.5)
@@ -377,6 +366,16 @@ local function ApplyVisible()
     if ns.bar then ns.bar:SetShown(ShouldShow()) end
 end
 
+-- "Raid: boss fights only" lines: shown only where it applies (raid), plus the
+-- live "paused" state so a macro press that does nothing on trash is explained.
+function ns.AddGateTooltip(tt)
+    if not ns.BossOnlyActive() then return end
+    tt:AddLine(L.TIP_RAID_BOSS_ONLY, 0.8, 0.8, 0.8)
+    if ns.IsGatePaused() then
+        tt:AddLine(L.TIP_RAID_PAUSED, 1, 0.5, 0.5)
+    end
+end
+
 -- Border-only update. Safe in combat (only touches textures).
 -- The selected-highlight frame is hidden while collapsed (only one cell shows,
 -- so it is redundant) and shown only when expanded. Keys off ns.appliedCollapsed
@@ -387,8 +386,14 @@ function ns.Bar_UpdateSelection()
     local store = ns.SelStore()
     local showBorder = not ns.appliedCollapsed
     local selected = (not store.disabled) and ns.GetSelected() or nil
+    -- Paused by "raid: boss fights only" (trash in combat): the selection is
+    -- kept, the potions just dim — brightness only, the colors stay the same.
+    local paused = ns.IsGatePaused()
     for _, btn in ipairs(ns.buttons) do
         btn.border:SetShown(showBorder and selected ~= nil and btn.itemID == selected)
+        btn.border:SetAlpha(paused and 0.4 or 1)
+        btn.icon:SetDesaturated(paused)
+        btn.icon:SetAlpha(paused and 0.4 or 1)
     end
     if ns.noneButton then
         ns.noneButton.border:SetShown(showBorder and store.disabled == true)

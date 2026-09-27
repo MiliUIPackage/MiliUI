@@ -79,6 +79,10 @@ local CONTROLS = {
     { type = "button", label = "", text = L["BTN_RESET_POS"], width = 180,
       onClick = function() ns.Bar_ResetPosition() end },
 
+    { type = "header", label = L["SECTION_RAID"] },
+    { type = "toggle", key = "raidBossOnly", label = L["OPT_RAID_BOSS_ONLY"] },
+    { type = "text",   label = L["OPT_RAID_BOSS_ONLY_DESC"] },
+
     { type = "header", label = L["SECTION_FADE"] },
     { type = "toggle", key = "fadeEnabled", label = L["OPT_FADE"] },
     { type = "slider", key = "fadeAlpha", label = L["OPT_FADE_ALPHA"],

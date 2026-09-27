@@ -26,7 +26,9 @@ end
   * IN-COMBAT SWITCHING is done entirely inside the restricted (secure)
     environment: each bar selector is a SecureActionButton whose OnClick is
     wrapped (SecureHandlerWrapScript) with a snippet that, on left-click,
-    copies a pre-stored "item:ID" reference into the shared use button.
+    hands a pre-stored "item:ID" reference to the secure gate (Secure.lua),
+    which points the shared use button at it (or holds it back while the
+    raid boss-only option is pausing a trash fight).
     Right-click (optional) is the selector's own type2 "item" action, which
     drinks that potion directly. Both run in the secure environment, so they
     are legal in combat without taint; the insecure click hook only updates
@@ -63,6 +65,10 @@ local DEFAULTS = {
     -- top-level fields then act as the shared fallback (kept mirrored to the
     -- latest pick, so turning this off keeps the most recent choice).
     splitByContext = true,
+    -- In raids, drink the chosen potion only while a boss is engaged (or out of
+    -- combat, for pre-pull potions); trash fights are skipped. Enforced by the
+    -- secure gate in Secure.lua, the selection itself is never changed.
+    raidBossOnly   = true,
     profiles       = {},      -- [context] = { selectedItemID = id, disabled = bool }
     -- Editable potion list (built-ins come live from ns.DEFAULT_ITEMS):
     itemEnabled    = {},      -- [itemID] = false to disable (absent = enabled)
@@ -293,6 +299,14 @@ function ns.NotifyContext()
     end
 end
 
+-- Entering a raid with "boss fights only" on: say so once per entry, so a
+-- macro press that does nothing on trash isn't a mystery.
+function ns.NotifyBossOnly()
+    if ns.GetDB().printOnSwitch and ns.BossOnlyActive() then
+        ns.Print(L.MSG_RAID_BOSS_ONLY)
+    end
+end
+
 ----------------------------------------------------------------------
 -- Selection
 ----------------------------------------------------------------------
@@ -477,6 +491,12 @@ f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_REGEN_ENABLED")
+-- Combat + boss presence only drive the bar's "paused" dimming (insecure mirror
+-- of the raid boss-only gate); the gate itself runs on a secure state driver.
+f:RegisterEvent("PLAYER_REGEN_DISABLED")
+f:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+f:RegisterEvent("ENCOUNTER_START")
+f:RegisterEvent("ENCOUNTER_END")
 f:RegisterEvent("BAG_UPDATE_DELAYED")
 f:RegisterEvent("BAG_UPDATE_COOLDOWN")
 -- ITEM_DATA_LOAD_RESULT is a global, high-frequency event; the settings list is
@@ -487,10 +507,12 @@ f:SetScript("OnEvent", function(_, event, arg1)
         if arg1 == addonName then
             ns.InitDB()
             ns.CreateSecureButton()
+            ns.CreateGate()
             ns.CreateBar()
             ns.PreloadItems()
         end
     elseif event == "PLAYER_LOGIN" then
+        ns.inCombat = InCombatLockdown()
         ns.UpdateContext()
         ns.RebuildState()
         if ns.Bar_Position then ns.Bar_Position() end  -- auto-center at full width
@@ -504,7 +526,10 @@ f:SetScript("OnEvent", function(_, event, arg1)
         -- the one place the environment context can change.
         local changed = ns.UpdateContext()
         ns.RebuildState()
-        if changed then ns.NotifyContext() end
+        if changed then
+            ns.NotifyContext()
+            ns.NotifyBossOnly()
+        end
     elseif event == "BAG_UPDATE_DELAYED" then
         if InCombatLockdown() then
             ns.pendingRebuild = true
@@ -514,7 +539,15 @@ f:SetScript("OnEvent", function(_, event, arg1)
     elseif event == "BAG_UPDATE_COOLDOWN" then
         -- Cooldown widgets are insecure → safe to refresh even in combat.
         if ns.Bar_UpdateCooldowns then ns.Bar_UpdateCooldowns() end
+    elseif event == "PLAYER_REGEN_DISABLED" then
+        ns.inCombat = true
+        if ns.Bar_UpdateSelection then ns.Bar_UpdateSelection() end
+    elseif event == "INSTANCE_ENCOUNTER_ENGAGE_UNIT" or event == "ENCOUNTER_START"
+        or event == "ENCOUNTER_END" then
+        if ns.Bar_UpdateSelection then ns.Bar_UpdateSelection() end
     elseif event == "PLAYER_REGEN_ENABLED" then
+        ns.inCombat = false
+        if ns.Bar_UpdateSelection then ns.Bar_UpdateSelection() end
         -- Left combat: now safe to do everything we deferred.
         if ns.pendingRebuild then
             ns.pendingRebuild = false

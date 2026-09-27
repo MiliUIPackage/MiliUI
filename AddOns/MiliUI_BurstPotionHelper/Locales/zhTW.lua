@@ -72,6 +72,14 @@ L["TIP_SELECT"]          = "左鍵：選擇此藥水"
 L["TIP_USE"]             = "右鍵：直接使用此藥水"
 L["TIP_NONE"]            = "左鍵：不使用藥水"
 
+-- 團隊副本：只在首領戰喝
+L["SECTION_RAID"]        = "團隊副本"
+L["OPT_RAID_BOSS_ONLY"]  = "只在首領戰喝藥水"
+L["OPT_RAID_BOSS_ONLY_DESC"] = "在團隊副本裡，要跟首領開戰巨集才會喝你選的藥水；打小怪時按巨集不會有動作，切換列會變暗。你選的藥水不會被改掉，開怪前（脫戰）預喝也照常。"
+L["TIP_RAID_BOSS_ONLY"]  = "團隊副本：只在首領戰喝"
+L["TIP_RAID_PAUSED"]     = "目前沒有首領，按巨集不會喝"
+L["MSG_RAID_BOSS_ONLY"]  = "團隊副本：只在首領戰喝藥水，打小怪時不喝。"
+
 -- MiliUIWidgets 共用層（元件庫只查這四個 key）
 L["Apply"]               = "套用"
 L["Okay"]                = "確定"

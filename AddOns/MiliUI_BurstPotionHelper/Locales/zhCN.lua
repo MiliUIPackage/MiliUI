@@ -72,6 +72,14 @@ L["TIP_SELECT"]          = "左键：选择此药水"
 L["TIP_USE"]             = "右键：直接使用此药水"
 L["TIP_NONE"]            = "左键：不使用药水"
 
+-- 团队副本：只在首领战喝
+L["SECTION_RAID"]        = "团队副本"
+L["OPT_RAID_BOSS_ONLY"]  = "只在首领战喝药水"
+L["OPT_RAID_BOSS_ONLY_DESC"] = "在团队副本里，要和首领开战宏才会喝你选的药水；打小怪时按宏不会有动作，切换条会变暗。你选的药水不会被改掉，开怪前（脱战）预喝也照常。"
+L["TIP_RAID_BOSS_ONLY"]  = "团队副本：只在首领战喝"
+L["TIP_RAID_PAUSED"]     = "目前没有首领，按宏不会喝"
+L["MSG_RAID_BOSS_ONLY"]  = "团队副本：只在首领战喝药水，打小怪时不喝。"
+
 -- MiliUIWidgets 共用层（组件库只查这四个 key）
 L["Apply"]               = "应用"
 L["Okay"]                = "确定"
