@@ -127,7 +127,12 @@ AD.stats = {builds = 0, discards = 0, repoints = 0, parks = 0, reuses = 0,
     settles = 0, settleBounced = 0, settleSkipped = 0,
     -- regen queue: who queued (reason -> count), and how long the queue was when the
     -- last / the longest drain started. The producer hunt behind the time-sliced flush.
-    deferWhy = {}, flushLast = 0, flushPeak = 0}
+    deferWhy = {}, flushLast = 0, flushPeak = 0,
+    -- lazy groups (see LAZY GROUPS below Build): shells whose groups were declared later,
+    -- how many of those declarations happened in combat and how many combat refused, and
+    -- the instance-entry prewarm (handles, total ms, sweeps that queued anything)
+    lazyAdds = 0, lazyCombatOK = 0, lazyCombatFail = 0,
+    prewarmHandles = 0, prewarmMs = 0, prewarmSweeps = 0}
 
 local function BuildRecordsRaw(opts)
     opts = opts or {}
@@ -1204,8 +1209,11 @@ local function StyleButton(handle, button)
     -- Per aura, not per group: Blizzard shows it blind for the schools in the set (see
     -- ACC.BindDispelBadge). Same holder and layer as the "!", opposite corner. The set is
     -- config, so a spec change rebuilds -- the colour map is copied in at bind time.
+    -- _adNoDispelBadge is stamped in initializeFrame for a group whose filter already
+    -- excludes RAID_PLAYER_DISPELLABLE (the "short" record): no aura that group can hold is
+    -- one the player dispels, so its four textures and binds would never draw anything.
     local dispelTypes = cfg.dispelBadge
-    if type(dispelTypes) == "table" and next(dispelTypes) then
+    if type(dispelTypes) == "table" and next(dispelTypes) and not button._adNoDispelBadge then
         ACC.StyleDispelBadge(button.dfDurHolder, button.dfDurHolder, math.min(size, sizeH), handle.frame)
         if not button._boundDispelBadge
             and ACC.BindDispelBadge(button, button.dfDurHolder, dispelTypes) then
@@ -1431,7 +1439,6 @@ AD.PARK_ENABLED = true
 local PARK_CAP = 240        -- parked hosts held at once; past this, teardown orphans as before
 local park, parkCount = {}, 0
 local parkHolder
-local NO_RECORDS = {}
 
 local function ParkHolder()
     if not parkHolder then
@@ -1521,6 +1528,95 @@ function AD.ParkStats()
 end
 
 -- ============================================================
+-- GROUP DECLARATION
+--
+-- Declares `records` on the handle's container. Split out of Build because a container can
+-- now receive its groups later than its creation (see LAZY GROUPS below Build) -- and that
+-- later call may land in combat.
+--
+-- strict: combat. Stop at the FIRST refused declaration with nothing added, and return
+-- false, so the caller can hand the whole set to the regen queue instead of leaving a
+-- half-declared container behind. Out of combat a refused group is recorded and skipped,
+-- exactly as it always was (a rejected filter must not take the other groups with it).
+-- ============================================================
+local function AddGroups(handle, host, c, records, slotMode, strict)
+    local groupLayout = GroupLayout(handle.config)
+    -- ⚠ maxFrameCount is PER GROUP, not per container. The important display declares five
+    -- category groups, so num=3 meant "up to 15 icons" and made Blizzard pre-allocate a
+    -- batch of 10 buttons PER GROUP (50 for three visible icons). The budget is handed out
+    -- per group by GroupBudget -- read the note above it before changing the shape.
+    local wanted = handle.config.num or 3
+    local first = true
+
+    for _, rec in ipairs(records) do
+        -- a group whose filter subtracts "dispellable by me" never holds an aura the "+"
+        -- could mark; stamped per button so StyleButton skips the badge there
+        local noDispelBadge = rec.filter:find("!" .. TOKEN_DISP, 1, true) and true or nil
+        local initFn = function(button)
+            -- ⚠ Resolve the owner through the HOST, never through the captured `handle`.
+            -- Blizzard keeps this closure inside the group for the container's whole life,
+            -- and a parked container comes back owned by a different handle -- a captured
+            -- one would append the button to a list nobody reads and style it from a config
+            -- nobody is showing.
+            local h = host._adOwner
+            if not h then return end
+            h._initCount = (h._initCount or 0) + 1
+            if slotMode then pcall(function() button:SetAllPoints(c) end) end
+            -- Per-spell effect slots: stamp the record's colour BEFORE StyleButton so the
+            -- builder can read it. Stamped once, at creation, and never re-read from the
+            -- engine -- the park key covers the record set, so a returning button always
+            -- carries the colour its record was built with.
+            if rec.effColor ~= nil then button._adEffColor = rec.effColor end
+            -- Same for the boss badge. It never has to come off again: bossBadge is structural
+            -- (a toggle rebuilds) and part of the park key, so this button only ever serves
+            -- a config that asked for it.
+            if rec.badge then button._adBadge = true end
+            if noDispelBadge then button._adNoDispelBadge = true end
+            -- ⚠ Tracked HERE and nowhere else. This is the only place a genuinely new
+            -- button arrives; StyleButton must never append, because Restyle iterates this
+            -- very list and calls StyleButton on each entry -- appending from there grew
+            -- the list exactly as fast as the iterator advanced, so the loop never ended
+            -- and the client froze on every option change that triggers a restyle.
+            tinsert(h.buttons, button)
+            local okS, errS = pcall(StyleButton, h, button)
+            if not okS and h._errors and #h._errors < 6 then -- cap: 50 identical lines helps nobody
+                h._errors[#h._errors + 1] = "style: " .. tostring(errS)
+            end
+        end
+        local okG, errG
+        if slotMode then
+            -- single slot covering the frame (AddAuraGroup eagerly batches; AddAuraSlot
+            -- is the genuine single-icon/overlay primitive)
+            okG, errG = pcall(c.AddAuraSlot, c, rec.key, rec.filter, {
+                initializeFrame = initFn,
+                candidateFilters = rec.candidateFilters,
+            })
+        else
+            okG, errG = pcall(c.AddAuraGroup, c, rec.key, rec.filter, {
+                -- position among flexible groups added so far (+1 = this one, if flexible)
+                maxFrameCount = GroupBudget(rec.key, FlexCount(handle._groupKeys) + 1, #records, wanted),
+                initializeFrame = initFn,
+                layout = groupLayout,
+                candidateFilters = rec.candidateFilters,
+            })
+        end
+        if okG then
+            handle._groupsAdded = handle._groupsAdded + 1
+            -- remembered so SetNum can drive maxFrameCount live (slots are always 1)
+            if not slotMode then handle._groupKeys[#handle._groupKeys + 1] = rec.key end
+        else
+            if strict and first then
+                handle._errors[#handle._errors + 1] = "combat Add[" .. rec.key .. "]: " .. tostring(errG)
+                return false
+            end
+            handle._errors[#handle._errors + 1] = "Add[" .. rec.key .. "] (" .. rec.filter .. "): " .. tostring(errG)
+        end
+        first = false
+    end
+    return true
+end
+
+-- ============================================================
 -- BUILD  (create -> SetUnit -> AddAuraGroup* -> SetEnabled LAST)
 -- ============================================================
 
@@ -1560,6 +1656,8 @@ local function Build(handle, why)
     -- still its buttons, they keep their styling, and they come back together or not at all.
     handle.buttons = {}
     handle._groupKeys = nil
+    -- a shell's pending declaration belonged to the host that was just parked
+    handle._groupsDeferred, handle._pendingGroups = nil, nil
     -- Identity-gate state is re-derived from THIS build's records below. Clearing it here
     -- is what lets a handle rebuilt onto non-vulnerable filters drop a stale hidden flag
     -- instead of staying hidden forever; the assist verdict resets too, because a fresh
@@ -1652,13 +1750,6 @@ local function Build(handle, why)
     local okU, errU = pcall(function() c:SetUnit(handle.unit) end)
     if not okU then handle._errors[#handle._errors + 1] = "SetUnit: " .. tostring(errU) end
 
-    local groupLayout = GroupLayout(handle.config)
-    -- ⚠ maxFrameCount is PER GROUP, not per container. The important display declares five
-    -- category groups, so num=3 meant "up to 15 icons" and made Blizzard pre-allocate a
-    -- batch of 10 buttons PER GROUP (50 for three visible icons). The budget is handed out
-    -- per group by GroupBudget -- read the note above it before changing the shape.
-    local wanted = handle.config.num or 3
-
     -- diagnostics: what filters/cf this container actually built with
     handle._recordInfo = {}
     for _, rec in ipairs(records) do
@@ -1674,63 +1765,28 @@ local function Build(handle, why)
     handle._modeDbg = handle.config.mode or "important"
 
     -- ⚠ A REUSED container already carries exactly these groups -- they are part of the park
-    -- key -- with their buttons created, initialised and styled. AddAuraGroup here would
-    -- declare every one of them a second time, so the loop is fed nothing instead.
-    for _, rec in ipairs(reused and NO_RECORDS or records) do
-        local initFn = function(button)
-            -- ⚠ Resolve the owner through the HOST, never through the captured `handle`.
-            -- Blizzard keeps this closure inside the group for the container's whole life,
-            -- and a parked container comes back owned by a different handle -- a captured
-            -- one would append the button to a list nobody reads and style it from a config
-            -- nobody is showing.
-            local h = host._adOwner
-            if not h then return end
-            h._initCount = (h._initCount or 0) + 1
-            if slotMode then pcall(function() button:SetAllPoints(c) end) end
-            -- Per-spell effect slots: stamp the record's colour BEFORE StyleButton so the
-            -- builder can read it. Stamped once, at creation, and never re-read from the
-            -- engine -- the park key covers the record set, so a returning button always
-            -- carries the colour its record was built with.
-            if rec.effColor ~= nil then button._adEffColor = rec.effColor end
-            -- Same for the boss badge. It never has to come off again: bossBadge is structural
-            -- (a toggle rebuilds) and part of the park key, so this button only ever serves
-            -- a config that asked for it.
-            if rec.badge then button._adBadge = true end
-            -- ⚠ Tracked HERE and nowhere else. This is the only place a genuinely new
-            -- button arrives; StyleButton must never append, because Restyle iterates this
-            -- very list and calls StyleButton on each entry -- appending from there grew
-            -- the list exactly as fast as the iterator advanced, so the loop never ended
-            -- and the client froze on every option change that triggers a restyle.
-            tinsert(h.buttons, button)
-            local okS, errS = pcall(StyleButton, h, button)
-            if not okS and h._errors and #h._errors < 6 then -- cap: 50 identical lines helps nobody
-                h._errors[#h._errors + 1] = "style: " .. tostring(errS)
-            end
+    -- key -- with their buttons created, initialised and styled. Declaring them here would
+    -- add every one a second time, so only a fresh container (or a parked SHELL, which never
+    -- got its groups) declares anything.
+    local needGroups = not reused or host._adShell
+    if needGroups and AD.LAZY_GROUPS and not handle.frame:IsVisible() then
+        -- SHELL: host + container + unit, no groups => no AuraButtons yet. The groups are
+        -- declared the first time the button is actually on screen (see LAZY GROUPS below).
+        -- ⚠ No SetEnabled either: SetEnabled stays LAST, after the groups, as always.
+        host._adShell = true
+        handle._groupsDeferred = true
+        handle:_ApplyVisibility()
+        handle:ApplyIdentityGate()
+        -- a boss / raid slot inside an instance: declare now, sliced, rather than on the
+        -- ENCOUNTER_START frame that first shows it
+        if AD._PrewarmWanted(handle) and not InCombatLockdown() then
+            AD._QueueGroups(handle, true)
         end
-        local okG, errG
-        if slotMode then
-            -- single slot covering the frame (AddAuraGroup eagerly batches; AddAuraSlot
-            -- is the genuine single-icon/overlay primitive)
-            okG, errG = pcall(c.AddAuraSlot, c, rec.key, rec.filter, {
-                initializeFrame = initFn,
-                candidateFilters = rec.candidateFilters,
-            })
-        else
-            okG, errG = pcall(c.AddAuraGroup, c, rec.key, rec.filter, {
-                -- position among flexible groups added so far (+1 = this one, if flexible)
-                maxFrameCount = GroupBudget(rec.key, FlexCount(handle._groupKeys) + 1, #records, wanted),
-                initializeFrame = initFn,
-                layout = groupLayout,
-                candidateFilters = rec.candidateFilters,
-            })
-        end
-        if okG then
-            handle._groupsAdded = handle._groupsAdded + 1
-            -- remembered so SetNum can drive maxFrameCount live (slots are always 1)
-            if not slotMode then handle._groupKeys[#handle._groupKeys + 1] = rec.key end
-        else
-            handle._errors[#handle._errors + 1] = "Add[" .. rec.key .. "] (" .. rec.filter .. "): " .. tostring(errG)
-        end
+        return
+    end
+    if needGroups then
+        AddGroups(handle, host, c, records, slotMode, false)
+        host._adShell = nil
     end
 
     -- SetEnabled LAST (gates aura-event registration). Only "counts" if the frame is
@@ -1792,6 +1848,13 @@ do
             AD._pending[h] = nil
             if h._pendingBuild then
                 Build(h)
+            elseif h._pendingGroups then
+                -- combat refused a shell's first-show declaration; declare it now. Its
+                -- own re-parse bounce makes any gate kick queued alongside redundant.
+                h._pendingGroups, h._pendingGateKick = nil, nil
+                if h._groupsDeferred and h.container and not h._destroyed then
+                    h:_AddDeferredGroups()
+                end
             elseif h._pendingGateKick then
                 -- an identity-gate recovery that landed mid-combat only got to mark the
                 -- container dirty; the bounce that actually re-parses is OOC-only
@@ -1870,6 +1933,150 @@ do
 end
 
 -- ============================================================
+-- LAZY GROUPS
+--
+-- Every AddAuraGroup makes Blizzard pre-allocate a batch of AuraButtons (FrameCreationBatch
+-- Size = 10, the frame provider's anti-fingerprinting batch), each styled by StyleButton
+-- with its own Cooldown / holders / textures -- and WoW frames can never be freed. Declaring
+-- groups on every handle at login cost 140 groups -> 1400 AuraButtons for a SOLO layout
+-- (heap census 2026-09-27, standing in a city): boss1-8 and the spotlight slots own full
+-- containers although they are almost never on screen.
+--
+-- So a handle whose frame is not visible when it builds gets a SHELL: host + container +
+-- SetUnit, no groups (no buttons), not enabled. The groups are declared the first time the
+-- frame is actually visible -- hooked where visibility already re-asserts (ReassertEnable,
+-- GateRefresh, _ApplyVisibility). Once declared they stay: hiding the button again does not
+-- tear anything down (teardown cannot free frames; rebuilding on the next show would leak).
+--
+-- ⚠ FIRST SHOW IN COMBAT IS THE NORMAL CASE for boss frames (ENCOUNTER_START). The
+-- declaration then runs in combat, on an existing container. Declaring a group on a live
+-- container is EXPECTED to be combat-legal (the container is ours and nothing protected is
+-- touched), but that is not verified here yet -- so it is pcall'd, strict (first refusal =
+-- nothing added), and a refusal falls back to the regen queue ("lazy-combat"). /cab stats
+-- counts both outcomes; a non-zero failure count is the answer to that question.
+--
+-- ⚠ Never inline from the show hooks: the button's OnShow can be running inside a secure
+-- show (RegisterUnitWatch), and declaring a group creates and styles ten frames. The work
+-- goes through a queue drained NEXT frame with the same per-frame budget as the regen flush,
+-- which also keeps a boss pull or a raid join from declaring dozens of groups in one frame.
+--
+-- PREWARM: inside a party/raid/scenario instance, out of combat, the shells of boss1-5 and
+-- of the raid slots the group already fills are declared ahead of time (same queue, forced
+-- past the visibility test), so the pull does not pay for them. The in-combat declaration
+-- stays as the last line of defence.
+--
+-- Kill switches (this session, for every build from then on; shells that already exist
+-- still get their groups on first show):
+--   /run Cell.AuraDisplay.LAZY_GROUPS = false
+--   /run Cell.AuraDisplay.PREWARM_ENABLED = false
+-- ============================================================
+AD.LAZY_GROUPS = true
+AD.PREWARM_ENABLED = true
+do
+    local PREWARM_BOSSES = 5
+    -- explicit head/tail: the drained slots are nil'd, so #lazyQ would be meaningless
+    local lazyQ, lazyForce, head, tail = {}, {}, 1, 0
+    local lazyTicker
+
+    local function Tick(t)
+        local start = debugprofilestop()
+        while head <= tail do
+            local h = lazyQ[head]
+            lazyQ[head] = nil
+            head = head + 1
+            local force = lazyForce[h]
+            lazyForce[h] = nil
+            if h._groupsDeferred and h.container and not h._destroyed
+                and (force or h.frame:IsVisible()) then
+                local t0 = debugprofilestop()
+                h:_AddDeferredGroups()
+                if force then
+                    AD.stats.prewarmHandles = AD.stats.prewarmHandles + 1
+                    AD.stats.prewarmMs = AD.stats.prewarmMs + (debugprofilestop() - t0)
+                end
+            end
+            if debugprofilestop() - start >= AD.FLUSH_BUDGET_MS then return end
+        end
+        t:Cancel()
+        if lazyTicker == t then lazyTicker = nil end
+        lazyQ, head, tail = {}, 1, 0
+    end
+
+    -- force = prewarm: declare even while the frame is hidden. A plain entry re-checks
+    -- visibility when its turn comes (a button that flashed on and off again stays a shell).
+    function AD._QueueGroups(h, force)
+        if not h._groupsDeferred or h._destroyed then return end
+        if not force and not h.frame:IsVisible() then return end
+        local cur = lazyForce[h]
+        if cur ~= nil then
+            if force then lazyForce[h] = true end
+            return
+        end
+        lazyForce[h] = force and true or false
+        tail = tail + 1
+        lazyQ[tail] = h
+        if not lazyTicker then lazyTicker = C_Timer.NewTicker(0, Tick) end
+    end
+
+    function AD.LazyQueueLength()
+        return tail - head + 1
+    end
+
+    -- ---- prewarm ------------------------------------------------------------------------
+    local prewarmZone = false
+
+    function AD._PrewarmWanted(h)
+        if not prewarmZone or not AD.PREWARM_ENABLED then return false end
+        local u = h.unit
+        if type(u) ~= "string" then return false end
+        local b = tonumber(u:match("^boss(%d+)$"))
+        if b then return b <= PREWARM_BOSSES end
+        local r = tonumber(u:match("^raid(%d+)$"))
+        if r then return IsInRaid() and r <= GetNumGroupMembers() end
+        return false
+    end
+
+    local sweepQueued, sweepAfterRegen = false, false
+    local function Sweep()
+        sweepQueued = false
+        local okI, inInstance, kind = pcall(IsInInstance)
+        prewarmZone = okI and inInstance and (kind == "party" or kind == "raid" or kind == "scenario") or false
+        if not prewarmZone or not AD.PREWARM_ENABLED or not AD.LAZY_GROUPS then return end
+        -- a zone-in that landed mid-fight (or a pull right after the loading screen) waits
+        -- for regen; the in-combat declaration covers anything that shows before then
+        if InCombatLockdown() then
+            sweepAfterRegen = true
+            return
+        end
+        local n = 0
+        for h in pairs(AD._instances or {}) do
+            if h._groupsDeferred and not h._destroyed and AD._PrewarmWanted(h) then
+                n = n + 1
+                AD._QueueGroups(h, true)
+            end
+        end
+        if n > 0 then AD.stats.prewarmSweeps = AD.stats.prewarmSweeps + 1 end
+    end
+
+    local zone = CreateFrame("Frame")
+    zone:RegisterEvent("PLAYER_ENTERING_WORLD")
+    zone:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+    zone:RegisterEvent("PLAYER_REGEN_ENABLED")
+    zone:SetScript("OnEvent", function(_, event)
+        if event == "PLAYER_REGEN_ENABLED" then
+            if not sweepAfterRegen then return end
+            sweepAfterRegen = false
+        end
+        -- after the loading screen's layout switch and its rebuilds have settled; a shell
+        -- rebuilt later still prewarms itself from Build while the zone flag stays up
+        if not sweepQueued then
+            sweepQueued = true
+            C_Timer.After(2, Sweep)
+        end
+    end)
+end
+
+-- ============================================================
 -- PUBLIC HANDLE
 -- ============================================================
 
@@ -1903,6 +2110,11 @@ end
 function Handle:SetNum(n)
     if self.config.num == n then return end
     self.config.num = n
+    -- a shell has no groups to resize; they are declared from the current config later
+    if self._groupsDeferred then
+        if not IsSlotMode(self.config) then ApplyLayout(self) end
+        return
+    end
 
     -- maxFrameCount is a LIVE setter, so the icon count never needs a rebuild -- and a
     -- rebuild is exactly what left the old icons stacked under the new ones. Layout depends
@@ -1950,6 +2162,16 @@ local LAYOUT_KEYS = {
 function Handle:Restyle()
     -- ⚠ Combat used to `return` outright, with no flag -- the restyle was simply lost, and
     -- the option looked like it had never been applied. Flag it; the regen handler replays.
+    -- A shell has no buttons to restyle, and its groups will style from the current config
+    -- when declared; only the park key has to follow the config (see the re-key below).
+    if self._groupsDeferred then
+        self._restylePending = nil
+        if self._parkKey and self._parkRecords then
+            self._parkKey = ParkKey(self, self._parkRecords, IsSlotMode(self.config))
+        end
+        return
+    end
+
     if InCombatLockdown() then
         self._restylePending = true
         return
@@ -1994,6 +2216,11 @@ end
 function Handle:ApplyLiveLayout()
     local c = self.container
     if not c then return true end -- nothing built yet; Build will read the new config
+    if self._groupsDeferred then
+        -- shell: the groups will read the new config when they are declared
+        if not IsSlotMode(self.config) then ApplyLayout(self) end
+        return true
+    end
     if not c.SetAuraGroupLayout or not self._groupKeys or #self._groupKeys == 0 then
         return false -- overlay/slot mode has no groups to relayout
     end
@@ -2146,6 +2373,45 @@ function Handle:_ApplyVisibility()
     local want = (self.shown ~= false) and not self._gateHidden and not self._cineLatched
     self.frame:SetShown(want)
     if self.container then pcall(function() self.container:SetShown(want) end) end
+    -- a shell revealed by its own gate/latch/consumer: the button's OnShow never fires for that
+    if want and self._groupsDeferred then AD._QueueGroups(self) end
+end
+
+-- Declare a shell's groups (see LAZY GROUPS). Called from the lazy queue's tick -- never
+-- from a show hook directly -- and from the regen flush when combat refused it first time.
+function Handle:_AddDeferredGroups()
+    local host, c = self.host, self.container
+    if not (self._groupsDeferred and host and c) then return end
+    local records = self._parkRecords
+    if not records then return end
+    local slotMode = IsSlotMode(self.config)
+    local inCombat = InCombatLockdown()
+
+    if not AddGroups(self, host, c, records, slotMode, inCombat) then
+        -- refused before anything was added: the shell stays a shell, regen declares it
+        AD.stats.lazyCombatFail = AD.stats.lazyCombatFail + 1
+        self._pendingGroups = true
+        AD._defer(self, "lazy-combat")
+        return
+    end
+    if inCombat then AD.stats.lazyCombatOK = AD.stats.lazyCombatOK + 1 end
+    AD.stats.lazyAdds = AD.stats.lazyAdds + 1
+    self._groupsDeferred, self._pendingGroups = nil, nil
+    host._adShell = nil
+    -- the buttons were just styled from the CURRENT config; key the host by that
+    self._parkKey = ParkKey(self, records, slotMode)
+
+    -- SetEnabled LAST, as in Build. On a visible container it registers the aura events and
+    -- queues the first parse by itself; the bounce below is the belt-and-braces re-parse
+    -- (in combat ReassertEnable declines and GateRefresh marks it for regen instead).
+    local okE, errE = pcall(function() c:SetEnabled(true) end)
+    if not okE and self._errors then self._errors[#self._errors + 1] = "SetEnabled: " .. tostring(errE) end
+    self._enabledWhileVisible = false
+    if self.frame:IsVisible() then
+        self:ReassertEnable()
+        if not self._enabledWhileVisible then self:GateRefresh() end
+    end
+    -- hidden (prewarm): the button's OnShow runs ReassertEnable when it finally appears
 end
 
 function Handle:SetEnabled(enabled)
@@ -2192,6 +2458,12 @@ local function CombatGateOpen(self)
 end
 
 function Handle:ReassertEnable()
+    -- A shell has nothing to enable yet: this is its "first time on screen" signal instead.
+    -- Queued, not declared here -- this runs from the button's OnShow (see LAZY GROUPS).
+    if self._groupsDeferred then
+        AD._QueueGroups(self)
+        return
+    end
     if not CombatGateOpen(self) then return end
     local c = self.container
     if not c then return end
@@ -2222,6 +2494,12 @@ end
 function Handle:GateRefresh()
     local c = self.container
     if not c then return end
+    -- a shell has never parsed, so there is nothing stale to re-parse; it parses when its
+    -- groups are declared (and if it is on screen, that is now due)
+    if self._groupsDeferred then
+        AD._QueueGroups(self)
+        return
+    end
     if not CombatGateOpen(self) then
         self._pendingGateKick = true
         AD._defer(self, "gatekick")
@@ -2925,9 +3203,10 @@ function AD.Debug()
             samples = samples + 1
             -- NOTE: AuraButton IsShown/geometry are SECRET (branching on them errors), so we
             -- CANNOT read whether a button is rendering -- only the user's eyes can confirm that.
-            p(("VISIBLE unit=%s mode=%s enabled=%s groupsAdded=%s initCount=%s ewv=%s buttons=%d")
+            p(("VISIBLE unit=%s mode=%s enabled=%s groupsAdded=%s initCount=%s ewv=%s buttons=%d%s")
                 :format(tostring(h.unit), tostring(h._modeDbg), tostring(h.enabled), tostring(h._groupsAdded),
-                    tostring(h._initCount), tostring(h._enabledWhileVisible), #h.buttons))
+                    tostring(h._initCount), tostring(h._enabledWhileVisible), #h.buttons,
+                    h._groupsDeferred and " SHELL(groups pending)" or ""))
             -- our own anchor frame: rect is readable (not secret). A 0x0/nil rect means
             -- children can't resolve -> container renders nothing despite being visible.
             local fw, fh = h.frame:GetSize()
@@ -3039,7 +3318,8 @@ function AD.Inspect(unitToken)
                 :format(n, tostring(cfg.mode or "important"),
                     cfg.customStyle and ("/" .. cfg.customStyle .. (IsSlotMode(cfg) and " slot" or "")) or "",
                     tostring(h.frame:IsShown()),
-                    tostring(h.container ~= nil), #h.buttons))
+                    tostring(h.container ~= nil) .. (h._groupsDeferred and "（空殼，群組等首次顯示）" or ""),
+                    #h.buttons))
             p(("    parent=%s size=%s num=%s onlyMine=%s")
                 :format(tostring(h.frame:GetParent() and h.frame:GetParent():GetName() or "?"),
                     tostring(cfg.size), tostring(cfg.num), tostring(cfg.onlyMine)))
@@ -3632,6 +3912,8 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
             AD.stats.settles, AD.stats.settleBounced, AD.stats.settleSkipped = 0, 0, 0
             AD.stats.deferWhy, AD.stats.flushLast, AD.stats.flushPeak = {}, 0, 0
             AD.stats.combatBounces = 0
+            AD.stats.lazyAdds, AD.stats.lazyCombatOK, AD.stats.lazyCombatFail = 0, 0, 0
+            AD.stats.prewarmHandles, AD.stats.prewarmMs, AD.stats.prewarmSweeps = 0, 0, 0
             p("計數歸零")
             return
         end
@@ -3658,6 +3940,29 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
         p(("戰鬥中排隊：目前 %d ／ 上次脫戰時 %d ／ 最長 %d ｜來源：%s")
             :format(pending, AD.stats.flushLast, AD.stats.flushPeak,
                 #parts > 0 and table.concat(parts, "、") or "無"))
+        -- lazy groups: what is actually allocated vs. what is still waiting for a first show
+        local groups, auraButtons, shells, shellsVisible = 0, 0, 0, 0
+        for h in pairs(AD._instances or {}) do
+            if h.container and not h._destroyed then
+                if h._groupsDeferred then
+                    shells = shells + 1
+                    if h.frame:IsVisible() then shellsVisible = shellsVisible + 1 end
+                else
+                    groups = groups + (h._groupsAdded or 0)
+                    auraButtons = auraButtons + #h.buttons
+                end
+            end
+        end
+        p(("光環群組：已登記 %d 個（%d 顆 AuraButton）／等待首次顯示 %d 個 handle%s／佇列中 %d%s")
+            :format(groups, auraButtons, shells,
+                shellsVisible > 0 and ("（其中 %d 個已在畫面上）"):format(shellsVisible) or "",
+                AD.LazyQueueLength(), AD.LAZY_GROUPS and "" or " ｜按需登記已關閉"))
+        p(("首次顯示時登記 %d 次：戰鬥中成功 %d ／戰鬥中失敗 %d（失敗的改在脫戰後登記）")
+            :format(AD.stats.lazyAdds, AD.stats.lazyCombatOK, AD.stats.lazyCombatFail))
+        p(("進副本預熱：%d 次／共 %d 個 handle ／ %.1f ms（平均 %.1f ms）%s")
+            :format(AD.stats.prewarmSweeps, AD.stats.prewarmHandles, AD.stats.prewarmMs,
+                AD.stats.prewarmHandles > 0 and AD.stats.prewarmMs / AD.stats.prewarmHandles or 0,
+                AD.PREWARM_ENABLED and "" or " ｜已關閉"))
         p(("戰鬥中直接彈跳：%s，已彈 %d 次")
             :format(AD.BounceInCombat() and "開" or "關（/cab bounce on）", AD.stats.combatBounces))
         p("進出隊伍時 repoints 該漲、builds/discards 不該漲。歸零：/cab stats reset")
