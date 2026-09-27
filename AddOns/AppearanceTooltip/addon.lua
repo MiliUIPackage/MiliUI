@@ -183,7 +183,24 @@ do
         return model
     end
     local function makeModelScene()
-        return makeModel("ModelScene", "NoCameraControlModelSceneMixinTemplate")
+        local scene = makeModel("ModelScene", "NoCameraControlModelSceneMixinTemplate")
+        -- The camera reads the scene's own GetWidth/GetHeight every frame, and those turn
+        -- secret as soon as the scene inherits secret anchoring from the tooltip chain.
+        -- The positioner's check can run after this OnUpdate in the same frame, and the
+        -- scene can be secret while the tooltip itself doesn't report it, so guard here,
+        -- right before the read.
+        local OnUpdate = scene:GetScript("OnUpdate")
+        if OnUpdate then
+            scene:SetScript("OnUpdate", function(self, ...)
+                if issecretframe(self) then
+                    tooltip:ClearAllPoints()
+                    tooltip:Hide()
+                    return
+                end
+                return OnUpdate(self, ...)
+            end)
+        end
+        return scene
     end
     tooltip.models = {
         FullBody = makeDressUpModel(),
