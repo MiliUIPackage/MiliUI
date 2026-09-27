@@ -1677,7 +1677,7 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | 觀察 `InspectFrame`（第十二輪） | `inspect` | 同角色面板；兩支全域後置勾（空格刷新、模型底圖）；零單位資料讀取 |
 | 物品插入 `ItemSocketingFrame`（第十二輪） | `socketing` | 外框與羊皮紙中和／套用零腳本；hook 0。寶石顏色底與插槽保留 |
 | 催化器 `ItemInteractionFrame`（第十二輪） | `iteminteraction` | 外框（含場景圖）／動作鈕零腳本；hook 0。物品格不碰 |
-| 戰利品視窗 `LootFrame`（第十二輪） | `loot` | 提示皮／池化列（`LootFrameElementMixin.Init`）；列上零腳本；滑過回饋只在圖示格 |
+| 戰利品視窗 `LootFrame`（第十二輪） | `loot` | 提示皮／池化列（`LootFrameElementMixin.Init`）；列上零腳本；滑過回饋只在圖示格；卡片底改淡品質色純色、稀有度底條拿掉 |
 | 探究夥伴（第十二輪） | `delvescompanion` | 兩個視窗的外框、下拉、翻頁；設定格／能力格（trait）不碰 |
 | 塑形師 `TransmogFrame`（第十二輪，12.x 新框） | `transmog` | 外框／分頁／搜尋、下拉、翻頁、勾選；套用零腳本。模型與外觀格不碰 |
 | 顧客製作訂單（第十二輪） | `customerorders` | 同專業視窗語彙；下訂單／取消零腳本。材料格與欄位表頭不碰 |

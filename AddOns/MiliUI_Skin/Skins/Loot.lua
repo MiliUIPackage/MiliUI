@@ -43,10 +43,18 @@
 -- ## 做法對照成熟同類實作（第十三輪：範圍照抄、外觀用我們的）
 --
 -- 它做的、我們照做：外框換皮（NineSlice、`Bg`、視窗自己的 region）、標題改白、關閉鈕
--- （`ClosePanelButton` —— 它特別註明新模板的 × 叫這個名字）、捲軸、每一列：`NameFrame`
--- 卡片底拿掉、`BorderFrame`／`HighlightNameFrame`／`PushedNameFrame` 三條卡片描邊拿掉、
+-- （`ClosePanelButton` —— 它特別註明新模板的 × 叫這個名字）、捲軸、每一列：
+-- `BorderFrame`／`HighlightNameFrame`／`PushedNameFrame` 三條卡片描邊拿掉、
 -- 物品格的 `NormalTexture` 拿掉、圖示裁成方形、**1px 品質色邊（顏色取自暴雪自己的 IconBorder）**、
 -- **名字與稀有度文字的品質色一律不動**、疊數字體不動。
+--
+-- **跟它不同的地方：卡片底（2026-09-27）。** 它把 `NameFrame` 拿掉、稀有度標籤
+-- （`QualityStripe` 黑漸層條 ＋ `QualityText`）留著不管 —— 卡片沒了，標籤就懸在列的右上角，
+-- 很突兀。我們改成：`NameFrame` 換成白色純色 `ROW_CARD`（15%），暴雪每次 Init 的
+-- `NameFrame:SetVertexColor(品質色)` 照樣染上去 ⇒ **淡品質色的直角卡片**（顏色由暴雪自己染，
+-- 我們不讀品質）；`QualityStripe` 拿掉，「史詩」字留在卡片右上角內側。Init 只染色、
+-- 從不重下材質（LootFrame.lua:262-319），所以換一次就撐得住。金錢列一樣有 `NameFrame`
+-- （染一般品質的白），沒有稀有度標籤。
 --
 -- 外觀：浮在世界上方、撿完就關 ⇒ **提示皮**（STYLE.md ①；`T.tipFill` ＋ 1px 職業色邊，
 -- 同確認彈窗）。它那邊用的是一般視窗殼。
@@ -73,21 +81,23 @@
 -- | `TitleContainer.TitleText` | `SetTextColor` |
 -- | `ClosePanelButton` | 同 `Skin.CloseButton` |
 -- | `ScrollBar` | 同 `Skin.ScrollBar` |
--- | 每一列（池化）的 `NameFrame`／`BorderFrame`／`HighlightNameFrame`／`PushedNameFrame` | `SetAlpha(0)` |
+-- | 每一列（池化）的 `BorderFrame`／`HighlightNameFrame`／`PushedNameFrame` | `SetAlpha(0)` |
+-- | 每一列的 `NameFrame` | `SetColorTexture`（白 `ROW_CARD`；品質色由暴雪的 `SetVertexColor` 染） |
+-- | 物品列的 `QualityStripe` | `SetAlpha(0)`（金錢列沒有這張） |
 -- | 每一列的 `Item` | IconBorder／NormalTexture `SetAlpha(0)`、icon `SetTexCoord`、Highlight `SetColorTexture`、IconBorder `IsShown()`／`GetVertexColor()`（**只轉交**）（`Skin.ItemButton`，`noFill`） |
 --
 -- ### 掛了哪些 hook
 --
 -- | hook | 型別 | 裡面做什麼 |
 -- |---|---|---|
--- | `hooksecurefunc(LootFrameElementMixin, "Init", …)` | mixin 後置勾（`Engine.HookRows`） | 第一次見到：中和四張卡片美術 ＋ `Skin.ItemButton`；每次：`Skin.ItemButtonRefresh`（重下 IconBorder 的 alpha、轉交品質色、重裁圖示）。**不讀 elementData** |
+-- | `hooksecurefunc(LootFrameElementMixin, "Init", …)` | mixin 後置勾（`Engine.HookRows`） | 第一次見到：卡片底換純色、中和三條描邊與稀有度底條 ＋ `Skin.ItemButton`；每次：`Skin.ItemButtonRefresh`（重下 IconBorder 的 alpha、轉交品質色、重裁圖示）。**不讀 elementData** |
 -- | 引擎的 `SetItemButtonQuality`／`SetItemButtonTexture` 全域後置勾 | 既有 | 第一行查弱鍵表 |
 -- | 關閉鈕、捲軸箭頭的 `HookScript("OnEnter"/"OnLeave")` | 原語內建 | 只換我們自己 overlay 的顏色 |
 --
 -- **列與 `Item` 上的 `HookScript`：0 支。`HookScript("OnShow")`：0 支。寫入暴雪欄位：無。**
 --
 -- ## 刻意不碰的東西
--- * `Text`、`QualityText` 的品質色、`QualityStripe`（稀有度標籤底）、`IconQuestTexture`（任務物品標記）、
+-- * `Text` 的品質色、`QualityText`（白字、位置不動）、`IconQuestTexture`（任務物品標記）、
 --   `Item.Count`、上鎖時暴雪染在圖示上的紅色。
 -- * 編輯模式的選取框、`ScrollBox` 的上下陰影、面板的開關動畫。
 -- * 骰裝框 `GroupLootContainer`／`GroupLootFrame*`（C 級）、拾取提示 toast。
@@ -114,11 +124,17 @@ local function Required(owner, key, label)
     return child
 end
 
-local ROW_ART = { "NameFrame", "BorderFrame", "HighlightNameFrame", "PushedNameFrame" }
+local ROW_ART = { "BorderFrame", "HighlightNameFrame", "PushedNameFrame" }
 local ROW_KEY = "LootFrame.row"
+-- 卡片底：白色乘上暴雪染的品質色（紫 ⇒ 淡紫、一般 ⇒ 淺灰）
+local ROW_CARD = { 1, 1, 1, 0.15 }
 
 local function ApplyRow(row)
     E.NeutralizeKeys(row, ROW_ART, ROW_KEY)
+    E.SolidTexture(Optional(row, "NameFrame"), ROW_CARD, ROW_KEY .. ".NameFrame")
+    -- 只有物品列有；金錢列沒有不算缺
+    local stripe = Optional(row, "QualityStripe")
+    if stripe then E.Neutralize(stripe, ROW_KEY .. ".QualityStripe") end
     local item = Optional(row, "Item")
     if item then
         -- `noFill`：圖示鋪滿整格，底永遠看不到，省一個子框
