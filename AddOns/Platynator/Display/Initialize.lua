@@ -94,6 +94,7 @@ function addonTable.Display.ManagerMixin:OnLoad()
   end
 
   self:RegisterEvent("VARIABLES_LOADED")
+  self:MiliSetupAuraPrewarm() -- MiliUI: lazy aura groups
 
   addonTable.CallbackRegistry:RegisterCallback("RefreshStateChange", function(_, state)
     if state[addonTable.Constants.RefreshReason.Design] then
@@ -225,6 +226,67 @@ end
 
 local function StyleSettingsKey(settings)
   return settings.style .. "$$" .. settings.scale .. "$$" .. addonTable.Core.GetDesignScale(settings.simplified or false)
+end
+
+-- MiliUI: lazy aura groups -- instance prewarm (local change, re-apply after upstream
+-- updates; see .claude/notes/project-local-addon-forks.md).
+-- Outside instances only the first 16 displays of each style carry aura groups (AurasNext.lua
+-- PREWARM_SLOTS); the rest declare theirs on their first SetUnit, synchronously, ~7 groups of
+-- 10 pre-built buttons each. A big first pull showing a dozen new plates would pay that in one
+-- frame, so inside a dungeon (25) or raid (40) the remaining displays are declared ahead of
+-- time, one display per frame, out of combat. Frames can never be freed, so the higher count
+-- stays for the rest of the session.
+local MILI_PREWARM_TARGET = {party = 25, scenario = 25, raid = 40}
+
+function addonTable.Display.ManagerMixin:MiliSetupAuraPrewarm()
+  local target, ticker, startedAt = 0, nil, 0
+
+  local function Step()
+    -- in combat the SetUnit path still covers any plate that shows up; resume at regen.
+    -- While the pools restyle their pending state is not final yet.
+    if InCombatLockdown() or self.styleTicker then
+      return
+    end
+    local stale = false
+    for _, displays in ipairs(self.preallocatedDisplaysByIndex) do
+      for slot = 1, math.min(target, #displays) do
+        local display = displays[slot]
+        local auras = display.AurasManager
+        if display.styleIndex ~= self.styleIndex then
+          stale = true
+        elseif auras and auras.MiliEnsureGroups and auras:MiliEnsureGroups() then
+          return
+        end
+      end
+    end
+    -- a display not restyled yet (restyle deferred by combat/secrets) may still be picked
+    -- up shortly; give it a bounded wait instead of ticking forever
+    if stale and GetTime() - startedAt < 30 then
+      return
+    end
+    ticker:Cancel()
+    ticker = nil
+  end
+
+  local function Check()
+    local inInstance, kind = IsInInstance()
+    local want = inInstance and MILI_PREWARM_TARGET[kind] or 0
+    if want > target then
+      target = want
+    end
+    if want > 0 and not ticker then
+      startedAt = GetTime()
+      ticker = C_Timer.NewTicker(0, Step)
+    end
+  end
+
+  local watcher = CreateFrame("Frame")
+  watcher:RegisterEvent("PLAYER_ENTERING_WORLD")
+  watcher:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+  watcher:SetScript("OnEvent", function()
+    -- after the loading screen's restyle has had a chance to start
+    C_Timer.After(2, Check)
+  end)
 end
 
 function addonTable.Display.ManagerMixin:GeneratePoolForIndex(index)
