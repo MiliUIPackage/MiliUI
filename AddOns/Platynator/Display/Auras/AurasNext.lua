@@ -379,6 +379,19 @@ function addonTable.Display.AurasManagerNextMixin:InitializeWidgets(parent, aura
   self.initialSetup = false
 end
 
+-- MiliUI: lazy aura groups. Declares whatever InitializeWidgets skipped; returns true when it
+-- created anything (the manager's instance prewarm does one display per frame).
+function addonTable.Display.AurasManagerNextMixin:MiliEnsureGroups()
+  local did = false
+  for _, container in ipairs({self.buffs, self.debuffs, self.crowdControl}) do
+    if container.pendingGroups and container.details then
+      ApplyGroups(container, container.details, container.pendingGroups, true)
+      did = true
+    end
+  end
+  return did
+end
+
 local function ApplyStartTailCount(auras, count)
   if auras.manualStart > 0 then
     for i = 1, auras.manualStart do
@@ -406,12 +419,7 @@ function addonTable.Display.AurasManagerNextMixin:SetUnit(unit)
     return
   end
 
-  -- MiliUI: lazy aura groups -- first unit on a display that skipped them at pool build
-  for _, container in ipairs({self.buffs, self.debuffs, self.crowdControl}) do
-    if container.pendingGroups and container.details then
-      ApplyGroups(container, container.details, container.pendingGroups, true)
-    end
-  end
+  self:MiliEnsureGroups() -- MiliUI: lazy aura groups -- first unit on a display that skipped them
 
   if UnitCanAssist("player", unit) then
     if self.debuffs.details then
