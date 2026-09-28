@@ -253,6 +253,18 @@ local function BuildLook(subPage, page)
     pandemicHeader:SetPoint("TOPLEFT", 0, yOff)
     yOff = yOff - 30
 
+    -- MiliUI: what "Pandemic" means, on its own muted line under the header
+    local pandemicDesc = rc:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    pandemicDesc:SetPoint("TOPLEFT", 0, yOff)
+    -- an explicit width, not a TOPRIGHT anchor: GetStringHeight below is read straight away,
+    -- and an anchor-derived width is not resolved yet at that point (rc is 490 wide)
+    pandemicDesc:SetWidth(470)
+    pandemicDesc:SetJustifyH("LEFT")
+    pandemicDesc:SetWordWrap(true)
+    pandemicDesc:SetText(L["Recolor while the aura is in the window where recasting wastes none of its remaining time (Blizzard calls this \"Pandemic\")."])
+    UI.SetTextMuted(pandemicDesc)
+    yOff = yOff - (pandemicDesc:GetStringHeight() + 8)
+
     local hidePandemicCheckbox
     local enableCustomizationCheckbox
     local pandemicBorderCheckbox

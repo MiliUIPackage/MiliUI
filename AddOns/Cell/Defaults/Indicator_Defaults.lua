@@ -141,6 +141,14 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["auras"] = {},
             ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}}
         }
+        -- buff rects run on the AuraContainer path, where the colour bands in `colors` cannot
+        -- fire (remaining time is secret). What they get instead: the countdown colour curve,
+        -- and the engine's Pandemic window ({enabled, {r,g,b,a}}). Debuff rects stay on the
+        -- manual path and keep the bands, so they carry neither key. Absent = off.
+        if auraType == "buff" then
+            t["durationColor"] = {false, {1, 1, 1, 1}, {true, 10, {1, 1, 0, 1}}, {true, 3, {1, 0, 0, 1}}}
+            t["pandemicColor"] = {false, {1, 1, 0, 1}}
+        end
     elseif type == "icons" then
         t = {
             ["name"] = name,

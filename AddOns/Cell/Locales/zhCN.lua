@@ -615,6 +615,8 @@ L["Others"] = "其他人"
 L["smooth"] = "平滑"
 L["Color By"] = "着色"
 L["Color by Remaining Time"] = "按照持续时间上色"
+L["Pandemic"] = "无损刷新"
+L["Recolor while the aura is in the window where recasting wastes none of its remaining time (Blizzard calls this \"Pandemic\")."] = "光环进入重新施放后不会浪费剩余时间的区间时换色（暴雪称为“Pandemic”）"
 L["Set Bar Max Value"] = "设置进度条最大值"
 L["Allow smaller value"] = "允许更小的值"
 

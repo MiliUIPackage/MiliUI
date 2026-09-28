@@ -2497,6 +2497,83 @@ local function CreateSetting_Colors(parent)
     return widget
 end
 
+-- Colours of a BUFF rect (12.1). Buff rects render through an AuraContainer effect slot, where
+-- the remaining time is secret, so the two time bands of the shared `colors` widget can never
+-- fire there. What replaces them: the engine's Pandemic window (AddPandemicRegion -- the engine
+-- shows our fill while recasting would waste none of the aura's remaining time) and the
+-- countdown colour curve (the durationColor widget). Debuff rects keep the `colors` widget.
+-- ⚠ A separate widget on purpose: the shared one treats [5] as a bar's background colour.
+-- SetDBValue(colors, pandemicColor): colors = the indicator's colours table ([1] normal, [4]
+-- border; [2]/[3] are left untouched for the manual path); pandemicColor = {en, {r,g,b,a}}.
+-- SetFunc(func): func(key, value), key being "colors" or "pandemicColor".
+local function CreateSetting_RectColors(parent)
+    local widget
+
+    if not settingWidgets["rectColors"] then
+        widget = Cell.CreateFrame("CellIndicatorSettings_RectColors", parent, 240, 96)
+        settingWidgets["rectColors"] = widget
+
+        local normalColor = Cell.CreateColorPicker(widget, L["Normal"], true, function(r, g, b, a)
+            local c = widget.colorsTable[1]
+            c[1], c[2], c[3], c[4] = r, g, b, a
+            widget.func("colors", widget.colorsTable)
+        end)
+        normalColor:SetPoint("TOPLEFT", 5, -8)
+
+        local pandemicColor
+        local pandemicCB = Cell.CreateCheckButton(widget, "", function(checked)
+            widget.pandemicTable[1] = checked
+            Cell.SetEnabled(checked, pandemicColor)
+            widget.func("pandemicColor", widget.pandemicTable)
+        end)
+        pandemicCB:SetPoint("TOPLEFT", normalColor, "BOTTOMLEFT", 0, -8)
+
+        pandemicColor = Cell.CreateColorPicker(widget, L["Pandemic"], true, function(r, g, b, a)
+            local c = widget.pandemicTable[2]
+            c[1], c[2], c[3], c[4] = r, g, b, a
+            widget.func("pandemicColor", widget.pandemicTable)
+        end)
+        pandemicColor:SetPoint("TOPLEFT", pandemicCB, "TOPRIGHT", 2, 0)
+
+        -- the option's explanation, on its own grey line under the control
+        local desc = widget:CreateFontString(nil, "OVERLAY", font_name)
+        desc:SetPoint("TOPLEFT", pandemicCB, "BOTTOMLEFT", 0, -4)
+        desc:SetWidth(230)
+        desc:SetJustifyH("LEFT")
+        desc:SetWordWrap(true)
+        desc:SetTextColor(0.72, 0.72, 0.72, 1)
+        desc:SetText(L["Recolor while the aura is in the window where recasting wastes none of its remaining time (Blizzard calls this \"Pandemic\")."])
+
+        local borderColor = Cell.CreateColorPicker(widget, L["Border Color"], true, function(r, g, b, a)
+            local c = widget.colorsTable[4]
+            c[1], c[2], c[3], c[4] = r, g, b, a
+            widget.func("colors", widget.colorsTable)
+        end)
+        borderColor:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -6)
+
+        function widget:SetFunc(func)
+            widget.func = func
+        end
+
+        function widget:SetDBValue(colorsTable, pandemicTable)
+            widget.colorsTable = colorsTable
+            widget.pandemicTable = pandemicTable
+            normalColor:SetColor(colorsTable[1])
+            borderColor:SetColor(colorsTable[4])
+            pandemicCB:SetChecked(pandemicTable[1])
+            pandemicColor:SetColor(pandemicTable[2])
+            Cell.SetEnabled(pandemicTable[1], pandemicColor)
+            -- three rows (Cell's colours widgets are 12 + rows*21) plus the wrapped description
+            P.Height(widget, 75 + math.ceil(desc:GetStringHeight()) + 2)
+        end
+    else
+        widget = settingWidgets["rectColors"]
+    end
+
+    widget:Show()
+    return widget
+end
+
 -- Unified countdown colour-by-time widget (12.1). Master toggle + base colour + two
 -- SECONDS thresholds ("剩餘時間 < N 秒 -> colour"). Feeds the AuraContainer duration colour
 -- curve (RemainingDuration). No percent band -- a seconds curve can't carry one.
@@ -7335,6 +7412,7 @@ local builders = {
     ["color"] = CreateSetting_Color,
     ["color-alpha"] = CreateSetting_ColorAlpha,
     ["colors"] = CreateSetting_Colors,
+    ["rectColors"] = CreateSetting_RectColors,
     ["durationColor"] = CreateSetting_DurationColor,
     ["blockColors"] = CreateSetting_BlockFill,
     ["overlayColors"] = CreateSetting_OverlayColors,
