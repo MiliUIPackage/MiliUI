@@ -419,6 +419,11 @@ local function HandleIndicators(b)
         if t["colors"] then
             indicator:SetColors(t["colors"])
         end
+        -- update pandemicColor (rect). Only the manual fallback reads it here; the container
+        -- gets it through ConfigureContainer (AddPandemicRegion).
+        if indicator.SetPandemicColor then
+            indicator:SetPandemicColor(t["pandemicColor"])
+        end
         -- update durationColor (unified countdown colour widget). Only the text indicator
         -- consumes it off the container path; the rest read it via ConfigureContainer.
         if indicator.SetDurationColors then
@@ -1012,6 +1017,15 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     UnitButton_UpdateAuras(b)
                 end
             end, true)
+        elseif setting == "pandemicColor" then
+            -- Like borderColor: only the manual rect (container fallback) needs this; the
+            -- container-backed rect picks it up in PushContainerConfig below.
+            F.IterateAllUnitButtons(function(b)
+                local ind = b.indicators[indicatorName]
+                if ind and ind.SetPandemicColor then
+                    ind:SetPandemicColor(value)
+                end
+            end, true)
         elseif setting == "vehicleNamePosition" then
             F.IterateAllUnitButtons(function(b)
                 local indicator = b.indicators[indicatorName]
@@ -1265,6 +1279,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 end
                 if indicator.SetDurationColors then
                     indicator:SetDurationColors(value["durationColor"])
+                end
+                if indicator.SetPandemicColor then
+                    indicator:SetPandemicColor(value["pandemicColor"])
                 end
                 -- update texture
                 if value["texture"] then

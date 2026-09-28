@@ -438,7 +438,8 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         if not customStyle then GridOpts(opts, t) end
         -- EFFECT SLOTS (colour/border/rect/texture): the visual is built from the
         -- indicator's own settings, and everything time-based is dropped -- the fade-out and
-        -- the percent/seconds colour bands all needed a countdown that is now secret.
+        -- the percent/seconds colour bands all needed a countdown that is now secret. (rect's
+        -- Pandemic fill is the exception: the engine decides when it shows, see below.)
         -- (Fonts fall through to the icon/block branch below: rect stores t.font in the same
         -- {stackFont, durationFont} shape.)
         if IsEffectStyle(customStyle) then
@@ -460,6 +461,15 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
                 -- a fill or a ring has nowhere to put a number
                 opts.showDuration = false
                 opts.showStack = false
+            else
+                -- Pandemic fill: the one time-based colour a rect can still have, because the
+                -- ENGINE decides when to show it (AddPandemicRegion). The switch is structural
+                -- (the region is handed over in the initializeFrame window, so turning it on
+                -- or off needs fresh buttons); the colour is cosmetic (a repaint of our own
+                -- texture). Absent = off.
+                local pc = t["pandemicColor"]
+                opts.pandemicOn = type(pc) == "table" and pc[1] == true
+                opts.pandemicColor = type(pc) == "table" and pc[2] or nil
             end
         end
         -- a text-style indicator with no explicit duration toggle still shows its countdown
@@ -526,6 +536,11 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
                 end
             end
             opts.durationColors = { base = d[2], thresholds = thresholds }
+        else
+            -- ⚠ Sent as false, not left out: SetOptions only walks the keys it is given, so
+            -- an absent key kept the curve from when the option was on -- turning it off did
+            -- nothing until a /reload. false = "no curve" everywhere durationColors is read.
+            opts.durationColors = false
         end
         if t.size then opts.size = t.size[1]; opts.sizeH = t.size[2] end
         if t.num then opts.num = t.num end

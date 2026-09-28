@@ -861,6 +861,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if t["colors"] then
                     indicator:SetColors(t["colors"])
                 end
+                -- update pandemicColor (rect only; the preview approximates the window)
+                if indicator.SetPandemicColor then
+                    indicator:SetPandemicColor(t["pandemicColor"])
+                end
                 -- update durationColor (unified countdown colour widget). Only the text
                 -- indicator consumes it off the container path; everything else reads it
                 -- through ConfigureContainer.
@@ -1073,6 +1077,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
         elseif setting == "durationColor" and indicator.SetDurationColors then
             indicator:SetDurationColors(value)
             indicator.preview.elapsedTime = 13 -- update now!
+        elseif setting == "pandemicColor" and indicator.SetPandemicColor then
+            indicator:SetPandemicColor(value)
+            indicator.preview.elapsedTime = 13 -- update now!
         elseif setting == "vehicleNamePosition" then
             indicator:UpdateVehicleNamePosition(value)
         elseif setting == "statusColors" then
@@ -1230,6 +1237,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             -- update colors
             if value["colors"] then
                 indicator:SetColors(value["colors"])
+            end
+            if indicator.SetPandemicColor then
+                indicator:SetPandemicColor(value["pandemicColor"])
             end
             -- update colors
             if value["texture"] then
@@ -1937,7 +1947,15 @@ local function ShowIndicatorSettings(id)
         elseif indicatorType == "bars" then
             settingsTable = {"enabled", "auras", "maxValue", "checkbutton3:showStack", "durationVisibility", "glowOptions", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
         elseif indicatorType == "rect" then
-            settingsTable = {"enabled", "auras", "colors", "checkbutton3:showStack", "durationVisibility", "glowOptions", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            if indicatorTable["auraType"] == "buff" then
+                -- buff rects run on the AuraContainer path: the remaining-time bands of
+                -- "colors" cannot fire there (secret countdown), so they get the engine's
+                -- Pandemic window + the countdown colour curve instead (see rectColors)
+                settingsTable = {"enabled", "auras", "rectColors", "checkbutton3:showStack", "durationVisibility", "durationColor", "glowOptions", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            else
+                -- debuff rects stay on the manual path, where the bands still work
+                settingsTable = {"enabled", "auras", "colors", "checkbutton3:showStack", "durationVisibility", "glowOptions", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            end
         elseif indicatorType == "color" then
             settingsTable = {"enabled", "auras", "customColors", "anchor", "frameLevel:50"}
         elseif indicatorType == "texture" then
@@ -2223,6 +2241,19 @@ local function ShowIndicatorSettings(id)
             w:SetFunc(function(value)
                 -- NOTE: already changed in widget
                 Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "colors", value)
+            end)
+
+        -- rectColors (buff rect): colors[1]/[4] + pandemicColor {en, {r,g,b,a}}
+        elseif currentSetting == "rectColors" then
+            -- layouts saved before the option have no pandemicColor: write the default back
+            -- first, so the widget always edits a real table (absent = off, same as this)
+            if type(indicatorTable["pandemicColor"]) ~= "table" then
+                indicatorTable["pandemicColor"] = {false, {1, 1, 0, 1}}
+            end
+            w:SetDBValue(indicatorTable["colors"], indicatorTable["pandemicColor"])
+            w:SetFunc(function(key, value)
+                -- NOTE: already changed in widget; key is "colors" or "pandemicColor"
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, key, value)
             end)
 
         -- durationColor (unified countdown colour-by-time: {en, base, {en,sec,col}, {en,sec,col}})

@@ -577,8 +577,15 @@ local SPENT_COLOR = { 0, 0, 0, 1 }
 --      at creation and leave it.
 --   3. No Lua-driven animation: OnUpdate / AnimationGroup attach inside the subtree but
 --      never tick (onUpdateMode is disabled and inherits). Effects are static. Anything
---      time-based must come from the engine (SetDurationCooldown / SetDurationBar) or not
---      at all -- "fade out as it expires" is gone with the remaining duration.
+--      time-based must come from the engine (SetDurationCooldown / SetDurationBar /
+--      AddPandemicRegion) or not at all -- "fade out as it expires" is gone with the
+--      remaining duration.
+--
+-- The one engine-driven exception so far: rect's Pandemic fill (12.1.5). We hand the engine
+-- a texture with AddPandemicRegion and it SetShown()s it while the aura sits in its Pandemic
+-- window (recasting would waste none of the remaining time). The region is stamped
+-- SecretAspect.Shown, so we never read whether it is showing and never Show/Hide it again;
+-- turning the option off is a rebuild (pandemicOn is structural), never a Hide.
 -- ============================================================
 local EFFECT_SLOT_STYLES = {
     color   = true,   -- health-bar / unit-button tint
@@ -820,6 +827,34 @@ local function BuildEffectRect(handle, button, cfg)
     button.dfEffTex:SetColorTexture(fr, fg, fb, fa)
     local br, bg, bb, ba = ColorOr(colors and colors[4], 0, 0, 0, 1)
     holder:SetBackdropBorderColor(br, bg, bb, ba)
+
+    -- Pandemic fill (12.1.5): a second fill over the normal one that the ENGINE shows while
+    -- the aura is in its Pandemic window. See the EFFECT SLOTS note for the rules.
+    if cfg.pandemicOn and button.AddPandemicRegion then
+        if not button.dfPandemicTex then
+            -- ⚠ A TEXTURE, not a frame: AddPandemicRegion validates RequireObjectType("Region")
+            -- and a Frame is not a Region in the current widget hierarchy -- the pcall would
+            -- swallow the refusal and the option would just never light up.
+            -- Inset by the border so it never covers the backdrop edge; sublevel -6 puts it
+            -- over dfEffTex (-7). Hidden before the hand-over: if the engine refuses it, it
+            -- must not sit there permanently lit (on success the engine sets it right away).
+            local pt = holder:CreateTexture(nil, "BORDER", nil, -6)
+            pt:SetPoint("TOPLEFT", holder, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+            pt:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+            pt:Hide()
+            button.dfPandemicTex = pt
+        end
+        -- the colour is ours to write at any time (cosmetic key -> Restyle lands here);
+        -- only its visibility belongs to the engine
+        local pr, pg, pb, pa = ColorOr(cfg.pandemicColor, 1, 1, 0, 1)
+        button.dfPandemicTex:SetColorTexture(pr, pg, pb, pa)
+        if not button._boundPandemic then
+            button._boundPandemic = true
+            -- only legal inside the initializeFrame window; after the hand-over this texture
+            -- carries SecretAspect.Shown -- never read IsShown / never Show or Hide it
+            pcall(button.AddPandemicRegion, button, button.dfPandemicTex)
+        end
+    end
 end
 
 local function BuildEffectTexture(handle, button, cfg)
@@ -939,8 +974,10 @@ local function StyleButton(handle, button)
     -- block/text -- the container owns the button's visibility, so aura PRESENCE needs no
     -- read -- but these fill their whole anchor rather than sitting in a row, so the slot
     -- button IS the effect. See the EFFECT SLOTS note at the top of the file.
-    -- ⚠ No time-based behaviour of any kind: the old fade-out / colour-by-remaining and the
+    -- ⚠ No Lua-driven time-based behaviour: the old fade-out / colour-by-remaining and the
     -- percent-and-seconds threshold bands all needed a countdown we can no longer read.
+    -- What time-based remains is engine-driven: rect's countdown text (with its colour
+    -- curve) and rect's Pandemic fill (AddPandemicRegion, see BuildEffectRect).
     local effBuild = cfg.customStyle and EFFECT_BUILDERS[cfg.customStyle]
     if effBuild then
         effBuild(handle, button, cfg)
@@ -2148,6 +2185,10 @@ local COSMETIC_KEYS = {
     -- effect-slot visuals: pure styling, so a colour/thickness/texture tweak restyles the
     -- existing slot instead of tearing the container down and rebuilding it
     effectColors = true, effectThickness = true, effectTexture = true,
+    -- rect's Pandemic fill colour: a repaint of our own texture. Its on/off switch
+    -- (pandemicOn) is NOT here -- the region is handed to the engine in the initializeFrame
+    -- window, so flipping it needs fresh buttons.
+    pandemicColor = true,
 }
 
 -- geometry keys: 12.1 has SetAuraGroupLayout as a LIVE setter and StyleButton already
